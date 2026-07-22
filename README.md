@@ -1,7 +1,14 @@
 # WYD-Go
 
+![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
+![Go](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)
+![Status](https://img.shields.io/badge/status-playable-brightgreen.svg)
+
 A server-authoritative emulator for **With Your Destiny (WYD)**, client version
 **7.48**, written from scratch in Go.
+
+> A non-commercial project built to study network-protocol reverse-engineering,
+> game-server architecture, and Go. See the [Disclaimer](#disclaimer).
 
 The client renders state and sends intent; the server is the sole source of
 truth for inventory, stats, combat, skills, progression and persistence. No
@@ -122,7 +129,23 @@ hand-edited by the running server:
 | `droprate.json` | loot table weights |
 | `server.txt` | server-wide configuration and gameplay rules |
 
+## Disclaimer
+
+WYD-Go is an independent, **non-commercial fan project** made for **educational
+purposes** — learning network-protocol reverse-engineering, game-server design,
+and Go. It is not affiliated with, authorized, or endorsed by the owners of
+*With Your Destiny*.
+
+*With Your Destiny* and all related names, logos, artwork, and trademarks are
+the property of their respective owners. **This repository contains no
+proprietary game client, art, audio, map, or other assets** — only original
+server code and configuration. A separate, legally obtained game client is
+required to connect and is not provided here.
+
 ## License
 
-No license has been chosen yet. All rights reserved by the author unless a
-license file is added.
+Licensed under the **GNU General Public License v3.0** — see [LICENSE](LICENSE).
+
+You may use, study, modify, and redistribute this code under the terms of the
+GPLv3; any distributed derivative must remain under the same license and keep
+its source available.
