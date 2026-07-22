@@ -1,0 +1,23 @@
+050 FFFFFF LV 50   Chaos Cube(N)
+070 FFFFFF LV 70   Divine Circle
+071 FFFFFF LV 71   Magic Chamber
+075 FFFFFF LV 75   Monster Trader
+080 FFFFFF LV 80   Finding Heaven's Track
+085 FFFFFF LV 85   Nightmare(N)
+090 FFFFFF LV 90   Chaos Cube(M)
+100 FFFFFF LV 100 Switch Stone
+110 FFFFFF LV 110 Water Elemental Zone(N)
+150 FFFFFF LV 150 Legend of the Chaos Devil
+150 FFFFFF LV 150 WYD Expedition
+160 FFFFFF LV 160 Chaos Cube(A)
+180 FFFFFF LV 180 Water Elemental Zone(M)
+200 FFFFFF LV 200 Nightmare(M)
+210 FFFFFF LV 210 Hellgate - Gate of Hell
+220 FFFFFF LV 220 Medal of Kingdom
+256 FFFFFF LV 256 Endless Storm
+260 FFFFFF LV 260 Legend of the Chaos Devil
+275 FFFFFF LV 275 Water Elemental Zone(A)
+280 FFFFFF LV 280 To Find Eternal Life
+280 FFFFFF LV 280 To New Begin
+295 FFFFFF LV 295 Nightmare(A)
+300 FFFFFF LV 300 Legend of the Chaos Devil

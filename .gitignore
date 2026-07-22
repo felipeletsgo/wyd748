@@ -5,8 +5,6 @@ account-api.exe
 account-api
 account-create.exe
 account-create
-*.exe
-*.exe~
 
 # Cache de build do Go
 .gocache*/

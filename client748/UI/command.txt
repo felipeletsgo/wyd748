@@ -1,0 +1,46 @@
+FFFFFF
+FFFFFF ¡ÚGuild Commands¡Ú
+33FFFF guild
+AAFFAA Check The patron and enemies of other guild members that is currently online
+33FFFF guildtax [tax rate]
+AAFFAA Command use to adjust guild's taxes (Taxes range 0% ~ 20%)
+AAFFAA Use by guild's association president, to set the taxes on the town they conquer
+33FFFF /summonguildmembers
+AAFFAA Gather all guild's members that is currently online
+AAFFAA ¡Ø Guild master can gather every members in guild, including vice guild leader
+AAFFAA ¡Ø Vice guild leader can summon, members that belongs to his sub guild
+33FFFF /expel [guild member's name]
+AAFFAA Expel certain guild member from the guild
+33FFFF /tele [guild member's name]
+AAFFAA Move to the location of the specific guild member
+AAFFAA ¡Ø Only applied to guild master and peoples that is wearing the kingdom's medal
+33FFFF /Endwar
+AAFFAA End the enemies status with other guild
+AAFFAA ¡Ø Only applied to guild master
+33FFFF /Endallies
+AAFFAA End all the allies with other guild
+AAFFAA ¡Ø Only applied to Guild master
+FFFFFF 
+FFFFFF ¡ÚChatting Commands¡Ú
+33FFFF /Players' name [Content of Chat]
+AAFFAA Whisper others
+33FFFF /r [Content of Chat]
+AAFFAA Reply others' whisper
+33FFFF = [Content of Chat]
+AAFFAA Party chat, only party members can see it
+33FFFF - [Content of Chat]
+AAFFAA Guild chat, only guild members can see it
+33FFFF -- [Content of Chat]
+AAFFAA Allies chat, only allies members can see it
+33FFFF * [Content of Chat]
+AAFFAA Display chat content above player's head for 10 second
+33FFFF /Players' name ! [Content of Chat]
+AAFFAA Send a sort massage to a certain player, after receiving, it will dissapear
+FFFFFF 
+FFFFFF ¡ÚKingdom Commands¡Ú
+33FFFF /Town or /Kingdom
+AAFFAA Send players to their respective kingdom 
+AAFFAA ¡Ø Only applies to players that joined the kingdom
+33FFFF /king
+AAFFAA Teleport players to the side of the king
+AAFFAA ¡Ø Only Applies to Whoever wants to join a kingdom
