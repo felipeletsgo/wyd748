@@ -31,7 +31,7 @@ func TestSummonOnlyUsesOwnerCombatOrders(t *testing.T) {
 		Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
 	ordered := &Mob{ID: 1001, X: 2202, Y: 2100, HP: 100,
 		Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
-	w := &World{mobs: []*Mob{attacked, ordered}}
+	w := testSpatialWorld([]*Mob{attacked, ordered})
 
 	owner.LastAttackerID = attacked.ID
 	if got := w.ownerSummonTarget(owner); got.mob != attacked {

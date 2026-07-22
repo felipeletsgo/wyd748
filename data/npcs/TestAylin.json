@@ -1,0 +1,10 @@
+{
+  "name": "TestAylin",
+  "tipo": "npc",
+  "equip": { "rosto": { "index": 59 }, "armadura": { "index": 121 }, "calca": { "index": 122 }, "luva": { "index": 123 }, "bota": { "index": 124 } },
+  "extendedScore": { "version": 2, "level": 2, "defense": 3000, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 811, "eff": [43, 9, 0, 0, 0, 0] },
+    { "index": 1774 }, { "index": 2441 }, { "index": 2442 }, { "index": 2443 }, { "index": 2444 }
+  ]
+}

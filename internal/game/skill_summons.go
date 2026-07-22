@@ -66,6 +66,48 @@ func (w *World) removePlayerSummons(ownerID uint16) {
 	}
 }
 
+func (w *World) removeContractSummons(ownerID uint16) {
+	var found []*Mob
+	for _, m := range w.mobs {
+		if m != nil && m.SummonerID == ownerID && m.SummonKind == summonKindContract {
+			found = append(found, m)
+		}
+	}
+	for _, m := range found {
+		for _, viewer := range w.players {
+			w.hideMob(viewer, m, 0)
+		}
+		m.Dead = true
+		w.removeMobInstance(m)
+	}
+}
+
+// replaceContractSummon implementa o limite autoritativo de um contrato por
+// jogador. A familia fica no nome/template para a futura regra de reino.
+func (w *World) replaceContractSummon(owner *Player, t *model.VolatileSummon) bool {
+	if owner == nil || t == nil || t.Face == 0 || t.HP == 0 {
+		return false
+	}
+	x, y := w.findFreePosition(owner.X, owner.Y, 3)
+	if !w.terrain.Walkable(x, y) {
+		return false
+	}
+	w.removeContractSummons(owner.ID)
+	attackRun := byte(clampInt(int(t.MoveSpeed), 1, 15))
+	def := &model.NPCDef{
+		Name: t.Name + "^", Tipo: model.TipoMonstro,
+		Equip: model.Equip{Rosto: model.Item{Index: t.Face}, Arma: model.Item{Index: t.Weapon}, Escudo: model.Item{Index: t.Shield}},
+		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, Level: playerLevel(owner.Char),
+			Attack: t.Attack, Defense: t.Defense, MaxHP: t.HP, MaxMP: 100, AttackRun: attackRun},
+	}
+	def.Extended.CurHP, def.Extended.CurMP = t.HP, 100
+	m := &Mob{ID: w.allocMobID(), Def: def, X: x, Y: y, HP: t.HP, GenerIndex: -1,
+		SummonerID: owner.ID, SummonKind: summonKindContract, SummonRange: t.AttackRange}
+	w.mobs = append(w.mobs, m)
+	w.publishMobSpawn(m)
+	return true
+}
+
 func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) bool {
 	idx := skill.InstanceValue - 1
 	if owner == nil || idx < 0 || idx >= len(summonTemplates) {
@@ -76,7 +118,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 	current := 0
 	obsolete := make([]*Mob, 0)
 	for _, m := range w.mobs {
-		if m.SummonerID != owner.ID || m.Dead {
+		if m.SummonerID != owner.ID || m.Dead || m.SummonKind == summonKindContract || m.SummonKind == summonKindMount {
 			continue
 		}
 		if m.Def.Equip.Rosto.Index != template.face {
@@ -119,7 +161,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		}
 		def.Extended.CurHP, def.Extended.CurMP = def.Extended.MaxHP, def.Extended.MaxMP
 		m := &Mob{ID: w.allocMobID(), Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
-			GenerIndex: -1, LeaderID: 0, SummonerID: owner.ID}
+			GenerIndex: -1, LeaderID: 0, SummonerID: owner.ID, SummonKind: summonKindBM, SummonRange: mobAttackRange}
 		w.mobs = append(w.mobs, m)
 		w.publishMobSpawn(m)
 		current++
@@ -136,6 +178,8 @@ type summonCombatTarget struct {
 	user *Player
 }
 
+const summonCommandRange = 30
+
 func (w *World) summonTarget(owner *Player, id uint16) summonCombatTarget {
 	if owner == nil || id == 0 || id == owner.ID {
 		return summonCombatTarget{}
@@ -143,14 +187,14 @@ func (w *World) summonTarget(owner *Player, id uint16) summonCombatTarget {
 	if id >= 1000 {
 		m := w.mobByID(id)
 		if m == nil || m.HP == 0 || !m.Def.IsMonster() || m.SummonerID != 0 ||
-			chebyshev(owner.X, owner.Y, m.X, m.Y) > mobLeashRange {
+			chebyshev(owner.X, owner.Y, m.X, m.Y) > summonCommandRange {
 			return summonCombatTarget{}
 		}
 		return summonCombatTarget{id: id, x: m.X, y: m.Y, mob: m}
 	}
 	p := w.playerByID(id)
 	if !validMobTarget(p) || p == owner || p.Party != nil && p.Party == owner.Party ||
-		chebyshev(owner.X, owner.Y, p.X, p.Y) > mobLeashRange {
+		chebyshev(owner.X, owner.Y, p.X, p.Y) > summonCommandRange {
 		return summonCombatTarget{}
 	}
 	return summonCombatTarget{id: id, x: p.X, y: p.Y, user: p}
@@ -176,8 +220,11 @@ func (w *World) moveSummonToward(summon *Mob, x, y uint16, stopDistance int, now
 }
 
 func (w *World) tickSummonCombat(now time.Time) {
-	for _, summon := range w.mobs {
+	for _, summon := range w.summons {
 		if summon == nil || summon.Dead || summon.HP == 0 || summon.SummonerID == 0 {
+			continue
+		}
+		if summon.SummonKind == summonKindThornWall {
 			continue
 		}
 		owner := w.playerByID(summon.SummonerID)
@@ -185,7 +232,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 			continue
 		}
 		// Pet-cria da montaria: passivo, apenas acompanha o dono, nunca ataca.
-		if summon.Def != nil && isCriaPetFace(summon.Def.Equip.Rosto.Index) {
+		if summon.SummonKind == summonKindMount || summon.Def != nil && isCriaPetFace(summon.Def.Equip.Rosto.Index) {
 			if chebyshev(summon.X, summon.Y, owner.X, owner.Y) > 3 {
 				w.moveSummonToward(summon, owner.X, owner.Y, 3, now)
 			}
@@ -202,8 +249,12 @@ func (w *World) tickSummonCombat(now time.Time) {
 			continue
 		}
 		summon.TargetID = target.id
-		if chebyshev(summon.X, summon.Y, target.x, target.y) > mobAttackRange {
-			w.moveSummonToward(summon, target.x, target.y, mobAttackRange, now)
+		attackRange := summon.SummonRange
+		if attackRange <= 0 {
+			attackRange = mobAttackRange
+		}
+		if chebyshev(summon.X, summon.Y, target.x, target.y) > attackRange {
+			w.moveSummonToward(summon, target.x, target.y, attackRange, now)
 			continue
 		}
 		if now.Before(summon.NextMove) {

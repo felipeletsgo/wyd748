@@ -2,6 +2,7 @@ package game
 
 import (
 	"log"
+	"math/rand"
 	"time"
 
 	"wydgo/internal/model"
@@ -275,7 +276,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 	targets := w.supportTargets(p, req, skill)
 	changed := make([]supportSkillResult, 0, len(targets))
 	for _, target := range targets {
-		if playerCurHP(target.Char) == 0 && skill.Index != 31 {
+		if playerCurHP(target.Char) == 0 && skill.Index != 31 && skill.Index != 99 {
 			continue
 		}
 		oldMaxHP := playerMaxHP(target.Char)
@@ -288,13 +289,28 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 			heal := foemaHealAmount(skill.Index, mastery, skill.InstanceValue)
 			restorePlayerHP(target.Char, uint32(heal))
 			applied = true
-		case 31: // Renascimento: regra Mortal da W2PP (50% e toda a MP do caster).
+		case 31: // Renascimento Foema.
 			setPlayerCurMP(p.Char, 0)
 			if playerCurHP(target.Char) == 0 && time.Now().UnixNano()&1 == 0 {
 				setPlayerCurHP(target.Char, playerMaxHP(target.Char))
 				setPlayerCurMP(target.Char, playerMaxMP(target.Char))
 				target.DeadAt = time.Time{}
 				applied = true
+			}
+		case 99: // Ressurreicao Sephira: somente autocast do morto (Secrets 7.54).
+			if target == p && playerCurHP(target.Char) == 0 {
+				chance := clampInt((int(playerLevel(target.Char))+1)/5, 0, 100)
+				if rand.Intn(100) < chance {
+					halfHP := playerMaxHP(target.Char) / 2
+					if halfHP == 0 {
+						halfHP = 1
+					}
+					setPlayerCurHP(target.Char, halfHP)
+					setPlayerCurMP(target.Char, playerMaxMP(target.Char)/2)
+					target.DeadAt = time.Time{}
+					target.LastAttackerID, target.CombatTargetID = 0, 0
+					applied = true
+				}
 			}
 		case 42: // Teleporte: traz o membro selecionado para junto do caster.
 			if target != p {
@@ -647,6 +663,12 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			e.Accuracy = add(e.Accuracy, 2000)
 		case 31:
 			e.Defense = add(e.Defense, int64(a.Level/2+a.Value))
+		case 35: // Bigger/Health Potion: bonus nativo de 10% no HP maximo.
+			bonus := a.Value
+			if bonus <= 0 {
+				bonus = 10
+			}
+			e.MaxHP = mul(e.MaxHP, 100+bonus)
 		case 37:
 			e.Attack = add(e.Attack, int64(playerMastery(ch, 2)))
 		case 38:
@@ -666,8 +688,11 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 	projectExtendedRuntime(ch)
 }
 
-func (w *World) tickMobAffects(now time.Time) {
-	for _, m := range w.mobs {
+func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
+	for _, m := range w.activeMobs {
+		if shardCount > 1 && int(m.ID)%shardCount != shard {
+			continue
+		}
 		if m == nil || m.Dead || m.HP == 0 {
 			continue
 		}
@@ -770,7 +795,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		return
 	}
 	targets := make([]*Mob, 0, 6)
-	for _, m := range w.mobs {
+	for _, m := range w.nearbyMobs(p.X, p.Y, 4) {
 		if m == nil || m.Dead || m.HP == 0 || !m.Def.IsMonster() || m.SummonerID != 0 ||
 			chebyshev(p.X, p.Y, m.X, m.Y) > 4 {
 			continue

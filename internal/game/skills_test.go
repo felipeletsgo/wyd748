@@ -101,11 +101,11 @@ func TestSkillMonsterTargetsUsesAreaAndMaxTarget(t *testing.T) {
 		return &Mob{ID: id, X: x, Y: y, HP: 100,
 			Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
 	}
-	w := &World{mobs: []*Mob{
+	w := testSpatialWorld([]*Mob{
 		monster(1000, 11, 10),
 		monster(1001, 12, 10),
 		monster(1002, 20, 20),
-	}}
+	})
 	p := &Player{X: 10, Y: 10}
 	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: 1000}, model.SkillDef{Range: 2, MaxTarget: 13})
 	if len(targets) != 2 || targets[0].ID != 1000 || targets[1].ID != 1001 {
@@ -116,7 +116,7 @@ func TestSkillMonsterTargetsUsesAreaAndMaxTarget(t *testing.T) {
 func TestSkillMonsterTargetsNeverSubstitutesClientTarget(t *testing.T) {
 	m := &Mob{ID: 1000, X: 11, Y: 10, HP: 100,
 		Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
-	w := &World{mobs: []*Mob{m}}
+	w := testSpatialWorld([]*Mob{m})
 	p := &Player{X: 10, Y: 10}
 	if got := w.skillMonsterTargets(p, skillCastRequest{TargetID: 9999},
 		model.SkillDef{Range: 6, MaxTarget: 1}); len(got) != 0 {
@@ -129,7 +129,7 @@ func TestRapidHitKeepsSixHitsOnOneTarget(t *testing.T) {
 		return &Mob{ID: id, X: x, Y: y, HP: 100,
 			Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
 	}
-	w := &World{mobs: []*Mob{monster(1000, 11, 10), monster(1001, 12, 10)}}
+	w := testSpatialWorld([]*Mob{monster(1000, 11, 10), monster(1001, 12, 10)})
 	p := &Player{X: 10, Y: 10}
 	skill := model.SkillDef{Index: 95, Range: 6, MaxTarget: 6}
 	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: 1000}, skill)
@@ -186,10 +186,7 @@ func TestSkillPlayerTargetsRejectsPartyAndUsesSelectedEnemy(t *testing.T) {
 	member := &Player{ID: 3, InWorld: true, X: 11, Y: 10, Char: &model.Char{Extended: testExtended(model.ExtendedScore{MaxHP: 100, CurHP: 100})}}
 	party := &Party{Members: []*Player{caster, member}}
 	caster.Party, member.Party = party, party
-	// playerByID percorre valores; inclua os tres usando sessoes distintas vazias.
-	w := &World{players: map[*net.Session]*Player{
-		&net.Session{ID: 1}: caster, &net.Session{ID: 2}: enemy, &net.Session{ID: 3}: member,
-	}}
+	w := testSpatialWorld(nil, caster, enemy, member)
 	skill := model.SkillDef{Range: 6, MaxTarget: 1, Aggressive: 1}
 	if got := w.skillPlayerTargets(caster, skillCastRequest{TargetID: enemy.ID}, skill); len(got) != 1 || got[0] != enemy {
 		t.Fatalf("inimigo selecionado nao foi aceito: %+v", got)

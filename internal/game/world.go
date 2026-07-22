@@ -83,6 +83,8 @@ type Player struct {
 	// NPC cuja loja esta aberta. O buy do 7.48 vem com TargetID=0, portanto o
 	// servidor usa este ID autoritativo em vez de confiar no pacote.
 	ShopNPC       uint16
+	CraftNPC      uint16
+	LastCraft     time.Time
 	DeadAt        time.Time
 	LastPotion    time.Time
 	SkillReady    map[int]time.Time
@@ -146,7 +148,18 @@ type Mob struct {
 	Affects          [16]model.Affect
 	AffectOwners     [16]uint16
 	SummonerID       uint16
+	SummonKind       byte
+	SummonRange      int
+	ExpiresAt        time.Time
+	Awake            bool
 }
+
+const (
+	summonKindBM byte = iota + 1
+	summonKindContract
+	summonKindMount
+	summonKindThornWall
+)
 
 type generState struct {
 	def          model.NPCGener
@@ -231,6 +244,7 @@ func WithMounts(catalog model.MountCatalog) WorldOption {
 type World struct {
 	commands        chan command
 	players         map[*net.Session]*Player
+	playersByID     map[uint16]*Player
 	accountSessions map[string]*net.Session
 	authPending     map[*net.Session]bool
 	authSlots       chan struct{}
@@ -241,6 +255,14 @@ type World struct {
 	store           store.Store
 	npcs            []model.NPCDef
 	mobs            []*Mob
+	mobsByID        map[uint16]*Mob
+	mobCells        map[uint32]map[uint16]*Mob
+	playerCells     map[uint32]map[uint16]*Player
+	mobCell         map[uint16]uint32
+	playerCell      map[uint16]uint32
+	activeMobs      map[uint16]*Mob
+	summons         map[uint16]*Mob
+	sephiraObjects  map[uint16]*Mob
 	generators      []generState
 	nextMobID       uint16
 	items           map[uint16]model.ItemDef
@@ -273,6 +295,7 @@ type World struct {
 	// Evita que pacotes informativos ainda nao materializados contaminem o log
 	// em clientes que os enviam a cada frame.
 	lastProtocolNotice map[uint16]time.Time
+	mobTickCounter     uint64
 }
 
 func (w *World) allocMobID() uint16 {
@@ -290,11 +313,20 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	w := &World{
 		commands:           make(chan command, 1024),
 		players:            make(map[*net.Session]*Player),
+		playersByID:        make(map[uint16]*Player),
 		accountSessions:    make(map[string]*net.Session),
 		authPending:        make(map[*net.Session]bool),
 		authSlots:          make(chan struct{}, 4),
 		store:              st,
 		npcs:               npcs,
+		mobsByID:           make(map[uint16]*Mob),
+		mobCells:           make(map[uint32]map[uint16]*Mob),
+		playerCells:        make(map[uint32]map[uint16]*Player),
+		mobCell:            make(map[uint16]uint32),
+		playerCell:         make(map[uint16]uint32),
+		activeMobs:         make(map[uint16]*Mob),
+		summons:            make(map[uint16]*Mob),
+		sephiraObjects:     make(map[uint16]*Mob),
 		nextMobID:          1000,
 		items:              catalog.Items,
 		skills:             catalog.Skills,
@@ -508,12 +540,13 @@ func (w *World) positionOccupiedExcept(x, y uint16, exceptMob *Mob, exceptPlayer
 	if !w.terrain.Walkable(x, y) {
 		return true
 	}
-	for _, m := range w.mobs {
+	key := spatialKey(x, y)
+	for _, m := range w.mobCells[key] {
 		if m != exceptMob && !m.Dead && m.X == x && m.Y == y {
 			return true
 		}
 	}
-	for _, p := range w.players {
+	for _, p := range w.playerCells[key] {
 		if p != exceptPlayer && p.InWorld && p.Char != nil && playerCurHP(p.Char) > 0 && p.X == x && p.Y == y {
 			return true
 		}
@@ -567,6 +600,7 @@ func (w *World) findFreePlayerPosition(x, y uint16, radius int, player *Player) 
 // recebeu RemoveMob; conservar o ponteiro aqui so aumenta a busca linear e,
 // depois de muitos respawns, faz parecer que os grupos antigos ainda existem.
 func (w *World) removeMobInstance(dead *Mob) {
+	w.unregisterMobSpatial(dead)
 	for i, m := range w.mobs {
 		if m == dead {
 			copy(w.mobs[i:], w.mobs[i+1:])
@@ -662,7 +696,10 @@ func (w *World) Enqueue(s *net.Session, pkt []byte) {
 
 // Run e o game loop: comandos dos clients + tick do jogo, processados linearmente.
 func (w *World) Run() {
-	ticker := time.NewTicker(200 * time.Millisecond)
+	// TIMER_SEC nativo: 500 ms. A IA pesada e sharded dentro de tick(), como o
+	// TMSrv (combate %4; paz/rota/affects %6), em vez de varrer milhares de mobs
+	// cinco vezes por segundo.
+	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	for {
 		select {
@@ -701,11 +738,23 @@ func (w *World) safeHandle(cmd command) {
 // espaco em MaxNumMob. Entradas -1/0 sao apenas de geracao inicial/manual.
 func (w *World) tick() {
 	now := time.Now()
-	w.tickMobCombat(now)
+	w.mobTickCounter++
+	// O grid ja reduziu a lista aos mobs com jogador proximo. Uma vez acordado,
+	// o mob percebe alvo a cada 1 s. Perseguicao e patrulha so iniciam um novo
+	// trecho a cada 2 s, evitando emendar animacoes na velocidade maxima. O
+	// executor permanece em 500 ms para cumprir o cooldown de 1,5 s.
+	if w.mobTickCounter%2 == 0 {
+		allowMovement := w.mobTickCounter%4 == 0
+		w.tickMobCombat(now, 0, 1, allowMovement)
+		if allowMovement {
+			w.tickMobRoutes(now, 0, 1)
+		}
+	}
+	w.tickActiveMobActions(now)
 	w.tickSummonCombat(now)
-	w.tickMobRoutes(now)
+	w.tickSephiraObjects(now)
 	w.tickPlayerAffects(now)
-	w.tickMobAffects(now)
+	w.tickMobAffects(now, int(w.mobTickCounter%6), 6)
 	w.tickPlayerRegen(now)
 	w.tickPlayerMounts(now)
 	w.tickGroundItems(now)
@@ -850,6 +899,20 @@ func (w *World) handle(cmd command) {
 	case wire.OpAttackOne, wire.OpAttackMulti, wire.OpAttackTwo:
 		// 0x39D e o melee do 7.48 (confirmado in-game: repete ~1x/s ao atacar).
 		w.onAttack(cmd.s, cmd.pkt)
+	case wire.OpCombineTiny:
+		w.onCombineTiny(cmd.s, cmd.pkt)
+	case wire.OpCombineLindy:
+		w.onCombineLindy(cmd.s, cmd.pkt)
+	case wire.OpCombineCompositor:
+		w.onCombineCompositor(cmd.s, cmd.pkt)
+	case wire.OpCombineAgatha:
+		w.onCombineAgatha(cmd.s, cmd.pkt)
+	case wire.OpCombineAylin:
+		w.onCombineAylin(cmd.s, cmd.pkt)
+	case wire.OpCombineEhre:
+		w.onCombineEhre(cmd.s, cmd.pkt)
+	case wire.OpCombineOdin:
+		w.onCombineOdin(cmd.s, cmd.pkt)
 	default:
 		log.Printf("[#%d] sem handler: Type=0x%X Size=%d", cmd.s.ID, h.Type, h.Size)
 	}
@@ -859,30 +922,57 @@ func (w *World) handle(cmd command) {
 // player carrega refino/adds). Usado como fallback do loot (inventario cheio) e
 // pelo jogar-item (0x272).
 func (w *World) spawnDrop(x, y uint16, item model.Item) *GroundItem {
-	// Variar ligeiramente a posicao para nao ficar exatamente embaixo do monstro
-	dropX := x + uint16(rand.Intn(3)) - 1
-	dropY := y + uint16(rand.Intn(3)) - 1
+	// O client procura Canhao (746) exatamente sob o jogador e somente nos IDs
+	// 15001..15100. Demais drops continuam espalhados ao redor da origem.
+	dropX, dropY := x, y
+	if item.Index != 746 {
+		dropX = x + uint16(rand.Intn(3)) - 1
+		dropY = y + uint16(rand.Intn(3)) - 1
+	}
 
 	if _, ok := w.items[item.Index]; !ok {
 		log.Printf("Tentou dropar item inexistente: %d", item.Index)
 		return nil
 	}
 
-	id := w.nextItemID
-	w.nextItemID++
+	id := w.allocGroundItemID(item.Index)
+	if id == 0 {
+		return nil
+	}
 
 	gItem := &GroundItem{
 		ID:     id,
 		Item:   item,
 		X:      dropX,
 		Y:      dropY,
-		Expire: time.Now().Add(2 * time.Minute), // Item some em 2 minutos
+		Expire: time.Now().Add(2 * time.Minute),
 	}
 	w.groundItems[id] = gItem
 
 	// Enviar pacote CreateItem para quem esta perto
 	w.publishItemSpawn(gItem)
 	return gItem
+}
+
+func (w *World) allocGroundItemID(itemIndex uint16) uint16 {
+	if itemIndex == 746 {
+		for id := uint16(15001); id <= 15100; id++ {
+			if _, used := w.groundItems[id]; !used {
+				return id
+			}
+		}
+		return 0
+	}
+	for {
+		id := w.nextItemID
+		w.nextItemID++
+		if id >= 15001 && id <= 15100 {
+			continue
+		}
+		if _, used := w.groundItems[id]; !used {
+			return id
+		}
+	}
 }
 
 func (w *World) tickGroundItems(now time.Time) {

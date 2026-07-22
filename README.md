@@ -25,10 +25,8 @@ addresses) from public WYD server source references.
 
 Login, character selection and enter-world are fully wired to the 7.48 wire
 protocol (77 opcodes implemented), and the server is playable end-to-end.
-**336 automated tests** cover the game logic, wire encoding, and persistence
-layers.
 
-Systems implemented, server-authoritative, with tests:
+Systems implemented and server-authoritative:
 
 - **Accounts** — PBKDF2 password hashing, an HTTP account-signup API, and a
   CLI creation tool. No plaintext passwords anywhere in the data model.
@@ -57,7 +55,7 @@ Systems implemented, server-authoritative, with tests:
 ## Requirements
 
 - Go 1.26+
-- A WYD 7.48 client (not included in this repository — this is server-only)
+- Windows to run the bundled client in `client748/`
 
 ## Building
 
@@ -81,10 +79,9 @@ directory so the `data/...` paths resolve correctly.
 Accounts are created out-of-band, either through `account-create` (local CLI)
 or by running `account-api` and calling its HTTP signup endpoint.
 
-## Testing
+## Static checks
 
 ```powershell
-go test ./...
 go vet ./...
 ```
 
@@ -139,12 +136,11 @@ and Go. It is not affiliated with, authorized, or endorsed by the owners of
 *With Your Destiny* and all related names, logos, artwork, trademarks, and game
 data are the property of their respective owners.
 
-For interoperability with the 7.48 client, this repository includes data files
-(item, skill, NPC, spawn, and drop tables) **derived from the original game's
-data**. These files are **not** original work and remain the property of the
-game's owners; they are included only to make the server usable for study. No
-game client, artwork, audio, or map assets are distributed here — a separate,
-legally obtained client is required to connect.
+For interoperability with version 7.48, this repository includes server data
+files and a client bundle under `client748/`. The original game data, client,
+artwork, audio, and map assets are **not** original work and remain the property
+of the game's owners; they are included only to make the project usable for
+study.
 
 If you are a rights holder and want any file in this repository removed, please
 open an issue and it will be taken down promptly.

@@ -17,6 +17,9 @@ const ultimateSkillGold = 2_000_000
 // basicas. O teste do catalogo usa esta funcao para impedir que uma nova
 // reorganizacao do CSV transforme silenciosamente uma skill em no-op.
 func skillHasServerExecution(skill model.SkillDef) bool {
+	if skill.Index >= 97 && skill.Index <= 101 {
+		return true
+	}
 	if skill.Passive != 0 {
 		return true
 	}
@@ -358,7 +361,11 @@ func skillDamageMastery(ch *model.Char) int {
 }
 
 func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model.SkillDef) []*Mob {
-	castRange := uint16(maxInt(attackRange, skill.Range))
+	bonusRange := 0
+	if specialSkillLearned(p.Char, 101) {
+		bonusRange = 1
+	}
+	castRange := uint16(maxInt(attackRange, skill.Range+bonusRange))
 	primary := w.mobByID(req.TargetID)
 	if primary == nil || primary.Dead || primary.HP == 0 || !primary.Def.IsMonster() ||
 		primary.SummonerID != 0 || chebyshev(p.X, p.Y, primary.X, primary.Y) > int(castRange) {
@@ -390,7 +397,8 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	skillIndex, motion := req.Skill, req.Motion
 	local := skillIndex - int(p.Char.Class)*24
-	if local < 0 || local >= 24 || p.Char.LearnedSkill&(uint32(1)<<local) == 0 {
+	special := specialSkillLearned(p.Char, skillIndex)
+	if !special && (local < 0 || local >= 24 || p.Char.LearnedSkill&(uint32(1)<<local) == 0) {
 		return
 	}
 	skill, ok := w.skills[skillIndex]
@@ -415,17 +423,30 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		return
 	}
 	kind := local/8 + 1
+	if special {
+		kind = 4
+	}
 	mastery := int(playerMastery(p.Char, kind))
 	var targets []*Mob
 	var playerTargets []*Player
 	if skill.Aggressive != 0 {
-		playerTargets = w.skillPlayerTargets(p, req, skill)
-		if len(playerTargets) == 0 {
-			targets = w.skillMonsterTargets(p, req, skill)
+		if skillIndex == 98 {
+			if !w.canCastThornWall(p, req, skill) {
+				return
+			}
+		} else {
+			playerTargets = w.skillPlayerTargets(p, req, skill)
+			if len(playerTargets) == 0 {
+				targets = w.skillMonsterTargets(p, req, skill)
+			}
+			if len(targets) == 0 && len(playerTargets) == 0 {
+				return
+			}
 		}
-		if len(targets) == 0 && len(playerTargets) == 0 {
-			return
-		}
+	}
+	if skillIndex == 97 && (w.groundCannonAt(p.X, p.Y) == nil || len(targets) == 0 ||
+		chebyshev(p.X, p.Y, targets[0].X, targets[0].Y) < 4) {
+		return
 	}
 	mana := skillManaCost(skill, mastery, int(effectiveExtended(p.Char).SaveMana))
 	if playerCurMP(p.Char) < uint32(mana) {
@@ -453,6 +474,13 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if motion == 0 {
 		motion = 5
 	}
+	if skillIndex == 98 {
+		if w.castThornWall(p, req, skill, mastery, motion) {
+			w.syncPlayerScoreAndVitals(p)
+			log.Printf("[#%d] criou Vinha skill=98 @(%d,%d)", p.Session.ID, req.TargetX, req.TargetY)
+		}
+		return
+	}
 
 	if skill.Aggressive == 0 {
 		affected := w.applySupportSkill(p, req, skill, mastery)
@@ -470,9 +498,9 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			}
 		}
 		w.sendToPlayerView(p, func() []byte {
-			return wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
+			return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
 				p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
-				skill.MaxTarget, wireTargets)
+				skill.MaxTarget, wireTargets))
 		})
 		for _, result := range affected {
 			target := result.player
@@ -480,6 +508,10 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			w.syncPlayerVitals(target)
 			w.updatePartyMember(target)
 			w.sendToPlayerView(target, func() []byte { return wire.VisualEquip(target.ID, bodyMesh(target.Char)) })
+			if skillIndex == 99 && playerCurHP(target.Char) > 0 {
+				w.republishPlayerAppearance(target)
+				w.sendToPlayerView(target, func() []byte { return wire.ActionStop(target.ID, target.X, target.Y) })
+			}
 		}
 		w.syncPlayerScoreAndVitals(p)
 		log.Printf("[#%d] usou skill=%d %q mp=-%d cooldown=%s", p.Session.ID,
@@ -563,16 +595,16 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	}
 	primary := targets[0]
 	w.sendToMobView(primary, func() []byte {
-		return wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
+		return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
 			p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
-			skill.MaxTarget, wireTargets)
+			skill.MaxTarget, wireTargets))
 	})
 	for _, hit := range wideHits {
 		hit := hit
 		w.sendToMobView(hit.mob, func() []byte {
-			return wire.SkillHitExtended(p.ID, hit.mob.ID, p.X, p.Y, hit.mob.X, hit.mob.Y,
+			return spectralPacket(p.Char, wire.SkillHitExtended(p.ID, hit.mob.ID, p.X, p.Y, hit.mob.X, hit.mob.Y,
 				hit.damage, p.Char.Exp, playerCombatMP(p.Char),
-				int16(skillIndex), motion, skillVisualLevel(mastery))
+				int16(skillIndex), motion, skillVisualLevel(mastery)))
 		})
 	}
 	w.syncPlayerScoreAndVitals(p)

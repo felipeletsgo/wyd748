@@ -19,6 +19,8 @@ func (w *World) removePlayerFromWorld(p *Player, reason string) {
 	if p == nil {
 		return
 	}
+	w.unregisterPlayerSpatial(p)
+	delete(w.playersByID, p.ID)
 	w.closeGhostShop(p, reason)
 	w.cancelTrade(p, reason)
 	w.removePartyPlayer(p)
@@ -38,6 +40,7 @@ func (w *World) removePlayerFromWorld(p *Player, reason string) {
 	p.Char = nil
 	p.CharSlot = -1
 	p.ShopNPC = 0
+	p.CraftNPC = 0
 	p.Visible = nil
 	p.CombatTargetID = 0
 	p.LastAttackerID = 0

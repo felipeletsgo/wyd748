@@ -63,7 +63,7 @@ func syncSkillPoints(ch *model.Char) {
 		return
 	}
 	ensureExtendedScore(ch)
-	ch.Extended.SkillPts = uint32(mortalSkillPointBudget(int(ch.Extended.Level)))
+	ch.Extended.SkillPts = uint32(mortalSkillPointBudget(int(ch.Extended.Level))) + ch.SkillPointBonus
 }
 
 func syncMasteryPoints(ch *model.Char) {

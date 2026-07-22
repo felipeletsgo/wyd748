@@ -300,7 +300,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 			skillSpent += skill.SkillPoint
 		}
 	}
-	skillBudget := mortalSkillPointBudget(int(base.Level))
+	skillBudget := mortalSkillPointBudget(int(base.Level)) + int(ch.SkillPointBonus)
 	if skillSpent >= skillBudget {
 		base.SkillPts = 0
 	} else {

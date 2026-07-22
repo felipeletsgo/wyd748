@@ -24,7 +24,7 @@ type useItemRequest struct {
 	srcType, srcPos uint32
 	dstType, dstPos uint32
 	gridX, gridY    uint16
-	itemID          uint16
+	warpID          uint16
 }
 
 func parseUseItemRequest(pkt []byte) (useItemRequest, bool) {
@@ -38,7 +38,7 @@ func parseUseItemRequest(pkt []byte) (useItemRequest, bool) {
 		dstPos:  binary.LittleEndian.Uint32(pkt[24:28]),
 		gridX:   binary.LittleEndian.Uint16(pkt[28:30]),
 		gridY:   binary.LittleEndian.Uint16(pkt[30:32]),
-		itemID:  binary.LittleEndian.Uint16(pkt[32:34]),
+		warpID:  binary.LittleEndian.Uint16(pkt[32:34]),
 	}
 	// O plugin 7.54 aceita uso somente a partir do Carry/Inv. Destino ainda e
 	// validado, mesmo que pocao e barra nao o utilizem.
@@ -128,6 +128,89 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	}
 
 	switch rule.Action {
+	case "magical_pill":
+		if p.Char.MagicalPillUsed {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		oldItem, oldBonus := *item, p.Char.SkillPointBonus
+		p.Char.MagicalPillUsed, p.Char.SkillPointBonus = true, oldBonus+9
+		if rule.Consume {
+			consumeOne(item)
+		}
+		w.recalcPlayer(p.Char)
+		if err := w.saveAccount(p.Account); err != nil {
+			*item, p.Char.SkillPointBonus, p.Char.MagicalPillUsed = oldItem, oldBonus, false
+			w.recalcPlayer(p.Char)
+			return
+		}
+		s.Send(wire.UpdateScore(p.ID, *p.Char))
+		s.Send(wire.UpdateEtc(p.ID, *p.Char))
+		s.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+
+	case "hunting_teleport":
+		if req.warpID < 1 || req.warpID > 10 || len(rule.Destinations) != 10 {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		dest, oldItem := rule.Destinations[int(req.warpID)-1], *item
+		if rule.Consume {
+			consumeOne(item)
+		}
+		if !w.teleportPlayer(p, dest.X, dest.Y) {
+			*item = oldItem
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+
+	case "learn_special_skill":
+		bit := uint(rule.LearnedBit)
+		if bit < 25 || bit > 29 || p.Char.LearnedSkill&(uint32(1)<<bit) != 0 {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		oldItem, oldLearned := *item, p.Char.LearnedSkill
+		p.Char.LearnedSkill |= uint32(1) << bit
+		if rule.Consume {
+			consumeOne(item)
+		}
+		filterShortSkills(p.Char)
+		if err := w.saveAccount(p.Account); err != nil {
+			*item, p.Char.LearnedSkill = oldItem, oldLearned
+			return
+		}
+		s.Send(wire.UpdateScore(p.ID, *p.Char))
+		s.Send(wire.UpdateEtc(p.ID, *p.Char))
+		s.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+
+	case "summon_contract":
+		oldItem := *item
+		if rule.Summon == nil {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		// O summon anterior permanece intacto ate o consumo estar persistido.
+		// Assim uma falha de disco nao apaga o contrato ativo nem o item.
+		if rule.Consume {
+			consumeOne(item)
+		}
+		if err := w.saveAccount(p.Account); err != nil {
+			*item = oldItem
+			return
+		}
+		if !w.replaceContractSummon(p, rule.Summon) {
+			*item = oldItem
+			if err := w.saveAccount(p.Account); err != nil {
+				log.Printf("[#%d] ERRO ao restaurar contrato item=%d: %v", s.ID, oldItem.Index, err)
+			}
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+
 	case "restore":
 		now := time.Now()
 		if !p.LastPotion.IsZero() && now.Sub(p.LastPotion) < potionCooldown {
@@ -508,7 +591,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// para identificar o comportamento quando ele for configurado.
 		log.Printf("[#%d] VOLATILE GENERICO code=%d item=%d src=%d/%d dst=%d/%d grid=(%d,%d) packetItem=%d",
 			s.ID, code, item.Index, req.srcType, req.srcPos, req.dstType, req.dstPos,
-			req.gridX, req.gridY, req.itemID)
+			req.gridX, req.gridY, req.warpID)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 
 	default:

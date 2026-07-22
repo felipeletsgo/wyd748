@@ -115,8 +115,8 @@ func (w *World) refreshAppearance(subject *Player) {
 		subject.Session.Send(wire.CreateMobExtended(subject.ID, subject.Char.Name,
 			subject.X, subject.Y, mesh, anct, ext, affects, 2, guild))
 	}
-	for _, observer := range w.players {
-		if observer == subject || !observer.InWorld || observer.Session == nil ||
+	for _, observer := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
+		if observer == subject || observer.Session == nil ||
 			!observer.hasVisible(subject.ID) {
 			continue
 		}
@@ -129,8 +129,8 @@ func (w *World) republishPlayerAppearance(subject *Player) {
 	if subject == nil || !subject.InWorld || subject.Char == nil {
 		return
 	}
-	for _, observer := range w.players {
-		if observer == subject || !observer.InWorld || observer.Session == nil ||
+	for _, observer := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
+		if observer == subject || observer.Session == nil ||
 			!observer.hasVisible(subject.ID) {
 			continue
 		}
@@ -178,8 +178,8 @@ func (w *World) rematerializePlayerAfterRevive(subject *Player) {
 	if subject == nil || !subject.InWorld || subject.Char == nil || playerCurHP(subject.Char) == 0 {
 		return
 	}
-	for _, observer := range w.players {
-		if observer == subject || !observer.InWorld || !observer.hasVisible(subject.ID) {
+	for _, observer := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
+		if observer == subject || !observer.hasVisible(subject.ID) {
 			continue
 		}
 		observer.Session.Send(wire.RemoveMob(subject.ID, 3))
@@ -199,12 +199,23 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 	if p == nil || !p.InWorld {
 		return
 	}
-	for _, m := range w.mobs {
-		visible := !m.Dead && inView(p.X, p.Y, m.X, m.Y)
-		switch {
-		case visible && !p.hasVisible(m.ID):
+	w.updatePlayerSpatial(p)
+	nearMobs := w.nearbyMobs(p.X, p.Y, viewHalfX)
+	nearMobIDs := make(map[uint16]struct{}, len(nearMobs))
+	for _, m := range nearMobs {
+		nearMobIDs[m.ID] = struct{}{}
+		if !p.hasVisible(m.ID) {
 			w.showMob(p, m)
-		case !visible && p.hasVisible(m.ID):
+		}
+	}
+	// Visible contem tipos diferentes de entidade. So remova IDs que o indice
+	// canonico confirma serem mobs e que deixaram a janela espacial.
+	for id := range p.Visible {
+		m := w.mobsByID[id]
+		if m == nil {
+			continue
+		}
+		if _, nearby := nearMobIDs[id]; !nearby {
 			w.hideMob(p, m, 0)
 		}
 	}
@@ -217,13 +228,21 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 			w.hideGhostShop(p, shop)
 		}
 	}
-	for _, other := range w.players {
-		if other == p || !other.InWorld {
+	nearPlayers := w.nearbyWorldPlayers(p.X, p.Y, viewHalfX)
+	nearPlayerIDs := make(map[uint16]struct{}, len(nearPlayers))
+	for _, other := range nearPlayers {
+		if other == p {
 			continue
 		}
-		if inView(p.X, p.Y, other.X, other.Y) {
-			w.showPlayerPair(p, other)
-		} else {
+		nearPlayerIDs[other.ID] = struct{}{}
+		w.showPlayerPair(p, other)
+	}
+	for id := range p.Visible {
+		other := w.playersByID[id]
+		if other == nil || other == p {
+			continue
+		}
+		if _, nearby := nearPlayerIDs[id]; !nearby {
 			w.hidePlayerPair(p, other)
 		}
 	}
@@ -277,20 +296,24 @@ func (w *World) publishGhostShopItemSold(shop *GhostShop, pos uint32) {
 
 // publishMobSpawn materializa uma nova instancia somente para quem esta perto.
 func (w *World) publishMobSpawn(m *Mob) {
-	for _, p := range w.players {
-		if p.InWorld && inView(p.X, p.Y, m.X, m.Y) {
-			w.showMob(p, m)
-		}
+	w.registerMobSpatial(m)
+	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
+		w.showMob(p, m)
 	}
 }
 
 // publishMobMove envia movimento apenas a quem ja via o mob e atualiza os
 // clientes que passaram a entrar/sair da janela por causa do proprio mob.
 func (w *World) publishMobMove(m *Mob, oldX, oldY uint16, speed uint32) {
-	for _, p := range w.players {
-		if !p.InWorld {
-			continue
-		}
+	w.moveMobSpatial(m, oldX, oldY)
+	observers := make(map[uint16]*Player)
+	for _, p := range w.nearbyWorldPlayers(oldX, oldY, viewHalfX) {
+		observers[p.ID] = p
+	}
+	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
+		observers[p.ID] = p
+	}
+	for _, p := range observers {
 		wasVisible := p.hasVisible(m.ID)
 		nowVisible := inView(p.X, p.Y, m.X, m.Y)
 		switch {
@@ -325,8 +348,8 @@ func (w *World) publishPlayerMove(player *Player, previousX, previousY uint16) {
 	// BASE_GetSpeed: nibble baixo de AttackRun, limitado a 1..6. Usar o score
 	// impede speed hack e conserva visualmente botas/buffs de corrida.
 	speed := uint32(playerAttackRun(player.Char) & 0x0F)
-	for _, observer := range w.players {
-		if observer != player && observer.InWorld && observer.hasVisible(player.ID) {
+	for _, observer := range w.nearbyWorldPlayers(player.X, player.Y, viewHalfX) {
+		if observer != player && observer.hasVisible(player.ID) {
 			observer.Session.Send(wire.PlayerMove(player.ID, fromX, fromY, player.X, player.Y, speed))
 		}
 	}
@@ -338,8 +361,8 @@ func (w *World) publishPlayerStop(player *Player) {
 	if player == nil || !player.InWorld {
 		return
 	}
-	for _, observer := range w.players {
-		if observer != player && observer.InWorld && observer.hasVisible(player.ID) {
+	for _, observer := range w.nearbyWorldPlayers(player.X, player.Y, viewHalfX) {
+		if observer != player && observer.hasVisible(player.ID) {
 			observer.Session.Send(wire.ActionStop(player.ID, player.X, player.Y))
 		}
 	}
@@ -347,8 +370,8 @@ func (w *World) publishPlayerStop(player *Player) {
 }
 
 func (w *World) publishMobDeath(m *Mob, killerID uint16, killerExp uint32, expByPlayer map[*Player]uint32) {
-	for _, p := range w.players {
-		if !p.InWorld || !p.hasVisible(m.ID) {
+	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
+		if !p.hasVisible(m.ID) {
 			continue
 		}
 		exp := killerExp
@@ -365,8 +388,8 @@ func (w *World) sendToMobView(m *Mob, build func() []byte) {
 	if m == nil {
 		return
 	}
-	for _, p := range w.players {
-		if p.InWorld && p.hasVisible(m.ID) {
+	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
+		if p.hasVisible(m.ID) {
 			p.Session.Send(build())
 		}
 	}
@@ -376,10 +399,7 @@ func (w *World) sendToPlayerView(subject *Player, build func() []byte) {
 	if subject == nil || !subject.InWorld {
 		return
 	}
-	for _, p := range w.players {
-		if !p.InWorld {
-			continue
-		}
+	for _, p := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
 		if p == subject || p.hasVisible(subject.ID) {
 			p.Session.Send(build())
 		}
@@ -427,12 +447,10 @@ func (w *World) syncPlayerScoreAndVitals(subject *Player) {
 }
 
 func (w *World) publishItemSpawn(g *GroundItem) {
-	for _, p := range w.players {
-		if p.InWorld && inView(p.X, p.Y, g.X, g.Y) {
-			if !p.hasVisible(g.ID) {
-				p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, 0, 0, 0, 0, 0))
-				p.show(g.ID)
-			}
+	for _, p := range w.nearbyWorldPlayers(g.X, g.Y, viewHalfX) {
+		if !p.hasVisible(g.ID) {
+			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, 0, 0, 0, 0, 0))
+			p.show(g.ID)
 		}
 	}
 }

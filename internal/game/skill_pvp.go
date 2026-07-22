@@ -171,15 +171,15 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 	}
 	primary := targets[0]
 	w.sendToPlayerView(primary, func() []byte {
-		return wire.SkillHits(caster.ID, caster.X, caster.Y, primary.X, primary.Y,
+		return spectralPacket(caster.Char, wire.SkillHits(caster.ID, caster.X, caster.Y, primary.X, primary.Y,
 			caster.Char.Exp, playerCombatMP(caster.Char), int16(skill.Index), motion,
-			skillVisualLevel(mastery), skill.MaxTarget, wireTargets)
+			skillVisualLevel(mastery), skill.MaxTarget, wireTargets))
 	})
 	for _, hit := range wideHits {
 		hit := hit
 		w.sendToPlayerView(hit.target, func() []byte {
-			return wire.SkillHitExtended(caster.ID, hit.target.ID, caster.X, caster.Y, hit.target.X, hit.target.Y,
-				hit.damage, caster.Char.Exp, playerCombatMP(caster.Char), int16(skill.Index), motion, skillVisualLevel(mastery))
+			return spectralPacket(caster.Char, wire.SkillHitExtended(caster.ID, hit.target.ID, caster.X, caster.Y, hit.target.X, hit.target.Y,
+				hit.damage, caster.Char.Exp, playerCombatMP(caster.Char), int16(skill.Index), motion, skillVisualLevel(mastery)))
 		})
 	}
 	// O ataque precisa chegar antes de SetHpMp/CNFMobKill. Se HP=0 for

@@ -112281,3 +112281,188 @@
 	DestY:		2100
 	DestRange:	0
 	DestWait:	0
+
+
+// LojaFaseD - Magical Pill / Sephira / contratos / HP / Hunting Scrolls
+#	[5005]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		LojaFaseD
+	Follower:	LojaFaseD
+	RouteType:	0
+	Formation:	0
+	StartX:		2111
+	StartY:		2100
+	StartRange:	0
+	StartWait:	0
+	DestX:		2111
+	DestY:		2100
+	DestRange:	0
+	DestWait:	0
+
+
+// Lojas de insumos ao lado dos artesaos nativos. O client 7.48 seleciona
+// algumas janelas de craft pela regiao do mapa, portanto nao centralizar.
+#	[5101]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		TestTiny
+	Follower:	TestTiny
+	RouteType:	0
+	Formation:	0
+	StartX:		3648
+	StartY:		3115
+	StartRange:	0
+	StartWait:	0
+	DestX:		3648
+	DestY:		3115
+	DestRange:	0
+	DestWait:	0
+
+#	[5103]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		TestLindy
+	Follower:	TestLindy
+	RouteType:	0
+	Formation:	0
+	StartX:		1708
+	StartY:		1727
+	StartRange:	0
+	StartWait:	0
+	DestX:		1708
+	DestY:		1727
+	DestRange:	0
+	DestWait:	0
+
+#	[5104]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		Compositor
+	Follower:	Compositor
+	RouteType:	0
+	Formation:	0
+	StartX:		2525
+	StartY:		1734
+	StartRange:	0
+	StartWait:	0
+	DestX:		2525
+	DestY:		1734
+	DestRange:	0
+	DestWait:	0
+
+#	[5105]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		TestCompositor
+	Follower:	TestCompositor
+	RouteType:	0
+	Formation:	0
+	StartX:		2527
+	StartY:		1734
+	StartRange:	0
+	StartWait:	0
+	DestX:		2527
+	DestY:		1734
+	DestRange:	0
+	DestWait:	0
+
+#	[5107]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		TestAgatha
+	Follower:	TestAgatha
+	RouteType:	0
+	Formation:	0
+	StartX:		2538
+	StartY:		1734
+	StartRange:	0
+	StartWait:	0
+	DestX:		2538
+	DestY:		1734
+	DestRange:	0
+	DestWait:	0
+
+#	[5109]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		TestAylin
+	Follower:	TestAylin
+	RouteType:	0
+	Formation:	0
+	StartX:		2528
+	StartY:		1734
+	StartRange:	0
+	StartWait:	0
+	DestX:		2528
+	DestY:		1734
+	DestRange:	0
+	DestWait:	0
+
+#	[5111]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		TestEhre
+	Follower:	TestEhre
+	RouteType:	0
+	Formation:	0
+	StartX:		2456
+	StartY:		2000
+	StartRange:	0
+	StartWait:	0
+	DestX:		2456
+	DestY:		2000
+	DestRange:	0
+	DestWait:	0
+
+#	[5113]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		TestOdin
+	Follower:	TestOdin
+	RouteType:	0
+	Formation:	0
+	StartX:		3239
+	StartY:		1691
+	StartRange:	0
+	StartWait:	0
+	DestX:		3239
+	DestY:		1691
+	DestRange:	0
+	DestWait:	0
+
+#	[5114]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		TestOdinExtra
+	Follower:	TestOdinExtra
+	RouteType:	0
+	Formation:	0
+	StartX:		3241
+	StartY:		1691
+	StartRange:	0
+	StartWait:	0
+	DestX:		3241
+	DestY:		1691
+	DestRange:	0
+	DestWait:	0

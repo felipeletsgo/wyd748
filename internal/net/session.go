@@ -48,6 +48,14 @@ func (s *Session) Send(pkt []byte) {
 	}
 }
 
+// NewTestSession devolve uma Session utilizavel em testes de outros pacotes
+// (ex.: internal/game): Send() enfileira normalmente ate a capacidade do
+// buffer sem tocar numa conexao real. `conn` fica nil de proposito -- so e
+// usada se o buffer estourar, o que os testes evitam dimensionando bufSize.
+func NewTestSession(id int64, bufSize int) *Session {
+	return &Session{ID: id, out: make(chan []byte, bufSize)}
+}
+
 // RemoteAddr expoe o endereco remoto (log).
 func (s *Session) RemoteAddr() string { return s.conn.RemoteAddr().String() }
 

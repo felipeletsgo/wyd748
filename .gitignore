@@ -1,10 +1,10 @@
 # Binarios de build (gerados por `go build`)
-tm.exe
-tm
-account-api.exe
-account-api
-account-create.exe
-account-create
+/tm.exe
+/tm
+/account-api.exe
+/account-api
+/account-create.exe
+/account-create
 
 # Cache de build do Go
 .gocache*/
@@ -17,6 +17,9 @@ data/charstate/*.json
 .vs/
 *.log
 *~
+
+# Capturas de tela geradas ao jogar (nao fazem parte da distribuicao do client)
+client748/screenshot/
 
 # Docs internas de arquitetura/decisao (nao publicas): ficam locais, so o
 # README.md (publico) entra no repositorio.

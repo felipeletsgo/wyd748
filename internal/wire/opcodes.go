@@ -80,6 +80,14 @@ const (
 	OpAttackMulti        = 0x36C // C<->S skill multi-alvo (96B no client 7.48 real)
 	OpAttackOne          = 0x39D // C->S ataca alvo unico (o melee real do 7.48)
 	OpAttackTwo          = 0x39E // C->S ataca (2 maos)
+	OpCombineComplete    = 0x3A7 // S->C resultado comum de composicao (0/1/2)
+	OpCombineLindy       = 0x2C3 // C->S composicao Lindy
+	OpCombineOdin        = 0x2D2 // C->S composicao Alquimista Odin
+	OpCombineEhre        = 0x2D3 // C->S composicao Ehre
+	OpCombineCompositor  = 0x3A6 // C->S compositor de item extremo/joia
+	OpCombineAylin       = 0x3B5 // C->S compositor +10
+	OpCombineAgatha      = 0x3BA // C->S transferencia Mortal -> Arch
+	OpCombineTiny        = 0x3C0 // C->S composicao Tiny (Item[8]+CarryPos[8])
 	OpRemoveMob          = 0x165 // S->C remove/mata (0=sai da visao, 1=morte, 3=exclusao imediata)
 )
 

@@ -65,8 +65,11 @@ func (w *World) moveMobToward(m *Mob, targetX, targetY uint16, stopDistance int,
 
 // tickMobRoutes implementa a patrulha basica do NPCGener. RouteType 2 percorre
 // os segmentos validos em ida e volta, como CMob::SetSegment no W2PP.
-func (w *World) tickMobRoutes(now time.Time) {
-	for _, m := range w.mobs {
+func (w *World) tickMobRoutes(now time.Time, shard, shardCount int) {
+	for _, m := range w.activeMobs {
+		if shardCount > 1 && int(m.ID)%shardCount != shard {
+			continue
+		}
 		if m.Dead || m.TargetID != 0 || m.RouteType == 0 || now.Before(m.WaitUntil) || now.Before(m.NextMove) {
 			continue
 		}

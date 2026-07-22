@@ -920,6 +920,15 @@ func SkillHit(attackerID, targetID, attackerX, attackerY, targetX, targetY uint1
 		[]SkillTarget{{ID: targetID, Damage: damage}})
 }
 
+// SpectralVisual marca DoubleCritical bit 3. O client usa esse bit para
+// renderizar o efeito da Forca Espectral na arma durante o ataque.
+func SpectralVisual(packet []byte) []byte {
+	if len(packet) > 31 {
+		packet[31] |= 0x08
+	}
+	return packet
+}
+
 // SkillHitExtended usa o mesmo 0x39D estendido ja comprovado pelo melee, mas
 // conserva Skill/Motion/Mastery. Assim o client escolhe cor/efeito magico e le
 // o numero uint32 @48 sem alterar o tamanho fixo do 0x36C multi-alvo.

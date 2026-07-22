@@ -32,6 +32,7 @@ const cargoMerchantType = 2
 const (
 	npcKindShop  = "loja/mestre"
 	npcKindCargo = "cargo"
+	npcKindCraft = "compositor"
 )
 
 // reservedNPCKind devolve o handler dedicado do NPC, se houver. Centraliza o
@@ -43,6 +44,9 @@ func reservedNPCKind(def *model.NPCDef) (string, bool) {
 	}
 	if _, isShop := shopTypeForMerchant(def.Extended.Merchant); isShop {
 		return npcKindShop, true
+	}
+	if def.Extended.Merchant&0x0F == craftingMerchant {
+		return npcKindCraft, true
 	}
 	if def.Extended.Merchant&0xF == cargoMerchantType {
 		return npcKindCargo, true

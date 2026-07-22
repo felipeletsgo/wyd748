@@ -1,0 +1,13 @@
+{
+  "name": "TestOdinExtra",
+  "tipo": "npc",
+  "equip": { "rosto": { "index": 59 }, "armadura": { "index": 121 }, "calca": { "index": 122 }, "luva": { "index": 123 }, "bota": { "index": 124 } },
+  "extendedScore": { "version": 2, "level": 2, "defense": 3000, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 4043 }, { "index": 3338, "eff": [43, 9, 0, 0, 0, 0] },
+    { "index": 2491, "eff": [43, 234, 0, 0, 0, 0] },
+    { "index": 413 }, { "index": 4127 }, { "index": 5135 },
+    { "index": 421 }, { "index": 422 }, { "index": 423 }, { "index": 424 },
+    { "index": 425 }, { "index": 426 }, { "index": 427 }
+  ]
+}

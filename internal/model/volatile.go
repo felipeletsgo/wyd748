@@ -4,14 +4,17 @@ package model
 // cada codigo continuam vindo do itemlist.csv; este tipo configura somente o
 // comportamento autoritativo executado pelo servidor.
 type VolatileRule struct {
-	Action      string `json:"action"`
-	Consume     bool   `json:"consume"`
-	ValueSource string `json:"valueSource,omitempty"`
-	HP          int    `json:"hp,omitempty"`
-	MP          int    `json:"mp,omitempty"`
-	Gold        uint32 `json:"gold,omitempty"`
-	X           uint16 `json:"x,omitempty"`
-	Y           uint16 `json:"y,omitempty"`
+	Action       string                `json:"action"`
+	Consume      bool                  `json:"consume"`
+	ValueSource  string                `json:"valueSource,omitempty"`
+	HP           int                   `json:"hp,omitempty"`
+	MP           int                   `json:"mp,omitempty"`
+	Gold         uint32                `json:"gold,omitempty"`
+	X            uint16                `json:"x,omitempty"`
+	Y            uint16                `json:"y,omitempty"`
+	Destinations []VolatileDestination `json:"destinations,omitempty"`
+	LearnedBit   int                   `json:"learnedBit,omitempty"`
+	Summon       *VolatileSummon       `json:"summon,omitempty"`
 	// Parametros de affect para a acao "buff" (pocoes, comidas). AffectType
 	// escolhe a formula server-side em applyExtendedAffectStats; AffectValue e
 	// AffectLevel a alimentam; DurationUnits e o tempo em blocos de 8 s. Sao
@@ -51,6 +54,26 @@ type VolatileRule struct {
 	// tabelas fixas daquela versao, que sao presas aos indices de item de la.
 	AddPool     []VolatileAdd `json:"addPool,omitempty"`
 	Description string        `json:"description,omitempty"`
+}
+
+type VolatileDestination struct {
+	X uint16 `json:"x"`
+	Y uint16 `json:"y"`
+}
+
+// VolatileSummon mantem contratos inteiramente configuraveis. Group distingue
+// as duas familias/reinos sem antecipar as regras futuras de Castle War.
+type VolatileSummon struct {
+	Group       string `json:"group"`
+	Name        string `json:"name"`
+	Face        uint16 `json:"face"`
+	Weapon      uint16 `json:"weapon,omitempty"`
+	Shield      uint16 `json:"shield,omitempty"`
+	Attack      uint32 `json:"attack"`
+	Defense     uint32 `json:"defense"`
+	HP          uint32 `json:"hp"`
+	MoveSpeed   uint8  `json:"moveSpeed"`
+	AttackRange int    `json:"attackRange"`
 }
 
 // VolatileAdd e um efeito adicional candidato da acao "repliction": Effect e o

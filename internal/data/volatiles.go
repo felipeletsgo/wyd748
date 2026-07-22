@@ -15,6 +15,8 @@ var validVolatileActions = map[string]bool{
 	"disabled": true, "save_position": true, "warp_saved": true, "refine": true,
 	"refine_set": true, "face_transform": true, "face_restore": true,
 	"tint": true, "untint": true, "repliction": true, "mount": true,
+	"magical_pill": true, "hunting_teleport": true,
+	"summon_contract": true, "learn_special_skill": true,
 }
 
 var validMountActions = map[string]bool{
@@ -52,6 +54,18 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileC
 		}
 		if rule.Action == "teleport" && (rule.X == 0 || rule.Y == 0) {
 			return rule, fmt.Errorf("data: %s teleport exige x/y positivos", where)
+		}
+		if rule.Action == "hunting_teleport" && len(rule.Destinations) != 10 {
+			return rule, fmt.Errorf("data: %s hunting_teleport exige exatamente 10 destinos", where)
+		}
+		if rule.Action == "learn_special_skill" && (rule.LearnedBit < 25 || rule.LearnedBit > 29) {
+			return rule, fmt.Errorf("data: %s learn_special_skill exige learnedBit 25..29", where)
+		}
+		if rule.Action == "summon_contract" {
+			if rule.Summon == nil || rule.Summon.Name == "" || rule.Summon.Group == "" ||
+				rule.Summon.Face == 0 || rule.Summon.HP == 0 || rule.Summon.AttackRange <= 0 {
+				return rule, fmt.Errorf("data: %s summon_contract possui template incompleto", where)
+			}
 		}
 		if rule.Action == "buff" && rule.AffectType <= 0 {
 			return rule, fmt.Errorf("data: %s buff exige affectType positivo", where)

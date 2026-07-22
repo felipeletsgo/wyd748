@@ -25,6 +25,7 @@ const (
 const shopMerchant = 3
 const skillMasterMerchant = 19
 const nativeShopMerchant = 1
+const craftingMerchant = 8
 
 // clientShopSlots e o limite REAL de exibicao da loja no client 7.48: o
 // OnPacketShopList percorre `for (i = 0; i < 27; ++i)` e monta a grade com
@@ -335,6 +336,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	p.ID = w.allocPlayerID()
 	p.InWorld = true
 	p.X, p.Y = playerEntryX, playerEntryY
+	w.playersByID[p.ID] = p
 	log.Printf("[#%d] ENTER-WORLD %s id=%d @(%d,%d)", s.ID, ch.Name, p.ID, ch.X, ch.Y)
 
 	// 1) enter-world (STRUCT_MOB completo)
@@ -630,6 +632,14 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 				s.ID, m.Def.Name, dropped, clientShopSlots)
 		}
 		log.Printf("[#%d] loja aberta: %q (%d itens exibidos)", s.ID, m.Def.Name, countShopItems(display))
+		return
+	}
+	if m.Def.Extended.Merchant&0x0F == craftingMerchant {
+		// A janela e escolhida localmente pelo client a partir do rosto/posicao do
+		// NPC. Guardamos apenas o contexto autoritativo para validar o opcode de
+		// composicao que chegar depois.
+		p.CraftNPC = m.ID
+		log.Printf("[#%d] compositor aberto: %q", s.ID, m.Def.Name)
 		return
 	}
 	if quest := w.questForNPC(m.Def); quest != nil {
@@ -960,6 +970,9 @@ func filterShortSkills(ch *model.Char) {
 		if skill >= classBase && skill < classBase+24 {
 			skill -= classBase
 		}
+		if specialSkillLearned(ch, skill) {
+			continue
+		}
 		if skill < 0 || skill >= 24 || ch.LearnedSkill&(1<<skill) == 0 {
 			ch.ShortSkill[i] = 0xFF
 		}
@@ -1021,7 +1034,11 @@ func (w *World) physicalAttackRange(ch *model.Char) int {
 	if weaponRange <= 0 {
 		return attackRange
 	}
-	return minInt(23, 2+weaponRange+3)
+	extra := 0
+	if specialSkillLearned(ch, 101) {
+		extra = 1
+	}
+	return minInt(23, 2+weaponRange+3+extra)
 }
 
 // isLearnedClassSkill separa uma execucao real de skill de um ataque normal.
@@ -1034,8 +1051,30 @@ func isLearnedClassSkill(ch *model.Char, skillIndex int) bool {
 	if ch == nil || skillIndex < 0 {
 		return false
 	}
+	if specialSkillLearned(ch, skillIndex) {
+		return true
+	}
 	local := skillIndex - int(ch.Class)*24
 	return local >= 0 && local < 24 && ch.LearnedSkill&(uint32(1)<<local) != 0
+}
+
+func specialSkillBit(skillIndex int) (uint, bool) {
+	if skillIndex < 97 || skillIndex > 101 {
+		return 0, false
+	}
+	return uint(skillIndex - 72), true
+}
+
+func specialSkillLearned(ch *model.Char, skillIndex int) bool {
+	bit, ok := specialSkillBit(skillIndex)
+	return ch != nil && ok && ch.LearnedSkill&(uint32(1)<<bit) != 0
+}
+
+func spectralPacket(ch *model.Char, packet []byte) []byte {
+	if specialSkillLearned(ch, 101) {
+		return wire.SpectralVisual(packet)
+	}
+	return packet
 }
 
 // attackIntervalFor deriva o intervalo minimo entre golpes da VELOCIDADE DE
@@ -1086,11 +1125,14 @@ func acceptClientAttack(p *Player, pkt []byte, now time.Time) bool {
 // alvo do pacote 7.48). Dano vem de combat.go; em HP 0 o mob morre e agenda respawn.
 func (w *World) onAttack(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
+	if p == nil || p.Char == nil || !p.InWorld {
+		return
+	}
+	req := parseAttackSkill(pkt)
+	if playerCurHP(p.Char) == 0 && !(req.Skill == 99 && specialSkillLearned(p.Char, 99)) {
 		return
 	}
 	w.cancelTrade(p, "jogador atacou")
-	req := parseAttackSkill(pkt)
 	// Anti-speed compartilhado: ataque fisico basico E skills respeitam o MESMO
 	// limite de ataques por periodo (acceptClientAttack, por velocidade de ataque
 	// do servidor). Por isso ele vem ANTES do dispatch de skill.
@@ -1145,8 +1187,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		// O numero flutuante recebe o dano calculado integral, inclusive
 		// overkill. A vida autoritativa continua reduzida somente pelo HP real.
 		w.sendToPlayerView(target, func() []byte {
-			return wire.AttackHitExtended(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
-				calculated, p.Char.Exp, playerCombatMP(p.Char))
+			return spectralPacket(p.Char, wire.AttackHitExtended(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
+				calculated, p.Char.Exp, playerCombatMP(p.Char)))
 		})
 		w.syncPlayerVitals(target)
 		w.updatePartyMember(target)
@@ -1184,8 +1226,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// O 0x181 atualiza a barra, mas somente o resultado 0x39D produz animacao e
 	// o numero flutuante do dano no client 7.48.
 	w.broadcast(func() []byte {
-		return wire.AttackHitExtended(p.ID, m.ID, p.X, p.Y, m.X, m.Y, dmg, p.Char.Exp,
-			playerCombatMP(p.Char))
+		return spectralPacket(p.Char, wire.AttackHitExtended(p.ID, m.ID, p.X, p.Y, m.X, m.Y, dmg, p.Char.Exp,
+			playerCombatMP(p.Char)))
 	})
 	if m.HP == 0 {
 		w.killMobState(p, m, dmg, minU32(dmg, m.Def.Extended.MaxHP))
@@ -1445,6 +1487,7 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 func (w *World) onDisconnect(s *net.Session) {
 	delete(w.authPending, s)
 	if p, ok := w.players[s]; ok {
+		w.unregisterPlayerSpatial(p)
 		w.closeGhostShop(p, "desconexao")
 		w.cancelTrade(p, "desconexao")
 		// Remove primeiro o grupo e a entidade visivel. O client nao pode manter
@@ -1469,6 +1512,7 @@ func (w *World) onDisconnect(s *net.Session) {
 			w.saveCharState(p)
 		}
 		w.releaseAccountSession(s, p.Account)
+		delete(w.playersByID, p.ID)
 		delete(w.players, s)
 	}
 	log.Printf("[#%d] player removido", s.ID)
@@ -1515,12 +1559,11 @@ func (w *World) characterNameTaken(name string) (bool, error) {
 
 // mobByID acha o mob (NPC/monstro) vivo pelo ClientId; nil se nao existir.
 func (w *World) mobByID(id uint16) *Mob {
-	for _, m := range w.mobs {
-		if m.ID == id && !m.Dead {
-			return m
-		}
+	m := w.mobsByID[id]
+	if m == nil || m.Dead {
+		return nil
 	}
-	return nil
+	return m
 }
 
 // addToInv poe o item no primeiro slot VISIVEL do inventario. O array/wire tem

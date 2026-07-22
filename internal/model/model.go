@@ -207,13 +207,13 @@ type ElementalResists struct {
 // Affect e o estado temporario autoritativo de buff/debuff. O client recebe
 // apenas Type e o tempo restante; Value/Level alimentam as formulas server-side.
 type Affect struct {
-	Type       byte      `json:"-"`
-	ClientType byte      `json:"-"` // slot visual do client quando difere da semantica server-side
-	Value      int       `json:"-"`
-	Level      int       `json:"-"`
-	OwnerID    uint16    `json:"-"`
-	ExpiresAt  time.Time `json:"-"`
-	NextTick   time.Time `json:"-"`
+	Type       byte      `json:"type,omitempty"`
+	ClientType byte      `json:"clientType,omitempty"` // slot visual do client quando difere da semantica server-side
+	Value      int       `json:"value,omitempty"`
+	Level      int       `json:"level,omitempty"`
+	OwnerID    uint16    `json:"ownerId,omitempty"`
+	ExpiresAt  time.Time `json:"expiresAt,omitempty"`
+	NextTick   time.Time `json:"nextTick,omitempty"`
 }
 
 // Char = personagem persistido (1 slot da conta).
@@ -235,10 +235,18 @@ type Char struct {
 	Exp             uint32         `json:"exp"`
 	NextExp         uint32         `json:"-"` // derivado da tabela pelo level
 	LearnedSkill    uint32         `json:"learnedSkill"`
+	MagicalPillUsed bool           `json:"magicalPillUsed,omitempty"`
+	SkillPointBonus uint32         `json:"skillPointBonus,omitempty"`
+	// Progressao avancada usada pelas composicoes Ehre/Odin. Evolution vazio e
+	// tratado como "mortal"; valores futuros: arch, celestial e subcelestial.
+	Evolution                string `json:"evolution,omitempty"`
+	Fame                     uint32 `json:"fame,omitempty"`
+	SoulInfo                 uint8  `json:"soulInfo,omitempty"` // 1..10; zero = nenhum
+	CelestialLevel40Unlocked bool   `json:"celestialLevel40Unlocked,omitempty"`
 	// Habilidades da evolucao; separadas dos 24 bits Mortais como na W2PP.
 	SecondaryLearnedSkill uint32     `json:"secondaryLearnedSkill,omitempty"`
 	ShortSkill            [20]byte   `json:"shortSkill,omitempty"`
-	Affects               [16]Affect `json:"-"`
+	Affects               [16]Affect `json:"affects,omitempty"`
 	// GuildID/GuildRank sao copias DESNORMALIZADAS do registro canonico em
 	// guilds.json, mantidas aqui so para o wire e consulta rapida. O login
 	// repara divergencias contra o registro; a guild e sempre a fonte da
@@ -338,6 +346,7 @@ func (c Char) equalsZero() bool {
 		c.Equip == [16]Item{} && c.Inv == [64]Item{} &&
 		c.Chaos == 0 && c.Gold == 0 && c.Exp == 0 && c.NextExp == 0 &&
 		c.LearnedSkill == 0 && c.SecondaryLearnedSkill == 0 &&
+		!c.MagicalPillUsed && c.SkillPointBonus == 0 &&
 		c.ShortSkill == [20]byte{} && c.Affects == [16]Affect{} &&
 		c.GuildID == 0 && c.GuildRank == 0
 }
@@ -693,8 +702,12 @@ type Teleport struct {
 	Name             string
 }
 
-// IsMonster diz se o mob e hostil/atacavel (tipo "monstro").
-func (n *NPCDef) IsMonster() bool { return n.Tipo == TipoMonstro }
+// IsMonster diz se o mob e hostil/atacavel (tipo "monstro"). Merchant diferente
+// de zero sempre identifica uma funcao de NPC no protocolo; essa segunda trava
+// impede um template convertido incorretamente de transformar loja/artesao em mob.
+func (n *NPCDef) IsMonster() bool {
+	return n != nil && n.Tipo == TipoMonstro && (n.Extended == nil || n.Extended.Merchant == 0)
+}
 
 // Mesh devolve os 16 slots de aparencia (ItemEff@34 do CreateMob) como slice.
 func (n *NPCDef) Mesh() []uint16 {

@@ -91,7 +91,7 @@ func TestQuestForNPCIgnoraNPCForaDaAllowlist(t *testing.T) {
 func TestReservedNPCKind(t *testing.T) {
 	cases := map[byte]bool{
 		1: true, 3: true, 19: true, 2: true, // loja/mestre/cargo
-		43: false, 8: false, 4: false, // quest, crafting, ferreiro
+		43: false, 8: true, 4: false, // quest, crafting reservado, ferreiro
 	}
 	for merchant, wantReserved := range cases {
 		def := questNPC("X", merchant)
@@ -276,7 +276,7 @@ func TestGrantInventoryItemFalhaComInventarioCheio(t *testing.T) {
 func TestResolveNPCInteractionValidaAlcanceEVisibilidade(t *testing.T) {
 	def := questNPC("Coveiro", 43)
 	mob := &Mob{ID: 1000, X: 2200, Y: 2200, Def: &def}
-	w := &World{mobs: []*Mob{mob}}
+	w := testSpatialWorld([]*Mob{mob})
 
 	p := &Player{ID: 1, X: 2200, Y: 2200, Char: &model.Char{Name: "A"},
 		Visible: map[uint16]struct{}{1000: {}}}

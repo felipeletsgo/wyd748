@@ -41,6 +41,20 @@
       "refineMax": 9,
       "description": "Poeira de Lac (PL): refina o item-alvo ate +9."
     },
+    "6": { "action": "magical_pill", "consume": true, "description": "Magical Pill: +9 pontos de skill permanentes, uma vez por personagem." },
+    "32": { "action": "learn_special_skill", "consume": true, "learnedBit": 25, "description": "Livro Sephira: Conjure Cannon (skill 97)." },
+    "33": { "action": "learn_special_skill", "consume": true, "learnedBit": 26, "description": "Livro Sephira: Thorn Wall (skill 98)." },
+    "34": { "action": "learn_special_skill", "consume": true, "learnedBit": 27, "description": "Livro Sephira: Resurrect (skill 99)." },
+    "35": { "action": "learn_special_skill", "consume": true, "learnedBit": 28, "description": "Livro Sephira: Cancellation (skill 100)." },
+    "36": { "action": "learn_special_skill", "consume": true, "learnedBit": 29, "description": "Livro Sephira: Spectral Force (skill 101)." },
+    "41": { "action": "summon_contract", "consume": true, "summon": { "group": "soldier", "name": "Soldado Cavaleiro", "face": 207, "weapon": 946, "attack": 78, "defense": 140, "hp": 600, "moveSpeed": 4, "attackRange": 3 }, "description": "Contrato de soldado cavaleiro; uso livre temporario." },
+    "42": { "action": "summon_contract", "consume": true, "summon": { "group": "soldier", "name": "Soldado Arqueiro", "face": 209, "weapon": 950, "attack": 63, "defense": 130, "hp": 500, "moveSpeed": 4, "attackRange": 8 }, "description": "Contrato de soldado arqueiro; uso livre temporario." },
+    "43": { "action": "summon_contract", "consume": true, "summon": { "group": "soldier", "name": "Soldado Mago", "face": 232, "weapon": 731, "shield": 1915, "attack": 350, "defense": 600, "hp": 15000, "moveSpeed": 4, "attackRange": 8 }, "description": "Contrato de soldado mago; uso livre temporario." },
+    "46": { "action": "summon_contract", "consume": true, "summon": { "group": "guard", "name": "Guarda Cavaleiro", "face": 207, "weapon": 946, "attack": 78, "defense": 140, "hp": 600, "moveSpeed": 4, "attackRange": 3 }, "description": "Carta de guarda cavaleiro; identidade separada para reino futuro." },
+    "47": { "action": "summon_contract", "consume": true, "summon": { "group": "guard", "name": "Guarda Arqueiro", "face": 209, "weapon": 950, "attack": 63, "defense": 130, "hp": 500, "moveSpeed": 4, "attackRange": 8 }, "description": "Carta de guarda arqueiro; identidade separada para reino futuro." },
+    "48": { "action": "summon_contract", "consume": true, "summon": { "group": "guard", "name": "Guarda Mago", "face": 232, "weapon": 731, "shield": 1915, "attack": 350, "defense": 600, "hp": 15000, "moveSpeed": 4, "attackRange": 8 }, "description": "Carta de guarda mago; identidade separada para reino futuro." },
+    "58": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 450, "description": "Bigger Potion: +10% HP maximo; duracao padrao 1h." },
+    "195": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":2370,"y":2106},{"x":2508,"y":2101},{"x":2526,"y":2109},{"x":2529,"y":1882},{"x":2126,"y":1600},{"x":2005,"y":1617},{"x":2241,"y":1474},{"x":1858,"y":1721},{"x":2250,"y":1316},{"x":1989,"y":1755}], "description": "Hunting Scroll; destinos especificos por item." },
     "7": {
       "action": "grant_exp",
       "consume": true,
@@ -231,6 +245,16 @@
     }
   },
   "items": {
+    "3313": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 450, "description": "Bigger Potion: +10% HP por 1 hora." },
+    "3364": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 75600, "description": "Health Potion: +10% HP por 7 dias." },
+    "3365": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 162000, "description": "Health Potion: +10% HP por 15 dias." },
+    "3366": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 324000, "description": "Health Potion: +10% HP por 30 dias." },
+    "3432": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":2370,"y":2106},{"x":2508,"y":2101},{"x":2526,"y":2109},{"x":2529,"y":1882},{"x":2126,"y":1600},{"x":2005,"y":1617},{"x":2241,"y":1474},{"x":1858,"y":1721},{"x":2250,"y":1316},{"x":1989,"y":1755}], "description": "Hunting Scroll Armia." },
+    "3433": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":290,"y":3799},{"x":724,"y":3781},{"x":481,"y":4062},{"x":876,"y":4058},{"x":855,"y":3922},{"x":808,"y":3876},{"x":959,"y":3813},{"x":926,"y":3750},{"x":1096,"y":3730},{"x":1132,"y":3800}], "description": "Hunting Scroll Dark/Dungeon." },
+    "3434": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":1242,"y":4035},{"x":1264,"y":4017},{"x":1333,"y":3994},{"x":1358,"y":4041},{"x":1462,"y":4033},{"x":1326,"y":3788},{"x":1493,"y":3777},{"x":1437,"y":3741},{"x":1389,"y":3740},{"x":1422,"y":3810}], "description": "Hunting Scroll Underworld." },
+    "3435": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":1376,"y":1722},{"x":1426,"y":1686},{"x":1381,"y":1861},{"x":1326,"y":1896},{"x":1510,"y":1723},{"x":1543,"y":1726},{"x":1580,"y":1758},{"x":1182,"y":1714},{"x":1634,"y":1727},{"x":1237,"y":1764}], "description": "Hunting Scroll Kalt." },
+    "3436": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":2367,"y":4024},{"x":2236,"y":4044},{"x":2236,"y":3993},{"x":2209,"y":3989},{"x":2453,"y":4067},{"x":2485,"y":4043},{"x":2537,"y":3897},{"x":2489,"y":3919},{"x":2269,"y":3910},{"x":2202,"y":3866}], "description": "Hunting Scroll Kephra." },
+    "3437": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":3664,"y":3024},{"x":3582,"y":3007},{"x":3514,"y":3008},{"x":3819,"y":2977},{"x":3517,"y":2889},{"x":3745,"y":2977},{"x":3639,"y":2877},{"x":3650,"y":2727},{"x":3660,"y":2773},{"x":3746,"y":2879}], "description": "Hunting Scroll Niflheim." },
     "3361": {
       "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 75600,
       "description": "Sefirah 7 dias (buff de dano)."

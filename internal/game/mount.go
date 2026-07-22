@@ -357,7 +357,7 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 		},
 	}
 	m := &Mob{ID: w.allocMobID(), Def: def, X: x, Y: y, HP: uint32(hp),
-		GenerIndex: -1, SummonerID: p.ID}
+		GenerIndex: -1, SummonerID: p.ID, SummonKind: summonKindMount, SummonRange: mobAttackRange}
 	w.mobs = append(w.mobs, m)
 	w.publishMobSpawn(m)
 	log.Printf("[#%d] cria-pet nasceu face=%d", p.ID, face)
