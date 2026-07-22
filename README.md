@@ -16,10 +16,10 @@ price, target, position, cooldown, drop, or effect is ever trusted from the
 client — everything is revalidated against server-side state before it takes
 effect.
 
-This is a clean-room implementation: the wire protocol was reverse-engineered
+This is an independent reimplementation: the wire protocol was reverse-engineered
 from packet captures against a real 7.48 client, and gameplay formulas were
-ported (never copy-pasted structs, memory offsets, or addresses) from public
-WYD server source references.
+ported (algorithms only — never copy-pasted structs, memory offsets, or
+addresses) from public WYD server source references.
 
 ## Status
 
@@ -136,11 +136,18 @@ purposes** — learning network-protocol reverse-engineering, game-server design
 and Go. It is not affiliated with, authorized, or endorsed by the owners of
 *With Your Destiny*.
 
-*With Your Destiny* and all related names, logos, artwork, and trademarks are
-the property of their respective owners. **This repository contains no
-proprietary game client, art, audio, map, or other assets** — only original
-server code and configuration. A separate, legally obtained game client is
-required to connect and is not provided here.
+*With Your Destiny* and all related names, logos, artwork, trademarks, and game
+data are the property of their respective owners.
+
+For interoperability with the 7.48 client, this repository includes data files
+(item, skill, NPC, spawn, and drop tables) **derived from the original game's
+data**. These files are **not** original work and remain the property of the
+game's owners; they are included only to make the server usable for study. No
+game client, artwork, audio, or map assets are distributed here — a separate,
+legally obtained client is required to connect.
+
+If you are a rights holder and want any file in this repository removed, please
+open an issue and it will be taken down promptly.
 
 ## License
 
