@@ -1,0 +1,182 @@
+{
+  "name": "Kate",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 31
+    },
+    "elmo": {
+      "index": 1569
+    },
+    "armadura": {
+      "index": 1569
+    },
+    "calca": {
+      "index": 1569
+    },
+    "luva": {
+      "index": 1569
+    },
+    "bota": {
+      "index": 1569
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 25000,
+  "extendedScore": {
+    "version": 2,
+    "level": 2,
+    "attack": 20000,
+    "magicAttack": 0,
+    "defense": 20000,
+    "maxHP": 25000,
+    "maxMP": 0,
+    "curHP": 25000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 1
+  },
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 1641
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1644
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1647
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1650
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1653
+    }
+  ]
+}

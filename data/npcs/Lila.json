@@ -1,0 +1,198 @@
+{
+  "name": "Lila",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 11
+    },
+    "elmo": {
+      "index": 1257
+    },
+    "armadura": {
+      "index": 1269
+    },
+    "calca": {
+      "index": 1281
+    },
+    "luva": {
+      "index": 1293
+    },
+    "bota": {
+      "index": 1305
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 25000,
+  "extendedScore": {
+    "version": 2,
+    "level": 2,
+    "attack": 500,
+    "magicAttack": 0,
+    "defense": 500,
+    "maxHP": 9000,
+    "maxMP": 0,
+    "curHP": 9000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 1
+  },
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 1257
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1269
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1281
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1293
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1305
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1258
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1270
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1282
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1294
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1306
+    }
+  ]
+}

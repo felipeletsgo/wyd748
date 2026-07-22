@@ -1,0 +1,32 @@
+# WYD-Go - configuracao pronta para Ubuntu/VPS
+#
+# O IP publico fica no serverlist.bin do client. O processo do servidor deve
+# escutar em todas as interfaces da VPS.
+listen_address=0.0.0.0:8281
+
+# Log do gerador: quiet, summary ou verbose
+npcgener_log=summary
+
+# Balanceamento global
+# exp_rate usa porcentagem: 100=normal, 200=dobro, 50=metade.
+# O piso e aplicado primeiro; depois entram rate e bonus de party.
+# exp_rate=0 desativa o ganho de EXP.
+exp_rate=100
+exp_minimum=10000
+party_exp_bonus=2
+
+# Dados autoritativos
+npcs=data/npcs
+npcgener=data/NPCGener.txt
+teleports=data/teleports.ini
+accounts=data/accounts
+items=data/itemlist.csv
+itemnames=data/Itemname.csv
+skills=data/SkillData.csv
+droprates=data/droprate.json
+volatiles=data/volatiles.json
+character_templates=data/character_templates.json
+
+# Mapas incluidos no pacote de deploy
+heightmap=data/maps/HeightMap.dat
+attributemap=data/maps/AttributeMap.dat

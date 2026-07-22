@@ -1,0 +1,160 @@
+{
+  "name": "Agmo_Froggy",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 252,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 115
+    },
+    "armadura": {
+      "index": 253
+    },
+    "calca": {
+      "index": 254
+    },
+    "luva": {
+      "index": 255
+    },
+    "bota": {
+      "index": 256
+    },
+    "arma": {
+      "index": 722
+    },
+    "escudo": {
+      "index": 722
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 175,
+    "attack": 570,
+    "magicAttack": 0,
+    "defense": 1010,
+    "maxHP": 30000,
+    "maxMP": 0,
+    "curHP": 30000,
+    "curMP": 0,
+    "str": 4,
+    "int": 100,
+    "dex": 100,
+    "con": 850,
+    "critical": 255,
+    "resistFire": 20,
+    "resistIce": 20,
+    "resistHoly": 236,
+    "resistThunder": 236,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      1,
+      255,
+      1
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1181,
+      "eff": [
+        103,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1316,
+      "eff": [
+        103,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 419
+    },
+    {
+      "index": 1616,
+      "eff": [
+        103,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

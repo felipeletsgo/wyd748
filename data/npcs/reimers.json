@@ -1,0 +1,197 @@
+{
+  "name": "reimers",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 64
+    },
+    "elmo": {
+      "index": 1431
+    },
+    "armadura": {
+      "index": 1434
+    },
+    "calca": {
+      "index": 1437
+    },
+    "luva": {
+      "index": 1440
+    },
+    "bota": {
+      "index": 1443
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 2,
+    "attack": 500,
+    "magicAttack": 0,
+    "defense": 500,
+    "maxHP": 9000,
+    "maxMP": 0,
+    "curHP": 9000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 1
+  },
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 1431
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1434
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1437
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1440
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1443
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1432
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1435
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1438
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1441
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1444
+    }
+  ]
+}

@@ -1,0 +1,338 @@
+{
+  "name": "Comp_Ideal",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 39
+    },
+    "elmo": {
+      "index": 120,
+      "eff": [
+        43,
+        250,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "armadura": {
+      "index": 1221,
+      "eff": [
+        43,
+        250,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "calca": {
+      "index": 1222,
+      "eff": [
+        43,
+        250,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "luva": {
+      "index": 1223,
+      "eff": [
+        43,
+        250,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "bota": {
+      "index": 1224,
+      "eff": [
+        43,
+        250,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "arma": {
+      "index": 2552,
+      "eff": [
+        43,
+        254,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 3197
+    }
+  },
+  "classInfo": 1,
+  "expReward": 9999,
+  "extendedScore": {
+    "version": 2,
+    "level": 40,
+    "attack": 500,
+    "magicAttack": 0,
+    "defense": 3000,
+    "maxHP": 9000,
+    "maxMP": 0,
+    "curHP": 9000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 43
+  },
+  "gold": 9999,
+  "direction": 32,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 412
+    },
+    {
+      "index": 685,
+      "eff": [
+        61,
+        100,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 691,
+      "eff": [
+        61,
+        100,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 415
+    },
+    {
+      "index": 410
+    },
+    {
+      "index": 411
+    },
+    {
+      "index": 697
+    },
+    {
+      "index": 787
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 575
+    },
+    {
+      "index": 576
+    },
+    {
+      "index": 577
+    },
+    {
+      "index": 693
+    },
+    {
+      "index": 694
+    },
+    {
+      "index": 695
+    },
+    {
+      "index": 700
+    },
+    {
+      "index": 699
+    },
+    {
+      "index": 776
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 421
+    },
+    {
+      "index": 422
+    },
+    {
+      "index": 423
+    },
+    {
+      "index": 424
+    },
+    {
+      "index": 425
+    },
+    {
+      "index": 426
+    },
+    {
+      "index": 427
+    }
+  ]
+}

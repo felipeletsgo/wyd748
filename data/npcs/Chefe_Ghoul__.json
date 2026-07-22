@@ -1,0 +1,88 @@
+{
+  "name": "Chefe_Ghoul__",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 229
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 85000,
+  "extendedScore": {
+    "version": 2,
+    "level": 300,
+    "attack": 225,
+    "magicAttack": 0,
+    "defense": 610,
+    "maxHP": 5100,
+    "maxMP": 0,
+    "curHP": 5100,
+    "curMP": 0,
+    "str": 4,
+    "int": 90,
+    "dex": 30,
+    "con": 1150,
+    "critical": 255,
+    "resistHoly": 226,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

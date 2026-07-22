@@ -1,0 +1,45 @@
+# WYD-Go - configuracao operacional
+#
+# O IP publico NAO e definido aqui. O servidor escuta em todas as interfaces e
+# o client deve apontar para o IP publico do VPS no seu serverlist.
+listen_address=0.0.0.0:8281
+
+# Log do gerador: quiet, summary ou verbose
+npcgener_log=summary
+
+# Balanceamento global
+# exp_rate usa porcentagem: 100=normal, 200=dobro, 50=metade.
+# O piso e aplicado primeiro; depois entram rate e bonus de party.
+# exp_rate=0 desativa o ganho de EXP.
+exp_rate=100
+exp_minimum=10000
+party_exp_bonus=2
+
+# Dados autoritativos
+npcs=data/npcs
+npcgener=data/NPCGener.txt
+teleports=data/teleports.ini
+accounts=data/accounts
+# Registro de guilds. Precisa ficar FORA do diretorio de contas: la dentro os
+# varredores de conta tentariam parsea-lo como uma conta.
+guilds=data/guilds.json
+# Guilds.txt no formato nativo, para DISTRIBUIR aos clients: o WYD.exe 7.48 le
+# "./Guilds.txt" da propria pasta e sem ele nenhum nome de guild aparece (nao
+# existe pacote de nome de guild no 7.48). Copie o arquivo gerado para a pasta
+# do client. Formato: <grupo> <canal> <indice> <nome>.
+guilds_txt=data/Guilds.txt
+# Quests. NPC ausente daqui nunca vira quest (allowlist).
+quests=data/quests.json
+items=data/itemlist.csv
+itemnames=data/Itemname.csv
+skills=data/SkillData.csv
+droprates=data/droprate.json
+volatiles=data/volatiles.json
+mounts=data/mounts.json
+character_templates=data/character_templates.json
+
+# No Ubuntu, depois de copiar os mapas para data/maps, use:
+# heightmap=data/maps/HeightMap.dat
+# attributemap=data/maps/AttributeMap.dat
+heightmap=../Server Star Micronics/TMSRV/run/HeightMap.dat
+attributemap=../Server Star Micronics/TMSRV/run/AttributeMap.dat

@@ -1,0 +1,88 @@
+{
+  "name": "Compositor",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 54
+    },
+    "elmo": {
+      "index": 120
+    },
+    "armadura": {
+      "index": 116
+    },
+    "calca": {
+      "index": 117
+    },
+    "luva": {
+      "index": 118
+    },
+    "bota": {
+      "index": 119
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 25000,
+  "extendedScore": {
+    "version": 2,
+    "level": 2,
+    "attack": 0,
+    "magicAttack": 0,
+    "defense": 10000,
+    "maxHP": 10000,
+    "maxMP": 0,
+    "curHP": 10000,
+    "curMP": 0,
+    "str": 1,
+    "int": 1,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      2,
+      2,
+      2,
+      2
+    ],
+    "attackRun": 1,
+    "merchant": 8
+  },
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

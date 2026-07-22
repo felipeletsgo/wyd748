@@ -1,0 +1,263 @@
+{
+  "name": "Argos_",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 238
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 739
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 300,
+    "attack": 400,
+    "magicAttack": 0,
+    "defense": 1080,
+    "maxHP": 7000,
+    "maxMP": 0,
+    "curHP": 7000,
+    "curMP": 0,
+    "str": 4,
+    "int": 75,
+    "dex": 30,
+    "con": 0,
+    "critical": 255,
+    "resistHoly": 246,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      6,
+      255,
+      7
+    ],
+    "attackRun": 3
+  },
+  "carry": [
+    {
+      "index": 1341
+    },
+    {
+      "index": 1344
+    },
+    {
+      "index": 1350
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1494
+    },
+    {
+      "index": 1494
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1350
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1209
+    },
+    {
+      "index": 1218
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1215
+    },
+    {
+      "index": 1209
+    },
+    {
+      "index": 1500
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1350
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1641
+    },
+    {
+      "index": 1650
+    },
+    {
+      "index": 1653
+    },
+    {
+      "index": 1647
+    }
+  ],
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

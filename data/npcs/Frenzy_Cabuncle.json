@@ -1,0 +1,144 @@
+{
+  "name": "Frenzy_Cabuncle",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 231,
+      "eff": [
+        43,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 708
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 402,
+    "attack": 3900,
+    "magicAttack": 0,
+    "defense": 3800,
+    "maxHP": 27000,
+    "maxMP": 37,
+    "curHP": 27000,
+    "curMP": 37,
+    "str": 5,
+    "int": 100,
+    "dex": 80,
+    "con": 3000,
+    "critical": 255,
+    "resistFire": 246,
+    "resistIce": 246,
+    "resistHoly": 241,
+    "resistThunder": 241,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 3
+  },
+  "carry": [
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 487
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 489
+    },
+    {
+      "index": 413
+    }
+  ],
+  "skillBar": [
+    33,
+    33,
+    33,
+    255
+  ]
+}

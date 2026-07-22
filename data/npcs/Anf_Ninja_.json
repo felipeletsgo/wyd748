@@ -1,0 +1,91 @@
+{
+  "name": "Anf_Ninja_",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 252
+    },
+    "elmo": {
+      "index": 115
+    },
+    "armadura": {
+      "index": 253
+    },
+    "calca": {
+      "index": 254
+    },
+    "luva": {
+      "index": 255
+    },
+    "bota": {
+      "index": 256
+    },
+    "arma": {
+      "index": 721
+    },
+    "escudo": {
+      "index": 721
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 100000,
+  "extendedScore": {
+    "version": 2,
+    "level": 355,
+    "attack": 498,
+    "magicAttack": 0,
+    "defense": 1320,
+    "maxHP": 8700,
+    "maxMP": 0,
+    "curHP": 8700,
+    "curMP": 0,
+    "str": 6,
+    "int": 90,
+    "dex": 30,
+    "con": 700,
+    "critical": 255,
+    "resistFire": 20,
+    "resistIce": 20,
+    "resistHoly": 236,
+    "resistThunder": 236,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      1,
+      255,
+      1
+    ],
+    "attackRun": 3
+  },
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

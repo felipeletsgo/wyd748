@@ -1,0 +1,155 @@
+{
+  "name": "Demon_Lord_King",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 311,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        27,
+        3,
+        0,
+        0
+      ]
+    },
+    "armadura": {
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "calca": {
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "luva": {
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "bota": {
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "arma": {
+      "index": 885,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 402,
+    "attack": 4100,
+    "magicAttack": 0,
+    "defense": 4000,
+    "maxHP": 30000,
+    "maxMP": 37,
+    "curHP": 30000,
+    "curMP": 37,
+    "str": 5,
+    "int": 100,
+    "dex": 90,
+    "con": 2500,
+    "critical": 255,
+    "resistFire": 50,
+    "resistIce": 50,
+    "resistHoly": 50,
+    "resistThunder": 50,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      103,
+      8
+    ],
+    "attackRun": 5
+  },
+  "learnedSkill": 50,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

@@ -1,0 +1,440 @@
+{
+  "name": "Aranha_Rubra",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 353
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 97000,
+  "extendedScore": {
+    "version": 2,
+    "level": 250,
+    "attack": 790,
+    "magicAttack": 0,
+    "defense": 1250,
+    "maxHP": 27600,
+    "maxMP": 0,
+    "curHP": 27600,
+    "curMP": 0,
+    "str": 5,
+    "int": 90,
+    "dex": 90,
+    "con": 0,
+    "critical": 255,
+    "resistFire": 5,
+    "resistIce": 5,
+    "resistHoly": 5,
+    "resistThunder": 5,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 4
+  },
+  "carry": [
+    {
+      "index": 412
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 420
+    },
+    {
+      "index": 420
+    },
+    {
+      "index": 420
+    },
+    {
+      "index": 420
+    },
+    {
+      "index": 420
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 577
+    },
+    {
+      "index": 577
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2223,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2221,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2205,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2242,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2224,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2223,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2221,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2205,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2242,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2224,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2223,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2221,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2205,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2242,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2224,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2404
+    },
+    {
+      "index": 2399
+    },
+    {
+      "index": 2223,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2221,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2205,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2242,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2224,
+      "eff": [
+        104,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2309
+    },
+    {
+      "index": 2314
+    }
+  ],
+  "gold": 9999,
+  "learnedSkill": 50,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

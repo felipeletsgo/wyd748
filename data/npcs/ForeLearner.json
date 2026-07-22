@@ -1,0 +1,175 @@
+{
+  "name": "ForeLearner",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 51
+    },
+    "elmo": {
+      "index": 149
+    },
+    "armadura": {
+      "index": 145
+    },
+    "calca": {
+      "index": 146
+    },
+    "luva": {
+      "index": 147
+    },
+    "bota": {
+      "index": 148
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 3,
+    "attack": 5000,
+    "magicAttack": 0,
+    "defense": 3000,
+    "maxHP": 19000,
+    "maxMP": 0,
+    "curHP": 19000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "resistFire": 255,
+    "resistIce": 255,
+    "resistHoly": 255,
+    "resistThunder": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 19
+  },
+  "direction": 16,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 5072
+    },
+    {
+      "index": 5073
+    },
+    {
+      "index": 5074
+    },
+    {
+      "index": 5075
+    },
+    {
+      "index": 5076
+    },
+    {
+      "index": 5077
+    },
+    {
+      "index": 5078
+    },
+    {
+      "index": 5079
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 5080
+    },
+    {
+      "index": 5081
+    },
+    {
+      "index": 5082
+    },
+    {
+      "index": 5083
+    },
+    {
+      "index": 5084
+    },
+    {
+      "index": 5085
+    },
+    {
+      "index": 5086
+    },
+    {
+      "index": 5087
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 5088
+    },
+    {
+      "index": 5089
+    },
+    {
+      "index": 5090
+    },
+    {
+      "index": 5091
+    },
+    {
+      "index": 5092
+    },
+    {
+      "index": 5093
+    },
+    {
+      "index": 5094
+    },
+    {
+      "index": 5095
+    },
+    {
+      "index": 0
+    }
+  ]
+}

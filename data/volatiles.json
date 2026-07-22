@@ -1,0 +1,299 @@
+{
+  "_comment": "Todos os itens com EF_VOLATILE sao descobertos automaticamente no itemlist.csv. Regras em items substituem completamente a regra do codigo para um item especifico (casar por INDEX). Numeros de balanceamento (affectValue = %, durationUnits = blocos de 8s, exp) sao tunaveis aqui sem recompilar.",
+  "default": {
+    "action": "generic",
+    "consume": false,
+    "description": "Handler generico: registra o uso e nao consome o item ate sua funcao definitiva ser configurada."
+  },
+  "rules": {
+    "0": {
+      "action": "generic",
+      "consume": false,
+      "description": "Handler generico para EF_VOLATILE=0."
+    },
+    "1": {
+      "action": "restore",
+      "consume": true,
+      "valueSource": "item_effects",
+      "description": "Restaura EF_HP/EF_MP definidos no itemlist."
+    },
+    "2": {
+      "action": "ground_gold",
+      "consume": true,
+      "valueSource": "coin_effects",
+      "description": "Moeda do chao; valor = EF_HWORDCOIN * 256 + EF_LWORDCOIN."
+    },
+    "3": {
+      "action": "generic",
+      "consume": false,
+      "valueSource": "item_effects",
+      "description": "Handler generico; no nativo este codigo representa chaves EF_KEYID."
+    },
+    "4": {
+      "action": "refine",
+      "consume": true,
+      "refineMax": 6,
+      "description": "Poeira de Ori (PO): refina o item-alvo ate +6. Consome em sucesso E falha; chance por g_pCelestialRate."
+    },
+    "5": {
+      "action": "refine",
+      "consume": true,
+      "refineMax": 9,
+      "description": "Poeira de Lac (PL): refina o item-alvo ate +9."
+    },
+    "7": {
+      "action": "grant_exp",
+      "consume": true,
+      "exp": 100000000,
+      "description": "Poeira de Fada: EXP alta (100.000.000)."
+    },
+    "8": {
+      "action": "grant_exp",
+      "consume": true,
+      "exp": 500000,
+      "description": "Eye Wax: EXP baixa (500.000)."
+    },
+    "9": {
+      "action": "disabled",
+      "consume": true,
+      "description": "Item que nao deveria ter volatile. Sem itens no itemlist hoje; regra explicita para consumir sem efeito caso surja."
+    },
+    "10": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 225,
+      "description": "Pocao Kappa: +10% dano fisico/magico por ~30min. Ajuste affectValue/durationUnits ao gosto."
+    },
+    "11": {
+      "action": "teleport",
+      "consume": true,
+      "x": 2112,
+      "y": 2088,
+      "description": "Recall para Armia."
+    },
+    "12": {
+      "action": "save_position",
+      "consume": true,
+      "description": "Gema Estelar: grava a coordenada atual para o Warp usar."
+    },
+    "13": {
+      "action": "warp_saved",
+      "consume": true,
+      "description": "Warp: teleporta para a coordenada gravada pela Gema Estelar."
+    },
+    "52": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 15,
+      "durationUnits": 225,
+      "description": "Pocao Competente: +15% dano por ~30min."
+    },
+    "53": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 25,
+      "durationUnits": 225,
+      "description": "Pocao Mental: +25% dano por ~30min."
+    },
+    "55": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 450,
+      "description": "Kappa (P): +10% dano por ~1h."
+    },
+    "56": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 15,
+      "durationUnits": 450,
+      "description": "Competente (P): +15% dano por ~1h."
+    },
+    "57": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 25,
+      "durationUnits": 450,
+      "description": "Mental (P): +25% dano por ~1h."
+    },
+    "60": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 1800,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Comida (Bread): affect 30, +4h por uso acumulando ate 24h."
+    },
+    "61": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 1800,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Comida (Sausage): +4h por uso ate 24h."
+    },
+    "62": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 1800,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Comida (Meat): +4h por uso ate 24h."
+    },
+    "63": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 1800,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Comida (Roast Chicken): +4h por uso ate 24h."
+    },
+    "64": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 75600,
+      "description": "Panqueca 7 dias: affect 30 por 7d."
+    },
+    "65": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 162000,
+      "description": "Panqueca 15 dias: affect 30 por 15d."
+    },
+    "66": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 324000,
+      "description": "Panqueca 30 dias: affect 30 por 30d."
+    },
+    "70": { "action": "face_transform", "consume": true, "faceMesh": 202, "durationUnits": 10800, "description": "Vira Gremlin (rosto 202). Ajuste faceMesh/dur se o visual nao bater." },
+    "71": { "action": "face_transform", "consume": true, "faceMesh": 209, "durationUnits": 10800, "description": "Vira Archer Orc (rosto 209)." },
+    "72": { "action": "face_transform", "consume": true, "faceMesh": 212, "durationUnits": 10800, "description": "Vira Troll (rosto 212)." },
+    "73": { "action": "face_transform", "consume": true, "faceMesh": 230, "durationUnits": 10800, "description": "Vira Carbunkle (rosto 230)." },
+    "74": { "action": "face_transform", "consume": true, "faceMesh": 229, "durationUnits": 10800, "description": "Vira Ghoul Chief (rosto 229)." },
+    "75": { "action": "face_transform", "consume": true, "faceMesh": 216, "durationUnits": 10800, "description": "Vira Wild Boar/Javali (rosto 216)." },
+    "76": { "action": "face_transform", "consume": true, "faceMesh": 299, "durationUnits": 10800, "description": "Vira Wolf/Lobo (rosto 299)." },
+    "77": { "action": "face_transform", "consume": true, "faceMesh": 297, "durationUnits": 10800, "description": "Vira Fire Golem (rosto 297)." },
+    "89": { "action": "face_restore", "consume": true, "description": "Volta ao rosto real do jogador." },
+    "186": { "action": "tint", "consume": true, "color": 116, "description": "Tintura (Enamel): pinta o item-alvo (equip ou inv). Fallback azul; cor real por item em items[]. O Remover_Enamel usa untint." },
+    "190": { "action": "repliction", "consume": true, "description": "Repliction: sorteia um adicional no manto equipado. Pool por grade em items[] (regra do felipe: diferenciar por Index). Fallback = Grade C.",
+      "addPool": [ {"effect": 2, "value": 15, "weight": 2}, {"effect": 7, "value": 4, "weight": 3}, {"effect": 10, "value": 4, "weight": 3} ] },
+    "15": { "action": "mount", "mountAction": "feed", "consume": true, "description": "Racao (2420+/3367+): +5000 HP (teto 30000) e +2 comida (teto 100) na montaria equipada. Casa por familia de tipo (fiel ao W2PP Vol 15)." },
+    "16": { "action": "mount", "mountAction": "essence", "consume": true, "description": "Amago/Essence (2390+): +1 level; adulta rola chance de sucesso (g_pSancRate[2]), falha pode baixar level; evolui estagio ao cruzar o limite (fiel ao Vol 16)." },
+    "93": { "action": "mount", "mountAction": "longevity", "consume": true, "description": "Length Of Life Recovery (3351+): longevidade +1~3 (teto 60). Recusa se no maximo ou montaria morta (fiel ao Vol 93)." },
+    "94": { "action": "mount", "mountAction": "growth", "consume": true, "description": "Growth Potion (3344+): evolui o estagio da montaria na hora (sIndex+=30), por categoria (fiel ao Vol 94)." },
+    "90": { "action": "mount", "mountAction": "invuln", "consume": true, "durationUnits": 75600, "description": "Mount Recovery Potion 7d: affect 51 (invuln da montaria) por 7 dias -- nao drena HP/comida enquanto ativo." },
+    "91": { "action": "mount", "mountAction": "invuln", "consume": true, "durationUnits": 162000, "description": "Mount Recovery Potion 15d: affect 51 por 15 dias." },
+    "92": { "action": "mount", "mountAction": "invuln", "consume": true, "durationUnits": 324000, "description": "Mount Recovery Potion 30d: affect 51 por 30 dias." },
+    "196": { "action": "mount", "mountAction": "hatch", "consume": true, "description": "Hatch accelerator: zera o delay de incubacao de um ovo no inventario, liberando o proximo Ori/Lac." },
+    "185": {
+      "action": "gold",
+      "consume": true,
+      "valueSource": "price",
+      "description": "Converte Silver Wyden em gold usando o Price server-side do itemlist."
+    },
+    "194": {
+      "action": "refine_set",
+      "consume": true,
+      "refineMax": 6,
+      "description": "Molar do Gargula: refino FIXO +6 nas pecas de armadura equipadas (slots 1-5). Sem rolagem."
+    },
+    "198": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 39,
+      "durationUnits": 900,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Bau de Experiencia: buff que DOBRA a EXP recebida, +2h por uso acumulando ate 24h (affect 39)."
+    },
+    "67": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 450,
+      "description": "Codigo LIVRE aceito pelo client no botao direito (vizinho das comidas 60-66). Portador dos buffs Sefirah/Chocolate/Doce/Coragem, cujo EF_VOLATILE no itemlist foi trocado de 202/204/205/230 para 67 (o client 7.48 nao usa 202+). Params reais por item em items[]."
+    }
+  },
+  "items": {
+    "3361": {
+      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 75600,
+      "description": "Sefirah 7 dias (buff de dano)."
+    },
+    "3362": {
+      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 162000,
+      "description": "Sefirah 15 dias."
+    },
+    "3363": {
+      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 324000,
+      "description": "Sefirah 30 dias."
+    },
+    "1739": {
+      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 450,
+      "description": "Chocolate do Amor (~1h)."
+    },
+    "4145": {
+      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 450,
+      "description": "Doce do Amor (~1h)."
+    },
+    "646": {
+      "action": "buff", "consume": true, "affectType": 4, "affectValue": 20, "durationUnits": 450,
+      "description": "Pocao da Coragem (+20%, ~1h)."
+    },
+    "647": {
+      "action": "buff", "consume": true, "affectType": 4, "affectValue": 20, "durationUnits": 900,
+      "description": "Wonder Drug da Coragem (+20%, ~2h)."
+    },
+    "3378": {
+      "action": "buff", "consume": true, "affectType": 4, "affectValue": 20, "durationUnits": 324000,
+      "description": "Coragem 30 dias."
+    },
+    "3407": { "action": "tint", "consume": true, "color": 116, "description": "Blue Enamel (mesh 2782.0 -> cor 116)." },
+    "3408": { "action": "tint", "consume": true, "color": 117, "description": "Red Enamel (2782.1 -> 117)." },
+    "3409": { "action": "tint", "consume": true, "color": 118, "description": "Green Enamel (2782.2 -> 118)." },
+    "3410": { "action": "tint", "consume": true, "color": 119, "description": "Silver Enamel (2782.3 -> 119)." },
+    "3411": { "action": "tint", "consume": true, "color": 120, "description": "Black Enamel (2782.4 -> 120)." },
+    "3412": { "action": "tint", "consume": true, "color": 121, "description": "Purple Enamel (2782.5 -> 121)." },
+    "3413": { "action": "tint", "consume": true, "color": 122, "description": "Brown Enamel (2782.6 -> 122)." },
+    "3414": { "action": "tint", "consume": true, "color": 123, "description": "Violet Enamel (2782.7 -> 123)." },
+    "3415": { "action": "tint", "consume": true, "color": 124, "description": "Yellowish Enamel (2782.8 -> 124)." },
+    "3416": { "action": "tint", "consume": true, "color": 125, "description": "Indigo Enamel (2782.9 -> 125)." },
+    "3417": { "action": "untint", "consume": true, "description": "Remover Enamel: remove a cor (volta o sanc para 43)." },
+
+    "4016": { "action": "repliction", "consume": true, "description": "Grade A Repliction (pool forte, tunavel).",
+      "addPool": [ {"effect": 2, "value": 40, "weight": 2}, {"effect": 60, "value": 30, "weight": 2}, {"effect": 7, "value": 10, "weight": 3}, {"effect": 10, "value": 10, "weight": 3}, {"effect": 45, "value": 8, "weight": 1} ] },
+    "4021": { "action": "repliction", "consume": true, "description": "Grade A (Premium): mesmo pool forte.",
+      "addPool": [ {"effect": 2, "value": 40, "weight": 2}, {"effect": 60, "value": 30, "weight": 2}, {"effect": 7, "value": 10, "weight": 3}, {"effect": 10, "value": 10, "weight": 3}, {"effect": 45, "value": 8, "weight": 1} ] },
+    "4017": { "action": "repliction", "consume": true, "description": "Grade B Repliction.",
+      "addPool": [ {"effect": 2, "value": 25, "weight": 2}, {"effect": 60, "value": 20, "weight": 2}, {"effect": 7, "value": 7, "weight": 3}, {"effect": 10, "value": 7, "weight": 3} ] },
+    "4022": { "action": "repliction", "consume": true, "description": "Grade B (Premium).",
+      "addPool": [ {"effect": 2, "value": 25, "weight": 2}, {"effect": 60, "value": 20, "weight": 2}, {"effect": 7, "value": 7, "weight": 3}, {"effect": 10, "value": 7, "weight": 3} ] },
+    "4018": { "action": "repliction", "consume": true, "description": "Grade C Repliction.",
+      "addPool": [ {"effect": 2, "value": 15, "weight": 2}, {"effect": 7, "value": 4, "weight": 3}, {"effect": 10, "value": 4, "weight": 3} ] },
+    "4023": { "action": "repliction", "consume": true, "description": "Grade C (Premium).",
+      "addPool": [ {"effect": 2, "value": 15, "weight": 2}, {"effect": 7, "value": 4, "weight": 3}, {"effect": 10, "value": 4, "weight": 3} ] },
+    "4019": { "action": "repliction", "consume": true, "description": "Grade D Repliction.",
+      "addPool": [ {"effect": 2, "value": 8, "weight": 2}, {"effect": 7, "value": 2, "weight": 3}, {"effect": 10, "value": 2, "weight": 3} ] },
+    "4024": { "action": "repliction", "consume": true, "description": "Grade D (Premium).",
+      "addPool": [ {"effect": 2, "value": 8, "weight": 2}, {"effect": 7, "value": 2, "weight": 3}, {"effect": 10, "value": 2, "weight": 3} ] },
+    "4020": { "action": "repliction", "consume": true, "description": "Grade E Repliction (mais fraco).",
+      "addPool": [ {"effect": 7, "value": 1, "weight": 1}, {"effect": 10, "value": 1, "weight": 1}, {"effect": 2, "value": 5, "weight": 1} ] },
+    "4025": { "action": "repliction", "consume": true, "description": "Grade E (Premium).",
+      "addPool": [ {"effect": 7, "value": 1, "weight": 1}, {"effect": 10, "value": 1, "weight": 1}, {"effect": 2, "value": 5, "weight": 1} ] }
+  }
+}

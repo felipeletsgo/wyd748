@@ -1,0 +1,108 @@
+{
+  "name": "Dark_Shadow",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 174
+    },
+    "elmo": {
+      "index": 174
+    },
+    "armadura": {
+      "index": 1511
+    },
+    "calca": {
+      "index": 1512
+    },
+    "luva": {
+      "index": 1513
+    },
+    "bota": {
+      "index": 1514
+    },
+    "arma": {
+      "index": 2947
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 2387,
+      "eff": [
+        10,
+        120,
+        120,
+        120,
+        120,
+        0
+      ]
+    },
+    "capa": {
+      "index": 738
+    }
+  },
+  "classInfo": 1,
+  "expReward": 350000,
+  "extendedScore": {
+    "version": 2,
+    "level": 560,
+    "attack": 3500,
+    "magicAttack": 0,
+    "defense": 4100,
+    "maxHP": 28000,
+    "maxMP": 0,
+    "curHP": 28000,
+    "curMP": 0,
+    "str": 5,
+    "int": 140,
+    "dex": 80,
+    "con": 800,
+    "critical": 255,
+    "resistFire": 45,
+    "resistIce": 45,
+    "resistHoly": 45,
+    "resistThunder": 45,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "gold": 9999,
+  "learnedSkill": 70,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

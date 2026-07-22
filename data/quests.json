@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "quests": [
+    {
+      "id": 1,
+      "npc": "Coveiro",
+      "repeatable": false,
+      "requires": {
+        "minLevel": 1,
+        "gold": 100
+      },
+      "rewards": {
+        "exp": 5000
+      },
+      "messages": {
+        "offer": "O Coveiro agradece a ajuda.",
+        "success": "O Coveiro agradece a ajuda. (+5000 EXP)",
+        "denied": "O Coveiro nao tem nada para voce agora."
+      }
+    },
+    {
+      "id": 2,
+      "npc": "Kibita",
+      "repeatable": false,
+      "requires": {
+        "gold": 400000
+      },
+      "rewards": {
+        "citizenship": true
+      },
+      "messages": {
+        "offer": "Kibita: a cidadania custa 400.000 gold.",
+        "success": "Voce agora e cidadao. Bonus de drop ativo.",
+        "denied": "Kibita: voce nao pode se tornar cidadao agora."
+      }
+    }
+  ]
+}

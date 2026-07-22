@@ -1,0 +1,164 @@
+package game
+
+import (
+	"encoding/binary"
+	"log"
+	"strings"
+	"time"
+
+	"wydgo/internal/account"
+	"wydgo/internal/model"
+	"wydgo/internal/net"
+	"wydgo/internal/wire"
+)
+
+// removePlayerFromWorld desfaz apenas o estado efemero do personagem. A conta
+// e a sessao continuam autenticadas para que 0x215 possa voltar a tela de
+// selecao sem uma nova conexao TCP.
+func (w *World) removePlayerFromWorld(p *Player, reason string) {
+	if p == nil {
+		return
+	}
+	w.closeGhostShop(p, reason)
+	w.cancelTrade(p, reason)
+	w.removePartyPlayer(p)
+	// Evocacoes pertencem ao dono: despawnam quando ele sai do mundo, senao
+	// ficariam orfas e seguiriam o proximo player a reusar este ID.
+	w.removePlayerSummons(p.ID)
+	if p.InWorld {
+		for _, other := range w.players {
+			if other != p && other.InWorld && other.hasVisible(p.ID) {
+				other.Session.Send(wire.RemoveMob(p.ID, 0))
+				other.hide(p.ID)
+			}
+		}
+	}
+	p.InWorld = false
+	p.ID = 0
+	p.Char = nil
+	p.CharSlot = -1
+	p.ShopNPC = 0
+	p.Visible = nil
+	p.CombatTargetID = 0
+	p.LastAttackerID = 0
+	p.BrowsingGhostShopID = 0
+}
+
+// onCharacterLogout trata 0x215. A resposta 0x116 e comprovadamente a
+// transicao que o client 7.48 espera para voltar a TM_SELECTCHAR_STATE.
+func (w *World) onCharacterLogout(s *net.Session, pkt []byte) {
+	p := w.players[s]
+	if p == nil || !p.InWorld || p.Char == nil || len(pkt) != 12 {
+		return
+	}
+	charID, name := p.ID, p.Char.Name
+	// Persiste buffs/moedas ANTES de sair do mundo, para sobreviverem ao retorno
+	// a selecao e a reentrada.
+	w.saveCharState(p)
+	w.removePlayerFromWorld(p, "retorno a selecao")
+	if p.Account != nil {
+		if err := w.saveAccount(p.Account); err != nil {
+			log.Printf("[#%d] ERRO ao salvar conta %q no character-logout: %v", s.ID, p.Account.Name, err)
+		}
+	}
+	s.Send(wire.CNFCharacterLogout(charID))
+	log.Printf("[#%d] CHARACTER-LOGOUT %q -> selecao", s.ID, name)
+}
+
+// onDeleteCharacter valida a senha de novo porque 0x211 e uma operacao
+// destrutiva. O cliente envia Slot@12, MobName@16 e Password@32 (44 bytes).
+func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
+	p := w.players[s]
+	if p == nil || p.Account == nil || p.InWorld || len(pkt) != 44 {
+		return
+	}
+	slot := int(int32(binary.LittleEndian.Uint32(pkt[12:16])))
+	name, password := cstr(pkt[16:32]), cstr(pkt[32:44])
+	if slot < 0 || slot >= len(p.Account.Chars) || p.Account.Chars[slot].Name == "" ||
+		!strings.EqualFold(name, p.Account.Chars[slot].Name) || p.Account.PasswordHash == "" {
+		s.Send(wire.MessagePanel("Nao foi possivel excluir o personagem."))
+		return
+	}
+	ok, err := account.VerifyPassword(p.Account.PasswordHash, password)
+	if err != nil || !ok {
+		log.Printf("[#%d] exclusao recusada para %q: senha invalida", s.ID, name)
+		s.Send(wire.MessagePanel("Senha incorreta."))
+		return
+	}
+	previous := p.Account.Chars[slot]
+	p.Account.Chars[slot] = model.Char{}
+	if err := w.saveAccount(p.Account); err != nil {
+		p.Account.Chars[slot] = previous
+		log.Printf("[#%d] ERRO ao excluir personagem %q: %v", s.ID, name, err)
+		s.Send(wire.MessagePanel("Nao foi possivel salvar a exclusao."))
+		return
+	}
+	if w.charNames != nil {
+		delete(w.charNames, strings.ToLower(previous.Name))
+	}
+	s.Send(wire.CNFDeleteCharacter(uint16(s.ID), p.Account.Chars))
+	log.Printf("[#%d] personagem excluido: %q slot=%d", s.ID, name, slot)
+}
+
+// onREQMobByID recupera uma entidade que o client ainda nao materializou mas
+// que foi referenciada por Action. So respondemos para entidades no raio de
+// visibilidade; assim o pacote nao vira uma consulta global do mapa.
+func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
+	p := w.players[s]
+	if p == nil || !p.InWorld || len(pkt) != 16 {
+		return
+	}
+	id := binary.LittleEndian.Uint16(pkt[12:14])
+	if id == 0 || id == p.ID {
+		return
+	}
+	if m := w.mobByID(id); m != nil && inView(p.X, p.Y, m.X, m.Y) {
+		wasVisible := p.hasVisible(id)
+		w.showMob(p, m)
+		if wasVisible { // pode ser uma recuperacao apos perda local do client.
+			ancient := m.Def.Equip.AncientCodes()
+			p.Session.Send(wire.CreateMobVisualExtended(m.ID, m.Def.Name, m.X, m.Y,
+				m.Def.Mesh(), ancient[:], mobPublicExtended(m), m.Affects[:], 0))
+		}
+		return
+	}
+	if target := w.playerByID(id); target != nil && target.InWorld && target.Char != nil &&
+		inView(p.X, p.Y, target.X, target.Y) {
+		sendPlayerEnterView(p, target)
+		p.show(id)
+		return
+	}
+	if shop := w.ghostShops[id]; shop != nil && inView(p.X, p.Y, shop.X, shop.Y) {
+		p.Session.Send(wire.CreateMobTradeExtended(shop.ID, shop.Name, shop.X, shop.Y,
+			shop.Mesh[:], &shop.Extended, shop.Title))
+		p.show(id)
+	}
+}
+
+// onMotion e 0x2BC sao emitidos pelo client 7.48 para efeitos/telemetria que
+// nao alteram estado autoritativo do emulador. Reconhece-los evita falso
+// "sem handler" sem inventar uma semantica que o server ainda nao usa.
+func (w *World) onMotion(s *net.Session, pkt []byte) {
+	if len(pkt) != 20 {
+		w.noticeProtocol(s, wire.OpMotion, "tamanho inesperado")
+	}
+}
+
+func (w *World) onClientUnknown2BC(s *net.Session, pkt []byte) {
+	if len(pkt) != 108 {
+		w.noticeProtocol(s, wire.OpClientUnknown2BC, "tamanho inesperado")
+	}
+}
+
+func (w *World) noticeProtocol(s *net.Session, opcode uint16, detail string) {
+	if s == nil {
+		return
+	}
+	key := uint16(s.ID)<<4 ^ opcode
+	now := time.Now()
+	if last := w.lastProtocolNotice[key]; !last.IsZero() && now.Sub(last) < time.Minute {
+		return
+	}
+	w.lastProtocolNotice[key] = now
+	log.Printf("[#%d] protocolo 0x%X ignorado: %s", s.ID, opcode, detail)
+}

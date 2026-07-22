@@ -1,0 +1,198 @@
+{
+  "name": "Luvian",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 31
+    },
+    "elmo": {
+      "index": 1581
+    },
+    "armadura": {
+      "index": 1584
+    },
+    "calca": {
+      "index": 1587
+    },
+    "luva": {
+      "index": 1590
+    },
+    "bota": {
+      "index": 1593
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 5,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 2,
+    "attack": 500,
+    "magicAttack": 0,
+    "defense": 500,
+    "maxHP": 9000,
+    "maxMP": 0,
+    "curHP": 9000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      1,
+      255,
+      1
+    ],
+    "attackRun": 1,
+    "merchant": 1
+  },
+  "learnedSkill": 5,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 1581
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1584
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1587
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1590
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1593
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1582
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1585
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1588
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1591
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1594
+    }
+  ]
+}

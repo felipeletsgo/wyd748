@@ -1,0 +1,87 @@
+{
+  "name": "Aberes",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 17
+    },
+    "elmo": {
+      "index": 149
+    },
+    "armadura": {
+      "index": 145
+    },
+    "calca": {
+      "index": 146
+    },
+    "luva": {
+      "index": 147
+    },
+    "bota": {
+      "index": 148
+    },
+    "arma": {
+      "index": 822
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 734
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 301,
+    "attack": 1302,
+    "magicAttack": 0,
+    "defense": 2900,
+    "maxHP": 27000,
+    "maxMP": 0,
+    "curHP": 27000,
+    "curMP": 0,
+    "str": 6,
+    "int": 100,
+    "dex": 80,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      101,
+      1,
+      101,
+      1
+    ],
+    "attackRun": 4
+  },
+  "direction": 32,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

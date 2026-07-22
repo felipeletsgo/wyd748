@@ -1,0 +1,86 @@
+{
+  "name": "Field_Combatant",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 60
+    },
+    "elmo": {
+      "index": 125
+    },
+    "armadura": {
+      "index": 131
+    },
+    "calca": {
+      "index": 127
+    },
+    "luva": {
+      "index": 128
+    },
+    "bota": {
+      "index": 129
+    },
+    "arma": {
+      "index": 908
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 736
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 301,
+    "attack": 960,
+    "magicAttack": 0,
+    "defense": 2800,
+    "maxHP": 27000,
+    "maxMP": 0,
+    "curHP": 27000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 3
+  },
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

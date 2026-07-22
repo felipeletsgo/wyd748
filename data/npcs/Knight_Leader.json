@@ -1,0 +1,171 @@
+{
+  "name": "Knight_Leader",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 60
+    },
+    "elmo": {
+      "index": 125
+    },
+    "armadura": {
+      "index": 131
+    },
+    "calca": {
+      "index": 127
+    },
+    "luva": {
+      "index": 128
+    },
+    "bota": {
+      "index": 129
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 864
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 1,
+    "attack": 5000,
+    "magicAttack": 0,
+    "defense": 5000,
+    "maxHP": 19000,
+    "maxMP": 0,
+    "curHP": 19000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 19
+  },
+  "direction": 16,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 5000
+    },
+    {
+      "index": 5001
+    },
+    {
+      "index": 5002
+    },
+    {
+      "index": 5003
+    },
+    {
+      "index": 5004
+    },
+    {
+      "index": 5005
+    },
+    {
+      "index": 5006
+    },
+    {
+      "index": 5007
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 5008
+    },
+    {
+      "index": 5009
+    },
+    {
+      "index": 5010
+    },
+    {
+      "index": 5011
+    },
+    {
+      "index": 5012
+    },
+    {
+      "index": 5013
+    },
+    {
+      "index": 5014
+    },
+    {
+      "index": 5015
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 5016
+    },
+    {
+      "index": 5017
+    },
+    {
+      "index": 5018
+    },
+    {
+      "index": 5019
+    },
+    {
+      "index": 5020
+    },
+    {
+      "index": 5021
+    },
+    {
+      "index": 5022
+    },
+    {
+      "index": 5023
+    },
+    {
+      "index": 0
+    }
+  ]
+}

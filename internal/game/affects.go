@@ -1,0 +1,825 @@
+package game
+
+import (
+	"log"
+	"time"
+
+	"wydgo/internal/model"
+	"wydgo/internal/wire"
+)
+
+func canReplaceAffect(current model.Affect, value, level int, expires time.Time, now time.Time) bool {
+	if current.Type == 0 || !current.ExpiresAt.After(now) {
+		return true
+	}
+	// SetAffect nativo preserva tanto a potencia quanto o tempo restante. Um
+	// recast mais fraco ou mais curto nao pode reduzir um buff/debuff existente.
+	if level < current.Level || level == current.Level && value < current.Value {
+		return false
+	}
+	return !expires.Before(current.ExpiresAt)
+}
+
+func setAffect(ch *model.Char, affectType byte, value, level, durationUnits int) bool {
+	if ch == nil || affectType == 0 {
+		return false
+	}
+	if durationUnits < 1 {
+		durationUnits = 1
+	}
+	expires := time.Now().Add(time.Duration(durationUnits*8) * time.Second)
+	now := time.Now()
+	slot := -1
+	for i := range ch.Affects {
+		if ch.Affects[i].Type == affectType {
+			if !canReplaceAffect(ch.Affects[i], value, level, expires, now) {
+				return false
+			}
+			slot = i
+			break
+		}
+		if slot < 0 && (ch.Affects[i].Type == 0 || !ch.Affects[i].ExpiresAt.After(now)) {
+			slot = i
+		}
+	}
+	if slot < 0 {
+		return false
+	}
+	ch.Affects[slot] = model.Affect{Type: affectType, ClientType: affectType, Value: value, Level: level,
+		ExpiresAt: expires, NextTick: now.Add(8 * time.Second)}
+	return true
+}
+
+// setFaceAffect grava a transformacao de rosto (volatiles 70-77) DIRETO, sempre
+// substituindo a atual. Nao usa canReplaceAffect: aquela compara potencia
+// (Value), o que aqui e um mesh -- trocar de Gremlin(202) para Troll(212) e
+// valido nas duas direcoes. Value carrega o mesh; bodyMesh o aplica.
+func setFaceAffect(ch *model.Char, mesh, durationUnits int) bool {
+	if ch == nil || mesh <= 0 {
+		return false
+	}
+	if durationUnits < 1 {
+		durationUnits = 1
+	}
+	now := time.Now()
+	expires := now.Add(time.Duration(durationUnits*8) * time.Second)
+	slot := -1
+	for i := range ch.Affects {
+		if ch.Affects[i].Type == affectFaceTransform {
+			slot = i
+			break
+		}
+		if slot < 0 && (ch.Affects[i].Type == 0 || !ch.Affects[i].ExpiresAt.After(now)) {
+			slot = i
+		}
+	}
+	if slot < 0 {
+		return false
+	}
+	ch.Affects[slot] = model.Affect{Type: affectFaceTransform, ClientType: affectFaceTransform,
+		Value: mesh, ExpiresAt: expires, NextTick: now.Add(8 * time.Second)}
+	return true
+}
+
+// removeFaceAffect tira a transformacao de rosto; devolve se havia alguma ativa.
+func removeFaceAffect(ch *model.Char) bool {
+	if ch == nil {
+		return false
+	}
+	removed := false
+	for i := range ch.Affects {
+		if ch.Affects[i].Type == affectFaceTransform {
+			ch.Affects[i] = model.Affect{}
+			removed = true
+		}
+	}
+	return removed
+}
+
+// activePlayerAffect devolve o affect ativo do tipo pedido, ou nil. Espelha o
+// activeMobAffect usado pelos mobs.
+func activePlayerAffect(ch *model.Char, affectType byte) *model.Affect {
+	if ch == nil {
+		return nil
+	}
+	now := time.Now()
+	for i := range ch.Affects {
+		if ch.Affects[i].Type == affectType && ch.Affects[i].ExpiresAt.After(now) {
+			return &ch.Affects[i]
+		}
+	}
+	return nil
+}
+
+// accumulateAffect SOMA tempo a um affect existente (ou cria um novo), com teto.
+// Porta o padrao do frango assado e do bau de EXP do W2PP, que fazem
+// Affect.Time += X ate um limite e recusam "usar mais" quando ja no teto. addUnits
+// e maxUnits sao blocos de 8 s. Retorna false (sem consumir) quando ja saturado.
+func accumulateAffect(ch *model.Char, affectType byte, value, level, addUnits, maxUnits int) bool {
+	if ch == nil || affectType == 0 || maxUnits < 1 {
+		return false
+	}
+	if addUnits < 1 {
+		addUnits = 1
+	}
+	now := time.Now()
+	const unit = 8 * time.Second
+	empty := -1
+	for i := range ch.Affects {
+		a := &ch.Affects[i]
+		if a.Type == affectType && a.ExpiresAt.After(now) {
+			remaining := int((a.ExpiresAt.Sub(now) + unit - 1) / unit)
+			if remaining >= maxUnits {
+				return false // ja no teto: "nao pode usar/comer mais"
+			}
+			total := minInt(remaining+addUnits, maxUnits)
+			a.Value, a.Level = value, level
+			a.ExpiresAt = now.Add(time.Duration(total) * unit)
+			if a.NextTick.IsZero() {
+				a.NextTick = now.Add(unit)
+			}
+			return true
+		}
+		if empty < 0 && (a.Type == 0 || !a.ExpiresAt.After(now)) {
+			empty = i
+		}
+	}
+	if empty < 0 {
+		return false
+	}
+	total := minInt(addUnits, maxUnits)
+	ch.Affects[empty] = model.Affect{Type: affectType, ClientType: affectType, Value: value, Level: level,
+		ExpiresAt: now.Add(time.Duration(total) * unit), NextTick: now.Add(unit)}
+	return true
+}
+
+func skillAffect(skill model.SkillDef) (byte, int, bool) {
+	// O client 7.48 usa estes tipos nas posicoes finais da barra TK. Eles foram
+	// confirmados em jogo e diferem de algumas linhas do SkillData 7.59/W2PP.
+	switch skill.Index {
+	case 3:
+		return 24, 0, true // Samaritano
+	case 5:
+		return 17, 75, true // Aura da Vida
+	case 11:
+		return 13, 7, true // Assalto
+	case 13:
+		return 14, 10, true // Possuido
+	case 15:
+		return 31, 150, true // Armadura Critica
+	}
+	if skill.AffectType > 0 {
+		return byte(skill.AffectType), skill.AffectValue, true
+	}
+	if skill.TickType > 0 {
+		return byte(skill.TickType), skill.TickValue, true
+	}
+	return 0, 0, false
+}
+
+func skillEquipped(ch *model.Char, globalIndex int) bool {
+	if ch == nil {
+		return false
+	}
+	localIndex := globalIndex - int(ch.Class)*24
+	for _, value := range ch.ShortSkill {
+		if value == 0xFF {
+			continue
+		}
+		if int(value) == globalIndex || int(value) == localIndex {
+			return true
+		}
+	}
+	return false
+}
+
+// canUseSupportSkill permite a primeira aplicacao normalmente. Enquanto o affect
+// estiver ativo, so permite renovar nos ultimos 10 segundos e se a skill ainda
+// estiver equipada na barra. A chamada ocorre antes de cobrar MP/animar.
+func canUseSupportSkill(ch *model.Char, skill model.SkillDef, now time.Time) bool {
+	affectType, _, isBuff := skillAffect(skill)
+	if !isBuff || ch == nil {
+		return true
+	}
+	for i := range ch.Affects {
+		a := &ch.Affects[i]
+		if a.Type != affectType || !a.ExpiresAt.After(now) {
+			continue
+		}
+		if a.ExpiresAt.Sub(now) >= 10*time.Second {
+			return false
+		}
+		return skillEquipped(ch, skill.Index)
+	}
+	return true
+}
+
+func sameSupportGroup(caster, target *Player) bool {
+	return caster == target || caster != nil && target != nil && caster.Party != nil && caster.Party == target.Party
+}
+
+func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.SkillDef) []*Player {
+	if p == nil || p.Char == nil {
+		return nil
+	}
+	if skill.Party != 0 && skill.MaxTarget > 1 && p.Party != nil {
+		result := make([]*Player, 0, len(p.Party.Members))
+		for _, member := range p.Party.Members {
+			if member != nil && member.InWorld && member.Char != nil &&
+				chebyshev(p.X, p.Y, member.X, member.Y) <= maxInt(6, skill.Range) {
+				result = append(result, member)
+			}
+		}
+		if len(result) > 0 {
+			return result
+		}
+	}
+	if target := w.playerByID(req.TargetID); target != nil && target.InWorld &&
+		target.Char != nil && (sameSupportGroup(p, target) || skill.Index == 47) &&
+		chebyshev(p.X, p.Y, target.X, target.Y) <= maxInt(6, skill.Range) {
+		return []*Player{target}
+	}
+	return []*Player{p}
+}
+
+func cleansePlayer(ch *model.Char) bool {
+	changed := false
+	for i := range ch.Affects {
+		switch ch.Affects[i].Type {
+		case 1, 3, 5, 7, 10, 12, 20, 22:
+			ch.Affects[i] = model.Affect{}
+			changed = true
+		}
+	}
+	return changed
+}
+
+// applySupportSkill porta o caminho nao-agressivo de _MSG_Attack da W2PP.
+// O client escolhe/mostra o alvo, mas o servidor valida grupo, alcance e valores.
+type supportSkillResult struct {
+	player  *Player
+	hpDelta uint32
+}
+
+func foemaHealAmount(skillIndex, mastery, instanceValue int) int {
+	heal := mastery*3/2 + instanceValue
+	if skillIndex == 27 {
+		heal = mastery*2 + instanceValue
+	}
+	// Personagens deste emulador ainda sao Mortais. A W2PP/7.59 aplica 140%
+	// e limita Cura/Recuperar a 548 HP nessa classe de personagem.
+	return minInt(548, heal*14/10)
+}
+
+func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.SkillDef, mastery int) []supportSkillResult {
+	targets := w.supportTargets(p, req, skill)
+	changed := make([]supportSkillResult, 0, len(targets))
+	for _, target := range targets {
+		if playerCurHP(target.Char) == 0 && skill.Index != 31 {
+			continue
+		}
+		oldMaxHP := playerMaxHP(target.Char)
+		oldHP := playerCurHP(target.Char)
+		applied := false
+		switch skill.Index {
+		case 25: // Desintoxicar
+			applied = cleansePlayer(target.Char)
+		case 27, 29: // Cura / Recuperar
+			heal := foemaHealAmount(skill.Index, mastery, skill.InstanceValue)
+			restorePlayerHP(target.Char, uint32(heal))
+			applied = true
+		case 31: // Renascimento: regra Mortal da W2PP (50% e toda a MP do caster).
+			setPlayerCurMP(p.Char, 0)
+			if playerCurHP(target.Char) == 0 && time.Now().UnixNano()&1 == 0 {
+				setPlayerCurHP(target.Char, playerMaxHP(target.Char))
+				setPlayerCurMP(target.Char, playerMaxMP(target.Char))
+				target.DeadAt = time.Time{}
+				applied = true
+			}
+		case 42: // Teleporte: traz o membro selecionado para junto do caster.
+			if target != p {
+				target.X, target.Y = w.findFreePlayerPosition(p.X, p.Y, 4, target)
+				target.Char.X, target.Char.Y = target.X, target.Y
+				w.refreshPlayerVisibility(target)
+				w.sendToPlayerView(target, func() []byte {
+					return wire.ActionStop(target.ID, target.X, target.Y)
+				})
+			}
+			applied = true
+		case 47: // Cancelamento remove Imunidade (Affect 19).
+			for i := range target.Char.Affects {
+				if target.Char.Affects[i].Type == 19 {
+					target.Char.Affects[i] = model.Affect{}
+					applied = true
+				}
+			}
+		case 56, 57, 58, 59, 60, 61, 62, 63:
+			applied = w.castSummon(p, skill, mastery)
+		default:
+			affectType, value, ok := skillAffect(skill)
+			if ok {
+				applied = setAffect(target.Char, affectType, value, mastery, skill.AffectTime)
+				if applied && skill.Index == 15 { // Critical Armor TK usa o visual 24 no 7.48.
+					for i := range target.Char.Affects {
+						if target.Char.Affects[i].Type == affectType {
+							target.Char.Affects[i].ClientType = 24
+							break
+						}
+					}
+				}
+			}
+		}
+		if !applied {
+			continue
+		}
+		// Cura e Recuperar alteram somente o HP corrente. Recalcular todo o score
+		// aqui fazia um simples heal reaplicar/migrar stats e pontos do personagem.
+		if skill.Index != 27 && skill.Index != 29 {
+			w.recalcPlayer(target.Char)
+		}
+		if skill.Index == 31 {
+			w.rematerializePlayerAfterRevive(target)
+		}
+		if skill.Index == 75 { // Invisibilidade remove o jogador da lista de aggro.
+			for _, m := range w.mobs {
+				if m.TargetID == target.ID {
+					m.TargetID = 0
+				}
+			}
+		}
+		if playerMaxHP(target.Char) > oldMaxHP {
+			restorePlayerHP(target.Char, playerMaxHP(target.Char)-oldMaxHP)
+		}
+		hpDelta := uint32(0)
+		if playerCurHP(target.Char) > oldHP {
+			hpDelta = playerCurHP(target.Char) - oldHP
+		}
+		changed = append(changed, supportSkillResult{player: target, hpDelta: hpDelta})
+	}
+	if len(changed) > 0 {
+		log.Printf("[#%d] suporte %q afetou=%d mastery=%d", p.Session.ID, skill.Name, len(changed), mastery)
+	}
+	return changed
+}
+
+func setMobAffect(m *Mob, ownerID uint16, affectType byte, value, level, durationUnits int) bool {
+	if m == nil || affectType == 0 {
+		return false
+	}
+	now := time.Now()
+	expires := now.Add(time.Duration(maxInt(1, durationUnits)*8) * time.Second)
+	slot := -1
+	for i := range m.Affects {
+		if m.Affects[i].Type == affectType {
+			if !canReplaceAffect(m.Affects[i], value, level, expires, now) {
+				return false
+			}
+			slot = i
+			break
+		}
+		if slot < 0 && (m.Affects[i].Type == 0 || !m.Affects[i].ExpiresAt.After(now)) {
+			slot = i
+		}
+	}
+	if slot < 0 {
+		return false
+	}
+	m.Affects[slot] = model.Affect{Type: affectType, ClientType: affectType, Value: value, Level: level,
+		ExpiresAt: expires,
+		NextTick:  now.Add(8 * time.Second)}
+	m.AffectOwners[slot] = ownerID
+	return true
+}
+
+func (w *World) applySkillMobEffects(owner *Player, m *Mob, skill model.SkillDef, mastery int) {
+	changed := false
+	if skill.AffectType > 0 {
+		changed = setMobAffect(m, owner.ID, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime) || changed
+	}
+	if skill.TickType > 0 {
+		changed = setMobAffect(m, owner.ID, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime) || changed
+	}
+	if changed {
+		w.publishMobAffects(m)
+	}
+}
+
+func activeMobAffect(m *Mob, affectType byte) *model.Affect {
+	if m == nil {
+		return nil
+	}
+	now := time.Now()
+	for i := range m.Affects {
+		if m.Affects[i].Type == affectType && m.Affects[i].ExpiresAt.After(now) {
+			return &m.Affects[i]
+		}
+	}
+	return nil
+}
+
+func effectiveMobDefense(m *Mob) int {
+	defense := int(m.Def.Extended.Defense)
+	if a := activeMobAffect(m, 12); a != nil {
+		defense = defense * (100 - clampInt(a.Value, 0, 100)) / 100
+	}
+	return maxInt(0, defense)
+}
+
+func effectiveMobAttack(m *Mob) int {
+	attack := int(m.Def.Extended.Attack)
+	if a := activeMobAffect(m, 10); a != nil {
+		attack -= a.Level/5 + a.Value
+	}
+	return maxInt(1, attack)
+}
+
+func effectiveMobAttackRun(m *Mob) byte {
+	attackRun := m.Def.Extended.AttackRun
+	if a := activeMobAffect(m, 1); a != nil {
+		run := maxInt(1, int(attackRun&0x0f)-a.Value)
+		attackRun = attackRun&0xf0 | byte(run)
+	}
+	return attackRun
+}
+
+func effectiveMobResistances(m *Mob) model.ElementalResists {
+	resist := model.ElementalResists{
+		Fire: m.Def.Extended.ResistFire, Ice: m.Def.Extended.ResistIce,
+		Sacred: m.Def.Extended.ResistHoly, Thunder: m.Def.Extended.ResistThunder,
+	}
+	if a := activeMobAffect(m, 3); a != nil {
+		reduce := func(value uint32) uint32 {
+			penalty := uint32(maxInt(0, a.Value))
+			if penalty >= value {
+				return 0
+			}
+			return value - penalty
+		}
+		resist.Fire = reduce(resist.Fire)
+		resist.Ice = reduce(resist.Ice)
+		resist.Sacred = reduce(resist.Sacred)
+		resist.Thunder = reduce(resist.Thunder)
+	}
+	return resist
+}
+
+func mobPublicExtended(m *Mob) *model.ExtendedScore {
+	if m == nil || m.Def == nil {
+		return nil
+	}
+	ext := m.Def.MakeExtendedScore(m.HP)
+	ext.Defense = uint32(effectiveMobDefense(m))
+	ext.Attack = uint32(effectiveMobAttack(m))
+	ext.AttackRun = effectiveMobAttackRun(m)
+	return ext
+}
+
+func (w *World) publishMobAffects(m *Mob) {
+	if m == nil || m.Def == nil || m.Dead {
+		return
+	}
+	w.sendToMobView(m, func() []byte {
+		return wire.MobScoreExtended(m.ID, mobPublicExtended(m), m.Affects[:], effectiveMobResistances(m))
+	})
+}
+
+// applyAffectStats recalcula sempre a partir do score limpo; renovar/remover um
+// buff nunca acumula bonus permanentemente.
+func (w *World) applyAffectStats(ch *model.Char) {
+	if ch == nil {
+		return
+	}
+	ensureExtendedScore(ch)
+	w.applyExtendedAffectStats(ch)
+}
+
+// applyExtendedAffectStats aplica os buffs sobre uma copia runtime do sidecar.
+// A base persistida nunca e modificada, portanto renovar/recalcular um buff nao
+// acumula bonus. Os calculos usam int64 para nao estourar antes do clamp.
+func (w *World) applyExtendedAffectStats(ch *model.Char) {
+	if ch == nil || ch.Extended == nil {
+		return
+	}
+	if ch.ExtendedRuntime == nil {
+		applyExtendedScore(ch)
+	}
+	e := ch.ExtendedRuntime
+	now := time.Now()
+	mul := func(value uint32, percent int) uint32 {
+		if percent < 0 {
+			percent = 0
+		}
+		result := int64(value) * int64(percent) / 100
+		if result > int64(maxExtendedStat) {
+			return maxExtendedStat
+		}
+		return uint32(result)
+	}
+	add := func(value uint32, delta int64) uint32 {
+		result := int64(value) + delta
+		if result < 0 {
+			return 0
+		}
+		if result > int64(maxExtendedStat) {
+			return maxExtendedStat
+		}
+		return uint32(result)
+	}
+	for i := range ch.Affects {
+		a := &ch.Affects[i]
+		if a.Type == 0 || !a.ExpiresAt.After(now) {
+			continue
+		}
+		switch a.Type {
+		case 1: // Lentidao
+			run := maxInt(1, int(e.AttackRun&0x0F)-a.Value)
+			e.AttackRun = e.AttackRun&0xF0 | byte(run)
+		case 2: // Velocidade
+			run := minInt(15, int(e.AttackRun&0x0F)+a.Value)
+			e.AttackRun = e.AttackRun&0xF0 | byte(run)
+		case 3: // Perseguicao
+			e.ResistFire = uint32(maxInt(0, int(e.ResistFire)-a.Value))
+			e.ResistIce = uint32(maxInt(0, int(e.ResistIce)-a.Value))
+			e.ResistHoly = uint32(maxInt(0, int(e.ResistHoly)-a.Value))
+			e.ResistThunder = uint32(maxInt(0, int(e.ResistThunder)-a.Value))
+		case 4: // Buff de dano (Kappa/Competente/Mental, comidas, Coragem...).
+			// O W2PP (Basedef.cpp:3900) da um bonus fixo; o felipe optou por
+			// ESCALAR por tier. Value = % de bonus aplicado a ataque fisico e
+			// magico, configurado por item/codigo em volatiles.json.
+			e.Attack = mul(e.Attack, 100+a.Value)
+			e.MagicAttack = mul(e.MagicAttack, 100+a.Value)
+		case 5:
+			e.Dex = mul(e.Dex, 100-clampInt(a.Value, 0, 100))
+		case 7:
+			penalty := a.Level/10 + 20
+			attackSpeed := maxInt(0, int(e.AttackRun>>4)-penalty)
+			e.AttackRun = byte(attackSpeed<<4) | e.AttackRun&0x0F
+			e.Int = add(e.Int, int64(-penalty))
+		case 9:
+			e.Attack = add(e.Attack, int64((a.Level*5/20+a.Value)*3/2))
+		case 10:
+			e.Attack = add(e.Attack, int64(-(a.Level/5 + a.Value)))
+		case 11:
+			e.Defense = add(e.Defense, int64(a.Level/3+a.Value))
+		case 12:
+			e.Defense = mul(e.Defense, 100-clampInt(a.Value, 0, 100))
+		case 13:
+			e.Attack = mul(e.Attack, 100+a.Level/10+a.Value)
+			e.Defense = mul(e.Defense, 90)
+		case 14: // Possuido
+			value := a.Level*3/4 + a.Value
+			e.Con = add(e.Con, int64(value))
+			e.MaxHP = add(e.MaxHP, int64(value)*8)
+		case 15: // Toque de Athena
+			value := uint32(maxInt(0, a.Level/10+a.Value))
+			for j := range e.Mastery {
+				e.Mastery[j] = minU32(maxExtendedStat, e.Mastery[j]+value)
+			}
+		case 16: // Transformacoes BM; pTransBonus da W2PP
+			type transformBonus struct {
+				minDamage, maxDamage, minDefense, maxDefense int
+				minHP, maxHP, run, attackSpeed               int
+			}
+			bonuses := [...]transformBonus{
+				{110, 130, 95, 105, 95, 105, 1, 20},
+				{80, 100, 100, 110, 110, 140, 0, 0},
+				{100, 120, 105, 115, 100, 120, 1, 20},
+				{90, 110, 110, 125, 105, 110, 0, 20},
+				{105, 120, 110, 120, 105, 115, 3, 20},
+			}
+			idx := a.Value - 1
+			if idx >= 0 && idx < len(bonuses) {
+				b := bonuses[idx]
+				damageAdd, defenseAdd, hpAdd := 0, 0, 0
+				resistAdd, attackSpeedAdd := 0, 0
+				switch idx {
+				case 0:
+					if learnedLocal(ch, 65-48) {
+						damageAdd = 50
+						e.Critical = clampExtended(e.Critical + 11)
+					}
+				case 1:
+					if learnedLocal(ch, 67-48) {
+						hpAdd, resistAdd, attackSpeedAdd = 30, 20, 20
+					}
+				case 2:
+					if learnedLocal(ch, 69-48) {
+						damageAdd, defenseAdd, hpAdd = 30, 3, 5
+						resistAdd, attackSpeedAdd = 20, 15
+					}
+				case 3:
+					defenseAdd = 10
+				case 4:
+					damageAdd, hpAdd, resistAdd, attackSpeedAdd = 40, 17, 5, 17
+					e.Critical = clampExtended(e.Critical + 5)
+				}
+				interpolate := func(minimum, maximum int) int {
+					return minimum + (maximum-minimum)*a.Level/200
+				}
+				e.Attack = mul(e.Attack, interpolate(b.minDamage+damageAdd, b.maxDamage+damageAdd))
+				e.Defense = mul(e.Defense, interpolate(b.minDefense+defenseAdd, b.maxDefense+defenseAdd))
+				e.MaxHP = mul(e.MaxHP, interpolate(b.minHP+hpAdd, b.maxHP+hpAdd))
+				e.ResistFire = uint32(clampInt(int(e.ResistFire)+resistAdd, 0, 100))
+				e.ResistIce = uint32(clampInt(int(e.ResistIce)+resistAdd, 0, 100))
+				e.ResistHoly = uint32(clampInt(int(e.ResistHoly)+resistAdd, 0, 100))
+				e.ResistThunder = uint32(clampInt(int(e.ResistThunder)+resistAdd, 0, 100))
+				run := minInt(15, int(e.AttackRun&0x0F)+b.run)
+				attackSpeed := minInt(15, int(e.AttackRun>>4)+(b.attackSpeed+attackSpeedAdd)/10)
+				e.AttackRun = byte(attackSpeed<<4) | byte(run)
+			}
+		case 18: // Controle de Mana
+			e.SaveMana = uint32(minInt(99, int(e.SaveMana)+a.Level/10+a.Value))
+		case 21:
+			e.Defense = add(e.Defense, int64(-(a.Level/3 + 10)))
+			e.Attack = mul(e.Attack, 100+a.Level/10+a.Value)
+		case 24:
+			e.Defense = add(e.Defense, int64(e.Defense)/4+int64(a.Value))
+		case 25:
+			e.Defense = add(e.Defense, int64(a.Value+a.Level+int(playerMastery(ch, 1))+1))
+			resist := (a.Value + a.Level/4) / 10
+			e.ResistFire = uint32(clampInt(int(e.ResistFire)+resist, 0, 100))
+			e.ResistIce = uint32(clampInt(int(e.ResistIce)+resist, 0, 100))
+			e.ResistHoly = uint32(clampInt(int(e.ResistHoly)+resist, 0, 100))
+			e.ResistThunder = uint32(clampInt(int(e.ResistThunder)+resist, 0, 100))
+		case 26:
+			e.Evasion = add(e.Evasion, int64(a.Level+a.Value*10))
+		case 30:
+			e.Accuracy = add(e.Accuracy, 2000)
+		case 31:
+			e.Defense = add(e.Defense, int64(a.Level/2+a.Value))
+		case 37:
+			e.Attack = add(e.Attack, int64(playerMastery(ch, 2)))
+		case 38:
+			mana := e.MaxMP / 2
+			e.MaxHP = add(e.MaxHP, int64(mana))
+			e.MaxMP -= mana
+		}
+	}
+	if e.CurHP > e.MaxHP {
+		e.CurHP = e.MaxHP
+		ch.Extended.CurHP = e.CurHP
+	}
+	if e.CurMP > e.MaxMP {
+		e.CurMP = e.MaxMP
+		ch.Extended.CurMP = e.CurMP
+	}
+	projectExtendedRuntime(ch)
+}
+
+func (w *World) tickMobAffects(now time.Time) {
+	for _, m := range w.mobs {
+		if m == nil || m.Dead || m.HP == 0 {
+			continue
+		}
+		expired := false
+		for i := range m.Affects {
+			a := &m.Affects[i]
+			if a.Type == 0 {
+				continue
+			}
+			if !a.ExpiresAt.After(now) {
+				*a = model.Affect{}
+				m.AffectOwners[i] = 0
+				expired = true
+				continue
+			}
+			if now.Before(a.NextTick) {
+				continue
+			}
+			a.NextTick = now.Add(8 * time.Second)
+			if a.Type != 20 { // veneno/sangramento
+				continue
+			}
+			damage := uint32(clampInt(a.Level/2+a.Value, 1, int(m.HP)))
+			m.HP -= damage
+			if m.HP == 0 {
+				if owner := w.playerByID(m.AffectOwners[i]); owner != nil {
+					w.killMobState(owner, m, damage, damage)
+				}
+				break
+			}
+			w.sendToMobView(m, func() []byte {
+				return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
+					m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
+			})
+		}
+		if expired && !m.Dead && m.HP > 0 {
+			w.publishMobAffects(m)
+		}
+	}
+}
+
+func (w *World) tickPlayerAffects(now time.Time) {
+	for _, p := range w.players {
+		if !p.InWorld || p.Char == nil {
+			continue
+		}
+		expired, hpChanged := false, false
+		for i := range p.Char.Affects {
+			a := &p.Char.Affects[i]
+			if a.Type == 17 && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
+				oldHP := playerCurHP(p.Char)
+				heal := a.Level/2 + a.Value
+				restorePlayerHP(p.Char, uint32(maxInt(0, heal)))
+				a.NextTick = now.Add(8 * time.Second)
+				hpChanged = oldHP != playerCurHP(p.Char)
+			}
+			if (a.Type == 22 || a.Type == 23) && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
+				skillIndex := 37
+				if a.Type == 23 {
+					skillIndex = 54
+				}
+				w.tickAreaDamageAffect(p, a, skillIndex)
+				a.NextTick = now.Add(8 * time.Second)
+			}
+			if a.Type == 20 && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
+				currentHP := playerCurHP(p.Char)
+				damage := uint32(clampInt(a.Level/2+a.Value, 1, maxInt(1, int(currentHP)-1)))
+				if currentHP > 1 {
+					setPlayerCurHP(p.Char, currentHP-damage)
+					hpChanged = true
+					if owner := w.playerByID(a.OwnerID); owner != nil {
+						w.sendToPlayerView(p, func() []byte {
+							return wire.AttackHit(owner.ID, p.ID, owner.X, owner.Y, p.X, p.Y,
+								uint16(minU32(damage, 65535)), owner.Char.Exp,
+								playerCombatMP(owner.Char))
+						})
+					}
+				}
+				a.NextTick = now.Add(8 * time.Second)
+			}
+			if a.Type != 0 && !a.ExpiresAt.After(now) {
+				*a = model.Affect{}
+				expired = true
+			}
+		}
+		if hpChanged {
+			w.syncPlayerVitals(p)
+		}
+		if expired {
+			w.recalcPlayer(p.Char)
+			w.publishPlayerAffects(p)
+			w.syncPlayerVitals(p)
+			w.sendToPlayerView(p, func() []byte { return wire.VisualEquip(p.ID, bodyMesh(p.Char)) })
+		}
+	}
+}
+
+func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex int) {
+	if p == nil || p.Char == nil || affect == nil {
+		return
+	}
+	targets := make([]*Mob, 0, 6)
+	for _, m := range w.mobs {
+		if m == nil || m.Dead || m.HP == 0 || !m.Def.IsMonster() || m.SummonerID != 0 ||
+			chebyshev(p.X, p.Y, m.X, m.Y) > 4 {
+			continue
+		}
+		targets = append(targets, m)
+		if len(targets) == 6 {
+			break
+		}
+	}
+	if len(targets) == 0 {
+		return
+	}
+	wireTargets := make([]wire.SkillTarget, 0, len(targets))
+	kills := 0
+	for _, m := range targets {
+		damage := uint32(clampInt(affect.Level+affect.Value, 1, int(maxExtendedStat)))
+		if damage >= m.HP {
+			m.HP = 0
+		} else {
+			m.HP -= damage
+		}
+		wireTargets = append(wireTargets, wire.SkillTarget{ID: m.ID, Damage: uint16(minU32(damage, 65535))})
+	}
+	primary := targets[0]
+	w.sendToMobView(primary, func() []byte {
+		visualSkill, motion := tickAreaVisual(skillIndex)
+		return wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y, p.Char.Exp,
+			playerCombatMP(p.Char), int16(visualSkill), motion, skillVisualLevel(affect.Level), 13, wireTargets)
+	})
+	for _, m := range targets {
+		if m.HP == 0 {
+			damage := uint32(affect.Level + affect.Value)
+			w.killMobState(p, m, damage, minU32(damage, m.Def.Extended.MaxHP))
+			kills++
+		} else {
+			w.sendToMobView(m, func() []byte {
+				return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
+					m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
+			})
+		}
+	}
+	w.saveMultiKillBatch(p, kills)
+}
+
+func tickAreaVisual(skillIndex int) (int, byte) {
+	if skillIndex == 37 {
+		// A Lightning Storm 7.59 e um tick que reproduz visualmente Thunderbolt
+		// (skill 33), exatamente como o ProcessAffect Type 22 da W2PP.
+		return 33, 254
+	}
+	return skillIndex, 254
+}

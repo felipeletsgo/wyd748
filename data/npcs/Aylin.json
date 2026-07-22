@@ -1,0 +1,87 @@
+{
+  "name": "Aylin",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 55
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 106
+    },
+    "calca": {
+      "index": 107
+    },
+    "luva": {
+      "index": 108
+    },
+    "bota": {
+      "index": 109
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 2,
+    "attack": 0,
+    "magicAttack": 0,
+    "defense": 10000,
+    "maxHP": 10000,
+    "maxMP": 0,
+    "curHP": 10000,
+    "curMP": 0,
+    "str": 1,
+    "int": 1,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      2,
+      2,
+      2,
+      2
+    ],
+    "attackRun": 1,
+    "merchant": 8
+  },
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

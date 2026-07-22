@@ -1,0 +1,87 @@
+{
+  "name": "Wizard_",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 17
+    },
+    "elmo": {
+      "index": 13
+    },
+    "armadura": {
+      "index": 150
+    },
+    "calca": {
+      "index": 151
+    },
+    "luva": {
+      "index": 147
+    },
+    "bota": {
+      "index": 148
+    },
+    "arma": {
+      "index": 732
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 735
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 302,
+    "attack": 1500,
+    "magicAttack": 0,
+    "defense": 2600,
+    "maxHP": 26000,
+    "maxMP": 0,
+    "curHP": 26000,
+    "curMP": 0,
+    "str": 6,
+    "int": 100,
+    "dex": 80,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 4
+  },
+  "direction": 32,
+  "skillBar": [
+    33,
+    36,
+    38,
+    27
+  ]
+}

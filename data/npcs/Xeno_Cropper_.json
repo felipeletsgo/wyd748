@@ -1,0 +1,92 @@
+{
+  "name": "Xeno_Cropper_",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 283
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 885
+    },
+    "escudo": {
+      "index": 885
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 95000,
+  "extendedScore": {
+    "version": 2,
+    "level": 399,
+    "attack": 1150,
+    "magicAttack": 0,
+    "defense": 2150,
+    "maxHP": 20000,
+    "maxMP": 0,
+    "curHP": 20000,
+    "curMP": 0,
+    "str": 4,
+    "int": 90,
+    "dex": 90,
+    "con": 250,
+    "critical": 255,
+    "resistFire": 10,
+    "resistIce": 10,
+    "resistHoly": 10,
+    "resistThunder": 10,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "gold": 9999,
+  "learnedSkill": 10,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

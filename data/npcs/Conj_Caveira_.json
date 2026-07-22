@@ -1,0 +1,91 @@
+{
+  "name": "Conj_Caveira_",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 271
+    },
+    "elmo": {
+      "index": 272
+    },
+    "armadura": {
+      "index": 273
+    },
+    "calca": {
+      "index": 274
+    },
+    "luva": {
+      "index": 275
+    },
+    "bota": {
+      "index": 276
+    },
+    "arma": {
+      "index": 726
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 85000,
+  "extendedScore": {
+    "version": 2,
+    "level": 300,
+    "attack": 385,
+    "magicAttack": 0,
+    "defense": 1010,
+    "maxHP": 6400,
+    "maxMP": 0,
+    "curHP": 6400,
+    "curMP": 0,
+    "str": 6,
+    "int": 50,
+    "dex": 90,
+    "con": 200,
+    "critical": 255,
+    "resistFire": 10,
+    "resistIce": 246,
+    "resistHoly": 236,
+    "resistThunder": 10,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      1,
+      255,
+      1
+    ],
+    "attackRun": 3
+  },
+  "gold": 9999,
+  "skillBar": [
+    33,
+    33,
+    33,
+    33
+  ]
+}

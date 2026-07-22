@@ -1,0 +1,21 @@
+# Binarios de build (gerados por `go build`)
+tm.exe
+tm
+account-api.exe
+account-api
+account-create.exe
+account-create
+*.exe
+*.exe~
+
+# Cache de build do Go
+.gocache*/
+
+# Dados locais/gerados: contas, hashes e estado de personagem nunca sao source
+data/accounts/*.json
+data/charstate/*.json
+
+# Artefatos de IDE/OS comuns
+.vs/
+*.log
+*~

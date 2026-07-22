@@ -1,0 +1,98 @@
+{
+  "name": "Tower_of_Thor",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 219
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 500,
+    "attack": 4000,
+    "magicAttack": 0,
+    "defense": 4000,
+    "maxHP": 32000,
+    "maxMP": 0,
+    "curHP": 32000,
+    "curMP": 0,
+    "str": 0,
+    "int": 100,
+    "dex": 90,
+    "con": 100,
+    "critical": 255,
+    "resistFire": 70,
+    "resistIce": 70,
+    "resistHoly": 70,
+    "resistThunder": 70,
+    "saveMana": 255,
+    "mastery": [
+      128,
+      0,
+      128,
+      0
+    ]
+  },
+  "learnedSkill": 90,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

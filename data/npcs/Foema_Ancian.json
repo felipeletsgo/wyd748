@@ -1,0 +1,171 @@
+{
+  "name": "Foema_Ancian",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 61
+    },
+    "elmo": {
+      "index": 13
+    },
+    "armadura": {
+      "index": 111
+    },
+    "calca": {
+      "index": 112
+    },
+    "luva": {
+      "index": 113
+    },
+    "bota": {
+      "index": 114
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 2,
+  "extendedScore": {
+    "version": 2,
+    "level": 1,
+    "attack": 5000,
+    "magicAttack": 0,
+    "defense": 5000,
+    "maxHP": 19000,
+    "maxMP": 0,
+    "curHP": 19000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 19
+  },
+  "direction": 16,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 5024
+    },
+    {
+      "index": 5027
+    },
+    {
+      "index": 5025
+    },
+    {
+      "index": 5026
+    },
+    {
+      "index": 5028
+    },
+    {
+      "index": 5029
+    },
+    {
+      "index": 5030
+    },
+    {
+      "index": 5031
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 5032
+    },
+    {
+      "index": 5033
+    },
+    {
+      "index": 5034
+    },
+    {
+      "index": 5035
+    },
+    {
+      "index": 5036
+    },
+    {
+      "index": 5037
+    },
+    {
+      "index": 5038
+    },
+    {
+      "index": 5039
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 5040
+    },
+    {
+      "index": 5042
+    },
+    {
+      "index": 5041
+    },
+    {
+      "index": 5043
+    },
+    {
+      "index": 5044
+    },
+    {
+      "index": 5045
+    },
+    {
+      "index": 5046
+    },
+    {
+      "index": 5047
+    },
+    {
+      "index": 0
+    }
+  ]
+}

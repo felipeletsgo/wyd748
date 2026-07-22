@@ -1,0 +1,371 @@
+{
+  "name": "Xeno_Cropper",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 283
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 885
+    },
+    "escudo": {
+      "index": 885
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 110000,
+  "extendedScore": {
+    "version": 2,
+    "level": 355,
+    "attack": 1950,
+    "magicAttack": 0,
+    "defense": 3600,
+    "maxHP": 30000,
+    "maxMP": 0,
+    "curHP": 30000,
+    "curMP": 0,
+    "str": 4,
+    "int": 90,
+    "dex": 90,
+    "con": 250,
+    "critical": 255,
+    "resistFire": 10,
+    "resistIce": 10,
+    "resistHoly": 10,
+    "resistThunder": 10,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 412
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 578
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 810,
+      "eff": [
+        2,
+        54,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 3181
+    },
+    {
+      "index": 885,
+      "eff": [
+        2,
+        54,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 3181
+    },
+    {
+      "index": 825,
+      "eff": [
+        2,
+        54,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 855,
+      "eff": [
+        60,
+        24,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 810,
+      "eff": [
+        2,
+        45,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 3181
+    },
+    {
+      "index": 885,
+      "eff": [
+        2,
+        45,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 3181
+    },
+    {
+      "index": 825,
+      "eff": [
+        2,
+        45,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 855,
+      "eff": [
+        60,
+        20,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 840,
+      "eff": [
+        2,
+        54,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 840,
+      "eff": [
+        2,
+        45,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2405
+    },
+    {
+      "index": 2400
+    },
+    {
+      "index": 2316
+    }
+  ],
+  "gold": 9999,
+  "learnedSkill": 10,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

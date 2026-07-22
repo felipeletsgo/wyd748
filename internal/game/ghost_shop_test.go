@@ -1,0 +1,194 @@
+package game
+
+import (
+	"encoding/binary"
+	"testing"
+
+	"wydgo/internal/model"
+	"wydgo/internal/wire"
+)
+
+func autoTradePacket(playerID uint16, acc *model.Account, title string, slots ...int) []byte {
+	var items [maxGhostShopItems]model.Item
+	positions := emptyGhostShopPositions()
+	var prices [maxGhostShopItems]uint32
+	for i, slot := range slots {
+		items[i] = acc.Cargo[slot]
+		positions[i] = int8(slot)
+		prices[i] = uint32(1000 + i)
+	}
+	return wire.AutoTrade(title, items, positions, prices, 0, playerID)
+}
+
+func TestArmiaCityLimits(t *testing.T) {
+	for _, point := range [][2]uint16{{armiaMinX, armiaMinY}, {armiaMaxX, armiaMaxY}, {2112, 2088}} {
+		if !inArmiaCity(point[0], point[1]) {
+			t.Fatalf("coordenada de Armia rejeitada: %v", point)
+		}
+	}
+	for _, point := range [][2]uint16{{armiaMinX - 1, armiaMinY}, {armiaMaxX + 1, armiaMaxY}, {2200, 2100}} {
+		if inArmiaCity(point[0], point[1]) {
+			t.Fatalf("coordenada externa aceita: %v", point)
+		}
+	}
+}
+
+func TestParseAutoTradeUsesAuthoritativeCargo(t *testing.T) {
+	acc := &model.Account{}
+	acc.Cargo[7] = model.Item{Index: 4011, Eff: [6]byte{43, 9}}
+	pkt := autoTradePacket(3, acc, "Loja Felipe", 7)
+	req, err := parseAutoTradeRequest(pkt, acc, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.Title != "Loja Felipe" || req.Items[0] != acc.Cargo[7] ||
+		req.CarryPos[0] != 7 || req.Prices[0] != 1000 {
+		t.Fatalf("anuncio incorreto: %+v", req)
+	}
+}
+
+func TestParseAutoTradeRejectsTamperingDuplicateAndFormatString(t *testing.T) {
+	acc := &model.Account{}
+	acc.Cargo[7] = model.Item{Index: 4011}
+
+	tampered := autoTradePacket(3, acc, "Loja", 7)
+	binary.LittleEndian.PutUint16(tampered[36:38], 4012)
+	if _, err := parseAutoTradeRequest(tampered, acc, 3); err == nil {
+		t.Fatal("item adulterado foi aceito")
+	}
+	duplicate := autoTradePacket(3, acc, "Loja", 7, 7)
+	if _, err := parseAutoTradeRequest(duplicate, acc, 3); err == nil {
+		t.Fatal("slot duplicado foi aceito")
+	}
+	badTitle := autoTradePacket(3, acc, "%s%s%s", 7)
+	if _, err := parseAutoTradeRequest(badTitle, acc, 3); err == nil {
+		t.Fatal("format string no titulo foi aceita")
+	}
+}
+
+func TestParseReqBuyAutoTrade748Layout(t *testing.T) {
+	pkt := wire.Build(wire.OpReqBuyAutoTrade, 3, 36)
+	binary.LittleEndian.PutUint32(pkt[12:16], 4)
+	binary.LittleEndian.PutUint32(pkt[16:20], 9)
+	binary.LittleEndian.PutUint32(pkt[20:24], 123456)
+	binary.LittleEndian.PutUint32(pkt[24:28], 0)
+	wire.PutItem(pkt, 28, model.Item{Index: 4011, Eff: [6]byte{43, 9}})
+	req, err := parseReqBuyAutoTrade(pkt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.Pos != 4 || req.TargetID != 9 || req.Price != 123456 ||
+		req.Item != (model.Item{Index: 4011, Eff: [6]byte{43, 9}}) {
+		t.Fatalf("ReqBuy incorreto: %+v", req)
+	}
+}
+
+func TestGhostShopLocksOnlyAdvertisedCargoSlots(t *testing.T) {
+	p := &Player{GhostShop: &GhostShop{CarryPos: emptyGhostShopPositions()}}
+	p.GhostShop.Items[0] = model.Item{Index: 4011}
+	p.GhostShop.CarryPos[0] = 7
+	if !p.ghostShopLocksCargoSlot(7) || p.ghostShopLocksCargoSlot(8) {
+		t.Fatal("bloqueio seletivo dos anuncios incorreto")
+	}
+}
+
+func TestBuildGhostShopPurchaseIsAtomicAndServerAuthoritative(t *testing.T) {
+	buyer := &model.Char{Gold: 5000}
+	seller := &model.Account{CargoGold: 100}
+	item := model.Item{Index: 4011, Eff: [6]byte{43, 9}}
+	seller.Cargo[7] = item
+	shop := &GhostShop{Items: [maxGhostShopItems]model.Item{item},
+		CarryPos: emptyGhostShopPositions(), Prices: [maxGhostShopItems]uint32{1000}}
+	shop.CarryPos[0] = 7
+
+	buyerInv, sellerCargo, buyerGold, sellerCargoGold, slot, err :=
+		buildGhostShopPurchase(buyer, seller, shop, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slot != 0 || buyerInv[0] != item || sellerCargo[7].Index != 0 ||
+		buyerGold != 4000 || sellerCargoGold != 1100 {
+		t.Fatalf("resultado incorreto slot=%d buyerGold=%d sellerCargoGold=%d", slot, buyerGold, sellerCargoGold)
+	}
+	// A funcao prepara cópias: antes do commit/persistencia, o estado real nao muda.
+	if buyer.Inv[0].Index != 0 || seller.Cargo[7] != item || buyer.Gold != 5000 || seller.CargoGold != 100 {
+		t.Fatal("estado foi alterado antes do commit")
+	}
+}
+
+func TestBuildGhostShopPurchaseRejectsChangedItemFullInventoryAndGoldOverflow(t *testing.T) {
+	buyer := &model.Char{Gold: 5000}
+	seller := &model.Account{CargoGold: 100}
+	item := model.Item{Index: 4011}
+	seller.Cargo[7] = model.Item{Index: 4012}
+	shop := &GhostShop{Items: [maxGhostShopItems]model.Item{item},
+		CarryPos: emptyGhostShopPositions(), Prices: [maxGhostShopItems]uint32{1000}}
+	shop.CarryPos[0] = 7
+	if _, _, _, _, _, err := buildGhostShopPurchase(buyer, seller, shop, 0); err == nil {
+		t.Fatal("snapshot alterado foi aceito")
+	}
+
+	seller.Cargo[7] = item
+	for i := 0; i < model.PlayerCarrySlots; i++ {
+		buyer.Inv[i] = model.Item{Index: uint16(100 + i)}
+	}
+	if _, _, _, _, _, err := buildGhostShopPurchase(buyer, seller, shop, 0); err == nil {
+		t.Fatal("inventario cheio foi aceito")
+	}
+	buyer.Inv = [64]model.Item{}
+	seller.CargoGold = maxCharacterGold
+	if _, _, _, _, _, err := buildGhostShopPurchase(buyer, seller, shop, 0); err == nil {
+		t.Fatal("overflow de gold do vendedor foi aceito")
+	}
+}
+
+func TestGhostShopResetsOwnerBeforePublishingClone(t *testing.T) {
+	ch := &model.Char{
+		Name: "Felipe",
+		Extended: testExtended(model.ExtendedScore{
+			MaxHP: 321,
+			CurHP: 321,
+			MaxMP: 123,
+			CurMP: 123,
+		}),
+	}
+	p := &Player{ID: 7, X: 2135, Y: 2099, Char: ch}
+	packets := ghostShopOwnerResetPackets(p)
+	if len(packets) != 4 {
+		t.Fatalf("reset gerou %d pacotes, esperado 4", len(packets))
+	}
+	wantTypes := []uint16{wire.OpCloseTrade, wire.OpCreateMob, wire.OpSetHpMp, wire.OpAction}
+	for i, want := range wantTypes {
+		if got := wire.ParseHeader(packets[i]).Type; got != want {
+			t.Fatalf("pacote %d Type=0x%X, esperado 0x%X", i, got, want)
+		}
+	}
+	normal := packets[1]
+	if binary.LittleEndian.Uint16(normal[16:18]) != p.ID ||
+		binary.LittleEndian.Uint16(normal[12:14]) != p.X ||
+		binary.LittleEndian.Uint16(normal[14:16]) != p.Y {
+		t.Fatalf("CreateMob normal nao restaura owner/posicao: % X", normal[:20])
+	}
+	if got := binary.LittleEndian.Uint16(packets[3][24:26]); got != p.X {
+		t.Fatalf("ActionStop targetX=%d, esperado %d", got, p.X)
+	}
+}
+
+func TestGhostShopTradeListKeepsVirtualCloneIdentity(t *testing.T) {
+	shop := &GhostShop{
+		ID:      25007,
+		OwnerID: 7,
+		Title:   "Loja Fantasma",
+	}
+	shop.Items[0] = model.Item{Index: 4011}
+	shop.CarryPos[0] = 3
+	shop.Prices[0] = 1000
+
+	pkt := ghostShopTradeListPacket(shop)
+	if got := wire.ParseHeader(pkt).Type; got != wire.OpAutoTrade {
+		t.Fatalf("Type=0x%X, esperado 0x%X", got, wire.OpAutoTrade)
+	}
+	if got := binary.LittleEndian.Uint16(pkt[194:196]); got != shop.ID {
+		t.Fatalf("TargetID=%d, esperado clone %d (owner real=%d)", got, shop.ID, shop.OwnerID)
+	}
+}

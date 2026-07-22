@@ -1,0 +1,100 @@
+{
+  "name": "Kefra",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 362
+    },
+    "elmo": {
+      "index": 362
+    },
+    "armadura": {
+      "index": 362
+    },
+    "calca": {
+      "index": 362
+    },
+    "luva": {
+      "index": 362
+    },
+    "bota": {
+      "index": 362
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        255,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 150000,
+  "extendedScore": {
+    "version": 2,
+    "level": 390,
+    "attack": 0,
+    "magicAttack": 0,
+    "defense": 20690,
+    "maxHP": 28000,
+    "maxMP": 0,
+    "curHP": 28000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 50,
+    "con": 3500,
+    "critical": 255,
+    "resistFire": 50,
+    "resistIce": 50,
+    "resistHoly": 50,
+    "resistThunder": 50,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "gold": 9999,
+  "learnedSkill": 70,
+  "skillBar": [
+    109,
+    108,
+    111,
+    107
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "name": "Ass_Taron__",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 313
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 749,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 152500,
+  "extendedScore": {
+    "version": 2,
+    "level": 410,
+    "attack": 200,
+    "magicAttack": 0,
+    "defense": 800,
+    "maxHP": 12000,
+    "maxMP": 0,
+    "curHP": 12000,
+    "curMP": 0,
+    "str": 5,
+    "int": 75,
+    "dex": 100,
+    "con": 1000,
+    "critical": 255,
+    "resistFire": 65,
+    "resistIce": 65,
+    "resistHoly": 65,
+    "resistThunder": 65,
+    "saveMana": 255,
+    "mastery": [
+      101,
+      1,
+      101,
+      1
+    ],
+    "attackRun": 3
+  },
+  "learnedSkill": 60,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}
