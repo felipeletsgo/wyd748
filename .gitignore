@@ -19,3 +19,8 @@ data/charstate/*.json
 .vs/
 *.log
 *~
+
+# Docs internas de arquitetura/decisao (nao publicas): ficam locais, so o
+# README.md (publico) entra no repositorio.
+CLAUDE.md
+DOCS/
