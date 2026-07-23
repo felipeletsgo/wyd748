@@ -23,30 +23,59 @@ addresses) from public WYD server source references.
 
 ## Status
 
-Login, character selection and enter-world are fully wired to the 7.48 wire
-protocol (77 opcodes implemented), and the server is playable end-to-end.
+The server is playable end-to-end with the patched 7.48 client. Account and
+character creation, login, world entry, progression, combat, loot and
+persistence are connected through the native protocol; more than 80 packet
+types are currently handled.
 
 Systems implemented and server-authoritative:
 
-- **Accounts** — PBKDF2 password hashing, an HTTP account-signup API, and a
-  CLI creation tool. No plaintext passwords anywhere in the data model.
-- **World simulation** — real-time movement with server-side collision against
-  the native height/attribute maps, and area-of-interest visibility (entities
-  outside a player's window are never sent to that client).
-- **Combat** — player↔mob and player↔mob PvE, player↔player PvP, death,
-  recall, and respawn, all resolved server-side.
-- **Progression** — stats and equipment, point allocation, experience and
-  leveling, and the full skill roster (104 skills) across all four classes
-  with class-specific execution paths.
-- **Social systems** — party (up to 13 members) with shared experience, guilds
-  (structural), and player-to-player trade with an anti-duplication commit
-  protocol.
-- **NPCs & items** — shops, loot tables, quests with server-validated
-  prerequisites, and a data-driven consumable/item-effect system covering 116
-  distinct item-effect codes across ~2,900 catalog items.
-- **Mounts** — a full lifecycle: eggs incubate and hatch, hatchlings grow into
-  adults by level, mounted combat absorbs a share of incoming damage, and
-  starving a mount degrades it over time.
+- **Accounts** — PBKDF2 password hashing, HTTP signup API, local CLI creator and
+  duplicate-session rejection. No plaintext passwords are stored.
+- **Characters** — four-class, four-slot creation with validated names and
+  data-driven starting layouts, items, stats and spawn position.
+- **Extended stats** — a server/client compatibility extension carries 32-bit
+  HP, MP, STR, INT, DEX, CON, attack, magic attack and defense while preserving
+  the fixed 7.48 packet prefixes. Gameplay uses only the authoritative extended
+  score; the legacy score is a wire projection.
+- **World simulation** — native height/attribute collision, spatially sleeping
+  mob AI, patrol routes, target pursuit and a 65×65 area-of-interest window.
+  Pets, summons and mobs are materialized only at spawn or visibility entry.
+- **Combat** — melee and ranged PvE, PvP, physical and magical floating damage,
+  resistances, buffs/debuffs, regeneration, death, resurrection and
+  collision-safe recall, all resolved server-side.
+- **Progression** — native Mortal EXP table, configurable EXP floor/rate,
+  level-up, stat/mastery/skill-point budgets, equipment requirements and
+  server-side item bonuses.
+- **Skills** — server paths for the 104-skill catalog across TK, Foema,
+  BeastMaster and Huntress, including multi-target magic, healing, buffs,
+  transformations, out-of-party BM summons and the five Sephira skills.
+- **Party** — stable groups of up to 13 players, party chat and full EXP for
+  every nearby member plus a configurable bonus per member.
+- **Guilds** — creation, invitation, acceptance, leaving, expulsion, leadership
+  succession, guild chat, persistent membership and native `Guilds.txt` name
+  publication. Guild war and visible guild marks remain future work.
+- **Kingdoms** — Akelonia/Hekalotia selection through the kings, Sapphire
+  costs, leaving through the broker, realm teleports, guild affiliation and
+  Basic/Knight/Elite/Hero/Master cape progression. Realm wars are a later phase.
+- **NPCs & economy** — NPCGener, regional visibility, shops, skill masters,
+  server-side prices, drops, 63 usable inventory slots, 120 Cargo slots and
+  player trade with anti-duplication persistence.
+- **Crafting** — server-side recipes and native success/failure feedback for
+  Agatha, Aylin, Tiny, Lindy, Compositor, Ehre and Alquimista Odin.
+- **Quests** — data-driven requirements and atomic rewards, repeatable quest
+  areas, ten-minute area reset and native quest reward boxes. The complete
+  retail quest catalog is still being expanded.
+- **Volatiles** — configurable potions, gold, teleports, refining/tinting,
+  mount items, timed affects, Magical Pill, Hunting Scrolls, summon contracts
+  and Sephira books. Deferred codes remain non-consuming generic handlers.
+- **Mounts** — eggs incubate and hatch, hatchlings grow into adults, the pet
+  follows its owner outside the party, mounted combat absorbs damage, and
+  hunger/longevity are simulated.
+- **Player shops** — Armia-only Ghost Shops sell Cargo items through a
+  stationary clone while the owner remains free to move and play.
+- **Communication** — local, party, guild and global chat, whisper, offline
+  mail/death letters and server announcements through the 7.48 protocol.
 - **Persistence** — atomic JSON writes (temp file + fsync + rename) with an
   async write queue so disk I/O never blocks the game loop; an autosave runs
   every few seconds and critical operations (trades, refining, gold changes)
@@ -82,7 +111,9 @@ or by running `account-api` and calling its HTTP signup endpoint.
 ## Static checks
 
 ```powershell
+go test ./...
 go vet ./...
+go build -o tm.exe ./cmd/server
 ```
 
 ## Architecture
@@ -123,8 +154,16 @@ hand-edited by the running server:
 | `volatiles.json` | server behavior for consumable item-effect codes |
 | `mounts.json` | per-mount-type combat bonuses |
 | `quests.json` | quest definitions and prerequisites |
+| `quest_zones.json` | timed quest-area boundaries and reset behavior |
+| `guilds.json` + `Guilds.txt` | guild registry and 7.48 client name list |
 | `droprate.json` | loot table weights |
 | `server.txt` | server-wide configuration and gameplay rules |
+
+## Roadmap
+
+The next major gameplay phases are the remaining retail quest catalog, visible
+guild marks, guild/kingdom/Castle wars and further client asset modernization.
+These are not presented as complete in the current build.
 
 ## Disclaimer
 
