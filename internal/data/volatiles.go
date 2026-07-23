@@ -17,6 +17,7 @@ var validVolatileActions = map[string]bool{
 	"tint": true, "untint": true, "repliction": true, "mount": true,
 	"magical_pill": true, "hunting_teleport": true,
 	"summon_contract": true, "learn_special_skill": true,
+	"quest_reward": true,
 }
 
 var validMountActions = map[string]bool{
@@ -75,6 +76,15 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileC
 		}
 		if rule.Action == "grant_exp" && rule.Exp == 0 {
 			return rule, fmt.Errorf("data: %s grant_exp exige exp positivo", where)
+		}
+		if rule.Action == "quest_reward" {
+			if rule.Exp == 0 {
+				return rule, fmt.Errorf("data: %s quest_reward exige exp positivo", where)
+			}
+			if rule.MaxLevelExclusive <= rule.MinLevel {
+				return rule, fmt.Errorf(
+					"data: %s quest_reward exige maxLevelExclusive maior que minLevel", where)
+			}
 		}
 		if (rule.Action == "refine" || rule.Action == "refine_set") &&
 			(rule.RefineMax <= 0 || rule.RefineMax > 15) {

@@ -586,3 +586,18 @@ func TestSysQuitLayout(t *testing.T) {
 		t.Fatalf("SysQuit invalido: %+v len=%d", ParseHeader(b), len(b))
 	}
 }
+
+func TestSelfEquipCarriesTintAnctCode(t *testing.T) {
+	equip := make([]model.Item, 16)
+	equip[6] = model.Item{Index: 700, Eff: [6]byte{116, 4}}
+	b := SelfEquip(9, equip)
+	if len(b) != 60 || ParseHeader(b).Type != OpUpdateEquip {
+		t.Fatalf("UpdateEquip invalido: len=%d header=%+v", len(b), ParseHeader(b))
+	}
+	if got := binary.LittleEndian.Uint16(b[12+6*2:]); got != model.VisualItemCode(equip[6], false) {
+		t.Fatalf("ItemEff[6]=%d", got)
+	}
+	if got := b[44+6]; got != model.AncientCode(equip[6]) {
+		t.Fatalf("AnctCode[6]=%d, esperado %d", got, model.AncientCode(equip[6]))
+	}
+}

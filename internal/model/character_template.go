@@ -11,7 +11,6 @@ type CharacterEquipment struct {
 	Bota       Item `json:"bota"`
 	Arma       Item `json:"arma"`
 	Escudo     Item `json:"escudo"`
-	Manto      Item `json:"manto"`
 	Acessorio1 Item `json:"acessorio1"`
 	Acessorio2 Item `json:"acessorio2"`
 	Acessorio3 Item `json:"acessorio3"`
@@ -19,13 +18,14 @@ type CharacterEquipment struct {
 	Acessorio5 Item `json:"acessorio5"`
 	Acessorio6 Item `json:"acessorio6"`
 	Montaria   Item `json:"montaria"`
+	Capa       Item `json:"capa"`
 }
 
 func (e CharacterEquipment) Items() [16]Item {
 	return [16]Item{
 		e.Rosto, e.Elmo, e.Armadura, e.Calca, e.Luva, e.Bota,
-		e.Arma, e.Escudo, e.Manto, e.Acessorio1, e.Acessorio2,
-		e.Acessorio3, e.Acessorio4, e.Acessorio5, e.Acessorio6, e.Montaria,
+		e.Arma, e.Escudo, e.Acessorio1, e.Acessorio2, e.Acessorio3,
+		e.Acessorio4, e.Acessorio5, e.Acessorio6, e.Montaria, e.Capa,
 	}
 }
 

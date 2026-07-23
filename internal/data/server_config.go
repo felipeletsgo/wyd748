@@ -22,6 +22,7 @@ type ServerConfig struct {
 	GuildsTxtPath         string
 	CharStatePath         string
 	QuestsPath            string
+	QuestZonesPath        string
 	ItemPath              string
 	ItemNamePath          string
 	SkillPath             string
@@ -46,6 +47,7 @@ func DefaultServerConfig() ServerConfig {
 		GuildsTxtPath:         "data/Guilds.txt",
 		CharStatePath:         "data/charstate",
 		QuestsPath:            "data/quests.json",
+		QuestZonesPath:        "data/quest_zones.json",
 		ItemPath:              "data/itemlist.csv",
 		ItemNamePath:          "data/Itemname.csv",
 		SkillPath:             "data/SkillData.csv",
@@ -88,6 +90,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"guilds_txt":          func(v string) error { cfg.GuildsTxtPath = v; return nil },
 		"charstate":           func(v string) error { cfg.CharStatePath = v; return nil },
 		"quests":              func(v string) error { cfg.QuestsPath = v; return nil },
+		"quest_zones":         func(v string) error { cfg.QuestZonesPath = v; return nil },
 		"items":               func(v string) error { cfg.ItemPath = v; return nil },
 		"itemnames":           func(v string) error { cfg.ItemNamePath = v; return nil },
 		"skills":              func(v string) error { cfg.SkillPath = v; return nil },

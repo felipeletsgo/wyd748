@@ -36,14 +36,14 @@
         "bota": { "index": 1152 },
         "arma": { "index": 861 },
         "escudo": { "index": 0 },
-        "manto": { "index": 0 },
         "acessorio1": { "index": 0 },
         "acessorio2": { "index": 0 },
         "acessorio3": { "index": 0 },
         "acessorio4": { "index": 0 },
         "acessorio5": { "index": 0 },
         "acessorio6": { "index": 0 },
-        "montaria": { "index": 0 }
+        "montaria": { "index": 0 },
+        "capa": { "index": 0 }
       }
     },
     {
@@ -78,14 +78,14 @@
         "bota": { "index": 1302 },
         "arma": { "index": 816 },
         "escudo": { "index": 0 },
-        "manto": { "index": 0 },
         "acessorio1": { "index": 0 },
         "acessorio2": { "index": 0 },
         "acessorio3": { "index": 0 },
         "acessorio4": { "index": 0 },
         "acessorio5": { "index": 0 },
         "acessorio6": { "index": 0 },
-        "montaria": { "index": 0 }
+        "montaria": { "index": 0 },
+        "capa": { "index": 0 }
       }
     },
     {
@@ -120,14 +120,14 @@
         "bota": { "index": 1428 },
         "arma": { "index": 861 },
         "escudo": { "index": 0 },
-        "manto": { "index": 0 },
         "acessorio1": { "index": 0 },
         "acessorio2": { "index": 0 },
         "acessorio3": { "index": 0 },
         "acessorio4": { "index": 0 },
         "acessorio5": { "index": 0 },
         "acessorio6": { "index": 0 },
-        "montaria": { "index": 0 }
+        "montaria": { "index": 0 },
+        "capa": { "index": 0 }
       }
     },
     {
@@ -162,14 +162,14 @@
         "bota": { "index": 1578 },
         "arma": { "index": 816 },
         "escudo": { "index": 0 },
-        "manto": { "index": 0 },
         "acessorio1": { "index": 0 },
         "acessorio2": { "index": 0 },
         "acessorio3": { "index": 0 },
         "acessorio4": { "index": 0 },
         "acessorio5": { "index": 0 },
         "acessorio6": { "index": 0 },
-        "montaria": { "index": 0 }
+        "montaria": { "index": 0 },
+        "capa": { "index": 0 }
       }
     }
   ]

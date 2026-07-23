@@ -240,19 +240,18 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 }
 
 // ghostShopOwnerResetPackets desfaz no client o modo comercial aplicado
-// localmente ao avatar que enviou 0x397. Reenviar o CreateMob normal equivale
-// ao GetCreateMob/GridMulticast usado por RemoveTrade2 na W2PP; o 0x363 com
-// titulo sera enviado somente depois, para o ID virtual da loja.
+// localmente ao avatar que enviou 0x397. CloseTrade e a operacao nativa que
+// limpa esse estado; UpdateEquip e SetHpMp reforcam o avatar autoritativo sem
+// enviar coordenadas nem reiniciar seu movimento. O CreateMobTrade com titulo
+// sera enviado separadamente, apenas para o ID virtual da loja.
 func ghostShopOwnerResetPackets(p *Player) [][]byte {
 	if p == nil || p.Char == nil {
 		return nil
 	}
 	return [][]byte{
 		wire.CloseTrade(p.ID),
-		wire.CreateMobExtended(p.ID, p.Char.Name, p.X, p.Y, bodyMesh(p.Char),
-			bodyAncient(p.Char), wireExtendedScore(p.Char), p.Char.Affects[:], 2, p.Char.GuildID),
+		playerAppearancePacket(p),
 		wire.SetHpMpExtended(p.ID, wireExtendedScore(p.Char)),
-		wire.ActionStop(p.ID, p.X, p.Y),
 	}
 }
 

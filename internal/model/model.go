@@ -276,22 +276,22 @@ type charEquip struct {
 	Bota       Item `json:"bota"`       // 5
 	Arma       Item `json:"arma"`       // 6
 	Escudo     Item `json:"escudo"`     // 7
-	Manto      Item `json:"manto"`      // 8
-	Acessorio1 Item `json:"acessorio1"` // 9
-	Acessorio2 Item `json:"acessorio2"` // 10
-	Acessorio3 Item `json:"acessorio3"` // 11
-	Acessorio4 Item `json:"acessorio4"` // 12
-	Acessorio5 Item `json:"acessorio5"` // 13
-	Acessorio6 Item `json:"acessorio6"` // 14
-	Montaria   Item `json:"montaria"`   // 15
+	Acessorio1 Item `json:"acessorio1"` // 8
+	Acessorio2 Item `json:"acessorio2"` // 9
+	Acessorio3 Item `json:"acessorio3"` // 10
+	Acessorio4 Item `json:"acessorio4"` // 11
+	Acessorio5 Item `json:"acessorio5"` // 12
+	Acessorio6 Item `json:"acessorio6"` // 13
+	Montaria   Item `json:"montaria"`   // 14
+	Capa       Item `json:"capa"`       // 15
 }
 
 func (e charEquip) array() [16]Item {
 	return [16]Item{
 		e.Rosto, e.Elmo, e.Armadura, e.Calca, e.Luva, e.Bota,
-		e.Arma, e.Escudo, e.Manto,
+		e.Arma, e.Escudo,
 		e.Acessorio1, e.Acessorio2, e.Acessorio3, e.Acessorio4,
-		e.Acessorio5, e.Acessorio6, e.Montaria,
+		e.Acessorio5, e.Acessorio6, e.Montaria, e.Capa,
 	}
 }
 
@@ -305,14 +305,14 @@ func toCharEquip(inv [16]Item) charEquip {
 		Bota:       inv[5],
 		Arma:       inv[6],
 		Escudo:     inv[7],
-		Manto:      inv[8],
-		Acessorio1: inv[9],
-		Acessorio2: inv[10],
-		Acessorio3: inv[11],
-		Acessorio4: inv[12],
-		Acessorio5: inv[13],
-		Acessorio6: inv[14],
-		Montaria:   inv[15],
+		Acessorio1: inv[8],
+		Acessorio2: inv[9],
+		Acessorio3: inv[10],
+		Acessorio4: inv[11],
+		Acessorio5: inv[12],
+		Acessorio6: inv[13],
+		Montaria:   inv[14],
+		Capa:       inv[15],
 	}
 }
 

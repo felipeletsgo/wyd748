@@ -154,23 +154,20 @@ func TestGhostShopResetsOwnerBeforePublishingClone(t *testing.T) {
 	}
 	p := &Player{ID: 7, X: 2135, Y: 2099, Char: ch}
 	packets := ghostShopOwnerResetPackets(p)
-	if len(packets) != 4 {
-		t.Fatalf("reset gerou %d pacotes, esperado 4", len(packets))
+	if len(packets) != 3 {
+		t.Fatalf("reset gerou %d pacotes, esperado 3", len(packets))
 	}
-	wantTypes := []uint16{wire.OpCloseTrade, wire.OpCreateMob, wire.OpSetHpMp, wire.OpAction}
+	wantTypes := []uint16{wire.OpCloseTrade, wire.OpUpdateEquip, wire.OpSetHpMp}
 	for i, want := range wantTypes {
 		if got := wire.ParseHeader(packets[i]).Type; got != want {
 			t.Fatalf("pacote %d Type=0x%X, esperado 0x%X", i, got, want)
 		}
 	}
-	normal := packets[1]
-	if binary.LittleEndian.Uint16(normal[16:18]) != p.ID ||
-		binary.LittleEndian.Uint16(normal[12:14]) != p.X ||
-		binary.LittleEndian.Uint16(normal[14:16]) != p.Y {
-		t.Fatalf("CreateMob normal nao restaura owner/posicao: % X", normal[:20])
-	}
-	if got := binary.LittleEndian.Uint16(packets[3][24:26]); got != p.X {
-		t.Fatalf("ActionStop targetX=%d, esperado %d", got, p.X)
+	for i, packet := range packets {
+		typeID := wire.ParseHeader(packet).Type
+		if typeID == wire.OpCreateMob || typeID == wire.OpAction {
+			t.Fatalf("reset pacote %d reinicia entidade/movimento: Type=0x%X", i, typeID)
+		}
 	}
 }
 

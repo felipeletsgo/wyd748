@@ -16,10 +16,9 @@ import (
 // a logica de dominio: bonus de atributo, evolucao de estagio e casamento
 // item->montaria dos consumiveis. O wiring de pacote fica em consumables.go.
 
-// mountSlot e o slot de montaria preferido no nosso layout (Equip[15]=Montaria),
-// usado como default. A busca real e por conteudo (equippedMount), porque o
-// client 7.48 pode equipar a montaria em 14 ou 15 conforme o Pos do itemlist.
-const mountSlot = 15
+// mountSlot e o slot nativo de montaria (Equip[14]). Equip[15] e reservado a
+// capa, inclusive as medalhas que definem Akelonia/Hekalotia.
+const mountSlot = 14
 
 // equippedMount devolve o ponteiro para a montaria equipada (cria ou adulta) em
 // qualquer slot de equip, e o indice do slot. nil se nao houver montaria. Ser
@@ -175,7 +174,6 @@ func (w *World) tickPlayerMounts(now time.Time) {
 			w.recalcPlayer(p.Char)
 			if p.Session != nil {
 				p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
-				p.Session.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
 				p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
 				p.Session.Send(wire.MessagePanel("Sua montaria esta faminta e parou de te ajudar."))
 			}
@@ -433,7 +431,6 @@ func (w *World) grantMountHuntExp(p *Player, m *Mob) {
 	w.recalcPlayer(p.Char)
 	if p.Session != nil {
 		p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
-		p.Session.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
 		p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
 		if evolved {
 			p.Session.Send(wire.MessagePanel("Sua cria cresceu de estagio!"))
@@ -496,9 +493,8 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 		w.recalcPlayer(target.Char)
 		if target.Session != nil {
 			target.Session.Send(wire.SendItem(target.ID, placeEquip, byte(mslot), *mount))
-			target.Session.Send(wire.SelfEquip(target.ID, target.Char.Equip[:]))
 			target.Session.Send(wire.UpdateScore(target.ID, *target.Char))
-			w.refreshAppearance(target) // o 0x336 apaga a tintura; reasseverar (evento raro)
+			w.refreshAppearance(target)
 			target.Session.Send(wire.MessagePanel("Sua montaria foi ferida!"))
 		}
 	}
@@ -611,7 +607,6 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	w.recalcPlayer(p.Char)
 	resend()
 	s.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
-	s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
 	s.Send(wire.UpdateScore(p.ID, *p.Char))
 	w.syncPlayerVitals(p)
 	w.refreshAppearance(p)

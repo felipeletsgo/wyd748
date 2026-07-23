@@ -1,7 +1,7 @@
 package model
 
 // Sistema de montaria fiel ao WYD/W2PP. O estado de cada montaria vive nos 3
-// slots de efeito do proprio item (Equip[15]), exatamente como o nativo:
+// slots de efeito do proprio item (Equip[14]), exatamente como o nativo:
 //
 //	Eff[0..1] (uint16 LE) = HP da montaria      (stEffect[0].sValue, ate ~30000)
 //	Eff[2]                = level               (stEffect[1].cEffect, 0..120)

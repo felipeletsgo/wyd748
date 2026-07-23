@@ -398,7 +398,6 @@ func (w *World) onApplyBonus(s *net.Session, pkt []byte) {
 	s.Send(wire.UpdateScore(p.ID, *p.Char))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	w.syncPlayerVitals(p)
-	w.refreshAppearance(p) // o 0x336 acima reconstroi o avatar e apaga a tintura
 	w.updatePartyMember(p)
 	log.Printf("[#%d] bonus type=%d detail=%d STR=%d INT=%d DEX=%d CON=%d ATK=%d MATK=%d DEF=%d HP=%d/%d MP=%d/%d special=%v",
 		s.ID, bonusType, detail, playerStr(p.Char), playerInt(p.Char), playerDex(p.Char),
@@ -479,13 +478,11 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 			w.initFreshMount(mount)
 		}
 		w.recalcPlayer(p.Char)
-		s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:])) // refaz o visual do equip
 		s.Send(wire.UpdateScore(p.ID, *p.Char))
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
 		w.syncPlayerVitals(p)
 		w.syncCriaPet(p) // cria equipada nasce como pet; desequipada some
-		// O SelfEquip (0x36B) leva so o mesh (refino), NAO a cor (anct). Re-materializa
-		// o avatar via CreateMob (com anct) para a tintura persistir ao re-equipar.
+		// O 0x36B incremental atualiza dono e observadores sem carregar posicao.
 		w.refreshAppearance(p)
 	}
 	log.Printf("[#%d] SWAP ok %d/%d <-> %d/%d", s.ID, st, sp, dt, dp)
@@ -642,6 +639,9 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] compositor aberto: %q", s.ID, m.Def.Name)
 		return
 	}
+	if w.handleKingdomNPC(s, p, m) {
+		return
+	}
 	if quest := w.questForNPC(m.Def); quest != nil {
 		w.onQuestInteraction(s, p, m, quest, clickOk)
 		return
@@ -787,10 +787,9 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	}
 	s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // slot agora vazio
 	if myType == placeEquip {
-		s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
 		s.Send(wire.UpdateScore(p.ID, *p.Char))
 		w.syncPlayerVitals(p)
-		w.refreshAppearance(p) // o 0x336 apaga a tintura das pecas restantes; reasseverar
+		w.refreshAppearance(p)
 	}
 	s.Send(wire.UpdateEtc(p.ID, *p.Char)) // atualiza gold
 	log.Printf("[#%d] vendeu item %d por %d gold (gold=%d)", s.ID, sold, price, p.Char.Gold)
@@ -914,8 +913,59 @@ func (w *World) onMoveStop(s *net.Session, pkt []byte) {
 	w.publishPlayerStop(p)
 }
 
-// onRestart implementa _MSG_Restart (0x289). O fluxo nativo repoe 200 HP,
-// envia score/HP e executa DoRecall. Armia e o ponto seguro do mundo atual.
+// recallX/recallY sao o ponto seguro de Armia usado pelo renascimento e pelo
+// reset de area de quest.
+const recallX, recallY = uint16(2112), uint16(2088)
+
+// recallPlayer recolhe o jogador para a cidade. E o servico UNICO do
+// renascimento (onRestart) e do reset de area de quest, para nao divergirem.
+//
+// Ordem segura (o ponto sutil): o cadaver e visto pelos observadores da
+// posicao ANTIGA; ele precisa ser descartado (RemoveMob type 3) ANTES de
+// mover, senao a re-materializacao (que consulta a posicao NOVA) deixa o corpo
+// orfao no ponto de morte. Depois revive, teleporta e recria vivo no destino.
+func (w *World) recallPlayer(p *Player, reason string) bool {
+	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld {
+		return false
+	}
+	dead := playerCurHP(p.Char) == 0
+	if dead {
+		for _, observer := range w.nearbyWorldPlayers(p.X, p.Y, viewHalfX) {
+			if observer == p || observer.Session == nil || !observer.hasVisible(p.ID) {
+				continue
+			}
+			observer.Session.Send(wire.RemoveMob(p.ID, 3))
+			observer.hide(p.ID)
+		}
+		hp := uint32(200)
+		if playerMaxHP(p.Char) < hp {
+			hp = playerMaxHP(p.Char)
+		}
+		setPlayerCurHP(p.Char, hp)
+		p.DeadAt = time.Time{}
+	}
+	p.X, p.Y = w.findFreePlayerPosition(recallX, recallY, 8, p)
+	p.Char.X, p.Char.Y = p.X, p.Y
+	p.MovePublished = false
+	// A posicao segura persiste; falha de disco nao aborta o recall (a posicao
+	// em RAM ja esta correta e o autosave a cobre em segundos).
+	if err := w.saveAccount(p.Account); err != nil {
+		log.Printf("[#%d] recall (%s): salvar posicao: %v", p.ID, reason, err)
+	}
+	if p.Session != nil {
+		p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+	}
+	w.refreshPlayerVisibility(p)
+	w.syncPlayerVitals(p)
+	w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
+	w.updatePartyMember(p)
+	log.Printf("[#%d] recall (%s) -> Armia @(%d,%d) revivido=%v", p.ID, reason, p.X, p.Y, dead)
+	return true
+}
+
+// onRestart implementa _MSG_Restart (0x289). O fluxo nativo repoe HP e executa
+// DoRecall; delega ao recallPlayer, que centraliza o renascimento seguro.
 func (w *World) onRestart(s *net.Session) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) != 0 {
@@ -925,19 +975,7 @@ func (w *World) onRestart(s *net.Session) {
 	if !p.DeadAt.IsZero() && time.Since(p.DeadAt) < 4*time.Second {
 		return
 	}
-	hp := uint32(200)
-	if playerMaxHP(p.Char) < hp {
-		hp = playerMaxHP(p.Char)
-	}
-	setPlayerCurHP(p.Char, hp)
-	const recallX, recallY = uint16(2112), uint16(2088)
-	p.X, p.Y = w.findFreePlayerPosition(recallX, recallY, 8, p)
-	p.Char.X, p.Char.Y = p.X, p.Y
-	p.DeadAt = time.Time{}
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
-	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	w.rematerializePlayerAfterRevive(p)
-	log.Printf("[#%d] renasceu em Armia @(%d,%d) hp=%d", s.ID, p.X, p.Y, hp)
+	w.recallPlayer(p, "restart")
 }
 
 func (w *World) onSetShortSkill(s *net.Session, pkt []byte) {
@@ -1308,7 +1346,6 @@ func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage 
 		receiver.Session.Send(wire.UpdateEtc(receiver.ID, *receiver.Char))
 		if leveledUp[receiver] {
 			receiver.Session.Send(wire.UpdateScore(receiver.ID, *receiver.Char))
-			w.refreshAppearance(receiver)
 		}
 		w.updatePartyMember(receiver)
 	}

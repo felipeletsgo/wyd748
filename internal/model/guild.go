@@ -58,6 +58,8 @@ type Guild struct {
 	ID      uint16        `json:"id"`
 	Name    string        `json:"name"`
 	Members []GuildMember `json:"members"`
+	// Kingdom espelha GuildInfo.Clan: 0 neutra, 7 Hekalotia, 8 Akelonia.
+	Kingdom byte `json:"kingdom,omitempty"`
 	// Ally e a guild aliada (0 = nenhuma). O nativo guarda UMA aliada por
 	// guild, e o client reflete isso num unico m_usAllyGuild.
 	Ally      uint16    `json:"ally,omitempty"`
@@ -138,6 +140,10 @@ func (g *Guild) Validate() error {
 	}
 	if err := ValidateGuildName(g.Name); err != nil {
 		return fmt.Errorf("guild %d: %w", g.ID, err)
+	}
+	if g.Kingdom != KingdomNeutral && g.Kingdom != KingdomHekalotia &&
+		g.Kingdom != KingdomAkelonia {
+		return fmt.Errorf("guild %q com reino invalido %d", g.Name, g.Kingdom)
 	}
 	if len(g.Members) == 0 {
 		return fmt.Errorf("guild %q sem membros", g.Name)

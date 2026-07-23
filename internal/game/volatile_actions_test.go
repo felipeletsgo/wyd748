@@ -33,7 +33,7 @@ func TestMountEquipAddsStatBonus(t *testing.T) {
 	// Tigre de Fogo adulta (2379, tipo 19), level 0, viva. Bonus dano = (0+20)*650/100 = 130.
 	mount := model.Item{Index: 2379}
 	mount.SetMountHP(20000)
-	ch.Equip[15] = mount
+	ch.Equip[14] = mount
 	w.recalcPlayer(ch)
 	if got := effectiveExtended(ch).Attack; got != baseAtk+130 {
 		t.Fatalf("attack com montaria=%d, quer %d (base %d + 130)", got, baseAtk+130, baseAtk)
@@ -44,7 +44,7 @@ func TestMountEquipAddsStatBonus(t *testing.T) {
 
 	// Montaria MORTA (HP 0) nao da bonus.
 	dead := model.Item{Index: 2379}
-	ch.Equip[15] = dead
+	ch.Equip[14] = dead
 	w.recalcPlayer(ch)
 	if got := effectiveExtended(ch).Attack; got != baseAtk {
 		t.Fatalf("attack com montaria morta=%d, quer %d", got, baseAtk)
@@ -60,7 +60,7 @@ func TestMountDamageScalesWithLevel(t *testing.T) {
 	mount := model.Item{Index: 2379}
 	mount.SetMountHP(20000)
 	mount.SetMountLevel(80)
-	ch.Equip[15] = mount
+	ch.Equip[14] = mount
 	w.recalcPlayer(ch)
 	// Dano = (80+20)*650/100 = 650; magia = (80+15)*100/100 = 95.
 	if got := effectiveExtended(ch).Attack; got != base+650 {
@@ -122,12 +122,12 @@ func TestMountAbsorbs25Percent(t *testing.T) {
 	mount := model.Item{Index: 2379}
 	mount.SetMountHP(20000)
 	p := &Player{Char: mountTestChar()}
-	p.Char.Equip[15] = mount
+	p.Char.Equip[14] = mount
 	// 100 de dano: cavaleiro toma 75, montaria absorve 25 no HP.
 	if got := w.absorbMountDamage(p, 100); got != 75 {
 		t.Fatalf("dano ao cavaleiro=%d, quer 75", got)
 	}
-	if hp := p.Char.Equip[15].MountHP(); hp != 19975 {
+	if hp := p.Char.Equip[14].MountHP(); hp != 19975 {
 		t.Fatalf("HP da montaria=%d, quer 19975 (absorveu 25)", hp)
 	}
 	// Sem montaria, dano integral.
@@ -186,31 +186,31 @@ func TestCriaHuntExpLevelsUpAndGatesWeakMobs(t *testing.T) {
 	p := &Player{Char: mountTestChar()} // Session nil: os sends sao pulados
 	cria := model.Item{Index: 2349}     // Fire_Tiger's_Baby (tipo 19)
 	cria.SetMountHP(20000)
-	p.Char.Equip[15] = cria
+	p.Char.Equip[14] = cria
 
 	strong := &Mob{Def: &model.NPCDef{Extended: &model.ExtendedScore{Level: 50}}}
 	w.grantMountHuntExp(p, strong) // 1a morte: progresso, sem subir
-	if p.Char.Equip[15].MountLevel() != 0 {
-		t.Fatalf("nao deveria subir com 1 morte, veio %d", p.Char.Equip[15].MountLevel())
+	if p.Char.Equip[14].MountLevel() != 0 {
+		t.Fatalf("nao deveria subir com 1 morte, veio %d", p.Char.Equip[14].MountLevel())
 	}
 	w.grantMountHuntExp(p, strong) // 2a morte (criaKillsPerLevel=2): sobe pra 1
-	if p.Char.Equip[15].MountLevel() != 1 {
-		t.Fatalf("deveria subir pra level 1, veio %d", p.Char.Equip[15].MountLevel())
+	if p.Char.Equip[14].MountLevel() != 1 {
+		t.Fatalf("deveria subir pra level 1, veio %d", p.Char.Equip[14].MountLevel())
 	}
 	// Mob de level menor que a cria nao ensina.
 	weak := &Mob{Def: &model.NPCDef{Extended: &model.ExtendedScore{Level: 0}}}
-	before := p.Char.Equip[15].Eff[5]
+	before := p.Char.Equip[14].Eff[5]
 	w.grantMountHuntExp(p, weak)
-	if p.Char.Equip[15].Eff[5] != before {
+	if p.Char.Equip[14].Eff[5] != before {
 		t.Fatal("mob de level baixo nao deveria dar XP de caca")
 	}
 	// Montaria adulta nao ganha XP de caca.
 	adult := &Player{Char: mountTestChar()}
 	am := model.Item{Index: 2379}
 	am.SetMountHP(20000)
-	adult.Char.Equip[15] = am
+	adult.Char.Equip[14] = am
 	w.grantMountHuntExp(adult, strong)
-	if adult.Char.Equip[15].Eff[5] != 0 {
+	if adult.Char.Equip[14].Eff[5] != 0 {
 		t.Fatal("adulta nao deveria acumular XP de caca")
 	}
 }

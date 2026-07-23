@@ -271,7 +271,7 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	}
 	if req.Items[0].Index != 413 || itemStackAmount(req.Items[0]) != 10 ||
 		req.Items[1].Index != 413 || itemStackAmount(req.Items[1]) != 10 ||
-		req.Items[2].Index != 4127 || req.Items[7].Index != 0 || p.Char.Equip[15].Index != 0 {
+		req.Items[2].Index != 4127 || req.Items[7].Index != 0 {
 		w.sendCombineResult(p, 0)
 		return
 	}
@@ -281,10 +281,11 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 			return
 		}
 	}
-	// A progressao Arch/Fame ainda nao existe no modelo. Conservamos a receita
-	// W2PP e entregamos a capa neutra 3193; os reinos 3191/3192 entram junto da
-	// estrutura de cidadania/evolucao, sem inferir reino pela classe.
-	cape := model.Item{Index: 3193, Eff: [6]byte{54, 16}}
+	// _MSG_CombineItemLindy escolhe a capa Elite pelo Clan atual: 3191
+	// Hekalotia, 3192 Akelonia e 3193 neutra. O reino continua derivado da capa
+	// antiga ate este ponto, portanto capture-o antes de substituir Equip[15].
+	capeIndex := lindyCapeIndex(p.Char)
+	cape := model.Item{Index: capeIndex, Eff: [6]byte{54, 16}}
 	if _, exists := w.items[cape.Index]; !exists {
 		w.sendCombineResult(p, 0)
 		return
@@ -295,4 +296,9 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	p.Char.Equip[15] = cape
 	w.recalcPlayer(p.Char)
 	w.commitCombine(p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
+}
+
+func lindyCapeIndex(ch *model.Char) uint16 {
+	cape, _ := model.KingdomCapeAtTier(model.CapeTierElite, characterKingdom(ch))
+	return cape
 }

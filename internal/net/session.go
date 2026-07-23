@@ -56,6 +56,16 @@ func NewTestSession(id int64, bufSize int) *Session {
 	return &Session{ID: id, out: make(chan []byte, bufSize)}
 }
 
+// QueuedPacketsForTest informa quantos pacotes NewTestSession recebeu. O
+// conteudo permanece cifrado na fila; testes de game usam apenas a contagem
+// para detectar envios extras que alteram estado visual, como CreateMob.
+func (s *Session) QueuedPacketsForTest() int {
+	if s == nil || s.out == nil {
+		return 0
+	}
+	return len(s.out)
+}
+
 // RemoteAddr expoe o endereco remoto (log).
 func (s *Session) RemoteAddr() string { return s.conn.RemoteAddr().String() }
 

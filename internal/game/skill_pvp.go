@@ -97,7 +97,7 @@ func (w *World) breakHideOnAttack(p *Player) {
 	}
 	w.recalcPlayer(p.Char)
 	w.publishPlayerAffects(p)
-	w.sendToPlayerView(p, func() []byte { return wire.VisualEquip(p.ID, bodyMesh(p.Char)) })
+	w.sendToPlayerView(p, func() []byte { return playerAppearancePacket(p) })
 }
 
 func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill model.SkillDef, mastery int, motion byte) {
@@ -194,7 +194,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		w.syncPlayerVitals(target)
 		w.updatePartyMember(target)
 		w.publishPlayerAffects(target)
-		w.sendToPlayerView(target, func() []byte { return wire.VisualEquip(target.ID, bodyMesh(target.Char)) })
+		w.sendToPlayerView(target, func() []byte { return playerAppearancePacket(target) })
 	}
 	w.syncPlayerScoreAndVitals(caster)
 	for _, target := range targets {

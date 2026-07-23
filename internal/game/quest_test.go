@@ -141,6 +141,19 @@ func TestQuestRequirementsMet(t *testing.T) {
 		}
 	})
 
+	t.Run("somente mortal", func(t *testing.T) {
+		quest := simpleQuest(1, "X")
+		quest.Requires.MortalOnly = true
+		mortal := questTestPlayer(1, 0)
+		if _, ok := w.questRequirementsMet(mortal, &quest); !ok {
+			t.Fatal("mortal deveria passar")
+		}
+		mortal.Char.Evolution = "arch"
+		if _, ok := w.questRequirementsMet(mortal, &quest); ok {
+			t.Fatal("evolucao avancada deveria ser recusada")
+		}
+	})
+
 	t.Run("gold", func(t *testing.T) {
 		quest := simpleQuest(1, "X")
 		quest.Requires.Gold = 1000
@@ -213,6 +226,24 @@ func TestQuestCompletedEMark(t *testing.T) {
 	markQuestCompleted(ch, 3) // idempotente
 	if !questCompleted(ch, 3) || len(ch.QuestsDone) != 1 {
 		t.Fatalf("marcacao incorreta: %v", ch.QuestsDone)
+	}
+}
+
+func TestQuestRepetivelNaoMarcaConclusao(t *testing.T) {
+	w := newZoneTestWorld()
+	p := addZonePlayer(w, 1, 2100, 2100, 500)
+	p.Char.Extended.Level = 39
+	quest := simpleQuest(1, "Coveiro")
+	quest.Repeatable = true
+	quest.Requires = model.QuestRequirements{MinLevel: 39, MaxLevel: 115, MortalOnly: true}
+	quest.Rewards.Teleport = &model.QuestTeleport{X: 2398, Y: 2105}
+
+	w.executeQuest(p.Session, p, &Mob{}, &quest)
+	if len(p.Char.QuestsDone) != 0 {
+		t.Fatalf("portal repetivel nao deve sujar QuestsDone: %v", p.Char.QuestsDone)
+	}
+	if p.X != 2398 || p.Y != 2105 {
+		t.Fatalf("portal nao teleportou: (%d,%d)", p.X, p.Y)
 	}
 }
 

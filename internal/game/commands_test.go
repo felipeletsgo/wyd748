@@ -6,6 +6,13 @@ import (
 	"wydgo/internal/model"
 )
 
+func TestTownCommandIsNotRegistered(t *testing.T) {
+	w := &World{}
+	if w.dispatchChatCommand(nil, nil, "town", "") {
+		t.Fatal("/town ainda foi consumido como comando")
+	}
+}
+
 func TestParseChatText(t *testing.T) {
 	pkt := make([]byte, 140)
 	copy(pkt[12:], "  /limparinv  \x00texto ignorado")

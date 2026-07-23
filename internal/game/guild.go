@@ -179,6 +179,7 @@ func (w *World) guildCommandCreate(s *net.Session, p *Player, arg string) {
 	w.guilds.Guilds = append(w.guilds.Guilds, model.Guild{
 		ID:        id,
 		Name:      name,
+		Kingdom:   characterKingdom(p.Char),
 		CreatedAt: time.Now().UTC(),
 		Members: []model.GuildMember{{
 			Character: p.Char.Name,
@@ -226,6 +227,10 @@ func (w *World) guildCommandInvite(s *net.Session, p *Player, arg string) {
 		s.Send(wire.MessagePanel("Esse jogador ja pertence a uma guild."))
 		return
 	}
+	if characterKingdom(invited.Char) != guild.Kingdom {
+		s.Send(wire.MessagePanel("O jogador pertence a outro reino."))
+		return
+	}
 	invited.GuildInviteFrom = guild.ID
 	invited.GuildInviteUntil = time.Now().Add(guildInviteTTL)
 	invited.Session.Send(wire.MessagePanel(fmt.Sprintf(
@@ -249,6 +254,11 @@ func (w *World) guildCommandAccept(s *net.Session, p *Player, _ string) {
 	if guild == nil {
 		p.GuildInviteFrom = 0
 		s.Send(wire.MessagePanel("A guild nao existe mais."))
+		return
+	}
+	if characterKingdom(p.Char) != guild.Kingdom {
+		p.GuildInviteFrom = 0
+		s.Send(wire.MessagePanel("Voce nao pertence ao reino desta guild."))
 		return
 	}
 

@@ -128,6 +128,9 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	}
 
 	switch rule.Action {
+	case "quest_reward":
+		w.useQuestReward(s, p, item, slot, rule, code)
+
 	case "magical_pill":
 		if p.Char.MagicalPillUsed {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -370,11 +373,6 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		w.publishPlayerAffects(p)
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
-		// O 0x336 do buff faz o client re-renderizar o avatar a partir do m_Equip
-		// cru, perdendo a cor da tintura (que so viaja no mesh/anct do CreateMob).
-		// Reasseverar a aparencia DEPOIS do 0x336 mantem a tintura visivel, como ja
-		// fazem transform/refino/amago. Ultimo pacote visual do fluxo.
-		w.refreshAppearance(p)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		log.Printf("[#%d] usou buff item=%d volatile=%d affect=%d value=%d level=%d dur=%d",
 			s.ID, item.Index, code, affectType, rule.AffectValue, rule.AffectLevel, rule.DurationUnits)
@@ -413,11 +411,9 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		}
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
-		// Igual ao kill: UpdateScore (0x336) so e preciso ao subir de nivel; mandado a
-		// toa ele reconstroi o avatar e apaga a tintura. A exp vai no UpdateEtc.
+		// UpdateScore (0x336) so e preciso ao subir de nivel; a EXP vai no UpdateEtc.
 		if gained > 0 {
 			s.Send(wire.UpdateScore(p.ID, *p.Char))
-			w.refreshAppearance(p)
 		}
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -491,8 +487,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.SendItem(p.ID, byte(destType), byte(destPos), *dest))
 		if destType == placeEquip {
-			s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
-			w.refreshAppearance(p) // re-materializa o avatar do dono NO MUNDO + observadores
+			w.refreshAppearance(p)
 		}
 		log.Printf("[#%d] tinturou item=%d alvo=%d cor=%d volatile=%d",
 			s.ID, item.Index, dest.Index, rule.Color, code)
@@ -523,8 +518,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.SendItem(p.ID, byte(destType), byte(destPos), *dest))
 		if destType == placeEquip {
-			s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
-			w.refreshAppearance(p) // re-materializa o avatar do dono NO MUNDO + observadores
+			w.refreshAppearance(p)
 		}
 		log.Printf("[#%d] removeu tintura item=%d alvo=%d volatile=%d",
 			s.ID, item.Index, dest.Index, code)
@@ -573,7 +567,6 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
 			s.Send(wire.UpdateScore(p.ID, *p.Char))
 			w.syncPlayerVitals(p)
-			w.refreshAppearance(p)
 		}
 		s.Send(wire.MessagePanel("O item recebeu um novo adicional!"))
 		log.Printf("[#%d] repliction item=%d alvo=%d add=ef%d/v%d volatile=%d",
@@ -688,10 +681,9 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 			s.Send(wire.SendItem(p.ID, placeEquip, byte(slot), p.Char.Equip[slot]))
 		}
 	}
-	s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
 	s.Send(wire.UpdateScore(p.ID, *p.Char))
 	w.syncPlayerVitals(p)
-	// O brilho/mesh do refino do set viaja no CreateMob: propaga aos observadores.
+	// O brilho/mesh do refino viaja no UpdateEquip incremental.
 	w.refreshAppearance(p)
 	s.Send(wire.MessagePanel("Set refinado!"))
 	log.Printf("[#%d] refine_set code=%d po=%d pecas=%d nivel=+%d",
@@ -802,10 +794,9 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	s.Send(wire.SendItem(p.ID, byte(destType), byte(destPos), *dest))
 	if destType == placeEquip {
 		w.recalcPlayer(p.Char)
-		s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
 		s.Send(wire.UpdateScore(p.ID, *p.Char))
 		w.syncPlayerVitals(p)
-		// O brilho/mesh do refino viaja no CreateMob: propaga aos observadores.
+		// O brilho/mesh do refino viaja no UpdateEquip incremental.
 		w.refreshAppearance(p)
 	}
 	if success {

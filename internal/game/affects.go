@@ -260,6 +260,7 @@ func cleansePlayer(ch *model.Char) bool {
 type supportSkillResult struct {
 	player  *Player
 	hpDelta uint32
+	revived bool
 }
 
 func foemaHealAmount(skillIndex, mastery, instanceValue int) int {
@@ -353,9 +354,6 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 		if skill.Index != 27 && skill.Index != 29 {
 			w.recalcPlayer(target.Char)
 		}
-		if skill.Index == 31 {
-			w.rematerializePlayerAfterRevive(target)
-		}
 		if skill.Index == 75 { // Invisibilidade remove o jogador da lista de aggro.
 			for _, m := range w.mobs {
 				if m.TargetID == target.ID {
@@ -370,7 +368,9 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 		if playerCurHP(target.Char) > oldHP {
 			hpDelta = playerCurHP(target.Char) - oldHP
 		}
-		changed = append(changed, supportSkillResult{player: target, hpDelta: hpDelta})
+		changed = append(changed, supportSkillResult{
+			player: target, hpDelta: hpDelta, revived: oldHP == 0 && playerCurHP(target.Char) > 0,
+		})
 	}
 	if len(changed) > 0 {
 		log.Printf("[#%d] suporte %q afetou=%d mastery=%d", p.Session.ID, skill.Name, len(changed), mastery)
@@ -785,7 +785,7 @@ func (w *World) tickPlayerAffects(now time.Time) {
 			w.recalcPlayer(p.Char)
 			w.publishPlayerAffects(p)
 			w.syncPlayerVitals(p)
-			w.sendToPlayerView(p, func() []byte { return wire.VisualEquip(p.ID, bodyMesh(p.Char)) })
+			w.sendToPlayerView(p, func() []byte { return playerAppearancePacket(p) })
 		}
 	}
 }

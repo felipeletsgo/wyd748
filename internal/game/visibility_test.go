@@ -70,3 +70,21 @@ func TestPlayerEnterViewRestoresAliveStateBeforeMovement(t *testing.T) {
 		t.Fatalf("CreateMob nao restaurou affect visual: % X", packets[0][66:70])
 	}
 }
+
+func TestAppearanceUpdateUsesPositionlessUpdateEquip(t *testing.T) {
+	ch := model.Char{Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion}}
+	ch.Equip[6] = model.Item{Index: 700, Eff: [6]byte{116, 4}}
+	p := &Player{ID: 9, Char: &ch}
+	mesh := bodyMesh(p.Char)
+	pkt := playerAppearancePacket(p)
+	header := wire.ParseHeader(pkt)
+	if header.Type != wire.OpUpdateEquip || len(pkt) != 60 {
+		t.Fatalf("aparencia type=0x%X size=%d, esperado UpdateEquip/60", header.Type, len(pkt))
+	}
+	if got := binary.LittleEndian.Uint16(pkt[12+6*2:]); got != mesh[6] {
+		t.Fatalf("mesh da arma=%d, esperado %d", got, mesh[6])
+	}
+	if got := pkt[44+6]; got != model.AncientCode(ch.Equip[6]) {
+		t.Fatalf("AnctCode da arma=%d, esperado %d", got, model.AncientCode(ch.Equip[6]))
+	}
+}

@@ -4,34 +4,103 @@
     {
       "id": 1,
       "npc": "Coveiro",
-      "repeatable": false,
-      "requires": {
-        "minLevel": 1,
-        "gold": 100
-      },
-      "rewards": {
-        "exp": 5000
-      },
+      "repeatable": true,
+      "requires": { "minLevel": 39, "maxLevel": 115, "mortalOnly": true },
+      "rewards": { "teleport": { "x": 2398, "y": 2105 } },
       "messages": {
-        "offer": "O Coveiro agradece a ajuda.",
-        "success": "O Coveiro agradece a ajuda. (+5000 EXP)",
-        "denied": "O Coveiro nao tem nada para voce agora."
+        "offer": "Entrada para a area do Coveiro.",
+        "success": "Voce entrou na area do Coveiro.",
+        "denied": "O Coveiro nao permite sua entrada agora."
       }
     },
     {
       "id": 2,
       "npc": "Kibita",
       "repeatable": false,
-      "requires": {
-        "gold": 400000
-      },
-      "rewards": {
-        "citizenship": true
-      },
+      "requires": { "gold": 400000 },
+      "rewards": { "citizenship": true },
       "messages": {
         "offer": "Kibita: a cidadania custa 400.000 gold.",
         "success": "Voce agora e cidadao. Bonus de drop ativo.",
         "denied": "Kibita: voce nao pode se tornar cidadao agora."
+      }
+    },
+    {
+      "id": 3,
+      "npc": "Jardineiro",
+      "repeatable": true,
+      "requires": { "minLevel": 115, "maxLevel": 189, "mortalOnly": true },
+      "rewards": { "teleport": { "x": 2234, "y": 1714 } },
+      "messages": {
+        "offer": "Entrada para a area dos Carbuncles.",
+        "success": "Voce entrou na area dos Carbuncles.",
+        "denied": "O Jardineiro nao permite sua entrada agora."
+      }
+    },
+    {
+      "id": 4,
+      "npc": "Batedor",
+      "repeatable": true,
+      "requires": { "minLevel": 190, "maxLevel": 264, "mortalOnly": true },
+      "rewards": { "teleport": { "x": 464, "y": 3902 } },
+      "messages": {
+        "offer": "Entrada para a area de Kaizen.",
+        "success": "Voce entrou na area de Kaizen.",
+        "denied": "O Batedor nao permite sua entrada agora."
+      }
+    },
+    {
+      "id": 5,
+      "npc": "Guarda",
+      "repeatable": true,
+      "requires": { "minLevel": 265, "maxLevel": 319, "mortalOnly": true },
+      "rewards": { "teleport": { "x": 668, "y": 3756 } },
+      "messages": {
+        "offer": "Entrada para a area das Hidras.",
+        "success": "Voce entrou na area das Hidras.",
+        "denied": "O Guarda nao permite sua entrada agora."
+      }
+    },
+    {
+      "id": 6,
+      "npc": "Representante",
+      "repeatable": true,
+      "requires": { "minLevel": 319, "maxLevel": 349, "mortalOnly": true },
+      "rewards": { "teleport": { "x": 1322, "y": 4041 } },
+      "messages": {
+        "offer": "Entrada para a area dos Elfos.",
+        "success": "Voce entrou na area dos Elfos.",
+        "denied": "O Representante nao permite sua entrada agora."
+      }
+    },
+    {
+      "id": 7,
+      "npc": "Chefe_de_Treino",
+      "repeatable": true,
+      "requires": { "minLevel": 199, "maxLevel": 253, "mortalOnly": true },
+      "rewards": { "teleport": { "x": 1740, "y": 1725 } },
+      "messages": {
+        "offer": "Entrada para a prova da Capa Real.",
+        "success": "Voce entrou na area dos reinos.",
+        "denied": "A prova da Capa Real exige um Mortal entre os niveis 200 e 254."
+      }
+    },
+    {
+      "id": 8,
+      "npc": "Helen",
+      "repeatable": true,
+      "requires": {
+        "minLevel": 119,
+        "maxLevel": 123,
+        "mortalOnly": true,
+        "items": [{ "index": 4125, "amount": 1 }]
+      },
+      "consumes": [{ "index": 4125, "amount": 1 }],
+      "rewards": { "items": [{ "index": 4126, "amount": 1 }] },
+      "messages": {
+        "offer": "Entregue o Pedaco de Equilibrio.",
+        "success": "Helen transformou o fragmento em Composto de Equilibrio.",
+        "denied": "Helen exige um Mortal entre os niveis 120 e 124 com o fragmento correto."
       }
     }
   ]

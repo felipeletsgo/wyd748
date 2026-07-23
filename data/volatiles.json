@@ -245,6 +245,11 @@
     }
   },
   "items": {
+    "4117": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 39, "maxLevelExclusive": 115, "exp": 5000, "gold": 2000, "description": "Box of Wisdom: recompensa da area do Coveiro." },
+    "4118": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 115, "maxLevelExclusive": 190, "exp": 10000, "gold": 2500, "description": "Tears of Angell: recompensa da area dos Carbuncles." },
+    "4119": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 190, "maxLevelExclusive": 265, "exp": 50000, "gold": 3000, "description": "Heart of Kaizen: recompensa da area de Kaizen." },
+    "4120": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 265, "maxLevelExclusive": 320, "exp": 100000, "gold": 3750, "description": "Blood Eye: recompensa da area das Hidras." },
+    "4121": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 320, "maxLevelExclusive": 350, "exp": 200000, "gold": 47500, "description": "Elf's Spirit Stone: recompensa da area dos Elfos." },
     "3313": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 450, "description": "Bigger Potion: +10% HP por 1 hora." },
     "3364": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 75600, "description": "Health Potion: +10% HP por 7 dias." },
     "3365": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 162000, "description": "Health Potion: +10% HP por 15 dias." },

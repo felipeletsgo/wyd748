@@ -25,7 +25,7 @@ const (
 	OpCNFMobKill         = 0x338 // S->C confirma morte e atualiza EXP do killer
 	OpUpdateCarry        = 0x185 // S->C inventario interativo (528B)
 	OpUpdateCargoGold    = 0x339 // S->C gold armazenado no Cargo (16B)
-	OpUpdateEquip        = 0x36B // S->C visual do equip (44B)
+	OpUpdateEquip        = 0x36B // S->C visual do equip (60B: ItemEff + AnctCode)
 	OpAction             = 0x366 // C<->S andar / Action (52B)
 	OpActionStop         = 0x367 // C->S para a acao/movimento atual (52B)
 	OpREQMobByID         = 0x369 // C->S pede entidade ausente referenciada por um Action

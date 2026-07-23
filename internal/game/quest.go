@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"wydgo/internal/model"
 	"wydgo/internal/net"
@@ -134,6 +135,9 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 		level = ch.Extended.Level
 	}
 	req := quest.Requires
+	if req.MortalOnly && strings.TrimSpace(ch.Evolution) != "" {
+		return "Disponivel apenas para personagens Mortais.", false
+	}
 	if req.MinLevel != 0 && level < req.MinLevel {
 		return fmt.Sprintf("Voce precisa ser nivel %d.", req.MinLevel), false
 	}
@@ -282,7 +286,9 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 				s.ID, guild.ID, guild.Name, w.channel)
 		}
 	}
-	markQuestCompleted(p.Char, quest.ID)
+	if !quest.Repeatable {
+		markQuestCompleted(p.Char, quest.ID)
+	}
 
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Char.Inv = previousInv
@@ -302,9 +308,6 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	if t := quest.Rewards.Teleport; t != nil {
 		// O teleporte ja re-materializa o avatar (com a tintura) no destino.
 		w.teleportPlayer(p, t.X, t.Y)
-	} else {
-		// O UpdateScore acima reconstroi o avatar e apaga a tintura; reasseverar.
-		w.refreshAppearance(p)
 	}
 	s.Send(wire.MessagePanel(quest.Messages.Success))
 	log.Printf("[#%d] QUEST %d concluida por %q", s.ID, quest.ID, p.Char.Name)

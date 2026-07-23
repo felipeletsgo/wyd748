@@ -421,7 +421,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	runtime.ResistHoly = uint32(clampInt(int(base.ResistHoly)+int(total("EF_RESIST3"))+resAll, 0, 100))
 	runtime.ResistThunder = uint32(clampInt(int(base.ResistThunder)+int(total("EF_RESIST4"))+resAll, 0, 100))
 
-	// Bonus da montaria equipada (slot 15): dano fisico/magico, evasao,
+	// Bonus da montaria equipada (slot 14): dano fisico/magico, evasao,
 	// resistencia e piso de velocidade -- portado da tabela do Montarias.cpp via
 	// data/mounts.json. mRun entra no calculo de runSpeed abaixo.
 	mAtk, mMag, mEva, mRes, mRun := w.mountBonus(ch)

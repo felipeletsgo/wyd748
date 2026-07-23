@@ -20,6 +20,17 @@ func scaledMobExperience(base uint32, config model.GameplayConfig) uint32 {
 	return uint32(scaled)
 }
 
+// scaledQuestExperience aplica somente a taxa global. Recompensas de quest
+// nao recebem o piso dos mobs nem bonus de party; o buff individual de EXP e
+// aplicado separadamente por expWithDoubleBuff.
+func scaledQuestExperience(base uint32, config model.GameplayConfig) uint32 {
+	scaled := uint64(base) * uint64(config.EXPRatePercent) / 100
+	if scaled > uint64(^uint32(0)) {
+		return ^uint32(0)
+	}
+	return uint32(scaled)
+}
+
 // expWithDoubleBuff dobra a recompensa quando o personagem tem o bau de EXP
 // ativo (affect 39). Aplicado por RECEPTOR, logo cada membro do grupo usa o
 // proprio buff. O clamp evita overflow no teto de uint32.

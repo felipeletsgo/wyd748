@@ -283,6 +283,10 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		w.executeClearInventory(s, p)
 	case "spk":
 		w.executeShout(s, p, arg)
+	case "kingdom", "reino":
+		w.kingdomCommandTeleport(s, p, false)
+	case "king", "rei":
+		w.kingdomCommandTeleport(s, p, true)
 	case "criar":
 		w.guildCommandCreate(s, p, arg)
 	case "convidar":
@@ -360,6 +364,9 @@ func (w *World) characterInfoLine(ch *model.Char) string {
 	// characterCitizenship devolve vazio e a parte simplesmente nao aparece.
 	if citizenship := characterCitizenship(ch); citizenship != "" {
 		parts = append(parts, "Cidadania: "+citizenship)
+	}
+	if kingdom := characterKingdom(ch); kingdom != model.KingdomNeutral {
+		parts = append(parts, "Reino: "+model.KingdomName(kingdom))
 	}
 	return strings.Join(parts, " | ")
 }

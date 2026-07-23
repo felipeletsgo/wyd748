@@ -52,6 +52,28 @@ func TestCharJSONPersistsOnlyExtendedScore(t *testing.T) {
 	}
 }
 
+func TestCharJSONUsesNativeMountAndCapeSlots(t *testing.T) {
+	ch := Char{Name: "Slots", Extended: &ExtendedScore{Version: ExtendedScoreVersion}}
+	ch.Equip[14] = Item{Index: 2376}
+	ch.Equip[15] = Item{Index: 545}
+	data, err := json.Marshal(ch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(data, []byte(`"manto"`)) ||
+		!bytes.Contains(data, []byte(`"montaria":{"index":2376`)) ||
+		!bytes.Contains(data, []byte(`"capa":{"index":545`)) {
+		t.Fatalf("layout persistido nao e o nativo: %s", data)
+	}
+	var loaded Char
+	if err := json.Unmarshal(data, &loaded); err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Equip[14].Index != 2376 || loaded.Equip[15].Index != 545 {
+		t.Fatalf("round-trip mudou slots: mount=%d cape=%d", loaded.Equip[14].Index, loaded.Equip[15].Index)
+	}
+}
+
 func TestCharJSONRejectsMissingExtendedScore(t *testing.T) {
 	raw := []byte(`{"name":"x","equip":{},"inv":[]}`)
 	var ch Char

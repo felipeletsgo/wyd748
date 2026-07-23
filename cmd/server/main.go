@@ -51,6 +51,7 @@ func main() {
 	guildsTxtPath := flag.String("guilds-txt", cfg.GuildsTxtPath, "Guilds.txt exportado para o client 7.48")
 	charStatePath := flag.String("charstate", cfg.CharStatePath, "pasta do estado de sessao (buffs/moedas)")
 	questsPath := flag.String("quests", cfg.QuestsPath, "definicoes de quest (quests.json)")
+	questZonesPath := flag.String("quest_zones", cfg.QuestZonesPath, "zonas de reset de area (quest_zones.json)")
 	itemPath := flag.String("items", cfg.ItemPath, "itemlist.csv autoritativo")
 	itemNamePath := flag.String("itemnames", cfg.ItemNamePath, "Itemname.csv autoritativo")
 	skillPath := flag.String("skills", cfg.SkillPath, "SkillData.csv autoritativo")
@@ -137,12 +138,17 @@ func main() {
 		log.Fatalf("carregar quests: %v", err)
 	}
 
+	questZones, err := data.LoadQuestZones(*questZonesPath)
+	if err != nil {
+		log.Fatalf("carregar zonas de quest: %v", err)
+	}
+
 	st := store.NewJSONStore(*accDir, store.WithGuildsPath(*guildsPath),
 		store.WithGuildsTxtPath(*guildsTxtPath), store.WithCharStatePath(*charStatePath))
 	world, err := game.NewWorld(st, npcs, geners, catalog, dropRates, volatiles,
 		characterTemplates, terrain, game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),
-		game.WithQuests(quests), game.WithMounts(mounts))
+		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts))
 	if err != nil {
 		log.Fatalf("criar mundo: %v", err)
 	}

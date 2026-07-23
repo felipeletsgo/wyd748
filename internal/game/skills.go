@@ -126,7 +126,6 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 	}
 	s.Send(wire.UpdateScore(p.ID, *p.Char))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	w.refreshAppearance(p) // o 0x336 acima reconstroi o avatar e apaga a tintura
 	s.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
 	log.Printf("[#%d] aprendeu skill=%d %q custo=%d pontos restantes=%d", s.ID,
 		globalSkill, skill.Name, skill.SkillPoint, playerSkillPoints(p.Char))
@@ -507,10 +506,14 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			w.publishPlayerAffects(target)
 			w.syncPlayerVitals(target)
 			w.updatePartyMember(target)
-			w.sendToPlayerView(target, func() []byte { return wire.VisualEquip(target.ID, bodyMesh(target.Char)) })
-			if skillIndex == 99 && playerCurHP(target.Char) > 0 {
-				w.republishPlayerAppearance(target)
-				w.sendToPlayerView(target, func() []byte { return wire.ActionStop(target.ID, target.X, target.Y) })
+			if result.revived {
+				// Ressurreicao e a excecao intencional: o client conserva o
+				// TMHuman morto e so volta ao estado vivo apos RemoveMob(type 3)
+				// seguido de uma materializacao nova. Atualizacoes comuns nunca
+				// passam por este caminho.
+				w.rematerializePlayerAfterRevive(target)
+			} else {
+				w.sendToPlayerView(target, func() []byte { return playerAppearancePacket(target) })
 			}
 		}
 		w.syncPlayerScoreAndVitals(p)

@@ -90,10 +90,12 @@ type Player struct {
 	SkillReady    map[int]time.Time
 	NextRegen     time.Time
 	NextMountTick time.Time
-	Visible       map[uint16]struct{} // entidades atualmente materializadas neste client
-	Party         *Party
-	InviteFrom    uint16
-	InviteUntil   time.Time
+	// Cooldown compartilhado pelos comandos /kingdom e /king.
+	NextKingdomTeleport time.Time
+	Visible             map[uint16]struct{} // entidades atualmente materializadas neste client
+	Party               *Party
+	InviteFrom          uint16
+	InviteUntil         time.Time
 	// Convite de guild pendente. Mesmo padrao do convite de grupo: guarda quem
 	// convidou e ate quando vale, para nao aceitar convite esquecido.
 	GuildInviteFrom  uint16
@@ -180,6 +182,10 @@ type GroundItem struct {
 // 12000 ms. Manter esse tick conserva os valores dos NPCGener.txt existentes.
 const npcGenerMinute = 12 * time.Second
 const accountAutoSaveInterval = 3 * time.Second
+
+// questZoneResetInterval porta o reset de area de quest do W2PP: la e um
+// SecCounter%1200 com TIMER_SEC=500ms, ou seja 10 minutos reais.
+const questZoneResetInterval = 10 * time.Minute
 const npcGenerSummaryInterval = time.Minute
 
 type npcGenerLogMode byte
@@ -205,6 +211,10 @@ type WorldOption func(*World)
 // lados estao disponiveis -- e falha o boot em vez de ignorar a configuracao.
 func WithQuests(file model.QuestFile) WorldOption {
 	return func(w *World) { w.questFile = file }
+}
+
+func WithQuestZones(file model.QuestZoneFile) WorldOption {
+	return func(w *World) { w.questZones = file.Zones }
 }
 
 func WithNPCGenerLog(mode string) WorldOption {
@@ -288,6 +298,12 @@ type World struct {
 	// questsByNPC e a allowlist de quest: NPC ausente daqui nunca vira quest.
 	questFile   model.QuestFile
 	questsByNPC map[string]*model.QuestDef
+	// questZones sao retangulos que expulsam todo jogador para a cidade a cada
+	// ciclo de reset (mecanismo ClearArea do W2PP). nextQuestZoneReset e o
+	// deadline do proximo reset -- baseado em relogio, nao no contador de tick,
+	// para dar 10 minutos reais mesmo se algum tick atrasar.
+	questZones         []model.QuestZone
+	nextQuestZoneReset time.Time
 	// channel e o numero deste canal (o ServerIndex+1 do nativo). A cidadania
 	// e por canal: ser cidadao de outro canal nao rende o bonus aqui.
 	// Instancia unica = canal 1.
@@ -334,6 +350,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		ghostShops:         make(map[uint16]*GhostShop),
 		nextItemID:         10000,
 		nextAutoSave:       time.Now().Add(accountAutoSaveInterval),
+		nextQuestZoneReset: time.Now().Add(questZoneResetInterval),
 		dropRates:          dropRates,
 		volatiles:          volatiles,
 		charSpawn:          characterTemplates.Spawn,
@@ -759,6 +776,10 @@ func (w *World) tick() {
 	w.tickPlayerMounts(now)
 	w.tickGroundItems(now)
 	w.tickTrades(now)
+	if !now.Before(w.nextQuestZoneReset) {
+		w.tickQuestZoneReset(now)
+		w.nextQuestZoneReset = now.Add(questZoneResetInterval)
+	}
 	if !now.Before(w.nextAutoSave) {
 		w.autoSaveAccounts(now)
 	}
@@ -770,6 +791,27 @@ func (w *World) tick() {
 		}
 	}
 	w.flushNPCGenerLog(now, false)
+}
+
+// tickQuestZoneReset porta o ClearArea do W2PP: a cada ciclo (10 min), todo
+// jogador dentro de uma zona de quest e recolhido para a cidade. E global por
+// deadline, nao per-player -- reproduz o comportamento nativo (o jogador nao
+// "ganha" 10 min cheios; o relogio do servidor e que decide).
+func (w *World) tickQuestZoneReset(now time.Time) {
+	if len(w.questZones) == 0 {
+		return
+	}
+	for _, p := range w.players {
+		if !p.InWorld || p.Char == nil {
+			continue
+		}
+		for i := range w.questZones {
+			if w.questZones[i].Contains(p.X, p.Y) {
+				w.recallPlayer(p, "reset "+w.questZones[i].Name)
+				break
+			}
+		}
+	}
 }
 
 func (w *World) autoSaveAccounts(now time.Time) {

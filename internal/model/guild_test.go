@@ -113,6 +113,13 @@ func TestRegistryRecusaVersaoDiferente(t *testing.T) {
 	}
 }
 
+func TestGuildRecusaReinoInvalido(t *testing.T) {
+	guild := Guild{ID: 1, Name: "Alfa", Kingdom: 6, Members: []GuildMember{leaderMember("Lider")}}
+	if err := guild.Validate(); err == nil {
+		t.Fatal("guild com reino fora de 0/7/8 foi aceita")
+	}
+}
+
 // CanDeprivate porta a regra do DoDeprivate nativo: rank ESTRITAMENTE maior.
 func TestCanDeprivateSegueAHierarquiaNativa(t *testing.T) {
 	cases := []struct {

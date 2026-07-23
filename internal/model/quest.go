@@ -31,10 +31,11 @@ func (q QuestItem) Quantity() uint32 {
 // exibido. E a mesma escala usada pela progressao (progression.go), e mante-la
 // aqui evita duas convencoes de nivel no mesmo servidor.
 type QuestRequirements struct {
-	MinLevel uint32      `json:"minLevel,omitempty"`
-	MaxLevel uint32      `json:"maxLevel,omitempty"`
-	Gold     uint32      `json:"gold,omitempty"`
-	Items    []QuestItem `json:"items,omitempty"`
+	MinLevel   uint32      `json:"minLevel,omitempty"`
+	MaxLevel   uint32      `json:"maxLevel,omitempty"`
+	MortalOnly bool        `json:"mortalOnly,omitempty"`
+	Gold       uint32      `json:"gold,omitempty"`
+	Items      []QuestItem `json:"items,omitempty"`
 	// AfterQuest exige uma quest concluida antes desta.
 	AfterQuest int `json:"afterQuest,omitempty"`
 }

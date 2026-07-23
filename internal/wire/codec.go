@@ -678,25 +678,33 @@ func UpdateCarry(id uint16, inv []model.Item, coin uint32) []byte {
 	return b
 }
 
-// SelfEquip monta o 0x36B (44B): 16 WORDs visuais @12 (codigo visual de cada
-// slot, COM refino/cor nos bits altos). Precisa do mesmo VisualItemCode do
-// CreateMob -- senao o re-equipar manda o indice cru e apaga a cor/refino do
-// avatar no mundo (a cor pisca/some ao mexer no equip).
+// SelfEquip monta o 0x36B (60B): 16 WORDs visuais @12 e 16 AnctCode @44.
+// O segundo bloco nao e opcional no protocolo 7.48: SetColorItem le dele a
+// tintura/cor antiga, enquanto os WORDs carregam mesh e nivel visual.
 func SelfEquip(id uint16, equip []model.Item) []byte {
 	mesh := make([]uint16, len(equip))
+	anct := make([]byte, len(equip))
 	for i := range equip {
 		mesh[i] = model.VisualItemCode(equip[i], model.IsMount(equip[i].Index))
+		if !model.IsMount(equip[i].Index) {
+			anct[i] = model.AncientCode(equip[i])
+		}
 	}
-	return VisualEquip(id, mesh)
+	return VisualEquip(id, mesh, anct)
 }
 
 // VisualEquip atualiza os 16 modelos sem alterar o equipamento autoritativo;
 // transformacoes BM usam um rosto virtual enquanto o Affect 16 estiver ativo.
-func VisualEquip(id uint16, mesh []uint16) []byte {
-	b := Build(OpUpdateEquip, id, 44)
+func VisualEquip(id uint16, mesh []uint16, anct []byte) []byte {
+	b := Build(OpUpdateEquip, id, 60)
 	for i := 0; i < 16 && i < len(mesh); i++ {
 		putU16(b, 12+i*2, mesh[i])
 	}
+	n := len(anct)
+	if n > 16 {
+		n = 16
+	}
+	copy(b[44:60], anct[:n])
 	return b
 }
 

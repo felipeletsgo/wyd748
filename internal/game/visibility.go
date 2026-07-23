@@ -92,52 +92,25 @@ func sendPlayerEnterView(observer, subject *Player) {
 	}
 }
 
-// republishPlayerAppearance reenvia o CreateMob do jogador aos observadores que
-// ja o enxergam. O visual do equip (refino, cor, mesh) viaja SO no CreateMob;
-// nenhum pacote de update o propaga sozinho, entao uma mudanca como o refino
-// ficava visivel apenas para o dono ate o observador cruzar a borda da visao.
-// Reconstroi os pacotes por observador (Send cifra in-place).
-// refreshAppearance forca a atualizacao visual do avatar SEM troca de equip
-// (transformacao de rosto, cor da tintura, refino). Reenvia APENAS o CreateMob
-// (que carrega mesh + anct/cor) ao dono e aos observadores, SEM SetHpMp/ActionStop:
-// o ActionStop forcava a posicao rastreada (que durante uma caminhada e o INICIO
-// do segmento), fazendo o avatar teleportar de volta. O CreateMob sozinho atualiza
-// a aparencia sem re-posicionar. O SelfEquip (0x36B) nao carrega o anct, por isso
-// a cor precisa vir por aqui.
+// refreshAppearance publica uma mudanca REAL de aparencia do avatar
+// (equipamento, transformacao de rosto, cor, refino, capa ou montaria) pelo
+// MSG_UpdateEquip 0x36B. Esse e o SendEquip/GridMulticast nativo: nao contem
+// coordenadas e portanto nao interrompe nem encaixa uma caminhada em andamento.
+// CreateMob fica reservado exclusivamente para entrada/reentrada na visao.
 func (w *World) refreshAppearance(subject *Player) {
 	if subject == nil || !subject.InWorld || subject.Char == nil {
 		return
 	}
-	mesh, anct := bodyMesh(subject.Char), bodyAncient(subject.Char)
-	ext := wireExtendedScore(subject.Char)
-	affects, guild := subject.Char.Affects[:], subject.Char.GuildID
-	if subject.Session != nil {
-		subject.Session.Send(wire.CreateMobExtended(subject.ID, subject.Char.Name,
-			subject.X, subject.Y, mesh, anct, ext, affects, 2, guild))
-	}
-	for _, observer := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
-		if observer == subject || observer.Session == nil ||
-			!observer.hasVisible(subject.ID) {
-			continue
-		}
-		observer.Session.Send(wire.CreateMobExtended(subject.ID, subject.Char.Name,
-			subject.X, subject.Y, mesh, anct, ext, affects, 0, guild))
-	}
+	w.sendToPlayerView(subject, func() []byte {
+		return playerAppearancePacket(subject)
+	})
 }
 
-func (w *World) republishPlayerAppearance(subject *Player) {
-	if subject == nil || !subject.InWorld || subject.Char == nil {
-		return
+func playerAppearancePacket(subject *Player) []byte {
+	if subject == nil || subject.Char == nil {
+		return nil
 	}
-	for _, observer := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
-		if observer == subject || observer.Session == nil ||
-			!observer.hasVisible(subject.ID) {
-			continue
-		}
-		for _, pkt := range playerEnterViewPackets(subject) {
-			observer.Session.Send(pkt)
-		}
-	}
+	return wire.VisualEquip(subject.ID, bodyMesh(subject.Char), bodyAncient(subject.Char))
 }
 
 func (w *World) showPlayerPair(a, b *Player) {

@@ -36,6 +36,25 @@ func TestLoadVolatilesDiscoversCatalogItems(t *testing.T) {
 	}
 }
 
+func TestLoadVolatilesValidaQuestReward(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "volatiles.json")
+	items := map[uint16]model.ItemDef{
+		4117: {Index: 4117, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 191}}},
+	}
+	for _, body := range []string{
+		`{"default":{"action":"generic"},"items":{"4117":{"action":"quest_reward","consume":true,"minLevel":39,"maxLevelExclusive":115}}}`,
+		`{"default":{"action":"generic"},"items":{"4117":{"action":"quest_reward","consume":true,"exp":5000,"minLevel":39,"maxLevelExclusive":39}}}`,
+	} {
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadVolatiles(path, items); err == nil {
+			t.Fatalf("quest_reward invalida foi aceita: %s", body)
+		}
+	}
+}
+
 // TestVolatilesRealConfigDifferentiatesByItemIndex carrega os arquivos REAIS e
 // prova a regra do felipe: itens que compartilham o mesmo EF_VOLATILE podem ter
 // parametros diferentes, resolvidos por Index. Tambem garante que o volatiles.json

@@ -1,10 +1,45 @@
 package game
 
 import (
+	"encoding/binary"
 	"testing"
 
 	"wydgo/internal/model"
+	"wydgo/internal/net"
 )
+
+func TestApplyBonusDoesNotRematerializeMovingPlayer(t *testing.T) {
+	session := net.NewTestSession(1, 8)
+	ch := testChar()
+	ch.Extended.StatusPts = 50
+	p := &Player{
+		Session: session, Char: &ch, ID: 1, InWorld: true, X: 2105, Y: 2100,
+		MovePublished: true, MovePublishedTargetX: 2105, MovePublishedTargetY: 2100,
+		Visible: make(map[uint16]struct{}),
+	}
+	w := &World{
+		players:     map[*net.Session]*Player{session: p},
+		playerCells: make(map[uint32]map[uint16]*Player),
+		playerCell:  make(map[uint16]uint32),
+		mobCells:    make(map[uint32]map[uint16]*Mob),
+		activeMobs:  make(map[uint16]*Mob),
+	}
+	w.updatePlayerSpatial(p)
+	pkt := make([]byte, 18)
+	binary.LittleEndian.PutUint16(pkt[12:14], 0)
+	binary.LittleEndian.PutUint16(pkt[14:16], 0)
+
+	w.onApplyBonus(session, pkt)
+
+	// UpdateScore + UpdateEtc + SetHpMp. Um quarto pacote era o CreateMob que
+	// encaixava o avatar no destino enquanto sua caminhada ainda interpolava.
+	if got := session.QueuedPacketsForTest(); got != 3 {
+		t.Fatalf("apply bonus enfileirou %d pacotes, esperado 3 sem CreateMob", got)
+	}
+	if !p.MovePublished || p.X != 2105 || p.Y != 2100 {
+		t.Fatalf("estado de movimento alterado: published=%v pos=(%d,%d)", p.MovePublished, p.X, p.Y)
+	}
+}
 
 func testChar() model.Char {
 	return model.Char{Extended: &model.ExtendedScore{
