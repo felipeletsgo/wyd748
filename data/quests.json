@@ -8,9 +8,9 @@
       "requires": { "minLevel": 39, "maxLevel": 115, "mortalOnly": true },
       "rewards": { "teleport": { "x": 2398, "y": 2105 } },
       "messages": {
-        "offer": "Entrada para a area do Coveiro.",
-        "success": "Voce entrou na area do Coveiro.",
-        "denied": "O Coveiro nao permite sua entrada agora."
+        "offer": "Entrance to the Gravedigger area.",
+        "success": "You have entered the Gravedigger area.",
+        "denied": "The Gravedigger will not let you in right now."
       }
     },
     {
@@ -20,9 +20,9 @@
       "requires": { "gold": 400000 },
       "rewards": { "citizenship": true },
       "messages": {
-        "offer": "Kibita: a cidadania custa 400.000 gold.",
-        "success": "Voce agora e cidadao. Bonus de drop ativo.",
-        "denied": "Kibita: voce nao pode se tornar cidadao agora."
+        "offer": "Kibita: citizenship costs 400,000 gold.",
+        "success": "You are now a citizen. Drop bonus active.",
+        "denied": "Kibita: you cannot become a citizen right now."
       }
     },
     {
@@ -32,9 +32,9 @@
       "requires": { "minLevel": 115, "maxLevel": 189, "mortalOnly": true },
       "rewards": { "teleport": { "x": 2234, "y": 1714 } },
       "messages": {
-        "offer": "Entrada para a area dos Carbuncles.",
-        "success": "Voce entrou na area dos Carbuncles.",
-        "denied": "O Jardineiro nao permite sua entrada agora."
+        "offer": "Entrance to the Carbuncle area.",
+        "success": "You have entered the Carbuncle area.",
+        "denied": "The Gardener will not let you in right now."
       }
     },
     {
@@ -44,9 +44,9 @@
       "requires": { "minLevel": 190, "maxLevel": 264, "mortalOnly": true },
       "rewards": { "teleport": { "x": 464, "y": 3902 } },
       "messages": {
-        "offer": "Entrada para a area de Kaizen.",
-        "success": "Voce entrou na area de Kaizen.",
-        "denied": "O Batedor nao permite sua entrada agora."
+        "offer": "Entrance to the Kaizen area.",
+        "success": "You have entered the Kaizen area.",
+        "denied": "The Scout will not let you in right now."
       }
     },
     {
@@ -56,9 +56,9 @@
       "requires": { "minLevel": 265, "maxLevel": 319, "mortalOnly": true },
       "rewards": { "teleport": { "x": 668, "y": 3756 } },
       "messages": {
-        "offer": "Entrada para a area das Hidras.",
-        "success": "Voce entrou na area das Hidras.",
-        "denied": "O Guarda nao permite sua entrada agora."
+        "offer": "Entrance to the Hydra area.",
+        "success": "You have entered the Hydra area.",
+        "denied": "The Guard will not let you in right now."
       }
     },
     {
@@ -68,9 +68,9 @@
       "requires": { "minLevel": 319, "maxLevel": 349, "mortalOnly": true },
       "rewards": { "teleport": { "x": 1322, "y": 4041 } },
       "messages": {
-        "offer": "Entrada para a area dos Elfos.",
-        "success": "Voce entrou na area dos Elfos.",
-        "denied": "O Representante nao permite sua entrada agora."
+        "offer": "Entrance to the Elf area.",
+        "success": "You have entered the Elf area.",
+        "denied": "The Representative will not let you in right now."
       }
     },
     {
@@ -80,9 +80,9 @@
       "requires": { "minLevel": 199, "maxLevel": 253, "mortalOnly": true },
       "rewards": { "teleport": { "x": 1740, "y": 1725 } },
       "messages": {
-        "offer": "Entrada para a prova da Capa Real.",
-        "success": "Voce entrou na area dos reinos.",
-        "denied": "A prova da Capa Real exige um Mortal entre os niveis 200 e 254."
+        "offer": "Entrance to the Royal Cape trial.",
+        "success": "You have entered the kingdom area.",
+        "denied": "The Royal Cape trial requires a Mortal between levels 200 and 254."
       }
     },
     {
@@ -98,9 +98,9 @@
       "consumes": [{ "index": 4125, "amount": 1 }],
       "rewards": { "items": [{ "index": 4126, "amount": 1 }] },
       "messages": {
-        "offer": "Entregue o Pedaco de Equilibrio.",
-        "success": "Helen transformou o fragmento em Composto de Equilibrio.",
-        "denied": "Helen exige um Mortal entre os niveis 120 e 124 com o fragmento correto."
+        "offer": "Hand over Balance's Piece.",
+        "success": "Helen turned the fragment into Balance's Compound.",
+        "denied": "Helen requires a Mortal between levels 120 and 124 carrying the right fragment."
       }
     }
   ]

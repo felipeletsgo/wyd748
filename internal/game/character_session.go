@@ -36,15 +36,69 @@ func (w *World) removePlayerFromWorld(p *Player, reason string) {
 		}
 	}
 	p.InWorld = false
-	p.ID = 0
+	resetCharacterRuntime(p)
+}
+
+// resetCharacterRuntime zera TODO estado do Player que pertence ao PERSONAGEM,
+// preservando apenas o que e da sessao (Session, Account).
+//
+// O Player e REUSADO no vaivem da tela de selecao: a conta continua
+// autenticada e o mesmo objeto recebe o proximo personagem. Qualquer campo
+// esquecido aqui vaza para ele -- foi assim que as moedas especiais passavam de
+// um personagem para outro (e o autosave as gravava, duplicando), que os
+// cooldowns de skill valiam para o personagem errado e que um convite de guild
+// feito a A podia ser aceito por B.
+//
+// Ao acrescentar campo de personagem ao Player, zere-o aqui.
+// TestCharacterRuntimeIsFullyReset quebra se isso for esquecido.
+func resetCharacterRuntime(p *Player) {
+	if p == nil {
+		return
+	}
 	p.Char = nil
 	p.CharSlot = -1
+	p.ID = 0
+	p.X, p.Y = 0, 0
+	p.Visible = nil
+
+	// Contexto de NPC/janela aberta.
 	p.ShopNPC = 0
 	p.CraftNPC = 0
-	p.Visible = nil
+	p.BrowsingGhostShopID = 0
+	p.GhostShop = nil
+	p.Trade = nil
+
+	// Grupo e guild: convite e do PERSONAGEM, nao da conta.
+	p.Party = nil
+	p.InviteFrom = 0
+	p.InviteUntil = time.Time{}
+	p.GuildInviteFrom = 0
+	p.GuildInviteUntil = time.Time{}
+
+	// Combate.
 	p.CombatTargetID = 0
 	p.LastAttackerID = 0
-	p.BrowsingGhostShopID = 0
+	p.LastAttackAt = time.Time{}
+	p.LastAttackTick = 0
+	p.AttackProgress = 0
+	p.DeadAt = time.Time{}
+	p.PKMode = false
+
+	// Cooldowns e temporizadores.
+	p.SkillReady = nil
+	p.LastPotion = time.Time{}
+	p.LastCraft = time.Time{}
+	p.NextRegen = time.Time{}
+	p.NextMountTick = time.Time{}
+	p.NextKingdomTeleport = time.Time{}
+
+	// Movimento publicado aos observadores.
+	p.MovePublished = false
+	p.MovePublishedTargetX = 0
+	p.MovePublishedTargetY = 0
+
+	// Moedas especiais vivem no charstate do PERSONAGEM.
+	p.SpecialCoins = nil
 }
 
 // onCharacterLogout trata 0x215. A resposta 0x116 e comprovadamente a
@@ -79,13 +133,13 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 	name, password := cstr(pkt[16:32]), cstr(pkt[32:44])
 	if slot < 0 || slot >= len(p.Account.Chars) || p.Account.Chars[slot].Name == "" ||
 		!strings.EqualFold(name, p.Account.Chars[slot].Name) || p.Account.PasswordHash == "" {
-		s.Send(wire.MessagePanel("Nao foi possivel excluir o personagem."))
+		s.Send(wire.MessagePanel("The character could not be deleted."))
 		return
 	}
 	ok, err := account.VerifyPassword(p.Account.PasswordHash, password)
 	if err != nil || !ok {
 		log.Printf("[#%d] exclusao recusada para %q: senha invalida", s.ID, name)
-		s.Send(wire.MessagePanel("Senha incorreta."))
+		s.Send(wire.MessagePanel("Wrong password."))
 		return
 	}
 	previous := p.Account.Chars[slot]
@@ -93,7 +147,7 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Account.Chars[slot] = previous
 		log.Printf("[#%d] ERRO ao excluir personagem %q: %v", s.ID, name, err)
-		s.Send(wire.MessagePanel("Nao foi possivel salvar a exclusao."))
+		s.Send(wire.MessagePanel("The deletion could not be saved."))
 		return
 	}
 	if w.charNames != nil {

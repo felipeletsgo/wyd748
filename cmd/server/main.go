@@ -7,14 +7,41 @@ package main
 import (
 	"flag"
 	"log"
+	stdhttp "net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
+
+	// Registra /debug/pprof no mux padrao. So fica acessivel se debug_address
+	// estiver configurado, e a configuracao exige loopback.
+	_ "net/http/pprof"
 
 	"wydgo/internal/data"
 	"wydgo/internal/game"
 	"wydgo/internal/net"
 	"wydgo/internal/store"
 )
+
+// shutdownTimeout limita a persistencia final. Generoso o bastante para gravar
+// centenas de contas, curto o bastante para o systemd nao matar o processo
+// antes (o padrao do TimeoutStopSec e 90 s).
+const shutdownTimeout = 20 * time.Second
+
+// serveDebug sobe expvar (/debug/vars) e pprof (/debug/pprof) em loopback. A
+// validacao de que o endereco NAO e publico fica em data.LoadServerConfig, que
+// derruba o boot em vez de expor o diagnostico.
+func serveDebug(address string) {
+	log.Printf("diagnostico em http://%s/debug/vars e /debug/pprof (somente loopback)", address)
+	server := &stdhttp.Server{
+		Addr:              address,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
+		log.Printf("diagnostico: %v", err)
+	}
+}
 
 func configPathFromArgs(args []string) string {
 	const defaultPath = "data/server.txt"
@@ -52,6 +79,7 @@ func main() {
 	charStatePath := flag.String("charstate", cfg.CharStatePath, "pasta do estado de sessao (buffs/moedas)")
 	questsPath := flag.String("quests", cfg.QuestsPath, "definicoes de quest (quests.json)")
 	questZonesPath := flag.String("quest_zones", cfg.QuestZonesPath, "zonas de reset de area (quest_zones.json)")
+	bossPath := flag.String("boss", cfg.BossPath, "diretorio dos bosses (data/boss/*.lua)")
 	itemPath := flag.String("items", cfg.ItemPath, "itemlist.csv autoritativo")
 	itemNamePath := flag.String("itemnames", cfg.ItemNamePath, "Itemname.csv autoritativo")
 	skillPath := flag.String("skills", cfg.SkillPath, "SkillData.csv autoritativo")
@@ -61,7 +89,16 @@ func main() {
 	characterTemplatePath := flag.String("characters", cfg.CharacterTemplatePath, "layouts server-side para criacao de personagem")
 	heightMapPath := flag.String("heightmap", cfg.HeightMapPath, "HeightMap.dat nativo do mapa")
 	attributeMapPath := flag.String("attributemap", cfg.AttributeMapPath, "AttributeMap.dat nativo do mapa")
+	debugAddr := flag.String("debug_address", cfg.DebugAddress,
+		"endereco loopback do diagnostico (expvar/pprof); vazio desliga")
 	flag.Parse()
+	// A flag sobrescreve o arquivo, entao repete a checagem de loopback: sem
+	// isso, -debug_address 0.0.0.0:6060 exporia pprof publicamente.
+	if *debugAddr != "" {
+		if err := data.ValidateDebugAddress(*debugAddr); err != nil {
+			log.Fatalf("debug_address: %v", err)
+		}
+	}
 	log.Printf("configuracao carregada de %s", configPath)
 	log.Printf("balanceamento global: exp_minimum=%d exp_rate=%d%% party_exp_bonus=%d%%/membro",
 		cfg.Gameplay.EXPMinimum, cfg.Gameplay.EXPRatePercent,
@@ -143,16 +180,44 @@ func main() {
 		log.Fatalf("carregar zonas de quest: %v", err)
 	}
 
+	bosses, err := data.LoadBossCatalog(*bossPath)
+	if err != nil {
+		log.Fatalf("carregar bosses: %v", err)
+	}
+	log.Printf("%d bosses carregados de %s", len(bosses.Bosses), *bossPath)
+
 	st := store.NewJSONStore(*accDir, store.WithGuildsPath(*guildsPath),
 		store.WithGuildsTxtPath(*guildsTxtPath), store.WithCharStatePath(*charStatePath))
 	world, err := game.NewWorld(st, npcs, geners, catalog, dropRates, volatiles,
 		characterTemplates, terrain, game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),
-		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts))
+		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts),
+		game.WithBossCatalog(bosses))
 	if err != nil {
 		log.Fatalf("criar mundo: %v", err)
 	}
 	go world.Run()
+
+	if *debugAddr != "" {
+		go serveDebug(*debugAddr)
+	}
+
+	// SIGTERM (systemd/deploy) e SIGINT (Ctrl+C) persistem antes de sair. Sem
+	// isso o que estiver na fila de autosave e descartado e o jogador volta com
+	// estado velho.
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		sig := <-signals
+		log.Printf("sinal %v recebido: persistindo estado antes de sair", sig)
+		if world.Shutdown(shutdownTimeout) {
+			log.Print("desligamento concluido")
+			os.Exit(0)
+		}
+		// Drain incompleto ja foi logado por Shutdown; sair com codigo != 0
+		// deixa isso visivel no systemd.
+		os.Exit(1)
+	}()
 
 	if err := net.Listen(*addr, func(s *net.Session) { s.Serve(world.Enqueue) }); err != nil {
 		log.Fatalf("listen: %v", err)

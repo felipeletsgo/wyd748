@@ -23,6 +23,7 @@ type ServerConfig struct {
 	CharStatePath         string
 	QuestsPath            string
 	QuestZonesPath        string
+	BossPath              string
 	ItemPath              string
 	ItemNamePath          string
 	SkillPath             string
@@ -34,7 +35,12 @@ type ServerConfig struct {
 	AttributeMapPath      string
 	TeleportPath          string
 	NPCGenerLog           string
-	Gameplay              model.GameplayConfig
+	// DebugAddress e o endereco do servidor de diagnostico (expvar em
+	// /debug/vars e pprof em /debug/pprof). Vazio = desligado, que e o padrao.
+	// O host DEVE ser loopback: esses endpoints expoem estado interno e perfil
+	// do processo. Para acessar de fora, use tunel SSH.
+	DebugAddress string
+	Gameplay     model.GameplayConfig
 }
 
 func DefaultServerConfig() ServerConfig {
@@ -48,6 +54,7 @@ func DefaultServerConfig() ServerConfig {
 		CharStatePath:         "data/charstate",
 		QuestsPath:            "data/quests.json",
 		QuestZonesPath:        "data/quest_zones.json",
+		BossPath:              "data/boss",
 		ItemPath:              "data/itemlist.csv",
 		ItemNamePath:          "data/Itemname.csv",
 		SkillPath:             "data/SkillData.csv",
@@ -59,6 +66,7 @@ func DefaultServerConfig() ServerConfig {
 		AttributeMapPath:      "../Server Star Micronics/TMSRV/run/AttributeMap.dat",
 		TeleportPath:          "data/teleports.ini",
 		NPCGenerLog:           "summary",
+		DebugAddress:          "", // diagnostico desligado por padrao
 		Gameplay:              model.DefaultGameplayConfig(),
 	}
 }
@@ -91,6 +99,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"charstate":           func(v string) error { cfg.CharStatePath = v; return nil },
 		"quests":              func(v string) error { cfg.QuestsPath = v; return nil },
 		"quest_zones":         func(v string) error { cfg.QuestZonesPath = v; return nil },
+		"boss":                func(v string) error { cfg.BossPath = v; return nil },
 		"items":               func(v string) error { cfg.ItemPath = v; return nil },
 		"itemnames":           func(v string) error { cfg.ItemNamePath = v; return nil },
 		"skills":              func(v string) error { cfg.SkillPath = v; return nil },
@@ -102,6 +111,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"attributemap":        func(v string) error { cfg.AttributeMapPath = v; return nil },
 		"teleports":           func(v string) error { cfg.TeleportPath = v; return nil },
 		"npcgener_log":        func(v string) error { cfg.NPCGenerLog = strings.ToLower(v); return nil },
+		"debug_address":       func(v string) error { cfg.DebugAddress = v; return nil },
 		"exp_minimum":         setUint32(&cfg.Gameplay.EXPMinimum),
 		"exp_rate":            setUint32(&cfg.Gameplay.EXPRatePercent),
 		"party_exp_bonus":     setUint32(&cfg.Gameplay.PartyEXPBonusPercent),
@@ -144,10 +154,48 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		return ServerConfig{}, fmt.Errorf("%s: npcgener_log invalido %q (use quiet, summary ou verbose)",
 			path, cfg.NPCGenerLog)
 	}
+	if cfg.DebugAddress != "" {
+		if err := ValidateDebugAddress(cfg.DebugAddress); err != nil {
+			return ServerConfig{}, fmt.Errorf("%s: debug_address: %w", path, err)
+		}
+	}
 	if err := cfg.Gameplay.Validate(); err != nil {
 		return ServerConfig{}, fmt.Errorf("%s: gameplay: %w", path, err)
 	}
 	return cfg, nil
+}
+
+// ValidateDebugAddress exige loopback. /debug/vars e /debug/pprof expoem estado
+// interno e permitem disparar profiling; expor isso na internet e um risco de
+// vazamento e de DoS. Preferimos derrubar o boot a subir o diagnostico aberto:
+// uma configuracao errada aqui e silenciosa e perigosa demais para tolerar.
+//
+// E exportada porque a flag de linha de comando sobrescreve o arquivo e precisa
+// passar pela MESMA checagem -- senao `-debug_address 0.0.0.0:6060` furaria a
+// validacao do boot.
+func ValidateDebugAddress(address string) error {
+	host, portText, err := stdnet.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+	port, err := strconv.Atoi(portText)
+	if err != nil || port < 1 || port > 65535 {
+		return fmt.Errorf("porta invalida %q", portText)
+	}
+	if host == "" {
+		return fmt.Errorf("host vazio expoe o diagnostico em todas as interfaces; use 127.0.0.1")
+	}
+	if strings.EqualFold(host, "localhost") {
+		return nil
+	}
+	ip := stdnet.ParseIP(host)
+	if ip == nil {
+		return fmt.Errorf("host %q nao e um IP de loopback; use 127.0.0.1", host)
+	}
+	if !ip.IsLoopback() {
+		return fmt.Errorf("host %q nao e loopback; o diagnostico so pode escutar em 127.0.0.1 (use tunel SSH)", host)
+	}
+	return nil
 }
 
 func validateListenAddress(address string) error {

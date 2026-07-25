@@ -571,6 +571,9 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				calculatedWide = uint64(maxExtendedStat)
 			}
 			calculatedTotal = uint32(calculatedWide)
+			hpBeforeSkill := target.HP
+			// Escudo de boss absorve cada golpe da skill.
+			perHitCalculated = w.bossMitigateDamage(target, perHitCalculated)
 			for hit := 0; hit < hitCount && target.HP > 0; hit++ {
 				applied := minU32(perHitCalculated, target.HP)
 				target.HP -= applied
@@ -581,6 +584,11 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				// numero integral segue logo depois em 0x39D estendido.
 				wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
 				wideHits = append(wideHits, wideSkillHit{mob: target, damage: perHitCalculated})
+			}
+			// Uma notificacao com o TOTAL da skill, nao uma por golpe: um limiar
+			// de HP tem de ser atravessado uma vez so.
+			if damage := hpBeforeSkill - target.HP; damage > 0 {
+				w.notifyMobDamaged(target, hpBeforeSkill, p.ID, damage)
 			}
 		} else {
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})

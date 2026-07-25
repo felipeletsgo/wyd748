@@ -26,7 +26,7 @@ func (w *World) beginCombine(s *net.Session, pkt []byte, npc string) (*Player, c
 	}
 	now := time.Now()
 	if !p.LastCraft.IsZero() && now.Sub(p.LastCraft) < 800*time.Millisecond {
-		s.Send(wire.MessagePanel("Aguarde um segundo para tentar novamente."))
+		s.Send(wire.MessagePanel("Wait a second before trying again."))
 		return p, combineRequest{}, false
 	}
 	p.LastCraft = now

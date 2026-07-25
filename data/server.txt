@@ -7,6 +7,17 @@ listen_address=0.0.0.0:8281
 # Log do gerador: quiet, summary ou verbose
 npcgener_log=summary
 
+# Diretorio dos bosses (um .lua por encontro). Bosses NAO vem do NPCGener:
+# posicao e respawn sao do proprio arquivo. Veja data/boss/README.md.
+boss=data/boss
+
+# Diagnostico: metricas em /debug/vars e profiling em /debug/pprof.
+# Comentado = desligado (padrao). O host TEM de ser loopback: esses endpoints
+# expoem estado interno e permitem disparar profiling. Um endereco publico
+# derruba o boot de proposito. Para acessar de fora, use tunel SSH:
+#   ssh -L 6060:127.0.0.1:6060 usuario@servidor
+# debug_address=127.0.0.1:6060
+
 # Balanceamento global
 # exp_rate usa porcentagem: 100=normal, 200=dobro, 50=metade.
 # O piso e aplicado primeiro; depois entram rate e bonus de party.

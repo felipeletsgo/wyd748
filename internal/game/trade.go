@@ -143,7 +143,7 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 	}
 	opponent := w.playerByID(req.OpponentID)
 	if !w.tradeRequestValid(p, opponent) {
-		s.Send(wire.MessagePanel("Jogador indisponivel ou fora de alcance."))
+		s.Send(wire.MessagePanel("Player unavailable or out of range."))
 		w.cancelTrade(p, "oponente indisponivel")
 		return
 	}
@@ -164,7 +164,7 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 			return
 		}
 		if opponent.Trade != nil {
-			s.Send(wire.MessagePanel("Esse jogador ja esta negociando."))
+			s.Send(wire.MessagePanel("That player is already trading."))
 			return
 		}
 		// Convite inicial nunca aceita itens/gold/check embutidos.
@@ -294,8 +294,8 @@ func (w *World) commitTrade(a, b *Player) {
 	aGold, aGoldOK := tradeGold(a.Char.Gold, a.Trade.Gold, b.Trade.Gold)
 	bGold, bGoldOK := tradeGold(b.Char.Gold, b.Trade.Gold, a.Trade.Gold)
 	if !aOK || !bOK || !aGoldOK || !bGoldOK {
-		a.Session.Send(wire.MessagePanel("Sem espaco, gold invalido ou oferta alterada."))
-		b.Session.Send(wire.MessagePanel("Sem espaco, gold invalido ou oferta alterada."))
+		a.Session.Send(wire.MessagePanel("No space, invalid gold, or the offer changed."))
+		b.Session.Send(wire.MessagePanel("No space, invalid gold, or the offer changed."))
 		w.cancelTrade(a, "validacao final falhou")
 		return
 	}
@@ -308,8 +308,8 @@ func (w *World) commitTrade(a, b *Player) {
 		a.Char.Inv, b.Char.Inv = oldAInv, oldBInv
 		a.Char.Gold, b.Char.Gold = oldAGold, oldBGold
 		log.Printf("TRADE salvar contas %q/%q: %v", a.Account.Name, b.Account.Name, err)
-		a.Session.Send(wire.MessagePanel("Falha ao salvar a troca. Nada foi alterado."))
-		b.Session.Send(wire.MessagePanel("Falha ao salvar a troca. Nada foi alterado."))
+		a.Session.Send(wire.MessagePanel("Save failed. The trade was not applied."))
+		b.Session.Send(wire.MessagePanel("Save failed. The trade was not applied."))
 		w.cancelTrade(a, "falha de persistencia")
 		return
 	}

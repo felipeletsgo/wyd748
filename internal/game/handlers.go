@@ -115,6 +115,12 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	if len(pkt) < 44 || w.authPending[s] || w.players[s] != nil {
 		return
 	}
+	// Desligando: o snapshot final ja foi gravado, entao aceitar a entrada agora
+	// criaria estado que ninguem persistiria.
+	if w.shuttingDown {
+		s.Send(wire.MessagePanel("Server going into maintenance. Try again shortly."))
+		return
+	}
 	accountName := cstr(pkt[12:28])
 	password := cstr(pkt[28:40])
 	cliver := binary.LittleEndian.Uint32(pkt[40:44])
@@ -122,7 +128,7 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	select {
 	case w.authSlots <- struct{}{}:
 	default:
-		s.Send(wire.MessagePanel("Servidor de login ocupado. Tente novamente."))
+		s.Send(wire.MessagePanel("Login server busy. Try again."))
 		return
 	}
 	w.authPending[s] = true
@@ -146,7 +152,7 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		} else {
 			log.Printf("[#%d] LOGIN erro conta=%q: %v", s.ID, result.accountName, result.err)
 		}
-		s.Send(wire.MessagePanel("Conta ou senha incorreta."))
+		s.Send(wire.MessagePanel("Wrong account or password."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
@@ -166,13 +172,17 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	if fresh, err := w.store.LoadAccount(acc.Name); err != nil {
 		w.releaseAccountSession(s, acc)
 		log.Printf("[#%d] LOGIN erro ao recarregar conta %q: %v", s.ID, acc.Name, err)
-		s.Send(wire.MessagePanel("Erro ao carregar a conta. Tente novamente."))
+		s.Send(wire.MessagePanel("Error loading the account. Try again."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	} else {
 		acc = fresh
 	}
 	pinAccountEntryPositions(acc)
+	// O bonus de status do Arch acompanha o nivel ATUAL do Mortal de origem;
+	// atualizar aqui, antes do syncProgression abaixo, faz o saldo de pontos ja
+	// nascer certo nesta sessao.
+	refreshArchMortalLevel(acc)
 	guildRepaired := false
 	for i := range acc.Chars {
 		if acc.Chars[i].Name == "" {
@@ -329,6 +339,18 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	// para que buffs persistidos entre logins ja apareçam ativos no client.
 	w.loadCharStateInto(p)
 	w.recalcPlayer(ch)
+	// Quem morreu e saiu tem CurHP=0 persistido. Entrar assim TRAVA o jogador:
+	// o client desenha a pose de morte e nao responde a nada -- ele nem pode
+	// pedir o /restart. Devolver o minimo de vida deixa o personagem jogavel
+	// para andar ate um curandeiro ou usar uma pocao.
+	//
+	// Vem DEPOIS do recalc para que MaxHP ja esteja correto, e ANTES de qualquer
+	// pacote: EnterWorld, CreateMob, UpdateScore e SetHpMp levam o HP corrigido.
+	if playerMaxHP(ch) > 0 && playerCurHP(ch) == 0 {
+		setPlayerCurHP(ch, 1)
+		p.DeadAt = time.Time{}
+		log.Printf("[#%d] %s entrou morto; revivido com 1 de HP", s.ID, ch.Name)
+	}
 	// ClientId = MENOR slot livre (comportamento do TMSrv nativo, que usa o indice
 	// da conexao). Um contador so-crescente dava id novo a cada relog e o client
 	// 7.48 (mesmo processo) mantem estado atrelado ao id antigo -> chaos com lixo
@@ -423,19 +445,19 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 	}
 	if (st == placeStorage && p.ghostShopLocksCargoSlot(int(sp))) ||
 		(dt == placeStorage && p.ghostShopLocksCargoSlot(int(dp))) {
-		s.Send(wire.MessagePanel("Item bloqueado enquanto estiver anunciado na Loja Fantasma."))
+		s.Send(wire.MessagePanel("The item is locked while it is listed on Auto Trade."))
 		s.Send(wire.SendItem(p.ID, st, sp, *src))
 		s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 		return
 	}
 	if (st == placeStorage || dt == placeStorage) && !w.validCargoAccess(p, pkt) {
-		s.Send(wire.MessagePanel("Aproxime-se do Bau para movimentar o Cargo."))
+		s.Send(wire.MessagePanel("Move closer to the Warehouse to move Cargo."))
 		s.Send(wire.SendItem(p.ID, st, sp, *src))
 		s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 		return
 	}
 	if (st == placeStorage && dt == placeEquip) || (st == placeEquip && dt == placeStorage) {
-		s.Send(wire.MessagePanel("Passe o item pelo inventario antes de equipa-lo."))
+		s.Send(wire.MessagePanel("Move the item through your inventory before equipping it."))
 		s.Send(wire.SendItem(p.ID, st, sp, *src))
 		s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 		return
@@ -465,7 +487,7 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 			*src, *dst = oldSrc, oldDst
 			s.Send(wire.SendItem(p.ID, st, sp, *src))
 			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
-			s.Send(wire.MessagePanel("Falha ao salvar o Cargo. Movimento cancelado."))
+			s.Send(wire.MessagePanel("Save failed. The Cargo move was cancelled."))
 			log.Printf("[#%d] salvar movimento do Cargo: %v", s.ID, err)
 			return
 		}
@@ -527,14 +549,14 @@ func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
 	}
 	if deposit {
 		if p.Char.Gold < amount || p.Account.CargoGold > maxCharacterGold-amount {
-			s.Send(wire.MessagePanel("Nao foi possivel depositar esse valor."))
+			s.Send(wire.MessagePanel("That amount could not be deposited."))
 			return
 		}
 		p.Char.Gold -= amount
 		p.Account.CargoGold += amount
 	} else {
 		if p.Account.CargoGold < amount || p.Char.Gold > maxCharacterGold-amount {
-			s.Send(wire.MessagePanel("Nao foi possivel retirar esse valor."))
+			s.Send(wire.MessagePanel("That amount could not be withdrawn."))
 			return
 		}
 		p.Account.CargoGold -= amount
@@ -549,7 +571,7 @@ func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
 			p.Char.Gold -= amount
 		}
 		log.Printf("[#%d] salvar transferencia do Cargo: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Falha ao salvar a transferencia."))
+		s.Send(wire.MessagePanel("Save failed. The transfer was not applied."))
 		return
 	}
 	op := uint16(wire.OpWithdraw)
@@ -620,6 +642,17 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	// 0x13 tambem possui low nibble 3. O mestre precisa ser testado antes da
 	// loja generica, senao o client abre a janela normal e arrasta a skill para
 	// o inventario em vez de aprende-la.
+	// Composicao do Sefirot: o compositor E o mestre de skill da classe, entao
+	// precisa ser testado ANTES da loja -- senao o clique sempre abre a janela
+	// de skills e a composicao nunca acontece.
+	//
+	// Dois gates para nao sequestrar o clique de quem so quer comprar skill:
+	// ClickOk=1 (o client so envia depois do "Sim" na janela de confirmacao) e
+	// posse das oito pedras. Sem qualquer um deles, segue para a loja.
+	if class, isMaster := sefirotClassForNPC(m.Def); isMaster && clickOk == 1 && hasSephiraStones(p.Char) {
+		w.craftSefirot(s, p, class)
+		return
+	}
 	if shopType, isShop := shopTypeForMerchant(m.Def.Extended.Merchant); isShop {
 		p.ShopNPC = m.ID // lembra a loja aberta pro buy (server-authoritative)
 		display := shopDisplayList(m.Def.Vende, shopType)
@@ -639,6 +672,14 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] compositor aberto: %q", s.ID, m.Def.Name)
 		return
 	}
+	if w.handleAscensionNPC(s, p, m) {
+		return
+	}
+	// A ascensao vem ANTES do reino: com a Pedra e o Sefirot equipados o clique
+	// no rei e pedido de Arch, nao de capa.
+	if kingdomForNPC(m.Def) != model.KingdomNeutral && w.createArch(s, p) {
+		return
+	}
 	if w.handleKingdomNPC(s, p, m) {
 		return
 	}
@@ -653,7 +694,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		return
 	}
 	log.Printf("[#%d] click em %q sem interacao configurada", s.ID, m.Def.Name)
-	s.Send(wire.MessagePanel("Esse personagem nao tem nada para voce agora."))
+	s.Send(wire.MessagePanel("This character has nothing for you right now."))
 }
 
 // onBuyItem: 0x379. Cliente comprou o item Vende[sellSlot] do mercador. Cobra o
@@ -764,7 +805,7 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	// Teto de gold: a venda credita gold e nao pode ultrapassar 2 bilhoes, como
 	// toda entrada de gold no servidor. Sem isto era o unico credito sem teto.
 	if p.Char.Gold > maxCharacterGold || price > maxCharacterGold-p.Char.Gold {
-		s.Send(wire.MessagePanel("Voce nao pode carregar mais gold."))
+		s.Send(wire.MessagePanel("You cannot carry any more gold."))
 		s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // item intacto
 		return
 	}
@@ -1256,11 +1297,17 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] errou ataque no mob id=%d %q (accuracy=%d)", s.ID, m.ID, m.Def.Name, effectiveExtended(p.Char).Accuracy)
 		return
 	}
+	// Escudo de boss absorve ANTES de aplicar, para que o numero flutuante do
+	// client mostre o dano real (zero quando imune).
+	dmg = w.bossMitigateDamage(m, dmg)
+	oldHP := m.HP
 	if dmg >= m.HP {
 		m.HP = 0
 	} else {
 		m.HP -= dmg
 	}
+	// Gancho do subsistema de boss: para mob comum e so uma consulta de mapa.
+	w.notifyMobDamaged(m, oldHP, p.ID, dmg)
 	// O 0x181 atualiza a barra, mas somente o resultado 0x39D produz animacao e
 	// o numero flutuante do dano no client 7.48.
 	w.broadcast(func() []byte {
@@ -1359,6 +1406,14 @@ func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage 
 			log.Printf("[#%d] salvar progressao de %s: %v", p.Session.ID, share.player.Char.Name, err)
 		}
 	}
+	// Subsistema de boss: o morto pode ser um add do encontro ou o proprio boss.
+	// Roda ANTES do descarte da instancia, enquanto o mob ainda existe.
+	w.notifyBossAddDied(m.ID)
+	if state := w.onBossMobKilled(m.ID); state != nil {
+		// Drops especiais do .lua, alem do gold/exp nativos ja concedidos.
+		w.rollBossDrops(p, m, state)
+	}
+	w.UnregisterBoss(m.ID)
 	// Tira a instancia morta de w.mobs: o respawn do NPCGener cria uma nova, entao
 	// deixar aqui so faz a lista (e todo scan por tick) crescer sem parar.
 	w.removeMobInstance(m)

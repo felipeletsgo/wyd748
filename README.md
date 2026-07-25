@@ -4,89 +4,139 @@
 ![Go](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)
 ![Status](https://img.shields.io/badge/status-playable-brightgreen.svg)
 
-A server-authoritative emulator for **With Your Destiny (WYD)**, client version
-**7.48**, written from scratch in Go.
+*This document uses ASD-STE100 Simplified Technical English.*
 
-> A non-commercial project built to study network-protocol reverse-engineering,
-> game-server architecture, and Go. See the [Disclaimer](#disclaimer).
+WYD-Go is a game server for **With Your Destiny (WYD)**, client version **7.48**.
+The server controls all the game state. The code is new and written in Go.
 
-The client renders state and sends intent; the server is the sole source of
-truth for inventory, stats, combat, skills, progression and persistence. No
-price, target, position, cooldown, drop, or effect is ever trusted from the
-client — everything is revalidated against server-side state before it takes
-effect.
+> This is a non-commercial project. Its purpose is to study three subjects: how
+> to analyze a network protocol, how to make a game server, and the Go language.
+> Refer to the [Disclaimer](#disclaimer).
 
-This is an independent reimplementation: the wire protocol was reverse-engineered
-from packet captures against a real 7.48 client, and gameplay formulas were
-ported (algorithms only — never copy-pasted structs, memory offsets, or
-addresses) from public WYD server source references.
+The client shows the game state and sends commands. The server keeps the true
+state of the inventory, the statistics, the combat, the skills, the progression,
+and the data storage. The server does not trust the client. It calculates each
+price, target, position, cooldown, drop, and effect again before the effect
+starts.
+
+This is an independent build. We got the wire protocol from packet captures of a
+real 7.48 client. We ported the gameplay formulas from public WYD server code.
+We used only the algorithms. We did not copy structures, memory offsets, or
+addresses.
 
 ## Status
 
-The server is playable end-to-end with the patched 7.48 client. Account and
-character creation, login, world entry, progression, combat, loot and
-persistence are connected through the native protocol; more than 80 packet
-types are currently handled.
+You can play the game from start to end with the patched 7.48 client. The server
+connects these functions through the native protocol:
 
-Systems implemented and server-authoritative:
+- account creation and character creation;
+- login and world entry;
+- progression, combat, and loot;
+- data storage.
 
-- **Accounts** — PBKDF2 password hashing, HTTP signup API, local CLI creator and
-  duplicate-session rejection. No plaintext passwords are stored.
-- **Characters** — four-class, four-slot creation with validated names and
-  data-driven starting layouts, items, stats and spawn position.
-- **Extended stats** — a server/client compatibility extension carries 32-bit
-  HP, MP, STR, INT, DEX, CON, attack, magic attack and defense while preserving
-  the fixed 7.48 packet prefixes. Gameplay uses only the authoritative extended
-  score; the legacy score is a wire projection.
-- **World simulation** — native height/attribute collision, spatially sleeping
-  mob AI, patrol routes, target pursuit and a 65×65 area-of-interest window.
-  Pets, summons and mobs are materialized only at spawn or visibility entry.
-- **Combat** — melee and ranged PvE, PvP, physical and magical floating damage,
-  resistances, buffs/debuffs, regeneration, death, resurrection and
-  collision-safe recall, all resolved server-side.
-- **Progression** — native Mortal EXP table, configurable EXP floor/rate,
-  level-up, stat/mastery/skill-point budgets, equipment requirements and
-  server-side item bonuses.
-- **Skills** — server paths for the 104-skill catalog across TK, Foema,
-  BeastMaster and Huntress, including multi-target magic, healing, buffs,
-  transformations, out-of-party BM summons and the five Sephira skills.
-- **Party** — stable groups of up to 13 players, party chat and full EXP for
-  every nearby member plus a configurable bonus per member.
-- **Guilds** — creation, invitation, acceptance, leaving, expulsion, leadership
-  succession, guild chat, persistent membership and native `Guilds.txt` name
-  publication. Guild war and visible guild marks remain future work.
-- **Kingdoms** — Akelonia/Hekalotia selection through the kings, Sapphire
-  costs, leaving through the broker, realm teleports, guild affiliation and
-  Basic/Knight/Elite/Hero/Master cape progression. Realm wars are a later phase.
-- **NPCs & economy** — NPCGener, regional visibility, shops, skill masters,
-  server-side prices, drops, 63 usable inventory slots, 120 Cargo slots and
-  player trade with anti-duplication persistence.
-- **Crafting** — server-side recipes and native success/failure feedback for
-  Agatha, Aylin, Tiny, Lindy, Compositor, Ehre and Alquimista Odin.
-- **Quests** — data-driven requirements and atomic rewards, repeatable quest
-  areas, ten-minute area reset and native quest reward boxes. The complete
-  retail quest catalog is still being expanded.
-- **Volatiles** — configurable potions, gold, teleports, refining/tinting,
-  mount items, timed affects, Magical Pill, Hunting Scrolls, summon contracts
-  and Sephira books. Deferred codes remain non-consuming generic handlers.
-- **Mounts** — eggs incubate and hatch, hatchlings grow into adults, the pet
-  follows its owner outside the party, mounted combat absorbs damage, and
-  hunger/longevity are simulated.
-- **Player shops** — Armia-only Ghost Shops sell Cargo items through a
-  stationary clone while the owner remains free to move and play.
-- **Communication** — local, party, guild and global chat, whisper, offline
-  mail/death letters and server announcements through the 7.48 protocol.
-- **Persistence** — atomic JSON writes (temp file + fsync + rename) with an
-  async write queue so disk I/O never blocks the game loop; an autosave runs
-  every few seconds and critical operations (trades, refining, gold changes)
-  persist *before* confirming to the client, with rollback on failure.
+The server processes more than 80 packet types.
+
+## Systems
+
+The server has these systems. The server has authority on each system.
+
+- **Accounts** — The server hashes each password with PBKDF2. It gives an HTTP
+  signup interface and a local command-line tool. It refuses a second login of
+  the same account. The server does not keep a password as plain text.
+- **Characters** — Each account can make four characters in four classes. The
+  server checks each name. It gives the start layout, items, statistics, and
+  spawn position from data files.
+- **Extended statistics** — An extension carries 32-bit HP, MP, STR, INT, DEX,
+  CON, attack, magic attack, and defense. It keeps the fixed 7.48 packet
+  prefixes. The gameplay uses only this extended score. The legacy score is a
+  wire projection.
+- **World** — The server uses the native height map and attribute map for
+  collision. Mob AI sleeps by area. Mobs patrol routes and follow a target. The
+  view window is 65 by 65 tiles. The server creates a pet, a summon, or a mob
+  only at spawn or at view entry.
+- **Combat** — The server calculates melee and range attacks, PvE and PvP,
+  physical and magic damage, resistances, buffs, debuffs, regeneration, death,
+  resurrection, and a collision-safe recall. The server does all these
+  calculations.
+- **Progression** — The server uses the native Mortal experience table. You can
+  configure the experience floor and rate. The server does the level-up. It
+  controls the statistic, mastery, and skill-point budgets. It applies the
+  equipment requirements and the item bonuses.
+- **Skills** — The server has code paths for the 104-skill catalog. The four
+  classes are TK, Foema, BeastMaster, and Huntress. The catalog includes
+  multi-target magic, healing, buffs, transformations, BeastMaster summons, and
+  the five Sephira skills.
+- **Party** — A party can have a maximum of 13 players. The party has a chat
+  channel. Each near member gets the full experience and a configurable bonus
+  for each member.
+- **Guilds** — The server does guild creation, invitation, acceptance, exit,
+  expulsion, and leader succession. It gives a guild chat channel. It keeps the
+  membership and writes the native `Guilds.txt` name list. Guild war and the
+  visible guild mark are future work.
+- **Kingdoms** — A player selects Akelonia or Hekalotia at the kings. The server
+  applies the Sapphire cost. The player leaves through the broker. The server
+  does the realm teleports, the guild affiliation, and the Basic, Knight, Elite,
+  Hero, and Master cape steps. The realm war is a later phase.
+- **NPCs and economy** — The server reads NPCGener. It controls regional
+  visibility, shops, skill masters, server-side prices, and drops. Each player
+  has 63 usable inventory slots and 120 Cargo slots. The server does player
+  trade and prevents item duplication in the data storage.
+- **Crafting** — The server has server-side recipes and native success and
+  failure messages for Agatha, Aylin, Tiny, Lindy, Compositor, Ehre, and
+  Alquimista Odin.
+- **Quests** — The server reads the quest requirements and gives atomic rewards
+  from data files. The quest areas are repeatable. The server does a 10-minute
+  area reset and gives the native quest reward boxes. The full retail quest
+  catalog is not complete.
+- **Volatiles** — You can configure potions, gold, teleports, refining and
+  tinting, mount items, timed affects, the Magical Pill, the Hunting Scrolls,
+  the summon contracts, and the Sephira books. A deferred code stays a generic
+  handler that does not consume the item.
+- **Mounts** — An egg incubates and hatches. A hatchling grows into an adult.
+  The pet follows its owner outside the party. A mounted character absorbs some
+  damage. The server calculates hunger and longevity.
+- **Player shops** — A Ghost Shop sells Cargo items in Armia. A stationary clone
+  does the sale. The owner stays free to move and to play.
+- **Ascension (Arch)** — A Mortal of level 371 or higher can become an Arch.
+  The chain has three steps: the class skill master makes the Sefirot from
+  eight Sephira stones, the Black Oracle forges the Eternal Stone, and the king
+  does the ascension. The Arch is a new character in a free slot; the Mortal
+  stays. The Arch gets more attribute points if the Mortal has a higher level,
+  and the server calculates this again at each login.
+- **Boss encounters** — A boss is a normal mob with a parallel behavior
+  runtime. Four behaviors are compiled into the server: chaser, caster,
+  summoner, and phased. You configure each encounter in a Lua file in
+  `data/boss/`. The file sets the assets, the statistics, the position, the
+  respawn time, the skills, the adds, the HP phases, and the drops. The Lua
+  file selects a behavior; it cannot make a new rule.
+- **Communication** — The protocol carries local, party, guild, and global chat.
+  It carries whisper, death letters, and server announcements. A message needs
+  the other player online. If that player is offline, the server tells you.
+- **Data storage** — The server writes JSON files atomically. It writes to a
+  temporary file, does an fsync, and does a rename. An asynchronous queue keeps
+  the disk operations away from the game loop. An autosave runs at a regular
+  interval. A critical operation, for example a trade, a refine, or a gold
+  change, writes to disk before the server confirms it to the client. If the
+  write fails, the server returns the data to its previous state.
+
+## Language
+
+The 7.48 client is the global (English) client, so all the text that the
+player reads is English. The terms agree with the client interface: Party,
+Guild, Whisper, Trade, Quest, Gold, Kingdom, Cargo, Mount, Refine, and Auto
+Trade. The chat commands accept two languages: `/create` and `/criar`,
+`/invite` and `/convidar`, and so on.
 
 ## Requirements
 
-- Go 1.26+
-- Windows to run the bundled client in `client748/`
+- You must have Go 1.26 or a later version.
+- You must have Windows to run the client in `client748/`.
+- The server uses one external Go module: `gopher-lua` (MIT). It reads the
+  boss files. `go build` downloads it.
 
-## Building
+## Build the software
+
+Build the three programs. Do these commands:
 
 ```powershell
 go build -o tm.exe ./cmd/server
@@ -94,21 +144,46 @@ go build -o account-api.exe ./cmd/account-api
 go build -o account-create.exe ./cmd/account-create
 ```
 
-## Running
+## Start the server
+
+Run the compiled `tm.exe` file. This is the fast method and the correct method
+for a real server. First build the file (refer to [Build the software](#build-the-software)).
+Then do this command:
+
+```powershell
+./tm.exe
+```
+
+Use `go run` only for development. This command builds the code again at each
+start, so it is slower:
 
 ```powershell
 go run ./cmd/server
 ```
 
-The server reads its configuration from `data/server.txt`, with command-line
-flags available as overrides (`-addr`, `-npcs`, `-accounts`, `-items`, and so
-on — run `./tm.exe -h` for the full list). Start it from the `wyd-go/`
-directory so the `data/...` paths resolve correctly.
+The server reads the configuration from `data/server.txt`. A command-line flag
+replaces a value in that file. Examples: `-addr`, `-npcs`, `-accounts`,
+`-items`. To see all the flags, do `./tm.exe -h`.
 
-Accounts are created out-of-band, either through `account-create` (local CLI)
-or by running `account-api` and calling its HTTP signup endpoint.
+To monitor the server, set `debug_address` in `data/server.txt`. The server
+then gives metrics at `/debug/vars` and profiles at `/debug/pprof`. The host
+must be loopback: these pages show internal state. If you give a public
+address, the server refuses to start. For remote access, use an SSH tunnel.
 
-## Static checks
+The server writes all the accounts to disk before it stops. Send SIGTERM or
+press Ctrl+C.
+
+Start the server from the `wyd-go/` directory. Then the server finds the
+`data/...` paths.
+
+You make an account with one of two tools:
+
+- Use `account-create`, the local command-line tool.
+- Or start `account-api` and send an HTTP signup request.
+
+## Do the static checks
+
+Do these commands:
 
 ```powershell
 go test ./...
@@ -121,73 +196,84 @@ go build -o tm.exe ./cmd/server
 ```text
 cmd/server        composition and configuration
 internal/model    pure domain types
-internal/wire     byte-exact 7.48 protocol framing and encryption
-internal/net      sockets, sessions, per-connection send queues
+internal/wire     byte-exact 7.48 protocol frames and encryption
+internal/net      sockets, sessions, one send queue for each connection
 internal/data     catalogs, NPC spawns, terrain, templates
-internal/store    account/character persistence (atomic JSON)
+internal/store    account and character data storage (atomic JSON)
 internal/account  signup, authentication, and password hashing
-internal/game     the World actor and every game system
+internal/game     the World actor and each game system
 ```
 
-A single `World` goroutine owns all mutable state. Sessions decode the socket
-and forward commands to the game loop, which processes movement, combat,
-items, party actions and ticks in a strict order. This gives natural ordering
-guarantees for inventory, loot, trade, and combat, and closes off a large
-class of duplication/race bugs by construction — nothing mutates game state
-outside that one goroutine.
+One `World` goroutine keeps all the changeable state. The sessions decode the
+socket. They send commands to the game loop. The game loop does the movement,
+the combat, the items, the party actions, and the ticks. It does them in a
+strict sequence.
 
-`internal/game` is intentionally fragmented by responsibility (combat,
-equipment, skills, affects/buffs, party, movement, drops, trade, teleports,
-NPC shops, mounts, quests, guilds...) rather than one monolithic handler file.
+This sequence gives a correct order for the inventory, the loot, the trade, and
+the combat. It prevents a large group of duplication bugs and race bugs. No
+other code changes the game state.
+
+The `internal/game` package has many files, one file for each function: combat,
+equipment, skills, affects, party, movement, drops, trade, teleports, NPC shops,
+mounts, quests, and guilds. It is not one large file.
 
 ## Data files
 
-Game content lives in `data/` as CSV/JSON/text, loaded at boot and never
-hand-edited by the running server:
+The game content is in the `data/` directory. The files are CSV, JSON, and text.
+The server reads these files when it starts. The running server does not change
+them.
 
-| File | Purpose |
+| File | Function |
 |---|---|
-| `itemlist.csv` | item catalog: stats, requirements, static effects |
+| `itemlist.csv` | item catalog: statistics, requirements, static effects |
 | `SkillData.csv` | skill cost, delay, target type, range, parameters |
-| `NPCGener.txt` + `npcs/*.json` | NPC/mob spawns, stats, shop inventory |
-| `character_templates.json` | starting stats/items per class |
-| `volatiles.json` | server behavior for consumable item-effect codes |
-| `mounts.json` | per-mount-type combat bonuses |
+| `NPCGener.txt` + `npcs/*.json` | NPC and mob spawns, statistics, shop items |
+| `character_templates.json` | start statistics and items for each class |
+| `volatiles.json` | server behavior for each consumable item-effect code |
+| `mounts.json` | combat bonus for each mount type |
 | `quests.json` | quest definitions and prerequisites |
-| `quest_zones.json` | timed quest-area boundaries and reset behavior |
+| `quest_zones.json` | timed quest-area limits and reset behavior |
+| `boss/*.lua` | one boss encounter for each file |
 | `guilds.json` + `Guilds.txt` | guild registry and 7.48 client name list |
 | `droprate.json` | loot table weights |
-| `server.txt` | server-wide configuration and gameplay rules |
+| `server.txt` | server configuration and gameplay rules |
 
 ## Roadmap
 
-The next major gameplay phases are the remaining retail quest catalog, visible
-guild marks, guild/kingdom/Castle wars and further client asset modernization.
-These are not presented as complete in the current build.
+These are the next gameplay phases:
+
+- the remaining retail quest catalog;
+- the Celestial evolution, after the Arch;
+- the visible guild mark;
+- the guild war, the kingdom war, and the Castle war;
+- more work on the client assets.
+
+The current build does not have these functions complete.
 
 ## Disclaimer
 
-WYD-Go is an independent, **non-commercial fan project** made for **educational
-purposes** — learning network-protocol reverse-engineering, game-server design,
-and Go. It is not affiliated with, authorized, or endorsed by the owners of
-*With Your Destiny*.
+WYD-Go is an independent, **non-commercial** project. Its purpose is education.
+It helps you to learn how to analyze a network protocol, how to make a game
+server, and the Go language. The owners of *With Your Destiny* do not authorize
+this project and are not related to it.
 
 *With Your Destiny* and all related names, logos, artwork, trademarks, and game
-data are the property of their respective owners.
+data are the property of their owners.
 
-For interoperability with version 7.48, this repository includes server data
-files and a client bundle under `client748/`. The original game data, client,
-artwork, audio, and map assets are **not** original work and remain the property
-of the game's owners; they are included only to make the project usable for
+This repository includes server data files and a client bundle in `client748/`.
+The server needs these files to work with version 7.48. The original game data,
+the client, the artwork, the audio, and the map assets are not original work.
+They stay the property of the game owners. This project includes them only for
 study.
 
-If you are a rights holder and want any file in this repository removed, please
-open an issue and it will be taken down promptly.
+If you own the rights to a file in this repository and want the removal of that
+file, open an issue. We will remove it quickly.
 
 ## License
 
-Licensed under the **GNU General Public License v3.0** — see [LICENSE](LICENSE).
+This project uses the **GNU General Public License v3.0**. Refer to
+[LICENSE](LICENSE).
 
-You may use, study, modify, and redistribute this code under the terms of the
-GPLv3; any distributed derivative must remain under the same license and keep
-its source available.
+You can use, study, change, and distribute this code under the GPLv3. A
+distributed derivative must keep the same license. It must also keep its source
+code available.

@@ -38,6 +38,48 @@ func mortalStatusPointBudget(level int) int {
 	return maxInt(0, total)
 }
 
+// archPointsPerMortalLevel e quanto cada nivel do Mortal ACIMA de 299 rende ao
+// Arch. E o `MortalLevel * 5` do nativo, onde MortalLevel ja e (nivel - 299).
+const (
+	archPointsPerLevel       = 6
+	archPointsPerMortalLevel = 5
+	archMortalLevelOffset    = 299
+	archBaseBonus            = 28
+)
+
+// archStatusPointBudget porta o ramo ARCH de BASE_GetCurrentScore
+// (Basedef.cpp:1043-1056):
+//
+//	leveluse  = lvl * 6
+//	leveluse += MortalLevel * 5      // MortalLevel = nivelDoMortal - 299
+//	leveluse += 28
+//	if lvl >= 354: leveluse += (lvl - 354) * 6
+//
+// O termo do Mortal e o que faz um Arch nascido de um Mortal 400 ser mais forte
+// que um de 370 -- e, como o nativo recalcula isso a cada login, continuar
+// subindo o Mortal segue fortalecendo o Arch.
+//
+// Mortal abaixo de 299 renderia bonus negativo; o piso em zero evita que um
+// dado torto tire pontos ja distribuidos.
+func archStatusPointBudget(level, mortalLevel int) int {
+	total := level*archPointsPerLevel + archBaseBonus
+	if bonus := mortalLevel - archMortalLevelOffset; bonus > 0 {
+		total += bonus * archPointsPerMortalLevel
+	}
+	if level >= 354 {
+		total += (level - 354) * archPointsPerLevel
+	}
+	return maxInt(0, total)
+}
+
+// statusPointBudget escolhe a formula pela evolucao do personagem.
+func statusPointBudget(ch *model.Char) int {
+	if isArch(ch) {
+		return archStatusPointBudget(int(ch.Extended.Level), int(ch.ArchMortalLevel))
+	}
+	return mortalStatusPointBudget(int(ch.Extended.Level))
+}
+
 func mortalSkillPointBudget(level int) int {
 	total := level * skillPointsPerLevel
 	if level > 199 {
@@ -106,7 +148,7 @@ func syncStatusPoints(ch *model.Char) {
 			spent += *value - uint32(natural[i])
 		}
 	}
-	total := uint32(mortalStatusPointBudget(int(ch.Extended.Level)))
+	total := uint32(statusPointBudget(ch))
 	if spent > total {
 		overflow := spent - total
 		for i, value := range stats {

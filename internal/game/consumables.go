@@ -313,7 +313,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("Coordenada salva."))
+		s.Send(wire.MessagePanel("Position saved."))
 		log.Printf("[#%d] gema estelar salvou (%d,%d) item=%d volatile=%d",
 			s.ID, p.X, p.Y, oldItem.Index, code)
 
@@ -322,7 +322,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// coordenada salva, nao consome. Mesmo fluxo do teleporte fixo.
 		if p.Char.SavedX == 0 || p.Char.SavedY == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Nenhuma coordenada salva."))
+			s.Send(wire.MessagePanel("No position saved."))
 			return
 		}
 		oldX, oldY, oldItem := p.X, p.Y, *item
@@ -378,47 +378,22 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.ID, item.Index, code, affectType, rule.AffectValue, rule.AffectLevel, rule.DurationUnits)
 
 	case "grant_exp":
-		// Baus e poeiras de XP. Reusa grantExp (progressao Mortal); persiste antes
-		// de confirmar ao client, como qualquer ganho de EXP relevante.
+		// Baus e poeiras de XP. Delegam a transacao comum de EXP (snapshot completo
+		// + persist-before-confirm); aqui a EXP e bruta, sem rate/buff nem gold.
 		if rule.Exp == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
-		oldItem := *item
-		// O recalc CRU dentro de grantExp clampa HP/MP no max sem buffs; preserva
-		// os valores atuais para um jogador buffado nao perder vida ao ganhar EXP.
-		oldHP, oldMP := playerCurHP(p.Char), playerCurMP(p.Char)
-		gained, applied := grantExp(p.Char, rule.Exp)
-		if applied == 0 {
-			// EXP no teto Mortal: nao consome nem promete um ganho inexistente.
-			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		oldIndex := item.Index
+		res := w.grantItemExpReward(s, p, item, slot, rule.Exp, 0, rule.Consume)
+		if !res.OK {
+			if res.Err != nil {
+				log.Printf("[#%d] ERRO ao salvar grant_exp item=%d: %v", s.ID, oldIndex, res.Err)
+			}
 			return
 		}
-		if rule.Consume {
-			consumeOne(item)
-		}
-		if err := w.saveAccount(p.Account); err != nil {
-			*item = oldItem
-			log.Printf("[#%d] ERRO ao salvar grant_exp item=%d: %v", s.ID, oldItem.Index, err)
-			return
-		}
-		w.recalcPlayer(p.Char)
-		if oldHP > 0 {
-			setPlayerCurHP(p.Char, minU32(oldHP, playerMaxHP(p.Char)))
-		}
-		if oldMP > 0 {
-			setPlayerCurMP(p.Char, minU32(oldMP, playerMaxMP(p.Char)))
-		}
-		w.syncPlayerVitals(p)
-		w.updatePartyMember(p)
-		// UpdateScore (0x336) so e preciso ao subir de nivel; a EXP vai no UpdateEtc.
-		if gained > 0 {
-			s.Send(wire.UpdateScore(p.ID, *p.Char))
-		}
-		s.Send(wire.UpdateEtc(p.ID, *p.Char))
-		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		log.Printf("[#%d] usou grant_exp item=%d volatile=%d exp=+%d niveis=+%d",
-			s.ID, oldItem.Index, code, applied, gained)
+			s.ID, oldIndex, code, res.Exp, res.Levels)
 
 	case "disabled":
 		// Item que NAO deveria ter volatile (ex.: code 9). Consome sem efeito, para
@@ -467,13 +442,13 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Arraste a tintura sobre um item."))
+			s.Send(wire.MessagePanel("Drag the dye onto an item."))
 			return
 		}
 		oldDest, oldItem := *dest, *item
 		if !tintItem(dest, rule.Color) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Tinja um item refinado (com brilho de +)."))
+			s.Send(wire.MessagePanel("Dye a refined item (one with a + glow)."))
 			return
 		}
 		if rule.Consume {
@@ -498,13 +473,13 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Arraste sobre um item colorido."))
+			s.Send(wire.MessagePanel("Drag it onto a colored item."))
 			return
 		}
 		oldDest, oldItem := *dest, *item
 		if !untintItem(dest) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Use em itens coloridos."))
+			s.Send(wire.MessagePanel("Use it on colored items."))
 			return
 		}
 		if rule.Consume {
@@ -530,7 +505,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Arraste a repliction sobre um item."))
+			s.Send(wire.MessagePanel("Drag the repliction onto an item."))
 			return
 		}
 		add, ok := pickVolatileAdd(rule.AddPool)
@@ -568,7 +543,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.Send(wire.UpdateScore(p.ID, *p.Char))
 			w.syncPlayerVitals(p)
 		}
-		s.Send(wire.MessagePanel("O item recebeu um novo adicional!"))
+		s.Send(wire.MessagePanel("The item gained a new bonus!"))
 		log.Printf("[#%d] repliction item=%d alvo=%d add=ef%d/v%d volatile=%d",
 			s.ID, item.Index, dest.Index, add.Effect, add.Value, code)
 
@@ -660,7 +635,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 	}
 	if changed == 0 {
 		s.Send(wire.SendItem(p.ID, placeInv, powderSlot, *powder))
-		s.Send(wire.MessagePanel("Nenhuma peca de armadura para refinar."))
+		s.Send(wire.MessagePanel("No armor piece to refine."))
 		return
 	}
 	if rule.Consume {
@@ -685,7 +660,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 	w.syncPlayerVitals(p)
 	// O brilho/mesh do refino viaja no UpdateEquip incremental.
 	w.refreshAppearance(p)
-	s.Send(wire.MessagePanel("Set refinado!"))
+	s.Send(wire.MessagePanel("Set refined!"))
 	log.Printf("[#%d] refine_set code=%d po=%d pecas=%d nivel=+%d",
 		s.ID, code, oldPowder.Index, changed, level)
 }
@@ -737,7 +712,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	if dest == nil {
 		// Alvo nao e um slot de equip: refino e somente em item equipado.
 		resend()
-		s.Send(wire.MessagePanel("Equipe o item para refinar."))
+		s.Send(wire.MessagePanel("Equip the item to refine it."))
 		return
 	}
 	if dest.Index == 0 {
@@ -754,7 +729,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	if def.Pos == 0 || itemAbility(*dest, def, "EF_VOLATILE") != 0 ||
 		itemAbility(*dest, def, "EF_NOSANC") != 0 {
 		resend()
-		s.Send(wire.MessagePanel("Esse item nao pode ser refinado."))
+		s.Send(wire.MessagePanel("That item cannot be refined."))
 		return
 	}
 	sanc := itemSanc(*dest)
@@ -764,7 +739,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	}
 	if sanc >= limit {
 		resend()
-		s.Send(wire.MessagePanel("Esse item nao pode ser refinado mais."))
+		s.Send(wire.MessagePanel("That item cannot be refined any further."))
 		return
 	}
 
@@ -776,7 +751,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 			// NAO consome a poeira, para nao punir o jogador por um item invalido.
 			*dest = oldDest
 			resend()
-			s.Send(wire.MessagePanel("Esse item nao pode ser refinado."))
+			s.Send(wire.MessagePanel("That item cannot be refined."))
 			return
 		}
 	}
@@ -800,9 +775,9 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 		w.refreshAppearance(p)
 	}
 	if success {
-		s.Send(wire.MessagePanel("Refino bem-sucedido!"))
+		s.Send(wire.MessagePanel("Refine successful!"))
 	} else {
-		s.Send(wire.MessagePanel("O refino falhou."))
+		s.Send(wire.MessagePanel("The refine failed."))
 	}
 	result := "FALHOU"
 	if success {

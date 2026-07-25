@@ -151,8 +151,21 @@ func (w *World) chasePlayer(m *Mob, target *Player, now time.Time) {
 }
 
 func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
-	target.LastAttackerID = m.ID
 	damage := mobHitsPlayer(m, target.Char)
+	// FlagLocal=0 faz o 7.48 aplicar o dano e exibir o numero flutuante. Dano
+	// zero conserva a animacao de ataque e representa MISS no cliente.
+	w.applyMobDamageToPlayer(m, target, damage, now, func(applied uint32) []byte {
+		return wire.AttackHitExtended(m.ID, target.ID, m.X, m.Y, target.X, target.Y,
+			applied, 0, m.Def.Extended.MaxMP)
+	})
+}
+
+// applyMobDamageToPlayer aplica um dano JA CALCULADO e cuida do resto: absorcao
+// da montaria, pacote de animacao, morte e sincronizacao. E compartilhado pelo
+// golpe comum e pela magia de boss, que so diferem no calculo e no pacote.
+func (w *World) applyMobDamageToPlayer(m *Mob, target *Player, damage uint32,
+	now time.Time, build func(applied uint32) []byte) {
+	target.LastAttackerID = m.ID
 	// Montaria adulta viva absorve 25% do dano no proprio HP.
 	damage = uint32(w.absorbMountDamage(target, int(damage)))
 	currentHP := playerCurHP(target.Char)
@@ -168,12 +181,7 @@ func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
 		setPlayerCurHP(target.Char, currentHP-damage)
 	}
 
-	// FlagLocal=0 faz o 7.48 aplicar o dano e exibir o numero flutuante. Dano
-	// zero conserva a animacao de ataque e representa MISS no cliente.
-	w.sendToMobView(m, func() []byte {
-		return wire.AttackHitExtended(m.ID, target.ID, m.X, m.Y, target.X, target.Y,
-			damage, 0, m.Def.Extended.MaxMP)
-	})
+	w.sendToMobView(m, func() []byte { return build(damage) })
 	// AttackHit anima/aplica o dano; SetHpMp logo depois confirma o HP
 	// autoritativo para o alvo e para todos os observadores.
 	w.syncPlayerVitals(target)

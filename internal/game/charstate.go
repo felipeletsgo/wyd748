@@ -70,11 +70,15 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 		}
 		slot++
 	}
-	if len(state.SpecialCoins) > 0 && p.SpecialCoins == nil {
+	// SUBSTITUI, nunca mescla: o Player e reusado no vaivem da selecao, entao
+	// mesclar deixaria as moedas do personagem anterior no atual -- e o autosave
+	// as gravaria no charstate dele, duplicando-as.
+	p.SpecialCoins = nil
+	if len(state.SpecialCoins) > 0 {
 		p.SpecialCoins = make(map[string]uint32, len(state.SpecialCoins))
-	}
-	for name, value := range state.SpecialCoins {
-		p.SpecialCoins[name] = value
+		for name, value := range state.SpecialCoins {
+			p.SpecialCoins[name] = value
+		}
 	}
 }
 

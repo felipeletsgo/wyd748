@@ -197,37 +197,37 @@ func (w *World) handleKingdomNPC(s *net.Session, p *Player, m *Mob) bool {
 
 func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 	if playerCurHP(p.Char) == 0 {
-		s.Send(wire.MessagePanel("Personagens mortos nao podem escolher um reino."))
+		s.Send(wire.MessagePanel("Dead characters cannot choose a kingdom."))
 		return
 	}
 	current := characterKingdom(p.Char)
 	if guild, _ := w.guildOf(p.Char); guild != nil && guild.Kingdom != model.KingdomNeutral &&
 		guild.Kingdom != kingdom {
-		s.Send(wire.MessagePanel("Sua guild pertence a outro reino."))
+		s.Send(wire.MessagePanel("Your guild belongs to another kingdom."))
 		return
 	}
 	change, err := kingdomCapeForJoin(p.Char, kingdom)
 	if err != nil {
 		switch err {
 		case errKingdomAlready:
-			s.Send(wire.MessagePanel("Voce ja possui a capa adequada de " + model.KingdomName(kingdom) + "."))
+			s.Send(wire.MessagePanel("You already have the proper cape of " + model.KingdomName(kingdom) + "."))
 		case errKingdomWrongRealm:
-			s.Send(wire.MessagePanel("Deixe seu reino atual antes de escolher outro."))
+			s.Send(wire.MessagePanel("Leave your current kingdom before choosing another."))
 		case errKingdomNeedLevel220:
-			s.Send(wire.MessagePanel("Voce precisa ser nivel 220 para escolher um reino."))
+			s.Send(wire.MessagePanel("You must be level 220 to choose a kingdom."))
 		case errKingdomNeedLevel256:
-			s.Send(wire.MessagePanel("Voce precisa ser nivel 256 para receber esta capa."))
+			s.Send(wire.MessagePanel("You must be level 256 to receive this cape."))
 		case errKingdomNeedCelestial:
-			s.Send(wire.MessagePanel("A capa Master exige um personagem Celestial."))
+			s.Send(wire.MessagePanel("The Master cape requires a Celestial character."))
 		default:
-			s.Send(wire.MessagePanel("Sua capa atual nao pode receber a medalha do reino."))
+			s.Send(wire.MessagePanel("Your current cape cannot receive the kingdom medal."))
 		}
 		return
 	}
 	cost := kingdomJoinCost(kingdom)
 	useEmblem := kingdomUsesEmblem(p.Char)
 	if !useEmblem && sapphireCount(p.Char) < cost {
-		s.Send(wire.MessagePanel(fmt.Sprintf("Voce precisa de %d Safiras.", cost)))
+		s.Send(wire.MessagePanel(fmt.Sprintf("You need %d Sapphires.", cost)))
 		return
 	}
 
@@ -236,7 +236,7 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 		p.Char.Equip[13] = model.Item{}
 	} else if !consumeSapphires(p.Char, cost) {
 		*p.Char = snapshot
-		s.Send(wire.MessagePanel("Nao foi possivel consumir as Safiras."))
+		s.Send(wire.MessagePanel("The Sapphires could not be consumed."))
 		return
 	}
 	if change.Preserve {
@@ -245,31 +245,16 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 		p.Char.Equip[model.CapeSlot] = model.Item{Index: change.Index}
 	}
 	w.recalcPlayer(p.Char)
-	var guildSnapshot []model.Guild
-	if w.guilds != nil {
-		guildSnapshot = w.snapshotGuilds()
-	}
-	changedGuild := w.setLeaderGuildKingdom(p.Char, kingdom)
-	var saveErr error
-	if changedGuild {
-		saveErr = w.saveGuildState(p.Account)
-	} else {
-		saveErr = w.saveAccount(p.Account)
-	}
-	if saveErr != nil {
-		*p.Char = snapshot
-		if w.guilds != nil {
-			w.restoreGuilds(guildSnapshot)
-		}
-		s.Send(wire.MessagePanel("Falha ao salvar. O reino nao foi alterado."))
-		log.Printf("[#%d] REINO join save: %v", s.ID, saveErr)
+	if err := w.commitKingdomChange(p, snapshot, kingdom); err != nil {
+		s.Send(wire.MessagePanel("Save failed. The kingdom was not changed."))
+		log.Printf("[#%d] REINO join save: %v", s.ID, err)
 		return
 	}
 	w.syncKingdomChange(p)
 	if current == kingdom {
-		s.Send(wire.MessagePanel("Sua capa de " + model.KingdomName(kingdom) + " foi promovida."))
+		s.Send(wire.MessagePanel("Your " + model.KingdomName(kingdom) + " cape was promoted."))
 	} else {
-		s.Send(wire.MessagePanel("Voce agora pertence a " + model.KingdomName(kingdom) + "."))
+		s.Send(wire.MessagePanel("You now belong to " + model.KingdomName(kingdom) + "."))
 	}
 	payment := fmt.Sprintf("%d safiras", cost)
 	if useEmblem {
@@ -281,59 +266,44 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 
 func (w *World) leaveKingdom(s *net.Session, p *Player, now time.Time) {
 	if playerCurHP(p.Char) == 0 {
-		s.Send(wire.MessagePanel("Personagens mortos nao podem deixar um reino."))
+		s.Send(wire.MessagePanel("Dead characters cannot leave a kingdom."))
 		return
 	}
 	kingdom := characterKingdom(p.Char)
 	if kingdom == model.KingdomNeutral {
-		s.Send(wire.MessagePanel("Voce nao pertence a um reino."))
+		s.Send(wire.MessagePanel("You do not belong to a kingdom."))
 		return
 	}
 	// O broker nativo nao permite retirar a capa no domingo.
 	if now.Weekday() == time.Sunday {
-		s.Send(wire.MessagePanel("Nao e possivel deixar o reino no domingo."))
+		s.Send(wire.MessagePanel("You cannot leave the kingdom on Sunday."))
 		return
 	}
 	neutral, ok := model.NeutralCape(p.Char.Equip[model.CapeSlot].Index)
 	if !ok {
-		s.Send(wire.MessagePanel("Sua capa de reino nao pode ser convertida pelo broker."))
+		s.Send(wire.MessagePanel("The broker cannot convert your kingdom cape."))
 		return
 	}
 	if sapphireCount(p.Char) < kingdomLeaveCost {
-		s.Send(wire.MessagePanel(fmt.Sprintf("Voce precisa de %d Safiras.", kingdomLeaveCost)))
+		s.Send(wire.MessagePanel(fmt.Sprintf("You need %d Sapphires.", kingdomLeaveCost)))
 		return
 	}
 
 	snapshot := cloneCharacterState(p.Char)
 	if !consumeSapphires(p.Char, kingdomLeaveCost) {
 		*p.Char = snapshot
-		s.Send(wire.MessagePanel("Nao foi possivel consumir as Safiras."))
+		s.Send(wire.MessagePanel("The Sapphires could not be consumed."))
 		return
 	}
 	p.Char.Equip[model.CapeSlot].Index = neutral
 	w.recalcPlayer(p.Char)
-	var guildSnapshot []model.Guild
-	if w.guilds != nil {
-		guildSnapshot = w.snapshotGuilds()
-	}
-	changedGuild := w.setLeaderGuildKingdom(p.Char, model.KingdomNeutral)
-	var saveErr error
-	if changedGuild {
-		saveErr = w.saveGuildState(p.Account)
-	} else {
-		saveErr = w.saveAccount(p.Account)
-	}
-	if saveErr != nil {
-		*p.Char = snapshot
-		if w.guilds != nil {
-			w.restoreGuilds(guildSnapshot)
-		}
-		s.Send(wire.MessagePanel("Falha ao salvar. Voce continua no reino."))
-		log.Printf("[#%d] REINO leave save: %v", s.ID, saveErr)
+	if err := w.commitKingdomChange(p, snapshot, model.KingdomNeutral); err != nil {
+		s.Send(wire.MessagePanel("Save failed. You are still in the kingdom."))
+		log.Printf("[#%d] REINO leave save: %v", s.ID, err)
 		return
 	}
 	w.syncKingdomChange(p)
-	s.Send(wire.MessagePanel("Voce deixou " + model.KingdomName(kingdom) + "."))
+	s.Send(wire.MessagePanel("You left " + model.KingdomName(kingdom) + "."))
 	log.Printf("[#%d] REINO %q deixou %s por %d Safiras", s.ID, p.Char.Name,
 		model.KingdomName(kingdom), kingdomLeaveCost)
 }
@@ -350,6 +320,31 @@ func (w *World) setLeaderGuildKingdom(ch *model.Char, kingdom byte) bool {
 	return true
 }
 
+// commitKingdomChange persiste a troca de capa/reino ja aplicada em p.Char. Se o
+// jogador for lider, a guild acompanha o novo reino na MESMA transacao
+// (saveGuildState); senao grava apenas a conta. Em falha, restaura char e guilds
+// ao snapshot e devolve o erro para o chamador mensagear no seu contexto (join
+// mantem o reino anterior; leave mantem o jogador no reino).
+func (w *World) commitKingdomChange(p *Player, snapshot model.Char, kingdom byte) error {
+	var guildSnapshot []model.Guild
+	if w.guilds != nil {
+		guildSnapshot = w.snapshotGuilds()
+	}
+	var err error
+	if w.setLeaderGuildKingdom(p.Char, kingdom) {
+		err = w.saveGuildState(p.Account)
+	} else {
+		err = w.saveAccount(p.Account)
+	}
+	if err != nil {
+		*p.Char = snapshot
+		if w.guilds != nil {
+			w.restoreGuilds(guildSnapshot)
+		}
+	}
+	return err
+}
+
 func (w *World) syncKingdomChange(p *Player) {
 	p.Session.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 	p.Session.Send(wire.SendItem(p.ID, placeEquip, 13, p.Char.Equip[13]))
@@ -362,11 +357,11 @@ func (w *World) syncKingdomChange(p *Player) {
 
 func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 	if playerCurHP(p.Char) == 0 {
-		s.Send(wire.MessagePanel("Personagens mortos nao podem usar esse teleporte."))
+		s.Send(wire.MessagePanel("Dead characters cannot use this teleport."))
 		return
 	}
 	if time.Now().Before(p.NextKingdomTeleport) {
-		s.Send(wire.MessagePanel("Aguarde para usar o teleporte de reino novamente."))
+		s.Send(wire.MessagePanel("Wait before using the kingdom teleport again."))
 		return
 	}
 	kingdom := characterKingdom(p.Char)
@@ -378,7 +373,7 @@ func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 		case model.KingdomAkelonia:
 			x, y = 1748, 1880
 		default:
-			s.Send(wire.MessagePanel("Escolha um reino antes de visitar o rei."))
+			s.Send(wire.MessagePanel("Choose a kingdom before visiting the king."))
 			return
 		}
 	} else {
@@ -393,7 +388,7 @@ func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 	}
 	w.cancelTrade(p, "teleporte de reino")
 	if !w.teleportPlayer(p, x, y) {
-		s.Send(wire.MessagePanel("Nao foi possivel concluir o teleporte de reino."))
+		s.Send(wire.MessagePanel("The kingdom teleport could not be completed."))
 		return
 	}
 	p.NextKingdomTeleport = time.Now().Add(kingdomWarpCooldown)

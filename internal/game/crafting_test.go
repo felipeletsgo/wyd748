@@ -11,9 +11,9 @@ import (
 
 func TestCombineResultMessages(t *testing.T) {
 	tests := map[uint32]string{
-		0: "Combinacao incorreta.",
-		1: "Processamento concluido.",
-		2: "Falha na composicao.",
+		0: "Wrong combination.",
+		1: "Processing complete.",
+		2: "The combination failed.",
 		3: "",
 	}
 	for result, want := range tests {

@@ -168,23 +168,23 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	if p.GhostShop != nil {
 		w.closeGhostShop(p, "fechada pelo jogador")
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("Loja fantasma fechada."))
+		s.Send(wire.MessagePanel("Auto Trade closed."))
 		return
 	}
 	if p.Trade != nil {
-		s.Send(wire.MessagePanel("Finalize a troca atual antes de abrir a loja."))
+		s.Send(wire.MessagePanel("Finish the current trade before opening the shop."))
 		return
 	}
 	if !inArmiaCity(p.X, p.Y) {
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("A Loja Fantasma so pode ser aberta em Armia."))
+		s.Send(wire.MessagePanel("Auto Trade can only be opened in Armia."))
 		return
 	}
 	req, err := parseAutoTradeRequest(pkt, p.Account, p.ID)
 	if err != nil {
 		log.Printf("[#%d] LOJA FANTASMA rejeitada: %v", s.ID, err)
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("Nao foi possivel abrir a loja: " + err.Error()))
+		s.Send(wire.MessagePanel("Could not open the shop: " + err.Error()))
 		return
 	}
 	for _, item := range req.Items {
@@ -200,7 +200,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	x, y, ok := w.findGhostShopPosition(p.X, p.Y)
 	if !ok {
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("Nao ha espaco livre para a loja nesta area."))
+		s.Send(wire.MessagePanel("There is no free space for the shop in this area."))
 		return
 	}
 	shop := &GhostShop{
@@ -220,7 +220,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	copy(shop.Mesh[:], bodyMesh(p.Char))
 	if _, exists := w.ghostShops[shop.ID]; exists {
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("ID da loja ja esta em uso. Tente novamente."))
+		s.Send(wire.MessagePanel("That shop ID is already in use. Try again."))
 		return
 	}
 	p.GhostShop = shop
@@ -234,7 +234,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 		s.Send(packet)
 	}
 	w.publishGhostShopSpawn(shop)
-	s.Send(wire.MessagePanel("Loja Fantasma aberta em Armia. Voce esta livre para jogar."))
+	s.Send(wire.MessagePanel("Auto Trade opened in Armia. You are free to play."))
 	log.Printf("[#%d] LOJA FANTASMA aberta id=%d owner=%s @(%d,%d) itens=%d",
 		s.ID, shop.ID, p.Char.Name, shop.X, shop.Y, shopItemCount(shop))
 }
@@ -327,7 +327,7 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 		buyer.Char.Inv, seller.Account.Cargo = oldBuyerInv, oldSellerCargo
 		buyer.Char.Gold, seller.Account.CargoGold = oldBuyerGold, oldSellerCargoGold
 		log.Printf("LOJA FANTASMA salvar contas %q/%q: %v", buyer.Account.Name, seller.Account.Name, err)
-		s.Send(wire.MessagePanel("Falha ao salvar a compra. Nada foi alterado."))
+		s.Send(wire.MessagePanel("Save failed. The purchase was not applied."))
 		return
 	}
 
@@ -340,12 +340,12 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 	seller.Session.Send(wire.SendItem(seller.ID, placeStorage, byte(storageSlot), model.Item{}))
 	seller.Session.Send(wire.UpdateCargoGold(wire.SceneField, seller.Account.CargoGold))
 	w.publishGhostShopItemSold(shop, uint32(req.Pos))
-	seller.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d vendido por %d gold.", item.Index, price)))
+	seller.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d sold for %d gold.", item.Index, price)))
 	log.Printf("[#%d] LOJA FANTASMA compra owner=%s buyer=%s item=%d price=%d inv[%d]",
 		s.ID, seller.Char.Name, buyer.Char.Name, item.Index, price, buyerSlot)
 	if shopItemCount(shop) == 0 {
 		w.closeGhostShop(seller, "estoque esgotado")
-		seller.Session.Send(wire.MessagePanel("Loja Fantasma fechada: estoque esgotado."))
+		seller.Session.Send(wire.MessagePanel("Auto Trade closed: stock sold out."))
 	}
 }
 
@@ -372,7 +372,7 @@ func buildGhostShopPurchase(buyer *model.Char, seller *model.Account, shop *Ghos
 	}
 	price := shop.Prices[pos]
 	if buyerGold > maxCharacterGold || price == 0 || buyerGold < price {
-		err = errors.New("Gold insuficiente.")
+		err = errors.New("Not enough gold.")
 		return
 	}
 	if sellerCargoGold > maxCharacterGold || price > maxCharacterGold-sellerCargoGold {
@@ -386,7 +386,7 @@ func buildGhostShopPurchase(buyer *model.Char, seller *model.Account, shop *Ghos
 		}
 	}
 	if buyerSlot < 0 {
-		err = errors.New("Inventario cheio.")
+		err = errors.New("Inventory is full.")
 		return
 	}
 	buyerInv[buyerSlot] = shop.Items[pos]

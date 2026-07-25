@@ -22,6 +22,10 @@ type command struct {
 	s     *net.Session
 	pkt   []byte
 	login *loginResult
+	// shutdown, quando presente, pede o desligamento controlado. E um comando
+	// como qualquer outro justamente para rodar NA goroutine do World: assim o
+	// drain final enxerga o estado consistente, sem concorrer com um handler.
+	shutdown chan struct{}
 }
 
 type loginResult struct {
@@ -312,15 +316,60 @@ type World struct {
 	// em clientes que os enviam a cada frame.
 	lastProtocolNotice map[uint16]time.Time
 	mobTickCounter     uint64
+	// clock e rng sao as fontes de tempo/aleatoriedade (clock.go). Em producao
+	// sao o relogio e o RNG reais; os testes injetam versoes controladas para
+	// exercitar deadline e sorteio sem time.Sleep.
+	clock Clock
+	rng   RNG
+	// shuttingDown fica true depois do desligamento controlado (shutdown.go):
+	// o estado ja foi persistido, entao nenhuma entrada nova e aceita.
+	shuttingDown bool
+	// bosses guarda o comportamento extra dos bosses, indexado pelo ID do mob
+	// (boss.go). Todo boss TAMBEM esta em mobs/mobsByID e se comporta como um
+	// mob comum em grid, visibilidade e combate. Mapa vazio = custo zero para
+	// quem nao usa boss.
+	bosses map[uint16]*BossRuntime
+	// bossCatalog e a configuracao lida de data/boss/*.lua; bossSpawns guarda o
+	// estado vivo de cada encontro (instancia atual e deadline de respawn).
+	bossCatalog model.BossCatalog
+	bossSpawns  []*bossSpawnState
 }
 
+// firstMobID e o inicio da faixa de mobs; abaixo dela ficam os jogadores.
+const firstMobID = uint16(1000)
+
+// allocMobID reserva o proximo ID de mob LIVRE.
+//
+// Dois cuidados, ambos vindos de bugs reais:
+//
+//  1. O clamp vem ANTES de reservar. Com ele depois, um World de contador
+//     zerado devolvia 0 (que significa "sem ID") e em seguida 1000.
+//  2. O contador DA A VOLTA em 65535. Como cada respawn consome um ID novo, um
+//     servidor de longa duracao inevitavelmente retorna ao inicio da faixa; sem
+//     verificar ocupacao, o ID de um mob VIVO seria reusado e a entrada dele em
+//     mobsByID, sobrescrita -- corrompendo alvo, visibilidade e affects em
+//     silencio. mobsByID e o registro dos mobs vivos (removeMobInstance limpa),
+//     entao basta pular o que ja esta la.
 func (w *World) allocMobID() uint16 {
-	id := w.nextMobID
-	w.nextMobID++
-	if w.nextMobID < 1000 {
-		w.nextMobID = 1000
+	if w.nextMobID < firstMobID {
+		w.nextMobID = firstMobID
 	}
-	return id
+	// No maximo uma volta completa na faixa.
+	for attempts := 0; attempts <= int(^uint16(0)-firstMobID); attempts++ {
+		id := w.nextMobID
+		if w.nextMobID == ^uint16(0) {
+			w.nextMobID = firstMobID
+		} else {
+			w.nextMobID++
+		}
+		if _, used := w.mobsByID[id]; !used {
+			return id
+		}
+	}
+	// Inalcancavel na pratica: exigiria mais de 64 mil mobs vivos ao mesmo
+	// tempo. Registrado alto porque o retorno 0 produziria um mob invalido.
+	log.Printf("ERRO: faixa de IDs de mob esgotada (%d mobs vivos)", len(w.mobsByID))
+	return 0
 }
 
 // NewWorld cria o mundo, materializando os NPCs estaticos em mobs vivos.
@@ -349,8 +398,6 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		groundItems:        make(map[uint16]*GroundItem),
 		ghostShops:         make(map[uint16]*GhostShop),
 		nextItemID:         10000,
-		nextAutoSave:       time.Now().Add(accountAutoSaveInterval),
-		nextQuestZoneReset: time.Now().Add(questZoneResetInterval),
 		dropRates:          dropRates,
 		volatiles:          volatiles,
 		charSpawn:          characterTemplates.Spawn,
@@ -359,10 +406,17 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		channel:            1, // instancia unica: somos o canal 1
 		gameplay:           model.DefaultGameplayConfig(),
 		lastProtocolNotice: make(map[uint16]time.Time),
+		clock:              realClock{},
+		rng:                realRNG{},
 	}
 	for _, option := range options {
 		option(w)
 	}
+	// Os deadlines nascem DEPOIS das options: WithClock precisa estar aplicado
+	// para que um teste com relogio falso parta do mesmo instante que o mundo.
+	start := w.now()
+	w.nextAutoSave = start.Add(accountAutoSaveInterval)
+	w.nextQuestZoneReset = start.Add(questZoneResetInterval)
 	if err := w.gameplay.Validate(); err != nil {
 		return nil, fmt.Errorf("configuracao global: %w", err)
 	}
@@ -427,12 +481,17 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		}
 		w.generators = append(w.generators, generState{def: g, leader: leader, follower: follower})
 	}
-	now := time.Now()
+	now := w.now()
 	for i := range w.generators {
 		w.spawnGroup(&w.generators[i]) // a primeira chamada equivale ao GenerateMob no boot
 		w.scheduleGenerator(&w.generators[i], now)
 	}
 	w.flushNPCGenerLog(now, true)
+	// Bosses NAO adotam mobs do NPCGener: eles nascem do proprio catalogo
+	// (data/boss/*.lua), com posicao e respawn proprios.
+	if err := w.spawnConfiguredBosses(); err != nil {
+		return nil, err
+	}
 	return w, nil
 }
 
@@ -504,7 +563,7 @@ func (w *World) spawnGroup(g *generState) {
 		}
 		m := &Mob{ID: w.allocMobID(), Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
 			GenerIndex: g.def.Index, Segments: segments, RouteType: g.def.RouteType,
-			WaitUntil: time.Now().Add(time.Duration(g.def.Segments[0].Wait) * time.Second)}
+			WaitUntil: w.now().Add(time.Duration(g.def.Segments[0].Wait) * time.Second)}
 		if i == 0 {
 			leaderID = m.ID
 		} else {
@@ -711,12 +770,14 @@ func (w *World) Enqueue(s *net.Session, pkt []byte) {
 	w.commands <- command{s: s, pkt: pkt}
 }
 
+// worldTickInterval e o TIMER_SEC nativo. A IA pesada e sharded dentro de
+// tick(), como o TMSrv (combate %4; paz/rota/affects %6), em vez de varrer
+// milhares de mobs cinco vezes por segundo.
+const worldTickInterval = 500 * time.Millisecond
+
 // Run e o game loop: comandos dos clients + tick do jogo, processados linearmente.
 func (w *World) Run() {
-	// TIMER_SEC nativo: 500 ms. A IA pesada e sharded dentro de tick(), como o
-	// TMSrv (combate %4; paz/rota/affects %6), em vez de varrer milhares de mobs
-	// cinco vezes por segundo.
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(worldTickInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -728,24 +789,43 @@ func (w *World) Run() {
 	}
 }
 
+// commandLabel devolve o rotulo de metrica de um comando: o opcode, um conjunto
+// fechado e pequeno (nunca sessao/jogador, que explodiriam a cardinalidade).
+//
+// E deliberadamente bounds-safe: wire.ParseHeader indexa 12 bytes sem checar o
+// tamanho, e este rotulo e calculado FORA do recover de safeHandle. Um pacote
+// truncado nao pode derrubar o game loop justamente na funcao que existe para
+// conte-lo.
+func commandLabel(cmd command) string {
+	if cmd.pkt == nil {
+		return "login" // comando interno (resultado de autenticacao)
+	}
+	if len(cmd.pkt) < wire.HeaderSize {
+		return "malformed"
+	}
+	return fmt.Sprintf("0x%X", wire.ParseHeader(cmd.pkt).Type)
+}
+
 // safeHandle isola um panic de handler. O World roda numa UNICA goroutine, entao
 // um panic nao tratado derrubaria TODOS os jogadores (o client ve "nao
 // conectado"). O recover loga o stack e o pacote culpado e mantem o servidor
 // vivo; no pior caso o estado de UM comando fica parcial, o que e muito melhor
 // que a queda total. Tambem serve de diagnostico: o Type do pacote sai no log.
 func (w *World) safeHandle(cmd command) {
+	label := commandLabel(cmd)
+	start := time.Now()
 	defer func() {
 		if r := recover(); r != nil {
-			typ := "-"
 			var id int64
-			if cmd.pkt != nil {
-				typ = fmt.Sprintf("0x%X", wire.ParseHeader(cmd.pkt).Type)
-			}
 			if cmd.s != nil {
 				id = cmd.s.ID
 			}
-			log.Printf("[#%d] PANIC no handler (Type=%s): %v\n%s", id, typ, r, debug.Stack())
+			metricPanicsTotal.Add(1)
+			log.Printf("[#%d] PANIC no handler (Type=%s): %v\n%s", id, label, r, debug.Stack())
 		}
+		// Medido no defer para que um comando que panicou tambem apareca na
+		// duracao -- normalmente e justo o que interessa investigar.
+		observeCommand(label, time.Since(start))
 	}()
 	w.handle(cmd)
 }
@@ -754,7 +834,15 @@ func (w *World) safeHandle(cmd command) {
 // enquanto houver
 // espaco em MaxNumMob. Entradas -1/0 sao apenas de geracao inicial/manual.
 func (w *World) tick() {
-	now := time.Now()
+	now := w.now()
+	// Instrumentacao usa o relogio REAL: mede custo de execucao, nao tempo de
+	// jogo. Um clock falso de teste nao deve falsear a duracao observada.
+	tickStart := time.Now()
+	defer func() {
+		observeTick(tickStart, time.Since(tickStart))
+		observeWorldGauges(len(w.players), len(w.activeMobs))
+		metricCommandQueueDepth.Set(int64(len(w.commands)))
+	}()
 	w.mobTickCounter++
 	// O grid ja reduziu a lista aos mobs com jogador proximo. Uma vez acordado,
 	// o mob percebe alvo a cada 1 s. Perseguicao e patrulha so iniciam um novo
@@ -768,6 +856,9 @@ func (w *World) tick() {
 		}
 	}
 	w.tickActiveMobActions(now)
+	// Acoes de boss vencem pelo relogio do mundo; nao ha ticker por boss.
+	w.tickBossActions(now)
+	w.tickBossRespawns(now)
 	w.tickSummonCombat(now)
 	w.tickSephiraObjects(now)
 	w.tickPlayerAffects(now)
@@ -842,6 +933,10 @@ func (w *World) broadcast(build func() []byte) {
 
 // handle despacha um comando pelo Type do header.
 func (w *World) handle(cmd command) {
+	if cmd.shutdown != nil {
+		w.runShutdown(cmd.shutdown)
+		return
+	}
 	if cmd.login != nil {
 		w.onLoginResult(cmd.s, cmd.login)
 		return
@@ -987,7 +1082,7 @@ func (w *World) spawnDrop(x, y uint16, item model.Item) *GroundItem {
 		Item:   item,
 		X:      dropX,
 		Y:      dropY,
-		Expire: time.Now().Add(2 * time.Minute),
+		Expire: w.now().Add(2 * time.Minute),
 	}
 	w.groundItems[id] = gItem
 

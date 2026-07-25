@@ -136,39 +136,39 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 	}
 	req := quest.Requires
 	if req.MortalOnly && strings.TrimSpace(ch.Evolution) != "" {
-		return "Disponivel apenas para personagens Mortais.", false
+		return "Available only to Mortal characters.", false
 	}
 	if req.MinLevel != 0 && level < req.MinLevel {
-		return fmt.Sprintf("Voce precisa ser nivel %d.", req.MinLevel), false
+		return fmt.Sprintf("You must be level %d.", req.MinLevel), false
 	}
 	if req.MaxLevel != 0 && level > req.MaxLevel {
 		return fmt.Sprintf("Disponivel apenas ate o nivel %d.", req.MaxLevel), false
 	}
 	if req.AfterQuest != 0 && !questCompleted(ch, req.AfterQuest) {
-		return "Voce ainda nao pode receber essa missao.", false
+		return "You cannot take this quest yet.", false
 	}
 	if req.Gold != 0 && ch.Gold < req.Gold {
-		return "Gold insuficiente.", false
+		return "Not enough gold.", false
 	}
 	// O Kibita nativo exige Citizen == 0: nao da para comprar cidadania duas
 	// vezes, nem trocar a de outro canal pela deste.
 	if quest.Rewards.Citizenship && ch.Citizenship != 0 {
-		return "Voce ja possui cidadania.", false
+		return "You already have citizenship.", false
 	}
 	for _, item := range req.Items {
 		if countInventoryItem(ch, item.Index) < item.Quantity() {
-			return "Voce nao possui os itens necessarios.", false
+			return "You do not have the required items.", false
 		}
 	}
 	// O consumo tambem precisa estar disponivel: exigir na oferta evita
 	// prometer uma recompensa que a confirmacao nao conseguiria pagar.
 	for _, item := range quest.Consumes {
 		if countInventoryItem(ch, item.Index) < item.Quantity() {
-			return "Voce nao possui os itens necessarios.", false
+			return "You do not have the required items.", false
 		}
 	}
 	if free := freeInventorySlots(ch); free < len(quest.Rewards.Items) {
-		return "Seu inventario esta cheio.", false
+		return "Your inventory is full.", false
 	}
 	return "", true
 }
@@ -221,7 +221,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	// chegando e depois silencio, e nao da para distinguir "ja concluida" de
 	// uma falha de verdade -- exatamente o que confundiu no primeiro teste.
 	if !quest.Repeatable && questCompleted(p.Char, quest.ID) {
-		s.Send(wire.MessagePanel("Voce ja concluiu essa missao."))
+		s.Send(wire.MessagePanel("You have already completed this quest."))
 		log.Printf("[#%d] QUEST %d recusada: ja concluida", s.ID, quest.ID)
 		return
 	}
@@ -245,7 +245,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	for _, item := range quest.Consumes {
 		if !consumeInventoryItem(p.Char, item.Index, item.Quantity()) {
 			p.Char.Inv = previousInv
-			s.Send(wire.MessagePanel("Voce nao possui os itens necessarios."))
+			s.Send(wire.MessagePanel("You do not have the required items."))
 			log.Printf("[#%d] QUEST %d recusada: consumo do item %d x%d falhou",
 				s.ID, quest.ID, item.Index, item.Quantity())
 			return
@@ -257,7 +257,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	for _, item := range quest.Rewards.Items {
 		if !grantInventoryItem(p.Char, item) {
 			p.Char.Inv, p.Char.Gold = previousInv, previousGold
-			s.Send(wire.MessagePanel("Seu inventario esta cheio."))
+			s.Send(wire.MessagePanel("Your inventory is full."))
 			log.Printf("[#%d] QUEST %d recusada: sem espaco para o item %d",
 				s.ID, quest.ID, item.Index)
 			return
@@ -296,7 +296,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 		p.Char.QuestsDone = previousDone
 		p.X, p.Y = previousX, previousY
 		p.Char.Citizenship = previousCitizenship
-		s.Send(wire.MessagePanel("Falha ao salvar. A missao nao foi concluida."))
+		s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
 		log.Printf("[#%d] ERRO quest %d: %v", s.ID, quest.ID, err)
 		return
 	}

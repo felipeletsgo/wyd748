@@ -45,10 +45,10 @@ func TestRequireGuildLeader(t *testing.T) {
 }
 
 func TestGuildAuthMessageDistingueOsDoisCasos(t *testing.T) {
-	if got := guildAuthMessage(errGuildNotLeader, "expulsar"); got != "Somente o lider pode expulsar." {
+	if got := guildAuthMessage(errGuildNotLeader, "expel"); got != "Only the leader can expel." {
 		t.Fatalf("mensagem de nao-lider incorreta: %q", got)
 	}
-	if got := guildAuthMessage(errGuildMissing, "expulsar"); got != "Voce nao pertence a uma guild." {
+	if got := guildAuthMessage(errGuildMissing, "expel"); got != "You do not belong to a guild." {
 		t.Fatalf("mensagem de sem-guild incorreta: %q", got)
 	}
 }

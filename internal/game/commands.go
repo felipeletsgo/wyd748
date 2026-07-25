@@ -107,7 +107,7 @@ func clearInventory(ch *model.Char) int {
 
 func (w *World) executeClearInventory(s *net.Session, p *Player) {
 	if p.GhostShop != nil {
-		s.Send(wire.MessagePanel("Feche a Loja Fantasma antes de limpar o inventario."))
+		s.Send(wire.MessagePanel("Close Auto Trade before clearing your inventory."))
 		return
 	}
 	oldInv := p.Char.Inv
@@ -115,11 +115,11 @@ func (w *World) executeClearInventory(s *net.Session, p *Player) {
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Char.Inv = oldInv
 		log.Printf("[#%d] ERRO /limparinv conta=%q: %v", s.ID, p.Account.Name, err)
-		s.Send(wire.MessagePanel("Falha ao salvar. Inventario nao foi alterado."))
+		s.Send(wire.MessagePanel("Save failed. The inventory was not changed."))
 		return
 	}
 	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
-	s.Send(wire.MessagePanel("Inventario limpo com sucesso."))
+	s.Send(wire.MessagePanel("Inventory cleared."))
 	log.Printf("[#%d] /limparinv removeu %d item(ns) da conta %q",
 		s.ID, removed, p.Account.Name)
 }
@@ -279,7 +279,7 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		// Espelha o SendClientMessage do W2PP (_MSG_MessagePanel) com a data/hora
 		// do host, no mesmo formato "%H:%M:%S | %d-%m-%Y".
 		s.Send(wire.MessagePanel(time.Now().Format("15:04:05 | 02-01-2006")))
-	case "limparinv":
+	case "limparinv", "clearinv":
 		w.executeClearInventory(s, p)
 	case "spk":
 		w.executeShout(s, p, arg)
@@ -287,15 +287,15 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		w.kingdomCommandTeleport(s, p, false)
 	case "king", "rei":
 		w.kingdomCommandTeleport(s, p, true)
-	case "criar":
+	case "criar", "create":
 		w.guildCommandCreate(s, p, arg)
-	case "convidar":
+	case "convidar", "invite":
 		w.guildCommandInvite(s, p, arg)
-	case "aceitar":
+	case "aceitar", "accept":
 		w.guildCommandAccept(s, p, arg)
-	case "sair":
+	case "sair", "leave":
 		w.guildCommandLeave(s, p, arg)
-	case "expulsar":
+	case "expulsar", "expel":
 		w.guildCommandExpel(s, p, arg)
 	case "criarsub", "subcreate", "createsub":
 		w.guildCommandSubLeader(s, p, arg)
@@ -317,7 +317,7 @@ func (w *World) sendCharacterInfo(s *net.Session, p *Player, target string) {
 	}
 	found := w.playerByCharacterName(target)
 	if found == nil || found.Char == nil {
-		s.Send(wire.MessagePanel(fmt.Sprintf("%s nao esta conectado.", target)))
+		s.Send(wire.MessagePanel(fmt.Sprintf("%s is not online.", target)))
 		return
 	}
 	ch := found.Char
@@ -344,12 +344,12 @@ func (w *World) characterInfoLine(ch *model.Char) string {
 	parts := []string{fmt.Sprintf("%s  Lv.%d", ch.Name, displayLevel(ch))}
 
 	if guild, member := w.guildOf(ch); guild != nil {
-		role := "membro"
+		role := "Member"
 		switch {
 		case member.Rank == model.GuildRankLeader:
-			role = "lider"
+			role = "Leader"
 		case model.IsSubLeader(member.Rank):
-			role = "sub-lider"
+			role = "Sub-leader"
 		}
 		guildPart := fmt.Sprintf("Guild: %s (%s)", guild.Name, role)
 		if ally := w.guilds.FindByID(guild.Ally); ally != nil {
@@ -386,7 +386,7 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 	}
 	recipient := w.playerByCharacterName(target)
 	if recipient == nil {
-		s.Send(wire.MessagePanel("Jogador nao esta conectado."))
+		s.Send(wire.MessagePanel("That player is not online."))
 		log.Printf("[#%d] WHISPER %q -> %q: desconectado", s.ID, p.Char.Name, target)
 		return
 	}
@@ -429,7 +429,7 @@ func (w *World) sendPartyChat(sender *Player, message string) {
 // o item nem a mensagem sao confirmados, evitando anuncio gratuito por erro.
 func (w *World) executeShout(s *net.Session, p *Player, message string) {
 	if message == "" {
-		s.Send(wire.MessagePanel("Uso: /spk mensagem"))
+		s.Send(wire.MessagePanel("Usage: /spk message"))
 		return
 	}
 	if len(message) > 120 {
@@ -443,7 +443,7 @@ func (w *World) executeShout(s *net.Session, p *Player, message string) {
 		}
 	}
 	if slot < 0 {
-		s.Send(wire.MessagePanel("Voce precisa de um Shout para anunciar."))
+		s.Send(wire.MessagePanel("You need a Shout to announce."))
 		return
 	}
 	previous := p.Char.Inv[slot]
@@ -451,10 +451,10 @@ func (w *World) executeShout(s *net.Session, p *Player, message string) {
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Char.Inv[slot] = previous
 		log.Printf("[#%d] ERRO /spk conta=%q: %v", s.ID, p.Account.Name, err)
-		s.Send(wire.MessagePanel("Falha ao consumir o Shout. Nenhum anuncio foi enviado."))
+		s.Send(wire.MessagePanel("Failed to consume the Shout. No announcement was sent."))
 		return
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
-	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVIDOR]", message, 7) })
+	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", message, 7) })
 	log.Printf("[#%d] /spk %q", s.ID, message)
 }

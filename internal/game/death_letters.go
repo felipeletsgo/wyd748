@@ -13,5 +13,5 @@ func (w *World) receiveDeathLetter(victim *Player, killerName, killerKind string
 		return
 	}
 	victim.Session.Send(wire.MessageWhisper(0, killerName,
-		fmt.Sprintf("!Voce foi morto por %s %q.", killerKind, killerName), 0))
+		fmt.Sprintf("!You were killed by %s %q.", killerKind, killerName), 0))
 }

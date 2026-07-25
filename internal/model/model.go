@@ -239,7 +239,18 @@ type Char struct {
 	SkillPointBonus uint32         `json:"skillPointBonus,omitempty"`
 	// Progressao avancada usada pelas composicoes Ehre/Odin. Evolution vazio e
 	// tratado como "mortal"; valores futuros: arch, celestial e subcelestial.
-	Evolution                string `json:"evolution,omitempty"`
+	Evolution string `json:"evolution,omitempty"`
+	// ArchMortalSlot e o slot do Mortal que originou este Arch e
+	// ArchMortalLevel guarda o nivel DELE. So tem sentido quando Evolution e
+	// "arch"; nos demais personagens ficam zerados e sao ignorados.
+	//
+	// O bonus de status do Arch cresce com o nivel do Mortal, e o nativo o
+	// recalcula a cada login a partir do personagem no slot -- ou seja, subir o
+	// Mortal DEPOIS da ascensao continua fortalecendo o Arch. Guardamos o slot
+	// para reproduzir isso e o nivel em cache porque o calculo de pontos recebe
+	// apenas o Char, sem acesso a conta.
+	ArchMortalSlot           int    `json:"archMortalSlot,omitempty"`
+	ArchMortalLevel          uint32 `json:"archMortalLevel,omitempty"`
 	Fame                     uint32 `json:"fame,omitempty"`
 	SoulInfo                 uint8  `json:"soulInfo,omitempty"` // 1..10; zero = nenhum
 	CelestialLevel40Unlocked bool   `json:"celestialLevel40Unlocked,omitempty"`

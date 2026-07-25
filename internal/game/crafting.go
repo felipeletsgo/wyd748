@@ -172,11 +172,11 @@ func (w *World) sendCombineResult(p *Player, result uint32) {
 func combineResultMessage(result uint32) string {
 	switch result {
 	case 0:
-		return "Combinacao incorreta."
+		return "Wrong combination."
 	case 1:
-		return "Processamento concluido."
+		return "Processing complete."
 	case 2:
-		return "Falha na composicao."
+		return "The combination failed."
 	default:
 		return ""
 	}

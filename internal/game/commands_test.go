@@ -1,6 +1,8 @@
 package game
 
 import (
+	"os"
+	"strings"
 	"testing"
 
 	"wydgo/internal/model"
@@ -97,6 +99,38 @@ func TestClearInventoryIncludesHiddenStructuralSlot(t *testing.T) {
 	for i, item := range ch.Inv {
 		if item != (model.Item{}) {
 			t.Fatalf("inv[%d] permaneceu: %+v", i, item)
+		}
+	}
+}
+
+// TestChatCommandsAcceptBothLanguages trava a decisao: as mensagens do jogo
+// passaram para ingles (o client 7.48 e em ingles), mas os comandos DIGITADOS
+// continuam aceitando o nome original em portugues.
+//
+// Existe porque a traducao em massa chegou a renomear `case "convidar"` para
+// `case "invite"`, trocando silenciosamente o que o jogador precisa digitar.
+func TestChatCommandsAcceptBothLanguages(t *testing.T) {
+	pairs := [][2]string{
+		{"criar", "create"},
+		{"convidar", "invite"},
+		{"aceitar", "accept"},
+		{"sair", "leave"},
+		{"expulsar", "expel"},
+		{"limparinv", "clearinv"},
+		{"reino", "kingdom"},
+		{"rei", "king"},
+		{"criarsub", "subcreate"},
+	}
+	src, err := os.ReadFile("commands.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(src)
+	for _, pair := range pairs {
+		for _, name := range pair {
+			if !strings.Contains(body, `"`+name+`"`) {
+				t.Errorf("o comando %q sumiu do dispatcher", name)
+			}
 		}
 	}
 }

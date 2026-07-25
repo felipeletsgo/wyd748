@@ -58,12 +58,12 @@ func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 	}
 	portal, ok := teleportAt(w.teleports, p.X, p.Y)
 	if !ok {
-		s.Send(wire.MessagePanel("Teleporte indisponivel nesta posicao."))
+		s.Send(wire.MessagePanel("Teleport unavailable from this position."))
 		log.Printf("[#%d] teleporte sem rota @(%d,%d)", s.ID, p.X, p.Y)
 		return
 	}
 	if p.Char.Gold < portal.Price {
-		s.Send(wire.MessagePanel("Gold insuficiente para o teleporte."))
+		s.Send(wire.MessagePanel("Not enough gold for the teleport."))
 		return
 	}
 	oldGold := p.Char.Gold
@@ -72,7 +72,7 @@ func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 	w.cancelTrade(p, "teleporte")
 	if !w.teleportPlayer(p, portal.DestX, portal.DestY) {
 		p.Char.Gold = oldGold
-		s.Send(wire.MessagePanel("Nao foi possivel concluir o teleporte."))
+		s.Send(wire.MessagePanel("The teleport could not be completed."))
 		return
 	}
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
@@ -96,10 +96,10 @@ func (w *World) onPKMode(s *net.Session, pkt []byte) {
 		w.cancelTrade(p, "modo PK ativado")
 	}
 	state := uint32(0)
-	message := "Modo PK desativado."
+	message := "PK mode disabled."
 	if enabled {
 		state = 1
-		message = "Modo PK ativado."
+		message = "PK mode enabled."
 	}
 	w.sendToPlayerView(p, func() []byte {
 		return wire.StandardParm(wire.OpPKInfo, p.ID, state)
@@ -117,6 +117,6 @@ func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 		return
 	}
 	target := binary.LittleEndian.Uint32(pkt[12:16])
-	s.Send(wire.MessagePanel("Disputa de cidades ainda nao esta habilitada."))
+	s.Send(wire.MessagePanel("City sieges are not enabled yet."))
 	log.Printf("[#%d] desafio de guild ignorado com seguranca target=%d", s.ID, target)
 }

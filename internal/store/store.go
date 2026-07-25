@@ -236,6 +236,11 @@ func (s *JSONStore) flushWrites() {
 	<-done
 }
 
+// Flush bloqueia ate a fila de escritas assincronas drenar. E a barreira usada
+// pelo desligamento controlado: sem ela, um autosave ainda enfileirado seria
+// perdido quando o processo termina.
+func (s *JSONStore) Flush() { s.flushWrites() }
+
 // enqueueAsyncWrite agenda uma escrita fora do game-loop. Se a fila nao existir
 // (impl legada), escreve na hora.
 func (s *JSONStore) enqueueAsyncWrite(run func()) {

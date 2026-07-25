@@ -149,7 +149,7 @@ func (w *World) tickPlayerMounts(now time.Time) {
 				setEggDelay(egg, eggDelay(*egg)-1)
 				if eggDelay(*egg) == 0 && p.Session != nil {
 					p.Session.Send(wire.SendItem(p.ID, placeInv, byte(i), *egg))
-					p.Session.Send(wire.MessagePanel("O ovo esta pronto para o proximo Ori/Lac."))
+					p.Session.Send(wire.MessagePanel("The egg is ready for the next Ori/Lac."))
 				}
 			}
 		}
@@ -175,7 +175,7 @@ func (w *World) tickPlayerMounts(now time.Time) {
 			if p.Session != nil {
 				p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
 				p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
-				p.Session.Send(wire.MessagePanel("Sua montaria esta faminta e parou de te ajudar."))
+				p.Session.Send(wire.MessagePanel("Your mount is starving and stopped helping you."))
 			}
 			w.refreshAppearance(p)
 		} else if p.Session != nil {
@@ -241,7 +241,7 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, powderSlot, *powder)) }
 	if eggDelay(*egg) > 0 {
 		resend()
-		s.Send(wire.MessagePanel(fmt.Sprintf("O ovo ainda esta incubando (%d min). Use o acelerador ou aguarde.", eggDelay(*egg))))
+		s.Send(wire.MessagePanel(fmt.Sprintf("The egg is still incubating (%d min). Use the accelerator or wait.", eggDelay(*egg))))
 		return
 	}
 	def, ok := w.items[egg.Index]
@@ -272,11 +272,11 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 	s.Send(wire.SendItem(p.ID, placeInv, byte(eggSlot), *egg))
 	switch {
 	case hatched:
-		s.Send(wire.MessagePanel("O ovo chocou! Nasceu uma cria -- equipe-a."))
+		s.Send(wire.MessagePanel("The egg hatched! A hatchling was born -- equip it."))
 	case success:
-		s.Send(wire.MessagePanel(fmt.Sprintf("Incubacao avancou (%d/%d).", eggProgress(*egg), threshold+1)))
+		s.Send(wire.MessagePanel(fmt.Sprintf("Incubation advanced (%d/%d).", eggProgress(*egg), threshold+1)))
 	default:
-		s.Send(wire.MessagePanel("A incubacao falhou desta vez."))
+		s.Send(wire.MessagePanel("The incubation failed this time."))
 	}
 	log.Printf("[#%d] incubacao vol=%d ovo->%d progresso=%d/%d chocou=%v",
 		s.ID, vol, egg.Index, eggProgress(*egg), threshold+1, hatched)
@@ -293,13 +293,13 @@ func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, inv
 			w.saveAccountAsync(p.Account)
 			s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item))
 			s.Send(wire.SendItem(p.ID, placeInv, byte(i), *egg))
-			s.Send(wire.MessagePanel("Incubacao acelerada! Use Ori/Lac no ovo novamente."))
+			s.Send(wire.MessagePanel("Incubation accelerated! Use Ori/Lac on the egg again."))
 			log.Printf("[#%d] acelerou incubacao do ovo %d", s.ID, egg.Index)
 			return
 		}
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item))
-	s.Send(wire.MessagePanel("Nenhum ovo aguardando incubacao."))
+	s.Send(wire.MessagePanel("No egg awaiting incubation."))
 }
 
 // --- Cria como pet que segue o dono ---
@@ -433,9 +433,9 @@ func (w *World) grantMountHuntExp(p *Player, m *Mob) {
 		p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
 		p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
 		if evolved {
-			p.Session.Send(wire.MessagePanel("Sua cria cresceu de estagio!"))
+			p.Session.Send(wire.MessagePanel("Your hatchling grew to the next stage!"))
 		} else {
-			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Sua cria subiu para o level %d.", level)))
+			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Your hatchling reached level %d.", level)))
 		}
 	}
 	w.refreshAppearance(p)
@@ -495,7 +495,7 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 			target.Session.Send(wire.SendItem(target.ID, placeEquip, byte(mslot), *mount))
 			target.Session.Send(wire.UpdateScore(target.ID, *target.Char))
 			w.refreshAppearance(target)
-			target.Session.Send(wire.MessagePanel("Sua montaria foi ferida!"))
+			target.Session.Send(wire.MessagePanel("Your mount was wounded!"))
 		}
 	}
 	return rider
@@ -550,7 +550,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 		// ProcessAdultMount, que trata comida como 100 sob o affect 51).
 		if !setAffect(p.Char, 51, 0, 0, rule.DurationUnits) {
 			resend()
-			s.Send(wire.MessagePanel("Protecao da montaria ja esta ativa."))
+			s.Send(wire.MessagePanel("Mount protection is already active."))
 			return
 		}
 		if rule.Consume {
@@ -567,7 +567,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	mount, mslot := equippedMount(p.Char)
 	if mount == nil {
 		resend()
-		s.Send(wire.MessagePanel("Equipe a montaria para usar isto nela."))
+		s.Send(wire.MessagePanel("Equip the mount to use this on it."))
 		return
 	}
 
@@ -624,32 +624,32 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 // limite de estagio, evolui (sIndex+=30).
 func mountEssence(mount *model.Item, essenceIndex uint16) (bool, string) {
 	if !essenceMatchesMount(essenceIndex, mount.Index) {
-		return false, "Este amago nao corresponde a montaria."
+		return false, "This essence does not match the mount."
 	}
 	mount.SetMountHP(model.MountEssenceHP)
 	level := mount.MountLevel()
 	if model.IsMountAdult(mount.Index) {
 		if level >= model.MountMaxLevel {
-			return false, "A montaria ja esta no level maximo."
+			return false, "The mount is already at maximum level."
 		}
 		if rand.Intn(100) > mountSuccessRate(level) {
 			if level%2 == 0 {
 				r2 := rand.Intn(100)
 				if (level < 50 && r2 < 20) || (level >= 50 && level < 100 && r2 < 40) || (level >= 100 && r2 < 70) {
 					mount.SetMountLevel(level - 1)
-					return true, "Falha: o level da montaria caiu."
+					return true, "Failure: the mount lost a level."
 				}
 			}
-			return true, "Falha na evolucao da montaria."
+			return true, "The mount evolution failed."
 		}
 	}
 	level++
 	mount.SetMountLevel(level)
 	if th := mountStageThreshold(mount.Index); th > 0 && level >= th {
 		advanceMountStage(mount, 14)
-		return true, "Sua montaria cresceu de estagio!"
+		return true, "Your mount grew to the next stage!"
 	}
-	return true, "Sua montaria subiu de level."
+	return true, "Your mount gained a level."
 }
 
 // initShopMounts inicializa o estado das montarias que os NPCs vendem (HP,
@@ -693,11 +693,11 @@ func (w *World) initFreshMount(mount *model.Item) bool {
 // de revive, que ainda nao existe.
 func mountFeed(mount *model.Item, feedIndex uint16) (bool, string) {
 	if !feedMatchesMount(feedIndex, mount.Index) {
-		return false, "Esta racao nao corresponde a montaria."
+		return false, "This feed does not match the mount."
 	}
 	if mount.MountHP() <= 0 {
 		if mount.MountLongev() <= 0 {
-			return false, "A montaria perdeu a longevidade e nao pode reviver."
+			return false, "The mount lost its longevity and cannot be revived."
 		}
 		mount.SetMountHP(100)
 		mount.SetMountFood(5)
@@ -721,14 +721,14 @@ func mountFeed(mount *model.Item, feedIndex uint16) (bool, string) {
 func mountLongevityRecover(mount *model.Item) (bool, string) {
 	long := mount.MountLongev()
 	if long < 1 || long >= model.MountMaxLongevity {
-		return false, "Longevidade da montaria no maximo."
+		return false, "Mount longevity is already at maximum."
 	}
 	long += rand.Intn(3) + 1
 	if long > model.MountMaxLongevity {
 		long = model.MountMaxLongevity
 	}
 	mount.SetMountLongev(long)
-	return true, "Longevidade da montaria restaurada."
+	return true, "Mount longevity restored."
 }
 
 // mountGrowth porta a pocao de crescimento (Vol 94): evolui o estagio na hora
@@ -737,10 +737,10 @@ func mountLongevityRecover(mount *model.Item) (bool, string) {
 func mountGrowth(mount *model.Item, potionIndex uint16) (bool, string) {
 	cat := int(potionIndex) - 3344
 	if cat < 0 || growthCategory(mount.Index) != cat {
-		return false, "Esta pocao nao corresponde a montaria."
+		return false, "This potion does not match the mount."
 	}
 	advanceMountStage(mount, 20)
-	return true, "Sua montaria cresceu de estagio!"
+	return true, "Your mount grew to the next stage!"
 }
 
 // growthCategory mapeia o sIndex da montaria para a categoria da pocao de

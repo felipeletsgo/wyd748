@@ -50,10 +50,10 @@ func (w *World) resolveNPCInteraction(p *Player, npcID uint16) (*Mob, error) {
 func npcInteractionMessage(err error) string {
 	switch {
 	case errors.Is(err, errNPCTooFar):
-		return "Aproxime-se para interagir."
+		return "Move closer to interact."
 	case errors.Is(err, errNPCNotVisible):
-		return "Esse personagem nao esta visivel."
+		return "That character is not visible."
 	default:
-		return "Esse personagem nao esta disponivel."
+		return "That character is not available."
 	}
 }
