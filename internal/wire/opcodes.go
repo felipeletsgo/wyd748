@@ -43,6 +43,7 @@ const (
 	OpGetItem            = 0x270 // C->S pegar item do chao (28B)
 	OpCNFGetItem         = 0x171 // S->C confirma pegar item (28B)
 	OpRemoveItem         = 0x16F // S->C remove item do chao (16B)
+	OpUpdateItem         = 0x374 // S->C troca o estado de um item do chao (20B)
 	OpMessageChat        = 0x333 // C<->S chat local/comandos (140B, texto@12)
 	OpMessageWhisper     = 0x334 // C->S whisper/comando '/' (MobName[16]@12, String[128]@28)
 	OpSetShortSkill      = 0x378 // C<->S barra de 20 atalhos de skill (32B)

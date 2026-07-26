@@ -26,6 +26,20 @@ exp_rate=100
 exp_minimum=10000
 party_exp_bonus=2
 
+# Compositor (Anct). A composicao exige EXATAMENTE 4 materiais, todos do set D
+# (item level 4) ou E (item level 5) e todos refinados +7, +8 ou +9.
+# A chance de sucesso em % e compositor_base mais o bonus de cada material,
+# escolhido pelo refino dele. Com os valores abaixo o teto e 10+8*4=42.
+#   4 materiais +7 = 22   4 materiais +8 = 30   4 materiais +9 = 42
+compositor_base=10
+compositor_refine_7=3
+compositor_refine_8=5
+compositor_refine_9=8
+
+# Objetos permanentes do mundo (portoes, portas, canhoes, torres). Vao para o
+# mapa no boot, nao expiram e nao podem ser recolhidos.
+init_items=data/init_items.csv
+
 # Dados autoritativos
 npcs=data/npcs
 npcgener=data/NPCGener.txt

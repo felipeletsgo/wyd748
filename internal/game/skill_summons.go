@@ -22,7 +22,7 @@ type summonTemplate struct {
 var summonTemplates = [...]summonTemplate{
 	{"Condor", 206, 7, 15, 70, 60, 40, 150, 50, 75, 100, 400},
 	{"Javali", 225, 6, 20, 70, 100, 40, 125, 50, 150, 125, 400},
-	{"Lobo", 226, 6, 40, 80, 7000, 40, 200, 50, 125, 125, 400},
+	{"Wolf", 226, 6, 40, 80, 7000, 40, 200, 50, 125, 125, 400},
 	{"Urso", 227, 5, 60, 100, 7000, 40, 200, 50, 200, 150, 400},
 	{"Tigre", 244, 5, 30, 150, 100, 40, 250, 50, 175, 150, 400},
 	{"Gorila", 245, 4, 45, 100, 200, 40, 225, 50, 250, 175, 400},
@@ -274,7 +274,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 			}
 			w.sendToMobView(summon, func() []byte {
 				return wire.AttackHitExtended(summon.ID, target.mob.ID, summon.X, summon.Y, target.mob.X, target.mob.Y,
-					damage, 0, summon.Def.Extended.MaxMP)
+					damage, target.mob.Def.Extended.MaxHP, 0, summon.Def.Extended.MaxMP)
 			})
 			if target.mob.HP == 0 {
 				w.killMobState(owner, target.mob, damage, damage)
@@ -296,7 +296,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 		target.user.LastAttackerID = owner.ID
 		w.sendToPlayerView(target.user, func() []byte {
 			return wire.AttackHitExtended(summon.ID, target.user.ID, summon.X, summon.Y, target.user.X, target.user.Y,
-				damage, 0, summon.Def.Extended.MaxMP)
+				damage, playerMaxHP(target.user.Char), 0, summon.Def.Extended.MaxMP)
 		})
 		w.syncPlayerVitals(target.user)
 		w.updatePartyMember(target.user)

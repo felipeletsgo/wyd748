@@ -160,7 +160,9 @@ func setPlayerCurHP(ch *model.Char, value uint32) {
 	}
 	ensureExtendedScore(ch)
 	value = minU32(value, playerMaxHP(ch))
-	ch.Extended.CurHP = value
+	// O valor VIVO (limitado pelo teto efetivo) fica no runtime; o base
+	// so aceita ate o proprio teto, senao o autosave grava cur > max.
+	ch.Extended.CurHP = minU32(value, ch.Extended.MaxHP)
 	if ch.ExtendedRuntime != nil {
 		ch.ExtendedRuntime.CurHP = value
 	} else {
@@ -174,7 +176,9 @@ func setPlayerCurMP(ch *model.Char, value uint32) {
 	}
 	ensureExtendedScore(ch)
 	value = minU32(value, playerMaxMP(ch))
-	ch.Extended.CurMP = value
+	// O valor VIVO (limitado pelo teto efetivo) fica no runtime; o base
+	// so aceita ate o proprio teto, senao o autosave grava cur > max.
+	ch.Extended.CurMP = minU32(value, ch.Extended.MaxMP)
 	if ch.ExtendedRuntime != nil {
 		ch.ExtendedRuntime.CurMP = value
 	} else {

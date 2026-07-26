@@ -27,7 +27,7 @@ func simpleQuest(id int, npc string) model.QuestDef {
 func TestIndexQuestsRecusaNPCInexistente(t *testing.T) {
 	file := model.QuestFile{Version: model.QuestFileVersion,
 		Quests: []model.QuestDef{simpleQuest(1, "NaoExiste")}}
-	if _, err := indexQuests(file, []model.NPCDef{questNPC("Coveiro", 43)}); err == nil {
+	if _, err := indexQuests(file, []model.NPCDef{questNPC("Gravedigger", 43)}); err == nil {
 		t.Fatal("quest apontando para npc inexistente deveria derrubar o boot")
 	}
 }
@@ -55,8 +55,8 @@ func TestIndexQuestsRecusaNPCReservado(t *testing.T) {
 func TestIndexQuestsAceitaNPCDeQuest(t *testing.T) {
 	// merchant 43 = 0x2B -> nibble 11, que e o tipo de quest da base Micronics.
 	file := model.QuestFile{Version: model.QuestFileVersion,
-		Quests: []model.QuestDef{simpleQuest(1, "Coveiro")}}
-	index, err := indexQuests(file, []model.NPCDef{questNPC("Coveiro", 43)})
+		Quests: []model.QuestDef{simpleQuest(1, "Gravedigger")}}
+	index, err := indexQuests(file, []model.NPCDef{questNPC("Gravedigger", 43)})
 	if err != nil {
 		t.Fatalf("npc de quest deveria ser aceito: %v", err)
 	}
@@ -68,8 +68,8 @@ func TestIndexQuestsAceitaNPCDeQuest(t *testing.T) {
 // O NPCGener casa nomes com '_' e com espaco; a quest precisa aceitar os dois.
 func TestQuestForNPCCasaNomeComUnderscoreEEspaco(t *testing.T) {
 	file := model.QuestFile{Version: model.QuestFileVersion,
-		Quests: []model.QuestDef{simpleQuest(1, "Chefe de Treino")}}
-	npcs := []model.NPCDef{questNPC("Chefe_de_Treino", 43)}
+		Quests: []model.QuestDef{simpleQuest(1, "Drill Master")}}
+	npcs := []model.NPCDef{questNPC("Drill_Master", 43)}
 	index, err := indexQuests(file, npcs)
 	if err != nil {
 		t.Fatalf("indexQuests: %v", err)
@@ -233,7 +233,7 @@ func TestQuestRepetivelNaoMarcaConclusao(t *testing.T) {
 	w := newZoneTestWorld()
 	p := addZonePlayer(w, 1, 2100, 2100, 500)
 	p.Char.Extended.Level = 39
-	quest := simpleQuest(1, "Coveiro")
+	quest := simpleQuest(1, "Gravedigger")
 	quest.Repeatable = true
 	quest.Requires = model.QuestRequirements{MinLevel: 39, MaxLevel: 115, MortalOnly: true}
 	quest.Rewards.Teleport = &model.QuestTeleport{X: 2398, Y: 2105}
@@ -305,7 +305,7 @@ func TestGrantInventoryItemFalhaComInventarioCheio(t *testing.T) {
 // --- interacao com NPC -----------------------------------------------------
 
 func TestResolveNPCInteractionValidaAlcanceEVisibilidade(t *testing.T) {
-	def := questNPC("Coveiro", 43)
+	def := questNPC("Gravedigger", 43)
 	mob := &Mob{ID: 1000, X: 2200, Y: 2200, Def: &def}
 	w := testSpatialWorld([]*Mob{mob})
 

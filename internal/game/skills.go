@@ -181,13 +181,6 @@ func explosionBashBaseDamage(baseDamage, intelligence, currentMP int) int {
 	return baseDamage + intelligence + currentMP
 }
 
-func healingWireDamage(hpDelta uint32) uint16 {
-	if hpDelta == 0 {
-		return 0
-	}
-	return uint16(-int16(minU32(hpDelta, 32767)))
-}
-
 func skillVisualDamage(calculated uint32) uint16 {
 	// Damage e lido com MOVSX no caminho multi-alvo 7.48. 0xFFFF vira -1
 	// (MISS/sem numero); 32767 e o maior hit visual positivo desse pacote.
@@ -489,11 +482,11 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			primary = affected[0].player
 			wireTargets = make([]wire.SkillTarget, 0, len(affected))
 			for _, result := range affected {
-				damage := uint16(0)
-				// O protocolo representa cura como Damage short negativo. E isso que
-				// faz o 7.48 subir o HP e mostrar "+ valor" no alvo.
-				damage = healingWireDamage(result.hpDelta)
-				wireTargets = append(wireTargets, wire.SkillTarget{ID: result.player.ID, Damage: damage})
+				// O protocolo representa cura como Damage short negativo; o
+				// builder faz essa conversao e aplica a mesma escala do dano.
+				wireTargets = append(wireTargets, wire.SkillTarget{
+					ID: result.player.ID, Heal: result.hpDelta,
+					MaxHP: playerMaxHP(result.player.Char)})
 			}
 		}
 		w.sendToPlayerView(p, func() []byte {
@@ -503,6 +496,14 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		})
 		for _, result := range affected {
 			target := result.player
+			// O dono PRECISA do 0x181 alem do 0x336. Os dois wrappers do patch
+			// wide alimentam o sidecar que o HUD le, e o 0x336 sozinho nao
+			// estava bastando: com so ele, as barras de HP e MP ficavam quase
+			// zeradas -- o desenho caia para o WORD escalado (29.322) sobre o
+			// MaxHP wide (1.202.183), 2,4% da barra.
+			//
+			// O custo e o flicker de um redesenho nativo a mais por cast. E o
+			// lado certo desse trade: piscar incomoda, barra vazia engana.
 			w.publishPlayerAffects(target)
 			w.syncPlayerVitals(target)
 			w.updatePartyMember(target)
@@ -614,7 +615,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		hit := hit
 		w.sendToMobView(hit.mob, func() []byte {
 			return spectralPacket(p.Char, wire.SkillHitExtended(p.ID, hit.mob.ID, p.X, p.Y, hit.mob.X, hit.mob.Y,
-				hit.damage, p.Char.Exp, playerCombatMP(p.Char),
+				hit.damage, hit.mob.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char),
 				int16(skillIndex), motion, skillVisualLevel(mastery)))
 		})
 	}

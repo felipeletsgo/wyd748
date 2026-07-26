@@ -1,0 +1,317 @@
+{
+  "name": "Blood_Cyclop",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 234
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 702
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 67000,
+  "extendedScore": {
+    "version": 2,
+    "level": 156,
+    "attack": 395,
+    "magicAttack": 0,
+    "defense": 1090,
+    "maxHP": 6500,
+    "maxMP": 0,
+    "curHP": 6500,
+    "curMP": 0,
+    "str": 3,
+    "int": 50,
+    "dex": 30,
+    "con": 250,
+    "critical": 255,
+    "resistHoly": 226,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1
+  },
+  "carry": [
+    {
+      "index": 413,
+      "eff": [
+        61,
+        10,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4039
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 413,
+      "eff": [
+        61,
+        10,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1185,
+      "eff": [
+        101,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1188,
+      "eff": [
+        101,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1136,
+      "eff": [
+        102,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1124,
+      "eff": [
+        102,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 413,
+      "eff": [
+        61,
+        10,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

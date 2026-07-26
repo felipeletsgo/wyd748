@@ -15,7 +15,7 @@ func TestPhaseTypeRestrictsReactions(t *testing.T) {
 		ID: "t", NPC: "X", Type: model.BossTypeCaster,
 		Spawn:   model.BossSpawn{X: 1, Y: 1},
 		Skills:  []model.BossSkill{{ID: 26}},
-		Summons: []model.BossSummon{{NPC: "Esqueleto", Count: 2}},
+		Summons: []model.BossSummon{{NPC: "Skeleton", Count: 2}},
 		Phases:  []model.BossPhase{{HPPercent: 50, Type: model.BossTypeSummoner}},
 	}
 	profile, err := compileBossProfile(config)
@@ -57,7 +57,7 @@ func TestPhaseMechanicsAlwaysEnabled(t *testing.T) {
 	config := model.BossConfig{
 		ID: "t", NPC: "X", Type: model.BossTypeChaser, // chaser: nenhuma reacao
 		Spawn:   model.BossSpawn{X: 1, Y: 1},
-		Summons: []model.BossSummon{{NPC: "Esqueleto", Count: 2}},
+		Summons: []model.BossSummon{{NPC: "Skeleton", Count: 2}},
 		Phases: []model.BossPhase{{
 			HPPercent: 50, ShieldPercent: 100, ShieldUntilAddsDead: true,
 		}},
@@ -102,7 +102,7 @@ func TestPhasedUsesEverything(t *testing.T) {
 		ID: "t", NPC: "X", Type: model.BossTypePhased,
 		Spawn:   model.BossSpawn{X: 1, Y: 1},
 		Skills:  []model.BossSkill{{ID: 26}},
-		Summons: []model.BossSummon{{NPC: "Esqueleto", Count: 2}},
+		Summons: []model.BossSummon{{NPC: "Skeleton", Count: 2}},
 		Phases:  []model.BossPhase{{HPPercent: 50}},
 	}
 	profile, err := compileBossProfile(config)

@@ -1,0 +1,152 @@
+{
+  "name": "Elf_ABJ2",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 287,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 287,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "armadura": {
+      "index": 289,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "calca": {
+      "index": 287,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "luva": {
+      "index": 287,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "bota": {
+      "index": 287,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "arma": {
+      "index": 741,
+      "eff": [
+        43,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 742,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 738
+    }
+  },
+  "classInfo": 1,
+  "expReward": 75000,
+  "extendedScore": {
+    "version": 2,
+    "level": 355,
+    "attack": 1050,
+    "magicAttack": 0,
+    "defense": 1500,
+    "maxHP": 30000,
+    "maxMP": 0,
+    "curHP": 30000,
+    "curMP": 0,
+    "str": 6,
+    "int": 75,
+    "dex": 90,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      1,
+      255,
+      24
+    ],
+    "attackRun": 3
+  },
+  "gold": 9999,
+  "learnedSkill": 30,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

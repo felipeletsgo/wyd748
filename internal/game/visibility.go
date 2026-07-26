@@ -223,7 +223,7 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 		visible := inView(p.X, p.Y, g.X, g.Y)
 		switch {
 		case visible && !p.hasVisible(g.ID):
-			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, 0, 0, 0, 0, 0))
+			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, g.Rotate, g.State, 0, 0, 0))
 			p.show(g.ID)
 		case !visible && p.hasVisible(g.ID):
 			p.Session.Send(wire.RemoveItem(uint32(g.ID)))
@@ -404,6 +404,30 @@ func (w *World) syncPlayerVitals(subject *Player) {
 	})
 }
 
+// syncPlayerVitalsToObservers manda o 0x181 para quem VE o jogador, menos ele
+// proprio. Serve aos fluxos que ja enviaram um 0x336 privado ao dono.
+//
+// O motivo e o flicker da barra: o wrapper do patch wide copia a cauda uint32
+// para o sidecar e DEPOIS chama o handler nativo, sempre (o comentario do
+// Patch-WYD748-ExtendedStats.ps1 afirma que as sincronizacoes seguintes
+// retornam antes dele, mas os quatro desvios e o fall-through convergem no
+// mesmo `call`). Cada pacote de vitals custa um redesenho nativo; mandar 0x336
+// e 0x181 em sequencia ao mesmo jogador custa DOIS, e a barra pisca.
+//
+// O 0x336 ja carrega HP/MP nos WORDs legados e na cauda wide, entao o dono nao
+// perde nada. Os observadores continuam recebendo, porque para eles o 0x336
+// privado nunca chegou.
+func (w *World) syncPlayerVitalsToObservers(subject *Player) {
+	if subject == nil || subject.Char == nil || !subject.InWorld {
+		return
+	}
+	for _, p := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
+		if p != subject && p.hasVisible(subject.ID) {
+			p.Session.Send(wire.SetHpMpExtended(subject.ID, wireExtendedScore(subject.Char)))
+		}
+	}
+}
+
 // syncPlayerScoreAndVitals encerra uma alteracao de estado que tambem passou
 // pelo fluxo de ataque. O 0x181 chama diretamente o handler legado do client e
 // redesenha por um frame os WORDs de HP/MP; em casts normais ele nao e preciso.
@@ -422,7 +446,7 @@ func (w *World) syncPlayerScoreAndVitals(subject *Player) {
 func (w *World) publishItemSpawn(g *GroundItem) {
 	for _, p := range w.nearbyWorldPlayers(g.X, g.Y, viewHalfX) {
 		if !p.hasVisible(g.ID) {
-			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, 0, 0, 0, 0, 0))
+			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, g.Rotate, g.State, 0, 0, 0))
 			p.show(g.ID)
 		}
 	}

@@ -17,7 +17,7 @@ var validVolatileActions = map[string]bool{
 	"tint": true, "untint": true, "repliction": true, "mount": true,
 	"magical_pill": true, "hunting_teleport": true,
 	"summon_contract": true, "learn_special_skill": true,
-	"quest_reward": true,
+	"quest_reward": true, "gate_key": true, "grant_counter": true, "arch_crystal": true,
 }
 
 var validMountActions = map[string]bool{

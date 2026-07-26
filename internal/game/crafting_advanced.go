@@ -1,6 +1,7 @@
 package game
 
 import (
+	"log"
 	"math/rand"
 	"strings"
 
@@ -163,7 +164,7 @@ func (w *World) deterministicOdin(p *Player, req combineRequest, output uint16) 
 }
 
 func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
-	p, req, ok := w.beginCombine(s, pkt, "Alquimista_Odin")
+	p, req, ok := w.beginCombine(s, pkt, "Odin")
 	if !ok {
 		return
 	}
@@ -203,13 +204,34 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 
 	unlock := []uint16{5113, 5129, 5112, 5110, 4127, 4127, 5135}
 	if exactRecipe(req, unlock) && advancedEvolution(p.Char, "celestial") && playerLevel(p.Char) == 39 &&
-		!p.Char.CelestialLevel40Unlocked && p.Char.Fame >= 200 {
+		!p.Char.CelestialLevel40Unlocked && counterBalance(p, fameCounter) >= 200 {
 		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
+		oldFame := copyCounters(p)
 		changed := make(map[int]struct{}, 7)
 		consumeCombineItems(p.Char, req, 0, 6, changed)
-		p.Char.Fame -= 200
+		spendCounters(p, map[string]uint32{fameCounter: 200})
 		p.Char.CelestialLevel40Unlocked = true
-		w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, 1)
+		// A fama vive no charstate, fora da transacao da conta. Grava o sidecar
+		// primeiro: se ele falhar nada foi ao disco. Na ordem inversa, a conta
+		// gravada com o destrave e o sidecar nao gravado dariam o nivel 40 de
+		// graca, com as 200 de fama de volta no proximo login.
+		if err := w.saveCharStateResult(p); err != nil {
+			p.SpecialCoins = oldFame
+			p.Char.Inv, p.Char.Equip, p.Char.Gold = oldInv, oldEquip, oldGold
+			p.Char.CelestialLevel40Unlocked = false
+			w.recalcPlayer(p.Char)
+			log.Printf("[#%d] ERRO ao gravar a fama do Celestial 40: %v", s.ID, err)
+			w.sendCombineResult(p, 0)
+			return
+		}
+		if !w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, 1) {
+			p.SpecialCoins = oldFame
+			p.Char.CelestialLevel40Unlocked = false
+			if err := w.saveCharStateResult(p); err != nil {
+				log.Printf("[#%d] ERRO ao devolver a fama apos rollback: %v", s.ID, err)
+			}
+			w.recalcPlayer(p.Char)
+		}
 		return
 	}
 

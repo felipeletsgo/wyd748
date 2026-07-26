@@ -7,7 +7,7 @@
 
 return {
   id   = "arquimago_negro",
-  npc  = "Arq_Ciclope",
+  npc  = "Cyclop_Arch",
   name = "Black Archmage",
   type = "caster",
 
@@ -52,6 +52,11 @@ return {
     { item = 697,  chance_percent = 100, amount = 5 },  -- Sapphire
     { item = 1775, chance_percent = 20 },               -- 11_Refine_Item
   },
+  -- Premiacao coletiva: cai no CHAO ao redor do corpo, uma unidade por celula,
+  -- para todos os presentes recolherem. Os `drops` acima vao so para quem deu
+  -- o golpe final.
+  area_reward = { item = 420, amount = 50 },
+
 
   spawn_message = "The Black Archmage rises from the shadows!",
   death_message = "The Black Archmage has been silenced.",

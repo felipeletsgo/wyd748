@@ -36,6 +36,9 @@ type VolatileRule struct {
 	MaxDurationUnits int  `json:"maxDurationUnits,omitempty"`
 	// Exp e a quantidade concedida pela acao "grant_exp" (baus/poeiras de XP).
 	Exp uint32 `json:"exp,omitempty"`
+	// Counters credita contadores nomeados na acao "grant_counter". No nativo o
+	// item 4127 concede 100 entradas de Kefra de uma vez.
+	Counters map[string]uint32 `json:"counters,omitempty"`
 	// RefineMax e o teto de refino da acao "refine": Ori=6, Lac=9. O servidor
 	// recusa refinar um item cujo sanc ja alcancou este teto.
 	RefineMax int `json:"refineMax,omitempty"`

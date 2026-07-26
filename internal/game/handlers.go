@@ -419,7 +419,7 @@ func (w *World) onApplyBonus(s *net.Session, pkt []byte) {
 	}
 	s.Send(wire.UpdateScore(p.ID, *p.Char))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	w.syncPlayerVitals(p)
+	w.syncPlayerVitalsToObservers(p)
 	w.updatePartyMember(p)
 	log.Printf("[#%d] bonus type=%d detail=%d STR=%d INT=%d DEX=%d CON=%d ATK=%d MATK=%d DEF=%d HP=%d/%d MP=%d/%d special=%v",
 		s.ID, bonusType, detail, playerStr(p.Char), playerInt(p.Char), playerDex(p.Char),
@@ -502,7 +502,7 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		w.recalcPlayer(p.Char)
 		s.Send(wire.UpdateScore(p.ID, *p.Char))
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
-		w.syncPlayerVitals(p)
+		w.syncPlayerVitalsToObservers(p)
 		w.syncCriaPet(p) // cria equipada nasce como pet; desequipada some
 		// O 0x36B incremental atualiza dono e observadores sem carregar posicao.
 		w.refreshAppearance(p)
@@ -829,7 +829,7 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // slot agora vazio
 	if myType == placeEquip {
 		s.Send(wire.UpdateScore(p.ID, *p.Char))
-		w.syncPlayerVitals(p)
+		w.syncPlayerVitalsToObservers(p)
 		w.refreshAppearance(p)
 	}
 	s.Send(wire.UpdateEtc(p.ID, *p.Char)) // atualiza gold
@@ -1267,7 +1267,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		// overkill. A vida autoritativa continua reduzida somente pelo HP real.
 		w.sendToPlayerView(target, func() []byte {
 			return spectralPacket(p.Char, wire.AttackHitExtended(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
-				calculated, p.Char.Exp, playerCombatMP(p.Char)))
+				calculated, playerMaxHP(target.Char), p.Char.Exp, playerCombatMP(p.Char)))
 		})
 		w.syncPlayerVitals(target)
 		w.updatePartyMember(target)
@@ -1311,8 +1311,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// O 0x181 atualiza a barra, mas somente o resultado 0x39D produz animacao e
 	// o numero flutuante do dano no client 7.48.
 	w.broadcast(func() []byte {
-		return spectralPacket(p.Char, wire.AttackHitExtended(p.ID, m.ID, p.X, p.Y, m.X, m.Y, dmg, p.Char.Exp,
-			playerCombatMP(p.Char)))
+		return spectralPacket(p.Char, wire.AttackHitExtended(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
+			dmg, m.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char)))
 	})
 	if m.HP == 0 {
 		w.killMobState(p, m, dmg, minU32(dmg, m.Def.Extended.MaxHP))
@@ -1409,7 +1409,7 @@ func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage 
 	// Subsistema de boss: o morto pode ser um add do encontro ou o proprio boss.
 	// Roda ANTES do descarte da instancia, enquanto o mob ainda existe.
 	w.notifyBossAddDied(m.ID)
-	if state := w.onBossMobKilled(m.ID); state != nil {
+	if state := w.onBossMobKilled(m); state != nil {
 		// Drops especiais do .lua, alem do gold/exp nativos ja concedidos.
 		w.rollBossDrops(p, m, state)
 	}
@@ -1530,6 +1530,13 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 	g := w.groundItems[req.itemID]
 	if g == nil {
 		return // ja pego por outro / expirou
+	}
+	// Objeto de mundo e mobilia do mapa, nao loot: sem esta guarda o jogador
+	// caminha ate um portao de castelo e o poe no inventario.
+	if g.Permanent {
+		log.Printf("[#%d] tentou recolher o objeto de mundo %d (item %d)",
+			s.ID, g.ID, g.Item.Index)
+		return
 	}
 	if chebyshev(p.X, p.Y, g.X, g.Y) > pickupRange {
 		log.Printf("[#%d] pegar item %d fora de alcance", s.ID, req.itemID)

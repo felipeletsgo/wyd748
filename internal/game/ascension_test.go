@@ -338,7 +338,7 @@ func TestSefirotComposerIsTheClassSkillMaster(t *testing.T) {
 	}{
 		{"Knight_Leader", 0}, // skills 0..23   TK
 		{"Foema_Ancian", 1},  // skills 24..47  FM
-		{"Mestre_Archi", 2},  // skills 48..71  BM
+		{"Archi_Master", 2},  // skills 48..71  BM
 		{"ForeLearner", 3},   // skills 72..95  HT
 	} {
 		got, ok := sefirotClassForNPC(&model.NPCDef{Name: tc.npc})
@@ -351,7 +351,7 @@ func TestSefirotComposerIsTheClassSkillMaster(t *testing.T) {
 		}
 	}
 	// Os NPCs Sephirot_* NAO sao os compositores.
-	for _, name := range []string{"Sephirot_TK", "Sephirot_FM", "LojaTeste"} {
+	for _, name := range []string{"Sephirot_TK", "Sephirot_FM", "ShopTest"} {
 		if _, ok := sefirotClassForNPC(&model.NPCDef{Name: name}); ok {
 			t.Errorf("%s nao deveria ser tratado como compositor", name)
 		}

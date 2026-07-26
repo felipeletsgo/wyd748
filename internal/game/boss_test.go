@@ -18,7 +18,7 @@ func testBossConfig() model.BossConfig {
 		ID: "boss_teste", NPC: "Boss_De_Teste", Type: model.BossTypePhased,
 		Spawn:   model.BossSpawn{X: 2100, Y: 2100, RespawnSeconds: 60},
 		Skills:  []model.BossSkill{{ID: 26, CooldownSeconds: 6, Range: 3}},
-		Summons: []model.BossSummon{{NPC: "Esqueleto", Count: 4}},
+		Summons: []model.BossSummon{{NPC: "Skeleton", Count: 4}},
 		Phases: []model.BossPhase{{
 			HPPercent: 60, Type: model.BossTypeSummoner,
 			ShieldPercent: 100, ShieldUntilAddsDead: true,
@@ -82,7 +82,7 @@ func newBossTestWorld(t *testing.T, profile *BossProfile, maxHP uint32) (*World,
 	w := newZoneTestWorld()
 	w.clock = clock
 	w.questZones = nil
-	w.npcs = []model.NPCDef{*bossTestNPC("Esqueleto", 100)}
+	w.npcs = []model.NPCDef{*bossTestNPC("Skeleton", 100)}
 
 	if err := profile.Compile(); err != nil {
 		t.Fatalf("perfil invalido: %v", err)
@@ -364,7 +364,7 @@ func TestBossStaleGenerationCallbackIgnored(t *testing.T) {
 // nao paga nada nem se comporta diferente por existir o subsistema.
 func TestCommonMobIgnoresBossSubsystem(t *testing.T) {
 	w, _, _, _ := newBossTestWorld(t, testBossProfile(t), 1000)
-	common := &Mob{ID: 2000, Def: bossTestNPC("Esqueleto", 100), X: 2100, Y: 2100, HP: 100}
+	common := &Mob{ID: 2000, Def: bossTestNPC("Skeleton", 100), X: 2100, Y: 2100, HP: 100}
 	w.mobs = append(w.mobs, common)
 	w.registerMobSpatial(common)
 

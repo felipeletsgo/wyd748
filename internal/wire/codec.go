@@ -781,9 +781,10 @@ func IllusionMove(id, fromX, fromY, toX, toY uint16, speed uint32) []byte {
 
 // AttackHit reproduz o p39D compacto JA CONVERTIDO pelo PacketProtocolV754.
 // O DLL move o DWORD Target/Damage de @40 para @44 antes de chegar ao client.
-func AttackHit(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16, damage uint16, currentExp, currentMP uint32) []byte {
+func AttackHit(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
+	damage, targetMaxHP, currentExp, currentMP uint32) []byte {
 	b := SkillHit(attackerID, targetID, attackerX, attackerY, targetX, targetY,
-		damage, currentExp, currentMP, -1, 5, 0)
+		damage, targetMaxHP, currentExp, currentMP, -1, 5, 0)
 	// Melee nao possui um segundo pacote de animacao gerado localmente. Com
 	// FlagLocal=1 o OnPacketAttack ignora justamente o caminho que cria o dano
 	// flutuante. Skills mantem o flag no pacote principal e usam o 0x39D wide
@@ -803,14 +804,17 @@ func SendItem(id uint16, placeType, pos byte, it model.Item) []byte {
 }
 
 // AttackHitExtended conserva o MSG_AttackOne 7.48 nos primeiros 48 bytes e
-// anexa o dano real em uint32. O valor WORD e saturado para clientes antigos.
-func AttackHitExtended(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16, damage, currentExp, currentMP uint32) []byte {
-	legacy := damage
-	if legacy > 65535 {
-		legacy = 65535
-	}
+// anexa o dano REAL em uint32 (a cauda DMGX, que o client patcheado le para o
+// texto flutuante).
+//
+// O WORD legado leva o dano PROJETADO na escala do alvo, nao o dano cru: o
+// client subtrai esse WORD do CurHP do prefixo nativo, que ja esta escalado.
+// Os dois valores sao propositalmente diferentes -- um alimenta o numero na
+// tela, o outro a barra.
+func AttackHitExtended(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
+	damage, targetMaxHP, currentExp, currentMP uint32) []byte {
 	b := AttackHit(attackerID, targetID, attackerX, attackerY, targetX, targetY,
-		uint16(legacy), currentExp, currentMP)
+		damage, targetMaxHP, currentExp, currentMP)
 	extended := make([]byte, 52)
 	copy(extended, b)
 	putU16(extended, 0, uint16(len(extended)))
@@ -874,9 +878,35 @@ func ShopList(items []model.Item, tax, shopType uint32) []byte {
 	return b
 }
 
+// SkillTarget carrega o dano REAL e o MaxHP do alvo. O WORD que vai no pacote
+// e derivado dos dois: o client subtrai esse WORD do CurHP ja projetado, entao
+// mandar o dano cru fazia a barra cair na escala errada.
+//
+// MaxHP zero significa "sem projecao" (escala 1) -- e o que vale para alvo
+// cujo MaxHP cabe no prefixo nativo.
 type SkillTarget struct {
 	ID     uint16
-	Damage uint16
+	Damage uint32
+	// Heal e cura: o protocolo a representa como short NEGATIVO no mesmo campo
+	// do dano, e e isso que faz o 7.48 subir o HP e mostrar "+ valor". Campo
+	// proprio para o sinal ser explicito -- antes ele vinha embutido num uint16
+	// ja convertido, e a projecao de escala teria destruido a representacao.
+	Heal  uint32
+	MaxHP uint32
+}
+
+// wireDamage e a unica conversao de variacao de HP -> WORD do pacote. Toda
+// saturacao passa por aqui; antes o melee saturava em 65535 e a skill em 32767,
+// no MESMO campo.
+//
+// Cura sai como short negativo, com a MESMA projecao de escala do dano: o
+// client soma esse WORD ao CurHP ja projetado, entao os dois lados precisam
+// falar na mesma unidade.
+func wireDamage(t SkillTarget) uint16 {
+	if t.Heal > 0 {
+		return uint16(-int16(model.ProjectHPDelta(t.Heal, t.MaxHP)))
+	}
+	return model.ProjectHPDelta(t.Damage, t.MaxHP)
 }
 
 // SkillHits usa a familia compacta p39D/p39E/p367 do 7.48. O opcode e o
@@ -915,17 +945,19 @@ func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 	putU32(b, 40, 0)
 	for i, target := range targets {
 		putU16(b, 44+i*4, target.ID)
-		putU16(b, 46+i*4, target.Damage)
+		// Cada alvo tem a SUA escala: num golpe em area, dois alvos com MaxHP
+		// diferente precisam de WORDs diferentes para o mesmo dano.
+		putU16(b, 46+i*4, wireDamage(target))
 	}
 	return b
 }
 
 // SkillHit e o atalho para skills de alvo unico.
 func SkillHit(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
-	damage uint16, currentExp, currentMP uint32, skill int16, motion, mastery byte) []byte {
+	damage, targetMaxHP, currentExp, currentMP uint32, skill int16, motion, mastery byte) []byte {
 	return SkillHits(attackerID, attackerX, attackerY, targetX, targetY,
 		currentExp, currentMP, skill, motion, mastery, 1,
-		[]SkillTarget{{ID: targetID, Damage: damage}})
+		[]SkillTarget{{ID: targetID, Damage: damage, MaxHP: targetMaxHP}})
 }
 
 // SpectralVisual marca DoubleCritical bit 3. O client usa esse bit para
@@ -941,13 +973,9 @@ func SpectralVisual(packet []byte) []byte {
 // conserva Skill/Motion/Mastery. Assim o client escolhe cor/efeito magico e le
 // o numero uint32 @48 sem alterar o tamanho fixo do 0x36C multi-alvo.
 func SkillHitExtended(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
-	damage, currentExp, currentMP uint32, skill int16, motion, mastery byte) []byte {
-	legacy := uint16(damage)
-	if damage > 32767 {
-		legacy = 32767
-	}
+	damage, targetMaxHP, currentExp, currentMP uint32, skill int16, motion, mastery byte) []byte {
 	b := SkillHit(attackerID, targetID, attackerX, attackerY, targetX, targetY,
-		legacy, currentExp, currentMP, skill, motion, mastery)
+		damage, targetMaxHP, currentExp, currentMP, skill, motion, mastery)
 	extended := make([]byte, 52)
 	copy(extended, b)
 	putU16(extended, 0, uint16(len(extended)))
@@ -985,6 +1013,16 @@ func CreateItem(gridX, gridY, itemID uint16, it model.Item, rotate, state, heigh
 	b[28] = height
 	b[29] = create
 	putU16(b, 30, owner)
+	return b
+}
+
+// UpdateItem monta o 0x374 (20B): troca o ESTADO de um item ja materializado no
+// chao, sem recria-lo. E como o nativo abre um portao -- MSG_UpdateItem tem
+// ItemID@12 e State@16, os dois int (Basedef.h:3015).
+func UpdateItem(itemID uint16, state uint32) []byte {
+	b := Build(OpUpdateItem, SceneField, 20)
+	putU32(b, 12, uint32(itemID))
+	putU32(b, 16, state)
 	return b
 }
 

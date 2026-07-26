@@ -44,6 +44,43 @@ party_exp_bonus = 3
 	}
 }
 
+// TestLoadServerConfigParsesCompositorKeys: as quatro chaves precisam chegar ao
+// GameplayConfig. Na W2PP o equivalente (CompRate.txt) e lido para um array que
+// nenhuma funcao consulta, e o parser so normaliza a primeira coluna -- ajustar
+// o arquivo la nao muda nada no jogo. Aqui isso tem que valer.
+func TestLoadServerConfigParsesCompositorKeys(t *testing.T) {
+	path := writeServerConfig(t, `
+compositor_base = 15
+compositor_refine_7 = 1
+compositor_refine_8 = 2
+compositor_refine_9 = 4
+`)
+	cfg, err := LoadServerConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Gameplay.CompositorBaseChance != 15 {
+		t.Errorf("compositor_base=%d, quer 15", cfg.Gameplay.CompositorBaseChance)
+	}
+	if want := [3]uint32{1, 2, 4}; cfg.Gameplay.CompositorRefineChance != want {
+		t.Errorf("bonus por refino=%v, quer %v", cfg.Gameplay.CompositorRefineChance, want)
+	}
+}
+
+func TestLoadServerConfigUsesCompositorDefaults(t *testing.T) {
+	cfg, err := LoadServerConfig(writeServerConfig(t, "exp_rate=100\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Teto de 42: 10 de base mais quatro materiais +9.
+	if cfg.Gameplay.CompositorBaseChance != 10 {
+		t.Errorf("base padrao=%d, quer 10", cfg.Gameplay.CompositorBaseChance)
+	}
+	if want := [3]uint32{3, 5, 8}; cfg.Gameplay.CompositorRefineChance != want {
+		t.Errorf("bonus padrao=%v, quer %v", cfg.Gameplay.CompositorRefineChance, want)
+	}
+}
+
 func TestLoadServerConfigRejectsTypoAndInvalidAddress(t *testing.T) {
 	for _, contents := range []string{
 		"listen_adress=0.0.0.0:8281\n",
@@ -54,6 +91,9 @@ func TestLoadServerConfigRejectsTypoAndInvalidAddress(t *testing.T) {
 		"exp_rate=abc\n",
 		"exp_rate=100001\n",
 		"party_exp_bonus=101\n",
+		"compositor_base=101\n",
+		"compositor_refine_9=101\n",
+		"compositor_refine_7=abc\n",
 	} {
 		if _, err := LoadServerConfig(writeServerConfig(t, contents)); err == nil {
 			t.Fatalf("configuracao invalida aceita: %q", strings.TrimSpace(contents))

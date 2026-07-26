@@ -79,6 +79,7 @@ func main() {
 	charStatePath := flag.String("charstate", cfg.CharStatePath, "pasta do estado de sessao (buffs/moedas)")
 	questsPath := flag.String("quests", cfg.QuestsPath, "definicoes de quest (quests.json)")
 	questZonesPath := flag.String("quest_zones", cfg.QuestZonesPath, "zonas de reset de area (quest_zones.json)")
+	initItemsPath := flag.String("init_items", cfg.InitItemsPath, "objetos permanentes do mundo (init_items.csv)")
 	bossPath := flag.String("boss", cfg.BossPath, "diretorio dos bosses (data/boss/*.lua)")
 	itemPath := flag.String("items", cfg.ItemPath, "itemlist.csv autoritativo")
 	itemNamePath := flag.String("itemnames", cfg.ItemNamePath, "Itemname.csv autoritativo")
@@ -186,13 +187,18 @@ func main() {
 	}
 	log.Printf("%d bosses carregados de %s", len(bosses.Bosses), *bossPath)
 
+	initItems, err := data.LoadInitItems(*initItemsPath, catalog.Items)
+	if err != nil {
+		log.Fatalf("carregar objetos de mundo: %v", err)
+	}
+
 	st := store.NewJSONStore(*accDir, store.WithGuildsPath(*guildsPath),
 		store.WithGuildsTxtPath(*guildsTxtPath), store.WithCharStatePath(*charStatePath))
 	world, err := game.NewWorld(st, npcs, geners, catalog, dropRates, volatiles,
 		characterTemplates, terrain, game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),
 		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts),
-		game.WithBossCatalog(bosses))
+		game.WithBossCatalog(bosses), game.WithInitItems(initItems))
 	if err != nil {
 		log.Fatalf("criar mundo: %v", err)
 	}

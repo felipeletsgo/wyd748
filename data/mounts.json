@@ -3,7 +3,7 @@
   "types": {
     "0":  { "name": "Porco",              "attack": 10,  "magic": 1,   "evasion": 0,  "resist": 0,  "speed": 4, "maxHP": 10000 },
     "1":  { "name": "Javali",             "attack": 10,  "magic": 1,   "evasion": 0,  "resist": 0,  "speed": 4, "maxHP": 12000 },
-    "2":  { "name": "Lobo",               "attack": 50,  "magic": 1,   "evasion": 0,  "resist": 0,  "speed": 5, "maxHP": 14000 },
+    "2":  { "name": "Wolf",               "attack": 50,  "magic": 1,   "evasion": 0,  "resist": 0,  "speed": 5, "maxHP": 14000 },
     "3":  { "name": "Dragao Menor",       "attack": 80,  "magic": 15,  "evasion": 0,  "resist": 0,  "speed": 5, "maxHP": 16000 },
     "4":  { "name": "Urso",               "attack": 100, "magic": 20,  "evasion": 0,  "resist": 0,  "speed": 4, "maxHP": 18000 },
     "5":  { "name": "Dente de Sabre",     "attack": 150, "magic": 25,  "evasion": 0,  "resist": 0,  "speed": 5, "maxHP": 20000 },

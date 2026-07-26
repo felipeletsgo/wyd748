@@ -84,7 +84,7 @@ func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef,
 		// o golpe corpo a corpo. Motion/mastery em 0: o boss nao tem barra de
 		// skill, o efeito visual vem do proprio indice.
 		return wire.SkillHitExtended(mob.ID, target.ID, mob.X, mob.Y, target.X, target.Y,
-			applied, 0, mob.Def.Extended.MaxMP, int16(skill.Index), 0, 0)
+			applied, playerMaxHP(target.Char), 0, mob.Def.Extended.MaxMP, int16(skill.Index), 0, 0)
 	})
 	log.Printf("BOSS %q: skill %d (%s) em jogador id=%d dano=%d",
 		boss.Profile.ID, action.SkillID, skill.Name, target.ID, damage)

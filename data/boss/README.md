@@ -19,11 +19,11 @@ nasce ou que nasce fraco por um campo digitado errado.
   base saem de `data/npcs/<nome>.json`). O bloco `stats` sobrescreve o que
   quiser; o que for omitido mantém o valor do NPC.
 - **Prefira um NPC que o `NPCGener.txt` não spawna.** Reaproveitar a aparência
-  de um mob comum ou de quest (Hidra_Imortal, Aparicao, Servo_Elfo…) confunde o
+  de um mob comum ou de quest (Immort_Hydra, Aparicao, Elf_Servant1…) confunde o
   jogador: o chefe fica com a cara de um monstro que ele mata o dia inteiro. O
   catálogo tem 491 NPCs e boa parte não é spawnada — são assets livres.
   Bons candidatos: `Demon_Lord__` (nível 400), `Dark_Shadow___` (400),
-  `Astaroth`, `Arq_Ciclope` (200), `Golem_de_Fogo` (218), `E-Dracolich`.
+  `Astaroth`, `Cyclop_Arch` (200), `Fire_Golem` (218), `E-Dracolich`.
   Para listar os livres:
 
   ```bash
@@ -93,7 +93,7 @@ return {
   },
 
   summons = {                     -- usado por summoner
-    { npc = "Esqueleto", count = 4,
+    { npc = "Skeleton", count = 4,
       max_alive = 8,              -- teto simultâneo; 0 = sem teto
       cooldown_seconds = 30, message = "texto" },
   },

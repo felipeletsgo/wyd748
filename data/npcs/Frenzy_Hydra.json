@@ -1,0 +1,136 @@
+{
+  "name": "Frenzy_Hydra",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 218,
+      "eff": [
+        43,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 25000,
+  "extendedScore": {
+    "version": 2,
+    "level": 402,
+    "attack": 4000,
+    "magicAttack": 0,
+    "defense": 3700,
+    "maxHP": 30000,
+    "maxMP": 37,
+    "curHP": 30000,
+    "curMP": 37,
+    "str": 5,
+    "int": 70,
+    "dex": 90,
+    "con": 1800,
+    "critical": 255,
+    "resistFire": 10,
+    "resistIce": 246,
+    "resistHoly": 236,
+    "resistThunder": 20,
+    "saveMana": 255,
+    "mastery": [
+      40,
+      7,
+      40,
+      7
+    ],
+    "attackRun": 4
+  },
+  "carry": [
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 413
+    }
+  ],
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

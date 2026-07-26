@@ -104,14 +104,20 @@ func (w *World) loadCharStateInto(p *Player) {
 // logout e no disconnect (estado que precisa estar em disco antes de largar o
 // player). Estado vazio remove o arquivo.
 func (w *World) saveCharState(p *Player) {
-	store, ok := w.store.(charStateStore)
-	if !ok || p == nil || p.Char == nil {
-		return
-	}
-	state := buildCharState(p, time.Now())
-	if err := store.SaveCharState(p.Char.Name, state); err != nil {
+	if err := w.saveCharStateResult(p); err != nil {
 		log.Printf("[#%d] ERRO ao salvar charstate de %q: %v", p.Session.ID, p.Char.Name, err)
 	}
+}
+
+// saveCharStateResult e a versao que DEVOLVE o erro, para quem precisa desfazer
+// o que fez. Usada pelas quests que mexem em contador: o sidecar nao participa
+// da transacao da conta, entao quem o grava tem de tratar a falha.
+func (w *World) saveCharStateResult(p *Player) error {
+	store, ok := w.store.(charStateStore)
+	if !ok || p == nil || p.Char == nil {
+		return nil
+	}
+	return store.SaveCharState(p.Char.Name, buildCharState(p, time.Now()))
 }
 
 // asyncCharStateStore expoe o save async do charstate (autosave).

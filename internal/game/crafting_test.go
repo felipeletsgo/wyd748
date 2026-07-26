@@ -304,7 +304,7 @@ func TestCombineTinyRejectsBelowGoldCost(t *testing.T) {
 func TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure(t *testing.T) {
 	a := model.Item{Index: 800}
 	setItemSanc(&a, 9)
-	b := a // mesmo Index/grade/sanc exigido pela Aylin
+	b := a                              // mesmo Index/grade/sanc exigido pela Aylin
 	catalyst := model.Item{Index: 1774} // catalisador fixo, distinto das joias
 	jewel := model.Item{Index: 2441}
 	defs := map[uint16]model.ItemDef{800: {Index: 800, Pos: 2, Grade: 3}}
@@ -332,5 +332,51 @@ func TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure(t *testing.T) {
 	}
 	if p.Char.Inv != oldInv {
 		t.Fatalf("inventario nao foi revertido apos falha de save")
+	}
+}
+
+// TestCombineRejectsBlockedItem: Atila's_Crown (747) em QUALQUER um dos oito
+// slots recusa a composicao. O nativo repete essa varredura em 10 das 11
+// GetMatchCombineXxx (GetFunc.cpp:57, 218, 263, 337, 400, 461, 505, 634, 669 e
+// 740); a Agatha (564) e a UNICA sem ela, e essa excecao e deliberada.
+func TestCombineRejectsBlockedItem(t *testing.T) {
+	defs := map[uint16]model.ItemDef{
+		blockedCombineItem: {Index: blockedCombineItem, Name: "Atila's_Crown"},
+		500:                {Index: 500},
+	}
+	for _, npc := range []string{"Compositor", "Aylin", "Lindy", "Ehre", "Odin", "Tiny"} {
+		for slot := 0; slot < combineSlots; slot++ {
+			var items [combineSlots]model.Item
+			var pos [combineSlots]int8
+			items[slot] = model.Item{Index: blockedCombineItem}
+			for i := range pos {
+				pos[i] = int8(i)
+			}
+			w, p, session, _ := newCraftWorld(t, npc, defs, 0)
+			placeItems(p.Char, items, pos)
+
+			if _, _, ok := w.beginCombine(session, buildCombinePacket(items, pos), npc); ok {
+				t.Errorf("%s: item %d no slot %d foi aceito", npc, blockedCombineItem, slot)
+			}
+		}
+	}
+}
+
+// TestAgathaAcceptsBlockedItem preserva a excecao do nativo: a Agatha nao varre
+// os slots atras do 747. Se um dia essa trava virar global, este teste quebra e
+// obriga a decisao a ser consciente.
+func TestAgathaAcceptsBlockedItem(t *testing.T) {
+	defs := map[uint16]model.ItemDef{blockedCombineItem: {Index: blockedCombineItem}}
+	var items [combineSlots]model.Item
+	var pos [combineSlots]int8
+	items[0] = model.Item{Index: blockedCombineItem}
+	for i := range pos {
+		pos[i] = int8(i)
+	}
+	w, p, session, _ := newCraftWorld(t, agathaCombineNPC, defs, 0)
+	placeItems(p.Char, items, pos)
+
+	if _, _, ok := w.beginCombine(session, buildCombinePacket(items, pos), agathaCombineNPC); !ok {
+		t.Error("a Agatha recusou o 747; o nativo (GetFunc.cpp:564) nao tem essa trava")
 	}
 }

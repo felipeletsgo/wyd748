@@ -69,7 +69,7 @@ const (
 //
 //	Knight_Leader  5000..5023 -> skills 0..23   -> TK
 //	Foema_Ancian   5024..5047 -> skills 24..47  -> FM
-//	Mestre_Archi   5048..5071 -> skills 48..71  -> BM
+//	Archi_Master   5048..5071 -> skills 48..71  -> BM
 //	ForeLearner    5072..5095 -> skills 72..95  -> HT
 //
 // O nativo distingue pelo campo Exp do mob (994..997); os nossos JSONs nao
@@ -84,7 +84,7 @@ func sefirotClassForNPC(def *model.NPCDef) (int, bool) {
 		return 0, true
 	case "foema ancian":
 		return 1, true
-	case "mestre archi":
+	case "archi master":
 		return 2, true
 	case "forelearner", "fore learner":
 		return 3, true

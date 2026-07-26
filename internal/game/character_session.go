@@ -150,11 +150,35 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("The deletion could not be saved."))
 		return
 	}
-	if w.charNames != nil {
+	// O nome so volta a ficar livre quando NENHUM personagem o usa mais. O slot
+	// ja foi zerado acima, entao accountUsesName so enxerga os que sobraram.
+	if w.charNames != nil && !accountUsesName(p.Account, previous.Name) {
 		delete(w.charNames, strings.ToLower(previous.Name))
 	}
 	s.Send(wire.CNFDeleteCharacter(uint16(s.ID), p.Account.Chars))
 	log.Printf("[#%d] personagem excluido: %q slot=%d", s.ID, name, slot)
+}
+
+// accountUsesName diz se a conta ainda tem algum personagem com esse nome.
+//
+// Existe por causa do Arch: ele herda o nome do Mortal (fiel ao nativo), entao
+// UM nome pode pertencer a DOIS personagens. E sao os unicos homonimos
+// possiveis no servidor -- a criacao normal (0x20F) exige nome globalmente
+// unico, e a ascensao e o unico caminho que contorna isso.
+//
+// Sem esta checagem, apagar um dos gemeos removia o nome de charNames enquanto
+// o outro continuava existindo, e o nome ficava livre para OUTRA conta criar um
+// personagem homonimo -- furando a unicidade global.
+func accountUsesName(acc *model.Account, name string) bool {
+	if acc == nil || name == "" {
+		return false
+	}
+	for i := range acc.Chars {
+		if strings.EqualFold(acc.Chars[i].Name, name) {
+			return true
+		}
+	}
+	return false
 }
 
 // onREQMobByID recupera uma entidade que o client ainda nao materializou mas

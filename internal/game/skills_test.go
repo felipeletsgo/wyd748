@@ -269,9 +269,6 @@ func TestFoemaHealMatches759AndDoesNotRecalculateStats(t *testing.T) {
 	if got := foemaHealAmount(29, 40, 150); got != 294 {
 		t.Fatalf("Recovery 7.59=%d, quer 294", got)
 	}
-	if got := int16(healingWireDamage(140)); got != -140 {
-		t.Fatalf("cura no wire=%d, quer -140", got)
-	}
 	if skill, motion := tickAreaVisual(37); skill != 33 || motion != 254 {
 		t.Fatalf("visual Lightning Storm: skill=%d motion=%d", skill, motion)
 	}

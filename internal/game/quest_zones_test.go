@@ -24,7 +24,7 @@ func newZoneTestWorld() *World {
 		groundItems:    make(map[uint16]*GroundItem),
 		ghostShops:     make(map[uint16]*GhostShop),
 	}
-	w.questZones = []model.QuestZone{{Name: "Coveiro", X1: 2379, Y1: 2076, X2: 2426, Y2: 2133}}
+	w.questZones = []model.QuestZone{{Name: "Gravedigger", X1: 2379, Y1: 2076, X2: 2426, Y2: 2133}}
 	return w
 }
 

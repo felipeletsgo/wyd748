@@ -1,0 +1,433 @@
+{
+  "name": "Orc_Knight2",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 207
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 946
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 9000,
+  "extendedScore": {
+    "version": 2,
+    "level": 35,
+    "attack": 85,
+    "magicAttack": 0,
+    "defense": 140,
+    "maxHP": 650,
+    "maxMP": 0,
+    "curHP": 650,
+    "curMP": 0,
+    "str": 5,
+    "int": 70,
+    "dex": 30,
+    "con": 50,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 1129,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1280,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1117,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1130,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1118,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1266,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1279,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1268,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 420
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 833,
+      "eff": [
+        102,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 848,
+      "eff": [
+        102,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 878,
+      "eff": [
+        102,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 931,
+      "eff": [
+        102,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1411,
+      "eff": [
+        102,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1137,
+      "eff": [
+        102,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1149,
+      "eff": [
+        102,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1101,
+      "eff": [
+        102,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1138,
+      "eff": [
+        102,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1563,
+      "eff": [
+        102,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1560,
+      "eff": [
+        102,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 697
+    },
+    {
+      "index": 422
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 3178
+    }
+  ],
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

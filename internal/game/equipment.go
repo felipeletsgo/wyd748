@@ -455,7 +455,17 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	} else {
 		runtime.CurMP = minU32(oldMP, runtime.MaxMP)
 	}
-	base.CurHP, base.CurMP = runtime.CurHP, runtime.CurMP
+	// O base e o score SEM equipamento e SEM affect: seu proprio MaxHP e o unico
+	// teto valido para ele. Copiar aqui o CurHP do runtime -- que ja esta no teto
+	// EFETIVO, somando EF_HP das pecas e os buffs -- gravava no disco
+	// `curHP 1202183 / maxHP 1000000`, um estado impossivel.
+	//
+	// Limitar o base NAO reduz o HP em jogo: o valor vivo e o do runtime, e ele
+	// sobrevive ao proximo recalculo por oldHP/wasFullHP (capturados no topo
+	// desta funcao a partir do runtime, nao do base). No login, com runtime
+	// ainda nulo, oldHP vem do base cheio e wasFullHP reenche ate o teto efetivo.
+	base.CurHP = minU32(runtime.CurHP, base.MaxHP)
+	base.CurMP = minU32(runtime.CurMP, base.MaxMP)
 	ch.ExtendedRuntime = &runtime
 
 	attackSpeed := minInt(15, int(base.AttackRun>>4)+int(total("EF_ATTSPEED")))

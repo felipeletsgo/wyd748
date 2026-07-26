@@ -1,0 +1,169 @@
+{
+  "name": "Water_Templr",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 175,
+      "eff": [
+        43,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 175,
+      "eff": [
+        43,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "armadura": {
+      "index": 175,
+      "eff": [
+        43,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "calca": {
+      "index": 175,
+      "eff": [
+        43,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "luva": {
+      "index": 175,
+      "eff": [
+        43,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "bota": {
+      "index": 175,
+      "eff": [
+        43,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "arma": {
+      "index": 910
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 2380,
+      "eff": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ]
+    },
+    "capa": {
+      "index": 290,
+      "eff": [
+        43,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "classInfo": 2,
+  "expReward": 60430,
+  "extendedScore": {
+    "version": 2,
+    "level": 360,
+    "attack": 3023,
+    "magicAttack": 0,
+    "defense": 4300,
+    "maxHP": 25000,
+    "maxMP": 0,
+    "curHP": 25000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 100,
+    "con": 1500,
+    "critical": 255,
+    "resistFire": 75,
+    "resistIce": 75,
+    "resistHoly": 75,
+    "resistThunder": 75,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 4
+  },
+  "carry": [
+    {
+      "index": 2809
+    }
+  ],
+  "gold": 80,
+  "learnedSkill": 70,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

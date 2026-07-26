@@ -281,6 +281,8 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		s.Send(wire.MessagePanel(time.Now().Format("15:04:05 | 02-01-2006")))
 	case "limparinv", "clearinv":
 		w.executeClearInventory(s, p)
+	case "hpdebug":
+		w.dumpHPProjection(s, p)
 	case "spk":
 		w.executeShout(s, p, arg)
 	case "kingdom", "reino":
@@ -403,6 +405,18 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 	log.Printf("[#%d] WHISPER %q -> %q", s.ID, p.Char.Name, recipient.Char.Name)
 }
 
+// playerByCharacterName acha o jogador ONLINE pelo nome do personagem.
+//
+// O Arch herda o nome do Mortal, entao existem homonimos -- mas a busca nao
+// precisa de desempate, e isso se apoia em dois invariantes:
+//
+//  1. homonimos so nascem da ascensao, logo estao sempre na MESMA conta (a
+//     criacao normal exige nome globalmente unico);
+//  2. uma conta nao entra duas vezes ao mesmo tempo (claimAccountSession).
+//
+// Juntos, garantem no maximo UM homonimo online. Se algum dos dois cair, esta
+// busca passa a ser ambigua em silencio --
+// TestAccountSessionIsExclusiveCaseInsensitive guarda o segundo.
 func (w *World) playerByCharacterName(name string) *Player {
 	for _, p := range w.players {
 		if p.InWorld && p.Char != nil && strings.EqualFold(p.Char.Name, name) {

@@ -156,7 +156,7 @@ func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
 	// zero conserva a animacao de ataque e representa MISS no cliente.
 	w.applyMobDamageToPlayer(m, target, damage, now, func(applied uint32) []byte {
 		return wire.AttackHitExtended(m.ID, target.ID, m.X, m.Y, target.X, target.Y,
-			applied, 0, m.Def.Extended.MaxMP)
+			applied, playerMaxHP(target.Char), 0, m.Def.Extended.MaxMP)
 	})
 }
 

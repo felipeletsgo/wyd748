@@ -131,6 +131,15 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	case "quest_reward":
 		w.useQuestReward(s, p, item, slot, rule, code)
 
+	case "arch_crystal":
+		w.useArchCrystal(s, p, item, slot, rule, code)
+
+	case "grant_counter":
+		w.useCounterGrant(s, p, item, slot, rule, code)
+
+	case "gate_key":
+		w.useGateKey(s, p, item, slot, rule, code)
+
 	case "magical_pill":
 		if p.Char.MagicalPillUsed {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -541,7 +550,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			w.recalcPlayer(p.Char)
 			s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
 			s.Send(wire.UpdateScore(p.ID, *p.Char))
-			w.syncPlayerVitals(p)
+			w.syncPlayerVitalsToObservers(p)
 		}
 		s.Send(wire.MessagePanel("The item gained a new bonus!"))
 		log.Printf("[#%d] repliction item=%d alvo=%d add=ef%d/v%d volatile=%d",
@@ -657,7 +666,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 		}
 	}
 	s.Send(wire.UpdateScore(p.ID, *p.Char))
-	w.syncPlayerVitals(p)
+	w.syncPlayerVitalsToObservers(p)
 	// O brilho/mesh do refino viaja no UpdateEquip incremental.
 	w.refreshAppearance(p)
 	s.Send(wire.MessagePanel("Set refined!"))

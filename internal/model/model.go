@@ -141,6 +141,42 @@ const (
 	compatibilityDerived = uint32(1_000)
 )
 
+// CompatibilityHPScale e o divisor que leva o HP real para a faixa que o
+// STRUCT_SCORE nativo comporta. Vale 1 enquanto o MaxHP couber direto.
+//
+// Existe exportado porque NAO basta projetar o HP: o dano dos pacotes de
+// ataque viaja num WORD que o client subtrai do CurHP JA PROJETADO. Mandar o
+// dano cru fazia a barra cair `scale` vezes mais rapido que o correto, e
+// depois saltar de volta quando chegava o 0x181.
+func CompatibilityHPScale(maximum uint32) uint32 {
+	if maximum <= compatibilityMaximum {
+		return 1
+	}
+	return (maximum + compatibilityMaximum - 1) / compatibilityMaximum
+}
+
+// ProjectHPDelta converte uma variacao de HP real (dano, cura) para a escala
+// do prefixo nativo. Arredonda para CIMA: com MaxHP alto, truncar deixaria
+// todo golpe menor que a escala invisivel na barra.
+func ProjectHPDelta(delta, maximum uint32) uint16 {
+	if delta == 0 {
+		return 0
+	}
+	scale := CompatibilityHPScale(maximum)
+	projected := (delta + scale - 1) / scale
+	// O teto e a BARRA CHEIA do alvo, nao a constante de 30.000: com MaxHP de
+	// 5.000.000 a barra projetada vale 29.941, e um overkill que mandasse
+	// 30.000 ainda passaria dela. Alvo sem MaxHP conhecido cai na constante.
+	teto := compatibilityMaximum
+	if maximum > 0 {
+		teto = (maximum + scale - 1) / scale
+	}
+	if projected > teto {
+		projected = teto
+	}
+	return uint16(projected)
+}
+
 func projectCompatibilityPair(current, maximum uint32) (uint16, uint16) {
 	if current > maximum {
 		current = maximum
@@ -148,7 +184,7 @@ func projectCompatibilityPair(current, maximum uint32) (uint16, uint16) {
 	if maximum <= compatibilityMaximum {
 		return uint16(current), uint16(maximum)
 	}
-	scale := (maximum + compatibilityMaximum - 1) / compatibilityMaximum
+	scale := CompatibilityHPScale(maximum)
 	project := func(value uint32) uint16 {
 		if value == 0 {
 			return 0
@@ -249,10 +285,25 @@ type Char struct {
 	// Mortal DEPOIS da ascensao continua fortalecendo o Arch. Guardamos o slot
 	// para reproduzir isso e o nivel em cache porque o calculo de pontos recebe
 	// apenas o Char, sem acesso a conta.
+	// ArchCrystals conta os cristais elementais ja consumidos, de 0 a 4. Eles
+	// sao feitos EM ORDEM (Elime, Sylphid, Salion, Nohas) e cada um cobra 100
+	// milhoes de EXP. Concluir os quatro e requisito para o Celestial.
+	//
+	// O nativo guarda isso em QuestInfo.Arch.Cristal -- o campo esta no bloco
+	// do ARCH, e e como Arch que a quest e feita.
+	ArchCrystals             byte   `json:"archCrystals,omitempty"`
+	// ArchLevel355 e ArchLevel370 sao as travas de nivel do Arch. Enquanto
+	// falsas, o personagem PARA de receber EXP ao chegar no nivel interno 354
+	// e 369 -- destravar e um craft na Lindy. Sao QuestInfo.Arch.Level355 e
+	// .Level370 no nativo.
+	ArchLevel355             bool   `json:"archLevel355,omitempty"`
+	ArchLevel370             bool   `json:"archLevel370,omitempty"`
 	ArchMortalSlot           int    `json:"archMortalSlot,omitempty"`
 	ArchMortalLevel          uint32 `json:"archMortalLevel,omitempty"`
-	Fame                     uint32 `json:"fame,omitempty"`
-	SoulInfo                 uint8  `json:"soulInfo,omitempty"` // 1..10; zero = nenhum
+	// A fama NAO mora aqui: ela e um contador por personagem em
+	// CharState.SpecialCoins["fame"], gravado em data/charstate/<nome>.json.
+	// Ver internal/game/counters.go.
+	SoulInfo                 uint8 `json:"soulInfo,omitempty"` // 1..10; zero = nenhum
 	CelestialLevel40Unlocked bool   `json:"celestialLevel40Unlocked,omitempty"`
 	// Habilidades da evolucao; separadas dos 24 bits Mortais como na W2PP.
 	SecondaryLearnedSkill uint32     `json:"secondaryLearnedSkill,omitempty"`

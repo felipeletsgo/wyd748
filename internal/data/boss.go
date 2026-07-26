@@ -129,6 +129,7 @@ func decodeBossTable(table *lua.LTable, boss *model.BossConfig) error {
 		"npc":           func(v lua.LValue) error { return luaString(v, &boss.NPC) },
 		"spawn_message": func(v lua.LValue) error { return luaString(v, &boss.SpawnMessage) },
 		"death_message": func(v lua.LValue) error { return luaString(v, &boss.DeathMessage) },
+		"area_reward":   func(v lua.LValue) error { return decodeBossAreaReward(v, &boss.AreaReward) },
 		"type": func(v lua.LValue) error {
 			var text string
 			if err := luaString(v, &text); err != nil {
@@ -156,6 +157,19 @@ func decodeBossSpawn(value lua.LValue, spawn *model.BossSpawn) error {
 		"x":               func(v lua.LValue) error { return luaUint16(v, &spawn.X) },
 		"y":               func(v lua.LValue) error { return luaUint16(v, &spawn.Y) },
 		"respawn_seconds": func(v lua.LValue) error { return luaInt(v, &spawn.RespawnSeconds) },
+	})
+}
+
+// decodeBossAreaReward le a premiacao coletiva: item e quantas unidades caem
+// no chao ao redor do boss.
+func decodeBossAreaReward(value lua.LValue, reward *model.BossAreaReward) error {
+	table, err := luaTable(value, "area_reward")
+	if err != nil {
+		return err
+	}
+	return eachField(table, "area_reward.", map[string]func(lua.LValue) error{
+		"item":   func(v lua.LValue) error { return luaUint16(v, &reward.Item) },
+		"amount": func(v lua.LValue) error { return luaInt(v, &reward.Amount) },
 	})
 }
 

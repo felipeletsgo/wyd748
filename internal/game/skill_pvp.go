@@ -179,7 +179,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		hit := hit
 		w.sendToPlayerView(hit.target, func() []byte {
 			return spectralPacket(caster.Char, wire.SkillHitExtended(caster.ID, hit.target.ID, caster.X, caster.Y, hit.target.X, hit.target.Y,
-				hit.damage, caster.Char.Exp, playerCombatMP(caster.Char), int16(skill.Index), motion, skillVisualLevel(mastery)))
+				hit.damage, playerMaxHP(hit.target.Char), caster.Char.Exp, playerCombatMP(caster.Char), int16(skill.Index), motion, skillVisualLevel(mastery)))
 		})
 	}
 	// O ataque precisa chegar antes de SetHpMp/CNFMobKill. Se HP=0 for

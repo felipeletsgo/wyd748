@@ -1,0 +1,136 @@
+{
+  "name": "Agmo_Skull",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 260,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 261
+    },
+    "armadura": {
+      "index": 262
+    },
+    "calca": {
+      "index": 263
+    },
+    "luva": {
+      "index": 264
+    },
+    "bota": {
+      "index": 265
+    },
+    "arma": {
+      "index": 724
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 70000,
+  "extendedScore": {
+    "version": 2,
+    "level": 130,
+    "attack": 360,
+    "magicAttack": 0,
+    "defense": 620,
+    "maxHP": 20000,
+    "maxMP": 0,
+    "curHP": 20000,
+    "curMP": 0,
+    "str": 6,
+    "int": 100,
+    "dex": 100,
+    "con": 750,
+    "critical": 255,
+    "resistFire": 10,
+    "resistIce": 246,
+    "resistHoly": 236,
+    "resistThunder": 10,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      1,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 3178
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1179,
+      "eff": [
+        103,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

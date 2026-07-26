@@ -6,7 +6,7 @@
 
 return {
   id   = "guardiao_das_ruinas",
-  npc  = "Golem_de_Fogo",         -- assets (rosto/equip) vem de data/npcs/Golem_de_Fogo.json
+  npc  = "Fire_Golem",         -- assets (rosto/equip) vem de data/npcs/Fire_Golem.json
   name = "Guardian of the Ruins",
   type = "chaser",
 
@@ -31,6 +31,11 @@ return {
     { item = 697,  chance_percent = 100, amount = 3 },  -- Sapphire (garantido)
     { item = 1775, chance_percent = 25 },               -- 11_Refine_Item (raro)
   },
+  -- Premiacao coletiva: cai no CHAO ao redor do corpo, uma unidade por celula,
+  -- para todos os presentes recolherem. Os `drops` acima vao so para quem deu
+  -- o golpe final.
+  area_reward = { item = 420, amount = 50 },
+
 
   spawn_message = "The Guardian of the Ruins awakens!",
   death_message = "The Guardian of the Ruins has been defeated.",

@@ -1,0 +1,161 @@
+{
+  "name": "ShopVolGen1",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 60
+    },
+    "elmo": {
+      "index": 120
+    },
+    "armadura": {
+      "index": 121
+    },
+    "calca": {
+      "index": 122
+    },
+    "luva": {
+      "index": 123
+    },
+    "bota": {
+      "index": 124
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 2,
+    "attack": 500,
+    "magicAttack": 0,
+    "defense": 3000,
+    "maxHP": 9000,
+    "maxMP": 0,
+    "curHP": 9000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 1
+  },
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 1729
+    },
+    {
+      "index": 1728
+    },
+    {
+      "index": 1731
+    },
+    {
+      "index": 778
+    },
+    {
+      "index": 779
+    },
+    {
+      "index": 780
+    },
+    {
+      "index": 781
+    },
+    {
+      "index": 782
+    },
+    {
+      "index": 783
+    },
+    {
+      "index": 784
+    },
+    {
+      "index": 785
+    },
+    {
+      "index": 1737
+    },
+    {
+      "index": 1772
+    },
+    {
+      "index": 3173
+    },
+    {
+      "index": 3174
+    },
+    {
+      "index": 3175
+    },
+    {
+      "index": 3176
+    },
+    {
+      "index": 3177
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 3179
+    },
+    {
+      "index": 3180
+    },
+    {
+      "index": 3181
+    },
+    {
+      "index": 3182
+    },
+    {
+      "index": 3183
+    }
+  ]
+}

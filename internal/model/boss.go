@@ -107,6 +107,20 @@ type BossPhase struct {
 }
 
 // BossDrop e uma recompensa especial, independente do carry/droprate nativo.
+// MaxBossAreaReward limita a premiacao de area. Cada unidade e um item no
+// chao, publicado a todos os observadores: um numero solto aqui viraria uma
+// enxurrada de pacotes e um tapete de itens no mapa.
+const MaxBossAreaReward = 200
+
+// BossAreaReward espalha unidades de um item pelo chao quando o boss cai.
+// Item zero ou Amount zero desliga a premiacao.
+type BossAreaReward struct {
+	// Item e o indice em data/itemlist.csv.
+	Item uint16
+	// Amount e quantas unidades caem no chao, uma por celula.
+	Amount int
+}
+
 type BossDrop struct {
 	// Item e o indice em data/itemlist.csv.
 	Item uint16
@@ -134,10 +148,16 @@ type BossConfig struct {
 	Phases  []BossPhase
 	Drops   []BossDrop
 
-	// SpawnMessage e anunciada no mundo quando o boss nasce.
+	// SpawnMessage e anunciada quando o boss nasce, e DeathMessage quando ele
+	// morre. As duas vao SO para quem esta perto o bastante para participar do
+	// encontro -- anuncio global tornaria o mundo inteiro espectador.
 	SpawnMessage string
-	// DeathMessage e anunciada quando ele morre.
 	DeathMessage string
+
+	// AreaReward e a premiacao coletiva: ao morrer, o boss espalha o item pelo
+	// chao ao redor, para todos os presentes recolherem. Diferente de Drops,
+	// que vai para o inventario de quem deu o golpe final.
+	AreaReward BossAreaReward
 	// SourceFile e preenchido pelo loader, para o erro citar o arquivo.
 	SourceFile string
 }
@@ -241,6 +261,18 @@ func (c *BossConfig) Validate() error {
 		if drop.Amount < 0 {
 			return fmt.Errorf("%s: boss %q drop[%d] com amount negativo", where, c.ID, i)
 		}
+	}
+
+	// Premiacao de area: item e quantidade andam juntos. Um sem o outro e
+	// configuracao pela metade, e virar silenciosamente "sem premiacao" e o
+	// tipo de erro que ninguem percebe ate o boss morrer sem largar nada.
+	if (c.AreaReward.Item == 0) != (c.AreaReward.Amount == 0) {
+		return fmt.Errorf("%s: boss %q area_reward incompleto (item=%d amount=%d)",
+			where, c.ID, c.AreaReward.Item, c.AreaReward.Amount)
+	}
+	if c.AreaReward.Amount < 0 || c.AreaReward.Amount > MaxBossAreaReward {
+		return fmt.Errorf("%s: boss %q area_reward com amount %d fora de [0,%d]",
+			where, c.ID, c.AreaReward.Amount, MaxBossAreaReward)
 	}
 	return nil
 }

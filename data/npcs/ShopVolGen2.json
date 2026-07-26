@@ -1,0 +1,155 @@
+{
+  "name": "ShopVolGen2",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 61
+    },
+    "elmo": {
+      "index": 120
+    },
+    "armadura": {
+      "index": 121
+    },
+    "calca": {
+      "index": 122
+    },
+    "luva": {
+      "index": 123
+    },
+    "bota": {
+      "index": 124
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 2,
+    "attack": 500,
+    "magicAttack": 0,
+    "defense": 3000,
+    "maxHP": 9000,
+    "maxMP": 0,
+    "curHP": 9000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 1
+  },
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 3184
+    },
+    {
+      "index": 3185
+    },
+    {
+      "index": 3186
+    },
+    {
+      "index": 3187
+    },
+    {
+      "index": 3188
+    },
+    {
+      "index": 3189
+    },
+    {
+      "index": 3190
+    },
+    {
+      "index": 4000
+    },
+    {
+      "index": 4001
+    },
+    {
+      "index": 3324
+    },
+    {
+      "index": 3328
+    },
+    {
+      "index": 3909
+    },
+    {
+      "index": 3367
+    },
+    {
+      "index": 4114
+    },
+    {
+      "index": 4117
+    },
+    {
+      "index": 4124
+    },
+    {
+      "index": 3439
+    },
+    {
+      "index": 3343
+    },
+    {
+      "index": 3443
+    },
+    {
+      "index": 4147
+    },
+    {
+      "index": 3444
+    },
+    {
+      "index": 5137
+    }
+  ]
+}

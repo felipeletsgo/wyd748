@@ -31,10 +31,15 @@ func TestApplyBonusDoesNotRematerializeMovingPlayer(t *testing.T) {
 
 	w.onApplyBonus(session, pkt)
 
-	// UpdateScore + UpdateEtc + SetHpMp. Um quarto pacote era o CreateMob que
-	// encaixava o avatar no destino enquanto sua caminhada ainda interpolava.
-	if got := session.QueuedPacketsForTest(); got != 3 {
-		t.Fatalf("apply bonus enfileirou %d pacotes, esperado 3 sem CreateMob", got)
+	// UpdateScore + UpdateEtc. O SetHpMp NAO vai mais para o dono: o 0x336 ja
+	// leva HP/MP nos WORDs legados e na cauda wide, e cada pacote de vitals
+	// custa um redesenho nativo no client patcheado -- dois seguidos faziam a
+	// barra piscar. Os observadores continuam recebendo o 0x181.
+	//
+	// Um terceiro pacote aqui seria o CreateMob que encaixava o avatar no
+	// destino enquanto a caminhada ainda interpolava.
+	if got := session.QueuedPacketsForTest(); got != 2 {
+		t.Fatalf("apply bonus enfileirou %d pacotes, esperado 2 sem CreateMob", got)
 	}
 	if !p.MovePublished || p.X != 2105 || p.Y != 2100 {
 		t.Fatalf("estado de movimento alterado: published=%v pos=(%d,%d)", p.MovePublished, p.X, p.Y)

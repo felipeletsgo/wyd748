@@ -43,7 +43,7 @@ return {
 
   summons = {
     {
-      npc = "Esqueleto",
+      npc = "Skeleton",
       count = 4,
       max_alive = 6,
       cooldown_seconds = 45,
@@ -73,6 +73,11 @@ return {
     { item = 1775, chance_percent = 50 },   -- 11_Refine_Item
     { item = 1776, chance_percent = 5 },    -- 12_Refine_Item (muito raro)
   },
+  -- Premiacao coletiva: cai no CHAO ao redor do corpo, uma unidade por celula,
+  -- para todos os presentes recolherem. Os `drops` acima vao so para quem deu
+  -- o golpe final.
+  area_reward = { item = 420, amount = 50 },
+
 
   spawn_message = "The Demon Lord emerges from the abyss!",
   death_message = "The Demon Lord has been defeated!",

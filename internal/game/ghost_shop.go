@@ -159,6 +159,31 @@ func parseReqBuyAutoTrade(pkt []byte) (reqBuyAutoTrade, error) {
 	return req, nil
 }
 
+// ghostShopFaceNPC e o mob cujo rosto o clone da loja veste. O nome resolve
+// pelo catalogo em vez de um indice cravado, para o dia em que o rosto do
+// Carbunkle mudar no data/npcs.
+const ghostShopFaceNPC = "Carbunkle"
+
+// applyGhostShopLook da ao clone a aparencia da loja: rosto de Carbunkle e
+// NENHUMA peca de equipamento.
+//
+// Zerar os outros quinze slots nao e detalhe -- e o que evita o problema em vez
+// de remediar. Mesh de monstro no rosto conflita com armadura/calca/luva/bota
+// humanas, e o clone sairia deformado. Sem as pecas, ele e so o Carbunkle. De
+// quebra, o dono deixa de expor o proprio equipamento enquanto vende.
+func (w *World) applyGhostShopLook(shop *GhostShop) {
+	shop.Mesh = [16]uint16{}
+	if def := w.npcDefByName(ghostShopFaceNPC); def != nil {
+		if mesh := def.Mesh(); len(mesh) > 0 {
+			shop.Mesh[0] = mesh[0]
+			return
+		}
+	}
+	// Catalogo sem o NPC: o clone fica sem rosto, mas a loja continua de pe.
+	// Melhor que herdar o corpo do dono e voltar ao visual antigo em silencio.
+	log.Printf("LOJA FANTASMA: NPC %q ausente do catalogo; clone sem rosto", ghostShopFaceNPC)
+}
+
 func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
@@ -217,7 +242,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	if extended := wireExtendedScore(p.Char); extended != nil {
 		shop.Extended = *extended
 	}
-	copy(shop.Mesh[:], bodyMesh(p.Char))
+	w.applyGhostShopLook(shop)
 	if _, exists := w.ghostShops[shop.ID]; exists {
 		s.Send(wire.CloseTrade(p.ID))
 		s.Send(wire.MessagePanel("That shop ID is already in use. Try again."))

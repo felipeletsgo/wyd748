@@ -83,15 +83,22 @@ The server has these systems. The server has authority on each system.
   trade and prevents item duplication in the data storage.
 - **Crafting** — The server has server-side recipes and native success and
   failure messages for Agatha, Aylin, Tiny, Lindy, Compositor, Ehre, and
-  Alquimista Odin.
+  Alquimista Odin. The Compositor needs four materials of set D or E, each
+  refined +7 to +9. Its success chance comes from `data/server.txt`: a base
+  value plus a bonus for each material, selected by the refine level.
 - **Quests** — The server reads the quest requirements and gives atomic rewards
   from data files. The quest areas are repeatable. The server does a 10-minute
   area reset and gives the native quest reward boxes. The full retail quest
   catalog is not complete.
 - **Volatiles** — You can configure potions, gold, teleports, refining and
   tinting, mount items, timed affects, the Magical Pill, the Hunting Scrolls,
-  the summon contracts, and the Sephira books. A deferred code stays a generic
-  handler that does not consume the item.
+  the summon contracts, the Sephira books, and the gate keys. A gate key finds
+  its door by the `EF_KEYID` effect, not by the item index. A deferred code
+  stays a generic handler that does not consume the item.
+- **Character counters** — A character has named counters, such as the Kefra
+  entrance ticket and the fame points. They live in a per-character sidecar
+  file, not in the account. A quest can require, spend, or grant them. A
+  counter does not pass from one character to another one in the same account.
 - **Mounts** — An egg incubates and hatches. A hatchling grows into an adult.
   The pet follows its owner outside the party. A mounted character absorbs some
   damage. The server calculates hunger and longevity.
@@ -102,7 +109,11 @@ The server has these systems. The server has authority on each system.
   eight Sephira stones, the Black Oracle forges the Eternal Stone, and the king
   does the ascension. The Arch is a new character in a free slot; the Mortal
   stays. The Arch gets more attribute points if the Mortal has a higher level,
-  and the server calculates this again at each login.
+  and the server calculates this again at each login. An Arch stops at level
+  355 and at level 370: it receives no experience until Lindy lifts the limit
+  with the retail recipe. The level 370 unlock also costs one fame point. The
+  four elemental oaths of Kefra cost 100 million experience each, and you must
+  take them in order.
 - **Boss encounters** — A boss is a normal mob with a parallel behavior
   runtime. Four behaviors are compiled into the server: chaser, caster,
   summoner, and phased. You configure each encounter in a Lua file in
@@ -233,6 +244,8 @@ them.
 | `mounts.json` | combat bonus for each mount type |
 | `quests.json` | quest definitions and prerequisites |
 | `quest_zones.json` | timed quest-area limits and reset behavior |
+| `init_items.csv` | permanent world objects: gates, doors, cannons |
+| `charstate/*.json` | per-character sidecar: affects and named counters |
 | `boss/*.lua` | one boss encounter for each file |
 | `guilds.json` + `Guilds.txt` | guild registry and 7.48 client name list |
 | `droprate.json` | loot table weights |
@@ -243,6 +256,8 @@ them.
 These are the next gameplay phases:
 
 - the remaining retail quest catalog;
+- the instance engine: party registration for each room, an entrance ticket, a
+  timer, and the exit. Most of the remaining quests need it;
 - the Celestial evolution, after the Arch;
 - the visible guild mark;
 - the guild war, the kingdom war, and the Castle war;

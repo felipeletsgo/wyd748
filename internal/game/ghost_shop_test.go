@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"wydgo/internal/model"
+	"wydgo/internal/net"
 	"wydgo/internal/wire"
 )
 
@@ -187,5 +188,84 @@ func TestGhostShopTradeListKeepsVirtualCloneIdentity(t *testing.T) {
 	}
 	if got := binary.LittleEndian.Uint16(pkt[194:196]); got != shop.ID {
 		t.Fatalf("TargetID=%d, esperado clone %d (owner real=%d)", got, shop.ID, shop.OwnerID)
+	}
+}
+
+// TestClonePerdeOCorpoDoDono: o clone da loja veste o rosto do Carbunkle e
+// NENHUMA peca. Herdar o corpo do dono causava dois problemas -- mesh de
+// monstro no rosto conflita com peca humana, e o dono expunha o proprio
+// equipamento enquanto vendia.
+func TestClonePerdeOCorpoDoDono(t *testing.T) {
+	w := &World{npcs: []model.NPCDef{{
+		Name:  "Carbunkle",
+		Equip: model.Equip{Rosto: model.Item{Index: 230}, Armadura: model.Item{Index: 999}},
+	}}}
+	shop := &GhostShop{}
+	// Suja todos os slots como se tivessem vindo do dono.
+	for i := range shop.Mesh {
+		shop.Mesh[i] = uint16(500 + i)
+	}
+
+	w.applyGhostShopLook(shop)
+
+	if shop.Mesh[0] != 230 {
+		t.Errorf("rosto=%d, quer 230 (Carbunkle)", shop.Mesh[0])
+	}
+	for i := 1; i < len(shop.Mesh); i++ {
+		if shop.Mesh[i] != 0 {
+			t.Errorf("slot %d ficou com %d; o clone nao pode vestir peca nenhuma",
+				i, shop.Mesh[i])
+		}
+	}
+}
+
+// TestCloneSemCatalogoNaoHerdaODono: se o NPC sumir do data/npcs, o clone fica
+// sem rosto -- mas nao pode voltar a copiar o dono em silencio.
+func TestCloneSemCatalogoNaoHerdaODono(t *testing.T) {
+	w := &World{}
+	shop := &GhostShop{}
+	for i := range shop.Mesh {
+		shop.Mesh[i] = uint16(500 + i)
+	}
+
+	w.applyGhostShopLook(shop)
+
+	if shop.Mesh != ([16]uint16{}) {
+		t.Errorf("clone manteve aparencia do dono sem o catalogo: %v", shop.Mesh)
+	}
+}
+
+// TestTrocaDeEquipamentoNaoMandaVitalsDuplicado: o wrapper wide do client copia
+// a cauda uint32 para o sidecar e DEPOIS chama o handler nativo, sempre. Cada
+// pacote de vitals custa um redesenho; 0x336 e 0x181 em sequencia ao mesmo
+// jogador custavam dois, e a barra piscava.
+//
+// O dono recebe so o 0x336 (que ja leva HP/MP). Quem observa continua
+// recebendo o 0x181, porque para ele o 0x336 privado nunca chegou.
+func TestVitalsDeObservadorNaoVaoParaODono(t *testing.T) {
+	w := newZoneTestWorld()
+	w.players = map[*net.Session]*Player{}
+
+	novo := func(id uint16, x uint16) (*Player, *net.Session) {
+		s := net.NewTestSession(int64(id), 64)
+		acc := &model.Account{Name: "c", Chars: []model.Char{{Name: "n",
+			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100}}}}
+		p := &Player{ID: id, Session: s, Account: acc, Char: &acc.Chars[0],
+			InWorld: true, X: x, Y: 2100, Visible: map[uint16]struct{}{}}
+		w.players[s] = p
+		w.updatePlayerSpatial(p)
+		return p, s
+	}
+	dono, sessaoDono := novo(1, 2100)
+	observador, sessaoObs := novo(2, 2101)
+	observador.show(dono.ID)
+
+	w.syncPlayerVitalsToObservers(dono)
+
+	if sessaoDono.QueuedPacketsForTest() != 0 {
+		t.Error("o dono recebeu o 0x181 redundante; e ele que faz a barra piscar")
+	}
+	if sessaoObs.QueuedPacketsForTest() == 0 {
+		t.Error("o observador ficou sem a atualizacao de vitals")
 	}
 }

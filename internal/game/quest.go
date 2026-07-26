@@ -142,7 +142,7 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 		return fmt.Sprintf("You must be level %d.", req.MinLevel), false
 	}
 	if req.MaxLevel != 0 && level > req.MaxLevel {
-		return fmt.Sprintf("Disponivel apenas ate o nivel %d.", req.MaxLevel), false
+		return fmt.Sprintf("Available only up to level %d.", req.MaxLevel), false
 	}
 	if req.AfterQuest != 0 && !questCompleted(ch, req.AfterQuest) {
 		return "You cannot take this quest yet.", false
@@ -165,6 +165,16 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 	for _, item := range quest.Consumes {
 		if countInventoryItem(ch, item.Index) < item.Quantity() {
 			return "You do not have the required items.", false
+		}
+	}
+	if name, ok := hasCounters(p, quest.Requires.Counters); !ok {
+		return counterDeniedMessage(name), false
+	}
+	if name, ok := hasCounters(p, quest.ConsumeCounters); !ok {
+		// Saldo zerado ainda passa se a recarga do NPC puder cobri-lo -- e o
+		// caso do Sobrevivente, que troca o selo por 100 entradas na hora.
+		if !rechargeCovers(p, ch, quest, name) {
+			return counterDeniedMessage(name), false
 		}
 	}
 	if free := freeInventorySlots(ch); free < len(quest.Rewards.Items) {
@@ -216,7 +226,28 @@ func freeInventorySlots(ch *model.Char) int {
 // ter mudado desde que o jogador abriu a janela), consome, concede e persiste;
 // se a gravacao falhar, reverte por completo.
 
+// speakQuestNPC faz o NPC dizer uma das falas configuradas, em voz alta. Sai
+// como 0x333 com o ID do NPC, entao o client mostra como fala DELE, e quem
+// estiver por perto tambem le -- e o mesmo efeito do SendSay nativo, que
+// tambem usa GridMulticast.
+//
+// A escolha usa w.intn, o RNG injetavel, para o teste poder fixar a linha.
+func (w *World) speakQuestNPC(p *Player, m *Mob, quest *model.QuestDef) {
+	if m == nil || len(quest.Dialogue) == 0 {
+		return
+	}
+	linha := quest.Dialogue[w.intn(len(quest.Dialogue))]
+	for _, ouvinte := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
+		ouvinte.Session.Send(wire.MessageChat(m.ID, linha))
+	}
+	_ = p
+}
+
 func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.QuestDef) {
+	// O NPC fala ANTES de qualquer checagem: ele reage a presenca do jogador,
+	// nao ao resultado. Recusa tambem merece fala.
+	w.speakQuestNPC(p, m, quest)
+
 	// Toda recusa e logada com o motivo. Sem isso o log mostra a confirmacao
 	// chegando e depois silencio, e nao da para distinguir "ja concluida" de
 	// uma falha de verdade -- exatamente o que confundiu no primeiro teste.
@@ -241,6 +272,8 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	previousDone := append([]int32(nil), p.Char.QuestsDone...)
 	previousX, previousY := p.X, p.Y
 	previousCitizenship := p.Char.Citizenship
+	previousEquip := p.Char.Equip
+	previousCounters := copyCounters(p)
 
 	for _, item := range quest.Consumes {
 		if !consumeInventoryItem(p.Char, item.Index, item.Quantity()) {
@@ -251,6 +284,16 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 			return
 		}
 	}
+	// A recarga roda ANTES do gasto, como no nativo: sem saldo, o NPC troca o
+	// item por entradas e so entao cobra a visita.
+	applyQuestRecharge(p, quest)
+	if !spendCounters(p, quest.ConsumeCounters) {
+		p.Char.Inv = previousInv
+		s.Send(wire.MessagePanel("You do not have enough entries."))
+		log.Printf("[#%d] QUEST %d recusada: saldo de contador insuficiente", s.ID, quest.ID)
+		return
+	}
+	grantCounters(p, quest.Rewards.Counters)
 	if quest.Requires.Gold != 0 {
 		p.Char.Gold -= quest.Requires.Gold
 	}
@@ -260,6 +303,15 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 			s.Send(wire.MessagePanel("Your inventory is full."))
 			log.Printf("[#%d] QUEST %d recusada: sem espaco para o item %d",
 				s.ID, quest.ID, item.Index)
+			return
+		}
+	}
+	if r := quest.Rewards.Refine; r != nil {
+		if !refineQuestReward(p.Char, r) {
+			p.Char.Inv, p.Char.Gold, p.Char.Equip = previousInv, previousGold, previousEquip
+			s.Send(wire.MessagePanel("You have nothing equipped to improve."))
+			log.Printf("[#%d] QUEST %d recusada: nada para refinar no slot %d",
+				s.ID, quest.ID, r.Slot)
 			return
 		}
 	}
@@ -290,12 +342,38 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 		markQuestCompleted(p.Char, quest.ID)
 	}
 
-	if err := w.saveAccount(p.Account); err != nil {
+	desfazer := func() {
 		p.Char.Inv = previousInv
 		p.Char.Gold, p.Char.Exp = previousGold, previousExp
 		p.Char.QuestsDone = previousDone
 		p.X, p.Y = previousX, previousY
 		p.Char.Citizenship = previousCitizenship
+		p.Char.Equip = previousEquip
+		p.SpecialCoins = previousCounters
+	}
+
+	// Contador vive no sidecar do personagem, que NAO participa da transacao da
+	// conta. Por isso o sidecar vai PRIMEIRO: se ele falhar, nada foi ao disco
+	// e o rollback e limpo. Na ordem inversa, a conta gravada com a recompensa
+	// e o sidecar nao gravado deixariam o jogador com o premio E com a ficha --
+	// vetor de dupe numa quest repetivel.
+	mexeuEmContador := len(quest.ConsumeCounters) > 0 || len(quest.Rewards.Counters) > 0
+	if mexeuEmContador {
+		if err := w.saveCharStateResult(p); err != nil {
+			desfazer()
+			s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
+			log.Printf("[#%d] ERRO quest %d ao salvar contadores: %v", s.ID, quest.ID, err)
+			return
+		}
+	}
+
+	if err := w.saveAccount(p.Account); err != nil {
+		desfazer()
+		// O sidecar ja foi gravado acima: regrava com os saldos restaurados,
+		// senao a ficha ficaria gasta em disco sem a quest ter acontecido.
+		if mexeuEmContador {
+			w.saveCharState(p)
+		}
 		s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
 		log.Printf("[#%d] ERRO quest %d: %v", s.ID, quest.ID, err)
 		return
@@ -348,6 +426,35 @@ func setItemStackAmount(item *model.Item, amount uint32) {
 }
 
 // grantInventoryItem poe o item no primeiro slot livre visivel.
+// refineQuestReward refina o equipamento VESTIDO, como fazem os guardas do
+// Training Camp no nativo (_MSG_Quest.cpp: o Treinador 2 grava EF_SANC 7 na
+// arma, o Treinador 3 grava 6 em todas as pecas).
+//
+// Slot negativo refina tudo. Devolve false quando nada foi refinado -- premiar
+// alguem que esta sem equipamento gastaria a chave sem entregar nada, e a
+// quest e de uma vez so.
+func refineQuestReward(ch *model.Char, r *model.QuestRefine) bool {
+	if ch == nil || r == nil {
+		return false
+	}
+	refinar := func(slot int) bool {
+		if ch.Equip[slot].Index == 0 {
+			return false
+		}
+		return setItemSanc(&ch.Equip[slot], r.Sanc)
+	}
+	if r.Slot >= 0 {
+		return refinar(r.Slot)
+	}
+	algum := false
+	for slot := 0; slot < model.MaxEquipSlots; slot++ {
+		if refinar(slot) {
+			algum = true
+		}
+	}
+	return algum
+}
+
 func grantInventoryItem(ch *model.Char, reward model.QuestItem) bool {
 	item := model.Item{Index: reward.Index}
 	if amount := reward.Quantity(); amount > 1 {
@@ -367,6 +474,21 @@ func grantInventoryItem(ch *model.Char, reward model.QuestItem) bool {
 }
 
 // questCompleted consulta a lista de quests concluidas do personagem.
+// counterDeniedMessage traduz o contador em falta para o jogador. Nome interno
+// (kefra_ticket) nao vai para a tela.
+func counterDeniedMessage(name string) string {
+	if texto, ok := counterLabels[name]; ok {
+		return texto
+	}
+	return "You do not meet the requirements yet."
+}
+
+// counterLabels e o texto de cada contador conhecido. Contador novo sem
+// entrada aqui cai na mensagem generica em vez de vazar o nome interno.
+var counterLabels = map[string]string{
+	kefraTicketCounter: "You have no entries left.",
+}
+
 func questCompleted(ch *model.Char, questID int) bool {
 	if ch == nil {
 		return false

@@ -62,13 +62,17 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 	type questRange struct {
 		min, max uint32
 		x, y     uint16
+		// ticket e o item de entrada que o nativo EXIGE e CONSOME antes de
+		// teleportar (_MSG_Quest.cpp varre o Carry atras do indice e o limpa).
+		// Sem ele as cinco areas viram entrada livre.
+		ticket uint16
 	}
 	wantQuests := map[string]questRange{
-		"Coveiro":       {39, 115, 2398, 2105},
-		"Jardineiro":    {115, 189, 2234, 1714},
-		"Batedor":       {190, 264, 464, 3902},
-		"Guarda":        {265, 319, 668, 3756},
-		"Representante": {319, 349, 1322, 4041},
+		"Gravedigger":       {39, 115, 2398, 2105, 4038},
+		"Gardener":    {115, 189, 2234, 1714, 4039},
+		"Scout":       {190, 264, 464, 3902, 4040},
+		"Guard__":        {265, 319, 668, 3756, 4041},
+		"Envoy": {319, 349, 1322, 4041, 4042},
 	}
 	seenQuests := make(map[string]bool)
 	for i := range quests.Quests {
@@ -83,6 +87,18 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 			quest.Rewards.Teleport == nil || quest.Rewards.Teleport.X != want.x ||
 			quest.Rewards.Teleport.Y != want.y {
 			t.Fatalf("quest %s divergiu da tabela nativa: %+v", quest.NPC, *quest)
+		}
+		// O portao: exigir NAO basta, tem que consumir -- senao o mesmo item
+		// abre a area infinitas vezes.
+		if len(quest.Requires.Items) != 1 || quest.Requires.Items[0].Index != want.ticket ||
+			quest.Requires.Items[0].Quantity() != 1 {
+			t.Errorf("quest %s nao exige o item de entrada %d: %+v",
+				quest.NPC, want.ticket, quest.Requires.Items)
+		}
+		if len(quest.Consumes) != 1 || quest.Consumes[0].Index != want.ticket ||
+			quest.Consumes[0].Quantity() != 1 {
+			t.Errorf("quest %s nao consome o item de entrada %d: %+v",
+				quest.NPC, want.ticket, quest.Consumes)
 		}
 	}
 	if len(seenQuests) != len(wantQuests) {
@@ -110,13 +126,30 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 		t.Fatalf("slot 56 deveria ser garantido, rate=%d", rates[56])
 	}
 
+	// O item de entrada precisa existir NOMEADO: os cinco indices vinham do
+	// 7.48 so com a arte (mesh), sem nome nem preco, e item sem nome nao se
+	// apresenta ao jogador.
+	for npcName, want := range wantQuests {
+		def, ok := catalog.Items[want.ticket]
+		if !ok {
+			t.Errorf("item de entrada %d (%s) nao existe no catalogo", want.ticket, npcName)
+			continue
+		}
+		if def.Name == "" {
+			t.Errorf("item de entrada %d (%s) esta sem nome", want.ticket, npcName)
+		}
+		if def.Price == 0 {
+			t.Errorf("item de entrada %d (%s) esta sem preco", want.ticket, npcName)
+		}
+	}
+
 	leaders := map[string]uint16{
-		"Aparicao": 4117, "Grande_Carb": 4118, "Cav._Kaizen": 4119,
-		"Hidra_Dourada": 4120, "Mestre_Elfo": 4121,
+		"Aparicao": 4117, "Grande_Carb": 4118, "Kaizen_Kn": 4119,
+		"Gold_Hydra1": 4120, "Elf_Master": 4121,
 	}
 	followers := map[string]bool{
-		"Esqueleto": true, "Servo_Carbuncle": true, "Cav._Servo": true,
-		"Hidra_Imortal": true, "Servo_Elfo": true,
+		"Skeleton": true, "Carb_Servant": true, "Servant_Kn": true,
+		"Immort_Hydra": true, "Elf_Servant1": true,
 	}
 	seen := make(map[string]bool)
 	for i := range npcs {
@@ -154,18 +187,120 @@ func TestQuestsComplementaresConfirmadasNaSource(t *testing.T) {
 	for _, quest := range quests.Quests {
 		byNPC[quest.NPC] = quest
 	}
-	royal := byNPC["Chefe_de_Treino"]
+	royal := byNPC["Drill_Master"]
 	if !royal.Repeatable || !royal.Requires.MortalOnly ||
 		royal.Requires.MinLevel != 199 || royal.Requires.MaxLevel != 253 ||
 		royal.Rewards.Teleport == nil || royal.Rewards.Teleport.X != 1740 ||
 		royal.Rewards.Teleport.Y != 1725 {
 		t.Fatalf("QUEST_CAPAREAL divergiu do W2PP: %+v", royal)
 	}
-	helen := byNPC["Helen"]
-	if !helen.Repeatable || !helen.Requires.MortalOnly ||
-		helen.Requires.MinLevel != 119 || helen.Requires.MaxLevel != 123 ||
-		len(helen.Consumes) != 1 || helen.Consumes[0].Index != 4125 ||
-		len(helen.Rewards.Items) != 1 || helen.Rewards.Items[0].Index != 4126 {
-		t.Fatalf("AMELIA/Helen divergiu do W2PP: %+v", helen)
+	ameria := byNPC["Priest_Ameria"]
+	if !ameria.Repeatable || !ameria.Requires.MortalOnly ||
+		ameria.Requires.MinLevel != 119 || ameria.Requires.MaxLevel != 123 ||
+		len(ameria.Consumes) != 1 || ameria.Consumes[0].Index != 4125 ||
+		len(ameria.Rewards.Items) != 1 || ameria.Rewards.Items[0].Index != 4126 {
+		t.Fatalf("AMELIA/Priest Ameria divergiu do W2PP: %+v", ameria)
+	}
+}
+
+// TestItensDeEntradaTemFonteViva fecha o ciclo da cadeia Mortal: exigir o item
+// de entrada so faz sentido se ALGUM mob VIVO no mundo o dropar. Sem isso, as
+// cinco areas viram inalcancaveis -- o portao tranca a porta e joga a chave
+// fora, e o servidor sobe sem reclamar de nada.
+//
+// Os itens sao drop de mob no nativo (MobDropList.txt do W2PP), portados para
+// o carry dos NPCs no slot que o nativo usa.
+// lacunasDeFonte sao itens consumidos por quest que hoje NAO tem como ser
+// obtidos. Ficam listados em vez de silenciados: o teste registra cada um no
+// log, e RECLAMA se algum ganhar fonte e ninguem tirar daqui -- assim a lista
+// so encolhe.
+//
+// Esta vazia. O 4125 (Balance's_Piece) esteve aqui por engano meu: eu havia
+// procurado o item no MobDropList do W2PP pelo nome sem o acento de
+// "Equilibrio" e concluido que nao existia fonte. Ele dropa do InionTrollChief,
+// nos slots 9 e 10, exatamente como o 4123 dropa do NainTrollChief.
+var lacunasDeFonte = map[uint16]string{}
+
+func TestItensDeEntradaTemFonteViva(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+
+	quests, err := data.LoadQuests(filepath.Join(root, "quests.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	npcs, err := data.LoadNPCs(filepath.Join(root, "npcs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	geners, err := data.LoadNPCGener(filepath.Join(root, "NPCGener.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Quem realmente nasce no mundo: lider e follower de gerador habilitado.
+	vivos := make(map[string]bool)
+	for _, g := range geners {
+		if !g.Enabled || g.MaxNumMob <= 0 {
+			continue
+		}
+		for _, nome := range []string{g.Leader, g.Follower} {
+			if nome != "" {
+				vivos[generName(nome)] = true
+			}
+		}
+	}
+	if len(vivos) == 0 {
+		t.Fatal("nenhum mob vivo lido do NPCGener; o teste nao provaria nada")
+	}
+
+	// Vale para o que a quest CONSOME e para o que ela apenas EXIGE: nos dois
+	// casos o jogador precisa conseguir o item em algum lugar.
+	for i := range quests.Quests {
+		quest := &quests.Quests[i]
+		exigidos := append(append([]model.QuestItem(nil), quest.Consumes...),
+			quest.Requires.Items...)
+		vistos := make(map[uint16]bool, len(exigidos))
+		for _, consumido := range exigidos {
+			if vistos[consumido.Index] {
+				continue
+			}
+			vistos[consumido.Index] = true
+			var fontes, fontesVivas []string
+			for j := range npcs {
+				for _, carregado := range npcs[j].Carry {
+					if carregado.Index != consumido.Index {
+						continue
+					}
+					nome := generName(npcs[j].Name)
+					fontes = append(fontes, nome)
+					if vivos[nome] {
+						fontesVivas = append(fontesVivas, nome)
+					}
+					break
+				}
+			}
+			motivo, conhecida := lacunasDeFonte[consumido.Index]
+			temFonte := len(fontesVivas) > 0
+
+			if conhecida && temFonte {
+				t.Errorf("o item %d ganhou fonte (%v): tire-o de lacunasDeFonte",
+					consumido.Index, fontesVivas)
+				continue
+			}
+			if conhecida {
+				t.Logf("LACUNA CONHECIDA: quest %d (%s) consome o item %d -- %s",
+					quest.ID, quest.NPC, consumido.Index, motivo)
+				continue
+			}
+			if len(fontes) == 0 {
+				t.Errorf("quest %d (%s) consome o item %d, que NENHUM mob dropa",
+					quest.ID, quest.NPC, consumido.Index)
+				continue
+			}
+			if !temFonte {
+				t.Errorf("quest %d (%s) consome o item %d, que so dropa de mob que "+
+					"nao nasce no mundo: %v", quest.ID, quest.NPC, consumido.Index, fontes)
+			}
+		}
 	}
 }

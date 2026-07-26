@@ -23,6 +23,7 @@ type ServerConfig struct {
 	CharStatePath         string
 	QuestsPath            string
 	QuestZonesPath        string
+	InitItemsPath         string
 	BossPath              string
 	ItemPath              string
 	ItemNamePath          string
@@ -54,6 +55,7 @@ func DefaultServerConfig() ServerConfig {
 		CharStatePath:         "data/charstate",
 		QuestsPath:            "data/quests.json",
 		QuestZonesPath:        "data/quest_zones.json",
+		InitItemsPath:         "data/init_items.csv",
 		BossPath:              "data/boss",
 		ItemPath:              "data/itemlist.csv",
 		ItemNamePath:          "data/Itemname.csv",
@@ -99,6 +101,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"charstate":           func(v string) error { cfg.CharStatePath = v; return nil },
 		"quests":              func(v string) error { cfg.QuestsPath = v; return nil },
 		"quest_zones":         func(v string) error { cfg.QuestZonesPath = v; return nil },
+		"init_items":          func(v string) error { cfg.InitItemsPath = v; return nil },
 		"boss":                func(v string) error { cfg.BossPath = v; return nil },
 		"items":               func(v string) error { cfg.ItemPath = v; return nil },
 		"itemnames":           func(v string) error { cfg.ItemNamePath = v; return nil },
@@ -115,6 +118,10 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"exp_minimum":         setUint32(&cfg.Gameplay.EXPMinimum),
 		"exp_rate":            setUint32(&cfg.Gameplay.EXPRatePercent),
 		"party_exp_bonus":     setUint32(&cfg.Gameplay.PartyEXPBonusPercent),
+		"compositor_base":     setUint32(&cfg.Gameplay.CompositorBaseChance),
+		"compositor_refine_7": setUint32(&cfg.Gameplay.CompositorRefineChance[0]),
+		"compositor_refine_8": setUint32(&cfg.Gameplay.CompositorRefineChance[1]),
+		"compositor_refine_9": setUint32(&cfg.Gameplay.CompositorRefineChance[2]),
 	}
 
 	scanner := bufio.NewScanner(file)

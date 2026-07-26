@@ -81,7 +81,7 @@ func TestSummonerPropagaLimites(t *testing.T) {
 	config := chaserConfig()
 	config.Type = model.BossTypeSummoner
 	config.Summons = []model.BossSummon{
-		{NPC: "Esqueleto", Count: 4, MaxAlive: 8, CooldownSeconds: 30},
+		{NPC: "Skeleton", Count: 4, MaxAlive: 8, CooldownSeconds: 30},
 	}
 	profile, err := compileBossProfile(config)
 	if err != nil {
@@ -92,7 +92,7 @@ func TestSummonerPropagaLimites(t *testing.T) {
 		t.Fatalf("regras=%d, quer 1", len(rules))
 	}
 	action := profile.Actions[rules[0].ActionID]
-	if action.SummonNPC != "Esqueleto" || action.SummonCount != 4 || action.SummonMax != 8 {
+	if action.SummonNPC != "Skeleton" || action.SummonCount != 4 || action.SummonMax != 8 {
 		t.Fatalf("summon mal propagado: %+v", action)
 	}
 	if action.Cooldown != 30*time.Second {
@@ -105,7 +105,7 @@ func TestSummonerPropagaLimites(t *testing.T) {
 func TestPhasedOrdenaLimiaresDecrescente(t *testing.T) {
 	config := chaserConfig()
 	config.Type = model.BossTypePhased
-	config.Summons = []model.BossSummon{{NPC: "Esqueleto", Count: 2}}
+	config.Summons = []model.BossSummon{{NPC: "Skeleton", Count: 2}}
 	// Declaradas fora de ordem de proposito.
 	config.Phases = []model.BossPhase{
 		{HPPercent: 25, Type: model.BossTypeCaster},
@@ -138,7 +138,7 @@ func TestPhasedOrdenaLimiaresDecrescente(t *testing.T) {
 func TestPhasedComEscudoGeraOrdemCorreta(t *testing.T) {
 	config := chaserConfig()
 	config.Type = model.BossTypePhased
-	config.Summons = []model.BossSummon{{NPC: "Esqueleto", Count: 2}}
+	config.Summons = []model.BossSummon{{NPC: "Skeleton", Count: 2}}
 	config.Phases = []model.BossPhase{{HPPercent: 60, ShieldPercent: 100, ShieldUntilAddsDead: true}}
 	profile, err := compileBossProfile(config)
 	if err != nil {
@@ -167,7 +167,7 @@ func TestBossTipoAcumulaRegrasDeTodasAsListas(t *testing.T) {
 	config := chaserConfig()
 	config.Type = model.BossTypePhased
 	config.Skills = []model.BossSkill{{ID: 26, CooldownSeconds: 5}}
-	config.Summons = []model.BossSummon{{NPC: "Esqueleto", Count: 2}}
+	config.Summons = []model.BossSummon{{NPC: "Skeleton", Count: 2}}
 	config.Phases = []model.BossPhase{{HPPercent: 50}}
 	profile, err := compileBossProfile(config)
 	if err != nil {

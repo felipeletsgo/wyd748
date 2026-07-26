@@ -182,7 +182,7 @@ func TestRepeatedWideSkillsKeepRealManaAndProjectedClientChannelInSync(t *testin
 		}
 
 		hit := wire.SkillHitExtended(1, 1000, 10, 10, 11, 10,
-			300_000, 0, projected, 7, 5, 255)
+			300_000, 0, 0, projected, 7, 5, 255)
 		if got := uint32(binary.LittleEndian.Uint16(hit[26:28])); got != projected {
 			t.Fatalf("cast %d truncou MP no 0x39D: got=%d want=%d", cast, got, projected)
 		}

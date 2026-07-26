@@ -3,105 +3,590 @@
   "quests": [
     {
       "id": 1,
-      "npc": "Coveiro",
+      "npc": "Gravedigger",
       "repeatable": true,
-      "requires": { "minLevel": 39, "maxLevel": 115, "mortalOnly": true },
-      "rewards": { "teleport": { "x": 2398, "y": 2105 } },
+      "requires": {
+        "minLevel": 39,
+        "maxLevel": 115,
+        "mortalOnly": true,
+        "items": [
+          {
+            "index": 4038,
+            "amount": 1
+          }
+        ]
+      },
+      "rewards": {
+        "teleport": {
+          "x": 2398,
+          "y": 2105
+        }
+      },
       "messages": {
         "offer": "Entrance to the Gravedigger area.",
         "success": "You have entered the Gravedigger area.",
-        "denied": "The Gravedigger will not let you in right now."
-      }
+        "denied": "You need Gravedigger's Candle to enter."
+      },
+      "consumes": [
+        {
+          "index": 4038,
+          "amount": 1
+        }
+      ],
+      "dialogue": [
+        "The dead do not rest here. Bring me the candle and I will open the way.",
+        "Something stirs beneath the graves. A worshipper calls to it. Hurry.",
+        "Do not pity the spirits, friend. Pity whoever wakes them."
+      ]
     },
     {
       "id": 2,
       "npc": "Kibita",
       "repeatable": false,
-      "requires": { "gold": 400000 },
-      "rewards": { "citizenship": true },
+      "requires": {
+        "gold": 400000
+      },
+      "rewards": {
+        "citizenship": true
+      },
       "messages": {
         "offer": "Kibita: citizenship costs 400,000 gold.",
         "success": "You are now a citizen. Drop bonus active.",
         "denied": "Kibita: you cannot become a citizen right now."
-      }
+      },
+      "dialogue": [
+        "A citizen of this kingdom is never a stranger anywhere in it.",
+        "Gold buys many things. Belonging is the one worth the price."
+      ]
     },
     {
       "id": 3,
-      "npc": "Jardineiro",
+      "npc": "Gardener",
       "repeatable": true,
-      "requires": { "minLevel": 115, "maxLevel": 189, "mortalOnly": true },
-      "rewards": { "teleport": { "x": 2234, "y": 1714 } },
+      "requires": {
+        "minLevel": 115,
+        "maxLevel": 189,
+        "mortalOnly": true,
+        "items": [
+          {
+            "index": 4039,
+            "amount": 1
+          }
+        ]
+      },
+      "rewards": {
+        "teleport": {
+          "x": 2234,
+          "y": 1714
+        }
+      },
       "messages": {
         "offer": "Entrance to the Carbuncle area.",
         "success": "You have entered the Carbuncle area.",
-        "denied": "The Gardener will not let you in right now."
-      }
+        "denied": "You need Gardener's Harvest to enter."
+      },
+      "consumes": [
+        {
+          "index": 4039,
+          "amount": 1
+        }
+      ],
+      "dialogue": [
+        "The garden grows wild and hungry. Bring the harvest and step through.",
+        "Carbuncles guard the beds now. They were tame once, I swear it.",
+        "Mind the roots, traveller. Some of them mind you back."
+      ]
     },
     {
       "id": 4,
-      "npc": "Batedor",
+      "npc": "Scout",
       "repeatable": true,
-      "requires": { "minLevel": 190, "maxLevel": 264, "mortalOnly": true },
-      "rewards": { "teleport": { "x": 464, "y": 3902 } },
+      "requires": {
+        "minLevel": 190,
+        "maxLevel": 264,
+        "mortalOnly": true,
+        "items": [
+          {
+            "index": 4040,
+            "amount": 1
+          }
+        ]
+      },
+      "rewards": {
+        "teleport": {
+          "x": 464,
+          "y": 3902
+        }
+      },
       "messages": {
         "offer": "Entrance to the Kaizen area.",
         "success": "You have entered the Kaizen area.",
-        "denied": "The Scout will not let you in right now."
-      }
+        "denied": "You need Scout's Cure to enter."
+      },
+      "consumes": [
+        {
+          "index": 4040,
+          "amount": 1
+        }
+      ],
+      "dialogue": [
+        "The Dark Knight walks again. I have seen the banners from the ridge.",
+        "Bring me the cure and I will send you where the scouts do not return from.",
+        "Kaizen took my brother. Take my directions, and take your revenge."
+      ]
     },
     {
       "id": 5,
-      "npc": "Guarda",
+      "npc": "Guard__",
       "repeatable": true,
-      "requires": { "minLevel": 265, "maxLevel": 319, "mortalOnly": true },
-      "rewards": { "teleport": { "x": 668, "y": 3756 } },
+      "requires": {
+        "minLevel": 265,
+        "maxLevel": 319,
+        "mortalOnly": true,
+        "items": [
+          {
+            "index": 4041,
+            "amount": 1
+          }
+        ]
+      },
+      "rewards": {
+        "teleport": {
+          "x": 668,
+          "y": 3756
+        }
+      },
       "messages": {
         "offer": "Entrance to the Hydra area.",
         "success": "You have entered the Hydra area.",
-        "denied": "The Guard will not let you in right now."
-      }
+        "denied": "You need Scout's Mana to enter."
+      },
+      "consumes": [
+        {
+          "index": 4041,
+          "amount": 1
+        }
+      ],
+      "dialogue": [
+        "Come closer. The hydras drown this valley and I cannot hold it alone.",
+        "Cut one head and two answer. Bring the emblem and see for yourself.",
+        "Immortal, they call it. Nothing that bleeds is immortal."
+      ]
     },
     {
       "id": 6,
-      "npc": "Representante",
+      "npc": "Envoy",
       "repeatable": true,
-      "requires": { "minLevel": 319, "maxLevel": 349, "mortalOnly": true },
-      "rewards": { "teleport": { "x": 1322, "y": 4041 } },
+      "requires": {
+        "minLevel": 319,
+        "maxLevel": 349,
+        "mortalOnly": true,
+        "items": [
+          {
+            "index": 4042,
+            "amount": 1
+          }
+        ]
+      },
+      "rewards": {
+        "teleport": {
+          "x": 1322,
+          "y": 4041
+        }
+      },
       "messages": {
         "offer": "Entrance to the Elf area.",
         "success": "You have entered the Elf area.",
-        "denied": "The Representative will not let you in right now."
-      }
+        "denied": "You need Guard's Emblem to enter."
+      },
+      "consumes": [
+        {
+          "index": 4042,
+          "amount": 1
+        }
+      ],
+      "dialogue": [
+        "The elves closed their borders. What they hide there began our sorrow.",
+        "Show me the emblem of the guard and the forest road is yours.",
+        "Go softly. The elves hear a sword drawn from a mile off."
+      ]
     },
     {
       "id": 7,
-      "npc": "Chefe_de_Treino",
+      "npc": "Drill_Master",
       "repeatable": true,
-      "requires": { "minLevel": 199, "maxLevel": 253, "mortalOnly": true },
-      "rewards": { "teleport": { "x": 1740, "y": 1725 } },
+      "requires": {
+        "minLevel": 199,
+        "maxLevel": 253,
+        "mortalOnly": true
+      },
+      "rewards": {
+        "teleport": {
+          "x": 1740,
+          "y": 1725
+        }
+      },
       "messages": {
         "offer": "Entrance to the Royal Cape trial.",
         "success": "You have entered the kingdom area.",
         "denied": "The Royal Cape trial requires a Mortal between levels 200 and 254."
-      }
+      },
+      "dialogue": [
+        "A cape is cloth. A knight is what you do while wearing it.",
+        "The trial is short. Surviving it is the long part."
+      ]
     },
     {
       "id": 8,
-      "npc": "Helen",
+      "npc": "Priest_Ameria",
       "repeatable": true,
       "requires": {
         "minLevel": 119,
         "maxLevel": 123,
         "mortalOnly": true,
-        "items": [{ "index": 4125, "amount": 1 }]
+        "items": [
+          {
+            "index": 4125,
+            "amount": 1
+          }
+        ]
       },
-      "consumes": [{ "index": 4125, "amount": 1 }],
-      "rewards": { "items": [{ "index": 4126, "amount": 1 }] },
+      "consumes": [
+        {
+          "index": 4125,
+          "amount": 1
+        }
+      ],
+      "rewards": {
+        "items": [
+          {
+            "index": 4126,
+            "amount": 1
+          }
+        ]
+      },
       "messages": {
         "offer": "Hand over Balance's Piece.",
-        "success": "Helen turned the fragment into Balance's Compound.",
-        "denied": "Helen requires a Mortal between levels 120 and 124 carrying the right fragment."
-      }
+        "success": "Ameria turned the fragment into Balance's Compound.",
+        "denied": "Ameria needs a Mortal between levels 120 and 124 carrying Balance's Piece."
+      },
+      "dialogue": [
+        "Bring me the piece and I will bind it. Balance is not found, it is made.",
+        "Power without balance is just a faster way to fall.",
+        "The trolls beyond the gate carry what I need. Take it from them."
+      ]
+    },
+    {
+      "id": 9,
+      "npc": "Trainer1",
+      "repeatable": false,
+      "requires": {
+        "maxLevel": 39,
+        "mortalOnly": true,
+        "items": [
+          {
+            "index": 451,
+            "amount": 1
+          }
+        ]
+      },
+      "rewards": {
+        "items": [
+          {
+            "index": 401,
+            "amount": 60
+          }
+        ]
+      },
+      "messages": {
+        "offer": "Show me the First Gate Key and I will reward you.",
+        "success": "Well done! Take these potions.",
+        "denied": "Come back as a Mortal below level 41, with the First Gate Key."
+      },
+      "dialogue": [
+        "New blood! Stand straight. Show me the key and I will fill your bag.",
+        "Potions first, glory later. That is the order that keeps you breathing.",
+        "Every knight I trained started exactly where you are standing."
+      ]
+    },
+    {
+      "id": 10,
+      "npc": "Blessing_Priest",
+      "repeatable": true,
+      "requires": {
+        "minLevel": 69,
+        "maxLevel": 73,
+        "mortalOnly": true
+      },
+      "rewards": {
+        "teleport": {
+          "x": 2651,
+          "y": 1984
+        }
+      },
+      "messages": {
+        "offer": "Entrance to the Bless of the God area.",
+        "success": "You have entered the Bless of the God area.",
+        "denied": "Bless of the God is for a Mortal between levels 70 and 74."
+      },
+      "dialogue": [
+        "Kneel, and the god will look east with you. The trolls wait there.",
+        "The blessing is not given. It is survived.",
+        "Seventy summers and no more. Come now, or do not come at all."
+      ]
+    },
+    {
+      "id": 11,
+      "npc": "Knighthood_Guard",
+      "repeatable": true,
+      "requires": {
+        "minLevel": 99,
+        "maxLevel": 149,
+        "mortalOnly": true
+      },
+      "rewards": {
+        "teleport": {
+          "x": 2245,
+          "y": 1576
+        }
+      },
+      "messages": {
+        "offer": "Entrance to the Path to Knighthood trial.",
+        "success": "You have entered the Path to Knighthood area.",
+        "denied": "Path to Knighthood is for a Mortal between levels 100 and 150."
+      },
+      "dialogue": [
+        "The green cape marks a squire. Earn it on the training ground, not here.",
+        "Every knight of this realm crossed this line first. Most crossed back.",
+        "Report to the Squad Leader. Tell him the gate guard sent you."
+      ]
+    },
+    {
+      "id": 12,
+      "npc": "Balance_Guard",
+      "repeatable": true,
+      "requires": {
+        "minLevel": 120,
+        "maxLevel": 124,
+        "mortalOnly": true
+      },
+      "rewards": {
+        "teleport": {
+          "x": 1961,
+          "y": 1593
+        }
+      },
+      "messages": {
+        "offer": "Entrance to the Balance of Power area.",
+        "success": "You have entered the Balance of Power area.",
+        "denied": "Balance of Power is for a Mortal between levels 121 and 125."
+      },
+      "dialogue": [
+        "The trolls beyond hold a shard of the old balance. Take it from them.",
+        "Two forces pull this land apart. Someone must stand in the middle.",
+        "Step through, and do not look back at me. It is bad luck."
+      ]
+    },
+    {
+      "id": 13,
+      "npc": "Gargoyle_Watcher",
+      "repeatable": true,
+      "requires": {
+        "minLevel": 199,
+        "maxLevel": 253,
+        "mortalOnly": true
+      },
+      "rewards": {
+        "teleport": {
+          "x": 817,
+          "y": 4062
+        }
+      },
+      "messages": {
+        "offer": "Entrance to the Gargoyle's Molar Tooth area.",
+        "success": "You have entered the Gargoyle's Molar Tooth area.",
+        "denied": "Gargoyle's Molar Tooth is for a Mortal between levels 200 and 254."
+      },
+      "dialogue": [
+        "The gargoyles wake at dusk. It is dusk somewhere, so keep your shield up.",
+        "One tooth. That is all I ask. Prying it loose is the hard part.",
+        "Stone does not bleed, but it does break. Remember that inside."
+      ]
+    },
+    {
+      "id": 14,
+      "npc": "Priest_Kruno",
+      "repeatable": true,
+      "requires": {
+        "minLevel": 69,
+        "maxLevel": 73,
+        "mortalOnly": true,
+        "items": [
+          {
+            "index": 4123,
+            "amount": 1
+          }
+        ]
+      },
+      "consumes": [
+        {
+          "index": 4123,
+          "amount": 1
+        }
+      ],
+      "rewards": {
+        "items": [
+          {
+            "index": 4124,
+            "amount": 1
+          }
+        ]
+      },
+      "messages": {
+        "offer": "Hand over Opportunity's Piece.",
+        "success": "Kruno turned the fragment into Opportunity's Compound.",
+        "denied": "Kruno needs a Mortal between levels 70 and 74 carrying Opportunity's Piece."
+      },
+      "dialogue": [
+        "You found the piece. Give it here and I will make it whole.",
+        "The trolls carry it without knowing what it is. Lucky for us both.",
+        "Compounded, it restores what the years took from your skills."
+      ]
+    },
+    {
+      "id": 15,
+      "npc": "Trainer2",
+      "repeatable": false,
+      "requires": {
+        "maxLevel": 39,
+        "mortalOnly": true,
+        "afterQuest": 9,
+        "items": [
+          {
+            "index": 452,
+            "amount": 1
+          }
+        ]
+      },
+      "rewards": {
+        "refine": {
+          "slot": 6,
+          "sanc": 7
+        }
+      },
+      "messages": {
+        "offer": "Show me the Second Gate Key and I will temper your weapon.",
+        "success": "Your weapon has been tempered.",
+        "denied": "Clear the first gate and bring me the Second Gate Key."
+      },
+      "dialogue": [
+        "Second gate, second lesson: a dull blade kills nobody but its owner.",
+        "Bring the key and I will put an edge on that weapon of yours.",
+        "One reward per recruit. Spend it on the weapon you mean to keep."
+      ]
+    },
+    {
+      "id": 16,
+      "npc": "Trainer3",
+      "repeatable": false,
+      "requires": {
+        "maxLevel": 39,
+        "mortalOnly": true,
+        "afterQuest": 15,
+        "items": [
+          {
+            "index": 453,
+            "amount": 1
+          }
+        ]
+      },
+      "rewards": {
+        "items": [
+          {
+            "index": 4016,
+            "amount": 100
+          }
+        ],
+        "refine": {
+          "slot": -1,
+          "sanc": 6
+        }
+      },
+      "messages": {
+        "offer": "Show me the Final Gate Key and I will bless your whole kit.",
+        "success": "Your equipment has been blessed. Go and earn it.",
+        "denied": "Clear the second gate and bring me the Final Gate Key."
+      },
+      "dialogue": [
+        "Final gate. Past it there are no trainers, only monsters.",
+        "Give me the key and I will harden every piece you are wearing.",
+        "You came in a recruit. You leave this camp a soldier."
+      ]
+    },
+    {
+      "id": 17,
+      "npc": "Trainer_Leader",
+      "repeatable": false,
+      "requires": {
+        "maxLevel": 34,
+        "mortalOnly": true,
+        "items": [
+          {
+            "index": 524,
+            "amount": 1
+          }
+        ]
+      },
+      "consumes": [
+        {
+          "index": 524,
+          "amount": 1
+        }
+      ],
+      "rewards": {
+        "exp": 45000,
+        "gold": 20000
+      },
+      "messages": {
+        "offer": "Bring me the Orc Emblem from beyond the final gate.",
+        "success": "You cleared the camp. Armia has one more defender.",
+        "denied": "Clear the three gates, take the Orc Emblem from their chief, then return."
+      },
+      "dialogue": [
+        "Three gates, three guards, and an orc chief behind the last one.",
+        "Bring me his emblem and I will call you a soldier, not a recruit.",
+        "Every knight in Armia stood where you stand. Most of them came back."
+      ]
+    },
+    {
+      "id": 18,
+      "npc": "Survivor",
+      "repeatable": true,
+      "requires": {},
+      "recharge": {
+        "item": 4127,
+        "counter": "kefra_ticket",
+        "amount": 100
+      },
+      "consumeCounters": {
+        "kefra_ticket": 1
+      },
+      "rewards": {
+        "teleport": {
+          "x": 2365,
+          "y": 3907
+        }
+      },
+      "messages": {
+        "offer": "Entrance to Kefra.",
+        "success": "Welcome to Kefra!",
+        "denied": "You have no entries left. Bring a Locked Seal."
+      },
+      "dialogue": [
+        "I am the only one who came back from Kefra. That should tell you enough.",
+        "One seal buys a hundred trips. Most people do not need the second one.",
+        "Step through when you are ready. I will not follow you in."
+      ]
     }
   ]
 }

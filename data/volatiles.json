@@ -24,10 +24,10 @@
       "description": "Moeda do chao; valor = EF_HWORDCOIN * 256 + EF_LWORDCOIN."
     },
     "3": {
-      "action": "generic",
-      "consume": false,
+      "action": "gate_key",
+      "consume": true,
       "valueSource": "item_effects",
-      "description": "Handler generico; no nativo este codigo representa chaves EF_KEYID."
+      "description": "Chave de porta: casa com a porta no chao pelo EF_KEYID do itemlist, abre a porta e some do inventario."
     },
     "4": {
       "action": "refine",
@@ -41,20 +41,11 @@
       "refineMax": 9,
       "description": "Poeira de Lac (PL): refina o item-alvo ate +9."
     },
-    "6": { "action": "magical_pill", "consume": true, "description": "Magical Pill: +9 pontos de skill permanentes, uma vez por personagem." },
-    "32": { "action": "learn_special_skill", "consume": true, "learnedBit": 25, "description": "Livro Sephira: Conjure Cannon (skill 97)." },
-    "33": { "action": "learn_special_skill", "consume": true, "learnedBit": 26, "description": "Livro Sephira: Thorn Wall (skill 98)." },
-    "34": { "action": "learn_special_skill", "consume": true, "learnedBit": 27, "description": "Livro Sephira: Resurrect (skill 99)." },
-    "35": { "action": "learn_special_skill", "consume": true, "learnedBit": 28, "description": "Livro Sephira: Cancellation (skill 100)." },
-    "36": { "action": "learn_special_skill", "consume": true, "learnedBit": 29, "description": "Livro Sephira: Spectral Force (skill 101)." },
-    "41": { "action": "summon_contract", "consume": true, "summon": { "group": "soldier", "name": "Soldado Cavaleiro", "face": 207, "weapon": 946, "attack": 78, "defense": 140, "hp": 600, "moveSpeed": 4, "attackRange": 3 }, "description": "Contrato de soldado cavaleiro; uso livre temporario." },
-    "42": { "action": "summon_contract", "consume": true, "summon": { "group": "soldier", "name": "Soldado Arqueiro", "face": 209, "weapon": 950, "attack": 63, "defense": 130, "hp": 500, "moveSpeed": 4, "attackRange": 8 }, "description": "Contrato de soldado arqueiro; uso livre temporario." },
-    "43": { "action": "summon_contract", "consume": true, "summon": { "group": "soldier", "name": "Soldado Mago", "face": 232, "weapon": 731, "shield": 1915, "attack": 350, "defense": 600, "hp": 15000, "moveSpeed": 4, "attackRange": 8 }, "description": "Contrato de soldado mago; uso livre temporario." },
-    "46": { "action": "summon_contract", "consume": true, "summon": { "group": "guard", "name": "Guarda Cavaleiro", "face": 207, "weapon": 946, "attack": 78, "defense": 140, "hp": 600, "moveSpeed": 4, "attackRange": 3 }, "description": "Carta de guarda cavaleiro; identidade separada para reino futuro." },
-    "47": { "action": "summon_contract", "consume": true, "summon": { "group": "guard", "name": "Guarda Arqueiro", "face": 209, "weapon": 950, "attack": 63, "defense": 130, "hp": 500, "moveSpeed": 4, "attackRange": 8 }, "description": "Carta de guarda arqueiro; identidade separada para reino futuro." },
-    "48": { "action": "summon_contract", "consume": true, "summon": { "group": "guard", "name": "Guarda Mago", "face": 232, "weapon": 731, "shield": 1915, "attack": 350, "defense": 600, "hp": 15000, "moveSpeed": 4, "attackRange": 8 }, "description": "Carta de guarda mago; identidade separada para reino futuro." },
-    "58": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 450, "description": "Bigger Potion: +10% HP maximo; duracao padrao 1h." },
-    "195": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":2370,"y":2106},{"x":2508,"y":2101},{"x":2526,"y":2109},{"x":2529,"y":1882},{"x":2126,"y":1600},{"x":2005,"y":1617},{"x":2241,"y":1474},{"x":1858,"y":1721},{"x":2250,"y":1316},{"x":1989,"y":1755}], "description": "Hunting Scroll; destinos especificos por item." },
+    "6": {
+      "action": "magical_pill",
+      "consume": true,
+      "description": "Magical Pill: +9 pontos de skill permanentes, uma vez por personagem."
+    },
     "7": {
       "action": "grant_exp",
       "consume": true,
@@ -97,6 +88,146 @@
       "consume": true,
       "description": "Warp: teleporta para a coordenada gravada pela Gema Estelar."
     },
+    "15": {
+      "action": "mount",
+      "mountAction": "feed",
+      "consume": true,
+      "description": "Racao (2420+/3367+): +5000 HP (teto 30000) e +2 comida (teto 100) na montaria equipada. Casa por familia de tipo (fiel ao W2PP Vol 15)."
+    },
+    "16": {
+      "action": "mount",
+      "mountAction": "essence",
+      "consume": true,
+      "description": "Amago/Essence (2390+): +1 level; adulta rola chance de sucesso (g_pSancRate[2]), falha pode baixar level; evolui estagio ao cruzar o limite (fiel ao Vol 16)."
+    },
+    "32": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 25,
+      "description": "Livro Sephira: Conjure Cannon (skill 97)."
+    },
+    "33": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 26,
+      "description": "Livro Sephira: Thorn Wall (skill 98)."
+    },
+    "34": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 27,
+      "description": "Livro Sephira: Resurrect (skill 99)."
+    },
+    "35": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 28,
+      "description": "Livro Sephira: Cancellation (skill 100)."
+    },
+    "36": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 29,
+      "description": "Livro Sephira: Spectral Force (skill 101)."
+    },
+    "41": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "soldier",
+        "name": "Knight Troop",
+        "face": 207,
+        "weapon": 946,
+        "attack": 78,
+        "defense": 140,
+        "hp": 600,
+        "moveSpeed": 4,
+        "attackRange": 3
+      },
+      "description": "Contrato de knight troop; uso livre temporario."
+    },
+    "42": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "soldier",
+        "name": "Archer Troop",
+        "face": 209,
+        "weapon": 950,
+        "attack": 63,
+        "defense": 130,
+        "hp": 500,
+        "moveSpeed": 4,
+        "attackRange": 8
+      },
+      "description": "Contrato de archer troop; uso livre temporario."
+    },
+    "43": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "soldier",
+        "name": "Mage Troop",
+        "face": 232,
+        "weapon": 731,
+        "shield": 1915,
+        "attack": 350,
+        "defense": 600,
+        "hp": 15000,
+        "moveSpeed": 4,
+        "attackRange": 8
+      },
+      "description": "Contrato de mage troop; uso livre temporario."
+    },
+    "46": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "guard",
+        "name": "Knight Guard",
+        "face": 207,
+        "weapon": 946,
+        "attack": 78,
+        "defense": 140,
+        "hp": 600,
+        "moveSpeed": 4,
+        "attackRange": 3
+      },
+      "description": "Carta de guarda cavaleiro; identidade separada para reino futuro."
+    },
+    "47": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "guard",
+        "name": "Archer Guard",
+        "face": 209,
+        "weapon": 950,
+        "attack": 63,
+        "defense": 130,
+        "hp": 500,
+        "moveSpeed": 4,
+        "attackRange": 8
+      },
+      "description": "Carta de guarda arqueiro; identidade separada para reino futuro."
+    },
+    "48": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "guard",
+        "name": "Mage Guard",
+        "face": 232,
+        "weapon": 731,
+        "shield": 1915,
+        "attack": 350,
+        "defense": 600,
+        "hp": 15000,
+        "moveSpeed": 4,
+        "attackRange": 8
+      },
+      "description": "Carta de guarda mago; identidade separada para reino futuro."
+    },
     "52": {
       "action": "buff",
       "consume": true,
@@ -136,6 +267,14 @@
       "affectValue": 25,
       "durationUnits": 450,
       "description": "Mental (P): +25% dano por ~1h."
+    },
+    "58": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 450,
+      "description": "Bigger Potion: +10% HP maximo; duracao padrao 1h."
     },
     "60": {
       "action": "buff",
@@ -194,37 +333,211 @@
       "durationUnits": 324000,
       "description": "Panqueca 30 dias: affect 30 por 30d."
     },
-    "70": { "action": "face_transform", "consume": true, "faceMesh": 202, "durationUnits": 10800, "description": "Vira Gremlin (rosto 202). Ajuste faceMesh/dur se o visual nao bater." },
-    "71": { "action": "face_transform", "consume": true, "faceMesh": 209, "durationUnits": 10800, "description": "Vira Archer Orc (rosto 209)." },
-    "72": { "action": "face_transform", "consume": true, "faceMesh": 212, "durationUnits": 10800, "description": "Vira Troll (rosto 212)." },
-    "73": { "action": "face_transform", "consume": true, "faceMesh": 230, "durationUnits": 10800, "description": "Vira Carbunkle (rosto 230)." },
-    "74": { "action": "face_transform", "consume": true, "faceMesh": 229, "durationUnits": 10800, "description": "Vira Ghoul Chief (rosto 229)." },
-    "75": { "action": "face_transform", "consume": true, "faceMesh": 216, "durationUnits": 10800, "description": "Vira Wild Boar/Javali (rosto 216)." },
-    "76": { "action": "face_transform", "consume": true, "faceMesh": 299, "durationUnits": 10800, "description": "Vira Wolf/Lobo (rosto 299)." },
-    "77": { "action": "face_transform", "consume": true, "faceMesh": 297, "durationUnits": 10800, "description": "Vira Fire Golem (rosto 297)." },
-    "89": { "action": "face_restore", "consume": true, "description": "Volta ao rosto real do jogador." },
-    "186": { "action": "tint", "consume": true, "color": 116, "description": "Tintura (Enamel): pinta o item-alvo (equip ou inv). Fallback azul; cor real por item em items[]. O Remover_Enamel usa untint." },
-    "190": { "action": "repliction", "consume": true, "description": "Repliction: sorteia um adicional no manto equipado. Pool por grade em items[] (regra do felipe: diferenciar por Index). Fallback = Grade C.",
-      "addPool": [ {"effect": 2, "value": 15, "weight": 2}, {"effect": 7, "value": 4, "weight": 3}, {"effect": 10, "value": 4, "weight": 3} ] },
-    "15": { "action": "mount", "mountAction": "feed", "consume": true, "description": "Racao (2420+/3367+): +5000 HP (teto 30000) e +2 comida (teto 100) na montaria equipada. Casa por familia de tipo (fiel ao W2PP Vol 15)." },
-    "16": { "action": "mount", "mountAction": "essence", "consume": true, "description": "Amago/Essence (2390+): +1 level; adulta rola chance de sucesso (g_pSancRate[2]), falha pode baixar level; evolui estagio ao cruzar o limite (fiel ao Vol 16)." },
-    "93": { "action": "mount", "mountAction": "longevity", "consume": true, "description": "Length Of Life Recovery (3351+): longevidade +1~3 (teto 60). Recusa se no maximo ou montaria morta (fiel ao Vol 93)." },
-    "94": { "action": "mount", "mountAction": "growth", "consume": true, "description": "Growth Potion (3344+): evolui o estagio da montaria na hora (sIndex+=30), por categoria (fiel ao Vol 94)." },
-    "90": { "action": "mount", "mountAction": "invuln", "consume": true, "durationUnits": 75600, "description": "Mount Recovery Potion 7d: affect 51 (invuln da montaria) por 7 dias -- nao drena HP/comida enquanto ativo." },
-    "91": { "action": "mount", "mountAction": "invuln", "consume": true, "durationUnits": 162000, "description": "Mount Recovery Potion 15d: affect 51 por 15 dias." },
-    "92": { "action": "mount", "mountAction": "invuln", "consume": true, "durationUnits": 324000, "description": "Mount Recovery Potion 30d: affect 51 por 30 dias." },
-    "196": { "action": "mount", "mountAction": "hatch", "consume": true, "description": "Hatch accelerator: zera o delay de incubacao de um ovo no inventario, liberando o proximo Ori/Lac." },
+    "67": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 450,
+      "description": "Codigo LIVRE aceito pelo client no botao direito (vizinho das comidas 60-66). Portador dos buffs Sefirah/Chocolate/Doce/Coragem, cujo EF_VOLATILE no itemlist foi trocado de 202/204/205/230 para 67 (o client 7.48 nao usa 202+). Params reais por item em items[]."
+    },
+    "70": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 202,
+      "durationUnits": 10800,
+      "description": "Vira Gremlin (rosto 202). Ajuste faceMesh/dur se o visual nao bater."
+    },
+    "71": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 209,
+      "durationUnits": 10800,
+      "description": "Vira Archer Orc (rosto 209)."
+    },
+    "72": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 212,
+      "durationUnits": 10800,
+      "description": "Vira Troll (rosto 212)."
+    },
+    "73": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 230,
+      "durationUnits": 10800,
+      "description": "Vira Carbunkle (rosto 230)."
+    },
+    "74": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 229,
+      "durationUnits": 10800,
+      "description": "Vira Ghoul Chief (rosto 229)."
+    },
+    "75": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 216,
+      "durationUnits": 10800,
+      "description": "Vira Wild Boar/Javali (rosto 216)."
+    },
+    "76": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 299,
+      "durationUnits": 10800,
+      "description": "Vira Wolf (rosto 299)."
+    },
+    "77": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 297,
+      "durationUnits": 10800,
+      "description": "Vira Fire Golem (rosto 297)."
+    },
+    "89": {
+      "action": "face_restore",
+      "consume": true,
+      "description": "Volta ao rosto real do jogador."
+    },
+    "90": {
+      "action": "mount",
+      "mountAction": "invuln",
+      "consume": true,
+      "durationUnits": 75600,
+      "description": "Mount Recovery Potion 7d: affect 51 (invuln da montaria) por 7 dias -- nao drena HP/comida enquanto ativo."
+    },
+    "91": {
+      "action": "mount",
+      "mountAction": "invuln",
+      "consume": true,
+      "durationUnits": 162000,
+      "description": "Mount Recovery Potion 15d: affect 51 por 15 dias."
+    },
+    "92": {
+      "action": "mount",
+      "mountAction": "invuln",
+      "consume": true,
+      "durationUnits": 324000,
+      "description": "Mount Recovery Potion 30d: affect 51 por 30 dias."
+    },
+    "93": {
+      "action": "mount",
+      "mountAction": "longevity",
+      "consume": true,
+      "description": "Length Of Life Recovery (3351+): longevidade +1~3 (teto 60). Recusa se no maximo ou montaria morta (fiel ao Vol 93)."
+    },
+    "94": {
+      "action": "mount",
+      "mountAction": "growth",
+      "consume": true,
+      "description": "Growth Potion (3344+): evolui o estagio da montaria na hora (sIndex+=30), por categoria (fiel ao Vol 94)."
+    },
     "185": {
       "action": "gold",
       "consume": true,
       "valueSource": "price",
       "description": "Converte Silver Wyden em gold usando o Price server-side do itemlist."
     },
+    "186": {
+      "action": "tint",
+      "consume": true,
+      "color": 116,
+      "description": "Tintura (Enamel): pinta o item-alvo (equip ou inv). Fallback azul; cor real por item em items[]. O Remover_Enamel usa untint."
+    },
+    "187": {
+      "action": "arch_crystal",
+      "consume": true,
+      "description": "Cristais elementais de Kefra (4106 Elime, 4107 Sylphid, 4108 Salion, 4109 Nohas). Feitos como Arch, EM ORDEM; cada um cobra 100 milhoes de EXP e o nivel e recalculado a partir da EXP reduzida. Concluir os quatro e requisito para o Celestial."
+    },
+    "199": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": { "fame": 10 },
+      "description": "Warrior's_Seal (4146): +10 de fama. Porte de _MSG_UseItem.cpp:7147, onde extra.Fame += 10. A fama e gasta na Lindy (1, destrave do nivel 370 do Arch) e no Odin (200, nivel 40 do Celestial)."
+    },
+    "190": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Repliction: sorteia um adicional no manto equipado. Pool por grade em items[] (regra do felipe: diferenciar por Index). Fallback = Grade C.",
+      "addPool": [
+        {
+          "effect": 2,
+          "value": 15,
+          "weight": 2
+        },
+        {
+          "effect": 7,
+          "value": 4,
+          "weight": 3
+        },
+        {
+          "effect": 10,
+          "value": 4,
+          "weight": 3
+        }
+      ]
+    },
     "194": {
       "action": "refine_set",
       "consume": true,
       "refineMax": 6,
-      "description": "Molar do Gargula: refino FIXO +6 nas pecas de armadura equipadas (slots 1-5). Sem rolagem."
+      "description": "Molar do Gargoyle: refino FIXO +6 nas pecas de armadura equipadas (slots 1-5). Sem rolagem."
+    },
+    "195": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 2370,
+          "y": 2106
+        },
+        {
+          "x": 2508,
+          "y": 2101
+        },
+        {
+          "x": 2526,
+          "y": 2109
+        },
+        {
+          "x": 2529,
+          "y": 1882
+        },
+        {
+          "x": 2126,
+          "y": 1600
+        },
+        {
+          "x": 2005,
+          "y": 1617
+        },
+        {
+          "x": 2241,
+          "y": 1474
+        },
+        {
+          "x": 1858,
+          "y": 1721
+        },
+        {
+          "x": 2250,
+          "y": 1316
+        },
+        {
+          "x": 1989,
+          "y": 1755
+        }
+      ],
+      "description": "Hunting Scroll; destinos especificos por item."
+    },
+    "196": {
+      "action": "mount",
+      "mountAction": "hatch",
+      "consume": true,
+      "description": "Hatch accelerator: zera o delay de incubacao de um ovo no inventario, liberando o proximo Ori/Lac."
     },
     "198": {
       "action": "buff",
@@ -234,95 +547,751 @@
       "accumulate": true,
       "maxDurationUnits": 10800,
       "description": "Bau de Experiencia: buff que DOBRA a EXP recebida, +2h por uso acumulando ate 24h (affect 39)."
+    }
+  },
+  "items": {
+    "4117": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 39,
+      "maxLevelExclusive": 115,
+      "exp": 5000,
+      "gold": 2000,
+      "description": "Box of Wisdom: recompensa da area do Gravedigger."
     },
-    "67": {
+    "4118": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 115,
+      "maxLevelExclusive": 190,
+      "exp": 10000,
+      "gold": 2500,
+      "description": "Tears of Angell: recompensa da area dos Carbuncles."
+    },
+    "4119": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 190,
+      "maxLevelExclusive": 265,
+      "exp": 50000,
+      "gold": 3000,
+      "description": "Heart of Kaizen: recompensa da area de Kaizen."
+    },
+    "4120": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 265,
+      "maxLevelExclusive": 320,
+      "exp": 100000,
+      "gold": 3750,
+      "description": "Blood Eye: recompensa da area das Hidras."
+    },
+    "4121": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 320,
+      "maxLevelExclusive": 350,
+      "exp": 200000,
+      "gold": 47500,
+      "description": "Elf's Spirit Stone: recompensa da area dos Elfos."
+    },
+    "3313": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 450,
+      "description": "Bigger Potion: +10% HP por 1 hora."
+    },
+    "3364": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 75600,
+      "description": "Health Potion: +10% HP por 7 dias."
+    },
+    "3365": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 162000,
+      "description": "Health Potion: +10% HP por 15 dias."
+    },
+    "3366": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 324000,
+      "description": "Health Potion: +10% HP por 30 dias."
+    },
+    "3432": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 2370,
+          "y": 2106
+        },
+        {
+          "x": 2508,
+          "y": 2101
+        },
+        {
+          "x": 2526,
+          "y": 2109
+        },
+        {
+          "x": 2529,
+          "y": 1882
+        },
+        {
+          "x": 2126,
+          "y": 1600
+        },
+        {
+          "x": 2005,
+          "y": 1617
+        },
+        {
+          "x": 2241,
+          "y": 1474
+        },
+        {
+          "x": 1858,
+          "y": 1721
+        },
+        {
+          "x": 2250,
+          "y": 1316
+        },
+        {
+          "x": 1989,
+          "y": 1755
+        }
+      ],
+      "description": "Hunting Scroll Armia."
+    },
+    "3433": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 290,
+          "y": 3799
+        },
+        {
+          "x": 724,
+          "y": 3781
+        },
+        {
+          "x": 481,
+          "y": 4062
+        },
+        {
+          "x": 876,
+          "y": 4058
+        },
+        {
+          "x": 855,
+          "y": 3922
+        },
+        {
+          "x": 808,
+          "y": 3876
+        },
+        {
+          "x": 959,
+          "y": 3813
+        },
+        {
+          "x": 926,
+          "y": 3750
+        },
+        {
+          "x": 1096,
+          "y": 3730
+        },
+        {
+          "x": 1132,
+          "y": 3800
+        }
+      ],
+      "description": "Hunting Scroll Dark/Dungeon."
+    },
+    "3434": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 1242,
+          "y": 4035
+        },
+        {
+          "x": 1264,
+          "y": 4017
+        },
+        {
+          "x": 1333,
+          "y": 3994
+        },
+        {
+          "x": 1358,
+          "y": 4041
+        },
+        {
+          "x": 1462,
+          "y": 4033
+        },
+        {
+          "x": 1326,
+          "y": 3788
+        },
+        {
+          "x": 1493,
+          "y": 3777
+        },
+        {
+          "x": 1437,
+          "y": 3741
+        },
+        {
+          "x": 1389,
+          "y": 3740
+        },
+        {
+          "x": 1422,
+          "y": 3810
+        }
+      ],
+      "description": "Hunting Scroll Underworld."
+    },
+    "3435": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 1376,
+          "y": 1722
+        },
+        {
+          "x": 1426,
+          "y": 1686
+        },
+        {
+          "x": 1381,
+          "y": 1861
+        },
+        {
+          "x": 1326,
+          "y": 1896
+        },
+        {
+          "x": 1510,
+          "y": 1723
+        },
+        {
+          "x": 1543,
+          "y": 1726
+        },
+        {
+          "x": 1580,
+          "y": 1758
+        },
+        {
+          "x": 1182,
+          "y": 1714
+        },
+        {
+          "x": 1634,
+          "y": 1727
+        },
+        {
+          "x": 1237,
+          "y": 1764
+        }
+      ],
+      "description": "Hunting Scroll Kalt."
+    },
+    "3436": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 2367,
+          "y": 4024
+        },
+        {
+          "x": 2236,
+          "y": 4044
+        },
+        {
+          "x": 2236,
+          "y": 3993
+        },
+        {
+          "x": 2209,
+          "y": 3989
+        },
+        {
+          "x": 2453,
+          "y": 4067
+        },
+        {
+          "x": 2485,
+          "y": 4043
+        },
+        {
+          "x": 2537,
+          "y": 3897
+        },
+        {
+          "x": 2489,
+          "y": 3919
+        },
+        {
+          "x": 2269,
+          "y": 3910
+        },
+        {
+          "x": 2202,
+          "y": 3866
+        }
+      ],
+      "description": "Hunting Scroll Kephra."
+    },
+    "3437": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 3664,
+          "y": 3024
+        },
+        {
+          "x": 3582,
+          "y": 3007
+        },
+        {
+          "x": 3514,
+          "y": 3008
+        },
+        {
+          "x": 3819,
+          "y": 2977
+        },
+        {
+          "x": 3517,
+          "y": 2889
+        },
+        {
+          "x": 3745,
+          "y": 2977
+        },
+        {
+          "x": 3639,
+          "y": 2877
+        },
+        {
+          "x": 3650,
+          "y": 2727
+        },
+        {
+          "x": 3660,
+          "y": 2773
+        },
+        {
+          "x": 3746,
+          "y": 2879
+        }
+      ],
+      "description": "Hunting Scroll Niflheim."
+    },
+    "3361": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 75600,
+      "description": "Sefirah 7 dias (buff de dano)."
+    },
+    "3362": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 162000,
+      "description": "Sefirah 15 dias."
+    },
+    "3363": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 324000,
+      "description": "Sefirah 30 dias."
+    },
+    "1739": {
       "action": "buff",
       "consume": true,
       "affectType": 4,
       "affectValue": 10,
       "durationUnits": 450,
-      "description": "Codigo LIVRE aceito pelo client no botao direito (vizinho das comidas 60-66). Portador dos buffs Sefirah/Chocolate/Doce/Coragem, cujo EF_VOLATILE no itemlist foi trocado de 202/204/205/230 para 67 (o client 7.48 nao usa 202+). Params reais por item em items[]."
-    }
-  },
-  "items": {
-    "4117": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 39, "maxLevelExclusive": 115, "exp": 5000, "gold": 2000, "description": "Box of Wisdom: recompensa da area do Coveiro." },
-    "4118": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 115, "maxLevelExclusive": 190, "exp": 10000, "gold": 2500, "description": "Tears of Angell: recompensa da area dos Carbuncles." },
-    "4119": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 190, "maxLevelExclusive": 265, "exp": 50000, "gold": 3000, "description": "Heart of Kaizen: recompensa da area de Kaizen." },
-    "4120": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 265, "maxLevelExclusive": 320, "exp": 100000, "gold": 3750, "description": "Blood Eye: recompensa da area das Hidras." },
-    "4121": { "action": "quest_reward", "consume": true, "mortalOnly": true, "minLevel": 320, "maxLevelExclusive": 350, "exp": 200000, "gold": 47500, "description": "Elf's Spirit Stone: recompensa da area dos Elfos." },
-    "3313": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 450, "description": "Bigger Potion: +10% HP por 1 hora." },
-    "3364": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 75600, "description": "Health Potion: +10% HP por 7 dias." },
-    "3365": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 162000, "description": "Health Potion: +10% HP por 15 dias." },
-    "3366": { "action": "buff", "consume": true, "affectType": 35, "affectValue": 10, "durationUnits": 324000, "description": "Health Potion: +10% HP por 30 dias." },
-    "3432": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":2370,"y":2106},{"x":2508,"y":2101},{"x":2526,"y":2109},{"x":2529,"y":1882},{"x":2126,"y":1600},{"x":2005,"y":1617},{"x":2241,"y":1474},{"x":1858,"y":1721},{"x":2250,"y":1316},{"x":1989,"y":1755}], "description": "Hunting Scroll Armia." },
-    "3433": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":290,"y":3799},{"x":724,"y":3781},{"x":481,"y":4062},{"x":876,"y":4058},{"x":855,"y":3922},{"x":808,"y":3876},{"x":959,"y":3813},{"x":926,"y":3750},{"x":1096,"y":3730},{"x":1132,"y":3800}], "description": "Hunting Scroll Dark/Dungeon." },
-    "3434": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":1242,"y":4035},{"x":1264,"y":4017},{"x":1333,"y":3994},{"x":1358,"y":4041},{"x":1462,"y":4033},{"x":1326,"y":3788},{"x":1493,"y":3777},{"x":1437,"y":3741},{"x":1389,"y":3740},{"x":1422,"y":3810}], "description": "Hunting Scroll Underworld." },
-    "3435": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":1376,"y":1722},{"x":1426,"y":1686},{"x":1381,"y":1861},{"x":1326,"y":1896},{"x":1510,"y":1723},{"x":1543,"y":1726},{"x":1580,"y":1758},{"x":1182,"y":1714},{"x":1634,"y":1727},{"x":1237,"y":1764}], "description": "Hunting Scroll Kalt." },
-    "3436": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":2367,"y":4024},{"x":2236,"y":4044},{"x":2236,"y":3993},{"x":2209,"y":3989},{"x":2453,"y":4067},{"x":2485,"y":4043},{"x":2537,"y":3897},{"x":2489,"y":3919},{"x":2269,"y":3910},{"x":2202,"y":3866}], "description": "Hunting Scroll Kephra." },
-    "3437": { "action": "hunting_teleport", "consume": true, "destinations": [{"x":3664,"y":3024},{"x":3582,"y":3007},{"x":3514,"y":3008},{"x":3819,"y":2977},{"x":3517,"y":2889},{"x":3745,"y":2977},{"x":3639,"y":2877},{"x":3650,"y":2727},{"x":3660,"y":2773},{"x":3746,"y":2879}], "description": "Hunting Scroll Niflheim." },
-    "3361": {
-      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 75600,
-      "description": "Sefirah 7 dias (buff de dano)."
-    },
-    "3362": {
-      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 162000,
-      "description": "Sefirah 15 dias."
-    },
-    "3363": {
-      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 324000,
-      "description": "Sefirah 30 dias."
-    },
-    "1739": {
-      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 450,
       "description": "Chocolate do Amor (~1h)."
     },
     "4145": {
-      "action": "buff", "consume": true, "affectType": 4, "affectValue": 10, "durationUnits": 450,
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 450,
       "description": "Doce do Amor (~1h)."
     },
     "646": {
-      "action": "buff", "consume": true, "affectType": 4, "affectValue": 20, "durationUnits": 450,
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 20,
+      "durationUnits": 450,
       "description": "Pocao da Coragem (+20%, ~1h)."
     },
     "647": {
-      "action": "buff", "consume": true, "affectType": 4, "affectValue": 20, "durationUnits": 900,
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 20,
+      "durationUnits": 900,
       "description": "Wonder Drug da Coragem (+20%, ~2h)."
     },
     "3378": {
-      "action": "buff", "consume": true, "affectType": 4, "affectValue": 20, "durationUnits": 324000,
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 20,
+      "durationUnits": 324000,
       "description": "Coragem 30 dias."
     },
-    "3407": { "action": "tint", "consume": true, "color": 116, "description": "Blue Enamel (mesh 2782.0 -> cor 116)." },
-    "3408": { "action": "tint", "consume": true, "color": 117, "description": "Red Enamel (2782.1 -> 117)." },
-    "3409": { "action": "tint", "consume": true, "color": 118, "description": "Green Enamel (2782.2 -> 118)." },
-    "3410": { "action": "tint", "consume": true, "color": 119, "description": "Silver Enamel (2782.3 -> 119)." },
-    "3411": { "action": "tint", "consume": true, "color": 120, "description": "Black Enamel (2782.4 -> 120)." },
-    "3412": { "action": "tint", "consume": true, "color": 121, "description": "Purple Enamel (2782.5 -> 121)." },
-    "3413": { "action": "tint", "consume": true, "color": 122, "description": "Brown Enamel (2782.6 -> 122)." },
-    "3414": { "action": "tint", "consume": true, "color": 123, "description": "Violet Enamel (2782.7 -> 123)." },
-    "3415": { "action": "tint", "consume": true, "color": 124, "description": "Yellowish Enamel (2782.8 -> 124)." },
-    "3416": { "action": "tint", "consume": true, "color": 125, "description": "Indigo Enamel (2782.9 -> 125)." },
-    "3417": { "action": "untint", "consume": true, "description": "Remover Enamel: remove a cor (volta o sanc para 43)." },
-
-    "4016": { "action": "repliction", "consume": true, "description": "Grade A Repliction (pool forte, tunavel).",
-      "addPool": [ {"effect": 2, "value": 40, "weight": 2}, {"effect": 60, "value": 30, "weight": 2}, {"effect": 7, "value": 10, "weight": 3}, {"effect": 10, "value": 10, "weight": 3}, {"effect": 45, "value": 8, "weight": 1} ] },
-    "4021": { "action": "repliction", "consume": true, "description": "Grade A (Premium): mesmo pool forte.",
-      "addPool": [ {"effect": 2, "value": 40, "weight": 2}, {"effect": 60, "value": 30, "weight": 2}, {"effect": 7, "value": 10, "weight": 3}, {"effect": 10, "value": 10, "weight": 3}, {"effect": 45, "value": 8, "weight": 1} ] },
-    "4017": { "action": "repliction", "consume": true, "description": "Grade B Repliction.",
-      "addPool": [ {"effect": 2, "value": 25, "weight": 2}, {"effect": 60, "value": 20, "weight": 2}, {"effect": 7, "value": 7, "weight": 3}, {"effect": 10, "value": 7, "weight": 3} ] },
-    "4022": { "action": "repliction", "consume": true, "description": "Grade B (Premium).",
-      "addPool": [ {"effect": 2, "value": 25, "weight": 2}, {"effect": 60, "value": 20, "weight": 2}, {"effect": 7, "value": 7, "weight": 3}, {"effect": 10, "value": 7, "weight": 3} ] },
-    "4018": { "action": "repliction", "consume": true, "description": "Grade C Repliction.",
-      "addPool": [ {"effect": 2, "value": 15, "weight": 2}, {"effect": 7, "value": 4, "weight": 3}, {"effect": 10, "value": 4, "weight": 3} ] },
-    "4023": { "action": "repliction", "consume": true, "description": "Grade C (Premium).",
-      "addPool": [ {"effect": 2, "value": 15, "weight": 2}, {"effect": 7, "value": 4, "weight": 3}, {"effect": 10, "value": 4, "weight": 3} ] },
-    "4019": { "action": "repliction", "consume": true, "description": "Grade D Repliction.",
-      "addPool": [ {"effect": 2, "value": 8, "weight": 2}, {"effect": 7, "value": 2, "weight": 3}, {"effect": 10, "value": 2, "weight": 3} ] },
-    "4024": { "action": "repliction", "consume": true, "description": "Grade D (Premium).",
-      "addPool": [ {"effect": 2, "value": 8, "weight": 2}, {"effect": 7, "value": 2, "weight": 3}, {"effect": 10, "value": 2, "weight": 3} ] },
-    "4020": { "action": "repliction", "consume": true, "description": "Grade E Repliction (mais fraco).",
-      "addPool": [ {"effect": 7, "value": 1, "weight": 1}, {"effect": 10, "value": 1, "weight": 1}, {"effect": 2, "value": 5, "weight": 1} ] },
-    "4025": { "action": "repliction", "consume": true, "description": "Grade E (Premium).",
-      "addPool": [ {"effect": 7, "value": 1, "weight": 1}, {"effect": 10, "value": 1, "weight": 1}, {"effect": 2, "value": 5, "weight": 1} ] }
+    "3407": {
+      "action": "tint",
+      "consume": true,
+      "color": 116,
+      "description": "Blue Enamel (mesh 2782.0 -> cor 116)."
+    },
+    "3408": {
+      "action": "tint",
+      "consume": true,
+      "color": 117,
+      "description": "Red Enamel (2782.1 -> 117)."
+    },
+    "3409": {
+      "action": "tint",
+      "consume": true,
+      "color": 118,
+      "description": "Green Enamel (2782.2 -> 118)."
+    },
+    "3410": {
+      "action": "tint",
+      "consume": true,
+      "color": 119,
+      "description": "Silver Enamel (2782.3 -> 119)."
+    },
+    "3411": {
+      "action": "tint",
+      "consume": true,
+      "color": 120,
+      "description": "Black Enamel (2782.4 -> 120)."
+    },
+    "3412": {
+      "action": "tint",
+      "consume": true,
+      "color": 121,
+      "description": "Purple Enamel (2782.5 -> 121)."
+    },
+    "3413": {
+      "action": "tint",
+      "consume": true,
+      "color": 122,
+      "description": "Brown Enamel (2782.6 -> 122)."
+    },
+    "3414": {
+      "action": "tint",
+      "consume": true,
+      "color": 123,
+      "description": "Violet Enamel (2782.7 -> 123)."
+    },
+    "3415": {
+      "action": "tint",
+      "consume": true,
+      "color": 124,
+      "description": "Yellowish Enamel (2782.8 -> 124)."
+    },
+    "3416": {
+      "action": "tint",
+      "consume": true,
+      "color": 125,
+      "description": "Indigo Enamel (2782.9 -> 125)."
+    },
+    "3417": {
+      "action": "untint",
+      "consume": true,
+      "description": "Remover Enamel: remove a cor (volta o sanc para 43)."
+    },
+    "4016": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade A Repliction (pool forte, tunavel).",
+      "addPool": [
+        {
+          "effect": 2,
+          "value": 40,
+          "weight": 2
+        },
+        {
+          "effect": 60,
+          "value": 30,
+          "weight": 2
+        },
+        {
+          "effect": 7,
+          "value": 10,
+          "weight": 3
+        },
+        {
+          "effect": 10,
+          "value": 10,
+          "weight": 3
+        },
+        {
+          "effect": 45,
+          "value": 8,
+          "weight": 1
+        }
+      ]
+    },
+    "4021": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade A (Premium): mesmo pool forte.",
+      "addPool": [
+        {
+          "effect": 2,
+          "value": 40,
+          "weight": 2
+        },
+        {
+          "effect": 60,
+          "value": 30,
+          "weight": 2
+        },
+        {
+          "effect": 7,
+          "value": 10,
+          "weight": 3
+        },
+        {
+          "effect": 10,
+          "value": 10,
+          "weight": 3
+        },
+        {
+          "effect": 45,
+          "value": 8,
+          "weight": 1
+        }
+      ]
+    },
+    "4017": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade B Repliction.",
+      "addPool": [
+        {
+          "effect": 2,
+          "value": 25,
+          "weight": 2
+        },
+        {
+          "effect": 60,
+          "value": 20,
+          "weight": 2
+        },
+        {
+          "effect": 7,
+          "value": 7,
+          "weight": 3
+        },
+        {
+          "effect": 10,
+          "value": 7,
+          "weight": 3
+        }
+      ]
+    },
+    "4022": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade B (Premium).",
+      "addPool": [
+        {
+          "effect": 2,
+          "value": 25,
+          "weight": 2
+        },
+        {
+          "effect": 60,
+          "value": 20,
+          "weight": 2
+        },
+        {
+          "effect": 7,
+          "value": 7,
+          "weight": 3
+        },
+        {
+          "effect": 10,
+          "value": 7,
+          "weight": 3
+        }
+      ]
+    },
+    "4018": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade C Repliction.",
+      "addPool": [
+        {
+          "effect": 2,
+          "value": 15,
+          "weight": 2
+        },
+        {
+          "effect": 7,
+          "value": 4,
+          "weight": 3
+        },
+        {
+          "effect": 10,
+          "value": 4,
+          "weight": 3
+        }
+      ]
+    },
+    "4023": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade C (Premium).",
+      "addPool": [
+        {
+          "effect": 2,
+          "value": 15,
+          "weight": 2
+        },
+        {
+          "effect": 7,
+          "value": 4,
+          "weight": 3
+        },
+        {
+          "effect": 10,
+          "value": 4,
+          "weight": 3
+        }
+      ]
+    },
+    "4019": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade D Repliction.",
+      "addPool": [
+        {
+          "effect": 2,
+          "value": 8,
+          "weight": 2
+        },
+        {
+          "effect": 7,
+          "value": 2,
+          "weight": 3
+        },
+        {
+          "effect": 10,
+          "value": 2,
+          "weight": 3
+        }
+      ]
+    },
+    "4024": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade D (Premium).",
+      "addPool": [
+        {
+          "effect": 2,
+          "value": 8,
+          "weight": 2
+        },
+        {
+          "effect": 7,
+          "value": 2,
+          "weight": 3
+        },
+        {
+          "effect": 10,
+          "value": 2,
+          "weight": 3
+        }
+      ]
+    },
+    "4020": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade E Repliction (mais fraco).",
+      "addPool": [
+        {
+          "effect": 7,
+          "value": 1,
+          "weight": 1
+        },
+        {
+          "effect": 10,
+          "value": 1,
+          "weight": 1
+        },
+        {
+          "effect": 2,
+          "value": 5,
+          "weight": 1
+        }
+      ]
+    },
+    "4025": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Grade E (Premium).",
+      "addPool": [
+        {
+          "effect": 7,
+          "value": 1,
+          "weight": 1
+        },
+        {
+          "effect": 10,
+          "value": 1,
+          "weight": 1
+        },
+        {
+          "effect": 2,
+          "value": 5,
+          "weight": 1
+        }
+      ]
+    }
   }
 }

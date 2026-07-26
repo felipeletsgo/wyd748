@@ -766,7 +766,7 @@ func (w *World) tickPlayerAffects(now time.Time) {
 					if owner := w.playerByID(a.OwnerID); owner != nil {
 						w.sendToPlayerView(p, func() []byte {
 							return wire.AttackHit(owner.ID, p.ID, owner.X, owner.Y, p.X, p.Y,
-								uint16(minU32(damage, 65535)), owner.Char.Exp,
+								damage, playerMaxHP(p.Char), owner.Char.Exp,
 								playerCombatMP(owner.Char))
 						})
 					}
@@ -817,7 +817,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		} else {
 			m.HP -= damage
 		}
-		wireTargets = append(wireTargets, wire.SkillTarget{ID: m.ID, Damage: uint16(minU32(damage, 65535))})
+		wireTargets = append(wireTargets, wire.SkillTarget{ID: m.ID, Damage: damage, MaxHP: m.Def.Extended.MaxHP})
 	}
 	primary := targets[0]
 	w.sendToMobView(primary, func() []byte {

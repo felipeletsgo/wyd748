@@ -10,7 +10,7 @@ func TestSkillMastersReserveClientBranchSeparators(t *testing.T) {
 	wantFirst := map[string][3]uint16{
 		"Knight_Leader": {5000, 5008, 5016},
 		"Foema_Ancian":  {5024, 5032, 5040},
-		"Mestre_Archi":  {5048, 5056, 5064},
+		"Archi_Master":  {5048, 5056, 5064},
 		"ForeLearner":   {5072, 5080, 5088},
 	}
 	found := 0

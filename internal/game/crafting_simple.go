@@ -1,8 +1,10 @@
 package game
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 
 	"wydgo/internal/model"
@@ -18,6 +20,16 @@ const aylinGoldCost = 50_000_000
 // nivel (GetMatchCombineAgatha, GetFunc.cpp:564-628), tipicamente 30-50%,
 // nunca garantida.
 const agathaBaseChance = 20
+
+// blockedCombineItem e Atila's_Crown. O nativo recusa a composicao se ele
+// ocupar qualquer um dos 8 slots (GetFunc.cpp:55-59 e os equivalentes nas
+// linhas 218, 263, 337, 400, 461, 505, 634, 669 e 740).
+const blockedCombineItem = 747
+
+// agathaAcceptsBlockedItem: a Agatha e a UNICA composicao sem essa trava no
+// nativo -- GetMatchCombineAgatha (GetFunc.cpp:564) nao varre os slots. Manter
+// a excecao explicita para nao "corrigir" o nativo por engano.
+const agathaCombineNPC = "Agatha"
 
 func (w *World) beginCombine(s *net.Session, pkt []byte, npc string) (*Player, combineRequest, bool) {
 	p := w.players[s]
@@ -38,6 +50,14 @@ func (w *World) beginCombine(s *net.Session, pkt []byte, npc string) (*Player, c
 	if err != nil {
 		w.sendCombineResult(p, 0)
 		return p, combineRequest{}, false
+	}
+	if npc != agathaCombineNPC {
+		for _, item := range req.Items {
+			if item.Index == blockedCombineItem {
+				w.sendCombineResult(p, 0)
+				return p, combineRequest{}, false
+			}
+		}
 	}
 	return p, req, true
 }
@@ -91,6 +111,48 @@ func consumeCombineItems(ch *model.Char, req combineRequest, from, to int, chang
 	}
 }
 
+// compositorMaterials e o numero EXATO de materiais aceitos: nem 3, nem 5.
+const compositorMaterials = 4
+
+// compositorChance soma a base configurada ao bonus de cada material. Cada um
+// dos quatro materiais precisa ser equipavel, do set D (item level 4) ou E (5),
+// e refinado dentro de +7..+9 -- o bonus vem do refino.
+//
+// O Grade do item NAO entra na conta. A W2PP tem duas rotinas concorrentes: a
+// tabela por (nivel, grade, refino) de GetMatchCombine, que e o que o binario
+// executa, e g_pAnctChance[3] indexado por refino (Basedef.cpp:158), lido do
+// CompRate.txt. A segunda e a que vale aqui -- na W2PP ela esta morta duas
+// vezes (nenhuma funcao consulta o array, e o parser so faz _strupr na primeira
+// coluna, entao "Item_+7" nunca casa com "ITEM_+7"). Os valores sao os do
+// servidor, em data/server.txt, nao os do array de la.
+//
+// Devolve a chance, a quebra por material para o log e se a composicao vale.
+func (w *World) compositorChance(req combineRequest) (int, string, bool) {
+	chance := int(w.gameplay.CompositorBaseChance)
+	detail := make([]string, 0, compositorMaterials)
+	for i := 2; i < combineSlots; i++ {
+		item := req.Items[i]
+		if item.Index == 0 {
+			continue
+		}
+		def, exists := w.items[item.Index]
+		level, sanc := itemAbility(item, def, "EF_ITEMLEVEL"), itemSanc(item)
+		refine := sanc - model.CompositorMinRefine
+		if !exists || def.Pos == 0 || level < 4 || level > 5 ||
+			refine < 0 || refine >= model.CompositorRefineLevels {
+			return 0, "", false
+		}
+		bonus := int(w.gameplay.CompositorRefineChance[refine])
+		chance += bonus
+		detail = append(detail, fmt.Sprintf("%d(set%c+%d:%d)",
+			item.Index, "DE"[level-4], sanc, bonus))
+	}
+	if len(detail) != compositorMaterials {
+		return 0, "", false
+	}
+	return chance, strings.Join(detail, " "), true
+}
+
 func (w *World) onCombineCompositor(s *net.Session, pkt []byte) {
 	p, req, ok := w.beginCombine(s, pkt, "Compositor")
 	if !ok {
@@ -104,28 +166,13 @@ func (w *World) onCombineCompositor(s *net.Session, pkt []byte) {
 		w.sendCombineResult(p, 0)
 		return
 	}
-	chance, materials := 0, 0
-	for i := 2; i < combineSlots; i++ {
-		item := req.Items[i]
-		if item.Index == 0 {
-			continue
-		}
-		def, exists := w.items[item.Index]
-		level, sanc := itemAbility(item, def, "EF_ITEMLEVEL"), itemSanc(item)
-		if !exists || def.Pos == 0 || level < 4 || level > 5 || def.Grade < 1 || def.Grade > 4 || sanc < 7 || sanc > 9 {
-			w.sendCombineResult(p, 0)
-			return
-		}
-		base := [2][4][3]int{
-			{{4, 5, 6}, {5, 6, 7}, {6, 7, 8}, {8, 9, 10}},
-			{{6, 7, 8}, {7, 8, 9}, {8, 9, 10}, {10, 11, 12}},
-		}
-		chance += base[level-4][def.Grade-1][sanc-7]
-		materials++
+	chance, breakdown, chanceOK := w.compositorChance(req)
+	if !chanceOK {
+		w.sendCombineResult(p, 0)
+		return
 	}
 	resultIndex := uint16(targetDef.Extra + int(jewel.Index-2441))
-	_, resultExists := w.items[resultIndex]
-	if materials == 0 || !resultExists {
+	if _, resultExists := w.items[resultIndex]; !resultExists {
 		w.sendCombineResult(p, 0)
 		return
 	}
@@ -151,7 +198,8 @@ func (w *World) onCombineCompositor(s *net.Session, pkt []byte) {
 		code = 1
 	}
 	if w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code) {
-		log.Printf("[#%d] CRAFT Compositor sucesso=%t chance=%d", s.ID, success, chance)
+		log.Printf("[#%d] CRAFT Compositor sucesso=%t chance=%d (base %d + %s)",
+			s.ID, success, chance, w.gameplay.CompositorBaseChance, breakdown)
 	}
 }
 
@@ -290,12 +338,80 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 		w.sendCombineResult(p, 0)
 		return
 	}
+	// A MESMA receita destrava o nivel do Arch quando ele esta parado numa das
+	// travas (_MSG_CombineItemLindy.cpp:54-115). Para os demais personagens o
+	// craft continua sendo so a capa Elite, como sempre foi.
+	trava, destrava := lindyLevelUnlock(p.Char)
+	if destrava && trava == archLockLevel370 && counterBalance(p, fameCounter) < 1 {
+		s.Send(wire.MessagePanel("You need 1 fame point."))
+		w.sendCombineResult(p, 0)
+		return
+	}
+
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
+	oldFame := copyCounters(p)
+	old355, old370 := p.Char.ArchLevel355, p.Char.ArchLevel370
 	changedInv, changedEquip := make(map[int]struct{}, 7), map[int]struct{}{15: {}}
 	consumeCombineItems(p.Char, req, 0, 6, changedInv)
 	p.Char.Equip[15] = cape
+	if destrava {
+		if trava == archLockLevel355 {
+			p.Char.ArchLevel355 = true
+		} else {
+			p.Char.ArchLevel370 = true
+			spendCounters(p, map[string]uint32{fameCounter: 1})
+		}
+	}
 	w.recalcPlayer(p.Char)
-	w.commitCombine(p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
+	// A fama mora no charstate, que NAO participa da transacao da conta. Grava o
+	// sidecar ANTES: se ele falhar, nada foi ao disco e o rollback abaixo e
+	// completo. Na ordem inversa, uma falha deixaria a conta com a receita
+	// consumida e o nivel destravado, mas a fama intacta -- destrave de graca.
+	if destrava && trava == archLockLevel370 {
+		if err := w.saveCharStateResult(p); err != nil {
+			p.SpecialCoins = oldFame
+			p.Char.ArchLevel355, p.Char.ArchLevel370 = old355, old370
+			p.Char.Inv, p.Char.Equip, p.Char.Gold = oldInv, oldEquip, oldGold
+			w.recalcPlayer(p.Char)
+			log.Printf("[#%d] ERRO ao gravar a fama do destrave: %v", s.ID, err)
+			w.sendCombineResult(p, 0)
+			return
+		}
+	}
+	if !w.commitCombine(p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1) {
+		// commitCombine ja restaurou inventario/equip; o resto e nosso.
+		p.SpecialCoins = oldFame
+		p.Char.ArchLevel355, p.Char.ArchLevel370 = old355, old370
+		if destrava && trava == archLockLevel370 {
+			// Devolve a fama ao disco tambem; ignorar o erro aqui e deliberado:
+			// o proximo autosave regrava, e nao ha o que fazer alem de logar.
+			if err := w.saveCharStateResult(p); err != nil {
+				log.Printf("[#%d] ERRO ao devolver a fama apos rollback: %v", s.ID, err)
+			}
+		}
+		w.recalcPlayer(p.Char)
+		return
+	}
+	if destrava {
+		s.Send(wire.MessagePanel("Your level limit has been lifted."))
+		log.Printf("[#%d] ARCH destravou o nivel %d (fama=%d)", s.ID, trava+1, counterBalance(p, fameCounter))
+	}
+}
+
+// lindyLevelUnlock diz qual trava este personagem esta destravando, se alguma.
+// So vale para Arch parado EXATAMENTE numa das travas e ainda nao liberada --
+// gastar a receita fora disso nao pode marcar nada.
+func lindyLevelUnlock(ch *model.Char) (uint32, bool) {
+	if ch == nil || ch.Extended == nil || !isArch(ch) {
+		return 0, false
+	}
+	switch ch.Extended.Level {
+	case archLockLevel355:
+		return archLockLevel355, !ch.ArchLevel355
+	case archLockLevel370:
+		return archLockLevel370, !ch.ArchLevel370
+	}
+	return 0, false
 }
 
 func lindyCapeIndex(ch *model.Char) uint16 {

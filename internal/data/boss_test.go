@@ -27,7 +27,7 @@ func TestLoadBossCatalogLeCamposEExpressoes(t *testing.T) {
   spawn = { x = 100, y = 200, respawn_seconds = 60 },
   stats = { max_hp = 1000 * 12, defense = 0 },
   skills  = { { id = 26, cooldown_seconds = 8, range = 7, max_hp_percent = 50 } },
-  summons = { { npc = "Esqueleto", count = 4, max_alive = 8, cooldown_seconds = 30 } },
+  summons = { { npc = "Skeleton", count = 4, max_alive = 8, cooldown_seconds = 30 } },
   phases  = { { hp_percent = 60, type = "summoner", shield_percent = 100,
                 shield_until_adds_dead = true, message = "oi" } },
   drops   = { { item = 1234, chance_percent = 50, amount = 3 } },

@@ -183,7 +183,7 @@ func TestMobMove748CapsMovementSpeedAtFour(t *testing.T) {
 }
 
 func TestAttackHit748CompactLayout(t *testing.T) {
-	b := AttackHit(1, 1002, 2200, 2100, 2201, 2101, 357, 1234, 80)
+	b := AttackHit(1, 1002, 2200, 2100, 2201, 2101, 357, 0, 1234, 80)
 	if len(b) != 48 || ParseHeader(b).Type != OpAttackOne {
 		t.Fatalf("header invalido: %+v len=%d", ParseHeader(b), len(b))
 	}
@@ -225,8 +225,11 @@ func TestExtendedScoreVitalsUseSignedCompatibilityPrefix(t *testing.T) {
 		t.Fatalf("vitais extended incorretos: % X", vitals)
 	}
 
-	hit := AttackHitExtended(7, 1000, 1, 2, 3, 4, 150_000, 0, 0)
-	if len(hit) != 52 || binary.LittleEndian.Uint16(hit[46:48]) != 65535 ||
+	// O WORD leva o dano PROJETADO na escala do alvo (MaxHP 300k -> escala 10),
+	// porque o client o subtrai do CurHP do prefixo nativo, que ja esta
+	// escalado. A cauda uint32 leva o dano REAL, que alimenta o numero na tela.
+	hit := AttackHitExtended(7, 1000, 1, 2, 3, 4, 150_000, 300_000, 0, 0)
+	if len(hit) != 52 || binary.LittleEndian.Uint16(hit[46:48]) != 15_000 ||
 		binary.LittleEndian.Uint32(hit[48:52]) != 150_000 {
 		t.Fatalf("dano extended incorreto: % X", hit)
 	}
@@ -276,7 +279,7 @@ func TestLegacyVitalsAlsoRefreshWideSidecar(t *testing.T) {
 }
 
 func TestSkillHit748CompactLayout(t *testing.T) {
-	b := SkillHit(1, 1002, 2200, 2100, 2201, 2101, 88, 1234, 500_070, 3, 9, 42)
+	b := SkillHit(1, 1002, 2200, 2100, 2201, 2101, 88, 0, 1234, 500_070, 3, 9, 42)
 	if len(b) != 48 || ParseHeader(b).Type != OpAttackOne ||
 		int16(binary.LittleEndian.Uint16(b[24:26])) != 3 || b[28] != 9 || b[29] != 42 ||
 		b[30] != 1 || binary.LittleEndian.Uint16(b[26:28]) != 30_000 ||
@@ -314,18 +317,19 @@ func TestSkillHits748MultiLayout(t *testing.T) {
 }
 
 func TestSkillHitExtendedKeepsSkillAndWideDamage(t *testing.T) {
+	// Alvo com MaxHP 550k -> escala 19; 275_000/19 = 14474 (arredondado p/ cima).
 	b := SkillHitExtended(1, 1001, 2200, 2100, 2201, 2101,
-		275_000, 1234, 70, 7, 0, 255)
+		275_000, 550_000, 1234, 70, 7, 0, 255)
 	if len(b) != 52 || ParseHeader(b).Size != 52 ||
 		int16(binary.LittleEndian.Uint16(b[24:26])) != 7 ||
-		binary.LittleEndian.Uint16(b[46:48]) != 32767 ||
+		binary.LittleEndian.Uint16(b[46:48]) != 14_474 ||
 		binary.LittleEndian.Uint32(b[48:52]) != 275_000 || b[30] != 0 {
 		t.Fatalf("SkillHitExtended invalido: %v", b)
 	}
 }
 
 func TestPhysicalAttackKeepsFloatingDamagePath(t *testing.T) {
-	b := AttackHitExtended(1, 1001, 2200, 2100, 2201, 2101, 275_000, 1234, 70)
+	b := AttackHitExtended(1, 1001, 2200, 2100, 2201, 2101, 275_000, 550_000, 1234, 70)
 	if len(b) != 52 || b[30] != 0 || binary.LittleEndian.Uint32(b[48:52]) != 275_000 {
 		t.Fatalf("AttackHitExtended sem visual/full damage: % X", b)
 	}

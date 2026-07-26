@@ -144,25 +144,112 @@ func (w *World) spawnBoss(state *bossSpawnState) error {
 	state.mobID = mob.ID
 	state.respawnAt = time.Time{}
 
-	if state.config.SpawnMessage != "" {
-		w.broadcast(func() []byte { return wire.MessagePanel(state.config.SpawnMessage) })
-	}
+	w.announceBoss(x, y, state.config.SpawnMessage)
 	log.Printf("BOSS %q nasceu em (%d,%d) mob=%d hp=%d",
 		state.config.ID, x, y, mob.ID, mob.HP)
 	return nil
 }
 
+// bossAnnounceRadius e o alcance dos avisos de boss, em tiles Chebyshev (a
+// area 16x16 pedida). Anuncio de boss e informacao do ENCONTRO: quem esta do
+// outro lado do mapa nao tem o que fazer com ela, e um broadcast global vira
+// spam para o servidor inteiro a cada respawn.
+const bossAnnounceRadius = 16
+
+// announceBoss manda o aviso so para quem esta perto o bastante para lutar.
+func (w *World) announceBoss(x, y uint16, message string) {
+	if message == "" {
+		return
+	}
+	for _, p := range w.nearbyWorldPlayers(x, y, bossAnnounceRadius) {
+		p.Session.Send(wire.MessagePanel(message))
+	}
+}
+
+// spawnBossAreaReward espalha a premiacao coletiva pelo chao ao redor do boss.
+// E diferente dos Drops: aquilo vai para o inventario de quem deu o golpe
+// final, isto fica no chao para todos que participaram recolherem.
+//
+// Uma unidade por celula, em aneis crescentes a partir do corpo -- empilhar
+// tudo numa celula so daria a premiacao inteira a quem estivesse em cima.
+func (w *World) spawnBossAreaReward(m *Mob, reward model.BossAreaReward) {
+	if reward.Item == 0 || reward.Amount <= 0 {
+		return
+	}
+	if _, ok := w.items[reward.Item]; !ok {
+		log.Printf("BOSS: premiacao de area ignorada, item %d nao existe", reward.Item)
+		return
+	}
+	ocupada := make(map[uint32]bool, reward.Amount)
+	for _, g := range w.groundItems {
+		ocupada[uint32(g.X)<<16|uint32(g.Y)] = true
+	}
+	postos := 0
+	for raio := 1; raio <= bossAnnounceRadius && postos < reward.Amount; raio++ {
+		for dx := -raio; dx <= raio && postos < reward.Amount; dx++ {
+			for dy := -raio; dy <= raio && postos < reward.Amount; dy++ {
+				// So a borda do anel: o interior ja foi coberto pelos raios
+				// anteriores.
+				if abs(dx) != raio && abs(dy) != raio {
+					continue
+				}
+				x, y := int(m.X)+dx, int(m.Y)+dy
+				if x < 0 || y < 0 || x > 0xFFFF || y > 0xFFFF {
+					continue
+				}
+				chave := uint32(x)<<16 | uint32(y)
+				if ocupada[chave] {
+					continue
+				}
+				if w.spawnGroundReward(uint16(x), uint16(y), reward.Item) {
+					ocupada[chave] = true
+					postos++
+				}
+			}
+		}
+	}
+	log.Printf("BOSS %q: premiacao de area, %d de %d unidades do item %d no chao",
+		m.Def.Name, postos, reward.Amount, reward.Item)
+}
+
+// spawnGroundReward poe UMA unidade no chao na celula exata, sem o jitter do
+// spawnDrop -- aqui a posicao ja foi escolhida pelo anel.
+func (w *World) spawnGroundReward(x, y uint16, index uint16) bool {
+	id := w.allocGroundItemID(index)
+	if id == 0 {
+		return false
+	}
+	g := &GroundItem{ID: id, Item: model.Item{Index: index}, X: x, Y: y,
+		Expire: w.now().Add(groundRewardLifetime)}
+	w.groundItems[id] = g
+	w.publishItemSpawn(g)
+	return true
+}
+
+// groundRewardLifetime da mais folga que o drop comum: a premiacao de area cai
+// de uma vez e o grupo precisa de tempo para recolher tudo.
+const groundRewardLifetime = 5 * time.Minute
+
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
 // onBossMobKilled reage a morte de um boss configurado: anuncia, agenda o
 // renascimento e devolve o estado. Devolve nil se o mob nao era um boss.
-func (w *World) onBossMobKilled(mobID uint16) *bossSpawnState {
+func (w *World) onBossMobKilled(m *Mob) *bossSpawnState {
+	if m == nil {
+		return nil
+	}
 	for _, state := range w.bossSpawns {
-		if state.mobID != mobID {
+		if state.mobID != m.ID {
 			continue
 		}
 		state.mobID = 0
-		if state.config.DeathMessage != "" {
-			w.broadcast(func() []byte { return wire.MessagePanel(state.config.DeathMessage) })
-		}
+		w.announceBoss(m.X, m.Y, state.config.DeathMessage)
+		w.spawnBossAreaReward(m, state.config.AreaReward)
 		if state.config.RespawnDelay() > 0 {
 			state.respawnAt = w.now().Add(state.config.RespawnDelay())
 			log.Printf("BOSS %q morreu; renasce em %s", state.config.ID, state.config.RespawnDelay())

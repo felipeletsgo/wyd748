@@ -1,0 +1,405 @@
+{
+  "name": "Krill_Chief1",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 204
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 8600,
+  "extendedScore": {
+    "version": 2,
+    "level": 22,
+    "attack": 42,
+    "magicAttack": 0,
+    "defense": 100,
+    "maxHP": 400,
+    "maxMP": 0,
+    "curHP": 400,
+    "curMP": 0,
+    "str": 4,
+    "int": 50,
+    "dex": 50,
+    "con": 450,
+    "critical": 255,
+    "resistFire": 255,
+    "resistIce": 255,
+    "resistHoly": 255,
+    "resistThunder": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      2,
+      105,
+      1
+    ],
+    "attackRun": 17
+  },
+  "carry": [
+    {
+      "index": 1104,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1428,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1153,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1290,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1302,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1254,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1416,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1425,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 420
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 863,
+      "eff": [
+        102,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 818,
+      "eff": [
+        102,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 803,
+      "eff": [
+        102,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1426,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1576,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1291,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1141,
+      "eff": [
+        102,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 697
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 3178
+    }
+  ],
+  "gold": 9999,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

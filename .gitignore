@@ -25,3 +25,11 @@ client748/screenshot/
 # README.md (publico) entra no repositorio.
 CLAUDE.md
 DOCS/
+
+# Backups intermediarios da cadeia de patches do client. Os dois elos
+# IRRECUPERAVEIS -- WYD.original.exe e WYD.pre-extended-stats.exe -- ficam
+# versionados de proposito: a ausencia deles custou uma investigacao inteira e
+# quase levou junto os bypasses de checksum. Ver client748/PATCHES.md.
+client748/WYD.patched-wide.exe
+client748/WYD.premacro.exe
+client748/WYDoriginal.exe

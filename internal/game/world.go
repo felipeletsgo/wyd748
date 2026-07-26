@@ -180,6 +180,16 @@ type GroundItem struct {
 	Item   model.Item
 	X, Y   uint16
 	Expire time.Time
+	// Rotate e a orientacao do objeto no mapa. Drop comum usa 0; objeto
+	// permanente carrega a rotacao do data/init_items.csv.
+	Rotate byte
+	// Permanent marca objeto de mundo (portao, porta, canhao, torre): nao
+	// expira e nao pode ser recolhido. O nativo consegue o mesmo efeito
+	// mantendo-os abaixo de g_dwInitItem, faixa que o decay nunca varre.
+	Permanent bool
+	// State e o estado do objeto: 0 fechado, 1 aberto. So porta usa. O nativo
+	// troca isso e emite MSG_UpdateItem em vez de recriar o item.
+	State byte
 }
 
 // O TMSrv chama o contador "MinuteGenerate", mas seu TIMER_MIN roda a cada
@@ -219,6 +229,12 @@ func WithQuests(file model.QuestFile) WorldOption {
 
 func WithQuestZones(file model.QuestZoneFile) WorldOption {
 	return func(w *World) { w.questZones = file.Zones }
+}
+
+// WithInitItems entrega os objetos permanentes do mundo (portoes, portas,
+// canhoes, torres). Eles entram no mapa no boot e nunca saem.
+func WithInitItems(objetos []model.InitItem) WorldOption {
+	return func(w *World) { w.initItems = objetos }
 }
 
 func WithNPCGenerLog(mode string) WorldOption {
@@ -301,6 +317,7 @@ type World struct {
 	guilds *model.GuildRegistry
 	// questsByNPC e a allowlist de quest: NPC ausente daqui nunca vira quest.
 	questFile   model.QuestFile
+	initItems   []model.InitItem
 	questsByNPC map[string]*model.QuestDef
 	// questZones sao retangulos que expulsam todo jogador para a cidade a cada
 	// ciclo de reset (mecanismo ClearArea do W2PP). nextQuestZoneReset e o
@@ -453,6 +470,9 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		return nil, fmt.Errorf("quests: %w", err)
 	}
 	w.questsByNPC = questIndex
+	if err := w.spawnInitItems(); err != nil {
+		return nil, fmt.Errorf("objetos de mundo: %w", err)
+	}
 	for _, template := range characterTemplates.Classes {
 		if template.Class < 4 {
 			w.charTemplates[template.Class] = template
@@ -1091,6 +1111,36 @@ func (w *World) spawnDrop(x, y uint16, item model.Item) *GroundItem {
 	return gItem
 }
 
+// spawnInitItems poe a mobilia do mapa no chao antes do servidor abrir. Roda no
+// NewWorld, entao ninguem esta conectado: nao ha o que publicar, o AOI entrega
+// cada objeto quando um jogador chega perto.
+//
+// Reusa allocGroundItemID de proposito -- ele ja poe o Canhao (746) na faixa
+// 15001..15100 que o client exige, e a checagem de ocupacao impede que um drop
+// futuro receba o ID de um objeto permanente, que fica em groundItems para
+// sempre.
+func (w *World) spawnInitItems() error {
+	for _, obj := range w.initItems {
+		id := w.allocGroundItemID(obj.Index)
+		if id == 0 {
+			return fmt.Errorf("sem ID livre para o objeto %d em (%d,%d)",
+				obj.Index, obj.X, obj.Y)
+		}
+		w.groundItems[id] = &GroundItem{
+			ID:        id,
+			Item:      model.Item{Index: obj.Index},
+			X:         obj.X,
+			Y:         obj.Y,
+			Rotate:    obj.Rotate,
+			Permanent: true,
+		}
+	}
+	if len(w.initItems) > 0 {
+		log.Printf("objetos de mundo: %d postos no mapa", len(w.initItems))
+	}
+	return nil
+}
+
 func (w *World) allocGroundItemID(itemIndex uint16) uint16 {
 	if itemIndex == 746 {
 		for id := uint16(15001); id <= 15100; id++ {
@@ -1114,6 +1164,9 @@ func (w *World) allocGroundItemID(itemIndex uint16) uint16 {
 
 func (w *World) tickGroundItems(now time.Time) {
 	for id, item := range w.groundItems {
+		if item.Permanent {
+			continue // portao/porta/canhao: mobilia do mapa, nao drop
+		}
 		if now.After(item.Expire) {
 			w.publishItemRemove(item)
 			delete(w.groundItems, id)

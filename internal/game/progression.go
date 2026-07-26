@@ -1,6 +1,10 @@
 package game
 
-import "wydgo/internal/model"
+import (
+	"strings"
+
+	"wydgo/internal/model"
+)
 
 // g_pNextLevel completa do Basedef.cpp/W2PP. Os valores sao EXP acumulada:
 // level N ocupa [table[N], table[N+1]). Sao 401 marcos, do level 0 ao 400.
@@ -67,8 +71,33 @@ func syncProgression(ch *model.Char) {
 	syncSkillPoints(ch)
 }
 
+// Travas de nivel do Arch, em nivel INTERNO. O nativo compara `>= 354` no
+// ganho de EXP (GetFunc.cpp:1565) e `== 354` no level-up (CMob.cpp:2079).
+// Exibidos, sao os niveis 355 e 370.
+const (
+	archLockLevel355 = uint32(354)
+	archLockLevel370 = uint32(369)
+)
+
+// archExperienceLocked diz se o Arch bateu numa trava ainda nao destravada na
+// Lindy. Enquanto travado ele NAO recebe EXP -- nao e um teto que ignora o
+// excedente, o ganho e barrado por inteiro.
+func archExperienceLocked(ch *model.Char) bool {
+	if ch == nil || ch.Extended == nil || strings.TrimSpace(ch.Evolution) == "" {
+		return false
+	}
+	level := ch.Extended.Level
+	if level >= archLockLevel370 && !ch.ArchLevel370 {
+		return true
+	}
+	return level >= archLockLevel355 && !ch.ArchLevel355
+}
+
 func canReceiveMortalExperience(ch *model.Char) bool {
 	if ch == nil || ch.Extended == nil {
+		return false
+	}
+	if archExperienceLocked(ch) {
 		return false
 	}
 	return ch.Extended.Level <= maxMortalLevel &&
