@@ -159,6 +159,10 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 32, true
 	case wire.OpGetItem:
 		return 28, true
+	case wire.OpDeleteItem, wire.OpUpdateItem:
+		return 20, true
+	case wire.OpSplitItem:
+		return 24, true
 	case wire.OpSetShortSkill:
 		return 32, true
 	case wire.OpChangeCity, wire.OpReqTeleport, wire.OpPKMode:
@@ -169,7 +173,7 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 12, true
 	case wire.OpSysQuit:
 		return 16, true
-	case wire.OpAction, wire.OpActionStop:
+	case wire.OpAction, wire.OpActionStop, wire.OpIllusion:
 		return 52, true
 	case wire.OpREQMobByID:
 		return 16, true
@@ -183,6 +187,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 52, true
 	case wire.OpAttackMulti:
 		return 96, true
+	case wire.OpReqRanking:
+		return 20, true
 	default:
 		return 0, false
 	}

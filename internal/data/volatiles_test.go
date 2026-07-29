@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,7 +24,7 @@ func TestLoadVolatilesDiscoversCatalogItems(t *testing.T) {
 		401: {Index: 401, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 1}}},
 		500: {Index: 500},
 	}
-	catalog, err := LoadVolatiles(path, items)
+	catalog, err := LoadVolatiles(path, items, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,9 +50,68 @@ func TestLoadVolatilesValidaQuestReward(t *testing.T) {
 		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := LoadVolatiles(path, items); err == nil {
+		if _, err := LoadVolatiles(path, items, nil); err == nil {
 			t.Fatalf("quest_reward invalida foi aceita: %s", body)
 		}
+	}
+}
+
+func TestLoadVolatilesRejectsAmbiguousOrInvalidBuffs(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "volatiles.json")
+	items := map[uint16]model.ItemDef{
+		100: {Index: 100, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 1}}},
+	}
+	skills := map[int]model.SkillDef{
+		43: {Index: 43, AffectType: 11, AffectValue: 15},
+	}
+	bodies := []string{
+		`{"default":{"action":"generic"},"rules":{"1":{"action":"buff","affectType":2}}}`,
+		`{"default":{"action":"generic"},"rules":{"1":{"action":"buff","affectType":256,"durationUnits":10}}}`,
+		`{"default":{"action":"generic"},"rules":{"1":{"action":"buff","affectType":2,"durationUnits":10,"affects":[{"skillId":43,"durationUnits":10}]}}}`,
+		`{"default":{"action":"generic"},"rules":{"1":{"action":"buff","affects":[{"skillId":999,"durationUnits":10}]}}}`,
+		`{"default":{"action":"generic"},"rules":{"1":{"action":"buff","affects":[{"type":2,"skillId":43,"durationUnits":10}]}}}`,
+	}
+	for _, body := range bodies {
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadVolatiles(path, items, skills); err == nil {
+			t.Fatalf("buff invalido foi aceito: %s", body)
+		}
+	}
+}
+
+func TestLoadVolatilesAllowsSharedInstanceIDOnlyForSameLayout(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "volatiles.json")
+	items := map[uint16]model.ItemDef{
+		100: {Index: 100, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 1}}},
+		101: {Index: 101, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 2}}},
+	}
+	const base = `"action":"instance_ticket","consume":true,"instance":{` +
+		`"id":"shared","name":"Room","x":100,"y":100,"spawnX":101,"spawnY":101,` +
+		`"areaRadius":5,"spawns":[{"npc":"Mob","count":1}],` +
+		`"durationSeconds":60,"exitX":200,"exitY":200`
+
+	same := `{"default":{"action":"generic"},"rules":{` +
+		`"1":{` + base + `}},` +
+		`"2":{` + base + `}}}}`
+	if err := os.WriteFile(path, []byte(same), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadVolatiles(path, items, nil); err != nil {
+		t.Fatalf("mesma sala compartilhada foi recusada: %v", err)
+	}
+
+	divergent := `{"default":{"action":"generic"},"rules":{` +
+		`"1":{` + base + `}},` +
+		`"2":{` + base + `,"durationSeconds":90}}}}`
+	if err := os.WriteFile(path, []byte(divergent), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadVolatiles(path, items, nil); err == nil {
+		t.Fatal("mesmo ID com layouts divergentes foi aceito")
 	}
 }
 
@@ -64,7 +124,7 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	vc, err := LoadVolatiles("../../data/volatiles.json", catalog.Items)
+	vc, err := LoadVolatiles("../../data/volatiles.json", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatalf("volatiles.json real nao carrega contra o catalogo: %v", err)
 	}
@@ -108,7 +168,7 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 		3453: "mount_revive", 4003: "loot_box",
 		1731: "instance_ticket", 3171: "instance_ticket", 3172: "instance_ticket",
 		3324: "instance_ticket", 3390: "instance_ticket",
-		3328: "dungeon_teleport", 3329: "dungeon_teleport",
+		3328: "instance_ticket", 3329: "instance_ticket",
 		3909: "timed_access", 3439: "timed_access",
 		3393: "grant_counter", 4114: "grant_counter",
 	} {
@@ -116,6 +176,40 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 		if !ok || r.Action != action {
 			t.Fatalf("item %d deveria ser %s: %+v ok=%v", itemID, action, r, ok)
 		}
+	}
+	for _, itemID := range []uint16{1737, 1772, 4000, 4001, 3328, 3329} {
+		r, _, ok := vc.Rule(itemID)
+		if !ok || r.Action != "instance_ticket" || r.Instance == nil ||
+			len(r.Instance.Stages) == 0 {
+			t.Fatalf("dungeon %d nao resolveu uma instancia completa: %+v", itemID, r)
+		}
+	}
+	if cube, _, _ := vc.Rule(1772); len(cube.Instance.Stages) != 25 {
+		t.Fatalf("Cube deveria possuir 25 salas, possui %d", len(cube.Instance.Stages))
+	}
+	if hellSolo, _, _ := vc.Rule(3328); hellSolo.Instance.TotalDurationSeconds != 240 {
+		t.Fatalf("Hell Gate deveria possuir prazo total de 240s: %+v", hellSolo.Instance)
+	}
+	if hellSolo, _, _ := vc.Rule(3328); hellSolo.Instance.ID != "hell-gate" {
+		t.Fatalf("Hell Gate solo resolveu ID inesperado: %q", hellSolo.Instance.ID)
+	}
+	if hellParty, _, _ := vc.Rule(3329); hellParty.Instance.ID != "hell-gate" {
+		t.Fatalf("Hell Gate party deve compartilhar ocupacao: %q", hellParty.Instance.ID)
+	}
+	for _, itemID := range []uint16{646, 647, 3378} {
+		r, _, _ := vc.Rule(itemID)
+		if r.Action != "buff" || r.AffectType != 30 {
+			t.Fatalf("Courage %d nao usa affect 30: %+v", itemID, r)
+		}
+	}
+	for _, itemID := range []uint16{1739, 4145} {
+		r, _, _ := vc.Rule(itemID)
+		if len(r.Affects) != 4 {
+			t.Fatalf("Love item %d nao possui os quatro affects: %+v", itemID, r)
+		}
+	}
+	if expBox := vc.Rules[198]; expBox.MaxDurationUnits != 10800 {
+		t.Fatalf("Bau de EXP perdeu o teto de 24h: %+v", expBox)
 	}
 	for _, itemID := range []uint16{3443, 3455, 5338} {
 		r, _, ok := vc.Rule(itemID)
@@ -181,12 +275,59 @@ func TestLoadVolatilesAppliesGenericToEveryUnconfiguredCode(t *testing.T) {
 	items := map[uint16]model.ItemDef{
 		700: {Index: 700, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 77}}},
 	}
-	catalog, err := LoadVolatiles(path, items)
+	catalog, err := LoadVolatiles(path, items, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	rule, code, ok := catalog.Rule(700)
 	if !ok || code != 77 || rule.Action != "generic" || rule.Consume {
 		t.Fatalf("fallback generico incorreto: rule=%+v code=%d ok=%v", rule, code, ok)
+	}
+}
+
+func TestVolatileInstancesReferenceExistingHostileNPCs(t *testing.T) {
+	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	volatiles, err := LoadVolatiles("../../data/volatiles.json", catalog.Items, catalog.Skills)
+	if err != nil {
+		t.Fatal(err)
+	}
+	npcs, err := LoadNPCs("../../data/npcs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	byName := make(map[string]model.NPCDef, len(npcs))
+	for _, npc := range npcs {
+		byName[npc.Name] = npc
+	}
+	check := func(label string, rule model.VolatileRule) {
+		t.Helper()
+		if rule.Action != "instance_ticket" || rule.Instance == nil {
+			return
+		}
+		stages := rule.Instance.Stages
+		if len(stages) == 0 {
+			stages = []model.VolatileInstanceStage{{Spawns: rule.Instance.Spawns}}
+		}
+		for stageIndex, stage := range stages {
+			for _, spawn := range stage.Spawns {
+				npc, exists := byName[spawn.NPC]
+				if !exists {
+					t.Errorf("%s sala %d referencia NPC inexistente %q",
+						label, stageIndex+1, spawn.NPC)
+				} else if npc.Tipo != model.TipoMonstro {
+					t.Errorf("%s sala %d usa NPC nao-hostil %q",
+						label, stageIndex+1, spawn.NPC)
+				}
+			}
+		}
+	}
+	for code, rule := range volatiles.Rules {
+		check(fmt.Sprintf("volatile %d", code), rule)
+	}
+	for itemID, rule := range volatiles.Items {
+		check(fmt.Sprintf("item %d", itemID), rule)
 	}
 }

@@ -26,11 +26,6 @@ const agathaBaseChance = 20
 // linhas 218, 263, 337, 400, 461, 505, 634, 669 e 740).
 const blockedCombineItem = 747
 
-// agathaAcceptsBlockedItem: a Agatha e a UNICA composicao sem essa trava no
-// nativo -- GetMatchCombineAgatha (GetFunc.cpp:564) nao varre os slots. Manter
-// a excecao explicita para nao "corrigir" o nativo por engano.
-const agathaCombineNPC = "Agatha"
-
 func (w *World) beginCombine(s *net.Session, pkt []byte, npc string) (*Player, combineRequest, bool) {
 	p := w.players[s]
 	if p == nil || !p.InWorld || p.Char == nil || p.Account == nil {
@@ -51,12 +46,10 @@ func (w *World) beginCombine(s *net.Session, pkt []byte, npc string) (*Player, c
 		w.sendCombineResult(p, 0)
 		return p, combineRequest{}, false
 	}
-	if npc != agathaCombineNPC {
-		for _, item := range req.Items {
-			if item.Index == blockedCombineItem {
-				w.sendCombineResult(p, 0)
-				return p, combineRequest{}, false
-			}
+	for _, item := range req.Items {
+		if item.Index == blockedCombineItem {
+			w.sendCombineResult(p, 0)
+			return p, combineRequest{}, false
 		}
 	}
 	return p, req, true
@@ -78,21 +71,37 @@ func setItemSancRaw(item *model.Item, raw byte) bool {
 func (w *World) commitCombine(p *Player, oldInv [model.MaxCarry]model.Item,
 	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{}, equipSlots map[int]struct{}, result uint32) bool {
 	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
-		result, func() error { return w.saveAccount(p.Account) })
+		result, func() error { return w.saveAccount(p.Account) }, nil)
 }
 
 func (w *World) commitCombineWithPlayerState(p *Player, oldInv [model.MaxCarry]model.Item,
 	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
 	equipSlots map[int]struct{}, result uint32) bool {
 	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
-		result, func() error { return w.saveAccountAndCharStateResult(p) })
+		result, func() error { return w.saveAccountAndCharStateResult(p) }, nil)
+}
+
+func (w *World) commitCombineWithRollback(p *Player, oldInv [model.MaxCarry]model.Item,
+	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
+	equipSlots map[int]struct{}, result uint32, rollback func()) bool {
+	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
+		result, func() error { return w.saveAccount(p.Account) }, rollback)
 }
 
 func (w *World) commitCombineWithSave(p *Player, oldInv [model.MaxCarry]model.Item,
 	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
-	equipSlots map[int]struct{}, result uint32, persist func() error) bool {
+	equipSlots map[int]struct{}, result uint32, persist func() error, rollback func()) bool {
 	if err := persist(); err != nil {
 		p.Char.Inv, p.Char.Equip, p.Char.Gold = oldInv, oldEquip, oldGold
+		if rollback != nil {
+			rollback()
+		}
+		// Composicoes que alteram equipamento recalculam o runtime antes de
+		// persistir. Restaurar apenas o array deixava os stats autoritativos
+		// apontando para o item que falhou no banco.
+		if len(equipSlots) != 0 && p.Char.Extended != nil {
+			w.recalcPlayer(p.Char)
+		}
 		for pos := range invSlots {
 			p.Session.Send(wire.SendItem(p.ID, placeInv, byte(pos), p.Char.Inv[pos]))
 		}
@@ -110,6 +119,11 @@ func (w *World) commitCombineWithSave(p *Player, oldInv [model.MaxCarry]model.It
 		p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(pos), p.Char.Equip[pos]))
 	}
 	p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+	if len(equipSlots) != 0 {
+		// Equipamento muda score e precisa ser publicado incrementalmente; o
+		// personagem ja visivel nunca deve ser recriado com CreateMob.
+		w.syncPlayerScoreAndVitals(p)
+	}
 	w.sendCombineResult(p, result)
 	return true
 }
@@ -144,10 +158,13 @@ const compositorMaterials = 4
 func (w *World) compositorChance(req combineRequest) (int, string, bool) {
 	chance := int(w.gameplay.CompositorBaseChance)
 	detail := make([]string, 0, compositorMaterials)
-	for i := 2; i < combineSlots; i++ {
+	// A janela 7.48 possui quatro materiais reais nos slots 2..5. Aceitar
+	// quatro itens espalhados por 2..7 permitia forjar uma disposicao que o
+	// client legitimo nunca produz.
+	for i := 2; i < 2+compositorMaterials; i++ {
 		item := req.Items[i]
 		if item.Index == 0 {
-			continue
+			return 0, "", false
 		}
 		def, exists := w.items[item.Index]
 		level, sanc := itemAbility(item, def, "EF_ITEMLEVEL"), itemSanc(item)
@@ -161,7 +178,8 @@ func (w *World) compositorChance(req combineRequest) (int, string, bool) {
 		detail = append(detail, fmt.Sprintf("%d(set%c+%d:%d)",
 			item.Index, "DE"[level-4], sanc, bonus))
 	}
-	if len(detail) != compositorMaterials {
+	if req.Items[6].Index != 0 || req.Items[7].Index != 0 ||
+		len(detail) != compositorMaterials {
 		return 0, "", false
 	}
 	return chance, strings.Join(detail, " "), true
@@ -311,7 +329,8 @@ func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 	changed := make(map[int]struct{}, combineSlots)
 	consumeCombineItems(p.Char, req, 2, 6, changed)
-	success := rand.Intn(100) < 40 // fluxo coerente da source 7.54 Secrets.
+	// Secrets 7.54 usa `rand()%100 <= 40`: sao 41 resultados (0..40).
+	success := aylinRollSucceeds(rand.Intn(100))
 	if success {
 		mainPos, donorPos := int(req.Pos[0]), int(req.Pos[1])
 		p.Char.Inv[mainPos] = result
@@ -324,6 +343,10 @@ func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 		code = 1
 	}
 	w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code)
+}
+
+func aylinRollSucceeds(roll int) bool {
+	return roll >= 0 && roll <= 40
 }
 
 func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
@@ -343,48 +366,62 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 			return
 		}
 	}
-	// _MSG_CombineItemLindy escolhe a capa Elite pelo Clan atual: 3191
-	// Hekalotia, 3192 Akelonia e 3193 neutra. O reino continua derivado da capa
-	// antiga ate este ponto, portanto capture-o antes de substituir Equip[15].
-	capeIndex := lindyCapeIndex(p.Char)
-	cape := model.Item{Index: capeIndex, UID: p.Char.Equip[15].UID, Eff: [6]byte{54, 16}}
-	var err error
-	cape, err = materializeItem(cape)
-	if err != nil {
-		w.sendCombineResult(p, 0)
-		return
-	}
-	if _, exists := w.items[cape.Index]; !exists {
-		w.sendCombineResult(p, 0)
-		return
-	}
-	// A MESMA receita destrava o nivel do Arch quando ele esta parado numa das
-	// travas (_MSG_CombineItemLindy.cpp:54-115). Para os demais personagens o
-	// craft continua sendo so a capa Elite, como sempre foi.
+	// A receita existe exclusivamente para um Arch parado em uma das duas
+	// travas. O handler W2PP retorna antes de consumir para qualquer outra
+	// evolucao, nivel ou trava ja liberada.
 	trava, destrava := lindyLevelUnlock(p.Char)
-	if destrava && trava == archLockLevel370 && counterBalance(p, fameCounter) < 1 {
+	if !destrava {
+		w.sendCombineResult(p, 0)
+		return
+	}
+	if trava == archLockLevel370 && counterBalance(p, fameCounter) < 1 {
 		s.Send(wire.MessagePanel("You need 1 fame point."))
 		w.sendCombineResult(p, 0)
 		return
 	}
 
+	var cape model.Item
+	if trava == archLockLevel355 {
+		// _MSG_CombineItemLindy escolhe a capa Elite pelo Clan atual: 3191
+		// Hekalotia, 3192 Akelonia e 3193 neutra. O reino continua derivado da
+		// capa antiga ate este ponto, portanto capture-o antes de substituir.
+		capeIndex := lindyCapeIndex(p.Char)
+		cape = model.Item{Index: capeIndex, UID: p.Char.Equip[15].UID, Eff: [6]byte{54, 16}}
+		var err error
+		cape, err = materializeItem(cape)
+		if err != nil {
+			w.sendCombineResult(p, 0)
+			return
+		}
+		if _, exists := w.items[cape.Index]; !exists {
+			w.sendCombineResult(p, 0)
+			return
+		}
+	}
+
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 	oldFame := copyCounters(p)
 	old355, old370 := p.Char.ArchLevel355, p.Char.ArchLevel370
-	changedInv, changedEquip := make(map[int]struct{}, 7), map[int]struct{}{15: {}}
+	changedInv := make(map[int]struct{}, 7)
+	changedEquip := make(map[int]struct{}, 1)
 	consumeCombineItems(p.Char, req, 0, 6, changedInv)
-	p.Char.Equip[15] = cape
-	if destrava {
-		if trava == archLockLevel355 {
-			p.Char.ArchLevel355 = true
-		} else {
-			p.Char.ArchLevel370 = true
-			spendCounters(p, map[string]uint32{fameCounter: 1})
-		}
+	// A capa Elite nasce somente no destrave 355. No 370 o nativo altera a
+	// flag/fama e mantem a capa ja equipada intacta.
+	if trava == archLockLevel355 {
+		p.Char.Equip[15] = cape
+		changedEquip[15] = struct{}{}
 	}
-	w.recalcPlayer(p.Char)
+	if trava == archLockLevel355 {
+		p.Char.ArchLevel355 = true
+	} else {
+		p.Char.ArchLevel370 = true
+		spendCounters(p, map[string]uint32{fameCounter: 1})
+	}
+	if len(changedEquip) != 0 {
+		w.recalcPlayer(p.Char)
+	}
 	persisted := false
-	if destrava && trava == archLockLevel370 {
+	if trava == archLockLevel370 {
 		persisted = w.commitCombineWithPlayerState(
 			p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
 	} else {
@@ -398,10 +435,8 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 		w.recalcPlayer(p.Char)
 		return
 	}
-	if destrava {
-		s.Send(wire.MessagePanel("Your level limit has been lifted."))
-		log.Printf("[#%d] ARCH destravou o nivel %d (fama=%d)", s.ID, trava+1, counterBalance(p, fameCounter))
-	}
+	s.Send(wire.MessagePanel("Your level limit has been lifted."))
+	log.Printf("[#%d] ARCH destravou o nivel %d (fama=%d)", s.ID, trava+1, counterBalance(p, fameCounter))
 }
 
 // lindyLevelUnlock diz qual trava este personagem esta destravando, se alguma.

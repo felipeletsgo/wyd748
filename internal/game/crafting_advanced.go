@@ -80,10 +80,12 @@ func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
 			continue
 		}
 		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
+		oldSoul := p.Char.SoulInfo
 		changed := make(map[int]struct{}, 3)
 		consumeCombineItems(p.Char, req, 0, 2, changed)
 		p.Char.SoulInfo = uint8(index + 1)
-		w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, 1)
+		w.commitCombineWithRollback(p, oldInv, oldEquip, oldGold, changed, nil, 1,
+			func() { p.Char.SoulInfo = oldSoul })
 		return
 	}
 
@@ -108,13 +110,21 @@ func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
 		default:
 			chance = 100
 		}
-		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
-		changed := make(map[int]struct{}, 3)
-		consumeCombineItems(p.Char, req, 0, 1, changed)
 		targetPos := int(req.Pos[2])
 		success := rand.Intn(100) < chance
+		refinedTarget := p.Char.Inv[targetPos]
 		if success {
-			setItemSanc(&p.Char.Inv[targetPos], itemSanc(p.Char.Inv[targetPos])+1)
+			if !setItemSanc(&refinedTarget, itemSanc(refinedTarget)+1) {
+				w.sendCombineResult(p, 0)
+				return
+			}
+		}
+		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
+		oldExp := p.Char.Exp
+		changed := make(map[int]struct{}, 3)
+		consumeCombineItems(p.Char, req, 0, 1, changed)
+		if success {
+			p.Char.Inv[targetPos] = refinedTarget
 		} else {
 			p.Char.Inv[targetPos] = model.Item{}
 		}
@@ -124,7 +134,8 @@ func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
 		if success {
 			code = 1
 		}
-		w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code)
+		w.commitCombineWithRollback(p, oldInv, oldEquip, oldGold, changed, nil, code,
+			func() { p.Char.Exp = oldExp })
 		return
 	}
 	w.sendCombineResult(p, 0)
@@ -196,10 +207,15 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 	capeRecipe := []uint16{4127, 4127, 5135, 413, 413, 413, 413}
 	if exactRecipe(req, capeRecipe) && p.Char.Equip[15].Index >= 3197 && p.Char.Equip[15].Index <= 3199 &&
 		advancedEvolution(p.Char, "celestial", "subcelestial") && itemSanc(p.Char.Equip[15]) <= 9 {
+		refinedCape := p.Char.Equip[15]
+		if !setItemSanc(&refinedCape, itemSanc(refinedCape)+1) {
+			w.sendCombineResult(p, 0)
+			return
+		}
 		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 		changedInv, changedEquip := make(map[int]struct{}, 7), map[int]struct{}{15: {}}
 		consumeCombineItems(p.Char, req, 0, 6, changedInv)
-		setItemSanc(&p.Char.Equip[15], itemSanc(p.Char.Equip[15])+1)
+		p.Char.Equip[15] = refinedCape
 		w.recalcPlayer(p.Char)
 		w.commitCombine(p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
 		return
@@ -239,17 +255,22 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 		level := itemSanc(req.Items[2])
 		chance += odinRefineBonus(level)
 		if validCatalysts && level >= 11 && level <= 14 {
-			oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
-			changed := make(map[int]struct{}, 7)
-			consumeCombineItems(p.Char, req, 0, 1, changed)
-			consumeCombineItems(p.Char, req, 3, 6, changed)
 			targetPos := int(req.Pos[2])
 			success := rand.Intn(100) < clampInt(chance, 0, 100)
 			newLevel := level - 1
 			if success {
 				newLevel = level + 1
 			}
-			setItemSanc(&p.Char.Inv[targetPos], newLevel)
+			refinedTarget := p.Char.Inv[targetPos]
+			if !setItemSanc(&refinedTarget, newLevel) {
+				w.sendCombineResult(p, 0)
+				return
+			}
+			oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
+			changed := make(map[int]struct{}, 7)
+			consumeCombineItems(p.Char, req, 0, 1, changed)
+			consumeCombineItems(p.Char, req, 3, 6, changed)
+			p.Char.Inv[targetPos] = refinedTarget
 			changed[targetPos] = struct{}{}
 			code := uint32(2)
 			if success {

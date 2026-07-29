@@ -123,6 +123,19 @@ func TestCompositorRequiresExactlyFourMaterials(t *testing.T) {
 	}
 }
 
+func TestCompositorRequiresNativeMaterialPositions(t *testing.T) {
+	w := compositorTestWorld()
+	var req combineRequest
+	req.Items[2] = compositorMaterial(5, 9)
+	req.Items[3] = compositorMaterial(5, 9)
+	req.Items[4] = compositorMaterial(5, 9)
+	req.Items[6] = compositorMaterial(5, 9) // buraco no 5, injecao no slot oculto
+
+	if _, _, ok := w.compositorChance(req); ok {
+		t.Fatal("Compositor aceitou quatro materiais fora dos slots nativos 2..5")
+	}
+}
+
 // TestCompositorIgnoresItemGrade: o Grade do item nao entra na chance. Importa
 // porque 114 dos 366 materiais de nivel 4/5 do itemlist.csv tem Grade 0 -- a
 // formula antiga os rejeitava e derrubava a composicao inteira.

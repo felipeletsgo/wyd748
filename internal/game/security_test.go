@@ -17,6 +17,65 @@ func inboundPacket(opcode uint16, size int) []byte {
 	return packet
 }
 
+func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
+	tests := map[uint16]int{
+		wire.OpConnectAccount:   116,
+		wire.OpCreateCharacter:  36,
+		wire.OpCharacterLogin:   characterLoginPacketSize,
+		wire.OpCharacterLogout:  12,
+		wire.OpSwapItem:         20,
+		wire.OpDeposit:          16,
+		wire.OpWithdraw:         16,
+		wire.OpUseItem:          36,
+		wire.OpUseNPC:           20,
+		wire.OpReqShopList:      16,
+		wire.OpBuyItem:          24,
+		wire.OpSellItem:         20,
+		wire.OpApplyBonus:       applyBonusPacketSize,
+		wire.OpPartyRequest:     44,
+		wire.OpPartyAccept:      32,
+		wire.OpPartyRemove:      16,
+		wire.OpTrade:            156,
+		wire.OpCloseTrade:       12,
+		wire.OpAutoTrade:        196,
+		wire.OpReqTradeList:     16,
+		wire.OpReqBuyAutoTrade:  36,
+		wire.OpDropItem:         32,
+		wire.OpGetItem:          28,
+		wire.OpDeleteItem:       deleteItemPacketSize,
+		wire.OpSplitItem:        splitItemPacketSize,
+		wire.OpUpdateItem:       20,
+		wire.OpSetShortSkill:    32,
+		wire.OpChangeCity:       16,
+		wire.OpReqTeleport:      16,
+		wire.OpPKMode:           16,
+		wire.OpMoveStop:         36,
+		wire.OpRestart:          12,
+		wire.OpPing:             12,
+		wire.OpSysQuit:          16,
+		wire.OpAction:           52,
+		wire.OpActionStop:       52,
+		wire.OpIllusion:         52,
+		wire.OpREQMobByID:       16,
+		wire.OpMotion:           20,
+		wire.OpClientUnknown2BC: 108,
+		wire.OpReqRanking:       20,
+		wire.OpAttackOne:        48,
+		wire.OpAttackTwo:        52,
+		wire.OpAttackMulti:      96,
+	}
+	for opcode, expected := range tests {
+		got, exact := exactInboundPacketSize(opcode)
+		if !exact || got != expected {
+			t.Errorf("opcode 0x%X: size=%d exact=%v, esperado=%d",
+				opcode, got, exact, expected)
+		}
+	}
+	if size, exact := exactInboundPacketSize(0xFFFF); exact || size != 0 {
+		t.Fatalf("opcode desconhecido ganhou framing: size=%d exact=%v", size, exact)
+	}
+}
+
 func loadedFlatTerrain() model.TerrainMap {
 	return model.TerrainMap{
 		Height:    make([]byte, model.TerrainCells),

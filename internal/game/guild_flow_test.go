@@ -74,6 +74,26 @@ func TestGuildCreateInviteAcceptChatPromoteAndExpel(t *testing.T) {
 	}
 }
 
+func TestGuildCommandExpelUsesAuthoritativeHierarchy(t *testing.T) {
+	leader, _ := networkedTestPlayer(1, "Leader", 2100, 2100)
+	member, _ := networkedTestPlayer(2, "Member", 2101, 2100)
+	w, st := guildFlowWorld(leader, member)
+	w.guildCommandCreate(leader.Session, leader, "Alpha")
+	guild := w.guilds.FindByName("Alpha")
+	guild.Members = append(guild.Members, model.GuildMember{
+		Character: member.Char.Name, Rank: model.GuildRankMember,
+	})
+	member.Char.GuildID = guild.ID
+	member.Char.GuildRank = model.GuildRankMember
+
+	w.guildCommandExpel(leader.Session, leader, member.Char.Name)
+	if member.Char.GuildID != 0 || guild.Member(member.Char.Name) != nil ||
+		st.gameSaves != 2 {
+		t.Fatalf("expulsao: guild=%d membro=%+v saves=%d",
+			member.Char.GuildID, guild.Member(member.Char.Name), st.gameSaves)
+	}
+}
+
 func TestGuildLeavePromotesOldestMember(t *testing.T) {
 	leader, _ := networkedTestPlayer(1, "Leader", 2100, 2100)
 	member, _ := networkedTestPlayer(2, "Member", 2101, 2100)

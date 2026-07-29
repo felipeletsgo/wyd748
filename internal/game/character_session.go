@@ -19,6 +19,7 @@ func (w *World) removePlayerFromWorld(p *Player, reason string) {
 	if p == nil {
 		return
 	}
+	w.detachPlayerFromItemInstances(p.ID, w.now())
 	w.unregisterPlayerSpatial(p)
 	delete(w.playersByID, p.ID)
 	w.closeGhostShop(p, reason)
@@ -91,8 +92,6 @@ func resetCharacterRuntime(p *Player) {
 	p.NextRegen = time.Time{}
 	p.NextMountTick = time.Time{}
 	p.NextKingdomTeleport = time.Time{}
-	p.DungeonExitAt = time.Time{}
-	p.DungeonExitX, p.DungeonExitY = 0, 0
 
 	// Movimento publicado aos observadores.
 	p.MovePublished = false

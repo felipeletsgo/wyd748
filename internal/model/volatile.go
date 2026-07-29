@@ -23,6 +23,7 @@ type VolatileRule struct {
 	LearnedBit        int                   `json:"learnedBit,omitempty"`
 	Summon            *VolatileSummon       `json:"summon,omitempty"`
 	Instance          *VolatileInstance     `json:"instance,omitempty"`
+	InstanceRef       string                `json:"instanceRef,omitempty"`
 	// Parametros de affect para a acao "buff" (pocoes, comidas). AffectType
 	// escolhe a formula server-side em applyExtendedAffectStats; AffectValue e
 	// AffectLevel a alimentam; DurationUnits e o tempo em blocos de 8 s. Sao
@@ -31,6 +32,10 @@ type VolatileRule struct {
 	AffectValue   int `json:"affectValue,omitempty"`
 	AffectLevel   int `json:"affectLevel,omitempty"`
 	DurationUnits int `json:"durationUnits,omitempty"`
+	// Affects permite que um unico consumivel aplique o pacote nativo completo
+	// em uma unica transacao. Os campos singulares acima continuam sendo a forma
+	// compacta para os itens que possuem apenas um affect.
+	Affects []VolatileAffect `json:"affects,omitempty"`
 	// Accumulate: em vez de renovar, SOMA DurationUnits ao tempo restante do
 	// affect ate MaxDurationUnits (bau de EXP, comidas). Sem teto o uso e recusado
 	// quando saturado. MaxDurationUnits e obrigatorio quando Accumulate.
@@ -78,6 +83,17 @@ type VolatileRule struct {
 	Description string `json:"description,omitempty"`
 }
 
+type VolatileAffect struct {
+	// SkillID referencia uma entrada autoritativa de SkillData.csv. O SetAffect
+	// nativo recebe o indice da skill e deriva dela AffectType/AffectValue; ele
+	// nao usa o indice da skill como tipo de affect.
+	SkillID       int `json:"skillId,omitempty"`
+	Type          int `json:"type"`
+	Value         int `json:"value,omitempty"`
+	Level         int `json:"level,omitempty"`
+	DurationUnits int `json:"durationUnits"`
+}
+
 // VolatileInstance descreve uma sala privada ativada por ticket. Conteúdo,
 // coordenadas e duração permanecem em data/volatiles.json; o motor apenas
 // aplica ocupação, party, spawn, timer e encerramento.
@@ -89,14 +105,22 @@ type VolatileInstance struct {
 	SpawnX            uint16                  `json:"spawnX"`
 	SpawnY            uint16                  `json:"spawnY"`
 	AreaRadius        int                     `json:"areaRadius"`
+	MaxPlayers        int                     `json:"maxPlayers,omitempty"`
 	Spawns            []VolatileInstanceSpawn `json:"spawns"`
 	RewardItem        uint16                  `json:"rewardItem,omitempty"`
 	AllowedEvolutions []string                `json:"allowedEvolutions,omitempty"`
 	DurationSeconds   int                     `json:"durationSeconds"`
-	ExitX             uint16                  `json:"exitX"`
-	ExitY             uint16                  `json:"exitY"`
-	TransitionSeconds int                     `json:"transitionSeconds,omitempty"`
-	Stages            []VolatileInstanceStage `json:"stages,omitempty"`
+	// TotalDurationSeconds e um prazo absoluto da instancia, independente das
+	// trocas de sala. Hell Gate usa os quatro minutos nativos desta forma.
+	TotalDurationSeconds int    `json:"totalDurationSeconds,omitempty"`
+	ExitX                uint16 `json:"exitX"`
+	ExitY                uint16 `json:"exitY"`
+	TransitionSeconds    int    `json:"transitionSeconds,omitempty"`
+	// SharedEntry permite que usuarios consumam seus proprios ingressos para
+	// entrar na primeira sala de uma execucao ja aberta. Cube usa esse fluxo:
+	// ate seis jogadores entram individualmente antes da primeira resposta.
+	SharedEntry bool                    `json:"sharedEntry,omitempty"`
+	Stages      []VolatileInstanceStage `json:"stages,omitempty"`
 }
 
 // VolatileInstanceSpawn permite que uma mesma sala tenha mais de um template.
@@ -105,6 +129,8 @@ type VolatileInstance struct {
 type VolatileInstanceSpawn struct {
 	NPC   string `json:"npc"`
 	Count int    `json:"count"`
+	X     uint16 `json:"x,omitempty"`
+	Y     uint16 `json:"y,omitempty"`
 }
 
 // VolatileInstanceStage permite que uma carta conduza o grupo por varias
@@ -119,6 +145,21 @@ type VolatileInstanceStage struct {
 	AreaRadius      int                     `json:"areaRadius"`
 	DurationSeconds int                     `json:"durationSeconds,omitempty"`
 	Spawns          []VolatileInstanceSpawn `json:"spawns"`
+	Quiz            *VolatileInstanceQuiz   `json:"quiz,omitempty"`
+}
+
+// VolatileInstanceQuiz reproduz as salas O/X do Cube. Depois de eliminar a
+// sala, cada membro escolhe fisicamente O ou X; acertos seguem e recebem EXP,
+// erros saem da instancia.
+type VolatileInstanceQuiz struct {
+	Question        string `json:"question"`
+	Answer          bool   `json:"answer"`
+	TrueX           uint16 `json:"trueX"`
+	TrueY           uint16 `json:"trueY"`
+	FalseX          uint16 `json:"falseX"`
+	FalseY          uint16 `json:"falseY"`
+	DurationSeconds int    `json:"durationSeconds"`
+	RewardExp       uint32 `json:"rewardExp,omitempty"`
 }
 
 type VolatileDestination struct {

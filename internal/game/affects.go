@@ -154,6 +154,50 @@ func accumulateAffect(ch *model.Char, affectType byte, value, level, addUnits, m
 	return true
 }
 
+// applyVolatileBuff aplica o pacote inteiro ou nada. Chocolate/Candy ocupam
+// quatro slots simultaneos; aceitar apenas parte deles deixaria um estado que
+// nunca existiu no handler nativo.
+func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) bool {
+	if ch == nil {
+		return false
+	}
+	affects := rule.Affects
+	if len(affects) == 0 && rule.AffectType > 0 {
+		affects = []model.VolatileAffect{{
+			Type: rule.AffectType, Value: rule.AffectValue,
+			Level: rule.AffectLevel, DurationUnits: rule.DurationUnits,
+		}}
+	}
+	if len(affects) == 0 {
+		return false
+	}
+	snapshot := cloneCharacterState(ch)
+	for _, affect := range affects {
+		affectType, value := affect.Type, affect.Value
+		if affect.SkillID > 0 {
+			skill, exists := w.skills[affect.SkillID]
+			if !exists || skill.AffectType <= 0 || skill.AffectType > 255 {
+				*ch = snapshot
+				return false
+			}
+			affectType, value = skill.AffectType, skill.AffectValue
+		}
+		var applied bool
+		if rule.Accumulate {
+			applied = accumulateAffect(ch, byte(affectType), value, affect.Level,
+				affect.DurationUnits, rule.MaxDurationUnits)
+		} else {
+			applied = setAffect(ch, byte(affectType), value, affect.Level,
+				affect.DurationUnits)
+		}
+		if !applied {
+			*ch = snapshot
+			return false
+		}
+	}
+	return true
+}
+
 func skillAffect(skill model.SkillDef) (byte, int, bool) {
 	if skill.AffectType > 0 {
 		return byte(skill.AffectType), skill.AffectValue, true

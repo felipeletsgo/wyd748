@@ -271,13 +271,12 @@ func parseSlashCommand(message string) (name, arg string, ok bool) {
 // precedencia sobre um nick de mesmo nome, como no TMSrv nativo.
 func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string) bool {
 	switch strings.ToLower(strings.TrimSpace(name)) {
-	case "time", "day":
-		// Tecla Insert do client 7.48: TMFieldScene manda um whisper com
-		// MobName="time" (algumas builds tambem "day"). Sem interceptar aqui, o
-		// whisper cai no lookup de personagem (sendCharacterInfo) e devolve
-		// "nao esta conectado" -- exatamente o erro "time/day nao conectado".
-		// Espelha o SendClientMessage do W2PP (_MSG_MessagePanel) com a data/hora
-		// do host, no mesmo formato "%H:%M:%S | %d-%m-%Y".
+	case "day":
+		// Sincronismo periodico interno do client. O !# impede texto visivel e
+		// alimenta m_nYear/m_nDays, usados na duracao de affects de calendario.
+		s.Send(wire.DaySync())
+	case "time":
+		// Comando manual: exibe a data/hora do host no painel superior.
 		s.Send(wire.MessagePanel(time.Now().Format("15:04:05 | 02-01-2006")))
 	case "limparinv", "clearinv":
 		w.executeClearInventory(s, p)

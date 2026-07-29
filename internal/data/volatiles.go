@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 
 	"wydgo/internal/model"
@@ -26,7 +27,7 @@ var validVolatileActions = map[string]bool{
 	"quest_reward": true, "gate_key": true, "grant_counter": true,
 	"grant_counter_once": true, "arch_crystal": true,
 	"loot_box": true, "mount_revive": true, "timed_access": true,
-	"dungeon_teleport": true, "no_direct_use": true, "celestial_pending": true,
+	"no_direct_use": true, "celestial_pending": true,
 }
 
 var validMountActions = map[string]bool{
@@ -37,11 +38,13 @@ var validMountActions = map[string]bool{
 // LoadVolatiles le apenas as funcoes de data/volatiles.json e descobre os itens
 // automaticamente no catalogo. Assim um item novo com EF_VOLATILE entra no
 // registro sem manter uma segunda lista manual e sujeita a divergencias.
-func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileCatalog, error) {
+func LoadVolatiles(path string, items map[uint16]model.ItemDef,
+	skills map[int]model.SkillDef) (model.VolatileCatalog, error) {
 	var file struct {
-		Default model.VolatileRule            `json:"default"`
-		Rules   map[int]model.VolatileRule    `json:"rules"`
-		Items   map[uint16]model.VolatileRule `json:"items"`
+		Default   model.VolatileRule                `json:"default"`
+		Rules     map[int]model.VolatileRule        `json:"rules"`
+		Items     map[uint16]model.VolatileRule     `json:"items"`
+		Instances map[string]model.VolatileInstance `json:"instances"`
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -59,6 +62,16 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileC
 	normalize := func(where string, rule model.VolatileRule) (model.VolatileRule, error) {
 		rule.Action = strings.ToLower(strings.TrimSpace(rule.Action))
 		rule.ValueSource = strings.ToLower(strings.TrimSpace(rule.ValueSource))
+		rule.InstanceRef = strings.TrimSpace(rule.InstanceRef)
+		if rule.Instance == nil && rule.InstanceRef != "" {
+			template, exists := file.Instances[rule.InstanceRef]
+			if !exists {
+				return rule, fmt.Errorf(
+					"data: %s referencia instancia inexistente %q", where, rule.InstanceRef)
+			}
+			instance := template
+			rule.Instance = &instance
+		}
 		if !validVolatileActions[rule.Action] {
 			return rule, fmt.Errorf("data: %s possui action desconhecida %q", where, rule.Action)
 		}
@@ -77,8 +90,33 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileC
 				return rule, fmt.Errorf("data: %s summon_contract possui template incompleto", where)
 			}
 		}
-		if rule.Action == "buff" && rule.AffectType <= 0 {
-			return rule, fmt.Errorf("data: %s buff exige affectType positivo", where)
+		if rule.Action == "buff" {
+			hasSingle := rule.AffectType > 0
+			hasPackage := len(rule.Affects) > 0
+			if hasSingle == hasPackage {
+				return rule, fmt.Errorf(
+					"data: %s buff exige exatamente affectType ou affects", where)
+			}
+			if hasSingle && (rule.AffectType > 255 || rule.DurationUnits <= 0) {
+				return rule, fmt.Errorf(
+					"data: %s buff singular possui affectType/durationUnits invalido", where)
+			}
+			for index, affect := range rule.Affects {
+				hasType := affect.Type > 0 && affect.Type <= 255
+				hasSkill := affect.SkillID > 0
+				if hasType == hasSkill || affect.DurationUnits <= 0 {
+					return rule, fmt.Errorf(
+						"data: %s affects[%d] invalido", where, index)
+				}
+				if hasSkill {
+					skill, exists := skills[affect.SkillID]
+					if !exists || skill.AffectType <= 0 || skill.AffectType > 255 {
+						return rule, fmt.Errorf(
+							"data: %s affects[%d] referencia skill %d sem affect",
+							where, index, affect.SkillID)
+					}
+				}
+			}
 		}
 		if rule.Accumulate && rule.MaxDurationUnits <= 0 {
 			return rule, fmt.Errorf("data: %s accumulate exige maxDurationUnits positivo", where)
@@ -117,11 +155,6 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileC
 			(strings.TrimSpace(rule.AccessKey) == "" || rule.DurationSeconds <= 0) {
 			return rule, fmt.Errorf(
 				"data: %s timed_access exige accessKey e durationSeconds positivos", where)
-		}
-		if rule.Action == "dungeon_teleport" &&
-			(rule.X == 0 || rule.Y == 0 || rule.DurationSeconds <= 0) {
-			return rule, fmt.Errorf(
-				"data: %s dungeon_teleport exige x/y e durationSeconds positivos", where)
 		}
 		if rule.PartyMode != "" && rule.PartyMode != "party" && rule.PartyMode != "solo" {
 			return rule, fmt.Errorf("data: %s possui partyMode invalido %q", where, rule.PartyMode)
@@ -163,6 +196,18 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileC
 				(len(i.Stages) == 0 && i.DurationSeconds <= 0) {
 				return rule, fmt.Errorf("data: %s instance_ticket possui template incompleto", where)
 			}
+			if i.MaxPlayers < 0 || i.MaxPlayers > 13 {
+				return rule, fmt.Errorf(
+					"data: %s instance_ticket possui maxPlayers fora de 0..13", where)
+			}
+			if i.SharedEntry && i.MaxPlayers <= 0 {
+				return rule, fmt.Errorf(
+					"data: %s instance_ticket compartilhada exige maxPlayers positivo", where)
+			}
+			if i.TotalDurationSeconds < 0 {
+				return rule, fmt.Errorf(
+					"data: %s instance_ticket possui totalDurationSeconds negativo", where)
+			}
 			if len(i.Stages) == 0 {
 				if i.X == 0 || i.Y == 0 || i.SpawnX == 0 || i.SpawnY == 0 ||
 					i.AreaRadius <= 0 || len(i.Spawns) == 0 {
@@ -178,6 +223,11 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileC
 					if strings.TrimSpace(spawn.NPC) == "" || spawn.Count <= 0 {
 						return fmt.Errorf(
 							"data: %s %s spawns[%d] invalido", where, label, n)
+					}
+					if (spawn.X == 0) != (spawn.Y == 0) {
+						return fmt.Errorf(
+							"data: %s %s spawns[%d] possui coordenada parcial",
+							where, label, n)
 					}
 				}
 				return nil
@@ -197,6 +247,15 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileC
 					if err := validateSpawns(
 						fmt.Sprintf("instance_ticket stages[%d]", stageIndex), stage.Spawns); err != nil {
 						return rule, err
+					}
+					if stage.Quiz != nil {
+						q := stage.Quiz
+						if strings.TrimSpace(q.Question) == "" || q.DurationSeconds <= 0 ||
+							q.TrueX == 0 || q.TrueY == 0 || q.FalseX == 0 || q.FalseY == 0 {
+							return rule, fmt.Errorf(
+								"data: %s instance_ticket stages[%d] possui quiz incompleto",
+								where, stageIndex)
+						}
 					}
 				}
 			}
@@ -276,17 +335,34 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef) (model.VolatileC
 		}
 		result.Items[id] = rule
 	}
-	instanceIDs := make(map[string]uint16)
-	for itemID, rule := range result.Items {
+	// Vários ingressos podem compartilhar a mesma sala (Cube Mystic/Arcane,
+	// Hell Gate solo/party), mas o mesmo ID nunca pode apontar para dois
+	// layouts diferentes: o mapa runtime é indexado por esse ID.
+	instanceDefs := make(map[string]model.VolatileInstance)
+	checkInstance := func(where string, rule model.VolatileRule) error {
 		if rule.Action != "instance_ticket" || rule.Instance == nil {
-			continue
+			return nil
 		}
-		if previous, exists := instanceIDs[rule.Instance.ID]; exists {
-			return model.VolatileCatalog{}, fmt.Errorf(
-				"data: instancia %q repetida nos itens %d e %d",
-				rule.Instance.ID, previous, itemID)
+		if previous, exists := instanceDefs[rule.Instance.ID]; exists {
+			if !reflect.DeepEqual(previous, *rule.Instance) {
+				return fmt.Errorf(
+					"data: instancia %q possui configuracoes divergentes (%s)",
+					rule.Instance.ID, where)
+			}
+			return nil
 		}
-		instanceIDs[rule.Instance.ID] = itemID
+		instanceDefs[rule.Instance.ID] = *rule.Instance
+		return nil
+	}
+	for code, rule := range result.Rules {
+		if err := checkInstance(fmt.Sprintf("rules[%d]", code), rule); err != nil {
+			return model.VolatileCatalog{}, err
+		}
+	}
+	for id, rule := range result.Items {
+		if err := checkInstance(fmt.Sprintf("items[%d]", id), rule); err != nil {
+			return model.VolatileCatalog{}, err
+		}
 	}
 	return result, nil
 }

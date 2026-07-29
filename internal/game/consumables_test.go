@@ -74,6 +74,73 @@ func TestAccumulateAffectCapsAt24h(t *testing.T) {
 	}
 }
 
+func TestVolatileBuffPackageIsAtomic(t *testing.T) {
+	rule := model.VolatileRule{Action: "buff", Affects: []model.VolatileAffect{
+		{SkillID: 43, Level: 320, DurationUnits: 320},
+		{SkillID: 44, Level: 320, DurationUnits: 320},
+		{SkillID: 45, Level: 320, DurationUnits: 320},
+		{SkillID: 41, Level: 320, DurationUnits: 320},
+	}}
+	ch := &model.Char{}
+	w := &World{skills: map[int]model.SkillDef{
+		41: {AffectType: 2, AffectValue: 1},
+		43: {AffectType: 11, AffectValue: 15},
+		44: {AffectType: 9, AffectValue: 90},
+		45: {AffectType: 15, AffectValue: 7},
+	}}
+	if !w.applyVolatileBuff(ch, rule) {
+		t.Fatal("pacote Love valido foi recusado")
+	}
+	for affectType, value := range map[byte]int{2: 1, 11: 15, 9: 90, 15: 7} {
+		affect := activePlayerAffect(ch, affectType)
+		if affect == nil || affect.Value != value {
+			t.Fatalf("affect %d do pacote Love = %+v, valor esperado=%d",
+				affectType, affect, value)
+		}
+	}
+
+	// Deixe apenas tres slots disponiveis: o quarto affect deve falhar e a
+	// operacao precisa restaurar o personagem inteiro.
+	full := &model.Char{}
+	for index := 0; index < len(full.Affects)-3; index++ {
+		full.Affects[index] = model.Affect{
+			Type: byte(index + 1), ExpiresAt: time.Now().Add(time.Hour),
+		}
+	}
+	before := cloneCharacterState(full)
+	if w.applyVolatileBuff(full, rule) {
+		t.Fatal("pacote parcial foi aceito sem quatro slots")
+	}
+	for index := range full.Affects {
+		if full.Affects[index] != before.Affects[index] {
+			t.Fatalf("rollback do pacote falhou no slot %d", index)
+		}
+	}
+}
+
+func TestVolatileBuffMissingSkillRollsBackWholePackage(t *testing.T) {
+	w := &World{skills: map[int]model.SkillDef{
+		43: {AffectType: 11, AffectValue: 15},
+	}}
+	ch := &model.Char{}
+	ch.Affects[0] = model.Affect{
+		Type: 4, Value: 25, ExpiresAt: time.Now().Add(time.Hour),
+	}
+	before := cloneCharacterState(ch)
+	rule := model.VolatileRule{Action: "buff", Affects: []model.VolatileAffect{
+		{SkillID: 43, DurationUnits: 320},
+		{SkillID: 44, DurationUnits: 320},
+	}}
+	if w.applyVolatileBuff(ch, rule) {
+		t.Fatal("pacote com SkillData ausente foi aceito")
+	}
+	for index := range ch.Affects {
+		if ch.Affects[index] != before.Affects[index] {
+			t.Fatalf("falha de SkillData deixou affect parcial no slot %d", index)
+		}
+	}
+}
+
 // TestDoubleExpBuffDoublesReward garante que a EXP so dobra com o affect 39 ativo.
 func TestDoubleExpBuffDoublesReward(t *testing.T) {
 	ch := &model.Char{}

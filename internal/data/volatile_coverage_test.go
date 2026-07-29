@@ -1,11 +1,99 @@
 package data
 
 import (
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
 )
+
+// TestCadaCodigoVolatileRealTemContratoExplicito cria um subteste independente
+// para CADA EF_VOLATILE encontrado no itemlist autoritativo. Isso torna a
+// cobertura visivel por codigo no relatorio e impede tres regressões silenciosas:
+// item sem regra, contagem divergente e familia implementada voltando ao generic.
+func TestCadaCodigoVolatileRealTemContratoExplicito(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
+		catalog.Items, catalog.Skills)
+	if err != nil {
+		t.Fatal(err)
+	}
+	itemsByCode := make(map[int][]uint16, len(volatiles.Codes))
+	for itemID, code := range volatiles.ItemCodes {
+		itemsByCode[code] = append(itemsByCode[code], itemID)
+	}
+	codes := make([]int, 0, len(volatiles.Codes))
+	for code := range volatiles.Codes {
+		codes = append(codes, code)
+	}
+	sort.Ints(codes)
+	for _, code := range codes {
+		code := code
+		t.Run(fmt.Sprintf("volatile_%d", code), func(t *testing.T) {
+			items := itemsByCode[code]
+			sort.Slice(items, func(i, j int) bool { return items[i] < items[j] })
+			if len(items) == 0 || len(items) != volatiles.Codes[code] {
+				t.Fatalf("catalogo informa %d item(ns), resolvidos=%v",
+					volatiles.Codes[code], items)
+			}
+			for _, itemID := range items {
+				rule, resolvedCode, ok := volatiles.Rule(itemID)
+				if !ok || resolvedCode != code || strings.TrimSpace(rule.Action) == "" {
+					t.Fatalf("item %d nao resolveu contrato: code=%d ok=%v action=%q",
+						itemID, resolvedCode, ok, rule.Action)
+				}
+				if rule.Action == "generic" {
+					t.Fatalf("item %d ainda usa generic", itemID)
+				}
+			}
+		})
+	}
+}
+
+func TestItensLoveResolvemSkillDataParaAffectsReais(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
+		catalog.Items, catalog.Skills)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []struct {
+		skillID, affectType, affectValue int
+	}{
+		{43, 11, 15},
+		{44, 9, 90},
+		{45, 15, 7},
+		{41, 2, 1},
+	}
+	for _, itemID := range []uint16{1739, 4145} {
+		rule, _, ok := volatiles.Rule(itemID)
+		if !ok || len(rule.Affects) != len(expected) {
+			t.Fatalf("item Love %d: regra=%+v ok=%v", itemID, rule, ok)
+		}
+		for index, want := range expected {
+			configured := rule.Affects[index]
+			skill := catalog.Skills[configured.SkillID]
+			if configured.SkillID != want.skillID ||
+				skill.AffectType != want.affectType ||
+				skill.AffectValue != want.affectValue {
+				t.Errorf("item %d affect[%d]: skill=%d => type/value=%d/%d, esperado %d=>%d/%d",
+					itemID, index, configured.SkillID, skill.AffectType,
+					skill.AffectValue, want.skillID, want.affectType, want.affectValue)
+			}
+		}
+	}
+}
 
 // Durante o beta TODO volatile precisa ser alcancavel por uma loja: sem item na
 // mao nao ha como exercitar a regra in-game, e um volatile nunca testado e um
@@ -21,7 +109,8 @@ func TestTodoVolatileTemLoja(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volateis, err := LoadVolatiles(filepath.Join(raiz, "volatiles.json"), catalogo.Items)
+	volateis, err := LoadVolatiles(filepath.Join(raiz, "volatiles.json"),
+		catalogo.Items, catalogo.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +188,8 @@ func TestInstanciasDeItemReferenciamNPCExistente(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"), catalog.Items)
+	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
+		catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +229,8 @@ func TestCatalogoRealNaoTemVolatileGenerico(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"), catalog.Items)
+	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
+		catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

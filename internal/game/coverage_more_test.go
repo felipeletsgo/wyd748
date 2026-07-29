@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/binary"
+	"errors"
 	"math/rand"
 	"testing"
 	"time"
@@ -9,6 +10,167 @@ import (
 	"wydgo/internal/model"
 	gameNet "wydgo/internal/net"
 )
+
+func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
+	t.Run("real rng and world enqueue", func(t *testing.T) {
+		if got := (realRNG{}).Intn(1); got != 0 {
+			t.Fatalf("Intn(1)=%d", got)
+		}
+		w := &World{commands: make(chan command, 1)}
+		session := gameNet.NewTestSession(7, 1)
+		packet := []byte{1, 2, 3}
+		w.Enqueue(session, packet)
+		queued := <-w.commands
+		if queued.s != session || len(queued.pkt) != len(packet) {
+			t.Fatal("Enqueue perdeu sessao/pacote")
+		}
+	})
+
+	t.Run("cargo access binds packet to nearby banker", func(t *testing.T) {
+		p, _ := networkedTestPlayer(1, "Cargo", 100, 100)
+		banker := &Mob{ID: 1000, X: 102, Y: 100, Def: &model.NPCDef{
+			Name: "Cargo", Extended: &model.ExtendedScore{
+				Version: model.ExtendedScoreVersion, Merchant: 2,
+			},
+		}}
+		w := testSpatialWorld([]*Mob{banker}, p)
+		pkt := make([]byte, 20)
+		binary.LittleEndian.PutUint32(pkt[16:20], uint32(banker.ID))
+		if !w.validCargoAccess(p, pkt) {
+			t.Fatal("banker visivel foi recusado")
+		}
+		binary.LittleEndian.PutUint32(pkt[16:20], 0x1_0000)
+		if w.validCargoAccess(p, pkt) || w.validCargoAccess(nil, pkt) ||
+			w.validCargoAccess(p, pkt[:19]) {
+			t.Fatal("cargo aceitou id DWORD, jogador nil ou pacote truncado")
+		}
+	})
+
+	t.Run("illusion uses skill data mana and destination", func(t *testing.T) {
+		p, _ := networkedTestPlayer(1, "Huntress", 100, 100)
+		p.Char.Class = 3
+		p.Char.LearnedSkill = 1 << 1
+		p.Char.Extended.Mastery[1] = 40
+		setPlayerCurMP(p.Char, 800)
+		w := worldWithNetworkedPlayers(p)
+		w.skills = map[int]model.SkillDef{
+			73: {Index: 73, ManaSpent: 10, Delay: 1, Range: 8},
+		}
+		pkt := make([]byte, 28)
+		binary.LittleEndian.PutUint16(pkt[24:26], 105)
+		binary.LittleEndian.PutUint16(pkt[26:28], 100)
+		beforeMP := playerCurMP(p.Char)
+		w.onIllusionMove(p, pkt)
+		if p.X != 105 || p.Y != 100 || playerCurMP(p.Char) >= beforeMP ||
+			p.SkillReady[73].IsZero() {
+			t.Fatalf("Illusion: pos=(%d,%d) mp=%d/%d cooldown=%v",
+				p.X, p.Y, playerCurMP(p.Char), beforeMP, p.SkillReady[73])
+		}
+	})
+
+	t.Run("quest interaction always revalidates server-side", func(t *testing.T) {
+		p, _ := networkedTestPlayer(1, "Quest", 100, 100)
+		w := worldWithNetworkedPlayers(p)
+		quest := &model.QuestDef{
+			ID: 999, Requires: model.QuestRequirements{MinLevel: 99},
+		}
+		mob := &Mob{ID: 1000, X: 101, Y: 100, Def: &model.NPCDef{Name: "QuestNPC"}}
+		before := p.Session.QueuedPacketsForTest()
+		w.onQuestInteraction(p.Session, p, mob, quest, 1)
+		if p.Session.QueuedPacketsForTest() <= before {
+			t.Fatal("quest bloqueada nao informou a validacao")
+		}
+	})
+
+	t.Run("summon movement respects cooldown", func(t *testing.T) {
+		summon := &Mob{ID: 1000, X: 100, Y: 100, Def: testNPCDef(
+			model.ExtendedScore{AttackRun: 4, MaxHP: 100, CurHP: 100})}
+		w := testSpatialWorld([]*Mob{summon})
+		now := time.Unix(2_000_000_000, 0)
+		w.moveSummonToward(summon, 110, 100, 1, now)
+		movedX := summon.X
+		if movedX <= 100 || summon.NextMove.IsZero() {
+			t.Fatalf("summon nao moveu: x=%d next=%v", summon.X, summon.NextMove)
+		}
+		w.moveSummonToward(summon, 110, 100, 1, now)
+		if summon.X != movedX {
+			t.Fatal("summon ignorou o cooldown de movimento")
+		}
+	})
+
+	t.Run("combine with charstate is one transaction and rolls back", func(t *testing.T) {
+		p, _ := networkedTestPlayer(1, "AtomicCraft", 100, 100)
+		w := worldWithNetworkedPlayers(p)
+		st := &atomicCharStateMemoryStore{}
+		w.store = st
+		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
+		p.Char.Inv[0] = model.Item{Index: 777}
+		p.SpecialCoins = map[string]uint32{"fame": 1}
+		if !w.commitCombineWithPlayerState(p, oldInv, oldEquip, oldGold,
+			map[int]struct{}{0: {}}, nil, 1) || st.atomicSaves != 1 {
+			t.Fatal("craft atomico valido nao foi confirmado")
+		}
+
+		oldInv, oldEquip, oldGold = p.Char.Inv, p.Char.Equip, p.Char.Gold
+		p.Char.Inv[0] = model.Item{Index: 888}
+		st.atomicErr = errors.New("database unavailable")
+		if w.commitCombineWithPlayerState(p, oldInv, oldEquip, oldGold,
+			map[int]struct{}{0: {}}, nil, 1) || p.Char.Inv[0].Index != 777 {
+			t.Fatal("falha do craft atomico nao restaurou o inventario")
+		}
+	})
+}
+
+func TestSummonCombatCoversAttackFollowPassiveAndImmobileKinds(t *testing.T) {
+	owner, _ := networkedTestPlayer(1, "BeastMaster", 100, 100)
+	target := &Mob{ID: 1500, X: 102, Y: 100, HP: 1000,
+		Def: testNPCDef(model.ExtendedScore{
+			Defense: 0, MaxHP: 1000, CurHP: 1000,
+		})}
+	attacker := &Mob{ID: 1600, X: 101, Y: 100, HP: 100,
+		SummonerID: owner.ID, SummonRange: 2,
+		Def: testNPCDef(model.ExtendedScore{
+			Attack: 500, AttackRun: 4, MaxHP: 100, CurHP: 100,
+		})}
+	follower := &Mob{ID: 1601, X: 50, Y: 50, HP: 100,
+		SummonerID: owner.ID,
+		Def: testNPCDef(model.ExtendedScore{
+			Attack: 100, AttackRun: 4, MaxHP: 100, CurHP: 100,
+		})}
+	pet := &Mob{ID: 1602, X: 85, Y: 85, HP: 100,
+		SummonerID: owner.ID, SummonKind: summonKindMount,
+		Def: testNPCDef(model.ExtendedScore{
+			AttackRun: 4, MaxHP: 100, CurHP: 100,
+		})}
+	wall := &Mob{ID: 1603, X: 80, Y: 80, HP: 100,
+		SummonerID: owner.ID, SummonKind: summonKindThornWall,
+		Def: testNPCDef(model.ExtendedScore{
+			AttackRun: 4, MaxHP: 100, CurHP: 100,
+		})}
+	w := testSpatialWorld([]*Mob{target, attacker, follower, pet, wall}, owner)
+	for _, summon := range []*Mob{attacker, follower, pet, wall} {
+		w.summons[summon.ID] = summon
+	}
+	owner.CombatTargetID = target.ID
+	now := time.Unix(2_000_000_000, 0)
+	w.tickSummonCombat(now)
+	if target.HP != 500 || attacker.TargetID != target.ID ||
+		attacker.NextAttack.IsZero() {
+		t.Fatalf("ataque da evocacao: hp=%d target=%d next=%v",
+			target.HP, attacker.TargetID, attacker.NextAttack)
+	}
+	// Remove a ordem: evocacao comum e cria passam a apenas acompanhar.
+	owner.CombatTargetID = 0
+	oldFollowerX, oldPetX, oldWallX := follower.X, pet.X, wall.X
+	w.tickSummonCombat(now.Add(3 * time.Second))
+	if follower.X == oldFollowerX || pet.X == oldPetX {
+		t.Fatalf("seguidores nao acompanharam: normal=%d/%d pet=%d/%d",
+			oldFollowerX, follower.X, oldPetX, pet.X)
+	}
+	if wall.X != oldWallX {
+		t.Fatal("Thorn Wall se moveu")
+	}
+}
 
 func networkedTestPlayer(id uint16, name string, x, y uint16) (*Player, *gameNet.Session) {
 	session := gameNet.NewTestSession(int64(id), 128)

@@ -114,6 +114,18 @@ func TestWhisperHandlerReportsOfflineAndCharacterInfo(t *testing.T) {
 	}
 }
 
+func TestWhisperDayRequestReturnsHiddenCalendarSync(t *testing.T) {
+	sender, _ := networkedTestPlayer(1, "Sender", 2100, 2100)
+	w := worldWithNetworkedPlayers(sender)
+	before := sender.Session.QueuedPacketsForTest()
+
+	w.onMessageWhisper(sender.Session, whisperPacket("day", ""))
+
+	if got := sender.Session.QueuedPacketsForTest(); got != before+1 {
+		t.Fatalf("day nao gerou sincronismo: fila %d -> %d", before, got)
+	}
+}
+
 func TestSephiraCannonAndThornWallLifecycle(t *testing.T) {
 	p, _ := networkedTestPlayer(1, "Sephira", 2100, 2100)
 	w := worldWithNetworkedPlayers(p)

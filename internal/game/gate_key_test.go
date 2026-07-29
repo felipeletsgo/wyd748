@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/binary"
 	"errors"
 	"testing"
 
@@ -137,5 +138,54 @@ func TestPortaAbertaChegaAbertaParaQuemChegaDepois(t *testing.T) {
 	}
 	if pkt[27] != gateOpen {
 		t.Errorf("a porta viajou com State=%d, quer %d (aberta)", pkt[27], gateOpen)
+	}
+}
+
+func updateGroundItemPacket(id uint16, state uint32) []byte {
+	pkt := make([]byte, 20)
+	binary.LittleEndian.PutUint32(pkt[12:16], uint32(id))
+	binary.LittleEndian.PutUint32(pkt[16:20], state)
+	return pkt
+}
+
+func TestUpdateGroundItemUsesMatchingInventoryKey(t *testing.T) {
+	w, porta := mundoComPorta(2, 2100, 2100)
+	p, s := jogadorComChave(w, 451, 2100, 2100)
+	p.show(porta.ID)
+
+	w.onUpdateGroundItem(s, updateGroundItemPacket(porta.ID, uint32(gateOpen)))
+
+	if porta.State != gateOpen || p.Char.Inv[0].Index != 0 {
+		t.Fatalf("0x374 nao abriu/consumiu: state=%d key=%+v", porta.State, p.Char.Inv[0])
+	}
+}
+
+func TestUpdateGroundItemRejectsForgedStateAndMissingKey(t *testing.T) {
+	w, porta := mundoComPorta(2, 2100, 2100)
+	p, s := jogadorComChave(w, 452, 2100, 2100)
+	p.show(porta.ID)
+
+	w.onUpdateGroundItem(s, updateGroundItemPacket(porta.ID, 6))
+	if porta.State != gateClosed || p.Char.Inv[0].Index != 452 {
+		t.Fatal("estado forjado alterou a porta")
+	}
+
+	w.onUpdateGroundItem(s, updateGroundItemPacket(porta.ID, uint32(gateOpen)))
+	if porta.State != gateClosed || p.Char.Inv[0].Index != 452 {
+		t.Fatal("chave com EF_KEYID diferente abriu a porta")
+	}
+}
+
+func TestUpdateGroundItemRollsBackKeyWhenSaveFails(t *testing.T) {
+	w, porta := mundoComPorta(2, 2100, 2100)
+	p, s := jogadorComChave(w, 451, 2100, 2100)
+	p.show(porta.ID)
+	w.store = &craftStore{err: errors.New("postgres indisponivel")}
+
+	w.onUpdateGroundItem(s, updateGroundItemPacket(porta.ID, uint32(gateOpen)))
+
+	if porta.State != gateClosed || p.Char.Inv[0].Index != 451 {
+		t.Fatalf("falha de save dividiu chave/porta: state=%d key=%+v",
+			porta.State, p.Char.Inv[0])
 	}
 }

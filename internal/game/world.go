@@ -94,11 +94,6 @@ type Player struct {
 	SkillReady    map[int]time.Time
 	NextRegen     time.Time
 	NextMountTick time.Time
-	// Tickets de dungeon usam um prazo server-side unico; ao vencer, o jogador
-	// e retirado pelo fluxo normal de teleporte, sem ticker por instancia.
-	DungeonExitAt time.Time
-	DungeonExitX  uint16
-	DungeonExitY  uint16
 	// Cooldown compartilhado pelos comandos /kingdom e /king.
 	NextKingdomTeleport time.Time
 	Visible             map[uint16]struct{} // entidades atualmente materializadas neste client
@@ -932,7 +927,6 @@ func (w *World) tick() {
 	w.tickPlayerMounts(now)
 	w.tickGroundItems(now)
 	w.tickItemInstances(now)
-	w.tickDungeonTeleports(now)
 	w.tickTrades(now)
 	if !now.Before(w.nextQuestZoneReset) {
 		w.tickQuestZoneReset(now)
@@ -1069,6 +1063,12 @@ func (w *World) handle(cmd command) {
 		w.onDropItem(cmd.s, cmd.pkt)
 	case wire.OpGetItem:
 		w.onGetItem(cmd.s, cmd.pkt)
+	case wire.OpDeleteItem:
+		w.onDeleteItem(cmd.s, cmd.pkt)
+	case wire.OpSplitItem:
+		w.onSplitItem(cmd.s, cmd.pkt)
+	case wire.OpUpdateItem:
+		w.onUpdateGroundItem(cmd.s, cmd.pkt)
 	case wire.OpMessageChat:
 		w.onMessageChat(cmd.s, cmd.pkt)
 	case wire.OpMessageWhisper:
@@ -1096,10 +1096,13 @@ func (w *World) handle(cmd command) {
 	case wire.OpRestart:
 		w.onRestart(cmd.s)
 	case wire.OpPing:
-		// Keepalive: receber o pacote ja prova que a sessao esta viva.
+		w.onPing(cmd.s, cmd.pkt)
+	case wire.OpUpdateScore:
+		// O client nativo pode emitir 0x336, mas W2PP/Secrets o descartam.
+		// Score e affects permanecem exclusivamente autoritativos no servidor.
 	case wire.OpSysQuit:
 		w.onSysQuit(cmd.s)
-	case wire.OpAction:
+	case wire.OpAction, wire.OpIllusion:
 		w.onMove(cmd.s, cmd.pkt)
 	case wire.OpActionStop:
 		w.onActionStop(cmd.s, cmd.pkt)
@@ -1112,6 +1115,8 @@ func (w *World) handle(cmd command) {
 	case wire.OpAttackOne, wire.OpAttackMulti, wire.OpAttackTwo:
 		// 0x39D e o melee do 7.48 (confirmado in-game: repete ~1x/s ao atacar).
 		w.onAttack(cmd.s, cmd.pkt)
+	case wire.OpReqRanking:
+		w.onReqRanking(cmd.s, cmd.pkt)
 	case wire.OpCombineTiny:
 		w.onCombineTiny(cmd.s, cmd.pkt)
 	case wire.OpCombineLindy:

@@ -53,6 +53,11 @@ func TestInstanceTicketMovesPartySpawnsAndExpires(t *testing.T) {
 		leader.Char.Inv[0].Index != 0 || st.gameSaves != 1 {
 		t.Fatalf("instancia=%+v item=%d saves=%d", inst, leader.Char.Inv[0].Index, st.gameSaves)
 	}
+	for mobID := range inst.MobIDs {
+		if !leader.hasVisible(mobID) || !member.hasVisible(mobID) {
+			t.Fatalf("mob inicial %d nao foi publicado aos dois membros", mobID)
+		}
+	}
 	if chebyshev(leader.X, leader.Y, 2200, 2200) > 4 ||
 		chebyshev(member.X, member.Y, 2200, 2200) > 4 ||
 		(leader.X == member.X && leader.Y == member.Y) {
@@ -200,6 +205,150 @@ func TestOnlyPartyLeaderCanOpenInstance(t *testing.T) {
 	}
 }
 
+func TestInstanceLogoutFreesSlotAndPromotesLeader(t *testing.T) {
+	w, leader, member, _, clock := instanceTestWorld()
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	inst := w.itemInstances["water-normal-1"]
+	if inst == nil {
+		t.Fatal("instancia nao abriu")
+	}
+
+	w.detachPlayerFromItemInstances(leader.ID, clock.Now())
+
+	if len(inst.MemberIDs) != 1 || inst.MemberIDs[0] != member.ID ||
+		inst.LeaderID != member.ID {
+		t.Fatalf("saida do lider deixou membro fantasma: members=%v leader=%d",
+			inst.MemberIDs, inst.LeaderID)
+	}
+
+	w.detachPlayerFromItemInstances(member.ID, clock.Now())
+	if len(inst.MemberIDs) != 0 || !inst.Deadline.Equal(clock.Now()) ||
+		!inst.TransitionAt.IsZero() || !inst.QuizAt.IsZero() {
+		t.Fatalf("ultima saida nao agendou cleanup: %+v", inst)
+	}
+}
+
+func TestInstanceEnforcesConfiguredPlayerLimit(t *testing.T) {
+	w, leader, _, st, _ := instanceTestWorld()
+	rule := instanceTestRule()
+	rule.Instance.MaxPlayers = 1
+	w.volatiles.Items[100] = rule
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	if leader.Char.Inv[0].Index != 100 || st.gameSaves != 0 ||
+		len(w.itemInstances) != 0 {
+		t.Fatal("party acima do limite abriu ou consumiu a instancia")
+	}
+}
+
+func TestCubeSharedEntryConsumesOneTicketPerPlayer(t *testing.T) {
+	w, leader, member, st, _ := instanceTestWorld()
+	rule := instanceTestRule()
+	rule.PartyMode = "solo"
+	rule.Instance.ID = "cube-shared"
+	rule.Instance.SharedEntry = true
+	rule.Instance.MaxPlayers = 6
+	rule.Instance.RewardItem = 0
+	w.volatiles.Items[100] = rule
+	member.Char.Inv[0] = model.Item{Index: 100}
+
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	inst := w.itemInstances["cube-shared"]
+	if inst == nil || len(inst.MemberIDs) != 1 || leader.Char.Inv[0].Index != 0 ||
+		member.Char.Inv[0].Index != 100 || st.gameSaves != 1 {
+		t.Fatalf("abertura individual incorreta: inst=%+v itens=%d/%d saves=%d",
+			inst, leader.Char.Inv[0].Index, member.Char.Inv[0].Index, st.gameSaves)
+	}
+
+	w.onUseItem(member.Session, useItemPacket(0, 0))
+	if len(inst.MemberIDs) != 2 || !itemInstanceHasMember(inst, member.ID) ||
+		member.Char.Inv[0].Index != 0 || st.gameSaves != 2 ||
+		chebyshev(member.X, member.Y, 2200, 2200) > 4 {
+		t.Fatalf("ingresso compartilhado incorreto: membros=%v item=%d saves=%d pos=(%d,%d)",
+			inst.MemberIDs, member.Char.Inv[0].Index, st.gameSaves, member.X, member.Y)
+	}
+}
+
+func TestCubeSharedEntryRollbackAndStageLock(t *testing.T) {
+	w, leader, member, st, clock := instanceTestWorld()
+	rule := instanceTestRule()
+	rule.PartyMode = "solo"
+	rule.Instance.ID = "cube-shared-lock"
+	rule.Instance.SharedEntry = true
+	rule.Instance.MaxPlayers = 6
+	rule.Instance.RewardItem = 0
+	rule.Instance.TransitionSeconds = 1
+	rule.Instance.Stages = []model.VolatileInstanceStage{
+		{X: 2200, Y: 2200, SpawnX: 2202, SpawnY: 2202, AreaRadius: 8,
+			DurationSeconds: 60,
+			Spawns:          []model.VolatileInstanceSpawn{{NPC: "RoomMob", Count: 1}}},
+		{X: 2250, Y: 2250, SpawnX: 2252, SpawnY: 2252, AreaRadius: 8,
+			DurationSeconds: 60,
+			Spawns:          []model.VolatileInstanceSpawn{{NPC: "RoomMob", Count: 1}}},
+	}
+	w.volatiles.Items[100] = rule
+	member.Char.Inv[0] = model.Item{Index: 100}
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	inst := w.itemInstances["cube-shared-lock"]
+
+	oldX, oldY := member.X, member.Y
+	st.err = errors.New("database unavailable")
+	w.onUseItem(member.Session, useItemPacket(0, 0))
+	if member.Char.Inv[0].Index != 100 || member.X != oldX || member.Y != oldY ||
+		len(inst.MemberIDs) != 1 {
+		t.Fatal("falha do banco consumiu convite ou inseriu membro")
+	}
+
+	st.err = nil
+	var mob *Mob
+	for id := range inst.MobIDs {
+		mob = w.mobsByID[id]
+	}
+	w.onItemInstanceMobKilled(mob, clock.Now())
+	clock.Advance(time.Second)
+	w.tickItemInstances(clock.Now())
+	if inst.CurrentStage != 1 {
+		t.Fatal("fixture nao avancou para a segunda sala")
+	}
+	w.onUseItem(member.Session, useItemPacket(0, 0))
+	if member.Char.Inv[0].Index != 100 || len(inst.MemberIDs) != 1 {
+		t.Fatal("Cube aceitou ingresso depois da primeira sala")
+	}
+}
+
+func TestInstanceFirstSpawnFailureRollsBackTicketAndPosition(t *testing.T) {
+	w, leader, _, st, _ := instanceTestWorld()
+	rule := instanceTestRule()
+	rule.PartyMode = "solo"
+	w.volatiles.Items[100] = rule
+	// Ocupa toda a faixa de IDs sem materializar dezenas de milhares de mobs.
+	for id := uint32(firstMobID); id <= uint32(^uint16(0)); id++ {
+		w.mobsByID[uint16(id)] = nil
+	}
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	if leader.Char.Inv[0].Index != 100 || leader.X != 2100 || leader.Y != 2100 ||
+		st.gameSaves != 0 || len(w.itemInstances) != 0 || len(w.mobs) != 0 {
+		t.Fatalf("falha do primeiro spawn deixou estado: item=%d pos=(%d,%d) saves=%d inst=%d mobs=%d",
+			leader.Char.Inv[0].Index, leader.X, leader.Y, st.gameSaves,
+			len(w.itemInstances), len(w.mobs))
+	}
+}
+
+func TestCubeQuizUsesNativeFourByFourPlatform(t *testing.T) {
+	quiz := &model.VolatileInstanceQuiz{
+		Answer: true, TrueX: 100, TrueY: 200, FalseX: 300, FalseY: 400,
+	}
+	for _, point := range [][2]uint16{{97, 197}, {97, 200}, {100, 197}, {100, 200}} {
+		if !instanceQuizCorrect(&Player{X: point[0], Y: point[1]}, quiz) {
+			t.Errorf("ponto nativo (%d,%d) foi recusado", point[0], point[1])
+		}
+	}
+	for _, point := range [][2]uint16{{96, 200}, {101, 200}, {100, 196}, {100, 201}, {103, 203}} {
+		if instanceQuizCorrect(&Player{X: point[0], Y: point[1]}, quiz) {
+			t.Errorf("ponto fora da plataforma (%d,%d) foi aceito", point[0], point[1])
+		}
+	}
+}
+
 func TestInstanceRoomsReserveTheirNPCGenerPopulation(t *testing.T) {
 	w, _, _, _, _ := instanceTestWorld()
 	near := model.NPCGener{}
@@ -211,6 +360,14 @@ func TestInstanceRoomsReserveTheirNPCGenerPopulation(t *testing.T) {
 	far.Segments[0] = model.GenerSegment{X: 2211, Y: 2202}
 	if w.generatorReservedForItemInstance(far) {
 		t.Fatal("gerador fora da sala foi removido")
+	}
+	// Cube/Big Cube vivem em regras por volatile, nao em override por item.
+	// Esses geradores tambem precisam ser reservados para nao duplicar a
+	// populacao permanente quando o ticket abrir a instancia.
+	w.volatiles.Rules = map[int]model.VolatileRule{54: instanceTestRule()}
+	w.volatiles.Items = nil
+	if !w.generatorReservedForItemInstance(near) {
+		t.Fatal("regra de volatile nao reservou o NPCGener da instancia")
 	}
 }
 
@@ -339,5 +496,80 @@ func TestInstanceExitRetriesAfterPersistenceFailure(t *testing.T) {
 	if w.itemInstances["water-normal-1"] != nil ||
 		chebyshev(leader.X, leader.Y, 2100, 2100) > 3 {
 		t.Fatal("saida nao foi repetida depois da recuperacao")
+	}
+}
+
+func TestCubeQuizKeepsCorrectMemberAndRemovesWrongMember(t *testing.T) {
+	w, leader, member, _, clock := instanceTestWorld()
+	rule := instanceTestRule()
+	rule.Instance.ID = "cube-test"
+	rule.Instance.Spawns = nil
+	rule.Instance.X, rule.Instance.Y = 0, 0
+	rule.Instance.SpawnX, rule.Instance.SpawnY = 0, 0
+	rule.Instance.AreaRadius = 0
+	rule.Instance.TransitionSeconds = 0
+	rule.Instance.RewardItem = 0
+	rule.Instance.Stages = []model.VolatileInstanceStage{
+		{Name: "Question", X: 2200, Y: 2200, SpawnX: 2202, SpawnY: 2202,
+			AreaRadius: 8, DurationSeconds: 60,
+			Spawns: []model.VolatileInstanceSpawn{{NPC: "RoomMob", Count: 1}},
+			Quiz: &model.VolatileInstanceQuiz{
+				Question: "True or false?", Answer: true,
+				TrueX: 2200, TrueY: 2200, FalseX: 2210, FalseY: 2210,
+				DurationSeconds: 14, RewardExp: 8000,
+			}},
+		{Name: "Next", X: 2250, Y: 2250, SpawnX: 2252, SpawnY: 2252,
+			AreaRadius: 8, DurationSeconds: 60,
+			Spawns: []model.VolatileInstanceSpawn{{NPC: "RoomMob", Count: 1}}},
+	}
+	w.volatiles.Items[100] = rule
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	inst := w.itemInstances["cube-test"]
+	var mob *Mob
+	for id := range inst.MobIDs {
+		mob = w.mobsByID[id]
+	}
+	leader.X, leader.Y = 2200, 2200
+	leader.Char.X, leader.Char.Y = leader.X, leader.Y
+	member.X, member.Y = 2210, 2210
+	member.Char.X, member.Char.Y = member.X, member.Y
+	oldExp := leader.Char.Exp
+	w.onItemInstanceMobKilled(mob, clock.Now())
+	if inst.QuizAt.IsZero() || !inst.TransitionAt.IsZero() {
+		t.Fatalf("quiz nao aguardou resposta: %+v", inst)
+	}
+
+	clock.Advance(14 * time.Second)
+	w.tickItemInstances(clock.Now())
+	if len(inst.MemberIDs) != 1 || inst.MemberIDs[0] != leader.ID {
+		t.Fatalf("resultado do quiz incorreto: membros=%v", inst.MemberIDs)
+	}
+	if leader.Char.Exp <= oldExp {
+		t.Fatalf("acerto nao concedeu EXP: antes=%d depois=%d", oldExp, leader.Char.Exp)
+	}
+	if chebyshev(member.X, member.Y, 2100, 2100) > 6 {
+		t.Fatalf("membro que errou nao saiu: (%d,%d)", member.X, member.Y)
+	}
+	if inst.CurrentStage != 1 || inst.Remaining != 1 {
+		t.Fatalf("proxima sala nao abriu: stage=%d remaining=%d",
+			inst.CurrentStage, inst.Remaining)
+	}
+}
+
+func TestInstanceHardDeadlineDoesNotResetBetweenStages(t *testing.T) {
+	w, leader, _, _, clock := instanceTestWorld()
+	rule := instanceTestRule()
+	rule.Instance.TotalDurationSeconds = 5
+	rule.Instance.RewardItem = 0
+	w.volatiles.Items[100] = rule
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	inst := w.itemInstances["water-normal-1"]
+	if inst.HardDeadline.IsZero() {
+		t.Fatal("prazo total nao foi armado")
+	}
+	clock.Advance(5 * time.Second)
+	w.tickItemInstances(clock.Now())
+	if w.itemInstances["water-normal-1"] != nil {
+		t.Fatal("instancia permaneceu aberta depois do prazo absoluto")
 	}
 }

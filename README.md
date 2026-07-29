@@ -105,10 +105,16 @@ The server has these systems. The server has authority on each system.
   physical room exclusion, native two-minute timers, mixed boss populations,
   mob counters, transactional rewards, and automatic exit. A gate key finds
   its door by the `EF_KEYID` effect, not by the item index. Magic Chamber,
-  Nightmare, Cube/Hell Gate tickets, timed Hidden Ruins/Service access, mount
-  boxes/revival, event passes, medals and economy counters are also
-  server-authoritative. All 117 codes are explicitly classified; only the
-  Celestial codes 206/211 are intentionally blocked without consuming the item.
+  Nightmare, timed Hidden Ruins/Service access, mount boxes/revival, event
+  passes, medals and economy counters are also server-authoritative. Cube now
+  runs its 25 native rooms with timed O/X questions, per-player elimination and
+  one consumed invitation per entrant (up to six players in the first room);
+  Big Cube and Hell Gate run server-owned waves with absolute deadlines and
+  transactional party entry/exit. Courage applies its fixed PvE hit bonus, and
+  Love Chocolate/Candy resolve their native SkillData affects and apply the
+  complete package atomically. All 117 codes are explicitly classified; only
+  the Celestial codes 206/211 are intentionally blocked without consuming the
+  item.
 - **Character counters** — A character has named counters, such as the Kefra
   entrance ticket and the fame points. They live in a per-character sidecar
   file, not in the account. A quest can require, spend, or grant them. A
@@ -137,6 +143,12 @@ The server has these systems. The server has authority on each system.
 - **Communication** — The protocol carries local, party, guild, and global chat.
   It carries whisper, death letters, and server announcements. A message needs
   the other player online. If that player is offline, the server tells you.
+- **Protocol hardening** — Session phase, packet framing, confirmed 7.48 sizes,
+  movement budgets, authoritative slots and item indices are checked before
+  gameplay handlers run. Delete/split item, keyed ground objects, ranking
+  lookup, hidden day synchronization, keepalive, and the Huntress Illusion
+  Action2 packet have explicit routes and regression tests. Client-sent score
+  updates are recognized and discarded.
 - **Data storage** — PostgreSQL is the authoritative production store. Account,
   character, item, Cargo, character-state, and guild changes use transactions.
   Each materialized item has a server-only UUID with a global database

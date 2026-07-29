@@ -1631,6 +1631,7 @@ func (w *World) onDisconnect(s *net.Session) {
 	delete(w.authPending, s)
 	delete(w.security, s)
 	if p, ok := w.players[s]; ok {
+		w.detachPlayerFromItemInstances(p.ID, w.now())
 		w.unregisterPlayerSpatial(p)
 		w.closeGhostShop(p, "desconexao")
 		w.cancelTrade(p, "desconexao")

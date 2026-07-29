@@ -139,7 +139,7 @@ func main() {
 	}
 	log.Printf("tabela de drop por slot carregada de %s", *dropRatePath)
 
-	volatiles, err := data.LoadVolatiles(*volatilePath, catalog.Items)
+	volatiles, err := data.LoadVolatiles(*volatilePath, catalog.Items, catalog.Skills)
 	if err != nil {
 		log.Fatalf("carregar volatiles (%s): %v", *volatilePath, err)
 	}

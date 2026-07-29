@@ -28,6 +28,7 @@ const (
 	OpUpdateEquip        = 0x36B // S->C visual do equip (60B: ItemEff + AnctCode)
 	OpAction             = 0x366 // C<->S andar / Action (52B)
 	OpActionStop         = 0x367 // C->S para a acao/movimento atual (52B)
+	OpIllusion           = 0x368 // C<->S Action2 da skill Illusion (52B, Effect=6)
 	OpREQMobByID         = 0x369 // C->S pede entidade ausente referenciada por um Action
 	OpMotion             = 0x36A // C->S efeito/motion pontual (20B)
 	OpInstanceTime       = 0x3A1 // S->C contador verde de tempo
@@ -45,9 +46,11 @@ const (
 	OpGetItem            = 0x270 // C->S pegar item do chao (28B)
 	OpCNFGetItem         = 0x171 // S->C confirma pegar item (28B)
 	OpRemoveItem         = 0x16F // S->C remove item do chao (16B)
-	OpUpdateItem         = 0x374 // S->C troca o estado de um item do chao (20B)
+	OpUpdateItem         = 0x374 // C<->S solicita/confirma estado de objeto do chao (20B)
+	OpDeleteItem         = 0x2E4 // C->S apaga item do Carry (Slot@12, Index@16)
+	OpSplitItem          = 0x2E5 // C->S separa pilha do Carry (Slot@12, Index@16, Amount@20)
 	OpMessageChat        = 0x333 // C<->S chat local/comandos (140B, texto@12)
-	OpMessageWhisper     = 0x334 // C->S whisper/comando '/' (MobName[16]@12, String[128]@28)
+	OpMessageWhisper     = 0x334 // C->S whisper/comando/day (MobName[16]@12, String[96]@28, 128B observado)
 	OpSetShortSkill      = 0x378 // C<->S barra de 20 atalhos de skill (32B)
 	OpChangeCity         = 0x291 // C->S entrou/trocou de cidade (village@12, 16B)
 	OpMoveStop           = 0x2CB // C->S interrompe movimento antes de atacar (36B)
@@ -83,6 +86,7 @@ const (
 	OpAttackMulti        = 0x36C // C<->S skill multi-alvo (96B no client 7.48 real)
 	OpAttackOne          = 0x39D // C->S ataca alvo unico (o melee real do 7.48)
 	OpAttackTwo          = 0x39E // C->S ataca (2 maos)
+	OpReqRanking         = 0x39F // C->S consulta informacoes de outro jogador (Parm1=TargetID)
 	OpCombineComplete    = 0x3A7 // S->C resultado comum de composicao (0/1/2)
 	OpCombineLindy       = 0x2C3 // C->S composicao Lindy
 	OpCombineOdin        = 0x2D2 // C->S composicao Alquimista Odin

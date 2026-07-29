@@ -5,6 +5,73 @@
     "consume": false,
     "description": "Handler generico: registra o uso e nao consome o item ate sua funcao definitiva ser configurada."
   },
+  "instances": {
+    "cube-native": {
+      "id": "cube",
+      "name": "Cube",
+      "durationSeconds": 180,
+      "maxPlayers": 6,
+      "sharedEntry": true,
+      "exitX": 2100,
+      "exitY": 2100,
+      "transitionSeconds": 0,
+      "stages": [
+        {"name":"Cube 1","x":1680,"y":4075,"spawnX":1680,"spawnY":4075,"areaRadius":10,"spawns":[{"npc":"Gremlin_King","count":25}],"quiz":{"question":"A tecla A mostra o minimapa no canto inferior direito.","answer":false,"trueX":1689,"trueY":4081,"falseX":1689,"falseY":4073,"durationSeconds":14,"rewardExp":8000}},
+        {"name":"Cube 2","x":1704,"y":4075,"spawnX":1704,"spawnY":4075,"areaRadius":10,"spawns":[{"npc":"Wolf","count":25}],"quiz":{"question":"A tecla A mostra o minimapa no canto superior direito.","answer":true,"trueX":1711,"trueY":4081,"falseX":1711,"falseY":4073,"durationSeconds":14,"rewardExp":9000}},
+        {"name":"Cube 3","x":1725,"y":4075,"spawnX":1725,"spawnY":4075,"areaRadius":10,"spawns":[{"npc":"Krill_Chief1","count":25}],"quiz":{"question":"Ao andar, a Foema comeca com o pe direito.","answer":true,"trueX":1733,"trueY":4081,"falseX":1733,"falseY":4073,"durationSeconds":14,"rewardExp":10000}},
+        {"name":"Cube 4","x":1748,"y":4075,"spawnX":1748,"spawnY":4075,"areaRadius":10,"spawns":[{"npc":"Lizard","count":25}],"quiz":{"question":"A quest Sociedade do WYD de dois castelos entrega um IMP.","answer":true,"trueX":1755,"trueY":4081,"falseX":1755,"falseY":4073,"durationSeconds":14,"rewardExp":11000}},
+        {"name":"Cube 5","x":1770,"y":4075,"spawnX":1770,"spawnY":4075,"areaRadius":10,"spawns":[{"npc":"Orc_Archer1","count":25}],"quiz":{"question":"A mesma quest entrega o Nyerdes.","answer":false,"trueX":1777,"trueY":4081,"falseX":1777,"falseY":4073,"durationSeconds":14,"rewardExp":12000}},
+        {"name":"Cube 6","x":1770,"y":4032,"spawnX":1770,"spawnY":4032,"areaRadius":10,"spawns":[{"npc":"Orc_Knight1","count":25}],"quiz":{"question":"A medalha de guild custa 8000000 sem impostos.","answer":true,"trueX":1775,"trueY":4049,"falseX":1767,"falseY":4049,"durationSeconds":14,"rewardExp":13000}},
+        {"name":"Cube 7","x":1770,"y":4010,"spawnX":1770,"spawnY":4010,"areaRadius":10,"spawns":[{"npc":"Minor_Dragon","count":25}],"quiz":{"question":"A resolucao maxima do WYD e 1600x1200 32 bits.","answer":true,"trueX":1775,"trueY":4027,"falseX":1767,"falseY":4027,"durationSeconds":14,"rewardExp":14000}},
+        {"name":"Cube 8","x":1768,"y":3987,"spawnX":1768,"spawnY":3987,"areaRadius":10,"spawns":[{"npc":"Meio_Orc","count":25}],"quiz":{"question":"A resolucao minima do WYD e 640x480 16 bits.","answer":true,"trueX":1775,"trueY":4005,"falseX":1767,"falseY":4005,"durationSeconds":14,"rewardExp":15000}},
+        {"name":"Cube 9","x":1748,"y":3988,"spawnX":1748,"spawnY":3988,"areaRadius":10,"spawns":[{"npc":"Troll","count":25}],"quiz":{"question":"Existem sete tipos de cristais.","answer":true,"trueX":1767,"trueY":3983,"falseX":1775,"falseY":3983,"durationSeconds":14,"rewardExp":16000}},
+        {"name":"Cube 10","x":1725,"y":3988,"spawnX":1725,"spawnY":3988,"areaRadius":10,"spawns":[{"npc":"Troll_Hunter","count":25}],"quiz":{"question":"A Gema Estelar memoriza qualquer lugar.","answer":false,"trueX":1743,"trueY":3985,"falseX":1743,"falseY":3993,"durationSeconds":14,"rewardExp":17000}},
+        {"name":"Cube 11","x":1683,"y":3987,"spawnX":1683,"spawnY":3987,"areaRadius":10,"spawns":[{"npc":"Zombie_Troll","count":25}],"quiz":{"question":"Itens +9 nao podem receber opcoes.","answer":false,"trueX":1721,"trueY":3985,"falseX":1721,"falseY":3993,"durationSeconds":14,"rewardExp":18000}},
+        {"name":"Cube 12","x":1681,"y":4010,"spawnX":1681,"spawnY":4010,"areaRadius":10,"spawns":[{"npc":"Ghoul","count":25}],"quiz":{"question":"Pontos de skill sao necessarios para aprender skills.","answer":true,"trueX":1699,"trueY":3985,"falseX":1699,"falseY":3993,"durationSeconds":14,"rewardExp":19000}},
+        {"name":"Cube 13","x":1681,"y":4031,"spawnX":1681,"spawnY":4031,"areaRadius":10,"spawns":[{"npc":"Carbunkle","count":25}],"quiz":{"question":"Um set completo concede bonus de defesa.","answer":true,"trueX":1677,"trueY":3985,"falseX":1677,"falseY":3993,"durationSeconds":14,"rewardExp":20000}},
+        {"name":"Cube 14","x":1680,"y":4053,"spawnX":1680,"spawnY":4053,"areaRadius":10,"spawns":[{"npc":"Minotaur","count":25}],"quiz":{"question":"Toque de Athena aumenta a aprendizagem de skill.","answer":true,"trueX":1679,"trueY":4017,"falseX":1687,"falseY":4017,"durationSeconds":14,"rewardExp":21000}},
+        {"name":"Cube 15","x":1704,"y":4053,"spawnX":1704,"spawnY":4053,"areaRadius":10,"spawns":[{"npc":"Ghoul_Chief","count":25}],"quiz":{"question":"Safira e vendida pelo comerciante real.","answer":true,"trueX":1679,"trueY":4039,"falseX":1687,"falseY":4039,"durationSeconds":14,"rewardExp":22000}},
+        {"name":"Cube 16","x":1725,"y":4053,"spawnX":1725,"spawnY":4053,"areaRadius":10,"spawns":[{"npc":"Carbunkle","count":25}],"quiz":{"question":"Uma conta pode possuir cinco personagens.","answer":false,"trueX":1679,"trueY":4061,"falseX":1687,"falseY":4061,"durationSeconds":14,"rewardExp":23000}},
+        {"name":"Cube 17","x":1745,"y":4053,"spawnX":1745,"spawnY":4053,"areaRadius":10,"spawns":[{"npc":"Ciclop_Selvagem","count":25}],"quiz":{"question":"A experiencia total e maior em grupo.","answer":true,"trueX":1711,"trueY":4059,"falseX":1711,"falseY":4051,"durationSeconds":14,"rewardExp":24000}},
+        {"name":"Cube 18","x":1747,"y":4031,"spawnX":1747,"spawnY":4031,"areaRadius":10,"spawns":[{"npc":"Orc_Shaman","count":25}],"quiz":{"question":"Voz das Fadas e usada em monstros com alvo.","answer":false,"trueX":1733,"trueY":4059,"falseX":1733,"falseY":4051,"durationSeconds":14,"rewardExp":25000}},
+        {"name":"Cube 19","x":1747,"y":4010,"spawnX":1747,"spawnY":4010,"areaRadius":10,"spawns":[{"npc":"Skeleton","count":25}],"quiz":{"question":"Pontos de skill sao obtidos apenas por level.","answer":false,"trueX":1755,"trueY":4059,"falseX":1755,"falseY":4051,"durationSeconds":14,"rewardExp":26000}},
+        {"name":"Cube 20","x":1726,"y":4010,"spawnX":1726,"spawnY":4010,"areaRadius":10,"spawns":[{"npc":"Zombie_Bear","count":25}],"quiz":{"question":"Foema usa lanca-chamas para Ataque de Fogo.","answer":false,"trueX":1753,"trueY":4027,"falseX":1745,"falseY":4027,"durationSeconds":14,"rewardExp":27000}},
+        {"name":"Cube 21","x":1705,"y":4009,"spawnX":1705,"spawnY":4009,"areaRadius":10,"spawns":[{"npc":"Skeleton","count":25}],"quiz":{"question":"Pocoes sao vendidas pelo comerciante real.","answer":false,"trueX":1753,"trueY":4005,"falseX":1745,"falseY":4005,"durationSeconds":14,"rewardExp":28000}},
+        {"name":"Cube 22","x":1704,"y":4031,"spawnX":1704,"spawnY":4031,"areaRadius":10,"spawns":[{"npc":"Zombie_Troll","count":25}],"quiz":{"question":"Sucesso na combinacao sempre reseta as opcoes.","answer":false,"trueX":1721,"trueY":4007,"falseX":1721,"falseY":4015,"durationSeconds":14,"rewardExp":29000}},
+        {"name":"Cube 23","x":1724,"y":4031,"spawnX":1724,"spawnY":4031,"areaRadius":10,"spawns":[{"npc":"Orc_L_Trooper","count":25}],"quiz":{"question":"Nao existe guarda banco em Erion.","answer":false,"trueX":1699,"trueY":4007,"falseX":1699,"falseY":4015,"durationSeconds":14,"rewardExp":30000}},
+        {"name":"Cube 24","x":1724,"y":4031,"spawnX":1724,"spawnY":4031,"areaRadius":10,"spawns":[{"npc":"Orc_L_Trooper","count":1}],"quiz":{"question":"Escudo +9 recebe defesa e resistencias adicionais.","answer":true,"trueX":1701,"trueY":4039,"falseX":1709,"falseY":4039,"durationSeconds":14,"rewardExp":31000}},
+        {"name":"Cube Final","x":1724,"y":4031,"spawnX":1724,"spawnY":4031,"areaRadius":10,"spawns":[{"npc":"Orc_L_Trooper","count":1}]}
+      ]
+    },
+    "big-cube-native": {
+      "id": "big-cube",
+      "name": "Big Cube",
+      "durationSeconds": 240,
+      "totalDurationSeconds": 600,
+      "exitX": 2100,
+      "exitY": 2100,
+      "transitionSeconds": 5,
+      "stages": [
+        {"name":"Big Cube - Followers","x":1272,"y":1427,"spawnX":1367,"spawnY":1464,"areaRadius":100,"spawns":[{"npc":"Seguidor","count":20,"x":1367,"y":1464},{"npc":"Seguidor","count":20,"x":1342,"y":1446},{"npc":"Wolf","count":4,"x":1321,"y":1463}]},
+        {"name":"Big Cube - Cursed Treant","x":1342,"y":1455,"spawnX":1367,"spawnY":1464,"areaRadius":55,"spawns":[{"npc":"Treant","count":1,"x":1367,"y":1464},{"npc":"Ghoul_Chief","count":1,"x":1321,"y":1463}]},
+        {"name":"Big Cube - Carbunkles","x":1330,"y":1499,"spawnX":1330,"spawnY":1499,"areaRadius":35,"spawns":[{"npc":"Carbunkle","count":3,"x":1330,"y":1499},{"npc":"Carbunkle","count":3,"x":1354,"y":1499}]}
+      ]
+    },
+    "hell-gate-native": {
+      "id": "hell-gate",
+      "name": "Hell Gate",
+      "durationSeconds": 240,
+      "totalDurationSeconds": 240,
+      "exitX": 2100,
+      "exitY": 2100,
+      "transitionSeconds": 3,
+      "stages": [
+        {"name":"Hell Gate - Entrance","x":1684,"y":3676,"spawnX":1690,"spawnY":3650,"areaRadius":45,"spawns":[{"npc":"Skeleton","count":16,"x":1683,"y":3654},{"npc":"Skeleton","count":16,"x":1691,"y":3648},{"npc":"Hell_Spider","count":2,"x":1755,"y":3673}]},
+        {"name":"Hell Gate - Four Seals","x":1809,"y":3647,"spawnX":1809,"spawnY":3647,"areaRadius":95,"spawns":[{"npc":"Skeleton","count":36,"x":1809,"y":3617},{"npc":"Skeleton","count":36,"x":1877,"y":3619},{"npc":"Skeleton","count":36,"x":1877,"y":3677},{"npc":"Skeleton","count":36,"x":1809,"y":3677},{"npc":"Lich_Dragon","count":4,"x":1841,"y":3645}]},
+        {"name":"Hell Gate - Final Corridor","x":1841,"y":3645,"spawnX":1841,"spawnY":3645,"areaRadius":70,"spawns":[{"npc":"Skeleton","count":40,"x":1855,"y":3647},{"npc":"Skeleton","count":30,"x":1843,"y":3618},{"npc":"Skeleton","count":30,"x":1843,"y":3680}]}
+      ]
+    }
+  },
   "rules": {
     "0": {
       "action": "no_direct_use",
@@ -456,40 +523,31 @@
       "description": "Cartas N/M/A usam instancias por etapas configuradas por INDEX."
     },
     "51": {
-      "action": "dungeon_teleport",
+      "action": "instance_ticket",
       "consume": true,
-      "partyMode": "party",
-      "x": 1272,
-      "y": 1427,
-      "durationSeconds": 600,
-      "description": "Entrada do Big Cube; teleporta o grupo para a area nativa por 10 minutos."
+      "instanceRef": "big-cube-native",
+      "description": "Big Cube completo: pode iniciar solo ou pelo lider do grupo, com ondas, prazo total e retorno."
     },
     "54": {
-      "action": "dungeon_teleport",
+      "action": "instance_ticket",
       "consume": true,
-      "partyMode": "party",
-      "x": 1689,
-      "y": 4081,
-      "durationSeconds": 600,
-      "description": "Convite Cube Normal; entrada nativa da primeira sala."
+      "partyMode": "solo",
+      "instanceRef": "cube-native",
+      "description": "Cube Normal: solo ou grupo, 25 salas, perguntas O/X e EXP por resposta correta."
     },
     "171": {
-      "action": "dungeon_teleport",
+      "action": "instance_ticket",
       "consume": true,
-      "partyMode": "party",
-      "x": 1689,
-      "y": 4081,
-      "durationSeconds": 600,
-      "description": "Convite Cube Mystic; entrada nativa da primeira sala."
+      "partyMode": "solo",
+      "instanceRef": "cube-native",
+      "description": "Cube Mystic usa a cadeia nativa de salas O/X."
     },
     "172": {
-      "action": "dungeon_teleport",
+      "action": "instance_ticket",
       "consume": true,
-      "partyMode": "party",
-      "x": 1689,
-      "y": 4081,
-      "durationSeconds": 600,
-      "description": "Convite Cube Arcane; entrada nativa da primeira sala."
+      "partyMode": "solo",
+      "instanceRef": "cube-native",
+      "description": "Cube Arcane usa a cadeia nativa de salas O/X."
     },
     "173": {
       "action": "no_direct_use",
@@ -509,7 +567,7 @@
     "176": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Hell Gate usa teleporte temporizado configurado por INDEX (party/personal)."
+      "description": "Hell Gate usa instancia completa configurada por INDEX (party/personal)."
     },
     "177": {
       "action": "no_direct_use",
@@ -864,22 +922,18 @@
       "description": "Nightmare Arcane pessoal."
     },
     "3328": {
-      "action": "dungeon_teleport",
+      "action": "instance_ticket",
       "consume": true,
       "partyMode": "solo",
-      "x": 1684,
-      "y": 3676,
-      "durationSeconds": 240,
-      "description": "Hell Gate pessoal."
+      "instanceRef": "hell-gate-native",
+      "description": "Hell Gate pessoal: entrada, quatro selos e corredor final em quatro minutos."
     },
     "3329": {
-      "action": "dungeon_teleport",
+      "action": "instance_ticket",
       "consume": true,
       "partyMode": "party",
-      "x": 1684,
-      "y": 3676,
-      "durationSeconds": 240,
-      "description": "Hell Gate para o grupo."
+      "instanceRef": "hell-gate-native",
+      "description": "Hell Gate para o grupo: entrada, quatro selos e corredor final em quatro minutos."
     },
     "3909": {
       "action": "timed_access",
@@ -1529,42 +1583,51 @@
     "1739": {
       "action": "buff",
       "consume": true,
-      "affectType": 4,
-      "affectValue": 10,
-      "durationUnits": 450,
-      "description": "Chocolate do Amor (~1h)."
+      "affects": [
+        {"skillId":43,"level":320,"durationUnits":320},
+        {"skillId":44,"level":320,"durationUnits":320},
+        {"skillId":45,"level":320,"durationUnits":320},
+        {"skillId":41,"level":320,"durationUnits":320}
+      ],
+      "description": "Chocolate do Amor: pacote nativo simultaneo dos affects 43, 44, 45 e 41."
     },
     "4145": {
       "action": "buff",
       "consume": true,
-      "affectType": 4,
-      "affectValue": 10,
-      "durationUnits": 450,
-      "description": "Doce do Amor (~1h)."
+      "affects": [
+        {"skillId":43,"level":320,"durationUnits":320},
+        {"skillId":44,"level":320,"durationUnits":320},
+        {"skillId":45,"level":320,"durationUnits":320},
+        {"skillId":41,"level":320,"durationUnits":320}
+      ],
+      "description": "Doce do Amor: mesma familia de evento do Chocolate, com o pacote completo de affects."
     },
     "646": {
       "action": "buff",
       "consume": true,
-      "affectType": 4,
-      "affectValue": 20,
-      "durationUnits": 450,
-      "description": "Pocao da Coragem (+20%, ~1h)."
+      "affectType": 30,
+      "affectValue": 1,
+      "affectLevel": 500,
+      "durationUnits": 100,
+      "description": "Secret Medicine of Courage: bonus de hit PvE (+1000 fisico/+2000 magico), 800 segundos."
     },
     "647": {
       "action": "buff",
       "consume": true,
-      "affectType": 4,
-      "affectValue": 20,
-      "durationUnits": 900,
-      "description": "Wonder Drug da Coragem (+20%, ~2h)."
+      "affectType": 30,
+      "affectValue": 1,
+      "affectLevel": 2000,
+      "durationUnits": 450,
+      "description": "Wonder Drug of Courage: bonus de hit PvE (+1000 fisico/+2000 magico), uma hora."
     },
     "3378": {
       "action": "buff",
       "consume": true,
-      "affectType": 4,
-      "affectValue": 20,
+      "affectType": 30,
+      "affectValue": 1,
+      "affectLevel": 2000,
       "durationUnits": 324000,
-      "description": "Coragem 30 dias."
+      "description": "Wonder Drug of Courage 30 dias: mesmo bonus de hit PvE do affect 30."
     },
     "3407": {
       "action": "tint",

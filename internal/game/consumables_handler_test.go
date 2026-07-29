@@ -100,6 +100,124 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 }
 
 func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
+	t.Run("no direct use never consumes", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{
+			Action: "no_direct_use", Consume: false,
+		})
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Inv[0].Index != 100 || st.saves != 0 {
+			t.Fatal("item reservado para NPC/comando foi consumido")
+		}
+	})
+
+	t.Run("counter grant commits item and sidecar atomically", func(t *testing.T) {
+		w, p, _ := useItemWorld(model.VolatileRule{
+			Action: "grant_counter", Consume: true,
+			Counters: map[string]uint32{"kefra_ticket": 100},
+		})
+		st := &atomicCharStateMemoryStore{}
+		w.store = st
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Inv[0].Index != 0 || counterBalance(p, "kefra_ticket") != 100 ||
+			st.atomicSaves != 1 || st.state.SpecialCoins["kefra_ticket"] != 100 {
+			t.Fatalf("contador: item=%d saldo=%d saves=%d state=%+v",
+				p.Char.Inv[0].Index, counterBalance(p, "kefra_ticket"),
+				st.atomicSaves, st.state)
+		}
+	})
+
+	t.Run("refine set changes armor and rolls back on save failure", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{
+			Action: "refine_set", Consume: true, RefineMax: 6,
+		})
+		p.Char.Equip[1] = model.Item{Index: 200}
+		st.err = errors.New("database unavailable")
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Inv[0].Index != 100 || itemSanc(p.Char.Equip[1]) != 0 {
+			t.Fatal("refine_set sem persistencia alterou item")
+		}
+		st.err = nil
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Inv[0].Index != 0 || itemSanc(p.Char.Equip[1]) != 6 {
+			t.Fatalf("refine_set: po=%d sanc=%d",
+				p.Char.Inv[0].Index, itemSanc(p.Char.Equip[1]))
+		}
+	})
+
+	t.Run("refine equipped consumes powder only after commit", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{
+			Action: "refine", Consume: true, RefineMax: 9,
+		})
+		p.Char.Equip[4] = model.Item{Index: 200}
+		pkt := useItemPacket(0, 4)
+		binary.LittleEndian.PutUint32(pkt[20:24], placeEquip)
+		st.err = errors.New("database unavailable")
+		w.onUseItem(p.Session, pkt)
+		if p.Char.Inv[0].Index != 100 || itemSanc(p.Char.Equip[4]) != 0 {
+			t.Fatal("refino sem persistencia alterou equipamento/po")
+		}
+		st.err = nil
+		w.onUseItem(p.Session, pkt)
+		if p.Char.Inv[0].Index != 0 || itemSanc(p.Char.Equip[4]) != 1 {
+			t.Fatalf("refino +0: po=%d sanc=%d",
+				p.Char.Inv[0].Index, itemSanc(p.Char.Equip[4]))
+		}
+	})
+
+	t.Run("refine powder incubates an inventory egg", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{
+			Action: "refine", Consume: true, RefineMax: 9,
+		})
+		eggID := uint16(model.MountEggBase)
+		p.Char.Inv[1] = model.Item{Index: eggID}
+		w.items[eggID] = model.ItemDef{
+			Index:         eggID,
+			StaticEffects: []model.StaticEffect{{Name: "EF_INCUBATE", Value: 0}},
+		}
+		pkt := useItemPacket(0, 1)
+		w.onUseItem(p.Session, pkt)
+		if p.Char.Inv[0].Index != 0 ||
+			p.Char.Inv[1].Index != eggID+model.MountTypeCount || st.saves != 1 {
+			t.Fatalf("incubacao: po=%d ovo=%+v saves=%d",
+				p.Char.Inv[0].Index, p.Char.Inv[1], st.saves)
+		}
+	})
+
+	t.Run("mount revive charges gold and restores dead mount", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{
+			Action: "mount_revive", Consume: true,
+		})
+		mount := model.Item{Index: model.MountAdultBase}
+		mount.SetMountHP(0)
+		mount.SetMountLongev(20)
+		p.Char.Equip[mountSlot] = mount
+		p.Char.Gold = 1_000
+		w.items[mount.Index] = model.ItemDef{Index: mount.Index, Price: 100}
+		w.rng = fixedRNG{value: 0}
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Inv[0].Index != 0 || p.Char.Gold != 900 ||
+			p.Char.Equip[mountSlot].MountHP() <= 0 || st.saves != 1 {
+			t.Fatalf("revive: item=%d gold=%d hp=%d saves=%d",
+				p.Char.Inv[0].Index, p.Char.Gold,
+				p.Char.Equip[mountSlot].MountHP(), st.saves)
+		}
+	})
+
+	t.Run("mount protection persists affect and consumption atomically", func(t *testing.T) {
+		w, p, _ := useItemWorld(model.VolatileRule{
+			Action: "mount", MountAction: "invuln", Consume: true,
+			DurationUnits: 100,
+		})
+		st := &atomicCharStateMemoryStore{}
+		w.store = st
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Inv[0].Index != 0 || activePlayerAffect(p.Char, 51) == nil ||
+			st.atomicSaves != 1 {
+			t.Fatalf("protecao: item=%d affect=%+v saves=%d",
+				p.Char.Inv[0].Index, activePlayerAffect(p.Char, 51), st.atomicSaves)
+		}
+	})
+
 	t.Run("fairy dust advances exactly one level", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{Action: "grant_next_level", Consume: true})
 		p.Char.Extended.Level = 10
@@ -180,6 +298,31 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		if p.Char.Inv[0].Index != 0 || activePlayerAffect(p.Char, 35) == nil ||
 			st.saves != 2 {
 			t.Fatal("buff valido nao foi persistido com o consumo")
+		}
+	})
+
+	t.Run("timed buff commits account and charstate in one transaction", func(t *testing.T) {
+		w, p, _ := useItemWorld(model.VolatileRule{
+			Action: "buff", Consume: true, AffectType: 35,
+			AffectValue: 10, DurationUnits: 450,
+		})
+		st := &atomicCharStateMemoryStore{}
+		w.store = st
+		st.atomicErr = errors.New("database unavailable")
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if st.atomicSaves != 1 || p.Char.Inv[0].Index != 100 ||
+			activePlayerAffect(p.Char, 35) != nil {
+			t.Fatalf("rollback atomico: saves=%d item=%d affect=%+v",
+				st.atomicSaves, p.Char.Inv[0].Index, activePlayerAffect(p.Char, 35))
+		}
+
+		st.atomicErr = nil
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if st.atomicSaves != 2 || st.lastUID != p.Char.UID ||
+			p.Char.Inv[0].Index != 0 || activePlayerAffect(p.Char, 35) == nil ||
+			st.state == nil || len(st.state.Affects) != 1 {
+			t.Fatalf("commit atomico incompleto: saves=%d uid=%q item=%d state=%+v",
+				st.atomicSaves, st.lastUID, p.Char.Inv[0].Index, st.state)
 		}
 	})
 

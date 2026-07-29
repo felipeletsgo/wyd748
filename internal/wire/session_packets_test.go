@@ -419,9 +419,9 @@ func TestPlayerMove748ClampsServerSpeed(t *testing.T) {
 
 func TestIllusionMoveUsesEffectSix(t *testing.T) {
 	b := IllusionMove(7, 2100, 2100, 2106, 2104, 4)
-	if ParseHeader(b).Type != OpAction || binary.LittleEndian.Uint32(b[16:20]) != 4 ||
+	if ParseHeader(b).Type != OpIllusion || binary.LittleEndian.Uint32(b[16:20]) != 4 ||
 		binary.LittleEndian.Uint32(b[20:24]) != 6 || binary.LittleEndian.Uint16(b[24:26]) != 2106 {
-		t.Fatalf("Illusion MSG_Action invalida: % X", b)
+		t.Fatalf("Illusion MSG_Action2 invalida: % X", b)
 	}
 }
 
@@ -465,6 +465,16 @@ func TestMessagePanel748Layout(t *testing.T) {
 	}
 	if b[107] != 0 {
 		t.Fatal("MessagePanel sem terminador final")
+	}
+}
+
+func TestDaySync748HiddenCalendarLayout(t *testing.T) {
+	b := DaySync()
+	if len(b) != 108 || ParseHeader(b).Type != OpMessagePanel || ParseHeader(b).ID != 0 {
+		t.Fatalf("DaySync header/layout invalido: len=%d header=%+v", len(b), ParseHeader(b))
+	}
+	if got := string(b[12:20]); got != "!#11  2\x00" {
+		t.Fatalf("DaySync payload=%q", got)
 	}
 }
 

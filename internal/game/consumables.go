@@ -141,9 +141,6 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	case "timed_access":
 		w.useTimedAccess(s, p, item, slot, rule)
 
-	case "dungeon_teleport":
-		w.useDungeonTeleport(s, p, item, slot, rule)
-
 	case "no_direct_use":
 		w.useNoDirectItem(s, p, item, slot, "")
 
@@ -438,21 +435,19 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// dado (AffectType) e sua formula vive em applyExtendedAffectStats. O
 		// numero de balanceamento (% ou nivel) e a duracao vem do volatiles.json.
 		snapshot := cloneCharacterState(p.Char)
-		affectType := byte(rule.AffectType)
-		if affectType == 0 {
-			log.Printf("[#%d] volatile buff sem affectType item=%d code=%d", s.ID, item.Index, code)
+		affects := rule.Affects
+		if len(affects) == 0 && rule.AffectType > 0 {
+			affects = []model.VolatileAffect{{
+				Type: rule.AffectType, Value: rule.AffectValue,
+				Level: rule.AffectLevel, DurationUnits: rule.DurationUnits,
+			}}
+		}
+		if len(affects) == 0 {
+			log.Printf("[#%d] volatile buff sem affect item=%d code=%d", s.ID, item.Index, code)
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
-		var applied bool
-		if rule.Accumulate {
-			// Bau de EXP e comidas: SOMA tempo ate o teto; recusa quando saturado.
-			applied = accumulateAffect(p.Char, affectType, rule.AffectValue, rule.AffectLevel,
-				rule.DurationUnits, rule.MaxDurationUnits)
-		} else {
-			applied = setAffect(p.Char, affectType, rule.AffectValue, rule.AffectLevel, rule.DurationUnits)
-		}
-		if !applied {
+		if !w.applyVolatileBuff(p.Char, rule) {
 			// Buff igual/mais forte ja ativo, ou tempo ja no teto: o nativo nao deixa
 			// "usar/comer mais". Reenvia o slot autoritativo e nao consome a unidade.
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -465,7 +460,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// Affects temporizados tambem sao estado economico: confirma consumo e
 		// duracao no mesmo save. Sem isto, desconectar antes do autosave devolvia
 		// o item e permitia repetir Bigger Potion/comidas/bau de EXP.
-		if err := w.saveAccount(p.Account); err != nil {
+		if err := w.saveAccountAndCharStateResult(p); err != nil {
 			*p.Char = snapshot
 			s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
 			log.Printf("[#%d] ERRO ao salvar buff item=%d: %v", s.ID, item.Index, err)
@@ -475,8 +470,8 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		log.Printf("[#%d] usou buff item=%d volatile=%d affect=%d value=%d level=%d dur=%d",
-			s.ID, item.Index, code, affectType, rule.AffectValue, rule.AffectLevel, rule.DurationUnits)
+		log.Printf("[#%d] usou buff item=%d volatile=%d affects=%d",
+			s.ID, item.Index, code, len(affects))
 
 	case "grant_exp":
 		// Baus e poeiras de XP. Delegam a transacao comum de EXP (snapshot completo

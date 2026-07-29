@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/binary"
 	"log"
 
 	"wydgo/internal/model"
@@ -79,16 +80,34 @@ func (w *World) useGateKey(s *net.Session, p *Player, item *model.Item, slot byt
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
+	w.openGateWithKey(s, p, porta, slot, rule.Consume, code)
+}
+
+// openGateWithKey e a transacao comum dos dois fluxos nativos: usar a chave
+// pelo 0x373 ou clicar diretamente no objeto pelo 0x374. A chave e localizada
+// e consumida no inventario autoritativo; a porta so muda depois do save.
+func (w *World) openGateWithKey(s *net.Session, p *Player, porta *GroundItem, slot byte, consume bool, code int) bool {
+	if s == nil || p == nil || p.Char == nil || p.Account == nil || porta == nil ||
+		int(slot) >= model.PlayerCarrySlots || porta.State == gateOpen {
+		return false
+	}
+	item := &p.Char.Inv[slot]
+	keyDef, keyOK := w.items[item.Index]
+	gateDef, gateOK := w.items[porta.Item.Index]
+	keyID := staticEffect(keyDef, "EF_KEYID")
+	if !keyOK || !gateOK || keyID == 0 || staticEffect(gateDef, "EF_KEYID") != keyID {
+		return false
+	}
 
 	anterior := *item
-	if rule.Consume {
+	if consume {
 		consumeOne(item)
 	}
 	if err := w.saveAccount(p.Account); err != nil {
 		*item = anterior
 		log.Printf("[#%d] ERRO ao salvar uso da chave %d: %v", s.ID, anterior.Index, err)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		return
+		return false
 	}
 
 	porta.State = gateOpen
@@ -102,4 +121,60 @@ func (w *World) useGateKey(s *net.Session, p *Player, item *model.Item, slot byt
 	}
 	log.Printf("[#%d] abriu a porta %d (item %d, keyid %d) com a chave %d volatile=%d",
 		s.ID, porta.ID, porta.Item.Index, keyID, anterior.Index, code)
+	return true
+}
+
+func (w *World) gateKeySlot(p *Player, keyID int) int {
+	if p == nil || p.Char == nil || keyID == 0 {
+		return -1
+	}
+	for slot := 0; slot < model.PlayerCarrySlots; slot++ {
+		item := p.Char.Inv[slot]
+		if def, ok := w.items[item.Index]; ok && staticEffect(def, "EF_KEYID") == keyID {
+			return slot
+		}
+	}
+	return -1
+}
+
+// onUpdateGroundItem trata o MSG_UpdateItem 0x374 (ItemID@12, State@16).
+// O client apenas pede para abrir: ID, proximidade, visibilidade, estado,
+// EF_KEYID e posse da chave sao todos revalidados no mundo.
+func (w *World) onUpdateGroundItem(s *net.Session, pkt []byte) {
+	p := w.players[s]
+	if p == nil || !p.InWorld || p.Char == nil || len(pkt) != 20 || playerCurHP(p.Char) == 0 {
+		return
+	}
+	itemIDRaw := binary.LittleEndian.Uint32(pkt[12:16])
+	state := binary.LittleEndian.Uint32(pkt[16:20])
+	// A source aceita State 0..5 e, depois da validacao, sempre transiciona o
+	// objeto para OPEN. O campo e uma intencao/estado visual do client, nunca o
+	// novo estado autoritativo da porta.
+	if itemIDRaw == 0 || itemIDRaw > uint32(^uint16(0)) || state > 5 {
+		w.recordSecurityViolation(s, wire.OpUpdateItem, "id/estado de objeto invalido")
+		return
+	}
+	porta := w.groundItems[uint16(itemIDRaw)]
+	if porta == nil || !porta.Permanent || !p.hasVisible(porta.ID) ||
+		chebyshev(p.X, p.Y, porta.X, porta.Y) > gateReach {
+		w.recordSecurityViolation(s, wire.OpUpdateItem, "objeto inexistente ou fora de alcance")
+		return
+	}
+	if porta.State == gateOpen {
+		s.Send(wire.UpdateItem(porta.ID, uint32(gateOpen)))
+		return
+	}
+	gateDef, ok := w.items[porta.Item.Index]
+	keyID := staticEffect(gateDef, "EF_KEYID")
+	if !ok || keyID == 0 {
+		w.recordSecurityViolation(s, wire.OpUpdateItem, "objeto nao e um portao com chave")
+		return
+	}
+	slot := w.gateKeySlot(p, keyID)
+	if slot < 0 {
+		s.Send(wire.MessagePanel("You do not have the required key."))
+		s.Send(wire.UpdateItem(porta.ID, uint32(porta.State)))
+		return
+	}
+	w.openGateWithKey(s, p, porta, byte(slot), true, 3)
 }

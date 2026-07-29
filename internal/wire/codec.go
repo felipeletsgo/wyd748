@@ -50,6 +50,13 @@ func MessagePanel(message string) []byte {
 	return b
 }
 
+// DaySync responde ao pedido periodico MobName="day" do client 7.48. O prefixo
+// !# e consumido por TMScene e nao aparece como aviso: "11" vira m_nYear e
+// "  2" vira m_nDays. O valor fixo reproduz o TMSrv 7.54 capturado e o W2PP.
+func DaySync() []byte {
+	return MessagePanel("!#11  2")
+}
+
 // Motion monta MSG_Motion (0x36A), usado pelo servidor para propagar emotes e
 // efeitos pontuais. Fogos de artificio usam Motion=100 e Parm=0..5 no nativo.
 func Motion(id uint16, motion, parm uint16) []byte {
@@ -767,10 +774,10 @@ func MobMove(id, fromX, fromY, toX, toY uint16, speed uint32) []byte {
 	return b
 }
 
-// IllusionMove confirma o salto da HT. O client 7.48 diferencia a habilidade
-// de uma caminhada comum exclusivamente por Effect=6 no MSG_Action.
+// IllusionMove confirma o salto da HT. O client 7.48 exige MSG_Action2
+// (0x368) com Effect=6 para executar a animacao, camera e consumo visual de MP.
 func IllusionMove(id, fromX, fromY, toX, toY uint16, speed uint32) []byte {
-	b := Build(OpAction, id, 52)
+	b := Build(OpIllusion, id, 52)
 	putU16(b, 12, fromX)
 	putU16(b, 14, fromY)
 	if speed < 1 {

@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"wydgo/internal/model"
@@ -20,7 +21,9 @@ type ItemInstance struct {
 	Remaining     int
 	CurrentStage  int
 	Deadline      time.Time
+	HardDeadline  time.Time
 	TransitionAt  time.Time
+	QuizAt        time.Time
 	ExitAt        time.Time
 	RewardGranted bool
 }
@@ -37,9 +40,9 @@ func (w *World) generatorReservedForItemInstance(g model.NPCGener) bool {
 	if x == 0 || y == 0 {
 		return false
 	}
-	for _, rule := range w.volatiles.Items {
+	reserved := func(rule model.VolatileRule) bool {
 		if rule.Action != "instance_ticket" || rule.Instance == nil {
-			continue
+			return false
 		}
 		cfg := rule.Instance
 		for _, stage := range instanceStages(cfg) {
@@ -50,6 +53,17 @@ func (w *World) generatorReservedForItemInstance(g model.NPCGener) bool {
 			if chebyshev(x, y, stage.X, stage.Y) <= radius {
 				return true
 			}
+		}
+		return false
+	}
+	for _, rule := range w.volatiles.Rules {
+		if reserved(rule) {
+			return true
+		}
+	}
+	for _, rule := range w.volatiles.Items {
+		if reserved(rule) {
+			return true
 		}
 	}
 	return false
@@ -188,10 +202,144 @@ func (w *World) planInstancePositions(members []*Player, x, y uint16) ([][2]uint
 	return result, true
 }
 
+func itemInstanceHasMember(inst *ItemInstance, playerID uint16) bool {
+	if inst == nil {
+		return false
+	}
+	for _, id := range inst.MemberIDs {
+		if id == playerID {
+			return true
+		}
+	}
+	return false
+}
+
+func (w *World) playerHasItemInstance(playerID uint16) bool {
+	for _, inst := range w.itemInstances {
+		if itemInstanceHasMember(inst, playerID) {
+			return true
+		}
+	}
+	return false
+}
+
+// detachPlayerFromItemInstances libera imediatamente a vaga de quem saiu do
+// mundo. IDs de entidade mudam no próximo login; mantê-los na sala bloquearia
+// uma vaga do Cube e poderia deixar a recompensa presa ao líder desconectado.
+func (w *World) detachPlayerFromItemInstances(playerID uint16, now time.Time) {
+	if playerID == 0 {
+		return
+	}
+	for _, inst := range w.itemInstances {
+		if inst == nil || !itemInstanceHasMember(inst, playerID) {
+			continue
+		}
+		members := make([]uint16, 0, len(inst.MemberIDs)-1)
+		for _, id := range inst.MemberIDs {
+			if id != playerID {
+				members = append(members, id)
+			}
+		}
+		inst.MemberIDs = members
+		if len(members) == 0 {
+			// O tick comum remove os mobs e encerra a instância sem criar um
+			// segundo caminho de cleanup durante logout/desconexão.
+			inst.TransitionAt = time.Time{}
+			inst.QuizAt = time.Time{}
+			inst.ExitAt = time.Time{}
+			inst.Deadline = now
+			continue
+		}
+		if inst.LeaderID == playerID {
+			inst.LeaderID = members[0]
+		}
+	}
+}
+
+func remainingInstanceSeconds(deadline, now time.Time) int {
+	if deadline.IsZero() || !deadline.After(now) {
+		return 0
+	}
+	remaining := int(deadline.Sub(now).Seconds())
+	if remaining < 1 {
+		return 1
+	}
+	return remaining
+}
+
+// joinSharedItemInstance reproduz o ingresso individual do Cube: cada jogador
+// consome o proprio convite e entra numa execucao ainda parada na primeira sala.
+// Nenhum ingresso transporta automaticamente os demais membros da party.
+func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.Item,
+	slot byte, rule model.VolatileRule, inst *ItemInstance) {
+	cfg := rule.Instance
+	now := w.now()
+	if cfg == nil || inst == nil || !cfg.SharedEntry ||
+		inst.CurrentStage != 0 || inst.Remaining <= 0 ||
+		!inst.TransitionAt.IsZero() || !inst.QuizAt.IsZero() ||
+		!inst.ExitAt.IsZero() || !now.Before(inst.Deadline) ||
+		itemInstanceHasMember(inst, p.ID) || w.playerHasItemInstance(p.ID) ||
+		(cfg.MaxPlayers > 0 && len(inst.MemberIDs) >= cfg.MaxPlayers) ||
+		!instanceAllowsEvolution(p.Char, cfg.AllowedEvolutions) {
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		s.Send(wire.MessagePanel("This Cube cannot accept another player."))
+		return
+	}
+	stages := instanceStages(&inst.Config)
+	if len(stages) == 0 {
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		return
+	}
+	destinations, ok := w.planInstancePositions([]*Player{p}, stages[0].X, stages[0].Y)
+	if !ok {
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		s.Send(wire.MessagePanel("The Cube entrance is blocked."))
+		return
+	}
+
+	oldItem, oldX, oldY := *item, p.X, p.Y
+	p.X, p.Y = destinations[0][0], destinations[0][1]
+	p.Char.X, p.Char.Y = p.X, p.Y
+	if rule.Consume {
+		consumeOne(item)
+	}
+	if err := w.saveAccountsAtomic(p.Account); err != nil {
+		*item = oldItem
+		p.X, p.Y = oldX, oldY
+		p.Char.X, p.Char.Y = oldX, oldY
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		return
+	}
+
+	inst.MemberIDs = append(inst.MemberIDs, p.ID)
+	w.refreshPlayerVisibility(p)
+	w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
+	p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID,
+		uint32(remainingInstanceSeconds(inst.Deadline, now))))
+	p.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID,
+		uint32(inst.Remaining)))
+	name := stages[0].Name
+	if name == "" {
+		name = inst.Config.Name
+	}
+	p.Session.Send(wire.MessagePanel(name))
+	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+	log.Printf("[#%d] INSTANCIA %q ingresso individual membros=%d",
+		s.ID, cfg.ID, len(inst.MemberIDs))
+}
+
 func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule) {
 	cfg := rule.Instance
-	if cfg == nil || w.itemInstances[cfg.ID] != nil || w.instanceAreaOccupied(cfg) {
+	if cfg == nil {
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		return
+	}
+	if inst := w.itemInstances[cfg.ID]; inst != nil {
+		w.joinSharedItemInstance(s, p, item, slot, rule, inst)
+		return
+	}
+	if w.instanceAreaOccupied(cfg) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("This room is already occupied."))
 		return
@@ -201,6 +349,9 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	totalMobs := instanceSpawnCount(cfg)
 	validSpawns := len(stages) > 0 && totalMobs > 0
 	allMembersAllowed := true
+	if cfg.MaxPlayers > 0 && len(members) > cfg.MaxPlayers {
+		allMembersAllowed = false
+	}
 	for _, member := range members {
 		if !instanceAllowsEvolution(member.Char, cfg.AllowedEvolutions) {
 			allMembersAllowed = false
@@ -211,9 +362,17 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		if !w.terrain.Walkable(stage.SpawnX, stage.SpawnY) {
 			validSpawns = false
 		}
+		if stage.Quiz != nil &&
+			(!w.terrain.Walkable(stage.Quiz.TrueX, stage.Quiz.TrueY) ||
+				!w.terrain.Walkable(stage.Quiz.FalseX, stage.Quiz.FalseY)) {
+			validSpawns = false
+		}
 		for _, spawn := range stage.Spawns {
+			if spawn.X != 0 && spawn.Y != 0 && !w.terrain.Walkable(spawn.X, spawn.Y) {
+				validSpawns = false
+			}
 			def := w.npcDefByName(spawn.NPC)
-			if def == nil || def.Extended == nil || def.Extended.Merchant != 0 {
+			if def == nil || !def.IsMonster() || def.Extended == nil {
 				validSpawns = false
 			}
 		}
@@ -250,7 +409,32 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	if rule.Consume {
 		consumeOne(item)
 	}
+	inst := &ItemInstance{
+		Config: cfgCopy(*cfg), LeaderID: p.ID, MobIDs: make(map[uint16]struct{}),
+		Remaining: totalMobs, CurrentStage: 0,
+	}
+	now := w.now()
+	if cfg.TotalDurationSeconds > 0 {
+		inst.HardDeadline = now.Add(
+			time.Duration(cfg.TotalDurationSeconds) * time.Second)
+	}
+	for _, member := range members {
+		inst.MemberIDs = append(inst.MemberIDs, member.ID)
+	}
+	// O primeiro conteudo existe antes de confirmar o ticket. Ele ainda nao e
+	// publicado; logo qualquer falha pode ser revertida sem deixar sala vazia.
+	if !w.spawnItemInstanceStage(inst, 0, now, false, false) {
+		*item = oldItem
+		for _, old := range positions {
+			old.p.X, old.p.Y = old.x, old.y
+			old.p.Char.X, old.p.Char.Y = old.x, old.y
+		}
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		s.Send(wire.MessagePanel("The instance content could not be created."))
+		return
+	}
 	if err := w.saveAccountsAtomic(accounts...); err != nil {
+		w.removeUnpublishedItemInstanceMobs(inst)
 		*item = oldItem
 		for _, old := range positions {
 			old.p.X, old.p.Y = old.x, old.y
@@ -259,18 +443,12 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-
-	inst := &ItemInstance{
-		Config: cfgCopy(*cfg), LeaderID: p.ID, MobIDs: make(map[uint16]struct{}),
-		Remaining: totalMobs, CurrentStage: 0,
-	}
+	w.itemInstances[cfg.ID] = inst
 	for _, member := range members {
-		inst.MemberIDs = append(inst.MemberIDs, member.ID)
 		w.refreshPlayerVisibility(member)
 		w.sendToPlayerView(member, func() []byte { return wire.ActionStop(member.ID, member.X, member.Y) })
 	}
-	w.itemInstances[cfg.ID] = inst
-	w.spawnItemInstanceStage(inst, 0, w.now(), false)
+	w.sendItemInstanceStageStatus(inst)
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	log.Printf("[#%d] INSTANCIA %q aberta membros=%d mobs=%d", s.ID, cfg.ID, len(members), totalMobs)
 }
@@ -282,6 +460,10 @@ func cfgCopy(cfg model.VolatileInstance) model.VolatileInstance {
 	for index := range cfg.Stages {
 		cfg.Stages[index].Spawns = append(
 			[]model.VolatileInstanceSpawn(nil), cfg.Stages[index].Spawns...)
+		if cfg.Stages[index].Quiz != nil {
+			quiz := *cfg.Stages[index].Quiz
+			cfg.Stages[index].Quiz = &quiz
+		}
 	}
 	return cfg
 }
@@ -354,34 +536,20 @@ func (w *World) moveInstanceMembersAtomic(inst *ItemInstance, stage model.Volati
 	return true
 }
 
-// spawnItemInstanceStage inicia uma sala/onda autoritativa. A transicao move os
-// membros por uma transacao atomica antes de publicar posicao e visibilidade; a primeira sala ja teve as posicoes
-// confirmadas no mesmo commit que consumiu o ticket.
-func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now time.Time, move bool) bool {
+func (w *World) sendItemInstanceStageStatus(inst *ItemInstance) {
 	if inst == nil {
-		return false
+		return
 	}
 	stages := instanceStages(&inst.Config)
-	if stageIndex < 0 || stageIndex >= len(stages) {
-		return false
+	if inst.CurrentStage < 0 || inst.CurrentStage >= len(stages) {
+		return
 	}
-	stage := stages[stageIndex]
-	if move && !w.moveInstanceMembersAtomic(inst, stage) {
-		log.Printf("INSTANCIA %q: falha atomica ao mover grupo para sala %d",
-			inst.Config.ID, stageIndex+1)
-		return false
-	}
-	inst.CurrentStage = stageIndex
-	inst.TransitionAt = time.Time{}
-	inst.MobIDs = make(map[uint16]struct{})
-	inst.Remaining = stageMobCount(stage)
-	duration := stageDuration(inst.Config, stage)
-	inst.Deadline = now.Add(time.Duration(duration) * time.Second)
-
+	stage := stages[inst.CurrentStage]
+	remaining := remainingInstanceSeconds(inst.Deadline, w.now())
 	for _, id := range inst.MemberIDs {
 		if member := w.playersByID[id]; member != nil && member.InWorld {
 			member.Session.Send(wire.StandardParm(
-				wire.OpInstanceTime, instanceSignalID, uint32(duration)))
+				wire.OpInstanceTime, instanceSignalID, uint32(remaining)))
 			member.Session.Send(wire.StandardParm(
 				wire.OpInstanceMobs, instanceSignalID, uint32(inst.Remaining)))
 			name := stage.Name
@@ -391,24 +559,87 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 			member.Session.Send(wire.MessagePanel(name))
 		}
 	}
+}
+
+func (w *World) removeUnpublishedItemInstanceMobs(inst *ItemInstance) {
+	if inst == nil {
+		return
+	}
+	for mobID := range inst.MobIDs {
+		if mob := w.mobsByID[mobID]; mob != nil {
+			w.removeMobInstance(mob)
+		}
+	}
+	inst.MobIDs = make(map[uint16]struct{})
+	inst.Remaining = 0
+}
+
+// spawnItemInstanceStage inicia uma sala/onda autoritativa. publish=false e
+// usado apenas na abertura: monta todo o primeiro conteudo antes do commit do
+// ingresso, sem expor estado que ainda pode sofrer rollback.
+func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now time.Time,
+	move, publish bool) bool {
+	if inst == nil {
+		return false
+	}
+	stages := instanceStages(&inst.Config)
+	if stageIndex < 0 || stageIndex >= len(stages) {
+		return false
+	}
+	stage := stages[stageIndex]
 	for _, spawn := range stage.Spawns {
 		def := w.npcDefByName(spawn.NPC)
-		if def == nil || def.Extended == nil {
+		if spawn.Count <= 0 || def == nil || !def.IsMonster() ||
+			def.Extended == nil {
 			return false
 		}
+	}
+	if move && !w.moveInstanceMembersAtomic(inst, stage) {
+		log.Printf("INSTANCIA %q: falha atomica ao mover grupo para sala %d",
+			inst.Config.ID, stageIndex+1)
+		return false
+	}
+	inst.CurrentStage = stageIndex
+	inst.TransitionAt = time.Time{}
+	inst.QuizAt = time.Time{}
+	inst.MobIDs = make(map[uint16]struct{})
+	inst.Remaining = stageMobCount(stage)
+	duration := stageDuration(inst.Config, stage)
+	inst.Deadline = now.Add(time.Duration(duration) * time.Second)
+
+	for _, spawn := range stage.Spawns {
+		def := w.npcDefByName(spawn.NPC)
 		for n := 0; n < spawn.Count; n++ {
+			spawnX, spawnY := stage.SpawnX, stage.SpawnY
+			if spawn.X != 0 && spawn.Y != 0 {
+				spawnX, spawnY = spawn.X, spawn.Y
+			}
 			searchRadius := stage.AreaRadius
 			if searchRadius < 4 {
 				searchRadius = 4
 			}
-			x, y := w.findFreePosition(stage.SpawnX, stage.SpawnY, uint16(searchRadius))
-			mob := &Mob{ID: w.allocMobID(), Def: def, X: x, Y: y,
+			x, y := w.findFreePosition(spawnX, spawnY, uint16(searchRadius))
+			mobID := w.allocMobID()
+			if mobID == 0 {
+				w.removeUnpublishedItemInstanceMobs(inst)
+				return false
+			}
+			mob := &Mob{ID: mobID, Def: def, X: x, Y: y,
 				HP: def.Extended.MaxHP, InstanceID: inst.Config.ID}
 			w.mobs = append(w.mobs, mob)
 			w.mobsByID[mob.ID] = mob
 			inst.MobIDs[mob.ID] = struct{}{}
-			w.publishMobSpawn(mob)
+			if publish {
+				w.publishMobSpawn(mob)
+			} else {
+				// A primeira sala ainda nao pode ser enviada, mas precisa entrar
+				// no indice espacial para o refresh posterior ao commit encontra-la.
+				w.registerMobSpatial(mob)
+			}
 		}
+	}
+	if publish {
+		w.sendItemInstanceStageStatus(inst)
 	}
 	log.Printf("INSTANCIA %q sala=%d/%d mobs=%d",
 		inst.Config.ID, stageIndex+1, len(stages), inst.Remaining)
@@ -508,6 +739,18 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 	if inst.Remaining == 0 {
 		stages := instanceStages(&inst.Config)
 		if inst.CurrentStage+1 < len(stages) {
+			if quiz := stages[inst.CurrentStage].Quiz; quiz != nil {
+				inst.QuizAt = now.Add(time.Duration(quiz.DurationSeconds) * time.Second)
+				for _, id := range inst.MemberIDs {
+					if member := w.playersByID[id]; member != nil && member.InWorld {
+						member.Session.Send(wire.StandardParm(
+							wire.OpInstanceTime, instanceSignalID, uint32(quiz.DurationSeconds)))
+						member.Session.Send(wire.MessagePanel(
+							strings.ReplaceAll(quiz.Question, "_", " ")))
+					}
+				}
+				return
+			}
 			delay := inst.Config.TransitionSeconds
 			if delay <= 0 {
 				delay = 10
@@ -526,18 +769,149 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 	}
 }
 
+func instanceQuizCorrect(p *Player, quiz *model.VolatileInstanceQuiz) bool {
+	if p == nil || quiz == nil {
+		return false
+	}
+	x, y := quiz.FalseX, quiz.FalseY
+	if quiz.Answer {
+		x, y = quiz.TrueX, quiz.TrueY
+	}
+	minX, minY := uint16(0), uint16(0)
+	if x >= 3 {
+		minX = x - 3
+	}
+	if y >= 3 {
+		minY = y - 3
+	}
+	return p.X >= minX && p.X <= x && p.Y >= minY && p.Y <= y
+}
+
+// resolveItemInstanceQuiz confirma em um unico commit tanto a EXP dos acertos
+// quanto a retirada dos erros. Assim uma falha do banco nao divide a party nem
+// concede a recompensa duas vezes.
+func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool {
+	if inst == nil {
+		return false
+	}
+	stages := instanceStages(&inst.Config)
+	if inst.CurrentStage < 0 || inst.CurrentStage >= len(stages) {
+		return false
+	}
+	quiz := stages[inst.CurrentStage].Quiz
+	if quiz == nil {
+		return false
+	}
+	type state struct {
+		player *Player
+		char   model.Char
+		x, y   uint16
+		ok     bool
+		levels int
+		exp    uint32
+	}
+	states := make([]state, 0, len(inst.MemberIDs))
+	accounts := make([]*model.Account, 0, len(inst.MemberIDs))
+	seenAccounts := make(map[*model.Account]struct{}, len(inst.MemberIDs))
+	for _, id := range inst.MemberIDs {
+		p := w.playersByID[id]
+		if p == nil || !p.InWorld || p.Char == nil || p.Account == nil {
+			continue
+		}
+		current := state{player: p, char: cloneCharacterState(p.Char), x: p.X, y: p.Y}
+		current.ok = instanceQuizCorrect(p, quiz)
+		if current.ok && quiz.RewardExp > 0 {
+			oldHP, oldMP := playerCurHP(p.Char), playerCurMP(p.Char)
+			current.levels, current.exp = grantExp(p.Char, quiz.RewardExp)
+			w.recalcPlayer(p.Char)
+			setPlayerCurHP(p.Char, minU32(oldHP, playerMaxHP(p.Char)))
+			setPlayerCurMP(p.Char, minU32(oldMP, playerMaxMP(p.Char)))
+		} else if !current.ok {
+			p.X, p.Y = w.findFreePlayerPosition(
+				inst.Config.ExitX, inst.Config.ExitY, 6, p)
+			p.Char.X, p.Char.Y = p.X, p.Y
+		}
+		states = append(states, current)
+		if _, exists := seenAccounts[p.Account]; !exists {
+			seenAccounts[p.Account] = struct{}{}
+			accounts = append(accounts, p.Account)
+		}
+	}
+	if len(states) == 0 {
+		inst.MemberIDs = nil
+		inst.QuizAt = time.Time{}
+		inst.Deadline = now
+		return true
+	}
+	if err := w.saveAccountsAtomic(accounts...); err != nil {
+		for _, old := range states {
+			*old.player.Char = old.char
+			old.player.X, old.player.Y = old.x, old.y
+		}
+		return false
+	}
+
+	survivors := make([]uint16, 0, len(states))
+	for _, result := range states {
+		p := result.player
+		if !result.ok {
+			w.refreshPlayerVisibility(p)
+			w.sendToPlayerView(p, func() []byte {
+				return wire.ActionStop(p.ID, p.X, p.Y)
+			})
+			p.Session.Send(wire.StandardParm(
+				wire.OpInstanceTime, instanceSignalID, 0))
+			p.Session.Send(wire.StandardParm(
+				wire.OpInstanceMobs, instanceSignalID, 0))
+			p.Session.Send(wire.MessagePanel("Wrong answer. You left the Cube."))
+			continue
+		}
+		survivors = append(survivors, p.ID)
+		w.syncPlayerVitals(p)
+		w.updatePartyMember(p)
+		if result.levels > 0 {
+			p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+		}
+		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+		p.Session.Send(wire.MessagePanel(fmt.Sprintf(
+			"Correct! +%d EXP.", result.exp)))
+	}
+	inst.MemberIDs = survivors
+	inst.QuizAt = time.Time{}
+	if len(survivors) == 0 {
+		inst.Deadline = now
+		return true
+	}
+	delay := inst.Config.TransitionSeconds
+	if delay < 0 {
+		delay = 0
+	}
+	inst.TransitionAt = now.Add(time.Duration(delay) * time.Second)
+	return true
+}
+
 func (w *World) tickItemInstances(now time.Time) {
 	for id, inst := range w.itemInstances {
-		if !inst.TransitionAt.IsZero() && !now.Before(inst.TransitionAt) {
-			if !w.spawnItemInstanceStage(inst, inst.CurrentStage+1, now, true) {
+		hardExpired := !inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline)
+		if !hardExpired && !inst.QuizAt.IsZero() && !now.Before(inst.QuizAt) {
+			if !w.resolveItemInstanceQuiz(inst, now) {
+				continue
+			}
+		}
+		if !hardExpired && !inst.TransitionAt.IsZero() && !now.Before(inst.TransitionAt) {
+			if !w.spawnItemInstanceStage(inst, inst.CurrentStage+1, now, true, true) {
 				inst.Deadline = now
 			}
 		}
-		if inst.Remaining == 0 && inst.TransitionAt.IsZero() &&
+		if inst.Remaining == 0 && inst.TransitionAt.IsZero() && inst.QuizAt.IsZero() &&
 			inst.ExitAt.IsZero() && now.Before(inst.Deadline) {
 			w.completeItemInstance(inst, now)
 		}
-		expired := inst.TransitionAt.IsZero() && !now.Before(inst.Deadline)
+		expired := inst.TransitionAt.IsZero() && inst.QuizAt.IsZero() &&
+			!now.Before(inst.Deadline)
+		if hardExpired {
+			expired = true
+		}
 		completed := !inst.ExitAt.IsZero() && !now.Before(inst.ExitAt)
 		if !expired && !completed {
 			continue

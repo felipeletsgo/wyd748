@@ -548,6 +548,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 		// Pocao de recuperacao/invulnerabilidade (Vol 90-92): affect 51 por
 		// rule.DurationUnits. Enquanto ativo, o tick nao drena HP/comida (fiel ao
 		// ProcessAdultMount, que trata comida como 100 sob o affect 51).
+		snapshot := cloneCharacterState(p.Char)
 		if !setAffect(p.Char, 51, 0, 0, rule.DurationUnits) {
 			resend()
 			s.Send(wire.MessagePanel("Mount protection is already active."))
@@ -555,6 +556,12 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 		}
 		if rule.Consume {
 			consumeOne(item)
+		}
+		if err := w.saveAccountAndCharStateResult(p); err != nil {
+			*p.Char = snapshot
+			resend()
+			log.Printf("[#%d] ERRO ao salvar protecao da montaria: %v", s.ID, err)
+			return
 		}
 		w.recalcPlayer(p.Char)
 		w.publishPlayerAffects(p)

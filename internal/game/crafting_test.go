@@ -127,6 +127,107 @@ func buildCombinePacket(items [combineSlots]model.Item, pos [combineSlots]int8) 
 	return pkt
 }
 
+func TestCombineLindyCreatesEliteCape(t *testing.T) {
+	w, p, session, st := newCraftWorld(t, "Lindy",
+		map[uint16]model.ItemDef{3193: {Index: 3193}}, 0)
+	var items [combineSlots]model.Item
+	var pos [combineSlots]int8
+	items[0], items[1] = model.Item{Index: 413}, model.Item{Index: 413}
+	setItemAmount(&items[0], 10)
+	setItemAmount(&items[1], 10)
+	items[2] = model.Item{Index: 4127}
+	for index := 3; index <= 6; index++ {
+		items[index] = model.Item{Index: 413}
+	}
+	for index := range pos {
+		pos[index] = int8(index)
+	}
+	placeItems(p.Char, items, pos)
+	p.Char.Extended = testExtended(model.ExtendedScore{
+		Level: archLockLevel355, MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
+	})
+	p.Char.Evolution = archEvolution
+	originalCape, err := materializeItem(model.Item{Index: 3193})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.Char.Equip[15] = originalCape
+
+	w.onCombineLindy(session, buildCombinePacket(items, pos))
+	if p.Char.Equip[15].Index != 3193 || p.Char.Equip[15].UID != originalCape.UID ||
+		p.Char.Equip[15].Eff[0] != 54 || p.Char.Equip[15].Eff[1] != 16 ||
+		st.saves != 1 {
+		t.Fatalf("Lindy: cape=%+v saves=%d", p.Char.Equip[15], st.saves)
+	}
+	for index := 0; index <= 6; index++ {
+		if p.Char.Inv[index].Index != 0 {
+			t.Fatalf("Lindy nao consumiu ingrediente no slot %d: %+v",
+				index, p.Char.Inv[index])
+		}
+	}
+}
+
+func TestCombineLindyRejectsCharacterOutsideArchLock(t *testing.T) {
+	w, p, session, st := newCraftWorld(t, "Lindy", nil, 0)
+	var items [combineSlots]model.Item
+	var pos [combineSlots]int8
+	items[0], items[1] = model.Item{Index: 413}, model.Item{Index: 413}
+	setItemAmount(&items[0], 10)
+	setItemAmount(&items[1], 10)
+	items[2] = model.Item{Index: 4127}
+	for index := 3; index <= 6; index++ {
+		items[index] = model.Item{Index: 413}
+	}
+	for index := range pos {
+		pos[index] = int8(index)
+	}
+	placeItems(p.Char, items, pos)
+	p.Char.Extended = testExtended(model.ExtendedScore{Level: 360, MaxHP: 100, CurHP: 100})
+	p.Char.Evolution = archEvolution
+	before := p.Char.Inv
+
+	w.onCombineLindy(session, buildCombinePacket(items, pos))
+
+	if st.saves != 0 || p.Char.Inv != before {
+		t.Fatalf("Lindy aceitou Arch fora das travas: saves=%d inventarioMudou=%t",
+			st.saves, p.Char.Inv != before)
+	}
+}
+
+func TestCombineLindyLevel370KeepsEquippedCape(t *testing.T) {
+	w, p, session, st := newCraftWorld(t, "Lindy", nil, 0)
+	var items [combineSlots]model.Item
+	var pos [combineSlots]int8
+	items[0], items[1] = model.Item{Index: 413}, model.Item{Index: 413}
+	setItemAmount(&items[0], 10)
+	setItemAmount(&items[1], 10)
+	items[2] = model.Item{Index: 4127}
+	for index := 3; index <= 6; index++ {
+		items[index] = model.Item{Index: 413}
+	}
+	for index := range pos {
+		pos[index] = int8(index)
+	}
+	placeItems(p.Char, items, pos)
+	p.Char.Extended = testExtended(model.ExtendedScore{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
+	p.Char.Evolution = archEvolution
+	p.Char.ArchLevel355 = true
+	p.Char.Equip[15] = model.Item{Index: 3197, UID: "11111111111141118111111111111111", Eff: [6]byte{43, 7}}
+	p.SpecialCoins = map[string]uint32{fameCounter: 1}
+	beforeCape := p.Char.Equip[15]
+
+	w.onCombineLindy(session, buildCombinePacket(items, pos))
+
+	if st.saves != 1 || !p.Char.ArchLevel370 || counterBalance(p, fameCounter) != 0 {
+		t.Fatalf("destrave 370 incompleto: saves=%d flag=%t fama=%d",
+			st.saves, p.Char.ArchLevel370, counterBalance(p, fameCounter))
+	}
+	if p.Char.Equip[15] != beforeCape {
+		t.Fatalf("Lindy substituiu a capa no destrave 370: got=%+v want=%+v",
+			p.Char.Equip[15], beforeCape)
+	}
+}
+
 // placeItems copia os itens de req para o inventario do personagem nas
 // posicoes dadas, para que parseCombineRequest valide o snapshot autoritativo.
 func placeItems(ch *model.Char, items [combineSlots]model.Item, pos [combineSlots]int8) {
@@ -299,7 +400,7 @@ func TestCombineTinyRejectsBelowGoldCost(t *testing.T) {
 
 // TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure cobre o caminho de
 // persist-before-confirm com falha de disco: commitCombine precisa restaurar
-// TODO o estado (inventario E gold) e nao confirmar sucesso ao client quando
+// todo o estado (inventario E gold) e nao confirmar sucesso ao client quando
 // o save falha, mesmo quando o craft em si teria sido valido.
 func TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure(t *testing.T) {
 	a := model.Item{Index: 800}
@@ -335,16 +436,132 @@ func TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure(t *testing.T) {
 	}
 }
 
+func TestAylinNativeChanceBoundary(t *testing.T) {
+	tests := []struct {
+		roll int
+		want bool
+	}{
+		{roll: -1, want: false},
+		{roll: 0, want: true},
+		{roll: 39, want: true},
+		{roll: 40, want: true},
+		{roll: 41, want: false},
+		{roll: 99, want: false},
+		{roll: 100, want: false},
+	}
+	for _, test := range tests {
+		if got := aylinRollSucceeds(test.roll); got != test.want {
+			t.Errorf("roll=%d: got=%t want=%t", test.roll, got, test.want)
+		}
+	}
+}
+
+func TestCombineEhreRollsBackSoulOnSaveFailure(t *testing.T) {
+	w, p, session, st := newCraftWorld(t, "Ehre", nil, 0)
+	var items [combineSlots]model.Item
+	var pos [combineSlots]int8
+	for index, itemIndex := range soulRecipes[0] {
+		items[index] = model.Item{Index: itemIndex}
+		pos[index] = int8(index)
+	}
+	placeItems(p.Char, items, pos)
+	p.Char.SoulInfo = 7
+	before := p.Char.Inv
+	st.err = errors.New("postgres indisponivel")
+
+	w.onCombineEhre(session, buildCombinePacket(items, pos))
+
+	if st.saves != 1 || p.Char.SoulInfo != 7 || p.Char.Inv != before {
+		t.Fatalf("rollback Ehre soul incompleto: saves=%d soul=%d inventarioMudou=%t",
+			st.saves, p.Char.SoulInfo, p.Char.Inv != before)
+	}
+}
+
+func TestCombineEhreRollsBackExperienceOnSaveFailure(t *testing.T) {
+	w, p, session, st := newCraftWorld(t, "Ehre", nil, 0)
+	var items [combineSlots]model.Item
+	var pos [combineSlots]int8
+	items[0], items[1] = model.Item{Index: 697}, model.Item{Index: 697}
+	items[2] = model.Item{Index: 3338, Eff: [6]byte{43, 8}}
+	pos[0], pos[1], pos[2] = 0, 1, 2
+	placeItems(p.Char, items, pos)
+	p.Char.Evolution = "celestial"
+	p.Char.Exp = 10_000_000
+	p.Char.Extended = testExtended(model.ExtendedScore{Level: 190, MaxHP: 100, CurHP: 100})
+	beforeInv, beforeExp := p.Char.Inv, p.Char.Exp
+	st.err = errors.New("postgres indisponivel")
+
+	w.onCombineEhre(session, buildCombinePacket(items, pos))
+
+	if st.saves != 1 || p.Char.Exp != beforeExp || p.Char.Inv != beforeInv {
+		t.Fatalf("rollback Ehre exp incompleto: saves=%d exp=%d/%d inventarioMudou=%t",
+			st.saves, p.Char.Exp, beforeExp, p.Char.Inv != beforeInv)
+	}
+}
+
+func TestCombineEhreRejectsRefinementWithoutEffectSlot(t *testing.T) {
+	w, p, session, st := newCraftWorld(t, "Ehre", nil, 0)
+	var items [combineSlots]model.Item
+	var pos [combineSlots]int8
+	items[0], items[1] = model.Item{Index: 697}, model.Item{Index: 697}
+	items[2] = model.Item{
+		Index: 3338,
+		UID:   "11111111111141118111111111111111",
+		Eff:   [6]byte{1, 10, 2, 20, 3, 30},
+	}
+	pos[0], pos[1], pos[2] = 0, 1, 2
+	placeItems(p.Char, items, pos)
+	p.Char.Evolution = "celestial"
+	p.Char.Exp = 10_000_000
+	p.Char.Extended = testExtended(model.ExtendedScore{
+		Level: 190, MaxHP: 100, CurHP: 100,
+	})
+	beforeInv, beforeExp := p.Char.Inv, p.Char.Exp
+
+	w.onCombineEhre(session, buildCombinePacket(items, pos))
+
+	if st.saves != 0 || p.Char.Inv != beforeInv || p.Char.Exp != beforeExp {
+		t.Fatalf("Ehre consumiu sem poder gravar EF_SANC: saves=%d inv=%t exp=%d/%d",
+			st.saves, p.Char.Inv != beforeInv, p.Char.Exp, beforeExp)
+	}
+}
+
+func TestCombineOdinCapeRejectsWhenRefinementHasNoEffectSlot(t *testing.T) {
+	w, p, session, st := newCraftWorld(t, "Odin", nil, 0)
+	var items [combineSlots]model.Item
+	var pos [combineSlots]int8
+	recipe := []uint16{4127, 4127, 5135, 413, 413, 413, 413}
+	for index, itemIndex := range recipe {
+		items[index] = model.Item{Index: itemIndex}
+		pos[index] = int8(index)
+	}
+	placeItems(p.Char, items, pos)
+	p.Char.Evolution = "celestial"
+	p.Char.Extended = testExtended(model.ExtendedScore{Level: 39, MaxHP: 100, CurHP: 100})
+	p.Char.Equip[15] = model.Item{
+		Index: 3199,
+		UID:   "11111111111141118111111111111111",
+		Eff:   [6]byte{1, 10, 2, 20, 3, 30},
+	}
+	beforeInv, beforeCape := p.Char.Inv, p.Char.Equip[15]
+
+	w.onCombineOdin(session, buildCombinePacket(items, pos))
+
+	if st.saves != 0 || p.Char.Inv != beforeInv || p.Char.Equip[15] != beforeCape {
+		t.Fatalf("Odin consumiu receita sem poder gravar EF_SANC: saves=%d inv=%t cape=%+v",
+			st.saves, p.Char.Inv != beforeInv, p.Char.Equip[15])
+	}
+}
+
 // TestCombineRejectsBlockedItem: Atila's_Crown (747) em QUALQUER um dos oito
-// slots recusa a composicao. O nativo repete essa varredura em 10 das 11
-// GetMatchCombineXxx (GetFunc.cpp:57, 218, 263, 337, 400, 461, 505, 634, 669 e
-// 740); a Agatha (564) e a UNICA sem ela, e essa excecao e deliberada.
+// slots recusa a composicao. A GetMatchCombineAgatha nao repete a varredura,
+// mas o proprio handler _MSG_CombineItemAgatha.cpp:54-55 faz a mesma recusa.
 func TestCombineRejectsBlockedItem(t *testing.T) {
 	defs := map[uint16]model.ItemDef{
 		blockedCombineItem: {Index: blockedCombineItem, Name: "Atila's_Crown"},
 		500:                {Index: 500},
 	}
-	for _, npc := range []string{"Compositor", "Aylin", "Lindy", "Ehre", "Odin", "Tiny"} {
+	for _, npc := range []string{"Compositor", "Agatha", "Aylin", "Lindy", "Ehre", "Odin", "Tiny"} {
 		for slot := 0; slot < combineSlots; slot++ {
 			var items [combineSlots]model.Item
 			var pos [combineSlots]int8
@@ -359,24 +576,5 @@ func TestCombineRejectsBlockedItem(t *testing.T) {
 				t.Errorf("%s: item %d no slot %d foi aceito", npc, blockedCombineItem, slot)
 			}
 		}
-	}
-}
-
-// TestAgathaAcceptsBlockedItem preserva a excecao do nativo: a Agatha nao varre
-// os slots atras do 747. Se um dia essa trava virar global, este teste quebra e
-// obriga a decisao a ser consciente.
-func TestAgathaAcceptsBlockedItem(t *testing.T) {
-	defs := map[uint16]model.ItemDef{blockedCombineItem: {Index: blockedCombineItem}}
-	var items [combineSlots]model.Item
-	var pos [combineSlots]int8
-	items[0] = model.Item{Index: blockedCombineItem}
-	for i := range pos {
-		pos[i] = int8(i)
-	}
-	w, p, session, _ := newCraftWorld(t, agathaCombineNPC, defs, 0)
-	placeItems(p.Char, items, pos)
-
-	if _, _, ok := w.beginCombine(session, buildCombinePacket(items, pos), agathaCombineNPC); !ok {
-		t.Error("a Agatha recusou o 747; o nativo (GetFunc.cpp:564) nao tem essa trava")
 	}
 }

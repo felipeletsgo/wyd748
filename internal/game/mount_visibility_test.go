@@ -36,4 +36,10 @@ func TestSyncCriaPetDoesNotRecreateExistingPet(t *testing.T) {
 	if got := session.QueuedPacketsForTest(); got != 1 {
 		t.Fatalf("cria existente gerou %d pacotes; nenhum pacote novo era esperado", got)
 	}
+
+	p.Char.Equip[mountSlot] = model.Item{}
+	w.syncCriaPet(p)
+	if w.findCriaPet(p.ID) != nil || len(w.mobs) != 0 || !pet.Dead {
+		t.Fatal("desequipar a cria nao removeu o pet da cena")
+	}
 }
