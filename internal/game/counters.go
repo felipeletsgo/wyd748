@@ -24,7 +24,7 @@ const fameCounter = "fame"
 // que motivou isto: um saldo de entradas que o Sobrevivente cobra por visita.
 //
 // NAO ha campo novo: `Player.SpecialCoins` (persistido em
-// data/charstate/<nome>.json) ja e um `map[string]uint32` por personagem, ja e
+// character_states por Char.UID) ja e um `map[string]uint32` por personagem, ja e
 // zerado por resetCharacterRuntime e ja e SUBSTITUIDO, nunca mesclado, por
 // applyCharState. Criar um campo paralelo traria duas armadilhas:
 //
@@ -124,7 +124,7 @@ func (w *World) useCounterGrant(s *net.Session, p *Player, item *model.Item, slo
 	if rule.Consume {
 		consumeOne(item)
 	}
-	if err := w.saveCharStateResult(p); err != nil {
+	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*item = anterior
 		p.SpecialCoins = saldoAnterior
 		log.Printf("[#%d] ERRO ao salvar contador do item %d: %v", s.ID, anterior.Index, err)
@@ -136,6 +136,59 @@ func (w *World) useCounterGrant(s *net.Session, p *Player, item *model.Item, slo
 		log.Printf("[#%d] contador %q +%d = %d (item %d volatile %d)",
 			s.ID, nome, quantidade, counterBalance(p, nome), anterior.Index, code)
 	}
+}
+
+// useCounterGrantOnce registra um desbloqueio permanente. Uma tentativa
+// repetida nunca consome o item, pois o estado autoritativo prevalece sobre o
+// pedido reenviado pelo client.
+func (w *World) useCounterGrantOnce(s *net.Session, p *Player, item *model.Item, slot byte, rule model.VolatileRule, code int) {
+	if len(rule.Counters) == 0 {
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		return
+	}
+	for name, required := range rule.Counters {
+		if counterBalance(p, name) >= required {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			s.Send(wire.MessagePanel("This unlock is already active."))
+			return
+		}
+	}
+
+	charBefore := cloneCharacterState(p.Char)
+	countersBefore := copyCounters(p)
+	if rule.Consume {
+		consumeOne(item)
+	}
+	rewardSlots := make([]int, 0, len(rule.RewardItems))
+	for _, rewardID := range rule.RewardItems {
+		reward, err := materializeItem(model.Item{Index: rewardID})
+		if err != nil {
+			*p.Char, p.SpecialCoins = charBefore, countersBefore
+			s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
+			return
+		}
+		rewardSlot := firstFreeVisibleInventorySlot(p.Char)
+		if rewardSlot < 0 {
+			*p.Char, p.SpecialCoins = charBefore, countersBefore
+			s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
+			s.Send(wire.MessagePanel("Inventory full."))
+			return
+		}
+		p.Char.Inv[rewardSlot] = reward
+		rewardSlots = append(rewardSlots, rewardSlot)
+	}
+	grantCounters(p, rule.Counters)
+	if err := w.saveAccountAndCharStateResult(p); err != nil {
+		*p.Char, p.SpecialCoins = charBefore, countersBefore
+		s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
+		return
+	}
+	s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
+	for _, rewardSlot := range rewardSlots {
+		s.Send(wire.SendItem(
+			p.ID, placeInv, byte(rewardSlot), p.Char.Inv[rewardSlot]))
+	}
+	s.Send(wire.MessagePanel("Event access enabled."))
 }
 
 // rechargeCovers diz se a recarga do NPC consegue suprir o contador em falta.

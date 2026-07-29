@@ -546,6 +546,10 @@ func (w *World) onGuildAlly(s *net.Session, pkt []byte) {
 	if claimed != 0 && claimed != guild.ID {
 		log.Printf("[#%d] 0x E12 com guild divergente: pacote=%d real=%d", s.ID, claimed, guild.ID)
 	}
+	// O snapshot precisa preceder a mutacao. Tirado depois, uma falha de disco
+	// "restaurava" exatamente o Ally novo e deixava memoria e persistencia
+	// divergentes.
+	snapshot := w.snapshotGuilds()
 	if allyID == 0 {
 		guild.Ally = 0
 	} else {
@@ -560,7 +564,6 @@ func (w *World) onGuildAlly(s *net.Session, pkt []byte) {
 		guild.Ally = allyID
 	}
 
-	snapshot := w.snapshotGuilds()
 	if err := w.saveGuildState(p.Account); err != nil {
 		w.restoreGuilds(snapshot)
 		s.Send(wire.MessagePanel("Save failed. The alliance was not changed."))

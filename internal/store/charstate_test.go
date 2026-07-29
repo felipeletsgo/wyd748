@@ -1,6 +1,8 @@
 package store
 
 import (
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -63,5 +65,56 @@ func TestLoadCharStateMissingIsNilNotError(t *testing.T) {
 	got, err := s.LoadCharState("NaoExiste")
 	if err != nil || got != nil {
 		t.Fatalf("personagem sem sidecar deveria dar nil/nil: got=%v err=%v", got, err)
+	}
+}
+
+func TestJSONStoreMigratesCharacterAndNamedCharStateToUID(t *testing.T) {
+	root := t.TempDir()
+	accountsDir := filepath.Join(root, "accounts")
+	stateDir := filepath.Join(root, "charstate")
+	if err := os.MkdirAll(accountsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	account := &model.Account{
+		Name: "felipe", PasswordHash: "hash",
+		Chars: []model.Char{validStoredChar("Felipe", 0)},
+	}
+	account.Chars[0].UID = ""
+	rawAccount, err := json.Marshal(account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(accountsDir, "felipe.json"), rawAccount, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rawState, err := json.Marshal(&model.CharState{
+		Version: model.CharStateVersion, SpecialCoins: map[string]uint32{"fame": 10},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyPath := filepath.Join(stateDir, "Felipe.json")
+	if err := os.WriteFile(legacyPath, rawState, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	st := NewJSONStore(accountsDir, WithCharStatePath(stateDir))
+	loaded, err := st.LoadAccount("felipe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	uid := loaded.Chars[0].UID
+	if uid == "" {
+		t.Fatal("personagem legado permaneceu sem UID")
+	}
+	if _, err := os.Stat(legacyPath); !os.IsNotExist(err) {
+		t.Fatalf("sidecar por nickname nao foi removido: %v", err)
+	}
+	state, err := st.LoadCharState(uid)
+	if err != nil || state == nil || state.SpecialCoins["fame"] != 10 {
+		t.Fatalf("sidecar nao migrou para UID: state=%v err=%v", state, err)
 	}
 }

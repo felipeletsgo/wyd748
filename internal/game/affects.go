@@ -155,20 +155,6 @@ func accumulateAffect(ch *model.Char, affectType byte, value, level, addUnits, m
 }
 
 func skillAffect(skill model.SkillDef) (byte, int, bool) {
-	// O client 7.48 usa estes tipos nas posicoes finais da barra TK. Eles foram
-	// confirmados em jogo e diferem de algumas linhas do SkillData 7.59/W2PP.
-	switch skill.Index {
-	case 3:
-		return 24, 0, true // Samaritano
-	case 5:
-		return 17, 75, true // Aura da Vida
-	case 11:
-		return 13, 7, true // Assalto
-	case 13:
-		return 14, 10, true // Possuido
-	case 15:
-		return 31, 150, true // Armadura Critica
-	}
 	if skill.AffectType > 0 {
 		return byte(skill.AffectType), skill.AffectValue, true
 	}
@@ -176,43 +162,6 @@ func skillAffect(skill model.SkillDef) (byte, int, bool) {
 		return byte(skill.TickType), skill.TickValue, true
 	}
 	return 0, 0, false
-}
-
-func skillEquipped(ch *model.Char, globalIndex int) bool {
-	if ch == nil {
-		return false
-	}
-	localIndex := globalIndex - int(ch.Class)*24
-	for _, value := range ch.ShortSkill {
-		if value == 0xFF {
-			continue
-		}
-		if int(value) == globalIndex || int(value) == localIndex {
-			return true
-		}
-	}
-	return false
-}
-
-// canUseSupportSkill permite a primeira aplicacao normalmente. Enquanto o affect
-// estiver ativo, so permite renovar nos ultimos 10 segundos e se a skill ainda
-// estiver equipada na barra. A chamada ocorre antes de cobrar MP/animar.
-func canUseSupportSkill(ch *model.Char, skill model.SkillDef, now time.Time) bool {
-	affectType, _, isBuff := skillAffect(skill)
-	if !isBuff || ch == nil {
-		return true
-	}
-	for i := range ch.Affects {
-		a := &ch.Affects[i]
-		if a.Type != affectType || !a.ExpiresAt.After(now) {
-			continue
-		}
-		if a.ExpiresAt.Sub(now) >= 10*time.Second {
-			return false
-		}
-		return skillEquipped(ch, skill.Index)
-	}
-	return true
 }
 
 func sameSupportGroup(caster, target *Player) bool {
@@ -659,8 +608,9 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			e.ResistThunder = uint32(clampInt(int(e.ResistThunder)+resist, 0, 100))
 		case 26:
 			e.Evasion = add(e.Evasion, int64(a.Level+a.Value*10))
-		case 30:
-			e.Accuracy = add(e.Accuracy, 2000)
+		case affectCourage:
+			// Courage nao modifica score. O bonus fixo pertence ao resultado de
+			// cada hit PvE e e aplicado em combat.go/skills.go.
 		case 31:
 			e.Defense = add(e.Defense, int64(a.Level/2+a.Value))
 		case 35: // Bigger/Health Potion: bonus nativo de 10% no HP maximo.

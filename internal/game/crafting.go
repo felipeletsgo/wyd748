@@ -35,9 +35,9 @@ func parseCombineRequest(pkt []byte, ch *model.Char) (combineRequest, error) {
 	}
 	used := make(map[int]struct{}, combineSlots)
 	for i := 0; i < combineSlots; i++ {
-		req.Items[i] = decodeTradeItem(pkt[12+i*8 : 20+i*8])
+		packetItem := decodeTradeItem(pkt[12+i*8 : 20+i*8])
 		req.Pos[i] = int8(pkt[76+i])
-		if req.Items[i].Index == 0 {
+		if packetItem.Index == 0 {
 			continue
 		}
 		pos := int(req.Pos[i])
@@ -48,9 +48,12 @@ func parseCombineRequest(pkt []byte, ch *model.Char) (combineRequest, error) {
 			return combineRequest{}, fmt.Errorf("slot %d repetido", pos)
 		}
 		used[pos] = struct{}{}
-		if ch.Inv[pos] != req.Items[i] {
+		if !ch.Inv[pos].WireEqual(packetItem) {
 			return combineRequest{}, fmt.Errorf("ingrediente %d diverge do inventario", i)
 		}
+		// O pacote prova somente os oito bytes nativos. A receita e o snapshot
+		// guardam a instancia autoritativa, incluindo UID.
+		req.Items[i] = ch.Inv[pos]
 	}
 	return req, nil
 }

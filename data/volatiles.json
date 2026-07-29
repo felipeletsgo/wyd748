@@ -7,9 +7,9 @@
   },
   "rules": {
     "0": {
-      "action": "generic",
+      "action": "no_direct_use",
       "consume": false,
-      "description": "Handler generico para EF_VOLATILE=0."
+      "description": "EF_VOLATILE=0 e multiplexado por INDEX; itens sem uso direto pertencem ao NPC/comando correspondente."
     },
     "1": {
       "action": "restore",
@@ -47,16 +47,25 @@
       "description": "Magical Pill: +9 pontos de skill permanentes, uma vez por personagem."
     },
     "7": {
-      "action": "grant_exp",
+      "action": "grant_next_level",
       "consume": true,
-      "exp": 100000000,
-      "description": "Poeira de Fada: EXP alta (100.000.000)."
+      "mortalOnly": true,
+      "description": "Poeira de Fada: eleva exatamente um nivel, conforme _MSG_UseItem.cpp."
     },
     "8": {
-      "action": "grant_exp",
+	  "action": "quest_reward",
       "consume": true,
-      "exp": 500000,
-      "description": "Eye Wax: EXP baixa (500.000)."
+      "mortalOnly": false,
+      "minLevel": 0,
+      "maxLevelExclusive": 399,
+      "exp": 5000,
+      "gold": 50000000,
+      "description": "Eye Wax customizado pelo projeto: preservar estes valores; divergencia nativa intencional."
+    },
+    "19": {
+      "action": "firework",
+      "consume": true,
+      "description": "Fogos: emote Motion=100 com variante aleatoria 0..5."
     },
     "9": {
       "action": "disabled",
@@ -283,7 +292,7 @@
       "durationUnits": 1800,
       "accumulate": true,
       "maxDurationUnits": 10800,
-      "description": "Comida (Bread): affect 30, +4h por uso acumulando ate 24h."
+      "description": "Comida (Bread): Courage affect 30, +4h por uso ate 24h; +1000 no hit fisico e +2000 no hit magico, somente PvE."
     },
     "61": {
       "action": "buff",
@@ -292,7 +301,7 @@
       "durationUnits": 1800,
       "accumulate": true,
       "maxDurationUnits": 10800,
-      "description": "Comida (Sausage): +4h por uso ate 24h."
+      "description": "Comida (Sausage): Courage affect 30, +4h por uso ate 24h; bonus fixo somente no hit PvE."
     },
     "62": {
       "action": "buff",
@@ -301,7 +310,7 @@
       "durationUnits": 1800,
       "accumulate": true,
       "maxDurationUnits": 10800,
-      "description": "Comida (Meat): +4h por uso ate 24h."
+      "description": "Comida (Meat): Courage affect 30, +4h por uso ate 24h; bonus fixo somente no hit PvE."
     },
     "63": {
       "action": "buff",
@@ -310,28 +319,28 @@
       "durationUnits": 1800,
       "accumulate": true,
       "maxDurationUnits": 10800,
-      "description": "Comida (Roast Chicken): +4h por uso ate 24h."
+      "description": "Comida (Roast Chicken): Courage affect 30, +4h por uso ate 24h; +1000 fisico/+2000 magico por hit PvE."
     },
     "64": {
       "action": "buff",
       "consume": true,
       "affectType": 30,
       "durationUnits": 75600,
-      "description": "Panqueca 7 dias: affect 30 por 7d."
+      "description": "Panqueca 7 dias: Courage affect 30 por 7d; bonus fixo somente no hit PvE."
     },
     "65": {
       "action": "buff",
       "consume": true,
       "affectType": 30,
       "durationUnits": 162000,
-      "description": "Panqueca 15 dias: affect 30 por 15d."
+      "description": "Panqueca 15 dias: Courage affect 30 por 15d; bonus fixo somente no hit PvE."
     },
     "66": {
       "action": "buff",
       "consume": true,
       "affectType": 30,
       "durationUnits": 324000,
-      "description": "Panqueca 30 dias: affect 30 por 30d."
+      "description": "Panqueca 30 dias: Courage affect 30 por 30d; bonus fixo somente no hit PvE."
     },
     "67": {
       "action": "buff",
@@ -435,6 +444,120 @@
       "consume": true,
       "description": "Growth Potion (3344+): evolui o estagio da montaria na hora (sIndex+=30), por categoria (fiel ao Vol 94)."
     },
+    "18": {
+      "action": "gold",
+      "consume": true,
+      "valueSource": "price",
+      "description": "Money Envelope: converte no valor server-side Price do itemlist."
+    },
+    "20": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Cartas N/M/A usam instancias por etapas configuradas por INDEX."
+    },
+    "51": {
+      "action": "dungeon_teleport",
+      "consume": true,
+      "partyMode": "party",
+      "x": 1272,
+      "y": 1427,
+      "durationSeconds": 600,
+      "description": "Entrada do Big Cube; teleporta o grupo para a area nativa por 10 minutos."
+    },
+    "54": {
+      "action": "dungeon_teleport",
+      "consume": true,
+      "partyMode": "party",
+      "x": 1689,
+      "y": 4081,
+      "durationSeconds": 600,
+      "description": "Convite Cube Normal; entrada nativa da primeira sala."
+    },
+    "171": {
+      "action": "dungeon_teleport",
+      "consume": true,
+      "partyMode": "party",
+      "x": 1689,
+      "y": 4081,
+      "durationSeconds": 600,
+      "description": "Convite Cube Mystic; entrada nativa da primeira sala."
+    },
+    "172": {
+      "action": "dungeon_teleport",
+      "consume": true,
+      "partyMode": "party",
+      "x": 1689,
+      "y": 4081,
+      "durationSeconds": 600,
+      "description": "Convite Cube Arcane; entrada nativa da primeira sala."
+    },
+    "173": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Nightmare Normal usa instancia configurada por INDEX (party/personal)."
+    },
+    "174": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Nightmare Mystic usa instancia configurada por INDEX (party/personal)."
+    },
+    "175": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Nightmare Arcane usa instancia configurada por INDEX (party/personal)."
+    },
+    "176": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Hell Gate usa teleporte temporizado configurado por INDEX (party/personal)."
+    },
+    "177": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Hidden Ruins usa acesso temporizado configurado por INDEX."
+    },
+    "178": {
+      "action": "grant_counter_once",
+      "consume": true,
+      "counters": { "event_pass": 1 },
+      "rewardItems": [4104],
+      "description": "Passe do evento: desbloqueio permanente e entrega do identificador 4104, uma unica vez."
+    },
+    "184": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Moedas Wyden/Honor usam saldos server-side configurados por INDEX."
+    },
+    "189": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Medalhas da Game Room usam contadores separados configurados por INDEX."
+    },
+    "197": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Service Ticket usa acesso temporizado configurado por INDEX."
+    },
+    "206": {
+      "action": "celestial_pending",
+      "consume": false,
+      "description": "Spirit Seal/Extraction dependem do sistema Celestial e ficam bloqueados sem consumo."
+    },
+    "207": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "WYD TOTO e validado no NPC/evento correspondente, nao por clique direto."
+    },
+    "208": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Contract Seal e material do NPC de contrato, nao possui uso direto."
+    },
+    "211": {
+      "action": "celestial_pending",
+      "consume": false,
+      "description": "Ideal Stone depende da criacao Celestial e fica bloqueada sem consumo."
+    },
     "185": {
       "action": "gold",
       "consume": true,
@@ -458,27 +581,48 @@
       "counters": { "fame": 10 },
       "description": "Warrior's_Seal (4146): +10 de fama. Porte de _MSG_UseItem.cpp:7147, onde extra.Fame += 10. A fama e gasta na Lindy (1, destrave do nivel 370 do Arch) e no Odin (200, nivel 40 do Celestial)."
     },
+    "179": {
+      "action": "refine_equipped",
+      "consume": true,
+      "targetSlot": 13,
+      "targetItems": [769, 1726],
+      "refineMax": 6,
+      "description": "Fairy Bless Water: refina Naiads/Grewpain equipado no slot 13, garantido, ate +6."
+    },
+    "192": {
+      "action": "mastery_reset",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 69,
+      "maxLevelExclusive": 74,
+      "amount": 50,
+      "description": "Opportunity Compound: uma vez, devolve ate 50 mastery dos ramos 1/2 e reinicia skills Mortais."
+    },
+    "193": {
+      "action": "mastery_reset",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 119,
+      "maxLevelExclusive": 124,
+      "amount": 100,
+      "description": "Balance Compound: uma vez, devolve ate 100 mastery dos ramos 1/2 e reinicia skills Mortais."
+    },
+    "203": {
+      "action": "chaos_remission",
+      "consume": true,
+      "description": "Carta de Remissao: restaura o CP assinado ao maximo +75 (byte nativo 150)."
+    },
+    "212": {
+      "action": "nightmare_ticket",
+      "consume": true,
+      "amount": 13,
+      "cooldownSeconds": 43200,
+      "description": "Nightmare Letter: +13 entradas, cooldown persistente de 12 horas."
+    },
     "190": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction: sorteia um adicional no manto equipado. Pool por grade em items[] (regra do felipe: diferenciar por Index). Fallback = Grade C.",
-      "addPool": [
-        {
-          "effect": 2,
-          "value": 15,
-          "weight": 2
-        },
-        {
-          "effect": 7,
-          "value": 4,
-          "weight": 3
-        },
-        {
-          "effect": 10,
-          "value": 4,
-          "weight": 3
-        }
-      ]
+      "description": "Repliction nativo: substitui os dois adicionais da armadura por um par sorteado de data/repliction.json e preserva refino/tintura."
     },
     "194": {
       "action": "refine_set",
@@ -550,13 +694,457 @@
     }
   },
   "items": {
+    "417": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Adelas e processado pelo NPC/crafting correspondente."
+    },
+    "3330": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Shout e consumido pelo comando /spk, nao por duplo clique."
+    },
+    "3336": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Return of Ability e consumido pelo Mestre de Skill no reset completo."
+    },
+    "3337": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Ingrediente interno sem uso direto."
+    },
+    "3338": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Ingrediente interno sem uso direto."
+    },
+    "3339": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Ingrediente interno sem uso direto."
+    },
+    "3453": {
+      "action": "mount_revive",
+      "consume": true,
+      "description": "Revive a montaria ferida equipada, cobrando o preco dela e reduzindo 0..2 de longevidade."
+    },
+    "3454": {
+      "action": "mount_revive",
+      "consume": true,
+      "description": "Revival Horse premium: mesma regra nativa de recuperacao da montaria."
+    },
+    "4003": {
+      "action": "loot_box",
+      "consume": true,
+      "rewardItems": [2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309],
+      "description": "Mount Box Normal: sorteia um ovo da faixa normal."
+    },
+    "4004": {
+      "action": "loot_box",
+      "consume": true,
+      "rewardItems": [2310, 2311, 2312, 2313, 2314, 2315, 2316, 2317, 2318, 2319],
+      "description": "Mount Box Mystic: sorteia um ovo da faixa mystic."
+    },
+    "4005": {
+      "action": "loot_box",
+      "consume": true,
+      "rewardItems": [2320, 2321, 2322, 2323, 2324, 2325, 2326, 2327, 2328],
+      "description": "Mount Box Arcane: sorteia um ovo da faixa arcane."
+    },
+    "4007": {
+      "action": "loot_box",
+      "consume": true,
+      "rewardItems": [2316, 2317, 2318, 2319, 2320, 2321, 2322, 2323, 2324, 2325, 2326, 2327, 2328],
+      "description": "Premium Box: sorteia um ovo das faixas raras mystic/arcane."
+    },
+    "1731": {
+      "action": "instance_ticket",
+      "consume": true,
+      "partyMode": "party",
+      "instance": {
+        "id": "magic-chamber-arcane",
+        "name": "Arcane Magic Chamber",
+        "transitionSeconds": 10,
+        "allowedEvolutions": ["mortal", "arch"],
+        "exitX": 2100,
+        "exitY": 2100,
+        "stages": [
+          { "name": "Arcane Room 1", "x": 785, "y": 3688, "spawnX": 808, "spawnY": 3676, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Dark_Elf_Ab2", "count": 100 }] },
+          { "name": "Arcane Room 2", "x": 843, "y": 3688, "spawnX": 866, "spawnY": 3678, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Tauron_____", "count": 100 }] },
+          { "name": "Arcane Room 3", "x": 843, "y": 3632, "spawnX": 866, "spawnY": 3622, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Morlock_", "count": 100 }] },
+          { "name": "Arcane Room 4", "x": 785, "y": 3640, "spawnX": 807, "spawnY": 3621, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Hell_Spider2", "count": 100 }] },
+          { "name": "Arcane Boss", "x": 785, "y": 3640, "spawnX": 807, "spawnY": 3621, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Lugefer_", "count": 1 }] }
+        ]
+      },
+      "description": "Carta Arcane: quatro salas de 100 monstros e boss, com transicao de 10 segundos."
+    },
+    "3171": {
+      "action": "instance_ticket",
+      "consume": true,
+      "partyMode": "party",
+      "instance": {
+        "id": "magic-chamber-mystic",
+        "name": "Mystic Magic Chamber",
+        "transitionSeconds": 10,
+        "allowedEvolutions": ["mortal", "arch"],
+        "exitX": 2100,
+        "exitY": 2100,
+        "stages": [
+          { "name": "Mystic Room 1", "x": 785, "y": 3688, "spawnX": 808, "spawnY": 3676, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Dark_Elf3", "count": 100 }] },
+          { "name": "Mystic Room 2", "x": 843, "y": 3688, "spawnX": 866, "spawnY": 3678, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Taurus_King3", "count": 100 }] },
+          { "name": "Mystic Room 3", "x": 843, "y": 3632, "spawnX": 866, "spawnY": 3622, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Hydra2", "count": 100 }] },
+          { "name": "Mystic Room 4", "x": 785, "y": 3640, "spawnX": 807, "spawnY": 3621, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Cruel_Cyclp3", "count": 100 }] },
+          { "name": "Mystic Boss", "x": 785, "y": 3640, "spawnX": 807, "spawnY": 3621, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Zakum_", "count": 1 }] }
+        ]
+      },
+      "description": "Carta Mystic: quatro salas de 100 monstros e boss."
+    },
+    "3172": {
+      "action": "instance_ticket",
+      "consume": true,
+      "partyMode": "party",
+      "instance": {
+        "id": "magic-chamber-normal",
+        "name": "Normal Magic Chamber",
+        "transitionSeconds": 10,
+        "allowedEvolutions": ["mortal", "arch"],
+        "exitX": 2100,
+        "exitY": 2100,
+        "stages": [
+          { "name": "Normal Room 1", "x": 785, "y": 3688, "spawnX": 808, "spawnY": 3676, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Meio_Orc__", "count": 100 }] },
+          { "name": "Normal Room 2", "x": 843, "y": 3688, "spawnX": 866, "spawnY": 3678, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Skull2", "count": 100 }] },
+          { "name": "Normal Room 3", "x": 843, "y": 3632, "spawnX": 866, "spawnY": 3622, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Skull_Lancr2", "count": 100 }] },
+          { "name": "Normal Room 4", "x": 785, "y": 3640, "spawnX": 807, "spawnY": 3621, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Minotauro_", "count": 100 }] },
+          { "name": "Normal Boss", "x": 785, "y": 3640, "spawnX": 807, "spawnY": 3621, "areaRadius": 24, "durationSeconds": 180, "spawns": [{ "npc": "Troll_Caos__", "count": 1 }] }
+        ]
+      },
+      "description": "Carta Normal: quatro salas de 100 monstros e boss."
+    },
+    "3324": {
+      "action": "instance_ticket",
+      "consume": true,
+      "partyMode": "party",
+      "instance": { "id": "nightmare-normal-party", "name": "Nightmare Normal", "x": 1310, "y": 313, "spawnX": 1310, "spawnY": 333, "areaRadius": 55, "durationSeconds": 240, "exitX": 2100, "exitY": 2100, "allowedEvolutions": ["mortal", "arch"], "spawns": [{ "npc": "Morlock__", "count": 20 }, { "npc": "Dark_Kn1", "count": 20 }, { "npc": "Elf_ABJ2", "count": 20 }, { "npc": "Aqua_Golem__", "count": 20 }, { "npc": "Gargoyle3", "count": 20 }, { "npc": "Dark_Shadow_", "count": 1 }] },
+      "description": "Nightmare Normal para o grupo."
+    },
+    "3390": {
+      "action": "instance_ticket",
+      "consume": true,
+      "partyMode": "solo",
+      "instance": { "id": "nightmare-normal-solo", "name": "Nightmare Normal Personal", "x": 1310, "y": 313, "spawnX": 1310, "spawnY": 333, "areaRadius": 55, "durationSeconds": 240, "exitX": 2100, "exitY": 2100, "allowedEvolutions": ["mortal", "arch"], "spawns": [{ "npc": "Morlock__", "count": 20 }, { "npc": "Dark_Kn1", "count": 20 }, { "npc": "Elf_ABJ2", "count": 20 }, { "npc": "Aqua_Golem__", "count": 20 }, { "npc": "Gargoyle3", "count": 20 }, { "npc": "Dark_Shadow_", "count": 1 }] },
+      "description": "Nightmare Normal pessoal."
+    },
+    "3325": {
+      "action": "instance_ticket",
+      "consume": true,
+      "partyMode": "party",
+      "instance": { "id": "nightmare-mystic-party", "name": "Nightmare Mystic", "x": 1093, "y": 310, "spawnX": 1093, "spawnY": 310, "areaRadius": 55, "durationSeconds": 240, "exitX": 2100, "exitY": 2100, "allowedEvolutions": ["mortal", "arch"], "spawns": [{ "npc": "Tauron__", "count": 10 }, { "npc": "Hell_Spider3", "count": 20 }, { "npc": "GrubSwarm_", "count": 30 }, { "npc": "Wise_Gargo3", "count": 20 }, { "npc": "Xeno_Cropper_", "count": 20 }, { "npc": "Dark_Shadow__", "count": 1 }] },
+      "description": "Nightmare Mystic para o grupo."
+    },
+    "3391": {
+      "action": "instance_ticket",
+      "consume": true,
+      "partyMode": "solo",
+      "instance": { "id": "nightmare-mystic-solo", "name": "Nightmare Mystic Personal", "x": 1093, "y": 310, "spawnX": 1093, "spawnY": 310, "areaRadius": 55, "durationSeconds": 240, "exitX": 2100, "exitY": 2100, "allowedEvolutions": ["mortal", "arch"], "spawns": [{ "npc": "Tauron__", "count": 10 }, { "npc": "Hell_Spider3", "count": 20 }, { "npc": "GrubSwarm_", "count": 30 }, { "npc": "Wise_Gargo3", "count": 20 }, { "npc": "Xeno_Cropper_", "count": 20 }, { "npc": "Dark_Shadow__", "count": 1 }] },
+      "description": "Nightmare Mystic pessoal."
+    },
+    "3326": {
+      "action": "instance_ticket",
+      "consume": true,
+      "partyMode": "party",
+      "instance": { "id": "nightmare-arcane-party", "name": "Nightmare Arcane", "x": 1205, "y": 173, "spawnX": 1205, "spawnY": 173, "areaRadius": 70, "durationSeconds": 240, "exitX": 2100, "exitY": 2100, "allowedEvolutions": ["mortal", "arch"], "spawns": [{ "npc": "Dark_Elf_Ab2", "count": 20 }, { "npc": "Tauron_____", "count": 20 }, { "npc": "Morlock_", "count": 20 }, { "npc": "Hell_Spider2", "count": 20 }, { "npc": "Lugefer_", "count": 1 }] },
+      "description": "Nightmare Arcane para o grupo."
+    },
+    "3392": {
+      "action": "instance_ticket",
+      "consume": true,
+      "partyMode": "solo",
+      "instance": { "id": "nightmare-arcane-solo", "name": "Nightmare Arcane Personal", "x": 1205, "y": 173, "spawnX": 1205, "spawnY": 173, "areaRadius": 70, "durationSeconds": 240, "exitX": 2100, "exitY": 2100, "allowedEvolutions": ["mortal", "arch"], "spawns": [{ "npc": "Dark_Elf_Ab2", "count": 20 }, { "npc": "Tauron_____", "count": 20 }, { "npc": "Morlock_", "count": 20 }, { "npc": "Hell_Spider2", "count": 20 }, { "npc": "Lugefer_", "count": 1 }] },
+      "description": "Nightmare Arcane pessoal."
+    },
+    "3328": {
+      "action": "dungeon_teleport",
+      "consume": true,
+      "partyMode": "solo",
+      "x": 1684,
+      "y": 3676,
+      "durationSeconds": 240,
+      "description": "Hell Gate pessoal."
+    },
+    "3329": {
+      "action": "dungeon_teleport",
+      "consume": true,
+      "partyMode": "party",
+      "x": 1684,
+      "y": 3676,
+      "durationSeconds": 240,
+      "description": "Hell Gate para o grupo."
+    },
+    "3909": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "hidden_ruins",
+      "durationSeconds": 86400,
+      "description": "Hidden Ruins por 24 horas."
+    },
+    "3910": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "hidden_ruins",
+      "durationSeconds": 604800,
+      "description": "Hidden Ruins por 7 dias (descricao nativa do itemhelp)."
+    },
+    "3974": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "hidden_ruins",
+      "durationSeconds": 28800,
+      "description": "Hidden Ruins por 8 horas."
+    },
+    "3393": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": { "honor": 50 },
+      "description": "Coin Wyden: +50 de honra, conforme W2PP."
+    },
+    "3394": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": { "donate": 100 },
+      "description": "Gold Wyden: +100 de donate."
+    },
+    "3395": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": { "donate": 1000 },
+      "description": "Gold Wyden: +1000 de donate."
+    },
+    "3396": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": { "donate": 5000 },
+      "description": "Gold Wyden: +5000 de donate."
+    },
+    "3441": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": { "donate": 10000 },
+      "description": "Gold Wyden: +10000 de donate."
+    },
+    "4114": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": { "game_medal_gold": 1 },
+      "description": "Game Room Gold Medal."
+    },
+    "4115": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": { "game_medal_red": 1 },
+      "description": "Game Room Red Medal."
+    },
+    "4116": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": { "game_medal_blue": 1 },
+      "description": "Game Room Blue Medal."
+    },
+    "3439": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "service",
+      "durationSeconds": 86400,
+      "description": "Service Ticket por 24 horas."
+    },
+    "3440": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "service",
+      "durationSeconds": 604800,
+      "description": "Service Ticket por 7 dias."
+    },
+    "3173": {
+      "action": "instance_ticket",
+      "consume": true,
+      "instance": {
+        "id": "water-normal-1",
+        "name": "Normal Water Room 1",
+        "x": 1121,
+        "y": 3556,
+        "spawnX": 1121,
+        "spawnY": 3556,
+        "areaRadius": 8,
+        "spawns": [{ "npc": "Meio_Orc_", "count": 15 }],
+        "rewardItem": 3174,
+        "allowedEvolutions": ["mortal"],
+        "durationSeconds": 120,
+        "exitX": 1966,
+        "exitY": 1768
+      },
+      "description": "Normal Water Scroll room 1; native room, population and two-minute timer."
+    },
+    "3174": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-normal-2", "name": "Normal Water Room 2", "x": 1085, "y": 3556, "spawnX": 1085, "spawnY": 3556, "areaRadius": 8, "spawns": [{ "npc": "Troll_Hunter", "count": 15 }], "rewardItem": 3175, "allowedEvolutions": ["mortal"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Normal Water Scroll room 2."
+    },
+    "3175": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-normal-3", "name": "Normal Water Room 3", "x": 1049, "y": 3556, "spawnX": 1049, "spawnY": 3556, "areaRadius": 8, "spawns": [{ "npc": "Ghoul_Chief", "count": 15 }], "rewardItem": 3176, "allowedEvolutions": ["mortal"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Normal Water Scroll room 3."
+    },
+    "3176": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-normal-4", "name": "Normal Water Room 4", "x": 1049, "y": 3520, "spawnX": 1049, "spawnY": 3520, "areaRadius": 8, "spawns": [{ "npc": "Cyclops_Arc3", "count": 15 }], "rewardItem": 3177, "allowedEvolutions": ["mortal"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Normal Water Scroll room 4."
+    },
+    "3177": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-normal-5", "name": "Normal Water Room 5", "x": 1049, "y": 3484, "spawnX": 1049, "spawnY": 3484, "areaRadius": 8, "spawns": [{ "npc": "Skeleton", "count": 15 }], "rewardItem": 3178, "allowedEvolutions": ["mortal"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Normal Water Scroll room 5."
+    },
+    "3178": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-normal-6", "name": "Normal Water Room 6", "x": 1085, "y": 3484, "spawnX": 1085, "spawnY": 3484, "areaRadius": 8, "spawns": [{ "npc": "Grim_Lock_D", "count": 15 }], "rewardItem": 3179, "allowedEvolutions": ["mortal"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Normal Water Scroll room 6."
+    },
+    "3179": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-normal-7", "name": "Normal Water Room 7", "x": 1121, "y": 3484, "spawnX": 1121, "spawnY": 3484, "areaRadius": 8, "spawns": [{ "npc": "Cyclops_Anc", "count": 15 }], "rewardItem": 3180, "allowedEvolutions": ["mortal"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Normal Water Scroll room 7."
+    },
+    "3180": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-normal-8", "name": "Normal Water Room 8", "x": 1121, "y": 3520, "spawnX": 1121, "spawnY": 3520, "areaRadius": 8, "spawns": [{ "npc": "Anf_Assasn2", "count": 15 }], "rewardItem": 3181, "allowedEvolutions": ["mortal"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Normal Water Scroll room 8."
+    },
+    "3181": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-normal-boss", "name": "Normal Water Nessus", "x": 1087, "y": 3518, "spawnX": 1087, "spawnY": 3518, "areaRadius": 12, "spawns": [{ "npc": "Troll_Caos__", "count": 1 }, { "npc": "Troll_Hunter", "count": 10 }], "allowedEvolutions": ["mortal"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Normal Nessus Scroll; final room, one boss and ten hunters."
+    },
+    "777": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-mystic-1", "name": "Mystic Water Room 1", "x": 1249, "y": 3684, "spawnX": 1249, "spawnY": 3684, "areaRadius": 8, "spawns": [{ "npc": "Dark_Elf2", "count": 15 }], "rewardItem": 778, "allowedEvolutions": ["mortal", "arch"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Mystic Water Scroll room 1."
+    },
+    "778": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-mystic-2", "name": "Mystic Water Room 2", "x": 1213, "y": 3684, "spawnX": 1213, "spawnY": 3684, "areaRadius": 8, "spawns": [{ "npc": "Troll_Ghoul_", "count": 15 }], "rewardItem": 779, "allowedEvolutions": ["mortal", "arch"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Mystic Water Scroll room 2."
+    },
+    "779": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-mystic-3", "name": "Mystic Water Room 3", "x": 1177, "y": 3684, "spawnX": 1177, "spawnY": 3684, "areaRadius": 8, "spawns": [{ "npc": "Anf_Ninja_", "count": 15 }], "rewardItem": 780, "allowedEvolutions": ["mortal", "arch"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Mystic Water Scroll room 3."
+    },
+    "780": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-mystic-4", "name": "Mystic Water Room 4", "x": 1177, "y": 3648, "spawnX": 1177, "spawnY": 3648, "areaRadius": 8, "spawns": [{ "npc": "Tauron___", "count": 15 }], "rewardItem": 781, "allowedEvolutions": ["mortal", "arch"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Mystic Water Scroll room 4."
+    },
+    "781": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-mystic-5", "name": "Mystic Water Room 5", "x": 1177, "y": 3612, "spawnX": 1177, "spawnY": 3612, "areaRadius": 8, "spawns": [{ "npc": "Grim_Lock_", "count": 15 }], "rewardItem": 782, "allowedEvolutions": ["mortal", "arch"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Mystic Water Scroll room 5."
+    },
+    "782": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-mystic-6", "name": "Mystic Water Room 6", "x": 1213, "y": 3612, "spawnX": 1213, "spawnY": 3612, "areaRadius": 8, "spawns": [{ "npc": "Elf_Witch2", "count": 15 }], "rewardItem": 783, "allowedEvolutions": ["mortal", "arch"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Mystic Water Scroll room 6."
+    },
+    "783": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-mystic-7", "name": "Mystic Water Room 7", "x": 1249, "y": 3612, "spawnX": 1249, "spawnY": 3612, "areaRadius": 8, "spawns": [{ "npc": "Gargoyle2", "count": 15 }], "rewardItem": 784, "allowedEvolutions": ["mortal", "arch"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Mystic Water Scroll room 7."
+    },
+    "784": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-mystic-8", "name": "Mystic Water Room 8", "x": 1249, "y": 3648, "spawnX": 1249, "spawnY": 3648, "areaRadius": 8, "spawns": [{ "npc": "Aqua_Golem_", "count": 15 }], "rewardItem": 785, "allowedEvolutions": ["mortal", "arch"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Mystic Water Scroll room 8."
+    },
+    "785": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-mystic-boss", "name": "Mystic Water Nessus", "x": 1216, "y": 3645, "spawnX": 1216, "spawnY": 3645, "areaRadius": 12, "spawns": [{ "npc": "Immort_Hydra", "count": 1 }, { "npc": "Hydra2", "count": 10 }], "allowedEvolutions": ["mortal", "arch"], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Mystic Nessus Scroll; final room, one boss and ten water hydras."
+    },
+    "3182": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-arcane-1", "name": "Arcane Water Room 1", "x": 1378, "y": 3554, "spawnX": 1378, "spawnY": 3554, "areaRadius": 8, "spawns": [{ "npc": "Gargoyle3", "count": 15 }], "rewardItem": 3183, "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Arcane Water Scroll room 1."
+    },
+    "3183": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-arcane-2", "name": "Arcane Water Room 2", "x": 1342, "y": 3554, "spawnX": 1342, "spawnY": 3554, "areaRadius": 8, "spawns": [{ "npc": "Fire_Golem", "count": 15 }], "rewardItem": 3184, "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Arcane Water Scroll room 2."
+    },
+    "3184": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-arcane-3", "name": "Arcane Water Room 3", "x": 1306, "y": 3554, "spawnX": 1306, "spawnY": 3554, "areaRadius": 8, "spawns": [{ "npc": "Tauron_", "count": 15 }], "rewardItem": 3185, "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Arcane Water Scroll room 3."
+    },
+    "3185": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-arcane-4", "name": "Arcane Water Room 4", "x": 1306, "y": 3518, "spawnX": 1306, "spawnY": 3518, "areaRadius": 8, "spawns": [{ "npc": "Lich_Dragon2", "count": 5 }], "rewardItem": 3186, "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Arcane Water Scroll room 4."
+    },
+    "3186": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-arcane-5", "name": "Arcane Water Room 5", "x": 1306, "y": 3482, "spawnX": 1306, "spawnY": 3482, "areaRadius": 8, "spawns": [{ "npc": "Dark_Kn2", "count": 15 }], "rewardItem": 3187, "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Arcane Water Scroll room 5."
+    },
+    "3187": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-arcane-6", "name": "Arcane Water Room 6", "x": 1342, "y": 3482, "spawnX": 1342, "spawnY": 3482, "areaRadius": 8, "spawns": [{ "npc": "Morlock____", "count": 15 }], "rewardItem": 3188, "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Arcane Water Scroll room 6."
+    },
+    "3188": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-arcane-7", "name": "Arcane Water Room 7", "x": 1378, "y": 3482, "spawnX": 1378, "spawnY": 3482, "areaRadius": 8, "spawns": [{ "npc": "Hell_Spider2", "count": 15 }], "rewardItem": 3189, "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Arcane Water Scroll room 7."
+    },
+    "3189": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-arcane-8", "name": "Arcane Water Room 8", "x": 1378, "y": 3518, "spawnX": 1378, "spawnY": 3518, "areaRadius": 8, "spawns": [{ "npc": "LiggleSwarm", "count": 15 }], "rewardItem": 3190, "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Arcane Water Scroll room 8."
+    },
+    "3190": {
+      "action": "instance_ticket", "consume": true,
+      "instance": { "id": "water-arcane-boss", "name": "Arcane Water Nessus", "x": 1342, "y": 3517, "spawnX": 1342, "spawnY": 3517, "areaRadius": 12, "spawns": [{ "npc": "Lugefer_Maligno", "count": 1 }, { "npc": "Gargoyle3", "count": 10 }], "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "description": "Arcane Nessus Scroll; final room, one boss and ten gargoyles."
+    },
+    "4111": {
+      "action": "territory_pass",
+      "consume": true,
+      "requiredEvolution": "mortal",
+      "x": 3639,
+      "y": 3639,
+      "description": "Game Room Bead Mortal: entrada no territorio Mortal."
+    },
+    "4112": {
+      "action": "territory_pass",
+      "consume": true,
+      "requiredEvolution": "arch",
+      "x": 3782,
+      "y": 3527,
+      "description": "Game Room Bead Arch: entrada no territorio Arch."
+    },
+    "4113": {
+      "action": "territory_pass",
+      "consume": true,
+      "requiredEvolution": "celestial",
+      "x": 3911,
+      "y": 3655,
+      "description": "Game Room Bead Celestial: entrada no territorio Celestial/Subcelestial."
+    },
     "4117": {
       "action": "quest_reward",
       "consume": true,
       "mortalOnly": true,
       "minLevel": 39,
       "maxLevelExclusive": 115,
-      "exp": 5000,
+      "exp": 70000,
       "gold": 2000,
       "description": "Box of Wisdom: recompensa da area do Gravedigger."
     },
@@ -566,7 +1154,7 @@
       "mortalOnly": true,
       "minLevel": 115,
       "maxLevelExclusive": 190,
-      "exp": 10000,
+      "exp": 140000,
       "gold": 2500,
       "description": "Tears of Angell: recompensa da area dos Carbuncles."
     },
@@ -576,7 +1164,7 @@
       "mortalOnly": true,
       "minLevel": 190,
       "maxLevelExclusive": 265,
-      "exp": 50000,
+      "exp": 320000,
       "gold": 3000,
       "description": "Heart of Kaizen: recompensa da area de Kaizen."
     },
@@ -586,8 +1174,8 @@
       "mortalOnly": true,
       "minLevel": 265,
       "maxLevelExclusive": 320,
-      "exp": 100000,
-      "gold": 3750,
+      "exp": 640000,
+      "gold": 2000,
       "description": "Blood Eye: recompensa da area das Hidras."
     },
     "4121": {
@@ -596,8 +1184,8 @@
       "mortalOnly": true,
       "minLevel": 320,
       "maxLevelExclusive": 350,
-      "exp": 200000,
-      "gold": 47500,
+      "exp": 1300000,
+      "gold": 4000,
       "description": "Elf's Spirit Stone: recompensa da area dos Elfos."
     },
     "3313": {
@@ -1046,252 +1634,52 @@
     "4016": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade A Repliction (pool forte, tunavel).",
-      "addPool": [
-        {
-          "effect": 2,
-          "value": 40,
-          "weight": 2
-        },
-        {
-          "effect": 60,
-          "value": 30,
-          "weight": 2
-        },
-        {
-          "effect": 7,
-          "value": 10,
-          "weight": 3
-        },
-        {
-          "effect": 10,
-          "value": 10,
-          "weight": 3
-        },
-        {
-          "effect": 45,
-          "value": 8,
-          "weight": 1
-        }
-      ]
+      "description": "Repliction normal para equipamento Grade A, ate +6."
     },
     "4021": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade A (Premium): mesmo pool forte.",
-      "addPool": [
-        {
-          "effect": 2,
-          "value": 40,
-          "weight": 2
-        },
-        {
-          "effect": 60,
-          "value": 30,
-          "weight": 2
-        },
-        {
-          "effect": 7,
-          "value": 10,
-          "weight": 3
-        },
-        {
-          "effect": 10,
-          "value": 10,
-          "weight": 3
-        },
-        {
-          "effect": 45,
-          "value": 8,
-          "weight": 1
-        }
-      ]
+      "description": "Repliction Premium para equipamento Grade A, ate +9."
     },
     "4017": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade B Repliction.",
-      "addPool": [
-        {
-          "effect": 2,
-          "value": 25,
-          "weight": 2
-        },
-        {
-          "effect": 60,
-          "value": 20,
-          "weight": 2
-        },
-        {
-          "effect": 7,
-          "value": 7,
-          "weight": 3
-        },
-        {
-          "effect": 10,
-          "value": 7,
-          "weight": 3
-        }
-      ]
+      "description": "Repliction normal para equipamento Grade B, ate +6."
     },
     "4022": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade B (Premium).",
-      "addPool": [
-        {
-          "effect": 2,
-          "value": 25,
-          "weight": 2
-        },
-        {
-          "effect": 60,
-          "value": 20,
-          "weight": 2
-        },
-        {
-          "effect": 7,
-          "value": 7,
-          "weight": 3
-        },
-        {
-          "effect": 10,
-          "value": 7,
-          "weight": 3
-        }
-      ]
+      "description": "Repliction Premium para equipamento Grade B, ate +9."
     },
     "4018": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade C Repliction.",
-      "addPool": [
-        {
-          "effect": 2,
-          "value": 15,
-          "weight": 2
-        },
-        {
-          "effect": 7,
-          "value": 4,
-          "weight": 3
-        },
-        {
-          "effect": 10,
-          "value": 4,
-          "weight": 3
-        }
-      ]
+      "description": "Repliction normal para equipamento Grade C, ate +6."
     },
     "4023": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade C (Premium).",
-      "addPool": [
-        {
-          "effect": 2,
-          "value": 15,
-          "weight": 2
-        },
-        {
-          "effect": 7,
-          "value": 4,
-          "weight": 3
-        },
-        {
-          "effect": 10,
-          "value": 4,
-          "weight": 3
-        }
-      ]
+      "description": "Repliction Premium para equipamento Grade C, ate +9."
     },
     "4019": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade D Repliction.",
-      "addPool": [
-        {
-          "effect": 2,
-          "value": 8,
-          "weight": 2
-        },
-        {
-          "effect": 7,
-          "value": 2,
-          "weight": 3
-        },
-        {
-          "effect": 10,
-          "value": 2,
-          "weight": 3
-        }
-      ]
+      "description": "Repliction normal para equipamento Grade D, ate +6."
     },
     "4024": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade D (Premium).",
-      "addPool": [
-        {
-          "effect": 2,
-          "value": 8,
-          "weight": 2
-        },
-        {
-          "effect": 7,
-          "value": 2,
-          "weight": 3
-        },
-        {
-          "effect": 10,
-          "value": 2,
-          "weight": 3
-        }
-      ]
+      "description": "Repliction Premium para equipamento Grade D, ate +9."
     },
     "4020": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade E Repliction (mais fraco).",
-      "addPool": [
-        {
-          "effect": 7,
-          "value": 1,
-          "weight": 1
-        },
-        {
-          "effect": 10,
-          "value": 1,
-          "weight": 1
-        },
-        {
-          "effect": 2,
-          "value": 5,
-          "weight": 1
-        }
-      ]
+      "description": "Repliction normal para equipamento Grade E, ate +6."
     },
     "4025": {
       "action": "repliction",
       "consume": true,
-      "description": "Grade E (Premium).",
-      "addPool": [
-        {
-          "effect": 7,
-          "value": 1,
-          "weight": 1
-        },
-        {
-          "effect": 10,
-          "value": 1,
-          "weight": 1
-        },
-        {
-          "effect": 2,
-          "value": 5,
-          "weight": 1
-        }
-      ]
+      "description": "Repliction Premium para equipamento Grade E, ate +9."
     }
   }
 }

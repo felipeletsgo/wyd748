@@ -2,11 +2,11 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"wydgo/internal/account"
@@ -14,13 +14,27 @@ import (
 )
 
 func main() {
-	accountsDir := flag.String("accounts", filepath.FromSlash("data/accounts"), "diretorio dos arquivos de conta")
+	databaseURLEnv := flag.String("database-url-env", "WYD_DATABASE_URL",
+		"variavel de ambiente com a URL PostgreSQL")
 	username := flag.String("username", "", "nome da conta (a senha nunca deve ser passada por argumento)")
 	noPause := flag.Bool("no-pause", false, "nao aguarda ENTER antes de fechar")
 	flag.Parse()
 
 	reader := bufio.NewReader(os.Stdin)
-	exitCode := run(reader, *accountsDir, *username)
+	databaseURL := os.Getenv(*databaseURLEnv)
+	if databaseURL == "" {
+		fmt.Fprintf(os.Stderr, "Erro: variavel %s esta vazia.\n", *databaseURLEnv)
+		os.Exit(1)
+	}
+	st, err := store.NewPostgresStore(context.Background(), store.PostgresConfig{
+		URL: databaseURL, MaxConns: 2,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Erro ao conectar ao PostgreSQL: %v\n", err)
+		os.Exit(1)
+	}
+	defer st.Close()
+	exitCode := run(reader, st, *username)
 	if !*noPause {
 		fmt.Print("\nPressione ENTER para fechar...")
 		_, _ = reader.ReadString('\n')
@@ -28,7 +42,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func run(reader *bufio.Reader, accountsDir, presetUsername string) int {
+func run(reader *bufio.Reader, st account.RegistrationStore, presetUsername string) int {
 	fmt.Println("WYD-Go - Criador de contas")
 	fmt.Println("A senha sera armazenada somente como hash seguro.")
 	fmt.Println()
@@ -55,15 +69,10 @@ func run(reader *bufio.Reader, accountsDir, presetUsername string) int {
 		return 1
 	}
 
-	accountsPath, err := filepath.Abs(accountsDir)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Diretorio de contas invalido: %v\n", err)
-		return 1
-	}
-	_, err = account.Create(store.NewJSONStore(accountsPath), username, password, confirmation)
+	_, err = account.Create(st, username, password, confirmation)
 	if err == nil {
 		fmt.Printf("\nConta %q criada com sucesso.\n", username)
-		fmt.Printf("Arquivo salvo em: %s\n", accountsPath)
+		fmt.Println("Conta confirmada no PostgreSQL.")
 		return 0
 	}
 

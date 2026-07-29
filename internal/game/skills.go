@@ -30,7 +30,7 @@ func skillHasServerExecution(skill model.SkillDef) bool {
 	switch skill.Index {
 	case 3, 5, 6, 25, 26, 27, 29, 31, 42, 47,
 		49, 56, 57, 58, 59, 60, 61, 62, 63,
-		73, 84, 85:
+		73, 79, 83, 84:
 		return true
 	default:
 		return false
@@ -360,7 +360,8 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 	castRange := uint16(maxInt(attackRange, skill.Range+bonusRange))
 	primary := w.mobByID(req.TargetID)
 	if primary == nil || primary.Dead || primary.HP == 0 || !primary.Def.IsMonster() ||
-		primary.SummonerID != 0 || chebyshev(p.X, p.Y, primary.X, primary.Y) > int(castRange) {
+		primary.SummonerID != 0 || chebyshev(p.X, p.Y, primary.X, primary.Y) > int(castRange) ||
+		!w.combatLineOfSight(p.X, p.Y, primary.X, primary.Y) {
 		return nil
 	}
 	limit := clampInt(skill.MaxTarget, 1, 13)
@@ -398,16 +399,6 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		return
 	}
 	now := time.Now()
-	if skill.Aggressive == 0 && !canUseSupportSkill(p.Char, skill, now) {
-		// Aura da Vida e o unico buff TK descrito por TickType no SkillData.
-		// O modo automatico do client 7.48 pode solicitar novamente a skill antes
-		// de perceber o affect 17. Reenvie o estado autoritativo para sincronizar
-		// o cliente, sem cobrar MP, iniciar cooldown ou reproduzir a animacao.
-		if skillIndex == 5 {
-			p.Session.Send(wire.UpdateAffects(p.ID, *p.Char))
-		}
-		return
-	}
 	if p.SkillReady == nil {
 		p.SkillReady = make(map[int]time.Time)
 	}
@@ -444,7 +435,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if playerCurMP(p.Char) < uint32(mana) {
 		return
 	}
-	if skillIndex == 85 { // Alquimia: W2PP cobra 10 * level ao abrir a composicao.
+	if skillIndex == 83 { // Alquimia: W2PP cobra 10 * level ao abrir a composicao.
 		cost := playerLevel(p.Char) * 10
 		if p.Char.Gold < cost {
 			return
@@ -458,10 +449,9 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if skill.Aggressive != 0 {
 		w.breakHideOnAttack(p)
 	}
-	delay := time.Duration(skill.Delay) * 250 * time.Millisecond
-	if delay < 250*time.Millisecond {
-		delay = 250 * time.Millisecond
-	}
+	// SkillData.Delay e expresso em segundos tanto pelo client quanto no TMSrv.
+	// Multiplicar por 250 ms permitia quatro casts no periodo de um.
+	delay := time.Duration(skill.Delay) * time.Second
 	p.SkillReady[skillIndex] = now.Add(delay)
 	if motion == 0 {
 		motion = 5
@@ -566,6 +556,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			damageValue := skillFinalDamage(baseDamage, effectiveMobDefense(target), skillDamageMastery(p.Char))
 			damageValue = damageValue * 70 / 100 // reducao PvE Mortal da _MSG_Attack 7.59
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, effectiveMobResistances(target), true)
+			damageValue = applyCouragePvEDamage(p.Char, damageValue, magicDamage)
 			perHitCalculated := uint32(clampInt(damageValue, 1, int(maxExtendedStat)))
 			calculatedWide := uint64(perHitCalculated) * uint64(hitCount)
 			if calculatedWide > uint64(maxExtendedStat) {

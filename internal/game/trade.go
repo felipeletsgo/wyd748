@@ -84,7 +84,7 @@ func parseTradeRequest(pkt []byte, ch *model.Char) (tradeRequest, error) {
 		}
 		used[pos] = struct{}{}
 		item := ch.Inv[pos]
-		if item.Index == 0 || item != packetItem {
+		if item.Index == 0 || !item.WireEqual(packetItem) {
 			return req, fmt.Errorf("item do slot %d diverge do inventario", pos)
 		}
 		req.CarryPos[i] = int8(pos)
@@ -332,6 +332,9 @@ func (w *World) saveTradeAccounts(accounts ...*model.Account) error {
 	}
 	if batch, ok := w.store.(tradeBatchStore); ok {
 		return batch.SaveAccounts(accounts...)
+	}
+	if len(accounts) > 1 {
+		return errors.New("store sem transacao multi-account; trade recusado")
 	}
 	for _, account := range accounts {
 		if err := w.saveAccount(account); err != nil {

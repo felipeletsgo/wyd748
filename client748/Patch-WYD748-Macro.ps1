@@ -15,19 +15,17 @@ $ErrorActionPreference = 'Stop'
 # sem buff".
 #
 # Fix: no ponto do cast (0x00493970, apos o JBE confirmar que a skill vai sair),
-# registrar o cast: DAT_0092eaf8[skillID*4] = agora. ECX ainda contem skillID
-# (setado em 0x00493959, nao clobrado ate aqui; unico caminho de entrada e o JBE).
+# registrar o cast em DAT_0092eaf8[skillID*4]. Para ataques, grava "agora".
+# Para buffs reconhecidos pelo macro, grava:
 #
-# Como a .text esta cheia (o Patch-WYD748.ps1 ja usou o padding estendido),
-# encadeamos dois runs de padding livres existentes:
-#   Cave A (0x0040C001, 15 bytes de 0xCC entre duas funcoes):
-#       8B 45 F8               MOV EAX,[EBP-0x08]            ; EAX = agora
-#       89 04 8D F8 EA 92 00   MOV [ECX*4+0x0092EAF8],EAX    ; cooldown[skillID]=agora
-#       E9 rel32               JMP Cave B
-#   Cave B (0x0059DD52, 14 bytes de 0x90):
-#       A1 E8 71 3B 01         MOV EAX,[0x013B71E8]          ; instrucao deslocada
-#       E9 rel32               JMP 0x00493975               ; volta
-#   Hook (0x00493970): troca os 5 bytes MOV EAX,[0x013B71E8] por JMP Cave A.
+#   agora + 150000 ms - cooldown_calculado
+#
+# Como a checagem seguinte soma novamente o cooldown, o proximo pedido do macro
+# ocorre exatamente em 150 s (180 s - janela de renovacao de 30 s). O clique
+# manual usa outro fluxo do client e nao passa por este hook.
+#
+# A code cave fica na area livre executavel da secao .xstat, criada pelo patch
+# ExtendedStats. Uma tabela de 96 bits identifica somente os buffs 0..95.
 # ============================================================================
 
 # Estado esperado: WYD.exe com os patches principal + ExtendedStats ja aplicados
@@ -45,6 +43,9 @@ function Assert-Bytes([byte[]]$Data, [int]$Offset, [byte[]]$Expected, [string]$N
 function Set-Bytes([byte[]]$Data, [int]$Offset, [byte[]]$Value) {
     [Array]::Copy($Value, 0, $Data, $Offset, $Value.Length)
 }
+function Rel32([uint32]$FromNextInstruction, [uint32]$Target) {
+    return [BitConverter]::GetBytes([int32]([int64]$Target - [int64]$FromNextInstruction))
+}
 
 $actualHash = (Get-FileHash -LiteralPath $Executable -Algorithm SHA256).Hash
 if ($actualHash -ne $expectedHash) {
@@ -60,32 +61,51 @@ if (-not (Test-Path $backup)) {
 
 $data = [IO.File]::ReadAllBytes($Executable)
 
-# --- offsets de arquivo (file offset = VA - 0x400000 nesta .text) ---
-$hookOffset  = 0x93970    # VA 0x00493970  MOV EAX,[0x013B71E8]
-$caveAOffset = 0xC001     # VA 0x0040C001  15 x 0xCC
-$caveBOffset = 0x19DD52   # VA 0x0059DD52  14 x 0x90
+# --- enderecos/offsets ---
+$hookOffset = 0x93970       # VA 0x00493970 MOV EAX,[0x013B71E8]
+$hookVA = [uint32]0x00493970
+$caveOffset = 0x1D3207      # .xstat RVA 0xFC0207
+$caveVA = [uint32]0x013C0207
+$buffBitsOffset = $caveOffset + 0x30
+$buffBitsVA = [uint32]($caveVA + 0x30)
 
 # --- verificacoes do estado original ---
 Assert-Bytes $data $hookOffset  ([byte[]](0xA1,0xE8,0x71,0x3B,0x01)) 'hook (MOV EAX,[013B71E8])'
-Assert-Bytes $data $caveAOffset ([byte[]](0xCC) * 15) 'cave A (padding 0xCC)'
-Assert-Bytes $data $caveBOffset ([byte[]](0x90) * 10) 'cave B (padding 0x90)'
+Assert-Bytes $data $caveOffset ([byte[]](0x00) * 64) 'macro cave (.xstat livre)'
 
-# --- patches (rel32 pre-calculados; conferidos byte a byte) ---
-# Hook -> Cave A:  E9 (0x40C001 - 0x493975) = E9 8C 86 F7 FF
-Set-Bytes $data $hookOffset ([byte[]](0xE9,0x8C,0x86,0xF7,0xFF))
+# Hook -> macro cave.
+$hook = [byte[]](0xE9) + [byte[]](Rel32 ($hookVA + 5) $caveVA)
+Set-Bytes $data $hookOffset $hook
 
-# Cave A: MOV EAX,[EBP-8]; MOV [ECX*4+0x92EAF8],EAX; JMP Cave B (0x59DD52-0x40C010)
-Set-Bytes $data $caveAOffset ([byte[]](
+# IDs de buff reconhecidos pela rotina 0x0049362C:
+# TK 5,11,13,15; Foema 37,41,43-46; BM 53,54,64,66,68,70,71;
+# Huntress 76,77,87,89.
+$buffBits = [byte[]](0x00,0x28,0xA0,0x00,0x00,0x2A,0x70,0x60,0x15,0xC0,0x30,0x82)
+Set-Bytes $data $buffBitsOffset $buffBits
+
+# MOV EAX,[EBP-8]                  ; agora
+# BT  DWORD PTR [buffBits],ECX     ; CF=1 para buff
+# JNC normal
+# SUB EAX,[EBP-40h]                ; remove cooldown que a checagem somara
+# ADD EAX,150000                   ; proximo pedido em 150 s
+# normal:
+# MOV [ECX*4+0092EAF8h],EAX
+# MOV EAX,[013B71E8h]              ; instrucao deslocada
+# JMP 00493975h
+$code = [byte[]](
     0x8B,0x45,0xF8,
+    0x0F,0xA3,0x0D
+) + [BitConverter]::GetBytes($buffBitsVA) + [byte[]](
+    0x73,0x08,
+    0x2B,0x45,0xC0,
+    0x05,0xF0,0x49,0x02,0x00,
     0x89,0x04,0x8D,0xF8,0xEA,0x92,0x00,
-    0xE9,0x42,0x1D,0x19,0x00
-))
-
-# Cave B: MOV EAX,[0x013B71E8] (deslocada); JMP 0x00493975 (volta)
-Set-Bytes $data $caveBOffset ([byte[]](
     0xA1,0xE8,0x71,0x3B,0x01,
-    0xE9,0x19,0x9C,0xEF,0xFF
-))
+    0xE9
+)
+$returnFrom = [uint32]($caveVA + $code.Length + 4)
+$code += [byte[]](Rel32 $returnFrom ([uint32]0x00493975))
+Set-Bytes $data $caveOffset $code
 
 [IO.File]::WriteAllBytes($Executable, $data)
 

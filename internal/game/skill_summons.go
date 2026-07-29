@@ -290,6 +290,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 			w.mountRiderDied(target.user)
 			setPlayerCurHP(target.user.Char, 0)
 			target.user.DeadAt = now
+			w.applyPvPKills(owner, target.user)
 		} else {
 			setPlayerCurHP(target.user.Char, currentHP-damage)
 		}

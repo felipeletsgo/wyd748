@@ -15,6 +15,10 @@ import (
 // balanceamento. Dados especificos continuam em NPCGener, SkillData, NPCs etc.
 type ServerConfig struct {
 	ListenAddress         string
+	DatabaseDriver        string
+	DatabaseURL           string
+	DatabaseURLEnv        string
+	DatabaseMaxConns      uint32
 	NPCPath               string
 	GeneratorPath         string
 	AccountsPath          string
@@ -27,9 +31,11 @@ type ServerConfig struct {
 	BossPath              string
 	ItemPath              string
 	ItemNamePath          string
+	ItemEffectPath        string
 	SkillPath             string
 	DropRatePath          string
 	VolatilePath          string
+	ReplictionPath        string
 	MountPath             string
 	CharacterTemplatePath string
 	HeightMapPath         string
@@ -47,6 +53,9 @@ type ServerConfig struct {
 func DefaultServerConfig() ServerConfig {
 	return ServerConfig{
 		ListenAddress:         "0.0.0.0:8281",
+		DatabaseDriver:        "postgres",
+		DatabaseURLEnv:        "WYD_DATABASE_URL",
+		DatabaseMaxConns:      8,
 		NPCPath:               "data/npcs",
 		GeneratorPath:         "data/NPCGener.txt",
 		AccountsPath:          "data/accounts",
@@ -59,9 +68,11 @@ func DefaultServerConfig() ServerConfig {
 		BossPath:              "data/boss",
 		ItemPath:              "data/itemlist.csv",
 		ItemNamePath:          "data/Itemname.csv",
+		ItemEffectPath:        "data/ItemEffect.h",
 		SkillPath:             "data/SkillData.csv",
 		DropRatePath:          "data/droprate.json",
 		VolatilePath:          "data/volatiles.json",
+		ReplictionPath:        "data/repliction.json",
 		MountPath:             "data/mounts.json",
 		CharacterTemplatePath: "data/character_templates.json",
 		HeightMapPath:         "../Server Star Micronics/TMSRV/run/HeightMap.dat",
@@ -93,6 +104,10 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	}
 	setters := map[string]func(string) error{
 		"listen_address":      func(v string) error { cfg.ListenAddress = v; return nil },
+		"database_driver":     func(v string) error { cfg.DatabaseDriver = strings.ToLower(v); return nil },
+		"database_url":        func(v string) error { cfg.DatabaseURL = v; return nil },
+		"database_url_env":    func(v string) error { cfg.DatabaseURLEnv = v; return nil },
+		"database_max_conns":  setUint32(&cfg.DatabaseMaxConns),
 		"npcs":                func(v string) error { cfg.NPCPath = v; return nil },
 		"npcgener":            func(v string) error { cfg.GeneratorPath = v; return nil },
 		"accounts":            func(v string) error { cfg.AccountsPath = v; return nil },
@@ -105,9 +120,11 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"boss":                func(v string) error { cfg.BossPath = v; return nil },
 		"items":               func(v string) error { cfg.ItemPath = v; return nil },
 		"itemnames":           func(v string) error { cfg.ItemNamePath = v; return nil },
+		"itemeffects":         func(v string) error { cfg.ItemEffectPath = v; return nil },
 		"skills":              func(v string) error { cfg.SkillPath = v; return nil },
 		"droprates":           func(v string) error { cfg.DropRatePath = v; return nil },
 		"volatiles":           func(v string) error { cfg.VolatilePath = v; return nil },
+		"repliction":          func(v string) error { cfg.ReplictionPath = v; return nil },
 		"mounts":              func(v string) error { cfg.MountPath = v; return nil },
 		"character_templates": func(v string) error { cfg.CharacterTemplatePath = v; return nil },
 		"heightmap":           func(v string) error { cfg.HeightMapPath = v; return nil },
@@ -160,6 +177,20 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	default:
 		return ServerConfig{}, fmt.Errorf("%s: npcgener_log invalido %q (use quiet, summary ou verbose)",
 			path, cfg.NPCGenerLog)
+	}
+	switch cfg.DatabaseDriver {
+	case "postgres", "json":
+	default:
+		return ServerConfig{}, fmt.Errorf("%s: database_driver invalido %q (use postgres ou json)",
+			path, cfg.DatabaseDriver)
+	}
+	if cfg.DatabaseDriver == "postgres" {
+		if cfg.DatabaseURL == "" && cfg.DatabaseURLEnv == "" {
+			return ServerConfig{}, fmt.Errorf("%s: PostgreSQL exige database_url ou database_url_env", path)
+		}
+		if cfg.DatabaseMaxConns == 0 || cfg.DatabaseMaxConns > 64 {
+			return ServerConfig{}, fmt.Errorf("%s: database_max_conns deve ficar entre 1 e 64", path)
+		}
 	}
 	if cfg.DebugAddress != "" {
 		if err := ValidateDebugAddress(cfg.DebugAddress); err != nil {

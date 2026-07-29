@@ -2,6 +2,7 @@ package data
 
 import (
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -85,5 +86,124 @@ func TestLojasDeVolatileCabemNaJanela(t *testing.T) {
 	}
 	if achou == 0 {
 		t.Error("nenhuma loja ShopVol* encontrada: a cobertura de volatile do beta sumiu")
+	}
+}
+
+// Uma sala configurada com nome digitado errado so falharia quando o jogador
+// consumisse o ticket. O boot tambem valida essa referencia, mas este teste
+// aponta o item exato sem precisar iniciar banco, mundo e rede.
+func TestInstanciasDeItemReferenciamNPCExistente(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"), catalog.Items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	npcs, err := LoadNPCs(filepath.Join(root, "npcs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := make(map[string]struct{}, len(npcs))
+	for _, npc := range npcs {
+		names[npc.Name] = struct{}{}
+	}
+	for itemID, rule := range volatiles.Items {
+		if rule.Action != "instance_ticket" || rule.Instance == nil {
+			continue
+		}
+		for _, spawn := range rule.Instance.Spawns {
+			if _, ok := names[spawn.NPC]; !ok {
+				t.Errorf("item %d instancia %q referencia NPC ausente %q",
+					itemID, rule.Instance.ID, spawn.NPC)
+			}
+		}
+		for stageIndex, stage := range rule.Instance.Stages {
+			for _, spawn := range stage.Spawns {
+				if _, ok := names[spawn.NPC]; !ok {
+					t.Errorf("item %d instancia %q sala %d referencia NPC ausente %q",
+						itemID, rule.Instance.ID, stageIndex+1, spawn.NPC)
+				}
+			}
+		}
+	}
+}
+
+func TestCatalogoRealNaoTemVolatileGenerico(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"), catalog.Items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var generic, celestial []uint16
+	for itemID := range volatiles.ItemCodes {
+		rule, _, ok := volatiles.Rule(itemID)
+		if !ok {
+			t.Fatalf("item volatile %d nao resolveu regra", itemID)
+		}
+		switch rule.Action {
+		case "generic":
+			generic = append(generic, itemID)
+		case "celestial_pending":
+			celestial = append(celestial, itemID)
+		}
+	}
+	sort.Slice(generic, func(i, j int) bool { return generic[i] < generic[j] })
+	sort.Slice(celestial, func(i, j int) bool { return celestial[i] < celestial[j] })
+	if len(generic) != 0 {
+		t.Fatalf("itens ainda no generic: %v", generic)
+	}
+	wantCelestial := []uint16{3443, 3455, 5338}
+	if len(celestial) != len(wantCelestial) {
+		t.Fatalf("celestial_pending=%v, quer %v", celestial, wantCelestial)
+	}
+	for i := range celestial {
+		if celestial[i] != wantCelestial[i] {
+			t.Fatalf("celestial_pending=%v, quer %v", celestial, wantCelestial)
+		}
+	}
+}
+
+func TestLojasDaRodadaVendemTodasAsVariantesNaoCelestial(t *testing.T) {
+	npcs, err := LoadNPCs(filepath.Join("..", "..", "data", "npcs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := make(map[uint16]struct{})
+	for _, npc := range npcs {
+		if npc.Name != "ShopUse20A" && npc.Name != "ShopUse20B" {
+			continue
+		}
+		for _, item := range npc.Vende {
+			got[item.Index] = struct{}{}
+		}
+	}
+	want := []uint16{
+		417, 3330, 3336, 3337, 3338, 3339, 3453, 3454, 4003, 4004,
+		4005, 4007, 1729, 1730, 4105, 1731, 3171, 3172, 1737, 1772,
+		4000, 4001, 3324, 3390, 3325, 3391, 3326, 3392, 3328, 3329,
+		3909, 3910, 3974, 3331, 4012, 3393, 3394, 3395, 3396, 3441,
+		4114, 4115, 4116, 3439, 3440, 4147, 3444,
+	}
+	for _, itemID := range want {
+		if _, ok := got[itemID]; !ok {
+			t.Errorf("item nao-Celestial %d ausente das lojas da rodada", itemID)
+		}
+	}
+	for _, itemID := range []uint16{3443, 3455, 5338} {
+		if _, ok := got[itemID]; ok {
+			t.Errorf("item Celestial %d entrou nas lojas da rodada", itemID)
+		}
+	}
+	if len(got) != len(want) {
+		t.Fatalf("lojas possuem %d itens, esperados %d", len(got), len(want))
 	}
 }

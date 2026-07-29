@@ -332,9 +332,9 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 		return true
 	}
 	arch.Evolution = archEvolution
-	// Guarda a origem: o slot alimenta o recalculo a cada login e o nivel fica
-	// em cache para o calculo de pontos, que so recebe o Char.
-	arch.ArchMortalSlot = p.CharSlot
+	// Guarda a origem por identidade estavel. O slot pode ser apagado/reutilizado
+	// e nunca pode fazer um Arch passar a herdar nivel de outro personagem.
+	arch.ArchMortalUID = p.Char.UID
 	arch.ArchMortalLevel = p.Char.Extended.Level
 	// Rosto do Arch = rosto do Mortal + 5 + classe (CFileDB.cpp:1993).
 	arch.Equip[0].Index = p.Char.Equip[0].Index + archFaceOffset + uint16(class)
@@ -398,12 +398,18 @@ func refreshArchMortalLevel(account *model.Account) bool {
 		if arch.Name == "" || !isArch(arch) {
 			continue
 		}
-		slot := arch.ArchMortalSlot
-		if slot < 0 || slot >= len(account.Chars) || slot == i {
+		if arch.ArchMortalUID == "" || arch.ArchMortalUID == arch.UID {
 			continue
 		}
-		mortal := &account.Chars[slot]
-		if mortal.Name == "" || mortal.Extended == nil {
+		var mortal *model.Char
+		for j := range account.Chars {
+			candidate := &account.Chars[j]
+			if j != i && candidate.UID == arch.ArchMortalUID {
+				mortal = candidate
+				break
+			}
+		}
+		if mortal == nil || mortal.Name == "" || mortal.Extended == nil {
 			continue
 		}
 		if arch.ArchMortalLevel != mortal.Extended.Level {

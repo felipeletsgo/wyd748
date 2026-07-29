@@ -8,7 +8,8 @@ import (
 )
 
 func TestItemAbilityUsesStaticDynamicAndRefine(t *testing.T) {
-	def := model.ItemDef{Index: 100, StaticEffects: []model.StaticEffect{{Name: "EF_DAMAGE", Value: 10}}}
+	def := model.ItemDef{Index: 100, StaticEffects: []model.StaticEffect{{Name: "EF_DAMAGE", Value: 10}},
+		DynamicEffectNames: map[byte]string{2: "EF_DAMAGE", 43: "EF_SANC"}}
 	item := model.Item{Index: 100, Eff: [6]byte{2, 5, 43, 9}}
 	if got := itemAbility(item, def, "EF_DAMAGE"); got != 28 { // (10+5)*1.9
 		t.Fatalf("damage refinado=%d, esperado 28", got)
@@ -74,6 +75,65 @@ func TestCanEquipIsServerAuthoritative(t *testing.T) {
 	ch.Class = 1
 	if w.canEquip(ch, item, 6) {
 		t.Fatal("cliente conseguiu ignorar restricao de classe")
+	}
+}
+
+func TestArchEquipUsesMortalBodyAndIgnoresRequirements(t *testing.T) {
+	const (
+		tkArmor  = 100
+		htArmor  = 101
+		fmWeapon = 102
+	)
+	w := &World{items: map[uint16]model.ItemDef{
+		tkArmor: {
+			Index: tkArmor, Pos: 1 << 2, ReqLevel: 400, ReqStr: 100_000,
+			StaticEffects: []model.StaticEffect{{Name: "EF_CLASS", Value: 1 << 0}},
+		},
+		htArmor: {
+			Index: htArmor, Pos: 1 << 2,
+			StaticEffects: []model.StaticEffect{{Name: "EF_CLASS", Value: 1 << 3}},
+		},
+		fmWeapon: {
+			Index: fmWeapon, Pos: 1 << 6, ReqLevel: 400, ReqInt: 100_000,
+			StaticEffects: []model.StaticEffect{{Name: "EF_CLASS", Value: 1 << 1}},
+		},
+	}}
+	// Corpo TK (rosto Arch 9 => 9/10 = 0), Sephiroth HT (Class=3).
+	ch := &model.Char{
+		Class: 3, Evolution: archEvolution,
+		Extended: testExtended(model.ExtendedScore{Level: 1, Str: 1, Int: 1, Dex: 1, Con: 1}),
+	}
+	ch.Equip[0] = model.Item{Index: 9}
+
+	if !w.canEquip(ch, model.Item{Index: tkArmor}, 2) {
+		t.Fatal("Arch TK/Sephiroth HT deveria equipar armadura de TK sem requisitos")
+	}
+	if w.canEquip(ch, model.Item{Index: htArmor}, 2) {
+		t.Fatal("Sephiroth HT nao pode transformar o corpo TK em classe de armadura HT")
+	}
+	if !w.canEquip(ch, model.Item{Index: fmWeapon}, 6) {
+		t.Fatal("Arch deveria equipar arma de qualquer classe sem requisitos")
+	}
+	if w.canEquip(ch, model.Item{Index: fmWeapon}, 7) {
+		t.Fatal("isencao do Arch nao pode ignorar o slot permitido pelo item")
+	}
+}
+
+func TestMortalStillChecksClassAndRequirements(t *testing.T) {
+	def := model.ItemDef{
+		Index: 100, Pos: 1 << 6, ReqLevel: 10, ReqStr: 20,
+		StaticEffects: []model.StaticEffect{{Name: "EF_CLASS", Value: 1 << 0}},
+	}
+	w := &World{items: map[uint16]model.ItemDef{100: def}}
+	item := model.Item{Index: 100}
+
+	lowTK := &model.Char{Class: 0, Extended: testExtended(model.ExtendedScore{Level: 1, Str: 1})}
+	if w.canEquip(lowTK, item, 6) {
+		t.Fatal("Mortal nao pode receber a isencao de requisitos do Arch")
+	}
+	strongHT := &model.Char{Class: 3, Extended: testExtended(model.ExtendedScore{Level: 100, Str: 100})}
+	if w.canEquip(strongHT, item, 6) {
+		t.Fatal("Mortal nao pode usar arma de outra classe")
 	}
 }
 
@@ -193,7 +253,9 @@ func TestRecalcPlayerUsesBaseClassAndItemRegeneration(t *testing.T) {
 				{Name: "EF_REGENMP", Value: 2},
 			},
 		},
-		100: {Index: 100},
+		100: {Index: 100, DynamicEffectNames: map[byte]string{
+			47: "EF_REGENHP", 48: "EF_REGENMP",
+		}},
 	}}
 	ch := &model.Char{Class: 0, Extended: testExtended(model.ExtendedScore{
 		Level: 1, MaxHP: 100, MaxMP: 100, CurHP: 100, CurMP: 100,

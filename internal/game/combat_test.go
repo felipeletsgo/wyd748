@@ -47,6 +47,9 @@ func TestAcceptClientAttackRejectsInternalAndFastTicks(t *testing.T) {
 	if !acceptClientAttack(p, pkt, now) {
 		t.Fatal("primeiro ataque valido foi rejeitado")
 	}
+	if acceptClientAttack(p, pkt, now.Add(time.Second)) {
+		t.Fatal("replay do mesmo ClientTick foi aceito")
+	}
 	// Char sem Extended = velocidade 0 = piso de 900ms (attackIntervalFor).
 	binary.LittleEndian.PutUint32(pkt[8:12], 1500)
 	if acceptClientAttack(p, pkt, now.Add(time.Second)) {
@@ -74,5 +77,66 @@ func TestAttackIntervalScalesWithSpeed(t *testing.T) {
 	}
 	if fastMs >= slowMs || fastMs > 500 {
 		t.Fatalf("velocidade 15 deveria permitir ~2 golpes/s (<=500ms), deu %d", fastMs)
+	}
+}
+
+func TestCourageAppliesFixedPvEBonusWithoutChangingScore(t *testing.T) {
+	ch := &model.Char{
+		Extended:        testExtended(model.ExtendedScore{Attack: 500, MagicAttack: 700, Accuracy: 25}),
+		ExtendedRuntime: testExtended(model.ExtendedScore{Attack: 500, MagicAttack: 700, Accuracy: 25}),
+	}
+	ch.Affects[0] = model.Affect{
+		Type: affectCourage, ClientType: affectCourage, ExpiresAt: time.Now().Add(time.Hour),
+	}
+
+	if got := applyCouragePvEDamage(ch, 300, false); got != 1_300 {
+		t.Fatalf("Courage fisico=%d, quer 1300", got)
+	}
+	if got := applyCouragePvEDamage(ch, 300, true); got != 2_300 {
+		t.Fatalf("Courage magico=%d, quer 2300", got)
+	}
+	if got := applyCouragePvEDamage(ch, 0, true); got != 0 {
+		t.Fatalf("Courage transformou erro em hit: %d", got)
+	}
+
+	w := &World{}
+	w.applyExtendedAffectStats(ch)
+	if ch.ExtendedRuntime.Attack != 500 || ch.ExtendedRuntime.MagicAttack != 700 ||
+		ch.ExtendedRuntime.Accuracy != 25 {
+		t.Fatalf("Courage alterou score: %+v", *ch.ExtendedRuntime)
+	}
+}
+
+func TestCourageExpiredDoesNotApplyAndDamageIsClamped(t *testing.T) {
+	ch := &model.Char{Extended: testExtended(model.ExtendedScore{})}
+	ch.Affects[0] = model.Affect{Type: affectCourage, ExpiresAt: time.Now().Add(-time.Second)}
+	if got := applyCouragePvEDamage(ch, 300, true); got != 300 {
+		t.Fatalf("Courage expirado aplicou bonus: %d", got)
+	}
+
+	ch.Affects[0].ExpiresAt = time.Now().Add(time.Hour)
+	if got := applyCouragePvEDamage(ch, int(maxExtendedStat)-500, true); got != int(maxExtendedStat) {
+		t.Fatalf("Courage ultrapassou clamp wide: %d", got)
+	}
+}
+
+func TestCourageIsNotAppliedByPvPDamagePipeline(t *testing.T) {
+	attacker := &Player{Char: &model.Char{
+		Extended:        testExtended(model.ExtendedScore{Attack: 1_000, Dex: 1_000, Accuracy: 10_000}),
+		ExtendedRuntime: testExtended(model.ExtendedScore{Attack: 1_000, Dex: 1_000, Accuracy: 10_000}),
+	}}
+	attacker.Char.Affects[0] = model.Affect{
+		Type: affectCourage, ExpiresAt: time.Now().Add(time.Hour),
+	}
+	target := &Player{Char: &model.Char{
+		Extended:        testExtended(model.ExtendedScore{Defense: 100, Dex: 1}),
+		ExtendedRuntime: testExtended(model.ExtendedScore{Defense: 100, Dex: 1}),
+	}}
+
+	// playerHitsPlayer e o pipeline PvP. Courage nao aparece nele.
+	for i := 0; i < 32; i++ {
+		if damage := playerHitsPlayer(attacker, target); damage >= 2_000 {
+			t.Fatalf("Courage vazou para PvP: dano=%d", damage)
+		}
 	}
 }

@@ -71,6 +71,36 @@ func TestSaveGameStatePersisteGuildEContaJuntas(t *testing.T) {
 	}
 }
 
+func TestSaveGameStateFalhaNoGuildsTxtNaoInvalidaCommit(t *testing.T) {
+	root := t.TempDir()
+	accounts := filepath.Join(root, "accounts")
+	guildsPath := filepath.Join(root, "guilds.json")
+	blocker := filepath.Join(root, "nao-e-diretorio")
+	if err := os.WriteFile(blocker, []byte("bloqueio"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := NewJSONStore(
+		accounts,
+		WithGuildsPath(guildsPath),
+		WithGuildsTxtPath(filepath.Join(blocker, "Guilds.txt")),
+	)
+	acc := &model.Account{Name: "conta1", PasswordHash: "hash"}
+
+	if err := s.SaveGameState(sampleGuild(), acc); err != nil {
+		t.Fatalf("falha de artefato derivado nao pode negar commit autoritativo: %v", err)
+	}
+	if _, err := s.LoadAccount("conta1"); err != nil {
+		t.Fatalf("conta comprometida nao foi persistida: %v", err)
+	}
+	registry, err := s.LoadGuilds()
+	if err != nil {
+		t.Fatalf("guild comprometida nao foi persistida: %v", err)
+	}
+	if len(registry.Guilds) != 1 || registry.Guilds[0].Name != "Alfa" {
+		t.Fatalf("registro autoritativo incorreto apos falha do Guilds.txt: %+v", registry)
+	}
+}
+
 func TestLoadGuildsSemArquivoDevolveRegistroVazio(t *testing.T) {
 	s, _, _ := newTestStore(t)
 	registry, err := s.LoadGuilds()

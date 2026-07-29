@@ -7,6 +7,13 @@ import (
 	"wydgo/internal/model"
 )
 
+func TestSkillAffectUsesSkillDataWithoutIndexOverride(t *testing.T) {
+	kind, value, ok := skillAffect(model.SkillDef{Index: 3, AffectType: 99, AffectValue: 321})
+	if !ok || kind != 99 || value != 321 {
+		t.Fatalf("skillAffect=%d,%d,%v; esperado SkillData 99,321,true", kind, value, ok)
+	}
+}
+
 func TestTKAffectFormulas759(t *testing.T) {
 	w := &World{}
 	base := model.ExtendedScore{Level: 10, Attack: 100, Defense: 100, MaxHP: 1000,
@@ -73,35 +80,6 @@ func TestSetAffectRejectsWeakerOrShorterReplacement(t *testing.T) {
 				t.Fatalf("affect existente foi alterado: %+v", ch.Affects[0])
 			}
 		})
-	}
-}
-
-func TestTKBuffRefreshWindowRequiresEquippedSkill(t *testing.T) {
-	now := time.Now()
-	ch := &model.Char{Class: 0}
-	skill := model.SkillDef{Index: 5, TickType: 17, TickValue: 75, AffectTime: 12}
-	for i := range ch.ShortSkill {
-		ch.ShortSkill[i] = 0xFF
-	}
-	ch.Affects[0] = model.Affect{Type: 17, ExpiresAt: now.Add(11 * time.Second)}
-	if canUseSupportSkill(ch, skill, now) {
-		t.Fatal("Aura foi renovada antes da janela de 10 segundos")
-	}
-	ch.Affects[0].ExpiresAt = now.Add(9 * time.Second)
-	if canUseSupportSkill(ch, skill, now) {
-		t.Fatal("Aura fora da barra foi renovada")
-	}
-	ch.ShortSkill[4] = 5
-	if !canUseSupportSkill(ch, skill, now) {
-		t.Fatal("Aura equipada nao renovou nos ultimos 10 segundos")
-	}
-}
-
-func TestInitialTKBuffDoesNotRequireRefreshWindow(t *testing.T) {
-	ch := &model.Char{Class: 0}
-	skill := model.SkillDef{Index: 13, AffectType: 14, AffectValue: 10, AffectTime: 12}
-	if !canUseSupportSkill(ch, skill, time.Now()) {
-		t.Fatal("primeira aplicacao do buff foi bloqueada")
 	}
 }
 

@@ -1,9 +1,28 @@
 package data
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestItemEffectFileIsAuthoritative(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ItemEffect.h")
+	if err := os.WriteFile(path, []byte("#define EF_DAMAGE 200\n#define EF_SANC 43\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	effects, err := loadItemEffects(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if effects[200] != "EF_DAMAGE" {
+		t.Fatalf("ItemEffect nao foi respeitado: %#v", effects)
+	}
+	if _, legacy := effects[2]; legacy {
+		t.Fatal("loader reintroduziu silenciosamente o ID legado de EF_DAMAGE")
+	}
+}
 
 func TestLoadConverted748Catalog(t *testing.T) {
 	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
@@ -27,12 +46,13 @@ func TestLoadConverted748Catalog(t *testing.T) {
 		t.Fatalf("EF_AC do item 1103 nao carregado: %+v", helmet.StaticEffects)
 	}
 	skill, ok := catalog.Skills[0]
-	if !ok || !strings.HasPrefix(skill.Name, "Giro_da_F") || skill.SkillPoint != 24 || skill.ManaSpent != 15 {
+	if !ok || !strings.EqualFold(skill.Name, "Giro_Da_Furia") ||
+		skill.SkillPoint != 24 || skill.ManaSpent != 15 {
 		t.Fatalf("skill 0 invalida: %+v", skill)
 	}
 }
 
-func TestTKBuffsAreNormalizedTo759(t *testing.T) {
+func TestTKBuffsComeFromW2PPSkillData(t *testing.T) {
 	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
@@ -47,10 +67,28 @@ func TestTKBuffsAreNormalizedTo759(t *testing.T) {
 	for index, expected := range want {
 		skill := catalog.Skills[index]
 		if skill.AffectType != expected[0] || skill.AffectValue != expected[1] || skill.AffectTime != expected[2] {
-			t.Fatalf("skill %d nao normalizada: %+v", index, skill)
+			t.Fatalf("skill %d divergiu do SkillData W2PP: %+v", index, skill)
 		}
 	}
 	if aura := catalog.Skills[5]; aura.TickType != 17 || aura.TickValue != 75 {
 		t.Fatalf("Aura da Vida sem regen 7.59: %+v", aura)
+	}
+}
+
+func TestW2PPSpecialSkillIndices(t *testing.T) {
+	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[int]string{
+		79: "Tempestade_de_Raios",
+		83: "Alquimia",
+		84: "Extracao",
+		85: "Escudo_Dourado",
+	}
+	for index, name := range want {
+		if skill, ok := catalog.Skills[index]; !ok || !strings.EqualFold(skill.Name, name) {
+			t.Fatalf("skill %d=%+v, quer %q", index, skill, name)
+		}
 	}
 }

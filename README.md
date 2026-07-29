@@ -38,6 +38,12 @@ The server processes more than 80 packet types.
 
 ## Systems
 
+- **Server-side security** — The 7.48 client is treated as untrusted. The server
+  validates framing, checksum, packet size and session phase; rate-limits input;
+  verifies movement routes, terrain and line of sight; calculates damage,
+  critical hits and cooldowns; and persists item/economy mutations before
+  confirming them. Replayed or forged WPE packets cannot become game authority.
+
 The server has these systems. The server has authority on each system.
 
 - **Accounts** — The server hashes each password with PBKDF2. It gives an HTTP
@@ -92,9 +98,17 @@ The server has these systems. The server has authority on each system.
   catalog is not complete.
 - **Volatiles** — You can configure potions, gold, teleports, refining and
   tinting, mount items, timed affects, the Magical Pill, the Hunting Scrolls,
-  the summon contracts, the Sephira books, and the gate keys. A gate key finds
-  its door by the `EF_KEYID` effect, not by the item index. A deferred code
-  stays a generic handler that does not consume the item.
+  the summon contracts, the Sephira books, the gate keys, and the complete
+  Mystic/Normal/Arcane Water chain (24 regular rooms plus three Nessus rooms).
+  Each cleared regular room gives the party leader the next scroll, including
+  the boss letter after room eight. Water tickets create party instances with
+  physical room exclusion, native two-minute timers, mixed boss populations,
+  mob counters, transactional rewards, and automatic exit. A gate key finds
+  its door by the `EF_KEYID` effect, not by the item index. Magic Chamber,
+  Nightmare, Cube/Hell Gate tickets, timed Hidden Ruins/Service access, mount
+  boxes/revival, event passes, medals and economy counters are also
+  server-authoritative. All 117 codes are explicitly classified; only the
+  Celestial codes 206/211 are intentionally blocked without consuming the item.
 - **Character counters** — A character has named counters, such as the Kefra
   entrance ticket and the fame points. They live in a per-character sidecar
   file, not in the account. A quest can require, spend, or grant them. A
@@ -123,12 +137,14 @@ The server has these systems. The server has authority on each system.
 - **Communication** — The protocol carries local, party, guild, and global chat.
   It carries whisper, death letters, and server announcements. A message needs
   the other player online. If that player is offline, the server tells you.
-- **Data storage** — The server writes JSON files atomically. It writes to a
-  temporary file, does an fsync, and does a rename. An asynchronous queue keeps
-  the disk operations away from the game loop. An autosave runs at a regular
-  interval. A critical operation, for example a trade, a refine, or a gold
-  change, writes to disk before the server confirms it to the client. If the
-  write fails, the server returns the data to its previous state.
+- **Data storage** — PostgreSQL is the authoritative production store. Account,
+  character, item, Cargo, character-state, and guild changes use transactions.
+  Each materialized item has a server-only UUID with a global database
+  constraint; it never enters the native 8-byte client item structure. An
+  asynchronous queue keeps periodic saves away from the game loop. A critical
+  operation, for example a trade, a refine, or a gold change, commits before the
+  server confirms it to the client. A failed commit restores the previous game
+  state. JSON is an explicit development adapter, not an automatic fallback.
 
 ## Language
 
@@ -142,8 +158,8 @@ Trade. The chat commands accept two languages: `/create` and `/criar`,
 
 - You must have Go 1.26 or a later version.
 - You must have Windows to run the client in `client748/`.
-- The server uses one external Go module: `gopher-lua` (MIT). It reads the
-  boss files. `go build` downloads it.
+- You must have PostgreSQL for the production server.
+- The server uses `gopher-lua` (MIT) and `pgx` (MIT). `go build` downloads them.
 
 ## Build the software
 
@@ -156,6 +172,12 @@ go build -o account-create.exe ./cmd/account-create
 ```
 
 ## Start the server
+
+Set the database URL before you start a production server:
+
+```powershell
+$env:WYD_DATABASE_URL="postgres://wydgo:password@127.0.0.1:5432/wydgo?sslmode=disable"
+```
 
 Run the compiled `tm.exe` file. This is the fast method and the correct method
 for a real server. First build the file (refer to [Build the software](#build-the-software)).
@@ -173,16 +195,18 @@ go run ./cmd/server
 ```
 
 The server reads the configuration from `data/server.txt`. A command-line flag
-replaces a value in that file. Examples: `-addr`, `-npcs`, `-accounts`,
-`-items`. To see all the flags, do `./tm.exe -h`.
+replaces a data-file value. Examples: `-addr`, `-npcs`, and `-items`. The
+`-accounts` flag applies only to the explicit JSON development adapter. To see
+all the flags, do `./tm.exe -h`.
 
 To monitor the server, set `debug_address` in `data/server.txt`. The server
 then gives metrics at `/debug/vars` and profiles at `/debug/pprof`. The host
 must be loopback: these pages show internal state. If you give a public
 address, the server refuses to start. For remote access, use an SSH tunnel.
 
-The server writes all the accounts to disk before it stops. Send SIGTERM or
-press Ctrl+C.
+The server flushes all pending account transactions before it stops. Send
+SIGTERM or press Ctrl+C. The database schema is installed automatically at
+boot. Keep port 5432 private and use `pg_dump` for backups.
 
 Start the server from the `wyd-go/` directory. Then the server finds the
 `data/...` paths.
@@ -210,7 +234,7 @@ internal/model    pure domain types
 internal/wire     byte-exact 7.48 protocol frames and encryption
 internal/net      sockets, sessions, one send queue for each connection
 internal/data     catalogs, NPC spawns, terrain, templates
-internal/store    account and character data storage (atomic JSON)
+internal/store    PostgreSQL storage and the explicit JSON development adapter
 internal/account  signup, authentication, and password hashing
 internal/game     the World actor and each game system
 ```
@@ -237,15 +261,18 @@ them.
 | File | Function |
 |---|---|
 | `itemlist.csv` | item catalog: statistics, requirements, static effects |
+| `Itemname.csv` | authoritative item display names |
+| `ItemEffect.h` | authoritative numeric IDs for persisted `EF_*` effects |
 | `SkillData.csv` | skill cost, delay, target type, range, parameters |
 | `NPCGener.txt` + `npcs/*.json` | NPC and mob spawns, statistics, shop items |
 | `character_templates.json` | start statistics and items for each class |
 | `volatiles.json` | server behavior for each consumable item-effect code |
+| `repliction.json` | native paired bonus pools and A–E Repliction limits |
 | `mounts.json` | combat bonus for each mount type |
 | `quests.json` | quest definitions and prerequisites |
 | `quest_zones.json` | timed quest-area limits and reset behavior |
 | `init_items.csv` | permanent world objects: gates, doors, cannons |
-| `charstate/*.json` | per-character sidecar: affects and named counters |
+| `charstate/<characterUID>.json` | JSON-dev sidecar: affects and named counters; production uses PostgreSQL |
 | `boss/*.lua` | one boss encounter for each file |
 | `guilds.json` + `Guilds.txt` | guild registry and 7.48 client name list |
 | `droprate.json` | loot table weights |

@@ -24,6 +24,8 @@ func (w *World) groundCannonAt(x, y uint16) *GroundItem {
 func (w *World) canCastThornWall(p *Player, req skillCastRequest, skill model.SkillDef) bool {
 	return p != nil && req.TargetX > 0 && req.TargetY > 0 &&
 		chebyshev(p.X, p.Y, req.TargetX, req.TargetY) <= maxInt(1, skill.Range) &&
+		w.terrain.Walkable(req.TargetX, req.TargetY) &&
+		w.combatLineOfSight(p.X, p.Y, req.TargetX, req.TargetY) &&
 		!w.positionOccupied(req.TargetX, req.TargetY, nil)
 }
 

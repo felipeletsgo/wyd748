@@ -14,6 +14,7 @@ type VolatileRule struct {
 	// Level < min || Level >= max. Isso e deliberadamente diferente do
 	// MaxLevel inclusivo de QuestRequirements.
 	MortalOnly        bool                  `json:"mortalOnly,omitempty"`
+	RequiredEvolution string                `json:"requiredEvolution,omitempty"`
 	MinLevel          uint32                `json:"minLevel,omitempty"`
 	MaxLevelExclusive uint32                `json:"maxLevelExclusive,omitempty"`
 	X                 uint16                `json:"x,omitempty"`
@@ -21,6 +22,7 @@ type VolatileRule struct {
 	Destinations      []VolatileDestination `json:"destinations,omitempty"`
 	LearnedBit        int                   `json:"learnedBit,omitempty"`
 	Summon            *VolatileSummon       `json:"summon,omitempty"`
+	Instance          *VolatileInstance     `json:"instance,omitempty"`
 	// Parametros de affect para a acao "buff" (pocoes, comidas). AffectType
 	// escolhe a formula server-side em applyExtendedAffectStats; AffectValue e
 	// AffectLevel a alimentam; DurationUnits e o tempo em blocos de 8 s. Sao
@@ -39,9 +41,26 @@ type VolatileRule struct {
 	// Counters credita contadores nomeados na acao "grant_counter". No nativo o
 	// item 4127 concede 100 entradas de Kefra de uma vez.
 	Counters map[string]uint32 `json:"counters,omitempty"`
+	// RewardItems e a lista equiprovavel da acao "loot_box". Cada recompensa e
+	// materializada com UID; o item consumido e a recompensa entram no mesmo
+	// commit antes da confirmacao ao client.
+	RewardItems []uint16 `json:"rewardItems,omitempty"`
+	// AccessKey/DurationSeconds configuram licencas temporizadas (VIP, Ruinas
+	// Escondidas e passes de evento). O vencimento absoluto e persistido no
+	// charstate do personagem, sem criar mais uma estrutura paralela.
+	AccessKey       string `json:"accessKey,omitempty"`
+	DurationSeconds int    `json:"durationSeconds,omitempty"`
+	// PartyMode controla tickets: "party" exige um grupo e seu lider; "solo"
+	// move apenas o usuario. Vazio preserva o modo legado, que tambem aceita
+	// usar a instancia sem grupo.
+	PartyMode string `json:"partyMode,omitempty"`
 	// RefineMax e o teto de refino da acao "refine": Ori=6, Lac=9. O servidor
 	// recusa refinar um item cujo sanc ja alcancou este teto.
 	RefineMax int `json:"refineMax,omitempty"`
+	// Refino de alvo equipado (Agua das Fadas): slot e indices aceitos tambem
+	// ficam nos dados, para o executavel nao inventar equipamentos elegiveis.
+	TargetSlot  int      `json:"targetSlot,omitempty"`
+	TargetItems []uint16 `json:"targetItems,omitempty"`
 	// FaceMesh e o mesh de rosto de monstro da acao "face_transform" (Gremlin=202,
 	// Orc=209, Troll=212...). O rosto e sobrescrito no bodyMesh enquanto o affect
 	// durar; face_restore o remove.
@@ -49,20 +68,57 @@ type VolatileRule struct {
 	// Mount* configuram as acoes de montaria. MountAction diz o efeito (feed_hp,
 	// level, invuln, growth, hatch); Amount e a magnitude (vida/level/dias), por
 	// item quando o csv nao carrega o valor (rações/amagos diferem por Index).
-	MountAction string `json:"mountAction,omitempty"`
-	Amount      int    `json:"amount,omitempty"`
+	MountAction     string `json:"mountAction,omitempty"`
+	Amount          int    `json:"amount,omitempty"`
+	CooldownSeconds int    `json:"cooldownSeconds,omitempty"`
 	// Color e o codigo de efeito de cor da acao "tint" (tintura): o slot de sanc
 	// do item-alvo (EF_SANC=43) passa a usar este codigo 116-125, mantendo o valor
 	// do refino; cada codigo pinta o item de uma cor no client. Ver pRemoveTintura.
-	Color int `json:"color,omitempty"`
-	// AddPool e o conjunto de "adicionais" sorteaveis da acao "repliction" (Grade
-	// A-E): o servidor sorteia UMA entrada e a grava no 2o slot de efeito do manto
-	// equipado. Grades melhores tem pools com efeitos/valores maiores. Balanceavel
-	// no json sem recompilar (como os buffs). Porta o conceito da composicao de
-	// capa do W2PP (_MSG_UseItem: tabela random por sIndex de capa) sem copiar as
-	// tabelas fixas daquela versao, que sao presas aos indices de item de la.
-	AddPool     []VolatileAdd `json:"addPool,omitempty"`
-	Description string        `json:"description,omitempty"`
+	Color       int    `json:"color,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// VolatileInstance descreve uma sala privada ativada por ticket. Conteúdo,
+// coordenadas e duração permanecem em data/volatiles.json; o motor apenas
+// aplica ocupação, party, spawn, timer e encerramento.
+type VolatileInstance struct {
+	ID                string                  `json:"id"`
+	Name              string                  `json:"name"`
+	X                 uint16                  `json:"x"`
+	Y                 uint16                  `json:"y"`
+	SpawnX            uint16                  `json:"spawnX"`
+	SpawnY            uint16                  `json:"spawnY"`
+	AreaRadius        int                     `json:"areaRadius"`
+	Spawns            []VolatileInstanceSpawn `json:"spawns"`
+	RewardItem        uint16                  `json:"rewardItem,omitempty"`
+	AllowedEvolutions []string                `json:"allowedEvolutions,omitempty"`
+	DurationSeconds   int                     `json:"durationSeconds"`
+	ExitX             uint16                  `json:"exitX"`
+	ExitY             uint16                  `json:"exitY"`
+	TransitionSeconds int                     `json:"transitionSeconds,omitempty"`
+	Stages            []VolatileInstanceStage `json:"stages,omitempty"`
+}
+
+// VolatileInstanceSpawn permite que uma mesma sala tenha mais de um template.
+// As cartas de Nessus usam um chefe e dez auxiliares; salas comuns usam apenas
+// uma entrada. O total autoritativo da sala e a soma dos Counts.
+type VolatileInstanceSpawn struct {
+	NPC   string `json:"npc"`
+	Count int    `json:"count"`
+}
+
+// VolatileInstanceStage permite que uma carta conduza o grupo por varias
+// salas/ondas. Water continua usando a forma compacta de uma sala; Magic
+// Chamber usa quatro salas e um boss sem hardcode no executavel.
+type VolatileInstanceStage struct {
+	Name            string                  `json:"name,omitempty"`
+	X               uint16                  `json:"x"`
+	Y               uint16                  `json:"y"`
+	SpawnX          uint16                  `json:"spawnX"`
+	SpawnY          uint16                  `json:"spawnY"`
+	AreaRadius      int                     `json:"areaRadius"`
+	DurationSeconds int                     `json:"durationSeconds,omitempty"`
+	Spawns          []VolatileInstanceSpawn `json:"spawns"`
 }
 
 type VolatileDestination struct {
@@ -85,24 +141,37 @@ type VolatileSummon struct {
 	AttackRange int    `json:"attackRange"`
 }
 
-// VolatileAdd e um efeito adicional candidato da acao "repliction": Effect e o
-// codigo de efeito (EF_*), Value a magnitude. Weight (opcional, default 1) pesa
-// o sorteio -- entradas raras/fortes recebem peso menor.
-type VolatileAdd struct {
-	Effect int `json:"effect"`
-	Value  int `json:"value"`
-	Weight int `json:"weight,omitempty"`
+// ReplictionItem relaciona cada consumivel A-E ao nivel do equipamento e ao
+// limite de refino aceito. Normal e Premium permanecem dados, nao inferencias.
+type ReplictionItem struct {
+	ItemLevel int `json:"itemLevel"`
+	MaxSanc   int `json:"maxSanc"`
+}
+
+// ReplictionBonus e o par indivisivel sorteado pelo SetItemBonus2 nativo.
+// Aplicar Repliction sempre substitui os dois adicionais do item.
+type ReplictionBonus struct {
+	Effect1 int `json:"effect1"`
+	Value1  int `json:"value1"`
+	Effect2 int `json:"effect2"`
+	Value2  int `json:"value2"`
+}
+
+type ReplictionCatalog struct {
+	Items map[uint16]ReplictionItem
+	Pools map[int][]ReplictionBonus
 }
 
 // VolatileCatalog une as regras configuradas aos itens efetivamente
 // encontrados no itemlist. ItemCodes contem TODOS os itens com EF_VOLATILE,
-// inclusive os que usam apenas o handler generic.
+// inclusive os que pertencem a NPC/comando ou aguardam o sistema Celestial.
 type VolatileCatalog struct {
-	Default   VolatileRule
-	Rules     map[int]VolatileRule
-	Items     map[uint16]VolatileRule
-	ItemCodes map[uint16]int
-	Codes     map[int]int
+	Default    VolatileRule
+	Rules      map[int]VolatileRule
+	Items      map[uint16]VolatileRule
+	ItemCodes  map[uint16]int
+	Codes      map[int]int
+	Repliction ReplictionCatalog
 }
 
 func (c VolatileCatalog) Rule(itemID uint16) (VolatileRule, int, bool) {

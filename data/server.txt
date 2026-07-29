@@ -4,6 +4,14 @@
 # o client deve apontar para o IP publico do VPS no seu serverlist.
 listen_address=0.0.0.0:8281
 
+# Persistencia autoritativa do ambiente de testes local.
+# Esta credencial simples e intencionalmente versionada enquanto o projeto
+# estiver em testes. Troque-a antes de expor o PostgreSQL fora do localhost.
+database_driver=postgres
+database_url=postgres://wydgo:123456@127.0.0.1:5432/wydgo?sslmode=disable
+database_url_env=WYD_DATABASE_URL
+database_max_conns=8
+
 # Log do gerador: quiet, summary ou verbose
 npcgener_log=summary
 
@@ -44,6 +52,7 @@ init_items=data/init_items.csv
 npcs=data/npcs
 npcgener=data/NPCGener.txt
 teleports=data/teleports.ini
+# Usado apenas quando database_driver=json.
 accounts=data/accounts
 # Registro de guilds. Precisa ficar FORA do diretorio de contas: la dentro os
 # varredores de conta tentariam parsea-lo como uma conta.
@@ -57,9 +66,11 @@ guilds_txt=data/Guilds.txt
 quests=data/quests.json
 items=data/itemlist.csv
 itemnames=data/Itemname.csv
+itemeffects=data/ItemEffect.h
 skills=data/SkillData.csv
 droprates=data/droprate.json
 volatiles=data/volatiles.json
+repliction=data/repliction.json
 mounts=data/mounts.json
 character_templates=data/character_templates.json
 

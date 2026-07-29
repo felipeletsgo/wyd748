@@ -242,7 +242,12 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 	if change.Preserve {
 		p.Char.Equip[model.CapeSlot].Index = change.Index
 	} else {
-		p.Char.Equip[model.CapeSlot] = model.Item{Index: change.Index}
+		// Trocar/promover a capa e uma transformacao do mesmo item. Efeitos
+		// podem ser reiniciados pela regra, mas a identidade nao pode mudar.
+		p.Char.Equip[model.CapeSlot] = model.Item{
+			Index: change.Index,
+			UID:   p.Char.Equip[model.CapeSlot].UID,
+		}
 	}
 	w.recalcPlayer(p.Char)
 	if err := w.commitKingdomChange(p, snapshot, kingdom); err != nil {

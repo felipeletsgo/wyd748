@@ -5,6 +5,13 @@
 /account-api
 /account-create.exe
 /account-create
+/account_creator.exe
+/server.exe
+/tmp/
+
+# Metadados locais dos agentes Codex/Claude; nao fazem parte do runtime.
+/.codex/
+/AGENTS.md
 
 # Cache de build do Go
 .gocache*/

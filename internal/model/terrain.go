@@ -75,3 +75,63 @@ func (m TerrainMap) HeightCompatible(fromX, fromY, toX, toY uint16) bool {
 func (m TerrainMap) RouteHeightCompatible(fromX, fromY, toX, toY uint16) bool {
 	return m.heightCompatible(fromX, fromY, toX, toY, RouteHeightRange)
 }
+
+// LineOfSight verifica o segmento inteiro entre duas celulas. O TMSrv nativo
+// valida distancia e regioes, mas nao oferece uma LOS geral em todas as skills;
+// esta e uma camada adicional de hardening contra ataque atraves de paredes.
+// Em mapas nao carregados (testes isolados), conserva o comportamento permissivo.
+func (m TerrainMap) LineOfSight(fromX, fromY, toX, toY uint16) bool {
+	if !m.Loaded() {
+		return true
+	}
+	if !m.Walkable(fromX, fromY) || !m.Walkable(toX, toY) {
+		return false
+	}
+
+	x0, y0 := int(fromX), int(fromY)
+	x1, y1 := int(toX), int(toY)
+	dx, dy := absTerrain(x1-x0), absTerrain(y1-y0)
+	stepX, stepY := -1, -1
+	if x0 < x1 {
+		stepX = 1
+	}
+	if y0 < y1 {
+		stepY = 1
+	}
+	err := dx - dy
+
+	for x0 != x1 || y0 != y1 {
+		previousX, previousY := x0, y0
+		twiceErr := 2 * err
+		if twiceErr > -dy {
+			err -= dy
+			x0 += stepX
+		}
+		if twiceErr < dx {
+			err += dx
+			y0 += stepY
+		}
+		if x0 < 0 || y0 < 0 || x0 >= TerrainWidth || y0 >= TerrainHeight {
+			return false
+		}
+		ux, uy := uint16(x0), uint16(y0)
+		if !m.Walkable(ux, uy) ||
+			!m.RouteHeightCompatible(uint16(previousX), uint16(previousY), ux, uy) {
+			return false
+		}
+		// Nao atravesse o canto fechado por duas paredes.
+		if x0 != previousX && y0 != previousY &&
+			!m.Walkable(uint16(x0), uint16(previousY)) &&
+			!m.Walkable(uint16(previousX), uint16(y0)) {
+			return false
+		}
+	}
+	return true
+}
+
+func absTerrain(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
+}

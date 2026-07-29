@@ -88,9 +88,9 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	if r, _, _ := vc.Rule(787); r.Action != "buff" || r.AffectType != 4 || r.AffectValue == 0 {
 		t.Fatalf("Kappa (787) nao virou buff Type 4 escalado: %+v", r)
 	}
-	// EXP por item (Fairy_Dust 414 -> grant_exp).
-	if r, _, _ := vc.Rule(414); r.Action != "grant_exp" || r.Exp == 0 {
-		t.Fatalf("Fairy_Dust (414) nao virou grant_exp: %+v", r)
+	// Fairy Dust usa o proximo marco da tabela nativa, nunca EXP fixa.
+	if r, _, _ := vc.Rule(414); r.Action != "grant_next_level" {
+		t.Fatalf("Fairy_Dust (414) nao virou grant_next_level: %+v", r)
 	}
 	// Gema Estelar / Warp (12/13) e bau de EXP (198) resolvem as acoes certas.
 	if vc.Rules[12].Action != "save_position" {
@@ -102,6 +102,28 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	if r := vc.Rules[198]; r.Action != "buff" || r.AffectType != 39 || !r.Accumulate {
 		t.Fatalf("code 198 deveria ser buff acumulativo affect 39: %+v", r)
 	}
+	// Rodada final do _MSG_UseItem: os multiplexados por Index nao podem
+	// regredir silenciosamente para a regra no_direct_use do codigo.
+	for itemID, action := range map[uint16]string{
+		3453: "mount_revive", 4003: "loot_box",
+		1731: "instance_ticket", 3171: "instance_ticket", 3172: "instance_ticket",
+		3324: "instance_ticket", 3390: "instance_ticket",
+		3328: "dungeon_teleport", 3329: "dungeon_teleport",
+		3909: "timed_access", 3439: "timed_access",
+		3393: "grant_counter", 4114: "grant_counter",
+	} {
+		r, _, ok := vc.Rule(itemID)
+		if !ok || r.Action != action {
+			t.Fatalf("item %d deveria ser %s: %+v ok=%v", itemID, action, r, ok)
+		}
+	}
+	for _, itemID := range []uint16{3443, 3455, 5338} {
+		r, _, ok := vc.Rule(itemID)
+		if !ok || r.Action != "celestial_pending" || r.Consume {
+			t.Fatalf("Celestial %d deve ficar bloqueado sem consumo: %+v ok=%v",
+				itemID, r, ok)
+		}
+	}
 	// Refino: Ori(4)=teto+6, Lac(5)=teto+9, Molar(194)=set +6.
 	if r := vc.Rules[4]; r.Action != "refine" || r.RefineMax != 6 {
 		t.Fatalf("code 4 deveria ser refine teto 6: %+v", r)
@@ -111,6 +133,42 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	}
 	if r := vc.Rules[194]; r.Action != "refine_set" || r.RefineMax != 6 {
 		t.Fatalf("code 194 deveria ser refine_set teto 6: %+v", r)
+	}
+	// As 24 salas regulares e os tres Nessus sao instancias distintas. Cada
+	// sala comum entrega o pergaminho seguinte; o boss encerra a cadeia.
+	waterItems := []uint16{
+		777, 778, 779, 780, 781, 782, 783, 784, 785,
+		3173, 3174, 3175, 3176, 3177, 3178, 3179, 3180, 3181,
+		3182, 3183, 3184, 3185, 3186, 3187, 3188, 3189, 3190,
+	}
+	instanceIDs := make(map[string]struct{}, len(waterItems))
+	for _, itemID := range waterItems {
+		r, _, ok := vc.Rule(itemID)
+		if !ok || r.Action != "instance_ticket" || r.Instance == nil {
+			t.Fatalf("pergaminho Water %d sem instancia: %+v ok=%v", itemID, r, ok)
+		}
+		instanceIDs[r.Instance.ID] = struct{}{}
+	}
+	if len(instanceIDs) != len(waterItems) {
+		t.Fatalf("salas Water repetidas: ids=%d itens=%d", len(instanceIDs), len(waterItems))
+	}
+	chains := [][]uint16{
+		{777, 778, 779, 780, 781, 782, 783, 784, 785},
+		{3173, 3174, 3175, 3176, 3177, 3178, 3179, 3180, 3181},
+		{3182, 3183, 3184, 3185, 3186, 3187, 3188, 3189, 3190},
+	}
+	for _, chain := range chains {
+		for index, itemID := range chain {
+			r, _, _ := vc.Rule(itemID)
+			want := uint16(0)
+			if index+1 < len(chain) {
+				want = chain[index+1]
+			}
+			if r.Instance.RewardItem != want {
+				t.Fatalf("Water %d recompensa %d, quer %d",
+					itemID, r.Instance.RewardItem, want)
+			}
+		}
 	}
 }
 

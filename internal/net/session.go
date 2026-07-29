@@ -16,6 +16,13 @@ import (
 	"wydgo/internal/wire"
 )
 
+const (
+	// Limite operacional, nao de gameplay. Um client 7.48 normal fica muito
+	// abaixo disso; a folga absorve rajadas de movimento e carregamento.
+	maxInboundPacketsPerSecond = 256
+	maxInboundBytesPerSecond   = 512 * 1024
+)
+
 var (
 	serverStart = time.Now()
 	sendKey     atomic.Uint32
@@ -44,7 +51,9 @@ func (s *Session) Send(pkt []byte) {
 	select {
 	case s.out <- pkt:
 	default:
-		s.conn.Close()
+		if s.conn != nil {
+			_ = s.conn.Close()
+		}
 	}
 }
 
@@ -115,13 +124,29 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 
 	go s.writeLoop()
 
+	windowStarted := time.Now()
+	packetCount, byteCount := 0, 0
 	for {
-		buf, _, err := wire.ReadPacket(r)
+		buf, checksumOK, err := wire.ReadPacket(r)
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
 				log.Printf("[#%d] read: %v", s.ID, err)
 			}
 			log.Printf("[#%d] desconectado", s.ID)
+			return
+		}
+		if !checksumOK {
+			log.Printf("[#%d] checksum invalido; conexao encerrada", s.ID)
+			return
+		}
+		now := time.Now()
+		if now.Sub(windowStarted) >= time.Second {
+			windowStarted, packetCount, byteCount = now, 0, 0
+		}
+		packetCount++
+		byteCount += len(buf)
+		if packetCount > maxInboundPacketsPerSecond || byteCount > maxInboundBytesPerSecond {
+			log.Printf("[#%d] flood de entrada: pacotes=%d bytes=%d/s", s.ID, packetCount, byteCount)
 			return
 		}
 		handler(s, buf)

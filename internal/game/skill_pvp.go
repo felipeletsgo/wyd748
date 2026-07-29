@@ -26,7 +26,8 @@ func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill m
 	castRange := maxInt(attackRange, skill.Range)
 	if primary == nil || primary == caster || !primary.InWorld || primary.Char == nil ||
 		playerCurHP(primary.Char) == 0 || sameSupportGroup(caster, primary) ||
-		chebyshev(caster.X, caster.Y, primary.X, primary.Y) > castRange {
+		chebyshev(caster.X, caster.Y, primary.X, primary.Y) > castRange ||
+		!w.combatLineOfSight(caster.X, caster.Y, primary.X, primary.Y) {
 		return nil
 	}
 	targets := []*Player{primary}
@@ -120,6 +121,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		damage uint32
 	}
 	wideHits := make([]wideHit, 0, len(targets)*skillHitCount(skill))
+	killedPlayers := make([]*Player, 0, len(targets))
 	hitCount := skillHitCount(skill)
 	for _, target := range targets {
 		target.LastAttackerID = caster.ID
@@ -148,6 +150,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 				w.mountRiderDied(target)
 				target.DeadAt = time.Now()
 				w.receiveDeathLetter(target, caster.Char.Name, "jogador")
+				killedPlayers = append(killedPlayers, target)
 			}
 		} else {
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
@@ -169,6 +172,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			w.sendToPlayerView(target, func() []byte { return wire.ActionStop(target.ID, target.X, target.Y) })
 		}
 	}
+	w.applyPvPKills(caster, killedPlayers...)
 	primary := targets[0]
 	w.sendToPlayerView(primary, func() []byte {
 		return spectralPacket(caster.Char, wire.SkillHits(caster.ID, caster.X, caster.Y, primary.X, primary.Y,

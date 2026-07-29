@@ -21,7 +21,7 @@ const (
 	OpSetHpMp            = 0x181 // S->C HP/MP do mob (20B)
 	OpUpdateScore        = 0x336 // S->C score/affects publicos de player ou mob (92B)
 	OpUpdateAffect       = 0x3B9 // S->C 16 affects completos (140B no client 7.48)
-	OpUpdateEtc          = 0x337 // S->C chaos/exp/pontos/gold (36B, wire 7.48)
+	OpUpdateEtc          = 0x337 // S->C CP/exp/pontos/gold (48B com cauda wide)
 	OpCNFMobKill         = 0x338 // S->C confirma morte e atualiza EXP do killer
 	OpUpdateCarry        = 0x185 // S->C inventario interativo (528B)
 	OpUpdateCargoGold    = 0x339 // S->C gold armazenado no Cargo (16B)
@@ -30,6 +30,8 @@ const (
 	OpActionStop         = 0x367 // C->S para a acao/movimento atual (52B)
 	OpREQMobByID         = 0x369 // C->S pede entidade ausente referenciada por um Action
 	OpMotion             = 0x36A // C->S efeito/motion pontual (20B)
+	OpInstanceTime       = 0x3A1 // S->C contador verde de tempo
+	OpInstanceMobs       = 0x3B0 // S->C contador de monstros restantes
 	OpClientUnknown2BC   = 0x2BC // C->S telemetria/estado do client 7.48 (108B)
 	OpSwapItem           = 0x376 // C->S mover/equipar item (20B)
 	OpWithdraw           = 0x387 // C<->S retirar gold do Cargo (16B)
@@ -66,7 +68,7 @@ const (
 	OpShopList           = 0x17C // S->C lista da loja / abre a janela (532B, ShopType@12=1)
 	OpBuyItem            = 0x379 // C->S compra item da loja (TargetID@12, sellSlot@14)
 	OpSellItem           = 0x37A // C->S vende item pro mercador (TargetID@12, MyType@14, MyPos@16)
-	OpApplyBonus         = 0x277 // C->S distribui status/especial (BonusType@12, Detail@14, 18B)
+	OpApplyBonus         = 0x277 // C->S stats/mastery/skill (BonusType@12, Detail@14, TargetID@16, 20B)
 	OpPartyAdd           = 0x37D // S->C adiciona/atualiza membro no painel do grupo (40B)
 	OpPartyRemove        = 0x37E // C<->S sair/expulsar membro do grupo (16B)
 	OpPartyRequest       = 0x37F // C<->S convite de grupo 7.54 (44B)

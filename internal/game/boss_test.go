@@ -380,3 +380,52 @@ func TestCommonMobIgnoresBossSubsystem(t *testing.T) {
 		t.Fatalf("HP do mob comum=%d, quer 60", common.HP)
 	}
 }
+
+func TestBossSkillDamageUsesMagicCoreAndGuardsInvalidInputs(t *testing.T) {
+	p, _ := networkedTestPlayer(1, "Target", 2100, 2100)
+	p.Char.Extended.Defense = 100
+	applyExtendedScore(p.Char)
+	m := &Mob{ID: 1000, Def: testNPCDef(model.ExtendedScore{
+		Level: 100, MaxHP: 1000, CurHP: 1000,
+		MagicAttack: 2000, Int: 400, Attack: 10,
+	})}
+	skill := model.SkillDef{Index: 26, InstanceValue: 50, InstanceType: 1}
+	if damage := bossSkillDamage(m, p, skill); damage <= 1 {
+		t.Fatalf("nucleo magico do boss produziu dano=%d", damage)
+	}
+	if bossSkillDamage(nil, p, skill) != 0 ||
+		bossSkillDamage(m, nil, skill) != 0 ||
+		bossSkillDamage(&Mob{}, p, skill) != 0 {
+		t.Fatal("entrada invalida deveria produzir dano zero")
+	}
+
+	m.Def.Extended.MagicAttack = 0
+	m.Def.Extended.Int = 0
+	m.Def.Extended.Level = 0
+	m.Def.Extended.Attack = 500
+	if damage := bossSkillDamage(m, p, model.SkillDef{}); damage <= 1 {
+		t.Fatalf("fallback para ataque fisico nao funcionou: %d", damage)
+	}
+}
+
+func TestUnregisterBossRemovesLivingAddsFromWorldAndView(t *testing.T) {
+	viewer, _ := networkedTestPlayer(1, "Viewer", 2100, 2100)
+	w := worldWithNetworkedPlayers(viewer)
+	add := &Mob{ID: 1200, Def: bossTestNPC("Add", 100), X: 2101, Y: 2100, HP: 100}
+	w.mobs = append(w.mobs, add)
+	w.registerMobSpatial(add)
+	viewer.show(add.ID)
+	profile := testBossProfile(t)
+	runtime := newBossRuntime(1100, profile)
+	runtime.Adds[add.ID] = struct{}{}
+	w.bosses = map[uint16]*BossRuntime{1100: runtime}
+
+	w.UnregisterBoss(1100)
+	if w.bossFor(1100) != nil || w.mobsByID[add.ID] != nil || viewer.hasVisible(add.ID) {
+		t.Fatal("boss/add/visibilidade sobreviveram ao unregister")
+	}
+	if !add.Dead || len(runtime.Adds) != 0 {
+		t.Fatal("add removido nao foi marcado/limpo no runtime")
+	}
+	w.UnregisterBoss(9999)
+}

@@ -145,6 +145,10 @@ func (s *JSONStore) CreateAccount(acc *model.Account) error {
 	if exists {
 		return ErrAccountExists
 	}
+	nextOwners, _, err := s.prepareAccountItemUIDs(acc)
+	if err != nil {
+		return err
+	}
 	b, err := json.MarshalIndent(acc, "", "  ")
 	if err != nil {
 		return err
@@ -176,6 +180,7 @@ func (s *JSONStore) CreateAccount(acc *model.Account) error {
 	if err := f.Close(); err != nil {
 		return err
 	}
+	s.itemOwners = nextOwners
 	ok = true
 	return nil
 }
@@ -183,6 +188,9 @@ func (s *JSONStore) CreateAccount(acc *model.Account) error {
 // jsonStore guarda 1 arquivo JSON por conta em dir/<name>.json.
 type JSONStore struct {
 	dir string
+	// itemOwners e o indice global de unicidade de todas as contas, inclusive
+	// offline. UID nao vai ao wire; este mapa impede duas localizacoes persistidas.
+	itemOwners map[string]itemUIDOwner
 	// guildsPath e o estado AUTORITATIVO (JSON, dentro da transacao).
 	guildsPath string
 	// guildsTxtPath e um artefato DERIVADO para o client 7.48, fora da
@@ -266,10 +274,10 @@ func WithGuildsPath(path string) Option {
 // WithGuildsTxtPath liga a exportacao do Guilds.txt que o CLIENT 7.48 le
 // localmente (o WYD.exe abre "./Guilds.txt"). Vazio desliga a exportacao.
 //
-// O arquivo e gravado junto da transacao, mas NAO faz parte dela: ele e um
+// O arquivo e gravado depois da transacao, mas NAO faz parte dela: ele e um
 // artefato derivado, para distribuir aos clients. Se a gravacao dele falhar, o
-// estado autoritativo (guilds.json + contas) continua valido -- por isso a
-// falha e reportada sem desfazer a transacao.
+// estado autoritativo (guilds.json + contas) continua valido. A falha e
+// registrada e uma mudanca posterior de guild tenta exportar novamente.
 func WithGuildsTxtPath(path string) Option {
 	return func(s *JSONStore) { s.guildsTxtPath = path }
 }
@@ -298,6 +306,9 @@ func NewJSONStore(dir string, opts ...Option) *JSONStore {
 	// Recuperacao de transacao roda ANTES da goroutine de escrita: no boot nao ha
 	// concorrencia e os writes de recuperacao sao diretos.
 	s.initErr = s.recoverAccountTransactions()
+	if s.initErr == nil {
+		s.initErr = s.initializeItemUIDs()
+	}
 	s.writeQueue = make(chan writeJob, 256)
 	go s.persistLoop()
 	return s
@@ -358,6 +369,10 @@ func (s *JSONStore) SaveAccount(acc *model.Account) error {
 	if s.initErr != nil {
 		return s.initErr
 	}
+	nextOwners, _, err := s.prepareAccountItemUIDs(acc)
+	if err != nil {
+		return err
+	}
 	if err := acc.Validate(); err != nil {
 		return fmt.Errorf("store: salvar conta: %w", err)
 	}
@@ -369,7 +384,11 @@ func (s *JSONStore) SaveAccount(acc *model.Account) error {
 		return err
 	}
 	s.flushWrites()
-	return s.writeAccountFile(s.path(acc.Name), b)
+	if err := s.writeAccountFile(s.path(acc.Name), b); err != nil {
+		return err
+	}
+	s.itemOwners = nextOwners
+	return nil
 }
 
 // SaveAccountAsync agenda a escrita FORA do game-loop (autosave periodico). O
@@ -382,6 +401,10 @@ func (s *JSONStore) SaveAccountAsync(acc *model.Account) error {
 	if s.initErr != nil {
 		return s.initErr
 	}
+	nextOwners, _, err := s.prepareAccountItemUIDs(acc)
+	if err != nil {
+		return err
+	}
 	if err := acc.Validate(); err != nil {
 		return fmt.Errorf("store: autosave conta: %w", err)
 	}
@@ -393,6 +416,9 @@ func (s *JSONStore) SaveAccountAsync(acc *model.Account) error {
 		return err
 	}
 	name, path := acc.Name, s.path(acc.Name)
+	// O snapshot em memoria ja e autoritativo e possui UIDs. A fila apenas tira
+	// o fsync do game loop; um save sincrono posterior faz flush antes de gravar.
+	s.itemOwners = nextOwners
 	s.enqueueAsyncWrite(func() {
 		if err := s.writeAccountFile(path, b); err != nil {
 			log.Printf("store: autosave conta %q: %v", name, err)
@@ -452,6 +478,14 @@ func (s *JSONStore) SaveGameState(guilds *model.GuildRegistry, accounts ...*mode
 		}
 		if err := guilds.Validate(); err != nil {
 			return fmt.Errorf("store: salvar guilds: %w", err)
+		}
+	}
+	nextOwners := s.itemOwners
+	if len(accounts) != 0 {
+		var err error
+		nextOwners, _, err = s.prepareAccountItemUIDs(accounts...)
+		if err != nil {
+			return err
 		}
 	}
 	if err := os.MkdirAll(s.dir, 0o755); err != nil {
@@ -530,12 +564,13 @@ func (s *JSONStore) SaveGameState(guilds *model.GuildRegistry, accounts ...*mode
 		// O journal comprometido fica no disco para recuperacao no proximo boot.
 		return err
 	}
+	s.itemOwners = nextOwners
 	// Artefato derivado, DEPOIS do commit: o Guilds.txt so existe para o client
 	// 7.48 ler localmente. Falhar aqui nao invalida a transacao ja aplicada, e
 	// o arquivo e regravado inteiro na proxima mudanca de guild.
 	if guilds != nil {
 		if err := s.exportGuildsTxt(guilds); err != nil {
-			return fmt.Errorf("store: exportar Guilds.txt: %w", err)
+			log.Printf("store: Guilds.txt derivado pendente apos commit autoritativo: %v", err)
 		}
 	}
 	return nil

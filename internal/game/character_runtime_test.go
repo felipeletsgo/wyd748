@@ -30,7 +30,7 @@ import (
 func TestArchCreationKeepsCharPointerValid(t *testing.T) {
 	w, p, _ := newAscensionWorld(t)
 	// Forca len == cap == 1, que e o que o append precisa para realocar.
-	exato := make([]model.Char, 1, 1)
+	exato := make([]model.Char, 1)
 	exato[0] = p.Account.Chars[0]
 	p.Account.Chars = exato
 	p.CharSlot = 0

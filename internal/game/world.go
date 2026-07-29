@@ -94,6 +94,11 @@ type Player struct {
 	SkillReady    map[int]time.Time
 	NextRegen     time.Time
 	NextMountTick time.Time
+	// Tickets de dungeon usam um prazo server-side unico; ao vencer, o jogador
+	// e retirado pelo fluxo normal de teleporte, sem ticker por instancia.
+	DungeonExitAt time.Time
+	DungeonExitX  uint16
+	DungeonExitY  uint16
 	// Cooldown compartilhado pelos comandos /kingdom e /king.
 	NextKingdomTeleport time.Time
 	Visible             map[uint16]struct{} // entidades atualmente materializadas neste client
@@ -117,13 +122,17 @@ type Player struct {
 	MovePublished        bool
 	MovePublishedTargetX uint16
 	MovePublishedTargetY uint16
-	Trade                *TradeState
-	GhostShop            *GhostShop
+	// Orcamento server-side de deslocamento. Impede que rotas individualmente
+	// validas sejam reenviadas em alta frequencia para produzir speedhack.
+	MoveBudget   float64
+	MoveBudgetAt time.Time
+	Trade        *TradeState
+	GhostShop    *GhostShop
 	// Loja fantasma cuja janela este client abriu. Permite fechar somente os
 	// compradores afetados quando o clone desaparece.
 	BrowsingGhostShopID uint16
 	PKMode              bool
-	// SpecialCoins sao moedas especiais por nome (a serem criadas), persistidas
+	// SpecialCoins sao contadores nomeados, persistidos pelo UID do personagem
 	// no sidecar de estado de sessao junto com os buffs.
 	SpecialCoins map[string]uint32
 }
@@ -158,6 +167,7 @@ type Mob struct {
 	SummonRange      int
 	ExpiresAt        time.Time
 	Awake            bool
+	InstanceID       string
 }
 
 const (
@@ -278,6 +288,9 @@ type World struct {
 	accountSessions map[string]*net.Session
 	authPending     map[*net.Session]bool
 	authSlots       chan struct{}
+	// security agrega violacoes por conexao em qualquer fase (inclusive antes
+	// do login), sem confiar em campos de identidade enviados no pacote.
+	security map[*net.Session]*securityState
 	// charNames e o indice em memoria de nomes de personagem (minusculos),
 	// populado no boot e mantido em criar/deletar. Evita varrer todas as contas do
 	// disco a cada 0x20F (DoS). nil = indice indisponivel -> cai no scan do store.
@@ -350,6 +363,9 @@ type World struct {
 	// estado vivo de cada encontro (instancia atual e deadline de respawn).
 	bossCatalog model.BossCatalog
 	bossSpawns  []*bossSpawnState
+	// itemInstances são salas temporárias criadas por consumíveis. Um mapa no
+	// ator World substitui tickers/goroutines por sala.
+	itemInstances map[string]*ItemInstance
 }
 
 // firstMobID e o inicio da faixa de mobs; abaixo dela ficam os jogadores.
@@ -399,6 +415,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		accountSessions:    make(map[string]*net.Session),
 		authPending:        make(map[*net.Session]bool),
 		authSlots:          make(chan struct{}, 4),
+		security:           make(map[*net.Session]*securityState),
 		store:              st,
 		npcs:               npcs,
 		mobsByID:           make(map[uint16]*Mob),
@@ -425,6 +442,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		lastProtocolNotice: make(map[uint16]time.Time),
 		clock:              realClock{},
 		rng:                realRNG{},
+		itemInstances:      make(map[string]*ItemInstance),
 	}
 	for _, option := range options {
 		option(w)
@@ -484,8 +502,35 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		templates[n.Name] = n
 		templates[generName(n.Name)] = n
 	}
+	for itemID, rule := range w.volatiles.Items {
+		if rule.Action != "instance_ticket" || rule.Instance == nil {
+			continue
+		}
+		spawns := rule.Instance.Spawns
+		if len(rule.Instance.Stages) > 0 {
+			spawns = nil
+			for _, stage := range rule.Instance.Stages {
+				spawns = append(spawns, stage.Spawns...)
+			}
+		}
+		for _, spawn := range spawns {
+			if templates[spawn.NPC] == nil {
+				return nil, fmt.Errorf("volatile item %d: template de instancia %q ausente",
+					itemID, spawn.NPC)
+			}
+		}
+	}
 	for _, g := range geners {
 		if !g.Enabled {
+			continue
+		}
+		// Salas ativadas por item nao podem compartilhar a populacao permanente
+		// do NPCGener. O arquivo Micronics contem os mesmos geradores Water com
+		// MinuteGenerate=-1 (spawn unico no boot); mantê-los criaria monstros
+		// antes do ticket e duplicaria a sala quando a instancia fosse aberta.
+		// A reserva nasce da configuracao autoritativa do item, sem depender do
+		// numero decorativo da secao no NPCGener.
+		if w.generatorReservedForItemInstance(g) {
 			continue
 		}
 		leader := templates[g.Leader]
@@ -886,6 +931,8 @@ func (w *World) tick() {
 	w.tickPlayerRegen(now)
 	w.tickPlayerMounts(now)
 	w.tickGroundItems(now)
+	w.tickItemInstances(now)
+	w.tickDungeonTeleports(now)
 	w.tickTrades(now)
 	if !now.Before(w.nextQuestZoneReset) {
 		w.tickQuestZoneReset(now)
@@ -927,15 +974,21 @@ func (w *World) tickQuestZoneReset(now time.Time) {
 
 func (w *World) autoSaveAccounts(now time.Time) {
 	w.nextAutoSave = now.Add(accountAutoSaveInterval)
+	active := make([]*Player, 0, len(w.players))
 	for _, p := range w.players {
 		if !p.InWorld || p.Account == nil || p.Char == nil {
 			continue
 		}
+		active = append(active, p)
 		// Autosave e periodico, nao gate de confirmacao: usa o caminho ASSINCRONO
 		// para tirar o fsync do game-loop. Os saves anti-dupe seguem sincronos.
 		if err := w.saveAccountAsync(p.Account); err != nil {
 			log.Printf("[#%d] ERRO no autosave da conta %q: %v", p.Session.ID, p.Account.Name, err)
 		}
+	}
+	// Enfileira charstates depois das contas. No Postgres isso deixa os snapshots
+	// de conta contiguos para o worker consolida-los em poucos commits.
+	for _, p := range active {
 		// Buffs e moedas vivem no sidecar de sessao, gravado junto do autosave.
 		w.saveCharStateAsync(p)
 	}
@@ -963,6 +1016,9 @@ func (w *World) handle(cmd command) {
 	}
 	if cmd.pkt == nil {
 		w.onDisconnect(cmd.s)
+		return
+	}
+	if !w.validateInboundCommand(cmd.s, cmd.pkt) {
 		return
 	}
 	h := wire.ParseHeader(cmd.pkt)
@@ -1079,6 +1135,16 @@ func (w *World) handle(cmd command) {
 // player carrega refino/adds). Usado como fallback do loot (inventario cheio) e
 // pelo jogar-item (0x272).
 func (w *World) spawnDrop(x, y uint16, item model.Item) *GroundItem {
+	return w.createGroundDrop(x, y, item, true)
+}
+
+func (w *World) createGroundDrop(x, y uint16, item model.Item, publish bool) *GroundItem {
+	itemIndex := item.Index
+	item, err := materializeItem(item)
+	if err != nil {
+		log.Printf("materializar drop item=%d: %v", itemIndex, err)
+		return nil
+	}
 	// O client procura Canhao (746) exatamente sob o jogador e somente nos IDs
 	// 15001..15100. Demais drops continuam espalhados ao redor da origem.
 	dropX, dropY := x, y
@@ -1106,8 +1172,9 @@ func (w *World) spawnDrop(x, y uint16, item model.Item) *GroundItem {
 	}
 	w.groundItems[id] = gItem
 
-	// Enviar pacote CreateItem para quem esta perto
-	w.publishItemSpawn(gItem)
+	if publish {
+		w.publishItemSpawn(gItem)
+	}
 	return gItem
 }
 

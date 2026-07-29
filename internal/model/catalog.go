@@ -9,7 +9,7 @@ type StaticEffect struct {
 }
 
 // ItemDef e a fonte autoritativa de um item. Aparencia, requisitos, preco,
-// posicao e efeitos vem exclusivamente do itemlist/Itemname carregado no boot.
+// posicao e efeitos vem exclusivamente dos arquivos carregados no boot.
 type ItemDef struct {
 	Index         uint16
 	Name          string
@@ -26,6 +26,10 @@ type ItemDef struct {
 	Extra         int
 	Grade         int
 	StaticEffects []StaticEffect
+	// DynamicEffectNames traduz os IDs dos efeitos gravados na instancia do
+	// item. O mapa compartilhado vem de ItemEffect.h; nao deve ser recriado no
+	// codigo do servidor.
+	DynamicEffectNames map[byte]string
 }
 
 // SkillDef preserva todas as colunas conhecidas do SkillData.csv. O catalogo
@@ -58,6 +62,7 @@ type SkillDef struct {
 }
 
 type Catalog struct {
-	Items  map[uint16]ItemDef
-	Skills map[int]SkillDef
+	Items       map[uint16]ItemDef
+	Skills      map[int]SkillDef
+	ItemEffects map[byte]string
 }

@@ -50,6 +50,15 @@ func MessagePanel(message string) []byte {
 	return b
 }
 
+// Motion monta MSG_Motion (0x36A), usado pelo servidor para propagar emotes e
+// efeitos pontuais. Fogos de artificio usam Motion=100 e Parm=0..5 no nativo.
+func Motion(id uint16, motion, parm uint16) []byte {
+	b := Build(OpMotion, id, 20)
+	putU16(b, 12, motion)
+	putU16(b, 14, parm)
+	return b
+}
+
 // StandardParm monta o layout WYD de 16 bytes usado por PKInfo e diversos
 // sinais de confirmacao: header seguido de um DWORD em @12.
 func StandardParm(opcode, id uint16, parm uint32) []byte {
@@ -113,11 +122,13 @@ func partyDisplayHP(hp, maxHP uint16) (uint16, uint16) {
 func putU16(b []byte, off int, v uint16) { binary.LittleEndian.PutUint16(b[off:off+2], v) }
 func putU32(b []byte, off int, v uint32) { binary.LittleEndian.PutUint32(b[off:off+4], v) }
 
-// NormalNameChaos = valor do byte de chaos/PK (MobName[12]) que deixa o nome do
-// player BRANCO/normal no client 7.48. O client colore o nome pela paleta indexada
-// por esse byte: <10 = normal-c/-borda, ~10-30 = VERMELHO (PKer), ~150 = branco.
-// (0 deixava o nome vermelho no 7.48 -- valor confirmado por probe in-game.)
+// O byte de CreateMob guarda CP+75; o dominio permanece assinado (-75..+75).
+// O personagem limpo usa CP +75 e transmite 150 (nome branco).
 const NormalNameChaos = 150
+
+func CPNameByte(cp int16) byte {
+	return byte(model.ClampCP(int(cp)) + 75)
+}
 
 // PutItem escreve um STRUCT_ITEM (8B) em b@off: sIndex + 3 pares de efeito.
 func PutItem(b []byte, off int, it model.Item) {
@@ -382,17 +393,13 @@ func CreateMobVisual(id uint16, name string, x, y uint16, mesh []uint16, anct []
 // carrega o indice de guild em @98 -- os 2 bytes entre o fim de Affect[16]
 // (@66..97) e o Status (@100). O client le esse WORD como (canal << 12) | id e
 // usa para colorir/identificar aliados da mesma guild.
-func CreateMobExtended(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn uint16, guild uint16) []byte {
+func CreateMobExtended(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn uint16, guild uint16, cp int16) []byte {
 	b := CreateMobVisual(id, name, x, y, mesh, anct, compatibilityScore(ext), affects, spawn)
 	putU16(b, 98, guild)
-	// O byte de chaos/PK @30 colore o nome; CreateMobVisual so o preenche no
-	// spawn==2 (self). Para PLAYERS forcamos o valor normal em QUALQUER spawn:
-	// sem isso um CreateMob de observador (spawn=0, ex.: refreshAppearance no
-	// level-up) deixa @30=0 e o client pinta o nome de VERMELHO (como PKer). PK
-	// real ainda nao e modelado -- todo player aparece branco, igual ao enter-view
-	// (que ja forcava spawn=2 justamente para colorir o nome). Mobs/NPCs usam
+	// O byte de chaos/PK @30 colore o nome; para players ele e sempre a
+	// projecao CP+75, tanto no self quanto para observadores. Mobs/NPCs usam
 	// CreateMobVisualExtended e nao passam por aqui.
-	b[30] = NormalNameChaos
+	b[30] = CPNameByte(cp)
 	return b
 }
 
@@ -632,7 +639,7 @@ func UpdateAffects(id uint16, ch model.Char) []byte {
 	return b
 }
 
-// UpdateEtc monta o p754_SendEtc final (36B): Hold@12, Chaos@14, EXP@16,
+// UpdateEtc monta o p754_SendEtc final: CP assinado no DWORD@12, EXP@16,
 // LearnedSkill@20, Status@24, Mastery@26, SkillPts@28, Magic@30 e Gold@32.
 // LearnedSkill@20 e OBRIGATORIO: e daqui que o client sabe as skills aprendidas
 // (TMHuman::OnPacketUpdateEtc copia LearnedSkill/bonus/coin deste pacote). Remover
@@ -640,8 +647,7 @@ func UpdateAffects(id uint16, ch model.Char) []byte {
 func UpdateEtc(id uint16, ch model.Char) []byte {
 	e := scoreWireExtension(ch)
 	b := Build(OpUpdateEtc, id, 48)
-	putU16(b, 12, 0)
-	putU16(b, 14, uint16(ch.Chaos))
+	putU32(b, 12, uint32(int32(ch.CP)))
 	putU32(b, 16, ch.Exp)
 	putU32(b, 20, ch.LearnedSkill)
 	putU16(b, 24, compatibilityU16(e.StatusPts))

@@ -6,6 +6,29 @@ import (
 	"wydgo/internal/model"
 )
 
+const (
+	affectCourage        byte = 30
+	couragePhysicalBonus int  = 1_000
+	courageMagicBonus    int  = 2_000
+)
+
+// applyCouragePvEDamage aplica o bonus fixo do affect Courage somente sobre um
+// hit valido contra monstro. Ele nao altera ExtendedScore nem participa de PvP:
+// o bonus existe apenas no resultado autoritativo de cada golpe PvE.
+func applyCouragePvEDamage(ch *model.Char, damage int, magical bool) int {
+	if damage <= 0 || activePlayerAffect(ch, affectCourage) == nil {
+		return damage
+	}
+	bonus := couragePhysicalBonus
+	if magical {
+		bonus = courageMagicBonus
+	}
+	if damage > int(maxExtendedStat)-bonus {
+		return int(maxExtendedStat)
+	}
+	return damage + bonus
+}
+
 // combat.go -- calculo de dano PORTADO do W2PP (SOURCE SERVER/Code/Basedef.cpp), a
 // fonte com a formula correta. Regra: dano FISICO cresce com FORCA e DESTREZA; dano
 // MAGICO cresce com INTELIGENCIA. So portamos algoritmos (nunca offsets/structs).

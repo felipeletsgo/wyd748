@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -128,6 +129,93 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	}
 
 	switch rule.Action {
+	case "instance_ticket":
+		w.useInstanceTicket(s, p, item, slot, rule)
+
+	case "loot_box":
+		w.useLootBox(s, p, item, slot, rule)
+
+	case "mount_revive":
+		w.useMountRevive(s, p, item, slot, rule)
+
+	case "timed_access":
+		w.useTimedAccess(s, p, item, slot, rule)
+
+	case "dungeon_teleport":
+		w.useDungeonTeleport(s, p, item, slot, rule)
+
+	case "no_direct_use":
+		w.useNoDirectItem(s, p, item, slot, "")
+
+	case "celestial_pending":
+		w.useNoDirectItem(s, p, item, slot,
+			"Celestial system is not available yet.")
+
+	case "nightmare_ticket":
+		w.useNightmareTicket(s, p, item, slot, rule)
+
+	case "refine_equipped":
+		w.useEquippedRefine(s, p, item, slot, rule)
+
+	case "territory_pass":
+		w.useTerritoryPass(s, p, item, slot, rule)
+
+	case "mastery_reset":
+		w.useMasteryReset(s, p, item, slot, rule, code)
+
+	case "firework":
+		oldItem := *item
+		if rule.Consume {
+			consumeOne(item)
+		}
+		if err := w.saveAccount(p.Account); err != nil {
+			*item = oldItem
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		parm := uint16(w.intn(6))
+		w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 100, parm) })
+
+	case "chaos_remission":
+		// O nativo chama SetPKPoint(150): 150 e o byte bruto CP+75, portanto
+		// a Carta do Perdao leva o CP autoritativo para o maximo +75.
+		// Confirma o efeito somente depois de persistir, evitando carta duplicada
+		// ou CP restaurado apenas em memoria numa queda.
+		oldItem, oldCP := *item, p.Char.CP
+		p.Char.CP = model.MaxCP
+		if rule.Consume {
+			consumeOne(item)
+		}
+		if err := w.saveAccount(p.Account); err != nil {
+			*item, p.Char.CP = oldItem, oldCP
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		s.Send(wire.UpdateEtc(p.ID, *p.Char))
+		w.refreshAppearance(p)
+
+	case "grant_next_level":
+		// Poeira de Fada nativa: posiciona a EXP exatamente no proximo marco,
+		// portanto concede um unico nivel (e nao uma quantidade fixa arbitraria).
+		if !matchesEvolution(p.Char, "mortal") ||
+			p.Char.Extended == nil || p.Char.Extended.Level >= maxMortalLevel {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		next := mortalNextLevel[int(p.Char.Extended.Level)+1]
+		if p.Char.Exp >= next {
+			syncProgression(p.Char)
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
+		oldIndex := item.Index
+		res := w.grantItemExpReward(s, p, item, slot, next-p.Char.Exp, 0, rule.Consume)
+		if !res.OK && res.Err != nil {
+			log.Printf("[#%d] ERRO ao salvar poeira de fada item=%d: %v", s.ID, oldIndex, res.Err)
+		}
+
 	case "quest_reward":
 		w.useQuestReward(s, p, item, slot, rule, code)
 
@@ -136,6 +224,9 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 
 	case "grant_counter":
 		w.useCounterGrant(s, p, item, slot, rule, code)
+
+	case "grant_counter_once":
+		w.useCounterGrantOnce(s, p, item, slot, rule, code)
 
 	case "gate_key":
 		w.useGateKey(s, p, item, slot, rule, code)
@@ -278,22 +369,17 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.ID, oldItem.Index, value, p.Char.Gold)
 
 	case "teleport":
-		oldX, oldY := p.X, p.Y
 		oldItem := *item
-		p.X, p.Y = rule.X, rule.Y
-		p.Char.X, p.Char.Y = p.X, p.Y
 		if rule.Consume {
 			consumeOne(item)
 		}
-		if err := w.saveAccount(p.Account); err != nil {
-			p.X, p.Y, p.Char.X, p.Char.Y = oldX, oldY, oldX, oldY
+		oldX, oldY := p.X, p.Y
+		if !w.teleportPlayer(p, rule.X, rule.Y) {
 			*item = oldItem
-			log.Printf("[#%d] ERRO ao salvar teleporte item=%d: %v", s.ID, oldItem.Index, err)
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
-		w.refreshPlayerVisibility(p)
 		log.Printf("[#%d] usou teleporte item=%d volatile=%d @(%d,%d)->(%d,%d)",
 			s.ID, def.Index, code, oldX, oldY, p.X, p.Y)
 
@@ -334,20 +420,16 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.Send(wire.MessagePanel("No position saved."))
 			return
 		}
-		oldX, oldY, oldItem := p.X, p.Y, *item
-		p.X, p.Y = p.Char.SavedX, p.Char.SavedY
-		p.Char.X, p.Char.Y = p.X, p.Y
+		oldItem := *item
 		if rule.Consume {
 			consumeOne(item)
 		}
-		if err := w.saveAccount(p.Account); err != nil {
-			p.X, p.Y, p.Char.X, p.Char.Y, *item = oldX, oldY, oldX, oldY, oldItem
-			log.Printf("[#%d] ERRO ao salvar warp_saved item=%d: %v", s.ID, oldItem.Index, err)
+		if !w.teleportPlayer(p, p.Char.SavedX, p.Char.SavedY) {
+			*item = oldItem
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
-		w.refreshPlayerVisibility(p)
 		log.Printf("[#%d] warp para coordenada salva (%d,%d) item=%d volatile=%d",
 			s.ID, p.X, p.Y, oldItem.Index, code)
 
@@ -355,6 +437,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// Pocoes de dano, comidas e buffs de tempo. O affect e escolhido por
 		// dado (AffectType) e sua formula vive em applyExtendedAffectStats. O
 		// numero de balanceamento (% ou nivel) e a duracao vem do volatiles.json.
+		snapshot := cloneCharacterState(p.Char)
 		affectType := byte(rule.AffectType)
 		if affectType == 0 {
 			log.Printf("[#%d] volatile buff sem affectType item=%d code=%d", s.ID, item.Index, code)
@@ -379,6 +462,15 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			consumeOne(item)
 		}
 		w.recalcPlayer(p.Char)
+		// Affects temporizados tambem sao estado economico: confirma consumo e
+		// duracao no mesmo save. Sem isto, desconectar antes do autosave devolvia
+		// o item e permitia repetir Bigger Potion/comidas/bau de EXP.
+		if err := w.saveAccount(p.Account); err != nil {
+			*p.Char = snapshot
+			s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
+			log.Printf("[#%d] ERRO ao salvar buff item=%d: %v", s.ID, item.Index, err)
+			return
+		}
 		w.publishPlayerAffects(p)
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
@@ -508,53 +600,65 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.ID, item.Index, dest.Index, code)
 
 	case "repliction":
-		// Repliction (190, Grade A-E): sorteia um adicional do pool e o grava num
-		// slot de efeito livre do item-alvo ARRASTADO (equip ou inv) -- nao ha
-		// restricao de manto. Muda stats -> persist-before-confirm com rollback.
+		// Repliction (190, A-E normal/premium) porta SetItemBonus2: sorteia um
+		// PAR completo conforme a parte da armadura e substitui os dois adds.
+		// O terceiro par logico permanece reservado para refino/tintura.
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			s.Send(wire.MessagePanel("Drag the repliction onto an item."))
 			return
 		}
-		add, ok := pickVolatileAdd(rule.AddPool)
-		if !ok {
+		def, exists := w.items[dest.Index]
+		if !exists {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
+
 		oldDest, oldItem := *dest, *item
-		// Grava no 1o slot de efeito LIVRE; sem slot livre, sobrescreve o 2o (o
-		// "adicional", como o stEffect[1] do W2PP).
-		wrote := false
-		for i := 0; i < 3; i++ {
-			if dest.Eff[i*2] == 0 {
-				dest.Eff[i*2], dest.Eff[i*2+1] = byte(add.Effect), byte(add.Value)
-				wrote = true
-				break
-			}
+		bonus, err := w.applyRepliction(dest, def, item.Index)
+		if err != nil {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			s.Send(wire.MessagePanel(err.Error()))
+			return
 		}
-		if !wrote {
-			dest.Eff[2], dest.Eff[3] = byte(add.Effect), byte(add.Value)
-		}
+
 		if rule.Consume {
 			consumeOne(item)
 		}
+
 		if err := w.saveAccount(p.Account); err != nil {
 			*dest, *item = oldDest, oldItem
 			log.Printf("[#%d] ERRO ao salvar repliction: %v", s.ID, err)
 			return
 		}
+
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.SendItem(p.ID, byte(destType), byte(destPos), *dest))
+		s.Send(wire.SendItem(
+			p.ID,
+			byte(destType),
+			byte(destPos),
+			*dest,
+		))
+
 		if destType == placeEquip {
 			w.recalcPlayer(p.Char)
 			s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
 			s.Send(wire.UpdateScore(p.ID, *p.Char))
 			w.syncPlayerVitalsToObservers(p)
 		}
+
 		s.Send(wire.MessagePanel("The item gained a new bonus!"))
-		log.Printf("[#%d] repliction item=%d alvo=%d add=ef%d/v%d volatile=%d",
-			s.ID, item.Index, dest.Index, add.Effect, add.Value, code)
+
+		log.Printf(
+			"[#%d] repliction item=%d alvo=%d adds=ef%d/v%d+ef%d/v%d volatile=%d",
+			s.ID,
+			item.Index,
+			dest.Index,
+			bonus.Effect1, bonus.Value1,
+			bonus.Effect2, bonus.Value2,
+			code,
+		)
 
 	case "mount":
 		// Consumiveis de montaria (amago 16, racao 15, longevidade 93, crescimento
@@ -578,33 +682,55 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	}
 }
 
-// pickVolatileAdd sorteia UM adicional do pool da repliction, respeitando o peso
-// de cada entrada (Weight ausente ou <=0 conta como 1). Devolve ok=false para
-// pool vazio, para o handler recusar sem consumir.
-func pickVolatileAdd(pool []model.VolatileAdd) (model.VolatileAdd, bool) {
-	total := 0
-	for _, a := range pool {
-		w := a.Weight
-		if w <= 0 {
-			w = 1
-		}
-		total += w
+func (w *World) applyRepliction(dest *model.Item, def model.ItemDef, sourceID uint16) (model.ReplictionBonus, error) {
+	rule, ok := w.volatiles.Repliction.Items[sourceID]
+	if !ok {
+		return model.ReplictionBonus{}, fmt.Errorf("This repliction is not configured.")
 	}
-	if total == 0 {
-		return model.VolatileAdd{}, false
+	pool := w.volatiles.Repliction.Pools[def.Pos]
+	if len(pool) == 0 {
+		return model.ReplictionBonus{}, fmt.Errorf("Repliction works only on defensive equipment.")
 	}
-	r := rand.Intn(total)
-	for _, a := range pool {
-		w := a.Weight
-		if w <= 0 {
-			w = 1
-		}
-		if r < w {
-			return a, true
-		}
-		r -= w
+	if dest.Index >= 3500 && dest.Index <= 3507 {
+		return model.ReplictionBonus{}, fmt.Errorf("Repliction cannot be used on Cythera.")
 	}
-	return pool[len(pool)-1], true
+	if sanc := itemSanc(*dest); sanc > rule.MaxSanc {
+		return model.ReplictionBonus{}, fmt.Errorf("The refinement level is too high for this repliction.")
+	}
+	mobType := itemAbility(*dest, def, "EF_MOBTYPE")
+	if mobType != 0 && mobType != 2 {
+		return model.ReplictionBonus{}, fmt.Errorf("This item type cannot receive Repliction.")
+	}
+	if itemAbility(*dest, def, "EF_ITEMLEVEL") != rule.ItemLevel {
+		return model.ReplictionBonus{}, fmt.Errorf("The repliction grade does not match the item.")
+	}
+
+	// Preserva refino ou tintura independentemente do slot em que o item antigo
+	// o armazenava. Item ainda sem refino recebe EF_SANC +0, como SetItemBonus2.
+	sancEffect, sancValue := byte(0), byte(0)
+	for id, name := range def.DynamicEffectNames {
+		if name == "EF_SANC" {
+			sancEffect = id
+			break
+		}
+	}
+	if sancEffect == 0 {
+		return model.ReplictionBonus{}, fmt.Errorf("EF_SANC is missing from ItemEffect.")
+	}
+	for i := 0; i < 3; i++ {
+		effect := dest.Eff[i*2]
+		if effect == sancEffect || (effect >= 116 && effect <= 125) {
+			sancEffect, sancValue = effect, dest.Eff[i*2+1]
+			break
+		}
+	}
+	bonus := pool[rand.Intn(len(pool))]
+	dest.Eff = [6]byte{
+		sancEffect, sancValue,
+		byte(bonus.Effect1), byte(bonus.Value1),
+		byte(bonus.Effect2), byte(bonus.Value2),
+	}
+	return bonus, nil
 }
 
 // refineRoll porta a rolagem de refino do W2PP (_MSG_UseItem.cpp:424): sorteia

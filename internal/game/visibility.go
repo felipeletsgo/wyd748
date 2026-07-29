@@ -77,7 +77,7 @@ func playerEnterViewPackets(subject *Player) [][]byte {
 	}
 	return [][]byte{
 		wire.CreateMobExtended(subject.ID, subject.Char.Name, subject.X, subject.Y,
-			bodyMesh(subject.Char), bodyAncient(subject.Char), wireExtendedScore(subject.Char), subject.Char.Affects[:], 2, subject.Char.GuildID),
+			bodyMesh(subject.Char), bodyAncient(subject.Char), wireExtendedScore(subject.Char), subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.CP),
 		wire.SetHpMpExtended(subject.ID, wireExtendedScore(subject.Char)),
 		wire.ActionStop(subject.ID, subject.X, subject.Y),
 	}

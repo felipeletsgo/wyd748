@@ -1,31 +1,116 @@
 package data
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"wydgo/internal/model"
 )
 
-// LoadCatalog carrega as tres tabelas exportadas do client 7.48. Itemname
-// substitui o nome tecnico do itemlist; todos os demais dados vem do itemlist.
-func LoadCatalog(itemListPath, itemNamePath, skillPath string) (model.Catalog, error) {
+// LoadCatalog carrega as fontes autoritativas do catalogo. Itemname substitui
+// somente o nome do itemlist; ItemEffect traduz os IDs dos efeitos persistidos;
+// todos os campos das skills vem de SkillData.
+func LoadCatalog(itemListPath, itemNamePath string, paths ...string) (model.Catalog, error) {
+	var itemEffectPath, skillPath string
+	switch len(paths) {
+	case 1:
+		// Compatibilidade para consumidores internos: ItemEffect.h continua
+		// obrigatorio e e localizado ao lado do itemlist.
+		itemEffectPath = filepath.Join(filepath.Dir(itemListPath), "ItemEffect.h")
+		skillPath = paths[0]
+	case 2:
+		itemEffectPath, skillPath = paths[0], paths[1]
+	default:
+		return model.Catalog{}, fmt.Errorf("LoadCatalog requer SkillData e, opcionalmente, ItemEffect explicito")
+	}
+	effects, err := loadItemEffects(itemEffectPath)
+	if err != nil {
+		return model.Catalog{}, err
+	}
 	items, err := loadItemList(itemListPath)
 	if err != nil {
+		return model.Catalog{}, err
+	}
+	if err := validateStaticEffects(items, effects); err != nil {
 		return model.Catalog{}, err
 	}
 	if err := loadItemNames(itemNamePath, items); err != nil {
 		return model.Catalog{}, err
 	}
+	for index, def := range items {
+		def.DynamicEffectNames = effects
+		items[index] = def
+	}
 	skills, err := loadSkills(skillPath)
 	if err != nil {
 		return model.Catalog{}, err
 	}
-	return model.Catalog{Items: items, Skills: skills}, nil
+	return model.Catalog{Items: items, Skills: skills, ItemEffects: effects}, nil
+}
+
+func validateStaticEffects(items map[uint16]model.ItemDef, effects map[byte]string) error {
+	known := make(map[string]struct{}, len(effects))
+	for _, name := range effects {
+		known[name] = struct{}{}
+	}
+	for index, def := range items {
+		for _, effect := range def.StaticEffects {
+			if _, ok := known[effect.Name]; !ok {
+				// O ItemList 7.48 possui alguns efeitos proprietarios escritos
+				// diretamente como ID numerico (por exemplo 111), mesmo sem
+				// alias EF_* no ItemEffect.h. Eles continuam autoritativos e
+				// sao preservados, nao inventamos um nome no servidor.
+				if numeric, err := strconv.Atoi(effect.Name); err == nil && numeric > 0 && numeric <= 255 {
+					continue
+				}
+				return fmt.Errorf("itemlist item %d usa efeito %q ausente do ItemEffect.h", index, effect.Name)
+			}
+		}
+	}
+	return nil
+}
+
+func loadItemEffects(path string) (map[byte]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("abrir ItemEffect %q: %w", path, err)
+	}
+	defer file.Close()
+
+	effects := make(map[byte]string)
+	names := make(map[string]byte)
+	scanner := bufio.NewScanner(file)
+	for line := 1; scanner.Scan(); line++ {
+		fields := strings.Fields(strings.TrimSpace(scanner.Text()))
+		if len(fields) < 3 || fields[0] != "#define" || !strings.HasPrefix(fields[1], "EF_") {
+			continue
+		}
+		value, err := strconv.Atoi(fields[2])
+		if err != nil || value <= 0 || value > 255 {
+			return nil, fmt.Errorf("ItemEffect %s linha %d: ID invalido %q", path, line, fields[2])
+		}
+		id, name := byte(value), fields[1]
+		if previous, ok := effects[id]; ok && previous != name {
+			return nil, fmt.Errorf("ItemEffect %s linha %d: ID %d duplicado (%s/%s)", path, line, id, previous, name)
+		}
+		if previous, ok := names[name]; ok && previous != id {
+			return nil, fmt.Errorf("ItemEffect %s linha %d: efeito %s duplicado (%d/%d)", path, line, name, previous, id)
+		}
+		effects[id], names[name] = name, id
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("ler ItemEffect %q: %w", path, err)
+	}
+	if len(effects) == 0 {
+		return nil, fmt.Errorf("ItemEffect %q nao possui definicoes EF_*", path)
+	}
+	return effects, nil
 }
 
 func records(path string, visit func([]string) error) error {
@@ -194,47 +279,8 @@ func loadSkills(path string) (map[int]model.SkillDef, error) {
 			def.Act[i] = byte(act[i])
 			def.ActAlt[i] = byte(actAlt[i])
 		}
-		normalizeTKBuff759(&def)
 		skills[def.Index] = def
 		return nil
 	})
 	return skills, err
-}
-
-// normalizeTKBuff759 conserva os indices/nomes reposicionados do client 7.48,
-// mas substitui a semantica dos buffs TK pelos campos do SkillData 7.59. O CSV
-// local e cp1252 e permanece como fonte visual intacta.
-func normalizeTKBuff759(def *model.SkillDef) {
-	switch def.Index {
-	case 3: // Samaritano, reposicionado no 7.48
-		def.TargetType, def.ManaSpent, def.Delay, def.Range = 0, 25, 1, 5
-		def.InstanceType, def.InstanceValue = 0, 0
-		def.TickType, def.TickValue = 0, 0
-		def.AffectType, def.AffectValue, def.AffectTime = 24, 0, 45/4
-		def.Aggressive, def.MaxTarget = 0, 1
-	case 13: // Possuido, reposicionado no 7.48
-		def.TargetType, def.ManaSpent, def.Delay, def.Range = 0, 105, 0, 0
-		def.InstanceType, def.InstanceValue = 0, 0
-		def.TickType, def.TickValue = 0, 0
-		def.AffectType, def.AffectValue, def.AffectTime = 14, 10, 99/4
-		def.Aggressive, def.MaxTarget = 0, 1
-	case 5: // Aura da Vida
-		def.TargetType, def.ManaSpent, def.Delay, def.Range = 0, 53, 0, 0
-		def.InstanceType, def.InstanceValue = 0, 0
-		def.TickType, def.TickValue = 17, 75
-		def.AffectType, def.AffectValue, def.AffectTime = 0, 0, 99/4
-		def.Aggressive, def.MaxTarget = 0, 1
-	case 11: // Assalto
-		def.TargetType, def.ManaSpent, def.Delay, def.Range = 0, 47, 0, 0
-		def.InstanceType, def.InstanceValue = 0, 0
-		def.TickType, def.TickValue = 0, 0
-		def.AffectType, def.AffectValue, def.AffectTime = 13, 7, 99/4
-		def.Aggressive, def.MaxTarget = 0, 1
-	case 15: // Armadura Critica
-		def.TargetType, def.ManaSpent, def.Delay, def.Range = 0, 150, 25, 0
-		def.InstanceType, def.InstanceValue = 0, 0
-		def.TickType, def.TickValue = 0, 0
-		def.AffectType, def.AffectValue, def.AffectTime = 31, 150, 75/4
-		def.Aggressive, def.MaxTarget = 0, 1
-	}
 }

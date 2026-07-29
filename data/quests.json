@@ -8,13 +8,7 @@
       "requires": {
         "minLevel": 39,
         "maxLevel": 115,
-        "mortalOnly": true,
-        "items": [
-          {
-            "index": 4038,
-            "amount": 1
-          }
-        ]
+        "mortalOnly": true
       },
       "rewards": {
         "teleport": {
@@ -25,16 +19,10 @@
       "messages": {
         "offer": "Entrance to the Gravedigger area.",
         "success": "You have entered the Gravedigger area.",
-        "denied": "You need Gravedigger's Candle to enter."
+        "denied": "Your level or evolution does not allow entrance to the Gravedigger area."
       },
-      "consumes": [
-        {
-          "index": 4038,
-          "amount": 1
-        }
-      ],
       "dialogue": [
-        "The dead do not rest here. Bring me the candle and I will open the way.",
+        "The dead do not rest here. I will open the way while your strength suits this trial.",
         "Something stirs beneath the graves. A worshipper calls to it. Hurry.",
         "Do not pity the spirits, friend. Pity whoever wakes them."
       ]
@@ -66,13 +54,7 @@
       "requires": {
         "minLevel": 115,
         "maxLevel": 189,
-        "mortalOnly": true,
-        "items": [
-          {
-            "index": 4039,
-            "amount": 1
-          }
-        ]
+        "mortalOnly": true
       },
       "rewards": {
         "teleport": {
@@ -83,16 +65,10 @@
       "messages": {
         "offer": "Entrance to the Carbuncle area.",
         "success": "You have entered the Carbuncle area.",
-        "denied": "You need Gardener's Harvest to enter."
+        "denied": "Your level or evolution does not allow entrance to the Carbuncle area."
       },
-      "consumes": [
-        {
-          "index": 4039,
-          "amount": 1
-        }
-      ],
       "dialogue": [
-        "The garden grows wild and hungry. Bring the harvest and step through.",
+        "The garden grows wild and hungry. Step through while you are ready for its trial.",
         "Carbuncles guard the beds now. They were tame once, I swear it.",
         "Mind the roots, traveller. Some of them mind you back."
       ]
@@ -104,13 +80,7 @@
       "requires": {
         "minLevel": 190,
         "maxLevel": 264,
-        "mortalOnly": true,
-        "items": [
-          {
-            "index": 4040,
-            "amount": 1
-          }
-        ]
+        "mortalOnly": true
       },
       "rewards": {
         "teleport": {
@@ -121,17 +91,11 @@
       "messages": {
         "offer": "Entrance to the Kaizen area.",
         "success": "You have entered the Kaizen area.",
-        "denied": "You need Scout's Cure to enter."
+        "denied": "Your level or evolution does not allow entrance to the Kaizen area."
       },
-      "consumes": [
-        {
-          "index": 4040,
-          "amount": 1
-        }
-      ],
       "dialogue": [
         "The Dark Knight walks again. I have seen the banners from the ridge.",
-        "Bring me the cure and I will send you where the scouts do not return from.",
+        "I will send you where the scouts do not return from. Be ready.",
         "Kaizen took my brother. Take my directions, and take your revenge."
       ]
     },
@@ -142,13 +106,7 @@
       "requires": {
         "minLevel": 265,
         "maxLevel": 319,
-        "mortalOnly": true,
-        "items": [
-          {
-            "index": 4041,
-            "amount": 1
-          }
-        ]
+        "mortalOnly": true
       },
       "rewards": {
         "teleport": {
@@ -159,17 +117,11 @@
       "messages": {
         "offer": "Entrance to the Hydra area.",
         "success": "You have entered the Hydra area.",
-        "denied": "You need Scout's Mana to enter."
+        "denied": "Your level or evolution does not allow entrance to the Hydra area."
       },
-      "consumes": [
-        {
-          "index": 4041,
-          "amount": 1
-        }
-      ],
       "dialogue": [
         "Come closer. The hydras drown this valley and I cannot hold it alone.",
-        "Cut one head and two answer. Bring the emblem and see for yourself.",
+        "Cut one head and two answer. Enter and see for yourself.",
         "Immortal, they call it. Nothing that bleeds is immortal."
       ]
     },
@@ -180,13 +132,7 @@
       "requires": {
         "minLevel": 319,
         "maxLevel": 349,
-        "mortalOnly": true,
-        "items": [
-          {
-            "index": 4042,
-            "amount": 1
-          }
-        ]
+        "mortalOnly": true
       },
       "rewards": {
         "teleport": {
@@ -197,17 +143,11 @@
       "messages": {
         "offer": "Entrance to the Elf area.",
         "success": "You have entered the Elf area.",
-        "denied": "You need Guard's Emblem to enter."
+        "denied": "Your level or evolution does not allow entrance to the Elf area."
       },
-      "consumes": [
-        {
-          "index": 4042,
-          "amount": 1
-        }
-      ],
       "dialogue": [
         "The elves closed their borders. What they hide there began our sorrow.",
-        "Show me the emblem of the guard and the forest road is yours.",
+        "The forest road is open while your strength suits this trial.",
         "Go softly. The elves hear a sword drawn from a mile off."
       ]
     },

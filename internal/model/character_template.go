@@ -41,7 +41,7 @@ type CharacterTemplate struct {
 	Class         byte               `json:"class"`
 	ExtendedScore ExtendedScore      `json:"extendedScore"`
 	Gold          uint32             `json:"gold"`
-	Chaos         uint32             `json:"chaos"`
+	CP            int16              `json:"cp"`
 	Exp           uint32             `json:"exp"`
 	LearnedSkill  uint32             `json:"learnedSkill"`
 	Equip         CharacterEquipment `json:"equip"`
@@ -64,7 +64,7 @@ func (t CharacterTemplate) NewCharacter(name string, spawn CharacterSpawn) Char 
 		Y:            spawn.Y,
 		Extended:     &extended,
 		Equip:        t.Equip.Items(),
-		Chaos:        t.Chaos,
+		CP:           clampCP(t.CP),
 		Gold:         t.Gold,
 		Exp:          t.Exp,
 		LearnedSkill: t.LearnedSkill,

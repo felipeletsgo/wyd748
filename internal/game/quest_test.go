@@ -475,3 +475,12 @@ func TestDropBonusForUsaCidadaniaDoCanal(t *testing.T) {
 		t.Fatalf("jogador sem char nao pode quebrar nem bonificar: %d", got)
 	}
 }
+
+func TestCounterDeniedMessageHidesInternalCounterNames(t *testing.T) {
+	if got := counterDeniedMessage(kefraTicketCounter); got != "You have no entries left." {
+		t.Fatalf("mensagem conhecida=%q", got)
+	}
+	if got := counterDeniedMessage("future_internal_counter"); got != "You do not meet the requirements yet." {
+		t.Fatalf("contador desconhecido vazou/recebeu mensagem errada: %q", got)
+	}
+}

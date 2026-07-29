@@ -9,6 +9,11 @@ import (
 // HeaderSize -- os 12 bytes do cabecalho _MSG de todo pacote WYD.
 const HeaderSize = 12
 
+// MaxPacketSize reproduz MAX_MESSAGE_SIZE do CPSock nativo. Aceitar o WORD
+// inteiro (65535) permite que uma conexao hostil force alocacoes grandes antes
+// mesmo de o opcode ser validado.
+const MaxPacketSize = 8192
+
 var ErrBadSize = errors.New("wire: tamanho de pacote invalido")
 
 // Header -- cabecalho _MSG (little-endian).
@@ -41,7 +46,7 @@ func ReadPacket(r io.Reader) (buf []byte, okChecksum bool, err error) {
 		return nil, false, err
 	}
 	size := int(binary.LittleEndian.Uint16(sz[:]))
-	if size < HeaderSize || size > 65535 {
+	if size < HeaderSize || size > MaxPacketSize {
 		return nil, false, ErrBadSize
 	}
 	buf = make([]byte, size)

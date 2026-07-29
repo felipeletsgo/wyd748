@@ -268,13 +268,25 @@ func TestTintAndUntintChangeSancCodeOnly(t *testing.T) {
 	}
 }
 
-func TestPickVolatileAddHonorsWeightsAndEmptyPool(t *testing.T) {
-	if _, ok := pickVolatileAdd(nil); ok {
-		t.Fatal("pool vazio deveria devolver ok=false")
+func TestApplyReplictionRejectsWrongGradeAndHighSanc(t *testing.T) {
+	w := &World{volatiles: model.VolatileCatalog{Repliction: model.ReplictionCatalog{
+		Items: map[uint16]model.ReplictionItem{4016: {ItemLevel: 1, MaxSanc: 6}},
+		Pools: map[int][]model.ReplictionBonus{2: {
+			{Effect1: 4, Value1: 60, Effect2: 26, Value2: 18},
+		}},
+	}}}
+	def := model.ItemDef{
+		Index: 100, Pos: 2,
+		StaticEffects:      []model.StaticEffect{{Name: "EF_ITEMLEVEL", Value: 2}},
+		DynamicEffectNames: map[byte]string{43: "EF_SANC"},
 	}
-	pool := []model.VolatileAdd{{Effect: 2, Value: 40, Weight: 1}}
-	got, ok := pickVolatileAdd(pool)
-	if !ok || got.Effect != 2 || got.Value != 40 {
-		t.Fatalf("pool de 1 entrada deveria devolver ela: %+v ok=%v", got, ok)
+	item := model.Item{Index: 100, Eff: [6]byte{43, 6}}
+	if _, err := w.applyRepliction(&item, def, 4016); err == nil {
+		t.Fatal("Repliction A aceitou equipamento Grade B")
+	}
+	def.StaticEffects[0].Value = 1
+	item.Eff[1] = 9
+	if _, err := w.applyRepliction(&item, def, 4016); err == nil {
+		t.Fatal("Repliction normal aceitou item acima de +6")
 	}
 }

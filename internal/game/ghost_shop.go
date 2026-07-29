@@ -109,9 +109,9 @@ func parseAutoTradeRequest(pkt []byte, acc *model.Account, playerID uint16) (aut
 	used := make(map[int]struct{}, maxGhostShopItems)
 	itemCount := 0
 	for i := 0; i < maxGhostShopItems; i++ {
-		item := decodeTradeItem(pkt[36+i*8 : 44+i*8])
+		packetItem := decodeTradeItem(pkt[36+i*8 : 44+i*8])
 		signedPrice := int32(binary.LittleEndian.Uint32(pkt[144+i*4 : 148+i*4]))
-		if item.Index == 0 {
+		if packetItem.Index == 0 {
 			if signedPrice != 0 {
 				return req, fmt.Errorf("preco sem item no anuncio %d", i)
 			}
@@ -128,10 +128,10 @@ func parseAutoTradeRequest(pkt []byte, acc *model.Account, playerID uint16) (aut
 			return req, fmt.Errorf("slot de Cargo %d duplicado", pos)
 		}
 		used[pos] = struct{}{}
-		if acc.Cargo[pos].Index == 0 || acc.Cargo[pos] != item {
+		if acc.Cargo[pos].Index == 0 || !acc.Cargo[pos].WireEqual(packetItem) {
 			return req, fmt.Errorf("item do slot %d diverge do Cargo", pos)
 		}
-		req.Items[i] = item
+		req.Items[i] = acc.Cargo[pos]
 		req.CarryPos[i] = int8(pos)
 		req.Prices[i] = uint32(signedPrice)
 		itemCount++
@@ -333,7 +333,7 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 		return
 	}
 	if req.Tax != uint32(shop.Tax) || req.Price != shop.Prices[req.Pos] ||
-		req.Item != shop.Items[req.Pos] || req.Item.Index == 0 {
+		!req.Item.WireEqual(shop.Items[req.Pos]) || req.Item.Index == 0 {
 		log.Printf("[#%d] compra LOJA FANTASMA divergiu do anuncio owner=%d pos=%d", s.ID, seller.ID, req.Pos)
 		return
 	}

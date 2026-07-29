@@ -81,6 +81,35 @@ func TestLoadServerConfigUsesCompositorDefaults(t *testing.T) {
 	}
 }
 
+func TestLoadServerConfigParsesPostgresWithoutSecret(t *testing.T) {
+	cfg, err := LoadServerConfig(writeServerConfig(t, `
+database_driver=postgres
+database_url_env=WYD_PRIVATE_DATABASE_URL
+database_max_conns=6
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.DatabaseDriver != "postgres" ||
+		cfg.DatabaseURLEnv != "WYD_PRIVATE_DATABASE_URL" ||
+		cfg.DatabaseMaxConns != 6 ||
+		cfg.DatabaseURL != "" {
+		t.Fatalf("configuracao PostgreSQL incorreta: %+v", cfg)
+	}
+}
+
+func TestLoadServerConfigRejectsInvalidDatabaseSettings(t *testing.T) {
+	for _, contents := range []string{
+		"database_driver=mongo\n",
+		"database_driver=postgres\ndatabase_max_conns=0\n",
+		"database_driver=postgres\ndatabase_max_conns=65\n",
+	} {
+		if _, err := LoadServerConfig(writeServerConfig(t, contents)); err == nil {
+			t.Fatalf("configuracao de banco invalida aceita: %q", contents)
+		}
+	}
+}
+
 func TestLoadServerConfigRejectsTypoAndInvalidAddress(t *testing.T) {
 	for _, contents := range []string{
 		"listen_adress=0.0.0.0:8281\n",

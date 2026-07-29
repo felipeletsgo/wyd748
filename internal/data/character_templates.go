@@ -57,6 +57,10 @@ func LoadCharacterTemplates(path string, items map[uint16]model.ItemDef) (model.
 		allItems = append(allItems, equip[:]...)
 		allItems = append(allItems, class.Inventory...)
 		for _, item := range allItems {
+			if item.UID != "" {
+				return cfg, fmt.Errorf("data: %s classe %d: blueprint de item %d possui UID",
+					path, class.Class, item.Index)
+			}
 			if item.Index != 0 {
 				if _, ok := items[item.Index]; !ok {
 					return cfg, fmt.Errorf("data: %s classe %d: item inicial %d nao existe no catalogo", path, class.Class, item.Index)

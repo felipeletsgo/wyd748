@@ -25,7 +25,7 @@ func TestApplyBonusDoesNotRematerializeMovingPlayer(t *testing.T) {
 		activeMobs:  make(map[uint16]*Mob),
 	}
 	w.updatePlayerSpatial(p)
-	pkt := make([]byte, 18)
+	pkt := make([]byte, applyBonusPacketSize)
 	binary.LittleEndian.PutUint16(pkt[12:14], 0)
 	binary.LittleEndian.PutUint16(pkt[14:16], 0)
 

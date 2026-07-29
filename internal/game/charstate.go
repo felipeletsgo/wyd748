@@ -11,8 +11,13 @@ import (
 // Segue o padrao do guildStore: o game conhece so a interface minima e faz
 // assercao, sem obrigar todo Store a implementa-la.
 type charStateStore interface {
-	LoadCharState(name string) (*model.CharState, error)
-	SaveCharState(name string, state *model.CharState) error
+	LoadCharState(characterUID string) (*model.CharState, error)
+	SaveCharState(characterUID string, state *model.CharState) error
+}
+
+type playerStateStore interface {
+	SavePlayerState(guilds *model.GuildRegistry, account *model.Account,
+		characterUID string, state *model.CharState) error
 }
 
 // buildCharState coleta os affects AINDA ativos (tempo absoluto) e as moedas do
@@ -89,7 +94,7 @@ func (w *World) loadCharStateInto(p *Player) {
 	if !ok || p == nil || p.Char == nil {
 		return
 	}
-	state, err := store.LoadCharState(p.Char.Name)
+	state, err := store.LoadCharState(p.Char.UID)
 	if err != nil {
 		log.Printf("[#%d] ERRO ao carregar charstate de %q: %v", p.Session.ID, p.Char.Name, err)
 		return
@@ -109,20 +114,37 @@ func (w *World) saveCharState(p *Player) {
 	}
 }
 
-// saveCharStateResult e a versao que DEVOLVE o erro, para quem precisa desfazer
-// o que fez. Usada pelas quests que mexem em contador: o sidecar nao participa
-// da transacao da conta, entao quem o grava tem de tratar a falha.
+// saveCharStateResult e a versao isolada que DEVOLVE o erro. Operacoes que
+// alteram conta e charstate juntas devem usar saveAccountAndCharStateResult,
+// que aproveita a transacao unica oferecida pelo PostgreSQL.
 func (w *World) saveCharStateResult(p *Player) error {
 	store, ok := w.store.(charStateStore)
 	if !ok || p == nil || p.Char == nil {
 		return nil
 	}
-	return store.SaveCharState(p.Char.Name, buildCharState(p, time.Now()))
+	return store.SaveCharState(p.Char.UID, buildCharState(p, time.Now()))
+}
+
+// saveAccountAndCharStateResult usa uma unica transacao quando o store suporta.
+// O fallback preserva a ordem segura do adaptador JSON de desenvolvimento.
+func (w *World) saveAccountAndCharStateResult(p *Player) error {
+	if p == nil || p.Account == nil || p.Char == nil {
+		return nil
+	}
+	pinAccountEntryPositions(p.Account)
+	state := buildCharState(p, time.Now())
+	if transactional, ok := w.store.(playerStateStore); ok {
+		return transactional.SavePlayerState(nil, p.Account, p.Char.UID, state)
+	}
+	if err := w.saveCharStateResult(p); err != nil {
+		return err
+	}
+	return w.saveAccount(p.Account)
 }
 
 // asyncCharStateStore expoe o save async do charstate (autosave).
 type asyncCharStateStore interface {
-	SaveCharStateAsync(name string, state *model.CharState) error
+	SaveCharStateAsync(characterUID string, state *model.CharState) error
 }
 
 // saveCharStateAsync persiste buffs/moedas FORA do game-loop (autosave). Store
@@ -133,7 +155,7 @@ func (w *World) saveCharStateAsync(p *Player) {
 	}
 	state := buildCharState(p, time.Now())
 	if as, ok := w.store.(asyncCharStateStore); ok {
-		if err := as.SaveCharStateAsync(p.Char.Name, state); err != nil {
+		if err := as.SaveCharStateAsync(p.Char.UID, state); err != nil {
 			log.Printf("[#%d] ERRO no autosave de charstate %q: %v", p.Session.ID, p.Char.Name, err)
 		}
 		return

@@ -6,10 +6,13 @@ import (
 )
 
 func TestArchFieldsRoundTrip(t *testing.T) {
-	for _, slot := range []int{0, 1, 3} {
+	for _, origin := range []string{
+		"11111111111141118111111111111111",
+		"22222222222242228222222222222222",
+	} {
 		original := Char{
-			Name: "Arch", Evolution: "arch",
-			ArchMortalSlot: slot, ArchMortalLevel: 395,
+			UID: origin, Name: "Arch", Evolution: "arch",
+			ArchMortalUID: origin, ArchMortalLevel: 395,
 			Extended: &ExtendedScore{Version: ExtendedScoreVersion, MaxHP: 1, CurHP: 1},
 		}
 		blob, err := json.Marshal(original)
@@ -20,8 +23,9 @@ func TestArchFieldsRoundTrip(t *testing.T) {
 		if err := json.Unmarshal(blob, &back); err != nil {
 			t.Fatal(err)
 		}
-		if back.ArchMortalSlot != slot {
-			t.Errorf("slot %d nao sobreviveu ao round-trip: %d (json=%s)", slot, back.ArchMortalSlot, blob)
+		if back.ArchMortalUID != origin {
+			t.Errorf("origem %s nao sobreviveu ao round-trip: %s (json=%s)",
+				origin, back.ArchMortalUID, blob)
 		}
 		if back.ArchMortalLevel != 395 {
 			t.Errorf("nivel nao sobreviveu: %d", back.ArchMortalLevel)

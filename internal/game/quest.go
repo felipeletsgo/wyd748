@@ -464,6 +464,11 @@ func grantInventoryItem(ch *model.Char, reward model.QuestItem) bool {
 		}
 		item.Eff[1] = byte(amount)
 	}
+	var err error
+	item, err = materializeItem(item)
+	if err != nil {
+		return false
+	}
 	for i := 0; i < model.PlayerCarrySlots; i++ {
 		if ch.Inv[i].Index == 0 {
 			ch.Inv[i] = item

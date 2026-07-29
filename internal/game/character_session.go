@@ -91,11 +91,15 @@ func resetCharacterRuntime(p *Player) {
 	p.NextRegen = time.Time{}
 	p.NextMountTick = time.Time{}
 	p.NextKingdomTeleport = time.Time{}
+	p.DungeonExitAt = time.Time{}
+	p.DungeonExitX, p.DungeonExitY = 0, 0
 
 	// Movimento publicado aos observadores.
 	p.MovePublished = false
 	p.MovePublishedTargetX = 0
 	p.MovePublishedTargetY = 0
+	p.MoveBudget = 0
+	p.MoveBudgetAt = time.Time{}
 
 	// Moedas especiais vivem no charstate do PERSONAGEM.
 	p.SpecialCoins = nil
@@ -149,6 +153,15 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] ERRO ao excluir personagem %q: %v", s.ID, name, err)
 		s.Send(wire.MessagePanel("The deletion could not be saved."))
 		return
+	}
+	// PostgreSQL ja remove por ON DELETE CASCADE; o adaptador JSON recebe a
+	// limpeza explicita. Falha aqui nao desfaz a exclusao ja confirmada: o
+	// sidecar e derivado e o UID jamais sera reutilizado por outro personagem.
+	if stateStore, ok := w.store.(charStateStore); ok && previous.UID != "" {
+		if err := stateStore.SaveCharState(previous.UID, nil); err != nil {
+			log.Printf("[#%d] limpar charstate do personagem excluido %q: %v",
+				s.ID, name, err)
+		}
 	}
 	// O nome so volta a ficar livre quando NENHUM personagem o usa mais. O slot
 	// ja foi zerado acima, entao accountUsesName so enxerga os que sobraram.

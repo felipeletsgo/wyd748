@@ -44,6 +44,26 @@ func giveSephiraStones(ch *model.Char) {
 	}
 }
 
+func TestAscensionNPCRoutesOnlyBlackOracle(t *testing.T) {
+	w, p, st := newAscensionWorld(t)
+	oracle := &Mob{ID: 1500, Def: &model.NPCDef{Name: "Black_Oracle"}}
+	if !isBlackOracle(oracle.Def) || !w.handleAscensionNPC(p.Session, p, oracle) {
+		t.Fatal("Black Oracle nao foi reconhecida pelo fluxo de ascensao")
+	}
+	if st.saves != 0 {
+		t.Fatal("tentativa sem materiais nao deveria persistir")
+	}
+	other := &Mob{ID: 1501, Def: &model.NPCDef{Name: "Kibita"}}
+	if isBlackOracle(other.Def) || w.handleAscensionNPC(p.Session, p, other) {
+		t.Fatal("NPC comum foi tratado como Black Oracle")
+	}
+	if w.handleAscensionNPC(p.Session, nil, oracle) ||
+		w.handleAscensionNPC(p.Session, p, nil) ||
+		isBlackOracle(nil) {
+		t.Fatal("entrada invalida foi aceita pelo roteador de ascensao")
+	}
+}
+
 // --- Sefirot -----------------------------------------------------------------
 
 func TestSefirotRequiresAllEightStones(t *testing.T) {
@@ -185,6 +205,9 @@ func TestEternalStoneConsumesEverything(t *testing.T) {
 // --- Arch --------------------------------------------------------------------
 
 func prepareArchCandidate(p *Player, class int) {
+	if p.Char.UID == "" {
+		p.Char.UID = "11111111111141118111111111111111"
+	}
 	p.Char.Extended.Level = archMinLevel
 	p.Char.Equip[0] = model.Item{Index: uint16(1 + 10*class)} // rosto Mortal
 	p.Char.Equip[eternalStoneSlot] = model.Item{Index: eternalStoneItem}
@@ -270,6 +293,10 @@ func TestArchCreatedKeepsMortalAndName(t *testing.T) {
 	if arch.Evolution != archEvolution {
 		t.Errorf("evolucao=%q, quer %q", arch.Evolution, archEvolution)
 	}
+	if arch.UID == "" || arch.UID == p.Char.UID || arch.ArchMortalUID != p.Char.UID {
+		t.Errorf("identidade Arch invalida: mortal=%q arch=%q origem=%q",
+			p.Char.UID, arch.UID, arch.ArchMortalUID)
+	}
 	// Rosto: Mortal Foema 11 + 5 + classe 1 = 17.
 	if arch.Equip[0].Index != 17 {
 		t.Errorf("rosto do Arch=%d, quer 17", arch.Equip[0].Index)
@@ -277,6 +304,28 @@ func TestArchCreatedKeepsMortalAndName(t *testing.T) {
 	// Os itens da ascensao sao consumidos.
 	if p.Char.Equip[eternalStoneSlot].Index != 0 || p.Char.Equip[sefirotSlot].Index != 0 {
 		t.Error("Pedra e Sefirot deveriam ser consumidos")
+	}
+}
+
+func TestArchSeparatesMortalBodyFromSephirothClass(t *testing.T) {
+	w, p, _ := newAscensionWorld(t)
+	// Mortal TK usando Sephiroth HT: o novo personagem recebe as skills HT,
+	// mas o rosto 9 continua no bloco de corpo TK.
+	prepareArchCandidate(p, 0)
+	p.Char.Equip[sefirotSlot] = model.Item{Index: sefirotFirstItem + 3}
+
+	if !w.createArch(p.Session, p) {
+		t.Fatal("a ascensao deveria ser tratada")
+	}
+	arch := &p.Account.Chars[1]
+	if arch.Class != 3 {
+		t.Fatalf("classe de skills=%d, quer HT (3)", arch.Class)
+	}
+	if arch.Equip[0].Index != 9 {
+		t.Fatalf("rosto do Arch=%d, quer 9 para corpo TK com Sephiroth HT", arch.Equip[0].Index)
+	}
+	if body, ok := equipmentBodyClass(arch); !ok || body != 0 {
+		t.Fatalf("classe de equipamento=%d ok=%v, quer TK (0)", body, ok)
 	}
 }
 

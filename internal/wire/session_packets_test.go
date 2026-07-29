@@ -426,14 +426,14 @@ func TestIllusionMoveUsesEffectSix(t *testing.T) {
 }
 
 func TestUpdateEtc748Layout(t *testing.T) {
-	// Layout p754_SendEtc: Hold@12, Chaos@14, exp@16, LearnedSkill@20 (OBRIGATORIO:
+	// Layout p754_SendEtc: CP assinado DWORD@12, exp@16, LearnedSkill@20 (OBRIGATORIO:
 	// e daqui que o client aprende as skills), statusPts@24, masterPts@26,
 	// skillPts@28, magic@30, gold@32.
-	ch := model.Char{Chaos: 150, Exp: 34000, LearnedSkill: 1 << 3, NextExp: 649715, Gold: 99424,
+	ch := model.Char{CP: -25, Exp: 34000, LearnedSkill: 1 << 3, NextExp: 649715, Gold: 99424,
 		Extended: &model.ExtendedScore{StatusPts: 7, MasterPts: 100, SkillPts: 150, MagicAmp: 70}}
 	b := UpdateEtc(1, ch)
 	if len(b) != 48 || ParseHeader(b).Type != OpUpdateEtc ||
-		binary.LittleEndian.Uint32(b[12:16]) != uint32(150)<<16 || binary.LittleEndian.Uint32(b[16:20]) != 34000 ||
+		int32(binary.LittleEndian.Uint32(b[12:16])) != -25 || binary.LittleEndian.Uint32(b[16:20]) != 34000 ||
 		binary.LittleEndian.Uint32(b[20:24]) != 1<<3 || binary.LittleEndian.Uint16(b[24:26]) != 7 ||
 		binary.LittleEndian.Uint16(b[26:28]) != 100 || binary.LittleEndian.Uint16(b[28:30]) != 150 ||
 		binary.LittleEndian.Uint16(b[30:32]) != 70 ||
@@ -588,6 +588,22 @@ func TestSysQuitLayout(t *testing.T) {
 	b := SysQuit(9)
 	if len(b) != 16 || ParseHeader(b).Type != OpSysQuit || ParseHeader(b).ID != 9 {
 		t.Fatalf("SysQuit invalido: %+v len=%d", ParseHeader(b), len(b))
+	}
+}
+
+func TestMotion748Layout(t *testing.T) {
+	b := Motion(9, 100, 5)
+	if len(b) != 20 || ParseHeader(b).Type != OpMotion || ParseHeader(b).ID != 9 {
+		t.Fatalf("Motion invalido: %+v len=%d", ParseHeader(b), len(b))
+	}
+	if got := binary.LittleEndian.Uint16(b[12:14]); got != 100 {
+		t.Fatalf("motion=%d", got)
+	}
+	if got := binary.LittleEndian.Uint16(b[14:16]); got != 5 {
+		t.Fatalf("parm=%d", got)
+	}
+	if got := binary.LittleEndian.Uint32(b[16:20]); got != 0 {
+		t.Fatalf("NotUsed=%d", got)
 	}
 }
 

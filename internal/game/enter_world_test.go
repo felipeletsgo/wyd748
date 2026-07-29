@@ -7,11 +7,14 @@ import (
 
 	"wydgo/internal/model"
 	"wydgo/internal/net"
+	"wydgo/internal/wire"
 )
 
 // enterWorldPacket monta o 0x213 com o slot pedido.
 func enterWorldPacket(slot int) []byte {
-	pkt := make([]byte, 16)
+	pkt := make([]byte, characterLoginPacketSize)
+	binary.LittleEndian.PutUint16(pkt[0:2], characterLoginPacketSize)
+	binary.LittleEndian.PutUint16(pkt[4:6], wire.OpCharacterLogin)
 	binary.LittleEndian.PutUint32(pkt[12:16], uint32(slot))
 	return pkt
 }

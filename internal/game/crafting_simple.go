@@ -77,7 +77,21 @@ func setItemSancRaw(item *model.Item, raw byte) bool {
 
 func (w *World) commitCombine(p *Player, oldInv [model.MaxCarry]model.Item,
 	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{}, equipSlots map[int]struct{}, result uint32) bool {
-	if err := w.saveAccount(p.Account); err != nil {
+	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
+		result, func() error { return w.saveAccount(p.Account) })
+}
+
+func (w *World) commitCombineWithPlayerState(p *Player, oldInv [model.MaxCarry]model.Item,
+	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
+	equipSlots map[int]struct{}, result uint32) bool {
+	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
+		result, func() error { return w.saveAccountAndCharStateResult(p) })
+}
+
+func (w *World) commitCombineWithSave(p *Player, oldInv [model.MaxCarry]model.Item,
+	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
+	equipSlots map[int]struct{}, result uint32, persist func() error) bool {
+	if err := persist(); err != nil {
 		p.Char.Inv, p.Char.Equip, p.Char.Gold = oldInv, oldEquip, oldGold
 		for pos := range invSlots {
 			p.Session.Send(wire.SendItem(p.ID, placeInv, byte(pos), p.Char.Inv[pos]))
@@ -333,7 +347,13 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	// Hekalotia, 3192 Akelonia e 3193 neutra. O reino continua derivado da capa
 	// antiga ate este ponto, portanto capture-o antes de substituir Equip[15].
 	capeIndex := lindyCapeIndex(p.Char)
-	cape := model.Item{Index: capeIndex, Eff: [6]byte{54, 16}}
+	cape := model.Item{Index: capeIndex, UID: p.Char.Equip[15].UID, Eff: [6]byte{54, 16}}
+	var err error
+	cape, err = materializeItem(cape)
+	if err != nil {
+		w.sendCombineResult(p, 0)
+		return
+	}
 	if _, exists := w.items[cape.Index]; !exists {
 		w.sendCombineResult(p, 0)
 		return
@@ -363,32 +383,18 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 		}
 	}
 	w.recalcPlayer(p.Char)
-	// A fama mora no charstate, que NAO participa da transacao da conta. Grava o
-	// sidecar ANTES: se ele falhar, nada foi ao disco e o rollback abaixo e
-	// completo. Na ordem inversa, uma falha deixaria a conta com a receita
-	// consumida e o nivel destravado, mas a fama intacta -- destrave de graca.
+	persisted := false
 	if destrava && trava == archLockLevel370 {
-		if err := w.saveCharStateResult(p); err != nil {
-			p.SpecialCoins = oldFame
-			p.Char.ArchLevel355, p.Char.ArchLevel370 = old355, old370
-			p.Char.Inv, p.Char.Equip, p.Char.Gold = oldInv, oldEquip, oldGold
-			w.recalcPlayer(p.Char)
-			log.Printf("[#%d] ERRO ao gravar a fama do destrave: %v", s.ID, err)
-			w.sendCombineResult(p, 0)
-			return
-		}
+		persisted = w.commitCombineWithPlayerState(
+			p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
+	} else {
+		persisted = w.commitCombine(
+			p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
 	}
-	if !w.commitCombine(p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1) {
+	if !persisted {
 		// commitCombine ja restaurou inventario/equip; o resto e nosso.
 		p.SpecialCoins = oldFame
 		p.Char.ArchLevel355, p.Char.ArchLevel370 = old355, old370
-		if destrava && trava == archLockLevel370 {
-			// Devolve a fama ao disco tambem; ignorar o erro aqui e deliberado:
-			// o proximo autosave regrava, e nao ha o que fazer alem de logar.
-			if err := w.saveCharStateResult(p); err != nil {
-				log.Printf("[#%d] ERRO ao devolver a fama apos rollback: %v", s.ID, err)
-			}
-		}
 		w.recalcPlayer(p.Char)
 		return
 	}

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"log"
 	"math/rand"
 	"strings"
 
@@ -50,6 +49,10 @@ func exactRecipe(req combineRequest, recipe []uint16) bool {
 
 func (w *World) putCraftResult(p *Player, preferred int, item model.Item, changed map[int]struct{}) bool {
 	if _, exists := w.items[item.Index]; !exists {
+		return false
+	}
+	item, err := materializeItem(item)
+	if err != nil {
 		return false
 	}
 	if preferred >= 0 && preferred < model.PlayerCarrySlots && p.Char.Inv[preferred].Index == 0 {
@@ -211,25 +214,9 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 		consumeCombineItems(p.Char, req, 0, 6, changed)
 		spendCounters(p, map[string]uint32{fameCounter: 200})
 		p.Char.CelestialLevel40Unlocked = true
-		// A fama vive no charstate, fora da transacao da conta. Grava o sidecar
-		// primeiro: se ele falhar nada foi ao disco. Na ordem inversa, a conta
-		// gravada com o destrave e o sidecar nao gravado dariam o nivel 40 de
-		// graca, com as 200 de fama de volta no proximo login.
-		if err := w.saveCharStateResult(p); err != nil {
-			p.SpecialCoins = oldFame
-			p.Char.Inv, p.Char.Equip, p.Char.Gold = oldInv, oldEquip, oldGold
-			p.Char.CelestialLevel40Unlocked = false
-			w.recalcPlayer(p.Char)
-			log.Printf("[#%d] ERRO ao gravar a fama do Celestial 40: %v", s.ID, err)
-			w.sendCombineResult(p, 0)
-			return
-		}
-		if !w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, 1) {
+		if !w.commitCombineWithPlayerState(p, oldInv, oldEquip, oldGold, changed, nil, 1) {
 			p.SpecialCoins = oldFame
 			p.Char.CelestialLevel40Unlocked = false
-			if err := w.saveCharStateResult(p); err != nil {
-				log.Printf("[#%d] ERRO ao devolver a fama apos rollback: %v", s.ID, err)
-			}
 			w.recalcPlayer(p.Char)
 		}
 		return

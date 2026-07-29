@@ -1,11 +1,54 @@
 package game
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"wydgo/internal/model"
 )
+
+type charStateMemoryStore struct {
+	craftStore
+	state      *model.CharState
+	loadErr    error
+	saveErr    error
+	loads      int
+	syncSaves  int
+	asyncSaves int
+}
+
+type atomicCharStateMemoryStore struct {
+	charStateMemoryStore
+	atomicSaves int
+	atomicErr   error
+	lastUID     string
+}
+
+func (s *atomicCharStateMemoryStore) SavePlayerState(_ *model.GuildRegistry,
+	_ *model.Account, uid string, state *model.CharState) error {
+	s.atomicSaves++
+	s.lastUID = uid
+	s.state = state
+	return s.atomicErr
+}
+
+func (s *charStateMemoryStore) LoadCharState(string) (*model.CharState, error) {
+	s.loads++
+	return s.state, s.loadErr
+}
+
+func (s *charStateMemoryStore) SaveCharState(_ string, state *model.CharState) error {
+	s.syncSaves++
+	s.state = state
+	return s.saveErr
+}
+
+func (s *charStateMemoryStore) SaveCharStateAsync(_ string, state *model.CharState) error {
+	s.asyncSaves++
+	s.state = state
+	return s.saveErr
+}
 
 // TestCharStateRoundTripsActiveBuffs cobre o objetivo do felipe: buffs (e moedas)
 // sobrevivem ao relog. buildCharState descarta expirados; applyCharState restaura
@@ -49,5 +92,83 @@ func TestApplyCharStateDropsExpiredOnLoad(t *testing.T) {
 	}
 	if activePlayerAffect(p.Char, 30) != nil {
 		t.Fatal("buff expirado foi restaurado indevidamente")
+	}
+}
+
+func TestCharStateStoreLoadSyncAndAsyncPaths(t *testing.T) {
+	p, _ := networkedTestPlayer(1, "Stateful", 2100, 2100)
+	expires := time.Now().Add(time.Hour).Unix()
+	st := &charStateMemoryStore{state: &model.CharState{
+		Version:      model.CharStateVersion,
+		Affects:      []model.PersistedAffect{{Type: 4, Value: 30, ExpiresUnix: expires}},
+		SpecialCoins: map[string]uint32{"kefra_ticket": 7},
+	}}
+	w := worldWithNetworkedPlayers(p)
+	w.store = st
+
+	w.loadCharStateInto(p)
+	if st.loads != 1 || activePlayerAffect(p.Char, 4) == nil ||
+		p.SpecialCoins["kefra_ticket"] != 7 {
+		t.Fatalf("load do sidecar incompleto: loads=%d coins=%v affects=%v",
+			st.loads, p.SpecialCoins, p.Char.Affects)
+	}
+	if err := w.saveCharStateResult(p); err != nil || st.syncSaves != 1 {
+		t.Fatalf("save sincrono falhou: saves=%d err=%v", st.syncSaves, err)
+	}
+	w.saveCharStateAsync(p)
+	if st.asyncSaves != 1 {
+		t.Fatal("autosave nao usou fronteira assincrona")
+	}
+
+	st.saveErr = errors.New("disk")
+	w.saveCharState(p)
+	w.saveCharStateAsync(p)
+	if st.syncSaves != 2 || st.asyncSaves != 2 {
+		t.Fatalf("caminhos de erro nao foram exercitados: sync=%d async=%d", st.syncSaves, st.asyncSaves)
+	}
+}
+
+func TestCharStateStoreGuardsAndLoadFailures(t *testing.T) {
+	p, _ := networkedTestPlayer(1, "Stateful", 2100, 2100)
+	st := &charStateMemoryStore{loadErr: errors.New("read")}
+	w := worldWithNetworkedPlayers(p)
+	w.store = st
+	w.loadCharStateInto(p)
+	if st.loads != 1 || p.SpecialCoins != nil {
+		t.Fatal("falha de load alterou estado do jogador")
+	}
+
+	st.loadErr = nil
+	st.state = nil
+	w.loadCharStateInto(p)
+	if st.loads != 2 {
+		t.Fatal("sidecar ausente nao percorreu o loader")
+	}
+	w.store = &craftStore{} // store sem a interface opcional
+	w.loadCharStateInto(p)
+	if err := w.saveCharStateResult(p); err != nil {
+		t.Fatalf("store sem sidecar deveria ser no-op: %v", err)
+	}
+	w.saveCharStateAsync(nil)
+	(&World{}).applyCharState(nil, nil, time.Now())
+}
+
+func TestAccountAndCharStateUseAtomicStoreWhenAvailable(t *testing.T) {
+	p, _ := networkedTestPlayer(1, "Stateful", 2100, 2100)
+	p.Char.UID = "11111111111141118111111111111111"
+	p.SpecialCoins = map[string]uint32{"fame": 200}
+	st := &atomicCharStateMemoryStore{}
+	w := worldWithNetworkedPlayers(p)
+	w.store = st
+
+	if err := w.saveAccountAndCharStateResult(p); err != nil {
+		t.Fatal(err)
+	}
+	if st.atomicSaves != 1 || st.syncSaves != 0 || st.saves != 0 {
+		t.Fatalf("persistencia nao foi atomica: atomic=%d charstate=%d conta=%d",
+			st.atomicSaves, st.syncSaves, st.saves)
+	}
+	if st.lastUID != p.Char.UID || st.state.SpecialCoins["fame"] != 200 {
+		t.Fatalf("snapshot atomico incorreto: uid=%q state=%+v", st.lastUID, st.state)
 	}
 }

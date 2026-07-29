@@ -219,7 +219,11 @@ func (w *World) spawnGroundReward(x, y uint16, index uint16) bool {
 	if id == 0 {
 		return false
 	}
-	g := &GroundItem{ID: id, Item: model.Item{Index: index}, X: x, Y: y,
+	item, err := materializeItem(model.Item{Index: index})
+	if err != nil {
+		return false
+	}
+	g := &GroundItem{ID: id, Item: item, X: x, Y: y,
 		Expire: w.now().Add(groundRewardLifetime)}
 	w.groundItems[id] = g
 	w.publishItemSpawn(g)

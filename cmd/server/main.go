@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	stdhttp "net/http"
@@ -83,9 +84,11 @@ func main() {
 	bossPath := flag.String("boss", cfg.BossPath, "diretorio dos bosses (data/boss/*.lua)")
 	itemPath := flag.String("items", cfg.ItemPath, "itemlist.csv autoritativo")
 	itemNamePath := flag.String("itemnames", cfg.ItemNamePath, "Itemname.csv autoritativo")
+	itemEffectPath := flag.String("itemeffects", cfg.ItemEffectPath, "ItemEffect.h autoritativo")
 	skillPath := flag.String("skills", cfg.SkillPath, "SkillData.csv autoritativo")
 	dropRatePath := flag.String("droprates", cfg.DropRatePath, "tabela de drop rate por slot")
 	volatilePath := flag.String("volatiles", cfg.VolatilePath, "funcoes server-side dos itens volatile")
+	replictionPath := flag.String("repliction", cfg.ReplictionPath, "tabelas nativas do Repliction")
 	mountPath := flag.String("mounts", cfg.MountPath, "atributos das montarias por tipo")
 	characterTemplatePath := flag.String("characters", cfg.CharacterTemplatePath, "layouts server-side para criacao de personagem")
 	heightMapPath := flag.String("heightmap", cfg.HeightMapPath, "HeightMap.dat nativo do mapa")
@@ -123,11 +126,12 @@ func main() {
 	}
 	log.Printf("%d teleportes carregados de %s", len(teleports), *teleportPath)
 
-	catalog, err := data.LoadCatalog(*itemPath, *itemNamePath, *skillPath)
+	catalog, err := data.LoadCatalog(*itemPath, *itemNamePath, *itemEffectPath, *skillPath)
 	if err != nil {
 		log.Fatalf("carregar catalogo: %v", err)
 	}
-	log.Printf("catalogo server-side: %d itens e %d skills carregados", len(catalog.Items), len(catalog.Skills))
+	log.Printf("catalogo server-side: %d itens, %d efeitos e %d skills carregados",
+		len(catalog.Items), len(catalog.ItemEffects), len(catalog.Skills))
 
 	dropRates, err := data.LoadDropRates(*dropRatePath)
 	if err != nil {
@@ -139,6 +143,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("carregar volatiles (%s): %v", *volatilePath, err)
 	}
+	repliction, err := data.LoadRepliction(*replictionPath, catalog.Items)
+	if err != nil {
+		log.Fatalf("carregar repliction (%s): %v", *replictionPath, err)
+	}
+	volatiles.Repliction = repliction
 	active := 0
 	for id := range volatiles.ItemCodes {
 		rule, _, _ := volatiles.Rule(id)
@@ -192,8 +201,33 @@ func main() {
 		log.Fatalf("carregar objetos de mundo: %v", err)
 	}
 
-	st := store.NewJSONStore(*accDir, store.WithGuildsPath(*guildsPath),
-		store.WithGuildsTxtPath(*guildsTxtPath), store.WithCharStatePath(*charStatePath))
+	var st store.Store
+	var postgresStore *store.PostgresStore
+	switch cfg.DatabaseDriver {
+	case "postgres":
+		databaseURL := cfg.DatabaseURL
+		if databaseURL == "" {
+			databaseURL = os.Getenv(cfg.DatabaseURLEnv)
+		}
+		if databaseURL == "" {
+			log.Fatalf("PostgreSQL configurado, mas %s esta vazia", cfg.DatabaseURLEnv)
+		}
+		postgresStore, err = store.NewPostgresStore(context.Background(), store.PostgresConfig{
+			URL: databaseURL, MaxConns: int32(cfg.DatabaseMaxConns), GuildsTxtPath: *guildsTxtPath,
+		})
+		if err != nil {
+			log.Fatalf("abrir PostgreSQL: %v", err)
+		}
+		defer postgresStore.Close()
+		st = postgresStore
+		log.Printf("persistencia autoritativa: PostgreSQL (pool maximo=%d)", cfg.DatabaseMaxConns)
+	case "json":
+		st = store.NewJSONStore(*accDir, store.WithGuildsPath(*guildsPath),
+			store.WithGuildsTxtPath(*guildsTxtPath), store.WithCharStatePath(*charStatePath))
+		log.Printf("persistencia de desenvolvimento: JSON em %s", *accDir)
+	default:
+		log.Fatalf("database_driver desconhecido %q", cfg.DatabaseDriver)
+	}
 	world, err := game.NewWorld(st, npcs, geners, catalog, dropRates, volatiles,
 		characterTemplates, terrain, game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),

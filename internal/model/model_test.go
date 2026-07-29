@@ -233,3 +233,18 @@ func TestAccountRejectsReservedInventorySlot(t *testing.T) {
 		t.Fatal("slot estrutural invisivel do inventario foi aceito")
 	}
 }
+
+func TestAccountRejectsCharacterWithoutStableUID(t *testing.T) {
+	acc := &Account{
+		Name: "conta", PasswordHash: "hash",
+		Chars: []Char{{
+			Name: "SemUID",
+			Extended: &ExtendedScore{
+				Version: ExtendedScoreVersion,
+			},
+		}},
+	}
+	if err := acc.Validate(); err == nil {
+		t.Fatal("personagem persistido sem UID foi aceito")
+	}
+}

@@ -4,17 +4,41 @@ package model
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 )
 
-// Item = STRUCT_ITEM do wire (8 bytes): sIndex + 3 pares (efeito, valor). Em
-// JSON, {index, eff:[6]} -- ex.: uma pilha de 120 e eff:[61,120,0,0,0,0]
-// (EF_AMOUNT=61, valor 120).
+const (
+	ItemUIDHexLength      = 32
+	CharacterUIDHexLength = 32
+	MinCP                 = -75
+	MaxCP                 = 75
+)
+
+func ClampCP(value int) int16 {
+	if value < MinCP {
+		return MinCP
+	}
+	if value > MaxCP {
+		return MaxCP
+	}
+	return int16(value)
+}
+
+func clampCP(value int16) int16 { return ClampCP(int(value)) }
+
+// Item contem o STRUCT_ITEM nativo (Index+Eff = 8 bytes) e a identidade
+// exclusivamente server-side da instancia. UID nunca e serializado no wire:
+// lojas/NPCs/templates usam UID vazio como blueprint; itens pertencentes a uma
+// conta ou soltos no mundo recebem um UID ao serem materializados.
 type Item struct {
 	Index uint16  `json:"index"`
+	UID   string  `json:"uid,omitempty"`
 	Eff   [6]byte `json:"eff,omitempty"`
 }
 
@@ -24,10 +48,87 @@ func (it Item) MarshalJSON() ([]byte, error) {
 	if it.Eff == [6]byte{} {
 		return json.Marshal(struct {
 			Index uint16 `json:"index"`
-		}{it.Index})
+			UID   string `json:"uid,omitempty"`
+		}{Index: it.Index, UID: it.UID})
 	}
 	type alias Item
 	return json.Marshal(alias(it))
+}
+
+// WireEqual compara somente os oito bytes que o client conhece. Snapshots
+// recebidos do 7.48 nunca carregam UID; depois de validar esses bytes, o servidor
+// deve manter a copia autoritativa que ja possui a identidade.
+func (it Item) WireEqual(other Item) bool {
+	return it.Index == other.Index && it.Eff == other.Eff
+}
+
+// NewItemUID gera 128 bits aleatorios em hexadecimal. Nao depende de contador
+// persistente e continua globalmente unico entre Windows, VPS e restauracoes de
+// backup. O store ainda verifica colisao/duplicidade antes de persistir.
+func NewItemUID() (string, error) {
+	var raw [16]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		return "", fmt.Errorf("gerar UID de item: %w", err)
+	}
+	// Variante/versao de UUID v4; armazenamos sem hifens para ocupar menos JSON.
+	raw[6] = raw[6]&0x0f | 0x40
+	raw[8] = raw[8]&0x3f | 0x80
+	return hex.EncodeToString(raw[:]), nil
+}
+
+// NormalizeItemUID valida e canonicaliza um UID persistido.
+func NormalizeItemUID(uid string) (string, error) {
+	if uid == "" {
+		return "", nil
+	}
+	uid = strings.ToLower(uid)
+	if len(uid) != ItemUIDHexLength {
+		return "", fmt.Errorf("UID %q possui %d caracteres; esperado %d",
+			uid, len(uid), ItemUIDHexLength)
+	}
+	raw, err := hex.DecodeString(uid)
+	if err != nil || len(raw) != 16 {
+		return "", fmt.Errorf("UID %q invalido", uid)
+	}
+	return uid, nil
+}
+
+// NewCharacterUID cria a identidade persistente server-side de um personagem.
+// Nome e slot pertencem ao protocolo/UI e podem se repetir ou mudar; UID nunca
+// vai ao wire e continua identificando Mortal, Arch e charstate sem ambiguidade.
+func NewCharacterUID() (string, error) {
+	return newPersistentUID()
+}
+
+// NormalizeCharacterUID valida a representacao hexadecimal persistida.
+func NormalizeCharacterUID(uid string) (string, error) {
+	return normalizePersistentUID(uid, CharacterUIDHexLength, "UID de personagem")
+}
+
+func newPersistentUID() (string, error) {
+	var raw [16]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		return "", fmt.Errorf("gerar UID: %w", err)
+	}
+	raw[6] = raw[6]&0x0f | 0x40
+	raw[8] = raw[8]&0x3f | 0x80
+	return hex.EncodeToString(raw[:]), nil
+}
+
+func normalizePersistentUID(uid string, length int, label string) (string, error) {
+	if uid == "" {
+		return "", nil
+	}
+	uid = strings.ToLower(uid)
+	if len(uid) != length {
+		return "", fmt.Errorf("%s %q possui %d caracteres; esperado %d",
+			label, uid, len(uid), length)
+	}
+	raw, err := hex.DecodeString(uid)
+	if err != nil || len(raw) != 16 {
+		return "", fmt.Errorf("%s %q invalido", label, uid)
+	}
+	return uid, nil
 }
 
 // WireScore = STRUCT_SCORE 7.48 (28 bytes no wire). Merchant/AttackRun sao bytes
@@ -254,6 +355,7 @@ type Affect struct {
 
 // Char = personagem persistido (1 slot da conta).
 type Char struct {
+	UID   string `json:"uid"`
 	Name  string `json:"name"`
 	Class byte   `json:"class"`
 	X     uint16 `json:"x"`
@@ -266,45 +368,47 @@ type Char struct {
 	ExtendedRuntime *ExtendedScore `json:"-"`
 	Equip           [16]Item       `json:"equip"` // slots de equipamento
 	Inv             [64]Item       `json:"inv"`   // wire/persistencia tem 64; UI usa 0..62
-	Chaos           uint32         `json:"chaos"`
-	Gold            uint32         `json:"gold"`
-	Exp             uint32         `json:"exp"`
-	NextExp         uint32         `json:"-"` // derivado da tabela pelo level
-	LearnedSkill    uint32         `json:"learnedSkill"`
-	MagicalPillUsed bool           `json:"magicalPillUsed,omitempty"`
-	SkillPointBonus uint32         `json:"skillPointBonus,omitempty"`
+	// CP e o Chaos/PK Point exibido, assinado e autoritativo (-75..+75).
+	// O byte legado de CreateMob usa CP+75 somente na borda do protocolo.
+	CP              int16  `json:"cp"`
+	Gold            uint32 `json:"gold"`
+	Exp             uint32 `json:"exp"`
+	NextExp         uint32 `json:"-"` // derivado da tabela pelo level
+	LearnedSkill    uint32 `json:"learnedSkill"`
+	MagicalPillUsed bool   `json:"magicalPillUsed,omitempty"`
+	SkillPointBonus uint32 `json:"skillPointBonus,omitempty"`
 	// Progressao avancada usada pelas composicoes Ehre/Odin. Evolution vazio e
 	// tratado como "mortal"; valores futuros: arch, celestial e subcelestial.
 	Evolution string `json:"evolution,omitempty"`
-	// ArchMortalSlot e o slot do Mortal que originou este Arch e
+	// ArchMortalUID identifica o Mortal que originou este Arch e
 	// ArchMortalLevel guarda o nivel DELE. So tem sentido quando Evolution e
-	// "arch"; nos demais personagens ficam zerados e sao ignorados.
+	// "arch"; nos demais personagens ficam vazios/zerados e sao ignorados.
 	//
 	// O bonus de status do Arch cresce com o nivel do Mortal, e o nativo o
-	// recalcula a cada login a partir do personagem no slot -- ou seja, subir o
-	// Mortal DEPOIS da ascensao continua fortalecendo o Arch. Guardamos o slot
-	// para reproduzir isso e o nivel em cache porque o calculo de pontos recebe
-	// apenas o Char, sem acesso a conta.
+	// recalcula a cada login a partir do personagem de origem -- ou seja, subir o
+	// Mortal DEPOIS da ascensao continua fortalecendo o Arch. O vinculo usa UID,
+	// nunca slot: excluir/reordenar personagens nao pode apontar o Arch para
+	// outra ficha. O nivel fica em cache porque o calculo recebe apenas o Char.
 	// ArchCrystals conta os cristais elementais ja consumidos, de 0 a 4. Eles
 	// sao feitos EM ORDEM (Elime, Sylphid, Salion, Nohas) e cada um cobra 100
 	// milhoes de EXP. Concluir os quatro e requisito para o Celestial.
 	//
 	// O nativo guarda isso em QuestInfo.Arch.Cristal -- o campo esta no bloco
 	// do ARCH, e e como Arch que a quest e feita.
-	ArchCrystals             byte   `json:"archCrystals,omitempty"`
+	ArchCrystals byte `json:"archCrystals,omitempty"`
 	// ArchLevel355 e ArchLevel370 sao as travas de nivel do Arch. Enquanto
 	// falsas, o personagem PARA de receber EXP ao chegar no nivel interno 354
 	// e 369 -- destravar e um craft na Lindy. Sao QuestInfo.Arch.Level355 e
 	// .Level370 no nativo.
-	ArchLevel355             bool   `json:"archLevel355,omitempty"`
-	ArchLevel370             bool   `json:"archLevel370,omitempty"`
-	ArchMortalSlot           int    `json:"archMortalSlot,omitempty"`
-	ArchMortalLevel          uint32 `json:"archMortalLevel,omitempty"`
+	ArchLevel355    bool   `json:"archLevel355,omitempty"`
+	ArchLevel370    bool   `json:"archLevel370,omitempty"`
+	ArchMortalUID   string `json:"archMortalUid,omitempty"`
+	ArchMortalLevel uint32 `json:"archMortalLevel,omitempty"`
 	// A fama NAO mora aqui: ela e um contador por personagem em
-	// CharState.SpecialCoins["fame"], gravado em data/charstate/<nome>.json.
+	// CharState.SpecialCoins["fame"], gravado pela identidade UID do personagem.
 	// Ver internal/game/counters.go.
 	SoulInfo                 uint8 `json:"soulInfo,omitempty"` // 1..10; zero = nenhum
-	CelestialLevel40Unlocked bool   `json:"celestialLevel40Unlocked,omitempty"`
+	CelestialLevel40Unlocked bool  `json:"celestialLevel40Unlocked,omitempty"`
 	// Habilidades da evolucao; separadas dos 24 bits Mortais como na W2PP.
 	SecondaryLearnedSkill uint32     `json:"secondaryLearnedSkill,omitempty"`
 	ShortSkill            [20]byte   `json:"shortSkill,omitempty"`
@@ -326,6 +430,11 @@ type Char struct {
 	// usada pelo Warp (volatile 13). Persistem na ficha; 0/0 = nenhuma salva.
 	SavedX uint16 `json:"savedX,omitempty"`
 	SavedY uint16 `json:"savedY,omitempty"`
+	// Escritura do Pesadelo (volatile 212): cada uso credita 13 entradas e
+	// inicia cooldown de 12 horas. Fica na ficha para item+saldo+cooldown serem
+	// confirmados no mesmo SaveAccount.
+	NightmareTickets  uint32 `json:"nightmareTickets,omitempty"`
+	LastNightmareUnix int64  `json:"lastNightmareUnix,omitempty"`
 }
 
 // charEquip = os 16 slots de equip do char como OBJETO NOMEADO, mantendo a riqueza do tipo Item.
@@ -403,10 +512,10 @@ func (c *Char) IsEmpty() bool {
 // adicao de um campo nao-comparavel no futuro falhe na compilacao aqui, e nao
 // silenciosamente em outro lugar.
 func (c Char) equalsZero() bool {
-	return c.Name == "" && c.Class == 0 && c.X == 0 && c.Y == 0 &&
+	return c.UID == "" && c.Name == "" && c.Class == 0 && c.X == 0 && c.Y == 0 &&
 		c.Extended == nil && c.ExtendedRuntime == nil &&
 		c.Equip == [16]Item{} && c.Inv == [64]Item{} &&
-		c.Chaos == 0 && c.Gold == 0 && c.Exp == 0 && c.NextExp == 0 &&
+		c.CP == 0 && c.Gold == 0 && c.Exp == 0 && c.NextExp == 0 &&
 		c.LearnedSkill == 0 && c.SecondaryLearnedSkill == 0 &&
 		!c.MagicalPillUsed && c.SkillPointBonus == 0 &&
 		c.ShortSkill == [20]byte{} && c.Affects == [16]Affect{} &&
@@ -441,10 +550,15 @@ func (c *Char) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 	type alias Char
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(b, &fields); err != nil {
+		return err
+	}
 	aux := struct {
 		alias
-		Equip charEquip `json:"equip"`
-		Inv   []Item    `json:"inv"`
+		Equip       charEquip `json:"equip"`
+		Inv         []Item    `json:"inv"`
+		LegacyChaos *uint32   `json:"chaos,omitempty"`
 	}{
 		alias: alias(*c),
 	}
@@ -457,6 +571,22 @@ func (c *Char) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("personagem %q possui JSON adicional", aux.Name)
 	}
 	*c = Char(aux.alias)
+	if aux.LegacyChaos != nil {
+		if _, hasCP := fields["cp"]; hasCP {
+			return fmt.Errorf("personagem %q possui cp e chaos simultaneamente", c.Name)
+		}
+		// Migracao unica do formato anterior. Chaos zero era apenas ausencia da
+		// mecanica e o client recebia 150 fixo; preservamos esse estado limpo
+		// como CP +75. Os demais valores eram o byte PK bruto (CP+75).
+		if *aux.LegacyChaos == 0 {
+			c.CP = MaxCP
+		} else {
+			c.CP = ClampCP(int(*aux.LegacyChaos) - 75)
+		}
+	}
+	if c.CP < MinCP || c.CP > MaxCP {
+		return fmt.Errorf("personagem %q possui cp fora de -75..75: %d", c.Name, c.CP)
+	}
 	if err := c.Extended.Validate(); err != nil {
 		return fmt.Errorf("personagem %q: %w", c.Name, err)
 	}
@@ -531,6 +661,25 @@ func (a *Account) Validate() error {
 		if err := character.Extended.Validate(); err != nil {
 			return fmt.Errorf("conta %q personagem[%d] %q: %w",
 				a.Name, i, character.Name, err)
+		}
+		normalized, err := NormalizeCharacterUID(character.UID)
+		if err != nil {
+			return fmt.Errorf("conta %q personagem[%d] %q: %w",
+				a.Name, i, character.Name, err)
+		}
+		if normalized == "" {
+			return fmt.Errorf("conta %q personagem[%d] %q sem UID",
+				a.Name, i, character.Name)
+		}
+		if normalized != character.UID {
+			return fmt.Errorf("conta %q personagem[%d] %q possui UID nao canonico",
+				a.Name, i, character.Name)
+		}
+		if character.ArchMortalUID != "" {
+			if _, err := NormalizeCharacterUID(character.ArchMortalUID); err != nil {
+				return fmt.Errorf("conta %q personagem[%d] %q: %w",
+					a.Name, i, character.Name, err)
+			}
 		}
 		if character.Inv[PlayerCarrySlots].Index != 0 {
 			return fmt.Errorf("conta %q personagem[%d] %q ocupa slot de inventario reservado %d",

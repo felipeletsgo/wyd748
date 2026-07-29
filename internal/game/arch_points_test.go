@@ -10,9 +10,9 @@ import (
 // BASE_GetCurrentScore (Basedef.cpp:1043-1056) em valores calculados a mao.
 func TestArchStatusPointBudgetMatchesSource(t *testing.T) {
 	for _, tc := range []struct {
-		nome                string
-		level, mortalLevel  int
-		want                int
+		nome               string
+		level, mortalLevel int
+		want               int
 	}{
 		// lvl*6 + (mortal-299)*5 + 28
 		{"arch nivel 0, mortal 370", 0, 370, 0*6 + 71*5 + 28},
@@ -65,8 +65,9 @@ func TestStatusPointBudgetPicksFormulaByEvolution(t *testing.T) {
 // o Mortal DEPOIS da ascensao continua fortalecendo o Arch.
 func TestRefreshArchMortalLevelFollowsMortal(t *testing.T) {
 	acc := &model.Account{Chars: []model.Char{
-		{Name: "Mortal", Extended: &model.ExtendedScore{Level: 370}},
-		{Name: "Mortal", Evolution: archEvolution, ArchMortalSlot: 0, ArchMortalLevel: 370,
+		{Name: "Mortal", UID: "11111111111141118111111111111111", Extended: &model.ExtendedScore{Level: 370}},
+		{Name: "Mortal", UID: "22222222222242228222222222222222", Evolution: archEvolution,
+			ArchMortalUID: "11111111111141118111111111111111", ArchMortalLevel: 370,
 			Extended: &model.ExtendedScore{Level: 10}},
 	}}
 
@@ -89,7 +90,8 @@ func TestRefreshArchMortalLevelFollowsMortal(t *testing.T) {
 func TestRefreshArchMortalLevelKeepsValueWhenMortalGone(t *testing.T) {
 	acc := &model.Account{Chars: []model.Char{
 		{}, // slot do Mortal, agora vazio
-		{Name: "Orfao", Evolution: archEvolution, ArchMortalSlot: 0, ArchMortalLevel: 380,
+		{Name: "Orfao", UID: "22222222222242228222222222222222", Evolution: archEvolution,
+			ArchMortalUID: "11111111111141118111111111111111", ArchMortalLevel: 380,
 			Extended: &model.ExtendedScore{Level: 10}},
 	}}
 	refreshArchMortalLevel(acc)
@@ -102,7 +104,8 @@ func TestRefreshArchMortalLevelKeepsValueWhenMortalGone(t *testing.T) {
 // que apontasse para o proprio Arch.
 func TestRefreshArchMortalLevelIgnoresSelfReference(t *testing.T) {
 	acc := &model.Account{Chars: []model.Char{
-		{Name: "Arch", Evolution: archEvolution, ArchMortalSlot: 0, ArchMortalLevel: 380,
+		{Name: "Arch", UID: "11111111111141118111111111111111", Evolution: archEvolution,
+			ArchMortalUID: "11111111111141118111111111111111", ArchMortalLevel: 380,
 			Extended: &model.ExtendedScore{Level: 10}},
 	}}
 	refreshArchMortalLevel(acc)

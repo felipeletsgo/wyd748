@@ -13,7 +13,7 @@ WYD.pre-extended-stats.exe    2AA1773A…21EE   ← LINHA-BASE
   └─ Patch-WYD748-Bypass.ps1                  versão + 2 checksums
   (intermediário)             F2B8CDEB…0C5B
   └─ Patch-WYD748-Macro.ps1                   rotação de skills + buffs
-WYD.exe                       3186E681…CADC   ← em uso
+WYD.exe                       0F2E3570…5D1A   ← em uso
 ```
 
 ## Reaplicar
@@ -57,8 +57,19 @@ skill era **lido** em `0x00493959` mas nunca **escrito**, então o primeiro slot
 ficava sempre "pronto", disparava todo frame, e a rotação nunca avançava até os
 buffs. Sintoma: *só 1 skill, sem rotação, sem buff*.
 
-Ele grava o cast em `DAT_0092eaf8[skillID*4]`, e altera 30 bytes em três
-regiões: `0x00C001` (code cave), `0x093970` (ponto do cast) e `0x19DD52`.
+Ele grava o cast em `DAT_0092eaf8[skillID*4]`. Ataques registram o instante
+atual; buffs registram `agora + 150000 ms - cooldown`, de forma que a próxima
+checagem automática aconteça exatamente aos 150 segundos — 30 segundos antes
+do fim nominal de 180 segundos. O clique manual não passa por esse hook.
+
+A implementação atual usa a área executável livre da seção `.xstat`
+(`0x013C0207`) e uma tabela de 96 bits com os buffs reconhecidos pelo macro. O
+hook em `0x00493970` retorna exatamente para `0x00493975`. Isso substitui a
+primeira code cave encadeada, cujo retorno incorreto para `0x00497975` fazia o
+macro mágico tratar o mob ID `1000` como ponteiro e crashar em `0x004979D3`.
+
+SHA-256 atual do `WYD.exe`:
+`B2678AB927F03BF0F3114F36AE682025A9C732D2A59B55FB5B26DECEE07F2F94`.
 
 Estava **ausente** do binário em uso — os bytes em `0x093970` eram idênticos aos
 do original. O script existia e estava bem documentado, mas perdeu-se numa

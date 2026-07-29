@@ -2,25 +2,6 @@ package game
 
 import "wydgo/internal/model"
 
-var dynamicEffectName = map[byte]string{
-	1: "EF_LEVEL", 2: "EF_DAMAGE", 3: "EF_AC", 4: "EF_HP", 5: "EF_MP",
-	7: "EF_STR", 8: "EF_INT", 9: "EF_DEX", 10: "EF_CON",
-	11: "EF_SPECIAL1", 12: "EF_SPECIAL2", 13: "EF_SPECIAL3", 14: "EF_SPECIAL4",
-	17: "EF_POS", 18: "EF_CLASS", 21: "EF_WTYPE", 22: "EF_REQ_STR",
-	23: "EF_REQ_INT", 24: "EF_REQ_DEX", 25: "EF_REQ_CON", 26: "EF_ATTSPEED",
-	27: "EF_RANGE", 29: "EF_RUNSPEED", 33: "EF_GRID", 38: "EF_VOLATILE",
-	40: "EF_PARRY", 41: "EF_HITRATE",
-	36: "EF_HWORDCOIN", 37: "EF_LWORDCOIN",
-	42: "EF_CRITICAL", 43: "EF_SANC", 44: "EF_SAVEMANA", 45: "EF_HPADD", 46: "EF_MPADD",
-	47: "EF_REGENHP", 48: "EF_REGENMP",
-	49: "EF_RESIST1", 50: "EF_RESIST2", 51: "EF_RESIST3", 52: "EF_RESIST4",
-	53: "EF_ACADD", 54: "EF_RESISTALL", 60: "EF_MAGIC", 69: "EF_HPADD2",
-	68: "EF_MAGICADD", 70: "EF_MPADD2", 71: "EF_CRITICAL2", 72: "EF_ACADD2", 73: "EF_DAMAGE2",
-	74: "EF_SPECIALALL", 78: "EF_INCUBATE", 84: "EF_INCUDELAY", 87: "EF_ITEMLEVEL",
-	91: "EF_DONATE", 92: "EF_HONRA", 112: "EF_MOBTYPE", 113: "EF_ITEMTYPE",
-	126: "EF_NOSANC", 127: "EF_NOTRADE",
-}
-
 var nonRefinableEffects = map[string]bool{
 	"EF_GRID": true, "EF_CLASS": true, "EF_POS": true, "EF_WTYPE": true,
 	"EF_RANGE": true, "EF_LEVEL": true, "EF_REQ_STR": true, "EF_REQ_INT": true,
@@ -178,7 +159,7 @@ func itemAbility(item model.Item, def model.ItemDef, effect string) int {
 		}
 	}
 	for i := 0; i < 3; i++ {
-		if dynamicEffectName[item.Eff[i*2]] == effect {
+		if def.DynamicEffectNames[item.Eff[i*2]] == effect {
 			v := int(item.Eff[i*2+1])
 			if effect == "EF_ATTSPEED" && v == 1 {
 				v = 10
@@ -491,13 +472,27 @@ func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
 	if item.Index == 0 {
 		return true
 	}
+	if ch == nil {
+		return false
+	}
 	def, ok := w.items[item.Index]
 	if !ok || pos >= 16 || def.Pos&(1<<pos) == 0 {
 		return false
 	}
 	classMask := staticAbility(def, "EF_CLASS")
-	if classMask != 0 && classMask&(1<<ch.Class) == 0 {
-		return false
+	arch := isArch(ch)
+	weapon := pos == 6 || pos == 7
+	if classMask != 0 && !(arch && weapon) {
+		equipClass, validClass := equipmentBodyClass(ch)
+		if !validClass || classMask&(1<<equipClass) == 0 {
+			return false
+		}
+	}
+	// BASE_CanEquip (W2PP) zera Level/STR/INT/DEX/CON para evolucoes
+	// superiores. No Arch a classe do Sephiroth continua governando skills,
+	// mas nao os requisitos de equipamento; armas tambem ignoram a classe.
+	if arch {
+		return true
 	}
 	levelReq := def.ReqLevel + staticAbility(def, "EF_LEVEL")
 	strReq := def.ReqStr + staticAbility(def, "EF_REQ_STR")
@@ -506,6 +501,26 @@ func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
 	conReq := def.ReqCon + staticAbility(def, "EF_REQ_CON")
 	return int(playerLevel(ch)) >= levelReq && playerStr(ch) >= strReq &&
 		playerInt(ch) >= intReq && playerDex(ch) >= dexReq && playerCon(ch) >= conReq
+}
+
+// equipmentBodyClass devolve a classe visual que governa armaduras.
+//
+// O Arch guarda em Equip[0] o rosto calculado por `MortalFace + 5 + Sephiroth`.
+// O algarismo das dezenas permanece sendo a classe do corpo Mortal (TK/FM/BM/HT)
+// e reproduz o `extra->MortalFace / 10` usado por BASE_CanEquip no W2PP.
+// Char.Class, por outro lado, e a classe do Sephiroth e governa as habilidades.
+func equipmentBodyClass(ch *model.Char) (byte, bool) {
+	if ch == nil {
+		return 0, false
+	}
+	if !isArch(ch) {
+		return ch.Class, ch.Class <= 3
+	}
+	bodyClass := ch.Equip[0].Index / 10
+	if bodyClass > 3 {
+		return 0, false
+	}
+	return byte(bodyClass), true
 }
 
 func minInt(a, b int) int {

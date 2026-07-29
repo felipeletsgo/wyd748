@@ -1,9 +1,9 @@
 package model
 
 // CharState e o estado de SESSAO persistido de um personagem, guardado num
-// arquivo separado (pasta charstate/), fora do JSON da conta. Serve para o que
-// deve sobreviver ao relog mas nao pertence a ficha do personagem: buffs ativos
-// com o tempo restante e moedas especiais (a serem criadas).
+// registro separado da ficha da conta. Em producao vive em character_states,
+// identificado pelo Char.UID; o adaptador JSON usa charstate/<UID>.json. Serve
+// para buffs ativos e contadores que precisam sobreviver ao relog.
 //
 // Ficar num sidecar mantem o contrato estrito do account JSON intacto: affects
 // tem tempo absoluto de expiracao e sao um estado volatil, nao parte da ficha.

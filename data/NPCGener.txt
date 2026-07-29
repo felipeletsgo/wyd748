@@ -112487,7 +112487,7 @@
 	DestRange:	0
 	DestWait:	0
 
-// ShopVolGen1 - loja de teste do beta: volatiles ainda SEM regra (1/2) -- o log VOLATILE GENERICO identifica cada comportamento
+// ShopVolGen1 - cobertura complementar de volatiles (1/2)
 #	[5115]
 	MinuteGenerate:	-1
 	MaxNumMob:	1
@@ -112506,7 +112506,7 @@
 	DestRange:	0
 	DestWait:	0
 
-// ShopVolGen2 - loja de teste do beta: volatiles ainda SEM regra (2/2)
+// ShopVolGen2 - cobertura complementar de volatiles (2/2)
 #	[5115]
 	MinuteGenerate:	-1
 	MaxNumMob:	1
@@ -112521,6 +112521,44 @@
 	StartRange:	0
 	StartWait:	0
 	DestX:		2105
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+// ShopUse20A/B - itens da ultima rodada de _MSG_UseItem. Celestial fica fora
+// destas lojas ate o sistema proprio ser implementado.
+#	[5115]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopUse20A
+	Follower:	ShopUse20A
+	RouteType:	0
+	Formation:	0
+	StartX:		2106
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2106
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+#	[5115]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopUse20B
+	Follower:	ShopUse20B
+	RouteType:	0
+	Formation:	0
+	StartX:		2107
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2107
 	DestY:		2102
 	DestRange:	0
 	DestWait:	0
@@ -112869,3 +112907,46 @@
 	DestY:		2083
 	DestRange:	0
 	DestWait:	8
+
+// ShopUseItem - teste dos consumiveis portados de _MSG_UseItem.cpp:
+// Fairy Dust, fireworks, Chaos remission, Fairy Bless Water, passes,
+// mastery compounds, Nightmare Letter, Water Room e cartas de Nessus.
+// ********************************************
+#	[5130]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopUseItem
+	Follower:	ShopUseItem
+	RouteType:	0
+	Formation:	0
+	StartX:		2106
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2106
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+// ShopWater - 24 pergaminhos regulares Water (Mystic, Normal e Arcane).
+// Os tres Nessus ficam no ShopUseItem para continuarem em slots visiveis.
+// ********************************************
+#	[5131]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopWater
+	Follower:	ShopWater
+	RouteType:	0
+	Formation:	0
+	StartX:		2108
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2108
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0

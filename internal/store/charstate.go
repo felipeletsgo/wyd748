@@ -12,24 +12,60 @@ import (
 	"wydgo/internal/model"
 )
 
-// charStatePath resolve o arquivo do estado de sessao de um personagem. O nome
-// vem de um Char (unico global), validado como elemento de caminho simples para
-// nunca escapar da pasta.
-func (s *JSONStore) charStatePath(name string) (string, error) {
-	if !safePathElement(name) {
-		return "", fmt.Errorf("store: nome de personagem invalido %q", name)
+// migrateNamedCharStates converte uma unica vez os sidecars antigos baseados em
+// nickname. Em caso de Mortal/Arch homonimos o legado so possuia UM arquivo; ele
+// fica com o primeiro slot, sem duplicar moedas/buffs para o segundo.
+func (s *JSONStore) migrateNamedCharStates(account *model.Account) error {
+	if account == nil || s.charStateDir == "" {
+		return nil
 	}
-	return filepath.Join(s.charStateDir, name+".json"), nil
+	for i := range account.Chars {
+		character := &account.Chars[i]
+		if character.Name == "" || character.UID == "" ||
+			!safePathElement(character.Name) || !safePathElement(character.UID) {
+			continue
+		}
+		legacy := filepath.Join(s.charStateDir, character.Name+".json")
+		current := filepath.Join(s.charStateDir, character.UID+".json")
+		if _, err := os.Stat(current); err == nil {
+			continue
+		} else if !os.IsNotExist(err) {
+			return err
+		}
+		if _, err := os.Stat(legacy); err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return err
+		}
+		if err := os.MkdirAll(s.charStateDir, 0o755); err != nil {
+			return err
+		}
+		if err := os.Rename(legacy, current); err != nil {
+			return fmt.Errorf("store: migrar charstate %q para UID %s: %w",
+				character.Name, character.UID, err)
+		}
+	}
+	return nil
+}
+
+// charStatePath resolve o sidecar pela identidade estavel do personagem. O UID
+// nunca se repete, mesmo quando Mortal e Arch usam o mesmo nome visual.
+func (s *JSONStore) charStatePath(uid string) (string, error) {
+	if !safePathElement(uid) {
+		return "", fmt.Errorf("store: UID de personagem invalido %q", uid)
+	}
+	return filepath.Join(s.charStateDir, uid+".json"), nil
 }
 
 // charStateWrite prepara a escrita/remocao SEM tocar o disco: valida, marshala e
 // devolve o closure da operacao. Roda sob s.mu, no game-loop (snapshot). Estado
 // vazio (sem buffs nem moedas) vira uma remocao, evitando lixo no disco.
-func (s *JSONStore) charStateWrite(name string, state *model.CharState) (func() error, error) {
+func (s *JSONStore) charStateWrite(uid string, state *model.CharState) (func() error, error) {
 	if s.charStateDir == "" {
 		return nil, fmt.Errorf("store: charStateDir nao configurado")
 	}
-	path, err := s.charStatePath(name)
+	path, err := s.charStatePath(uid)
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +87,10 @@ func (s *JSONStore) charStateWrite(name string, state *model.CharState) (func() 
 
 // SaveCharState grava o estado de sessao de forma atomica e SINCRONA (flush antes
 // para nao ser sobrescrito por um autosave async pendente).
-func (s *JSONStore) SaveCharState(name string, state *model.CharState) error {
+func (s *JSONStore) SaveCharState(uid string, state *model.CharState) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	run, err := s.charStateWrite(name, state)
+	run, err := s.charStateWrite(uid, state)
 	if err != nil {
 		return err
 	}
@@ -64,16 +100,16 @@ func (s *JSONStore) SaveCharState(name string, state *model.CharState) error {
 
 // SaveCharStateAsync agenda a escrita FORA do game-loop (autosave). Snapshot e
 // marshal acontecem agora; so o fsync sai para a goroutine.
-func (s *JSONStore) SaveCharStateAsync(name string, state *model.CharState) error {
+func (s *JSONStore) SaveCharStateAsync(uid string, state *model.CharState) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	run, err := s.charStateWrite(name, state)
+	run, err := s.charStateWrite(uid, state)
 	if err != nil {
 		return err
 	}
 	s.enqueueAsyncWrite(func() {
 		if err := run(); err != nil {
-			log.Printf("store: autosave charstate %q: %v", name, err)
+			log.Printf("store: autosave charstate %q: %v", uid, err)
 		}
 	})
 	return nil
@@ -81,11 +117,11 @@ func (s *JSONStore) SaveCharStateAsync(name string, state *model.CharState) erro
 
 // LoadCharState devolve o estado de sessao do personagem, ou nil quando nao
 // existe (personagem sem buffs salvos e estado valido).
-func (s *JSONStore) LoadCharState(name string) (*model.CharState, error) {
+func (s *JSONStore) LoadCharState(uid string) (*model.CharState, error) {
 	if s.charStateDir == "" {
 		return nil, fmt.Errorf("store: charStateDir nao configurado")
 	}
-	path, err := s.charStatePath(name)
+	path, err := s.charStatePath(uid)
 	if err != nil {
 		return nil, err
 	}
@@ -100,17 +136,17 @@ func (s *JSONStore) LoadCharState(name string) (*model.CharState, error) {
 	decoder.DisallowUnknownFields()
 	var state model.CharState
 	if err := decoder.Decode(&state); err != nil {
-		return nil, fmt.Errorf("store: parse charstate %q: %w", name, err)
+		return nil, fmt.Errorf("store: parse charstate %q: %w", uid, err)
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
 		if err == nil {
-			return nil, fmt.Errorf("store: parse charstate %q: conteudo JSON adicional", name)
+			return nil, fmt.Errorf("store: parse charstate %q: conteudo JSON adicional", uid)
 		}
 		return nil, err
 	}
 	if state.Version != model.CharStateVersion {
 		return nil, fmt.Errorf("store: charstate %q versao %d; esperado %d",
-			name, state.Version, model.CharStateVersion)
+			uid, state.Version, model.CharStateVersion)
 	}
 	return &state, nil
 }

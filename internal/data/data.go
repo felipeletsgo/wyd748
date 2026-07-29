@@ -98,6 +98,10 @@ func validateNPCs(path string, npcs []model.NPCDef) error {
 				path, i, npc.Name)
 		}
 		for slot, item := range npc.Equip.Items() {
+			if item.UID != "" {
+				return fmt.Errorf("data: %s NPC[%d] %q equip[%d] possui UID de instancia",
+					path, i, npc.Name, slot)
+			}
 			if int(item.Index) >= model.ItemListSize {
 				return fmt.Errorf("data: %s NPC[%d] %q equip[%d]=%d excede ItemList",
 					path, i, npc.Name, slot, item.Index)
@@ -105,6 +109,10 @@ func validateNPCs(path string, npcs []model.NPCDef) error {
 		}
 		for kind, items := range map[string][]model.Item{"carry": npc.Carry, "vende": npc.Vende} {
 			for slot, item := range items {
+				if item.UID != "" {
+					return fmt.Errorf("data: %s NPC[%d] %q %s[%d] possui UID de instancia",
+						path, i, npc.Name, kind, slot)
+				}
 				if int(item.Index) >= model.ItemListSize {
 					return fmt.Errorf("data: %s NPC[%d] %q %s[%d]=%d excede ItemList",
 						path, i, npc.Name, kind, slot, item.Index)

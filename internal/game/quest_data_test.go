@@ -62,17 +62,13 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 	type questRange struct {
 		min, max uint32
 		x, y     uint16
-		// ticket e o item de entrada que o nativo EXIGE e CONSOME antes de
-		// teleportar (_MSG_Quest.cpp varre o Carry atras do indice e o limpa).
-		// Sem ele as cinco areas viram entrada livre.
-		ticket uint16
 	}
 	wantQuests := map[string]questRange{
-		"Gravedigger":       {39, 115, 2398, 2105, 4038},
-		"Gardener":    {115, 189, 2234, 1714, 4039},
-		"Scout":       {190, 264, 464, 3902, 4040},
-		"Guard__":        {265, 319, 668, 3756, 4041},
-		"Envoy": {319, 349, 1322, 4041, 4042},
+		"Gravedigger": {39, 115, 2398, 2105},
+		"Gardener":    {115, 189, 2234, 1714},
+		"Scout":       {190, 264, 464, 3902},
+		"Guard__":     {265, 319, 668, 3756},
+		"Envoy":       {319, 349, 1322, 4041},
 	}
 	seenQuests := make(map[string]bool)
 	for i := range quests.Quests {
@@ -88,17 +84,18 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 			quest.Rewards.Teleport.Y != want.y {
 			t.Fatalf("quest %s divergiu da tabela nativa: %+v", quest.NPC, *quest)
 		}
-		// O portao: exigir NAO basta, tem que consumir -- senao o mesmo item
-		// abre a area infinitas vezes.
-		if len(quest.Requires.Items) != 1 || quest.Requires.Items[0].Index != want.ticket ||
-			quest.Requires.Items[0].Quantity() != 1 {
-			t.Errorf("quest %s nao exige o item de entrada %d: %+v",
-				quest.NPC, want.ticket, quest.Requires.Items)
+		// No client 7.48 estas cinco quests de level sao portais por faixa:
+		// nenhum item 4038..4042 pode bloquear ou ser consumido na entrada.
+		if len(quest.Requires.Items) != 0 || len(quest.Consumes) != 0 {
+			t.Errorf("quest %s voltou a exigir item de entrada: requires=%+v consumes=%+v",
+				quest.NPC, quest.Requires.Items, quest.Consumes)
 		}
-		if len(quest.Consumes) != 1 || quest.Consumes[0].Index != want.ticket ||
-			quest.Consumes[0].Quantity() != 1 {
-			t.Errorf("quest %s nao consome o item de entrada %d: %+v",
-				quest.NPC, want.ticket, quest.Consumes)
+		// Reproduz o bug real: personagem na faixa, inventario completamente
+		// vazio. A validacao runtime precisa autorizar a entrada.
+		player := questTestPlayer(want.min, 0)
+		if reason, allowed := (&World{}).questRequirementsMet(player, quest); !allowed {
+			t.Errorf("quest %s recusou entrada sem item na faixa correta: %s",
+				quest.NPC, reason)
 		}
 	}
 	if len(seenQuests) != len(wantQuests) {
@@ -124,23 +121,6 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 	}
 	if rates[56] != 1 {
 		t.Fatalf("slot 56 deveria ser garantido, rate=%d", rates[56])
-	}
-
-	// O item de entrada precisa existir NOMEADO: os cinco indices vinham do
-	// 7.48 so com a arte (mesh), sem nome nem preco, e item sem nome nao se
-	// apresenta ao jogador.
-	for npcName, want := range wantQuests {
-		def, ok := catalog.Items[want.ticket]
-		if !ok {
-			t.Errorf("item de entrada %d (%s) nao existe no catalogo", want.ticket, npcName)
-			continue
-		}
-		if def.Name == "" {
-			t.Errorf("item de entrada %d (%s) esta sem nome", want.ticket, npcName)
-		}
-		if def.Price == 0 {
-			t.Errorf("item de entrada %d (%s) esta sem preco", want.ticket, npcName)
-		}
 	}
 
 	leaders := map[string]uint16{
@@ -203,13 +183,9 @@ func TestQuestsComplementaresConfirmadasNaSource(t *testing.T) {
 	}
 }
 
-// TestItensDeEntradaTemFonteViva fecha o ciclo da cadeia Mortal: exigir o item
-// de entrada so faz sentido se ALGUM mob VIVO no mundo o dropar. Sem isso, as
-// cinco areas viram inalcancaveis -- o portao tranca a porta e joga a chave
-// fora, e o servidor sobe sem reclamar de nada.
-//
-// Os itens sao drop de mob no nativo (MobDropList.txt do W2PP), portados para
-// o carry dos NPCs no slot que o nativo usa.
+// TestItensDeEntradaTemFonteViva protege as OUTRAS quests que realmente exigem
+// itens. As cinco quests de level 1/3/4/5/6 sao intencionalmente entrada livre
+// dentro da faixa e, portanto, nao aparecem nesta varredura.
 // lacunasDeFonte sao itens consumidos por quest que hoje NAO tem como ser
 // obtidos. Ficam listados em vez de silenciados: o teste registra cada um no
 // log, e RECLAMA se algum ganhar fonte e ninguem tirar daqui -- assim a lista

@@ -67,18 +67,15 @@ func TestCommandLabelIsBoundsSafe(t *testing.T) {
 	}
 }
 
-// TestSafeHandleContainsPanicAndCountsIt usa um pacote truncado para chegar ao
-// handle() com estado invalido: o loop tem de sobreviver e contabilizar.
-func TestSafeHandleContainsPanicAndCountsIt(t *testing.T) {
+// TestSafeHandleRejectsTruncatedPacketBeforeParsing confirma que a fronteira de
+// seguranca recusa framing invalido sem depender do recover do game loop.
+func TestSafeHandleRejectsTruncatedPacketBeforeParsing(t *testing.T) {
 	before := metricPanicsTotal.Value()
 	w := &World{}
 
-	// handle() consulta w.players (nil) e faz ParseHeader do pacote curto.
-	// Qualquer que seja o panic, safeHandle precisa conte-lo.
 	w.safeHandle(command{pkt: []byte{1, 2, 3}})
 
-	if got := metricPanicsTotal.Value(); got != before+1 {
-		t.Fatalf("panics=%d, quer %d (o recover deveria ter contabilizado)", got, before+1)
+	if got := metricPanicsTotal.Value(); got != before {
+		t.Fatalf("pacote truncado chegou ao parser e gerou panic: antes=%d depois=%d", before, got)
 	}
-	// Chegar aqui ja prova que o panic nao foi propagado.
 }
