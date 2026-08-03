@@ -354,15 +354,21 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	if !ok {
 		return
 	}
-	if req.Items[0].Index != 413 || itemStackAmount(req.Items[0]) != 10 ||
-		req.Items[1].Index != 413 || itemStackAmount(req.Items[1]) != 10 ||
-		req.Items[2].Index != 4127 || req.Items[7].Index != 0 {
+	// A receita do alvo 7.54 (SOURCE(secrets)/pJanelas.cpp e Micronics) usa
+	// dois pacotes 3448 com EF_AMOUNT=10. O W2PP mais novo trocou esses dois
+	// pacotes por pilhas de 413, mas aceitar essa variante aqui faria o client
+	// 7.48 misturar a receita de outra versao e produzir "Silver Brick
+	// required". Mantenha a receita V754 autoritativa neste servidor.
+	if !lindyMaterialStack(req.Items[0]) || !lindyMaterialStack(req.Items[1]) ||
+		req.Items[2].Index != 4127 {
 		w.sendCombineResult(p, 0)
+		s.Send(wire.MessagePanel("Two Laktorerium packages (10 units each) and one Sealed Scroll are required."))
 		return
 	}
 	for i := 3; i <= 6; i++ {
 		if req.Items[i].Index != 413 || itemStackAmount(req.Items[i]) > 1 {
 			w.sendCombineResult(p, 0)
+			s.Send(wire.MessagePanel("Four Laktorerium powders are required."))
 			return
 		}
 	}
@@ -374,8 +380,13 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 		w.sendCombineResult(p, 0)
 		return
 	}
-	if trava == archLockLevel370 && counterBalance(p, fameCounter) < 1 {
-		s.Send(wire.MessagePanel("You need 1 fame point."))
+	// The V754 Lindy hook charges ten Fame for either unlock (pJanelas.cpp:
+	// 52-70). The newer W2PP branch reduced the 370 requirement to one, but
+	// mixing that rule into the 7.54 recipe is what made the client report a
+	// misleading material error after a valid ingredient submission.
+	const lindyFameCost = 10
+	if counterBalance(p, fameCounter) < lindyFameCost {
+		s.Send(wire.MessagePanel("You need 10 fame points."))
 		w.sendCombineResult(p, 0)
 		return
 	}
@@ -415,19 +426,16 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 		p.Char.ArchLevel355 = true
 	} else {
 		p.Char.ArchLevel370 = true
-		spendCounters(p, map[string]uint32{fameCounter: 1})
 	}
+	spendCounters(p, map[string]uint32{fameCounter: lindyFameCost})
 	if len(changedEquip) != 0 {
 		w.recalcPlayer(p.Char)
 	}
-	persisted := false
-	if trava == archLockLevel370 {
-		persisted = w.commitCombineWithPlayerState(
-			p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
-	} else {
-		persisted = w.commitCombine(
-			p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
-	}
+	// Both V754 unlocks consume Fame from the character sidecar. Persist the
+	// account, sidecar and unlock in the same transaction whenever PostgreSQL
+	// is available; the fallback keeps the same rollback order for JSON tests.
+	persisted := w.commitCombineWithPlayerState(
+		p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
 	if !persisted {
 		// commitCombine ja restaurou inventario/equip; o resto e nosso.
 		p.SpecialCoins = oldFame
@@ -437,6 +445,10 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	}
 	s.Send(wire.MessagePanel("Your level limit has been lifted."))
 	log.Printf("[#%d] ARCH destravou o nivel %d (fama=%d)", s.ID, trava+1, counterBalance(p, fameCounter))
+}
+
+func lindyMaterialStack(item model.Item) bool {
+	return item.Index == 3448 && itemStackAmount(item) == 10
 }
 
 // lindyLevelUnlock diz qual trava este personagem esta destravando, se alguma.

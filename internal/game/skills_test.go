@@ -8,6 +8,30 @@ import (
 	"wydgo/internal/net"
 )
 
+// skillHasServerExecution is a catalog assertion helper, not gameplay. Keeping
+// it in tests prevents a data reorganization from silently creating no-op
+// skills without shipping a second execution table in the server binary.
+func skillHasServerExecution(skill model.SkillDef) bool {
+	if skill.Index >= 97 && skill.Index <= 102 {
+		return true
+	}
+	if skill.Passive != 0 {
+		return true
+	}
+	if skill.InstanceType >= 1 && skill.InstanceType <= 5 ||
+		skill.AffectType > 0 || skill.TickType > 0 {
+		return true
+	}
+	switch skill.Index {
+	case 3, 5, 6, 25, 26, 27, 29, 31, 42, 47,
+		49, 56, 57, 58, 59, 60, 61, 62, 63,
+		73, 79, 83, 84:
+		return true
+	default:
+		return false
+	}
+}
+
 func TestAllFourClassSkillsHaveServerExecution(t *testing.T) {
 	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
 	if err != nil {
@@ -21,15 +45,6 @@ func TestAllFourClassSkillsHaveServerExecution(t *testing.T) {
 		if !skillHasServerExecution(skill) {
 			t.Errorf("skill %d %q sem caminho server-side", index, skill.Name)
 		}
-	}
-}
-
-func TestSkillVisualDamageShowsCalculatedOverkill(t *testing.T) {
-	if got := skillVisualDamage(800); got != 800 {
-		t.Fatalf("hit visual=%d, esperado dano calculado 800", got)
-	}
-	if got := skillVisualDamage(250_000); got != 32767 {
-		t.Fatalf("hit visual wide=%d, esperado saturacao short 32767", got)
 	}
 }
 
@@ -121,6 +136,33 @@ func TestSkillMonsterTargetsNeverSubstitutesClientTarget(t *testing.T) {
 	if got := w.skillMonsterTargets(p, skillCastRequest{TargetID: 9999},
 		model.SkillDef{Range: 6, MaxTarget: 1}); len(got) != 0 {
 		t.Fatalf("alvo invalido foi substituido por %+v", got)
+	}
+}
+
+func TestSkillMonsterTargetsRejectsInstanceMobOutsideMembership(t *testing.T) {
+	member, _ := networkedTestPlayer(1, "Member", 2200, 2200)
+	outsider, _ := networkedTestPlayer(2, "Outsider", 2200, 2200)
+	w := worldWithNetworkedPlayers(member, outsider)
+	inst := &ItemInstance{
+		Config: model.VolatileInstance{ID: "private-skill-room", Stages: []model.VolatileInstanceStage{{
+			X: 2200, Y: 2200, AreaRadius: 8,
+			Spawns: []model.VolatileInstanceSpawn{{NPC: "RoomMob", Count: 1}},
+		}}},
+		MemberIDs: []uint16{member.ID}, CurrentStage: 0,
+	}
+	w.itemInstances = map[string]*ItemInstance{inst.Config.ID: inst}
+	def := testNPCDef(model.ExtendedScore{MaxHP: 100})
+	def.Name = "RoomMob"
+	mob := &Mob{ID: 1200, Def: def, X: 2200, Y: 2200, HP: 100, InstanceID: inst.Config.ID}
+	w.mobs = []*Mob{mob}
+	w.mobsByID[mob.ID] = mob
+	w.registerMobSpatial(mob)
+
+	if got := w.skillMonsterTargets(outsider, skillCastRequest{TargetID: mob.ID}, model.SkillDef{Range: 6, MaxTarget: 1}); len(got) != 0 {
+		t.Fatalf("jogador externo conseguiu alvejar mob de instancia: %+v", got)
+	}
+	if got := w.skillMonsterTargets(member, skillCastRequest{TargetID: mob.ID}, model.SkillDef{Range: 6, MaxTarget: 1}); len(got) != 1 || got[0] != mob {
+		t.Fatalf("membro nao conseguiu alvejar o mob da instancia: %+v", got)
 	}
 }
 

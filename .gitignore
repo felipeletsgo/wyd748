@@ -8,6 +8,9 @@
 /account_creator.exe
 /server.exe
 /tmp/
+/.tmp/
+/tm-check*
+/tm-review*
 
 # Metadados locais dos agentes Codex/Claude; nao fazem parte do runtime.
 /.codex/
@@ -40,3 +43,9 @@ DOCS/
 client748/WYD.patched-wide.exe
 client748/WYD.premacro.exe
 client748/WYDoriginal.exe
+
+# Artefatos de conversao/edicao. O runtime usa os equivalentes autoritativos
+# versionados em data/SkillData.csv e client748/SkillData.bin.
+/data/SkillData.bin
+/client748/SkillData.csv
+/client748/serverlist - Copy.bin

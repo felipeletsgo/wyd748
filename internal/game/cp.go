@@ -1,15 +1,55 @@
 package game
 
 import (
+	"fmt"
 	"log"
+	"time"
 
 	"wydgo/internal/model"
 	"wydgo/internal/wire"
 )
 
+// tickChaosRecovery porta o contador de 450 segundos do TMSrv. Só CP negativo
+// é recuperado; o ponto neutro/positivo não sobe além de zero por passagem de
+// tempo. A alteração passa pelo mesmo save-before-confirm dos demais estados.
+func (w *World) tickChaosRecovery(now time.Time) {
+	for _, p := range w.players {
+		if p == nil || !p.InWorld || p.Char == nil || p.Account == nil {
+			continue
+		}
+		if p.NextCPRecovery.IsZero() {
+			p.NextCPRecovery = now.Add(chaosRecoveryInterval)
+			continue
+		}
+		if now.Before(p.NextCPRecovery) {
+			continue
+		}
+		p.NextCPRecovery = now.Add(chaosRecoveryInterval)
+		if p.Char.CP >= 0 {
+			continue
+		}
+		oldCP := p.Char.CP
+		p.Char.CP = model.ClampCP(int(p.Char.CP) + 1)
+		if err := w.saveAccount(p.Account); err != nil {
+			p.Char.CP = oldCP
+			var sessionID int64
+			if p.Session != nil {
+				sessionID = p.Session.ID
+			}
+			log.Printf("[#%d] recuperacao de CP nao persistida: %v", sessionID, err)
+			continue
+		}
+		if p.Session != nil {
+			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+			w.syncPlayerChaos(p)
+			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Chaos Point aumentou para %d.", p.Char.CP)))
+		}
+	}
+}
+
 // nativeCPKillDelta porta o calculo basico de MobKilled.cpp. A source trabalha
-// com o byte bruto CP+75; matar um personagem neutro custa 3 CP, enquanto
-// matar um PK profundamente negativo pode nao gerar penalidade adicional.
+// com o byte bruto CP+75 (75 = neutro); matar um personagem neutro custa 3 CP,
+// enquanto matar um PK profundamente negativo pode nao gerar penalidade.
 func nativeCPKillDelta(victimCP int16) int {
 	raw := int(model.ClampCP(int(victimCP))) + 75
 	delta := 3 * raw / -25
@@ -77,6 +117,7 @@ func (w *World) applyPvPKills(killer *Player, victims ...*Player) {
 	for _, player := range changed {
 		if player.Session != nil {
 			player.Session.Send(wire.UpdateEtc(player.ID, *player.Char))
+			w.syncPlayerChaos(player)
 		}
 	}
 }

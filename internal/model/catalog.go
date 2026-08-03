@@ -32,8 +32,10 @@ type ItemDef struct {
 	DynamicEffectNames map[byte]string
 }
 
-// SkillDef preserva todas as colunas conhecidas do SkillData.csv. O catalogo
-// ja e autoritativo mesmo antes dos handlers de aprender/executar skills.
+// SkillDef preserva as 23 colunas autoritativas do SkillData.csv (ID, 21
+// parametros, duas sequencias de acao e nome). Nao existe uma coluna
+// "Unknown": o layout server-side precisa permanecer alinhado ao arquivo de
+// dados, sem inventar campos para preencher structs de outra versao.
 type SkillDef struct {
 	Index             int
 	SkillPoint        int
@@ -57,7 +59,6 @@ type SkillDef struct {
 	Party             int
 	AffectResist      int
 	Passive           int
-	Unknown           int
 	Name              string
 }
 

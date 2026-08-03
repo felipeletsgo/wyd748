@@ -110,6 +110,12 @@ func (w *World) executeClearInventory(s *net.Session, p *Player) {
 		s.Send(wire.MessagePanel("Close Auto Trade before clearing your inventory."))
 		return
 	}
+	for i := 0; i < model.PlayerCarrySlots; i++ {
+		if _, filled := model.CelestialSealID(p.Char.Inv[i]); filled {
+			s.Send(wire.MessagePanel("Extract or move the filled Spirit's Seal before clearing inventory."))
+			return
+		}
+	}
 	oldInv := p.Char.Inv
 	removed := clearInventory(p.Char)
 	if err := w.saveAccount(p.Account); err != nil {
@@ -278,6 +284,16 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 	case "time":
 		// Comando manual: exibe a data/hora do host no painel superior.
 		s.Send(wire.MessagePanel(time.Now().Format("15:04:05 | 02-01-2006")))
+	case "cp", "chaos":
+		// CP e o Chaos/PK Point assinado do personagem (-75..+75). Ele nao e
+		// o Hold de EXP do 0x337 e por isso nunca deve ser formatado como XP.
+		s.Send(wire.MessagePanel(chaosPointMessage(p.Char.CP)))
+	case "nig":
+		// O client envia este comando internamente ao usar os ingressos do
+		// Nightmare (SGrid.cpp): ele espera !!HHMMSS para atualizar o relogio
+		// local da instancia. Nao e um nickname; trata-lo como consulta /nig
+		// produzia o falso "nig is not online.".
+		s.Send(wire.MessagePanel(nightmareTimeMessage(time.Now())))
 	case "limparinv", "clearinv":
 		w.executeClearInventory(s, p)
 	case "hpdebug":
@@ -304,6 +320,14 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		return false
 	}
 	return true
+}
+
+func nightmareTimeMessage(now time.Time) string {
+	return "!!" + now.Format("150405")
+}
+
+func chaosPointMessage(cp int16) string {
+	return fmt.Sprintf("Chaos Point: %d (range -75..+75)", model.ClampCP(int(cp)))
 }
 
 // sendCharacterInfo responde ao "/nick" sem mensagem com um resumo do

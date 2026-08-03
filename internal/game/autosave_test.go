@@ -70,12 +70,51 @@ func TestMultiKillBatchSavesAccountOnce(t *testing.T) {
 	acc := &model.Account{Name: "felipe"}
 	p := &Player{Session: session, Account: acc}
 	w := &World{store: st}
-	w.saveMultiKillBatch(p, 8)
+	w.saveMultiKillBatch(p, 8, []*model.Account{acc})
 	if st.saves != 1 {
 		t.Fatalf("lote de 8 mortes gerou %d saves, quer 1", st.saves)
 	}
-	w.saveMultiKillBatch(p, 0)
+	w.saveMultiKillBatch(p, 0, []*model.Account{acc})
 	if st.saves != 1 {
 		t.Fatalf("lote sem mortes gerou save adicional: %d", st.saves)
+	}
+}
+
+func TestMultiKillBatchPersistsAllPartyAccountsInOneTransaction(t *testing.T) {
+	first, _ := networkedTestPlayer(1, "First", 2100, 2100)
+	second, _ := networkedTestPlayer(2, "Second", 2101, 2100)
+	store := &batchGameStore{}
+	w := worldWithNetworkedPlayers(first, second)
+	w.store = store
+	w.saveMultiKillBatch(first, 5, []*model.Account{first.Account, second.Account})
+	if store.batchSaves != 1 {
+		t.Fatalf("lote deveria usar uma transacao multi-account: saves=%d", store.batchSaves)
+	}
+}
+
+func TestKillAccountsAlwaysIncludeLootOwnerAtLevelCap(t *testing.T) {
+	killer, _ := networkedTestPlayer(1, "Capped", 2100, 2100)
+	member, _ := networkedTestPlayer(2, "Eligible", 2101, 2100)
+	accounts := uniqueKillAccounts(killer, []partyExpShare{{player: member, reward: 100}})
+	if len(accounts) != 2 || accounts[0] != killer.Account || accounts[1] != member.Account {
+		t.Fatalf("contas da morte=%v, killer no cap precisa participar da transacao", accounts)
+	}
+}
+
+func TestMultiKillPersistenceFailurePoisonsEveryAffectedAccount(t *testing.T) {
+	first, _ := networkedTestPlayer(1, "First", 2100, 2100)
+	second, _ := networkedTestPlayer(2, "Second", 2101, 2100)
+	st := &batchGameStore{}
+	st.err = errors.New("database unavailable")
+	w := worldWithNetworkedPlayers(first, second)
+	w.store = st
+
+	w.saveMultiKillBatch(first, 2, []*model.Account{first.Account, second.Account})
+
+	for _, p := range []*Player{first, second} {
+		if !p.PersistencePoisoned || !p.Session.IsClosed() {
+			t.Fatalf("conta %q permaneceu gravavel apos falha: poisoned=%v closed=%v",
+				p.Account.Name, p.PersistencePoisoned, p.Session.IsClosed())
+		}
 	}
 }

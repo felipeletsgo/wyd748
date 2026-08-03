@@ -281,7 +281,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 			skillSpent += skill.SkillPoint
 		}
 	}
-	skillBudget := mortalSkillPointBudget(int(base.Level)) + int(ch.SkillPointBonus)
+	skillBudget := skillPointBudget(ch)
 	if skillSpent >= skillBudget {
 		base.SkillPts = 0
 	} else {
@@ -328,10 +328,16 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	class := int(ch.Class)
 	maxHP, maxMP := int64(base.MaxHP), int64(base.MaxMP)
 	if class >= 0 && class < len(baseClassStats) {
-		maxHP += 2*(con-int64(baseClassStats[class][3])) +
-			level*int64(mortalHPPerLevel[class])
-		maxMP += 2*(intel-int64(baseClassStats[class][1])) +
-			level*int64(mortalMPPerLevel[class])
+		naturalInt, naturalCon := int64(baseClassStats[class][1]), int64(baseClassStats[class][3])
+		hpPerLevel, mpPerLevel := mortalHPPerLevel[class], mortalMPPerLevel[class]
+		if isCelestialEvolution(ch) {
+			naturalInt, naturalCon = 5, 5
+			// g_pBASE_IncrementStatus colunas CELESTIAL+ da 7.54.
+			hpPerLevel = [4]int{5, 2, 2, 3}[class]
+			mpPerLevel = [4]int{2, 4, 5, 3}[class]
+		}
+		maxHP += 2*(con-naturalCon) + level*int64(hpPerLevel)
+		maxMP += 2*(intel-naturalInt) + level*int64(mpPerLevel)
 	}
 	maxHP += total("EF_HP") + special[3]*2
 	maxMP += total("EF_MP")
@@ -480,9 +486,9 @@ func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
 		return false
 	}
 	classMask := staticAbility(def, "EF_CLASS")
-	arch := isArch(ch)
+	advanced := isArch(ch) || isCelestialEvolution(ch)
 	weapon := pos == 6 || pos == 7
-	if classMask != 0 && !(arch && weapon) {
+	if classMask != 0 && !(advanced && weapon) {
 		equipClass, validClass := equipmentBodyClass(ch)
 		if !validClass || classMask&(1<<equipClass) == 0 {
 			return false
@@ -491,7 +497,7 @@ func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
 	// BASE_CanEquip (W2PP) zera Level/STR/INT/DEX/CON para evolucoes
 	// superiores. No Arch a classe do Sephiroth continua governando skills,
 	// mas nao os requisitos de equipamento; armas tambem ignoram a classe.
-	if arch {
+	if advanced {
 		return true
 	}
 	levelReq := def.ReqLevel + staticAbility(def, "EF_LEVEL")
@@ -513,7 +519,7 @@ func equipmentBodyClass(ch *model.Char) (byte, bool) {
 	if ch == nil {
 		return 0, false
 	}
-	if !isArch(ch) {
+	if !isArch(ch) && !isCelestialEvolution(ch) {
 		return ch.Class, ch.Class <= 3
 	}
 	bodyClass := ch.Equip[0].Index / 10

@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 // VolatileRule descreve uma funcao de item clicavel. Os itens associados a
 // cada codigo continuam vindo do itemlist.csv; este tipo configura somente o
 // comportamento autoritativo executado pelo servidor.
@@ -62,6 +64,10 @@ type VolatileRule struct {
 	// RefineMax e o teto de refino da acao "refine": Ori=6, Lac=9. O servidor
 	// recusa refinar um item cujo sanc ja alcancou este teto.
 	RefineMax int `json:"refineMax,omitempty"`
+	// OnceQuestID identifica uma trava permanente server-side para acoes de
+	// quest de uso unico (por exemplo o Molar do Gargula). IDs negativos ficam
+	// reservados para flags internas e nao colidem com quests configuradas.
+	OnceQuestID int32 `json:"onceQuestId,omitempty"`
 	// Refino de alvo equipado (Agua das Fadas): slot e indices aceitos tambem
 	// ficam nos dados, para o executavel nao inventar equipamentos elegiveis.
 	TargetSlot  int      `json:"targetSlot,omitempty"`
@@ -81,6 +87,11 @@ type VolatileRule struct {
 	// do refino; cada codigo pinta o item de uma cor no client. Ver pRemoveTintura.
 	Color       int    `json:"color,omitempty"`
 	Description string `json:"description,omitempty"`
+	// Variant seleciona uma opcao dentro de familias nativas que compartilham
+	// o mesmo motor (Gemas 0..3 e minérios 0..3). SuccessPercent permanece dado
+	// de balanceamento, nunca confiado ao pacote do client.
+	Variant        int `json:"variant,omitempty"`
+	SuccessPercent int `json:"successPercent,omitempty"`
 }
 
 type VolatileAffect struct {
@@ -98,7 +109,11 @@ type VolatileAffect struct {
 // coordenadas e duração permanecem em data/volatiles.json; o motor apenas
 // aplica ocupação, party, spawn, timer e encerramento.
 type VolatileInstance struct {
-	ID                string                  `json:"id"`
+	ID string `json:"id"`
+	// BaseRef permite declarar variantes (Cube Mystic/Arcane) sem duplicar a
+	// tabela inteira. O loader materializa uma copia independente antes de
+	// validar e executar a regra.
+	BaseRef           string                  `json:"baseRef,omitempty"`
 	Name              string                  `json:"name"`
 	X                 uint16                  `json:"x"`
 	Y                 uint16                  `json:"y"`
@@ -112,15 +127,127 @@ type VolatileInstance struct {
 	DurationSeconds   int                     `json:"durationSeconds"`
 	// TotalDurationSeconds e um prazo absoluto da instancia, independente das
 	// trocas de sala. Hell Gate usa os quatro minutos nativos desta forma.
-	TotalDurationSeconds int    `json:"totalDurationSeconds,omitempty"`
-	ExitX                uint16 `json:"exitX"`
-	ExitY                uint16 `json:"exitY"`
-	TransitionSeconds    int    `json:"transitionSeconds,omitempty"`
+	TotalDurationSeconds int `json:"totalDurationSeconds,omitempty"`
+	// ActiveDurationSeconds is the event lifetime after a scheduled entry
+	// window. Hell Gate admits players for four minutes and then remains active
+	// through its native combat window; the two deadlines must not be conflated.
+	ActiveDurationSeconds int    `json:"activeDurationSeconds,omitempty"`
+	ExitX                 uint16 `json:"exitX"`
+	ExitY                 uint16 `json:"exitY"`
+	TransitionSeconds     int    `json:"transitionSeconds,omitempty"`
 	// SharedEntry permite que usuarios consumam seus proprios ingressos para
 	// entrar na primeira sala de uma execucao ja aberta. Cube usa esse fluxo:
 	// ate seis jogadores entram individualmente antes da primeira resposta.
-	SharedEntry bool                    `json:"sharedEntry,omitempty"`
-	Stages      []VolatileInstanceStage `json:"stages,omitempty"`
+	SharedEntry bool `json:"sharedEntry,omitempty"`
+	// Mode define a fronteira de execucao. Os valores usados pelo servidor sao
+	// private_chain, private_shared_entry, shared_timed_zone e state_machine.
+	// Vazio preserva o comportamento privado legado.
+	Mode string `json:"mode,omitempty"`
+	// SharedGroup e a chave runtime de uma zona fisica compartilhada. IDs de
+	// regras diferentes (por exemplo ticket pessoal e de party) podem apontar
+	// para a mesma execucao sem sobrescreverem outra sala.
+	SharedGroup string `json:"sharedGroup,omitempty"`
+	// ExclusiveGroup implementa locks logicos independentes da ocupacao fisica.
+	// Magic Chamber usa um unico lock para Normal/Mystic/Arcane.
+	ExclusiveGroup string `json:"exclusiveGroup,omitempty"`
+	// FinishPolicy evita que o motor tenha de inferir o encerramento pela
+	// quantidade de mobs: finish_on_clear, finish_on_timeout,
+	// advance_on_clear, respawn_until_timeout ou state_machine.
+	FinishPolicy string `json:"finishPolicy,omitempty"`
+	// NoCombatTimeout is used by the native Cube: a room advances only after
+	// its mobs are cleared and the O/X question is resolved.  It must not be
+	// confused with an event-wide deadline or with a transition timeout.
+	NoCombatTimeout bool `json:"noCombatTimeout,omitempty"`
+	// StateMachine identifica uma progressao que nao pode ser descrita apenas
+	// por salas lineares. Os controladores leem somente estes dados; nenhuma
+	// coordenada de Hell Gate/Big Cube fica hardcoded no gameplay.
+	StateMachine string            `json:"stateMachine,omitempty"`
+	HellGate     *VolatileHellGate `json:"hellGate,omitempty"`
+	// Uxmal descreve a Pista de Runas iniciada pelo NPC, nao por um item
+	// volatile. O template continua dentro de volatiles.json para que salas,
+	// tickets e recompensas sejam auditaveis sem recompilar o servidor.
+	Uxmal *VolatileUxmal `json:"uxmal,omitempty"`
+	// AllowChainDuringExitGrace explicita a janela Water de dez segundos. O
+	// fallback historico por RewardItem continua somente para dados antigos.
+	AllowChainDuringExitGrace bool `json:"allowChainDuringExitGrace,omitempty"`
+	// EntryAreas restringe o TargetXY do 0x373 a uma ou mais areas nativas de
+	// entrada. Lista vazia preserva instancias que podem ser abertas em
+	// qualquer mapa (por exemplo, contratos de teste).
+	EntryAreas []VolatileInstanceEntryArea `json:"entryAreas,omitempty"`
+	// EntryAreaSet referencia uma tabela reutilizavel do arquivo de dados. O
+	// loader expande a tabela para EntryAreas; assim as 27 cartas Water usam
+	// exatamente as mesmas caixas nativas sem espalhar coordenadas duplicadas.
+	EntryAreaSet string `json:"entryAreaSet,omitempty"`
+	// Schedule descreve janelas repetidas dentro de cada hora. Quando existe,
+	// o ticket so pode ser usado durante uma janela e a instancia termina no
+	// fim dela, como Nightmare e Hell Gate no TMSrv.
+	Schedule []VolatileInstanceWindow `json:"schedule,omitempty"`
+	// PartyRunLimit limita quantas execucoes compartilhadas podem ser abertas
+	// na mesma janela horaria. Nightmare nativo usa tres por tier; zero deixa
+	// o template sem limite global.
+	PartyRunLimit int `json:"partyRunLimit,omitempty"`
+	// NightmareTier ativa as regras nativas de entrada do Pesadelo. Os valores
+	// validos sao normal, mystic e arcane; vazio mantem o template generico.
+	// A camada de jogo usa este campo para aplicar os bloqueios de nivel dos
+	// Celestiais e debitar uma entrada NT por Celestial no Arcano.
+	NightmareTier string                  `json:"nightmareTier,omitempty"`
+	Stages        []VolatileInstanceStage `json:"stages,omitempty"`
+}
+
+// VolatileUxmal e a tabela autoritativa da Pista de Runas/Uxmal. RoomPositions
+// usa uma lista por sala e tres posicoes por sala (o primeiro nivel nativo
+// aceita apenas duas parties; MaxParties expressa essa excecao). Runes sao
+// sorteadas por sala e TicketNextSanc e a sancao do proximo Clue of Runes.
+type VolatileUxmal struct {
+	NPC            string                      `json:"npc"`
+	TicketItem     uint16                      `json:"ticketItem"`
+	EntryAreas     []VolatileInstanceEntryArea `json:"entryAreas"`
+	RoomPositions  [][]VolatileDestination     `json:"roomPositions"`
+	MaxParties     []int                       `json:"maxParties"`
+	Runes          [][]uint16                  `json:"runes"`
+	TicketNextSanc []int                       `json:"ticketNextSanc"`
+}
+
+// InstanceRuntimeState is the restart-safe portion of an event instance.
+// Entity IDs, player IDs and mob HP are deliberately excluded: they are
+// process-local and are rebuilt from the authoritative data after a restart.
+type InstanceRuntimeState struct {
+	RuntimeID             string    `json:"runtimeId"`
+	ConfigID              string    `json:"configId"`
+	SharedGroup           string    `json:"sharedGroup,omitempty"`
+	State                 string    `json:"state,omitempty"`
+	CurrentStage          int       `json:"currentStage"`
+	ScheduleEnd           time.Time `json:"scheduleEnd,omitempty"`
+	HardDeadline          time.Time `json:"hardDeadline,omitempty"`
+	CombatDeadline        time.Time `json:"combatDeadline,omitempty"`
+	HellGateVariant       int       `json:"hellGateVariant,omitempty"`
+	HellGateClearedMask   uint8     `json:"hellGateClearedMask,omitempty"`
+	HellGateLichSpawned   uint8     `json:"hellGateLichSpawnedMask,omitempty"`
+	HellGateValidLichMask uint8     `json:"hellGateValidLichMask,omitempty"`
+	HellGateWrongLich     bool      `json:"hellGateWrongLich,omitempty"`
+}
+
+// InstanceStateSnapshot is the single durable aggregate for shared event
+// state. Keeping the Nightmare window counters beside the instances makes a
+// restart unable to reset the three-party limit.
+type InstanceStateSnapshot struct {
+	Version            int                    `json:"version"`
+	Instances          []InstanceRuntimeState `json:"instances,omitempty"`
+	NightmarePartyRuns map[string]int         `json:"nightmarePartyRuns,omitempty"`
+}
+
+const InstanceStateVersion = 1
+
+type VolatileInstanceEntryArea struct {
+	MinX uint16 `json:"minX"`
+	MinY uint16 `json:"minY"`
+	MaxX uint16 `json:"maxX"`
+	MaxY uint16 `json:"maxY"`
+}
+
+type VolatileInstanceWindow struct {
+	StartMinute     int `json:"startMinute"`
+	DurationSeconds int `json:"durationSeconds"`
 }
 
 // VolatileInstanceSpawn permite que uma mesma sala tenha mais de um template.
@@ -145,12 +272,39 @@ type VolatileInstanceStage struct {
 	AreaRadius      int                     `json:"areaRadius"`
 	DurationSeconds int                     `json:"durationSeconds,omitempty"`
 	Spawns          []VolatileInstanceSpawn `json:"spawns"`
-	Quiz            *VolatileInstanceQuiz   `json:"quiz,omitempty"`
+	// CompletionSpawns nasce na mesma sala depois que Spawns forem eliminados.
+	// Magic Chamber usa esse campo para o chefe da quarta sala sem criar uma
+	// quinta sala nem renovar o prazo de combate.
+	CompletionSpawns []VolatileInstanceSpawn `json:"completionSpawns,omitempty"`
+	Quiz             *VolatileInstanceQuiz   `json:"quiz,omitempty"`
+}
+
+// VolatileHellGate descreve a maquina de estados do Porto Infernal. O grupo
+// inicial e a Tarantula controladora; depois dela os quatro quadrantes nascem
+// juntos e somente o par de Lichs sorteado abre a fase final.
+type VolatileHellGate struct {
+	ControllerNPC string                     `json:"controllerNPC"`
+	Quadrants     []VolatileHellGateQuadrant `json:"quadrants"`
+	FinalSpawns   []VolatileInstanceSpawn    `json:"finalSpawns,omitempty"`
+	FinalNPCs     []VolatileInstanceSpawn    `json:"finalNPCs,omitempty"`
+}
+
+type VolatileHellGateQuadrant struct {
+	ID         int                     `json:"id"`
+	X          uint16                  `json:"x"`
+	Y          uint16                  `json:"y"`
+	SpawnX     uint16                  `json:"spawnX"`
+	SpawnY     uint16                  `json:"spawnY"`
+	AreaRadius int                     `json:"areaRadius"`
+	Spawns     []VolatileInstanceSpawn `json:"spawns"`
+	Lich       VolatileInstanceSpawn   `json:"lich"`
 }
 
 // VolatileInstanceQuiz reproduz as salas O/X do Cube. Depois de eliminar a
 // sala, cada membro escolhe fisicamente O ou X; acertos seguem e recebem EXP,
-// erros saem da instancia.
+// erros saem da instancia. TrueX/TrueY representam a plataforma O (Sim) e
+// FalseX/FalseY a plataforma X (Nao); os nomes indicam a verdade da afirmacao,
+// nao o desenho da plataforma.
 type VolatileInstanceQuiz struct {
 	Question        string `json:"question"`
 	Answer          bool   `json:"answer"`
@@ -207,9 +361,14 @@ type ReplictionCatalog struct {
 // encontrados no itemlist. ItemCodes contem TODOS os itens com EF_VOLATILE,
 // inclusive os que pertencem a NPC/comando ou aguardam o sistema Celestial.
 type VolatileCatalog struct {
-	Default    VolatileRule
-	Rules      map[int]VolatileRule
-	Items      map[uint16]VolatileRule
+	Default VolatileRule
+	Rules   map[int]VolatileRule
+	Items   map[uint16]VolatileRule
+	// Instances preserva os templates nomeados do arquivo de dados mesmo
+	// quando nenhum item volatile aponta para eles. Eventos iniciados por NPC
+	// (como a Pista de Runas/Uxmal) usam o mesmo catalogo autoritativo das
+	// instancias iniciadas por consumiveis.
+	Instances  map[string]VolatileInstance
 	ItemCodes  map[uint16]int
 	Codes      map[int]int
 	Repliction ReplictionCatalog

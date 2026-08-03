@@ -228,11 +228,19 @@ func main() {
 	default:
 		log.Fatalf("database_driver desconhecido %q", cfg.DatabaseDriver)
 	}
-	world, err := game.NewWorld(st, npcs, geners, catalog, dropRates, volatiles,
-		characterTemplates, terrain, game.WithNPCGenerLog(cfg.NPCGenerLog),
+	worldOptions := []game.WorldOption{
+		game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),
 		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts),
-		game.WithBossCatalog(bosses), game.WithInitItems(initItems))
+		game.WithBossCatalog(bosses), game.WithInitItems(initItems),
+		game.WithLoadtestSpawn(cfg.LoadtestSpawn, cfg.LoadtestAccountPrefix),
+	}
+	if uxmal, ok := volatiles.Instances["uxmal"]; ok && uxmal.Uxmal != nil {
+		worldOptions = append(worldOptions, game.WithUxmal(uxmal))
+		log.Printf("Uxmal carregado: %d salas, ticket=%d", len(uxmal.Stages), uxmal.Uxmal.TicketItem)
+	}
+	world, err := game.NewWorld(st, npcs, geners, catalog, dropRates, volatiles,
+		characterTemplates, terrain, worldOptions...)
 	if err != nil {
 		log.Fatalf("criar mundo: %v", err)
 	}
@@ -259,7 +267,7 @@ func main() {
 		os.Exit(1)
 	}()
 
-	if err := net.Listen(*addr, func(s *net.Session) { s.Serve(world.Enqueue) }); err != nil {
+	if err := net.ListenWithQueue(*addr, int(cfg.SessionQueueCapacity), func(s *net.Session) { s.Serve(world.Enqueue) }); err != nil {
 		log.Fatalf("listen: %v", err)
 	}
 }

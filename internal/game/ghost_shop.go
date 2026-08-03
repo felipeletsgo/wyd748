@@ -131,6 +131,9 @@ func parseAutoTradeRequest(pkt []byte, acc *model.Account, playerID uint16) (aut
 		if acc.Cargo[pos].Index == 0 || !acc.Cargo[pos].WireEqual(packetItem) {
 			return req, fmt.Errorf("item do slot %d diverge do Cargo", pos)
 		}
+		if _, filled := model.CelestialSealID(acc.Cargo[pos]); filled {
+			return req, errors.New("selo espiritual preenchido nao pode ser anunciado")
+		}
 		req.Items[i] = acc.Cargo[pos]
 		req.CarryPos[i] = int8(pos)
 		req.Prices[i] = uint32(signedPrice)
@@ -379,29 +382,29 @@ func buildGhostShopPurchase(buyer *model.Char, seller *model.Account, shop *Ghos
 	buyerGold, sellerCargoGold uint32, buyerSlot int, err error,
 ) {
 	if buyer == nil || seller == nil {
-		err = errors.New("Conta indisponivel.")
+		err = clientError("Conta indisponivel.")
 		return
 	}
 	buyerInv, sellerCargo = buyer.Inv, seller.Cargo
 	buyerGold, sellerCargoGold = buyer.Gold, seller.CargoGold
 	buyerSlot = -1
 	if shop == nil || pos < 0 || pos >= maxGhostShopItems || shop.Items[pos].Index == 0 {
-		err = errors.New("Este item nao esta mais a venda.")
+		err = clientError("Este item nao esta mais a venda.")
 		return
 	}
 	storageSlot := int(shop.CarryPos[pos])
 	if storageSlot < 0 || storageSlot >= model.PlayerCargoSlots ||
 		sellerCargo[storageSlot] != shop.Items[pos] {
-		err = errors.New("O item anunciado foi alterado. Compra cancelada.")
+		err = clientError("O item anunciado foi alterado. Compra cancelada.")
 		return
 	}
 	price := shop.Prices[pos]
 	if buyerGold > maxCharacterGold || price == 0 || buyerGold < price {
-		err = errors.New("Not enough gold.")
+		err = clientError("Not enough gold.")
 		return
 	}
 	if sellerCargoGold > maxCharacterGold || price > maxCharacterGold-sellerCargoGold {
-		err = errors.New("O Cargo do vendedor atingiu o limite de gold.")
+		err = clientError("O Cargo do vendedor atingiu o limite de gold.")
 		return
 	}
 	for i := 0; i < model.PlayerCarrySlots; i++ {
@@ -411,7 +414,7 @@ func buildGhostShopPurchase(buyer *model.Char, seller *model.Account, shop *Ghos
 		}
 	}
 	if buyerSlot < 0 {
-		err = errors.New("Inventory is full.")
+		err = clientError("Inventory is full.")
 		return
 	}
 	buyerInv[buyerSlot] = shop.Items[pos]

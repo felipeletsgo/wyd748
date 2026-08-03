@@ -57,6 +57,13 @@ CREATE TABLE IF NOT EXISTS guild_state (
     updated_at  timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS instance_state (
+    singleton   boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+    payload     jsonb NOT NULL,
+    version     bigint NOT NULL DEFAULT 1,
+    updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
 INSERT INTO schema_migrations(version) VALUES (1)
 ON CONFLICT (version) DO NOTHING;
 
@@ -171,4 +178,7 @@ END
 $migration$;
 
 INSERT INTO schema_migrations(version) VALUES (2)
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations(version) VALUES (3)
 ON CONFLICT (version) DO NOTHING;

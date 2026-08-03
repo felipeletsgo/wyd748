@@ -18,6 +18,35 @@ func validStoredChar(name string, gold uint32) model.Char {
 	}
 }
 
+func TestJSONInstanceStateRoundTripSharesAccountTransaction(t *testing.T) {
+	root := t.TempDir()
+	accounts := filepath.Join(root, "accounts")
+	st := NewJSONStore(accounts)
+	acc := postgresTestAccount("runtime", "Runtime", model.Item{Index: 4011})
+	state := &model.InstanceStateSnapshot{
+		Version:            model.InstanceStateVersion,
+		NightmarePartyRuns: map[string]int{"nightmare-normal:window": 2},
+		Instances: []model.InstanceRuntimeState{{
+			RuntimeID: "shared:nightmare-normal", ConfigID: "nightmare-normal-party",
+			State: "entry", CurrentStage: 0,
+		}},
+	}
+	if err := st.SaveGameStateWithInstanceState(nil, state, acc); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := st.LoadInstanceState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.NightmarePartyRuns["nightmare-normal:window"] != 2 ||
+		len(loaded.Instances) != 1 || loaded.Instances[0].RuntimeID != "shared:nightmare-normal" {
+		t.Fatalf("estado de instancia nao persistiu junto da conta: %+v", loaded)
+	}
+	if _, err := st.LoadAccount("runtime"); err != nil {
+		t.Fatalf("conta nao persistiu junto do estado: %v", err)
+	}
+}
+
 func TestSaveAccountsPersistsBothSidesOfTrade(t *testing.T) {
 	dir := t.TempDir()
 	s := NewJSONStore(dir)
@@ -45,6 +74,54 @@ func TestSaveAccountsPersistsBothSidesOfTrade(t *testing.T) {
 		if entry.IsDir() {
 			t.Fatalf("journal nao removido: %s", entry.Name())
 		}
+	}
+}
+
+func TestSaveAccountsTransfersFilledCelestialSealAndSnapshot(t *testing.T) {
+	dir := t.TempDir()
+	s := NewJSONStore(dir)
+	itemUID, err := model.NewItemUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceUID, err := model.NewCharacterUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	seal := model.NewCelestialSeal(itemUID, 7)
+	a := &model.Account{Name: "alice", PasswordHash: "hash", Chars: []model.Char{validStoredChar("Alice", 100)}}
+	b := &model.Account{Name: "bob", PasswordHash: "hash", Chars: []model.Char{validStoredChar("Bob", 200)}}
+	a.Chars[0].Inv[0] = seal
+	a.CelestialCapsules = []model.CelestialCapsule{{
+		ID: 7, ItemUID: itemUID, SourceUID: sourceUID,
+		Character: model.Char{
+			UID: sourceUID, Name: "ReadyCelestial", Class: 1, Evolution: "celestial",
+			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion},
+		},
+	}}
+	if err := s.SaveAccounts(a, b); err != nil {
+		t.Fatal(err)
+	}
+
+	a.Chars[0].Inv[0] = model.Item{}
+	b.Chars[0].Inv[0] = seal
+	b.CelestialCapsules = a.CelestialCapsules
+	a.CelestialCapsules = nil
+	if err := s.SaveAccounts(a, b); err != nil {
+		t.Fatalf("transferencia atomica recusada: %v", err)
+	}
+	gotA, err := s.LoadAccount("alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotB, err := s.LoadAccount("bob")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotA.Chars[0].Inv[0].Index != 0 || len(gotA.CelestialCapsules) != 0 ||
+		gotB.Chars[0].Inv[0].UID != itemUID || len(gotB.CelestialCapsules) != 1 ||
+		gotB.CelestialCapsules[0].ItemUID != itemUID {
+		t.Fatalf("selo/snapshot nao mudaram juntos: alice=%+v bob=%+v", gotA, gotB)
 	}
 }
 

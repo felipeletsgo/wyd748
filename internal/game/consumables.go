@@ -2,7 +2,6 @@ package game
 
 import (
 	"encoding/binary"
-	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -25,11 +24,14 @@ type useItemRequest struct {
 	srcType, srcPos uint32
 	dstType, dstPos uint32
 	gridX, gridY    uint16
-	warpID          uint16
+	warpID          uint32
 }
 
 func parseUseItemRequest(pkt []byte) (useItemRequest, bool) {
-	if len(pkt) < 36 {
+	// MSG_UseItem/p373 is a fixed 36-byte layout. Accepting an oversized
+	// packet here would let a forged trailer bypass the opcode size policy, and
+	// reading only the low half of WarpID would truncate a malicious DWORD.
+	if len(pkt) != 36 {
 		return useItemRequest{}, false
 	}
 	r := useItemRequest{
@@ -39,7 +41,7 @@ func parseUseItemRequest(pkt []byte) (useItemRequest, bool) {
 		dstPos:  binary.LittleEndian.Uint32(pkt[24:28]),
 		gridX:   binary.LittleEndian.Uint16(pkt[28:30]),
 		gridY:   binary.LittleEndian.Uint16(pkt[30:32]),
-		warpID:  binary.LittleEndian.Uint16(pkt[32:34]),
+		warpID:  binary.LittleEndian.Uint32(pkt[32:36]),
 	}
 	// O plugin 7.54 aceita uso somente a partir do Carry/Inv. Destino ainda e
 	// validado, mesmo que pocao e barra nao o utilizem.
@@ -120,7 +122,6 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] uso rejeitado: item %d ausente do catalogo server-side", s.ID, item.Index)
 		return
 	}
-
 	rule, code, registered := w.volatiles.Rule(item.Index)
 	if !registered {
 		log.Printf("[#%d] uso rejeitado: item %d nao possui EF_VOLATILE server-side", s.ID, item.Index)
@@ -129,8 +130,14 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	}
 
 	switch rule.Action {
+	case "equipment_gem":
+		w.useEquipmentGem(s, p, item, slot, rule, req)
+
+	case "ore_upgrade":
+		w.useOreUpgrade(s, p, item, slot, rule, req)
+
 	case "instance_ticket":
-		w.useInstanceTicket(s, p, item, slot, rule)
+		w.useInstanceTicket(s, p, item, slot, rule, req)
 
 	case "loot_box":
 		w.useLootBox(s, p, item, slot, rule)
@@ -144,9 +151,17 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	case "no_direct_use":
 		w.useNoDirectItem(s, p, item, slot, "")
 
-	case "celestial_pending":
-		w.useNoDirectItem(s, p, item, slot,
-			"Celestial system is not available yet.")
+	case "celestial_capsule":
+		w.useCelestialCapsule(s, p, item, slot)
+
+	case "celestial_ideal":
+		w.useCelestialIdeal(s, p, item, slot)
+
+	case "celestial_fury":
+		w.useFuryStone(s, p, item, slot)
+
+	case "celestial_switch":
+		w.useMysteriousStone(s, p, item, slot)
 
 	case "nightmare_ticket":
 		w.useNightmareTicket(s, p, item, slot, rule)
@@ -191,7 +206,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
-		w.refreshAppearance(p)
+		w.syncPlayerChaos(p)
 
 	case "grant_next_level":
 		// Poeira de Fada nativa: posiciona a EXP exatamente no proximo marco,
@@ -318,6 +333,8 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
+		snapshot := cloneCharacterState(p.Char)
+		oldLastPotion := p.LastPotion
 		hp, mp := applyRestore(p.Char, *item, def, rule)
 		if hp == 0 && mp == 0 {
 			// O cliente pode repetir automaticamente o uso de uma pilha. Se
@@ -330,6 +347,17 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			consumeOne(item)
 		}
 		p.LastPotion = now
+		// A potion changes both the stack and the authoritative current
+		// resource. Persist before acknowledging the use; otherwise a forced
+		// disconnect between SendItem and autosave can duplicate the unit or
+		// roll the resource back independently of the inventory.
+		if err := w.saveAccount(p.Account); err != nil {
+			*p.Char = snapshot
+			p.LastPotion = oldLastPotion
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			log.Printf("[#%d] ERRO ao salvar pocao item=%d: %v", s.ID, item.Index, err)
+			return
+		}
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -495,8 +523,15 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// Item que NAO deveria ter volatile (ex.: code 9). Consome sem efeito, para
 		// tirar de circulacao um item cujo volatile so causaria confusao. A decisao
 		// de consumir e explicita: difere do generic, que preserva o item.
+		oldItem := *item
 		if rule.Consume {
 			consumeOne(item)
+		}
+		if err := w.saveAccount(p.Account); err != nil {
+			*item = oldItem
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			log.Printf("[#%d] ERRO ao salvar volatile desativado item=%d: %v", s.ID, oldItem.Index, err)
+			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		log.Printf("[#%d] volatile desativado item=%d code=%d (consumido=%v)", s.ID, item.Index, code, rule.Consume)
@@ -504,12 +539,19 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	case "face_transform":
 		// Transforma o rosto em monstro (70-77), COSMETICO. O mesh vai no Value do
 		// affect; bodyMesh o aplica e o visual e propagado aos observadores.
+		snapshot := cloneCharacterState(p.Char)
 		if !setFaceAffect(p.Char, rule.FaceMesh, rule.DurationUnits) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
 		if rule.Consume {
 			consumeOne(item)
+		}
+		if err := w.saveAccountAndCharStateResult(p); err != nil {
+			*p.Char = snapshot
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			log.Printf("[#%d] ERRO ao salvar transformacao facial item=%d: %v", s.ID, item.Index, err)
+			return
 		}
 		w.recalcPlayer(p.Char)
 		w.publishPlayerAffects(p)
@@ -520,9 +562,18 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 
 	case "face_restore":
 		// Volta ao rosto real (volatile 89). So consome se havia transformacao.
+		snapshot := cloneCharacterState(p.Char)
 		restored := removeFaceAffect(p.Char)
 		if rule.Consume && restored {
 			consumeOne(item)
+		}
+		if restored {
+			if err := w.saveAccountAndCharStateResult(p); err != nil {
+				*p.Char = snapshot
+				s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+				log.Printf("[#%d] ERRO ao salvar restauracao facial item=%d: %v", s.ID, item.Index, err)
+				return
+			}
 		}
 		w.recalcPlayer(p.Char)
 		w.publishPlayerAffects(p)
@@ -599,9 +650,9 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// PAR completo conforme a parte da armadura e substitui os dois adds.
 		// O terceiro par logico permanece reservado para refino/tintura.
 		dest, destType, destPos := w.destItemTarget(p, req)
-		if dest == nil || dest.Index == 0 {
+		if destType != placeEquip || destPos >= 16 || dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Drag the repliction onto an item."))
+			s.Send(wire.MessagePanel("Repliction can only be used on equipped defensive equipment."))
 			return
 		}
 		def, exists := w.items[dest.Index]
@@ -680,24 +731,24 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 func (w *World) applyRepliction(dest *model.Item, def model.ItemDef, sourceID uint16) (model.ReplictionBonus, error) {
 	rule, ok := w.volatiles.Repliction.Items[sourceID]
 	if !ok {
-		return model.ReplictionBonus{}, fmt.Errorf("This repliction is not configured.")
+		return model.ReplictionBonus{}, clientError("This repliction is not configured.")
 	}
 	pool := w.volatiles.Repliction.Pools[def.Pos]
 	if len(pool) == 0 {
-		return model.ReplictionBonus{}, fmt.Errorf("Repliction works only on defensive equipment.")
+		return model.ReplictionBonus{}, clientError("Repliction works only on defensive equipment.")
 	}
 	if dest.Index >= 3500 && dest.Index <= 3507 {
-		return model.ReplictionBonus{}, fmt.Errorf("Repliction cannot be used on Cythera.")
+		return model.ReplictionBonus{}, clientError("Repliction cannot be used on Cythera.")
 	}
 	if sanc := itemSanc(*dest); sanc > rule.MaxSanc {
-		return model.ReplictionBonus{}, fmt.Errorf("The refinement level is too high for this repliction.")
+		return model.ReplictionBonus{}, clientError("The refinement level is too high for this repliction.")
 	}
 	mobType := itemAbility(*dest, def, "EF_MOBTYPE")
 	if mobType != 0 && mobType != 2 {
-		return model.ReplictionBonus{}, fmt.Errorf("This item type cannot receive Repliction.")
+		return model.ReplictionBonus{}, clientError("This item type cannot receive Repliction.")
 	}
 	if itemAbility(*dest, def, "EF_ITEMLEVEL") != rule.ItemLevel {
-		return model.ReplictionBonus{}, fmt.Errorf("The repliction grade does not match the item.")
+		return model.ReplictionBonus{}, clientError("The repliction grade does not match the item.")
 	}
 
 	// Preserva refino ou tintura independentemente do slot em que o item antigo
@@ -710,7 +761,7 @@ func (w *World) applyRepliction(dest *model.Item, def model.ItemDef, sourceID ui
 		}
 	}
 	if sancEffect == 0 {
-		return model.ReplictionBonus{}, fmt.Errorf("EF_SANC is missing from ItemEffect.")
+		return model.ReplictionBonus{}, clientError("EF_SANC is missing from ItemEffect.")
 	}
 	for i := 0; i < 3; i++ {
 		effect := dest.Eff[i*2]
@@ -748,11 +799,55 @@ func refineRoll(sanc int) bool {
 // confirmar, como o refino Ori/Lac.
 func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderSlot byte,
 	rule model.VolatileRule, code int) {
+	if p == nil || p.Char == nil || p.Char.Extended == nil {
+		return
+	}
+	resend := func() {
+		if int(powderSlot) < len(p.Char.Inv) {
+			s.Send(wire.SendItem(p.ID, placeInv, powderSlot, p.Char.Inv[powderSlot]))
+		}
+	}
+	// O Molar e uma quest do Mortal, nao um consumivel de refino generico.
+	// Os limites sao internos: 200..255 correspondem aos niveis exibidos
+	// 201..256 no client 7.48. A flag negativa e deliberadamente separada das
+	// quests de data para impedir que uma quest configurada reutilize o premio.
+	if rule.MortalOnly && !matchesEvolution(p.Char, "mortal") {
+		resend()
+		s.Send(wire.MessagePanel("This item is exclusive to Mortals."))
+		return
+	}
+	if rule.RequiredEvolution != "" && !matchesEvolution(p.Char, rule.RequiredEvolution) {
+		resend()
+		s.Send(wire.MessagePanel("This item cannot be used by this evolution."))
+		return
+	}
+	playerLevel := p.Char.Extended.Level
+	if (rule.MinLevel != 0 && playerLevel < rule.MinLevel) ||
+		(rule.MaxLevelExclusive != 0 && playerLevel >= rule.MaxLevelExclusive) {
+		resend()
+		s.Send(wire.MessagePanel("This item is only available between levels 201 and 256."))
+		return
+	}
+	if rule.OnceQuestID != 0 && questCompleted(p.Char, int(rule.OnceQuestID)) {
+		resend()
+		s.Send(wire.MessagePanel("You have already completed this quest."))
+		return
+	}
+	// A Cythera occupies the first armor slot but is not a piece of the mortal
+	// armor set. The native 7.54 handler rejects the whole use when it is
+	// equipped, rather than silently refining another slot.
+	if cythera := p.Char.Equip[1].Index; cythera >= 3500 && cythera <= 3507 {
+		resend()
+		s.Send(wire.MessagePanel("Cythera cannot be refined by this quest."))
+		return
+	}
+
 	level := rule.RefineMax
 	if level <= 0 || level > 15 {
 		level = 6
 	}
-	oldEquip, oldPowder := p.Char.Equip, *powder
+	snapshot := cloneCharacterState(p.Char)
+	oldPowder := snapshot.Inv[powderSlot]
 	changed := 0
 	for slot := 1; slot <= 5; slot++ {
 		it := &p.Char.Equip[slot]
@@ -764,20 +859,24 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 		}
 	}
 	if changed == 0 {
-		s.Send(wire.SendItem(p.ID, placeInv, powderSlot, *powder))
+		resend()
 		s.Send(wire.MessagePanel("No armor piece to refine."))
 		return
+	}
+	if rule.OnceQuestID != 0 {
+		markQuestCompleted(p.Char, int(rule.OnceQuestID))
 	}
 	if rule.Consume {
 		consumeOne(powder)
 	}
-	if err := w.saveAccount(p.Account); err != nil {
-		p.Char.Equip, *powder = oldEquip, oldPowder
+	if err := w.saveAccountAndCharStateResult(p); err != nil {
+		*p.Char = snapshot
 		log.Printf("[#%d] ERRO ao salvar refine_set: %v", s.ID, err)
+		resend()
 		return
 	}
 	w.recalcPlayer(p.Char)
-	s.Send(wire.SendItem(p.ID, placeInv, powderSlot, *powder))
+	resend()
 	// Reenvia CADA peca de armadura equipada individualmente: e o SendItem por
 	// slot (nao o SelfEquip do array inteiro) que faz o client redesenhar o brilho
 	// do refino sem precisar desequipar/equipar. Mesmo padrao do refino individual.

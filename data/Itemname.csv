@@ -2250,7 +2250,7 @@
 3017,2874.5
 3018,2874.6
 3019,2874.7
-3020,2874.8
+3020,Fury_Stone
 3050,Taron_Weapon
 3051,Mighty_Talos_Weapon
 3052,Lich_Side
@@ -2479,7 +2479,7 @@
 3386,Diamond_Gem
 3387,Emerald_Gem
 3388,Coral_Gem
-3389,Granet_Gem
+3389,Garnet_Gem
 3390,Nightmare(Normal/Personal)
 3391,Nightmare(Mystic/Personal)
 3392,Nightmare(Arcane/Personal)
@@ -2544,6 +2544,7 @@
 3500,Silver_Circlet
 3501,Gold_Circlet
 3502,Mystic_Circlet
+3507,Arcana_Circlet
 3551,Dragon_Wing_Axe
 3556,Guardian_Bow
 3561,Cronus_Saver
@@ -2737,6 +2738,7 @@
 4145,Love_Candy
 4146,Warrior's_Seal
 4147,WYD_TOTO
+4148,Mysterious_Stone
 4151,Brocken_Set
 4152,Uniform_Set(30days)
 4153,Skeleton_Set(30days)

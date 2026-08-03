@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"wydgo/internal/model"
 )
@@ -12,6 +13,22 @@ func TestTownCommandIsNotRegistered(t *testing.T) {
 	w := &World{}
 	if w.dispatchChatCommand(nil, nil, "town", "") {
 		t.Fatal("/town ainda foi consumido como comando")
+	}
+}
+
+func TestNightmareTimeMessageUsesClientProtocol(t *testing.T) {
+	now := time.Date(2026, time.January, 2, 3, 4, 5, 0, time.UTC)
+	if got := nightmareTimeMessage(now); got != "!!030405" {
+		t.Fatalf("mensagem de sincronismo = %q, esperado !!030405", got)
+	}
+}
+
+func TestChaosPointMessageUsesSignedDomain(t *testing.T) {
+	if got := chaosPointMessage(75); got != "Chaos Point: 75 (range -75..+75)" {
+		t.Fatalf("mensagem de CP positivo = %q", got)
+	}
+	if got := chaosPointMessage(-75); got != "Chaos Point: -75 (range -75..+75)" {
+		t.Fatalf("mensagem de CP negativo = %q", got)
 	}
 }
 

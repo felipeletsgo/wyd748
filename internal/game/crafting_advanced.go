@@ -75,6 +75,29 @@ func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
 	if !ok {
 		return
 	}
+
+	// Pedra Misteriosa: duas runas quaisquer + pacote de 10 Poeiras de Lac.
+	// O resultado nativo e uma pilha de 10 pedras no slot do pacote.
+	isRune := func(index uint16) bool { return index >= 5110 && index <= 5133 }
+	if isRune(req.Items[0].Index) && isRune(req.Items[1].Index) &&
+		req.Items[2].Index == 413 && itemStackAmount(req.Items[2]) >= 10 &&
+		req.Items[3].Index == 0 && req.Items[4].Index == 0 &&
+		req.Items[5].Index == 0 && req.Items[6].Index == 0 && req.Items[7].Index == 0 {
+		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
+		changed := make(map[int]struct{}, 3)
+		preferred := int(req.Pos[2])
+		consumeCombineItems(p.Char, req, 0, 2, changed)
+		result := model.Item{Index: mysteriousStoneItem}
+		setItemAmount(&result, 10)
+		if !w.putCraftResult(p, preferred, result, changed) {
+			p.Char.Inv, p.Char.Equip, p.Char.Gold = oldInv, oldEquip, oldGold
+			w.sendCombineResult(p, 0)
+			return
+		}
+		w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, 1)
+		return
+	}
+
 	for index, recipe := range soulRecipes {
 		if !exactRecipe(req, recipe[:]) {
 			continue

@@ -225,7 +225,7 @@ func loadItemList(path string) (map[uint16]model.ItemDef, error) {
 func loadItemNames(path string, items map[uint16]model.ItemDef) error {
 	return records(path, func(row []string) error {
 		if len(row) < 2 {
-			return fmt.Errorf("Itemname requer index,nome")
+			return fmt.Errorf("itemname requer index,nome")
 		}
 		idx, err := integer(row[0])
 		if err != nil || idx <= 0 || idx > 65535 {
@@ -242,8 +242,11 @@ func loadItemNames(path string, items map[uint16]model.ItemDef) error {
 func loadSkills(path string) (map[int]model.SkillDef, error) {
 	skills := make(map[int]model.SkillDef)
 	err := records(path, func(row []string) error {
-		if len(row) < 24 {
-			return fmt.Errorf("SkillData requer 24 colunas, recebeu %d", len(row))
+		// Layout 7.48: Id + 12 parametros + Act + ActAlt + 7 atributos
+		// finais + Name = 23 colunas. O campo Unknown presente em algumas
+		// exportacoes de versoes posteriores nao faz parte desta fonte.
+		if len(row) != 23 {
+			return fmt.Errorf("SkillData requer exatamente 23 colunas, recebeu %d", len(row))
 		}
 		values := make([]int, 13)
 		for i := range values {
@@ -261,7 +264,7 @@ func loadSkills(path string) (map[int]model.SkillDef, error) {
 		if err != nil {
 			return err
 		}
-		tail := make([]int, 8)
+		tail := make([]int, 7)
 		for i := range tail {
 			v, err := integer(row[15+i])
 			if err != nil {
@@ -274,7 +277,7 @@ func loadSkills(path string) (map[int]model.SkillDef, error) {
 			InstanceValue: values[7], TickType: values[8], TickValue: values[9], AffectType: values[10],
 			AffectValue: values[11], AffectTime: values[12] / 4, InstanceAttribute: tail[0],
 			TickAttribute: tail[1], Aggressive: tail[2], MaxTarget: tail[3], Party: tail[4],
-			AffectResist: tail[5], Passive: tail[6], Unknown: tail[7], Name: strings.TrimSpace(row[23])}
+			AffectResist: tail[5], Passive: tail[6], Name: strings.TrimSpace(row[22])}
 		for i := range def.Act {
 			def.Act[i] = byte(act[i])
 			def.ActAlt[i] = byte(actAlt[i])

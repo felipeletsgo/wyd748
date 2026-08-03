@@ -48,23 +48,6 @@ const (
 
 func u16(b []byte, off int) uint16 { return binary.LittleEndian.Uint16(b[off : off+2]) }
 
-// cstr le ate o primeiro NUL.
-func cstr(b []byte) string {
-	if i := indexByte(b, 0); i >= 0 {
-		return string(b[:i])
-	}
-	return string(b)
-}
-
-func indexByte(b []byte, c byte) int {
-	for i := range b {
-		if b[i] == c {
-			return i
-		}
-	}
-	return -1
-}
-
 // item le um STRUCT_ITEM (8B) em off.
 func item(b []byte, off int) model.Item {
 	var it model.Item

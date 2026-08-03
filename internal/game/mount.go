@@ -288,9 +288,21 @@ func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, inv
 	for i := range p.Char.Inv {
 		egg := &p.Char.Inv[i]
 		if model.IsMountEgg(egg.Index) && eggDelay(*egg) > 0 {
+			// O acelerador e uma operacao economica: o item consumido e o
+			// estado do ovo precisam chegar juntos ao store. O caminho async
+			// anterior confirmava os dois slots antes de verificar o resultado,
+			// permitindo duplicar o acelerador (ou perder o ovo) em uma queda.
+			oldItem, oldEgg := *item, *egg
 			setEggDelay(egg, 0)
 			consumeOne(item)
-			w.saveAccountAsync(p.Account)
+			if err := w.saveAccount(p.Account); err != nil {
+				*item, *egg = oldItem, oldEgg
+				log.Printf("[#%d] ERRO ao salvar aceleracao do ovo %d: %v", s.ID, oldEgg.Index, err)
+				s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item))
+				s.Send(wire.SendItem(p.ID, placeInv, byte(i), *egg))
+				s.Send(wire.MessagePanel("Save failed. The accelerator was not consumed."))
+				return
+			}
 			s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item))
 			s.Send(wire.SendItem(p.ID, placeInv, byte(i), *egg))
 			s.Send(wire.MessagePanel("Incubation accelerated! Use Ori/Lac on the egg again."))
@@ -354,7 +366,12 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 			AttackRun: 0x64,
 		},
 	}
-	m := &Mob{ID: w.allocMobID(), Def: def, X: x, Y: y, HP: uint32(hp),
+	mobID := w.allocMobID()
+	if mobID == 0 {
+		log.Printf("[#%d] cria-pet nao nasceu: faixa de IDs de mob esgotada", p.ID)
+		return
+	}
+	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: uint32(hp),
 		GenerIndex: -1, SummonerID: p.ID, SummonKind: summonKindMount, SummonRange: mobAttackRange}
 	w.mobs = append(w.mobs, m)
 	w.publishMobSpawn(m)

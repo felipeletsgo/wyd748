@@ -13,30 +13,6 @@ import (
 
 const ultimateSkillGold = 2_000_000
 
-// skillHasServerExecution e a tabela de cobertura executavel das 96 skills
-// basicas. O teste do catalogo usa esta funcao para impedir que uma nova
-// reorganizacao do CSV transforme silenciosamente uma skill em no-op.
-func skillHasServerExecution(skill model.SkillDef) bool {
-	if skill.Index >= 97 && skill.Index <= 101 {
-		return true
-	}
-	if skill.Passive != 0 {
-		return true
-	}
-	if skill.InstanceType >= 1 && skill.InstanceType <= 5 ||
-		skill.AffectType > 0 || skill.TickType > 0 {
-		return true
-	}
-	switch skill.Index {
-	case 3, 5, 6, 25, 26, 27, 29, 31, 42, 47,
-		49, 56, 57, 58, 59, 60, 61, 62, 63,
-		73, 79, 83, 84:
-		return true
-	default:
-		return false
-	}
-}
-
 func (w *World) onLearnSkill(s *net.Session, p *Player, itemIndex int) {
 	w.onLearnSkillAtMaster(s, p, itemIndex, 0)
 }
@@ -179,12 +155,6 @@ func skillVisualLevel(mastery int) byte {
 
 func explosionBashBaseDamage(baseDamage, intelligence, currentMP int) int {
 	return baseDamage + intelligence + currentMP
-}
-
-func skillVisualDamage(calculated uint32) uint16 {
-	// Damage e lido com MOVSX no caminho multi-alvo 7.48. 0xFFFF vira -1
-	// (MISS/sem numero); 32767 e o maior hit visual positivo desse pacote.
-	return uint16(minU32(calculated, 32767))
 }
 
 // O TK possui duas familias magicas (Confianca e Espada Magica) e uma
@@ -360,7 +330,9 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 	castRange := uint16(maxInt(attackRange, skill.Range+bonusRange))
 	primary := w.mobByID(req.TargetID)
 	if primary == nil || primary.Dead || primary.HP == 0 || !primary.Def.IsMonster() ||
-		primary.SummonerID != 0 || chebyshev(p.X, p.Y, primary.X, primary.Y) > int(castRange) ||
+		primary.SummonerID != 0 ||
+		(primary.InstanceID != "" && !w.instanceMobTargetAllowed(primary, p)) ||
+		chebyshev(p.X, p.Y, primary.X, primary.Y) > int(castRange) ||
 		!w.combatLineOfSight(p.X, p.Y, primary.X, primary.Y) {
 		return nil
 	}
@@ -377,7 +349,8 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 		if len(targets) >= limit {
 			break
 		}
-		if candidate == primary || candidate.Dead || !candidate.Def.IsMonster() || candidate.SummonerID != 0 {
+		if candidate == primary || candidate.Dead || !candidate.Def.IsMonster() || candidate.SummonerID != 0 ||
+			(candidate.InstanceID != "" && !w.instanceMobTargetAllowed(candidate, p)) {
 			continue
 		}
 		if chebyshev(primary.X, primary.Y, candidate.X, candidate.Y) <= area {
@@ -557,6 +530,8 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			damageValue = damageValue * 70 / 100 // reducao PvE Mortal da _MSG_Attack 7.59
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, effectiveMobResistances(target), true)
 			damageValue = applyCouragePvEDamage(p.Char, damageValue, magicDamage)
+			damageValue = int(addFlatDamage(uint32(clampInt(damageValue, 1, int(maxExtendedStat))),
+				w.equipmentGemBonuses(p.Char).forceDamage))
 			perHitCalculated := uint32(clampInt(damageValue, 1, int(maxExtendedStat)))
 			calculatedWide := uint64(perHitCalculated) * uint64(hitCount)
 			if calculatedWide > uint64(maxExtendedStat) {
@@ -614,10 +589,14 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	log.Printf("[#%d] executou skill=%d %q alvos=%d base=%d magic=%t amp=%d mastery=%d mp=-%d",
 		p.Session.ID, skillIndex, skill.Name, len(results), baseDamage, magicDamage,
 		effectiveExtended(p.Char).MagicAmp, mastery, mana)
+	// Capture os receptores antes da primeira morte. Um membro pode atingir o
+	// level maximo no meio do lote e deixaria de aparecer se recalculassemos a
+	// elegibilidade somente no final, fazendo sua ultima EXP nao ser persistida.
+	batchAccounts := uniqueKillAccounts(p, partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
 	kills := 0
 	for _, result := range results {
 		if result.mob.HP == 0 {
-			w.killMobState(p, result.mob, result.calculated, result.applied)
+			w.killMobState(p, result.mob, result.calculated, result.applied, false)
 			kills++
 		} else {
 			mob := result.mob
@@ -630,7 +609,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				effectiveExtended(p.Char).MagicAmp, mastery, mob.HP, mob.Def.Extended.MaxHP, mana)
 		}
 	}
-	w.saveMultiKillBatch(p, kills)
+	w.saveMultiKillBatch(p, kills, batchAccounts)
 }
 
 func skillHitCount(skill model.SkillDef) int {
@@ -640,11 +619,56 @@ func skillHitCount(skill model.SkillDef) int {
 	return 1
 }
 
-func (w *World) saveMultiKillBatch(p *Player, kills int) {
-	if kills <= 0 {
+func (w *World) saveMultiKillBatch(p *Player, kills int, accounts []*model.Account) {
+	if kills <= 0 || p == nil || p.Account == nil {
 		return
 	}
-	if err := w.saveAccount(p.Account); err != nil {
-		log.Printf("[#%d] salvar progressao multi-alvo: %v", p.Session.ID, err)
+	if len(accounts) == 0 {
+		accounts = []*model.Account{p.Account}
 	}
+	if err := w.saveAccountsAtomic(accounts...); err != nil {
+		log.Printf("[#%d] salvar progressao multi-alvo: %v", p.Session.ID, err)
+		w.poisonAccountsAfterPersistenceFailure(accounts, "mortes multi-alvo", err)
+		return
+	}
+	log.Printf("[#%d] lote multi-alvo salvo (%d mortes, %d conta(s))",
+		p.Session.ID, kills, len(accounts))
+}
+
+func uniqueShareAccounts(shares []partyExpShare) []*model.Account {
+	accounts := make([]*model.Account, 0, len(shares))
+	seen := make(map[*model.Account]struct{}, len(shares))
+	for _, share := range shares {
+		account := share.player.Account
+		if account == nil {
+			continue
+		}
+		if _, exists := seen[account]; exists {
+			continue
+		}
+		seen[account] = struct{}{}
+		accounts = append(accounts, account)
+	}
+	return accounts
+}
+
+// uniqueKillAccounts inclui sempre o dono do loot, mesmo quando ele nao recebe
+// EXP (por exemplo, personagem no level cap). Usar apenas os shares deixava
+// gold/itens do killer fora da transacao quando outros membros ainda eram
+// elegiveis para experiencia.
+func uniqueKillAccounts(killer *Player, shares []partyExpShare) []*model.Account {
+	accounts := make([]*model.Account, 0, len(shares)+1)
+	seen := make(map[*model.Account]struct{}, len(shares)+1)
+	if killer != nil && killer.Account != nil {
+		seen[killer.Account] = struct{}{}
+		accounts = append(accounts, killer.Account)
+	}
+	for _, account := range uniqueShareAccounts(shares) {
+		if _, exists := seen[account]; exists {
+			continue
+		}
+		seen[account] = struct{}{}
+		accounts = append(accounts, account)
+	}
+	return accounts
 }

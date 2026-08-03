@@ -75,6 +75,8 @@ func resetCharacterRuntime(p *Player) {
 	p.InviteUntil = time.Time{}
 	p.GuildInviteFrom = 0
 	p.GuildInviteUntil = time.Time{}
+	p.NextGuildInvite = time.Time{}
+	p.Rebuy = [maxRebuyEntries]RebuyEntry{}
 
 	// Combate.
 	p.CombatTargetID = 0
@@ -90,13 +92,17 @@ func resetCharacterRuntime(p *Player) {
 	p.LastPotion = time.Time{}
 	p.LastCraft = time.Time{}
 	p.NextRegen = time.Time{}
+	p.NextCPRecovery = time.Time{}
 	p.NextMountTick = time.Time{}
 	p.NextKingdomTeleport = time.Time{}
 
 	// Movimento publicado aos observadores.
 	p.MovePublished = false
+	p.MovePublishedStartX = 0
+	p.MovePublishedStartY = 0
 	p.MovePublishedTargetX = 0
 	p.MovePublishedTargetY = 0
+	p.MovePublishedRoute = [maxMovementRouteBytes]byte{}
 	p.MoveBudget = 0
 	p.MoveBudgetAt = time.Time{}
 
@@ -205,7 +211,8 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 	if id == 0 || id == p.ID {
 		return
 	}
-	if m := w.mobByID(id); m != nil && inView(p.X, p.Y, m.X, m.Y) {
+	if m := w.mobByID(id); m != nil && w.mobVisibleToPlayer(p, m) &&
+		inView(p.X, p.Y, m.X, m.Y) {
 		wasVisible := p.hasVisible(id)
 		w.showMob(p, m)
 		if wasVisible { // pode ser uma recuperacao apos perda local do client.

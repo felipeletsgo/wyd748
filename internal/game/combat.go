@@ -33,18 +33,6 @@ func applyCouragePvEDamage(ch *model.Char, damage int, magical bool) int {
 // fonte com a formula correta. Regra: dano FISICO cresce com FORCA e DESTREZA; dano
 // MAGICO cresce com INTELIGENCIA. So portamos algoritmos (nunca offsets/structs).
 
-// magicDamage = dano magico final (calculo simplificado ignorando resistências por ora).
-// Magias normalmente nao erram (ignoram hitLands) a menos que a resistencia elemental anule o dano.
-func magicDamage(baseMagic, defResist int) int {
-	// Formula exata de BASE_GetMagicDamage depende do tipo (Gelo, Fogo, Raio, Sagrado).
-	// Por ora: dano direto subtraido pela resistencia escalar.
-	tdam := baseMagic - defResist
-	if tdam < 1 {
-		tdam = 1
-	}
-	return tdam
-}
-
 // hitDamage = dano final de UM golpe. Portado EXATO de BASE_GetDamage
 // (Basedef.cpp:1553): tdam = dam - ac/2; variancia pelo combat skill; suavizacao do
 // low-end; minimo 1. dam=ataque do atacante, ac=defesa do alvo, combat=nivel de skill.

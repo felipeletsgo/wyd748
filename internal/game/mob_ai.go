@@ -91,10 +91,6 @@ func (w *World) tickMobRoutes(now time.Time, shard, shardCount int) {
 	}
 }
 
-func (w *World) freeStepAround(m *Mob, targetX, targetY uint16) (uint16, uint16) {
-	return w.freeStepAroundFrom(m, m.X, m.Y, targetX, targetY, nil)
-}
-
 func (w *World) freeStepAroundFrom(m *Mob, fromX, fromY, targetX, targetY uint16, visited map[uint32]struct{}) (uint16, uint16) {
 	bestX, bestY := fromX, fromY
 	bestDist := mobRouteDistance(fromX, fromY, targetX, targetY)

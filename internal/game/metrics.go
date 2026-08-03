@@ -2,6 +2,7 @@ package game
 
 import (
 	"expvar"
+	"fmt"
 	"sync/atomic"
 	"time"
 )
@@ -32,10 +33,17 @@ var (
 	metricCommandsTotal     = expvar.NewInt("world_commands_total")
 	// metricCommandDurationMicros acumula o tempo gasto por opcode. Dividido
 	// por world_commands_by_type da a media por comando.
-	metricCommandDurationMicros = expvar.NewMap("world_command_duration_micros")
-	metricCommandsByType        = expvar.NewMap("world_commands_by_type")
-	metricActivePlayers         = expvar.NewInt("world_active_players")
-	metricActiveMobs            = expvar.NewInt("world_active_mobs")
+	metricCommandDurationMicros  = expvar.NewMap("world_command_duration_micros")
+	metricCommandsByType         = expvar.NewMap("world_commands_by_type")
+	metricCommandQueueAgeMicros  = expvar.NewInt("world_command_queue_age_micros")
+	metricCommandBatchSize       = expvar.NewInt("world_command_batch_size")
+	metricCommandBatchesTotal    = expvar.NewInt("world_command_batches_total")
+	metricCommandBudgetExceeded  = expvar.NewInt("world_command_budget_exceeded_total")
+	metricTickDurationBuckets    = expvar.NewMap("world_tick_duration_buckets")
+	metricCommandDurationBuckets = expvar.NewMap("world_command_duration_buckets")
+	metricCommandAgeBuckets      = expvar.NewMap("world_command_age_buckets")
+	metricActivePlayers          = expvar.NewInt("world_active_players")
+	metricActiveMobs             = expvar.NewInt("world_active_mobs")
 	// metricPanicsTotal conta panics contidos por safeHandle. Qualquer valor
 	// diferente de zero merece investigacao: significa que UM comando deixou
 	// estado potencialmente parcial.
@@ -51,6 +59,7 @@ var lastTickAt atomic.Int64
 // nominal. Chamado pelo proprio tick, com o instante de inicio.
 func observeTick(start time.Time, duration time.Duration) {
 	metricTickDurationMicros.Set(duration.Microseconds())
+	observeBucket(metricTickDurationBuckets, duration)
 
 	previous := lastTickAt.Swap(start.UnixNano())
 	if previous == 0 {
@@ -74,6 +83,39 @@ func observeCommand(label string, duration time.Duration) {
 	metricCommandsTotal.Add(1)
 	metricCommandsByType.Add(label, 1)
 	metricCommandDurationMicros.Add(label, duration.Microseconds())
+	observeBucket(metricCommandDurationBuckets, duration)
+}
+
+func observeCommandQueueAge(age time.Duration) {
+	if age < 0 {
+		age = 0
+	}
+	metricCommandQueueAgeMicros.Set(age.Microseconds())
+	observeBucket(metricCommandAgeBuckets, age)
+}
+
+// observeBucket publica distribuicoes fixas. O operador consegue derivar p50,
+// p95 e p99 no intervalo de coleta sem criar uma serie por jogador/opcode.
+func observeBucket(m *expvar.Map, duration time.Duration) {
+	limits := [...]time.Duration{time.Millisecond, 5 * time.Millisecond,
+		10 * time.Millisecond, 25 * time.Millisecond, 50 * time.Millisecond,
+		100 * time.Millisecond, 250 * time.Millisecond, time.Second}
+	label := "+Inf"
+	for _, limit := range limits {
+		if duration <= limit {
+			label = fmt.Sprintf("<=%s", limit)
+			break
+		}
+	}
+	m.Add(label, 1)
+}
+
+func observeCommandBatch(size int, budgetExceeded bool) {
+	metricCommandBatchSize.Set(int64(size))
+	metricCommandBatchesTotal.Add(1)
+	if budgetExceeded {
+		metricCommandBudgetExceeded.Add(1)
+	}
 }
 
 // observeWorldGauges publica os tamanhos que o tick ja conhece.

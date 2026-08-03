@@ -78,12 +78,12 @@ type BossEvent struct {
 type BossConditionKind uint8
 
 const (
-	CondPhaseIs BossConditionKind = iota
-	CondHPBelowOrEqual  // percentual de HP do boss
-	CondThresholdIs     // o limiar do evento e exatamente Value
-	CondAddsAliveEqual  // quantos adds do encontro seguem vivos
-	CondNoPendingAction // nao ha acao em curso
-	CondActionReady     // acao fora de cooldown
+	CondPhaseIs         BossConditionKind = iota
+	CondHPBelowOrEqual                    // percentual de HP do boss
+	CondThresholdIs                       // o limiar do evento e exatamente Value
+	CondAddsAliveEqual                    // quantos adds do encontro seguem vivos
+	CondNoPendingAction                   // nao ha acao em curso
+	CondActionReady                       // acao fora de cooldown
 )
 
 // BossCondition e uma condicao declarativa. Struct (e nao interface) para que o

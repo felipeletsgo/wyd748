@@ -131,15 +131,28 @@ func (w *World) saveAccountAndCharStateResult(p *Player) error {
 	if p == nil || p.Account == nil || p.Char == nil {
 		return nil
 	}
-	pinAccountEntryPositions(p.Account)
 	state := buildCharState(p, time.Now())
+	return w.saveAccountAndCharStateForUID(p.Account, p.Char.UID, state)
+}
+
+// saveAccountAndCharStateForUID é a variante usada quando uma operação troca
+// ou remove a ficha apontada por Player.Char (por exemplo, encapsulamento e
+// extração Celestial). O UID fica explícito mesmo que o slot já tenha sido
+// zerado; PostgreSQL consegue excluir o charstate na mesma transação.
+func (w *World) saveAccountAndCharStateForUID(account *model.Account, uid string, state *model.CharState) error {
+	if account == nil {
+		return nil
+	}
+	pinAccountEntryPositions(account)
 	if transactional, ok := w.store.(playerStateStore); ok {
-		return transactional.SavePlayerState(nil, p.Account, p.Char.UID, state)
+		return transactional.SavePlayerState(nil, account, uid, state)
 	}
-	if err := w.saveCharStateResult(p); err != nil {
-		return err
+	if stateStore, ok := w.store.(charStateStore); ok && uid != "" {
+		if err := stateStore.SaveCharState(uid, state); err != nil {
+			return err
+		}
 	}
-	return w.saveAccount(p.Account)
+	return w.saveAccount(account)
 }
 
 // asyncCharStateStore expoe o save async do charstate (autosave).

@@ -72,7 +72,8 @@ func (w *World) dropBonusFor(p *Player) int {
 	if p == nil || p.Char == nil {
 		return 0
 	}
-	return model.CitizenDropBonus(p.Char.Citizenship, w.channel, p.Char.Exp)
+	return model.CitizenDropBonus(p.Char.Citizenship, w.channel, p.Char.Exp) +
+		w.equipmentGemBonuses(p.Char).dropPercent
 }
 
 // applyDropBonus converte um bonus percentual numa taxa "1 em N".

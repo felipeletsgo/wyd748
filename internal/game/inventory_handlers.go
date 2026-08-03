@@ -36,6 +36,11 @@ func (w *World) onDeleteItem(s *net.Session, pkt []byte) {
 		s.Send(wire.SendItem(p.ID, placeInv, byte(slot), current))
 		return
 	}
+	if _, filled := model.CelestialSealID(current); filled {
+		s.Send(wire.MessagePanel("A filled Spirit's Seal cannot be deleted."))
+		s.Send(wire.SendItem(p.ID, placeInv, byte(slot), current))
+		return
+	}
 
 	w.cancelTrade(p, "inventory changed")
 	p.Char.Inv[slot] = model.Item{}

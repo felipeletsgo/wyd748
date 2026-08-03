@@ -1,10 +1,6 @@
 package game
 
-import (
-	"strings"
-
-	"wydgo/internal/model"
-)
+import "wydgo/internal/model"
 
 // g_pNextLevel completa do Basedef.cpp/W2PP. Os valores sao EXP acumulada:
 // level N ocupa [table[N], table[N+1]). Sao 401 marcos, do level 0 ao 400.
@@ -58,13 +54,39 @@ var mortalNextLevel = [...]uint32{
 // um nivel interno adicional.
 const maxMortalLevel uint32 = 399
 
+const maxCelestialLevel uint32 = 199
+
+var celestialNextLevel = func() [201]uint32 {
+	var table [201]uint32
+	for level := range table {
+		table[level] = uint32(level) * 20_000_000
+	}
+	return table
+}()
+
+func progressionTable(ch *model.Char) []uint32 {
+	if isCelestialEvolution(ch) {
+		return celestialNextLevel[:]
+	}
+	return mortalNextLevel[:]
+}
+
+func progressionMaxLevel(ch *model.Char) uint32 {
+	if isCelestialEvolution(ch) {
+		return maxCelestialLevel
+	}
+	return maxMortalLevel
+}
+
 func syncProgression(ch *model.Char) {
 	ensureExtendedScore(ch)
+	table := progressionTable(ch)
+	maxLevel := progressionMaxLevel(ch)
 	level := int(ch.Extended.Level)
-	if level >= 0 && level <= int(maxMortalLevel) {
-		ch.NextExp = mortalNextLevel[level+1]
-	} else if level > int(maxMortalLevel) {
-		ch.NextExp = mortalNextLevel[len(mortalNextLevel)-1]
+	if level >= 0 && level <= int(maxLevel) {
+		ch.NextExp = table[level+1]
+	} else if level > int(maxLevel) {
+		ch.NextExp = table[len(table)-1]
 	}
 	syncStatusPoints(ch)
 	syncMasteryPoints(ch)
@@ -83,7 +105,7 @@ const (
 // Lindy. Enquanto travado ele NAO recebe EXP -- nao e um teto que ignora o
 // excedente, o ganho e barrado por inteiro.
 func archExperienceLocked(ch *model.Char) bool {
-	if ch == nil || ch.Extended == nil || strings.TrimSpace(ch.Evolution) == "" {
+	if ch == nil || ch.Extended == nil || !isArch(ch) {
 		return false
 	}
 	level := ch.Extended.Level
@@ -93,22 +115,78 @@ func archExperienceLocked(ch *model.Char) bool {
 	return level >= archLockLevel355 && !ch.ArchLevel355
 }
 
+// As flags 40/90 existem na 7.54, mas o Secrets esqueceu de consulta-las no
+// ganho de EXP. O W2PP corrige essa lacuna; mantemos a mecanica pretendida para
+// que as composicoes/destraves tenham efeito real. A Sub nao possui essas duas
+// travas.
+func celestialExperienceLocked(ch *model.Char) bool {
+	if ch == nil || ch.Extended == nil || !advancedEvolution(ch, "celestial") {
+		return false
+	}
+	if ch.Extended.Level >= 89 && !ch.CelestialLevel90Unlocked {
+		return true
+	}
+	return ch.Extended.Level >= 39 && !ch.CelestialLevel40Unlocked
+}
+
 func canReceiveMortalExperience(ch *model.Char) bool {
 	if ch == nil || ch.Extended == nil {
 		return false
 	}
-	if archExperienceLocked(ch) {
+	if archExperienceLocked(ch) || celestialExperienceLocked(ch) {
 		return false
 	}
-	return ch.Extended.Level <= maxMortalLevel &&
-		ch.Exp < mortalNextLevel[len(mortalNextLevel)-1]
+	table := progressionTable(ch)
+	return ch.Extended.Level <= progressionMaxLevel(ch) &&
+		ch.Exp < table[len(table)-1]
 }
 
-// grantExp adiciona EXP ate o ultimo marco Mortal e processa os level-ups. Os
+// progressionExperienceCap impede que uma recompensa grande atravesse uma
+// trava em um unico grant. Consultar a flag apenas antes do ganho permite, por
+// exemplo, saltar do Celestial 39 direto para 91 com uma caixa de EXP.
+func progressionExperienceCap(ch *model.Char) uint32 {
+	table := progressionTable(ch)
+	cap := table[len(table)-1]
+	if isArch(ch) {
+		if !ch.ArchLevel355 {
+			return minU32(cap, table[archLockLevel355])
+		}
+		if !ch.ArchLevel370 {
+			return minU32(cap, table[archLockLevel370])
+		}
+	}
+	if advancedEvolution(ch, "celestial") {
+		if !ch.CelestialLevel40Unlocked {
+			return minU32(cap, table[39])
+		}
+		if !ch.CelestialLevel90Unlocked {
+			return minU32(cap, table[89])
+		}
+	}
+	return cap
+}
+
+// celestialCombatExperience aplica as quedas cumulativas da 7.54. Elas valem
+// para EXP de combate; recompensas fixas de quest/item continuam integrais.
+func celestialCombatExperience(ch *model.Char, reward uint32) uint32 {
+	if !isCelestialEvolution(ch) || ch.Extended == nil {
+		return reward
+	}
+	for _, threshold := range [...]uint32{149, 159, 169, 179, 189} {
+		if ch.Extended.Level >= threshold {
+			reward /= 2
+		}
+	}
+	return reward
+}
+
+// grantExp adiciona EXP ate o ultimo marco da evolucao e processa level-ups. Os
 // retornos informam niveis ganhos e a EXP realmente aplicada.
 func grantExp(ch *model.Char, reward uint32) (int, uint32) {
 	ensureExtendedScore(ch)
-	maximum := mortalNextLevel[len(mortalNextLevel)-1]
+	table := progressionTable(ch)
+	maxLevel := progressionMaxLevel(ch)
+	maximum := progressionExperienceCap(ch)
 	if !canReceiveMortalExperience(ch) || reward == 0 {
 		syncProgression(ch)
 		return 0, 0
@@ -119,9 +197,9 @@ func grantExp(ch *model.Char, reward uint32) (int, uint32) {
 	gained := 0
 	for {
 		level := int(ch.Extended.Level)
-		if ch.Extended.Level >= maxMortalLevel ||
-			level+1 >= len(mortalNextLevel) ||
-			ch.Exp < mortalNextLevel[level+1] {
+		if ch.Extended.Level >= maxLevel ||
+			level+1 >= len(table) ||
+			ch.Exp < table[level+1] {
 			break
 		}
 		ch.Extended.Level++

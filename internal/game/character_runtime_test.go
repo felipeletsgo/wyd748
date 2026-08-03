@@ -63,7 +63,12 @@ func TestArchCreationKeepsCharPointerValid(t *testing.T) {
 func TestCharacterRuntimeIsFullyReset(t *testing.T) {
 	// Unicos campos de escopo-SESSAO: sobrevivem de proposito, porque a conta
 	// continua autenticada na volta a selecao.
-	sessionScoped := map[string]bool{"Session": true, "Account": true}
+	sessionScoped := map[string]bool{
+		"Session": true, "Account": true,
+		// Trava de integridade da sessao: um character-logout jamais pode
+		// limpar o estado que proibe persistir RAM parcial apos panic.
+		"PersistencePoisoned": true,
+	}
 
 	session := net.NewTestSession(1, 64)
 	acc := &model.Account{Name: "conta", Chars: []model.Char{{

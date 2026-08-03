@@ -59,11 +59,19 @@ The server has these systems. The server has authority on each system.
 - **World** — The server uses the native height map and attribute map for
   collision. Mob AI sleeps by area. Mobs patrol routes and follow a target. The
   view window is 65 by 65 tiles. The server creates a pet, a summon, or a mob
-  only at spawn or at view entry.
+  only at spawn or at view entry. Player movement preserves the validated
+  7.48 route for observers, so remote clients interpolate the same path instead
+  of receiving repeated position corrections.
+- **Load testing** — `cmd/loadtest` provisions short-lived `bot0001`–`bot0990`
+  accounts from the Arch in slot 1 of the `felipe` snapshot with new
+  CharacterUIDs and ItemUIDs, then connects them to Tauron spots in Noatum.
+  Bots attack every cycle and independently attempt movement. It uses a
+  disposable PostgreSQL database and loopback expvar/pprof metrics.
 - **Combat** — The server calculates melee and range attacks, PvE and PvP,
   physical and magic damage, resistances, buffs, debuffs, regeneration, death,
   resurrection, and a collision-safe recall. The server does all these
-  calculations.
+  calculations. A PvP kill never transfers experience or gold from either
+  player.
 - **Progression** — The server uses the native Mortal experience table. You can
   configure the experience floor and rate. The server does the level-up. It
   controls the statistic, mastery, and skill-point budgets. It applies the
@@ -77,8 +85,14 @@ The server has these systems. The server has authority on each system.
   for each member.
 - **Guilds** — The server does guild creation, invitation, acceptance, exit,
   expulsion, and leader succession. It gives a guild chat channel. It keeps the
-  membership and writes the native `Guilds.txt` name list. Guild war and the
-  visible guild mark are future work.
+  membership and writes the native `Guilds.txt` name list. The native `0x3D5`
+  recruit button is server-authoritative, checks kingdom/rank/gold/cooldown,
+  and commits both accounts with the guild. The server now packs the native
+  guild id/rank fields in `CreateMob`, `UpdateScore`, and `EnterWorld`, and
+  rewrites `Guilds.txt`; this is the complete server side of the 7.48 mark
+  flow. The client still downloads `b010000<guild-id>.bmp` from its hardcoded
+  mark host, so a public mark requires that asset (or a client URL patch).
+  Guild war remains future work.
 - **Kingdoms** — A player selects Akelonia or Hekalotia at the kings. The server
   applies the Sapphire cost. The player leaves through the broker. The server
   does the realm teleports, the guild affiliation, and the Basic, Knight, Elite,
@@ -86,7 +100,9 @@ The server has these systems. The server has authority on each system.
 - **NPCs and economy** — The server reads NPCGener. It controls regional
   visibility, shops, skill masters, server-side prices, and drops. Each player
   has 63 usable inventory slots and 120 Cargo slots. The server does player
-  trade and prevents item duplication in the data storage.
+  trade and prevents item duplication in the data storage. Selling to a normal
+  merchant also fills the native ten-entry `0x3E8` repurchase window; the
+  server keeps item UIDs and recalculates the repurchase price from `itemlist`.
 - **Crafting** — The server has server-side recipes and native success and
   failure messages for Agatha, Aylin, Tiny, Lindy, Compositor, Ehre, and
   Alquimista Odin. The Compositor needs four materials of set D or E, each
@@ -109,12 +125,20 @@ The server has these systems. The server has authority on each system.
   passes, medals and economy counters are also server-authoritative. Cube now
   runs its 25 native rooms with timed O/X questions, per-player elimination and
   one consumed invitation per entrant (up to six players in the first room);
-  Big Cube and Hell Gate run server-owned waves with absolute deadlines and
-  transactional party entry/exit. Courage applies its fixed PvE hit bonus, and
+  Big Cube has its private O/X platform flow, and Hell Gate runs server-owned
+  waves with an absolute deadline and transactional party entry/exit. Water,
+  Cube, Big Cube, Nightmare, Hell Gate and Uxmal isolate their participants,
+  deadlines and rewards by runtime instance.
+  Diamond, Emerald, Coral and Garnet now apply their native equipment variants
+  to +10..+15 gear and to Ancient weapons below +10 without losing refinement.
+  Adamantite upgrades compatible equipment through the authoritative item
+  catalog, preserving item UID and rolling back atomically on persistence errors.
+  Courage applies its fixed PvE hit bonus, and
   Love Chocolate/Candy resolve their native SkillData affects and apply the
-  complete package atomically. All 117 codes are explicitly classified; only
-  the Celestial codes 206/211 are intentionally blocked without consuming the
-  item.
+  complete package atomically. All 124 codes are explicitly classified. The
+  3443 Spirit's Seal flow is implemented atomically with 0x2CD/0x3CC query and
+  extraction. Item 3455 remains no-direct-use because W2PP does not accept it
+  in PutoutSeal.
 - **Character counters** — A character has named counters, such as the Kefra
   entrance ticket and the fame points. They live in a per-character sidecar
   file, not in the account. A quest can require, spend, or grant them. A
@@ -134,6 +158,15 @@ The server has these systems. The server has authority on each system.
   with the retail recipe. The level 370 unlock also costs one fame point. The
   four elemental oaths of Kefra cost 100 million experience each, and you must
   take them in order.
+- **Celestial and SubCelestial** — An eligible Arch becomes Celestial in the
+  same character slot through the native Ideal Stone chain. Celestial and
+  SubCelestial have separate class, experience, attributes, masteries, learned
+  skills, skill bar, and affects, while they share identity, inventory,
+  equipment, kingdom, fame, quests, Soul configuration, and the native
+  cross-form status-point bonus. The server implements the 7.54 level-200
+  table, level 40/90 locks, cumulative late-level combat EXP reductions,
+  Cythera milestones, Soul of Limits, Fury/Arcana, city-only form switching,
+  and the native Spirit's Seal capsule/extraction flow.
 - **Boss encounters** — A boss is a normal mob with a parallel behavior
   runtime. Four behaviors are compiled into the server: chaser, caster,
   summoner, and phased. You configure each encounter in a Lua file in
@@ -294,11 +327,14 @@ them.
 
 These are the next gameplay phases:
 
-- the remaining retail quest catalog;
-- the instance engine: party registration for each room, an entrance ticket, a
-  timer, and the exit. Most of the remaining quests need it;
-- the Celestial evolution, after the Arch;
-- the visible guild mark;
+- in-game validation and balancing of Uxmal, the Celestial/SubCelestial flow,
+  Spirit's Seal, equipment gems, Adamantite, Big Cube, crafts, and Sephira
+  visuals;
+- the remaining retail quest catalog and the complete native Big Cube
+  question/reward table;
+- the client-side guild-mark image host and URL patch; the server-side guild
+  identity flow is complete;
+- the remaining wide HP/MP client UI investigation;
 - the guild war, the kingdom war, and the Castle war;
 - more work on the client assets.
 

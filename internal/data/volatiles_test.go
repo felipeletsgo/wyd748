@@ -37,6 +37,28 @@ func TestLoadVolatilesDiscoversCatalogItems(t *testing.T) {
 	}
 }
 
+func TestLoadVolatilesRejectsInvalidEquipmentTransforms(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "volatiles.json")
+	items := map[uint16]model.ItemDef{
+		578:  {Index: 578, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 9}}},
+		3386: {Index: 3386, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 180}}},
+	}
+	for _, body := range []string{
+		`{"default":{"action":"generic"},"rules":{"180":{"action":"equipment_gem","consume":true,"variant":4}}}`,
+		`{"default":{"action":"generic"},"rules":{"180":{"action":"equipment_gem","variant":0}}}`,
+		`{"default":{"action":"generic"},"rules":{"9":{"action":"ore_upgrade","consume":true,"variant":3,"successPercent":0}}}`,
+		`{"default":{"action":"generic"},"rules":{"9":{"action":"ore_upgrade","consume":true,"variant":3,"successPercent":101}}}`,
+	} {
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadVolatiles(path, items, nil); err == nil {
+			t.Fatalf("transformacao de equipamento invalida foi aceita: %s", body)
+		}
+	}
+}
+
 func TestLoadVolatilesValidaQuestReward(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "volatiles.json")
@@ -52,6 +74,26 @@ func TestLoadVolatilesValidaQuestReward(t *testing.T) {
 		}
 		if _, err := LoadVolatiles(path, items, nil); err == nil {
 			t.Fatalf("quest_reward invalida foi aceita: %s", body)
+		}
+	}
+}
+
+func TestLoadVolatilesRejectsIncompleteRefineSet(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "volatiles.json")
+	items := map[uint16]model.ItemDef{
+		4122: {Index: 4122, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 194}}},
+	}
+	for _, body := range []string{
+		`{"default":{"action":"generic"},"items":{"4122":{"action":"refine_set","consume":true,"refineMax":6}}}`,
+		`{"default":{"action":"generic"},"items":{"4122":{"action":"refine_set","consume":true,"mortalOnly":true,"refineMax":6,"onceQuestId":-194,"minLevel":256,"maxLevelExclusive":200}}}`,
+		`{"default":{"action":"generic"},"items":{"4122":{"action":"refine","consume":true,"refineMax":6,"onceQuestId":-194}}}`,
+	} {
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadVolatiles(path, items, nil); err == nil {
+			t.Fatalf("refine_set invalido foi aceito: %s", body)
 		}
 	}
 }
@@ -162,6 +204,30 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	if r := vc.Rules[198]; r.Action != "buff" || r.AffectType != 39 || !r.Accumulate {
 		t.Fatalf("code 198 deveria ser buff acumulativo affect 39: %+v", r)
 	}
+	uxmal, ok := vc.Instances["uxmal"]
+	if !ok || uxmal.StateMachine != "uxmal" || uxmal.Uxmal == nil ||
+		len(uxmal.Stages) != 7 || len(uxmal.Uxmal.RoomPositions) != 7 ||
+		len(uxmal.Uxmal.Runes) != 7 || uxmal.Uxmal.TicketItem != 5134 {
+		t.Fatalf("Uxmal nao resolveu a configuracao nomeada: ok=%v cfg=%+v", ok, uxmal)
+	}
+	if uxmal.Uxmal.MaxParties[0] != 2 || uxmal.Uxmal.MaxParties[1] != 3 {
+		t.Fatalf("capacidade nativa das salas Uxmal perdida: %v", uxmal.Uxmal.MaxParties)
+	}
+	for itemID, expected := range map[uint16]struct {
+		code, variant int
+	}{
+		3386: {180, 0}, 3387: {181, 1}, 3388: {182, 2}, 3389: {183, 3},
+	} {
+		r, code, ok := vc.Rule(itemID)
+		if !ok || code != expected.code || r.Action != "equipment_gem" ||
+			r.Variant != expected.variant || !r.Consume {
+			t.Fatalf("Gema %d: code=%d rule=%+v ok=%v", itemID, code, r, ok)
+		}
+	}
+	if r, code, ok := vc.Rule(578); !ok || code != 9 || r.Action != "ore_upgrade" ||
+		r.Variant != 3 || r.SuccessPercent != 50 || !r.Consume {
+		t.Fatalf("Adamantita: code=%d rule=%+v ok=%v", code, r, ok)
+	}
 	// Rodada final do _MSG_UseItem: os multiplexados por Index nao podem
 	// regredir silenciosamente para a regra no_direct_use do codigo.
 	for itemID, action := range map[uint16]string{
@@ -177,24 +243,75 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 			t.Fatalf("item %d deveria ser %s: %+v ok=%v", itemID, action, r, ok)
 		}
 	}
-	for _, itemID := range []uint16{1737, 1772, 4000, 4001, 3328, 3329} {
+	for _, itemID := range []uint16{1772, 4000, 4001, 3328, 3329} {
 		r, _, ok := vc.Rule(itemID)
 		if !ok || r.Action != "instance_ticket" || r.Instance == nil ||
 			len(r.Instance.Stages) == 0 {
 			t.Fatalf("dungeon %d nao resolveu uma instancia completa: %+v", itemID, r)
 		}
 	}
+	if r, _, ok := vc.Rule(1737); !ok || r.Action != "instance_ticket" || !r.Consume ||
+		r.Instance == nil || r.Instance.StateMachine != "big_cube" ||
+		len(r.Instance.Stages) != 1 || r.Instance.Stages[0].Quiz == nil {
+		t.Fatalf("Big Cube deveria resolver a maquina O/X: %+v ok=%v", r, ok)
+	}
 	if cube, _, _ := vc.Rule(1772); len(cube.Instance.Stages) != 25 {
 		t.Fatalf("Cube deveria possuir 25 salas, possui %d", len(cube.Instance.Stages))
 	}
-	if hellSolo, _, _ := vc.Rule(3328); hellSolo.Instance.TotalDurationSeconds != 240 {
-		t.Fatalf("Hell Gate deveria possuir prazo total de 240s: %+v", hellSolo.Instance)
+	if hellSolo, _, _ := vc.Rule(3328); hellSolo.Instance.ActiveDurationSeconds != 0 {
+		t.Fatalf("Hell Gate deve seguir somente a janela nativa de 240s: %+v", hellSolo.Instance)
 	}
 	if hellSolo, _, _ := vc.Rule(3328); hellSolo.Instance.ID != "hell-gate" {
 		t.Fatalf("Hell Gate solo resolveu ID inesperado: %q", hellSolo.Instance.ID)
 	}
 	if hellParty, _, _ := vc.Rule(3329); hellParty.Instance.ID != "hell-gate" {
 		t.Fatalf("Hell Gate party deve compartilhar ocupacao: %q", hellParty.Instance.ID)
+	}
+	if nightmare, _, _ := vc.Rule(3324); len(nightmare.Instance.Schedule) != 3 ||
+		len(nightmare.Instance.EntryAreas) != 1 || nightmare.Instance.NightmareTier != "normal" ||
+		nightmare.Instance.PartyRunLimit != 3 {
+		t.Fatalf("Nightmare Normal perdeu janela/area de entrada: %+v", nightmare.Instance)
+	}
+	if nightmare, _, _ := vc.Rule(3325); nightmare.Instance.NightmareTier != "mystic" {
+		t.Fatalf("Nightmare Mystic perdeu tier: %+v", nightmare.Instance)
+	}
+	if nightmare, _, _ := vc.Rule(3326); nightmare.Instance.NightmareTier != "arcane" {
+		t.Fatalf("Nightmare Arcane perdeu tier: %+v", nightmare.Instance)
+	}
+	if hell, _, _ := vc.Rule(3328); len(hell.Instance.Schedule) != 2 {
+		t.Fatalf("Hell Gate deveria possuir duas janelas horarias: %+v", hell.Instance)
+	}
+	if magic, _, _ := vc.Rule(3172); magic.PartyMode != "" {
+		t.Fatalf("Magic Chamber deve aceitar solo e grupo liderado: partyMode=%q", magic.PartyMode)
+	}
+	for _, itemID := range []uint16{1731, 3171, 3172} {
+		magic, _, ok := vc.Rule(itemID)
+		if !ok || magic.Instance == nil || len(magic.Instance.Stages) != 4 ||
+			magic.Instance.ExclusiveGroup != "magic-chamber" ||
+			len(magic.Instance.Stages[3].CompletionSpawns) == 0 {
+			t.Fatalf("Magic Chamber %d nao preservou quatro salas/boss na quarta: %+v", itemID, magic.Instance)
+		}
+	}
+	for itemID, wantID := range map[uint16]string{1772: "cube", 4000: "cube-mystic", 4001: "cube-arcane"} {
+		cube, _, ok := vc.Rule(itemID)
+		if !ok || cube.Instance == nil || cube.Instance.ID != wantID ||
+			!cube.Instance.SharedEntry || len(cube.Instance.Stages) != 25 {
+			t.Fatalf("Cube %d nao resolveu variante independente: id=%q shared=%v stages=%d",
+				itemID, cube.Instance.ID, cube.Instance.SharedEntry, len(cube.Instance.Stages))
+		}
+	}
+	for _, itemID := range []uint16{3324, 3325, 3326} {
+		nightmare, _, ok := vc.Rule(itemID)
+		if !ok || nightmare.Instance == nil || nightmare.Instance.Mode != "shared_timed_zone" ||
+			nightmare.Instance.FinishPolicy != "respawn_until_timeout" ||
+			nightmare.Instance.SharedGroup == "" {
+			t.Fatalf("Nightmare %d nao e zona compartilhada com respawn: %+v", itemID, nightmare.Instance)
+		}
+	}
+	if hell, _, ok := vc.Rule(3328); !ok || hell.Instance == nil ||
+		hell.Instance.StateMachine != "hell_gate" || hell.Instance.HellGate == nil ||
+		len(hell.Instance.HellGate.Quadrants) != 4 || hell.Instance.FinishPolicy != "state_machine" {
+		t.Fatalf("Hell Gate nao resolveu a maquina de estados: %+v ok=%v", hell.Instance, ok)
 	}
 	for _, itemID := range []uint16{646, 647, 3378} {
 		r, _, _ := vc.Rule(itemID)
@@ -211,12 +328,20 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	if expBox := vc.Rules[198]; expBox.MaxDurationUnits != 10800 {
 		t.Fatalf("Bau de EXP perdeu o teto de 24h: %+v", expBox)
 	}
-	for _, itemID := range []uint16{3443, 3455, 5338} {
-		r, _, ok := vc.Rule(itemID)
-		if !ok || r.Action != "celestial_pending" || r.Consume {
-			t.Fatalf("Celestial %d deve ficar bloqueado sem consumo: %+v ok=%v",
-				itemID, r, ok)
-		}
+	if r, _, ok := vc.Rule(3443); !ok || r.Action != "celestial_capsule" || !r.Consume {
+		t.Fatalf("Spirit's Seal deve executar encapsulamento: %+v ok=%v", r, ok)
+	}
+	if r, _, ok := vc.Rule(3455); !ok || r.Action != "no_direct_use" || r.Consume {
+		t.Fatalf("Extraction of Magical Power nao deve ser uso direto: %+v ok=%v", r, ok)
+	}
+	if r, _, ok := vc.Rule(5338); !ok || r.Action != "celestial_ideal" || !r.Consume {
+		t.Fatalf("Pedra Ideal deve criar Celestial/SubCelestial: %+v ok=%v", r, ok)
+	}
+	if r, _, ok := vc.Rule(3020); !ok || r.Action != "celestial_fury" || !r.Consume {
+		t.Fatalf("Pedra da Furia deve executar destraves Celestial: %+v ok=%v", r, ok)
+	}
+	if r, _, ok := vc.Rule(4148); !ok || r.Action != "celestial_switch" || !r.Consume {
+		t.Fatalf("Pedra Misteriosa deve alternar as formas: %+v ok=%v", r, ok)
 	}
 	// Refino: Ori(4)=teto+6, Lac(5)=teto+9, Molar(194)=set +6.
 	if r := vc.Rules[4]; r.Action != "refine" || r.RefineMax != 6 {
@@ -225,7 +350,8 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	if r := vc.Rules[5]; r.Action != "refine" || r.RefineMax != 9 {
 		t.Fatalf("code 5 deveria ser refine teto 9: %+v", r)
 	}
-	if r := vc.Rules[194]; r.Action != "refine_set" || r.RefineMax != 6 {
+	if r := vc.Rules[194]; r.Action != "refine_set" || r.RefineMax != 6 ||
+		!r.MortalOnly || r.MinLevel != 200 || r.MaxLevelExclusive != 256 || r.OnceQuestID != -194 {
 		t.Fatalf("code 194 deveria ser refine_set teto 6: %+v", r)
 	}
 	// As 24 salas regulares e os tres Nessus sao instancias distintas. Cada
@@ -263,6 +389,118 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 					itemID, r.Instance.RewardItem, want)
 			}
 		}
+	}
+	// A regular Water ticket accepts the eight native platforms, the Nessus
+	// platform and the portal fallback.  A boss ticket accepts only Nessus;
+	// this is expanded by the loader from the named data sets, not inferred by
+	// the gameplay code.
+	waterSets := []struct {
+		items      []uint16
+		regularSet string
+		bossSet    string
+	}{
+		{items: chains[0], regularSet: "water-mystic-regular", bossSet: "water-mystic-boss"},
+		{items: chains[1], regularSet: "water-normal-regular", bossSet: "water-normal-boss"},
+		{items: chains[2], regularSet: "water-arcane-regular", bossSet: "water-arcane-boss"},
+	}
+	for _, family := range waterSets {
+		for index, itemID := range family.items {
+			r, _, ok := vc.Rule(itemID)
+			if !ok || r.Instance == nil {
+				t.Fatalf("Water %d sem instancia apos expandir entryAreaSet", itemID)
+			}
+			wantSet, wantAreas := family.regularSet, 10
+			if index == len(family.items)-1 {
+				wantSet, wantAreas = family.bossSet, 1
+			}
+			if r.Instance.EntryAreaSet != wantSet || len(r.Instance.EntryAreas) != wantAreas {
+				t.Fatalf("Water %d entry areas incorretas: set=%q areas=%d want=%q/%d",
+					itemID, r.Instance.EntryAreaSet, len(r.Instance.EntryAreas), wantSet, wantAreas)
+			}
+			if wantAreas == 10 {
+				if !r.Instance.AllowChainDuringExitGrace {
+					t.Fatalf("Water regular %d perdeu AllowChainDuringExitGrace", itemID)
+				}
+				portal := model.VolatileInstanceEntryArea{MinX: 1964, MinY: 1772, MaxX: 1967, MaxY: 1775}
+				found := false
+				for _, area := range r.Instance.EntryAreas {
+					if area == portal {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Fatalf("Water %d perdeu a area de portal nativa", itemID)
+				}
+			}
+		}
+	}
+}
+
+func TestCatalogoRealMantemFamiliasAncientParaGemas(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	families := 0
+	for itemID, def := range catalog.Items {
+		if def.Grade != 5 || (def.Pos != 64 && def.Pos != 192) {
+			continue
+		}
+		complete := true
+		for variant := 0; variant < 4; variant++ {
+			candidate, ok := catalog.Items[itemID+uint16(variant)]
+			if !ok || candidate.Pos != def.Pos || candidate.Grade != 5+variant {
+				complete = false
+				break
+			}
+		}
+		if complete {
+			families++
+		}
+	}
+	if families == 0 {
+		t.Fatal("catalogo nao possui familia Ancient completa (grades 5..8 contiguas)")
+	}
+}
+
+func TestCatalogoRealMapeiaAdamantitaParaMesmaVarianteLegend(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	adamantiteUnique := map[int]bool{8: true, 10: true, 17: true, 20: true,
+		27: true, 30: true, 37: true, 40: true}
+	checked := 0
+	for itemID, def := range catalog.Items {
+		if def.Pos == 0 || def.Grade < 1 || def.Grade > 3 || !adamantiteUnique[def.Unique] {
+			continue
+		}
+		if def.Extra <= 0 || def.Extra > int(^uint16(0)) {
+			t.Errorf("equipamento %d elegivel para Adamantita nao aponta para variante Le", itemID)
+			continue
+		}
+		legend, ok := catalog.Items[uint16(def.Extra)]
+		if !ok || legend.Pos != def.Pos || legend.Grade != 4 || legend.Unique != def.Unique {
+			t.Errorf("equipamento %d aponta Extra=%d para variante Le invalida: %+v",
+				itemID, def.Extra, legend)
+		}
+		checked++
+	}
+	if checked == 0 {
+		t.Fatal("catalogo nao possui equipamentos elegiveis para Adamantita")
+	}
+
+	// Exemplo real: Golden Embersed Helmet (Mystic) -> o MESMO elmo (Legend).
+	input, output := catalog.Items[1207], catalog.Items[2186]
+	if input.Extra != 2186 || input.Pos != output.Pos || input.Unique != output.Unique ||
+		input.Grade != 2 || output.Grade != 4 {
+		t.Fatalf("Golden Embersed (M)->(Le) perdeu o vinculo: input=%+v output=%+v",
+			input, output)
 	}
 }
 

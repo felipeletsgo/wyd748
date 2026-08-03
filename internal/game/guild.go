@@ -116,6 +116,19 @@ func (w *World) onlineGuildMembers(guildID uint16) []*Player {
 	return members
 }
 
+// publishGuildIdentity reenvia somente os pacotes necessarios quando o
+// GuildID/GuildLevel de um personagem muda. CreateMobExtended e deliberado
+// aqui: a identidade visual mudou (guildmark/rank), mas nenhuma coordenada ou
+// trajeto deve ser recriado durante o movimento normal.
+func (w *World) publishGuildIdentity(p *Player) {
+	if p == nil || p.Char == nil || !p.InWorld || p.Session == nil {
+		return
+	}
+	w.syncPlayerChaos(p)
+	p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+	p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+}
+
 // sendGuildChat entrega o texto do canal '-' apenas aos membros online. O
 // prefixo e preservado: o client usa o primeiro caractere para escolher cor e
 // o offset de corte do texto.
@@ -198,6 +211,7 @@ func (w *World) guildCommandCreate(s *net.Session, p *Player, arg string) {
 		return
 	}
 	s.Send(wire.MessagePanel(fmt.Sprintf("Guild %q created.", name)))
+	w.publishGuildIdentity(p)
 	log.Printf("[#%d] GUILD criada id=%d %q por %q", s.ID, id, name, p.Char.Name)
 }
 
@@ -280,6 +294,7 @@ func (w *World) guildCommandAccept(s *net.Session, p *Player, _ string) {
 		return
 	}
 	p.GuildInviteFrom = 0
+	w.publishGuildIdentity(p)
 	s.Send(wire.MessagePanel(fmt.Sprintf("You joined the guild %s.", guild.Name)))
 	w.announceToGuild(guild.ID, fmt.Sprintf("%s joined the guild.", p.Char.Name), p)
 	log.Printf("[#%d] GUILD %q entrou na guild %d", s.ID, p.Char.Name, guild.ID)
@@ -364,7 +379,9 @@ func (w *World) guildCommandLeave(s *net.Session, p *Player, _ string) {
 		return
 	}
 	s.Send(wire.MessagePanel(fmt.Sprintf("You left the guild %s.", guildName)))
+	w.publishGuildIdentity(p)
 	if promoted != "" {
+		w.publishGuildIdentity(promotedPlayer)
 		w.announceToGuild(guildID, fmt.Sprintf("%s now leads the guild.", promoted), nil)
 	}
 	log.Printf("[#%d] GUILD %q saiu da guild %d", s.ID, p.Char.Name, guildID)
@@ -454,8 +471,12 @@ func (w *World) expelGuildMember(s *net.Session, actor *Player, guild *model.Gui
 	snapshot := w.snapshotGuilds()
 	oldID, oldRank := victim.Char.GuildID, victim.Char.GuildRank
 
-	w.removeGuildMember(guild, victimName)
+	_, promoted := w.removeGuildMember(guild, victimName)
 	victim.Char.GuildID, victim.Char.GuildRank = 0, 0
+	var promotedPlayer *Player
+	if promoted != "" {
+		promotedPlayer = w.applyGuildMembership(promoted, guildID, model.GuildRankLeader)
+	}
 
 	accounts := []*model.Account{actor.Account}
 	if victim.Account != actor.Account {
@@ -464,12 +485,17 @@ func (w *World) expelGuildMember(s *net.Session, actor *Player, guild *model.Gui
 	if err := w.saveGuildState(accounts...); err != nil {
 		w.restoreGuilds(snapshot)
 		victim.Char.GuildID, victim.Char.GuildRank = oldID, oldRank
+		if promotedPlayer != nil {
+			w.repairGuildState(promotedPlayer.Char)
+		}
 		s.Send(wire.MessagePanel("Save failed. Nobody was expelled."))
 		log.Printf("[#%d] ERRO expulsar %q: %v", s.ID, victimName, err)
 		return
 	}
 	s.Send(wire.MessagePanel(fmt.Sprintf("%s was expelled from the guild.", victimName)))
 	victim.Session.Send(wire.MessagePanel("You were expelled from the guild."))
+	w.publishGuildIdentity(victim)
+	w.publishGuildIdentity(promotedPlayer)
 	log.Printf("[#%d] GUILD %q expulsou %q da guild %d", s.ID, actor.Char.Name, victimName, guildID)
 }
 
@@ -524,6 +550,7 @@ func (w *World) guildCommandSubLeader(s *net.Session, p *Player, arg string) {
 	}
 	s.Send(wire.MessagePanel(fmt.Sprintf("%s is now a sub-leader.", promoted.Char.Name)))
 	promoted.Session.Send(wire.MessagePanel("You were promoted to sub-leader."))
+	w.publishGuildIdentity(promoted)
 	log.Printf("[#%d] GUILD %q promovido a sub-lider (rank %d) na guild %d",
 		s.ID, promoted.Char.Name, rank, guild.ID)
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func TestUpdateScore754LayoutIncludesSixteenAffects(t *testing.T) {
-	ch := model.Char{Extended: &model.ExtendedScore{
+	ch := model.Char{GuildID: 0x1234, GuildRank: model.GuildRankLeader, Extended: &model.ExtendedScore{
 		Version: model.ExtendedScoreVersion, Level: 65,
 		MaxHP: 900, CurHP: 900, MaxMP: 700, CurMP: 700, MagicAmp: 12,
 		Critical: 3, SaveMana: 4, RegenHP: 5, RegenMP: 6,
@@ -19,7 +19,8 @@ func TestUpdateScore754LayoutIncludesSixteenAffects(t *testing.T) {
 	ch.Affects[0] = model.Affect{Type: 24, ExpiresAt: time.Now().Add(80 * time.Second)}
 	b := UpdateScore(1, ch)
 	if len(b) != 236 || b[40] != 3 || b[41] != 4 || b[42] != 10 || b[43] != 24 ||
-		b[76] != 5 || b[77] != 6 ||
+		binary.LittleEndian.Uint16(b[74:76]) != 0x0234 ||
+		binary.LittleEndian.Uint16(b[76:78]) != model.GuildRankLeader ||
 		!bytes.Equal(b[78:82], []byte{7, 8, 9, 10}) ||
 		binary.LittleEndian.Uint16(b[82:84]) != 900 || binary.LittleEndian.Uint16(b[84:86]) != 700 ||
 		b[86] != 12 || binary.LittleEndian.Uint32(b[104:108]) != 900 ||
@@ -343,6 +344,19 @@ func TestSkillShopListLayout(t *testing.T) {
 	}
 }
 
+func TestRepurchaseList748Layout(t *testing.T) {
+	var entries [10]RepurchaseEntry
+	entries[0] = RepurchaseEntry{Order: 7, Item: model.Item{Index: 400, Eff: [6]byte{61, 3}}, Price: 1200}
+	b := RepurchaseList(9, 1100, entries)
+	if len(b) != 176 || ParseHeader(b).Type != OpRebuy || ParseHeader(b).ID != 9 ||
+		binary.LittleEndian.Uint32(b[12:16]) != 1100 ||
+		binary.LittleEndian.Uint32(b[16:20]) != 7 ||
+		binary.LittleEndian.Uint16(b[20:22]) != 400 || b[22] != 61 || b[23] != 3 ||
+		binary.LittleEndian.Uint32(b[28:32]) != 1200 {
+		t.Fatalf("MSG_RepurchaseItems 7.48 invalido: % X", b[:40])
+	}
+}
+
 func TestGroundItemPacketLayouts(t *testing.T) {
 	it := model.Item{Index: 4011, Eff: [6]byte{43, 9, 2, 20}}
 	drop := CNFDropItem(1, 12, 3, 2200, 2100)
@@ -399,20 +413,22 @@ func TestRemoveMobTypeThreeRematerializesDeadPlayer(t *testing.T) {
 }
 
 func TestPlayerMove748NormalizesForRemoteClient(t *testing.T) {
-	b := PlayerMove(7, 2100, 2101, 2104, 2105, 4)
+	route := []byte{'6', '3', '6', '6', 0, '9'}
+	b := PlayerMove(7, 2100, 2101, 2104, 2105, 4, route)
 	if len(b) != 52 || ParseHeader(b).Type != OpAction || ParseHeader(b).ID != 7 ||
 		binary.LittleEndian.Uint16(b[12:14]) != 2100 ||
 		binary.LittleEndian.Uint32(b[16:20]) != 4 || binary.LittleEndian.Uint32(b[20:24]) != 0 ||
-		binary.LittleEndian.Uint16(b[24:26]) != 2104 || string(b[28:34]) != "\x00\x00\x00\x00\x00\x00" {
+		binary.LittleEndian.Uint16(b[24:26]) != 2104 || string(b[28:32]) != "6366" ||
+		b[32] != 0 || b[33] != 0 {
 		t.Fatalf("movimento 7.48 invalido: %v", b)
 	}
 }
 
 func TestPlayerMove748ClampsServerSpeed(t *testing.T) {
-	if got := binary.LittleEndian.Uint32(PlayerMove(7, 2100, 2100, 2101, 2100, 0)[16:20]); got != 1 {
+	if got := binary.LittleEndian.Uint32(PlayerMove(7, 2100, 2100, 2101, 2100, 0, nil)[16:20]); got != 1 {
 		t.Fatalf("velocidade minima=%d, quer 1", got)
 	}
-	if got := binary.LittleEndian.Uint32(PlayerMove(7, 2100, 2100, 2101, 2100, 15)[16:20]); got != 6 {
+	if got := binary.LittleEndian.Uint32(PlayerMove(7, 2100, 2100, 2101, 2100, 15, nil)[16:20]); got != 6 {
 		t.Fatalf("velocidade maxima=%d, quer 6", got)
 	}
 }
@@ -426,19 +442,79 @@ func TestIllusionMoveUsesEffectSix(t *testing.T) {
 }
 
 func TestUpdateEtc748Layout(t *testing.T) {
-	// Layout p754_SendEtc: CP assinado DWORD@12, exp@16, LearnedSkill@20 (OBRIGATORIO:
+	// Layout p754_SendEtc: Hold zerado DWORD@12, exp@16, LearnedSkill@20 (OBRIGATORIO:
 	// e daqui que o client aprende as skills), statusPts@24, masterPts@26,
 	// skillPts@28, magic@30, gold@32.
 	ch := model.Char{CP: -25, Exp: 34000, LearnedSkill: 1 << 3, NextExp: 649715, Gold: 99424,
 		Extended: &model.ExtendedScore{StatusPts: 7, MasterPts: 100, SkillPts: 150, MagicAmp: 70}}
 	b := UpdateEtc(1, ch)
 	if len(b) != 48 || ParseHeader(b).Type != OpUpdateEtc ||
-		int32(binary.LittleEndian.Uint32(b[12:16])) != -25 || binary.LittleEndian.Uint32(b[16:20]) != 34000 ||
+		binary.LittleEndian.Uint32(b[12:16]) != 0 || binary.LittleEndian.Uint32(b[16:20]) != 34000 ||
 		binary.LittleEndian.Uint32(b[20:24]) != 1<<3 || binary.LittleEndian.Uint16(b[24:26]) != 7 ||
 		binary.LittleEndian.Uint16(b[26:28]) != 100 || binary.LittleEndian.Uint16(b[28:30]) != 150 ||
 		binary.LittleEndian.Uint16(b[30:32]) != 70 ||
 		binary.LittleEndian.Uint32(b[32:36]) != 99424 {
 		t.Fatalf("UpdateEtc 7.48 invalido: %v", b)
+	}
+}
+
+func TestUpdateEtcDoesNotLeakChaosIntoHold(t *testing.T) {
+	for _, cp := range []int16{-75, -1, 0, 1, 75} {
+		b := UpdateEtc(1, model.Char{CP: cp})
+		if got := binary.LittleEndian.Uint32(b[12:16]); got != 0 {
+			t.Fatalf("CP=%d vazou para Hold: %d", cp, got)
+		}
+	}
+}
+
+func TestCreateMobProjectsSignedChaosToNativeByte(t *testing.T) {
+	for _, tc := range []struct {
+		cp   int16
+		want byte
+	}{
+		{-75, 0}, {0, 75}, {75, 150},
+	} {
+		b := CreateMobExtendedWithGuildRank(7, "Player", 2100, 2100, nil, nil,
+			&model.ExtendedScore{Version: model.ExtendedScoreVersion}, nil, 2, 0, 0, tc.cp)
+		if got := b[30]; got != tc.want {
+			t.Fatalf("CP=%d byte=%d, esperado %d", tc.cp, got, tc.want)
+		}
+	}
+}
+
+func TestCreateMobCarriesGuildRankInSpawnWord(t *testing.T) {
+	b := CreateMobExtendedWithGuildRank(7, "Guilded", 2100, 2100, nil, nil,
+		&model.ExtendedScore{Version: model.ExtendedScoreVersion}, nil, 2, 0x1234,
+		model.GuildRankSubFirst, 0)
+	if got := binary.LittleEndian.Uint16(b[98:100]); got != 0x0234 {
+		t.Fatalf("guild wire=%#x, esperado id de 12 bits", got)
+	}
+	if b[128] != 2 || b[129] != model.GuildRankSubFirst {
+		t.Fatalf("spawn/guild level=%d/%d", b[128], b[129])
+	}
+}
+
+func TestCharListCarriesGuildIndexInSelection(t *testing.T) {
+	b := CharList("account", []model.Char{{Name: "Guilded", GuildID: 0x1234}}, nil, 0)
+	if got := binary.LittleEndian.Uint16(b[12+704 : 12+706]); got != 0x0234 {
+		t.Fatalf("Guild no SelectChar=%#x, esperado id de 12 bits", got)
+	}
+}
+
+func TestEnterWorldProjectsSignedChaosToNativeByte(t *testing.T) {
+	for _, tc := range []struct {
+		cp   int16
+		want byte
+	}{
+		{-75, 0}, {0, 75}, {75, 150},
+	} {
+		b := EnterWorld(7, model.Char{
+			Name: "Player", CP: tc.cp,
+			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion},
+		})
+		if got := b[16+12]; got != tc.want {
+			t.Fatalf("CP=%d byte=%d, esperado %d", tc.cp, got, tc.want)
+		}
 	}
 }
 
@@ -533,6 +609,8 @@ func TestEnterWorldWritesAuthoritativeMobTail(t *testing.T) {
 	short := [20]byte{3, 7, 11, 15}
 	ch := model.Char{
 		LearnedSkill: 0x00FFFFFF,
+		GuildID:      12,
+		GuildRank:    model.GuildRankLeader,
 		ShortSkill:   short,
 		Extended: &model.ExtendedScore{
 			StatusPts: 115, MasterPts: 44, SkillPts: 192, MagicAmp: 70,
@@ -552,6 +630,9 @@ func TestEnterWorldWritesAuthoritativeMobTail(t *testing.T) {
 		b[tail+17] != 70 || b[tail+18] != 11 || b[tail+19] != 12 ||
 		!bytes.Equal(b[tail+20:tail+24], []byte{13, 14, 15, 16}) {
 		t.Fatalf("cauda do STRUCT_MOB ausente/incorreta: % X", b[tail:tail+24])
+	}
+	if b[tail+16] != model.GuildRankLeader {
+		t.Fatalf("GuildMemberType=%d, esperado %d", b[tail+16], model.GuildRankLeader)
 	}
 }
 

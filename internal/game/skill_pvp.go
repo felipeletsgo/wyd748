@@ -133,6 +133,8 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			damageValue := skillFinalDamage(baseDamage, playerDefense(target.Char), skillDamageMastery(caster.Char))
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, playerElementalResists(target.Char), false)
 			perHit := uint32(clampInt(damageValue, 1, int(maxExtendedStat)))
+			perHit = addFlatDamage(perHit, w.equipmentGemBonuses(caster.Char).forceDamage)
+			perHit = absorbFlatDamage(perHit, w.equipmentGemBonuses(target.Char).absorbDamage)
 			for hit := 0; hit < hitCount && playerCurHP(target.Char) > 0; hit++ {
 				// Montaria adulta viva absorve 25% de cada golpe no proprio HP.
 				riderHit := uint32(w.absorbMountDamage(target, int(perHit)))
@@ -203,9 +205,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 	w.syncPlayerScoreAndVitals(caster)
 	for _, target := range targets {
 		if playerCurHP(target.Char) == 0 {
-			w.sendToPlayerView(target, func() []byte {
-				return wire.CNFMobKill(target.ID, caster.ID, target.Char.Exp)
-			})
+			w.publishPlayerDeath(target, caster.ID)
 		}
 	}
 	log.Printf("[#%d] executou PvP skill=%d %q alvos=%d", caster.Session.ID, skill.Index, skill.Name, len(targets))

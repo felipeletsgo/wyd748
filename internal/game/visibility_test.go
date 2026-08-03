@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"wydgo/internal/model"
+	"wydgo/internal/net"
 	"wydgo/internal/wire"
 )
 
@@ -86,5 +87,89 @@ func TestAppearanceUpdateUsesPositionlessUpdateEquip(t *testing.T) {
 	}
 	if got := pkt[44+6]; got != model.AncientCode(ch.Equip[6]) {
 		t.Fatalf("AnctCode da arma=%d, esperado %d", got, model.AncientCode(ch.Equip[6]))
+	}
+}
+
+func TestPlayerMovePublishesBeforeNewObserverEntersView(t *testing.T) {
+	newPlayer := func(id, x, y uint16) *Player {
+		s := net.NewTestSession(int64(id), 16)
+		ch := &model.Char{Name: "Player", X: x, Y: y,
+			Extended: testExtended(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		return &Player{ID: id, Session: s, Char: ch, InWorld: true, X: x, Y: y,
+			Visible: make(map[uint16]struct{})}
+	}
+
+	mover := newPlayer(1, 100, 100)
+	existing := newPlayer(2, 100, 101)
+	entering := newPlayer(3, 156, 100) // fora da origem; na borda do destino.
+	mover.show(existing.ID)
+	existing.show(mover.ID)
+
+	w := &World{
+		players:     map[*net.Session]*Player{mover.Session: mover, existing.Session: existing, entering.Session: entering},
+		playersByID: map[uint16]*Player{mover.ID: mover, existing.ID: existing, entering.ID: entering},
+	}
+	w.updatePlayerSpatial(mover)
+	w.updatePlayerSpatial(existing)
+	w.updatePlayerSpatial(entering)
+
+	// O destino autoritativo muda antes do indice espacial, como em onMove.
+	mover.X, mover.Y = 124, 100
+	mover.Char.X, mover.Char.Y = mover.X, mover.Y
+	w.publishPlayerMove(mover, 100, 100, []byte("666666666666666666666666"))
+	w.refreshPlayerVisibility(mover)
+
+	if got := existing.Session.QueuedPacketsForTest(); got != 1 {
+		t.Fatalf("observador existente recebeu %d pacotes, esperado somente o movimento", got)
+	}
+	if got := entering.Session.QueuedPacketsForTest(); got != 3 {
+		t.Fatalf("novo observador recebeu %d pacotes, esperado CreateMob+HP+Stop sem rota retroativa", got)
+	}
+	// Repetir o mesmo destino nao deve reiniciar a interpolacao remota.
+	w.publishPlayerMove(mover, 110, 100, []byte("66666666666666"))
+	if got := existing.Session.QueuedPacketsForTest(); got != 1 {
+		t.Fatalf("destino repetido publicou novo movimento: %d pacotes", got)
+	}
+}
+
+func TestPlayerStopUsesSingleSoftAdjustmentOnlyWhenInterrupted(t *testing.T) {
+	makePlayer := func(id, x uint16) *Player {
+		s := net.NewTestSession(int64(id), 8)
+		ch := &model.Char{Name: "Walker", X: x, Y: 100,
+			Extended: testExtended(model.ExtendedScore{AttackRun: 4, MaxHP: 100, CurHP: 100})}
+		return &Player{ID: id, Session: s, Char: ch, InWorld: true, X: x, Y: 100,
+			Visible: make(map[uint16]struct{})}
+	}
+	mover, observer := makePlayer(1, 105), makePlayer(2, 104)
+	mover.MovePublished = true
+	mover.MovePublishedStartX, mover.MovePublishedStartY = 100, 100
+	mover.MovePublishedTargetX, mover.MovePublishedTargetY = 110, 100
+	copy(mover.MovePublishedRoute[:], []byte("6666666666"))
+	mover.show(observer.ID)
+	observer.show(mover.ID)
+	w := &World{}
+	w.updatePlayerSpatial(mover)
+	w.updatePlayerSpatial(observer)
+
+	w.publishPlayerStop(mover)
+	if got := observer.Session.QueuedPacketsForTest(); got != 1 {
+		t.Fatalf("parada intermediaria publicou %d pacotes, esperado um ajuste suave", got)
+	}
+	if mover.MovePublished {
+		t.Fatal("rota continuou ativa depois da parada")
+	}
+	w.publishPlayerStop(mover)
+	if got := observer.Session.QueuedPacketsForTest(); got != 1 {
+		t.Fatalf("parada repetida publicou outro ajuste: %d pacotes", got)
+	}
+
+	// Chegar naturalmente ao destino nao precisa de nenhum pacote: a Action
+	// original ja encerra a animacao exatamente nessa coordenada.
+	mover.MovePublished = true
+	mover.MovePublishedStartX, mover.MovePublishedStartY = 105, 100
+	mover.MovePublishedTargetX, mover.MovePublishedTargetY = mover.X, mover.Y
+	w.publishPlayerStop(mover)
+	if got := observer.Session.QueuedPacketsForTest(); got != 1 {
+		t.Fatalf("chegada natural reiniciou/corrigiu a animacao: %d pacotes", got)
 	}
 }

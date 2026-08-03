@@ -56,7 +56,7 @@
   "extendedScore": {
     "version": 2,
     "level": 355,
-    "attack": 300,
+    "attack": 10,
     "magicAttack": 0,
     "defense": 1000,
     "maxHP": 2000,
@@ -74,7 +74,7 @@
     "resistThunder": 5,
     "saveMana": 255,
     "mastery": [
-      255,
+      1,
       7,
       255,
       7

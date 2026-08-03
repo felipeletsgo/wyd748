@@ -102,6 +102,17 @@ func TestSendOverflowDoesNotPanicWithoutSocket(t *testing.T) {
 	}
 }
 
+func TestSessionSendRejectsMalformedBuilderWithoutPanic(t *testing.T) {
+	session := NewTestSession(99, 1)
+	session.Send([]byte{1, 2, 3})
+	if !session.IsClosed() {
+		t.Fatal("sessao deveria fechar ao receber pacote de saida truncado")
+	}
+	if got := session.QueuedPacketsForTest(); got != 0 {
+		t.Fatalf("pacote truncado entrou na fila: %d", got)
+	}
+}
+
 func TestServeRejectsOversizedFrameBeforeBodyAllocation(t *testing.T) {
 	session, client := pipeSession()
 	received := make(chan []byte, 1)
@@ -119,5 +130,33 @@ func TestServeRejectsOversizedFrameBeforeBodyAllocation(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("sessao nao encerrou apos frame oversized")
+	}
+}
+
+func TestSessionDoneAndIsClosedFollowServeLifetime(t *testing.T) {
+	session, client := pipeSession()
+	finished := make(chan []byte, 1)
+	go func() {
+		session.Serve(func(_ *Session, packet []byte) {
+			finished <- packet
+		})
+	}()
+	writeInitCode(t, client)
+	_ = client.Close()
+	select {
+	case packet := <-finished:
+		if packet != nil {
+			t.Fatal("pacote inesperado")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("handler de desconexao nao foi chamado")
+	}
+	select {
+	case <-session.done:
+		if !session.IsClosed() {
+			t.Fatal("Done fechou mas IsClosed retornou falso")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Done nao fechou com o fim da sessao")
 	}
 }

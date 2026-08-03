@@ -193,6 +193,11 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 		w.cancelTrade(p, "item nao negociavel")
 		return
 	}
+	if err := w.validateTradeCapsules(p.Account, req.Items); err != nil {
+		s.Send(wire.MessagePanel(err.Error()))
+		w.cancelTrade(p, "capsula Celestial invalida")
+		return
+	}
 
 	if err := updateTradeOffer(p.Trade, opponent.Trade, req); err != nil {
 		w.cancelTrade(p, "oferta alterada durante confirmacao")
@@ -231,10 +236,36 @@ func (w *World) validateTradableItems(items [maxTradeItems]model.Item) error {
 func (w *World) validateTradableItem(item model.Item) error {
 	def, ok := w.items[item.Index]
 	if !ok {
-		return fmt.Errorf("Item inexistente nao pode ser negociado.")
+		return clientError("Item inexistente nao pode ser negociado.")
 	}
 	if itemAbility(item, def, "EF_NOTRADE") != 0 {
-		return fmt.Errorf("Esse item nao pode ser negociado.")
+		return clientError("Esse item nao pode ser negociado.")
+	}
+	return nil
+}
+
+// validateTradeCapsules garante que um selo preenchido oferecido no trade
+// ainda pertence ao mesmo agregado autoritativo da conta. O client transporta
+// somente o STRUCT_ITEM; o snapshot Celestial e transferido pelo servidor no
+// commit atomico das duas contas.
+func (w *World) validateTradeCapsules(account *model.Account, items [maxTradeItems]model.Item) error {
+	seen := make(map[string]struct{})
+	for _, item := range items {
+		id, filled := model.CelestialSealID(item)
+		if !filled {
+			continue
+		}
+		if item.UID == "" {
+			return clientError("The Spirit's Seal has no valid identity.")
+		}
+		if _, duplicate := seen[item.UID]; duplicate {
+			return clientError("The same Spirit's Seal was offered more than once.")
+		}
+		seen[item.UID] = struct{}{}
+		capsule, _ := w.capsuleByID(account, id)
+		if capsule == nil || capsule.ItemUID != item.UID || !accountOwnsCapsuleSeal(account, capsule) {
+			return clientError("The Spirit's Seal data is unavailable.")
+		}
 	}
 	return nil
 }
@@ -289,6 +320,18 @@ func (w *World) commitTrade(a, b *Player) {
 		!a.Trade.Checked || !b.Trade.Checked || a.Trade.OpponentID != b.ID || b.Trade.OpponentID != a.ID {
 		return
 	}
+	if err := w.validateTradeCapsules(a.Account, a.Trade.Items); err != nil {
+		a.Session.Send(wire.MessagePanel(err.Error()))
+		b.Session.Send(wire.MessagePanel("The other player's Spirit's Seal is invalid."))
+		w.cancelTrade(a, "capsula Celestial invalida na validacao final")
+		return
+	}
+	if err := w.validateTradeCapsules(b.Account, b.Trade.Items); err != nil {
+		b.Session.Send(wire.MessagePanel(err.Error()))
+		a.Session.Send(wire.MessagePanel("The other player's Spirit's Seal is invalid."))
+		w.cancelTrade(a, "capsula Celestial invalida na validacao final")
+		return
+	}
 	aInv, aOK := buildTradeInventory(a.Char, a.Trade, b.Trade)
 	bInv, bOK := buildTradeInventory(b.Char, b.Trade, a.Trade)
 	aGold, aGoldOK := tradeGold(a.Char.Gold, a.Trade.Gold, b.Trade.Gold)
@@ -302,11 +345,37 @@ func (w *World) commitTrade(a, b *Player) {
 
 	oldAInv, oldBInv := a.Char.Inv, b.Char.Inv
 	oldAGold, oldBGold := a.Char.Gold, b.Char.Gold
+	oldACapsules := append([]model.CelestialCapsule(nil), a.Account.CelestialCapsules...)
+	oldBCapsules := append([]model.CelestialCapsule(nil), b.Account.CelestialCapsules...)
 	a.Char.Inv, b.Char.Inv = aInv, bInv
 	a.Char.Gold, b.Char.Gold = aGold, bGold
+	if err := w.transferTradeCapsules(a, b, a.Trade.Items); err != nil {
+		a.Char.Inv, b.Char.Inv = oldAInv, oldBInv
+		a.Char.Gold, b.Char.Gold = oldAGold, oldBGold
+		a.Account.CelestialCapsules = oldACapsules
+		b.Account.CelestialCapsules = oldBCapsules
+		log.Printf("TRADE transferir capsulas %q/%q: %v", a.Account.Name, b.Account.Name, err)
+		a.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
+		b.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
+		w.cancelTrade(a, "falha ao transferir capsula Celestial")
+		return
+	}
+	if err := w.transferTradeCapsules(b, a, b.Trade.Items); err != nil {
+		a.Char.Inv, b.Char.Inv = oldAInv, oldBInv
+		a.Char.Gold, b.Char.Gold = oldAGold, oldBGold
+		a.Account.CelestialCapsules = oldACapsules
+		b.Account.CelestialCapsules = oldBCapsules
+		log.Printf("TRADE transferir capsulas %q/%q: %v", b.Account.Name, a.Account.Name, err)
+		a.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
+		b.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
+		w.cancelTrade(a, "falha ao transferir capsula Celestial")
+		return
+	}
 	if err := w.saveTradeAccounts(a.Account, b.Account); err != nil {
 		a.Char.Inv, b.Char.Inv = oldAInv, oldBInv
 		a.Char.Gold, b.Char.Gold = oldAGold, oldBGold
+		a.Account.CelestialCapsules = oldACapsules
+		b.Account.CelestialCapsules = oldBCapsules
 		log.Printf("TRADE salvar contas %q/%q: %v", a.Account.Name, b.Account.Name, err)
 		a.Session.Send(wire.MessagePanel("Save failed. The trade was not applied."))
 		b.Session.Send(wire.MessagePanel("Save failed. The trade was not applied."))
@@ -320,6 +389,70 @@ func (w *World) commitTrade(a, b *Player) {
 	b.Session.Send(wire.UpdateCarry(b.ID, b.Char.Inv[:], b.Char.Gold))
 	log.Printf("TRADE concluido: %s(%d gold) <-> %s(%d gold)",
 		a.Char.Name, aOfferGold, b.Char.Name, bOfferGold)
+}
+
+// transferTradeCapsules move os snapshots correspondentes aos selos oferecidos
+// para a conta que recebeu os itens. IDs de capsula sao locais a conta; em
+// colisao, o ID e remapeado e o STRUCT_ITEM recebido e regravado antes do save.
+func (w *World) transferTradeCapsules(sender, recipient *Player, offered [maxTradeItems]model.Item) error {
+	if sender == nil || recipient == nil || sender.Account == nil || recipient.Account == nil || recipient.Char == nil {
+		return errors.New("jogador ausente")
+	}
+	for _, offeredItem := range offered {
+		oldID, filled := model.CelestialSealID(offeredItem)
+		if !filled {
+			continue
+		}
+
+		capsule, capsuleIndex := w.capsuleByID(sender.Account, oldID)
+		if capsule == nil || capsule.ItemUID != offeredItem.UID {
+			return fmt.Errorf("capsula %d nao pertence ao selo %q", oldID, offeredItem.UID)
+		}
+		moved := *capsule
+		sender.Account.CelestialCapsules = append(sender.Account.CelestialCapsules[:capsuleIndex],
+			sender.Account.CelestialCapsules[capsuleIndex+1:]...)
+
+		for _, existing := range recipient.Account.CelestialCapsules {
+			if existing.ItemUID == moved.ItemUID || existing.SourceUID == moved.SourceUID {
+				return fmt.Errorf("capsula %d colide com identidade existente", oldID)
+			}
+		}
+		for i := range recipient.Account.Chars {
+			if recipient.Account.Chars[i].UID == moved.SourceUID {
+				return fmt.Errorf("personagem encapsulado %q ja esta ativo no destino", moved.SourceUID)
+			}
+		}
+
+		if existing, _ := w.capsuleByID(recipient.Account, moved.ID); existing != nil {
+			newID, ok := nextCelestialCapsuleID(recipient.Account)
+			if !ok {
+				return errors.New("conta de destino sem identificador de capsula livre")
+			}
+			moved.ID = newID
+		}
+
+		received := false
+		for slot := 0; slot < model.PlayerCarrySlots; slot++ {
+			item := &recipient.Char.Inv[slot]
+			if item.UID != moved.ItemUID {
+				continue
+			}
+			id, ok := model.CelestialSealID(*item)
+			if !ok || id != oldID || received {
+				return fmt.Errorf("selo recebido %q inconsistente", moved.ItemUID)
+			}
+			item.Eff[0] = model.CelestialSealEffect
+			item.Eff[1] = byte(moved.ID >> 8)
+			item.Eff[2] = model.CelestialSealEffect
+			item.Eff[3] = byte(moved.ID)
+			received = true
+		}
+		if !received {
+			return fmt.Errorf("selo recebido %q nao encontrado no Carry", moved.ItemUID)
+		}
+		recipient.Account.CelestialCapsules = append(recipient.Account.CelestialCapsules, moved)
+	}
+	return nil
 }
 
 type tradeBatchStore interface {

@@ -92,7 +92,7 @@ func TestMobCollisionDoesNotShareCoordinate(t *testing.T) {
 	blocker := &Mob{ID: 1000, X: 11, Y: 11}
 	mover := &Mob{ID: 1001, X: 10, Y: 10}
 	w := testSpatialWorld([]*Mob{blocker, mover})
-	x, y := w.freeStepAround(mover, 12, 12)
+	x, y := w.freeStepAroundFrom(mover, mover.X, mover.Y, 12, 12, nil)
 	if x == blocker.X && y == blocker.Y {
 		t.Fatal("movimento escolheu coordenada ocupada")
 	}

@@ -112563,6 +112563,45 @@
 	DestRange:	0
 	DestWait:	0
 
+// ShopVolGems - Adamantita e as quatro Gemas nativas
+#	[5115]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopVolGems
+	Follower:	ShopVolGems
+	RouteType:	0
+	Formation:	0
+	StartX:		2108
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2108
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+// ShopUxmal - ticket Clue of Runes e runas das sete salas (somente teste).
+// ********************************************
+#	[5132]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopUxmal
+	Follower:	ShopUxmal
+	RouteType:	0
+	Formation:	0
+	StartX:		2110
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2110
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
 // ShopArch - NPC de teste da cadeia Mortal->Arch (pedras Sephira, espiritos,
 // safiras, Pedra Eterna e os quatro Sefirot). Fica 2 tiles ao norte do ponto de
 // nascimento (2100,2100) para nao ocupar o tile onde os jogadores aparecem.

@@ -73,6 +73,51 @@ func TestLiveCharacterKeepsHPOnEnter(t *testing.T) {
 	}
 }
 
+func TestLoadtestAccountUsesConfiguredNoatumSpawn(t *testing.T) {
+	w, p, s := newEnterWorldPlayer(t, 742, 1000)
+	p.Account.Name = "bot0001"
+	w.loadtestAccountPrefix = "bot"
+	w.loadtestSpawn = model.CharacterSpawn{X: 1162, Y: 1700}
+
+	w.onEnterWorld(s, enterWorldPacket(0))
+
+	if p.X != 1162 || p.Y != 1700 || p.Char.X != 1162 || p.Char.Y != 1700 {
+		t.Fatalf("spawn loadtest=(%d,%d) char=(%d,%d)", p.X, p.Y, p.Char.X, p.Char.Y)
+	}
+}
+
+func TestOnlyProvisionedLoadtestRangeUsesNoatumSpawn(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		want bool
+	}{
+		{"bot0001", true}, {"bot0990", true}, {"bot0991", false},
+		{"bot9999", false}, {"botabcd", false}, {"felipe", false},
+	} {
+		if got := isLoadtestAccountName(tc.name, "bot"); got != tc.want {
+			t.Errorf("%s: isLoadtest=%v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+func TestEnterWorldRejectsWhenAllPlayerIDsAreOccupied(t *testing.T) {
+	w, p, s := newEnterWorldPlayer(t, 742, 1000)
+	for id := uint16(1); id < 1000; id++ {
+		ownerSession := net.NewTestSession(int64(1000+id), 1)
+		owner := &Player{Session: ownerSession, ID: id, InWorld: true,
+			X: playerEntryX, Y: playerEntryY}
+		w.players[ownerSession] = owner
+		w.playersByID[id] = owner
+	}
+	w.onEnterWorld(s, enterWorldPacket(0))
+	if p.InWorld || p.ID != 0 || w.playersByID[999] == nil {
+		t.Fatal("entrada deveria ser recusada sem sobrescrever o ultimo jogador")
+	}
+	if s.QueuedPacketsForTest() == 0 {
+		t.Fatal("recusa de mundo cheio deveria avisar o cliente")
+	}
+}
+
 // TestDeadCharacterRevivedBeforePackets: o revive precisa acontecer ANTES dos
 // pacotes de entrada, senão o client recebe HP 0 no EnterWorld/CreateMob e
 // desenha a pose de morte mesmo com o servidor já corrigido.

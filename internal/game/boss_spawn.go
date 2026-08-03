@@ -129,8 +129,12 @@ func bossDefFrom(base *model.NPCDef, config model.BossConfig) *model.NPCDef {
 // spawnBoss materializa a instancia e registra o runtime.
 func (w *World) spawnBoss(state *bossSpawnState) error {
 	x, y := w.findFreePosition(state.config.Spawn.X, state.config.Spawn.Y, 3)
+	mobID := w.allocMobID()
+	if mobID == 0 {
+		return fmt.Errorf("boss %q: faixa de IDs de mob esgotada", state.config.ID)
+	}
 	mob := &Mob{
-		ID: w.allocMobID(), Def: state.def, X: x, Y: y,
+		ID: mobID, Def: state.def, X: x, Y: y,
 		HP: state.def.Extended.MaxHP, GenerIndex: -1,
 	}
 	// Segments[0] e a "casa" usada pelo leash da IA comum.
@@ -215,8 +219,8 @@ func (w *World) spawnBossAreaReward(m *Mob, reward model.BossAreaReward) {
 // spawnGroundReward poe UMA unidade no chao na celula exata, sem o jitter do
 // spawnDrop -- aqui a posicao ja foi escolhida pelo anel.
 func (w *World) spawnGroundReward(x, y uint16, index uint16) bool {
-	id := w.allocGroundItemID(index)
-	if id == 0 {
+	id, ok := w.allocGroundItemID(index)
+	if !ok {
 		return false
 	}
 	item, err := materializeItem(model.Item{Index: index})

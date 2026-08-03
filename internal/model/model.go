@@ -18,6 +18,10 @@ const (
 	CharacterUIDHexLength = 32
 	MinCP                 = -75
 	MaxCP                 = 75
+	// ChaosFormatVersion marca o modelo assinado adotado pelo emulador. O
+	// formato anterior persistia CP=75 como "neutro"; a primeira leitura sem
+	// esta marca migra esse valor para CP 0 e grava a marca no próximo save.
+	ChaosFormatVersion uint8 = 1
 )
 
 func ClampCP(value int) int16 {
@@ -353,6 +357,47 @@ type Affect struct {
 	NextTick   time.Time `json:"nextTick,omitempty"`
 }
 
+// CelestialForm guarda exclusivamente a forma INATIVA do par
+// Celestial/SubCelestial. Equipamentos (exceto o rosto), inventario, gold,
+// capa/reino, fama e quests continuam no Char e sao compartilhados. Classe,
+// rosto, EXP, atributos, aprendizagens, skills, barra e affects pertencem a
+// cada forma, como Persos[0..1] da 7.54.
+type CelestialForm struct {
+	Evolution             string         `json:"evolution"`
+	Class                 byte           `json:"class"`
+	Face                  Item           `json:"face"`
+	Extended              *ExtendedScore `json:"extendedScore"`
+	Exp                   uint32         `json:"exp"`
+	LearnedSkill          uint32         `json:"learnedSkill"`
+	SecondaryLearnedSkill uint32         `json:"secondaryLearnedSkill,omitempty"`
+	ShortSkill            [20]byte       `json:"shortSkill,omitempty"`
+	Affects               [16]Affect     `json:"affects,omitempty"`
+}
+
+func (f *CelestialForm) Validate() error {
+	if f == nil {
+		return nil
+	}
+	evolution := strings.ToLower(strings.TrimSpace(f.Evolution))
+	if evolution != "celestial" && evolution != "subcelestial" {
+		return fmt.Errorf("forma celestial possui evolucao invalida %q", f.Evolution)
+	}
+	if f.Class > 3 {
+		return fmt.Errorf("forma celestial possui classe invalida %d", f.Class)
+	}
+	if f.Face.Index == 0 {
+		return fmt.Errorf("forma celestial sem rosto")
+	}
+	if err := f.Extended.Validate(); err != nil {
+		return fmt.Errorf("forma celestial: %w", err)
+	}
+	if f.Extended.Level > 199 {
+		return fmt.Errorf("forma celestial possui level interno %d; maximo 199",
+			f.Extended.Level)
+	}
+	return nil
+}
+
 // Char = personagem persistido (1 slot da conta).
 type Char struct {
 	UID   string `json:"uid"`
@@ -369,8 +414,10 @@ type Char struct {
 	Equip           [16]Item       `json:"equip"` // slots de equipamento
 	Inv             [64]Item       `json:"inv"`   // wire/persistencia tem 64; UI usa 0..62
 	// CP e o Chaos/PK Point exibido, assinado e autoritativo (-75..+75).
-	// O byte legado de CreateMob usa CP+75 somente na borda do protocolo.
+	// CP 0 e o estado neutro de um personagem novo; o byte legado de CreateMob
+	// usa CP+75 somente na borda do protocolo.
 	CP              int16  `json:"cp"`
+	ChaosVersion    uint8  `json:"chaosVersion,omitempty"`
 	Gold            uint32 `json:"gold"`
 	Exp             uint32 `json:"exp"`
 	NextExp         uint32 `json:"-"` // derivado da tabela pelo level
@@ -391,7 +438,8 @@ type Char struct {
 	// outra ficha. O nivel fica em cache porque o calculo recebe apenas o Char.
 	// ArchCrystals conta os cristais elementais ja consumidos, de 0 a 4. Eles
 	// sao feitos EM ORDEM (Elime, Sylphid, Salion, Nohas) e cada um cobra 100
-	// milhoes de EXP. Concluir os quatro e requisito para o Celestial.
+	// milhoes de EXP. Cada um concede 100 pontos ao futuro Celestial; a criacao
+	// em si nao exige que os quatro tenham sido concluídos.
 	//
 	// O nativo guarda isso em QuestInfo.Arch.Cristal -- o campo esta no bloco
 	// do ARCH, e e como Arch que a quest e feita.
@@ -409,6 +457,17 @@ type Char struct {
 	// Ver internal/game/counters.go.
 	SoulInfo                 uint8 `json:"soulInfo,omitempty"` // 1..10; zero = nenhum
 	CelestialLevel40Unlocked bool  `json:"celestialLevel40Unlocked,omitempty"`
+	CelestialLevel90Unlocked bool  `json:"celestialLevel90Unlocked,omitempty"`
+	// CelestialArchTier registra em qual faixa o Arch virou Celestial:
+	// 1=356..369, 2=370..379, 3=380..398, 4=399, 5=400 exibidos.
+	// CelestialCytheraTier (0..4) impede repetir os adicionais de 121/151/181/199.
+	CelestialArchTier    byte `json:"celestialArchTier,omitempty"`
+	CelestialCytheraTier byte `json:"celestialCytheraTier,omitempty"`
+	CelestialArcana      bool `json:"celestialArcana,omitempty"`
+	// AlternateCelestial e a forma que nao esta materializada no Char. O ativo
+	// permanece nos campos normais para todo combate/protocolo continuar usando
+	// uma unica fonte autoritativa.
+	AlternateCelestial *CelestialForm `json:"alternateCelestial,omitempty"`
 	// Habilidades da evolucao; separadas dos 24 bits Mortais como na W2PP.
 	SecondaryLearnedSkill uint32     `json:"secondaryLearnedSkill,omitempty"`
 	ShortSkill            [20]byte   `json:"shortSkill,omitempty"`
@@ -515,9 +574,15 @@ func (c Char) equalsZero() bool {
 	return c.UID == "" && c.Name == "" && c.Class == 0 && c.X == 0 && c.Y == 0 &&
 		c.Extended == nil && c.ExtendedRuntime == nil &&
 		c.Equip == [16]Item{} && c.Inv == [64]Item{} &&
-		c.CP == 0 && c.Gold == 0 && c.Exp == 0 && c.NextExp == 0 &&
+		c.CP == 0 && c.ChaosVersion == 0 && c.Gold == 0 && c.Exp == 0 && c.NextExp == 0 &&
 		c.LearnedSkill == 0 && c.SecondaryLearnedSkill == 0 &&
 		!c.MagicalPillUsed && c.SkillPointBonus == 0 &&
+		c.Evolution == "" && c.ArchCrystals == 0 && !c.ArchLevel355 &&
+		!c.ArchLevel370 && c.ArchMortalUID == "" && c.ArchMortalLevel == 0 &&
+		c.SoulInfo == 0 && !c.CelestialLevel40Unlocked &&
+		!c.CelestialLevel90Unlocked && c.CelestialArchTier == 0 &&
+		c.CelestialCytheraTier == 0 && !c.CelestialArcana &&
+		c.AlternateCelestial == nil &&
 		c.ShortSkill == [20]byte{} && c.Affects == [16]Affect{} &&
 		c.GuildID == 0 && c.GuildRank == 0
 }
@@ -530,13 +595,20 @@ func (c Char) MarshalJSON() ([]byte, error) {
 		return nil, fmt.Errorf("slot de personagem sem nome contem estado")
 	}
 	type alias Char
+	encoded := alias(c)
+	// Todo personagem persistido pelo formato atual leva a marca, inclusive
+	// quando algum teste/ferramenta construiu Char{CP:75} diretamente. Sem ela
+	// a próxima leitura teria de interpretar +75 como o antigo neutro.
+	if encoded.ChaosVersion == 0 {
+		encoded.ChaosVersion = ChaosFormatVersion
+	}
 
 	return json.Marshal(struct {
 		alias
 		Equip charEquip `json:"equip"`
 		Inv   []Item    `json:"inv"`
 	}{
-		alias: alias(c),
+		alias: encoded,
 		Equip: toCharEquip(c.Equip),
 		Inv:   c.Inv[:], // todos os 64 slots
 	})
@@ -575,20 +647,59 @@ func (c *Char) UnmarshalJSON(b []byte) error {
 		if _, hasCP := fields["cp"]; hasCP {
 			return fmt.Errorf("personagem %q possui cp e chaos simultaneamente", c.Name)
 		}
-		// Migracao unica do formato anterior. Chaos zero era apenas ausencia da
-		// mecanica e o client recebia 150 fixo; preservamos esse estado limpo
-		// como CP +75. Os demais valores eram o byte PK bruto (CP+75).
+		// Migracao unica do formato anterior. O campo legado era o byte bruto
+		// nativo (1..150), em que 75 e o personagem neutro. O zero usado pelos
+		// JSONs antigos significava "sem estado" e tambem deve virar neutro,
+		// nunca CP +75. A borda do protocolo converte CP assinado para CP+75.
 		if *aux.LegacyChaos == 0 {
-			c.CP = MaxCP
+			c.CP = 0
 		} else {
 			c.CP = ClampCP(int(*aux.LegacyChaos) - 75)
 		}
+	}
+	if c.ChaosVersion == 0 {
+		// Antes da separação CP/Hold, o template e alguns saves escreviam
+		// `cp:75` para representar um personagem neutro. Não há marcador para
+		// distinguir esses saves antigos de um +75 recém-obtido; a migração
+		// única prioriza preservar o estado neutro e marca o formato novo. A
+		// remissão usada depois desta versão permanece +75 porque já carrega a
+		// marca.
+		if _, hasCP := fields["cp"]; hasCP && aux.LegacyChaos == nil && c.CP == MaxCP {
+			c.CP = 0
+		}
+		c.ChaosVersion = ChaosFormatVersion
+	}
+	if c.ChaosVersion != 0 && c.ChaosVersion != ChaosFormatVersion {
+		return fmt.Errorf("personagem %q possui versao de chaos invalida: %d", c.Name, c.ChaosVersion)
 	}
 	if c.CP < MinCP || c.CP > MaxCP {
 		return fmt.Errorf("personagem %q possui cp fora de -75..75: %d", c.Name, c.CP)
 	}
 	if err := c.Extended.Validate(); err != nil {
 		return fmt.Errorf("personagem %q: %w", c.Name, err)
+	}
+	if err := c.AlternateCelestial.Validate(); err != nil {
+		return fmt.Errorf("personagem %q: %w", c.Name, err)
+	}
+	if c.ArchCrystals > 4 || c.SoulInfo > 10 ||
+		c.CelestialArchTier > 5 || c.CelestialCytheraTier > 4 {
+		return fmt.Errorf("personagem %q possui progresso Arch/Celestial invalido", c.Name)
+	}
+	activeEvolution := strings.ToLower(strings.TrimSpace(c.Evolution))
+	if (activeEvolution == "celestial" || activeEvolution == "subcelestial") &&
+		c.Extended.Level > 199 {
+		return fmt.Errorf("personagem %q possui level Celestial interno %d; maximo 199",
+			c.Name, c.Extended.Level)
+	}
+	if c.AlternateCelestial != nil {
+		active := activeEvolution
+		alternate := strings.ToLower(strings.TrimSpace(c.AlternateCelestial.Evolution))
+		if active != "celestial" && active != "subcelestial" {
+			return fmt.Errorf("personagem %q possui forma alterna sem forma celestial ativa", c.Name)
+		}
+		if active == alternate {
+			return fmt.Errorf("personagem %q possui duas formas %q", c.Name, active)
+		}
 	}
 	if len(aux.Inv) != len(c.Inv) {
 		return fmt.Errorf("personagem %q possui %d slots de inventario; esperado %d",
@@ -608,6 +719,11 @@ type Account struct {
 	Chars        []Char    `json:"chars"`
 	Cargo        [128]Item `json:"cargo"`               // bau compartilhado pelos quatro personagens
 	CargoGold    uint32    `json:"cargoGold,omitempty"` // gold guardado/vendas da Loja Fantasma
+	// CelestialCapsules sao selos persistentes que guardam uma ficha Celestial
+	// retirada do mundo. O item 3443 no Carry/Cargo referencia ID; o snapshot completo
+	// fica aqui para que Postgres/JSON confirmem item, personagem e estado em uma
+	// unica gravacao, sem depender de arquivos numerados fora da transacao.
+	CelestialCapsules []CelestialCapsule `json:"celestialCapsules,omitempty"`
 }
 
 // UnmarshalJSON exige o cargo estrutural completo. Os oito slots sem UI
@@ -650,6 +766,7 @@ func (a *Account) Validate() error {
 	if len(a.Chars) > 4 {
 		return fmt.Errorf("conta %q possui %d personagens; maximo 4", a.Name, len(a.Chars))
 	}
+	activeUIDs := make(map[string]struct{}, len(a.Chars))
 	for i := range a.Chars {
 		character := &a.Chars[i]
 		if character.Name == "" {
@@ -659,6 +776,10 @@ func (a *Account) Validate() error {
 			continue
 		}
 		if err := character.Extended.Validate(); err != nil {
+			return fmt.Errorf("conta %q personagem[%d] %q: %w",
+				a.Name, i, character.Name, err)
+		}
+		if err := character.AlternateCelestial.Validate(); err != nil {
 			return fmt.Errorf("conta %q personagem[%d] %q: %w",
 				a.Name, i, character.Name, err)
 		}
@@ -675,6 +796,7 @@ func (a *Account) Validate() error {
 			return fmt.Errorf("conta %q personagem[%d] %q possui UID nao canonico",
 				a.Name, i, character.Name)
 		}
+		activeUIDs[character.UID] = struct{}{}
 		if character.ArchMortalUID != "" {
 			if _, err := NormalizeCharacterUID(character.ArchMortalUID); err != nil {
 				return fmt.Errorf("conta %q personagem[%d] %q: %w",
@@ -689,6 +811,87 @@ func (a *Account) Validate() error {
 	for i := PlayerCargoSlots; i < MaxCargo; i++ {
 		if a.Cargo[i].Index != 0 {
 			return fmt.Errorf("conta %q ocupa slot de cargo reservado %d", a.Name, i)
+		}
+	}
+	if len(a.CelestialCapsules) > 65535 {
+		return fmt.Errorf("conta %q possui capsulas Celestial demais", a.Name)
+	}
+	ids := make(map[uint16]struct{}, len(a.CelestialCapsules))
+	itemUIDs := make(map[string]struct{}, len(a.CelestialCapsules))
+	sourceUIDs := make(map[string]struct{}, len(a.CelestialCapsules))
+	for i, capsule := range a.CelestialCapsules {
+		if err := capsule.Validate(); err != nil {
+			return fmt.Errorf("conta %q capsula[%d]: %w", a.Name, i, err)
+		}
+		if _, exists := ids[capsule.ID]; exists {
+			return fmt.Errorf("conta %q possui ID de capsula duplicado %d", a.Name, capsule.ID)
+		}
+		if _, exists := itemUIDs[capsule.ItemUID]; exists {
+			return fmt.Errorf("conta %q possui item de capsula duplicado %q", a.Name, capsule.ItemUID)
+		}
+		if _, exists := sourceUIDs[capsule.SourceUID]; exists {
+			return fmt.Errorf("conta %q possui personagem de capsula duplicado %q", a.Name, capsule.SourceUID)
+		}
+		if _, exists := activeUIDs[capsule.SourceUID]; exists {
+			return fmt.Errorf("conta %q possui personagem ativo e capsula para o mesmo UID %q", a.Name, capsule.SourceUID)
+		}
+		ids[capsule.ID] = struct{}{}
+		itemUIDs[capsule.ItemUID] = struct{}{}
+		sourceUIDs[capsule.SourceUID] = struct{}{}
+	}
+	// Snapshot e item formam um único agregado. O selo pode circular entre o
+	// Carry visível e o Cargo da mesma conta, mas deve existir exatamente uma vez.
+	// A validação reversa também recusa selo preenchido sem snapshot.
+	sealCounts := make(map[string]int, len(a.CelestialCapsules))
+	validateSeal := func(item Item, location string) error {
+		id, filled := CelestialSealID(item)
+		if !filled {
+			return nil
+		}
+		capsuleIndex := -1
+		for i := range a.CelestialCapsules {
+			if a.CelestialCapsules[i].ID == id {
+				capsuleIndex = i
+				break
+			}
+		}
+		if capsuleIndex < 0 {
+			return fmt.Errorf("conta %q possui selo preenchido sem snapshot em %s", a.Name, location)
+		}
+		capsule := a.CelestialCapsules[capsuleIndex]
+		if item.UID == "" || item.UID != capsule.ItemUID {
+			return fmt.Errorf("conta %q capsula %d aponta para item inconsistente em %s", a.Name, id, location)
+		}
+		sealCounts[item.UID]++
+		if sealCounts[item.UID] > 1 {
+			return fmt.Errorf("conta %q possui selo duplicado da capsula %d", a.Name, id)
+		}
+		return nil
+	}
+	for i := 0; i < PlayerCargoSlots; i++ {
+		if err := validateSeal(a.Cargo[i], fmt.Sprintf("cargo[%d]", i)); err != nil {
+			return err
+		}
+	}
+	for charIndex := range a.Chars {
+		if a.Chars[charIndex].Name == "" {
+			continue
+		}
+		for slot := 0; slot < PlayerCarrySlots; slot++ {
+			if err := validateSeal(a.Chars[charIndex].Inv[slot],
+				fmt.Sprintf("personagem[%d].inv[%d]", charIndex, slot)); err != nil {
+				return err
+			}
+		}
+		for slot := range a.Chars[charIndex].Equip {
+			if _, filled := CelestialSealID(a.Chars[charIndex].Equip[slot]); filled {
+				return fmt.Errorf("conta %q possui selo preenchido em equipamento[%d]", a.Name, slot)
+			}
+		}
+	}
+	for _, capsule := range a.CelestialCapsules {
+		if sealCounts[capsule.ItemUID] != 1 {
+			return fmt.Errorf("conta %q capsula %d sem selo no Carry/Cargo", a.Name, capsule.ID)
 		}
 	}
 	return nil

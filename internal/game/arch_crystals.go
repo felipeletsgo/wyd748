@@ -9,14 +9,15 @@ import (
 )
 
 // Os quatro cristais elementais de Kefra, portados do volatile 187 nativo
-// (_MSG_UseItem.cpp:7184). Sao feitos como ARCH e concluir os quatro e
-// requisito para o Celestial -- o campo do nativo se chama
-// QuestInfo.Arch.Cristal, no bloco do Arch.
+// (_MSG_UseItem.cpp:7184). Sao feitos como ARCH e cada um acrescenta 100
+// pontos ao futuro orcamento do Celestial. Eles NAO sao requisito para criar
+// o Celestial; o progresso fica em QuestInfo.Arch.Cristal.
 //
 // NOTA DE DIVERGENCIA: o `if` do nativo testa ClassMaster CELESTIAL. Aqui o
-// portao e ARCH, por decisao do dono do servidor: a quest e pre-requisito da
-// ascensao, entao exigir Celestial para faze-la seria circular. O nome do
-// campo no proprio nativo sustenta essa leitura.
+// portao e ARCH porque o mesmo trecho exige nivel 355, inalcançavel pela
+// progressao Celestial 7.54 (cap interno 199). O campo no bloco Arch e o uso
+// posterior no calculo de pontos confirmam que se trata de progresso do Arch,
+// nao de uma trava da ascensao.
 const (
 	firstArchCrystal = uint16(4106) // Elime, Sylphid, Salion, Nohas
 	archCrystalCount = 4

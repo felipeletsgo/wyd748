@@ -266,12 +266,10 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	}
 
 	// Snapshot para rollback: a persistencia vem antes da confirmacao ao client.
+	previousChar := cloneCharacterState(p.Char)
 	previousInv := p.Char.Inv
 	previousGold := p.Char.Gold
-	previousExp := p.Char.Exp
-	previousDone := append([]int32(nil), p.Char.QuestsDone...)
 	previousX, previousY := p.X, p.Y
-	previousCitizenship := p.Char.Citizenship
 	previousEquip := p.Char.Equip
 	previousCounters := copyCounters(p)
 
@@ -323,9 +321,11 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 			p.Char.Gold += quest.Rewards.Gold
 		}
 	}
+	cytheraChanged := false
 	if quest.Rewards.Exp != 0 {
 		// O bau de experiencia (affect 39) tambem dobra a EXP de quest.
-		grantExp(p.Char, expWithDoubleBuff(p.Char, quest.Rewards.Exp))
+		levels, _ := grantExp(p.Char, expWithDoubleBuff(p.Char, quest.Rewards.Exp))
+		cytheraChanged = levels > 0 && updateCelestialCythera(p.Char)
 	}
 	if quest.Rewards.Citizenship {
 		// A cidadania guarda o NUMERO DO CANAL, como no nativo.
@@ -343,12 +343,8 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	}
 
 	desfazer := func() {
-		p.Char.Inv = previousInv
-		p.Char.Gold, p.Char.Exp = previousGold, previousExp
-		p.Char.QuestsDone = previousDone
+		*p.Char = previousChar
 		p.X, p.Y = previousX, previousY
-		p.Char.Citizenship = previousCitizenship
-		p.Char.Equip = previousEquip
 		p.SpecialCoins = previousCounters
 	}
 
@@ -383,6 +379,10 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	if cytheraChanged {
+		s.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
+		w.refreshAppearance(p)
+	}
 	if t := quest.Rewards.Teleport; t != nil {
 		// O teleporte ja re-materializa o avatar (com a tintura) no destino.
 		w.teleportPlayer(p, t.X, t.Y)

@@ -132,7 +132,7 @@ func TestCombineLindyCreatesEliteCape(t *testing.T) {
 		map[uint16]model.ItemDef{3193: {Index: 3193}}, 0)
 	var items [combineSlots]model.Item
 	var pos [combineSlots]int8
-	items[0], items[1] = model.Item{Index: 413}, model.Item{Index: 413}
+	items[0], items[1] = model.Item{Index: 3448}, model.Item{Index: 3448}
 	setItemAmount(&items[0], 10)
 	setItemAmount(&items[1], 10)
 	items[2] = model.Item{Index: 4127}
@@ -147,6 +147,7 @@ func TestCombineLindyCreatesEliteCape(t *testing.T) {
 		Level: archLockLevel355, MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
 	})
 	p.Char.Evolution = archEvolution
+	p.SpecialCoins = map[string]uint32{fameCounter: 10}
 	originalCape, err := materializeItem(model.Item{Index: 3193})
 	if err != nil {
 		t.Fatal(err)
@@ -167,11 +168,31 @@ func TestCombineLindyCreatesEliteCape(t *testing.T) {
 	}
 }
 
+func TestLindyRequiresSevenFiveFourLaktoreriumPackage(t *testing.T) {
+	for _, index := range []uint16{3448} {
+		item := model.Item{Index: index}
+		setItemAmount(&item, 10)
+		if !lindyMaterialStack(item) {
+			t.Fatalf("material %d de 10 unidades foi recusado", index)
+		}
+	}
+	for _, index := range []uint16{413, 3448} {
+		item := model.Item{Index: index}
+		setItemAmount(&item, 9)
+		if lindyMaterialStack(item) {
+			t.Fatalf("material %d incompleto foi aceito", index)
+		}
+	}
+	if item := (model.Item{Index: 413, Eff: [6]byte{effectAmount, 10}}); lindyMaterialStack(item) {
+		t.Fatal("poeira 413 foi aceita como pacote V754")
+	}
+}
+
 func TestCombineLindyRejectsCharacterOutsideArchLock(t *testing.T) {
 	w, p, session, st := newCraftWorld(t, "Lindy", nil, 0)
 	var items [combineSlots]model.Item
 	var pos [combineSlots]int8
-	items[0], items[1] = model.Item{Index: 413}, model.Item{Index: 413}
+	items[0], items[1] = model.Item{Index: 3448}, model.Item{Index: 3448}
 	setItemAmount(&items[0], 10)
 	setItemAmount(&items[1], 10)
 	items[2] = model.Item{Index: 4127}
@@ -198,7 +219,7 @@ func TestCombineLindyLevel370KeepsEquippedCape(t *testing.T) {
 	w, p, session, st := newCraftWorld(t, "Lindy", nil, 0)
 	var items [combineSlots]model.Item
 	var pos [combineSlots]int8
-	items[0], items[1] = model.Item{Index: 413}, model.Item{Index: 413}
+	items[0], items[1] = model.Item{Index: 3448}, model.Item{Index: 3448}
 	setItemAmount(&items[0], 10)
 	setItemAmount(&items[1], 10)
 	items[2] = model.Item{Index: 4127}
@@ -213,7 +234,7 @@ func TestCombineLindyLevel370KeepsEquippedCape(t *testing.T) {
 	p.Char.Evolution = archEvolution
 	p.Char.ArchLevel355 = true
 	p.Char.Equip[15] = model.Item{Index: 3197, UID: "11111111111141118111111111111111", Eff: [6]byte{43, 7}}
-	p.SpecialCoins = map[string]uint32{fameCounter: 1}
+	p.SpecialCoins = map[string]uint32{fameCounter: 10}
 	beforeCape := p.Char.Equip[15]
 
 	w.onCombineLindy(session, buildCombinePacket(items, pos))

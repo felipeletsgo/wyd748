@@ -29,7 +29,7 @@ import (
 var postgresSchema string
 
 const postgresWriteQueueSize = 2048
-const postgresSchemaVersion = 2
+const postgresSchemaVersion = 3
 const postgresOperationTimeout = 10 * time.Second
 const postgresStartupTimeout = 30 * time.Second
 const postgresAutosaveBatchSize = 64
@@ -115,9 +115,37 @@ type PostgresStore struct {
 	guildExportGen atomic.Uint64
 	closeOnce      sync.Once
 	closed         bool
+	readOnly       bool
 }
 
 func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, error) {
+	pool, err := openPostgresPool(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+	startupContext, cancelStartup := context.WithTimeout(ctx, postgresStartupTimeout)
+	defer cancelStartup()
+	if err := applyPostgresSchema(startupContext, pool); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("store: aplicar schema PostgreSQL: %w", err)
+	}
+	s := newPostgresStore(pool, cfg)
+	go s.persistLoop()
+	return s, nil
+}
+
+// NewPostgresReadOnlyStore abre somente o caminho de leitura usado para
+// importar uma conta modelo de outra base. Nao aplica migrations, nao inicia
+// worker de persistencia e nao pode bloquear/alterar a base de origem.
+func NewPostgresReadOnlyStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, error) {
+	pool, err := openPostgresPool(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &PostgresStore{pool: pool, readOnly: true}, nil
+}
+
+func openPostgresPool(ctx context.Context, cfg PostgresConfig) (*pgxpool.Pool, error) {
 	if strings.TrimSpace(cfg.URL) == "" {
 		return nil, errors.New("store: database URL ausente")
 	}
@@ -141,11 +169,11 @@ func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, 
 		pool.Close()
 		return nil, fmt.Errorf("store: conectar PostgreSQL: %w", err)
 	}
-	if err := applyPostgresSchema(startupContext, pool); err != nil {
-		pool.Close()
-		return nil, fmt.Errorf("store: aplicar schema PostgreSQL: %w", err)
-	}
-	s := &PostgresStore{
+	return pool, nil
+}
+
+func newPostgresStore(pool *pgxpool.Pool, cfg PostgresConfig) *PostgresStore {
+	return &PostgresStore{
 		pool:          pool,
 		guildsTxtPath: cfg.GuildsTxtPath,
 		writeQueue:    make(chan postgresWriteJob, postgresWriteQueueSize),
@@ -153,8 +181,6 @@ func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, 
 		overflowState: make(map[string]postgresWriteJob),
 		overflowRuns:  make(map[string]postgresWriteJob),
 	}
-	go s.persistLoop()
-	return s, nil
 }
 
 func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
@@ -170,6 +196,17 @@ func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		_, _ = conn.Exec(context.Background(),
 			`SELECT pg_advisory_unlock($1)`, postgresSchemaAdvisoryLock)
 	}()
+	// O schema embutido inclui a migração inicial dos payloads JSON. Depois de
+	// concluída, executá-la novamente em cada boot apenas revarre todas as
+	// contas e pode atrasar o servidor por dezenas de segundos em uma base de
+	// carga. Consulte a versão sob o mesmo advisory lock e só execute o DDL
+	// completo quando a tabela ainda não existir ou estiver desatualizada.
+	var currentVersion int
+	if err := conn.QueryRow(ctx,
+		`SELECT COALESCE(MAX(version),0) FROM schema_migrations`).Scan(&currentVersion); err == nil &&
+		currentVersion == postgresSchemaVersion {
+		return nil
+	}
 	if _, err := conn.Exec(ctx, postgresSchema); err != nil {
 		return err
 	}
@@ -412,6 +449,9 @@ func (s *PostgresStore) PostgresAsyncStats() (queued, pending int, coalesced uin
 }
 
 func (s *PostgresStore) flushLocked() {
+	if s.readOnly || s.writeQueue == nil {
+		return
+	}
 	done := make(chan struct{})
 	s.writeQueue <- postgresWriteJob{done: done}
 	<-done
@@ -420,7 +460,7 @@ func (s *PostgresStore) flushLocked() {
 func (s *PostgresStore) Flush() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !s.closed {
+	if !s.closed && !s.readOnly {
 		s.flushLocked()
 	}
 }
@@ -428,6 +468,12 @@ func (s *PostgresStore) Flush() {
 func (s *PostgresStore) Close() {
 	s.closeOnce.Do(func() {
 		s.mu.Lock()
+		if s.readOnly {
+			s.closed = true
+			s.mu.Unlock()
+			s.pool.Close()
+			return
+		}
 		s.flushLocked()
 		s.closed = true
 		close(s.writeQueue)
@@ -875,6 +921,9 @@ func (s *PostgresStore) saveSnapshots(snapshots []*accountSnapshot) error {
 }
 
 func (s *PostgresStore) SaveAccount(acc *model.Account) error {
+	if s.readOnly {
+		return errors.New("store: PostgreSQL somente leitura")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	snapshot, err := snapshotAccount(acc)
@@ -886,6 +935,9 @@ func (s *PostgresStore) SaveAccount(acc *model.Account) error {
 }
 
 func (s *PostgresStore) SaveAccountAsync(acc *model.Account) error {
+	if s.readOnly {
+		return errors.New("store: PostgreSQL somente leitura")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	snapshot, err := snapshotAccount(acc)
@@ -903,6 +955,9 @@ func (s *PostgresStore) SaveAccounts(accounts ...*model.Account) error {
 }
 
 func (s *PostgresStore) CreateAccount(acc *model.Account) error {
+	if s.readOnly {
+		return errors.New("store: PostgreSQL somente leitura")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	snapshot, err := snapshotAccount(acc)
@@ -985,11 +1040,82 @@ func (s *PostgresStore) LoadGuilds() (*model.GuildRegistry, error) {
 	return &registry, nil
 }
 
-func (s *PostgresStore) SaveGameState(guilds *model.GuildRegistry, accounts ...*model.Account) error {
+func (s *PostgresStore) LoadInstanceState() (*model.InstanceStateSnapshot, error) {
+	ctx, cancel := postgresContext()
+	defer cancel()
+	var payload []byte
+	err := s.pool.QueryRow(ctx,
+		`SELECT payload FROM instance_state WHERE singleton=true`).Scan(&payload)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return &model.InstanceStateSnapshot{Version: model.InstanceStateVersion}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var state model.InstanceStateSnapshot
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&state); err != nil {
+		return nil, fmt.Errorf("store: instance state corrompido: %w", err)
+	}
+	if state.Version != model.InstanceStateVersion {
+		return nil, fmt.Errorf("store: instance state versao %d; esperado %d",
+			state.Version, model.InstanceStateVersion)
+	}
+	return &state, nil
+}
+
+func (s *PostgresStore) SaveInstanceState(state *model.InstanceStateSnapshot) error {
+	if s.readOnly {
+		return errors.New("store: PostgreSQL somente leitura")
+	}
+	if state == nil {
+		state = &model.InstanceStateSnapshot{Version: model.InstanceStateVersion}
+	}
+	if state.Version != model.InstanceStateVersion {
+		return fmt.Errorf("store: estado de instancias versao %d; esperado %d",
+			state.Version, model.InstanceStateVersion)
+	}
+	b, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if guilds == nil && len(accounts) == 0 {
+	s.flushLocked()
+	return s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, `
+			INSERT INTO instance_state(singleton,payload) VALUES(true,$1)
+			ON CONFLICT(singleton) DO UPDATE SET
+				payload=EXCLUDED.payload,
+				version=instance_state.version+1,
+				updated_at=now()`, b)
+		return err
+	})
+}
+
+func (s *PostgresStore) SaveGameState(guilds *model.GuildRegistry, accounts ...*model.Account) error {
+	return s.saveGameStateWithInstanceState(nil, guilds, accounts...)
+}
+
+func (s *PostgresStore) SaveGameStateWithInstanceState(guilds *model.GuildRegistry,
+	state *model.InstanceStateSnapshot, accounts ...*model.Account) error {
+	return s.saveGameStateWithInstanceState(state, guilds, accounts...)
+}
+
+func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStateSnapshot,
+	guilds *model.GuildRegistry, accounts ...*model.Account) error {
+	if s.readOnly {
+		return errors.New("store: PostgreSQL somente leitura")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if state == nil && guilds == nil && len(accounts) == 0 {
 		return nil
+	}
+	if state != nil && state.Version != model.InstanceStateVersion {
+		return fmt.Errorf("store: estado de instancias versao %d; esperado %d",
+			state.Version, model.InstanceStateVersion)
 	}
 	var guildPayload []byte
 	var err error
@@ -998,6 +1124,13 @@ func (s *PostgresStore) SaveGameState(guilds *model.GuildRegistry, accounts ...*
 			return fmt.Errorf("store: guilds invalidas: %w", err)
 		}
 		guildPayload, err = json.Marshal(guilds)
+		if err != nil {
+			return err
+		}
+	}
+	var instancePayload []byte
+	if state != nil {
+		instancePayload, err = json.Marshal(state)
 		if err != nil {
 			return err
 		}
@@ -1018,6 +1151,17 @@ func (s *PostgresStore) SaveGameState(guilds *model.GuildRegistry, accounts ...*
 					payload=EXCLUDED.payload,
 					version=guild_state.version+1,
 					updated_at=now()`, guildPayload)
+			if err != nil {
+				return err
+			}
+		}
+		if state != nil {
+			_, err := tx.Exec(ctx, `
+				INSERT INTO instance_state(singleton,payload) VALUES(true,$1)
+				ON CONFLICT(singleton) DO UPDATE SET
+					payload=EXCLUDED.payload,
+					version=instance_state.version+1,
+					updated_at=now()`, instancePayload)
 			return err
 		}
 		return nil
@@ -1164,6 +1308,9 @@ func (s *PostgresStore) saveCharStateSnapshots(snapshots []*postgresCharStateSna
 }
 
 func (s *PostgresStore) SaveCharState(uid string, state *model.CharState) error {
+	if s.readOnly {
+		return errors.New("store: PostgreSQL somente leitura")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	payload, err := charStatePayload(uid, state)
@@ -1175,6 +1322,9 @@ func (s *PostgresStore) SaveCharState(uid string, state *model.CharState) error 
 }
 
 func (s *PostgresStore) SaveCharStateAsync(uid string, state *model.CharState) error {
+	if s.readOnly {
+		return errors.New("store: PostgreSQL somente leitura")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	payload, err := charStatePayload(uid, state)

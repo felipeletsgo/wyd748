@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -135,7 +136,7 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	go func() {
 		defer func() { <-w.authSlots }()
 		acc, err := account.Authenticate(w.store, accountName, password)
-		w.commands <- command{s: s, login: &loginResult{
+		w.commands <- command{s: s, queuedAt: time.Now(), login: &loginResult{
 			accountName: accountName, account: acc, err: err,
 		}}
 	}()
@@ -335,7 +336,15 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	p.CharSlot = slot
 	p.Char = &p.Account.Chars[slot]
 	ch := p.Char
-	ch.X, ch.Y = playerEntryX, playerEntryY
+	entryX, entryY := playerEntryX, playerEntryY
+	if isLoadtestAccountName(p.Account.Name, w.loadtestAccountPrefix) {
+		entryX, entryY = w.loadtestSpawn.X, w.loadtestSpawn.Y
+		// Bots continuam na area Tauron, mas nao ocupam todos a mesma celula:
+		// isso exercita movimento/colisao e evita que o simulador pare por uma
+		// rejeicao de rota causada pelo proprio grupo de carga.
+		entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 32, p)
+	}
+	ch.X, ch.Y = entryX, entryY
 	// Zera os affects em memoria ANTES de restaurar do charstate. O Char e um
 	// ponteiro para a conta em RAM e SOBREVIVE ao vaivem da tela de selecao (a
 	// conta continua autenticada); sem esta limpeza, loadCharStateInto ACUMULARIA
@@ -360,10 +369,22 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	// ClientId = MENOR slot livre (comportamento do TMSrv nativo, que usa o indice
 	// da conexao). Um contador so-crescente dava id novo a cada relog e o client
 	// 7.48 (mesmo processo) mantem estado atrelado ao id antigo -> chaos com lixo
-	// gigante e HP/MP travados na segunda entrada.
-	p.ID = w.allocPlayerID()
+	// gigante e HP/MP travados na segunda entrada. Nunca sobrescrever um jogador
+	// quando os 999 slots estao ocupados.
+	playerID, ok := w.allocPlayerID()
+	if !ok {
+		p.CharSlot = -1
+		p.Char = nil
+		p.InWorld = false
+		p.ID = 0
+		s.Send(wire.MessagePanel("The world is full. Please try again later."))
+		log.Printf("[#%d] ENTER-WORLD recusado: limite de 999 jogadores atingido", s.ID)
+		return
+	}
+	p.ID = playerID
 	p.InWorld = true
-	p.X, p.Y = playerEntryX, playerEntryY
+	p.X, p.Y = entryX, entryY
+	p.NextCPRecovery = w.now().Add(chaosRecoveryInterval)
 	w.playersByID[p.ID] = p
 	log.Printf("[#%d] ENTER-WORLD %s id=%d @(%d,%d)", s.ID, ch.Name, p.ID, ch.X, ch.Y)
 
@@ -372,8 +393,8 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	// 2) self-CreateMob (spawn=2): materializa o proprio player. Parte da sequencia
 	// COMPROVADA in-game; sem ele o re-enter (2o login do mesmo client) reconstroi o
 	// self com estado velho (HP/MP travados). ActionStop vem depois, senao reseta a pose.
-	s.Send(wire.CreateMobExtended(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
-		bodyAncient(ch), wireExtendedScore(ch), ch.Affects[:], 2, ch.GuildID, ch.CP))
+	s.Send(wire.CreateMobExtendedWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
+		bodyAncient(ch), wireExtendedScore(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP))
 	// 3) sequencia de login (ordem Micronics): 3A8 -> 336 -> 185 -> 337 -> 36B -> 181 -> 366
 	s.Send(wire.WarInfo())
 	s.Send(wire.UpdateScore(p.ID, *ch))
@@ -390,6 +411,28 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	// deixando o sistema de visibilidade inconsistente e sem escalar pra milhares.
 	w.refreshPlayerVisibility(p)
 	log.Printf("[#%d] visibilidade inicial: %d entidades", s.ID, len(p.Visible))
+}
+
+// isLoadtestAccountName restringe o nascimento alternativo ao conjunto que o
+// provisionador realmente cria. Um nome arbitrario que apenas comece por
+// "bot" nao deve ser movido para Noatum por acidente.
+func isLoadtestAccountName(name, prefix string) bool {
+	prefix = strings.ToLower(strings.TrimSpace(prefix))
+	name = strings.ToLower(strings.TrimSpace(name))
+	if prefix == "" || !strings.HasPrefix(name, prefix) {
+		return false
+	}
+	suffix := name[len(prefix):]
+	if len(suffix) != 4 {
+		return false
+	}
+	for _, ch := range suffix {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	n, err := strconv.Atoi(suffix)
+	return err == nil && n >= 1 && n <= 990
 }
 
 // onApplyBonus trata MSG_ApplyBonus 0x277: BonusType int16@12, Detail int16@14.
@@ -659,6 +702,9 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		w.craftSefirot(s, p, class)
 		return
 	}
+	if w.handleUxmalNPC(s, p, m) {
+		return
+	}
 	if shopType, isShop := shopTypeForMerchant(m.Def.Extended.Merchant); isShop {
 		p.ShopNPC = m.ID // lembra a loja aberta pro buy (server-authoritative)
 		display := shopDisplayList(m.Def.Vende, shopType)
@@ -715,7 +761,22 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	}
 	w.cancelTrade(p, "compra em loja")
 	// O client manda TargetID=0 no buy; a loja aberta vem do estado do servidor.
+	// A excecao nativa e a janela de recompra: nela TargetID e o proprio
+	// ClientID. O alvo/slot continuam sendo validados no fluxo separado.
+	targetID := binary.LittleEndian.Uint16(pkt[12:14])
 	sellSlot := binary.LittleEndian.Uint16(pkt[14:16]) // TargetCarryPos@14
+	if targetID == p.ID {
+		if p.ShopNPC == 0 {
+			s.Send(wire.MessagePanel("Open a merchant before buying back an item."))
+			return
+		}
+		if _, err := w.resolveNPCInteraction(p, p.ShopNPC); err != nil {
+			s.Send(wire.MessagePanel("The merchant is no longer available."))
+			return
+		}
+		w.onRebuyPurchase(s, p, pkt, sellSlot)
+		return
+	}
 	if p.ShopNPC == 0 {
 		log.Printf("[#%d] buy sem loja aberta", s.ID)
 		return
@@ -818,6 +879,11 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] venda invalida type=%d pos=%d", s.ID, myType, myPos)
 		return
 	}
+	if _, filled := model.CelestialSealID(*src); filled {
+		s.Send(wire.MessagePanel("A filled Spirit's Seal cannot be sold."))
+		s.Send(wire.SendItem(p.ID, myType, myPos, *src))
+		return
+	}
 	sold := src.Index
 	def, exists := w.items[sold]
 	price := uint32(0)
@@ -831,17 +897,30 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 		s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // item intacto
 		return
 	}
-	oldItem, oldGold := *src, p.Char.Gold
+	oldItem, oldGold, oldRebuy := *src, p.Char.Gold, p.Rebuy
+	// O item vendido entra na lixeira somente depois de ter uma identidade
+	// server-side. Saves antigos sem UID sao migrados no proprio movimento.
+	if oldItem.UID == "" {
+		var err error
+		oldItem, err = materializeItem(oldItem)
+		if err != nil {
+			s.Send(wire.SendItem(p.ID, myType, myPos, *src))
+			log.Printf("[#%d] venda rejeitada: UID do item %d nao pode ser materializado: %v", s.ID, sold, err)
+			return
+		}
+	}
 	*src = model.Item{} // esvazia o slot
 	p.Char.Gold += price
+	p.addRebuy(oldItem, price)
 	// Persist-before-confirm: reverte item+gold se o disco falhar.
 	if err := w.saveAccount(p.Account); err != nil {
-		*src, p.Char.Gold = oldItem, oldGold
+		*src, p.Char.Gold, p.Rebuy = oldItem, oldGold, oldRebuy
 		log.Printf("[#%d] ERRO ao salvar venda item=%d: %v", s.ID, sold, err)
 		return
 	}
 	s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // slot agora vazio
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))            // atualiza gold
+	w.sendRebuyList(p)
 	log.Printf("[#%d] vendeu item %d por %d gold (gold=%d)", s.ID, sold, price, p.Char.Gold)
 }
 
@@ -868,15 +947,24 @@ func (w *World) onMove(s *net.Session, pkt []byte) {
 		return
 	}
 	previousX, previousY := p.X, p.Y
+	startX := binary.LittleEndian.Uint16(pkt[12:14])
+	startY := binary.LittleEndian.Uint16(pkt[14:16])
+	if startX == 0 || startY == 0 {
+		startX, startY = previousX, previousY
+	}
 	p.X, p.Y = x, y
 	p.Char.X, p.Char.Y = p.X, p.Y
 	if shop := w.ghostShops[p.BrowsingGhostShopID]; shop == nil ||
 		!inView(p.X, p.Y, shop.X, shop.Y) {
 		p.BrowsingGhostShopID = 0
 	}
-	// Ao andar, recalcula quem entra/sai do raio (mobs, players e itens no chao).
+	// Publique primeiro para quem ja enxergava o jogador. Se a visibilidade for
+	// atualizada antes, um observador que acabou de entrar no raio recebe
+	// CreateMob no destino e logo depois uma rota partindo da origem antiga,
+	// fazendo o avatar voltar e avancar como um pequeno teleporte.
+	w.publishPlayerMove(p, startX, startY, pkt[28:52])
+	// Depois aplica somente os deltas de entrada/saida da janela espacial.
 	w.refreshPlayerVisibility(p)
-	w.publishPlayerMove(p, previousX, previousY)
 }
 
 func actionTarget748(pkt []byte) (uint16, uint16) {
@@ -945,9 +1033,8 @@ func (w *World) onActionStop(s *net.Session, pkt []byte) {
 	}
 	p.X, p.Y = x, y
 	p.Char.X, p.Char.Y = x, y
-	p.MovePublished = false
-	w.refreshPlayerVisibility(p)
 	w.publishPlayerStop(p)
+	w.refreshPlayerVisibility(p)
 }
 
 // onMoveStop: MSG_MOVESTOP 0x2CB (36B). CurrentX/Y ficam em @20/@24; o client
@@ -967,9 +1054,8 @@ func (w *World) onMoveStop(s *net.Session, pkt []byte) {
 	}
 	p.X, p.Y = uint16(x), uint16(y)
 	p.Char.X, p.Char.Y = p.X, p.Y
-	p.MovePublished = false
-	w.refreshPlayerVisibility(p)
 	w.publishPlayerStop(p)
+	w.refreshPlayerVisibility(p)
 }
 
 // recallX/recallY sao o ponto seguro de Armia usado pelo renascimento e pelo
@@ -987,6 +1073,11 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld {
 		return false
 	}
+	// Um restart/recall tambem e uma saida da instancia. Sem esta liberacao,
+	// o jogador morto continuava em MemberIDs e a limpeza posterior podia
+	// teleporta-lo novamente para a sala antiga ou bloquear uma nova entrada.
+	now := w.now()
+	w.detachPlayerFromItemInstances(p.ID, now)
 	dead := playerCurHP(p.Char) == 0
 	if dead {
 		for _, observer := range w.nearbyWorldPlayers(p.X, p.Y, viewHalfX) {
@@ -1005,7 +1096,7 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 	}
 	p.X, p.Y = w.findFreePlayerPosition(recallX, recallY, 8, p)
 	p.Char.X, p.Char.Y = p.X, p.Y
-	p.MovePublished = false
+	clearPublishedPlayerMove(p)
 	// A posicao segura persiste; falha de disco nao aborta o recall (a posicao
 	// em RAM ja esta correta e o autosave a cobre em segundos).
 	if err := w.saveAccount(p.Account); err != nil {
@@ -1046,12 +1137,6 @@ func (w *World) onSetShortSkill(s *net.Session, pkt []byte) {
 	filterShortSkills(p.Char)
 	s.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
 	log.Printf("[#%d] barra de skills atualizada: %v", s.ID, p.Char.ShortSkill)
-}
-
-func clearShortSkills(ch *model.Char) {
-	for i := range ch.ShortSkill {
-		ch.ShortSkill[i] = 0xFF
-	}
 }
 
 // filterShortSkills separa a mascara autoritativa de skills aprendidas dos
@@ -1156,7 +1241,7 @@ func isLearnedClassSkill(ch *model.Char, skillIndex int) bool {
 }
 
 func specialSkillBit(skillIndex int) (uint, bool) {
-	if skillIndex < 97 || skillIndex > 101 {
+	if skillIndex < 97 || skillIndex > 102 {
 		return 0, false
 	}
 	return uint(skillIndex - 72), true
@@ -1270,6 +1355,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			log.Printf("[#%d] errou ataque PvP em %q", s.ID, target.Char.Name)
 			return
 		}
+		calculated = addFlatDamage(calculated, w.equipmentGemBonuses(p.Char).forceDamage)
+		calculated = absorbFlatDamage(calculated, w.equipmentGemBonuses(target.Char).absorbDamage)
 		// Montaria adulta viva do alvo absorve 25% do dano no proprio HP.
 		calculated = uint32(w.absorbMountDamage(target, int(calculated)))
 		applied := minU32(calculated, playerCurHP(target.Char))
@@ -1292,15 +1379,14 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		w.syncPlayerVitals(target)
 		w.updatePartyMember(target)
 		if lethal {
-			w.sendToPlayerView(target, func() []byte {
-				return wire.CNFMobKill(target.ID, p.ID, target.Char.Exp)
-			})
+			w.publishPlayerDeath(target, p.ID)
 		}
 		log.Printf("[#%d] ataque PvP em %q dmg_calculado=%d aplicado=%d hp=%d",
 			s.ID, target.Char.Name, calculated, applied, playerCurHP(target.Char))
 		return
 	}
 	if m == nil || !m.Def.IsMonster() || m.SummonerID != 0 ||
+		(m.InstanceID != "" && !w.instanceMobTargetAllowed(m, p)) ||
 		chebyshev(p.X, p.Y, m.X, m.Y) > maxRange ||
 		!w.combatLineOfSight(p.X, p.Y, m.X, m.Y) {
 		return
@@ -1319,6 +1405,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		return
 	}
 	dmg = uint32(applyCouragePvEDamage(p.Char, int(dmg), false))
+	dmg = addFlatDamage(dmg, w.equipmentGemBonuses(p.Char).forceDamage)
 	// Escudo de boss absorve ANTES de aplicar, para que o numero flutuante do
 	// client mostre o dano real (zero quando imune).
 	dmg = w.bossMitigateDamage(m, dmg)
@@ -1332,15 +1419,19 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	w.notifyMobDamaged(m, oldHP, p.ID, dmg)
 	// O 0x181 atualiza a barra, mas somente o resultado 0x39D produz animacao e
 	// o numero flutuante do dano no client 7.48.
-	w.broadcast(func() []byte {
+	// Instance mobs share the map coordinates with the public world, but their
+	// hit animation and damage must remain private to the current stage members.
+	// Sending this through broadcast leaked combat packets to outsiders (and
+	// let a client observe an encounter it could not target).
+	w.sendToMobView(m, func() []byte {
 		return spectralPacket(p.Char, wire.AttackHitExtended(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
 			dmg, m.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char)))
 	})
 	if m.HP == 0 {
-		w.killMobState(p, m, dmg, minU32(dmg, m.Def.Extended.MaxHP))
+		w.killMobState(p, m, dmg, minU32(dmg, m.Def.Extended.MaxHP), true)
 	} else {
 		// golpe nao-fatal: so baixa a barra de HP.
-		w.broadcast(func() []byte {
+		w.sendToMobView(m, func() []byte {
 			return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
 				m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
 		})
@@ -1350,12 +1441,13 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 }
 
 // killMobState processa a morte de um monstro, xp, respawn e pacotes de morte.
-func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage uint32) {
+func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage uint32, persist bool) {
 	m.Dead = true
 	baseReward := scaledMobExperience(m.Def.ExpReward, w.gameplay)
 	shares := partyExpShares(p, baseReward, w.gameplay.PartyEXPBonusPercent)
 	expByPlayer := make(map[*Player]uint32, len(shares))
 	leveledUp := make(map[*Player]bool, len(shares))
+	cytheraChanged := make(map[*Player]bool, len(shares))
 	killerLevels, killerReward := 0, uint32(0)
 	for _, share := range shares {
 		receiver := share.player
@@ -1363,7 +1455,12 @@ func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage 
 		oldHP, oldMP := playerCurHP(receiver.Char), playerCurMP(receiver.Char)
 		// Bau de experiencia (affect 39) dobra a EXP por receptor: o buff e
 		// individual, entao cada membro do grupo aplica o proprio.
-		levels, appliedEXP := grantExp(receiver.Char, expWithDoubleBuff(receiver.Char, share.reward))
+		gemReward := applyPercentReward(share.reward, w.equipmentGemBonuses(receiver.Char).expPercent)
+		combatReward := celestialCombatExperience(receiver.Char, gemReward)
+		levels, appliedEXP := grantExp(receiver.Char, expWithDoubleBuff(receiver.Char, combatReward))
+		if levels > 0 && updateCelestialCythera(receiver.Char) {
+			cytheraChanged[receiver] = true
+		}
 		w.recalcPlayer(receiver.Char)
 		if oldHP > 0 {
 			setPlayerCurHP(receiver.Char, minU32(oldHP, playerMaxHP(receiver.Char)))
@@ -1394,7 +1491,8 @@ func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage 
 	w.rollMobDrops(p, m)
 	w.rollMobGold(p, m)
 	for i := range w.generators {
-		if w.generators[i].def.Index == m.GenerIndex && w.generators[i].current > 0 {
+		if m.InstanceID == "" && m.GenerIndex >= 0 &&
+			w.generators[i].def.Index == m.GenerIndex && w.generators[i].current > 0 {
 			w.generators[i].current--
 			break
 		}
@@ -1416,16 +1514,18 @@ func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage 
 		if leveledUp[receiver] {
 			receiver.Session.Send(wire.UpdateScore(receiver.ID, *receiver.Char))
 		}
+		if cytheraChanged[receiver] {
+			receiver.Session.Send(wire.SendItem(
+				receiver.ID, placeEquip, 1, receiver.Char.Equip[1]))
+			w.refreshAppearance(receiver)
+		}
 		w.updatePartyMember(receiver)
 	}
-	saved := make(map[*model.Account]struct{}, len(shares))
-	for _, share := range shares {
-		if _, done := saved[share.player.Account]; done {
-			continue
-		}
-		saved[share.player.Account] = struct{}{}
-		if err := w.saveAccount(share.player.Account); err != nil {
-			log.Printf("[#%d] salvar progressao de %s: %v", p.Session.ID, share.player.Char.Name, err)
+	if persist {
+		accounts := uniqueKillAccounts(p, shares)
+		if err := w.saveAccountsAtomic(accounts...); err != nil {
+			log.Printf("[#%d] salvar progressao da morte: %v", p.Session.ID, err)
+			w.poisonAccountsAfterPersistenceFailure(accounts, "morte de mob", err)
 		}
 	}
 	// Subsistema de boss: o morto pode ser um add do encontro ou o proprio boss.
@@ -1522,6 +1622,10 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 		return
 	}
 	item := *src
+	if _, filled := model.CelestialSealID(item); filled {
+		s.Send(wire.MessagePanel("A filled Spirit's Seal cannot be dropped."))
+		return
+	}
 	// Reserva no mundo sem publicar. O item somente aparece aos clientes depois
 	// que a remocao autoritativa do inventario estiver persistida.
 	g := w.createGroundDrop(p.X, p.Y, item, false)
@@ -1647,13 +1751,13 @@ func (w *World) onDisconnect(s *net.Session) {
 				other.hide(p.ID)
 			}
 		}
-		if p.Account != nil {
+		if p.Account != nil && !p.PersistencePoisoned {
 			if err := w.saveAccount(p.Account); err != nil {
 				log.Printf("[#%d] ERRO ao salvar conta %q: %v", s.ID, p.Account.Name, err)
 			}
 		}
 		// Persiste buffs/moedas antes de largar o player, para sobreviverem ao relog.
-		if p.InWorld {
+		if p.InWorld && !p.PersistencePoisoned {
 			w.saveCharState(p)
 		}
 		w.releaseAccountSession(s, p.Account)
@@ -1676,7 +1780,14 @@ func (w *World) claimAccountSession(s *net.Session, name string) bool {
 	}
 	key := accountSessionKey(name)
 	if active := w.accountSessions[key]; active != nil && active != s {
-		return false
+		// Em carga alta, o socket pode terminar antes de o comando nil de
+		// desconexão chegar ao loop do World. Não mantenha a conta presa até o
+		// backlog ser drenado: a reserva do socket morto já não protege ninguém.
+		if active.IsClosed() {
+			delete(w.accountSessions, key)
+		} else {
+			return false
+		}
 	}
 	w.accountSessions[key] = s
 	return true

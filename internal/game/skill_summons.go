@@ -101,7 +101,11 @@ func (w *World) replaceContractSummon(owner *Player, t *model.VolatileSummon) bo
 			Attack: t.Attack, Defense: t.Defense, MaxHP: t.HP, MaxMP: 100, AttackRun: attackRun},
 	}
 	def.Extended.CurHP, def.Extended.CurMP = t.HP, 100
-	m := &Mob{ID: w.allocMobID(), Def: def, X: x, Y: y, HP: t.HP, GenerIndex: -1,
+	mobID := w.allocMobID()
+	if mobID == 0 {
+		return false
+	}
+	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: t.HP, GenerIndex: -1,
 		SummonerID: owner.ID, SummonKind: summonKindContract, SummonRange: t.AttackRange}
 	w.mobs = append(w.mobs, m)
 	w.publishMobSpawn(m)
@@ -160,7 +164,12 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 			},
 		}
 		def.Extended.CurHP, def.Extended.CurMP = def.Extended.MaxHP, def.Extended.MaxMP
-		m := &Mob{ID: w.allocMobID(), Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
+		mobID := w.allocMobID()
+		if mobID == 0 {
+			log.Printf("[#%d] invocacao %q interrompida: faixa de IDs de mob esgotada", owner.Session.ID, template.name)
+			break
+		}
+		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
 			GenerIndex: -1, LeaderID: 0, SummonerID: owner.ID, SummonKind: summonKindBM, SummonRange: mobAttackRange}
 		w.mobs = append(w.mobs, m)
 		w.publishMobSpawn(m)
@@ -277,7 +286,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 					damage, target.mob.Def.Extended.MaxHP, 0, summon.Def.Extended.MaxMP)
 			})
 			if target.mob.HP == 0 {
-				w.killMobState(owner, target.mob, damage, damage)
+				w.killMobState(owner, target.mob, damage, damage, true)
 			}
 			continue
 		}
@@ -302,9 +311,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 		w.syncPlayerVitals(target.user)
 		w.updatePartyMember(target.user)
 		if playerCurHP(target.user.Char) == 0 {
-			w.sendToPlayerView(target.user, func() []byte {
-				return wire.CNFMobKill(target.user.ID, summon.ID, target.user.Char.Exp)
-			})
+			w.publishPlayerDeath(target.user, summon.ID)
 		}
 	}
 }

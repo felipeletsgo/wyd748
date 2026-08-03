@@ -32,7 +32,9 @@ func matchesEvolution(ch *model.Char, required string) bool {
 	actual := strings.ToLower(strings.TrimSpace(ch.Evolution))
 	switch strings.ToLower(strings.TrimSpace(required)) {
 	case "mortal":
-		return actual == ""
+		// Fichas nativas antigas deixam Evolution vazio; dados novos podem
+		// persistir o nome explicito. Ambos representam o mesmo Mortal.
+		return actual == "" || actual == "mortal"
 	case "arch":
 		return actual == "arch"
 	case "celestial":
@@ -148,7 +150,7 @@ func (w *World) useNightmareTicket(s *net.Session, p *Player, item *model.Item, 
 func (w *World) useMasteryReset(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule, code int) {
 	ch := p.Char
-	if ch == nil || ch.Extended == nil || strings.TrimSpace(ch.Evolution) != "" ||
+	if ch == nil || ch.Extended == nil || !matchesEvolution(ch, "mortal") ||
 		ch.Extended.Level < rule.MinLevel || ch.Extended.Level >= rule.MaxLevelExclusive ||
 		questCompleted(ch, masteryResetFlag(code)) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))

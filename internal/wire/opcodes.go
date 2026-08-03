@@ -21,7 +21,7 @@ const (
 	OpSetHpMp            = 0x181 // S->C HP/MP do mob (20B)
 	OpUpdateScore        = 0x336 // S->C score/affects publicos de player ou mob (92B)
 	OpUpdateAffect       = 0x3B9 // S->C 16 affects completos (140B no client 7.48)
-	OpUpdateEtc          = 0x337 // S->C CP/exp/pontos/gold (48B com cauda wide)
+	OpUpdateEtc          = 0x337 // S->C Hold/exp/pontos/gold (48B com cauda wide; CP fica no CreateMob)
 	OpCNFMobKill         = 0x338 // S->C confirma morte e atualiza EXP do killer
 	OpUpdateCarry        = 0x185 // S->C inventario interativo (528B)
 	OpUpdateCargoGold    = 0x339 // S->C gold armazenado no Cargo (16B)
@@ -38,6 +38,9 @@ const (
 	OpWithdraw           = 0x387 // C<->S retirar gold do Cargo (16B)
 	OpDeposit            = 0x388 // C<->S depositar gold no Cargo (16B)
 	OpUseItem            = 0x373 // C->S usar item volatil (36B)
+	OpCapsuleInfo        = 0x2CD // C->S consulta os dados de um Spirit's Seal (16B)
+	OpPutoutSeal         = 0x3CC // C->S extrai o personagem de um Spirit's Seal (52B)
+	OpCNFCapsuleInfo     = 0xDC3 // S->C MSG_CAPSULEINFO compacto do client 7.48 (52B)
 	OpSendItem           = 0x182 // S->C confirma UM slot (24B)
 	OpWarInfo            = 0x3A8 // S->C info de guerra (24B)
 	OpDropItem           = 0x272 // C->S dropar item (32B)
@@ -58,8 +61,9 @@ const (
 	OpPing               = 0x3A0 // C->S keepalive (12B)
 	OpSysQuit            = 0x3AE // C<->S solicita/confirma saida (16B)
 	OpUseNPC             = 0x28B // C->S clicou num NPC generico (npcid@12, 20B)
-	OpRequestInfoPlay    = 0x324 // S->C janela de inspecionar jogador (212B) -- suporte no 7.48 A CONFIRMAR
 	OpGuildDeprivate     = 0x28C // C->S expulsa membro da guild (MSG_STANDARDPARM: client id do alvo@12)
+	OpInviteGuild        = 0x3D5 // C->S recruta jogador (GuildTarget@12, InviteType@16)
+	OpRebuy              = 0x3E8 // C<->S abre/atualiza a lista de recompra
 	OpGuildAlly          = 0xE12 // C->S alianca entre guilds (Guild@12, Ally@16) -- so o mestre
 	OpGuildWar           = 0xE0E // C->S declara guerra (Guild@12, Enemy@16) -- sem sistema de guerra
 	OpChallenge          = 0x28E // C->S interacao/desafio de zona de guild (Parm@12)

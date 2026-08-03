@@ -74,6 +74,40 @@ func StandardParm(opcode, id uint16, parm uint32) []byte {
 	return b
 }
 
+// CapsuleInfoData representa os campos que a UI 7.48 aceita em
+// MSG_CAPSULEINFO. O executavel copia exatamente 13 DWORDs (52 bytes) para um
+// cache de 12 entradas. Nesta versao existem somente dois WORDs de Mastery;
+// Skill continua tendo os nove campos exibidos em tres linhas no tooltip.
+type CapsuleInfoData struct {
+	Class   uint16
+	Level   uint16
+	Str     uint16
+	Int     uint16
+	Dex     uint16
+	Con     uint16
+	Mastery [2]uint16
+	Skill   [9]uint16
+	Quest   uint16
+}
+
+// CNFCapsuleInfo monta o 0xDC3 recebido diretamente por WYD.exe 7.48. O 0xD1F
+// de 76 bytes e um pacote interno DB/TMSrv de fontes posteriores e nao possui
+// handler neste executavel. O ID da capsula fica em @12.
+func CNFCapsuleInfo(sessionID, capsuleID uint16, info CapsuleInfoData) []byte {
+	b := Build(OpCNFCapsuleInfo, sessionID, 52)
+	putU32(b, 12, uint32(capsuleID))
+	values := [...]uint16{
+		info.Class, info.Level, info.Str, info.Int, info.Dex, info.Con,
+		info.Mastery[0], info.Mastery[1],
+		info.Skill[0], info.Skill[1], info.Skill[2], info.Skill[3], info.Skill[4],
+		info.Skill[5], info.Skill[6], info.Skill[7], info.Skill[8], info.Quest,
+	}
+	for i, value := range values {
+		putU16(b, 16+i*2, value)
+	}
+	return b
+}
+
 // PartyRequest replica MSG_REQParty do protocolo 7.54. A estrutura antiga tem
 // 44 bytes e carrega o Target como DWORD em @40. Versoes posteriores inseriram
 // outro campo e deslocaram o Target para @44, aumentando o pacote para 48 bytes.
@@ -129,9 +163,10 @@ func partyDisplayHP(hp, maxHP uint16) (uint16, uint16) {
 func putU16(b []byte, off int, v uint16) { binary.LittleEndian.PutUint16(b[off:off+2], v) }
 func putU32(b []byte, off int, v uint32) { binary.LittleEndian.PutUint32(b[off:off+4], v) }
 
-// O byte de CreateMob guarda CP+75; o dominio permanece assinado (-75..+75).
-// O personagem limpo usa CP +75 e transmite 150 (nome branco).
-const NormalNameChaos = 150
+// O byte de CreateMob guarda o PK bruto nativo, CP+75. O dominio do modelo
+// permanece assinado (-75..+75), portanto o personagem neutro (CP 0) transmite
+// 75. 150 e reservado ao extremo positivo (+75), nao ao estado normal.
+const NormalNameChaos = 75
 
 func CPNameByte(cp int16) byte {
 	return byte(model.ClampCP(int(cp)) + 75)
@@ -162,6 +197,31 @@ func Trade(id uint16, items [15]model.Item, carryPos [15]int8, gold uint32, chec
 
 func CloseTrade(id uint16) []byte {
 	return Build(OpCloseTrade, id, 12)
+}
+
+// RepurchaseEntry e a estrutura que o client 7.48 desenha na janela de
+// recompra: Order@0, STRUCT_ITEM@4 e Price@12. O servidor nao envia UID;
+// esse campo permanece exclusivamente no estado autoritativo.
+type RepurchaseEntry struct {
+	Order uint32
+	Item  model.Item
+	Price uint32
+}
+
+// RepurchaseList monta MSG_RepurchaseItems do client 7.48 (176 bytes):
+// target@12 seguido por dez entradas de 16 bytes. O mesmo opcode e usado para
+// o pedido e para a resposta; os campos do pedido sao ignorados depois de
+// validar Header.ID e o contexto de loja.
+func RepurchaseList(id uint16, target uint32, entries [10]RepurchaseEntry) []byte {
+	b := Build(OpRebuy, id, 176)
+	putU32(b, 12, target)
+	for i, entry := range entries {
+		off := 16 + i*16
+		putU32(b, off, entry.Order)
+		PutItem(b, off+4, entry.Item)
+		putU32(b, off+12, entry.Price)
+	}
+	return b
 }
 
 func CNFTradeCheck(id uint16) []byte {
@@ -246,6 +306,11 @@ func putSelChar(b []byte, sel int, chars []model.Char) {
 		for i, it := range ch.Equip {
 			PutItem(b, sel+192+(slot*16+i)*8, it)
 		}
+		// STRUCT_SELCHAR.Guild e a fonte que o client usa no SelectChar e na
+		// primeira entrada do FieldScene para reconstruir a guildmark do proprio
+		// personagem. O rank chega no EnterWorld/UpdateScore; o indice precisa
+		// estar presente aqui tambem.
+		putU16(b, sel+704+slot*2, GuildWireID(ch.GuildID))
 		putU32(b, sel+712+slot*4, ch.Gold)
 		putU32(b, sel+728+slot*4, ch.Exp)
 	}
@@ -317,7 +382,10 @@ func EnterWorld(id uint16, ch model.Char) []byte {
 	putU16(b, 14, ch.Y) // PosY
 	const m = 16
 	copy(b[m+0:m+16], ch.Name)
-	b[m+12] = NormalNameChaos // MobName[12]=@28: colore o nome (150 = branco/normal)
+	// MobName[12]=@28 carries the same native CP+75 projection used by
+	// CreateMob. Keeping this neutral would make a relogged PK character look
+	// neutral until the later visibility refresh arrives.
+	b[m+12] = CPNameByte(ch.CP)
 	b[m+20] = ch.Class
 	putU32(b, m+24, ch.Gold) // Coin (coerente com o 0x337; nao alimenta o display)
 	putU32(b, m+28, ch.Exp)  // Exp
@@ -340,7 +408,9 @@ func EnterWorld(id uint16, ch model.Char) []byte {
 	b[m+742] = clampByte(int(e.Critical))
 	b[m+743] = clampByte(int(e.SaveMana))
 	copy(b[m+744:m+748], ch.ShortSkill[:4])
-	// m+748 = GuildMemberType (ainda nao modelado).
+	// m+748 = GuildMemberType/GuildLevel. O client usa esse byte no proprio
+	// login para selecionar a moldura da guildmark antes do primeiro 0x364.
+	b[m+748] = ch.GuildRank
 	b[m+749] = clampByte(int(e.MagicAmp))
 	b[m+750] = clampByte(int(e.RegenHP))
 	b[m+751] = clampByte(int(e.RegenMP))
@@ -382,7 +452,7 @@ func CreateMobVisual(id uint16, name string, x, y uint16, mesh []uint16, anct []
 	putU16(b, 14, y)
 	putU16(b, 16, id)
 	copy(b[18:18+12], name)
-	if spawn == 2 { // self: MobName[12]=@30 colore o nome (150 = branco/normal)
+	if spawn == 2 { // self: MobName[12]=@30 colore o nome (75 = neutro)
 		b[30] = NormalNameChaos
 	}
 	for i, v := range mesh {
@@ -395,20 +465,30 @@ func CreateMobVisual(id uint16, name string, x, y uint16, mesh []uint16, anct []
 	return b
 }
 
-// CreateMobExtended recebe somente o estado autoritativo e projeta a ABI aqui.
-// CreateMobExtended monta o CreateMob de um JOGADOR. Diferente de mobs, ele
-// carrega o indice de guild em @98 -- os 2 bytes entre o fim de Affect[16]
-// (@66..97) e o Status (@100). O client le esse WORD como (canal << 12) | id e
-// usa para colorir/identificar aliados da mesma guild.
-func CreateMobExtended(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn uint16, guild uint16, cp int16) []byte {
+// CreateMobExtendedWithGuildRank monta o CreateMob 7.54 com a identidade
+// completa da guild. No protocolo p754 o WORD em @98 guarda o id da guild
+// (12 bits) e o canal (4 bits); o byte alto de Spawn em @129 e o
+// GuildMemberType/GuildLevel. Sem esse segundo byte o client desenha o nome,
+// mas nao consegue escolher o layout da guildmark (membro, sublider ou lider).
+func CreateMobExtendedWithGuildRank(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn uint16, guild uint16, guildRank byte, cp int16) []byte {
 	b := CreateMobVisual(id, name, x, y, mesh, anct, compatibilityScore(ext), affects, spawn)
-	putU16(b, 98, guild)
-	// O byte de chaos/PK @30 colore o nome; para players ele e sempre a
-	// projecao CP+75, tanto no self quanto para observadores. Mobs/NPCs usam
+	putU16(b, 98, GuildWireID(guild))
+	// CreateMobVisual escreve o tipo de spawn no byte baixo. Preserve-o e
+	// materialize o GuildLevel no byte alto, como STRUCT_MOB.Spawn do client.
+	b[128] = byte(spawn)
+	b[129] = guildRank
+	// O byte de chaos/PK @30 colore o nome; para players ele e a projecao
+	// CP+75, tanto no self quanto para observadores. Mobs/NPCs usam
 	// CreateMobVisualExtended e nao passam por aqui.
 	b[30] = CPNameByte(cp)
 	return b
 }
+
+// GuildWireID aplica a faixa da ABI nativa: quatro bits de canal (atualmente
+// canal unico = 0) e doze bits para o indice. IDs fora da faixa nao podem
+// aparecer no wire; o registro canonico ja os rejeita, e a mascara evita que
+// um estado legado corrompa a parte reservada ao canal.
+func GuildWireID(id uint16) uint16 { return id & 0x0FFF }
 
 // CreateMobVisualExtended e a variante com AnctCode para NPCs/monstros.
 func CreateMobVisualExtended(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn uint16) []byte {
@@ -457,7 +537,7 @@ func SetHpMpExtended(id uint16, ext *model.ExtendedScore) []byte {
 
 // UpdateScore monta o p754_SendScore (92B) no layout que o PacketProtocolV754
 // envia ao client 7.48: Status@12, Critical@40, SaveMana@41, Affect[16]@42,
-// Guild@74 (WORD), RegenHP@76, RegenMP@77, Resist@78, CurrHP@82, CurrMP@84,
+// Guild@74 (WORD), GuildLevel@76 (WORD), Resist@78, CurrHP@82, CurrMP@84,
 // MagicIncrement@86, Unk[5]@87.
 //
 // O @74 e UM campo de 16 bits, nao dois bytes separados: o client le
@@ -475,9 +555,11 @@ func UpdateScore(id uint16, ch model.Char) []byte {
 	b[40] = clampByte(int(e.Critical))
 	b[41] = clampByte(int(e.SaveMana))
 	putAffectWords(b, 42, ch.Affects[:], time.Now())
-	putU16(b, 74, ch.GuildID)
-	b[76] = clampByte(int(e.RegenHP))
-	b[77] = clampByte(int(e.RegenMP))
+	putU16(b, 74, GuildWireID(ch.GuildID))
+	// O client 7.48 lê GuildLevel como WORD, embora o servidor nativo use
+	// somente o byte baixo. RegenHP/MP pertencem ao XSC2 da cauda; escrever
+	// esses valores em @76/@77 apagava o rank e impedia a guildmark visível.
+	putU16(b, 76, uint16(ch.GuildRank))
 	b[78] = clampByte(int(e.ResistFire))
 	b[79] = clampByte(int(e.ResistIce))
 	b[80] = clampByte(int(e.ResistHoly))
@@ -646,7 +728,7 @@ func UpdateAffects(id uint16, ch model.Char) []byte {
 	return b
 }
 
-// UpdateEtc monta o p754_SendEtc final: CP assinado no DWORD@12, EXP@16,
+// UpdateEtc monta o p754_SendEtc final: Hold@12, EXP@16,
 // LearnedSkill@20, Status@24, Mastery@26, SkillPts@28, Magic@30 e Gold@32.
 // LearnedSkill@20 e OBRIGATORIO: e daqui que o client sabe as skills aprendidas
 // (TMHuman::OnPacketUpdateEtc copia LearnedSkill/bonus/coin deste pacote). Remover
@@ -654,7 +736,11 @@ func UpdateAffects(id uint16, ch model.Char) []byte {
 func UpdateEtc(id uint16, ch model.Char) []byte {
 	e := scoreWireExtension(ch)
 	b := Build(OpUpdateEtc, id, 48)
-	putU32(b, 12, uint32(int32(ch.CP)))
+	// O 7.54 insere um DWORD Hold antes de EXP e o patch nativo zera esse
+	// campo. CP nao faz parte do UpdateEtc: ele viaja no byte MobName[12] do
+	// CreateMob. Colocar CP aqui fazia o client interpretar, por exemplo, 75
+	// como EXP retida e contaminava a barra/progressao.
+	putU32(b, 12, 0)
 	putU32(b, 16, ch.Exp)
 	putU32(b, 20, ch.LearnedSkill)
 	putU16(b, 24, compatibilityU16(e.StatusPts))
@@ -734,10 +820,10 @@ func ActionStop(id, x, y uint16) []byte {
 	return b
 }
 
-// PlayerMove produz um Action 7.48 a partir de coordenadas autoritativas. Nao
-// reutiliza PosXY/Route vindos do cliente: ambos podem estar intermediarios no
-// fluxo continuo de movimento e fariam o observador reiniciar a animacao.
-func PlayerMove(id, fromX, fromY, toX, toY uint16, speed uint32) []byte {
+// PlayerMove produz o Action 7.48 que anima outro jogador. A rota so pode vir
+// depois de validada pelo servidor: o client remoto usa esses passos para
+// reproduzir curvas e desniveis sem recalcular um caminho diferente.
+func PlayerMove(id, fromX, fromY, toX, toY uint16, speed uint32, route []byte) []byte {
 	b := Build(OpAction, id, 52)
 	if speed < 1 {
 		speed = 1
@@ -750,6 +836,14 @@ func PlayerMove(id, fromX, fromY, toX, toY uint16, speed uint32) []byte {
 	putU32(b, 20, 0)
 	putU16(b, 24, toX)
 	putU16(b, 26, toY)
+	// Normalize a string de rota: bytes depois do primeiro NUL nao fizeram
+	// parte da validacao e nao devem atravessar a fronteira server -> client.
+	for i, step := range route {
+		if i >= 24 || step == 0 {
+			break
+		}
+		b[28+i] = step
+	}
 	return b
 }
 

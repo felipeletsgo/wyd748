@@ -1,6 +1,14 @@
 package game
 
-import "testing"
+import (
+	"encoding/binary"
+	"testing"
+	"time"
+
+	"wydgo/internal/model"
+	"wydgo/internal/net"
+	"wydgo/internal/wire"
+)
 
 func TestRemoveMobInstanceRemovesOnlyRequestedMob(t *testing.T) {
 	first := &Mob{ID: 1000}
@@ -83,5 +91,136 @@ func TestAllocMobIDSkipsLiveMobsOnWraparound(t *testing.T) {
 	}
 	if w.mobsByID[1000] != live {
 		t.Fatal("o mob vivo foi deslocado do registro")
+	}
+}
+
+func TestAllocGroundItemIDSkipsReservedRangeAndWraps(t *testing.T) {
+	w := &World{
+		nextItemID: 15001,
+		groundItems: map[uint16]*GroundItem{
+			65535: {ID: 65535},
+			1:     {ID: 1},
+		},
+	}
+	id, ok := w.allocGroundItemID(400)
+	if !ok || id != 15101 {
+		t.Fatalf("ID comum=%d/%v, esperado 15101 apos pular faixa do canhao", id, ok)
+	}
+	if w.nextItemID != 15102 {
+		t.Fatalf("contador de item=%d, esperado 15102", w.nextItemID)
+	}
+}
+
+func TestAllocGroundItemIDCannonExhaustionIsBounded(t *testing.T) {
+	ground := make(map[uint16]*GroundItem, 100)
+	for id := uint16(15001); id <= 15100; id++ {
+		ground[id] = &GroundItem{ID: id}
+	}
+	w := &World{groundItems: ground}
+	if id, ok := w.allocGroundItemID(746); ok || id != 0 {
+		t.Fatalf("canhao deveria falhar sem ID: %d/%v", id, ok)
+	}
+}
+
+func TestAllocGroundItemIDCommonRangeExhaustionIsBounded(t *testing.T) {
+	ground := make(map[uint16]*GroundItem, int(^uint16(0))-100)
+	for raw := 1; raw <= int(^uint16(0)); raw++ {
+		id := uint16(raw)
+		if id >= 15001 && id <= 15100 {
+			continue
+		}
+		ground[id] = &GroundItem{ID: id}
+	}
+	w := &World{groundItems: ground, nextItemID: ^uint16(0)}
+	if id, ok := w.allocGroundItemID(400); ok || id != 0 {
+		t.Fatalf("faixa comum esgotada deveria falhar: %d/%v", id, ok)
+	}
+}
+
+func TestGroundDropAtMapEdgeNeverWraps(t *testing.T) {
+	w := &World{
+		rng:         fixedRNG{value: 0},
+		items:       map[uint16]model.ItemDef{400: {Index: 400}},
+		groundItems: make(map[uint16]*GroundItem),
+	}
+	drop := w.createGroundDrop(1, 1, model.Item{Index: 400}, false)
+	if drop == nil {
+		t.Fatal("drop nao foi criado")
+	}
+	if drop.X != 1 || drop.Y != 1 {
+		t.Fatalf("drop na borda sofreu wrap/deslocamento invalido: (%d,%d)", drop.X, drop.Y)
+	}
+}
+
+func TestGroundDropFallsBackWhenScatteredCellIsBlocked(t *testing.T) {
+	terrain := loadedFlatTerrain()
+	// fixedRNG(0) tenta (99,99); bloqueie apenas a celula de atributo dela.
+	terrain.Attribute[(99/4)*model.AttributeWidth+(99/4)] = 0x02
+	w := &World{
+		rng: fixedRNG{value: 0}, terrain: terrain,
+		items:       map[uint16]model.ItemDef{400: {Index: 400}},
+		groundItems: make(map[uint16]*GroundItem),
+	}
+	drop := w.createGroundDrop(100, 100, model.Item{Index: 400}, false)
+	if drop == nil || drop.X != 100 || drop.Y != 100 {
+		t.Fatalf("drop deveria conservar origem caminhavel: %+v", drop)
+	}
+}
+
+func TestProcessCommandBatchDrainsOlderPendingCommandsFirst(t *testing.T) {
+	s := net.NewTestSession(1, 16)
+	w := &World{
+		commands:    make(chan command, 8),
+		players:     make(map[*net.Session]*Player),
+		authPending: make(map[*net.Session]bool),
+		security:    make(map[*net.Session]*securityState),
+	}
+	ping := func() []byte {
+		pkt := make([]byte, wire.HeaderSize)
+		binary.LittleEndian.PutUint16(pkt[0:2], wire.HeaderSize)
+		binary.LittleEndian.PutUint16(pkt[4:6], wire.OpPing)
+		return pkt
+	}
+	w.pendingCommands = []command{{s: s, pkt: ping()}, {s: s, pkt: ping()}}
+	w.processCommandBatch(command{s: s, pkt: ping()}, make(chan time.Time))
+	if len(w.pendingCommands) != 0 {
+		t.Fatalf("backlog antigo nao foi drenado: %d comando(s)", len(w.pendingCommands))
+	}
+}
+
+func TestHandlerPanicFailsClosedWithoutPersistingPartialAccounts(t *testing.T) {
+	first, _ := networkedTestPlayer(1, "First", 2100, 2100)
+	second, _ := networkedTestPlayer(2, "Second", 2101, 2100)
+	store := &craftStore{}
+	w := worldWithNetworkedPlayers(first, second)
+	w.store = store
+
+	w.failClosedAfterHandlerPanic()
+	if !w.shuttingDown || !first.PersistencePoisoned || !second.PersistencePoisoned {
+		t.Fatalf("mundo nao falhou fechado: shutdown=%v first=%v second=%v",
+			w.shuttingDown, first.PersistencePoisoned, second.PersistencePoisoned)
+	}
+	if !first.Session.IsClosed() || !second.Session.IsClosed() {
+		t.Fatal("sessoes permaneceram abertas depois do panic")
+	}
+	w.onDisconnect(first.Session)
+	if store.saves != 0 {
+		t.Fatalf("estado potencialmente parcial foi persistido: saves=%d", store.saves)
+	}
+}
+
+func TestWorldRejectsQueuedGameplayAfterFinalShutdownSnapshot(t *testing.T) {
+	w, p, st := handlerTestWorld(t)
+	p.InWorld = true
+	w.shuttingDown = true
+
+	pkt := wire.Build(wire.OpCharacterLogout, p.ID, 12)
+	w.handle(command{s: p.Session, pkt: pkt})
+
+	if !p.InWorld {
+		t.Fatal("comando enfileirado depois do shutdown ainda alterou o personagem")
+	}
+	if st.saves != 0 {
+		t.Fatalf("comando rejeitado gerou %d save(s)", st.saves)
 	}
 }

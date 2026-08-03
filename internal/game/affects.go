@@ -652,6 +652,32 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			e.ResistThunder = uint32(clampInt(int(e.ResistThunder)+resist, 0, 100))
 		case 26:
 			e.Evasion = add(e.Evasion, int64(a.Level+a.Value*10))
+		case 29: // Limite da Alma Celestial/SubCelestial.
+			// O Secrets calcula os percentuais sobre o bStatus cru, nao sobre
+			// equipamentos nem sobre o resultado de outro buff. SoulInfo e
+			// compartilhado pelas duas formas; o affect em si e por forma.
+			bonuses := [...][4]int{
+				{120, 0, 0, 0}, {0, 120, 0, 0},
+				{0, 0, 120, 0}, {0, 0, 0, 120},
+				{80, 0, 0, 40}, {0, 80, 0, 40},
+				{0, 0, 80, 40}, {40, 0, 0, 80},
+				{0, 40, 0, 80}, {0, 0, 40, 80},
+			}
+			config := int(ch.SoulInfo) - 1
+			if isCelestialEvolution(ch) && config >= 0 && config < len(bonuses) {
+				raw := ch.Extended
+				strAdd := int64(raw.Str/100) * int64(bonuses[config][0])
+				intAdd := int64(raw.Int/100) * int64(bonuses[config][1])
+				dexAdd := int64(raw.Dex/100) * int64(bonuses[config][2])
+				conAdd := int64(raw.Con/100) * int64(bonuses[config][3])
+				e.Str = add(e.Str, strAdd)
+				e.Int = add(e.Int, intAdd)
+				e.Dex = add(e.Dex, dexAdd)
+				e.Con = add(e.Con, conAdd)
+				e.Attack = add(e.Attack, strAdd/3)
+				e.MaxHP = add(e.MaxHP, conAdd*2)
+				e.MaxMP = add(e.MaxMP, intAdd*2)
+			}
 		case affectCourage:
 			// Courage nao modifica score. O bonus fixo pertence ao resultado de
 			// cada hit PvE e e aplicado em combat.go/skills.go.
@@ -683,6 +709,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 }
 
 func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
+	accountsToSave := make(map[*model.Account]struct{})
 	for _, m := range w.activeMobs {
 		if shardCount > 1 && int(m.ID)%shardCount != shard {
 			continue
@@ -713,7 +740,11 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			m.HP -= damage
 			if m.HP == 0 {
 				if owner := w.playerByID(m.AffectOwners[i]); owner != nil {
-					w.killMobState(owner, m, damage, damage)
+					for _, account := range uniqueKillAccounts(owner,
+						partyExpShares(owner, 1, w.gameplay.PartyEXPBonusPercent)) {
+						accountsToSave[account] = struct{}{}
+					}
+					w.killMobState(owner, m, damage, damage, false)
 				}
 				break
 			}
@@ -724,6 +755,16 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 		}
 		if expired && !m.Dead && m.HP > 0 {
 			w.publishMobAffects(m)
+		}
+	}
+	if len(accountsToSave) > 0 {
+		accounts := make([]*model.Account, 0, len(accountsToSave))
+		for account := range accountsToSave {
+			accounts = append(accounts, account)
+		}
+		if err := w.saveAccountsAtomic(accounts...); err != nil {
+			log.Printf("salvar lote de mortes por affect: %v", err)
+			w.poisonAccountsAfterPersistenceFailure(accounts, "mortes por affect", err)
 		}
 	}
 }
@@ -791,6 +832,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 	targets := make([]*Mob, 0, 6)
 	for _, m := range w.nearbyMobs(p.X, p.Y, 4) {
 		if m == nil || m.Dead || m.HP == 0 || !m.Def.IsMonster() || m.SummonerID != 0 ||
+			(m.InstanceID != "" && !w.instanceMobTargetAllowed(m, p)) ||
 			chebyshev(p.X, p.Y, m.X, m.Y) > 4 {
 			continue
 		}
@@ -819,10 +861,11 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		return wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y, p.Char.Exp,
 			playerCombatMP(p.Char), int16(visualSkill), motion, skillVisualLevel(affect.Level), 13, wireTargets)
 	})
+	batchAccounts := uniqueKillAccounts(p, partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
 	for _, m := range targets {
 		if m.HP == 0 {
 			damage := uint32(affect.Level + affect.Value)
-			w.killMobState(p, m, damage, minU32(damage, m.Def.Extended.MaxHP))
+			w.killMobState(p, m, damage, minU32(damage, m.Def.Extended.MaxHP), false)
 			kills++
 		} else {
 			w.sendToMobView(m, func() []byte {
@@ -831,7 +874,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 			})
 		}
 	}
-	w.saveMultiKillBatch(p, kills)
+	w.saveMultiKillBatch(p, kills, batchAccounts)
 }
 
 func tickAreaVisual(skillIndex int) (int, byte) {

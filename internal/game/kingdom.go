@@ -185,6 +185,9 @@ func (w *World) handleKingdomNPC(s *net.Session, p *Player, m *Mob) bool {
 		return false
 	}
 	if kingdom := kingdomForNPC(m.Def); kingdom != model.KingdomNeutral {
+		if w.craftIdealStoneAtKing(s, p) {
+			return true
+		}
 		w.joinKingdom(s, p, kingdom)
 		return true
 	}

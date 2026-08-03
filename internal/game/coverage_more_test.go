@@ -392,9 +392,6 @@ func TestTeleportPKAndGuildChallengeHandlers(t *testing.T) {
 }
 
 func TestCombatPathsUseAuthoritativeExtendedStats(t *testing.T) {
-	if magicDamage(100, 25) != 75 || magicDamage(10, 100) != 1 {
-		t.Fatal("magicDamage nao respeitou resistencia/minimo")
-	}
 	for _, tc := range []struct{ dam, ac, combat int }{
 		{500, 100, 0}, {10, 1000, 0}, {100, 200, 20},
 	} {
@@ -564,6 +561,17 @@ func TestMountUtilityAndLifecycleBranches(t *testing.T) {
 	w.accelerateHatch(p, session, &p.Char.Inv[1], 1)
 	if eggDelay(p.Char.Inv[0]) != 0 {
 		t.Fatal("acelerador nao zerou o delay")
+	}
+
+	// O consumo e o desbloqueio do ovo sao atomicos do ponto de vista do
+	// jogador: se o store falhar, ambos os slots voltam ao snapshot original.
+	setEggDelay(&p.Char.Inv[0], 10)
+	oldEgg, oldAccelerator := p.Char.Inv[0], p.Char.Inv[1]
+	w.store = &craftStore{err: errors.New("disco cheio")}
+	w.accelerateHatch(p, session, &p.Char.Inv[1], 1)
+	if p.Char.Inv[0] != oldEgg || p.Char.Inv[1] != oldAccelerator {
+		t.Fatalf("falha do acelerador alterou estado: ovo=%+v/%+v acelerador=%+v/%+v",
+			p.Char.Inv[0], oldEgg, p.Char.Inv[1], oldAccelerator)
 	}
 
 	adult := model.Item{Index: model.MountAdultBase}

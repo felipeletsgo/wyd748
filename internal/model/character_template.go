@@ -65,6 +65,7 @@ func (t CharacterTemplate) NewCharacter(name string, spawn CharacterSpawn) Char 
 		Extended:     &extended,
 		Equip:        t.Equip.Items(),
 		CP:           clampCP(t.CP),
+		ChaosVersion: ChaosFormatVersion,
 		Gold:         t.Gold,
 		Exp:          t.Exp,
 		LearnedSkill: t.LearnedSkill,

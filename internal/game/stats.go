@@ -74,10 +74,60 @@ func archStatusPointBudget(level, mortalLevel int) int {
 
 // statusPointBudget escolhe a formula pela evolucao do personagem.
 func statusPointBudget(ch *model.Char) int {
+	if isCelestialEvolution(ch) {
+		return celestialStatusPointBudget(ch)
+	}
 	if isArch(ch) {
 		return archStatusPointBudget(int(ch.Extended.Level), int(ch.ArchMortalLevel))
 	}
 	return mortalStatusPointBudget(int(ch.Extended.Level))
+}
+
+func isCelestialEvolution(ch *model.Char) bool {
+	if ch == nil {
+		return false
+	}
+	return advancedEvolution(ch, "celestial", "subcelestial")
+}
+
+func celestialArchTierBonus(tier byte) int {
+	switch tier {
+	case 1:
+		return 100
+	case 2:
+		return 300
+	case 3:
+		return 600
+	case 4:
+		return 900
+	case 5:
+		return 1200
+	default:
+		return 0
+	}
+}
+
+// celestialStatusPointBudget porta BASE_GetBonusScorePoint da 7.54:
+//
+//	1001 + cristais*100 + faixaArch + nivelAtivo*10
+//	     + nivelDaOutraForma*6 + 290 a partir do nivel interno 190.
+//
+// O nivel da outra forma contribui para o ORCAMENTO da ativa. Nao existe uma
+// carteira compartilhada: EXP e atributos ja distribuidos continuam separados.
+func celestialStatusPointBudget(ch *model.Char) int {
+	if ch == nil || ch.Extended == nil {
+		return 0
+	}
+	total := 1001 + int(ch.ArchCrystals)*100 +
+		celestialArchTierBonus(ch.CelestialArchTier) +
+		int(ch.Extended.Level)*10
+	if ch.AlternateCelestial != nil && ch.AlternateCelestial.Extended != nil {
+		total += int(ch.AlternateCelestial.Extended.Level) * 6
+	}
+	if ch.Extended.Level > 189 {
+		total += 290
+	}
+	return maxInt(0, total)
 }
 
 func mortalSkillPointBudget(level int) int {
@@ -88,6 +138,16 @@ func mortalSkillPointBudget(level int) int {
 	return maxInt(0, total)
 }
 
+func skillPointBudget(ch *model.Char) int {
+	if ch == nil || ch.Extended == nil {
+		return 0
+	}
+	if isCelestialEvolution(ch) {
+		return 1500 + int(ch.Extended.Level)*4 + int(ch.SkillPointBonus)
+	}
+	return mortalSkillPointBudget(int(ch.Extended.Level)) + int(ch.SkillPointBonus)
+}
+
 func masteryPointLimit(ch *model.Char, detail int) int {
 	limit := 200
 	if detail >= 1 && detail <= 3 && ch.LearnedSkill&(1<<uint(detail*8-1)) != 0 {
@@ -95,6 +155,9 @@ func masteryPointLimit(ch *model.Char, detail int) int {
 	}
 	if ch.SecondaryLearnedSkill&(1<<0|1<<4|1<<8) != 0 {
 		limit = 320
+	}
+	if isCelestialEvolution(ch) {
+		return limit
 	}
 	levelLimit := 3 * (int(playerLevel(ch)) + 1) / 2
 	return minInt(limit, levelLimit)
@@ -105,7 +168,7 @@ func syncSkillPoints(ch *model.Char) {
 		return
 	}
 	ensureExtendedScore(ch)
-	ch.Extended.SkillPts = uint32(mortalSkillPointBudget(int(ch.Extended.Level))) + ch.SkillPointBonus
+	ch.Extended.SkillPts = uint32(skillPointBudget(ch))
 }
 
 func syncMasteryPoints(ch *model.Char) {
@@ -118,6 +181,9 @@ func syncMasteryPoints(ch *model.Char) {
 		spent += value
 	}
 	total := ch.Extended.Level * masteryPointsPerLevel
+	if isCelestialEvolution(ch) {
+		total = 855
+	}
 	if spent >= total {
 		ch.Extended.MasterPts = 0
 		return
@@ -138,6 +204,9 @@ func syncStatusPoints(ch *model.Char) {
 		return
 	}
 	natural := baseClassStats[class]
+	if isCelestialEvolution(ch) {
+		natural = [4]uint16{5, 5, 5, 5}
+	}
 	stats := [4]*uint32{
 		&ch.Extended.Str, &ch.Extended.Int,
 		&ch.Extended.Dex, &ch.Extended.Con,

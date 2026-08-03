@@ -97,6 +97,11 @@ func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 			fmt.Sprintf("tamanho %d, esperado %d", len(pkt), expected))
 		return false
 	}
+	if header.Type == wire.OpRebuy && len(pkt) != wire.HeaderSize && len(pkt) != repurchasePacketSize {
+		w.recordSecurityViolation(s, header.Type,
+			fmt.Sprintf("tamanho %d, esperado %d ou %d", len(pkt), wire.HeaderSize, repurchasePacketSize))
+		return false
+	}
 	phase := w.phaseFor(s)
 	if !opcodeAllowedInPhase(phase, header.Type) {
 		w.recordSecurityViolation(s, header.Type, fmt.Sprintf("opcode fora da fase %d", phase))
@@ -106,14 +111,16 @@ func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 }
 
 // exactInboundPacketSize contem somente layouts confirmados no client 7.48.
-// Opcodes de craft/chat com variantes ficam no parser especifico ate haver uma
-// captura que feche todos os tamanhos aceitos.
+// Restringir tambem opcodes ignorados impede usar uma cauda arbitraria como
+// canal de packet smuggling ou para explorar um parser futuro.
 func exactInboundPacketSize(opcode uint16) (int, bool) {
 	switch opcode {
 	case wire.OpConnectAccount:
 		return 116, true
 	case wire.OpCreateCharacter:
 		return 36, true
+	case wire.OpDeleteCharacter:
+		return 44, true
 	case wire.OpCharacterLogin:
 		// Client 7.48: header(12) + Slot(4) + Force(4) + SecretCode(16).
 		// O slot continua em @12; a cauda faz parte do contrato de framing e
@@ -127,6 +134,10 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 16, true
 	case wire.OpUseItem:
 		return 36, true
+	case wire.OpCapsuleInfo:
+		return 16, true
+	case wire.OpPutoutSeal:
+		return 52, true
 	case wire.OpUseNPC:
 		return 20, true
 	case wire.OpReqShopList:
@@ -165,10 +176,17 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 24, true
 	case wire.OpSetShortSkill:
 		return 32, true
+	case wire.OpMessageChat:
+		return 140, true
+	case wire.OpMessageWhisper:
+		// 7.48: Header + MobName[16] + String[96] + Color DWORD.
+		return 128, true
 	case wire.OpChangeCity, wire.OpReqTeleport, wire.OpPKMode:
 		return 16, true
 	case wire.OpMoveStop:
 		return 36, true
+	case wire.OpUpdateScore:
+		return wire.HeaderSize, true
 	case wire.OpRestart, wire.OpPing:
 		return 12, true
 	case wire.OpSysQuit:
@@ -177,6 +195,20 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 52, true
 	case wire.OpREQMobByID:
 		return 16, true
+	case wire.OpGuildDeprivate:
+		return 16, true
+	case wire.OpInviteGuild:
+		return 20, true
+	case wire.OpRebuy:
+		// A solicitacao pode ser somente o header ou o MSG completo. A
+		// validacao acima documenta e limita explicitamente as duas formas.
+		return 0, false
+	case wire.OpGuildAlly, wire.OpGuildWar:
+		return 20, true
+	case wire.OpChallenge:
+		return 16, true
+	case wire.OpChallengeConfirm:
+		return 20, true
 	case wire.OpMotion:
 		return 20, true
 	case wire.OpClientUnknown2BC:
@@ -189,6 +221,10 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 96, true
 	case wire.OpReqRanking:
 		return 20, true
+	case wire.OpCombineTiny, wire.OpCombineLindy, wire.OpCombineCompositor,
+		wire.OpCombineAgatha, wire.OpCombineAylin, wire.OpCombineEhre,
+		wire.OpCombineOdin:
+		return combinePacketSize, true
 	default:
 		return 0, false
 	}
@@ -334,9 +370,44 @@ func (w *World) validPlayerMovePacket(p *Player, pkt []byte) bool {
 }
 
 func (w *World) validReportedStop(p *Player, x, y uint16) bool {
-	return p != nil && x > 0 && y > 0 &&
-		chebyshev(p.X, p.Y, x, y) <= maxStopPositionDrift &&
-		w.terrain.Walkable(x, y) && w.terrain.LineOfSight(p.X, p.Y, x, y)
+	if p == nil || x == 0 || y == 0 || !w.terrain.Walkable(x, y) {
+		return false
+	}
+	if chebyshev(p.X, p.Y, x, y) <= maxStopPositionDrift &&
+		w.terrain.LineOfSight(p.X, p.Y, x, y) {
+		return true
+	}
+	return publishedPlayerRouteContains(p, x, y)
+}
+
+// publishedPlayerRouteContains aceita uma parada no meio do plano que o
+// servidor ja validou. p.X/Y guarda o destino planejado imediatamente; medir
+// somente a distancia ate ele rejeitava paradas legitimas em rotas longas.
+func publishedPlayerRouteContains(p *Player, targetX, targetY uint16) bool {
+	if p == nil || !p.MovePublished || p.MovePublishedStartX == 0 || p.MovePublishedStartY == 0 {
+		return false
+	}
+	x, y := int(p.MovePublishedStartX), int(p.MovePublishedStartY)
+	if uint16(x) == targetX && uint16(y) == targetY {
+		return true
+	}
+	for _, encoded := range p.MovePublishedRoute {
+		if encoded == 0 {
+			break
+		}
+		direction, ok := routeDirections[encoded]
+		if !ok {
+			return false
+		}
+		x, y = x+direction[0], y+direction[1]
+		if x <= 0 || y <= 0 || x >= 4096 || y >= 4096 {
+			return false
+		}
+		if uint16(x) == targetX && uint16(y) == targetY {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *World) combatLineOfSight(fromX, fromY, toX, toY uint16) bool {

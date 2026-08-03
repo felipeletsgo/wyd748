@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 func TestNativeCPKillDeltaAndClamp(t *testing.T) {
@@ -42,5 +43,24 @@ func TestPvPKillRollsBackCPWhenPersistenceFails(t *testing.T) {
 	w.applyPvPKills(killer, victim)
 	if killer.Char.CP != 75 || victim.Char.CP != -10 {
 		t.Fatalf("rollback falhou killer=%d victim=%d", killer.Char.CP, victim.Char.CP)
+	}
+}
+
+func TestChaosRecoveryRaisesOnlyNegativeCP(t *testing.T) {
+	p, _ := networkedTestPlayer(1, "Recover", 2100, 2100)
+	w, st := guildFlowWorld(p)
+	now := time.Unix(100, 0)
+	p.NextCPRecovery = now
+	p.Char.CP = -2
+	w.tickChaosRecovery(now)
+	if p.Char.CP != -1 || st.saves != 1 {
+		t.Fatalf("recuperacao incorreta cp=%d saves=%d", p.Char.CP, st.saves)
+	}
+
+	p.NextCPRecovery = now
+	p.Char.CP = 0
+	w.tickChaosRecovery(now)
+	if p.Char.CP != 0 || st.saves != 1 {
+		t.Fatalf("CP neutro foi alterado cp=%d saves=%d", p.Char.CP, st.saves)
 	}
 }

@@ -55,8 +55,8 @@
   "expReward": 220000,
   "extendedScore": {
     "version": 2,
-    "level": 200,
-    "attack": 500,
+    "level": 400,
+    "attack": 10,
     "magicAttack": 0,
     "defense": 1000,
     "maxHP": 3000,
@@ -74,7 +74,7 @@
     "resistThunder": 5,
     "saveMana": 255,
     "mastery": [
-      255,
+      1,
       7,
       255,
       7

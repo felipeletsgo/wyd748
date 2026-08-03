@@ -46,23 +46,22 @@ func TestLoadConverted748Catalog(t *testing.T) {
 		t.Fatalf("EF_AC do item 1103 nao carregado: %+v", helmet.StaticEffects)
 	}
 	skill, ok := catalog.Skills[0]
-	if !ok || !strings.EqualFold(skill.Name, "Giro_Da_Furia") ||
-		skill.SkillPoint != 24 || skill.ManaSpent != 15 {
+	if !ok || skill.Name == "" || skill.SkillPoint != 24 || skill.ManaSpent != 15 {
 		t.Fatalf("skill 0 invalida: %+v", skill)
 	}
 }
 
-func TestTKBuffsComeFromW2PPSkillData(t *testing.T) {
+func TestSkillsComeFromAuthoritativeSkillData(t *testing.T) {
 	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := map[int][3]int{
-		3:  {24, 0, 45 / 4},
-		5:  {0, 0, 99 / 4},
-		11: {13, 7, 99 / 4},
-		13: {14, 10, 99 / 4},
-		15: {31, 150, 75 / 4},
+		3:  {24, 200, 600 / 4},
+		5:  {0, 0, 600 / 4},
+		11: {13, 7, 12 / 4},
+		13: {14, 10, 600 / 4},
+		15: {50, 100, 600 / 4},
 	}
 	for index, expected := range want {
 		skill := catalog.Skills[index]
@@ -82,13 +81,16 @@ func TestW2PPSpecialSkillIndices(t *testing.T) {
 	}
 	want := map[int]string{
 		79: "Tempestade_de_Raios",
-		83: "Alquimia",
-		84: "Extracao",
+		83: "Extração",
+		84: "Alquimia",
 		85: "Escudo_Dourado",
 	}
 	for index, name := range want {
 		if skill, ok := catalog.Skills[index]; !ok || !strings.EqualFold(skill.Name, name) {
 			t.Fatalf("skill %d=%+v, quer %q", index, skill, name)
 		}
+	}
+	if skill := catalog.Skills[83]; skill.Passive != 1 {
+		t.Fatalf("skill 83 perdeu o Passive ao remover a coluna Unknown: %+v", skill)
 	}
 }

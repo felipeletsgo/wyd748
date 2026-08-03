@@ -248,3 +248,134 @@ func TestAccountRejectsCharacterWithoutStableUID(t *testing.T) {
 		t.Fatal("personagem persistido sem UID foi aceito")
 	}
 }
+
+func TestAccountRejectsActiveCharacterDuplicatedByCelestialCapsule(t *testing.T) {
+	uid, err := NewCharacterUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	itemUID, err := NewItemUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ch := Char{
+		Name: "Celestial", UID: uid, Evolution: "celestial",
+		Extended: &ExtendedScore{Version: ExtendedScoreVersion, Level: 90},
+	}
+	seal := NewCelestialSeal(itemUID, 1)
+	acc := &Account{
+		Name: "conta", PasswordHash: "hash", Chars: []Char{ch},
+		CelestialCapsules: []CelestialCapsule{{
+			ID: 1, ItemUID: itemUID, SourceUID: uid, Character: ch,
+		}},
+	}
+	acc.Cargo[0] = seal
+	if err := acc.Validate(); err == nil {
+		t.Fatal("UID ativo e UID encapsulado foram aceitos simultaneamente")
+	}
+}
+
+func TestAccountAcceptsCelestialSealInVisibleCarry(t *testing.T) {
+	sourceUID, err := NewCharacterUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	carrierUID, err := NewCharacterUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	itemUID, err := NewItemUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed := Char{
+		UID: sourceUID, Name: "Sealed", Evolution: "celestial",
+		Extended: &ExtendedScore{Version: ExtendedScoreVersion, Level: 90},
+	}
+	carrier := Char{
+		UID: carrierUID, Name: "Carrier",
+		Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+	}
+	carrier.Inv[0] = NewCelestialSeal(itemUID, 7)
+	acc := &Account{
+		Name: "conta", PasswordHash: "hash", Chars: []Char{carrier},
+		CelestialCapsules: []CelestialCapsule{{
+			ID: 7, ItemUID: itemUID, SourceUID: sourceUID, Character: sealed,
+		}},
+	}
+	if err := acc.Validate(); err != nil {
+		t.Fatalf("selo valido no Carry foi recusado: %v", err)
+	}
+
+	acc.Cargo[0] = carrier.Inv[0]
+	if err := acc.Validate(); err == nil {
+		t.Fatal("selo duplicado no Carry/Cargo foi aceito")
+	}
+}
+
+func TestAccountRejectsFilledCelestialSealWithoutSnapshot(t *testing.T) {
+	carrierUID, err := NewCharacterUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	itemUID, err := NewItemUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	carrier := Char{
+		UID: carrierUID, Name: "Carrier",
+		Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+	}
+	carrier.Inv[0] = NewCelestialSeal(itemUID, 9)
+	acc := &Account{Name: "conta", PasswordHash: "hash", Chars: []Char{carrier}}
+	if err := acc.Validate(); err == nil {
+		t.Fatal("selo preenchido sem snapshot foi aceito")
+	}
+}
+
+func TestCelestialFormValidationRejectsInvalidPersistentState(t *testing.T) {
+	valid := &CelestialForm{
+		Evolution: "subcelestial",
+		Class:     2,
+		Face:      Item{Index: 18},
+		Extended: &ExtendedScore{
+			Version: ExtendedScoreVersion,
+			Level:   199,
+		},
+	}
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("forma Celestial valida foi recusada: %v", err)
+	}
+
+	tooHigh := *valid
+	tooHigh.Extended = &ExtendedScore{
+		Version: ExtendedScoreVersion,
+		Level:   200,
+	}
+	if err := tooHigh.Validate(); err == nil {
+		t.Fatal("forma Celestial acima do level interno 199 foi aceita")
+	}
+
+	sameForm := Char{
+		Name:      "Duplicado",
+		Evolution: "celestial",
+		Extended: &ExtendedScore{
+			Version: ExtendedScoreVersion,
+		},
+		AlternateCelestial: &CelestialForm{
+			Evolution: "celestial",
+			Face:      Item{Index: 6},
+			Extended: &ExtendedScore{
+				Version: ExtendedScoreVersion,
+			},
+		},
+	}
+	raw, err := json.Marshal(sameForm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded Char
+	if err := json.Unmarshal(raw, &decoded); err == nil {
+		t.Fatal("duas formas Celestial iguais foram aceitas")
+	}
+}

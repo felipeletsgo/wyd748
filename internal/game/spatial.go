@@ -146,7 +146,14 @@ func (w *World) recomputeMobActive(m *Mob) {
 		}
 		return
 	}
-	awake := len(w.nearbyPlayers(m.X, m.Y, mobActivationRange)) != 0
+	awake := false
+	if m.InstanceID != "" {
+		// Conteudo de instancia nunca adquire jogadores externos. O teste usa
+		// MemberIDs e a area da sala, nao apenas proximidade espacial.
+		awake = w.instanceMobHasNearbyMember(m, mobActivationRange)
+	} else {
+		awake = len(w.nearbyPlayers(m.X, m.Y, mobActivationRange)) != 0
+	}
 	m.Awake = awake
 	if awake {
 		w.activeMobs[m.ID] = m

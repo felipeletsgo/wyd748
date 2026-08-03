@@ -108,9 +108,6 @@ func TestMobCombatRespectsShardMovementFlagAndHiddenTargets(t *testing.T) {
 
 func TestMobActivityAndHomeLeashHelpers(t *testing.T) {
 	w := newZoneTestWorld()
-	if w.mobHasActivePlayer(nil) {
-		t.Fatal("mob nil nao pode estar ativo")
-	}
 	m := combatMob(1000, 100, 100)
 	if !m.insideHomeLeash() {
 		t.Fatal("mob na origem deveria estar dentro do leash")
@@ -120,7 +117,7 @@ func TestMobActivityAndHomeLeashHelpers(t *testing.T) {
 		t.Fatal("mob a 17 tiles deveria estar fora do leash")
 	}
 	w.activeMobs[m.ID] = m
-	if !w.mobHasActivePlayer(m) {
+	if _, active := w.activeMobs[m.ID]; !active {
 		t.Fatal("indice ativo nao foi reconhecido")
 	}
 	var nilMob *Mob

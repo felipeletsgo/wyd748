@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"wydgo/internal/model"
+	"wydgo/internal/net"
 )
 
 func minimalWorldInputs() ([]model.NPCDef, []model.NPCGener, model.Catalog, model.CharacterTemplateFile) {
@@ -129,8 +130,28 @@ func TestWorldIDAllocationWrapsAndReusesOnlyFreeSlots(t *testing.T) {
 		p := addZonePlayer(w, id, 2100+id, 2100, 1)
 		p.ID = id
 	}
-	if got := w.allocPlayerID(); got != 4 {
+	if got, ok := w.allocPlayerID(); !ok || got != 4 {
 		t.Fatalf("menor player ID livre=%d, quer 4", got)
+	}
+}
+
+func TestWorldIDAllocationRejectsFullPlayerWorld(t *testing.T) {
+	w := newZoneTestWorld()
+	for id := uint16(1); id < 1000; id++ {
+		p := &Player{ID: id, Session: net.NewTestSession(int64(id), 1)}
+		w.playersByID[id] = p
+		w.players[p.Session] = p
+	}
+	if got, ok := w.allocPlayerID(); ok || got != 0 {
+		t.Fatalf("mundo cheio deveria recusar alocacao: id=%d ok=%v", got, ok)
+	}
+}
+
+func TestWorldIDAllocationHonorsPlayerIndexWhenSessionMapIsStale(t *testing.T) {
+	w := newZoneTestWorld()
+	w.playersByID[1] = &Player{ID: 1}
+	if got, ok := w.allocPlayerID(); !ok || got != 2 {
+		t.Fatalf("indice playersByID deveria reservar 1: id=%d ok=%v", got, ok)
 	}
 }
 

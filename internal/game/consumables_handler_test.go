@@ -55,6 +55,17 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		}
 	})
 
+	t.Run("restore rolls back item and HP when persistence fails", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{Action: "restore", Consume: true, HP: 100})
+		setPlayerCurHP(p.Char, 500)
+		st.err = errors.New("database unavailable")
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if playerCurHP(p.Char) != 500 || p.Char.Inv[0].Index != 100 || !p.LastPotion.IsZero() {
+			t.Fatalf("rollback da pocao incompleto: hp=%d item=%d last=%v",
+				playerCurHP(p.Char), p.Char.Inv[0].Index, p.LastPotion)
+		}
+	})
+
 	t.Run("gold", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{Action: "gold", Consume: true, Gold: 500})
 		p.Char.Gold = 100
@@ -141,6 +152,57 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		if p.Char.Inv[0].Index != 0 || itemSanc(p.Char.Equip[1]) != 6 {
 			t.Fatalf("refine_set: po=%d sanc=%d",
 				p.Char.Inv[0].Index, itemSanc(p.Char.Equip[1]))
+		}
+	})
+
+	t.Run("molar requires mortal range and is one-shot", func(t *testing.T) {
+		rule := model.VolatileRule{
+			Action: "refine_set", Consume: true, RefineMax: 6, MortalOnly: true,
+			MinLevel: 200, MaxLevelExclusive: 256, OnceQuestID: -194,
+		}
+		w, p, st := useItemWorld(rule)
+		p.Char.Extended.Level = 200
+		p.Char.Equip[1] = model.Item{Index: 200, Eff: [6]byte{43, 0}}
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Inv[0].Index != 0 || itemSanc(p.Char.Equip[1]) != 6 ||
+			!questCompleted(p.Char, -194) || st.saves != 1 {
+			t.Fatalf("molar nao concluiu: item=%d sanc=%d quest=%v saves=%d",
+				p.Char.Inv[0].Index, itemSanc(p.Char.Equip[1]), questCompleted(p.Char, -194), st.saves)
+		}
+
+		p.Char.Inv[0] = model.Item{Index: 100}
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Inv[0].Index != 100 || itemSanc(p.Char.Equip[1]) != 6 || st.saves != 1 {
+			t.Fatalf("molar duplicado consumiu ou alterou estado: item=%d sanc=%d saves=%d",
+				p.Char.Inv[0].Index, itemSanc(p.Char.Equip[1]), st.saves)
+		}
+	})
+
+	t.Run("molar rejects arch and levels outside the native range", func(t *testing.T) {
+		rule := model.VolatileRule{
+			Action: "refine_set", Consume: true, RefineMax: 6, MortalOnly: true,
+			MinLevel: 200, MaxLevelExclusive: 256, OnceQuestID: -194,
+		}
+		for _, tc := range []struct {
+			name, evolution string
+			level           uint32
+		}{
+			{name: "below", level: 199},
+			{name: "above", level: 256},
+			{name: "arch", evolution: "arch", level: 200},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				w, p, st := useItemWorld(rule)
+				p.Char.Evolution, p.Char.Extended.Level = tc.evolution, tc.level
+				p.Char.Equip[1] = model.Item{Index: 200, Eff: [6]byte{43, 0}}
+				w.onUseItem(p.Session, useItemPacket(0, 0))
+				if p.Char.Inv[0].Index != 100 || itemSanc(p.Char.Equip[1]) != 0 ||
+					questCompleted(p.Char, -194) || st.saves != 0 {
+					t.Fatalf("molar aceito fora da regra: evol=%q level=%d item=%d sanc=%d quest=%v saves=%d",
+						p.Char.Evolution, tc.level, p.Char.Inv[0].Index, itemSanc(p.Char.Equip[1]),
+						questCompleted(p.Char, -194), st.saves)
+				}
+			})
 		}
 	})
 
@@ -510,24 +572,27 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 			DynamicEffectNames: map[byte]string{43: "EF_SANC"},
 		}
 		p.Char.Inv[0] = model.Item{Index: 4016}
-		// Os adds antigos devem ser substituidos, mantendo a tintura +5.
-		p.Char.Inv[1] = model.Item{Index: 200, Eff: [6]byte{60, 9, 120, 5, 71, 70}}
-		w.onUseItem(p.Session, useItemPacket(0, 1))
-		if p.Char.Inv[1].Eff != ([6]byte{120, 5, 2, 30, 3, 25}) ||
+		// Os adds antigos devem ser substituidos, mantendo a tintura +5. O
+		// protocolo nativo aceita Repliction somente no equipamento vestido.
+		p.Char.Equip[4] = model.Item{Index: 200, Eff: [6]byte{60, 9, 120, 5, 71, 70}}
+		pkt := useItemPacket(0, 4)
+		binary.LittleEndian.PutUint32(pkt[20:24], placeEquip)
+		w.onUseItem(p.Session, pkt)
+		if p.Char.Equip[4].Eff != ([6]byte{120, 5, 2, 30, 3, 25}) ||
 			p.Char.Inv[0].Index != 0 || st.saves != 1 {
-			t.Fatalf("repliction: source=%d target=% X saves=%d", p.Char.Inv[0].Index, p.Char.Inv[1].Eff, st.saves)
+			t.Fatalf("repliction: source=%d target=% X saves=%d", p.Char.Inv[0].Index, p.Char.Equip[4].Eff, st.saves)
 		}
 
 		// Persistencia falhando restaura tanto o consumivel quanto todos os
 		// efeitos antigos do alvo.
 		p.Char.Inv[0] = model.Item{Index: 4016}
 		before := model.Item{Index: 200, Eff: [6]byte{43, 4, 60, 8, 71, 50}}
-		p.Char.Inv[1] = before
+		p.Char.Equip[4] = before
 		st.err = errors.New("disk")
-		w.onUseItem(p.Session, useItemPacket(0, 1))
-		if p.Char.Inv[0].Index != 4016 || p.Char.Inv[1] != before || st.saves != 2 {
+		w.onUseItem(p.Session, pkt)
+		if p.Char.Inv[0].Index != 4016 || p.Char.Equip[4] != before || st.saves != 2 {
 			t.Fatalf("rollback repliction: source=%d target=% X saves=%d",
-				p.Char.Inv[0].Index, p.Char.Inv[1].Eff, st.saves)
+				p.Char.Inv[0].Index, p.Char.Equip[4].Eff, st.saves)
 		}
 	})
 

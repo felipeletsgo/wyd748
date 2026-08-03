@@ -27,7 +27,7 @@ type flushStore interface {
 func (w *World) Shutdown(timeout time.Duration) bool {
 	done := make(chan struct{})
 	select {
-	case w.commands <- command{shutdown: done}:
+	case w.commands <- command{queuedAt: time.Now(), shutdown: done}:
 	case <-time.After(timeout):
 		log.Print("desligamento: game loop nao aceitou o comando (fila cheia)")
 		return false

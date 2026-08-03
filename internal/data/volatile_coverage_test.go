@@ -56,6 +56,30 @@ func TestCadaCodigoVolatileRealTemContratoExplicito(t *testing.T) {
 	}
 }
 
+// O itemlist.csv e a fonte de verdade do universo de EF_VOLATILE. Estes
+// numeros sao uma sentinela de auditoria: se uma conversao apagar uma linha,
+// mudar o delimitador ou acrescentar um item sem atualizar o contrato, o boot
+// de testes falha em vez de esconder a regressao no handler generico.
+func TestCatalogoVolatileMantemContagemAutoritativa(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
+		catalog.Items, catalog.Skills)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(volatiles.ItemCodes), 355; got != want {
+		t.Fatalf("itens com EF_VOLATILE=%d, quer %d", got, want)
+	}
+	if got, want := len(volatiles.Codes), 124; got != want {
+		t.Fatalf("codigos EF_VOLATILE=%d, quer %d", got, want)
+	}
+}
+
 func TestItensLoveResolvemSkillDataParaAffectsReais(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
@@ -72,7 +96,7 @@ func TestItensLoveResolvemSkillDataParaAffectsReais(t *testing.T) {
 		skillID, affectType, affectValue int
 	}{
 		{43, 11, 15},
-		{44, 9, 90},
+		{44, 9, 5},
 		{45, 15, 7},
 		{41, 2, 1},
 	}
@@ -243,7 +267,7 @@ func TestCatalogoRealNaoTemVolatileGenerico(t *testing.T) {
 		switch rule.Action {
 		case "generic":
 			generic = append(generic, itemID)
-		case "celestial_pending":
+		case "celestial_capsule":
 			celestial = append(celestial, itemID)
 		}
 	}
@@ -252,13 +276,13 @@ func TestCatalogoRealNaoTemVolatileGenerico(t *testing.T) {
 	if len(generic) != 0 {
 		t.Fatalf("itens ainda no generic: %v", generic)
 	}
-	wantCelestial := []uint16{3443, 3455, 5338}
+	wantCelestial := []uint16{3443}
 	if len(celestial) != len(wantCelestial) {
-		t.Fatalf("celestial_pending=%v, quer %v", celestial, wantCelestial)
+		t.Fatalf("celestial_capsule=%v, quer %v", celestial, wantCelestial)
 	}
 	for i := range celestial {
 		if celestial[i] != wantCelestial[i] {
-			t.Fatalf("celestial_pending=%v, quer %v", celestial, wantCelestial)
+			t.Fatalf("celestial_capsule=%v, quer %v", celestial, wantCelestial)
 		}
 	}
 }

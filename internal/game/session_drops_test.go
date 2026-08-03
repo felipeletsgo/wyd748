@@ -77,6 +77,35 @@ func TestREQMobByIDRecoversMobAndPlayer(t *testing.T) {
 	}
 }
 
+func TestREQMobByIDDoesNotLeakPrivateInstanceMob(t *testing.T) {
+	member, _ := networkedTestPlayer(1, "Member", 2200, 2200)
+	outsider, _ := networkedTestPlayer(2, "Outsider", 2200, 2200)
+	w := worldWithNetworkedPlayers(member, outsider)
+	inst := &ItemInstance{
+		Config: model.VolatileInstance{ID: "private-req", Stages: []model.VolatileInstanceStage{{
+			X: 2200, Y: 2200, AreaRadius: 8,
+		}}},
+		MemberIDs: []uint16{member.ID}, CurrentStage: 0,
+	}
+	w.itemInstances = map[string]*ItemInstance{inst.Config.ID: inst}
+	mob := &Mob{ID: 1500, X: 2200, Y: 2200, HP: 100, InstanceID: inst.Config.ID,
+		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+	w.mobs = []*Mob{mob}
+	w.registerMobSpatial(mob)
+	pkt := make([]byte, 16)
+	binary.LittleEndian.PutUint16(pkt[12:14], mob.ID)
+	before := outsider.Session.QueuedPacketsForTest()
+	w.onREQMobByID(outsider.Session, pkt)
+	if outsider.hasVisible(mob.ID) || outsider.Session.QueuedPacketsForTest() != before {
+		t.Fatal("REQMobByID vazou mob de instancia para observador externo")
+	}
+	before = member.Session.QueuedPacketsForTest()
+	w.onREQMobByID(member.Session, pkt)
+	if !member.hasVisible(mob.ID) || member.Session.QueuedPacketsForTest() != before+1 {
+		t.Fatal("REQMobByID nao recuperou mob para membro autorizado")
+	}
+}
+
 func TestProtocolTelemetryHandlersAreRateLimited(t *testing.T) {
 	p, _ := networkedTestPlayer(1, "Protocol", 2100, 2100)
 	w := worldWithNetworkedPlayers(p)

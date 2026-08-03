@@ -107,7 +107,7 @@ func (s *JSONStore) SaveCharStateAsync(uid string, state *model.CharState) error
 	if err != nil {
 		return err
 	}
-	s.enqueueAsyncWrite(func() {
+	s.enqueueAsyncWrite("charstate:"+uid, func() {
 		if err := run(); err != nil {
 			log.Printf("store: autosave charstate %q: %v", uid, err)
 		}

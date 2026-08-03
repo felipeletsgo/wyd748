@@ -37,3 +37,16 @@ func TestAccountSessionReleaseOnlyByOwner(t *testing.T) {
 		t.Fatal("conta permaneceu presa depois da desconexao do proprietario")
 	}
 }
+
+func TestAccountSessionReclaimsClosedSocketBeforeDisconnectCommand(t *testing.T) {
+	w := &World{}
+	owner := netpkg.NewTestSession(1, 1)
+	other := netpkg.NewTestSession(2, 1)
+	if !w.claimAccountSession(owner, "Felipe") {
+		t.Fatal("sessao inicial nao reservou a conta")
+	}
+	owner.Close() // simula socket encerrado antes do comando nil chegar ao World
+	if !w.claimAccountSession(other, "felipe") {
+		t.Fatal("reserva de socket morto bloqueou o novo login")
+	}
+}

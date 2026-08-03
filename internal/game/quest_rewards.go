@@ -24,6 +24,14 @@ func cloneCharacterState(ch *model.Char) model.Char {
 		runtime := *ch.ExtendedRuntime
 		clone.ExtendedRuntime = &runtime
 	}
+	if ch.AlternateCelestial != nil {
+		alternate := *ch.AlternateCelestial
+		if ch.AlternateCelestial.Extended != nil {
+			extended := *ch.AlternateCelestial.Extended
+			alternate.Extended = &extended
+		}
+		clone.AlternateCelestial = &alternate
+	}
 	return clone
 }
 
@@ -61,6 +69,7 @@ func (w *World) grantItemExpReward(s *net.Session, p *Player, item *model.Item,
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return expRewardOutcome{}
 	}
+	cytheraChanged := levels > 0 && updateCelestialCythera(p.Char)
 
 	var goldApplied uint32
 	if gold > 0 {
@@ -96,6 +105,10 @@ func (w *World) grantItemExpReward(s *net.Session, p *Player, item *model.Item,
 	w.updatePartyMember(p)
 	if levels > 0 {
 		s.Send(wire.UpdateScore(p.ID, *p.Char))
+	}
+	if cytheraChanged {
+		s.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
+		w.refreshAppearance(p)
 	}
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))

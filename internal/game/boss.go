@@ -59,6 +59,10 @@ type BossRuntime struct {
 	// crossedThresholds evita reemitir um limiar ja atravessado enquanto o
 	// encontro nao reseta.
 	crossedThresholds map[int]struct{}
+	// pendingThresholds preserva uma transicao obrigatoria cujo evento foi
+	// avaliado, mas nenhuma acao pode ser aceita por causa de conflito de
+	// prioridade/acao pendente. O limiar so vira crossed depois de aceito.
+	pendingThresholds map[int]BossEvent
 }
 
 // newBossRuntime cria o runtime no estado inicial do perfil.
@@ -71,6 +75,7 @@ func newBossRuntime(mobID uint16, profile *BossProfile) *BossRuntime {
 		ConsumedRules:     make(map[BossRuleID]struct{}),
 		Adds:              make(map[uint16]struct{}),
 		crossedThresholds: make(map[int]struct{}),
+		pendingThresholds: make(map[int]BossEvent),
 	}
 }
 
@@ -142,4 +147,3 @@ func (w *World) removeBossAdds(boss *BossRuntime) {
 		delete(boss.Adds, addID)
 	}
 }
-

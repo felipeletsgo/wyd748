@@ -111,16 +111,13 @@ func TestLindyDestraveSoNasTravas(t *testing.T) {
 	}
 }
 
-// TestLindyNaoDestravaSemFame: a trava de 370 custa 1 de fame no nativo.
+// A cobrança de fama ocorre no handler da Lindy; ambas as travas V754 exigem
+// dez pontos. Aqui permanece apenas a validação do nível/flag.
 func TestLindyDestraveDe370ConsomeFame(t *testing.T) {
 	ch := archNoNivel(archLockLevel370, true, false)
 	trava, ok := lindyLevelUnlock(ch)
 	if !ok || trava != archLockLevel370 {
 		t.Fatal("nao reconheceu a trava de 370")
 	}
-	// O consumo em si acontece no handler; aqui fica fixada a regra de que a
-	// trava de 370 e a unica que cobra fame.
-	if trava == archLockLevel355 {
-		t.Error("a trava de 355 nao deveria cobrar fame")
-	}
+	// O consumo em si acontece no handler.
 }

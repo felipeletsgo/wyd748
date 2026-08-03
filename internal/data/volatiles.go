@@ -10,6 +10,19 @@ import (
 	"wydgo/internal/model"
 )
 
+func validateInstanceSpawnShape(where, label string, spawns []model.VolatileInstanceSpawn) error {
+	if len(spawns) == 0 {
+		return fmt.Errorf("data: %s %s nao possui spawns", where, label)
+	}
+	for n, spawn := range spawns {
+		if strings.TrimSpace(spawn.NPC) == "" || spawn.Count <= 0 ||
+			(spawn.X == 0) != (spawn.Y == 0) {
+			return fmt.Errorf("data: %s %s spawns[%d] invalido", where, label, n)
+		}
+	}
+	return nil
+}
+
 var validVolatileActions = map[string]bool{
 	"none": true, "restore": true, "ground_gold": true, "gold": true,
 	"teleport": true, "generic": true, "buff": true, "grant_exp": true,
@@ -27,7 +40,10 @@ var validVolatileActions = map[string]bool{
 	"quest_reward": true, "gate_key": true, "grant_counter": true,
 	"grant_counter_once": true, "arch_crystal": true,
 	"loot_box": true, "mount_revive": true, "timed_access": true,
-	"no_direct_use": true, "celestial_pending": true,
+	"no_direct_use":   true,
+	"celestial_ideal": true, "celestial_fury": true, "celestial_switch": true,
+	"celestial_capsule": true,
+	"equipment_gem":     true, "ore_upgrade": true,
 }
 
 var validMountActions = map[string]bool{
@@ -41,10 +57,11 @@ var validMountActions = map[string]bool{
 func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 	skills map[int]model.SkillDef) (model.VolatileCatalog, error) {
 	var file struct {
-		Default   model.VolatileRule                `json:"default"`
-		Rules     map[int]model.VolatileRule        `json:"rules"`
-		Items     map[uint16]model.VolatileRule     `json:"items"`
-		Instances map[string]model.VolatileInstance `json:"instances"`
+		Default       model.VolatileRule                           `json:"default"`
+		Rules         map[int]model.VolatileRule                   `json:"rules"`
+		Items         map[uint16]model.VolatileRule                `json:"items"`
+		Instances     map[string]model.VolatileInstance            `json:"instances"`
+		EntryAreaSets map[string][]model.VolatileInstanceEntryArea `json:"entryAreaSets"`
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -52,6 +69,138 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 	}
 	if err := json.Unmarshal(b, &file); err != nil {
 		return model.VolatileCatalog{}, fmt.Errorf("data: parse %s: %w", path, err)
+	}
+	var resolveInstance func(string, map[string]bool) (model.VolatileInstance, error)
+	resolveInstance = func(ref string, stack map[string]bool) (model.VolatileInstance, error) {
+		raw, exists := file.Instances[ref]
+		if !exists {
+			return model.VolatileInstance{}, fmt.Errorf("data: referencia instancia inexistente %q", ref)
+		}
+		if stack[ref] {
+			return model.VolatileInstance{}, fmt.Errorf("data: ciclo em baseRef de instancia %q", ref)
+		}
+		if strings.TrimSpace(raw.BaseRef) == "" {
+			return raw, nil
+		}
+		stack[ref] = true
+		base, err := resolveInstance(strings.TrimSpace(raw.BaseRef), stack)
+		delete(stack, ref)
+		if err != nil {
+			return model.VolatileInstance{}, err
+		}
+		// Variantes podem sobrescrever qualquer campo escalar que tenha valor e
+		// qualquer tabela que tenha sido declarada. Campos zero permanecem os do
+		// template base, que e o objetivo do alias de Cube.
+		if raw.ID != "" {
+			base.ID = raw.ID
+		}
+		if raw.Name != "" {
+			base.Name = raw.Name
+		}
+		if raw.X != 0 {
+			base.X = raw.X
+		}
+		if raw.Y != 0 {
+			base.Y = raw.Y
+		}
+		if raw.SpawnX != 0 {
+			base.SpawnX = raw.SpawnX
+		}
+		if raw.SpawnY != 0 {
+			base.SpawnY = raw.SpawnY
+		}
+		if raw.AreaRadius != 0 {
+			base.AreaRadius = raw.AreaRadius
+		}
+		if raw.MaxPlayers != 0 {
+			base.MaxPlayers = raw.MaxPlayers
+		}
+		if len(raw.Spawns) > 0 {
+			base.Spawns = raw.Spawns
+		}
+		if raw.RewardItem != 0 {
+			base.RewardItem = raw.RewardItem
+		}
+		if len(raw.AllowedEvolutions) > 0 {
+			base.AllowedEvolutions = raw.AllowedEvolutions
+		}
+		if raw.DurationSeconds != 0 {
+			base.DurationSeconds = raw.DurationSeconds
+		}
+		if raw.TotalDurationSeconds != 0 {
+			base.TotalDurationSeconds = raw.TotalDurationSeconds
+		}
+		if raw.ActiveDurationSeconds != 0 {
+			base.ActiveDurationSeconds = raw.ActiveDurationSeconds
+		}
+		if raw.ExitX != 0 {
+			base.ExitX = raw.ExitX
+		}
+		if raw.ExitY != 0 {
+			base.ExitY = raw.ExitY
+		}
+		if raw.TransitionSeconds != 0 {
+			base.TransitionSeconds = raw.TransitionSeconds
+		}
+		if raw.SharedEntry {
+			base.SharedEntry = true
+		}
+		if raw.Mode != "" {
+			base.Mode = raw.Mode
+		}
+		if raw.SharedGroup != "" {
+			base.SharedGroup = raw.SharedGroup
+		}
+		if raw.ExclusiveGroup != "" {
+			base.ExclusiveGroup = raw.ExclusiveGroup
+		}
+		if raw.FinishPolicy != "" {
+			base.FinishPolicy = raw.FinishPolicy
+		}
+		if raw.StateMachine != "" {
+			base.StateMachine = raw.StateMachine
+		}
+		if raw.HellGate != nil {
+			base.HellGate = raw.HellGate
+		}
+		if raw.Uxmal != nil {
+			uxmal := *raw.Uxmal
+			uxmal.EntryAreas = append([]model.VolatileInstanceEntryArea(nil), raw.Uxmal.EntryAreas...)
+			uxmal.RoomPositions = make([][]model.VolatileDestination, len(raw.Uxmal.RoomPositions))
+			for index := range raw.Uxmal.RoomPositions {
+				uxmal.RoomPositions[index] = append([]model.VolatileDestination(nil), raw.Uxmal.RoomPositions[index]...)
+			}
+			uxmal.MaxParties = append([]int(nil), raw.Uxmal.MaxParties...)
+			uxmal.Runes = make([][]uint16, len(raw.Uxmal.Runes))
+			for index := range raw.Uxmal.Runes {
+				uxmal.Runes[index] = append([]uint16(nil), raw.Uxmal.Runes[index]...)
+			}
+			uxmal.TicketNextSanc = append([]int(nil), raw.Uxmal.TicketNextSanc...)
+			base.Uxmal = &uxmal
+		}
+		if raw.AllowChainDuringExitGrace {
+			base.AllowChainDuringExitGrace = true
+		}
+		if len(raw.EntryAreas) > 0 {
+			base.EntryAreas = raw.EntryAreas
+		}
+		if raw.EntryAreaSet != "" {
+			base.EntryAreaSet = raw.EntryAreaSet
+		}
+		if len(raw.Schedule) > 0 {
+			base.Schedule = raw.Schedule
+		}
+		if raw.PartyRunLimit != 0 {
+			base.PartyRunLimit = raw.PartyRunLimit
+		}
+		if raw.NightmareTier != "" {
+			base.NightmareTier = raw.NightmareTier
+		}
+		if len(raw.Stages) > 0 {
+			base.Stages = raw.Stages
+		}
+		base.BaseRef = ""
+		return base, nil
 	}
 	if file.Rules == nil {
 		file.Rules = make(map[int]model.VolatileRule)
@@ -64,13 +213,26 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 		rule.ValueSource = strings.ToLower(strings.TrimSpace(rule.ValueSource))
 		rule.InstanceRef = strings.TrimSpace(rule.InstanceRef)
 		if rule.Instance == nil && rule.InstanceRef != "" {
-			template, exists := file.Instances[rule.InstanceRef]
-			if !exists {
-				return rule, fmt.Errorf(
-					"data: %s referencia instancia inexistente %q", where, rule.InstanceRef)
+			instance, err := resolveInstance(rule.InstanceRef, make(map[string]bool))
+			if err != nil {
+				return rule, fmt.Errorf("data: %s: %w", where, err)
 			}
-			instance := template
 			rule.Instance = &instance
+		}
+		if rule.Instance != nil {
+			setName := strings.TrimSpace(rule.Instance.EntryAreaSet)
+			if setName != "" {
+				areas, exists := file.EntryAreaSets[setName]
+				if !exists || len(areas) == 0 {
+					return rule, fmt.Errorf(
+						"data: %s referencia entryAreaSet inexistente %q", where, setName)
+				}
+				if len(rule.Instance.EntryAreas) != 0 {
+					return rule, fmt.Errorf(
+						"data: %s combina entryAreaSet com entryAreas", where)
+				}
+				rule.Instance.EntryAreas = append([]model.VolatileInstanceEntryArea(nil), areas...)
+			}
 		}
 		if !validVolatileActions[rule.Action] {
 			return rule, fmt.Errorf("data: %s possui action desconhecida %q", where, rule.Action)
@@ -123,6 +285,15 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 		}
 		if rule.Action == "grant_exp" && rule.Exp == 0 {
 			return rule, fmt.Errorf("data: %s grant_exp exige exp positivo", where)
+		}
+		if rule.Action == "equipment_gem" &&
+			(rule.Variant < 0 || rule.Variant > 3 || !rule.Consume) {
+			return rule, fmt.Errorf("data: %s equipment_gem exige variant 0..3 e consume=true", where)
+		}
+		if rule.Action == "ore_upgrade" &&
+			(rule.Variant < 0 || rule.Variant > 3 || rule.SuccessPercent < 1 ||
+				rule.SuccessPercent > 100 || !rule.Consume) {
+			return rule, fmt.Errorf("data: %s ore_upgrade exige variant 0..3, chance 1..100 e consume=true", where)
 		}
 		if (rule.Action == "grant_counter" || rule.Action == "grant_counter_once") &&
 			len(rule.Counters) == 0 {
@@ -180,6 +351,17 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 			(rule.RefineMax <= 0 || rule.RefineMax > 15) {
 			return rule, fmt.Errorf("data: %s %s exige refineMax entre 1 e 15", where, rule.Action)
 		}
+		if rule.OnceQuestID != 0 && rule.Action != "refine_set" {
+			return rule, fmt.Errorf("data: %s onceQuestId so pode ser usado por refine_set", where)
+		}
+		if rule.Action == "refine_set" {
+			if !rule.MortalOnly || rule.OnceQuestID == 0 {
+				return rule, fmt.Errorf("data: %s refine_set exige mortalOnly e onceQuestId", where)
+			}
+			if rule.MaxLevelExclusive != 0 && rule.MaxLevelExclusive <= rule.MinLevel {
+				return rule, fmt.Errorf("data: %s refine_set possui faixa de nivel invalida", where)
+			}
+		}
 		if rule.Action == "refine_equipped" &&
 			(rule.RefineMax <= 0 || rule.RefineMax > 15 ||
 				rule.TargetSlot < 0 || rule.TargetSlot >= 16 || len(rule.TargetItems) == 0) {
@@ -196,9 +378,17 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 				(len(i.Stages) == 0 && i.DurationSeconds <= 0) {
 				return rule, fmt.Errorf("data: %s instance_ticket possui template incompleto", where)
 			}
-			if i.MaxPlayers < 0 || i.MaxPlayers > 13 {
+			switch tier := strings.ToLower(strings.TrimSpace(i.NightmareTier)); tier {
+			case "", "normal", "mystic", "arcane":
+			default:
+				return rule, fmt.Errorf("data: %s nightmareTier invalido %q", where, i.NightmareTier)
+			}
+			// Nightmare allows three native parties of up to thirteen members
+			// in the same timed zone. Private instances keep their own lower
+			// limit in data.
+			if i.MaxPlayers < 0 || i.MaxPlayers > 39 {
 				return rule, fmt.Errorf(
-					"data: %s instance_ticket possui maxPlayers fora de 0..13", where)
+					"data: %s instance_ticket possui maxPlayers fora de 0..39", where)
 			}
 			if i.SharedEntry && i.MaxPlayers <= 0 {
 				return rule, fmt.Errorf(
@@ -207,6 +397,143 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 			if i.TotalDurationSeconds < 0 {
 				return rule, fmt.Errorf(
 					"data: %s instance_ticket possui totalDurationSeconds negativo", where)
+			}
+			if i.ActiveDurationSeconds < 0 {
+				return rule, fmt.Errorf(
+					"data: %s instance_ticket possui activeDurationSeconds negativo", where)
+			}
+			if i.PartyRunLimit < 0 || i.PartyRunLimit > 1000 {
+				return rule, fmt.Errorf(
+					"data: %s instance_ticket possui partyRunLimit invalido", where)
+			}
+			switch mode := strings.ToLower(strings.TrimSpace(i.Mode)); mode {
+			case "", "private_chain", "private_shared_entry", "shared_timed_zone", "state_machine":
+			default:
+				return rule, fmt.Errorf("data: %s possui mode de instancia invalido %q", where, i.Mode)
+			}
+			switch policy := strings.ToLower(strings.TrimSpace(i.FinishPolicy)); policy {
+			case "", "finish_on_clear", "finish_on_timeout", "advance_on_clear", "respawn_until_timeout", "state_machine":
+			default:
+				return rule, fmt.Errorf("data: %s possui finishPolicy invalido %q", where, i.FinishPolicy)
+			}
+			if i.Mode == "shared_timed_zone" && strings.TrimSpace(i.SharedGroup) == "" {
+				return rule, fmt.Errorf("data: %s shared_timed_zone exige sharedGroup", where)
+			}
+			switch machine := strings.ToLower(strings.TrimSpace(i.StateMachine)); machine {
+			case "":
+			case "hell_gate":
+				if i.HellGate == nil || strings.TrimSpace(i.HellGate.ControllerNPC) == "" ||
+					len(i.HellGate.Quadrants) != 4 {
+					return rule, fmt.Errorf("data: %s hell_gate exige controlador e quatro quadrantes", where)
+				}
+				seenQuadrants := make(map[int]struct{}, len(i.HellGate.Quadrants))
+				for q, quadrant := range i.HellGate.Quadrants {
+					if quadrant.ID < 1 || quadrant.ID > 4 || quadrant.X == 0 || quadrant.Y == 0 ||
+						quadrant.SpawnX == 0 || quadrant.SpawnY == 0 || quadrant.AreaRadius <= 0 ||
+						quadrant.Lich.NPC == "" || quadrant.Lich.Count != 1 {
+						return rule, fmt.Errorf("data: %s hell_gate quadrante[%d] incompleto", where, q)
+					}
+					if _, duplicate := seenQuadrants[quadrant.ID]; duplicate {
+						return rule, fmt.Errorf("data: %s hell_gate quadrante[%d] duplicado", where, q)
+					}
+					seenQuadrants[quadrant.ID] = struct{}{}
+					if err := validateInstanceSpawnShape(where, fmt.Sprintf("hell_gate quadrants[%d]", q), quadrant.Spawns); err != nil {
+						return rule, err
+					}
+					if err := validateInstanceSpawnShape(where,
+						fmt.Sprintf("hell_gate quadrants[%d].lich", q),
+						[]model.VolatileInstanceSpawn{quadrant.Lich}); err != nil {
+						return rule, err
+					}
+				}
+				for id := 1; id <= 4; id++ {
+					if _, ok := seenQuadrants[id]; !ok {
+						return rule, fmt.Errorf("data: %s hell_gate quadrante %d ausente", where, id)
+					}
+				}
+				if len(i.HellGate.FinalSpawns) == 0 && len(i.HellGate.FinalNPCs) == 0 {
+					return rule, fmt.Errorf("data: %s hell_gate exige onda ou NPC final", where)
+				}
+				if len(i.HellGate.FinalSpawns) > 0 {
+					if err := validateInstanceSpawnShape(where, "hell_gate finalSpawns", i.HellGate.FinalSpawns); err != nil {
+						return rule, err
+					}
+				}
+				if len(i.HellGate.FinalNPCs) > 0 {
+					if err := validateInstanceSpawnShape(where, "hell_gate finalNPCs", i.HellGate.FinalNPCs); err != nil {
+						return rule, err
+					}
+				}
+			case "big_cube":
+				// Big Cube is an O/X state machine rather than a combat wave. Its
+				// questions and platform coordinates are still data-driven, but a
+				// stage is allowed to have zero NPC spawns; the game opens the quiz
+				// immediately after the ticket commit.
+				if len(i.Stages) == 0 || !i.NoCombatTimeout {
+					return rule, fmt.Errorf("data: %s big_cube exige stages e noCombatTimeout", where)
+				}
+				for stageIndex, stage := range i.Stages {
+					if stage.Quiz == nil {
+						return rule, fmt.Errorf("data: %s big_cube stages[%d] exige quiz", where, stageIndex)
+					}
+					if len(stage.Spawns) > 0 {
+						return rule, fmt.Errorf("data: %s big_cube stages[%d] nao pode possuir mobs", where, stageIndex)
+					}
+				}
+			case "uxmal":
+				if i.Uxmal == nil || strings.TrimSpace(i.Uxmal.NPC) == "" ||
+					i.Uxmal.TicketItem == 0 || len(i.Uxmal.RoomPositions) != 7 ||
+					len(i.Uxmal.MaxParties) != 7 || len(i.Uxmal.Runes) != 7 ||
+					len(i.Uxmal.TicketNextSanc) != 7 || len(i.Stages) != 7 {
+					return rule, fmt.Errorf("data: %s uxmal exige NPC, ticket e sete salas completas", where)
+				}
+				if _, exists := items[i.Uxmal.TicketItem]; !exists {
+					return rule, fmt.Errorf("data: %s uxmal ticket %d ausente no catalogo", where, i.Uxmal.TicketItem)
+				}
+				for areaIndex, area := range i.Uxmal.EntryAreas {
+					if area.MinX == 0 || area.MinY == 0 || area.MaxX < area.MinX || area.MaxY < area.MinY {
+						return rule, fmt.Errorf("data: %s uxmal entryAreas[%d] invalida", where, areaIndex)
+					}
+				}
+				for room := range i.Stages {
+					if len(i.Uxmal.RoomPositions[room]) != 3 || i.Uxmal.MaxParties[room] < 1 || i.Uxmal.MaxParties[room] > 3 ||
+						len(i.Uxmal.Runes[room]) == 0 || i.Uxmal.TicketNextSanc[room] < 0 || i.Uxmal.TicketNextSanc[room] > 6 {
+						return rule, fmt.Errorf("data: %s uxmal sala[%d] possui tabela invalida", where, room)
+					}
+					for slot, position := range i.Uxmal.RoomPositions[room] {
+						if position.X == 0 || position.Y == 0 {
+							return rule, fmt.Errorf("data: %s uxmal sala[%d] posicao[%d] invalida", where, room, slot)
+						}
+					}
+					for _, itemID := range i.Uxmal.Runes[room] {
+						if itemID == 0 {
+							return rule, fmt.Errorf("data: %s uxmal sala[%d] possui rune zero", where, room)
+						}
+						if _, exists := items[itemID]; !exists {
+							return rule, fmt.Errorf("data: %s uxmal rune %d ausente no catalogo", where, itemID)
+						}
+					}
+				}
+			default:
+				return rule, fmt.Errorf("data: %s stateMachine invalida %q", where, i.StateMachine)
+			}
+			if i.Mode == "state_machine" && strings.TrimSpace(i.SharedGroup) != "" &&
+				i.ExclusiveGroup == strings.TrimSpace(i.SharedGroup) {
+				return rule, fmt.Errorf("data: %s nao pode reutilizar sharedGroup como exclusiveGroup", where)
+			}
+			for areaIndex, area := range i.EntryAreas {
+				if area.MinX == 0 || area.MinY == 0 || area.MaxX < area.MinX ||
+					area.MaxY < area.MinY {
+					return rule, fmt.Errorf(
+						"data: %s entryAreas[%d] invalida", where, areaIndex)
+				}
+			}
+			for windowIndex, window := range i.Schedule {
+				if window.StartMinute < 0 || window.StartMinute > 59 ||
+					window.DurationSeconds <= 0 || window.DurationSeconds > 3600 {
+					return rule, fmt.Errorf(
+						"data: %s schedule[%d] invalida", where, windowIndex)
+				}
 			}
 			if len(i.Stages) == 0 {
 				if i.X == 0 || i.Y == 0 || i.SpawnX == 0 || i.SpawnY == 0 ||
@@ -240,13 +567,22 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 				for stageIndex, stage := range i.Stages {
 					if stage.X == 0 || stage.Y == 0 || stage.SpawnX == 0 ||
 						stage.SpawnY == 0 || stage.AreaRadius <= 0 ||
-						(stage.DurationSeconds <= 0 && i.DurationSeconds <= 0) {
+						(stage.DurationSeconds <= 0 && i.DurationSeconds <= 0 && !i.NoCombatTimeout) {
 						return rule, fmt.Errorf(
 							"data: %s instance_ticket stages[%d] incompleto", where, stageIndex)
 					}
-					if err := validateSpawns(
-						fmt.Sprintf("instance_ticket stages[%d]", stageIndex), stage.Spawns); err != nil {
-						return rule, err
+					if !strings.EqualFold(strings.TrimSpace(i.StateMachine), "big_cube") {
+						if err := validateSpawns(
+							fmt.Sprintf("instance_ticket stages[%d]", stageIndex), stage.Spawns); err != nil {
+							return rule, err
+						}
+					}
+					if len(stage.CompletionSpawns) > 0 {
+						if err := validateSpawns(
+							fmt.Sprintf("instance_ticket stages[%d].completionSpawns", stageIndex),
+							stage.CompletionSpawns); err != nil {
+							return rule, err
+						}
 					}
 					if stage.Quiz != nil {
 						q := stage.Quiz
@@ -309,6 +645,7 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 
 	result := model.VolatileCatalog{
 		Default: file.Default, Rules: file.Rules, Items: file.Items,
+		Instances: make(map[string]model.VolatileInstance),
 		ItemCodes: make(map[uint16]int), Codes: make(map[int]int),
 	}
 	for id, def := range items {
@@ -334,6 +671,22 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 			return model.VolatileCatalog{}, err
 		}
 		result.Items[id] = rule
+	}
+	// Instancias nomeadas tambem podem ser abertas por um NPC. Materialize-as
+	// com o mesmo resolvedor de BaseRef e passe-as pelo contrato de instancia
+	// sem exigir que exista um item com EF_VOLATILE apontando para elas.
+	for name := range file.Instances {
+		instance, resolveErr := resolveInstance(name, make(map[string]bool))
+		if resolveErr != nil {
+			return model.VolatileCatalog{}, fmt.Errorf("data: instances[%q]: %w", name, resolveErr)
+		}
+		normalized, normalizeErr := normalize(fmt.Sprintf("instances[%q]", name), model.VolatileRule{
+			Action: "instance_ticket", Instance: &instance,
+		})
+		if normalizeErr != nil {
+			return model.VolatileCatalog{}, normalizeErr
+		}
+		result.Instances[name] = *normalized.Instance
 	}
 	// Vários ingressos podem compartilhar a mesma sala (Cube Mystic/Arcane,
 	// Hell Gate solo/party), mas o mesmo ID nunca pode apontar para dois

@@ -32,13 +32,26 @@ func (p *Player) hide(id uint16) {
 }
 
 func (w *World) showMob(p *Player, m *Mob) {
-	if p == nil || !p.InWorld || m == nil || m.Dead || p.hasVisible(m.ID) {
+	if p == nil || !p.InWorld || m == nil || m.Dead ||
+		!w.mobVisibleToPlayer(p, m) || p.hasVisible(m.ID) {
 		return
 	}
 	anct := m.Def.Equip.AncientCodes()
 	p.Session.Send(wire.CreateMobVisualExtended(m.ID, m.Def.Name, m.X, m.Y,
 		m.Def.Mesh(), anct[:], mobPublicExtended(m), m.Affects[:], 0))
 	p.show(m.ID)
+}
+
+// mobVisibleToPlayer is the visibility boundary for private instance mobs.
+// They share the physical map with the rest of the world, but their packets
+// must only reach members currently registered in the same stage.  Keeping
+// this check in the publication layer prevents a caller that forgets the
+// instance context from leaking CreateMob, movement, damage or death packets.
+func (w *World) mobVisibleToPlayer(p *Player, m *Mob) bool {
+	if p == nil || m == nil || m.InstanceID == "" {
+		return true
+	}
+	return instanceMemberInStage(w.instanceForMob(m), p)
 }
 
 func (w *World) hideMob(p *Player, m *Mob, removeType uint32) {
@@ -76,8 +89,8 @@ func playerEnterViewPackets(subject *Player) [][]byte {
 		return nil
 	}
 	return [][]byte{
-		wire.CreateMobExtended(subject.ID, subject.Char.Name, subject.X, subject.Y,
-			bodyMesh(subject.Char), bodyAncient(subject.Char), wireExtendedScore(subject.Char), subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.CP),
+		wire.CreateMobExtendedWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
+			bodyMesh(subject.Char), bodyAncient(subject.Char), wireExtendedScore(subject.Char), subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP),
 		wire.SetHpMpExtended(subject.ID, wireExtendedScore(subject.Char)),
 		wire.ActionStop(subject.ID, subject.X, subject.Y),
 	}
@@ -176,6 +189,9 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 	nearMobs := w.nearbyMobs(p.X, p.Y, viewHalfX)
 	nearMobIDs := make(map[uint16]struct{}, len(nearMobs))
 	for _, m := range nearMobs {
+		if !w.mobVisibleToPlayer(p, m) {
+			continue
+		}
 		nearMobIDs[m.ID] = struct{}{}
 		if !p.hasVisible(m.ID) {
 			w.showMob(p, m)
@@ -271,7 +287,9 @@ func (w *World) publishGhostShopItemSold(shop *GhostShop, pos uint32) {
 func (w *World) publishMobSpawn(m *Mob) {
 	w.registerMobSpatial(m)
 	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
-		w.showMob(p, m)
+		if w.mobVisibleToPlayer(p, m) {
+			w.showMob(p, m)
+		}
 	}
 }
 
@@ -287,6 +305,12 @@ func (w *World) publishMobMove(m *Mob, oldX, oldY uint16, speed uint32) {
 		observers[p.ID] = p
 	}
 	for _, p := range observers {
+		if !w.mobVisibleToPlayer(p, m) {
+			if p.hasVisible(m.ID) {
+				w.hideMob(p, m, 0)
+			}
+			continue
+		}
 		wasVisible := p.hasVisible(m.ID)
 		nowVisible := inView(p.X, p.Y, m.X, m.Y)
 		switch {
@@ -300,20 +324,16 @@ func (w *World) publishMobMove(m *Mob, oldX, oldY uint16, speed uint32) {
 	}
 }
 
-// publishPlayerMove replica somente uma mudanca real de destino. O client 7.48
-// reenvi​a Action durante o mesmo deslocamento; ecoar cada pacote com PosXY
-// intermediario reinicia o relogio de caminhada do observador e parece um
-// teleporte. PosXY externo e derivado do ultimo destino server-side anunciado.
-func (w *World) publishPlayerMove(player *Player, previousX, previousY uint16) {
+// publishPlayerMove replica somente uma mudanca real de destino. O TMSrv nativo
+// conserva Route[24] e a publica junto da origem informada no segmento. Descartar
+// essa rota obrigava cada observador a recalcular o caminho e causava pequenas
+// correcoes em curvas, desniveis ou mudancas de destino.
+func (w *World) publishPlayerMove(player *Player, fromX, fromY uint16, route []byte) {
 	if player == nil || !player.InWorld || player.Char == nil {
 		return
 	}
 	if player.MovePublished && player.MovePublishedTargetX == player.X && player.MovePublishedTargetY == player.Y {
 		return
-	}
-	fromX, fromY := previousX, previousY
-	if player.MovePublished {
-		fromX, fromY = player.MovePublishedTargetX, player.MovePublishedTargetY
 	}
 	if fromX == player.X && fromY == player.Y {
 		return
@@ -321,30 +341,82 @@ func (w *World) publishPlayerMove(player *Player, previousX, previousY uint16) {
 	// BASE_GetSpeed: nibble baixo de AttackRun, limitado a 1..6. Usar o score
 	// impede speed hack e conserva visualmente botas/buffs de corrida.
 	speed := uint32(playerAttackRun(player.Char) & 0x0F)
+	// O jogador ainda esta indexado na celula anterior neste ponto. Consulte a
+	// uniao das duas janelas para que quem ja o via na origem receba o segmento;
+	// jogadores novos so serao materializados pelo refresh posterior.
+	observers := make(map[uint16]*Player)
+	if player.MovePublished {
+		for _, observer := range w.nearbyWorldPlayers(
+			player.MovePublishedTargetX, player.MovePublishedTargetY, viewHalfX) {
+			observers[observer.ID] = observer
+		}
+	}
+	for _, observer := range w.nearbyWorldPlayers(fromX, fromY, viewHalfX) {
+		observers[observer.ID] = observer
+	}
 	for _, observer := range w.nearbyWorldPlayers(player.X, player.Y, viewHalfX) {
+		observers[observer.ID] = observer
+	}
+	for _, observer := range observers {
 		if observer != player && observer.hasVisible(player.ID) {
-			observer.Session.Send(wire.PlayerMove(player.ID, fromX, fromY, player.X, player.Y, speed))
+			observer.Session.Send(wire.PlayerMove(player.ID, fromX, fromY, player.X, player.Y, speed, route))
 		}
 	}
 	player.MovePublished = true
+	player.MovePublishedStartX, player.MovePublishedStartY = fromX, fromY
 	player.MovePublishedTargetX, player.MovePublishedTargetY = player.X, player.Y
+	player.MovePublishedRoute = [maxMovementRouteBytes]byte{}
+	for index, step := range route {
+		if index >= len(player.MovePublishedRoute) || step == 0 {
+			break
+		}
+		player.MovePublishedRoute[index] = step
+	}
 }
 
+// publishPlayerStop encerra uma rota sem usar ActionStop/Effect=1. Esse efeito
+// pertence a spawn, teleporte e correcao dura; envia-lo em toda parada encaixava
+// o avatar remoto instantaneamente. Ao chegar ao destino, a rota ja termina
+// sozinha. Uma parada intermediaria recebe uma unica reorientacao Effect=0.
 func (w *World) publishPlayerStop(player *Player) {
-	if player == nil || !player.InWorld {
+	if player == nil || !player.InWorld || player.Char == nil || !player.MovePublished {
 		return
 	}
-	for _, observer := range w.nearbyWorldPlayers(player.X, player.Y, viewHalfX) {
-		if observer != player && observer.hasVisible(player.ID) {
-			observer.Session.Send(wire.ActionStop(player.ID, player.X, player.Y))
+	startX, startY := player.MovePublishedStartX, player.MovePublishedStartY
+	plannedX, plannedY := player.MovePublishedTargetX, player.MovePublishedTargetY
+	if player.X != plannedX || player.Y != plannedY {
+		speed := uint32(playerAttackRun(player.Char) & 0x0F)
+		observers := make(map[uint16]*Player)
+		for _, point := range [][2]uint16{{startX, startY}, {plannedX, plannedY}, {player.X, player.Y}} {
+			for _, observer := range w.nearbyWorldPlayers(point[0], point[1], viewHalfX) {
+				observers[observer.ID] = observer
+			}
+		}
+		for _, observer := range observers {
+			if observer != player && observer.hasVisible(player.ID) {
+				observer.Session.Send(wire.PlayerMove(
+					player.ID, startX, startY, player.X, player.Y, speed, nil))
+			}
 		}
 	}
+	clearPublishedPlayerMove(player)
+}
+
+func clearPublishedPlayerMove(player *Player) {
+	if player == nil {
+		return
+	}
 	player.MovePublished = false
+	player.MovePublishedStartX = 0
+	player.MovePublishedStartY = 0
+	player.MovePublishedTargetX = 0
+	player.MovePublishedTargetY = 0
+	player.MovePublishedRoute = [maxMovementRouteBytes]byte{}
 }
 
 func (w *World) publishMobDeath(m *Mob, killerID uint16, killerExp uint32, expByPlayer map[*Player]uint32) {
 	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
-		if !p.hasVisible(m.ID) {
+		if !w.mobVisibleToPlayer(p, m) || !p.hasVisible(m.ID) {
 			continue
 		}
 		exp := killerExp
@@ -357,12 +429,52 @@ func (w *World) publishMobDeath(m *Mob, killerID uint16, killerExp uint32, expBy
 	}
 }
 
+// publishPlayerDeath envia o total de EXP de CADA destinatario. O client chama
+// SetMyHumanExp quando o killer e ele proprio ou um membro da party; reutilizar
+// a EXP da vitima aqui fazia o client do killer receber visualmente o total da
+// pessoa morta. PvP nao concede EXP nem gold.
+func (w *World) publishPlayerDeath(victim *Player, killerID uint16) {
+	if victim == nil || !victim.InWorld {
+		return
+	}
+	for _, recipient := range w.nearbyWorldPlayers(victim.X, victim.Y, viewHalfX) {
+		if recipient != victim && !recipient.hasVisible(victim.ID) {
+			continue
+		}
+		recipient.Session.Send(playerDeathPacket(recipient, victim, killerID))
+	}
+}
+
+func playerDeathPacket(recipient, victim *Player, killerID uint16) []byte {
+	var exp uint32
+	if recipient != nil && recipient.Char != nil {
+		exp = recipient.Char.Exp
+	}
+	return wire.CNFMobKill(victim.ID, killerID, exp)
+}
+
+// publishMobRemoval retira um mob que nunca morreu em combate (rollback de
+// spawn, reload ou cleanup administrativo). Diferente de publishMobDeath, nao
+// envia CNFMobKill nem cria um hit visual falso no client.
+func (w *World) publishMobRemoval(m *Mob) {
+	if m == nil {
+		return
+	}
+	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
+		if !w.mobVisibleToPlayer(p, m) || !p.hasVisible(m.ID) {
+			continue
+		}
+		p.Session.Send(wire.RemoveMob(m.ID, 0))
+		p.hide(m.ID)
+	}
+}
+
 func (w *World) sendToMobView(m *Mob, build func() []byte) {
 	if m == nil {
 		return
 	}
 	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
-		if p.hasVisible(m.ID) {
+		if w.mobVisibleToPlayer(p, m) && p.hasVisible(m.ID) {
 			p.Session.Send(build())
 		}
 	}
@@ -440,6 +552,21 @@ func (w *World) syncPlayerScoreAndVitals(subject *Player) {
 	}
 	w.sendToPlayerView(subject, func() []byte {
 		return wire.UpdateScore(subject.ID, *subject.Char)
+	})
+}
+
+// syncPlayerChaos publica a mudança do byte de PK/chaos que fica dentro do
+// CreateMob. UpdateEtc não possui campo de CP no protocolo 7.54; enviar apenas
+// 0x337 deixaria o nome dos observadores com a cor anterior. O pacote mantém a
+// mesma posição e não inclui Action, portanto não reinicia a caminhada.
+func (w *World) syncPlayerChaos(subject *Player) {
+	if subject == nil || !subject.InWorld || subject.Char == nil {
+		return
+	}
+	w.sendToPlayerView(subject, func() []byte {
+		return wire.CreateMobExtendedWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
+			bodyMesh(subject.Char), bodyAncient(subject.Char), wireExtendedScore(subject.Char),
+			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP)
 	})
 }
 

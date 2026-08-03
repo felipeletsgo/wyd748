@@ -19,9 +19,10 @@ import (
 
 // command = um pacote recebido de uma sessao (pkt nil = desconexao).
 type command struct {
-	s     *net.Session
-	pkt   []byte
-	login *loginResult
+	s        *net.Session
+	pkt      []byte
+	login    *loginResult
+	queuedAt time.Time
 	// shutdown, quando presente, pede o desligamento controlado. E um comando
 	// como qualquer outro justamente para rodar NA goroutine do World: assim o
 	// drain final enxerga o estado consistente, sem concorrer com um handler.
@@ -83,17 +84,23 @@ type Player struct {
 	CharSlot int
 	ID       uint16
 	InWorld  bool
-	X, Y     uint16 // posicao atual (rastreada dos pacotes de movimento 0x366)
+	// PersistencePoisoned e ligado somente quando um handler entra em panic.
+	// Nesse caso nao sabemos quais agregados ele mutou antes de falhar; salvar
+	// no disconnect/autosave poderia transformar estado parcial em dupe. O
+	// mundo entra em manutencao e descarta a RAM, preservando o ultimo commit.
+	PersistencePoisoned bool
+	X, Y                uint16 // posicao atual (rastreada dos pacotes de movimento 0x366)
 	// NPC cuja loja esta aberta. O buy do 7.48 vem com TargetID=0, portanto o
 	// servidor usa este ID autoritativo em vez de confiar no pacote.
-	ShopNPC       uint16
-	CraftNPC      uint16
-	LastCraft     time.Time
-	DeadAt        time.Time
-	LastPotion    time.Time
-	SkillReady    map[int]time.Time
-	NextRegen     time.Time
-	NextMountTick time.Time
+	ShopNPC        uint16
+	CraftNPC       uint16
+	LastCraft      time.Time
+	DeadAt         time.Time
+	LastPotion     time.Time
+	SkillReady     map[int]time.Time
+	NextRegen      time.Time
+	NextCPRecovery time.Time
+	NextMountTick  time.Time
 	// Cooldown compartilhado pelos comandos /kingdom e /king.
 	NextKingdomTeleport time.Time
 	Visible             map[uint16]struct{} // entidades atualmente materializadas neste client
@@ -104,6 +111,12 @@ type Player struct {
 	// convidou e ate quando vale, para nao aceitar convite esquecido.
 	GuildInviteFrom  uint16
 	GuildInviteUntil time.Time
+	// Cooldown do recrutamento nativo (0x3D5). E efemero e zerado ao trocar
+	// de personagem; nunca e aceito como parte do estado vindo do client.
+	NextGuildInvite time.Time
+	// Rebuy e uma lixeira efemera da sessao. O nativo a limpa ao carregar outro
+	// personagem; os itens mantem o UID enquanto aguardam recompra.
+	Rebuy [maxRebuyEntries]RebuyEntry
 	// Alvos autoritativos usados pelas evocacoes: primeiro quem o dono atacou;
 	// na ausencia dele, quem atacou o dono.
 	CombatTargetID uint16
@@ -111,12 +124,16 @@ type Player struct {
 	LastAttackAt   time.Time
 	LastAttackTick uint32
 	AttackProgress uint16
-	// O client 7.48 envia Action continuamente durante uma caminhada. Estes
-	// campos guardam o ultimo destino ja anunciado aos observadores, para que
-	// uma atualizacao intermediaria nao reinicie a interpolacao remota.
+	// O client 7.48 pode repetir Action durante uma caminhada. Estes campos
+	// guardam o ultimo destino publicado para suprimir apenas repeticoes do
+	// mesmo plano; quando o destino muda, a nova origem e Route[24] validadas sao
+	// preservadas para a interpolacao dos observadores.
 	MovePublished        bool
+	MovePublishedStartX  uint16
+	MovePublishedStartY  uint16
 	MovePublishedTargetX uint16
 	MovePublishedTargetY uint16
+	MovePublishedRoute   [maxMovementRouteBytes]byte
 	// Orcamento server-side de deslocamento. Impede que rotas individualmente
 	// validas sejam reenviadas em alta frequencia para produzir speedhack.
 	MoveBudget   float64
@@ -202,6 +219,11 @@ type GroundItem struct {
 const npcGenerMinute = 12 * time.Second
 const accountAutoSaveInterval = 3 * time.Second
 
+// O servidor nativo recupera 1 ponto de CP negativo a cada 450 ciclos de
+// segundo (Server.cpp/RegenMob.cpp). O contador é de sessão e reinicia ao
+// entrar no mundo; o CP em si permanece persistido no personagem.
+const chaosRecoveryInterval = 450 * time.Second
+
 // questZoneResetInterval porta o reset de area de quest do W2PP: la e um
 // SecCounter%1200 com TIMER_SEC=500ms, ou seja 10 minutos reais.
 const questZoneResetInterval = 10 * time.Minute
@@ -236,6 +258,15 @@ func WithQuestZones(file model.QuestZoneFile) WorldOption {
 	return func(w *World) { w.questZones = file.Zones }
 }
 
+// WithUxmal entrega o template autoritativo da Pista de Runas. O evento e
+// iniciado pelo NPC, portanto nao precisa de uma regra EF_VOLATILE artificial.
+func WithUxmal(instance model.VolatileInstance) WorldOption {
+	return func(w *World) {
+		copy := cfgCopy(instance)
+		w.uxmal = &copy
+	}
+}
+
 // WithInitItems entrega os objetos permanentes do mundo (portoes, portas,
 // canhoes, torres). Eles entram no mapa no boot e nunca saem.
 func WithInitItems(objetos []model.InitItem) WorldOption {
@@ -267,6 +298,16 @@ func WithGameplayConfig(config model.GameplayConfig) WorldOption {
 	}
 }
 
+// WithLoadtestSpawn habilita um nascimento alternativo somente para contas
+// cujo login comeca pelo prefixo configurado. O padrao vazio desabilita o
+// caminho e preserva 2100,2100 para todos os jogadores reais.
+func WithLoadtestSpawn(spawn model.CharacterSpawn, accountPrefix string) WorldOption {
+	return func(w *World) {
+		w.loadtestSpawn = spawn
+		w.loadtestAccountPrefix = strings.ToLower(strings.TrimSpace(accountPrefix))
+	}
+}
+
 // WithMounts injeta o catalogo de montarias (bonus de stat por tipo). Ausente,
 // o slot de montaria nao adiciona atributos.
 func WithMounts(catalog model.MountCatalog) WorldOption {
@@ -277,7 +318,10 @@ func WithMounts(catalog model.MountCatalog) WorldOption {
 
 // World e o dono do estado do jogo.
 type World struct {
-	commands        chan command
+	commands chan command
+	// pendingCommands guarda o restante de um lote quando o tick vence o
+	// orcamento. O World continua sendo o unico escritor desta fila.
+	pendingCommands []command
 	players         map[*net.Session]*Player
 	playersByID     map[uint16]*Player
 	accountSessions map[string]*net.Session
@@ -289,37 +333,39 @@ type World struct {
 	// charNames e o indice em memoria de nomes de personagem (minusculos),
 	// populado no boot e mantido em criar/deletar. Evita varrer todas as contas do
 	// disco a cada 0x20F (DoS). nil = indice indisponivel -> cai no scan do store.
-	charNames       map[string]struct{}
-	store           store.Store
-	npcs            []model.NPCDef
-	mobs            []*Mob
-	mobsByID        map[uint16]*Mob
-	mobCells        map[uint32]map[uint16]*Mob
-	playerCells     map[uint32]map[uint16]*Player
-	mobCell         map[uint16]uint32
-	playerCell      map[uint16]uint32
-	activeMobs      map[uint16]*Mob
-	summons         map[uint16]*Mob
-	sephiraObjects  map[uint16]*Mob
-	generators      []generState
-	nextMobID       uint16
-	items           map[uint16]model.ItemDef
-	skills          map[int]model.SkillDef
-	groundItems     map[uint16]*GroundItem
-	ghostShops      map[uint16]*GhostShop
-	nextItemID      uint16
-	nextAutoSave    time.Time
-	dropRates       [model.MaxCarry]int // taxa de drop por slot do carry (nativa)
-	volatiles       model.VolatileCatalog
-	mounts          model.MountCatalog
-	charSpawn       model.CharacterSpawn
-	charTemplates   [4]model.CharacterTemplate
-	terrain         model.TerrainMap
-	npcGenerLogMode npcGenerLogMode
-	npcGenerLog     npcGenerLogStats
-	nextGenerLog    time.Time
-	teleports       []model.Teleport
-	gameplay        model.GameplayConfig
+	charNames             map[string]struct{}
+	store                 store.Store
+	npcs                  []model.NPCDef
+	mobs                  []*Mob
+	mobsByID              map[uint16]*Mob
+	mobCells              map[uint32]map[uint16]*Mob
+	playerCells           map[uint32]map[uint16]*Player
+	mobCell               map[uint16]uint32
+	playerCell            map[uint16]uint32
+	activeMobs            map[uint16]*Mob
+	summons               map[uint16]*Mob
+	sephiraObjects        map[uint16]*Mob
+	generators            []generState
+	nextMobID             uint16
+	items                 map[uint16]model.ItemDef
+	skills                map[int]model.SkillDef
+	groundItems           map[uint16]*GroundItem
+	ghostShops            map[uint16]*GhostShop
+	nextItemID            uint16
+	nextAutoSave          time.Time
+	dropRates             [model.MaxCarry]int // taxa de drop por slot do carry (nativa)
+	volatiles             model.VolatileCatalog
+	mounts                model.MountCatalog
+	charSpawn             model.CharacterSpawn
+	loadtestSpawn         model.CharacterSpawn
+	loadtestAccountPrefix string
+	charTemplates         [4]model.CharacterTemplate
+	terrain               model.TerrainMap
+	npcGenerLogMode       npcGenerLogMode
+	npcGenerLog           npcGenerLogStats
+	nextGenerLog          time.Time
+	teleports             []model.Teleport
+	gameplay              model.GameplayConfig
 	// guilds e o registro canonico carregado do guilds.json. Char.GuildID e
 	// apenas uma copia desnormalizada reparada no login.
 	guilds *model.GuildRegistry
@@ -333,6 +379,7 @@ type World struct {
 	// para dar 10 minutos reais mesmo se algum tick atrasar.
 	questZones         []model.QuestZone
 	nextQuestZoneReset time.Time
+	uxmal              *model.VolatileInstance
 	// channel e o numero deste canal (o ServerIndex+1 do nativo). A cidadania
 	// e por canal: ser cidadao de outro canal nao rende o bonus aqui.
 	// Instancia unica = canal 1.
@@ -360,7 +407,9 @@ type World struct {
 	bossSpawns  []*bossSpawnState
 	// itemInstances são salas temporárias criadas por consumíveis. Um mapa no
 	// ator World substitui tickers/goroutines por sala.
-	itemInstances map[string]*ItemInstance
+	itemInstances      map[string]*ItemInstance
+	nightmarePartyRuns map[string]int
+	instanceStateDirty bool
 }
 
 // firstMobID e o inicio da faixa de mobs; abaixo dela ficam os jogadores.
@@ -438,17 +487,23 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		clock:              realClock{},
 		rng:                realRNG{},
 		itemInstances:      make(map[string]*ItemInstance),
+		nightmarePartyRuns: make(map[string]int),
 	}
 	for _, option := range options {
 		option(w)
 	}
-	// Os deadlines nascem DEPOIS das options: WithClock precisa estar aplicado
-	// para que um teste com relogio falso parta do mesmo instante que o mundo.
+	// Os deadlines nascem DEPOIS das options para que uma fonte de tempo
+	// injetada em teste parta do mesmo instante que o mundo.
 	start := w.now()
 	w.nextAutoSave = start.Add(accountAutoSaveInterval)
 	w.nextQuestZoneReset = start.Add(questZoneResetInterval)
 	if err := w.gameplay.Validate(); err != nil {
 		return nil, fmt.Errorf("configuracao global: %w", err)
+	}
+	if w.uxmal != nil {
+		if err := w.validateUxmalConfig(); err != nil {
+			return nil, fmt.Errorf("configuracao Uxmal: %w", err)
+		}
 	}
 	// Montarias a venda nascem vivas (HP/comida/longevidade), senao a loja as
 	// exibiria e venderia mortas.
@@ -497,23 +552,8 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		templates[n.Name] = n
 		templates[generName(n.Name)] = n
 	}
-	for itemID, rule := range w.volatiles.Items {
-		if rule.Action != "instance_ticket" || rule.Instance == nil {
-			continue
-		}
-		spawns := rule.Instance.Spawns
-		if len(rule.Instance.Stages) > 0 {
-			spawns = nil
-			for _, stage := range rule.Instance.Stages {
-				spawns = append(spawns, stage.Spawns...)
-			}
-		}
-		for _, spawn := range spawns {
-			if templates[spawn.NPC] == nil {
-				return nil, fmt.Errorf("volatile item %d: template de instancia %q ausente",
-					itemID, spawn.NPC)
-			}
-		}
+	if err := w.validateItemInstanceTemplates(); err != nil {
+		return nil, err
 	}
 	for _, g := range geners {
 		if !g.Enabled {
@@ -552,6 +592,9 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	if err := w.spawnConfiguredBosses(); err != nil {
 		return nil, err
 	}
+	if err := w.restoreInstanceState(); err != nil {
+		return nil, fmt.Errorf("restaurar estado de instancias: %w", err)
+	}
 	return w, nil
 }
 
@@ -561,8 +604,18 @@ func generName(s string) string { return strings.ReplaceAll(s, "_", " ") }
 // abaixo de 1000; mobs comecam em 1000). Reusar o slot e o comportamento do
 // TMSrv nativo (id = indice da conexao): um relog no mesmo client 7.48 volta a
 // receber o MESMO id, e todo estado que o client guarda por id continua valido.
-func (w *World) allocPlayerID() uint16 {
-	used := make(map[uint16]struct{}, len(w.players))
+// Quando todos os 999 slots estao ocupados, o segundo retorno e false. Nunca
+// reutilizar o ID 999 nesse caso: isso sobrescreveria um jogador ja materializado.
+func (w *World) allocPlayerID() (uint16, bool) {
+	used := make(map[uint16]struct{}, len(w.playersByID)+len(w.players))
+	// playersByID e o indice autoritativo para lookup de combate/visibilidade;
+	// consultar os dois mapas evita colidir mesmo se uma desconexao deixou um
+	// registro stale que o cleanup ainda vai remover no mesmo ciclo.
+	for id := range w.playersByID {
+		if id != 0 {
+			used[id] = struct{}{}
+		}
+	}
 	for _, p := range w.players {
 		if p.ID != 0 {
 			used[p.ID] = struct{}{}
@@ -570,10 +623,10 @@ func (w *World) allocPlayerID() uint16 {
 	}
 	for id := uint16(1); id < 1000; id++ {
 		if _, taken := used[id]; !taken {
-			return id
+			return id, true
 		}
 	}
-	return 999 // mundo cheio (limite de players); inalcancavel hoje
+	return 0, false // mundo cheio (limite de players)
 }
 
 func (w *World) scheduleGenerator(g *generState, now time.Time) {
@@ -591,13 +644,14 @@ func (w *World) spawnGroup(g *generState) {
 	}
 	followers := g.def.MinGroup
 	if d := g.def.MaxGroup - g.def.MinGroup + 1; d > 1 {
-		followers += rand.Intn(d)
+		followers += w.intn(d)
 	}
 	total := 1 + followers
 	if total > remaining {
 		total = remaining
 	}
 	leaderID := uint16(0)
+	spawned := 0
 	for i := 0; i < total; i++ {
 		def := g.leader
 		if i > 0 {
@@ -621,7 +675,12 @@ func (w *World) spawnGroup(g *generState) {
 				segments[si].X, segments[si].Y = w.findWalkablePosition(segments[si].X, segments[si].Y, segments[si].Range)
 			}
 		}
-		m := &Mob{ID: w.allocMobID(), Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
+		mobID := w.allocMobID()
+		if mobID == 0 {
+			log.Printf("NPCGener[%d]: spawn interrompido: faixa de IDs de mob esgotada", g.def.Index)
+			break
+		}
+		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
 			GenerIndex: g.def.Index, Segments: segments, RouteType: g.def.RouteType,
 			WaitUntil: w.now().Add(time.Duration(g.def.Segments[0].Wait) * time.Second)}
 		if i == 0 {
@@ -631,13 +690,17 @@ func (w *World) spawnGroup(g *generState) {
 		}
 		w.mobs = append(w.mobs, m)
 		g.current++
+		spawned++
 		w.publishMobSpawn(m)
 	}
+	if spawned == 0 {
+		return
+	}
 	w.npcGenerLog.groups++
-	w.npcGenerLog.mobs += total
+	w.npcGenerLog.mobs += spawned
 	if w.npcGenerLogMode == npcGenerLogVerbose {
 		log.Printf("NPCGener[%d]: grupo gerado (%d mobs, vivos=%d/%d)",
-			g.def.Index, total, g.current, g.def.MaxNumMob)
+			g.def.Index, spawned, g.current, g.def.MaxNumMob)
 	}
 }
 
@@ -668,11 +731,35 @@ func (w *World) positionOccupied(x, y uint16, except *Mob) bool {
 }
 
 func (w *World) mobStepBlockedFrom(m *Mob, fromX, fromY, toX, toY uint16) bool {
-	return m == nil || !w.terrain.RouteHeightCompatible(fromX, fromY, toX, toY) ||
-		w.positionOccupied(toX, toY, m)
+	if m == nil || !w.terrain.RouteHeightCompatible(fromX, fromY, toX, toY) ||
+		w.positionOccupied(toX, toY, m) {
+		return true
+	}
+	// Instancias sao fisicamente proximas de outras areas do mapa. Sem esta
+	// trava, um mob podia perseguir um jogador externo e vazar da sala privada.
+	if m.InstanceID != "" && !w.instanceMobStepAllowed(m, toX, toY) {
+		// Se uma versao anterior deixou a entidade fora do limite, permita
+		// somente passos que a aproximem do centro para que ela consiga voltar;
+		// nenhum passo lateral/para fora pode ser usado para perseguir alguem.
+		stage, ok := instanceStageForMob(w.instanceForMob(m))
+		if !ok || chebyshev(toX, toY, stage.X, stage.Y) >=
+			chebyshev(fromX, fromY, stage.X, stage.Y) {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *World) positionOccupiedExcept(x, y uint16, exceptMob *Mob, exceptPlayer *Player) bool {
+	return w.positionOccupiedExceptPlayers(x, y, exceptMob, exceptPlayer, nil)
+}
+
+// positionOccupiedExceptPlayers e a variante usada por movimentos atomicos de
+// party: todos os jogadores de ignored podem deixar os tiles antigos ao mesmo
+// tempo, sem abrir uma brecha para ignorar jogadores que nao participam do
+// movimento.
+func (w *World) positionOccupiedExceptPlayers(x, y uint16, exceptMob *Mob,
+	exceptPlayer *Player, ignored map[*Player]struct{}) bool {
 	if !w.terrain.Walkable(x, y) {
 		return true
 	}
@@ -683,7 +770,13 @@ func (w *World) positionOccupiedExcept(x, y uint16, exceptMob *Mob, exceptPlayer
 		}
 	}
 	for _, p := range w.playerCells[key] {
-		if p != exceptPlayer && p.InWorld && p.Char != nil && playerCurHP(p.Char) > 0 && p.X == x && p.Y == y {
+		if p == exceptPlayer {
+			continue
+		}
+		if _, skip := ignored[p]; skip {
+			continue
+		}
+		if p.InWorld && p.Char != nil && playerCurHP(p.Char) > 0 && p.X == x && p.Y == y {
 			return true
 		}
 	}
@@ -827,7 +920,7 @@ func scatter(x, y, radius uint16) (uint16, uint16) {
 // sessao. Bloqueia so se o buffer encher -- backpressure daquele client, sem
 // travar os outros.
 func (w *World) Enqueue(s *net.Session, pkt []byte) {
-	w.commands <- command{s: s, pkt: pkt}
+	w.commands <- command{s: s, pkt: pkt, queuedAt: time.Now()}
 }
 
 // worldTickInterval e o TIMER_SEC nativo. A IA pesada e sharded dentro de
@@ -835,17 +928,118 @@ func (w *World) Enqueue(s *net.Session, pkt []byte) {
 // milhares de mobs cinco vezes por segundo.
 const worldTickInterval = 500 * time.Millisecond
 
+const (
+	// Um lote curto evita que uma rajada de uma unica sessao atrase o tick. O
+	// processamento e round-robin por sessao, portanto ataques/ordens de todos
+	// os clientes avancam sem descartar pacotes validos.
+	worldCommandBatchLimit = 256
+	worldCommandBudget     = 5 * time.Millisecond
+)
+
 // Run e o game loop: comandos dos clients + tick do jogo, processados linearmente.
 func (w *World) Run() {
 	ticker := time.NewTicker(worldTickInterval)
 	defer ticker.Stop()
 	for {
-		select {
-		case cmd := <-w.commands:
-			w.safeHandle(cmd)
-		case <-ticker.C:
-			w.tick()
+		var cmd command
+		if len(w.pendingCommands) > 0 {
+			cmd = w.pendingCommands[0]
+			w.pendingCommands = w.pendingCommands[1:]
+		} else {
+			select {
+			case cmd = <-w.commands:
+			case <-ticker.C:
+				w.tick()
+				continue
+			}
 		}
+		w.processCommandBatch(cmd, ticker.C)
+	}
+}
+
+// processCommandBatch drena uma pequena janela de comandos e os executa em
+// round-robin por sessao. Assim uma conexao que envia muitos movimentos nao
+// monopoliza o ator, e um tick que venceu o prazo interrompe o lote sem perder
+// os comandos restantes.
+func (w *World) processCommandBatch(first command, ticks <-chan time.Time) {
+	batch := make([]command, 0, worldCommandBatchLimit)
+	batch = append(batch, first)
+	deadline := time.Now().Add(worldCommandBudget)
+	for len(batch) < worldCommandBatchLimit && time.Now().Before(deadline) {
+		// Comandos que um lote anterior precisou adiar sao mais antigos que os
+		// que ainda estao no canal. Drene-os primeiro; consumir sempre o canal
+		// novo fazia o backlog antigo avancar apenas um comando por lote sob
+		// carga continua, aumentando artificialmente a latencia e favorecendo o
+		// cliente que continuava inundando a fila.
+		if len(w.pendingCommands) > 0 {
+			batch = append(batch, w.pendingCommands[0])
+			w.pendingCommands = w.pendingCommands[1:]
+			continue
+		}
+		select {
+		case <-ticks:
+			w.pendingCommands = append(batch, w.pendingCommands...)
+			observeCommandBatch(len(batch), true)
+			w.tick()
+			return
+		case cmd := <-w.commands:
+			batch = append(batch, cmd)
+		default:
+			// Nao ha mais comandos prontos. Executar o lote coletado agora.
+			goto execute
+		}
+	}
+
+execute:
+	// O mapa guarda apenas fatias do lote atual; tudo continua na goroutine do
+	// World e nenhuma sincronizacao adicional e necessaria.
+	queues := make(map[*net.Session][]command)
+	order := make([]*net.Session, 0, len(batch))
+	for _, cmd := range batch {
+		if _, exists := queues[cmd.s]; !exists {
+			order = append(order, cmd.s)
+		}
+		queues[cmd.s] = append(queues[cmd.s], cmd)
+	}
+	for {
+		progress := false
+		for _, session := range order {
+			queue := queues[session]
+			if len(queue) == 0 {
+				continue
+			}
+			select {
+			case <-ticks:
+				w.requeueCommandQueues(order, queues)
+				observeCommandBatch(len(batch), true)
+				w.tick()
+				return
+			default:
+			}
+			cmd := queue[0]
+			queues[session] = queue[1:]
+			w.safeHandle(cmd)
+			progress = true
+			if time.Now().After(deadline) {
+				w.requeueCommandQueues(order, queues)
+				observeCommandBatch(len(batch), true)
+				return
+			}
+		}
+		if !progress {
+			break
+		}
+	}
+	observeCommandBatch(len(batch), false)
+}
+
+func (w *World) requeueCommandQueues(order []*net.Session, queues map[*net.Session][]command) {
+	remaining := make([]command, 0)
+	for _, session := range order {
+		remaining = append(remaining, queues[session]...)
+	}
+	if len(remaining) != 0 {
+		w.pendingCommands = append(remaining, w.pendingCommands...)
 	}
 }
 
@@ -867,13 +1061,15 @@ func commandLabel(cmd command) string {
 }
 
 // safeHandle isola um panic de handler. O World roda numa UNICA goroutine, entao
-// um panic nao tratado derrubaria TODOS os jogadores (o client ve "nao
-// conectado"). O recover loga o stack e o pacote culpado e mantem o servidor
-// vivo; no pior caso o estado de UM comando fica parcial, o que e muito melhor
-// que a queda total. Tambem serve de diagnostico: o Type do pacote sai no log.
+// um panic nao tratado encerraria o processo sem diagnostico controlado. O
+// recover registra stack/opcode e coloca o mundo em manutencao fail-closed: um
+// estado possivelmente parcial nunca volta ao banco.
 func (w *World) safeHandle(cmd command) {
 	label := commandLabel(cmd)
 	start := time.Now()
+	if !cmd.queuedAt.IsZero() {
+		observeCommandQueueAge(start.Sub(cmd.queuedAt))
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			var id int64
@@ -882,12 +1078,63 @@ func (w *World) safeHandle(cmd command) {
 			}
 			metricPanicsTotal.Add(1)
 			log.Printf("[#%d] PANIC no handler (Type=%s): %v\n%s", id, label, r, debug.Stack())
+			w.failClosedAfterHandlerPanic()
 		}
 		// Medido no defer para que um comando que panicou tambem apareca na
 		// duracao -- normalmente e justo o que interessa investigar.
 		observeCommand(label, time.Since(start))
 	}()
 	w.handle(cmd)
+}
+
+// failClosedAfterHandlerPanic protege a persistencia. Um handler pode tocar
+// mais de um jogador (trade, party, PvP), portanto envenenar apenas a sessao
+// autora nao e suficiente. Todos os snapshots online ficam proibidos de salvar
+// e os sockets sao encerrados; o processo permanece em manutencao para que o
+// operador veja o stack e reinicie a partir do ultimo commit consistente.
+func (w *World) failClosedAfterHandlerPanic() {
+	if w == nil {
+		return
+	}
+	w.shuttingDown = true
+	log.Printf("CRITICO: mundo em manutencao apos panic; snapshots em RAM nao serao persistidos")
+	for _, p := range w.players {
+		if p == nil {
+			continue
+		}
+		p.PersistencePoisoned = true
+		if p.Session != nil {
+			p.Session.Close()
+		}
+	}
+}
+
+// poisonAccountsAfterPersistenceFailure impede um save posterior de confirmar
+// parcialmente uma operacao economica que falhou. O banco continua sendo a
+// autoridade: os clientes afetados reconectam no ultimo commit valido.
+func (w *World) poisonAccountsAfterPersistenceFailure(accounts []*model.Account, operation string, err error) {
+	if w == nil || len(accounts) == 0 {
+		return
+	}
+	affected := make(map[*model.Account]struct{}, len(accounts))
+	for _, account := range accounts {
+		if account != nil {
+			affected[account] = struct{}{}
+		}
+	}
+	for _, p := range w.players {
+		if p == nil {
+			continue
+		}
+		if _, ok := affected[p.Account]; !ok {
+			continue
+		}
+		p.PersistencePoisoned = true
+		if p.Session != nil {
+			p.Session.Close()
+		}
+	}
+	log.Printf("CRITICO: %s nao persistiu (%v); %d conta(s) isolada(s)", operation, err, len(affected))
 }
 
 // tick: o NPCGener repoe grupos no intervalo MinuteGenerate (ticks de 12 s)
@@ -924,6 +1171,7 @@ func (w *World) tick() {
 	w.tickPlayerAffects(now)
 	w.tickMobAffects(now, int(w.mobTickCounter%6), 6)
 	w.tickPlayerRegen(now)
+	w.tickChaosRecovery(now)
 	w.tickPlayerMounts(now)
 	w.tickGroundItems(now)
 	w.tickItemInstances(now)
@@ -970,7 +1218,7 @@ func (w *World) autoSaveAccounts(now time.Time) {
 	w.nextAutoSave = now.Add(accountAutoSaveInterval)
 	active := make([]*Player, 0, len(w.players))
 	for _, p := range w.players {
-		if !p.InWorld || p.Account == nil || p.Char == nil {
+		if !p.InWorld || p.Account == nil || p.Char == nil || p.PersistencePoisoned {
 			continue
 		}
 		active = append(active, p)
@@ -986,6 +1234,7 @@ func (w *World) autoSaveAccounts(now time.Time) {
 		// Buffs e moedas vivem no sidecar de sessao, gravado junto do autosave.
 		w.saveCharStateAsync(p)
 	}
+	w.flushInstanceStateIfDirty()
 }
 
 // broadcast manda um pacote pra todos os players no mundo. O builder e chamado
@@ -1002,6 +1251,18 @@ func (w *World) broadcast(build func() []byte) {
 func (w *World) handle(cmd command) {
 	if cmd.shutdown != nil {
 		w.runShutdown(cmd.shutdown)
+		return
+	}
+	// Depois do snapshot final (ou de um panic fail-closed), nenhum pacote pode
+	// voltar a alterar o mundo. O lote round-robin pode ja conter outros comandos
+	// quando Shutdown e processado; sem esta barreira eles seriam executados
+	// depois do commit final e desapareceriam no restart.
+	if w.shuttingDown {
+		if cmd.pkt == nil && cmd.s != nil {
+			w.onDisconnect(cmd.s)
+		} else if cmd.s != nil {
+			cmd.s.Close()
+		}
 		return
 	}
 	if cmd.login != nil {
@@ -1035,6 +1296,10 @@ func (w *World) handle(cmd command) {
 		w.onCargoGold(cmd.s, cmd.pkt, false)
 	case wire.OpUseItem:
 		w.onUseItem(cmd.s, cmd.pkt)
+	case wire.OpCapsuleInfo:
+		w.onCapsuleInfo(cmd.s, cmd.pkt)
+	case wire.OpPutoutSeal:
+		w.onPutoutSeal(cmd.s, cmd.pkt)
 	case wire.OpUseNPC, wire.OpReqShopList:
 		w.onUseNPC(cmd.s, cmd.pkt)
 	case wire.OpBuyItem:
@@ -1083,6 +1348,10 @@ func (w *World) handle(cmd command) {
 		w.onPKMode(cmd.s, cmd.pkt)
 	case wire.OpGuildDeprivate:
 		w.onGuildDeprivate(cmd.s, cmd.pkt)
+	case wire.OpInviteGuild:
+		w.onInviteGuild(cmd.s, cmd.pkt)
+	case wire.OpRebuy:
+		w.onRebuyRequest(cmd.s, cmd.pkt)
 	case wire.OpGuildAlly:
 		w.onGuildAlly(cmd.s, cmd.pkt)
 	case wire.OpGuildWar:
@@ -1154,17 +1423,29 @@ func (w *World) createGroundDrop(x, y uint16, item model.Item, publish bool) *Gr
 	// 15001..15100. Demais drops continuam espalhados ao redor da origem.
 	dropX, dropY := x, y
 	if item.Index != 746 {
-		dropX = x + uint16(rand.Intn(3)) - 1
-		dropY = y + uint16(rand.Intn(3)) - 1
+		// Calcule em int: `uint16(0)-1` virava 65535 e materializava um item
+		// inalcançavel na borda oposta do mundo. O mapa valido do client e
+		// 1..4095; se o ponto sorteado cair em terreno bloqueado, conserve a
+		// origem autoritativa em vez de perder o drop.
+		nx := clampInt(int(x)+w.intn(3)-1, 1, model.TerrainWidth-1)
+		ny := clampInt(int(y)+w.intn(3)-1, 1, model.TerrainHeight-1)
+		candidateX, candidateY := uint16(nx), uint16(ny)
+		if w.terrain.Walkable(candidateX, candidateY) {
+			dropX, dropY = candidateX, candidateY
+		}
 	}
 
 	if _, ok := w.items[item.Index]; !ok {
 		log.Printf("Tentou dropar item inexistente: %d", item.Index)
 		return nil
 	}
+	if w.groundItems == nil {
+		w.groundItems = make(map[uint16]*GroundItem)
+	}
 
-	id := w.allocGroundItemID(item.Index)
-	if id == 0 {
+	id, ok := w.allocGroundItemID(item.Index)
+	if !ok {
+		log.Printf("sem ID livre para drop item=%d", item.Index)
 		return nil
 	}
 
@@ -1193,8 +1474,8 @@ func (w *World) createGroundDrop(x, y uint16, item model.Item, publish bool) *Gr
 // sempre.
 func (w *World) spawnInitItems() error {
 	for _, obj := range w.initItems {
-		id := w.allocGroundItemID(obj.Index)
-		if id == 0 {
+		id, ok := w.allocGroundItemID(obj.Index)
+		if !ok {
 			return fmt.Errorf("sem ID livre para o objeto %d em (%d,%d)",
 				obj.Index, obj.X, obj.Y)
 		}
@@ -1213,25 +1494,36 @@ func (w *World) spawnInitItems() error {
 	return nil
 }
 
-func (w *World) allocGroundItemID(itemIndex uint16) uint16 {
+func (w *World) allocGroundItemID(itemIndex uint16) (uint16, bool) {
 	if itemIndex == 746 {
 		for id := uint16(15001); id <= 15100; id++ {
 			if _, used := w.groundItems[id]; !used {
-				return id
+				return id, true
 			}
 		}
-		return 0
+		return 0, false
 	}
-	for {
+	// IDs 15001..15100 are reserved for cannon objects.  Probe the complete
+	// non-reserved range at most once; a full map must fail rather than spin
+	// forever after uint16 wraps back to zero.
+	for attempts := 0; attempts < int(^uint16(0)); attempts++ {
 		id := w.nextItemID
-		w.nextItemID++
+		if id == 0 {
+			id = 1
+		}
+		if id == ^uint16(0) {
+			w.nextItemID = 1
+		} else {
+			w.nextItemID = id + 1
+		}
 		if id >= 15001 && id <= 15100 {
 			continue
 		}
 		if _, used := w.groundItems[id]; !used {
-			return id
+			return id, true
 		}
 	}
+	return 0, false
 }
 
 func (w *World) tickGroundItems(now time.Time) {

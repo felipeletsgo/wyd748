@@ -178,6 +178,39 @@ func TestLoadServerConfigAcceptsLoopbackDebugAddress(t *testing.T) {
 	}
 }
 
+func TestLoadServerConfigParsesLoadtestSpawn(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "server.txt")
+	content := "loadtest_spawn=1162,1700\nloadtest_account_prefix=bot\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := LoadServerConfig(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.LoadtestSpawn.X != 1162 || cfg.LoadtestSpawn.Y != 1700 ||
+		cfg.LoadtestAccountPrefix != "bot" {
+		t.Fatalf("loadtest config=%+v", cfg)
+	}
+}
+
+func TestLoadServerConfigRejectsLoadtestPrefixWithoutSpawn(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "server.txt")
+	if err := os.WriteFile(path, []byte("loadtest_account_prefix=bot\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadServerConfig(path); err == nil {
+		t.Fatal("prefixo loadtest sem spawn deveria ser recusado")
+	}
+}
+
+func TestLoadServerConfigRejectsUnsafeLoadtestPrefix(t *testing.T) {
+	path := writeServerConfig(t, "loadtest_spawn=1162,1700\nloadtest_account_prefix=bot!\n")
+	if _, err := LoadServerConfig(path); err == nil {
+		t.Fatal("prefixo loadtest com caractere nao alfabetico deveria ser recusado")
+	}
+}
+
 func TestDebugAddressDefaultsToDisabled(t *testing.T) {
 	if got := DefaultServerConfig().DebugAddress; got != "" {
 		t.Fatalf("diagnostico deveria vir desligado por padrao, veio %q", got)

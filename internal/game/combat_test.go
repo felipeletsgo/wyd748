@@ -70,13 +70,13 @@ func TestAcceptClientAttackRejectsInternalAndFastTicks(t *testing.T) {
 func TestAttackIntervalScalesWithSpeed(t *testing.T) {
 	slow := &model.Char{Extended: testExtended(model.ExtendedScore{AttackRun: 0x00})} // speed 0
 	fast := &model.Char{Extended: testExtended(model.ExtendedScore{AttackRun: 0xF0})} // speed 15
-	slowMs := attackIntervalFor(slow) / time.Millisecond
-	fastMs := attackIntervalFor(fast) / time.Millisecond
-	if slowMs != 900 {
-		t.Fatalf("velocidade 0 deveria dar 900ms, deu %d", slowMs)
+	slowInterval := attackIntervalFor(slow)
+	fastInterval := attackIntervalFor(fast)
+	if slowInterval != 900*time.Millisecond {
+		t.Fatalf("velocidade 0 deveria dar 900ms, deu %v", slowInterval)
 	}
-	if fastMs >= slowMs || fastMs > 500 {
-		t.Fatalf("velocidade 15 deveria permitir ~2 golpes/s (<=500ms), deu %d", fastMs)
+	if fastInterval >= slowInterval || fastInterval > 500*time.Millisecond {
+		t.Fatalf("velocidade 15 deveria permitir ~2 golpes/s (<=500ms), deu %v", fastInterval)
 	}
 }
 

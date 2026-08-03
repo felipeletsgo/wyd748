@@ -33,10 +33,29 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		}
 		// Movimento, morte e desconexao atualizam o grid por evento. Esta checagem
 		// tambem recolhe mobs cujo ultimo jogador proximo morreu sem se mover.
-		if len(w.nearbyPlayers(m.X, m.Y, mobActivationRange)) == 0 {
+		nearbyTarget := false
+		if m.InstanceID != "" {
+			nearbyTarget = w.instanceMobHasNearbyMember(m, mobActivationRange)
+		} else {
+			nearbyTarget = len(w.nearbyPlayers(m.X, m.Y, mobActivationRange)) != 0
+		}
+		if !nearbyTarget {
 			m.Awake = false
 			m.TargetID = 0
 			delete(w.activeMobs, m.ID)
+			continue
+		}
+		if m.InstanceID != "" && !w.instanceMobInsideArea(m) {
+			// Referencias antigas ou uma falha de movimento nao podem liberar o
+			// mob para o mapa. Recolha-o para o centro da sala antes de procurar
+			// um alvo novamente.
+			m.TargetID = 0
+			if allowMovement {
+				stage, ok := instanceStageForMob(w.instanceForMob(m))
+				if ok {
+					w.moveMobToward(m, stage.X, stage.Y, 0, now)
+				}
+			}
 			continue
 		}
 		if !m.insideHomeLeash() {
@@ -47,11 +66,25 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 			}
 			continue
 		}
-		target := w.playerByID(m.TargetID)
-		if !validMobTarget(target) || !m.insideLeash(target) ||
-			chebyshev(m.X, m.Y, target.X, target.Y) > mobRetentionRange {
+		var target *Player
+		if m.InstanceID != "" {
+			target = w.playerByID(m.TargetID)
+		} else {
+			target = w.playerByID(m.TargetID)
+		}
+		allowedTarget := validMobTarget(target)
+		if m.InstanceID != "" {
+			allowedTarget = w.instanceMobTargetAllowed(m, target)
+		} else {
+			allowedTarget = allowedTarget && m.insideLeash(target)
+		}
+		if !allowedTarget || chebyshev(m.X, m.Y, target.X, target.Y) > mobRetentionRange {
 			m.TargetID = 0
-			target = w.nearestLivingPlayer(m.X, m.Y, mobAggroRange)
+			if m.InstanceID != "" {
+				target = w.nearestInstanceMember(m)
+			} else {
+				target = w.nearestLivingPlayer(m.X, m.Y, mobAggroRange)
+			}
 			if target == nil {
 				continue
 			}
@@ -82,20 +115,16 @@ func (w *World) tickActiveMobActions(now time.Time) {
 			continue
 		}
 		target := w.playerByID(m.TargetID)
-		if !validMobTarget(target) || chebyshev(m.X, m.Y, target.X, target.Y) > mobAttackRange {
+		allowedTarget := validMobTarget(target)
+		if m.InstanceID != "" {
+			allowedTarget = w.instanceMobTargetAllowed(m, target)
+		}
+		if !allowedTarget || chebyshev(m.X, m.Y, target.X, target.Y) > mobAttackRange {
 			continue
 		}
 		m.NextAttack = now.Add(mobAttackInterval)
 		w.mobAttackPlayer(m, target, now)
 	}
-}
-
-func (w *World) mobHasActivePlayer(m *Mob) bool {
-	if m == nil {
-		return false
-	}
-	_, ok := w.activeMobs[m.ID]
-	return ok
 }
 
 func (m *Mob) insideHomeLeash() bool {
@@ -152,6 +181,7 @@ func (w *World) chasePlayer(m *Mob, target *Player, now time.Time) {
 
 func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
 	damage := mobHitsPlayer(m, target.Char)
+	damage = absorbFlatDamage(damage, w.equipmentGemBonuses(target.Char).absorbDamage)
 	// FlagLocal=0 faz o 7.48 aplicar o dano e exibir o numero flutuante. Dano
 	// zero conserva a animacao de ataque e representa MISS no cliente.
 	w.applyMobDamageToPlayer(m, target, damage, now, func(applied uint32) []byte {
@@ -190,7 +220,7 @@ func (w *World) applyMobDamageToPlayer(m *Mob, target *Player, damage uint32,
 		// SetHpMp apenas atualiza a barra. O handler 7.48 de CNFMobKill zera o HP
 		// do humano e chama TMHuman::Die(), produzindo a pose/tela de morte sem
 		// remover o personagem da cena. Esta e a ordem nativa de MobKilled.
-		w.sendToPlayerView(target, func() []byte { return wire.CNFMobKill(target.ID, m.ID, target.Char.Exp) })
+		w.publishPlayerDeath(target, m.ID)
 		log.Printf("[#%d] morreu para mob id=%d %q (dmg=%d)", target.Session.ID, m.ID, m.Def.Name, damage)
 	}
 }

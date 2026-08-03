@@ -200,20 +200,28 @@ type JSONStore struct {
 	// arquivo separado, fora do dir de contas -- senao os varredores de conta
 	// tentariam parsea-lo como conta. Default: pasta charstate/ irma do dir.
 	charStateDir string
+	// instanceStatePath guarda o agregado duravel de Nightmare/Hell Gate.
+	instanceStatePath string
 	// writeQueue leva o fsync do AUTOSAVE para uma goroutine dedicada, tirando o
 	// bloqueio de disco do game-loop. Escritas SINCRONAS (anti-dupe) continuam
 	// diretas, mas dao flush na fila antes para nao serem sobrescritas por um
 	// autosave pendente mais VELHO -- a ordenacao e garantida porque o World e
 	// single-goroutine (nunca enfileira autosave enquanto executa um save sincrono).
 	writeQueue chan writeJob
-	mu         sync.Mutex
-	initErr    error
+	writeMu    sync.Mutex
+	// overflow preserva os autosaves que chegam quando o canal esta cheio.
+	// Jobs com a mesma chave sao coalescidos para o snapshot mais novo; uma
+	// barreira (key vazio) nunca e descartada.
+	overflow []writeJob
+	mu       sync.Mutex
+	initErr  error
 }
 
 // writeJob e uma tarefa da goroutine de persistencia. run faz a escrita
 // (autosave); done, quando presente, e fechado depois de run -- usado como
 // barreira de flush pelos saves sincronos.
 type writeJob struct {
+	key  string
 	run  func()
 	done chan struct{}
 }
@@ -222,7 +230,11 @@ type writeJob struct {
 // goroutine consumidora garante que escritas para a mesma conta nunca se
 // sobreponham fora de ordem.
 func (s *JSONStore) persistLoop() {
-	for job := range s.writeQueue {
+	for {
+		job, ok := s.nextWrite()
+		if !ok {
+			return
+		}
 		if job.run != nil {
 			job.run()
 		}
@@ -230,6 +242,29 @@ func (s *JSONStore) persistLoop() {
 			close(job.done)
 		}
 	}
+}
+
+// nextWrite drena primeiro o canal FIFO. Somente quando ele estiver vazio
+// retira o overflow, evitando que um snapshot novo passe na frente de uma
+// escrita antiga ainda presente no canal.
+func (s *JSONStore) nextWrite() (writeJob, bool) {
+	select {
+	case job, ok := <-s.writeQueue:
+		return job, ok
+	default:
+	}
+	s.writeMu.Lock()
+	if len(s.overflow) > 0 {
+		job := s.overflow[0]
+		copy(s.overflow, s.overflow[1:])
+		s.overflow[len(s.overflow)-1] = writeJob{}
+		s.overflow = s.overflow[:len(s.overflow)-1]
+		s.writeMu.Unlock()
+		return job, true
+	}
+	s.writeMu.Unlock()
+	job, ok := <-s.writeQueue
+	return job, ok
 }
 
 // flushWrites bloqueia ate a fila drenar tudo que ja foi enfileirado. Um save
@@ -240,7 +275,7 @@ func (s *JSONStore) flushWrites() {
 		return
 	}
 	done := make(chan struct{})
-	s.writeQueue <- writeJob{done: done}
+	s.enqueueWrite(writeJob{done: done})
 	<-done
 }
 
@@ -249,14 +284,43 @@ func (s *JSONStore) flushWrites() {
 // perdido quando o processo termina.
 func (s *JSONStore) Flush() { s.flushWrites() }
 
-// enqueueAsyncWrite agenda uma escrita fora do game-loop. Se a fila nao existir
-// (impl legada), escreve na hora.
-func (s *JSONStore) enqueueAsyncWrite(run func()) {
+// enqueueWrite nunca bloqueia o chamador. Quando o canal esta cheio, guarda o
+// job num overflow ordenado e coalesce apenas snapshots assíncronos da mesma
+// chave. Isso mantém o World responsivo sem permitir que um autosave antigo
+// sobrescreva o mais novo.
+func (s *JSONStore) enqueueWrite(job writeJob) {
 	if s.writeQueue == nil {
-		run()
+		if job.run != nil {
+			job.run()
+		} else if job.done != nil {
+			close(job.done)
+		}
 		return
 	}
-	s.writeQueue <- writeJob{run: run}
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+	if len(s.overflow) == 0 {
+		select {
+		case s.writeQueue <- job:
+			return
+		default:
+		}
+	}
+	if job.key != "" {
+		for i := range s.overflow {
+			if s.overflow[i].key == job.key {
+				s.overflow[i] = job
+				return
+			}
+		}
+	}
+	s.overflow = append(s.overflow, job)
+}
+
+// enqueueAsyncWrite agenda uma escrita fora do game-loop. Se a fila nao existir
+// (impl legada), escreve na hora.
+func (s *JSONStore) enqueueAsyncWrite(key string, run func()) {
+	s.enqueueWrite(writeJob{key: key, run: run})
 }
 
 // Option configura o JSONStore sem quebrar os chamadores que so precisam de
@@ -290,6 +354,10 @@ func defaultCharStateDir(dir string) string {
 	return filepath.Join(filepath.Dir(filepath.Clean(dir)), "charstate")
 }
 
+func defaultInstanceStatePath(dir string) string {
+	return filepath.Join(filepath.Dir(filepath.Clean(dir)), "instance_state.json")
+}
+
 // WithCharStatePath define a pasta do estado de sessao (buffs/moedas). Fica FORA
 // do dir de contas pelo mesmo motivo do guilds.json.
 func WithCharStatePath(path string) Option {
@@ -299,7 +367,7 @@ func WithCharStatePath(path string) Option {
 // NewJSONStore cria um Store baseado em arquivos JSON no diretorio dir.
 func NewJSONStore(dir string, opts ...Option) *JSONStore {
 	s := &JSONStore{dir: dir, guildsPath: defaultGuildsPath(dir),
-		charStateDir: defaultCharStateDir(dir)}
+		charStateDir: defaultCharStateDir(dir), instanceStatePath: defaultInstanceStatePath(dir)}
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -419,7 +487,7 @@ func (s *JSONStore) SaveAccountAsync(acc *model.Account) error {
 	// O snapshot em memoria ja e autoritativo e possui UIDs. A fila apenas tira
 	// o fsync do game loop; um save sincrono posterior faz flush antes de gravar.
 	s.itemOwners = nextOwners
-	s.enqueueAsyncWrite(func() {
+	s.enqueueAsyncWrite("account:"+name, func() {
 		if err := s.writeAccountFile(path, b); err != nil {
 			log.Printf("store: autosave conta %q: %v", name, err)
 		}
@@ -431,8 +499,9 @@ func (s *JSONStore) SaveAccountAsync(acc *model.Account) error {
 // nunca do nome do arquivo -- para que uma entrada nao consiga se disfarcar de
 // outra (um guilds.json nao pode virar arquivo de conta, e vice-versa).
 const (
-	txnKindAccount = "account"
-	txnKindGuilds  = "guilds"
+	txnKindAccount       = "account"
+	txnKindGuilds        = "guilds"
+	txnKindInstanceState = "instance_state"
 
 	txnManifestName = "MANIFEST"
 	txnCommitName   = "COMMIT"
@@ -441,7 +510,7 @@ const (
 
 type txnEntry struct {
 	File string `json:"file"`           // nome do arquivo DENTRO do journal
-	Kind string `json:"kind"`           // account | guilds
+	Kind string `json:"kind"`           // account | guilds | instance_state
 	Name string `json:"name,omitempty"` // conta: nome; guilds: vazio
 }
 
@@ -464,13 +533,29 @@ func (s *JSONStore) SaveAccounts(accounts ...*model.Account) error {
 // completos e sincronizados. Se o processo cair entre os replaces, o proximo
 // NewJSONStore reaplica todos os estados finais antes de aceitar login.
 func (s *JSONStore) SaveGameState(guilds *model.GuildRegistry, accounts ...*model.Account) error {
+	return s.saveGameState(nil, guilds, accounts...)
+}
+
+// SaveGameStateWithInstanceState commits accounts and the shared event
+// aggregate in the same recoverable journal as guild state.
+func (s *JSONStore) SaveGameStateWithInstanceState(guilds *model.GuildRegistry,
+	state *model.InstanceStateSnapshot, accounts ...*model.Account) error {
+	return s.saveGameState(state, guilds, accounts...)
+}
+
+func (s *JSONStore) saveGameState(state *model.InstanceStateSnapshot,
+	guilds *model.GuildRegistry, accounts ...*model.Account) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.initErr != nil {
 		return s.initErr
 	}
-	if guilds == nil && len(accounts) == 0 {
+	if state == nil && guilds == nil && len(accounts) == 0 {
 		return nil
+	}
+	if state != nil && state.Version != model.InstanceStateVersion {
+		return fmt.Errorf("store: estado de instancias versao %d; esperado %d",
+			state.Version, model.InstanceStateVersion)
 	}
 	if guilds != nil {
 		if s.guildsPath == "" {
@@ -538,6 +623,18 @@ func (s *JSONStore) SaveGameState(guilds *model.GuildRegistry, accounts ...*mode
 			return err
 		}
 		manifest.Entries = append(manifest.Entries, txnEntry{File: file, Kind: txnKindGuilds})
+	}
+	if state != nil {
+		b, err := json.MarshalIndent(state, "", "  ")
+		if err != nil {
+			return err
+		}
+		const file = "instance-state.json"
+		if err := writeSyncedFile(filepath.Join(txnDir, file), b, 0o644); err != nil {
+			return err
+		}
+		manifest.Entries = append(manifest.Entries,
+			txnEntry{File: file, Kind: txnKindInstanceState})
 	}
 
 	manifestBytes, err := json.MarshalIndent(manifest, "", "  ")
@@ -620,6 +717,53 @@ func (s *JSONStore) LoadGuilds() (*model.GuildRegistry, error) {
 		return nil, fmt.Errorf("store: validar guilds: %w", err)
 	}
 	return &registry, nil
+}
+
+func (s *JSONStore) LoadInstanceState() (*model.InstanceStateSnapshot, error) {
+	if s.initErr != nil {
+		return nil, s.initErr
+	}
+	if s.instanceStatePath == "" {
+		return &model.InstanceStateSnapshot{Version: model.InstanceStateVersion}, nil
+	}
+	b, err := os.ReadFile(s.instanceStatePath)
+	if os.IsNotExist(err) {
+		return &model.InstanceStateSnapshot{Version: model.InstanceStateVersion}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var state model.InstanceStateSnapshot
+	decoder := json.NewDecoder(bytes.NewReader(b))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&state); err != nil {
+		return nil, fmt.Errorf("store: parse instance_state: %w", err)
+	}
+	if state.Version != model.InstanceStateVersion {
+		return nil, fmt.Errorf("store: instance_state versao %d; esperado %d",
+			state.Version, model.InstanceStateVersion)
+	}
+	return &state, nil
+}
+
+func (s *JSONStore) SaveInstanceState(state *model.InstanceStateSnapshot) error {
+	if state == nil {
+		state = &model.InstanceStateSnapshot{Version: model.InstanceStateVersion}
+	}
+	if state.Version != model.InstanceStateVersion {
+		return fmt.Errorf("store: estado de instancias versao %d; esperado %d",
+			state.Version, model.InstanceStateVersion)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.initErr != nil {
+		return s.initErr
+	}
+	b, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return err
+	}
+	return writeFileAtomic(s.instanceStatePath, b)
 }
 
 // writeFileAtomic grava em temporario no MESMO diretorio do destino e faz
@@ -763,6 +907,11 @@ func (s *JSONStore) resolveTxnTarget(entry txnEntry) (string, error) {
 			return "", errors.New("caminho do guilds.json nao configurado")
 		}
 		return s.guildsPath, nil
+	case txnKindInstanceState:
+		if s.instanceStatePath == "" {
+			return "", errors.New("caminho do estado de instancias nao configurado")
+		}
+		return s.instanceStatePath, nil
 	default:
 		return "", fmt.Errorf("entrada de journal com tipo desconhecido %q", entry.Kind)
 	}

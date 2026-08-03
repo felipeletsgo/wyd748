@@ -12,10 +12,19 @@ func TestUseItemRequestReadsWarpID(t *testing.T) {
 	pkt := make([]byte, 36)
 	binary.LittleEndian.PutUint32(pkt[12:16], placeInv)
 	binary.LittleEndian.PutUint32(pkt[16:20], 1)
-	binary.LittleEndian.PutUint16(pkt[32:34], 10)
+	binary.LittleEndian.PutUint32(pkt[32:36], 10)
 	req, ok := parseUseItemRequest(pkt)
 	if !ok || req.warpID != 10 {
 		t.Fatalf("warpID=%d ok=%v", req.warpID, ok)
+	}
+	binary.LittleEndian.PutUint32(pkt[32:36], 0x10000000|10)
+	if _, ok := parseUseItemRequest(pkt); !ok {
+		// The parser preserves the complete DWORD; the action-specific handler
+		// rejects values outside 1..10 instead of silently truncating them.
+		t.Fatalf("WarpID DWORD valido foi rejeitado")
+	}
+	if _, ok := parseUseItemRequest(append(pkt, 0)); ok {
+		t.Fatal("pacote de uso de item sobredimensionado foi aceito")
 	}
 }
 

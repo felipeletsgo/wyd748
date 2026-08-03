@@ -36,24 +36,6 @@ type realRNG struct{}
 
 func (realRNG) Intn(n int) int { return rand.Intn(n) }
 
-// WithClock injeta um relogio (testes). Passar nil mantem o relogio real.
-func WithClock(clock Clock) WorldOption {
-	return func(w *World) {
-		if clock != nil {
-			w.clock = clock
-		}
-	}
-}
-
-// WithRNG injeta um gerador (testes). Passar nil mantem o RNG real.
-func WithRNG(rng RNG) WorldOption {
-	return func(w *World) {
-		if rng != nil {
-			w.rng = rng
-		}
-	}
-}
-
 // now devolve o instante atual pelo relogio do mundo. Tolera World com clock
 // zerado (construido em teste sem NewWorld) caindo no relogio real.
 func (w *World) now() time.Time {
@@ -73,36 +55,4 @@ func (w *World) intn(n int) int {
 		return rand.Intn(n)
 	}
 	return w.rng.Intn(n)
-}
-
-// fakeClock e um relogio controlado por teste. Fica no codigo de producao (e
-// nao num _test.go) porque testes de OUTROS pacotes tambem precisam dele.
-type fakeClock struct {
-	current time.Time
-}
-
-func newFakeClock(start time.Time) *fakeClock { return &fakeClock{current: start} }
-
-func (c *fakeClock) Now() time.Time { return c.current }
-
-// Advance move o relogio para frente. O teste decide quando o tempo passa.
-func (c *fakeClock) Advance(d time.Duration) { c.current = c.current.Add(d) }
-
-// fixedRNG devolve sempre o mesmo valor (clampado ao intervalo pedido), o
-// bastante para fixar drops e variancia de dano em teste.
-type fixedRNG struct {
-	value int
-}
-
-func (r fixedRNG) Intn(n int) int {
-	if n <= 0 {
-		return 0
-	}
-	if r.value >= n {
-		return n - 1
-	}
-	if r.value < 0 {
-		return 0
-	}
-	return r.value
 }

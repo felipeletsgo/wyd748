@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	stdnet "net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -36,16 +37,48 @@ func tick() uint32 {
 
 // Session representa 1 conexao TCP com um client.
 type Session struct {
-	ID   int64
-	conn stdnet.Conn
-	out  chan []byte
-	done chan struct{}
+	ID       int64
+	conn     stdnet.Conn
+	out      chan []byte
+	done     chan struct{}
+	doneOnce sync.Once
+}
+
+// IsClosed informa se Serve concluiu o ciclo de I/O. Sessões de teste sem
+// canal de vida são consideradas ativas até serem substituídas pelo teste.
+func (s *Session) IsClosed() bool {
+	if s == nil || s.done == nil {
+		return false
+	}
+	select {
+	case <-s.done:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *Session) closeDone() {
+	if s == nil || s.done == nil {
+		return
+	}
+	s.doneOnce.Do(func() { close(s.done) })
 }
 
 // Send finaliza o pacote (Tick@8 + Size@0 + cifra) e o enfileira SEM bloquear.
 // Se a fila de saida estourar (client lento), desconecta em vez de travar o loop.
 // Seguro chamar de qualquer goroutine; na pratica so o game loop chama.
 func (s *Session) Send(pkt []byte) {
+	if s == nil || len(pkt) < wire.HeaderSize || len(pkt) > wire.MaxPacketSize || s.out == nil {
+		// Builders sao internos, mas uma regressao neles nao pode virar um panic
+		// dentro da goroutine unica do World. Falhe fechado nesta sessao; o log
+		// do handler/metricas continua apontando o pacote que originou o envio.
+		if s != nil {
+			log.Printf("[#%d] pacote de saida invalido: %d bytes", s.ID, len(pkt))
+			s.Close()
+		}
+		return
+	}
 	binary.LittleEndian.PutUint32(pkt[8:12], tick())
 	wire.FinishPacket(pkt, byte(sendKey.Add(1)))
 	select {
@@ -62,7 +95,7 @@ func (s *Session) Send(pkt []byte) {
 // buffer sem tocar numa conexao real. `conn` fica nil de proposito -- so e
 // usada se o buffer estourar, o que os testes evitam dimensionando bufSize.
 func NewTestSession(id int64, bufSize int) *Session {
-	return &Session{ID: id, out: make(chan []byte, bufSize)}
+	return &Session{ID: id, out: make(chan []byte, bufSize), done: make(chan struct{})}
 }
 
 // QueuedPacketsForTest informa quantos pacotes NewTestSession recebeu. O
@@ -84,6 +117,7 @@ func (s *Session) Close() {
 	if s.conn != nil {
 		_ = s.conn.Close()
 	}
+	s.closeDone()
 }
 
 // writeLoop drena a fila de saida pro socket. Sai quando o socket falha ou quando
@@ -105,8 +139,11 @@ func (s *Session) writeLoop() {
 // cada pacote decifrado. handler(s, nil) sinaliza desconexao ao fim.
 func (s *Session) Serve(handler func(*Session, []byte)) {
 	defer s.conn.Close()
-	defer close(s.done)
 	defer handler(s, nil)
+	// Sinaliza o fim antes de entregar o comando ao World. Se a fila estiver
+	// cheia, uma nova tentativa de login ainda consegue detectar que esta
+	// reserva pertence a um socket morto.
+	defer s.closeDone()
 
 	r := bufio.NewReader(s.conn)
 

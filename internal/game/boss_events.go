@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 	"log"
+	"sort"
 	"time"
 )
 
@@ -99,11 +100,22 @@ func (w *World) emitCrossedThresholds(boss *BossRuntime, sourceID uint16, oldPer
 		if _, already := boss.crossedThresholds[threshold]; already {
 			continue
 		}
-		boss.crossedThresholds[threshold] = struct{}{}
-		w.handleBossEvent(boss, BossEvent{
+		event := BossEvent{
 			Type: BossEventHealthThresholdCrossed, At: now, SourceID: sourceID,
 			OldHPPercent: oldPercent, NewHPPercent: newPercent, Threshold: threshold,
-		}, 0)
+		}
+		matched, accepted := w.handleBossEvent(boss, event, 0)
+		if !matched || accepted {
+			boss.crossedThresholds[threshold] = struct{}{}
+			delete(boss.pendingThresholds, threshold)
+			continue
+		}
+		// A regra existia e suas condicoes passaram, mas o World recusou a
+		// acao por conflito. Nao consumir o limiar: a virada obrigatoria sera
+		// reavaliada assim que a acao atual terminar.
+		boss.pendingThresholds[threshold] = event
+		log.Printf("BOSS %q: limiar %d pendente; acao bloqueada por conflito",
+			boss.Profile.ID, threshold)
 	}
 }
 
@@ -126,15 +138,15 @@ func (w *World) notifyBossAddDied(addID uint16) {
 
 // handleBossEvent avalia as regras registradas para o evento. depth protege
 // contra ciclo de eventos encadeados.
-func (w *World) handleBossEvent(boss *BossRuntime, event BossEvent, depth int) {
+func (w *World) handleBossEvent(boss *BossRuntime, event BossEvent, depth int) (matched, accepted bool) {
 	if depth > maxBossEventDepth {
 		log.Printf("BOSS %q: limite de eventos encadeados atingido em %s; avaliacao interrompida",
 			boss.Profile.ID, event.Type)
-		return
+		return false, false
 	}
 	mob := w.mobsByID[boss.MobID]
 	if mob == nil || mob.Dead {
-		return
+		return false, false
 	}
 	for _, rule := range boss.Profile.rulesFor(event.Type) {
 		if _, consumed := boss.ConsumedRules[rule.ID]; consumed {
@@ -143,13 +155,42 @@ func (w *World) handleBossEvent(boss *BossRuntime, event BossEvent, depth int) {
 		if !w.bossConditionsMatch(boss, mob, rule.Conditions, event) {
 			continue
 		}
+		matched = true
 		if !w.submitBossIntent(boss, mob, rule, event, depth) {
 			continue // rejeitada: a regra Once NAO e consumida
 		}
+		accepted = true
 		if rule.Once {
 			// Consumida somente quando ACEITA, para que uma rejeicao nao queime
 			// a unica chance da regra.
 			boss.ConsumedRules[rule.ID] = struct{}{}
+		}
+	}
+	return matched, accepted
+}
+
+// retryBossThresholds reavalia limiares que cruzaram enquanto outra acao
+// bloqueava a transicao. A ordem descendente preserva a semantica de um golpe
+// que atravessa varias fases, e a operacao continua confinada ao World.
+func (w *World) retryBossThresholds(boss *BossRuntime, now time.Time) {
+	if boss == nil || len(boss.pendingThresholds) == 0 || boss.Pending != nil {
+		return
+	}
+	thresholds := make([]int, 0, len(boss.pendingThresholds))
+	for threshold := range boss.pendingThresholds {
+		thresholds = append(thresholds, threshold)
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(thresholds)))
+	for _, threshold := range thresholds {
+		event := boss.pendingThresholds[threshold]
+		event.At = now
+		matched, accepted := w.handleBossEvent(boss, event, 0)
+		if !matched || accepted {
+			boss.crossedThresholds[threshold] = struct{}{}
+			delete(boss.pendingThresholds, threshold)
+		}
+		if boss.Pending != nil {
+			break
 		}
 	}
 }
@@ -259,7 +300,11 @@ func (w *World) tickBossActions(now time.Time) {
 	}
 	for _, boss := range w.bosses {
 		pending := boss.Pending
-		if pending == nil || now.Before(pending.ExecuteAt) {
+		if pending == nil {
+			w.retryBossThresholds(boss, now)
+			continue
+		}
+		if now.Before(pending.ExecuteAt) {
 			continue
 		}
 		// A geracao invalida callbacks obsoletos: se o encontro resetou ou a
@@ -283,5 +328,6 @@ func (w *World) tickBossActions(now time.Time) {
 		w.executeBossAction(boss, mob, action, BossEvent{
 			Type: BossEventDamaged, At: now, SourceID: pending.TargetID,
 		}, 0)
+		w.retryBossThresholds(boss, now)
 	}
 }

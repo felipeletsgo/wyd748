@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -19,50 +20,67 @@ func inboundPacket(opcode uint16, size int) []byte {
 
 func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 	tests := map[uint16]int{
-		wire.OpConnectAccount:   116,
-		wire.OpCreateCharacter:  36,
-		wire.OpCharacterLogin:   characterLoginPacketSize,
-		wire.OpCharacterLogout:  12,
-		wire.OpSwapItem:         20,
-		wire.OpDeposit:          16,
-		wire.OpWithdraw:         16,
-		wire.OpUseItem:          36,
-		wire.OpUseNPC:           20,
-		wire.OpReqShopList:      16,
-		wire.OpBuyItem:          24,
-		wire.OpSellItem:         20,
-		wire.OpApplyBonus:       applyBonusPacketSize,
-		wire.OpPartyRequest:     44,
-		wire.OpPartyAccept:      32,
-		wire.OpPartyRemove:      16,
-		wire.OpTrade:            156,
-		wire.OpCloseTrade:       12,
-		wire.OpAutoTrade:        196,
-		wire.OpReqTradeList:     16,
-		wire.OpReqBuyAutoTrade:  36,
-		wire.OpDropItem:         32,
-		wire.OpGetItem:          28,
-		wire.OpDeleteItem:       deleteItemPacketSize,
-		wire.OpSplitItem:        splitItemPacketSize,
-		wire.OpUpdateItem:       20,
-		wire.OpSetShortSkill:    32,
-		wire.OpChangeCity:       16,
-		wire.OpReqTeleport:      16,
-		wire.OpPKMode:           16,
-		wire.OpMoveStop:         36,
-		wire.OpRestart:          12,
-		wire.OpPing:             12,
-		wire.OpSysQuit:          16,
-		wire.OpAction:           52,
-		wire.OpActionStop:       52,
-		wire.OpIllusion:         52,
-		wire.OpREQMobByID:       16,
-		wire.OpMotion:           20,
-		wire.OpClientUnknown2BC: 108,
-		wire.OpReqRanking:       20,
-		wire.OpAttackOne:        48,
-		wire.OpAttackTwo:        52,
-		wire.OpAttackMulti:      96,
+		wire.OpConnectAccount:    116,
+		wire.OpCreateCharacter:   36,
+		wire.OpDeleteCharacter:   44,
+		wire.OpCharacterLogin:    characterLoginPacketSize,
+		wire.OpCharacterLogout:   12,
+		wire.OpSwapItem:          20,
+		wire.OpDeposit:           16,
+		wire.OpWithdraw:          16,
+		wire.OpUseItem:           36,
+		wire.OpUseNPC:            20,
+		wire.OpReqShopList:       16,
+		wire.OpBuyItem:           24,
+		wire.OpSellItem:          20,
+		wire.OpApplyBonus:        applyBonusPacketSize,
+		wire.OpPartyRequest:      44,
+		wire.OpPartyAccept:       32,
+		wire.OpPartyRemove:       16,
+		wire.OpTrade:             156,
+		wire.OpCloseTrade:        12,
+		wire.OpAutoTrade:         196,
+		wire.OpReqTradeList:      16,
+		wire.OpReqBuyAutoTrade:   36,
+		wire.OpDropItem:          32,
+		wire.OpGetItem:           28,
+		wire.OpDeleteItem:        deleteItemPacketSize,
+		wire.OpSplitItem:         splitItemPacketSize,
+		wire.OpUpdateItem:        20,
+		wire.OpSetShortSkill:     32,
+		wire.OpMessageChat:       140,
+		wire.OpMessageWhisper:    128,
+		wire.OpChangeCity:        16,
+		wire.OpReqTeleport:       16,
+		wire.OpPKMode:            16,
+		wire.OpMoveStop:          36,
+		wire.OpUpdateScore:       wire.HeaderSize,
+		wire.OpRestart:           12,
+		wire.OpPing:              12,
+		wire.OpSysQuit:           16,
+		wire.OpAction:            52,
+		wire.OpActionStop:        52,
+		wire.OpIllusion:          52,
+		wire.OpREQMobByID:        16,
+		wire.OpGuildDeprivate:    16,
+		wire.OpInviteGuild:       20,
+		wire.OpGuildAlly:         20,
+		wire.OpGuildWar:          20,
+		wire.OpChallenge:         16,
+		wire.OpChallengeConfirm:  20,
+		wire.OpMotion:            20,
+		wire.OpClientUnknown2BC:  108,
+		wire.OpReqRanking:        20,
+		wire.OpAttackOne:         48,
+		wire.OpAttackTwo:         52,
+		wire.OpAttackMulti:       96,
+		wire.OpCombineTiny:       combinePacketSize,
+		wire.OpCombineLindy:      combinePacketSize,
+		wire.OpCombineCompositor: combinePacketSize,
+		wire.OpCombineAgatha:     combinePacketSize,
+		wire.OpCombineAylin:      combinePacketSize,
+		wire.OpCombineEhre:       combinePacketSize,
+		wire.OpCombineOdin:       combinePacketSize,
 	}
 	for opcode, expected := range tests {
 		got, exact := exactInboundPacketSize(opcode)
@@ -73,6 +91,43 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 	}
 	if size, exact := exactInboundPacketSize(0xFFFF); exact || size != 0 {
 		t.Fatalf("opcode desconhecido ganhou framing: size=%d exact=%v", size, exact)
+	}
+	if size, exact := exactInboundPacketSize(wire.OpRebuy); exact || size != 0 {
+		t.Fatalf("recompra deveria aceitar os dois tamanhos: size=%d exact=%v", size, exact)
+	}
+}
+
+func TestConfirmedEconomicPacketsRejectAppendedPayload(t *testing.T) {
+	opcodes := []uint16{
+		wire.OpDeleteCharacter, wire.OpMessageWhisper,
+		wire.OpCombineTiny, wire.OpCombineLindy, wire.OpCombineCompositor,
+		wire.OpCombineAgatha, wire.OpCombineAylin, wire.OpCombineEhre,
+		wire.OpCombineOdin,
+	}
+	for _, opcode := range opcodes {
+		t.Run(fmt.Sprintf("0x%X", opcode), func(t *testing.T) {
+			p, _ := networkedTestPlayer(1, "Framing", 2100, 2100)
+			w := worldWithNetworkedPlayers(p)
+			expected, _ := exactInboundPacketSize(opcode)
+			if w.validateInboundCommand(p.Session, inboundPacket(opcode, expected+8)) {
+				t.Fatalf("opcode 0x%X aceitou cauda arbitraria", opcode)
+			}
+		})
+	}
+}
+
+func TestRebuyInboundSizeAllowsClient748RequestForms(t *testing.T) {
+	p, _ := networkedTestPlayer(1, "Rebuy", 2100, 2100)
+	w := worldWithNetworkedPlayers(p)
+	for _, size := range []int{wire.HeaderSize, repurchasePacketSize} {
+		packet := inboundPacket(wire.OpRebuy, size)
+		binary.LittleEndian.PutUint16(packet[6:8], p.ID)
+		if !w.validateInboundCommand(p.Session, packet) {
+			t.Fatalf("recompra size=%d foi recusada", size)
+		}
+	}
+	if w.validateInboundCommand(p.Session, inboundPacket(wire.OpRebuy, repurchasePacketSize-1)) {
+		t.Fatal("recompra truncada foi aceita")
 	}
 }
 
@@ -121,6 +176,22 @@ func TestValidateInboundCommandRejectsAttackWithAppendedPayload(t *testing.T) {
 	packet := inboundPacket(wire.OpAttackOne, 512)
 	if w.validateInboundCommand(p.Session, packet) {
 		t.Fatal("ataque com cauda arbitraria foi aceito")
+	}
+}
+
+func TestValidateInboundCommandRejectsGuildControlPayloadSmuggling(t *testing.T) {
+	for _, opcode := range []uint16{
+		wire.OpGuildDeprivate, wire.OpGuildAlly, wire.OpGuildWar,
+		wire.OpChallenge, wire.OpChallengeConfirm,
+	} {
+		t.Run(fmt.Sprintf("0x%X", opcode), func(t *testing.T) {
+			p, _ := networkedTestPlayer(1, "GuildPacket", 2100, 2100)
+			w := worldWithNetworkedPlayers(p)
+			expected, _ := exactInboundPacketSize(opcode)
+			if w.validateInboundCommand(p.Session, inboundPacket(opcode, expected+16)) {
+				t.Fatalf("opcode 0x%X aceitou cauda arbitraria", opcode)
+			}
+		})
 	}
 }
 
@@ -260,6 +331,23 @@ func TestStopPacketsCannotRepositionPlayer(t *testing.T) {
 	w.onMoveStop(p.Session, moveStop)
 	if p.X != 2100 || p.Y != 2100 {
 		t.Fatalf("Stop reposicionou player: (%d,%d)", p.X, p.Y)
+	}
+}
+
+func TestStopMayReportAValidatedIntermediateRoutePosition(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	p.MovePublished = true
+	p.MovePublishedStartX, p.MovePublishedStartY = 2100, 2100
+	p.MovePublishedTargetX, p.MovePublishedTargetY = 2110, 2100
+	copy(p.MovePublishedRoute[:], []byte("6666666666"))
+	// O estado autoritativo guarda o destino planejado, embora o avatar ainda
+	// possa parar legitimamente em qualquer passo validado da rota.
+	p.X, p.Y = 2110, 2100
+	if !w.validReportedStop(p, 2105, 2100) {
+		t.Fatal("parada intermediaria pertencente a Route[24] foi recusada")
+	}
+	if w.validReportedStop(p, 2105, 2101) {
+		t.Fatal("parada fora da Route[24] foi aceita")
 	}
 }
 

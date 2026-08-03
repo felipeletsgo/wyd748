@@ -235,6 +235,36 @@ func TestBossThresholdNotReemittedWithoutNewCrossing(t *testing.T) {
 	}
 }
 
+func TestBossThresholdRetriesAfterActionConflict(t *testing.T) {
+	w, mob, boss, clock := newBossTestWorld(t, testBossProfile(t), 1000)
+	changeID := bossActionOfKind(t, boss.Profile, ActionChangePhase)
+	// Uma acao nao-interruptivel ja em execucao bloqueia a virada obrigatoria.
+	boss.Pending = &BossPendingAction{
+		Generation: 1, ActionID: changeID, ExecuteAt: clock.Now().Add(time.Minute),
+		Priority: 999, Interruptible: false,
+	}
+	w.emitCrossedThresholds(boss, 1, 70, 55, clock.Now())
+	if _, crossed := boss.crossedThresholds[60]; crossed {
+		t.Fatal("limiar bloqueado nao deveria ser consumido")
+	}
+	if _, pending := boss.pendingThresholds[60]; !pending {
+		t.Fatal("limiar bloqueado deveria ficar pendente")
+	}
+
+	boss.Pending = nil
+	w.retryBossThresholds(boss, clock.Now())
+	if _, crossed := boss.crossedThresholds[60]; !crossed {
+		t.Fatal("limiar deveria ser consumido depois que o conflito terminou")
+	}
+	if _, pending := boss.pendingThresholds[60]; pending {
+		t.Fatal("limiar aceito nao deveria permanecer pendente")
+	}
+	if boss.Phase != phaseIDFor(0) {
+		t.Fatalf("fase=%d, quer %d", boss.Phase, phaseIDFor(0))
+	}
+	_ = mob
+}
+
 func TestBossShieldAbsorbsDamageAndDropsWithLastAdd(t *testing.T) {
 	w, mob, boss, clock := newBossTestWorld(t, testBossProfile(t), 1000)
 

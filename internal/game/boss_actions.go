@@ -53,7 +53,8 @@ func (w *World) bossChangePhase(boss *BossRuntime, mob *Mob, action BossActionDe
 // dano direto no alvo do evento, ja validado como jogador vivo e proximo.
 func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef, event BossEvent) {
 	target := w.playerByID(event.SourceID)
-	if !validMobTarget(target) {
+	if !validMobTarget(target) || (mob != nil && mob.InstanceID != "" &&
+		!w.instanceMobTargetAllowed(mob, target)) {
 		return
 	}
 	// Alcance da skill configurada; sem valor, cai no corpo a corpo.
@@ -142,9 +143,15 @@ func (w *World) bossSummonAdds(boss *BossRuntime, mob *Mob, action BossActionDef
 	created := 0
 	for i := 0; i < wanted; i++ {
 		x, y := w.findFreePosition(mob.X, mob.Y, 3)
+		mobID := w.allocMobID()
+		if mobID == 0 {
+			log.Printf("BOSS %q: adds interrompidos: faixa de IDs de mob esgotada", boss.Profile.ID)
+			break
+		}
 		add := &Mob{
-			ID: w.allocMobID(), Def: template, X: x, Y: y,
+			ID: mobID, Def: template, X: x, Y: y,
 			HP: template.Extended.MaxHP, GenerIndex: -1,
+			InstanceID: mob.InstanceID,
 			// LeaderID aponta para o boss: e a ligacao natural do encontro.
 			LeaderID: mob.ID,
 		}
