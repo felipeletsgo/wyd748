@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Independent fifth client-patch link.  The server remains authoritative: the
+# Independent sixth client-patch link.  The server remains authoritative: the
 # code below only chooses a carry slot and calls the exact native UseItem
 # routine used by a manual click.  It never builds a packet or decides whether
 # a room may be entered.
@@ -15,7 +15,7 @@ $ErrorActionPreference = 'Stop'
 # tools/watermacrotable resolves data/volatiles.json through the same Go
 # loaders used by the server and the resulting table is embedded in the cave.
 
-$expectedHash = '4643F1B6B8E67F375955D2F57AEFD0A6997E41DDB5F2B3CE7E2B5C401D200512'
+$expectedHash = '9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18'
 $backupName = 'WYD.pre-water-macro.exe'
 $caveOffset = 0x1D3243
 $caveVA = [uint32]0x013C0243
@@ -203,6 +203,7 @@ function IncReg([int]$Reg) { B (0x40 + $Reg) }
 $timeGetTimeIAT = [uint32]0x005A3394
 $floatToWordVA = [uint32]0x0058F1F0
 $nativeUseItemVA = [uint32]0x00465F85
+$scanIntervalMs = 3000 # W2PP ThreadMacro cadence; avoids stale UI/control reuse.
 $nativeMacroVA = [uint32]0x0049362C
 $messageVA = [uint32]0x00493AA1
 $sprintfVA = [uint32]0x0058F078
@@ -215,10 +216,24 @@ CallVA $nativeMacroVA
 B 0xC3
 
 # Chat trampoline. pushad keeps the original formatter arguments at fixed
-# offsets: dest=[esp+24], format=[esp+28], raw=[esp+2C].
+# offsets: dest=[esp+24], format=[esp+28], raw=[esp+2C].  The native client
+# normally delivers the command without its leading slash, but some input
+# paths preserve it; the hook accepts both forms without changing fallback
+# chat text.
 Mark 'chat_entry'
 Pushad
 Emit ([byte[]](0x8B,0x74,0x24,0x2C)) # mov esi,[esp+2C]
+# A few parser paths can reach the formatter with no command buffer.  Never
+# pass a null pointer into the local comparator; preserve the original path.
+Emit ([byte[]](0x85,0xF6)) # test esi,esi
+Jcc 4 'chat_empty'
+# Normalize an optional leading '/' only for comparison.  The original raw
+# pointer remains on the stack, so non-local chat still reaches sprintf
+# byte-for-byte unchanged.
+Emit ([byte[]](0x80,0x3E,0x2F)) # cmp byte ptr [esi], '/'
+Jcc 5 'chat_command'
+IncReg 6 # ESI++
+Mark 'chat_command'
 MovRegImmLabel 7 'cmd_on'
 CallLabel 'cmp_ci'
 TestEax
@@ -227,8 +242,21 @@ MovRegImmLabel 7 'cmd_off'
 CallLabel 'cmp_ci'
 TestEax
 Jcc 5 'chat_off'
-# Original formatter call: push raw, format, destination.  The displacement
-# remains +2C after each push, which is why these are deliberately fixed-size.
+# All non-local text must execute the original formatter byte-for-byte.
+JmpLabel 'chat_fallback'
+
+Mark 'chat_empty'
+# Avoid passing a null %s argument to the CRT formatter on malformed input.
+# This path is unreachable for normal client chat, but makes the hook safe
+# when the input widget is torn down during logout/zone changes.
+MovRegImmLabel 0 'empty'
+Emit ([byte[]](0x89,0x44,0x24,0x2C)) # replace raw argument in saved stack
+JmpLabel 'chat_fallback'
+
+Mark 'chat_fallback'
+# Original formatter call: push raw, format, destination. After pushad the
+# original values are dest=+24, format=+28 and raw=+2C; because ESP changes
+# after each push, +2C resolves to raw, then format, then destination.
 Emit ([byte[]](0xFF,0x74,0x24,0x2C))
 Emit ([byte[]](0xFF,0x74,0x24,0x2C))
 Emit ([byte[]](0xFF,0x74,0x24,0x2C))
@@ -279,8 +307,10 @@ XorEax; B 0x5B; B 0xC3
 Mark 'cmp_yes'
 MovRegImm 0 1; B 0x5B; B 0xC3
 
-# Scanner called in the original client thread. Carry has 64 structural slots
-# (8 pages x 9 cells); slot 63 is intentionally excluded from automation.
+# Scanner called in the original client thread. This 7.48 client exposes one
+# carry grid with 63 visible slots (9 columns x 7 rows). The structural slot
+# 63 is intentionally excluded from automation.  The native grid ABI is
+# GetItem(x,y), so each call pushes y first and x second.
 Mark 'scan_water'
 Pushad
 MovRegReg 6 1 # ESI = scene (ECX at the frame call)
@@ -290,11 +320,11 @@ CallImport $timeGetTimeIAT
 MovRegReg 3 0 # EBX = now
 MovRegReg 2 0 # EDX = now
 Emit ([byte[]](0x2B,0x15)); Abs32 'last_scan'
-Emit ([byte[]](0x81,0xFA)); D 250
+Emit ([byte[]](0x81,0xFA)); D $scanIntervalMs
 Jcc 2 'scan_done'
 MovMemReg 3 'last_scan'
 MovMemReg 6 'scan_scene'
-Emit ([byte[]](0x8B,0x86,0x3C,0x87,0x02,0x00,0x85,0xC0)) # eax = Carry grid; test
+Emit ([byte[]](0x8B,0x86,0x3C,0x87,0x02,0x00,0x85,0xC0)) # eax = active carry grid; test
 Jcc 4 'scan_done'
 MovMemEax 'scan_grid'
 Emit ([byte[]](0x8B,0x46,0x4C,0x85,0xC0)) # eax = scene+4c; test
@@ -307,14 +337,15 @@ Emit ([byte[]](0x31,0xFF)); MovMemReg 7 'scan_slot_value'
 
 Mark 'scan_slot_loop'
 MovEaxMem 'scan_slot_value'
+# Stop at 63: slots 0..62 are visible and slot 63 is structural/internal.
 Emit ([byte[]](0x83,0xF8,0x3F)); Jcc 3 'scan_done' # unsigned >=63
 MovEaxMem 'scan_slot_value'
 MovRegImm 2 0
 MovRegImm 5 9
 Emit ([byte[]](0xF7,0xF5))
-MovMemEax 'scan_page'
+MovMemEax 'scan_row'
 MovMemReg 2 'scan_cell'
-PushMem 'scan_cell'; PushMem 'scan_page'
+PushMem 'scan_row'; PushMem 'scan_cell'
 MovRegMem 1 'scan_grid'
 Emit ([byte[]](0x8B,0x01,0xFF,0x90,0xB4,0x00,0x00,0x00))
 MovMemEax 'scan_item_control'; TestEax; Jcc 4 'scan_next_slot'
@@ -332,21 +363,20 @@ XorEax
 Mark 'scan_area'
 Emit ([byte[]](0x66,0x3B,0x45,0x02)); Jcc 3 'scan_next_record'
 Emit ([byte[]](0x8D,0x54,0xC5,0x04)) # EDX = EBP + EAX*8 + 4
-# The instruction is `cmp register, [current]`, so the unsigned branches
-# are JB when min > current and JA when max < current.  Using the opposite
-# conditions rejects every non-degenerate rectangle and makes the macro
-# silently inert.
-Emit ([byte[]](0x0F,0xB7,0x1A,0x3B,0x1D)); Abs32 'scan_x'; Jcc 2 'scan_area_no'
-Emit ([byte[]](0x0F,0xB7,0x5A,0x04,0x3B,0x1D)); Abs32 'scan_x'; Jcc 7 'scan_area_no'
-Emit ([byte[]](0x0F,0xB7,0x5A,0x02,0x3B,0x1D)); Abs32 'scan_y'; Jcc 2 'scan_area_no'
-Emit ([byte[]](0x0F,0xB7,0x5A,0x06,0x3B,0x1D)); Abs32 'scan_y'; Jcc 7 'scan_area_no'
+# The instruction is `cmp bound, [current]`.  For the lower bound, JA means
+# bound > current (current is below the rectangle); for the upper bound, JB
+# means bound < current (current is above it).
+Emit ([byte[]](0x0F,0xB7,0x1A,0x3B,0x1D)); Abs32 'scan_x'; Jcc 7 'scan_area_no'
+Emit ([byte[]](0x0F,0xB7,0x5A,0x04,0x3B,0x1D)); Abs32 'scan_x'; Jcc 2 'scan_area_no'
+Emit ([byte[]](0x0F,0xB7,0x5A,0x02,0x3B,0x1D)); Abs32 'scan_y'; Jcc 7 'scan_area_no'
+Emit ([byte[]](0x0F,0xB7,0x5A,0x06,0x3B,0x1D)); Abs32 'scan_y'; Jcc 2 'scan_area_no'
 JmpLabel 'scan_area_yes'
 Mark 'scan_area_no'
 IncReg 0; JmpLabel 'scan_area'
 
 Mark 'scan_area_yes'
 PushImm8 0x26; PushMem 'scan_item_data'; CallVA $itemCategoryVA; AddEsp 8
-PushMem 'scan_cell'; PushMem 'scan_page'; PushMem 'scan_item_id'; B 0x50
+PushMem 'scan_row'; PushMem 'scan_cell'; PushMem 'scan_item_id'; B 0x50
 PushMem 'scan_item_control'; MovRegMem 1 'scan_scene'; CallVA $nativeUseItemVA
 JmpLabel 'scan_done'
 
@@ -368,13 +398,17 @@ Mark 'scan_grid'; D 0
 Mark 'scan_x'; D 0
 Mark 'scan_y'; D 0
 Mark 'scan_slot_value'; D 0
-Mark 'scan_page'; D 0
+Mark 'scan_row'; D 0
 Mark 'scan_cell'; D 0
 Mark 'scan_item_id'; D 0
 Mark 'scan_item_control'; D 0
 Mark 'scan_item_data'; D 0
-Mark 'cmd_on'; Emit ([Text.Encoding]::ASCII.GetBytes('/macropergaon' + [char]0))
-Mark 'cmd_off'; Emit ([Text.Encoding]::ASCII.GetBytes('/macropergaoff' + [char]0))
+# The native parser normally removes the leading slash before this formatter
+# hook (W2PP ComandosChat receives "autowater", not "/autowater"). The hook
+# also normalizes a slash at runtime so both client input paths are accepted.
+Mark 'cmd_on'; Emit ([Text.Encoding]::ASCII.GetBytes('macropergaon' + [char]0))
+Mark 'cmd_off'; Emit ([Text.Encoding]::ASCII.GetBytes('macropergaoff' + [char]0))
+Mark 'empty'; Emit ([byte]0)
 Mark 'msg_on'; Emit ([Text.Encoding]::ASCII.GetBytes('Water scroll macro enabled.' + [char]0))
 Mark 'msg_off'; Emit ([Text.Encoding]::ASCII.GetBytes('Water scroll macro disabled.' + [char]0))
 

@@ -989,6 +989,9 @@ arquivo global de números sem semântica.
   revertida e o jogador recebe uma mensagem de erro.
   Confirmação e erro usam `0x101 MessagePanel` (`ID=0`), exibido como aviso
   flutuante no topo da tela, sem inserir texto no chat.
+- `/fame`: consulta a fama autoritativa do personagem no contador `fame` do
+  charstate e exibe `Fame: N` no mesmo `0x101 MessagePanel`. É somente leitura;
+  não altera CP, EXP, pontos de skill nem o inventário.
 
 Trocas envolvendo equipamento recalculam imediatamente o score completo a
 partir de `Extended + Equip + Affects` e enviam `SelfEquip`, `UpdateScore`,

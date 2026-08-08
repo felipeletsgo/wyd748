@@ -288,6 +288,10 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		// CP e o Chaos/PK Point assinado do personagem (-75..+75). Ele nao e
 		// o Hold de EXP do 0x337 e por isso nunca deve ser formatado como XP.
 		s.Send(wire.MessagePanel(chaosPointMessage(p.Char.CP)))
+	case "fame":
+		// Fame e um contador por personagem (charstate), separado de CP,
+		// EXP Hold e Special Points. A consulta nunca altera nem persiste estado.
+		s.Send(wire.MessagePanel(fameMessage(p)))
 	case "nig":
 		// O client envia este comando internamente ao usar os ingressos do
 		// Nightmare (SGrid.cpp): ele espera !!HHMMSS para atualizar o relogio
@@ -328,6 +332,10 @@ func nightmareTimeMessage(now time.Time) string {
 
 func chaosPointMessage(cp int16) string {
 	return fmt.Sprintf("Chaos Point: %d (range -75..+75)", model.ClampCP(int(cp)))
+}
+
+func fameMessage(p *Player) string {
+	return fmt.Sprintf("Fame: %d", counterBalance(p, fameCounter))
 }
 
 // sendCharacterInfo responde ao "/nick" sem mensagem com um resumo do

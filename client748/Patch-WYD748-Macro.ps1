@@ -30,7 +30,7 @@ $ErrorActionPreference = 'Stop'
 
 # Estado esperado: WYD.exe com os patches principal + ExtendedStats ja aplicados
 # (o macro fix vem por cima). Recusa em qualquer outro estado.
-$expectedHash = 'F2B8CDEB9863192A5CDA4FCB0E244352A53C4C5E82465E7855B5477C5EC40C5B'
+$expectedHash = 'E704DA0A185892EBE394324ED3A1001FC0DFB832334546186E61948DED15E20D'
 
 function Assert-Bytes([byte[]]$Data, [int]$Offset, [byte[]]$Expected, [string]$Name) {
     for ($i = 0; $i -lt $Expected.Length; $i++) {

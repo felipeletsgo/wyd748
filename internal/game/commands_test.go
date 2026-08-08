@@ -32,6 +32,28 @@ func TestChaosPointMessageUsesSignedDomain(t *testing.T) {
 	}
 }
 
+func TestFameCommandReadsCharacterCounter(t *testing.T) {
+	p, _ := networkedTestPlayer(1, "FameTester", 2100, 2100)
+	p.SpecialCoins = map[string]uint32{fameCounter: 123}
+	w := worldWithNetworkedPlayers(p)
+	before := p.Session.QueuedPacketsForTest()
+	if !w.dispatchChatCommand(p.Session, p, "fame", "") {
+		t.Fatal("/fame nao foi consumido")
+	}
+	if got := p.Session.QueuedPacketsForTest(); got != before+1 {
+		t.Fatalf("/fame nao enviou aviso: fila %d -> %d", before, got)
+	}
+	if got := fameMessage(p); got != "Fame: 123" {
+		t.Fatalf("mensagem de fama = %q", got)
+	}
+}
+
+func TestFameMessageNilPlayerIsZero(t *testing.T) {
+	if got := fameMessage(nil); got != "Fame: 0" {
+		t.Fatalf("fama de jogador nil = %q", got)
+	}
+}
+
 func TestParseChatText(t *testing.T) {
 	pkt := make([]byte, 140)
 	copy(pkt[12:], "  /limparinv  \x00texto ignorado")

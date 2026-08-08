@@ -9,6 +9,9 @@
 /server.exe
 /tmp/
 /.tmp/
+*.tmp
+*.tmp-*
+client748/.tmp-*
 /tm-check*
 /tm-review*
 
@@ -41,6 +44,8 @@ client748/WYD.patched-wide.exe
 client748/WYD.premacro.exe
 client748/WYDoriginal.exe
 client748/WYD.pre-lindy.exe
+client748/WYD.pre-*.exe
+client748/ItemList.pre-*.bin
 
 # Artefatos de conversao/edicao. O runtime usa os equivalentes autoritativos
 # versionados em data/SkillData.csv e client748/SkillData.bin.

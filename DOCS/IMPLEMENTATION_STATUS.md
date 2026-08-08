@@ -265,6 +265,7 @@ validações anti-WPE/Cheat Engine e testes adversariais), `DOCS/BOSS.md`
 | `0x3B9 UpdateAffect` | 140 bytes: 16 estruturas `{Type,Value,Level,Time}` em unidades de 8 s. É enviado somente ao dono para ícones, descrição e timer. |
 | `0x337 UpdateEtc` | 48 bytes: Hold DWORD@12 (zerado quando não há EXP retida), EXP@16, LearnedSkill@20, status@24, mastery@26, skill@28, Magic@30, gold@32 e pontos wide@36..47. CP não pertence a este pacote: segue como byte `CP+75` em CreateMob. |
 | Chaos Point | Modelo autoritativo assinado `-75..+75`, neutro em `0`; o byte nativo de aparência é `CP+75`. O `/cp` consulta este contador. Ele é separado do C.point/EXP Hold, que permanece zero até esse sistema ser implementado. |
+| Fame | Contador por personagem em `SpecialCoins["fame"]`; `/fame` consulta o saldo e exibe o valor no `MessagePanel`, sem mutação. O `Warrior's_Seal` (4146/volatile 199) é a fonte de crédito. |
 | `0x338 CNFMobKill` | 24 bytes: FakeExp@12, morto/assassino@16, EXP@20. Atualiza EXP quando o morto é mob e chama `Die()` quando o morto é o jogador. |
 | `0x39D AttackOne` | Target/Damage no layout pós-`PacketProtocolV754`, em @44/@46. |
 | `0x366 Action` | Movimento de mobs com Speed@16 e Effect@20. |
@@ -277,7 +278,7 @@ validações anti-WPE/Cheat Engine e testes adversariais), `DOCS/BOSS.md`
 | `0x374 UpdateItem` | Pedido/atualização de objeto permanente em 20B. Abrir portão revalida ID, alcance, visibilidade, estado e a chave pelo `EF_KEYID`; chave é salva antes de publicar a porta aberta. |
 | `0x37F/0x3AB Party` | Convite de 48 bytes e aceite de 32 bytes; IDs, nome do líder, validade e capacidade são validados no mundo. |
 | `0x37D/0x37E Party UI` | Adiciona/atualiza membros no painel e remove um membro ou limpa o grupo completo. |
-| `0x333/0x334 Chat/Whisper` | Chat local, party (`=texto`), whisper e carta nativa (`!texto` abre o painel H). `/limparinv` limpa o Carry completo e `/spk texto` consome um Shout (3330) antes do anúncio global. |
+| `0x333/0x334 Chat/Whisper` | Chat local, party (`=texto`), whisper e carta nativa (`!texto` abre o painel H). `/limparinv` limpa o Carry completo, `/fame` consulta a fama e `/spk texto` consome um Shout (3330) antes do anúncio global. |
 | `0x334 day` | Pedido periódico de calendário recebe o `0x101 "!#11  2"` oculto nativo; não polui o painel nem procura um jogador chamado `day`. |
 | `0x336 UpdateScore C→S` | Reconhecido e descartado, como W2PP/Secrets. Nenhum score vindo do client altera o estado autoritativo. |
 | `0x368 Illusion` | Action2 de 52B passa pela validação da Illusion e retorna como `0x368`, preservando animação e câmera específicas. |
@@ -573,6 +574,12 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   copia temporaria e confirma SHA, hooks, destinos dentro da cave, os dois
   retornos tratados do parser, a chamada nativa de `UseItem`, as strings
   locais e a cave sem tocar no `WYD.exe` versionado.
+- O `Warrior's_Seal` (4146) usa `EF_VOLATILE=199` no servidor. Como o client
+  7.48 nao traz a excecao por item do W2PP, `client748/Apply-WYD748.ps1`
+  tambem executa `Patch-WYD748-ClientItemUse.ps1`: somente o marcador local
+  de clique do `ItemList.bin` vira `1`, enquanto o servidor resolve novamente
+  4146 -> 199. O carimbo final do arquivo e preservado e a alteracao possui
+  backup/guarda de formato.
 
 ### Cube, Big Cube e Hell Gate
 
@@ -945,17 +952,22 @@ beta**: some quando a barra estiver resolvida.
 
 ## Cadeia de patches do client
 
-O `WYD.exe` em uso **não** é o executável original: é o resultado de quatro
+O `WYD.exe` em uso **não** é o executável original: é o resultado de seis
 scripts aplicados em ordem, cada elo verificado por SHA-256. A cadeia inteira
 reproduz o binário em uso bit a bit, e a linha-base
 (`WYD.pre-extended-stats.exe`) está de volta na pasta. Detalhe, ordem de
-reaplicação e os três bypasses que estavam no binário e **em nenhum script**
-ficam em `client748/PATCHES.md`. O quarto elo é
+reaplicação e os quatro bypasses ficam em `client748/PATCHES.md`. O ponto
+único de entrada é
+`client748/Apply-WYD748.ps1`, que retoma a partir do SHA atual e valida cada
+elo. O primeiro patch também registra o byte de título da linha-base em
+`0x1C5069`. O quinto elo é
 `client748/Patch-WYD748-Lindy.ps1`: ele exige a entrada pré-Lindy
-`B2678AB927F03BF0F3114F36AE682025A9C732D2A59B55FB5B26DECEE07F2F94`, troca
+`4E916C1FD94D60D5EF7F8914B621BAB3787E7BF5460FB251C59F71BCC4D9BA2F`, troca
 somente `81 FA AA 0F 00 00` por `81 FA 78 0D 00 00` em `0x13FB7` e imprime a
 SHA final. A cópia verificada produziu
-`4643F1B6B8E67F375955D2F57AEFD0A6997E41DDB5F2B3CE7E2B5C401D200512`.
+`9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18` antes do
+elo Water Macro; a saída final versionada é
+`F76D9D8CEDFFBD3E046F10C5282CF0139E6D94BFC7DF30BCCA549324B0D1107E`.
 
 ## Limitações atuais
 

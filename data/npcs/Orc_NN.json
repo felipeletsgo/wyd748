@@ -1,0 +1,438 @@
+{
+  "name": "Orc_NN",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 232
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 2851
+    },
+    "escudo": {
+      "index": 3002
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 4015,
+	  "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "classInfo": 1,
+  "expReward": 10000,
+  "extendedScore": {
+    "version": 2,
+    "level": 400,
+    "attack": 1,
+    "magicAttack": 1,
+    "defense": 1,
+    "maxHP": 1000,
+    "maxMP": 0,
+    "curHP": 1000,
+    "curMP": 0,
+    "str": 50,
+    "int": 10,
+    "dex": 10,
+    "con": 10,
+    "critical": 255,
+    "resistHoly": 226,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        101,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        101,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0,
+      "eff": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    }
+  ],
+  "skillBar": [
+    48,
+    48,
+    48,
+    51
+  ]
+}

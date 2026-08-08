@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Quarto e ultimo elo da cadeia do client 7.48.
+# Quinto elo da cadeia do client 7.48 (Lindy; WaterMacro e o sexto e ultimo).
 # A Lindy usa uma constante compilada para o primeiro material da receita.
 # O 7.54 e o servidor aceitam dois pacotes 3448 (EF_AMOUNT=10), mas o
 # executavel 7.48 original compara o primeiro material com 4010.
@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 # Antes: 81 FA AA 0F 00 00  (cmp edx,4010)
 # Depois: 81 FA 78 0D 00 00 (cmp edx,3448)
 
-$expectedHash = 'B2678AB927F03BF0F3114F36AE682025A9C732D2A59B55FB5B26DECEE07F2F94'
+$expectedHash = '4E916C1FD94D60D5EF7F8914B621BAB3787E7BF5460FB251C59F71BCC4D9BA2F'
 $backupName = 'WYD.pre-lindy.exe'
 
 function Assert-Bytes([byte[]]$Data, [int]$Offset, [byte[]]$Expected, [string]$Name) {

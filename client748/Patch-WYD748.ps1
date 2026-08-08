@@ -63,6 +63,12 @@ Assert-Bytes $data $rightClickOffset $rightClickExpected 'botao direito/SkillUse
 # 2) Dano: os três locais abaixo originalmente fazem PUSH 3 (amarelo).
 # Cada um chama o helper no padding executável final da seção .text.
 $helperVA = 0x005A2FC2
+$titleOffset = 0x1C5069
+# A linha-base pre-ExtendedStats historicamente versionada traz 0x78 no
+# tÃ­tulo interno, embora WYD.original.exe tenha 0x69. Registrar esse byte
+# aqui torna a cadeia reproduzÃ­vel e elimina a ediÃ§Ã£o manual nÃ£o auditada.
+Assert-Bytes $data $titleOffset ([byte[]](0x69)) 'tÃ­tulo da linha-base'
+$titlePatch = [byte[]](0x78)
 $damageSites = @(
     @{ Offset = 0x8FA08; VA = 0x0048FA08; Expected = [byte[]](0x6A,0x03,0x6A,0x00,0x68) },
     @{ Offset = 0x91AA5; VA = 0x00491AA5; Expected = [byte[]](0x6A,0x03,0x8B,0x95,0x68) },
@@ -111,6 +117,7 @@ if (-not (Test-Path -LiteralPath $backup)) {
 Set-Bytes $data $cameraOffset $cameraPatch
 Set-Bytes $data $rightClickOffset $rightClickPatch
 Set-Bytes $data $textVirtualSizeOffset $textVirtualSizePatch
+Set-Bytes $data $titleOffset $titlePatch
 Set-Bytes $data $helperOffset $helper.ToArray()
 Set-Bytes $data $stubOffset $stub1
 Set-Bytes $data ($stubOffset + $stub1.Length) $stub2
