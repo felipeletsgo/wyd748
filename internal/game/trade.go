@@ -126,6 +126,7 @@ func updateTradeOffer(state, opponent *TradeState, req tradeRequest) error {
 func (w *World) tradeRequestValid(p, opponent *Player) bool {
 	return p != nil && opponent != nil && p != opponent && p.InWorld && opponent.InWorld &&
 		p.Char != nil && opponent.Char != nil && playerCurHP(p.Char) > 0 && playerCurHP(opponent.Char) > 0 &&
+		w.playersShareGameplaySpace(p, opponent) &&
 		inView(p.X, p.Y, opponent.X, opponent.Y)
 }
 

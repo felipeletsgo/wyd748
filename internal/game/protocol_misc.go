@@ -27,7 +27,8 @@ func (w *World) onReqRanking(s *net.Session, pkt []byte) {
 	}
 	target := w.playerByID(uint16(targetIDRaw))
 	if target == nil || !target.InWorld || target.Char == nil ||
-		!p.hasVisible(target.ID) || !inView(p.X, p.Y, target.X, target.Y) {
+		!w.playersShareGameplaySpace(p, target) || !p.hasVisible(target.ID) ||
+		!inView(p.X, p.Y, target.X, target.Y) {
 		s.Send(wire.MessagePanel("The selected player is no longer nearby."))
 		return
 	}

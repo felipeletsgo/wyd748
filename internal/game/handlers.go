@@ -1345,6 +1345,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		target := w.playerByID(req.TargetID)
 		if target == nil || target == p || !target.InWorld || target.Char == nil ||
 			playerCurHP(target.Char) == 0 || sameSupportGroup(p, target) ||
+			!w.playersShareGameplaySpace(p, target) ||
 			chebyshev(p.X, p.Y, target.X, target.Y) > maxRange ||
 			!w.combatLineOfSight(p.X, p.Y, target.X, target.Y) {
 			return

@@ -183,6 +183,7 @@ func (w *World) attachRestoredInstanceMember(p *Player) {
 		if !itemInstanceHasMember(inst, p.ID) {
 			inst.MemberIDs = append(inst.MemberIDs, p.ID)
 		}
+		w.setPlayerInstanceIndex(p.ID, runtimeID)
 		inst.MemberCharacterUIDs = appendUniqueString(inst.MemberCharacterUIDs, uid)
 		if inst.LeaderID == 0 {
 			leaderUID := strings.TrimSpace(w.pendingInstanceLeaders[runtimeID])
@@ -198,7 +199,7 @@ func (w *World) attachRestoredInstanceMember(p *Player) {
 			if radius < 1 {
 				radius = 1
 			}
-			p.X, p.Y = w.findFreePlayerPosition(x, y, radius, p)
+			p.X, p.Y = w.findFreePlayerPositionInInstance(x, y, radius, p, runtimeID)
 			p.Char.X, p.Char.Y = p.X, p.Y
 		}
 		delete(pending, uid)
@@ -235,6 +236,15 @@ func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
 			}
 			uids, _ := w.instanceCharacterUIDs(runtimeID, inst)
 			if len(uids) == 0 {
+				// A completed predecessor can be kept in RAM during exit grace
+				// solely for cleanup. Once its members are detached it has no
+				// durable owner and is intentionally omitted from the snapshot.
+				if len(inst.MemberIDs) == 0 && len(inst.MemberCharacterUIDs) == 0 &&
+					strings.TrimSpace(inst.LeaderCharacterUID) == "" &&
+					len(w.pendingInstanceMembers[runtimeID]) == 0 &&
+					strings.TrimSpace(w.pendingInstanceLeaders[runtimeID]) == "" {
+					continue
+				}
 				return fmt.Errorf("private Water instance %q has no stable character UID", runtimeID)
 			}
 		}
@@ -370,6 +380,7 @@ func (w *World) restoreInstanceState() error {
 		}
 		log.Printf("INSTANCIA %q restaurada apos reinicio", saved.RuntimeID)
 	}
+	w.rebuildPlayerInstanceIndex()
 	return nil
 }
 

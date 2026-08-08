@@ -11,6 +11,7 @@ import (
 type guildFlowStore struct {
 	craftStore
 	gameSaves int
+	snapshots []*model.InstanceStateSnapshot
 }
 
 func (s *guildFlowStore) LoadGuilds() (*model.GuildRegistry, error) {
@@ -24,6 +25,9 @@ func (s *guildFlowStore) SaveGameState(_ *model.GuildRegistry, _ ...*model.Accou
 
 func (s *guildFlowStore) SaveGameStateWithInstanceState(_ *model.GuildRegistry,
 	snapshot *model.InstanceStateSnapshot, _ ...*model.Account) error {
+	if snapshot != nil {
+		s.snapshots = append(s.snapshots, snapshot)
+	}
 	// Keep the historical assertions meaningful: opening/joining a room is a
 	// gameplay transaction, while a reward-only commit is counted as the
 	// account save. Production still performs one atomic PostgreSQL commit.

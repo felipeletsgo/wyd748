@@ -45,7 +45,8 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	}
 	p.NextGuildInvite = now.Add(guildInviteCooldown)
 	target := w.playerByID(uint16(targetIDRaw))
-	if target == nil || !target.InWorld || target.Char == nil || target.Account == nil {
+	if target == nil || !target.InWorld || target.Char == nil || target.Account == nil ||
+		!w.playersShareGameplaySpace(p, target) {
 		s.Send(wire.MessagePanel("That player is not online."))
 		return
 	}

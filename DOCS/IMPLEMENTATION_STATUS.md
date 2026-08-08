@@ -560,15 +560,15 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   imediato depois do ultimo mob.
 - Rooms 1--8 usam `RewardItem` para o proximo pergaminho. Os bosses usam
   `ChainNextItem` (sem recompensa automatica) para aceitar o Room 1 Scroll e
-  fechar um novo ciclo. A troca cria um `RuntimeID` novo e so destaca a sala
-  antiga depois do commit.
+  fechar um novo ciclo. A troca cria um `RuntimeID` novo; a associacao antiga
+  e retirada antes do snapshot transacional e restaurada se o commit falhar.
 - As areas de uso estao separadas das coordenadas de destino para os tres
   tiers. O Room 8 aceita somente o Boss Scroll correspondente; o Boss tambem
   aceita o Room 1 Scroll correspondente. Hunting Scrolls nao foi alterado.
 - O patch opcional `client748/Patch-WYD748-WaterMacro.ps1` vem depois do patch
   Lindy. Ele gera a tabela de 27 tickets/areas com `tools/watermacrotable`,
   intercepta os dois comandos localmente e usa `FUN_00465F85` para o uso nativo
-  do item. O scanner percorre carry 0..62 com debounce de 250 ms; nenhuma
+  do item. O scanner percorre carry 0..62 com debounce de 3000 ms; nenhuma
   regra server-side e duplicada no executavel.
 - O teste estatico `client748/Test-WYD748-WaterMacro.ps1` aplica a cadeia em
   copia temporaria e confirma SHA, hooks, destinos dentro da cave, os dois
@@ -580,6 +580,25 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   de clique do `ItemList.bin` vira `1`, enquanto o servidor resolve novamente
   4146 -> 199. O carimbo final do arquivo e preservado e a alteracao possui
   backup/guarda de formato.
+
+### Water — isolamento de gameplay e consistência (2026-08-08)
+
+- `requiresChain` das três entradas Room 1 distingue a entrada externa (livre)
+  da plataforma do boss (somente após a conclusão correspondente). Os testes
+  carregam o `volatiles.json` real para Normal, Mystic e Arcane.
+- O `RuntimeID` privado agora é indexado por personagem em O(1) e é a mesma
+  autoridade usada por visibilidade, PvP direto/AoE, suporte, party, trade,
+  guild invite, ranking, ataque por ID e summons. Runtimes distintos podem
+  ocupar os mesmos tiles físicos sem interagir.
+- Summons de contrato, BM, cria/pet e Thorn Wall herdam o espaço do dono;
+  aquisição de alvo e efeitos periódicos rejeitam/removem referências que
+  atravessem a fronteira privada.
+- Uma transição durante exit grace remove a associação antiga antes do
+  snapshot de conta/instância. Em falha de spawn ou persistência, o item,
+  posições, membership e índice são restaurados sem runtime parcial.
+- Reentrada/reconexão aloca posição contra o runtime correspondente, ignorando
+  jogadores e mobs de outras salas privadas, mas mantendo terreno e objetos
+  públicos como bloqueadores.
 
 ### Cube, Big Cube e Hell Gate
 

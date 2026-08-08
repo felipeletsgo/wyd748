@@ -226,7 +226,7 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 		return
 	}
 	if target := w.playerByID(id); target != nil && target.InWorld && target.Char != nil &&
-		inView(p.X, p.Y, target.X, target.Y) {
+		w.playersShareGameplaySpace(p, target) && inView(p.X, p.Y, target.X, target.Y) {
 		sendPlayerEnterView(p, target)
 		p.show(id)
 		return

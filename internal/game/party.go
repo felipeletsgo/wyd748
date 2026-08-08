@@ -47,6 +47,7 @@ func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 	}
 	target := w.playerByID(targetID)
 	if target == nil || target == inviter || !target.InWorld || target.Char == nil ||
+		!w.playersShareGameplaySpace(inviter, target) ||
 		!inView(inviter.X, inviter.Y, target.X, target.Y) {
 		s.Send(wire.MessagePanel("Player unavailable or out of range."))
 		return
@@ -104,7 +105,8 @@ func (w *World) onPartyAccept(s *net.Session, pkt []byte) {
 	leader := w.playerByID(leaderID)
 	name := cstr(pkt[14:30])
 	if leader == nil || leader.Char == nil || member.InviteFrom != leaderID ||
-		time.Now().After(member.InviteUntil) || !strings.EqualFold(name, leader.Char.Name) {
+		time.Now().After(member.InviteUntil) || !strings.EqualFold(name, leader.Char.Name) ||
+		!w.playersShareGameplaySpace(member, leader) {
 		member.InviteFrom = 0
 		member.InviteUntil = time.Time{}
 		s.Send(wire.MessagePanel("The party invitation expired."))

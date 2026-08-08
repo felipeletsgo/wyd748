@@ -350,7 +350,7 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 		return
 	}
 	face := uint16(criaPetFaceBase + mt)
-	x, y := w.findFreePosition(p.X, p.Y, 3)
+	x, y := w.findFreeGameplayPosition(p, p.X, p.Y, 3)
 	hp := cria.MountHP()
 	if hp < 1 {
 		hp = 1
@@ -372,6 +372,7 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 		return
 	}
 	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: uint32(hp),
+		InstanceID: w.playerRuntimeInstanceID(p.ID),
 		GenerIndex: -1, SummonerID: p.ID, SummonKind: summonKindMount, SummonRange: mobAttackRange}
 	w.mobs = append(w.mobs, m)
 	w.publishMobSpawn(m)
@@ -400,6 +401,8 @@ func (w *World) syncCriaPet(p *Player) {
 	switch {
 	case hasCria && existing == nil:
 		w.spawnCriaPet(p, mount)
+	case hasCria && existing != nil:
+		w.rebindSummonGameplaySpace(existing, w.playerRuntimeInstanceID(p.ID))
 	case !hasCria && existing != nil:
 		w.removeCriaPet(existing)
 	}

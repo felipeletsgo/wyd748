@@ -528,6 +528,15 @@ func itemInstanceHasMember(inst *ItemInstance, playerID uint16) bool {
 	return false
 }
 
+func (w *World) indexInstanceMembers(inst *ItemInstance) {
+	if w == nil || inst == nil {
+		return
+	}
+	for _, playerID := range inst.MemberIDs {
+		w.setPlayerInstanceIndex(playerID, inst.RuntimeID)
+	}
+}
+
 // ensureItemInstanceLeader keeps rewards deliverable when the original leader
 // leaves during a quiz or is removed by a stale/disconnect cleanup.  Native
 // party instances always have one live leader; retaining a departed ID would
@@ -566,10 +575,23 @@ func itemInstanceInExitGrace(inst *ItemInstance) bool {
 // here prevents the cleanup of an older room from teleporting a player out of
 // a newer Water/Cube room.
 func (w *World) itemInstanceForPlayer(playerID uint16) *ItemInstance {
+	if w == nil || playerID == 0 {
+		return nil
+	}
 	now := w.now()
-	for _, inst := range w.itemInstances {
+	if runtimeID := w.playerRuntimeInstanceID(playerID); runtimeID != "" {
+		if inst := w.itemInstances[runtimeID]; inst != nil &&
+			!itemInstanceInExitGraceAt(inst, now) && itemInstanceHasMember(inst, playerID) {
+			return inst
+		}
+	}
+	// Repair path for a legacy fixture whose direct MemberIDs mutation was not
+	// accompanied by the index update. Production transitions update the map
+	// before publishing and therefore do not scan here.
+	for runtimeID, inst := range w.itemInstances {
 		if inst != nil && !itemInstanceInExitGraceAt(inst, now) &&
 			itemInstanceHasMember(inst, playerID) {
+			w.setPlayerInstanceIndex(playerID, runtimeID)
 			return inst
 		}
 	}
@@ -620,12 +642,10 @@ func (w *World) itemInstanceExitGraceAllowsItem(playerID uint16, itemID uint16) 
 		expectedChainItem(&inst.Config) == itemID
 }
 
-// detachInstanceMembersAfterCommit removes players from a completed Water
-// room only after the next room has been durably accepted. Keeping the old
-// membership until that boundary is what makes a failed ticket use reversible:
-// the old RuntimeID and the ticket remain valid. The old instance stays
-// indexed until exit grace expires so cleanup can remove stale entities
-// without recalling a player already transferred to the new room.
+// detachInstanceMembersAfterCommit applies the old-room side of a committed
+// chain transition. Callers take a membership snapshot first, apply this
+// mutation before persistence, and restore that snapshot if the transaction
+// fails. The historical name is retained for test/API compatibility.
 func (w *World) detachInstanceMembersAfterCommit(inst *ItemInstance, playerIDs map[uint16]struct{}) {
 	if inst == nil || len(playerIDs) == 0 {
 		return
@@ -645,6 +665,9 @@ func (w *World) detachInstanceMembersAfterCommit(inst *ItemInstance, playerIDs m
 		}
 	}
 	inst.MemberIDs = kept
+	for playerID := range playerIDs {
+		w.clearPlayerInstanceIndex(playerID, inst.RuntimeID)
+	}
 	// The old room stays indexed during exit grace, but it no longer owns the
 	// characters that were transferred to the next runtime. Preserve detached
 	// members that were not part of this transition; otherwise a party member
@@ -673,6 +696,65 @@ func (w *World) detachInstanceMembersAfterCommit(inst *ItemInstance, playerIDs m
 		delete(w.pendingInstanceLeaders, inst.RuntimeID)
 	}
 	ensureItemInstanceLeader(inst)
+}
+
+type instanceMembershipSnapshot struct {
+	memberIDs           []uint16
+	memberCharacterUIDs []string
+	leaderID            uint16
+	leaderCharacterUID  string
+	pendingMembers      map[string]struct{}
+	pendingLeader       string
+}
+
+func (w *World) snapshotInstanceMembership(inst *ItemInstance) instanceMembershipSnapshot {
+	snapshot := instanceMembershipSnapshot{}
+	if inst == nil {
+		return snapshot
+	}
+	snapshot.memberIDs = append([]uint16(nil), inst.MemberIDs...)
+	snapshot.memberCharacterUIDs = append([]string(nil), inst.MemberCharacterUIDs...)
+	snapshot.leaderID = inst.LeaderID
+	snapshot.leaderCharacterUID = inst.LeaderCharacterUID
+	if pending := w.pendingInstanceMembers[inst.RuntimeID]; pending != nil {
+		snapshot.pendingMembers = make(map[string]struct{}, len(pending))
+		for uid := range pending {
+			snapshot.pendingMembers[uid] = struct{}{}
+		}
+	}
+	snapshot.pendingLeader = w.pendingInstanceLeaders[inst.RuntimeID]
+	return snapshot
+}
+
+func (w *World) restoreInstanceMembership(inst *ItemInstance, snapshot instanceMembershipSnapshot) {
+	if w == nil || inst == nil {
+		return
+	}
+	inst.MemberIDs = append([]uint16(nil), snapshot.memberIDs...)
+	inst.MemberCharacterUIDs = append([]string(nil), snapshot.memberCharacterUIDs...)
+	inst.LeaderID = snapshot.leaderID
+	inst.LeaderCharacterUID = snapshot.leaderCharacterUID
+	if w.pendingInstanceMembers == nil {
+		w.pendingInstanceMembers = make(map[string]map[string]struct{})
+	}
+	if len(snapshot.pendingMembers) == 0 {
+		delete(w.pendingInstanceMembers, inst.RuntimeID)
+	} else {
+		pending := make(map[string]struct{}, len(snapshot.pendingMembers))
+		for uid := range snapshot.pendingMembers {
+			pending[uid] = struct{}{}
+		}
+		w.pendingInstanceMembers[inst.RuntimeID] = pending
+	}
+	if w.pendingInstanceLeaders == nil {
+		w.pendingInstanceLeaders = make(map[string]string)
+	}
+	if snapshot.pendingLeader == "" {
+		delete(w.pendingInstanceLeaders, inst.RuntimeID)
+	} else {
+		w.pendingInstanceLeaders[inst.RuntimeID] = snapshot.pendingLeader
+	}
+	w.rebuildPlayerInstanceIndex()
 }
 
 func (w *World) playerInOtherItemInstance(playerID uint16, current *ItemInstance) bool {
@@ -923,6 +1005,7 @@ func (w *World) detachPlayerFromItemInstancesMode(playerID uint16, now time.Time
 			}
 		}
 		inst.MemberIDs = members
+		w.clearPlayerInstanceIndex(playerID, inst.RuntimeID)
 		if len(members) == 0 {
 			pendingCount := 0
 			if w.pendingInstanceMembers != nil {
@@ -1054,6 +1137,7 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 	// o append, o item e a posicao persistidos nao podem ficar sem membro na
 	// memoria; em falha restauramos tambem a lista de membros.
 	inst.MemberIDs = append(inst.MemberIDs, p.ID)
+	w.setPlayerInstanceIndex(p.ID, inst.RuntimeID)
 	// A entrada individual altera simultaneamente o convite, a posição e a
 	// lista de membros. Usar somente SaveGameState deixava o ticket confirmado
 	// sem o membro no agregado durável de uma store que persiste instâncias.
@@ -1063,6 +1147,7 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 		p.X, p.Y = oldX, oldY
 		p.Char.X, p.Char.Y = oldX, oldY
 		inst.MemberIDs = oldMembers
+		w.rebuildPlayerInstanceIndex()
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -1190,6 +1275,7 @@ func (w *World) joinSharedTimedItemInstance(s *net.Session, p *Player, item *mod
 		}
 		return ids
 	}()...)
+	w.indexInstanceMembers(inst)
 	ensureItemInstanceLeader(inst)
 	previousRuns := 0
 	if runKey != "" {
@@ -1206,6 +1292,7 @@ func (w *World) joinSharedTimedItemInstance(s *net.Session, p *Player, item *mod
 	if err := w.saveAccountsAndInstanceState(accounts...); err != nil {
 		*item = oldItem
 		inst.MemberIDs = oldMembers
+		w.rebuildPlayerInstanceIndex()
 		inst.ScheduleEnd = oldScheduleEnd
 		if runKey != "" {
 			w.nightmarePartyRuns[runKey] = previousRuns
@@ -1463,9 +1550,11 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	for _, member := range members {
 		inst.MemberIDs = append(inst.MemberIDs, member.ID)
 	}
+	w.indexInstanceMembers(inst)
 	// O primeiro conteudo existe antes de confirmar o ticket. Ele ainda nao e
 	// publicado; logo qualquer falha pode ser revertida sem deixar sala vazia.
 	if ok, _ := w.spawnItemInstanceStage(inst, 0, now, false, false); !ok {
+		w.rebuildPlayerInstanceIndex()
 		restoreNightmareEntries(nightmareCharges)
 		*item = oldItem
 		for _, old := range positions {
@@ -1479,7 +1568,23 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	// Publish the runtime record to the World before the atomic commit. It is
 	// not visible to clients yet, but the transaction snapshot now contains the
 	// exact event state that accompanies the ticket consumption.
+	var graceMembership instanceMembershipSnapshot
+	var graceMoved map[uint16]struct{}
+	if graceSource != nil {
+		// Move the old membership to its final state BEFORE taking the durable
+		// snapshot. This closes the crash window in which one CharacterUID was
+		// serialized in both the old exit-grace room and the new room.
+		graceMembership = w.snapshotInstanceMembership(graceSource)
+		graceMoved = make(map[uint16]struct{}, len(members))
+		for _, member := range members {
+			if member != nil {
+				graceMoved[member.ID] = struct{}{}
+			}
+		}
+		w.detachInstanceMembersAfterCommit(graceSource, graceMoved)
+	}
 	w.itemInstances[runtimeID] = inst
+	w.indexInstanceMembers(inst)
 	previousRuns := 0
 	if runKey != "" {
 		previousRuns = w.nightmarePartyRuns[runKey]
@@ -1489,6 +1594,10 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		restoreNightmareEntries(nightmareCharges)
 		w.removeUnpublishedItemInstanceMobs(inst)
 		delete(w.itemInstances, runtimeID)
+		if graceSource != nil {
+			w.restoreInstanceMembership(graceSource, graceMembership)
+		}
+		w.rebuildPlayerInstanceIndex()
 		if runKey != "" {
 			w.nightmarePartyRuns[runKey] = previousRuns
 		}
@@ -1500,19 +1609,8 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	// The persistence boundary succeeded. Detach the party from the completed
-	// room now, before publishing the new room, so the old cleanup can never
-	// race the freshly-created membership. If the commit had failed the old
-	// membership would still be present and the rollback above would be exact.
-	if graceSource != nil {
-		moved := make(map[uint16]struct{}, len(members))
-		for _, member := range members {
-			if member != nil {
-				moved[member.ID] = struct{}{}
-			}
-		}
-		w.detachInstanceMembersAfterCommit(graceSource, moved)
-	}
+	// The persistence boundary succeeded. Old and new memberships already
+	// represent the committed final state; publish only after that boundary.
 	w.markInstanceStateDirty()
 	// O primeiro spawn foi montado antes de publicar a execucao para permitir
 	// rollback. Recalcule a vigilia agora que o mapa de instancias existe;

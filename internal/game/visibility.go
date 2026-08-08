@@ -58,25 +58,73 @@ func (w *World) mobVisibleToPlayer(p *Player, m *Mob) bool {
 	return instanceMemberInStage(w.instanceForMob(m), p)
 }
 
-// privateWaterRuntimeIDForPlayer returns the private Water room currently
-// owning a player.  Water rooms reuse the physical map coordinates, so a
-// spatial-radius query alone is not a sufficient visibility boundary: a
-// player in another room (or in the public world) must not receive movement,
-// vitals, affects or death packets from this avatar.
+// isPrivateGameplayInstance is the single policy for runtime isolation. Shared
+// timed zones and shared-entry events intentionally expose one common runtime;
+// private chains (including Water and Magic Chamber) do not.
+func isPrivateGameplayInstance(inst *ItemInstance) bool {
+	if inst == nil {
+		return false
+	}
+	if isDurablePrivateWaterInstance(inst) {
+		return true
+	}
+	switch instanceMode(inst.Config) {
+	case "shared_timed_zone", "private_shared_entry", "state_machine":
+		return false
+	default:
+		return strings.HasPrefix(instanceMode(inst.Config), "private_")
+	}
+}
+
+// gameplaySpaceForPlayer returns the private runtime that owns a player, or
+// the empty public-world space. It is deliberately server-side and is shared
+// by publication, combat, support, summons, trade and party admission.
+func (w *World) gameplaySpaceForPlayer(p *Player) string {
+	if w == nil || p == nil {
+		return ""
+	}
+	runtimeID := w.playerRuntimeInstanceID(p.ID)
+	if runtimeID == "" {
+		return ""
+	}
+	if !isPrivateGameplayInstance(w.itemInstances[runtimeID]) {
+		return ""
+	}
+	return runtimeID
+}
+
+func (w *World) playersShareGameplaySpace(a, b *Player) bool {
+	if a == nil || b == nil {
+		return false
+	}
+	aSpace := w.gameplaySpaceForPlayer(a)
+	bSpace := w.gameplaySpaceForPlayer(b)
+	if aSpace == "" && bSpace == "" {
+		return true
+	}
+	return aSpace != "" && aSpace == bSpace
+}
+
+// privateWaterRuntimeIDForPlayer remains as a compatibility-named wrapper for
+// ground-item and legacy visibility code. The underlying lookup is O(1) and
+// now uses the same authoritative gameplay-space index as combat.
 func (w *World) privateWaterRuntimeIDForPlayer(playerID uint16) string {
 	if w == nil || playerID == 0 {
 		return ""
 	}
-	for runtimeID, inst := range w.itemInstances {
-		if isDurablePrivateWaterInstance(inst) && itemInstanceHasMember(inst, playerID) {
-			if strings.TrimSpace(runtimeID) != "" {
-				return runtimeID
-			}
-			if inst.RuntimeID != "" {
-				return inst.RuntimeID
-			}
-			return inst.Config.ID
+	p := w.playersByID[playerID]
+	if p == nil {
+		// Tests and restore paths may not have a live Player object yet. The
+		// runtime index still gives a safe answer for a water-owned ID.
+		runtimeID := w.playerRuntimeInstanceID(playerID)
+		if runtimeID != "" && isDurablePrivateWaterInstance(w.itemInstances[runtimeID]) {
+			return runtimeID
 		}
+		return ""
+	}
+	runtimeID := w.gameplaySpaceForPlayer(p)
+	if runtimeID != "" && isDurablePrivateWaterInstance(w.itemInstances[runtimeID]) {
+		return runtimeID
 	}
 	return ""
 }
@@ -89,12 +137,7 @@ func (w *World) playersVisibleTogether(a, b *Player) bool {
 	if a == nil || b == nil || a == b {
 		return a != nil && b != nil && a == b
 	}
-	aRuntime := w.privateWaterRuntimeIDForPlayer(a.ID)
-	bRuntime := w.privateWaterRuntimeIDForPlayer(b.ID)
-	if aRuntime == "" && bRuntime == "" {
-		return true
-	}
-	return aRuntime != "" && aRuntime == bRuntime
+	return w.playersShareGameplaySpace(a, b)
 }
 
 func (w *World) groundItemVisibleToPlayer(p *Player, g *GroundItem) bool {

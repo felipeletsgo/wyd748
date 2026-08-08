@@ -512,7 +512,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		baseDamage = explosionBashBaseDamage(baseDamage, playerInt(p.Char), int(playerCurMP(p.Char)))
 		setPlayerCurMP(p.Char, 0)
 		if len(targets) > 0 {
-			p.X, p.Y = w.findFreePlayerPosition(targets[0].X, targets[0].Y, 2, p)
+			p.X, p.Y = w.findFreeGameplayPosition(p, targets[0].X, targets[0].Y, 2)
 			p.Char.X, p.Char.Y = p.X, p.Y
 			w.refreshPlayerVisibility(p)
 			w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })

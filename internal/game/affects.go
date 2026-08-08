@@ -220,6 +220,7 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 		result := make([]*Player, 0, len(p.Party.Members))
 		for _, member := range p.Party.Members {
 			if member != nil && member.InWorld && member.Char != nil &&
+				w.playersShareGameplaySpace(p, member) &&
 				chebyshev(p.X, p.Y, member.X, member.Y) <= maxInt(6, skill.Range) {
 				result = append(result, member)
 			}
@@ -229,7 +230,8 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 		}
 	}
 	if target := w.playerByID(req.TargetID); target != nil && target.InWorld &&
-		target.Char != nil && (sameSupportGroup(p, target) || skill.Index == 47) &&
+		target.Char != nil && w.playersShareGameplaySpace(p, target) &&
+		(sameSupportGroup(p, target) || skill.Index == 47) &&
 		chebyshev(p.X, p.Y, target.X, target.Y) <= maxInt(6, skill.Range) {
 		return []*Player{target}
 	}
@@ -308,7 +310,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 			}
 		case 42: // Teleporte: traz o membro selecionado para junto do caster.
 			if target != p {
-				target.X, target.Y = w.findFreePlayerPosition(p.X, p.Y, 4, target)
+				target.X, target.Y = w.findFreeGameplayPosition(p, p.X, p.Y, 4)
 				target.Char.X, target.Char.Y = target.X, target.Y
 				w.refreshPlayerVisibility(target)
 				w.sendToPlayerView(target, func() []byte {
@@ -736,6 +738,17 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			if a.Type != 20 { // veneno/sangramento
 				continue
 			}
+			if m.InstanceID != "" {
+				owner := w.playerByID(m.AffectOwners[i])
+				if owner == nil || w.playerRuntimeInstanceID(owner.ID) != m.InstanceID {
+					// The source left the private runtime (or disconnected); do
+					// not let a stale owner award a kill across instance borders.
+					*a = model.Affect{}
+					m.AffectOwners[i] = 0
+					expired = true
+					continue
+				}
+			}
 			damage := uint32(clampInt(a.Level/2+a.Value, 1, int(m.HP)))
 			m.HP -= damage
 			if m.HP == 0 {
@@ -793,6 +806,15 @@ func (w *World) tickPlayerAffects(now time.Time) {
 				a.NextTick = now.Add(8 * time.Second)
 			}
 			if a.Type == 20 && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
+				// A DoT may outlive a teleport or an instance transition. Never
+				// let an affect created in one private gameplay space damage a
+				// character in another; remove the stale cross-runtime affect.
+				if owner := w.playerByID(a.OwnerID); owner != nil &&
+					!w.playersShareGameplaySpace(owner, p) {
+					*a = model.Affect{}
+					expired = true
+					continue
+				}
 				currentHP := playerCurHP(p.Char)
 				damage := uint32(clampInt(a.Level/2+a.Value, 1, maxInt(1, int(currentHP)-1)))
 				if currentHP > 1 {

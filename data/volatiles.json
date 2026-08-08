@@ -199,7 +199,7 @@
     "water-arcane-boss": [
       {"minX":1330,"minY":3505,"maxX":1354,"maxY":3529}
     ],
-    "water-normal-room1-entry": [{"minX":1075,"minY":3506,"maxX":1099,"maxY":3530},{"minX":1964,"minY":1772,"maxX":1967,"maxY":1775,"requiresChain":true}],
+    "water-normal-room1-entry": [{"minX":1075,"minY":3506,"maxX":1099,"maxY":3530,"requiresChain":true},{"minX":1964,"minY":1772,"maxX":1967,"maxY":1775}],
     "water-normal-room1": [{"minX":1113,"minY":3548,"maxX":1129,"maxY":3564}],
     "water-normal-room2": [{"minX":1077,"minY":3548,"maxX":1093,"maxY":3564}],
     "water-normal-room3": [{"minX":1041,"minY":3548,"maxX":1057,"maxY":3564}],
@@ -208,7 +208,7 @@
     "water-normal-room6": [{"minX":1077,"minY":3476,"maxX":1093,"maxY":3492}],
     "water-normal-room7": [{"minX":1113,"minY":3476,"maxX":1129,"maxY":3492}],
     "water-normal-room8": [{"minX":1113,"minY":3512,"maxX":1129,"maxY":3528}],
-    "water-mystic-room1-entry": [{"minX":1204,"minY":3633,"maxX":1228,"maxY":3657},{"minX":1964,"minY":1772,"maxX":1967,"maxY":1775,"requiresChain":true}],
+    "water-mystic-room1-entry": [{"minX":1204,"minY":3633,"maxX":1228,"maxY":3657,"requiresChain":true},{"minX":1964,"minY":1772,"maxX":1967,"maxY":1775}],
     "water-mystic-room1": [{"minX":1241,"minY":3676,"maxX":1257,"maxY":3692}],
     "water-mystic-room2": [{"minX":1205,"minY":3676,"maxX":1221,"maxY":3692}],
     "water-mystic-room3": [{"minX":1169,"minY":3676,"maxX":1185,"maxY":3692}],
@@ -217,7 +217,7 @@
     "water-mystic-room6": [{"minX":1205,"minY":3604,"maxX":1221,"maxY":3620}],
     "water-mystic-room7": [{"minX":1241,"minY":3604,"maxX":1257,"maxY":3620}],
     "water-mystic-room8": [{"minX":1241,"minY":3640,"maxX":1257,"maxY":3656}],
-    "water-arcane-room1-entry": [{"minX":1330,"minY":3505,"maxX":1354,"maxY":3529},{"minX":1964,"minY":1772,"maxX":1967,"maxY":1775,"requiresChain":true}],
+    "water-arcane-room1-entry": [{"minX":1330,"minY":3505,"maxX":1354,"maxY":3529,"requiresChain":true},{"minX":1964,"minY":1772,"maxX":1967,"maxY":1775}],
     "water-arcane-room1": [{"minX":1370,"minY":3546,"maxX":1386,"maxY":3562}],
     "water-arcane-room2": [{"minX":1334,"minY":3546,"maxX":1350,"maxY":3562}],
     "water-arcane-room3": [{"minX":1298,"minY":3546,"maxX":1314,"maxY":3562}],

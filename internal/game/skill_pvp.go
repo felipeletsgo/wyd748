@@ -26,6 +26,7 @@ func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill m
 	castRange := maxInt(attackRange, skill.Range)
 	if primary == nil || primary == caster || !primary.InWorld || primary.Char == nil ||
 		playerCurHP(primary.Char) == 0 || sameSupportGroup(caster, primary) ||
+		!w.playersShareGameplaySpace(caster, primary) ||
 		chebyshev(caster.X, caster.Y, primary.X, primary.Y) > castRange ||
 		!w.combatLineOfSight(caster.X, caster.Y, primary.X, primary.Y) {
 		return nil
@@ -43,7 +44,8 @@ func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill m
 			break
 		}
 		if candidate == caster || candidate == primary || !candidate.InWorld || candidate.Char == nil ||
-			playerCurHP(candidate.Char) == 0 || sameSupportGroup(caster, candidate) {
+			playerCurHP(candidate.Char) == 0 || sameSupportGroup(caster, candidate) ||
+			!w.playersShareGameplaySpace(caster, candidate) {
 			continue
 		}
 		if chebyshev(primary.X, primary.Y, candidate.X, candidate.Y) <= maxInt(1, skill.Range) {
@@ -110,7 +112,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 	if skill.Index == 22 {
 		baseDamage = explosionBashBaseDamage(baseDamage, playerInt(caster.Char), int(playerCurMP(caster.Char)))
 		setPlayerCurMP(caster.Char, 0)
-		caster.X, caster.Y = w.findFreePlayerPosition(targets[0].X, targets[0].Y, 2, caster)
+		caster.X, caster.Y = w.findFreeGameplayPosition(caster, targets[0].X, targets[0].Y, 2)
 		caster.Char.X, caster.Char.Y = caster.X, caster.Y
 		w.refreshPlayerVisibility(caster)
 	}
@@ -168,7 +170,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			removePlayerAffectTypes(target.Char, 14, 16, 18, 19, 32)
 		}
 		if skill.Index == 6 { // Furia Divina puxa o jogador.
-			target.X, target.Y = w.findFreePlayerPosition(caster.X, caster.Y, 2, target)
+			target.X, target.Y = w.findFreeGameplayPosition(caster, caster.X, caster.Y, 2)
 			target.Char.X, target.Char.Y = target.X, target.Y
 			w.refreshPlayerVisibility(target)
 			w.sendToPlayerView(target, func() []byte { return wire.ActionStop(target.ID, target.X, target.Y) })

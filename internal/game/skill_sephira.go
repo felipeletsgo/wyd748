@@ -22,11 +22,18 @@ func (w *World) groundCannonAt(x, y uint16) *GroundItem {
 }
 
 func (w *World) canCastThornWall(p *Player, req skillCastRequest, skill model.SkillDef) bool {
-	return p != nil && req.TargetX > 0 && req.TargetY > 0 &&
+	if p == nil || req.TargetX == 0 || req.TargetY == 0 {
+		return false
+	}
+	runtimeID := w.playerRuntimeInstanceID(p.ID)
+	occupied := w.positionOccupiedExcept(req.TargetX, req.TargetY, nil, nil)
+	if runtimeID != "" {
+		occupied = w.positionOccupiedExceptPlayersInInstance(req.TargetX, req.TargetY, nil, nil, nil, runtimeID)
+	}
+	return !occupied &&
 		chebyshev(p.X, p.Y, req.TargetX, req.TargetY) <= maxInt(1, skill.Range) &&
 		w.terrain.Walkable(req.TargetX, req.TargetY) &&
-		w.combatLineOfSight(p.X, p.Y, req.TargetX, req.TargetY) &&
-		!w.positionOccupied(req.TargetX, req.TargetY, nil)
+		w.combatLineOfSight(p.X, p.Y, req.TargetX, req.TargetY)
 }
 
 func (w *World) castThornWall(p *Player, req skillCastRequest, skill model.SkillDef, mastery int, motion byte) bool {
@@ -52,7 +59,8 @@ func (w *World) castThornWall(p *Player, req skillCastRequest, skill model.Skill
 		return false
 	}
 	m := &Mob{ID: mobID, Def: &def, X: req.TargetX, Y: req.TargetY,
-		HP: def.Extended.MaxHP, GenerIndex: -1, SummonerID: p.ID,
+		InstanceID: w.playerRuntimeInstanceID(p.ID),
+		HP:         def.Extended.MaxHP, GenerIndex: -1, SummonerID: p.ID,
 		SummonKind: summonKindThornWall, ExpiresAt: time.Now().Add(thornWallLifetime)}
 	w.mobs = append(w.mobs, m)
 	w.publishMobSpawn(m)

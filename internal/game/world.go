@@ -412,6 +412,10 @@ type World struct {
 	// itemInstances são salas temporárias criadas por consumíveis. Um mapa no
 	// ator World substitui tickers/goroutines por sala.
 	itemInstances map[string]*ItemInstance
+	// playerInstance Ã© o Ã­ndice O(1) do espaÃ§o de gameplay privado atual.
+	// RuntimeIDs sÃ£o estado exclusivamente server-side e nunca entram no wire.
+	// O lookup ainda possui fallback para fixtures que montam instÃ¢ncias direto.
+	playerInstance map[uint16]string
 	// Stable character identities detached from a private Water instance while
 	// their sockets are offline. World IDs are deliberately not persisted.
 	pendingInstanceMembers map[string]map[string]struct{}
@@ -495,6 +499,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		clock:                  realClock{},
 		rng:                    realRNG{},
 		itemInstances:          make(map[string]*ItemInstance),
+		playerInstance:         make(map[uint16]string),
 		pendingInstanceMembers: make(map[string]map[string]struct{}),
 		pendingInstanceLeaders: make(map[string]string),
 		nightmarePartyRuns:     make(map[string]int),
@@ -820,20 +825,103 @@ func (w *World) positionOccupiedExceptPlayersInInstance(x, y uint16,
 	return false
 }
 
+// setPlayerInstanceIndex records the current server-side runtime membership.
+// A player belongs to at most one runtime; replacing the value is intentional
+// during a committed Water chain transition.
+func (w *World) setPlayerInstanceIndex(playerID uint16, runtimeID string) {
+	if w == nil || playerID == 0 {
+		return
+	}
+	if w.playerInstance == nil {
+		w.playerInstance = make(map[uint16]string)
+	}
+	if strings.TrimSpace(runtimeID) == "" {
+		delete(w.playerInstance, playerID)
+		return
+	}
+	w.playerInstance[playerID] = runtimeID
+}
+
+func (w *World) clearPlayerInstanceIndex(playerID uint16, runtimeID string) {
+	if w == nil || w.playerInstance == nil || playerID == 0 {
+		return
+	}
+	if runtimeID == "" || w.playerInstance[playerID] == runtimeID {
+		delete(w.playerInstance, playerID)
+	}
+}
+
+// rebuildPlayerInstanceIndex repairs the index after restore and is also used
+// by rollback paths. It keeps the map derived from the authoritative instance
+// membership rather than trusting process-local player IDs from a snapshot.
+func (w *World) rebuildPlayerInstanceIndex() {
+	if w == nil {
+		return
+	}
+	if w.playerInstance == nil {
+		w.playerInstance = make(map[uint16]string)
+	}
+	for id := range w.playerInstance {
+		delete(w.playerInstance, id)
+	}
+	now := w.now()
+	// Prefer an active runtime if a legacy/failed snapshot temporarily contains
+	// a duplicate membership; exit-grace records are only fallback candidates.
+	grace := make(map[uint16]string)
+	for runtimeID, inst := range w.itemInstances {
+		if inst == nil {
+			continue
+		}
+		for _, playerID := range inst.MemberIDs {
+			if !itemInstanceInExitGraceAt(inst, now) {
+				w.playerInstance[playerID] = runtimeID
+			} else if _, active := w.playerInstance[playerID]; !active {
+				grace[playerID] = runtimeID
+			}
+		}
+	}
+	for playerID, runtimeID := range grace {
+		if _, active := w.playerInstance[playerID]; !active {
+			w.playerInstance[playerID] = runtimeID
+		}
+	}
+}
+
 // playerRuntimeInstanceID returns the live ownership record for collision
-// filtering. It deliberately includes exit-grace membership: an old Water
-// room still owns that player's physical tile until the chain commit removes
-// the membership.
+// filtering. The indexed path is O(1); the scan is only a repair path for
+// legacy fixtures or a caller that directly restored an ItemInstance.
+// Exit-grace membership remains visible to collision allocation until a chain
+// transition removes it atomically.
 func (w *World) playerRuntimeInstanceID(playerID uint16) string {
 	if w == nil || playerID == 0 {
 		return ""
 	}
-	for runtimeID, inst := range w.itemInstances {
-		if inst != nil && itemInstanceHasMember(inst, playerID) {
-			return runtimeID
+	if w.playerInstance != nil {
+		if runtimeID := w.playerInstance[playerID]; runtimeID != "" {
+			if inst := w.itemInstances[runtimeID]; inst != nil && itemInstanceHasMember(inst, playerID) {
+				return runtimeID
+			}
+			delete(w.playerInstance, playerID)
 		}
 	}
-	return ""
+	var graceRuntime string
+	now := w.now()
+	for runtimeID, inst := range w.itemInstances {
+		if inst == nil || !itemInstanceHasMember(inst, playerID) {
+			continue
+		}
+		if !itemInstanceInExitGraceAt(inst, now) {
+			w.setPlayerInstanceIndex(playerID, runtimeID)
+			return runtimeID
+		}
+		if graceRuntime == "" {
+			graceRuntime = runtimeID
+		}
+	}
+	if graceRuntime != "" {
+		w.setPlayerInstanceIndex(playerID, graceRuntime)
+	}
+	return graceRuntime
 }
 
 // positionOccupiedExceptPlayers e a variante usada por movimentos atomicos de
@@ -905,6 +993,60 @@ func (w *World) findFreePlayerPosition(x, y uint16, radius int, player *Player) 
 		}
 	}
 	return x, y
+}
+
+// findFreePlayerPositionInInstance allocates a reconnect/recall tile against
+// the occupancy of the same private runtime. Players and mobs from another
+// phased runtime are not physical blockers, while terrain and global shops
+// remain authoritative blockers.
+func (w *World) findFreePlayerPositionInInstance(x, y uint16, radius int,
+	player *Player, instanceID string) (uint16, uint16) {
+	occupied := func(px, py uint16) bool {
+		return w.positionOccupiedExceptPlayersInInstance(px, py, nil, player, nil, instanceID)
+	}
+	if !occupied(x, y) {
+		return x, y
+	}
+	if radius < 1 {
+		radius = 1
+	}
+	for distance := 1; distance <= radius; distance++ {
+		offsets := [][2]int{{distance, 0}, {-distance, 0}, {0, distance}, {0, -distance}}
+		for dy := -distance; dy <= distance; dy++ {
+			for dx := -distance; dx <= distance; dx++ {
+				if (dx == 0 && absInt(dy) == distance) ||
+					(dy == 0 && absInt(dx) == distance) ||
+					(absInt(dx) != distance && absInt(dy) != distance) {
+					continue
+				}
+				offsets = append(offsets, [2]int{dx, dy})
+			}
+		}
+		for _, offset := range offsets {
+			nx, ny := int(x)+offset[0], int(y)+offset[1]
+			if nx <= 0 || ny <= 0 || nx > 65535 || ny > 65535 {
+				continue
+			}
+			ux, uy := uint16(nx), uint16(ny)
+			if w.terrain.HeightCompatible(x, y, ux, uy) && !occupied(ux, uy) {
+				return ux, uy
+			}
+		}
+	}
+	return x, y
+}
+
+func (w *World) findFreeGameplayPosition(owner *Player, x, y uint16,
+	radius uint16) (uint16, uint16) {
+	if owner != nil {
+		// Summons and player pulls also occur in shared instances. Use the
+		// complete server-side membership here, not only private gameplay
+		// spaces, so one shared runtime cannot collide with another runtime.
+		if runtimeID := w.playerRuntimeInstanceID(owner.ID); runtimeID != "" {
+			return w.findFreePlayerPositionInInstance(x, y, int(radius), owner, runtimeID)
+		}
+	}
+	return w.findFreePosition(x, y, radius)
 }
 
 // removeMobInstance elimina a instancia morta da lista ativa. O client ja

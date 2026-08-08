@@ -82,13 +82,27 @@ func (w *World) removeContractSummons(ownerID uint16) {
 	}
 }
 
+// rebindSummonGameplaySpace closes the small transition window in which a
+// player enters/leaves a private instance while an already materialized
+// summon still carries the previous public/runtime identity.
+func (w *World) rebindSummonGameplaySpace(summon *Mob, space string) {
+	if summon == nil || summon.InstanceID == space {
+		return
+	}
+	for _, viewer := range w.players {
+		w.hideMob(viewer, summon, 0)
+	}
+	summon.InstanceID = space
+	w.publishMobSpawn(summon)
+}
+
 // replaceContractSummon implementa o limite autoritativo de um contrato por
 // jogador. A familia fica no nome/template para a futura regra de reino.
 func (w *World) replaceContractSummon(owner *Player, t *model.VolatileSummon) bool {
 	if owner == nil || t == nil || t.Face == 0 || t.HP == 0 {
 		return false
 	}
-	x, y := w.findFreePosition(owner.X, owner.Y, 3)
+	x, y := w.findFreeGameplayPosition(owner, owner.X, owner.Y, 3)
 	if !w.terrain.Walkable(x, y) {
 		return false
 	}
@@ -106,6 +120,7 @@ func (w *World) replaceContractSummon(owner *Player, t *model.VolatileSummon) bo
 		return false
 	}
 	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: t.HP, GenerIndex: -1,
+		InstanceID: w.playerRuntimeInstanceID(owner.ID),
 		SummonerID: owner.ID, SummonKind: summonKindContract, SummonRange: t.AttackRange}
 	w.mobs = append(w.mobs, m)
 	w.publishMobSpawn(m)
@@ -118,6 +133,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		return false
 	}
 	template := summonTemplates[idx]
+	space := w.playerRuntimeInstanceID(owner.ID)
 	wanted := summonCount(skill.InstanceValue, mastery)
 	current := 0
 	obsolete := make([]*Mob, 0)
@@ -133,8 +149,9 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 			obsolete = append(obsolete, m)
 			continue
 		}
+		w.rebindSummonGameplaySpace(m, space)
 		oldX, oldY := m.X, m.Y
-		m.X, m.Y = w.findFreePosition(owner.X, owner.Y, 3)
+		m.X, m.Y = w.findFreeGameplayPosition(owner, owner.X, owner.Y, 3)
 		w.publishMobMove(m, oldX, oldY, uint32(m.Def.Extended.AttackRun&0x0f))
 		current++
 	}
@@ -143,7 +160,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 	}
 	created := 0
 	for current < wanted {
-		x, y := w.findFreePosition(owner.X, owner.Y, 3)
+		x, y := w.findFreeGameplayPosition(owner, owner.X, owner.Y, 3)
 		base := playerInt(owner.Char) + playerCon(owner.Char)
 		attack := template.baseAttack + base*template.minDamage/60 + mastery*template.maxDamage/60
 		defense := template.baseDefense + base*template.minDefense/100 + mastery*template.maxDefense/100
@@ -170,6 +187,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 			break
 		}
 		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
+			InstanceID: space,
 			GenerIndex: -1, LeaderID: 0, SummonerID: owner.ID, SummonKind: summonKindBM, SummonRange: mobAttackRange}
 		w.mobs = append(w.mobs, m)
 		w.publishMobSpawn(m)
@@ -196,13 +214,15 @@ func (w *World) summonTarget(owner *Player, id uint16) summonCombatTarget {
 	if id >= 1000 {
 		m := w.mobByID(id)
 		if m == nil || m.HP == 0 || !m.Def.IsMonster() || m.SummonerID != 0 ||
+			m.InstanceID != w.playerRuntimeInstanceID(owner.ID) ||
 			chebyshev(owner.X, owner.Y, m.X, m.Y) > summonCommandRange {
 			return summonCombatTarget{}
 		}
 		return summonCombatTarget{id: id, x: m.X, y: m.Y, mob: m}
 	}
 	p := w.playerByID(id)
-	if !validMobTarget(p) || p == owner || p.Party != nil && p.Party == owner.Party ||
+	if !validMobTarget(p) || p == owner || !w.playersShareGameplaySpace(owner, p) ||
+		p.Party != nil && p.Party == owner.Party ||
 		chebyshev(owner.X, owner.Y, p.X, p.Y) > summonCommandRange {
 		return summonCombatTarget{}
 	}
@@ -233,11 +253,12 @@ func (w *World) tickSummonCombat(now time.Time) {
 		if summon == nil || summon.Dead || summon.HP == 0 || summon.SummonerID == 0 {
 			continue
 		}
-		if summon.SummonKind == summonKindThornWall {
-			continue
-		}
 		owner := w.playerByID(summon.SummonerID)
 		if owner == nil || !owner.InWorld {
+			continue
+		}
+		w.rebindSummonGameplaySpace(summon, w.playerRuntimeInstanceID(owner.ID))
+		if summon.SummonKind == summonKindThornWall {
 			continue
 		}
 		// Pet-cria da montaria: passivo, apenas acompanha o dono, nunca ataca.

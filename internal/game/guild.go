@@ -441,7 +441,7 @@ func (w *World) onGuildDeprivate(s *net.Session, pkt []byte) {
 		return
 	}
 	target := w.playerByID(targetID)
-	if target == nil || target.Char == nil {
+	if target == nil || target.Char == nil || !w.playersShareGameplaySpace(p, target) {
 		s.Send(wire.MessagePanel("That player is not online."))
 		log.Printf("[#%d] 0x28C alvo %d nao encontrado", s.ID, targetID)
 		return
