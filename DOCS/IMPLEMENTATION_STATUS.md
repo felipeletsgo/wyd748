@@ -588,17 +588,27 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   carregam o `volatiles.json` real para Normal, Mystic e Arcane.
 - O `RuntimeID` privado agora é indexado por personagem em O(1) e é a mesma
   autoridade usada por visibilidade, PvP direto/AoE, suporte, party, trade,
-  guild invite, ranking, ataque por ID e summons. Runtimes distintos podem
-  ocupar os mesmos tiles físicos sem interagir.
+  guild invite, ranking, ataque por ID e summons. Todo runtime de evento —
+  inclusive `private_shared_entry`, `shared_timed_zone` e `state_machine` —
+  forma um espaço de interação próprio: somente participantes com o mesmo
+  `RuntimeID` interagem; um jogador público ou de outra execução no mesmo tile
+  não ganha acesso por proximidade física.
 - Summons de contrato, BM, cria/pet e Thorn Wall herdam o espaço do dono;
   aquisição de alvo e efeitos periódicos rejeitam/removem referências que
   atravessem a fronteira privada.
+- Teleporte, pull e summon separam o dono do runtime da entidade excluída da
+  colisão. O caster pode ser o destino da própria movimentação, mas nunca é
+  ignorado quando um alvo ou uma criatura está sendo materializado ao redor
+  dele.
+- DoT PvP com `OwnerID` perde validade quando o agressor desconecta, além de
+  ser removido ao atravessar runtimes. Isso impede que um efeito persistido
+  mantenha dano sem uma origem viva e autorizada.
 - Uma transição durante exit grace remove a associação antiga antes do
   snapshot de conta/instância. Em falha de spawn ou persistência, o item,
   posições, membership e índice são restaurados sem runtime parcial.
 - Reentrada/reconexão aloca posição contra o runtime correspondente, ignorando
-  jogadores e mobs de outras salas privadas, mas mantendo terreno e objetos
-  públicos como bloqueadores.
+  jogadores de outras salas ou do mundo público, mas mantendo membros do
+  próprio runtime, terreno, mobs da sala e objetos públicos como bloqueadores.
 
 ### Cube, Big Cube e Hell Gate
 

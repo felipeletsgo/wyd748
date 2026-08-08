@@ -350,7 +350,7 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 		return
 	}
 	face := uint16(criaPetFaceBase + mt)
-	x, y := w.findFreeGameplayPosition(p, p.X, p.Y, 3)
+	x, y := w.findFreeGameplayPosition(p, nil, p.X, p.Y, 3)
 	hp := cria.MountHP()
 	if hp < 1 {
 		hp = 1

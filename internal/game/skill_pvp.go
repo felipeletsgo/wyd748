@@ -112,7 +112,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 	if skill.Index == 22 {
 		baseDamage = explosionBashBaseDamage(baseDamage, playerInt(caster.Char), int(playerCurMP(caster.Char)))
 		setPlayerCurMP(caster.Char, 0)
-		caster.X, caster.Y = w.findFreeGameplayPosition(caster, targets[0].X, targets[0].Y, 2)
+		caster.X, caster.Y = w.findFreeGameplayPosition(caster, caster, targets[0].X, targets[0].Y, 2)
 		caster.Char.X, caster.Char.Y = caster.X, caster.Y
 		w.refreshPlayerVisibility(caster)
 	}
@@ -170,7 +170,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			removePlayerAffectTypes(target.Char, 14, 16, 18, 19, 32)
 		}
 		if skill.Index == 6 { // Furia Divina puxa o jogador.
-			target.X, target.Y = w.findFreeGameplayPosition(caster, caster.X, caster.Y, 2)
+			target.X, target.Y = w.findFreeGameplayPosition(caster, target, caster.X, caster.Y, 2)
 			target.Char.X, target.Char.Y = target.X, target.Y
 			w.refreshPlayerVisibility(target)
 			w.sendToPlayerView(target, func() []byte { return wire.ActionStop(target.ID, target.X, target.Y) })

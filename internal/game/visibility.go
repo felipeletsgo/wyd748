@@ -58,36 +58,18 @@ func (w *World) mobVisibleToPlayer(p *Player, m *Mob) bool {
 	return instanceMemberInStage(w.instanceForMob(m), p)
 }
 
-// isPrivateGameplayInstance is the single policy for runtime isolation. Shared
-// timed zones and shared-entry events intentionally expose one common runtime;
-// private chains (including Water and Magic Chamber) do not.
-func isPrivateGameplayInstance(inst *ItemInstance) bool {
-	if inst == nil {
-		return false
-	}
-	if isDurablePrivateWaterInstance(inst) {
-		return true
-	}
-	switch instanceMode(inst.Config) {
-	case "shared_timed_zone", "private_shared_entry", "state_machine":
-		return false
-	default:
-		return strings.HasPrefix(instanceMode(inst.Config), "private_")
-	}
-}
-
-// gameplaySpaceForPlayer returns the private runtime that owns a player, or
-// the empty public-world space. It is deliberately server-side and is shared
-// by publication, combat, support, summons, trade and party admission.
+// gameplaySpaceForPlayer returns the authoritative runtime that owns a player,
+// or the empty public-world space. A shared event still has a private
+// interaction space: its RuntimeID is shared by all admitted participants,
+// not by unrelated players who happen to occupy the same physical map tile.
+// This distinction is shared by publication, combat, support, summons, trade
+// and party admission.
 func (w *World) gameplaySpaceForPlayer(p *Player) string {
 	if w == nil || p == nil {
 		return ""
 	}
 	runtimeID := w.playerRuntimeInstanceID(p.ID)
 	if runtimeID == "" {
-		return ""
-	}
-	if !isPrivateGameplayInstance(w.itemInstances[runtimeID]) {
 		return ""
 	}
 	return runtimeID
@@ -129,10 +111,10 @@ func (w *World) privateWaterRuntimeIDForPlayer(playerID uint16) string {
 	return ""
 }
 
-// playersVisibleTogether applies the private Water boundary symmetrically.
-// Public players continue to see one another normally; two players in the
-// same private room can see one another; a private-room player never sees or
-// leaks to a different room/public player.
+// playersVisibleTogether applies the interaction-space boundary
+// symmetrically. Public players continue to see one another normally; members
+// of the same event runtime can see one another; a runtime member never sees
+// or leaks to another runtime/public player merely because coordinates match.
 func (w *World) playersVisibleTogether(a, b *Player) bool {
 	if a == nil || b == nil || a == b {
 		return a != nil && b != nil && a == b

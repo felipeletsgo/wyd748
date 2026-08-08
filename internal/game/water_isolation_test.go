@@ -44,6 +44,31 @@ func TestGameplaySpaceBlocksPlayerSkillAndSupportAcrossRuntimes(t *testing.T) {
 	}
 }
 
+func TestSharedAndStateMachineRuntimesStayOutOfPublicGameplaySpace(t *testing.T) {
+	for _, mode := range []string{"private_shared_entry", "shared_timed_zone", "state_machine"} {
+		t.Run(mode, func(t *testing.T) {
+			member, _ := networkedTestPlayer(1, "Member", 2200, 2200)
+			other, _ := networkedTestPlayer(2, "Other", 2200, 2200)
+			public, _ := networkedTestPlayer(3, "Public", 2200, 2200)
+			w := testSpatialWorld(nil, member, other, public)
+			w.itemInstances = map[string]*ItemInstance{
+				"run-a": {RuntimeID: "run-a", Config: model.VolatileInstance{ID: "run-a", Mode: mode}, MemberIDs: []uint16{member.ID}},
+				"run-b": {RuntimeID: "run-b", Config: model.VolatileInstance{ID: "run-b", Mode: mode}, MemberIDs: []uint16{other.ID}},
+			}
+			w.rebuildPlayerInstanceIndex()
+			if w.playersShareGameplaySpace(member, public) || w.playersShareGameplaySpace(member, other) {
+				t.Fatalf("runtime %q vazou para outro espaco de interacao", mode)
+			}
+			w.itemInstances["run-a"].MemberIDs = []uint16{member.ID, public.ID}
+			w.itemInstances["run-b"].MemberIDs = nil
+			w.rebuildPlayerInstanceIndex()
+			if !w.playersShareGameplaySpace(member, public) {
+				t.Fatalf("participantes do runtime %q nao compartilharam o espaco", mode)
+			}
+		})
+	}
+}
+
 func TestPlayerAreaSkillAndSummonCannotCrossRuntime(t *testing.T) {
 	caster, _ := networkedTestPlayer(1, "Caster", 2200, 2200)
 	ally, _ := networkedTestPlayer(2, "Ally", 2200, 2200)
@@ -93,23 +118,56 @@ func TestPrivateRuntimeRejectsStaleDamageAffect(t *testing.T) {
 	}
 }
 
-func TestReconnectPositionIgnoresOtherPrivateRuntime(t *testing.T) {
+func TestPrivateRuntimeRemovesDamageAffectAfterOwnerDisconnects(t *testing.T) {
 	owner, _ := networkedTestPlayer(1, "Owner", 2200, 2200)
-	same, _ := networkedTestPlayer(2, "Same", 2200, 2200)
-	other, _ := networkedTestPlayer(3, "Other", 2200, 2200)
-	w := testSpatialWorld(nil, owner, same, other)
+	target, _ := networkedTestPlayer(2, "Target", 2200, 2200)
+	w := testSpatialWorld(nil, owner, target)
+	w.itemInstances = map[string]*ItemInstance{
+		"water-a": privateTestInstance("water-a", owner.ID),
+	}
+	w.itemInstances["water-a"].MemberIDs = []uint16{owner.ID, target.ID}
+	w.rebuildPlayerInstanceIndex()
+	now := time.Unix(1_700_000_000, 0)
+	w.clock = newFakeClock(now)
+	w.recalcPlayer(target.Char)
+	setPlayerCurHP(target.Char, playerMaxHP(target.Char))
+	target.Char.Affects[0] = model.Affect{Type: 20, OwnerID: owner.ID, Value: 100,
+		ExpiresAt: now.Add(time.Minute), NextTick: now}
+	before := playerCurHP(target.Char)
+	delete(w.playersByID, owner.ID)
+	owner.InWorld = false
+	w.tickPlayerAffects(now)
+	if playerCurHP(target.Char) != before || target.Char.Affects[0].Type != 0 {
+		t.Fatalf("DoT do jogador desconectado permaneceu ativo: hp=%d/%d affect=%+v", playerCurHP(target.Char), before, target.Char.Affects[0])
+	}
+}
+
+func TestReconnectPositionIgnoresOtherPrivateRuntime(t *testing.T) {
+	// A player from another runtime must not reserve the tile being restored.
+	owner, _ := networkedTestPlayer(1, "Owner", 2200, 2200)
+	other, _ := networkedTestPlayer(2, "Other", 2200, 2200)
+	w := testSpatialWorld(nil, owner, other)
 	w.itemInstances = map[string]*ItemInstance{
 		"water-a": privateTestInstance("water-a", owner.ID),
 		"water-b": privateTestInstance("water-b", other.ID),
 	}
-	w.itemInstances["water-a"].MemberIDs = []uint16{owner.ID, same.ID}
 	w.rebuildPlayerInstanceIndex()
 	x, y := w.findFreePlayerPositionInInstance(2200, 2200, 1, owner, "water-a")
+	if x != 2200 || y != 2200 {
+		t.Fatalf("runtime privado incorreto bloqueou o centro: (%d,%d)", x, y)
+	}
+
+	// A member from the same runtime must reserve it, forcing a nearby tile.
+	same, _ := networkedTestPlayer(3, "Same", 2200, 2200)
+	w = testSpatialWorld(nil, owner, same)
+	w.itemInstances = map[string]*ItemInstance{
+		"water-a": privateTestInstance("water-a", owner.ID),
+	}
+	w.itemInstances["water-a"].MemberIDs = []uint16{owner.ID, same.ID}
+	w.rebuildPlayerInstanceIndex()
+	x, y = w.findFreePlayerPositionInInstance(2200, 2200, 1, owner, "water-a")
 	if x == 2200 && y == 2200 {
 		t.Fatal("reconexao ignorou o membro do proprio runtime")
-	}
-	if x == other.X && y == other.Y {
-		t.Fatal("reconexao foi alocada em um tile ocupado pelo runtime privado incorreto")
 	}
 }
 

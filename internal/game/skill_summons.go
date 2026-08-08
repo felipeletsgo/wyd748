@@ -102,7 +102,7 @@ func (w *World) replaceContractSummon(owner *Player, t *model.VolatileSummon) bo
 	if owner == nil || t == nil || t.Face == 0 || t.HP == 0 {
 		return false
 	}
-	x, y := w.findFreeGameplayPosition(owner, owner.X, owner.Y, 3)
+	x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
 	if !w.terrain.Walkable(x, y) {
 		return false
 	}
@@ -151,7 +151,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		}
 		w.rebindSummonGameplaySpace(m, space)
 		oldX, oldY := m.X, m.Y
-		m.X, m.Y = w.findFreeGameplayPosition(owner, owner.X, owner.Y, 3)
+		m.X, m.Y = w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
 		w.publishMobMove(m, oldX, oldY, uint32(m.Def.Extended.AttackRun&0x0f))
 		current++
 	}
@@ -160,7 +160,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 	}
 	created := 0
 	for current < wanted {
-		x, y := w.findFreeGameplayPosition(owner, owner.X, owner.Y, 3)
+		x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
 		base := playerInt(owner.Char) + playerCon(owner.Char)
 		attack := template.baseAttack + base*template.minDamage/60 + mastery*template.maxDamage/60
 		defense := template.baseDefense + base*template.minDefense/100 + mastery*template.maxDefense/100

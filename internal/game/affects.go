@@ -310,7 +310,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 			}
 		case 42: // Teleporte: traz o membro selecionado para junto do caster.
 			if target != p {
-				target.X, target.Y = w.findFreeGameplayPosition(p, p.X, p.Y, 4)
+				target.X, target.Y = w.findFreeGameplayPosition(p, target, p.X, p.Y, 4)
 				target.Char.X, target.Char.Y = target.X, target.Y
 				w.refreshPlayerVisibility(target)
 				w.sendToPlayerView(target, func() []byte {
@@ -809,8 +809,8 @@ func (w *World) tickPlayerAffects(now time.Time) {
 				// A DoT may outlive a teleport or an instance transition. Never
 				// let an affect created in one private gameplay space damage a
 				// character in another; remove the stale cross-runtime affect.
-				if owner := w.playerByID(a.OwnerID); owner != nil &&
-					!w.playersShareGameplaySpace(owner, p) {
+				owner := w.playerByID(a.OwnerID)
+				if a.OwnerID != 0 && (owner == nil || !w.playersShareGameplaySpace(owner, p)) {
 					*a = model.Affect{}
 					expired = true
 					continue

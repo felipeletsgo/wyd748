@@ -809,11 +809,10 @@ func (w *World) positionOccupiedExceptPlayersInInstance(x, y uint16,
 			p.X != x || p.Y != y {
 			continue
 		}
-		if instanceID != "" {
-			other := w.playerRuntimeInstanceID(p.ID)
-			if other != "" && other != instanceID {
-				continue
-			}
+		if instanceID != "" && w.playerRuntimeInstanceID(p.ID) != instanceID {
+			// A public player, or a member of another runtime, cannot reserve a
+			// tile in a gameplay space it cannot enter or observe.
+			continue
 		}
 		return true
 	}
@@ -1036,17 +1035,17 @@ func (w *World) findFreePlayerPositionInInstance(x, y uint16, radius int,
 	return x, y
 }
 
-func (w *World) findFreeGameplayPosition(owner *Player, x, y uint16,
-	radius uint16) (uint16, uint16) {
-	if owner != nil {
+func (w *World) findFreeGameplayPosition(spaceOwner, exceptPlayer *Player,
+	x, y uint16, radius uint16) (uint16, uint16) {
+	if spaceOwner != nil {
 		// Summons and player pulls also occur in shared instances. Use the
 		// complete server-side membership here, not only private gameplay
 		// spaces, so one shared runtime cannot collide with another runtime.
-		if runtimeID := w.playerRuntimeInstanceID(owner.ID); runtimeID != "" {
-			return w.findFreePlayerPositionInInstance(x, y, int(radius), owner, runtimeID)
+		if runtimeID := w.playerRuntimeInstanceID(spaceOwner.ID); runtimeID != "" {
+			return w.findFreePlayerPositionInInstance(x, y, int(radius), exceptPlayer, runtimeID)
 		}
 	}
-	return w.findFreePosition(x, y, radius)
+	return w.findFreePositionExcept(x, y, radius, exceptPlayer)
 }
 
 // removeMobInstance elimina a instancia morta da lista ativa. O client ja
@@ -1065,7 +1064,11 @@ func (w *World) removeMobInstance(dead *Mob) {
 }
 
 func (w *World) findFreePosition(x, y, radius uint16) (uint16, uint16) {
-	if !w.positionOccupied(x, y, nil) {
+	return w.findFreePositionExcept(x, y, radius, nil)
+}
+
+func (w *World) findFreePositionExcept(x, y, radius uint16, exceptPlayer *Player) (uint16, uint16) {
+	if !w.positionOccupiedExcept(x, y, nil, exceptPlayer) {
 		return x, y
 	}
 	r := int(radius)
@@ -1081,7 +1084,7 @@ func (w *World) findFreePosition(x, y, radius uint16) (uint16, uint16) {
 				nx, ny := int(x)+dx, int(y)+dy
 				if nx > 0 && ny > 0 && nx <= 65535 && ny <= 65535 &&
 					w.terrain.HeightCompatible(x, y, uint16(nx), uint16(ny)) &&
-					!w.positionOccupied(uint16(nx), uint16(ny), nil) {
+					!w.positionOccupiedExcept(uint16(nx), uint16(ny), nil, exceptPlayer) {
 					return uint16(nx), uint16(ny)
 				}
 			}
