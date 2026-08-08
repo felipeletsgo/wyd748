@@ -159,3 +159,86 @@ func TestInstanceStateSnapshotIsDeterministicAndFiltersNonDurableRuns(t *testing
 		t.Fatalf("instancias nao foram filtradas/ordenadas: %+v", snapshot.Instances)
 	}
 }
+
+func TestPrivateWaterSnapshotPersistsCharacterUIDAndExitState(t *testing.T) {
+	now := time.Unix(2_100_000_000, 0)
+	player, _ := networkedTestPlayer(1, "WaterMember", 2100, 2100)
+	player.Char.UID = "11111111111141118111111111111111"
+	w := worldWithNetworkedPlayers(player)
+	w.clock = newFakeClock(now)
+	w.itemInstances = map[string]*ItemInstance{
+		"water-normal-8": {
+			RuntimeID: "water-normal-8",
+			Config:    model.VolatileInstance{ID: "water-normal-8"},
+			LeaderID:  player.ID, MemberIDs: []uint16{player.ID},
+			RewardGranted: true, ExitAt: now.Add(10 * time.Second),
+			HardDeadline: now.Add(time.Minute),
+		},
+	}
+	snapshot := w.instanceStateSnapshot()
+	if len(snapshot.Instances) != 1 {
+		t.Fatalf("Water privada nao foi persistida: %+v", snapshot)
+	}
+	saved := snapshot.Instances[0]
+	if len(saved.MemberCharacterUIDs) != 1 || saved.MemberCharacterUIDs[0] != player.Char.UID ||
+		saved.LeaderCharacterUID != player.Char.UID || !saved.RewardGranted ||
+		!saved.ExitAt.Equal(now.Add(10*time.Second)) {
+		t.Fatalf("snapshot Water incompleto: %+v", saved)
+	}
+}
+
+func TestAttachRestoredWaterMemberUsesUIDAndSavedStage(t *testing.T) {
+	w, player, _, _, clock := instanceTestWorld()
+	player.Char.UID = "22222222222242228222222222222222"
+	player.ID = 1
+	player.X, player.Y = 2100, 2100
+	w.playersByID[player.ID] = player
+	w.pendingInstanceMembers = map[string]map[string]struct{}{
+		"water-normal-1": {player.Char.UID: {}},
+	}
+	w.pendingInstanceLeaders = map[string]string{"water-normal-1": player.Char.UID}
+	w.itemInstances = map[string]*ItemInstance{
+		"water-normal-1": {
+			RuntimeID: "water-normal-1", Config: model.VolatileInstance{
+				ID: "water-normal-1", SpawnX: 2202, SpawnY: 2202,
+				AreaRadius: 8, Spawns: []model.VolatileInstanceSpawn{{NPC: "RoomMob", Count: 1}},
+			}, CurrentStage: 0,
+		},
+	}
+	// The helper only needs the authoritative stage coordinates; no mob spawn
+	// is required to prove that a reconnect is not placed at 2100,2100.
+	w.attachRestoredInstanceMember(player)
+	if !itemInstanceHasMember(w.itemInstances["water-normal-1"], player.ID) ||
+		player.X == 2100 && player.Y == 2100 ||
+		w.itemInstances["water-normal-1"].LeaderID != player.ID {
+		t.Fatalf("reconexao nao reatachou a sala: player=(%d,%d) inst=%+v",
+			player.X, player.Y, w.itemInstances["water-normal-1"])
+	}
+	if _, ok := w.pendingInstanceMembers["water-normal-1"]; ok {
+		t.Fatal("UID reconectado permaneceu pendente")
+	}
+	_ = clock
+}
+
+type nonAtomicInstanceStore struct{}
+
+func (nonAtomicInstanceStore) LoadAccount(string) (*model.Account, error) { return nil, nil }
+func (nonAtomicInstanceStore) SaveAccount(*model.Account) error           { return nil }
+func (nonAtomicInstanceStore) CharacterNameExists(string) (bool, error)   { return false, nil }
+func (nonAtomicInstanceStore) LoadInstanceState() (*model.InstanceStateSnapshot, error) {
+	return &model.InstanceStateSnapshot{Version: model.InstanceStateVersion}, nil
+}
+func (nonAtomicInstanceStore) SaveInstanceState(*model.InstanceStateSnapshot) error { return nil }
+
+func TestSaveAccountsAndInstanceStateFailsClosedWithoutAtomicStore(t *testing.T) {
+	w := &World{
+		store: nonAtomicInstanceStore{},
+		clock: newFakeClock(time.Unix(2_100_000_000, 0)),
+		itemInstances: map[string]*ItemInstance{
+			"water-normal-1": {RuntimeID: "water-normal-1", Config: model.VolatileInstance{ID: "water-normal-1"}},
+		},
+	}
+	if err := w.saveAccountsAndInstanceState(&model.Account{Name: "account"}); err == nil {
+		t.Fatal("store sem transacao aceitou commit misto conta/instancia")
+	}
+}

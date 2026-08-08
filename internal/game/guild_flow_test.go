@@ -22,6 +22,28 @@ func (s *guildFlowStore) SaveGameState(_ *model.GuildRegistry, _ ...*model.Accou
 	return s.err
 }
 
+func (s *guildFlowStore) SaveGameStateWithInstanceState(_ *model.GuildRegistry,
+	snapshot *model.InstanceStateSnapshot, _ ...*model.Account) error {
+	// Keep the historical assertions meaningful: opening/joining a room is a
+	// gameplay transaction, while a reward-only commit is counted as the
+	// account save. Production still performs one atomic PostgreSQL commit.
+	rewardOnly := snapshot != nil && len(snapshot.Instances) > 0
+	if rewardOnly {
+		for _, inst := range snapshot.Instances {
+			if !inst.RewardGranted {
+				rewardOnly = false
+				break
+			}
+		}
+	}
+	if rewardOnly {
+		s.saves++
+	} else {
+		s.gameSaves++
+	}
+	return s.err
+}
+
 func guildFlowWorld(players ...*Player) (*World, *guildFlowStore) {
 	w := worldWithNetworkedPlayers(players...)
 	w.guilds = &model.GuildRegistry{Version: model.GuildRegistryVersion}

@@ -59,9 +59,9 @@
       "noCombatTimeout": true,
       "maxPlayers": 6,
       "sharedEntry": true,
-      "entryAreas": [{"minX":1810,"minY":3859,"maxX":1811,"maxY":3860}],
-      "exitX": 2100,
-      "exitY": 2100,
+      "entryAreas": [{"minX":2370,"minY":1730,"maxX":2410,"maxY":1759}],
+      "exitX": 2390,
+      "exitY": 1735,
       "transitionSeconds": 0,
       "stages": [
         {"name":"Cube 1","x":1680,"y":4075,"spawnX":1680,"spawnY":4075,"areaRadius":10,"spawns":[{"npc":"Gremlin_King","count":25}],"quiz":{"question":"A tecla A mostra o minimapa no canto inferior direito.","answer":false,"trueX":1689,"trueY":4081,"falseX":1689,"falseY":4073,"durationSeconds":14,"rewardExp":8000}},
@@ -198,7 +198,34 @@
     ],
     "water-arcane-boss": [
       {"minX":1330,"minY":3505,"maxX":1354,"maxY":3529}
-    ]
+    ],
+    "water-normal-room1-entry": [{"minX":1075,"minY":3506,"maxX":1099,"maxY":3530},{"minX":1964,"minY":1772,"maxX":1967,"maxY":1775,"requiresChain":true}],
+    "water-normal-room1": [{"minX":1113,"minY":3548,"maxX":1129,"maxY":3564}],
+    "water-normal-room2": [{"minX":1077,"minY":3548,"maxX":1093,"maxY":3564}],
+    "water-normal-room3": [{"minX":1041,"minY":3548,"maxX":1057,"maxY":3564}],
+    "water-normal-room4": [{"minX":1041,"minY":3512,"maxX":1057,"maxY":3528}],
+    "water-normal-room5": [{"minX":1041,"minY":3476,"maxX":1057,"maxY":3492}],
+    "water-normal-room6": [{"minX":1077,"minY":3476,"maxX":1093,"maxY":3492}],
+    "water-normal-room7": [{"minX":1113,"minY":3476,"maxX":1129,"maxY":3492}],
+    "water-normal-room8": [{"minX":1113,"minY":3512,"maxX":1129,"maxY":3528}],
+    "water-mystic-room1-entry": [{"minX":1204,"minY":3633,"maxX":1228,"maxY":3657},{"minX":1964,"minY":1772,"maxX":1967,"maxY":1775,"requiresChain":true}],
+    "water-mystic-room1": [{"minX":1241,"minY":3676,"maxX":1257,"maxY":3692}],
+    "water-mystic-room2": [{"minX":1205,"minY":3676,"maxX":1221,"maxY":3692}],
+    "water-mystic-room3": [{"minX":1169,"minY":3676,"maxX":1185,"maxY":3692}],
+    "water-mystic-room4": [{"minX":1169,"minY":3640,"maxX":1185,"maxY":3656}],
+    "water-mystic-room5": [{"minX":1169,"minY":3604,"maxX":1185,"maxY":3620}],
+    "water-mystic-room6": [{"minX":1205,"minY":3604,"maxX":1221,"maxY":3620}],
+    "water-mystic-room7": [{"minX":1241,"minY":3604,"maxX":1257,"maxY":3620}],
+    "water-mystic-room8": [{"minX":1241,"minY":3640,"maxX":1257,"maxY":3656}],
+    "water-arcane-room1-entry": [{"minX":1330,"minY":3505,"maxX":1354,"maxY":3529},{"minX":1964,"minY":1772,"maxX":1967,"maxY":1775,"requiresChain":true}],
+    "water-arcane-room1": [{"minX":1370,"minY":3546,"maxX":1386,"maxY":3562}],
+    "water-arcane-room2": [{"minX":1334,"minY":3546,"maxX":1350,"maxY":3562}],
+    "water-arcane-room3": [{"minX":1298,"minY":3546,"maxX":1314,"maxY":3562}],
+    "water-arcane-room4": [{"minX":1298,"minY":3510,"maxX":1314,"maxY":3526}],
+    "water-arcane-room5": [{"minX":1298,"minY":3474,"maxX":1314,"maxY":3490}],
+    "water-arcane-room6": [{"minX":1334,"minY":3474,"maxX":1350,"maxY":3490}],
+    "water-arcane-room7": [{"minX":1370,"minY":3474,"maxX":1386,"maxY":3490}],
+    "water-arcane-room8": [{"minX":1370,"minY":3510,"maxX":1386,"maxY":3526}]
   },
   "rules": {
     "0": {
@@ -1199,10 +1226,10 @@
         "spawnY": 3556,
         "areaRadius": 8,
         "spawns": [{ "npc": "Meio_Orc_", "count": 15 }],
-        "allowChainDuringExitGrace": true,
+        "allowChainDuringExitGrace": true, "chainStart": true,
         "rewardItem": 3174,
         "allowedEvolutions": ["mortal"],
-        "entryAreaSet": "water-normal-regular",
+        "entryAreaSet": "water-normal-room1-entry",
         "durationSeconds": 120,
         "exitX": 1966,
         "exitY": 1768
@@ -1211,132 +1238,132 @@
     },
     "3174": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-normal-2", "name": "Normal Water Room 2", "x": 1085, "y": 3556, "spawnX": 1085, "spawnY": 3556, "areaRadius": 8, "spawns": [{ "npc": "Troll_Hunter", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3175, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-normal-2", "name": "Normal Water Room 2", "x": 1085, "y": 3556, "spawnX": 1085, "spawnY": 3556, "areaRadius": 8, "spawns": [{ "npc": "Troll_Hunter", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3175, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-room1", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Normal Water Scroll room 2."
     },
     "3175": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-normal-3", "name": "Normal Water Room 3", "x": 1049, "y": 3556, "spawnX": 1049, "spawnY": 3556, "areaRadius": 8, "spawns": [{ "npc": "Ghoul_Chief", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3176, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-normal-3", "name": "Normal Water Room 3", "x": 1049, "y": 3556, "spawnX": 1049, "spawnY": 3556, "areaRadius": 8, "spawns": [{ "npc": "Ghoul_Chief", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3176, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-room2", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Normal Water Scroll room 3."
     },
     "3176": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-normal-4", "name": "Normal Water Room 4", "x": 1049, "y": 3520, "spawnX": 1049, "spawnY": 3520, "areaRadius": 8, "spawns": [{ "npc": "Cyclops_Arc3", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3177, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-normal-4", "name": "Normal Water Room 4", "x": 1049, "y": 3520, "spawnX": 1049, "spawnY": 3520, "areaRadius": 8, "spawns": [{ "npc": "Cyclops_Arc3", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3177, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-room3", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Normal Water Scroll room 4."
     },
     "3177": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-normal-5", "name": "Normal Water Room 5", "x": 1049, "y": 3484, "spawnX": 1049, "spawnY": 3484, "areaRadius": 8, "spawns": [{ "npc": "Skeleton", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3178, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-normal-5", "name": "Normal Water Room 5", "x": 1049, "y": 3484, "spawnX": 1049, "spawnY": 3484, "areaRadius": 8, "spawns": [{ "npc": "Skeleton", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3178, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-room4", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Normal Water Scroll room 5."
     },
     "3178": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-normal-6", "name": "Normal Water Room 6", "x": 1085, "y": 3484, "spawnX": 1085, "spawnY": 3484, "areaRadius": 8, "spawns": [{ "npc": "Grim_Lock_D", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3179, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-normal-6", "name": "Normal Water Room 6", "x": 1085, "y": 3484, "spawnX": 1085, "spawnY": 3484, "areaRadius": 8, "spawns": [{ "npc": "Grim_Lock_D", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3179, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-room5", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Normal Water Scroll room 6."
     },
     "3179": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-normal-7", "name": "Normal Water Room 7", "x": 1121, "y": 3484, "spawnX": 1121, "spawnY": 3484, "areaRadius": 8, "spawns": [{ "npc": "Cyclops_Anc", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3180, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-normal-7", "name": "Normal Water Room 7", "x": 1121, "y": 3484, "spawnX": 1121, "spawnY": 3484, "areaRadius": 8, "spawns": [{ "npc": "Cyclops_Anc", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3180, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-room6", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Normal Water Scroll room 7."
     },
     "3180": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-normal-8", "name": "Normal Water Room 8", "x": 1121, "y": 3520, "spawnX": 1121, "spawnY": 3520, "areaRadius": 8, "spawns": [{ "npc": "Anf_Assasn2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3181, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-normal-8", "name": "Normal Water Room 8", "x": 1121, "y": 3520, "spawnX": 1121, "spawnY": 3520, "areaRadius": 8, "spawns": [{ "npc": "Anf_Assasn2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3181, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-room7", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Normal Water Scroll room 8."
     },
     "3181": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-normal-boss", "name": "Normal Water Nessus", "x": 1087, "y": 3518, "spawnX": 1087, "spawnY": 3518, "areaRadius": 12, "spawns": [{ "npc": "Troll_Caos__", "count": 1 }, { "npc": "Troll_Hunter", "count": 10 }], "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-boss", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-normal-boss", "name": "Normal Water Nessus", "x": 1087, "y": 3518, "spawnX": 1087, "spawnY": 3518, "areaRadius": 12, "spawns": [{ "npc": "Troll_Caos__", "count": 1 }, { "npc": "Troll_Hunter", "count": 10 }], "allowChainDuringExitGrace": true, "chainNextItem": 3173, "allowedEvolutions": ["mortal"], "entryAreaSet": "water-normal-room8", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Normal Nessus Scroll; final room, one boss and ten hunters."
     },
     "777": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-mystic-1", "name": "Mystic Water Room 1", "x": 1249, "y": 3684, "spawnX": 1249, "spawnY": 3684, "areaRadius": 8, "spawns": [{ "npc": "Dark_Elf2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 778, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-mystic-1", "name": "Mystic Water Room 1", "x": 1249, "y": 3684, "spawnX": 1249, "spawnY": 3684, "areaRadius": 8, "spawns": [{ "npc": "Dark_Elf2", "count": 15 }], "allowChainDuringExitGrace": true, "chainStart": true, "rewardItem": 778, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-room1-entry", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Mystic Water Scroll room 1."
     },
     "778": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-mystic-2", "name": "Mystic Water Room 2", "x": 1213, "y": 3684, "spawnX": 1213, "spawnY": 3684, "areaRadius": 8, "spawns": [{ "npc": "Troll_Ghoul_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 779, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-mystic-2", "name": "Mystic Water Room 2", "x": 1213, "y": 3684, "spawnX": 1213, "spawnY": 3684, "areaRadius": 8, "spawns": [{ "npc": "Troll_Ghoul_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 779, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-room1", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Mystic Water Scroll room 2."
     },
     "779": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-mystic-3", "name": "Mystic Water Room 3", "x": 1177, "y": 3684, "spawnX": 1177, "spawnY": 3684, "areaRadius": 8, "spawns": [{ "npc": "Anf_Ninja_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 780, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-mystic-3", "name": "Mystic Water Room 3", "x": 1177, "y": 3684, "spawnX": 1177, "spawnY": 3684, "areaRadius": 8, "spawns": [{ "npc": "Anf_Ninja_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 780, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-room2", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Mystic Water Scroll room 3."
     },
     "780": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-mystic-4", "name": "Mystic Water Room 4", "x": 1177, "y": 3648, "spawnX": 1177, "spawnY": 3648, "areaRadius": 8, "spawns": [{ "npc": "Tauron___", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 781, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-mystic-4", "name": "Mystic Water Room 4", "x": 1177, "y": 3648, "spawnX": 1177, "spawnY": 3648, "areaRadius": 8, "spawns": [{ "npc": "Tauron___", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 781, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-room3", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Mystic Water Scroll room 4."
     },
     "781": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-mystic-5", "name": "Mystic Water Room 5", "x": 1177, "y": 3612, "spawnX": 1177, "spawnY": 3612, "areaRadius": 8, "spawns": [{ "npc": "Grim_Lock_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 782, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-mystic-5", "name": "Mystic Water Room 5", "x": 1177, "y": 3612, "spawnX": 1177, "spawnY": 3612, "areaRadius": 8, "spawns": [{ "npc": "Grim_Lock_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 782, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-room4", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Mystic Water Scroll room 5."
     },
     "782": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-mystic-6", "name": "Mystic Water Room 6", "x": 1213, "y": 3612, "spawnX": 1213, "spawnY": 3612, "areaRadius": 8, "spawns": [{ "npc": "Elf_Witch2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 783, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-mystic-6", "name": "Mystic Water Room 6", "x": 1213, "y": 3612, "spawnX": 1213, "spawnY": 3612, "areaRadius": 8, "spawns": [{ "npc": "Elf_Witch2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 783, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-room5", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Mystic Water Scroll room 6."
     },
     "783": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-mystic-7", "name": "Mystic Water Room 7", "x": 1249, "y": 3612, "spawnX": 1249, "spawnY": 3612, "areaRadius": 8, "spawns": [{ "npc": "Gargoyle2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 784, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-mystic-7", "name": "Mystic Water Room 7", "x": 1249, "y": 3612, "spawnX": 1249, "spawnY": 3612, "areaRadius": 8, "spawns": [{ "npc": "Gargoyle2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 784, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-room6", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Mystic Water Scroll room 7."
     },
     "784": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-mystic-8", "name": "Mystic Water Room 8", "x": 1249, "y": 3648, "spawnX": 1249, "spawnY": 3648, "areaRadius": 8, "spawns": [{ "npc": "Aqua_Golem_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 785, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-mystic-8", "name": "Mystic Water Room 8", "x": 1249, "y": 3648, "spawnX": 1249, "spawnY": 3648, "areaRadius": 8, "spawns": [{ "npc": "Aqua_Golem_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 785, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-room7", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Mystic Water Scroll room 8."
     },
     "785": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-mystic-boss", "name": "Mystic Water Nessus", "x": 1216, "y": 3645, "spawnX": 1216, "spawnY": 3645, "areaRadius": 12, "spawns": [{ "npc": "Immort_Hydra", "count": 1 }, { "npc": "Hydra2", "count": 10 }], "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-boss", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-mystic-boss", "name": "Mystic Water Nessus", "x": 1216, "y": 3645, "spawnX": 1216, "spawnY": 3645, "areaRadius": 12, "spawns": [{ "npc": "Immort_Hydra", "count": 1 }, { "npc": "Hydra2", "count": 10 }], "allowChainDuringExitGrace": true, "chainNextItem": 777, "allowedEvolutions": ["mortal", "arch"], "entryAreaSet": "water-mystic-room8", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Mystic Nessus Scroll; final room, one boss and ten water hydras."
     },
     "3182": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-arcane-1", "name": "Arcane Water Room 1", "x": 1378, "y": 3554, "spawnX": 1378, "spawnY": 3554, "areaRadius": 8, "spawns": [{ "npc": "Gargoyle3", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3183, "entryAreaSet": "water-arcane-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-arcane-1", "name": "Arcane Water Room 1", "x": 1378, "y": 3554, "spawnX": 1378, "spawnY": 3554, "areaRadius": 8, "spawns": [{ "npc": "Gargoyle3", "count": 15 }], "allowChainDuringExitGrace": true, "chainStart": true, "rewardItem": 3183, "entryAreaSet": "water-arcane-room1-entry", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Arcane Water Scroll room 1."
     },
     "3183": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-arcane-2", "name": "Arcane Water Room 2", "x": 1342, "y": 3554, "spawnX": 1342, "spawnY": 3554, "areaRadius": 8, "spawns": [{ "npc": "Fire_Golem", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3184, "entryAreaSet": "water-arcane-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-arcane-2", "name": "Arcane Water Room 2", "x": 1342, "y": 3554, "spawnX": 1342, "spawnY": 3554, "areaRadius": 8, "spawns": [{ "npc": "Fire_Golem", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3184, "entryAreaSet": "water-arcane-room1", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Arcane Water Scroll room 2."
     },
     "3184": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-arcane-3", "name": "Arcane Water Room 3", "x": 1306, "y": 3554, "spawnX": 1306, "spawnY": 3554, "areaRadius": 8, "spawns": [{ "npc": "Tauron_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3185, "entryAreaSet": "water-arcane-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-arcane-3", "name": "Arcane Water Room 3", "x": 1306, "y": 3554, "spawnX": 1306, "spawnY": 3554, "areaRadius": 8, "spawns": [{ "npc": "Tauron_", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3185, "entryAreaSet": "water-arcane-room2", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Arcane Water Scroll room 3."
     },
     "3185": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-arcane-4", "name": "Arcane Water Room 4", "x": 1306, "y": 3518, "spawnX": 1306, "spawnY": 3518, "areaRadius": 8, "spawns": [{ "npc": "Lich_Dragon2", "count": 5 }], "allowChainDuringExitGrace": true, "rewardItem": 3186, "entryAreaSet": "water-arcane-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-arcane-4", "name": "Arcane Water Room 4", "x": 1306, "y": 3518, "spawnX": 1306, "spawnY": 3518, "areaRadius": 8, "spawns": [{ "npc": "Lich_Dragon2", "count": 5 }], "allowChainDuringExitGrace": true, "rewardItem": 3186, "entryAreaSet": "water-arcane-room3", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Arcane Water Scroll room 4."
     },
     "3186": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-arcane-5", "name": "Arcane Water Room 5", "x": 1306, "y": 3482, "spawnX": 1306, "spawnY": 3482, "areaRadius": 8, "spawns": [{ "npc": "Dark_Kn2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3187, "entryAreaSet": "water-arcane-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-arcane-5", "name": "Arcane Water Room 5", "x": 1306, "y": 3482, "spawnX": 1306, "spawnY": 3482, "areaRadius": 8, "spawns": [{ "npc": "Dark_Kn2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3187, "entryAreaSet": "water-arcane-room4", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Arcane Water Scroll room 5."
     },
     "3187": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-arcane-6", "name": "Arcane Water Room 6", "x": 1342, "y": 3482, "spawnX": 1342, "spawnY": 3482, "areaRadius": 8, "spawns": [{ "npc": "Morlock____", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3188, "entryAreaSet": "water-arcane-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-arcane-6", "name": "Arcane Water Room 6", "x": 1342, "y": 3482, "spawnX": 1342, "spawnY": 3482, "areaRadius": 8, "spawns": [{ "npc": "Morlock____", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3188, "entryAreaSet": "water-arcane-room5", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Arcane Water Scroll room 6."
     },
     "3188": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-arcane-7", "name": "Arcane Water Room 7", "x": 1378, "y": 3482, "spawnX": 1378, "spawnY": 3482, "areaRadius": 8, "spawns": [{ "npc": "Hell_Spider2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3189, "entryAreaSet": "water-arcane-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-arcane-7", "name": "Arcane Water Room 7", "x": 1378, "y": 3482, "spawnX": 1378, "spawnY": 3482, "areaRadius": 8, "spawns": [{ "npc": "Hell_Spider2", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3189, "entryAreaSet": "water-arcane-room6", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Arcane Water Scroll room 7."
     },
     "3189": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-arcane-8", "name": "Arcane Water Room 8", "x": 1378, "y": 3518, "spawnX": 1378, "spawnY": 3518, "areaRadius": 8, "spawns": [{ "npc": "LiggleSwarm", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3190, "entryAreaSet": "water-arcane-regular", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-arcane-8", "name": "Arcane Water Room 8", "x": 1378, "y": 3518, "spawnX": 1378, "spawnY": 3518, "areaRadius": 8, "spawns": [{ "npc": "LiggleSwarm", "count": 15 }], "allowChainDuringExitGrace": true, "rewardItem": 3190, "entryAreaSet": "water-arcane-room7", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Arcane Water Scroll room 8."
     },
     "3190": {
       "action": "instance_ticket", "consume": true,
-      "instance": { "id": "water-arcane-boss", "name": "Arcane Water Nessus", "x": 1342, "y": 3517, "spawnX": 1342, "spawnY": 3517, "areaRadius": 12, "spawns": [{ "npc": "Lugefer_Maligno", "count": 1 }, { "npc": "Gargoyle3", "count": 10 }], "entryAreaSet": "water-arcane-boss", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
+      "instance": { "id": "water-arcane-boss", "name": "Arcane Water Nessus", "x": 1342, "y": 3517, "spawnX": 1342, "spawnY": 3517, "areaRadius": 12, "spawns": [{ "npc": "Lugefer_Maligno", "count": 1 }, { "npc": "Gargoyle3", "count": 10 }], "allowChainDuringExitGrace": true, "chainNextItem": 3182, "entryAreaSet": "water-arcane-room8", "durationSeconds": 120, "exitX": 1966, "exitY": 1768 },
       "description": "Arcane Nessus Scroll; final room, one boss and ten gargoyles."
     },
     "4111": {

@@ -19,6 +19,8 @@ func instanceTestRule() model.VolatileRule {
 			Spawns:     []model.VolatileInstanceSpawn{{NPC: "RoomMob", Count: 1}},
 			RewardItem: 3174, AllowedEvolutions: []string{"mortal"},
 			DurationSeconds: 120, ExitX: 2100, ExitY: 2100,
+			ChainStart:                true,
+			AllowChainDuringExitGrace: true,
 		},
 	}
 }
@@ -26,6 +28,11 @@ func instanceTestRule() model.VolatileRule {
 func instanceTestWorld() (*World, *Player, *Player, *guildFlowStore, *fakeClock) {
 	leader, _ := networkedTestPlayer(1, "Leader", 2100, 2100)
 	member, _ := networkedTestPlayer(2, "Member", 2101, 2100)
+	// Production stores assign stable CharacterUIDs before a character can
+	// enter an instance. Keep the fixture faithful so the durable Water
+	// snapshot exercises the same ownership path.
+	leader.Char.UID = "11111111111141118111111111111111"
+	member.Char.UID = "22222222222242228222222222222222"
 	leader.Party = &Party{Members: []*Player{leader, member}}
 	member.Party = leader.Party
 	w, st := guildFlowWorld(leader, member)
@@ -109,7 +116,7 @@ func TestWaterChainCanStartDuringExitGrace(t *testing.T) {
 		mob = w.mobsByID[id]
 	}
 	w.onItemInstanceMobKilled(mob, clock.Now())
-	if !itemInstanceInExitGrace(first) || leader.Char.Inv[0].Index != 3174 {
+	if !itemInstanceInExitGraceAt(first, clock.Now()) || leader.Char.Inv[0].Index != 3174 {
 		t.Fatalf("sala concluida nao entrou na janela de transicao: inst=%+v item=%d",
 			first, leader.Char.Inv[0].Index)
 	}
@@ -142,6 +149,33 @@ func TestWaterChainCanStartDuringExitGrace(t *testing.T) {
 	if w.itemInstances["water-normal-2"] == nil ||
 		w.itemInstanceForPlayer(member.ID) != second {
 		t.Fatal("membro nao permaneceu na segunda sala")
+	}
+}
+
+func TestPrivateWaterAllocatesIndependentConcurrentRuntime(t *testing.T) {
+	w, leader, _, st, _ := instanceTestWorld()
+	solo, _ := networkedTestPlayer(3, "Solo", 2105, 2100)
+	solo.Char.UID = "33333333333343338333333333333333"
+	w.players[solo.Session] = solo
+	w.playersByID[solo.ID] = solo
+	w.updatePlayerSpatial(solo)
+
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	if w.itemInstances["water-normal-1"] == nil {
+		t.Fatal("primeira sala privada nao abriu")
+	}
+	solo.Char.Inv[0] = model.Item{Index: 100}
+	w.onUseItem(solo.Session, useItemPacket(0, 0))
+
+	if w.itemInstances["water-normal-1:1"] == nil ||
+		len(w.itemInstances) != 2 || st.gameSaves != 2 ||
+		!itemInstanceHasMember(w.itemInstances["water-normal-1:1"], solo.ID) {
+		t.Fatalf("salas privadas concorrentes nao foram isoladas: instances=%v saves=%d",
+			w.itemInstances, st.gameSaves)
+	}
+	if w.itemInstances["water-normal-1"].RuntimeID ==
+		w.itemInstances["water-normal-1:1"].RuntimeID {
+		t.Fatal("RuntimeID privado foi reutilizado")
 	}
 }
 
@@ -189,13 +223,75 @@ func TestExitGraceOnlyAppliesToRewardingWaterRooms(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			inst := &ItemInstance{
-				Config:        model.VolatileInstance{RewardItem: test.reward},
+				Config: model.VolatileInstance{RewardItem: test.reward,
+					AllowChainDuringExitGrace: test.want},
 				RewardGranted: true, ExitAt: now.Add(time.Second),
 			}
 			if got := itemInstanceInExitGrace(inst); got != test.want {
 				t.Fatalf("janela de saida=%v, want %v", got, test.want)
 			}
 		})
+	}
+}
+
+func TestWaterBossChainsToRoomOneWithoutRewardOrRuntimeReuse(t *testing.T) {
+	w, leader, _, _, clock := instanceTestWorld()
+	// The boss accepts the Room 1 scroll but does not grant it. The ticket is
+	// already in carry slot 1, exactly as in the native boss->Room 1 cycle.
+	boss := instanceTestRule()
+	boss.Instance.ID = "water-normal-boss"
+	boss.Instance.RewardItem = 0
+	boss.Instance.ChainNextItem = 3173
+	w.volatiles.Items[3181] = boss
+	w.volatiles.ItemCodes[3181] = 21
+	room1 := instanceTestRule()
+	room1.Instance.ID = "water-normal-1"
+	room1.Instance.X, room1.Instance.Y = 2300, 2300
+	room1.Instance.SpawnX, room1.Instance.SpawnY = 2302, 2302
+	room1.Instance.RewardItem = 3174
+	w.volatiles.Items[3173] = room1
+	w.volatiles.ItemCodes[3173] = 21
+	w.items[3181] = model.ItemDef{Index: 3181}
+	w.items[3173] = model.ItemDef{Index: 3173}
+	leader.Char.Inv[0] = model.Item{Index: 3181}
+	leader.Char.Inv[1] = model.Item{Index: 3173}
+
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	old := w.itemInstances["water-normal-boss"]
+	if old == nil {
+		t.Fatal("boss nao abriu")
+	}
+	var bossMob *Mob
+	for id := range old.MobIDs {
+		bossMob = w.mobsByID[id]
+	}
+	if bossMob == nil {
+		t.Fatal("boss sem mob")
+	}
+	w.onItemInstanceMobKilled(bossMob, clock.Now())
+	if !itemInstanceInExitGraceAt(old, clock.Now()) || leader.Char.Inv[0].Index != 0 || leader.Char.Inv[1].Index != 3173 {
+		t.Fatalf("boss nao entrou em grace sem conceder Room1: inst=%+v inv=%d/%d",
+			old, leader.Char.Inv[0].Index, leader.Char.Inv[1].Index)
+	}
+
+	w.onUseItem(leader.Session, useItemPacket(1, 0))
+	next := w.itemInstances["water-normal-1"]
+	if next == nil || next.RuntimeID == old.RuntimeID || leader.Char.Inv[1].Index != 0 {
+		t.Fatalf("ciclo boss->Room1 incorreto: old=%q next=%+v inv=%d",
+			old.RuntimeID, next, leader.Char.Inv[1].Index)
+	}
+	if w.itemInstanceForPlayer(leader.ID) != next {
+		t.Fatal("jogador nao foi associado a nova Room1")
+	}
+	if itemInstanceHasMember(old, leader.ID) {
+		t.Fatal("associacao do boss concluido nao foi removida apos o commit")
+	}
+
+	clock.Advance(10 * time.Second)
+	w.tickItemInstances(clock.Now())
+	if w.itemInstances[old.RuntimeID] != nil || w.itemInstances[next.RuntimeID] == nil {
+		t.Fatalf("cleanup do boss removeu a sala errada: old=%v next=%v",
+			w.itemInstances[old.RuntimeID], w.itemInstances[next.RuntimeID])
 	}
 }
 
@@ -571,7 +667,7 @@ func TestInstanceRewardDropsWhenInventoryIsFullAndCannotDuplicate(t *testing.T) 
 	}
 
 	w.onItemInstanceMobKilled(mob, clock.Now())
-	if !inst.RewardGranted || len(w.groundItems) != 1 || st.saves != 0 {
+	if !inst.RewardGranted || len(w.groundItems) != 1 || st.saves != 1 {
 		t.Fatalf("fallback no chao incorreto: granted=%v ground=%d saves=%d",
 			inst.RewardGranted, len(w.groundItems), st.saves)
 	}
@@ -612,6 +708,9 @@ func TestInstanceSupportsMixedBossPopulationWithoutReward(t *testing.T) {
 
 func TestInstanceRefusesPhysicalRoomOccupationAndWrongEvolution(t *testing.T) {
 	w, leader, member, st, _ := instanceTestWorld()
+	rule := instanceTestRule()
+	rule.Instance.ID = "private-room"
+	w.volatiles.Items[100] = rule
 	member.X, member.Y = 2200, 2200
 	member.Char.X, member.Char.Y = member.X, member.Y
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
@@ -629,6 +728,9 @@ func TestInstanceRefusesPhysicalRoomOccupationAndWrongEvolution(t *testing.T) {
 
 func TestInstanceTicketRollbackAndRoomExclusion(t *testing.T) {
 	w, leader, _, st, _ := instanceTestWorld()
+	rule := instanceTestRule()
+	rule.Instance.ID = "private-room"
+	w.volatiles.Items[100] = rule
 	st.err = errors.New("database unavailable")
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
 	if leader.Char.Inv[0].Index != 100 || leader.X != 2100 ||
@@ -637,7 +739,7 @@ func TestInstanceTicketRollbackAndRoomExclusion(t *testing.T) {
 	}
 
 	st.err = nil
-	w.itemInstances["water-normal-1"] = &ItemInstance{}
+	w.itemInstances["private-room"] = &ItemInstance{}
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
 	if leader.Char.Inv[0].Index != 100 || st.gameSaves != 1 {
 		t.Fatal("sala ocupada consumiu/persistiu ticket")
@@ -670,9 +772,11 @@ func TestInstanceLogoutFreesSlotAndPromotesLeader(t *testing.T) {
 	}
 
 	w.detachPlayerFromItemInstances(member.ID, clock.Now())
-	if len(inst.MemberIDs) != 0 || !inst.Deadline.Equal(clock.Now()) ||
-		!inst.TransitionAt.IsZero() || !inst.QuizAt.IsZero() {
-		t.Fatalf("ultima saida nao agendou cleanup: %+v", inst)
+	if len(inst.MemberIDs) != 0 || !inst.Deadline.After(clock.Now()) ||
+		!inst.TransitionAt.IsZero() || !inst.QuizAt.IsZero() ||
+		len(w.pendingInstanceMembers[inst.RuntimeID]) != 2 {
+		t.Fatalf("ultima saida nao preservou a sala Water: %+v pendentes=%v",
+			inst, w.pendingInstanceMembers[inst.RuntimeID])
 	}
 }
 
@@ -694,11 +798,21 @@ func TestInstanceRecallDetachesDeadPlayer(t *testing.T) {
 	if playerCurHP(leader.Char) == 0 {
 		t.Fatal("recall nao reviveu o jogador")
 	}
-	// A sala continua viva para o membro remanescente; somente a saida dele
-	// deve agendar o cleanup.
+	if pending := w.pendingInstanceMembers[inst.RuntimeID]; len(pending) != 0 {
+		if _, kept := pending[leader.Char.UID]; kept {
+			t.Fatal("recall deixou o UID do jogador morto pendente")
+		}
+	}
+	// A sala continua viva para o membro remanescente; somente um logout real
+	// do ultimo membro deve preservar a identidade offline.
 	w.detachPlayerFromItemInstances(member.ID, clock.Now())
-	if !inst.Deadline.Equal(clock.Now()) {
-		t.Fatalf("cleanup da sala nao foi agendado: deadline=%v", inst.Deadline)
+	pending := w.pendingInstanceMembers[inst.RuntimeID]
+	if !inst.Deadline.After(clock.Now()) || len(pending) != 1 {
+		t.Fatalf("sala Water perdeu membros offline: deadline=%v pendentes=%v",
+			inst.Deadline, pending)
+	}
+	if _, kept := pending[member.Char.UID]; !kept {
+		t.Fatal("logout do ultimo membro nao preservou seu UID")
 	}
 }
 

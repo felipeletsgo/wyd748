@@ -386,6 +386,11 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	p.X, p.Y = entryX, entryY
 	p.NextCPRecovery = w.now().Add(chaosRecoveryInterval)
 	w.playersByID[p.ID] = p
+	// A private Water instance is keyed by Character UID, not the process-local
+	// player ID. Reattach before building EnterWorld/CreateMob so reconnecting
+	// at a saved room is a single authoritative position, never a correction
+	// teleport visible to other clients.
+	w.attachRestoredInstanceMember(p)
 	log.Printf("[#%d] ENTER-WORLD %s id=%d @(%d,%d)", s.ID, ch.Name, p.ID, ch.X, ch.Y)
 
 	// 1) enter-world (STRUCT_MOB completo)
@@ -1077,7 +1082,10 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 	// o jogador morto continuava em MemberIDs e a limpeza posterior podia
 	// teleporta-lo novamente para a sala antiga ou bloquear uma nova entrada.
 	now := w.now()
-	w.detachPlayerFromItemInstances(p.ID, now)
+	// Recall/restart is a definitive exit from a private Water room. Unlike a
+	// socket logout, it must not leave a UID pending that would reattach the
+	// character to the old room on the next login.
+	w.detachPlayerFromItemInstancesMode(p.ID, now, false)
 	dead := playerCurHP(p.Char) == 0
 	if dead {
 		for _, observer := range w.nearbyWorldPlayers(p.X, p.Y, viewHalfX) {
@@ -1668,6 +1676,10 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 	if g == nil {
 		return // ja pego por outro / expirou
 	}
+	if !w.groundItemVisibleToPlayer(p, g) {
+		log.Printf("[#%d] tentou recolher item %d de outra instancia", s.ID, req.itemID)
+		return
+	}
 	// Objeto de mundo e mobilia do mapa, nao loot: sem esta guarda o jogador
 	// caminha ate um portao de castelo e o poe no inventario.
 	if g.Permanent {
@@ -1736,6 +1748,10 @@ func (w *World) onDisconnect(s *net.Session) {
 	delete(w.security, s)
 	if p, ok := w.players[s]; ok {
 		w.detachPlayerFromItemInstances(p.ID, w.now())
+		// Persist the UID-based Water membership immediately. Waiting for the
+		// next autosave would make a clean disconnect look like a lost room after
+		// a process restart.
+		w.flushInstanceStateIfDirty()
 		w.unregisterPlayerSpatial(p)
 		w.closeGhostShop(p, "desconexao")
 		w.cancelTrade(p, "desconexao")

@@ -157,6 +157,24 @@ func TestLoadVolatilesAllowsSharedInstanceIDOnlyForSameLayout(t *testing.T) {
 	}
 }
 
+func TestLoadVolatilesRejectsWaterChainCrossTier(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "volatiles.json")
+	items := map[uint16]model.ItemDef{
+		100: {Index: 100, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 1}}},
+		101: {Index: 101, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 2}}},
+	}
+	body := `{"default":{"action":"generic"},"items":{` +
+		`"100":{"action":"instance_ticket","consume":true,"instance":{"id":"water-normal-boss","name":"boss","x":100,"y":100,"spawnX":101,"spawnY":101,"areaRadius":5,"spawns":[{"npc":"Mob","count":1}],"durationSeconds":60,"chainNextItem":101}},` +
+		`"101":{"action":"instance_ticket","consume":true,"instance":{"id":"water-mystic-1","name":"room","x":200,"y":200,"spawnX":201,"spawnY":201,"areaRadius":5,"spawns":[{"npc":"Mob","count":1}],"durationSeconds":60}}}}`
+	if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadVolatiles(path, items, nil); err == nil {
+		t.Fatal("cadeia Water cruzando normal->mystic foi aceita")
+	}
+}
+
 // TestVolatilesRealConfigDifferentiatesByItemIndex carrega os arquivos REAIS e
 // prova a regra do felipe: itens que compartilham o mesmo EF_VOLATILE podem ter
 // parametros diferentes, resolvidos por Index. Tambem garante que o volatiles.json
@@ -169,6 +187,18 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	vc, err := LoadVolatiles("../../data/volatiles.json", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatalf("volatiles.json real nao carrega contra o catalogo: %v", err)
+	}
+	for _, itemID := range []uint16{3173, 777, 3182} {
+		rule, _, ok := vc.Rule(itemID)
+		if !ok || rule.Instance == nil || !rule.Instance.ChainStart {
+			t.Fatalf("Water root %d nao foi marcado como ChainStart: %+v", itemID, rule)
+		}
+	}
+	for _, itemID := range []uint16{3174, 3181, 778, 785, 3183, 3190} {
+		rule, _, ok := vc.Rule(itemID)
+		if !ok || rule.Instance == nil || rule.Instance.ChainStart {
+			t.Fatalf("Water nao-root %d recebeu ChainStart indevido: %+v", itemID, rule)
+		}
 	}
 
 	// Sefirah 7 dias vs 30 dias: MESMO codigo (67, o portador aceito pelo client),
@@ -390,18 +420,17 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 			}
 		}
 	}
-	// A regular Water ticket accepts the eight native platforms, the Nessus
-	// platform and the portal fallback.  A boss ticket accepts only Nessus;
-	// this is expanded by the loader from the named data sets, not inferred by
-	// the gameplay code.
+	// Cada ticket possui a origem exata. O primeiro aceita a entrada externa e
+	// a sala do boss (fecha o ciclo); Room 2..8 aceitam somente a plataforma
+	// anterior; o boss aceita somente Room 8. A tabela continua em data, e o
+	// loader apenas a expande.
 	waterSets := []struct {
-		items      []uint16
-		regularSet string
-		bossSet    string
+		items  []uint16
+		prefix string
 	}{
-		{items: chains[0], regularSet: "water-mystic-regular", bossSet: "water-mystic-boss"},
-		{items: chains[1], regularSet: "water-normal-regular", bossSet: "water-normal-boss"},
-		{items: chains[2], regularSet: "water-arcane-regular", bossSet: "water-arcane-boss"},
+		{items: chains[0], prefix: "water-mystic"},
+		{items: chains[1], prefix: "water-normal"},
+		{items: chains[2], prefix: "water-arcane"},
 	}
 	for _, family := range waterSets {
 		for index, itemID := range family.items {
@@ -409,29 +438,27 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 			if !ok || r.Instance == nil {
 				t.Fatalf("Water %d sem instancia apos expandir entryAreaSet", itemID)
 			}
-			wantSet, wantAreas := family.regularSet, 10
+			wantSet, wantAreas := family.prefix+"-room1-entry", 2
+			if index > 0 {
+				wantSet, wantAreas = fmt.Sprintf("%s-room%d", family.prefix, index), 1
+			}
 			if index == len(family.items)-1 {
-				wantSet, wantAreas = family.bossSet, 1
+				wantSet = family.prefix + "-room8"
 			}
 			if r.Instance.EntryAreaSet != wantSet || len(r.Instance.EntryAreas) != wantAreas {
 				t.Fatalf("Water %d entry areas incorretas: set=%q areas=%d want=%q/%d",
 					itemID, r.Instance.EntryAreaSet, len(r.Instance.EntryAreas), wantSet, wantAreas)
 			}
-			if wantAreas == 10 {
-				if !r.Instance.AllowChainDuringExitGrace {
-					t.Fatalf("Water regular %d perdeu AllowChainDuringExitGrace", itemID)
+			if !r.Instance.AllowChainDuringExitGrace {
+				t.Fatalf("Water %d perdeu AllowChainDuringExitGrace", itemID)
+			}
+			if index == len(family.items)-1 {
+				if r.Instance.RewardItem != 0 || r.Instance.ChainNextItem != family.items[0] {
+					t.Fatalf("Water boss %d deve aceitar Room1 sem recompensa: reward=%d next=%d",
+						itemID, r.Instance.RewardItem, r.Instance.ChainNextItem)
 				}
-				portal := model.VolatileInstanceEntryArea{MinX: 1964, MinY: 1772, MaxX: 1967, MaxY: 1775}
-				found := false
-				for _, area := range r.Instance.EntryAreas {
-					if area == portal {
-						found = true
-						break
-					}
-				}
-				if !found {
-					t.Fatalf("Water %d perdeu a area de portal nativa", itemID)
-				}
+			} else if r.Instance.ChainNextItem != 0 {
+				t.Fatalf("Water regular %d nao deveria ter ChainNextItem=%d", itemID, r.Instance.ChainNextItem)
 			}
 		}
 	}

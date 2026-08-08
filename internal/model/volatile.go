@@ -113,18 +113,26 @@ type VolatileInstance struct {
 	// BaseRef permite declarar variantes (Cube Mystic/Arcane) sem duplicar a
 	// tabela inteira. O loader materializa uma copia independente antes de
 	// validar e executar a regra.
-	BaseRef           string                  `json:"baseRef,omitempty"`
-	Name              string                  `json:"name"`
-	X                 uint16                  `json:"x"`
-	Y                 uint16                  `json:"y"`
-	SpawnX            uint16                  `json:"spawnX"`
-	SpawnY            uint16                  `json:"spawnY"`
-	AreaRadius        int                     `json:"areaRadius"`
-	MaxPlayers        int                     `json:"maxPlayers,omitempty"`
-	Spawns            []VolatileInstanceSpawn `json:"spawns"`
-	RewardItem        uint16                  `json:"rewardItem,omitempty"`
-	AllowedEvolutions []string                `json:"allowedEvolutions,omitempty"`
-	DurationSeconds   int                     `json:"durationSeconds"`
+	BaseRef    string                  `json:"baseRef,omitempty"`
+	Name       string                  `json:"name"`
+	X          uint16                  `json:"x"`
+	Y          uint16                  `json:"y"`
+	SpawnX     uint16                  `json:"spawnX"`
+	SpawnY     uint16                  `json:"spawnY"`
+	AreaRadius int                     `json:"areaRadius"`
+	MaxPlayers int                     `json:"maxPlayers,omitempty"`
+	Spawns     []VolatileInstanceSpawn `json:"spawns"`
+	RewardItem uint16                  `json:"rewardItem,omitempty"`
+	// ChainNextItem is the item accepted during exit grace to open the next
+	// independent instance. It is intentionally separate from RewardItem:
+	// the final Water boss accepts the Room 1 ticket but does not grant it.
+	ChainNextItem uint16 `json:"chainNextItem,omitempty"`
+	// ChainStart marks the only ticket that may open a Water tier without a
+	// completed predecessor. Keeping this edge in data prevents a player from
+	// bypassing rooms merely by reaching a later platform on the map.
+	ChainStart        bool     `json:"chainStart,omitempty"`
+	AllowedEvolutions []string `json:"allowedEvolutions,omitempty"`
+	DurationSeconds   int      `json:"durationSeconds"`
 	// TotalDurationSeconds e um prazo absoluto da instancia, independente das
 	// trocas de sala. Hell Gate usa os quatro minutos nativos desta forma.
 	TotalDurationSeconds int `json:"totalDurationSeconds,omitempty"`
@@ -211,15 +219,25 @@ type VolatileUxmal struct {
 // InstanceRuntimeState is the restart-safe portion of an event instance.
 // Entity IDs, player IDs and mob HP are deliberately excluded: they are
 // process-local and are rebuilt from the authoritative data after a restart.
+// Stable Character UIDs are retained only for private Water reattachment.
 type InstanceRuntimeState struct {
-	RuntimeID             string    `json:"runtimeId"`
-	ConfigID              string    `json:"configId"`
-	SharedGroup           string    `json:"sharedGroup,omitempty"`
-	State                 string    `json:"state,omitempty"`
+	RuntimeID   string `json:"runtimeId"`
+	ConfigID    string `json:"configId"`
+	SharedGroup string `json:"sharedGroup,omitempty"`
+	State       string `json:"state,omitempty"`
+	// Character UIDs are the stable membership identity for private Water
+	// rooms. Client/session IDs are process-local and must never be persisted.
+	// Keeping the leader separately preserves reward ownership across a restart.
+	MemberCharacterUIDs   []string  `json:"memberCharacterUids,omitempty"`
+	LeaderCharacterUID    string    `json:"leaderCharacterUid,omitempty"`
 	CurrentStage          int       `json:"currentStage"`
 	ScheduleEnd           time.Time `json:"scheduleEnd,omitempty"`
 	HardDeadline          time.Time `json:"hardDeadline,omitempty"`
 	CombatDeadline        time.Time `json:"combatDeadline,omitempty"`
+	TransitionAt          time.Time `json:"transitionAt,omitempty"`
+	QuizAt                time.Time `json:"quizAt,omitempty"`
+	ExitAt                time.Time `json:"exitAt,omitempty"`
+	RewardGranted         bool      `json:"rewardGranted,omitempty"`
 	HellGateVariant       int       `json:"hellGateVariant,omitempty"`
 	HellGateClearedMask   uint8     `json:"hellGateClearedMask,omitempty"`
 	HellGateLichSpawned   uint8     `json:"hellGateLichSpawnedMask,omitempty"`
@@ -239,10 +257,11 @@ type InstanceStateSnapshot struct {
 const InstanceStateVersion = 1
 
 type VolatileInstanceEntryArea struct {
-	MinX uint16 `json:"minX"`
-	MinY uint16 `json:"minY"`
-	MaxX uint16 `json:"maxX"`
-	MaxY uint16 `json:"maxY"`
+	MinX          uint16 `json:"minX"`
+	MinY          uint16 `json:"minY"`
+	MaxX          uint16 `json:"maxX"`
+	MaxY          uint16 `json:"maxY"`
+	RequiresChain bool   `json:"requiresChain,omitempty"`
 }
 
 type VolatileInstanceWindow struct {

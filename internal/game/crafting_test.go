@@ -88,6 +88,19 @@ func (s *craftStore) SaveAccount(acc *model.Account) error {
 }
 func (s *craftStore) CharacterNameExists(string) (bool, error) { return false, nil }
 
+// Implement the optional instance transaction for tests that exercise the
+// same atomic account+room boundary as PostgreSQL. The fixture only counts the
+// commit; it does not need a durable instance payload.
+func (s *craftStore) LoadInstanceState() (*model.InstanceStateSnapshot, error) {
+	return &model.InstanceStateSnapshot{Version: model.InstanceStateVersion}, nil
+}
+func (s *craftStore) SaveInstanceState(*model.InstanceStateSnapshot) error { return s.err }
+func (s *craftStore) SaveGameStateWithInstanceState(*model.GuildRegistry,
+	*model.InstanceStateSnapshot, ...*model.Account) error {
+	s.saves++
+	return s.err
+}
+
 // newCraftWorld monta um World minimo com um artesao `npcName` (Merchant tipo
 // craftingMerchant) visivel e ao alcance do jogador, pronto para exercitar um
 // handler onCombine*. items entra no catalogo autoritativo (w.items).

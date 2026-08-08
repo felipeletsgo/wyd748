@@ -14,7 +14,6 @@
 
 # Metadados locais dos agentes Codex/Claude; nao fazem parte do runtime.
 /.codex/
-/AGENTS.md
 
 # Cache de build do Go
 .gocache*/
@@ -31,10 +30,8 @@ data/charstate/*.json
 # Capturas de tela geradas ao jogar (nao fazem parte da distribuicao do client)
 client748/screenshot/
 
-# Docs internas de arquitetura/decisao (nao publicas): ficam locais, so o
-# README.md (publico) entra no repositorio.
-CLAUDE.md
-DOCS/
+# Documentacao do projeto e instrucoes de desenvolvimento sao parte da fonte
+# publicada e devem acompanhar cada versao do emulador.
 
 # Backups intermediarios da cadeia de patches do client. Os dois elos
 # IRRECUPERAVEIS -- WYD.original.exe e WYD.pre-extended-stats.exe -- ficam
@@ -43,6 +40,7 @@ DOCS/
 client748/WYD.patched-wide.exe
 client748/WYD.premacro.exe
 client748/WYDoriginal.exe
+client748/WYD.pre-lindy.exe
 
 # Artefatos de conversao/edicao. O runtime usa os equivalentes autoritativos
 # versionados em data/SkillData.csv e client748/SkillData.bin.

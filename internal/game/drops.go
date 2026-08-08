@@ -112,7 +112,11 @@ func (w *World) rollMobDrops(p *Player, m *Mob) {
 				p.Session.ID, i, item.Index, slot, m.Def.Name)
 		} else {
 			// Inventario cheio: cai no chao na posicao do mob (pegavel via 0x270).
-			w.spawnDrop(m.X, m.Y, item)
+			instanceID := ""
+			if m.InstanceID != "" && isDurablePrivateWaterInstance(w.instanceForMob(m)) {
+				instanceID = m.InstanceID
+			}
+			w.createGroundDropForInstance(m.X, m.Y, item, true, instanceID)
 			log.Printf("[#%d] DROP slot=%d item=%d -> CHAO (inventario cheio)",
 				p.Session.ID, i, item.Index)
 		}

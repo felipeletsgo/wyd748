@@ -121,6 +121,12 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 		if raw.RewardItem != 0 {
 			base.RewardItem = raw.RewardItem
 		}
+		if raw.ChainNextItem != 0 {
+			base.ChainNextItem = raw.ChainNextItem
+		}
+		if raw.ChainStart {
+			base.ChainStart = true
+		}
 		if len(raw.AllowedEvolutions) > 0 {
 			base.AllowedEvolutions = raw.AllowedEvolutions
 		}
@@ -232,6 +238,10 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 						"data: %s combina entryAreaSet com entryAreas", where)
 				}
 				rule.Instance.EntryAreas = append([]model.VolatileInstanceEntryArea(nil), areas...)
+			}
+			if rule.Instance.ChainStart &&
+				!strings.HasPrefix(strings.ToLower(strings.TrimSpace(rule.Instance.ID)), "water-") {
+				return rule, fmt.Errorf("data: %s chainStart so pode ser usado por instancia Water", where)
 			}
 		}
 		if !validVolatileActions[rule.Action] {
@@ -611,6 +621,18 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 						where, i.RewardItem)
 				}
 			}
+			if i.ChainNextItem != 0 {
+				if _, exists := items[i.ChainNextItem]; !exists {
+					return rule, fmt.Errorf(
+						"data: %s instance_ticket chainNextItem inexistente %d",
+						where, i.ChainNextItem)
+				}
+				if i.ChainNextItem == i.RewardItem {
+					return rule, fmt.Errorf(
+						"data: %s instance_ticket chainNextItem duplica rewardItem %d",
+						where, i.ChainNextItem)
+				}
+			}
 		}
 		if rule.Action == "face_transform" && rule.FaceMesh <= 0 {
 			return rule, fmt.Errorf("data: %s face_transform exige faceMesh positivo", where)
@@ -714,6 +736,45 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 	}
 	for id, rule := range result.Items {
 		if err := checkInstance(fmt.Sprintf("items[%d]", id), rule); err != nil {
+			return model.VolatileCatalog{}, err
+		}
+	}
+	// ChainNextItem is a progression edge, not just an item existence check.
+	// Resolve its target through the same catalog that the runtime uses and
+	// reject cross-event/cross-tier edges at load time. This keeps a malformed
+	// data edit from turning a Water boss ticket into a shortcut to another
+	// tier or event.
+	waterFamily := func(id string) string {
+		parts := strings.Split(id, "-")
+		if len(parts) >= 2 && parts[0] == "water" {
+			return parts[0] + "-" + parts[1]
+		}
+		return ""
+	}
+	checkChain := func(where string, rule model.VolatileRule) error {
+		if rule.Action != "instance_ticket" || rule.Instance == nil ||
+			rule.Instance.ChainNextItem == 0 {
+			return nil
+		}
+		target, _, ok := result.Rule(rule.Instance.ChainNextItem)
+		if !ok || target.Action != "instance_ticket" || target.Instance == nil {
+			return fmt.Errorf("data: %s chainNextItem %d nao e instance_ticket", where,
+				rule.Instance.ChainNextItem)
+		}
+		fromFamily, toFamily := waterFamily(rule.Instance.ID), waterFamily(target.Instance.ID)
+		if fromFamily != "" && fromFamily != toFamily {
+			return fmt.Errorf("data: %s chainNextItem %d cruza tier Water (%s -> %s)",
+				where, rule.Instance.ChainNextItem, fromFamily, toFamily)
+		}
+		return nil
+	}
+	for code, rule := range result.Rules {
+		if err := checkChain(fmt.Sprintf("rules[%d]", code), rule); err != nil {
+			return model.VolatileCatalog{}, err
+		}
+	}
+	for id, rule := range result.Items {
+		if err := checkChain(fmt.Sprintf("items[%d]", id), rule); err != nil {
 			return model.VolatileCatalog{}, err
 		}
 	}

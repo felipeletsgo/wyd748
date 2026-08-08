@@ -209,6 +209,10 @@ type GroundItem struct {
 	// expira e nao pode ser recolhido. O nativo consegue o mesmo efeito
 	// mantendo-os abaixo de g_dwInitItem, faixa que o decay nunca varre.
 	Permanent bool
+	// InstanceID restringe temporariamente o loot criado dentro de uma Water
+	// privada aos membros daquele RuntimeID. Ao encerrar a sala o item volta a
+	// ser publico, preservando o fallback nativo de recompensa no chao.
+	InstanceID string
 	// State e o estado do objeto: 0 fechado, 1 aberto. So porta usa. O nativo
 	// troca isso e emite MSG_UpdateItem em vez de recriar o item.
 	State byte
@@ -407,9 +411,13 @@ type World struct {
 	bossSpawns  []*bossSpawnState
 	// itemInstances são salas temporárias criadas por consumíveis. Um mapa no
 	// ator World substitui tickers/goroutines por sala.
-	itemInstances      map[string]*ItemInstance
-	nightmarePartyRuns map[string]int
-	instanceStateDirty bool
+	itemInstances map[string]*ItemInstance
+	// Stable character identities detached from a private Water instance while
+	// their sockets are offline. World IDs are deliberately not persisted.
+	pendingInstanceMembers map[string]map[string]struct{}
+	pendingInstanceLeaders map[string]string
+	nightmarePartyRuns     map[string]int
+	instanceStateDirty     bool
 }
 
 // firstMobID e o inicio da faixa de mobs; abaixo dela ficam os jogadores.
@@ -453,41 +461,43 @@ func (w *World) allocMobID() uint16 {
 // ClientId dos NPCs comeca em 1000 (players usam ID baixo a partir de 1).
 func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, catalog model.Catalog, dropRates [model.MaxCarry]int, volatiles model.VolatileCatalog, characterTemplates model.CharacterTemplateFile, terrain model.TerrainMap, options ...WorldOption) (*World, error) {
 	w := &World{
-		commands:           make(chan command, 1024),
-		players:            make(map[*net.Session]*Player),
-		playersByID:        make(map[uint16]*Player),
-		accountSessions:    make(map[string]*net.Session),
-		authPending:        make(map[*net.Session]bool),
-		authSlots:          make(chan struct{}, 4),
-		security:           make(map[*net.Session]*securityState),
-		store:              st,
-		npcs:               npcs,
-		mobsByID:           make(map[uint16]*Mob),
-		mobCells:           make(map[uint32]map[uint16]*Mob),
-		playerCells:        make(map[uint32]map[uint16]*Player),
-		mobCell:            make(map[uint16]uint32),
-		playerCell:         make(map[uint16]uint32),
-		activeMobs:         make(map[uint16]*Mob),
-		summons:            make(map[uint16]*Mob),
-		sephiraObjects:     make(map[uint16]*Mob),
-		nextMobID:          1000,
-		items:              catalog.Items,
-		skills:             catalog.Skills,
-		groundItems:        make(map[uint16]*GroundItem),
-		ghostShops:         make(map[uint16]*GhostShop),
-		nextItemID:         10000,
-		dropRates:          dropRates,
-		volatiles:          volatiles,
-		charSpawn:          characterTemplates.Spawn,
-		terrain:            terrain,
-		npcGenerLogMode:    npcGenerLogSummary,
-		channel:            1, // instancia unica: somos o canal 1
-		gameplay:           model.DefaultGameplayConfig(),
-		lastProtocolNotice: make(map[uint16]time.Time),
-		clock:              realClock{},
-		rng:                realRNG{},
-		itemInstances:      make(map[string]*ItemInstance),
-		nightmarePartyRuns: make(map[string]int),
+		commands:               make(chan command, 1024),
+		players:                make(map[*net.Session]*Player),
+		playersByID:            make(map[uint16]*Player),
+		accountSessions:        make(map[string]*net.Session),
+		authPending:            make(map[*net.Session]bool),
+		authSlots:              make(chan struct{}, 4),
+		security:               make(map[*net.Session]*securityState),
+		store:                  st,
+		npcs:                   npcs,
+		mobsByID:               make(map[uint16]*Mob),
+		mobCells:               make(map[uint32]map[uint16]*Mob),
+		playerCells:            make(map[uint32]map[uint16]*Player),
+		mobCell:                make(map[uint16]uint32),
+		playerCell:             make(map[uint16]uint32),
+		activeMobs:             make(map[uint16]*Mob),
+		summons:                make(map[uint16]*Mob),
+		sephiraObjects:         make(map[uint16]*Mob),
+		nextMobID:              1000,
+		items:                  catalog.Items,
+		skills:                 catalog.Skills,
+		groundItems:            make(map[uint16]*GroundItem),
+		ghostShops:             make(map[uint16]*GhostShop),
+		nextItemID:             10000,
+		dropRates:              dropRates,
+		volatiles:              volatiles,
+		charSpawn:              characterTemplates.Spawn,
+		terrain:                terrain,
+		npcGenerLogMode:        npcGenerLogSummary,
+		channel:                1, // instancia unica: somos o canal 1
+		gameplay:               model.DefaultGameplayConfig(),
+		lastProtocolNotice:     make(map[uint16]time.Time),
+		clock:                  realClock{},
+		rng:                    realRNG{},
+		itemInstances:          make(map[string]*ItemInstance),
+		pendingInstanceMembers: make(map[string]map[string]struct{}),
+		pendingInstanceLeaders: make(map[string]string),
+		nightmarePartyRuns:     make(map[string]int),
 	}
 	for _, option := range options {
 		option(w)
@@ -731,8 +741,14 @@ func (w *World) positionOccupied(x, y uint16, except *Mob) bool {
 }
 
 func (w *World) mobStepBlockedFrom(m *Mob, fromX, fromY, toX, toY uint16) bool {
-	if m == nil || !w.terrain.RouteHeightCompatible(fromX, fromY, toX, toY) ||
-		w.positionOccupied(toX, toY, m) {
+	if m == nil || !w.terrain.RouteHeightCompatible(fromX, fromY, toX, toY) {
+		return true
+	}
+	if m.InstanceID != "" {
+		if w.positionOccupiedExceptPlayersInInstance(toX, toY, m, nil, nil, m.InstanceID) {
+			return true
+		}
+	} else if w.positionOccupied(toX, toY, m) {
 		return true
 	}
 	// Instancias sao fisicamente proximas de outras areas do mapa. Sem esta
@@ -752,6 +768,72 @@ func (w *World) mobStepBlockedFrom(m *Mob, fromX, fromY, toX, toY uint16) bool {
 
 func (w *World) positionOccupiedExcept(x, y uint16, exceptMob *Mob, exceptPlayer *Player) bool {
 	return w.positionOccupiedExceptPlayers(x, y, exceptMob, exceptPlayer, nil)
+}
+
+// positionOccupiedExceptPlayersInInstance is the collision query used while
+// materializing a private Water room. Private rooms share the physical map,
+// but their mobs and members are isolated by InstanceID; an entity belonging
+// to another private room must not make a valid tile unavailable to this one.
+// World NPCs/mobs (InstanceID empty) and ghost shops remain real blockers.
+func (w *World) positionOccupiedExceptPlayersInInstance(x, y uint16,
+	exceptMob *Mob, exceptPlayer *Player, ignored map[*Player]struct{},
+	instanceID string) bool {
+	if !w.terrain.Walkable(x, y) {
+		return true
+	}
+	key := spatialKey(x, y)
+	for _, m := range w.mobCells[key] {
+		if m == exceptMob || m.Dead {
+			continue
+		}
+		if instanceID != "" && m.InstanceID != "" && m.InstanceID != instanceID {
+			continue
+		}
+		if m.X == x && m.Y == y {
+			return true
+		}
+	}
+	for _, p := range w.playerCells[key] {
+		if p == exceptPlayer {
+			continue
+		}
+		if _, skip := ignored[p]; skip {
+			continue
+		}
+		if p == nil || !p.InWorld || p.Char == nil || playerCurHP(p.Char) == 0 ||
+			p.X != x || p.Y != y {
+			continue
+		}
+		if instanceID != "" {
+			other := w.playerRuntimeInstanceID(p.ID)
+			if other != "" && other != instanceID {
+				continue
+			}
+		}
+		return true
+	}
+	for _, shop := range w.ghostShops {
+		if shop.X == x && shop.Y == y {
+			return true
+		}
+	}
+	return false
+}
+
+// playerRuntimeInstanceID returns the live ownership record for collision
+// filtering. It deliberately includes exit-grace membership: an old Water
+// room still owns that player's physical tile until the chain commit removes
+// the membership.
+func (w *World) playerRuntimeInstanceID(playerID uint16) string {
+	if w == nil || playerID == 0 {
+		return ""
+	}
+	for runtimeID, inst := range w.itemInstances {
+		if inst != nil && itemInstanceHasMember(inst, playerID) {
+			return runtimeID
+		}
+	}
+	return ""
 }
 
 // positionOccupiedExceptPlayers e a variante usada por movimentos atomicos de
@@ -1413,6 +1495,11 @@ func (w *World) spawnDrop(x, y uint16, item model.Item) *GroundItem {
 }
 
 func (w *World) createGroundDrop(x, y uint16, item model.Item, publish bool) *GroundItem {
+	return w.createGroundDropForInstance(x, y, item, publish, "")
+}
+
+func (w *World) createGroundDropForInstance(x, y uint16, item model.Item,
+	publish bool, instanceID string) *GroundItem {
 	itemIndex := item.Index
 	item, err := materializeItem(item)
 	if err != nil {
@@ -1450,11 +1537,12 @@ func (w *World) createGroundDrop(x, y uint16, item model.Item, publish bool) *Gr
 	}
 
 	gItem := &GroundItem{
-		ID:     id,
-		Item:   item,
-		X:      dropX,
-		Y:      dropY,
-		Expire: w.now().Add(2 * time.Minute),
+		ID:         id,
+		Item:       item,
+		X:          dropX,
+		Y:          dropY,
+		Expire:     w.now().Add(2 * time.Minute),
+		InstanceID: instanceID,
 	}
 	w.groundItems[id] = gItem
 

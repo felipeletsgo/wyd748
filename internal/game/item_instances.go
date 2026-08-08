@@ -17,19 +17,23 @@ type ItemInstance struct {
 	Config model.VolatileInstance
 	// RuntimeID e a chave efetiva no World. Para execucoes privadas coincide
 	// com Config.ID; para zonas compartilhadas usa shared:<SharedGroup>.
-	RuntimeID     string
-	LeaderID      uint16
-	MemberIDs     []uint16
-	MobIDs        map[uint16]struct{}
-	Remaining     int
-	CurrentStage  int
-	Deadline      time.Time
-	HardDeadline  time.Time
-	ScheduleEnd   time.Time
-	TransitionAt  time.Time
-	QuizAt        time.Time
-	ExitAt        time.Time
-	RewardGranted bool
+	RuntimeID string
+	LeaderID  uint16
+	MemberIDs []uint16
+	// Character UIDs are kept only for private Water reconnects. They are not
+	// sent on the wire and are never used as live entity IDs.
+	MemberCharacterUIDs []string
+	LeaderCharacterUID  string
+	MobIDs              map[uint16]struct{}
+	Remaining           int
+	CurrentStage        int
+	Deadline            time.Time
+	HardDeadline        time.Time
+	ScheduleEnd         time.Time
+	TransitionAt        time.Time
+	QuizAt              time.Time
+	ExitAt              time.Time
+	RewardGranted       bool
 	// Prazos independentes. Deadline/TransitionAt/QuizAt/ExitAt permanecem
 	// como aliases de compatibilidade com fixtures antigas, mas o runtime novo
 	// nunca usa o deadline de combate para cancelar uma transicao ou quiz.
@@ -67,6 +71,40 @@ func instanceRuntimeKey(cfg *model.VolatileInstance) string {
 		return "shared:" + strings.TrimSpace(cfg.SharedGroup)
 	}
 	return cfg.ID
+}
+
+// expectedChainItem is the single server-side rule for the ticket accepted
+// during exit grace. RewardItem remains the normal room-to-room reward; a
+// terminal room can set ChainNextItem to accept a ticket it does not grant.
+func expectedChainItem(cfg *model.VolatileInstance) uint16 {
+	if cfg == nil {
+		return 0
+	}
+	if cfg.ChainNextItem != 0 {
+		return cfg.ChainNextItem
+	}
+	return cfg.RewardItem
+}
+
+// nextItemInstanceRuntimeID keeps the configured instance ID as the readable
+// key for the first live execution and allocates a collision-free suffix for
+// a new cycle while the previous room is still in exit grace. Config.ID is
+// still persisted separately, so restoring a suffixed runtime uses the same
+// authoritative data template.
+func (w *World) nextItemInstanceRuntimeID(cfg *model.VolatileInstance) string {
+	base := instanceRuntimeKey(cfg)
+	if base == "" || w == nil {
+		return base
+	}
+	if _, occupied := w.itemInstances[base]; !occupied {
+		return base
+	}
+	for suffix := 1; ; suffix++ {
+		candidate := fmt.Sprintf("%s:%d", base, suffix)
+		if _, occupied := w.itemInstances[candidate]; !occupied {
+			return candidate
+		}
+	}
 }
 
 func instanceMode(cfg model.VolatileInstance) string {
@@ -439,6 +477,11 @@ func (w *World) planInstancePositions(members []*Player, x, y uint16) ([][2]uint
 // membro ainda ocupava o tile que o segundo deveria receber.
 func (w *World) planInstancePositionsIgnoring(members []*Player, x, y uint16,
 	ignored map[*Player]struct{}) ([][2]uint16, bool) {
+	return w.planInstancePositionsIgnoringForInstance(members, x, y, ignored, "")
+}
+
+func (w *World) planInstancePositionsIgnoringForInstance(members []*Player,
+	x, y uint16, ignored map[*Player]struct{}, instanceID string) ([][2]uint16, bool) {
 	result := make([][2]uint16, 0, len(members))
 	reserved := make(map[uint32]struct{}, len(members))
 	for _, member := range members {
@@ -455,8 +498,8 @@ func (w *World) planInstancePositionsIgnoring(members []*Player, x, y uint16,
 					}
 					ux, uy := uint16(nx), uint16(ny)
 					key := uint32(ux)<<16 | uint32(uy)
-					if _, used := reserved[key]; used || !w.terrain.Walkable(ux, uy) ||
-						w.positionOccupiedExceptPlayers(ux, uy, nil, member, ignored) {
+					if _, used := reserved[key]; used ||
+						w.positionOccupiedExceptPlayersInInstance(ux, uy, nil, member, ignored, instanceID) {
 						continue
 					}
 					reserved[key] = struct{}{}
@@ -505,9 +548,17 @@ func ensureItemInstanceLeader(inst *ItemInstance) {
 // a sala nao deve bloquear o lider de consumir o pergaminho seguinte da
 // cadeia Water. O cleanup ainda conserva a lista antiga ate observar a nova
 // instancia e, nesse caso, nao teleporta o jogador de volta para a cidade.
+func itemInstanceInExitGraceAt(inst *ItemInstance, now time.Time) bool {
+	return inst != nil && inst.Config.AllowChainDuringExitGrace && expectedChainItem(&inst.Config) != 0 &&
+		inst.RewardGranted && !inst.ExitAt.IsZero() && now.Before(inst.ExitAt)
+}
+
+// itemInstanceInExitGrace remains a small clock-independent helper for pure
+// tests. World paths use itemInstanceInExitGraceAt with World.now(), so a
+// ticket cannot be accepted after ExitAt merely because the cleanup tick has
+// not run yet.
 func itemInstanceInExitGrace(inst *ItemInstance) bool {
-	return inst != nil && (inst.Config.AllowChainDuringExitGrace || inst.Config.RewardItem != 0) &&
-		inst.RewardGranted && !inst.ExitAt.IsZero()
+	return itemInstanceInExitGraceAt(inst, time.Now())
 }
 
 // itemInstanceForPlayer is the authoritative membership lookup.  A player
@@ -515,8 +566,9 @@ func itemInstanceInExitGrace(inst *ItemInstance) bool {
 // here prevents the cleanup of an older room from teleporting a player out of
 // a newer Water/Cube room.
 func (w *World) itemInstanceForPlayer(playerID uint16) *ItemInstance {
+	now := w.now()
 	for _, inst := range w.itemInstances {
-		if inst != nil && !itemInstanceInExitGrace(inst) &&
+		if inst != nil && !itemInstanceInExitGraceAt(inst, now) &&
 			itemInstanceHasMember(inst, playerID) {
 			return inst
 		}
@@ -525,22 +577,102 @@ func (w *World) itemInstanceForPlayer(playerID uint16) *ItemInstance {
 }
 
 func (w *World) itemInstanceExitGraceForPlayer(playerID uint16) *ItemInstance {
+	now := w.now()
+	var latest *ItemInstance
 	for _, inst := range w.itemInstances {
-		if inst != nil && itemInstanceInExitGrace(inst) &&
+		if inst != nil && itemInstanceInExitGraceAt(inst, now) &&
 			itemInstanceHasMember(inst, playerID) {
-			return inst
+			if latest == nil || inst.ExitAt.After(latest.ExitAt) ||
+				(inst.ExitAt.Equal(latest.ExitAt) && inst.RuntimeID > latest.RuntimeID) {
+				latest = inst
+			}
 		}
 	}
-	return nil
+	return latest
 }
 
 // itemInstanceExitGraceAllowsItem is deliberately narrower than the normal
-// membership lookup: the ten-second exception exists only for the reward
-// ticket that chains the Water rooms.  Without this check a client could use
-// any other ticket from the common exit tile while the old room was fading.
+// membership lookup: during exit grace only the configured successor is
+// accepted, and with no Water membership only a data-marked chain root may
+// start a new tier. Without this check a client could use a later ticket from
+// a platform and bypass the completed rooms.
 func (w *World) itemInstanceExitGraceAllowsItem(playerID uint16, itemID uint16) bool {
 	inst := w.itemInstanceExitGraceForPlayer(playerID)
-	return inst == nil || inst.Config.RewardItem == itemID
+	if inst == nil {
+		// A completed room remains indexed until the cleanup tick. Once ExitAt
+		// passed, the player is still barred by that stale membership; otherwise
+		// a ticket could be accepted from the old room during the cleanup gap.
+		for _, candidate := range w.itemInstances {
+			if candidate != nil && itemInstanceHasMember(candidate, playerID) {
+				return false
+			}
+		}
+		// A Water tier has exactly one entry ticket. This is data-driven through
+		// ChainStart, so reaching a later platform cannot skip the completed
+		// predecessor merely by using a later scroll there.
+		if rule, _, ok := w.volatiles.Rule(itemID); ok && rule.Instance != nil &&
+			isDurablePrivateWaterConfig(*rule.Instance) {
+			return rule.Instance.ChainStart
+		}
+		return true
+	}
+	return expectedChainItem(&inst.Config) != 0 &&
+		expectedChainItem(&inst.Config) == itemID
+}
+
+// detachInstanceMembersAfterCommit removes players from a completed Water
+// room only after the next room has been durably accepted. Keeping the old
+// membership until that boundary is what makes a failed ticket use reversible:
+// the old RuntimeID and the ticket remain valid. The old instance stays
+// indexed until exit grace expires so cleanup can remove stale entities
+// without recalling a player already transferred to the new room.
+func (w *World) detachInstanceMembersAfterCommit(inst *ItemInstance, playerIDs map[uint16]struct{}) {
+	if inst == nil || len(playerIDs) == 0 {
+		return
+	}
+	movedUIDs := make(map[string]struct{}, len(playerIDs))
+	for playerID := range playerIDs {
+		if p := w.playersByID[playerID]; p != nil && p.Char != nil {
+			if uid := strings.TrimSpace(p.Char.UID); uid != "" {
+				movedUIDs[uid] = struct{}{}
+			}
+		}
+	}
+	kept := inst.MemberIDs[:0]
+	for _, id := range inst.MemberIDs {
+		if _, moved := playerIDs[id]; !moved {
+			kept = append(kept, id)
+		}
+	}
+	inst.MemberIDs = kept
+	// The old room stays indexed during exit grace, but it no longer owns the
+	// characters that were transferred to the next runtime. Preserve detached
+	// members that were not part of this transition; otherwise a party member
+	// who was temporarily offline could never reattach to the old room.
+	if len(movedUIDs) > 0 && len(inst.MemberCharacterUIDs) > 0 {
+		keptUIDs := inst.MemberCharacterUIDs[:0]
+		for _, uid := range inst.MemberCharacterUIDs {
+			if _, moved := movedUIDs[strings.TrimSpace(uid)]; !moved {
+				keptUIDs = append(keptUIDs, uid)
+			}
+		}
+		inst.MemberCharacterUIDs = keptUIDs
+	}
+	if _, moved := movedUIDs[strings.TrimSpace(inst.LeaderCharacterUID)]; moved {
+		inst.LeaderCharacterUID = ""
+	}
+	if pending := w.pendingInstanceMembers[inst.RuntimeID]; pending != nil {
+		for uid := range movedUIDs {
+			delete(pending, uid)
+		}
+		if len(pending) == 0 {
+			delete(w.pendingInstanceMembers, inst.RuntimeID)
+		}
+	}
+	if _, moved := movedUIDs[strings.TrimSpace(w.pendingInstanceLeaders[inst.RuntimeID])]; moved {
+		delete(w.pendingInstanceLeaders, inst.RuntimeID)
+	}
+	ensureItemInstanceLeader(inst)
 }
 
 func (w *World) playerInOtherItemInstance(playerID uint16, current *ItemInstance) bool {
@@ -711,31 +843,78 @@ func instanceScheduleEnd(cfg *model.VolatileInstance, now time.Time) (time.Time,
 }
 
 func instanceTargetAllowedAt(cfg *model.VolatileInstance, x, y uint16) bool {
+	_, ok := instanceEntryAreaAt(cfg, x, y)
+	return ok
+}
+
+func instanceEntryAreaAt(cfg *model.VolatileInstance, x, y uint16) (model.VolatileInstanceEntryArea, bool) {
 	if cfg == nil || len(cfg.EntryAreas) == 0 {
-		return true
+		return model.VolatileInstanceEntryArea{}, true
 	}
 	if x == 0 || y == 0 {
-		return false
+		return model.VolatileInstanceEntryArea{}, false
 	}
 	for _, area := range cfg.EntryAreas {
 		if x >= area.MinX && x <= area.MaxX &&
 			y >= area.MinY && y <= area.MaxY {
-			return true
+			return area, true
 		}
 	}
-	return false
+	return model.VolatileInstanceEntryArea{}, false
 }
 
 // detachPlayerFromItemInstances libera imediatamente a vaga de quem saiu do
 // mundo. IDs de entidade mudam no próximo login; mantê-los na sala bloquearia
 // uma vaga do Cube e poderia deixar a recompensa presa ao líder desconectado.
 func (w *World) detachPlayerFromItemInstances(playerID uint16, now time.Time) {
+	w.detachPlayerFromItemInstancesMode(playerID, now, true)
+}
+
+func (w *World) detachPlayerFromItemInstancesMode(playerID uint16, now time.Time,
+	preservePrivateWater bool) {
 	if playerID == 0 {
 		return
 	}
 	for _, inst := range w.itemInstances {
 		if inst == nil || !itemInstanceHasMember(inst, playerID) {
 			continue
+		}
+		privateWater := isDurablePrivateWaterInstance(inst)
+		member := w.playersByID[playerID]
+		if !preservePrivateWater && privateWater && member != nil && member.Char != nil {
+			uid := strings.TrimSpace(member.Char.UID)
+			if pending := w.pendingInstanceMembers[inst.RuntimeID]; pending != nil {
+				delete(pending, uid)
+				if len(pending) == 0 {
+					delete(w.pendingInstanceMembers, inst.RuntimeID)
+				}
+			}
+			if strings.TrimSpace(w.pendingInstanceLeaders[inst.RuntimeID]) == uid {
+				delete(w.pendingInstanceLeaders, inst.RuntimeID)
+			}
+			if inst.LeaderCharacterUID == uid {
+				inst.LeaderCharacterUID = ""
+			}
+		}
+		if preservePrivateWater && privateWater && member != nil && member.Char != nil &&
+			strings.TrimSpace(member.Char.UID) != "" {
+			uid := strings.TrimSpace(member.Char.UID)
+			if w.pendingInstanceMembers == nil {
+				w.pendingInstanceMembers = make(map[string]map[string]struct{})
+			}
+			pending := w.pendingInstanceMembers[inst.RuntimeID]
+			if pending == nil {
+				pending = make(map[string]struct{})
+				w.pendingInstanceMembers[inst.RuntimeID] = pending
+			}
+			pending[uid] = struct{}{}
+			if inst.LeaderID == playerID {
+				inst.LeaderCharacterUID = uid
+				if w.pendingInstanceLeaders == nil {
+					w.pendingInstanceLeaders = make(map[string]string)
+				}
+				w.pendingInstanceLeaders[inst.RuntimeID] = uid
+			}
 		}
 		members := make([]uint16, 0, len(inst.MemberIDs)-1)
 		for _, id := range inst.MemberIDs {
@@ -745,6 +924,18 @@ func (w *World) detachPlayerFromItemInstances(playerID uint16, now time.Time) {
 		}
 		inst.MemberIDs = members
 		if len(members) == 0 {
+			pendingCount := 0
+			if w.pendingInstanceMembers != nil {
+				pendingCount = len(w.pendingInstanceMembers[inst.RuntimeID])
+			}
+			keepPrivateWater := preservePrivateWater && privateWater && pendingCount > 0
+			if keepPrivateWater {
+				// Keep the private room alive while its characters are offline;
+				// the durable UID map will reattach them on the next login.
+				inst.LeaderID = 0
+				w.markInstanceStateDirty()
+				continue
+			}
 			// O tick comum remove os mobs e encerra a instância sem criar um
 			// segundo caminho de cleanup durante logout/desconexão.
 			inst.TransitionAt = time.Time{}
@@ -1045,6 +1236,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		s.Send(wire.MessagePanel("This instance is not configured."))
 		return
 	}
+	now := w.now()
 	if group := strings.TrimSpace(cfg.ExclusiveGroup); group != "" {
 		for activeID, active := range w.itemInstances {
 			if active == nil ||
@@ -1058,25 +1250,58 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		}
 	}
 	runtimeID := instanceRuntimeKey(cfg)
+	// The previous Water room may have a different config ID (the boss is the
+	// canonical example: its Room 1 ticket opens a new `water-*-1` runtime).
+	// Resolve the player's own grace instance before looking up the next
+	// template; otherwise the old boss membership would survive forever.
+	graceSource := w.itemInstanceExitGraceForPlayer(p.ID)
+	// Private Water executions are independent. The same configured room can
+	// therefore have several live RuntimeIDs at once; only shared-timed events
+	// use a single shared aggregate.
+	if isDurablePrivateWaterConfig(*cfg) {
+		runtimeID = w.nextItemInstanceRuntimeID(cfg)
+	}
 	if inst := w.itemInstances[runtimeID]; inst != nil {
 		if sharedTimedInstance(*cfg) {
 			w.joinSharedTimedItemInstance(s, p, item, slot, rule, inst)
 			return
 		}
-		if !cfg.SharedEntry {
-			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("This instance is already occupied."))
+		// A completed private room remains in the map during exit grace so its
+		// cleanup can observe the transfer. It must not block the next room (and
+		// especially must not collide with a new Room 1 cycle). The latest grace
+		// instance already validated the exact next ticket for this player.
+		if itemInstanceInExitGraceAt(inst, now) {
+			if !w.itemInstanceExitGraceAllowsItem(p.ID, item.Index) {
+				s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+				s.Send(wire.MessagePanel("Only the next Water Scroll can be used during the exit window."))
+				return
+			}
+			if itemInstanceHasMember(inst, p.ID) {
+				graceSource = inst
+			}
+			runtimeID = w.nextItemInstanceRuntimeID(cfg)
+		} else {
+			if !cfg.SharedEntry {
+				s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+				s.Send(wire.MessagePanel("This instance is already occupied."))
+				return
+			}
+			w.joinSharedItemInstance(s, p, item, slot, rule, inst, req)
 			return
 		}
-		w.joinSharedItemInstance(s, p, item, slot, rule, inst, req)
-		return
 	}
 	if !instanceTargetAllowedAt(cfg, p.X, p.Y) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("This ticket cannot be used from here."))
 		return
 	}
-	now := w.now()
+	if isDurablePrivateWaterConfig(*cfg) && cfg.ChainStart {
+		if area, _ := instanceEntryAreaAt(cfg, p.X, p.Y); area.RequiresChain && graceSource == nil {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			s.Send(wire.MessagePanel("This Room 1 Scroll requires a completed Water boss."))
+			return
+		}
+	}
 	scheduleEnd, scheduleOK := instanceScheduleEnd(cfg, now)
 	if !scheduleOK {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -1126,7 +1351,8 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 			return
 		}
 	}
-	if !sharedTimedInstance(*cfg) && w.instanceAreaOccupied(cfg, members...) {
+	if !sharedTimedInstance(*cfg) && !isDurablePrivateWaterConfig(*cfg) &&
+		w.instanceAreaOccupied(cfg, members...) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("This room is already occupied."))
 		return
@@ -1185,7 +1411,12 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	if len(stages) > 0 {
 		firstStage = stages[0]
 	}
-	destinations, positionsOK := w.planInstancePositions(members, firstStage.X, firstStage.Y)
+	placementInstanceID := ""
+	if isDurablePrivateWaterConfig(*cfg) {
+		placementInstanceID = runtimeID
+	}
+	destinations, positionsOK := w.planInstancePositionsIgnoringForInstance(
+		members, firstStage.X, firstStage.Y, nil, placementInstanceID)
 	if !positionsOK {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("The instance entrance is blocked."))
@@ -1268,6 +1499,19 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
+	}
+	// The persistence boundary succeeded. Detach the party from the completed
+	// room now, before publishing the new room, so the old cleanup can never
+	// race the freshly-created membership. If the commit had failed the old
+	// membership would still be present and the rollback above would be exact.
+	if graceSource != nil {
+		moved := make(map[uint16]struct{}, len(members))
+		for _, member := range members {
+			if member != nil {
+				moved[member.ID] = struct{}{}
+			}
+		}
+		w.detachInstanceMembersAfterCommit(graceSource, moved)
 	}
 	w.markInstanceStateDirty()
 	// O primeiro spawn foi montado antes de publicar a execucao para permitir
@@ -1377,7 +1621,11 @@ func (w *World) moveInstanceMembersAtomic(inst *ItemInstance, stage model.Volati
 	for _, member := range members {
 		ignored[member] = struct{}{}
 	}
-	destinations, ok := w.planInstancePositionsIgnoring(members, stage.X, stage.Y, ignored)
+	instanceID := ""
+	if isDurablePrivateWaterInstance(inst) {
+		instanceID = inst.RuntimeID
+	}
+	destinations, ok := w.planInstancePositionsIgnoringForInstance(members, stage.X, stage.Y, ignored, instanceID)
 	if !ok {
 		return false
 	}
@@ -1503,6 +1751,10 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 	// movimento persistido, publicação e só então troca do estado da instância.
 	created := make([]*Mob, 0, stageMobCount(stage))
 	reserved := make(map[uint32]struct{}, len(created))
+	instanceID := ""
+	if isDurablePrivateWaterInstance(inst) {
+		instanceID = inst.RuntimeID
+	}
 	findFree := func(baseX, baseY uint16, radius int) (uint16, uint16, bool) {
 		if radius < 4 {
 			radius = 4
@@ -1519,8 +1771,8 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 					}
 					x, y := uint16(nx), uint16(ny)
 					key := uint32(x)<<16 | uint32(y)
-					if _, used := reserved[key]; used || w.positionOccupied(x, y, nil) ||
-						!w.terrain.Walkable(x, y) {
+					if _, used := reserved[key]; used ||
+						w.positionOccupiedExceptPlayersInInstance(x, y, nil, nil, nil, instanceID) {
 						continue
 					}
 					return x, y, true
@@ -1639,6 +1891,10 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 	}
 	created := make([]*Mob, 0)
 	reserved := make(map[uint32]struct{})
+	instanceID := ""
+	if isDurablePrivateWaterInstance(inst) {
+		instanceID = inst.RuntimeID
+	}
 	findFree := func(baseX, baseY uint16) (uint16, uint16, bool) {
 		radius := stage.AreaRadius
 		if radius < 4 {
@@ -1656,7 +1912,8 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 					}
 					x, y := uint16(nx), uint16(ny)
 					key := uint32(x)<<16 | uint32(y)
-					if _, used := reserved[key]; used || w.positionOccupied(x, y, nil) || !w.terrain.Walkable(x, y) {
+					if _, used := reserved[key]; used ||
+						w.positionOccupiedExceptPlayersInInstance(x, y, nil, nil, nil, instanceID) {
 						continue
 					}
 					return x, y, true
@@ -1722,12 +1979,39 @@ func firstFreeVisibleInventorySlot(ch *model.Char) int {
 // grantItemInstanceReward implementa PutItem do Water: a recompensa pertence
 // somente ao lider. Inventario cheio usa o mesmo fallback nativo de item no
 // chao; persistencia falha mantem a sala pendente para uma nova tentativa.
-func (w *World) grantItemInstanceReward(inst *ItemInstance) bool {
+func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) bool {
 	if inst == nil || inst.RewardGranted {
 		return true
 	}
-	if inst.Config.RewardItem == 0 {
+	oldRewardGranted, oldExitAt, oldExitDeadline := inst.RewardGranted, inst.ExitAt, inst.ExitDeadline
+	finish := func() {
 		inst.RewardGranted = true
+		inst.ExitAt = now.Add(10 * time.Second)
+		inst.ExitDeadline = inst.ExitAt
+	}
+	persistRewardState := func(account *model.Account) error {
+		if _, transactional := w.store.(instanceRuntimeTransactionStore); transactional {
+			if account != nil {
+				return w.saveAccountsAndInstanceState(account)
+			}
+			return w.saveAccountsAndInstanceState()
+		}
+		if account != nil {
+			if isDurablePrivateWaterInstance(inst) || sharedTimedInstance(inst.Config) ||
+				strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate") {
+				return fmt.Errorf("store does not support atomic account/instance persistence")
+			}
+			return w.saveAccount(account)
+		}
+		return w.persistInstanceState()
+	}
+	if inst.Config.RewardItem == 0 {
+		finish()
+		if err := persistRewardState(nil); err != nil {
+			inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
+			log.Printf("INSTANCIA %q: salvar transicao sem recompensa: %v", inst.Config.ID, err)
+			return false
+		}
 		return true
 	}
 	leader := w.playersByID[inst.LeaderID]
@@ -1745,22 +2029,34 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance) bool {
 		if w.groundItems == nil {
 			w.groundItems = make(map[uint16]*GroundItem)
 		}
-		if w.createGroundDrop(leader.X, leader.Y, reward, true) == nil {
+		ground := w.createGroundDropForInstance(leader.X, leader.Y, reward, true, inst.RuntimeID)
+		if ground == nil {
 			return false
 		}
-		inst.RewardGranted = true
+		finish()
+		if err := persistRewardState(leader.Account); err != nil {
+			w.publishItemRemove(ground)
+			delete(w.groundItems, ground.ID)
+			inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
+			log.Printf("INSTANCIA %q: salvar recompensa %d no chao: %v",
+				inst.Config.ID, inst.Config.RewardItem, err)
+			return false
+		}
 		leader.Session.Send(wire.MessagePanel("Inventory full: the next Water Scroll was dropped."))
 		return true
 	}
 
 	leader.Char.Inv[slot] = reward
-	if err := w.saveAccount(leader.Account); err != nil {
+	// Set every authoritative flag before the transaction. If the commit fails,
+	// the complete snapshot (item + reward + exit grace) is restored below.
+	finish()
+	if err := persistRewardState(leader.Account); err != nil {
 		leader.Char.Inv[slot] = model.Item{}
+		inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
 		log.Printf("INSTANCIA %q: salvar recompensa %d: %v",
 			inst.Config.ID, inst.Config.RewardItem, err)
 		return false
 	}
-	inst.RewardGranted = true
 	leader.Session.Send(wire.SendItem(leader.ID, placeInv, byte(slot), reward))
 	leader.Session.Send(wire.MessagePanel("You received the next Water Scroll."))
 	log.Printf("[#%d] INSTANCIA %q concluida: item %d -> inv[%d]",
@@ -1781,9 +2077,7 @@ func (w *World) completeItemInstance(inst *ItemInstance, now time.Time) {
 		(!instanceAdmissionOnlySchedule(inst) && !inst.ScheduleEnd.IsZero() && !now.Before(inst.ScheduleEnd)) {
 		return
 	}
-	if w.grantItemInstanceReward(inst) {
-		inst.ExitAt = now.Add(10 * time.Second)
-		inst.ExitDeadline = inst.ExitAt
+	if w.grantItemInstanceReward(inst, now) {
 		w.markInstanceStateDirty()
 	}
 }
@@ -2173,7 +2467,19 @@ func (w *World) tickItemInstances(now time.Time) {
 		if !allExited {
 			continue
 		}
+		// A reward dropped on the floor is private while its Water room exists.
+		// Once the room is definitively gone, release it to the public world so
+		// an uncollected fallback is not stranded behind a deleted RuntimeID.
+		for _, ground := range w.groundItems {
+			if ground == nil || ground.InstanceID != id {
+				continue
+			}
+			ground.InstanceID = ""
+			w.publishItemSpawn(ground)
+		}
 		delete(w.itemInstances, id)
+		delete(w.pendingInstanceMembers, id)
+		delete(w.pendingInstanceLeaders, id)
 		w.markInstanceStateDirty()
 		log.Printf("INSTANCIA %q encerrada", id)
 	}

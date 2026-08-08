@@ -1,6 +1,10 @@
 package game
 
-import "wydgo/internal/wire"
+import (
+	"strings"
+
+	"wydgo/internal/wire"
+)
 
 // O grid nativo W2PP usa meia janela 16. Este emulador amplia para 32 para que
 // PvP e mapas de guerra conservem entidades ate o limite visual da camera. A
@@ -52,6 +56,55 @@ func (w *World) mobVisibleToPlayer(p *Player, m *Mob) bool {
 		return true
 	}
 	return instanceMemberInStage(w.instanceForMob(m), p)
+}
+
+// privateWaterRuntimeIDForPlayer returns the private Water room currently
+// owning a player.  Water rooms reuse the physical map coordinates, so a
+// spatial-radius query alone is not a sufficient visibility boundary: a
+// player in another room (or in the public world) must not receive movement,
+// vitals, affects or death packets from this avatar.
+func (w *World) privateWaterRuntimeIDForPlayer(playerID uint16) string {
+	if w == nil || playerID == 0 {
+		return ""
+	}
+	for runtimeID, inst := range w.itemInstances {
+		if isDurablePrivateWaterInstance(inst) && itemInstanceHasMember(inst, playerID) {
+			if strings.TrimSpace(runtimeID) != "" {
+				return runtimeID
+			}
+			if inst.RuntimeID != "" {
+				return inst.RuntimeID
+			}
+			return inst.Config.ID
+		}
+	}
+	return ""
+}
+
+// playersVisibleTogether applies the private Water boundary symmetrically.
+// Public players continue to see one another normally; two players in the
+// same private room can see one another; a private-room player never sees or
+// leaks to a different room/public player.
+func (w *World) playersVisibleTogether(a, b *Player) bool {
+	if a == nil || b == nil || a == b {
+		return a != nil && b != nil && a == b
+	}
+	aRuntime := w.privateWaterRuntimeIDForPlayer(a.ID)
+	bRuntime := w.privateWaterRuntimeIDForPlayer(b.ID)
+	if aRuntime == "" && bRuntime == "" {
+		return true
+	}
+	return aRuntime != "" && aRuntime == bRuntime
+}
+
+func (w *World) groundItemVisibleToPlayer(p *Player, g *GroundItem) bool {
+	if p == nil || g == nil {
+		return false
+	}
+	if strings.TrimSpace(g.InstanceID) == "" {
+		return true
+	}
+	return w.privateWaterRuntimeIDForPlayer(p.ID) == g.InstanceID
 }
 
 func (w *World) hideMob(p *Player, m *Mob, removeType uint32) {
@@ -128,7 +181,7 @@ func playerAppearancePacket(subject *Player) []byte {
 
 func (w *World) showPlayerPair(a, b *Player) {
 	if a == nil || b == nil || a == b || !a.InWorld || !b.InWorld ||
-		a.Char == nil || b.Char == nil {
+		a.Char == nil || b.Char == nil || !w.playersVisibleTogether(a, b) {
 		return
 	}
 	if !a.hasVisible(b.ID) {
@@ -220,7 +273,7 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 	nearPlayers := w.nearbyWorldPlayers(p.X, p.Y, viewHalfX)
 	nearPlayerIDs := make(map[uint16]struct{}, len(nearPlayers))
 	for _, other := range nearPlayers {
-		if other == p {
+		if other == p || !w.playersVisibleTogether(p, other) {
 			continue
 		}
 		nearPlayerIDs[other.ID] = struct{}{}
@@ -231,12 +284,12 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 		if other == nil || other == p {
 			continue
 		}
-		if _, nearby := nearPlayerIDs[id]; !nearby {
+		if _, nearby := nearPlayerIDs[id]; !nearby || !w.playersVisibleTogether(p, other) {
 			w.hidePlayerPair(p, other)
 		}
 	}
 	for _, g := range w.groundItems {
-		visible := inView(p.X, p.Y, g.X, g.Y)
+		visible := w.groundItemVisibleToPlayer(p, g) && inView(p.X, p.Y, g.X, g.Y)
 		switch {
 		case visible && !p.hasVisible(g.ID):
 			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, g.Rotate, g.State, 0, 0, 0))
@@ -358,6 +411,10 @@ func (w *World) publishPlayerMove(player *Player, fromX, fromY uint16, route []b
 		observers[observer.ID] = observer
 	}
 	for _, observer := range observers {
+		if observer != player && !w.playersVisibleTogether(observer, player) {
+			w.hidePlayerPair(observer, player)
+			continue
+		}
 		if observer != player && observer.hasVisible(player.ID) {
 			observer.Session.Send(wire.PlayerMove(player.ID, fromX, fromY, player.X, player.Y, speed, route))
 		}
@@ -393,6 +450,10 @@ func (w *World) publishPlayerStop(player *Player) {
 			}
 		}
 		for _, observer := range observers {
+			if observer != player && !w.playersVisibleTogether(observer, player) {
+				w.hidePlayerPair(observer, player)
+				continue
+			}
 			if observer != player && observer.hasVisible(player.ID) {
 				observer.Session.Send(wire.PlayerMove(
 					player.ID, startX, startY, player.X, player.Y, speed, nil))
@@ -438,6 +499,9 @@ func (w *World) publishPlayerDeath(victim *Player, killerID uint16) {
 		return
 	}
 	for _, recipient := range w.nearbyWorldPlayers(victim.X, victim.Y, viewHalfX) {
+		if !w.playersVisibleTogether(recipient, victim) {
+			continue
+		}
 		if recipient != victim && !recipient.hasVisible(victim.ID) {
 			continue
 		}
@@ -485,6 +549,9 @@ func (w *World) sendToPlayerView(subject *Player, build func() []byte) {
 		return
 	}
 	for _, p := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
+		if !w.playersVisibleTogether(p, subject) {
+			continue
+		}
 		if p == subject || p.hasVisible(subject.ID) {
 			p.Session.Send(build())
 		}
@@ -534,7 +601,7 @@ func (w *World) syncPlayerVitalsToObservers(subject *Player) {
 		return
 	}
 	for _, p := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
-		if p != subject && p.hasVisible(subject.ID) {
+		if p != subject && w.playersVisibleTogether(p, subject) && p.hasVisible(subject.ID) {
 			p.Session.Send(wire.SetHpMpExtended(subject.ID, wireExtendedScore(subject.Char)))
 		}
 	}
@@ -572,7 +639,7 @@ func (w *World) syncPlayerChaos(subject *Player) {
 
 func (w *World) publishItemSpawn(g *GroundItem) {
 	for _, p := range w.nearbyWorldPlayers(g.X, g.Y, viewHalfX) {
-		if !p.hasVisible(g.ID) {
+		if w.groundItemVisibleToPlayer(p, g) && !p.hasVisible(g.ID) {
 			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, g.Rotate, g.State, 0, 0, 0))
 			p.show(g.ID)
 		}

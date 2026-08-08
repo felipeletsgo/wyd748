@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -37,28 +38,180 @@ func (w *World) instanceStateSnapshot() *model.InstanceStateSnapshot {
 	now := w.now()
 	for runtimeID, inst := range w.itemInstances {
 		if inst == nil || (!sharedTimedInstance(inst.Config) &&
+			!isDurablePrivateWaterInstance(inst) &&
 			!strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate")) {
 			continue
 		}
 		if !inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline) {
 			continue
 		}
-		snapshot.Instances = append(snapshot.Instances, model.InstanceRuntimeState{
+		saved := model.InstanceRuntimeState{
 			RuntimeID: runtimeID, ConfigID: inst.Config.ID,
 			SharedGroup: inst.Config.SharedGroup, State: inst.State,
 			CurrentStage: inst.CurrentStage, ScheduleEnd: inst.ScheduleEnd,
 			HardDeadline: inst.HardDeadline, CombatDeadline: instanceCombatDeadline(inst),
+			TransitionAt: inst.TransitionAt, QuizAt: inst.QuizAt, ExitAt: inst.ExitAt,
+			RewardGranted:         inst.RewardGranted,
 			HellGateVariant:       inst.HellGateVariant,
 			HellGateClearedMask:   inst.HellGateClearedMask,
 			HellGateLichSpawned:   inst.HellGateLichSpawnedMask,
 			HellGateValidLichMask: inst.HellGateValidLichMask,
 			HellGateWrongLich:     inst.HellGateWrongLich,
-		})
+		}
+		if isDurablePrivateWaterInstance(inst) {
+			memberUIDs, leaderUID := w.instanceCharacterUIDs(runtimeID, inst)
+			// A private room without a stable owner cannot be reattached after a
+			// restart; keeping it would create an unreachable, resource-consuming
+			// instance. Legacy fixtures without CharacterUID therefore remain
+			// process-local and are cleaned by the normal runtime path.
+			if len(memberUIDs) == 0 {
+				continue
+			}
+			saved.MemberCharacterUIDs = memberUIDs
+			saved.LeaderCharacterUID = leaderUID
+		}
+		snapshot.Instances = append(snapshot.Instances, saved)
 	}
 	sort.Slice(snapshot.Instances, func(i, j int) bool {
 		return snapshot.Instances[i].RuntimeID < snapshot.Instances[j].RuntimeID
 	})
 	return snapshot
+}
+
+// isDurablePrivateWaterInstance identifies the Water rooms that may outlive a
+// socket/process restart. It intentionally relies on the authoritative
+// instance ID rather than a volatile item ID or client packet.
+func isDurablePrivateWaterInstance(inst *ItemInstance) bool {
+	if inst == nil {
+		return false
+	}
+	return isDurablePrivateWaterConfig(inst.Config)
+}
+
+func isDurablePrivateWaterConfig(cfg model.VolatileInstance) bool {
+	if sharedTimedInstance(cfg) ||
+		strings.EqualFold(strings.TrimSpace(cfg.StateMachine), "hell_gate") {
+		return false
+	}
+	id := strings.ToLower(strings.TrimSpace(cfg.ID))
+	return strings.HasPrefix(id, "water-")
+}
+
+func appendUniqueString(values []string, value string) []string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return values
+	}
+	for _, existing := range values {
+		if existing == value {
+			return values
+		}
+	}
+	return append(values, value)
+}
+
+// instanceCharacterUIDs merges live members with the detached identities kept
+// by the world. The result is sorted so snapshots remain deterministic.
+func (w *World) instanceCharacterUIDs(runtimeID string, inst *ItemInstance) ([]string, string) {
+	if inst == nil {
+		return nil, ""
+	}
+	memberUIDs := []string(nil)
+	leaderUID := strings.TrimSpace(inst.LeaderCharacterUID)
+	if pendingLeader := strings.TrimSpace(w.pendingInstanceLeaders[runtimeID]); pendingLeader != "" {
+		// An explicit detached leader wins over a temporary live promotion.
+		leaderUID = pendingLeader
+	}
+	for _, playerID := range inst.MemberIDs {
+		p := w.playersByID[playerID]
+		if p == nil || p.Char == nil || strings.TrimSpace(p.Char.UID) == "" {
+			continue
+		}
+		uid := strings.TrimSpace(p.Char.UID)
+		memberUIDs = appendUniqueString(memberUIDs, uid)
+		if playerID == inst.LeaderID && leaderUID == "" {
+			leaderUID = uid
+		}
+	}
+	if pending := w.pendingInstanceMembers[runtimeID]; pending != nil {
+		for uid := range pending {
+			memberUIDs = appendUniqueString(memberUIDs, uid)
+		}
+	}
+	sort.Strings(memberUIDs)
+	return memberUIDs, leaderUID
+}
+
+func (w *World) stageSpawnPosition(inst *ItemInstance) (uint16, uint16, int, bool) {
+	if inst == nil {
+		return 0, 0, 0, false
+	}
+	stages := instanceStages(&inst.Config)
+	if inst.CurrentStage < 0 || inst.CurrentStage >= len(stages) {
+		return 0, 0, 0, false
+	}
+	stage := stages[inst.CurrentStage]
+	x, y := stage.SpawnX, stage.SpawnY
+	if x == 0 || y == 0 {
+		x, y = stage.X, stage.Y
+	}
+	return x, y, stage.AreaRadius, x != 0 && y != 0
+}
+
+// attachRestoredInstanceMember reconnects a character to its private Water
+// room before the first EnterWorld packet is built. The authoritative room
+// position therefore appears as the initial position instead of a corrective
+// teleport. A reconnect never trusts the former world/client ID.
+func (w *World) attachRestoredInstanceMember(p *Player) {
+	if w == nil || p == nil || p.Char == nil || strings.TrimSpace(p.Char.UID) == "" {
+		return
+	}
+	uid := strings.TrimSpace(p.Char.UID)
+	now := w.now()
+	for runtimeID, pending := range w.pendingInstanceMembers {
+		if _, ok := pending[uid]; !ok {
+			continue
+		}
+		inst := w.itemInstances[runtimeID]
+		if inst == nil || (!inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline)) ||
+			(!inst.ExitAt.IsZero() && !now.Before(inst.ExitAt)) {
+			continue
+		}
+		if active := w.itemInstanceForPlayer(p.ID); active != nil && active != inst {
+			return
+		}
+		if !itemInstanceHasMember(inst, p.ID) {
+			inst.MemberIDs = append(inst.MemberIDs, p.ID)
+		}
+		inst.MemberCharacterUIDs = appendUniqueString(inst.MemberCharacterUIDs, uid)
+		if inst.LeaderID == 0 {
+			leaderUID := strings.TrimSpace(w.pendingInstanceLeaders[runtimeID])
+			if leaderUID == "" || leaderUID == uid {
+				inst.LeaderID = p.ID
+			}
+		}
+		if leaderUID := strings.TrimSpace(w.pendingInstanceLeaders[runtimeID]); leaderUID == uid ||
+			strings.TrimSpace(inst.LeaderCharacterUID) == uid {
+			inst.LeaderID = p.ID
+		}
+		if x, y, radius, ok := w.stageSpawnPosition(inst); ok {
+			if radius < 1 {
+				radius = 1
+			}
+			p.X, p.Y = w.findFreePlayerPosition(x, y, radius, p)
+			p.Char.X, p.Char.Y = p.X, p.Y
+		}
+		delete(pending, uid)
+		if len(pending) == 0 {
+			delete(w.pendingInstanceMembers, runtimeID)
+		}
+		if w.pendingInstanceLeaders[runtimeID] == uid {
+			delete(w.pendingInstanceLeaders, runtimeID)
+		}
+		w.markInstanceStateDirty()
+		log.Printf("personagem %q reconectado na instancia Water %q", p.Char.Name, runtimeID)
+		return
+	}
 }
 
 func (w *World) persistInstanceState() error {
@@ -70,12 +223,44 @@ func (w *World) persistInstanceState() error {
 }
 
 func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
+	snapshot := w.instanceStateSnapshot()
+	// A transaction-capable store still cannot make an unreachable private
+	// Water room safe: the snapshot intentionally omits rooms that have no
+	// stable CharacterUID. Refuse the account mutation instead of consuming a
+	// ticket whose room would disappear after a restart.
+	if len(accounts) > 0 {
+		for runtimeID, inst := range w.itemInstances {
+			if !isDurablePrivateWaterInstance(inst) {
+				continue
+			}
+			uids, _ := w.instanceCharacterUIDs(runtimeID, inst)
+			if len(uids) == 0 {
+				return fmt.Errorf("private Water instance %q has no stable character UID", runtimeID)
+			}
+		}
+	}
 	store, ok := w.store.(instanceRuntimeTransactionStore)
 	if ok {
 		for _, account := range accounts {
 			pinAccountEntryPositions(account)
 		}
-		return store.SaveGameStateWithInstanceState(nil, w.instanceStateSnapshot(), accounts...)
+		return store.SaveGameStateWithInstanceState(nil, snapshot, accounts...)
+	}
+	// A mixed operation (ticket/position/account plus a durable instance) must
+	// never be split into two commits. The old fallback could consume a ticket
+	// and then fail while persisting the room, or vice versa. Lightweight stores
+	// may still persist account-only operations; they cannot claim atomic event
+	// state without implementing the transaction interface.
+	if len(accounts) > 0 {
+		for _, inst := range w.itemInstances {
+			if inst == nil {
+				continue
+			}
+			if sharedTimedInstance(inst.Config) || isDurablePrivateWaterInstance(inst) ||
+				strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate") {
+				return fmt.Errorf("store does not support atomic account/instance persistence")
+			}
+		}
 	}
 	if err := w.saveAccountsAtomic(accounts...); err != nil {
 		return err
@@ -107,14 +292,18 @@ func (w *World) restoreInstanceState() error {
 			continue
 		}
 		cfg, found := w.instanceConfigByID(saved.ConfigID, saved.RuntimeID)
-		if !found || (!sharedTimedInstance(cfg) &&
+		if !found || (!sharedTimedInstance(cfg) && !isDurablePrivateWaterInstance(&ItemInstance{Config: cfg}) &&
 			!strings.EqualFold(strings.TrimSpace(cfg.StateMachine), "hell_gate")) {
 			continue
 		}
 		inst := &ItemInstance{
 			Config: cfgCopy(cfg), RuntimeID: saved.RuntimeID, State: saved.State,
 			CurrentStage: saved.CurrentStage, ScheduleEnd: saved.ScheduleEnd,
-			HardDeadline: saved.HardDeadline, MobIDs: make(map[uint16]struct{}),
+			MemberCharacterUIDs: append([]string(nil), saved.MemberCharacterUIDs...),
+			LeaderCharacterUID:  saved.LeaderCharacterUID,
+			HardDeadline:        saved.HardDeadline, TransitionAt: saved.TransitionAt,
+			QuizAt: saved.QuizAt, ExitAt: saved.ExitAt, RewardGranted: saved.RewardGranted,
+			MobIDs: make(map[uint16]struct{}),
 			NPCIDs: make(map[uint16]struct{}), MobQuadrants: make(map[uint16]uint8),
 			HellGateLichIDs:         make(map[uint8]uint16),
 			HellGateVariant:         saved.HellGateVariant,
@@ -122,6 +311,31 @@ func (w *World) restoreInstanceState() error {
 			HellGateLichSpawnedMask: saved.HellGateLichSpawned,
 			HellGateValidLichMask:   saved.HellGateValidLichMask,
 			HellGateWrongLich:       saved.HellGateWrongLich,
+		}
+		if w.pendingInstanceMembers == nil {
+			w.pendingInstanceMembers = make(map[string]map[string]struct{})
+		}
+		if w.pendingInstanceLeaders == nil {
+			w.pendingInstanceLeaders = make(map[string]string)
+		}
+		if isDurablePrivateWaterInstance(inst) {
+			if len(saved.MemberCharacterUIDs) == 0 {
+				// An old snapshot without stable ownership cannot be safely
+				// reattached. Do not resurrect an unreachable private room.
+				continue
+			}
+			pending := make(map[string]struct{}, len(saved.MemberCharacterUIDs))
+			for _, uid := range saved.MemberCharacterUIDs {
+				if strings.TrimSpace(uid) != "" {
+					pending[strings.TrimSpace(uid)] = struct{}{}
+				}
+			}
+			if len(pending) > 0 {
+				w.pendingInstanceMembers[saved.RuntimeID] = pending
+			}
+			if leader := strings.TrimSpace(saved.LeaderCharacterUID); leader != "" {
+				w.pendingInstanceLeaders[saved.RuntimeID] = leader
+			}
 		}
 		if inst.CurrentStage < 0 {
 			inst.CurrentStage = 0
@@ -132,7 +346,11 @@ func (w *World) restoreInstanceState() error {
 		// Gate needs its state-machine phase restored before the generic stage
 		// path, otherwise a partially solved puzzle would respawn only the entry
 		// controller and silently discard the selected Lich pair.
-		if _, hellGate := hellGateInstance(inst); hellGate {
+		if isDurablePrivateWaterInstance(inst) && !inst.ExitAt.IsZero() {
+			// A completed room in exit grace has no live content to respawn. The
+			// ticket chain remains represented by the durable deadlines/UIDs.
+			inst.Remaining = 0
+		} else if _, hellGate := hellGateInstance(inst); hellGate {
 			if !w.restoreHellGateRuntime(inst, saved, now) {
 				delete(w.itemInstances, saved.RuntimeID)
 				continue

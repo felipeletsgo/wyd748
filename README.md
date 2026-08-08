@@ -117,8 +117,10 @@ The server has these systems. The server has authority on each system.
   the summon contracts, the Sephira books, the gate keys, and the complete
   Mystic/Normal/Arcane Water chain (24 regular rooms plus three Nessus rooms).
   Each cleared regular room gives the party leader the next scroll, including
-  the boss letter after room eight. Water tickets create party instances with
-  physical room exclusion, native two-minute timers, mixed boss populations,
+  the boss letter after room eight. Room 8 opens an independent boss instance,
+  and a Room 1 scroll can close the cycle during exit grace. Water tickets
+  create party instances with physical room exclusion, native two-minute timers,
+  mixed boss populations,
   mob counters, transactional rewards, and automatic exit. A gate key finds
   its door by the `EF_KEYID` effect, not by the item index. Magic Chamber,
   Nightmare, timed Hidden Ruins/Service access, mount boxes/revival, event

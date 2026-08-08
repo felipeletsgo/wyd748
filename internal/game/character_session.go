@@ -122,6 +122,9 @@ func (w *World) onCharacterLogout(s *net.Session, pkt []byte) {
 	// a selecao e a reentrada.
 	w.saveCharState(p)
 	w.removePlayerFromWorld(p, "retorno a selecao")
+	// Character logout also detaches a private Water member. Persist that UID
+	// association before the session returns to character select.
+	w.flushInstanceStateIfDirty()
 	if p.Account != nil {
 		if err := w.saveAccount(p.Account); err != nil {
 			log.Printf("[#%d] ERRO ao salvar conta %q no character-logout: %v", s.ID, p.Account.Name, err)
