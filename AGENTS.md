@@ -2,15 +2,197 @@
 
 ## Política de modelo
 
-Todas as tarefas deste projeto, incluindo skills e subagentes, devem usar o
-modelo `gpt-5.6-luna` com esforço de raciocínio `max`.
+O modelo e o nível de raciocínio são definidos pela sessão/ambiente Codex.
+Quando a sessão oferecer `gpt-5.6-luna`, usar esse modelo com esforço `max`,
+conforme a preferência do projeto. Caso ele não esteja disponível, usar o
+modelo fornecido pela sessão e o maior nível de raciocínio disponível; nunca
+afirmar que um modelo indisponível foi utilizado.
 
-Skills, subagentes e ferramentas não devem substituir essa política por outro
-modelo nem reduzir o esforço de raciocínio.
+Skills, subagentes e ferramentas não podem reduzir o nível de raciocínio
+exigido pela tarefa nem substituir silenciosamente um workflow obrigatório.
 
 O projeto exige análise técnica profunda. Não priorize velocidade sobre
 correção. Em tarefas de código, auditoria, protocolo, persistência ou mecânicas
 de gameplay, investigue o fluxo completo antes de concluir.
+
+---
+
+# Uso obrigatório de skills
+
+O diretório canônico de skills versionadas deste projeto é:
+
+```text
+.agents/skills
+```
+
+Resolva esse caminho a partir da raiz do repositório. Não codifique caminhos
+absolutos do computador do desenvolvedor em scripts, documentação ou testes.
+Além das skills versionadas, considere as skills fornecidas pela sessão Codex
+quando a tarefa exigir uma integração, como GitHub.
+
+## Regra obrigatória
+
+Skills fazem parte do procedimento de execução deste projeto e **não são
+opcionais**.
+
+Antes de iniciar **qualquer tarefa técnica não trivial**, o agente deve:
+
+1. inspecionar `.agents/skills` e as skills fornecidas pela sessão que possam
+   ser aplicáveis;
+2. identificar quais skills são aplicáveis à tarefa;
+3. abrir e ler o `SKILL.md` atual de cada skill necessária;
+4. seguir o workflow, restrições, referências e validações definidos pela skill;
+5. somente depois iniciar análise, planejamento, edição ou implementação.
+
+Se existir uma skill aplicável, o agente **DEVE usá-la**.
+
+É proibido:
+
+- ignorar uma skill aplicável e trabalhar apenas com conhecimento próprio;
+- considerar uma skill "usada" sem abrir seu `SKILL.md` na tarefa atual;
+- substituir silenciosamente o workflow da skill por um procedimento genérico;
+- iniciar pesquisa em fontes externas antes de consultar a skill que governa a
+  tarefa;
+- declarar a tarefa concluída sem executar as validações obrigatórias da skill.
+
+A obrigação vale também para auditorias, revisões, debugging, planejamento,
+implementação, testes, GitHub, PRs, CI e patches do client.
+
+## Descoberta de skills
+
+Não assumir que a lista de skills conhecida pelo modelo está completa ou
+atualizada.
+
+Para cada nova tarefa técnica, verificar o conteúdo atual de:
+
+```text
+.agents/skills
+```
+
+e localizar os `SKILL.md` pertinentes.
+
+Quando houver uma skill mais específica e outra mais genérica, usar a específica
+para o workflow principal e a genérica apenas quando também for necessária.
+
+Se mais de uma skill cobrir partes diferentes da tarefa, usar todas as skills
+necessárias.
+
+## WYD-Go Feature — obrigatória para tarefas de gameplay
+
+Para qualquer tarefa relacionada ao comportamento, implementação, auditoria ou
+pesquisa do servidor/client WYD, é obrigatório abrir primeiro:
+
+```text
+.agents/skills/wyd-go-feature/SKILL.md
+```
+
+Isso inclui, entre outros:
+
+- mecânicas nativas;
+- packets e protocolo;
+- client WYD 7.48;
+- descompilação do client;
+- patches, hooks, trampolines e ABI do `WYD.exe`;
+- itens e volatiles;
+- skills;
+- mobs;
+- bosses;
+- quests;
+- instâncias;
+- Water;
+- Cube;
+- Big Cube;
+- Nightmare;
+- Hell Gate;
+- crafting;
+- evolução;
+- combate;
+- affects;
+- inventário;
+- comércio;
+- guild;
+- party;
+- movimento;
+- drops;
+- macros;
+- comparação com W2PP;
+- comparação com Secrets 7.54;
+- comparação com Micronics;
+- outras sources WYD.
+
+**Nenhuma análise técnica desses assuntos deve começar antes da leitura do
+`SKILL.md` atual da `wyd-go-feature`.**
+
+Depois de carregar a skill, consultar somente as referências necessárias ao
+problema atual.
+
+## GitHub e workflows especializados
+
+Quando a tarefa envolver GitHub, PR, CI, revisão ou publicação, verificar as
+skills disponíveis na sessão Codex e no repositório, usando obrigatoriamente a
+mais específica.
+
+Exemplos de roteamento:
+
+```text
+triagem ou contexto geral de GitHub/PR/issue
+→ skill GitHub geral
+
+comentários/review threads de PR
+→ skill específica para review comments
+
+GitHub Actions ou checks falhando
+→ skill específica de CI
+
+commit/push/publicação de branch ou PR
+→ skill específica de publicação
+```
+
+Não executar um workflow genérico quando existir uma skill específica para a
+operação solicitada.
+
+## Skills e subagentes
+
+Toda delegação mantém estas regras.
+
+Subagentes:
+
+- devem seguir `AGENTS.md`;
+- devem usar o modelo e o nível de raciocínio disponíveis na sessão, preferindo
+  `gpt-5.6-luna`/`max` somente quando oferecidos pelo ambiente;
+- devem inspecionar as skills aplicáveis à própria subtarefa;
+- devem abrir os respectivos `SKILL.md`;
+- não podem reduzir validações exigidas pela skill principal.
+
+Uma skill ou subagente não pode substituir a política de modelo deste projeto.
+
+## Falha de acesso à skill
+
+Se uma skill aplicável estiver ausente, ilegível ou inacessível:
+
+1. não fingir que ela foi consultada;
+2. não declarar a tarefa concluída;
+3. informar explicitamente qual skill não pôde ser usada e por quê.
+
+Somente prosseguir sem a skill quando a tarefa puder ser executada de forma
+independente sem violar uma exigência obrigatória do projeto, deixando essa
+limitação explícita.
+
+## Gate obrigatório de conclusão
+
+Antes de declarar qualquer tarefa técnica concluída, verificar:
+
+```text
+[ ] inspecionei .agents/skills
+[ ] identifiquei todas as skills aplicáveis
+[ ] abri o SKILL.md atual de cada skill necessária
+[ ] segui o workflow e as restrições das skills
+[ ] consultei somente as referências necessárias
+[ ] executei as validações exigidas pelas skills
+[ ] não substituí evidência por relatório ou suposição
+```
+
+Se qualquer item obrigatório estiver pendente, a tarefa **não está concluída**.
 
 ---
 
@@ -65,10 +247,9 @@ Ao investigar um comportamento, use esta prioridade:
 6. Secrets 7.54;
 7. Micronics e outras referências compatíveis.
 
-Para mecânica nativa, use a skill `wyd-go-feature`.
+Para qualquer tarefa relacionada ao WYD, a leitura de `.agents/skills/wyd-go-feature/SKILL.md` é pré-condição obrigatória, conforme a seção **Uso obrigatório de skills**.
 
-Consulte apenas as referências relacionadas ao problema atual. Não carregue
-toda a documentação ou todas as fontes por padrão.
+Depois de carregar a skill, consulte apenas as referências relacionadas ao problema atual. Não carregue toda a documentação ou todas as fontes por padrão.
 
 Ao usar implementação de outra versão:
 
@@ -888,155 +1069,6 @@ e informe o que falta para confirmar.
 ---
 
 
-## Uso obrigatório de skills
-
-Skills fazem parte do procedimento de execução deste projeto e **não são
-opcionais**.
-
-Antes de iniciar qualquer tarefa técnica não trivial, o agente deve verificar
-quais skills instaladas são aplicáveis à tarefa.
-
-Se existir uma skill aplicável, o agente **DEVE usá-la antes de analisar,
-planejar, editar ou implementar código**.
-
-Não é permitido ignorar uma skill aplicável e executar a tarefa diretamente
-apenas com conhecimento próprio do modelo.
-
-### Procedimento obrigatório
-
-Para cada tarefa técnica:
-
-1. identificar o domínio da tarefa;
-2. verificar as skills disponíveis relacionadas a esse domínio;
-3. abrir e ler o `SKILL.md` da skill aplicável;
-4. seguir o workflow, referências, restrições e validações definidos nela;
-5. somente depois iniciar a investigação ou implementação;
-6. consultar apenas as referências adicionais necessárias ao problema atual.
-
-Se mais de uma skill for aplicável, usar todas as necessárias, respeitando a
-skill mais específica para cada parte da tarefa.
-
-Uma skill não pode ser considerada usada apenas porque o agente conhece ou
-lembra suas instruções. O agente deve efetivamente consultar a versão atual do
-`SKILL.md` durante a tarefa.
-
-### WYD-Go Feature
-
-Para qualquer tarefa envolvendo comportamento ou mecânica do WYD, a skill:
-
-```text
-.agents/skills/wyd-go-feature
-```
-
-é **obrigatória**.
-
-Isso inclui, entre outros:
-
-- mecânicas nativas;
-- packets e protocolo;
-- comportamento do client 7.48;
-- itens;
-- skills;
-- mobs;
-- bosses;
-- quests;
-- instâncias;
-- Water;
-- Cube;
-- Big Cube;
-- Nightmare;
-- Hell Gate;
-- crafting;
-- evolução;
-- combate;
-- affects;
-- inventário;
-- comércio;
-- guild;
-- party;
-- movimento;
-- drops;
-- macros;
-- patches ou hooks do `WYD.exe`;
-- comparação com W2PP, Secrets, Micronics ou outras sources.
-
-Antes de trabalhar nesses assuntos, o agente deve abrir:
-
-```text
-.agents/skills/wyd-go-feature/SKILL.md
-```
-
-e seguir suas instruções.
-
-**Não iniciar pesquisa em sources externas antes de consultar essa skill.**
-
-A ordem de pesquisa continua sendo:
-
-```text
-implementação atual
-→ W2PP
-→ Secrets 7.54
-→ Micronics/client 7.48
-```
-
-mas as referências específicas a consultar devem ser determinadas pelo workflow
-da skill.
-
-### Outras skills
-
-Skills especializadas também são obrigatórias quando correspondem à tarefa.
-
-Exemplos:
-
-```text
-GitHub / PR / CI
-→ usar a skill GitHub apropriada
-
-correção de comentários de PR
-→ usar a skill específica de review/comments
-
-falha de GitHub Actions
-→ usar a skill específica de CI
-
-publicação de branch/commit/PR
-→ usar a skill de publicação correspondente
-```
-
-Não substituir uma skill especializada por uma abordagem genérica se a skill
-estiver disponível.
-
-### Skills e subagentes
-
-Se uma skill criar, orientar ou delegar trabalho para subagentes:
-
-- os subagentes também devem seguir `AGENTS.md`;
-- continuam obrigados a usar `gpt-5.6-luna`;
-- continuam obrigados a usar esforço `max`;
-- devem usar as skills aplicáveis à subtarefa;
-- não podem reduzir o nível de validação definido pela skill principal.
-
-### Falha ao usar a skill
-
-Se uma skill obrigatória estiver ausente, ilegível ou não puder ser executada,
-o agente deve declarar explicitamente essa limitação.
-
-Não deve silenciosamente substituir a skill por inferência própria.
-
-### Regra de conclusão
-
-Antes de concluir uma tarefa técnica, o agente deve verificar:
-
-```text
-[ ] identifiquei as skills aplicáveis
-[ ] consultei o SKILL.md atual de cada skill necessária
-[ ] segui o workflow da skill
-[ ] consultei somente as referências necessárias
-[ ] executei as validações exigidas pela skill
-```
-
-Se algum item obrigatório não tiver sido cumprido, a tarefa não deve ser
-declarada concluída.
-
 # Regra final
 
 Neste projeto, uma resposta tecnicamente conservadora é melhor que uma
@@ -1053,4 +1085,3 @@ código executado
 ```
 
 a prioridade é descobrir o comportamento real do sistema.
-
