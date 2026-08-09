@@ -43,6 +43,7 @@ jobs:
           internal/game/crafting_test.go
           internal/game/consumables_test.go
           internal/game/volatile_actions_test.go
+          internal/store/store_test.go
 
       - name: Show remaining 100-value RNG sites
         run: |
@@ -100,6 +101,7 @@ jobs:
             internal/game/crafting_test.go \
             internal/game/consumables_test.go \
             internal/game/volatile_actions_test.go \
+            internal/store/store_test.go \
             DOCS/CRAFTING.md
           git diff --cached --check
           git commit -m 'fix: standardize economic percentage rolls'
