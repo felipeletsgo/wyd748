@@ -1,0 +1,78 @@
+name: percentage-refactor-bootstrap
+
+on:
+  push:
+    branches:
+      - agent/percent-roll-audit
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    if: github.event.head_commit.message == 'chore: run percentage refactor bootstrap'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/percent-roll-audit
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Apply refactor
+        run: python3 tools/percent_refactor.py
+
+      - name: Format changed Go files
+        run: >-
+          gofmt -w
+          internal/game/percent_roll.go
+          internal/game/percent_roll_test.go
+          internal/game/crafting.go
+          internal/game/crafting_simple.go
+          internal/game/crafting_advanced.go
+          internal/game/consumables.go
+          internal/game/indexed_use_items.go
+          internal/game/mount.go
+          internal/game/celestial_native_progression_test.go
+
+      - name: Show remaining 100-value RNG sites
+        run: |
+          grep -R -n -E 'rand\.Intn\(100\)|\.intn\(100\)' internal/game || true
+
+      - name: Test
+        run: go test ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build server
+        run: |
+          mkdir -p tmp
+          go build -o tmp/tm-check.exe ./cmd/server
+          rm -f tmp/tm-check.exe
+
+      - name: Diff check
+        run: git diff --check
+
+      - name: Commit validated refactor
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            internal/game/percent_roll.go \
+            internal/game/percent_roll_test.go \
+            internal/game/crafting.go \
+            internal/game/crafting_simple.go \
+            internal/game/crafting_advanced.go \
+            internal/game/consumables.go \
+            internal/game/indexed_use_items.go \
+            internal/game/mount.go \
+            internal/game/celestial_native_progression_test.go \
+            DOCS/CRAFTING.md
+          git diff --cached --check
+          git commit -m 'fix: standardize economic percentage rolls'
+          git push origin HEAD:agent/percent-roll-audit
