@@ -1,0 +1,103 @@
+name: Water Silver document polish final
+
+on:
+  push:
+    branches:
+      - agent/water-silver-server-auto
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/water-silver-server-auto
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Rewrite Water plan block literally
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          from pathlib import Path
+          import re
+
+          path = Path('DOCS/plan.md')
+          text = path.read_text(encoding='utf-8')
+          pattern = r'(?s)## Water e automação server-side — entregue em 09/08/2026\n\n.*?(?=## Auditoria transversal de isolamento)'
+          replacement = '''## Water e automação server-side — entregue em 09/08/2026
+
+          O encadeamento Water permanece modelado como instâncias independentes: Room 8
+          abre o boss somente pelo Boss Scroll, e o boss aceita o Room 1 Scroll durante a
+          exit grace para iniciar um novo RuntimeID. `ChainNextItem` expressa essa aresta
+          sem transformar o boss em stage interno. A validação de slot, posição,
+          EntryArea, tier, sequência, prazo e persistência continua server-side; Hunting
+          Scrolls não foi alterado.
+
+          O auto-avanço agora pertence exclusivamente ao servidor. Ao concluir uma sala,
+          o próximo pergaminho é materializado com UID server-side e persistido antes de
+          qualquer transição. Se o líder estiver com Silver Angel (`3914`) ativa em
+          `Equip[13]` naquele instante, o servidor usa somente esse UID recém-concedido
+          pela mesma rotina de domínio do clique manual e persiste a próxima sala antes
+          de publicar teleporte/spawn. Carry cheio, fada fora do slot, fada de outro
+          membro, equip posterior e reward zero não acionam automação; falha do segundo
+          commit conserva o pergaminho já durável. O WaterMacro client-side e os comandos
+          `/macropergaon`/`/macropergaoff` foram removidos; o macro normal de skills/buffs
+          permanece. Detalhes em `DOCS/WATER.md` e `client748/PATCHES.md`.
+
+          '''.replace('          ', '')
+          new, count = re.subn(pattern, replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'Water plan block matches={count}')
+          path.write_text(new, encoding='utf-8', newline='\n')
+          '@ | Set-Content -LiteralPath .tmp-doc-polish.py -Encoding utf8
+          python .tmp-doc-polish.py
+          if ($LASTEXITCODE -ne 0) { throw 'document polish failed' }
+          Remove-Item .tmp-doc-polish.py -Force
+
+      - name: Validate final tree
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Push-Location client748
+          .\Apply-WYD748.ps1 -VerifyOnly
+          Pop-Location
+          $global:LASTEXITCODE = 0
+          go test -count=1 ./internal/game -run 'Test(Water|Fairy)'
+          if ($LASTEXITCODE -ne 0) { throw 'Water/Fairy regression failed' }
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { throw 'diff check failed' }
+          $stale = git grep -n -E 'macro opcional do client|varredura de carry 0\.\.62|estado começa OFF' -- DOCS/plan.md
+          $grepExit = $LASTEXITCODE
+          if ($grepExit -eq 0 -and $stale) {
+            $stale | Out-Host
+            throw 'stale Water client documentation remains'
+          }
+          if ($grepExit -ne 0 -and $grepExit -ne 1) { throw "git grep failed: $grepExit" }
+          $global:LASTEXITCODE = 0
+
+      - name: Commit final polish
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item .github/workflows/water-silver-doc-polish-final.yml -Force
+          Remove-Item .github/workflows/water-silver-final-polish.yml -Force -ErrorAction SilentlyContinue
+          Remove-Item .github/workflows/water-silver-final-polish-v2.yml -Force -ErrorAction SilentlyContinue
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          if ($LASTEXITCODE -ne 0) { throw 'staged diff check failed' }
+          git commit -m 'docs: preserve Water server automation markdown'
+          if ($LASTEXITCODE -ne 0) { throw 'commit failed' }
+          git push origin HEAD:agent/water-silver-server-auto
+          if ($LASTEXITCODE -ne 0) { throw 'push failed' }
