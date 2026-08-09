@@ -2,8 +2,9 @@ package game
 
 import "wydgo/internal/model"
 
-// equipmentGemBonus e o estado derivado das Gemas. Nao e persistido nem vem
-// do client: a cada uso ele e recomposto dos itens equipados e do itemlist.
+// equipmentGemBonus e o estado derivado de bonus de recompensa/combate vindos
+// do equipamento. Nao e persistido nem vem do client: a cada uso ele e
+// recomposto dos itens equipados e do itemlist.
 type equipmentGemBonus struct {
 	dropPercent  int
 	expPercent   int
@@ -14,7 +15,9 @@ type equipmentGemBonus struct {
 // equipmentGemBonuses porta GetCurrentScore/GetCurScore das fontes 7.54/7.59.
 // Armas Ancient codificam a gema em Grade 5..8 mesmo abaixo de +10. No refino
 // especial 230..253, a variante fica nos dois bits inferiores e +10..+15
-// define a escala de perfuracao/absorcao.
+// define a escala de perfuracao/absorcao. Ao final soma os bonus da fada ativa;
+// o nome historico da funcao e mantido porque os call sites de EXP/drop ja
+// passam por esta fronteira derivada.
 func (w *World) equipmentGemBonuses(ch *model.Char) equipmentGemBonus {
 	var bonus equipmentGemBonus
 	if ch == nil {
@@ -62,6 +65,9 @@ func (w *World) equipmentGemBonuses(ch *model.Char) equipmentGemBonus {
 			bonus.absorbDamage += perLevel * scale
 		}
 	}
+	fairy := w.activeFairyBonus(ch)
+	bonus.expPercent += fairy.expPercent
+	bonus.dropPercent += fairy.dropPercent
 	return bonus
 }
 
