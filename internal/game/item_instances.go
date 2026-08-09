@@ -2145,9 +2145,12 @@ func firstFreeVisibleInventorySlot(ch *model.Char) int {
 // grantItemInstanceReward implementa PutItem do Water: a recompensa pertence
 // somente ao lider. Inventario cheio usa o mesmo fallback nativo de item no
 // chao; persistencia falha mantem a sala pendente para uma nova tentativa.
-func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) bool {
-	if inst == nil || inst.RewardGranted {
-		return true
+func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (itemInstanceRewardReceipt, bool) {
+	if inst == nil {
+		return itemInstanceRewardReceipt{}, false
+	}
+	if inst.RewardGranted {
+		return itemInstanceRewardReceipt{}, true
 	}
 	oldRewardGranted, oldExitAt, oldExitDeadline := inst.RewardGranted, inst.ExitAt, inst.ExitDeadline
 	finish := func() {
@@ -2176,19 +2179,19 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) bool 
 		if err := persistRewardState(nil); err != nil {
 			inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
 			log.Printf("INSTANCIA %q: salvar transicao sem recompensa: %v", inst.Config.ID, err)
-			return false
+			return itemInstanceRewardReceipt{}, false
 		}
-		return true
+		return itemInstanceRewardReceipt{}, true
 	}
 	leader := w.playersByID[inst.LeaderID]
 	if leader == nil || !leader.InWorld || leader.Char == nil {
-		return false
+		return itemInstanceRewardReceipt{}, false
 	}
 	reward, err := materializeItem(model.Item{Index: inst.Config.RewardItem})
 	if err != nil {
 		log.Printf("INSTANCIA %q: materializar recompensa %d: %v",
 			inst.Config.ID, inst.Config.RewardItem, err)
-		return false
+		return itemInstanceRewardReceipt{}, false
 	}
 	slot := firstFreeVisibleInventorySlot(leader.Char)
 	if slot < 0 {
@@ -2197,7 +2200,7 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) bool 
 		}
 		ground := w.createGroundDropForInstance(leader.X, leader.Y, reward, true, inst.RuntimeID)
 		if ground == nil {
-			return false
+			return itemInstanceRewardReceipt{}, false
 		}
 		finish()
 		if err := persistRewardState(leader.Account); err != nil {
@@ -2206,28 +2209,31 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) bool 
 			inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
 			log.Printf("INSTANCIA %q: salvar recompensa %d no chao: %v",
 				inst.Config.ID, inst.Config.RewardItem, err)
-			return false
+			return itemInstanceRewardReceipt{}, false
 		}
 		leader.Session.Send(wire.MessagePanel("Inventory full: the next Water Scroll was dropped."))
-		return true
+		return itemInstanceRewardReceipt{}, true
 	}
 
 	leader.Char.Inv[slot] = reward
-	// Set every authoritative flag before the transaction. If the commit fails,
-	// the complete snapshot (item + reward + exit grace) is restored below.
+	// O grant e a primeira fronteira duravel. O recibo server-side conserva
+	// o UID exato materializado para que uma automacao posterior jamais
+	// consuma outro pergaminho do mesmo indice.
 	finish()
 	if err := persistRewardState(leader.Account); err != nil {
 		leader.Char.Inv[slot] = model.Item{}
 		inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
 		log.Printf("INSTANCIA %q: salvar recompensa %d: %v",
 			inst.Config.ID, inst.Config.RewardItem, err)
-		return false
+		return itemInstanceRewardReceipt{}, false
 	}
 	leader.Session.Send(wire.SendItem(leader.ID, placeInv, byte(slot), reward))
 	leader.Session.Send(wire.MessagePanel("You received the next Water Scroll."))
 	log.Printf("[#%d] INSTANCIA %q concluida: item %d -> inv[%d]",
 		leader.Session.ID, inst.Config.ID, inst.Config.RewardItem, slot)
-	return true
+	return itemInstanceRewardReceipt{
+		Slot: byte(slot), ItemIndex: reward.Index, ItemUID: reward.UID,
+	}, true
 }
 
 func (w *World) completeItemInstance(inst *ItemInstance, now time.Time) {
@@ -2243,9 +2249,12 @@ func (w *World) completeItemInstance(inst *ItemInstance, now time.Time) {
 		(!instanceAdmissionOnlySchedule(inst) && !inst.ScheduleEnd.IsZero() && !now.Before(inst.ScheduleEnd)) {
 		return
 	}
-	if w.grantItemInstanceReward(inst, now) {
-		w.markInstanceStateDirty()
+	receipt, ok := w.grantItemInstanceReward(inst, now)
+	if !ok {
+		return
 	}
+	w.markInstanceStateDirty()
+	w.tryWaterAutoAdvance(inst, receipt, now)
 }
 
 func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {

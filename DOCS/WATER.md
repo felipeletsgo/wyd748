@@ -1,99 +1,91 @@
-# Water — cadeia de instâncias e macro do client
+# Water — cadeia de instâncias e Silver Angel
 
 ## Estado entregue
 
 Normal, Mystic e Arcane usam o mesmo motor `instance_ticket`, com uma
-`VolatileInstance` independente para cada sala e para o boss. Não existe um
-stage global Room 1--Boss. Cada transição cria um novo `RuntimeID`; quando o
-template anterior ainda está em exit grace, o runtime recebe um sufixo livre
-(`:1`, `:2`, ...), sem reutilizar a sala antiga.
+`VolatileInstance` independente para cada sala e para o boss. Cada
+transição cria um novo `RuntimeID`; salas privadas concorrentes não
+compartilham mobs, visibilidade, loot ou estado.
 
-Ao zerar `Remaining`, a sala é concluída, entrega o `RewardItem` ao líder (ou
-derruba no chão se o carry estiver cheio), e permanece fisicamente no local por
-dez segundos. Durante essa janela somente o próximo ticket é aceito. A falha
-de persistência restaura inventário, posição, membro e runtime; nada é
-publicado parcialmente. Expiração da sala ou da janela de saída usa `ExitX/Y`.
+Ao zerar `Remaining`, a sala entrega `RewardItem` somente ao líder e
+persiste a recompensa junto ao estado da instância antes de publicar.
+Inventário cheio mantém o fallback nativo no chão. Depois da conclusão
+existe uma janela de saída de dez segundos em que somente o próximo
+ticket autoritativo da cadeia pode ser usado.
 
-As três sequências autoritativas são:
+As três sequências são:
 
 - Normal: `3173 -> ... -> 3180`, depois `3181` (boss), e `3173` fecha o ciclo;
 - Mystic: `777 -> ... -> 784`, depois `785`, e `777` fecha o ciclo;
 - Arcane: `3182 -> ... -> 3189`, depois `3190`, e `3182` fecha o ciclo.
 
-O boss não entrega o ticket da Room 1. `ChainNextItem` no boss expressa que um
-ticket Room 1 já existente pode iniciar uma nova instância depois da conclusão.
-`RewardItem` continua sendo a recompensa normal das salas 1--8. Os três tiers
-possuem áreas distintas de uso; o boss ticket só é válido na plataforma da
-Room 8 e o Room 1 ticket também aceita a área do boss. A posição usada na
-validação é sempre a posição autoritativa do `World`, nunca `TargetXY` do
-cliente.
+O boss não entrega Room 1. `ChainNextItem` expressa apenas que um
+Room 1 Scroll já existente pode iniciar novo ciclo durante a saída.
+`RewardItem` continua sendo a recompensa das salas que realmente
+concedem pergaminho.
 
-O agregado de uma sala Water privada tambem persiste os UIDs dos personagens,
-o UID do lider, `RewardGranted` e a janela `ExitAt`. Em logout/desconexao o
-ID de mundo e removido, mas o UID fica pendente; no proximo login o personagem
-e reanexado antes do primeiro `EnterWorld`, ja na coordenada da sala. Uma sala
-privada sem UID estavel nao e gravada como instancia recuperavel. Stores sem
-uma operacao atomica conta+instancia recusam o commit misto em vez de dividir
-o estado.
+## Auto-avanço com Fada Prateada
 
-A visibilidade de jogadores tambem respeita o `RuntimeID` privado: membros da
-mesma sala continuam se vendo, enquanto jogadores de outra sala ou do mundo
-publico nao recebem `CreateMob`, movimento, HP/MP, affects ou morte, mesmo que
-as coordenadas fisicas se sobreponham. Ao sair ou encadear, o par antigo e
-removido antes de qualquer nova materializacao.
+A automação é exclusivamente server-side. No momento em que uma sala
+termina:
 
-O fallback de recompensa no chao tambem carrega o `RuntimeID`: somente os
-membros da sala podem ve-lo/coleta-lo enquanto ela existe. Quando a sala e
-encerrada definitivamente, o item e liberado para o mundo publico em vez de
-ficar preso a uma instancia removida.
+1. o servidor materializa o próximo scroll com UID próprio;
+2. grava conta + estado da instância;
+3. publica o reward ao líder;
+4. verifica se o líder está com Silver Angel (`3914`) ativa em
+   `Equip[13]`;
+5. se estiver, usa somente o UID recém-concedido pela mesma rotina de
+   domínio usada pelo clique manual;
+6. a nova sala é persistida antes de teleporte/spawn/publicação.
 
-As comparacoes dos retangulos no cave usam a semantica unsigned correta:
-`cmp min,current` sai com `JB` quando a posicao esta abaixo do minimo e
-`cmp max,current` sai com `JA` quando esta acima do maximo. O teste estatico
-confirma os quatro saltos (X/Y minimo e maximo), evitando que a macro rejeite
-todas as areas nao degeneradas.
+A fada no inventário não ativa automação. Equipá-la depois do reward
+não causa avanço retroativo. A fada de outro membro da party não conta.
+Reward no chão por Carry cheio não avança. Reward `0` não procura um
+scroll antigo. Se o commit da nova sala falhar, o runtime novo é
+revertido e o scroll concedido no primeiro commit permanece no Carry.
 
-## Macro opcional do client 7.48
+O servidor não varre o inventário, não escolhe por índice e não cria um
+pacote `0x373`: o recibo interno carrega `slot + item index + UID`, e o
+caminho automático exige que esses três valores ainda coincidam com o
+estado autoritativo.
 
-O estado inicia desligado. `/macropergaon` e `/macropergaoff` são interceptados
-localmente e exibem a confirmação em inglês; não há packet de chat para esses
-comandos. No tick do client, o scanner percorre exclusivamente os slots
-visíveis `0..62` de uma única grade 9x7, filtra os Water Scrolls pela tabela
-gerada de `data/volatiles.json` e chama a rotina nativa de uso manual. O
-primeiro slot válido vence. Não há lógica de número de sala, contagem de mobs
-ou prioridade de boss no client.
+## Persistência e isolamento
 
-O script `client748/Patch-WYD748-WaterMacro.ps1` é um elo separado, posterior
-ao patch da Lindy. Ele exige SHA, bytes dos hooks e uma cave zero livre; nunca
-edita o executável fora da cadeia. `tools/watermacrotable` é a única origem da
-tabela item-área e gera saída determinística. O servidor continua validando
-slot, item, área, tier, sequência, prazo, spawn e persistência.
+O agregado Water privado persiste UIDs dos personagens, UID do líder,
+`RewardGranted` e `ExitAt`. Logout remove o ClientID vivo, não a
+identidade persistente; o personagem pode ser reanexado pelo
+CharacterUID. Stores incapazes de confirmar conta+instância em uma
+transação recusam operações mistas em vez de dividir o estado.
 
-No binário 7.48, a chamada de grade e a rotina de uso de item empilham a
-coordenada Y antes da coordenada X; o patch reproduz essa ordem dos call sites
-nativos. O comparador do comando preserva ESI/EDI entre as tentativas ON/OFF,
-e o teste estático valida o epílogo em `0x470D31` e o `thiscall` da mensagem em
-`0x493AA1`, além dos dois hooks e da cave. A confirmação local só é chamada
-quando o objeto de UI em `EBP-0x1AD4` está presente; durante teardown o comando
-continua sendo consumido sem desreferenciar um ponteiro nulo.
+Visibilidade, combate, IA e itens de chão usam o mesmo `RuntimeID`.
+Quando uma party encadeia para a sala seguinte, a associação antiga é
+destacada dentro do snapshot durável; o cleanup posterior da sala velha
+não pode teleportar membros que já estão no novo runtime.
+
+## Client 7.48
+
+`/macropergaon` e `/macropergaoff` foram removidos. O antigo
+`Patch-WYD748-WaterMacro.ps1`, seu teste e `tools/watermacrotable`
+também foram removidos. `Patch-WYD748-Macro.ps1` permanece: ele é o
+macro normal de skills/buffs e não depende da automação Water.
+
+A cadeia suportada do executável agora termina no patch da Lindy. Um
+binário legado com WaterMacro é reconhecido pelo orquestrador e
+reconstruído a partir do original, preservando os cinco patches
+anteriores.
 
 ## Cobertura
 
-Os testes tambem cobrem RuntimeIDs privados concorrentes, anti-skip sem
-predecessor, logout/reconexao por CharacterUID, recall definitivo e os quatro
-ramos unsigned dos retangulos no cave (`JB` abaixo do minimo, `JA` acima do
-maximo em X/Y).
+`internal/game/water_test.go` mantém a cobertura de sequência manual,
+exit grace, anti-skip, Room 8 -> Boss, Boss -> Room 1, runtime privado,
+rollback e isolamento. `internal/game/water_auto_test.go` cobre Silver
+ativa, fada ausente/no inventário/no membro, ausência de retroatividade,
+UID duplicado do mesmo índice, Carry cheio, falha no grant, falha no
+segundo commit e reward zero.
 
-`internal/game/water_test.go` cobre sequência normal, rejeição de qualquer
-ticket não seguinte, novo RuntimeID e remoção da associação antiga somente
-depois do commit. `internal/game/item_instances_test.go` cobre Room 8 -> Boss,
-Boss -> Room 1, timeout, rollback, recompensa no chão e regressões de Cube e
-Hunting Scroll. `tools/watermacrotable/main_test.go` garante descoberta dos
-tickets Water, exclusão de não-Water, áreas válidas e serialização determinística.
-
-Validação do elo do client:
+Validação do client:
 
 ```powershell
 cd client748
-.\Test-WYD748-WaterMacro.ps1
+.\Apply-WYD748.ps1 -VerifyOnly
 ```

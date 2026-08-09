@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 # PONTO UNICO DE ENTRADA — client 7.48
 #
 # Este orquestrador e o unico script que deve ser executado normalmente. Os
-# seis scripts Patch-WYD748-*.ps1 abaixo continuam separados de proposito:
+# cinco scripts Patch-WYD748-*.ps1 abaixo continuam separados de proposito:
 # cada um implementa um elo pequeno, valida os bytes originais e possui um
 # SHA de entrada/saida proprio. Isso preserva rollback e impede que uma
 # alteracao em um patch esconda uma falha em outro. Nao executar os elos fora
@@ -21,7 +21,6 @@ $ErrorActionPreference = 'Stop'
 # 3. Patch-WYD748-Bypass.ps1       versao + checksums de SkillData/ItemList
 # 4. Patch-WYD748-Macro.ps1        rotacao de skills e renovacao de buffs
 # 5. Patch-WYD748-Lindy.ps1        receita 3448 da janela da Lindy
-# 6. Patch-WYD748-WaterMacro.ps1   macro local de pergaminhos Water
 # D. Patch-WYD748-ClientItemUse.ps1 marcador de clique do Warrior's Seal
 #    (ItemList.bin; nao altera a cadeia SHA do executavel)
 #
@@ -85,16 +84,30 @@ $steps = @(
         Number = 5; Name = 'receita da Lindy'; Script = 'Patch-WYD748-Lindy.ps1'
         Input = '4E916C1FD94D60D5EF7F8914B621BAB3787E7BF5460FB251C59F71BCC4D9BA2F'
         Output = '9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18'
-    },
-    # ETAPA 6 — scanner local de Water; continua server-side autoritativo.
-    [pscustomobject]@{
-        Number = 6; Name = 'macro de pergaminhos Water'; Script = 'Patch-WYD748-WaterMacro.ps1'
-        Input = '9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18'
-        Output = '65486F2A4ED791BA977C00D1478BFA6450783DA37BC54A8039F196B8A73E0A0E'
     }
 )
 
 $current = Get-Sha $Executable
+$legacyWaterMacroHashes = @(
+    '65486F2A4ED791BA977C00D1478BFA6450783DA37BC54A8039F196B8A73E0A0E',
+    'F76D9D8CEDFFBD3E046F10C5282CF0139E6D94BFC7DF30BCCA549324B0D1107E'
+)
+if ($legacyWaterMacroHashes -contains $current) {
+    if ($VerifyOnly) {
+        Write-Host "WaterMacro legado detectado ($current). Execute sem -VerifyOnly para reconstruir o client ate o elo Lindy."
+        return
+    }
+    if (-not (Test-Path -LiteralPath $original -PathType Leaf)) {
+        throw "WaterMacro legado detectado, mas WYD.original.exe nao existe para reconstruir a cadeia."
+    }
+    $legacyBackup = Join-Path (Split-Path -Parent $Executable) 'WYD.pre-server-water.exe'
+    if (-not (Test-Path -LiteralPath $legacyBackup -PathType Leaf)) {
+        Copy-Item -LiteralPath $Executable -Destination $legacyBackup
+    }
+    Copy-Item -LiteralPath $original -Destination $Executable -Force
+    $current = Get-Sha $Executable
+    Write-Host 'WaterMacro client-side removido; reconstruindo os cinco elos suportados.'
+}
 $final = $steps[-1].Output
 if ($current -eq $final) {
     $itemUseScript = Join-Path $PSScriptRoot 'Patch-WYD748-ClientItemUse.ps1'
