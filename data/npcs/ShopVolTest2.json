@@ -1,0 +1,13 @@
+{
+  "name": "ShopVolTest2",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 497 }, { "index": 498 }, { "index": 499 }, { "index": 500 }, { "index": 525 },
+    { "index": 600 }, { "index": 646 }, { "index": 647 }, { "index": 680 }, { "index": 681 },
+    { "index": 682 }, { "index": 683 }, { "index": 684 }, { "index": 685 }, { "index": 686 },
+    { "index": 687 }, { "index": 688 }, { "index": 689 }, { "index": 690 }, { "index": 691 },
+    { "index": 696 }, { "index": 698 }, { "index": 699 }, { "index": 700 }, { "index": 776 },
+    { "index": 787 }, { "index": 1739 }
+  ]
+}

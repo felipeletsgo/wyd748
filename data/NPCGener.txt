@@ -112582,6 +112582,318 @@
 	DestRange:	0
 	DestWait:	0
 
+// ShopFairy - loja de teste com todas as fadas do catalogo server-side.
+// Inclui as variantes Green/Blue/Red, Silver e Gold (3900-3908, 3911-3915).
+#	[5115]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopFairy
+	Follower:	ShopFairy
+	RouteType:	0
+	Formation:	0
+	StartX:		2109
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2109
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+// ShopVolTest1..7 - cobertura integral dos 124 codigos/355 itens volateis.
+// Cada loja fica com no maximo 27 entradas, limite da janela do client 7.48.
+#	[5201]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopVolTest1
+	Follower:	ShopVolTest1
+	RouteType:	0
+	Formation:	0
+	StartX:		2112
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2112
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+#	[5202]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopVolTest2
+	Follower:	ShopVolTest2
+	RouteType:	0
+	Formation:	0
+	StartX:		2113
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2113
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+#	[5203]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopVolTest3
+	Follower:	ShopVolTest3
+	RouteType:	0
+	Formation:	0
+	StartX:		2114
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2114
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+#	[5204]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopVolTest4
+	Follower:	ShopVolTest4
+	RouteType:	0
+	Formation:	0
+	StartX:		2115
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2115
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+#	[5205]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopVolTest5
+	Follower:	ShopVolTest5
+	RouteType:	0
+	Formation:	0
+	StartX:		2116
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2116
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+#	[5206]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopVolTest6
+	Follower:	ShopVolTest6
+	RouteType:	0
+	Formation:	0
+	StartX:		2117
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2117
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+#	[5207]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopVolTest7
+	Follower:	ShopVolTest7
+	RouteType:	0
+	Formation:	0
+	StartX:		2118
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2118
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+// Lojas de teste de montarias: ovos, bebes e montarias adultas.
+#	[5210]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopMtEgg1
+	Follower:	ShopMtEgg1
+	RouteType:	0
+	Formation:	0
+	StartX:		2100
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2100
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5211]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopMtEgg2
+	Follower:	ShopMtEgg2
+	RouteType:	0
+	Formation:	0
+	StartX:		2101
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2101
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5212]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopMtBaby1
+	Follower:	ShopMtBaby1
+	RouteType:	0
+	Formation:	0
+	StartX:		2102
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2102
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5213]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopMtBaby2
+	Follower:	ShopMtBaby2
+	RouteType:	0
+	Formation:	0
+	StartX:		2103
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2103
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5214]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopMtAdult1
+	Follower:	ShopMtAdult1
+	RouteType:	0
+	Formation:	0
+	StartX:		2104
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2104
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5215]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopMtAdult2
+	Follower:		ShopMtAdult2
+	RouteType:	0
+	Formation:	0
+	StartX:		2105
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2105
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5216]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopMtTime
+	Follower:		ShopMtTime
+	RouteType:	0
+	Formation:	0
+	StartX:		2106
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2106
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+// ShopCostume/ShopFiral - trajes e itens de aparencia para testar tintura.
+#	[5217]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopCostume
+	Follower:	ShopCostume
+	RouteType:	0
+	Formation:	0
+	StartX:		2107
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2107
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5218]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopFiral
+	Follower:		ShopFiral
+	RouteType:	0
+	Formation:	0
+	StartX:		2108
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2108
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
 // ShopUxmal - ticket Clue of Runes e runas das sete salas (somente teste).
 // ********************************************
 #	[5132]

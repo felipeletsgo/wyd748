@@ -1,0 +1,13 @@
+{
+  "name": "ShopMtEgg1",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 2300 }, { "index": 2301 }, { "index": 2302 }, { "index": 2303 }, { "index": 2304 },
+    { "index": 2305 }, { "index": 2306 }, { "index": 2307 }, { "index": 2308 }, { "index": 2309 },
+    { "index": 2310 }, { "index": 2311 }, { "index": 2312 }, { "index": 2313 }, { "index": 2314 },
+    { "index": 2315 }, { "index": 2316 }, { "index": 2317 }, { "index": 2318 }, { "index": 2319 },
+    { "index": 2320 }, { "index": 2321 }, { "index": 2322 }, { "index": 2323 }, { "index": 2324 },
+    { "index": 2325 }, { "index": 2326 }
+  ]
+}

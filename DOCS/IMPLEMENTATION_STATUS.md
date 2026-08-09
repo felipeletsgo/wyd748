@@ -769,10 +769,19 @@ e ingredientes de NPC usam `no_direct_use`: são válidos, mas devem ser
 entregues ao NPC/comando responsável em vez de consumidos por clique.
 
 **Cobertura de teste do beta.** As lojas de volatile em Armia colocam os 124
-códigos ao alcance. `ShopUse20A`/`ShopUse20B` `(2106-2107,2102)` expõem as 47
-variantes desta rodada; Fury Stone e Mysterious Stone também ficam disponíveis
-na loja de teste `ShopPhaseD`. `TestTodoVolatileTemLoja` trava a cobertura por código e
-`TestLojasDeVolatileCabemNaJanela` garante o máximo de **27 slots** do client.
+códigos e os 355 itens do catálogo ao alcance. `ShopVolTest1`–`ShopVolTest7`
+completam as variantes que não cabiam nas lojas funcionais; cada uma respeita
+o limite de 27 entradas do client. `ShopUse20A`/`ShopUse20B` `(2106-2107,2102)`
+expõem as 47 variantes desta rodada; Fury Stone e Mysterious Stone também ficam
+disponíveis na loja de teste `ShopPhaseD`. `ShopFairy` cobre as fadas. As lojas
+`ShopMtEgg1/2`, `ShopMtBaby1/2` e `ShopMtAdult1/2` cobrem todos os ovos, bebês e
+montarias adultas existentes no `itemlist.csv`; `ShopMtTime` concentra as poções
+de crescimento, longevidade, recuperação, aceleração e as montarias temporizadas
+de 3/15/30 dias (3980–3989). `ShopCostume` e `ShopFiral`
+expõem os trajes e as variantes Firal/Enamel para testar aparência e tintura.
+`TestCadaItemVolatileTemLojaDeTeste` e `TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste`
+travam a cobertura por item; `TestLojasDeVolatileCabemNaJanela` garante o máximo
+de **27 slots** do client.
 
 ### Contadores por personagem
 

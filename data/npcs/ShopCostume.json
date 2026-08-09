@@ -1,0 +1,9 @@
+{
+  "name": "ShopCostume",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 4151 }, { "index": 4152 }, { "index": 4153 },
+    { "index": 4154 }, { "index": 4155 }, { "index": 4156 }
+  ]
+}

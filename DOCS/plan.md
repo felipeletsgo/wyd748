@@ -178,9 +178,11 @@ atÃ´mica. O runtime Go continua dono de inventÃ¡rio, transaÃ§Ãµes e vali
 2. **Validar o Arch in-game** (`DOCS/ASCENSION.md`): o NPC de teste `ShopArch`
    em Armia (2100,2102) vende os insumos, os atalhos e os itens de EXP.
    Lembrar de removÃª-lo antes de abrir para jogadores.
-3. Percorrer as trÃªs lojas de volatile do beta (2103-2105, 2102): as com regra
-   confirmam o comportamento, as `generic` produzem o log que identifica o que
-   falta portar.
+3. Percorrer a matriz de lojas de teste de Armia: `ShopVolTest1`–`ShopVolTest7`
+   cobrem todos os itens voláteis, enquanto `ShopFairy`, `ShopMt*`,
+   `ShopCostume` e `ShopFiral` cobrem fadas, montarias, temporizadores e trajes.
+   As lojas funcionais continuam confirmando as regras nativas; nenhuma lista de
+   teste substitui a autoridade de `itemlist.csv`/`volatiles.json`.
 4. Concluir a matriz visual in-game das cinco skills Sephira e das sete
    receitas de craft (`DOCS/CRAFTING.md`).
 5. Validar os quatro bosses no client (escudo, adds, mensagens de fase).

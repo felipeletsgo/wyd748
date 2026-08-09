@@ -1,0 +1,13 @@
+{
+  "name": "ShopMtBaby1",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 2330 }, { "index": 2331 }, { "index": 2332 }, { "index": 2333 }, { "index": 2334 },
+    { "index": 2335 }, { "index": 2336 }, { "index": 2337 }, { "index": 2338 }, { "index": 2339 },
+    { "index": 2340 }, { "index": 2341 }, { "index": 2342 }, { "index": 2343 }, { "index": 2344 },
+    { "index": 2345 }, { "index": 2346 }, { "index": 2347 }, { "index": 2348 }, { "index": 2349 },
+    { "index": 2350 }, { "index": 2351 }, { "index": 2352 }, { "index": 2353 }, { "index": 2354 },
+    { "index": 2355 }, { "index": 2356 }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "ShopFiral",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 3397 }, { "index": 3398 }, { "index": 3399 }, { "index": 3400 }, { "index": 3401 },
+    { "index": 3402 }, { "index": 3403 }, { "index": 3404 }, { "index": 3405 }, { "index": 3406 },
+    { "index": 3407 }, { "index": 3408 }, { "index": 3409 }, { "index": 3410 }, { "index": 3411 },
+    { "index": 3412 }, { "index": 3413 }, { "index": 3414 }, { "index": 3415 }, { "index": 3416 }
+  ]
+}

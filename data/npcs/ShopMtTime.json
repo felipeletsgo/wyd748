@@ -1,0 +1,13 @@
+{
+  "name": "ShopMtTime",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 3315 }, { "index": 3316 }, { "index": 3317 },
+    { "index": 3344 }, { "index": 3345 }, { "index": 3346 }, { "index": 3347 }, { "index": 3348 }, { "index": 3349 },
+    { "index": 3351 }, { "index": 3352 }, { "index": 3353 }, { "index": 3354 }, { "index": 3355 }, { "index": 3356 }, { "index": 3357 },
+    { "index": 3438 },
+    { "index": 3980 }, { "index": 3981 }, { "index": 3982 }, { "index": 3983 }, { "index": 3984 },
+    { "index": 3985 }, { "index": 3986 }, { "index": 3987 }, { "index": 3988 }, { "index": 3989 }
+  ]
+}
