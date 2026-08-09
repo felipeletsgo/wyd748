@@ -284,7 +284,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 			applied = cleansePlayer(target.Char)
 		case 27, 29: // Cura / Recuperar
 			heal := foemaHealAmount(skill.Index, mastery, skill.InstanceValue)
-			restorePlayerHP(target.Char, uint32(heal))
+			restorePlayerHP(target.Char, uint32(maxInt(0, heal)))
 			applied = true
 		case 31: // Renascimento Foema.
 			setPlayerCurMP(p.Char, 0)
@@ -803,6 +803,7 @@ func (w *World) tickPlayerAffects(now time.Time) {
 		if !p.InWorld || p.Char == nil {
 			continue
 		}
+		w.tickEquippedFairy(p, now)
 		expired, hpChanged := false, false
 		for i := range p.Char.Affects {
 			a := &p.Char.Affects[i]
