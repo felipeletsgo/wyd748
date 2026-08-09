@@ -275,10 +275,10 @@ sem transformar o boss em stage interno. A validação de slot, posição,
 EntryArea, tier, sequência, prazo e persistência continua server-side; Hunting
 Scrolls não foi alterado.
 
-O macro opcional do client fica em elo separado (`Patch-WYD748-WaterMacro.ps1`),
-com tabela gerada pelo loader Go (`tools/watermacrotable`) e varredura de carry
+O macro opcional do client fica em elo separado (automação Water server-side pela Silver Angel),
+com tabela gerada pelo loader Go (`internal/game/water_auto.go`) e varredura de carry
 0..62 pela rotina nativa de UseItem. O estado começa OFF e os comandos locais
-`/macropergaon`/`/macropergaoff` não chegam ao servidor. A cadeia e a validação
+Silver Angel equipada não chegam ao servidor. A cadeia e a validação
 estatica tambem conferem a ordem de argumentos dos call sites nativos, o epilogo
 do retorno tratado, a ABI da mensagem e a preservacao dos ponteiros no comparador;
 estao documentadas em `DOCS/WATER.md` e `client748/PATCHES.md`. A mensagem local

@@ -1,6 +1,6 @@
 # Cadeia de patches do client 7.48
 
-O `WYD.exe` em uso **não** é o executável original: ele é o resultado de seis
+O `WYD.exe` em uso **não** é o executável original: ele é o resultado de cinco
 scripts aplicados em ordem. Cada elo é verificado por SHA‑256, e a cadeia
 inteira reproduz o binário em uso **bit a bit**.
 
@@ -15,9 +15,7 @@ WYD.pre-extended-stats.exe    2AA1773A…21EE   ← LINHA-BASE
   └─ Patch-WYD748-Macro.ps1                   rotação de skills + buffs
 WYD.exe pré-Lindy             4E916C1F…9BA2
   └─ Patch-WYD748-Lindy.ps1                  validação 4010 -> 3448
-WYD.exe pós-Lindy             9762B1AC…7F18
-  └─ Patch-WYD748-WaterMacro.ps1             macro local de pergaminhos
-WYD.exe pós-WaterMacro        65486F2A…73E0A0E   ← binário atualmente versionado
+WYD.exe pós-Lindy             9762B1AC…7F18   ← binário atualmente versionado
 ```
 
 ## Reaplicar
@@ -110,7 +108,7 @@ Portar o C.C. completo **não é um patch de bytes**: exige injetar thread, esta
 de configuração e UI. É um projeto próprio, não um elo desta cadeia. O fix acima
 apenas faz o macro que já existe funcionar como deveria.
 
-## Fix da Lindy (penúltimo elo)
+## Fix da Lindy (último elo)
 
 Na rotina de combinação do client 7.48, em VA `0x00413FB7` / file offset
 `0x13FB7`, o primeiro material era comparado com `4010`:
@@ -146,7 +144,6 @@ reprodução pública da cadeia, use o script estrito acima.
 | `WYD.pre-extended-stats.exe` | linha‑base (entrada do patch wide) |
 | `WYD.patched-wide.exe` | cópia de segurança do estado atual |
 | `WYD.pre-lindy.exe` | backup da entrada imediata do patch da Lindy |
-| `WYD.pre-water-macro.exe` | backup da entrada pós-Lindy do patch Water |
 
 **Regra:** todo patch novo no executável vira script com guarda de SHA. Edição
 manual não documentada é exatamente o que custou esta investigação — e o fix de
@@ -180,52 +177,22 @@ cd client748
 .\Apply-WYD748.ps1 -VerifyOnly
 ```
 
-## Water Scroll Macro (elo independente)
+## Water: automação somente server-side
 
-`Patch-WYD748-WaterMacro.ps1` é aplicado **depois** do elo da Lindy. Ele exige
-exatamente a SHA pós-Lindy
-`9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18`, verifica
-os bytes originais dos dois hooks e usa somente a faixa zero livre
-`0x1D3243..0x1D37FF` da seção `.xstat`. A cave existente do macro de skills em
-`0x1D3207` não é tocada.
+O antigo sexto elo `Patch-WYD748-WaterMacro.ps1` foi removido. Os
+comandos locais `/macropergaon` e `/macropergaoff`, o hook de chat, o
+scanner de Carry e a chamada automática da rotina nativa `UseItem` não
+fazem mais parte do executável suportado.
 
-O gerador `tools/watermacrotable` carrega `data/volatiles.json` pelo loader Go
-autoritativo e materializa, em ordem determinística, os 27 tickets Water e suas
-`EntryAreas`. O patch não mantém IDs ou coordenadas duplicados. Cada registro
-contém `item:uint16`, `areaCount:uint16` e retângulos inclusivos
-`minX,minY,maxX,maxY:uint16`.
+O cliente versionado termina no hash pós-Lindy
+`9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18`.
+`Apply-WYD748.ps1` reconhece os hashes antigos do WaterMacro, preserva
+uma cópia `WYD.pre-server-water.exe` e reconstrói o executável desde
+`WYD.original.exe` pelos cinco elos atuais.
 
-O hook de chat em `VA 0x004678E4` reconhece `macropergaon` e `macropergaoff`
-sem diferenciar maiúsculas/minúsculas. Ele aceita tanto o texto já normalizado
-pelo parser nativo quanto a forma com `/`, portanto o jogador digita
-`/macropergaon`/`/macropergaoff`. A mensagem é local (`Water scroll macro
-enabled.`/`disabled.`) e o texto não é transmitido ao servidor. Todo outro
-texto segue o formatter original.
-
-Antes de chamar a confirmação nativa, o hook testa o objeto de UI em
-`EBP-0x1AD4`; se ele já foi limpo durante teardown, o comando é consumido sem
-dereferenciar um ponteiro nulo.
-
-O hook do tick em `VA 0x004779A7` chama o scanner no mesmo thread do cliente e
-depois chama o macro A/D nativo. O scanner percorre `Carry[0..62]` (uma única
-grade de 63 células, 9 colunas por 7 linhas), usa a posição local refletida pelo servidor,
-seleciona o primeiro Water Scroll cuja área contém a posição e chama
-`FUN_00465F85` — a mesma rotina de uso manual — sem criar packet próprio. A
-janela local de 3000 ms segue a cadência do MacroPerga do W2PP e evita reuso
-de controle de UI obsoleto; as validações de item, área, sequência,
-instância e persistência continuam exclusivamente no servidor.
-
-Para verificar a cadeia sem alterar o binário versionado:
-
-```powershell
-cd client748
-.\Test-WYD748-WaterMacro.ps1
-```
-
-O teste aplica somente os elos ainda ausentes (Lindy + Water, Water, ou nenhum)
-em uma cópia temporária, confirma os dois CALLs, a ordem dos argumentos
-observada nos call sites nativos, o epílogo do retorno tratado, a preservação
-de ESI/EDI no comparador, a ABI da mensagem nativa, os saltos para o retorno,
-a chamada da rotina nativa de `UseItem`, as strings locais e a cave, e imprime
-a SHA final. A saída observada nesta revisão foi
-`65486F2A4ED791BA977C00D1478BFA6450783DA37BC54A8039F196B8A73E0A0E`.
+O encadeamento automático da Water pertence ao servidor: quando uma
+sala concede e persiste o próximo pergaminho no Carry do líder, uma
+Silver Angel (`3914`) ativa no `Equip[13]` autoriza o uso automático
+daquele **UID exato**. Inventário cheio conserva o drop no chão e não
+avança; falha do segundo commit conserva o pergaminho durável. Nenhum
+pacote `0x373` é fabricado pelo servidor.

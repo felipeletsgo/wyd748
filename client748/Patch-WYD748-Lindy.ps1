@@ -4,7 +4,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Quinto elo da cadeia do client 7.48 (Lindy; WaterMacro e o sexto e ultimo).
+# Quinto e ultimo elo da cadeia do client 7.48.
 # A Lindy usa uma constante compilada para o primeiro material da receita.
 # O 7.54 e o servidor aceitam dois pacotes 3448 (EF_AMOUNT=10), mas o
 # executavel 7.48 original compara o primeiro material com 4010.

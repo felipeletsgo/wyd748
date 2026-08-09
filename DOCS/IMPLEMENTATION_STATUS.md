@@ -553,30 +553,28 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
 - As salas de Nessus aceitam composição mista de templates. A configuração
   atual usa as tabelas 7.54 de Secrets (um chefe + dez auxiliares).
 
-### Water — cadeia corrigida e macro (2026-08-08)
+### Water — cadeia server-side com Silver Angel (2026-08-09)
 
-- Cada sala e o boss sao `VolatileInstance` independentes. A conclusao deixa
-  os membros na sala durante a exit grace de dez segundos; nao ha recall
-  imediato depois do ultimo mob.
-- Rooms 1--8 usam `RewardItem` para o proximo pergaminho. Os bosses usam
-  `ChainNextItem` (sem recompensa automatica) para aceitar o Room 1 Scroll e
-  fechar um novo ciclo. A troca cria um `RuntimeID` novo; a associacao antiga
-  e retirada antes do snapshot transacional e restaurada se o commit falhar.
-- As areas de uso estao separadas das coordenadas de destino para os tres
-  tiers. O Room 8 aceita somente o Boss Scroll correspondente; o Boss tambem
-  aceita o Room 1 Scroll correspondente. Hunting Scrolls nao foi alterado.
-- O patch opcional `client748/Patch-WYD748-WaterMacro.ps1` vem depois do patch
-  Lindy. Ele gera a tabela de 27 tickets/areas com `tools/watermacrotable`,
-  intercepta os dois comandos localmente e usa `FUN_00465F85` para o uso nativo
-  do item. O scanner percorre carry 0..62 com debounce de 3000 ms; nenhuma
-  regra server-side e duplicada no executavel.
-- O teste estatico `client748/Test-WYD748-WaterMacro.ps1` aplica a cadeia em
-  copia temporaria e confirma SHA, hooks, ordem de argumentos dos call sites
-  nativos, epilogo do retorno tratado, ABI da mensagem, preservacao de ESI/EDI
-  no comparador, chamada nativa de `UseItem`, strings locais e cave. O patch
-  tambem ignora a mensagem local quando o objeto de UI foi limpo durante
-  teardown, sem deixar de consumir o comando. A saida versionada atual e
-  `65486F2A4ED791BA977C00D1478BFA6450783DA37BC54A8039F196B8A73E0A0E`.
+- Cada sala e boss continua como `VolatileInstance` independente, com
+  `RuntimeID` proprio, exit grace de dez segundos e persistencia
+  atomica de conta + estado da instancia.
+- Rooms que concedem o proximo pergaminho materializam primeiro um UID
+  server-side, persistem o grant e so entao publicam o item ao lider.
+- Se o lider estiver com Silver Angel (3914) ativa em `Equip[13]` no
+  momento do reward, o servidor usa exclusivamente o UID recem-criado
+  pela mesma rotina de dominio do clique manual e persiste a sala
+  seguinte antes de teleporte/spawn.
+- Fada no inventario, fada de outro membro, equip posterior ao reward,
+  Carry cheio com drop no chao e reward zero nao disparam automacao.
+  Falha do segundo commit restaura a transicao e conserva o scroll ja
+  duravel no Carry.
+- O WaterMacro client-side e os comandos `/macropergaon` e
+  `/macropergaoff` foram removidos. O client suportado termina no patch
+  Lindy; `Patch-WYD748-Macro.ps1` continua sendo apenas o macro normal
+  de skills/buffs.
+- A cobertura especifica fica em `internal/game/water_auto_test.go`,
+  incluindo UID duplicado do mesmo indice e rollback das duas fronteiras
+  de persistencia.
 - O `Warrior's_Seal` (4146) usa `EF_VOLATILE=199` no servidor. Como o client
   7.48 nao traz a excecao por item do W2PP, `client748/Apply-WYD748.ps1`
   tambem executa `Patch-WYD748-ClientItemUse.ps1`: somente o marcador local

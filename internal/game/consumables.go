@@ -137,7 +137,11 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		w.useOreUpgrade(s, p, item, slot, rule, req)
 
 	case "instance_ticket":
-		w.useInstanceTicket(s, p, item, slot, rule, req)
+		if rule.Instance != nil && isDurablePrivateWaterConfig(*rule.Instance) {
+			w.useWaterScroll(s, p, item, slot, rule, req, "")
+		} else {
+			w.useInstanceTicket(s, p, item, slot, rule, req)
+		}
 
 	case "loot_box":
 		w.useLootBox(s, p, item, slot, rule)
