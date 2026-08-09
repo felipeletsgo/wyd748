@@ -1,0 +1,114 @@
+name: Water Silver final polish v2
+
+on:
+  push:
+    branches:
+      - agent/water-silver-server-auto
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/water-silver-server-auto
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Fix migration residue
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $planPath = 'DOCS/plan.md'
+          $plan = Get-Content -LiteralPath $planPath -Raw -Encoding UTF8
+          $pattern = '(?s)## Water e macro do client — entregue em 08/08/2026\r?\n\r?\n.*?(?=## Auditoria transversal de isolamento)'
+          $replacement = @"
+          ## Water e automação server-side — entregue em 09/08/2026
+
+          O encadeamento Water permanece modelado como instâncias independentes: Room 8
+          abre o boss somente pelo Boss Scroll, e o boss aceita o Room 1 Scroll durante a
+          exit grace para iniciar um novo RuntimeID. `ChainNextItem` expressa essa aresta
+          sem transformar o boss em stage interno. A validação de slot, posição,
+          EntryArea, tier, sequência, prazo e persistência continua server-side; Hunting
+          Scrolls não foi alterado.
+
+          O auto-avanço agora pertence exclusivamente ao servidor. Ao concluir uma sala,
+          o próximo pergaminho é materializado com UID server-side e persistido antes de
+          qualquer transição. Se o líder estiver com Silver Angel (`3914`) ativa em
+          `Equip[13]` naquele instante, o servidor usa somente esse UID recém-concedido
+          pela mesma rotina de domínio do clique manual e persiste a próxima sala antes
+          de publicar teleporte/spawn. Carry cheio, fada fora do slot, fada de outro
+          membro, equip posterior e reward zero não acionam automação; falha do segundo
+          commit conserva o pergaminho já durável. O WaterMacro client-side e os comandos
+          `/macropergaon`/`/macropergaoff` foram removidos; o macro normal de skills/buffs
+          permanece. Detalhes em `DOCS/WATER.md` e `client748/PATCHES.md`.
+
+          "@
+          $updated = [regex]::Replace($plan, $pattern, $replacement, 1)
+          if ($updated -eq $plan) { throw 'Bloco Water antigo nao foi localizado em DOCS/plan.md.' }
+          [IO.File]::WriteAllText((Resolve-Path $planPath), $updated, [Text.UTF8Encoding]::new($false))
+
+          $applyPath = 'client748/Apply-WYD748.ps1'
+          $apply = Get-Content -LiteralPath $applyPath -Raw -Encoding UTF8
+          $oldStage = @"
+              # ETAPA 5 — constante 4010 -> 3448 da receita nativa da Lindy.
+          [pscustomobject]@{
+              Number = 5; Name = 'receita da Lindy'; Script = 'Patch-WYD748-Lindy.ps1'
+              Input = '4E916C1FD94D60D5EF7F8914B621BAB3787E7BF5460FB251C59F71BCC4D9BA2F'
+              Output = '9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18'
+          }
+          )
+          "@
+          $newStage = @"
+              # ETAPA 5 — constante 4010 -> 3448 da receita nativa da Lindy.
+              [pscustomobject]@{
+                  Number = 5; Name = 'receita da Lindy'; Script = 'Patch-WYD748-Lindy.ps1'
+                  Input = '4E916C1FD94D60D5EF7F8914B621BAB3787E7BF5460FB251C59F71BCC4D9BA2F'
+                  Output = '9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18'
+              }
+          )
+          "@
+          $normalizedApply = $apply.Replace($oldStage.Replace("`n", "`r`n"), $newStage.Replace("`n", "`r`n"))
+          if ($normalizedApply -eq $apply) {
+            $normalizedApply = $apply.Replace($oldStage, $newStage)
+          }
+          if ($normalizedApply -eq $apply) { throw 'Etapa 5 desalinhada nao foi localizada em Apply-WYD748.ps1.' }
+          [IO.File]::WriteAllText((Resolve-Path $applyPath), $normalizedApply, [Text.UTF8Encoding]::new($false))
+
+      - name: Validate polish
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Push-Location client748
+          .\Apply-WYD748.ps1 -VerifyOnly
+          if ($LASTEXITCODE -ne 0) { throw 'client verify failed' }
+          Pop-Location
+          go test -count=1 ./internal/game -run 'Test(Water|Fairy)'
+          if ($LASTEXITCODE -ne 0) { throw 'Water/Fairy regression failed' }
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { throw 'diff check failed' }
+
+      - name: Commit polish
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item .github/workflows/water-silver-final-polish.yml -Force
+          Remove-Item .github/workflows/water-silver-final-polish-v2.yml -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          if ($LASTEXITCODE -ne 0) { throw 'staged diff check failed' }
+          git commit -m 'docs: align Water plan with server-side automation'
+          if ($LASTEXITCODE -ne 0) { throw 'commit failed' }
+          git push origin HEAD:agent/water-silver-server-auto
+          if ($LASTEXITCODE -ne 0) { throw 'push failed' }
