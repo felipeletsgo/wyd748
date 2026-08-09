@@ -24,18 +24,29 @@ jobs:
           cache: true
 
       - name: Apply patch
-        run: python3 .github/_tmp_apply_celestial_native_progression.py
+        run: |
+          python3 .github/_tmp_apply_celestial_native_progression.py
+          python3 .github/_tmp_fix_celestial_validation.py
 
       - name: Format Go
         run: gofmt -w internal/game/celestial.go internal/game/crafting_advanced.go internal/game/celestial_test.go internal/game/celestial_native_progression_test.go
 
       - name: Focused tests
-        run: go test -count=1 ./internal/game -run 'Test(OdinSecretStone|OdinRandomSevenRunes|OdinFurySequence|SubCelestial|CelestialArchTier)'
+        run: go test -count=1 ./internal/game -run 'Test(OdinSecretStone|OdinRandomSevenRunes|OdinFurySequence|SubCelestial|CelestialArchTier|MysteriousStone)'
 
       - name: Prepare project-account fixture
         run: |
           mkdir -p data/accounts
-          printf '%s\n' '{"name":"ci","passwordHash":"hash"}' > data/accounts/ci.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          account = {
+              "name": "ci",
+              "passwordHash": "hash",
+              "cargo": [{} for _ in range(128)],
+          }
+          Path("data/accounts/ci.json").write_text(json.dumps(account), encoding="utf-8")
+          PY
 
       - name: Full tests
         run: go test -count=1 ./...
@@ -56,7 +67,9 @@ jobs:
           BRANCH: agent/celestial-native-progression
         run: |
           rm -f data/accounts/ci.json tmp/tm-check.exe
+          rmdir data/accounts 2>/dev/null || true
           rm -f .github/_tmp_apply_celestial_native_progression.py
+          rm -f .github/_tmp_fix_celestial_validation.py
           rm -f .github/workflows/_tmp-celestial-native-progression.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
