@@ -1,0 +1,242 @@
+name: Fairy catalog fix
+
+on:
+  push:
+    branches:
+      - agent/silver-itemlist-timer
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/silver-itemlist-timer
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Configure all fairy durations
+        shell: python
+        run: |
+          from pathlib import Path
+
+          durations = {
+              3900: 3, 3901: 3, 3902: 3,
+              3903: 5, 3904: 5, 3905: 5,
+              3906: 7, 3907: 7, 3908: 7,
+              3911: 7, 3912: 15, 3913: 30,
+              3914: 7, 3915: 7,
+          }
+
+          path = Path("data/itemlist.csv")
+          raw = path.read_bytes()
+          newline = b"\r\n" if b"\r\n" in raw else b"\n"
+          lines = raw.decode("utf-8").splitlines()
+          found = set()
+          for n, line in enumerate(lines):
+              if not line or line.startswith("#"):
+                  continue
+              fields = line.split(",")
+              try:
+                  index = int(fields[0].strip())
+              except ValueError:
+                  continue
+              if index not in durations:
+                  continue
+              found.add(index)
+              wanted = {
+                  "EF_WDAY": durations[index],
+                  "EF_HOUR": 0,
+                  "EF_MIN": 0,
+              }
+              for effect, value in wanted.items():
+                  pos = None
+                  for i in range(9, len(fields) - 1, 2):
+                      if fields[i].strip() == effect:
+                          pos = i
+                          break
+                  if pos is None:
+                      fields.extend([effect, str(value)])
+                  else:
+                      fields[pos + 1] = str(value)
+              lines[n] = ",".join(fields)
+
+          missing = sorted(set(durations) - found)
+          if missing:
+              raise SystemExit(f"fairy rows missing from itemlist: {missing}")
+          path.write_bytes(newline.join(line.encode("utf-8") for line in lines) + newline)
+
+          path = Path("internal/game/fairies.go")
+          text = path.read_text(encoding="utf-8")
+          old = """// initializeFairyTimer reproduz BASE_SetDateFairy sem hardcode de duracao. A
+// primeira equipacao materializa no proprio item o saldo definido no itemlist.
+// Silver/Gold normalmente chegam por transformacao e preservam os tres efeitos;
+// se forem criadas diretamente sem timer, nao ganham uma duracao artificial.
+"""
+          new = """// initializeFairyTimer reproduz BASE_SetDateFairy sem hardcode de duracao. A
+// primeira equipacao materializa no proprio item o saldo definido no itemlist.
+// Silver/Gold transformadas preservam o saldo dinamico herdado; quando um item
+// nasce sem timer, usa a duracao estatica do catalogo como qualquer outra fada.
+"""
+          if old not in text:
+              raise SystemExit("fairies.go timer comment guard failed")
+          text = text.replace(old, new, 1)
+          text = text.replace("// Antes do primeiro tick depois de equipar, as fadas-base ainda carregam a\n// duracao apenas no itemlist. Elas ja devem conceder o bonus imediatamente.\n", "// Antes do primeiro tick depois de equipar, uma fada com duracao estatica\n// ainda carrega o saldo apenas no itemlist. O bonus ja deve valer imediatamente.\n", 1)
+          path.write_text(text, encoding="utf-8")
+
+          path = Path("internal/game/fairies_test.go")
+          text = path.read_text(encoding="utf-8")
+          old = """\tfor _, index := range []uint16{3911, 3912, 3913} {
+\t\titems[index] = fairyTestDef(index, 7)
+\t}
+\titems[3914] = fairyTestDef(3914, 0)
+\titems[3915] = fairyTestDef(3915, 0)
+"""
+          new = """\titems[3911] = fairyTestDef(3911, 7)
+\titems[3912] = fairyTestDef(3912, 15)
+\titems[3913] = fairyTestDef(3913, 30)
+\titems[3914] = fairyTestDef(3914, 7)
+\titems[3915] = fairyTestDef(3915, 7)
+"""
+          if old not in text:
+              raise SystemExit("fairyTestWorld guard failed")
+          text = text.replace(old, new, 1)
+          text = text.replace('{name: "silver", index: 3914, exp: 16, drop: 32, inherited: true}', '{name: "silver", index: 3914, exp: 16, drop: 32}', 1)
+          text = text.replace('{name: "gold", index: 3915, exp: 24, drop: 48, inherited: true}', '{name: "gold", index: 3915, exp: 24, drop: 48}', 1)
+          old = """func TestDirectSilverWithoutInheritedTimerIsInactive(t *testing.T) {
+\tw := fairyTestWorld()
+\tch := &model.Char{}
+\tch.Equip[fairySlot] = model.Item{Index: 3914}
+\tif got := w.activeFairyBonus(ch); got != (fairyBonus{}) {
+\t\tt.Fatalf("direct silver without timer must be inactive, got %+v", got)
+\t}
+\tif w.hasActiveSilverFairy(ch) {
+\t\tt.Fatal("silver without inherited timer must not enable Water automation")
+\t}
+}
+"""
+          new = """func TestDirectSilverUsesStaticCatalogDuration(t *testing.T) {
+\tw := fairyTestWorld()
+\tch := &model.Char{}
+\tch.Equip[fairySlot] = model.Item{Index: 3914}
+\tif got := w.activeFairyBonus(ch); got != (fairyBonus{expPercent: 16, dropPercent: 32}) {
+\t\tt.Fatalf("direct silver bonus=%+v", got)
+\t}
+\tif !w.hasActiveSilverFairy(ch) {
+\t\tt.Fatal("direct silver with catalog duration must enable Water automation")
+\t}
+\tp := &Player{Char: ch, InWorld: true}
+\tw.tickEquippedFairy(p, time.Unix(1_700_000_000, 0))
+\tremaining, ok := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3914])
+\tif !ok || remaining != 7*24*60 {
+\t\tt.Fatalf("direct silver timer=%d ok=%v, want %d", remaining, ok, 7*24*60)
+\t}
+}
+"""
+          if old not in text:
+              raise SystemExit("direct Silver regression test guard failed")
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding="utf-8")
+
+          path = Path("internal/game/water_auto_test.go")
+          text = path.read_text(encoding="utf-8")
+          old = """func equipActiveSilverForWaterTest(t *testing.T, w *World, p *Player) {
+\tt.Helper()
+\tw.items[3914] = fairyTestDef(3914, 0)
+\tp.Char.Equip[fairySlot] = fairyWithMinutes(t, w, 3914, 60)
+}
+"""
+          new = """func equipActiveSilverForWaterTest(t *testing.T, w *World, p *Player) {
+\tt.Helper()
+\tw.items[3914] = fairyTestDef(3914, 7)
+\tp.Char.Equip[fairySlot] = model.Item{Index: 3914}
+}
+"""
+          if old not in text:
+              raise SystemExit("Water Silver helper guard failed")
+          text = text.replace(old, new, 1)
+          old = """\t\t{name: "silver only in inventory", setup: func(t *testing.T, w *World, leader, _ *Player) {
+\t\t\tw.items[3914] = fairyTestDef(3914, 0)
+\t\t\tleader.Char.Inv[6] = fairyWithMinutes(t, w, 3914, 60)
+\t\t}},
+"""
+          new = """\t\t{name: "silver only in inventory", setup: func(t *testing.T, w *World, leader, _ *Player) {
+\t\t\tw.items[3914] = fairyTestDef(3914, 7)
+\t\t\tleader.Char.Inv[6] = model.Item{Index: 3914}
+\t\t}},
+"""
+          if old not in text:
+              raise SystemExit("Water inventory Silver guard failed")
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding="utf-8")
+
+          path = Path("internal/data/catalog_test.go")
+          text = path.read_text(encoding="utf-8")
+          marker = """\tif !foundAC {
+\t\tt.Fatalf("EF_AC do item 1103 nao carregado: %+v", helmet.StaticEffects)
+\t}
+"""
+          insert = marker + """\tfairyDays := map[uint16]int{
+\t\t3900: 3, 3901: 3, 3902: 3,
+\t\t3903: 5, 3904: 5, 3905: 5,
+\t\t3906: 7, 3907: 7, 3908: 7,
+\t\t3911: 7, 3912: 15, 3913: 30,
+\t\t3914: 7, 3915: 7,
+\t}
+\tfor index, wantDays := range fairyDays {
+\t\tdef, ok := catalog.Items[index]
+\t\tif !ok {
+\t\t\tt.Fatalf("fada %d ausente do catalogo", index)
+\t\t}
+\t\teffects := make(map[string]int, len(def.StaticEffects))
+\t\tfor _, effect := range def.StaticEffects {
+\t\t\teffects[effect.Name] = effect.Value
+\t\t}
+\t\tday, dayOK := effects["EF_WDAY"]
+\t\thour, hourOK := effects["EF_HOUR"]
+\t\tminute, minuteOK := effects["EF_MIN"]
+\t\tif !dayOK || !hourOK || !minuteOK || day != wantDays || hour != 0 || minute != 0 {
+\t\t\tt.Fatalf("timer da fada %d invalido: effects=%v want=%dd 0h 0m", index, effects, wantDays)
+\t\t}
+\t}
+"""
+          if marker not in text:
+              raise SystemExit("catalog test insertion guard failed")
+          text = text.replace(marker, insert, 1)
+          path.write_text(text, encoding="utf-8")
+
+      - name: Format
+        run: gofmt -w internal/data/catalog_test.go internal/game/fairies.go internal/game/fairies_test.go internal/game/water_auto_test.go
+
+      - name: Focused tests
+        run: go test -count=1 ./internal/data ./internal/game
+
+      - name: Full tests
+        run: go test -count=1 ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: |
+          mkdir -p tmp
+          go build -o tmp/tm-check ./cmd/server
+
+      - name: Diff check
+        run: git diff --check
+
+      - name: Commit validated fix
+        run: |
+          rm -f tmp/tm-check
+          git rm .github/workflows/fairy-catalog-fix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add data/itemlist.csv internal/data/catalog_test.go internal/game/fairies.go internal/game/fairies_test.go internal/game/water_auto_test.go
+          git commit -m "fix: configure all fairy durations"
+          git push origin HEAD:agent/silver-itemlist-timer
