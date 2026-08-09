@@ -25,7 +25,7 @@ jobs:
       - name: Focused tests
         run: go test -count=1 ./internal/data ./internal/game
       - name: Full tests
-        run: go test -count=1 ./...
+        run: mkdir -p data/accounts && go test -count=1 ./...
       - name: Vet
         run: go vet ./...
       - name: Build
@@ -34,7 +34,7 @@ jobs:
         run: git diff --check
       - name: Commit validated fix
         run: |
-          rm -f tmp/tm-check
+          rm -rf tmp/tm-check data/accounts
           git rm .github/workflows/fairy-catalog-fix.yml tools/apply_fairy_catalog_fix.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
