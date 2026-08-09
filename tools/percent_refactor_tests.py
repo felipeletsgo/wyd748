@@ -36,8 +36,8 @@ patch(
 
 patch(
     "internal/store/store_test.go",
-    '''\tentries, err := os.ReadDir(dir)\n\tif err != nil {\n\t\tt.Fatal(err)\n\t}\n''',
-    '''\tentries, err := os.ReadDir(dir)\n\tif os.IsNotExist(err) {\n\t\tt.Skip("project JSON account fixtures are not present in a clean checkout")\n\t}\n\tif err != nil {\n\t\tt.Fatal(err)\n\t}\n''',
+    '''func TestProjectAccountsUseCurrentSchema(t *testing.T) {\n\tdir := filepath.Join("..", "..", "data", "accounts")\n\tentries, err := os.ReadDir(dir)\n\tif err != nil {\n\t\tt.Fatal(err)\n\t}\n''',
+    '''func TestProjectAccountsUseCurrentSchema(t *testing.T) {\n\tdir := filepath.Join("..", "..", "data", "accounts")\n\tentries, err := os.ReadDir(dir)\n\tif os.IsNotExist(err) {\n\t\tt.Skip("project JSON account fixtures are not present in a clean checkout")\n\t}\n\tif err != nil {\n\t\tt.Fatal(err)\n\t}\n''',
     "clean checkout store fixture test",
 )
 
