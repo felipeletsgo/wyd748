@@ -24,8 +24,23 @@ jobs:
         run: gofmt -w internal/data/catalog_test.go internal/game/fairies.go internal/game/fairies_test.go internal/game/water_auto_test.go
       - name: Focused tests
         run: go test -count=1 ./internal/data ./internal/game
+      - name: Provision temporary JSON account fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("data/accounts")
+          path.mkdir(parents=True, exist_ok=True)
+          account = {
+              "name": "ci",
+              "passwordHash": "ci-fixture",
+              "chars": [],
+              "cargo": [{"index": 0} for _ in range(128)],
+          }
+          (path / "ci.json").write_text(json.dumps(account), encoding="utf-8")
+          PY
       - name: Full tests
-        run: mkdir -p data/accounts && go test -count=1 ./...
+        run: go test -count=1 ./...
       - name: Vet
         run: go vet ./...
       - name: Build
