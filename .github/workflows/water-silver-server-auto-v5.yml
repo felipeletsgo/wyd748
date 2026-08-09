@@ -137,11 +137,17 @@ jobs:
           foreach ($path in $obsolete) {
             if (Test-Path -LiteralPath $path) { throw "Artefato WaterMacro obsoleto ainda existe: $path" }
           }
-          $hits = git grep -n -E 'macropergao|Patch-WYD748-WaterMacro|Test-WYD748-WaterMacro|tools/watermacrotable' -- 'internal/**' 'client748/*.ps1' 'tools/**'
-          if ($LASTEXITCODE -eq 0 -and $hits) {
+          $hits = & git grep -n -E 'macropergao|Patch-WYD748-WaterMacro|Test-WYD748-WaterMacro|tools/watermacrotable' -- 'internal/**' 'client748/*.ps1' 'tools/**' 2>$null
+          $grepExit = $LASTEXITCODE
+          if ($grepExit -eq 0 -and $hits) {
             $hits | Out-Host
             throw 'Codigo executavel ainda referencia WaterMacro legado.'
           }
+          if ($grepExit -ne 0 -and $grepExit -ne 1) {
+            throw "git grep falhou com codigo $grepExit"
+          }
+          $global:LASTEXITCODE = 0
+          Write-Host 'Nenhuma referencia executavel ao WaterMacro legado encontrada.'
 
       - name: Commit validated migration
         shell: pwsh
