@@ -49,20 +49,20 @@ jobs:
           grep -R -n -E 'rand\.Intn\(100\)|\.intn\(100\)' internal/game || true
 
       - name: Test
-        id: test
         run: |
+          set +e
           set -o pipefail
           go test ./... 2>&1 | tee /tmp/percent-refactor-test.log
-
-      - name: Capture test failure
-        if: failure() && steps.test.outcome == 'failure'
-        run: |
-          cp /tmp/percent-refactor-test.log tools/percent_refactor_failure.log
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add tools/percent_refactor_failure.log
-          git commit -m 'chore: capture percentage refactor failure'
-          git push origin HEAD:agent/percent-roll-audit
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PY'
+          from pathlib import Path
+          lines = Path('/tmp/percent-refactor-test.log').read_text(errors='replace').splitlines()[-120:]
+          text = '\n'.join(lines).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print(f'::error title=go test failed::{text}')
+          PY
+          fi
+          exit "$status"
 
       - name: Vet
         run: go vet ./...
