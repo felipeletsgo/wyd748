@@ -24,7 +24,9 @@ jobs:
           go-version-file: go.mod
 
       - name: Apply refactor
-        run: python3 tools/percent_refactor.py
+        run: |
+          python3 tools/percent_refactor.py
+          python3 tools/percent_refactor_tests.py
 
       - name: Format changed Go files
         run: >-
@@ -38,6 +40,9 @@ jobs:
           internal/game/indexed_use_items.go
           internal/game/mount.go
           internal/game/celestial_native_progression_test.go
+          internal/game/crafting_test.go
+          internal/game/consumables_test.go
+          internal/game/volatile_actions_test.go
 
       - name: Show remaining 100-value RNG sites
         run: |
@@ -72,6 +77,9 @@ jobs:
             internal/game/indexed_use_items.go \
             internal/game/mount.go \
             internal/game/celestial_native_progression_test.go \
+            internal/game/crafting_test.go \
+            internal/game/consumables_test.go \
+            internal/game/volatile_actions_test.go \
             DOCS/CRAFTING.md
           git diff --cached --check
           git commit -m 'fix: standardize economic percentage rolls'
