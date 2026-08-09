@@ -470,23 +470,14 @@ func TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure(t *testing.T) {
 	}
 }
 
-func TestAylinNativeChanceBoundary(t *testing.T) {
-	tests := []struct {
-		roll int
-		want bool
-	}{
-		{roll: -1, want: false},
-		{roll: 0, want: true},
-		{roll: 39, want: true},
-		{roll: 40, want: true},
-		{roll: 41, want: false},
-		{roll: 99, want: false},
-		{roll: 100, want: false},
+func TestAylinChanceUsesOneToHundredBoundary(t *testing.T) {
+	w := &World{rng: fixedRNG{value: 39}} // visible roll 40
+	if got := w.rollPercent(40); !got.Success || got.Roll != 40 {
+		t.Fatalf("roll 40/40 should succeed: %+v", got)
 	}
-	for _, test := range tests {
-		if got := aylinRollSucceeds(test.roll); got != test.want {
-			t.Errorf("roll=%d: got=%t want=%t", test.roll, got, test.want)
-		}
+	w.rng = fixedRNG{value: 40} // visible roll 41
+	if got := w.rollPercent(40); got.Success || got.Roll != 41 {
+		t.Fatalf("roll 41/40 should fail: %+v", got)
 	}
 }
 

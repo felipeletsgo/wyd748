@@ -97,12 +97,16 @@ func TestMountStageAndTypeHelpers(t *testing.T) {
 
 func TestMountEssenceLevelsAndEvolves(t *testing.T) {
 	// Cria Pig (2330) no level 24: um amago (2390) casa e sobe pra 25 -> evolui pra
-	// adulta (2360), level zera, longevidade sobe.
+	// adulta (2360), level zera, longevidade sobe. Cria nao possui gate percentual.
+	w := &World{rng: fixedRNG{value: 0}}
 	mount := model.Item{Index: 2330}
 	mount.SetMountLevel(24)
-	ok, _ := mountEssence(&mount, 2390)
-	if !ok {
+	outcome := w.mountEssence(&mount, 2390)
+	if !outcome.OK {
 		t.Fatal("amago casado deveria funcionar")
+	}
+	if len(outcome.Rolls) != 0 {
+		t.Fatalf("cria nao deveria rolar percentual: %+v", outcome.Rolls)
 	}
 	if mount.Index != 2360 || mount.MountLevel() != 0 {
 		t.Fatalf("apos evolucao index=%d level=%d, quer 2360/0", mount.Index, mount.MountLevel())
@@ -112,7 +116,7 @@ func TestMountEssenceLevelsAndEvolves(t *testing.T) {
 	}
 	// Amago de tipo errado e recusado.
 	other := model.Item{Index: 2360}
-	if ok, _ := mountEssence(&other, 2391); ok {
+	if outcome := w.mountEssence(&other, 2391); outcome.OK {
 		t.Fatal("amago de outro tipo nao deveria casar")
 	}
 }

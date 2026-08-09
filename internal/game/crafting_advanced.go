@@ -1,7 +1,6 @@
 package game
 
 import (
-	"math/rand"
 	"strings"
 
 	"wydgo/internal/model"
@@ -140,7 +139,8 @@ func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
 			chance = 100
 		}
 		targetPos := int(req.Pos[2])
-		success := rand.Intn(100) < chance
+		roll := w.rollPercent(chance)
+		success := roll.Success
 		refinedTarget := p.Char.Inv[targetPos]
 		if success {
 			if !setItemSanc(&refinedTarget, itemSanc(refinedTarget)+1) {
@@ -163,8 +163,8 @@ func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
 		if success {
 			code = 1
 		}
-		w.commitCombineWithRollback(p, oldInv, oldEquip, oldGold, changed, nil, code,
-			func() { p.Char.Exp = oldExp })
+		w.commitCombineWithRollbackRoll(p, oldInv, oldEquip, oldGold, changed, nil, code,
+			func() { p.Char.Exp = oldExp }, roll)
 		return
 	}
 	w.sendCombineResult(p, 0)
@@ -231,7 +231,8 @@ func (w *World) combineSecretStoneOdin(p *Player, req combineRequest, output uin
 		w.sendCombineResult(p, 0)
 		return
 	}
-	success := w.intn(100) < chance
+	roll := w.rollPercent(chance)
+	success := roll.Success
 	if success && output == 0 {
 		output = uint16(5334 + w.intn(4))
 	}
@@ -252,7 +253,7 @@ func (w *World) combineSecretStoneOdin(p *Player, req combineRequest, output uin
 	if success {
 		code = 1
 	}
-	w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code)
+	w.commitCombineRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, roll)
 }
 
 func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
@@ -341,7 +342,8 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 		chance += odinRefineBonus(level)
 		if validCatalysts && level >= 11 && level <= 14 {
 			targetPos := int(req.Pos[2])
-			success := rand.Intn(100) < clampInt(chance, 0, 100)
+			roll := w.rollPercent(chance)
+			success := roll.Success
 			newLevel := level - 1
 			if success {
 				newLevel = level + 1
@@ -361,7 +363,7 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 			if success {
 				code = 1
 			}
-			w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code)
+			w.commitCombineRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, roll)
 			return
 		}
 	}

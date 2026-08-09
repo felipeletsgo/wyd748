@@ -138,3 +138,23 @@ fallback sidecar-antes-da-conta.
 - sucesso ou falha consome as sete runas e o gold;
 - a sequencia propria da Fury Stone continua sendo resolvida antes do fallback
   aleatorio e nao e tratada como tentativa de Pedra Secreta.
+
+
+## Percentuais autoritativos
+
+Toda decisao percentual de composicao/refinacao usa um unico dominio uniforme
+de 1 a 100. O servidor sorteia `roll = 1..100` e considera sucesso somente
+quando `roll <= chance`. Assim, `95/95` e `5/5` sao sucesso; `96/95` e `6/5`
+sao falha.
+
+Operacoes percentuais economicas publicam ao jogador o mesmo roll usado pela
+decisao, somente depois da persistencia confirmar, por exemplo
+`Success: 40/50` ou `Fail: 60/50`. Nao existe uma segunda rolagem para exibicao.
+Falha de persistencia restaura o snapshot e isola a sessao para que um save
+posterior nao sobrescreva um resultado possivelmente confirmado pelo PostgreSQL.
+
+A regra se aplica aos crafts percentuais (Tiny, Compositor, Agatha, Aylin,
+Ehre e Odin), refino Ori/Lac, incubacao com Ori/Lac, Adamantita e evolucao
+percentual de montaria. Selecoes aleatorias que nao representam porcentagem,
+como escolher um entre quatro elementos depois de uma Secret Stone aleatoria
+ter sido aprovada, continuam usando o seu dominio natural.

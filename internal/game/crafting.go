@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"strings"
 
 	"wydgo/internal/model"
@@ -152,20 +151,20 @@ func (w *World) tinyRecipe(req combineRequest) (model.Item, int, error) {
 	return result, clampInt(chance, 0, 100), nil
 }
 
-func combineRoll() int {
-	roll := rand.Intn(115)
-	if roll >= 100 {
-		roll -= 15
-	}
-	return roll
+func (w *World) sendCombineResult(p *Player, result uint32) {
+	w.sendCombineResultMessage(p, result, "")
 }
 
-func (w *World) sendCombineResult(p *Player, result uint32) {
+func (w *World) sendCombineResultMessage(p *Player, result uint32, message string) {
 	if p != nil && p.Session != nil {
 		// Fluxo nativo W2PP/Micronics: a mensagem textual e enviada antes do
-		// MSG_CombineComplete (0x3A7). O sinal sozinho atualiza/fecha a janela,
-		// mas nao apresenta ao jogador o motivo do resultado.
-		if message := combineResultMessage(result); message != "" {
+		// MSG_CombineComplete (0x3A7). O sinal sozinho atualiza/fecha a janela.
+		// Quando existe roll percentual, a mensagem precisa usar exatamente a
+		// decisao persistida, nunca uma segunda rolagem para exibicao.
+		if message == "" {
+			message = combineResultMessage(result)
+		}
+		if message != "" {
 			p.Session.Send(wire.MessagePanel(message))
 		}
 		p.Session.Send(wire.StandardParm(wire.OpCombineComplete, wire.SceneField, result))
@@ -198,7 +197,8 @@ func (w *World) onCombineTiny(s *net.Session, pkt []byte) {
 
 	w.cancelTrade(p, "composicao Tiny")
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
-	success := combineRoll() <= chance
+	roll := w.rollPercent(chance)
+	success := roll.Success
 	changed := make(map[int]struct{}, combineSlots)
 	consumeCombineItems(p.Char, req, 2, combineSlots-1, changed)
 	if success {
@@ -212,20 +212,21 @@ func (w *World) onCombineTiny(s *net.Session, pkt []byte) {
 	if success {
 		code = 1
 	}
-	if w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code) {
-		logCraftResult(s, success, chance, p.Char.Gold)
+	if w.commitCombineRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, roll) {
+		logCraftResult(s, roll, p.Char.Gold)
 	}
 }
 
-func logCraftResult(s *net.Session, success bool, chance int, gold uint32) {
+func logCraftResult(s *net.Session, roll percentRoll, gold uint32) {
 	if s == nil {
 		return
 	}
 	status := "falha"
-	if success {
+	if roll.Success {
 		status = "sucesso"
 	}
 	// Sem despejar os STRUCT_ITEM no log: a linha operacional fica curta para
 	// auditoria e nao polui a saida com bytes de efeitos.
-	log.Printf("[#%d] CRAFT Tiny %s chance=%d gold=%d", s.ID, status, chance, gold)
+	log.Printf("[#%d] CRAFT Tiny %s roll=%d/%d gold=%d",
+		s.ID, status, roll.Roll, roll.Chance, gold)
 }
