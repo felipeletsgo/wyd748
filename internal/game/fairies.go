@@ -146,8 +146,8 @@ func writeFairyTimerMinutes(item *model.Item, def model.ItemDef, total int) bool
 
 // initializeFairyTimer reproduz BASE_SetDateFairy sem hardcode de duracao. A
 // primeira equipacao materializa no proprio item o saldo definido no itemlist.
-// Silver/Gold normalmente chegam por transformacao e preservam os tres efeitos;
-// se forem criadas diretamente sem timer, nao ganham uma duracao artificial.
+// Silver/Gold transformadas preservam o saldo dinamico herdado; quando um item
+// nasce sem timer, usa a duracao estatica do catalogo como qualquer outra fada.
 func (w *World) initializeFairyTimer(item *model.Item) bool {
 	if w == nil || item == nil || !isFairyIndex(item.Index) {
 		return false

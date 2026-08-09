@@ -21,8 +21,8 @@ func configureWaterSecondRoom(w *World) {
 
 func equipActiveSilverForWaterTest(t *testing.T, w *World, p *Player) {
 	t.Helper()
-	w.items[3914] = fairyTestDef(3914, 0)
-	p.Char.Equip[fairySlot] = fairyWithMinutes(t, w, 3914, 60)
+	w.items[3914] = fairyTestDef(3914, 7)
+	p.Char.Equip[fairySlot] = model.Item{Index: 3914}
 }
 
 func killOnlyInstanceMob(t *testing.T, w *World, inst *ItemInstance, now time.Time) {
@@ -70,8 +70,8 @@ func TestWaterAutoAdvanceRequiresSilverOnLeaderAtReward(t *testing.T) {
 	}{
 		{name: "no fairy"},
 		{name: "silver only in inventory", setup: func(t *testing.T, w *World, leader, _ *Player) {
-			w.items[3914] = fairyTestDef(3914, 0)
-			leader.Char.Inv[6] = fairyWithMinutes(t, w, 3914, 60)
+			w.items[3914] = fairyTestDef(3914, 7)
+			leader.Char.Inv[6] = model.Item{Index: 3914}
 		}},
 		{name: "silver on non leader", setup: func(t *testing.T, w *World, _, member *Player) {
 			equipActiveSilverForWaterTest(t, w, member)

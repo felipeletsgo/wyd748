@@ -39,11 +39,11 @@ func fairyTestWorld() *World {
 		}
 		items[index] = fairyTestDef(index, days)
 	}
-	for _, index := range []uint16{3911, 3912, 3913} {
-		items[index] = fairyTestDef(index, 7)
-	}
-	items[3914] = fairyTestDef(3914, 0)
-	items[3915] = fairyTestDef(3915, 0)
+	items[3911] = fairyTestDef(3911, 7)
+	items[3912] = fairyTestDef(3912, 15)
+	items[3913] = fairyTestDef(3913, 30)
+	items[3914] = fairyTestDef(3914, 7)
+	items[3915] = fairyTestDef(3915, 7)
 	return &World{items: items}
 }
 
@@ -68,8 +68,8 @@ func TestFairyBonusMatrix(t *testing.T) {
 		{name: "green", index: 3900, exp: 16},
 		{name: "blue", index: 3901, drop: 32},
 		{name: "red", index: 3902, exp: 8, drop: 16},
-		{name: "silver", index: 3914, exp: 16, drop: 32, inherited: true},
-		{name: "gold", index: 3915, exp: 24, drop: 48, inherited: true},
+		{name: "silver", index: 3914, exp: 16, drop: 32},
+		{name: "gold", index: 3915, exp: 24, drop: 48},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -165,15 +165,21 @@ func TestSilverAndGoldPreserveInheritedTimer(t *testing.T) {
 	}
 }
 
-func TestDirectSilverWithoutInheritedTimerIsInactive(t *testing.T) {
+func TestDirectSilverUsesStaticCatalogDuration(t *testing.T) {
 	w := fairyTestWorld()
 	ch := &model.Char{}
 	ch.Equip[fairySlot] = model.Item{Index: 3914}
-	if got := w.activeFairyBonus(ch); got != (fairyBonus{}) {
-		t.Fatalf("direct silver without timer must be inactive, got %+v", got)
+	if got := w.activeFairyBonus(ch); got != (fairyBonus{expPercent: 16, dropPercent: 32}) {
+		t.Fatalf("direct silver bonus=%+v", got)
 	}
-	if w.hasActiveSilverFairy(ch) {
-		t.Fatal("silver without inherited timer must not enable Water automation")
+	if !w.hasActiveSilverFairy(ch) {
+		t.Fatal("direct silver with catalog duration must enable Water automation")
+	}
+	p := &Player{Char: ch, InWorld: true}
+	w.tickEquippedFairy(p, time.Unix(1_700_000_000, 0))
+	remaining, ok := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3914])
+	if !ok || remaining != 7*24*60 {
+		t.Fatalf("direct silver timer=%d ok=%v, want %d", remaining, ok, 7*24*60)
 	}
 }
 
