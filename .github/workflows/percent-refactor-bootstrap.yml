@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   refactor:
-    if: github.event.head_commit.message == 'chore: run percentage refactor bootstrap'
+    if: "${{ github.event.head_commit.message == 'chore: run percentage refactor bootstrap' }}"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
