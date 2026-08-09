@@ -64,7 +64,7 @@ func (w *World) spawnHellGateWave(inst *ItemInstance, spawns []model.VolatileIns
 			var ok bool
 			var x, y uint16
 			for distance := 0; distance <= searchRadius; distance++ {
-				x, y, ok = findHellGatePosition(w, baseX, baseY, distance, reserved)
+				x, y, ok = findHellGatePosition(w, inst.RuntimeID, baseX, baseY, distance, reserved)
 				if ok {
 					break
 				}
@@ -102,7 +102,7 @@ func (w *World) spawnHellGateWave(inst *ItemInstance, spawns []model.VolatileIns
 	return created, true
 }
 
-func findHellGatePosition(w *World, baseX, baseY uint16, distance int,
+func findHellGatePosition(w *World, instanceID string, baseX, baseY uint16, distance int,
 	reserved map[uint32]struct{}) (uint16, uint16, bool) {
 	if distance < 0 {
 		distance = 0
@@ -118,7 +118,7 @@ func findHellGatePosition(w *World, baseX, baseY uint16, distance int,
 			}
 			x, y := uint16(nx), uint16(ny)
 			key := uint32(x)<<16 | uint32(y)
-			if _, used := reserved[key]; used || w.positionOccupied(x, y, nil) ||
+			if _, used := reserved[key]; used || w.findMobPositionOccupied(instanceID, x, y) ||
 				!w.terrain.Walkable(x, y) {
 				continue
 			}
@@ -126,6 +126,13 @@ func findHellGatePosition(w *World, baseX, baseY uint16, distance int,
 		}
 	}
 	return 0, 0, false
+}
+
+func (w *World) findMobPositionOccupied(instanceID string, x, y uint16) bool {
+	if strings.TrimSpace(instanceID) == "" {
+		return w.positionOccupied(x, y, nil)
+	}
+	return w.positionOccupiedExceptPlayersInInstance(x, y, nil, nil, nil, instanceID)
 }
 
 func (w *World) removeHellGateMobs(inst *ItemInstance) {
@@ -247,7 +254,7 @@ func (w *World) spawnHellGateFinal(inst *ItemInstance, now time.Time) bool {
 			return false
 		}
 		for n := 0; n < spawn.Count; n++ {
-			x, y, found := findHellGatePosition(w, spawn.X, spawn.Y, 0, map[uint32]struct{}{})
+			x, y, found := findHellGatePosition(w, inst.RuntimeID, spawn.X, spawn.Y, 0, map[uint32]struct{}{})
 			if !found {
 				w.removeHellGateMobs(inst)
 				return false

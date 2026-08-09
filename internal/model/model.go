@@ -348,13 +348,17 @@ type ElementalResists struct {
 // Affect e o estado temporario autoritativo de buff/debuff. O client recebe
 // apenas Type e o tempo restante; Value/Level alimentam as formulas server-side.
 type Affect struct {
-	Type       byte      `json:"type,omitempty"`
-	ClientType byte      `json:"clientType,omitempty"` // slot visual do client quando difere da semantica server-side
-	Value      int       `json:"value,omitempty"`
-	Level      int       `json:"level,omitempty"`
-	OwnerID    uint16    `json:"ownerId,omitempty"`
-	ExpiresAt  time.Time `json:"expiresAt,omitempty"`
-	NextTick   time.Time `json:"nextTick,omitempty"`
+	Type       byte   `json:"type,omitempty"`
+	ClientType byte   `json:"clientType,omitempty"` // slot visual do client quando difere da semantica server-side
+	Value      int    `json:"value,omitempty"`
+	Level      int    `json:"level,omitempty"`
+	OwnerID    uint16 `json:"ownerId,omitempty"`
+	// OwnerCharacterUID is the stable source identity for player-owned
+	// hostile affects. OwnerID is a process-local wire/session id and is kept
+	// only for compatibility with active legacy sessions.
+	OwnerCharacterUID string    `json:"ownerCharacterUid,omitempty"`
+	ExpiresAt         time.Time `json:"expiresAt,omitempty"`
+	NextTick          time.Time `json:"nextTick,omitempty"`
 }
 
 // CelestialForm guarda exclusivamente a forma INATIVA do par

@@ -280,3 +280,24 @@ com tabela gerada pelo loader Go (`tools/watermacrotable`) e varredura de carry
 0..62 pela rotina nativa de UseItem. O estado começa OFF e os comandos locais
 `/macropergaon`/`/macropergaoff` não chegam ao servidor. A cadeia e a validação
 estática estão documentadas em `DOCS/WATER.md` e `client748/PATCHES.md`.
+
+## Auditoria transversal de isolamento — entregue em 08/08/2026
+
+Foi concluída a revisão que faltava entre instâncias privadas, zonas
+compartilhadas e mundo público. `gameplaySpaceForPlayer` passou a ser a
+fronteira única para visibilidade, aquisição de alvo, skills/AoE, IA, party EXP,
+affects, summons, colisão e loot temporário. Monstros públicos não são
+materializados nem atacam participantes de runtime; mobs de runtime, drops e
+efeitos não atravessam a execução mesmo quando as coordenadas físicas se
+sobrepõem.
+
+Effects hostis persistidos agora carregam `OwnerCharacterUID`; um `ClientID`
+reciclado nunca reassocia debuff antigo. Water, Nightmare compartilhado e Hell
+Gate preservam membros por CharacterUID no restart e logout, enquanto salas
+curtas continuam processuais. Alocadores de mob e Hell Gate ignoram entidades
+de outros runtimes, mas respeitam terreno, NPCs e a própria sala.
+
+Novos testes cobrem a matriz público/runtime, loot, party EXP, UID de affect e
+colisão de Hell Gate. A validação desta rodada passou em `go test -count=1 ./...`,
+`go vet ./...`, build do servidor e `git diff --check`. O detector de corrida
+continua reservado para Ubuntu/CI por causa do linker MinGW local.

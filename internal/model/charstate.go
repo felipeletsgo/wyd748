@@ -21,13 +21,16 @@ type CharState struct {
 // PersistedAffect e a forma serializavel de um Affect: os campos de dominio mais
 // o instante absoluto de expiracao.
 type PersistedAffect struct {
-	Type        byte   `json:"type"`
-	ClientType  byte   `json:"clientType,omitempty"`
-	Value       int    `json:"value,omitempty"`
-	Level       int    `json:"level,omitempty"`
-	OwnerID     uint16 `json:"ownerId,omitempty"`
-	ExpiresUnix int64  `json:"expiresUnix"`
+	Type              byte   `json:"type"`
+	ClientType        byte   `json:"clientType,omitempty"`
+	Value             int    `json:"value,omitempty"`
+	Level             int    `json:"level,omitempty"`
+	OwnerID           uint16 `json:"ownerId,omitempty"`
+	OwnerCharacterUID string `json:"ownerCharacterUid,omitempty"`
+	ExpiresUnix       int64  `json:"expiresUnix"`
 }
 
-// CharStateVersion e a versao do contrato do sidecar. Sobe quando o formato muda.
+// CharStateVersion e a versao do contrato do sidecar. Campos opcionais aditivos
+// (como OwnerCharacterUID) permanecem na mesma versao para que moedas e buffs
+// de arquivos antigos possam ser lidos; campos obrigatorios exigem migracao.
 const CharStateVersion = 1

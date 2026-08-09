@@ -52,10 +52,25 @@ func (w *World) showMob(p *Player, m *Mob) {
 // this check in the publication layer prevents a caller that forgets the
 // instance context from leaking CreateMob, movement, damage or death packets.
 func (w *World) mobVisibleToPlayer(p *Player, m *Mob) bool {
-	if p == nil || m == nil || m.InstanceID == "" {
+	if p == nil || m == nil {
 		return true
 	}
-	return instanceMemberInStage(w.instanceForMob(m), p)
+	if m.InstanceID != "" {
+		return instanceMemberInStage(w.instanceForMob(m), p)
+	}
+	// Global NPCs/merchants remain public. Hostile public monsters, however,
+	// belong to the public gameplay space and must not leak into an event
+	// runtime that happens to overlap the same physical coordinates.
+	if m.Def != nil && m.Def.IsMonster() && m.SummonerID == 0 {
+		return w.gameplaySpaceForPlayer(p) == ""
+	}
+	if m.SummonerID != 0 {
+		owner := w.playerByID(m.SummonerID)
+		if owner != nil {
+			return w.gameplaySpaceForPlayer(p) == w.gameplaySpaceForPlayer(owner)
+		}
+	}
+	return true
 }
 
 // gameplaySpaceForPlayer returns the authoritative runtime that owns a player,
@@ -126,10 +141,13 @@ func (w *World) groundItemVisibleToPlayer(p *Player, g *GroundItem) bool {
 	if p == nil || g == nil {
 		return false
 	}
-	if strings.TrimSpace(g.InstanceID) == "" {
+	if g.Permanent {
 		return true
 	}
-	return w.privateWaterRuntimeIDForPlayer(p.ID) == g.InstanceID
+	// Every non-permanent ground item belongs to exactly one gameplay space.
+	// Empty means public; a runtime id means only that runtime. This is generic
+	// for Water, Cube, Nightmare, Hell Gate, Uxmal and player drops alike.
+	return w.gameplaySpaceForPlayer(p) == strings.TrimSpace(g.InstanceID)
 }
 
 func (w *World) hideMob(p *Player, m *Mob, removeType uint32) {

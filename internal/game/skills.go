@@ -329,9 +329,7 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 	}
 	castRange := uint16(maxInt(attackRange, skill.Range+bonusRange))
 	primary := w.mobByID(req.TargetID)
-	if primary == nil || primary.Dead || primary.HP == 0 || !primary.Def.IsMonster() ||
-		primary.SummonerID != 0 ||
-		(primary.InstanceID != "" && !w.instanceMobTargetAllowed(primary, p)) ||
+	if primary == nil || primary.Dead || primary.HP == 0 || !w.playerCanInteractWithMob(p, primary) ||
 		chebyshev(p.X, p.Y, primary.X, primary.Y) > int(castRange) ||
 		!w.combatLineOfSight(p.X, p.Y, primary.X, primary.Y) {
 		return nil
@@ -349,8 +347,7 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 		if len(targets) >= limit {
 			break
 		}
-		if candidate == primary || candidate.Dead || !candidate.Def.IsMonster() || candidate.SummonerID != 0 ||
-			(candidate.InstanceID != "" && !w.instanceMobTargetAllowed(candidate, p)) {
+		if candidate == primary || candidate.Dead || !w.playerCanInteractWithMob(p, candidate) {
 			continue
 		}
 		if chebyshev(primary.X, primary.Y, candidate.X, candidate.Y) <= area {
@@ -592,7 +589,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	// Capture os receptores antes da primeira morte. Um membro pode atingir o
 	// level maximo no meio do lote e deixaria de aparecer se recalculassemos a
 	// elegibilidade somente no final, fazendo sua ultima EXP nao ser persistida.
-	batchAccounts := uniqueKillAccounts(p, partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
+	batchAccounts := uniqueKillAccounts(p, w.partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
 	kills := 0
 	for _, result := range results {
 		if result.mob.HP == 0 {

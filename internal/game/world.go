@@ -209,9 +209,9 @@ type GroundItem struct {
 	// expira e nao pode ser recolhido. O nativo consegue o mesmo efeito
 	// mantendo-os abaixo de g_dwInitItem, faixa que o decay nunca varre.
 	Permanent bool
-	// InstanceID restringe temporariamente o loot criado dentro de uma Water
-	// privada aos membros daquele RuntimeID. Ao encerrar a sala o item volta a
-	// ser publico, preservando o fallback nativo de recompensa no chao.
+	// InstanceID restringe temporariamente qualquer loot criado em um runtime
+	// aos membros daquele RuntimeID. Ao encerrar a execucao o cleanup pode
+	// libera-lo para o mundo publico, conforme a regra do evento.
 	InstanceID string
 	// State e o estado do objeto: 0 fechado, 1 aberto. So porta usa. O nativo
 	// troca isso e emite MSG_UpdateItem em vez de recriar o item.
@@ -1046,6 +1046,46 @@ func (w *World) findFreeGameplayPosition(spaceOwner, exceptPlayer *Player,
 		}
 	}
 	return w.findFreePositionExcept(x, y, radius, exceptPlayer)
+}
+
+// findFreeMobPosition allocates a tile in the mob's gameplay space. Public
+// mobs use the ordinary global collision map; instance mobs ignore entities
+// from other runtimes while still respecting terrain, global NPCs and mobs in
+// their own runtime. This is used by boss adds and Hell Gate waves before the
+// new entity is registered in the spatial index.
+func (w *World) findFreeMobPosition(instanceID string, x, y uint16, radius uint16) (uint16, uint16) {
+	instanceID = strings.TrimSpace(instanceID)
+	occupied := func(px, py uint16) bool {
+		if instanceID == "" {
+			return w.positionOccupied(px, py, nil)
+		}
+		return w.positionOccupiedExceptPlayersInInstance(px, py, nil, nil, nil, instanceID)
+	}
+	if !occupied(x, y) {
+		return x, y
+	}
+	r := int(radius)
+	if r < 2 {
+		r = 2
+	}
+	for distance := 1; distance <= r+4; distance++ {
+		for dy := -distance; dy <= distance; dy++ {
+			for dx := -distance; dx <= distance; dx++ {
+				if absInt(dx) != distance && absInt(dy) != distance {
+					continue
+				}
+				nx, ny := int(x)+dx, int(y)+dy
+				if nx <= 0 || ny <= 0 || nx >= model.TerrainWidth || ny >= model.TerrainHeight {
+					continue
+				}
+				ux, uy := uint16(nx), uint16(ny)
+				if w.terrain.HeightCompatible(x, y, ux, uy) && !occupied(ux, uy) {
+					return ux, uy
+				}
+			}
+		}
+	}
+	return x, y
 }
 
 // removeMobInstance elimina a instancia morta da lista ativa. O client ja

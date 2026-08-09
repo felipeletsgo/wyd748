@@ -3,6 +3,7 @@ package game
 import (
 	"log"
 	"math/rand"
+	"strings"
 
 	"wydgo/internal/model"
 	"wydgo/internal/wire"
@@ -112,10 +113,7 @@ func (w *World) rollMobDrops(p *Player, m *Mob) {
 				p.Session.ID, i, item.Index, slot, m.Def.Name)
 		} else {
 			// Inventario cheio: cai no chao na posicao do mob (pegavel via 0x270).
-			instanceID := ""
-			if m.InstanceID != "" && isDurablePrivateWaterInstance(w.instanceForMob(m)) {
-				instanceID = m.InstanceID
-			}
+			instanceID := strings.TrimSpace(m.InstanceID)
 			w.createGroundDropForInstance(m.X, m.Y, item, true, instanceID)
 			log.Printf("[#%d] DROP slot=%d item=%d -> CHAO (inventario cheio)",
 				p.Session.ID, i, item.Index)

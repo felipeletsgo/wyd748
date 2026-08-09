@@ -80,6 +80,25 @@ func setOwnedAffect(ch *model.Char, ownerID uint16, affectType byte, value, leve
 	return false
 }
 
+func setOwnedAffectForPlayer(ch *model.Char, owner *Player, affectType byte, value, level, durationUnits int) bool {
+	if owner == nil {
+		return false
+	}
+	if !setOwnedAffect(ch, owner.ID, affectType, value, level, durationUnits) {
+		return false
+	}
+	for i := range ch.Affects {
+		if ch.Affects[i].Type == affectType {
+			ch.Affects[i].OwnerCharacterUID = ""
+			if owner.Char != nil {
+				ch.Affects[i].OwnerCharacterUID = owner.Char.UID
+			}
+			return true
+		}
+	}
+	return false
+}
+
 func removePlayerAffectTypes(ch *model.Char, types ...byte) bool {
 	changed := false
 	for i := range ch.Affects {
@@ -160,10 +179,10 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
 		}
 		if !blocked && skill.AffectType > 0 {
-			setOwnedAffect(target.Char, caster.ID, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime)
+			setOwnedAffectForPlayer(target.Char, caster, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime)
 		}
 		if !blocked && skill.TickType > 0 {
-			setOwnedAffect(target.Char, caster.ID, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime)
+			setOwnedAffectForPlayer(target.Char, caster, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime)
 		}
 		if skill.Index == 49 { // Chamas Etereas: queima mana e dissipa buffs defensivos.
 			setPlayerCurMP(target.Char, 0)

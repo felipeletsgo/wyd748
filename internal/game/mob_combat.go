@@ -37,7 +37,7 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		if m.InstanceID != "" {
 			nearbyTarget = w.instanceMobHasNearbyMember(m, mobActivationRange)
 		} else {
-			nearbyTarget = len(w.nearbyPlayers(m.X, m.Y, mobActivationRange)) != 0
+			nearbyTarget = len(w.nearbyPlayersInGameplaySpace(m.X, m.Y, mobActivationRange, "")) != 0
 		}
 		if !nearbyTarget {
 			m.Awake = false
@@ -72,18 +72,13 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		} else {
 			target = w.playerByID(m.TargetID)
 		}
-		allowedTarget := validMobTarget(target)
-		if m.InstanceID != "" {
-			allowedTarget = w.instanceMobTargetAllowed(m, target)
-		} else {
-			allowedTarget = allowedTarget && m.insideLeash(target)
-		}
+		allowedTarget := w.mobCanTargetPlayer(m, target)
 		if !allowedTarget || chebyshev(m.X, m.Y, target.X, target.Y) > mobRetentionRange {
 			m.TargetID = 0
 			if m.InstanceID != "" {
 				target = w.nearestInstanceMember(m)
 			} else {
-				target = w.nearestLivingPlayer(m.X, m.Y, mobAggroRange)
+				target = w.nearestLivingPlayerInGameplaySpace(m.X, m.Y, mobAggroRange, "")
 			}
 			if target == nil {
 				continue
@@ -115,10 +110,7 @@ func (w *World) tickActiveMobActions(now time.Time) {
 			continue
 		}
 		target := w.playerByID(m.TargetID)
-		allowedTarget := validMobTarget(target)
-		if m.InstanceID != "" {
-			allowedTarget = w.instanceMobTargetAllowed(m, target)
-		}
+		allowedTarget := w.mobCanTargetPlayer(m, target)
 		if !allowedTarget || chebyshev(m.X, m.Y, target.X, target.Y) > mobAttackRange {
 			continue
 		}
@@ -161,9 +153,13 @@ func (w *World) playerByID(id uint16) *Player {
 }
 
 func (w *World) nearestLivingPlayer(x, y uint16, maxDistance int) *Player {
+	return w.nearestLivingPlayerInGameplaySpace(x, y, maxDistance, "")
+}
+
+func (w *World) nearestLivingPlayerInGameplaySpace(x, y uint16, maxDistance int, space string) *Player {
 	var best *Player
 	bestDistance := maxDistance + 1
-	for _, p := range w.nearbyPlayers(x, y, maxDistance) {
+	for _, p := range w.nearbyPlayersInGameplaySpace(x, y, maxDistance, space) {
 		distance := chebyshev(x, y, p.X, p.Y)
 		if distance <= maxDistance && distance < bestDistance {
 			best, bestDistance = p, distance

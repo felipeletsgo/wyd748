@@ -731,6 +731,27 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 				expired = true
 				continue
 			}
+			if ownerID := m.AffectOwners[i]; ownerID != 0 {
+				owner := w.playerByID(ownerID)
+				if owner != nil {
+					if w.gameplaySpaceForPlayer(owner) != mobGameplaySpace(m) {
+						*a = model.Affect{}
+						m.AffectOwners[i] = 0
+						expired = true
+						continue
+					}
+				} else if ownerMob := w.mobByID(ownerID); ownerMob == nil ||
+					mobGameplaySpace(ownerMob) != mobGameplaySpace(m) {
+					// A player-owned effect cannot remain after its source
+					// disconnects. Mob-owned boss effects use a mob id and must
+					// still belong to this exact gameplay space; a recycled mob
+					// ID from another runtime cannot keep the effect alive.
+					*a = model.Affect{}
+					m.AffectOwners[i] = 0
+					expired = true
+					continue
+				}
+			}
 			if now.Before(a.NextTick) {
 				continue
 			}
@@ -738,23 +759,12 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			if a.Type != 20 { // veneno/sangramento
 				continue
 			}
-			if m.InstanceID != "" {
-				owner := w.playerByID(m.AffectOwners[i])
-				if owner == nil || w.playerRuntimeInstanceID(owner.ID) != m.InstanceID {
-					// The source left the private runtime (or disconnected); do
-					// not let a stale owner award a kill across instance borders.
-					*a = model.Affect{}
-					m.AffectOwners[i] = 0
-					expired = true
-					continue
-				}
-			}
 			damage := uint32(clampInt(a.Level/2+a.Value, 1, int(m.HP)))
 			m.HP -= damage
 			if m.HP == 0 {
 				if owner := w.playerByID(m.AffectOwners[i]); owner != nil {
 					for _, account := range uniqueKillAccounts(owner,
-						partyExpShares(owner, 1, w.gameplay.PartyEXPBonusPercent)) {
+						w.partyExpShares(owner, 1, w.gameplay.PartyEXPBonusPercent)) {
 						accountsToSave[account] = struct{}{}
 					}
 					w.killMobState(owner, m, damage, damage, false)
@@ -790,6 +800,17 @@ func (w *World) tickPlayerAffects(now time.Time) {
 		expired, hpChanged := false, false
 		for i := range p.Char.Affects {
 			a := &p.Char.Affects[i]
+			// All player-owned hostile affects share the same runtime boundary,
+			// not only the DoT type. Resolve by stable UID whenever available so
+			// a recycled ClientID cannot keep a stale debuff alive.
+			if affectHasPlayerOwner(a) {
+				owner := w.affectOwnerPlayer(a)
+				if owner == nil || !w.playersShareGameplaySpace(owner, p) {
+					*a = model.Affect{}
+					expired = true
+					continue
+				}
+			}
 			if a.Type == 17 && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
 				oldHP := playerCurHP(p.Char)
 				heal := a.Level/2 + a.Value
@@ -809,18 +830,13 @@ func (w *World) tickPlayerAffects(now time.Time) {
 				// A DoT may outlive a teleport or an instance transition. Never
 				// let an affect created in one private gameplay space damage a
 				// character in another; remove the stale cross-runtime affect.
-				owner := w.playerByID(a.OwnerID)
-				if a.OwnerID != 0 && (owner == nil || !w.playersShareGameplaySpace(owner, p)) {
-					*a = model.Affect{}
-					expired = true
-					continue
-				}
+				owner := w.affectOwnerPlayer(a)
 				currentHP := playerCurHP(p.Char)
 				damage := uint32(clampInt(a.Level/2+a.Value, 1, maxInt(1, int(currentHP)-1)))
 				if currentHP > 1 {
 					setPlayerCurHP(p.Char, currentHP-damage)
 					hpChanged = true
-					if owner := w.playerByID(a.OwnerID); owner != nil {
+					if owner != nil {
 						w.sendToPlayerView(p, func() []byte {
 							return wire.AttackHit(owner.ID, p.ID, owner.X, owner.Y, p.X, p.Y,
 								damage, playerMaxHP(p.Char), owner.Char.Exp,
@@ -853,8 +869,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 	}
 	targets := make([]*Mob, 0, 6)
 	for _, m := range w.nearbyMobs(p.X, p.Y, 4) {
-		if m == nil || m.Dead || m.HP == 0 || !m.Def.IsMonster() || m.SummonerID != 0 ||
-			(m.InstanceID != "" && !w.instanceMobTargetAllowed(m, p)) ||
+		if m == nil || m.Dead || m.HP == 0 || !w.playerCanInteractWithMob(p, m) ||
 			chebyshev(p.X, p.Y, m.X, m.Y) > 4 {
 			continue
 		}
@@ -883,7 +898,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		return wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y, p.Char.Exp,
 			playerCombatMP(p.Char), int16(visualSkill), motion, skillVisualLevel(affect.Level), 13, wireTargets)
 	})
-	batchAccounts := uniqueKillAccounts(p, partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
+	batchAccounts := uniqueKillAccounts(p, w.partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
 	for _, m := range targets {
 		if m.HP == 0 {
 			damage := uint32(affect.Level + affect.Value)

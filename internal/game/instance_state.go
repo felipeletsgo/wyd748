@@ -37,9 +37,7 @@ func (w *World) instanceStateSnapshot() *model.InstanceStateSnapshot {
 	}
 	now := w.now()
 	for runtimeID, inst := range w.itemInstances {
-		if inst == nil || (!sharedTimedInstance(inst.Config) &&
-			!isDurablePrivateWaterInstance(inst) &&
-			!strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate")) {
+		if inst == nil || !resumableInstance(inst) {
 			continue
 		}
 		if !inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline) {
@@ -58,24 +56,39 @@ func (w *World) instanceStateSnapshot() *model.InstanceStateSnapshot {
 			HellGateValidLichMask: inst.HellGateValidLichMask,
 			HellGateWrongLich:     inst.HellGateWrongLich,
 		}
-		if isDurablePrivateWaterInstance(inst) {
-			memberUIDs, leaderUID := w.instanceCharacterUIDs(runtimeID, inst)
-			// A private room without a stable owner cannot be reattached after a
-			// restart; keeping it would create an unreachable, resource-consuming
-			// instance. Legacy fixtures without CharacterUID therefore remain
-			// process-local and are cleaned by the normal runtime path.
-			if len(memberUIDs) == 0 {
-				continue
-			}
-			saved.MemberCharacterUIDs = memberUIDs
-			saved.LeaderCharacterUID = leaderUID
+		memberUIDs, leaderUID := w.instanceCharacterUIDs(runtimeID, inst)
+		// A resumable event without a stable owner cannot be reattached after
+		// a restart; keeping it would create an unreachable, resource-consuming
+		// instance. Legacy fixtures without CharacterUID therefore remain
+		// process-local and are cleaned by the normal runtime path.
+		if len(memberUIDs) == 0 && !sharedTimedInstance(inst.Config) {
+			continue
 		}
+		saved.MemberCharacterUIDs = memberUIDs
+		saved.LeaderCharacterUID = leaderUID
 		snapshot.Instances = append(snapshot.Instances, saved)
 	}
 	sort.Slice(snapshot.Instances, func(i, j int) bool {
 		return snapshot.Instances[i].RuntimeID < snapshot.Instances[j].RuntimeID
 	})
 	return snapshot
+}
+
+// resumableInstance identifies event aggregates whose state and stable member
+// identities may outlive a process restart. Water, shared Nightmare-like
+// timed zones and Hell Gate all resume; ordinary Cube/short-lived private
+// rooms remain process-local and are discarded on restart.
+func resumableInstance(inst *ItemInstance) bool {
+	if inst == nil {
+		return false
+	}
+	return isDurablePrivateWaterInstance(inst) || sharedTimedInstance(inst.Config) ||
+		strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate")
+}
+
+func resumableConfigOrWater(cfg model.VolatileInstance) bool {
+	return isDurablePrivateWaterConfig(cfg) || sharedTimedInstance(cfg) ||
+		strings.EqualFold(strings.TrimSpace(cfg.StateMachine), "hell_gate")
 }
 
 // isDurablePrivateWaterInstance identifies the Water rooms that may outlive a
@@ -158,10 +171,10 @@ func (w *World) stageSpawnPosition(inst *ItemInstance) (uint16, uint16, int, boo
 	return x, y, stage.AreaRadius, x != 0 && y != 0
 }
 
-// attachRestoredInstanceMember reconnects a character to its private Water
-// room before the first EnterWorld packet is built. The authoritative room
-// position therefore appears as the initial position instead of a corrective
-// teleport. A reconnect never trusts the former world/client ID.
+// attachRestoredInstanceMember reconnects a character to a resumable event
+// before the first EnterWorld packet is built. The authoritative room position
+// therefore appears as the initial position instead of a corrective teleport.
+// A reconnect never trusts the former world/client ID.
 func (w *World) attachRestoredInstanceMember(p *Player) {
 	if w == nil || p == nil || p.Char == nil || strings.TrimSpace(p.Char.UID) == "" {
 		return
@@ -210,7 +223,7 @@ func (w *World) attachRestoredInstanceMember(p *Player) {
 			delete(w.pendingInstanceLeaders, runtimeID)
 		}
 		w.markInstanceStateDirty()
-		log.Printf("personagem %q reconectado na instancia Water %q", p.Char.Name, runtimeID)
+		log.Printf("personagem %q reconectado na instancia %q", p.Char.Name, runtimeID)
 		return
 	}
 }
@@ -231,7 +244,7 @@ func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
 	// ticket whose room would disappear after a restart.
 	if len(accounts) > 0 {
 		for runtimeID, inst := range w.itemInstances {
-			if !isDurablePrivateWaterInstance(inst) {
+			if !resumableInstance(inst) {
 				continue
 			}
 			uids, _ := w.instanceCharacterUIDs(runtimeID, inst)
@@ -245,7 +258,7 @@ func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
 					strings.TrimSpace(w.pendingInstanceLeaders[runtimeID]) == "" {
 					continue
 				}
-				return fmt.Errorf("private Water instance %q has no stable character UID", runtimeID)
+				return fmt.Errorf("resumable instance %q has no stable character UID", runtimeID)
 			}
 		}
 	}
@@ -266,8 +279,7 @@ func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
 			if inst == nil {
 				continue
 			}
-			if sharedTimedInstance(inst.Config) || isDurablePrivateWaterInstance(inst) ||
-				strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate") {
+			if resumableInstance(inst) {
 				return fmt.Errorf("store does not support atomic account/instance persistence")
 			}
 		}
@@ -302,8 +314,7 @@ func (w *World) restoreInstanceState() error {
 			continue
 		}
 		cfg, found := w.instanceConfigByID(saved.ConfigID, saved.RuntimeID)
-		if !found || (!sharedTimedInstance(cfg) && !isDurablePrivateWaterInstance(&ItemInstance{Config: cfg}) &&
-			!strings.EqualFold(strings.TrimSpace(cfg.StateMachine), "hell_gate")) {
+		if !found || !resumableConfigOrWater(cfg) {
 			continue
 		}
 		inst := &ItemInstance{
@@ -328,10 +339,10 @@ func (w *World) restoreInstanceState() error {
 		if w.pendingInstanceLeaders == nil {
 			w.pendingInstanceLeaders = make(map[string]string)
 		}
-		if isDurablePrivateWaterInstance(inst) {
-			if len(saved.MemberCharacterUIDs) == 0 {
+		if resumableInstance(inst) {
+			if len(saved.MemberCharacterUIDs) == 0 && !sharedTimedInstance(inst.Config) {
 				// An old snapshot without stable ownership cannot be safely
-				// reattached. Do not resurrect an unreachable private room.
+				// reattached. Do not resurrect an unreachable event room.
 				continue
 			}
 			pending := make(map[string]struct{}, len(saved.MemberCharacterUIDs))

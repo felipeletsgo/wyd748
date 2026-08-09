@@ -219,7 +219,7 @@ type VolatileUxmal struct {
 // InstanceRuntimeState is the restart-safe portion of an event instance.
 // Entity IDs, player IDs and mob HP are deliberately excluded: they are
 // process-local and are rebuilt from the authoritative data after a restart.
-// Stable Character UIDs are retained only for private Water reattachment.
+// Stable Character UIDs are retained for resumable event reattachment.
 type InstanceRuntimeState struct {
 	RuntimeID   string `json:"runtimeId"`
 	ConfigID    string `json:"configId"`

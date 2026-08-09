@@ -31,7 +31,8 @@ func buildCharState(p *Player, now time.Time) *model.CharState {
 			}
 			state.Affects = append(state.Affects, model.PersistedAffect{
 				Type: a.Type, ClientType: a.ClientType, Value: a.Value, Level: a.Level,
-				OwnerID: a.OwnerID, ExpiresUnix: a.ExpiresAt.Unix(),
+				OwnerID: a.OwnerID, OwnerCharacterUID: a.OwnerCharacterUID,
+				ExpiresUnix: a.ExpiresAt.Unix(),
 			})
 		}
 	}
@@ -58,6 +59,14 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 		if pa.Type == 0 || pa.ExpiresUnix <= now.Unix() {
 			continue
 		}
+		// A player-owned affect without a stable character identity belongs to
+		// an older sidecar format. Restoring it by recycled OwnerID could bind a
+		// debuff to another character, so discard it rather than resurrecting a
+		// stale effect. OwnerID-only affects with no source are still valid
+		// server buffs (OwnerID=0) and remain loadable.
+		if pa.OwnerID != 0 && pa.OwnerCharacterUID == "" {
+			continue
+		}
 		for slot < len(p.Char.Affects) && p.Char.Affects[slot].Type != 0 {
 			slot++
 		}
@@ -70,8 +79,9 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 		}
 		p.Char.Affects[slot] = model.Affect{
 			Type: pa.Type, ClientType: clientType, Value: pa.Value, Level: pa.Level,
-			OwnerID: pa.OwnerID, ExpiresAt: time.Unix(pa.ExpiresUnix, 0),
-			NextTick: now.Add(8 * time.Second),
+			OwnerID: pa.OwnerID, OwnerCharacterUID: pa.OwnerCharacterUID,
+			ExpiresAt: time.Unix(pa.ExpiresUnix, 0),
+			NextTick:  now.Add(8 * time.Second),
 		}
 		slot++
 	}

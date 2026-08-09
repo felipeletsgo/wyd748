@@ -1394,8 +1394,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			s.ID, target.Char.Name, calculated, applied, playerCurHP(target.Char))
 		return
 	}
-	if m == nil || !m.Def.IsMonster() || m.SummonerID != 0 ||
-		(m.InstanceID != "" && !w.instanceMobTargetAllowed(m, p)) ||
+	if m == nil || !w.playerCanInteractWithMob(p, m) ||
 		chebyshev(p.X, p.Y, m.X, m.Y) > maxRange ||
 		!w.combatLineOfSight(p.X, p.Y, m.X, m.Y) {
 		return
@@ -1453,7 +1452,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage uint32, persist bool) {
 	m.Dead = true
 	baseReward := scaledMobExperience(m.Def.ExpReward, w.gameplay)
-	shares := partyExpShares(p, baseReward, w.gameplay.PartyEXPBonusPercent)
+	shares := w.partyExpShares(p, baseReward, w.gameplay.PartyEXPBonusPercent)
 	expByPlayer := make(map[*Player]uint32, len(shares))
 	leveledUp := make(map[*Player]bool, len(shares))
 	cytheraChanged := make(map[*Player]bool, len(shares))
@@ -1637,7 +1636,7 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	}
 	// Reserva no mundo sem publicar. O item somente aparece aos clientes depois
 	// que a remocao autoritativa do inventario estiver persistida.
-	g := w.createGroundDrop(p.X, p.Y, item, false)
+	g := w.createGroundDropForInstance(p.X, p.Y, item, false, w.gameplaySpaceForPlayer(p))
 	if g == nil {
 		return
 	}

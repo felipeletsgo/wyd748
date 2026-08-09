@@ -20,8 +20,8 @@ type ItemInstance struct {
 	RuntimeID string
 	LeaderID  uint16
 	MemberIDs []uint16
-	// Character UIDs are kept only for private Water reconnects. They are not
-	// sent on the wire and are never used as live entity IDs.
+	// Character UIDs are kept for resumable event runtimes. They are not sent
+	// on the wire and are never used as live entity IDs.
 	MemberCharacterUIDs []string
 	LeaderCharacterUID  string
 	MobIDs              map[uint16]struct{}
@@ -961,9 +961,9 @@ func (w *World) detachPlayerFromItemInstancesMode(playerID uint16, now time.Time
 		if inst == nil || !itemInstanceHasMember(inst, playerID) {
 			continue
 		}
-		privateWater := isDurablePrivateWaterInstance(inst)
+		resumable := resumableInstance(inst)
 		member := w.playersByID[playerID]
-		if !preservePrivateWater && privateWater && member != nil && member.Char != nil {
+		if !preservePrivateWater && resumable && member != nil && member.Char != nil {
 			uid := strings.TrimSpace(member.Char.UID)
 			if pending := w.pendingInstanceMembers[inst.RuntimeID]; pending != nil {
 				delete(pending, uid)
@@ -978,7 +978,7 @@ func (w *World) detachPlayerFromItemInstancesMode(playerID uint16, now time.Time
 				inst.LeaderCharacterUID = ""
 			}
 		}
-		if preservePrivateWater && privateWater && member != nil && member.Char != nil &&
+		if preservePrivateWater && resumable && member != nil && member.Char != nil &&
 			strings.TrimSpace(member.Char.UID) != "" {
 			uid := strings.TrimSpace(member.Char.UID)
 			if w.pendingInstanceMembers == nil {
@@ -1011,9 +1011,9 @@ func (w *World) detachPlayerFromItemInstancesMode(playerID uint16, now time.Time
 			if w.pendingInstanceMembers != nil {
 				pendingCount = len(w.pendingInstanceMembers[inst.RuntimeID])
 			}
-			keepPrivateWater := preservePrivateWater && privateWater && pendingCount > 0
-			if keepPrivateWater {
-				// Keep the private room alive while its characters are offline;
+			keepResumable := preservePrivateWater && resumable && pendingCount > 0
+			if keepResumable {
+				// Keep the resumable event alive while its characters are offline;
 				// the durable UID map will reattach them on the next login.
 				inst.LeaderID = 0
 				w.markInstanceStateDirty()

@@ -254,6 +254,21 @@ type partyExpShare struct {
 // o percentual configurado por participante. Somente membros vivos no mesmo
 // setor 128x128 participam do bonus e recebem EXP.
 func partyExpShares(killer *Player, reward, bonusPerMember uint32) []partyExpShare {
+	return partyExpSharesFiltered(killer, reward, bonusPerMember, nil)
+}
+
+// partyExpShares applies the same rules as the compatibility helper above,
+// plus the World gameplay-space boundary used by real kill paths. A party
+// member in another event runtime or in the public world never receives EXP
+// from a kill it cannot observe.
+func (w *World) partyExpShares(killer *Player, reward, bonusPerMember uint32) []partyExpShare {
+	return partyExpSharesFiltered(killer, reward, bonusPerMember, func(member *Player) bool {
+		return w.playersShareGameplaySpace(killer, member)
+	})
+}
+
+func partyExpSharesFiltered(killer *Player, reward, bonusPerMember uint32,
+	sameSpace func(*Player) bool) []partyExpShare {
 	if killer == nil {
 		return nil
 	}
@@ -265,6 +280,9 @@ func partyExpShares(killer *Player, reward, bonusPerMember uint32) []partyExpSha
 				continue
 			}
 			if !canReceiveMortalExperience(member.Char) {
+				continue
+			}
+			if sameSpace != nil && !sameSpace(member) {
 				continue
 			}
 			if member.X/partySectorSize != killer.X/partySectorSize ||

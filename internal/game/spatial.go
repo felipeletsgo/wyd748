@@ -1,5 +1,7 @@
 package game
 
+import "strings"
+
 const spatialCellSize = 16
 
 func spatialKey(x, y uint16) uint32 {
@@ -116,6 +118,18 @@ func (w *World) nearbyPlayers(x, y uint16, radius int) []*Player {
 	return result
 }
 
+func (w *World) nearbyPlayersInGameplaySpace(x, y uint16, radius int, space string) []*Player {
+	space = strings.TrimSpace(space)
+	all := w.nearbyWorldPlayers(x, y, radius)
+	result := all[:0]
+	for _, p := range all {
+		if validMobTarget(p) && w.gameplaySpaceForPlayer(p) == space {
+			result = append(result, p)
+		}
+	}
+	return result
+}
+
 // nearbyWorldPlayers atende visibilidade/transporte e, ao contrario da busca
 // de alvo da IA, inclui jogadores mortos ou ocultos que ainda estao no mundo.
 func (w *World) nearbyWorldPlayers(x, y uint16, radius int) []*Player {
@@ -152,7 +166,7 @@ func (w *World) recomputeMobActive(m *Mob) {
 		// MemberIDs e a area da sala, nao apenas proximidade espacial.
 		awake = w.instanceMobHasNearbyMember(m, mobActivationRange)
 	} else {
-		awake = len(w.nearbyPlayers(m.X, m.Y, mobActivationRange)) != 0
+		awake = len(w.nearbyPlayersInGameplaySpace(m.X, m.Y, mobActivationRange, "")) != 0
 	}
 	m.Awake = awake
 	if awake {

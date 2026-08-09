@@ -213,8 +213,7 @@ func (w *World) summonTarget(owner *Player, id uint16) summonCombatTarget {
 	}
 	if id >= 1000 {
 		m := w.mobByID(id)
-		if m == nil || m.HP == 0 || !m.Def.IsMonster() || m.SummonerID != 0 ||
-			m.InstanceID != w.playerRuntimeInstanceID(owner.ID) ||
+		if m == nil || m.HP == 0 || !w.playerCanInteractWithMob(owner, m) ||
 			chebyshev(owner.X, owner.Y, m.X, m.Y) > summonCommandRange {
 			return summonCombatTarget{}
 		}

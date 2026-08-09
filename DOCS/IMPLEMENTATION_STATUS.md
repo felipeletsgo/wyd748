@@ -600,9 +600,11 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   colisão. O caster pode ser o destino da própria movimentação, mas nunca é
   ignorado quando um alvo ou uma criatura está sendo materializado ao redor
   dele.
-- DoT PvP com `OwnerID` perde validade quando o agressor desconecta, além de
-  ser removido ao atravessar runtimes. Isso impede que um efeito persistido
-  mantenha dano sem uma origem viva e autorizada.
+- Affects hostis de jogador carregam `OwnerCharacterUID`; `OwnerID` fica apenas
+  como fallback efêmero para sessões ativas. Ao relogar, efeitos persistidos
+  sem identidade estável são descartados, e qualquer affect cujo dono
+  desconecte ou atravesse runtimes é removido. Isso impede dano ou debuff sem
+  uma origem viva e autorizada e evita reutilização de ClientID.
 - Uma transição durante exit grace remove a associação antiga antes do
   snapshot de conta/instância. Em falha de spawn ou persistência, o item,
   posições, membership e índice são restaurados sem runtime parcial.
@@ -657,9 +659,9 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   da sala anterior nao teleporta novamente quem ja entrou na proxima.
 - `recall`/restart remove o personagem definitivamente da instancia antes de
   revive-lo ou reutilizar o ID de entidade. Logout/desconexao remove o ID de
-  mundo, mas preserva o CharacterUID de uma Water privada; o ultimo membro
-  offline nao cria uma vaga fantasma e pode ser reanexado antes do proximo
-  EnterWorld.
+  mundo, mas preserva o CharacterUID de qualquer evento retomavel (Water,
+  Nightmare compartilhado e Hell Gate); o ultimo membro offline nao cria uma
+  vaga fantasma e pode ser reanexado antes do proximo EnterWorld.
 - O prazo da sala, o prazo absoluto e a janela horaria tem precedencia sobre
   quiz/transicao. Uma transicao nao abre a onda seguinte depois do timeout.
 - Spawns sao validados contra terreno, ocupacao e IDs disponiveis. Falha
@@ -672,9 +674,10 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   mortes nunca reduzem a capacidade ou o contador de respawn de geradores
   permanentes.
 - A IA de mobs com `InstanceID` e privada: somente membros vivos e dentro da
-  area atual podem ser alvos. Cada passo respeita o limite da sala e uma
-  referencia antiga fora do limite so pode aproximar o mob do centro, nunca
-  perseguir um jogador externo.
+  area atual podem ser alvos. Monstros publicos so adquirem jogadores do
+  espaco publico. Cada passo respeita o limite da sala e uma referencia antiga
+  fora do limite so pode aproximar o mob do centro, nunca perseguir um jogador
+  externo.
 - A visibilidade tambem e privada no protocolo: `CreateMob`, movimento, dano,
   morte e remocao de mobs de instancia sao publicados somente aos membros
   autorizados da sala atual. Ao trocar de sala, `CurrentStage` e atualizado
@@ -684,9 +687,11 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   de publicar `CreateMob`, movimento, vitais, affects ou morte. Membros da
   mesma sala continuam visiveis; jogadores do mundo publico ou de outra sala
   privada nao vazam mesmo quando ocupam os mesmos tiles fisicos.
-- Recompensas que caem no chao durante uma Water privada carregam a mesma
-  marca de runtime; coleta e visibilidade sao filtradas server-side e o loot
-  e liberado ao mundo apenas depois do encerramento definitivo da sala.
+- Todo loot temporário criado em runtime (Water, Cube, Nightmare, Hell Gate,
+  Uxmal, recompensas e drops de jogador) carrega a mesma marca de gameplay.
+  Coleta e visibilidade são filtradas server-side; o item permanece privado
+  até o encerramento do runtime, quando o cleanup faz a liberação pública
+  prevista pelo evento. Objetos permanentes continuam públicos e não coletáveis.
 - Nightmare N/M/A agora declara `nightmareTier` nos dados. Normal e Mystic
   recusam Celestial a partir do nivel interno 180; Arcane recusa a partir de
   239 e cobra exatamente uma entrada NT por Celestial elegivel. Celestiais
