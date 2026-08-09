@@ -22,6 +22,12 @@ var secretStoneRecipes = [4][8]uint16{
 	{5122, 5119, 5132, 5120, 5130, 5133, 5123, 5337},
 }
 
+const (
+	odinSecretStoneGoldCost      = uint32(2_000_000)
+	odinSecretStoneCorrectChance = 95
+	odinSecretStoneRandomChance  = 5
+)
+
 func advancedEvolution(ch *model.Char, values ...string) bool {
 	if ch == nil {
 		return false
@@ -200,6 +206,55 @@ func (w *World) deterministicOdin(p *Player, req combineRequest, output uint16) 
 	w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, 1)
 }
 
+func odinRune(index uint16) bool {
+	return index >= 5110 && index <= 5133
+}
+
+func sevenOdinRunes(req combineRequest) bool {
+	if req.Items[7].Index != 0 {
+		return false
+	}
+	for i := 0; i < 7; i++ {
+		if !odinRune(req.Items[i].Index) {
+			return false
+		}
+	}
+	return true
+}
+
+// combineSecretStoneOdin aplica a regra retail: qualquer tentativa valida com
+// sete runas custa 2M e consome as sete runas. Uma sequencia exata usa 95%;
+// uma mistura sem receita de Pedra Secreta usa 5% e, no sucesso, sorteia um
+// dos quatro elementos porque a combinacao nao identifica um elemento unico.
+func (w *World) combineSecretStoneOdin(p *Player, req combineRequest, output uint16, chance int) {
+	if p == nil || p.Char == nil || p.Char.Gold < odinSecretStoneGoldCost {
+		w.sendCombineResult(p, 0)
+		return
+	}
+	success := w.intn(100) < chance
+	if success && output == 0 {
+		output = uint16(5334 + w.intn(4))
+	}
+
+	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
+	changed := make(map[int]struct{}, 8)
+	preferred := int(req.Pos[0])
+	consumeCombineItems(p.Char, req, 0, 6, changed)
+	p.Char.Gold -= odinSecretStoneGoldCost
+	if success {
+		if !w.putCraftResult(p, preferred, model.Item{Index: output}, changed) {
+			p.Char.Inv, p.Char.Equip, p.Char.Gold = oldInv, oldEquip, oldGold
+			w.sendCombineResult(p, 0)
+			return
+		}
+	}
+	code := uint32(2)
+	if success {
+		code = 1
+	}
+	w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code)
+}
+
 func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 	p, req, ok := w.beginCombine(s, pkt, "Odin")
 	if !ok {
@@ -207,13 +262,20 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 	}
 	for _, recipe := range secretStoneRecipes {
 		if exactRecipe(req, recipe[:7]) {
-			w.deterministicOdin(p, req, recipe[7])
+			w.combineSecretStoneOdin(p, req, recipe[7], odinSecretStoneCorrectChance)
 			return
 		}
 	}
 	fury := []uint16{5125, 5115, 5111, 5112, 5120, 5128, 5119}
 	if exactRecipe(req, fury) {
 		w.deterministicOdin(p, req, 3020)
+		return
+	}
+	// A sequencia da Fury e uma receita propria e precisa ser testada antes do
+	// fallback de sete runas. Qualquer outra mistura de runas tenta uma Pedra
+	// Secreta aleatoria com 5% de chance.
+	if sevenOdinRunes(req) {
+		w.combineSecretStoneOdin(p, req, 0, odinSecretStoneRandomChance)
 		return
 	}
 	clue := []uint16{413, 413, 413, 413, 413, 413, 413}

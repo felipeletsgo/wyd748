@@ -18,6 +18,7 @@ const (
 	celestialSoulBit     = uint32(1 << 30)
 	celestialFaceType    = byte(3)
 	subCelestialFaceType = byte(4)
+	subCelestialFameCost = uint32(100)
 )
 
 var cityBounds = [...]struct{ minX, minY, maxX, maxY uint16 }{
@@ -38,14 +39,16 @@ func inNativeCity(x, y uint16) bool {
 }
 
 func celestialArchTier(level uint32) byte {
+	// Faixas oficiais WYD KR, convertidas do nivel exibido para o nivel
+	// interno do protocolo: 356-370, 371-380, 381-398, 399 e 400.
 	switch {
 	case level >= 399:
 		return 5
 	case level == 398:
 		return 4
-	case level >= 379:
+	case level >= 380:
 		return 3
-	case level >= 369:
+	case level >= 370:
 		return 2
 	case level >= 355:
 		return 1
@@ -334,6 +337,11 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
+	if counterBalance(p, fameCounter) < subCelestialFameCost {
+		s.Send(wire.MessagePanel("100 Fame is required to create a SubCelestial."))
+		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		return
+	}
 	subClass, ok := archClassFromSefirot(ch.Equip[sefirotSlot])
 	if !ok {
 		s.Send(wire.MessagePanel("Equip the SubCelestial class Sefirot."))
@@ -347,6 +355,7 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 		return
 	}
 	snapshot := cloneCharacterState(ch)
+	oldCounters := copyCounters(p)
 	subFace := ch.Equip[0]
 	bodyBase := int(subFace.Index) - int(ch.Class)
 	if bodyBase < 0 {
@@ -365,13 +374,21 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 	target := addToInv(ch, mystery)
 	if target < 0 {
 		*ch = snapshot
+		p.SpecialCoins = oldCounters
 		s.Send(wire.MessagePanel("Inventory is full."))
+		return
+	}
+	if !spendCounters(p, map[string]uint32{fameCounter: subCelestialFameCost}) {
+		*ch = snapshot
+		p.SpecialCoins = oldCounters
+		s.Send(wire.MessagePanel("100 Fame is required to create a SubCelestial."))
 		return
 	}
 	syncProgression(ch) // passa a incluir 6 x nivel da forma alterna
 	w.recalcPlayer(ch)
-	if err := w.saveAccount(p.Account); err != nil {
+	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*ch = snapshot
+		p.SpecialCoins = oldCounters
 		log.Printf("[#%d] salvar criacao SubCelestial: %v", s.ID, err)
 		s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
 		return
