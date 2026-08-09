@@ -3,6 +3,7 @@ package game
 import (
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 
 	"wydgo/internal/model"
@@ -373,7 +374,12 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 	return changed
 }
 
-func setMobAffect(m *Mob, ownerID uint16, affectType byte, value, level, durationUnits int) bool {
+// setMobAffectWithSource applies an affect to a mob and records the stable
+// source identity. Player session IDs are only a wire/display hint; a player
+// source must always carry CharacterUID so a recycled ClientID cannot inherit
+// the old debuff.
+func setMobAffectWithSource(m *Mob, ownerID uint16, ownerCharacterUID string,
+	affectType byte, value, level, durationUnits int) bool {
 	if m == nil || affectType == 0 {
 		return false
 	}
@@ -396,19 +402,32 @@ func setMobAffect(m *Mob, ownerID uint16, affectType byte, value, level, duratio
 		return false
 	}
 	m.Affects[slot] = model.Affect{Type: affectType, ClientType: affectType, Value: value, Level: level,
-		ExpiresAt: expires,
-		NextTick:  now.Add(8 * time.Second)}
-	m.AffectOwners[slot] = ownerID
+		OwnerID: ownerID, OwnerCharacterUID: strings.TrimSpace(ownerCharacterUID),
+		ExpiresAt: expires, NextTick: now.Add(8 * time.Second)}
 	return true
+}
+
+func setPlayerOwnedMobAffect(m *Mob, owner *Player, affectType byte, value, level, durationUnits int) bool {
+	if owner == nil || owner.Char == nil || strings.TrimSpace(owner.Char.UID) == "" {
+		return false
+	}
+	return setMobAffectWithSource(m, owner.ID, owner.Char.UID, affectType, value, level, durationUnits)
+}
+
+func setMobOwnedMobAffect(m *Mob, owner *Mob, affectType byte, value, level, durationUnits int) bool {
+	if owner == nil || owner.ID == 0 {
+		return false
+	}
+	return setMobAffectWithSource(m, owner.ID, "", affectType, value, level, durationUnits)
 }
 
 func (w *World) applySkillMobEffects(owner *Player, m *Mob, skill model.SkillDef, mastery int) {
 	changed := false
 	if skill.AffectType > 0 {
-		changed = setMobAffect(m, owner.ID, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime) || changed
+		changed = setPlayerOwnedMobAffect(m, owner, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime) || changed
 	}
 	if skill.TickType > 0 {
-		changed = setMobAffect(m, owner.ID, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime) || changed
+		changed = setPlayerOwnedMobAffect(m, owner, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime) || changed
 	}
 	if changed {
 		w.publishMobAffects(m)
@@ -725,32 +744,16 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			if a.Type == 0 {
 				continue
 			}
-			if !a.ExpiresAt.After(now) {
+			playerOwner, _, sourceOK := w.resolveMobAffectSource(m, a)
+			if !sourceOK {
 				*a = model.Affect{}
-				m.AffectOwners[i] = 0
 				expired = true
 				continue
 			}
-			if ownerID := m.AffectOwners[i]; ownerID != 0 {
-				owner := w.playerByID(ownerID)
-				if owner != nil {
-					if w.gameplaySpaceForPlayer(owner) != mobGameplaySpace(m) {
-						*a = model.Affect{}
-						m.AffectOwners[i] = 0
-						expired = true
-						continue
-					}
-				} else if ownerMob := w.mobByID(ownerID); ownerMob == nil ||
-					mobGameplaySpace(ownerMob) != mobGameplaySpace(m) {
-					// A player-owned effect cannot remain after its source
-					// disconnects. Mob-owned boss effects use a mob id and must
-					// still belong to this exact gameplay space; a recycled mob
-					// ID from another runtime cannot keep the effect alive.
-					*a = model.Affect{}
-					m.AffectOwners[i] = 0
-					expired = true
-					continue
-				}
+			if !a.ExpiresAt.After(now) {
+				*a = model.Affect{}
+				expired = true
+				continue
 			}
 			if now.Before(a.NextTick) {
 				continue
@@ -762,12 +765,15 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			damage := uint32(clampInt(a.Level/2+a.Value, 1, int(m.HP)))
 			m.HP -= damage
 			if m.HP == 0 {
-				if owner := w.playerByID(m.AffectOwners[i]); owner != nil {
+				if playerOwner != nil {
+					owner := playerOwner
 					for _, account := range uniqueKillAccounts(owner,
 						w.partyExpShares(owner, 1, w.gameplay.PartyEXPBonusPercent)) {
 						accountsToSave[account] = struct{}{}
 					}
 					w.killMobState(owner, m, damage, damage, false)
+				} else {
+					w.killMobState(nil, m, damage, damage, false)
 				}
 				break
 			}

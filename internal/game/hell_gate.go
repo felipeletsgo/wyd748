@@ -132,7 +132,7 @@ func (w *World) findMobPositionOccupied(instanceID string, x, y uint16) bool {
 	if strings.TrimSpace(instanceID) == "" {
 		return w.positionOccupied(x, y, nil)
 	}
-	return w.positionOccupiedExceptPlayersInInstance(x, y, nil, nil, nil, instanceID)
+	return w.positionOccupiedInGameplaySpace(x, y, instanceID, nil, nil, nil)
 }
 
 func (w *World) removeHellGateMobs(inst *ItemInstance) {

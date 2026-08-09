@@ -167,7 +167,7 @@ func (w *World) bossSummonAdds(boss *BossRuntime, mob *Mob, action BossActionDef
 
 // bossApplyEffect aplica um affect nativo no proprio boss (escudo, enrage).
 func (w *World) bossApplyEffect(boss *BossRuntime, mob *Mob, action BossActionDef) {
-	if !setMobAffect(mob, mob.ID, action.AffectType, action.AffectValue,
+	if !setMobOwnedMobAffect(mob, mob, action.AffectType, action.AffectValue,
 		action.AffectLevel, action.AffectDuration) {
 		return
 	}
@@ -225,7 +225,6 @@ func clearMobAffect(m *Mob, affectType byte) bool {
 	for i := range m.Affects {
 		if m.Affects[i].Type == affectType {
 			m.Affects[i] = model.Affect{}
-			m.AffectOwners[i] = 0
 			removed = true
 		}
 	}

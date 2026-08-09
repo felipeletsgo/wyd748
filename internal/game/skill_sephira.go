@@ -28,7 +28,7 @@ func (w *World) canCastThornWall(p *Player, req skillCastRequest, skill model.Sk
 	runtimeID := w.playerRuntimeInstanceID(p.ID)
 	occupied := w.positionOccupiedExcept(req.TargetX, req.TargetY, nil, nil)
 	if runtimeID != "" {
-		occupied = w.positionOccupiedExceptPlayersInInstance(req.TargetX, req.TargetY, nil, nil, nil, runtimeID)
+		occupied = w.positionOccupiedInGameplaySpace(req.TargetX, req.TargetY, runtimeID, nil, nil, nil)
 	}
 	return !occupied &&
 		chebyshev(p.X, p.Y, req.TargetX, req.TargetY) <= maxInt(1, skill.Range) &&

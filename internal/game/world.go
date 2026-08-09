@@ -173,7 +173,6 @@ type Mob struct {
 	TargetID         uint16
 	NextAttack       time.Time
 	Affects          [16]model.Affect
-	AffectOwners     [16]uint16
 	SummonerID       uint16
 	SummonKind       byte
 	SummonRange      int
@@ -325,12 +324,13 @@ type World struct {
 	commands chan command
 	// pendingCommands guarda o restante de um lote quando o tick vence o
 	// orcamento. O World continua sendo o unico escritor desta fila.
-	pendingCommands []command
-	players         map[*net.Session]*Player
-	playersByID     map[uint16]*Player
-	accountSessions map[string]*net.Session
-	authPending     map[*net.Session]bool
-	authSlots       chan struct{}
+	pendingCommands       []command
+	players               map[*net.Session]*Player
+	playersByID           map[uint16]*Player
+	playersByCharacterUID map[string]*Player
+	accountSessions       map[string]*net.Session
+	authPending           map[*net.Session]bool
+	authSlots             chan struct{}
 	// security agrega violacoes por conexao em qualquer fase (inclusive antes
 	// do login), sem confiar em campos de identidade enviados no pacote.
 	security map[*net.Session]*securityState
@@ -468,6 +468,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		commands:               make(chan command, 1024),
 		players:                make(map[*net.Session]*Player),
 		playersByID:            make(map[uint16]*Player),
+		playersByCharacterUID:  make(map[string]*Player),
 		accountSessions:        make(map[string]*net.Session),
 		authPending:            make(map[*net.Session]bool),
 		authSlots:              make(chan struct{}, 4),
@@ -749,11 +750,7 @@ func (w *World) mobStepBlockedFrom(m *Mob, fromX, fromY, toX, toY uint16) bool {
 	if m == nil || !w.terrain.RouteHeightCompatible(fromX, fromY, toX, toY) {
 		return true
 	}
-	if m.InstanceID != "" {
-		if w.positionOccupiedExceptPlayersInInstance(toX, toY, m, nil, nil, m.InstanceID) {
-			return true
-		}
-	} else if w.positionOccupied(toX, toY, m) {
+	if w.positionOccupiedInGameplaySpace(toX, toY, mobGameplaySpace(m), m, nil, nil) {
 		return true
 	}
 	// Instancias sao fisicamente proximas de outras areas do mapa. Sem esta
@@ -775,26 +772,31 @@ func (w *World) positionOccupiedExcept(x, y uint16, exceptMob *Mob, exceptPlayer
 	return w.positionOccupiedExceptPlayers(x, y, exceptMob, exceptPlayer, nil)
 }
 
-// positionOccupiedExceptPlayersInInstance is the collision query used while
-// materializing a private Water room. Private rooms share the physical map,
-// but their mobs and members are isolated by InstanceID; an entity belonging
-// to another private room must not make a valid tile unavailable to this one.
-// World NPCs/mobs (InstanceID empty) and ghost shops remain real blockers.
-func (w *World) positionOccupiedExceptPlayersInInstance(x, y uint16,
+// positionOccupiedInGameplaySpace is the single collision boundary for all
+// dynamic gameplay entities. Terrain and global/static NPCs are shared by all
+// spaces; players, hostile mobs and summons reserve tiles only in their own
+// GameplaySpace. This is intentionally independent of Water/Cube mechanics.
+func (w *World) positionOccupiedInGameplaySpace(x, y uint16, space string,
 	exceptMob *Mob, exceptPlayer *Player, ignored map[*Player]struct{},
-	instanceID string) bool {
+) bool {
 	if !w.terrain.Walkable(x, y) {
 		return true
 	}
+	space = strings.TrimSpace(space)
 	key := spatialKey(x, y)
 	for _, m := range w.mobCells[key] {
 		if m == exceptMob || m.Dead {
 			continue
 		}
-		if instanceID != "" && m.InstanceID != "" && m.InstanceID != instanceID {
+		if m.X != x || m.Y != y {
 			continue
 		}
-		if m.X == x && m.Y == y {
+		dynamic := m.Def == nil || strings.TrimSpace(m.InstanceID) != "" ||
+			m.SummonerID != 0 || m.Def.IsMonster()
+		if dynamic && mobGameplaySpace(m) == space {
+			return true
+		}
+		if !dynamic && strings.TrimSpace(m.InstanceID) == "" {
 			return true
 		}
 	}
@@ -809,9 +811,7 @@ func (w *World) positionOccupiedExceptPlayersInInstance(x, y uint16,
 			p.X != x || p.Y != y {
 			continue
 		}
-		if instanceID != "" && w.playerRuntimeInstanceID(p.ID) != instanceID {
-			// A public player, or a member of another runtime, cannot reserve a
-			// tile in a gameplay space it cannot enter or observe.
+		if w.gameplaySpaceForPlayer(p) != space {
 			continue
 		}
 		return true
@@ -929,32 +929,7 @@ func (w *World) playerRuntimeInstanceID(playerID uint16) string {
 // movimento.
 func (w *World) positionOccupiedExceptPlayers(x, y uint16, exceptMob *Mob,
 	exceptPlayer *Player, ignored map[*Player]struct{}) bool {
-	if !w.terrain.Walkable(x, y) {
-		return true
-	}
-	key := spatialKey(x, y)
-	for _, m := range w.mobCells[key] {
-		if m != exceptMob && !m.Dead && m.X == x && m.Y == y {
-			return true
-		}
-	}
-	for _, p := range w.playerCells[key] {
-		if p == exceptPlayer {
-			continue
-		}
-		if _, skip := ignored[p]; skip {
-			continue
-		}
-		if p.InWorld && p.Char != nil && playerCurHP(p.Char) > 0 && p.X == x && p.Y == y {
-			return true
-		}
-	}
-	for _, shop := range w.ghostShops {
-		if shop.X == x && shop.Y == y {
-			return true
-		}
-	}
-	return false
+	return w.positionOccupiedInGameplaySpace(x, y, "", exceptMob, exceptPlayer, ignored)
 }
 
 // findFreePlayerPosition escolhe primeiro um dos oito tiles adjacentes e depois
@@ -1001,7 +976,7 @@ func (w *World) findFreePlayerPosition(x, y uint16, radius int, player *Player) 
 func (w *World) findFreePlayerPositionInInstance(x, y uint16, radius int,
 	player *Player, instanceID string) (uint16, uint16) {
 	occupied := func(px, py uint16) bool {
-		return w.positionOccupiedExceptPlayersInInstance(px, py, nil, player, nil, instanceID)
+		return w.positionOccupiedInGameplaySpace(px, py, instanceID, nil, player, nil)
 	}
 	if !occupied(x, y) {
 		return x, y
@@ -1048,18 +1023,12 @@ func (w *World) findFreeGameplayPosition(spaceOwner, exceptPlayer *Player,
 	return w.findFreePositionExcept(x, y, radius, exceptPlayer)
 }
 
-// findFreeMobPosition allocates a tile in the mob's gameplay space. Public
-// mobs use the ordinary global collision map; instance mobs ignore entities
-// from other runtimes while still respecting terrain, global NPCs and mobs in
-// their own runtime. This is used by boss adds and Hell Gate waves before the
+// findFreeMobPosition allocates a tile in the mob's gameplay space before the
 // new entity is registered in the spatial index.
 func (w *World) findFreeMobPosition(instanceID string, x, y uint16, radius uint16) (uint16, uint16) {
 	instanceID = strings.TrimSpace(instanceID)
 	occupied := func(px, py uint16) bool {
-		if instanceID == "" {
-			return w.positionOccupied(px, py, nil)
-		}
-		return w.positionOccupiedExceptPlayersInInstance(px, py, nil, nil, nil, instanceID)
+		return w.positionOccupiedInGameplaySpace(px, py, instanceID, nil, nil, nil)
 	}
 	if !occupied(x, y) {
 		return x, y

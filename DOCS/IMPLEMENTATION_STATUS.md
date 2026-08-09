@@ -571,9 +571,12 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   do item. O scanner percorre carry 0..62 com debounce de 3000 ms; nenhuma
   regra server-side e duplicada no executavel.
 - O teste estatico `client748/Test-WYD748-WaterMacro.ps1` aplica a cadeia em
-  copia temporaria e confirma SHA, hooks, destinos dentro da cave, os dois
-  retornos tratados do parser, a chamada nativa de `UseItem`, as strings
-  locais e a cave sem tocar no `WYD.exe` versionado.
+  copia temporaria e confirma SHA, hooks, ordem de argumentos dos call sites
+  nativos, epilogo do retorno tratado, ABI da mensagem, preservacao de ESI/EDI
+  no comparador, chamada nativa de `UseItem`, strings locais e cave. O patch
+  tambem ignora a mensagem local quando o objeto de UI foi limpo durante
+  teardown, sem deixar de consumir o comando. A saida versionada atual e
+  `65486F2A4ED791BA977C00D1478BFA6450783DA37BC54A8039F196B8A73E0A0E`.
 - O `Warrior's_Seal` (4146) usa `EF_VOLATILE=199` no servidor. Como o client
   7.48 nao traz a excecao por item do W2PP, `client748/Apply-WYD748.ps1`
   tambem executa `Patch-WYD748-ClientItemUse.ps1`: somente o marcador local
@@ -1267,9 +1270,8 @@ Allocators de mob/drop são limitados, drops nas bordas não sofrem wrap de
 
 Foram removidos wrappers e fórmulas sem chamador real de combate, IA, skills,
 instâncias, load test e wire. `staticcheck`, `go vet`, `govulncheck`, build,
-testes normais e testes embaralhados estão verdes. O detector de corrida ainda
-não liga no Windows local porque o linker GCC/Go race falha; ele deve rodar no
-CI Linux antes de uma publicação pública.
+testes normais, testes embaralhados e `go test -race ./internal/game` estão
+verdes.
 
 ## Morte PvP sem recompensa econômica
 
@@ -1279,3 +1281,20 @@ próprio personagem ou alguém da party. Por isso a morte de jogador é publicad
 individualmente: cada destinatário recebe sua própria EXP atual, nunca a EXP da
 vítima ou do killer. O mesmo serviço atende ataque físico, skills, monstros e
 summons que matam jogadores; Chaos Point, carta e animação de morte permanecem.
+
+### Complemento de isolamento de runtime — entregue em 08/08/2026
+
+Novos testes cobrem a matriz público/runtime, loot, party EXP, UID de affect,
+colisão de Hell Gate, efeitos mob-owned sem crédito e reconexão de membros
+pendentes. A validação desta rodada passou em `go test -count=1 ./...`,
+`go vet ./...`, `go test -race ./internal/game`, build do servidor e
+`git diff --check`.
+
+O `Mob` não possui mais um array paralelo de donos por ClientID. Affects
+criados por jogadores usam `OwnerCharacterUID`; efeitos do próprio mob/boss
+usam somente o ID vivo do mob no mesmo GameplaySpace e nunca atribuem EXP,
+gold ou loot a um jogador. A colisão agora é resolvida por uma função única:
+terreno, NPCs estáticos e lojas fantasma são globais; jogadores, monstros e
+summons dinâmicos bloqueiam apenas o espaço correspondente. Capacidade de
+instância é calculada por identidades únicas, incluindo UIDs pendentes de
+reconexão, e o índice de jogadores por CharacterUID é O(1) no runtime real.

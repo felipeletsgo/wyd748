@@ -21,6 +21,7 @@ func (w *World) removePlayerFromWorld(p *Player, reason string) {
 	}
 	w.detachPlayerFromItemInstances(p.ID, w.now())
 	w.unregisterPlayerSpatial(p)
+	w.unindexPlayerCharacter(p)
 	delete(w.playersByID, p.ID)
 	w.closeGhostShop(p, reason)
 	w.cancelTrade(p, reason)

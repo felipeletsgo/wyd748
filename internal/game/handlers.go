@@ -386,6 +386,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	p.X, p.Y = entryX, entryY
 	p.NextCPRecovery = w.now().Add(chaosRecoveryInterval)
 	w.playersByID[p.ID] = p
+	w.indexPlayerCharacter(p)
 	// A private Water instance is keyed by Character UID, not the process-local
 	// player ID. Reattach before building EnterWorld/CreateMob so reconnecting
 	// at a saved room is a single authoritative position, never a correction
@@ -1450,6 +1451,22 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 
 // killMobState processa a morte de um monstro, xp, respawn e pacotes de morte.
 func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage uint32, persist bool) {
+	if p == nil || p.Char == nil {
+		// Server-owned effects (for example a boss aura) may kill an add without
+		// having a player source. Never award EXP/gold/loot to a recycled player;
+		// still publish the authoritative death and run instance cleanup.
+		if m == nil || m.Dead {
+			return
+		}
+		m.Dead = true
+		w.publishMobDeath(m, 0, 0, nil)
+		w.notifyBossAddDied(m.ID)
+		w.onBossMobKilled(m)
+		w.UnregisterBoss(m.ID)
+		w.onItemInstanceMobKilled(m, w.now())
+		w.removeMobInstance(m)
+		return
+	}
 	m.Dead = true
 	baseReward := scaledMobExperience(m.Def.ExpReward, w.gameplay)
 	shares := w.partyExpShares(p, baseReward, w.gameplay.PartyEXPBonusPercent)
@@ -1777,6 +1794,7 @@ func (w *World) onDisconnect(s *net.Session) {
 			w.saveCharState(p)
 		}
 		w.releaseAccountSession(s, p.Account)
+		w.unindexPlayerCharacter(p)
 		delete(w.playersByID, p.ID)
 		delete(w.players, s)
 	}

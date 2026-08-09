@@ -58,8 +58,8 @@ func TestMobSkillEffectsChangeEffectiveCombatStats(t *testing.T) {
 		t.Fatalf("defesa efetiva=%d, quer 300", got)
 	}
 
-	setMobAffect(mob, owner.ID, 10, 20, 40, 5)
-	setMobAffect(mob, owner.ID, 1, 2, 40, 5)
+	setPlayerOwnedMobAffect(mob, owner, 10, 20, 40, 5)
+	setPlayerOwnedMobAffect(mob, owner, 1, 2, 40, 5)
 	if got := effectiveMobAttack(mob); got != 472 {
 		t.Fatalf("ataque efetivo=%d, quer 472", got)
 	}
@@ -79,7 +79,8 @@ func TestTickMobAffectsDamagesAndExpires(t *testing.T) {
 		Type: 20, Level: 20, Value: 5,
 		ExpiresAt: now.Add(time.Minute), NextTick: now.Add(-time.Second),
 	}
-	mob.AffectOwners[0] = owner.ID
+	mob.Affects[0].OwnerID = owner.ID
+	mob.Affects[0].OwnerCharacterUID = owner.Char.UID
 	mob.Affects[1] = model.Affect{Type: 3, ExpiresAt: now.Add(-time.Second)}
 	w.mobs = append(w.mobs, mob)
 	w.registerMobSpatial(mob)
@@ -90,7 +91,7 @@ func TestTickMobAffectsDamagesAndExpires(t *testing.T) {
 	if mob.HP != 985 {
 		t.Fatalf("tick de veneno causou HP=%d, quer 985", mob.HP)
 	}
-	if mob.Affects[1].Type != 0 || mob.AffectOwners[1] != 0 {
+	if mob.Affects[1].Type != 0 || mob.Affects[1].OwnerID != 0 || mob.Affects[1].OwnerCharacterUID != "" {
 		t.Fatal("affect expirado do mob nao foi limpo")
 	}
 	if !mob.Affects[0].NextTick.After(now) {
@@ -111,6 +112,7 @@ func TestTickPlayerAffectsRegenPoisonAreaAndExpiration(t *testing.T) {
 	p.Char.Affects[1] = model.Affect{
 		Type: 20, Level: 10, Value: 5,
 		ExpiresAt: now.Add(time.Minute), NextTick: now.Add(-time.Second), OwnerID: p.ID,
+		OwnerCharacterUID: p.Char.UID,
 	}
 	p.Char.Affects[2] = model.Affect{
 		Type: 22, Level: 20, Value: 10,

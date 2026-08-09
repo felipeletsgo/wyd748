@@ -71,12 +71,77 @@ func (w *World) playerByCharacterUID(uid string) *Player {
 	if w == nil || uid == "" {
 		return nil
 	}
+	if w.playersByCharacterUID != nil {
+		if p := w.playersByCharacterUID[uid]; p != nil && p.Char != nil &&
+			strings.TrimSpace(p.Char.UID) == uid && p.InWorld &&
+			w.playersByID[p.ID] == p {
+			return p
+		}
+		delete(w.playersByCharacterUID, uid)
+	}
 	for _, p := range w.playersByID {
-		if p != nil && p.Char != nil && strings.TrimSpace(p.Char.UID) == uid {
+		if p != nil && p.InWorld && p.Char != nil && strings.TrimSpace(p.Char.UID) == uid {
+			if w.playersByCharacterUID == nil {
+				w.playersByCharacterUID = make(map[string]*Player)
+			}
+			w.playersByCharacterUID[uid] = p
 			return p
 		}
 	}
 	return nil
+}
+
+func (w *World) indexPlayerCharacter(p *Player) {
+	if w == nil || p == nil || p.Char == nil || !p.InWorld {
+		return
+	}
+	uid := strings.TrimSpace(p.Char.UID)
+	if uid == "" {
+		return
+	}
+	if w.playersByCharacterUID == nil {
+		w.playersByCharacterUID = make(map[string]*Player)
+	}
+	w.playersByCharacterUID[uid] = p
+}
+
+func (w *World) unindexPlayerCharacter(p *Player) {
+	if w == nil || p == nil || w.playersByCharacterUID == nil || p.Char == nil {
+		return
+	}
+	uid := strings.TrimSpace(p.Char.UID)
+	if uid != "" && w.playersByCharacterUID[uid] == p {
+		delete(w.playersByCharacterUID, uid)
+	}
+}
+
+// resolveMobAffectSource resolves ownership without trusting a recycled
+// session ID. A non-empty OwnerCharacterUID is always a player source; an
+// OwnerID without that UID is reserved for a live mob source. Ownerless server
+// affects are valid and simply have no kill-credit recipient.
+func (w *World) resolveMobAffectSource(target *Mob, affect *model.Affect) (*Player, *Mob, bool) {
+	if target == nil || affect == nil {
+		return nil, nil, false
+	}
+	if uid := strings.TrimSpace(affect.OwnerCharacterUID); uid != "" {
+		owner := w.playerByCharacterUID(uid)
+		if !validPlayerMobParticipant(owner) || w.gameplaySpaceForPlayer(owner) != mobGameplaySpace(target) {
+			return nil, nil, false
+		}
+		if target.InstanceID != "" && !instanceMemberInStage(w.instanceForMob(target), owner) {
+			return nil, nil, false
+		}
+		return owner, nil, true
+	}
+	if affect.OwnerID == 0 {
+		return nil, nil, true
+	}
+	owner := w.mobByID(affect.OwnerID)
+	if owner == nil || owner.Dead || owner.HP == 0 ||
+		mobGameplaySpace(owner) != mobGameplaySpace(target) {
+		return nil, nil, false
+	}
+	return nil, owner, true
 }
 
 func (w *World) affectOwnerPlayer(a *model.Affect) *Player {
@@ -86,12 +151,9 @@ func (w *World) affectOwnerPlayer(a *model.Affect) *Player {
 	if uid := strings.TrimSpace(a.OwnerCharacterUID); uid != "" {
 		return w.playerByCharacterUID(uid)
 	}
-	if a.OwnerID != 0 {
-		// OwnerID is retained only as an in-memory compatibility fallback for
-		// old tests/active sessions. Persisted affects without a UID are dropped
-		// at load, so a recycled ID cannot resurrect an old debuff.
-		return w.playerByID(a.OwnerID)
-	}
+	// OwnerID alone is never enough to resolve a player source. It is an
+	// ephemeral session/wire hint and may already belong to another character
+	// after reconnect; callers treat this as a stale affect and remove it.
 	return nil
 }
 

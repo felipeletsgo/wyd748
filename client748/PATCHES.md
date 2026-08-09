@@ -13,11 +13,11 @@ WYD.pre-extended-stats.exe    2AA1773A…21EE   ← LINHA-BASE
   └─ Patch-WYD748-Bypass.ps1                  versão + 3 checksums
   (intermediário)             E704DA0A…E20D
   └─ Patch-WYD748-Macro.ps1                   rotação de skills + buffs
-WYD.exe pré-Lindy             4E916C1F…9BA2   ← binário atualmente versionado
+WYD.exe pré-Lindy             4E916C1F…9BA2
   └─ Patch-WYD748-Lindy.ps1                  validação 4010 -> 3448
 WYD.exe pós-Lindy             9762B1AC…7F18
   └─ Patch-WYD748-WaterMacro.ps1             macro local de pergaminhos
-WYD.exe pós-WaterMacro        CC57B04F…2D44
+WYD.exe pós-WaterMacro        65486F2A…73E0A0E   ← binário atualmente versionado
 ```
 
 ## Reaplicar
@@ -202,6 +202,10 @@ pelo parser nativo quanto a forma com `/`, portanto o jogador digita
 enabled.`/`disabled.`) e o texto não é transmitido ao servidor. Todo outro
 texto segue o formatter original.
 
+Antes de chamar a confirmação nativa, o hook testa o objeto de UI em
+`EBP-0x1AD4`; se ele já foi limpo durante teardown, o comando é consumido sem
+dereferenciar um ponteiro nulo.
+
 O hook do tick em `VA 0x004779A7` chama o scanner no mesmo thread do cliente e
 depois chama o macro A/D nativo. O scanner percorre `Carry[0..62]` (uma única
 grade de 63 células, 9 colunas por 7 linhas), usa a posição local refletida pelo servidor,
@@ -219,8 +223,9 @@ cd client748
 ```
 
 O teste aplica somente os elos ainda ausentes (Lindy + Water, Water, ou nenhum)
-em uma cópia temporária, confirma os dois CALLs,
-os destinos dentro da cave, os dois saltos para o retorno tratado do parser,
+em uma cópia temporária, confirma os dois CALLs, a ordem dos argumentos
+observada nos call sites nativos, o epílogo do retorno tratado, a preservação
+de ESI/EDI no comparador, a ABI da mensagem nativa, os saltos para o retorno,
 a chamada da rotina nativa de `UseItem`, as strings locais e a cave, e imprime
 a SHA final. A saída observada nesta revisão foi
-`CC57B04F8A07480E4989B33FFDC5E65BFD74789A7FA9104394D7F13A5D9F2D44`.
+`65486F2A4ED791BA977C00D1478BFA6450783DA37BC54A8039F196B8A73E0A0E`.

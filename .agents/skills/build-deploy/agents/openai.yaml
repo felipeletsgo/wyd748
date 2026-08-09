@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD Plugin Build"
+  short_description: "Compilar e implantar o plugin Micronics"
+  default_prompt: "Use $build-deploy para compilar e implantar o plugin Micronics com verificação."

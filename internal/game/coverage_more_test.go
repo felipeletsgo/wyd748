@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -175,7 +176,7 @@ func TestSummonCombatCoversAttackFollowPassiveAndImmobileKinds(t *testing.T) {
 func networkedTestPlayer(id uint16, name string, x, y uint16) (*Player, *gameNet.Session) {
 	session := gameNet.NewTestSession(int64(id), 128)
 	ch := &model.Char{
-		Name: name, X: x, Y: y,
+		Name: name, UID: fmt.Sprintf("test-character-%d-%s", id, name), X: x, Y: y,
 		Extended: testExtended(model.ExtendedScore{
 			Level: 10, Attack: 500, MagicAttack: 600, Defense: 100,
 			Str: 100, Int: 100, Dex: 100, Con: 100,
@@ -196,10 +197,12 @@ func worldWithNetworkedPlayers(players ...*Player) *World {
 	w := testSpatialWorld(nil)
 	w.players = make(map[*gameNet.Session]*Player, len(players))
 	w.playersByID = make(map[uint16]*Player, len(players))
+	w.playersByCharacterUID = make(map[string]*Player, len(players))
 	w.guilds = &model.GuildRegistry{Version: model.GuildRegistryVersion}
 	for _, p := range players {
 		w.players[p.Session] = p
 		w.playersByID[p.ID] = p
+		w.indexPlayerCharacter(p)
 		w.updatePlayerSpatial(p)
 	}
 	return w

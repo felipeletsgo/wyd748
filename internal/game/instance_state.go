@@ -135,6 +135,12 @@ func (w *World) instanceCharacterUIDs(runtimeID string, inst *ItemInstance) ([]s
 		// An explicit detached leader wins over a temporary live promotion.
 		leaderUID = pendingLeader
 	}
+	// Keep the durable identity list authoritative even while a lightweight
+	// fixture or a restored runtime has not rebuilt its pending map yet. The
+	// append helper deduplicates this list with live and pending members below.
+	for _, uid := range inst.MemberCharacterUIDs {
+		memberUIDs = appendUniqueString(memberUIDs, uid)
+	}
 	for _, playerID := range inst.MemberIDs {
 		p := w.playersByID[playerID]
 		if p == nil || p.Char == nil || strings.TrimSpace(p.Char.UID) == "" {

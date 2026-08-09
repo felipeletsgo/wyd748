@@ -83,6 +83,13 @@ $frameVA = [uint32]0x004779A7
 $frameOriginal = [byte[]](0xE8,0x80,0xBC,0x01,0x00)
 Assert-Bytes $data $chatOffset $chatOriginal 'hook de chat (formatter)'
 Assert-Bytes $data $frameOffset $frameOriginal 'hook de tick (macro nativo)'
+# The local confirmation reuses the exact thiscall already present in this
+# formatter function. Keep the surrounding bytes guarded as well: a matching
+# CALL opcode at another build is not enough to prove the EBP/ECX contract.
+Assert-Bytes $data 0x67893 ([byte[]](0x8D,0x85,0x14,0xFC,0xFF,0xFF,0x50,
+    0x8B,0x8D,0x2C,0xE5,0xFF,0xFF,0xE8,0xFC,0xC1,0x02,0x00)) 'call nativo de mensagem no formatter'
+Assert-Bytes $data 0x70D31 ([byte[]](0x8B,0x4D,0xF4,0x64,0x89,0x0D,0x00,0x00,0x00,0x00,
+    0x5F,0x5E,0x8B,0xE5,0x5D,0xC2,0x08,0x00)) 'epilogo do formatter'
 Assert-AllZero $data $caveOffset $caveCapacity 'cave .xstat Water'
 
 # --- resolve the authoritative table --------------------------------------
@@ -269,8 +276,14 @@ Mark 'chat_on'
 MovRegImm 0 1
 MovMemEax 'macro_state'
 Emit ([byte[]](0x8B,0x8D,0x2C,0xE5,0xFF,0xFF)) # mov ecx,[ebp-1AD4]
+# The parser normally owns this object, but a teardown/zone transition can
+# reach the formatter after it has been cleared. The command must still be
+# consumed locally; skip only the optional confirmation in that edge case.
+Emit ([byte[]](0x85,0xC9)) # test ecx,ecx
+Jcc 4 'chat_on_done'
 PushLabel 'msg_on'
 CallVA $messageVA
+Mark 'chat_on_done'
 Popad
 MovRegImm 0 1
 # The parser's handled-return path performs the normal epilogue and returns
@@ -283,16 +296,22 @@ Mark 'chat_off'
 MovRegImm 0 0
 MovMemEax 'macro_state'
 Emit ([byte[]](0x8B,0x8D,0x2C,0xE5,0xFF,0xFF))
+Emit ([byte[]](0x85,0xC9)) # test ecx,ecx
+Jcc 4 'chat_off_done'
 PushLabel 'msg_off'
 CallVA $messageVA
+Mark 'chat_off_done'
 Popad
 MovRegImm 0 1
 JmpVA ([uint32]0x00470D31)
 
-# Exact ASCII, case-insensitive comparison. ESI/EDI are caller-owned by the
-# trampoline and are restored by pushad; EBX is preserved locally as required.
+# Exact ASCII, case-insensitive comparison. The caller needs ESI again for the
+# second command (ON may fail before OFF is tested), so this helper is fully
+# non-destructive for its pointer registers. EBX is preserved locally too.
 Mark 'cmp_ci'
 B 0x53 # push ebx
+B 0x56 # push esi
+B 0x57 # push edi
 Mark 'cmp_loop'
 Emit ([byte[]](0x8A,0x06,0x8A,0x1F))
 B 0x3C; B 0x41; Jcc 2 'cmp_a_done'; B 0x3C; B 0x5A; Jcc 7 'cmp_a_done'; B 0x0C; B 0x20
@@ -303,14 +322,16 @@ B 0x38; B 0xD8; Jcc 5 'cmp_no'
 B 0x84; B 0xC0; Jcc 4 'cmp_yes'
 IncReg 6; IncReg 7; JmpLabel 'cmp_loop'
 Mark 'cmp_no'
-XorEax; B 0x5B; B 0xC3
+XorEax; B 0x5F; B 0x5E; B 0x5B; B 0xC3
 Mark 'cmp_yes'
-MovRegImm 0 1; B 0x5B; B 0xC3
+MovRegImm 0 1; B 0x5F; B 0x5E; B 0x5B; B 0xC3
 
 # Scanner called in the original client thread. This 7.48 client exposes one
 # carry grid with 63 visible slots (9 columns x 7 rows). The structural slot
-# 63 is intentionally excluded from automation.  The native grid ABI is
-# GetItem(x,y), so each call pushes y first and x second.
+# 63 is intentionally excluded from automation. The native grid ABI is
+# GetItem(x,y); the 7.48 call site pushes y first and x second. The packed
+# coordinate uses the quotient as y (row) and the remainder as x (cell), so
+# the row is pushed before the cell in both native calls below.
 Mark 'scan_water'
 Pushad
 MovRegReg 6 1 # ESI = scene (ECX at the frame call)

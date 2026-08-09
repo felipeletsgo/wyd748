@@ -351,7 +351,7 @@ func TestInstanceAreaOccupationIgnoresMembersEnteringRoom(t *testing.T) {
 	leader.Char.X, leader.Char.Y = leader.X, leader.Y
 	member.X, member.Y = 2201, 2200
 	member.Char.X, member.Char.Y = member.X, member.Y
-	if w.instanceAreaOccupied(rule.Instance, leader, member) {
+	if w.instanceAreaOccupied(rule.Instance, "", leader, member) {
 		t.Fatal("membros que estao entrando foram tratados como ocupantes externos")
 	}
 }
@@ -706,7 +706,7 @@ func TestInstanceSupportsMixedBossPopulationWithoutReward(t *testing.T) {
 	}
 }
 
-func TestInstanceRefusesPhysicalRoomOccupationAndWrongEvolution(t *testing.T) {
+func TestInstanceAdmissionUsesGameplaySpaceAndChecksEvolution(t *testing.T) {
 	w, leader, member, st, _ := instanceTestWorld()
 	rule := instanceTestRule()
 	rule.Instance.ID = "private-room"
@@ -714,14 +714,17 @@ func TestInstanceRefusesPhysicalRoomOccupationAndWrongEvolution(t *testing.T) {
 	member.X, member.Y = 2200, 2200
 	member.Char.X, member.Char.Y = member.X, member.Y
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
-	if leader.Char.Inv[0].Index != 100 || st.gameSaves != 0 {
-		t.Fatal("sala fisicamente ocupada consumiu ticket")
+	if leader.Char.Inv[0].Index != 0 || st.gameSaves != 1 {
+		t.Fatal("jogador do espaco publico bloqueou uma instancia privada")
 	}
 
-	member.X, member.Y = 2300, 2300
-	leader.Char.Evolution = "arch"
-	w.onUseItem(leader.Session, useItemPacket(0, 0))
-	if leader.Char.Inv[0].Index != 100 || st.gameSaves != 0 {
+	w2, leader2, _, st2, _ := instanceTestWorld()
+	rule2 := instanceTestRule()
+	rule2.Instance.ID = "private-room-evolution"
+	w2.volatiles.Items[100] = rule2
+	leader2.Char.Evolution = "arch"
+	w2.onUseItem(leader2.Session, useItemPacket(0, 0))
+	if leader2.Char.Inv[0].Index != 100 || st2.gameSaves != 0 {
 		t.Fatal("evolucao nao permitida abriu a sala")
 	}
 }

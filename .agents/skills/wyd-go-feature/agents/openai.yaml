@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD-Go Feature"
+  short_description: "Implementar features nativas no emulador WYD-Go"
+  default_prompt: "Use $wyd-go-feature para implementar e validar uma feature no emulador WYD-Go."

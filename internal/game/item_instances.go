@@ -61,6 +61,16 @@ type ItemInstance struct {
 	UxmalSlot int
 }
 
+func itemInstanceGameplaySpace(inst *ItemInstance) string {
+	if inst == nil {
+		return ""
+	}
+	if runtimeID := strings.TrimSpace(inst.RuntimeID); runtimeID != "" {
+		return runtimeID
+	}
+	return strings.TrimSpace(inst.Config.ID)
+}
+
 const itemInstanceGeneratorReserveRadius = 8
 
 func instanceRuntimeKey(cfg *model.VolatileInstance) string {
@@ -406,13 +416,11 @@ func instanceAllowsEvolution(ch *model.Char, allowed []string) bool {
 	return false
 }
 
-// instanceAreaOccupied reproduz o GetUserInArea nativo: uma sala fisicamente
-// ocupada nao pode ser sobrescrita mesmo se o mapa de instancias estiver vazio
-// (por exemplo, depois de reload de dados ou teleporte externo). Os membros
-// que estao prestes a entrar sao ignorados: no Water/Cube o ponto de entrada e
-// o proprio centro da primeira sala, portanto contar o lider aqui recusaria
-// toda abertura legitima.
-func (w *World) instanceAreaOccupied(cfg *model.VolatileInstance,
+// instanceAreaOccupied reproduz a trava de ocupacao para a mesma
+// GameplaySpace. Jogadores de outros runtimes nao bloqueiam a entrada; a
+// alocacao final ainda passa por positionOccupiedInGameplaySpace, que tambem
+// considera terreno, NPCs globais e lojas fantasma.
+func (w *World) instanceAreaOccupied(cfg *model.VolatileInstance, space string,
 	ignored ...*Player) bool {
 	if cfg == nil {
 		return true
@@ -425,6 +433,9 @@ func (w *World) instanceAreaOccupied(cfg *model.VolatileInstance,
 	}
 	for _, player := range w.playersByID {
 		if player == nil || !player.InWorld {
+			continue
+		}
+		if w.gameplaySpaceForPlayer(player) != strings.TrimSpace(space) {
 			continue
 		}
 		// Ignore a member only when the config explicitly declares this tile as
@@ -499,7 +510,7 @@ func (w *World) planInstancePositionsIgnoringForInstance(members []*Player,
 					ux, uy := uint16(nx), uint16(ny)
 					key := uint32(ux)<<16 | uint32(uy)
 					if _, used := reserved[key]; used ||
-						w.positionOccupiedExceptPlayersInInstance(ux, uy, nil, member, ignored, instanceID) {
+						w.positionOccupiedInGameplaySpace(ux, uy, instanceID, nil, member, ignored) {
 						continue
 					}
 					reserved[key] = struct{}{}
@@ -526,6 +537,64 @@ func itemInstanceHasMember(inst *ItemInstance, playerID uint16) bool {
 		}
 	}
 	return false
+}
+
+func instanceParticipantKey(p *Player) string {
+	if p != nil && p.Char != nil {
+		if uid := strings.TrimSpace(p.Char.UID); uid != "" {
+			return "uid:" + uid
+		}
+		if p.ID != 0 {
+			return fmt.Sprintf("id:%d", p.ID)
+		}
+	}
+	return ""
+}
+
+// instanceReservedParticipantKeys counts both live sessions and detached
+// CharacterUIDs. A pending reconnect therefore consumes a slot until it is
+// explicitly abandoned or the runtime expires.
+func (w *World) instanceReservedParticipantKeys(inst *ItemInstance) map[string]struct{} {
+	keys := make(map[string]struct{})
+	if w == nil || inst == nil {
+		return keys
+	}
+	for _, id := range inst.MemberIDs {
+		key := instanceParticipantKey(w.playersByID[id])
+		if key == "" && id != 0 {
+			key = fmt.Sprintf("id:%d", id)
+		}
+		if key != "" {
+			keys[key] = struct{}{}
+		}
+	}
+	for _, uid := range inst.MemberCharacterUIDs {
+		if uid = strings.TrimSpace(uid); uid != "" {
+			keys["uid:"+uid] = struct{}{}
+		}
+	}
+	if pending := w.pendingInstanceMembers[inst.RuntimeID]; pending != nil {
+		for uid := range pending {
+			if uid = strings.TrimSpace(uid); uid != "" {
+				keys["uid:"+uid] = struct{}{}
+			}
+		}
+	}
+	return keys
+}
+
+func (w *World) instanceReservedParticipantCount(inst *ItemInstance) int {
+	return len(w.instanceReservedParticipantKeys(inst))
+}
+
+func (w *World) instanceReservedParticipantCountWith(inst *ItemInstance, members []*Player) int {
+	keys := w.instanceReservedParticipantKeys(inst)
+	for _, member := range members {
+		if key := instanceParticipantKey(member); key != "" {
+			keys[key] = struct{}{}
+		}
+	}
+	return len(keys)
 }
 
 func (w *World) indexInstanceMembers(inst *ItemInstance) {
@@ -965,6 +1034,15 @@ func (w *World) detachPlayerFromItemInstancesMode(playerID uint16, now time.Time
 		member := w.playersByID[playerID]
 		if !preservePrivateWater && resumable && member != nil && member.Char != nil {
 			uid := strings.TrimSpace(member.Char.UID)
+			if uid != "" && len(inst.MemberCharacterUIDs) > 0 {
+				keptUIDs := inst.MemberCharacterUIDs[:0]
+				for _, existing := range inst.MemberCharacterUIDs {
+					if strings.TrimSpace(existing) != uid {
+						keptUIDs = append(keptUIDs, existing)
+					}
+				}
+				inst.MemberCharacterUIDs = keptUIDs
+			}
 			if pending := w.pendingInstanceMembers[inst.RuntimeID]; pending != nil {
 				delete(pending, uid)
 				if len(pending) == 0 {
@@ -1101,7 +1179,7 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 		reject("This instance is no longer accepting players.")
 		return
 	}
-	if cfg.MaxPlayers > 0 && len(inst.MemberIDs) >= cfg.MaxPlayers {
+	if cfg.MaxPlayers > 0 && w.instanceReservedParticipantCount(inst) >= cfg.MaxPlayers {
 		reject("This instance is full.")
 		return
 	}
@@ -1118,7 +1196,8 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 		reject("This instance has no configured rooms.")
 		return
 	}
-	destinations, ok := w.planInstancePositions([]*Player{p}, stages[0].X, stages[0].Y)
+	destinations, ok := w.planInstancePositionsIgnoringForInstance(
+		[]*Player{p}, stages[0].X, stages[0].Y, nil, inst.RuntimeID)
 	if !ok {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("The Cube entrance is blocked."))
@@ -1226,7 +1305,7 @@ func (w *World) joinSharedTimedItemInstance(s *net.Session, p *Player, item *mod
 		}
 	}
 	capacity := instancePlayerCapacity(cfg)
-	if capacity > 0 && len(inst.MemberIDs)+len(members) > capacity {
+	if capacity > 0 && w.instanceReservedParticipantCountWith(inst, members) > capacity {
 		reject(fmt.Sprintf("This instance accepts at most %d players.", capacity))
 		return
 	}
@@ -1239,7 +1318,8 @@ func (w *World) joinSharedTimedItemInstance(s *net.Session, p *Player, item *mod
 	for _, member := range members {
 		ignored[member] = struct{}{}
 	}
-	destinations, positionsOK := w.planInstancePositionsIgnoring(members, stage.X, stage.Y, ignored)
+	destinations, positionsOK := w.planInstancePositionsIgnoringForInstance(
+		members, stage.X, stage.Y, ignored, inst.RuntimeID)
 	if !positionsOK {
 		reject("The instance entrance is blocked.")
 		return
@@ -1439,7 +1519,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		}
 	}
 	if !sharedTimedInstance(*cfg) && !isDurablePrivateWaterConfig(*cfg) &&
-		w.instanceAreaOccupied(cfg, members...) {
+		w.instanceAreaOccupied(cfg, runtimeID, members...) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("This room is already occupied."))
 		return
@@ -1498,10 +1578,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	if len(stages) > 0 {
 		firstStage = stages[0]
 	}
-	placementInstanceID := ""
-	if isDurablePrivateWaterConfig(*cfg) {
-		placementInstanceID = runtimeID
-	}
+	placementInstanceID := runtimeID
 	destinations, positionsOK := w.planInstancePositionsIgnoringForInstance(
 		members, firstStage.X, firstStage.Y, nil, placementInstanceID)
 	if !positionsOK {
@@ -1719,10 +1796,7 @@ func (w *World) moveInstanceMembersAtomic(inst *ItemInstance, stage model.Volati
 	for _, member := range members {
 		ignored[member] = struct{}{}
 	}
-	instanceID := ""
-	if isDurablePrivateWaterInstance(inst) {
-		instanceID = inst.RuntimeID
-	}
+	instanceID := itemInstanceGameplaySpace(inst)
 	destinations, ok := w.planInstancePositionsIgnoringForInstance(members, stage.X, stage.Y, ignored, instanceID)
 	if !ok {
 		return false
@@ -1849,10 +1923,7 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 	// movimento persistido, publicação e só então troca do estado da instância.
 	created := make([]*Mob, 0, stageMobCount(stage))
 	reserved := make(map[uint32]struct{}, len(created))
-	instanceID := ""
-	if isDurablePrivateWaterInstance(inst) {
-		instanceID = inst.RuntimeID
-	}
+	instanceID := itemInstanceGameplaySpace(inst)
 	findFree := func(baseX, baseY uint16, radius int) (uint16, uint16, bool) {
 		if radius < 4 {
 			radius = 4
@@ -1870,7 +1941,7 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 					x, y := uint16(nx), uint16(ny)
 					key := uint32(x)<<16 | uint32(y)
 					if _, used := reserved[key]; used ||
-						w.positionOccupiedExceptPlayersInInstance(x, y, nil, nil, nil, instanceID) {
+						w.positionOccupiedInGameplaySpace(x, y, instanceID, nil, nil, nil) {
 						continue
 					}
 					return x, y, true
@@ -1989,10 +2060,7 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 	}
 	created := make([]*Mob, 0)
 	reserved := make(map[uint32]struct{})
-	instanceID := ""
-	if isDurablePrivateWaterInstance(inst) {
-		instanceID = inst.RuntimeID
-	}
+	instanceID := itemInstanceGameplaySpace(inst)
 	findFree := func(baseX, baseY uint16) (uint16, uint16, bool) {
 		radius := stage.AreaRadius
 		if radius < 4 {
@@ -2011,7 +2079,7 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 					x, y := uint16(nx), uint16(ny)
 					key := uint32(x)<<16 | uint32(y)
 					if _, used := reserved[key]; used ||
-						w.positionOccupiedExceptPlayersInInstance(x, y, nil, nil, nil, instanceID) {
+						w.positionOccupiedInGameplaySpace(x, y, instanceID, nil, nil, nil) {
 						continue
 					}
 					return x, y, true

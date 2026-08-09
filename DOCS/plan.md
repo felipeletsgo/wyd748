@@ -279,7 +279,10 @@ O macro opcional do client fica em elo separado (`Patch-WYD748-WaterMacro.ps1`),
 com tabela gerada pelo loader Go (`tools/watermacrotable`) e varredura de carry
 0..62 pela rotina nativa de UseItem. O estado começa OFF e os comandos locais
 `/macropergaon`/`/macropergaoff` não chegam ao servidor. A cadeia e a validação
-estática estão documentadas em `DOCS/WATER.md` e `client748/PATCHES.md`.
+estatica tambem conferem a ordem de argumentos dos call sites nativos, o epilogo
+do retorno tratado, a ABI da mensagem e a preservacao dos ponteiros no comparador;
+estao documentadas em `DOCS/WATER.md` e `client748/PATCHES.md`. A mensagem local
+é ignorada com segurança se o objeto de UI já tiver sido limpo durante teardown.
 
 ## Auditoria transversal de isolamento — entregue em 08/08/2026
 
@@ -299,5 +302,25 @@ de outros runtimes, mas respeitam terreno, NPCs e a própria sala.
 
 Novos testes cobrem a matriz público/runtime, loot, party EXP, UID de affect e
 colisão de Hell Gate. A validação desta rodada passou em `go test -count=1 ./...`,
-`go vet ./...`, build do servidor e `git diff --check`. O detector de corrida
-continua reservado para Ubuntu/CI por causa do linker MinGW local.
+`go vet ./...`, `go test -race ./internal/game`, build do servidor e
+`git diff --check`.
+
+### Complemento de isolamento de runtime — entregue em 08/08/2026
+
+- A autoria de affect em mobs foi migrada do array paralelo por ClientID para
+  `model.Affect.OwnerCharacterUID` (jogador) ou `OwnerID` de um mob vivo no
+  mesmo GameplaySpace (efeito server-owned). A troca/reuso de sessão remove o
+  efeito e não concede crédito; efeitos de mob que matam não geram EXP, gold ou
+  loot.
+- Toda alocação/movimento de jogador, mob, summon, Hell Gate e instância usa
+  `positionOccupiedInGameplaySpace`. Terreno, NPCs globais e lojas fantasma
+  continuam compartilhados; entidades dinâmicas de outros runtimes não
+  bloqueiam uma posição privada.
+- Limites de entradas compartilhadas contabilizam identidades únicas vivas e
+  pendentes (`MemberCharacterUIDs`/`pendingInstanceMembers`). Reconectar um UID
+  pendente converte a reserva para o novo ClientID sem consumir outra vaga.
+- `playersByCharacterUID` fornece lookup O(1) no runtime, com fallback de scan
+  somente para fixtures/estado legado. Testes de matriz, reuso de ClientID,
+  efeitos mob-owned, colisão e reconexão foram adicionados.
+- Validação concluída: `go test -count=1 ./...`, `go vet ./...`,
+  `go test -race ./internal/game`, build do servidor e `git diff --check`.

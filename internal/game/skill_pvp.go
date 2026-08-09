@@ -2,6 +2,7 @@ package game
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"wydgo/internal/model"
@@ -81,7 +82,7 @@ func setOwnedAffect(ch *model.Char, ownerID uint16, affectType byte, value, leve
 }
 
 func setOwnedAffectForPlayer(ch *model.Char, owner *Player, affectType byte, value, level, durationUnits int) bool {
-	if owner == nil {
+	if owner == nil || owner.Char == nil || strings.TrimSpace(owner.Char.UID) == "" {
 		return false
 	}
 	if !setOwnedAffect(ch, owner.ID, affectType, value, level, durationUnits) {
@@ -89,10 +90,7 @@ func setOwnedAffectForPlayer(ch *model.Char, owner *Player, affectType byte, val
 	}
 	for i := range ch.Affects {
 		if ch.Affects[i].Type == affectType {
-			ch.Affects[i].OwnerCharacterUID = ""
-			if owner.Char != nil {
-				ch.Affects[i].OwnerCharacterUID = owner.Char.UID
-			}
+			ch.Affects[i].OwnerCharacterUID = strings.TrimSpace(owner.Char.UID)
 			return true
 		}
 	}

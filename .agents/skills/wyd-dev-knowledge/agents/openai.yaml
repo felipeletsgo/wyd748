@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD Dev Knowledge"
+  short_description: "Consultar conhecimento técnico consolidado do WYD"
+  default_prompt: "Use $wyd-dev-knowledge para pesquisar fatos técnicos confirmados sobre WYD."

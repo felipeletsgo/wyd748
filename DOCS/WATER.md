@@ -58,16 +58,24 @@ todas as areas nao degeneradas.
 O estado inicia desligado. `/macropergaon` e `/macropergaoff` são interceptados
 localmente e exibem a confirmação em inglês; não há packet de chat para esses
 comandos. No tick do client, o scanner percorre exclusivamente os slots
-visíveis `0..62`, resolve a grade real de 8 páginas por 9 células, filtra os
-Water Scrolls pela tabela gerada de `data/volatiles.json` e chama a rotina
-nativa de uso manual. O primeiro slot válido vence. Não há lógica de número de
-sala, contagem de mobs ou prioridade de boss no client.
+visíveis `0..62` de uma única grade 9x7, filtra os Water Scrolls pela tabela
+gerada de `data/volatiles.json` e chama a rotina nativa de uso manual. O
+primeiro slot válido vence. Não há lógica de número de sala, contagem de mobs
+ou prioridade de boss no client.
 
 O script `client748/Patch-WYD748-WaterMacro.ps1` é um elo separado, posterior
 ao patch da Lindy. Ele exige SHA, bytes dos hooks e uma cave zero livre; nunca
 edita o executável fora da cadeia. `tools/watermacrotable` é a única origem da
 tabela item-área e gera saída determinística. O servidor continua validando
 slot, item, área, tier, sequência, prazo, spawn e persistência.
+
+No binário 7.48, a chamada de grade e a rotina de uso de item empilham a
+coordenada Y antes da coordenada X; o patch reproduz essa ordem dos call sites
+nativos. O comparador do comando preserva ESI/EDI entre as tentativas ON/OFF,
+e o teste estático valida o epílogo em `0x470D31` e o `thiscall` da mensagem em
+`0x493AA1`, além dos dois hooks e da cave. A confirmação local só é chamada
+quando o objeto de UI em `EBP-0x1AD4` está presente; durante teardown o comando
+continua sendo consumido sem desreferenciar um ponteiro nulo.
 
 ## Cobertura
 
