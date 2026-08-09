@@ -273,9 +273,9 @@ outro bônus e a Cythera inicial:
 
 | Arch interno (exibido) | bônus | Cythera |
 |---|---:|---|
-| 355–368 (356–369) | 100 | 3500 Silver |
-| 369–378 (370–379) | 300 | 3500 Silver |
-| 379–397 (380–398) | 600 | 3501 Gold |
+| 355–369 (356–370) | 100 | 3500 Silver |
+| 370–379 (371–380) | 300 | 3500 Silver |
+| 380–397 (381–398) | 600 | 3501 Gold |
 | 398 (399) | 900 | 3501 Gold |
 | 399 (400) | 1.200 | 3502 Mystic |
 
@@ -298,11 +298,9 @@ São **específicos de cada forma**: evolução ativa, classe, rosto, EXP/nível
 atributos distribuídos, masteries, skills aprendidas, barra e affects. São
 **compartilhados**: todo o restante do personagem citado acima.
 
-Guias públicos de outras épocas/servidores também citam 100 de fama para criar
-a Sub. Esse custo não existe no fluxo da Secrets 7.54 e, por isso, não foi
-inventado aqui. Eles confirmam, porém, as partes estruturais: nível 121,
-Sephirot + Pedra Ideal, ambas as formas no mesmo slot, troca em cidade por
-Pedra Misteriosa e bônus de pontos cruzado entre os níveis.
+A criação da Sub exige **100 de fama**, além do nível 121, Sephirot e Pedra
+Ideal. A regra segue o WYD KR/guias retail escolhidos para esta progressão. As
+duas formas continuam no mesmo slot e a troca em cidade usa Pedra Misteriosa.
 
 ### Pontos, EXP e travas
 

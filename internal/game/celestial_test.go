@@ -28,10 +28,10 @@ func TestCelestialArchTierAndInitialCythera(t *testing.T) {
 	}{
 		{354, 0, 0, 0},
 		{355, 1, 3500, 100},
-		{368, 1, 3500, 100},
-		{369, 2, 3500, 300},
-		{378, 2, 3500, 300},
-		{379, 3, 3501, 600},
+		{369, 1, 3500, 100},
+		{370, 2, 3500, 300},
+		{379, 2, 3500, 300},
+		{380, 3, 3501, 600},
 		{397, 3, 3501, 600},
 		{398, 4, 3501, 900},
 		{399, 5, 3502, 1200},
@@ -253,6 +253,7 @@ func TestSubCelestialHasSeparateProgressionAndSharedBody(t *testing.T) {
 	p.Char.Extended.Str = 111
 	p.Char.SoulInfo = 7
 	p.Char.Gold = 123456
+	p.SpecialCoins = map[string]uint32{fameCounter: subCelestialFameCost}
 	p.Char.Affects[0] = model.Affect{
 		Type: 2, Value: 1, ExpiresAt: time.Now().Add(time.Hour),
 	}
@@ -279,6 +280,9 @@ func TestSubCelestialHasSeparateProgressionAndSharedBody(t *testing.T) {
 	}
 	if mysterySlot < 0 || itemStackAmount(p.Char.Inv[mysterySlot]) != 10 {
 		t.Fatal("criacao da Sub nao entregou 10 Pedras Misteriosas")
+	}
+	if got := counterBalance(p, fameCounter); got != 0 {
+		t.Fatalf("criacao da Sub nao consumiu 100 Fame: %d", got)
 	}
 	sharedCythera := p.Char.Equip[1]
 	w.useMysteriousStone(
@@ -308,6 +312,7 @@ func TestMysteriousStoneOnlyWorksInsideNativeCity(t *testing.T) {
 	p.Char.Extended.Level = 120
 	p.Char.Equip[sefirotSlot] = model.Item{Index: 1760}
 	p.Char.Inv[0] = model.Item{Index: idealStoneItem}
+	p.SpecialCoins = map[string]uint32{fameCounter: subCelestialFameCost}
 	w.useCelestialIdeal(p.Session, p, &p.Char.Inv[0], 0)
 	p.X, p.Y = 100, 100
 	before := *p.Char

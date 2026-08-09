@@ -127,3 +127,14 @@ existe janela para destrave gratuito. O JSON de desenvolvimento preserva o
 fallback sidecar-antes-da-conta.
 - A validacao final deve registrar, receita por receita, sucesso, falha,
   consumo, resultado visual, relogin e rollback.
+
+
+## Odin: Pedras Secretas retail
+
+- sete runas custam **2.000.000 gold** por tentativa;
+- uma das quatro sequencias exatas de Pedra Secreta usa **95%** de sucesso;
+- qualquer outra mistura valida de sete runas usa **5%** e, no sucesso, gera
+  aleatoriamente uma das quatro Pedras Secretas;
+- sucesso ou falha consome as sete runas e o gold;
+- a sequencia propria da Fury Stone continua sendo resolvida antes do fallback
+  aleatorio e nao e tratada como tentativa de Pedra Secreta.
