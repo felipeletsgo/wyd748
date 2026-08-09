@@ -45,6 +45,29 @@ func TestLoadConverted748Catalog(t *testing.T) {
 	if !foundAC {
 		t.Fatalf("EF_AC do item 1103 nao carregado: %+v", helmet.StaticEffects)
 	}
+	fairyDays := map[uint16]int{
+		3900: 3, 3901: 3, 3902: 3,
+		3903: 5, 3904: 5, 3905: 5,
+		3906: 7, 3907: 7, 3908: 7,
+		3911: 7, 3912: 15, 3913: 30,
+		3914: 7, 3915: 7,
+	}
+	for index, wantDays := range fairyDays {
+		def, ok := catalog.Items[index]
+		if !ok {
+			t.Fatalf("fada %d ausente do catalogo", index)
+		}
+		effects := make(map[string]int, len(def.StaticEffects))
+		for _, effect := range def.StaticEffects {
+			effects[effect.Name] = effect.Value
+		}
+		day, dayOK := effects["EF_WDAY"]
+		hour, hourOK := effects["EF_HOUR"]
+		minute, minuteOK := effects["EF_MIN"]
+		if !dayOK || !hourOK || !minuteOK || day != wantDays || hour != 0 || minute != 0 {
+			t.Fatalf("timer da fada %d invalido: effects=%v want=%dd 0h 0m", index, effects, wantDays)
+		}
+	}
 	skill, ok := catalog.Skills[0]
 	if !ok || skill.Name == "" || skill.SkillPoint != 24 || skill.ManaSpent != 15 {
 		t.Fatalf("skill 0 invalida: %+v", skill)
