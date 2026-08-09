@@ -266,24 +266,25 @@ O runtime de Uxmal permanece configurável em `data/volatiles.json`; o NPC e a
 loja de teste ficam em `data/npcs/ShopUxmal.json` e no gerador 5132 e devem ser
 removidos ou desativados antes de uma abertura pública.
 
-## Water e macro do client — entregue em 08/08/2026
+## Water e automação server-side — entregue em 09/08/2026
 
-O encadeamento Water foi consolidado como instâncias independentes: Room 8
+O encadeamento Water permanece modelado como instâncias independentes: Room 8
 abre o boss somente pelo Boss Scroll, e o boss aceita o Room 1 Scroll durante a
-exit grace para iniciar um novo RuntimeID. `ChainNextItem` expressa essa aresta
+exit grace para iniciar um novo RuntimeID. ChainNextItem expressa essa aresta
 sem transformar o boss em stage interno. A validação de slot, posição,
 EntryArea, tier, sequência, prazo e persistência continua server-side; Hunting
 Scrolls não foi alterado.
 
-O macro opcional do client fica em elo separado (automação Water server-side pela Silver Angel),
-com tabela gerada pelo loader Go (`internal/game/water_auto.go`) e varredura de carry
-0..62 pela rotina nativa de UseItem. O estado começa OFF e os comandos locais
-Silver Angel equipada não chegam ao servidor. A cadeia e a validação
-estatica tambem conferem a ordem de argumentos dos call sites nativos, o epilogo
-do retorno tratado, a ABI da mensagem e a preservacao dos ponteiros no comparador;
-estao documentadas em `DOCS/WATER.md` e `client748/PATCHES.md`. A mensagem local
-é ignorada com segurança se o objeto de UI já tiver sido limpo durante teardown.
-
+O auto-avanço agora pertence exclusivamente ao servidor. Ao concluir uma sala,
+o próximo pergaminho é materializado com UID server-side e persistido antes de
+qualquer transição. Se o líder estiver com Silver Angel (3914) ativa em
+Equip[13] naquele instante, o servidor usa somente esse UID recém-concedido
+pela mesma rotina de domínio do clique manual e persiste a próxima sala antes
+de publicar teleporte/spawn. Carry cheio, fada fora do slot, fada de outro
+membro, equip posterior e reward zero não acionam automação; falha do segundo
+commit conserva o pergaminho já durável. O WaterMacro client-side e os comandos
+/macropergaon//macropergaoff foram removidos; o macro normal de skills/buffs
+permanece. Detalhes em DOCS/WATER.md e client748/PATCHES.md.
 ## Auditoria transversal de isolamento — entregue em 08/08/2026
 
 Foi concluída a revisão que faltava entre instâncias privadas, zonas

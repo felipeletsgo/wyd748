@@ -80,11 +80,11 @@ $steps = @(
         Output = '4E916C1FD94D60D5EF7F8914B621BAB3787E7BF5460FB251C59F71BCC4D9BA2F'
     },
     # ETAPA 5 — constante 4010 -> 3448 da receita nativa da Lindy.
-[pscustomobject]@{
-    Number = 5; Name = 'receita da Lindy'; Script = 'Patch-WYD748-Lindy.ps1'
-    Input = '4E916C1FD94D60D5EF7F8914B621BAB3787E7BF5460FB251C59F71BCC4D9BA2F'
-    Output = '9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18'
-}
+    [pscustomobject]@{
+        Number = 5; Name = 'receita da Lindy'; Script = 'Patch-WYD748-Lindy.ps1'
+        Input = '4E916C1FD94D60D5EF7F8914B621BAB3787E7BF5460FB251C59F71BCC4D9BA2F'
+        Output = '9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18'
+    }
 )
 
 $current = Get-Sha $Executable
