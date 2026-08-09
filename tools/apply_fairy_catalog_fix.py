@@ -1,20 +1,11 @@
 from pathlib import Path
 
 DURATIONS = {
-    3900: 3,
-    3901: 3,
-    3902: 3,
-    3903: 5,
-    3904: 5,
-    3905: 5,
-    3906: 7,
-    3907: 7,
-    3908: 7,
-    3911: 7,
-    3912: 15,
-    3913: 30,
-    3914: 7,
-    3915: 7,
+    3900: 3, 3901: 3, 3902: 3,
+    3903: 5, 3904: 5, 3905: 5,
+    3906: 7, 3907: 7, 3908: 7,
+    3911: 7, 3912: 15, 3913: 30,
+    3914: 7, 3915: 7,
 }
 
 
@@ -41,21 +32,14 @@ def update_itemlist() -> None:
         if index not in DURATIONS:
             continue
         found.add(index)
-        wanted = {
-            "EF_WDAY": DURATIONS[index],
-            "EF_HOUR": 0,
-            "EF_MIN": 0,
-        }
+        wanted = {"EF_WDAY": DURATIONS[index], "EF_HOUR": 0, "EF_MIN": 0}
         for effect, value in wanted.items():
-            pos = None
             for i in range(9, len(fields) - 1, 2):
                 if fields[i].strip() == effect:
-                    pos = i
+                    fields[i + 1] = str(value)
                     break
-            if pos is None:
-                fields.extend([effect, str(value)])
             else:
-                fields[pos + 1] = str(value)
+                fields.extend([effect, str(value)])
         lines[n] = ",".join(fields)
     missing = sorted(set(DURATIONS) - found)
     if missing:
@@ -68,23 +52,18 @@ def update_fairies_go() -> None:
     text = path.read_text(encoding="utf-8")
     text = replace_once(
         text,
-        "// initializeFairyTimer reproduz BASE_SetDateFairy sem hardcode de duracao. A\n"
-        "// primeira equipacao materializa no proprio item o saldo definido no itemlist.\n"
         "// Silver/Gold normalmente chegam por transformacao e preservam os tres efeitos;\n"
         "// se forem criadas diretamente sem timer, nao ganham uma duracao artificial.\n",
-        "// initializeFairyTimer reproduz BASE_SetDateFairy sem hardcode de duracao. A\n"
-        "// primeira equipacao materializa no proprio item o saldo definido no itemlist.\n"
         "// Silver/Gold transformadas preservam o saldo dinamico herdado; quando um item\n"
         "// nasce sem timer, usa a duracao estatica do catalogo como qualquer outra fada.\n",
-        "fairies.go timer comment",
+        "fairies.go timer semantics",
     )
-    text = replace_once(
-        text,
+    text = text.replace(
         "// Antes do primeiro tick depois de equipar, as fadas-base ainda carregam a\n"
         "// duracao apenas no itemlist. Elas ja devem conceder o bonus imediatamente.\n",
         "// Antes do primeiro tick depois de equipar, uma fada com duracao estatica\n"
         "// ainda carrega o saldo apenas no itemlist. O bonus ja deve valer imediatamente.\n",
-        "fairies.go active bonus comment",
+        1,
     )
     path.write_text(text, encoding="utf-8")
 
@@ -106,18 +85,8 @@ def update_fairies_test() -> None:
         "\titems[3915] = fairyTestDef(3915, 7)\n",
         "fairyTestWorld",
     )
-    text = replace_once(
-        text,
-        '{name: "silver", index: 3914, exp: 16, drop: 32, inherited: true}',
-        '{name: "silver", index: 3914, exp: 16, drop: 32}',
-        "silver bonus case",
-    )
-    text = replace_once(
-        text,
-        '{name: "gold", index: 3915, exp: 24, drop: 48, inherited: true}',
-        '{name: "gold", index: 3915, exp: 24, drop: 48}',
-        "gold bonus case",
-    )
+    text = replace_once(text, '{name: "silver", index: 3914, exp: 16, drop: 32, inherited: true}', '{name: "silver", index: 3914, exp: 16, drop: 32}', "silver bonus case")
+    text = replace_once(text, '{name: "gold", index: 3915, exp: 24, drop: 48, inherited: true}', '{name: "gold", index: 3915, exp: 24, drop: 48}', "gold bonus case")
     text = replace_once(
         text,
         "func TestDirectSilverWithoutInheritedTimerIsInactive(t *testing.T) {\n"
@@ -188,36 +157,31 @@ def update_water_test() -> None:
 def update_catalog_test() -> None:
     path = Path("internal/data/catalog_test.go")
     text = path.read_text(encoding="utf-8")
-    marker = (
-        "\tif !foundAC {\n"
-        "\t\tt.Fatalf(\"EF_AC do item 1103 nao carregado: %+v\", helmet.StaticEffects)\n"
-        "\t}\n"
-    )
-    addition = marker + (
-        "\tfairyDays := map[uint16]int{\n"
-        "\t\t3900: 3, 3901: 3, 3902: 3,\n"
-        "\t\t3903: 5, 3904: 5, 3905: 5,\n"
-        "\t\t3906: 7, 3907: 7, 3908: 7,\n"
-        "\t\t3911: 7, 3912: 15, 3913: 30,\n"
-        "\t\t3914: 7, 3915: 7,\n"
-        "\t}\n"
-        "\tfor index, wantDays := range fairyDays {\n"
-        "\t\tdef, ok := catalog.Items[index]\n"
-        "\t\tif !ok {\n"
-        "\t\t\tt.Fatalf(\"fada %d ausente do catalogo\", index)\n"
-        "\t\t}\n"
-        "\t\teffects := make(map[string]int, len(def.StaticEffects))\n"
-        "\t\tfor _, effect := range def.StaticEffects {\n"
-        "\t\t\teffects[effect.Name] = effect.Value\n"
-        "\t\t}\n"
-        "\t\tday, dayOK := effects[\"EF_WDAY\"]\n"
-        "\t\thour, hourOK := effects[\"EF_HOUR\"]\n"
-        "\t\tminute, minuteOK := effects[\"EF_MIN\"]\n"
-        "\t\tif !dayOK || !hourOK || !minuteOK || day != wantDays || hour != 0 || minute != 0 {\n"
-        "\t\t\tt.Fatalf(\"timer da fada %d invalido: effects=%v want=%dd 0h 0m\", index, effects, wantDays)\n"
-        "\t\t}\n"
-        "\t}\n"
-    )
+    marker = "\tif !foundAC {\n\t\tt.Fatalf(\"EF_AC do item 1103 nao carregado: %+v\", helmet.StaticEffects)\n\t}\n"
+    addition = marker + """\tfairyDays := map[uint16]int{
+\t\t3900: 3, 3901: 3, 3902: 3,
+\t\t3903: 5, 3904: 5, 3905: 5,
+\t\t3906: 7, 3907: 7, 3908: 7,
+\t\t3911: 7, 3912: 15, 3913: 30,
+\t\t3914: 7, 3915: 7,
+\t}
+\tfor index, wantDays := range fairyDays {
+\t\tdef, ok := catalog.Items[index]
+\t\tif !ok {
+\t\t\tt.Fatalf("fada %d ausente do catalogo", index)
+\t\t}
+\t\teffects := make(map[string]int, len(def.StaticEffects))
+\t\tfor _, effect := range def.StaticEffects {
+\t\t\teffects[effect.Name] = effect.Value
+\t\t}
+\t\tday, dayOK := effects["EF_WDAY"]
+\t\thour, hourOK := effects["EF_HOUR"]
+\t\tminute, minuteOK := effects["EF_MIN"]
+\t\tif !dayOK || !hourOK || !minuteOK || day != wantDays || hour != 0 || minute != 0 {
+\t\t\tt.Fatalf("timer da fada %d invalido: effects=%v want=%dd 0h 0m", index, effects, wantDays)
+\t\t}
+\t}
+"""
     text = replace_once(text, marker, addition, "catalog fairy timer test")
     path.write_text(text, encoding="utf-8")
 
