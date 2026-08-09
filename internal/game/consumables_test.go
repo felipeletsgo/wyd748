@@ -196,16 +196,18 @@ func TestSetItemSancUsesFreeSlotThenRejectsFull(t *testing.T) {
 	}
 }
 
-// TestRefineRollCertainAtZero confirma que +0 -> +1 tem chance 100 (sempre) e que
-// um sanc fora da tabela nunca refina.
-func TestRefineRollCertainAtZero(t *testing.T) {
-	for i := 0; i < 200; i++ {
-		if !refineRoll(0) {
-			t.Fatal("refino de +0 deveria ser sempre bem-sucedido (chance 100)")
-		}
+// TestRefineChanceCertainAtZero confirma que +0 -> +1 tem chance 100 e que
+// sanc fora da tabela recebe chance zero.
+func TestRefineChanceCertainAtZero(t *testing.T) {
+	if got := refineChance(0); got != 100 {
+		t.Fatalf("chance de +0=%d, quer 100", got)
 	}
-	if refineRoll(15) || refineRoll(-1) {
-		t.Fatal("sanc fora da tabela nunca deveria refinar")
+	if refineChance(15) != 0 || refineChance(-1) != 0 {
+		t.Fatal("sanc fora da tabela deveria ter chance zero")
+	}
+	w := &World{rng: fixedRNG{value: 99}} // visible roll 100
+	if roll := w.rollPercent(refineChance(0)); !roll.Success || roll.Roll != 100 {
+		t.Fatalf("100/100 deveria ser sucesso: %+v", roll)
 	}
 }
 

@@ -39,7 +39,7 @@ func TestOdinSecretStoneRecipesMatchRetailRunes(t *testing.T) {
 	}
 }
 
-func TestOdinSecretStoneCorrectSequenceUses95PercentAndCharges2M(t *testing.T) {
+func TestOdinSecretStoneCorrectSequenceRoll95SucceedsAndCharges2M(t *testing.T) {
 	recipe := secretStoneRecipes[0]
 	var runes [7]uint16
 	copy(runes[:], recipe[:7])
@@ -60,7 +60,7 @@ func TestOdinSecretStoneCorrectSequenceUses95PercentAndCharges2M(t *testing.T) {
 	}
 }
 
-func TestOdinSecretStoneCorrectSequenceRoll95FailsAndConsumes(t *testing.T) {
+func TestOdinSecretStoneCorrectSequenceRoll96FailsAndConsumes(t *testing.T) {
 	recipe := secretStoneRecipes[0]
 	var runes [7]uint16
 	copy(runes[:], recipe[:7])
@@ -75,10 +75,10 @@ func TestOdinSecretStoneCorrectSequenceRoll95FailsAndConsumes(t *testing.T) {
 	}
 }
 
-func TestOdinRandomSevenRunesUses5PercentAndRandomSecretStone(t *testing.T) {
+func TestOdinRandomSevenRunesRoll5SucceedsAndCreatesRandomSecretStone(t *testing.T) {
 	// Valid runes, but neither one of the four Secret Stone sequences nor Fury.
 	runes := [7]uint16{5110, 5111, 5112, 5113, 5114, 5115, 5116}
-	_, p, st := odinSecretStoneAttempt(t, runes, odinSecretStoneGoldCost, fixedRNG{value: 0})
+	_, p, st := odinSecretStoneAttempt(t, runes, odinSecretStoneGoldCost, fixedRNG{value: 4})
 	if st.saves != 1 || p.Char.Gold != 0 {
 		t.Fatalf("random craft did not persist cost: saves=%d gold=%d", st.saves, p.Char.Gold)
 	}
@@ -87,7 +87,7 @@ func TestOdinRandomSevenRunesUses5PercentAndRandomSecretStone(t *testing.T) {
 	}
 }
 
-func TestOdinRandomSevenRunesRoll5FailsAndConsumes(t *testing.T) {
+func TestOdinRandomSevenRunesRoll6FailsAndConsumes(t *testing.T) {
 	runes := [7]uint16{5110, 5111, 5112, 5113, 5114, 5115, 5116}
 	_, p, st := odinSecretStoneAttempt(t, runes, odinSecretStoneGoldCost, fixedRNG{value: 5})
 	if st.saves != 1 || p.Char.Gold != 0 {

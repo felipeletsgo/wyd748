@@ -783,18 +783,14 @@ func (w *World) applyRepliction(dest *model.Item, def model.ItemDef, sourceID ui
 	return bonus, nil
 }
 
-// refineRoll porta a rolagem de refino do W2PP (_MSG_UseItem.cpp:424): sorteia
-// 0..114, corrige a faixa alta e compara com g_pCelestialRate[sanc]. Sanc fora
-// da tabela nunca refina.
-func refineRoll(sanc int) bool {
+// refineChance devolve a chance configurada para o nivel atual. A decisao
+// percentual e centralizada em World.rollPercent: dominio uniforme 1..100 e
+// sucesso quando roll <= chance.
+func refineChance(sanc int) int {
 	if sanc < 0 || sanc >= len(celestialRate) {
-		return false
+		return 0
 	}
-	rd := rand.Intn(115)
-	if rd > 100 {
-		rd -= 15
-	}
-	return rd <= celestialRate[sanc]
+	return clampInt(celestialRate[sanc], 0, 100)
 }
 
 // refineSet porta o Molar do Gargula (Micronics MolarGargula): refino FIXO no
@@ -977,7 +973,8 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	}
 
 	oldPowder, oldDest := *powder, *dest
-	success := refineRoll(sanc)
+	roll := w.rollPercent(refineChance(sanc))
+	success := roll.Success
 	if success {
 		if !setItemSanc(dest, sanc+1) {
 			// Sem par EF_SANC e sem slot livre (item cheio de adds): nao refina e
@@ -996,6 +993,10 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	if err := w.saveAccount(p.Account); err != nil {
 		*powder, *dest = oldPowder, oldDest
 		log.Printf("[#%d] ERRO ao salvar refino alvo=%d: %v", s.ID, oldDest.Index, err)
+		resend()
+		s.Send(wire.SendItem(p.ID, byte(destType), byte(destPos), *dest))
+		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
+		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "refinement", err)
 		return
 	}
 	resend()
@@ -1007,15 +1008,11 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 		// O brilho/mesh do refino viaja no UpdateEquip incremental.
 		w.refreshAppearance(p)
 	}
-	if success {
-		s.Send(wire.MessagePanel("Refine successful!"))
-	} else {
-		s.Send(wire.MessagePanel("The refine failed."))
-	}
+	s.Send(wire.MessagePanel(roll.message()))
 	result := "FALHOU"
 	if success {
 		result = "OK"
 	}
-	log.Printf("[#%d] refino code=%d po=%d alvo=%d +%d->%d %s",
-		s.ID, code, oldPowder.Index, oldDest.Index, sanc, sanc+1, result)
+	log.Printf("[#%d] refino code=%d po=%d alvo=%d +%d->%d %s roll=%d/%d",
+		s.ID, code, oldPowder.Index, oldDest.Index, sanc, sanc+1, result, roll.Roll, roll.Chance)
 }

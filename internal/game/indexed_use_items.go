@@ -174,7 +174,8 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 
 	snapshot := cloneCharacterState(p.Char)
 	oldSource, oldTarget := *source, *target
-	success := w.intn(100) < rule.SuccessPercent
+	roll := w.rollPercent(rule.SuccessPercent)
+	success := roll.Success
 	consumeOne(source)
 	if success {
 		target.Index = uint16(def.Extra) // preserva UID, refino e adicionais.
@@ -186,6 +187,8 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 		*p.Char = snapshot
 		resend(target, targetType, targetPos, "")
 		log.Printf("[#%d] ERRO ao salvar Adamantita item=%d: %v", s.ID, oldSource.Index, err)
+		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
+		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "adamantite upgrade", err)
 		return
 	}
 
@@ -197,11 +200,13 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 			w.refreshAppearance(p)
 		}
 		w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 3) })
-		s.Send(wire.MessagePanel("The equipment became Legendary!"))
 	} else {
 		w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 0) })
-		s.Send(wire.MessagePanel("Adamantite failed."))
 	}
-	log.Printf("[#%d] Adamantita alvo=%d resultado=%d sucesso=%v chance=%d%%",
-		s.ID, oldTarget.Index, target.Index, success, rule.SuccessPercent)
+	s.Send(wire.MessagePanel(roll.message()))
+	if success {
+		s.Send(wire.MessagePanel("The equipment became Legendary!"))
+	}
+	log.Printf("[#%d] Adamantita alvo=%d resultado=%d sucesso=%v roll=%d/%d",
+		s.ID, oldTarget.Index, target.Index, success, roll.Roll, roll.Chance)
 }

@@ -250,7 +250,8 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 		return
 	}
 	threshold := itemAbility(*egg, def, "EF_INCUBATE")
-	success := refineRoll(eggProgress(*egg))
+	roll := w.rollPercent(refineChance(eggProgress(*egg)))
+	success := roll.Success
 	oldEgg, oldPowder := *egg, *powder
 	if success {
 		setEggProgress(egg, eggProgress(*egg)+1)
@@ -266,20 +267,23 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 	if err := w.saveAccount(p.Account); err != nil {
 		*egg, *powder = oldEgg, oldPowder
 		log.Printf("[#%d] ERRO ao salvar incubacao: %v", s.ID, err)
+		resend()
+		s.Send(wire.SendItem(p.ID, placeInv, byte(eggSlot), *egg))
+		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
+		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "egg incubation", err)
 		return
 	}
 	resend()
 	s.Send(wire.SendItem(p.ID, placeInv, byte(eggSlot), *egg))
+	s.Send(wire.MessagePanel(roll.message()))
 	switch {
 	case hatched:
 		s.Send(wire.MessagePanel("The egg hatched! A hatchling was born -- equip it."))
 	case success:
 		s.Send(wire.MessagePanel(fmt.Sprintf("Incubation advanced (%d/%d).", eggProgress(*egg), threshold+1)))
-	default:
-		s.Send(wire.MessagePanel("The incubation failed this time."))
 	}
-	log.Printf("[#%d] incubacao vol=%d ovo->%d progresso=%d/%d chocou=%v",
-		s.ID, vol, egg.Index, eggProgress(*egg), threshold+1, hatched)
+	log.Printf("[#%d] incubacao vol=%d ovo->%d progresso=%d/%d chocou=%v roll=%d/%d",
+		s.ID, vol, egg.Index, eggProgress(*egg), threshold+1, hatched, roll.Roll, roll.Chance)
 }
 
 // accelerateHatch (Vol 196, Hatch_accelerator): zera o delay de incubacao de um
@@ -602,9 +606,12 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	usedIndex := item.Index // o consumo pode zerar o Index; loga o real
 	var ok bool
 	var msg string
+	var rolls []percentRoll
 	switch rule.MountAction {
 	case "essence":
-		ok, msg = mountEssence(mount, item.Index)
+		var outcome mountEssenceOutcome
+		outcome = w.mountEssence(mount, item.Index)
+		ok, msg, rolls = outcome.OK, outcome.Message, outcome.Rolls
 	case "feed":
 		ok, msg = mountFeed(mount, item.Index)
 	case "longevity":
@@ -629,6 +636,10 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	if err := w.saveAccount(p.Account); err != nil {
 		*mount, *item = old, oldItem
 		log.Printf("[#%d] ERRO ao salvar mount %s: %v", s.ID, rule.MountAction, err)
+		resend()
+		s.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
+		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
+		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "mount item", err)
 		return
 	}
 	w.recalcPlayer(p.Char)
@@ -638,6 +649,13 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	w.syncPlayerVitals(p)
 	w.refreshAppearance(p)
 	w.syncCriaPet(p) // cria pode ter virado adulta (some) ou continuar cria
+	for i, roll := range rolls {
+		message := roll.message()
+		if i > 0 {
+			message = roll.namedMessage("Penalty")
+		}
+		s.Send(wire.MessagePanel(message))
+	}
 	if msg != "" {
 		s.Send(wire.MessagePanel(msg))
 	}
@@ -645,38 +663,59 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 		s.ID, rule.MountAction, usedIndex, mount.Index, mount.MountLevel(), mount.MountHP(), mount.MountFood(), mount.MountLongev())
 }
 
+// mountEssenceOutcome carrega as decisoes percentuais que precisam ser
+// publicadas somente depois da persistencia. Rolls[0] e o crescimento adulto;
+// Rolls[1], quando existe, e a penalidade por falha em level par.
+type mountEssenceOutcome struct {
+	OK      bool
+	Message string
+	Rolls   []percentRoll
+}
+
 // mountEssence porta o handler do amago (Vol 16): restaura HP a 20000, sobe 1
 // level. Em ADULTA rola a chance de sucesso (g_pSancRate[2]); na falha ha chance
-// de reduzir 1 level (so level par: 20% <50, 40% 50-99, 70% >=100). Ao cruzar o
-// limite de estagio, evolui (sIndex+=30).
-func mountEssence(mount *model.Item, essenceIndex uint16) (bool, string) {
+// de reduzir 1 level (so level par: 20% <50, 40% 50-99, 70% >=100). Toda chance
+// usa 1..100 e sucesso em roll <= chance.
+func (w *World) mountEssence(mount *model.Item, essenceIndex uint16) mountEssenceOutcome {
 	if !essenceMatchesMount(essenceIndex, mount.Index) {
-		return false, "This essence does not match the mount."
+		return mountEssenceOutcome{Message: "This essence does not match the mount."}
 	}
 	mount.SetMountHP(model.MountEssenceHP)
 	level := mount.MountLevel()
+	var rolls []percentRoll
 	if model.IsMountAdult(mount.Index) {
 		if level >= model.MountMaxLevel {
-			return false, "The mount is already at maximum level."
+			return mountEssenceOutcome{Message: "The mount is already at maximum level."}
 		}
-		if rand.Intn(100) > mountSuccessRate(level) {
+		growth := w.rollPercent(mountSuccessRate(level))
+		rolls = append(rolls, growth)
+		if !growth.Success {
 			if level%2 == 0 {
-				r2 := rand.Intn(100)
-				if (level < 50 && r2 < 20) || (level >= 50 && level < 100 && r2 < 40) || (level >= 100 && r2 < 70) {
+				penaltyChance := 70
+				if level < 50 {
+					penaltyChance = 20
+				} else if level < 100 {
+					penaltyChance = 40
+				}
+				penalty := w.rollPercent(penaltyChance)
+				rolls = append(rolls, penalty)
+				if penalty.Success {
 					mount.SetMountLevel(level - 1)
-					return true, "Failure: the mount lost a level."
+					return mountEssenceOutcome{
+						OK: true, Message: "Failure: the mount lost a level.", Rolls: rolls,
+					}
 				}
 			}
-			return true, "The mount evolution failed."
+			return mountEssenceOutcome{OK: true, Message: "The mount evolution failed.", Rolls: rolls}
 		}
 	}
 	level++
 	mount.SetMountLevel(level)
 	if th := mountStageThreshold(mount.Index); th > 0 && level >= th {
 		advanceMountStage(mount, 14)
-		return true, "Your mount grew to the next stage!"
+		return mountEssenceOutcome{OK: true, Message: "Your mount grew to the next stage!", Rolls: rolls}
 	}
-	return true, "Your mount gained a level."
+	return mountEssenceOutcome{OK: true, Message: "Your mount gained a level.", Rolls: rolls}
 }
 
 // initShopMounts inicializa o estado das montarias que os NPCs vendem (HP,

@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -31,7 +30,7 @@ func (w *World) beginCombine(s *net.Session, pkt []byte, npc string) (*Player, c
 	if p == nil || !p.InWorld || p.Char == nil || p.Account == nil {
 		return nil, combineRequest{}, false
 	}
-	now := time.Now()
+	now := w.now()
 	if !p.LastCraft.IsZero() && now.Sub(p.LastCraft) < 800*time.Millisecond {
 		s.Send(wire.MessagePanel("Wait a second before trying again."))
 		return p, combineRequest{}, false
@@ -71,26 +70,40 @@ func setItemSancRaw(item *model.Item, raw byte) bool {
 func (w *World) commitCombine(p *Player, oldInv [model.MaxCarry]model.Item,
 	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{}, equipSlots map[int]struct{}, result uint32) bool {
 	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
-		result, func() error { return w.saveAccount(p.Account) }, nil)
+		result, func() error { return w.saveAccount(p.Account) }, nil, "")
+}
+
+func (w *World) commitCombineRoll(p *Player, oldInv [model.MaxCarry]model.Item,
+	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
+	equipSlots map[int]struct{}, result uint32, roll percentRoll) bool {
+	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
+		result, func() error { return w.saveAccount(p.Account) }, nil, roll.message())
 }
 
 func (w *World) commitCombineWithPlayerState(p *Player, oldInv [model.MaxCarry]model.Item,
 	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
 	equipSlots map[int]struct{}, result uint32) bool {
 	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
-		result, func() error { return w.saveAccountAndCharStateResult(p) }, nil)
+		result, func() error { return w.saveAccountAndCharStateResult(p) }, nil, "")
 }
 
 func (w *World) commitCombineWithRollback(p *Player, oldInv [model.MaxCarry]model.Item,
 	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
 	equipSlots map[int]struct{}, result uint32, rollback func()) bool {
 	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
-		result, func() error { return w.saveAccount(p.Account) }, rollback)
+		result, func() error { return w.saveAccount(p.Account) }, rollback, "")
+}
+
+func (w *World) commitCombineWithRollbackRoll(p *Player, oldInv [model.MaxCarry]model.Item,
+	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
+	equipSlots map[int]struct{}, result uint32, rollback func(), roll percentRoll) bool {
+	return w.commitCombineWithSave(p, oldInv, oldEquip, oldGold, invSlots, equipSlots,
+		result, func() error { return w.saveAccount(p.Account) }, rollback, roll.message())
 }
 
 func (w *World) commitCombineWithSave(p *Player, oldInv [model.MaxCarry]model.Item,
 	oldEquip [16]model.Item, oldGold uint32, invSlots map[int]struct{},
-	equipSlots map[int]struct{}, result uint32, persist func() error, rollback func()) bool {
+	equipSlots map[int]struct{}, result uint32, persist func() error, rollback func(), resultMessage string) bool {
 	if err := persist(); err != nil {
 		p.Char.Inv, p.Char.Equip, p.Char.Gold = oldInv, oldEquip, oldGold
 		if rollback != nil {
@@ -109,7 +122,8 @@ func (w *World) commitCombineWithSave(p *Player, oldInv [model.MaxCarry]model.It
 			p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(pos), p.Char.Equip[pos]))
 		}
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-		w.sendCombineResult(p, 0)
+		w.sendCombineResultMessage(p, 0, "Save failed. Reconnect to reload the authoritative state.")
+		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "composition", err)
 		return false
 	}
 	for pos := range invSlots {
@@ -124,7 +138,7 @@ func (w *World) commitCombineWithSave(p *Player, oldInv [model.MaxCarry]model.It
 		// personagem ja visivel nunca deve ser recriado com CreateMob.
 		w.syncPlayerScoreAndVitals(p)
 	}
-	w.sendCombineResult(p, result)
+	w.sendCombineResultMessage(p, result, resultMessage)
 	return true
 }
 
@@ -219,7 +233,8 @@ func (w *World) onCombineCompositor(s *net.Session, pkt []byte) {
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 	changed := make(map[int]struct{}, combineSlots)
 	consumeCombineItems(p.Char, req, 0, 7, changed)
-	success := combineRoll() <= clampInt(chance, 0, 100)
+	roll := w.rollPercent(chance)
+	success := roll.Success
 	if success {
 		pos := int(req.Pos[0])
 		p.Char.Inv[pos] = resultItem
@@ -229,9 +244,9 @@ func (w *World) onCombineCompositor(s *net.Session, pkt []byte) {
 	if success {
 		code = 1
 	}
-	if w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code) {
-		log.Printf("[#%d] CRAFT Compositor sucesso=%t chance=%d (base %d + %s)",
-			s.ID, success, chance, w.gameplay.CompositorBaseChance, breakdown)
+	if w.commitCombineRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, roll) {
+		log.Printf("[#%d] CRAFT Compositor sucesso=%t roll=%d/%d (base %d + %s)",
+			s.ID, success, roll.Roll, roll.Chance, w.gameplay.CompositorBaseChance, breakdown)
 	}
 }
 
@@ -285,7 +300,8 @@ func (w *World) onCombineAgatha(s *net.Session, pkt []byte) {
 	mainPos := int(req.Pos[0])
 	p.Char.Inv[mainPos] = model.Item{}
 	changed[mainPos] = struct{}{}
-	success := combineRoll() <= chance
+	roll := w.rollPercent(chance)
+	success := roll.Success
 	if success {
 		donorPos := int(req.Pos[1])
 		p.Char.Inv[mainPos] = result
@@ -296,7 +312,7 @@ func (w *World) onCombineAgatha(s *net.Session, pkt []byte) {
 	if success {
 		code = 1
 	}
-	w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code)
+	w.commitCombineRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, roll)
 }
 
 func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
@@ -329,8 +345,10 @@ func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 	changed := make(map[int]struct{}, combineSlots)
 	consumeCombineItems(p.Char, req, 2, 6, changed)
-	// Secrets 7.54 usa `rand()%100 <= 40`: sao 41 resultados (0..40).
-	success := aylinRollSucceeds(rand.Intn(100))
+	// Politica do servidor: percentuais usam 1..100 e sucesso em roll <= chance.
+	// Aylin portanto possui exatamente 40% de chance, sem o 41o valor do legado.
+	roll := w.rollPercent(40)
+	success := roll.Success
 	if success {
 		mainPos, donorPos := int(req.Pos[0]), int(req.Pos[1])
 		p.Char.Inv[mainPos] = result
@@ -342,11 +360,7 @@ func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 	if success {
 		code = 1
 	}
-	w.commitCombine(p, oldInv, oldEquip, oldGold, changed, nil, code)
-}
-
-func aylinRollSucceeds(roll int) bool {
-	return roll >= 0 && roll <= 40
+	w.commitCombineRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, roll)
 }
 
 func (w *World) onCombineLindy(s *net.Session, pkt []byte) {

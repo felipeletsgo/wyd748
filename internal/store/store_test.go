@@ -310,6 +310,9 @@ func TestJSONStoreRejectsLegacyCharacterScore(t *testing.T) {
 func TestProjectAccountsUseCurrentSchema(t *testing.T) {
 	dir := filepath.Join("..", "..", "data", "accounts")
 	entries, err := os.ReadDir(dir)
+	if os.IsNotExist(err) {
+		t.Skip("project JSON account fixtures are not present in a clean checkout")
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
