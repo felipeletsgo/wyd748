@@ -1,6 +1,7 @@
 package game
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -59,10 +60,10 @@ func fairyWithMinutes(t *testing.T, w *World, index uint16, minutes int) model.I
 func TestFairyBonusMatrix(t *testing.T) {
 	w := fairyTestWorld()
 	tests := []struct {
-		name       string
-		index      uint16
-		exp, drop  int
-		inherited  bool
+		name      string
+		index     uint16
+		exp, drop int
+		inherited bool
 	}{
 		{name: "green", index: 3900, exp: 16},
 		{name: "blue", index: 3901, drop: 32},
@@ -88,7 +89,8 @@ func TestFairyBonusMatrix(t *testing.T) {
 
 func TestFairyTimerStartsEquippedAndPausesUnequipped(t *testing.T) {
 	w := fairyTestWorld()
-	ch := &model.Char{Equip: [16]model.Item{fairySlot: {Index: 3900}}}
+	ch := &model.Char{}
+	ch.Equip[fairySlot] = model.Item{Index: 3900}
 	p := &Player{Char: ch, InWorld: true}
 	now := time.Unix(1_700_000_000, 0)
 
@@ -150,7 +152,7 @@ func TestFairyTimerDoesNotAdvanceOffline(t *testing.T) {
 func TestSilverAndGoldPreserveInheritedTimer(t *testing.T) {
 	w := fairyTestWorld()
 	for _, index := range []uint16{3914, 3915} {
-		t.Run(string(rune(index)), func(t *testing.T) {
+		t.Run(strconv.Itoa(int(index)), func(t *testing.T) {
 			item := fairyWithMinutes(t, w, index, 2*24*60+3*60+4)
 			before := item
 			if !w.initializeFairyTimer(&item) {
