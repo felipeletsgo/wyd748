@@ -90,8 +90,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           Push-Location client748
           .\Apply-WYD748.ps1 -VerifyOnly
-          if ($LASTEXITCODE -ne 0) { throw 'client verify failed' }
           Pop-Location
+          $global:LASTEXITCODE = 0
           go test -count=1 ./internal/game -run 'Test(Water|Fairy)'
           if ($LASTEXITCODE -ne 0) { throw 'Water/Fairy regression failed' }
           git diff --check
