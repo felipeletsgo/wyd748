@@ -57,8 +57,15 @@ jobs:
           if [ "$status" -ne 0 ]; then
             python3 - <<'PY'
           from pathlib import Path
-          lines = Path('/tmp/percent-refactor-test.log').read_text(errors='replace').splitlines()[-120:]
-          text = '\n'.join(lines).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          lines = Path('/tmp/percent-refactor-test.log').read_text(errors='replace').splitlines()
+          hit = set()
+          for i, line in enumerate(lines):
+              if ('--- FAIL:' in line or line.startswith('FAIL') or 'panic:' in line or 'fatal error:' in line):
+                  hit.update(range(max(0, i-8), min(len(lines), i+9)))
+          selected = [lines[i] for i in sorted(hit)]
+          if not selected:
+              selected = lines[-200:]
+          text = '\n'.join(selected[-300:]).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
           print(f'::error title=go test failed::{text}')
           PY
           fi
