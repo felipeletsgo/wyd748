@@ -38,6 +38,8 @@ const (
 	OpWithdraw           = 0x387 // C<->S retirar gold do Cargo (16B)
 	OpDeposit            = 0x388 // C<->S depositar gold no Cargo (16B)
 	OpUseItem            = 0x373 // C->S usar item volatil (36B)
+	OpUsePremiumFirework = 0x3C9 // C->S Premium FireCracker desenhado (52B, bitmap 10x10@34)
+	OpPremiumFirework    = 0x3CA // S->C publica o desenho aos observadores (36B, bitmap@20)
 	OpCapsuleInfo        = 0x2CD // C->S consulta os dados de um Spirit's Seal (16B)
 	OpPutoutSeal         = 0x3CC // C->S extrai o personagem de um Spirit's Seal (52B)
 	OpCNFCapsuleInfo     = 0xDC3 // S->C MSG_CAPSULEINFO compacto do client 7.48 (52B)

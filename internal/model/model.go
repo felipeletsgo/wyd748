@@ -938,7 +938,10 @@ func VisualItemCode(item Item, mount bool) uint16 {
 		return 0
 	}
 	if mount {
-		if item.Index >= 2360 && item.Index < 2390 && item.Eff[1] > 127 {
+		// A montaria ferida continua equipada e persistida, mas o SendEquip
+		// nativo a projeta como slot vazio. Sem esta regra, o dono e jogadores
+		// que entram depois na visão ainda a desenham viva com HP zero.
+		if item.MountHP() <= 0 || item.Index >= 2360 && item.Index < 2390 && item.Eff[1] > 127 {
 			return 0
 		}
 		return uint16(uint32(item.Index) + uint32(item.Eff[2]/10)*0x1000)

@@ -47,8 +47,8 @@ var validVolatileActions = map[string]bool{
 }
 
 var validMountActions = map[string]bool{
-	"feed": true, "essence": true, "longevity": true, "growth": true, "invuln": true,
-	"hatch": true,
+	"feed": true, "essence": true, "longevity": true, "longevity_restore": true,
+	"level_set": true, "growth": true, "hatch": true,
 }
 
 // LoadVolatiles le apenas as funcoes de data/volatiles.json e descobre os itens
@@ -246,6 +246,10 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 		}
 		if !validVolatileActions[rule.Action] {
 			return rule, fmt.Errorf("data: %s possui action desconhecida %q", where, rule.Action)
+		}
+		if rule.CustomPattern && (rule.Action != "firework" || !rule.Consume) {
+			return rule, fmt.Errorf(
+				"data: %s customPattern exige firework com consume=true", where)
 		}
 		if rule.Action == "teleport" && (rule.X == 0 || rule.Y == 0) {
 			return rule, fmt.Errorf("data: %s teleport exige x/y positivos", where)
@@ -642,10 +646,15 @@ func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 		}
 		if rule.Action == "mount" {
 			if !validMountActions[rule.MountAction] {
-				return rule, fmt.Errorf("data: %s mount exige mountAction valido (feed/essence/longevity/growth/invuln), veio %q", where, rule.MountAction)
+				return rule, fmt.Errorf("data: %s mount exige mountAction valido, veio %q", where, rule.MountAction)
 			}
-			if rule.MountAction == "invuln" && rule.DurationUnits <= 0 {
-				return rule, fmt.Errorf("data: %s mount invuln exige durationUnits positivo", where)
+			if rule.MountAction == "longevity_restore" && rule.Amount <= 0 {
+				return rule, fmt.Errorf("data: %s mount longevity_restore exige amount positivo", where)
+			}
+			if rule.MountAction == "level_set" &&
+				(rule.Amount <= 0 || rule.Amount > model.MountMaxLevel ||
+					rule.MountMinLevel < 0 || rule.MountMinLevel >= rule.Amount) {
+				return rule, fmt.Errorf("data: %s mount level_set possui nivel alvo/minimo invalido", where)
 			}
 		}
 		return rule, nil

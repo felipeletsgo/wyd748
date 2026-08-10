@@ -42,11 +42,11 @@ número no `itemlist.csv`.
 | Família | Códigos/itens | Estado no WYD-Go |
 | --- | --- | --- |
 | Poções, moedas e recall | `1–3`, `11–13`, `18`, `185` | Completo; valores vêm do itemlist/Price e consumo é persist-before-confirm. |
-| Ori/Lac e montarias | `4`, `5`, `15`, `16`, `90–94`, `196`, `3453–3454`, caixas `4003–4007` | Completo para o catálogo 7.48; incubação, reviver, crescimento, longevidade e caixas têm rollback. O acelerador (`196`) foi corrigido para salvar sincronicamente o item e o ovo juntos. |
+| Ori/Lac e montarias | `4`, `5`, `15`, `16`, `90–94`, `196`, `3453–3454`, caixas `4003–4007` | Completo para o catálogo 7.48; Vol. 90 restaura +1 LP, 91/92 catalisam nível 100/120, 93 restaura 1–3 de longevidade e 94 avança estágio. Ovo usa `EF_SANC` + `EF_INCUDELAY`, exige slot 14 e conta 6–8h somente online/equipado. O acelerador (`196`) transforma diretamente em cria. Todas as mutações têm rollback. |
 | Progressão | `6`, `7`, `8` | Completo conforme o contrato do projeto: Magical Pill única (+9), Fairy Dust em um marco e Eye Wax com os valores customizados já solicitados. |
 | Adamantita e Gemas | `9`, `180–183`; itens `578`, `3386–3389` | Adamantita transforma equipamento compatível pelo `Extra`; as quatro Gemas aplicam variantes +10..+15 e aceitam armas Ancient abaixo de +10, preservando UID, adicionais e refinação. Bônus de drop, perfuração, EXP e absorção são derivados server-side. |
 | Buffs e alimentos | `10`, `30`, `52–67`, `198`, `3313`, `3361–3366`, `3378`, `1739`, `4145` | Completo e configurável. A resolução de Love/Sefirah usa os `SkillData` autoritativos; Courage aplica o bônus de hit somente em PvE; EXP acumula até 24h; Bigger/Health usam affect 35 e não acumulam cópias paralelas. |
-| Fogos e transformação | `19`, `70–77`, `89` | Completo; o rosto/affect é persistido antes de publicar o visual. |
+| Fogos e transformação | `19`, `70–77`, `89` | Completo; fogos comuns usam Motion 100, Premium preserva o desenho 10x10 do client e o estado é persistido antes de publicar o visual. |
 | Livros Sephira | `32–36` | Completo; bits 25–29 de `LearnedSkill`, sem inventar `SecondaryLearnedSkill`. |
 | Contratos | `41–43`, `46–48` | Completo para o modo temporário atual: um summon ativo, troca atômica do contrato, segue/combate pelo dono, não entra na party e é removido no logout/morte. |
 | Cube/Big Cube/Water | `21–28`, `30`, `51`, `54`, `131–140`, `161–172`, `171–172`, overrides `777–785`, `3171–3190` | Completo no modelo configurável. Big Cube usa a pergunta O/X somente para membros da instância e envia a todos eles a decisão; a saída padrão é Armia `(2100,2100)`. |
@@ -124,6 +124,7 @@ Validação executada após a auditoria:
 go test ./internal/game ./internal/data
 ```
 
-O teste de montagem do acelerador cobre também a falha de persistência: o ovo
-e o acelerador retornam exatamente ao snapshot anterior e nenhum pacote de
-confirmação de consumo é emitido antes do save.
+Os testes cobrem o ciclo de valor crítico 3 até a poeira final, limites de 6 e
+8 horas, pausa em inventário/offline, rejeição durante a espera e falhas de
+persistência. No acelerador, ovo e item retornam exatamente ao snapshot anterior
+e nenhum consumo é confirmado antes do save.

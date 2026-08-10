@@ -142,17 +142,7 @@ func (w *World) tickPlayerMounts(now time.Time) {
 			continue
 		}
 		p.NextMountTick = now.Add(mountFoodInterval)
-		// Incubacao: decrementa o delay dos ovos no inventario (1 min por tick).
-		for i := range p.Char.Inv {
-			egg := &p.Char.Inv[i]
-			if model.IsMountEgg(egg.Index) && eggDelay(*egg) > 0 {
-				setEggDelay(egg, eggDelay(*egg)-1)
-				if eggDelay(*egg) == 0 && p.Session != nil {
-					p.Session.Send(wire.SendItem(p.ID, placeInv, byte(i), *egg))
-					p.Session.Send(wire.MessagePanel("The egg is ready for the next Ori/Lac."))
-				}
-			}
-		}
+		w.tickEquippedEggIncubation(p, now)
 		// Backstop: garante o pet-cria coerente (cobre login com cria equipada).
 		w.syncCriaPet(p)
 		mount, mslot := equippedMount(p.Char)
@@ -186,29 +176,56 @@ func (w *World) tickPlayerMounts(now time.Time) {
 
 // --- Ovo -> choco (incubacao) ---
 //
-// O ovo (2300-2329) NAO e montaria: usa os slots de efeito como estado de
-// incubacao. Eff[0]=progresso (sucessos de Ori/Lac), Eff[1]=delay em minutos
-// ate o proximo uso. Choca quando progresso > EF_INCUBATE (limiar do itemlist:
-// Pig=0, Boar=1 ... Steed=6). Fiel ao handler de refino do W2PP (_MSG_UseItem
-// :1116-1189), que trata o ovo como refino com limiar EF_INCUBATE + delay
-// EF_INCUDELAY.
-
-// eggHatchDelayMin/Rand: delay base + aleatorio entre usos de Ori/Lac no ovo.
-// TESTE: 1-4 min (cabe num byte, testavel). FIEL ao original: ~240-540 (4-9h),
-// mas ai o delay nao cabe em 1 byte -- suba estes valores + troque o byte por
-// 2 bytes se quiser o tempo real.
+// O ovo (2300-2329) usa o formato nativo do STRUCT_ITEM:
+//
+//	EF_SANC(43)      = refinacoes bem-sucedidas da incubacao
+//	EF_INCUDELAY(84) = horas ONLINE restantes ate a proxima tentativa
+//
+// EF_INCUBATE vem exclusivamente do itemlist.csv e e o valor critico do ovo.
+// Um ovo de valor 3 recebe +1, espera, +2, espera, +3, espera; a proxima
+// refinacao bem-sucedida o transforma em cria. A hora so corre com o mesmo ovo
+// equipado no slot 14.
 const (
-	eggHatchDelayMin  = 1
-	eggHatchDelayRand = 3
+	eggIncubationDelayEffect = 84
+	eggHatchDelayMinHours    = 6
+	eggHatchDelayMaxHours    = 8
+	eggIncubationHour        = time.Hour
 )
 
-func eggProgress(egg model.Item) int { return int(egg.Eff[0]) }
-func eggDelay(egg model.Item) int    { return int(egg.Eff[1]) }
-func setEggProgress(egg *model.Item, v int) {
-	egg.Eff[0] = byte(clampMountByte(v))
+func eggProgress(egg model.Item) int { return itemSanc(egg) }
+
+func eggDelay(egg model.Item) int {
+	for i := 0; i < 3; i++ {
+		if egg.Eff[i*2] == eggIncubationDelayEffect {
+			return int(egg.Eff[i*2+1])
+		}
+	}
+	return 0
 }
-func setEggDelay(egg *model.Item, v int) {
-	egg.Eff[1] = byte(clampMountByte(v))
+
+func setEggProgress(egg *model.Item, v int) bool {
+	return setItemSanc(egg, clampMountByte(v))
+}
+
+func setEggDelay(egg *model.Item, v int) bool {
+	if egg == nil {
+		return false
+	}
+	v = clampMountByte(v)
+	for i := 0; i < 3; i++ {
+		if egg.Eff[i*2] == eggIncubationDelayEffect {
+			egg.Eff[i*2+1] = byte(v)
+			return true
+		}
+	}
+	// Secrets/RegenMob e W2PP decrementam diretamente stEffect[2].cValue;
+	// mantenha EF_INCUDELAY no terceiro par mesmo havendo lacuna no segundo.
+	if egg.Eff[4] == 0 {
+		egg.Eff[4] = eggIncubationDelayEffect
+		egg.Eff[5] = byte(v)
+		return true
+	}
+	return false
 }
 
 func clampMountByte(v int) int {
@@ -221,27 +238,111 @@ func clampMountByte(v int) int {
 	return v
 }
 
-// destEggTarget resolve um ovo-alvo no inventario (o Ori/Lac e arrastado sobre o
-// ovo guardado). Cargo/equip nao contam.
-func (w *World) destEggTarget(p *Player, req useItemRequest) (*model.Item, uint32) {
-	if req.dstType == placeInv && int(req.dstPos) < len(p.Char.Inv) {
-		if it := &p.Char.Inv[req.dstPos]; model.IsMountEgg(it.Index) {
-			return it, req.dstPos
-		}
+func eggIncubationClockKey(egg *model.Item) string {
+	if egg == nil {
+		return ""
 	}
-	return nil, 0
+	if egg.UID != "" {
+		return egg.UID
+	}
+	// Itens materializados possuem UID. O fallback existe somente para contas
+	// legadas/testes e continua seguro porque ha um unico slot de incubacao.
+	return fmt.Sprintf("egg:%d", egg.Index)
 }
 
-// incubateEgg processa Ori/Lac (Vol 4/5) sobre um ovo. Se ainda ha delay, recusa
-// ("aguarde"); senao rola sucesso pelo progresso atual (mesma curva do refino).
-// Sucesso avanca o progresso; progresso > EF_INCUBATE -> CHOCA (ovo+30 = cria,
-// estado inicializado). Consome a poeira em sucesso E falha; persiste antes de
-// confirmar.
-func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powderSlot byte, egg *model.Item, eggSlot uint32, vol int) {
+func (w *World) resetEggIncubationClock(p *Player) {
+	if p == nil {
+		return
+	}
+	p.EggIncubationUID = ""
+	p.NextEggIncubationTick = time.Time{}
+}
+
+func (w *World) startEggIncubationClock(p *Player, egg *model.Item, now time.Time) {
+	if p == nil || egg == nil || eggDelay(*egg) <= 0 {
+		w.resetEggIncubationClock(p)
+		return
+	}
+	p.EggIncubationUID = eggIncubationClockKey(egg)
+	p.NextEggIncubationTick = now.Add(eggIncubationHour)
+}
+
+// tickEquippedEggIncubation debita somente horas completas, online e com o
+// mesmo ovo no slot 14. O valor inteiro e persistido no item; a fracao da hora
+// fica em Player e se perde ao desequipar/deslogar, exatamente como nos guias
+// e no contador de sessao do W2PP.
+func (w *World) tickEquippedEggIncubation(p *Player, now time.Time) {
+	if p == nil || p.Char == nil {
+		return
+	}
+	if !p.InWorld {
+		w.resetEggIncubationClock(p)
+		return
+	}
+	egg := &p.Char.Equip[mountSlot]
+	remaining := eggDelay(*egg)
+	if !model.IsMountEgg(egg.Index) || remaining <= 0 {
+		w.resetEggIncubationClock(p)
+		return
+	}
+	key := eggIncubationClockKey(egg)
+	if p.EggIncubationUID != key || p.NextEggIncubationTick.IsZero() {
+		w.startEggIncubationClock(p, egg, now)
+		return
+	}
+	if now.Before(p.NextEggIncubationTick) {
+		return
+	}
+	hours := int(now.Sub(p.NextEggIncubationTick)/eggIncubationHour) + 1
+	if hours > remaining {
+		hours = remaining
+	}
+	oldEgg := *egg
+	if !setEggDelay(egg, remaining-hours) {
+		return
+	}
+	if p.Account != nil {
+		if err := w.saveAccount(p.Account); err != nil {
+			*egg = oldEgg
+			log.Printf("[#%d] ERRO ao salvar hora de incubacao do ovo %d: %v", p.ID, egg.Index, err)
+			return
+		}
+	}
+	p.NextEggIncubationTick = p.NextEggIncubationTick.Add(time.Duration(hours) * eggIncubationHour)
+	if eggDelay(*egg) == 0 {
+		w.resetEggIncubationClock(p)
+	}
+	if p.Session != nil {
+		p.Session.Send(wire.SendItem(p.ID, placeEquip, mountSlot, *egg))
+		if eggDelay(*egg) == 0 {
+			p.Session.Send(wire.MessagePanel("Incubation is complete. Apply Ori/Lac again to continue hatching."))
+		} else {
+			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Egg incubation: %d hour(s) remaining.", eggDelay(*egg))))
+		}
+	}
+}
+
+// destEggTarget exige o ovo equipado no slot nativo de montaria. Inventario e
+// Cargo pausam a incubacao e nao aceitam Ori/Lac.
+func (w *World) destEggTarget(p *Player, req useItemRequest) (*model.Item, uint32, uint32) {
+	if p != nil && p.Char != nil && req.dstType == placeEquip && req.dstPos == mountSlot {
+		if it := &p.Char.Equip[mountSlot]; model.IsMountEgg(it.Index) {
+			return it, placeEquip, mountSlot
+		}
+	}
+	return nil, 0, 0
+}
+
+// incubateEgg processa Ori/Lac (Vol 4/5) sobre o ovo equipado. A tentativa usa
+// a curva nativa de refino, consome a poeira em sucesso e falha e inicia uma
+// espera aleatoria de 6..8 horas online. Ao ja estar no valor critico, a proxima
+// tentativa bem-sucedida transforma o ovo em cria.
+func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powderSlot byte,
+	egg *model.Item, eggType, eggSlot uint32, vol int) {
 	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, powderSlot, *powder)) }
 	if eggDelay(*egg) > 0 {
 		resend()
-		s.Send(wire.MessagePanel(fmt.Sprintf("The egg is still incubating (%d min). Use the accelerator or wait.", eggDelay(*egg))))
+		s.Send(wire.MessagePanel(fmt.Sprintf("The egg is still incubating (%d hour(s) remaining).", eggDelay(*egg))))
 		return
 	}
 	def, ok := w.items[egg.Index]
@@ -249,73 +350,101 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 		resend()
 		return
 	}
-	threshold := itemAbility(*egg, def, "EF_INCUBATE")
-	roll := w.rollPercent(refineChance(eggProgress(*egg)))
+	threshold := staticAbility(def, "EF_INCUBATE")
+	if threshold < 0 || threshold > 15 {
+		resend()
+		return
+	}
+	progressBefore := eggProgress(*egg)
+	roll := w.rollPercent(refineChance(progressBefore))
 	success := roll.Success
 	oldEgg, oldPowder := *egg, *powder
-	if success {
-		setEggProgress(egg, eggProgress(*egg)+1)
-	}
-	setEggDelay(egg, eggHatchDelayMin+rand.Intn(eggHatchDelayRand+1))
-	hatched := success && eggProgress(*egg) > threshold
+	hatched := success && progressBefore >= threshold
 	if hatched {
 		egg.Index += model.MountTypeCount // 2300 -> 2330 (cria)
 		egg.Eff = [6]byte{}
 		w.initFreshMount(egg)
+	} else {
+		if success && !setEggProgress(egg, progressBefore+1) {
+			*egg = oldEgg
+			resend()
+			s.Send(wire.MessagePanel("The egg has no free effect slot for incubation."))
+			return
+		}
+		delay := eggHatchDelayMinHours + w.intn(eggHatchDelayMaxHours-eggHatchDelayMinHours+1)
+		if !setEggDelay(egg, delay) {
+			*egg = oldEgg
+			resend()
+			s.Send(wire.MessagePanel("The egg has no free effect slot for incubation."))
+			return
+		}
 	}
 	consumeOne(powder) // Ori/Lac sempre consomem (sucesso e falha), como no refino
 	if err := w.saveAccount(p.Account); err != nil {
 		*egg, *powder = oldEgg, oldPowder
 		log.Printf("[#%d] ERRO ao salvar incubacao: %v", s.ID, err)
 		resend()
-		s.Send(wire.SendItem(p.ID, placeInv, byte(eggSlot), *egg))
+		s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
 		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
 		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "egg incubation", err)
 		return
 	}
 	resend()
-	s.Send(wire.SendItem(p.ID, placeInv, byte(eggSlot), *egg))
+	s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
 	s.Send(wire.MessagePanel(roll.message()))
 	switch {
 	case hatched:
-		s.Send(wire.MessagePanel("The egg hatched! A hatchling was born -- equip it."))
+		w.resetEggIncubationClock(p)
+		w.recalcPlayer(p.Char)
+		w.syncCriaPet(p)
+		w.refreshAppearance(p)
+		s.Send(wire.MessagePanel("The egg hatched! A hatchling was born."))
 	case success:
-		s.Send(wire.MessagePanel(fmt.Sprintf("Incubation advanced (%d/%d).", eggProgress(*egg), threshold+1)))
+		w.startEggIncubationClock(p, egg, w.now())
+		s.Send(wire.MessagePanel(fmt.Sprintf("Egg incubation advanced (+%d). Wait %d hour(s).",
+			eggProgress(*egg), eggDelay(*egg))))
+	default:
+		w.startEggIncubationClock(p, egg, w.now())
+		s.Send(wire.MessagePanel(fmt.Sprintf("Refinement failed. Wait %d hour(s) before trying again.", eggDelay(*egg))))
 	}
-	log.Printf("[#%d] incubacao vol=%d ovo->%d progresso=%d/%d chocou=%v roll=%d/%d",
-		s.ID, vol, egg.Index, eggProgress(*egg), threshold+1, hatched, roll.Roll, roll.Chance)
+	log.Printf("[#%d] incubacao vol=%d ovo->%d progresso=+%d critico=%d espera=%dh chocou=%v roll=%d/%d",
+		s.ID, vol, egg.Index, eggProgress(*egg), threshold, eggDelay(*egg), hatched, roll.Roll, roll.Chance)
 }
 
-// accelerateHatch (Vol 196, Hatch_accelerator): zera o delay de incubacao de um
-// ovo no inventario, permitindo o proximo Ori/Lac imediatamente.
-func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, invSlot byte) {
-	for i := range p.Char.Inv {
-		egg := &p.Char.Inv[i]
-		if model.IsMountEgg(egg.Index) && eggDelay(*egg) > 0 {
-			// O acelerador e uma operacao economica: o item consumido e o
-			// estado do ovo precisam chegar juntos ao store. O caminho async
-			// anterior confirmava os dois slots antes de verificar o resultado,
-			// permitindo duplicar o acelerador (ou perder o ovo) em uma queda.
-			oldItem, oldEgg := *item, *egg
-			setEggDelay(egg, 0)
-			consumeOne(item)
-			if err := w.saveAccount(p.Account); err != nil {
-				*item, *egg = oldItem, oldEgg
-				log.Printf("[#%d] ERRO ao salvar aceleracao do ovo %d: %v", s.ID, oldEgg.Index, err)
-				s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item))
-				s.Send(wire.SendItem(p.ID, placeInv, byte(i), *egg))
-				s.Send(wire.MessagePanel("Save failed. The accelerator was not consumed."))
-				return
-			}
-			s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item))
-			s.Send(wire.SendItem(p.ID, placeInv, byte(i), *egg))
-			s.Send(wire.MessagePanel("Incubation accelerated! Use Ori/Lac on the egg again."))
-			log.Printf("[#%d] acelerou incubacao do ovo %d", s.ID, egg.Index)
-			return
-		}
+// accelerateHatch (Vol 196) porta o item 3438 do W2PP: usado sobre o ovo
+// equipado, transforma-o imediatamente em cria. O consumo e a transformacao
+// sao confirmados no mesmo save.
+func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, invSlot byte,
+	req useItemRequest) {
+	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item)) }
+	egg, eggType, eggSlot := w.destEggTarget(p, req)
+	if egg == nil {
+		resend()
+		s.Send(wire.MessagePanel("Use the hatch accelerator on an equipped egg."))
+		return
 	}
-	s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item))
-	s.Send(wire.MessagePanel("No egg awaiting incubation."))
+	oldItem, oldEgg := *item, *egg
+	egg.Index += model.MountTypeCount
+	egg.Eff = [6]byte{}
+	w.initFreshMount(egg)
+	consumeOne(item)
+	if err := w.saveAccount(p.Account); err != nil {
+		*item, *egg = oldItem, oldEgg
+		log.Printf("[#%d] ERRO ao salvar acelerador do ovo %d: %v", s.ID, oldEgg.Index, err)
+		resend()
+		s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
+		s.Send(wire.MessagePanel("Save failed. The accelerator was not consumed."))
+		return
+	}
+	w.resetEggIncubationClock(p)
+	w.recalcPlayer(p.Char)
+	resend()
+	s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
+	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	w.syncCriaPet(p)
+	w.refreshAppearance(p)
+	s.Send(wire.MessagePanel("The hatch accelerator transformed the egg into a hatchling."))
+	log.Printf("[#%d] acelerador chocou ovo %d -> cria %d", s.ID, oldEgg.Index, egg.Index)
 }
 
 // --- Cria como pet que segue o dono ---
@@ -558,40 +687,13 @@ func mountSuccessRate(level int) int {
 
 // applyMountItem trata os consumiveis de montaria (rule.MountAction). Fiel ao
 // W2PP: cada um valida o casamento item->montaria, muta o estado no item e
-// persiste antes de confirmar. Invuln nao muta o item -- aplica um affect.
-func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invSlot byte, rule model.VolatileRule, code int) {
+// persiste antes de confirmar ao client.
+func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invSlot byte,
+	rule model.VolatileRule, code int, req useItemRequest) {
 	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item)) }
 
 	if rule.MountAction == "hatch" {
-		// Acelerador (Vol 196): atua num OVO do inventario, nao na montaria.
-		w.accelerateHatch(p, s, item, invSlot)
-		return
-	}
-
-	if rule.MountAction == "invuln" {
-		// Pocao de recuperacao/invulnerabilidade (Vol 90-92): affect 51 por
-		// rule.DurationUnits. Enquanto ativo, o tick nao drena HP/comida (fiel ao
-		// ProcessAdultMount, que trata comida como 100 sob o affect 51).
-		snapshot := cloneCharacterState(p.Char)
-		if !setAffect(p.Char, 51, 0, 0, rule.DurationUnits) {
-			resend()
-			s.Send(wire.MessagePanel("Mount protection is already active."))
-			return
-		}
-		if rule.Consume {
-			consumeOne(item)
-		}
-		if err := w.saveAccountAndCharStateResult(p); err != nil {
-			*p.Char = snapshot
-			resend()
-			log.Printf("[#%d] ERRO ao salvar protecao da montaria: %v", s.ID, err)
-			return
-		}
-		w.recalcPlayer(p.Char)
-		w.publishPlayerAffects(p)
-		w.syncPlayerVitals(p)
-		resend()
-		log.Printf("[#%d] mount invuln (affect 51) item=%d dur=%d", s.ID, item.Index, rule.DurationUnits)
+		w.accelerateHatch(p, s, item, invSlot, req)
 		return
 	}
 
@@ -616,6 +718,10 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 		ok, msg = mountFeed(mount, item.Index)
 	case "longevity":
 		ok, msg = mountLongevityRecover(mount)
+	case "longevity_restore":
+		ok, msg = mountLongevityRestore(mount, rule.Amount)
+	case "level_set":
+		ok, msg = mountSetLevel(mount, rule.MountMinLevel, rule.Amount)
 	case "growth":
 		ok, msg = mountGrowth(mount, item.Index)
 	default:
@@ -795,6 +901,43 @@ func mountLongevityRecover(mount *model.Item) (bool, string) {
 	}
 	mount.SetMountLongev(long)
 	return true, "Mount longevity restored."
+}
+
+// mountLongevityRestore porta o item 3315 do client 7.48. O itemhelp.dat e o
+// handler do Secrets concordam que ele restaura LP (longevidade), nao HP nem
+// invulnerabilidade. Montaria com LP zero permanece irrecuperavel e o teto e 60.
+func mountLongevityRestore(mount *model.Item, amount int) (bool, string) {
+	if mount == nil || !model.IsMountAdult(mount.Index) {
+		return false, "This potion can only be used on an adult mount."
+	}
+	long := mount.MountLongev()
+	if long <= 0 {
+		return false, "This mount has no remaining life points."
+	}
+	if long >= model.MountMaxLongevity {
+		return false, "Mount life points are already at maximum."
+	}
+	long += amount
+	if long > model.MountMaxLongevity {
+		long = model.MountMaxLongevity
+	}
+	mount.SetMountLongev(long)
+	return true, "The mount recovered 1 life point."
+}
+
+// mountSetLevel porta os itens 3316/3317 confirmados no Secrets: o primeiro
+// leva uma montaria adulta abaixo de 100 ao level 100; o segundo aceita apenas
+// level 100..119 e a leva ao 120. Ambos exigem pelo menos 3 LP.
+func mountSetLevel(mount *model.Item, minLevel, targetLevel int) (bool, string) {
+	if mount == nil || !model.IsMountAdult(mount.Index) {
+		return false, "This catalyst can only be used on an adult mount."
+	}
+	level := mount.MountLevel()
+	if mount.MountLongev() < 3 || level < minLevel || level >= targetLevel {
+		return false, "This mount does not meet the catalyst requirements."
+	}
+	mount.SetMountLevel(targetLevel)
+	return true, fmt.Sprintf("The mount reached level %d.", targetLevel)
 }
 
 // mountGrowth porta a pocao de crescimento (Vol 94): evolui o estagio na hora

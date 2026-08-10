@@ -103,6 +103,8 @@ The server has these systems. The server has authority on each system.
   trade and prevents item duplication in the data storage. Selling to a normal
   merchant also fills the native ten-entry `0x3E8` repurchase window; the
   server keeps item UIDs and recalculates the repurchase price from `itemlist`.
+  The attribute Skill Master consumes 30 Sapphires or Return Of Ability and
+  atomically returns up to 100 distributed points from each attribute.
 - **Crafting** — The server has server-side recipes and native success and
   failure messages for Agatha, Aylin, Tiny, Lindy, Compositor, Ehre, and
   Alquimista Odin. The Compositor needs four materials of set D or E, each
@@ -131,13 +133,18 @@ The server has these systems. The server has authority on each system.
   waves with an absolute deadline and transactional party entry/exit. Water,
   Cube, Big Cube, Nightmare, Hell Gate and Uxmal isolate their participants,
   deadlines and rewards by runtime instance.
+  Dead mounts remain equipped for revival but are projected as visually
+  unequipped to their owner and nearby players until their HP is restored.
   Diamond, Emerald, Coral and Garnet now apply their native equipment variants
   to +10..+15 gear and to Ancient weapons below +10 without losing refinement.
   Adamantite upgrades compatible equipment through the authoritative item
   catalog, preserving item UID and rolling back atomically on persistence errors.
   Courage applies its fixed PvE hit bonus, and
   Love Chocolate/Candy resolve their native SkillData affects and apply the
-  complete package atomically. All 124 codes are explicitly classified. The
+  complete package atomically. Item-derived kill EXP bonuses (Coral, active
+  fairy and Experience Box) come from the killer and are shared with every
+  eligible party member, while receiver-specific evolution reductions remain
+  authoritative. All 124 codes are explicitly classified. The
   3443 Spirit's Seal flow is implemented atomically with 0x2CD/0x3CC query and
   extraction. Item 3455 remains no-direct-use because W2PP does not accept it
   in PutoutSeal.
@@ -145,9 +152,10 @@ The server has these systems. The server has authority on each system.
   entrance ticket and the fame points. They live in a per-character sidecar
   file, not in the account. A quest can require, spend, or grant them. A
   counter does not pass from one character to another one in the same account.
-- **Mounts** — An egg incubates and hatches. A hatchling grows into an adult.
-  The pet follows its owner outside the party. A mounted character absorbs some
-  damage. The server calculates hunger and longevity.
+- **Mounts** — An equipped egg advances with Ori/Lac and a server-side 6–8 hour
+  online incubation timer; unequipping or disconnecting pauses it. A hatchling
+  grows into an adult and follows its owner outside the party. A mounted
+  character absorbs some damage. The server calculates hunger and longevity.
 - **Player shops** — A Ghost Shop sells Cargo items in Armia. A stationary clone
   does the sale. The owner stays free to move and to play.
 - **Ascension (Arch)** — A Mortal of level 371 or higher can become an Arch.
@@ -184,6 +192,9 @@ The server has these systems. The server has authority on each system.
   lookup, hidden day synchronization, keepalive, and the Huntress Illusion
   Action2 packet have explicit routes and regression tests. Client-sent score
   updates are recognized and discarded.
+- **Premium Firecracker** — The original 10×10 drawing panel is server-backed:
+  the server validates the real item and authoritative position, commits the
+  consumption, then broadcasts the exact custom pattern only to nearby players.
 - **Data storage** — PostgreSQL is the authoritative production store. Account,
   character, item, Cargo, character-state, and guild changes use transactions.
   Each materialized item has a server-only UUID with a global database

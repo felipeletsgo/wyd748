@@ -21,6 +21,7 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		{wire.OpDeposit, 16},
 		{wire.OpWithdraw, 16},
 		{wire.OpUseItem, 36},
+		{wire.OpUsePremiumFirework, premiumFireworkUsePacketSize},
 		{wire.OpUseNPC, 20},
 		{wire.OpReqShopList, 16},
 		{wire.OpBuyItem, 24},

@@ -80,6 +80,64 @@ func TestCatalogoVolatileMantemContagemAutoritativa(t *testing.T) {
 	}
 }
 
+func TestMountRecoveryECatalisadoresResolvemContratosNativos(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
+		catalog.Items, catalog.Skills)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		item             uint16
+		code             int
+		action           string
+		minLevel, amount int
+	}{
+		{item: 3315, code: 90, action: "longevity_restore", amount: 1},
+		{item: 3316, code: 91, action: "level_set", amount: 100},
+		{item: 3317, code: 92, action: "level_set", minLevel: 100, amount: 120},
+	}
+	for _, want := range tests {
+		rule, code, ok := volatiles.Rule(want.item)
+		if !ok || code != want.code || rule.Action != "mount" ||
+			rule.MountAction != want.action || rule.MountMinLevel != want.minLevel ||
+			rule.Amount != want.amount || !rule.Consume {
+			t.Errorf("item %d resolveu code=%d ok=%v rule=%+v", want.item, code, ok, rule)
+		}
+	}
+}
+
+func TestPremiumFirecrackerTemContratoCustomSemAlterarFogosComuns(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
+		catalog.Items, catalog.Skills)
+	if err != nil {
+		t.Fatal(err)
+	}
+	premium, code, ok := volatiles.Rule(3442)
+	if !ok || code != 19 || premium.Action != "firework" ||
+		!premium.Consume || !premium.CustomPattern {
+		t.Fatalf("Premium Firecracker resolveu contrato incorreto: code=%d ok=%v rule=%+v",
+			code, ok, premium)
+	}
+	ordinary, code, ok := volatiles.Rule(1728)
+	if !ok || code != 19 || ordinary.Action != "firework" ||
+		!ordinary.Consume || ordinary.CustomPattern {
+		t.Fatalf("fogo comum foi alterado pelo premium: code=%d ok=%v rule=%+v",
+			code, ok, ordinary)
+	}
+}
+
 func TestItensLoveResolvemSkillDataParaAffectsReais(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),

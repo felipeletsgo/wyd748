@@ -556,25 +556,27 @@ func TestMountUtilityAndLifecycleBranches(t *testing.T) {
 	p, session := networkedTestPlayer(1, "Rider", 100, 100)
 	egg := model.Item{Index: model.MountEggBase}
 	setEggDelay(&egg, 10)
-	p.Char.Inv[0] = egg
+	p.Char.Equip[mountSlot] = egg
 	accelerator := model.Item{Index: 999}
 	p.Char.Inv[1] = accelerator
 	w := worldWithNetworkedPlayers(p)
 	w.store = &craftStore{}
-	w.accelerateHatch(p, session, &p.Char.Inv[1], 1)
-	if eggDelay(p.Char.Inv[0]) != 0 {
-		t.Fatal("acelerador nao zerou o delay")
+	req := useItemRequest{dstType: placeEquip, dstPos: mountSlot}
+	w.accelerateHatch(p, session, &p.Char.Inv[1], 1, req)
+	if !model.IsMountBaby(p.Char.Equip[mountSlot].Index) || p.Char.Inv[1].Index != 0 {
+		t.Fatal("acelerador nao transformou o ovo equipado")
 	}
 
-	// O consumo e o desbloqueio do ovo sao atomicos do ponto de vista do
+	// O consumo e a transformacao do ovo sao atomicos do ponto de vista do
 	// jogador: se o store falhar, ambos os slots voltam ao snapshot original.
-	setEggDelay(&p.Char.Inv[0], 10)
-	oldEgg, oldAccelerator := p.Char.Inv[0], p.Char.Inv[1]
+	p.Char.Equip[mountSlot] = egg
+	p.Char.Inv[1] = accelerator
+	oldEgg, oldAccelerator := p.Char.Equip[mountSlot], p.Char.Inv[1]
 	w.store = &craftStore{err: errors.New("disco cheio")}
-	w.accelerateHatch(p, session, &p.Char.Inv[1], 1)
-	if p.Char.Inv[0] != oldEgg || p.Char.Inv[1] != oldAccelerator {
+	w.accelerateHatch(p, session, &p.Char.Inv[1], 1, req)
+	if p.Char.Equip[mountSlot] != oldEgg || p.Char.Inv[1] != oldAccelerator {
 		t.Fatalf("falha do acelerador alterou estado: ovo=%+v/%+v acelerador=%+v/%+v",
-			p.Char.Inv[0], oldEgg, p.Char.Inv[1], oldAccelerator)
+			p.Char.Equip[mountSlot], oldEgg, p.Char.Inv[1], oldAccelerator)
 	}
 
 	adult := model.Item{Index: model.MountAdultBase}

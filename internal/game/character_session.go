@@ -91,10 +91,13 @@ func resetCharacterRuntime(p *Player) {
 	// Cooldowns e temporizadores.
 	p.SkillReady = nil
 	p.LastPotion = time.Time{}
+	p.LastPremiumFirework = time.Time{}
 	p.LastCraft = time.Time{}
 	p.NextRegen = time.Time{}
 	p.NextCPRecovery = time.Time{}
 	p.NextMountTick = time.Time{}
+	p.EggIncubationUID = ""
+	p.NextEggIncubationTick = time.Time{}
 	p.NextKingdomTeleport = time.Time{}
 
 	// Movimento publicado aos observadores.

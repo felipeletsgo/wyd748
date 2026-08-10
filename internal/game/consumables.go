@@ -15,6 +15,9 @@ const (
 	effectAmount     = 61
 	maxCharacterGold = uint32(2_000_000_000)
 	potionCooldown   = 100 * time.Millisecond
+
+	buffAlreadyActiveMessage = "This item cannot be used because the buff is already active."
+	buffRejectedMessage      = "This buff cannot be applied right now."
 )
 
 // useItemRequest e o MSG_UseItem 0x373 nativo (36 bytes). Os campos sao DWORD;
@@ -180,6 +183,13 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		w.useMasteryReset(s, p, item, slot, rule, code)
 
 	case "firework":
+		// O Premium FireCracker nao usa MSG_UseItem 0x373. A janela 10x10 do
+		// client envia MSG_UseItem2 0x3C9; aceitar este caminho descartaria o
+		// desenho e transformaria o item premium em um fogo comum.
+		if rule.CustomPattern {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
 		oldItem := *item
 		if rule.Consume {
 			consumeOne(item)
@@ -479,10 +489,19 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
-		if !w.applyVolatileBuff(p.Char, rule) {
+		buffResult := w.applyVolatileBuff(p.Char, rule)
+		if buffResult != volatileBuffApplied {
 			// Buff igual/mais forte ja ativo, ou tempo ja no teto: o nativo nao deixa
-			// "usar/comer mais". Reenvia o slot autoritativo e nao consome a unidade.
+			// "usar/comer mais". Reenvia o slot autoritativo, avisa o motivo e nao
+			// consome nem persiste a unidade.
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			if buffResult == volatileBuffAlreadyActive {
+				s.Send(wire.MessagePanel(buffAlreadyActiveMessage))
+			} else {
+				s.Send(wire.MessagePanel(buffRejectedMessage))
+				log.Printf("[#%d] buff item=%d recusado: configuracao invalida ou slots de affect cheios",
+					s.ID, item.Index)
+			}
 			return
 		}
 		if rule.Consume {
@@ -711,10 +730,10 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		)
 
 	case "mount":
-		// Consumiveis de montaria (amago 16, racao 15, longevidade 93, crescimento
-		// 94, invuln 90-92, choco 196). rule.MountAction escolhe o efeito; a logica
+		// Consumiveis de montaria (amago 16, racao 15, LP/catalisadores 90-92,
+		// longevidade 93, crescimento 94, choco 196). rule.MountAction escolhe o efeito; a logica
 		// fiel ao W2PP fica em mount.go.
-		w.applyMountItem(p, s, item, slot, rule, code)
+		w.applyMountItem(p, s, item, slot, rule, code, req)
 
 	case "generic":
 		// Ponto unico para os volatiles ainda sem regra definitiva. Nao altera
@@ -930,10 +949,10 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	req useItemRequest, rule model.VolatileRule, code int) {
 	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, powderSlot, *powder)) }
 
-	// Ori/Lac sobre um OVO no inventario inicia/avanca a incubacao (choco) em vez
-	// de refinar. Fiel ao W2PP, que trata o ovo no mesmo handler de refino.
-	if egg, eggSlot := w.destEggTarget(p, req); egg != nil {
-		w.incubateEgg(p, s, powder, powderSlot, egg, eggSlot, code)
+	// Ori/Lac sobre o OVO equipado inicia/avanca a incubacao em vez de refinar.
+	// O slot 14 e obrigatorio e tambem governa o contador de horas online.
+	if egg, eggType, eggSlot := w.destEggTarget(p, req); egg != nil {
+		w.incubateEgg(p, s, powder, powderSlot, egg, eggType, eggSlot, code)
 		return
 	}
 

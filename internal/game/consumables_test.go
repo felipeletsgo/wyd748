@@ -88,7 +88,7 @@ func TestVolatileBuffPackageIsAtomic(t *testing.T) {
 		44: {AffectType: 9, AffectValue: 90},
 		45: {AffectType: 15, AffectValue: 7},
 	}}
-	if !w.applyVolatileBuff(ch, rule) {
+	if result := w.applyVolatileBuff(ch, rule); result != volatileBuffApplied {
 		t.Fatal("pacote Love valido foi recusado")
 	}
 	for affectType, value := range map[byte]int{2: 1, 11: 15, 9: 90, 15: 7} {
@@ -104,11 +104,13 @@ func TestVolatileBuffPackageIsAtomic(t *testing.T) {
 	full := &model.Char{}
 	for index := 0; index < len(full.Affects)-3; index++ {
 		full.Affects[index] = model.Affect{
-			Type: byte(index + 1), ExpiresAt: time.Now().Add(time.Hour),
+			// Tipos fora do pacote Love: o teste precisa chegar de fato ao
+			// quarto affect sem slot, nao ser recusado antes por colisao.
+			Type: byte(100 + index), ExpiresAt: time.Now().Add(time.Hour),
 		}
 	}
 	before := cloneCharacterState(full)
-	if w.applyVolatileBuff(full, rule) {
+	if result := w.applyVolatileBuff(full, rule); result != volatileBuffRejected {
 		t.Fatal("pacote parcial foi aceito sem quatro slots")
 	}
 	for index := range full.Affects {
@@ -131,7 +133,7 @@ func TestVolatileBuffMissingSkillRollsBackWholePackage(t *testing.T) {
 		{SkillID: 43, DurationUnits: 320},
 		{SkillID: 44, DurationUnits: 320},
 	}}
-	if w.applyVolatileBuff(ch, rule) {
+	if result := w.applyVolatileBuff(ch, rule); result != volatileBuffRejected {
 		t.Fatal("pacote com SkillData ausente foi aceito")
 	}
 	for index := range ch.Affects {

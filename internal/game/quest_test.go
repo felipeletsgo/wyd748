@@ -91,7 +91,7 @@ func TestQuestForNPCIgnoraNPCForaDaAllowlist(t *testing.T) {
 func TestReservedNPCKind(t *testing.T) {
 	cases := map[byte]bool{
 		1: true, 3: true, 19: true, 2: true, // loja/mestre/cargo
-		43: false, 8: true, 4: false, // quest, crafting reservado, ferreiro
+		42: true, 43: false, 8: true, 4: false, 58: true, // Skill_Master, quest, craft, ferreiro, Mount_Master
 	}
 	for merchant, wantReserved := range cases {
 		def := questNPC("X", merchant)

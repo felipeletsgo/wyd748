@@ -111,6 +111,40 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 }
 
 func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
+	t.Run("active longer buff warns and keeps secret medicine", func(t *testing.T) {
+		rule := model.VolatileRule{
+			Action: "buff", Consume: true,
+			AffectType: 30, AffectValue: 1, AffectLevel: 500, DurationUnits: 100,
+		}
+		w, p, st := useItemWorld(rule)
+		delete(w.items, 100)
+		w.items[646] = model.ItemDef{Index: 646}
+		delete(w.volatiles.Items, 100)
+		delete(w.volatiles.ItemCodes, 100)
+		w.volatiles.Items[646] = rule
+		w.volatiles.ItemCodes[646] = 184
+		p.Char.Inv[0] = model.Item{Index: 646, UID: "00000000000000000000000000000646"}
+		p.Char.Affects[0] = model.Affect{
+			Type: 30, ClientType: 30, Value: 1, Level: 2_000,
+			ExpiresAt: time.Now().Add(time.Hour),
+		}
+		beforeItem, beforeAffect := p.Char.Inv[0], p.Char.Affects[0]
+		queued := p.Session.QueuedPacketsForTest()
+
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+
+		if p.Char.Inv[0] != beforeItem || p.Char.Affects[0] != beforeAffect || st.saves != 0 {
+			t.Fatalf("recusa alterou estado: item=%+v affect=%+v saves=%d",
+				p.Char.Inv[0], p.Char.Affects[0], st.saves)
+		}
+		if got := p.Session.QueuedPacketsForTest() - queued; got != 2 {
+			t.Fatalf("recusa deveria enviar slot + aviso, enviou %d pacote(s)", got)
+		}
+		if buffAlreadyActiveMessage != "This item cannot be used because the buff is already active." {
+			t.Fatalf("mensagem em ingles alterada: %q", buffAlreadyActiveMessage)
+		}
+	})
+
 	t.Run("no direct use never consumes", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{
 			Action: "no_direct_use", Consume: false,
@@ -226,22 +260,23 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		}
 	})
 
-	t.Run("refine powder incubates an inventory egg", func(t *testing.T) {
+	t.Run("refine powder hatches an equipped zero-critical egg", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{
 			Action: "refine", Consume: true, RefineMax: 9,
 		})
 		eggID := uint16(model.MountEggBase)
-		p.Char.Inv[1] = model.Item{Index: eggID}
+		p.Char.Equip[mountSlot] = model.Item{Index: eggID}
 		w.items[eggID] = model.ItemDef{
 			Index:         eggID,
 			StaticEffects: []model.StaticEffect{{Name: "EF_INCUBATE", Value: 0}},
 		}
-		pkt := useItemPacket(0, 1)
+		pkt := useItemPacket(0, mountSlot)
+		binary.LittleEndian.PutUint32(pkt[20:24], placeEquip)
 		w.onUseItem(p.Session, pkt)
 		if p.Char.Inv[0].Index != 0 ||
-			p.Char.Inv[1].Index != eggID+model.MountTypeCount || st.saves != 1 {
+			p.Char.Equip[mountSlot].Index != eggID+model.MountTypeCount || st.saves != 1 {
 			t.Fatalf("incubacao: po=%d ovo=%+v saves=%d",
-				p.Char.Inv[0].Index, p.Char.Inv[1], st.saves)
+				p.Char.Inv[0].Index, p.Char.Equip[mountSlot], st.saves)
 		}
 	})
 
@@ -265,18 +300,88 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		}
 	})
 
-	t.Run("mount protection persists affect and consumption atomically", func(t *testing.T) {
-		w, p, _ := useItemWorld(model.VolatileRule{
-			Action: "mount", MountAction: "invuln", Consume: true,
-			DurationUnits: 100,
+	t.Run("mount recovery restores exactly one life point", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{
+			Action: "mount", MountAction: "longevity_restore", Amount: 1, Consume: true,
 		})
-		st := &atomicCharStateMemoryStore{}
-		w.store = st
+		mount := model.Item{Index: model.MountAdultBase}
+		mount.SetMountHP(10_000)
+		mount.SetMountLongev(20)
+		p.Char.Equip[mountSlot] = mount
 		w.onUseItem(p.Session, useItemPacket(0, 0))
-		if p.Char.Inv[0].Index != 0 || activePlayerAffect(p.Char, 51) == nil ||
-			st.atomicSaves != 1 {
-			t.Fatalf("protecao: item=%d affect=%+v saves=%d",
-				p.Char.Inv[0].Index, activePlayerAffect(p.Char, 51), st.atomicSaves)
+		if got := p.Char.Equip[mountSlot].MountLongev(); got != 21 ||
+			p.Char.Inv[0].Index != 0 || st.saves != 1 {
+			t.Fatalf("recovery: LP=%d item=%d saves=%d", got, p.Char.Inv[0].Index, st.saves)
+		}
+	})
+
+	t.Run("mount recovery rolls back item and life point on save failure", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{
+			Action: "mount", MountAction: "longevity_restore", Amount: 1, Consume: true,
+		})
+		mount := model.Item{Index: model.MountAdultBase}
+		mount.SetMountHP(10_000)
+		mount.SetMountLongev(20)
+		p.Char.Equip[mountSlot] = mount
+		st.err = errors.New("database unavailable")
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if got := p.Char.Equip[mountSlot].MountLongev(); got != 20 || p.Char.Inv[0].Index != 100 {
+			t.Fatalf("rollback recovery: LP=%d item=%d", got, p.Char.Inv[0].Index)
+		}
+	})
+
+	t.Run("mount recovery does not consume at maximum life points", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{
+			Action: "mount", MountAction: "longevity_restore", Amount: 1, Consume: true,
+		})
+		mount := model.Item{Index: model.MountAdultBase}
+		mount.SetMountHP(10_000)
+		mount.SetMountLongev(model.MountMaxLongevity)
+		p.Char.Equip[mountSlot] = mount
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Inv[0].Index != 100 || st.saves != 0 {
+			t.Fatalf("recovery no maximo consumiu/salvou: item=%d saves=%d", p.Char.Inv[0].Index, st.saves)
+		}
+	})
+
+	t.Run("mount level catalysts enforce their native ranges", func(t *testing.T) {
+		tests := []struct {
+			name        string
+			min, target int
+			start       int
+			want        int
+			consumed    bool
+		}{
+			{name: "3316 to 100", target: 100, start: 50, want: 100, consumed: true},
+			{name: "3317 rejects below 100", min: 100, target: 120, start: 99, want: 99},
+			{name: "3317 to 120", min: 100, target: 120, start: 100, want: 120, consumed: true},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				w, p, st := useItemWorld(model.VolatileRule{
+					Action: "mount", MountAction: "level_set", MountMinLevel: tc.min,
+					Amount: tc.target, Consume: true,
+				})
+				mount := model.Item{Index: model.MountAdultBase}
+				mount.SetMountHP(10_000)
+				mount.SetMountLongev(3)
+				mount.SetMountLevel(tc.start)
+				p.Char.Equip[mountSlot] = mount
+				w.onUseItem(p.Session, useItemPacket(0, 0))
+				if got := p.Char.Equip[mountSlot].MountLevel(); got != tc.want {
+					t.Fatalf("level=%d, quer %d", got, tc.want)
+				}
+				if got := p.Char.Inv[0].Index == 0; got != tc.consumed {
+					t.Fatalf("consumido=%v, quer %v", got, tc.consumed)
+				}
+				wantSaves := 0
+				if tc.consumed {
+					wantSaves = 1
+				}
+				if st.saves != wantSaves {
+					t.Fatalf("saves=%d, quer %d", st.saves, wantSaves)
+				}
+			})
 		}
 	})
 

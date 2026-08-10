@@ -6,12 +6,16 @@ import "time"
 // cada codigo continuam vindo do itemlist.csv; este tipo configura somente o
 // comportamento autoritativo executado pelo servidor.
 type VolatileRule struct {
-	Action      string `json:"action"`
-	Consume     bool   `json:"consume"`
-	ValueSource string `json:"valueSource,omitempty"`
-	HP          int    `json:"hp,omitempty"`
-	MP          int    `json:"mp,omitempty"`
-	Gold        uint32 `json:"gold,omitempty"`
+	Action  string `json:"action"`
+	Consume bool   `json:"consume"`
+	// CustomPattern distingue o Premium FireCracker dos fogos comuns que
+	// compartilham EF_VOLATILE 19. O primeiro usa o desenho 10x10 enviado pelo
+	// protocolo 0x3C9; os demais continuam usando o Motion 100 aleatorio.
+	CustomPattern bool   `json:"customPattern,omitempty"`
+	ValueSource   string `json:"valueSource,omitempty"`
+	HP            int    `json:"hp,omitempty"`
+	MP            int    `json:"mp,omitempty"`
+	Gold          uint32 `json:"gold,omitempty"`
 	// As recompensas de quest usam maximo EXCLUSIVO, como o Vol 191 nativo:
 	// Level < min || Level >= max. Isso e deliberadamente diferente do
 	// MaxLevel inclusivo de QuestRequirements.
@@ -76,10 +80,12 @@ type VolatileRule struct {
 	// Orc=209, Troll=212...). O rosto e sobrescrito no bodyMesh enquanto o affect
 	// durar; face_restore o remove.
 	FaceMesh int `json:"faceMesh,omitempty"`
-	// Mount* configuram as acoes de montaria. MountAction diz o efeito (feed_hp,
-	// level, invuln, growth, hatch); Amount e a magnitude (vida/level/dias), por
-	// item quando o csv nao carrega o valor (rações/amagos diferem por Index).
+	// Mount* configuram as acoes de montaria. MountAction diz o efeito (feed,
+	// essence, longevity_restore, level_set, growth, hatch); Amount e a
+	// magnitude/level-alvo. MountMinLevel permite descrever catalisadores sem
+	// confundir o requisito da montaria com MinLevel, que pertence ao personagem.
 	MountAction     string `json:"mountAction,omitempty"`
+	MountMinLevel   int    `json:"mountMinLevel,omitempty"`
 	Amount          int    `json:"amount,omitempty"`
 	CooldownSeconds int    `json:"cooldownSeconds,omitempty"`
 	// Color e o codigo de efeito de cor da acao "tint" (tintura): o slot de sanc

@@ -63,7 +63,7 @@
   "expReward": 18000,
   "extendedScore": {
     "version": 2,
-    "level": 20,
+    "level": 26,
     "attack": 390,
     "magicAttack": 0,
     "defense": 512,
@@ -88,7 +88,7 @@
       7
     ],
     "attackRun": 2,
-    "merchant": 30
+    "merchant": 43
   },
   "gold": 9999,
   "direction": 16,

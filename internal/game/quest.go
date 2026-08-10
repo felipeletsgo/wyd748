@@ -31,9 +31,10 @@ const cargoMerchantType = 2
 // um deles nunca dispararia, porque o roteamento testa os tipos conhecidos
 // antes -- por isso o boot recusa essa configuracao em vez de ignora-la.
 const (
-	npcKindShop  = "loja/mestre"
-	npcKindCargo = "cargo"
-	npcKindCraft = "compositor"
+	npcKindShop               = "loja/mestre"
+	npcKindCargo              = "cargo"
+	npcKindCraft              = "compositor"
+	npcKindAbilityResetMaster = "mestre de atributos"
 )
 
 // reservedNPCKind devolve o handler dedicado do NPC, se houver. Centraliza o
@@ -51,6 +52,12 @@ func reservedNPCKind(def *model.NPCDef) (string, bool) {
 	}
 	if def.Extended.Merchant&0xF == cargoMerchantType {
 		return npcKindCargo, true
+	}
+	if isMountMasterNPC(def) {
+		return npcKindMountMaster, true
+	}
+	if isAbilityResetMasterNPC(def) {
+		return npcKindAbilityResetMaster, true
 	}
 	return "", false
 }

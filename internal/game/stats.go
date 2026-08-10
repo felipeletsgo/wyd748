@@ -24,6 +24,24 @@ var baseClassHPMP = [4][2]int{
 var mortalHPPerLevel = [4]int{3, 1, 1, 2}
 var mortalMPPerLevel = [4]int{1, 3, 2, 1}
 
+// naturalStats devolve os quatro atributos que nao foram distribuídos pelo
+// jogador. O reset do Skill Master e o orçamento de pontos precisam usar a
+// mesma fonte; caso contrário, um Celestial poderia receber ou perder pontos
+// ao alternar entre os dois fluxos.
+func naturalStats(ch *model.Char) ([4]uint16, bool) {
+	if ch == nil {
+		return [4]uint16{}, false
+	}
+	class := int(ch.Class)
+	if class < 0 || class >= len(baseClassStats) {
+		return [4]uint16{}, false
+	}
+	if isCelestialEvolution(ch) {
+		return [4]uint16{5, 5, 5, 5}, true
+	}
+	return baseClassStats[class], true
+}
+
 func mortalStatusPointBudget(level int) int {
 	total := level * statusPointsPerLevel
 	if level >= 254 {
@@ -198,14 +216,10 @@ func syncStatusPoints(ch *model.Char) {
 		return
 	}
 	ensureExtendedScore(ch)
-	class := int(ch.Class)
-	if class < 0 || class >= len(baseClassStats) {
+	natural, ok := naturalStats(ch)
+	if !ok {
 		ch.Extended.StatusPts = 0
 		return
-	}
-	natural := baseClassStats[class]
-	if isCelestialEvolution(ch) {
-		natural = [4]uint16{5, 5, 5, 5}
 	}
 	stats := [4]*uint32{
 		&ch.Extended.Str, &ch.Extended.Int,

@@ -222,6 +222,22 @@ func TestNPCEquipLayoutKeepsEffects(t *testing.T) {
 	}
 }
 
+func TestVisualItemCodeHidesDeadMountWithoutDeletingIt(t *testing.T) {
+	mount := Item{Index: MountAdultBase}
+	mount.SetMountLevel(40)
+	mount.SetMountHP(0)
+	if got := VisualItemCode(mount, true); got != 0 {
+		t.Fatalf("montaria morta projetada como 0x%X, esperado slot vazio", got)
+	}
+	if mount.Index != MountAdultBase {
+		t.Fatalf("projecao alterou item autoritativo: %d", mount.Index)
+	}
+	mount.SetMountHP(20)
+	if got := VisualItemCode(mount, true); got == 0 {
+		t.Fatal("montaria revivida continuou visualmente vazia")
+	}
+}
+
 func TestAccountRejectsReservedInventorySlot(t *testing.T) {
 	ch := Char{
 		Name:     "Invalido",

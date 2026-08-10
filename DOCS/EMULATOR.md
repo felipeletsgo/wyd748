@@ -56,7 +56,9 @@ go test ./...                         # regressões de wire, game, dados e conta
 - **Balanceamento global:** `exp_minimum=10000` define o piso da recompensa
   base, `exp_rate=100` é a porcentagem global e `party_exp_bonus=2` é o bônus
   percentual por membro elegível. A ordem é piso → rate → party. Rate zero
-  desativa EXP.
+  desativa EXP. Em mortes de mobs, os bônus de EXP ligados aos itens do
+  matador (Coral, fada ativa e Baú de Experiência) são aplicados à parcela de
+  todos os membros elegíveis; as quedas de evolução continuam individuais.
 - **Log do NPCGener:** `npcgener_log=summary` agrega grupos, mobs e
   reposicionamentos numa linha inicial e depois, havendo atividade, no máximo
   uma linha por minuto. `quiet` silencia a telemetria do gerador e `verbose`
@@ -228,6 +230,7 @@ CHEIOS, nunca nibbles separados.** AttackRun = Att*16+Run.
 | 0x399 / 0x166 | PKMode/PKInfo | 16/16 | ativa/desativa e publica o estado de PK |
 | 0x367 | ActionStop | 52 | encerra ação/movimento enviado pelo client |
 | 0x373 | UseItem | 36 | origem/destino, XY e ItemID; efeito é consultado no servidor |
+| 0x3C9 | Premium Firework | 52 | slot do Carry, XY e bitmap 10x10; item e posição são revalidados no servidor |
 | 0x3A0 / 0x3AE | Ping/SysQuit | 12/16 | keepalive e saída confirmada |
 
 ### Servidor → Client
@@ -872,6 +875,12 @@ inventário e o `itemlist.csv` server-side. `data/volatiles.json` define a açã
 de cada código; os itens são descobertos automaticamente pelo `EF_VOLATILE`,
 sem duplicar manualmente a lista do CSV. `items` permite substituir a regra de
 um item específico.
+
+O `Premium_Firecracker` usa o caminho nativo separado **0x3C9 (52B)**. O client
+envia os 100 pixels escolhidos na grade 10x10 em `Parm@34`; o servidor exige o
+item configurado com `customPattern`, valida o slot e a posição autoritativa,
+persiste o consumo e só então envia **0x3CA (36B)** aos observadores, mantendo o
+mesmo bitmap em `@20`. Fogos comuns continuam no `0x373` com Motion 100.
 
 - `EF_VOLATILE=1`: poções somam `EF_HP/HPADD/HPADD2` e
   `EF_MP/MPADD/MPADD2`, limitadas pelo HP/MP máximo, com cooldown de 100 ms.

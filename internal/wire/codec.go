@@ -66,6 +66,15 @@ func Motion(id uint16, motion, parm uint16) []byte {
 	return b
 }
 
+// PremiumFirework publica os 100 pontos (10x10) desenhados pelo jogador. O
+// handler do WYD 7.48 entrega packet+20 a TMEffectFireWork::SetCustomFireWork;
+// por isso o bitmap precisa iniciar exatamente nesse offset.
+func PremiumFirework(id uint16, pattern [16]byte) []byte {
+	b := Build(OpPremiumFirework, id, 36)
+	copy(b[20:36], pattern[:])
+	return b
+}
+
 // StandardParm monta o layout WYD de 16 bytes usado por PKInfo e diversos
 // sinais de confirmacao: header seguido de um DWORD em @12.
 func StandardParm(opcode, id uint16, parm uint32) []byte {

@@ -160,7 +160,8 @@ func TestCombineLindyCreatesEliteCape(t *testing.T) {
 		Level: archLockLevel355, MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
 	})
 	p.Char.Evolution = archEvolution
-	p.SpecialCoins = map[string]uint32{fameCounter: 10}
+	// O destrave 355 não exige nem consome Fame.
+	p.SpecialCoins = map[string]uint32{}
 	originalCape, err := materializeItem(model.Item{Index: 3193})
 	if err != nil {
 		t.Fatal(err)
@@ -170,7 +171,7 @@ func TestCombineLindyCreatesEliteCape(t *testing.T) {
 	w.onCombineLindy(session, buildCombinePacket(items, pos))
 	if p.Char.Equip[15].Index != 3193 || p.Char.Equip[15].UID != originalCape.UID ||
 		p.Char.Equip[15].Eff[0] != 54 || p.Char.Equip[15].Eff[1] != 16 ||
-		st.saves != 1 {
+		st.saves != 1 || counterBalance(p, fameCounter) != 0 {
 		t.Fatalf("Lindy: cape=%+v saves=%d", p.Char.Equip[15], st.saves)
 	}
 	for index := 0; index <= 6; index++ {
@@ -247,7 +248,7 @@ func TestCombineLindyLevel370KeepsEquippedCape(t *testing.T) {
 	p.Char.Evolution = archEvolution
 	p.Char.ArchLevel355 = true
 	p.Char.Equip[15] = model.Item{Index: 3197, UID: "11111111111141118111111111111111", Eff: [6]byte{43, 7}}
-	p.SpecialCoins = map[string]uint32{fameCounter: 10}
+	p.SpecialCoins = map[string]uint32{fameCounter: 1}
 	beforeCape := p.Char.Equip[15]
 
 	w.onCombineLindy(session, buildCombinePacket(items, pos))
@@ -259,6 +260,88 @@ func TestCombineLindyLevel370KeepsEquippedCape(t *testing.T) {
 	if p.Char.Equip[15] != beforeCape {
 		t.Fatalf("Lindy substituiu a capa no destrave 370: got=%+v want=%+v",
 			p.Char.Equip[15], beforeCape)
+	}
+}
+
+func TestCombineLindyLevel370RequiresOneFameWithoutConsumingRecipe(t *testing.T) {
+	w, p, session, st := newCraftWorld(t, "Lindy", nil, 0)
+	var items [combineSlots]model.Item
+	var pos [combineSlots]int8
+	items[0], items[1] = model.Item{Index: 3448}, model.Item{Index: 3448}
+	setItemAmount(&items[0], 10)
+	setItemAmount(&items[1], 10)
+	items[2] = model.Item{Index: 4127}
+	for index := 3; index <= 6; index++ {
+		items[index] = model.Item{Index: 413}
+	}
+	for index := range pos {
+		pos[index] = int8(index)
+	}
+	placeItems(p.Char, items, pos)
+	p.Char.Extended = testExtended(model.ExtendedScore{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
+	p.Char.Evolution = archEvolution
+	p.Char.ArchLevel355 = true
+	before := p.Char.Inv
+
+	w.onCombineLindy(session, buildCombinePacket(items, pos))
+
+	if st.saves != 0 || p.Char.ArchLevel370 || p.Char.Inv != before {
+		t.Fatalf("370 sem Fame alterou estado: saves=%d flag=%t inventarioMudou=%t",
+			st.saves, p.Char.ArchLevel370, p.Char.Inv != before)
+	}
+}
+
+func TestCombineLindyUnlocksRollBackFlagsFameAndRecipeOnSaveFailure(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		level uint32
+		fame  uint32
+	}{
+		{name: "level 355", level: archLockLevel355, fame: 7},
+		{name: "level 370", level: archLockLevel370, fame: 2},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defs := map[uint16]model.ItemDef{}
+			if test.level == archLockLevel355 {
+				// A capa resultante depende do reino inferido pela capa atual.
+				// Cadastre as três variantes para que o teste alcance a fronteira
+				// de persistência independentemente dessa escolha.
+				defs[3191] = model.ItemDef{Index: 3191}
+				defs[3192] = model.ItemDef{Index: 3192}
+				defs[3193] = model.ItemDef{Index: 3193}
+			}
+			w, p, session, st := newCraftWorld(t, "Lindy", defs, 0)
+			var items [combineSlots]model.Item
+			var pos [combineSlots]int8
+			items[0], items[1] = model.Item{Index: 3448}, model.Item{Index: 3448}
+			setItemAmount(&items[0], 10)
+			setItemAmount(&items[1], 10)
+			items[2] = model.Item{Index: 4127}
+			for index := 3; index <= 6; index++ {
+				items[index] = model.Item{Index: 413}
+			}
+			for index := range pos {
+				pos[index] = int8(index)
+			}
+			placeItems(p.Char, items, pos)
+			p.Char.Extended = testExtended(model.ExtendedScore{Level: test.level, MaxHP: 100, CurHP: 100})
+			p.Char.Evolution = archEvolution
+			p.Char.ArchLevel355 = test.level == archLockLevel370
+			p.Char.Equip[15] = model.Item{Index: 3197, UID: "11111111111141118111111111111111", Eff: [6]byte{43, 7}}
+			p.SpecialCoins = map[string]uint32{fameCounter: test.fame}
+			beforeInv, beforeCape := p.Char.Inv, p.Char.Equip[15]
+			st.err = errors.New("database unavailable")
+
+			w.onCombineLindy(session, buildCombinePacket(items, pos))
+
+			if st.saves != 1 || p.Char.Inv != beforeInv || p.Char.Equip[15] != beforeCape ||
+				p.Char.ArchLevel370 || p.Char.ArchLevel355 != (test.level == archLockLevel370) ||
+				counterBalance(p, fameCounter) != test.fame {
+				t.Fatalf("rollback Lindy incompleto: saves=%d 355=%t 370=%t fame=%d inv=%t cape=%+v",
+					st.saves, p.Char.ArchLevel355, p.Char.ArchLevel370,
+					counterBalance(p, fameCounter), p.Char.Inv != beforeInv, p.Char.Equip[15])
+			}
+		})
 	}
 }
 

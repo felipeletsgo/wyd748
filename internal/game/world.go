@@ -92,15 +92,21 @@ type Player struct {
 	X, Y                uint16 // posicao atual (rastreada dos pacotes de movimento 0x366)
 	// NPC cuja loja esta aberta. O buy do 7.48 vem com TargetID=0, portanto o
 	// servidor usa este ID autoritativo em vez de confiar no pacote.
-	ShopNPC        uint16
-	CraftNPC       uint16
-	LastCraft      time.Time
-	DeadAt         time.Time
-	LastPotion     time.Time
-	SkillReady     map[int]time.Time
-	NextRegen      time.Time
-	NextCPRecovery time.Time
-	NextMountTick  time.Time
+	ShopNPC             uint16
+	CraftNPC            uint16
+	LastCraft           time.Time
+	DeadAt              time.Time
+	LastPotion          time.Time
+	LastPremiumFirework time.Time
+	SkillReady          map[int]time.Time
+	NextRegen           time.Time
+	NextCPRecovery      time.Time
+	NextMountTick       time.Time
+	// As horas inteiras restantes vivem no ovo (EF_INCUDELAY). Estes campos
+	// guardam apenas a hora ONLINE corrente do mesmo ovo equipado; ela reinicia
+	// ao desequipar, trocar de personagem ou desconectar, como no nativo.
+	EggIncubationUID      string
+	NextEggIncubationTick time.Time
 	// Cooldown compartilhado pelos comandos /kingdom e /king.
 	NextKingdomTeleport time.Time
 	Visible             map[uint16]struct{} // entidades atualmente materializadas neste client
@@ -520,6 +526,12 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		if err := w.validateUxmalConfig(); err != nil {
 			return nil, fmt.Errorf("configuracao Uxmal: %w", err)
 		}
+	}
+	// O Inventory do NPC e um blueprint de STRUCT_ITEM. Quantidades omitidas
+	// nos JSONs convertidos sao materializadas do itemlist antes de o primeiro
+	// ShopList ser enviado; assim exibicao e compra compartilham o mesmo estado.
+	if err := w.initShopItemDefaults(); err != nil {
+		return nil, fmt.Errorf("inicializar estoque dos NPCs: %w", err)
 	}
 	// Montarias a venda nascem vivas (HP/comida/longevidade), senao a loja as
 	// exibiria e venderia mortas.
@@ -1532,6 +1544,8 @@ func (w *World) handle(cmd command) {
 		w.onCargoGold(cmd.s, cmd.pkt, false)
 	case wire.OpUseItem:
 		w.onUseItem(cmd.s, cmd.pkt)
+	case wire.OpUsePremiumFirework:
+		w.onUsePremiumFirework(cmd.s, cmd.pkt)
 	case wire.OpCapsuleInfo:
 		w.onCapsuleInfo(cmd.s, cmd.pkt)
 	case wire.OpPutoutSeal:

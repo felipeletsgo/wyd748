@@ -109879,9 +109879,9 @@
 	DestWait:	8
 
 
-// Ancients
+// Ancients - disabled until the event is implemented
 // ********************************************
-#	[3984]
+#*	[3984]
 	MinuteGenerate:	90
 	MaxNumMob:	9
 	MinGroup:	10
@@ -109900,9 +109900,9 @@
 	DestWait:	8
 
 
-// Ancients
+// Ancients - disabled until the event is implemented
 // ********************************************
-#	[3985]
+#*	[3985]
 	MinuteGenerate:	90
 	MaxNumMob:	9
 	MinGroup:	10
@@ -112140,27 +112140,6 @@
 	DestY:		1470
 	DestRange:	0
 	DestWait:	0
-
-// no000 �ݷμ���E
-// ********************************************
-#	[4098]
-	MinuteGenerate:	1
-	MaxNumMob:	1
-	MinGroup:	            0
-	MaxGroup:	0
-	Leader:		Arch
-	Follower:	Arch
-	RouteType:	0
-	Formation:	0
-	StartX:		1759
-	StartY:		1571
-	StartRange:	0
-	StartWait:	0
-	DestX:		1759
-	DestY:		1571
-	DestRange:	0
-	DestWait:	0
-
 
 // no000 �ݷμ���E
 // ********************************************

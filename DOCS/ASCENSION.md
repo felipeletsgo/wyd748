@@ -200,7 +200,7 @@ mesma convenção base-zero das quests.
 |---|---|
 | quem | Arch parado **exatamente** em 354 ou 369, com a trava ainda de pé |
 | receita V754 | `3448 ×10`, `3448 ×10`, **`4127`**, mais quatro `413` avulsos |
-| custo | **10 de fama** em cada destrave (contador do personagem) |
+| custo | 355: **sem custo de fama**; 370: **1 de fama** (contador do personagem) |
 | entrega | a capa Elite do reino (3191 Hekalotia / 3192 Akelonia / 3193 neutra), efeito 54 valor 16 |
 
 Fora dessas duas paradas a receita é rejeitada sem consumir ingredientes; o
@@ -208,10 +208,11 @@ handler não transforma o craft em uma troca genérica de capa.
 
 O item **4127 é o mesmo** que o `Survivor` troca por 100 entradas de Kefra.
 
-**Ordem transacional.** A fama vive no charstate identificado pelo UID do Arch.
-No PostgreSQL, fama, receita e destrave são confirmados juntos por
-`SavePlayerState`; uma falha desfaz tudo. `arch_locks_test.go`, `fame_test.go` e
-os testes de integração PostgreSQL cobrem os dois lados.
+**Ordem transacional.** No 355, receita, capa e flag são persistidas na conta.
+No 370, a fama vive no charstate identificado pelo UID do Arch, então fama,
+receita e destrave são confirmados juntos por `SavePlayerState`. Uma falha
+desfaz tudo. `arch_locks_test.go`, `crafting_test.go`, `fame_test.go` e os testes
+de integração PostgreSQL cobrem os dois lados.
 
 ## As quatro juras elementais
 

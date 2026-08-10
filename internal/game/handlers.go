@@ -550,6 +550,9 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 	s.Send(wire.SendItem(p.ID, st, sp, *src))
 	s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 	if st == placeEquip || dt == placeEquip {
+		if (st == placeEquip && sp == mountSlot) || (dt == placeEquip && dp == mountSlot) {
+			w.resetEggIncubationClock(p)
+		}
 		// Montaria recem-equipada com estado zerado nasce viva (HP/comida/longev).
 		if mount, _ := equippedMount(p.Char); mount != nil {
 			w.initFreshMount(mount)
@@ -709,6 +712,15 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		return
 	}
 	if w.handleUxmalNPC(s, p, m) {
+		return
+	}
+	if w.handleMountMasterNPC(s, p, m, clickOk) {
+		return
+	}
+	if w.handleAbilityResetMasterNPC(s, p, m, clickOk) {
+		return
+	}
+	if w.handleCarbMasterNPC(s, p, m) {
 		return
 	}
 	if shopType, isShop := shopTypeForMerchant(m.Def.Extended.Merchant); isShop {
@@ -1478,11 +1490,11 @@ func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage 
 		receiver := share.player
 		// O recalc CRU dentro de grantExp clampa HP/MP no valor sem buffs.
 		oldHP, oldMP := playerCurHP(receiver.Char), playerCurMP(receiver.Char)
-		// Bau de experiencia (affect 39) dobra a EXP por receptor: o buff e
-		// individual, entao cada membro do grupo aplica o proprio.
-		gemReward := applyPercentReward(share.reward, w.equipmentGemBonuses(receiver.Char).expPercent)
-		combatReward := celestialCombatExperience(receiver.Char, gemReward)
-		levels, appliedEXP := grantExp(receiver.Char, expWithDoubleBuff(receiver.Char, combatReward))
+		// Bonus ligados ao abate (Coral, fada e bau de EXP) pertencem ao
+		// matador e beneficiam a parcela de todos os membros elegiveis. Quedas
+		// de EXP de Celestial continuam individuais por receptor.
+		combatReward := w.mobKillExperienceForReceiver(p.Char, receiver.Char, share.reward)
+		levels, appliedEXP := grantExp(receiver.Char, combatReward)
 		if levels > 0 && updateCelestialCythera(receiver.Char) {
 			cytheraChanged[receiver] = true
 		}

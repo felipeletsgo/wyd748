@@ -155,12 +155,22 @@ func accumulateAffect(ch *model.Char, affectType byte, value, level, addUnits, m
 	return true
 }
 
+type volatileBuffResult uint8
+
+const (
+	volatileBuffRejected volatileBuffResult = iota
+	volatileBuffApplied
+	volatileBuffAlreadyActive
+)
+
 // applyVolatileBuff aplica o pacote inteiro ou nada. Chocolate/Candy ocupam
 // quatro slots simultaneos; aceitar apenas parte deles deixaria um estado que
-// nunca existiu no handler nativo.
-func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) bool {
+// nunca existiu no handler nativo. O resultado distingue uma recusa causada por
+// affect ativo de erro de configuracao/falta de slot, permitindo feedback fiel
+// sem consumir o item.
+func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) volatileBuffResult {
 	if ch == nil {
-		return false
+		return volatileBuffRejected
 	}
 	affects := rule.Affects
 	if len(affects) == 0 && rule.AffectType > 0 {
@@ -170,7 +180,7 @@ func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) bool 
 		}}
 	}
 	if len(affects) == 0 {
-		return false
+		return volatileBuffRejected
 	}
 	snapshot := cloneCharacterState(ch)
 	for _, affect := range affects {
@@ -179,7 +189,7 @@ func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) bool 
 			skill, exists := w.skills[affect.SkillID]
 			if !exists || skill.AffectType <= 0 || skill.AffectType > 255 {
 				*ch = snapshot
-				return false
+				return volatileBuffRejected
 			}
 			affectType, value = skill.AffectType, skill.AffectValue
 		}
@@ -193,10 +203,13 @@ func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) bool 
 		}
 		if !applied {
 			*ch = snapshot
-			return false
+			if activePlayerAffect(ch, byte(affectType)) != nil {
+				return volatileBuffAlreadyActive
+			}
+			return volatileBuffRejected
 		}
 	}
-	return true
+	return volatileBuffApplied
 }
 
 func skillAffect(skill model.SkillDef) (byte, int, bool) {

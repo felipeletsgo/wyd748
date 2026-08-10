@@ -637,24 +637,25 @@
     },
     "90": {
       "action": "mount",
-      "mountAction": "invuln",
+      "mountAction": "longevity_restore",
       "consume": true,
-      "durationUnits": 75600,
-      "description": "Mount Recovery Potion 7d: affect 51 (invuln da montaria) por 7 dias -- nao drena HP/comida enquanto ativo."
+      "amount": 1,
+      "description": "Mount Recovery Potion 3315: restaura exatamente 1 LP/longevidade da montaria adulta equipada, ate o teto 60 (itemhelp do client 7.48)."
     },
     "91": {
       "action": "mount",
-      "mountAction": "invuln",
+      "mountAction": "level_set",
       "consume": true,
-      "durationUnits": 162000,
-      "description": "Mount Recovery Potion 15d: affect 51 por 15 dias."
+      "amount": 100,
+      "description": "Item 3316: catalisador que eleva a montaria adulta equipada abaixo do nivel 100 diretamente ao nivel 100."
     },
     "92": {
       "action": "mount",
-      "mountAction": "invuln",
+      "mountAction": "level_set",
       "consume": true,
-      "durationUnits": 324000,
-      "description": "Mount Recovery Potion 30d: affect 51 por 30 dias."
+      "mountMinLevel": 100,
+      "amount": 120,
+      "description": "Item 3317: catalisador que eleva a montaria adulta equipada do nivel 100-119 diretamente ao nivel 120."
     },
     "93": {
       "action": "mount",
@@ -927,7 +928,7 @@
       "action": "mount",
       "mountAction": "hatch",
       "consume": true,
-      "description": "Hatch accelerator: zera o delay de incubacao de um ovo no inventario, liberando o proximo Ori/Lac."
+      "description": "Hatch accelerator: usado sobre o ovo equipado, transforma-o imediatamente em cria."
     },
     "198": {
       "action": "buff",
@@ -1181,6 +1182,12 @@
       "consume": true,
       "counters": { "donate": 10000 },
       "description": "Gold Wyden: +10000 de donate."
+    },
+    "3442": {
+      "action": "firework",
+      "consume": true,
+      "customPattern": true,
+      "description": "Premium Firecracker: desenho 10x10 enviado pelo client 7.48 e publicado aos jogadores visiveis."
     },
     "4114": {
       "action": "grant_counter",

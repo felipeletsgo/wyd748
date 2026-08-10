@@ -275,6 +275,7 @@ validações anti-WPE/Cheat Engine e testes adversariais), `DOCS/BOSS.md`
 | `0x2E4/0x2E5` | DeleteItem 20B e SplitItem 24B operam somente no Carry visível. Conferem o índice real, persistem antes de confirmar e o split materializa um UID independente. |
 | `0x171/0x175` | Confirmações nativas de pegar/jogar item, combinadas com `0x182` autoritativo. |
 | `0x373 UseItem` | 36 bytes; valida origem/destino DWORD e usa `itemlist.csv` + `volatiles.json` para poções, barras de gold e teleportes server-side. |
+| `0x3C9/0x3CA Premium Firework` | O client envia 52 bytes com o desenho 10x10 em @34; após validar item, slot, posição e persistir o consumo, o servidor publica 36 bytes com o mesmo bitmap em @20 somente aos jogadores visíveis. |
 | `0x374 UpdateItem` | Pedido/atualização de objeto permanente em 20B. Abrir portão revalida ID, alcance, visibilidade, estado e a chave pelo `EF_KEYID`; chave é salva antes de publicar a porta aberta. |
 | `0x37F/0x3AB Party` | Convite de 48 bytes e aceite de 32 bytes; IDs, nome do líder, validade e capacidade são validados no mundo. |
 | `0x37D/0x37E Party UI` | Adiciona/atualiza membros no painel e remove um membro ou limpa o grupo completo. |
@@ -325,6 +326,10 @@ de LearnedSkill falsa, e escrever NextExp em @28 gera SkillPts negativos.
   mestres Merchant 19 e grade de skills compactada em 27 slots.
 - Combate melee contra mobs, dano visual, morte, EXP e level-up Mortal.
 - Loja: abrir, comprar, vender, mover/equipar itens e persistir gold/inventário.
+  O estoque materializa `EF_AMOUNT` ausente a partir do `itemlist.csv` antes de
+  abrir a loja; overrides explícitos do NPC são preservados. Assim pacotes como
+  `Recall_Scroll(10)` chegam com a pilha correta, sem duplicar efeitos estáticos
+  de combate no `STRUCT_ITEM`.
 - Cargo compartilhado pela conta: `Cargo[128]` no char-list `0x10E`, três
   páginas visíveis (`0..119`), NPC Merchant 2 em Armia, movimentação
   inventário/Cargo via `0x376/0x182` e depósito/saque de gold
@@ -507,7 +512,7 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
 | Transformação de rosto | 70-77, 89 | `face_transform`, `face_restore` |
 | Refino Ori/Lac + Molar (set) | 4, 5, 194 | `refine`, `refine_set` |
 | Tintura / repliction | 186, 190 | `tint`, `untint`, `repliction` |
-| Montaria (ração, amago, essência, vida, crescimento, invuln, ovo) | 15, 16, 90-94, 196 | `mount` |
+| Montaria (ração, amago, LP, catalisadores, longevidade, crescimento, ovo) | 15, 16, 90-94, 196 | `mount`; 3315 restaura +1 LP (máx. 60), 3316/3317 elevam a montaria adulta aos níveis 100/120; ovo exige slot 14, Ori/Lac inicia 6–8h online por etapa e o acelerador transforma diretamente em cria |
 | Adamantita (e família nativa de minérios) | 9 | `ore_upgrade` (troca pelo `Extra`, chance configurável) |
 | Gemas Diamond/Emerald/Coral/Garnet | 180-183 | `equipment_gem` (+10..+15 ou arma Ancient abaixo de +10) |
 | Magical Pill | 6 | `magical_pill` (+9 pontos uma vez) |
@@ -519,7 +524,7 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
 | Chaves de portão | 3 | `gate_key` (abre a porta pelo `EF_KEYID`) |
 | Selo de fama | 199 | `grant_counter` (+10 de fama por selo) |
 | Juras elementais do Arch | 187 | `arch_crystal` (as quatro juras de Kefra) |
-| Fogos de artifício | 19 | `firework` (Motion 100, variante 0–5) |
+| Fogos de artifício | 19 | `firework`: comuns usam Motion 100/variante 0–5; Premium FireCracker usa desenho 10x10 autoritativo (`0x3C9` → `0x3CA`) |
 | Água das Fadas | 179 | `refine_equipped` (Naiads/Grewpain até +6) |
 | Passes de território | 188 | `territory_pass` (Mortal/Arch/Celestial) |
 | Compostos de Chance/Equilíbrio | 192, 193 | `mastery_reset` (one-shot por personagem) |
@@ -535,6 +540,11 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
 | Passe de evento | 178 | `grant_counter_once` + identificador 4104, sem consumo duplicado |
 | Envelopes / honra / donate / medalhas | 18, 184, 189 | `gold`, `grant_counter` |
 | Caixas e revival de montaria | 0 por `Index` | `loot_box`, `mount_revive`; itens de NPC/comando usam `no_direct_use` |
+
+Consumíveis de buff recusados por um affect igual/mais forte com duração maior
+não são consumidos nem persistidos e exibem no topo da tela: `This item cannot
+be used because the buff is already active.` Falhas internas distintas usam um
+aviso genérico, evitando atribuir incorretamente toda recusa a um buff ativo.
 
 ### Water
 
@@ -724,6 +734,11 @@ Famílias com comportamento server-side (**Fase A/B/C concluídas**):
   todos os affects e o item.
 - O Baú de Experiência continua acumulando duas horas por uso, limitado a
   24 horas (`10800` unidades de oito segundos).
+- Em abates de mobs, Coral, fada de EXP e Baú de Experiência são calculados a
+  partir do personagem que deu o golpe final e o mesmo bônus acompanha a EXP
+  integral de cada membro elegível da party. Bônus equipados apenas no receptor
+  não amplificam o abate alheio; recompensas diretas de quest/item permanecem
+  individuais.
 
 Na auditoria dos itens portados de `_MSG_UseItem.cpp`, a Poeira de Fada passou a
 recusar Arch/Celestial como no nativo, e buffs consumíveis agora persistem item
@@ -783,6 +798,51 @@ expõem os trajes e as variantes Firal/Enamel para testar aparência e tintura.
 travam a cobertura por item; `TestLojasDeVolatileCabemNaJanela` garante o máximo
 de **27 slots** do client.
 
+**Incubação de ovos.** `EF_INCUBATE` do `itemlist.csv` define o valor crítico;
+o progresso usa o par nativo `EF_SANC` e a espera usa `EF_INCUDELAY` em horas.
+Ori/Lac só pode ser aplicado ao ovo no slot de montaria 14. Cada tentativa
+inicia 6–8 horas aleatórias, debitadas apenas por horas completas enquanto o
+personagem está online com o mesmo ovo equipado. Inventário, Cargo, logout e
+troca de personagem pausam o contador e preservam as horas inteiras restantes.
+Ao alcançar o valor crítico, é necessária a tentativa seguinte para nascer a
+cria. O Hatch Accelerator 3438 ignora o ciclo e transforma o ovo equipado
+diretamente, sempre com rollback integral se o save falhar.
+
+**Recuperação e catalisadores de montaria.** Os três itens que compartilham o
+nome `Mount_Recovery_Potion` não são buffs temporizados. O item 3315/Vol. 90
+restaura exatamente 1 LP (`EFV2`, longevidade) da montaria adulta equipada,
+até 60, conforme o `itemhelp.dat` do client 7.48. Os itens 3316/Vol. 91 e
+3317/Vol. 92 são catalisadores: levam a montaria respectivamente ao nível 100
+e do intervalo 100–119 ao nível 120; ambos exigem pelo menos 3 LP. Consumo e
+mutação do item equipado são persistidos juntos e revertidos integralmente em
+falha.
+
+**Mount Master.** O NPC nativo `Mount_Master` (`Merchant=58`) revive somente a
+montaria morta equipada no slot 14 e só efetiva a operação após a confirmação
+da janela do client (`0x28B/ClickOk=1`). O preço vem do `itemlist.csv`; o
+tratamento restaura 20 HP e 5 de alimento, reduz aleatoriamente 0–2 pontos de
+longevidade e remove a montaria se a longevidade chegar a zero. Gold e estado
+da montaria são persistidos juntos, com rollback integral se o save falhar. Uma
+montaria com HP zero permanece equipada e autoritativa, mas é projetada como
+slot visual vazio no `CreateMob` e no `UpdateEquip`; o dono, os observadores
+atuais e quem entrar depois na área deixam de vê-la até o revival.
+
+**Skill Master.** `Skill_Master` usa `Merchant=42`, que abre a confirmação
+nativa do client 7.48. A operação exige retirar os equipamentos dos slots 1–7
+e consome, com prioridade, um `Return Of Ability` (3336); sem ele, consome 30
+Safiras, incluindo pacotes de dez. O reset devolve no máximo 100 pontos de cada
+atributo sem ultrapassar a base natural da classe/evolução, recalcula
+`ExtendedScore` e persiste consumo e atributos antes de atualizar o client.
+Falha de save restaura o personagem e todos os materiais.
+
+**Carbuncle Masters.** `Carb_Mstr1` até `Carb_Mstr6` formam uma única família
+de ajudantes de iniciante. Para Mortais até o nível 116 exibido, aplicam em um
+único commit Velocidade, Escudo Mágico, Arma Mágica e Toque de Athena. Tipos,
+valores e durações são resolvidos do `SkillData.csv`; falha de configuração,
+falta de slots de affect ou erro de persistência restaura o pacote inteiro. O
+template duplicado `Arch` foi removido e os dois geradores `Carbunkle_Anct`
+permanecem preservados como seções `#*`, desativadas até o evento ser criado.
+
 ### Contadores por personagem
 
 Saldo nomeado por personagem — o `extra.KefraTicket` e o `extra.Fame` do nativo.
@@ -797,7 +857,7 @@ vazios, então um campo fora dessa condição sumiria no primeiro autosave.
 | Contador | Ganha | Gasta |
 |---|---|---|
 | `kefra_ticket` | item 4127 pelo `Survivor` (+100) ou volatile `grant_counter` | 1 por entrada em Kefra |
-| `fame` | `Warrior's_Seal` 4146, volatile 199 (+10) | Lindy V754 (destraves 355/370): 10; Odin (Celestial 40): 200; Fury/Arcana: 500 |
+| `fame` | `Warrior's_Seal` 4146, volatile 199 (+10) | Lindy: somente destrave 370, 1; Odin (Celestial 40): 200; Fury/Arcana: 500 |
 
 Vocabulário em `data/quests.json`: `requires.counters` (exige sem gastar),
 `consumeCounters` (gasta) e `rewards.counters` (credita). O teto por contador é

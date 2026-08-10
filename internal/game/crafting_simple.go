@@ -394,13 +394,11 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 		w.sendCombineResult(p, 0)
 		return
 	}
-	// The V754 Lindy hook charges ten Fame for either unlock (pJanelas.cpp:
-	// 52-70). The newer W2PP branch reduced the 370 requirement to one, but
-	// mixing that rule into the 7.54 recipe is what made the client report a
-	// misleading material error after a valid ingredient submission.
-	const lindyFameCost = 10
-	if counterBalance(p, fameCounter) < lindyFameCost {
-		s.Send(wire.MessagePanel("You need 10 fame points."))
+	// _MSG_CombineItemLindy: o destrave 355 não consulta nem consome Fame. A
+	// cobrança existe exclusivamente no 370 e custa exatamente um ponto.
+	const lindyLevel370FameCost = uint32(1)
+	if trava == archLockLevel370 && counterBalance(p, fameCounter) < lindyLevel370FameCost {
+		s.Send(wire.MessagePanel("You need 1 fame point."))
 		w.sendCombineResult(p, 0)
 		return
 	}
@@ -441,15 +439,22 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	} else {
 		p.Char.ArchLevel370 = true
 	}
-	spendCounters(p, map[string]uint32{fameCounter: lindyFameCost})
+	if trava == archLockLevel370 {
+		spendCounters(p, map[string]uint32{fameCounter: lindyLevel370FameCost})
+	}
 	if len(changedEquip) != 0 {
 		w.recalcPlayer(p.Char)
 	}
-	// Both V754 unlocks consume Fame from the character sidecar. Persist the
-	// account, sidecar and unlock in the same transaction whenever PostgreSQL
-	// is available; the fallback keeps the same rollback order for JSON tests.
-	persisted := w.commitCombineWithPlayerState(
-		p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
+	// O 355 altera somente conta/inventário/equipamento. O 370 também debita o
+	// sidecar de Fame e por isso usa a transação conjunta no PostgreSQL.
+	persisted := false
+	if trava == archLockLevel370 {
+		persisted = w.commitCombineWithPlayerState(
+			p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
+	} else {
+		persisted = w.commitCombine(
+			p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
+	}
 	if !persisted {
 		// commitCombine ja restaurou inventario/equip; o resto e nosso.
 		p.SpecialCoins = oldFame

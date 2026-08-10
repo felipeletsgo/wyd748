@@ -111,8 +111,8 @@ func TestLindyDestraveSoNasTravas(t *testing.T) {
 	}
 }
 
-// A cobrança de fama ocorre no handler da Lindy; ambas as travas V754 exigem
-// dez pontos. Aqui permanece apenas a validação do nível/flag.
+// A cobrança de um ponto de Fame ocorre somente no 370, dentro do handler da
+// Lindy. O destrave 355 não possui custo de Fame.
 func TestLindyDestraveDe370ConsomeFame(t *testing.T) {
 	ch := archNoNivel(archLockLevel370, true, false)
 	trava, ok := lindyLevelUnlock(ch)

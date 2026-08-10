@@ -230,6 +230,9 @@ func TestEggIncubationStateRoundTrip(t *testing.T) {
 	if eggProgress(egg) != 3 || eggDelay(egg) != 42 {
 		t.Fatalf("round-trip do ovo: prog=%d delay=%d", eggProgress(egg), eggDelay(egg))
 	}
+	if egg.Eff != [6]byte{43, 3, 0, 0, eggIncubationDelayEffect, 42} {
+		t.Fatalf("layout nativo do ovo incorreto: %v", egg.Eff)
+	}
 }
 
 func TestMountFeedRestoresHPAndFood(t *testing.T) {
