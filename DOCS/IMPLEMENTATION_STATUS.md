@@ -1,6 +1,6 @@
 # Estado de implementação — WYD-Go 7.48
 
-Atualizado em 10/08/2026. HEAD de referência: `bc3aa5f` (base desta auditoria;
+Atualizado em 10/08/2026. HEAD de referência: `52bf70c` (base desta auditoria;
 as correções desta revisão estão no worktree até serem versionadas). Este
 documento registra as features implementadas no emulador Go e os detalhes de
 protocolo validados contra W2PP, Secrets 7.54 e o cliente 7.48.
@@ -11,8 +11,32 @@ validações anti-WPE/Cheat Engine e testes adversariais), `DOCS/BOSS.md`
 `DOCS/ASCENSION.md` (cadeia Mortal->Arch, travas de nivel e cristais),
 `DOCS/OPERATION.md` (metricas, profiling e desligamento), `DOCS/CRAFTING.md`
  (os sete NPCs tipo 8 e a fama), `client748/PATCHES.md` (a cadeia de patches do
- executavel do client) e `DOCS/LOADTEST.md` (carga isolada de 990 bots em
- Noatum).
+executavel do client) e `DOCS/LOADTEST.md` (carga isolada de 990 bots em
+Noatum).
+
+## Hardening da auditoria 52bf70c
+
+- Uma falha ao persistir recompensas de morte agora restaura o HP/estado vivo
+  exato do mob e não avança gerador, boss ou instância. EXP, gold, loot e
+  progresso de montaria continuam no mesmo rollback.
+- Quests confirmam conta e charstate na mesma transação PostgreSQL; contadores,
+  conclusão, recompensas e destino são revertidos pelo mesmo snapshot. O
+  teleporte só é publicado depois do commit.
+- Contratos de summon validam e preparam a entidade antes de consumir/persistir
+  o item. Uma falha mantém tanto o contrato anterior quanto o consumível.
+- O shutdown retorna falha quando conta/charstate ou o snapshot sujo de
+  instâncias não são duráveis, e preserva o mesmo resultado em pedidos
+  repetidos.
+- ItemList, SkillData e NPCGener rejeitam IDs/coordenadas fora da ABI 7.48,
+  duplicidades e animações que não cabem em byte. O registro corrompido do
+  Dark Shadow foi corrigido para `(1981,1609)`.
+- A Account API percorre cadeias `X-Forwarded-For` a partir do proxy confiável,
+  decodifica o corpo antes de reservar PBKDF2 e mantém limites sem cardinalidade
+  criada por tentativas já bloqueadas.
+- O custo nativo de `Escudo_Dourado` é da skill 85 (não da passiva 83) e o gold
+  é persistido antes da confirmação ao client.
+- O JSONStore exige EOF no estado de instâncias e sincroniza o diretório após
+  rename em plataformas que suportam `fsync` de diretório.
 
 ## Personagem e progressão
 

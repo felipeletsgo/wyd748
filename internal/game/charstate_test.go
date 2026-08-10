@@ -20,16 +20,18 @@ type charStateMemoryStore struct {
 
 type atomicCharStateMemoryStore struct {
 	charStateMemoryStore
-	atomicSaves int
-	atomicErr   error
-	lastUID     string
+	atomicSaves     int
+	atomicErr       error
+	lastUID         string
+	accountSnapshot *model.Account
 }
 
 func (s *atomicCharStateMemoryStore) SavePlayerState(_ *model.GuildRegistry,
-	_ *model.Account, uid string, state *model.CharState) error {
+	account *model.Account, uid string, state *model.CharState) error {
 	s.atomicSaves++
 	s.lastUID = uid
 	s.state = state
+	s.accountSnapshot = account
 	return s.atomicErr
 }
 

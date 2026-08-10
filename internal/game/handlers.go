@@ -1469,7 +1469,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			dmg, m.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char)))
 	})
 	if m.HP == 0 {
-		w.killMobState(p, m, dmg, minU32(dmg, m.Def.Extended.MaxHP))
+		w.killMobState(p, m, dmg, minU32(dmg, oldHP))
 	} else {
 		// golpe nao-fatal: so baixa a barra de HP.
 		w.sendToMobView(m, func() []byte {

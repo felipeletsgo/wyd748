@@ -320,8 +320,11 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
-		// O summon anterior permanece intacto ate o consumo estar persistido.
-		// Assim uma falha de disco nao apaga o contrato ativo nem o item.
+		plan, ok := w.planContractSummon(p, rule.Summon)
+		if !ok {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
 		if rule.Consume {
 			consumeOne(item)
 		}
@@ -329,14 +332,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			*item = oldItem
 			return
 		}
-		if !w.replaceContractSummon(p, rule.Summon) {
-			*item = oldItem
-			if err := w.saveAccount(p.Account); err != nil {
-				log.Printf("[#%d] ERRO ao restaurar contrato item=%d: %v", s.ID, oldItem.Index, err)
-			}
-			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			return
-		}
+		w.commitContractSummon(plan)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 
 	case "restore":

@@ -47,6 +47,18 @@ func TestJSONInstanceStateRoundTripSharesAccountTransaction(t *testing.T) {
 	}
 }
 
+func TestLoadInstanceStateRejectsTrailingJSON(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "instance_state.json")
+	st := NewJSONStore(filepath.Join(root, "accounts"))
+	if err := os.WriteFile(path, []byte(`{"version":1}{"version":1}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.LoadInstanceState(); err == nil {
+		t.Fatal("instance_state com JSON adicional foi aceito")
+	}
+}
+
 func TestSaveAccountsPersistsBothSidesOfTrade(t *testing.T) {
 	dir := t.TempDir()
 	s := NewJSONStore(dir)

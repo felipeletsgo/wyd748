@@ -96,17 +96,23 @@ func (w *World) rebindSummonGameplaySpace(summon *Mob, space string) {
 	w.publishMobSpawn(summon)
 }
 
-// replaceContractSummon implementa o limite autoritativo de um contrato por
-// jogador. A familia fica no nome/template para a futura regra de reino.
-func (w *World) replaceContractSummon(owner *Player, t *model.VolatileSummon) bool {
+type contractSummonPlan struct {
+	owner    *Player
+	previous []*Mob
+	summon   *Mob
+}
+
+// planContractSummon valida e materializa a substituicao sem alterar o World.
+// A operacao de item pode entao persistir o consumo sabendo que nao existe mais
+// nenhum ponto de falha na criacao da entidade.
+func (w *World) planContractSummon(owner *Player, t *model.VolatileSummon) (*contractSummonPlan, bool) {
 	if owner == nil || t == nil || t.Face == 0 || t.HP == 0 {
-		return false
+		return nil, false
 	}
 	x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
 	if !w.terrain.Walkable(x, y) {
-		return false
+		return nil, false
 	}
-	w.removeContractSummons(owner.ID)
 	attackRun := byte(clampInt(int(t.MoveSpeed), 1, 15))
 	def := &model.NPCDef{
 		Name: t.Name + "^", Tipo: model.TipoMonstro,
@@ -117,14 +123,38 @@ func (w *World) replaceContractSummon(owner *Player, t *model.VolatileSummon) bo
 	def.Extended.CurHP, def.Extended.CurMP = t.HP, 100
 	mobID := w.allocMobID()
 	if mobID == 0 {
-		return false
+		return nil, false
 	}
 	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: t.HP, GenerIndex: -1,
 		InstanceID: w.playerRuntimeInstanceID(owner.ID),
 		SummonerID: owner.ID, SummonKind: summonKindContract, SummonRange: t.AttackRange}
+	plan := &contractSummonPlan{owner: owner, summon: m}
+	for _, existing := range w.summons {
+		if existing != nil && existing.SummonerID == owner.ID &&
+			existing.SummonKind == summonKindContract {
+			plan.previous = append(plan.previous, existing)
+		}
+	}
+	return plan, true
+}
+
+func (w *World) commitContractSummon(plan *contractSummonPlan) {
+	if plan == nil || plan.owner == nil || plan.summon == nil {
+		return
+	}
+	for _, existing := range plan.previous {
+		if existing == nil || w.mobsByID[existing.ID] != existing {
+			continue
+		}
+		for _, viewer := range w.players {
+			w.hideMob(viewer, existing, 0)
+		}
+		existing.Dead = true
+		w.removeMobInstance(existing)
+	}
+	m := plan.summon
 	w.appendMobInstance(m)
 	w.publishMobSpawn(m)
-	return true
 }
 
 func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) bool {
@@ -300,6 +330,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 		if target.mob != nil {
 			damage := uint32(clampInt(int(summon.Def.Extended.Attack)-
 				int(target.mob.Def.Extended.Defense)/2, 1, int(maxExtendedStat)))
+			oldHP := target.mob.HP
 			if damage >= target.mob.HP {
 				target.mob.HP = 0
 			} else {
@@ -310,7 +341,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 					damage, target.mob.Def.Extended.MaxHP, 0, summon.Def.Extended.MaxMP)
 			})
 			if target.mob.HP == 0 {
-				w.killMobState(owner, target.mob, damage, damage)
+				w.killMobState(owner, target.mob, damage, minU32(damage, oldHP))
 			}
 			continue
 		}

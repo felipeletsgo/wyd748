@@ -73,7 +73,9 @@ The server has these systems. The server has authority on each system.
   accounts from the Arch in slot 1 of the `felipe` snapshot with new
   CharacterUIDs and ItemUIDs, then connects them to Tauron spots in Noatum.
   Bots attack every cycle and independently attempt movement. It uses a
-  disposable PostgreSQL database and loopback expvar/pprof metrics.
+  disposable PostgreSQL database and loopback expvar/pprof metrics. Movement
+  keeps client prediction separate from the last server-confirmed position and
+  reconciles on authoritative 0x366 teleports/corrections.
 - **Combat** — The server calculates melee and range attacks, PvE and PvP,
   physical and magic damage, resistances, buffs, debuffs, regeneration, death,
   resurrection, and a collision-safe recall. The server does all these

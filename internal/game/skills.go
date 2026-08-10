@@ -414,12 +414,18 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if playerCurMP(p.Char) < uint32(mana) {
 		return
 	}
-	if skillIndex == 83 { // Alquimia: W2PP cobra 10 * level ao abrir a composicao.
+	if skillIndex == 85 { // Escudo Dourado: _MSG_Attack.cpp cobra 10 * Level.
 		cost := playerLevel(p.Char) * 10
 		if p.Char.Gold < cost {
 			return
 		}
+		oldGold := p.Char.Gold
 		p.Char.Gold -= cost
+		if err := w.saveAccount(p.Account); err != nil {
+			p.Char.Gold = oldGold
+			log.Printf("[#%d] salvar custo do Escudo Dourado: %v", p.Session.ID, err)
+			return
+		}
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	}
 	if !spendPlayerMP(p.Char, uint32(mana)) {

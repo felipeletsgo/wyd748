@@ -34,7 +34,7 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	}
 	now := w.now()
 	if !p.NextGuildInvite.IsZero() && now.Before(p.NextGuildInvite) {
-		s.Send(wire.MessagePanel("Aguarde antes de tentar outro recrutamento."))
+		s.Send(wire.MessagePanel("Wait before trying another recruitment."))
 		return
 	}
 	targetIDRaw := binary.LittleEndian.Uint32(pkt[12:16])

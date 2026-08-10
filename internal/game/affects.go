@@ -955,8 +955,10 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		return
 	}
 	wireTargets := make([]wire.SkillTarget, 0, len(targets))
+	appliedByMob := make(map[*Mob]uint32, len(targets))
 	for _, m := range targets {
 		damage := uint32(clampInt(affect.Level+affect.Value, 1, int(maxExtendedStat)))
+		appliedByMob[m] = minU32(damage, m.HP)
 		if damage >= m.HP {
 			m.HP = 0
 		} else {
@@ -975,7 +977,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 	for _, m := range targets {
 		if m.HP == 0 {
 			damage := uint32(affect.Level + affect.Value)
-			if plan := w.planMobKill(p, m, damage, minU32(damage, m.Def.Extended.MaxHP)); plan != nil {
+			if plan := w.planMobKill(p, m, damage, appliedByMob[m]); plan != nil {
 				killPlans = append(killPlans, plan)
 			}
 		} else {

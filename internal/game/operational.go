@@ -128,9 +128,14 @@ func (w *World) allowLoginAttempt(ip, account string, now time.Time) bool {
 	}
 	ipOK, _ := allowFixedWindow(w.authRateByIP, originKey, now, time.Minute,
 		w.operational.AuthAttemptsPerMinuteIP, maxAuthIPRateKeys)
+	if !ipOK {
+		// Uma origem ja bloqueada nao pode criar/consumir chaves no limiter por
+		// conta. Isso evita usar milhares de nomes para esgotar sua cardinalidade.
+		return false
+	}
 	accountOK, _ := allowFixedWindow(w.authRateByAccount, account, now, time.Minute,
 		w.operational.AuthAttemptsPerMinuteAccount, maxAuthAccountRateKeys)
-	return ipOK && accountOK
+	return accountOK
 }
 
 func (w *World) allowChat(p *Player, channel string, now time.Time) bool {

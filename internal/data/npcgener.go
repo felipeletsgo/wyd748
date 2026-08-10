@@ -131,12 +131,12 @@ func setGenerField(g *model.NPCGener, key, value string) error {
 	default: // campo de segmento inteiro (seg ja resolvido acima)
 		switch {
 		case strings.HasSuffix(key, "X:"):
-			if n <= 0 || n > 65535 {
+			if n <= 0 || n >= model.TerrainWidth {
 				return fmt.Errorf("%s fora do mapa: %d", key, n)
 			}
 			g.Segments[seg].X = uint16(n)
 		case strings.HasSuffix(key, "Y:"):
-			if n <= 0 || n > 65535 {
+			if n <= 0 || n >= model.TerrainHeight {
 				return fmt.Errorf("%s fora do mapa: %d", key, n)
 			}
 			g.Segments[seg].Y = uint16(n)

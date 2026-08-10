@@ -608,9 +608,9 @@ func (c *Char) IsEmpty() bool {
 	return clone.equalsZero()
 }
 
-// equalsZero compara o restante dos campos por valor. Fica separado para que a
-// adicao de um campo nao-comparavel no futuro falhe na compilacao aqui, e nao
-// silenciosamente em outro lugar.
+// equalsZero compara todos os demais campos persistidos por valor. Ao adicionar
+// estado ao Char, este predicado e seus testes precisam ser atualizados: um slot
+// sem nome nunca pode ser serializado como null enquanto ainda contem dominio.
 func (c Char) equalsZero() bool {
 	return c.UID == "" && c.Name == "" && c.Class == 0 && c.X == 0 && c.Y == 0 &&
 		c.Extended == nil && c.ExtendedRuntime == nil &&
@@ -625,7 +625,9 @@ func (c Char) equalsZero() bool {
 		c.CelestialCytheraTier == 0 && !c.CelestialArcana &&
 		c.AlternateCelestial == nil &&
 		c.ShortSkill == [20]byte{} && c.Affects == [16]Affect{} &&
-		c.GuildID == 0 && c.GuildRank == 0
+		c.GuildID == 0 && c.GuildRank == 0 && c.Citizenship == 0 &&
+		c.SavedX == 0 && c.SavedY == 0 && c.NightmareTickets == 0 &&
+		c.LastNightmareUnix == 0
 }
 
 func (c Char) MarshalJSON() ([]byte, error) {
@@ -836,6 +838,9 @@ func (a *Account) Validate() error {
 		if normalized != character.UID {
 			return fmt.Errorf("conta %q personagem[%d] %q possui UID nao canonico",
 				a.Name, i, character.Name)
+		}
+		if _, duplicate := activeUIDs[character.UID]; duplicate {
+			return fmt.Errorf("conta %q possui UID de personagem duplicado %q", a.Name, character.UID)
 		}
 		activeUIDs[character.UID] = struct{}{}
 		if character.ArchMortalUID != "" {
@@ -1114,6 +1119,11 @@ const PlayerCarrySlots = MaxCarry - 1
 // Indices validos vao de 0 a 6499; valores maiores em arquivos de NPC sao
 // memoria residual/corrupcao e nunca podem chegar ao client.
 const ItemListSize = 6500
+
+// SkillListSize e a tabela estrutural do SkillData 7.48: 96 skills das quatro
+// classes e os indices especiais 96..103. O wire e LearnedSkill nao possuem
+// representacao valida fora dessa faixa.
+const SkillListSize = 104
 
 // MaxCargo e o tamanho estrutural transmitido no char-list 7.48. O cliente
 // possui tres paginas de 40 celulas; os oito slots finais existem no protocolo,

@@ -230,17 +230,13 @@ func TestContractSummonReplacesPreviousAndFollowsOwnerTarget(t *testing.T) {
 		Name: "Knight", Face: 300, HP: 500, Attack: 300, Defense: 100,
 		MoveSpeed: 4, AttackRange: 1,
 	}
-	if !w.replaceContractSummon(owner, template) {
-		t.Fatal("contrato valido nao criou summon")
-	}
+	mustCommitContractSummon(t, w, owner, template)
 	var first *Mob
 	for _, summon := range w.summons {
 		first = summon
 	}
 	template.Name, template.Face = "Archer", 301
-	if !w.replaceContractSummon(owner, template) {
-		t.Fatal("segundo contrato nao substituiu o primeiro")
-	}
+	mustCommitContractSummon(t, w, owner, template)
 	if !first.Dead {
 		t.Fatal("summon de contrato anterior permaneceu vivo")
 	}
@@ -253,4 +249,89 @@ func TestContractSummonReplacesPreviousAndFollowsOwnerTarget(t *testing.T) {
 	if live != 1 {
 		t.Fatalf("limite de um contrato ativo falhou: %d", live)
 	}
+}
+
+func TestContractSummonPreflightFailureDoesNotConsumeItem(t *testing.T) {
+	rule := model.VolatileRule{Action: "summon_contract", Consume: true,
+		Summon: &model.VolatileSummon{Name: "Invalid", HP: 500}}
+	w, p, st := useItemWorld(rule)
+
+	w.onUseItem(p.Session, useItemPacket(0, 0))
+
+	if p.Char.Inv[0].Index != 100 || st.saves != 0 || len(w.summons) != 0 {
+		t.Fatalf("preflight invalido alterou estado: item=%d saves=%d summons=%d",
+			p.Char.Inv[0].Index, st.saves, len(w.summons))
+	}
+}
+
+func TestContractSummonPersistenceFailureKeepsItemAndPreviousSummon(t *testing.T) {
+	template := &model.VolatileSummon{Name: "Archer", Face: 301, HP: 500,
+		Attack: 300, Defense: 100, MoveSpeed: 4, AttackRange: 5}
+	rule := model.VolatileRule{Action: "summon_contract", Consume: true, Summon: template}
+	w, p, st := useItemWorld(rule)
+	oldTemplate := &model.VolatileSummon{Name: "Knight", Face: 300, HP: 500,
+		Attack: 300, Defense: 100, MoveSpeed: 4, AttackRange: 1}
+	mustCommitContractSummon(t, w, p, oldTemplate)
+	var previous *Mob
+	for _, summon := range w.summons {
+		previous = summon
+	}
+	st.err = errors.New("database unavailable")
+
+	w.onUseItem(p.Session, useItemPacket(0, 0))
+
+	if p.Char.Inv[0].Index != 100 || previous == nil || previous.Dead ||
+		w.mobsByID[previous.ID] != previous || len(w.summons) != 1 {
+		t.Fatalf("falha de save substituiu summon/item: item=%d old=%+v summons=%d",
+			p.Char.Inv[0].Index, previous, len(w.summons))
+	}
+}
+
+func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
+	newPlayer := func(t *testing.T) (*World, *Player, *craftStore) {
+		t.Helper()
+		w, p, st := handlerTestWorld(t)
+		p.Char.Class = 3
+		p.Char.LearnedSkill = 1 << 13 // global 85, local 13
+		p.Char.Gold = 1_000
+		p.Char.Extended.Level = 49 // nivel exibido 50; custo nativo 490 na escala interna
+		p.Char.Extended.CurMP = 1_000
+		p.Char.Extended.MaxMP = 1_000
+		applyExtendedScore(p.Char)
+		w.skills = map[int]model.SkillDef{85: {
+			Index: 85, Name: "Golden_Shield", ManaSpent: 10, Delay: 1,
+			AffectType: 1, AffectValue: 10, AffectTime: 10,
+		}}
+		return w, p, st
+	}
+
+	t.Run("success", func(t *testing.T) {
+		w, p, st := newPlayer(t)
+		w.onSkillAttack(p, skillCastRequest{Skill: 85, TargetID: p.ID, Motion: 5})
+		if st.saves != 1 || p.Char.Gold != 510 {
+			t.Fatalf("custo do Escudo Dourado incorreto: saves=%d gold=%d", st.saves, p.Char.Gold)
+		}
+	})
+
+	t.Run("rollback", func(t *testing.T) {
+		w, p, st := newPlayer(t)
+		st.err = errors.New("database unavailable")
+		beforeMP := playerCurMP(p.Char)
+		beforePackets := p.Session.QueuedPacketsForTest()
+		w.onSkillAttack(p, skillCastRequest{Skill: 85, TargetID: p.ID, Motion: 5})
+		if p.Char.Gold != 1_000 || playerCurMP(p.Char) != beforeMP ||
+			p.Session.QueuedPacketsForTest() != beforePackets {
+			t.Fatalf("falha de save publicou/cobrou skill: gold=%d mp=%d packets=%d",
+				p.Char.Gold, playerCurMP(p.Char), p.Session.QueuedPacketsForTest())
+		}
+	})
+}
+
+func mustCommitContractSummon(t *testing.T, w *World, owner *Player, template *model.VolatileSummon) {
+	t.Helper()
+	plan, ok := w.planContractSummon(owner, template)
+	if !ok {
+		t.Fatal("contrato valido nao criou plano de summon")
+	}
+	w.commitContractSummon(plan)
 }

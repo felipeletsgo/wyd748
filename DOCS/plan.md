@@ -32,6 +32,17 @@ caminho quente de movimento/combate. Lua poderÃ¡ ser incorporado depois para r
 precisem hot reload (quests, eventos, NPCs e tabelas de balanceamento), mas nÃ£o
 deve substituir o estado persistente nem os invariantes Go.
 
+## Auditoria de integridade 52bf70c — concluída no worktree
+
+- rollback integral de morte/instância quando o commit econômico falha;
+- quest e charstate na mesma fronteira transacional;
+- preflight de contratos de summon antes do consumo;
+- shutdown com resultado de erro e flush explícito de instâncias;
+- validação estrita de Char/UID/ItemList/SkillData/NPCGener;
+- X-Forwarded-For, hash slots e limiter de login robustecidos;
+- custo server-side da skill 85 durável;
+- JSONStore e loadtest endurecidos com testes de regressão.
+
 ## Estado funcional consolidado
 
 - conta via CLI/API, PBKDF2, PostgreSQL e bloqueio de login duplo;

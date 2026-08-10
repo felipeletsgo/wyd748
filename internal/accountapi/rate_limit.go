@@ -59,22 +59,42 @@ func clientIP(r *http.Request, trustedProxies []netip.Prefix) string {
 	if err != nil {
 		host = r.RemoteAddr
 	}
-	parsed, parsedOK := netip.ParseAddr(host)
-	trusted := false
-	if parsedOK == nil {
-		for _, prefix := range trustedProxies {
-			if prefix.Contains(parsed.Unmap()) || prefix.Contains(parsed) {
-				trusted = true
-				break
-			}
-		}
+	peer, err := netip.ParseAddr(host)
+	if err != nil {
+		return host
 	}
+	peer = peer.Unmap()
 	// Forwarded headers so pertencem ao proxy declarado. Loopback por si so nao
 	// concede confianca: testes/ferramentas locais tambem podem forjar headers.
-	if trusted {
-		if first := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0]); net.ParseIP(first) != nil {
-			return first
+	if trustedProxyAddress(peer, trustedProxies) {
+		forwarded := r.Header.Values("X-Forwarded-For")
+		chain := make([]netip.Addr, 0, len(forwarded)+1)
+		for _, header := range forwarded {
+			for part := range strings.SplitSeq(header, ",") {
+				addr, parseErr := netip.ParseAddr(strings.TrimSpace(part))
+				if parseErr != nil {
+					return peer.String()
+				}
+				chain = append(chain, addr.Unmap())
+			}
+		}
+		for i := len(chain) - 1; i >= 0; i-- {
+			if !trustedProxyAddress(chain[i], trustedProxies) {
+				return chain[i].String()
+			}
+		}
+		if len(chain) > 0 {
+			return chain[0].String()
 		}
 	}
-	return host
+	return peer.String()
+}
+
+func trustedProxyAddress(addr netip.Addr, trustedProxies []netip.Prefix) bool {
+	for _, prefix := range trustedProxies {
+		if prefix.Contains(addr) || prefix.Contains(addr.Unmap()) {
+			return true
+		}
+	}
+	return false
 }

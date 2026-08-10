@@ -69,6 +69,25 @@ func TestLoginRateLimitRejectsInvalidOriginWithoutAllocatingState(t *testing.T) 
 	}
 }
 
+func TestBlockedLoginOriginDoesNotAllocateAccountRateKeys(t *testing.T) {
+	w := &World{operational: OperationalConfig{
+		AuthAttemptsPerMinuteIP: 1, AuthAttemptsPerMinuteAccount: 100,
+	}}
+	now := time.Unix(100, 0)
+	if !w.allowLoginAttempt("192.0.2.1", "first", now) {
+		t.Fatal("primeira tentativa foi recusada")
+	}
+	before := len(w.authRateByAccount)
+	for i := 0; i < 100; i++ {
+		if w.allowLoginAttempt("192.0.2.1", fmt.Sprintf("blocked-%d", i), now) {
+			t.Fatal("origem bloqueada foi aceita")
+		}
+	}
+	if got := len(w.authRateByAccount); got != before {
+		t.Fatalf("origem bloqueada criou chaves por conta: %d -> %d", before, got)
+	}
+}
+
 func TestChatRateLimitIsPerAccountAndChannel(t *testing.T) {
 	p, _ := networkedTestPlayer(1, "Speaker", 2100, 2100)
 	w := &World{operational: OperationalConfig{

@@ -61,20 +61,25 @@ type loadCounters struct {
 }
 
 type bot struct {
-	config      RunConfig
-	index       int
-	conn        stdnet.Conn
-	mu          sync.Mutex
-	key         byte
-	tick        atomic.Uint32
-	id          atomic.Uint32
-	x, y        atomic.Uint32
-	targetMu    sync.RWMutex
-	targets     map[uint16]targetPosition
-	entered     chan struct{}
-	enteredOnce sync.Once
-	counters    *loadCounters
-	rng         *mathrand.Rand
+	config RunConfig
+	index  int
+	conn   stdnet.Conn
+	mu     sync.Mutex
+	key    byte
+	tick   atomic.Uint32
+	id     atomic.Uint32
+	// predictedX/Y acompanha a interpolacao que um client real faria depois de
+	// enviar uma rota. confirmedX/Y guarda somente a ultima posicao recebida do
+	// servidor (EnterWorld, teleporte ou correcao). O 7.48 nao ecoa ao proprio
+	// jogador cada rota normal aceita.
+	predictedX, predictedY atomic.Uint32
+	confirmedX, confirmedY atomic.Uint32
+	targetMu               sync.RWMutex
+	targets                map[uint16]targetPosition
+	entered                chan struct{}
+	enteredOnce            sync.Once
+	counters               *loadCounters
+	rng                    *mathrand.Rand
 }
 
 type targetPosition struct {
@@ -232,13 +237,20 @@ func (b *bot) readLoop(ctx context.Context) error {
 			// sempre a coordenada configurada aqui faria o proximo movimento
 			// parecer um teleport e seria recusado pela validacao de rota.
 			if len(pkt) >= 16 {
-				b.x.Store(uint32(binary.LittleEndian.Uint16(pkt[12:14])))
-				b.y.Store(uint32(binary.LittleEndian.Uint16(pkt[14:16])))
+				b.applyServerPosition(binary.LittleEndian.Uint16(pkt[12:14]),
+					binary.LittleEndian.Uint16(pkt[14:16]))
 			} else {
-				b.x.Store(uint32(b.config.SpawnX))
-				b.y.Store(uint32(b.config.SpawnY))
+				b.applyServerPosition(b.config.SpawnX, b.config.SpawnY)
 			}
 			b.enteredOnce.Do(func() { close(b.entered) })
+		case wire.OpAction:
+			// Caminhadas aceitas nao sao ecoadas ao proprio jogador. Teleportes e
+			// correcoes usam 0x366 com a posicao server-side em @12 e reconciliam
+			// imediatamente qualquer predicao antiga do bot.
+			if h.ID == uint16(b.id.Load()) && len(pkt) >= 16 {
+				b.applyServerPosition(binary.LittleEndian.Uint16(pkt[12:14]),
+					binary.LittleEndian.Uint16(pkt[14:16]))
+			}
 		case wire.OpCreateMob:
 			if h.ID >= 1000 {
 				b.targetMu.Lock()
@@ -279,7 +291,7 @@ func (b *bot) activityLoop(ctx context.Context) {
 }
 
 func (b *bot) sendMove() error {
-	x, y := uint16(b.x.Load()), uint16(b.y.Load())
+	x, y := uint16(b.predictedX.Load()), uint16(b.predictedY.Load())
 	_, target := b.nearestTarget()
 	if target.x == 0 || target.y == 0 {
 		// Sem uma entidade visível não inventa uma rota aleatória: isso só gera
@@ -311,11 +323,11 @@ func (b *bot) sendMove() error {
 		if err := b.send(wire.PlayerMove(uint16(b.id.Load()), x, y, ux, uy, 1, nil)); err != nil {
 			return err
 		}
-		// Só avança a posição local depois de transmitir o pacote. Se a rota for
-		// recusada pelo servidor, o próximo pacote continua partindo da posição
-		// autoritativa conhecida e não cria uma cascata de teletransportes.
-		b.x.Store(uint32(nx))
-		b.y.Store(uint32(ny))
+		// Um client 7.48 real interpola localmente, e o servidor não ecoa ao dono
+		// a rota normal aceita. Avance somente a predição; a última coordenada
+		// confirmada permanece separada até chegar um 0x366 server-side.
+		b.predictedX.Store(uint32(nx))
+		b.predictedY.Store(uint32(ny))
 		return nil
 	}
 	return nil
@@ -347,7 +359,7 @@ func (b *bot) sendAttack() error {
 		return nil
 	}
 	id := uint16(b.id.Load())
-	x, y := uint16(b.x.Load()), uint16(b.y.Load())
+	x, y := uint16(b.predictedX.Load()), uint16(b.predictedY.Load())
 	var pkt []byte
 	if b.config.Skill >= 0 {
 		pkt = wire.SkillHit(id, target, x, y, targetPos.x, targetPos.y, 0, 0, 0, 0,
@@ -362,7 +374,7 @@ func (b *bot) nearestTarget() (uint16, targetPosition) {
 	b.targetMu.RLock()
 	var target uint16
 	var targetPos targetPosition
-	x, y := uint16(b.x.Load()), uint16(b.y.Load())
+	x, y := uint16(b.predictedX.Load()), uint16(b.predictedY.Load())
 	bestDistance := uint16(^uint16(0))
 	for id, position := range b.targets {
 		distance := chebyshevDistance(x, y, position.x, position.y)
@@ -372,6 +384,13 @@ func (b *bot) nearestTarget() (uint16, targetPosition) {
 	}
 	b.targetMu.RUnlock()
 	return target, targetPos
+}
+
+func (b *bot) applyServerPosition(x, y uint16) {
+	b.confirmedX.Store(uint32(x))
+	b.confirmedY.Store(uint32(y))
+	b.predictedX.Store(uint32(x))
+	b.predictedY.Store(uint32(y))
 }
 
 func chebyshevDistance(ax, ay, bx, by uint16) uint16 {

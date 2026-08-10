@@ -2,6 +2,8 @@ package loadtest
 
 import (
 	"bytes"
+	"io"
+	stdnet "net"
 	"testing"
 
 	"wydgo/internal/wire"
@@ -27,6 +29,49 @@ func TestBotAccountNameUsesShortPrefix(t *testing.T) {
 	b := &bot{config: RunConfig{AccountPrefix: "bot"}, index: 1}
 	if got := b.accountName(); got != "bot0001" {
 		t.Fatalf("conta=%q", got)
+	}
+}
+
+func TestSentMoveDoesNotAdvanceServerConfirmedPosition(t *testing.T) {
+	client, server := stdnet.Pipe()
+	defer client.Close()
+	defer server.Close()
+	b := &bot{conn: client, counters: &loadCounters{}, targets: map[uint16]targetPosition{
+		1000: {x: 101, y: 100},
+	}}
+	b.id.Store(1)
+	b.applyServerPosition(100, 100)
+	readDone := make(chan error, 1)
+	go func() {
+		_, err := io.CopyN(io.Discard, server, 52)
+		readDone <- err
+	}()
+
+	if err := b.sendMove(); err != nil {
+		t.Fatalf("sendMove: %v", err)
+	}
+	if err := <-readDone; err != nil {
+		t.Fatalf("ler movimento: %v", err)
+	}
+	if b.confirmedX.Load() != 100 || b.confirmedY.Load() != 100 {
+		t.Fatalf("envio local falsificou confirmacao server-side: (%d,%d)",
+			b.confirmedX.Load(), b.confirmedY.Load())
+	}
+	if b.predictedX.Load() != 101 || b.predictedY.Load() != 100 {
+		t.Fatalf("predicao do client nao avancou: (%d,%d)",
+			b.predictedX.Load(), b.predictedY.Load())
+	}
+}
+
+func TestServerPositionReconcilesPrediction(t *testing.T) {
+	b := &bot{}
+	b.applyServerPosition(100, 100)
+	b.predictedX.Store(105)
+	b.predictedY.Store(104)
+	b.applyServerPosition(101, 102)
+	if b.confirmedX.Load() != 101 || b.confirmedY.Load() != 102 ||
+		b.predictedX.Load() != 101 || b.predictedY.Load() != 102 {
+		t.Fatal("correcao server-side nao reconciliou a predicao")
 	}
 }
 

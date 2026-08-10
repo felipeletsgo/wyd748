@@ -739,6 +739,12 @@ func (s *JSONStore) LoadInstanceState() (*model.InstanceStateSnapshot, error) {
 	if err := decoder.Decode(&state); err != nil {
 		return nil, fmt.Errorf("store: parse instance_state: %w", err)
 	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return nil, fmt.Errorf("store: parse instance_state: conteudo JSON adicional")
+		}
+		return nil, fmt.Errorf("store: parse instance_state: %w", err)
+	}
 	if state.Version != model.InstanceStateVersion {
 		return nil, fmt.Errorf("store: instance_state versao %d; esperado %d",
 			state.Version, model.InstanceStateVersion)
@@ -796,7 +802,10 @@ func writeFileAtomic(path string, b []byte) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmpPath, path)
+	if err := os.Rename(tmpPath, path); err != nil {
+		return err
+	}
+	return syncDirectory(dir)
 }
 
 func (s *JSONStore) writeAccountFile(path string, b []byte) error {
@@ -821,7 +830,10 @@ func (s *JSONStore) writeAccountFile(path string, b []byte) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmpPath, path)
+	if err := os.Rename(tmpPath, path); err != nil {
+		return err
+	}
+	return syncDirectory(s.dir)
 }
 
 func writeSyncedFile(path string, data []byte, mode os.FileMode) error {

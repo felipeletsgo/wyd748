@@ -25,15 +25,11 @@ func teleportAt(teleports []model.Teleport, x, y uint16) (model.Teleport, bool) 
 // de confirmar, recalcula visibilidade nas duas regioes e manda a coordenada
 // final ao proprio client e aos observadores que continuaram no mesmo raio.
 func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
-	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld ||
-		x == 0 || y == 0 || !w.terrain.Walkable(x, y) {
+	x, y, ok := w.resolvePlayerTeleportDestination(p, x, y)
+	if !ok {
 		return false
 	}
 	oldX, oldY := p.X, p.Y
-	x, y = w.findFreePlayerPosition(x, y, 3, p)
-	if !w.terrain.Walkable(x, y) {
-		return false
-	}
 	p.X, p.Y = x, y
 	p.Char.X, p.Char.Y = x, y
 	if err := w.saveAccount(p.Account); err != nil {
@@ -42,11 +38,27 @@ func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
 		log.Printf("[#%d] salvar teleporte: %v", p.Session.ID, err)
 		return false
 	}
+	w.publishPlayerTeleport(p)
+	return true
+}
+
+func (w *World) resolvePlayerTeleportDestination(p *Player, x, y uint16) (uint16, uint16, bool) {
+	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld ||
+		x == 0 || y == 0 || !w.terrain.Walkable(x, y) {
+		return 0, 0, false
+	}
+	x, y = w.findFreePlayerPosition(x, y, 3, p)
+	return x, y, w.terrain.Walkable(x, y)
+}
+
+func (w *World) publishPlayerTeleport(p *Player) {
+	if p == nil || p.Char == nil || !p.InWorld {
+		return
+	}
 	w.refreshPlayerVisibility(p)
 	w.sendToPlayerView(p, func() []byte {
 		return wire.ActionStop(p.ID, p.X, p.Y)
 	})
-	return true
 }
 
 // onReqTeleport trata o MSG_ReqTeleport nativo 0x290. O pacote nao informa o

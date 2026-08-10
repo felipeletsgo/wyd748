@@ -59,9 +59,9 @@ func (w *World) dumpHPProjection(s *net.Session, p *Player) {
 	// e a barra torta e do client.
 	divergencia := efetivoPct - projetadoPct
 	if divergencia < -1 || divergencia > 1 {
-		s.Send(wire.MessagePanel(fmt.Sprintf("DIVERGE %.1f pontos: erro no servidor", divergencia)))
+		s.Send(wire.MessagePanel(fmt.Sprintf("DIVERGENCE %.1f points: server-side error", divergencia)))
 	} else {
-		s.Send(wire.MessagePanel("wide e word coerentes: barra torta e do client"))
+		s.Send(wire.MessagePanel("Wide and word values agree: the incorrect bar is client-side."))
 	}
 	afetos := 0
 	for _, a := range p.Char.Affects {

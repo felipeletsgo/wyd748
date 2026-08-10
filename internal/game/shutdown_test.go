@@ -18,6 +18,27 @@ type flushCraftStore struct {
 
 func (s *flushCraftStore) Flush() { s.flushes++ }
 
+type atomicShutdownStore struct {
+	flushCraftStore
+	playerStateSaves int
+	instanceSaves    int
+	playerStateErr   error
+	instanceErr      error
+}
+
+func (s *atomicShutdownStore) SavePlayerState(_ *model.GuildRegistry, _ *model.Account,
+	_ string, _ *model.CharState) error {
+	s.playerStateSaves++
+	return s.playerStateErr
+}
+
+func (s *atomicShutdownStore) SaveInstanceState(*model.InstanceStateSnapshot) error {
+	s.instanceSaves++
+	return s.instanceErr
+}
+
+func (s *atomicShutdownStore) Flush() { s.flushCraftStore.Flush() }
+
 func newShutdownWorld() (*World, *flushCraftStore) {
 	st := &flushCraftStore{}
 	w := newZoneTestWorld()
@@ -42,12 +63,13 @@ func newShutdownAccount(name string) *model.Account {
 	}}}
 }
 
-func TestShutdownPersistsEachAccountOnceAndFlushes(t *testing.T) {
+func TestShutdownPersistsEachRuntimeCharacterAndFlushes(t *testing.T) {
 	w, st := newShutdownWorld()
 	shared := newShutdownAccount("dupla")
 	// Dois personagens da MESMA conta compartilham o ponteiro: o desligamento
 	// nao pode gravar o mesmo arquivo duas vezes.
 	shared.Chars = append(shared.Chars, model.Char{
+		UID:      "second-character",
 		Name:     "segundo",
 		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 1000, CurHP: 900},
 	})
@@ -56,12 +78,14 @@ func TestShutdownPersistsEachAccountOnceAndFlushes(t *testing.T) {
 	second.Char = &shared.Chars[1]
 	addShutdownPlayer(w, 3, newShutdownAccount("outra"))
 
-	done := make(chan struct{})
+	done := make(chan error, 1)
 	w.runShutdown(done)
-	<-done
+	if err := <-done; err != nil {
+		t.Fatalf("shutdown: %v", err)
+	}
 
-	if st.saves != 2 {
-		t.Fatalf("saves=%d, quer 2 (uma por CONTA, nao por personagem)", st.saves)
+	if st.saves != 3 {
+		t.Fatalf("saves=%d, quer 3 (cada personagem runtime precisa do seu charstate)", st.saves)
 	}
 	if st.flushes != 1 {
 		t.Fatalf("flushes=%d, quer 1 (fila assincrona precisa drenar)", st.flushes)
@@ -71,14 +95,59 @@ func TestShutdownPersistsEachAccountOnceAndFlushes(t *testing.T) {
 	}
 }
 
+func TestShutdownUsesAtomicPlayerStateAndForcesDirtyInstanceState(t *testing.T) {
+	st := &atomicShutdownStore{}
+	w := newZoneTestWorld()
+	w.store = st
+	w.commands = make(chan command, 8)
+	account := newShutdownAccount("atomic")
+	account.Chars[0].UID = "atomic-character"
+	addShutdownPlayer(w, 1, account)
+	w.instanceStateDirty = true
+
+	done := make(chan error, 1)
+	w.runShutdown(done)
+	if err := <-done; err != nil {
+		t.Fatalf("shutdown atomico: %v", err)
+	}
+	if st.playerStateSaves != 1 || st.saves != 0 {
+		t.Fatalf("conta/charstate nao foram atomicos: player=%d account=%d",
+			st.playerStateSaves, st.saves)
+	}
+	if st.instanceSaves != 1 || w.instanceStateDirty {
+		t.Fatalf("snapshot sujo nao foi drenado: saves=%d dirty=%v",
+			st.instanceSaves, w.instanceStateDirty)
+	}
+}
+
+func TestShutdownReportsDirtyInstancePersistenceFailure(t *testing.T) {
+	st := &atomicShutdownStore{instanceErr: errors.New("instance database unavailable")}
+	w := newZoneTestWorld()
+	w.store = st
+	w.commands = make(chan command, 8)
+	w.instanceStateDirty = true
+
+	done := make(chan error, 1)
+	w.runShutdown(done)
+	if err := <-done; err == nil {
+		t.Fatal("shutdown ocultou falha do snapshot de instancias")
+	}
+	if st.instanceSaves != 1 || !w.instanceStateDirty {
+		t.Fatalf("falha limpou dirty indevidamente: saves=%d dirty=%v",
+			st.instanceSaves, w.instanceStateDirty)
+	}
+}
+
 func TestShutdownIgnoresPlayersOutOfWorld(t *testing.T) {
 	w, st := newShutdownWorld()
 	p := addShutdownPlayer(w, 1, newShutdownAccount("fora"))
 	p.InWorld = false // ainda na tela de selecao: nada a persistir
 
-	done := make(chan struct{})
+	done := make(chan error, 1)
 	w.runShutdown(done)
-	<-done
+	if err := <-done; err != nil {
+		t.Fatalf("shutdown: %v", err)
+	}
 
 	if st.saves != 0 {
 		t.Fatalf("saves=%d, quer 0 para jogador fora do mundo", st.saves)
@@ -92,11 +161,14 @@ func TestShutdownSurvivesSaveFailure(t *testing.T) {
 	st.err = errors.New("disco indisponivel")
 	addShutdownPlayer(w, 1, newShutdownAccount("falha"))
 
-	done := make(chan struct{})
+	done := make(chan error, 1)
 	w.runShutdown(done)
 
 	select {
-	case <-done:
+	case err := <-done:
+		if err == nil {
+			t.Fatal("desligamento deveria reportar falha de save")
+		}
 	case <-time.After(time.Second):
 		t.Fatal("desligamento travou apos falha de save")
 	}
@@ -109,17 +181,38 @@ func TestShutdownIsIdempotent(t *testing.T) {
 	w, st := newShutdownWorld()
 	addShutdownPlayer(w, 1, newShutdownAccount("unica"))
 
-	first := make(chan struct{})
+	first := make(chan error, 1)
 	w.runShutdown(first)
-	<-first
+	if err := <-first; err != nil {
+		t.Fatalf("primeiro shutdown: %v", err)
+	}
 	afterFirst := st.saves
 
-	second := make(chan struct{})
+	second := make(chan error, 1)
 	w.runShutdown(second)
-	<-second
+	if err := <-second; err != nil {
+		t.Fatalf("segundo shutdown: %v", err)
+	}
 
 	if st.saves != afterFirst {
 		t.Fatalf("segundo desligamento gravou de novo: %d -> %d", afterFirst, st.saves)
+	}
+}
+
+func TestRepeatedShutdownPreservesFirstFailure(t *testing.T) {
+	w, st := newShutdownWorld()
+	st.err = errors.New("database unavailable")
+	addShutdownPlayer(w, 1, newShutdownAccount("failed"))
+
+	first := make(chan error, 1)
+	w.runShutdown(first)
+	if err := <-first; err == nil {
+		t.Fatal("primeiro shutdown deveria falhar")
+	}
+	second := make(chan error, 1)
+	w.runShutdown(second)
+	if err := <-second; err == nil {
+		t.Fatal("pedido repetido ocultou a falha do primeiro drain")
 	}
 }
 
@@ -141,6 +234,21 @@ func TestShutdownRunsThroughGameLoop(t *testing.T) {
 	}
 	if st.saves != 1 {
 		t.Fatalf("saves=%d, quer 1", st.saves)
+	}
+}
+
+func TestShutdownReturnsFalseWhenFinalPersistenceFails(t *testing.T) {
+	w, st := newShutdownWorld()
+	st.err = errors.New("database unavailable")
+	addShutdownPlayer(w, 1, newShutdownAccount("failure"))
+	go func() {
+		for cmd := range w.commands {
+			w.safeHandle(cmd)
+		}
+	}()
+
+	if w.Shutdown(2 * time.Second) {
+		t.Fatal("shutdown com falha de persistencia retornou sucesso")
 	}
 }
 

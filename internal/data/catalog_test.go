@@ -117,3 +117,49 @@ func TestW2PPSpecialSkillIndices(t *testing.T) {
 		t.Fatalf("skill 83 perdeu o Passive ao remover a coluna Unknown: %+v", skill)
 	}
 }
+
+func TestCatalogRejectsDuplicateAndOutOfRangeIDs(t *testing.T) {
+	itemLine := "1,Item,1.1,0.0.0.0.0,0,1,0,0,0\n"
+	itemPath := filepath.Join(t.TempDir(), "itemlist.csv")
+	if err := os.WriteFile(itemPath, []byte(itemLine+itemLine), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadItemList(itemPath); err == nil {
+		t.Fatal("itemlist com ID duplicado foi aceito")
+	}
+	if err := os.WriteFile(itemPath, []byte(strings.Replace(itemLine, "1,Item", "6500,Item", 1)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadItemList(itemPath); err == nil {
+		t.Fatal("item fora de ItemListSize foi aceito")
+	}
+
+	firstSkill, err := os.ReadFile("../../data/SkillData.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := strings.SplitN(string(firstSkill), "\n", 2)[0] + "\n"
+	skillPath := filepath.Join(t.TempDir(), "SkillData.csv")
+	if err := os.WriteFile(skillPath, []byte(line+line), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadSkills(skillPath); err == nil {
+		t.Fatal("SkillData com ID duplicado foi aceito")
+	}
+	parts := strings.Split(strings.TrimSpace(line), ",")
+	parts[0] = "104"
+	if err := os.WriteFile(skillPath, []byte(strings.Join(parts, ",")+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadSkills(skillPath); err == nil {
+		t.Fatal("SkillData com ID fora da tabela 7.48 foi aceito")
+	}
+	parts = strings.Split(strings.TrimSpace(line), ",")
+	parts[13] = "256.0.0.0.0.0.0.0"
+	if err := os.WriteFile(skillPath, []byte(strings.Join(parts, ",")+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadSkills(skillPath); err == nil {
+		t.Fatal("SkillData com byte de animacao invalido foi aceito")
+	}
+}

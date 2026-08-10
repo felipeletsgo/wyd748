@@ -153,6 +153,46 @@ func TestEmptyCharacterSlotUsesNull(t *testing.T) {
 	}
 }
 
+func TestEmptyCharacterSlotDetectsEveryLatePersistedField(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*Char)
+	}{
+		{"citizenship", func(c *Char) { c.Citizenship = 1 }},
+		{"saved x", func(c *Char) { c.SavedX = 2100 }},
+		{"saved y", func(c *Char) { c.SavedY = 2100 }},
+		{"nightmare tickets", func(c *Char) { c.NightmareTickets = 1 }},
+		{"nightmare cooldown", func(c *Char) { c.LastNightmareUnix = 1 }},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var ch Char
+			tc.mutate(&ch)
+			if ch.IsEmpty() {
+				t.Fatalf("campo persistido foi descartado como slot vazio: %+v", ch)
+			}
+			if _, err := json.Marshal(ch); err == nil {
+				t.Fatal("slot sem nome contendo estado deveria ser recusado")
+			}
+		})
+	}
+}
+
+func TestAccountValidateRejectsDuplicateCharacterUID(t *testing.T) {
+	uid := "11111111111141118111111111111111"
+	validScore := func() *ExtendedScore {
+		return &ExtendedScore{Version: ExtendedScoreVersion, MaxHP: 100, CurHP: 100,
+			MaxMP: 100, CurMP: 100}
+	}
+	account := &Account{Name: "duplicate", PasswordHash: "hash", Chars: []Char{
+		{UID: uid, Name: "First", Extended: validScore()},
+		{UID: uid, Name: "Second", Extended: validScore()},
+	}}
+	if err := account.Validate(); err == nil {
+		t.Fatal("dois personagens ativos com o mesmo UID foram aceitos")
+	}
+}
+
 func TestExtendedCharJSONNeverPersistsLegacyProjection(t *testing.T) {
 	ch := Char{Name: "Wide", Extended: &ExtendedScore{
 		Version: ExtendedScoreVersion,

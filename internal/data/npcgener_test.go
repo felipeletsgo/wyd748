@@ -100,6 +100,17 @@ func TestLoadNPCGenerBadValueOnKnownKey(t *testing.T) {
 	}
 }
 
+func TestLoadNPCGenerRejectsCoordinatesOutsideTerrain(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "NPCGener.txt")
+	content := "# [ 0 ]\nLeader: Gremlin\nMaxNumMob: 1\nStartX: 4096\nStartY: 2100\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadNPCGener(path); err == nil {
+		t.Fatal("coordenada fora do mapa 4096x4096 foi aceita")
+	}
+}
+
 func TestLoadNPCGenerDisabledSection(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "NPCGener.txt")
 	if err := os.WriteFile(path, []byte("#* [ 0 ]\nLeader: Inexistente\n"), 0600); err != nil {

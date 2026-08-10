@@ -60,7 +60,7 @@ func TestMobKillPersistenceFailureRestoresAllRewardsBeforePublishing(t *testing.
 	beforeChar := cloneCharacterState(p.Char)
 	beforePackets := p.Session.QueuedPacketsForTest()
 
-	w.killMobState(p, mob, 500, 100)
+	w.killMobState(p, mob, 500, 37)
 
 	if st.saves != 1 || st.queuedAtSave != beforePackets {
 		t.Fatalf("reward published before commit: saves=%d queuedAtSave=%d before=%d",
@@ -70,16 +70,17 @@ func TestMobKillPersistenceFailureRestoresAllRewardsBeforePublishing(t *testing.
 		p.Char.Inv != beforeChar.Inv || p.Char.Equip != beforeChar.Equip {
 		t.Fatalf("failed kill was not rolled back: before=%+v after=%+v", beforeChar, *p.Char)
 	}
-	// Only the authoritative death pair (CNFMobKill + RemoveMob) is emitted;
-	// no UpdateEtc, item or score confirmation follows a failed commit.
-	if got := p.Session.QueuedPacketsForTest(); got != beforePackets+2 {
-		t.Fatalf("failed reward emitted extra packets: got=%d want=%d", got, beforePackets+2)
+	// Nenhuma morte/recompensa e confirmada. Um unico SetMobHpMp corrige nos
+	// observadores o hit letal que o client ja animou antes do commit falhar.
+	if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
+		t.Fatalf("failed reward emitted unexpected packets: got=%d want=%d", got, beforePackets+1)
 	}
 	if !p.PersistencePoisoned || !p.Session.IsClosed() {
 		t.Fatal("account was not isolated after a durable commit failure")
 	}
-	if !mob.Dead || w.mobsByID[mob.ID] != nil {
-		t.Fatal("physical mob death was not finalized after reward rollback")
+	if mob.Dead || mob.HP != 37 || w.mobsByID[mob.ID] != mob {
+		t.Fatalf("mob was not restored after reward rollback: dead=%v hp=%d indexed=%v",
+			mob.Dead, mob.HP, w.mobsByID[mob.ID] == mob)
 	}
 }
 
@@ -106,5 +107,32 @@ func TestBossDropIsPersistedInsideKillRewardCommit(t *testing.T) {
 	}
 	if p.Session.QueuedPacketsForTest() <= beforePackets+2 {
 		t.Fatal("committed boss reward was not published")
+	}
+}
+
+func TestInstanceKillPersistenceFailureDoesNotAdvanceRoom(t *testing.T) {
+	w, leader, _, st, _ := instanceTestWorld()
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	inst := w.itemInstances["water-normal-1"]
+	if inst == nil || inst.Remaining != 1 {
+		t.Fatalf("instancia inicial invalida: %+v", inst)
+	}
+	var mob *Mob
+	for id := range inst.MobIDs {
+		mob = w.mobsByID[id]
+	}
+	if mob == nil {
+		t.Fatal("mob da instancia ausente")
+	}
+	st.err = errors.New("database unavailable")
+	mob.HP = 0
+	w.killMobState(leader, mob, 100, 100)
+
+	if inst.Remaining != 1 || inst.RewardGranted || !inst.ExitAt.IsZero() {
+		t.Fatalf("falha de DB avancou a instancia: remaining=%d reward=%v exit=%v",
+			inst.Remaining, inst.RewardGranted, inst.ExitAt)
+	}
+	if mob.Dead || mob.HP != 100 || w.mobsByID[mob.ID] != mob {
+		t.Fatalf("mob da instancia nao foi restaurado: dead=%v hp=%d", mob.Dead, mob.HP)
 	}
 }

@@ -274,15 +274,27 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 
 	// Snapshot para rollback: a persistencia vem antes da confirmacao ao client.
 	previousChar := cloneCharacterState(p.Char)
-	previousInv := p.Char.Inv
-	previousGold := p.Char.Gold
 	previousX, previousY := p.X, p.Y
-	previousEquip := p.Char.Equip
 	previousCounters := copyCounters(p)
+	rollback := func() {
+		*p.Char = previousChar
+		p.X, p.Y = previousX, previousY
+		p.SpecialCoins = previousCounters
+	}
+	var teleportX, teleportY uint16
+	if target := quest.Rewards.Teleport; target != nil {
+		var ok bool
+		teleportX, teleportY, ok = w.resolvePlayerTeleportDestination(p, target.X, target.Y)
+		if !ok {
+			s.Send(wire.MessagePanel("The quest destination is unavailable."))
+			log.Printf("[#%d] QUEST %d recusada: destino de teleporte indisponivel", s.ID, quest.ID)
+			return
+		}
+	}
 
 	for _, item := range quest.Consumes {
 		if !consumeInventoryItem(p.Char, item.Index, item.Quantity()) {
-			p.Char.Inv = previousInv
+			rollback()
 			s.Send(wire.MessagePanel("You do not have the required items."))
 			log.Printf("[#%d] QUEST %d recusada: consumo do item %d x%d falhou",
 				s.ID, quest.ID, item.Index, item.Quantity())
@@ -293,7 +305,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	// item por entradas e so entao cobra a visita.
 	applyQuestRecharge(p, quest)
 	if !spendCounters(p, quest.ConsumeCounters) {
-		p.Char.Inv = previousInv
+		rollback()
 		s.Send(wire.MessagePanel("You do not have enough entries."))
 		log.Printf("[#%d] QUEST %d recusada: saldo de contador insuficiente", s.ID, quest.ID)
 		return
@@ -304,7 +316,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	}
 	for _, item := range quest.Rewards.Items {
 		if !grantInventoryItem(p.Char, item) {
-			p.Char.Inv, p.Char.Gold = previousInv, previousGold
+			rollback()
 			s.Send(wire.MessagePanel("Your inventory is full."))
 			log.Printf("[#%d] QUEST %d recusada: sem espaco para o item %d",
 				s.ID, quest.ID, item.Index)
@@ -313,7 +325,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	}
 	if r := quest.Rewards.Refine; r != nil {
 		if !refineQuestReward(p.Char, r) {
-			p.Char.Inv, p.Char.Gold, p.Char.Equip = previousInv, previousGold, previousEquip
+			rollback()
 			s.Send(wire.MessagePanel("You have nothing equipped to improve."))
 			log.Printf("[#%d] QUEST %d recusada: nada para refinar no slot %d",
 				s.ID, quest.ID, r.Slot)
@@ -348,35 +360,15 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	if !quest.Repeatable {
 		markQuestCompleted(p.Char, quest.ID)
 	}
-
-	desfazer := func() {
-		*p.Char = previousChar
-		p.X, p.Y = previousX, previousY
-		p.SpecialCoins = previousCounters
+	if teleportX != 0 && teleportY != 0 {
+		p.X, p.Y = teleportX, teleportY
+		p.Char.X, p.Char.Y = teleportX, teleportY
 	}
 
-	// Contador vive no sidecar do personagem, que NAO participa da transacao da
-	// conta. Por isso o sidecar vai PRIMEIRO: se ele falhar, nada foi ao disco
-	// e o rollback e limpo. Na ordem inversa, a conta gravada com a recompensa
-	// e o sidecar nao gravado deixariam o jogador com o premio E com a ficha --
-	// vetor de dupe numa quest repetivel.
-	mexeuEmContador := len(quest.ConsumeCounters) > 0 || len(quest.Rewards.Counters) > 0
-	if mexeuEmContador {
-		if err := w.saveCharStateResult(p); err != nil {
-			desfazer()
-			s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
-			log.Printf("[#%d] ERRO quest %d ao salvar contadores: %v", s.ID, quest.ID, err)
-			return
-		}
-	}
-
-	if err := w.saveAccount(p.Account); err != nil {
-		desfazer()
-		// O sidecar ja foi gravado acima: regrava com os saldos restaurados,
-		// senao a ficha ficaria gasta em disco sem a quest ter acontecido.
-		if mexeuEmContador {
-			w.saveCharState(p)
-		}
+	// PostgreSQL confirma conta + charstate em uma unica transacao. Isso inclui
+	// itens, gold, EXP, quest concluida e contadores especiais no mesmo commit.
+	if err := w.saveAccountAndCharStateResult(p); err != nil {
+		rollback()
 		s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
 		log.Printf("[#%d] ERRO quest %d: %v", s.ID, quest.ID, err)
 		return
@@ -390,9 +382,10 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 		s.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
 		w.refreshAppearance(p)
 	}
-	if t := quest.Rewards.Teleport; t != nil {
-		// O teleporte ja re-materializa o avatar (com a tintura) no destino.
-		w.teleportPlayer(p, t.X, t.Y)
+	if quest.Rewards.Teleport != nil {
+		// A posicao participou do mesmo commit da quest. Aqui resta apenas
+		// publicar a mudanca de regiao; nao existe segundo save que possa falhar.
+		w.publishPlayerTeleport(p)
 	}
 	s.Send(wire.MessagePanel(quest.Messages.Success))
 	log.Printf("[#%d] QUEST %d concluida por %q", s.ID, quest.ID, p.Char.Name)

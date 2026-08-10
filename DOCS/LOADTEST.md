@@ -88,6 +88,13 @@ enviam o ataque; movimento não substitui mais combate. O padrão é 50%, e
 O modo distribuído usa os pontos Tauron próximos; para pior caso de visibilidade,
 execute uma rodada concentrada com menos bots na mesma área.
 
+O client 7.48 interpola a própria rota e o servidor não ecoa ao dono cada
+caminhada normal aceita. Por isso o loadbot mantém duas coordenadas distintas:
+a posição prevista pelo client, usada nos próximos pacotes, e a última posição
+confirmada pelo servidor. `EnterWorld`, teleportes e correções `0x366`
+reconciliam ambas. Enviar uma rota nunca altera a coordenada confirmada; isto
+evita que a ferramenta apresente predição local como confirmação autoritativa.
+
 ## Métricas
 
 Com `debug_address` habilitado, consultar por túnel local:

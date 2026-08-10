@@ -105011,20 +105011,20 @@
 	Follower:	Dark_Shadow
 	RouteType:	2
 	Formation:	0
-	StartX:		19812
-	StartY:		16092
+	StartX:		1981
+	StartY:		1609
 	StartRange:	3
 	StartWait:	9
-	Segment1X:	19812
-	Segment1Y:	16092
+	Segment1X:	1981
+	Segment1Y:	1609
 	Segment1Range:	3
 	Segment1Wait:	8
-	Segment2X:	19812
-	Segment2Y:	16092
+	Segment2X:	1981
+	Segment2Y:	1609
 	Segment2Range:	3
 	Segment2Wait:	8
-	DestX:		19812
-	DestY:		16092
+	DestX:		1981
+	DestY:		1609
 	DestRange:	3
 	DestWait:	10
 

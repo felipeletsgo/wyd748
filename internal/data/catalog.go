@@ -170,8 +170,11 @@ func loadItemList(path string) (map[uint16]model.ItemDef, error) {
 			return fmt.Errorf("itemlist requer ao menos 9 colunas, recebeu %d", len(row))
 		}
 		idx, err := integer(row[0])
-		if err != nil || idx <= 0 || idx > 65535 {
+		if err != nil || idx <= 0 || idx >= model.ItemListSize {
 			return fmt.Errorf("index invalido %q", row[0])
+		}
+		if _, duplicate := items[uint16(idx)]; duplicate {
+			return fmt.Errorf("itemlist possui index duplicado %d", idx)
 		}
 		mesh, err := dotted(row[2], 2)
 		if err != nil {
@@ -228,7 +231,7 @@ func loadItemNames(path string, items map[uint16]model.ItemDef) error {
 			return fmt.Errorf("itemname requer index,nome")
 		}
 		idx, err := integer(row[0])
-		if err != nil || idx <= 0 || idx > 65535 {
+		if err != nil || idx <= 0 || idx >= model.ItemListSize {
 			return fmt.Errorf("index invalido %q", row[0])
 		}
 		if def, ok := items[uint16(idx)]; ok {
@@ -256,6 +259,9 @@ func loadSkills(path string) (map[int]model.SkillDef, error) {
 			}
 			values[i] = v
 		}
+		if values[0] < 0 || values[0] >= model.SkillListSize {
+			return fmt.Errorf("SkillData possui index fora da tabela 7.48: %d", values[0])
+		}
 		act, err := dotted(row[13], 8)
 		if err != nil {
 			return err
@@ -263,6 +269,14 @@ func loadSkills(path string) (map[int]model.SkillDef, error) {
 		actAlt, err := dotted(row[14], 8)
 		if err != nil {
 			return err
+		}
+		if _, duplicate := skills[values[0]]; duplicate {
+			return fmt.Errorf("SkillData possui index duplicado %d", values[0])
+		}
+		for i := range act {
+			if act[i] < 0 || act[i] > 255 || actAlt[i] < 0 || actAlt[i] > 255 {
+				return fmt.Errorf("SkillData skill %d possui Act[%d] fora de byte", values[0], i)
+			}
 		}
 		tail := make([]int, 7)
 		for i := range tail {

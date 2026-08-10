@@ -1,6 +1,8 @@
 package game
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -25,7 +27,7 @@ type flushStore interface {
 // chamador deve encerrar mesmo assim, mas o log dira que o drain ficou
 // incompleto.
 func (w *World) Shutdown(timeout time.Duration) bool {
-	done := make(chan struct{})
+	done := make(chan error, 1)
 	select {
 	case w.commands <- command{queuedAt: time.Now(), shutdown: done}:
 	case <-time.After(timeout):
@@ -33,7 +35,11 @@ func (w *World) Shutdown(timeout time.Duration) bool {
 		return false
 	}
 	select {
-	case <-done:
+	case err := <-done:
+		if err != nil {
+			log.Printf("desligamento: persistencia final incompleta: %v", err)
+			return false
+		}
 		return true
 	case <-time.After(timeout):
 		log.Print("desligamento: tempo esgotado durante a persistencia final")
@@ -43,9 +49,15 @@ func (w *World) Shutdown(timeout time.Duration) bool {
 
 // runShutdown persiste tudo e libera quem chamou Shutdown. Roda na goroutine do
 // World.
-func (w *World) runShutdown(done chan struct{}) {
-	defer close(done)
+func (w *World) runShutdown(done chan error) {
+	finish := func(err error) {
+		if done != nil {
+			done <- err
+			close(done)
+		}
+	}
 	if w.shuttingDown {
+		finish(w.shutdownErr)
 		return // pedido repetido: o primeiro ja gravou tudo
 	}
 	// A partir daqui nenhuma conta nova entra: um login concluido depois do
@@ -53,27 +65,42 @@ func (w *World) runShutdown(done chan struct{}) {
 	w.shuttingDown = true
 
 	saved, failed := 0, 0
-	// Deduplica por conta: dois personagens da mesma conta compartilham o
-	// ponteiro e gravariam o mesmo arquivo duas vezes.
-	seen := make(map[*model.Account]struct{}, len(w.players))
+	var failures []error
+	// A sessao normal permite um personagem por conta, mas fixtures e caminhos
+	// administrativos podem representar mais de um. Cada UID precisa do proprio
+	// charstate; deduplicar apenas pelo ponteiro da conta perderia os demais.
+	type playerStateKey struct {
+		account *model.Account
+		uid     string
+	}
+	seen := make(map[playerStateKey]struct{}, len(w.players))
 	for _, p := range w.players {
 		if p == nil || !p.InWorld || p.Account == nil || p.Char == nil {
 			continue
 		}
-		if _, repeated := seen[p.Account]; repeated {
+		key := playerStateKey{account: p.Account, uid: p.Char.UID}
+		if _, repeated := seen[key]; repeated {
 			continue
 		}
-		seen[p.Account] = struct{}{}
+		seen[key] = struct{}{}
 		// Save SINCRONO: o assincrono so enfileira, e a fila pode nao drenar a
 		// tempo. No desligamento a durabilidade vale mais que a latencia.
-		if err := w.saveAccount(p.Account); err != nil {
+		if err := w.saveAccountAndCharStateResult(p); err != nil {
 			failed++
 			log.Printf("desligamento: salvar conta %q: %v", p.Account.Name, err)
+			failures = append(failures, fmt.Errorf("conta %q: %w", p.Account.Name, err))
 			continue
 		}
 		saved++
-		// Buffs e moedas vivem no sidecar de sessao, gravado junto.
-		w.saveCharState(p)
+	}
+	if w.instanceStateDirty {
+		if err := w.persistInstanceState(); err != nil {
+			failed++
+			failures = append(failures, fmt.Errorf("estado de instancias: %w", err))
+			log.Printf("desligamento: salvar estado de instancias: %v", err)
+		} else {
+			w.instanceStateDirty = false
+		}
 	}
 
 	// Drena o que o autosave deixou enfileirado antes do sinal chegar.
@@ -81,4 +108,6 @@ func (w *World) runShutdown(done chan struct{}) {
 		fs.Flush()
 	}
 	log.Printf("desligamento: %d contas persistidas, %d falhas", saved, failed)
+	w.shutdownErr = errors.Join(failures...)
+	finish(w.shutdownErr)
 }

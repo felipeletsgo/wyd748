@@ -42,7 +42,7 @@ func (w *World) tickChaosRecovery(now time.Time) {
 		if p.Session != nil {
 			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 			w.syncPlayerChaos(p)
-			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Chaos Point aumentou para %d.", p.Char.CP)))
+			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Chaos Point increased to %d.", p.Char.CP)))
 		}
 	}
 }

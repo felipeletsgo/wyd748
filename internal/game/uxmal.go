@@ -211,20 +211,20 @@ func (w *World) startUxmal(s *net.Session, p *Player) {
 	}
 	now := w.now()
 	if !uxmalScheduleAllowed(w.uxmal, now) {
-		s.Send(wire.MessagePanel("Pista de Runas fechada. Volte nos minutos 16, 36 ou 56."))
+		s.Send(wire.MessagePanel("Rune Track is closed. Return at minutes 16, 36, or 56."))
 		return
 	}
 	members, ok := w.uxmalMembers(p)
 	if !ok {
-		s.Send(wire.MessagePanel("O lider e todos os membros devem estar na entrada da Pista."))
+		s.Send(wire.MessagePanel("The leader and every member must be at the Rune Track entrance."))
 		return
 	}
 	if len(members) > w.uxmal.MaxPlayers && w.uxmal.MaxPlayers > 0 {
-		s.Send(wire.MessagePanel("A Pista aceita no maximo 13 jogadores."))
+		s.Send(wire.MessagePanel("Rune Track accepts at most 13 players."))
 		return
 	}
 	if w.itemInstanceForPlayer(p.ID) != nil {
-		s.Send(wire.MessagePanel("Voce ja esta em uma Pista de Runas."))
+		s.Send(wire.MessagePanel("You are already inside a Rune Track."))
 		return
 	}
 	room := uxmalTicketRoom(model.Item{})
@@ -236,23 +236,23 @@ func (w *World) startUxmal(s *net.Session, p *Player) {
 		}
 	}
 	if ticketSlot < 0 {
-		s.Send(wire.MessagePanel("Voce nao possui a Pista de Runas."))
+		s.Send(wire.MessagePanel("You do not have a Rune Track ticket."))
 		return
 	}
 	for _, member := range members {
 		if w.itemInstanceForPlayer(member.ID) != nil {
-			s.Send(wire.MessagePanel("Voce ou um membro da party ja esta em outra instancia."))
+			s.Send(wire.MessagePanel("You or a party member is already inside another instance."))
 			return
 		}
 	}
 	partySlot := w.uxmalFreeSlot(room)
 	if partySlot < 0 {
-		s.Send(wire.MessagePanel("Quest ocupada."))
+		s.Send(wire.MessagePanel("The quest is currently occupied."))
 		return
 	}
 	stage, ok := w.uxmalStage(room, partySlot)
 	if !ok {
-		s.Send(wire.MessagePanel("A sala da Pista nao esta configurada."))
+		s.Send(wire.MessagePanel("The Rune Track room is not configured."))
 		return
 	}
 	oldTicket := p.Char.Inv[ticketSlot]
@@ -277,7 +277,7 @@ func (w *World) startUxmal(s *net.Session, p *Player) {
 		delete(w.itemInstances, inst.RuntimeID)
 		p.Char.Inv[ticketSlot] = oldTicket
 		s.Send(wire.SendItem(p.ID, placeInv, byte(ticketSlot), oldTicket))
-		s.Send(wire.MessagePanel("A sala da Pista nao pode ser aberta agora."))
+		s.Send(wire.MessagePanel("The Rune Track room cannot be opened right now."))
 		return
 	}
 	for mobID := range inst.MobIDs {
@@ -414,7 +414,7 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 	for _, id := range inst.MemberIDs {
 		if member := w.playersByID[id]; member != nil && member.InWorld {
 			member.Session.Send(wire.UpdateEtc(member.ID, *member.Char))
-			member.Session.Send(wire.MessagePanel("Pista concluida: runa recebida."))
+			member.Session.Send(wire.MessagePanel("Rune Track completed: rune received."))
 		}
 	}
 	inst.RewardGranted = true

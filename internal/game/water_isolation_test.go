@@ -191,9 +191,7 @@ func TestSummonsInheritRuntimeAndCannotTargetAnotherRuntime(t *testing.T) {
 	}
 	contract := &model.VolatileSummon{Name: "Knight", Face: 300, HP: 500,
 		Attack: 100, Defense: 100, MoveSpeed: 4, AttackRange: 1}
-	if !w.replaceContractSummon(owner, contract) {
-		t.Fatal("summon de contrato nao foi criado")
-	}
+	mustCommitContractSummon(t, w, owner, contract)
 	for _, summon := range w.summons {
 		if summon.SummonerID == owner.ID && summon.InstanceID != "water-a" {
 			t.Fatalf("summon nao herdou runtime do dono: %q", summon.InstanceID)

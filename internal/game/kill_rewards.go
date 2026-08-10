@@ -29,6 +29,7 @@ type killRewardPlan struct {
 	bossState                   *bossSpawnState
 	generatorSlot               int
 	generatorCounterShouldLower bool
+	mobHPBeforeDeath            uint32
 }
 
 type killPlayerSnapshot struct {
@@ -79,6 +80,13 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 		expByPlayer:    make(map[*Player]uint32, len(shares)),
 		leveledUp:      make(map[*Player]bool, len(shares)),
 		cytheraChanged: make(map[*Player]bool, len(shares)), generatorSlot: -1,
+	}
+	plan.mobHPBeforeDeath = m.HP
+	if plan.mobHPBeforeDeath == 0 {
+		// Normal callers reach this function after applying the lethal hit. Keep
+		// the exact amount removed so a failed durable commit can restore the
+		// encounter instead of advancing an instance without its reward state.
+		plan.mobHPBeforeDeath = appliedDamage
 	}
 	seen := make(map[*Player]struct{}, len(shares)+1)
 	for _, player := range append([]*Player{p}, playersFromShares(shares)...) {
@@ -194,7 +202,14 @@ func (w *World) commitKillRewardBatch(p *Player, plans []*killRewardPlan,
 			plans[i].rollback()
 		}
 		for _, plan := range plans {
-			w.finalizeKillReward(plan, false)
+			if plan == nil || plan.mob == nil || plan.mob.Def == nil || plan.mob.Def.Extended == nil {
+				continue
+			}
+			m := plan.mob
+			w.sendToMobView(m, func() []byte {
+				return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
+					m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
+			})
 		}
 		log.Printf("persistir %s: %v", operation, err)
 		w.poisonAccountsAfterPersistenceFailure(accounts, operation, err)
@@ -217,6 +232,14 @@ func (plan *killRewardPlan) rollback() {
 	for _, snapshot := range plan.snapshots {
 		if snapshot.player != nil && snapshot.player.Char != nil {
 			*snapshot.player.Char = cloneCharacterState(&snapshot.char)
+		}
+	}
+	if plan.mob != nil {
+		plan.mob.Dead = false
+		plan.mob.HP = plan.mobHPBeforeDeath
+		if plan.mob.Def != nil && plan.mob.Def.Extended != nil &&
+			plan.mob.HP > plan.mob.Def.Extended.MaxHP {
+			plan.mob.HP = plan.mob.Def.Extended.MaxHP
 		}
 	}
 }

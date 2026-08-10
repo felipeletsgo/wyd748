@@ -1,6 +1,8 @@
 package game
 
 import (
+	"errors"
+	"reflect"
 	"testing"
 
 	"wydgo/internal/model"
@@ -244,6 +246,86 @@ func TestQuestRepetivelNaoMarcaConclusao(t *testing.T) {
 	}
 	if p.X != 2398 || p.Y != 2105 {
 		t.Fatalf("portal nao teleportou: (%d,%d)", p.X, p.Y)
+	}
+}
+
+func TestQuestPersistsAccountAndCountersAtomicallyBeforeTeleport(t *testing.T) {
+	w := newZoneTestWorld()
+	st := &atomicCharStateMemoryStore{}
+	w.store = st
+	p := addZonePlayer(w, 1, 2100, 2100, 500)
+	p.Char.UID = "quest-character"
+	quest := simpleQuest(77, "Keeper")
+	quest.Rewards.Counters = map[string]uint32{"kefra_ticket": 3}
+	quest.Rewards.Teleport = &model.QuestTeleport{X: 2200, Y: 2201}
+
+	w.executeQuest(p.Session, p, &Mob{}, &quest)
+
+	if st.atomicSaves != 1 || st.syncSaves != 0 || st.saves != 0 {
+		t.Fatalf("quest nao usou fronteira atomica unica: atomic=%d charstate=%d account=%d",
+			st.atomicSaves, st.syncSaves, st.saves)
+	}
+	if st.lastUID != p.Char.UID || st.state == nil || st.state.SpecialCoins["kefra_ticket"] != 3 {
+		t.Fatalf("contador nao participou do commit atomico: uid=%q state=%+v", st.lastUID, st.state)
+	}
+	if st.accountSnapshot == nil || !questCompleted(&st.accountSnapshot.Chars[0], quest.ID) {
+		t.Fatalf("conta persistida sem conclusao da quest: %+v", st.accountSnapshot)
+	}
+	if p.X != 2200 || p.Y != 2201 {
+		t.Fatalf("teleporte nao foi publicado apos o commit: (%d,%d)", p.X, p.Y)
+	}
+}
+
+func TestQuestAtomicFailureRestoresEveryMutation(t *testing.T) {
+	w := newZoneTestWorld()
+	st := &atomicCharStateMemoryStore{atomicErr: errors.New("database unavailable")}
+	w.store = st
+	p := addZonePlayer(w, 1, 2100, 2100, 500)
+	p.Char.UID = "quest-character"
+	p.Char.Gold = 100
+	p.Char.Inv[0] = model.Item{Index: 700}
+	p.SpecialCoins = map[string]uint32{"entry": 2}
+	before := cloneCharacterState(p.Char)
+	beforeCounters := copyCounters(p)
+	quest := simpleQuest(78, "Keeper")
+	quest.Requires.Gold = 25
+	quest.Consumes = []model.QuestItem{{Index: 700}}
+	quest.ConsumeCounters = map[string]uint32{"entry": 1}
+	quest.Rewards.Gold = 50
+	quest.Rewards.Items = []model.QuestItem{{Index: 701}}
+	quest.Rewards.Counters = map[string]uint32{"reward": 4}
+	quest.Rewards.Teleport = &model.QuestTeleport{X: 2200, Y: 2201}
+
+	w.executeQuest(p.Session, p, &Mob{}, &quest)
+
+	if !reflect.DeepEqual(*p.Char, before) || p.X != 2100 || p.Y != 2100 ||
+		!reflect.DeepEqual(p.SpecialCoins, beforeCounters) {
+		t.Fatalf("falha atomica deixou estado parcial: char=%+v counters=%v pos=(%d,%d)",
+			p.Char, p.SpecialCoins, p.X, p.Y)
+	}
+	if st.atomicSaves != 1 || questCompleted(p.Char, quest.ID) {
+		t.Fatalf("falha de persistencia confirmou quest: saves=%d done=%v", st.atomicSaves, p.Char.QuestsDone)
+	}
+}
+
+func TestQuestMutationFailureAlsoRestoresCounters(t *testing.T) {
+	w := newZoneTestWorld()
+	p := addZonePlayer(w, 1, 2100, 2100, 500)
+	for i := range p.Char.Inv {
+		p.Char.Inv[i] = model.Item{Index: uint16(1000 + i)}
+	}
+	p.SpecialCoins = map[string]uint32{"entry": 1}
+	beforeInv := p.Char.Inv
+	beforeCounters := copyCounters(p)
+	quest := simpleQuest(79, "Keeper")
+	quest.ConsumeCounters = map[string]uint32{"entry": 1}
+	quest.Rewards.Counters = map[string]uint32{"reward": 5}
+	quest.Rewards.Items = []model.QuestItem{{Index: 900}}
+
+	w.executeQuest(p.Session, p, &Mob{}, &quest)
+
+	if p.Char.Inv != beforeInv || !reflect.DeepEqual(p.SpecialCoins, beforeCounters) {
+		t.Fatalf("falha antes do save deixou mutacao parcial: counters=%v", p.SpecialCoins)
 	}
 }
 

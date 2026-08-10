@@ -25,7 +25,7 @@ type command struct {
 	// shutdown, quando presente, pede o desligamento controlado. E um comando
 	// como qualquer outro justamente para rodar NA goroutine do World: assim o
 	// drain final enxerga o estado consistente, sem concorrer com um handler.
-	shutdown chan struct{}
+	shutdown chan error
 }
 
 type loginResult struct {
@@ -428,6 +428,9 @@ type World struct {
 	// shuttingDown fica true depois do desligamento controlado (shutdown.go):
 	// o estado ja foi persistido, entao nenhuma entrada nova e aceita.
 	shuttingDown bool
+	// shutdownErr preserva o resultado do primeiro drain. Pedidos repetidos nao
+	// podem transformar uma falha real de persistencia em sucesso aparente.
+	shutdownErr error
 	// bosses guarda o comportamento extra dos bosses, indexado pelo ID do mob
 	// (boss.go). Todo boss TAMBEM esta em mobs/mobsByID e se comporta como um
 	// mob comum em grid, visibilidade e combate. Mapa vazio = custo zero para

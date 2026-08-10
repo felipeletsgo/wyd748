@@ -72,13 +72,6 @@ func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "muitas tentativas; aguarde um minuto"})
 		return
 	}
-	select {
-	case h.hashSlots <- struct{}{}:
-		defer func() { <-h.hashSlots }()
-	default:
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "servico ocupado; tente novamente"})
-		return
-	}
 	r.Body = http.MaxBytesReader(w, r.Body, 4096)
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
@@ -93,6 +86,15 @@ func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := dec.Decode(&struct{}{}); err != io.EOF {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "envie somente um objeto JSON"})
+		return
+	}
+	// O slot caro protege apenas PBKDF2/consulta de unicidade. Reservá-lo antes
+	// de ler o corpo permitiria que um upload lento bloqueasse toda a criação.
+	select {
+	case h.hashSlots <- struct{}{}:
+		defer func() { <-h.hashSlots }()
+	default:
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "servico ocupado; tente novamente"})
 		return
 	}
 	acc, err := account.Create(h.store, req.Username, req.Password, req.PasswordConfirmation)
