@@ -28,6 +28,13 @@ func TestRemoteIPStripsPort(t *testing.T) {
 	}
 }
 
+func TestTestSessionExposesConfiguredRemoteIP(t *testing.T) {
+	s := NewTestSessionWithRemoteIP(1, 1, "192.0.2.44")
+	if got := s.RemoteIP(); got != "192.0.2.44" {
+		t.Fatalf("RemoteIP=%q", got)
+	}
+}
+
 type testAddr string
 
 func (a testAddr) Network() string { return "tcp" }

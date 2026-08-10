@@ -18,6 +18,10 @@ world_command_queue_capacity=1024
 auth_hash_concurrency=4
 max_connections=1200
 max_connections_per_ip=64
+# Limite de janelas que chegaram a autenticar pelo mesmo IP publico. Mantido
+# separado dos sockets pre-auth para quatro conexoes incompletas nao bloquearem
+# os logins legitimos da residencia.
+max_authenticated_clients_per_ip=4
 handshake_timeout_seconds=5
 session_idle_timeout_seconds=600
 frame_read_timeout_seconds=10
@@ -30,6 +34,8 @@ chat_whisper_per_10_seconds=8
 chat_global_per_10_seconds=2
 critical_persistence_timeout_ms=500
 channel_id=1
+# Regras CIDR locais de allow/deny/limit. O login nunca consulta API externa.
+network_admission=data/network_admission.json
 
 # Log do gerador: quiet, summary ou verbose
 npcgener_log=summary

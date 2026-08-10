@@ -42,6 +42,7 @@ func tick() uint32 {
 type Session struct {
 	ID                      int64
 	conn                    stdnet.Conn
+	remoteIP                string
 	out                     chan []byte
 	done                    chan struct{}
 	doneOnce                sync.Once
@@ -106,6 +107,15 @@ func NewTestSession(id int64, bufSize int) *Session {
 	return &Session{ID: id, out: make(chan []byte, bufSize), done: make(chan struct{})}
 }
 
+// NewTestSessionWithRemoteIP cria uma sessao de teste com a origem que o
+// listener de producao registraria. Isso permite testar limites por IP sem
+// expor uma conexao falsa nem confiar em campos de packet.
+func NewTestSessionWithRemoteIP(id int64, bufSize int, remoteIP string) *Session {
+	return &Session{
+		ID: id, remoteIP: remoteIP, out: make(chan []byte, bufSize), done: make(chan struct{}),
+	}
+}
+
 // QueuedPacketsForTest informa quantos pacotes NewTestSession recebeu. O
 // conteudo permanece cifrado na fila; testes de game usam apenas a contagem
 // para detectar envios extras que alteram estado visual, como CreateMob.
@@ -128,6 +138,12 @@ func (s *Session) RemoteAddr() string {
 // autenticacao nunca devem usar a string host:port, pois a porta muda em toda
 // tentativa e tornaria o limitador ineficaz.
 func (s *Session) RemoteIP() string {
+	if s == nil {
+		return ""
+	}
+	if s.remoteIP != "" {
+		return s.remoteIP
+	}
 	addr := s.RemoteAddr()
 	host, _, err := stdnet.SplitHostPort(addr)
 	if err != nil {

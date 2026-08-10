@@ -93,6 +93,7 @@ func ListenWithConfig(addr string, cfg ListenerConfig, onConn func(*Session)) er
 		s := &Session{
 			ID:                      connSeq.Add(1),
 			conn:                    c,
+			remoteIP:                ip,
 			out:                     make(chan []byte, cfg.OutputQueueSize),
 			done:                    make(chan struct{}),
 			handshakeTimeout:        cfg.HandshakeTimeout,

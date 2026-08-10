@@ -74,6 +74,8 @@ func main() {
 	npcPath := flag.String("npcs", cfg.NPCPath, "pasta de NPCs (um .json por NPC)")
 	generPath := flag.String("gener", cfg.GeneratorPath, "arquivo padrao de spawn NPCGener.txt")
 	teleportPath := flag.String("teleports", cfg.TeleportPath, "arquivo server-side de portais")
+	networkAdmissionPath := flag.String("network-admission", cfg.NetworkAdmissionPath,
+		"politica server-side de redes VPS/VPN/datacenter")
 	accDir := flag.String("accounts", cfg.AccountsPath, "diretorio de contas")
 	guildsPath := flag.String("guilds", cfg.GuildsPath, "registro de guilds (guilds.json)")
 	guildsTxtPath := flag.String("guilds-txt", cfg.GuildsTxtPath, "Guilds.txt exportado para o client 7.48")
@@ -125,6 +127,12 @@ func main() {
 		log.Fatalf("carregar teleportes (%s): %v", *teleportPath, err)
 	}
 	log.Printf("%d teleportes carregados de %s", len(teleports), *teleportPath)
+
+	networkAdmission, err := data.LoadNetworkAdmission(*networkAdmissionPath)
+	if err != nil {
+		log.Fatalf("carregar politica de admissao de rede (%s): %v", *networkAdmissionPath, err)
+	}
+	log.Printf("politica de admissao de rede: %d faixa(s) carregada(s)", len(networkAdmission.Rules))
 
 	catalog, err := data.LoadCatalog(*itemPath, *itemNamePath, *itemEffectPath, *skillPath)
 	if err != nil {
@@ -232,9 +240,11 @@ func main() {
 	worldOptions := []game.WorldOption{
 		game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),
+		game.WithNetworkAdmission(networkAdmission),
 		game.WithOperationalConfig(game.OperationalConfig{
 			AuthAttemptsPerMinuteIP:      int(cfg.AuthAttemptsPerMinIP),
 			AuthAttemptsPerMinuteAccount: int(cfg.AuthAttemptsPerMinAccount),
+			MaxAuthenticatedClientsPerIP: int(cfg.MaxAuthenticatedClientsPerIP),
 			AuthHashConcurrency:          int(cfg.AuthHashConcurrency),
 			WorldCommandQueueCapacity:    int(cfg.WorldCommandQueueCapacity),
 			ChatLocalPer10Seconds:        int(cfg.ChatLocalPer10Secs),

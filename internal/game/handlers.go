@@ -125,6 +125,13 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	accountName := cstr(pkt[12:28])
 	password := cstr(pkt[28:40])
 	cliver := binary.LittleEndian.Uint32(pkt[40:44])
+	if rule, denied := w.networkDenied(s); denied {
+		log.Printf("[#%d] LOGIN recusado antes do auth ip=%q: politica de rede (%s)",
+			s.ID, s.RemoteIP(), rule.Reason)
+		s.Send(wire.MessagePanel("Connections from this network are not allowed."))
+		time.AfterFunc(300*time.Millisecond, s.Close)
+		return
+	}
 	if !w.allowLoginAttempt(s.RemoteIP(), accountName, w.now()) {
 		log.Printf("[#%d] LOGIN limitado conta=%q ip=%q", s.ID, accountName, s.RemoteIP())
 		s.Send(wire.MessagePanel("Too many login attempts. Try again later."))
@@ -152,6 +159,9 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		return
 	}
 	delete(w.authPending, s)
+	if s.IsClosed() {
+		return
+	}
 	if result.err != nil {
 		if errors.Is(result.err, account.ErrInvalidCredentials) {
 			log.Printf("[#%d] LOGIN recusado conta=%q", s.ID, result.accountName)
@@ -163,9 +173,25 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		return
 	}
 	acc := result.account
+	if rule, denied := w.networkDenied(s); denied {
+		log.Printf("[#%d] LOGIN recusado conta=%q ip=%q: politica de rede (%s)",
+			s.ID, acc.Name, s.RemoteIP(), rule.Reason)
+		s.Send(wire.MessagePanel("Connections from this network are not allowed."))
+		time.AfterFunc(300*time.Millisecond, s.Close)
+		return
+	}
 	if !w.claimAccountSession(s, acc.Name) {
 		log.Printf("[#%d] LOGIN recusado conta=%q: conta ja conectada", s.ID, acc.Name)
 		s.Send(wire.AlreadyPlaying())
+		time.AfterFunc(300*time.Millisecond, s.Close)
+		return
+	}
+	if !w.claimAuthenticatedClientSlot(s) {
+		w.releaseAccountSession(s, acc)
+		log.Printf("[#%d] LOGIN recusado conta=%q ip=%q: limite de %d clients autenticados",
+			s.ID, acc.Name, s.RemoteIP(), w.authenticatedClientLimitFor(s))
+		s.Send(wire.MessagePanel("Only " + strconv.Itoa(w.authenticatedClientLimitFor(s)) +
+			" game clients are allowed from the same network."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
@@ -177,6 +203,7 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	// interessa o estado de jogo, que passa a vir do arquivo mais recente.
 	if fresh, err := w.store.LoadAccount(acc.Name); err != nil {
 		w.releaseAccountSession(s, acc)
+		w.releaseAuthenticatedClientSlot(s)
 		log.Printf("[#%d] LOGIN erro ao recarregar conta %q: %v", s.ID, acc.Name, err)
 		s.Send(wire.MessagePanel("Error loading the account. Try again."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
@@ -1648,6 +1675,7 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 func (w *World) onDisconnect(s *net.Session) {
 	delete(w.authPending, s)
 	delete(w.security, s)
+	w.releaseAuthenticatedClientSlot(s)
 	if p, ok := w.players[s]; ok {
 		// Conta e charstate formam um unico aggregate no PostgreSQL. No
 		// disconnect fisico nao ha resposta a segurar, mas uma falha precisa

@@ -619,6 +619,29 @@ vagas de `authSlots`, autentica em goroutine e devolve `loginResult` pelo canal 
 comandos. Se as vagas estiverem ocupadas, responde “Servidor de login ocupado”.
 Toda mutação de sessão/conta continua ocorrendo somente no World.
 
+Depois da senha correta, o World admite no máximo quatro clients autenticados
+por IP público (`max_authenticated_clients_per_ip`). O limite de sockets
+pré-autenticação permanece separado: assim quatro handshakes incompletos não
+ocupam as vagas de jogo. Logout, disconnect e socket morto liberam a vaga. A
+configuração de load test aumenta explicitamente esse limite para os bots
+locais. Endereços IPv6 são agrupados pelo prefixo `/64`, impedindo que endereços
+temporários da mesma máquina/rede contornem o limite.
+
+Faixas de VPS, VPN, proxy e datacenter podem ser classificadas localmente em
+`data/network_admission.json`. A regra mais específica vence: `deny` bloqueia
+antes do PBKDF2, `allow` cria exceção dentro de uma faixa ampla e `limit` reduz
+o número de clients daquela rede sem poder elevar o teto global. O boot rejeita
+CIDR duplicado, não canônico ou ação inválida. Não há consulta externa no
+caminho de login. Formato e operação estão em `DOCS/NETWORK_ADMISSION.md`.
+
+O client 7.48 envia o `0x20D` com 116 bytes, mas o campo de 18 bytes que sources
+posteriores chamam de MAC vem zerado nesta versão (confirmado no layout adaptado
+do W2PP). Além disso, MAC real não atravessa roteadores. Por isso o servidor não
+trata bytes declarados pelo client como identidade de máquina: seriam
+facilmente falsificáveis. Um limite durável por hardware exigiria launcher ou
+anti-cheat com atestação autenticada; o controle atual usa o IP observado pela
+conexão TCP.
+
 ### Combate (dano portado do W2PP `Basedef.cpp`)
 
 Regra: dano FÍSICO cresce com FORÇA e DESTREZA; MÁGICO com INTELIGÊNCIA. (`internal/game/combat.go`.)

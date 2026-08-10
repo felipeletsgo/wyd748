@@ -41,7 +41,8 @@ The server processes more than 80 packet types.
 - **Server-side security** — The 7.48 client is treated as untrusted. The server
   validates framing, checksum, packet size and session phase; rate-limits input;
   limits pre-auth TCP connections per IP, deadlines InitCode and partial frames,
-  rejects unknown C→S opcodes before dispatch, verifies movement routes, terrain
+  applies a local CIDR policy for VPS/VPN/datacenter ranges, rejects unknown
+  C→S opcodes before dispatch, verifies movement routes, terrain
   and line of sight; calculates damage,
   critical hits and cooldowns; and persists item/economy mutations before
   confirming them. Replayed or forged WPE packets cannot become game authority.
@@ -50,7 +51,9 @@ The server has these systems. The server has authority on each system.
 
 - **Accounts** — The server hashes each password with PBKDF2. It gives an HTTP
   signup interface and a local command-line tool. It refuses a second login of
-  the same account. The server does not keep a password as plain text.
+  the same account and limits one public IP to four authenticated game clients.
+  Pre-auth socket limits remain separate, so incomplete handshakes cannot use
+  the four gameplay slots. The server does not keep a password as plain text.
 - **Characters** — Each account can make four characters in four classes. The
   server checks each name. It gives the start layout, items, statistics, and
   spawn position from data files.
@@ -346,7 +349,11 @@ them.
 | `boss/*.lua` | one boss encounter for each file |
 | `guilds.json` + `Guilds.txt` | guild registry and 7.48 client name list |
 | `droprate.json` | loot table weights |
+| `network_admission.json` | local allow/deny/per-network client limits for VPS, VPN, and datacenter CIDRs |
 | `server.txt` | server configuration and gameplay rules |
+
+`go run ./cmd/network-admission` compiles reviewed text/JSON CIDR feeds into
+`network_admission.json` without adding network access to the login path.
 
 ## Roadmap
 

@@ -1159,6 +1159,26 @@ elo Water Macro; a saída final versionada é
   2. uma conta **não entra duas vezes** ao mesmo tempo (`claimAccountSession`,
      coberto por `TestAccountSessionIsExclusiveCaseInsensitive`).
 
+  A admissão também limita a quatro as sessões autenticadas por IP público. A
+  reserva acontece somente depois da senha correta, é separada do limite de
+  sockets pré-auth e é liberada no logout/desconexão. O 7.48 não fornece MAC
+  confiável no login; bytes de hardware enviados pelo client não são usados
+  como autoridade.
+
+  A camada server-side também carrega `data/network_admission.json`: regras
+  CIDR `deny`, `allow` e `limit` são validadas estritamente, usam precedência do
+  prefixo mais específico e não consultam serviços externos no login. Uma rede
+  negada é recusada antes do PBKDF2; limites por faixa somente reduzem o teto
+  global. A lista versionada começa vazia até o operador escolher uma fonte de
+  reputação de VPS/VPN. Detecção de VM depende da futura etapa autenticada do
+  client e não é declarada como entregue.
+
+  O utilitário offline `cmd/network-admission` importa feeds texto/JSON,
+  normaliza e deduplica CIDRs, substitui somente a `source` atualizada, recusa
+  conflitos entre fontes e grava a política atomicamente. Ele não realiza
+  downloads: obtenção e revisão do feed permanecem uma operação administrativa
+  fora do processo do jogo.
+
   Daí decorre no máximo **um homônimo online**, e as buscas por nome (sussurro,
   convite de grupo, guild) **não precisam de desempate** — a limitação que
   constava aqui não existia. Se algum dos dois invariantes cair, essas buscas

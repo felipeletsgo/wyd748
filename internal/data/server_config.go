@@ -31,6 +31,7 @@ type ServerConfig struct {
 	InboundBytesPerSec           uint32
 	AuthAttemptsPerMinIP         uint32
 	AuthAttemptsPerMinAccount    uint32
+	MaxAuthenticatedClientsPerIP uint32
 	ChatLocalPer10Secs           uint32
 	ChatWhisperPer10Secs         uint32
 	ChatGlobalPer10Secs          uint32
@@ -58,6 +59,7 @@ type ServerConfig struct {
 	HeightMapPath                string
 	AttributeMapPath             string
 	TeleportPath                 string
+	NetworkAdmissionPath         string
 	NPCGenerLog                  string
 	// DebugAddress e o endereco do servidor de diagnostico (expvar em
 	// /debug/vars e pprof em /debug/pprof). Vazio = desligado, que e o padrao.
@@ -90,6 +92,7 @@ func DefaultServerConfig() ServerConfig {
 		InboundBytesPerSec:           512 * 1024,
 		AuthAttemptsPerMinIP:         30,
 		AuthAttemptsPerMinAccount:    10,
+		MaxAuthenticatedClientsPerIP: 4,
 		ChatLocalPer10Secs:           8,
 		ChatWhisperPer10Secs:         8,
 		ChatGlobalPer10Secs:          2,
@@ -117,6 +120,7 @@ func DefaultServerConfig() ServerConfig {
 		HeightMapPath:                "data/maps/HeightMap.dat",
 		AttributeMapPath:             "data/maps/AttributeMap.dat",
 		TeleportPath:                 "data/teleports.ini",
+		NetworkAdmissionPath:         "data/network_admission.json",
 		NPCGenerLog:                  "summary",
 		DebugAddress:                 "", // diagnostico desligado por padrao
 		LoadtestAccountPrefix:        "",
@@ -178,6 +182,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"inbound_bytes_per_second":         setUint32(&cfg.InboundBytesPerSec),
 		"auth_attempts_per_minute_ip":      setUint32(&cfg.AuthAttemptsPerMinIP),
 		"auth_attempts_per_minute_account": setUint32(&cfg.AuthAttemptsPerMinAccount),
+		"max_authenticated_clients_per_ip": setUint32(&cfg.MaxAuthenticatedClientsPerIP),
 		"chat_local_per_10_seconds":        setUint32(&cfg.ChatLocalPer10Secs),
 		"chat_whisper_per_10_seconds":      setUint32(&cfg.ChatWhisperPer10Secs),
 		"chat_global_per_10_seconds":       setUint32(&cfg.ChatGlobalPer10Secs),
@@ -205,6 +210,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"heightmap":                        func(v string) error { cfg.HeightMapPath = v; return nil },
 		"attributemap":                     func(v string) error { cfg.AttributeMapPath = v; return nil },
 		"teleports":                        func(v string) error { cfg.TeleportPath = v; return nil },
+		"network_admission":                func(v string) error { cfg.NetworkAdmissionPath = v; return nil },
 		"npcgener_log":                     func(v string) error { cfg.NPCGenerLog = strings.ToLower(v); return nil },
 		"debug_address":                    func(v string) error { cfg.DebugAddress = v; return nil },
 		"loadtest_spawn":                   setSpawn(&cfg.LoadtestSpawn),
@@ -286,6 +292,9 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	}
 	if cfg.MaxConnectionsPerIP == 0 || cfg.MaxConnectionsPerIP > cfg.MaxConnections {
 		return ServerConfig{}, fmt.Errorf("%s: max_connections_per_ip deve ficar entre 1 e max_connections", path)
+	}
+	if cfg.MaxAuthenticatedClientsPerIP == 0 || cfg.MaxAuthenticatedClientsPerIP > cfg.MaxConnectionsPerIP {
+		return ServerConfig{}, fmt.Errorf("%s: max_authenticated_clients_per_ip deve ficar entre 1 e max_connections_per_ip", path)
 	}
 	if cfg.HandshakeTimeoutSecs == 0 || cfg.HandshakeTimeoutSecs > 60 {
 		return ServerConfig{}, fmt.Errorf("%s: handshake_timeout_seconds deve ficar entre 1 e 60", path)

@@ -2,6 +2,7 @@ package game
 
 import (
 	"errors"
+	"net/netip"
 	"testing"
 
 	"wydgo/internal/account"
@@ -80,7 +81,7 @@ func TestLoginResultRejectsAuthErrorDuplicateAndReloadFailure(t *testing.T) {
 			accountName: "Felipe", err: account.ErrInvalidCredentials,
 		})
 		if w.players[session] != nil || w.authPending[session] ||
-			session.QueuedPacketsForTest() == 0 {
+			len(w.authClientsByIP) != 0 || session.QueuedPacketsForTest() == 0 {
 			t.Fatal("credencial invalida nao foi recusada/avisada")
 		}
 	})
@@ -95,7 +96,7 @@ func TestLoginResultRejectsAuthErrorDuplicateAndReloadFailure(t *testing.T) {
 			accountName: "Felipe", account: loginTestAccount(),
 		})
 		if st.loads != 0 || w.players[session] != nil ||
-			session.QueuedPacketsForTest() == 0 {
+			len(w.authClientsByIP) != 0 || session.QueuedPacketsForTest() == 0 {
 			t.Fatal("segunda sessao nao foi bloqueada antes do reload")
 		}
 	})
@@ -108,8 +109,47 @@ func TestLoginResultRejectsAuthErrorDuplicateAndReloadFailure(t *testing.T) {
 			accountName: "Felipe", account: loginTestAccount(),
 		})
 		if st.loads != 1 || w.players[session] != nil ||
-			len(w.accountSessions) != 0 || session.QueuedPacketsForTest() == 0 {
+			len(w.accountSessions) != 0 || len(w.authClientsByIP) != 0 ||
+			session.QueuedPacketsForTest() == 0 {
 			t.Fatal("falha de reload nao liberou reserva/avisou o client")
+		}
+	})
+
+	t.Run("limite de janelas", func(t *testing.T) {
+		session := gameNet.NewTestSessionWithRemoteIP(5, 16, "198.51.100.30")
+		st := &loginReloadStore{account: loginTestAccount()}
+		w := loginResultWorld(st, session)
+		w.operational.MaxAuthenticatedClientsPerIP = 4
+		for id := int64(1); id <= 4; id++ {
+			active := gameNet.NewTestSessionWithRemoteIP(id, 1, "198.51.100.30")
+			if !w.claimAuthenticatedClientSlot(active) {
+				t.Fatal("fixture nao conseguiu preencher as quatro vagas")
+			}
+		}
+		w.onLoginResult(session, &loginResult{
+			accountName: "Felipe", account: loginTestAccount(),
+		})
+		if st.loads != 0 || w.players[session] != nil ||
+			len(w.accountSessions) != 0 || session.QueuedPacketsForTest() == 0 {
+			t.Fatal("quinta janela nao foi recusada antes de carregar/publicar a conta")
+		}
+	})
+
+	t.Run("rede bloqueada", func(t *testing.T) {
+		session := gameNet.NewTestSessionWithRemoteIP(1, 16, "203.0.113.50")
+		st := &loginReloadStore{account: loginTestAccount()}
+		w := loginResultWorld(st, session)
+		WithNetworkAdmission(model.NetworkAdmissionFile{
+			Version: model.NetworkAdmissionVersion,
+			Rules: []model.NetworkAdmissionRule{{
+				CIDR: netip.MustParsePrefix("203.0.113.0/24"), Action: model.NetworkAdmissionDeny,
+				Reason: "hosting provider",
+			}},
+		})(w)
+		w.onLoginResult(session, &loginResult{accountName: "Felipe", account: loginTestAccount()})
+		if st.loads != 0 || w.players[session] != nil || len(w.accountSessions) != 0 ||
+			len(w.authClientsByIP) != 0 || session.QueuedPacketsForTest() == 0 {
+			t.Fatal("rede bloqueada chegou ao reload/reserva da conta")
 		}
 	})
 

@@ -13,6 +13,7 @@ import (
 type OperationalConfig struct {
 	AuthAttemptsPerMinuteIP      int
 	AuthAttemptsPerMinuteAccount int
+	MaxAuthenticatedClientsPerIP int
 	AuthHashConcurrency          int
 	WorldCommandQueueCapacity    int
 	ChatLocalPer10Seconds        int
@@ -25,6 +26,7 @@ func DefaultOperationalConfig() OperationalConfig {
 	return OperationalConfig{
 		AuthAttemptsPerMinuteIP:      30,
 		AuthAttemptsPerMinuteAccount: 10,
+		MaxAuthenticatedClientsPerIP: 4,
 		AuthHashConcurrency:          4,
 		WorldCommandQueueCapacity:    1024,
 		ChatLocalPer10Seconds:        8,
@@ -43,6 +45,9 @@ func (c OperationalConfig) Validate() error {
 		if value < 1 || value > 1000 {
 			return fmt.Errorf("%s fora do intervalo 1..1000", name)
 		}
+	}
+	if c.MaxAuthenticatedClientsPerIP < 1 || c.MaxAuthenticatedClientsPerIP > 10000 {
+		return fmt.Errorf("clients autenticados por IP fora do intervalo 1..10000")
 	}
 	if c.ChannelID == 0 {
 		return fmt.Errorf("channel ID deve ser maior que zero")

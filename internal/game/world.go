@@ -341,9 +341,12 @@ type World struct {
 	playersByCharacterUID map[string]*Player
 	playersByName         map[string]*Player
 	accountSessions       map[string]*net.Session
+	authClientsByIP       map[string]map[*net.Session]struct{}
 	authPending           map[*net.Session]bool
 	authSlots             chan struct{}
 	operational           OperationalConfig
+	networkAdmission      compiledNetworkAdmission
+	networkAdmissionErr   error
 	authRateByIP          map[string]*fixedWindowRate
 	authRateByAccount     map[string]*fixedWindowRate
 	chatRateByAccount     map[string]*fixedWindowRate
@@ -494,6 +497,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		playersByCharacterUID:  make(map[string]*Player),
 		playersByName:          make(map[string]*Player),
 		accountSessions:        make(map[string]*net.Session),
+		authClientsByIP:        make(map[string]map[*net.Session]struct{}),
 		authPending:            make(map[*net.Session]bool),
 		operational:            DefaultOperationalConfig(),
 		authRateByIP:           make(map[string]*fixedWindowRate),
@@ -544,6 +548,9 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	}
 	if err := w.operational.Validate(); err != nil {
 		return nil, fmt.Errorf("configuracao operacional: %w", err)
+	}
+	if w.networkAdmissionErr != nil {
+		return nil, w.networkAdmissionErr
 	}
 	// Nenhum produtor conhece o World antes de NewWorld retornar. Portanto e
 	// seguro materializar aqui as capacidades operacionais escolhidas pelas

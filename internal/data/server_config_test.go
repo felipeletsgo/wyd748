@@ -228,8 +228,30 @@ func TestDefaultServerConfigUsesPackagedMapsAndNoInlineDatabaseURL(t *testing.T)
 	if cfg.DatabaseURL != "" || cfg.DatabaseURLEnv != "WYD_DATABASE_URL" {
 		t.Fatalf("PostgreSQL padrao deve usar somente ambiente: url=%q env=%q", cfg.DatabaseURL, cfg.DatabaseURLEnv)
 	}
+	if cfg.NetworkAdmissionPath != "data/network_admission.json" {
+		t.Fatalf("politica de rede padrao=%q", cfg.NetworkAdmissionPath)
+	}
 	if cfg.WorldCommandQueueCapacity != 1024 || cfg.AuthHashConcurrency != 4 {
 		t.Fatalf("limites operacionais inesperados: world_queue=%d auth_hash=%d",
 			cfg.WorldCommandQueueCapacity, cfg.AuthHashConcurrency)
+	}
+	if cfg.MaxAuthenticatedClientsPerIP != 4 {
+		t.Fatalf("limite padrao de janelas por IP=%d, quer 4", cfg.MaxAuthenticatedClientsPerIP)
+	}
+}
+
+func TestLoadServerConfigParsesAndValidatesAuthenticatedClientLimit(t *testing.T) {
+	cfg, err := LoadServerConfig(writeServerConfig(t, "max_authenticated_clients_per_ip=3\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.MaxAuthenticatedClientsPerIP != 3 {
+		t.Fatalf("limite carregado=%d, quer 3", cfg.MaxAuthenticatedClientsPerIP)
+	}
+	for _, value := range []string{"0", "65"} {
+		contents := "max_connections_per_ip=64\nmax_authenticated_clients_per_ip=" + value + "\n"
+		if _, err := LoadServerConfig(writeServerConfig(t, contents)); err == nil {
+			t.Fatalf("limite invalido %s foi aceito", value)
+		}
 	}
 }
