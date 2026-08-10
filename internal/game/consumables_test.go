@@ -221,7 +221,12 @@ func TestRemovePlayerSummonsDespawnsOnlyOwners(t *testing.T) {
 		{ID: 101, SummonerID: 1, Def: &model.NPCDef{}},
 		{ID: 102, SummonerID: 2, Def: &model.NPCDef{}},
 		{ID: 103, Def: &model.NPCDef{}}, // mob normal
-	}}
+	}, summons: make(map[uint16]*Mob)}
+	for _, mob := range w.mobs {
+		if mob.SummonerID != 0 {
+			w.summons[mob.ID] = mob
+		}
+	}
 	w.removePlayerSummons(1)
 	if len(w.mobs) != 2 {
 		t.Fatalf("deveria sobrar 2 mobs, sobrou %d", len(w.mobs))

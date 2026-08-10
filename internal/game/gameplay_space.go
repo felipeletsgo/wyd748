@@ -57,7 +57,7 @@ func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
 // in another path.
 func (w *World) mobCanTargetPlayer(m *Mob, p *Player) bool {
 	return w.playerCanInteractWithMob(p, m) &&
-		(p.Char == nil || !hasActiveAffect(p.Char, 28))
+		(p.Char == nil || !hasActiveAffectAt(p.Char, 28, w.now()))
 }
 
 func validPlayerMobParticipant(p *Player) bool {

@@ -1,8 +1,9 @@
 # WYD-Go
 
-Use o modelo e o nível de raciocínio fornecidos pela sessão Codex. Se
-`gpt-5.6-luna` estiver disponível, prefira-o com esforço `max`; caso contrário,
-use o maior nível disponível e não declare uso de um modelo indisponível.
+Política canônica do repositório: prefira `gpt-5.6-luna` com esforço `max`
+quando essa seleção estiver disponível na sessão Codex. O ambiente continua
+autoridade sobre o modelo efetivamente usado; caso Luna não esteja disponível,
+use o maior nível exposto e não declare uso de um modelo indisponível.
 
 `AGENTS.md` é o contrato canônico deste repositório. Leia e siga suas regras
 antes de trabalhar e não as duplique nem substitua.

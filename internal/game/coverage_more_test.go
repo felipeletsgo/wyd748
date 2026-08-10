@@ -384,6 +384,11 @@ func TestTeleportPKAndGuildChallengeHandlers(t *testing.T) {
 	if p.PKMode {
 		t.Fatal("PK mode nao foi desativado")
 	}
+	binary.LittleEndian.PutUint32(pk[12:16], 2)
+	w.onPKMode(session, pk)
+	if p.PKMode {
+		t.Fatal("PK mode aceitou valor fora do contrato 0/1")
+	}
 
 	challenge := make([]byte, 16)
 	binary.LittleEndian.PutUint32(challenge[12:16], 77)

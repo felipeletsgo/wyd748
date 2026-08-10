@@ -1,8 +1,9 @@
 # Estado de implementação — WYD-Go 7.48
 
-Atualizado em 02/08/2026. Este documento registra as features implementadas no
-emulador Go e os detalhes de protocolo validados contra W2PP, Secrets 7.54 e o
-cliente 7.48.
+Atualizado em 10/08/2026. HEAD de referência: `2caa333` (base desta auditoria;
+as correções desta revisão estão no worktree até serem versionadas). Este
+documento registra as features implementadas no emulador Go e os detalhes de
+protocolo validados contra W2PP, Secrets 7.54 e o cliente 7.48.
 
 Sistemas com documento proprio: `DOCS/SECURITY.md` (fronteira não confiável,
 validações anti-WPE/Cheat Engine e testes adversariais), `DOCS/BOSS.md`
@@ -41,9 +42,11 @@ validações anti-WPE/Cheat Engine e testes adversariais), `DOCS/BOSS.md`
   desativa o ganho.
 - A conta é salva ao ganhar EXP por uma morte de mob, além do salvamento no
   logout.
-- Contas online recebem autosave completo a cada 3 segundos. A posição atual é
-  sincronizada antes do snapshot imutável entrar na fila PostgreSQL. Operações
-  críticas drenam snapshots anteriores e esperam o commit antes de confirmar.
+- Contas online recebem autosave completo a cada 3 segundos. O adapter cria um
+  snapshot profundo e projeta nele a posição fixa de reentrada `(2100,2100)`;
+  `Player.X/Y` e `Char.X/Y` vivos nunca são alterados para adaptar o banco.
+  Operações críticas drenam snapshots anteriores e esperam o commit antes de
+  confirmar.
 - `RegenHP` e `RegenMP` são derivados integralmente dos efeitos server-side dos
   itens, incluindo o item-base da classe. A cada três segundos, personagens
   vivos recuperam `Max × Regen / 120 + 10`, limitados ao máximo de HP/MP.
@@ -62,6 +65,18 @@ validações anti-WPE/Cheat Engine e testes adversariais), `DOCS/BOSS.md`
   visão; a reconciliação periódica da cria não a recria.
 
 ## Combate e morte de mobs
+
+- A morte de mob agora usa um plano de recompensa não publicado: EXP/level,
+  gold, loot comum, drop raro de boss e progressão da montaria são aplicados em
+  RAM, persistidos atomicamente e somente então enviados ao client. Falha do
+  store restaura todos os personagens/itens afetados e não publica recompensa.
+  Skills multi-alvo e affects periódicos compartilham o mesmo lote.
+- Seleção AoE usa `mobCells`, nunca um scan global de `w.mobs`, e valida linha
+  de visão entre o impacto primário e cada alvo secundário em PvE e PvP.
+  Ataques de summons também revalidam LoS antes de aplicar o hit.
+- Toda aleatoriedade de gameplay passa pelo `World.RNG`; `math/rand` permanece
+  somente no adapter real. Operações temporais capturam `w.now()` e os helpers
+  puros possuem variantes `...At`, permitindo testes determinísticos.
 
 - Ataque físico usa `0x39D`; o servidor valida o alvo realmente enviado em @44,
   alcance, linha transitável, posição observada, ClientTick e intervalo derivado

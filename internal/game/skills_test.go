@@ -128,6 +128,49 @@ func TestSkillMonsterTargetsUsesAreaAndMaxTarget(t *testing.T) {
 	}
 }
 
+func TestSkillAOEDoesNotHitSecondaryAcrossBlockedLineOfSight(t *testing.T) {
+	primary := &Mob{ID: 1000, X: 11, Y: 10, HP: 100,
+		Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
+	secondary := &Mob{ID: 1001, X: 13, Y: 10, HP: 100,
+		Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
+	w := testSpatialWorld([]*Mob{primary, secondary})
+	w.terrain = loadedFlatTerrain()
+	w.terrain.Height[10*model.TerrainWidth+12] = model.TerrainBlockedByte
+	p := &Player{X: 10, Y: 10}
+
+	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: primary.ID},
+		model.SkillDef{Range: 3, MaxTarget: 13})
+	if len(targets) != 1 || targets[0] != primary {
+		t.Fatalf("secondary behind wall was selected: %+v", targets)
+	}
+}
+
+func TestSkillAOEUsesSpatialIndexInsteadOfGlobalMobScan(t *testing.T) {
+	primary := &Mob{ID: 1000, X: 11, Y: 10, HP: 100,
+		Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
+	w := testSpatialWorld([]*Mob{primary})
+	w.terrain = loadedFlatTerrain()
+	p := &Player{X: 10, Y: 10}
+	unindexed := &Mob{ID: primary.ID + 10, Def: primary.Def, X: primary.X + 1, Y: primary.Y, HP: 100}
+	w.mobs = append(w.mobs, unindexed)
+
+	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: primary.ID}, model.SkillDef{Range: 4, MaxTarget: 13})
+	for _, target := range targets {
+		if target == unindexed {
+			t.Fatal("AoE reached a mob that was not present in the spatial index")
+		}
+	}
+	w.registerMobSpatial(unindexed)
+	targets = w.skillMonsterTargets(p, skillCastRequest{TargetID: primary.ID}, model.SkillDef{Range: 4, MaxTarget: 13})
+	found := false
+	for _, target := range targets {
+		found = found || target == unindexed
+	}
+	if !found {
+		t.Fatal("AoE did not discover the indexed nearby mob")
+	}
+}
+
 func TestSkillMonsterTargetsNeverSubstitutesClientTarget(t *testing.T) {
 	m := &Mob{ID: 1000, X: 11, Y: 10, HP: 100,
 		Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
@@ -235,6 +278,22 @@ func TestSkillPlayerTargetsRejectsPartyAndUsesSelectedEnemy(t *testing.T) {
 	}
 	if got := w.skillPlayerTargets(caster, skillCastRequest{TargetID: member.ID}, skill); len(got) != 0 {
 		t.Fatalf("membro do grupo virou alvo PvP: %+v", got)
+	}
+}
+
+func TestSkillPvPAOEDoesNotHitSecondaryAcrossBlockedLineOfSight(t *testing.T) {
+	player := func(id, x uint16) *Player {
+		return &Player{ID: id, InWorld: true, X: x, Y: 10,
+			Char: &model.Char{Extended: testExtended(model.ExtendedScore{MaxHP: 100, CurHP: 100})}}
+	}
+	caster, primary, secondary := player(1, 10), player(2, 11), player(3, 13)
+	w := testSpatialWorld(nil, caster, primary, secondary)
+	w.terrain = loadedFlatTerrain()
+	w.terrain.Height[10*model.TerrainWidth+12] = model.TerrainBlockedByte
+	targets := w.skillPlayerTargets(caster, skillCastRequest{TargetID: primary.ID},
+		model.SkillDef{Range: 3, MaxTarget: 13, Aggressive: 1})
+	if len(targets) != 1 || targets[0] != primary {
+		t.Fatalf("PvP secondary behind wall was selected: %+v", targets)
 	}
 }
 

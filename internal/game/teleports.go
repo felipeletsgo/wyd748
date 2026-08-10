@@ -90,7 +90,12 @@ func (w *World) onPKMode(s *net.Session, pkt []byte) {
 	if p == nil || p.Char == nil || !p.InWorld || len(pkt) != 16 {
 		return
 	}
-	enabled := binary.LittleEndian.Uint32(pkt[12:16]) != 0
+	value := binary.LittleEndian.Uint32(pkt[12:16])
+	if value > 1 {
+		w.recordSecurityViolation(s, wire.OpPKMode, "estado PK fora do contrato 0/1")
+		return
+	}
+	enabled := value == 1
 	p.PKMode = enabled
 	if enabled {
 		w.cancelTrade(p, "modo PK ativado")

@@ -137,7 +137,7 @@ func (w *World) useQuestReward(s *net.Session, p *Player, item *model.Item, slot
 		return
 	}
 
-	reward := expWithDoubleBuff(p.Char, scaledQuestExperience(rule.Exp, w.gameplay))
+	reward := expWithDoubleBuffAt(p.Char, scaledQuestExperience(rule.Exp, w.gameplay), w.now())
 	if reward == 0 {
 		// exp_rate=0 desativa o ganho: preserve a caixa e o gold para nao confirmar
 		// uma recompensa incompleta.

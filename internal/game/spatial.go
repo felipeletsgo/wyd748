@@ -107,23 +107,13 @@ func (w *World) nearbyMobs(x, y uint16, radius int) []*Mob {
 	return result
 }
 
-func (w *World) nearbyPlayers(x, y uint16, radius int) []*Player {
-	all := w.nearbyWorldPlayers(x, y, radius)
-	result := all[:0]
-	for _, p := range all {
-		if validMobTarget(p) {
-			result = append(result, p)
-		}
-	}
-	return result
-}
-
 func (w *World) nearbyPlayersInGameplaySpace(x, y uint16, radius int, space string) []*Player {
 	space = strings.TrimSpace(space)
 	all := w.nearbyWorldPlayers(x, y, radius)
 	result := all[:0]
+	now := w.now()
 	for _, p := range all {
-		if validMobTarget(p) && w.gameplaySpaceForPlayer(p) == space {
+		if validMobTargetAt(p, now) && w.gameplaySpaceForPlayer(p) == space {
 			result = append(result, p)
 		}
 	}

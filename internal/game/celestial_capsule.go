@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"log"
 	"strings"
-	"time"
 
 	"wydgo/internal/model"
 	"wydgo/internal/net"
@@ -224,7 +223,7 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 	consumeOne(&sealedCharacter.Inv[slot])
 	p.Account.CelestialCapsules = append(p.Account.CelestialCapsules, model.CelestialCapsule{
 		ID: id, ItemUID: seal.UID, SourceUID: p.Char.UID, Character: sealedCharacter,
-		CreatedUnix: time.Now().Unix(),
+		CreatedUnix: w.now().Unix(),
 	})
 	p.Account.Cargo[cargoSlot] = seal
 	charSlot := p.CharSlot
@@ -392,7 +391,7 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 	oldCargo := p.Account.Cargo
 	oldCapsules := append([]model.CelestialCapsule(nil), p.Account.CelestialCapsules...)
 	activeUID := p.Char.UID
-	activeState := buildCharState(p, time.Now())
+	activeState := buildCharState(p, w.now())
 	if newSlot >= len(p.Account.Chars) {
 		for len(p.Account.Chars) <= newSlot {
 			p.Account.Chars = append(p.Account.Chars, model.Char{})

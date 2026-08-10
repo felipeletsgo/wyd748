@@ -112,7 +112,7 @@ func (w *World) loadCharStateInto(p *Player) {
 	if state == nil {
 		return
 	}
-	w.applyCharState(p, state, time.Now())
+	w.applyCharState(p, state, w.now())
 }
 
 // saveCharState persiste buffs e moedas do jogador de forma SINCRONA. Chamado no
@@ -132,7 +132,7 @@ func (w *World) saveCharStateResult(p *Player) error {
 	if !ok || p == nil || p.Char == nil {
 		return nil
 	}
-	return store.SaveCharState(p.Char.UID, buildCharState(p, time.Now()))
+	return store.SaveCharState(p.Char.UID, buildCharState(p, w.now()))
 }
 
 // saveAccountAndCharStateResult usa uma unica transacao quando o store suporta.
@@ -141,7 +141,7 @@ func (w *World) saveAccountAndCharStateResult(p *Player) error {
 	if p == nil || p.Account == nil || p.Char == nil {
 		return nil
 	}
-	state := buildCharState(p, time.Now())
+	state := buildCharState(p, w.now())
 	return w.saveAccountAndCharStateForUID(p.Account, p.Char.UID, state)
 }
 
@@ -153,16 +153,16 @@ func (w *World) saveAccountAndCharStateForUID(account *model.Account, uid string
 	if account == nil {
 		return nil
 	}
-	pinAccountEntryPositions(account)
+	snapshot := accountPersistenceSnapshot(account)
 	if transactional, ok := w.store.(playerStateStore); ok {
-		return transactional.SavePlayerState(nil, account, uid, state)
+		return transactional.SavePlayerState(nil, snapshot, uid, state)
 	}
 	if stateStore, ok := w.store.(charStateStore); ok && uid != "" {
 		if err := stateStore.SaveCharState(uid, state); err != nil {
 			return err
 		}
 	}
-	return w.saveAccount(account)
+	return w.store.SaveAccount(snapshot)
 }
 
 // asyncCharStateStore expoe o save async do charstate (autosave).
@@ -176,7 +176,7 @@ func (w *World) saveCharStateAsync(p *Player) {
 	if p == nil || p.Char == nil {
 		return
 	}
-	state := buildCharState(p, time.Now())
+	state := buildCharState(p, w.now())
 	if as, ok := w.store.(asyncCharStateStore); ok {
 		if err := as.SaveCharStateAsync(p.Char.UID, state); err != nil {
 			log.Printf("[#%d] ERRO no autosave de charstate %q: %v", p.Session.ID, p.Char.Name, err)

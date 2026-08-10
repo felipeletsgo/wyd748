@@ -1001,7 +1001,7 @@ func (w *World) onIllusionMove(p *Player, pkt []byte) {
 	if !ok {
 		return
 	}
-	now := time.Now()
+	now := w.now()
 	if p.SkillReady == nil {
 		p.SkillReady = make(map[int]time.Time)
 	}
@@ -1323,9 +1323,10 @@ func acceptClientAttack(p *Player, pkt []byte, now time.Time) bool {
 	return true
 }
 
-// onAttack: 0x39D/0x367/0x39E. Modelo server-authoritative: acerta o MONSTRO vivo
-// mais proximo no alcance da posicao rastreada do player (nao depende de parsear o
-// alvo do pacote 7.48). Dano vem de combat.go; em HP 0 o mob morre e agenda respawn.
+// onAttack: 0x39D/0x367/0x39E. O pacote fornece apenas a intenção de alvo por
+// TargetID. O servidor resolve esse ID e revalida existência, gameplay space,
+// distância, terreno/linha de visão e demais requisitos antes de aplicar o dano.
+// Dano vem de combat.go; em HP 0 o mob morre e agenda respawn.
 func (w *World) onAttack(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || !p.InWorld {
@@ -1339,7 +1340,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// Anti-speed compartilhado: ataque fisico basico E skills respeitam o MESMO
 	// limite de ataques por periodo (acceptClientAttack, por velocidade de ataque
 	// do servidor). Por isso ele vem ANTES do dispatch de skill.
-	if !acceptClientAttack(p, pkt, time.Now()) {
+	now := w.now()
+	if !acceptClientAttack(p, pkt, now) {
 		return
 	}
 	// SkillId@24 so identifica uma skill se ela foi realmente aprendida pela
@@ -1372,7 +1374,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		p.CombatTargetID = target.ID
 		target.LastAttackerID = p.ID
 
-		calculated := playerHitsPlayer(p, target)
+		calculated := w.playerHitsPlayer(p, target)
 		if calculated == 0 {
 			log.Printf("[#%d] errou ataque PvP em %q", s.ID, target.Char.Name)
 			return
@@ -1387,7 +1389,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		if lethal {
 			w.cancelTrade(target, "personagem morreu")
 			w.mountRiderDied(target)
-			target.DeadAt = time.Now()
+			target.DeadAt = now
 			w.receiveDeathLetter(target, p.Char.Name, "jogador")
 			w.applyPvPKills(p, target)
 		}
@@ -1420,12 +1422,12 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// Assim como SetBattle no TMSrv, ser atacado coloca o mob imediatamente em
 	// combate mesmo antes de sua proxima varredura de inimigos visiveis.
 	m.TargetID = p.ID
-	dmg := playerHitsMob(p, m)
+	dmg := w.playerHitsMob(p, m)
 	if dmg == 0 {
 		log.Printf("[#%d] errou ataque no mob id=%d %q (accuracy=%d)", s.ID, m.ID, m.Def.Name, effectiveExtended(p.Char).Accuracy)
 		return
 	}
-	dmg = uint32(applyCouragePvEDamage(p.Char, int(dmg), false))
+	dmg = uint32(applyCouragePvEDamageAt(p.Char, int(dmg), false, now))
 	dmg = addFlatDamage(dmg, w.equipmentGemBonuses(p.Char).forceDamage)
 	// Escudo de boss absorve ANTES de aplicar, para que o numero flutuante do
 	// client mostre o dano real (zero quando imune).
@@ -1449,7 +1451,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			dmg, m.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char)))
 	})
 	if m.HP == 0 {
-		w.killMobState(p, m, dmg, minU32(dmg, m.Def.Extended.MaxHP), true)
+		w.killMobState(p, m, dmg, minU32(dmg, m.Def.Extended.MaxHP))
 	} else {
 		// golpe nao-fatal: so baixa a barra de HP.
 		w.sendToMobView(m, func() []byte {
@@ -1462,126 +1464,6 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 }
 
 // killMobState processa a morte de um monstro, xp, respawn e pacotes de morte.
-func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage uint32, persist bool) {
-	if p == nil || p.Char == nil {
-		// Server-owned effects (for example a boss aura) may kill an add without
-		// having a player source. Never award EXP/gold/loot to a recycled player;
-		// still publish the authoritative death and run instance cleanup.
-		if m == nil || m.Dead {
-			return
-		}
-		m.Dead = true
-		w.publishMobDeath(m, 0, 0, nil)
-		w.notifyBossAddDied(m.ID)
-		w.onBossMobKilled(m)
-		w.UnregisterBoss(m.ID)
-		w.onItemInstanceMobKilled(m, w.now())
-		w.removeMobInstance(m)
-		return
-	}
-	m.Dead = true
-	baseReward := scaledMobExperience(m.Def.ExpReward, w.gameplay)
-	shares := w.partyExpShares(p, baseReward, w.gameplay.PartyEXPBonusPercent)
-	expByPlayer := make(map[*Player]uint32, len(shares))
-	leveledUp := make(map[*Player]bool, len(shares))
-	cytheraChanged := make(map[*Player]bool, len(shares))
-	killerLevels, killerReward := 0, uint32(0)
-	for _, share := range shares {
-		receiver := share.player
-		// O recalc CRU dentro de grantExp clampa HP/MP no valor sem buffs.
-		oldHP, oldMP := playerCurHP(receiver.Char), playerCurMP(receiver.Char)
-		// Bonus ligados ao abate (Coral, fada e bau de EXP) pertencem ao
-		// matador e beneficiam a parcela de todos os membros elegiveis. Quedas
-		// de EXP de Celestial continuam individuais por receptor.
-		combatReward := w.mobKillExperienceForReceiver(p.Char, receiver.Char, share.reward)
-		levels, appliedEXP := grantExp(receiver.Char, combatReward)
-		if levels > 0 && updateCelestialCythera(receiver.Char) {
-			cytheraChanged[receiver] = true
-		}
-		w.recalcPlayer(receiver.Char)
-		if oldHP > 0 {
-			setPlayerCurHP(receiver.Char, minU32(oldHP, playerMaxHP(receiver.Char)))
-		}
-		if oldMP > 0 {
-			setPlayerCurMP(receiver.Char, minU32(oldMP, playerMaxMP(receiver.Char)))
-		}
-		expByPlayer[receiver] = receiver.Char.Exp
-		leveledUp[receiver] = levels > 0
-		// A cria equipada tambem aprende cacando (mob de level >= o dela).
-		w.grantMountHuntExp(receiver, m)
-		if receiver == p {
-			killerLevels, killerReward = levels, appliedEXP
-		}
-	}
-	// O client aplica Exp do CNFMobKill sempre que o atacante aparece marcado
-	// como membro do grupo. Para observadores do mesmo party que nao foram
-	// elegiveis (mortos/outro setor), envie a EXP atual deles, nunca a do killer.
-	if p.Party != nil {
-		for _, member := range p.Party.Members {
-			if member != nil && member.Char != nil {
-				expByPlayer[member] = member.Char.Exp
-			}
-		}
-	}
-	// Loot nativo por slot do carry: itens direto pro inventario, gold direto no
-	// char -- antes do UpdateEtc abaixo pro display de gold ja sair certo.
-	w.rollMobDrops(p, m)
-	w.rollMobGold(p, m)
-	for i := range w.generators {
-		if m.InstanceID == "" && m.GenerIndex >= 0 &&
-			w.generators[i].def.Index == m.GenerIndex && w.generators[i].current > 0 {
-			w.generators[i].current--
-			break
-		}
-	}
-	// Morte visibilidade-aware: manda CNFMobKill+RemoveMob so pra quem via o mob e
-	// limpa o p.Visible desses players (senao ficaria entrada fantasma).
-	// IMPORTANTE: CNFMobKill precisa chegar antes de UpdateEtc. O client calcula a
-	// mensagem visual subtraindo a EXP anterior do total contido no CNFMobKill;
-	// se UpdateEtc antecipar o total novo, o ganho exibido sera zero.
-	w.publishMobDeath(m, p.ID, p.Char.Exp, expByPlayer)
-	for _, share := range shares {
-		receiver := share.player
-		// UpdateEtc (0x337) carrega a Exp e sempre sai. UpdateScore (0x336) carrega o
-		// score cheio (STR/HP/MP/Level) e so muda em level-up -- e ele que faz o client
-		// reconstruir o avatar a partir do m_Equip cru, apagando a cor da tintura. Em
-		// kill sem level-up o 0x336 e redundante (HP/MP nao mudam, a exp vai no 0x337 +
-		// CNFMobKill), entao so mandamos ao subir de nivel e ai reasseveramos a aparencia.
-		receiver.Session.Send(wire.UpdateEtc(receiver.ID, *receiver.Char))
-		if leveledUp[receiver] {
-			receiver.Session.Send(wire.UpdateScore(receiver.ID, *receiver.Char))
-		}
-		if cytheraChanged[receiver] {
-			receiver.Session.Send(wire.SendItem(
-				receiver.ID, placeEquip, 1, receiver.Char.Equip[1]))
-			w.refreshAppearance(receiver)
-		}
-		w.updatePartyMember(receiver)
-	}
-	if persist {
-		accounts := uniqueKillAccounts(p, shares)
-		if err := w.saveAccountsAtomic(accounts...); err != nil {
-			log.Printf("[#%d] salvar progressao da morte: %v", p.Session.ID, err)
-			w.poisonAccountsAfterPersistenceFailure(accounts, "morte de mob", err)
-		}
-	}
-	// Subsistema de boss: o morto pode ser um add do encontro ou o proprio boss.
-	// Roda ANTES do descarte da instancia, enquanto o mob ainda existe.
-	w.notifyBossAddDied(m.ID)
-	if state := w.onBossMobKilled(m); state != nil {
-		// Drops especiais do .lua, alem do gold/exp nativos ja concedidos.
-		w.rollBossDrops(p, m, state)
-	}
-	w.UnregisterBoss(m.ID)
-	w.onItemInstanceMobKilled(m, w.now())
-	// Tira a instancia morta de w.mobs: o respawn do NPCGener cria uma nova, entao
-	// deixar aqui so faz a lista (e todo scan por tick) crescer sem parar.
-	w.removeMobInstance(m)
-	log.Printf("[#%d] MATOU mob id=%d %q (dmg_calculado=%d aplicado=%d hp_alvo=%d exp=+%d/%d membros level=%d +%d)",
-		p.Session.ID, m.ID, m.Def.Name, calculatedDamage, appliedDamage, m.Def.Extended.MaxHP,
-		killerReward, len(shares), playerLevel(p.Char), killerLevels)
-}
-
 // chebyshev = max(|dx|,|dy|), a metrica de distancia do WYD.
 func chebyshev(ax, ay, bx, by uint16) int {
 	dx, dy := absDiff(ax, bx), absDiff(ay, by)
@@ -1936,6 +1818,10 @@ func bodyAncient(ch *model.Char) []byte {
 }
 
 func bodyMesh(ch *model.Char) []uint16 {
+	return bodyMeshAt(ch, time.Now())
+}
+
+func bodyMeshAt(ch *model.Char, now time.Time) []uint16 {
 	if ch == nil {
 		return nil
 	}
@@ -1944,7 +1830,6 @@ func bodyMesh(ch *model.Char) []uint16 {
 		m[i] = model.VisualItemCode(it, model.IsMount(it.Index))
 	}
 	faces := [...]uint16{22, 23, 24, 25, 32}
-	now := time.Now()
 	for i := range ch.Affects {
 		a := &ch.Affects[i]
 		// Transformacao de rosto de monstro (cosmetica): o mesh vem no Value.

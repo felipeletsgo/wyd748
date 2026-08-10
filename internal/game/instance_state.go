@@ -270,10 +270,8 @@ func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
 	}
 	store, ok := w.store.(instanceRuntimeTransactionStore)
 	if ok {
-		for _, account := range accounts {
-			pinAccountEntryPositions(account)
-		}
-		return store.SaveGameStateWithInstanceState(nil, snapshot, accounts...)
+		return store.SaveGameStateWithInstanceState(nil, snapshot,
+			accountPersistenceSnapshots(accounts...)...)
 	}
 	// A mixed operation (ticket/position/account plus a durable instance) must
 	// never be split into two commits. The old fallback could consume a ticket

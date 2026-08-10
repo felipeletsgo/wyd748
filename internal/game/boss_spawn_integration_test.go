@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"wydgo/internal/model"
+	gameNet "wydgo/internal/net"
 )
 
 func uint32Ptr(v uint32) *uint32 { return &v }
@@ -115,6 +116,26 @@ func TestConfiguredBossRejectsMissingOrLegacyBase(t *testing.T) {
 	w.npcs[0].Extended = nil
 	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "sem extendedScore") {
 		t.Fatalf("NPC sem extended deveria falhar claramente: %v", err)
+	}
+}
+
+func TestBossRegisterFailureLeavesNoPublishedOrphan(t *testing.T) {
+	w, _ := bossSpawnTestWorld()
+	p, session := networkedTestPlayer(1, "Observer", 2100, 2100)
+	w.players = map[*gameNet.Session]*Player{session: p}
+	w.playersByID = map[uint16]*Player{p.ID: p}
+	w.updatePlayerSpatial(p)
+	state := &bossSpawnState{config: w.bossCatalog.Bosses[0], def: &w.npcs[0]}
+	before := session.QueuedPacketsForTest()
+	if err := w.spawnBoss(state); err == nil {
+		t.Fatal("nil boss profile should fail registration")
+	}
+	if len(w.mobs) != 0 || len(w.mobsByID) != 0 || state.mobID != 0 {
+		t.Fatalf("failed boss left an orphan: mobs=%d index=%d state=%d",
+			len(w.mobs), len(w.mobsByID), state.mobID)
+	}
+	if session.QueuedPacketsForTest() != before {
+		t.Fatal("boss was published before registration succeeded")
 	}
 }
 

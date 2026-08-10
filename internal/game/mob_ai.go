@@ -30,7 +30,7 @@ func (w *World) moveMobToward(m *Mob, targetX, targetY uint16, stopDistance int,
 	if m == nil || m.Def == nil || m.Def.Extended == nil {
 		return 0
 	}
-	attackRun := effectiveMobAttackRun(m)
+	attackRun := effectiveMobAttackRunAt(m, now)
 	speed := mobMovementSpeed(attackRun)
 	maxSteps := int(speed * 2)
 	x, y := m.X, m.Y

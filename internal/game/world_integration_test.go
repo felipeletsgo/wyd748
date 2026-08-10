@@ -174,7 +174,7 @@ func TestWorldGeneratorSchedulingAndWalkableFallbacks(t *testing.T) {
 		t.Fatalf("normalizacao de nome=%q", got)
 	}
 	for i := 0; i < 20; i++ {
-		x, y := scatter(100, 100, 0)
+		x, y := (&World{}).scatter(100, 100, 0)
 		if x != 100 || y != 100 {
 			t.Fatalf("scatter sem raio moveu para (%d,%d)", x, y)
 		}

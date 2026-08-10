@@ -283,7 +283,7 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		s.Send(wire.DaySync())
 	case "time":
 		// Comando manual: exibe a data/hora do host no painel superior.
-		s.Send(wire.MessagePanel(time.Now().Format("15:04:05 | 02-01-2006")))
+		s.Send(wire.MessagePanel(w.now().Format("15:04:05 | 02-01-2006")))
 	case "cp", "chaos":
 		// CP e o Chaos/PK Point assinado do personagem (-75..+75). Ele nao e
 		// o Hold de EXP do 0x337 e por isso nunca deve ser formatado como XP.
@@ -297,7 +297,7 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		// Nightmare (SGrid.cpp): ele espera !!HHMMSS para atualizar o relogio
 		// local da instancia. Nao e um nickname; trata-lo como consulta /nig
 		// produzia o falso "nig is not online.".
-		s.Send(wire.MessagePanel(nightmareTimeMessage(time.Now())))
+		s.Send(wire.MessagePanel(nightmareTimeMessage(w.now())))
 	case "limparinv", "clearinv":
 		w.executeClearInventory(s, p)
 	case "hpdebug":

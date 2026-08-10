@@ -272,7 +272,7 @@ func TestBossShieldAbsorbsDamageAndDropsWithLastAdd(t *testing.T) {
 	if boss.Phase != phaseIDFor(0) {
 		t.Fatalf("fase=%d, quer fase 2", boss.Phase)
 	}
-	if activeMobAffect(mob, bossShieldAffect) == nil {
+	if activeMobAffectAt(mob, bossShieldAffect, clock.Now()) == nil {
 		t.Fatal("escudo deveria estar ativo na fase 2")
 	}
 
@@ -297,11 +297,11 @@ func TestBossShieldAbsorbsDamageAndDropsWithLastAdd(t *testing.T) {
 	}
 	for i, id := range addIDs {
 		w.notifyBossAddDied(id)
-		if i < len(addIDs)-1 && activeMobAffect(mob, bossShieldAffect) == nil {
+		if i < len(addIDs)-1 && activeMobAffectAt(mob, bossShieldAffect, clock.Now()) == nil {
 			t.Fatalf("escudo caiu cedo, com %d adds ainda vivos", boss.addsAlive())
 		}
 	}
-	if activeMobAffect(mob, bossShieldAffect) != nil {
+	if activeMobAffectAt(mob, bossShieldAffect, clock.Now()) != nil {
 		t.Fatal("escudo deveria cair quando o ultimo add morre")
 	}
 

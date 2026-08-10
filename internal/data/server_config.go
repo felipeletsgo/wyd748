@@ -82,8 +82,8 @@ func DefaultServerConfig() ServerConfig {
 		ReplictionPath:        "data/repliction.json",
 		MountPath:             "data/mounts.json",
 		CharacterTemplatePath: "data/character_templates.json",
-		HeightMapPath:         "../Server Star Micronics/TMSRV/run/HeightMap.dat",
-		AttributeMapPath:      "../Server Star Micronics/TMSRV/run/AttributeMap.dat",
+		HeightMapPath:         "data/maps/HeightMap.dat",
+		AttributeMapPath:      "data/maps/AttributeMap.dat",
 		TeleportPath:          "data/teleports.ini",
 		NPCGenerLog:           "summary",
 		DebugAddress:          "", // diagnostico desligado por padrao

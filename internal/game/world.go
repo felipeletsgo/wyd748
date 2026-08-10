@@ -6,7 +6,6 @@ package game
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -53,10 +52,10 @@ func pinAccountEntryPositions(account *model.Account) {
 }
 
 // saveAccount e a unica fronteira de persistencia do mundo. Posicao atual e
-// estado de sessao: todos os saves gravam somente o ponto fixo de reentrada.
+// estado de sessao: todos os saves gravam somente o ponto fixo de reentrada,
+// projetado numa copia para nunca alterar Char.X/Y da sessao viva.
 func (w *World) saveAccount(account *model.Account) error {
-	pinAccountEntryPositions(account)
-	return w.store.SaveAccount(account)
+	return w.store.SaveAccount(accountPersistenceSnapshot(account))
 }
 
 // asyncSaveStore expoe os saves assincronos usados pelo autosave. Store sem
@@ -69,11 +68,11 @@ type asyncSaveStore interface {
 // saveAccountAsync grava a conta FORA do game-loop quando o store suporta. Usado
 // so pelo autosave: os saves anti-dupe continuam sincronos via saveAccount.
 func (w *World) saveAccountAsync(account *model.Account) error {
-	pinAccountEntryPositions(account)
+	snapshot := accountPersistenceSnapshot(account)
 	if as, ok := w.store.(asyncSaveStore); ok {
-		return as.SaveAccountAsync(account)
+		return as.SaveAccountAsync(snapshot)
 	}
-	return w.store.SaveAccount(account)
+	return w.store.SaveAccount(snapshot)
 }
 
 // Player = jogador em RAM: sessao + conta + char selecionado + id de mundo.
@@ -356,6 +355,7 @@ type World struct {
 	summons               map[uint16]*Mob
 	sephiraObjects        map[uint16]*Mob
 	generators            []generState
+	generatorByIndex      map[int]int
 	nextMobID             uint16
 	items                 map[uint16]model.ItemDef
 	skills                map[int]model.SkillDef
@@ -489,6 +489,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		activeMobs:             make(map[uint16]*Mob),
 		summons:                make(map[uint16]*Mob),
 		sephiraObjects:         make(map[uint16]*Mob),
+		generatorByIndex:       make(map[int]int),
 		nextMobID:              1000,
 		items:                  catalog.Items,
 		skills:                 catalog.Skills,
@@ -607,6 +608,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		if leader == nil || follower == nil {
 			return nil, fmt.Errorf("NPCGener[%d]: template ausente (Leader=%q Follower=%q)", g.Index, g.Leader, g.Follower)
 		}
+		w.generatorByIndex[g.Index] = len(w.generators)
 		w.generators = append(w.generators, generState{def: g, leader: leader, follower: follower})
 	}
 	now := w.now()
@@ -635,22 +637,22 @@ func generName(s string) string { return strings.ReplaceAll(s, "_", " ") }
 // Quando todos os 999 slots estao ocupados, o segundo retorno e false. Nunca
 // reutilizar o ID 999 nesse caso: isso sobrescreveria um jogador ja materializado.
 func (w *World) allocPlayerID() (uint16, bool) {
-	used := make(map[uint16]struct{}, len(w.playersByID)+len(w.players))
+	var used [1000]bool
 	// playersByID e o indice autoritativo para lookup de combate/visibilidade;
 	// consultar os dois mapas evita colidir mesmo se uma desconexao deixou um
 	// registro stale que o cleanup ainda vai remover no mesmo ciclo.
 	for id := range w.playersByID {
-		if id != 0 {
-			used[id] = struct{}{}
+		if id > 0 && id < uint16(len(used)) {
+			used[id] = true
 		}
 	}
 	for _, p := range w.players {
-		if p.ID != 0 {
-			used[p.ID] = struct{}{}
+		if p != nil && p.ID > 0 && p.ID < uint16(len(used)) {
+			used[p.ID] = true
 		}
 	}
 	for id := uint16(1); id < 1000; id++ {
-		if _, taken := used[id]; !taken {
+		if !used[id] {
 			return id, true
 		}
 	}
@@ -686,7 +688,7 @@ func (w *World) spawnGroup(g *generState) {
 			def = g.follower
 		}
 		pos := g.def.Segments[0]
-		requestedX, requestedY := scatter(pos.X, pos.Y, pos.Range)
+		requestedX, requestedY := w.scatter(pos.X, pos.Y, pos.Range)
 		x, y := requestedX, requestedY
 		x, y = w.findFreePosition(x, y, pos.Range)
 		if x != requestedX || y != requestedY {
@@ -699,7 +701,7 @@ func (w *World) spawnGroup(g *generState) {
 		segments := g.def.Segments
 		for si := range segments {
 			if segments[si].X != 0 && segments[si].Y != 0 {
-				segments[si].X, segments[si].Y = scatter(segments[si].X, segments[si].Y, segments[si].Range)
+				segments[si].X, segments[si].Y = w.scatter(segments[si].X, segments[si].Y, segments[si].Range)
 				segments[si].X, segments[si].Y = w.findWalkablePosition(segments[si].X, segments[si].Y, segments[si].Range)
 			}
 		}
@@ -1148,12 +1150,12 @@ func absInt(v int) int {
 	return v
 }
 
-func scatter(x, y, radius uint16) (uint16, uint16) {
+func (w *World) scatter(x, y, radius uint16) (uint16, uint16) {
 	if radius == 0 {
 		return x, y
 	}
 	r := int(radius)
-	dx, dy := rand.Intn(2*r+1)-r, rand.Intn(2*r+1)-r
+	dx, dy := w.intn(2*r+1)-r, w.intn(2*r+1)-r
 	nx, ny := int(x)+dx, int(y)+dy
 	if nx < 1 {
 		nx = 1
@@ -1653,13 +1655,6 @@ func (w *World) handle(cmd command) {
 	default:
 		log.Printf("[#%d] sem handler: Type=0x%X Size=%d", cmd.s.ID, h.Type, h.Size)
 	}
-}
-
-// spawnDrop poe um item no CHAO (com efeitos preservados -- item jogado pelo
-// player carrega refino/adds). Usado como fallback do loot (inventario cheio) e
-// pelo jogar-item (0x272).
-func (w *World) spawnDrop(x, y uint16, item model.Item) *GroundItem {
-	return w.createGroundDrop(x, y, item, true)
 }
 
 func (w *World) createGroundDrop(x, y uint16, item model.Item, publish bool) *GroundItem {

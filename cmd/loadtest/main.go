@@ -37,8 +37,8 @@ func main() {
 	skill := flag.Int("skill", -1, "indice local de skill; -1 = ataque fisico")
 	movePercent := flag.Int("move-percent", 50,
 		"percentual dos ciclos que tentam movimento; o ataque continua sendo enviado")
-	heightMap := flag.String("heightmap", "data/HeightMap.dat", "mapa de alturas usado para escolher passos validos")
-	attributeMap := flag.String("attributemap", "client748/UI/AttributeMap.dat", "mapa de atributos usado para escolher passos validos")
+	heightMap := flag.String("heightmap", "data/maps/HeightMap.dat", "mapa de alturas usado para escolher passos validos")
+	attributeMap := flag.String("attributemap", "data/maps/AttributeMap.dat", "mapa de atributos usado para escolher passos validos")
 	provision := flag.Bool("provision", false, "criar as contas na base de teste")
 	reset := flag.Bool("reset", false, "apagar somente bot0001..bot0990 antes de provisionar")
 	provisionOnly := flag.Bool("provision-only", false, "provisionar e nao abrir sessoes")

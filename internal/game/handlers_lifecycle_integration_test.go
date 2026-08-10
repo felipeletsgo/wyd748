@@ -40,8 +40,8 @@ func TestRestartRevivesAfterNativeDelayAndSysQuitPersists(t *testing.T) {
 	if st.saves != 2 || p.Session.QueuedPacketsForTest() <= before {
 		t.Fatalf("DelayStart nao persistiu/confirmou: saves=%d packets=%d", st.saves, p.Session.QueuedPacketsForTest())
 	}
-	if p.Char.X != playerEntryX || p.Char.Y != playerEntryY {
-		t.Fatalf("save de saida nao fixou reentrada: (%d,%d)", p.Char.X, p.Char.Y)
+	if p.Char.X != 2300 || p.Char.Y != 2300 {
+		t.Fatalf("save alterou a posicao viva: (%d,%d)", p.Char.X, p.Char.Y)
 	}
 }
 

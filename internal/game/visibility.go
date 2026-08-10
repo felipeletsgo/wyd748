@@ -42,7 +42,7 @@ func (w *World) showMob(p *Player, m *Mob) {
 	}
 	anct := m.Def.Equip.AncientCodes()
 	p.Session.Send(wire.CreateMobVisualExtended(m.ID, m.Def.Name, m.X, m.Y,
-		m.Def.Mesh(), anct[:], mobPublicExtended(m), m.Affects[:], 0))
+		m.Def.Mesh(), anct[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
 	p.show(m.ID)
 }
 
@@ -382,6 +382,13 @@ func (w *World) publishGhostShopItemSold(shop *GhostShop, pos uint32) {
 // publishMobSpawn materializa uma nova instancia somente para quem esta perto.
 func (w *World) publishMobSpawn(m *Mob) {
 	w.registerMobSpatial(m)
+	w.publishRegisteredMobSpawn(m)
+}
+
+// publishRegisteredMobSpawn publishes an entity that has already crossed all
+// fallible registration steps. Boss spawn uses this to avoid exposing an
+// orphan when RegisterBoss rejects its profile.
+func (w *World) publishRegisteredMobSpawn(m *Mob) {
 	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
 		if w.mobVisibleToPlayer(p, m) {
 			w.showMob(p, m)

@@ -61,7 +61,7 @@ func (w *World) castThornWall(p *Player, req skillCastRequest, skill model.Skill
 	m := &Mob{ID: mobID, Def: &def, X: req.TargetX, Y: req.TargetY,
 		InstanceID: w.playerRuntimeInstanceID(p.ID),
 		HP:         def.Extended.MaxHP, GenerIndex: -1, SummonerID: p.ID,
-		SummonKind: summonKindThornWall, ExpiresAt: time.Now().Add(thornWallLifetime)}
+		SummonKind: summonKindThornWall, ExpiresAt: w.now().Add(thornWallLifetime)}
 	w.mobs = append(w.mobs, m)
 	w.publishMobSpawn(m)
 	w.sendToPlayerView(p, func() []byte {

@@ -108,6 +108,34 @@ func TestCompatibilityScoreCannotBePersistedAsJSON(t *testing.T) {
 	}
 }
 
+func TestExtendedScoreRejectsFunctionalLimitViolations(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*ExtendedScore)
+	}{
+		{"save mana above 99", func(e *ExtendedScore) { e.SaveMana = 100 }},
+		{"parry above 100", func(e *ExtendedScore) { e.Parry = 101 }},
+		{"fire resistance above 100", func(e *ExtendedScore) { e.ResistFire = 101 }},
+		{"ice resistance above 100", func(e *ExtendedScore) { e.ResistIce = 101 }},
+		{"holy resistance above 100", func(e *ExtendedScore) { e.ResistHoly = 101 }},
+		{"thunder resistance above 100", func(e *ExtendedScore) { e.ResistThunder = 101 }},
+		{"hp regen above 255", func(e *ExtendedScore) { e.RegenHP = 256 }},
+		{"mp regen above 255", func(e *ExtendedScore) { e.RegenMP = 256 }},
+		{"current hp above maximum", func(e *ExtendedScore) { e.CurHP = 101 }},
+		{"current mp above maximum", func(e *ExtendedScore) { e.CurMP = 101 }},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			extended := &ExtendedScore{Version: ExtendedScoreVersion,
+				MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100}
+			test.mutate(extended)
+			if err := extended.ValidatePlayerState(); err == nil {
+				t.Fatalf("estado invalido foi aceito: %+v", extended)
+			}
+		})
+	}
+}
+
 func TestEmptyCharacterSlotUsesNull(t *testing.T) {
 	data, err := json.Marshal(Char{})
 	if err != nil {

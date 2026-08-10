@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"wydgo/internal/model"
@@ -140,11 +141,12 @@ func (w *World) spawnBoss(state *bossSpawnState) error {
 	// Segments[0] e a "casa" usada pelo leash da IA comum.
 	mob.Segments[0].X, mob.Segments[0].Y = state.config.Spawn.X, state.config.Spawn.Y
 	w.mobs = append(w.mobs, mob)
-	w.publishMobSpawn(mob)
-
+	w.registerMobSpatial(mob)
 	if err := w.RegisterBoss(mob.ID, state.profile); err != nil {
+		w.removeMobInstance(mob)
 		return fmt.Errorf("boss %q: %w", state.config.ID, err)
 	}
+	w.publishRegisteredMobSpawn(mob)
 	state.mobID = mob.ID
 	state.respawnAt = time.Time{}
 
@@ -248,6 +250,10 @@ func abs(v int) int {
 // onBossMobKilled reage a morte de um boss configurado: anuncia, agenda o
 // renascimento e devolve o estado. Devolve nil se o mob nao era um boss.
 func (w *World) onBossMobKilled(m *Mob) *bossSpawnState {
+	return w.finishBossMobKilled(m, true)
+}
+
+func (w *World) finishBossMobKilled(m *Mob, publishAreaReward bool) *bossSpawnState {
 	if m == nil {
 		return nil
 	}
@@ -257,7 +263,9 @@ func (w *World) onBossMobKilled(m *Mob) *bossSpawnState {
 		}
 		state.mobID = 0
 		w.announceBoss(m.X, m.Y, state.config.DeathMessage)
-		w.spawnBossAreaReward(m, state.config.AreaReward)
+		if publishAreaReward {
+			w.spawnBossAreaReward(m, state.config.AreaReward)
+		}
 		if state.config.RespawnDelay() > 0 {
 			state.respawnAt = w.now().Add(state.config.RespawnDelay())
 			log.Printf("BOSS %q morreu; renasce em %s", state.config.ID, state.config.RespawnDelay())
@@ -312,9 +320,14 @@ func setItemAmount(item *model.Item, amount int) {
 // Reusa addToInv/spawnDrop, o mesmo caminho do drop comum: inventario cheio faz
 // o item cair no chao em vez de sumir.
 func (w *World) rollBossDrops(p *Player, mob *Mob, state *bossSpawnState) {
+	w.publishPlannedDrops(w.planBossDrops(p, mob, state))
+}
+
+func (w *World) planBossDrops(p *Player, mob *Mob, state *bossSpawnState) []plannedDrop {
 	if p == nil || p.Char == nil {
-		return
+		return nil
 	}
+	planned := make([]plannedDrop, 0, len(state.config.Drops))
 	for _, drop := range state.config.Drops {
 		if drop.ChancePercent < 100 && w.intn(100) >= drop.ChancePercent {
 			continue
@@ -324,13 +337,13 @@ func (w *World) rollBossDrops(p *Player, mob *Mob, state *bossSpawnState) {
 			setItemAmount(&item, drop.Amount)
 		}
 		if slot := addToInv(p.Char, item); slot >= 0 {
-			p.Session.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
-			log.Printf("[#%d] BOSS %q dropou item=%d -> inv[%d]",
-				p.Session.ID, state.config.ID, drop.Item, slot)
+			planned = append(planned, plannedDrop{player: p, inventoryPos: slot,
+				item: p.Char.Inv[slot], source: "BOSS " + state.config.ID, sourceSlot: -1})
 			continue
 		}
-		w.spawnDrop(mob.X, mob.Y, item)
-		log.Printf("[#%d] BOSS %q dropou item=%d -> CHAO (inventario cheio)",
-			p.Session.ID, state.config.ID, drop.Item)
+		planned = append(planned, plannedDrop{player: p, inventoryPos: -1,
+			item: item, x: mob.X, y: mob.Y, instanceID: strings.TrimSpace(mob.InstanceID),
+			source: "BOSS " + state.config.ID, sourceSlot: -1})
 	}
+	return planned
 }

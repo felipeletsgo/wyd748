@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
 	"wydgo/internal/model"
@@ -20,16 +19,14 @@ import (
 // capa, inclusive as medalhas que definem Akelonia/Hekalotia.
 const mountSlot = 14
 
-// equippedMount devolve o ponteiro para a montaria equipada (cria ou adulta) em
-// qualquer slot de equip, e o indice do slot. nil se nao houver montaria. Ser
-// agnostico ao slot evita depender do 14-vs-15 do layout.
+// equippedMount accepts only the canonical 7.48 mount slot. Invalid persisted
+// layouts must be rejected/migrated at the boundary instead of granting a
+// hidden mount bonus from another equipment slot.
 func equippedMount(ch *model.Char) (*model.Item, int) {
-	for i := range ch.Equip {
-		if model.IsMount(ch.Equip[i].Index) {
-			return &ch.Equip[i], i
-		}
+	if ch == nil || !model.IsMount(ch.Equip[mountSlot].Index) {
+		return nil, -1
 	}
-	return nil, -1
+	return &ch.Equip[mountSlot], mountSlot
 }
 
 // mountStageThreshold devolve o level em que uma CRIA evolui para o proximo
@@ -80,9 +77,9 @@ func (w *World) mountMaxHP(sIndex uint16) int {
 // advanceMountStage evolui a cria para o proximo estagio: sIndex += 30 (novo
 // mesh cria->adulta), longevidade += rand(1..bonus), level zera. Fiel ao amago
 // (bonus 14) e a pocao de crescimento (bonus 20).
-func advanceMountStage(mount *model.Item, longevityBonus int) {
+func advanceMountStage(mount *model.Item, longevityBonus int, intn func(int) int) {
 	mount.Index += model.MountTypeCount
-	mount.SetMountLongev(mount.MountLongev() + rand.Intn(longevityBonus) + 1)
+	mount.SetMountLongev(mount.MountLongev() + intn(longevityBonus) + 1)
 	mount.SetMountLevel(0)
 	mount.SetMountFood(mount.MountFood()) // preserva comida; W2PP zera o flag stEffect[2].cValue
 	mount.Eff[5] = 0
@@ -149,7 +146,7 @@ func (w *World) tickPlayerMounts(now time.Time) {
 		if mount == nil || !model.IsMountAdult(mount.Index) || mount.MountHP() <= 0 {
 			continue
 		}
-		if mountInvulnActive(p.Char) {
+		if mountInvulnActiveAt(p.Char, now) {
 			continue
 		}
 		food := mount.MountFood() - 1
@@ -160,7 +157,7 @@ func (w *World) tickPlayerMounts(now time.Time) {
 		if food == 0 {
 			// Faminta: perde o HP (e o bonus) e -0..3 longevidade.
 			mount.SetMountHP(0)
-			loseMountLongevity(mount)
+			loseMountLongevity(mount, w.intn)
 			w.recalcPlayer(p.Char)
 			if p.Session != nil {
 				p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
@@ -551,24 +548,38 @@ const criaKillsPerLevel = 2
 // level >= o level da cria (fiel ao blog: a cria sobe 1..99 cacando). O
 // progresso acumula em Eff[5]; ao atingir criaKillsPerLevel sobe 1 level e evolui
 // de estagio no limite. Montaria ADULTA nao ganha XP de caca (sobe por amago).
+type mountHuntUpdate struct {
+	player  *Player
+	slot    int
+	level   int
+	changed bool
+	evolved bool
+}
+
 func (w *World) grantMountHuntExp(p *Player, m *Mob) {
+	w.publishMountHuntUpdate(w.applyMountHuntExp(p, m))
+}
+
+func (w *World) applyMountHuntExp(p *Player, m *Mob) mountHuntUpdate {
+	result := mountHuntUpdate{player: p, slot: -1}
 	if p == nil || p.Char == nil || m == nil || m.Def == nil {
-		return
+		return result
 	}
 	mount, mslot := equippedMount(p.Char)
 	if mount == nil || !model.IsMountBaby(mount.Index) {
-		return
+		return result
 	}
 	mobLevel := 0
 	if m.Def.Extended != nil {
 		mobLevel = int(m.Def.Extended.Level)
 	}
 	if mobLevel < mount.MountLevel() {
-		return // mob fraco demais nao ensina a cria
+		return result // mob fraco demais nao ensina a cria
 	}
+	result.slot, result.changed = mslot, true
 	if prog := int(mount.Eff[5]) + 1; prog < criaKillsPerLevel {
 		mount.Eff[5] = byte(prog)
-		return
+		return result
 	}
 	mount.Eff[5] = 0
 	level := mount.MountLevel() + 1
@@ -578,28 +589,40 @@ func (w *World) grantMountHuntExp(p *Player, m *Mob) {
 	mount.SetMountLevel(level)
 	evolved := false
 	if th := mountStageThreshold(mount.Index); th > 0 && level >= th {
-		advanceMountStage(mount, 14)
+		advanceMountStage(mount, 14, w.intn)
 		evolved = true
 	}
 	w.recalcPlayer(p.Char)
+	result.level, result.evolved = level, evolved
+	return result
+}
+
+func (w *World) publishMountHuntUpdate(result mountHuntUpdate) {
+	p := result.player
+	if !result.changed || p == nil || p.Char == nil || p.Session == nil {
+		return
+	}
+	mount, slot := equippedMount(p.Char)
+	if mount == nil || slot != result.slot {
+		return
+	}
 	if p.Session != nil {
-		p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
+		p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(result.slot), *mount))
 		p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
-		if evolved {
+		if result.evolved {
 			p.Session.Send(wire.MessagePanel("Your hatchling grew to the next stage!"))
-		} else {
-			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Your hatchling reached level %d.", level)))
+		} else if result.level > 0 {
+			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Your hatchling reached level %d.", result.level)))
 		}
 	}
 	w.refreshAppearance(p)
-	if evolved {
+	if result.evolved {
 		w.syncCriaPet(p) // virou adulta -> remove o pet
 	}
 }
 
 // mountInvulnActive diz se o affect 51 (protecao da montaria) esta ativo.
-func mountInvulnActive(ch *model.Char) bool {
-	now := time.Now()
+func mountInvulnActiveAt(ch *model.Char, now time.Time) bool {
 	for i := range ch.Affects {
 		if ch.Affects[i].Type == 51 && ch.Affects[i].ExpiresAt.After(now) {
 			return true
@@ -611,8 +634,8 @@ func mountInvulnActive(ch *model.Char) bool {
 // loseMountLongevity tira 0..3 pontos de longevidade (na morte da montaria,
 // comida zerada ou morte do cavaleiro). Fiel ao W2PP (rand%4). A 0 a montaria
 // morre de vez e precisa reviver no mestre de montaria.
-func loseMountLongevity(mount *model.Item) {
-	mount.SetMountLongev(mount.MountLongev() - rand.Intn(4))
+func loseMountLongevity(mount *model.Item, intn func(int) int) {
+	mount.SetMountLongev(mount.MountLongev() - intn(4))
 }
 
 // absorbMountDamage aplica a absorcao da montaria adulta viva: o cavaleiro toma
@@ -631,7 +654,7 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 	if rider < 1 {
 		rider = 1
 	}
-	if mountInvulnActive(target.Char) {
+	if mountInvulnActiveAt(target.Char, w.now()) {
 		return rider // affect 51: montaria nao perde HP
 	}
 	absorbed := incoming - rider
@@ -642,7 +665,7 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 	mount.SetMountHP(hp)
 	if hp == 0 {
 		// Ferida: perde longevidade, o bonus some (recalc) e o dono ve o estado.
-		loseMountLongevity(mount)
+		loseMountLongevity(mount, w.intn)
 		w.recalcPlayer(target.Char)
 		if target.Session != nil {
 			target.Session.Send(wire.SendItem(target.ID, placeEquip, byte(mslot), *mount))
@@ -664,7 +687,7 @@ func (w *World) mountRiderDied(target *Player) {
 	if mount == nil || !model.IsMountAdult(mount.Index) {
 		return
 	}
-	loseMountLongevity(mount)
+	loseMountLongevity(mount, w.intn)
 	if target.Session != nil {
 		target.Session.Send(wire.SendItem(target.ID, placeEquip, byte(mslot), *mount))
 	}
@@ -717,13 +740,13 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	case "feed":
 		ok, msg = mountFeed(mount, item.Index)
 	case "longevity":
-		ok, msg = mountLongevityRecover(mount)
+		ok, msg = mountLongevityRecoverWithRNG(mount, w.intn)
 	case "longevity_restore":
 		ok, msg = mountLongevityRestore(mount, rule.Amount)
 	case "level_set":
 		ok, msg = mountSetLevel(mount, rule.MountMinLevel, rule.Amount)
 	case "growth":
-		ok, msg = mountGrowth(mount, item.Index)
+		ok, msg = mountGrowthWithRNG(mount, item.Index, w.intn)
 	default:
 		resend()
 		log.Printf("[#%d] mountAction desconhecida %q item=%d", s.ID, rule.MountAction, item.Index)
@@ -818,7 +841,7 @@ func (w *World) mountEssence(mount *model.Item, essenceIndex uint16) mountEssenc
 	level++
 	mount.SetMountLevel(level)
 	if th := mountStageThreshold(mount.Index); th > 0 && level >= th {
-		advanceMountStage(mount, 14)
+		advanceMountStage(mount, 14, w.intn)
 		return mountEssenceOutcome{OK: true, Message: "Your mount grew to the next stage!", Rolls: rolls}
 	}
 	return mountEssenceOutcome{OK: true, Message: "Your mount gained a level.", Rolls: rolls}
@@ -850,7 +873,7 @@ func (w *World) initFreshMount(mount *model.Item) bool {
 		return false // ja inicializada
 	}
 	mount.SetMountHP(w.mountMaxHP(mount.Index))
-	mount.SetMountLongev(rand.Intn(21) + 10) // 10..30
+	mount.SetMountLongev(w.intn(21) + 10) // 10..30
 	if model.IsMountAdult(mount.Index) {
 		mount.SetMountFood(model.MountMaxFood) // adulta: teto 100
 	} else {
@@ -890,17 +913,21 @@ func mountFeed(mount *model.Item, feedIndex uint16) (bool, string) {
 
 // mountLongevityRecover porta o Vol 93: longevidade += 1..3 (teto 60). Recusa se
 // ja estiver no maximo ou zerada (montaria morta -> precisa reviver primeiro).
-func mountLongevityRecover(mount *model.Item) (bool, string) {
+func mountLongevityRecoverWithRNG(mount *model.Item, intn func(int) int) (bool, string) {
 	long := mount.MountLongev()
 	if long < 1 || long >= model.MountMaxLongevity {
 		return false, "Mount longevity is already at maximum."
 	}
-	long += rand.Intn(3) + 1
+	long += intn(3) + 1
 	if long > model.MountMaxLongevity {
 		long = model.MountMaxLongevity
 	}
 	mount.SetMountLongev(long)
 	return true, "Mount longevity restored."
+}
+
+func mountLongevityRecover(mount *model.Item) (bool, string) {
+	return mountLongevityRecoverWithRNG(mount, realRNG{}.Intn)
 }
 
 // mountLongevityRestore porta o item 3315 do client 7.48. O itemhelp.dat e o
@@ -943,13 +970,17 @@ func mountSetLevel(mount *model.Item, minLevel, targetLevel int) (bool, string) 
 // mountGrowth porta a pocao de crescimento (Vol 94): evolui o estagio na hora
 // (sIndex+=30), sem depender de level. A categoria da pocao (3344+) deve casar
 // com a familia da montaria.
-func mountGrowth(mount *model.Item, potionIndex uint16) (bool, string) {
+func mountGrowthWithRNG(mount *model.Item, potionIndex uint16, intn func(int) int) (bool, string) {
 	cat := int(potionIndex) - 3344
 	if cat < 0 || growthCategory(mount.Index) != cat {
 		return false, "This potion does not match the mount."
 	}
-	advanceMountStage(mount, 20)
+	advanceMountStage(mount, 20, intn)
 	return true, "Your mount grew to the next stage!"
+}
+
+func mountGrowth(mount *model.Item, potionIndex uint16) (bool, string) {
+	return mountGrowthWithRNG(mount, potionIndex, realRNG{}.Intn)
 }
 
 // growthCategory mapeia o sIndex da montaria para a categoria da pocao de

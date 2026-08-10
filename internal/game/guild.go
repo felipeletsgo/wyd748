@@ -33,10 +33,7 @@ func (w *World) saveGuildState(accounts ...*model.Account) error {
 	if !ok {
 		return fmt.Errorf("store atual nao suporta persistencia de guild")
 	}
-	for _, account := range accounts {
-		pinAccountEntryPositions(account)
-	}
-	return gs.SaveGameState(w.guilds, accounts...)
+	return gs.SaveGameState(w.guilds, accountPersistenceSnapshots(accounts...)...)
 }
 
 // Erros de autorizacao. Ficam separados da mensagem enviada ao client para que
@@ -193,12 +190,12 @@ func (w *World) guildCommandCreate(s *net.Session, p *Player, arg string) {
 		ID:        id,
 		Name:      name,
 		Kingdom:   characterKingdom(p.Char),
-		CreatedAt: time.Now().UTC(),
+		CreatedAt: w.now().UTC(),
 		Members: []model.GuildMember{{
 			Character: p.Char.Name,
 			Account:   p.Account.Name,
 			Rank:      model.GuildRankLeader,
-			JoinedAt:  time.Now().UTC(),
+			JoinedAt:  w.now().UTC(),
 		}},
 	})
 	p.Char.GuildID, p.Char.GuildRank = id, model.GuildRankLeader
@@ -246,7 +243,7 @@ func (w *World) guildCommandInvite(s *net.Session, p *Player, arg string) {
 		return
 	}
 	invited.GuildInviteFrom = guild.ID
-	invited.GuildInviteUntil = time.Now().Add(guildInviteTTL)
+	invited.GuildInviteUntil = w.now().Add(guildInviteTTL)
 	invited.Session.Send(wire.MessagePanel(fmt.Sprintf(
 		"%s invited you to the guild %s. Type /accept.", p.Char.Name, guild.Name)))
 	s.Send(wire.MessagePanel(fmt.Sprintf("Invitation sent to %s.", invited.Char.Name)))
@@ -254,7 +251,7 @@ func (w *World) guildCommandInvite(s *net.Session, p *Player, arg string) {
 }
 
 func (w *World) guildCommandAccept(s *net.Session, p *Player, _ string) {
-	if p.GuildInviteFrom == 0 || time.Now().After(p.GuildInviteUntil) {
+	if p.GuildInviteFrom == 0 || w.now().After(p.GuildInviteUntil) {
 		p.GuildInviteFrom = 0
 		s.Send(wire.MessagePanel("You have no valid guild invitation."))
 		return
@@ -282,7 +279,7 @@ func (w *World) guildCommandAccept(s *net.Session, p *Player, _ string) {
 		Character: p.Char.Name,
 		Account:   p.Account.Name,
 		Rank:      model.GuildRankMember,
-		JoinedAt:  time.Now().UTC(),
+		JoinedAt:  w.now().UTC(),
 	})
 	p.Char.GuildID, p.Char.GuildRank = guild.ID, model.GuildRankMember
 

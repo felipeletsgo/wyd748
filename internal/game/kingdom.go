@@ -192,7 +192,7 @@ func (w *World) handleKingdomNPC(s *net.Session, p *Player, m *Mob) bool {
 		return true
 	}
 	if isKingdomBroker(m.Def) {
-		w.leaveKingdom(s, p, time.Now())
+		w.leaveKingdom(s, p, w.now())
 		return true
 	}
 	return false
@@ -368,7 +368,8 @@ func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 		s.Send(wire.MessagePanel("Dead characters cannot use this teleport."))
 		return
 	}
-	if time.Now().Before(p.NextKingdomTeleport) {
+	now := w.now()
+	if now.Before(p.NextKingdomTeleport) {
 		s.Send(wire.MessagePanel("Wait before using the kingdom teleport again."))
 		return
 	}
@@ -399,6 +400,6 @@ func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 		s.Send(wire.MessagePanel("The kingdom teleport could not be completed."))
 		return
 	}
-	p.NextKingdomTeleport = time.Now().Add(kingdomWarpCooldown)
+	p.NextKingdomTeleport = now.Add(kingdomWarpCooldown)
 	log.Printf("[#%d] REINO comando %q -> (%d,%d)", s.ID, p.Char.Name, p.X, p.Y)
 }

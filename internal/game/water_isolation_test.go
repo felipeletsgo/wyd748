@@ -30,7 +30,7 @@ func TestGameplaySpaceBlocksPlayerSkillAndSupportAcrossRuntimes(t *testing.T) {
 	if got := w.skillPlayerTargets(caster, skillCastRequest{TargetID: enemy.ID}, skill); len(got) != 0 {
 		t.Fatalf("skill PvP atravessou runtime: %+v", got)
 	}
-	if got := w.supportTargets(caster, skillCastRequest{TargetID: enemy.ID}, skill); len(got) != 1 || got[0] != caster {
+	if got := w.supportTargets(caster, skillCastRequest{TargetID: enemy.ID}, skill); len(got) != 0 {
 		t.Fatalf("support targeting atravessou runtime: %+v", got)
 	}
 

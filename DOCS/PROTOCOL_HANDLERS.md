@@ -1,6 +1,7 @@
 # Handlers do protocolo 7.48
 
-Auditoria atualizada em 02/08/2026 contra o dispatcher do WYD-Go, W2PP 7.59, Secrets
+Auditoria atualizada em 10/08/2026. HEAD de referência: `2caa333` (base desta
+revisão). A comparação considera o dispatcher do WYD-Go, W2PP 7.59, Secrets
 7.54 e os pacotes observados do client 7.48.
 
 ## Pacote periódico

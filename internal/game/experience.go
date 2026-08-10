@@ -1,6 +1,10 @@
 package game
 
-import "wydgo/internal/model"
+import (
+	"time"
+
+	"wydgo/internal/model"
+)
 
 // affectDoubleExp e o affect do bau de experiencia (Type 39 no W2PP): enquanto
 // ativo, dobra a EXP recebida. Nao altera atributos, entao nao entra no
@@ -37,7 +41,11 @@ func scaledQuestExperience(base uint32, config model.GameplayConfig) uint32 {
 // bonus seja compartilhado com todos os membros elegiveis da party.
 // O clamp evita overflow no teto de uint32.
 func expWithDoubleBuff(ch *model.Char, reward uint32) uint32 {
-	if activePlayerAffect(ch, affectDoubleExp) == nil {
+	return expWithDoubleBuffAt(ch, reward, time.Now())
+}
+
+func expWithDoubleBuffAt(ch *model.Char, reward uint32, now time.Time) uint32 {
+	if activePlayerAffectAt(ch, affectDoubleExp, now) == nil {
 		return reward
 	}
 	if reward > ^uint32(0)/2 {
@@ -61,5 +69,5 @@ func (w *World) mobKillExperienceForReceiver(killer, receiver *model.Char, rewar
 	}
 	reward = applyPercentReward(reward, w.equipmentGemBonuses(killer).expPercent)
 	reward = celestialCombatExperience(receiver, reward)
-	return expWithDoubleBuff(killer, reward)
+	return expWithDoubleBuffAt(killer, reward, w.now())
 }

@@ -68,7 +68,7 @@ func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 	}
 
 	target.InviteFrom = inviter.ID
-	target.InviteUntil = time.Now().Add(partyInviteTTL)
+	target.InviteUntil = w.now().Add(partyInviteTTL)
 	level, currentHP, maximumHP := wire.CompatibilityVitals(wireExtendedScore(inviter.Char))
 	target.Session.Send(wire.PartyRequest(inviter.ID, inviter.Char.Name, inviter.Char.Class,
 		level, currentHP, maximumHP, target.ID))
@@ -105,7 +105,7 @@ func (w *World) onPartyAccept(s *net.Session, pkt []byte) {
 	leader := w.playerByID(leaderID)
 	name := cstr(pkt[14:30])
 	if leader == nil || leader.Char == nil || member.InviteFrom != leaderID ||
-		time.Now().After(member.InviteUntil) || !strings.EqualFold(name, leader.Char.Name) ||
+		w.now().After(member.InviteUntil) || !strings.EqualFold(name, leader.Char.Name) ||
 		!w.playersShareGameplaySpace(member, leader) {
 		member.InviteFrom = 0
 		member.InviteUntil = time.Time{}

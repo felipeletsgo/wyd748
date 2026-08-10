@@ -6,8 +6,8 @@ database_max_conns=32
 session_queue_capacity=4096
 debug_address=127.0.0.1:6060
 npcgener_log=summary
-heightmap=data/HeightMap.dat
-attributemap=client748/UI/AttributeMap.dat
+heightmap=data/maps/HeightMap.dat
+attributemap=data/maps/AttributeMap.dat
 
 # Taurons de Noatum (NPCGener 3223/3224). Somente contas bot recebem este
 # nascimento; jogadores reais continuam em 2100,2100.

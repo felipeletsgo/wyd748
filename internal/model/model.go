@@ -241,6 +241,43 @@ func (e *ExtendedScore) Validate() error {
 	return nil
 }
 
+// ValidatePlayerState applies the functional limits of a persisted character.
+// NPC source data keeps byte-domain sentinel values (notably SaveMana=255)
+// inherited from the native files, so those static definitions use Validate;
+// account/character state must pass this stricter boundary.
+func (e *ExtendedScore) ValidatePlayerState() error {
+	if err := e.Validate(); err != nil {
+		return err
+	}
+	if e.Parry > 100 {
+		return fmt.Errorf("extendedScore.parry=%d excede 100", e.Parry)
+	}
+	for _, resistance := range []struct {
+		name  string
+		value uint32
+	}{
+		{"resistFire", e.ResistFire}, {"resistIce", e.ResistIce},
+		{"resistHoly", e.ResistHoly}, {"resistThunder", e.ResistThunder},
+	} {
+		if resistance.value > 100 {
+			return fmt.Errorf("extendedScore.%s=%d excede 100", resistance.name, resistance.value)
+		}
+	}
+	if e.SaveMana > 99 {
+		return fmt.Errorf("extendedScore.saveMana=%d excede 99", e.SaveMana)
+	}
+	if e.RegenHP > 255 || e.RegenMP > 255 {
+		return fmt.Errorf("extendedScore regen fora de 0..255: hp=%d mp=%d", e.RegenHP, e.RegenMP)
+	}
+	if e.CurHP > e.MaxHP {
+		return fmt.Errorf("extendedScore.curHP=%d excede maxHP=%d", e.CurHP, e.MaxHP)
+	}
+	if e.CurMP > e.MaxMP {
+		return fmt.Errorf("extendedScore.curMP=%d excede maxMP=%d", e.CurMP, e.MaxMP)
+	}
+	return nil
+}
+
 const (
 	compatibilityMaximum = uint32(30_000)
 	compatibilityDerived = uint32(1_000)
@@ -392,7 +429,7 @@ func (f *CelestialForm) Validate() error {
 	if f.Face.Index == 0 {
 		return fmt.Errorf("forma celestial sem rosto")
 	}
-	if err := f.Extended.Validate(); err != nil {
+	if err := f.Extended.ValidatePlayerState(); err != nil {
 		return fmt.Errorf("forma celestial: %w", err)
 	}
 	if f.Extended.Level > 199 {
@@ -679,7 +716,7 @@ func (c *Char) UnmarshalJSON(b []byte) error {
 	if c.CP < MinCP || c.CP > MaxCP {
 		return fmt.Errorf("personagem %q possui cp fora de -75..75: %d", c.Name, c.CP)
 	}
-	if err := c.Extended.Validate(); err != nil {
+	if err := c.Extended.ValidatePlayerState(); err != nil {
 		return fmt.Errorf("personagem %q: %w", c.Name, err)
 	}
 	if err := c.AlternateCelestial.Validate(); err != nil {
@@ -779,7 +816,7 @@ func (a *Account) Validate() error {
 			}
 			continue
 		}
-		if err := character.Extended.Validate(); err != nil {
+		if err := character.Extended.ValidatePlayerState(); err != nil {
 			return fmt.Errorf("conta %q personagem[%d] %q: %w",
 				a.Name, i, character.Name, err)
 		}

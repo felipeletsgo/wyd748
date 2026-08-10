@@ -156,7 +156,7 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 			p.Trade = &TradeState{
 				OpponentID: opponent.ID,
 				CarryPos:   emptyTradePositions(),
-				ExpiresAt:  time.Now().Add(tradeActiveTTL),
+				ExpiresAt:  w.now().Add(tradeActiveTTL),
 			}
 			opponent.Trade.ExpiresAt = p.Trade.ExpiresAt
 			opponent.Session.Send(wire.Trade(opponent.ID, p.Trade.Items, p.Trade.CarryPos, 0, false, p.ID))
@@ -176,7 +176,7 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 		p.Trade = &TradeState{
 			OpponentID: opponent.ID,
 			CarryPos:   emptyTradePositions(),
-			ExpiresAt:  time.Now().Add(tradeInviteTTL),
+			ExpiresAt:  w.now().Add(tradeInviteTTL),
 		}
 		p.ShopNPC = 0
 		opponent.Session.Send(wire.Trade(opponent.ID, p.Trade.Items, p.Trade.CarryPos, 0, false, p.ID))
@@ -204,7 +204,7 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 		w.cancelTrade(p, "oferta alterada durante confirmacao")
 		return
 	}
-	p.Trade.ExpiresAt = time.Now().Add(tradeActiveTTL)
+	p.Trade.ExpiresAt = w.now().Add(tradeActiveTTL)
 	opponent.Trade.ExpiresAt = p.Trade.ExpiresAt
 
 	if !req.Checked {
@@ -461,17 +461,15 @@ type tradeBatchStore interface {
 }
 
 func (w *World) saveTradeAccounts(accounts ...*model.Account) error {
-	for _, account := range accounts {
-		pinAccountEntryPositions(account)
-	}
+	snapshots := accountPersistenceSnapshots(accounts...)
 	if batch, ok := w.store.(tradeBatchStore); ok {
-		return batch.SaveAccounts(accounts...)
+		return batch.SaveAccounts(snapshots...)
 	}
-	if len(accounts) > 1 {
+	if len(snapshots) > 1 {
 		return errors.New("store sem transacao multi-account; trade recusado")
 	}
-	for _, account := range accounts {
-		if err := w.saveAccount(account); err != nil {
+	for _, account := range snapshots {
+		if err := w.store.SaveAccount(account); err != nil {
 			return err
 		}
 	}

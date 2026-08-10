@@ -4,11 +4,10 @@
 # o client deve apontar para o IP publico do VPS no seu serverlist.
 listen_address=0.0.0.0:8281
 
-# Persistencia autoritativa do ambiente de testes local.
-# Esta credencial simples e intencionalmente versionada enquanto o projeto
-# estiver em testes. Troque-a antes de expor o PostgreSQL fora do localhost.
+# Persistencia autoritativa. A URL fica somente no ambiente; nunca versione
+# credenciais neste arquivo. Para desenvolvimento local, defina:
+#   $env:WYD_DATABASE_URL='postgres://wydgo:<senha>@127.0.0.1:5432/wydgo?sslmode=disable'
 database_driver=postgres
-database_url=postgres://wydgo:123456@127.0.0.1:5432/wydgo?sslmode=disable
 database_url_env=WYD_DATABASE_URL
 database_max_conns=8
 
@@ -74,8 +73,5 @@ repliction=data/repliction.json
 mounts=data/mounts.json
 character_templates=data/character_templates.json
 
-# No Ubuntu, depois de copiar os mapas para data/maps, use:
-# heightmap=data/maps/HeightMap.dat
-# attributemap=data/maps/AttributeMap.dat
-heightmap=../Server Star Micronics/TMSRV/run/HeightMap.dat
-attributemap=../Server Star Micronics/TMSRV/run/AttributeMap.dat
+heightmap=data/maps/HeightMap.dat
+attributemap=data/maps/AttributeMap.dat

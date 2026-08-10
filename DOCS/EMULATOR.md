@@ -68,7 +68,8 @@ go test ./...                         # regressões de wire, game, dados e conta
   As flags disponíveis são `-addr`, `-npcs`, `-gener`, `-accounts`, `-items`,
   `-itemnames`, `-skills`, `-droprates`, `-volatiles`, `-quests`,
   `-quest_zones`, `-characters`, `-heightmap` e `-attributemap`. Os dois mapas usam por padrão os arquivos do
-  `Server Star Micronics/TMSRV/run`, relativos à raiz de `wyd-go`.
+  `data/maps/HeightMap.dat` e `data/maps/AttributeMap.dat`, relativos à raiz
+  de `wyd-go`. O boot padrão não depende da árvore externa do Micronics.
 - **IP público:** não deve ser colocado em `listen_address`. No VPS, o servidor
   continua escutando em `0.0.0.0:8281`; o IP público ou domínio é configurado no
   `serverlist` do client. Isso também funciona quando o provedor usa NAT.

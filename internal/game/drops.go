@@ -2,12 +2,21 @@ package game
 
 import (
 	"log"
-	"math/rand"
 	"strings"
 
 	"wydgo/internal/model"
 	"wydgo/internal/wire"
 )
+
+type plannedDrop struct {
+	player       *Player
+	inventoryPos int
+	item         model.Item
+	x, y         uint16
+	instanceID   string
+	source       string
+	sourceSlot   int
+}
 
 // drops.go -- drop de loot na morte do mob, PORTADO do MobKilled.cpp do W2PP
 // ("Drop comum" + "Drop Gold"). Mecanica nativa: a chance depende do SLOT em que o
@@ -94,6 +103,17 @@ func applyDropBonus(rate, bonusPercent int) int {
 }
 
 func (w *World) rollMobDrops(p *Player, m *Mob) {
+	w.publishPlannedDrops(w.planMobDrops(p, m))
+}
+
+// planMobDrops mutates only the authoritative inventory. Ground publication
+// and client packets are deferred until the enclosing kill transaction has
+// committed.
+func (w *World) planMobDrops(p *Player, m *Mob) []plannedDrop {
+	if p == nil || p.Char == nil || m == nil || m.Def == nil {
+		return nil
+	}
+	planned := make([]plannedDrop, 0, len(m.Def.Carry))
 	lvl := int(m.Def.Extended.Level)
 	for i, item := range m.Def.Carry {
 		if i >= len(w.dropRates) {
@@ -104,30 +124,47 @@ func (w *World) rollMobDrops(p *Player, m *Mob) {
 		}
 		rate, guaranteed := w.dropRateForSlot(i, lvl)
 		rate = applyDropBonus(rate, w.dropBonusFor(p))
-		if !guaranteed && rate > 0 && rand.Intn(rate) != 0 {
+		if !guaranteed && rate > 0 && w.intn(rate) != 0 {
 			continue // nativo: rand()%rate == 0 dropa
 		}
 		if slot := addToInv(p.Char, item); slot >= 0 {
-			p.Session.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
-			log.Printf("[#%d] DROP slot=%d item=%d -> inv[%d] (%q)",
-				p.Session.ID, i, item.Index, slot, m.Def.Name)
+			planned = append(planned, plannedDrop{player: p, inventoryPos: slot,
+				item: p.Char.Inv[slot], source: m.Def.Name, sourceSlot: i})
 		} else {
-			// Inventario cheio: cai no chao na posicao do mob (pegavel via 0x270).
-			instanceID := strings.TrimSpace(m.InstanceID)
-			w.createGroundDropForInstance(m.X, m.Y, item, true, instanceID)
-			log.Printf("[#%d] DROP slot=%d item=%d -> CHAO (inventario cheio)",
-				p.Session.ID, i, item.Index)
+			planned = append(planned, plannedDrop{player: p, inventoryPos: -1,
+				item: item, x: m.X, y: m.Y, instanceID: strings.TrimSpace(m.InstanceID),
+				source: m.Def.Name, sourceSlot: i})
 		}
+	}
+	return planned
+}
+
+func (w *World) publishPlannedDrops(drops []plannedDrop) {
+	for _, drop := range drops {
+		if drop.player == nil || drop.player.Session == nil {
+			continue
+		}
+		if drop.inventoryPos >= 0 {
+			drop.player.Session.Send(wire.SendItem(drop.player.ID, placeInv,
+				byte(drop.inventoryPos), drop.player.Char.Inv[drop.inventoryPos]))
+			log.Printf("[#%d] DROP slot=%d item=%d -> inv[%d] (%q)",
+				drop.player.Session.ID, drop.sourceSlot, drop.item.Index,
+				drop.inventoryPos, drop.source)
+			continue
+		}
+		w.createGroundDropForInstance(drop.x, drop.y, drop.item, true, drop.instanceID)
+		log.Printf("[#%d] DROP slot=%d item=%d -> CHAO (inventario cheio)",
+			drop.player.Session.ID, drop.sourceSlot, drop.item.Index)
 	}
 }
 
 // rollMobGold porta o "Drop Gold" do MobKilled: chance por banda de level, valor
 // pela formula nativa (cap 2000), creditado DIRETO no gold do killer (o UpdateEtc
 // que o killMobState manda depois atualiza o display).
-func (w *World) rollMobGold(p *Player, m *Mob) {
+func (w *World) rollMobGold(p *Player, m *Mob) uint32 {
 	coin := int(m.Def.Gold)
 	if coin <= 0 {
-		return
+		return 0
 	}
 	unk := 18
 	switch lvl := int(m.Def.Extended.Level); {
@@ -140,10 +177,10 @@ func (w *World) rollMobGold(p *Player, m *Mob) {
 	case lvl < 50:
 		unk = 9
 	}
-	if rand.Intn(unk+1) != 0 {
-		return
+	if w.intn(unk+1) != 0 {
+		return 0
 	}
-	amount := 4 * (rand.Intn((coin+1)/4+1) + (coin+1)/4 + coin)
+	amount := 4 * (w.intn((coin+1)/4+1) + (coin+1)/4 + coin)
 	if amount > 2000 {
 		amount = 2000
 	}
@@ -153,5 +190,5 @@ func (w *World) rollMobGold(p *Player, m *Mob) {
 	} else {
 		p.Char.Gold += uint32(amount)
 	}
-	log.Printf("[#%d] DROP gold +%d (total=%d) de %q", p.Session.ID, amount, p.Char.Gold, m.Def.Name)
+	return uint32(amount)
 }

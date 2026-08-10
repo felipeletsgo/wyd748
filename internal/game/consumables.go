@@ -3,7 +3,6 @@ package game
 import (
 	"encoding/binary"
 	"log"
-	"math/rand"
 	"time"
 
 	"wydgo/internal/model"
@@ -341,7 +340,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 
 	case "restore":
-		now := time.Now()
+		now := w.now()
 		if !p.LastPotion.IsZero() && now.Sub(p.LastPotion) < potionCooldown {
 			// O cliente antecipa parte do uso visualmente; reenvia o slot real.
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -563,7 +562,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// Transforma o rosto em monstro (70-77), COSMETICO. O mesh vai no Value do
 		// affect; bodyMesh o aplica e o visual e propagado aos observadores.
 		snapshot := cloneCharacterState(p.Char)
-		if !setFaceAffect(p.Char, rule.FaceMesh, rule.DurationUnits) {
+		if !setFaceAffectAt(p.Char, rule.FaceMesh, rule.DurationUnits, w.now()) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
@@ -793,7 +792,7 @@ func (w *World) applyRepliction(dest *model.Item, def model.ItemDef, sourceID ui
 			break
 		}
 	}
-	bonus := pool[rand.Intn(len(pool))]
+	bonus := pool[w.intn(len(pool))]
 	dest.Eff = [6]byte{
 		sancEffect, sancValue,
 		byte(bonus.Effect1), byte(bonus.Value1),

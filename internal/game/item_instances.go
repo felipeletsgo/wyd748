@@ -456,39 +456,24 @@ func (w *World) instanceAreaOccupied(cfg *model.VolatileInstance, space string,
 }
 
 func (w *World) saveAccountsAtomic(accounts ...*model.Account) error {
-	for _, account := range accounts {
-		pinAccountEntryPositions(account)
-	}
+	snapshots := accountPersistenceSnapshots(accounts...)
 	if batch, ok := w.store.(tradeBatchStore); ok {
-		return batch.SaveAccounts(accounts...)
+		return batch.SaveAccounts(snapshots...)
 	}
 	// SaveGameState also provides one database transaction for all accounts.
 	// Some lightweight stores expose only this wider primitive because the same
 	// operation can include guild state when needed.  Passing nil deliberately
 	// means "accounts only"; guild commands use saveGuildState instead.
 	if gameState, ok := w.store.(guildStore); ok {
-		return gameState.SaveGameState(nil, accounts...)
+		return gameState.SaveGameState(nil, snapshots...)
 	}
-	if len(accounts) > 1 {
+	if len(snapshots) > 1 {
 		return fmt.Errorf("store atual nao suporta transacao multi-conta")
 	}
-	if len(accounts) == 1 {
-		return w.saveAccount(accounts[0])
+	if len(snapshots) == 1 {
+		return w.store.SaveAccount(snapshots[0])
 	}
 	return nil
-}
-
-func (w *World) planInstancePositions(members []*Player, x, y uint16) ([][2]uint16, bool) {
-	return w.planInstancePositionsIgnoring(members, x, y, nil)
-}
-
-// planInstancePositionsIgnoring permite que os membros que estao sendo
-// movidos em conjunto ignorem as suas posicoes antigas. Sem isso, uma
-// transicao para uma sala proxima podia recusar o movimento porque o primeiro
-// membro ainda ocupava o tile que o segundo deveria receber.
-func (w *World) planInstancePositionsIgnoring(members []*Player, x, y uint16,
-	ignored map[*Player]struct{}) ([][2]uint16, bool) {
-	return w.planInstancePositionsIgnoringForInstance(members, x, y, ignored, "")
 }
 
 func (w *World) planInstancePositionsIgnoringForInstance(members []*Player,
@@ -915,7 +900,7 @@ func (w *World) instanceMobStepAllowed(m *Mob, x, y uint16) bool {
 }
 
 func (w *World) instanceMobTargetAllowed(m *Mob, p *Player) bool {
-	if p == nil || !validMobTarget(p) {
+	if p == nil || !validMobTargetAt(p, w.now()) {
 		return false
 	}
 	return instanceMemberInStage(w.instanceForMob(m), p)

@@ -1,11 +1,11 @@
 # WYD-Go
 
-## Política de modelo
+## Política canônica de modelo
 
-O modelo e o nível de raciocínio são definidos pela sessão/ambiente Codex.
-Quando a sessão oferecer `gpt-5.6-luna`, usar esse modelo com esforço `max`,
-conforme a preferência do projeto. Caso ele não esteja disponível, usar o
-modelo fornecido pela sessão e o maior nível de raciocínio disponível; nunca
+Para tarefas deste repositório, a preferência operacional é `gpt-5.6-luna`
+com esforço `max` quando essa seleção estiver disponível na sessão. O modelo e
+o nível efetivamente usados continuam sendo definidos pelo ambiente Codex; se
+Luna não estiver disponível, usar o maior nível exposto pela sessão e nunca
 afirmar que um modelo indisponível foi utilizado.
 
 Skills, subagentes e ferramentas não podem reduzir o nível de raciocínio

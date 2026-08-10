@@ -34,7 +34,8 @@ func experiencePartyKillWorld(t *testing.T) (*World, *Player, *Player) {
 	return w, killer, member
 }
 
-func killExperienceTestMob(w *World, killer *Player, id uint16) {
+func killExperienceTestMob(t *testing.T, w *World, killer *Player, id uint16) {
+	t.Helper()
 	mob := &Mob{
 		ID: id, X: killer.X + 1, Y: killer.Y, HP: 100,
 		Def: &model.NPCDef{
@@ -46,7 +47,11 @@ func killExperienceTestMob(w *World, killer *Player, id uint16) {
 	}
 	w.mobs = append(w.mobs, mob)
 	w.registerMobSpatial(mob)
-	w.killMobState(killer, mob, 100, 100, false)
+	plan := w.planMobKill(killer, mob, 100, 100)
+	if plan == nil {
+		t.Fatal("planMobKill returned nil")
+	}
+	w.finalizeKillReward(plan, true)
 }
 
 func TestMobKillExperienceCalculatesEveryItemBonusFromKiller(t *testing.T) {
@@ -78,7 +83,7 @@ func TestMobKillExperienceCalculatesEveryItemBonusFromKiller(t *testing.T) {
 			if test.setup != nil {
 				test.setup(t, w, killer)
 			}
-			killExperienceTestMob(w, killer, 1100+uint16(index))
+			killExperienceTestMob(t, w, killer, 1100+uint16(index))
 			if killer.Char.Exp != test.want || member.Char.Exp != test.want {
 				t.Fatalf("killer=%d member=%d, want=%d", killer.Char.Exp, member.Char.Exp, test.want)
 			}
@@ -90,7 +95,7 @@ func TestMobKillSharesKillerItemExperienceBonusesWithWholeParty(t *testing.T) {
 	w, killer, member := experiencePartyKillWorld(t)
 	equipCombatExperienceBonuses(t, w, killer)
 
-	killExperienceTestMob(w, killer, 1000)
+	killExperienceTestMob(t, w, killer, 1000)
 
 	// 10,000 + party de 4% = 10,400; Coral+Silver = +18%; bau = x2.
 	const want = uint32(24_544)
@@ -104,7 +109,7 @@ func TestMobKillIgnoresItemExperienceBonusesOwnedOnlyByReceiver(t *testing.T) {
 	w, killer, member := experiencePartyKillWorld(t)
 	equipCombatExperienceBonuses(t, w, member)
 
-	killExperienceTestMob(w, killer, 1001)
+	killExperienceTestMob(t, w, killer, 1001)
 
 	// O membro nao matou: seus itens nao amplificam o abate do killer.
 	const want = uint32(10_400)
@@ -118,7 +123,7 @@ func TestMobKillUsesNewKillersBonusesWhenPartyMemberGetsTheKill(t *testing.T) {
 	w, leader, member := experiencePartyKillWorld(t)
 	equipCombatExperienceBonuses(t, w, member)
 
-	killExperienceTestMob(w, member, 1002)
+	killExperienceTestMob(t, w, member, 1002)
 
 	const want = uint32(24_544)
 	if leader.Char.Exp != want || member.Char.Exp != want {

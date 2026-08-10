@@ -52,7 +52,7 @@ func (w *World) removePlayerSummons(ownerID uint16) {
 		return
 	}
 	var summons []*Mob
-	for _, m := range w.mobs {
+	for _, m := range w.summons {
 		if m != nil && m.SummonerID == ownerID {
 			summons = append(summons, m)
 		}
@@ -68,7 +68,7 @@ func (w *World) removePlayerSummons(ownerID uint16) {
 
 func (w *World) removeContractSummons(ownerID uint16) {
 	var found []*Mob
-	for _, m := range w.mobs {
+	for _, m := range w.summons {
 		if m != nil && m.SummonerID == ownerID && m.SummonKind == summonKindContract {
 			found = append(found, m)
 		}
@@ -137,7 +137,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 	wanted := summonCount(skill.InstanceValue, mastery)
 	current := 0
 	obsolete := make([]*Mob, 0)
-	for _, m := range w.mobs {
+	for _, m := range w.summons {
 		if m.SummonerID != owner.ID || m.Dead || m.SummonKind == summonKindContract || m.SummonKind == summonKindMount {
 			continue
 		}
@@ -220,7 +220,7 @@ func (w *World) summonTarget(owner *Player, id uint16) summonCombatTarget {
 		return summonCombatTarget{id: id, x: m.X, y: m.Y, mob: m}
 	}
 	p := w.playerByID(id)
-	if !validMobTarget(p) || p == owner || !w.playersShareGameplaySpace(owner, p) ||
+	if !validMobTargetAt(p, w.now()) || p == owner || !w.playersShareGameplaySpace(owner, p) ||
 		p.Party != nil && p.Party == owner.Party ||
 		chebyshev(owner.X, owner.Y, p.X, p.Y) > summonCommandRange {
 		return summonCombatTarget{}
@@ -286,6 +286,10 @@ func (w *World) tickSummonCombat(now time.Time) {
 			w.moveSummonToward(summon, target.x, target.y, attackRange, now)
 			continue
 		}
+		if !w.combatLineOfSight(summon.X, summon.Y, target.x, target.y) {
+			w.moveSummonToward(summon, target.x, target.y, 1, now)
+			continue
+		}
 		if now.Before(summon.NextMove) {
 			continue
 		}
@@ -306,11 +310,11 @@ func (w *World) tickSummonCombat(now time.Time) {
 					damage, target.mob.Def.Extended.MaxHP, 0, summon.Def.Extended.MaxMP)
 			})
 			if target.mob.HP == 0 {
-				w.killMobState(owner, target.mob, damage, damage, true)
+				w.killMobState(owner, target.mob, damage, damage)
 			}
 			continue
 		}
-		damage := mobHitsPlayer(summon, target.user.Char)
+		damage := w.mobHitsPlayer(summon, target.user.Char)
 		damage = uint32(w.absorbMountDamage(target.user, int(damage)))
 		w.cancelTrade(target.user, "personagem foi atacado")
 		currentHP := playerCurHP(target.user.Char)

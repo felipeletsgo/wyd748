@@ -3,7 +3,6 @@ package game
 import (
 	"encoding/binary"
 	"log"
-	"math/rand"
 	"time"
 
 	"wydgo/internal/model"
@@ -140,8 +139,8 @@ func skillManaCost(skill model.SkillDef, mastery, saveMana int) int {
 	if saveMana < 0 {
 		saveMana = 0
 	}
-	if saveMana > 100 {
-		saveMana = 100
+	if saveMana > 99 {
+		saveMana = 99
 	}
 	return cost * (100 - saveMana) / 100
 }
@@ -289,7 +288,7 @@ func applySkillResistance(damage, instance int, resist model.ElementalResists, t
 	return damage * (150 - value) / 100
 }
 
-func skillFinalDamage(damage, defense, mastery int) int {
+func skillFinalDamageWithRNG(damage, defense, mastery int, intn func(int) int) int {
 	damage -= defense / 2
 	if mastery > 15 {
 		mastery = 15
@@ -298,7 +297,7 @@ func skillFinalDamage(damage, defense, mastery int) int {
 	if rangeSize < 1 {
 		rangeSize = 1
 	}
-	damage = damage * (rand.Intn(rangeSize) + mastery + 90) / 100
+	damage = damage * (intn(rangeSize) + mastery + 90) / 100
 	if damage < -50 {
 		damage = 0
 	} else if damage < 0 {
@@ -313,6 +312,14 @@ func skillFinalDamage(damage, defense, mastery int) int {
 		damage = int(maxExtendedStat)
 	}
 	return damage
+}
+
+func skillFinalDamage(damage, defense, mastery int) int {
+	return skillFinalDamageWithRNG(damage, defense, mastery, realRNG{}.Intn)
+}
+
+func (w *World) skillFinalDamage(damage, defense, mastery int) int {
+	return skillFinalDamageWithRNG(damage, defense, mastery, w.intn)
 }
 
 func skillDamageMastery(ch *model.Char) int {
@@ -343,14 +350,16 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 		return targets
 	}
 	area := maxInt(1, skill.Range)
-	for _, candidate := range w.mobs {
+	for _, candidate := range w.nearbyMobs(primary.X, primary.Y, area) {
 		if len(targets) >= limit {
 			break
 		}
 		if candidate == primary || candidate.Dead || !w.playerCanInteractWithMob(p, candidate) {
 			continue
 		}
-		if chebyshev(primary.X, primary.Y, candidate.X, candidate.Y) <= area {
+		// Area damage propagates from the primary impact point. A wall between
+		// that point and a secondary target blocks the secondary hit.
+		if w.combatLineOfSight(primary.X, primary.Y, candidate.X, candidate.Y) {
 			targets = append(targets, candidate)
 		}
 	}
@@ -368,7 +377,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if !ok || skill.Passive != 0 && skillIndex != 47 {
 		return
 	}
-	now := time.Now()
+	now := w.now()
 	if p.SkillReady == nil {
 		p.SkillReady = make(map[int]time.Time)
 	}
@@ -523,10 +532,10 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		appliedTotal := uint32(0)
 		calculatedTotal := uint32(0)
 		if directDamage {
-			damageValue := skillFinalDamage(baseDamage, effectiveMobDefense(target), skillDamageMastery(p.Char))
+			damageValue := w.skillFinalDamage(baseDamage, effectiveMobDefenseAt(target, now), skillDamageMastery(p.Char))
 			damageValue = damageValue * 70 / 100 // reducao PvE Mortal da _MSG_Attack 7.59
-			damageValue = applySkillResistance(damageValue, skill.InstanceType, effectiveMobResistances(target), true)
-			damageValue = applyCouragePvEDamage(p.Char, damageValue, magicDamage)
+			damageValue = applySkillResistance(damageValue, skill.InstanceType, effectiveMobResistancesAt(target, now), true)
+			damageValue = applyCouragePvEDamageAt(p.Char, damageValue, magicDamage, now)
 			damageValue = int(addFlatDamage(uint32(clampInt(damageValue, 1, int(maxExtendedStat))),
 				w.equipmentGemBonuses(p.Char).forceDamage))
 			perHitCalculated := uint32(clampInt(damageValue, 1, int(maxExtendedStat)))
@@ -590,11 +599,12 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	// level maximo no meio do lote e deixaria de aparecer se recalculassemos a
 	// elegibilidade somente no final, fazendo sua ultima EXP nao ser persistida.
 	batchAccounts := uniqueKillAccounts(p, w.partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
-	kills := 0
+	batchPlans := make([]*killRewardPlan, 0, len(results))
 	for _, result := range results {
 		if result.mob.HP == 0 {
-			w.killMobState(p, result.mob, result.calculated, result.applied, false)
-			kills++
+			if plan := w.planMobKill(p, result.mob, result.calculated, result.applied); plan != nil {
+				batchPlans = append(batchPlans, plan)
+			}
 		} else {
 			mob := result.mob
 			w.sendToMobView(mob, func() []byte {
@@ -606,7 +616,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				effectiveExtended(p.Char).MagicAmp, mastery, mob.HP, mob.Def.Extended.MaxHP, mana)
 		}
 	}
-	w.saveMultiKillBatch(p, kills, batchAccounts)
+	w.commitKillRewardBatch(p, batchPlans, batchAccounts, "mortes multi-alvo")
 }
 
 func skillHitCount(skill model.SkillDef) int {
@@ -614,22 +624,6 @@ func skillHitCount(skill model.SkillDef) int {
 		return clampInt(skill.MaxTarget, 1, 6)
 	}
 	return 1
-}
-
-func (w *World) saveMultiKillBatch(p *Player, kills int, accounts []*model.Account) {
-	if kills <= 0 || p == nil || p.Account == nil {
-		return
-	}
-	if len(accounts) == 0 {
-		accounts = []*model.Account{p.Account}
-	}
-	if err := w.saveAccountsAtomic(accounts...); err != nil {
-		log.Printf("[#%d] salvar progressao multi-alvo: %v", p.Session.ID, err)
-		w.poisonAccountsAfterPersistenceFailure(accounts, "mortes multi-alvo", err)
-		return
-	}
-	log.Printf("[#%d] lote multi-alvo salvo (%d mortes, %d conta(s))",
-		p.Session.ID, kills, len(accounts))
 }
 
 func uniqueShareAccounts(shares []partyExpShare) []*model.Account {

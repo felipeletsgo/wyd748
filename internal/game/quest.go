@@ -331,7 +331,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	cytheraChanged := false
 	if quest.Rewards.Exp != 0 {
 		// O bau de experiencia (affect 39) tambem dobra a EXP de quest.
-		levels, _ := grantExp(p.Char, expWithDoubleBuff(p.Char, quest.Rewards.Exp))
+		levels, _ := grantExp(p.Char, expWithDoubleBuffAt(p.Char, quest.Rewards.Exp, w.now()))
 		cytheraChanged = levels > 0 && updateCelestialCythera(p.Char)
 	}
 	if quest.Rewards.Citizenship {

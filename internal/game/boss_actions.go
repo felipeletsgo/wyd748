@@ -2,6 +2,7 @@ package game
 
 import (
 	"log"
+	"time"
 
 	"wydgo/internal/model"
 	"wydgo/internal/wire"
@@ -77,7 +78,7 @@ func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef,
 		w.announceToMobView(mob, action.Message)
 	}
 
-	damage := bossSkillDamage(mob, target, skill)
+	damage := w.bossSkillDamage(mob, target, skill)
 	now := w.now()
 	w.applyMobDamageToPlayer(mob, target, damage, now, func(applied uint32) []byte {
 		// SkillHitExtended (0x36C + 0x39D) faz o client desenhar a MAGIA, e nao
@@ -98,6 +99,14 @@ func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef,
 // aqui faria a "magia" ignorar resistencia elemental e escalar com forca --
 // seria um golpe corpo a corpo com outro nome.
 func bossSkillDamage(m *Mob, target *Player, skill model.SkillDef) uint32 {
+	return bossSkillDamageWithRNG(m, target, skill, realRNG{}.Intn, time.Now())
+}
+
+func (w *World) bossSkillDamage(m *Mob, target *Player, skill model.SkillDef) uint32 {
+	return bossSkillDamageWithRNG(m, target, skill, w.intn, w.now())
+}
+
+func bossSkillDamageWithRNG(m *Mob, target *Player, skill model.SkillDef, intn func(int) int, now time.Time) uint32 {
 	if m == nil || m.Def == nil || target == nil || target.Char == nil {
 		return 0
 	}
@@ -108,13 +117,13 @@ func bossSkillDamage(m *Mob, target *Player, skill model.SkillDef) uint32 {
 	if core <= 0 {
 		// NPC sem atributo magico: cai no ataque fisico para a skill ainda doer,
 		// em vez de bater zero e parecer bug.
-		core = effectiveMobAttack(m)
+		core = effectiveMobAttackAt(m, now)
 	}
 	// InstanceValue escala o efeito da skill no catalogo nativo.
 	if skill.InstanceValue > 0 {
 		core = core * (100 + skill.InstanceValue) / 100
 	}
-	damage := skillFinalDamage(core, playerDefense(target.Char), 0)
+	damage := skillFinalDamageWithRNG(core, playerDefense(target.Char), 0, intn)
 	damage = applySkillResistance(damage, skill.InstanceType, playerElementalResists(target.Char), false)
 	return uint32(clampInt(damage, 1, int(maxExtendedStat)))
 }
@@ -167,8 +176,8 @@ func (w *World) bossSummonAdds(boss *BossRuntime, mob *Mob, action BossActionDef
 
 // bossApplyEffect aplica um affect nativo no proprio boss (escudo, enrage).
 func (w *World) bossApplyEffect(boss *BossRuntime, mob *Mob, action BossActionDef) {
-	if !setMobOwnedMobAffect(mob, mob, action.AffectType, action.AffectValue,
-		action.AffectLevel, action.AffectDuration) {
+	if !setMobOwnedMobAffectAt(mob, mob, action.AffectType, action.AffectValue,
+		action.AffectLevel, action.AffectDuration, w.now()) {
 		return
 	}
 	w.publishMobAffects(mob)
@@ -207,7 +216,7 @@ func (w *World) bossMitigateDamage(m *Mob, damage uint32) uint32 {
 	if damage == 0 || w.bossFor(m.ID) == nil {
 		return damage
 	}
-	affect := activeMobAffect(m, bossShieldAffect)
+	affect := activeMobAffectAt(m, bossShieldAffect, w.now())
 	if affect == nil {
 		return damage
 	}

@@ -310,7 +310,7 @@ func TestInstanceMobDeathDoesNotConsumeNPCGeneratorCapacity(t *testing.T) {
 	if mob == nil {
 		t.Fatal("mob de instancia nao registrado")
 	}
-	w.killMobState(leader, mob, mob.HP, mob.HP, true)
+	w.killMobState(leader, mob, mob.HP, mob.HP)
 	if w.generators[0].current != 1 {
 		t.Fatalf("morte de mob de instancia alterou capacidade do NPCGener: current=%d", w.generators[0].current)
 	}

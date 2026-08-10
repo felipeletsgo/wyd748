@@ -225,7 +225,7 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 		if wasVisible { // pode ser uma recuperacao apos perda local do client.
 			ancient := m.Def.Equip.AncientCodes()
 			p.Session.Send(wire.CreateMobVisualExtended(m.ID, m.Def.Name, m.X, m.Y,
-				m.Def.Mesh(), ancient[:], mobPublicExtended(m), m.Affects[:], 0))
+				m.Def.Mesh(), ancient[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
 		}
 		return
 	}
@@ -262,7 +262,7 @@ func (w *World) noticeProtocol(s *net.Session, opcode uint16, detail string) {
 		return
 	}
 	key := uint16(s.ID)<<4 ^ opcode
-	now := time.Now()
+	now := w.now()
 	if last := w.lastProtocolNotice[key]; !last.IsZero() && now.Sub(last) < time.Minute {
 		return
 	}

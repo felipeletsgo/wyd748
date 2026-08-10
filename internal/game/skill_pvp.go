@@ -10,10 +10,13 @@ import (
 )
 
 func hasActiveAffect(ch *model.Char, affectType byte) bool {
+	return hasActiveAffectAt(ch, affectType, time.Now())
+}
+
+func hasActiveAffectAt(ch *model.Char, affectType byte, now time.Time) bool {
 	if ch == nil {
 		return false
 	}
-	now := time.Now()
 	for i := range ch.Affects {
 		if ch.Affects[i].Type == affectType && ch.Affects[i].ExpiresAt.After(now) {
 			return true
@@ -49,7 +52,8 @@ func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill m
 			!w.playersShareGameplaySpace(caster, candidate) {
 			continue
 		}
-		if chebyshev(primary.X, primary.Y, candidate.X, candidate.Y) <= maxInt(1, skill.Range) {
+		if chebyshev(primary.X, primary.Y, candidate.X, candidate.Y) <= maxInt(1, skill.Range) &&
+			w.combatLineOfSight(primary.X, primary.Y, candidate.X, candidate.Y) {
 			targets = append(targets, candidate)
 		}
 	}
@@ -69,7 +73,11 @@ func playerElementalResists(ch *model.Char) model.ElementalResists {
 }
 
 func setOwnedAffect(ch *model.Char, ownerID uint16, affectType byte, value, level, durationUnits int) bool {
-	if !setAffect(ch, affectType, value, level, durationUnits) {
+	return setOwnedAffectAt(ch, ownerID, affectType, value, level, durationUnits, time.Now())
+}
+
+func setOwnedAffectAt(ch *model.Char, ownerID uint16, affectType byte, value, level, durationUnits int, now time.Time) bool {
+	if !setAffectAt(ch, affectType, value, level, durationUnits, now) {
 		return false
 	}
 	for i := range ch.Affects {
@@ -81,11 +89,11 @@ func setOwnedAffect(ch *model.Char, ownerID uint16, affectType byte, value, leve
 	return false
 }
 
-func setOwnedAffectForPlayer(ch *model.Char, owner *Player, affectType byte, value, level, durationUnits int) bool {
+func setOwnedAffectForPlayerAt(ch *model.Char, owner *Player, affectType byte, value, level, durationUnits int, now time.Time) bool {
 	if owner == nil || owner.Char == nil || strings.TrimSpace(owner.Char.UID) == "" {
 		return false
 	}
-	if !setOwnedAffect(ch, owner.ID, affectType, value, level, durationUnits) {
+	if !setOwnedAffectAt(ch, owner.ID, affectType, value, level, durationUnits, now) {
 		return false
 	}
 	for i := range ch.Affects {
@@ -121,6 +129,7 @@ func (w *World) breakHideOnAttack(p *Player) {
 }
 
 func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill model.SkillDef, mastery int, motion byte) {
+	now := w.now()
 	baseDamage := w.baseSkillDamage(caster.Char, skill)
 	if skill.Index == 30 {
 		baseDamage += int(playerCurHP(caster.Char))
@@ -147,9 +156,9 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		if directDamage {
 			w.cancelTrade(target, "personagem foi atacado")
 		}
-		blocked := hasActiveAffect(target.Char, 19) // Imunidade bloqueia affects agressivos.
+		blocked := hasActiveAffectAt(target.Char, 19, now) // Imunidade bloqueia affects agressivos.
 		if directDamage {
-			damageValue := skillFinalDamage(baseDamage, playerDefense(target.Char), skillDamageMastery(caster.Char))
+			damageValue := w.skillFinalDamage(baseDamage, playerDefense(target.Char), skillDamageMastery(caster.Char))
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, playerElementalResists(target.Char), false)
 			perHit := uint32(clampInt(damageValue, 1, int(maxExtendedStat)))
 			perHit = addFlatDamage(perHit, w.equipmentGemBonuses(caster.Char).forceDamage)
@@ -169,7 +178,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
 			if playerCurHP(target.Char) == 0 {
 				w.mountRiderDied(target)
-				target.DeadAt = time.Now()
+				target.DeadAt = now
 				w.receiveDeathLetter(target, caster.Char.Name, "jogador")
 				killedPlayers = append(killedPlayers, target)
 			}
@@ -177,10 +186,10 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
 		}
 		if !blocked && skill.AffectType > 0 {
-			setOwnedAffectForPlayer(target.Char, caster, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime)
+			setOwnedAffectForPlayerAt(target.Char, caster, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime, now)
 		}
 		if !blocked && skill.TickType > 0 {
-			setOwnedAffectForPlayer(target.Char, caster, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime)
+			setOwnedAffectForPlayerAt(target.Char, caster, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime, now)
 		}
 		if skill.Index == 49 { // Chamas Etereas: queima mana e dissipa buffs defensivos.
 			setPlayerCurMP(target.Char, 0)

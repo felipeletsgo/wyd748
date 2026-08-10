@@ -216,3 +216,16 @@ func TestDebugAddressDefaultsToDisabled(t *testing.T) {
 		t.Fatalf("diagnostico deveria vir desligado por padrao, veio %q", got)
 	}
 }
+
+func TestDefaultServerConfigUsesPackagedMapsAndNoInlineDatabaseURL(t *testing.T) {
+	cfg := DefaultServerConfig()
+	if cfg.HeightMapPath != "data/maps/HeightMap.dat" {
+		t.Fatalf("HeightMap padrao=%q", cfg.HeightMapPath)
+	}
+	if cfg.AttributeMapPath != "data/maps/AttributeMap.dat" {
+		t.Fatalf("AttributeMap padrao=%q", cfg.AttributeMapPath)
+	}
+	if cfg.DatabaseURL != "" || cfg.DatabaseURLEnv != "WYD_DATABASE_URL" {
+		t.Fatalf("PostgreSQL padrao deve usar somente ambiente: url=%q env=%q", cfg.DatabaseURL, cfg.DatabaseURLEnv)
+	}
+}

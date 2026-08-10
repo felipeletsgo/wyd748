@@ -130,8 +130,9 @@ func (m *Mob) insideHomeLeash() bool {
 	return chebyshev(home.X, home.Y, m.X, m.Y) <= mobLeashRange
 }
 
-func validMobTarget(p *Player) bool {
-	return p != nil && p.InWorld && p.Char != nil && playerCurHP(p.Char) > 0 && !hasActiveAffect(p.Char, 28)
+func validMobTargetAt(p *Player, now time.Time) bool {
+	return p != nil && p.InWorld && p.Char != nil && playerCurHP(p.Char) > 0 &&
+		!hasActiveAffectAt(p.Char, 28, now)
 }
 
 func (m *Mob) insideLeash(p *Player) bool {
@@ -176,7 +177,7 @@ func (w *World) chasePlayer(m *Mob, target *Player, now time.Time) {
 }
 
 func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
-	damage := mobHitsPlayer(m, target.Char)
+	damage := w.mobHitsPlayer(m, target.Char)
 	damage = absorbFlatDamage(damage, w.equipmentGemBonuses(target.Char).absorbDamage)
 	// FlagLocal=0 faz o 7.48 aplicar o dano e exibir o numero flutuante. Dano
 	// zero conserva a animacao de ataque e representa MISS no cliente.

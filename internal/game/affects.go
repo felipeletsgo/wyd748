@@ -2,7 +2,6 @@ package game
 
 import (
 	"log"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -23,14 +22,17 @@ func canReplaceAffect(current model.Affect, value, level int, expires time.Time,
 }
 
 func setAffect(ch *model.Char, affectType byte, value, level, durationUnits int) bool {
+	return setAffectAt(ch, affectType, value, level, durationUnits, time.Now())
+}
+
+func setAffectAt(ch *model.Char, affectType byte, value, level, durationUnits int, now time.Time) bool {
 	if ch == nil || affectType == 0 {
 		return false
 	}
 	if durationUnits < 1 {
 		durationUnits = 1
 	}
-	expires := time.Now().Add(time.Duration(durationUnits*8) * time.Second)
-	now := time.Now()
+	expires := now.Add(time.Duration(durationUnits*8) * time.Second)
 	slot := -1
 	for i := range ch.Affects {
 		if ch.Affects[i].Type == affectType {
@@ -56,14 +58,13 @@ func setAffect(ch *model.Char, affectType byte, value, level, durationUnits int)
 // substituindo a atual. Nao usa canReplaceAffect: aquela compara potencia
 // (Value), o que aqui e um mesh -- trocar de Gremlin(202) para Troll(212) e
 // valido nas duas direcoes. Value carrega o mesh; bodyMesh o aplica.
-func setFaceAffect(ch *model.Char, mesh, durationUnits int) bool {
+func setFaceAffectAt(ch *model.Char, mesh, durationUnits int, now time.Time) bool {
 	if ch == nil || mesh <= 0 {
 		return false
 	}
 	if durationUnits < 1 {
 		durationUnits = 1
 	}
-	now := time.Now()
 	expires := now.Add(time.Duration(durationUnits*8) * time.Second)
 	slot := -1
 	for i := range ch.Affects {
@@ -101,10 +102,13 @@ func removeFaceAffect(ch *model.Char) bool {
 // activePlayerAffect devolve o affect ativo do tipo pedido, ou nil. Espelha o
 // activeMobAffect usado pelos mobs.
 func activePlayerAffect(ch *model.Char, affectType byte) *model.Affect {
+	return activePlayerAffectAt(ch, affectType, time.Now())
+}
+
+func activePlayerAffectAt(ch *model.Char, affectType byte, now time.Time) *model.Affect {
 	if ch == nil {
 		return nil
 	}
-	now := time.Now()
 	for i := range ch.Affects {
 		if ch.Affects[i].Type == affectType && ch.Affects[i].ExpiresAt.After(now) {
 			return &ch.Affects[i]
@@ -118,13 +122,16 @@ func activePlayerAffect(ch *model.Char, affectType byte) *model.Affect {
 // Affect.Time += X ate um limite e recusam "usar mais" quando ja no teto. addUnits
 // e maxUnits sao blocos de 8 s. Retorna false (sem consumir) quando ja saturado.
 func accumulateAffect(ch *model.Char, affectType byte, value, level, addUnits, maxUnits int) bool {
+	return accumulateAffectAt(ch, affectType, value, level, addUnits, maxUnits, time.Now())
+}
+
+func accumulateAffectAt(ch *model.Char, affectType byte, value, level, addUnits, maxUnits int, now time.Time) bool {
 	if ch == nil || affectType == 0 || maxUnits < 1 {
 		return false
 	}
 	if addUnits < 1 {
 		addUnits = 1
 	}
-	now := time.Now()
 	const unit = 8 * time.Second
 	empty := -1
 	for i := range ch.Affects {
@@ -183,6 +190,7 @@ func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) volat
 		return volatileBuffRejected
 	}
 	snapshot := cloneCharacterState(ch)
+	now := w.now()
 	for _, affect := range affects {
 		affectType, value := affect.Type, affect.Value
 		if affect.SkillID > 0 {
@@ -195,15 +203,15 @@ func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) volat
 		}
 		var applied bool
 		if rule.Accumulate {
-			applied = accumulateAffect(ch, byte(affectType), value, affect.Level,
-				affect.DurationUnits, rule.MaxDurationUnits)
+			applied = accumulateAffectAt(ch, byte(affectType), value, affect.Level,
+				affect.DurationUnits, rule.MaxDurationUnits, now)
 		} else {
-			applied = setAffect(ch, byte(affectType), value, affect.Level,
-				affect.DurationUnits)
+			applied = setAffectAt(ch, byte(affectType), value, affect.Level,
+				affect.DurationUnits, now)
 		}
 		if !applied {
 			*ch = snapshot
-			if activePlayerAffect(ch, byte(affectType)) != nil {
+			if activePlayerAffectAt(ch, byte(affectType), now) != nil {
 				return volatileBuffAlreadyActive
 			}
 			return volatileBuffRejected
@@ -230,6 +238,17 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 	if p == nil || p.Char == nil {
 		return nil
 	}
+	// An explicit target is an intent, not a hint. Never silently turn a stale,
+	// out-of-range or cross-runtime target into a self cast.
+	if req.TargetID != 0 && req.TargetID != p.ID {
+		target := w.playerByID(req.TargetID)
+		if target == nil || !target.InWorld || target.Char == nil ||
+			!w.playersShareGameplaySpace(p, target) ||
+			(!sameSupportGroup(p, target) && skill.Index != 47) ||
+			chebyshev(p.X, p.Y, target.X, target.Y) > maxInt(6, skill.Range) {
+			return nil
+		}
+	}
 	if skill.Party != 0 && skill.MaxTarget > 1 && p.Party != nil {
 		result := make([]*Player, 0, len(p.Party.Members))
 		for _, member := range p.Party.Members {
@@ -249,7 +268,10 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 		chebyshev(p.X, p.Y, target.X, target.Y) <= maxInt(6, skill.Range) {
 		return []*Player{target}
 	}
-	return []*Player{p}
+	if req.TargetID == 0 || req.TargetID == p.ID {
+		return []*Player{p}
+	}
+	return nil
 }
 
 func cleansePlayer(ch *model.Char) bool {
@@ -283,6 +305,7 @@ func foemaHealAmount(skillIndex, mastery, instanceValue int) int {
 }
 
 func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.SkillDef, mastery int) []supportSkillResult {
+	now := w.now()
 	targets := w.supportTargets(p, req, skill)
 	changed := make([]supportSkillResult, 0, len(targets))
 	for _, target := range targets {
@@ -301,7 +324,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 			applied = true
 		case 31: // Renascimento Foema.
 			setPlayerCurMP(p.Char, 0)
-			if playerCurHP(target.Char) == 0 && time.Now().UnixNano()&1 == 0 {
+			if playerCurHP(target.Char) == 0 && w.intn(2) == 0 {
 				setPlayerCurHP(target.Char, playerMaxHP(target.Char))
 				setPlayerCurMP(target.Char, playerMaxMP(target.Char))
 				target.DeadAt = time.Time{}
@@ -310,7 +333,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 		case 99: // Ressurreicao Sephira: somente autocast do morto (Secrets 7.54).
 			if target == p && playerCurHP(target.Char) == 0 {
 				chance := clampInt((int(playerLevel(target.Char))+1)/5, 0, 100)
-				if rand.Intn(100) < chance {
+				if w.intn(100) < chance {
 					halfHP := playerMaxHP(target.Char) / 2
 					if halfHP == 0 {
 						halfHP = 1
@@ -344,7 +367,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 		default:
 			affectType, value, ok := skillAffect(skill)
 			if ok {
-				applied = setAffect(target.Char, affectType, value, mastery, skill.AffectTime)
+				applied = setAffectAt(target.Char, affectType, value, mastery, skill.AffectTime, now)
 				if applied && skill.Index == 15 { // Critical Armor TK usa o visual 24 no 7.48.
 					for i := range target.Char.Affects {
 						if target.Char.Affects[i].Type == affectType {
@@ -391,12 +414,11 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 // source identity. Player session IDs are only a wire/display hint; a player
 // source must always carry CharacterUID so a recycled ClientID cannot inherit
 // the old debuff.
-func setMobAffectWithSource(m *Mob, ownerID uint16, ownerCharacterUID string,
-	affectType byte, value, level, durationUnits int) bool {
+func setMobAffectWithSourceAt(m *Mob, ownerID uint16, ownerCharacterUID string,
+	affectType byte, value, level, durationUnits int, now time.Time) bool {
 	if m == nil || affectType == 0 {
 		return false
 	}
-	now := time.Now()
 	expires := now.Add(time.Duration(maxInt(1, durationUnits)*8) * time.Second)
 	slot := -1
 	for i := range m.Affects {
@@ -421,26 +443,31 @@ func setMobAffectWithSource(m *Mob, ownerID uint16, ownerCharacterUID string,
 }
 
 func setPlayerOwnedMobAffect(m *Mob, owner *Player, affectType byte, value, level, durationUnits int) bool {
+	return setPlayerOwnedMobAffectAt(m, owner, affectType, value, level, durationUnits, time.Now())
+}
+
+func setPlayerOwnedMobAffectAt(m *Mob, owner *Player, affectType byte, value, level, durationUnits int, now time.Time) bool {
 	if owner == nil || owner.Char == nil || strings.TrimSpace(owner.Char.UID) == "" {
 		return false
 	}
-	return setMobAffectWithSource(m, owner.ID, owner.Char.UID, affectType, value, level, durationUnits)
+	return setMobAffectWithSourceAt(m, owner.ID, owner.Char.UID, affectType, value, level, durationUnits, now)
 }
 
-func setMobOwnedMobAffect(m *Mob, owner *Mob, affectType byte, value, level, durationUnits int) bool {
+func setMobOwnedMobAffectAt(m *Mob, owner *Mob, affectType byte, value, level, durationUnits int, now time.Time) bool {
 	if owner == nil || owner.ID == 0 {
 		return false
 	}
-	return setMobAffectWithSource(m, owner.ID, "", affectType, value, level, durationUnits)
+	return setMobAffectWithSourceAt(m, owner.ID, "", affectType, value, level, durationUnits, now)
 }
 
 func (w *World) applySkillMobEffects(owner *Player, m *Mob, skill model.SkillDef, mastery int) {
 	changed := false
+	now := w.now()
 	if skill.AffectType > 0 {
-		changed = setPlayerOwnedMobAffect(m, owner, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime) || changed
+		changed = setPlayerOwnedMobAffectAt(m, owner, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime, now) || changed
 	}
 	if skill.TickType > 0 {
-		changed = setPlayerOwnedMobAffect(m, owner, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime) || changed
+		changed = setPlayerOwnedMobAffectAt(m, owner, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime, now) || changed
 	}
 	if changed {
 		w.publishMobAffects(m)
@@ -448,10 +475,13 @@ func (w *World) applySkillMobEffects(owner *Player, m *Mob, skill model.SkillDef
 }
 
 func activeMobAffect(m *Mob, affectType byte) *model.Affect {
+	return activeMobAffectAt(m, affectType, time.Now())
+}
+
+func activeMobAffectAt(m *Mob, affectType byte, now time.Time) *model.Affect {
 	if m == nil {
 		return nil
 	}
-	now := time.Now()
 	for i := range m.Affects {
 		if m.Affects[i].Type == affectType && m.Affects[i].ExpiresAt.After(now) {
 			return &m.Affects[i]
@@ -461,24 +491,36 @@ func activeMobAffect(m *Mob, affectType byte) *model.Affect {
 }
 
 func effectiveMobDefense(m *Mob) int {
+	return effectiveMobDefenseAt(m, time.Now())
+}
+
+func effectiveMobDefenseAt(m *Mob, now time.Time) int {
 	defense := int(m.Def.Extended.Defense)
-	if a := activeMobAffect(m, 12); a != nil {
+	if a := activeMobAffectAt(m, 12, now); a != nil {
 		defense = defense * (100 - clampInt(a.Value, 0, 100)) / 100
 	}
 	return maxInt(0, defense)
 }
 
 func effectiveMobAttack(m *Mob) int {
+	return effectiveMobAttackAt(m, time.Now())
+}
+
+func effectiveMobAttackAt(m *Mob, now time.Time) int {
 	attack := int(m.Def.Extended.Attack)
-	if a := activeMobAffect(m, 10); a != nil {
+	if a := activeMobAffectAt(m, 10, now); a != nil {
 		attack -= a.Level/5 + a.Value
 	}
 	return maxInt(1, attack)
 }
 
 func effectiveMobAttackRun(m *Mob) byte {
+	return effectiveMobAttackRunAt(m, time.Now())
+}
+
+func effectiveMobAttackRunAt(m *Mob, now time.Time) byte {
 	attackRun := m.Def.Extended.AttackRun
-	if a := activeMobAffect(m, 1); a != nil {
+	if a := activeMobAffectAt(m, 1, now); a != nil {
 		run := maxInt(1, int(attackRun&0x0f)-a.Value)
 		attackRun = attackRun&0xf0 | byte(run)
 	}
@@ -486,11 +528,15 @@ func effectiveMobAttackRun(m *Mob) byte {
 }
 
 func effectiveMobResistances(m *Mob) model.ElementalResists {
+	return effectiveMobResistancesAt(m, time.Now())
+}
+
+func effectiveMobResistancesAt(m *Mob, now time.Time) model.ElementalResists {
 	resist := model.ElementalResists{
 		Fire: m.Def.Extended.ResistFire, Ice: m.Def.Extended.ResistIce,
 		Sacred: m.Def.Extended.ResistHoly, Thunder: m.Def.Extended.ResistThunder,
 	}
-	if a := activeMobAffect(m, 3); a != nil {
+	if a := activeMobAffectAt(m, 3, now); a != nil {
 		reduce := func(value uint32) uint32 {
 			penalty := uint32(maxInt(0, a.Value))
 			if penalty >= value {
@@ -507,13 +553,17 @@ func effectiveMobResistances(m *Mob) model.ElementalResists {
 }
 
 func mobPublicExtended(m *Mob) *model.ExtendedScore {
+	return mobPublicExtendedAt(m, time.Now())
+}
+
+func mobPublicExtendedAt(m *Mob, now time.Time) *model.ExtendedScore {
 	if m == nil || m.Def == nil {
 		return nil
 	}
 	ext := m.Def.MakeExtendedScore(m.HP)
-	ext.Defense = uint32(effectiveMobDefense(m))
-	ext.Attack = uint32(effectiveMobAttack(m))
-	ext.AttackRun = effectiveMobAttackRun(m)
+	ext.Defense = uint32(effectiveMobDefenseAt(m, now))
+	ext.Attack = uint32(effectiveMobAttackAt(m, now))
+	ext.AttackRun = effectiveMobAttackRunAt(m, now)
 	return ext
 }
 
@@ -521,8 +571,9 @@ func (w *World) publishMobAffects(m *Mob) {
 	if m == nil || m.Def == nil || m.Dead {
 		return
 	}
+	now := w.now()
 	w.sendToMobView(m, func() []byte {
-		return wire.MobScoreExtended(m.ID, mobPublicExtended(m), m.Affects[:], effectiveMobResistances(m))
+		return wire.MobScoreExtended(m.ID, mobPublicExtendedAt(m, now), m.Affects[:], effectiveMobResistancesAt(m, now))
 	})
 }
 
@@ -547,7 +598,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		applyExtendedScore(ch)
 	}
 	e := ch.ExtendedRuntime
-	now := time.Now()
+	now := w.now()
 	mul := func(value uint32, percent int) uint32 {
 		if percent < 0 {
 			percent = 0
@@ -744,6 +795,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 
 func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 	accountsToSave := make(map[*model.Account]struct{})
+	killPlans := make([]*killRewardPlan, 0)
 	for _, m := range w.activeMobs {
 		if shardCount > 1 && int(m.ID)%shardCount != shard {
 			continue
@@ -784,9 +836,11 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 						w.partyExpShares(owner, 1, w.gameplay.PartyEXPBonusPercent)) {
 						accountsToSave[account] = struct{}{}
 					}
-					w.killMobState(owner, m, damage, damage, false)
+					if plan := w.planMobKill(owner, m, damage, damage); plan != nil {
+						killPlans = append(killPlans, plan)
+					}
 				} else {
-					w.killMobState(nil, m, damage, damage, false)
+					w.killMobWithoutPlayer(m)
 				}
 				break
 			}
@@ -799,15 +853,12 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			w.publishMobAffects(m)
 		}
 	}
-	if len(accountsToSave) > 0 {
+	if len(killPlans) > 0 {
 		accounts := make([]*model.Account, 0, len(accountsToSave))
 		for account := range accountsToSave {
 			accounts = append(accounts, account)
 		}
-		if err := w.saveAccountsAtomic(accounts...); err != nil {
-			log.Printf("salvar lote de mortes por affect: %v", err)
-			w.poisonAccountsAfterPersistenceFailure(accounts, "mortes por affect", err)
-		}
+		w.commitKillRewardBatch(nil, killPlans, accounts, "mortes por affect")
 	}
 }
 
@@ -902,7 +953,6 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		return
 	}
 	wireTargets := make([]wire.SkillTarget, 0, len(targets))
-	kills := 0
 	for _, m := range targets {
 		damage := uint32(clampInt(affect.Level+affect.Value, 1, int(maxExtendedStat)))
 		if damage >= m.HP {
@@ -919,11 +969,13 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 			playerCombatMP(p.Char), int16(visualSkill), motion, skillVisualLevel(affect.Level), 13, wireTargets)
 	})
 	batchAccounts := uniqueKillAccounts(p, w.partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
+	killPlans := make([]*killRewardPlan, 0, len(targets))
 	for _, m := range targets {
 		if m.HP == 0 {
 			damage := uint32(affect.Level + affect.Value)
-			w.killMobState(p, m, damage, minU32(damage, m.Def.Extended.MaxHP), false)
-			kills++
+			if plan := w.planMobKill(p, m, damage, minU32(damage, m.Def.Extended.MaxHP)); plan != nil {
+				killPlans = append(killPlans, plan)
+			}
 		} else {
 			w.sendToMobView(m, func() []byte {
 				return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
@@ -931,7 +983,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 			})
 		}
 	}
-	w.saveMultiKillBatch(p, kills, batchAccounts)
+	w.commitKillRewardBatch(p, killPlans, batchAccounts, "mortes por affect de area")
 }
 
 func tickAreaVisual(skillIndex int) (int, byte) {

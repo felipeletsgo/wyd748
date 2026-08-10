@@ -42,11 +42,12 @@ func (w *World) applyCarbMasterBuffs(ch *model.Char) bool {
 		return false
 	}
 	snapshot := cloneCharacterState(ch)
+	now := w.now()
 	for _, skillID := range carbMasterSkills {
 		skill, exists := w.skills[skillID]
 		affectType, value, valid := skillAffect(skill)
 		if !exists || !valid || skill.AffectTime <= 0 ||
-			!setAffect(ch, affectType, value, carbMasterPower, skill.AffectTime) {
+			!setAffectAt(ch, affectType, value, carbMasterPower, skill.AffectTime, now) {
 			*ch = snapshot
 			return false
 		}
