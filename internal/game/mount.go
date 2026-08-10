@@ -462,7 +462,7 @@ func isCriaPetFace(face uint16) bool {
 
 // findCriaPet devolve o pet-cria vivo de um dono, se houver.
 func (w *World) findCriaPet(ownerID uint16) *Mob {
-	for _, m := range w.mobs {
+	for _, m := range w.summons {
 		if m == nil || m.Dead || m.SummonerID != ownerID || m.Def == nil {
 			continue
 		}
@@ -504,7 +504,7 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: uint32(hp),
 		InstanceID: w.playerRuntimeInstanceID(p.ID),
 		GenerIndex: -1, SummonerID: p.ID, SummonKind: summonKindMount, SummonRange: mobAttackRange}
-	w.mobs = append(w.mobs, m)
+	w.appendMobInstance(m)
 	w.publishMobSpawn(m)
 	log.Printf("[#%d] cria-pet nasceu face=%d", p.ID, face)
 }

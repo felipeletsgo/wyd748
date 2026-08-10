@@ -43,7 +43,7 @@ func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill m
 	if limit == 1 {
 		return targets
 	}
-	for _, candidate := range w.players {
+	for _, candidate := range w.nearbyWorldPlayers(primary.X, primary.Y, maxInt(1, skill.Range)) {
 		if len(targets) >= limit {
 			break
 		}

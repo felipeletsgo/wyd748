@@ -66,6 +66,7 @@ func resetCharacterRuntime(p *Player) {
 	// Contexto de NPC/janela aberta.
 	p.ShopNPC = 0
 	p.CraftNPC = 0
+	p.CargoNPC = 0
 	p.BrowsingGhostShopID = 0
 	p.GhostShop = nil
 	p.Trade = nil
@@ -107,8 +108,12 @@ func resetCharacterRuntime(p *Player) {
 	p.MovePublishedTargetX = 0
 	p.MovePublishedTargetY = 0
 	p.MovePublishedRoute = [maxMovementRouteBytes]byte{}
-	p.MoveBudget = 0
-	p.MoveBudgetAt = time.Time{}
+	p.MoveAuthorityRoute = nil
+	p.MoveAuthorityStep = 0
+	p.MoveAuthorityX = 0
+	p.MoveAuthorityY = 0
+	p.MoveAuthorityStartedAt = time.Time{}
+	p.MoveAuthorityStepInterval = 0
 
 	// Moedas especiais vivem no charstate do PERSONAGEM.
 	p.SpecialCoins = nil
@@ -122,18 +127,18 @@ func (w *World) onCharacterLogout(s *net.Session, pkt []byte) {
 		return
 	}
 	charID, name := p.ID, p.Char.Name
-	// Persiste buffs/moedas ANTES de sair do mundo, para sobreviverem ao retorno
-	// a selecao e a reentrada.
-	w.saveCharState(p)
+	// A confirmacao 0x116 so pode ser publicada depois de conta + charstate
+	// estarem no mesmo commit. Falhar aberto aqui apagava buffs/contadores no
+	// relog e ainda dizia ao client que a transicao havia sido concluida.
+	if err := w.saveAccountAndCharStateResult(p); err != nil {
+		log.Printf("[#%d] ERRO ao salvar estado de %q no character-logout: %v", s.ID, name, err)
+		s.Send(wire.MessagePanel("The character could not be saved. Try again."))
+		return
+	}
 	w.removePlayerFromWorld(p, "retorno a selecao")
 	// Character logout also detaches a private Water member. Persist that UID
 	// association before the session returns to character select.
 	w.flushInstanceStateIfDirty()
-	if p.Account != nil {
-		if err := w.saveAccount(p.Account); err != nil {
-			log.Printf("[#%d] ERRO ao salvar conta %q no character-logout: %v", s.ID, p.Account.Name, err)
-		}
-	}
 	s.Send(wire.CNFCharacterLogout(charID))
 	log.Printf("[#%d] CHARACTER-LOGOUT %q -> selecao", s.ID, name)
 }

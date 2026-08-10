@@ -228,4 +228,8 @@ func TestDefaultServerConfigUsesPackagedMapsAndNoInlineDatabaseURL(t *testing.T)
 	if cfg.DatabaseURL != "" || cfg.DatabaseURLEnv != "WYD_DATABASE_URL" {
 		t.Fatalf("PostgreSQL padrao deve usar somente ambiente: url=%q env=%q", cfg.DatabaseURL, cfg.DatabaseURLEnv)
 	}
+	if cfg.WorldCommandQueueCapacity != 1024 || cfg.AuthHashConcurrency != 4 {
+		t.Fatalf("limites operacionais inesperados: world_queue=%d auth_hash=%d",
+			cfg.WorldCommandQueueCapacity, cfg.AuthHashConcurrency)
+	}
 }

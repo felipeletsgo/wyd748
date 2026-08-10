@@ -99,20 +99,27 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 
 // loadCharStateInto restaura buffs e moedas ao entrar no mundo. Chamado ANTES de
 // publicar score/affects para que os buffs restaurados ja apareçam no client.
-func (w *World) loadCharStateInto(p *Player) {
-	store, ok := w.store.(charStateStore)
-	if !ok || p == nil || p.Char == nil {
-		return
+func (w *World) loadCharStateInto(p *Player) error {
+	if p == nil || p.Char == nil {
+		return nil
 	}
-	state, err := store.LoadCharState(p.Char.UID)
-	if err != nil {
-		log.Printf("[#%d] ERRO ao carregar charstate de %q: %v", p.Session.ID, p.Char.Name, err)
-		return
+	var state *model.CharState
+	if stateStore, ok := w.store.(charStateStore); ok {
+		loaded, err := stateStore.LoadCharState(p.Char.UID)
+		if err != nil {
+			return err
+		}
+		state = loaded
 	}
-	if state == nil {
-		return
+	// Limpe somente DEPOIS de uma leitura bem-sucedida. Limpar antes e seguir
+	// com erro permitia entrar sem buffs/contadores autoritativos e o autosave
+	// consolidava essa perda no banco.
+	p.Char.Affects = [16]model.Affect{}
+	p.SpecialCoins = nil
+	if state != nil {
+		w.applyCharState(p, state, w.now())
 	}
-	w.applyCharState(p, state, w.now())
+	return nil
 }
 
 // saveCharState persiste buffs e moedas do jogador de forma SINCRONA. Chamado no

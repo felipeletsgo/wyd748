@@ -24,6 +24,13 @@ func TestRemoveMobInstanceRemovesOnlyRequestedMob(t *testing.T) {
 	if w.mobs[0] != first || w.mobs[1] != last {
 		t.Fatalf("instancias restantes incorretas: %#v", w.mobs)
 	}
+	if w.mobListIndex[first.ID] != 0 || w.mobListIndex[last.ID] != 1 {
+		t.Fatalf("indices nao acompanharam swap-remove: %+v", w.mobListIndex)
+	}
+	w.removeMobInstance(first)
+	if len(w.mobs) != 1 || w.mobs[0] != last || w.mobListIndex[last.ID] != 0 {
+		t.Fatalf("segundo swap-remove corrompeu registry: mobs=%v index=%v", w.mobs, w.mobListIndex)
+	}
 }
 
 func TestRemoveMobInstanceIgnoresUnknownMob(t *testing.T) {

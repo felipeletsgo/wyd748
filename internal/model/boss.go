@@ -112,6 +112,21 @@ type BossPhase struct {
 // enxurrada de pacotes e um tapete de itens no mapa.
 const MaxBossAreaReward = 200
 
+// Limites de seguranca do CONTEUDO. Nao balanceiam encontros; impedem que um
+// typo em Lua transforme um cast/respawn em uma tempestade de entidades,
+// pacotes ou trabalho dentro da unica goroutine do World.
+const (
+	MaxBossSkills        = 32
+	MaxBossSummonGroups  = 16
+	MaxBossPhases        = 16
+	MaxBossDrops         = 64
+	MaxBossSummonPerCast = 64
+	MaxBossSummonedAlive = 256
+	MaxBossSkillRange    = 64
+	MaxBossMessageBytes  = 256
+	MaxBossCoordinate    = 4095
+)
+
 // BossAreaReward espalha unidades de um item pelo chao quando o boss cai.
 // Item zero ou Amount zero desliga a premiacao.
 type BossAreaReward struct {
@@ -182,6 +197,9 @@ func (c *BossConfig) Validate() error {
 	if c.Spawn.X == 0 || c.Spawn.Y == 0 {
 		return fmt.Errorf("%s: boss %q sem posicao de spawn", where, c.ID)
 	}
+	if c.Spawn.X > MaxBossCoordinate || c.Spawn.Y > MaxBossCoordinate {
+		return fmt.Errorf("%s: boss %q fora do mapa em (%d,%d)", where, c.ID, c.Spawn.X, c.Spawn.Y)
+	}
 	if c.Spawn.RespawnSeconds < 0 {
 		return fmt.Errorf("%s: boss %q com respawn negativo", where, c.ID)
 	}
@@ -196,32 +214,56 @@ func (c *BossConfig) Validate() error {
 	if c.Type == BossTypePhased && len(c.Phases) == 0 {
 		return fmt.Errorf("%s: boss %q e phased mas nao tem phases", where, c.ID)
 	}
+	if len(c.Skills) > MaxBossSkills || len(c.Summons) > MaxBossSummonGroups ||
+		len(c.Phases) > MaxBossPhases || len(c.Drops) > MaxBossDrops {
+		return fmt.Errorf("%s: boss %q excede colecoes seguras (skills=%d/%d summons=%d/%d phases=%d/%d drops=%d/%d)",
+			where, c.ID, len(c.Skills), MaxBossSkills, len(c.Summons), MaxBossSummonGroups,
+			len(c.Phases), MaxBossPhases, len(c.Drops), MaxBossDrops)
+	}
+	for field, message := range map[string]string{
+		"name": c.Name, "spawn_message": c.SpawnMessage, "death_message": c.DeathMessage,
+	} {
+		if len([]byte(message)) > MaxBossMessageBytes {
+			return fmt.Errorf("%s: boss %q %s excede %d bytes", where, c.ID, field, MaxBossMessageBytes)
+		}
+	}
 
 	for i, skill := range c.Skills {
 		if skill.ID < 0 {
 			return fmt.Errorf("%s: boss %q skill[%d] com id negativo", where, c.ID, i)
 		}
-		if skill.CooldownSeconds < 0 || skill.Range < 0 {
-			return fmt.Errorf("%s: boss %q skill[%d] com valor negativo", where, c.ID, i)
+		if skill.CooldownSeconds <= 0 || skill.Range < 0 || skill.Range > MaxBossSkillRange {
+			return fmt.Errorf("%s: boss %q skill[%d] com cooldown/range inseguro (%d/%d)",
+				where, c.ID, i, skill.CooldownSeconds, skill.Range)
 		}
 		if skill.MaxHPPercent < 0 || skill.MaxHPPercent > 100 {
 			return fmt.Errorf("%s: boss %q skill[%d] com max_hp_percent %d fora de [0,100]",
 				where, c.ID, i, skill.MaxHPPercent)
+		}
+		if len([]byte(skill.Message)) > MaxBossMessageBytes {
+			return fmt.Errorf("%s: boss %q skill[%d] message excede %d bytes", where, c.ID, i, MaxBossMessageBytes)
 		}
 	}
 	for i, summon := range c.Summons {
 		if strings.TrimSpace(summon.NPC) == "" {
 			return fmt.Errorf("%s: boss %q summon[%d] sem npc", where, c.ID, i)
 		}
-		if summon.Count <= 0 {
+		if summon.Count <= 0 || summon.Count > MaxBossSummonPerCast {
 			return fmt.Errorf("%s: boss %q summon[%d] com count %d", where, c.ID, i, summon.Count)
 		}
-		if summon.MaxAlive < 0 {
-			return fmt.Errorf("%s: boss %q summon[%d] com max_alive negativo", where, c.ID, i)
+		if summon.MaxAlive < 0 || summon.MaxAlive > MaxBossSummonedAlive {
+			return fmt.Errorf("%s: boss %q summon[%d] com max_alive %d fora de [0,%d]",
+				where, c.ID, i, summon.MaxAlive, MaxBossSummonedAlive)
 		}
 		if summon.MaxAlive > 0 && summon.MaxAlive < summon.Count {
 			return fmt.Errorf("%s: boss %q summon[%d]: max_alive (%d) menor que count (%d)",
 				where, c.ID, i, summon.MaxAlive, summon.Count)
+		}
+		if summon.CooldownSeconds <= 0 {
+			return fmt.Errorf("%s: boss %q summon[%d] com cooldown %d", where, c.ID, i, summon.CooldownSeconds)
+		}
+		if len([]byte(summon.Message)) > MaxBossMessageBytes {
+			return fmt.Errorf("%s: boss %q summon[%d] message excede %d bytes", where, c.ID, i, MaxBossMessageBytes)
 		}
 	}
 
@@ -247,6 +289,9 @@ func (c *BossConfig) Validate() error {
 		if phase.ShieldUntilAddsDead && len(c.Summons) == 0 {
 			return fmt.Errorf("%s: boss %q phase[%d] usa shield_until_adds_dead mas o boss nao invoca adds: o escudo nunca cairia",
 				where, c.ID, i)
+		}
+		if len([]byte(phase.Message)) > MaxBossMessageBytes {
+			return fmt.Errorf("%s: boss %q phase[%d] message excede %d bytes", where, c.ID, i, MaxBossMessageBytes)
 		}
 	}
 

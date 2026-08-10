@@ -389,7 +389,7 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 	rollbackGround := func() {
 		for _, item := range createdGround {
 			if item != nil {
-				delete(w.groundItems, item.ID)
+				w.unregisterGroundItem(item)
 			}
 		}
 		createdGround = nil

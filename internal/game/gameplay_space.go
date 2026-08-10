@@ -103,15 +103,23 @@ func (w *World) indexPlayerCharacter(p *Player) {
 		w.playersByCharacterUID = make(map[string]*Player)
 	}
 	w.playersByCharacterUID[uid] = p
+	if w.playersByName == nil {
+		w.playersByName = make(map[string]*Player)
+	}
+	w.playersByName[strings.ToLower(strings.TrimSpace(p.Char.Name))] = p
 }
 
 func (w *World) unindexPlayerCharacter(p *Player) {
-	if w == nil || p == nil || w.playersByCharacterUID == nil || p.Char == nil {
+	if w == nil || p == nil || p.Char == nil {
 		return
 	}
 	uid := strings.TrimSpace(p.Char.UID)
-	if uid != "" && w.playersByCharacterUID[uid] == p {
+	if uid != "" && w.playersByCharacterUID != nil && w.playersByCharacterUID[uid] == p {
 		delete(w.playersByCharacterUID, uid)
+	}
+	name := strings.ToLower(strings.TrimSpace(p.Char.Name))
+	if name != "" && w.playersByName != nil && w.playersByName[name] == p {
+		delete(w.playersByName, name)
 	}
 }
 

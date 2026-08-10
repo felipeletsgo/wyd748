@@ -2,6 +2,7 @@ package game
 
 import (
 	"strings"
+	"time"
 
 	"wydgo/internal/wire"
 )
@@ -230,10 +231,12 @@ func (w *World) showPlayerPair(a, b *Player) {
 	if !a.hasVisible(b.ID) {
 		sendPlayerEnterView(a, b)
 		a.show(b.ID)
+		w.sendRemainingPlayerMove(a, b)
 	}
 	if !b.hasVisible(a.ID) {
 		sendPlayerEnterView(b, a)
 		b.show(a.ID)
+		w.sendRemainingPlayerMove(b, a)
 	}
 }
 
@@ -304,12 +307,20 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 			w.hideMob(p, m, 0)
 		}
 	}
-	for _, shop := range w.ghostShops {
-		visible := inView(p.X, p.Y, shop.X, shop.Y)
-		switch {
-		case visible && !p.hasVisible(shop.ID):
+	nearShops := w.nearbyGhostShops(p.X, p.Y, viewHalfX)
+	nearShopIDs := make(map[uint16]struct{}, len(nearShops))
+	for _, shop := range nearShops {
+		nearShopIDs[shop.ID] = struct{}{}
+		if !p.hasVisible(shop.ID) {
 			w.showGhostShop(p, shop)
-		case !visible && p.hasVisible(shop.ID):
+		}
+	}
+	for id := range p.Visible {
+		shop := w.ghostShops[id]
+		if shop == nil {
+			continue
+		}
+		if _, nearby := nearShopIDs[id]; !nearby {
 			w.hideGhostShop(p, shop)
 		}
 	}
@@ -331,13 +342,24 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 			w.hidePlayerPair(p, other)
 		}
 	}
-	for _, g := range w.groundItems {
-		visible := w.groundItemVisibleToPlayer(p, g) && inView(p.X, p.Y, g.X, g.Y)
-		switch {
-		case visible && !p.hasVisible(g.ID):
+	nearGround := w.nearbyGroundItems(p.X, p.Y, viewHalfX)
+	nearGroundIDs := make(map[uint16]struct{}, len(nearGround))
+	for _, g := range nearGround {
+		if !w.groundItemVisibleToPlayer(p, g) {
+			continue
+		}
+		nearGroundIDs[g.ID] = struct{}{}
+		if !p.hasVisible(g.ID) {
 			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, g.Rotate, g.State, 0, 0, 0))
 			p.show(g.ID)
-		case !visible && p.hasVisible(g.ID):
+		}
+	}
+	for id := range p.Visible {
+		g := w.groundItems[id]
+		if g == nil {
+			continue
+		}
+		if _, nearby := nearGroundIDs[id]; !nearby {
 			p.Session.Send(wire.RemoveItem(uint32(g.ID)))
 			p.hide(g.ID)
 		}
@@ -431,14 +453,11 @@ func (w *World) publishMobMove(m *Mob, oldX, oldY uint16, speed uint32) {
 // conserva Route[24] e a publica junto da origem informada no segmento. Descartar
 // essa rota obrigava cada observador a recalcular o caminho e causava pequenas
 // correcoes em curvas, desniveis ou mudancas de destino.
-func (w *World) publishPlayerMove(player *Player, fromX, fromY uint16, route []byte) {
+func (w *World) publishPlayerMove(player *Player, fromX, fromY, targetX, targetY uint16, route []byte) {
 	if player == nil || !player.InWorld || player.Char == nil {
 		return
 	}
-	if player.MovePublished && player.MovePublishedTargetX == player.X && player.MovePublishedTargetY == player.Y {
-		return
-	}
-	if fromX == player.X && fromY == player.Y {
+	if fromX == targetX && fromY == targetY {
 		return
 	}
 	// BASE_GetSpeed: nibble baixo de AttackRun, limitado a 1..6. Usar o score
@@ -457,7 +476,7 @@ func (w *World) publishPlayerMove(player *Player, fromX, fromY uint16, route []b
 	for _, observer := range w.nearbyWorldPlayers(fromX, fromY, viewHalfX) {
 		observers[observer.ID] = observer
 	}
-	for _, observer := range w.nearbyWorldPlayers(player.X, player.Y, viewHalfX) {
+	for _, observer := range w.nearbyWorldPlayers(targetX, targetY, viewHalfX) {
 		observers[observer.ID] = observer
 	}
 	for _, observer := range observers {
@@ -466,12 +485,12 @@ func (w *World) publishPlayerMove(player *Player, fromX, fromY uint16, route []b
 			continue
 		}
 		if observer != player && observer.hasVisible(player.ID) {
-			observer.Session.Send(wire.PlayerMove(player.ID, fromX, fromY, player.X, player.Y, speed, route))
+			observer.Session.Send(wire.PlayerMove(player.ID, fromX, fromY, targetX, targetY, speed, route))
 		}
 	}
 	player.MovePublished = true
 	player.MovePublishedStartX, player.MovePublishedStartY = fromX, fromY
-	player.MovePublishedTargetX, player.MovePublishedTargetY = player.X, player.Y
+	player.MovePublishedTargetX, player.MovePublishedTargetY = targetX, targetY
 	player.MovePublishedRoute = [maxMovementRouteBytes]byte{}
 	for index, step := range route {
 		if index >= len(player.MovePublishedRoute) || step == 0 {
@@ -479,6 +498,17 @@ func (w *World) publishPlayerMove(player *Player, fromX, fromY uint16, route []b
 		}
 		player.MovePublishedRoute[index] = step
 	}
+}
+
+func (w *World) sendRemainingPlayerMove(observer, subject *Player) {
+	if observer == nil || subject == nil || observer == subject || !subject.MovePublished ||
+		subject.MoveAuthorityStep >= len(subject.MoveAuthorityRoute) {
+		return
+	}
+	route := subject.MoveAuthorityRoute[subject.MoveAuthorityStep:]
+	observer.Session.Send(wire.PlayerMove(subject.ID, subject.X, subject.Y,
+		subject.MovePublishedTargetX, subject.MovePublishedTargetY,
+		uint32(playerAttackRun(subject.Char)&0x0F), route))
 }
 
 // publishPlayerStop encerra uma rota sem usar ActionStop/Effect=1. Esse efeito
@@ -523,6 +553,12 @@ func clearPublishedPlayerMove(player *Player) {
 	player.MovePublishedTargetX = 0
 	player.MovePublishedTargetY = 0
 	player.MovePublishedRoute = [maxMovementRouteBytes]byte{}
+	player.MoveAuthorityRoute = nil
+	player.MoveAuthorityStep = 0
+	player.MoveAuthorityX = 0
+	player.MoveAuthorityY = 0
+	player.MoveAuthorityStartedAt = time.Time{}
+	player.MoveAuthorityStepInterval = 0
 }
 
 func (w *World) publishMobDeath(m *Mob, killerID uint16, killerExp uint32, expByPlayer map[*Player]uint32) {

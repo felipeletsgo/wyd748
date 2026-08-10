@@ -160,3 +160,45 @@ func TestSessionDoneAndIsClosedFollowServeLifetime(t *testing.T) {
 		t.Fatal("Done nao fechou com o fim da sessao")
 	}
 }
+
+func TestServeHandshakeReadDeadline(t *testing.T) {
+	session, client := pipeSession()
+	session.handshakeTimeout = 25 * time.Millisecond
+	finished := make(chan struct{})
+	go func() {
+		session.Serve(func(_ *Session, packet []byte) {
+			if packet == nil {
+				close(finished)
+			}
+		})
+	}()
+	defer client.Close()
+	select {
+	case <-finished:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("socket sem InitCode permaneceu bloqueado alem do deadline")
+	}
+}
+
+func TestServePartialFrameReadDeadline(t *testing.T) {
+	session, client := pipeSession()
+	session.idleTimeout = time.Second
+	session.frameReadTimeout = 25 * time.Millisecond
+	received := make(chan []byte, 1)
+	go session.Serve(func(_ *Session, packet []byte) { received <- packet })
+	writeInitCode(t, client)
+	// Somente o Size do header: ReadPacket deve expirar aguardando o restante,
+	// sem entregar frame parcial ao World.
+	if _, err := client.Write([]byte{wire.HeaderSize, 0}); err != nil {
+		t.Fatalf("escrever frame parcial: %v", err)
+	}
+	defer client.Close()
+	select {
+	case packet := <-received:
+		if packet != nil {
+			t.Fatalf("frame parcial chegou ao handler: %v", packet)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("frame parcial permaneceu bloqueado alem do deadline")
+	}
+}

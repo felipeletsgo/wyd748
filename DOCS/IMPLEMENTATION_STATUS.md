@@ -1,6 +1,6 @@
 # Estado de implementação — WYD-Go 7.48
 
-Atualizado em 10/08/2026. HEAD de referência: `2caa333` (base desta auditoria;
+Atualizado em 10/08/2026. HEAD de referência: `bc3aa5f` (base desta auditoria;
 as correções desta revisão estão no worktree até serem versionadas). Este
 documento registra as features implementadas no emulador Go e os detalhes de
 protocolo validados contra W2PP, Secrets 7.54 e o cliente 7.48.
@@ -123,17 +123,18 @@ validações anti-WPE/Cheat Engine e testes adversariais), `DOCS/BOSS.md`
   ou teleportar. A rota fica vazia para o client reconstruir e interpolar o
   trecho completo.
 - Movimento de **jogadores** preserva `Route[24]@28` depois da validação
-  server-side. Publicar somente origem/destino fazia cada observador recalcular
-  uma rota diferente e gerava pequenas correções visuais. O Action é enviado
-  aos observadores existentes antes dos deltas de entrada/saída da visibilidade;
-  um client que acabou de entrar no raio recebe apenas a materialização no
-  destino, nunca uma rota retroativa. A regra de rota vazia acima continua
-  exclusiva do movimento gerado para **mobs**.
+  server-side. O plano é enviado imediatamente aos observadores para o client
+  interpolar, mas `p.X/Y` avança pelo relógio do `World`, passo a passo e pela
+  velocidade server-side. O destino futuro não concede alcance de ataque,
+  pickup, NPC, trade ou colisão antes da chegada. Repetições da mesma rota usam
+  apenas o sufixo ainda não percorrido; mudanças de direção não podem saltar a
+  origem visual à frente da autoridade. Quem entra na AOI durante a caminhada
+  recebe a posição atual e o trecho restante.
 - Paradas rotineiras não usam mais o `ActionStop` com `Effect=1`, pois esse é o
   mesmo caminho de correção instantânea/teleporte do client. Chegar ao destino
   encerra a rota sem pacote extra; parar antes do destino emite uma única
-  reorientação `Effect=0`. O ponto intermediário só é aceito quando pertence à
-  `Route[24]` que já passou pela validação autoritativa.
+  reorientação `Effect=0`. `Stop` nunca promove uma coordenada futura apenas por
+  ela constar da rota validada; a posição permanece no último passo vencido.
 
 ## Catálogo server-side de itens e skills
 
@@ -963,6 +964,9 @@ Dependências externas diretas: **gopher-lua** (bosses em sandbox) e **pgx**
 - Autosaves usam snapshots imutáveis numa fila dedicada e não bloqueante.
   Saturar a fila coalesce pelo nome da conta/UID do personagem; itens inalterados
   não são apagados nem reinseridos.
+- Operações críticas PostgreSQL usam um único orçamento total configurável
+  (`critical_persistence_timeout_ms`, padrão 500 ms) para begin, callback, commit
+  e todos os retries; uma tentativa nunca recebe outro timeout inteiro.
 - O schema é aplicado no boot e está em `internal/store/postgres_schema.sql`.
   Instalação, teste real e backup estão em `DOCS/POSTGRESQL.md`.
 - JSON permanece como adaptador explicitamente selecionado para desenvolvimento;
@@ -975,6 +979,22 @@ Relógio e RNG injetáveis (testes determinísticos sem `time.Sleep`), métricas
 loopback**, com o boot derrubado se o endereço for público — e desligamento
 controlado por SIGTERM/SIGINT que persiste antes de sair. Detalhes em
 `DOCS/OPERATION.md`.
+
+O transporte limita conexões globais e por IP antes do InitCode, aplica prazo
+de 5 s ao handshake, 10 s ao corpo parcial de um frame e mantém idle de 600 s
+para não desconectar o heartbeat espaçado do client 7.48. Opcodes C→S seguem
+allowlist por fase e um desconhecido não chega ao dispatcher nem cria rótulo de
+métrica. Login e canais de chat têm limites por IP/conta configuráveis.
+
+Ground items e lojas fantasma usam células espaciais na visibilidade/colisão;
+drops temporários usam heap por expiração, enquanto objetos permanentes nunca
+entram no scheduler. Mobs possuem índice de posição no slice e remoção O(1) por
+swap-remove. AoE PvE e PvP consultam apenas células próximas.
+
+O conteúdo Lua de bosses possui tetos de processo para quantidade de skills,
+summons, phases, drops, adds, range, coordenadas e mensagens. Esses limites não
+balanceiam o encontro: apenas recusam no boot configurações capazes de ampliar
+carga acidentalmente.
 
 ## Invariantes: estado que atravessa uma fronteira
 

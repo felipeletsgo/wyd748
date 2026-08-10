@@ -40,7 +40,9 @@ The server processes more than 80 packet types.
 
 - **Server-side security** — The 7.48 client is treated as untrusted. The server
   validates framing, checksum, packet size and session phase; rate-limits input;
-  verifies movement routes, terrain and line of sight; calculates damage,
+  limits pre-auth TCP connections per IP, deadlines InitCode and partial frames,
+  rejects unknown C→S opcodes before dispatch, verifies movement routes, terrain
+  and line of sight; calculates damage,
   critical hits and cooldowns; and persists item/economy mutations before
   confirming them. Replayed or forged WPE packets cannot become game authority.
 
@@ -61,7 +63,9 @@ The server has these systems. The server has authority on each system.
   view window is 65 by 65 tiles. The server creates a pet, a summon, or a mob
   only at spawn or at view entry. Player movement preserves the validated
   7.48 route for observers, so remote clients interpolate the same path instead
-  of receiving repeated position corrections.
+  of receiving repeated position corrections. The World advances authoritative
+  coordinates over time, so a future route destination cannot be used early for
+  attacks, pickup, trade, or NPC interaction.
 - **Load testing** — `cmd/loadtest` provisions short-lived `bot0001`–`bot0990`
   accounts from the Arch in slot 1 of the `felipe` snapshot with new
   CharacterUIDs and ItemUIDs, then connects them to Tauron spots in Noatum.
@@ -187,7 +191,7 @@ The server has these systems. The server has authority on each system.
   It carries whisper, death letters, and server announcements. A message needs
   the other player online. If that player is offline, the server tells you.
 - **Protocol hardening** — Session phase, packet framing, confirmed 7.48 sizes,
-  movement budgets, authoritative slots and item indices are checked before
+  temporally authoritative movement, authoritative slots and item indices are checked before
   gameplay handlers run. Delete/split item, keyed ground objects, ranking
   lookup, hidden day synchronization, keepalive, and the Huntress Illusion
   Action2 packet have explicit routes and regression tests. Client-sent score
@@ -202,7 +206,8 @@ The server has these systems. The server has authority on each system.
   asynchronous queue keeps periodic saves away from the game loop. A critical
   operation, for example a trade, a refine, or a gold change, commits before the
   server confirms it to the client. A failed commit restores the previous game
-  state. JSON is an explicit development adapter, not an automatic fallback.
+  state. Critical transactions share one configurable total deadline across all
+  retries. JSON is an explicit development adapter, not an automatic fallback.
 
 ## Language
 
@@ -256,6 +261,13 @@ The server reads the configuration from `data/server.txt`. A command-line flag
 replaces a data-file value. Examples: `-addr`, `-npcs`, and `-items`. The
 `-accounts` flag applies only to the explicit JSON development adapter. To see
 all the flags, do `./tm.exe -h`.
+
+Operational limits also live there: TCP connections globally/per IP, InitCode,
+idle and partial-frame timeouts, inbound packet/byte rates, login and chat
+limits, PostgreSQL critical-operation budget, `world_command_queue_capacity`,
+`auth_hash_concurrency`, and `channel_id`. Defaults are
+safe for the stock 7.48 heartbeat; do not reduce the 600-second idle timeout
+without capturing the real client first.
 
 To monitor the server, set `debug_address` in `data/server.txt`. The server
 then gives metrics at `/debug/vars` and profiles at `/debug/pprof`. The host

@@ -151,6 +151,9 @@ func (w *World) onMessageChat(s *net.Session, pkt []byte) {
 		w.deliverWhisper(s, p, target, body)
 		return
 	}
+	if !w.allowChat(p, "local", w.now()) {
+		return
+	}
 	// Chat local: reenviar como 0x333 COM O ID DO EMISSOR.
 	//
 	// O balao na cabeca vem de TMHuman::OnPacketMessageChat -- um handler da
@@ -162,27 +165,15 @@ func (w *World) onMessageChat(s *net.Session, pkt []byte) {
 	//
 	// O emissor desenha o proprio balao localmente antes de enviar, entao
 	// reenviar para ele duplicaria a linha.
-	for _, observer := range w.players {
+	observers := 0
+	for _, observer := range w.nearbyWorldPlayers(p.X, p.Y, viewHalfX) {
 		if observer == p || !observer.InWorld || !observer.hasVisible(p.ID) {
 			continue
 		}
 		observer.Session.Send(wire.MessageChat(p.ID, message))
+		observers++
 	}
-	log.Printf("[#%d] CHAT local %q (%d observador(es))", s.ID, p.Char.Name, w.localChatObservers(p))
-}
-
-// localChatObservers conta quem enxerga o emissor. Serve so ao log: com zero
-// observadores o emissor ve o proprio balao e acha que funcionou, quando na
-// verdade estava sozinho na area de visibilidade.
-func (w *World) localChatObservers(sender *Player) int {
-	count := 0
-	for _, observer := range w.players {
-		if observer == sender || !observer.InWorld || !observer.hasVisible(sender.ID) {
-			continue
-		}
-		count++
-	}
-	return count
+	log.Printf("[#%d] CHAT local %q (%d observador(es))", s.ID, p.Char.Name, observers)
 }
 
 func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
@@ -213,8 +204,14 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 	// para escolher a cor e o offset de corte do texto.
 	switch chatChannelOf(message) {
 	case chatChannelParty:
+		if !w.allowChat(p, chatChannelParty, w.now()) {
+			return
+		}
 		w.sendPartyChat(p, strings.TrimSpace(message[1:]))
 	case chatChannelGlobal:
+		if !w.allowChat(p, chatChannelGlobal, w.now()) {
+			return
+		}
 		for _, observer := range w.players {
 			if observer == p || !observer.InWorld {
 				continue // o client do emissor ja inseriu a propria mensagem.
@@ -222,6 +219,9 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
 		}
 	case chatChannelGuild:
+		if !w.allowChat(p, chatChannelGuild, w.now()) {
+			return
+		}
 		w.sendGuildChat(p, message)
 	default:
 		w.deliverWhisper(s, p, target, message)
@@ -275,8 +275,22 @@ func parseSlashCommand(message string) (name, arg string, ok bool) {
 // dispatchChatCommand e o ponto unico de comandos, chamado pelo 0x333 e pelo
 // 0x334. Devolve true quando consumiu a mensagem. Um comando sempre tem
 // precedencia sobre um nick de mesmo nome, como no TMSrv nativo.
+var chatCommandAliases = map[string]string{
+	"day": "day", "time": "time", "cp": "cp", "chaos": "cp", "fame": "fame",
+	"nig": "nig", "limparinv": "clearinv", "clearinv": "clearinv", "hpdebug": "hpdebug",
+	"spk": "spk", "kingdom": "kingdom", "reino": "kingdom", "king": "king", "rei": "king",
+	"criar": "create", "create": "create", "convidar": "invite", "invite": "invite",
+	"aceitar": "accept", "accept": "accept", "sair": "leave", "leave": "leave",
+	"expulsar": "expel", "expel": "expel", "criarsub": "createsub", "subcreate": "createsub",
+	"createsub": "createsub",
+}
+
 func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string) bool {
-	switch strings.ToLower(strings.TrimSpace(name)) {
+	command, known := chatCommandAliases[strings.ToLower(strings.TrimSpace(name))]
+	if !known {
+		return false
+	}
+	switch command {
 	case "day":
 		// Sincronismo periodico interno do client. O !# impede texto visivel e
 		// alimenta m_nYear/m_nDays, usados na duracao de affects de calendario.
@@ -284,7 +298,7 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 	case "time":
 		// Comando manual: exibe a data/hora do host no painel superior.
 		s.Send(wire.MessagePanel(w.now().Format("15:04:05 | 02-01-2006")))
-	case "cp", "chaos":
+	case "cp":
 		// CP e o Chaos/PK Point assinado do personagem (-75..+75). Ele nao e
 		// o Hold de EXP do 0x337 e por isso nunca deve ser formatado como XP.
 		s.Send(wire.MessagePanel(chaosPointMessage(p.Char.CP)))
@@ -298,27 +312,27 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		// local da instancia. Nao e um nickname; trata-lo como consulta /nig
 		// produzia o falso "nig is not online.".
 		s.Send(wire.MessagePanel(nightmareTimeMessage(w.now())))
-	case "limparinv", "clearinv":
+	case "clearinv":
 		w.executeClearInventory(s, p)
 	case "hpdebug":
 		w.dumpHPProjection(s, p)
 	case "spk":
 		w.executeShout(s, p, arg)
-	case "kingdom", "reino":
+	case "kingdom":
 		w.kingdomCommandTeleport(s, p, false)
-	case "king", "rei":
+	case "king":
 		w.kingdomCommandTeleport(s, p, true)
-	case "criar", "create":
+	case "create":
 		w.guildCommandCreate(s, p, arg)
-	case "convidar", "invite":
+	case "invite":
 		w.guildCommandInvite(s, p, arg)
-	case "aceitar", "accept":
+	case "accept":
 		w.guildCommandAccept(s, p, arg)
-	case "sair", "leave":
+	case "leave":
 		w.guildCommandLeave(s, p, arg)
-	case "expulsar", "expel":
+	case "expel":
 		w.guildCommandExpel(s, p, arg)
-	case "criarsub", "subcreate", "createsub":
+	case "createsub":
 		w.guildCommandSubLeader(s, p, arg)
 	default:
 		return false
@@ -417,6 +431,9 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 	if s == nil || p == nil || p.Char == nil || target == "" || message == "" {
 		return
 	}
+	if !w.allowChat(p, chatChannelWhisper, w.now()) {
+		return
+	}
 	recipient := w.playerByCharacterName(target)
 	if recipient == nil {
 		s.Send(wire.MessagePanel("That player is not online."))
@@ -449,8 +466,23 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 // busca passa a ser ambigua em silencio --
 // TestAccountSessionIsExclusiveCaseInsensitive guarda o segundo.
 func (w *World) playerByCharacterName(name string) *Player {
+	key := strings.ToLower(strings.TrimSpace(name))
+	if key == "" {
+		return nil
+	}
+	if indexed := w.playersByName[key]; indexed != nil {
+		if indexed.InWorld && indexed.Char != nil && strings.EqualFold(indexed.Char.Name, name) {
+			return indexed
+		}
+		delete(w.playersByName, key)
+	}
+	// Repara fixtures/imports antigos que ainda nao passaram pelo indexador.
 	for _, p := range w.players {
 		if p.InWorld && p.Char != nil && strings.EqualFold(p.Char.Name, name) {
+			if w.playersByName == nil {
+				w.playersByName = make(map[string]*Player)
+			}
+			w.playersByName[key] = p
 			return p
 		}
 	}

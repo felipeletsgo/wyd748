@@ -1966,7 +1966,7 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 			}
 			mob := &Mob{ID: mobID, Def: def, X: x, Y: y,
 				HP: def.Extended.MaxHP, GenerIndex: -1, InstanceID: runtimeID}
-			w.mobs = append(w.mobs, mob)
+			w.appendMobInstance(mob)
 			w.mobsByID[mob.ID] = mob
 			reserved[uint32(x)<<16|uint32(y)] = struct{}{}
 			created = append(created, mob)
@@ -2097,7 +2097,7 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 			}
 			mob := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
 				GenerIndex: -1, InstanceID: runtimeID}
-			w.mobs = append(w.mobs, mob)
+			w.appendMobInstance(mob)
 			w.mobsByID[mob.ID] = mob
 			reserved[uint32(x)<<16|uint32(y)] = struct{}{}
 			created = append(created, mob)
@@ -2190,7 +2190,7 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (item
 		finish()
 		if err := persistRewardState(leader.Account); err != nil {
 			w.publishItemRemove(ground)
-			delete(w.groundItems, ground.ID)
+			w.unregisterGroundItem(ground)
 			inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
 			log.Printf("INSTANCIA %q: salvar recompensa %d no chao: %v",
 				inst.Config.ID, inst.Config.RewardItem, err)

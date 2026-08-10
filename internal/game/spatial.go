@@ -244,3 +244,150 @@ func (w *World) unregisterPlayerSpatial(p *Player) {
 		w.recomputeMobActive(m)
 	}
 }
+
+func (w *World) registerGroundItem(item *GroundItem) {
+	if item == nil {
+		return
+	}
+	if w.groundItems == nil {
+		w.groundItems = make(map[uint16]*GroundItem)
+	}
+	if w.groundItemCells == nil {
+		w.groundItemCells = make(map[uint32]map[uint16]*GroundItem)
+	}
+	if w.groundItemCell == nil {
+		w.groundItemCell = make(map[uint16]uint32)
+	}
+	key := spatialKey(item.X, item.Y)
+	if oldKey, indexed := w.groundItemCell[item.ID]; indexed && oldKey != key {
+		delete(w.groundItemCells[oldKey], item.ID)
+		if len(w.groundItemCells[oldKey]) == 0 {
+			delete(w.groundItemCells, oldKey)
+		}
+	}
+	cell := w.groundItemCells[key]
+	if cell == nil {
+		cell = make(map[uint16]*GroundItem)
+		w.groundItemCells[key] = cell
+	}
+	w.groundItems[item.ID], cell[item.ID], w.groundItemCell[item.ID] = item, item, key
+	w.scheduleGroundItemExpiry(item)
+}
+
+func (w *World) unregisterGroundItem(item *GroundItem) {
+	if item == nil {
+		return
+	}
+	if current := w.groundItems[item.ID]; current != nil && current != item {
+		return
+	}
+	if key, ok := w.groundItemCell[item.ID]; ok {
+		delete(w.groundItemCells[key], item.ID)
+		if len(w.groundItemCells[key]) == 0 {
+			delete(w.groundItemCells, key)
+		}
+	}
+	delete(w.groundItemCell, item.ID)
+	delete(w.groundExpiryByID, item.ID)
+	delete(w.groundItems, item.ID)
+}
+
+func (w *World) nearbyGroundItems(x, y uint16, radius int) []*GroundItem {
+	// Test fixtures and import repair may populate the canonical map directly.
+	// Rebuild only on cardinality mismatch; the production hot path remains a
+	// pure local-cell query.
+	if len(w.groundItemCell) != len(w.groundItems) {
+		for _, item := range w.groundItems {
+			if _, indexed := w.groundItemCell[item.ID]; !indexed {
+				w.registerGroundItem(item)
+			}
+		}
+	}
+	cx, cy := int(x)/spatialCellSize, int(y)/spatialCellSize
+	cr := radius/spatialCellSize + 1
+	result := make([]*GroundItem, 0, 16)
+	for yy := cy - cr; yy <= cy+cr; yy++ {
+		for xx := cx - cr; xx <= cx+cr; xx++ {
+			if xx < 0 || yy < 0 {
+				continue
+			}
+			for _, item := range w.groundItemCells[uint32(xx)<<16|uint32(yy)] {
+				if w.groundItems[item.ID] == item && chebyshev(x, y, item.X, item.Y) <= radius {
+					result = append(result, item)
+				}
+			}
+		}
+	}
+	return result
+}
+
+func (w *World) registerGhostShop(shop *GhostShop) {
+	if shop == nil {
+		return
+	}
+	if w.ghostShops == nil {
+		w.ghostShops = make(map[uint16]*GhostShop)
+	}
+	if w.ghostShopCells == nil {
+		w.ghostShopCells = make(map[uint32]map[uint16]*GhostShop)
+	}
+	if w.ghostShopCell == nil {
+		w.ghostShopCell = make(map[uint16]uint32)
+	}
+	key := spatialKey(shop.X, shop.Y)
+	if oldKey, indexed := w.ghostShopCell[shop.ID]; indexed && oldKey != key {
+		delete(w.ghostShopCells[oldKey], shop.ID)
+		if len(w.ghostShopCells[oldKey]) == 0 {
+			delete(w.ghostShopCells, oldKey)
+		}
+	}
+	cell := w.ghostShopCells[key]
+	if cell == nil {
+		cell = make(map[uint16]*GhostShop)
+		w.ghostShopCells[key] = cell
+	}
+	w.ghostShops[shop.ID], cell[shop.ID], w.ghostShopCell[shop.ID] = shop, shop, key
+}
+
+func (w *World) unregisterGhostShop(shop *GhostShop) {
+	if shop == nil {
+		return
+	}
+	if current := w.ghostShops[shop.ID]; current != nil && current != shop {
+		return
+	}
+	if key, ok := w.ghostShopCell[shop.ID]; ok {
+		delete(w.ghostShopCells[key], shop.ID)
+		if len(w.ghostShopCells[key]) == 0 {
+			delete(w.ghostShopCells, key)
+		}
+	}
+	delete(w.ghostShopCell, shop.ID)
+	delete(w.ghostShops, shop.ID)
+}
+
+func (w *World) nearbyGhostShops(x, y uint16, radius int) []*GhostShop {
+	if len(w.ghostShopCell) != len(w.ghostShops) {
+		for _, shop := range w.ghostShops {
+			if _, indexed := w.ghostShopCell[shop.ID]; !indexed {
+				w.registerGhostShop(shop)
+			}
+		}
+	}
+	cx, cy := int(x)/spatialCellSize, int(y)/spatialCellSize
+	cr := radius/spatialCellSize + 1
+	result := make([]*GhostShop, 0, 8)
+	for yy := cy - cr; yy <= cy+cr; yy++ {
+		for xx := cx - cr; xx <= cx+cr; xx++ {
+			if xx < 0 || yy < 0 {
+				continue
+			}
+			for _, shop := range w.ghostShopCells[uint32(xx)<<16|uint32(yy)] {
+				if w.ghostShops[shop.ID] == shop && chebyshev(x, y, shop.X, shop.Y) <= radius {
+					result = append(result, shop)
+				}
+			}
+		}
+	}
+	return result
+}

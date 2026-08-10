@@ -125,6 +125,11 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	accountName := cstr(pkt[12:28])
 	password := cstr(pkt[28:40])
 	cliver := binary.LittleEndian.Uint32(pkt[40:44])
+	if !w.allowLoginAttempt(s.RemoteIP(), accountName, w.now()) {
+		log.Printf("[#%d] LOGIN limitado conta=%q ip=%q", s.ID, accountName, s.RemoteIP())
+		s.Send(wire.MessagePanel("Too many login attempts. Try again later."))
+		return
+	}
 	log.Printf("[#%d] LOGIN conta=%q cliver=%d", s.ID, accountName, cliver)
 	select {
 	case w.authSlots <- struct{}{}:
@@ -224,6 +229,9 @@ func validCharacterName(name string) bool {
 		return false
 	}
 	if _, reserved := reservedCharacterNames[strings.ToUpper(name)]; reserved {
+		return false
+	}
+	if _, command := chatCommandAliases[strings.ToLower(name)]; command {
 		return false
 	}
 	for _, c := range []byte(name) {
@@ -345,14 +353,16 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 32, p)
 	}
 	ch.X, ch.Y = entryX, entryY
-	// Zera os affects em memoria ANTES de restaurar do charstate. O Char e um
-	// ponteiro para a conta em RAM e SOBREVIVE ao vaivem da tela de selecao (a
-	// conta continua autenticada); sem esta limpeza, loadCharStateInto ACUMULARIA
-	// os buffs a cada reentrada (N -> 2N -> 4N), duplicando-os.
-	ch.Affects = [16]model.Affect{}
-	// Restaura buffs e moedas salvos ANTES do recalc e dos envios de score/affects,
-	// para que buffs persistidos entre logins ja apareçam ativos no client.
-	w.loadCharStateInto(p)
+	// O loader primeiro obtem o sidecar autoritativo e somente depois substitui
+	// affects/moedas em RAM. Assim uma falha de PostgreSQL nao apaga o estado
+	// atual nem deixa o personagem entrar com um agregado parcial.
+	if err := w.loadCharStateInto(p); err != nil {
+		log.Printf("[#%d] ERRO ao carregar charstate de %q: %v", s.ID, ch.Name, err)
+		p.CharSlot = -1
+		p.Char = nil
+		s.Send(wire.MessagePanel("The character state could not be loaded. Try again."))
+		return
+	}
 	w.recalcPlayer(ch)
 	// Quem morreu e saiu tem CurHP=0 persistido. Entrar assim TRAVA o jogador:
 	// o client desenha a pose de morte e nao responde a nada -- ele nem pode
@@ -577,22 +587,19 @@ func (w *World) validCargoAccess(p *Player, pkt []byte) bool {
 		return false
 	}
 	npcID := uint16(rawNPCID)
-	m := w.mobByID(npcID)
-	return m != nil && m.Def != nil && m.Def.Extended != nil && m.Def.Extended.Merchant&0xF == 2 &&
-		inView(p.X, p.Y, m.X, m.Y)
+	if npcID == 0 || npcID != p.CargoNPC {
+		return false
+	}
+	m, err := w.resolveNPCInteraction(p, npcID)
+	return err == nil && m.Def.Extended != nil && m.Def.Extended.Merchant&0xF == cargoMerchantType
 }
 
 func (w *World) nearCargoNPC(p *Player) bool {
-	if p == nil {
+	if p == nil || p.CargoNPC == 0 {
 		return false
 	}
-	for _, m := range w.mobs {
-		if m != nil && m.Def != nil && m.Def.Extended != nil && m.Def.Extended.Merchant&0xF == 2 &&
-			inView(p.X, p.Y, m.X, m.Y) {
-			return true
-		}
-	}
-	return false
+	m, err := w.resolveNPCInteraction(p, p.CargoNPC)
+	return err == nil && m.Def.Extended != nil && m.Def.Extended.Merchant&0xF == cargoMerchantType
 }
 
 func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
@@ -689,6 +696,9 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	}
 	log.Printf("[#%d] 0x%X npc=%q id=%d clickOk=%d dist=%d size=%d",
 		s.ID, opcode, m.Def.Name, m.ID, clickOk, chebyshev(p.X, p.Y, m.X, m.Y), len(pkt))
+	// Toda interacao abre exatamente um contexto autoritativo. Cargo nao pode
+	// reutilizar um banqueiro antigo depois que o jogador clicou em outro NPC.
+	p.ShopNPC, p.CraftNPC, p.CargoNPC = 0, 0, 0
 
 	// Roteamento por ALLOWLIST, nesta ordem:
 	//   1. tipos com handler proprio (loja, mestre, cargo);
@@ -740,6 +750,11 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		// composicao que chegar depois.
 		p.CraftNPC = m.ID
 		log.Printf("[#%d] compositor aberto: %q", s.ID, m.Def.Name)
+		return
+	}
+	if m.Def.Extended.Merchant&0x0F == cargoMerchantType {
+		p.CargoNPC = m.ID
+		log.Printf("[#%d] cargo aberto: %q", s.ID, m.Def.Name)
 		return
 	}
 	if w.handleAscensionNPC(s, p, m) {
@@ -942,10 +957,9 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	log.Printf("[#%d] vendeu item %d por %d gold (gold=%d)", s.ID, sold, price, p.Char.Gold)
 }
 
-// onMove: 0x366. No wire 7.48, PosX/Y@12 e o inicio do segmento enquanto
-// TargetX/Y@24 e o destino atual confirmado pelo client. O TMSrv/W2PP guarda
-// TargetX/Y como posicao autoritativa; usar PosX/Y mantinha o jogador preso na
-// origem do primeiro segmento para sistemas server-side (como Loja Fantasma).
+// onMove: 0x366. PosX/Y@12 e Route[24] descrevem uma intencao de caminhada;
+// TargetX/Y@24 e o destino visual. O pacote e replicado para a interpolacao do
+// client, mas player_movement.go so promove os passos vencidos a autoridade.
 func (w *World) onMove(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || !p.InWorld || p.Char == nil || playerCurHP(p.Char) == 0 || len(pkt) < 52 {
@@ -956,33 +970,16 @@ func (w *World) onMove(s *net.Session, pkt []byte) {
 		w.onIllusionMove(p, pkt)
 		return
 	}
-	if !w.validPlayerMovePacket(p, pkt) {
+	startX, startY, wireRoute, authorityRoute, ok := w.validatedPlayerMoveRoute(p, pkt)
+	if !ok {
 		w.recordSecurityViolation(s, wire.OpAction, "rota/destino de movimento invalido")
 		return
 	}
 	x, y := actionTarget748(pkt)
-	if x == 0 || y == 0 {
+	if x == 0 || y == 0 || len(authorityRoute) == 0 || samePlayerMovementDestination(p, x, y) {
 		return
 	}
-	previousX, previousY := p.X, p.Y
-	startX := binary.LittleEndian.Uint16(pkt[12:14])
-	startY := binary.LittleEndian.Uint16(pkt[14:16])
-	if startX == 0 || startY == 0 {
-		startX, startY = previousX, previousY
-	}
-	p.X, p.Y = x, y
-	p.Char.X, p.Char.Y = p.X, p.Y
-	if shop := w.ghostShops[p.BrowsingGhostShopID]; shop == nil ||
-		!inView(p.X, p.Y, shop.X, shop.Y) {
-		p.BrowsingGhostShopID = 0
-	}
-	// Publique primeiro para quem ja enxergava o jogador. Se a visibilidade for
-	// atualizada antes, um observador que acabou de entrar no raio recebe
-	// CreateMob no destino e logo depois uma rota partindo da origem antiga,
-	// fazendo o avatar voltar e avancar como um pequeno teleporte.
-	w.publishPlayerMove(p, startX, startY, pkt[28:52])
-	// Depois aplica somente os deltas de entrada/saida da janela espacial.
-	w.refreshPlayerVisibility(p)
+	w.beginPlayerMovement(p, startX, startY, x, y, wireRoute, authorityRoute, w.now())
 }
 
 func actionTarget748(pkt []byte) (uint16, uint16) {
@@ -1044,13 +1041,10 @@ func (w *World) onActionStop(s *net.Session, pkt []byte) {
 	}
 	x := binary.LittleEndian.Uint16(pkt[12:14])
 	y := binary.LittleEndian.Uint16(pkt[14:16])
-	if !w.validReportedStop(p, x, y) ||
-		(!p.MovePublished && !w.consumeMovementBudget(p, chebyshev(p.X, p.Y, x, y))) {
+	if !w.validReportedStop(p, x, y) {
 		w.recordSecurityViolation(s, wire.OpActionStop, "Stop tentou reposicionar o personagem")
 		return
 	}
-	p.X, p.Y = x, y
-	p.Char.X, p.Char.Y = x, y
 	w.publishPlayerStop(p)
 	w.refreshPlayerVisibility(p)
 }
@@ -1065,13 +1059,10 @@ func (w *World) onMoveStop(s *net.Session, pkt []byte) {
 	x := binary.LittleEndian.Uint32(pkt[20:24])
 	y := binary.LittleEndian.Uint32(pkt[24:28])
 	if x == 0 || y == 0 || x > 65535 || y > 65535 ||
-		!w.validReportedStop(p, uint16(x), uint16(y)) ||
-		(!p.MovePublished && !w.consumeMovementBudget(p, chebyshev(p.X, p.Y, uint16(x), uint16(y)))) {
+		!w.validReportedStop(p, uint16(x), uint16(y)) {
 		w.recordSecurityViolation(s, wire.OpMoveStop, "MoveStop tentou reposicionar o personagem")
 		return
 	}
-	p.X, p.Y = uint16(x), uint16(y)
-	p.Char.X, p.Char.Y = p.X, p.Y
 	w.publishPlayerStop(p)
 	w.refreshPlayerVisibility(p)
 }
@@ -1556,7 +1547,7 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	// persistir o item antes de a conta do dono salvar a remocao.
 	if err := w.saveAccount(p.Account); err != nil {
 		*src = item
-		delete(w.groundItems, g.ID)
+		w.unregisterGroundItem(g)
 		log.Printf("[#%d] drop cancelado por falha ao salvar: %v", s.ID, err)
 		return
 	}
@@ -1618,7 +1609,7 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 				return
 			}
 			w.publishItemRemove(g)
-			delete(w.groundItems, req.itemID)
+			w.unregisterGroundItem(g)
 			s.Send(wire.UpdateEtc(p.ID, *p.Char))
 			log.Printf("[#%d] coletou moeda item=%d gold=+%d total=%d", s.ID, g.Item.Index, value, p.Char.Gold)
 			return
@@ -1644,7 +1635,7 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 		return
 	}
 	w.publishItemRemove(g)
-	delete(w.groundItems, req.itemID)
+	w.unregisterGroundItem(g)
 	// 0x171 e a confirmacao nativa da coleta; 0x182 fixa o slot autoritativo.
 	s.Send(wire.CNFGetItem(uint32(placeInv), uint32(slot)))
 	s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
@@ -1658,6 +1649,20 @@ func (w *World) onDisconnect(s *net.Session) {
 	delete(w.authPending, s)
 	delete(w.security, s)
 	if p, ok := w.players[s]; ok {
+		// Conta e charstate formam um unico aggregate no PostgreSQL. No
+		// disconnect fisico nao ha resposta a segurar, mas uma falha precisa
+		// envenenar a RAM para impedir um save posterior incompleto.
+		if p.InWorld && p.Account != nil && p.Char != nil && !p.PersistencePoisoned {
+			if err := w.saveAccountAndCharStateResult(p); err != nil {
+				p.PersistencePoisoned = true
+				log.Printf("[#%d] ERRO ao salvar estado completo de %q: %v", s.ID, p.Account.Name, err)
+			}
+		} else if p.Account != nil && !p.PersistencePoisoned {
+			if err := w.saveAccount(p.Account); err != nil {
+				p.PersistencePoisoned = true
+				log.Printf("[#%d] ERRO ao salvar conta %q: %v", s.ID, p.Account.Name, err)
+			}
+		}
 		w.detachPlayerFromItemInstances(p.ID, w.now())
 		// Persist the UID-based Water membership immediately. Waiting for the
 		// next autosave would make a clean disconnect look like a lost room after
@@ -1677,15 +1682,6 @@ func (w *World) onDisconnect(s *net.Session) {
 				other.Session.Send(wire.RemoveMob(p.ID, 0))
 				other.hide(p.ID)
 			}
-		}
-		if p.Account != nil && !p.PersistencePoisoned {
-			if err := w.saveAccount(p.Account); err != nil {
-				log.Printf("[#%d] ERRO ao salvar conta %q: %v", s.ID, p.Account.Name, err)
-			}
-		}
-		// Persiste buffs/moedas antes de largar o player, para sobreviverem ao relog.
-		if p.InWorld && !p.PersistencePoisoned {
-			w.saveCharState(p)
 		}
 		w.releaseAccountSession(s, p.Account)
 		w.unindexPlayerCharacter(p)

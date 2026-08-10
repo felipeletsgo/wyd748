@@ -163,7 +163,7 @@ func (w *World) bossSummonAdds(boss *BossRuntime, mob *Mob, action BossActionDef
 			// LeaderID aponta para o boss: e a ligacao natural do encontro.
 			LeaderID: mob.ID,
 		}
-		w.mobs = append(w.mobs, add)
+		w.appendMobInstance(add)
 		w.publishMobSpawn(add) // registra no grid/mobsByID e materializa no client
 		boss.Adds[add.ID] = struct{}{}
 		created++

@@ -57,7 +57,8 @@ func TestCommandLabelIsBoundsSafe(t *testing.T) {
 		{"sem pacote", command{login: &loginResult{}}, "login"},
 		{"truncado", command{pkt: []byte{1, 2, 3}}, "malformed"},
 		{"vazio", command{pkt: []byte{}}, "malformed"},
-		{"completo", command{pkt: make([]byte, wire.HeaderSize)}, "0x0"},
+		{"opcode desconhecido", command{pkt: make([]byte, wire.HeaderSize)}, "unknown"},
+		{"completo", command{pkt: inboundPacket(wire.OpPing, wire.HeaderSize)}, "0x3A0"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := commandLabel(tc.cmd); got != tc.want {

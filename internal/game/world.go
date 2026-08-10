@@ -93,6 +93,7 @@ type Player struct {
 	// servidor usa este ID autoritativo em vez de confiar no pacote.
 	ShopNPC             uint16
 	CraftNPC            uint16
+	CargoNPC            uint16
 	LastCraft           time.Time
 	DeadAt              time.Time
 	LastPotion          time.Time
@@ -139,12 +140,17 @@ type Player struct {
 	MovePublishedTargetX uint16
 	MovePublishedTargetY uint16
 	MovePublishedRoute   [maxMovementRouteBytes]byte
-	// Orcamento server-side de deslocamento. Impede que rotas individualmente
-	// validas sejam reenviadas em alta frequencia para produzir speedhack.
-	MoveBudget   float64
-	MoveBudgetAt time.Time
-	Trade        *TradeState
-	GhostShop    *GhostShop
+	// A rota publicada anima imediatamente o client, mas a posicao autoritativa
+	// avanca somente conforme o relogio do World. Assim uma intencao valida de
+	// 24 tiles nunca concede alcance, pickup ou interacao no destino futuro.
+	MoveAuthorityRoute        []byte
+	MoveAuthorityStep         int
+	MoveAuthorityX            uint16
+	MoveAuthorityY            uint16
+	MoveAuthorityStartedAt    time.Time
+	MoveAuthorityStepInterval time.Duration
+	Trade                     *TradeState
+	GhostShop                 *GhostShop
 	// Loja fantasma cuja janela este client abriu. Permite fechar somente os
 	// compradores afetados quando o clone desaparece.
 	BrowsingGhostShopID uint16
@@ -333,9 +339,14 @@ type World struct {
 	players               map[*net.Session]*Player
 	playersByID           map[uint16]*Player
 	playersByCharacterUID map[string]*Player
+	playersByName         map[string]*Player
 	accountSessions       map[string]*net.Session
 	authPending           map[*net.Session]bool
 	authSlots             chan struct{}
+	operational           OperationalConfig
+	authRateByIP          map[string]*fixedWindowRate
+	authRateByAccount     map[string]*fixedWindowRate
+	chatRateByAccount     map[string]*fixedWindowRate
 	// security agrega violacoes por conexao em qualquer fase (inclusive antes
 	// do login), sem confiar em campos de identidade enviados no pacote.
 	security map[*net.Session]*securityState
@@ -347,6 +358,7 @@ type World struct {
 	npcs                  []model.NPCDef
 	mobs                  []*Mob
 	mobsByID              map[uint16]*Mob
+	mobListIndex          map[uint16]int
 	mobCells              map[uint32]map[uint16]*Mob
 	playerCells           map[uint32]map[uint16]*Player
 	mobCell               map[uint16]uint32
@@ -361,6 +373,12 @@ type World struct {
 	skills                map[int]model.SkillDef
 	groundItems           map[uint16]*GroundItem
 	ghostShops            map[uint16]*GhostShop
+	groundItemCells       map[uint32]map[uint16]*GroundItem
+	groundItemCell        map[uint16]uint32
+	groundExpiry          groundItemExpiryHeap
+	groundExpiryByID      map[uint16]time.Time
+	ghostShopCells        map[uint32]map[uint16]*GhostShop
+	ghostShopCell         map[uint16]uint32
 	nextItemID            uint16
 	nextAutoSave          time.Time
 	dropRates             [model.MaxCarry]int // taxa de drop por slot do carry (nativa)
@@ -471,17 +489,21 @@ func (w *World) allocMobID() uint16 {
 // ClientId dos NPCs comeca em 1000 (players usam ID baixo a partir de 1).
 func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, catalog model.Catalog, dropRates [model.MaxCarry]int, volatiles model.VolatileCatalog, characterTemplates model.CharacterTemplateFile, terrain model.TerrainMap, options ...WorldOption) (*World, error) {
 	w := &World{
-		commands:               make(chan command, 1024),
 		players:                make(map[*net.Session]*Player),
 		playersByID:            make(map[uint16]*Player),
 		playersByCharacterUID:  make(map[string]*Player),
+		playersByName:          make(map[string]*Player),
 		accountSessions:        make(map[string]*net.Session),
 		authPending:            make(map[*net.Session]bool),
-		authSlots:              make(chan struct{}, 4),
+		operational:            DefaultOperationalConfig(),
+		authRateByIP:           make(map[string]*fixedWindowRate),
+		authRateByAccount:      make(map[string]*fixedWindowRate),
+		chatRateByAccount:      make(map[string]*fixedWindowRate),
 		security:               make(map[*net.Session]*securityState),
 		store:                  st,
 		npcs:                   npcs,
 		mobsByID:               make(map[uint16]*Mob),
+		mobListIndex:           make(map[uint16]int),
 		mobCells:               make(map[uint32]map[uint16]*Mob),
 		playerCells:            make(map[uint32]map[uint16]*Player),
 		mobCell:                make(map[uint16]uint32),
@@ -495,6 +517,11 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		skills:                 catalog.Skills,
 		groundItems:            make(map[uint16]*GroundItem),
 		ghostShops:             make(map[uint16]*GhostShop),
+		groundItemCells:        make(map[uint32]map[uint16]*GroundItem),
+		groundItemCell:         make(map[uint16]uint32),
+		groundExpiryByID:       make(map[uint16]time.Time),
+		ghostShopCells:         make(map[uint32]map[uint16]*GhostShop),
+		ghostShopCell:          make(map[uint16]uint32),
 		nextItemID:             10000,
 		dropRates:              dropRates,
 		volatiles:              volatiles,
@@ -515,6 +542,15 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	for _, option := range options {
 		option(w)
 	}
+	if err := w.operational.Validate(); err != nil {
+		return nil, fmt.Errorf("configuracao operacional: %w", err)
+	}
+	// Nenhum produtor conhece o World antes de NewWorld retornar. Portanto e
+	// seguro materializar aqui as capacidades operacionais escolhidas pelas
+	// options, sem manter os antigos 1024/4 invisiveis no gameplay.
+	w.commands = make(chan command, w.operational.WorldCommandQueueCapacity)
+	w.authSlots = make(chan struct{}, w.operational.AuthHashConcurrency)
+	w.channel = w.operational.ChannelID
 	// Os deadlines nascem DEPOIS das options para que uma fonte de tempo
 	// injetada em teste parta do mesmo instante que o mundo.
 	start := w.now()
@@ -718,7 +754,7 @@ func (w *World) spawnGroup(g *generState) {
 		} else {
 			m.LeaderID = leaderID
 		}
-		w.mobs = append(w.mobs, m)
+		w.appendMobInstance(m)
 		g.current++
 		spawned++
 		w.publishMobSpawn(m)
@@ -830,7 +866,7 @@ func (w *World) positionOccupiedInGameplaySpace(x, y uint16, space string,
 		}
 		return true
 	}
-	for _, shop := range w.ghostShops {
+	for _, shop := range w.ghostShopCells[key] {
 		if shop.X == x && shop.Y == y {
 			return true
 		}
@@ -1075,15 +1111,49 @@ func (w *World) findFreeMobPosition(instanceID string, x, y uint16, radius uint1
 // recebeu RemoveMob; conservar o ponteiro aqui so aumenta a busca linear e,
 // depois de muitos respawns, faz parecer que os grupos antigos ainda existem.
 func (w *World) removeMobInstance(dead *Mob) {
-	w.unregisterMobSpatial(dead)
-	for i, m := range w.mobs {
-		if m == dead {
-			copy(w.mobs[i:], w.mobs[i+1:])
-			w.mobs[len(w.mobs)-1] = nil
-			w.mobs = w.mobs[:len(w.mobs)-1]
-			return
+	if dead == nil {
+		return
+	}
+	if w.mobListIndex == nil {
+		w.mobListIndex = make(map[uint16]int)
+	}
+	index, found := w.mobListIndex[dead.ID]
+	if !found || index < 0 || index >= len(w.mobs) || w.mobs[index] != dead {
+		// Compatibilidade para fixtures/imports antigos que montam a lista
+		// diretamente. Spawns vivos usam appendMobInstance e ficam O(1).
+		for i, mob := range w.mobs {
+			if mob == dead {
+				index, found = i, true
+				break
+			}
 		}
 	}
+	w.unregisterMobSpatial(dead)
+	delete(w.mobListIndex, dead.ID)
+	if !found {
+		return
+	}
+	last := len(w.mobs) - 1
+	if index != last {
+		moved := w.mobs[last]
+		w.mobs[index] = moved
+		if moved != nil {
+			w.mobListIndex[moved.ID] = index
+		}
+	}
+	w.mobs[last] = nil
+	w.mobs = w.mobs[:last]
+}
+
+func (w *World) appendMobInstance(mob *Mob) {
+	if mob == nil {
+		return
+	}
+	if w.mobListIndex == nil {
+		w.mobListIndex = make(map[uint16]int)
+	}
+	w.mobListIndex[mob.ID] = len(w.mobs)
+	w.mobs = append(w.mobs, mob)
 }
 
 func (w *World) findFreePosition(x, y, radius uint16) (uint16, uint16) {
@@ -1307,7 +1377,11 @@ func commandLabel(cmd command) string {
 	if len(cmd.pkt) < wire.HeaderSize {
 		return "malformed"
 	}
-	return fmt.Sprintf("0x%X", wire.ParseHeader(cmd.pkt).Type)
+	opcode := wire.ParseHeader(cmd.pkt).Type
+	if !knownInboundOpcode(opcode) {
+		return "unknown"
+	}
+	return fmt.Sprintf("0x%X", opcode)
 }
 
 // safeHandle isola um panic de handler. O World roda numa UNICA goroutine, entao
@@ -1401,6 +1475,9 @@ func (w *World) tick() {
 		metricCommandQueueDepth.Set(int64(len(w.commands)))
 	}()
 	w.mobTickCounter++
+	// A posicao server-side caminha pelo mesmo plano visual, mas somente os
+	// passos cujo tempo venceu se tornam autoridade para IA e interacoes.
+	w.advanceAllPlayerMovement(now)
 	// O grid ja reduziu a lista aos mobs com jogador proximo. Uma vez acordado,
 	// o mob percebe alvo a cada 1 s. Perseguicao e patrulha so iniciam um novo
 	// trecho a cada 2 s, evitando emendar animacoes na velocidade maxima. O
@@ -1526,6 +1603,9 @@ func (w *World) handle(cmd command) {
 	if !w.validateInboundCommand(cmd.s, cmd.pkt) {
 		return
 	}
+	if p := w.players[cmd.s]; p != nil && p.InWorld && p.Char != nil {
+		w.advancePlayerMovement(p, w.now())
+	}
 	h := wire.ParseHeader(cmd.pkt)
 	switch int(h.Type) {
 	case wire.OpConnectAccount:
@@ -1607,9 +1687,8 @@ func (w *World) handle(cmd command) {
 	case wire.OpGuildAlly:
 		w.onGuildAlly(cmd.s, cmd.pkt)
 	case wire.OpGuildWar:
-		// Reconhecido para nao poluir o log. Guerra de guild esta fora do
-		// escopo deste marco: exige zonas, torre e estado de cerco.
-		log.Printf("[#%d] 0xE0E guerra de guild ignorada (sistema nao implementado)", cmd.s.ID)
+		// Reconhecido para nao poluir o log nem virar amplificador de I/O.
+		// Guerra de guild continua fora deste marco: exige zonas, torre e cerco.
 	case wire.OpChallenge, wire.OpChallengeConfirm:
 		w.onGuildChallenge(cmd.s, cmd.pkt)
 	case wire.OpMoveStop:
@@ -1653,7 +1732,10 @@ func (w *World) handle(cmd command) {
 	case wire.OpCombineOdin:
 		w.onCombineOdin(cmd.s, cmd.pkt)
 	default:
-		log.Printf("[#%d] sem handler: Type=0x%X Size=%d", cmd.s.ID, h.Type, h.Size)
+		// A allowlist de validateInboundCommand torna este ramo inalcançavel
+		// para pacotes de rede. Mantemos fail-closed para comandos construidos
+		// internamente/testes, sem um log irrestrito por opcode.
+		w.recordSecurityViolation(cmd.s, h.Type, "opcode registrado sem handler")
 	}
 }
 
@@ -1707,7 +1789,7 @@ func (w *World) createGroundDropForInstance(x, y uint16, item model.Item,
 		Expire:     w.now().Add(2 * time.Minute),
 		InstanceID: instanceID,
 	}
-	w.groundItems[id] = gItem
+	w.registerGroundItem(gItem)
 
 	if publish {
 		w.publishItemSpawn(gItem)
@@ -1730,14 +1812,14 @@ func (w *World) spawnInitItems() error {
 			return fmt.Errorf("sem ID livre para o objeto %d em (%d,%d)",
 				obj.Index, obj.X, obj.Y)
 		}
-		w.groundItems[id] = &GroundItem{
+		w.registerGroundItem(&GroundItem{
 			ID:        id,
 			Item:      model.Item{Index: obj.Index},
 			X:         obj.X,
 			Y:         obj.Y,
 			Rotate:    obj.Rotate,
 			Permanent: true,
-		}
+		})
 	}
 	if len(w.initItems) > 0 {
 		log.Printf("objetos de mundo: %d postos no mapa", len(w.initItems))
@@ -1778,13 +1860,5 @@ func (w *World) allocGroundItemID(itemIndex uint16) (uint16, bool) {
 }
 
 func (w *World) tickGroundItems(now time.Time) {
-	for id, item := range w.groundItems {
-		if item.Permanent {
-			continue // portao/porta/canhao: mobilia do mapa, nao drop
-		}
-		if now.After(item.Expire) {
-			w.publishItemRemove(item)
-			delete(w.groundItems, id)
-		}
-	}
+	w.expireGroundItems(now)
 }

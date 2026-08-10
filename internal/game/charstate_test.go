@@ -106,7 +106,9 @@ func TestCharStateStoreLoadSyncAndAsyncPaths(t *testing.T) {
 	w := worldWithNetworkedPlayers(p)
 	w.store = st
 
-	w.loadCharStateInto(p)
+	if err := w.loadCharStateInto(p); err != nil {
+		t.Fatal(err)
+	}
 	if st.loads != 1 || activePlayerAffect(p.Char, 4) == nil ||
 		p.SpecialCoins["kefra_ticket"] != 7 {
 		t.Fatalf("load do sidecar incompleto: loads=%d coins=%v affects=%v",
@@ -133,19 +135,25 @@ func TestCharStateStoreGuardsAndLoadFailures(t *testing.T) {
 	st := &charStateMemoryStore{loadErr: errors.New("read")}
 	w := worldWithNetworkedPlayers(p)
 	w.store = st
-	w.loadCharStateInto(p)
+	if err := w.loadCharStateInto(p); err == nil {
+		t.Fatal("falha do loader deveria ser propagada")
+	}
 	if st.loads != 1 || p.SpecialCoins != nil {
 		t.Fatal("falha de load alterou estado do jogador")
 	}
 
 	st.loadErr = nil
 	st.state = nil
-	w.loadCharStateInto(p)
+	if err := w.loadCharStateInto(p); err != nil {
+		t.Fatal(err)
+	}
 	if st.loads != 2 {
 		t.Fatal("sidecar ausente nao percorreu o loader")
 	}
 	w.store = &craftStore{} // store sem a interface opcional
-	w.loadCharStateInto(p)
+	if err := w.loadCharStateInto(p); err != nil {
+		t.Fatal(err)
+	}
 	if err := w.saveCharStateResult(p); err != nil {
 		t.Fatalf("store sem sidecar deveria ser no-op: %v", err)
 	}
@@ -170,5 +178,21 @@ func TestAccountAndCharStateUseAtomicStoreWhenAvailable(t *testing.T) {
 	}
 	if st.lastUID != p.Char.UID || st.state.SpecialCoins["fame"] != 200 {
 		t.Fatalf("snapshot atomico incorreto: uid=%q state=%+v", st.lastUID, st.state)
+	}
+}
+
+func TestCharacterLogoutIsNotConfirmedWhenAtomicStateSaveFails(t *testing.T) {
+	p, _ := networkedTestPlayer(1, "Stateful", 2100, 2100)
+	p.Char.UID = "11111111111141118111111111111111"
+	st := &atomicCharStateMemoryStore{atomicErr: errors.New("postgres unavailable")}
+	w := worldWithNetworkedPlayers(p)
+	w.store = st
+	before := p.Session.QueuedPacketsForTest()
+	w.onCharacterLogout(p.Session, make([]byte, 12))
+	if !p.InWorld || p.Char == nil || p.CharSlot < 0 {
+		t.Fatal("falha do charstate removeu o personagem do mundo")
+	}
+	if p.Session.QueuedPacketsForTest() != before+1 {
+		t.Fatal("logout com falha deveria enviar somente aviso, nao confirmacao")
 	}
 }

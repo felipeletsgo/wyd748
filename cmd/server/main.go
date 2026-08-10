@@ -214,6 +214,7 @@ func main() {
 		}
 		postgresStore, err = store.NewPostgresStore(context.Background(), store.PostgresConfig{
 			URL: databaseURL, MaxConns: int32(cfg.DatabaseMaxConns), GuildsTxtPath: *guildsTxtPath,
+			OperationTimeout: time.Duration(cfg.CriticalPersistenceTimeoutMS) * time.Millisecond,
 		})
 		if err != nil {
 			log.Fatalf("abrir PostgreSQL: %v", err)
@@ -231,6 +232,16 @@ func main() {
 	worldOptions := []game.WorldOption{
 		game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),
+		game.WithOperationalConfig(game.OperationalConfig{
+			AuthAttemptsPerMinuteIP:      int(cfg.AuthAttemptsPerMinIP),
+			AuthAttemptsPerMinuteAccount: int(cfg.AuthAttemptsPerMinAccount),
+			AuthHashConcurrency:          int(cfg.AuthHashConcurrency),
+			WorldCommandQueueCapacity:    int(cfg.WorldCommandQueueCapacity),
+			ChatLocalPer10Seconds:        int(cfg.ChatLocalPer10Secs),
+			ChatWhisperPer10Seconds:      int(cfg.ChatWhisperPer10Secs),
+			ChatGlobalPer10Seconds:       int(cfg.ChatGlobalPer10Secs),
+			ChannelID:                    byte(cfg.ChannelID),
+		}),
 		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts),
 		game.WithBossCatalog(bosses), game.WithInitItems(initItems),
 		game.WithLoadtestSpawn(cfg.LoadtestSpawn, cfg.LoadtestAccountPrefix),
@@ -267,7 +278,17 @@ func main() {
 		os.Exit(1)
 	}()
 
-	if err := net.ListenWithQueue(*addr, int(cfg.SessionQueueCapacity), func(s *net.Session) { s.Serve(world.Enqueue) }); err != nil {
+	listenerConfig := net.ListenerConfig{
+		OutputQueueSize:      int(cfg.SessionQueueCapacity),
+		MaxConnections:       int(cfg.MaxConnections),
+		MaxConnectionsPerIP:  int(cfg.MaxConnectionsPerIP),
+		HandshakeTimeout:     time.Duration(cfg.HandshakeTimeoutSecs) * time.Second,
+		SessionIdleTimeout:   time.Duration(cfg.SessionIdleTimeoutSecs) * time.Second,
+		FrameReadTimeout:     time.Duration(cfg.FrameReadTimeoutSecs) * time.Second,
+		InboundPacketsPerSec: int(cfg.InboundPacketsPerSec),
+		InboundBytesPerSec:   int(cfg.InboundBytesPerSec),
+	}
+	if err := net.ListenWithConfig(*addr, listenerConfig, func(s *net.Session) { s.Serve(world.Enqueue) }); err != nil {
 		log.Fatalf("listen: %v", err)
 	}
 }

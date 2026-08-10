@@ -35,11 +35,20 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 			},
 		}}
 		w := testSpatialWorld([]*Mob{banker}, p)
+		p.CargoNPC = banker.ID
+		p.show(banker.ID)
 		pkt := make([]byte, 20)
 		binary.LittleEndian.PutUint32(pkt[16:20], uint32(banker.ID))
 		if !w.validCargoAccess(p, pkt) {
 			t.Fatal("banker visivel foi recusado")
 		}
+		banker.X = p.X + npcInteractionRange + 1
+		w.moveMobSpatial(banker, 102, 100)
+		if w.validCargoAccess(p, pkt) {
+			t.Fatal("cargo usou o alcance visual em vez da fronteira NPC")
+		}
+		banker.X = 102
+		w.moveMobSpatial(banker, p.X+npcInteractionRange+1, p.Y)
 		binary.LittleEndian.PutUint32(pkt[16:20], 0x1_0000)
 		if w.validCargoAccess(p, pkt) || w.validCargoAccess(nil, pkt) ||
 			w.validCargoAccess(p, pkt[:19]) {
@@ -290,9 +299,6 @@ func TestWhisperMailPartyChatAndCharacterInfo(t *testing.T) {
 	w.sendPartyChat(sender, "party")
 	if recipientSession.QueuedPacketsForTest() != 3 {
 		t.Fatalf("chat party nao chegou: %d", recipientSession.QueuedPacketsForTest())
-	}
-	if got := w.localChatObservers(sender); got != 1 {
-		t.Fatalf("observadores locais=%d", got)
 	}
 	if got := w.playerByCharacterName("recipient"); got != recipient {
 		t.Fatalf("lookup por nome=%p, quer %p", got, recipient)

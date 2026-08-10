@@ -1,6 +1,6 @@
 # Segurança do servidor
 
-Atualizado em 26/07/2026.
+Atualizado em 10/08/2026.
 
 O client 7.48 é considerado uma interface visual não confiável. Alterar memória
 com Cheat Engine, capturar/repetir pacotes com WPE ou construir um client próprio
@@ -10,6 +10,9 @@ progressão. Toda decisão de jogo precisa ser recalculada e validada no servido
 ## Fronteira de rede
 
 - O socket exige o `InitCode` correto antes de aceitar pacotes.
+- Conexões são limitadas globalmente e por IP antes do handshake. O InitCode
+  vence em 5 s; idle e corpo parcial usam deadlines separados para preservar o
+  heartbeat 7.48 sem permitir Slowloris.
 - O tamanho máximo reproduz `MAX_MESSAGE_SIZE` do `CPSock` nativo: 8192 bytes.
 - Pacotes menores que o header, maiores que o limite, incompletos ou com checksum
   inválido encerram a conexão antes de chegar ao `World`.
@@ -20,6 +23,8 @@ progressão. Toda decisão de jogo precisa ser recalculada e validada no servido
 - Cada opcode é aceito somente na fase correta da sessão: conexão, autenticação,
   seleção de personagem ou mundo. Repetir login/entrada no mundo não materializa
   outra cópia do personagem.
+- Opcodes C→S desconhecidos são negados antes do dispatcher e usam um único
+  rótulo de métrica, impedindo DoS de log/cardinalidade.
 - Violações de protocolo são contabilizadas por sessão. Doze recusas em um
   minuto encerram a conexão; o log é limitado para não virar outra forma de DoS.
 
@@ -29,8 +34,9 @@ progressão. Toda decisão de jogo precisa ser recalculada e validada no servido
 - O servidor valida origem, destino, direções da rota, quantidade de passos,
   limites do mapa, terreno caminhável e diferença de altura permitida.
 - Pacotes sem rota só confirmam segmentos curtos e inteiramente transitáveis.
-- Um orçamento de deslocamento é recarregado pelo tempo e pelo `RunSpeed`
-  server-side. Reenviar rotas válidas rapidamente não produz speedhack.
+- Uma rota válida é apenas intenção. O client recebe o plano para interpolar,
+  mas o `World` promove cada passo a `p.X/Y` somente quando o tempo calculado do
+  `RunSpeed` server-side vence. Reenviar rotas não antecipa autoridade no destino.
 - `ActionStop` e `MoveStop` não podem reposicionar o personagem para longe.
 - Ataques físicos e skills ofensivas exigem linha transitável até o alvo. Essa é
   uma proteção adicional do emulador contra ataque através de paredes; não é uma
@@ -73,7 +79,7 @@ progressão. Toda decisão de jogo precisa ser recalculada e validada no servido
 ## Testes adversariais
 
 Há testes de framing, handshake, checksum, fila cheia, fase de sessão, replay de
-login/ataque, payload anexado, movimento impossível, orçamento de movimento,
+login/ataque, payload anexado, movimento impossível, progressão temporal de movimento,
 wallhack, loja remota, venda de equipamento, rollback de drop/coleta, cooldown e
 persistência de trade. Parsers expostos a bytes hostis também têm fuzz tests.
 

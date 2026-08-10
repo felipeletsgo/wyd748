@@ -253,7 +253,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	}
 	p.GhostShop = shop
 	p.ShopNPC = 0
-	w.ghostShops[shop.ID] = shop
+	w.registerGhostShop(shop)
 	// O client coloca o proprio personagem em modo de auto-loja assim que envia
 	// o 0x397. A ordem e importante: a W2PP executa RemoveTrade2 (0x384) ANTES
 	// de criar o clone. Publicar o 0x363 primeiro fazia o 0x384 subsequente
@@ -451,7 +451,7 @@ func (w *World) closeGhostShop(owner *Player, reason string) {
 	}
 	shop := owner.GhostShop
 	owner.GhostShop = nil
-	delete(w.ghostShops, shop.ID)
+	w.unregisterGhostShop(shop)
 	for _, viewer := range w.players {
 		if viewer.BrowsingGhostShopID == shop.ID {
 			viewer.BrowsingGhostShopID = 0

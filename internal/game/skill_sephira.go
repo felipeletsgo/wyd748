@@ -13,7 +13,7 @@ import (
 const thornWallLifetime = 21 * time.Second
 
 func (w *World) groundCannonAt(x, y uint16) *GroundItem {
-	for _, g := range w.groundItems {
+	for _, g := range w.nearbyGroundItems(x, y, 0) {
 		if g != nil && g.Item.Index == 746 && g.ID >= 15001 && g.ID <= 15100 && g.X == x && g.Y == y {
 			return g
 		}
@@ -62,7 +62,7 @@ func (w *World) castThornWall(p *Player, req skillCastRequest, skill model.Skill
 		InstanceID: w.playerRuntimeInstanceID(p.ID),
 		HP:         def.Extended.MaxHP, GenerIndex: -1, SummonerID: p.ID,
 		SummonKind: summonKindThornWall, ExpiresAt: w.now().Add(thornWallLifetime)}
-	w.mobs = append(w.mobs, m)
+	w.appendMobInstance(m)
 	w.publishMobSpawn(m)
 	w.sendToPlayerView(p, func() []byte {
 		return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, m.X, m.Y, p.Char.Exp, playerCombatMP(p.Char),

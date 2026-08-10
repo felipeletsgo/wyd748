@@ -38,7 +38,7 @@ func staticEffect(def model.ItemDef, name string) int {
 // quando o id nao confere -- cada caso tem mensagem propria no chamador.
 func (w *World) gateByKeyID(p *Player, keyID int) (*GroundItem, bool) {
 	var jaAberta bool
-	for _, g := range w.groundItems {
+	for _, g := range w.nearbyGroundItems(p.X, p.Y, gateReach) {
 		if !g.Permanent || chebyshev(p.X, p.Y, g.X, g.Y) > gateReach {
 			continue
 		}

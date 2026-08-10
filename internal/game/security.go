@@ -92,6 +92,10 @@ func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 		w.recordSecurityViolation(s, header.Type, fmt.Sprintf("Size=%d bytes=%d", header.Size, len(pkt)))
 		return false
 	}
+	if !knownInboundOpcode(header.Type) {
+		w.recordSecurityViolation(s, header.Type, "opcode C->S desconhecido")
+		return false
+	}
 	if expected, exact := exactInboundPacketSize(header.Type); exact && len(pkt) != expected {
 		w.recordSecurityViolation(s, header.Type,
 			fmt.Sprintf("tamanho %d, esperado %d", len(pkt), expected))
@@ -108,6 +112,18 @@ func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 		return false
 	}
 	return true
+}
+
+// knownInboundOpcode e a allowlist canonica da borda C->S. Um opcode sem
+// parser/semantica confirmados nao chega ao dispatcher, nao cria uma label de
+// metrica arbitraria e nao pode transformar log sincrono em amplificador de
+// CPU/I/O. Rebuy e o unico layout conhecido com dois tamanhos validos.
+func knownInboundOpcode(opcode uint16) bool {
+	if opcode == wire.OpRebuy {
+		return true
+	}
+	_, exact := exactInboundPacketSize(opcode)
+	return exact
 }
 
 // exactInboundPacketSize contem somente layouts confirmados no client 7.48.
@@ -277,37 +293,6 @@ func movementTilesPerSecond(p *Player) float64 {
 	return 6 + float64(speed)*1.5
 }
 
-func (w *World) consumeMovementBudget(p *Player, distance int) bool {
-	if p == nil || distance <= 0 {
-		return p != nil
-	}
-	now := w.now()
-	capacity := float64(movementSegmentLimit(p))
-	if p.MoveBudgetAt.IsZero() {
-		p.MoveBudgetAt = now
-		// O primeiro pacote e uma intencao de rota futura, nao um teleporte ja
-		// percorrido. Permite um segmento wire valido, mas inicia o budget vazio
-		// para impedir que varios segmentos novos sejam enfileirados no mesmo
-		// instante.
-		if float64(distance) > capacity {
-			return false
-		}
-		p.MoveBudget = 0
-		return true
-	} else if elapsed := now.Sub(p.MoveBudgetAt); elapsed > 0 {
-		p.MoveBudget += elapsed.Seconds() * movementTilesPerSecond(p)
-		if p.MoveBudget > capacity {
-			p.MoveBudget = capacity
-		}
-		p.MoveBudgetAt = now
-	}
-	if float64(distance) > p.MoveBudget {
-		return false
-	}
-	p.MoveBudget -= float64(distance)
-	return true
-}
-
 var routeDirections = map[byte][2]int{
 	'1': {-1, -1}, '2': {0, -1}, '3': {1, -1},
 	'4': {-1, 0}, '6': {1, 0},
@@ -315,60 +300,159 @@ var routeDirections = map[byte][2]int{
 }
 
 func (w *World) validPlayerMovePacket(p *Player, pkt []byte) bool {
+	_, _, _, _, ok := w.validatedPlayerMoveRoute(p, pkt)
+	return ok
+}
+
+// validatedPlayerMoveRoute valida o plano recebido e o converte em uma rota
+// que parte da posicao autoritativa atual. Repeticoes do mesmo Route[24] sao
+// aceitas mesmo depois de alguns passos, mas somente o sufixo ainda nao
+// percorrido pode virar autoridade.
+func (w *World) validatedPlayerMoveRoute(p *Player, pkt []byte) (uint16, uint16, []byte, []byte, bool) {
 	if p == nil || len(pkt) != 52 {
-		return false
+		return 0, 0, nil, nil, false
 	}
 	targetX, targetY := actionTarget748(pkt)
 	if targetX == 0 || targetY == 0 || !w.terrain.Walkable(targetX, targetY) {
-		return false
+		return 0, 0, nil, nil, false
 	}
 	startX := binary.LittleEndian.Uint16(pkt[12:14])
 	startY := binary.LittleEndian.Uint16(pkt[14:16])
 	if startX == 0 || startY == 0 {
 		startX, startY = p.X, p.Y
 	}
-	// O servidor guarda o destino planejado imediatamente, enquanto o client
-	// ainda interpola a partir de PosX/PosY e pode repetir o mesmo 0x366. Logo a
-	// origem pode ficar atras do destino autoritativo por toda a rota, mas nunca
-	// alem do proprio Route[24].
 	if chebyshev(p.X, p.Y, startX, startY) > maxMovementRouteBytes ||
 		!w.terrain.Walkable(startX, startY) {
-		return false
+		return 0, 0, nil, nil, false
 	}
 
 	x, y := int(startX), int(startY)
-	steps := 0
+	wireRoute := make([]byte, 0, maxMovementRouteBytes)
+	positions := make([][2]uint16, 1, maxMovementRouteBytes+1)
+	positions[0] = [2]uint16{startX, startY}
 	for _, encoded := range pkt[28:52] {
 		if encoded == 0 {
 			break
 		}
 		direction, ok := routeDirections[encoded]
 		if !ok {
-			return false
+			return 0, 0, nil, nil, false
 		}
 		nextX, nextY := x+direction[0], y+direction[1]
 		if nextX <= 0 || nextY <= 0 || nextX >= 4096 || nextY >= 4096 {
-			return false
+			return 0, 0, nil, nil, false
 		}
 		if !w.terrain.RouteHeightCompatible(uint16(x), uint16(y), uint16(nextX), uint16(nextY)) {
-			return false
+			return 0, 0, nil, nil, false
 		}
 		x, y = nextX, nextY
-		steps++
-		if steps > movementSegmentLimit(p) {
-			return false
-		}
+		wireRoute = append(wireRoute, encoded)
+		positions = append(positions, [2]uint16{uint16(x), uint16(y)})
 	}
-	if steps > 0 {
-		return uint16(x) == targetX && uint16(y) == targetY &&
-			w.consumeMovementBudget(p, chebyshev(p.X, p.Y, targetX, targetY))
+	if len(wireRoute) > 0 {
+		if uint16(x) != targetX || uint16(y) != targetY {
+			return 0, 0, nil, nil, false
+		}
+		// Escolher a ultima ocorrencia impede uma rota com loop de obrigar o
+		// personagem a repetir passos ja percorridos.
+		currentAt := -1
+		for index := range positions {
+			if positions[index][0] == p.X && positions[index][1] == p.Y {
+				currentAt = index
+			}
+		}
+		if currentAt < 0 {
+			// Ao virar durante uma caminhada, o client pode iniciar o novo
+			// Route na posicao visual, poucos passos adiante da autoridade. Essa
+			// origem so e aceita quando pertence ao plano antigo ainda pendente;
+			// os passos faltantes sao preservados, nunca saltados.
+			prefix, found := playerMovementPrefixTo(p, startX, startY)
+			if !found || len(prefix)+len(wireRoute) > maxMovementRouteBytes {
+				return 0, 0, nil, nil, false
+			}
+			authority := append(prefix, wireRoute...)
+			return startX, startY, wireRoute, authority, true
+		}
+		authority := append([]byte(nil), wireRoute[currentAt:]...)
+		return startX, startY, wireRoute, authority, true
 	}
 	// Alguns pacotes intermediarios do 7.48 chegam sem Route. Eles so podem
-	// reportar um segmento curto e inteiramente transitavel.
+	// reportar um segmento curto e inteiramente transitavel. O servidor gera a
+	// linha de passos para que o destino continue sendo futuro, nao um salto.
 	distance := chebyshev(p.X, p.Y, targetX, targetY)
-	return distance <= movementSegmentLimit(p) &&
-		w.terrain.LineOfSight(p.X, p.Y, targetX, targetY) &&
-		w.consumeMovementBudget(p, distance)
+	if distance > movementSegmentLimit(p) || !w.terrain.LineOfSight(p.X, p.Y, targetX, targetY) {
+		return 0, 0, nil, nil, false
+	}
+	authority := directMovementRoute(p.X, p.Y, targetX, targetY)
+	return p.X, p.Y, authority, authority, true
+}
+
+func playerMovementPrefixTo(p *Player, targetX, targetY uint16) ([]byte, bool) {
+	if p == nil || !p.MovePublished || p.MoveAuthorityStep >= len(p.MoveAuthorityRoute) {
+		return nil, false
+	}
+	x, y := int(p.X), int(p.Y)
+	prefix := make([]byte, 0, len(p.MoveAuthorityRoute)-p.MoveAuthorityStep)
+	for _, encoded := range p.MoveAuthorityRoute[p.MoveAuthorityStep:] {
+		direction, ok := routeDirections[encoded]
+		if !ok {
+			return nil, false
+		}
+		x, y = x+direction[0], y+direction[1]
+		prefix = append(prefix, encoded)
+		if uint16(x) == targetX && uint16(y) == targetY {
+			return prefix, true
+		}
+	}
+	return nil, false
+}
+
+func directMovementRoute(fromX, fromY, toX, toY uint16) []byte {
+	route := make([]byte, 0, chebyshev(fromX, fromY, toX, toY))
+	x, y := int(fromX), int(fromY)
+	for x != int(toX) || y != int(toY) {
+		dx, dy := 0, 0
+		if x < int(toX) {
+			dx = 1
+		} else if x > int(toX) {
+			dx = -1
+		}
+		if y < int(toY) {
+			dy = 1
+		} else if y > int(toY) {
+			dy = -1
+		}
+		encoded, ok := encodeRouteDirection(dx, dy)
+		if !ok {
+			return nil
+		}
+		route = append(route, encoded)
+		x, y = x+dx, y+dy
+	}
+	return route
+}
+
+func encodeRouteDirection(dx, dy int) (byte, bool) {
+	switch {
+	case dx == -1 && dy == -1:
+		return '1', true
+	case dx == 0 && dy == -1:
+		return '2', true
+	case dx == 1 && dy == -1:
+		return '3', true
+	case dx == -1 && dy == 0:
+		return '4', true
+	case dx == 1 && dy == 0:
+		return '6', true
+	case dx == -1 && dy == 1:
+		return '7', true
+	case dx == 0 && dy == 1:
+		return '8', true
+	case dx == 1 && dy == 1:
+		return '9', true
+	default:
+		return 0, false
+	}
 }
 
 func (w *World) validReportedStop(p *Player, x, y uint16) bool {
@@ -378,36 +462,6 @@ func (w *World) validReportedStop(p *Player, x, y uint16) bool {
 	if chebyshev(p.X, p.Y, x, y) <= maxStopPositionDrift &&
 		w.terrain.LineOfSight(p.X, p.Y, x, y) {
 		return true
-	}
-	return publishedPlayerRouteContains(p, x, y)
-}
-
-// publishedPlayerRouteContains aceita uma parada no meio do plano que o
-// servidor ja validou. p.X/Y guarda o destino planejado imediatamente; medir
-// somente a distancia ate ele rejeitava paradas legitimas em rotas longas.
-func publishedPlayerRouteContains(p *Player, targetX, targetY uint16) bool {
-	if p == nil || !p.MovePublished || p.MovePublishedStartX == 0 || p.MovePublishedStartY == 0 {
-		return false
-	}
-	x, y := int(p.MovePublishedStartX), int(p.MovePublishedStartY)
-	if uint16(x) == targetX && uint16(y) == targetY {
-		return true
-	}
-	for _, encoded := range p.MovePublishedRoute {
-		if encoded == 0 {
-			break
-		}
-		direction, ok := routeDirections[encoded]
-		if !ok {
-			return false
-		}
-		x, y = x+direction[0], y+direction[1]
-		if x <= 0 || y <= 0 || x >= 4096 || y >= 4096 {
-			return false
-		}
-		if uint16(x) == targetX && uint16(y) == targetY {
-			return true
-		}
 	}
 	return false
 }

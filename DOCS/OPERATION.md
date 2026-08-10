@@ -1,12 +1,32 @@
 # Operação e diagnóstico — WYD-Go 7.48
 
-Atualizado em 24/07/2026. Cobre a fundação operacional: relógio/RNG injetáveis,
+Atualizado em 10/08/2026. Cobre a fundação operacional: relógio/RNG injetáveis,
 métricas, profiling e desligamento controlado.
 
 Contexto: o alvo declarado do servidor é **operação pública com centenas de
 jogadores por canal**. A avaliação dos planos em `DOCS/PLANO_MELHORIA.md`
 concluiu que a maior parte daquele documento é otimização prematura, mas que
 estes quatro itens eram lacunas reais — nenhuma delas existia antes.
+
+## Fronteira TCP e admissão
+
+`data/server.txt` concentra os limites operacionais: conexões globais/por IP,
+timeouts do InitCode, idle e frame parcial, pacotes/bytes por segundo, tentativas
+de autenticação e chat. O idle padrão é 600 s porque o heartbeat do client 7.48
+é espaçado; o frame parcial tem orçamento separado de 10 s, fechando Slowloris
+sem derrubar jogadores parados.
+
+Opcode C→S desconhecido é recusado antes do dispatcher, contabilizado sob o
+rótulo fixo `unknown` e reincidência fecha a sessão. Isso evita DoS de log e
+cardinalidade de métricas controlada pelo atacante.
+
+## Account API
+
+`/healthz` informa vida do processo e `/readyz` consulta PostgreSQL com timeout
+curto. `X-Forwarded-For` só é honrado quando o peer pertence a `trusted-proxies`;
+limite por IP e concorrência de PBKDF2 são flags. SIGINT/SIGTERM encerram o HTTP
+graciosamente. O proxy declarado deve sobrescrever/remover o header recebido do
+usuário antes de encaminhar.
 
 ## Relógio e RNG injetáveis
 
@@ -48,6 +68,10 @@ do sistema de boss.
 | `world_commands_total` | Comandos processados |
 | `world_commands_by_type` | Por opcode |
 | `world_command_duration_micros` | Tempo acumulado por opcode |
+
+As capacidades `world_command_queue_capacity` e `auth_hash_concurrency` ficam
+em `data/server.txt`; não existem mais valores invisíveis fixados em `World`.
+O perfil de load test pode aumentá-las sem alterar o binário de produção.
 | `world_active_players` / `world_active_mobs` | Gauges |
 | `world_panics_total` | Panics contidos por `safeHandle` |
 

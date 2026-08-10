@@ -14,35 +14,51 @@ import (
 // ServerConfig concentra configuracao operacional e parametros globais de
 // balanceamento. Dados especificos continuam em NPCGener, SkillData, NPCs etc.
 type ServerConfig struct {
-	ListenAddress         string
-	DatabaseDriver        string
-	DatabaseURL           string
-	DatabaseURLEnv        string
-	DatabaseMaxConns      uint32
-	SessionQueueCapacity  uint32
-	NPCPath               string
-	GeneratorPath         string
-	AccountsPath          string
-	GuildsPath            string
-	GuildsTxtPath         string
-	CharStatePath         string
-	QuestsPath            string
-	QuestZonesPath        string
-	InitItemsPath         string
-	BossPath              string
-	ItemPath              string
-	ItemNamePath          string
-	ItemEffectPath        string
-	SkillPath             string
-	DropRatePath          string
-	VolatilePath          string
-	ReplictionPath        string
-	MountPath             string
-	CharacterTemplatePath string
-	HeightMapPath         string
-	AttributeMapPath      string
-	TeleportPath          string
-	NPCGenerLog           string
+	ListenAddress                string
+	DatabaseDriver               string
+	DatabaseURL                  string
+	DatabaseURLEnv               string
+	DatabaseMaxConns             uint32
+	SessionQueueCapacity         uint32
+	WorldCommandQueueCapacity    uint32
+	AuthHashConcurrency          uint32
+	MaxConnections               uint32
+	MaxConnectionsPerIP          uint32
+	HandshakeTimeoutSecs         uint32
+	SessionIdleTimeoutSecs       uint32
+	FrameReadTimeoutSecs         uint32
+	InboundPacketsPerSec         uint32
+	InboundBytesPerSec           uint32
+	AuthAttemptsPerMinIP         uint32
+	AuthAttemptsPerMinAccount    uint32
+	ChatLocalPer10Secs           uint32
+	ChatWhisperPer10Secs         uint32
+	ChatGlobalPer10Secs          uint32
+	CriticalPersistenceTimeoutMS uint32
+	ChannelID                    uint32
+	NPCPath                      string
+	GeneratorPath                string
+	AccountsPath                 string
+	GuildsPath                   string
+	GuildsTxtPath                string
+	CharStatePath                string
+	QuestsPath                   string
+	QuestZonesPath               string
+	InitItemsPath                string
+	BossPath                     string
+	ItemPath                     string
+	ItemNamePath                 string
+	ItemEffectPath               string
+	SkillPath                    string
+	DropRatePath                 string
+	VolatilePath                 string
+	ReplictionPath               string
+	MountPath                    string
+	CharacterTemplatePath        string
+	HeightMapPath                string
+	AttributeMapPath             string
+	TeleportPath                 string
+	NPCGenerLog                  string
 	// DebugAddress e o endereco do servidor de diagnostico (expvar em
 	// /debug/vars e pprof em /debug/pprof). Vazio = desligado, que e o padrao.
 	// O host DEVE ser loopback: esses endpoints expoem estado interno e perfil
@@ -58,37 +74,53 @@ type ServerConfig struct {
 
 func DefaultServerConfig() ServerConfig {
 	return ServerConfig{
-		ListenAddress:         "0.0.0.0:8281",
-		DatabaseDriver:        "postgres",
-		DatabaseURLEnv:        "WYD_DATABASE_URL",
-		DatabaseMaxConns:      8,
-		SessionQueueCapacity:  256,
-		NPCPath:               "data/npcs",
-		GeneratorPath:         "data/NPCGener.txt",
-		AccountsPath:          "data/accounts",
-		GuildsPath:            "data/guilds.json",
-		GuildsTxtPath:         "data/Guilds.txt",
-		CharStatePath:         "data/charstate",
-		QuestsPath:            "data/quests.json",
-		QuestZonesPath:        "data/quest_zones.json",
-		InitItemsPath:         "data/init_items.csv",
-		BossPath:              "data/boss",
-		ItemPath:              "data/itemlist.csv",
-		ItemNamePath:          "data/Itemname.csv",
-		ItemEffectPath:        "data/ItemEffect.h",
-		SkillPath:             "data/SkillData.csv",
-		DropRatePath:          "data/droprate.json",
-		VolatilePath:          "data/volatiles.json",
-		ReplictionPath:        "data/repliction.json",
-		MountPath:             "data/mounts.json",
-		CharacterTemplatePath: "data/character_templates.json",
-		HeightMapPath:         "data/maps/HeightMap.dat",
-		AttributeMapPath:      "data/maps/AttributeMap.dat",
-		TeleportPath:          "data/teleports.ini",
-		NPCGenerLog:           "summary",
-		DebugAddress:          "", // diagnostico desligado por padrao
-		LoadtestAccountPrefix: "",
-		Gameplay:              model.DefaultGameplayConfig(),
+		ListenAddress:                "0.0.0.0:8281",
+		DatabaseDriver:               "postgres",
+		DatabaseURLEnv:               "WYD_DATABASE_URL",
+		DatabaseMaxConns:             8,
+		SessionQueueCapacity:         256,
+		WorldCommandQueueCapacity:    1024,
+		AuthHashConcurrency:          4,
+		MaxConnections:               1200,
+		MaxConnectionsPerIP:          64,
+		HandshakeTimeoutSecs:         5,
+		SessionIdleTimeoutSecs:       600,
+		FrameReadTimeoutSecs:         10,
+		InboundPacketsPerSec:         256,
+		InboundBytesPerSec:           512 * 1024,
+		AuthAttemptsPerMinIP:         30,
+		AuthAttemptsPerMinAccount:    10,
+		ChatLocalPer10Secs:           8,
+		ChatWhisperPer10Secs:         8,
+		ChatGlobalPer10Secs:          2,
+		CriticalPersistenceTimeoutMS: 500,
+		ChannelID:                    1,
+		NPCPath:                      "data/npcs",
+		GeneratorPath:                "data/NPCGener.txt",
+		AccountsPath:                 "data/accounts",
+		GuildsPath:                   "data/guilds.json",
+		GuildsTxtPath:                "data/Guilds.txt",
+		CharStatePath:                "data/charstate",
+		QuestsPath:                   "data/quests.json",
+		QuestZonesPath:               "data/quest_zones.json",
+		InitItemsPath:                "data/init_items.csv",
+		BossPath:                     "data/boss",
+		ItemPath:                     "data/itemlist.csv",
+		ItemNamePath:                 "data/Itemname.csv",
+		ItemEffectPath:               "data/ItemEffect.h",
+		SkillPath:                    "data/SkillData.csv",
+		DropRatePath:                 "data/droprate.json",
+		VolatilePath:                 "data/volatiles.json",
+		ReplictionPath:               "data/repliction.json",
+		MountPath:                    "data/mounts.json",
+		CharacterTemplatePath:        "data/character_templates.json",
+		HeightMapPath:                "data/maps/HeightMap.dat",
+		AttributeMapPath:             "data/maps/AttributeMap.dat",
+		TeleportPath:                 "data/teleports.ini",
+		NPCGenerLog:                  "summary",
+		DebugAddress:                 "", // diagnostico desligado por padrao
+		LoadtestAccountPrefix:        "",
+		Gameplay:                     model.DefaultGameplayConfig(),
 	}
 }
 
@@ -129,37 +161,53 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		}
 	}
 	setters := map[string]func(string) error{
-		"listen_address":         func(v string) error { cfg.ListenAddress = v; return nil },
-		"database_driver":        func(v string) error { cfg.DatabaseDriver = strings.ToLower(v); return nil },
-		"database_url":           func(v string) error { cfg.DatabaseURL = v; return nil },
-		"database_url_env":       func(v string) error { cfg.DatabaseURLEnv = v; return nil },
-		"database_max_conns":     setUint32(&cfg.DatabaseMaxConns),
-		"session_queue_capacity": setUint32(&cfg.SessionQueueCapacity),
-		"npcs":                   func(v string) error { cfg.NPCPath = v; return nil },
-		"npcgener":               func(v string) error { cfg.GeneratorPath = v; return nil },
-		"accounts":               func(v string) error { cfg.AccountsPath = v; return nil },
-		"guilds":                 func(v string) error { cfg.GuildsPath = v; return nil },
-		"guilds_txt":             func(v string) error { cfg.GuildsTxtPath = v; return nil },
-		"charstate":              func(v string) error { cfg.CharStatePath = v; return nil },
-		"quests":                 func(v string) error { cfg.QuestsPath = v; return nil },
-		"quest_zones":            func(v string) error { cfg.QuestZonesPath = v; return nil },
-		"init_items":             func(v string) error { cfg.InitItemsPath = v; return nil },
-		"boss":                   func(v string) error { cfg.BossPath = v; return nil },
-		"items":                  func(v string) error { cfg.ItemPath = v; return nil },
-		"itemnames":              func(v string) error { cfg.ItemNamePath = v; return nil },
-		"itemeffects":            func(v string) error { cfg.ItemEffectPath = v; return nil },
-		"skills":                 func(v string) error { cfg.SkillPath = v; return nil },
-		"droprates":              func(v string) error { cfg.DropRatePath = v; return nil },
-		"volatiles":              func(v string) error { cfg.VolatilePath = v; return nil },
-		"repliction":             func(v string) error { cfg.ReplictionPath = v; return nil },
-		"mounts":                 func(v string) error { cfg.MountPath = v; return nil },
-		"character_templates":    func(v string) error { cfg.CharacterTemplatePath = v; return nil },
-		"heightmap":              func(v string) error { cfg.HeightMapPath = v; return nil },
-		"attributemap":           func(v string) error { cfg.AttributeMapPath = v; return nil },
-		"teleports":              func(v string) error { cfg.TeleportPath = v; return nil },
-		"npcgener_log":           func(v string) error { cfg.NPCGenerLog = strings.ToLower(v); return nil },
-		"debug_address":          func(v string) error { cfg.DebugAddress = v; return nil },
-		"loadtest_spawn":         setSpawn(&cfg.LoadtestSpawn),
+		"listen_address":                   func(v string) error { cfg.ListenAddress = v; return nil },
+		"database_driver":                  func(v string) error { cfg.DatabaseDriver = strings.ToLower(v); return nil },
+		"database_url":                     func(v string) error { cfg.DatabaseURL = v; return nil },
+		"database_url_env":                 func(v string) error { cfg.DatabaseURLEnv = v; return nil },
+		"database_max_conns":               setUint32(&cfg.DatabaseMaxConns),
+		"session_queue_capacity":           setUint32(&cfg.SessionQueueCapacity),
+		"world_command_queue_capacity":     setUint32(&cfg.WorldCommandQueueCapacity),
+		"auth_hash_concurrency":            setUint32(&cfg.AuthHashConcurrency),
+		"max_connections":                  setUint32(&cfg.MaxConnections),
+		"max_connections_per_ip":           setUint32(&cfg.MaxConnectionsPerIP),
+		"handshake_timeout_seconds":        setUint32(&cfg.HandshakeTimeoutSecs),
+		"session_idle_timeout_seconds":     setUint32(&cfg.SessionIdleTimeoutSecs),
+		"frame_read_timeout_seconds":       setUint32(&cfg.FrameReadTimeoutSecs),
+		"inbound_packets_per_second":       setUint32(&cfg.InboundPacketsPerSec),
+		"inbound_bytes_per_second":         setUint32(&cfg.InboundBytesPerSec),
+		"auth_attempts_per_minute_ip":      setUint32(&cfg.AuthAttemptsPerMinIP),
+		"auth_attempts_per_minute_account": setUint32(&cfg.AuthAttemptsPerMinAccount),
+		"chat_local_per_10_seconds":        setUint32(&cfg.ChatLocalPer10Secs),
+		"chat_whisper_per_10_seconds":      setUint32(&cfg.ChatWhisperPer10Secs),
+		"chat_global_per_10_seconds":       setUint32(&cfg.ChatGlobalPer10Secs),
+		"critical_persistence_timeout_ms":  setUint32(&cfg.CriticalPersistenceTimeoutMS),
+		"channel_id":                       setUint32(&cfg.ChannelID),
+		"npcs":                             func(v string) error { cfg.NPCPath = v; return nil },
+		"npcgener":                         func(v string) error { cfg.GeneratorPath = v; return nil },
+		"accounts":                         func(v string) error { cfg.AccountsPath = v; return nil },
+		"guilds":                           func(v string) error { cfg.GuildsPath = v; return nil },
+		"guilds_txt":                       func(v string) error { cfg.GuildsTxtPath = v; return nil },
+		"charstate":                        func(v string) error { cfg.CharStatePath = v; return nil },
+		"quests":                           func(v string) error { cfg.QuestsPath = v; return nil },
+		"quest_zones":                      func(v string) error { cfg.QuestZonesPath = v; return nil },
+		"init_items":                       func(v string) error { cfg.InitItemsPath = v; return nil },
+		"boss":                             func(v string) error { cfg.BossPath = v; return nil },
+		"items":                            func(v string) error { cfg.ItemPath = v; return nil },
+		"itemnames":                        func(v string) error { cfg.ItemNamePath = v; return nil },
+		"itemeffects":                      func(v string) error { cfg.ItemEffectPath = v; return nil },
+		"skills":                           func(v string) error { cfg.SkillPath = v; return nil },
+		"droprates":                        func(v string) error { cfg.DropRatePath = v; return nil },
+		"volatiles":                        func(v string) error { cfg.VolatilePath = v; return nil },
+		"repliction":                       func(v string) error { cfg.ReplictionPath = v; return nil },
+		"mounts":                           func(v string) error { cfg.MountPath = v; return nil },
+		"character_templates":              func(v string) error { cfg.CharacterTemplatePath = v; return nil },
+		"heightmap":                        func(v string) error { cfg.HeightMapPath = v; return nil },
+		"attributemap":                     func(v string) error { cfg.AttributeMapPath = v; return nil },
+		"teleports":                        func(v string) error { cfg.TeleportPath = v; return nil },
+		"npcgener_log":                     func(v string) error { cfg.NPCGenerLog = strings.ToLower(v); return nil },
+		"debug_address":                    func(v string) error { cfg.DebugAddress = v; return nil },
+		"loadtest_spawn":                   setSpawn(&cfg.LoadtestSpawn),
 		"loadtest_account_prefix": func(v string) error {
 			cfg.LoadtestAccountPrefix = strings.ToLower(strings.TrimSpace(v))
 			return nil
@@ -226,6 +274,51 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	}
 	if cfg.SessionQueueCapacity == 0 || cfg.SessionQueueCapacity > 8192 {
 		return ServerConfig{}, fmt.Errorf("%s: session_queue_capacity deve ficar entre 1 e 8192", path)
+	}
+	if cfg.WorldCommandQueueCapacity < 64 || cfg.WorldCommandQueueCapacity > 65536 {
+		return ServerConfig{}, fmt.Errorf("%s: world_command_queue_capacity deve ficar entre 64 e 65536", path)
+	}
+	if cfg.AuthHashConcurrency == 0 || cfg.AuthHashConcurrency > 64 {
+		return ServerConfig{}, fmt.Errorf("%s: auth_hash_concurrency deve ficar entre 1 e 64", path)
+	}
+	if cfg.MaxConnections == 0 || cfg.MaxConnections > 10000 {
+		return ServerConfig{}, fmt.Errorf("%s: max_connections deve ficar entre 1 e 10000", path)
+	}
+	if cfg.MaxConnectionsPerIP == 0 || cfg.MaxConnectionsPerIP > cfg.MaxConnections {
+		return ServerConfig{}, fmt.Errorf("%s: max_connections_per_ip deve ficar entre 1 e max_connections", path)
+	}
+	if cfg.HandshakeTimeoutSecs == 0 || cfg.HandshakeTimeoutSecs > 60 {
+		return ServerConfig{}, fmt.Errorf("%s: handshake_timeout_seconds deve ficar entre 1 e 60", path)
+	}
+	// O client 7.48 pode espaciar o heartbeat em aproximadamente 250 s. Um
+	// valor menor que 300 desconectaria clientes nativos ociosos e portanto nao
+	// e uma configuracao operacional segura para esta ABI.
+	if cfg.SessionIdleTimeoutSecs < 300 || cfg.SessionIdleTimeoutSecs > 3600 {
+		return ServerConfig{}, fmt.Errorf("%s: session_idle_timeout_seconds deve ficar entre 300 e 3600", path)
+	}
+	if cfg.FrameReadTimeoutSecs == 0 || cfg.FrameReadTimeoutSecs > 60 {
+		return ServerConfig{}, fmt.Errorf("%s: frame_read_timeout_seconds deve ficar entre 1 e 60", path)
+	}
+	if cfg.InboundPacketsPerSec < 16 || cfg.InboundPacketsPerSec > 4096 {
+		return ServerConfig{}, fmt.Errorf("%s: inbound_packets_per_second deve ficar entre 16 e 4096", path)
+	}
+	if cfg.InboundBytesPerSec < 16*1024 || cfg.InboundBytesPerSec > 16*1024*1024 {
+		return ServerConfig{}, fmt.Errorf("%s: inbound_bytes_per_second deve ficar entre 16384 e 16777216", path)
+	}
+	if cfg.AuthAttemptsPerMinIP == 0 || cfg.AuthAttemptsPerMinIP > 1000 ||
+		cfg.AuthAttemptsPerMinAccount == 0 || cfg.AuthAttemptsPerMinAccount > 1000 {
+		return ServerConfig{}, fmt.Errorf("%s: limites de autenticacao devem ficar entre 1 e 1000", path)
+	}
+	if cfg.ChatLocalPer10Secs == 0 || cfg.ChatLocalPer10Secs > 100 ||
+		cfg.ChatWhisperPer10Secs == 0 || cfg.ChatWhisperPer10Secs > 100 ||
+		cfg.ChatGlobalPer10Secs == 0 || cfg.ChatGlobalPer10Secs > 100 {
+		return ServerConfig{}, fmt.Errorf("%s: limites de chat devem ficar entre 1 e 100", path)
+	}
+	if cfg.CriticalPersistenceTimeoutMS < 100 || cfg.CriticalPersistenceTimeoutMS > 10000 {
+		return ServerConfig{}, fmt.Errorf("%s: critical_persistence_timeout_ms deve ficar entre 100 e 10000", path)
+	}
+	if cfg.ChannelID == 0 || cfg.ChannelID > 255 {
+		return ServerConfig{}, fmt.Errorf("%s: channel_id deve ficar entre 1 e 255", path)
 	}
 	if cfg.DebugAddress != "" {
 		if err := ValidateDebugAddress(cfg.DebugAddress); err != nil {

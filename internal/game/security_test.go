@@ -244,7 +244,7 @@ func TestMovementRejectsTeleportAndBlockedRoute(t *testing.T) {
 	}
 }
 
-func TestMovementBudgetRejectsRapidValidSegments(t *testing.T) {
+func TestMovementAdvancesOnlyAsAuthoritativeTimePasses(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	clock := newFakeClock(time.Unix(100, 0))
 	w.clock = clock
@@ -255,24 +255,123 @@ func TestMovementBudgetRejectsRapidValidSegments(t *testing.T) {
 	binary.LittleEndian.PutUint16(first[24:26], p.X+8)
 	binary.LittleEndian.PutUint16(first[26:28], p.Y)
 	w.onMove(p.Session, first)
-	if p.X != 2108 {
-		t.Fatalf("primeiro segmento legitimo recusado: x=%d", p.X)
+	if p.X != 2100 || !p.MovePublished {
+		t.Fatalf("destino futuro virou autoridade: x=%d published=%v", p.X, p.MovePublished)
 	}
 
-	second := make([]byte, 52)
-	binary.LittleEndian.PutUint16(second[12:14], p.X)
-	binary.LittleEndian.PutUint16(second[14:16], p.Y)
-	binary.LittleEndian.PutUint16(second[24:26], p.X+1)
-	binary.LittleEndian.PutUint16(second[26:28], p.Y)
-	w.onMove(p.Session, second)
-	if p.X != 2108 {
-		t.Fatalf("segmento sem tempo disponivel foi aceito: x=%d", p.X)
+	clock.Advance(80 * time.Millisecond)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2100 {
+		t.Fatalf("passo venceu antes do intervalo server-side: x=%d", p.X)
 	}
 
-	clock.Advance(100 * time.Millisecond) // runspeed 4: repoe 1,2 tile.
-	w.onMove(p.Session, second)
-	if p.X != 2109 {
-		t.Fatalf("orcamento nao recuperou com o tempo: x=%d", p.X)
+	clock.Advance(20 * time.Millisecond) // runspeed 4: 12 tiles/s.
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2101 {
+		t.Fatalf("primeiro passo nao venceu no tempo esperado: x=%d", p.X)
+	}
+
+	clock.Advance(600 * time.Millisecond)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2108 || p.MovePublished {
+		t.Fatalf("rota nao terminou no destino: x=%d published=%v", p.X, p.MovePublished)
+	}
+}
+
+func TestMovementCollisionUsesPlayersGameplaySpace(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
+	w.playerInstance = make(map[uint16]string)
+	w.itemInstances = map[string]*ItemInstance{
+		"private-a": {RuntimeID: "private-a", MemberIDs: []uint16{p.ID}},
+	}
+	w.playerInstance[p.ID] = "private-a"
+
+	// Um mob publico na mesma coordenada fisica nao existe dentro da sala
+	// privada e portanto nao pode bloquear o passo do jogador.
+	public := &Mob{ID: 1000, X: p.X + 1, Y: p.Y, HP: 100,
+		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+	w.appendMobInstance(public)
+	w.registerMobSpatial(public)
+
+	move := make([]byte, 52)
+	binary.LittleEndian.PutUint16(move[12:14], p.X)
+	binary.LittleEndian.PutUint16(move[14:16], p.Y)
+	binary.LittleEndian.PutUint16(move[24:26], p.X+1)
+	binary.LittleEndian.PutUint16(move[26:28], p.Y)
+	move[28] = '6'
+	w.onMove(p.Session, move)
+	clock.Advance(100 * time.Millisecond)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2101 {
+		t.Fatalf("mob publico bloqueou runtime privado: x=%d", p.X)
+	}
+
+	// Uma entidade da propria sala continua sendo colisao autoritativa.
+	private := &Mob{ID: 1001, X: p.X + 1, Y: p.Y, HP: 100, InstanceID: "private-a",
+		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+	w.appendMobInstance(private)
+	w.registerMobSpatial(private)
+	binary.LittleEndian.PutUint16(move[12:14], p.X)
+	binary.LittleEndian.PutUint16(move[24:26], p.X+1)
+	w.onMove(p.Session, move)
+	clock.Advance(100 * time.Millisecond)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2101 {
+		t.Fatalf("jogador atravessou entidade do proprio runtime: x=%d", p.X)
+	}
+}
+
+func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
+	p.Char.Extended.Attack = 10_000
+	p.Char.Extended.Accuracy = 10_000
+	applyExtendedScore(p.Char)
+
+	targetX := p.X + 12
+	move := make([]byte, 52)
+	binary.LittleEndian.PutUint16(move[24:26], targetX)
+	binary.LittleEndian.PutUint16(move[26:28], p.Y)
+	w.onMove(p.Session, move)
+
+	hostile := &Mob{ID: 1000, X: targetX, Y: p.Y, HP: 100,
+		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+	w.appendMobInstance(hostile)
+	w.registerMobSpatial(hostile)
+	p.show(hostile.ID)
+	w.onAttack(p.Session, physicalAttackPacket(1000, hostile.ID, hostile.X, hostile.Y))
+	if hostile.HP != 100 {
+		t.Fatal("ataque usou o destino futuro como origem")
+	}
+
+	merchant := &Mob{ID: 1100, X: targetX, Y: p.Y,
+		Def: &model.NPCDef{Name: "Merchant", Extended: testExtended(model.ExtendedScore{Merchant: 1})}}
+	w.appendMobInstance(merchant)
+	w.registerMobSpatial(merchant)
+	p.show(merchant.ID)
+	useNPC := make([]byte, 20)
+	binary.LittleEndian.PutUint16(useNPC[12:14], merchant.ID)
+	w.onUseNPC(p.Session, useNPC)
+	if p.ShopNPC != 0 {
+		t.Fatal("NPC no destino futuro foi aberto")
+	}
+
+	ground := &GroundItem{ID: 10001, X: targetX, Y: p.Y, Item: model.Item{Index: 412},
+		Expire: clock.Now().Add(time.Minute)}
+	w.items[412] = model.ItemDef{Index: 412}
+	w.registerGroundItem(ground)
+	get := make([]byte, 28)
+	binary.LittleEndian.PutUint32(get[12:16], placeInv)
+	binary.LittleEndian.PutUint16(get[20:22], ground.ID)
+	w.onGetItem(p.Session, get)
+	if w.groundItems[ground.ID] == nil || p.Char.Inv[0].Index != 0 {
+		t.Fatal("item no destino futuro foi coletado")
+	}
+	if p.X != 2100 {
+		t.Fatalf("alguma interacao promoveu o destino futuro: x=%d", p.X)
 	}
 }
 
@@ -335,20 +434,17 @@ func TestStopPacketsCannotRepositionPlayer(t *testing.T) {
 	}
 }
 
-func TestStopMayReportAValidatedIntermediateRoutePosition(t *testing.T) {
+func TestStopCannotClaimFutureValidatedRoutePosition(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.MovePublished = true
 	p.MovePublishedStartX, p.MovePublishedStartY = 2100, 2100
 	p.MovePublishedTargetX, p.MovePublishedTargetY = 2110, 2100
 	copy(p.MovePublishedRoute[:], []byte("6666666666"))
-	// O estado autoritativo guarda o destino planejado, embora o avatar ainda
-	// possa parar legitimamente em qualquer passo validado da rota.
-	p.X, p.Y = 2110, 2100
-	if !w.validReportedStop(p, 2105, 2100) {
-		t.Fatal("parada intermediaria pertencente a Route[24] foi recusada")
+	if w.validReportedStop(p, 2105, 2100) {
+		t.Fatal("Stop promoveu uma coordenada futura apenas por pertencer a Route[24]")
 	}
-	if w.validReportedStop(p, 2105, 2101) {
-		t.Fatal("parada fora da Route[24] foi aceita")
+	if !w.validReportedStop(p, 2100, 2100) {
+		t.Fatal("Stop na coordenada autoritativa atual foi recusado")
 	}
 }
 

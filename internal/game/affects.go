@@ -387,7 +387,9 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 			w.recalcPlayer(target.Char)
 		}
 		if skill.Index == 75 { // Invisibilidade remove o jogador da lista de aggro.
-			for _, m := range w.mobs {
+			// Somente mobs acordados podem possuir alvo. Evite um scan global de
+			// milhares de NPCs para uma skill disparada pelo jogador.
+			for _, m := range w.activeMobs {
 				if m.TargetID == target.ID {
 					m.TargetID = 0
 				}

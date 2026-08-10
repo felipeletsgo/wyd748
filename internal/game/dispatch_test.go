@@ -75,7 +75,6 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		{wire.OpCombineAylin, combinePacketSize},
 		{wire.OpCombineEhre, combinePacketSize},
 		{wire.OpCombineOdin, combinePacketSize},
-		{0xFFFF, wire.HeaderSize},
 	}
 	for _, tc := range tests {
 		tc := tc
@@ -89,5 +88,17 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 			w, p, _ := handlerTestWorld(t)
 			w.handle(command{s: p.Session, pkt: inboundPacket(tc.opcode, tc.size)})
 		})
+	}
+}
+
+func TestUnknownWorldOpcodeRejectedBeforeDispatch(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.handle(command{s: p.Session, pkt: inboundPacket(0xFFFF, wire.HeaderSize)})
+	state := w.security[p.Session]
+	if state == nil || state.violations != 1 {
+		t.Fatalf("opcode desconhecido nao foi registrado na borda: %#v", state)
+	}
+	if got := commandLabel(command{pkt: inboundPacket(0xFFFF, wire.HeaderSize)}); got != "unknown" {
+		t.Fatalf("label de opcode desconhecido=%q", got)
 	}
 }

@@ -140,7 +140,7 @@ func (w *World) spawnBoss(state *bossSpawnState) error {
 	}
 	// Segments[0] e a "casa" usada pelo leash da IA comum.
 	mob.Segments[0].X, mob.Segments[0].Y = state.config.Spawn.X, state.config.Spawn.Y
-	w.mobs = append(w.mobs, mob)
+	w.appendMobInstance(mob)
 	w.registerMobSpatial(mob)
 	if err := w.RegisterBoss(mob.ID, state.profile); err != nil {
 		w.removeMobInstance(mob)
@@ -187,7 +187,7 @@ func (w *World) spawnBossAreaReward(m *Mob, reward model.BossAreaReward) {
 		return
 	}
 	ocupada := make(map[uint32]bool, reward.Amount)
-	for _, g := range w.groundItems {
+	for _, g := range w.nearbyGroundItems(m.X, m.Y, bossAnnounceRadius) {
 		ocupada[uint32(g.X)<<16|uint32(g.Y)] = true
 	}
 	postos := 0
@@ -231,7 +231,7 @@ func (w *World) spawnGroundReward(x, y uint16, index uint16) bool {
 	}
 	g := &GroundItem{ID: id, Item: item, X: x, Y: y,
 		Expire: w.now().Add(groundRewardLifetime)}
-	w.groundItems[id] = g
+	w.registerGroundItem(g)
 	w.publishItemSpawn(g)
 	return true
 }

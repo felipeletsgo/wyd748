@@ -1,26 +1,52 @@
 package accountapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"log"
 	"net/http"
+	"net/netip"
 	"strings"
+	"time"
 
 	"wydgo/internal/account"
 )
 
 type Handler struct {
-	store     account.RegistrationStore
-	limiter   *rateLimiter
-	hashSlots chan struct{}
+	store          account.RegistrationStore
+	limiter        *rateLimiter
+	hashSlots      chan struct{}
+	trustedProxies []netip.Prefix
+	ready          func(context.Context) error
 }
 
 func New(store account.RegistrationStore) http.Handler {
-	h := &Handler{store: store, limiter: newRateLimiter(10), hashSlots: make(chan struct{}, 4)}
+	return NewWithConfig(store, Config{})
+}
+
+type Config struct {
+	RequestsPerMinute int
+	HashConcurrency   int
+	TrustedProxies    []netip.Prefix
+	Ready             func(context.Context) error
+}
+
+func NewWithConfig(store account.RegistrationStore, config Config) http.Handler {
+	if config.RequestsPerMinute <= 0 {
+		config.RequestsPerMinute = 10
+	}
+	if config.HashConcurrency <= 0 {
+		config.HashConcurrency = 4
+	}
+	h := &Handler{store: store, limiter: newRateLimiter(config.RequestsPerMinute),
+		hashSlots:      make(chan struct{}, config.HashConcurrency),
+		trustedProxies: append([]netip.Prefix(nil), config.TrustedProxies...), ready: config.Ready}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", h.health)
+	mux.HandleFunc("GET /healthz", h.health)
+	mux.HandleFunc("GET /readyz", h.readiness)
 	mux.HandleFunc("POST /v1/accounts", h.createAccount)
 	return securityHeaders(mux)
 }
@@ -29,8 +55,20 @@ func (h *Handler) health(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+func (h *Handler) readiness(w http.ResponseWriter, r *http.Request) {
+	if h.ready != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 500*time.Millisecond)
+		defer cancel()
+		if err := h.ready(ctx); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "not ready"})
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
+}
+
 func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
-	if !h.limiter.Allow(clientIP(r)) {
+	if !h.limiter.Allow(clientIP(r, h.trustedProxies)) {
 		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "muitas tentativas; aguarde um minuto"})
 		return
 	}

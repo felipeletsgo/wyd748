@@ -80,7 +80,7 @@ func (w *World) spawnHellGateWave(inst *ItemInstance, spawns []model.VolatileIns
 			}
 			mob := &Mob{ID: mobID, Def: def, X: x, Y: y,
 				HP: def.Extended.MaxHP, GenerIndex: -1, InstanceID: inst.RuntimeID}
-			w.mobs = append(w.mobs, mob)
+			w.appendMobInstance(mob)
 			w.mobsByID[mob.ID] = mob
 			reserved[uint32(x)<<16|uint32(y)] = struct{}{}
 			created = append(created, mob)
@@ -266,7 +266,7 @@ func (w *World) spawnHellGateFinal(inst *ItemInstance, now time.Time) bool {
 			}
 			mob := &Mob{ID: id, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
 				GenerIndex: -1, InstanceID: inst.RuntimeID}
-			w.mobs = append(w.mobs, mob)
+			w.appendMobInstance(mob)
 			w.mobsByID[id] = mob
 			if inst.NPCIDs == nil {
 				inst.NPCIDs = make(map[uint16]struct{})

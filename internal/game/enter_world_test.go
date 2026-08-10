@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/binary"
+	"errors"
 	"testing"
 	"time"
 
@@ -17,6 +18,18 @@ func enterWorldPacket(slot int) []byte {
 	binary.LittleEndian.PutUint16(pkt[4:6], wire.OpCharacterLogin)
 	binary.LittleEndian.PutUint32(pkt[12:16], uint32(slot))
 	return pkt
+}
+
+func TestEnterWorldFailsClosedWhenCharStateLoadFails(t *testing.T) {
+	w, p, s := newEnterWorldPlayer(t, 742, 1000)
+	w.store = &charStateMemoryStore{loadErr: errors.New("postgres unavailable")}
+	w.onEnterWorld(s, enterWorldPacket(0))
+	if p.InWorld || p.Char != nil || p.CharSlot != -1 || p.ID != 0 {
+		t.Fatalf("personagem entrou sem estado autoritativo: %+v", p)
+	}
+	if s.QueuedPacketsForTest() != 1 {
+		t.Fatalf("falha deveria enviar somente o aviso, pacotes=%d", s.QueuedPacketsForTest())
+	}
 }
 
 func newEnterWorldPlayer(t *testing.T, curHP, maxHP uint32) (*World, *Player, *net.Session) {

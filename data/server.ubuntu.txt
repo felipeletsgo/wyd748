@@ -3,6 +3,23 @@
 # O IP publico fica no serverlist.bin do client. O processo do servidor deve
 # escutar em todas as interfaces da VPS.
 listen_address=0.0.0.0:8281
+session_queue_capacity=256
+world_command_queue_capacity=1024
+auth_hash_concurrency=4
+max_connections=1200
+max_connections_per_ip=64
+handshake_timeout_seconds=5
+session_idle_timeout_seconds=600
+frame_read_timeout_seconds=10
+inbound_packets_per_second=256
+inbound_bytes_per_second=524288
+auth_attempts_per_minute_ip=30
+auth_attempts_per_minute_account=10
+chat_local_per_10_seconds=8
+chat_whisper_per_10_seconds=8
+chat_global_per_10_seconds=2
+critical_persistence_timeout_ms=500
+channel_id=1
 
 # Log do gerador: quiet, summary ou verbose
 npcgener_log=summary

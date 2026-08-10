@@ -22,6 +22,9 @@ const (
 	// abaixo disso; a folga absorve rajadas de movimento e carregamento.
 	maxInboundPacketsPerSecond = 256
 	maxInboundBytesPerSecond   = 512 * 1024
+	defaultHandshakeTimeout    = 5 * time.Second
+	defaultSessionIdleTimeout  = 10 * time.Minute
+	defaultFrameReadTimeout    = 10 * time.Second
 )
 
 var (
@@ -37,11 +40,16 @@ func tick() uint32 {
 
 // Session representa 1 conexao TCP com um client.
 type Session struct {
-	ID       int64
-	conn     stdnet.Conn
-	out      chan []byte
-	done     chan struct{}
-	doneOnce sync.Once
+	ID                      int64
+	conn                    stdnet.Conn
+	out                     chan []byte
+	done                    chan struct{}
+	doneOnce                sync.Once
+	handshakeTimeout        time.Duration
+	idleTimeout             time.Duration
+	frameReadTimeout        time.Duration
+	maxInboundPacketsPerSec int
+	maxInboundBytesPerSec   int
 }
 
 // IsClosed informa se Serve concluiu o ciclo de I/O. Sessões de teste sem
@@ -109,7 +117,24 @@ func (s *Session) QueuedPacketsForTest() int {
 }
 
 // RemoteAddr expoe o endereco remoto (log).
-func (s *Session) RemoteAddr() string { return s.conn.RemoteAddr().String() }
+func (s *Session) RemoteAddr() string {
+	if s == nil || s.conn == nil || s.conn.RemoteAddr() == nil {
+		return ""
+	}
+	return s.conn.RemoteAddr().String()
+}
+
+// RemoteIP devolve somente o IP remoto, sem porta. Limites de conexao e
+// autenticacao nunca devem usar a string host:port, pois a porta muda em toda
+// tentativa e tornaria o limitador ineficaz.
+func (s *Session) RemoteIP() string {
+	addr := s.RemoteAddr()
+	host, _, err := stdnet.SplitHostPort(addr)
+	if err != nil {
+		return addr
+	}
+	return host
+}
 
 // Close encerra a conexao. Usado pelo game depois de enviar uma rejeicao de
 // autenticacao; o pequeno atraso fica no chamador para a fila conseguir sair.
@@ -146,6 +171,14 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 	defer s.closeDone()
 
 	r := bufio.NewReader(s.conn)
+	handshakeTimeout := s.handshakeTimeout
+	if handshakeTimeout <= 0 {
+		handshakeTimeout = defaultHandshakeTimeout
+	}
+	if err := s.conn.SetReadDeadline(time.Now().Add(handshakeTimeout)); err != nil {
+		log.Printf("[#%d] configurar prazo do InitCode: %v", s.ID, err)
+		return
+	}
 
 	// handshake: 4 bytes de InitCode antes de qualquer pacote.
 	var ic [4]byte
@@ -161,10 +194,52 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 
 	go s.writeLoop()
 
+	idleTimeout := s.idleTimeout
+	if idleTimeout <= 0 {
+		idleTimeout = defaultSessionIdleTimeout
+	}
+	packetLimit := s.maxInboundPacketsPerSec
+	if packetLimit <= 0 {
+		packetLimit = maxInboundPacketsPerSecond
+	}
+	byteLimit := s.maxInboundBytesPerSec
+	if byteLimit <= 0 {
+		byteLimit = maxInboundBytesPerSecond
+	}
 	windowStarted := time.Now()
 	packetCount, byteCount := 0, 0
 	for {
-		buf, checksumOK, err := wire.ReadPacket(r)
+		// O primeiro deadline aceita o heartbeat espaçado do client 7.48.
+		if err := s.conn.SetReadDeadline(time.Now().Add(idleTimeout)); err != nil {
+			log.Printf("[#%d] configurar prazo de leitura: %v", s.ID, err)
+			return
+		}
+		var sizeBytes [2]byte
+		if _, err := io.ReadFull(r, sizeBytes[:]); err != nil {
+			if !errors.Is(err, io.EOF) {
+				log.Printf("[#%d] read: %v", s.ID, err)
+			}
+			log.Printf("[#%d] desconectado", s.ID)
+			return
+		}
+		size := int(binary.LittleEndian.Uint16(sizeBytes[:]))
+		if size < wire.HeaderSize || size > wire.MaxPacketSize {
+			log.Printf("[#%d] read: %v", s.ID, wire.ErrBadSize)
+			return
+		}
+		frameTimeout := s.frameReadTimeout
+		if frameTimeout <= 0 {
+			frameTimeout = defaultFrameReadTimeout
+		}
+		if err := s.conn.SetReadDeadline(time.Now().Add(frameTimeout)); err != nil {
+			// O peer pode fechar logo depois de entregar o frame inteiro (comum em
+			// net.Pipe e shutdown). Ainda tente drenar os bytes ja recebidos; o
+			// ReadFull seguinte encerra normalmente se o corpo estiver incompleto.
+			log.Printf("[#%d] configurar prazo do frame: %v", s.ID, err)
+		}
+		buf := make([]byte, size)
+		copy(buf[:2], sizeBytes[:])
+		_, err := io.ReadFull(r, buf[2:])
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
 				log.Printf("[#%d] read: %v", s.ID, err)
@@ -172,6 +247,7 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 			log.Printf("[#%d] desconectado", s.ID)
 			return
 		}
+		checksumOK := wire.Decrypt(buf)
 		if !checksumOK {
 			log.Printf("[#%d] checksum invalido; conexao encerrada", s.ID)
 			return
@@ -182,7 +258,7 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 		}
 		packetCount++
 		byteCount += len(buf)
-		if packetCount > maxInboundPacketsPerSecond || byteCount > maxInboundBytesPerSecond {
+		if packetCount > packetLimit || byteCount > byteLimit {
 			log.Printf("[#%d] flood de entrada: pacotes=%d bytes=%d/s", s.ID, packetCount, byteCount)
 			return
 		}

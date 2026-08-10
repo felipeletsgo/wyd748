@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"testing"
+	"time"
 
 	"wydgo/internal/model"
 )
@@ -113,6 +114,7 @@ func TestShopAndCargoRejectInvalidOperations(t *testing.T) {
 	w.mobs = append(w.mobs, shop, cargo)
 	p.show(shop.ID)
 	p.show(cargo.ID)
+	p.CargoNPC = cargo.ID
 
 	p.ShopNPC = shop.ID
 	p.Char.Gold = 999
@@ -193,30 +195,35 @@ func TestDropAndPickupValidation(t *testing.T) {
 
 func TestMovementStopAndChangeCityHandlers(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
 
 	move := make([]byte, 52)
 	binary.LittleEndian.PutUint16(move[24:26], 2105)
 	binary.LittleEndian.PutUint16(move[26:28], 2106)
 	w.onMove(p.Session, move)
+	if p.X != 2100 || p.Y != 2100 || !p.MovePublished {
+		t.Fatalf("destino futuro aplicado imediatamente: player=(%d,%d)", p.X, p.Y)
+	}
+	clock.Advance(time.Second)
+	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2105 || p.Y != 2106 || p.Char.X != 2105 || p.Char.Y != 2106 {
-		t.Fatalf("movimento nao aplicado: player=(%d,%d) char=(%d,%d)", p.X, p.Y, p.Char.X, p.Char.Y)
+		t.Fatalf("movimento nao chegou: player=(%d,%d) char=(%d,%d)", p.X, p.Y, p.Char.X, p.Char.Y)
 	}
 
 	stop := make([]byte, 52)
-	binary.LittleEndian.PutUint16(stop[12:14], 2107)
-	binary.LittleEndian.PutUint16(stop[14:16], 2108)
-	p.MovePublished = true
+	binary.LittleEndian.PutUint16(stop[12:14], p.X)
+	binary.LittleEndian.PutUint16(stop[14:16], p.Y)
 	w.onActionStop(p.Session, stop)
-	if p.X != 2107 || p.Y != 2108 || p.MovePublished {
+	if p.X != 2105 || p.Y != 2106 || p.MovePublished {
 		t.Fatalf("action stop incorreto: (%d,%d) published=%v", p.X, p.Y, p.MovePublished)
 	}
 
 	moveStop := make([]byte, 36)
-	binary.LittleEndian.PutUint32(moveStop[20:24], 2109)
-	binary.LittleEndian.PutUint32(moveStop[24:28], 2110)
-	p.MovePublished = true
+	binary.LittleEndian.PutUint32(moveStop[20:24], uint32(p.X))
+	binary.LittleEndian.PutUint32(moveStop[24:28], uint32(p.Y))
 	w.onMoveStop(p.Session, moveStop)
-	if p.X != 2109 || p.Y != 2110 || p.MovePublished {
+	if p.X != 2105 || p.Y != 2106 || p.MovePublished {
 		t.Fatalf("move stop incorreto: (%d,%d) published=%v", p.X, p.Y, p.MovePublished)
 	}
 

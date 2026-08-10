@@ -113,22 +113,21 @@ func TestPlayerMovePublishesBeforeNewObserverEntersView(t *testing.T) {
 	w.updatePlayerSpatial(existing)
 	w.updatePlayerSpatial(entering)
 
-	// O destino autoritativo muda antes do indice espacial, como em onMove.
-	mover.X, mover.Y = 124, 100
-	mover.Char.X, mover.Char.Y = mover.X, mover.Y
-	w.publishPlayerMove(mover, 100, 100, []byte("666666666666666666666666"))
-	w.refreshPlayerVisibility(mover)
+	// A rota visual e publicada imediatamente, mas o destino ainda nao e a
+	// posicao autoritativa usada pelo indice espacial.
+	w.publishPlayerMove(mover, 100, 100, 124, 100, []byte("666666666666666666666666"))
 
 	if got := existing.Session.QueuedPacketsForTest(); got != 1 {
 		t.Fatalf("observador existente recebeu %d pacotes, esperado somente o movimento", got)
 	}
+	if got := entering.Session.QueuedPacketsForTest(); got != 0 {
+		t.Fatalf("observador do destino recebeu %d pacotes antes da chegada autoritativa", got)
+	}
+	mover.X, mover.Y = 124, 100
+	mover.Char.X, mover.Char.Y = mover.X, mover.Y
+	w.refreshPlayerVisibility(mover)
 	if got := entering.Session.QueuedPacketsForTest(); got != 3 {
 		t.Fatalf("novo observador recebeu %d pacotes, esperado CreateMob+HP+Stop sem rota retroativa", got)
-	}
-	// Repetir o mesmo destino nao deve reiniciar a interpolacao remota.
-	w.publishPlayerMove(mover, 110, 100, []byte("66666666666666"))
-	if got := existing.Session.QueuedPacketsForTest(); got != 1 {
-		t.Fatalf("destino repetido publicou novo movimento: %d pacotes", got)
 	}
 }
 

@@ -51,9 +51,10 @@ const postgresSchemaAdvisoryLock int64 = 0x575944474F
 // ambiente em producao para a senha nao parar no repositorio nem na linha de
 // comando do processo.
 type PostgresConfig struct {
-	URL           string
-	MaxConns      int32
-	GuildsTxtPath string
+	URL              string
+	MaxConns         int32
+	GuildsTxtPath    string
+	OperationTimeout time.Duration
 }
 
 type postgresItem struct {
@@ -103,19 +104,29 @@ type postgresWriteJob struct {
 // JSONB, mas nomes e instancias de item tambem sao gravados em tabelas com
 // constraints. O JSONB nunca e confirmado sem os indices anti-dupe.
 type PostgresStore struct {
-	pool           *pgxpool.Pool
-	guildsTxtPath  string
-	writeQueue     chan postgresWriteJob
-	mu             sync.Mutex
-	overflowMu     sync.Mutex
-	overflowAcc    map[string]postgresWriteJob
-	overflowState  map[string]postgresWriteJob
-	overflowRuns   map[string]postgresWriteJob
-	coalesced      atomic.Uint64
-	guildExportGen atomic.Uint64
-	closeOnce      sync.Once
-	closed         bool
-	readOnly       bool
+	pool             *pgxpool.Pool
+	guildsTxtPath    string
+	writeQueue       chan postgresWriteJob
+	mu               sync.Mutex
+	overflowMu       sync.Mutex
+	overflowAcc      map[string]postgresWriteJob
+	overflowState    map[string]postgresWriteJob
+	overflowRuns     map[string]postgresWriteJob
+	coalesced        atomic.Uint64
+	guildExportGen   atomic.Uint64
+	closeOnce        sync.Once
+	closed           bool
+	readOnly         bool
+	operationTimeout time.Duration
+}
+
+// Ping expoe somente a verificacao leve necessaria ao readiness HTTP. O caller
+// controla integralmente deadline/cancelamento pelo context recebido.
+func (s *PostgresStore) Ping(ctx context.Context) error {
+	if s == nil || s.pool == nil {
+		return fmt.Errorf("postgres store fechado")
+	}
+	return s.pool.Ping(ctx)
 }
 
 func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, error) {
@@ -142,7 +153,7 @@ func NewPostgresReadOnlyStore(ctx context.Context, cfg PostgresConfig) (*Postgre
 	if err != nil {
 		return nil, err
 	}
-	return &PostgresStore{pool: pool, readOnly: true}, nil
+	return &PostgresStore{pool: pool, readOnly: true, operationTimeout: operationTimeout(cfg)}, nil
 }
 
 func openPostgresPool(ctx context.Context, cfg PostgresConfig) (*pgxpool.Pool, error) {
@@ -174,13 +185,21 @@ func openPostgresPool(ctx context.Context, cfg PostgresConfig) (*pgxpool.Pool, e
 
 func newPostgresStore(pool *pgxpool.Pool, cfg PostgresConfig) *PostgresStore {
 	return &PostgresStore{
-		pool:          pool,
-		guildsTxtPath: cfg.GuildsTxtPath,
-		writeQueue:    make(chan postgresWriteJob, postgresWriteQueueSize),
-		overflowAcc:   make(map[string]postgresWriteJob),
-		overflowState: make(map[string]postgresWriteJob),
-		overflowRuns:  make(map[string]postgresWriteJob),
+		pool:             pool,
+		guildsTxtPath:    cfg.GuildsTxtPath,
+		writeQueue:       make(chan postgresWriteJob, postgresWriteQueueSize),
+		overflowAcc:      make(map[string]postgresWriteJob),
+		overflowState:    make(map[string]postgresWriteJob),
+		overflowRuns:     make(map[string]postgresWriteJob),
+		operationTimeout: operationTimeout(cfg),
 	}
+}
+
+func operationTimeout(cfg PostgresConfig) time.Duration {
+	if cfg.OperationTimeout > 0 {
+		return cfg.OperationTimeout
+	}
+	return postgresOperationTimeout
 }
 
 func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
@@ -634,17 +653,24 @@ func isUniqueViolation(err error) bool {
 	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
-func postgresContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), postgresOperationTimeout)
+func (s *PostgresStore) postgresContext() (context.Context, context.CancelFunc) {
+	timeout := s.operationTimeout
+	if timeout <= 0 {
+		timeout = postgresOperationTimeout
+	}
+	return context.WithTimeout(context.Background(), timeout)
 }
 
 func (s *PostgresStore) withSerializableTx(run func(context.Context, pgx.Tx) error) error {
+	// Um unico deadline cobre begin, callback, commit e todos os retries. Antes,
+	// cada tentativa recebia mais dez segundos e uma operacao critica podia
+	// congelar a goroutine unica do World por dezenas de segundos.
+	ctx, cancel := s.postgresContext()
+	defer cancel()
 	var last error
 	for attempt := 0; attempt < 3; attempt++ {
-		ctx, cancel := postgresContext()
 		tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 		if err != nil {
-			cancel()
 			return err
 		}
 		err = run(ctx, tx)
@@ -653,12 +679,22 @@ func (s *PostgresStore) withSerializableTx(run func(context.Context, pgx.Tx) err
 		} else {
 			_ = tx.Rollback(ctx)
 		}
-		cancel()
 		if !isRetryablePostgres(err) {
 			return err
 		}
 		last = err
-		time.Sleep(time.Duration(attempt+1) * 10 * time.Millisecond)
+		delay := time.NewTimer(time.Duration(attempt+1) * 10 * time.Millisecond)
+		select {
+		case <-delay.C:
+		case <-ctx.Done():
+			if !delay.Stop() {
+				select {
+				case <-delay.C:
+				default:
+				}
+			}
+			return fmt.Errorf("store: deadline total da transacao PostgreSQL: %w", ctx.Err())
+		}
 	}
 	return fmt.Errorf("store: transacao PostgreSQL concorrente excedeu retries: %w", last)
 }
@@ -893,7 +929,7 @@ func currentUID(uid string) pgtype.UUID {
 }
 
 func (s *PostgresStore) LoadAccount(name string) (*model.Account, error) {
-	ctx, cancel := postgresContext()
+	ctx, cancel := s.postgresContext()
 	defer cancel()
 	var payload []byte
 	err := s.pool.QueryRow(ctx,
@@ -975,7 +1011,7 @@ func (s *PostgresStore) CreateAccount(acc *model.Account) error {
 }
 
 func (s *PostgresStore) AccountNameExists(name string) (bool, error) {
-	ctx, cancel := postgresContext()
+	ctx, cancel := s.postgresContext()
 	defer cancel()
 	var exists bool
 	err := s.pool.QueryRow(ctx,
@@ -985,7 +1021,7 @@ func (s *PostgresStore) AccountNameExists(name string) (bool, error) {
 }
 
 func (s *PostgresStore) CharacterNameExists(name string) (bool, error) {
-	ctx, cancel := postgresContext()
+	ctx, cancel := s.postgresContext()
 	defer cancel()
 	var exists bool
 	err := s.pool.QueryRow(ctx,
@@ -995,7 +1031,7 @@ func (s *PostgresStore) CharacterNameExists(name string) (bool, error) {
 }
 
 func (s *PostgresStore) CharacterNames() (map[string]struct{}, error) {
-	ctx, cancel := postgresContext()
+	ctx, cancel := s.postgresContext()
 	defer cancel()
 	rows, err := s.pool.Query(ctx, `SELECT name_key FROM character_names`)
 	if err != nil {
@@ -1014,7 +1050,7 @@ func (s *PostgresStore) CharacterNames() (map[string]struct{}, error) {
 }
 
 func (s *PostgresStore) LoadGuilds() (*model.GuildRegistry, error) {
-	ctx, cancel := postgresContext()
+	ctx, cancel := s.postgresContext()
 	defer cancel()
 	var payload []byte
 	err := s.pool.QueryRow(ctx,
@@ -1041,7 +1077,7 @@ func (s *PostgresStore) LoadGuilds() (*model.GuildRegistry, error) {
 }
 
 func (s *PostgresStore) LoadInstanceState() (*model.InstanceStateSnapshot, error) {
-	ctx, cancel := postgresContext()
+	ctx, cancel := s.postgresContext()
 	defer cancel()
 	var payload []byte
 	err := s.pool.QueryRow(ctx,
@@ -1264,7 +1300,7 @@ func charStatePayload(uid string, state *model.CharState) ([]byte, error) {
 }
 
 func (s *PostgresStore) saveCharStatePayload(uid string, payload []byte) error {
-	ctx, cancel := postgresContext()
+	ctx, cancel := s.postgresContext()
 	defer cancel()
 	key, err := postgresUUID(uid)
 	if err != nil {
@@ -1338,7 +1374,7 @@ func (s *PostgresStore) SaveCharStateAsync(uid string, state *model.CharState) e
 }
 
 func (s *PostgresStore) LoadCharState(uid string) (*model.CharState, error) {
-	ctx, cancel := postgresContext()
+	ctx, cancel := s.postgresContext()
 	defer cancel()
 	key, err := postgresUUID(uid)
 	if err != nil {

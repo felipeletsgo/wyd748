@@ -122,7 +122,7 @@ func (w *World) replaceContractSummon(owner *Player, t *model.VolatileSummon) bo
 	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: t.HP, GenerIndex: -1,
 		InstanceID: w.playerRuntimeInstanceID(owner.ID),
 		SummonerID: owner.ID, SummonKind: summonKindContract, SummonRange: t.AttackRange}
-	w.mobs = append(w.mobs, m)
+	w.appendMobInstance(m)
 	w.publishMobSpawn(m)
 	return true
 }
@@ -189,7 +189,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
 			InstanceID: space,
 			GenerIndex: -1, LeaderID: 0, SummonerID: owner.ID, SummonKind: summonKindBM, SummonRange: mobAttackRange}
-		w.mobs = append(w.mobs, m)
+		w.appendMobInstance(m)
 		w.publishMobSpawn(m)
 		current++
 		created++
