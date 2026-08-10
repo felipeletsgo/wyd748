@@ -624,9 +624,10 @@ por IP público (`max_authenticated_clients_per_ip`). O limite de sockets
 pré-autenticação permanece separado: assim quatro handshakes incompletos não
 ocupam as vagas de jogo. Logout, disconnect e socket morto liberam a vaga. A
 configuração de load test aumenta explicitamente esse limite para os bots
-locais. Tanto o listener pré-auth quanto a admissão pós-auth agrupam IPv6 pelo
-prefixo `/64`, impedindo que endereços temporários da mesma máquina/rede
-contornem os dois limites.
+locais. O listener pré-auth, o limitador de tentativas antes do PBKDF2 e a
+admissão pós-auth usam a mesma identidade: IPv4 normalizado ou prefixo IPv6
+`/64`. Isso impede que endereços temporários da mesma máquina/rede ou aliases
+IPv4-mapped contornem qualquer uma das três fronteiras.
 
 Faixas de VPS, VPN, proxy e datacenter podem ser classificadas localmente em
 `data/network_admission.json`. A regra mais específica vence: `deny` bloqueia

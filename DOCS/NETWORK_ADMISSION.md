@@ -5,14 +5,17 @@
 O servidor usa exclusivamente o endereço remoto observado no socket TCP. Ele
 não confia em IP, MAC, HWID ou nome de máquina enviados pelo client.
 
-A proteção possui duas fronteiras independentes:
+A proteção possui três fronteiras independentes:
 
 1. `max_connections_per_ip` limita sockets, inclusive antes do login;
-2. `max_authenticated_clients_per_ip` limita janelas depois da senha correta.
+2. `auth_attempts_per_minute_ip` limita tentativas antes do PBKDF2;
+3. `max_authenticated_clients_per_ip` limita janelas depois da senha correta.
 
-O padrão de produção é quatro clients autenticados por IP público. Tanto a
-fronteira de sockets pré-auth quanto a de clients autenticados agrupam IPv6 por
-`/64`, para que endereços temporários da mesma rede não multipliquem o limite.
+O padrão de produção é quatro clients autenticados por IP público. As três
+fronteiras usam a mesma identidade operacional: IPv4 normalizado ou prefixo
+IPv6 `/64`. IPv4 representado como IPv4-mapped IPv6 também é normalizado para
+a mesma chave IPv4. Assim, endereços temporários e aliases não multiplicam os
+limites nem as janelas de autenticação.
 
 ## Política de VPS, VPN e datacenter
 

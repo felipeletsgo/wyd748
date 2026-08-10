@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"wydgo/internal/net"
 	"wydgo/internal/wire"
 )
 
@@ -108,6 +109,10 @@ func allowFixedWindow(states map[string]*fixedWindowRate, key string, now time.T
 }
 
 func (w *World) allowLoginAttempt(ip, account string, now time.Time) bool {
+	originKey, ok := net.OriginLimitKey(ip)
+	if !ok {
+		return false
+	}
 	if w.authRateByIP == nil {
 		w.authRateByIP = make(map[string]*fixedWindowRate)
 	}
@@ -121,7 +126,7 @@ func (w *World) allowLoginAttempt(ip, account string, now time.Time) bool {
 	if w.operational.AuthAttemptsPerMinuteAccount <= 0 {
 		w.operational.AuthAttemptsPerMinuteAccount = defaults.AuthAttemptsPerMinuteAccount
 	}
-	ipOK, _ := allowFixedWindow(w.authRateByIP, ip, now, time.Minute,
+	ipOK, _ := allowFixedWindow(w.authRateByIP, originKey, now, time.Minute,
 		w.operational.AuthAttemptsPerMinuteIP, maxAuthIPRateKeys)
 	accountOK, _ := allowFixedWindow(w.authRateByAccount, account, now, time.Minute,
 		w.operational.AuthAttemptsPerMinuteAccount, maxAuthAccountRateKeys)

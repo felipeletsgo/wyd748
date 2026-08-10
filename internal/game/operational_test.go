@@ -28,6 +28,47 @@ func TestLoginRateLimitSeparatesIPAndAccount(t *testing.T) {
 	}
 }
 
+func TestLoginRateLimitGroupsIPv6By64(t *testing.T) {
+	w := &World{operational: OperationalConfig{
+		AuthAttemptsPerMinuteIP: 1, AuthAttemptsPerMinuteAccount: 10,
+	}}
+	now := time.Unix(100, 0)
+	if !w.allowLoginAttempt("2001:db8:1:2::1", "first", now) {
+		t.Fatal("primeira tentativa IPv6 foi recusada")
+	}
+	if w.allowLoginAttempt("2001:db8:1:2::2", "second", now) {
+		t.Fatal("endereco temporario do mesmo /64 burlou o limite por origem")
+	}
+	if !w.allowLoginAttempt("2001:db8:1:3::1", "third", now) {
+		t.Fatal("outro /64 IPv6 foi bloqueado indevidamente")
+	}
+}
+
+func TestLoginRateLimitCanonicalizesIPv4MappedIPv6(t *testing.T) {
+	w := &World{operational: OperationalConfig{
+		AuthAttemptsPerMinuteIP: 1, AuthAttemptsPerMinuteAccount: 10,
+	}}
+	now := time.Unix(100, 0)
+	if !w.allowLoginAttempt("192.0.2.44", "first", now) {
+		t.Fatal("primeira tentativa IPv4 foi recusada")
+	}
+	if w.allowLoginAttempt("::ffff:192.0.2.44", "second", now) {
+		t.Fatal("IPv4-mapped IPv6 burlou o limite da mesma origem IPv4")
+	}
+}
+
+func TestLoginRateLimitRejectsInvalidOriginWithoutAllocatingState(t *testing.T) {
+	w := &World{operational: OperationalConfig{
+		AuthAttemptsPerMinuteIP: 1, AuthAttemptsPerMinuteAccount: 1,
+	}}
+	if w.allowLoginAttempt("not-an-ip", "first", time.Unix(100, 0)) {
+		t.Fatal("origem invalida foi aceita pelo limitador de login")
+	}
+	if w.authRateByIP != nil || w.authRateByAccount != nil {
+		t.Fatal("origem invalida alocou estado no limitador")
+	}
+}
+
 func TestChatRateLimitIsPerAccountAndChannel(t *testing.T) {
 	p, _ := networkedTestPlayer(1, "Speaker", 2100, 2100)
 	w := &World{operational: OperationalConfig{

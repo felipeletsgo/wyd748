@@ -1163,8 +1163,10 @@ elo Water Macro; a saída final versionada é
   reserva acontece somente depois da senha correta, é separada do limite de
   sockets pré-auth e é liberada no logout/desconexão. O 7.48 não fornece MAC
   confiável no login; bytes de hardware enviados pelo client não são usados
-  como autoridade. IPv6 é agrupado por `/64` nas duas fronteiras, inclusive no
-  listener anterior ao `InitCode`.
+  como autoridade. O listener anterior ao `InitCode`, o rate-limit de login
+  antes do PBKDF2 e a admissão pós-auth usam a mesma chave de origem: IPv4
+  normalizado ou IPv6 agrupado por `/64`; IPv4-mapped também converge para a
+  mesma chave IPv4.
 
   A camada server-side também carrega `data/network_admission.json`: regras
   CIDR `deny`, `allow` e `limit` são validadas estritamente, usam precedência do
