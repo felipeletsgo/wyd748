@@ -342,6 +342,7 @@ type World struct {
 	playersByName         map[string]*Player
 	accountSessions       map[string]*net.Session
 	authClientsByIP       map[string]map[*net.Session]struct{}
+	authClientsByNetwork  map[string]map[*net.Session]struct{}
 	authPending           map[*net.Session]bool
 	authSlots             chan struct{}
 	operational           OperationalConfig
@@ -498,6 +499,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		playersByName:          make(map[string]*Player),
 		accountSessions:        make(map[string]*net.Session),
 		authClientsByIP:        make(map[string]map[*net.Session]struct{}),
+		authClientsByNetwork:   make(map[string]map[*net.Session]struct{}),
 		authPending:            make(map[*net.Session]bool),
 		operational:            DefaultOperationalConfig(),
 		authRateByIP:           make(map[string]*fixedWindowRate),

@@ -10,9 +10,9 @@ A proteção possui duas fronteiras independentes:
 1. `max_connections_per_ip` limita sockets, inclusive antes do login;
 2. `max_authenticated_clients_per_ip` limita janelas depois da senha correta.
 
-O padrão de produção é quatro clients autenticados por IP público. IPv6 é
-agrupado por `/64` para que endereços temporários da mesma rede não multipliquem
-o limite.
+O padrão de produção é quatro clients autenticados por IP público. Tanto a
+fronteira de sockets pré-auth quanto a de clients autenticados agrupam IPv6 por
+`/64`, para que endereços temporários da mesma rede não multipliquem o limite.
 
 ## Política de VPS, VPN e datacenter
 
@@ -53,7 +53,8 @@ Regras:
 - `deny` recusa antes de executar PBKDF2;
 - `allow` cria uma exceção dentro de uma faixa ampla, mas não remove o limite
   global de quatro clients;
-- `limit` somente reduz o teto global, nunca o aumenta;
+- `limit` cria um teto agregado para todo o CIDR que fez match, simultâneo ao
+  limite normal por IP/`/64`; seu valor efetivo nunca supera o teto global;
 - CIDRs duplicados, não canônicos ou ações desconhecidas derrubam o boot;
 - `reason` aparece apenas no log interno; o client recebe uma mensagem genérica;
 - alterações entram em vigor depois de reiniciar o servidor.
@@ -78,7 +79,7 @@ go run ./cmd/network-admission `
   -dry-run
 ```
 
-Depois da revisão, remova `-dry-run` para substituir atomicamente as regras de
+Depois da revisão, remova `-dry-run` para substituir as regras de
 `source=provider-name`. Reexecutar a importação remove os ranges antigos dessa
 mesma fonte, inclui os novos e preserva regras manuais ou de outras fontes.
 
@@ -99,7 +100,10 @@ O compilador:
 - ordena a saída deterministicamente;
 - recusa conflito exato entre fontes com decisões diferentes;
 - identifica cada lote por `source` minúsculo e estável;
-- grava por arquivo temporário + rename;
+- grava por arquivo temporário, `fsync`, fechamento e `rename` no mesmo
+  diretório. A substituição é atômica somente onde o sistema operacional e o
+  filesystem oferecem essa garantia; isso também não equivale a garantir
+  durabilidade após queda de energia;
 - nunca altera a política quando a validação falha.
 
 O arquivo versionado começa vazio para não bloquear provedores legítimos com

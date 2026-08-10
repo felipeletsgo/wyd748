@@ -45,8 +45,12 @@ func loginTestAccount() *model.Account {
 	}}}
 }
 
+func newLoginTestSession(id int64, buffer int) *gameNet.Session {
+	return gameNet.NewTestSessionWithRemoteIP(id, buffer, "192.0.2.10")
+}
+
 func TestLoginResultReloadsLatestAccountAndCreatesSelectionPlayer(t *testing.T) {
-	session := gameNet.NewTestSession(1, 64)
+	session := newLoginTestSession(1, 64)
 	fresh := loginTestAccount()
 	st := &loginReloadStore{account: fresh}
 	w := loginResultWorld(st, session)
@@ -75,7 +79,7 @@ func TestLoginResultReloadsLatestAccountAndCreatesSelectionPlayer(t *testing.T) 
 
 func TestLoginResultRejectsAuthErrorDuplicateAndReloadFailure(t *testing.T) {
 	t.Run("credenciais", func(t *testing.T) {
-		session := gameNet.NewTestSession(1, 16)
+		session := newLoginTestSession(1, 16)
 		w := loginResultWorld(&loginReloadStore{}, session)
 		w.onLoginResult(session, &loginResult{
 			accountName: "Felipe", err: account.ErrInvalidCredentials,
@@ -87,7 +91,7 @@ func TestLoginResultRejectsAuthErrorDuplicateAndReloadFailure(t *testing.T) {
 	})
 
 	t.Run("duplicada", func(t *testing.T) {
-		session := gameNet.NewTestSession(2, 16)
+		session := newLoginTestSession(2, 16)
 		owner := gameNet.NewTestSession(1, 16)
 		st := &loginReloadStore{account: loginTestAccount()}
 		w := loginResultWorld(st, session)
@@ -102,7 +106,7 @@ func TestLoginResultRejectsAuthErrorDuplicateAndReloadFailure(t *testing.T) {
 	})
 
 	t.Run("reload", func(t *testing.T) {
-		session := gameNet.NewTestSession(1, 16)
+		session := newLoginTestSession(1, 16)
 		st := &loginReloadStore{loadErr: errors.New("disk")}
 		w := loginResultWorld(st, session)
 		w.onLoginResult(session, &loginResult{
@@ -154,7 +158,7 @@ func TestLoginResultRejectsAuthErrorDuplicateAndReloadFailure(t *testing.T) {
 	})
 
 	t.Run("resultado obsoleto", func(t *testing.T) {
-		session := gameNet.NewTestSession(1, 16)
+		session := newLoginTestSession(1, 16)
 		w := loginResultWorld(&loginReloadStore{}, session)
 		delete(w.authPending, session)
 		w.onLoginResult(session, &loginResult{account: loginTestAccount()})

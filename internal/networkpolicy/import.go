@@ -228,6 +228,9 @@ func Merge(base model.NetworkAdmissionFile, in Import) (model.NetworkAdmissionFi
 	return result, nil
 }
 
+// WriteAtomic usa temp+fsync+rename no mesmo diretorio. A troca e atomica
+// somente onde o sistema operacional e o filesystem garantem essa propriedade;
+// ela nao promete durabilidade contra power loss alem dessas garantias.
 func WriteAtomic(path string, policy model.NetworkAdmissionFile) error {
 	if err := policy.Validate(); err != nil {
 		return err

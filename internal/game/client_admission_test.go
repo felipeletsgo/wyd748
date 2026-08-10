@@ -2,6 +2,7 @@ package game
 
 import (
 	"net/netip"
+	"strconv"
 	"testing"
 
 	"wydgo/internal/model"
@@ -64,6 +65,30 @@ func TestDisconnectReleasesAuthenticatedClientSlot(t *testing.T) {
 	}
 }
 
+func TestDisconnectReleasesAuthenticatedNetworkSlot(t *testing.T) {
+	w := &World{
+		operational: OperationalConfig{MaxAuthenticatedClientsPerIP: 4},
+		players:     make(map[*gameNet.Session]*Player),
+		authPending: make(map[*gameNet.Session]bool),
+		security:    make(map[*gameNet.Session]*securityState),
+	}
+	WithNetworkAdmission(model.NetworkAdmissionFile{
+		Version: model.NetworkAdmissionVersion,
+		Rules: []model.NetworkAdmissionRule{{
+			CIDR: netip.MustParsePrefix("203.0.113.0/24"), Action: model.NetworkAdmissionLimit, MaxClients: 1,
+		}},
+	})(w)
+	first := gameNet.NewTestSessionWithRemoteIP(1, 1, "203.0.113.20")
+	if !w.claimAuthenticatedClientSlot(first) {
+		t.Fatal("primeira origem da faixa foi recusada")
+	}
+	w.onDisconnect(first)
+	second := gameNet.NewTestSessionWithRemoteIP(2, 1, "203.0.113.21")
+	if !w.claimAuthenticatedClientSlot(second) {
+		t.Fatal("disconnect nao liberou a vaga agregada da faixa")
+	}
+}
+
 func TestAuthenticatedClientIPCanonicalizesIPv4MappedIPv6(t *testing.T) {
 	w := &World{operational: OperationalConfig{MaxAuthenticatedClientsPerIP: 1}}
 	v4 := gameNet.NewTestSessionWithRemoteIP(1, 1, "192.0.2.80")
@@ -116,9 +141,68 @@ func TestNetworkAdmissionCanReduceClientLimit(t *testing.T) {
 	w := &World{operational: OperationalConfig{MaxAuthenticatedClientsPerIP: 4}}
 	WithNetworkAdmission(file)(w)
 	first := gameNet.NewTestSessionWithRemoteIP(1, 1, "198.51.100.10")
-	second := gameNet.NewTestSessionWithRemoteIP(2, 1, "198.51.100.10")
+	second := gameNet.NewTestSessionWithRemoteIP(2, 1, "198.51.100.11")
 	if !w.claimAuthenticatedClientSlot(first) || w.claimAuthenticatedClientSlot(second) {
-		t.Fatal("limite reduzido da faixa nao foi aplicado")
+		t.Fatal("limite agregado do CIDR nao foi aplicado a IPv4 distintos")
+	}
+	w.releaseAuthenticatedClientSlot(first)
+	if !w.claimAuthenticatedClientSlot(second) {
+		t.Fatal("logout nao liberou a vaga agregada do CIDR")
+	}
+}
+
+func TestNetworkAdmissionAggregatesIPv6CIDRLimits(t *testing.T) {
+	tests := []struct {
+		name   string
+		cidr   string
+		first  string
+		second string
+	}{
+		{name: "48", cidr: "2001:db8:100::/48", first: "2001:db8:100:1::1", second: "2001:db8:100:2::1"},
+		{name: "64", cidr: "2001:db8:100:1::/64", first: "2001:db8:100:1::1", second: "2001:db8:100:1::2"},
+		{name: "80", cidr: "2001:db8:100:1::/80", first: "2001:db8:100:1::1", second: "2001:db8:100:1::2"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			file := model.NetworkAdmissionFile{Version: model.NetworkAdmissionVersion,
+				Rules: []model.NetworkAdmissionRule{{
+					CIDR: netip.MustParsePrefix(test.cidr), Action: model.NetworkAdmissionLimit, MaxClients: 1,
+				}}}
+			w := &World{operational: OperationalConfig{MaxAuthenticatedClientsPerIP: 4}}
+			WithNetworkAdmission(file)(w)
+			first := gameNet.NewTestSessionWithRemoteIP(1, 1, test.first)
+			second := gameNet.NewTestSessionWithRemoteIP(2, 1, test.second)
+			if !w.claimAuthenticatedClientSlot(first) || w.claimAuthenticatedClientSlot(second) {
+				t.Fatalf("limit %s nao agregou as origens", test.cidr)
+			}
+			first.Close()
+			if !w.claimAuthenticatedClientSlot(second) {
+				t.Fatalf("sessao fechada manteve vaga presa em %s", test.cidr)
+			}
+		})
+	}
+}
+
+func TestNetworkAdmissionSpecificLimitUsesIndependentBucket(t *testing.T) {
+	file := model.NetworkAdmissionFile{Version: model.NetworkAdmissionVersion, Rules: []model.NetworkAdmissionRule{
+		{CIDR: netip.MustParsePrefix("2001:db8:100::/48"), Action: model.NetworkAdmissionLimit, MaxClients: 1},
+		{CIDR: netip.MustParsePrefix("2001:db8:100:1::/64"), Action: model.NetworkAdmissionLimit, MaxClients: 2},
+	}}
+	w := &World{operational: OperationalConfig{MaxAuthenticatedClientsPerIP: 4}}
+	WithNetworkAdmission(file)(w)
+	for id, ip := range []string{"2001:db8:100:1::1", "2001:db8:100:1::2"} {
+		if !w.claimAuthenticatedClientSlot(gameNet.NewTestSessionWithRemoteIP(int64(id+1), 1, ip)) {
+			t.Fatalf("regra /64 especifica recusou sessao %d dentro do limite", id+1)
+		}
+	}
+	if w.claimAuthenticatedClientSlot(gameNet.NewTestSessionWithRemoteIP(3, 1, "2001:db8:100:1::3")) {
+		t.Fatal("regra /64 especifica aceitou terceira sessao")
+	}
+	if !w.claimAuthenticatedClientSlot(gameNet.NewTestSessionWithRemoteIP(4, 1, "2001:db8:100:2::1")) {
+		t.Fatal("bucket /48 independente recusou sua primeira sessao")
+	}
+	if w.claimAuthenticatedClientSlot(gameNet.NewTestSessionWithRemoteIP(5, 1, "2001:db8:100:3::1")) {
+		t.Fatal("bucket /48 amplo aceitou segunda sessao")
 	}
 }
 
@@ -129,11 +213,12 @@ func TestNetworkAdmissionCannotRaiseGlobalClientLimit(t *testing.T) {
 	w := &World{operational: OperationalConfig{MaxAuthenticatedClientsPerIP: 4}}
 	WithNetworkAdmission(file)(w)
 	for id := int64(1); id <= 4; id++ {
-		if !w.claimAuthenticatedClientSlot(gameNet.NewTestSessionWithRemoteIP(id, 1, "198.51.100.10")) {
+		ip := "198.51.100." + strconv.FormatInt(id+9, 10)
+		if !w.claimAuthenticatedClientSlot(gameNet.NewTestSessionWithRemoteIP(id, 1, ip)) {
 			t.Fatalf("janela %d dentro do teto global foi recusada", id)
 		}
 	}
-	if w.claimAuthenticatedClientSlot(gameNet.NewTestSessionWithRemoteIP(5, 1, "198.51.100.10")) {
+	if w.claimAuthenticatedClientSlot(gameNet.NewTestSessionWithRemoteIP(5, 1, "198.51.100.14")) {
 		t.Fatal("regra de rede elevou o teto global de quatro clients")
 	}
 }
@@ -157,5 +242,20 @@ func TestDeniedNetworkDoesNotStartAuthentication(t *testing.T) {
 	w.onLogin(session, pkt)
 	if w.authPending[session] || session.QueuedPacketsForTest() == 0 {
 		t.Fatal("rede negada iniciou PBKDF2 ou nao recebeu aviso")
+	}
+}
+
+func TestInvalidRemoteIPFailsClosedBeforeAuthentication(t *testing.T) {
+	session := gameNet.NewTestSessionWithRemoteIP(1, 4, "invalid-origin")
+	w := &World{
+		players: make(map[*gameNet.Session]*Player), authPending: make(map[*gameNet.Session]bool),
+		operational: DefaultOperationalConfig(),
+	}
+	pkt := make([]byte, 116)
+	copy(pkt[12:28], "account")
+	w.onLogin(session, pkt)
+	if w.authPending[session] || session.QueuedPacketsForTest() == 0 ||
+		w.claimAuthenticatedClientSlot(session) {
+		t.Fatal("origem invalida nao falhou fechada antes do PBKDF2/admissao")
 	}
 }

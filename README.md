@@ -40,7 +40,7 @@ The server processes more than 80 packet types.
 
 - **Server-side security** — The 7.48 client is treated as untrusted. The server
   validates framing, checksum, packet size and session phase; rate-limits input;
-  limits pre-auth TCP connections per IP, deadlines InitCode and partial frames,
+  limits pre-auth TCP connections per IPv4 or IPv6 `/64`, deadlines InitCode and partial frames,
   applies a local CIDR policy for VPS/VPN/datacenter ranges, rejects unknown
   C→S opcodes before dispatch, verifies movement routes, terrain
   and line of sight; calculates damage,
@@ -51,7 +51,7 @@ The server has these systems. The server has authority on each system.
 
 - **Accounts** — The server hashes each password with PBKDF2. It gives an HTTP
   signup interface and a local command-line tool. It refuses a second login of
-  the same account and limits one public IP to four authenticated game clients.
+  the same account and limits one public IPv4 or IPv6 `/64` to four authenticated game clients.
   Pre-auth socket limits remain separate, so incomplete handshakes cannot use
   the four gameplay slots. The server does not keep a password as plain text.
 - **Characters** — Each account can make four characters in four classes. The

@@ -624,13 +624,15 @@ por IP público (`max_authenticated_clients_per_ip`). O limite de sockets
 pré-autenticação permanece separado: assim quatro handshakes incompletos não
 ocupam as vagas de jogo. Logout, disconnect e socket morto liberam a vaga. A
 configuração de load test aumenta explicitamente esse limite para os bots
-locais. Endereços IPv6 são agrupados pelo prefixo `/64`, impedindo que endereços
-temporários da mesma máquina/rede contornem o limite.
+locais. Tanto o listener pré-auth quanto a admissão pós-auth agrupam IPv6 pelo
+prefixo `/64`, impedindo que endereços temporários da mesma máquina/rede
+contornem os dois limites.
 
 Faixas de VPS, VPN, proxy e datacenter podem ser classificadas localmente em
 `data/network_admission.json`. A regra mais específica vence: `deny` bloqueia
-antes do PBKDF2, `allow` cria exceção dentro de uma faixa ampla e `limit` reduz
-o número de clients daquela rede sem poder elevar o teto global. O boot rejeita
+antes do PBKDF2, `allow` cria exceção dentro de uma faixa ampla e `limit` aplica
+um teto agregado ao CIDR, além do teto independente por IP/`/64`, sem poder
+elevar o limite global. O boot rejeita
 CIDR duplicado, não canônico ou ação inválida. Não há consulta externa no
 caminho de login. Formato e operação estão em `DOCS/NETWORK_ADMISSION.md`.
 

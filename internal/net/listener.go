@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log"
 	stdnet "net"
+	"net/netip"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,40 +29,63 @@ type ListenerConfig struct {
 }
 
 type connectionLimiter struct {
-	mu       sync.Mutex
-	total    int
-	perIP    map[string]int
-	maxTotal int
-	maxPerIP int
+	mu        sync.Mutex
+	total     int
+	perOrigin map[string]int
+	maxTotal  int
+	maxPerIP  int
 }
 
 func newConnectionLimiter(maxTotal, maxPerIP int) *connectionLimiter {
-	return &connectionLimiter{perIP: make(map[string]int), maxTotal: maxTotal, maxPerIP: maxPerIP}
+	return &connectionLimiter{perOrigin: make(map[string]int), maxTotal: maxTotal, maxPerIP: maxPerIP}
 }
 
-func (l *connectionLimiter) acquire(ip string) bool {
+func (l *connectionLimiter) acquire(origin string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if (l.maxTotal > 0 && l.total >= l.maxTotal) ||
-		(l.maxPerIP > 0 && l.perIP[ip] >= l.maxPerIP) {
+		(l.maxPerIP > 0 && l.perOrigin[origin] >= l.maxPerIP) {
 		return false
 	}
 	l.total++
-	l.perIP[ip]++
+	l.perOrigin[origin]++
 	return true
 }
 
-func (l *connectionLimiter) release(ip string) {
+func (l *connectionLimiter) release(origin string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.total > 0 {
 		l.total--
 	}
-	if l.perIP[ip] <= 1 {
-		delete(l.perIP, ip)
+	if l.perOrigin[origin] <= 1 {
+		delete(l.perOrigin, origin)
 	} else {
-		l.perIP[ip]--
+		l.perOrigin[origin]--
 	}
+}
+
+// ParseOriginIP canonicaliza exclusivamente o IP observado no socket. Campos
+// declarados pelo client nunca participam desta identidade operacional.
+func ParseOriginIP(ip string) (netip.Addr, bool) {
+	addr, err := netip.ParseAddr(strings.TrimSpace(ip))
+	if err != nil {
+		return netip.Addr{}, false
+	}
+	return addr.Unmap(), true
+}
+
+// OriginLimitKey agrupa IPv6 pelo /64 para impedir que enderecos temporarios
+// do mesmo prefixo multipliquem o limite pre-auth. IPv4 permanece individual.
+func OriginLimitKey(ip string) (string, bool) {
+	addr, ok := ParseOriginIP(ip)
+	if !ok {
+		return "", false
+	}
+	if addr.Is6() {
+		return netip.PrefixFrom(addr, 64).Masked().String(), true
+	}
+	return addr.String(), true
 }
 
 // ListenWithConfig limita sockets antes do InitCode. O limite de pacotes da
@@ -86,7 +111,8 @@ func ListenWithConfig(addr string, cfg ListenerConfig, onConn func(*Session)) er
 			continue
 		}
 		ip := remoteIP(c.RemoteAddr())
-		if !limiter.acquire(ip) {
+		originKey, validOrigin := OriginLimitKey(ip)
+		if !validOrigin || !limiter.acquire(originKey) {
 			_ = c.Close()
 			continue
 		}
@@ -103,7 +129,7 @@ func ListenWithConfig(addr string, cfg ListenerConfig, onConn func(*Session)) er
 			maxInboundBytesPerSec:   cfg.InboundBytesPerSec,
 		}
 		go func() {
-			defer limiter.release(ip)
+			defer limiter.release(originKey)
 			onConn(s)
 		}()
 	}

@@ -3,8 +3,6 @@ package game
 import (
 	"fmt"
 	"net/netip"
-	"strconv"
-	"strings"
 
 	"wydgo/internal/model"
 	"wydgo/internal/net"
@@ -59,11 +57,7 @@ func sessionRemoteIP(s *net.Session) (netip.Addr, bool) {
 	if s == nil {
 		return netip.Addr{}, false
 	}
-	addr, err := netip.ParseAddr(strings.TrimSpace(s.RemoteIP()))
-	if err != nil {
-		return netip.Addr{}, false
-	}
-	return addr.Unmap(), true
+	return net.ParseOriginIP(s.RemoteIP())
 }
 
 func (w *World) networkAdmissionRule(s *net.Session) (model.NetworkAdmissionRule, bool) {
@@ -76,27 +70,11 @@ func (w *World) networkAdmissionRule(s *net.Session) (model.NetworkAdmissionRule
 
 // authenticatedClientIPKey canonicaliza a origem observada pelo socket. O
 // servidor nao usa IP/MAC enviados no pacote: ambos seriam triviais de forjar.
-// Sessao sem socket existe apenas em testes e recebe uma chave isolada.
-func authenticatedClientIPKey(s *net.Session) string {
+func authenticatedClientIPKey(s *net.Session) (string, bool) {
 	if s == nil {
-		return ""
+		return "", false
 	}
-	ip := strings.TrimSpace(s.RemoteIP())
-	if parsed, err := netip.ParseAddr(ip); err == nil {
-		parsed = parsed.Unmap()
-		// Uma unica maquina/rede IPv6 pode criar muitos enderecos temporarios
-		// dentro do mesmo /64 e burlar um limite por endereco literal. Agrupar o
-		// prefixo residencial preserva a mesma semantica pratica do IP publico
-		// IPv4 compartilhado.
-		if parsed.Is6() {
-			return netip.PrefixFrom(parsed, 64).Masked().String()
-		}
-		return parsed.String()
-	}
-	if ip == "" {
-		return "test-session:" + strconv.FormatInt(s.ID, 10)
-	}
-	return strings.ToLower(ip)
+	return net.OriginLimitKey(s.RemoteIP())
 }
 
 func (w *World) authenticatedClientLimit() int {
@@ -116,9 +94,28 @@ func (w *World) authenticatedClientLimitFor(s *net.Session) int {
 	return limit
 }
 
-func (w *World) networkDenied(s *net.Session) (model.NetworkAdmissionRule, bool) {
+func (w *World) networkRejected(s *net.Session) (string, bool) {
+	if _, ok := sessionRemoteIP(s); !ok {
+		return "invalid remote IP", true
+	}
 	rule, ok := w.networkAdmissionRule(s)
-	return rule, ok && rule.Action == model.NetworkAdmissionDeny
+	return rule.Reason, ok && rule.Action == model.NetworkAdmissionDeny
+}
+
+func (w *World) authenticatedNetworkLimit(s *net.Session) (string, int, bool) {
+	rule, ok := w.networkAdmissionRule(s)
+	if !ok || rule.Action != model.NetworkAdmissionLimit {
+		return "", 0, false
+	}
+	return rule.CIDR.String(), w.authenticatedClientLimitFor(s), true
+}
+
+func pruneClosedSessions(bucket map[*net.Session]struct{}) {
+	for existing := range bucket {
+		if existing == nil || existing.IsClosed() {
+			delete(bucket, existing)
+		}
+	}
 }
 
 // claimAuthenticatedClientSlot roda somente no ator World, depois da senha
@@ -129,41 +126,68 @@ func (w *World) claimAuthenticatedClientSlot(s *net.Session) bool {
 	if s == nil || s.IsClosed() {
 		return false
 	}
-	if _, denied := w.networkDenied(s); denied {
+	if _, rejected := w.networkRejected(s); rejected {
 		return false
 	}
 	if w.authClientsByIP == nil {
 		w.authClientsByIP = make(map[string]map[*net.Session]struct{})
 	}
-	key := authenticatedClientIPKey(s)
-	bucket := w.authClientsByIP[key]
-	if bucket == nil {
-		bucket = make(map[*net.Session]struct{})
-		w.authClientsByIP[key] = bucket
+	if w.authClientsByNetwork == nil {
+		w.authClientsByNetwork = make(map[string]map[*net.Session]struct{})
 	}
-	for existing := range bucket {
-		if existing == nil || existing.IsClosed() {
-			delete(bucket, existing)
-		}
-	}
-	if _, exists := bucket[s]; exists {
-		return true
-	}
-	if len(bucket) >= w.authenticatedClientLimitFor(s) {
+	ipKey, validOrigin := authenticatedClientIPKey(s)
+	if !validOrigin {
 		return false
 	}
-	bucket[s] = struct{}{}
+	ipBucket := w.authClientsByIP[ipKey]
+	pruneClosedSessions(ipBucket)
+	_, alreadyInIPBucket := ipBucket[s]
+	if !alreadyInIPBucket && len(ipBucket) >= w.authenticatedClientLimit() {
+		return false
+	}
+
+	networkKey, networkLimit, hasNetworkLimit := w.authenticatedNetworkLimit(s)
+	var networkBucket map[*net.Session]struct{}
+	if hasNetworkLimit {
+		networkBucket = w.authClientsByNetwork[networkKey]
+		pruneClosedSessions(networkBucket)
+		_, alreadyInNetworkBucket := networkBucket[s]
+		if !alreadyInNetworkBucket && len(networkBucket) >= networkLimit {
+			return false
+		}
+	}
+
+	if ipBucket == nil {
+		ipBucket = make(map[*net.Session]struct{})
+		w.authClientsByIP[ipKey] = ipBucket
+	}
+	ipBucket[s] = struct{}{}
+	if hasNetworkLimit {
+		if networkBucket == nil {
+			networkBucket = make(map[*net.Session]struct{})
+			w.authClientsByNetwork[networkKey] = networkBucket
+		}
+		networkBucket[s] = struct{}{}
+	}
 	return true
 }
 
 func (w *World) releaseAuthenticatedClientSlot(s *net.Session) {
-	if s == nil || w.authClientsByIP == nil {
+	if s == nil {
 		return
 	}
-	key := authenticatedClientIPKey(s)
-	bucket := w.authClientsByIP[key]
-	delete(bucket, s)
-	if len(bucket) == 0 {
-		delete(w.authClientsByIP, key)
+	if ipKey, ok := authenticatedClientIPKey(s); ok {
+		bucket := w.authClientsByIP[ipKey]
+		delete(bucket, s)
+		if len(bucket) == 0 {
+			delete(w.authClientsByIP, ipKey)
+		}
+	}
+	if networkKey, _, ok := w.authenticatedNetworkLimit(s); ok {
+		bucket := w.authClientsByNetwork[networkKey]
+		delete(bucket, s)
+		if len(bucket) == 0 {
+			delete(w.authClientsByNetwork, networkKey)
+		}
 	}
 }

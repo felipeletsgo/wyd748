@@ -125,9 +125,9 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	accountName := cstr(pkt[12:28])
 	password := cstr(pkt[28:40])
 	cliver := binary.LittleEndian.Uint32(pkt[40:44])
-	if rule, denied := w.networkDenied(s); denied {
+	if reason, rejected := w.networkRejected(s); rejected {
 		log.Printf("[#%d] LOGIN recusado antes do auth ip=%q: politica de rede (%s)",
-			s.ID, s.RemoteIP(), rule.Reason)
+			s.ID, s.RemoteIP(), reason)
 		s.Send(wire.MessagePanel("Connections from this network are not allowed."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
@@ -173,9 +173,9 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		return
 	}
 	acc := result.account
-	if rule, denied := w.networkDenied(s); denied {
+	if reason, rejected := w.networkRejected(s); rejected {
 		log.Printf("[#%d] LOGIN recusado conta=%q ip=%q: politica de rede (%s)",
-			s.ID, acc.Name, s.RemoteIP(), rule.Reason)
+			s.ID, acc.Name, s.RemoteIP(), reason)
 		s.Send(wire.MessagePanel("Connections from this network are not allowed."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return

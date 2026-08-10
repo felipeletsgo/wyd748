@@ -1163,19 +1163,22 @@ elo Water Macro; a saída final versionada é
   reserva acontece somente depois da senha correta, é separada do limite de
   sockets pré-auth e é liberada no logout/desconexão. O 7.48 não fornece MAC
   confiável no login; bytes de hardware enviados pelo client não são usados
-  como autoridade.
+  como autoridade. IPv6 é agrupado por `/64` nas duas fronteiras, inclusive no
+  listener anterior ao `InitCode`.
 
   A camada server-side também carrega `data/network_admission.json`: regras
   CIDR `deny`, `allow` e `limit` são validadas estritamente, usam precedência do
   prefixo mais específico e não consultam serviços externos no login. Uma rede
-  negada é recusada antes do PBKDF2; limites por faixa somente reduzem o teto
-  global. A lista versionada começa vazia até o operador escolher uma fonte de
+  negada é recusada antes do PBKDF2; `limit` mantém um bucket agregado pelo CIDR
+  que fez match e é aplicado junto do limite normal por IP/`/64`. A lista
+  versionada começa vazia até o operador escolher uma fonte de
   reputação de VPS/VPN. Detecção de VM depende da futura etapa autenticada do
   client e não é declarada como entregue.
 
   O utilitário offline `cmd/network-admission` importa feeds texto/JSON,
   normaliza e deduplica CIDRs, substitui somente a `source` atualizada, recusa
-  conflitos entre fontes e grava a política atomicamente. Ele não realiza
+  conflitos entre fontes e usa temp+fsync+rename. Atomicidade e durabilidade da
+  troca continuam limitadas às garantias do OS/filesystem. Ele não realiza
   downloads: obtenção e revisão do feed permanecem uma operação administrativa
   fora do processo do jogo.
 
