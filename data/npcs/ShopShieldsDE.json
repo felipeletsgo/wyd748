@@ -1,0 +1,8 @@
+{
+  "name": "ShopShieldsDE",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 1709 }, { "index": 1710 }, { "index": 1711 }, { "index": 1712 }
+  ]
+}
