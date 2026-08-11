@@ -1,5 +1,5 @@
-// Test shops for D/E armor sets and weapons. Kept separate from the native NPCGener table.
-// Each shop is static and uses a unique generator index above the existing test block.
+// Test shops for D/E armor sets, weapons and shields. Kept separate from the native NPCGener table.
+// Each shop is static; the server reindexes this overlay after the native generators.
 #	[5301]
 	MinuteGenerate:	-1
 	MaxNumMob:	1
@@ -68,6 +68,60 @@
 	StartRange:	0
 	StartWait:	0
 	DestX:		2116
+	DestY:		2106
+	DestRange:	0
+	DestWait:	0
+
+#	[5305]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopWeaponsD2
+	Follower:	ShopWeaponsD2
+	RouteType:	0
+	Formation:	0
+	StartX:		2118
+	StartY:		2106
+	StartRange:	0
+	StartWait:	0
+	DestX:		2118
+	DestY:		2106
+	DestRange:	0
+	DestWait:	0
+
+#	[5306]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopWeaponsE2
+	Follower:	ShopWeaponsE2
+	RouteType:	0
+	Formation:	0
+	StartX:		2120
+	StartY:		2106
+	StartRange:	0
+	StartWait:	0
+	DestX:		2120
+	DestY:		2106
+	DestRange:	0
+	DestWait:	0
+
+#	[5307]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopShieldsDE
+	Follower:	ShopShieldsDE
+	RouteType:	0
+	Formation:	0
+	StartX:		2122
+	StartY:		2106
+	StartRange:	0
+	StartWait:	0
+	DestX:		2122
 	DestY:		2106
 	DestRange:	0
 	DestWait:	0
