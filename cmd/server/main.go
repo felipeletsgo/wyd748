@@ -128,6 +128,13 @@ func main() {
 		if err != nil {
 			log.Fatalf("carregar NPCGener adicional (%s): %v", extraPath, err)
 		}
+		// LoadNPCGener numera cada arquivo a partir de zero, como a tabela nativa.
+		// Ao compor dois arquivos, a ordem efetiva passa a ser a lista combinada:
+		// reindexar evita colisao de GenerIndex com os geradores do arquivo base.
+		baseIndex := len(geners)
+		for i := range extraGeners {
+			extraGeners[i].Index = baseIndex + i
+		}
 		geners = append(geners, extraGeners...)
 		log.Printf("%d geradores adicionais carregados de %s", len(extraGeners), extraPath)
 	}
