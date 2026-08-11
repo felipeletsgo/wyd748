@@ -1,0 +1,9 @@
+{
+  "name": "ShopWeaponsE2",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 3551 }, { "index": 3556 }, { "index": 3561 }, { "index": 3566 }, { "index": 3571 },
+    { "index": 3576 }, { "index": 3581 }, { "index": 3582 }, { "index": 3591 }, { "index": 3596 }
+  ]
+}
