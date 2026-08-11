@@ -140,7 +140,7 @@ func TestSetsDEDeTodasAsClassesTemLojaDeTeste(t *testing.T) {
 	})
 }
 
-func TestTodasAsArmasCanonicasDETemLojaDeTeste(t *testing.T) {
+func TestTodasAsArmasDEDoCatalogoTemLojaDeTeste(t *testing.T) {
 	shops, _ := loadTestShopFixture(t)
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
@@ -148,18 +148,14 @@ func TestTodasAsArmasCanonicasDETemLojaDeTeste(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dStock := shops["ShopWeaponsD"]
-	eStock := shops["ShopWeaponsE"]
-	if len(dStock) > 27 || len(eStock) > 27 {
-		t.Fatalf("lojas de armas excedem a janela 7.48: D=%d E=%d", len(dStock), len(eStock))
+	dStock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopWeaponsD") })
+	eStock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopWeaponsE") })
+	for name, stock := range shops {
+		if (strings.HasPrefix(name, "ShopWeaponsD") || strings.HasPrefix(name, "ShopWeaponsE")) && len(stock) > 27 {
+			t.Fatalf("%s possui %d itens; o client 7.48 exibe no maximo 27", name, len(stock))
+		}
 	}
 	for index, def := range catalog.Items {
-		// A faixa 800..949 e a tabela canonica de armas mortais. Variantes
-		// Ancient/Legend posteriores reutilizam os mesmos modelos e nao fazem
-		// parte desta matriz de compra basica.
-		if index < 800 || index >= 950 {
-			continue
-		}
 		itemLevel := 0
 		weapon := false
 		for _, effect := range def.StaticEffects {
@@ -176,14 +172,19 @@ func TestTodasAsArmasCanonicasDETemLojaDeTeste(t *testing.T) {
 		switch itemLevel {
 		case 4:
 			if _, ok := dStock[index]; !ok {
-				t.Errorf("arma D %d (%s) ausente de ShopWeaponsD", index, def.Name)
+				t.Errorf("arma D %d (%s) ausente das lojas ShopWeaponsD*", index, def.Name)
 			}
 		case 5:
 			if _, ok := eStock[index]; !ok {
-				t.Errorf("arma E %d (%s) ausente de ShopWeaponsE", index, def.Name)
+				t.Errorf("arma E %d (%s) ausente das lojas ShopWeaponsE*", index, def.Name)
 			}
 		}
 	}
+}
+
+func TestEscudosDETemLojaDeTeste(t *testing.T) {
+	shops, _ := loadTestShopFixture(t)
+	requireShopItems(t, shops, "ShopShieldsDE", []uint16{1709, 1710, 1711, 1712})
 }
 
 func TestNovasLojasDeTesteEstaoNoBlocoDeArmia(t *testing.T) {
@@ -200,7 +201,8 @@ func TestNovasLojasDeTesteEstaoNoBlocoDeArmia(t *testing.T) {
 	want := []string{"ShopVolTest1", "ShopVolTest2", "ShopVolTest3", "ShopVolTest4",
 		"ShopVolTest5", "ShopVolTest6", "ShopVolTest7", "ShopMtEgg1", "ShopMtEgg2",
 		"ShopMtBaby1", "ShopMtBaby2", "ShopMtAdult1", "ShopMtAdult2", "ShopMtTime",
-		"ShopCostume", "ShopFiral", "ShopSetD", "ShopSetE", "ShopWeaponsD", "ShopWeaponsE"}
+		"ShopCostume", "ShopFiral", "ShopSetD", "ShopSetE", "ShopWeaponsD", "ShopWeaponsE",
+		"ShopWeaponsD2", "ShopWeaponsE2", "ShopShieldsDE"}
 	seen := make(map[string]bool, len(want))
 	for _, gen := range gens {
 		if !containsShopName(want, gen.Leader) {
