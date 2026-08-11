@@ -1,0 +1,12 @@
+{
+  "name": "ShopWeaponsD2",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 957 }, { "index": 960 }, { "index": 970 },
+    { "index": 2102 }, { "index": 2103 }, { "index": 2106 },
+    { "index": 2112 }, { "index": 2113 }, { "index": 2116 },
+    { "index": 2122 }, { "index": 2123 }, { "index": 2127 }, { "index": 2128 }, { "index": 2130 },
+    { "index": 2132 }, { "index": 2133 }, { "index": 2137 }, { "index": 2142 }, { "index": 2143 }
+  ]
+}
