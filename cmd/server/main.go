@@ -73,6 +73,8 @@ func main() {
 	addr := flag.String("addr", cfg.ListenAddress, "endereco de escuta (host:porta)")
 	npcPath := flag.String("npcs", cfg.NPCPath, "pasta de NPCs (um .json por NPC)")
 	generPath := flag.String("gener", cfg.GeneratorPath, "arquivo padrao de spawn NPCGener.txt")
+	generExtraPath := flag.String("gener-extra", "data/NPCGenerTest.txt",
+		"arquivo adicional de geradores para lojas/fixtures de teste; vazio desliga")
 	teleportPath := flag.String("teleports", cfg.TeleportPath, "arquivo server-side de portais")
 	networkAdmissionPath := flag.String("network-admission", cfg.NetworkAdmissionPath,
 		"politica server-side de redes VPS/VPN/datacenter")
@@ -121,6 +123,14 @@ func main() {
 		log.Fatalf("carregar NPCGener (%s): %v", *generPath, err)
 	}
 	log.Printf("%d geradores carregados de %s", len(geners), *generPath)
+	if extraPath := strings.TrimSpace(*generExtraPath); extraPath != "" {
+		extraGeners, err := data.LoadNPCGener(extraPath)
+		if err != nil {
+			log.Fatalf("carregar NPCGener adicional (%s): %v", extraPath, err)
+		}
+		geners = append(geners, extraGeners...)
+		log.Printf("%d geradores adicionais carregados de %s", len(extraGeners), extraPath)
+	}
 
 	teleports, err := data.LoadTeleports(*teleportPath)
 	if err != nil {
