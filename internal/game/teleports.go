@@ -9,12 +9,19 @@ import (
 	"wydgo/internal/wire"
 )
 
-const portalActivationRadius = 3
+// O client 7.48 envia 0x290 quando pisa numa celula Teleport (0x10) do
+// AttributeMap. Cada celula representa um bloco 4x4 do mundo; teleports.ini
+// guarda uma coordenada dentro desse bloco, nao um ponto de ativacao isolado.
+const portalAttributeBlockSize = 4
+
+func samePortalAttributeBlock(x, y, sourceX, sourceY uint16) bool {
+	const blockMask = ^uint16(portalAttributeBlockSize - 1)
+	return x&blockMask == sourceX&blockMask && y&blockMask == sourceY&blockMask
+}
 
 func teleportAt(teleports []model.Teleport, x, y uint16) (model.Teleport, bool) {
 	for _, portal := range teleports {
-		if absDiff(x, portal.SourceX) <= portalActivationRadius &&
-			absDiff(y, portal.SourceY) <= portalActivationRadius {
+		if samePortalAttributeBlock(x, y, portal.SourceX, portal.SourceY) {
 			return portal, true
 		}
 	}

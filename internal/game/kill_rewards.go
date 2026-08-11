@@ -216,10 +216,17 @@ func (w *World) commitKillRewardBatch(p *Player, plans []*killRewardPlan,
 		return false
 	}
 	for _, plan := range plans {
-		w.finalizeKillReward(plan, true)
+		// CNFMobKill/loot remain one packet per mob, but the character state is
+		// an aggregate update. Sending UpdateEtc + party + appearance once per
+		// target made a 13-target AoE fan out dozens of redundant packets to
+		// every member of a four-player party.
+		w.finalizeKillRewardWithState(plan, true, len(plans) == 1)
+	}
+	if len(plans) > 1 {
+		w.publishKillBatchPlayerState(plans)
 	}
 	if len(plans) > 1 && p != nil && p.Session != nil {
-		log.Printf("[#%d] lote multi-alvo salvo (%d mortes, %d conta(s))",
+		w.gameplayLogf("batch", "[#%d] lote multi-alvo salvo (%d mortes, %d conta(s))",
 			p.Session.ID, len(plans), len(accounts))
 	}
 	return true
@@ -245,6 +252,10 @@ func (plan *killRewardPlan) rollback() {
 }
 
 func (w *World) finalizeKillReward(plan *killRewardPlan, rewardCommitted bool) {
+	w.finalizeKillRewardWithState(plan, rewardCommitted, true)
+}
+
+func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitted, publishState bool) {
 	if plan == nil || plan.mob == nil {
 		return
 	}
@@ -266,7 +277,7 @@ func (w *World) finalizeKillReward(plan *killRewardPlan, rewardCommitted bool) {
 	if rewardCommitted {
 		for _, share := range plan.shares {
 			receiver := share.player
-			if receiver == nil || receiver.Char == nil || receiver.Session == nil {
+			if !publishState || receiver == nil || receiver.Char == nil || receiver.Session == nil {
 				continue
 			}
 			receiver.Session.Send(wire.UpdateEtc(receiver.ID, *receiver.Char))
@@ -284,7 +295,7 @@ func (w *World) finalizeKillReward(plan *killRewardPlan, rewardCommitted bool) {
 		}
 		w.publishPlannedDrops(plan.drops)
 		if plan.gold > 0 && p != nil && p.Session != nil {
-			log.Printf("[#%d] DROP gold +%d (total=%d) de %q",
+			w.gameplayLogf("gold", "[#%d] DROP gold +%d (total=%d) de %q",
 				p.Session.ID, plan.gold, p.Char.Gold, m.Def.Name)
 		}
 	}
@@ -302,8 +313,52 @@ func (w *World) finalizeKillReward(plan *killRewardPlan, rewardCommitted bool) {
 		if !rewardCommitted {
 			reward, levels = 0, 0
 		}
-		log.Printf("[#%d] MATOU mob id=%d %q (dmg_calculado=%d aplicado=%d hp_alvo=%d exp=+%d/%d membros level=%d +%d)",
+		w.gameplayLogf("kill", "[#%d] MATOU mob id=%d %q (dmg_calculado=%d aplicado=%d hp_alvo=%d exp=+%d/%d membros level=%d +%d)",
 			p.Session.ID, m.ID, m.Def.Name, plan.calculatedDamage, plan.appliedDamage,
 			m.Def.Extended.MaxHP, reward, len(plan.shares), playerLevel(p.Char), levels)
+	}
+}
+
+// publishKillBatchPlayerState sends one final aggregate state per character
+// after a multi-target kill commit.  The per-mob death packets are still
+// emitted by finalizeKillRewardWithState, so the client keeps every corpse,
+// EXP confirmation and damage animation; only redundant score/party redraws
+// are coalesced.
+func (w *World) publishKillBatchPlayerState(plans []*killRewardPlan) {
+	type state struct {
+		player  *Player
+		leveled bool
+		cythera bool
+	}
+	states := make(map[*Player]*state)
+	for _, plan := range plans {
+		if plan == nil {
+			continue
+		}
+		for _, share := range plan.shares {
+			receiver := share.player
+			if receiver == nil || receiver.Char == nil || receiver.Session == nil {
+				continue
+			}
+			current := states[receiver]
+			if current == nil {
+				current = &state{player: receiver}
+				states[receiver] = current
+			}
+			current.leveled = current.leveled || plan.leveledUp[receiver]
+			current.cythera = current.cythera || plan.cytheraChanged[receiver]
+		}
+	}
+	for _, current := range states {
+		receiver := current.player
+		receiver.Session.Send(wire.UpdateEtc(receiver.ID, *receiver.Char))
+		if current.leveled {
+			receiver.Session.Send(wire.UpdateScore(receiver.ID, *receiver.Char))
+		}
+		if current.cythera {
+			receiver.Session.Send(wire.SendItem(receiver.ID, placeEquip, 1, receiver.Char.Equip[1]))
+			w.refreshAppearance(receiver)
+		}
+		w.updatePartyMember(receiver)
 	}
 }

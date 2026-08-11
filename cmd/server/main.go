@@ -239,6 +239,7 @@ func main() {
 	}
 	worldOptions := []game.WorldOption{
 		game.WithNPCGenerLog(cfg.NPCGenerLog),
+		game.WithGameplayLog(cfg.GameplayLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),
 		game.WithNetworkAdmission(networkAdmission),
 		game.WithOperationalConfig(game.OperationalConfig{

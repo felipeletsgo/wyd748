@@ -1,7 +1,6 @@
 package game
 
 import (
-	"log"
 	"strings"
 
 	"wydgo/internal/model"
@@ -147,13 +146,13 @@ func (w *World) publishPlannedDrops(drops []plannedDrop) {
 		if drop.inventoryPos >= 0 {
 			drop.player.Session.Send(wire.SendItem(drop.player.ID, placeInv,
 				byte(drop.inventoryPos), drop.player.Char.Inv[drop.inventoryPos]))
-			log.Printf("[#%d] DROP slot=%d item=%d -> inv[%d] (%q)",
+			w.gameplayLogf("drop", "[#%d] DROP slot=%d item=%d -> inv[%d] (%q)",
 				drop.player.Session.ID, drop.sourceSlot, drop.item.Index,
 				drop.inventoryPos, drop.source)
 			continue
 		}
 		w.createGroundDropForInstance(drop.x, drop.y, drop.item, true, drop.instanceID)
-		log.Printf("[#%d] DROP slot=%d item=%d -> CHAO (inventario cheio)",
+		w.gameplayLogf("drop", "[#%d] DROP slot=%d item=%d -> CHAO (inventario cheio)",
 			drop.player.Session.ID, drop.sourceSlot, drop.item.Index)
 	}
 }

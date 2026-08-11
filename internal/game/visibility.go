@@ -555,6 +555,7 @@ func clearPublishedPlayerMove(player *Player) {
 	player.MovePublishedRoute = [maxMovementRouteBytes]byte{}
 	player.MoveAuthorityRoute = nil
 	player.MoveAuthorityStep = 0
+	player.MoveAuthorityCatchupSteps = 0
 	player.MoveAuthorityX = 0
 	player.MoveAuthorityY = 0
 	player.MoveAuthorityStartedAt = time.Time{}

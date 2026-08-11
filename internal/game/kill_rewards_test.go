@@ -136,3 +136,17 @@ func TestInstanceKillPersistenceFailureDoesNotAdvanceRoom(t *testing.T) {
 		t.Fatalf("mob da instancia nao foi restaurado: dead=%v hp=%d", mob.Dead, mob.HP)
 	}
 }
+
+func TestKillBatchCoalescesCharacterStatePackets(t *testing.T) {
+	p, session := networkedTestPlayer(1, "Killer", 2100, 2100)
+	w := worldWithNetworkedPlayers(p)
+	before := session.QueuedPacketsForTest()
+	plans := []*killRewardPlan{
+		{shares: []partyExpShare{{player: p}}, leveledUp: map[*Player]bool{}, cytheraChanged: map[*Player]bool{}},
+		{shares: []partyExpShare{{player: p}}, leveledUp: map[*Player]bool{}, cytheraChanged: map[*Player]bool{}},
+	}
+	w.publishKillBatchPlayerState(plans)
+	if got := session.QueuedPacketsForTest() - before; got != 1 {
+		t.Fatalf("lote enviou %d UpdateEtc para o mesmo personagem, quer 1", got)
+	}
+}

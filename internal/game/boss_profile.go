@@ -10,9 +10,9 @@ import (
 // nao tocam no mundo, nao mutam estado e podem ser validados no boot.
 //
 // A v1 e deliberadamente pequena (4 eventos, 5 condicoes, 5 acoes). A
-// especificacao completa em DOCS/boss_inteligente.md preve muito mais, mas
-// construir o framework inteiro antes do primeiro encontro existir seria
-// adivinhar requisito. Cada tipo novo deve entrar quando um encontro precisar.
+// O trabalho futuro registrado em DOCS/ROADMAP.md preve mais mecanismos, mas
+// construir o framework inteiro antes de um encontro exigir seria adivinhar
+// requisito. Cada tipo novo deve entrar quando um encontro precisar.
 //
 // Os perfis nascem em Go (tipados, compilados). Migrar para JSON e um passo
 // posterior: a estrutura ja e serializavel de proposito.

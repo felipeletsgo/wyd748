@@ -205,7 +205,7 @@ func TestMovementStopAndChangeCityHandlers(t *testing.T) {
 	if p.X != 2100 || p.Y != 2100 || !p.MovePublished {
 		t.Fatalf("destino futuro aplicado imediatamente: player=(%d,%d)", p.X, p.Y)
 	}
-	clock.Advance(time.Second)
+	clock.Advance(1500 * time.Millisecond) // seis passos a RunSpeed 4.
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2105 || p.Y != 2106 || p.Char.X != 2105 || p.Char.Y != 2106 {
 		t.Fatalf("movimento nao chegou: player=(%d,%d) char=(%d,%d)", p.X, p.Y, p.Char.X, p.Char.Y)

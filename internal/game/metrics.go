@@ -44,6 +44,13 @@ var (
 	metricCommandAgeBuckets      = expvar.NewMap("world_command_age_buckets")
 	metricActivePlayers          = expvar.NewInt("world_active_players")
 	metricActiveMobs             = expvar.NewInt("world_active_mobs")
+	// Attack/skill admission counters make a missing hit diagnosable without
+	// enabling a synchronous log line for every packet.  A spike in rejected
+	// skills points at client timing; a normal counter with no damage points at
+	// target/cooldown/mana validation inside the skill handler.
+	metricPhysicalAttackRejected = expvar.NewInt("world_physical_attack_rejected_total")
+	metricSkillPacketRejected    = expvar.NewInt("world_skill_packet_rejected_total")
+	metricSkillPacketAccepted    = expvar.NewInt("world_skill_packet_accepted_total")
 	// metricPanicsTotal conta panics contidos por safeHandle. Qualquer valor
 	// diferente de zero merece investigacao: significa que UM comando deixou
 	// estado potencialmente parcial.

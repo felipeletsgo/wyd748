@@ -129,6 +129,13 @@ type Player struct {
 	LastAttackerID uint16
 	LastAttackAt   time.Time
 	LastAttackTick uint32
+	// Skills use the native per-skill SkillData.Delay and must not share the
+	// physical swing gate with a normal attack. A shared gate made an auto
+	// attack arriving just before a spell silently discard the spell packet.
+	// Keep a small per-skill tick history for replay/order checks and a global
+	// timestamp only as a packet-flood floor.
+	LastSkillAt    time.Time
+	LastSkillTicks map[int]uint32
 	AttackProgress uint16
 	// O client 7.48 pode repetir Action durante uma caminhada. Estes campos
 	// guardam o ultimo destino publicado para suprimir apenas repeticoes do
@@ -145,6 +152,7 @@ type Player struct {
 	// 24 tiles nunca concede alcance, pickup ou interacao no destino futuro.
 	MoveAuthorityRoute        []byte
 	MoveAuthorityStep         int
+	MoveAuthorityCatchupSteps int
 	MoveAuthorityX            uint16
 	MoveAuthorityY            uint16
 	MoveAuthorityStartedAt    time.Time
@@ -396,6 +404,9 @@ type World struct {
 	npcGenerLogMode       npcGenerLogMode
 	npcGenerLog           npcGenerLogStats
 	nextGenerLog          time.Time
+	gameplayLogMode       gameplayLogMode
+	gameplayLog           gameplayLogStats
+	nextGameplayLog       time.Time
 	teleports             []model.Teleport
 	gameplay              model.GameplayConfig
 	// guilds e o registro canonico carregado do guilds.json. Char.GuildID e
@@ -537,6 +548,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		charSpawn:              characterTemplates.Spawn,
 		terrain:                terrain,
 		npcGenerLogMode:        npcGenerLogSummary,
+		gameplayLogMode:        gameplayLogSummary,
 		channel:                1, // instancia unica: somos o canal 1
 		gameplay:               model.DefaultGameplayConfig(),
 		lastProtocolNotice:     make(map[uint16]time.Time),
@@ -568,6 +580,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	start := w.now()
 	w.nextAutoSave = start.Add(accountAutoSaveInterval)
 	w.nextQuestZoneReset = start.Add(questZoneResetInterval)
+	w.nextGameplayLog = start.Add(gameplayLogSummaryInterval)
 	if err := w.gameplay.Validate(); err != nil {
 		return nil, fmt.Errorf("configuracao global: %w", err)
 	}
@@ -665,6 +678,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		w.scheduleGenerator(&w.generators[i], now)
 	}
 	w.flushNPCGenerLog(now, true)
+	w.flushGameplayLog(now, true)
 	// Bosses NAO adotam mobs do NPCGener: eles nascem do proprio catalogo
 	// (data/boss/*.lua), com posicao e respawn proprios.
 	if err := w.spawnConfiguredBosses(); err != nil {
@@ -1530,6 +1544,7 @@ func (w *World) tick() {
 		}
 	}
 	w.flushNPCGenerLog(now, false)
+	w.flushGameplayLog(now, false)
 }
 
 // tickQuestZoneReset porta o ClearArea do W2PP: a cada ciclo (10 min), todo

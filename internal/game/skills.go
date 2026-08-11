@@ -444,7 +444,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if skillIndex == 98 {
 		if w.castThornWall(p, req, skill, mastery, motion) {
 			w.syncPlayerScoreAndVitals(p)
-			log.Printf("[#%d] criou Vinha skill=98 @(%d,%d)", p.Session.ID, req.TargetX, req.TargetY)
+			w.gameplayLogf("skill", "[#%d] criou Vinha skill=98 @(%d,%d)", p.Session.ID, req.TargetX, req.TargetY)
 		}
 		return
 	}
@@ -493,7 +493,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			}
 		}
 		w.syncPlayerScoreAndVitals(p)
-		log.Printf("[#%d] usou skill=%d %q mp=-%d cooldown=%s", p.Session.ID,
+		w.gameplayLogf("skill", "[#%d] usou skill=%d %q mp=-%d cooldown=%s", p.Session.ID,
 			skillIndex, skill.Name, mana, delay)
 		return
 	}
@@ -598,7 +598,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		})
 	}
 	w.syncPlayerScoreAndVitals(p)
-	log.Printf("[#%d] executou skill=%d %q alvos=%d base=%d magic=%t amp=%d mastery=%d mp=-%d",
+	w.gameplayLogf("skill", "[#%d] executou skill=%d %q alvos=%d base=%d magic=%t amp=%d mastery=%d mp=-%d",
 		p.Session.ID, skillIndex, skill.Name, len(results), baseDamage, magicDamage,
 		effectiveExtended(p.Char).MagicAmp, mastery, mana)
 	// Capture os receptores antes da primeira morte. Um membro pode atingir o
@@ -617,7 +617,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				return wire.SetMobHpMp(mob.ID, mob.HP, mob.Def.Extended.MaxHP,
 					mob.Def.Extended.MaxMP, mob.Def.Extended.MaxMP)
 			})
-			log.Printf("[#%d] skill=%d %q mob=%d dmg=%d base=%d magic=%t amp=%d mastery=%d hp=%d/%d mp=-%d", p.Session.ID,
+			w.gameplayLogf("skill", "[#%d] skill=%d %q mob=%d dmg=%d base=%d magic=%t amp=%d mastery=%d hp=%d/%d mp=-%d", p.Session.ID,
 				skillIndex, skill.Name, mob.ID, result.applied, baseDamage, magicDamage,
 				effectiveExtended(p.Char).MagicAmp, mastery, mob.HP, mob.Def.Extended.MaxHP, mana)
 		}

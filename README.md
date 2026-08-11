@@ -36,6 +36,22 @@ connects these functions through the native protocol:
 
 The server processes more than 80 packet types.
 
+## Documentation
+
+This README is the public tutorial for the GitHub project. It explains how to
+prepare, build, configure, start, and use the server, and it gives an overview
+of every available system.
+
+The technical documentation has two canonical files:
+
+- [`DOCS/IMPLEMENTED.md`](DOCS/IMPLEMENTED.md) describes the architecture and
+  every system that exists in the current server;
+- [`DOCS/ROADMAP.md`](DOCS/ROADMAP.md) is the only roadmap and contains only work that
+  is not complete.
+
+The client patch chain stays in [`client748/PATCHES.md`](client748/PATCHES.md),
+next to the files that it documents.
+
 ## Systems
 
 - **Server-side security** — The 7.48 client is treated as untrusted. The server
@@ -239,6 +255,27 @@ go build -o account-api.exe ./cmd/account-api
 go build -o account-create.exe ./cmd/account-create
 ```
 
+## Prepare PostgreSQL
+
+Install PostgreSQL on the server. On Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y postgresql
+sudo -u postgres psql
+```
+
+Create the role and the database inside `psql`:
+
+```sql
+CREATE ROLE wydgo LOGIN PASSWORD 'replace-this-password';
+CREATE DATABASE wydgo OWNER wydgo;
+\q
+```
+
+Keep PostgreSQL on the local interface. Do not publish port 5432. The game
+server installs and validates schema v3 at boot.
+
 ## Start the server
 
 Set the database URL before you start a production server:
@@ -274,6 +311,11 @@ limits, PostgreSQL critical-operation budget, `world_command_queue_capacity`,
 safe for the stock 7.48 heartbeat; do not reduce the 600-second idle timeout
 without capturing the real client first.
 
+`gameplay_log=summary` is the production-friendly mode: it aggregates combat
+and loot counters once per minute instead of synchronously writing one line per
+hit. Use `gameplay_log=verbose` only for a short reproduction; `quiet` disables
+those hot-path diagnostics while preserving errors and security events.
+
 To monitor the server, set `debug_address` in `data/server.txt`. The server
 then gives metrics at `/debug/vars` and profiles at `/debug/pprof`. The host
 must be loopback: these pages show internal state. If you give a public
@@ -288,8 +330,51 @@ Start the server from the `wyd-go/` directory. Then the server finds the
 
 You make an account with one of two tools:
 
-- Use `account-create`, the local command-line tool.
-- Or start `account-api` and send an HTTP signup request.
+- Use `account-create`, the local command-line tool:
+
+  ```powershell
+  ./account-create.exe
+  ```
+
+  You can preset only the username. The tool always reads the password from the
+  terminal:
+
+  ```powershell
+  ./account-create.exe -username felipe
+  ```
+
+- Or start the HTTP API on loopback:
+
+  ```powershell
+  ./account-api.exe -addr 127.0.0.1:8080
+  ```
+
+  Create an account:
+
+  ```powershell
+  Invoke-RestMethod -Method Post `
+    -Uri http://127.0.0.1:8080/v1/accounts `
+    -ContentType application/json `
+    -Body '{"username":"felipe","password":"123456","passwordConfirmation":"123456"}'
+  ```
+
+  `/healthz` reports process health and `/readyz` verifies the database. Publish
+  this API only through an HTTPS reverse proxy that replaces forwarded headers.
+
+## Prepare and verify the client
+
+The repository contains the supported 7.48 client in `client748/`. Do not edit
+`WYD.exe` manually. Rebuild or verify the complete patch chain with:
+
+```powershell
+cd client748
+./Apply-WYD748.ps1 -VerifyOnly
+```
+
+The supported SHA-256 and the reproducible patch order are in
+[`client748/PATCHES.md`](client748/PATCHES.md). Configure the client connection
+for the public address of your server, keep TCP port 8281 allowed in the game
+host firewall, and keep PostgreSQL and the diagnostic HTTP endpoint private.
 
 ## Do the static checks
 
@@ -300,6 +385,41 @@ go test ./...
 go vet ./...
 go build -o tm.exe ./cmd/server
 ```
+
+For the final Linux/CI validation, also run:
+
+```bash
+go test -race ./...
+```
+
+## Run the load test
+
+Use a separate disposable PostgreSQL database. Never provision bots in the
+production database. Define the test database, source database, and bot
+password:
+
+```powershell
+$env:WYD_LOADTEST_DATABASE_URL="postgres://wydgo:password@127.0.0.1:5432/wydgo_loadtest?sslmode=disable"
+$env:WYD_SOURCE_DATABASE_URL="postgres://wydgo:password@127.0.0.1:5432/wydgo?sslmode=disable"
+$env:WYD_LOADTEST_BOT_PASSWORD="123456"
+```
+
+Provision clones from slot 1 of the source account and then connect them:
+
+```powershell
+go run ./cmd/loadtest `
+  -source-database-url-env WYD_SOURCE_DATABASE_URL `
+  -source-account felipe -source-slot 1 `
+  -bots 990 -reset -provision -provision-only
+
+go run ./cmd/loadtest `
+  -server 127.0.0.1:8281 -bots 990 `
+  -ramp 1m -duration 5m -move-percent 50
+```
+
+The source account is never used as a bot. Every clone receives independent
+CharacterUIDs and ItemUIDs. You can log in with the real source account while
+the test is active.
 
 ## Architecture
 
@@ -359,20 +479,11 @@ them.
 
 ## Roadmap
 
-These are the next gameplay phases:
-
-- in-game validation and balancing of Uxmal, the Celestial/SubCelestial flow,
-  Spirit's Seal, equipment gems, Adamantite, Big Cube, crafts, and Sephira
-  visuals;
-- the remaining retail quest catalog and the complete native Big Cube
-  question/reward table;
-- the client-side guild-mark image host and URL patch; the server-side guild
-  identity flow is complete;
-- the remaining wide HP/MP client UI investigation;
-- the guild war, the kingdom war, and the Castle war;
-- more work on the client assets.
-
-The current build does not have these functions complete.
+[`DOCS/ROADMAP.md`](DOCS/ROADMAP.md) is the only project roadmap. The next recommended
+implementation is the transactional economy ledger. The later phases cover
+in-game validation, the remaining retail quests, the native Big Cube table,
+client HP/MP and guild-mark work, public-server operations, and the war systems.
+Guild War, Kingdom War, and Castle War stay as the final gameplay phase.
 
 ## Disclaimer
 

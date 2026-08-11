@@ -61,6 +61,9 @@ type ServerConfig struct {
 	TeleportPath                 string
 	NetworkAdmissionPath         string
 	NPCGenerLog                  string
+	// GameplayLog controla diagnosticos quentes (skills, ataques, mortes e
+	// drops): quiet, summary ou verbose. Summary evita I/O por evento no World.
+	GameplayLog string
 	// DebugAddress e o endereco do servidor de diagnostico (expvar em
 	// /debug/vars e pprof em /debug/pprof). Vazio = desligado, que e o padrao.
 	// O host DEVE ser loopback: esses endpoints expoem estado interno e perfil
@@ -122,6 +125,7 @@ func DefaultServerConfig() ServerConfig {
 		TeleportPath:                 "data/teleports.ini",
 		NetworkAdmissionPath:         "data/network_admission.json",
 		NPCGenerLog:                  "summary",
+		GameplayLog:                  "summary",
 		DebugAddress:                 "", // diagnostico desligado por padrao
 		LoadtestAccountPrefix:        "",
 		Gameplay:                     model.DefaultGameplayConfig(),
@@ -212,6 +216,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"teleports":                        func(v string) error { cfg.TeleportPath = v; return nil },
 		"network_admission":                func(v string) error { cfg.NetworkAdmissionPath = v; return nil },
 		"npcgener_log":                     func(v string) error { cfg.NPCGenerLog = strings.ToLower(v); return nil },
+		"gameplay_log":                     func(v string) error { cfg.GameplayLog = strings.ToLower(v); return nil },
 		"debug_address":                    func(v string) error { cfg.DebugAddress = v; return nil },
 		"loadtest_spawn":                   setSpawn(&cfg.LoadtestSpawn),
 		"loadtest_account_prefix": func(v string) error {
@@ -263,6 +268,12 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	default:
 		return ServerConfig{}, fmt.Errorf("%s: npcgener_log invalido %q (use quiet, summary ou verbose)",
 			path, cfg.NPCGenerLog)
+	}
+	switch cfg.GameplayLog {
+	case "quiet", "summary", "verbose":
+	default:
+		return ServerConfig{}, fmt.Errorf("%s: gameplay_log invalido %q (use quiet, summary ou verbose)",
+			path, cfg.GameplayLog)
 	}
 	switch cfg.DatabaseDriver {
 	case "postgres", "json":

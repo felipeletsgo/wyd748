@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"log"
@@ -11,10 +12,18 @@ import (
 )
 
 const (
-	securityViolationLimit   = 12
-	securityViolationWindow  = time.Minute
-	maxMovementRouteBytes    = 24
-	maxStopPositionDrift     = 3
+	securityViolationLimit  = 12
+	securityViolationWindow = time.Minute
+	maxMovementRouteBytes   = 24
+	maxMovementQueuedSteps  = maxMovementRouteBytes * 2
+	// Um novo plano chega cerca de uma vez por segundo. Aceitar ate dois
+	// segundos de diferenca visual cobre jitter/replanejamento sem permitir que
+	// o PosX/Y do client vire teleporte; a ponte ainda e percorrida pelo relogio.
+	maxMovementVisualBridge = 12
+	maxStopPositionDrift    = 3
+	// O client 7.48 calcula no maximo seis passos ao montar ActionStop 0x367,
+	// mas transmite apenas Pos/Target; a Route[24] desse pacote vem zerada.
+	maxActionStopRouteSteps  = 6
 	characterLoginPacketSize = 36
 	applyBonusPacketSize     = 20
 )
@@ -287,13 +296,51 @@ func movementTilesPerSecond(p *Player) float64 {
 	if p != nil && p.Char != nil {
 		speed = int(playerAttackRun(p.Char) & 0x0F)
 	}
-	// Folga acima da animacao nominal para jitter e pacotes agrupados. Ainda
-	// limita um client adulterado a uma progressao proporcional ao runspeed
-	// server-side, nunca ao valor que ele escreveu na memoria local.
-	return 6 + float64(speed)*1.5
+	// TMHuman interpola um passo a cada 1000/Speed ms. A autoridade usa a mesma
+	// cadencia, mas deriva Speed do ExtendedScore server-side; o campo recebido
+	// no pacote nunca aumenta a velocidade. BASE_GetSpeed do TMSrv limita 1..6.
+	if speed < 1 {
+		speed = 1
+	} else if speed > 6 {
+		speed = 6
+	}
+	return float64(speed)
+}
+
+func movementPacketRejectionSummary(p *Player, pkt []byte) string {
+	if p == nil || len(pkt) < 28 {
+		return "rota/destino de movimento invalido"
+	}
+	startX := binary.LittleEndian.Uint16(pkt[12:14])
+	startY := binary.LittleEndian.Uint16(pkt[14:16])
+	targetX, targetY := actionTarget748(pkt)
+	clientSpeed := binary.LittleEndian.Uint32(pkt[16:20])
+	route := pkt[28:]
+	if len(route) > maxMovementRouteBytes {
+		route = route[:maxMovementRouteBytes]
+	}
+	if nul := bytes.IndexByte(route, 0); nul >= 0 {
+		route = route[:nul]
+	}
+	authX, authY, serverSpeed := uint16(0), uint16(0), byte(0)
+	pendingX, pendingY, pendingStep, pendingLen := uint16(0), uint16(0), 0, 0
+	if p != nil {
+		authX, authY = p.X, p.Y
+		if p.Char != nil {
+			serverSpeed = playerAttackRun(p.Char) & 0x0F
+		}
+		pendingX, pendingY = p.MovePublishedTargetX, p.MovePublishedTargetY
+		pendingStep, pendingLen = p.MoveAuthorityStep, len(p.MoveAuthorityRoute)
+	}
+	return fmt.Sprintf("rota/destino invalido auth=(%d,%d) pos=(%d,%d) target=(%d,%d) speed=%d/%d route=%q pending=(%d,%d %d/%d)",
+		authX, authY, startX, startY, targetX, targetY, clientSpeed, serverSpeed,
+		string(route), pendingX, pendingY, pendingStep, pendingLen)
 }
 
 var routeDirections = map[byte][2]int{
+	// O wire do client 7.48 usa o eixo observado em capturas reais: "32"
+	// transforma (2486,2017) em (2487,2015), e "2222" reduz Y em quatro.
+	// Nao copiar BASE_GetDestByAction de outra versao: ali o eixo Y e oposto.
 	'1': {-1, -1}, '2': {0, -1}, '3': {1, -1},
 	'4': {-1, 0}, '6': {1, 0},
 	'7': {-1, 1}, '8': {0, 1}, '9': {1, 1},
@@ -367,11 +414,29 @@ func (w *World) validatedPlayerMoveRoute(p *Player, pkt []byte) (uint16, uint16,
 			// origem so e aceita quando pertence ao plano antigo ainda pendente;
 			// os passos faltantes sao preservados, nunca saltados.
 			prefix, found := playerMovementPrefixTo(p, startX, startY)
-			if !found || len(prefix)+len(wireRoute) > maxMovementRouteBytes {
-				return 0, 0, nil, nil, false
+			if found {
+				authority := append(prefix, wireRoute...)
+				if len(authority) <= maxMovementQueuedSteps {
+					return startX, startY, wireRoute, authority, true
+				}
 			}
-			authority := append(prefix, wireRoute...)
-			return startX, startY, wireRoute, authority, true
+			// O 7.48 transmite planos continuamente. Quando um pacote intermediario
+			// se perde, PosX/Y do proximo plano pode estar adiante do ultimo
+			// Target conhecido. Reconstrua apenas um corredor curto e inteiramente
+			// transitavel a partir da autoridade atual; os passos continuam sujeitos
+			// ao relogio server-side e nunca viram um salto imediato.
+			if chebyshev(p.X, p.Y, startX, startY) <= maxMovementVisualBridge {
+				bridge, found := w.shortTerrainRoute(p.X, p.Y, startX, startY,
+					maxMovementVisualBridge)
+				if !found {
+					return 0, 0, nil, nil, false
+				}
+				authority := append(bridge, wireRoute...)
+				if len(authority) <= maxMovementQueuedSteps {
+					return startX, startY, wireRoute, authority, true
+				}
+			}
+			return 0, 0, nil, nil, false
 		}
 		authority := append([]byte(nil), wireRoute[currentAt:]...)
 		return startX, startY, wireRoute, authority, true
@@ -380,10 +445,14 @@ func (w *World) validatedPlayerMoveRoute(p *Player, pkt []byte) (uint16, uint16,
 	// reportar um segmento curto e inteiramente transitavel. O servidor gera a
 	// linha de passos para que o destino continue sendo futuro, nao um salto.
 	distance := chebyshev(p.X, p.Y, targetX, targetY)
-	if distance > movementSegmentLimit(p) || !w.terrain.LineOfSight(p.X, p.Y, targetX, targetY) {
+	if distance > movementSegmentLimit(p) {
 		return 0, 0, nil, nil, false
 	}
-	authority := directMovementRoute(p.X, p.Y, targetX, targetY)
+	authority, found := w.shortTerrainRoute(p.X, p.Y, targetX, targetY,
+		movementSegmentLimit(p))
+	if !found {
+		return 0, 0, nil, nil, false
+	}
 	return p.X, p.Y, authority, authority, true
 }
 
@@ -432,6 +501,95 @@ func directMovementRoute(fromX, fromY, toX, toY uint16) []byte {
 	return route
 }
 
+type terrainRoutePredecessor struct {
+	previous uint32
+	step     byte
+}
+
+type terrainRouteQueueEntry struct {
+	key   uint32
+	depth int
+}
+
+func terrainPositionKey(x, y uint16) uint32 {
+	return uint32(x)<<16 | uint32(y)
+}
+
+func terrainPositionFromKey(key uint32) (uint16, uint16) {
+	return uint16(key >> 16), uint16(key)
+}
+
+// shortTerrainRoute reconstrói somente a pequena parte da caminhada já
+// percorrida visualmente entre dois pacotes 0x366. O client não retransmite
+// essa curva no pacote seguinte, portanto exigir LineOfSight rejeita caminhos
+// legítimos ao redor de paredes. A busca é limitada em passos e o resultado
+// continua sendo executado pelo relógio autoritativo, nunca aplicado como salto.
+func (w *World) shortTerrainRoute(fromX, fromY, toX, toY uint16, maxSteps int) ([]byte, bool) {
+	if fromX == toX && fromY == toY {
+		return nil, true
+	}
+	if maxSteps <= 0 || chebyshev(fromX, fromY, toX, toY) > maxSteps ||
+		!w.terrain.Walkable(fromX, fromY) || !w.terrain.Walkable(toX, toY) {
+		return nil, false
+	}
+	startKey := terrainPositionKey(fromX, fromY)
+	targetKey := terrainPositionKey(toX, toY)
+	predecessors := map[uint32]terrainRoutePredecessor{startKey: {}}
+	queue := make([]terrainRouteQueueEntry, 1, (maxSteps*2+1)*(maxSteps*2+1))
+	queue[0] = terrainRouteQueueEntry{key: startKey}
+	// Ordem determinística. A BFS ainda encontra o menor número de passos;
+	// diagonais fechadas por duas paredes são rejeitadas como no LOS.
+	steps := [...]struct {
+		encoded byte
+		dx, dy  int
+	}{
+		{'2', 0, -1}, {'3', 1, -1}, {'6', 1, 0}, {'9', 1, 1},
+		{'8', 0, 1}, {'7', -1, 1}, {'4', -1, 0}, {'1', -1, -1},
+	}
+
+	for head := 0; head < len(queue); head++ {
+		current := queue[head]
+		if current.depth >= maxSteps {
+			continue
+		}
+		x, y := terrainPositionFromKey(current.key)
+		for _, step := range steps {
+			nextX, nextY := int(x)+step.dx, int(y)+step.dy
+			if nextX <= 0 || nextY <= 0 || nextX >= 4096 || nextY >= 4096 {
+				continue
+			}
+			nx, ny := uint16(nextX), uint16(nextY)
+			if !w.terrain.RouteHeightCompatible(x, y, nx, ny) {
+				continue
+			}
+			if step.dx != 0 && step.dy != 0 &&
+				!w.terrain.Walkable(uint16(int(x)+step.dx), y) &&
+				!w.terrain.Walkable(x, uint16(int(y)+step.dy)) {
+				continue
+			}
+			nextKey := terrainPositionKey(nx, ny)
+			if _, seen := predecessors[nextKey]; seen {
+				continue
+			}
+			predecessors[nextKey] = terrainRoutePredecessor{previous: current.key, step: step.encoded}
+			if nextKey == targetKey {
+				reversed := make([]byte, 0, current.depth+1)
+				for key := targetKey; key != startKey; {
+					predecessor := predecessors[key]
+					reversed = append(reversed, predecessor.step)
+					key = predecessor.previous
+				}
+				for left, right := 0, len(reversed)-1; left < right; left, right = left+1, right-1 {
+					reversed[left], reversed[right] = reversed[right], reversed[left]
+				}
+				return reversed, true
+			}
+			queue = append(queue, terrainRouteQueueEntry{key: nextKey, depth: current.depth + 1})
+		}
+	}
+	return nil, false
+}
+
 func encodeRouteDirection(dx, dy int) (byte, bool) {
 	switch {
 	case dx == -1 && dy == -1:
@@ -464,6 +622,91 @@ func (w *World) validReportedStop(p *Player, x, y uint16) bool {
 		return true
 	}
 	return false
+}
+
+// validatedActionStopRoute reconstrói o pequeno trecho final omitido pelo
+// ActionStop 0x367 do client 7.48. PosX/Y@12 descreve a origem visual e
+// TargetX/Y@24 o ponto onde o avatar vai parar; capturas nativas mostram, por
+// exemplo, (2485,2016)->(2480,2015). O trecho nunca promove coordenadas de
+// imediato: ele apenas vira uma nova rota sujeita ao relógio autoritativo.
+func (w *World) validatedActionStopRoute(p *Player, pkt []byte) (uint16, uint16, []byte, bool) {
+	if p == nil || len(pkt) != 52 {
+		return 0, 0, nil, false
+	}
+	startX := binary.LittleEndian.Uint16(pkt[12:14])
+	startY := binary.LittleEndian.Uint16(pkt[14:16])
+	targetX, targetY := actionTarget748(pkt)
+	if startX == 0 || startY == 0 {
+		startX, startY = p.X, p.Y
+	}
+	// Alguns callers antigos enviam somente PosX/Y. Trate-o como parada no
+	// próprio ponto, sem inventar um destino diferente.
+	if targetX == 0 || targetY == 0 {
+		targetX, targetY = startX, startY
+	}
+	if !w.terrain.Walkable(startX, startY) || !w.terrain.Walkable(targetX, targetY) ||
+		chebyshev(startX, startY, targetX, targetY) > maxActionStopRouteSteps {
+		return 0, 0, nil, false
+	}
+
+	if p.X == targetX && p.Y == targetY {
+		return targetX, targetY, nil, true
+	}
+
+	// O destino pode estar no plano já validado. Esta é a reconciliação mais
+	// forte porque preserva exatamente as curvas transmitidas anteriormente.
+	if route, found := playerMovementPrefixTo(p, targetX, targetY); found {
+		return targetX, targetY, route, true
+	}
+
+	stopRoute := directMovementRoute(startX, startY, targetX, targetY)
+	if !w.movementRouteHeightCompatible(startX, startY, stopRoute) {
+		return 0, 0, nil, false
+	}
+
+	var route []byte
+	if p.X == startX && p.Y == startY {
+		route = stopRoute
+	} else if prefix, found := playerMovementPrefixTo(p, startX, startY); found {
+		route = append(prefix, stopRoute...)
+	} else {
+		// Um pacote de movimento intermediário pode ter se perdido. Reconstrua
+		// somente um corredor curto e transitável; a velocidade continua sendo
+		// aplicada passo a passo pelo World.
+		if chebyshev(p.X, p.Y, startX, startY) > maxMovementVisualBridge {
+			return 0, 0, nil, false
+		}
+		bridge, found := w.shortTerrainRoute(p.X, p.Y, startX, startY,
+			maxMovementVisualBridge)
+		if !found {
+			return 0, 0, nil, false
+		}
+		route = append(bridge, stopRoute...)
+	}
+	// PlayerMove carrega no máximo Route[24]. Não anuncie aos observadores um
+	// Target que a rota publicada não consegue alcançar.
+	if len(route) > maxMovementRouteBytes {
+		return 0, 0, nil, false
+	}
+	return targetX, targetY, route, true
+}
+
+func (w *World) movementRouteHeightCompatible(startX, startY uint16, route []byte) bool {
+	x, y := startX, startY
+	for _, encoded := range route {
+		direction, ok := routeDirections[encoded]
+		if !ok {
+			return false
+		}
+		nextX := int(x) + direction[0]
+		nextY := int(y) + direction[1]
+		if nextX <= 0 || nextY <= 0 || nextX >= 4096 || nextY >= 4096 ||
+			!w.terrain.RouteHeightCompatible(x, y, uint16(nextX), uint16(nextY)) {
+			return false
+		}
+		x, y = uint16(nextX), uint16(nextY)
+	}
+	return true
 }
 
 func (w *World) combatLineOfSight(fromX, fromY, toX, toY uint16) bool {

@@ -65,6 +65,45 @@ func TestAcceptClientAttackRejectsInternalAndFastTicks(t *testing.T) {
 	}
 }
 
+func TestAcceptClientSkillIsIndependentFromPhysicalAttackCadence(t *testing.T) {
+	attackPkt := make([]byte, 48)
+	skillPkt := make([]byte, 48)
+	now := time.Unix(10, 0)
+	binary.LittleEndian.PutUint32(attackPkt[8:12], 1000)
+	p := &Player{}
+	if !acceptClientAttack(p, attackPkt, now) {
+		t.Fatal("ataque fisico inicial deveria ser aceito")
+	}
+	// A spell arriving immediately after the swing is a separate action. The
+	// old shared gate discarded it and produced one missing hit in short macro
+	// rotations.
+	binary.LittleEndian.PutUint32(skillPkt[8:12], 1200)
+	if !acceptClientSkill(p, skillPkt, 33, now.Add(10*time.Millisecond)) {
+		t.Fatal("skill valida foi bloqueada pelo ultimo ataque fisico")
+	}
+}
+
+func TestAcceptClientSkillRejectsReplayAndOnlyBusyLoops(t *testing.T) {
+	p := &Player{}
+	pkt := make([]byte, 48)
+	now := time.Unix(20, 0)
+	binary.LittleEndian.PutUint32(pkt[8:12], 2000)
+	if !acceptClientSkill(p, pkt, 33, now) {
+		t.Fatal("primeiro cast deveria ser aceito")
+	}
+	if acceptClientSkill(p, pkt, 33, now.Add(time.Second)) {
+		t.Fatal("replay do mesmo tick foi aceito")
+	}
+	binary.LittleEndian.PutUint32(pkt[8:12], 2100)
+	if acceptClientSkill(p, pkt, 34, now.Add(50*time.Millisecond)) {
+		t.Fatal("busy-loop de skills foi aceito")
+	}
+	binary.LittleEndian.PutUint32(pkt[8:12], 2200)
+	if !acceptClientSkill(p, pkt, 34, now.Add(skillPacketInterval)) {
+		t.Fatal("cast apos o piso de flood deveria ser aceito")
+	}
+}
+
 // TestAttackIntervalScalesWithSpeed garante que um char mais rapido tem um piso
 // de ataque menor -- o bug do felipe (velocidade travada em ~1 golpe/s).
 func TestAttackIntervalScalesWithSpeed(t *testing.T) {

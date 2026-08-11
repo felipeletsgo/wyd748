@@ -1013,24 +1013,24 @@ PR em draft permanece draft enquanto existir finding blocker conhecido.
 Estado entregue:
 
 ```text
-DOCS/IMPLEMENTATION_STATUS.md
+DOCS/IMPLEMENTED.md
 ```
 
-Roadmap:
+Único roadmap:
 
 ```text
-DOCS/plan.md
+DOCS/ROADMAP.md
 ```
 
-Documentação detalhada:
+Manuais locais que permanecem junto do artefato descrito:
 
 ```text
-DOCS/
+client748/PATCHES.md
+data/boss/README.md
 ```
 
-Não carregar toda a pasta por padrão.
-
-Abrir somente documentos diretamente relacionados à tarefa atual.
+Não recriar planos paralelos. Uma feature concluída sai de `ROADMAP.md` e entra em
+`IMPLEMENTED.md` no mesmo commit.
 
 Documentação descreve intenção e estado conhecido; código continua sendo a
 autoridade para auditoria da implementação.

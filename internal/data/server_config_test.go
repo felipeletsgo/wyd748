@@ -24,6 +24,7 @@ accounts = "/srv/wyd/accounts"
 heightmap = data/maps/HeightMap.dat
 attributemap = data/maps/AttributeMap.dat
 npcgener_log = verbose
+gameplay_log = quiet
 teleports = custom/teleports.ini
 exp_minimum = 10000
 exp_rate = 250
@@ -36,7 +37,7 @@ party_exp_bonus = 3
 	if cfg.ListenAddress != "127.0.0.1:9000" ||
 		cfg.AccountsPath != "/srv/wyd/accounts" ||
 		cfg.NPCPath != "data/npcs" ||
-		cfg.NPCGenerLog != "verbose" || cfg.TeleportPath != "custom/teleports.ini" ||
+		cfg.NPCGenerLog != "verbose" || cfg.GameplayLog != "quiet" || cfg.TeleportPath != "custom/teleports.ini" ||
 		cfg.HeightMapPath != "data/maps/HeightMap.dat" ||
 		cfg.Gameplay.EXPMinimum != 10_000 || cfg.Gameplay.EXPRatePercent != 250 ||
 		cfg.Gameplay.PartyEXPBonusPercent != 3 {
@@ -116,6 +117,7 @@ func TestLoadServerConfigRejectsTypoAndInvalidAddress(t *testing.T) {
 		"listen_address=0.0.0.0:99999\n",
 		"accounts\n",
 		"npcgener_log=debug\n",
+		"gameplay_log=debug\n",
 		"exp_minimum=-1\n",
 		"exp_rate=abc\n",
 		"exp_rate=100001\n",

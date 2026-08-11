@@ -999,14 +999,27 @@ func (w *World) onMove(s *net.Session, pkt []byte) {
 	}
 	startX, startY, wireRoute, authorityRoute, ok := w.validatedPlayerMoveRoute(p, pkt)
 	if !ok {
-		w.recordSecurityViolation(s, wire.OpAction, "rota/destino de movimento invalido")
+		w.recordSecurityViolation(s, wire.OpAction, movementPacketRejectionSummary(p, pkt))
 		return
 	}
 	x, y := actionTarget748(pkt)
 	if x == 0 || y == 0 || len(authorityRoute) == 0 || samePlayerMovementDestination(p, x, y) {
 		return
 	}
-	w.beginPlayerMovement(p, startX, startY, x, y, wireRoute, authorityRoute, w.now())
+	catchupSteps := 0
+	if len(wireRoute) > 0 && len(authorityRoute) > len(wireRoute) {
+		catchupSteps = len(authorityRoute) - len(wireRoute)
+	}
+	publishX, publishY, publishRoute := startX, startY, wireRoute
+	if catchupSteps > 0 && len(authorityRoute) <= maxMovementRouteBytes {
+		// O observador ainda conhece a última posição autoritativa. Quando a
+		// ponte cabe no wire, publique-a inteira para não encaixar o avatar no
+		// PosX/Y visual adiantado do remetente.
+		publishX, publishY = p.X, p.Y
+		publishRoute = authorityRoute
+	}
+	w.beginPlayerMovement(p, publishX, publishY, x, y, publishRoute, authorityRoute,
+		catchupSteps, w.now())
 }
 
 func actionTarget748(pkt []byte) (uint16, uint16) {
@@ -1059,21 +1072,26 @@ func (w *World) onIllusionMove(p *Player, pkt []byte) {
 		fromX, fromY, targetX, targetY, mana)
 }
 
-// onActionStop trata MSG_Stop (0x367, 52B). Ele usa o mesmo prefixo de
-// coordenadas do MSG_Action: PosX@12 e PosY@14.
+// onActionStop trata MSG_Stop (0x367, 52B). No 7.48, PosX/Y@12 e
+// TargetX/Y@24 descrevem um pequeno plano final; Route[24] vem zerada.
 func (w *World) onActionStop(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || !p.InWorld || p.Char == nil || len(pkt) < 52 {
+	if p == nil || !p.InWorld || p.Char == nil || len(pkt) != 52 {
 		return
 	}
-	x := binary.LittleEndian.Uint16(pkt[12:14])
-	y := binary.LittleEndian.Uint16(pkt[14:16])
-	if !w.validReportedStop(p, x, y) {
+	targetX, targetY, route, ok := w.validatedActionStopRoute(p, pkt)
+	if !ok {
 		w.recordSecurityViolation(s, wire.OpActionStop, "Stop tentou reposicionar o personagem")
 		return
 	}
-	w.publishPlayerStop(p)
-	w.refreshPlayerVisibility(p)
+	if len(route) == 0 {
+		w.publishPlayerStop(p)
+		w.refreshPlayerVisibility(p)
+		return
+	}
+	// O próprio client já anima sua parada localmente. Para os observadores,
+	// publique a rota reconstruída a partir da posição autoritativa atual.
+	w.beginPlayerMovement(p, p.X, p.Y, targetX, targetY, route, route, 0, w.now())
 }
 
 // onMoveStop: MSG_MOVESTOP 0x2CB (36B). CurrentX/Y ficam em @20/@24; o client
@@ -1341,6 +1359,41 @@ func acceptClientAttack(p *Player, pkt []byte, now time.Time) bool {
 	return true
 }
 
+// skillPacketInterval is only a flood floor.  The authoritative cadence of a
+// spell is SkillData.Delay, enforced by onSkillAttack/SkillReady.  Keeping a
+// separate, short floor prevents a modified client from turning the attack
+// opcode into a busy loop without making a normal swing suppress a spell cast.
+// The old implementation shared LastAttackAt/LastAttackTick between physical
+// attacks and skills; an auto-attack arriving a few milliseconds before a
+// valid spell caused exactly the "three of four hits" symptom seen in-game.
+const skillPacketInterval = 200 * time.Millisecond
+
+func acceptClientSkill(p *Player, pkt []byte, skillIndex int, now time.Time) bool {
+	if p == nil || len(pkt) < 12 || skillIndex < 0 {
+		return false
+	}
+	tick := binary.LittleEndian.Uint32(pkt[8:12])
+	if tick == 0 || tick == 0x0E0A1ACA {
+		return false
+	}
+	if p.LastSkillTicks == nil {
+		p.LastSkillTicks = make(map[int]uint32)
+	}
+	if previous, exists := p.LastSkillTicks[skillIndex]; exists {
+		// Same/retrograde client ticks are replays.  The unsigned comparison
+		// preserves GetTickCount wrap while rejecting a genuine rewind.
+		if tick == previous || (tick < previous && previous-tick < 0x80000000) {
+			return false
+		}
+	}
+	if !p.LastSkillAt.IsZero() && now.Sub(p.LastSkillAt) < skillPacketInterval {
+		return false
+	}
+	p.LastSkillTicks[skillIndex] = tick
+	p.LastSkillAt = now
+	return true
+}
+
 // onAttack: 0x39D/0x367/0x39E. O pacote fornece apenas a intenção de alvo por
 // TargetID. O servidor resolve esse ID e revalida existência, gameplay space,
 // distância, terreno/linha de visão e demais requisitos antes de aplicar o dano.
@@ -1355,19 +1408,26 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		return
 	}
 	w.cancelTrade(p, "jogador atacou")
-	// Anti-speed compartilhado: ataque fisico basico E skills respeitam o MESMO
-	// limite de ataques por periodo (acceptClientAttack, por velocidade de ataque
-	// do servidor). Por isso ele vem ANTES do dispatch de skill.
 	now := w.now()
-	if !acceptClientAttack(p, pkt, now) {
-		return
-	}
 	// SkillId@24 so identifica uma skill se ela foi realmente aprendida pela
 	// classe. O cliente 7.48 tambem preenche esse campo em variantes do ataque
 	// fisico de alcance; nesses casos o golpe precisa continuar aqui, nao virar
 	// uma tentativa silenciosamente rejeitada de usar skill.
 	if isLearnedClassSkill(p.Char, req.Skill) {
+		// Skills have their own native SkillData.Delay.  Do not apply the
+		// physical swing limiter here: auto-attacks and spells are independent
+		// actions in the client and may legitimately alternate in one second.
+		if !acceptClientSkill(p, pkt, req.Skill, now) {
+			metricSkillPacketRejected.Add(1)
+			return
+		}
+		metricSkillPacketAccepted.Add(1)
 		w.onSkillAttack(p, req)
+		return
+	}
+	// Normal attacks remain protected by the server-owned AttackRun cadence.
+	if !acceptClientAttack(p, pkt, now) {
+		metricPhysicalAttackRejected.Add(1)
 		return
 	}
 	// O alvo vem em @44 no layout compacto 7.48. Dano, posicao do atacante e
@@ -1476,7 +1536,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
 				m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
 		})
-		log.Printf("[#%d] atacou mob id=%d %q dmg=%d hp=%d/%d",
+		w.gameplayLogf("attack", "[#%d] atacou mob id=%d %q dmg=%d hp=%d/%d",
 			s.ID, m.ID, m.Def.Name, dmg, m.HP, m.Def.Extended.MaxHP)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"wydgo/internal/data"
 	"wydgo/internal/model"
 	"wydgo/internal/wire"
 )
@@ -259,22 +260,257 @@ func TestMovementAdvancesOnlyAsAuthoritativeTimePasses(t *testing.T) {
 		t.Fatalf("destino futuro virou autoridade: x=%d published=%v", p.X, p.MovePublished)
 	}
 
-	clock.Advance(80 * time.Millisecond)
+	clock.Advance(249 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2100 {
 		t.Fatalf("passo venceu antes do intervalo server-side: x=%d", p.X)
 	}
 
-	clock.Advance(20 * time.Millisecond) // runspeed 4: 12 tiles/s.
+	clock.Advance(time.Millisecond) // RunSpeed 4: um passo a cada 250 ms.
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2101 {
 		t.Fatalf("primeiro passo nao venceu no tempo esperado: x=%d", p.X)
 	}
 
-	clock.Advance(600 * time.Millisecond)
+	clock.Advance(1750 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2108 || p.MovePublished {
 		t.Fatalf("rota nao terminou no destino: x=%d published=%v", p.X, p.MovePublished)
+	}
+}
+
+func TestMovementUsesCaptured748RouteDirections(t *testing.T) {
+	tests := []struct {
+		encoded byte
+		dx      int
+		dy      int
+	}{
+		{encoded: '1', dx: -1, dy: -1},
+		{encoded: '2', dx: 0, dy: -1},
+		{encoded: '3', dx: 1, dy: -1},
+		{encoded: '4', dx: -1, dy: 0},
+		{encoded: '6', dx: 1, dy: 0},
+		{encoded: '7', dx: -1, dy: 1},
+		{encoded: '8', dx: 0, dy: 1},
+		{encoded: '9', dx: 1, dy: 1},
+	}
+
+	for _, test := range tests {
+		t.Run(string(test.encoded), func(t *testing.T) {
+			w, p, _ := handlerTestWorld(t)
+			w.terrain = loadedFlatTerrain()
+			clock := newFakeClock(time.Unix(100, 0))
+			w.clock = clock
+			originX, originY := p.X, p.Y
+			targetX := uint16(int(originX) + test.dx)
+			targetY := uint16(int(originY) + test.dy)
+
+			move := make([]byte, 52)
+			binary.LittleEndian.PutUint16(move[12:14], originX)
+			binary.LittleEndian.PutUint16(move[14:16], originY)
+			binary.LittleEndian.PutUint16(move[24:26], targetX)
+			binary.LittleEndian.PutUint16(move[26:28], targetY)
+			move[28] = test.encoded
+			w.onMove(p.Session, move)
+			if !p.MovePublished {
+				t.Fatalf("direcao nativa %q foi recusada", test.encoded)
+			}
+
+			clock.Advance(time.Second)
+			w.advancePlayerMovement(p, clock.Now())
+			if p.X != targetX || p.Y != targetY {
+				t.Fatalf("direcao %q terminou em (%d,%d), esperado (%d,%d)",
+					test.encoded, p.X, p.Y, targetX, targetY)
+			}
+			encoded := directMovementRoute(originX, originY, targetX, targetY)
+			if len(encoded) != 1 || encoded[0] != test.encoded {
+				t.Fatalf("encoder gerou %q para delta (%d,%d), esperado %q",
+					encoded, test.dx, test.dy, test.encoded)
+			}
+		})
+	}
+}
+
+func TestMovementContinuousReplansPreserveAuthoritativeCadence(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.terrain = loadedFlatTerrain()
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
+
+	originX := p.X
+	fromX := originX
+	for targetX := originX + 4; targetX <= originX+20; targetX += 4 {
+		move := make([]byte, 52)
+		binary.LittleEndian.PutUint16(move[12:14], fromX)
+		binary.LittleEndian.PutUint16(move[14:16], p.Y)
+		binary.LittleEndian.PutUint16(move[24:26], targetX)
+		binary.LittleEndian.PutUint16(move[26:28], p.Y)
+		for i := fromX; i < targetX; i++ {
+			move[28+int(i-fromX)] = '6'
+		}
+		w.advancePlayerMovement(p, clock.Now())
+		w.onMove(p.Session, move)
+		fromX = targetX
+		clock.Advance(50 * time.Millisecond)
+	}
+
+	// RunSpeed 4 equivale a 4 tiles/s. Atualizar o destino a cada 50 ms nao
+	// pode reiniciar indefinidamente o relogio do primeiro passo.
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X < 2101 {
+		t.Fatalf("replanejamento continuo congelou autoridade em x=%d", p.X)
+	}
+}
+
+func TestMovementBridgesSkippedClientSegmentWithoutGrantingFutureAuthority(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.terrain = loadedFlatTerrain()
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
+
+	first := make([]byte, 52)
+	binary.LittleEndian.PutUint16(first[12:14], p.X)
+	binary.LittleEndian.PutUint16(first[14:16], p.Y)
+	binary.LittleEndian.PutUint16(first[24:26], p.X+7)
+	binary.LittleEndian.PutUint16(first[26:28], p.Y)
+	copy(first[28:], []byte("6666666"))
+	w.onMove(p.Session, first)
+
+	clock.Advance(50 * time.Millisecond)
+	w.advancePlayerMovement(p, clock.Now())
+
+	// O 7.48 envia planos continuamente. Se um segmento intermediario nao
+	// chegou, o proximo PosX pode estar poucos tiles alem do destino publicado,
+	// mas o servidor ainda deve percorrer todo o corredor no seu proprio tempo.
+	second := make([]byte, 52)
+	binary.LittleEndian.PutUint16(second[12:14], p.X+10)
+	binary.LittleEndian.PutUint16(second[14:16], p.Y)
+	binary.LittleEndian.PutUint16(second[24:26], p.X+18)
+	binary.LittleEndian.PutUint16(second[26:28], p.Y)
+	copy(second[28:], []byte("66666666"))
+	w.onMove(p.Session, second)
+	if p.X != 2100 {
+		t.Fatalf("origem futura virou autoridade imediatamente: x=%d", p.X)
+	}
+	if !p.MovePublished || p.MovePublishedTargetX != 2118 {
+		t.Fatalf("segmento continuo nao foi reconciliado: published=%v target=%d",
+			p.MovePublished, p.MovePublishedTargetX)
+	}
+
+	clock.Advance(5 * time.Second)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2118 || p.Y != 2100 {
+		t.Fatalf("corredor reconciliado nao chegou ao destino: (%d,%d)", p.X, p.Y)
+	}
+}
+
+func TestMovementReconcilesCurvedVisualLeadWithoutLineOfSight(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.terrain = loadedFlatTerrain()
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
+	p.X, p.Y = 1116, 1713
+	p.Char.X, p.Char.Y = p.X, p.Y
+
+	// A reta autoridade->Pos cruza uma célula bloqueada, mas existe uma curva
+	// curta válida. Este é o formato do primeiro pacote recusado no teste real:
+	// auth=(1116,1713), Pos=(1114,1710), Target=(1116,1707), Route="233".
+	w.terrain.Height[1712*model.TerrainWidth+1115] = model.TerrainBlockedByte
+	if w.terrain.LineOfSight(1116, 1713, 1114, 1710) {
+		t.Fatal("fixture deveria bloquear apenas a ponte em linha reta")
+	}
+	move := make([]byte, 52)
+	binary.LittleEndian.PutUint16(move[12:14], 1114)
+	binary.LittleEndian.PutUint16(move[14:16], 1710)
+	binary.LittleEndian.PutUint32(move[16:20], 6)
+	binary.LittleEndian.PutUint16(move[24:26], 1116)
+	binary.LittleEndian.PutUint16(move[26:28], 1707)
+	copy(move[28:], []byte("233"))
+	w.onMove(p.Session, move)
+	if !p.MovePublished || p.X != 1116 || p.Y != 1713 {
+		t.Fatalf("ponte curva foi recusada ou aplicada como salto: moving=%v pos=(%d,%d)",
+			p.MovePublished, p.X, p.Y)
+	}
+	clock.Advance(2 * time.Second)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 1116 || p.Y != 1707 || p.MovePublished {
+		t.Fatalf("ponte curva nao terminou no destino: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
+	}
+}
+
+func TestMovementAcceptsCapturedNoatumReplanOnAuthoritativeTerrain(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	terrain, err := data.LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.terrain = terrain
+	p.X, p.Y = 1116, 1713
+	p.Char.X, p.Char.Y = p.X, p.Y
+	p.Char.Extended.AttackRun = 6
+	applyExtendedScore(p.Char)
+
+	// Primeiro pacote da captura que iniciou a cascata de recusas em Noatum.
+	move := make([]byte, 52)
+	binary.LittleEndian.PutUint16(move[12:14], 1114)
+	binary.LittleEndian.PutUint16(move[14:16], 1710)
+	binary.LittleEndian.PutUint32(move[16:20], 6)
+	binary.LittleEndian.PutUint16(move[24:26], 1116)
+	binary.LittleEndian.PutUint16(move[26:28], 1707)
+	copy(move[28:], []byte("233"))
+	w.onMove(p.Session, move)
+	if !p.MovePublished || p.MovePublishedTargetX != 1116 || p.MovePublishedTargetY != 1707 {
+		t.Fatalf("replanejamento real de Noatum foi recusado: moving=%v target=(%d,%d)",
+			p.MovePublished, p.MovePublishedTargetX, p.MovePublishedTargetY)
+	}
+	if p.MovePublishedStartX != 1116 || p.MovePublishedStartY != 1713 {
+		t.Fatalf("observer recebeu origem visual adiantada em vez da autoridade: (%d,%d)",
+			p.MovePublishedStartX, p.MovePublishedStartY)
+	}
+	x, y := int(p.MovePublishedStartX), int(p.MovePublishedStartY)
+	for _, encoded := range p.MovePublishedRoute {
+		if encoded == 0 {
+			break
+		}
+		direction := routeDirections[encoded]
+		x, y = x+direction[0], y+direction[1]
+	}
+	if x != 1116 || y != 1707 {
+		t.Fatalf("rota publicada ao observer terminou em (%d,%d)", x, y)
+	}
+}
+
+func TestMovementVisualCatchupUsesMaximumSpeedWithoutAcceleratingFutureRoute(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.terrain = loadedFlatTerrain()
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
+	p.Char.Extended.AttackRun = 1
+	applyExtendedScore(p.Char)
+
+	// Seis passos até o Pos já percorrido visualmente + um passo futuro.
+	move := make([]byte, 52)
+	binary.LittleEndian.PutUint16(move[12:14], p.X+6)
+	binary.LittleEndian.PutUint16(move[14:16], p.Y)
+	binary.LittleEndian.PutUint16(move[24:26], p.X+7)
+	binary.LittleEndian.PutUint16(move[26:28], p.Y)
+	move[28] = '6'
+	w.onMove(p.Session, move)
+
+	clock.Advance(time.Second)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2106 || p.Y != 2100 {
+		t.Fatalf("catch-up nao usou velocidade maxima: (%d,%d)", p.X, p.Y)
+	}
+	clock.Advance(999 * time.Millisecond)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2106 {
+		t.Fatalf("trecho futuro foi acelerado junto com catch-up: x=%d", p.X)
+	}
+	clock.Advance(time.Millisecond)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2107 || p.MovePublished {
+		t.Fatalf("trecho futuro nao respeitou RunSpeed 1: x=%d moving=%v", p.X, p.MovePublished)
 	}
 }
 
@@ -302,7 +538,7 @@ func TestMovementCollisionUsesPlayersGameplaySpace(t *testing.T) {
 	binary.LittleEndian.PutUint16(move[26:28], p.Y)
 	move[28] = '6'
 	w.onMove(p.Session, move)
-	clock.Advance(100 * time.Millisecond)
+	clock.Advance(250 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2101 {
 		t.Fatalf("mob publico bloqueou runtime privado: x=%d", p.X)
@@ -316,10 +552,50 @@ func TestMovementCollisionUsesPlayersGameplaySpace(t *testing.T) {
 	binary.LittleEndian.PutUint16(move[12:14], p.X)
 	binary.LittleEndian.PutUint16(move[24:26], p.X+1)
 	w.onMove(p.Session, move)
-	clock.Advance(100 * time.Millisecond)
+	clock.Advance(250 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2101 {
 		t.Fatalf("jogador atravessou entidade do proprio runtime: x=%d", p.X)
+	}
+}
+
+func TestMovementCrossesOccupiedIntermediateTileButNotOccupiedDestination(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.terrain = loadedFlatTerrain()
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
+
+	// O NPC está no meio da rota, como as lojas de teste em Armia. O client
+	// nativo permite atravessá-lo porque o destino final continua livre.
+	npc := &Mob{ID: 1000, X: p.X + 2, Y: p.Y, HP: 100,
+		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100, Merchant: 1})}
+	w.appendMobInstance(npc)
+	w.registerMobSpatial(npc)
+	move := make([]byte, 52)
+	binary.LittleEndian.PutUint16(move[12:14], p.X)
+	binary.LittleEndian.PutUint16(move[14:16], p.Y)
+	binary.LittleEndian.PutUint16(move[24:26], p.X+4)
+	binary.LittleEndian.PutUint16(move[26:28], p.Y)
+	copy(move[28:], []byte("6666"))
+	w.onMove(p.Session, move)
+	clock.Advance(time.Second)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2104 || p.Y != 2100 || p.MovePublished {
+		t.Fatalf("NPC intermediario interrompeu a rota: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
+	}
+
+	// A coordenada final ocupada continua bloqueada server-side.
+	w.unregisterMobSpatial(npc)
+	npc.X = p.X + 2
+	w.registerMobSpatial(npc)
+	binary.LittleEndian.PutUint16(move[12:14], p.X)
+	binary.LittleEndian.PutUint16(move[24:26], p.X+2)
+	move[28], move[29], move[30] = '6', '6', 0
+	w.onMove(p.Session, move)
+	clock.Advance(500 * time.Millisecond)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2105 || p.Y != 2100 || p.MovePublished {
+		t.Fatalf("destino ocupado nao foi bloqueado: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
 	}
 }
 
@@ -436,15 +712,75 @@ func TestStopPacketsCannotRepositionPlayer(t *testing.T) {
 
 func TestStopCannotClaimFutureValidatedRoutePosition(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
+	w.terrain = loadedFlatTerrain()
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
 	p.MovePublished = true
 	p.MovePublishedStartX, p.MovePublishedStartY = 2100, 2100
 	p.MovePublishedTargetX, p.MovePublishedTargetY = 2110, 2100
 	copy(p.MovePublishedRoute[:], []byte("6666666666"))
-	if w.validReportedStop(p, 2105, 2100) {
-		t.Fatal("Stop promoveu uma coordenada futura apenas por pertencer a Route[24]")
+	p.MoveAuthorityRoute = []byte("6666666666")
+	p.MoveAuthorityX, p.MoveAuthorityY = p.X, p.Y
+	p.MoveAuthorityStepInterval = movementStepInterval(p)
+	p.MoveAuthorityStartedAt = clock.Now()
+
+	stop := make([]byte, 52)
+	binary.LittleEndian.PutUint16(stop[12:14], 2100)
+	binary.LittleEndian.PutUint16(stop[14:16], 2100)
+	binary.LittleEndian.PutUint16(stop[24:26], 2105)
+	binary.LittleEndian.PutUint16(stop[26:28], 2100)
+	w.onActionStop(p.Session, stop)
+	if p.X != 2100 || p.Y != 2100 {
+		t.Fatalf("Stop promoveu destino futuro imediatamente: (%d,%d)", p.X, p.Y)
 	}
-	if !w.validReportedStop(p, 2100, 2100) {
-		t.Fatal("Stop na coordenada autoritativa atual foi recusado")
+	clock.Advance(1250 * time.Millisecond)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2105 || p.Y != 2100 {
+		t.Fatalf("Stop nao chegou pelo relogio autoritativo: (%d,%d)", p.X, p.Y)
+	}
+}
+
+func TestActionStopAcceptsNative748FiveTileFinalPlan(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.terrain = loadedFlatTerrain()
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
+	p.X, p.Y = 2485, 2016
+	p.Char.X, p.Char.Y = p.X, p.Y
+
+	// Captura real 7.48: Pos=(2485,2016), Speed=3,
+	// Target=(2480,2015), Route[24] zerada.
+	stop := make([]byte, 52)
+	binary.LittleEndian.PutUint16(stop[12:14], 2485)
+	binary.LittleEndian.PutUint16(stop[14:16], 2016)
+	binary.LittleEndian.PutUint32(stop[16:20], 3)
+	binary.LittleEndian.PutUint16(stop[24:26], 2480)
+	binary.LittleEndian.PutUint16(stop[26:28], 2015)
+	w.onActionStop(p.Session, stop)
+	if p.X != 2485 || p.Y != 2016 {
+		t.Fatalf("ActionStop concedeu destino antecipado: (%d,%d)", p.X, p.Y)
+	}
+	if !p.MovePublished || p.MovePublishedTargetX != 2480 || p.MovePublishedTargetY != 2015 {
+		t.Fatal("ActionStop nativo nao criou o plano final autoritativo")
+	}
+	clock.Advance(1250 * time.Millisecond) // RunSpeed 4: cinco passos.
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2480 || p.Y != 2015 || p.MovePublished {
+		t.Fatalf("ActionStop nao terminou no alvo: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
+	}
+}
+
+func TestActionStopRejectsRouteLongerThanNativeLimit(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.terrain = loadedFlatTerrain()
+	stop := make([]byte, 52)
+	binary.LittleEndian.PutUint16(stop[12:14], p.X)
+	binary.LittleEndian.PutUint16(stop[14:16], p.Y)
+	binary.LittleEndian.PutUint16(stop[24:26], p.X+7)
+	binary.LittleEndian.PutUint16(stop[26:28], p.Y)
+	w.onActionStop(p.Session, stop)
+	if p.X != 2100 || p.Y != 2100 || p.MovePublished {
+		t.Fatalf("ActionStop invalido alterou movimento: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
 	}
 }
 

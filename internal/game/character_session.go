@@ -85,6 +85,8 @@ func resetCharacterRuntime(p *Player) {
 	p.LastAttackerID = 0
 	p.LastAttackAt = time.Time{}
 	p.LastAttackTick = 0
+	p.LastSkillAt = time.Time{}
+	p.LastSkillTicks = nil
 	p.AttackProgress = 0
 	p.DeadAt = time.Time{}
 	p.PKMode = false
@@ -110,6 +112,7 @@ func resetCharacterRuntime(p *Player) {
 	p.MovePublishedRoute = [maxMovementRouteBytes]byte{}
 	p.MoveAuthorityRoute = nil
 	p.MoveAuthorityStep = 0
+	p.MoveAuthorityCatchupSteps = 0
 	p.MoveAuthorityX = 0
 	p.MoveAuthorityY = 0
 	p.MoveAuthorityStartedAt = time.Time{}

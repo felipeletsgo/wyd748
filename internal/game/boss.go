@@ -7,7 +7,7 @@ import (
 
 // boss.go -- runtime e registro dos bosses.
 //
-// ARQUITETURA (DOCS/boss_inteligente.md §2): todo boss E um Mob comum e
+// ARQUITETURA (DOCS/IMPLEMENTED.md, Bosses): todo boss E um Mob comum e
 // continua participando de grid, visibilidade, combate, morte e pacotes como
 // qualquer outro. O comportamento extra vive num BossRuntime PARALELO, indexado
 // pelo ID do mob. Consequencias praticas:

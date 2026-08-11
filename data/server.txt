@@ -39,6 +39,9 @@ network_admission=data/network_admission.json
 
 # Log do gerador: quiet, summary ou verbose
 npcgener_log=summary
+# Diagnosticos quentes de combate/loot: summary evita uma escrita por hit.
+# Use verbose somente durante uma reproducao curta; quiet desliga tambem o resumo.
+gameplay_log=summary
 
 # Diretorio dos bosses (um .lua por encontro). Bosses NAO vem do NPCGener:
 # posicao e respawn sao do proprio arquivo. Veja data/boss/README.md.
