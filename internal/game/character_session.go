@@ -41,6 +41,27 @@ func (w *World) removePlayerFromWorld(p *Player, reason string) {
 	resetCharacterRuntime(p)
 }
 
+// returnToCharacterSelectionAfterCommittedChange encerra somente o personagem
+// depois que uma mutacao estrutural ja foi confirmada no store. Arch e
+// Celestial alteram corpo, score e/ou a propria lista de personagens; tentar
+// reconstruir tudo no FieldScene deixa partes do client 7.48 com o estado
+// anterior. O 0x116 faz a transicao nativa e o 0x110 seguinte substitui os
+// quatro slots da selecao pelo agregado autoritativo recem-persistido.
+//
+// Esta funcao deliberadamente NAO salva de novo: uma falha posterior nao pode
+// transformar um commit de evolucao bem-sucedido em rollback apenas em RAM.
+func (w *World) returnToCharacterSelectionAfterCommittedChange(p *Player, reason string) {
+	if p == nil || p.Session == nil || p.Account == nil || !p.InWorld || p.ID == 0 {
+		return
+	}
+	s := p.Session
+	charID := p.ID
+	w.removePlayerFromWorld(p, reason)
+	w.flushInstanceStateIfDirty()
+	s.Send(wire.CNFCharacterLogout(charID))
+	s.Send(wire.CNFNewCharacter(uint16(s.ID), p.Account.Chars))
+}
+
 // resetCharacterRuntime zera TODO estado do Player que pertence ao PERSONAGEM,
 // preservando apenas o que e da sessao (Session, Account).
 //

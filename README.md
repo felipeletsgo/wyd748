@@ -104,7 +104,9 @@ The server has these systems. The server has authority on each system.
 - **Skills** — The server has code paths for the 104-skill catalog. The four
   classes are TK, Foema, BeastMaster, and Huntress. The catalog includes
   multi-target magic, healing, buffs, transformations, BeastMaster summons, and
-  the five Sephira skills.
+  the five Sephira skills. Arch, Celestial, and SubCelestial may buy a skill
+  regardless of its level requirement; class, skill points, mastery,
+  prerequisite chains, and gold remain server-authoritative.
 - **Party** — A party can have a maximum of 13 players. The party has a chat
   channel. Each near member gets the full experience and a configurable bonus
   for each member.
@@ -202,6 +204,14 @@ The server has these systems. The server has authority on each system.
   table, level 40/90 locks, cumulative late-level combat EXP reductions,
   Cythera milestones, Soul of Limits, Fury/Arcana, city-only form switching,
   and the native Spirit's Seal capsule/extraction flow.
+  Creating an Arch or Celestial returns the player to character selection and
+  refreshes all four slots after persistence, ensuring the 7.48 client reloads
+  the evolved body, score, and skills. A Celestial creation is announced to
+  every online player in English.
+  Their combat score follows the normal W2PP evolution branch: Arch has its own
+  HP/MP and defense progression, while Celestial/SubCelestial receive the
+  crystal-dependent defense and class HP/MP package, with the 399-level base
+  applied only to physical attack.
 - **Boss encounters** — A boss is a normal mob with a parallel behavior
   runtime. Four behaviors are compiled into the server: chaser, caster,
   summoner, and phased. You configure each encounter in a Lua file in

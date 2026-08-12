@@ -45,6 +45,88 @@ func TestLearnSkillAtMasterPersistsAndRollsBack(t *testing.T) {
 	}
 }
 
+func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
+	tests := []struct {
+		name      string
+		evolution string
+		learned   bool
+	}{
+		{name: "mortal", learned: false},
+		{name: "arch", evolution: archEvolution, learned: true},
+		{name: "celestial", evolution: "celestial", learned: true},
+		{name: "subcelestial", evolution: "subcelestial", learned: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			w, p, st := handlerTestWorld(t)
+			p.Char.Class = 0
+			p.Char.Evolution = test.evolution
+			p.Char.Extended.Level = 0
+			p.Char.Extended.Str = uint32(baseClassStats[0][0])
+			p.Char.Extended.Int = uint32(baseClassStats[0][1])
+			p.Char.Extended.Dex = uint32(baseClassStats[0][2])
+			p.Char.Extended.Con = uint32(baseClassStats[0][3])
+			w.skills = map[int]model.SkillDef{0: {
+				Index: 0, Name: "LevelRestricted", SkillPoint: 1,
+			}}
+			w.items[5000] = model.ItemDef{Index: 5000, ReqLevel: 399}
+			master := &Mob{
+				ID: 1200, X: p.X + 1, Y: p.Y,
+				Def: &model.NPCDef{
+					Name: "Master", Tipo: model.TipoNPC,
+					Extended: &model.ExtendedScore{
+						Version: model.ExtendedScoreVersion, Merchant: skillMasterMerchant,
+					},
+					Vende: []model.Item{{Index: 5000}},
+				},
+			}
+			w.registerMobSpatial(master)
+			p.ShopNPC = master.ID
+
+			w.onLearnSkillAtMaster(p.Session, p, 5000, master.ID)
+			got := p.Char.LearnedSkill&1 != 0
+			if got != test.learned {
+				t.Fatalf("aprendida=%t, quer %t", got, test.learned)
+			}
+			wantSaves := 0
+			if test.learned {
+				wantSaves = 1
+			}
+			if st.saves != wantSaves {
+				t.Fatalf("saves=%d, quer %d", st.saves, wantSaves)
+			}
+		})
+	}
+
+	t.Run("mastery continua obrigatoria", func(t *testing.T) {
+		w, p, st := handlerTestWorld(t)
+		p.Char.Class = 0
+		p.Char.Evolution = archEvolution
+		p.Char.Extended.Level = 0
+		w.skills = map[int]model.SkillDef{0: {
+			Index: 0, Name: "MasteryRestricted", SkillPoint: 1,
+		}}
+		w.items[5000] = model.ItemDef{Index: 5000, ReqLevel: 399, ReqInt: 1}
+		master := &Mob{
+			ID: 1200, X: p.X + 1, Y: p.Y,
+			Def: &model.NPCDef{
+				Name: "Master", Tipo: model.TipoNPC,
+				Extended: &model.ExtendedScore{
+					Version: model.ExtendedScoreVersion, Merchant: skillMasterMerchant,
+				},
+				Vende: []model.Item{{Index: 5000}},
+			},
+		}
+		w.registerMobSpatial(master)
+		p.ShopNPC = master.ID
+
+		w.onLearnSkillAtMaster(p.Session, p, 5000, master.ID)
+		if p.Char.LearnedSkill&1 != 0 || st.saves != 0 {
+			t.Fatal("bypass de level ignorou indevidamente o requisito de mastery")
+		}
+	})
+}
+
 func TestSkillAttackPvEAppliesDamageManaAndDebuff(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.Char.Class = 1

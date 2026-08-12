@@ -61,7 +61,7 @@ func TestRecalcExtendedUsesAllAttributes(t *testing.T) {
 	if e.Attack != 33 {
 		t.Fatalf("attack=%d, esperado 33", e.Attack)
 	}
-	if e.Defense != 11 || e.MaxHP != 130 || e.MaxMP != 60 {
+	if e.Defense != 21 || e.MaxHP != 130 || e.MaxMP != 60 {
 		t.Fatalf("derivados incorretos: %+v", e)
 	}
 	if e.Accuracy == 0 || e.Evasion == 0 || e.MagicAttack == 0 {

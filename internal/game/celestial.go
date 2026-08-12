@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -74,13 +75,15 @@ func newCelestialScore(class byte, previous *model.ExtendedScore) *model.Extende
 	if class > 3 {
 		class = 0
 	}
-	attack := [...]uint32{5, 6, 5, 9}[class]
+	natural := baseClassStats[class]
 	score := &model.ExtendedScore{
 		Version: model.ExtendedScoreVersion,
-		Attack:  attack, Defense: 4,
+		// Ramo normal (isHardCore=0) da Pedra Ideal no W2PP.
+		Attack: 488, Defense: 954,
 		MaxHP: uint32(baseClassHPMP[class][0]),
 		MaxMP: uint32(baseClassHPMP[class][1]),
-		Str:   5, Int: 5, Dex: 5, Con: 5,
+		Str:   uint32(natural[0]), Int: uint32(natural[1]),
+		Dex: uint32(natural[2]), Con: uint32(natural[3]),
 		MasterPts: 855,
 	}
 	if previous != nil {
@@ -92,6 +95,61 @@ func newCelestialScore(class byte, previous *model.ExtendedScore) *model.Extende
 	}
 	score.CurHP, score.CurMP = score.MaxHP, score.MaxMP
 	return score
+}
+
+// migrateLegacyEvolutionScores reconhece exclusivamente a assinatura que as
+// versoes anteriores do emulador gravavam ao criar Celestial/Sub: ATK da
+// template Mortal e DEF 4. A migracao preserva os pontos distribuidos sobre a
+// antiga base uniforme 5 e troca somente as bases confirmadas no W2PP normal.
+// Scores customizados ou ja migrados nao sao tocados.
+func migrateLegacyEvolutionScores(acc *model.Account) bool {
+	if acc == nil {
+		return false
+	}
+	changed := false
+	for i := range acc.Chars {
+		ch := &acc.Chars[i]
+		if migrateLegacyCelestialScore(ch.Extended, ch.Class, ch.Evolution, ch.ArchCrystals) {
+			changed = true
+		}
+		if ch.AlternateCelestial != nil && migrateLegacyCelestialScore(
+			ch.AlternateCelestial.Extended,
+			ch.AlternateCelestial.Class,
+			ch.AlternateCelestial.Evolution,
+			ch.ArchCrystals,
+		) {
+			changed = true
+		}
+	}
+	return changed
+}
+
+func migrateLegacyCelestialScore(score *model.ExtendedScore, class byte,
+	evolution string, crystals byte) bool {
+	if score == nil || class > 3 ||
+		!(strings.EqualFold(strings.TrimSpace(evolution), "celestial") ||
+			strings.EqualFold(strings.TrimSpace(evolution), "subcelestial")) {
+		return false
+	}
+	legacyAttack := [...]uint32{5, 6, 5, 9}[class]
+	if score.Attack != legacyAttack || score.Defense != 4 {
+		return false
+	}
+	natural := baseClassStats[class]
+	score.Str = migrateLegacyNaturalStat(score.Str, natural[0])
+	score.Int = migrateLegacyNaturalStat(score.Int, natural[1])
+	score.Dex = migrateLegacyNaturalStat(score.Dex, natural[2])
+	score.Con = migrateLegacyNaturalStat(score.Con, natural[3])
+	score.Attack = 488
+	score.Defense = celestialBaseDefense(crystals)
+	return true
+}
+
+func migrateLegacyNaturalStat(value uint32, natural uint16) uint32 {
+	if value <= 5 {
+		return uint32(natural)
+	}
+	return value - 5 + uint32(natural)
 }
 
 // markCelestialFace projeta no item de rosto os dois bytes que o client 7.48
@@ -283,6 +341,7 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	markCelestialFace(&ch.Equip[0], ch.Evolution)
 	ch.Exp = 0
 	ch.Extended = newCelestialScore(ch.Class, snapshot.Extended)
+	ch.Extended.Defense = celestialBaseDefense(snapshot.ArchCrystals)
 	ch.ExtendedRuntime = nil
 	ch.LearnedSkill = celestialSoulBit
 	ch.SecondaryLearnedSkill = 0
@@ -317,12 +376,11 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 		s.Send(wire.MessagePanel("Save failed. The Ideal Stone was not consumed."))
 		return
 	}
-	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-	s.Send(wire.SendItem(p.ID, placeEquip, 1, ch.Equip[1]))
-	s.Send(wire.SendItem(p.ID, placeEquip, model.CapeSlot, ch.Equip[model.CapeSlot]))
-	w.syncCelestialPlayer(p)
-	s.Send(wire.MessagePanel("Your character is now Celestial."))
+	s.Send(wire.MessagePanel("Your character is now Celestial. Re-enter it from character selection."))
+	announcement := fmt.Sprintf("The character %s has become Celestial!", ch.Name)
+	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
 	log.Printf("[#%d] CELESTIAL criado tierArch=%d cythera=%d", s.ID, tier, cytheraIndex)
+	w.returnToCharacterSelectionAfterCommittedChange(p, "criacao de Celestial")
 }
 
 func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, slot byte) {
@@ -369,6 +427,7 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 		Extended:     newCelestialScore(byte(subClass), ch.Extended),
 		LearnedSkill: celestialSoulBit,
 	}
+	ch.AlternateCelestial.Extended.Defense = celestialBaseDefense(ch.ArchCrystals)
 	consumeOne(item)
 	ch.Equip[sefirotSlot] = model.Item{}
 	target := addToInv(ch, mystery)

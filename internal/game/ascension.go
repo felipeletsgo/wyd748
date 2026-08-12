@@ -364,7 +364,6 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 
 	s.Send(wire.SendItem(p.ID, placeEquip, eternalStoneSlot, p.Char.Equip[eternalStoneSlot]))
 	s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, p.Char.Equip[sefirotSlot]))
-	w.refreshAppearance(p)
 	s.Send(wire.MessagePanel("Your Arch has been created. It awaits at character selection."))
 	// Anuncio ao mundo, DEPOIS do save: ascensao que falhou nao vira noticia.
 	// Mesmo canal e cor do /spk ([SERVER], cor 7). "God" e o termo em ingles
@@ -373,6 +372,7 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
 	log.Printf("[#%d] ARCH criado nome=%q classe=%d slot=%d rosto=%d (mortal nivel=%d)",
 		s.ID, arch.Name, class, slot, arch.Equip[0].Index, p.Char.Extended.Level)
+	w.returnToCharacterSelectionAfterCommittedChange(p, "criacao de Arch")
 	return true
 }
 

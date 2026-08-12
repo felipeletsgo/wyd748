@@ -275,6 +275,8 @@ func TestArchCreatedKeepsMortalAndName(t *testing.T) {
 	w, p, _ := newAscensionWorld(t)
 	prepareArchCandidate(p, 1) // Foema
 	mortalName := p.Char.Name
+	mortalUID := p.Char.UID
+	packetsBefore := p.Session.QueuedPacketsForTest()
 
 	if !w.createArch(p.Session, p) {
 		t.Fatal("a ascensao deveria ser tratada")
@@ -293,17 +295,26 @@ func TestArchCreatedKeepsMortalAndName(t *testing.T) {
 	if arch.Evolution != archEvolution {
 		t.Errorf("evolucao=%q, quer %q", arch.Evolution, archEvolution)
 	}
-	if arch.UID == "" || arch.UID == p.Char.UID || arch.ArchMortalUID != p.Char.UID {
+	if arch.UID == "" || arch.UID == mortalUID || arch.ArchMortalUID != mortalUID {
 		t.Errorf("identidade Arch invalida: mortal=%q arch=%q origem=%q",
-			p.Char.UID, arch.UID, arch.ArchMortalUID)
+			mortalUID, arch.UID, arch.ArchMortalUID)
 	}
 	// Rosto: Mortal Foema 11 + 5 + classe 1 = 17.
 	if arch.Equip[0].Index != 17 {
 		t.Errorf("rosto do Arch=%d, quer 17", arch.Equip[0].Index)
 	}
 	// Os itens da ascensao sao consumidos.
-	if p.Char.Equip[eternalStoneSlot].Index != 0 || p.Char.Equip[sefirotSlot].Index != 0 {
+	if p.Account.Chars[0].Equip[eternalStoneSlot].Index != 0 ||
+		p.Account.Chars[0].Equip[sefirotSlot].Index != 0 {
 		t.Error("Pedra e Sefirot deveriam ser consumidos")
+	}
+	if p.InWorld || p.Char != nil || p.ID != 0 {
+		t.Fatal("criacao do Arch deve devolver obrigatoriamente a selecao")
+	}
+	// Aviso + itens consumidos + 0x116 + 0x110. A contagem exata dos pacotes
+	// anteriores nao importa; os dois ultimos formam a transicao e o refresh.
+	if got := p.Session.QueuedPacketsForTest(); got < packetsBefore+2 {
+		t.Fatalf("selecao nao recebeu os pacotes de transicao: %d -> %d", packetsBefore, got)
 	}
 }
 

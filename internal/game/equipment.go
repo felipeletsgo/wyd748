@@ -320,24 +320,38 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	}
 
 	level := int64(base.Level)
+	combatLevel := level
+	if isCelestialEvolution(ch) {
+		// No score nativo Celestial/Sub conta como nivel atual + MAX_LEVEL.
+		combatLevel += int64(maxMortalLevel)
+	}
 	physical := int64(base.Attack) + int64(w.equipmentDamage(ch)) +
-		str/3 + dex/4 + special[0] + level
+		str/3 + dex/4 + special[0] + combatLevel
+	defensePerLevel := int64(1)
+	if isArch(ch) || isCelestialEvolution(ch) {
+		defensePerLevel = 2
+	}
 	defense := int64(base.Defense) + int64(w.equipmentDefense(ch)) +
-		dex/5 + special[3]/2
+		dex/5 + special[3]/2 + level*defensePerLevel
 
 	class := int(ch.Class)
 	maxHP, maxMP := int64(base.MaxHP), int64(base.MaxMP)
 	if class >= 0 && class < len(baseClassStats) {
 		naturalInt, naturalCon := int64(baseClassStats[class][1]), int64(baseClassStats[class][3])
 		hpPerLevel, mpPerLevel := mortalHPPerLevel[class], mortalMPPerLevel[class]
-		if isCelestialEvolution(ch) {
-			naturalInt, naturalCon = 5, 5
-			// g_pBASE_IncrementStatus colunas CELESTIAL+ da 7.54.
-			hpPerLevel = [4]int{5, 2, 2, 3}[class]
-			mpPerLevel = [4]int{2, 4, 5, 3}[class]
+		hpMPLevel := level
+		if isArch(ch) {
+			hpPerLevel, mpPerLevel = archHPPerLevel[class], archMPPerLevel[class]
+		} else if isCelestialEvolution(ch) {
+			hpPerLevel, mpPerLevel = archHPPerLevel[class], archMPPerLevel[class]
 		}
-		maxHP += 2*(con-naturalCon) + level*int64(hpPerLevel)
-		maxMP += 2*(intel-naturalInt) + level*int64(mpPerLevel)
+		maxHP += 2*(con-naturalCon) + hpMPLevel*int64(hpPerLevel)
+		maxMP += 2*(intel-naturalInt) + hpMPLevel*int64(mpPerLevel)
+		if isCelestialEvolution(ch) {
+			bonusHP, bonusMP := celestialHPMPBonus(class, ch.ArchCrystals)
+			maxHP += bonusHP
+			maxMP += bonusMP
+		}
 	}
 	maxHP += total("EF_HP") + special[3]*2
 	maxMP += total("EF_MP")

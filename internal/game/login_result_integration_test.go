@@ -119,6 +119,28 @@ func TestLoginResultRejectsAuthErrorDuplicateAndReloadFailure(t *testing.T) {
 		}
 	})
 
+	t.Run("migracao Celestial", func(t *testing.T) {
+		session := newLoginTestSession(1, 16)
+		fresh := loginTestAccount()
+		fresh.Chars[0].Class = 0
+		fresh.Chars[0].Evolution = "celestial"
+		fresh.Chars[0].Extended.Attack = 5
+		fresh.Chars[0].Extended.Defense = 4
+		st := &loginReloadStore{account: fresh}
+		st.err = errors.New("database unavailable")
+		w := loginResultWorld(st, session)
+
+		w.onLoginResult(session, &loginResult{
+			accountName: "Felipe", account: loginTestAccount(),
+		})
+
+		if st.saves != 1 || w.players[session] != nil ||
+			len(w.accountSessions) != 0 || len(w.authClientsByIP) != 0 ||
+			session.QueuedPacketsForTest() == 0 {
+			t.Fatal("falha da migracao Celestial publicou a conta ou reteve a admissao")
+		}
+	})
+
 	t.Run("limite de janelas", func(t *testing.T) {
 		session := gameNet.NewTestSessionWithRemoteIP(5, 16, "198.51.100.30")
 		st := &loginReloadStore{account: loginTestAccount()}

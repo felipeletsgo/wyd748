@@ -91,6 +91,10 @@ type postgresCharStateSnapshot struct {
 
 type postgresWriteJob struct {
 	label string
+	// seq preserva a ordem logica entre a fila FIFO e o overflow coalescido.
+	// Sem essa geracao, um snapshot antigo que caiu no overflow pode ser
+	// drenado depois de um snapshot novo ou de uma barreira critica.
+	seq uint64
 	// account identifica autosave de conta e permite ao worker consolidar
 	// varios snapshots em uma unica transacao. run fica para charstate/outros.
 	account   *accountSnapshot
@@ -112,6 +116,10 @@ type PostgresStore struct {
 	overflowAcc      map[string]postgresWriteJob
 	overflowState    map[string]postgresWriteJob
 	overflowRuns     map[string]postgresWriteJob
+	orderMu          sync.Mutex
+	latestAccountSeq map[string]uint64
+	latestStateSeq   map[string]uint64
+	writeSeq         atomic.Uint64
 	coalesced        atomic.Uint64
 	guildExportGen   atomic.Uint64
 	closeOnce        sync.Once
@@ -245,8 +253,15 @@ func (s *PostgresStore) persistLoop() {
 		var job postgresWriteJob
 		var ok bool
 		if pending != nil {
-			job, pending = *pending, nil
-			ok = true
+			// O batch pode ter retirado uma barreira da fila enquanto ainda
+			// havia snapshots mais antigos no overflow. Drene somente os jobs
+			// anteriores antes de confirmar a barreira/pending.
+			if overflow, exists := s.takeOverflowBefore(pending.seq); exists {
+				job, ok = overflow, true
+			} else {
+				job, pending = *pending, nil
+				ok = true
+			}
 		} else if overflow, exists := s.takeOverflow(); exists {
 			job, ok = overflow, true
 		} else {
@@ -257,7 +272,7 @@ func (s *PostgresStore) persistLoop() {
 		}
 		metricPostgresQueueDepth.Set(int64(len(s.writeQueue)))
 		if job.account != nil {
-			latest := map[string]*accountSnapshot{job.account.key: job.account}
+			latest := map[string]postgresWriteJob{job.account.key: job}
 			timer := time.NewTimer(postgresAutosaveCollectWindow)
 			collecting := true
 			for collecting && len(latest) < postgresAutosaveBatchSize {
@@ -274,7 +289,9 @@ func (s *PostgresStore) persistLoop() {
 					}
 					// Se o banco ficou atrasado e ha dois autosaves da mesma
 					// conta, somente o snapshot mais novo precisa ser escrito.
-					latest[next.account.key] = next.account
+					if current, exists := latest[next.account.key]; !exists || next.seq > current.seq {
+						latest[next.account.key] = next
+					}
 				case <-timer.C:
 					collecting = false
 				}
@@ -286,8 +303,13 @@ func (s *PostgresStore) persistLoop() {
 				}
 			}
 			snapshots := make([]*accountSnapshot, 0, len(latest))
-			for _, snapshot := range latest {
-				snapshots = append(snapshots, snapshot)
+			for _, candidate := range latest {
+				if s.isLatestAccountJob(candidate) {
+					snapshots = append(snapshots, candidate.account)
+				}
+			}
+			if len(snapshots) == 0 {
+				continue
 			}
 			if err := s.saveSnapshots(snapshots); err != nil {
 				metricPostgresFailures.Add(1)
@@ -297,8 +319,8 @@ func (s *PostgresStore) persistLoop() {
 			continue
 		}
 		if job.charState != nil {
-			latest := map[string]*postgresCharStateSnapshot{
-				job.charState.uid: job.charState,
+			latest := map[string]postgresWriteJob{
+				job.charState.uid: job,
 			}
 			timer := time.NewTimer(postgresAutosaveCollectWindow)
 			collecting := true
@@ -314,7 +336,9 @@ func (s *PostgresStore) persistLoop() {
 						collecting = false
 						break
 					}
-					latest[next.charState.uid] = next.charState
+					if current, exists := latest[next.charState.uid]; !exists || next.seq > current.seq {
+						latest[next.charState.uid] = next
+					}
 				case <-timer.C:
 					collecting = false
 				}
@@ -326,8 +350,13 @@ func (s *PostgresStore) persistLoop() {
 				}
 			}
 			snapshots := make([]*postgresCharStateSnapshot, 0, len(latest))
-			for _, snapshot := range latest {
-				snapshots = append(snapshots, snapshot)
+			for _, candidate := range latest {
+				if s.isLatestCharStateJob(candidate) {
+					snapshots = append(snapshots, candidate.charState)
+				}
+			}
+			if len(snapshots) == 0 {
+				continue
 			}
 			if err := s.saveCharStateSnapshots(snapshots); err != nil {
 				metricPostgresFailures.Add(1)
@@ -346,9 +375,6 @@ func (s *PostgresStore) persistLoop() {
 		if job.done != nil {
 			close(job.done)
 		}
-		if next, ok := s.takeOverflow(); ok {
-			pending = &next
-		}
 	}
 }
 
@@ -356,6 +382,7 @@ func (s *PostgresStore) enqueue(job postgresWriteJob) error {
 	if s.closed {
 		return errors.New("store: PostgreSQL fechado")
 	}
+	job = s.stampWriteJob(job)
 	select {
 	case s.writeQueue <- job:
 		s.updateAsyncMetrics()
@@ -389,25 +416,97 @@ func (s *PostgresStore) enqueue(job postgresWriteJob) error {
 	return nil
 }
 
+func (s *PostgresStore) stampWriteJob(job postgresWriteJob) postgresWriteJob {
+	if job.seq == 0 {
+		job.seq = s.writeSeq.Add(1)
+	}
+	s.orderMu.Lock()
+	defer s.orderMu.Unlock()
+	if job.account != nil {
+		if s.latestAccountSeq == nil {
+			s.latestAccountSeq = make(map[string]uint64)
+		}
+		if job.seq > s.latestAccountSeq[job.account.key] {
+			s.latestAccountSeq[job.account.key] = job.seq
+		}
+	}
+	if job.charState != nil {
+		if s.latestStateSeq == nil {
+			s.latestStateSeq = make(map[string]uint64)
+		}
+		if job.seq > s.latestStateSeq[job.charState.uid] {
+			s.latestStateSeq[job.charState.uid] = job.seq
+		}
+	}
+	return job
+}
+
+func (s *PostgresStore) isLatestAccountJob(job postgresWriteJob) bool {
+	if job.account == nil {
+		return false
+	}
+	s.orderMu.Lock()
+	defer s.orderMu.Unlock()
+	return s.latestAccountSeq[job.account.key] == job.seq
+}
+
+func (s *PostgresStore) isLatestCharStateJob(job postgresWriteJob) bool {
+	if job.charState == nil {
+		return false
+	}
+	s.orderMu.Lock()
+	defer s.orderMu.Unlock()
+	return s.latestStateSeq[job.charState.uid] == job.seq
+}
+
 func (s *PostgresStore) takeOverflow() (postgresWriteJob, bool) {
+	return s.takeOverflowBefore(0)
+}
+
+// takeOverflowBefore remove o job coalescido mais antigo anterior ao cutoff.
+// cutoff zero significa qualquer geracao. Escolher a menor seq torna a ordem
+// deterministica mesmo que os maps de overflow sejam percorridos aleatoriamente.
+func (s *PostgresStore) takeOverflowBefore(cutoff uint64) (postgresWriteJob, bool) {
 	s.overflowMu.Lock()
 	defer s.overflowMu.Unlock()
+	type selectedJob struct {
+		kind byte
+		key  string
+		job  postgresWriteJob
+	}
+	var selected selectedJob
+	found := false
+	consider := func(kind byte, key string, job postgresWriteJob) {
+		if cutoff != 0 && job.seq >= cutoff {
+			return
+		}
+		if !found || job.seq < selected.job.seq {
+			selected = selectedJob{kind: kind, key: key, job: job}
+			found = true
+		}
+	}
 	for key, job := range s.overflowAcc {
-		delete(s.overflowAcc, key)
-		metricPostgresPending.Set(int64(len(s.overflowAcc) + len(s.overflowState) + len(s.overflowRuns)))
-		return job, true
+		consider('a', key, job)
 	}
 	for key, job := range s.overflowState {
-		delete(s.overflowState, key)
-		metricPostgresPending.Set(int64(len(s.overflowAcc) + len(s.overflowState) + len(s.overflowRuns)))
-		return job, true
+		consider('s', key, job)
 	}
 	for key, job := range s.overflowRuns {
-		delete(s.overflowRuns, key)
-		metricPostgresPending.Set(int64(len(s.overflowAcc) + len(s.overflowState) + len(s.overflowRuns)))
-		return job, true
+		consider('r', key, job)
 	}
-	return postgresWriteJob{}, false
+	if !found {
+		return postgresWriteJob{}, false
+	}
+	switch selected.kind {
+	case 'a':
+		delete(s.overflowAcc, selected.key)
+	case 's':
+		delete(s.overflowState, selected.key)
+	case 'r':
+		delete(s.overflowRuns, selected.key)
+	}
+	metricPostgresPending.Set(int64(len(s.overflowAcc) + len(s.overflowState) + len(s.overflowRuns)))
+	return selected.job, true
 }
 
 func (s *PostgresStore) updateAsyncMetrics() {
@@ -472,7 +571,8 @@ func (s *PostgresStore) flushLocked() {
 		return
 	}
 	done := make(chan struct{})
-	s.writeQueue <- postgresWriteJob{done: done}
+	barrier := s.stampWriteJob(postgresWriteJob{done: done})
+	s.writeQueue <- barrier
 	<-done
 }
 

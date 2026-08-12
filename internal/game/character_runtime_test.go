@@ -41,12 +41,14 @@ func TestArchCreationKeepsCharPointerValid(t *testing.T) {
 		t.Fatal("a ascensao deveria ser tratada")
 	}
 
-	// (a) o ponteiro precisa acompanhar a fatia nova
-	if p.Char != &p.Account.Chars[p.CharSlot] {
-		t.Error("p.Char ficou orfao: aponta para fora de Account.Chars")
+	// A criacao agora encerra o personagem obrigatoriamente; portanto nenhum
+	// ponteiro para o array antigo pode sobreviver na sessao.
+	if p.Char != nil || p.CharSlot != -1 || p.InWorld {
+		t.Error("runtime do Mortal permaneceu ativo depois da criacao do Arch")
 	}
-	// (b) e o consumo precisa estar no array QUE SERA PERSISTIDO
-	mortal := p.Account.Chars[p.CharSlot]
+	// O consumo precisa estar no array QUE FOI PERSISTIDO, mesmo depois do
+	// append ter realocado a fatia.
+	mortal := p.Account.Chars[0]
 	if mortal.Equip[eternalStoneSlot].Index != 0 {
 		t.Errorf("a Pedra sobreviveu no array persistido: %d", mortal.Equip[eternalStoneSlot].Index)
 	}

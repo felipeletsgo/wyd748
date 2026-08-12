@@ -97,6 +97,66 @@ func TestPostgresAsyncQueueCoalescesWithoutBlocking(t *testing.T) {
 	}
 }
 
+func TestPostgresBarrierDrainsOnlyOlderOverflowFirst(t *testing.T) {
+	st := &PostgresStore{
+		writeQueue:    make(chan postgresWriteJob, 1),
+		overflowAcc:   make(map[string]postgresWriteJob),
+		overflowState: make(map[string]postgresWriteJob),
+		overflowRuns:  make(map[string]postgresWriteJob),
+	}
+	// Ocupa a fila para obrigar o snapshot anterior a cair no overflow.
+	if err := st.enqueue(postgresWriteJob{run: func() error { return nil }, label: "ocupado"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.enqueue(postgresWriteJob{
+		account: &accountSnapshot{key: "felipe", display: "Felipe"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	barrier := st.stampWriteJob(postgresWriteJob{done: make(chan struct{})})
+	older, ok := st.takeOverflowBefore(barrier.seq)
+	if !ok || older.account == nil || older.account.key != "felipe" {
+		t.Fatalf("barreira ultrapassaria overflow anterior: %+v ok=%t", older, ok)
+	}
+	if _, ok := st.takeOverflowBefore(barrier.seq); ok {
+		t.Fatal("overflow anterior deveria ter sido drenado uma unica vez")
+	}
+}
+
+func TestPostgresOlderOverflowCannotOverwriteNewerQueuedSnapshot(t *testing.T) {
+	st := &PostgresStore{
+		writeQueue:    make(chan postgresWriteJob, 1),
+		overflowAcc:   make(map[string]postgresWriteJob),
+		overflowState: make(map[string]postgresWriteJob),
+		overflowRuns:  make(map[string]postgresWriteJob),
+	}
+	if err := st.enqueue(postgresWriteJob{run: func() error { return nil }, label: "ocupado"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.enqueue(postgresWriteJob{
+		account: &accountSnapshot{key: "felipe", display: "antigo", payload: []byte("A")},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	<-st.writeQueue // abre espaco para o snapshot novo entrar na fila FIFO.
+	if err := st.enqueue(postgresWriteJob{
+		account: &accountSnapshot{key: "felipe", display: "novo", payload: []byte("B")},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	old, ok := st.takeOverflow()
+	if !ok || old.account == nil {
+		t.Fatal("snapshot antigo nao entrou no overflow")
+	}
+	newer := <-st.writeQueue
+	if st.isLatestAccountJob(old) {
+		t.Fatal("snapshot antigo continuou elegivel depois de um enqueue mais novo")
+	}
+	if !st.isLatestAccountJob(newer) {
+		t.Fatal("snapshot mais novo nao foi reconhecido como autoritativo")
+	}
+}
+
 // Este teste e opt-in porque o repositorio nao sobe um banco oculto durante
 // `go test`. No CI/VPS, WYD_TEST_POSTGRES_URL habilita a prova com PostgreSQL
 // real, incluindo rollback da tentativa de duplicar um UID global.

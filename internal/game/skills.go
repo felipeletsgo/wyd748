@@ -61,7 +61,11 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 		return
 	}
 	w.recalcPlayer(p.Char)
-	if int(playerSkillPoints(p.Char)) < skill.SkillPoint || int(playerLevel(p.Char)) < itemDef.ReqLevel ||
+	// Arch/Celestial nao usam o requisito de nivel do livro. Classe, pontos,
+	// mastery, cadeia da skill final e gold continuam autoritativos.
+	levelRequirementMet := isArch(p.Char) || isCelestialEvolution(p.Char) ||
+		int(playerLevel(p.Char)) >= itemDef.ReqLevel
+	if int(playerSkillPoints(p.Char)) < skill.SkillPoint || !levelRequirementMet ||
 		int(playerMastery(p.Char, 1)) < itemDef.ReqInt ||
 		int(playerMastery(p.Char, 2)) < itemDef.ReqDex ||
 		int(playerMastery(p.Char, 3)) < itemDef.ReqCon {

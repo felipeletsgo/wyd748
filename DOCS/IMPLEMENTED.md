@@ -62,6 +62,11 @@ client748/           client e cadeia reprodutível de patches
 - EXP Mortal usa a tabela cumulativa nativa, piso/rate configuráveis e bônus de
   party integral.
 - Stats, mastery e skill points possuem orçamento autoritativo por nível.
+- Arch nasce com os bônus nativos de 168 skill points e 112 mastery points;
+  Arch/Celestial ignoram somente o requisito de nível ao comprar skill, sem
+  ignorar classe, pontos, mastery, cadeia da skill final ou gold.
+- Celestial/Sub usam o orçamento W2PP de 1600 pontos iniciais mais a curva
+  normal de 3/4 pontos por nível; mastery permanece em 855 por forma.
 - Equipamentos são recalculados server-side ao equipar, remover, trocar ou
   descartar.
 - HP, MP, STR, INT, DEX, CON, ataque, ataque mágico e defesa usam `uint32` no
@@ -239,6 +244,17 @@ client748/           client e cadeia reprodutível de patches
 - Travas internas 354/369, quatro juras, Soul e Cythera estão implementadas.
 - Celestial/SubCelestial possuem criação, troca de forma, EXP, pontos
   compartilhados, reduções, travas e progressão separada.
+- A criação de Arch ou Celestial força o retorno à seleção (`0x116`) e atualiza
+  os quatro slots (`0x110`) depois do commit, para o client reconstruir corpo,
+  score e skills. A criação Celestial também gera anúncio global em inglês;
+  nenhum dos dois efeitos é publicado quando a persistência falha.
+- O score de evolução segue o ramo normal do W2PP: Celestial/SubCelestial usam
+  `ATK 488`, DEF `954/984/1004` conforme os cristais, atributos naturais da
+  classe, bônus flat de HP/MP por classe/cristais, `+399` apenas no ataque e
+  crescimento não-Mortal de HP/MP e defesa.
+- O login migra uma única vez somente a assinatura Celestial/Sub legada
+  conhecida (`ATK` da template e `DEF 4`), preservando os pontos distribuídos;
+  score customizado não é reescrito e falha do commit impede a entrada.
 - O desbloqueio nativo do nível 40 Celestial usa a ordem de materiais do client
   (`4127, 4127, 5135, 5113, 5129, 5112, 5110`) e consome 200 Fame somente após
   a validação completa da receita.
@@ -266,6 +282,9 @@ client748/           client e cadeia reprodutível de patches
   de instância possuem operações atômicas quando participam da mesma feature.
 - Autosave roda a cada três segundos com snapshots imutáveis, dirty tracking de
   itens e coalescência por conta/personagem.
+- A fila assíncrona atribui geração a cada snapshot e a barreira de `Flush`
+  drena todo overflow anterior; autosave antigo não pode ultrapassar nem
+  sobrescrever um commit crítico mais novo.
 - Operações críticas usam orçamento total configurável e não renovam timeout em
   cada retry.
 - Falha de PostgreSQL nunca abre fallback JSON.

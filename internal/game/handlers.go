@@ -212,11 +212,12 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		acc = fresh
 	}
 	pinAccountEntryPositions(acc)
+	evolutionMigrated := migrateLegacyEvolutionScores(acc)
 	// O bonus de status do Arch acompanha o nivel ATUAL do Mortal de origem;
 	// atualizar aqui, antes do syncProgression abaixo, faz o saldo de pontos ja
 	// nascer certo nesta sessao.
 	refreshArchMortalLevel(acc)
-	guildRepaired := false
+	accountRepaired := evolutionMigrated
 	for i := range acc.Chars {
 		if acc.Chars[i].Name == "" {
 			continue
@@ -227,12 +228,20 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		// GuildID/GuildRank sao copias desnormalizadas: a guild pode ter sido
 		// dissolvida ou o rank mudado enquanto este personagem estava offline.
 		if w.repairGuildState(&acc.Chars[i]) {
-			guildRepaired = true
+			accountRepaired = true
 		}
 	}
-	if guildRepaired {
+	if accountRepaired {
 		// Persistir o reparo agora evita reencenar a mesma correcao a cada login.
 		if err := w.saveAccount(acc); err != nil {
+			if evolutionMigrated {
+				w.releaseAccountSession(s, acc)
+				w.releaseAuthenticatedClientSlot(s)
+				log.Printf("[#%d] salvar migracao W2PP da conta %q: %v", s.ID, acc.Name, err)
+				s.Send(wire.MessagePanel("Error upgrading the character. Try again."))
+				time.AfterFunc(300*time.Millisecond, s.Close)
+				return
+			}
 			log.Printf("[#%d] salvar reparo de guild da conta %q: %v", s.ID, acc.Name, err)
 		}
 	}

@@ -23,6 +23,41 @@ var baseClassHPMP = [4][2]int{
 
 var mortalHPPerLevel = [4]int{3, 1, 1, 2}
 var mortalMPPerLevel = [4]int{1, 3, 2, 1}
+var archHPPerLevel = [4]int{4, 1, 1, 2}
+var archMPPerLevel = [4]int{1, 3, 4, 2}
+
+func celestialBaseDefense(crystals byte) uint32 {
+	switch crystals {
+	case 2, 3:
+		return 984
+	case 4:
+		return 1004
+	default:
+		return 954
+	}
+}
+
+// celestialHPMPBonus porta o bloco ClassMaster >= CELESTIAL do W2PP normal
+// (isHardCore=0). O bonus e inicial/flat; crescimento por nivel usa a mesma
+// coluna nao-Mortal do Arch, sem fabricar 399 niveis de HP/MP.
+func celestialHPMPBonus(class int, crystals byte) (int64, int64) {
+	if class < 0 || class >= len(baseClassStats) {
+		return 0, 0
+	}
+	hp := [4]int64{1600, 800, 800, 800}[class]
+	mp := [4]int64{300, 1700, 1300, 700}[class]
+	switch crystals {
+	case 1, 2:
+		mp += 80
+	case 3:
+		hp += 80
+		mp += 80
+	case 4:
+		hp += 140
+		mp += 140
+	}
+	return hp, mp
+}
 
 // naturalStats devolve os quatro atributos que nao foram distribuídos pelo
 // jogador. O reset do Skill Master e o orçamento de pontos precisam usar a
@@ -35,9 +70,6 @@ func naturalStats(ch *model.Char) ([4]uint16, bool) {
 	class := int(ch.Class)
 	if class < 0 || class >= len(baseClassStats) {
 		return [4]uint16{}, false
-	}
-	if isCelestialEvolution(ch) {
-		return [4]uint16{5, 5, 5, 5}, true
 	}
 	return baseClassStats[class], true
 }
@@ -161,7 +193,14 @@ func skillPointBudget(ch *model.Char) int {
 		return 0
 	}
 	if isCelestialEvolution(ch) {
-		return 1500 + int(ch.Extended.Level)*4 + int(ch.SkillPointBonus)
+		// BASE_GetBonusSkillPoint do W2PP: Celestial/Sub recebe uma base de
+		// 1600 e preserva a curva 3/4 pontos por nivel.
+		return 1600 + mortalSkillPointBudget(int(ch.Extended.Level)) + int(ch.SkillPointBonus)
+	}
+	if isArch(ch) {
+		// BASE_GetBonusSkillPoint: todo Arch nasce com 168 pontos de
+		// habilidade alem do mesmo ganho por nivel do Mortal.
+		return mortalSkillPointBudget(int(ch.Extended.Level)) + 168 + int(ch.SkillPointBonus)
 	}
 	return mortalSkillPointBudget(int(ch.Extended.Level)) + int(ch.SkillPointBonus)
 }
@@ -201,6 +240,9 @@ func syncMasteryPoints(ch *model.Char) {
 	total := ch.Extended.Level * masteryPointsPerLevel
 	if isCelestialEvolution(ch) {
 		total = 855
+	} else if isArch(ch) {
+		// CFileDB cria o Arch com SpecialBonus=112; cada nivel acrescenta 2.
+		total += 112
 	}
 	if spent >= total {
 		ch.Extended.MasterPts = 0

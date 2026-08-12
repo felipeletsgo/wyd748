@@ -78,7 +78,7 @@ func TestCanEquipIsServerAuthoritative(t *testing.T) {
 	}
 }
 
-func TestArchEquipUsesMortalBodyAndIgnoresRequirements(t *testing.T) {
+func TestAdvancedEvolutionEquipUsesMortalBodyAndIgnoresRequirements(t *testing.T) {
 	const (
 		tkArmor  = 100
 		htArmor  = 101
@@ -98,24 +98,30 @@ func TestArchEquipUsesMortalBodyAndIgnoresRequirements(t *testing.T) {
 			StaticEffects: []model.StaticEffect{{Name: "EF_CLASS", Value: 1 << 1}},
 		},
 	}}
-	// Corpo TK (rosto Arch 9 => 9/10 = 0), Sephiroth HT (Class=3).
-	ch := &model.Char{
-		Class: 3, Evolution: archEvolution,
-		Extended: testExtended(model.ExtendedScore{Level: 1, Str: 1, Int: 1, Dex: 1, Con: 1}),
-	}
-	ch.Equip[0] = model.Item{Index: 9}
+	for _, evolution := range []string{archEvolution, "celestial", "subcelestial"} {
+		t.Run(evolution, func(t *testing.T) {
+			// Corpo TK (rosto 9 => 9/10 = 0), classe de skills HT.
+			ch := &model.Char{
+				Class: 3, Evolution: evolution,
+				Extended: testExtended(model.ExtendedScore{
+					Level: 1, Str: 1, Int: 1, Dex: 1, Con: 1,
+				}),
+			}
+			ch.Equip[0] = model.Item{Index: 9}
 
-	if !w.canEquip(ch, model.Item{Index: tkArmor}, 2) {
-		t.Fatal("Arch TK/Sephiroth HT deveria equipar armadura de TK sem requisitos")
-	}
-	if w.canEquip(ch, model.Item{Index: htArmor}, 2) {
-		t.Fatal("Sephiroth HT nao pode transformar o corpo TK em classe de armadura HT")
-	}
-	if !w.canEquip(ch, model.Item{Index: fmWeapon}, 6) {
-		t.Fatal("Arch deveria equipar arma de qualquer classe sem requisitos")
-	}
-	if w.canEquip(ch, model.Item{Index: fmWeapon}, 7) {
-		t.Fatal("isencao do Arch nao pode ignorar o slot permitido pelo item")
+			if !w.canEquip(ch, model.Item{Index: tkArmor}, 2) {
+				t.Fatal("evolucao avancada TK deveria equipar armadura de TK sem requisitos")
+			}
+			if w.canEquip(ch, model.Item{Index: htArmor}, 2) {
+				t.Fatal("classe de skills HT nao pode transformar o corpo TK em armadura HT")
+			}
+			if !w.canEquip(ch, model.Item{Index: fmWeapon}, 6) {
+				t.Fatal("evolucao avancada deveria equipar arma de qualquer classe sem requisitos")
+			}
+			if w.canEquip(ch, model.Item{Index: fmWeapon}, 7) {
+				t.Fatal("isencao de requisitos nao pode ignorar o slot permitido pelo item")
+			}
+		})
 	}
 }
 

@@ -79,6 +79,22 @@ ainda pode desenhar HP/MP altos quase zerados. Próxima investigação:
 
 Não alterar o servidor para compensar um erro exclusivamente visual.
 
+### Macro de combate 7.48
+
+O `0x39D/96` C→S observado no macro continua como compatibilidade temporária.
+A descompilação estática confirma que macro e clique manual chegam ao mesmo
+construtor nativo, que seleciona `0x39D/48`, `0x39E/52` ou `0x36C/96` por
+`SkillData.MaxTarget`; portanto não há evidência para trocar o builder S→C de
+skill single nem para inventar o conteúdo da cauda de 96 bytes.
+
+Próxima validação:
+
+1. capturar plaintext da mesma skill/alvo por clique manual e macro;
+2. comparar integralmente `@00..47` e `@48..95`;
+3. localizar no executável o ponto que altera o tamanho efetivamente enviado;
+4. fazer o macro reutilizar o caminho canônico ou aplicar adapter mínimo;
+5. somente após distribuir o client corrigido remover `0x39D/96` do servidor.
+
 ### Guildmark
 
 - publicar os BMP 16x12 em host controlado;
