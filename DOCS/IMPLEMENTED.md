@@ -163,6 +163,9 @@ client748/           client e cadeia reprodutível de patches
   montarias mortas.
 - Lojas de teste em Armia e junto aos artesãos fornecem itens para o beta; devem
   ser removidas/desativadas antes da abertura pública.
+- O overlay opcional `data/NPCGenerTest.txt` acrescenta lojas de teste para os
+  conjuntos, armas e escudos D/E; ele é carregado como geradores adicionais
+  e seus nomes respeitam o limite de 12 bytes do wire.
 
 ## Itens, volatiles e montarias
 
@@ -236,6 +239,9 @@ client748/           client e cadeia reprodutível de patches
 - Travas internas 354/369, quatro juras, Soul e Cythera estão implementadas.
 - Celestial/SubCelestial possuem criação, troca de forma, EXP, pontos
   compartilhados, reduções, travas e progressão separada.
+- O desbloqueio nativo do nível 40 Celestial usa a ordem de materiais do client
+  (`4127, 4127, 5135, 5113, 5129, 5112, 5110`) e consome 200 Fame somente após
+  a validação completa da receita.
 - Spirit's Seal 3443 encapsula uma ficha com snapshot/UID persistentes.
 - `0x2CD` consulta a cápsula e `0x3CC` extrai a ficha; trade transfere item e
   snapshot atomicamente.

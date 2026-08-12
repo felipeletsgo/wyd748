@@ -307,7 +307,7 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 		return
 	}
 
-	unlock := []uint16{5113, 5129, 5112, 5110, 4127, 4127, 5135}
+	unlock := []uint16{4127, 4127, 5135, 5113, 5129, 5112, 5110}
 	if exactRecipe(req, unlock) && advancedEvolution(p.Char, "celestial") && playerLevel(p.Char) == 39 &&
 		!p.Char.CelestialLevel40Unlocked && counterBalance(p, fameCounter) >= 200 {
 		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold

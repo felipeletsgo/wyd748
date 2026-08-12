@@ -77,8 +77,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		ShopWeaponsD2
-	Follower:	ShopWeaponsD2
+	Leader:		ShopWpnD2
+	Follower:	ShopWpnD2
 	RouteType:	0
 	Formation:	0
 	StartX:		2118
@@ -95,8 +95,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		ShopWeaponsE2
-	Follower:	ShopWeaponsE2
+	Leader:		ShopWpnE2
+	Follower:	ShopWpnE2
 	RouteType:	0
 	Formation:	0
 	StartX:		2120
@@ -113,8 +113,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		ShopShieldsDE
-	Follower:	ShopShieldsDE
+	Leader:		ShopShldDE
+	Follower:	ShopShldDE
 	RouteType:	0
 	Formation:	0
 	StartX:		2122

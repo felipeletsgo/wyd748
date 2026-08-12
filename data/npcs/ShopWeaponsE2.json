@@ -1,5 +1,5 @@
 {
-  "name": "ShopWeaponsE2",
+  "name": "ShopWpnE2",
   "equip": { "rosto": { "index": 59 } },
   "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
   "vende": [

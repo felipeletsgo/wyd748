@@ -148,10 +148,15 @@ func TestTodasAsArmasDEDoCatalogoTemLojaDeTeste(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dStock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopWeaponsD") })
-	eStock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopWeaponsE") })
+	dStock := itemsInShops(shops, func(name string) bool {
+		return strings.HasPrefix(name, "ShopWeaponsD") || name == "ShopWpnD2"
+	})
+	eStock := itemsInShops(shops, func(name string) bool {
+		return strings.HasPrefix(name, "ShopWeaponsE") || name == "ShopWpnE2"
+	})
 	for name, stock := range shops {
-		if (strings.HasPrefix(name, "ShopWeaponsD") || strings.HasPrefix(name, "ShopWeaponsE")) && len(stock) > 27 {
+		if (strings.HasPrefix(name, "ShopWeaponsD") || strings.HasPrefix(name, "ShopWeaponsE") ||
+			name == "ShopWpnD2" || name == "ShopWpnE2") && len(stock) > 27 {
 			t.Fatalf("%s possui %d itens; o client 7.48 exibe no maximo 27", name, len(stock))
 		}
 	}
@@ -184,7 +189,7 @@ func TestTodasAsArmasDEDoCatalogoTemLojaDeTeste(t *testing.T) {
 
 func TestEscudosDETemLojaDeTeste(t *testing.T) {
 	shops, _ := loadTestShopFixture(t)
-	requireShopItems(t, shops, "ShopShieldsDE", []uint16{1709, 1710, 1711, 1712})
+	requireShopItems(t, shops, "ShopShldDE", []uint16{1709, 1710, 1711, 1712})
 }
 
 func TestNovasLojasDeTesteEstaoNoBlocoDeArmia(t *testing.T) {
@@ -202,7 +207,7 @@ func TestNovasLojasDeTesteEstaoNoBlocoDeArmia(t *testing.T) {
 		"ShopVolTest5", "ShopVolTest6", "ShopVolTest7", "ShopMtEgg1", "ShopMtEgg2",
 		"ShopMtBaby1", "ShopMtBaby2", "ShopMtAdult1", "ShopMtAdult2", "ShopMtTime",
 		"ShopCostume", "ShopFiral", "ShopSetD", "ShopSetE", "ShopWeaponsD", "ShopWeaponsE",
-		"ShopWeaponsD2", "ShopWeaponsE2", "ShopShieldsDE"}
+		"ShopWpnD2", "ShopWpnE2", "ShopShldDE"}
 	seen := make(map[string]bool, len(want))
 	for _, gen := range gens {
 		if !containsShopName(want, gen.Leader) {
