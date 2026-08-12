@@ -18,6 +18,9 @@ func TestSkillHitsWideMultiCarriesAllRealDamagesInOnePacket(t *testing.T) {
 	if got := binary.LittleEndian.Uint16(pkt[0:2]); int(got) != len(pkt) {
 		t.Fatalf("header size=%d packet=%d", got, len(pkt))
 	}
+	if pkt[30] != 0 {
+		t.Fatalf("FlagLocal multi=%d want=0", pkt[30])
+	}
 	if got := binary.LittleEndian.Uint32(pkt[96:100]); got != 0x58474D44 {
 		t.Fatalf("tail magic=%08X", got)
 	}
@@ -40,6 +43,9 @@ func TestSkillHitsWideTwoTargetOffsetsMatchClientPatch(t *testing.T) {
 	pkt := SkillHitsWide(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 2, targets)
 	if got, want := len(pkt), 52+8+8; got != want {
 		t.Fatalf("size=%d want=%d", got, want)
+	}
+	if pkt[30] != 0 {
+		t.Fatalf("FlagLocal two=%d want=0", pkt[30])
 	}
 	if got := binary.LittleEndian.Uint32(pkt[60:64]); got != 111 {
 		t.Fatalf("damage0@60=%d", got)
