@@ -31,15 +31,19 @@ func SkillHitsWide(attackerID, attackerX, attackerY, targetX, targetY uint16,
 		return base
 	}
 
+	// O pacote wide substitui o antigo par compacto+SkillHitExtended. O
+	// FlagLocal=0 e intencional para TODA a familia: o OnPacketAttack local e o
+	// caminho que cria o floating damage. O formato anterior tambem enviava os
+	// 0x39D extras com esse flag zerado; consolidar sem zera-lo faria o atacante
+	// deixar de ver os numeros embora observadores ainda processassem o hit.
+	base[30] = 0
+
 	// 0x39D possui o formato wide historico: apenas um DWORD em @48.
 	if maxTargets <= 1 {
 		extended := make([]byte, 52)
 		copy(extended, base)
 		putU16(extended, 0, uint16(len(extended)))
 		putU32(extended, 48, targets[0].Damage)
-		// O pacote substitui o antigo par compacto+SkillHitExtended; FlagLocal=0
-		// mantem o mesmo caminho que ja criava o floating damage no client.
-		extended[30] = 0
 		return extended
 	}
 
