@@ -166,18 +166,118 @@ func progressionExperienceCap(ch *model.Char) uint32 {
 	return cap
 }
 
-// celestialCombatExperience aplica as quedas cumulativas da 7.54. Elas valem
-// para EXP de combate; recompensas fixas de quest/item continuam integrais.
-func celestialCombatExperience(ch *model.Char, reward uint32) uint32 {
-	if !isCelestialEvolution(ch) || ch.Extended == nil {
+// Esta e a linha Arch da tabela expbase do W2PP. O divisor e armazenado em
+// centesimos: 200 concede 50%, 12000 concede 1/120. Ela cobre
+// as faixas exibidas 256-280, 281-300, 301-320, 321-340, 341-350, 351-360,
+// 361-370, 371-380, 381-390, 391-395, 396-398 e 399-400.
+var w2ppArchEXPDivisors = [...]uint32{200, 400, 800, 1200, 1600, 2000, 2400, 2800, 7600, 9000, 10000, 12000}
+
+// w2ppHighLevelEXPDivisor seleciona a mesma coluna de expbase usada por
+// GetExpApply. level e o nivel exibido (o W2PP incrementa o nivel interno antes
+// destas comparacoes).
+func w2ppHighLevelEXPDivisor(level uint32, divisors [12]uint32) uint32 {
+	switch {
+	case level > 398:
+		return divisors[11]
+	case level > 395:
+		return divisors[10]
+	case level > 390:
+		return divisors[9]
+	case level > 380:
+		return divisors[8]
+	case level > 370:
+		return divisors[7]
+	case level > 360:
+		return divisors[6]
+	case level > 350:
+		return divisors[5]
+	case level > 340:
+		return divisors[4]
+	case level > 320:
+		return divisors[3]
+	case level > 300:
+		return divisors[2]
+	case level > 280:
+		return divisors[1]
+	default:
+		return divisors[0]
+	}
+}
+
+func w2ppCelestialEXPDivisor(level uint32) uint32 {
+	switch {
+	case level > 398:
+		return 18000
+	case level > 395:
+		return 17000
+	case level > 390:
+		return 16000
+	case level > 385:
+		return 15000
+	case level > 380:
+		return 14000
+	case level > 375:
+		return 13000
+	case level > 370:
+		return 12000
+	case level > 365:
+		return 11000
+	case level > 360:
+		return 10000
+	case level > 355:
+		return 9500
+	case level > 350:
+		return 9300
+	case level > 340:
+		return 9100
+	case level > 320:
+		return 9000
+	case level > 300:
+		return 8900
+	case level > 280:
+		return 8800
+	case level > 255:
+		return 8500
+	case level > 230:
+		return 8000
+	case level > 210:
+		return 7500
+	case level > 190:
+		return 7000
+	case level > 150:
+		return 6500
+	case level > 100:
+		return 6000
+	case level > 80:
+		return 5500
+	case level > 40:
+		return 5000
+	default:
+		return 4000
+	}
+}
+
+// combatExperienceByEvolution porta as curvas Arch/Celestial de GetExpApply do
+// W2PP. A reducao vale somente para EXP de combate; Mortal e recompensas fixas
+// de quest/item continuam integrais. O calculo usa uint64 para nao estourar
+// reward*100.
+func combatExperienceByEvolution(ch *model.Char, reward uint32) uint32 {
+	if ch == nil || ch.Extended == nil || reward == 0 {
 		return reward
 	}
-	for _, threshold := range [...]uint32{149, 159, 169, 179, 189} {
-		if ch.Extended.Level >= threshold {
-			reward /= 2
+	level := ch.Extended.Level + 1 // nivel exibido usado pelo W2PP
+	divisor := uint32(100)
+	switch {
+	case isCelestialEvolution(ch):
+		divisor = w2ppCelestialEXPDivisor(level)
+	case isArch(ch):
+		if level > 255 {
+			divisor = w2ppHighLevelEXPDivisor(level, w2ppArchEXPDivisors)
+		} else if level >= 5 {
+			divisor += level / 5
 		}
 	}
-	return reward
+	return uint32(uint64(reward) * 100 / uint64(divisor))
 }
 
 // grantExp adiciona EXP ate o ultimo marco da evolucao e processa level-ups. Os

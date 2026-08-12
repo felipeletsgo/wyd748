@@ -54,6 +54,31 @@ func TestFameMessageNilPlayerIsZero(t *testing.T) {
 	}
 }
 
+func TestParryCommandReportsOneAuthoritativeMatchup(t *testing.T) {
+	viewer, _ := networkedTestPlayer(1, "Viewer", 2100, 2100)
+	target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
+	viewer.Char.Extended.Dex = 4_000
+	target.Char.Extended.Dex = 0
+	applyExtendedScore(viewer.Char)
+	applyExtendedScore(target.Char)
+	w := worldWithNetworkedPlayers(viewer, target)
+	before := viewer.Session.QueuedPacketsForTest()
+	if !w.dispatchChatCommand(viewer.Session, viewer, "parry", "Target") {
+		t.Fatal("/parry was not consumed")
+	}
+	if got := viewer.Session.QueuedPacketsForTest(); got != before+1 {
+		t.Fatalf("/parry packets=%d want=%d", got, before+1)
+	}
+	if accuracy := playerVersusPlayerAccuracy(viewer.Char, target.Char); accuracy != 100 {
+		t.Fatalf("viewer accuracy=%d want=100", accuracy)
+	}
+	if evasion := combatEvasionPercent(playerDex(viewer.Char),
+		playerEvasionBonusPoints(viewer.Char), playerAccuracyBonusPoints(target.Char),
+		playerHasConcentration(target.Char)); evasion != 80 {
+		t.Fatalf("viewer evasion=%d want=80", evasion)
+	}
+}
+
 func TestParseChatText(t *testing.T) {
 	pkt := make([]byte, 140)
 	copy(pkt[12:], "  /limparinv  \x00texto ignorado")

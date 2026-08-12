@@ -26,6 +26,19 @@ $ErrorActionPreference = 'Stop'
 #
 # A code cave fica na area livre executavel da secao .xstat, criada pelo patch
 # ExtendedStats. Uma tabela de 96 bits identifica somente os buffs 0..95.
+#
+# O macro NAO possui um segundo construtor de ataque: depois do hook ele chama
+# a rotina nativa 0x004595EC, a mesma familia usada pelo cast manual. Os dois
+# ramos dessa rotina selecionam o framing pelo SkillData.MaxTarget:
+#
+#   MaxTarget == 1 -> 0x39D / 48 bytes
+#   MaxTarget == 2 -> 0x39E / 52 bytes
+#   demais         -> 0x36C / 96 bytes
+#
+# As assertions abaixo travam tanto a CALL quanto os dois builders. Assim uma
+# linha-base divergente nunca recebe silenciosamente um patch que reintroduza o
+# 0x39D/96 observado em executaveis antigos. O servidor conserva essa variante
+# apenas como compatibilidade temporaria; ela nao e o formato canonico.
 # ============================================================================
 
 # Estado esperado: WYD.exe com os patches principal + ExtendedStats ja aplicados
@@ -72,6 +85,19 @@ $buffBitsVA = [uint32]($caveVA + 0x30)
 # --- verificacoes do estado original ---
 Assert-Bytes $data $hookOffset  ([byte[]](0xA1,0xE8,0x71,0x3B,0x01)) 'hook (MOV EAX,[013B71E8])'
 Assert-Bytes $data $caveOffset ([byte[]](0x00) * 64) 'macro cave (.xstat livre)'
+Assert-Bytes $data 0x939B3 ([byte[]](0xE8,0x34,0x5C,0xFC,0xFF)) 'macro -> cast nativo 0x004595EC'
+
+# Primeiro builder dentro de 0x004595EC.
+Assert-Bytes $data 0x5CB53 ([byte[]](0xC7,0x85,0x20,0xFD,0xFF,0xFF,0x60,0x00,0x00,0x00)) 'builder A tamanho multi 96'
+Assert-Bytes $data 0x5CB64 ([byte[]](0x83,0xB9,0x44,0xFF,0x92,0x00,0x01)) 'builder A MaxTarget == 1'
+Assert-Bytes $data 0x5CB6D ([byte[]](0x66,0xC7,0x85,0x68,0xFF,0xFF,0xFF,0x9D,0x03)) 'builder A opcode 0x39D'
+Assert-Bytes $data 0x5CB76 ([byte[]](0xC7,0x85,0x20,0xFD,0xFF,0xFF,0x30,0x00,0x00,0x00)) 'builder A tamanho single 48'
+
+# Segundo builder dentro de 0x004595EC.
+Assert-Bytes $data 0x5E26E ([byte[]](0xC7,0x85,0x70,0xFC,0xFF,0xFF,0x60,0x00,0x00,0x00)) 'builder B tamanho multi 96'
+Assert-Bytes $data 0x5E27F ([byte[]](0x83,0xBA,0x44,0xFF,0x92,0x00,0x01)) 'builder B MaxTarget == 1'
+Assert-Bytes $data 0x5E288 ([byte[]](0x66,0xC7,0x85,0xAC,0xFB,0xFF,0xFF,0x9D,0x03)) 'builder B opcode 0x39D'
+Assert-Bytes $data 0x5E291 ([byte[]](0xC7,0x85,0x70,0xFC,0xFF,0xFF,0x30,0x00,0x00,0x00)) 'builder B tamanho single 48'
 
 # Hook -> macro cave.
 $hook = [byte[]](0xE9) + [byte[]](Rel32 ($hookVA + 5) $caveVA)

@@ -8,30 +8,63 @@ import (
 	"wydgo/internal/model"
 )
 
-func TestParryRateUsesNativeDexTiersAndCaps(t *testing.T) {
-	if got := parryRate(500, 200, 50); got != 300 { // equipamento limita em 100
-		t.Fatalf("parry inicial=%d, quer 300", got)
+func TestCombatAccuracyStartsAtOneHundredAndFallsWithDefenderEvasion(t *testing.T) {
+	if got := combatAccuracyPercent(0, 0, 0, false); got != 100 {
+		t.Fatalf("base accuracy=%d want=100", got)
 	}
-	if got := parryRate(2000, 20, 100); got != 650 { // 500 + 250 + 20 - 100
-		t.Fatalf("parry intermediario=%d, quer limite 650", got)
+	if got := combatEvasionRatingPercent(0, 0); got != 0 {
+		t.Fatalf("base evasion=%d want=0", got)
 	}
-	if got := parryRate(10, 0, 999); got != 1 {
-		t.Fatalf("parry minimo=%d, quer 1", got)
+	if got := combatAccuracyPercent(4000, 0, 0, false); got != 20 {
+		t.Fatalf("accuracy against 4000 DEX=%d want=20", got)
+	}
+	if got := combatEvasionRatingPercent(4000, 10_000); got != 80 {
+		t.Fatalf("evasion cap=%d want=80", got)
+	}
+	if got := combatAccuracyPercent(2000, 100, 50, false); got != 65 {
+		t.Fatalf("accuracy with bonuses=%d want=65", got)
+	}
+	if got := combatAccuracyPercent(4000, 0, 800, true); got != 35 {
+		t.Fatalf("Concentration minimum=%d want=35", got)
 	}
 }
 
-func TestCriticalUsesServerOwned1024Progression(t *testing.T) {
+func TestPhysicalFlagsUseW2PPDoubleProgressionAndIndependentCritical(t *testing.T) {
+	ch := &model.Char{Extended: testExtended(model.ExtendedScore{AttackRun: 0xF0, Critical: 255})}
 	progress := uint16(0)
-	for i := 0; i < 4; i++ {
-		if criticalHit(128, &progress) {
-			t.Fatalf("critico inesperado no cursor %d", i)
+	double, critical := rollPhysicalHitFlags(ch, &progress, func(int) int { return 254 })
+	if !double || !critical {
+		t.Fatalf("flags at 200%%/255 double=%v critical=%v want both", double, critical)
+	}
+	if progress != 1 {
+		t.Fatalf("progress=%d want=1", progress)
+	}
+
+	ch.Extended.AttackRun = 0x50 // 100% Attack Speed: no Double Hit chance.
+	ch.Extended.Critical = 0
+	double, critical = rollPhysicalHitFlags(ch, &progress, func(int) int { return 0 })
+	if double || critical {
+		t.Fatalf("flags at 100%%/0 double=%v critical=%v want neither", double, critical)
+	}
+}
+
+func TestDoubleHitCountsFullServerProgression(t *testing.T) {
+	// The native table reserves cursor zero as 512, so its nominal 50% band
+	// contains 499 doubles in one complete 1,024-action cycle. At 200% every
+	// table value (maximum 999) is below the 1,000 threshold.
+	for speedNibble, want := range map[byte]int{0x50: 0, 0xA0: 499, 0xF0: 1024} {
+		ch := &model.Char{Extended: testExtended(model.ExtendedScore{AttackRun: speedNibble})}
+		progress := uint16(0)
+		got := 0
+		for range 1024 {
+			double, _ := rollPhysicalHitFlags(ch, &progress, func(int) int { return 254 })
+			if double {
+				got++
+			}
 		}
-	}
-	if !criticalHit(128, &progress) { // tabela[4] = 1, threshold = 512
-		t.Fatal("progressao nao produziu o critico esperado")
-	}
-	if progress != 5 {
-		t.Fatalf("cursor=%d, quer 5", progress)
+		if got != want {
+			t.Fatalf("AttackRun=%02X double hits=%d want=%d", speedNibble, got, want)
+		}
 	}
 }
 
@@ -50,16 +83,16 @@ func TestAcceptClientAttackRejectsInternalAndFastTicks(t *testing.T) {
 	if acceptClientAttack(p, pkt, now.Add(time.Second)) {
 		t.Fatal("replay do mesmo ClientTick foi aceito")
 	}
-	// Char sem Extended = velocidade 0 = piso de 900ms (attackIntervalFor).
-	binary.LittleEndian.PutUint32(pkt[8:12], 1500)
+	// Physical cadence is fixed at 400 ms; Attack Speed feeds Double Hit.
+	binary.LittleEndian.PutUint32(pkt[8:12], 1399)
 	if acceptClientAttack(p, pkt, now.Add(time.Second)) {
-		t.Fatal("tick abaixo do intervalo (speed 0 = 900ms) foi aceito")
-	}
-	binary.LittleEndian.PutUint32(pkt[8:12], 1900)
-	if !acceptClientAttack(p, pkt, now.Add(time.Second)) {
-		t.Fatal("ataque no intervalo (900ms, speed 0) foi rejeitado")
+		t.Fatal("tick abaixo do intervalo fixo de 400ms foi aceito")
 	}
 	binary.LittleEndian.PutUint32(pkt[8:12], 1400)
+	if !acceptClientAttack(p, pkt, now.Add(time.Second)) {
+		t.Fatal("ataque no intervalo de 400ms foi rejeitado")
+	}
+	binary.LittleEndian.PutUint32(pkt[8:12], 1300)
 	if acceptClientAttack(p, pkt, now.Add(2*time.Second)) {
 		t.Fatal("tick retrocedendo foi aceito")
 	}
@@ -104,18 +137,44 @@ func TestAcceptClientSkillRejectsReplayAndOnlyBusyLoops(t *testing.T) {
 	}
 }
 
-// TestAttackIntervalScalesWithSpeed garante que um char mais rapido tem um piso
-// de ataque menor -- o bug do felipe (velocidade travada em ~1 golpe/s).
-func TestAttackIntervalScalesWithSpeed(t *testing.T) {
+func TestPhysicalAttackIntervalIsFixedAndSpeedFeedsDoubleChance(t *testing.T) {
 	slow := &model.Char{Extended: testExtended(model.ExtendedScore{AttackRun: 0x00})} // speed 0
 	fast := &model.Char{Extended: testExtended(model.ExtendedScore{AttackRun: 0xF0})} // speed 15
 	slowInterval := attackIntervalFor(slow)
 	fastInterval := attackIntervalFor(fast)
-	if slowInterval != 900*time.Millisecond {
-		t.Fatalf("velocidade 0 deveria dar 900ms, deu %v", slowInterval)
+	if slowInterval != 400*time.Millisecond || fastInterval != slowInterval {
+		t.Fatalf("physical intervals=%v/%v want fixed 400ms", slowInterval, fastInterval)
 	}
-	if fastInterval >= slowInterval || fastInterval > 500*time.Millisecond {
-		t.Fatalf("velocidade 15 deveria permitir ~2 golpes/s (<=500ms), deu %v", fastInterval)
+	if got := doubleHitChance(slow); got != 0 {
+		t.Fatalf("slow double chance=%d want=0", got)
+	}
+	if got := doubleHitChance(fast); got != 100 {
+		t.Fatalf("200%% attack speed double chance=%d want=100", got)
+	}
+}
+
+func TestAttackClockValidationDoesNotConsumeRejectedTargetIntent(t *testing.T) {
+	pkt := make([]byte, 48)
+	binary.LittleEndian.PutUint32(pkt[8:12], 1_000)
+	p := &Player{}
+	now := time.Unix(30, 0)
+	clock, ok := validateClientAttackClock(p, pkt, now)
+	if !ok {
+		t.Fatal("initial clock should validate")
+	}
+	// Target validation happens between these two calls. If that target is dead,
+	// absent, out of range or behind terrain, the clock is deliberately not
+	// committed and the next legitimate target may reuse this action window.
+	if p.LastAttackTick != 0 || !p.LastAttackAt.IsZero() {
+		t.Fatalf("pure validation mutated player: tick=%d at=%v", p.LastAttackTick, p.LastAttackAt)
+	}
+	clock2, ok := validateClientAttackClock(p, pkt, now.Add(10*time.Millisecond))
+	if !ok || clock2.tick != clock.tick {
+		t.Fatal("uncommitted rejected intent consumed the physical action window")
+	}
+	commitClientAttackClock(p, clock2, now.Add(10*time.Millisecond))
+	if p.LastAttackTick != 1_000 {
+		t.Fatalf("committed tick=%d want=1000", p.LastAttackTick)
 	}
 }
 

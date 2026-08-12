@@ -25,6 +25,7 @@ func TestActiveMobAcquiresChasesAndAttacksNearbyPlayer(t *testing.T) {
 	applyExtendedScore(p.Char)
 	m := combatMob(1000, 100, 100)
 	w := worldWithNetworkedPlayers(p)
+	w.rng = fixedRNG{value: 0}
 	w.registerMobSpatial(m)
 	w.mobs = append(w.mobs, m)
 	w.activeMobs[m.ID] = m
@@ -49,6 +50,35 @@ func TestActiveMobAcquiresChasesAndAttacksNearbyPlayer(t *testing.T) {
 	}
 	if session.QueuedPacketsForTest() == 0 {
 		t.Fatal("ataque nao publicou animacao/vitais")
+	}
+}
+
+func TestMobCannotAttackAcrossIncompatibleTerrain(t *testing.T) {
+	p, session := networkedTestPlayer(1, "Target", 101, 100)
+	p.Char.Extended.Defense = 0
+	p.Char.Extended.Dex = 0
+	applyExtendedScore(p.Char)
+	m := combatMob(1000, 100, 100)
+	m.TargetID = p.ID
+	w := worldWithNetworkedPlayers(p)
+	w.rng = fixedRNG{value: 0}
+	w.terrain = loadedFlatTerrain()
+	w.terrain.Height[100*model.TerrainWidth+101] = 20 // walkable, but over the native MH=8 edge
+	w.registerMobSpatial(m)
+	w.mobs = append(w.mobs, m)
+	w.activeMobs[m.ID] = m
+	p.show(m.ID)
+
+	hpBefore := playerCurHP(p.Char)
+	w.tickActiveMobActions(time.Unix(1, 0))
+	if hp := playerCurHP(p.Char); hp != hpBefore {
+		t.Fatalf("mob hit through incompatible terrain: %d -> %d", hpBefore, hp)
+	}
+	if !m.NextAttack.IsZero() {
+		t.Fatal("blocked hit consumed the mob attack deadline")
+	}
+	if session.QueuedPacketsForTest() != 0 {
+		t.Fatal("blocked hit published a combat packet")
 	}
 }
 

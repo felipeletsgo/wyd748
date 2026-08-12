@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"wydgo/internal/model"
+	"wydgo/internal/net"
 )
 
 func TestSkillAffectUsesSkillDataWithoutIndexOverride(t *testing.T) {
@@ -96,6 +97,56 @@ func TestBMTransformationUsesW2PPInterpolation(t *testing.T) {
 	}
 	if e.Critical != 11 || bodyMesh(ch)[0] != 22 {
 		t.Fatalf("bonus/visual da transformacao incorreto: extended=%+v mesh=%v", e, bodyMesh(ch)[0])
+	}
+}
+
+func TestBMTransformationKeepsFullHPWhenAnotherBuffRecalculatesScore(t *testing.T) {
+	now := time.Now()
+	w := &World{clock: newFakeClock(now)}
+	ch := &model.Char{Class: 2, Extended: testExtended(model.ExtendedScore{
+		Level: 100, MaxHP: 70, CurHP: 70, MaxMP: 55, CurMP: 55,
+		Int: 6, Con: 5, AttackRun: 0x11,
+	})}
+	// Homem Urso (transformacao BM, affect 16/value 2) ja esta ativo.
+	ch.Affects[0] = model.Affect{
+		Type: 16, Value: 2, Level: 239, ExpiresAt: now.Add(time.Minute),
+	}
+	w.recalcPlayer(ch)
+	transformedMax := playerMaxHP(ch)
+	setPlayerCurHP(ch, transformedMax)
+	if transformedMax <= ch.Extended.MaxHP {
+		t.Fatalf("pre-condicao: transformacao nao elevou MaxHP: base=%d runtime=%d",
+			ch.Extended.MaxHP, transformedMax)
+	}
+
+	// Passe pelo caminho vivo de uma skill de suporte posterior. Protecao e
+	// Forca Elemental entram por esta mesma fronteira e chamam recalcPlayer.
+	p := &Player{ID: 1, InWorld: true, Char: ch, Session: &net.Session{ID: 1}}
+	result := w.applySupportSkill(p, skillCastRequest{}, model.SkillDef{
+		Index: 52, Name: "Elemental Protection", AffectType: 11,
+		AffectValue: 10, AffectTime: 8,
+	}, 255)
+	if len(result) != 1 {
+		t.Fatalf("buff de suporte nao foi aplicado: %+v", result)
+	}
+
+	if got := playerCurHP(ch); got != transformedMax {
+		t.Fatalf("buff derrubou HP transformado: atual=%d, quer=%d (base sem transformacao=%d)",
+			got, transformedMax, ch.Extended.MaxHP)
+	}
+	if playerCurHP(ch) != playerMaxHP(ch) {
+		t.Fatalf("personagem deixou de estar cheio: %d/%d", playerCurHP(ch), playerMaxHP(ch))
+	}
+	if ch.Extended.CurHP > ch.Extended.MaxHP {
+		t.Fatalf("persistencia recebeu HP impossivel: %d/%d", ch.Extended.CurHP, ch.Extended.MaxHP)
+	}
+
+	// O mesmo recalc nao pode funcionar como cura para um BM ferido.
+	const damagedHP = uint32(100)
+	setPlayerCurHP(ch, damagedHP)
+	w.recalcPlayer(ch)
+	if got := playerCurHP(ch); got != damagedHP {
+		t.Fatalf("buff curou/feriu BM que nao estava cheio: atual=%d, quer=%d", got, damagedHP)
 	}
 }
 

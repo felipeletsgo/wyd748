@@ -65,6 +65,9 @@ func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef,
 	if chebyshev(mob.X, mob.Y, target.X, target.Y) > reach {
 		return // saiu de alcance entre a aceitacao e a execucao
 	}
+	if !w.combatLineOfSight(mob.X, mob.Y, target.X, target.Y) {
+		return
+	}
 	skill, known := w.skills[action.SkillID]
 	if !known {
 		// Skill inexistente no catalogo: nao inventa dano. O boot ja loga o
@@ -78,8 +81,18 @@ func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef,
 		w.announceToMobView(mob, action.Message)
 	}
 
-	damage := w.bossSkillDamage(mob, target, skill)
 	now := w.now()
+	if !combatRollHits(mobVersusPlayerAccuracy(mob.Def, target.Char), w.intn) {
+		w.sendToMobView(mob, func() []byte {
+			return wire.SkillHitsWide(mob.ID, mob.X, mob.Y, target.X, target.Y,
+				0, mob.Def.Extended.MaxMP, int16(skill.Index), 0, 0, 1,
+				[]wire.SkillTarget{{ID: target.ID, Miss: true, MaxHP: playerMaxHP(target.Char)}})
+		})
+		log.Printf("BOSS %q: skill %d (%s) errou jogador id=%d",
+			boss.Profile.ID, action.SkillID, skill.Name, target.ID)
+		return
+	}
+	damage := bossSkillDamageWithRNG(mob, target, skill, w.intn, now)
 	w.applyMobDamageToPlayer(mob, target, damage, now, func(applied uint32) []byte {
 		// SkillHitExtended (0x36C + 0x39D) faz o client desenhar a MAGIA, e nao
 		// o golpe corpo a corpo. Motion/mastery em 0: o boss nao tem barra de

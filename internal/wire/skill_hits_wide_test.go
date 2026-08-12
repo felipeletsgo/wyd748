@@ -55,16 +55,51 @@ func TestSkillHitsWideTwoTargetOffsetsMatchClientPatch(t *testing.T) {
 	}
 }
 
-func TestSkillHitsWideSingleKeepsExisting39DOffset(t *testing.T) {
+func TestSkillHitsWideSingleUsesDedicatedSkillTail(t *testing.T) {
 	target := SkillTarget{ID: 1001, Damage: 123_456, MaxHP: 500_000}
 	pkt := SkillHitsWide(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 1, []SkillTarget{target})
-	if len(pkt) != 52 {
-		t.Fatalf("size=%d want=52", len(pkt))
+	if len(pkt) != 60 {
+		t.Fatalf("size=%d want=60", len(pkt))
 	}
-	if got := binary.LittleEndian.Uint32(pkt[48:52]); got != target.Damage {
-		t.Fatalf("damage@48=%d want=%d", got, target.Damage)
+	if got := binary.LittleEndian.Uint32(pkt[48:52]); got != 0x58474D44 {
+		t.Fatalf("magic@48=%08X", got)
+	}
+	if got := binary.LittleEndian.Uint32(pkt[52:56]); got != 1 {
+		t.Fatalf("count@52=%d want=1", got)
+	}
+	if got := binary.LittleEndian.Uint32(pkt[56:60]); got != target.Damage {
+		t.Fatalf("damage@56=%d want=%d", got, target.Damage)
 	}
 	if pkt[30] != 0 {
 		t.Fatalf("FlagLocal=%d want=0", pkt[30])
+	}
+}
+
+func TestSkillHitsWideSingleMissUsesNativeSentinelWithoutWideDamage(t *testing.T) {
+	pkt := SkillHitsWide(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 1,
+		[]SkillTarget{{ID: 1001, Miss: true, MaxHP: 500_000}})
+	if got := binary.LittleEndian.Uint16(pkt[46:48]); got != 0xFFFD {
+		t.Fatalf("miss WORD=%04X want=FFFD", got)
+	}
+	if got := binary.LittleEndian.Uint32(pkt[56:60]); got != 0 {
+		t.Fatalf("miss wide damage=%d want=0", got)
+	}
+}
+
+func TestAttackHitExtendedCarriesNativeDoubleCriticalAndMiss(t *testing.T) {
+	hit := AttackHitExtendedResult(1, 1001, 10, 10, 11, 11, 123_456, 500_000, 0, 100, 3, false)
+	if hit[31] != 3 {
+		t.Fatalf("DoubleCritical=%d want=3", hit[31])
+	}
+	if got := binary.LittleEndian.Uint32(hit[48:52]); got != 123_456 {
+		t.Fatalf("wide damage=%d want=123456", got)
+	}
+
+	miss := AttackHitExtendedResult(1, 1001, 10, 10, 11, 11, 0, 500_000, 0, 100, 0, true)
+	if got := binary.LittleEndian.Uint16(miss[46:48]); got != 0xFFFD {
+		t.Fatalf("miss WORD=%04X want=FFFD", got)
+	}
+	if got := binary.LittleEndian.Uint32(miss[48:52]); got != 0 {
+		t.Fatalf("miss wide damage=%d want=0", got)
 	}
 }

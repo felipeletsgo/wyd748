@@ -200,8 +200,11 @@ func TestParseAttackSkillCompactAndMulti(t *testing.T) {
 	multi := make([]byte, 120)
 	binary.LittleEndian.PutUint16(multi[24:26], 35)
 	multi[28] = 11
-	if req := parseAttackSkill(multi); req.Skill != 35 || req.Motion != 11 {
-		t.Fatalf("multi skill=%d motion=%d", req.Skill, req.Motion)
+	binary.LittleEndian.PutUint16(multi[44:46], 1001)
+	binary.LittleEndian.PutUint16(multi[48:50], 1002)
+	if req := parseAttackSkill(multi); req.Skill != 35 || req.Motion != 11 ||
+		req.TargetID != 1001 || req.SecondaryTargetID != 1002 {
+		t.Fatalf("multi request=%+v", req)
 	}
 }
 

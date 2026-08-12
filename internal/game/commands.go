@@ -277,7 +277,8 @@ func parseSlashCommand(message string) (name, arg string, ok bool) {
 // precedencia sobre um nick de mesmo nome, como no TMSrv nativo.
 var chatCommandAliases = map[string]string{
 	"day": "day", "time": "time", "cp": "cp", "chaos": "cp", "fame": "fame",
-	"nig": "nig", "limparinv": "clearinv", "clearinv": "clearinv", "hpdebug": "hpdebug",
+	"parry": "parry",
+	"nig":   "nig", "limparinv": "clearinv", "clearinv": "clearinv", "hpdebug": "hpdebug",
 	"spk": "spk", "kingdom": "kingdom", "reino": "kingdom", "king": "king", "rei": "king",
 	"criar": "create", "create": "create", "convidar": "invite", "invite": "invite",
 	"aceitar": "accept", "accept": "accept", "sair": "leave", "leave": "leave",
@@ -306,6 +307,8 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		// Fame e um contador por personagem (charstate), separado de CP,
 		// EXP Hold e Special Points. A consulta nunca altera nem persiste estado.
 		s.Send(wire.MessagePanel(fameMessage(p)))
+	case "parry":
+		w.sendParryMatchup(s, p, arg)
 	case "nig":
 		// O client envia este comando internamente ao usar os ingressos do
 		// Nightmare (SGrid.cpp): ele espera !!HHMMSS para atualizar o relogio
@@ -350,6 +353,28 @@ func chaosPointMessage(cp int16) string {
 
 func fameMessage(p *Player) string {
 	return fmt.Sprintf("Fame: %d", counterBalance(p, fameCounter))
+}
+
+func (w *World) sendParryMatchup(s *net.Session, p *Player, targetName string) {
+	if s == nil || p == nil || p.Char == nil {
+		return
+	}
+	targetName = strings.TrimSpace(targetName)
+	if targetName == "" {
+		s.Send(wire.MessagePanel("Usage: /parry <player>"))
+		return
+	}
+	target := w.playerByCharacterName(targetName)
+	if target == nil || target.Char == nil || !target.InWorld {
+		s.Send(wire.MessagePanel("That player is not online."))
+		return
+	}
+	accuracy := playerVersusPlayerAccuracy(p.Char, target.Char)
+	evasion := combatEvasionPercent(playerDex(p.Char), playerEvasionBonusPoints(p.Char),
+		playerAccuracyBonusPoints(target.Char),
+		playerHasConcentration(target.Char))
+	s.Send(wire.MessagePanel(fmt.Sprintf("[Accuracy: %d%% | Evasion: %d%%] against %s",
+		accuracy, evasion, target.Char.Name)))
 }
 
 // sendCharacterInfo responde ao "/nick" sem mensagem com um resumo do

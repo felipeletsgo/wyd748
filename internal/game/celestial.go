@@ -97,61 +97,6 @@ func newCelestialScore(class byte, previous *model.ExtendedScore) *model.Extende
 	return score
 }
 
-// migrateLegacyEvolutionScores reconhece exclusivamente a assinatura que as
-// versoes anteriores do emulador gravavam ao criar Celestial/Sub: ATK da
-// template Mortal e DEF 4. A migracao preserva os pontos distribuidos sobre a
-// antiga base uniforme 5 e troca somente as bases confirmadas no W2PP normal.
-// Scores customizados ou ja migrados nao sao tocados.
-func migrateLegacyEvolutionScores(acc *model.Account) bool {
-	if acc == nil {
-		return false
-	}
-	changed := false
-	for i := range acc.Chars {
-		ch := &acc.Chars[i]
-		if migrateLegacyCelestialScore(ch.Extended, ch.Class, ch.Evolution, ch.ArchCrystals) {
-			changed = true
-		}
-		if ch.AlternateCelestial != nil && migrateLegacyCelestialScore(
-			ch.AlternateCelestial.Extended,
-			ch.AlternateCelestial.Class,
-			ch.AlternateCelestial.Evolution,
-			ch.ArchCrystals,
-		) {
-			changed = true
-		}
-	}
-	return changed
-}
-
-func migrateLegacyCelestialScore(score *model.ExtendedScore, class byte,
-	evolution string, crystals byte) bool {
-	if score == nil || class > 3 ||
-		!(strings.EqualFold(strings.TrimSpace(evolution), "celestial") ||
-			strings.EqualFold(strings.TrimSpace(evolution), "subcelestial")) {
-		return false
-	}
-	legacyAttack := [...]uint32{5, 6, 5, 9}[class]
-	if score.Attack != legacyAttack || score.Defense != 4 {
-		return false
-	}
-	natural := baseClassStats[class]
-	score.Str = migrateLegacyNaturalStat(score.Str, natural[0])
-	score.Int = migrateLegacyNaturalStat(score.Int, natural[1])
-	score.Dex = migrateLegacyNaturalStat(score.Dex, natural[2])
-	score.Con = migrateLegacyNaturalStat(score.Con, natural[3])
-	score.Attack = 488
-	score.Defense = celestialBaseDefense(crystals)
-	return true
-}
-
-func migrateLegacyNaturalStat(value uint32, natural uint16) uint32 {
-	if value <= 5 {
-		return uint32(natural)
-	}
-	return value - 5 + uint32(natural)
-}
-
 // markCelestialFace projeta no item de rosto os dois bytes que o client 7.48
 // usa para distinguir Mortal/Arch/Celestial/Sub. Evolution continua sendo a
 // fonte server-side, mas omitir EFV2 faria a UI interpretar um Celestial como

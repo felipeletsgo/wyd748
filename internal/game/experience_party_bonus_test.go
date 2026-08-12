@@ -136,12 +136,27 @@ func TestMobKillKeepsReceiverSpecificCelestialReduction(t *testing.T) {
 	w, killer, member := experiencePartyKillWorld(t)
 	equipCombatExperienceBonuses(t, w, killer)
 	member.Char.Evolution = "celestial"
-	member.Char.Extended.Level = 159 // duas quedas cumulativas pela metade.
+	member.Char.Extended.Level = 159 // nivel exibido 160: divisor W2PP 65.
 
 	const partyReward = uint32(10_400)
 	killerReward := w.mobKillExperienceForReceiver(killer.Char, killer.Char, partyReward)
 	memberReward := w.mobKillExperienceForReceiver(killer.Char, member.Char, partyReward)
-	if killerReward != 24_544 || memberReward != 6_136 {
+	if killerReward != 24_544 || memberReward != 376 {
 		t.Fatalf("reducao por receptor incorreta: mortal=%d celestial=%d", killerReward, memberReward)
+	}
+}
+
+func TestMobKillKeepsReceiverSpecificArchReduction(t *testing.T) {
+	w, killer, member := experiencePartyKillWorld(t)
+	equipCombatExperienceBonuses(t, w, killer)
+	member.Char.Evolution = "arch"
+	member.Char.Extended.Level = 300 // nivel exibido 301: divisor W2PP 8.
+
+	const partyReward = uint32(10_400)
+	killerReward := w.mobKillExperienceForReceiver(killer.Char, killer.Char, partyReward)
+	memberReward := w.mobKillExperienceForReceiver(killer.Char, member.Char, partyReward)
+	if killerReward != 24_544 || memberReward != 3_068 {
+		t.Fatalf("reducao Arch por receptor incorreta: mortal=%d arch=%d",
+			killerReward, memberReward)
 	}
 }

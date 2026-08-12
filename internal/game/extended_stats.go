@@ -46,7 +46,7 @@ func clampRuntime(e *model.ExtendedScore) {
 	e.Con = clampExtended(e.Con)
 	e.Accuracy = clampExtended(e.Accuracy)
 	e.Evasion = clampExtended(e.Evasion)
-	e.Parry = minU32(clampExtended(e.Parry), 100)
+	e.Parry = clampExtended(e.Parry)
 	e.Critical = clampExtended(e.Critical)
 	e.Range = clampExtended(e.Range)
 	e.ResistFire = minU32(clampExtended(e.ResistFire), 100)

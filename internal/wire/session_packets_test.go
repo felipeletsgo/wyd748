@@ -321,10 +321,12 @@ func TestSkillHitExtendedKeepsSkillAndWideDamage(t *testing.T) {
 	// Alvo com MaxHP 550k -> escala 19; 275_000/19 = 14474 (arredondado p/ cima).
 	b := SkillHitExtended(1, 1001, 2200, 2100, 2201, 2101,
 		275_000, 550_000, 1234, 70, 7, 0, 255)
-	if len(b) != 52 || ParseHeader(b).Size != 52 ||
+	if len(b) != 60 || ParseHeader(b).Size != 60 ||
 		int16(binary.LittleEndian.Uint16(b[24:26])) != 7 ||
 		binary.LittleEndian.Uint16(b[46:48]) != 14_474 ||
-		binary.LittleEndian.Uint32(b[48:52]) != 275_000 || b[30] != 0 {
+		binary.LittleEndian.Uint32(b[48:52]) != 0x58474D44 ||
+		binary.LittleEndian.Uint32(b[52:56]) != 1 ||
+		binary.LittleEndian.Uint32(b[56:60]) != 275_000 || b[30] != 0 {
 		t.Fatalf("SkillHitExtended invalido: %v", b)
 	}
 }

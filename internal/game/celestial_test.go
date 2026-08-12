@@ -171,50 +171,6 @@ func TestCelestialCrystalBasesMatchNormalW2PPBranch(t *testing.T) {
 	}
 }
 
-func TestLegacyCelestialScoresMigrateOnceToW2PPBases(t *testing.T) {
-	main := model.Char{
-		Class: 2, Evolution: "celestial", ArchCrystals: 3,
-		Extended: testExtended(model.ExtendedScore{
-			Attack: 5, Defense: 4, Str: 25, Int: 35, Dex: 45, Con: 55,
-		}),
-		AlternateCelestial: &model.CelestialForm{
-			Class: 3, Evolution: "subcelestial",
-			Extended: testExtended(model.ExtendedScore{
-				Attack: 9, Defense: 4, Str: 15, Int: 25, Dex: 35, Con: 45,
-			}),
-		},
-	}
-	acc := &model.Account{Chars: []model.Char{main}}
-	if !migrateLegacyEvolutionScores(acc) {
-		t.Fatal("assinatura Celestial legada nao foi reconhecida")
-	}
-	ch := &acc.Chars[0]
-	if ch.Extended.Attack != 488 || ch.Extended.Defense != 984 ||
-		ch.Extended.Str != 26 || ch.Extended.Int != 36 ||
-		ch.Extended.Dex != 49 || ch.Extended.Con != 55 {
-		t.Fatalf("migracao principal incorreta: %+v", *ch.Extended)
-	}
-	if ch.AlternateCelestial.Extended.Attack != 488 ||
-		ch.AlternateCelestial.Extended.Defense != 984 ||
-		ch.AlternateCelestial.Extended.Str != 18 ||
-		ch.AlternateCelestial.Extended.Int != 29 ||
-		ch.AlternateCelestial.Extended.Dex != 43 ||
-		ch.AlternateCelestial.Extended.Con != 46 {
-		t.Fatalf("migracao da forma alterna incorreta: %+v", *ch.AlternateCelestial.Extended)
-	}
-	if migrateLegacyEvolutionScores(acc) {
-		t.Fatal("migracao W2PP nao foi idempotente")
-	}
-
-	custom := &model.Account{Chars: []model.Char{{
-		Class: 0, Evolution: "celestial",
-		Extended: testExtended(model.ExtendedScore{Attack: 777, Defense: 888}),
-	}}}
-	if migrateLegacyEvolutionScores(custom) {
-		t.Fatal("score Celestial customizado foi alterado pela migracao estrita")
-	}
-}
-
 func TestArchGrowthAndInitialPointBudgetsMatchW2PP(t *testing.T) {
 	w := &World{}
 	for class := byte(0); class < 4; class++ {
@@ -275,23 +231,62 @@ func TestCelestialProgressionLocksAndExperienceCurve(t *testing.T) {
 	}
 }
 
-func TestCelestialCombatExperienceReductionsAreCumulative(t *testing.T) {
+func TestCelestialCombatExperienceUsesW2PPDivisors(t *testing.T) {
 	tests := []struct {
 		level uint32
 		want  uint32
 	}{
-		{148, 3200}, {149, 1600}, {159, 800},
-		{169, 400}, {179, 200}, {189, 100},
+		// level interno + 1 e o nivel exibido usado em GetExpApply.
+		{0, 450}, {39, 450}, {40, 360}, {79, 360},
+		{80, 327}, {99, 327}, {100, 300}, {149, 300},
+		{150, 276}, {189, 276}, {190, 257}, {199, 257},
 	}
 	for _, test := range tests {
 		ch := celestialCharacter("celestial", test.level)
-		if got := celestialCombatExperience(ch, 3200); got != test.want {
+		if got := combatExperienceByEvolution(ch, 18_000); got != test.want {
 			t.Errorf("level=%d: EXP=%d, quer %d", test.level, got, test.want)
 		}
 	}
-	mortal := celestialCharacter("", 189)
-	if got := celestialCombatExperience(mortal, 3200); got != 3200 {
-		t.Fatalf("reducao Celestial atingiu Mortal: %d", got)
+
+	sub := celestialCharacter("subcelestial", 100)
+	if got := combatExperienceByEvolution(sub, 18_000); got != 300 {
+		t.Fatalf("SubCelestial nao compartilhou a curva Celestial: %d", got)
+	}
+}
+
+func TestArchCombatExperienceUsesW2PPDivisors(t *testing.T) {
+	tests := []struct {
+		level uint32
+		want  uint32
+	}{
+		{0, 1_200_000}, // exibido 1: 100%
+		{4, 1_188_118}, // exibido 5: divisor 101
+		{254, 794_701}, // exibido 255: divisor 151
+		{255, 600_000}, // exibido 256: divisor 2
+		{280, 300_000}, // exibido 281: divisor 4
+		{300, 150_000}, // exibido 301: divisor 8
+		{320, 100_000}, // exibido 321: divisor 12
+		{340, 75_000},  // exibido 341: divisor 16
+		{350, 60_000},  // exibido 351: divisor 20
+		{360, 50_000},  // exibido 361: divisor 24
+		{370, 42_857},  // exibido 371: divisor 28
+		{380, 15_789},  // exibido 381: divisor 76
+		{390, 13_333},  // exibido 391: divisor 90
+		{395, 12_000},  // exibido 396: divisor 100
+		{398, 10_000},  // exibido 399: divisor 120
+	}
+	for _, test := range tests {
+		ch := celestialCharacter("arch", test.level)
+		if got := combatExperienceByEvolution(ch, 1_200_000); got != test.want {
+			t.Errorf("level interno=%d: EXP=%d, quer %d", test.level, got, test.want)
+		}
+	}
+}
+
+func TestMortalCombatExperienceRemainsUnreduced(t *testing.T) {
+	ch := celestialCharacter("", 398)
+	if got := combatExperienceByEvolution(ch, 1_200_000); got != 1_200_000 {
+		t.Fatalf("curva de evolucao avancada atingiu Mortal: %d", got)
 	}
 }
 

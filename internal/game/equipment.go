@@ -394,10 +394,12 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	for i := range runtime.Mastery {
 		runtime.Mastery[i] = extendedValue(special[i])
 	}
-	runtime.Accuracy = extendedValue(level*2 + dex + special[2] + total("EF_HITRATE"))
-	runtime.Parry = uint32(clampInt(int(base.Parry)+int(total("EF_PARRY")), 0, 100))
-	runtime.Evasion = extendedValue(int64(parryRate(
-		int(minU32(runtime.Dex, maxExtendedStat)), int(runtime.Parry), 0)))
+	// Accuracy/Evasion store only additive combat bonus points. Dexterity is a
+	// separate operand of the matchup formula in combat_accuracy.go; mixing it
+	// into these fields would count DEX twice. Ten bonus points equal 1%.
+	runtime.Accuracy = extendedValue(int64(base.Accuracy) + total("EF_HITRATE"))
+	runtime.Parry = extendedValue(int64(base.Parry) + total("EF_PARRY"))
+	runtime.Evasion = extendedValue(int64(base.Evasion) + int64(runtime.Parry))
 	runtime.Critical = extendedValue(int64(base.Critical) +
 		(total("EF_CRITICAL")+total("EF_CRITICAL2"))/4)
 	// BASE_GetMobAbility/BASE_GetMaxAbility usam o maior EF_RANGE equipado;
@@ -446,27 +448,11 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	runtime.MasterPts = base.MasterPts
 	runtime.SkillPts = base.SkillPts
 
-	if wasFullHP {
-		runtime.CurHP = runtime.MaxHP
-	} else {
-		runtime.CurHP = minU32(oldHP, runtime.MaxHP)
-	}
-	if wasFullMP {
-		runtime.CurMP = runtime.MaxMP
-	} else {
-		runtime.CurMP = minU32(oldMP, runtime.MaxMP)
-	}
-	// O base e o score SEM equipamento e SEM affect: seu proprio MaxHP e o unico
-	// teto valido para ele. Copiar aqui o CurHP do runtime -- que ja esta no teto
-	// EFETIVO, somando EF_HP das pecas e os buffs -- gravava no disco
-	// `curHP 1202183 / maxHP 1000000`, um estado impossivel.
-	//
-	// Limitar o base NAO reduz o HP em jogo: o valor vivo e o do runtime, e ele
-	// sobrevive ao proximo recalculo por oldHP/wasFullHP (capturados no topo
-	// desta funcao a partir do runtime, nao do base). No login, com runtime
-	// ainda nulo, oldHP vem do base cheio e wasFullHP reenche ate o teto efetivo.
-	base.CurHP = minU32(runtime.CurHP, base.MaxHP)
-	base.CurMP = minU32(runtime.CurMP, base.MaxMP)
+	// Passivas e affects ainda vao alterar os tetos abaixo. Mantenha por ora o
+	// recurso anterior limitado ao score intermediario; a restauracao de
+	// "estava cheio" so pode acontecer depois do ultimo modificador de MaxHP/MP.
+	runtime.CurHP = minU32(oldHP, runtime.MaxHP)
+	runtime.CurMP = minU32(oldMP, runtime.MaxMP)
 	ch.ExtendedRuntime = &runtime
 
 	attackSpeed := minInt(15, int(base.AttackRun>>4)+int(total("EF_ATTSPEED")))
@@ -478,6 +464,25 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	ch.ExtendedRuntime.AttackRun = byte(attackSpeed<<4 | runSpeed)
 	w.applyPassiveSkills(ch)
 	w.applyAffectStats(ch)
+
+	// Homem Urso e as demais transformacoes BM mudam MaxHP dentro dos affects.
+	// Restaurar o HP cheio antes desse ponto usava o teto sem transformacao
+	// (por exemplo 1833) e o deixava visivel por baixo do teto final (3207) a
+	// cada buff subsequente. Preserve o estado vivo contra o teto FINAL.
+	if wasFullHP {
+		ch.ExtendedRuntime.CurHP = ch.ExtendedRuntime.MaxHP
+	} else {
+		ch.ExtendedRuntime.CurHP = minU32(oldHP, ch.ExtendedRuntime.MaxHP)
+	}
+	if wasFullMP {
+		ch.ExtendedRuntime.CurMP = ch.ExtendedRuntime.MaxMP
+	} else {
+		ch.ExtendedRuntime.CurMP = minU32(oldMP, ch.ExtendedRuntime.MaxMP)
+	}
+	// O base e o score SEM equipamento e SEM affect: seu proprio MaxHP e o unico
+	// teto valido para persistencia. O runtime conserva os recursos efetivos.
+	base.CurHP = minU32(ch.ExtendedRuntime.CurHP, base.MaxHP)
+	base.CurMP = minU32(ch.ExtendedRuntime.CurMP, base.MaxMP)
 	projectExtendedRuntime(ch)
 }
 

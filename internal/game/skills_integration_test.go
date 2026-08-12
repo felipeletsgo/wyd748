@@ -129,6 +129,7 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 
 func TestSkillAttackPvEAppliesDamageManaAndDebuff(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
+	w.rng = fixedRNG{value: 0}
 	p.Char.Class = 1
 	p.Char.LearnedSkill = 1
 	p.Char.Extended.Int = 500
@@ -238,6 +239,7 @@ func TestSkillAttackPvPBreaksHideAndPreservesOverkillState(t *testing.T) {
 	caster, _ := networkedTestPlayer(1, "Caster", 2100, 2100)
 	target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
 	w := worldWithNetworkedPlayers(caster, target)
+	w.rng = fixedRNG{value: 0}
 	w.store = &craftStore{}
 	w.items = make(map[uint16]model.ItemDef)
 	w.ghostShops = make(map[uint16]*GhostShop)

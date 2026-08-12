@@ -929,12 +929,26 @@ func SendItem(id uint16, placeType, pos byte, it model.Item) []byte {
 // tela, o outro a barra.
 func AttackHitExtended(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
 	damage, targetMaxHP, currentExp, currentMP uint32) []byte {
+	return AttackHitExtendedResult(attackerID, targetID, attackerX, attackerY, targetX, targetY,
+		damage, targetMaxHP, currentExp, currentMP, 0, false)
+}
+
+// AttackHitExtendedResult adds the native Double/Critical visual bits and the
+// signed -3 MISS sentinel without trusting any client-provided combat result.
+func AttackHitExtendedResult(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
+	damage, targetMaxHP, currentExp, currentMP uint32, doubleCritical byte, miss bool) []byte {
 	b := AttackHit(attackerID, targetID, attackerX, attackerY, targetX, targetY,
 		damage, targetMaxHP, currentExp, currentMP)
+	b[31] = doubleCritical
+	if miss {
+		putU16(b, 46, 0xFFFD)
+	}
 	extended := make([]byte, 52)
 	copy(extended, b)
 	putU16(extended, 0, uint16(len(extended)))
-	putU32(extended, 48, damage)
+	if !miss {
+		putU32(extended, 48, damage)
+	}
 	return extended
 }
 
@@ -1003,6 +1017,9 @@ func ShopList(items []model.Item, tax, shopType uint32) []byte {
 type SkillTarget struct {
 	ID     uint16
 	Damage uint32
+	// Miss serializes the native signed short -3 visual. Damage remains zero
+	// in the wide tail because MISS is an animation result, not HP damage.
+	Miss bool
 	// Heal e cura: o protocolo a representa como short NEGATIVO no mesmo campo
 	// do dano, e e isso que faz o 7.48 subir o HP e mostrar "+ valor". Campo
 	// proprio para o sinal ser explicito -- antes ele vinha embutido num uint16
@@ -1019,6 +1036,9 @@ type SkillTarget struct {
 // client soma esse WORD ao CurHP ja projetado, entao os dois lados precisam
 // falar na mesma unidade.
 func wireDamage(t SkillTarget) uint16 {
+	if t.Miss {
+		return 0xFFFD
+	}
 	if t.Heal > 0 {
 		return uint16(-int16(model.ProjectHPDelta(t.Heal, t.MaxHP)))
 	}
@@ -1085,22 +1105,14 @@ func SpectralVisual(packet []byte) []byte {
 	return packet
 }
 
-// SkillHitExtended usa o mesmo 0x39D estendido ja comprovado pelo melee, mas
-// conserva Skill/Motion/Mastery. Assim o client escolhe cor/efeito magico e le
-// o numero uint32 @48 sem alterar o tamanho fixo do 0x36C multi-alvo.
+// SkillHitExtended is the single-target skill-wide adapter. Physical hits own
+// the compact 0x39D/52 contract; skills use the self-describing 0x39D/60 DMGX
+// tail so the patched 7.48 client cannot confuse the two result families.
 func SkillHitExtended(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
 	damage, targetMaxHP, currentExp, currentMP uint32, skill int16, motion, mastery byte) []byte {
-	b := SkillHit(attackerID, targetID, attackerX, attackerY, targetX, targetY,
-		damage, targetMaxHP, currentExp, currentMP, skill, motion, mastery)
-	extended := make([]byte, 52)
-	copy(extended, b)
-	putU16(extended, 0, uint16(len(extended)))
-	putU32(extended, 48, damage)
-	// Este 0x39D adicional existe para exibir o dano uint32. Ao contrario do
-	// 0x36C principal, ele precisa passar pelo OnPacketAttack local para o
-	// client criar o numero flutuante; FlagLocal=1 o suprime por completo.
-	extended[30] = 0
-	return extended
+	return SkillHitsWide(attackerID, attackerX, attackerY, targetX, targetY,
+		currentExp, currentMP, skill, motion, mastery, 1,
+		[]SkillTarget{{ID: targetID, Damage: damage, MaxHP: targetMaxHP}})
 }
 
 // CNFDropItem monta o 0x175 (28B): confirmacao de drop de item (remove do inv).

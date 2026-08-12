@@ -63,8 +63,8 @@ client748/           client e cadeia reprodutível de patches
   party integral.
 - Stats, mastery e skill points possuem orçamento autoritativo por nível.
 - Arch nasce com os bônus nativos de 168 skill points e 112 mastery points;
-  Arch/Celestial ignoram somente o requisito de nível ao comprar skill, sem
-  ignorar classe, pontos, mastery, cadeia da skill final ou gold.
+  somente Mortal precisa cumprir o requisito de nível ao comprar skill. Arch,
+  Celestial e SubCelestial ainda validam classe, pontos, mastery, cadeia e gold.
 - Celestial/Sub usam o orçamento W2PP de 1600 pontos iniciais mais a curva
   normal de 3/4 pontos por nível; mastery permanece em 855 por forma.
 - Equipamentos são recalculados server-side ao equipar, remover, trocar ou
@@ -111,9 +111,18 @@ client748/           client e cadeia reprodutível de patches
 
 ## Combate, skills e affects
 
-- Ataques físicos melee e ranged, dano mágico, defesa, crítico, parry,
-  resistências e overkill visual são calculados no servidor.
-- LoS, range, gameplay space, alvo vivo e cooldown são revalidados.
+- Ataques físicos melee e ranged, dano mágico, defesa, Double Hit, crítico,
+  accuracy/evasion, resistências e overkill visual são calculados no servidor.
+- A mesma regra de acerto vale para PvE, PvP, skills ofensivas, mobs, bosses e
+  summons. Toda entidade parte de 100% de accuracy e 0% de evasion. A DEX do
+  defensor gera até 80% de evasion em 4000 pontos e reduz diretamente a
+  accuracy do atacante; dez pontos de item/montaria/buff equivalem a 1%. A
+  accuracy nunca cai abaixo de 20%. Concentração acrescenta 15% e eleva seu
+  piso para 35%.
+- `/parry <player>` mostra em uma única linha a accuracy e a evasion do jogador
+  contra o alvo online, sempre a partir dos dois scores autoritativos.
+- LoS, range, gameplay space, alvo vivo e cooldown são revalidados. Mobs e
+  skills de boss repetem a checagem de LoS no instante do dano.
 - PvP não concede EXP nem gold do jogador morto.
 - As 96 skills das classes e os cinco livros Sephira possuem caminhos de
   execução, custo, mastery, cooldown, efeitos e persistência.
@@ -126,9 +135,18 @@ client748/           client e cadeia reprodutível de patches
   anterior.
 - Morte multi-alvo usa uma transação de recompensa; falha restaura personagens,
   mob e instância sem publicar prêmio parcial.
-- Ataques físicos mantêm o limite de cadência derivado de `AttackRun`; skills
-  usam o `Delay` autoritativo de cada entrada e apenas um piso curto contra
-  busy-loop, portanto um ataque normal não descarta um cast mágico válido.
+- Ações físicas possuem intervalo fixo de 400 ms. Attack Speed acima de 100%
+  alimenta a progressão W2PP de Double Hit; em 200% todo ataque que acerta é
+  Double. Critical é independente, pode coexistir, e os bits nativos fazem o
+  client desenhar Double/Critical/MISS sem confiar em resultado C→S.
+- Uma intenção física com alvo morto, ausente, fora de range ou sem LoS não
+  consome o cooldown do próximo alvo válido. Skills continuam usando o `Delay`
+  autoritativo e um piso curto independente contra busy-loop.
+- Skills ofensivas usam os raios W2PP por `TargetType` (1, 2, 3 ou cone 3–6),
+  limitam o resultado a 13 entidades, ordenam alvos por distância/ID e preservam
+  skills nativas de dois alvos, multihit, summons e casos especiais.
+- Skill single-target wide usa `0x39D/60` com `DMGX`, contador e dano uint32;
+  o formato físico continua separado em `0x39D/52`.
 - Os contadores em `/debug/vars` separam pacotes de skill aceitos/rejeitados e
   ataques físicos rejeitados para diagnosticar perda de hit sem inundar o log.
 
@@ -146,7 +164,8 @@ client748/           client e cadeia reprodutível de patches
 - Gold mantém o limite nativo de 32 bits assinado.
 - `/limparinv`/`/clearinv` limpa somente o Carry visível e respeita itens cuja
   destruição é bloqueada.
-- `/fame`, `/cp`, `/chaos` e diagnósticos existentes consultam estado server-side.
+- `/fame`, `/cp`, `/chaos`, `/parry <player>` e os demais diagnósticos consultam
+  somente estado server-side.
 
 ## NPCs, lojas, trade e crafting
 
@@ -168,9 +187,9 @@ client748/           client e cadeia reprodutível de patches
   montarias mortas.
 - Lojas de teste em Armia e junto aos artesãos fornecem itens para o beta; devem
   ser removidas/desativadas antes da abertura pública.
-- O overlay opcional `data/NPCGenerTest.txt` acrescenta lojas de teste para os
-  conjuntos, armas e escudos D/E; ele é carregado como geradores adicionais
-  e seus nomes respeitam o limite de 12 bytes do wire.
+- Durante o beta, `data/NPCGenerTest.txt` é carregado por padrão junto do
+  `NPCGener.txt`, mantendo em Armia as lojas e NPCs necessários aos testes. A
+  retirada antes da abertura pública será uma decisão manual de operação.
 
 ## Itens, volatiles e montarias
 
@@ -244,6 +263,10 @@ client748/           client e cadeia reprodutível de patches
 - Travas internas 354/369, quatro juras, Soul e Cythera estão implementadas.
 - Celestial/SubCelestial possuem criação, troca de forma, EXP, pontos
   compartilhados, reduções, travas e progressão separada.
+- A EXP de combate usa a curva W2PP por receptor: Arch perde EXP
+  progressivamente até receber `1/120` no fim da evolução; Celestial e
+  SubCelestial começam em `1/40` e recebem divisores progressivos conforme o
+  nível. Mortal permanece sem essa redução avançada neste servidor.
 - A criação de Arch ou Celestial força o retorno à seleção (`0x116`) e atualiza
   os quatro slots (`0x110`) depois do commit, para o client reconstruir corpo,
   score e skills. A criação Celestial também gera anúncio global em inglês;
@@ -316,6 +339,11 @@ client748/           client e cadeia reprodutível de patches
 - O loadbot separa posição prevista da última correção recebida do servidor.
 - Testes cobrem modelo, loaders, wire, rede, store e transições de gameplay,
   incluindo rollback, persistência, runtime isolation e segurança adversarial.
+- `.github/workflows/ci.yml` executa testes, vet, build e `git diff --check` em
+  cada push no `main` e em pull requests, sem job PostgreSQL nesta fase.
+- `internal/game/testdata/packets` iniciou o corpus plaintext 7.48 com uma rota
+  real; cada nova captura deve provar se está antes ou depois de qualquer bridge
+  de protocolo antes de virar fixture canônica.
 
 Validação padrão:
 

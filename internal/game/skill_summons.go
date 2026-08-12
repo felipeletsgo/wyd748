@@ -328,6 +328,16 @@ func (w *World) tickSummonCombat(now time.Time) {
 		}
 		summon.NextAttack = now.Add(mobAttackInterval)
 		if target.mob != nil {
+			chance := combatAccuracyPercent(int(target.mob.Def.Extended.Dex),
+				int(summon.Def.Extended.Accuracy), int(target.mob.Def.Extended.Evasion), false)
+			if !combatRollHits(chance, w.intn) {
+				w.sendToMobView(summon, func() []byte {
+					return wire.AttackHitExtendedResult(summon.ID, target.mob.ID, summon.X, summon.Y,
+						target.mob.X, target.mob.Y, 0, target.mob.Def.Extended.MaxHP, 0,
+						summon.Def.Extended.MaxMP, 0, true)
+				})
+				continue
+			}
 			damage := uint32(clampInt(int(summon.Def.Extended.Attack)-
 				int(target.mob.Def.Extended.Defense)/2, 1, int(maxExtendedStat)))
 			oldHP := target.mob.HP
@@ -345,7 +355,16 @@ func (w *World) tickSummonCombat(now time.Time) {
 			}
 			continue
 		}
-		damage := w.mobHitsPlayer(summon, target.user.Char)
+		hit := mobPhysicalHitPlayerAt(summon, target.user.Char, w.intn, now)
+		if !hit.Hit {
+			w.sendToPlayerView(target.user, func() []byte {
+				return wire.AttackHitExtendedResult(summon.ID, target.user.ID, summon.X, summon.Y,
+					target.user.X, target.user.Y, 0, playerMaxHP(target.user.Char), 0,
+					summon.Def.Extended.MaxMP, 0, true)
+			})
+			continue
+		}
+		damage := hit.Damage
 		damage = uint32(w.absorbMountDamage(target.user, int(damage)))
 		w.cancelTrade(target.user, "personagem foi atacado")
 		currentHP := playerCurHP(target.user.Char)

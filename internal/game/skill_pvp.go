@@ -2,6 +2,7 @@ package game
 
 import (
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -36,14 +37,36 @@ func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill m
 		return nil
 	}
 	targets := []*Player{primary}
-	limit := clampInt(skill.MaxTarget, 1, 13)
-	if skill.Index == 95 {
-		limit = 1
-	}
+	limit := offensiveSkillTargetLimit(caster.Char, skill)
 	if limit == 1 {
 		return targets
 	}
-	for _, candidate := range w.nearbyWorldPlayers(primary.X, primary.Y, maxInt(1, skill.Range)) {
+	area := offensiveSkillAreaRadius(caster.Char, skill)
+	if area == 0 {
+		secondary := w.playerByID(req.SecondaryTargetID)
+		if secondary != nil && secondary != primary && secondary != caster && secondary.InWorld &&
+			secondary.Char != nil && playerCurHP(secondary.Char) > 0 &&
+			!sameSupportGroup(caster, secondary) && w.playersShareGameplaySpace(caster, secondary) &&
+			chebyshev(caster.X, caster.Y, secondary.X, secondary.Y) <= maxInt(1, skill.Range) &&
+			w.combatLineOfSight(caster.X, caster.Y, secondary.X, secondary.Y) {
+			targets = append(targets, secondary)
+		}
+		return targets
+	}
+	centerX, centerY := primary.X, primary.Y
+	if skill.TargetType == 5 {
+		centerX, centerY = caster.X, caster.Y
+	}
+	candidates := w.nearbyWorldPlayers(centerX, centerY, area)
+	sort.Slice(candidates, func(i, j int) bool {
+		di := chebyshev(centerX, centerY, candidates[i].X, candidates[i].Y)
+		dj := chebyshev(centerX, centerY, candidates[j].X, candidates[j].Y)
+		if di != dj {
+			return di < dj
+		}
+		return candidates[i].ID < candidates[j].ID
+	})
+	for _, candidate := range candidates {
 		if len(targets) >= limit {
 			break
 		}
@@ -52,8 +75,12 @@ func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill m
 			!w.playersShareGameplaySpace(caster, candidate) {
 			continue
 		}
-		if chebyshev(primary.X, primary.Y, candidate.X, candidate.Y) <= maxInt(1, skill.Range) &&
-			w.combatLineOfSight(primary.X, primary.Y, candidate.X, candidate.Y) {
+		losX, losY := primary.X, primary.Y
+		if skill.TargetType == 5 {
+			losX, losY = caster.X, caster.Y
+		}
+		if skillAreaContains(caster.X, caster.Y, primary.X, primary.Y, candidate.X, candidate.Y, skill, area) &&
+			w.combatLineOfSight(losX, losY, candidate.X, candidate.Y) {
 			targets = append(targets, candidate)
 		}
 	}
@@ -152,6 +179,11 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 	killedPlayers := make([]*Player, 0, len(targets))
 	hitCount := skillHitCount(skill)
 	for _, target := range targets {
+		if !combatRollHits(playerVersusPlayerAccuracy(caster.Char, target.Char), w.intn) {
+			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID, Miss: true,
+				MaxHP: playerMaxHP(target.Char)})
+			continue
+		}
 		target.LastAttackerID = caster.ID
 		if directDamage {
 			w.cancelTrade(target, "personagem foi atacado")
@@ -207,7 +239,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 	w.sendToPlayerView(primary, func() []byte {
 		return spectralPacket(caster.Char, wire.SkillHits(caster.ID, caster.X, caster.Y, primary.X, primary.Y,
 			caster.Char.Exp, playerCombatMP(caster.Char), int16(skill.Index), motion,
-			skillVisualLevel(mastery), skill.MaxTarget, wireTargets))
+			skillVisualLevel(mastery), offensiveSkillWireMaxTargets(caster.Char, skill), wireTargets))
 	})
 	for _, hit := range wideHits {
 		hit := hit

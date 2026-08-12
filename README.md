@@ -95,8 +95,14 @@ The server has these systems. The server has authority on each system.
 - **Combat** — The server calculates melee and range attacks, PvE and PvP,
   physical and magic damage, resistances, buffs, debuffs, regeneration, death,
   resurrection, and a collision-safe recall. The server does all these
-  calculations. A PvP kill never transfers experience or gold from either
-  player.
+  calculations. Players, mobs and summons start at 100% accuracy and 0%
+  evasion. Defender DEX builds up to 80% evasion at 4,000 points and directly
+  lowers the attacker's accuracy, which never falls below 20%; Concentration
+  adds 15 accuracy percentage points and raises that floor to 35%. Physical actions use
+  a fixed 400 ms interval, while Attack Speed above 100% becomes Double Hit chance and
+  reaches 100% Double Hit at 200%. A PvP kill never transfers experience or
+  gold from either player. Use `/parry <player>` to inspect the authoritative
+  accuracy/evasion matchup against an online character.
 - **Progression** — The server uses the native Mortal experience table. You can
   configure the experience floor and rate. The server does the level-up. It
   controls the statistic, mastery, and skill-point budgets. It applies the
@@ -171,7 +177,10 @@ The server has these systems. The server has authority on each system.
   complete package atomically. Item-derived kill EXP bonuses (Coral, active
   fairy and Experience Box) come from the killer and are shared with every
   eligible party member, while receiver-specific evolution reductions remain
-  authoritative. All 124 codes are explicitly classified. The
+  authoritative. Combat EXP follows the W2PP receiver curve: Arch is reduced
+  progressively by level, while Celestial/SubCelestial starts at `1/40` and
+  becomes progressively slower; Mortal keeps the normal server reward. All
+  124 codes are explicitly classified. The
   3443 Spirit's Seal flow is implemented atomically with 0x2CD/0x3CC query and
   extraction. Item 3455 remains no-direct-use because W2PP does not accept it
   in PutoutSeal.

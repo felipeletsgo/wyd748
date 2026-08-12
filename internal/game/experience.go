@@ -59,15 +59,14 @@ func expWithDoubleBuffAt(ch *model.Char, reward uint32, now time.Time) uint32 {
 // recebe. Esse e o contrato nativo observado em MobKilled.cpp do W2PP:
 // pMob[conn].ExpBonus e reutilizado dentro do loop de todos os membros.
 //
-// A ordem conserva o comportamento anterior do emulador: Coral/fada entram
-// antes das quedas de Celestial e o bau de EXP dobra o resultado final. O que
-// muda e somente a origem autoritativa desses bonus, que deixa de ser cada
-// receptor e passa a ser o personagem responsavel pelo abate.
+// GetExpApply reduz primeiro a recompensa conforme evolucao/nivel do receptor;
+// Coral/fada do matador entram depois e o bau de EXP dobra o resultado final.
+// Assim cada membro conserva sua curva pessoal sem perder os bonus do abate.
 func (w *World) mobKillExperienceForReceiver(killer, receiver *model.Char, reward uint32) uint32 {
 	if killer == nil || receiver == nil {
 		return 0
 	}
+	reward = combatExperienceByEvolution(receiver, reward)
 	reward = applyPercentReward(reward, w.equipmentGemBonuses(killer).expPercent)
-	reward = celestialCombatExperience(receiver, reward)
 	return expWithDoubleBuffAt(killer, reward, w.now())
 }

@@ -1,0 +1,7 @@
+# Real WYD 7.48 plaintext capture, anonymized only by omission of surrounding
+# traffic. Packet #396: movement from (2486,2017), route "32", target
+# (2487,2015). This locks the 7.48 Y-axis direction used by route validation.
+34 00 DD A5 66 03 01 00 A7 1A 04 1A B6 09 E1 07
+03 00 00 00 00 00 00 00 B7 09 DF 07 33 32 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00

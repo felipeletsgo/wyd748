@@ -64,7 +64,7 @@ func TestRecalcExtendedUsesAllAttributes(t *testing.T) {
 	if e.Defense != 21 || e.MaxHP != 130 || e.MaxMP != 60 {
 		t.Fatalf("derivados incorretos: %+v", e)
 	}
-	if e.Accuracy == 0 || e.Evasion == 0 || e.MagicAttack == 0 {
+	if e.MagicAttack == 0 || combatAccuracyPercent(int(e.Dex), int(e.Accuracy), int(e.Evasion), false) != 100 {
 		t.Fatalf("combate derivado nao calculado: %+v", e)
 	}
 }

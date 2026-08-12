@@ -114,6 +114,12 @@ func (w *World) tickActiveMobActions(now time.Time) {
 		if !allowedTarget || chebyshev(m.X, m.Y, target.X, target.Y) > mobAttackRange {
 			continue
 		}
+		// Final attack boundary is self-contained: pathfinding/aggro may have
+		// accepted the target earlier, but a mob never hits through a wall or an
+		// incompatible terrain edge at the actual damage deadline.
+		if !w.combatLineOfSight(m.X, m.Y, target.X, target.Y) {
+			continue
+		}
 		m.NextAttack = now.Add(mobAttackInterval)
 		w.mobAttackPlayer(m, target, now)
 	}
@@ -162,7 +168,8 @@ func (w *World) nearestLivingPlayerInGameplaySpace(x, y uint16, maxDistance int,
 	bestDistance := maxDistance + 1
 	for _, p := range w.nearbyPlayersInGameplaySpace(x, y, maxDistance, space) {
 		distance := chebyshev(x, y, p.X, p.Y)
-		if distance <= maxDistance && distance < bestDistance {
+		if distance <= maxDistance && (distance < bestDistance ||
+			distance == bestDistance && (best == nil || p.ID < best.ID)) {
 			best, bestDistance = p, distance
 		}
 	}
@@ -177,7 +184,15 @@ func (w *World) chasePlayer(m *Mob, target *Player, now time.Time) {
 }
 
 func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
-	damage := w.mobHitsPlayer(m, target.Char)
+	hit := mobPhysicalHitPlayerAt(m, target.Char, w.intn, now)
+	if !hit.Hit {
+		w.sendToMobView(m, func() []byte {
+			return wire.AttackHitExtendedResult(m.ID, target.ID, m.X, m.Y, target.X, target.Y,
+				0, playerMaxHP(target.Char), 0, m.Def.Extended.MaxMP, 0, true)
+		})
+		return
+	}
+	damage := hit.Damage
 	damage = absorbFlatDamage(damage, w.equipmentGemBonuses(target.Char).absorbDamage)
 	// FlagLocal=0 faz o 7.48 aplicar o dano e exibir o numero flutuante. Dano
 	// zero conserva a animacao de ataque e representa MISS no cliente.

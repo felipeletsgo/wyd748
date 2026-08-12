@@ -212,12 +212,11 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		acc = fresh
 	}
 	pinAccountEntryPositions(acc)
-	evolutionMigrated := migrateLegacyEvolutionScores(acc)
 	// O bonus de status do Arch acompanha o nivel ATUAL do Mortal de origem;
 	// atualizar aqui, antes do syncProgression abaixo, faz o saldo de pontos ja
 	// nascer certo nesta sessao.
 	refreshArchMortalLevel(acc)
-	accountRepaired := evolutionMigrated
+	accountRepaired := false
 	for i := range acc.Chars {
 		if acc.Chars[i].Name == "" {
 			continue
@@ -234,14 +233,6 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	if accountRepaired {
 		// Persistir o reparo agora evita reencenar a mesma correcao a cada login.
 		if err := w.saveAccount(acc); err != nil {
-			if evolutionMigrated {
-				w.releaseAccountSession(s, acc)
-				w.releaseAuthenticatedClientSlot(s)
-				log.Printf("[#%d] salvar migracao W2PP da conta %q: %v", s.ID, acc.Name, err)
-				s.Send(wire.MessagePanel("Error upgrading the character. Try again."))
-				time.AfterFunc(300*time.Millisecond, s.Close)
-				return
-			}
 			log.Printf("[#%d] salvar reparo de guild da conta %q: %v", s.ID, acc.Name, err)
 		}
 	}
@@ -1325,47 +1316,55 @@ func spectralPacket(ch *model.Char, packet []byte) []byte {
 	return packet
 }
 
-// attackIntervalFor deriva o intervalo minimo entre golpes da VELOCIDADE DE
-// ATAQUE server-side (nibble alto de AttackRun, 0..15). Char mais rapido ataca
-// mais vezes; como o piso usa a velocidade REAL do servidor, um speedhack no
-// client nao consegue baixa-lo. Numeros abaixo sao para ajuste fino in-game:
-// ~900ms na velocidade 0 caindo ate ~450ms na 15 (~2.2 golpes/s no maximo).
-func attackIntervalFor(ch *model.Char) time.Duration {
-	speed := 0
-	if e := effectiveExtended(ch); e != nil {
-		speed = int(e.AttackRun >> 4)
-	}
-	speed = clampInt(speed, 0, 15)
-	const slowMs, fastMs = 900, 450
-	return time.Duration(slowMs-(slowMs-fastMs)*speed/15) * time.Millisecond
+// Physical actions are capped at 2.5/s. Attack Speed above 100% increases the
+// Double Hit chance instead of allowing packet frequency to grow without bound.
+const physicalAttackInterval = 400 * time.Millisecond
+
+func attackIntervalFor(_ *model.Char) time.Duration { return physicalAttackInterval }
+
+type clientAttackClock struct {
+	tick uint32
 }
 
-func acceptClientAttack(p *Player, pkt []byte, now time.Time) bool {
+// validateClientAttackClock is deliberately pure. A stale/dead/out-of-range
+// target must not consume the next legitimate physical attack on a new target.
+func validateClientAttackClock(p *Player, pkt []byte, now time.Time) (clientAttackClock, bool) {
 	if p == nil || len(pkt) < 12 {
-		return false
+		return clientAttackClock{}, false
 	}
 	tick := binary.LittleEndian.Uint32(pkt[8:12])
 	// SKIPCHECKTICK pertence exclusivamente a ataques gerados pelo servidor.
 	if tick == 0 || tick == 0x0E0A1ACA {
-		return false
+		return clientAttackClock{}, false
 	}
 	interval := attackIntervalFor(p.Char)
 	if p.LastAttackTick != 0 {
 		// Subtracao unsigned preserva o wrap natural de GetTickCount, mas um tick
 		// simplesmente retrocedendo nao pode virar um delta gigantesco valido.
 		if tick < p.LastAttackTick && p.LastAttackTick-tick < 0x80000000 {
-			return false
+			return clientAttackClock{}, false
 		}
 		if tick-p.LastAttackTick < uint32(interval/time.Millisecond) {
-			return false
+			return clientAttackClock{}, false
 		}
 	}
 	if !p.LastAttackAt.IsZero() && now.Sub(p.LastAttackAt) < interval {
-		return false
+		return clientAttackClock{}, false
 	}
-	p.LastAttackTick = tick
+	return clientAttackClock{tick: tick}, true
+}
+
+func commitClientAttackClock(p *Player, clock clientAttackClock, now time.Time) {
+	p.LastAttackTick = clock.tick
 	p.LastAttackAt = now
-	return true
+}
+
+func acceptClientAttack(p *Player, pkt []byte, now time.Time) bool {
+	clock, ok := validateClientAttackClock(p, pkt, now)
+	if ok {
+		commitClientAttackClock(p, clock, now)
+	}
+	return ok
 }
 
 // skillPacketInterval is only a flood floor.  The authoritative cadence of a
@@ -1416,7 +1415,6 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	if playerCurHP(p.Char) == 0 && !(req.Skill == 99 && specialSkillLearned(p.Char, 99)) {
 		return
 	}
-	w.cancelTrade(p, "jogador atacou")
 	now := w.now()
 	// SkillId@24 so identifica uma skill se ela foi realmente aprendida pela
 	// classe. O cliente 7.48 tambem preenche esse campo em variantes do ataque
@@ -1435,7 +1433,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		return
 	}
 	// Normal attacks remain protected by the server-owned AttackRun cadence.
-	if !acceptClientAttack(p, pkt, now) {
+	attackClock, clockOK := validateClientAttackClock(p, pkt, now)
+	if !clockOK {
 		metricPhysicalAttackRejected.Add(1)
 		return
 	}
@@ -1456,16 +1455,24 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			chebyshev(req.TargetX, req.TargetY, target.X, target.Y) > 1 {
 			return
 		}
+		commitClientAttackClock(p, attackClock, now)
+		w.cancelTrade(p, "jogador atacou")
 		w.breakHideOnAttack(p)
 		w.cancelTrade(target, "personagem foi atacado")
 		p.CombatTargetID = target.ID
 		target.LastAttackerID = p.ID
 
-		calculated := w.playerHitsPlayer(p, target)
-		if calculated == 0 {
+		hit := playerPhysicalHitPlayerWithRNG(p, target, w.intn)
+		if !hit.Hit {
+			w.sendToPlayerView(target, func() []byte {
+				return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, target.ID,
+					p.X, p.Y, target.X, target.Y, 0, playerMaxHP(target.Char), p.Char.Exp,
+					playerCombatMP(p.Char), 0, true))
+			})
 			log.Printf("[#%d] errou ataque PvP em %q", s.ID, target.Char.Name)
 			return
 		}
+		calculated := hit.Damage
 		calculated = addFlatDamage(calculated, w.equipmentGemBonuses(p.Char).forceDamage)
 		calculated = absorbFlatDamage(calculated, w.equipmentGemBonuses(target.Char).absorbDamage)
 		// Montaria adulta viva do alvo absorve 25% do dano no proprio HP.
@@ -1484,8 +1491,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		// O numero flutuante recebe o dano calculado integral, inclusive
 		// overkill. A vida autoritativa continua reduzida somente pelo HP real.
 		w.sendToPlayerView(target, func() []byte {
-			return spectralPacket(p.Char, wire.AttackHitExtended(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
-				calculated, playerMaxHP(target.Char), p.Char.Exp, playerCombatMP(p.Char)))
+			return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
+				calculated, playerMaxHP(target.Char), p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
 		})
 		w.syncPlayerVitals(target)
 		w.updatePartyMember(target)
@@ -1504,16 +1511,24 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	if req.TargetX != 0 && req.TargetY != 0 && chebyshev(req.TargetX, req.TargetY, m.X, m.Y) > 1 {
 		return
 	}
+	commitClientAttackClock(p, attackClock, now)
+	w.cancelTrade(p, "jogador atacou")
 	w.breakHideOnAttack(p)
 	p.CombatTargetID = m.ID
 	// Assim como SetBattle no TMSrv, ser atacado coloca o mob imediatamente em
 	// combate mesmo antes de sua proxima varredura de inimigos visiveis.
 	m.TargetID = p.ID
-	dmg := w.playerHitsMob(p, m)
-	if dmg == 0 {
-		log.Printf("[#%d] errou ataque no mob id=%d %q (accuracy=%d)", s.ID, m.ID, m.Def.Name, effectiveExtended(p.Char).Accuracy)
+	hit := playerPhysicalHitMobAt(p, m, w.intn, now)
+	if !hit.Hit {
+		w.sendToMobView(m, func() []byte {
+			return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
+				0, m.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char), 0, true))
+		})
+		log.Printf("[#%d] errou ataque no mob id=%d %q (accuracy=%d%%)", s.ID, m.ID, m.Def.Name,
+			playerVersusMobAccuracy(p.Char, m.Def))
 		return
 	}
+	dmg := hit.Damage
 	dmg = uint32(applyCouragePvEDamageAt(p.Char, int(dmg), false, now))
 	dmg = addFlatDamage(dmg, w.equipmentGemBonuses(p.Char).forceDamage)
 	// Escudo de boss absorve ANTES de aplicar, para que o numero flutuante do
@@ -1534,8 +1549,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// Sending this through broadcast leaked combat packets to outsiders (and
 	// let a client observe an encounter it could not target).
 	w.sendToMobView(m, func() []byte {
-		return spectralPacket(p.Char, wire.AttackHitExtended(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
-			dmg, m.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char)))
+		return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
+			dmg, m.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
 	})
 	if m.HP == 0 {
 		w.killMobState(p, m, dmg, minU32(dmg, oldHP))

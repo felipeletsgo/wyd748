@@ -249,9 +249,6 @@ func (e *ExtendedScore) ValidatePlayerState() error {
 	if err := e.Validate(); err != nil {
 		return err
 	}
-	if e.Parry > 100 {
-		return fmt.Errorf("extendedScore.parry=%d excede 100", e.Parry)
-	}
 	for _, resistance := range []struct {
 		name  string
 		value uint32

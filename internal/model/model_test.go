@@ -114,7 +114,6 @@ func TestExtendedScoreRejectsFunctionalLimitViolations(t *testing.T) {
 		mutate func(*ExtendedScore)
 	}{
 		{"save mana above 99", func(e *ExtendedScore) { e.SaveMana = 100 }},
-		{"parry above 100", func(e *ExtendedScore) { e.Parry = 101 }},
 		{"fire resistance above 100", func(e *ExtendedScore) { e.ResistFire = 101 }},
 		{"ice resistance above 100", func(e *ExtendedScore) { e.ResistIce = 101 }},
 		{"holy resistance above 100", func(e *ExtendedScore) { e.ResistHoly = 101 }},

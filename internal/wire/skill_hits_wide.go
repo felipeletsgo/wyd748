@@ -5,9 +5,10 @@ package wire
 // alvo apenas para o floating damage.
 //
 // Layouts lidos pelo Patch-WYD748-ExtendedStats.ps1:
-//   0x39D: dano uint32 @48 (52 bytes total)
-//   0x39E: DMGX@52, count@56, danos @60+i*4
-//   0x36C: DMGX@96, count@100, danos @104+i*4
+//
+//	0x39D skill: DMGX@48, count@52, dano uint32 @56 (60 bytes total)
+//	0x39E: DMGX@52, count@56, danos @60+i*4
+//	0x36C: DMGX@96, count@100, danos @104+i*4
 //
 // Os WORDs do prefixo continuam vindo de wireDamage(target), portanto a barra
 // de HP permanece na escala projetada do alvo; a cauda leva o dano real apenas
@@ -38,12 +39,18 @@ func SkillHitsWide(attackerID, attackerX, attackerY, targetX, targetY uint16,
 	// deixar de ver os numeros embora observadores ainda processassem o hit.
 	base[30] = 0
 
-	// 0x39D possui o formato wide historico: apenas um DWORD em @48.
+	// Skill single-target must not collide with the physical 0x39D/52 layout.
+	// The client patch deliberately reserves 52 bytes for melee and reads a
+	// skill's self-describing DMGX tail only from a packet of at least 60 bytes.
 	if maxTargets <= 1 {
-		extended := make([]byte, 52)
+		extended := make([]byte, 60)
 		copy(extended, base)
 		putU16(extended, 0, uint16(len(extended)))
-		putU32(extended, 48, targets[0].Damage)
+		putU32(extended, 48, 0x58474D44)
+		putU32(extended, 52, 1)
+		if !targets[0].Miss {
+			putU32(extended, 56, targets[0].Damage)
+		}
 		return extended
 	}
 

@@ -85,8 +85,8 @@ func TestPossessedUsesWideMaxHPWithoutAccumulating(t *testing.T) {
 		t.Fatalf("Possuido wide incorreto/acumulado: primeiro=%d segundo=%d",
 			firstMax, playerMaxHP(ch))
 	}
-	if playerCurHP(ch) != 500_000 {
-		t.Fatalf("Possuido derrubou HP real para %d", playerCurHP(ch))
+	if playerCurHP(ch) != firstMax {
+		t.Fatalf("Possuido nao preservou o estado cheio: %d/%d", playerCurHP(ch), firstMax)
 	}
 }
 

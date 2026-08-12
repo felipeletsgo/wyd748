@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"log"
+	"sort"
 	"time"
 
 	"wydgo/internal/model"
@@ -61,7 +62,8 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 		return
 	}
 	w.recalcPlayer(p.Char)
-	// Arch/Celestial nao usam o requisito de nivel do livro. Classe, pontos,
+	// Only Mortal uses the book level requirement. Arch, Celestial and
+	// SubCelestial still validate class, points, mastery, chain and gold.
 	// mastery, cadeia da skill final e gold continuam autoritativos.
 	levelRequirementMet := isArch(p.Char) || isCelestialEvolution(p.Char) ||
 		int(playerLevel(p.Char)) >= itemDef.ReqLevel
@@ -111,11 +113,12 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 }
 
 type skillCastRequest struct {
-	Skill    int
-	Motion   byte
-	TargetID uint16
-	TargetX  uint16
-	TargetY  uint16
+	Skill             int
+	Motion            byte
+	TargetID          uint16
+	SecondaryTargetID uint16
+	TargetX           uint16
+	TargetY           uint16
 }
 
 func parseAttackSkill(pkt []byte) skillCastRequest {
@@ -132,6 +135,9 @@ func parseAttackSkill(pkt []byte) skillCastRequest {
 		// valida esse ID antes de usa-lo; dano e demais campos do client sao ignorados.
 		if len(pkt) >= 46 {
 			req.TargetID = binary.LittleEndian.Uint16(pkt[44:46])
+		}
+		if len(pkt) >= 50 {
+			req.SecondaryTargetID = binary.LittleEndian.Uint16(pkt[48:50])
 		}
 		return req
 	}
@@ -333,6 +339,62 @@ func skillDamageMastery(ch *model.Char) int {
 	return 0
 }
 
+func offensiveSkillAreaRadius(ch *model.Char, skill model.SkillDef) int {
+	switch skill.TargetType {
+	case 3:
+		return 1
+	case 4:
+		return 2
+	case 6:
+		return 3
+	case 5:
+		// W2PP client: Special[3]/75, capped at 3, plus a base radius of 3.
+		return 3 + clampInt(int(playerMastery(ch, 3))/75, 0, 3)
+	default:
+		return 0
+	}
+}
+
+func offensiveSkillTargetLimit(ch *model.Char, skill model.SkillDef) int {
+	if skill.Index == 95 { // preserve the existing native multi-hit special case
+		return 1
+	}
+	if offensiveSkillAreaRadius(ch, skill) > 0 {
+		return 13
+	}
+	return clampInt(skill.MaxTarget, 1, 2)
+}
+
+func offensiveSkillWireMaxTargets(ch *model.Char, skill model.SkillDef) int {
+	if skill.Index == 95 {
+		return clampInt(skill.MaxTarget, 1, 13)
+	}
+	if offensiveSkillAreaRadius(ch, skill) > 0 {
+		return 13
+	}
+	return clampInt(skill.MaxTarget, 1, 13)
+}
+
+func skillAreaContains(casterX, casterY, primaryX, primaryY, candidateX, candidateY uint16,
+	skill model.SkillDef, radius int) bool {
+	if radius <= 0 {
+		return false
+	}
+	if skill.TargetType != 5 {
+		return chebyshev(primaryX, primaryY, candidateX, candidateY) <= radius
+	}
+	// TargetType 5 is the W2PP directional 90-degree cone. Use integer vector
+	// math so target selection is deterministic on every platform.
+	ax, ay := int(primaryX)-int(casterX), int(primaryY)-int(casterY)
+	bx, by := int(candidateX)-int(casterX), int(candidateY)-int(casterY)
+	if maxInt(absInt(bx), absInt(by)) > radius {
+		return false
+	}
+	dot := ax*bx + ay*by
+	cross := ax*by - ay*bx
+	return dot > 0 && absInt(cross) <= dot
+}
+
 func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model.SkillDef) []*Mob {
 	bonusRange := 0
 	if specialSkillLearned(p.Char, 101) {
@@ -345,16 +407,36 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 		!w.combatLineOfSight(p.X, p.Y, primary.X, primary.Y) {
 		return nil
 	}
-	limit := clampInt(skill.MaxTarget, 1, 13)
-	if skill.Index == 95 { // Rapid Hit: varios impactos, sempre no mesmo alvo.
-		limit = 1
-	}
+	limit := offensiveSkillTargetLimit(p.Char, skill)
 	targets := []*Mob{primary}
 	if limit == 1 {
 		return targets
 	}
-	area := maxInt(1, skill.Range)
-	for _, candidate := range w.nearbyMobs(primary.X, primary.Y, area) {
+	area := offensiveSkillAreaRadius(p.Char, skill)
+	if area == 0 {
+		secondary := w.mobByID(req.SecondaryTargetID)
+		if secondary != nil && secondary != primary && !secondary.Dead && secondary.HP > 0 &&
+			w.playerCanInteractWithMob(p, secondary) &&
+			chebyshev(p.X, p.Y, secondary.X, secondary.Y) <= maxInt(1, skill.Range+bonusRange) &&
+			w.combatLineOfSight(p.X, p.Y, secondary.X, secondary.Y) {
+			targets = append(targets, secondary)
+		}
+		return targets
+	}
+	centerX, centerY := primary.X, primary.Y
+	if skill.TargetType == 5 {
+		centerX, centerY = p.X, p.Y
+	}
+	candidates := w.nearbyMobs(centerX, centerY, area)
+	sort.Slice(candidates, func(i, j int) bool {
+		di := chebyshev(centerX, centerY, candidates[i].X, candidates[i].Y)
+		dj := chebyshev(centerX, centerY, candidates[j].X, candidates[j].Y)
+		if di != dj {
+			return di < dj
+		}
+		return candidates[i].ID < candidates[j].ID
+	})
+	for _, candidate := range candidates {
 		if len(targets) >= limit {
 			break
 		}
@@ -363,7 +445,12 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 		}
 		// Area damage propagates from the primary impact point. A wall between
 		// that point and a secondary target blocks the secondary hit.
-		if w.combatLineOfSight(primary.X, primary.Y, candidate.X, candidate.Y) {
+		losX, losY := primary.X, primary.Y
+		if skill.TargetType == 5 {
+			losX, losY = p.X, p.Y
+		}
+		if skillAreaContains(p.X, p.Y, primary.X, primary.Y, candidate.X, candidate.Y, skill, area) &&
+			w.combatLineOfSight(losX, losY, candidate.X, candidate.Y) {
 			targets = append(targets, candidate)
 		}
 	}
@@ -533,6 +620,12 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	directDamage := skill.InstanceType >= 1 && skill.InstanceType <= 5
 	hitCount := skillHitCount(skill)
 	for _, target := range targets {
+		if !combatRollHits(playerVersusMobAccuracy(p.Char, target.Def), w.intn) {
+			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID, Miss: true,
+				MaxHP: target.Def.Extended.MaxHP})
+			results = append(results, skillResult{mob: target})
+			continue
+		}
 		target.TargetID = p.ID
 		appliedTotal := uint32(0)
 		calculatedTotal := uint32(0)
@@ -588,11 +681,11 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		if directDamage {
 			return spectralPacket(p.Char, wire.SkillHitsWide(p.ID, p.X, p.Y, primary.X, primary.Y,
 				p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
-				skill.MaxTarget, wireTargets))
+				offensiveSkillWireMaxTargets(p.Char, skill), wireTargets))
 		}
 		return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
 			p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
-			skill.MaxTarget, wireTargets))
+			offensiveSkillWireMaxTargets(p.Char, skill), wireTargets))
 	})
 	w.syncPlayerScoreAndVitals(p)
 	w.gameplayLogf("skill", "[#%d] executou skill=%d %q alvos=%d base=%d magic=%t amp=%d mastery=%d mp=-%d",

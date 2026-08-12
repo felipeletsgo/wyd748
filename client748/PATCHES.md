@@ -77,6 +77,12 @@ atual; buffs registram `agora + 150000 ms - cooldown`, de forma que a próxima
 checagem automática aconteça exatamente aos 150 segundos — 30 segundos antes
 do fim nominal de 180 segundos. O clique manual não passa por esse hook.
 
+O macro segue para a rotina nativa `0x004595EC`, que também atende o cast
+manual e escolhe o packet por `SkillData.MaxTarget`: `0x39D/48`, `0x39E/52` ou
+`0x36C/96`. O script possui assertions para a `CALL` e para os dois builders
+internos. Essas guardas não alteram o hash final; impedem aplicar a code cave
+sobre uma linha-base que voltou a montar `0x39D/96` como single-target.
+
 A implementação atual usa a área executável livre da seção `.xstat`
 (`0x013C0207`) e uma tabela de 96 bits com os buffs reconhecidos pelo macro. O
 hook em `0x00493970` retorna exatamente para `0x00493975`. Isso substitui a

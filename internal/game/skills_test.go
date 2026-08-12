@@ -122,9 +122,71 @@ func TestSkillMonsterTargetsUsesAreaAndMaxTarget(t *testing.T) {
 		monster(1002, 20, 20),
 	})
 	p := &Player{X: 10, Y: 10}
-	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: 1000}, model.SkillDef{Range: 2, MaxTarget: 13})
+	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: 1000}, model.SkillDef{TargetType: 3, Range: 2, MaxTarget: 13})
 	if len(targets) != 2 || targets[0].ID != 1000 || targets[1].ID != 1001 {
 		t.Fatalf("alvos de area incorretos: %+v", targets)
+	}
+}
+
+func TestOffensiveSkillNativeAreaRadiiAndCap(t *testing.T) {
+	ch := &model.Char{Extended: testExtended(model.ExtendedScore{})}
+	for _, tc := range []struct {
+		targetType int
+		want       int
+	}{{3, 1}, {4, 2}, {6, 3}, {0, 0}} {
+		if got := offensiveSkillAreaRadius(ch, model.SkillDef{TargetType: tc.targetType}); got != tc.want {
+			t.Fatalf("TargetType=%d radius=%d want=%d", tc.targetType, got, tc.want)
+		}
+	}
+	ch.Extended.Mastery[3] = 225
+	if got := offensiveSkillAreaRadius(ch, model.SkillDef{TargetType: 5}); got != 6 {
+		t.Fatalf("directional radius=%d want=6", got)
+	}
+	if got := offensiveSkillTargetLimit(ch, model.SkillDef{TargetType: 6, MaxTarget: 1}); got != 13 {
+		t.Fatalf("area target cap=%d want=13", got)
+	}
+}
+
+func TestSkillMonsterTargetsAreDeterministicAndStayInsideNativeRadius(t *testing.T) {
+	monster := func(id uint16, x, y uint16) *Mob {
+		return &Mob{ID: id, X: x, Y: y, HP: 100,
+			Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
+	}
+	primary := monster(2000, 100, 100)
+	mobs := []*Mob{primary}
+	positions := [][2]uint16{
+		{99, 99}, {100, 99}, {101, 99}, {99, 100}, {101, 100}, {99, 101}, {100, 101}, {101, 101},
+		{98, 98}, {99, 98}, {100, 98}, {101, 98}, {102, 98}, {98, 99}, {102, 99},
+	}
+	// Reverse IDs relative to insertion order so map/insertion order cannot
+	// accidentally satisfy the authoritative distance-then-ID ordering.
+	for i, pos := range positions {
+		mobs = append(mobs, monster(uint16(1900-i), pos[0], pos[1]))
+	}
+	outside := monster(2100, 103, 100)
+	mobs = append(mobs, outside)
+	w := testSpatialWorld(mobs)
+	p := &Player{X: 100, Y: 99}
+	skill := model.SkillDef{TargetType: 4, Range: 20, MaxTarget: 1}
+	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: primary.ID}, skill)
+	if len(targets) != 13 {
+		t.Fatalf("targets=%d want=13", len(targets))
+	}
+	if targets[0] != primary {
+		t.Fatal("primary target must remain first")
+	}
+	for i := 1; i < len(targets); i++ {
+		if targets[i] == outside || chebyshev(primary.X, primary.Y, targets[i].X, targets[i].Y) > 2 {
+			t.Fatalf("target outside native radius: id=%d pos=(%d,%d)", targets[i].ID, targets[i].X, targets[i].Y)
+		}
+		if i > 1 {
+			prev, current := targets[i-1], targets[i]
+			prevDistance := chebyshev(primary.X, primary.Y, prev.X, prev.Y)
+			currentDistance := chebyshev(primary.X, primary.Y, current.X, current.Y)
+			if currentDistance < prevDistance || currentDistance == prevDistance && current.ID < prev.ID {
+				t.Fatalf("non-deterministic order at %d: prev=%d current=%d", i, prev.ID, current.ID)
+			}
+		}
 	}
 }
 
@@ -139,7 +201,7 @@ func TestSkillAOEDoesNotHitSecondaryAcrossBlockedLineOfSight(t *testing.T) {
 	p := &Player{X: 10, Y: 10}
 
 	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: primary.ID},
-		model.SkillDef{Range: 3, MaxTarget: 13})
+		model.SkillDef{TargetType: 4, Range: 3, MaxTarget: 13})
 	if len(targets) != 1 || targets[0] != primary {
 		t.Fatalf("secondary behind wall was selected: %+v", targets)
 	}
@@ -154,14 +216,14 @@ func TestSkillAOEUsesSpatialIndexInsteadOfGlobalMobScan(t *testing.T) {
 	unindexed := &Mob{ID: primary.ID + 10, Def: primary.Def, X: primary.X + 1, Y: primary.Y, HP: 100}
 	w.mobs = append(w.mobs, unindexed)
 
-	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: primary.ID}, model.SkillDef{Range: 4, MaxTarget: 13})
+	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: primary.ID}, model.SkillDef{TargetType: 4, Range: 4, MaxTarget: 13})
 	for _, target := range targets {
 		if target == unindexed {
 			t.Fatal("AoE reached a mob that was not present in the spatial index")
 		}
 	}
 	w.registerMobSpatial(unindexed)
-	targets = w.skillMonsterTargets(p, skillCastRequest{TargetID: primary.ID}, model.SkillDef{Range: 4, MaxTarget: 13})
+	targets = w.skillMonsterTargets(p, skillCastRequest{TargetID: primary.ID}, model.SkillDef{TargetType: 4, Range: 4, MaxTarget: 13})
 	found := false
 	for _, target := range targets {
 		found = found || target == unindexed
@@ -220,6 +282,25 @@ func TestRapidHitKeepsSixHitsOnOneTarget(t *testing.T) {
 	targets := w.skillMonsterTargets(p, skillCastRequest{TargetID: 1000}, skill)
 	if len(targets) != 1 || targets[0].ID != 1000 || skillHitCount(skill) != 6 {
 		t.Fatalf("Rapid Hit: targets=%v hits=%d", targets, skillHitCount(skill))
+	}
+}
+
+func TestTwoTargetSkillUsesOnlyTheExplicitValidatedSecondTarget(t *testing.T) {
+	monster := func(id, x, y uint16) *Mob {
+		return &Mob{ID: id, X: x, Y: y, HP: 100,
+			Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
+	}
+	primary := monster(1000, 11, 10)
+	selected := monster(1001, 12, 10)
+	unselected := monster(1002, 11, 11)
+	w := testSpatialWorld([]*Mob{primary, selected, unselected})
+	p := &Player{X: 10, Y: 10}
+	skill := model.SkillDef{TargetType: 1, Range: 4, MaxTarget: 2}
+	targets := w.skillMonsterTargets(p, skillCastRequest{
+		TargetID: primary.ID, SecondaryTargetID: selected.ID,
+	}, skill)
+	if len(targets) != 2 || targets[0] != primary || targets[1] != selected {
+		t.Fatalf("two-target selection=%v", targets)
 	}
 }
 
@@ -291,7 +372,7 @@ func TestSkillPvPAOEDoesNotHitSecondaryAcrossBlockedLineOfSight(t *testing.T) {
 	w.terrain = loadedFlatTerrain()
 	w.terrain.Height[10*model.TerrainWidth+12] = model.TerrainBlockedByte
 	targets := w.skillPlayerTargets(caster, skillCastRequest{TargetID: primary.ID},
-		model.SkillDef{Range: 3, MaxTarget: 13, Aggressive: 1})
+		model.SkillDef{TargetType: 4, Range: 3, MaxTarget: 13, Aggressive: 1})
 	if len(targets) != 1 || targets[0] != primary {
 		t.Fatalf("PvP secondary behind wall was selected: %+v", targets)
 	}

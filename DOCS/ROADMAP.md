@@ -1,6 +1,6 @@
 # WYD-Go 7.48 — plano de implementação
 
-Atualizado em 11/08/2026. HEAD de referência: `7ccfdd1`.
+Atualizado em 12/08/2026. Base da rodada atual: `a401489`.
 
 Este é o único arquivo de planejamento do projeto. O estado já entregue está em
 `DOCS/IMPLEMENTED.md`. Planos históricos foram removidos para que uma tarefa
@@ -81,19 +81,20 @@ Não alterar o servidor para compensar um erro exclusivamente visual.
 
 ### Macro de combate 7.48
 
-O `0x39D/96` C→S observado no macro continua como compatibilidade temporária.
-A descompilação estática confirma que macro e clique manual chegam ao mesmo
-construtor nativo, que seleciona `0x39D/48`, `0x39E/52` ou `0x36C/96` por
-`SkillData.MaxTarget`; portanto não há evidência para trocar o builder S→C de
-skill single nem para inventar o conteúdo da cauda de 96 bytes.
+O construtor do macro já foi confirmado no executável atual: ele chama a rotina
+nativa que escolhe `0x39D/48`, `0x39E/52` ou `0x36C/96` por
+`SkillData.MaxTarget`. O patch de macro trava essa chamada e os dois builders
+com assertions de bytes. O servidor conserva `0x39D/96` C→S apenas para clients
+beta antigos.
 
-Próxima validação:
+Ainda falta executar e registrar a matriz in-game:
 
-1. capturar plaintext da mesma skill/alvo por clique manual e macro;
-2. comparar integralmente `@00..47` e `@48..95`;
-3. localizar no executável o ponto que altera o tamanho efetivamente enviado;
-4. fazer o macro reutilizar o caminho canônico ou aplicar adapter mínimo;
-5. somente após distribuir o client corrigido remover `0x39D/96` do servidor.
+1. físico normal, Double 200%, Critical e Double+Critical;
+2. MISS físico, skill single, two-target, AoE e boss;
+3. `/parry` com DEX/itens/Concentração conhecidos;
+4. quatro clients em macro por pelo menos 30 minutos, sem crescimento da fila;
+5. depois que todos os executáveis beta forem regenerados, decidir a remoção
+   da compatibilidade C→S `0x39D/96`.
 
 ### Guildmark
 

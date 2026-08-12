@@ -158,6 +158,7 @@ func TestSummonCombatCoversAttackFollowPassiveAndImmobileKinds(t *testing.T) {
 			AttackRun: 4, MaxHP: 100, CurHP: 100,
 		})}
 	w := testSpatialWorld([]*Mob{target, attacker, follower, pet, wall}, owner)
+	w.rng = fixedRNG{value: 0}
 	for _, summon := range []*Mob{attacker, follower, pet, wall} {
 		w.summons[summon.ID] = summon
 	}
@@ -413,8 +414,8 @@ func TestCombatPathsUseAuthoritativeExtendedStats(t *testing.T) {
 			t.Fatalf("hitDamage(%d,%d,%d)=%d", tc.dam, tc.ac, tc.combat, got)
 		}
 	}
-	if criticalHit(100, nil) {
-		t.Fatal("criticalHit com cursor nil")
+	if double, critical := rollPhysicalHitFlags(&model.Char{}, nil, func(int) int { return 0 }); double || critical {
+		t.Fatal("physical flags accepted a nil server progression")
 	}
 
 	attacker, _ := networkedTestPlayer(1, "Attacker", 100, 100)
@@ -432,13 +433,14 @@ func TestCombatPathsUseAuthoritativeExtendedStats(t *testing.T) {
 			Level: 1, Attack: 1000, Defense: 10, Str: 100, Dex: 0, MaxHP: 1000, CurHP: 1000,
 		}),
 	}
-	if damage := playerHitsMob(attacker, mob); damage == 0 {
+	zero := func(int) int { return 0 }
+	if damage := playerHitsMobAt(attacker, mob, zero, time.Now()); damage == 0 {
 		t.Fatal("ataque autoritativo contra mob deu zero")
 	}
-	if damage := playerHitsPlayer(attacker, target); damage == 0 {
+	if damage := playerHitsPlayerWithRNG(attacker, target, zero); damage == 0 {
 		t.Fatal("ataque autoritativo PvP deu zero")
 	}
-	if damage := mobHitsPlayer(mob, target.Char); damage == 0 {
+	if damage := mobHitsPlayerAt(mob, target.Char, zero, time.Now()); damage == 0 {
 		t.Fatal("ataque autoritativo do mob deu zero")
 	}
 	if playerHitsMob(nil, mob) != 0 || playerHitsPlayer(nil, target) != 0 || mobHitsPlayer(nil, target.Char) != 0 {

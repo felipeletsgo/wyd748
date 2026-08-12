@@ -69,50 +69,81 @@ func hitDamage(dam, ac, combat int) int {
 
 var hitRateProgression = func() [1024]int {
 	var table [1024]int
-	for i := range table {
-		start, quadrant := i/4, i%4
-		switch quadrant {
-		case 0:
-			table[i] = start
-		case 1:
-			table[i] = 512 - start
-		case 2:
-			table[i] = start + 512
-		case 3:
-			table[i] = 1024 - start
-		}
-		if table[i] > 999 {
-			table[i] = 999
+	start, quadrant := 0, 0
+	for jump := 512; jump > 0; jump /= 2 {
+		for i := 0; i < len(table); i += jump {
+			if table[i] != 0 {
+				continue
+			}
+			switch quadrant {
+			case 0:
+				table[i] = start
+			case 1:
+				table[i] = 512 - start
+			case 2:
+				table[i] = start + 512
+			case 3:
+				table[i] = 1024 - start
+			}
+			if table[i] > 999 {
+				table[i] = 999
+			}
+			quadrant++
+			if quadrant >= 4 {
+				quadrant = 0
+				start++
+			}
 		}
 	}
 	table[0] = 512
 	return table
 }()
 
-// criticalHit usa a progressao de 1024 entradas do BASE_GetDoubleCritical. O
-// client envia Progress, mas o servidor conserva seu proprio cursor e nunca
-// aceita que o cliente escolha quando o critico acontece.
-func criticalHit(critical int, progress *uint16) bool {
-	if progress == nil {
-		return false
+func attackSpeedPercent(ch *model.Char) int {
+	if ch == nil {
+		return 50
+	}
+	// W2PP encodes attack speed as the high AttackRun nibble. Five represents
+	// 100%; every following point adds 10%, reaching 200% at the native cap 15.
+	return clampInt((int(effectiveExtended(ch).AttackRun>>4)+5)*10, 50, 200)
+}
+
+func doubleHitChance(ch *model.Char) int {
+	return clampInt(attackSpeedPercent(ch)-100, 0, 100)
+}
+
+type physicalHitResult struct {
+	Damage   uint32
+	Hit      bool
+	Double   bool
+	Critical bool
+}
+
+func (r physicalHitResult) visualFlags() byte {
+	var flags byte
+	if r.Double {
+		flags |= 1
+	}
+	if r.Critical {
+		flags |= 2
+	}
+	return flags
+}
+
+// rollPhysicalHitFlags ports W2PP BASE_GetDoubleCritical. Double Hit follows
+// the server-owned 1,024-step progression derived from the high AttackRun
+// nibble; Critical is an independent 0..254 roll. Both bits may be set by the
+// same action, and the client-supplied Progress field is never authoritative.
+func rollPhysicalHitFlags(ch *model.Char, progress *uint16, intn func(int) int) (double, critical bool) {
+	if ch == nil || progress == nil || intn == nil {
+		return false, false
 	}
 	index := int(*progress & 0x3FF)
 	*progress = (*progress + 1) & 0x3FF
-	return hitRateProgression[index] < clampInt(4*critical, 0, 1024)
-}
-
-// parryRate porta WGetParryRate: equipamento vale no maximo 100, DEX perde peso
-// depois de 1000 e 3000, e a precisao do atacante reduz a chance final.
-func parryRate(defenderDex, equipmentParry, attackerAccuracy int) int {
-	equipmentParry = clampInt(equipmentParry, 0, 100)
-	first := clampInt(defenderDex, 0, 1000)
-	second := clampInt(defenderDex-1000, 0, 2000)
-	third := maxInt(0, defenderDex-3000)
-	return clampInt(first/2+equipmentParry+second/4+third/8-attackerAccuracy, 1, 650)
-}
-
-func parryLandsWithRNG(rate int, intn func(int) int) bool {
-	return intn(1000)+1 < clampInt(rate, 1, 650)
+	doubleThreshold := clampInt(doubleHitChance(ch)*10, 0, 1000)
+	double = hitRateProgression[index] < doubleThreshold
+	critical = intn(255) < clampInt(int(effectiveExtended(ch).Critical), 0, 255)
+	return double, critical
 }
 
 func playerHitsMobWithRNG(atk *Player, m *Mob, intn func(int) int) uint32 {
@@ -120,20 +151,28 @@ func playerHitsMobWithRNG(atk *Player, m *Mob, intn func(int) int) uint32 {
 }
 
 func playerHitsMobAt(atk *Player, m *Mob, intn func(int) int, now time.Time) uint32 {
+	return playerPhysicalHitMobAt(atk, m, intn, now).Damage
+}
+
+func playerPhysicalHitMobAt(atk *Player, m *Mob, intn func(int) int, now time.Time) physicalHitResult {
 	if atk == nil || atk.Char == nil {
-		return 0
+		return physicalHitResult{}
 	}
 	ch := atk.Char
-	accuracy := maxInt(playerDex(ch)/5, int(effectiveExtended(ch).Accuracy)/5)
-	if parryLandsWithRNG(parryRate(int(m.Def.Extended.Dex), 0, accuracy), intn) {
-		return 0
+	double, critical := rollPhysicalHitFlags(ch, &atk.AttackProgress, intn)
+	if m == nil || m.Def == nil || !combatRollHits(playerVersusMobAccuracy(ch, m.Def), intn) {
+		return physicalHitResult{}
 	}
 	attack := playerAttack(ch)
-	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), int(playerMastery(ch, 0)), intn)
-	if criticalHit(int(effectiveExtended(ch).Critical), &atk.AttackProgress) {
-		dam = (((intn(2) + 13) * dam) / 10)
+	if critical {
+		attack = (intn(2) + 15) * attack / 10
 	}
-	return uint32(clampInt(dam, 0, int(maxExtendedStat)))
+	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), int(playerMastery(ch, 0)), intn)
+	if double {
+		dam *= 2
+	}
+	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxExtendedStat))),
+		Hit: true, Double: double, Critical: critical}
 }
 
 func playerHitsMob(atk *Player, m *Mob) uint32 {
@@ -147,18 +186,27 @@ func (w *World) playerHitsMob(atk *Player, m *Mob) uint32 {
 // playerHitsPlayer usa a mesma progressao server-side de acerto/critico do PvE,
 // trocando apenas defesa/evasao pelo score autoritativo do personagem alvo.
 func playerHitsPlayerWithRNG(atk, target *Player, intn func(int) int) uint32 {
+	return playerPhysicalHitPlayerWithRNG(atk, target, intn).Damage
+}
+
+func playerPhysicalHitPlayerWithRNG(atk, target *Player, intn func(int) int) physicalHitResult {
 	if atk == nil || atk.Char == nil || target == nil || target.Char == nil {
-		return 0
+		return physicalHitResult{}
 	}
-	accuracy := maxInt(playerDex(atk.Char)/5, int(effectiveExtended(atk.Char).Accuracy)/5)
-	if parryLandsWithRNG(parryRate(playerDex(target.Char), int(effectiveExtended(target.Char).Parry), accuracy), intn) {
-		return 0
+	double, critical := rollPhysicalHitFlags(atk.Char, &atk.AttackProgress, intn)
+	if !combatRollHits(playerVersusPlayerAccuracy(atk.Char, target.Char), intn) {
+		return physicalHitResult{}
 	}
-	dam := hitDamageWithRNG(playerAttack(atk.Char), playerDefense(target.Char), int(playerMastery(atk.Char, 0)), intn)
-	if criticalHit(int(effectiveExtended(atk.Char).Critical), &atk.AttackProgress) {
-		dam = ((intn(2) + 13) * dam) / 10
+	attack := playerAttack(atk.Char)
+	if critical {
+		attack = (intn(2) + 13) * attack / 10
 	}
-	return uint32(clampInt(dam, 0, int(maxExtendedStat)))
+	dam := hitDamageWithRNG(attack, playerDefense(target.Char), int(playerMastery(atk.Char, 0)), intn)
+	if double {
+		dam *= 2
+	}
+	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxExtendedStat))),
+		Hit: true, Double: double, Critical: critical}
 }
 
 func playerHitsPlayer(atk, target *Player) uint32 {
@@ -175,17 +223,21 @@ func mobHitsPlayerWithRNG(m *Mob, def *model.Char, intn func(int) int) uint32 {
 }
 
 func mobHitsPlayerAt(m *Mob, def *model.Char, intn func(int) int, now time.Time) uint32 {
+	return mobPhysicalHitPlayerAt(m, def, intn, now).Damage
+}
+
+func mobPhysicalHitPlayerAt(m *Mob, def *model.Char, intn func(int) int, now time.Time) physicalHitResult {
 	if m == nil || m.Def == nil || def == nil {
-		return 0
+		return physicalHitResult{}
 	}
-	if parryLandsWithRNG(parryRate(playerDex(def), int(effectiveExtended(def).Parry), int(m.Def.Extended.Dex)/5), intn) {
-		return 0
+	if !combatRollHits(mobVersusPlayerAccuracy(m.Def, def), intn) {
+		return physicalHitResult{}
 	}
 	damBase := effectiveMobAttackAt(m, now) + int(m.Def.Extended.Str)/2 +
 		int(m.Def.Extended.Dex)/4 + int(m.Def.Extended.Level)
 	defense := playerDefense(def)
 	dam := hitDamageWithRNG(damBase, defense, 0, intn)
-	return uint32(clampInt(dam, 0, int(maxExtendedStat)))
+	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxExtendedStat))), Hit: true}
 }
 
 func mobHitsPlayer(m *Mob, def *model.Char) uint32 {
