@@ -510,11 +510,6 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	}
 	results := make([]skillResult, 0, len(targets))
 	wireTargets := make([]wire.SkillTarget, 0, len(targets))
-	type wideSkillHit struct {
-		mob    *Mob
-		damage uint32
-	}
-	wideHits := make([]wideSkillHit, 0, len(targets))
 	baseDamage := w.baseSkillDamage(p.Char, skill)
 	if skillIndex == 30 { // Julgamento Divino: soma o HP e sacrifica 5/6 dele.
 		baseDamage += int(playerCurHP(p.Char))
@@ -559,10 +554,11 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				appliedTotal += applied
 				// O HP recebe somente o que ainda restava no alvo, mas o numero
 				// flutuante representa o dano calculado (overkill inclusive).
-				// O 0x36C permanece no tamanho nativo para efeitos/alvos. O
-				// numero integral segue logo depois em 0x39D estendido.
-				wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
-				wideHits = append(wideHits, wideSkillHit{mob: target, damage: perHitCalculated})
+				// O mesmo pacote carrega o WORD projetado da barra e o uint32
+				// real na cauda DMGX consumida pelo patch do client.
+				wireTargets = append(wireTargets, wire.SkillTarget{
+					ID: target.ID, Damage: perHitCalculated, MaxHP: target.Def.Extended.MaxHP,
+				})
 			}
 			// Uma notificacao com o TOTAL da skill, nao uma por golpe: um limiar
 			// de HP tem de ser atravessado uma vez so.
@@ -585,18 +581,15 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	}
 	primary := targets[0]
 	w.sendToMobView(primary, func() []byte {
+		if directDamage {
+			return spectralPacket(p.Char, wire.SkillHitsWide(p.ID, p.X, p.Y, primary.X, primary.Y,
+				p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
+				skill.MaxTarget, wireTargets))
+		}
 		return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
 			p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
 			skill.MaxTarget, wireTargets))
 	})
-	for _, hit := range wideHits {
-		hit := hit
-		w.sendToMobView(hit.mob, func() []byte {
-			return spectralPacket(p.Char, wire.SkillHitExtended(p.ID, hit.mob.ID, p.X, p.Y, hit.mob.X, hit.mob.Y,
-				hit.damage, hit.mob.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char),
-				int16(skillIndex), motion, skillVisualLevel(mastery)))
-		})
-	}
 	w.syncPlayerScoreAndVitals(p)
 	w.gameplayLogf("skill", "[#%d] executou skill=%d %q alvos=%d base=%d magic=%t amp=%d mastery=%d mp=-%d",
 		p.Session.ID, skillIndex, skill.Name, len(results), baseDamage, magicDamage,
