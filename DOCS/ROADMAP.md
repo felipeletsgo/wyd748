@@ -1,6 +1,6 @@
 # WYD-Go 7.48 — plano de implementação
 
-Atualizado em 11/08/2026. HEAD de referência: `aa66ec0`.
+Atualizado em 11/08/2026. HEAD de referência: `7ccfdd1`.
 
 Este é o único arquivo de planejamento do projeto. O estado já entregue está em
 `DOCS/IMPLEMENTED.md`. Planos históricos foram removidos para que uma tarefa

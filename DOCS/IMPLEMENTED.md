@@ -1,6 +1,6 @@
 # WYD-Go 7.48 — estado implementado
 
-Atualizado em 11/08/2026. HEAD de referência: `aa66ec0`.
+Atualizado em 11/08/2026. HEAD de referência: `7ccfdd1`.
 
 Este é o documento canônico do que existe no servidor. Regras ainda não
 implementadas ficam exclusivamente em `DOCS/ROADMAP.md`. O código e os arquivos de
