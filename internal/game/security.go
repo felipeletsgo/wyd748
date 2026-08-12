@@ -24,10 +24,10 @@ const (
 	maxStopPositionDrift    = 3
 	// O client 7.48 calcula no maximo seis passos ao montar ActionStop 0x367,
 	// mas transmite apenas Pos/Target; a Route[24] desse pacote vem zerada.
-	maxActionStopRouteSteps         = 6
-	characterLoginPacketSize        = 36
-	applyBonusPacketSize            = 20
-	attackOneObservedExtendedSize   = 96
+	maxActionStopRouteSteps       = 6
+	characterLoginPacketSize      = 36
+	applyBonusPacketSize          = 20
+	attackOneObservedExtendedSize = 96
 )
 
 type securityState struct {
@@ -117,7 +117,36 @@ func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 		w.recordSecurityViolation(s, header.Type, fmt.Sprintf("opcode fora da fase %d", phase))
 		return false
 	}
+	w.relaxLearnedSkillIngressThrottle(s, pkt, header.Type)
 	return true
+}
+
+// relaxLearnedSkillIngressThrottle remove somente o piso temporal GLOBAL entre
+// skills no caminho de rede real. Ele existia como protecao de busy-loop, mas
+// duplicava duas protecoes mais fortes: o rate-limit da Session e, no gameplay,
+// SkillReady derivado de SkillData.Delay. Em rotacoes curtas fazia uma skill
+// diferente e valida ser descartada apenas porque outra havia chegado <200 ms
+// antes.
+//
+// A limpeza ocorre depois de framing/fase validados e apenas quando SkillId
+// resolve para uma skill realmente aprendida pelo personagem. LastSkillTicks
+// continua impedindo replay/rewind por skill; ataques fisicos nao passam aqui e
+// continuam limitados por acceptClientAttack/AttackRun.
+func (w *World) relaxLearnedSkillIngressThrottle(s *net.Session, pkt []byte, opcode uint16) {
+	switch opcode {
+	case wire.OpAttackOne, wire.OpAttackTwo, wire.OpAttackMulti:
+	default:
+		return
+	}
+	p := w.players[s]
+	if p == nil || p.Char == nil || !p.InWorld {
+		return
+	}
+	req := parseAttackSkill(pkt)
+	if !isLearnedClassSkill(p.Char, req.Skill) {
+		return
+	}
+	p.LastSkillAt = time.Time{}
 }
 
 // knownInboundOpcode e a allowlist canonica da borda C->S. Um opcode sem
