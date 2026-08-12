@@ -201,33 +201,41 @@ func (w *World) hasActiveSilverFairy(ch *model.Char) bool {
 	return bonus.expPercent == 16 && bonus.dropPercent == 32
 }
 
-// tickEquippedFairy usa a cadencia de minuto ja existente em NextMountTick.
-// tickPlayerAffects roda antes de tickPlayerMounts, portanto quando o deadline
-// vence a fada consome exatamente um minuto e, logo depois, o subsistema de
-// montaria agenda o proximo. No primeiro tick do login NextMountTick e zero:
-// inicializamos o item, mas NAO debitamos tempo offline.
+const fairyTimerInterval = time.Minute
+
+// tickEquippedFairy usa um relogio proprio de um minuto. No primeiro tick do
+// login/equip o deadline e apenas inicializado: tempo offline ou desequipado
+// nunca e debitado.
 //
 // Se a fada for desequipada este metodo nao toca no item que foi para Carry;
-// consequentemente o contador fica congelado ate ela voltar ao slot 13.
+// o contador fica congelado e, ao voltar ao slot 13, inicia um minuto inteiro.
 func (w *World) tickEquippedFairy(p *Player, now time.Time) {
 	if w == nil || p == nil || p.Char == nil || !p.InWorld {
 		return
 	}
 	item := &p.Char.Equip[fairySlot]
 	if !isFairyIndex(item.Index) {
+		p.NextFairyTick = time.Time{}
 		return
 	}
 	def, ok := w.items[item.Index]
 	if !ok {
+		p.NextFairyTick = time.Time{}
 		return
 	}
 	if _, initialized := fairyTimerMinutes(*item, def); !initialized {
 		w.initializeFairyTimer(item)
+		p.NextFairyTick = now.Add(fairyTimerInterval)
 		return
 	}
-	if p.NextMountTick.IsZero() || now.Before(p.NextMountTick) {
+	if p.NextFairyTick.IsZero() {
+		p.NextFairyTick = now.Add(fairyTimerInterval)
 		return
 	}
+	if now.Before(p.NextFairyTick) {
+		return
+	}
+	p.NextFairyTick = now.Add(fairyTimerInterval)
 	remaining, ok := fairyTimerMinutes(*item, def)
 	if !ok {
 		return
@@ -252,6 +260,7 @@ func (w *World) tickEquippedFairy(p *Player, now time.Time) {
 			return
 		}
 	}
+	p.NextFairyTick = time.Time{}
 	w.recalcPlayer(p.Char)
 	if p.Session != nil {
 		p.Session.Send(wire.SendItem(p.ID, placeEquip, fairySlot, *item))

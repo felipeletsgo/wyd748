@@ -126,8 +126,9 @@ func feedMatchesMount(feedIndex, mountIndex uint16) bool {
 }
 
 // mountFoodInterval e o intervalo de dreno de comida da montaria adulta enquanto
-// equipada. Ajustavel: 100 de comida = ~100 min de cavalgada.
-const mountFoodInterval = 60 * time.Second
+// o personagem permanece online com ela equipada, viva e sem invulnerabilidade.
+// Cada hora completa elegivel consome exatamente 1 de Food.
+const mountFoodInterval = time.Hour
 
 // tickPlayerMounts drena a comida da montaria adulta equipada e viva. Ao zerar a
 // comida, a montaria fica sem HP (fiel ao ProcessAdultMount: comida 0 -> HP 0) e
@@ -135,20 +136,31 @@ const mountFoodInterval = 60 * time.Second
 // dreno.
 func (w *World) tickPlayerMounts(now time.Time) {
 	for _, p := range w.players {
-		if !p.InWorld || p.Char == nil || now.Before(p.NextMountTick) {
+		if !p.InWorld || p.Char == nil {
+			continue
+		}
+
+		// Incubacao possui deadline proprio e a cria precisa ser sincronizada
+		// independentemente do relogio horario de Food.
+		w.tickEquippedEggIncubation(p, now)
+		w.syncCriaPet(p)
+
+		mount, mslot := equippedMount(p.Char)
+		if mount == nil || !model.IsMountAdult(mount.Index) || mount.MountHP() <= 0 ||
+			mountInvulnActiveAt(p.Char, now) {
+			// Tempo desequipado, morto ou protegido nao conta como uma fracao da
+			// proxima hora elegivel.
+			p.NextMountTick = time.Time{}
+			continue
+		}
+		if p.NextMountTick.IsZero() {
+			p.NextMountTick = now.Add(mountFoodInterval)
+			continue
+		}
+		if now.Before(p.NextMountTick) {
 			continue
 		}
 		p.NextMountTick = now.Add(mountFoodInterval)
-		w.tickEquippedEggIncubation(p, now)
-		// Backstop: garante o pet-cria coerente (cobre login com cria equipada).
-		w.syncCriaPet(p)
-		mount, mslot := equippedMount(p.Char)
-		if mount == nil || !model.IsMountAdult(mount.Index) || mount.MountHP() <= 0 {
-			continue
-		}
-		if mountInvulnActiveAt(p.Char, now) {
-			continue
-		}
 		food := mount.MountFood() - 1
 		if food < 0 {
 			food = 0

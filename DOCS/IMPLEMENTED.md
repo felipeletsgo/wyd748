@@ -209,7 +209,8 @@ client748/           client e cadeia reprodutível de patches
   catálogo.
 - Ovos de montaria usam incubação por poeira, espera online e equipada, redução
   de estágio e transformação final em cria.
-- Montarias possuem HP, food, longevidade, recuperação, morte visual e revive.
+- Montarias possuem HP, food, longevidade, recuperação, morte visual e revive;
+  a montaria adulta viva consome 1 de Food por hora completa online e equipada.
 - Fadas, trajes e montarias temporárias usam deadlines persistidos.
 - Premium Firecracker valida bitmap, posição e cooldown antes de publicar o
   desenho para observadores.

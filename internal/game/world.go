@@ -102,6 +102,7 @@ type Player struct {
 	NextRegen           time.Time
 	NextCPRecovery      time.Time
 	NextMountTick       time.Time
+	NextFairyTick       time.Time
 	// As horas inteiras restantes vivem no ovo (EF_INCUDELAY). Estes campos
 	// guardam apenas a hora ONLINE corrente do mesmo ovo equipado; ela reinicia
 	// ao desequipar, trocar de personagem ou desconectar, como no nativo.

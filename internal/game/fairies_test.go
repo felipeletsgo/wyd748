@@ -102,7 +102,7 @@ func TestFairyTimerStartsEquippedAndPausesUnequipped(t *testing.T) {
 		t.Fatalf("remaining=%d ok=%v, want %d", remaining, ok, 3*24*60)
 	}
 
-	p.NextMountTick = now
+	p.NextFairyTick = now
 	w.tickEquippedFairy(p, now)
 	remaining, _ = fairyTimerMinutes(ch.Equip[fairySlot], w.items[3900])
 	if remaining != 3*24*60-1 {
@@ -113,7 +113,7 @@ func TestFairyTimerStartsEquippedAndPausesUnequipped(t *testing.T) {
 	// o timer nao e tocado fora do Equip[13].
 	ch.Inv[0], ch.Equip[fairySlot] = ch.Equip[fairySlot], model.Item{}
 	paused, _ := fairyTimerMinutes(ch.Inv[0], w.items[3900])
-	p.NextMountTick = now
+	p.NextFairyTick = now
 	w.tickEquippedFairy(p, now.Add(24*time.Hour))
 	stillPaused, _ := fairyTimerMinutes(ch.Inv[0], w.items[3900])
 	if stillPaused != paused {
@@ -122,13 +122,13 @@ func TestFairyTimerStartsEquippedAndPausesUnequipped(t *testing.T) {
 
 	// Reequipar continua exatamente do saldo salvo; nao reinicializa 3 dias.
 	ch.Equip[fairySlot], ch.Inv[0] = ch.Inv[0], model.Item{}
-	p.NextMountTick = time.Time{}
+	p.NextFairyTick = time.Time{}
 	w.tickEquippedFairy(p, now.Add(24*time.Hour))
 	resumed, _ := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3900])
 	if resumed != paused {
 		t.Fatalf("reequip reset timer: got %d want %d", resumed, paused)
 	}
-	p.NextMountTick = now.Add(24 * time.Hour)
+	p.NextFairyTick = now.Add(24 * time.Hour)
 	w.tickEquippedFairy(p, now.Add(24*time.Hour))
 	resumed, _ = fairyTimerMinutes(ch.Equip[fairySlot], w.items[3900])
 	if resumed != paused-1 {
@@ -140,12 +140,34 @@ func TestFairyTimerDoesNotAdvanceOffline(t *testing.T) {
 	w := fairyTestWorld()
 	ch := &model.Char{}
 	ch.Equip[fairySlot] = fairyWithMinutes(t, w, 3902, 1234)
-	p := &Player{Char: ch, InWorld: false, NextMountTick: time.Unix(1, 0)}
+	p := &Player{Char: ch, InWorld: false, NextFairyTick: time.Unix(1, 0)}
 
 	w.tickEquippedFairy(p, time.Unix(1, 0).Add(30*24*time.Hour))
 	remaining, _ := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3902])
 	if remaining != 1234 {
 		t.Fatalf("offline timer=%d, want 1234", remaining)
+	}
+}
+
+func TestFairyTimerIsIndependentFromMountFoodClock(t *testing.T) {
+	w := fairyTestWorld()
+	ch := &model.Char{}
+	ch.Equip[fairySlot] = fairyWithMinutes(t, w, 3900, 10)
+	now := time.Unix(1_700_000_000, 0)
+	p := &Player{
+		Char:          ch,
+		InWorld:       true,
+		NextFairyTick: now,
+		NextMountTick: now.Add(time.Hour),
+	}
+
+	w.tickEquippedFairy(p, now)
+	remaining, _ := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3900])
+	if remaining != 9 {
+		t.Fatalf("fairy timer followed mount clock: remaining=%d, want 9", remaining)
+	}
+	if !p.NextMountTick.Equal(now.Add(time.Hour)) {
+		t.Fatalf("fairy changed mount food deadline: %v", p.NextMountTick)
 	}
 }
 
