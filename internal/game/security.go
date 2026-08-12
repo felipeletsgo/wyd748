@@ -16,16 +16,18 @@ const (
 	securityViolationWindow = time.Minute
 	maxMovementRouteBytes   = 24
 	maxMovementQueuedSteps  = maxMovementRouteBytes * 2
-	// Um novo plano chega cerca de uma vez por segundo. Aceitar ate dois
-	// segundos de diferenca visual cobre jitter/replanejamento sem permitir que
-	// o PosX/Y do client vire teleporte; a ponte ainda e percorrida pelo relogio.
-	maxMovementVisualBridge = 12
+	// O client 7.48 pode ficar visualmente ate uma Route[24] inteira a frente
+	// quando um plano intermediario se perde ou e refeito. A ponte nunca promove
+	// a coordenada recebida: ela so reconstrói passos validos, executados depois
+	// pelo relogio server-side. Limitar em 12 gerava cascata de recusas reais.
+	maxMovementVisualBridge = maxMovementRouteBytes
 	maxStopPositionDrift    = 3
 	// O client 7.48 calcula no maximo seis passos ao montar ActionStop 0x367,
 	// mas transmite apenas Pos/Target; a Route[24] desse pacote vem zerada.
-	maxActionStopRouteSteps  = 6
-	characterLoginPacketSize = 36
-	applyBonusPacketSize     = 20
+	maxActionStopRouteSteps         = 6
+	characterLoginPacketSize        = 36
+	applyBonusPacketSize            = 20
+	attackOneObservedExtendedSize   = 96
 )
 
 type securityState struct {
@@ -105,14 +107,9 @@ func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 		w.recordSecurityViolation(s, header.Type, "opcode C->S desconhecido")
 		return false
 	}
-	if expected, exact := exactInboundPacketSize(header.Type); exact && len(pkt) != expected {
+	if allowed, expected := inboundPacketSizeAllowed(header.Type, len(pkt)); !allowed {
 		w.recordSecurityViolation(s, header.Type,
-			fmt.Sprintf("tamanho %d, esperado %d", len(pkt), expected))
-		return false
-	}
-	if header.Type == wire.OpRebuy && len(pkt) != wire.HeaderSize && len(pkt) != repurchasePacketSize {
-		w.recordSecurityViolation(s, header.Type,
-			fmt.Sprintf("tamanho %d, esperado %d ou %d", len(pkt), wire.HeaderSize, repurchasePacketSize))
+			fmt.Sprintf("tamanho %d, esperado %s", len(pkt), expected))
 		return false
 	}
 	phase := w.phaseFor(s)
@@ -126,13 +123,33 @@ func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 // knownInboundOpcode e a allowlist canonica da borda C->S. Um opcode sem
 // parser/semantica confirmados nao chega ao dispatcher, nao cria uma label de
 // metrica arbitraria e nao pode transformar log sincrono em amplificador de
-// CPU/I/O. Rebuy e o unico layout conhecido com dois tamanhos validos.
+// CPU/I/O. Rebuy e AttackOne possuem mais de um tamanho observado/confirmado.
 func knownInboundOpcode(opcode uint16) bool {
 	if opcode == wire.OpRebuy {
 		return true
 	}
 	_, exact := exactInboundPacketSize(opcode)
 	return exact
+}
+
+// inboundPacketSizeAllowed preserva framing estrito, mas admite variantes que
+// o client 7.48 real comprovadamente envia. Em captura in-game, 0x39D chegou com
+// 96 bytes durante combate magico; o parser usa apenas os campos autoritativos
+// do prefixo e o servidor recalcula alvos/dano. Outros tamanhos continuam
+// recusados, inclusive caudas arbitrarias.
+func inboundPacketSizeAllowed(opcode uint16, size int) (bool, string) {
+	if opcode == wire.OpAttackOne {
+		return size == 48 || size == attackOneObservedExtendedSize, "48 ou 96"
+	}
+	if opcode == wire.OpRebuy {
+		return size == wire.HeaderSize || size == repurchasePacketSize,
+			fmt.Sprintf("%d ou %d", wire.HeaderSize, repurchasePacketSize)
+	}
+	expected, exact := exactInboundPacketSize(opcode)
+	if !exact {
+		return false, "layout confirmado"
+	}
+	return size == expected, fmt.Sprintf("%d", expected)
 }
 
 // exactInboundPacketSize contem somente layouts confirmados no client 7.48.
@@ -227,8 +244,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 	case wire.OpInviteGuild:
 		return 20, true
 	case wire.OpRebuy:
-		// A solicitacao pode ser somente o header ou o MSG completo. A
-		// validacao acima documenta e limita explicitamente as duas formas.
+		// A solicitacao pode ser somente o header ou o MSG completo. O helper
+		// inboundPacketSizeAllowed limita explicitamente as duas formas.
 		return 0, false
 	case wire.OpGuildAlly, wire.OpGuildWar:
 		return 20, true
@@ -241,6 +258,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 	case wire.OpClientUnknown2BC:
 		return 108, true
 	case wire.OpAttackOne:
+		// 48 e o layout compacto canonico. O client real tambem emite 96 bytes
+		// com este mesmo opcode em combate magico; a variante e admitida acima.
 		return 48, true
 	case wire.OpAttackTwo:
 		return 52, true
