@@ -211,7 +211,9 @@ client748/           client e cadeia reprodutível de patches
   de estágio e transformação final em cria.
 - Montarias possuem HP, food, longevidade, recuperação, morte visual e revive;
   a montaria adulta viva consome 1 de Food por hora completa online e equipada.
-- Fadas, trajes e montarias temporárias usam deadlines persistidos.
+- Fadas usam saldo temporal persistido e contam somente enquanto equipadas e
+  online. O calendário absoluto de trajes e montarias temporários ainda não foi
+  implementado; esses itens não devem anunciar duração antes desse suporte.
 - Premium Firecracker valida bitmap, posição e cooldown antes de publicar o
   desenho para observadores.
 - `gameplay_log=summary` agrega skills, ataques, mortes, drops e lotes por
@@ -363,12 +365,34 @@ O executável versionado é produzido somente pela cadeia documentada em
 Hash SHA-256 suportado do `WYD.exe`:
 
 ```text
-9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18
+F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D
 ```
 
-Os cinco elos atuais são base, ExtendedStats, Bypass, macro normal e Lindy. O
+Os sete elos atuais são base, ExtendedStats, Bypass, macro normal, Lindy, a
+coleção de trajes KR e as montarias KR. Foram importados 135 trajes completos, com classificação
+corporal 5 (TK/BM), 10 (FM/HT) ou 15 (dinâmica), 129 renderers, 176 registros
+de textura de traje e 856 assets. Eles reutilizam o ícone 36, permanecem no slot 13 do
+7.48 e estão distribuídos em cinco `ShopCostum*`, com no máximo 27 por loja.
+Um gate por lista exata permite que os IDs modernos ultrapassem a faixa nativa
+`4151..4200` sem liberar outros itens. O gate e o selector também reconstroem o
+ID `4xxx` a partir dos 12 bits transportados no visual do mundo, mantendo o
+traje após `EnterWorld`. Partes vazias são omitidas sem deslocar as partes
+seguintes. Os materiais extraídos do registro KR `@510` são preservados.
+Outros 96 itens catalogados não são habilitados porque os clients fornecidos
+não possuem todas as dependências referenciadas. O temporizador KR não foi
+simulado por um efeito incompatível. O
 WaterMacro foi removido; Water automática pertence ao servidor. O ajuste de
 clique do Warrior's Seal ocorre no `ItemList.bin` pelo orquestrador.
+
+Também foram importadas 47 aparências de montaria comprovadas pelo renderer KR.
+Elas reutilizam o contrato da Shire (`342`) no `Equip[14]`, sem ovo/cria,
+comida, longevidade ou temporizador moderno, e estão divididas entre
+`ShopKRMt01` e `ShopKRMt02`, respeitando o limite de 27 itens por loja. O patch
+trata tanto a materialização completa quanto o `UpdateEquip 0x36B`; a aparência
+da montaria muda imediatamente ao equipar ou desequipar. A tabela visual vem do
+`MountDataV.bin` KR e os offsets de assento comprovados para os tipos modernos
+cobertos foram portados; os 50 pathnames de textura usados em runtime estão
+registrados na tabela legada.
 
 ## Fontes de referência
 

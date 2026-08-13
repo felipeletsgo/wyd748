@@ -1,0 +1,159 @@
+[CmdletBinding()]
+param(
+    [string]$MeshTextureList = (Join-Path $PSScriptRoot 'mesh\MeshTextureList.bin'),
+    [string]$Manifest = (Join-Path $PSScriptRoot 'Costumes-KR.json'),
+    [string]$MountManifest = (Join-Path $PSScriptRoot 'Mounts-KR.json'),
+    [switch]$VerifyOnly
+)
+
+$ErrorActionPreference = 'Stop'
+
+# Registers every texture used by the costume and mount assets imported from
+# the current Korean client. KR uses a newer 528-byte texture record, while
+# WYD 7.48 reads exactly 2,048 legacy 264-byte stTextureListInfo rows. The
+# manifests carry the material byte translated from KR offset 510. Preserve
+# that value in the legacy row. A global C-to-A projection was tested and made
+# previously visible costumes disappear, so material adaptation must remain a
+# per-renderer change backed by an in-game comparison.
+
+$recordSize = 264
+$recordCount = 2048
+$originalHash = '7FE770F97E419E7A080689423B024B788CA6C4761FC35FE68888154F9CA65395'
+$pilotHash = '2BD35F88C159FB17C4FC6831BAA0F3173CF7521A5F8E3DF53E1B109E4C5B5D67'
+
+function Get-Sha([string]$Path) {
+    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant()
+}
+
+function Get-RecordName([byte[]]$Data, [int]$Index) {
+    $offset = $Index * $recordSize
+    $length = 0
+    while ($length -lt 255 -and $Data[$offset + $length] -ne 0 -and $Data[$offset + $length] -ne 0xCD) {
+        $length++
+    }
+    return [Text.Encoding]::ASCII.GetString($Data, $offset, $length)
+}
+
+function Set-EmptyRecord([byte[]]$Data, [int]$Index) {
+    $offset = $Index * $recordSize
+    for ($i = 0; $i -lt $recordSize; $i++) { $Data[$offset + $i] = 0xCD }
+    $Data[$offset] = 0
+    $Data[$offset + 255] = [byte][char]'N'
+}
+
+function Set-TextureRecord([byte[]]$Data, [int]$Index, [string]$Name, [byte]$Alpha) {
+    if ($Name.Length -ge 255) { throw "nome de textura excede 254 bytes: $Name" }
+    $offset = $Index * $recordSize
+    for ($i = 0; $i -lt $recordSize; $i++) { $Data[$offset + $i] = 0xCD }
+    $bytes = [Text.Encoding]::ASCII.GetBytes($Name)
+    [Array]::Copy($bytes, 0, $Data, $offset, $bytes.Length)
+    $Data[$offset + $bytes.Length] = 0
+    $Data[$offset + 255] = $Alpha
+}
+
+function Get-TextureIndex([byte[]]$Data) {
+    $byName = @{}
+    $empty = [Collections.Generic.List[int]]::new()
+    for ($index = 0; $index -lt $recordCount; $index++) {
+        $name = Get-RecordName $Data $index
+        if ($name) { $byName[$name.ToLowerInvariant()] = $index } else { $empty.Add($index) }
+    }
+    return [pscustomobject]@{ ByName = $byName; Empty = $empty }
+}
+
+function Test-TextureSet([byte[]]$Data, [object[]]$Wanted) {
+    $index = Get-TextureIndex $Data
+    foreach ($texture in $Wanted) {
+        $key = ([string]$texture.name).ToLowerInvariant()
+        if (-not $index.ByName.ContainsKey($key)) { return $false }
+        $row = [int]$index.ByName[$key]
+        if ($Data[$row * $recordSize + 255] -ne [byte]$texture.alpha) { return $false }
+    }
+    return $true
+}
+
+if (-not (Test-Path -LiteralPath $MeshTextureList -PathType Leaf)) { throw "MeshTextureList.bin ausente: $MeshTextureList" }
+if (-not (Test-Path -LiteralPath $Manifest -PathType Leaf)) { throw "manifesto de trajes ausente: $Manifest" }
+if (-not (Test-Path -LiteralPath $MountManifest -PathType Leaf)) { throw "manifesto de montarias ausente: $MountManifest" }
+
+$definition = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
+$mountDefinition = Get-Content -LiteralPath $MountManifest -Raw | ConvertFrom-Json
+if (@($definition.textures).Count -ne 176) { throw "manifesto de trajes possui $(@($definition.textures).Count) texturas; esperado 176" }
+if (@($mountDefinition.textures).Count -ne 50) { throw "manifesto de montarias possui $(@($mountDefinition.textures).Count) texturas; esperado 50" }
+
+$wantedByName = @{}
+foreach ($texture in @($definition.textures) + @($mountDefinition.textures)) {
+    $key = ([string]$texture.name).ToLowerInvariant()
+    $sourceAlpha = [int]$texture.alpha
+    if ($sourceAlpha -notin @([byte][char]'A', [byte][char]'C', [byte][char]'N', [byte][char]'a')) {
+        throw "modo alpha invalido para $($texture.name): $sourceAlpha"
+    }
+    $legacyAlpha = [byte]$sourceAlpha
+    $legacyTexture = [pscustomobject]@{ name = [string]$texture.name; alpha = $legacyAlpha }
+    if ($wantedByName.ContainsKey($key) -and [int]$wantedByName[$key].alpha -ne [int]$legacyTexture.alpha) {
+        throw "modo alpha conflitante para $($texture.name)"
+    }
+    $wantedByName[$key] = $legacyTexture
+}
+$wanted = @($wantedByName.Values | Sort-Object name)
+if ($wanted.Count -ne 226) { throw "colecao visual possui $($wanted.Count) texturas unicas; esperado 226" }
+
+$current = [IO.File]::ReadAllBytes($MeshTextureList)
+if ($current.Length -ne $recordCount * $recordSize) { throw "MeshTextureList.bin com tamanho inesperado: $($current.Length)" }
+if (Test-TextureSet $current $wanted) {
+    Write-Host "Todas as $($wanted.Count) texturas KR de trajes e montarias ja estao registradas."
+    Write-Host "SHA-256: $(Get-Sha $MeshTextureList)"
+    return
+}
+if ($VerifyOnly) { throw 'MeshTextureList.bin ainda nao possui a colecao visual KR correta.' }
+
+$backup = Join-Path (Split-Path -Parent $MeshTextureList) 'MeshTextureList.pre-costumes-kr.bin'
+if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) {
+    $currentHash = Get-Sha $MeshTextureList
+    if ($currentHash -notin @($originalHash, $pilotHash)) {
+        throw "MeshTextureList.bin alterado sem backup integro (SHA-256: $currentHash)"
+    }
+    Copy-Item -LiteralPath $MeshTextureList -Destination $backup
+}
+
+# Always rebuild from the known pre-collection snapshot. This also repairs the
+# former patch that copied KR byte 255 ('m', the second pathname) as alpha.
+$data = [IO.File]::ReadAllBytes($backup)
+if ($data.Length -ne $recordCount * $recordSize) { throw 'backup de MeshTextureList com tamanho inesperado' }
+$backupHash = Get-Sha $backup
+if ($backupHash -eq $pilotHash) {
+    if ((Get-RecordName $data 1847) -ne 'mesh\WhitePolice.wys') { throw 'registro piloto 1847 divergente' }
+    Set-EmptyRecord $data 1847
+    $temporary = [IO.Path]::GetTempFileName()
+    try {
+        [IO.File]::WriteAllBytes($temporary, $data)
+        if ((Get-Sha $temporary) -ne $originalHash) { throw 'restauracao do piloto nao recompos a tabela original' }
+    } finally {
+        Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue
+    }
+} elseif ($backupHash -ne $originalHash) {
+    throw "backup de MeshTextureList fora da base suportada (SHA-256: $backupHash)"
+}
+
+$index = Get-TextureIndex $data
+$missing = @($wanted | Where-Object { -not $index.ByName.ContainsKey($_.name.ToLowerInvariant()) })
+foreach ($texture in $wanted) {
+    $key = $texture.name.ToLowerInvariant()
+    if ($index.ByName.ContainsKey($key)) {
+        $row = [int]$index.ByName[$key]
+        if ($data[$row * $recordSize + 255] -ne [byte]$texture.alpha) {
+            throw "a textura existente $($texture.name) possui alpha diferente da fonte KR"
+        }
+    }
+}
+if ($index.Empty.Count -lt $missing.Count) { throw "a tabela possui $($index.Empty.Count) vagas para $($missing.Count) texturas" }
+
+for ($i = 0; $i -lt $missing.Count; $i++) {
+    Set-TextureRecord $data $index.Empty[$i] $missing[$i].name ([byte]$missing[$i].alpha)
+}
+[IO.File]::WriteAllBytes($MeshTextureList, $data)
+
+$written = [IO.File]::ReadAllBytes($MeshTextureList)
+if (-not (Test-TextureSet $written $wanted)) { throw 'verificacao final de MeshTextureList falhou' }
+Write-Host "$($wanted.Count) texturas KR de trajes e montarias registradas no MeshTextureList 7.48."
+Write-Host "SHA-256: $(Get-Sha $MeshTextureList)"

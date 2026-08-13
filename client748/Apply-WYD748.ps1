@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 # PONTO UNICO DE ENTRADA — client 7.48
 #
 # Este orquestrador e o unico script que deve ser executado normalmente. Os
-# cinco scripts Patch-WYD748-*.ps1 abaixo continuam separados de proposito:
+# sete scripts Patch-WYD748-*.ps1 abaixo continuam separados de proposito:
 # cada um implementa um elo pequeno, valida os bytes originais e possui um
 # SHA de entrada/saida proprio. Isso preserva rollback e impede que uma
 # alteracao em um patch esconda uma falha em outro. Nao executar os elos fora
@@ -21,8 +21,14 @@ $ErrorActionPreference = 'Stop'
 # 3. Patch-WYD748-Bypass.ps1       versao + checksums de SkillData/ItemList
 # 4. Patch-WYD748-Macro.ps1        rotacao de skills e renovacao de buffs
 # 5. Patch-WYD748-Lindy.ps1        receita 3448 da janela da Lindy
+# 6. Patch-WYD748-Costumes.ps1     colecao de trajes do client KR
+# 7. Patch-WYD748-KRMounts.ps1      montarias visuais do client KR (.mountkr)
 # D. Patch-WYD748-ClientItemUse.ps1 marcador de clique do Warrior's Seal
-#    (ItemList.bin; nao altera a cadeia SHA do executavel)
+# D. Patch-WYD748-CostumeItems.ps1 registros/icon dos trajes KR completos
+# D. Patch-WYD748-CostumeTextures.ps1 registros das texturas KR
+# D. Patch-WYD748-KRMountItems.ps1  clones da Shire para Equip[14]
+# D. Patch-WYD748-KRMountAssets.ps1 meshes e animacoes das montarias KR
+#    (ItemList/MeshTextureList; nao alteram a cadeia SHA do executavel)
 #
 # O progresso e retomavel: se o processo for interrompido, a proxima execucao
 # identifica o SHA atual e continua do elo correspondente. O modo
@@ -43,7 +49,14 @@ if ($ResetFromOriginal) {
         if (Test-Path -LiteralPath $resetBackup -PathType Leaf) {
             $backupHash = Get-Sha $resetBackup
             if ($backupHash -ne $beforeReset) {
-                throw "Backup de reset existente nao corresponde ao WYD.exe atual: $resetBackup"
+                $resetBackup = Join-Path (Split-Path -Parent $Executable) ("WYD.before-reset.{0}.exe" -f $beforeReset.Substring(0,12))
+                if (Test-Path -LiteralPath $resetBackup -PathType Leaf) {
+                    if ((Get-Sha $resetBackup) -ne $beforeReset) {
+                        throw "Backup versionado de reset divergente: $resetBackup"
+                    }
+                } else {
+                    Copy-Item -LiteralPath $Executable -Destination $resetBackup
+                }
             }
         } else {
             Copy-Item -LiteralPath $Executable -Destination $resetBackup
@@ -84,10 +97,57 @@ $steps = @(
         Number = 5; Name = 'receita da Lindy'; Script = 'Patch-WYD748-Lindy.ps1'
         Input = '4E916C1FD94D60D5EF7F8914B621BAB3787E7BF5460FB251C59F71BCC4D9BA2F'
         Output = '9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18'
+    },
+    # ETAPA 6 - seletor e renderer da colecao de trajes importada do client KR.
+    [pscustomobject]@{
+        Number = 6; Name = 'colecao de trajes KR'; Script = 'Patch-WYD748-Costumes.ps1'
+        Input = '9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18'
+        Output = '4A2AA37228A720ED389F5AC8A5978329855932B93E54FA0501B51A3A23316DEF'
+    },
+    # ETAPA 7 - costumes de montaria KR materializados como montarias Shire.
+    [pscustomobject]@{
+        Number = 7; Name = 'colecao de montarias KR'; Script = 'Patch-WYD748-KRMounts.ps1'
+        Input = '4A2AA37228A720ED389F5AC8A5978329855932B93E54FA0501B51A3A23316DEF'
+        Output = 'F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D'
     }
 )
 
 $current = Get-Sha $Executable
+$legacyKRVisualHashes = @(
+    # Build anterior ao marcador exclusivo de trajes e ao suporte de R para
+    # todas as montarias KR.
+    '738FEBA396B4273721F63B17F044DA0AEFFAC20ECF9EFA195BE603E427775D53',
+    # Colecao anterior ao culling seletivo das meshes esqueletais KR.
+    '93418B98E42877596ACC4D52D518475059358B5954A7D7CBD38F97E5B9BEFE63',
+    # Trajes sem o gate de admissao para IDs modernos.
+    '273540C8755E75D2412CB513AB8A2D26C169E90EF37342587AE8B37B8476D8F5',
+    # Montarias antes do refresh incremental de Equip[14].
+    '63FFDF621631803BE4096730B0096F7617DB73D4DE517078A4EC2A49B17D96DF',
+    # Montarias com refresh, ainda sobre o patch antigo de trajes.
+    '517B8C2F4438B8A5DF1A3C4CDE1D645F69373A9B9FEF8CA04DCD554312B768FE',
+    # Colecao anterior ao rebuild do ID compacto de trajes no mundo.
+    '677D2D209076708539F174657498D119FB9860A0A8BD39940103C4F1BAE6905B',
+    'A5DCF57BD8C7D891E42796A7EBC028A3DD22DA7EF53C1A8DB0E023BAB3BCE8A3',
+    # Colecao com IDs compactos corrigidos, antes de preservar a face nativa.
+    '03EC8FA4DFEF7994A079BFEB491CDD4812A39FB7F29B44A71D964728BE3AB3E9',
+    '6D853FE2F69EDFFB4A1EC4793EE18CF651B5E5604E3009703D379C2B182B76CB',
+    # Colecao com materiais/rotacao corrigidos, antes do assento type 59.
+    'E1C34874E8BA5B4CF018F262D84A581DCA2242DD7F67410B4807B57BCC3691EA',
+    # Colecao que sobrescrevia m_nSkinMeshType com 0/1 e desmontava o corpo.
+    '78B27091ACF3B0DA0258E7F7510E55CA3A78C721C237F5B99F767CB780512005'
+)
+if ($legacyKRVisualHashes -contains $current) {
+    if ($VerifyOnly) {
+        Write-Host "Colecao visual KR antiga detectada ($current). Execute sem -VerifyOnly depois de fechar o WYD.exe."
+        return
+    }
+    if (-not (Test-Path -LiteralPath $original -PathType Leaf)) {
+        throw 'Colecao visual KR antiga detectada, mas WYD.original.exe nao existe para reconstruir a cadeia.'
+    }
+    Copy-Item -LiteralPath $original -Destination $Executable -Force
+    $current = Get-Sha $Executable
+    Write-Host 'Reconstruindo os sete elos para aplicar a admissao dos trajes modernos.'
+}
 $legacyWaterMacroHashes = @(
     '65486F2A4ED791BA977C00D1478BFA6450783DA37BC54A8039F196B8A73E0A0E',
     'F76D9D8CEDFFBD3E046F10C5282CF0139E6D94BFC7DF30BCCA549324B0D1107E'
@@ -106,7 +166,7 @@ if ($legacyWaterMacroHashes -contains $current) {
     }
     Copy-Item -LiteralPath $original -Destination $Executable -Force
     $current = Get-Sha $Executable
-    Write-Host 'WaterMacro client-side removido; reconstruindo os cinco elos suportados.'
+    Write-Host 'WaterMacro client-side removido; reconstruindo os sete elos suportados.'
 }
 $final = $steps[-1].Output
 if ($current -eq $final) {
@@ -118,6 +178,37 @@ if ($current -eq $final) {
         & $itemUseScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin') -VerifyOnly
     } else {
         & $itemUseScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
+    }
+    $costumeItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-CostumeItems.ps1'
+    if (-not (Test-Path -LiteralPath $costumeItemScript -PathType Leaf)) {
+        throw "Elo de dados dos trajes KR ausente: $costumeItemScript"
+    }
+    if ($VerifyOnly) {
+        & $costumeItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin') -VerifyOnly
+    } else {
+        & $costumeItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
+    }
+    $costumeTextureScript = Join-Path $PSScriptRoot 'Patch-WYD748-CostumeTextures.ps1'
+    if (-not (Test-Path -LiteralPath $costumeTextureScript -PathType Leaf)) {
+        throw "Elo de texturas dos trajes KR ausente: $costumeTextureScript"
+    }
+    $meshTextureList = Join-Path $PSScriptRoot 'mesh\MeshTextureList.bin'
+    if ($VerifyOnly) {
+        & $costumeTextureScript -MeshTextureList $meshTextureList -VerifyOnly
+    } else {
+        & $costumeTextureScript -MeshTextureList $meshTextureList
+    }
+    $mountItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountItems.ps1'
+    $mountAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountAssets.ps1'
+    foreach ($script in @($mountItemScript, $mountAssetScript)) {
+        if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "Elo de montarias KR ausente: $script" }
+    }
+    if ($VerifyOnly) {
+        & $mountItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin') -VerifyOnly
+        & $mountAssetScript -ClientRoot $PSScriptRoot -VerifyOnly
+    } else {
+        & $mountItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
+        & $mountAssetScript -ClientRoot $PSScriptRoot
     }
     Write-Host "Cadeia WYD 7.48 ja concluida: $current"
     return
@@ -165,3 +256,20 @@ if (-not (Test-Path -LiteralPath $itemUseScript -PathType Leaf)) {
     throw "Elo de compatibilidade do ItemList ausente: $itemUseScript"
 }
 & $itemUseScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
+$costumeItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-CostumeItems.ps1'
+if (-not (Test-Path -LiteralPath $costumeItemScript -PathType Leaf)) {
+    throw "Elo de dados dos trajes KR ausente: $costumeItemScript"
+}
+& $costumeItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
+$costumeTextureScript = Join-Path $PSScriptRoot 'Patch-WYD748-CostumeTextures.ps1'
+if (-not (Test-Path -LiteralPath $costumeTextureScript -PathType Leaf)) {
+    throw "Elo de texturas dos trajes KR ausente: $costumeTextureScript"
+}
+& $costumeTextureScript -MeshTextureList (Join-Path $PSScriptRoot 'mesh\MeshTextureList.bin')
+$mountItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountItems.ps1'
+$mountAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountAssets.ps1'
+foreach ($script in @($mountItemScript, $mountAssetScript)) {
+    if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "Elo de montarias KR ausente: $script" }
+}
+& $mountItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
+& $mountAssetScript -ClientRoot $PSScriptRoot

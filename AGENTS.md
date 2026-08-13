@@ -19,10 +19,17 @@ de gameplay, investigue o fluxo completo antes de concluir.
 
 # Uso obrigatório de skills
 
-O diretório canônico de skills versionadas deste projeto é:
+O diretório canônico de skills gerais versionadas deste projeto é:
 
 ```text
 .agents/skills
+```
+
+Skills estritamente ligadas a um artefato podem viver no próprio subtree e ser
+tornadas obrigatórias por um `AGENTS.md` mais específico. O client 7.48 possui:
+
+```text
+client748/skills/wyd-client-assets/SKILL.md
 ```
 
 Resolva esse caminho a partir da raiz do repositório. Não codifique caminhos
@@ -91,6 +98,8 @@ Isso inclui, entre outros:
 - mecânicas nativas;
 - packets e protocolo;
 - client WYD 7.48;
+- meshes, texturas, skeletons e animações do client;
+- trajes, skins e montarias visuais;
 - descompilação do client;
 - patches, hooks, trampolines e ABI do `WYD.exe`;
 - itens e volatiles;
@@ -125,6 +134,21 @@ Isso inclui, entre outros:
 
 Depois de carregar a skill, consultar somente as referências necessárias ao
 problema atual.
+
+## Client assets — skill e agent routing obrigatórios
+
+Para importar, corrigir ou auditar qualquer asset visual sob `client748/`, ler
+também:
+
+```text
+client748/AGENTS.md
+client748/skills/wyd-client-assets/SKILL.md
+```
+
+Esse workflow cobre MSH/WYS/BON/ANI, `MeshTextureList.bin`, `ValidIndex.bin`,
+selector/renderer de costumes e montarias e patches reprodutíveis do `WYD.exe`.
+Separar pesquisa read-only, exploração, implementação e integração conforme os
+papéis definidos no `client748/AGENTS.md`.
 
 ## GitHub e workflows especializados
 
@@ -184,6 +208,7 @@ Antes de declarar qualquer tarefa técnica concluída, verificar:
 
 ```text
 [ ] inspecionei .agents/skills
+[ ] carreguei qualquer skill scoped exigida pelo AGENTS.md do subtree afetado
 [ ] identifiquei todas as skills aplicáveis
 [ ] abri o SKILL.md atual de cada skill necessária
 [ ] segui o workflow e as restrições das skills

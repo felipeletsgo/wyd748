@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD Client Assets"
+  short_description: "Importar e validar meshes e texturas WYD"
+  default_prompt: "Use $wyd-client-assets para investigar e implementar assets visuais no client WYD 7.48."

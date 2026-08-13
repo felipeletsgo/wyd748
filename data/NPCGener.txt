@@ -112855,6 +112855,116 @@
 	DestRange:	0
 	DestWait:	0
 
+#	[5219]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopCostum02
+	Follower:	ShopCostum02
+	RouteType:	0
+	Formation:	0
+	StartX:		2109
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2109
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5220]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopCostum03
+	Follower:	ShopCostum03
+	RouteType:	0
+	Formation:	0
+	StartX:		2110
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2110
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5221]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopCostum04
+	Follower:	ShopCostum04
+	RouteType:	0
+	Formation:	0
+	StartX:		2111
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2111
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5222]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopCostum05
+	Follower:	ShopCostum05
+	RouteType:	0
+	Formation:	0
+	StartX:		2112
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2112
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+// ShopKRMt01/02 - aparencias de montaria do client KR portadas como Shire.
+// ********************************************
+#	[5223]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopKRMt01
+	Follower:	ShopKRMt01
+	RouteType:	0
+	Formation:	0
+	StartX:		2113
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2113
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5224]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopKRMt02
+	Follower:	ShopKRMt02
+	RouteType:	0
+	Formation:	0
+	StartX:		2114
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2114
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
 #	[5218]
 	MinuteGenerate:	-1
 	MaxNumMob:	1

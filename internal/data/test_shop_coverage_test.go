@@ -1,6 +1,8 @@
 package data
 
 import (
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -110,10 +112,22 @@ func TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste(t *testing.T) {
 		}
 	}
 
-	costumes := itemsInShops(shops, func(name string) bool { return name == "ShopCostume" })
-	for item := uint16(4151); item <= 4156; item++ {
-		if _, ok := costumes[item]; !ok {
-			t.Errorf("traje %d ausente de ShopCostume", item)
+	costumes := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopCostum") })
+	if len(costumes) != 135 {
+		t.Errorf("lojas ShopCostume possuem %d trajes distintos; esperado 135", len(costumes))
+	}
+	for name, stock := range shops {
+		if strings.HasPrefix(name, "ShopCostum") && len(stock) > 27 {
+			t.Errorf("%s possui %d trajes; limite do client e 27", name, len(stock))
+		}
+	}
+	krMounts := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
+	if len(krMounts) != 47 {
+		t.Errorf("lojas ShopKRMt possuem %d montarias distintas; esperado 47", len(krMounts))
+	}
+	for name, stock := range shops {
+		if strings.HasPrefix(name, "ShopKRMt") && len(stock) > 27 {
+			t.Errorf("%s possui %d montarias; limite do client e 27", name, len(stock))
 		}
 	}
 	firal := itemsInShops(shops, func(name string) bool { return name == "ShopFiral" })
@@ -121,6 +135,118 @@ func TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste(t *testing.T) {
 		if _, ok := firal[item]; !ok {
 			t.Errorf("item de aparencia/tintura %d ausente de ShopFiral", item)
 		}
+	}
+}
+
+func TestMontariasKRUsamContratoDaShire748(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	type mountItem struct {
+		Item uint16 `json:"item"`
+		Name string `json:"name"`
+	}
+	var manifest struct {
+		BaseItem uint16      `json:"baseItem"`
+		Items    []mountItem `json:"items"`
+	}
+	raw, err := os.ReadFile(filepath.Join("..", "..", "client748", "Mounts-KR.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.BaseItem != 342 || len(manifest.Items) != 47 {
+		t.Fatalf("manifesto KR inesperado: base=%d itens=%d", manifest.BaseItem, len(manifest.Items))
+	}
+	shire := catalog.Items[manifest.BaseItem]
+	shops, _ := loadTestShopFixture(t)
+	stock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
+	for _, item := range manifest.Items {
+		def, ok := catalog.Items[item.Item]
+		if !ok {
+			t.Errorf("montaria KR %d ausente do catalogo", item.Item)
+			continue
+		}
+		if def.Name != item.Name || def.Mesh != shire.Mesh || def.Pos != shire.Pos ||
+			def.Price != shire.Price || def.Grade != shire.Grade {
+			t.Errorf("montaria KR %d divergiu da base Shire: %+v", item.Item, def)
+		}
+		if len(def.StaticEffects) != len(shire.StaticEffects) {
+			t.Errorf("montaria KR %d divergiu nos efeitos da Shire", item.Item)
+		} else {
+			for i := range def.StaticEffects {
+				if def.StaticEffects[i] != shire.StaticEffects[i] {
+					t.Errorf("montaria KR %d efeito %d=%+v; Shire=%+v", item.Item, i, def.StaticEffects[i], shire.StaticEffects[i])
+				}
+			}
+		}
+		if _, ok := stock[item.Item]; !ok {
+			t.Errorf("montaria KR %d ausente das lojas", item.Item)
+		}
+	}
+}
+
+func TestTrajesKRCompletosMantemContrato748(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	type costumeItem struct {
+		Item      uint16 `json:"item"`
+		Name      string `json:"name"`
+		ClassMask int    `json:"classMask"`
+		Available bool   `json:"available"`
+	}
+	var manifest struct {
+		Items []costumeItem `json:"items"`
+	}
+	raw, err := os.ReadFile(filepath.Join("..", "..", "client748", "Costumes-KR.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	shops, _ := loadTestShopFixture(t)
+	stock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopCostum") })
+	available := 0
+	for _, item := range manifest.Items {
+		if !item.Available {
+			if _, ok := stock[item.Item]; ok {
+				t.Errorf("traje KR %d sem assets completos foi exposto na loja", item.Item)
+			}
+			continue
+		}
+		available++
+		if _, ok := stock[item.Item]; !ok {
+			t.Errorf("traje KR completo %d ausente das lojas", item.Item)
+		}
+		def, ok := catalog.Items[item.Item]
+		if !ok {
+			t.Errorf("traje KR %d ausente do catalogo", item.Item)
+			continue
+		}
+		if def.Name != item.Name || def.Mesh != 36 || def.Pos != 8192 {
+			t.Errorf("metadados do traje %d divergiram: %+v", item.Item, def)
+		}
+		effects := make(map[string]int, len(def.StaticEffects))
+		for _, effect := range def.StaticEffects {
+			effects[effect.Name] = effect.Value
+		}
+		if effects["EF_CLASS"] != item.ClassMask || effects["EF_AC"] != 80 ||
+			effects["EF_SAVEMANA"] != 10 {
+			t.Errorf("efeitos do traje %d divergiram: %+v", item.Item, effects)
+		}
+	}
+	if available != 135 {
+		t.Fatalf("manifesto possui %d trajes completos; esperado 135", available)
 	}
 }
 
@@ -206,7 +332,9 @@ func TestNovasLojasDeTesteEstaoNoBlocoDeArmia(t *testing.T) {
 	want := []string{"ShopVolTest1", "ShopVolTest2", "ShopVolTest3", "ShopVolTest4",
 		"ShopVolTest5", "ShopVolTest6", "ShopVolTest7", "ShopMtEgg1", "ShopMtEgg2",
 		"ShopMtBaby1", "ShopMtBaby2", "ShopMtAdult1", "ShopMtAdult2", "ShopMtTime",
-		"ShopCostume", "ShopFiral", "ShopSetD", "ShopSetE", "ShopWeaponsD", "ShopWeaponsE",
+		"ShopCostume", "ShopCostum02", "ShopCostum03", "ShopCostum04", "ShopCostum05",
+		"ShopKRMt01", "ShopKRMt02",
+		"ShopFiral", "ShopSetD", "ShopSetE", "ShopWeaponsD", "ShopWeaponsE",
 		"ShopWpnD2", "ShopWpnE2", "ShopShldDE"}
 	seen := make(map[string]bool, len(want))
 	for _, gen := range gens {

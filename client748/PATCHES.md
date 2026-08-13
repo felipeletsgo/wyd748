@@ -1,6 +1,6 @@
 # Cadeia de patches do client 7.48
 
-O `WYD.exe` em uso **não** é o executável original: ele é o resultado de cinco
+O `WYD.exe` em uso **não** é o executável original: ele é o resultado de sete
 scripts aplicados em ordem. Cada elo é verificado por SHA‑256, e a cadeia
 inteira reproduz o binário em uso **bit a bit**.
 
@@ -15,7 +15,11 @@ WYD.pre-extended-stats.exe    2AA1773A…21EE   ← LINHA-BASE
   └─ Patch-WYD748-Macro.ps1                   rotação de skills + buffs
 WYD.exe pré-Lindy             4E916C1F…9BA2
   └─ Patch-WYD748-Lindy.ps1                  validação 4010 -> 3448
-WYD.exe pós-Lindy             9762B1AC…7F18   ← binário atualmente versionado
+WYD.exe pós-Lindy             9762B1AC…7F18
+  └─ Patch-WYD748-Costumes.ps1                 coleção de trajes do KR
+WYD.exe pós-trajes            4A2AA372…16DE
+  └─ Patch-WYD748-KRMounts.ps1                 montarias visuais do KR
+WYD.exe pós-montarias         F6F99CC0…E72D   ← binário atualmente versionado
 ```
 
 ## Reaplicar
@@ -141,6 +145,111 @@ O script local recebido como `Patch-WYD748-Lindy-Local.ps1` não é o elo
 versionado: ele aceita qualquer executável com os seis bytes antigos. Para
 reprodução pública da cadeia, use o script estrito acima.
 
+## Coleção de trajes do client KR
+
+O sexto elo instala a coleção cujo conjunto completo de dependências existe nos
+clients KR fornecidos. São `135` itens, `129` renderers, `176` texturas de
+traje e `856` arquivos de mesh/textura. O caminho vivo do 7.48 confirmou
+`Equip[13]` (`Pos=8192`) como o slot correto; nenhum struct ou offset de outra
+versão foi portado. A seção PE dedicada `.costkr` contém somente as tabelas e os
+três adapters necessários nos pontos nativos do 7.48.
+
+O executável original possui uma barreira anterior ao seletor: somente IDs
+`4151..4200` alcançam o caminho nativo de traje. Por isso os primeiros trajes
+importados apareciam e os itens modernos eram equipados sem alterar a mesh. O
+adapter de admissão consulta a lista exata dos 135 itens importados antes dessa
+barreira; itens que não pertencem ao manifesto continuam obedecendo às
+comparações originais. Como o visual enviado ao mundo conserva somente os 12
+bits baixos do item, o gate e o selector reconstroem o namespace `4xxx` antes
+da consulta exata; assim o mesmo traje aparece na seleção e depois do
+`EnterWorld`. Partes vazias são omitidas sem deslocar as partes seguintes.
+
+O manifesto `Costumes-KR.json` preserva a classificação corporal extraída do
+client: `EF_CLASS=5` para TK/BM, `EF_CLASS=10` para FM/HT e `EF_CLASS=15`
+somente para os renderers realmente dinâmicos. Cada uma das seis partes mantém
+sua própria combinação de mesh e textura.
+
+No fluxo nativo, a primeira iteração carrega `ch0101<tipo>.msh`; portanto a
+parte 0 pode conter geometria real. O seletor marca exclusivamente os trajes
+KR com o bit `0x4000` de `m_nCosType`; o renderer remove essa marca antes de
+consultar a tabela. Isso permite carregar `part0` sem interceptar personagens
+ou NPCs nativos que reutilizam o mesmo número de tipo. Quando a entrada
+`part0` está explicitamente vazia, a face nativa continua sendo preservada.
+
+`Patch-WYD748-Costumes.ps1` possui guarda de SHA e assertions dos três hooks.
+O renderer KR também possui uma fronteira seletiva de culling. O 7.48 usa
+`D3DCULL_CW/CCW` nas skins nativas e o renderer KR atual desenha certas meshes
+esqueletais com `D3DCULL_NONE`. A seleção usa a mesma marca exclusiva e nunca
+modifica skins nativas apenas pelo número do renderer.
+
+O SHA final suportado é:
+
+```text
+4A2AA37228A720ED389F5AC8A5978329855932B93E54FA0501B51A3A23316DEF
+```
+
+`Patch-WYD748-CostumeItems.ps1` materializa os 135 registros no `ItemList.bin`,
+reutilizando o ícone 36 do Uniform. `Patch-WYD748-CostumeTextures.ps1` registra
+as texturas e seus modos na tabela fixa do 7.48. Copiar um `.wys` sem esse
+registro deixa a geometria visível, mas sem as cores. O importador lê o modo do
+registro KR de 528 bytes em `@510`; copiar o byte `@255` do KR grava parte do
+segundo path no lugar do modo. Os materiais `A`, `C`, `N` e `a` comprovados em
+`@510` são preservados. A tabela contém 226 pathnames únicos, sendo 50 de
+montarias. O teste
+`Test-WYD748-Costumes.ps1` confere seção, tabelas, registros e todos os assets.
+
+O catálogo KR possui outros `96` itens, mantidos no manifesto como
+`available=false`: os dois clients fornecidos não contêm todas as dependências
+que o próprio executável deles referencia. Eles não são expostos nas lojas,
+pois habilitá-los produziria partes ausentes. Os trajes importados permanecem
+permanentes até existir calendário autoritativo de expiração no servidor.
+
+## Montarias visuais do client KR
+
+O sétimo elo materializa as `47` aparências que o `SetMountCostume` do client
+KR atual realmente resolve: itens `4190..4235` e `4241`. Elas são montarias
+independentes do 7.48 baseadas no registro `342` (Shire): mesmo ícone, mesmo
+slot `Equip[14]` e mesmos efeitos. Somente a malha, a textura e a escala mudam.
+O sistema moderno de traje temporário de montaria não foi importado.
+
+`Patch-WYD748-KRMounts.ps1` instala a seção `.mountkr` e sete adapters no caminho
+nativo 7.48: um para a materialização completa e outro para o `UpdateEquip 0x36B`.
+Assim, equipar ou desequipar uma montaria atualiza o personagem imediatamente,
+sem depender de uma reconstrução visual posterior. O terceiro aplica os
+offsets de assento comprovados para os tipos modernos 29, 48, 49/52 e 50.
+O quarto marca somente o `TMSkinMesh` cuja assinatura visual completa existe
+na tabela KR e reutiliza o `D3DCULL_NONE` seletivo do elo anterior. Assim faces
+internas/externas das meshes modernas deixam de desaparecer sem modificar o
+estado de culling das montarias antigas.
+Os três adapters restantes ampliam o mesmo predicado nativo usado pela tecla
+`R`: toggle, estado do botão e velocidade/animação. Uma montaria importada só
+é admitida quando `m_cMount == 1` e tipo, escala e os três pares mesh/skin
+coincidem integralmente com uma entrada da tabela `.mountkr`; as quatro
+famílias nativas continuam no caminho original byte a byte.
+`Patch-WYD748-KRMountItems.ps1` clona a Shire no `ItemList.bin` e
+`Patch-WYD748-KRMountAssets.ps1` instala os skeletons/animações ausentes sem
+sobrescrever assets antigos. `Test-WYD748-KRMounts.ps1` confere os 47 registros,
+a seção PE, as tabelas e os arquivos necessários.
+
+Os tuples visuais vêm dos cases nativos `11..56` e `62` dos dois executáveis
+KR, que produzem a mesma combinação de tipo, escala, mesh, skin e sanction. As
+associações antigas por semelhança de nome foram removidas. Dependências
+ausentes nos dois pacotes fornecidos não são escondidas: `hs010117.wys`
+(Arvak) usa `hs010115.wys`, da mesma geometria `hs01/mesh14`; o par ausente
+`KK010112.msh/.wys` (case 56) usa o par `KK010113` do mesmo skeleton. Esses
+fallbacks são declarados no instalador e devem ser substituídos pelos arquivos
+KR autênticos quando forem recuperados.
+
+SHA-256 final suportado:
+
+```text
+F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D
+```
+
+Os outros `46` itens não vazios do intervalo moderno não possuem case visual
+no executável KR atual; por isso não foram associados a meshes por suposição.
+As montarias entregues estão em `ShopKRMt01` e `ShopKRMt02` (27 + 20 itens).
+
 ## Arquivos
 
 | arquivo | papel |
@@ -150,6 +259,8 @@ reprodução pública da cadeia, use o script estrito acima.
 | `WYD.pre-extended-stats.exe` | linha‑base (entrada do patch wide) |
 | `WYD.patched-wide.exe` | cópia de segurança do estado atual |
 | `WYD.pre-lindy.exe` | backup da entrada imediata do patch da Lindy |
+| `WYD.pre-costumes-kr.exe` | backup da entrada imediata do patch da coleção KR |
+| `WYD.pre-mounts-kr.exe` | backup da entrada imediata do patch de montarias KR |
 
 **Regra:** todo patch novo no executável vira script com guarda de SHA. Edição
 manual não documentada é exatamente o que custou esta investigação — e o fix de
@@ -190,11 +301,11 @@ comandos locais `/macropergaon` e `/macropergaoff`, o hook de chat, o
 scanner de Carry e a chamada automática da rotina nativa `UseItem` não
 fazem mais parte do executável suportado.
 
-O cliente versionado termina no hash pós-Lindy
-`9762B1AC6EFB4AB3C800877DE1DA048DD43EA407FCEEA945C755DF6986607F18`.
+O cliente versionado termina no hash pós-montarias KR
+`F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D`.
 `Apply-WYD748.ps1` reconhece os hashes antigos do WaterMacro, preserva
 uma cópia `WYD.pre-server-water.exe` e reconstrói o executável desde
-`WYD.original.exe` pelos cinco elos atuais.
+`WYD.original.exe` pelos sete elos atuais.
 
 O encadeamento automático da Water pertence ao servidor: quando uma
 sala concede e persiste o próximo pergaminho no Carry do líder, uma

@@ -395,6 +395,16 @@ The supported SHA-256 and the reproducible patch order are in
 for the public address of your server, keep TCP port 8281 allowed in the game
 host firewall, and keep PostgreSQL and the diagnostic HTTP endpoint private.
 
+The client package contains 135 costumes imported from the supplied current KR
+clients. Their exact male, female, or dynamic body mapping and per-part assets
+are installed by the reproducible patch chain. Five `ShopCostum*` merchants in
+Armia expose at most 27 costumes each. These visual-test items are permanent;
+no fake 30-day timer is advertised.
+
+It also contains 47 KR mount appearances ported as standalone 7.48 mounts.
+They reuse the Shire item contract and change only the rendered mount model;
+`ShopKRMt01` and `ShopKRMt02` expose them in Armia (27 + 20 items).
+
 ## Do the static checks
 
 Do these commands:

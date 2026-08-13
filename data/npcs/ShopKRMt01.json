@@ -1,0 +1,11 @@
+{
+  "name": "ShopKRMt01",
+  "tipo": "npc",
+  "equip": { "rosto": { "index": 59 } },
+  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    {"index":4190},{"index":4191},{"index":4192},{"index":4193},{"index":4194},{"index":4195},{"index":4196},{"index":4197},{"index":4198},
+    {"index":4199},{"index":4200},{"index":4201},{"index":4202},{"index":4203},{"index":4204},{"index":4205},{"index":4206},{"index":4207},
+    {"index":4208},{"index":4209},{"index":4210},{"index":4211},{"index":4212},{"index":4213},{"index":4214},{"index":4215},{"index":4216}
+  ]
+}

@@ -105,8 +105,23 @@ Ainda falta executar e registrar a matriz in-game:
 
 ### Assets
 
-Remasterização de texturas, modelos e interface continua opcional e separada das
-correções funcionais.
+Os 135 trajes com dependências completas nos clients KR fornecidos já foram
+importados. Ainda falta:
+
+1. validar a coleção in-game por corpo, para owner e observador, incluindo
+   equipar, desequipar, relogar e transformações do BeastMaster;
+2. obter de uma distribuição KR completa os arquivos ausentes que bloqueiam
+   outros 96 itens já catalogados em `Costumes-KR.json`; o client KR Test
+   fornecido é subconjunto do KR atual e não completa essas dependências;
+3. implementar um prazo absoluto server-side antes de habilitar duração real
+   para trajes temporários; não reutilizar o contador online das fadas;
+4. validar in-game as 47 montarias KR já importadas, incluindo owner,
+   observador, movimento, ataque, desequipar e relogar;
+5. pesquisar outro executável KR somente para os 46 itens modernos sem case no
+   `SetMountCostume` atual; não associar esses IDs a meshes por aproximação.
+
+Remasterização de outras texturas, modelos e interface continua opcional e
+separada das correções funcionais.
 
 ## Fase 3 — quests e conteúdo retail
 
