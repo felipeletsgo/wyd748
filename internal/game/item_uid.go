@@ -11,8 +11,8 @@ import (
 // a identidade; um blueprint sem UID recebe uma identidade nova.
 func materializeItem(item model.Item) (model.Item, error) {
 	if item.Index == 0 {
-		if item.UID != "" {
-			return model.Item{}, fmt.Errorf("item vazio possui UID")
+		if item.UID != "" || item.ActivatedUnix != 0 || item.ExpiresUnix != 0 {
+			return model.Item{}, fmt.Errorf("item vazio possui identidade ou prazo")
 		}
 		return model.Item{}, nil
 	}

@@ -211,9 +211,9 @@ client748/           client e cadeia reprodutível de patches
   de estágio e transformação final em cria.
 - Montarias possuem HP, food, longevidade, recuperação, morte visual e revive;
   a montaria adulta viva consome 1 de Food por hora completa online e equipada.
-- Fadas usam saldo temporal persistido e contam somente enquanto equipadas e
-  online. O calendário absoluto de trajes e montarias temporários ainda não foi
-  implementado; esses itens não devem anunciar duração antes desse suporte.
+- Fadas, trajes e montarias premium usam prazo absoluto server-side vinculado
+  ao UID do item. O prazo nasce no primeiro equipamento, continua offline ou
+  desequipado e nunca reinicia em trade ou relogin.
 - Premium Firecracker valida bitmap, posição e cooldown antes de publicar o
   desenho para observadores.
 - `gameplay_log=summary` agrega skills, ataques, mortes, drops e lotes por
@@ -379,20 +379,34 @@ ID `4xxx` a partir dos 12 bits transportados no visual do mundo, mantendo o
 traje após `EnterWorld`. Partes vazias são omitidas sem deslocar as partes
 seguintes. Os materiais extraídos do registro KR `@510` são preservados.
 Outros 96 itens catalogados não são habilitados porque os clients fornecidos
-não possuem todas as dependências referenciadas. O temporizador KR não foi
-simulado por um efeito incompatível. O
+não possuem todas as dependências referenciadas. Cada traje habilitado concede
+80 de defesa e 10% de economia de mana por 30 dias corridos desde o primeiro
+equipamento. O prazo absoluto é persistido com o UID e nunca vem do wire. O
 WaterMacro foi removido; Water automática pertence ao servidor. O ajuste de
 clique do Warrior's Seal ocorre no `ItemList.bin` pelo orquestrador.
 
-Também foram importadas 45 aparências de montaria disponíveis comprovadas pelo renderer KR.
+Também foram importadas 59 aparências de montaria disponíveis comprovadas pelo renderer KR.
 Elas reutilizam o contrato da Shire (`342`) no `Equip[14]`, sem ovo/cria,
-comida, longevidade ou temporizador moderno, e estão divididas entre
-`ShopKRMt01` e `ShopKRMt02`, respeitando o limite de 27 itens por loja. O patch
+comida ou longevidade, e estão divididas entre
+`ShopKRMt01`, `ShopKRMt02` e `ShopKRMt03`, respeitando o limite de 27 itens por loja. O patch
 trata tanto a materialização completa quanto o `UpdateEquip 0x36B`; a aparência
 da montaria muda imediatamente ao equipar ou desequipar. A tabela visual vem do
 `MountDataV.bin` KR e os offsets de assento comprovados para os tipos modernos
-cobertos foram portados; os 50 pathnames de textura usados em runtime estão
-registrados na tabela legada.
+cobertos foram portados; os 58 pathnames de textura usados em runtime estão
+registrados na tabela legada. Cada montaria premium fixa a velocidade de
+movimento no máximo server-side 6 e concede +520 de dano físico e +65% de
+ataque mágico por 30 dias corridos desde o
+primeiro equipamento, usando o mesmo prazo absoluto vinculado ao UID.
+
+## Prévia de monstros e bosses KR
+
+Foram importadas 19 faces de criatura dos clients KR, junto com seus assets e
+contratos visuais. Para validação em jogo, `NPCGener.txt` cria um grupo de dez
+clones do Krill Agmo para cada face, a leste do Krill Agmo original e sempre
+afastando-se de Armia: os centros vão de `(2201,2107)` a `(2417,2107)`, com
+12 tiles entre grupos. Cada clone preserva integralmente o gameplay do Krill
+Agmo; somente nome e face mudam. O nome publicado corresponde ao nome
+normalizado da face no `itemlist.csv` e respeita os 12 bytes do protocolo.
 
 ## Fontes de referência
 

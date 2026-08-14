@@ -1,0 +1,204 @@
+{
+  "name": "Ent_Anciao",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 374
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 120000,
+  "extendedScore": {
+    "version": 2,
+    "level": 200,
+    "attack": 1500,
+    "magicAttack": 0,
+    "defense": 2000,
+    "maxHP": 6000,
+    "maxMP": 0,
+    "curHP": 6000,
+    "curMP": 0,
+    "str": 5,
+    "int": 85,
+    "dex": 100,
+    "con": 65336,
+    "critical": 255,
+    "resistFire": 15,
+    "resistIce": 15,
+    "resistHoly": 15,
+    "resistThunder": 15,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 826
+    },
+    {
+      "index": 841
+    },
+    {
+      "index": 856
+    },
+    {
+      "index": 811
+    },
+    {
+      "index": 903
+    },
+    {
+      "index": 904
+    },
+    {
+      "index": 1711
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 826
+    },
+    {
+      "index": 841
+    },
+    {
+      "index": 856
+    },
+    {
+      "index": 811
+    },
+    {
+      "index": 903
+    },
+    {
+      "index": 904
+    },
+    {
+      "index": 1711
+    }
+  ],
+  "gold": 9999,
+  "learnedSkill": 70,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

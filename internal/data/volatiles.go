@@ -51,25 +51,118 @@ var validMountActions = map[string]bool{
 	"level_set": true, "growth": true, "hatch": true,
 }
 
+type volatileDataFile struct {
+	Default       model.VolatileRule                           `json:"default"`
+	Rules         map[int]model.VolatileRule                   `json:"rules"`
+	Items         map[uint16]model.VolatileRule                `json:"items"`
+	Instances     map[string]model.VolatileInstance            `json:"instances"`
+	EntryAreaSets map[string][]model.VolatileInstanceEntryArea `json:"entryAreaSets"`
+}
+
+func readVolatileDataFile(path string) (volatileDataFile, error) {
+	var file volatileDataFile
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return file, err
+	}
+	if err := json.Unmarshal(b, &file); err != nil {
+		return file, fmt.Errorf("data: parse %s: %w", path, err)
+	}
+	return file, nil
+}
+
+func ruleConfiguresInstance(rule model.VolatileRule) bool {
+	return strings.EqualFold(strings.TrimSpace(rule.Action), "instance_ticket") ||
+		rule.Instance != nil || strings.TrimSpace(rule.InstanceRef) != ""
+}
+
+// LoadVolatilesWithInstances mantem duas fronteiras de conteudo explicitas:
+// volatilesPath configura os itens volateis comuns; instancesPath concentra
+// exclusivamente templates e ingressos de instancia. Misturar as categorias
+// falha no boot em vez de voltar a transformar volatiles.json num monolito.
+func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
+	items map[uint16]model.ItemDef, skills map[int]model.SkillDef) (model.VolatileCatalog, error) {
+	file, err := readVolatileDataFile(volatilesPath)
+	if err != nil {
+		return model.VolatileCatalog{}, err
+	}
+	if len(file.Instances) != 0 || len(file.EntryAreaSets) != 0 {
+		return model.VolatileCatalog{}, fmt.Errorf(
+			"data: %s nao pode declarar instances/entryAreaSets; use %s",
+			volatilesPath, instancesPath)
+	}
+	for code, rule := range file.Rules {
+		if ruleConfiguresInstance(rule) {
+			return model.VolatileCatalog{}, fmt.Errorf(
+				"data: %s rules[%d] configura instancia; use %s",
+				volatilesPath, code, instancesPath)
+		}
+	}
+	for id, rule := range file.Items {
+		if ruleConfiguresInstance(rule) {
+			return model.VolatileCatalog{}, fmt.Errorf(
+				"data: %s items[%d] configura instancia; use %s",
+				volatilesPath, id, instancesPath)
+		}
+	}
+
+	instanceFile, err := readVolatileDataFile(instancesPath)
+	if err != nil {
+		return model.VolatileCatalog{}, err
+	}
+	if !reflect.DeepEqual(instanceFile.Default, model.VolatileRule{}) {
+		return model.VolatileCatalog{}, fmt.Errorf(
+			"data: %s nao pode declarar default de volatile", instancesPath)
+	}
+	if file.Rules == nil {
+		file.Rules = make(map[int]model.VolatileRule)
+	}
+	if file.Items == nil {
+		file.Items = make(map[uint16]model.VolatileRule)
+	}
+	for code, rule := range instanceFile.Rules {
+		if !strings.EqualFold(strings.TrimSpace(rule.Action), "instance_ticket") {
+			return model.VolatileCatalog{}, fmt.Errorf(
+				"data: %s rules[%d] deve usar action instance_ticket", instancesPath, code)
+		}
+		if _, duplicate := file.Rules[code]; duplicate {
+			return model.VolatileCatalog{}, fmt.Errorf(
+				"data: codigo volatile %d duplicado entre %s e %s",
+				code, volatilesPath, instancesPath)
+		}
+		file.Rules[code] = rule
+	}
+	for id, rule := range instanceFile.Items {
+		if !strings.EqualFold(strings.TrimSpace(rule.Action), "instance_ticket") {
+			return model.VolatileCatalog{}, fmt.Errorf(
+				"data: %s items[%d] deve usar action instance_ticket", instancesPath, id)
+		}
+		if _, duplicate := file.Items[id]; duplicate {
+			return model.VolatileCatalog{}, fmt.Errorf(
+				"data: item %d duplicado entre %s e %s", id, volatilesPath, instancesPath)
+		}
+		file.Items[id] = rule
+	}
+	file.Instances = instanceFile.Instances
+	file.EntryAreaSets = instanceFile.EntryAreaSets
+	return loadVolatileData(file, items, skills)
+}
+
 // LoadVolatiles le apenas as funcoes de data/volatiles.json e descobre os itens
 // automaticamente no catalogo. Assim um item novo com EF_VOLATILE entra no
 // registro sem manter uma segunda lista manual e sujeita a divergencias.
 func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 	skills map[int]model.SkillDef) (model.VolatileCatalog, error) {
-	var file struct {
-		Default       model.VolatileRule                           `json:"default"`
-		Rules         map[int]model.VolatileRule                   `json:"rules"`
-		Items         map[uint16]model.VolatileRule                `json:"items"`
-		Instances     map[string]model.VolatileInstance            `json:"instances"`
-		EntryAreaSets map[string][]model.VolatileInstanceEntryArea `json:"entryAreaSets"`
-	}
-	b, err := os.ReadFile(path)
+	file, err := readVolatileDataFile(path)
 	if err != nil {
 		return model.VolatileCatalog{}, err
 	}
-	if err := json.Unmarshal(b, &file); err != nil {
-		return model.VolatileCatalog{}, fmt.Errorf("data: parse %s: %w", path, err)
-	}
+	return loadVolatileData(file, items, skills)
+}
+
+func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
+	skills map[int]model.SkillDef) (model.VolatileCatalog, error) {
+	var err error
 	var resolveInstance func(string, map[string]bool) (model.VolatileInstance, error)
 	resolveInstance = func(ref string, stack map[string]bool) (model.VolatileInstance, error) {
 		raw, exists := file.Instances[ref]

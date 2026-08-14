@@ -16,7 +16,8 @@ func loadTestShopFixture(t *testing.T) (map[string]map[uint16]struct{}, map[uint
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"), catalog.Items, catalog.Skills)
+	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
+		filepath.Join(root, "instances.txt"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,8 +123,8 @@ func TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste(t *testing.T) {
 		}
 	}
 	krMounts := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
-	if len(krMounts) != 45 {
-		t.Errorf("lojas ShopKRMt possuem %d montarias distintas; esperado 45", len(krMounts))
+	if len(krMounts) != 59 {
+		t.Errorf("lojas ShopKRMt possuem %d montarias distintas; esperado 59", len(krMounts))
 	}
 	for name, stock := range shops {
 		if strings.HasPrefix(name, "ShopKRMt") && len(stock) > 27 {
@@ -138,7 +139,7 @@ func TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste(t *testing.T) {
 	}
 }
 
-func TestMontariasKRUsamContratoDaShire748(t *testing.T) {
+func TestMontariasKRUsamContratoPremium748(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
 		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
@@ -161,13 +162,13 @@ func TestMontariasKRUsamContratoDaShire748(t *testing.T) {
 	if err := json.Unmarshal(raw, &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.BaseItem != 342 || len(manifest.Items) != 47 {
+	if manifest.BaseItem != 342 || len(manifest.Items) != 62 {
 		t.Fatalf("manifesto KR inesperado: base=%d itens=%d", manifest.BaseItem, len(manifest.Items))
 	}
 	shire := catalog.Items[manifest.BaseItem]
 	shops, _ := loadTestShopFixture(t)
 	stock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
-	unavailable := map[uint16]struct{}{4211: {}, 4235: {}}
+	unavailable := map[uint16]struct{}{4211: {}, 4235: {}, 6003: {}}
 	available := 0
 	for _, item := range manifest.Items {
 		if item.Available != nil && !*item.Available {
@@ -192,21 +193,22 @@ func TestMontariasKRUsamContratoDaShire748(t *testing.T) {
 			def.Price != shire.Price || def.Grade != shire.Grade {
 			t.Errorf("montaria KR %d divergiu da base Shire: %+v", item.Item, def)
 		}
-		if len(def.StaticEffects) != len(shire.StaticEffects) {
-			t.Errorf("montaria KR %d divergiu nos efeitos da Shire", item.Item)
-		} else {
-			for i := range def.StaticEffects {
-				if def.StaticEffects[i] != shire.StaticEffects[i] {
-					t.Errorf("montaria KR %d efeito %d=%+v; Shire=%+v", item.Item, i, def.StaticEffects[i], shire.StaticEffects[i])
-				}
-			}
+		effects := make(map[string]int, len(def.StaticEffects))
+		for _, effect := range def.StaticEffects {
+			effects[effect.Name] = effect.Value
+		}
+		if effects["EF_CLASS"] != 43 || effects["EF_RANGE"] != 2 ||
+			effects["111"] != 1 || effects["EF_WDAY"] != 30 ||
+			effects["EF_RUNSPEED"] != 6 || effects["EF_DAMAGE"] != 520 ||
+			effects["EF_MAGIC"] != 65 {
+			t.Errorf("montaria KR %d divergiu do contrato premium: %+v", item.Item, effects)
 		}
 		if _, ok := stock[item.Item]; !ok {
 			t.Errorf("montaria KR %d ausente das lojas", item.Item)
 		}
 	}
-	if available != 45 {
-		t.Fatalf("manifesto possui %d montarias KR completas; esperado 45", available)
+	if available != 59 {
+		t.Fatalf("manifesto possui %d montarias KR completas; esperado 59", available)
 	}
 }
 
@@ -260,7 +262,8 @@ func TestTrajesKRCompletosMantemContrato748(t *testing.T) {
 			effects[effect.Name] = effect.Value
 		}
 		if effects["EF_CLASS"] != item.ClassMask || effects["EF_AC"] != 80 ||
-			effects["EF_SAVEMANA"] != 10 {
+			effects["EF_SAVEMANA"] != 10 || effects["111"] != 1 ||
+			effects["EF_WDAY"] != 30 {
 			t.Errorf("efeitos do traje %d divergiram: %+v", item.Item, effects)
 		}
 	}
@@ -352,7 +355,7 @@ func TestNovasLojasDeTesteEstaoNoBlocoDeArmia(t *testing.T) {
 		"ShopVolTest5", "ShopVolTest6", "ShopVolTest7", "ShopMtEgg1", "ShopMtEgg2",
 		"ShopMtBaby1", "ShopMtBaby2", "ShopMtAdult1", "ShopMtAdult2", "ShopMtTime",
 		"ShopCostume", "ShopCostum02", "ShopCostum03", "ShopCostum04", "ShopCostum05",
-		"ShopKRMt01", "ShopKRMt02",
+		"ShopKRMt01", "ShopKRMt02", "ShopKRMt03",
 		"ShopFiral", "ShopSetD", "ShopSetE", "ShopWeaponsD", "ShopWeaponsE",
 		"ShopWpnD2", "ShopWpnE2", "ShopShldDE"}
 	seen := make(map[string]bool, len(want))

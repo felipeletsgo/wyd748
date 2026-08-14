@@ -1,0 +1,211 @@
+{
+  "name": "Verme_Agmo",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 355,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 138000,
+  "extendedScore": {
+    "version": 2,
+    "level": 315,
+    "attack": 2030,
+    "magicAttack": 0,
+    "defense": 3785,
+    "maxHP": 32000,
+    "maxMP": 0,
+    "curHP": 32000,
+    "curMP": 0,
+    "str": 5,
+    "int": 75,
+    "dex": 100,
+    "con": 450,
+    "critical": 255,
+    "resistFire": 10,
+    "resistIce": 10,
+    "resistHoly": 10,
+    "resistThunder": 10,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 2939,
+      "eff": [
+        2,
+        18,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2941,
+      "eff": [
+        2,
+        18,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2945,
+      "eff": [
+        60,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2942,
+      "eff": [
+        60,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 578
+    },
+    {
+      "index": 578
+    },
+    {
+      "index": 578
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 3178
+    },
+    {
+      "index": 3178
+    }
+  ],
+  "gold": 9999,
+  "learnedSkill": 70,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

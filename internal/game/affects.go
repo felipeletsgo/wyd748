@@ -869,7 +869,6 @@ func (w *World) tickPlayerAffects(now time.Time) {
 		if !p.InWorld || p.Char == nil {
 			continue
 		}
-		w.tickEquippedFairy(p, now)
 		expired, hpChanged := false, false
 		for i := range p.Char.Affects {
 			a := &p.Char.Affects[i]

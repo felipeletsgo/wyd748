@@ -113,9 +113,9 @@ importados. Ainda falta:
 2. obter de uma distribuição KR completa os arquivos ausentes que bloqueiam
    outros 96 itens já catalogados em `Costumes-KR.json`; o client KR Test
    fornecido é subconjunto do KR atual e não completa essas dependências;
-3. implementar um prazo absoluto server-side antes de habilitar duração real
-   para trajes temporários; não reutilizar o contador online das fadas;
-4. validar in-game as 45 montarias KR disponíveis já importadas, incluindo owner,
+3. validar sob carga o prazo absoluto server-side já compartilhado por fadas,
+   trajes e montarias premium, incluindo troca, relogin e expiração offline;
+4. validar in-game as 59 montarias KR disponíveis já importadas, incluindo owner,
    observador, movimento, ataque, desequipar e relogar;
 5. pesquisar outro executável KR somente para os 46 itens modernos sem case no
    `SetMountCostume` atual; não associar esses IDs a meshes por aproximação.

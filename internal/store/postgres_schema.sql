@@ -39,11 +39,17 @@ CREATE INDEX IF NOT EXISTS characters_account_idx ON characters(account_key);
 CREATE INDEX IF NOT EXISTS characters_name_idx ON characters(name_key);
 
 CREATE TABLE IF NOT EXISTS item_instances (
-    uid          uuid PRIMARY KEY,
-    account_key  text NOT NULL REFERENCES accounts(name_key) ON DELETE CASCADE,
-    location     text NOT NULL,
-    item_index   integer NOT NULL CHECK (item_index BETWEEN 1 AND 65535),
-    effects      bytea NOT NULL CHECK (octet_length(effects) = 6),
+    uid            uuid PRIMARY KEY,
+    account_key    text NOT NULL REFERENCES accounts(name_key) ON DELETE CASCADE,
+    location       text NOT NULL,
+    item_index     integer NOT NULL CHECK (item_index BETWEEN 1 AND 65535),
+    effects        bytea NOT NULL CHECK (octet_length(effects) = 6),
+    activated_unix bigint NOT NULL DEFAULT 0 CHECK (activated_unix >= 0),
+    expires_unix   bigint NOT NULL DEFAULT 0 CHECK (expires_unix >= 0),
+    CHECK (
+        (activated_unix = 0 AND expires_unix = 0) OR
+        (activated_unix > 0 AND expires_unix >= activated_unix)
+    ),
     UNIQUE (account_key, location)
 );
 
@@ -181,4 +187,43 @@ INSERT INTO schema_migrations(version) VALUES (2)
 ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations(version) VALUES (3)
+ON CONFLICT (version) DO NOTHING;
+
+ALTER TABLE item_instances
+    ADD COLUMN IF NOT EXISTS activated_unix bigint NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS expires_unix bigint NOT NULL DEFAULT 0;
+
+DO $migration$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid='item_instances'::regclass
+          AND conname='item_instances_activated_unix_check'
+    ) THEN
+        ALTER TABLE item_instances
+            ADD CONSTRAINT item_instances_activated_unix_check CHECK (activated_unix >= 0);
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid='item_instances'::regclass
+          AND conname='item_instances_expires_unix_check'
+    ) THEN
+        ALTER TABLE item_instances
+            ADD CONSTRAINT item_instances_expires_unix_check CHECK (expires_unix >= 0);
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid='item_instances'::regclass
+          AND conname='item_instances_timed_window_check'
+    ) THEN
+        ALTER TABLE item_instances
+            ADD CONSTRAINT item_instances_timed_window_check CHECK (
+                (activated_unix = 0 AND expires_unix = 0) OR
+                (activated_unix > 0 AND expires_unix >= activated_unix)
+            );
+    END IF;
+END
+$migration$;
+
+INSERT INTO schema_migrations(version) VALUES (4)
 ON CONFLICT (version) DO NOTHING;

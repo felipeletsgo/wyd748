@@ -390,6 +390,16 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("The character state could not be loaded. Try again."))
 		return
 	}
+	// First equip is the only activation boundary for costumes, premium mounts
+	// and fairies. Existing deadlines are checked before any score or appearance
+	// reaches the client; expired equipment is durably removed here.
+	if err := w.prepareTimedEquipmentForEnter(p, w.now()); err != nil {
+		log.Printf("[#%d] failed to prepare timed equipment for %q: %v", s.ID, ch.Name, err)
+		p.CharSlot = -1
+		p.Char = nil
+		s.Send(wire.MessagePanel("Timed equipment could not be validated. Try again."))
+		return
+	}
 	w.recalcPlayer(ch)
 	// Quem morreu e saiu tem CurHP=0 persistido. Entrar assim TRAVA o jogador:
 	// o client desenha a pose de morte e nao responde a nada -- ele nem pode
@@ -574,13 +584,39 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] SWAP equip rejeitado %d/%d -> %d/%d", s.ID, st, sp, dt, dp)
 		return
 	}
-	if st == placeStorage || dt == placeStorage {
+	// A first equip starts the server-owned deadline. The activation and the
+	// slot move are committed together before either is confirmed to the client.
+	timedActivated := false
+	activationNow := w.now()
+	for _, target := range []struct {
+		typ, pos byte
+		item     *model.Item
+	}{{st, sp, src}, {dt, dp, dst}} {
+		if target.typ != placeEquip {
+			continue
+		}
+		activated, err := w.activateTimedItem(target.item, target.pos, activationNow)
+		if err != nil {
+			*src, *dst = oldSrc, oldDst
+			s.Send(wire.SendItem(p.ID, st, sp, *src))
+			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
+			if errors.Is(err, errTimedItemExpired) {
+				s.Send(wire.MessagePanel("This timed item has expired."))
+			} else {
+				s.Send(wire.MessagePanel("This timed item could not be activated."))
+			}
+			log.Printf("[#%d] timed equip rejected %d: %v", s.ID, target.item.Index, err)
+			return
+		}
+		timedActivated = timedActivated || activated
+	}
+	if st == placeStorage || dt == placeStorage || timedActivated {
 		if err := w.saveAccount(p.Account); err != nil {
 			*src, *dst = oldSrc, oldDst
 			s.Send(wire.SendItem(p.ID, st, sp, *src))
 			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
-			s.Send(wire.MessagePanel("Save failed. The Cargo move was cancelled."))
-			log.Printf("[#%d] salvar movimento do Cargo: %v", s.ID, err)
+			s.Send(wire.MessagePanel("Save failed. The item move was cancelled."))
+			log.Printf("[#%d] save item move: %v", s.ID, err)
 			return
 		}
 	}

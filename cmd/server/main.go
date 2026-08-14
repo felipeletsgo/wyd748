@@ -92,6 +92,7 @@ func main() {
 	skillPath := flag.String("skills", cfg.SkillPath, "SkillData.csv autoritativo")
 	dropRatePath := flag.String("droprates", cfg.DropRatePath, "tabela de drop rate por slot")
 	volatilePath := flag.String("volatiles", cfg.VolatilePath, "funcoes server-side dos itens volatile")
+	instancesPath := flag.String("instances", cfg.InstancesPath, "configuracao server-side das instancias")
 	replictionPath := flag.String("repliction", cfg.ReplictionPath, "tabelas nativas do Repliction")
 	mountPath := flag.String("mounts", cfg.MountPath, "atributos das montarias por tipo")
 	characterTemplatePath := flag.String("characters", cfg.CharacterTemplatePath, "layouts server-side para criacao de personagem")
@@ -164,9 +165,11 @@ func main() {
 	}
 	log.Printf("tabela de drop por slot carregada de %s", *dropRatePath)
 
-	volatiles, err := data.LoadVolatiles(*volatilePath, catalog.Items, catalog.Skills)
+	volatiles, err := data.LoadVolatilesWithInstances(
+		*volatilePath, *instancesPath, catalog.Items, catalog.Skills)
 	if err != nil {
-		log.Fatalf("carregar volatiles (%s): %v", *volatilePath, err)
+		log.Fatalf("carregar volatiles/instancias (%s, %s): %v",
+			*volatilePath, *instancesPath, err)
 	}
 	repliction, err := data.LoadRepliction(*replictionPath, catalog.Items)
 	if err != nil {

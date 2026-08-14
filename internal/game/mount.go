@@ -65,6 +65,29 @@ func (w *World) mountBonus(ch *model.Char) (attack, magic, evasion, resist, runS
 	return
 }
 
+type premiumMountStats struct {
+	attack       int
+	magicPercent int
+	runSpeed     int
+}
+
+func (w *World) premiumMountBonus(ch *model.Char, now time.Time) premiumMountStats {
+	if w == nil || ch == nil {
+		return premiumMountStats{}
+	}
+	item := ch.Equip[mountSlot]
+	def, ok := w.items[item.Index]
+	if !ok || timedItemDuration(def, item.Index, mountSlot) <= 0 ||
+		item.ExpiresUnix != 0 && item.ExpiresUnix <= now.Unix() {
+		return premiumMountStats{}
+	}
+	return premiumMountStats{
+		attack:       staticAbility(def, "EF_DAMAGE"),
+		magicPercent: staticAbility(def, "EF_MAGIC"),
+		runSpeed:     staticAbility(def, "EF_RUNSPEED"),
+	}
+}
+
 // mountMaxHP devolve o teto de HP da montaria pelo tipo (data-driven), com
 // fallback no teto global.
 func (w *World) mountMaxHP(sIndex uint16) int {

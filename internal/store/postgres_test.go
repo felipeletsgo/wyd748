@@ -57,13 +57,17 @@ func TestSnapshotAccountsRejectsDuplicatedUIDInBatch(t *testing.T) {
 
 func TestPostgresSchemaContainsAuthoritativeItemConstraints(t *testing.T) {
 	for _, contract := range []string{
-		"uid          uuid PRIMARY KEY",
+		"uid            uuid PRIMARY KEY",
 		"UNIQUE (account_key, location)",
 		"name_key      text PRIMARY KEY",
 		"REFERENCES accounts(name_key) ON DELETE CASCADE",
 		"character_uid uuid PRIMARY KEY",
 		"REFERENCES characters(character_uid) ON DELETE CASCADE",
 		"INSERT INTO schema_migrations(version) VALUES (2)",
+		"INSERT INTO schema_migrations(version) VALUES (4)",
+		"activated_unix bigint NOT NULL DEFAULT 0",
+		"expires_unix   bigint NOT NULL DEFAULT 0",
+		"item_instances_timed_window_check",
 	} {
 		if !strings.Contains(postgresSchema, contract) {
 			t.Fatalf("schema perdeu contrato %q", contract)
@@ -180,7 +184,10 @@ func TestPostgresStoreIntegration(t *testing.T) {
 			[]string{strings.ToLower(accountA), strings.ToLower(accountB)})
 	}()
 
-	a := postgresTestAccount(accountA, charA, model.Item{Index: 4011})
+	a := postgresTestAccount(accountA, charA, model.Item{
+		Index: 4011, UID: "55555555555545558555555555555555",
+		ActivatedUnix: 1_700_000_000, ExpiresUnix: 1_702_592_000,
+	})
 	if err := st.CreateAccount(a); err != nil {
 		t.Fatal(err)
 	}
@@ -190,6 +197,19 @@ func TestPostgresStoreIntegration(t *testing.T) {
 	}
 	if loaded.Chars[0].Inv[0].UID == "" {
 		t.Fatal("UID nao persistiu")
+	}
+	if loaded.Chars[0].Inv[0].ActivatedUnix != 1_700_000_000 ||
+		loaded.Chars[0].Inv[0].ExpiresUnix != 1_702_592_000 {
+		t.Fatalf("UID perdeu prazo no payload: %+v", loaded.Chars[0].Inv[0])
+	}
+	var activatedUnix, expiresUnix int64
+	if err := st.pool.QueryRow(context.Background(), `
+		SELECT activated_unix,expires_unix FROM item_instances
+		WHERE uid=$1`, currentUID(loaded.Chars[0].Inv[0].UID)).Scan(&activatedUnix, &expiresUnix); err != nil {
+		t.Fatal(err)
+	}
+	if activatedUnix != 1_700_000_000 || expiresUnix != 1_702_592_000 {
+		t.Fatalf("ledger perdeu prazo: activated=%d expires=%d", activatedUnix, expiresUnix)
 	}
 
 	b := postgresTestAccount(accountB, charB, model.Item{

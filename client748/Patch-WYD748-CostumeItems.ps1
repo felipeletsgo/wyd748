@@ -19,8 +19,13 @@ $effectStart = 0x50
 $sourceID = 4152
 $supportedInputs = @(
     '57BAA28EFE62F6CE5323608E5881C209638C0CC6F6A15F3D879FAC39FFF5D9C2',
-    '42293947CADF4F89DAB4A457E400AA901049DEF817403E7D206F4E37BE090622'
+    '42293947CADF4F89DAB4A457E400AA901049DEF817403E7D206F4E37BE090622',
+    # Current complete client before UID-bound premium lifetime was added.
+    '1FC562F273E506972517B39B3D60C7107786D25D80D48C753B569853AAD542AD',
+    # Imported collection updated; the seven native costumes still lack WDAY.
+    '2FD8E4DB869257307ECA91BF99B47F408C36BB9C4A58AC025E48657F3EB007FE'
 )
+$nativeCostumeIDs = 4150..4156
 
 function Get-Sha([string]$Path) { return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant() }
 function Decode-Record([byte[]]$Data, [int]$ID) {
@@ -43,7 +48,8 @@ function Assert-Record([byte[]]$Record, $Item) {
         @(18, [int]$Item.classMask),
         @(111, 1),
         @(3, 80),
-        @(44, 10)
+        @(44, 10),
+        @(106, 30)
     )
     for ($i = 0; $i -lt $expected.Count; $i++) {
         $offset = $effectStart + $i * 4
@@ -51,6 +57,14 @@ function Assert-Record([byte[]]$Record, $Item) {
             [BitConverter]::ToUInt16($Record, $offset + 2) -ne $expected[$i][1]) {
             throw "item $($Item.item): efeito $i divergente"
         }
+    }
+}
+function Assert-NativePremium([byte[]]$Record, [int]$ItemID) {
+    if ([BitConverter]::ToUInt16($Record, 0x40) -ne 36 -or
+        [BitConverter]::ToUInt16($Record, 0x86) -ne 8192 -or
+        [BitConverter]::ToUInt16($Record, ($effectStart + 16)) -ne 106 -or
+        [BitConverter]::ToUInt16($Record, ($effectStart + 18)) -ne 30) {
+        throw "item nativo $ItemID nao possui o contrato premium de 30 dias"
     }
 }
 
@@ -67,6 +81,11 @@ foreach ($item in $items) {
     try { Assert-Record (Decode-Record $data $item.item) $item } catch { $alreadyInstalled = $false; break }
 }
 if ($alreadyInstalled) {
+    foreach ($itemID in $nativeCostumeIDs) {
+        try { Assert-NativePremium (Decode-Record $data $itemID) $itemID } catch { $alreadyInstalled = $false; break }
+    }
+}
+if ($alreadyInstalled) {
     Write-Host "Todos os $($items.Count) trajes KR ja estao instalados no ItemList.bin."
     Write-Host "SHA-256: $(Get-Sha $ItemList)"
     return
@@ -76,7 +95,7 @@ $hash = Get-Sha $ItemList
 if ($supportedInputs -notcontains $hash) { throw "ItemList.bin fora da cadeia suportada (SHA-256: $hash)" }
 
 $source = Decode-Record $data $sourceID
-if ((Record-Name $source) -ne 'Uniform_Set(30days)' -or
+if ((Record-Name $source) -notin @('Uniform_Set', 'Uniform_Set(30days)') -or
     [BitConverter]::ToUInt16($source, 0x40) -ne 36 -or
     [BitConverter]::ToUInt16($source, 0x86) -ne 8192) {
     throw 'registro-base 4152 nao corresponde ao Uniform Set 7.48 esperado'
@@ -102,12 +121,22 @@ foreach ($item in $items) {
     Set-U16 $record ($effectStart + 10) 80
     Set-U16 $record ($effectStart + 12) 44
     Set-U16 $record ($effectStart + 14) 10
+    Set-U16 $record ($effectStart + 16) 106
+    Set-U16 $record ($effectStart + 18) 30
     Set-U16 $record 0x86 8192
     Assert-Record $record $item
     Encode-Record $data $item.item $record
 }
+foreach ($itemID in $nativeCostumeIDs) {
+    $record = Decode-Record $data $itemID
+    Set-U16 $record ($effectStart + 16) 106
+    Set-U16 $record ($effectStart + 18) 30
+    Assert-NativePremium $record $itemID
+    Encode-Record $data $itemID $record
+}
 [IO.File]::WriteAllBytes($ItemList, $data)
 $written = [IO.File]::ReadAllBytes($ItemList)
 foreach ($item in $items) { Assert-Record (Decode-Record $written $item.item) $item }
+foreach ($itemID in $nativeCostumeIDs) { Assert-NativePremium (Decode-Record $written $itemID) $itemID }
 Write-Host "$($items.Count) trajes KR instalados no ItemList.bin 7.48."
 Write-Host "SHA-256: $(Get-Sha $ItemList)"

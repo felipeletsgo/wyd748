@@ -32,7 +32,8 @@ func TestItemJSONPersistsUIDEvenWithoutEffects(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := json.Marshal(Item{Index: 4011, UID: uid})
+	original := Item{Index: 4011, UID: uid, ActivatedUnix: 1_700_000_000, ExpiresUnix: 1_702_592_000}
+	raw, err := json.Marshal(original)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,8 +44,43 @@ func TestItemJSONPersistsUIDEvenWithoutEffects(t *testing.T) {
 	if err := json.Unmarshal(raw, &decoded); err != nil {
 		t.Fatal(err)
 	}
-	if decoded.UID != uid || decoded.Index != 4011 {
+	if decoded != original {
 		t.Fatalf("round-trip incorreto: %+v", decoded)
+	}
+}
+
+func TestWireEqualIgnoresServerTimedMetadata(t *testing.T) {
+	a := Item{Index: 4200, Eff: [6]byte{1, 2}, ActivatedUnix: 10, ExpiresUnix: 20}
+	b := Item{Index: 4200, Eff: [6]byte{1, 2}}
+	if !a.WireEqual(b) {
+		t.Fatal("server-only item deadline leaked into the legacy wire contract")
+	}
+}
+
+func TestAccountRejectsInvalidTimedItemMetadata(t *testing.T) {
+	uid, err := NewItemUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	charUID, err := NewCharacterUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := Account{Name: "timed", PasswordHash: "hash", Chars: []Char{{
+		Name: "Timed", UID: charUID,
+		Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+	}}}
+	for _, item := range []Item{
+		{Index: 4200, UID: uid, ActivatedUnix: 10},
+		{Index: 4200, UID: uid, ActivatedUnix: 20, ExpiresUnix: 10},
+		{Index: 4200, ActivatedUnix: 10, ExpiresUnix: 20},
+	} {
+		acc := base
+		acc.Chars = append([]Char(nil), base.Chars...)
+		acc.Chars[0].Inv[0] = item
+		if err := acc.Validate(); err == nil {
+			t.Fatalf("invalid timed item accepted: %+v", item)
+		}
 	}
 }
 

@@ -185,7 +185,7 @@ func itemAbility(item model.Item, def model.ItemDef, effect string) int {
 func (w *World) equipmentDamage(ch *model.Char) int {
 	value := 0
 	for slot, item := range ch.Equip {
-		if slot == 6 || slot == 7 || item.Index == 0 || model.IsMount(item.Index) {
+		if slot == 6 || slot == 7 || slot == mountSlot || item.Index == 0 {
 			continue
 		}
 		if def, ok := w.items[item.Index]; ok {
@@ -225,7 +225,7 @@ func (w *World) equipmentDefense(ch *model.Char) int {
 	matchingSet := true
 	for slot, item := range ch.Equip {
 		def, ok := w.items[item.Index]
-		if !ok || item.Index == 0 || model.IsMount(item.Index) {
+		if !ok || item.Index == 0 || slot == mountSlot {
 			if slot >= 1 && slot <= 5 {
 				matchingSet = false
 			}
@@ -290,9 +290,9 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 
 	total := func(effect string) int64 {
 		var value int64
-		for _, item := range ch.Equip {
-			if model.IsMount(item.Index) {
-				continue // a montaria contribui via mountBonus, nao pelos slots de efeito
+		for slot, item := range ch.Equip {
+			if slot == mountSlot {
+				continue // every canonical mount contributes through the mount bonus boundary
 			}
 			if def, ok := w.items[item.Index]; ok && item.Index != 0 {
 				value += int64(itemAbility(item, def, effect))
@@ -405,8 +405,8 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	// BASE_GetMobAbility/BASE_GetMaxAbility usam o maior EF_RANGE equipado;
 	// somar adornos e todas as pecas inflava artificialmente o alcance.
 	rangeValue := int(base.Range)
-	for _, item := range ch.Equip {
-		if model.IsMount(item.Index) {
+	for slot, item := range ch.Equip {
+		if slot == mountSlot {
 			continue
 		}
 		if def, ok := w.items[item.Index]; ok && item.Index != 0 {
@@ -443,6 +443,17 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 		runtime.ResistHoly = uint32(clampInt(int(runtime.ResistHoly)+mRes, 0, 100))
 		runtime.ResistThunder = uint32(clampInt(int(runtime.ResistThunder)+mRes, 0, 100))
 	}
+	// Imported premium mounts are ordinary UID-bound Equip[14] items rather
+	// than native baby/adult mounts. Their catalog values are authoritative:
+	// flat physical damage, exact magic attack percentage and additive speed.
+	premium := w.premiumMountBonus(ch, w.now())
+	if premium.attack != 0 {
+		runtime.Attack = extendedValue(int64(runtime.Attack) + int64(premium.attack))
+	}
+	if premium.magicPercent != 0 {
+		runtime.MagicAttack = extendedValue(int64(runtime.MagicAttack) *
+			int64(100+premium.magicPercent) / 100)
+	}
 
 	runtime.StatusPts = base.StatusPts
 	runtime.MasterPts = base.MasterPts
@@ -460,6 +471,11 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	if mRun > runSpeed {
 		// A montaria impoe um piso de velocidade (cavalgar e mais rapido).
 		runSpeed = minInt(15, mRun)
+	}
+	if premium.runSpeed != 0 {
+		// For premium mounts EF_RUNSPEED is the final mounted speed, not an
+		// additive item bonus. The authoritative 7.48 movement ceiling is 6.
+		runSpeed = clampInt(premium.runSpeed, 1, 6)
 	}
 	ch.ExtendedRuntime.AttackRun = byte(attackSpeed<<4 | runSpeed)
 	w.applyPassiveSkills(ch)

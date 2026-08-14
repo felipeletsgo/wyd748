@@ -347,8 +347,7 @@ Set-Bytes $data ($sectionRaw + $rendererOffset) $rendererBytes
 # D3DCULL_NONE. O 7.48 escolhe CW/CCW para todo TMSkinMesh tipo 1 e elimina
 # faces validas dessas meshes, produzindo torsos invisiveis e superficies
 # vistas pelo lado interno. A excecao abaixo e deliberadamente seletiva: so a
-# renderer existente na tabela KR (ou, no elo seguinte, a sentinela exclusiva
-# da montaria KR) recebe CULL_NONE; todo asset nativo continua no caminho
+# renderer existente na tabela KR recebe CULL_NONE; todo asset nativo continua no caminho
 # original byte a byte. Nao usamos m_cRotate como marcador de traje porque o
 # client o reescreve sempre que recalcula o tipo das armas.
 $selectiveCull = New-Assembler ([uint32]($sectionVA + $selectiveCullOffset))

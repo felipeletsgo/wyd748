@@ -9,6 +9,37 @@ import (
 	"wydgo/internal/model"
 )
 
+func TestSplitVolatileFilesEnforceInstanceBoundary(t *testing.T) {
+	dir := t.TempDir()
+	volatilesPath := filepath.Join(dir, "volatiles.json")
+	instancesPath := filepath.Join(dir, "instances.txt")
+	write := func(path, contents string) {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	write(volatilesPath, `{
+		"default":{"action":"generic"},
+		"rules":{"51":{"action":"instance_ticket","instanceRef":"cube"}}
+	}`)
+	write(instancesPath, `{"instances":{},"rules":{},"items":{}}`)
+	if _, err := LoadVolatilesWithInstances(volatilesPath, instancesPath, nil, nil); err == nil {
+		t.Fatal("volatiles.json aceitou regra de instancia")
+	}
+
+	write(volatilesPath, `{"default":{"action":"generic"},"rules":{},"items":{}}`)
+	write(instancesPath, `{
+		"instances":{},
+		"rules":{"1":{"action":"restore","consume":true}},
+		"items":{}
+	}`)
+	if _, err := LoadVolatilesWithInstances(volatilesPath, instancesPath, nil, nil); err == nil {
+		t.Fatal("instances.txt aceitou regra volatile comum")
+	}
+}
+
 func TestLoadVolatilesDiscoversCatalogItems(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "volatiles.json")
@@ -184,7 +215,8 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	vc, err := LoadVolatiles("../../data/volatiles.json", catalog.Items, catalog.Skills)
+	vc, err := LoadVolatilesWithInstances("../../data/volatiles.json",
+		"../../data/instances.txt", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatalf("volatiles.json real nao carrega contra o catalogo: %v", err)
 	}
@@ -555,7 +587,8 @@ func TestVolatileInstancesReferenceExistingHostileNPCs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles("../../data/volatiles.json", catalog.Items, catalog.Skills)
+	volatiles, err := LoadVolatilesWithInstances("../../data/volatiles.json",
+		"../../data/instances.txt", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

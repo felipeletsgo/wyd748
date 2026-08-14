@@ -1,0 +1,337 @@
+{
+  "name": "Elfo_Branco",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 287,
+      "eff": [
+        43,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 287,
+      "eff": [
+        43,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "armadura": {
+      "index": 289,
+      "eff": [
+        43,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "calca": {
+      "index": 287,
+      "eff": [
+        43,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "luva": {
+      "index": 287,
+      "eff": [
+        43,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "bota": {
+      "index": 287,
+      "eff": [
+        43,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "arma": {
+      "index": 740,
+      "eff": [
+        43,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 738
+    }
+  },
+  "classInfo": 1,
+  "expReward": 152500,
+  "extendedScore": {
+    "version": 2,
+    "level": 455,
+    "attack": 150,
+    "magicAttack": 0,
+    "defense": 1000,
+    "maxHP": 10000,
+    "maxMP": 0,
+    "curHP": 10000,
+    "curMP": 0,
+    "str": 6,
+    "int": 100,
+    "dex": 90,
+    "con": 800,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      15,
+      255,
+      7
+    ],
+    "attackRun": 3
+  },
+  "carry": [
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2305
+    }
+  ],
+  "learnedSkill": 45,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

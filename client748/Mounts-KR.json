@@ -1040,6 +1040,173 @@
         12
       ],
       "special": 0
+    },
+    {
+      "item": 6000,
+      "sourceItem": 2962,
+      "name": "KR_BearBear",
+      "type": 30,
+      "scale": 1,
+      "mesh": [0, 0, 0],
+      "skin": [0, 0, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6001,
+      "sourceItem": 2963,
+      "name": "KR_Jackal_I",
+      "type": 31,
+      "scale": 1,
+      "mesh": [0, 0, 4],
+      "skin": [1, 1, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6002,
+      "sourceItem": 2964,
+      "name": "KR_Jackal_II",
+      "type": 31,
+      "scale": 1,
+      "mesh": [0, 0, 5],
+      "skin": [1, 1, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6003,
+      "sourceItem": 3975,
+      "name": "KR_Immortal_Courser",
+      "type": 49,
+      "scale": 0.6,
+      "mesh": [25, 25, 0],
+      "skin": [0, 0, 0],
+      "sanc": [13, 13, 13],
+      "special": 0,
+      "available": false,
+      "unavailableReason": "missing authentic KR dependencies mesh\\KK010126.msh and mesh\\KK010126.wys in both supplied clients"
+    },
+    {
+      "item": 6004,
+      "sourceItem": 3976,
+      "name": "KR_Fimbulvetr_Messenger",
+      "type": 25,
+      "scale": 1,
+      "mesh": [3, 3, 0],
+      "skin": [0, 0, 0],
+      "sanc": [12, 12, 12],
+      "special": 0
+    },
+    {
+      "item": 6005,
+      "sourceItem": 3977,
+      "name": "KR_Heidrun",
+      "type": 31,
+      "scale": 1,
+      "mesh": [50, 50, 0],
+      "skin": [0, 0, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6006,
+      "sourceItem": 3978,
+      "name": "KR_20th_Horse",
+      "type": 49,
+      "scale": 0.6,
+      "mesh": [9, 9, 0],
+      "skin": [0, 0, 0],
+      "sanc": [12, 12, 12],
+      "special": 0
+    },
+    {
+      "item": 6007,
+      "sourceItem": 3979,
+      "name": "KR_Loki_Premium",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [0, 0, 0],
+      "skin": [10, 0, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6008,
+      "sourceItem": 3993,
+      "name": "KR_Dragon_Red",
+      "type": 38,
+      "scale": 1,
+      "mesh": [4, 4, 0],
+      "skin": [0, 0, 0],
+      "sanc": [8, 8, 8],
+      "special": 0
+    },
+    {
+      "item": 6009,
+      "sourceItem": 3994,
+      "name": "KR_Dragon_Blue",
+      "type": 29,
+      "scale": 1,
+      "mesh": [0, 0, 0],
+      "skin": [0, 0, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6010,
+      "sourceItem": 3995,
+      "name": "KR_Spider_Premium",
+      "type": 38,
+      "scale": 1,
+      "mesh": [1, 1, 0],
+      "skin": [0, 0, 0],
+      "sanc": [8, 8, 8],
+      "special": 0
+    },
+    {
+      "item": 6011,
+      "sourceItem": 3996,
+      "name": "KR_Iceland_Wolf",
+      "type": 38,
+      "scale": 1,
+      "mesh": [2, 2, 0],
+      "skin": [0, 0, 0],
+      "sanc": [8, 8, 8],
+      "special": 0
+    },
+    {
+      "item": 6012,
+      "sourceItem": 3997,
+      "name": "KR_Dragon_Lich",
+      "type": 49,
+      "scale": 0.8,
+      "mesh": [7, 7, 0],
+      "skin": [0, 0, 0],
+      "sanc": [13, 13, 13],
+      "special": 0
+    },
+    {
+      "item": 6013,
+      "sourceItem": 3998,
+      "name": "KR_Blood_Spider",
+      "type": 49,
+      "scale": 0.8,
+      "mesh": [8, 8, 0],
+      "skin": [0, 0, 0],
+      "sanc": [13, 13, 13],
+      "special": 0
+    },
+    {
+      "item": 6014,
+      "sourceItem": 3999,
+      "name": "KR_Deer_Premium",
+      "type": 29,
+      "scale": 1.25,
+      "mesh": [10, 10, 0],
+      "skin": [0, 0, 0],
+      "sanc": [13, 13, 13],
+      "special": 0
     }
   ],
   "textures": [
@@ -1246,6 +1413,52 @@
     {
       "name": "mesh\\mo020102.wys",
       "alpha": 67
+    },
+    {
+      "name": "mesh\\tw010101.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\hs010102.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\hs010305.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\hs010306.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\bo010104.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010151.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\tg010105.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\be010101.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\tg010102.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\tg010103.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010126.wys",
+      "alpha": 78,
+      "available": false,
+      "unavailableReason": "registered by the KR client but absent from both supplied KR snapshots"
     }
   ]
 }

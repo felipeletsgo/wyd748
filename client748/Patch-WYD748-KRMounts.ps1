@@ -20,9 +20,16 @@ $legacyOutputHashes = @(
     '6D853FE2F69EDFFB4A1EC4793EE18CF651B5E5604E3009703D379C2B182B76CB',
     '78B27091ACF3B0DA0258E7F7510E55CA3A78C721C237F5B99F767CB780512005',
     'E1C34874E8BA5B4CF018F262D84A581DCA2242DD7F67410B4807B57BCC3691EA',
-    '0648B586AF95D26FB0B0C27ED0F954FE5F8D291E4D3DD10B73BB816B3D5B1A75'
+    '0648B586AF95D26FB0B0C27ED0F954FE5F8D291E4D3DD10B73BB816B3D5B1A75',
+    '556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F',
+    'D1CC8C8CCE860968D6C8E9839B8D2B95276B11FA2CDE1B0CED5BD08EE2DF01DF',
+    '2ABF628994A6FD61687CB33425672A37443A4D1F56E4E473901A1E64C4C6CB98',
+    '2E7315FAE3F549899A295CB40950391A05B1B9A5D967CA2CBBBB93EB1812C3E3',
+    '7536512E0F298CD182A44307E7D9C7D34A4E60D93B4C2650DAD0D59A4A8A1646',
+    '3D3270952B10D3BFDDD4B07A3F19D0FD2E211EE4733C9F0369F377B30A2F0B15',
+    '3AC3296B82D19F19A8CF5D621C3914C40A220994294BC5E7EBCF300796F16302'
 )
-$expectedOutputHash = '556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F' # KR_MOUNT_OUTPUT_HASH
+$expectedOutputHash = '79B66BFF4E8D31D0788D857AD6AF3DE7F95DC7A07C7256D134A6DD5708EAA4AE' # KR_MOUNT_OUTPUT_HASH
 $sectionRVA = [uint32]0x00FD2000
 $sectionRaw = 0x001E5000
 $sectionSize = 0x00010000
@@ -36,6 +43,8 @@ $rotationCodeOffset = 0x1400
 $runToggleCodeOffset = 0x1800
 $runUICodeOffset = 0x1A00
 $runSpeedCodeOffset = 0x1C00
+$frameMatrixCodeOffset = 0x2000
+$renderOrientationCodeOffset = 0x3000
 $entrySize = 24
 
 function Get-Sha([string]$Path) { return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant() }
@@ -84,7 +93,7 @@ $definition=Get-Content -LiteralPath $Manifest -Raw|ConvertFrom-Json
 $catalogItems=@($definition.items|Sort-Object item)
 $items=@($catalogItems|Where-Object { $_.available -ne $false })
 $unavailableItems=@($catalogItems|Where-Object { $_.available -eq $false })
-if($catalogItems.Count -ne 47 -or $items.Count -ne 45 -or $unavailableItems.Count -ne 2){
+if($catalogItems.Count -ne 62 -or $items.Count -ne 59 -or $unavailableItems.Count -ne 3){
     throw "manifesto inesperado: catalogo=$($catalogItems.Count) disponiveis=$($items.Count) indisponiveis=$($unavailableItems.Count)"
 }
 $actualHash=Get-Sha $Executable
@@ -122,9 +131,6 @@ Assert-Bytes $inputData $hookOffset $original 'seletor nativo de montaria 7.48'
 $incrementalHookOffset=0x1266DB;$incrementalHookVA=[uint32]0x005266DB
 $incrementalOriginal=[byte[]](0x8B,0x4D,0x08,0x33,0xD2)
 Assert-Bytes $inputData $incrementalHookOffset $incrementalOriginal 'refresh incremental de Equip[14] 7.48'
-$mountConstructHookOffset=0x12799E;$mountConstructHookVA=[uint32]0x0052799E
-$mountConstructOriginal=[byte[]](0x89,0x45,0xC8,0xEB,0x07)
-Assert-Bytes $inputData $mountConstructHookOffset $mountConstructOriginal 'retorno do construtor TMSkinMesh de montaria 7.48'
 $runToggleHookOffset=0x5096F;$runToggleHookVA=[uint32]0x0045096F
 $runToggleOriginal=[byte[]](0x0F,0xBE,0x91,0x9C,0x07,0x00,0x00)
 Assert-Bytes $inputData $runToggleHookOffset $runToggleOriginal 'gate nativo da tecla R de montaria 7.48'
@@ -134,6 +140,12 @@ Assert-Bytes $inputData $runUIHookOffset $runUIOriginal 'gate nativo do botao de
 $runSpeedHookOffset=0xFA8D9;$runSpeedHookVA=[uint32]0x004FA8D9
 $runSpeedOriginal=[byte[]](0x8B,0x4D,0xFC,0x83,0xB9,0xA0,0x07,0x00,0x00,0x1F)
 Assert-Bytes $inputData $runSpeedHookOffset $runSpeedOriginal 'gate nativo da velocidade de corrida de montaria 7.48'
+$frameMatrixHookOffset=0xC3607;$frameMatrixHookVA=[uint32]0x004C3607
+$frameMatrixOriginal=[byte[]](0x8B,0x95,0x00,0xFE,0xFF,0xFF)
+Assert-Bytes $inputData $frameMatrixHookOffset $frameMatrixOriginal 'matriz de assento CFrame 7.48'
+$renderOrientationHookOffset=0xBE395;$renderOrientationHookVA=[uint32]0x004BE395
+$renderOrientationOriginal=[byte[]](0x8B,0x42,0x20,0x50,0x8B,0x8D)
+Assert-Bytes $inputData $renderOrientationHookOffset $renderOrientationOriginal 'orientacao TMSkinMesh 7.48'
 $data=Add-PESection $inputData
 $tableVA=[uint32]($sectionVA+$tableOffset)
 
@@ -227,9 +239,16 @@ Assert-Bytes $inputData $poseHookOffset $poseOriginal 'offset de assento de mont
 $const02VA=[uint32]($sectionVA+$poseConstantsOffset)
 $const05VA=[uint32]($const02VA+4)
 $const08VA=[uint32]($const02VA+8)
+$constCos59VA=[uint32]($const02VA+12)
+$constSin59VA=[uint32]($const02VA+16)
+$constNegSin59VA=[uint32]($const02VA+20)
 Set-U32 $data ($sectionRaw+$poseConstantsOffset) ([BitConverter]::ToUInt32([BitConverter]::GetBytes([single]0.2),0))
 Set-U32 $data ($sectionRaw+$poseConstantsOffset+4) ([BitConverter]::ToUInt32([BitConverter]::GetBytes([single]0.5),0))
 Set-U32 $data ($sectionRaw+$poseConstantsOffset+8) ([BitConverter]::ToUInt32([BitConverter]::GetBytes([single]0.8),0))
+# Spider/type59: D3DXMatrixRotationZ(3.351032f), conforme o WYD.exe KR.
+Set-U32 $data ($sectionRaw+$poseConstantsOffset+12) ([BitConverter]::ToUInt32([byte[]](0xE1,0x67,0x7A,0xBF),0))
+Set-U32 $data ($sectionRaw+$poseConstantsOffset+16) ([BitConverter]::ToUInt32([byte[]](0xD4,0xE6,0x54,0xBE),0))
+Set-U32 $data ($sectionRaw+$poseConstantsOffset+20) ([BitConverter]::ToUInt32([byte[]](0xD4,0xE6,0x54,0x3E),0))
 
 $c=New-Assembler ([uint32]($sectionVA+$poseCodeOffset))
 Emit $c ([byte[]](0x60,0x8B,0x45,0x98,0x8B,0x88,0xA0,0x07,0x00,0x00,0x83,0xF9,0x1D))
@@ -300,51 +319,177 @@ Set-Bytes $data ($sectionRaw+$poseCodeOffset) $poseCode
 $poseHook=[byte[]](0xE9)+[byte[]](Rel32 ($poseHookVA+5) ([uint32]($sectionVA+$poseCodeOffset)))+([byte[]](0x90)*2)
 Set-Bytes $data $poseHookOffset $poseHook
 
-# O renderer antigo elimina faces CW/CCW, enquanto as meshes esqueletais KR
-# sao two-sided no client atual. Depois de construir o TMSkinMesh da montaria,
-# reconhecemos a assinatura visual exata (tipo, escala e tres pares mesh/skin)
-# da tabela importada e gravamos a mesma sentinela usada pelo hook seletivo de
-# CULL_NONE instalado no elo de trajes. Nenhuma montaria nativa e alterada.
-$d=New-Assembler ([uint32]($sectionVA+$rotationCodeOffset))
-Emit $d ([byte[]](0x89,0x45,0xC8,0x60,0x85,0xC0))
-Emit-Rel32 $d ([byte[]](0x0F,0x84)) 'done'
-Emit $d ([byte[]](
-    0x8B,0xF8,
-    0x8B,0x5D,0xD0,
-    0xB9))
-Emit $d ([BitConverter]::GetBytes([uint32]$items.Count))
-Emit $d ([byte[]](0xBE));Emit $d ([BitConverter]::GetBytes($tableVA))
-Mark $d 'loop'
-Emit $d ([byte[]](
-    0x0F,0xB7,0x46,0x02,
-    0x3B,0x83,0xA0,0x07,0x00,0x00))
-Emit-Rel32 $d ([byte[]](0x0F,0x85)) 'next'
-Emit $d ([byte[]](
-    0x8B,0x46,0x04,0x3B,0x83,0xA4,0x07,0x00,0x00))
-Emit-Rel32 $d ([byte[]](0x0F,0x85)) 'next'
-Emit $d ([byte[]](
-    0x8B,0x46,0x08,0x3B,0x83,0xA2,0x01,0x00,0x00))
-Emit-Rel32 $d ([byte[]](0x0F,0x85)) 'next'
-Emit $d ([byte[]](
-    0x8B,0x46,0x0C,0x3B,0x83,0xA6,0x01,0x00,0x00))
-Emit-Rel32 $d ([byte[]](0x0F,0x85)) 'next'
-Emit $d ([byte[]](
-    0x8B,0x46,0x10,0x3B,0x83,0xAA,0x01,0x00,0x00))
-Emit-Rel32 $d ([byte[]](0x0F,0x85)) 'next'
-Emit $d ([byte[]](0xC6,0x87,0x51,0x03,0x00,0x00,0x7F))
-Emit-Rel32 $d ([byte[]](0xE9)) 'done'
-Mark $d 'next'
-Emit $d ([byte[]](0x83,0xC6,$entrySize,0x49))
-Emit-Rel32 $d ([byte[]](0x0F,0x85)) 'loop'
-Mark $d 'done'
-Emit $d ([byte[]](0x61,0xE9))
-$mountConstructReturnNext=[uint32]($d.BaseVA+$d.Bytes.Count+4)
-Emit $d (Rel32 $mountConstructReturnNext ([uint32]0x005279AA))
-$mountConstructCode=Complete $d
-if($rotationCodeOffset+$mountConstructCode.Length -gt $sectionSize){throw 'hook de marcacao das montarias excedeu .mountkr'}
-Set-Bytes $data ($sectionRaw+$rotationCodeOffset) $mountConstructCode
-$mountConstructHook=[byte[]](0xE9)+[byte[]](Rel32 ($mountConstructHookVA+5) ([uint32]($sectionVA+$rotationCodeOffset)))
-Set-Bytes $data $mountConstructHookOffset $mountConstructHook
+# As montarias usam o culling nativo do renderer 7.48. Marcar todas como
+# two-sided (D3DCULL_NONE) expunha as faces internas dos modelos modernos e
+# produzia o aspecto translucido visto de perto. O hook seletivo continua
+# existindo para os trajes KR, que possuem partes corporais realmente
+# two-sided, mas nenhuma montaria recebe essa sentinela.
+
+# CFrame::UpdateFrames do 7.48 termina no caso de skeleton 31. Os skeletons
+# 48..51 e 59 foram adicionados depois e usam matrizes de assento proprias: nao sao
+# simples offsets do TMHuman. Sem estes ramos a mesh da montaria anima, mas a
+# matriz entregue ao cavaleiro permanece invalida, produzindo os personagens
+# suspensos, invertidos ou separados vistos nos mounts KR. As transformacoes
+# abaixo seguem o WYD.exe KR que acompanha os assets. Ele inverte tambem o
+# terceiro eixo nos tipos 48..51, detalhe ausente na source W2PP publicada. No
+# type50, o binario usa row2 no segundo eixo; a source W2PP publicada indica
+# row3, que injeta translacao na orientacao e faz o cavaleiro desaparecer. O
+# tipo 59 ainda aplica a rotacao Z de 3.351032 radianos do binario KR.
+# O port usa somente layouts confirmados do 7.48:
+# CFrame.m_matCombined=+0x48, CFrame.m_pParentSkin=+0x94 e
+# TMSkinMesh.m_OutMatrix=+0x74.
+function Emit-CopyFrameRow($asm,[int]$sourceOffset,[int]$targetOffset,[switch]$Negate) {
+    Emit $asm ([byte[]](0x8D,0xB3));Emit $asm ([BitConverter]::GetBytes([uint32]$sourceOffset))
+    Emit $asm ([byte[]](0x8D,0xBA));Emit $asm ([BitConverter]::GetBytes([uint32]$targetOffset))
+    Emit $asm ([byte[]](0xB9,0x04,0x00,0x00,0x00,0xF3,0xA5))
+    if($Negate){
+        for($column=0;$column-lt 4;$column++){
+            Emit $asm ([byte[]](0x81,0xB2));Emit $asm ([BitConverter]::GetBytes([uint32]($targetOffset+$column*4)))
+            Emit $asm ([byte[]](0x00,0x00,0x00,0x80))
+        }
+    }
+}
+function Emit-FrameBlend($asm,[int]$sourceA,[uint32]$factorA,[int]$sourceB,[uint32]$factorB,[int]$target) {
+    Emit $asm ([byte[]](0xD9,0x83));Emit $asm ([BitConverter]::GetBytes([uint32]$sourceA))
+    Emit $asm ([byte[]](0xD8,0x0D));Emit $asm ([BitConverter]::GetBytes($factorA))
+    Emit $asm ([byte[]](0xD9,0x83));Emit $asm ([BitConverter]::GetBytes([uint32]$sourceB))
+    Emit $asm ([byte[]](0xD8,0x0D));Emit $asm ([BitConverter]::GetBytes($factorB))
+    Emit $asm ([byte[]](0xDE,0xC1,0xD9,0x9A));Emit $asm ([BitConverter]::GetBytes([uint32]$target))
+}
+
+$f=New-Assembler ([uint32]($sectionVA+$frameMatrixCodeOffset))
+Emit $f ([byte[]](
+    0x60,
+    0x8B,0x9D,0x00,0xFE,0xFF,0xFF,
+    0x8B,0x93,0x94,0x00,0x00,0x00,
+    0x8B,0x02,
+    0x83,0xF8,0x1F))
+Emit-Rel32 $f ([byte[]](0x0F,0x84)) 'type31'
+Emit $f ([byte[]](0x83,0xF8,0x30));Emit-Rel32 $f ([byte[]](0x0F,0x84)) 'type48'
+Emit $f ([byte[]](0x83,0xF8,0x31));Emit-Rel32 $f ([byte[]](0x0F,0x84)) 'type49'
+Emit $f ([byte[]](0x83,0xF8,0x32));Emit-Rel32 $f ([byte[]](0x0F,0x84)) 'type50'
+Emit $f ([byte[]](0x83,0xF8,0x33));Emit-Rel32 $f ([byte[]](0x0F,0x84)) 'type51'
+Emit $f ([byte[]](0x83,0xF8,0x3B));Emit-Rel32 $f ([byte[]](0x0F,0x84)) 'type59'
+Emit-Rel32 $f ([byte[]](0xE9)) 'done'
+
+Mark $f 'type31'
+Emit $f ([byte[]](0x83,0x3B,0x04));Emit-Rel32 $f ([byte[]](0x0F,0x85)) 'done'
+Emit-Rel32 $f ([byte[]](0xE8)) 'copyAll';Emit-Rel32 $f ([byte[]](0xE9)) 'done'
+
+Mark $f 'type48'
+Emit $f ([byte[]](0x83,0x3B,0x01));Emit-Rel32 $f ([byte[]](0x0F,0x85)) 'done'
+Emit-Rel32 $f ([byte[]](0xE8)) 'copyAll'
+Emit-CopyFrameRow $f 0x58 0x74
+Emit-CopyFrameRow $f 0x68 0x84 -Negate
+Emit-CopyFrameRow $f 0x48 0x94 -Negate
+Emit-Rel32 $f ([byte[]](0xE9)) 'done'
+
+Mark $f 'type49'
+Emit $f ([byte[]](0x83,0x3B,0x03));Emit-Rel32 $f ([byte[]](0x0F,0x85)) 'done'
+Emit-Rel32 $f ([byte[]](0xE8)) 'copyAll'
+Emit-CopyFrameRow $f 0x48 0x74 -Negate
+Emit-CopyFrameRow $f 0x68 0x84 -Negate
+Emit-CopyFrameRow $f 0x58 0x94 -Negate
+Emit-Rel32 $f ([byte[]](0xE9)) 'done'
+
+Mark $f 'type59'
+Emit $f ([byte[]](0x83,0x3B,0x03));Emit-Rel32 $f ([byte[]](0x0F,0x85)) 'done'
+Emit-Rel32 $f ([byte[]](0xE8)) 'copyAll'
+for($column=0;$column-lt4;$column++){
+    $source0=0x48+$column*4;$source1=0x58+$column*4
+    Emit-FrameBlend $f $source0 $constCos59VA $source1 $constSin59VA (0x74+$column*4)
+    Emit-FrameBlend $f $source0 $constNegSin59VA $source1 $constCos59VA (0x84+$column*4)
+}
+Emit-Rel32 $f ([byte[]](0xE9)) 'done'
+
+Mark $f 'type50'
+Emit $f ([byte[]](0x83,0x3B,0x02));Emit-Rel32 $f ([byte[]](0x0F,0x85)) 'done'
+Emit-Rel32 $f ([byte[]](0xE8)) 'copyAll'
+Emit-CopyFrameRow $f 0x48 0x74 -Negate
+Emit-CopyFrameRow $f 0x68 0x84 -Negate
+Emit-CopyFrameRow $f 0x58 0x94 -Negate
+Emit-Rel32 $f ([byte[]](0xE9)) 'done'
+
+Mark $f 'type51'
+Emit $f ([byte[]](0x83,0x3B,0x04));Emit-Rel32 $f ([byte[]](0x0F,0x85)) 'done'
+Emit-Rel32 $f ([byte[]](0xE8)) 'copyAll'
+Emit-CopyFrameRow $f 0x68 0x84
+Emit-CopyFrameRow $f 0x58 0x94 -Negate
+Emit-Rel32 $f ([byte[]](0xE9)) 'done'
+
+Mark $f 'done'
+Emit $f ([byte[]](0x61,0xE9))
+$frameMatrixReturnNext=[uint32]($f.BaseVA+$f.Bytes.Count+4)
+Emit $f (Rel32 $frameMatrixReturnNext ([uint32]0x004C3642))
+
+Mark $f 'copyAll'
+Emit $f ([byte[]](
+    0x56,0x57,0x51,
+    0x8D,0xB3,0x48,0x00,0x00,0x00,
+    0x8D,0xBA,0x74,0x00,0x00,0x00,
+    0xB9,0x10,0x00,0x00,0x00,
+    0xF3,0xA5,
+    0x59,0x5F,0x5E,0xC3))
+$frameMatrixCode=Complete $f
+if($frameMatrixCodeOffset+$frameMatrixCode.Length-gt$sectionSize){throw 'adapter de matriz CFrame excedeu .mountkr'}
+Set-Bytes $data ($sectionRaw+$frameMatrixCodeOffset) $frameMatrixCode
+$frameMatrixHook=[byte[]](0xE9)+[byte[]](Rel32 ($frameMatrixHookVA+5) ([uint32]($sectionVA+$frameMatrixCodeOffset)))+([byte[]](0x90))
+Set-Bytes $data $frameMatrixHookOffset $frameMatrixHook
+
+# TMSkinMesh::Render do 7.48 aplica a rotacao legada a todos os skeletons:
+# yaw-90, pitch-90, roll. Os skeletons modernos 48..51 foram criados com o
+# sistema de eixos posterior e, no client KR/W2PP, entram no ramo:
+# yaw+90, pitch, roll. Sem essa selecao a matriz de assento pode estar correta,
+# mas a montaria inteira permanece tombada 90 graus em direcao ao chao.
+# O adapter altera somente 48..51; tipos nativos e o tipo 59 preservam
+# integralmente a orientacao original do 7.48/KR.
+$o=New-Assembler ([uint32]($sectionVA+$renderOrientationCodeOffset))
+Emit $o ([byte[]](
+    0x8B,0x85,0xEC,0xFD,0xFF,0xFF,
+    0x8B,0x08,
+    0x83,0xF9,0x30))
+Emit-Rel32 $o ([byte[]](0x0F,0x8C)) 'legacy'
+Emit $o ([byte[]](0x83,0xF9,0x33))
+Emit-Rel32 $o ([byte[]](0x0F,0x8F)) 'legacy'
+
+# Ramo moderno KR: roll=angle.z, pitch=angle.x, yaw=angle.y+90 graus.
+Emit $o ([byte[]](
+    0x8B,0x50,0x20,0x52,
+    0x8B,0x50,0x18,0x52,
+    0xD9,0x40,0x1C,
+    0xD8,0x05,0x80,0x43,0x5A,0x00,
+    0x51,0xD9,0x1C,0x24,
+    0x8D,0x85,0xC0,0xFE,0xFF,0xFF,0x50,
+    0xE8))
+$modernCallNext=[uint32]($o.BaseVA+$o.Bytes.Count+4)
+Emit $o (Rel32 $modernCallNext ([uint32]0x0056284F))
+Emit-Rel32 $o ([byte[]](0xE9)) 'return'
+
+Mark $o 'legacy'
+# Ramo original 7.48: roll=angle.z, pitch=angle.x-90, yaw=angle.y-90.
+Emit $o ([byte[]](
+    0x8B,0x85,0xEC,0xFD,0xFF,0xFF,
+    0x8B,0x50,0x20,0x52,
+    0xD9,0x40,0x18,
+    0xD8,0x25,0x80,0x43,0x5A,0x00,
+    0x51,0xD9,0x1C,0x24,
+    0xD9,0x40,0x1C,
+    0xD8,0x25,0x80,0x43,0x5A,0x00,
+    0x51,0xD9,0x1C,0x24,
+    0x8D,0x85,0xC0,0xFE,0xFF,0xFF,0x50,
+    0xE8))
+$legacyCallNext=[uint32]($o.BaseVA+$o.Bytes.Count+4)
+Emit $o (Rel32 $legacyCallNext ([uint32]0x0056284F))
+
+Mark $o 'return'
+Emit $o ([byte[]](0xE9))
+$orientationReturnNext=[uint32]($o.BaseVA+$o.Bytes.Count+4)
+Emit $o (Rel32 $orientationReturnNext ([uint32]0x004BE3CB))
+$renderOrientationCode=Complete $o
+if($renderOrientationCodeOffset+$renderOrientationCode.Length-gt$sectionSize){throw 'adapter de orientacao TMSkinMesh excedeu .mountkr'}
+Set-Bytes $data ($sectionRaw+$renderOrientationCodeOffset) $renderOrientationCode
+$renderOrientationHook=[byte[]](0xE9)+[byte[]](Rel32 ($renderOrientationHookVA+5) ([uint32]($sectionVA+$renderOrientationCodeOffset)))+([byte[]](0x90))
+Set-Bytes $data $renderOrientationHookOffset $renderOrientationHook
 
 # O 7.48 admite corrida somente para quatro tipos visuais nativos
 # (31/40/20/39). As montarias KR materializadas possuem outros tipos, embora

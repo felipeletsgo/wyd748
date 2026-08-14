@@ -112,7 +112,7 @@ type VolatileAffect struct {
 }
 
 // VolatileInstance descreve uma sala privada ativada por ticket. Conteúdo,
-// coordenadas e duração permanecem em data/volatiles.json; o motor apenas
+// coordenadas e duração permanecem em data/instances.txt; o motor apenas
 // aplica ocupação, party, spawn, timer e encerramento.
 type VolatileInstance struct {
 	ID string `json:"id"`
@@ -178,7 +178,7 @@ type VolatileInstance struct {
 	StateMachine string            `json:"stateMachine,omitempty"`
 	HellGate     *VolatileHellGate `json:"hellGate,omitempty"`
 	// Uxmal descreve a Pista de Runas iniciada pelo NPC, nao por um item
-	// volatile. O template continua dentro de volatiles.json para que salas,
+	// volatile. O template continua dentro de instances.txt para que salas,
 	// tickets e recompensas sejam auditaveis sem recompilar o servidor.
 	Uxmal *VolatileUxmal `json:"uxmal,omitempty"`
 	// AllowChainDuringExitGrace explicita a janela Water de dez segundos. O

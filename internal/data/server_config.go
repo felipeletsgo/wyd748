@@ -53,6 +53,7 @@ type ServerConfig struct {
 	SkillPath                    string
 	DropRatePath                 string
 	VolatilePath                 string
+	InstancesPath                string
 	ReplictionPath               string
 	MountPath                    string
 	CharacterTemplatePath        string
@@ -117,6 +118,7 @@ func DefaultServerConfig() ServerConfig {
 		SkillPath:                    "data/SkillData.csv",
 		DropRatePath:                 "data/droprate.json",
 		VolatilePath:                 "data/volatiles.json",
+		InstancesPath:                "data/instances.txt",
 		ReplictionPath:               "data/repliction.json",
 		MountPath:                    "data/mounts.json",
 		CharacterTemplatePath:        "data/character_templates.json",
@@ -208,6 +210,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"skills":                           func(v string) error { cfg.SkillPath = v; return nil },
 		"droprates":                        func(v string) error { cfg.DropRatePath = v; return nil },
 		"volatiles":                        func(v string) error { cfg.VolatilePath = v; return nil },
+		"instances":                        func(v string) error { cfg.InstancesPath = v; return nil },
 		"repliction":                       func(v string) error { cfg.ReplictionPath = v; return nil },
 		"mounts":                           func(v string) error { cfg.MountPath = v; return nil },
 		"character_templates":              func(v string) error { cfg.CharacterTemplatePath = v; return nil },

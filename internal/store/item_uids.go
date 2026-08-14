@@ -97,10 +97,10 @@ func (s *JSONStore) prepareAccountItemUIDs(accounts ...*model.Account) (
 		for _, ref := range accountItemRefs(acc) {
 			item := ref.item
 			if item.Index == 0 {
-				if item.UID != "" {
+				if item.UID != "" || item.ActivatedUnix != 0 || item.ExpiresUnix != 0 {
 					rollbackGenerated()
-					return nil, 0, fmt.Errorf("store: conta %q %s vazio possui UID %q",
-						acc.Name, ref.location, item.UID)
+					return nil, 0, fmt.Errorf("store: conta %q %s vazio possui identidade/prazo",
+						acc.Name, ref.location)
 				}
 				continue
 			}

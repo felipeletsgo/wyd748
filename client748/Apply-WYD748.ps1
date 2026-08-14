@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 # PONTO UNICO DE ENTRADA — client 7.48
 #
 # Este orquestrador e o unico script que deve ser executado normalmente. Os
-# sete scripts Patch-WYD748-*.ps1 abaixo continuam separados de proposito:
+# oito scripts Patch-WYD748-*.ps1 abaixo continuam separados de proposito:
 # cada um implementa um elo pequeno, valida os bytes originais e possui um
 # SHA de entrada/saida proprio. Isso preserva rollback e impede que uma
 # alteracao em um patch esconda uma falha em outro. Nao executar os elos fora
@@ -23,11 +23,14 @@ $ErrorActionPreference = 'Stop'
 # 5. Patch-WYD748-Lindy.ps1        receita 3448 da janela da Lindy
 # 6. Patch-WYD748-Costumes.ps1     colecao de trajes do client KR
 # 7. Patch-WYD748-KRMounts.ps1      montarias visuais do client KR (.mountkr)
+# 8. Patch-WYD748-KRMobs.ps1        classes visuais 66..74 dos monstros KR
 # D. Patch-WYD748-ClientItemUse.ps1 marcador de clique do Warrior's Seal
 # D. Patch-WYD748-CostumeItems.ps1 registros/icon dos trajes KR completos
 # D. Patch-WYD748-CostumeTextures.ps1 registros das texturas KR
 # D. Patch-WYD748-KRMountItems.ps1  clones da Shire para Equip[14]
 # D. Patch-WYD748-KRMountAssets.ps1 meshes e animacoes das montarias KR
+# D. Patch-WYD748-KRMobItems.ps1     faces KR traduzidas para o ItemList 7.48
+# D. Patch-WYD748-KRMobAssets.ps1    meshes, texturas, bones e animacoes KR
 #    (ItemList/MeshTextureList; nao alteram a cadeia SHA do executavel)
 #
 # O progresso e retomavel: se o processo for interrompido, a proxima execucao
@@ -108,12 +111,20 @@ $steps = @(
     [pscustomobject]@{
         Number = 7; Name = 'colecao de montarias KR'; Script = 'Patch-WYD748-KRMounts.ps1'
         Input = '4A2AA37228A720ED389F5AC8A5978329855932B93E54FA0501B51A3A23316DEF'
-        Output = '556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F'
+        Output = '79B66BFF4E8D31D0788D857AD6AF3DE7F95DC7A07C7256D134A6DD5708EAA4AE'
+    },
+    # ETAPA 8 - classes visuais e skeleton types das criaturas KR.
+    [pscustomobject]@{
+        Number = 8; Name = 'faces de monstros KR'; Script = 'Patch-WYD748-KRMobs.ps1'
+        Input = '79B66BFF4E8D31D0788D857AD6AF3DE7F95DC7A07C7256D134A6DD5708EAA4AE'
+        Output = 'B3F385739C232275FE08FACAE0152ECDFD97D16D111C43D25E7277869FF5422B' # KRMOB_CHAIN_OUTPUT_HASH
     }
 )
 
 $current = Get-Sha $Executable
 $legacyKRVisualHashes = @(
+    # Build anterior a importacao das montarias premium reais do catalogo KR.
+    '63935115018E39179C254C70AE4062B2449E523CCED852B2E8A4B3ACBBD70CB8',
     # Build de 47 montarias anterior a disponibilidade estrita e offsets KR nativos.
     'F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D',
     # Build anterior ao marcador exclusivo de trajes e ao suporte de R para
@@ -136,7 +147,9 @@ $legacyKRVisualHashes = @(
     # Colecao com materiais/rotacao corrigidos, antes do assento type 59.
     'E1C34874E8BA5B4CF018F262D84A581DCA2242DD7F67410B4807B57BCC3691EA',
     # Colecao que sobrescrevia m_nSkinMeshType com 0/1 e desmontava o corpo.
-    '78B27091ACF3B0DA0258E7F7510E55CA3A78C721C237F5B99F767CB780512005'
+    '78B27091ACF3B0DA0258E7F7510E55CA3A78C721C237F5B99F767CB780512005',
+    # Montarias com pose corrigida, ainda marcadas globalmente como two-sided.
+    '3D3270952B10D3BFDDD4B07A3F19D0FD2E211EE4733C9F0369F377B30A2F0B15'
 )
 if ($legacyKRVisualHashes -contains $current) {
     if ($VerifyOnly) {
@@ -202,15 +215,21 @@ if ($current -eq $final) {
     }
     $mountItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountItems.ps1'
     $mountAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountAssets.ps1'
-    foreach ($script in @($mountItemScript, $mountAssetScript)) {
+    $mobItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMobItems.ps1'
+    $mobAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMobAssets.ps1'
+    foreach ($script in @($mountItemScript, $mountAssetScript, $mobItemScript, $mobAssetScript)) {
         if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "Elo de montarias KR ausente: $script" }
     }
     if ($VerifyOnly) {
         & $mountItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin') -VerifyOnly
         & $mountAssetScript -ClientRoot $PSScriptRoot -VerifyOnly
+        & $mobItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin') -VerifyOnly
+        & $mobAssetScript -ClientRoot $PSScriptRoot -VerifyOnly
     } else {
         & $mountItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
         & $mountAssetScript -ClientRoot $PSScriptRoot
+        & $mobItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
+        & $mobAssetScript -ClientRoot $PSScriptRoot
     }
     Write-Host "Cadeia WYD 7.48 ja concluida: $current"
     return
@@ -270,8 +289,12 @@ if (-not (Test-Path -LiteralPath $costumeTextureScript -PathType Leaf)) {
 & $costumeTextureScript -MeshTextureList (Join-Path $PSScriptRoot 'mesh\MeshTextureList.bin')
 $mountItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountItems.ps1'
 $mountAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountAssets.ps1'
-foreach ($script in @($mountItemScript, $mountAssetScript)) {
+$mobItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMobItems.ps1'
+$mobAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMobAssets.ps1'
+foreach ($script in @($mountItemScript, $mountAssetScript, $mobItemScript, $mobAssetScript)) {
     if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "Elo de montarias KR ausente: $script" }
 }
 & $mountItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
 & $mountAssetScript -ClientRoot $PSScriptRoot
+& $mobItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
+& $mobAssetScript -ClientRoot $PSScriptRoot

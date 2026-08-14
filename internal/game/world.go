@@ -102,7 +102,6 @@ type Player struct {
 	NextRegen           time.Time
 	NextCPRecovery      time.Time
 	NextMountTick       time.Time
-	NextFairyTick       time.Time
 	// As horas inteiras restantes vivem no ovo (EF_INCUDELAY). Estes campos
 	// guardam apenas a hora ONLINE corrente do mesmo ovo equipado; ela reinicia
 	// ao desequipar, trocar de personagem ou desconectar, como no nativo.
@@ -394,6 +393,7 @@ type World struct {
 	ghostShopCell         map[uint16]uint32
 	nextItemID            uint16
 	nextAutoSave          time.Time
+	nextTimedItemSweep    time.Time
 	dropRates             [model.MaxCarry]int // taxa de drop por slot do carry (nativa)
 	volatiles             model.VolatileCatalog
 	mounts                model.MountCatalog
@@ -1522,6 +1522,9 @@ func (w *World) tick() {
 	w.tickBossRespawns(now)
 	w.tickSummonCombat(now)
 	w.tickSephiraObjects(now)
+	// Timed equipment expires before affects/recalculation can consume its
+	// bonuses during this logical tick.
+	w.tickTimedItems(now)
 	w.tickPlayerAffects(now)
 	w.tickMobAffects(now, int(w.mobTickCounter%6), 6)
 	w.tickPlayerRegen(now)

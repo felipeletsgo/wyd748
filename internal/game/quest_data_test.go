@@ -107,8 +107,8 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := data.LoadVolatiles(filepath.Join(root, "volatiles.json"),
-		catalog.Items, catalog.Skills)
+	volatiles, err := data.LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
+		filepath.Join(root, "instances.txt"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

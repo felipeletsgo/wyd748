@@ -168,18 +168,18 @@ corretos. O renderer 7.48 escolhe `D3DCULL_CW` ou `D3DCULL_CCW` para
 `D3DCULL_NONE` antes do draw e restaura `CCW` depois.
 
 Nunca portar isso globalmente: meshes antigas dependem do comportamento do
-7.48. A adaptação segura precisa identificar a instância importada:
+7.48. A adaptação segura precisa identificar a instância importada e respeitar
+as diferenças do pipeline alvo:
 
 - traje: `m_nCosType` deve resolver uma entrada não vazia da tabela KR;
-- montaria: comparar a assinatura materializada completa (type, scale e os
-  três pares mesh/skin) com o manifesto antes de marcar o `TMSkinMesh`;
-- somente a instância confirmada recebe `D3DCULL_NONE`;
+- no 7.48, somente o traje confirmado recebe `D3DCULL_NONE`;
+- montarias importadas preservam `CW/CCW` nativo: aplicar `CULL_NONE` a todas
+  expõe as faces internas e cria aparência translúcida vista de perto;
 - o caminho nativo e a restauração do estado permanecem intactos.
 
 Não usar `TMHuman.m_nSkinMeshType` como booleano de sexo e não sobrescrevê-lo:
 ele contém a variante real do corpo/skeleton. Não usar `m_cRotate[1]` como
-marcador persistente de traje, pois `SetWeaponType` o recalcula; uma sentinela
-nesse byte só é aceitável no `TMSkinMesh` separado da montaria.
+marcador persistente de traje, pois `SetWeaponType` o recalcula.
 
 Regressões obrigatórias incluem texturas de modos diferentes. Exemplos atuais:
 
@@ -245,6 +245,29 @@ um hook global de matriz antes de validar cada família no 7.48: a tentativa
 global feita em 13/08/2026 quebrou inclusive montarias antes funcionais e foi
 revertida para o build `78B27091…2005`.
 
+Para as famílias `48..51`, a transformação correta não fica em
+`SetMountCostume` nem nos assets. Ela está em `CFrame::UpdateFrames` da source
+W2PP (`SOURCE GAME/Projects/TMProject/CFrame.cpp`). O 7.48 termina no caso 31
+e precisa de um port seletivo, preservando todos os outros tipos:
+
+| BoneAni type | bone ID | transformação de `m_OutMatrix` |
+| --- | ---: | --- |
+| 48 | 1 | row0=row1, row1=-row2, row2=row0 |
+| 49 (e 52 no W2PP) | 3 | row0=-row0, row1=-row2, row2=row1 |
+| 50 | 2 | row0=-row0, row1=-row2, row2=-row1 |
+| 51 | 4 | row1=row2, row2=row1 |
+
+No executável 7.48 suportado, os layouts comprovados são
+`CFrame.m_matCombined=+0x48`, `CFrame.m_pParentSkin=+0x94` e
+`TMSkinMesh.m_OutMatrix=+0x74`. Poison Spider/Ladybug usam 48;
+Kongkongi/Pogball usam 49; Wooden Horse usa 50; Cat/Dark Cat usam 51.
+Para o tipo 50, seguir o executável KR: a source W2PP publicada usa `row3` no
+segundo eixo, mas isso mistura a linha de translação com a orientação e faz o
+cavaleiro desaparecer no 7.48.
+Quando `.bon`, `.ani`, `BoneAni4`, `ValidIndex` e as texturas já conferem mas o
+rider fica suspenso ou invertido, audite esse contrato antes de alterar meshes,
+alpha ou culling.
+
 Mesh visível e branca aponta primeiro para WYS/tabela alpha. Item equipado sem
 troca de aparência aponta primeiro para selector/tipo/skin ou dependência de
 skeleton/índice.
@@ -280,7 +303,7 @@ arquivo ausente resolvido apenas porque outra versão possui nome semelhante.
 | montaria aparece apenas segundos/minutos depois | hook ausente no `UpdateEquip 0x36B`; somente a materialização completa foi coberta |
 | montaria inteira fica em pé | matriz de rotação do skeleton moderno tratada como legacy |
 | montaria correta, rider em pé/deslocado | ramo de assento do tipo/mesh não portado |
-| olhos/interior visíveis através da mesh | material `C` moderno usado literalmente ou estado de culling/alpha incompatível |
+| olhos/interior visíveis através da mesh | verificar primeiro `CULL_NONE` indevido; depois material `C`/alpha |
 | funciona no owner, não observer | `UpdateEquip`, materialização e assets do observer |
 | funciona até relogar | item/slot ou cadeia de patch não persistida/reproduzida |
 

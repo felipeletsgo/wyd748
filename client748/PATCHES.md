@@ -1,6 +1,6 @@
 # Cadeia de patches do client 7.48
 
-O `WYD.exe` em uso **não** é o executável original: ele é o resultado de sete
+O `WYD.exe` em uso **não** é o executável original: ele é o resultado de oito
 scripts aplicados em ordem. Cada elo é verificado por SHA‑256, e a cadeia
 inteira reproduz o binário em uso **bit a bit**.
 
@@ -19,7 +19,9 @@ WYD.exe pós-Lindy             9762B1AC…7F18
   └─ Patch-WYD748-Costumes.ps1                 coleção de trajes do KR
 WYD.exe pós-trajes            4A2AA372…16DE
   └─ Patch-WYD748-KRMounts.ps1                 montarias visuais do KR
-WYD.exe pós-montarias         F6F99CC0…E72D   ← binário atualmente versionado
+WYD.exe pós-montarias         79B66BFF…A4AE
+  └─ Patch-WYD748-KRMobs.ps1                   faces visuais dos monstros KR
+WYD.exe pós-mobs KR           B3F38573…422B   ← binário atualmente versionado
 ```
 
 ## Reaplicar
@@ -202,54 +204,101 @@ como evidência indisponível no manifesto. O teste
 O catálogo KR possui outros `96` itens, mantidos no manifesto como
 `available=false`: os dois clients fornecidos não contêm todas as dependências
 que o próprio executável deles referencia. Eles não são expostos nas lojas,
-pois habilitá-los produziria partes ausentes. Os trajes importados permanecem
-permanentes até existir calendário autoritativo de expiração no servidor.
+pois habilitá-los produziria partes ausentes. Os trajes importados recebem no
+`ItemList.bin` +80 de defesa, +10 de economia de mana e 30 dias. O calendário
+real é autoritativo no servidor, vinculado ao UID da instância e iniciado
+somente no primeiro equipamento.
 
 ## Montarias visuais do client KR
 
-O sétimo elo cataloga `47` cases fonte e materializa somente as `45` aparências completas que o `SetMountCostume` do client
-KR atual realmente resolve: itens `4190..4235` e `4241`. Elas são montarias
-independentes do 7.48 baseadas no registro `342` (Shire): mesmo ícone, mesmo
-slot `Equip[14]` e mesmos efeitos. Somente a malha, a textura e a escala mudam.
-O sistema moderno de traje temporário de montaria não foi importado.
+O sétimo elo cataloga `62` cases fonte e materializa somente as `59` aparências completas comprovadas pelos clients
+KR atuais: itens `4190..4235`, `4241` e `6000..6014`, exceto os cases indisponíveis. Elas são montarias
+independentes do 7.48 baseadas no registro `342` (Shire): mesmo ícone e mesmo
+slot `Equip[14]`. Cada registro recebe velocidade final 6, +520 de dano, +65%
+de ataque mágico e 30 dias. A malha, a textura e a escala continuam específicas de
+cada aparência; a expiração real pertence ao servidor e ao UID da instância.
 
-`Patch-WYD748-KRMounts.ps1` instala a seção `.mountkr` e sete adapters no caminho
+`Patch-WYD748-KRMounts.ps1` instala a seção `.mountkr` e nove adapters no caminho
 nativo 7.48: um para a materialização completa e outro para o `UpdateEquip 0x36B`.
 Assim, equipar ou desequipar uma montaria atualiza o personagem imediatamente,
 sem depender de uma reconstrução visual posterior. O terceiro aplica os
 offsets de assento extraídos diretamente do executável KR para os tipos 29, 31, 48, 49, 50, 51 e 59.
-O quarto marca somente o `TMSkinMesh` cuja assinatura visual completa existe
-na tabela KR e reutiliza o `D3DCULL_NONE` seletivo do elo anterior. Assim faces
-internas/externas das meshes modernas deixam de desaparecer sem modificar o
-estado de culling das montarias antigas.
+As montarias preservam o culling nativo do renderer 7.48. Uma tentativa antiga
+marcava todas as montarias importadas para `D3DCULL_NONE`; isso expunha faces
+internas dos modelos modernos e produzia o aspecto translucido visto de perto.
+O caminho two-sided permanece seletivo apenas para os trajes KR, onde ele e
+necessario para partes corporais compostas.
 Os três adapters restantes ampliam o mesmo predicado nativo usado pela tecla
 `R`: toggle, estado do botão e velocidade/animação. Uma montaria importada só
 é admitida quando `m_cMount == 1` e tipo, escala e os três pares mesh/skin
 coincidem integralmente com uma entrada da tabela `.mountkr`; as quatro
 famílias nativas continuam no caminho original byte a byte.
+O oitavo adapter porta para `CFrame::UpdateFrames` as matrizes de assento dos
+skeletons `48`, `49`, `50`, `51` e `59` comprovadas no executável KR atual. Esses ramos
+selecionam os ossos `1`, `3`, `2` e `4`, respectivamente, e corrigem a
+orientação do cavaleiro em Poison Spider/Ladybug, Kongkongi/Pogball, Wooden
+Horse e Cat/Dark Cat. O tipo `59` usa o osso `3` e a rotação Z nativa das
+aranhas. Assets, `BoneAni4`, `ValidIndex` e animações dessas
+famílias já coincidiam byte a byte com o KR; o contrato ausente era o cálculo
+da matriz, não a textura ou a malha. O binário KR inverte os três eixos nos
+ramos modernos. No tipo `50`, ele também usa `row2` no segundo eixo, enquanto a
+source W2PP publicada indica `row3`; portar essa linha literalmente injeta a
+translação na orientação e faz o cavaleiro do Wooden Horse desaparecer.
+Por isso, a source W2PP não deve ser usada isoladamente para regenerar esse
+adapter.
+O nono adapter corrige a orientação global da própria montaria em
+`TMSkinMesh::Render`. O 7.48 só possuía o ramo legado
+`yaw-90°/pitch-90°`; os skeletons KR `48..51` agora usam seletivamente o ramo
+moderno comprovado no client KR/W2PP (`yaw+90°/pitch original`). O tipo `59` e
+todas as montarias nativas permanecem no cálculo original. Essa correção é
+independente da matriz de assento: a anterior posiciona o cavaleiro, enquanto
+esta impede que o corpo da montaria fique apontado verticalmente para o chão.
 `Patch-WYD748-KRMountItems.ps1` clona a Shire no `ItemList.bin` e
 `Patch-WYD748-KRMountAssets.ps1` instala os skeletons/animações ausentes sem
-sobrescrever assets antigos. `Test-WYD748-KRMounts.ps1` confere os 47 cases catalogados, os 45 habilitados,
+sobrescrever assets antigos. `Test-WYD748-KRMounts.ps1` confere os 62 cases catalogados, os 59 habilitados,
 a seção PE, as tabelas e os arquivos necessários.
 
 Os tuples visuais vêm dos cases nativos `11..56` e `62` dos dois executáveis
 KR, que produzem a mesma combinação de tipo, escala, mesh, skin e sanction. As
 associações antigas por semelhança de nome foram removidas. Dependências ausentes nos dois pacotes fornecidos não são aproximadas.
 `KR_Arvak` (`4211`) exige `hs010117.wys`; `KR_Blazing_Rabbit` (`4235`) exige
-`KK010112.msh/.wys`. O executável/tabela KR comprovam os pathnames, mas os
-arquivos físicos não existem nos snapshots fornecidos. Esses dois cases ficam
+`KK010112.msh/.wys`; e `KR_Immortal_Courser` (`6003`, fonte `3975`) exige
+`KK010126.msh/.wys`. O executável/tabela KR comprovam os pathnames, mas os
+arquivos físicos não existem nos snapshots fornecidos. Esses três cases ficam
 `available=false`, fora do `ItemList` e das lojas até os assets autênticos serem
 obtidos.
 
 SHA-256 final suportado:
 
 ```text
-556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F
+79B66BFF4E8D31D0788D857AD6AF3DE7F95DC7A07C7256D134A6DD5708EAA4AE
 ```
 
 Os outros `46` itens não vazios do intervalo moderno não possuem case visual
 no executável KR atual; por isso não foram associados a meshes por suposição.
-As 45 montarias completas estão em `ShopKRMt01` e `ShopKRMt02` (26 + 19 itens).
+As 59 montarias completas estão em `ShopKRMt01`, `ShopKRMt02` e `ShopKRMt03` (26 + 19 + 14 itens).
+
+## Monstros e bosses KR
+
+`MobFaces-KR.json` cataloga as 19 aparências de criatura comprovadas nos
+clients KR fornecidos. `Patch-WYD748-KRMobItems.ps1` traduz os registros para
+o `ItemList.bin` de 140 bytes do 7.48, enquanto
+`Patch-WYD748-KRMobAssets.ps1` instala meshes, texturas, skeletons, animações,
+sons e índices. `Patch-WYD748-KRMobs.ps1` amplia somente o selector visual
+`BASE_DefineSkinMeshType` para as classes 66..74 confirmadas pela source W2PP.
+
+Os IDs modernos acima de 4095 foram remapeados para IDs livres abaixo desse
+limite, pois o `CreateMob` compacto do 7.48 transporta somente 12 bits da face.
+Os nomes também respeitam o limite wire de 12 bytes. O gate automatizado é:
+
+```powershell
+cd client748
+.\Test-WYD748-KRMobs.ps1
+```
+
+O gate e a cadeia de patches comprovam integridade estática e
+reprodutibilidade. A aparência final de cada criatura permanece pendente de
+validação dentro do client 7.48.
 
 ## Arquivos
 
@@ -302,11 +351,11 @@ comandos locais `/macropergaon` e `/macropergaoff`, o hook de chat, o
 scanner de Carry e a chamada automática da rotina nativa `UseItem` não
 fazem mais parte do executável suportado.
 
-O cliente versionado termina no hash pós-montarias KR
-`556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F`.
+O cliente versionado termina no hash pós-mobs KR
+`B3F385739C232275FE08FACAE0152ECDFD97D16D111C43D25E7277869FF5422B`.
 `Apply-WYD748.ps1` reconhece os hashes antigos do WaterMacro, preserva
 uma cópia `WYD.pre-server-water.exe` e reconstrói o executável desde
-`WYD.original.exe` pelos sete elos atuais.
+`WYD.original.exe` pelos oito elos atuais.
 
 O encadeamento automático da Water pertence ao servidor: quando uma
 sala concede e persiste o próximo pergaminho no Carry do líder, uma

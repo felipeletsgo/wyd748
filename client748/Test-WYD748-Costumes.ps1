@@ -8,7 +8,16 @@ $ErrorActionPreference = 'Stop'
 $supportedHashes = @(
     '4A2AA37228A720ED389F5AC8A5978329855932B93E54FA0501B51A3A23316DEF',
     '0648B586AF95D26FB0B0C27ED0F954FE5F8D291E4D3DD10B73BB816B3D5B1A75',
-    '556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F'
+    '556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F',
+    'D1CC8C8CCE860968D6C8E9839B8D2B95276B11FA2CDE1B0CED5BD08EE2DF01DF',
+    '2ABF628994A6FD61687CB33425672A37443A4D1F56E4E473901A1E64C4C6CB98',
+    '2E7315FAE3F549899A295CB40950391A05B1B9A5D967CA2CBBBB93EB1812C3E3',
+    '7536512E0F298CD182A44307E7D9C7D34A4E60D93B4C2650DAD0D59A4A8A1646',
+    '3D3270952B10D3BFDDD4B07A3F19D0FD2E211EE4733C9F0369F377B30A2F0B15',
+    '3AC3296B82D19F19A8CF5D621C3914C40A220994294BC5E7EBCF300796F16302',
+    '63935115018E39179C254C70AE4062B2449E523CCED852B2E8A4B3ACBBD70CB8',
+    '79B66BFF4E8D31D0788D857AD6AF3DE7F95DC7A07C7256D134A6DD5708EAA4AE',
+    'B3F385739C232275FE08FACAE0152ECDFD97D16D111C43D25E7277869FF5422B'
 )
 $sectionRaw = 0x001D5000
 $sectionVA = [uint32]0x013C2000
@@ -99,11 +108,11 @@ foreach ($type in @(200,219,220,248,249,250,251,253,254)) {
 }
 
 $data = [IO.File]::ReadAllBytes($Executable)
-$expectedLength = if ($data.Length -eq 0x001F5000) { 0x001F5000 } else { 0x001E5000 }
+$expectedLength = if ($data.Length -eq 0x001F7000) { 0x001F7000 } elseif ($data.Length -eq 0x001F5000) { 0x001F5000 } else { 0x001E5000 }
 Assert-Equal $data.Length $expectedLength 'tamanho do executavel'
 $pe = [BitConverter]::ToInt32($data, 0x3C)
 $sectionCount = [BitConverter]::ToUInt16($data, $pe + 6)
-if ($sectionCount -notin @(7, 8)) { throw "numero de secoes PE divergente: $sectionCount" }
+if ($sectionCount -notin @(7, 8, 9)) { throw "numero de secoes PE divergente: $sectionCount" }
 $optionalSize = [BitConverter]::ToUInt16($data, $pe + 20)
 $sectionHeader = $pe + 24 + $optionalSize + 6 * 40
 Assert-Equal ([Text.Encoding]::ASCII.GetString($data, $sectionHeader, 8).Trim([char]0)) '.costkr' 'nome da secao'
@@ -118,8 +127,8 @@ $admissionTarget = [uint32](0x004FB22D + $admissionRel)
 Assert-Equal $admissionTarget ([uint32]($sectionVA + $admissionOffset)) 'destino do hook de admissao'
 Assert-Equal $data[0xFB22D] 0x90 'padding do hook de admissao'
 
-# O culling two-sided e estritamente opt-in pela tabela de renderers KR; o elo
-# de montarias reutiliza o mesmo hook com uma sentinela exclusiva da instancia.
+# O culling two-sided e estritamente opt-in pela tabela de renderers de trajes
+# KR. As montarias preservam o culling nativo do renderer 7.48.
 Assert-Equal $data[0xC51F7] 0xE9 'opcode do hook seletivo de culling'
 $cullRel = [BitConverter]::ToInt32($data, 0xC51F8)
 $cullTarget = [uint32](0x004C51FC + $cullRel)

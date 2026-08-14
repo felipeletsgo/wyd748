@@ -120,7 +120,6 @@ func resetCharacterRuntime(p *Player) {
 	p.NextRegen = time.Time{}
 	p.NextCPRecovery = time.Time{}
 	p.NextMountTick = time.Time{}
-	p.NextFairyTick = time.Time{}
 	p.EggIncubationUID = ""
 	p.NextEggIncubationTick = time.Time{}
 	p.NextKingdomTeleport = time.Time{}

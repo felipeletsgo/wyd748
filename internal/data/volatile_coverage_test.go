@@ -6,7 +6,19 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"wydgo/internal/model"
 )
+
+func loadRealVolatiles(t *testing.T, root string, catalog model.Catalog) model.VolatileCatalog {
+	t.Helper()
+	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
+		filepath.Join(root, "instances.txt"), catalog.Items, catalog.Skills)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return volatiles
+}
 
 // TestCadaCodigoVolatileRealTemContratoExplicito cria um subteste independente
 // para CADA EF_VOLATILE encontrado no itemlist autoritativo. Isso torna a
@@ -19,11 +31,7 @@ func TestCadaCodigoVolatileRealTemContratoExplicito(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
-		catalog.Items, catalog.Skills)
-	if err != nil {
-		t.Fatal(err)
-	}
+	volatiles := loadRealVolatiles(t, root, catalog)
 	itemsByCode := make(map[int][]uint16, len(volatiles.Codes))
 	for itemID, code := range volatiles.ItemCodes {
 		itemsByCode[code] = append(itemsByCode[code], itemID)
@@ -67,11 +75,7 @@ func TestCatalogoVolatileMantemContagemAutoritativa(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
-		catalog.Items, catalog.Skills)
-	if err != nil {
-		t.Fatal(err)
-	}
+	volatiles := loadRealVolatiles(t, root, catalog)
 	if got, want := len(volatiles.ItemCodes), 355; got != want {
 		t.Fatalf("itens com EF_VOLATILE=%d, quer %d", got, want)
 	}
@@ -87,11 +91,7 @@ func TestMountRecoveryECatalisadoresResolvemContratosNativos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
-		catalog.Items, catalog.Skills)
-	if err != nil {
-		t.Fatal(err)
-	}
+	volatiles := loadRealVolatiles(t, root, catalog)
 	tests := []struct {
 		item             uint16
 		code             int
@@ -119,11 +119,7 @@ func TestPremiumFirecrackerTemContratoCustomSemAlterarFogosComuns(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
-		catalog.Items, catalog.Skills)
-	if err != nil {
-		t.Fatal(err)
-	}
+	volatiles := loadRealVolatiles(t, root, catalog)
 	premium, code, ok := volatiles.Rule(3442)
 	if !ok || code != 19 || premium.Action != "firework" ||
 		!premium.Consume || !premium.CustomPattern {
@@ -145,11 +141,7 @@ func TestItensLoveResolvemSkillDataParaAffectsReais(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
-		catalog.Items, catalog.Skills)
-	if err != nil {
-		t.Fatal(err)
-	}
+	volatiles := loadRealVolatiles(t, root, catalog)
 	expected := []struct {
 		skillID, affectType, affectValue int
 	}{
@@ -191,11 +183,7 @@ func TestTodoVolatileTemLoja(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volateis, err := LoadVolatiles(filepath.Join(raiz, "volatiles.json"),
-		catalogo.Items, catalogo.Skills)
-	if err != nil {
-		t.Fatal(err)
-	}
+	volateis := loadRealVolatiles(t, raiz, catalogo)
 	npcs, err := LoadNPCs(filepath.Join(raiz, "npcs"))
 	if err != nil {
 		t.Fatal(err)
@@ -270,11 +258,7 @@ func TestInstanciasDeItemReferenciamNPCExistente(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
-		catalog.Items, catalog.Skills)
-	if err != nil {
-		t.Fatal(err)
-	}
+	volatiles := loadRealVolatiles(t, root, catalog)
 	npcs, err := LoadNPCs(filepath.Join(root, "npcs"))
 	if err != nil {
 		t.Fatal(err)
@@ -311,11 +295,7 @@ func TestCatalogoRealNaoTemVolatileGenerico(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatiles(filepath.Join(root, "volatiles.json"),
-		catalog.Items, catalog.Skills)
-	if err != nil {
-		t.Fatal(err)
-	}
+	volatiles := loadRealVolatiles(t, root, catalog)
 	var generic, celestial []uint16
 	for itemID := range volatiles.ItemCodes {
 		rule, _, ok := volatiles.Rule(itemID)

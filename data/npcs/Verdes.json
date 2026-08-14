@@ -1,0 +1,274 @@
+{
+  "name": "Verdes",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 16
+    },
+    "elmo": {
+      "index": 139
+    },
+    "armadura": {
+      "index": 140
+    },
+    "calca": {
+      "index": 141
+    },
+    "luva": {
+      "index": 142
+    },
+    "bota": {
+      "index": 143
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 769,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "extendedScore": {
+    "version": 2,
+    "level": 301,
+    "attack": 15000,
+    "magicAttack": 0,
+    "defense": 15000,
+    "maxHP": 29000,
+    "maxMP": 0,
+    "curHP": 29000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 1
+  },
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 683
+    },
+    {
+      "index": 689
+    },
+    {
+      "index": 410
+    },
+    {
+      "index": 411
+    },
+    {
+      "index": 699
+    },
+    {
+      "index": 700
+    },
+    {
+      "index": 697
+    },
+    {
+      "index": 774
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 776
+    },
+    {
+      "index": 421
+    },
+    {
+      "index": 427
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 439
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 440
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 441
+    }
+  ]
+}

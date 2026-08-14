@@ -1,7 +1,7 @@
 package game
 
 import (
-	"strconv"
+	"errors"
 	"testing"
 	"time"
 
@@ -9,14 +9,7 @@ import (
 )
 
 func fairyTestDef(index uint16, days int) model.ItemDef {
-	def := model.ItemDef{
-		Index: index,
-		DynamicEffectNames: map[byte]string{
-			1: "EF_WDAY",
-			2: "EF_HOUR",
-			3: "EF_MIN",
-		},
-	}
+	def := model.ItemDef{Index: index}
 	if days > 0 {
 		def.StaticEffects = []model.StaticEffect{
 			{Name: "EF_WDAY", Value: days},
@@ -47,38 +40,22 @@ func fairyTestWorld() *World {
 	return &World{items: items}
 }
 
-func fairyWithMinutes(t *testing.T, w *World, index uint16, minutes int) model.Item {
-	t.Helper()
-	item := model.Item{Index: index}
-	def := w.items[index]
-	if !writeFairyTimerMinutes(&item, def, minutes) {
-		t.Fatalf("writeFairyTimerMinutes(%d, %d) failed", index, minutes)
-	}
-	return item
-}
-
 func TestFairyBonusMatrix(t *testing.T) {
 	w := fairyTestWorld()
-	tests := []struct {
+	for _, tc := range []struct {
 		name      string
 		index     uint16
 		exp, drop int
-		inherited bool
 	}{
 		{name: "green", index: 3900, exp: 16},
 		{name: "blue", index: 3901, drop: 32},
 		{name: "red", index: 3902, exp: 8, drop: 16},
 		{name: "silver", index: 3914, exp: 16, drop: 32},
 		{name: "gold", index: 3915, exp: 24, drop: 48},
-	}
-	for _, tc := range tests {
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ch := &model.Char{}
-			if tc.inherited {
-				ch.Equip[fairySlot] = fairyWithMinutes(t, w, tc.index, 60)
-			} else {
-				ch.Equip[fairySlot] = model.Item{Index: tc.index}
-			}
+			ch.Equip[fairySlot] = model.Item{Index: tc.index}
 			got := w.activeFairyBonus(ch)
 			if got.expPercent != tc.exp || got.dropPercent != tc.drop {
 				t.Fatalf("bonus=%+v, want exp=%d drop=%d", got, tc.exp, tc.drop)
@@ -87,107 +64,53 @@ func TestFairyBonusMatrix(t *testing.T) {
 	}
 }
 
-func TestFairyTimerStartsEquippedAndPausesUnequipped(t *testing.T) {
+func TestFairyFirstEquipUsesUIDBoundAbsoluteDeadline(t *testing.T) {
 	w := fairyTestWorld()
+	now := time.Unix(1_700_000_000, 0).UTC()
+	item := model.Item{Index: 3900, UID: "11111111111141118111111111111111"}
+	changed, err := w.activateTimedItem(&item, fairySlot, now)
+	if err != nil || !changed {
+		t.Fatalf("activation changed=%t err=%v", changed, err)
+	}
+	if item.ActivatedUnix != now.Unix() || item.ExpiresUnix != now.Add(3*24*time.Hour).Unix() {
+		t.Fatalf("unexpected deadline: %+v", item)
+	}
+	before := item
+	changed, err = w.activateTimedItem(&item, fairySlot, now.Add(time.Hour))
+	if err != nil || changed || item != before {
+		t.Fatalf("second equip reset deadline: changed=%t err=%v item=%+v", changed, err, item)
+	}
+}
+
+func TestFairyDeadlineContinuesUnequippedAndOffline(t *testing.T) {
+	w := fairyTestWorld()
+	now := time.Unix(1_700_000_000, 0).UTC()
+	item := model.Item{Index: 3902, UID: "22222222222242228222222222222222"}
+	if _, err := w.activateTimedItem(&item, fairySlot, now); err != nil {
+		t.Fatal(err)
+	}
+	// The deadline belongs to the UID, not to a Player clock or an equipment
+	// slot. Moving/relogging cannot pause or reset it.
+	copyInInventory := item
+	if copyInInventory.ExpiresUnix != now.Add(3*24*time.Hour).Unix() {
+		t.Fatalf("deadline changed outside equipment: %+v", copyInInventory)
+	}
+	if _, err := w.activateTimedItem(&copyInInventory, fairySlot, now.Add(4*24*time.Hour)); !errors.Is(err, errTimedItemExpired) {
+		t.Fatalf("expired fairy accepted after offline time: %v", err)
+	}
+}
+
+func TestExpiredFairyProvidesNoBonus(t *testing.T) {
+	w := fairyTestWorld()
+	w.clock = newFakeClock(time.Unix(1_700_000_000, 0))
 	ch := &model.Char{}
-	ch.Equip[fairySlot] = model.Item{Index: 3900}
-	p := &Player{Char: ch, InWorld: true}
-	now := time.Unix(1_700_000_000, 0)
-
-	// Primeiro tick apos equip/login materializa 3 dias, mas nao cobra um
-	// minuto que o personagem nao passou equipado no servidor.
-	w.tickEquippedFairy(p, now)
-	remaining, ok := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3900])
-	if !ok || remaining != 3*24*60 {
-		t.Fatalf("remaining=%d ok=%v, want %d", remaining, ok, 3*24*60)
-	}
-
-	p.NextFairyTick = now
-	w.tickEquippedFairy(p, now)
-	remaining, _ = fairyTimerMinutes(ch.Equip[fairySlot], w.items[3900])
-	if remaining != 3*24*60-1 {
-		t.Fatalf("equipped remaining=%d, want %d", remaining, 3*24*60-1)
-	}
-
-	// Desequipar move o mesmo item/UID para Carry. Mesmo com o deadline vencido,
-	// o timer nao e tocado fora do Equip[13].
-	ch.Inv[0], ch.Equip[fairySlot] = ch.Equip[fairySlot], model.Item{}
-	paused, _ := fairyTimerMinutes(ch.Inv[0], w.items[3900])
-	p.NextFairyTick = now
-	w.tickEquippedFairy(p, now.Add(24*time.Hour))
-	stillPaused, _ := fairyTimerMinutes(ch.Inv[0], w.items[3900])
-	if stillPaused != paused {
-		t.Fatalf("unequipped timer moved: %d -> %d", paused, stillPaused)
-	}
-
-	// Reequipar continua exatamente do saldo salvo; nao reinicializa 3 dias.
-	ch.Equip[fairySlot], ch.Inv[0] = ch.Inv[0], model.Item{}
-	p.NextFairyTick = time.Time{}
-	w.tickEquippedFairy(p, now.Add(24*time.Hour))
-	resumed, _ := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3900])
-	if resumed != paused {
-		t.Fatalf("reequip reset timer: got %d want %d", resumed, paused)
-	}
-	p.NextFairyTick = now.Add(24 * time.Hour)
-	w.tickEquippedFairy(p, now.Add(24*time.Hour))
-	resumed, _ = fairyTimerMinutes(ch.Equip[fairySlot], w.items[3900])
-	if resumed != paused-1 {
-		t.Fatalf("reequip countdown=%d, want %d", resumed, paused-1)
+	ch.Equip[fairySlot] = model.Item{Index: 3915, ActivatedUnix: 1, ExpiresUnix: 2}
+	if got := w.activeFairyBonus(ch); got != (fairyBonus{}) {
+		t.Fatalf("expired fairy bonus=%+v", got)
 	}
 }
 
-func TestFairyTimerDoesNotAdvanceOffline(t *testing.T) {
-	w := fairyTestWorld()
-	ch := &model.Char{}
-	ch.Equip[fairySlot] = fairyWithMinutes(t, w, 3902, 1234)
-	p := &Player{Char: ch, InWorld: false, NextFairyTick: time.Unix(1, 0)}
-
-	w.tickEquippedFairy(p, time.Unix(1, 0).Add(30*24*time.Hour))
-	remaining, _ := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3902])
-	if remaining != 1234 {
-		t.Fatalf("offline timer=%d, want 1234", remaining)
-	}
-}
-
-func TestFairyTimerIsIndependentFromMountFoodClock(t *testing.T) {
-	w := fairyTestWorld()
-	ch := &model.Char{}
-	ch.Equip[fairySlot] = fairyWithMinutes(t, w, 3900, 10)
-	now := time.Unix(1_700_000_000, 0)
-	p := &Player{
-		Char:          ch,
-		InWorld:       true,
-		NextFairyTick: now,
-		NextMountTick: now.Add(time.Hour),
-	}
-
-	w.tickEquippedFairy(p, now)
-	remaining, _ := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3900])
-	if remaining != 9 {
-		t.Fatalf("fairy timer followed mount clock: remaining=%d, want 9", remaining)
-	}
-	if !p.NextMountTick.Equal(now.Add(time.Hour)) {
-		t.Fatalf("fairy changed mount food deadline: %v", p.NextMountTick)
-	}
-}
-
-func TestSilverAndGoldPreserveInheritedTimer(t *testing.T) {
-	w := fairyTestWorld()
-	for _, index := range []uint16{3914, 3915} {
-		t.Run(strconv.Itoa(int(index)), func(t *testing.T) {
-			item := fairyWithMinutes(t, w, index, 2*24*60+3*60+4)
-			before := item
-			if !w.initializeFairyTimer(&item) {
-				t.Fatalf("initializeFairyTimer(%d) rejected inherited timer", index)
-			}
-			if item != before {
-				t.Fatalf("fairy %d inherited timer changed: before=%v after=%v", index, before.Eff, item.Eff)
-			}
-		})
-	}
-}
-
-func TestDirectSilverUsesStaticCatalogDuration(t *testing.T) {
+func TestDirectSilverUsesCatalogDuration(t *testing.T) {
 	w := fairyTestWorld()
 	ch := &model.Char{}
 	ch.Equip[fairySlot] = model.Item{Index: 3914}
@@ -195,21 +118,6 @@ func TestDirectSilverUsesStaticCatalogDuration(t *testing.T) {
 		t.Fatalf("direct silver bonus=%+v", got)
 	}
 	if !w.hasActiveSilverFairy(ch) {
-		t.Fatal("direct silver with catalog duration must enable Water automation")
-	}
-	p := &Player{Char: ch, InWorld: true}
-	w.tickEquippedFairy(p, time.Unix(1_700_000_000, 0))
-	remaining, ok := fairyTimerMinutes(ch.Equip[fairySlot], w.items[3914])
-	if !ok || remaining != 7*24*60 {
-		t.Fatalf("direct silver timer=%d ok=%v, want %d", remaining, ok, 7*24*60)
-	}
-}
-
-func TestExpiredFairyProvidesNoBonus(t *testing.T) {
-	w := fairyTestWorld()
-	ch := &model.Char{}
-	ch.Equip[fairySlot] = fairyWithMinutes(t, w, 3915, 0)
-	if got := w.activeFairyBonus(ch); got != (fairyBonus{}) {
-		t.Fatalf("expired fairy bonus=%+v", got)
+		t.Fatal("active silver fairy must enable Water automation")
 	}
 }

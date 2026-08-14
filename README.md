@@ -398,12 +398,18 @@ host firewall, and keep PostgreSQL and the diagnostic HTTP endpoint private.
 The client package contains 135 costumes imported from the supplied current KR
 clients. Their exact male, female, or dynamic body mapping and per-part assets
 are installed by the reproducible patch chain. Five `ShopCostum*` merchants in
-Armia expose at most 27 costumes each. These visual-test items are permanent;
-no fake 30-day timer is advertised.
+Armia expose at most 27 costumes each. Every costume grants 80 defense and 10%
+mana saving and expires 30 calendar days after its first equip.
 
-It also contains 45 KR mount appearances with complete source dependencies ported as standalone 7.48 mounts.
-They reuse the Shire item contract and change only the rendered mount model;
-`ShopKRMt01` and `ShopKRMt02` expose them in Armia (26 + 19 items).
+It also contains 59 KR mount appearances with complete source dependencies ported as standalone 7.48 mounts.
+They set movement speed to the server maximum of 6, grant +520 physical damage and +65% magic attack, and
+expire 30 calendar days after first equip. `ShopKRMt01`, `ShopKRMt02`, and
+`ShopKRMt03` expose them in Armia (26 + 19 + 14 items).
+
+Premium deadlines are server-authoritative metadata bound to the item's UID.
+They continue while the item is unequipped or the account is offline, never
+restart on trade or relogin, and are not trusted from the 7.48 packet. Fairies
+use the same absolute UID-bound expiration system.
 
 ## Do the static checks
 
@@ -491,6 +497,7 @@ them.
 | `NPCGener.txt` + `npcs/*.json` | NPC and mob spawns, statistics, shop items |
 | `character_templates.json` | start statistics and items for each class |
 | `volatiles.json` | server behavior for each consumable item-effect code |
+| `instances.txt` | instance templates, rooms, waves, tickets, and state machines |
 | `repliction.json` | native paired bonus pools and A–E Repliction limits |
 | `mounts.json` | combat bonus for each mount type |
 | `quests.json` | quest definitions and prerequisites |

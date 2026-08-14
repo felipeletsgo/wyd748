@@ -36,14 +36,17 @@ func ClampCP(value int) int16 {
 
 func clampCP(value int16) int16 { return ClampCP(int(value)) }
 
-// Item contem o STRUCT_ITEM nativo (Index+Eff = 8 bytes) e a identidade
-// exclusivamente server-side da instancia. UID nunca e serializado no wire:
-// lojas/NPCs/templates usam UID vazio como blueprint; itens pertencentes a uma
-// conta ou soltos no mundo recebem um UID ao serem materializados.
+// Item contem o STRUCT_ITEM nativo (Index+Eff = 8 bytes), a identidade da
+// instancia e seu eventual prazo absoluto. UID e datas existem somente no
+// servidor e nunca sao serializados no wire: lojas/NPCs/templates usam UID
+// vazio como blueprint; itens materializados carregam a mesma identidade e o
+// mesmo prazo ao passar por inventario, Cargo, trade e relogin.
 type Item struct {
-	Index uint16  `json:"index"`
-	UID   string  `json:"uid,omitempty"`
-	Eff   [6]byte `json:"eff,omitempty"`
+	Index         uint16  `json:"index"`
+	UID           string  `json:"uid,omitempty"`
+	Eff           [6]byte `json:"eff,omitempty"`
+	ActivatedUnix int64   `json:"activatedUnix,omitempty"`
+	ExpiresUnix   int64   `json:"expiresUnix,omitempty"`
 }
 
 // MarshalJSON omite o campo "eff" quando esta todo zerado -- "omitempty" NAO
@@ -51,9 +54,11 @@ type Item struct {
 func (it Item) MarshalJSON() ([]byte, error) {
 	if it.Eff == [6]byte{} {
 		return json.Marshal(struct {
-			Index uint16 `json:"index"`
-			UID   string `json:"uid,omitempty"`
-		}{Index: it.Index, UID: it.UID})
+			Index         uint16 `json:"index"`
+			UID           string `json:"uid,omitempty"`
+			ActivatedUnix int64  `json:"activatedUnix,omitempty"`
+			ExpiresUnix   int64  `json:"expiresUnix,omitempty"`
+		}{Index: it.Index, UID: it.UID, ActivatedUnix: it.ActivatedUnix, ExpiresUnix: it.ExpiresUnix})
 	}
 	type alias Item
 	return json.Marshal(alias(it))
@@ -807,6 +812,23 @@ func (a *Account) Validate() error {
 		return fmt.Errorf("conta %q possui %d personagens; maximo 4", a.Name, len(a.Chars))
 	}
 	activeUIDs := make(map[string]struct{}, len(a.Chars))
+	validateItemTime := func(item Item, location string) error {
+		if item.ActivatedUnix < 0 || item.ExpiresUnix < 0 ||
+			(item.ActivatedUnix == 0) != (item.ExpiresUnix == 0) ||
+			item.ExpiresUnix != 0 && item.ExpiresUnix < item.ActivatedUnix {
+			return fmt.Errorf("conta %q possui prazo de item invalido em %s", a.Name, location)
+		}
+		if item.Index == 0 && (item.UID != "" || item.ActivatedUnix != 0 || item.ExpiresUnix != 0) {
+			return fmt.Errorf("conta %q possui item vazio com identidade/prazo em %s", a.Name, location)
+		}
+		if item.ActivatedUnix != 0 {
+			uid, err := NormalizeItemUID(item.UID)
+			if err != nil || uid == "" || uid != item.UID {
+				return fmt.Errorf("conta %q possui item temporizado sem UID canonico em %s", a.Name, location)
+			}
+		}
+		return nil
+	}
 	for i := range a.Chars {
 		character := &a.Chars[i]
 		if character.Name == "" {
@@ -849,6 +871,21 @@ func (a *Account) Validate() error {
 		if character.Inv[PlayerCarrySlots].Index != 0 {
 			return fmt.Errorf("conta %q personagem[%d] %q ocupa slot de inventario reservado %d",
 				a.Name, i, character.Name, PlayerCarrySlots)
+		}
+		for slot := range character.Equip {
+			if err := validateItemTime(character.Equip[slot], fmt.Sprintf("personagem[%d].equip[%d]", i, slot)); err != nil {
+				return err
+			}
+		}
+		for slot := range character.Inv {
+			if err := validateItemTime(character.Inv[slot], fmt.Sprintf("personagem[%d].inv[%d]", i, slot)); err != nil {
+				return err
+			}
+		}
+	}
+	for i := range a.Cargo {
+		if err := validateItemTime(a.Cargo[i], fmt.Sprintf("cargo[%d]", i)); err != nil {
+			return err
 		}
 	}
 	for i := PlayerCargoSlots; i < MaxCargo; i++ {

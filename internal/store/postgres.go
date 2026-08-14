@@ -29,7 +29,7 @@ import (
 var postgresSchema string
 
 const postgresWriteQueueSize = 2048
-const postgresSchemaVersion = 3
+const postgresSchemaVersion = 4
 const postgresOperationTimeout = 10 * time.Second
 const postgresStartupTimeout = 30 * time.Second
 const postgresAutosaveBatchSize = 64
@@ -58,11 +58,13 @@ type PostgresConfig struct {
 }
 
 type postgresItem struct {
-	uid      string
-	dbUID    pgtype.UUID
-	location string
-	index    uint16
-	effects  [6]byte
+	uid           string
+	dbUID         pgtype.UUID
+	location      string
+	index         uint16
+	effects       [6]byte
+	activatedUnix int64
+	expiresUnix   int64
 }
 
 type postgresCharacter struct {
@@ -639,8 +641,8 @@ func snapshotAccount(acc *model.Account) (*accountSnapshot, error) {
 	for _, ref := range accountItemRefs(acc) {
 		item := ref.item
 		if item.Index == 0 {
-			if item.UID != "" {
-				return nil, fmt.Errorf("store: conta %q %s vazio possui UID", acc.Name, ref.location)
+			if item.UID != "" || item.ActivatedUnix != 0 || item.ExpiresUnix != 0 {
+				return nil, fmt.Errorf("store: conta %q %s vazio possui identidade/prazo", acc.Name, ref.location)
 			}
 			continue
 		}
@@ -668,6 +670,7 @@ func snapshotAccount(acc *model.Account) (*accountSnapshot, error) {
 		snapshot.items = append(snapshot.items, postgresItem{
 			uid: uid, dbUID: pgtype.UUID{Bytes: databaseUID, Valid: true},
 			location: ref.location, index: item.Index, effects: item.Eff,
+			activatedUnix: item.ActivatedUnix, expiresUnix: item.ExpiresUnix,
 		})
 	}
 	for i := range acc.Chars {
@@ -936,6 +939,8 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 		uid, account, location string
 		index                  uint16
 		effects                [6]byte
+		activatedUnix          int64
+		expiresUnix            int64
 	}
 	desired := make(map[string]struct {
 		account string
@@ -954,7 +959,8 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 	existing := make(map[string]storedItem)
 	if len(keys) != 0 {
 		rows, err := tx.Query(ctx, `
-			SELECT replace(uid::text,'-',''),account_key,location,item_index,effects
+			SELECT replace(uid::text,'-',''),account_key,location,item_index,effects,
+			       activated_unix,expires_unix
 			FROM item_instances WHERE account_key=ANY($1)`, keys)
 		if err != nil {
 			return err
@@ -963,7 +969,8 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 			var row storedItem
 			var index int
 			var effects []byte
-			if err := rows.Scan(&row.uid, &row.account, &row.location, &index, &effects); err != nil {
+			if err := rows.Scan(&row.uid, &row.account, &row.location, &index, &effects,
+				&row.activatedUnix, &row.expiresUnix); err != nil {
 				rows.Close()
 				return err
 			}
@@ -981,7 +988,8 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 	for uid, current := range existing {
 		want, ok := desired[uid]
 		if ok && current.account == want.account && current.location == want.item.location &&
-			current.index == want.item.index && current.effects == want.item.effects {
+			current.index == want.item.index && current.effects == want.item.effects &&
+			current.activatedUnix == want.item.activatedUnix && current.expiresUnix == want.item.expiresUnix {
 			continue
 		}
 		if _, err := tx.Exec(ctx, `DELETE FROM item_instances WHERE uid=$1`, currentUID(current.uid)); err != nil {
@@ -999,15 +1007,18 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 	for uid := range changed {
 		want := desired[uid]
 		tag, err := tx.Exec(ctx, `
-			INSERT INTO item_instances(uid,account_key,location,item_index,effects)
-			VALUES ($1,$2,$3,$4,$5)
+			INSERT INTO item_instances(uid,account_key,location,item_index,effects,activated_unix,expires_unix)
+			VALUES ($1,$2,$3,$4,$5,$6,$7)
 			ON CONFLICT(uid) DO UPDATE SET
 				location=EXCLUDED.location,
 				item_index=EXCLUDED.item_index,
-				effects=EXCLUDED.effects
+				effects=EXCLUDED.effects,
+				activated_unix=EXCLUDED.activated_unix,
+				expires_unix=EXCLUDED.expires_unix
 			WHERE item_instances.account_key=EXCLUDED.account_key`,
 			want.item.dbUID, want.account, want.item.location,
-			int(want.item.index), want.item.effects[:])
+			int(want.item.index), want.item.effects[:],
+			want.item.activatedUnix, want.item.expiresUnix)
 		if err != nil {
 			if isUniqueViolation(err) {
 				return fmt.Errorf("store: UID de item duplicado %s: %w", uid, err)
