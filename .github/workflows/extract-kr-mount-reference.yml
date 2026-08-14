@@ -11,17 +11,23 @@ jobs:
   extract:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout KR reference including LFS
+      - name: Checkout pointers only
         uses: actions/checkout@v4
         with:
-          lfs: true
+          lfs: false
+
+      - name: Fetch only mount reference LFS objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          git lfs install --local
+          git lfs pull --include="CLIENTS/WYD/ItemList.bin,CLIENTS/WYD/MountDataV.bin" --exclude="*"
 
       - name: Verify reference identities
         shell: bash
         run: |
           set -euo pipefail
-          sha256sum CLIENTS/WYD/WYD.exe CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin
-          test "$(stat -c%s CLIENTS/WYD/WYD.exe)" = "6396720"
+          sha256sum CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin
           test "$(stat -c%s CLIENTS/WYD/ItemList.bin)" = "2494004"
           test "$(stat -c%s CLIENTS/WYD/MountDataV.bin)" = "14004"
 
