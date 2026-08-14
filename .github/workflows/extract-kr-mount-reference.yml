@@ -1,0 +1,36 @@
+name: Extract KR mount reference
+
+on:
+  push:
+    branches:
+      - agent/kr-mount-fix
+    paths:
+      - .github/workflows/extract-kr-mount-reference.yml
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout KR reference including LFS
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Verify reference identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum CLIENTS/WYD/WYD.exe CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin
+          test "$(stat -c%s CLIENTS/WYD/WYD.exe)" = "6396720"
+          test "$(stat -c%s CLIENTS/WYD/ItemList.bin)" = "2494004"
+          test "$(stat -c%s CLIENTS/WYD/MountDataV.bin)" = "14004"
+
+      - name: Upload mount reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: kr-mount-reference
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            CLIENTS/WYD/ItemList.bin
+            CLIENTS/WYD/MountDataV.bin
