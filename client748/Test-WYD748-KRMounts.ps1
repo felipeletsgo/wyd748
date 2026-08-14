@@ -13,6 +13,21 @@ $entrySize = 24
 function Assert-Bytes([byte[]]$Data,[int]$Offset,[byte[]]$Expected,[string]$Name) {
     for($i=0;$i-lt$Expected.Length;$i++){if($Data[$Offset+$i]-ne$Expected[$i]){throw "$Name divergiu em 0x$('{0:X}'-f($Offset+$i))"}}
 }
+
+# Regressao de fidelidade: uma variante numerica ausente nao pode ser fabricada
+# copiando o vizinho. SetMountCostume escolhe Mesh/Skin numericamente e o
+# TMSkinMesh deriva o pathname desse numero; substituir 112 por 113 (ou 117 por
+# 115) mascara asset faltante e mistura geometria/UV/material sem evidencia.
+$assetInstaller = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Patch-WYD748-KRMountAssets.ps1') -Raw
+if($assetInstaller.Contains('compatibleAssetFallbacks')){throw 'installer de montarias voltou a aceitar fallback de asset inventado'}
+foreach($forbidden in @(
+    "'mesh\\hs010117.wys' = 'mesh\\hs010115.wys'",
+    "'mesh\\KK010112.msh' = 'mesh\\KK010113.msh'",
+    "'mesh\\KK010112.wys' = 'mesh\\KK010113.wys'"
+)){
+    if($assetInstaller.Contains($forbidden)){throw "alias de asset proibido reapareceu: $forbidden"}
+}
+
 if((Get-FileHash -LiteralPath $Executable -Algorithm SHA256).Hash.ToUpperInvariant()-ne$expectedHash){throw 'SHA do WYD.exe com montarias KR divergiu'}
 $definition=Get-Content -LiteralPath $Manifest -Raw|ConvertFrom-Json
 $items=@($definition.items|Sort-Object item)
