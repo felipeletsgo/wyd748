@@ -21,12 +21,14 @@ jobs:
         run: |
           set -euo pipefail
           git lfs install --local
-          git lfs pull --include="CLIENTS/WYD/ItemList.bin,CLIENTS/WYD/MountDataV.bin" --exclude="*"
+          git lfs fetch origin HEAD --include="CLIENTS/WYD/ItemList.bin,CLIENTS/WYD/MountDataV.bin"
+          git lfs checkout CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin
 
       - name: Verify reference identities
         shell: bash
         run: |
           set -euo pipefail
+          stat -c '%n %s' CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin
           sha256sum CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin
           test "$(stat -c%s CLIENTS/WYD/ItemList.bin)" = "2494004"
           test "$(stat -c%s CLIENTS/WYD/MountDataV.bin)" = "14004"
