@@ -83,32 +83,21 @@ jobs:
           "KR_ITEM_HASH=$cleanItemHash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "KR_TEXTURE_HASH=$cleanTextureHash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Rebuild animation tables through field-wise ValidIndex translation
+      - name: Rebuild ValidIndex through field-wise translation
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $aniExpected = '3DCA7A996966ECF5C281F90445ED3A2C783A7203C739D3B779DFB09E0D02F47D'
           $boneExpected = 'CAE8913A984CE10C7D2755DFFEEE6939EB24E02E5CB243BE42A8270C37BD314B'
-          $legacyValidHash = '37A669140DDEEAB48435CAE6EFE9DCBBA0CCFEFAAAAB8D1F58701D28FCD8DC76'
-          $assetScript = '.\client748\Patch-WYD748-KRMountAssets.ps1'
-          python -c "import pathlib,subprocess; pathlib.Path(r'client748/AniSound4.txt').write_bytes(subprocess.check_output(['git','show','cb4b43af4587ef3b8538a73221311598495a54dd:client748/AniSound4.txt']))"
-          python -c "import pathlib,subprocess; pathlib.Path(r'client748/mesh/BoneAni4.txt').write_bytes(subprocess.check_output(['git','show','cb4b43af4587ef3b8538a73221311598495a54dd:client748/mesh/BoneAni4.txt']))"
+          $validExpected = '37A669140DDEEAB48435CAE6EFE9DCBBA0CCFEFAAAAB8D1F58701D28FCD8DC76'
+          if ((Get-FileHash .\client748\AniSound4.txt -Algorithm SHA256).Hash.ToUpperInvariant() -ne $aniExpected) { throw 'canonical AniSound changed before mount translation' }
+          if ((Get-FileHash .\client748\mesh\BoneAni4.txt -Algorithm SHA256).Hash.ToUpperInvariant() -ne $boneExpected) { throw 'canonical BoneAni changed before mount translation' }
           python -c "import pathlib,subprocess; pathlib.Path(r'client748/mesh/ValidIndex.bin').write_bytes(subprocess.check_output(['git','show','cb4b43af4587ef3b8538a73221311598495a54dd:client748/mesh/ValidIndex.bin']))"
-          try {
-            & $assetScript -ClientRoot .\client748
-          } catch {
-            $aniHash = (Get-FileHash .\client748\AniSound4.txt -Algorithm SHA256).Hash.ToUpperInvariant()
-            $boneHash = (Get-FileHash .\client748\mesh\BoneAni4.txt -Algorithm SHA256).Hash.ToUpperInvariant()
-            $validHash = (Get-FileHash .\client748\mesh\ValidIndex.bin -Algorithm SHA256).Hash.ToUpperInvariant()
-            Write-Host "Field-wise table hashes: AniSound=$aniHash BoneAni=$boneHash ValidIndex=$validHash"
-            if ($aniHash -ne $aniExpected) { throw "AniSound changed unexpectedly: $aniHash" }
-            if ($boneHash -ne $boneExpected) { throw "BoneAni changed unexpectedly: $boneHash" }
-            if ($validHash -eq $legacyValidHash) { throw 'field-wise ValidIndex unexpectedly retained legacy raw-copy hash' }
-            $text = [IO.File]::ReadAllText($assetScript)
-            if (-not $text.Contains($legacyValidHash)) { throw 'legacy ValidIndex hash marker not found in asset script' }
-            [IO.File]::WriteAllText($assetScript,$text.Replace($legacyValidHash,$validHash),[Text.UTF8Encoding]::new($false))
-            & $assetScript -ClientRoot .\client748 -VerifyOnly
-          }
+          if ((Get-FileHash .\client748\mesh\ValidIndex.bin -Algorithm SHA256).Hash.ToUpperInvariant() -eq $validExpected) { throw 'pre-mount ValidIndex unexpectedly already contains KR types' }
+          & .\client748\Patch-WYD748-KRMountAssets.ps1 -ClientRoot .\client748
+          $validHash = (Get-FileHash .\client748\mesh\ValidIndex.bin -Algorithm SHA256).Hash.ToUpperInvariant()
+          if ($validHash -ne $validExpected) { throw "field-wise ValidIndex output diverged: $validHash" }
+          Write-Host "Field-wise ValidIndex reproduced canonical SHA-256 $validHash without foreign block copying."
 
       - name: Rebuild WYD.exe from the untouched 7.48 original
         shell: pwsh
