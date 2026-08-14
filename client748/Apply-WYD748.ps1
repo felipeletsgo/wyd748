@@ -108,12 +108,14 @@ $steps = @(
     [pscustomobject]@{
         Number = 7; Name = 'colecao de montarias KR'; Script = 'Patch-WYD748-KRMounts.ps1'
         Input = '4A2AA37228A720ED389F5AC8A5978329855932B93E54FA0501B51A3A23316DEF'
-        Output = 'F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D'
+        Output = '556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F'
     }
 )
 
 $current = Get-Sha $Executable
 $legacyKRVisualHashes = @(
+    # Build de 47 montarias anterior a disponibilidade estrita e offsets KR nativos.
+    'F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D',
     # Build anterior ao marcador exclusivo de trajes e ao suporte de R para
     # todas as montarias KR.
     '738FEBA396B4273721F63B17F044DA0AEFFAC20ECF9EFA195BE603E427775D53',

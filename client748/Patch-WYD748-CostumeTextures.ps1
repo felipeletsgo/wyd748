@@ -72,17 +72,30 @@ function Test-TextureSet([byte[]]$Data, [object[]]$Wanted) {
     return $true
 }
 
+function Test-TextureNamesAbsent([byte[]]$Data, [object[]]$Textures) {
+    $index = Get-TextureIndex $Data
+    foreach ($texture in $Textures) {
+        if ($index.ByName.ContainsKey(([string]$texture.name).ToLowerInvariant())) { return $false }
+    }
+    return $true
+}
+
 if (-not (Test-Path -LiteralPath $MeshTextureList -PathType Leaf)) { throw "MeshTextureList.bin ausente: $MeshTextureList" }
 if (-not (Test-Path -LiteralPath $Manifest -PathType Leaf)) { throw "manifesto de trajes ausente: $Manifest" }
 if (-not (Test-Path -LiteralPath $MountManifest -PathType Leaf)) { throw "manifesto de montarias ausente: $MountManifest" }
 
 $definition = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
 $mountDefinition = Get-Content -LiteralPath $MountManifest -Raw | ConvertFrom-Json
+$mountCatalogTextures = @($mountDefinition.textures)
+$mountTextures = @($mountCatalogTextures | Where-Object { $_.available -ne $false })
+$unavailableMountTextures = @($mountCatalogTextures | Where-Object { $_.available -eq $false })
 if (@($definition.textures).Count -ne 176) { throw "manifesto de trajes possui $(@($definition.textures).Count) texturas; esperado 176" }
-if (@($mountDefinition.textures).Count -ne 50) { throw "manifesto de montarias possui $(@($mountDefinition.textures).Count) texturas; esperado 50" }
+if ($mountCatalogTextures.Count -ne 50 -or $mountTextures.Count -ne 48 -or $unavailableMountTextures.Count -ne 2) {
+    throw "manifesto de montarias possui catalogo=$($mountCatalogTextures.Count), disponiveis=$($mountTextures.Count), indisponiveis=$($unavailableMountTextures.Count); esperado 50/48/2"
+}
 
 $wantedByName = @{}
-foreach ($texture in @($definition.textures) + @($mountDefinition.textures)) {
+foreach ($texture in @($definition.textures) + $mountTextures) {
     $key = ([string]$texture.name).ToLowerInvariant()
     $sourceAlpha = [int]$texture.alpha
     if ($sourceAlpha -notin @([byte][char]'A', [byte][char]'C', [byte][char]'N', [byte][char]'a')) {
@@ -96,16 +109,33 @@ foreach ($texture in @($definition.textures) + @($mountDefinition.textures)) {
     $wantedByName[$key] = $legacyTexture
 }
 $wanted = @($wantedByName.Values | Sort-Object name)
-if ($wanted.Count -ne 226) { throw "colecao visual possui $($wanted.Count) texturas unicas; esperado 226" }
+if ($wanted.Count -ne 224) { throw "colecao visual possui $($wanted.Count) texturas unicas; esperado 224" }
 
 $current = [IO.File]::ReadAllBytes($MeshTextureList)
 if ($current.Length -ne $recordCount * $recordSize) { throw "MeshTextureList.bin com tamanho inesperado: $($current.Length)" }
-if (Test-TextureSet $current $wanted) {
-    Write-Host "Todas as $($wanted.Count) texturas KR de trajes e montarias ja estao registradas."
+$hasWanted = Test-TextureSet $current $wanted
+$unavailableAbsent = Test-TextureNamesAbsent $current $unavailableMountTextures
+if ($hasWanted -and $unavailableAbsent) {
+    Write-Host "Todas as $($wanted.Count) texturas KR habilitadas estao registradas e os 2 pathnames indisponiveis estao ausentes."
     Write-Host "SHA-256: $(Get-Sha $MeshTextureList)"
     return
 }
-if ($VerifyOnly) { throw 'MeshTextureList.bin ainda nao possui a colecao visual KR correta.' }
+if ($VerifyOnly) { throw 'MeshTextureList.bin ainda nao possui a colecao visual KR estrita.' }
+if ($hasWanted -and -not $unavailableAbsent) {
+    $legacyIndex = Get-TextureIndex $current
+    foreach ($texture in $unavailableMountTextures) {
+        $key = ([string]$texture.name).ToLowerInvariant()
+        if ($legacyIndex.ByName.ContainsKey($key)) { Set-EmptyRecord $current ([int]$legacyIndex.ByName[$key]) }
+    }
+    [IO.File]::WriteAllBytes($MeshTextureList, $current)
+    $cleaned = [IO.File]::ReadAllBytes($MeshTextureList)
+    if (-not (Test-TextureSet $cleaned $wanted) -or -not (Test-TextureNamesAbsent $cleaned $unavailableMountTextures)) {
+        throw 'limpeza dos pathnames de montaria indisponiveis falhou'
+    }
+    Write-Host "MeshTextureList migrado: $($wanted.Count) texturas habilitadas; 2 pathnames sem asset autentico removidos."
+    Write-Host "SHA-256: $(Get-Sha $MeshTextureList)"
+    return
+}
 
 $backup = Join-Path (Split-Path -Parent $MeshTextureList) 'MeshTextureList.pre-costumes-kr.bin'
 if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) {

@@ -11,8 +11,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Instala as dependencias visuais usadas pelas 47 montarias presentes em
-# Mounts-KR.json. Arquivos 7.48 existentes nunca sao sobrescritos: somente as
+# Instala as dependencias visuais das 45 montarias completas em Mounts-KR.json.
+# Os 47 cases fonte continuam catalogados; dois permanecem indisponiveis porque
+# os snapshots KR nao contem os arquivos que o proprio renderer referencia. Arquivos 7.48 existentes nunca sao sobrescritos: somente as
 # variantes ausentes sao importadas; as tabelas de animacao recebem os cinco
 # skeleton types inexistentes no client antigo.
 
@@ -23,18 +24,10 @@ $requiredImportedMeshes = @(
     'mesh\be010111.msh','mesh\be010111.wys','mesh\be010211.msh',
     'mesh\KK010110.msh','mesh\KK010110.wys',
     'mesh\KK010101.msh','mesh\KK010111.wys',
-    'mesh\KK010112.msh','mesh\KK010112.wys',
     'mesh\KK010118.msh','mesh\KK010118.wys'
 )
-# Os dois clients KR registram hs010117 para Arvak e KK010112 para o case 56,
-# mas nenhum dos pacotes locais contem esses arquivos. Os fallbacks permanecem
-# dentro do mesmo skeleton/familia e copiam mesh+textura em conjunto quando a
-# geometria tambem falta; assim nunca combinamos UV e mesh incompatíveis.
-$compatibleAssetFallbacks = @{
-    'mesh\hs010117.wys' = 'mesh\hs010115.wys'
-    'mesh\KK010112.msh' = 'mesh\KK010113.msh'
-    'mesh\KK010112.wys' = 'mesh\KK010113.wys'
-}
+# Nao criar aliases para dependencias ausentes. Ausencia no client fonte
+# torna a aparencia indisponivel no manifesto.
 $boneRows = @(
     '48 5 2 mesh\CP01',
     '49 6 1 mesh\KK01',
@@ -69,8 +62,11 @@ function Assert-Installed {
     }
     if (-not (Test-Path -LiteralPath $Manifest -PathType Leaf)) { throw "manifesto ausente: $Manifest" }
     $definition = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
-    $textures = @($definition.textures)
-    if ($textures.Count -ne 50) { throw "manifesto possui $($textures.Count) texturas de montaria; esperado 50" }
+    $catalogTextures = @($definition.textures)
+    $textures = @($catalogTextures | Where-Object { $_.available -ne $false })
+    if ($catalogTextures.Count -ne 50 -or $textures.Count -ne 48) {
+        throw "manifesto possui catalogo=$($catalogTextures.Count) texturas e disponiveis=$($textures.Count); esperado 50/48"
+    }
     foreach ($texture in $textures) {
         $path = Join-Path $ClientRoot ([string]$texture.name)
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -79,7 +75,7 @@ function Assert-Installed {
     }
 }
 
-try { Assert-Installed; Write-Host 'Assets das 47 montarias KR ja estao instalados.'; return } catch { if ($VerifyOnly) { throw } }
+try { Assert-Installed; Write-Host 'Assets das 45 montarias KR completas ja estao instalados.'; return } catch { if ($VerifyOnly) { throw } }
 $availableRoots = @($SourceRoots | Where-Object { Test-Path -LiteralPath $_ -PathType Container })
 if ($availableRoots.Count -eq 0) { throw "nenhum client KR fonte foi encontrado: $($SourceRoots -join ', ')" }
 $sourceMeshes = @($availableRoots | ForEach-Object { Join-Path $_ 'mesh' } | Where-Object { Test-Path -LiteralPath $_ -PathType Container })
@@ -95,17 +91,6 @@ foreach ($prefix in $prefixes) {
         }
     }
 }
-foreach ($targetRelative in $compatibleAssetFallbacks.Keys) {
-    $target = Join-Path $ClientRoot $targetRelative
-    if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
-        $source = Join-Path $ClientRoot $compatibleAssetFallbacks[$targetRelative]
-        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
-            throw "fallback de textura ausente: $source"
-        }
-        Copy-Item -LiteralPath $source -Destination $target
-    }
-}
-
 $bonePath = Join-Path $targetMesh 'BoneAni4.txt'
 $boneText = [IO.File]::ReadAllText($bonePath, [Text.Encoding]::Default)
 foreach ($row in $boneRows) {
@@ -127,7 +112,20 @@ $sourceValid = Join-Path $sourceMeshes[0] 'ValidIndex.bin'
 $valid = [IO.File]::ReadAllBytes($validPath)
 $source = [IO.File]::ReadAllBytes($sourceValid)
 if ($valid.Length -ne 74400 -or $source.Length -ne 74400) { throw 'ValidIndex.bin com tamanho inesperado' }
-foreach ($type in @(48,49,50,51,59)) { [Array]::Copy($source, $type * 744, $valid, $type * 744, 744) }
+$validCounts = @{}
+foreach ($row in $boneRows) {
+    $parts = @($row -split '\s+' | Where-Object { $_ })
+    $validCounts[[int]$parts[0]] = [int]$parts[1]
+}
+foreach ($type in @(48,49,50,51,59)) {
+    $count = [int]$validCounts[$type]
+    $sourceOffset = $type * 744
+    $targetOffset = $type * 744
+    [Array]::Clear($valid, $targetOffset, 744)
+    for ($index = 0; $index -lt $count; $index++) {
+        [Array]::Copy($source, $sourceOffset + $index * 4, $valid, $targetOffset + $index * 4, 4)
+    }
+}
 [IO.File]::WriteAllBytes($validPath, $valid)
 Assert-Installed
-Write-Host 'Assets e animacoes das 47 montarias KR instalados no client 7.48.'
+Write-Host 'Assets e animacoes das 45 montarias KR completas instalados no client 7.48.'

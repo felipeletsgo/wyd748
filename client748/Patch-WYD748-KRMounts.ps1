@@ -22,7 +22,7 @@ $legacyOutputHashes = @(
     'E1C34874E8BA5B4CF018F262D84A581DCA2242DD7F67410B4807B57BCC3691EA',
     '0648B586AF95D26FB0B0C27ED0F954FE5F8D291E4D3DD10B73BB816B3D5B1A75'
 )
-$expectedOutputHash = 'F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D'
+$expectedOutputHash = '556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F' # KR_MOUNT_OUTPUT_HASH
 $sectionRVA = [uint32]0x00FD2000
 $sectionRaw = 0x001E5000
 $sectionSize = 0x00010000
@@ -80,8 +80,13 @@ function Add-PESection([byte[]]$inputData) {
 
 if(-not(Test-Path -LiteralPath $Executable -PathType Leaf)){throw "WYD.exe ausente: $Executable"}
 if(-not(Test-Path -LiteralPath $Manifest -PathType Leaf)){throw "manifesto ausente: $Manifest"}
-$items=@((Get-Content -LiteralPath $Manifest -Raw|ConvertFrom-Json).items|Sort-Object item)
-if($items.Count -ne 47){throw "manifesto inesperado: $($items.Count) montarias"}
+$definition=Get-Content -LiteralPath $Manifest -Raw|ConvertFrom-Json
+$catalogItems=@($definition.items|Sort-Object item)
+$items=@($catalogItems|Where-Object { $_.available -ne $false })
+$unavailableItems=@($catalogItems|Where-Object { $_.available -eq $false })
+if($catalogItems.Count -ne 47 -or $items.Count -ne 45 -or $unavailableItems.Count -ne 2){
+    throw "manifesto inesperado: catalogo=$($catalogItems.Count) disponiveis=$($items.Count) indisponiveis=$($unavailableItems.Count)"
+}
 $actualHash=Get-Sha $Executable
 if($expectedOutputHash -and $actualHash -eq $expectedOutputHash){Write-Host "Montarias KR ja instaladas ($actualHash).";return}
 if($VerifyOnly){throw "WYD.exe ainda nao contem montarias KR (SHA-256: $actualHash)"}
@@ -213,8 +218,9 @@ $incrementalHook=[byte[]](0xE9)+[byte[]](Rel32 ($incrementalHookVA+5) ([uint32](
 Set-Bytes $data $incrementalHookOffset $incrementalHook
 
 # O renderer 7.48 conhece somente os offsets de assento das montarias antigas.
-# Este hook roda depois dos ajustes corporais nativos e porta os offsets extras
-# comprovados no W2PP, mantendo a matriz, skeleton e animacao do proprio 7.48.
+# Este adapter roda depois dos ajustes corporais nativos e porta somente as
+# formulas observadas no WYD.exe KR de referencia. Sao offsets aditivos/diretos;
+# multiplicar os vetores (como fazia o patch anterior) desloca o cavaleiro.
 $poseHookOffset=0x1042C0;$poseHookVA=[uint32]0x005042C0
 $poseOriginal=[byte[]](0x8B,0x4D,0xC4,0x51,0x8B,0x55,0xC0)
 Assert-Bytes $inputData $poseHookOffset $poseOriginal 'offset de assento de montaria 7.48'
@@ -227,28 +233,64 @@ Set-U32 $data ($sectionRaw+$poseConstantsOffset+8) ([BitConverter]::ToUInt32([Bi
 
 $c=New-Assembler ([uint32]($sectionVA+$poseCodeOffset))
 Emit $c ([byte[]](0x60,0x8B,0x45,0x98,0x8B,0x88,0xA0,0x07,0x00,0x00,0x83,0xF9,0x1D))
-Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'type48'
+Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'type31'
+# type 29, meshes 5 e 10: X=-0.2 e escala vertical inversa, como no KR.
 Emit $c ([byte[]](0x0F,0xB7,0x90,0xA6,0x01,0x00,0x00,0x83,0xFA,0x05))
+Emit-Rel32 $c ([byte[]](0x0F,0x84)) 'type29special'
+Emit $c ([byte[]](0x83,0xFA,0x0A))
 Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'done'
+Mark $c 'type29special'
 Emit $c ([byte[]](0xC7,0x45,0xBC,0xCD,0xCC,0x4C,0xBE,0xD9,0xE8,0xD8,0xB0,0xA4,0x07,0x00,0x00,0xD9,0x5D,0xC0))
 Emit-Rel32 $c ([byte[]](0xE9)) 'done'
+
+Mark $c 'type31'
+Emit $c ([byte[]](0x83,0xF9,0x1F))
+Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'type48'
+# Loki/type31 mesh17: o KR fixa X em -0.6.
+Emit $c ([byte[]](0x0F,0xB7,0x90,0xA6,0x01,0x00,0x00,0x83,0xFA,0x11))
+Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'done'
+Emit $c ([byte[]](0xC7,0x45,0xBC,0x9A,0x99,0x19,0xBF))
+Emit-Rel32 $c ([byte[]](0xE9)) 'done'
+
 Mark $c 'type48'
 Emit $c ([byte[]](0x83,0xF9,0x30))
 Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'type49'
-Emit $c ([byte[]](0xD9,0x45,0xBC,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const08VA));Emit $c ([byte[]](0xD9,0x5D,0xBC,0xD9,0x45,0xC4,0xD8,0x05));Emit $c ([BitConverter]::GetBytes($const02VA));Emit $c ([byte[]](0xD9,0x5D,0xC4))
+# type48: X -= 0.8; Z += 0.2.
+Emit $c ([byte[]](0xD9,0x45,0xBC,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const08VA));Emit $c ([byte[]](0xD9,0x5D,0xBC))
+Emit $c ([byte[]](0xD9,0x45,0xC4,0xD8,0x05));Emit $c ([BitConverter]::GetBytes($const02VA));Emit $c ([byte[]](0xD9,0x5D,0xC4))
 Emit-Rel32 $c ([byte[]](0xE9)) 'done'
+
 Mark $c 'type49'
 Emit $c ([byte[]](0x83,0xF9,0x31))
-Emit-Rel32 $c ([byte[]](0x0F,0x84)) 'type49or52'
-Emit $c ([byte[]](0x83,0xF9,0x34))
 Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'type50'
-Mark $c 'type49or52'
-Emit $c ([byte[]](0xD9,0x45,0xBC,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const02VA));Emit $c ([byte[]](0xD9,0x5D,0xBC,0xD9,0x45,0xC4,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const02VA));Emit $c ([byte[]](0xD9,0x5D,0xC4))
+# type49: X -= 0.2; Z -= 0.2. Mesh24 nao recebe o ajuste de Z.
+Emit $c ([byte[]](0xD9,0x45,0xBC,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const02VA));Emit $c ([byte[]](0xD9,0x5D,0xBC))
+Emit $c ([byte[]](0x0F,0xB7,0x90,0xA6,0x01,0x00,0x00,0x83,0xFA,0x18))
+Emit-Rel32 $c ([byte[]](0x0F,0x84)) 'done'
+Emit $c ([byte[]](0xD9,0x45,0xC4,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const02VA));Emit $c ([byte[]](0xD9,0x5D,0xC4))
 Emit-Rel32 $c ([byte[]](0xE9)) 'done'
+
 Mark $c 'type50'
 Emit $c ([byte[]](0x83,0xF9,0x32))
+Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'type51'
+# As montarias type50 habilitadas usam meshes 0/1: ramo padrao KR.
+Emit $c ([byte[]](0xD9,0x45,0xBC,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const05VA));Emit $c ([byte[]](0xD9,0x5D,0xBC))
+Emit $c ([byte[]](0xD9,0x45,0xC4,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const02VA));Emit $c ([byte[]](0xD9,0x5D,0xC4))
+Emit-Rel32 $c ([byte[]](0xE9)) 'done'
+
+Mark $c 'type51'
+Emit $c ([byte[]](0x83,0xF9,0x33))
+Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'type59'
+# type51: X=-0.38; Z=+0.30.
+Emit $c ([byte[]](0xC7,0x45,0xBC,0x5C,0x8F,0xC2,0xBE,0xC7,0x45,0xC4,0x9A,0x99,0x99,0x3E))
+Emit-Rel32 $c ([byte[]](0xE9)) 'done'
+
+Mark $c 'type59'
+Emit $c ([byte[]](0x83,0xF9,0x3B))
 Emit-Rel32 $c ([byte[]](0x0F,0x85)) 'done'
-Emit $c ([byte[]](0xD9,0x45,0xBC,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const05VA));Emit $c ([byte[]](0xD9,0x5D,0xBC,0xD9,0x45,0xC4,0xD8,0x25));Emit $c ([BitConverter]::GetBytes($const02VA));Emit $c ([byte[]](0xD9,0x5D,0xC4))
+# type59: X=-0.18; Z=-0.20; Y=1.0.
+Emit $c ([byte[]](0xC7,0x45,0xBC,0xEC,0x51,0x38,0xBE,0xC7,0x45,0xC4,0xCD,0xCC,0x4C,0xBE,0xC7,0x45,0xC0,0x00,0x00,0x80,0x3F))
+
 Mark $c 'done'
 Emit $c ([byte[]](0x61));Emit $c $poseOriginal;Emit $c ([byte[]](0xE9))
 $poseReturnNext=[uint32]($c.BaseVA+$c.Bytes.Count+4);Emit $c (Rel32 $poseReturnNext ([uint32]0x005042C7))

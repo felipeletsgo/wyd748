@@ -384,7 +384,7 @@ simulado por um efeito incompatível. O
 WaterMacro foi removido; Water automática pertence ao servidor. O ajuste de
 clique do Warrior's Seal ocorre no `ItemList.bin` pelo orquestrador.
 
-Também foram importadas 47 aparências de montaria comprovadas pelo renderer KR.
+Também foram importadas 45 aparências de montaria disponíveis comprovadas pelo renderer KR.
 Elas reutilizam o contrato da Shire (`342`) no `Equip[14]`, sem ovo/cria,
 comida, longevidade ou temporizador moderno, e estão divididas entre
 `ShopKRMt01` e `ShopKRMt02`, respeitando o limite de 27 itens por loja. O patch
