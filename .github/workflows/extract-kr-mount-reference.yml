@@ -24,58 +24,18 @@ jobs:
           git lfs fetch origin HEAD --include="CLIENTS/WYD/ItemList.bin,CLIENTS/WYD/MountDataV.bin"
           git lfs checkout CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin
 
-      - name: Verify and decode mount source mapping
+      - name: Verify source and target identities
         shell: bash
         run: |
           set -euo pipefail
-          stat -c '%n %s' CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin
-          sha256sum CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin
+          stat -c '%n %s' CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin client748/WYD.exe
+          sha256sum CLIENTS/WYD/ItemList.bin CLIENTS/WYD/MountDataV.bin client748/WYD.exe
           test "$(stat -c%s CLIENTS/WYD/ItemList.bin)" = "2494004"
           test "$(stat -c%s CLIENTS/WYD/MountDataV.bin)" = "14004"
           test "$(sha256sum CLIENTS/WYD/ItemList.bin | cut -d' ' -f1)" = "34575eb09d932e55bfc646655583e6978e89e5b0682fd2ff00ead84715b6d2cb"
           test "$(sha256sum CLIENTS/WYD/MountDataV.bin | cut -d' ' -f1)" = "450edab240b1f29471c7d9d9445d8c7020b5726a1c36dd2ca0427acdb5f487ef"
-          python3 - <<'PY'
-          import json, struct
-          from pathlib import Path
 
-          key = 0x5A
-          item_raw = Path('CLIENTS/WYD/ItemList.bin').read_bytes()
-          mount_raw = Path('CLIENTS/WYD/MountDataV.bin').read_bytes()
-          item = bytes(b ^ key for b in item_raw[:-4])
-          mount = bytes(b ^ key for b in mount_raw[:-4])
-          assert len(item) == 14500 * 172
-          assert len(mount) == 500 * 28
-
-          ids = list(range(4190, 4236)) + [4241]
-          out = []
-          for item_id in ids:
-              rec = item[item_id*172:(item_id+1)*172]
-              name = rec[:64].split(b'\0', 1)[0].decode('latin1')
-              mesh_index = struct.unpack_from('<H', rec, 0x40)[0]
-              if mesh_index >= 500:
-                  raise SystemExit(f'item {item_id}: MountDataV index {mesh_index} out of range')
-              mr = mount[mesh_index*28:(mesh_index+1)*28]
-              words = struct.unpack_from('<10H', mr, 0)
-              scale = struct.unpack_from('<f', mr, 0x14)[0]
-              extra0, extra1 = struct.unpack_from('<HH', mr, 0x18)
-              out.append({
-                  'item': item_id,
-                  'sourceName': name,
-                  'sourceMeshIndex': mesh_index,
-                  'type': words[0],
-                  'mesh': [words[1], words[2], words[3]],
-                  'skin': [words[4], words[5], words[6]],
-                  'sanc': [words[7], words[8], words[9]],
-                  'scale': scale,
-                  'extra0': extra0,
-                  'extra1': extra1,
-              })
-          print('KR_MOUNT_REFERENCE_JSON_BEGIN')
-          print(json.dumps(out, indent=2, ensure_ascii=False))
-          print('KR_MOUNT_REFERENCE_JSON_END')
-          PY
-
-      - name: Upload mount reference
+      - name: Upload reverse-engineering inputs
         uses: actions/upload-artifact@v4
         with:
           name: kr-mount-reference
@@ -84,3 +44,4 @@ jobs:
           path: |
             CLIENTS/WYD/ItemList.bin
             CLIENTS/WYD/MountDataV.bin
+            client748/WYD.exe
