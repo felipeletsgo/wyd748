@@ -18,7 +18,7 @@ jobs:
       - name: Checkout full repository and KR LFS snapshot
         uses: actions/checkout@v4
         with:
-          fetch-depth: 5
+          fetch-depth: 0
           lfs: false
 
       - name: Pull only the KR ValidIndex LFS object
