@@ -15,6 +15,11 @@ $ErrorActionPreference = 'Stop'
 # Mounts-KR.json. Arquivos 7.48 existentes nunca sao sobrescritos: somente as
 # variantes ausentes sao importadas; as tabelas de animacao recebem os cinco
 # skeleton types inexistentes no client antigo.
+#
+# Regra de fidelidade: asset ausente permanece ausente e interrompe a instalacao.
+# Nunca sintetize uma variante copiando mesh/textura vizinha. O nome numerico faz
+# parte do contrato entre LOOK_INFO e TMSkinMesh; um arquivo de outro indice pode
+# ter UV, material ou geometria incompatíveis mesmo dentro da mesma familia.
 
 $prefixes = @('dr01','be01','tw01','hs01','tg01','dr02','bd02','CP01','KK01','mc01','ct01','mo02')
 $requiredImportedMeshes = @(
@@ -26,15 +31,6 @@ $requiredImportedMeshes = @(
     'mesh\KK010112.msh','mesh\KK010112.wys',
     'mesh\KK010118.msh','mesh\KK010118.wys'
 )
-# Os dois clients KR registram hs010117 para Arvak e KK010112 para o case 56,
-# mas nenhum dos pacotes locais contem esses arquivos. Os fallbacks permanecem
-# dentro do mesmo skeleton/familia e copiam mesh+textura em conjunto quando a
-# geometria tambem falta; assim nunca combinamos UV e mesh incompatíveis.
-$compatibleAssetFallbacks = @{
-    'mesh\hs010117.wys' = 'mesh\hs010115.wys'
-    'mesh\KK010112.msh' = 'mesh\KK010113.msh'
-    'mesh\KK010112.wys' = 'mesh\KK010113.wys'
-}
 $boneRows = @(
     '48 5 2 mesh\CP01',
     '49 6 1 mesh\KK01',
@@ -64,7 +60,7 @@ function Assert-Installed {
     }
     foreach ($relative in $requiredImportedMeshes) {
         if (-not (Test-Path -LiteralPath (Join-Path $ClientRoot $relative) -PathType Leaf)) {
-            throw "mesh de montaria KR ausente: $relative"
+            throw "asset exato de montaria KR ausente: $relative (nao use variante vizinha como fallback)"
         }
     }
     if (-not (Test-Path -LiteralPath $Manifest -PathType Leaf)) { throw "manifesto ausente: $Manifest" }
@@ -93,16 +89,6 @@ foreach ($prefix in $prefixes) {
             $target = Join-Path $targetMesh $_.Name
             if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { Copy-Item -LiteralPath $_.FullName -Destination $target }
         }
-    }
-}
-foreach ($targetRelative in $compatibleAssetFallbacks.Keys) {
-    $target = Join-Path $ClientRoot $targetRelative
-    if (-not (Test-Path -LiteralPath $target -PathType Leaf)) {
-        $source = Join-Path $ClientRoot $compatibleAssetFallbacks[$targetRelative]
-        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
-            throw "fallback de textura ausente: $source"
-        }
-        Copy-Item -LiteralPath $source -Destination $target
     }
 }
 
