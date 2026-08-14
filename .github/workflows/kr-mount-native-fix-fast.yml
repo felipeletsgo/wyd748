@@ -25,7 +25,8 @@ jobs:
         shell: pwsh
         run: |
           git lfs install
-          git lfs pull --include="CLIENTS/WYD/mesh/ValidIndex.bin" --exclude="*"
+          git lfs pull --include="CLIENTS/WYD/mesh/ValidIndex.bin"
+          if ((Get-Item 'CLIENTS/WYD/mesh/ValidIndex.bin').Length -ne 74400) { throw 'KR ValidIndex LFS object was not materialized' }
 
       - name: Configure Go
         uses: actions/setup-go@v5
