@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 # PONTO UNICO DE ENTRADA — client 7.48
 #
 # Este orquestrador e o unico script que deve ser executado normalmente. Os
-# oito scripts Patch-WYD748-*.ps1 abaixo continuam separados de proposito:
+# nove scripts Patch-WYD748-*.ps1 abaixo continuam separados de proposito:
 # cada um implementa um elo pequeno, valida os bytes originais e possui um
 # SHA de entrada/saida proprio. Isso preserva rollback e impede que uma
 # alteracao em um patch esconda uma falha em outro. Nao executar os elos fora
@@ -24,6 +24,7 @@ $ErrorActionPreference = 'Stop'
 # 6. Patch-WYD748-Costumes.ps1     colecao de trajes do client KR
 # 7. Patch-WYD748-KRMounts.ps1      montarias visuais do client KR (.mountkr)
 # 8. Patch-WYD748-KRMobs.ps1        classes visuais 66..74 dos monstros KR
+# 9. Patch-WYD748-KRMobPoses.ps1    orientacao dos skeletons modernos KR
 # D. Patch-WYD748-ClientItemUse.ps1 marcador de clique do Warrior's Seal
 # D. Patch-WYD748-CostumeItems.ps1 registros/icon dos trajes KR completos
 # D. Patch-WYD748-CostumeTextures.ps1 registros das texturas KR
@@ -118,6 +119,12 @@ $steps = @(
         Number = 8; Name = 'faces de monstros KR'; Script = 'Patch-WYD748-KRMobs.ps1'
         Input = '79B66BFF4E8D31D0788D857AD6AF3DE7F95DC7A07C7256D134A6DD5708EAA4AE'
         Output = 'B3F385739C232275FE08FACAE0152ECDFD97D16D111C43D25E7277869FF5422B' # KRMOB_CHAIN_OUTPUT_HASH
+    },
+    # ETAPA 9 - os skeletons modernos 45..57 usam eixo diferente no 7.48.
+    [pscustomobject]@{
+        Number = 9; Name = 'orientacao das faces KR'; Script = 'Patch-WYD748-KRMobPoses.ps1'
+        Input = 'B3F385739C232275FE08FACAE0152ECDFD97D16D111C43D25E7277869FF5422B'
+        Output = '8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593' # KRMOB_POSE_OUTPUT_HASH
     }
 )
 
@@ -161,7 +168,7 @@ if ($legacyKRVisualHashes -contains $current) {
     }
     Copy-Item -LiteralPath $original -Destination $Executable -Force
     $current = Get-Sha $Executable
-    Write-Host 'Reconstruindo os sete elos para aplicar a admissao dos trajes modernos.'
+    Write-Host 'Reconstruindo os nove elos para aplicar a admissao dos trajes modernos.'
 }
 $legacyWaterMacroHashes = @(
     '65486F2A4ED791BA977C00D1478BFA6450783DA37BC54A8039F196B8A73E0A0E',
@@ -181,7 +188,7 @@ if ($legacyWaterMacroHashes -contains $current) {
     }
     Copy-Item -LiteralPath $original -Destination $Executable -Force
     $current = Get-Sha $Executable
-    Write-Host 'WaterMacro client-side removido; reconstruindo os sete elos suportados.'
+    Write-Host 'WaterMacro client-side removido; reconstruindo os nove elos suportados.'
 }
 $final = $steps[-1].Output
 if ($current -eq $final) {

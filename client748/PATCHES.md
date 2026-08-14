@@ -1,6 +1,6 @@
 # Cadeia de patches do client 7.48
 
-O `WYD.exe` em uso **não** é o executável original: ele é o resultado de oito
+O `WYD.exe` em uso **não** é o executável original: ele é o resultado de nove
 scripts aplicados em ordem. Cada elo é verificado por SHA‑256, e a cadeia
 inteira reproduz o binário em uso **bit a bit**.
 
@@ -21,7 +21,9 @@ WYD.exe pós-trajes            4A2AA372…16DE
   └─ Patch-WYD748-KRMounts.ps1                 montarias visuais do KR
 WYD.exe pós-montarias         79B66BFF…A4AE
   └─ Patch-WYD748-KRMobs.ps1                   faces visuais dos monstros KR
-WYD.exe pós-mobs KR           B3F38573…422B   ← binário atualmente versionado
+WYD.exe pós-mobs KR           B3F38573…422B
+  └─ Patch-WYD748-KRMobPoses.ps1                eixo moderno dos skeletons KR
+WYD.exe pós-orientação KR     8AA2F918…F593   ← binário atualmente versionado
 ```
 
 ## Reaplicar
@@ -218,7 +220,7 @@ slot `Equip[14]`. Cada registro recebe velocidade final 6, +520 de dano, +65%
 de ataque mágico e 30 dias. A malha, a textura e a escala continuam específicas de
 cada aparência; a expiração real pertence ao servidor e ao UID da instância.
 
-`Patch-WYD748-KRMounts.ps1` instala a seção `.mountkr` e nove adapters no caminho
+`Patch-WYD748-KRMounts.ps1` instala a seção `.mountkr` e os adapters de montaria no caminho
 nativo 7.48: um para a materialização completa e outro para o `UpdateEquip 0x36B`.
 Assim, equipar ou desequipar uma montaria atualiza o personagem imediatamente,
 sem depender de uma reconstrução visual posterior. O terceiro aplica os
@@ -351,11 +353,11 @@ comandos locais `/macropergaon` e `/macropergaoff`, o hook de chat, o
 scanner de Carry e a chamada automática da rotina nativa `UseItem` não
 fazem mais parte do executável suportado.
 
-O cliente versionado termina no hash pós-mobs KR
-`B3F385739C232275FE08FACAE0152ECDFD97D16D111C43D25E7277869FF5422B`.
+O cliente versionado termina no hash pós-orientação KR
+`8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593`.
 `Apply-WYD748.ps1` reconhece os hashes antigos do WaterMacro, preserva
 uma cópia `WYD.pre-server-water.exe` e reconstrói o executável desde
-`WYD.original.exe` pelos oito elos atuais.
+`WYD.original.exe` pelos nove elos atuais.
 
 O encadeamento automático da Water pertence ao servidor: quando uma
 sala concede e persiste o próximo pergaminho no Carry do líder, uma

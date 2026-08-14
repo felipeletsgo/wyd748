@@ -7,7 +7,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $expectedHashes = @(
     '79B66BFF4E8D31D0788D857AD6AF3DE7F95DC7A07C7256D134A6DD5708EAA4AE', # KR_MOUNT_TEST_HASH
-    'B3F385739C232275FE08FACAE0152ECDFD97D16D111C43D25E7277869FF5422B'  # mobs KR sobre as montarias
+    'B3F385739C232275FE08FACAE0152ECDFD97D16D111C43D25E7277869FF5422B', # mobs KR sobre as montarias
+    '8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593'  # orientacao moderna das faces KR
 )
 $sectionRaw = 0x001E5000
 $tableOffset = 0x0400
@@ -16,7 +17,8 @@ $entrySize = 24
 function Assert-Bytes([byte[]]$Data,[int]$Offset,[byte[]]$Expected,[string]$Name) {
     for($i=0;$i-lt$Expected.Length;$i++){if($Data[$Offset+$i]-ne$Expected[$i]){throw "$Name divergiu em 0x$('{0:X}'-f($Offset+$i))"}}
 }
-if($expectedHashes -notcontains (Get-FileHash -LiteralPath $Executable -Algorithm SHA256).Hash.ToUpperInvariant()){throw 'SHA do WYD.exe com montarias KR divergiu'}
+$currentHash=(Get-FileHash -LiteralPath $Executable -Algorithm SHA256).Hash.ToUpperInvariant()
+if($expectedHashes -notcontains $currentHash){throw 'SHA do WYD.exe com montarias KR divergiu'}
 $definition=Get-Content -LiteralPath $Manifest -Raw|ConvertFrom-Json
 $catalogItems=@($definition.items|Sort-Object item)
 $items=@($catalogItems|Where-Object { $_.available -ne $false })
@@ -122,18 +124,32 @@ foreach($signature in @('81B29400000000000080','81B29800000000000080','81B29C000
 }
 # type59: constantes exatas de RotationZ(3.351032f): cos, sin e -sin.
 Assert-Bytes $data ($sectionRaw+0x120C) ([byte[]](0xE1,0x67,0x7A,0xBF,0xD4,0xE6,0x54,0xBE,0xD4,0xE6,0x54,0x3E)) 'constantes CFrame type59'
-# TMSkinMesh::Render: tipos 48..51 usam yaw+90/pitch original; todos os
-# demais continuam no ramo legado yaw-90/pitch-90. As duas assinaturas
-# evitam que um teste aceite um hook que simplesmente rotacione tudo.
-Assert-Bytes $data ($sectionRaw+0x3000) ([byte[]](0x8B,0x85,0xEC,0xFD,0xFF,0xFF,0x8B,0x08,0x83,0xF9,0x30)) 'seletor de orientacao TMSkinMesh'
+# TMSkinMesh::Render: na cadeia final os skeletons 45..57 usam yaw+90/pitch
+# original; os demais continuam no ramo legado yaw-90/pitch-90. O hash de
+# montaria intermediario ainda pode ser validado para diagnostico.
+$orientationPrefixLegacy=[byte[]](0x8B,0x85,0xEC,0xFD,0xFF,0xFF,0x8B,0x08,0x83,0xF9,0x30)
+$orientationPrefixModern=[byte[]](0x8B,0x85,0xEC,0xFD,0xFF,0xFF,0x8B,0x08,0x83,0xF9,0x2D)
+if($currentHash -eq '8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593'){
+    Assert-Bytes $data ($sectionRaw+0x3000) $orientationPrefixModern 'seletor moderno de orientacao TMSkinMesh'
+}else{
+    Assert-Bytes $data ($sectionRaw+0x3000) $orientationPrefixLegacy 'seletor de orientacao TMSkinMesh'
+}
 $orientation=[byte[]]$data[($sectionRaw+0x3000)..($sectionRaw+0x30FF)]
 $orientationHex=($orientation|ForEach-Object{$_.ToString('X2')})-join''
-foreach($signature in @(
-    '83F9300F8C','83F9330F8F',
-    '8B5020528B501852D9401CD80580435A00',
-    'D94018D82580435A00','D9401CD82580435A00',
-    'E956930EFF'
-)){if(-not$orientationHex.Contains($signature)){throw "adapter de orientacao nao contem assinatura $signature"}}
+if($currentHash -eq '8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593'){
+    foreach($signature in @(
+        '83F92D0F8C','8B90D002000083FA07','83FA090F8E','83F9390F8F','C740240000C03FC740280000C03FC7402C0000C03F',
+        '8B5020528B501852D9401CD80580435A00',
+        'D94018D82580435A00','D9401CD82580435A00'
+    )){if(-not$orientationHex.Contains($signature)){throw "adapter moderno de orientacao nao contem assinatura $signature"}}
+}else{
+    foreach($signature in @(
+        '83F9300F8C','83F9330F8F',
+        '8B5020528B501852D9401CD80580435A00',
+        'D94018D82580435A00','D9401CD82580435A00',
+        'E956930EFF'
+    )){if(-not$orientationHex.Contains($signature)){throw "adapter de orientacao nao contem assinatura $signature"}}
+}
 for($i=0;$i-lt$items.Count;$i++){
     $item=$items[$i];$off=$sectionRaw+$tableOffset+$i*$entrySize
     if([BitConverter]::ToUInt16($data,$off)-ne[int]$item.item-or[BitConverter]::ToUInt16($data,$off+2)-ne[int]$item.type){throw "entrada visual $i divergiu"}

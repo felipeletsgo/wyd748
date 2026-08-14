@@ -12,6 +12,7 @@ $ErrorActionPreference = 'Stop'
 
 $expectedInputHash = '79B66BFF4E8D31D0788D857AD6AF3DE7F95DC7A07C7256D134A6DD5708EAA4AE' # KRMOB_EXE_INPUT_HASH
 $expectedOutputHash = 'B3F385739C232275FE08FACAE0152ECDFD97D16D111C43D25E7277869FF5422B' # KRMOB_EXE_OUTPUT_HASH
+$downstreamPoseHash = '8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593'
 $sectionRaw = 0x001F5000
 $sectionSize = 0x00002000
 $sectionRVA = [uint32]0x00FE2000
@@ -63,7 +64,10 @@ function Add-PESection([byte[]]$InputData){
 
 if(-not(Test-Path -LiteralPath $Executable -PathType Leaf)){throw "WYD.exe ausente: $Executable"}
 $actualHash=Get-Sha $Executable
-if($expectedOutputHash-and$actualHash-eq$expectedOutputHash){Write-Host "Faces KR ja suportadas pelo renderer ($actualHash).";return}
+if(($expectedOutputHash -eq $actualHash) -or ($downstreamPoseHash -eq $actualHash)){
+    Write-Host "Faces KR ja suportadas pelo renderer ($actualHash)."
+    return
+}
 if($VerifyOnly){throw "WYD.exe ainda nao contem o mapeamento das faces KR (SHA-256: $actualHash)"}
 if($actualHash-ne$expectedInputHash){throw "WYD.exe fora da entrada suportada (SHA-256: $actualHash)"}
 

@@ -22,6 +22,7 @@ foreach ($item in $items) {
 & (Join-Path $PSScriptRoot 'Patch-WYD748-KRMobItems.ps1') -VerifyOnly
 & (Join-Path $PSScriptRoot 'Patch-WYD748-KRMobAssets.ps1') -VerifyOnly
 & (Join-Path $PSScriptRoot 'Patch-WYD748-KRMobs.ps1') -VerifyOnly
+& (Join-Path $PSScriptRoot 'Patch-WYD748-KRMobPoses.ps1') -VerifyOnly
 
-Write-Host 'OK: 19 faces KR, IDs compactos, 30 texturas e 8 skeleton families validados.'
+Write-Host 'OK: 19 faces KR, IDs compactos, 30 texturas, 8 skeleton families e orientacao moderna validados.'
 Write-Host 'STATICALLY VERIFIED; a aparencia final ainda requer validacao in-game no client 7.48.'
