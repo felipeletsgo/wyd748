@@ -122,8 +122,8 @@ func TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste(t *testing.T) {
 		}
 	}
 	krMounts := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
-	if len(krMounts) != 47 {
-		t.Errorf("lojas ShopKRMt possuem %d montarias distintas; esperado 47", len(krMounts))
+	if len(krMounts) != 45 {
+		t.Errorf("lojas ShopKRMt possuem %d montarias distintas; esperado 45", len(krMounts))
 	}
 	for name, stock := range shops {
 		if strings.HasPrefix(name, "ShopKRMt") && len(stock) > 27 {
@@ -146,8 +146,9 @@ func TestMontariasKRUsamContratoDaShire748(t *testing.T) {
 		t.Fatal(err)
 	}
 	type mountItem struct {
-		Item uint16 `json:"item"`
-		Name string `json:"name"`
+		Item      uint16 `json:"item"`
+		Name      string `json:"name"`
+		Available *bool  `json:"available"`
 	}
 	var manifest struct {
 		BaseItem uint16      `json:"baseItem"`
@@ -166,7 +167,22 @@ func TestMontariasKRUsamContratoDaShire748(t *testing.T) {
 	shire := catalog.Items[manifest.BaseItem]
 	shops, _ := loadTestShopFixture(t)
 	stock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
+	unavailable := map[uint16]struct{}{4211: {}, 4235: {}}
+	available := 0
 	for _, item := range manifest.Items {
+		if item.Available != nil && !*item.Available {
+			if _, ok := unavailable[item.Item]; !ok {
+				t.Errorf("montaria KR %d foi marcada indisponivel sem evidencia catalogada", item.Item)
+			}
+			if _, ok := catalog.Items[item.Item]; ok {
+				t.Errorf("montaria KR incompleta %d continua materializada no catalogo autoritativo", item.Item)
+			}
+			if _, ok := stock[item.Item]; ok {
+				t.Errorf("montaria KR incompleta %d foi exposta nas lojas", item.Item)
+			}
+			continue
+		}
+		available++
 		def, ok := catalog.Items[item.Item]
 		if !ok {
 			t.Errorf("montaria KR %d ausente do catalogo", item.Item)
@@ -188,6 +204,9 @@ func TestMontariasKRUsamContratoDaShire748(t *testing.T) {
 		if _, ok := stock[item.Item]; !ok {
 			t.Errorf("montaria KR %d ausente das lojas", item.Item)
 		}
+	}
+	if available != 45 {
+		t.Fatalf("manifesto possui %d montarias KR completas; esperado 45", available)
 	}
 }
 

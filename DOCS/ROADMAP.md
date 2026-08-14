@@ -115,7 +115,7 @@ importados. Ainda falta:
    fornecido é subconjunto do KR atual e não completa essas dependências;
 3. implementar um prazo absoluto server-side antes de habilitar duração real
    para trajes temporários; não reutilizar o contador online das fadas;
-4. validar in-game as 47 montarias KR já importadas, incluindo owner,
+4. validar in-game as 45 montarias KR disponíveis já importadas, incluindo owner,
    observador, movimento, ataque, desequipar e relogar;
 5. pesquisar outro executável KR somente para os 46 itens modernos sem case no
    `SetMountCostume` atual; não associar esses IDs a meshes por aproximação.

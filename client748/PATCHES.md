@@ -194,8 +194,9 @@ as texturas e seus modos na tabela fixa do 7.48. Copiar um `.wys` sem esse
 registro deixa a geometria visível, mas sem as cores. O importador lê o modo do
 registro KR de 528 bytes em `@510`; copiar o byte `@255` do KR grava parte do
 segundo path no lugar do modo. Os materiais `A`, `C`, `N` e `a` comprovados em
-`@510` são preservados. A tabela contém 226 pathnames únicos, sendo 50 de
-montarias. O teste
+`@510` são preservados. A tabela contém 224 pathnames habilitados: 176 de trajes e 48 de
+montarias completas. Os dois pathnames KR sem arquivo físico permanecem apenas
+como evidência indisponível no manifesto. O teste
 `Test-WYD748-Costumes.ps1` confere seção, tabelas, registros e todos os assets.
 
 O catálogo KR possui outros `96` itens, mantidos no manifesto como
@@ -206,7 +207,7 @@ permanentes até existir calendário autoritativo de expiração no servidor.
 
 ## Montarias visuais do client KR
 
-O sétimo elo materializa as `47` aparências que o `SetMountCostume` do client
+O sétimo elo cataloga `47` cases fonte e materializa somente as `45` aparências completas que o `SetMountCostume` do client
 KR atual realmente resolve: itens `4190..4235` e `4241`. Elas são montarias
 independentes do 7.48 baseadas no registro `342` (Shire): mesmo ícone, mesmo
 slot `Equip[14]` e mesmos efeitos. Somente a malha, a textura e a escala mudam.
@@ -216,7 +217,7 @@ O sistema moderno de traje temporário de montaria não foi importado.
 nativo 7.48: um para a materialização completa e outro para o `UpdateEquip 0x36B`.
 Assim, equipar ou desequipar uma montaria atualiza o personagem imediatamente,
 sem depender de uma reconstrução visual posterior. O terceiro aplica os
-offsets de assento comprovados para os tipos modernos 29, 48, 49/52 e 50.
+offsets de assento extraídos diretamente do executável KR para os tipos 29, 31, 48, 49, 50, 51 e 59.
 O quarto marca somente o `TMSkinMesh` cuja assinatura visual completa existe
 na tabela KR e reutiliza o `D3DCULL_NONE` seletivo do elo anterior. Assim faces
 internas/externas das meshes modernas deixam de desaparecer sem modificar o
@@ -228,27 +229,27 @@ coincidem integralmente com uma entrada da tabela `.mountkr`; as quatro
 famílias nativas continuam no caminho original byte a byte.
 `Patch-WYD748-KRMountItems.ps1` clona a Shire no `ItemList.bin` e
 `Patch-WYD748-KRMountAssets.ps1` instala os skeletons/animações ausentes sem
-sobrescrever assets antigos. `Test-WYD748-KRMounts.ps1` confere os 47 registros,
+sobrescrever assets antigos. `Test-WYD748-KRMounts.ps1` confere os 47 cases catalogados, os 45 habilitados,
 a seção PE, as tabelas e os arquivos necessários.
 
 Os tuples visuais vêm dos cases nativos `11..56` e `62` dos dois executáveis
 KR, que produzem a mesma combinação de tipo, escala, mesh, skin e sanction. As
-associações antigas por semelhança de nome foram removidas. Dependências
-ausentes nos dois pacotes fornecidos não são escondidas: `hs010117.wys`
-(Arvak) usa `hs010115.wys`, da mesma geometria `hs01/mesh14`; o par ausente
-`KK010112.msh/.wys` (case 56) usa o par `KK010113` do mesmo skeleton. Esses
-fallbacks são declarados no instalador e devem ser substituídos pelos arquivos
-KR autênticos quando forem recuperados.
+associações antigas por semelhança de nome foram removidas. Dependências ausentes nos dois pacotes fornecidos não são aproximadas.
+`KR_Arvak` (`4211`) exige `hs010117.wys`; `KR_Blazing_Rabbit` (`4235`) exige
+`KK010112.msh/.wys`. O executável/tabela KR comprovam os pathnames, mas os
+arquivos físicos não existem nos snapshots fornecidos. Esses dois cases ficam
+`available=false`, fora do `ItemList` e das lojas até os assets autênticos serem
+obtidos.
 
 SHA-256 final suportado:
 
 ```text
-F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D
+556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F
 ```
 
 Os outros `46` itens não vazios do intervalo moderno não possuem case visual
 no executável KR atual; por isso não foram associados a meshes por suposição.
-As montarias entregues estão em `ShopKRMt01` e `ShopKRMt02` (27 + 20 itens).
+As 45 montarias completas estão em `ShopKRMt01` e `ShopKRMt02` (26 + 19 itens).
 
 ## Arquivos
 
@@ -302,7 +303,7 @@ scanner de Carry e a chamada automática da rotina nativa `UseItem` não
 fazem mais parte do executável suportado.
 
 O cliente versionado termina no hash pós-montarias KR
-`F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D`.
+`556EC07005D17DCEDEF0CE15B8C8FDB13AE1E82975D992778ACDA846C108CD8F`.
 `Apply-WYD748.ps1` reconhece os hashes antigos do WaterMacro, preserva
 uma cópia `WYD.pre-server-water.exe` e reconstrói o executável desde
 `WYD.original.exe` pelos sete elos atuais.

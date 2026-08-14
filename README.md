@@ -401,9 +401,9 @@ are installed by the reproducible patch chain. Five `ShopCostum*` merchants in
 Armia expose at most 27 costumes each. These visual-test items are permanent;
 no fake 30-day timer is advertised.
 
-It also contains 47 KR mount appearances ported as standalone 7.48 mounts.
+It also contains 45 KR mount appearances with complete source dependencies ported as standalone 7.48 mounts.
 They reuse the Shire item contract and change only the rendered mount model;
-`ShopKRMt01` and `ShopKRMt02` expose them in Armia (27 + 20 items).
+`ShopKRMt01` and `ShopKRMt02` expose them in Armia (26 + 19 items).
 
 ## Do the static checks
 
