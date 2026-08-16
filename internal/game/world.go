@@ -240,6 +240,8 @@ type GroundItem struct {
 // 12000 ms. Manter esse tick conserva os valores dos NPCGener.txt existentes.
 const npcGenerMinute = 12 * time.Second
 const accountAutoSaveInterval = 3 * time.Second
+const accountAutoSaveBuckets = 6
+const accountAutoSaveSliceInterval = accountAutoSaveInterval / accountAutoSaveBuckets
 
 // O servidor nativo recupera 1 ponto de CP negativo a cada 450 ciclos de
 // segundo (Server.cpp/RegenMob.cpp). O contador é de sessão e reinicia ao
@@ -393,6 +395,7 @@ type World struct {
 	ghostShopCell         map[uint16]uint32
 	nextItemID            uint16
 	nextAutoSave          time.Time
+	autoSaveBucket        uint8
 	nextTimedItemSweep    time.Time
 	dropRates             [model.MaxCarry]int // taxa de drop por slot do carry (nativa)
 	volatiles             model.VolatileCatalog
@@ -579,7 +582,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	// Os deadlines nascem DEPOIS das options para que uma fonte de tempo
 	// injetada em teste parta do mesmo instante que o mundo.
 	start := w.now()
-	w.nextAutoSave = start.Add(accountAutoSaveInterval)
+	w.nextAutoSave = start.Add(accountAutoSaveSliceInterval)
 	w.nextQuestZoneReset = start.Add(questZoneResetInterval)
 	w.nextGameplayLog = start.Add(gameplayLogSummaryInterval)
 	if err := w.gameplay.Validate(); err != nil {
@@ -1234,7 +1237,6 @@ func (w *World) findWalkablePosition(x, y, radius uint16) (uint16, uint16) {
 					w.terrain.Walkable(uint16(nx), uint16(ny)) {
 					return uint16(nx), uint16(ny)
 				}
-			}
 		}
 	}
 	return x, y
@@ -1572,11 +1574,41 @@ func (w *World) tickQuestZoneReset(now time.Time) {
 	}
 }
 
+// accountAutoSaveBucket uses an allocation-free, case-insensitive FNV-1a hash
+// so one account always belongs to the same slice. The bucket is scheduling
+// metadata only; PostgreSQL remains authoritative and no value reaches wire.
+func accountAutoSaveBucket(name string) uint8 {
+	const (
+		offset32 = uint32(2166136261)
+		prime32  = uint32(16777619)
+	)
+	hash := offset32
+	for i := 0; i < len(name); i++ {
+		b := name[i]
+		if b >= 'A' && b <= 'Z' {
+			b += 'a' - 'A'
+		}
+		hash ^= uint32(b)
+		hash *= prime32
+	}
+	return uint8(hash % accountAutoSaveBuckets)
+}
+
 func (w *World) autoSaveAccounts(now time.Time) {
-	w.nextAutoSave = now.Add(accountAutoSaveInterval)
-	active := make([]*Player, 0, len(w.players))
+	bucket := w.autoSaveBucket
+	w.autoSaveBucket++
+	if w.autoSaveBucket >= accountAutoSaveBuckets {
+		w.autoSaveBucket = 0
+	}
+	w.nextAutoSave = now.Add(accountAutoSaveSliceInterval)
+
+	// Reserve only the expected slice, not the complete online population.
+	// At 999 players this is ~167 pointers instead of 999 every autosave tick.
+	capacity := (len(w.players) + accountAutoSaveBuckets - 1) / accountAutoSaveBuckets
+	active := make([]*Player, 0, capacity)
 	for _, p := range w.players {
-		if !p.InWorld || p.Account == nil || p.Char == nil || p.PersistencePoisoned {
+		if !p.InWorld || p.Account == nil || p.Char == nil || p.PersistencePoisoned ||
+			accountAutoSaveBucket(p.Account.Name) != bucket {
 			continue
 		}
 		active = append(active, p)
@@ -1587,12 +1619,17 @@ func (w *World) autoSaveAccounts(now time.Time) {
 		}
 	}
 	// Enfileira charstates depois das contas. No Postgres isso deixa os snapshots
-	// de conta contiguos para o worker consolida-los em poucos commits.
+	// da fatia contiguos para o worker consolida-los em poucos commits.
 	for _, p := range active {
 		// Buffs e moedas vivem no sidecar de sessao, gravado junto do autosave.
 		w.saveCharStateAsync(p)
 	}
-	w.flushInstanceStateIfDirty()
+	// Estado de instancias conserva a cadencia anterior de ~3 s. Fazer flush em
+	// cada fatia multiplicaria por seis um I/O que nao participa do burst de
+	// snapshots de contas.
+	if w.autoSaveBucket == 0 {
+		w.flushInstanceStateIfDirty()
+	}
 }
 
 // broadcast manda um pacote pra todos os players no mundo. O builder e chamado
