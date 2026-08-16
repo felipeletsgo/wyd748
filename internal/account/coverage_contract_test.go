@@ -47,10 +47,10 @@ func TestVerifyPasswordRejectsEveryMalformedEncodingFamily(t *testing.T) {
 }
 
 func TestAuthenticateCoversValidationMissingAccountStoreErrorAndCorruptHash(t *testing.T) {
-	if _, err := Authenticate(contractAuthStore{}, "abc", "valid1"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, err := Authenticate(contractAuthStore{}, "", "valid1"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("username wire invalido => %v", err)
 	}
-	if _, err := Authenticate(contractAuthStore{}, "valid1", "abc"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, err := Authenticate(contractAuthStore{}, "valid1", ""); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("password wire invalido => %v", err)
 	}
 	if _, err := Authenticate(contractAuthStore{err: os.ErrNotExist}, "valid1", "valid1"); !errors.Is(err, ErrInvalidCredentials) {
