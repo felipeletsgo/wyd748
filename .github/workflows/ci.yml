@@ -45,6 +45,23 @@ jobs:
       - name: Test
         run: go test -count=1 ./...
 
+      - name: Coverage report
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p tmp
+          go test -count=1 -coverprofile=tmp/coverage.out \
+            ./internal/account \
+            ./internal/accountapi \
+            ./internal/game \
+            ./internal/loadtest \
+            ./internal/model \
+            ./internal/net \
+            ./internal/networkpolicy \
+            ./internal/store \
+            ./internal/wire
+          go tool cover -func=tmp/coverage.out | tail -n 1
+
       - name: Race detector
         if: always()
         run: go test -race -count=1 ./internal/game ./internal/net ./internal/store ./internal/account ./internal/accountapi
@@ -60,3 +77,32 @@ jobs:
       - name: Check whitespace
         if: always()
         run: git diff --check
+
+  client-assets:
+    name: Client 7.48 static verification
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify reproducible patch chain
+        shell: pwsh
+        working-directory: client748
+        run: .\Apply-WYD748.ps1 -VerifyOnly
+
+      - name: Verify KR costumes
+        shell: pwsh
+        working-directory: client748
+        run: .\Test-WYD748-Costumes.ps1
+
+      - name: Verify KR mounts
+        shell: pwsh
+        working-directory: client748
+        run: .\Test-WYD748-KRMounts.ps1
+
+      - name: Verify KR mobs and poses
+        shell: pwsh
+        working-directory: client748
+        run: .\Test-WYD748-KRMobs.ps1
