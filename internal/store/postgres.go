@@ -37,10 +37,17 @@ const postgresCharStateBatchSize = 128
 const postgresAutosaveCollectWindow = 2 * time.Millisecond
 
 var (
-	metricPostgresQueueDepth = expvar.NewInt("postgres_async_queue_depth")
-	metricPostgresPending    = expvar.NewInt("postgres_async_pending_coalesced")
-	metricPostgresCoalesced  = expvar.NewInt("postgres_async_snapshots_coalesced_total")
-	metricPostgresFailures   = expvar.NewInt("postgres_async_failures_total")
+	metricPostgresQueueDepth     = expvar.NewInt("postgres_async_queue_depth")
+	metricPostgresPending        = expvar.NewInt("postgres_async_pending_coalesced")
+	metricPostgresCoalesced      = expvar.NewInt("postgres_async_snapshots_coalesced_total")
+	metricPostgresFailures       = expvar.NewInt("postgres_async_failures_total")
+	metricPostgresTxDuration     = expvar.NewInt("postgres_transaction_duration_micros")
+	metricPostgresTxDurationMax  = expvar.NewInt("postgres_transaction_duration_max_micros")
+	metricPostgresTxRetries      = expvar.NewInt("postgres_transaction_retries_total")
+	metricPostgresFenceWaitTotal = expvar.NewInt("postgres_fence_wait_total_micros")
+	metricPostgresFenceWaitMax   = expvar.NewInt("postgres_fence_wait_max_micros")
+	metricPostgresFenceWaitCount = expvar.NewInt("postgres_fence_wait_count")
+	postgresMetricMaxMu          sync.Mutex
 )
 
 // Valor privado deste projeto. O lock de sessao impede server e account-api de
@@ -782,7 +789,38 @@ func (s *PostgresStore) postgresContext() (context.Context, context.CancelFunc) 
 	return context.WithTimeout(context.Background(), timeout)
 }
 
+func setPostgresMetricMax(metric *expvar.Int, value int64) {
+	postgresMetricMaxMu.Lock()
+	if value > metric.Value() {
+		metric.Set(value)
+	}
+	postgresMetricMaxMu.Unlock()
+}
+
+func durationMicros(d time.Duration) int64 {
+	micros := d.Microseconds()
+	if micros < 0 {
+		return 0
+	}
+	return micros
+}
+
+func observePostgresTransaction(started time.Time) {
+	micros := durationMicros(time.Since(started))
+	metricPostgresTxDuration.Set(micros)
+	setPostgresMetricMax(metricPostgresTxDurationMax, micros)
+}
+
+func observePostgresFenceWait(wait time.Duration) {
+	micros := durationMicros(wait)
+	metricPostgresFenceWaitTotal.Add(micros)
+	metricPostgresFenceWaitCount.Add(1)
+	setPostgresMetricMax(metricPostgresFenceWaitMax, micros)
+}
+
 func (s *PostgresStore) withSerializableTx(run func(context.Context, pgx.Tx) error) error {
+	started := time.Now()
+	defer observePostgresTransaction(started)
 	// Um unico deadline cobre begin, callback, commit e todos os retries. Antes,
 	// cada tentativa recebia mais dez segundos e uma operacao critica podia
 	// congelar a goroutine unica do World por dezenas de segundos.
@@ -803,6 +841,7 @@ func (s *PostgresStore) withSerializableTx(run func(context.Context, pgx.Tx) err
 		if !isRetryablePostgres(err) {
 			return err
 		}
+		metricPostgresTxRetries.Add(1)
 		last = err
 		delay := time.NewTimer(time.Duration(attempt+1) * 10 * time.Millisecond)
 		select {

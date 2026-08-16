@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"wydgo/internal/model"
 )
@@ -36,6 +37,7 @@ func (f *postgresFenceSet) lock(keys ...string) func() {
 		return func() {}
 	}
 
+	waitStarted := time.Now()
 	f.mu.Lock()
 	if f.entries == nil {
 		f.entries = make(map[string]*postgresFenceEntry)
@@ -55,6 +57,7 @@ func (f *postgresFenceSet) lock(keys ...string) func() {
 	for _, entry := range entries {
 		entry.mu.Lock()
 	}
+	observePostgresFenceWait(time.Since(waitStarted))
 
 	return func() {
 		for i := len(entries) - 1; i >= 0; i-- {
