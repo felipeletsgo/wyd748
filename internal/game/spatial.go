@@ -213,6 +213,39 @@ func (w *World) recomputeMobsNearCell(key uint32, radius int) {
 	}
 }
 
+func (w *World) resetMobActivationScratch() map[uint16]*Mob {
+	if w.mobActivationScratch == nil {
+		w.mobActivationScratch = make(map[uint16]*Mob)
+	} else {
+		clear(w.mobActivationScratch)
+	}
+	return w.mobActivationScratch
+}
+
+func (w *World) collectMobsNearCell(key uint32, radius int, dst map[uint16]*Mob) {
+	cx, cy := spatialCellXY(key)
+	cr := radius/spatialCellSize + 1
+	for yy := cy - cr; yy <= cy+cr; yy++ {
+		for xx := cx - cr; xx <= cx+cr; xx++ {
+			if xx < 0 || yy < 0 {
+				continue
+			}
+			for id, m := range w.mobCells[uint32(xx)<<16|uint32(yy)] {
+				dst[id] = m
+			}
+		}
+	}
+}
+
+func (w *World) recomputeMobActivationScratch(affected map[uint16]*Mob) {
+	for _, m := range affected {
+		w.recomputeMobActive(m)
+	}
+	// O World e single-writer. Limpar aqui preserva a capacidade do map para a
+	// proxima troca de celula sem manter referencias aos mobs entre comandos.
+	clear(affected)
+}
+
 func (w *World) updatePlayerSpatial(p *Player) {
 	if p == nil || !p.InWorld || p.ID == 0 {
 		return
@@ -229,13 +262,12 @@ func (w *World) updatePlayerSpatial(p *Player) {
 		w.recomputeMobsNearCell(newKey, mobActivationRange)
 		return
 	}
-	// Crossing a cell is much rarer than moving inside one. Keep the de-dup map
-	// here so mobs present in both neighborhoods are still recomputed only once.
-	affected := make(map[uint16]*Mob)
+
+	// Uma troca de celula precisa recalcular a uniao dos bairros antigo e novo.
+	// O map vive no World para evitar duas []Mob e um map temporario por cruzamento.
+	affected := w.resetMobActivationScratch()
 	if existed {
-		for _, m := range w.nearbyMobsAtCell(oldKey, mobActivationRange) {
-			affected[m.ID] = m
-		}
+		w.collectMobsNearCell(oldKey, mobActivationRange, affected)
 		delete(w.playerCells[oldKey], p.ID)
 		if len(w.playerCells[oldKey]) == 0 {
 			delete(w.playerCells, oldKey)
@@ -247,29 +279,8 @@ func (w *World) updatePlayerSpatial(p *Player) {
 		w.playerCells[newKey] = cell
 	}
 	cell[p.ID], w.playerCell[p.ID] = p, newKey
-	for _, m := range w.nearbyMobsAtCell(newKey, mobActivationRange) {
-		affected[m.ID] = m
-	}
-	for _, m := range affected {
-		w.recomputeMobActive(m)
-	}
-}
-
-func (w *World) nearbyMobsAtCell(key uint32, radius int) []*Mob {
-	cx, cy := spatialCellXY(key)
-	cr := radius/spatialCellSize + 1
-	result := make([]*Mob, 0, 64)
-	for yy := cy - cr; yy <= cy+cr; yy++ {
-		for xx := cx - cr; xx <= cx+cr; xx++ {
-			if xx < 0 || yy < 0 {
-				continue
-			}
-			for _, m := range w.mobCells[uint32(xx)<<16|uint32(yy)] {
-				result = append(result, m)
-			}
-		}
-	}
-	return result
+	w.collectMobsNearCell(newKey, mobActivationRange, affected)
+	w.recomputeMobActivationScratch(affected)
 }
 
 func (w *World) unregisterPlayerSpatial(p *Player) {
@@ -280,15 +291,14 @@ func (w *World) unregisterPlayerSpatial(p *Player) {
 	if !ok {
 		return
 	}
-	affected := w.nearbyMobsAtCell(key, mobActivationRange)
+	affected := w.resetMobActivationScratch()
+	w.collectMobsNearCell(key, mobActivationRange, affected)
 	delete(w.playerCells[key], p.ID)
 	if len(w.playerCells[key]) == 0 {
 		delete(w.playerCells, key)
 	}
 	delete(w.playerCell, p.ID)
-	for _, m := range affected {
-		w.recomputeMobActive(m)
-	}
+	w.recomputeMobActivationScratch(affected)
 }
 
 func (w *World) registerGroundItem(item *GroundItem) {

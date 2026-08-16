@@ -378,6 +378,7 @@ type World struct {
 	mobCell               map[uint16]uint32
 	playerCell            map[uint16]uint32
 	activeMobs            map[uint16]*Mob
+	mobActivationScratch  map[uint16]*Mob
 	summons               map[uint16]*Mob
 	sephiraObjects        map[uint16]*Mob
 	generators            []generState
