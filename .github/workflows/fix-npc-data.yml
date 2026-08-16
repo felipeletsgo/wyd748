@@ -27,313 +27,53 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          # Reuse the already-audited v2 repair body from its immutable commit.
           python3 - <<'PY'
-          import copy
-          import json
           import pathlib
-          import re
           import subprocess
 
-          ROOT = pathlib.Path('.')
-          BASELINE = 'b2fb1a839cfd877d1d608b4ee3b7dbeff9d5637d'
-          IMPORT = '68321d55784ee460c40982b655ee4b5521e8e7c3'
-          TRANSLATE_PARENT = 'bc8f38e847770b787315296b20fabc0a8fdd6551'
-          TRANSLATE_COMMIT = '1b1c8b86e6ad2c1e1639a699b5dda9d86cce50db'
+          ref = '872838eff4c8a4ec08ba729ee9b3eb4b09b44983'
+          text = subprocess.check_output(
+              ['git', 'show', f'{ref}:.github/workflows/fix-npc-data.yml'],
+              text=True,
+          )
+          marker = '      - name: Repair NPC dataset\n'
+          start = text.index(marker)
+          run_pos = text.index('        run: |\n', start) + len('        run: |\n')
+          end = text.index('\n      - name: Validate', run_pos)
+          block = text[run_pos:end]
+          lines = []
+          for line in block.splitlines():
+              if line.startswith('          '):
+                  line = line[10:]
+              lines.append(line)
+          pathlib.Path('/tmp/repair-v2.sh').write_text('\n'.join(lines) + '\n')
+          PY
+          bash /tmp/repair-v2.sh
 
-          def git(*args):
-              return subprocess.check_output(['git', *args], text=True)
+          # The cleanup legitimately reduced inherited >12-byte names from 62
+          # to 55. Freeze that improvement instead of preserving a stale baseline.
+          python3 - <<'PY'
+          from pathlib import Path
 
-          def read_git_json(ref, path):
-              try:
-                  return json.loads(git('show', f'{ref}:{path}'))
-              except Exception:
-                  return None
+          p = Path('internal/data/npc_names_test.go')
+          s = p.read_text()
+          old = 'const nomesLongosHerdados = 62'
+          new = 'const nomesLongosHerdados = 55'
+          if old not in s:
+              raise SystemExit('wire-name baseline marker not found')
+          p.write_text(s.replace(old, new, 1))
 
-          def signature(obj):
-              obj = copy.deepcopy(obj)
-              if isinstance(obj, dict):
-                  obj.pop('name', None)
-              return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
-
-          def files_at(ref):
-              return [p for p in git('ls-tree', '-r', '--name-only', ref, '--', 'data/npcs').splitlines() if p.endswith('.json')]
-
-          # Reconstruct the authoritative Portuguese->English translation map from
-          # the commit that originally translated the Micronics NPC dataset.
-          translation = {}
-          deleted, added = [], []
-          for line in git('diff', '--name-status', '-M', f'{TRANSLATE_PARENT}..{TRANSLATE_COMMIT}', '--', 'data/npcs').splitlines():
-              parts = line.split('\t')
-              status = parts[0]
-              if status.startswith('R') and len(parts) == 3:
-                  old_obj = read_git_json(TRANSLATE_PARENT, parts[1])
-                  new_obj = read_git_json(TRANSLATE_COMMIT, parts[2])
-                  if old_obj and new_obj and old_obj.get('name') != new_obj.get('name'):
-                      translation[old_obj['name']] = new_obj['name']
-              elif status == 'M' and len(parts) == 2:
-                  old_obj = read_git_json(TRANSLATE_PARENT, parts[1])
-                  new_obj = read_git_json(TRANSLATE_COMMIT, parts[1])
-                  if old_obj and new_obj and old_obj.get('name') != new_obj.get('name'):
-                      translation[old_obj['name']] = new_obj['name']
-              elif status == 'D' and len(parts) == 2:
-                  deleted.append(parts[1])
-              elif status == 'A' and len(parts) == 2:
-                  added.append(parts[1])
-
-          old_by_sig, new_by_sig = {}, {}
-          for path in deleted:
-              obj = read_git_json(TRANSLATE_PARENT, path)
-              if obj:
-                  old_by_sig.setdefault(signature(obj), []).append((path, obj.get('name', '')))
-          for path in added:
-              obj = read_git_json(TRANSLATE_COMMIT, path)
-              if obj:
-                  new_by_sig.setdefault(signature(obj), []).append((path, obj.get('name', '')))
-          for sig, olds in old_by_sig.items():
-              news = new_by_sig.get(sig, [])
-              if not news or len(olds) != len(news):
-                  continue
-              for (_, old), (_, new) in zip(sorted(olds), sorted(news)):
-                  if old and new and old != new:
-                      translation.setdefault(old, new)
-
-          # Explicitly resolve the only byte-identical pairs where the historic
-          # translation has an ordinal identity rather than a unique signature.
-          translation.update({
-              'Guarda_Carga': 'Cargo_Guard1',
-              'Guarda_Carga_': 'Cargo_Guard2',
-              'Guarda_Real': 'Royal_Guard1',
-              'Guarda_Real_': 'Royal_Guard2',
-          })
-
-          baseline_by_sig = {}
-          for path in files_at(BASELINE):
-              obj = read_git_json(BASELINE, path)
-              if obj:
-                  baseline_by_sig.setdefault(signature(obj), []).append((path, obj.get('name', '')))
-
-          import_added = set()
-          for line in git('diff', '--name-status', f'{BASELINE}..{IMPORT}', '--', 'data/npcs').splitlines():
-              parts = line.split('\t')
-              if len(parts) >= 2 and parts[0] == 'A' and parts[1].endswith('.json'):
-                  import_added.add(parts[1])
-
-          def current_npcs():
-              result = {}
-              for p in sorted((ROOT / 'data/npcs').glob('*.json')):
-                  try:
-                      obj = json.loads(p.read_text(encoding='utf-8'))
-                  except Exception:
-                      continue
-                  if obj.get('name'):
-                      result.setdefault(obj['name'], []).append((p, obj))
-              return result
-
-          mapping = {}
-          removed = []
-          by_name = current_npcs()
-
-          # First remove re-imported pre-translation templates when their canonical
-          # translated identity already exists in the current dataset.
-          for path in sorted(import_added):
-              p = ROOT / path
-              if not p.exists():
-                  continue
-              try:
-                  obj = json.loads(p.read_text(encoding='utf-8'))
-              except Exception:
-                  continue
-              old = obj.get('name', '')
-              new = translation.get(old)
-              if new and new in by_name and new != old:
-                  mapping[old] = new
-                  p.unlink()
-                  removed.append((path, old, new, 'historic-translation'))
-                  continue
-
-              # Fallback for exact gameplay duplicates whose translation was not
-              # represented as a rename in the historic commit.
-              candidates = baseline_by_sig.get(signature(obj), [])
-              names = sorted({name for _, name in candidates if name and name != old})
-              if len(names) == 1 and names[0] in by_name:
-                  new = names[0]
-                  mapping[old] = new
-                  p.unlink()
-                  removed.append((path, old, new, 'exact-content'))
-
-          arch = ROOT / 'data/npcs/Arch.json'
-          if arch.exists():
-              arch.unlink()
-              removed.append((str(arch), 'Arch', '<removed>', 'forbidden-template'))
-
-          # Remaining Portuguese source names that are not duplicate files are
-          # translated in-place. Filenames are intentionally preserved because
-          # sorted filenames define stable NPC ClientId assignment at boot.
-          manual = {
-              'Arq_Caveira': 'Skull_Archer',
-              'Cav.Caveira': 'Skull_Knight',
-              'Cav._Elfo_Negro': 'DarkElf_Kn',
-              'Cavaleiro_Negro': 'Dark_Knight',
-              'Caveira': 'Skull',
-              'Chefe_Ghoul': 'Ghoul_Chief',
-              'Chefe_Ghoul_': 'Ghoul_Chief2',
-              'Chefe_Krill': 'Krill_Chief',
-              'Chefe_Krill_': 'KrillChief2',
-              'Chefe_Orc_': 'Orc_Chief',
-              'Conj_Caveira': 'Skull_Mage',
-              'Elfo_Negro': 'Dark_Elf',
-              'Esqueleto': 'Skeleton',
-              'Gargula': 'Gargoyle',
-              'Guer_Caveira': 'Skull_Warr',
-              'Hidra': 'Hydra',
-              'Hydra2Imortal': 'Immort_Hydra',
-              'LojaTeste': 'Test_Shop',
-              'LojaTeste2': 'Test_Shop2',
-              'Mestre_de_Hab': 'Skill_Master',
-              'Orc_Arqueiro': 'Orc_Archer',
-              'Serpent_Gigante': 'Giant_Serp',
-              'Servo_Carbuncle': 'Carb_Servant',
-              'Servo_Elfo': 'Elf_Servant',
-              'Golem_de_Fogo': 'Fire_Golem',
-              'Golem_de_Pedra': 'Stone_Golem',
-              'Perzen_Arcano': 'Perzen_Arc',
-              'Perzen_Mistico': 'Perzen_Myst',
-              'Templario_Amald': 'Amald_Templr',
-              'Templario_Sol': 'Sun_Templar',
-              'Troll_Caos___': 'Chaos_Troll',
-              'Troll_Insano_': 'Mad_Troll',
-              'Unicornio_Puro': 'Pure_Unicorn',
-          }
-
-          by_name = current_npcs()
-          for old, new in manual.items():
-              entries = by_name.get(old, [])
-              if not entries:
-                  continue
-              if len(new.encode('utf-8')) > 12:
-                  raise SystemExit(f'manual target exceeds wire limit: {new}')
-              if new in by_name:
-                  # A canonical target already exists: only remove the source when
-                  # it is a re-imported file. Otherwise refuse an unsafe merge.
-                  for p, _ in entries:
-                      rel = str(p).replace('\\', '/')
-                      if rel not in import_added:
-                          raise SystemExit(f'unsafe duplicate translation {old}->{new}: {rel}')
-                      p.unlink()
-                      removed.append((rel, old, new, 'manual-existing'))
-                  mapping[old] = new
-                  continue
-              for p, obj in entries:
-                  obj['name'] = new
-                  p.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-                  removed.append((str(p), old, new, 'rename-in-place'))
-              mapping[old] = new
-              by_name[new] = [(p, obj) for p, obj in entries]
-              by_name.pop(old, None)
-
-          # Update only structural/exact references. Never replace arbitrary
-          # substrings: NPC names can be prefixes of unrelated strings.
-          changed_refs = set()
-          quoted_exts = {'.go', '.lua', '.json', '.txt', '.csv'}
-          for base in [ROOT / 'data', ROOT / 'internal', ROOT / 'cmd']:
-              if not base.exists():
-                  continue
-              for p in base.rglob('*'):
-                  if not p.is_file() or p.suffix.lower() not in quoted_exts:
-                      continue
-                  try:
-                      raw = p.read_text(encoding='utf-8')
-                  except UnicodeDecodeError:
-                      continue
-                  new_raw = raw
-                  for old, new in mapping.items():
-                      new_raw = new_raw.replace(json.dumps(old), json.dumps(new))
-                      new_raw = new_raw.replace("'" + old + "'", "'" + new + "'")
-                      if p.name == 'NPCGener.txt':
-                          pat = re.compile(r'(?m)^(\s*(?:Leader|Follower):\s*)' + re.escape(old) + r'(\s*)$')
-                          new_raw = pat.sub(lambda m, n=new: m.group(1) + n + m.group(2), new_raw)
-                  if new_raw != raw:
-                      p.write_text(new_raw, encoding='utf-8')
-                      changed_refs.add(str(p))
-
-          # Align the KR preview with the intended current content: Dragon and
-          # Helriohdon are not imported; each retained KR preview group spawns one
-          # mob. Coordinates remain entirely authoritative in NPCGener.txt.
-          retained_kr = [
-              'Scorpion', 'Murmy', 'DeathWorm', 'Anubis', 'AnubisElite',
-              'AnubisGuard', 'BerialGuard', 'tteok', 'LegendBerial',
-              'BahamutQ_R', 'BahamutQ_B', 'LavaGolem', 'LavaGrub', 'Bahamut',
-              'CB_Trant', 'Sand_Lich', 'Ice_Lich',
-          ]
-          gener = ROOT / 'data/NPCGener.txt'
-          lines = gener.read_text(encoding='utf-8').splitlines(keepends=True)
-          touched = {name: 0 for name in retained_kr}
-          for i, line in enumerate(lines):
-              m = re.match(r'^\s*Leader:\s*(\S+)\s*$', line)
-              if not m or m.group(1) not in touched:
-                  continue
-              name = m.group(1)
-              start = max(0, i - 12)
-              for j in range(start, i):
-                  for field in ('MaxNumMob', 'MinGroup', 'MaxGroup'):
-                      if re.match(r'^\s*' + field + r':', lines[j]):
-                          indent = lines[j][:len(lines[j]) - len(lines[j].lstrip())]
-                          newline = '\r\n' if lines[j].endswith('\r\n') else '\n'
-                          lines[j] = f'{indent}{field}:\t1{newline}'
-              touched[name] += 1
-          missing = [name for name, count in touched.items() if count != 1]
-          if missing:
-              raise SystemExit(f'KR groups missing/duplicated: {missing} counts={touched}')
-          gener.write_text(''.join(lines), encoding='utf-8', newline='')
-
-          kr = ROOT / 'internal/data/kr_mobs_test.go'
-          s = kr.read_text(encoding='utf-8')
-          s = s.replace('\t{"Dragon", 199}, {"Helriohdon", 346}, {"BerialGuard", 347},\n', '\t{"BerialGuard", 347},\n')
-          marker = 'func TestKRMobPreviewGroupsMoveAwayFromArmia(t *testing.T) {'
-          if marker not in s:
-              raise SystemExit('KR preview test marker not found')
-          prefix = s[:s.index(marker)]
-          replacement = r'''func TestKRMobPreviewGroupsMaterializeOneMob(t *testing.T) {
-          	gens, err := LoadNPCGener(filepath.Join("..", "..", "data", "NPCGener.txt"))
-          	if err != nil {
-          		t.Fatal(err)
-          	}
-          
-          	for _, want := range krMobFaces {
-          		matches := 0
-          		for i := range gens {
-          			g := gens[i]
-          			if g.Leader != want.name || g.Follower != want.name {
-          				continue
-          			}
-          			if g.MaxNumMob == 1 && g.MinGroup == 1 && g.MaxGroup == 1 {
-          				matches++
-          			}
-          		}
-          		if matches != 1 {
-          			t.Errorf("%s possui %d grupos KR de um mob; esperado 1", want.name, matches)
-          		}
-          	}
-          }
-          '''
-          kr.write_text(prefix + replacement, encoding='utf-8')
-
-          # Diagnostics before validation.
-          names = []
-          for p in sorted((ROOT / 'data/npcs').glob('*.json')):
-              obj = json.loads(p.read_text(encoding='utf-8'))
-              names.append((str(p), obj.get('name', '')))
-          long_names = [(p, n) for p, n in names if len(n.encode('utf-8')) > 12]
-          portuguese = re.compile(r'(?i)(guarda|mestre|treinador|ferreiro|sabio|sobreviv|guardiao|gargula|cavaleiro|alquimista|arqueiro|coveiro|jardineiro|batedor|representante|montaria|^loja|chefe|esqueleto|hidra|servo_|imortal|dourada|negro|caveira|gigante)')
-          pt_names = [(p, n) for p, n in names if portuguese.search(n)]
-          print(f'removed/renamed templates: {len(removed)}')
-          print(f'name mappings: {len(mapping)}')
-          print(f'reference files changed: {len(changed_refs)}')
-          print(f'long names remaining: {len(long_names)}')
-          print(f'Portuguese-looking names remaining: {len(pt_names)} {pt_names}')
+          # This is a generic generName normalization fixture, not an NPC
+          # reference. The exact-name migration must not rewrite its input.
+          p = Path('internal/game/world_integration_test.go')
+          s = p.read_text()
+          s = s.replace('generName("Archi_Master")', 'generName("Mestre_Archi")', 1)
+          p.write_text(s)
           PY
 
-          gofmt -w internal/data/kr_mobs_test.go
+          gofmt -w internal/data/npc_names_test.go internal/game/world_integration_test.go
 
       - name: Validate
         shell: bash
