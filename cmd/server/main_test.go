@@ -24,3 +24,9 @@ func TestConfigPathFromArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestGeneratorExtraDisabledByDefault(t *testing.T) {
+	if defaultGeneratorExtraPath != "" {
+		t.Fatalf("gener-extra default=%q; fixtures de teste devem exigir opt-in", defaultGeneratorExtraPath)
+	}
+}

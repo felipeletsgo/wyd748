@@ -30,6 +30,10 @@ import (
 // antes (o padrao do TimeoutStopSec e 90 s).
 const shutdownTimeout = 20 * time.Second
 
+// defaultGeneratorExtraPath mantem conteudo de teste fora do boot normal. O
+// overlay continua disponivel por opt-in explicito com -gener-extra.
+const defaultGeneratorExtraPath = ""
+
 // serveDebug sobe expvar (/debug/vars) e pprof (/debug/pprof) em loopback. A
 // validacao de que o endereco NAO e publico fica em data.LoadServerConfig, que
 // derruba o boot em vez de expor o diagnostico.
@@ -73,8 +77,8 @@ func main() {
 	addr := flag.String("addr", cfg.ListenAddress, "endereco de escuta (host:porta)")
 	npcPath := flag.String("npcs", cfg.NPCPath, "pasta de NPCs (um .json por NPC)")
 	generPath := flag.String("gener", cfg.GeneratorPath, "arquivo padrao de spawn NPCGener.txt")
-	generExtraPath := flag.String("gener-extra", "data/NPCGenerTest.txt",
-		"arquivo adicional de geradores para lojas/fixtures de teste; vazio desliga")
+	generExtraPath := flag.String("gener-extra", defaultGeneratorExtraPath,
+		"arquivo adicional de geradores (ex.: data/NPCGenerTest.txt); vazio desliga")
 	teleportPath := flag.String("teleports", cfg.TeleportPath, "arquivo server-side de portais")
 	networkAdmissionPath := flag.String("network-admission", cfg.NetworkAdmissionPath,
 		"politica server-side de redes VPS/VPN/datacenter")
