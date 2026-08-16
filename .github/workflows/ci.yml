@@ -60,7 +60,18 @@ jobs:
             ./internal/networkpolicy \
             ./internal/store \
             ./internal/wire
-          go tool cover -func=tmp/coverage.out | tail -n 1
+          go tool cover -func=tmp/coverage.out | tee tmp/coverage.txt
+
+      - name: Upload coverage profile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: |
+            tmp/coverage.out
+            tmp/coverage.txt
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Fuzz framing
         if: always()
