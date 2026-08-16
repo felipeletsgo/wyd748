@@ -167,6 +167,25 @@ func (w *World) recomputeMobActive(m *Mob) {
 	}
 }
 
+// recomputeMobsNearCell walks the same cell neighborhood as nearbyMobsAtCell
+// without materializing a temporary slice. Player movement inside one 16-tile
+// cell is the common path, so keeping this walk allocation-free avoids a burst
+// of short-lived slices while preserving immediate mob wake/sleep updates.
+func (w *World) recomputeMobsNearCell(key uint32, radius int) {
+	cx, cy := spatialCellXY(key)
+	cr := radius/spatialCellSize + 1
+	for yy := cy - cr; yy <= cy+cr; yy++ {
+		for xx := cx - cr; xx <= cx+cr; xx++ {
+			if xx < 0 || yy < 0 {
+				continue
+			}
+			for _, m := range w.mobCells[uint32(xx)<<16|uint32(yy)] {
+				w.recomputeMobActive(m)
+			}
+		}
+	}
+}
+
 func (w *World) updatePlayerSpatial(p *Player) {
 	if p == nil || !p.InWorld || p.ID == 0 {
 		return
@@ -179,13 +198,13 @@ func (w *World) updatePlayerSpatial(p *Player) {
 	}
 	newKey := spatialKey(p.X, p.Y)
 	oldKey, existed := w.playerCell[p.ID]
-	var affected = make(map[uint16]*Mob)
 	if existed && oldKey == newKey {
-		for _, m := range w.nearbyMobsAtCell(newKey, mobActivationRange) {
-			w.recomputeMobActive(m)
-		}
+		w.recomputeMobsNearCell(newKey, mobActivationRange)
 		return
 	}
+	// Crossing a cell is much rarer than moving inside one. Keep the de-dup map
+	// here so mobs present in both neighborhoods are still recomputed only once.
+	affected := make(map[uint16]*Mob)
 	if existed {
 		for _, m := range w.nearbyMobsAtCell(oldKey, mobActivationRange) {
 			affected[m.ID] = m
