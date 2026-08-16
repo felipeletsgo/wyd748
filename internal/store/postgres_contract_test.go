@@ -227,3 +227,68 @@ func TestPostgresPingRejectsClosedOrNilStore(t *testing.T) {
 		t.Fatal("Ping em store sem pool deveria falhar")
 	}
 }
+
+func TestPostgresResetLoadtestAccountsDeletesOnlyExactBotPrefixPattern(t *testing.T) {
+	st := openContractPostgres(t)
+	accounts := []*model.Account{
+		postgresTestAccount("botx0001", "LoadCovA", model.Item{}),
+		postgresTestAccount("botx0002", "LoadCovB", model.Item{}),
+		postgresTestAccount("boty0001", "KeepCov", model.Item{}),
+	}
+	keys := []string{"botx0001", "botx0002", "boty0001"}
+	_, _ = st.pool.Exec(context.Background(), `DELETE FROM accounts WHERE name_key=ANY($1)`, keys)
+	t.Cleanup(func() { _, _ = st.pool.Exec(context.Background(), `DELETE FROM accounts WHERE name_key=ANY($1)`, keys) })
+	for _, acc := range accounts {
+		if err := st.CreateAccount(acc); err != nil {
+			t.Fatal(err)
+		}
+	}
+	deleted, err := st.ResetLoadtestAccounts(nil, " BOTX ")
+	if err != nil || deleted != 2 {
+		t.Fatalf("ResetLoadtestAccounts deleted=%d err=%v", deleted, err)
+	}
+	if exists, err := st.AccountNameExists("botx0001"); err != nil || exists {
+		t.Fatalf("botx0001 ainda existe: exists=%v err=%v", exists, err)
+	}
+	if exists, err := st.AccountNameExists("boty0001"); err != nil || !exists {
+		t.Fatalf("conta fora do prefixo foi removida: exists=%v err=%v", exists, err)
+	}
+	for _, bad := range []string{"", "bo", "bot1", "player", "bot-too-long"} {
+		if _, err := st.ResetLoadtestAccounts(context.Background(), bad); err == nil {
+			t.Fatalf("prefixo inseguro %q foi aceito", bad)
+		}
+	}
+}
+
+func TestPostgresAsyncCharStateRoundTripAndDelete(t *testing.T) {
+	st := openContractPostgres(t)
+	accountName := uniquePostgresContractName("charstate")
+	acc := postgresTestAccount(accountName, "StateHero", model.Item{})
+	t.Cleanup(func() {
+		_, _ = st.pool.Exec(context.Background(), `DELETE FROM accounts WHERE name_key=$1`, strings.ToLower(accountName))
+	})
+	if err := st.CreateAccount(acc); err != nil {
+		t.Fatal(err)
+	}
+	uid := acc.Chars[0].UID
+	state := &model.CharState{Version: model.CharStateVersion, SpecialCoins: map[string]uint32{"fame": 77}}
+	if err := st.SaveCharStateAsync(uid, state); err != nil {
+		t.Fatal(err)
+	}
+	st.Flush()
+	loaded, err := st.LoadCharState(uid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded == nil || loaded.SpecialCoins["fame"] != 77 {
+		t.Fatalf("charstate async nao persistiu: %+v", loaded)
+	}
+	if err := st.SaveCharStateAsync(uid, nil); err != nil {
+		t.Fatal(err)
+	}
+	st.Flush()
+	loaded, err = st.LoadCharState(uid)
+	if err != nil || loaded != nil {
+		t.Fatalf("delete async do charstate falhou: state=%+v err=%v", loaded, err)
+	}
+}
