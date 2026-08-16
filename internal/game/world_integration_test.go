@@ -87,7 +87,7 @@ func TestNewWorldWiresOptionsAndSpawnsConfiguredContent(t *testing.T) {
 		t.Fatal("options do mundo nao foram preservadas")
 	}
 	if w.npcGenerLogMode != npcGenerLogQuiet ||
-		!w.nextAutoSave.Equal(clock.Now().Add(accountAutoSaveInterval)) ||
+		!w.nextAutoSave.Equal(clock.Now().Add(accountAutoSaveSliceInterval)) ||
 		!w.nextQuestZoneReset.Equal(clock.Now().Add(questZoneResetInterval)) {
 		t.Fatal("modo de log ou deadlines nao usam a configuracao/relogio injetados")
 	}

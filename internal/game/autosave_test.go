@@ -2,6 +2,7 @@ package game
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 type autoSaveStore struct {
 	saves int
 	acc   *model.Account
+	names []string
 	err   error
 }
 
@@ -22,6 +24,7 @@ func (s *autoSaveStore) LoadAccount(string) (*model.Account, error) {
 func (s *autoSaveStore) SaveAccount(acc *model.Account) error {
 	s.saves++
 	s.acc = acc
+	s.names = append(s.names, acc.Name)
 	return s.err
 }
 
@@ -36,6 +39,7 @@ func TestAutoSavePinsEveryCharacterAtFixedEntryPosition(t *testing.T) {
 	session := &netpkg.Session{ID: 7}
 	p := &Player{Session: session, Account: acc, Char: &acc.Chars[0], InWorld: true, X: 2200, Y: 2100}
 	w := &World{store: st, players: map[*netpkg.Session]*Player{session: p}}
+	w.autoSaveBucket = accountAutoSaveBucket(acc.Name)
 	now := time.Now()
 	w.autoSaveAccounts(now)
 	if st.saves != 1 || st.acc == nil || st.acc == acc {
@@ -51,7 +55,7 @@ func TestAutoSavePinsEveryCharacterAtFixedEntryPosition(t *testing.T) {
 		acc.Chars[1].X != 3000 || acc.Chars[1].Y != 3000 {
 		t.Fatalf("autosave alterou a conta viva: %+v", acc.Chars)
 	}
-	if !w.nextAutoSave.Equal(now.Add(accountAutoSaveInterval)) {
+	if !w.nextAutoSave.Equal(now.Add(accountAutoSaveSliceInterval)) {
 		t.Fatalf("proximo autosave=%v", w.nextAutoSave)
 	}
 }
@@ -65,6 +69,73 @@ func TestAutoSaveIgnoresPlayerOutsideWorld(t *testing.T) {
 	w.autoSaveAccounts(time.Now())
 	if st.saves != 0 {
 		t.Fatalf("salvou %d conta(s) fora do mundo", st.saves)
+	}
+}
+
+func TestAccountAutoSaveBucketIsCaseInsensitive(t *testing.T) {
+	if accountAutoSaveBucket("Felipe") != accountAutoSaveBucket("fELIPE") {
+		t.Fatal("bucket de autosave depende da capitalizacao da conta")
+	}
+}
+
+func TestAutoSaveDistributesAccountsAcrossFullCycle(t *testing.T) {
+	st := &autoSaveStore{}
+	players := make(map[*netpkg.Session]*Player)
+	var names [accountAutoSaveBuckets]string
+	filled := 0
+	for i := 0; filled < accountAutoSaveBuckets; i++ {
+		name := fmt.Sprintf("autosave%03d", i)
+		bucket := accountAutoSaveBucket(name)
+		if names[bucket] != "" {
+			continue
+		}
+		names[bucket] = name
+		filled++
+		acc := &model.Account{Name: name, Chars: []model.Char{{Name: name}}}
+		session := &netpkg.Session{ID: int64(100 + i)}
+		players[session] = &Player{
+			Session: session,
+			Account: acc,
+			Char:    &acc.Chars[0],
+			InWorld: true,
+		}
+	}
+
+	w := &World{store: st, players: players}
+	now := time.Now()
+	for bucket := 0; bucket < accountAutoSaveBuckets; bucket++ {
+		w.autoSaveAccounts(now)
+		if st.saves != bucket+1 {
+			t.Fatalf("fatia %d acumulou %d saves; esperado %d", bucket, st.saves, bucket+1)
+		}
+		last := st.names[len(st.names)-1]
+		if got := accountAutoSaveBucket(last); got != uint8(bucket) {
+			t.Fatalf("fatia %d salvou conta %q do bucket %d", bucket, last, got)
+		}
+		if !w.nextAutoSave.Equal(now.Add(accountAutoSaveSliceInterval)) {
+			t.Fatalf("fatia %d agendou deadline %v", bucket, w.nextAutoSave)
+		}
+		if len(w.autoSaveScratch) != 0 {
+			t.Fatalf("scratch reteve %d jogadores depois da fatia %d", len(w.autoSaveScratch), bucket)
+		}
+		now = now.Add(accountAutoSaveSliceInterval)
+	}
+	if w.autoSaveBucket != 0 {
+		t.Fatalf("cursor nao voltou ao primeiro bucket: %d", w.autoSaveBucket)
+	}
+	for bucket, name := range names {
+		count := 0
+		for _, saved := range st.names {
+			if saved == name {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Fatalf("conta %q do bucket %d foi salva %d vez(es)", name, bucket, count)
+		}
+	}
+	if accountAutoSaveSliceInterval*time.Duration(accountAutoSaveBuckets) != accountAutoSaveInterval {
+		t.Fatal("fatias de autosave nao fecham a janela de tres segundos")
 	}
 }
 
