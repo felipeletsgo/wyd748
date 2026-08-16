@@ -188,7 +188,9 @@ func TestReadLoopRejectsInvalidChecksum(t *testing.T) {
 	done := make(chan error, 1)
 	go func() { done <- b.readLoop(context.Background()) }()
 	pkt := finalizedServerPacket(wire.OpEnterWorld, 1, 20, nil)
-	pkt[len(pkt)-1] ^= 0x7F
+	// CheckSum@3 nao e criptografado. Alterar esse byte garante que Decrypt
+	// compare a soma correta do payload com um checksum deliberadamente errado.
+	pkt[3]++
 	if _, err := server.Write(pkt); err != nil {
 		t.Fatal(err)
 	}
