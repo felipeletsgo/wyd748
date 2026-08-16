@@ -100,6 +100,13 @@ func ListenWithConfig(addr string, cfg ListenerConfig, onConn func(*Session)) er
 		return err
 	}
 	log.Printf("WYD-Go TMSrv escutando em %s", addr)
+	return serveListener(ln, cfg, onConn)
+}
+
+// serveListener isola o loop de Accept da criacao do socket. Em producao ele
+// recebe o listener TCP acima; em teste, o listener pode ser fechado de forma
+// deterministica sem expor ownership novo nem alterar a Session.
+func serveListener(ln stdnet.Listener, cfg ListenerConfig, onConn func(*Session)) error {
 	limiter := newConnectionLimiter(cfg.MaxConnections, cfg.MaxConnectionsPerIP)
 	for {
 		c, err := ln.Accept()
