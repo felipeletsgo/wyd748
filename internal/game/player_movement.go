@@ -153,7 +153,7 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		clearPublishedPlayerMove(p)
 	}
 	if p.X != oldX || p.Y != oldY {
-		w.refreshPlayerVisibility(p)
+		w.refreshPlayerVisibilityAfterMove(p, oldX, oldY)
 	}
 }
 
