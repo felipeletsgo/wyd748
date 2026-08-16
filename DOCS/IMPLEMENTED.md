@@ -1,6 +1,6 @@
 # WYD-Go 7.48 — estado implementado
 
-Atualizado em 11/08/2026. HEAD de referência: `7ccfdd1`.
+Atualizado em 16/08/2026. HEAD de referência: `6f16278`.
 
 Este é o documento canônico do que existe no servidor. Regras ainda não
 implementadas ficam exclusivamente em `DOCS/ROADMAP.md`. O código e os arquivos de
@@ -88,6 +88,8 @@ client748/           client e cadeia reprodutível de patches
 - NPC com `Merchant != 0` nunca participa de combate.
 - Players, mobs, summons, ground items e lojas fantasma possuem índices
   espaciais.
+- Publicação e remoção de ground items e lojas fantasma consultam somente
+  jogadores próximos pelo índice espacial.
 - Movimento valida origem, rota, velocidade, terreno e orçamento temporal.
 - A posição física autoritativa avança ao longo da rota; o destino futuro não
   concede antecipadamente alcance para ataque, coleta, trade ou NPC.
@@ -185,11 +187,10 @@ client748/           client e cadeia reprodutível de patches
   fama.
 - Skill Master reseta skills pelos materiais aceitos; Mount Master revive
   montarias mortas.
-- Lojas de teste em Armia e junto aos artesãos fornecem itens para o beta; devem
-  ser removidas/desativadas antes da abertura pública.
-- Durante o beta, `data/NPCGenerTest.txt` é carregado por padrão junto do
-  `NPCGener.txt`, mantendo em Armia as lojas e NPCs necessários aos testes. A
-  retirada antes da abertura pública será uma decisão manual de operação.
+- As lojas/NPCs de teste permanecem disponíveis em `data/NPCGenerTest.txt`, mas
+  não entram no boot normal.
+- O overlay de teste só é carregado com opt-in explícito, por exemplo
+  `-gener-extra data/NPCGenerTest.txt`; produção não carrega fixtures por padrão.
 
 ## Itens, volatiles e montarias
 
@@ -278,9 +279,9 @@ client748/           client e cadeia reprodutível de patches
   `ATK 488`, DEF `954/984/1004` conforme os cristais, atributos naturais da
   classe, bônus flat de HP/MP por classe/cristais, `+399` apenas no ataque e
   crescimento não-Mortal de HP/MP e defesa.
-- O login migra uma única vez somente a assinatura Celestial/Sub legada
-  conhecida (`ATK` da template e `DEF 4`), preservando os pontos distribuídos;
-  score customizado não é reescrito e falha do commit impede a entrada.
+- O login não infere nem reescreve score de evolução comparando `Attack` e
+  `Defense`; a migração heurística por assinatura foi removida para não alterar
+  permanentemente scores customizados que coincidam com valores legados.
 - O desbloqueio nativo do nível 40 Celestial usa a ordem de materiais do client
   (`4127, 4127, 5135, 5113, 5129, 5112, 5110`) e consome 200 Fame somente após
   a validação completa da receita.
@@ -400,13 +401,14 @@ primeiro equipamento, usando o mesmo prazo absoluto vinculado ao UID.
 
 ## Prévia de monstros e bosses KR
 
-Foram importadas 19 faces de criatura dos clients KR, junto com seus assets e
-contratos visuais. Para validação em jogo, `NPCGener.txt` cria um grupo de dez
-clones do Krill Agmo para cada face, a leste do Krill Agmo original e sempre
-afastando-se de Armia: os centros vão de `(2201,2107)` a `(2417,2107)`, com
-12 tiles entre grupos. Cada clone preserva integralmente o gameplay do Krill
-Agmo; somente nome e face mudam. O nome publicado corresponde ao nome
-normalizado da face no `itemlist.csv` e respeita os 12 bytes do protocolo.
+Foram mantidas 17 faces de criatura importadas dos clients KR, junto com seus
+assets e contratos visuais. `Dragon` e `Helriohdon` não fazem parte da prévia
+porque já existem meshes equivalentes no client 7.48. Para validação em jogo,
+`NPCGener.txt` materializa exatamente um clone do Krill Agmo por face retida.
+Cada clone preserva integralmente o gameplay do Krill Agmo; somente nome e face
+mudam. Os nomes publicados permanecem únicos, em inglês e compatíveis com a
+chave usada por `NPCGener`/quests; novos nomes não podem aumentar a dívida de
+nomes maiores que os 12 bytes do protocolo.
 
 ## Fontes de referência
 
