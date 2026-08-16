@@ -49,16 +49,10 @@ func TestBotNearestTargetUsesServerObservedPositions(t *testing.T) {
 	}
 }
 
-func readBotPacket(t *testing.T, conn stdnet.Conn) []byte {
-	t.Helper()
-	pkt, checksum, err := wire.ReadPacket(conn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !checksum {
-		t.Fatal("bot escreveu pacote com checksum invalido")
-	}
-	return pkt
+type botPacketResult struct {
+	pkt      []byte
+	checksum bool
+	err      error
 }
 
 func TestBotSendAttackBuildsPhysicalAndSkillIntentOnly(t *testing.T) {
@@ -80,14 +74,21 @@ func TestBotSendAttackBuildsPhysicalAndSkillIntentOnly(t *testing.T) {
 			}
 			b.id.Store(9)
 			b.applyServerPosition(100, 100)
-			result := make(chan []byte, 1)
-			go func() { result <- readBotPacket(t, server) }()
+			result := make(chan botPacketResult, 1)
+			go func() {
+				pkt, checksum, err := wire.ReadPacket(server)
+				result <- botPacketResult{pkt: pkt, checksum: checksum, err: err}
+			}()
 			if err := b.sendAttack(); err != nil {
 				t.Fatal(err)
 			}
-			pkt := <-result
-			if got := wire.ParseHeader(pkt).Type; got != tc.opcode {
-				t.Fatalf("opcode=0x%X, esperado 0x%X", got, tc.opcode)
+			got := <-result
+			if got.err != nil || !got.checksum {
+				t.Fatalf("bot escreveu frame invalido: checksum=%v err=%v", got.checksum, got.err)
+			}
+			pkt := got.pkt
+			if opcode := wire.ParseHeader(pkt).Type; opcode != tc.opcode {
+				t.Fatalf("opcode=0x%X, esperado 0x%X", opcode, tc.opcode)
 			}
 			if binary.LittleEndian.Uint16(pkt[44:46]) != 500 {
 				t.Fatalf("alvo do ataque=%d, esperado 500", binary.LittleEndian.Uint16(pkt[44:46]))
