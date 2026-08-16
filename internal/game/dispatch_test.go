@@ -49,6 +49,8 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		{wire.OpGuildDeprivate, 16},
 		{wire.OpInviteGuild, 20},
 		{wire.OpRebuy, repurchasePacketSize},
+		{wire.OpCapsuleInfo, 16},
+		{wire.OpPutoutSeal, 52},
 		{wire.OpGuildAlly, 20},
 		{wire.OpGuildWar, 20},
 		{wire.OpChallenge, 16},
