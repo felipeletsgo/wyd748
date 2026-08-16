@@ -353,6 +353,7 @@ type World struct {
 	// pendingCommands guarda o restante de um lote quando o tick vence o
 	// orcamento. O World continua sendo o unico escritor desta fila.
 	pendingCommands          []command
+	pendingCommandHead       int
 	commandBatchScratch      []command
 	commandBatchOrderScratch []*net.Session
 	commandBatchQueues       map[*net.Session]commandBatchQueue
@@ -1304,11 +1305,8 @@ func (w *World) Run() {
 	ticker := time.NewTicker(worldTickInterval)
 	defer ticker.Stop()
 	for {
-		var cmd command
-		if len(w.pendingCommands) > 0 {
-			cmd = w.pendingCommands[0]
-			w.pendingCommands = w.pendingCommands[1:]
-		} else {
+		cmd, ok := w.popPendingCommand()
+		if !ok {
 			select {
 			case cmd = <-w.commands:
 			case <-ticker.C:
@@ -1320,10 +1318,54 @@ func (w *World) Run() {
 	}
 }
 
+func (w *World) pendingCommandCount() int {
+	if w.pendingCommandHead >= len(w.pendingCommands) {
+		return 0
+	}
+	return len(w.pendingCommands) - w.pendingCommandHead
+}
+
+func (w *World) popPendingCommand() (command, bool) {
+	if w.pendingCommandHead >= len(w.pendingCommands) {
+		if len(w.pendingCommands) != 0 || w.pendingCommandHead != 0 {
+			clear(w.pendingCommands)
+			w.pendingCommands = w.pendingCommands[:0]
+			w.pendingCommandHead = 0
+		}
+		return command{}, false
+	}
+	idx := w.pendingCommandHead
+	cmd := w.pendingCommands[idx]
+	w.pendingCommands[idx] = command{}
+	w.pendingCommandHead++
+	if w.pendingCommandHead == len(w.pendingCommands) {
+		w.pendingCommands = w.pendingCommands[:0]
+		w.pendingCommandHead = 0
+	}
+	return cmd, true
+}
+
+func (w *World) compactPendingCommands() {
+	if w.pendingCommandHead == 0 {
+		return
+	}
+	if w.pendingCommandHead >= len(w.pendingCommands) {
+		clear(w.pendingCommands)
+		w.pendingCommands = w.pendingCommands[:0]
+		w.pendingCommandHead = 0
+		return
+	}
+	live := copy(w.pendingCommands, w.pendingCommands[w.pendingCommandHead:])
+	clear(w.pendingCommands[live:])
+	w.pendingCommands = w.pendingCommands[:live]
+	w.pendingCommandHead = 0
+}
+
 func (w *World) reservePendingCommandFront(count int) []command {
 	if count <= 0 {
 		return nil
 	}
+	w.compactPendingCommands()
 	oldLen := len(w.pendingCommands)
 	total := oldLen + count
 	if cap(w.pendingCommands) < total {
@@ -1432,10 +1474,8 @@ func (w *World) processCommandBatch(first command, ticks <-chan time.Time) {
 		// novo fazia o backlog antigo avancar apenas um comando por lote sob
 		// carga continua, aumentando artificialmente a latencia e favorecendo o
 		// cliente que continuava inundando a fila.
-		if len(w.pendingCommands) > 0 {
-			batch = append(batch, w.pendingCommands[0])
-			w.pendingCommands[0] = command{}
-			w.pendingCommands = w.pendingCommands[1:]
+		if pending, ok := w.popPendingCommand(); ok {
+			batch = append(batch, pending)
 			continue
 		}
 		select {
