@@ -25,7 +25,7 @@ var marcasPortuguesas = regexp.MustCompile(
 //
 // Baixar este numero e trabalho legitimo: cada nome encurtado e um mob que
 // passa a ser lido por inteiro no jogo.
-const nomesLongosHerdados = 62
+const nomesLongosHerdados = 55
 
 func TestNomesDeNPCCabemNoWire(t *testing.T) {
 	npcs, err := LoadNPCs("../../data/npcs")

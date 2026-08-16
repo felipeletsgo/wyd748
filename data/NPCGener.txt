@@ -25943,8 +25943,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Troll_Insano_
-	Follower:	Troll_Insano_
+	Leader:		Mad_Troll
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2574
@@ -26030,8 +26030,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Troll_Insano_
-	Follower:	Troll_Insano_
+	Leader:		Mad_Troll
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2574
@@ -26117,8 +26117,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Troll_Insano_
-	Follower:	Troll_Insano_
+	Leader:		Mad_Troll
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2574
@@ -26204,8 +26204,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Troll_Insano_
-	Follower:	Troll_Insano_
+	Leader:		Mad_Troll
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2574
@@ -26581,8 +26581,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Troll_Insano_
-	Follower:	Troll_Insano_
+	Leader:		Mad_Troll
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2584
@@ -26668,8 +26668,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Troll_Insano_
-	Follower:	Troll_Insano_
+	Leader:		Mad_Troll
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2622
@@ -26755,8 +26755,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Troll_Insano_
-	Follower:	Troll_Insano_
+	Leader:		Mad_Troll
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2646
@@ -28032,7 +28032,7 @@
 	MinGroup:	1
 	MaxGroup:	1
 	Leader:		Troll_Mage2
-	Follower:	Troll_Insano_
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2602
@@ -28177,7 +28177,7 @@
 	MinGroup:	1
 	MaxGroup:	1
 	Leader:		Troll_Mage2
-	Follower:	Troll_Insano_
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2602
@@ -28322,7 +28322,7 @@
 	MinGroup:	1
 	MaxGroup:	1
 	Leader:		Troll_Mage2
-	Follower:	Troll_Insano_
+	Follower:	Mad_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		2652
@@ -69727,8 +69727,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Troll_Caos___
-	Follower:	Troll_Caos___
+	Leader:		Chaos_Troll
+	Follower:	Chaos_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		806
@@ -103267,8 +103267,8 @@
 	MaxNumMob:	8
 	MinGroup:	4
 	MaxGroup:	0
-	Leader:		Templario_Amald
-	Follower:	Templario_Amald
+	Leader:		Amald_Templr
+	Follower:	Amald_Templr
 	RouteType:	2
 	Formation:	0
 	StartX:		4043
@@ -103296,8 +103296,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Templario_Amald
-	Follower:	Templario_Amald
+	Leader:		Amald_Templr
+	Follower:	Amald_Templr
 	RouteType:	2
 	Formation:	0
 	StartX:		3672
@@ -103325,8 +103325,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Templario_Amald
-	Follower:	Templario_Amald
+	Leader:		Amald_Templr
+	Follower:	Amald_Templr
 	RouteType:	2
 	Formation:	0
 	StartX:		3664
@@ -103354,8 +103354,8 @@
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Templario_Amald
-	Follower:	Templario_Amald
+	Leader:		Amald_Templr
+	Follower:	Amald_Templr
 	RouteType:	2
 	Formation:	0
 	StartX:		3646
@@ -105065,8 +105065,8 @@
 	MaxNumMob:	5
 	MinGroup:	3
 	MaxGroup:	1
-	Leader:		Templario_Amald
-	Follower:	Templario_Amald
+	Leader:		Amald_Templr
+	Follower:	Amald_Templr
 	RouteType:	2
 	Formation:	0
 	StartX:		3821
@@ -113634,9 +113634,9 @@
 // ********************************************
 #	[5145]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		LavaGolem
 	Follower:	LavaGolem
 	RouteType:	0

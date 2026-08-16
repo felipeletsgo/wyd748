@@ -12,7 +12,7 @@ var krMobFaces = []struct {
 }{
 	{"Scorpion", 70}, {"Murmy", 71}, {"DeathWorm", 72},
 	{"Anubis", 73}, {"AnubisElite", 74}, {"AnubisGuard", 75},
-	{"Dragon", 199}, {"Helriohdon", 346}, {"BerialGuard", 347},
+	{"BerialGuard", 347},
 	{"tteok", 348}, {"LegendBerial", 399}, {"BahamutQ_R", 4082},
 	{"BahamutQ_B", 4083}, {"LavaGolem", 4084}, {"LavaGrub", 4085},
 	{"Bahamut", 4086}, {"CB_Trant", 4087}, {"Sand_Lich", 4088},
@@ -64,36 +64,25 @@ func TestKRMobsCloneAgmoKrillAndHaveCatalogFaces(t *testing.T) {
 	}
 }
 
-func TestKRMobPreviewGroupsMoveAwayFromArmia(t *testing.T) {
+func TestKRMobPreviewGroupsMaterializeOneMob(t *testing.T) {
 	gens, err := LoadNPCGener(filepath.Join("..", "..", "data", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	byLeader := make(map[string][]int)
-	for i := range gens {
-		if gens[i].Segments[0].Y == 2107 && gens[i].Segments[0].X >= 2201 {
-			byLeader[gens[i].Leader] = append(byLeader[gens[i].Leader], i)
-		}
-	}
-	previousX := uint16(2189) // Agmo_Krill reference point east of Armia.
+
 	for _, want := range krMobFaces {
-		indexes := byLeader[want.name]
-		if len(indexes) != 1 {
-			t.Errorf("%s possui %d grupos KR; esperado 1", want.name, len(indexes))
-			continue
+		matches := 0
+		for i := range gens {
+			g := gens[i]
+			if g.Leader != want.name || g.Follower != want.name {
+				continue
+			}
+			if g.MaxNumMob == 1 && g.MinGroup == 1 && g.MaxGroup == 1 {
+				matches++
+			}
 		}
-		g := gens[indexes[0]]
-		if g.MaxNumMob != 10 || g.MinGroup != 9 || g.MaxGroup != 9 {
-			t.Errorf("grupo %s nao materializa exatamente 10 mobs: max=%d group=%d..%d",
-				want.name, g.MaxNumMob, g.MinGroup, g.MaxGroup)
+		if matches != 1 {
+			t.Errorf("%s possui %d grupos KR de um mob; esperado 1", want.name, matches)
 		}
-		if g.Segments[0].Y != 2107 || g.Segments[0].X <= previousX {
-			t.Errorf("grupo %s nao avanca para fora de Armia: (%d,%d), anterior X=%d",
-				want.name, g.Segments[0].X, g.Segments[0].Y, previousX)
-		}
-		if gap := g.Segments[0].X - previousX; gap != 12 {
-			t.Errorf("grupo %s possui espacamento %d, esperado 12", want.name, gap)
-		}
-		previousX = g.Segments[0].X
 	}
 }

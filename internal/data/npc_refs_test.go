@@ -8,10 +8,10 @@ import (
 )
 
 // Renomear um NPC quebra tudo que o referencia PELO NOME. As quests ja tinham
-// guarda; os bosses e as zonas nao tinham, e por isso um `npc = "Arq_Ciclope"`
+// guarda; os bosses e as zonas nao tinham, e por isso um `npc = "Cyclop_Arch"`
 // sobreviveu a traducao e so apareceu como falha de boot:
 //
-//	criar mundo: boss "arquimago_negro": NPC base "Arq_Ciclope" nao existe
+//	criar mundo: boss "arquimago_negro": NPC base "Cyclop_Arch" nao existe
 //
 // Estes testes trazem essa deteccao para a suite. Um nome de NPC quebrado passa
 // a falhar em segundos, e nao no arranque do servidor.
