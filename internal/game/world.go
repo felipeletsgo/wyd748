@@ -1546,10 +1546,10 @@ func commandLabel(cmd command) string {
 		return "malformed"
 	}
 	opcode := wire.ParseHeader(cmd.pkt).Type
-	if !knownInboundOpcode(opcode) {
-		return "unknown"
+	if label, ok := inboundCommandMetricLabel(opcode); ok {
+		return label
 	}
-	return fmt.Sprintf("0x%X", opcode)
+	return "unknown"
 }
 
 // safeHandle isola um panic de handler. O World roda numa UNICA goroutine, entao
