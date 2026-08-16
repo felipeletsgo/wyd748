@@ -2,6 +2,7 @@ package game
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"wydgo/internal/wire"
@@ -163,14 +164,35 @@ func (w *World) nearestLivingPlayer(x, y uint16, maxDistance int) *Player {
 	return w.nearestLivingPlayerInGameplaySpace(x, y, maxDistance, "")
 }
 
+// nearestLivingPlayerInGameplaySpace scans the spatial cells directly instead
+// of materializing a temporary []Player. Selection semantics stay identical:
+// valid target, exact gameplay space, Chebyshev radius, then deterministic
+// distance/Player.ID ordering.
 func (w *World) nearestLivingPlayerInGameplaySpace(x, y uint16, maxDistance int, space string) *Player {
+	if maxDistance < 0 {
+		return nil
+	}
+	space = strings.TrimSpace(space)
+	cx, cy := int(x)/spatialCellSize, int(y)/spatialCellSize
+	cr := maxDistance/spatialCellSize + 1
+	now := w.now()
 	var best *Player
 	bestDistance := maxDistance + 1
-	for _, p := range w.nearbyPlayersInGameplaySpace(x, y, maxDistance, space) {
-		distance := chebyshev(x, y, p.X, p.Y)
-		if distance <= maxDistance && (distance < bestDistance ||
-			distance == bestDistance && (best == nil || p.ID < best.ID)) {
-			best, bestDistance = p, distance
+	for yy := cy - cr; yy <= cy+cr; yy++ {
+		for xx := cx - cr; xx <= cx+cr; xx++ {
+			if xx < 0 || yy < 0 {
+				continue
+			}
+			for _, p := range w.playerCells[uint32(xx)<<16|uint32(yy)] {
+				if !validMobTargetAt(p, now) || w.gameplaySpaceForPlayer(p) != space {
+					continue
+				}
+				distance := chebyshev(x, y, p.X, p.Y)
+				if distance <= maxDistance && (distance < bestDistance ||
+					distance == bestDistance && (best == nil || p.ID < best.ID)) {
+					best, bestDistance = p, distance
+				}
+			}
 		}
 	}
 	return best
