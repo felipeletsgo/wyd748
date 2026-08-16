@@ -36,7 +36,7 @@ func TestCharStateWriteRemovalIsIdempotentAndSetsVersion(t *testing.T) {
 	s := NewJSONStore(filepath.Join(dir, "accounts"), WithCharStatePath(filepath.Join(dir, "state")))
 	run, err := s.charStateWrite("safeuid", nil)
 	if err != nil || run == nil {
-		t.Fatalf("remove closure invalido: run=%v err=%v", run, err)
+		t.Fatalf("remove closure invalido: nil=%v err=%v", run == nil, err)
 	}
 	if err := run(); err != nil {
 		t.Fatalf("remocao de arquivo ausente nao foi idempotente: %v", err)
