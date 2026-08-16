@@ -11,7 +11,7 @@ func TestAccountItemRefsCoversNilStableCharacterAndLegacyLocations(t *testing.T)
 	if refs := accountItemRefs(nil); refs != nil {
 		t.Fatalf("nil account refs=%v", refs)
 	}
-	acc := &model.Account{Name: "acc"}
+	acc := uidTestAccount("acc")
 	acc.Chars[0].Name = "Legacy"
 	acc.Chars[0].Equip[1] = model.Item{Index: 10}
 	acc.Chars[1].Name = "Stable"
@@ -55,7 +55,7 @@ func TestPrepareAccountItemUIDsGeneratesCanonicalizesAndReplacesOwners(t *testin
 		"bbbbbbbbbbbb4bbb8bbbbbbbbbbbbbbb": {Account: "acc", Location: "old"},
 		"cccccccccccc4ccc8ccccccccccccccc": {Account: "other", Location: "cargo[0]"},
 	}}
-	acc := &model.Account{Name: "Acc"}
+	acc := uidTestAccount("Acc")
 	acc.Chars[0].Name = "Char"
 	acc.Chars[0].UID = "11111111111141118111111111111111"
 	acc.Chars[0].Inv[0] = model.Item{Index: 4011}
