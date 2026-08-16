@@ -16,11 +16,11 @@ database_max_conns=8
 session_queue_capacity=256
 world_command_queue_capacity=1024
 auth_hash_concurrency=4
-max_connections=1200
-max_connections_per_ip=64
-# Limite de janelas que chegaram a autenticar pelo mesmo IP publico. Mantido
-# separado dos sockets pre-auth para quatro conexoes incompletas nao bloquearem
-# os logins legitimos da residencia.
+# Producao: no maximo 250 sockets no canal e 4 conexoes simultaneas por origem.
+# O limite autenticado repete a barreira depois do login; uma mesma conta
+# continua sujeita ao bloqueio de login duplicado.
+max_connections=250
+max_connections_per_ip=4
 max_authenticated_clients_per_ip=4
 handshake_timeout_seconds=5
 session_idle_timeout_seconds=600
