@@ -366,7 +366,7 @@
             }
           ],
           "quiz": {
-            "question": "A tecla A mostra o minimapa no canto inferior direito.",
+            "question": "A tecla M mostra o minimapa no canto inferior direito.",
             "answer": false,
             "trueX": 1689,
             "trueY": 4081,
@@ -390,7 +390,7 @@
             }
           ],
           "quiz": {
-            "question": "A tecla A mostra o minimapa no canto superior direito.",
+            "question": "A tecla M mostra o minimapa no canto superior direito.",
             "answer": true,
             "trueX": 1711,
             "trueY": 4081,
@@ -462,7 +462,7 @@
             }
           ],
           "quiz": {
-            "question": "A mesma quest entrega o Nyerdes.",
+            "question": "A quest Sociedade do WYD de dois castelos entrega o Nyerdes.",
             "answer": false,
             "trueX": 1777,
             "trueY": 4081,

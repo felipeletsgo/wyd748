@@ -113414,19 +113414,19 @@
 // ********************************************
 #	[5132]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		Scorpion
 	Follower:	Scorpion
 	RouteType:	0
 	Formation:	0
-	StartX:		2201
-	StartY:		2107
+	StartX:		2126
+	StartY:		2152
 	StartRange:	4
 	StartWait:	0
-	DestX:		2201
-	DestY:		2107
+	DestX:		2126
+	DestY:		2152
 	DestRange:	4
 	DestWait:	0
 
@@ -113434,19 +113434,19 @@
 // ********************************************
 #	[5133]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		Murmy
 	Follower:	Murmy
 	RouteType:	0
 	Formation:	0
-	StartX:		2213
-	StartY:		2107
+	StartX:		2132
+	StartY:		2152
 	StartRange:	4
 	StartWait:	0
-	DestX:		2213
-	DestY:		2107
+	DestX:		2132
+	DestY:		2152
 	DestRange:	4
 	DestWait:	0
 
@@ -113454,19 +113454,19 @@
 // ********************************************
 #	[5134]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		DeathWorm
 	Follower:	DeathWorm
 	RouteType:	0
 	Formation:	0
-	StartX:		2225
-	StartY:		2107
+	StartX:		2137
+	StartY:		2052
 	StartRange:	4
 	StartWait:	0
-	DestX:		2225
-	DestY:		2107
+	DestX:		2137
+	DestY:		2152
 	DestRange:	4
 	DestWait:	0
 
@@ -113474,19 +113474,19 @@
 // ********************************************
 #	[5135]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		Anubis
 	Follower:	Anubis
 	RouteType:	0
 	Formation:	0
-	StartX:		2237
-	StartY:		2107
+	StartX:		2143
+	StartY:		2149
 	StartRange:	4
 	StartWait:	0
-	DestX:		2237
-	DestY:		2107
+	DestX:		2243
+	DestY:		2149
 	DestRange:	4
 	DestWait:	0
 
@@ -113494,19 +113494,19 @@
 // ********************************************
 #	[5136]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		AnubisElite
 	Follower:	AnubisElite
 	RouteType:	0
 	Formation:	0
-	StartX:		2249
-	StartY:		2107
+	StartX:		2137
+	StartY:		2149
 	StartRange:	4
 	StartWait:	0
-	DestX:		2249
-	DestY:		2107
+	DestX:		2137
+	DestY:		2149
 	DestRange:	4
 	DestWait:	0
 
@@ -113514,59 +113514,19 @@
 // ********************************************
 #	[5137]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		AnubisGuard
 	Follower:	AnubisGuard
 	RouteType:	0
 	Formation:	0
-	StartX:		2261
-	StartY:		2107
+	StartX:		2134
+	StartY:		2147
 	StartRange:	4
 	StartWait:	0
-	DestX:		2261
-	DestY:		2107
-	DestRange:	4
-	DestWait:	0
-
-// KR mob preview 7/19 - 10 clones of the Agmo_Krill gameplay template
-// ********************************************
-#	[5138]
-	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
-	Leader:		Dragon
-	Follower:	Dragon
-	RouteType:	0
-	Formation:	0
-	StartX:		2273
-	StartY:		2107
-	StartRange:	4
-	StartWait:	0
-	DestX:		2273
-	DestY:		2107
-	DestRange:	4
-	DestWait:	0
-
-// KR mob preview 8/19 - 10 clones of the Agmo_Krill gameplay template
-// ********************************************
-#	[5139]
-	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
-	Leader:		Helriohdon
-	Follower:	Helriohdon
-	RouteType:	0
-	Formation:	0
-	StartX:		2285
-	StartY:		2107
-	StartRange:	4
-	StartWait:	0
-	DestX:		2285
-	DestY:		2107
+	DestX:		2134
+	DestY:		2147
 	DestRange:	4
 	DestWait:	0
 
@@ -113574,19 +113534,19 @@
 // ********************************************
 #	[5140]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		BerialGuard
 	Follower:	BerialGuard
 	RouteType:	0
 	Formation:	0
-	StartX:		2297
-	StartY:		2107
+	StartX:		2130
+	StartY:		2147
 	StartRange:	4
 	StartWait:	0
-	DestX:		2297
-	DestY:		2107
+	DestX:		2130
+	DestY:		2147
 	DestRange:	4
 	DestWait:	0
 
@@ -113594,19 +113554,19 @@
 // ********************************************
 #	[5141]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		tteok
 	Follower:	tteok
 	RouteType:	0
 	Formation:	0
-	StartX:		2309
-	StartY:		2107
+	StartX:		2126
+	StartY:		2147
 	StartRange:	4
 	StartWait:	0
-	DestX:		2309
-	DestY:		2107
+	DestX:		2126
+	DestY:		2147
 	DestRange:	4
 	DestWait:	0
 
@@ -113614,19 +113574,19 @@
 // ********************************************
 #	[5142]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		LegendBerial
 	Follower:	LegendBerial
 	RouteType:	0
 	Formation:	0
-	StartX:		2321
-	StartY:		2107
+	StartX:		2126
+	StartY:		2143
 	StartRange:	4
 	StartWait:	0
-	DestX:		2321
-	DestY:		2107
+	DestX:		2126
+	DestY:		2143
 	DestRange:	4
 	DestWait:	0
 
@@ -113634,19 +113594,19 @@
 // ********************************************
 #	[5143]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		BahamutQ_R
 	Follower:	BahamutQ_R
 	RouteType:	0
 	Formation:	0
-	StartX:		2333
-	StartY:		2107
+	StartX:		2129
+	StartY:		2143
 	StartRange:	4
 	StartWait:	0
-	DestX:		2333
-	DestY:		2107
+	DestX:		2129
+	DestY:		2143
 	DestRange:	4
 	DestWait:	0
 
@@ -113654,19 +113614,19 @@
 // ********************************************
 #	[5144]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		BahamutQ_B
 	Follower:	BahamutQ_B
 	RouteType:	0
 	Formation:	0
-	StartX:		2345
-	StartY:		2107
+	StartX:		2133
+	StartY:		2143
 	StartRange:	4
 	StartWait:	0
-	DestX:		2345
-	DestY:		2107
+	DestX:		2133
+	DestY:		2143
 	DestRange:	4
 	DestWait:	0
 
@@ -113681,12 +113641,12 @@
 	Follower:	LavaGolem
 	RouteType:	0
 	Formation:	0
-	StartX:		2357
-	StartY:		2107
+	StartX:		2137
+	StartY:		2143
 	StartRange:	4
 	StartWait:	0
-	DestX:		2357
-	DestY:		2107
+	DestX:		2137
+	DestY:		2143
 	DestRange:	4
 	DestWait:	0
 
@@ -113694,19 +113654,19 @@
 // ********************************************
 #	[5146]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		LavaGrub
 	Follower:	LavaGrub
 	RouteType:	0
 	Formation:	0
-	StartX:		2369
-	StartY:		2107
+	StartX:		2142
+	StartY:		2143
 	StartRange:	4
 	StartWait:	0
-	DestX:		2369
-	DestY:		2107
+	DestX:		2142
+	DestY:		2143
 	DestRange:	4
 	DestWait:	0
 
@@ -113714,19 +113674,19 @@
 // ********************************************
 #	[5147]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		Bahamut
 	Follower:	Bahamut
 	RouteType:	0
 	Formation:	0
-	StartX:		2381
-	StartY:		2107
+	StartX:		2139
+	StartY:		2140
 	StartRange:	4
 	StartWait:	0
-	DestX:		2381
-	DestY:		2107
+	DestX:		2139
+	DestY:		2140
 	DestRange:	4
 	DestWait:	0
 
@@ -113734,19 +113694,19 @@
 // ********************************************
 #	[5148]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		CB_Trant
 	Follower:	CB_Trant
 	RouteType:	0
 	Formation:	0
-	StartX:		2393
-	StartY:		2107
+	StartX:		2133
+	StartY:		2145
 	StartRange:	4
 	StartWait:	0
-	DestX:		2393
-	DestY:		2107
+	DestX:		2133
+	DestY:		2145
 	DestRange:	4
 	DestWait:	0
 
@@ -113754,19 +113714,19 @@
 // ********************************************
 #	[5149]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		Sand_Lich
 	Follower:	Sand_Lich
 	RouteType:	0
 	Formation:	0
-	StartX:		2405
-	StartY:		2107
+	StartX:		2126
+	StartY:		2149
 	StartRange:	4
 	StartWait:	0
-	DestX:		2405
-	DestY:		2107
+	DestX:		2126
+	DestY:		2149
 	DestRange:	4
 	DestWait:	0
 
@@ -113774,18 +113734,18 @@
 // ********************************************
 #	[5150]
 	MinuteGenerate:	1
-	MaxNumMob:	10
-	MinGroup:	9
-	MaxGroup:	9
+	MaxNumMob:	1
+	MinGroup:	1
+	MaxGroup:	1
 	Leader:		Ice_Lich
 	Follower:	Ice_Lich
 	RouteType:	0
 	Formation:	0
-	StartX:		2417
-	StartY:		2107
+	StartX:		2126
+	StartY:		2145
 	StartRange:	4
 	StartWait:	0
-	DestX:		2417
-	DestY:		2107
+	DestX:		2126
+	DestY:		2145
 	DestRange:	4
 	DestWait:	0
