@@ -72,7 +72,7 @@ func TestClampRuntimeCoversAllWideFieldsAndFunctionalCaps(t *testing.T) {
 		StatusPts: tooHigh, MasterPts: tooHigh, SkillPts: tooHigh,
 		Mastery: [4]uint32{tooHigh, 1, tooHigh, 2},
 	}
-	clampRuntime(&e)
+	clampRuntime(e)
 	if e.Version != model.ExtendedScoreVersion || e.Level != maxExtendedStat || e.Attack != maxExtendedStat ||
 		e.MagicAttack != maxExtendedStat || e.Defense != maxExtendedStat || e.MaxHP != maxExtendedStat ||
 		e.CurHP != maxExtendedStat || e.CurMP != 100 || e.Str != maxExtendedStat || e.Int != maxExtendedStat ||
