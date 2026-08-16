@@ -1325,6 +1325,10 @@ func (w *World) pendingCommandCount() int {
 	return len(w.pendingCommands) - w.pendingCommandHead
 }
 
+func (w *World) commandQueueDepth() int {
+	return len(w.commands) + w.pendingCommandCount()
+}
+
 func (w *World) popPendingCommand() (command, bool) {
 	if w.pendingCommandHead >= len(w.pendingCommands) {
 		if len(w.pendingCommands) != 0 || w.pendingCommandHead != 0 {
@@ -1640,7 +1644,7 @@ func (w *World) tick() {
 	defer func() {
 		observeTick(tickStart, time.Since(tickStart))
 		observeWorldGauges(len(w.players), len(w.activeMobs))
-		metricCommandQueueDepth.Set(int64(len(w.commands)))
+		metricCommandQueueDepth.Set(int64(w.commandQueueDepth()))
 	}()
 	w.mobTickCounter++
 	// A posicao server-side caminha pelo mesmo plano visual, mas somente os
