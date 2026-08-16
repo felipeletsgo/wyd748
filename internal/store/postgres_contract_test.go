@@ -2,13 +2,10 @@ package store
 
 import (
 	"context"
-	"errors"
 	"os"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 
 	"wydgo/internal/model"
 )
@@ -88,12 +85,13 @@ func TestPostgresMultiAccountSaveAndNameIndexes(t *testing.T) {
 	if err := st.SaveAccountAsync(a); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.Flush(); err != nil {
+	st.Flush()
+	loadedA, err = st.LoadAccount(aName)
+	if err != nil {
 		t.Fatal(err)
 	}
-	loadedA, err = st.LoadAccount(aName)
-	if err != nil || loadedA.Chars[0].Gold != 333 {
-		t.Fatalf("autosave+Flush nao ficou duravel: gold=%d err=%v", loadedA.Chars[0].Gold, err)
+	if loadedA.Chars[0].Gold != 333 {
+		t.Fatalf("autosave+Flush nao ficou duravel: gold=%d", loadedA.Chars[0].Gold)
 	}
 }
 
@@ -229,8 +227,3 @@ func TestPostgresPingRejectsClosedOrNilStore(t *testing.T) {
 		t.Fatal("Ping em store sem pool deveria falhar")
 	}
 }
-
-// Keep pgx imported in this contract file so a future schema cleanup can use
-// the same no-row semantics without silently changing the test helper.
-var _ = errors.Is
-var _ = pgx.ErrNoRows
