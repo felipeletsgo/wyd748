@@ -28,6 +28,13 @@ type command struct {
 	shutdown chan error
 }
 
+type commandBatchQueue struct {
+	head int16
+	tail int16
+}
+
+const commandBatchEnd = int16(-1)
+
 type loginResult struct {
 	accountName string
 	account     *model.Account
@@ -345,22 +352,26 @@ type World struct {
 	commands chan command
 	// pendingCommands guarda o restante de um lote quando o tick vence o
 	// orcamento. O World continua sendo o unico escritor desta fila.
-	pendingCommands       []command
-	players               map[*net.Session]*Player
-	playersByID           map[uint16]*Player
-	playersByCharacterUID map[string]*Player
-	playersByName         map[string]*Player
-	accountSessions       map[string]*net.Session
-	authClientsByIP       map[string]map[*net.Session]struct{}
-	authClientsByNetwork  map[string]map[*net.Session]struct{}
-	authPending           map[*net.Session]bool
-	authSlots             chan struct{}
-	operational           OperationalConfig
-	networkAdmission      compiledNetworkAdmission
-	networkAdmissionErr   error
-	authRateByIP          map[string]*fixedWindowRate
-	authRateByAccount     map[string]*fixedWindowRate
-	chatRateByAccount     map[string]*fixedWindowRate
+	pendingCommands          []command
+	commandBatchScratch      []command
+	commandBatchOrderScratch []*net.Session
+	commandBatchQueues       map[*net.Session]commandBatchQueue
+	commandBatchNext         [worldCommandBatchLimit]int16
+	players                  map[*net.Session]*Player
+	playersByID              map[uint16]*Player
+	playersByCharacterUID    map[string]*Player
+	playersByName            map[string]*Player
+	accountSessions          map[string]*net.Session
+	authClientsByIP          map[string]map[*net.Session]struct{}
+	authClientsByNetwork     map[string]map[*net.Session]struct{}
+	authPending              map[*net.Session]bool
+	authSlots                chan struct{}
+	operational              OperationalConfig
+	networkAdmission         compiledNetworkAdmission
+	networkAdmissionErr      error
+	authRateByIP             map[string]*fixedWindowRate
+	authRateByAccount        map[string]*fixedWindowRate
+	chatRateByAccount        map[string]*fixedWindowRate
 	// security agrega violacoes por conexao em qualquer fase (inclusive antes
 	// do login), sem confiar em campos de identidade enviados no pacote.
 	security map[*net.Session]*securityState
@@ -1309,12 +1320,110 @@ func (w *World) Run() {
 	}
 }
 
+func (w *World) reservePendingCommandFront(count int) []command {
+	if count <= 0 {
+		return nil
+	}
+	oldLen := len(w.pendingCommands)
+	total := oldLen + count
+	if cap(w.pendingCommands) < total {
+		next := make([]command, total, total+worldCommandBatchLimit)
+		copy(next[count:], w.pendingCommands)
+		clear(w.pendingCommands)
+		w.pendingCommands = next
+	} else {
+		w.pendingCommands = w.pendingCommands[:total]
+		copy(w.pendingCommands[count:], w.pendingCommands[:oldLen])
+	}
+	return w.pendingCommands[:count]
+}
+
+func (w *World) prependPendingCommands(commands []command) {
+	if len(commands) == 0 {
+		return
+	}
+	front := w.reservePendingCommandFront(len(commands))
+	copy(front, commands)
+}
+
+func (w *World) prepareCommandBatchQueues(batch []command) []*net.Session {
+	if w.commandBatchQueues == nil {
+		w.commandBatchQueues = make(map[*net.Session]commandBatchQueue)
+	} else {
+		clear(w.commandBatchQueues)
+	}
+	order := w.commandBatchOrderScratch[:0]
+	for i := range batch {
+		idx := int16(i)
+		w.commandBatchNext[i] = commandBatchEnd
+		queue, exists := w.commandBatchQueues[batch[i].s]
+		if !exists {
+			order = append(order, batch[i].s)
+			queue = commandBatchQueue{head: idx, tail: idx}
+		} else {
+			w.commandBatchNext[queue.tail] = idx
+			queue.tail = idx
+		}
+		w.commandBatchQueues[batch[i].s] = queue
+	}
+	w.commandBatchOrderScratch = order
+	return order
+}
+
+func (w *World) popPreparedCommand(batch []command, session *net.Session) (command, bool) {
+	queue, exists := w.commandBatchQueues[session]
+	if !exists || queue.head == commandBatchEnd {
+		return command{}, false
+	}
+	idx := queue.head
+	queue.head = w.commandBatchNext[idx]
+	if queue.head == commandBatchEnd {
+		queue.tail = commandBatchEnd
+	}
+	w.commandBatchQueues[session] = queue
+	cmd := batch[idx]
+	batch[idx] = command{}
+	return cmd, true
+}
+
+func (w *World) requeuePreparedCommandBatch(batch []command, order []*net.Session) {
+	remaining := 0
+	for _, session := range order {
+		queue := w.commandBatchQueues[session]
+		for idx := queue.head; idx != commandBatchEnd; idx = w.commandBatchNext[idx] {
+			remaining++
+		}
+	}
+	if remaining == 0 {
+		return
+	}
+	front := w.reservePendingCommandFront(remaining)
+	pos := 0
+	for _, session := range order {
+		queue := w.commandBatchQueues[session]
+		for idx := queue.head; idx != commandBatchEnd; idx = w.commandBatchNext[idx] {
+			front[pos] = batch[idx]
+			pos++
+		}
+	}
+}
+
+func (w *World) releaseCommandBatchScratch(batch []command, order []*net.Session) {
+	clear(batch)
+	w.commandBatchScratch = batch[:0]
+	for i := range order {
+		order[i] = nil
+	}
+	w.commandBatchOrderScratch = order[:0]
+	clear(w.commandBatchQueues)
+}
+
 // processCommandBatch drena uma pequena janela de comandos e os executa em
 // round-robin por sessao. Assim uma conexao que envia muitos movimentos nao
 // monopoliza o ator, e um tick que venceu o prazo interrompe o lote sem perder
 // os comandos restantes.
 func (w *World) processCommandBatch(first command, ticks <-chan time.Time) {
-	batch := make([]command, 0, worldCommandBatchLimit)
+	batch := w.commandBatchScratch[:0]
 	batch = append(batch, first)
 	deadline := time.Now().Add(worldCommandBudget)
 	for len(batch) < worldCommandBatchLimit && time.Now().Before(deadline) {
@@ -1325,13 +1434,15 @@ func (w *World) processCommandBatch(first command, ticks <-chan time.Time) {
 		// cliente que continuava inundando a fila.
 		if len(w.pendingCommands) > 0 {
 			batch = append(batch, w.pendingCommands[0])
+			w.pendingCommands[0] = command{}
 			w.pendingCommands = w.pendingCommands[1:]
 			continue
 		}
 		select {
 		case <-ticks:
-			w.pendingCommands = append(batch, w.pendingCommands...)
+			w.prependPendingCommands(batch)
 			observeCommandBatch(len(batch), true)
+			w.releaseCommandBatchScratch(batch, nil)
 			w.tick()
 			return
 		case cmd := <-w.commands:
@@ -1343,38 +1454,32 @@ func (w *World) processCommandBatch(first command, ticks <-chan time.Time) {
 	}
 
 execute:
-	// O mapa guarda apenas fatias do lote atual; tudo continua na goroutine do
-	// World e nenhuma sincronizacao adicional e necessaria.
-	queues := make(map[*net.Session][]command)
-	order := make([]*net.Session, 0, len(batch))
-	for _, cmd := range batch {
-		if _, exists := queues[cmd.s]; !exists {
-			order = append(order, cmd.s)
-		}
-		queues[cmd.s] = append(queues[cmd.s], cmd)
-	}
+	// Cada sessao e representada por uma cadeia de indices dentro do proprio
+	// batch. O World reutiliza map/order/next entre lotes: nenhuma []command por
+	// sessao e materializada para manter o round-robin.
+	order := w.prepareCommandBatchQueues(batch)
 	for {
 		progress := false
 		for _, session := range order {
-			queue := queues[session]
-			if len(queue) == 0 {
-				continue
-			}
 			select {
 			case <-ticks:
-				w.requeueCommandQueues(order, queues)
+				w.requeuePreparedCommandBatch(batch, order)
 				observeCommandBatch(len(batch), true)
+				w.releaseCommandBatchScratch(batch, order)
 				w.tick()
 				return
 			default:
 			}
-			cmd := queue[0]
-			queues[session] = queue[1:]
+			cmd, ok := w.popPreparedCommand(batch, session)
+			if !ok {
+				continue
+			}
 			w.safeHandle(cmd)
 			progress = true
 			if time.Now().After(deadline) {
-				w.requeueCommandQueues(order, queues)
+				w.requeuePreparedCommandBatch(batch, order)
 				observeCommandBatch(len(batch), true)
+				w.releaseCommandBatchScratch(batch, order)
 				return
 			}
 		}
@@ -1383,16 +1488,7 @@ execute:
 		}
 	}
 	observeCommandBatch(len(batch), false)
-}
-
-func (w *World) requeueCommandQueues(order []*net.Session, queues map[*net.Session][]command) {
-	remaining := make([]command, 0)
-	for _, session := range order {
-		remaining = append(remaining, queues[session]...)
-	}
-	if len(remaining) != 0 {
-		w.pendingCommands = append(remaining, w.pendingCommands...)
-	}
+	w.releaseCommandBatchScratch(batch, order)
 }
 
 // commandLabel devolve o rotulo de metrica de um comando: o opcode, um conjunto
