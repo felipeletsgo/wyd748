@@ -23,8 +23,10 @@ func assertPacketHeader(t *testing.T, pkt []byte, opcode uint16, size int) {
 		t.Fatalf("len=%d, esperado=%d", len(pkt), size)
 	}
 	h := ParseHeader(pkt)
-	if h.Type != opcode || h.Size != uint16(size) {
-		t.Fatalf("header=%+v, opcode esperado=0x%X size=%d", h, opcode, size)
+	// Build deixa Size@0 deliberadamente zerado; net.Session.Send chama
+	// FinishPacket e materializa o tamanho/checksum somente na fronteira do socket.
+	if h.Type != opcode || h.Size != 0 {
+		t.Fatalf("header=%+v, opcode esperado=0x%X size pre-send=0 len=%d", h, opcode, size)
 	}
 }
 
