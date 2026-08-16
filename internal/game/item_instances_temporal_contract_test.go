@@ -16,25 +16,25 @@ func TestInstanceScheduleHandlesNoScheduleInvalidWindowsCrossHourAndEarliestEnd(
 	if end, ok := instanceScheduleEnd(cfg, now); !ok || !end.IsZero() {
 		t.Fatalf("empty schedule=%v/%v", end, ok)
 	}
-	cfg.Schedule = []model.VolatileInstanceSchedule{{StartMinute: -1, DurationSeconds: 10}, {StartMinute: 60, DurationSeconds: 10}, {StartMinute: 0, DurationSeconds: 0}}
+	cfg.Schedule = []model.VolatileInstanceWindow{{StartMinute: -1, DurationSeconds: 10}, {StartMinute: 60, DurationSeconds: 10}, {StartMinute: 0, DurationSeconds: 0}}
 	if _, ok := instanceScheduleEnd(cfg, now); ok {
 		t.Fatal("somente janelas invalidas abriram schedule")
 	}
 
 	// Janela iniciada 11:59 dura quatro minutos e permanece aberta depois da virada.
-	cfg.Schedule = []model.VolatileInstanceSchedule{{StartMinute: 59, DurationSeconds: 240}}
+	cfg.Schedule = []model.VolatileInstanceWindow{{StartMinute: 59, DurationSeconds: 240}}
 	end, ok := instanceScheduleEnd(cfg, now)
 	if !ok || !end.Equal(time.Date(2026, 8, 16, 12, 3, 0, 0, time.UTC)) {
 		t.Fatalf("cross-hour end=%v ok=%v", end, ok)
 	}
 
 	now = time.Date(2026, 8, 16, 12, 20, 10, 0, time.UTC)
-	cfg.Schedule = []model.VolatileInstanceSchedule{{StartMinute: 20, DurationSeconds: 240}, {StartMinute: 20, DurationSeconds: 60}}
+	cfg.Schedule = []model.VolatileInstanceWindow{{StartMinute: 20, DurationSeconds: 240}, {StartMinute: 20, DurationSeconds: 60}}
 	end, ok = instanceScheduleEnd(cfg, now)
 	if !ok || !end.Equal(time.Date(2026, 8, 16, 12, 21, 0, 0, time.UTC)) {
 		t.Fatalf("earliest end=%v ok=%v", end, ok)
 	}
-	cfg.Schedule = []model.VolatileInstanceSchedule{{StartMinute: 10, DurationSeconds: 30}}
+	cfg.Schedule = []model.VolatileInstanceWindow{{StartMinute: 10, DurationSeconds: 30}}
 	if _, ok := instanceScheduleEnd(cfg, now); ok {
 		t.Fatal("janela encerrada foi aceita")
 	}
@@ -69,8 +69,8 @@ func TestInstanceAreaOccupiedRespectsGameplaySpaceAndEntryIgnoredMembers(t *test
 	if !w.instanceAreaOccupied(cfg, "") {
 		t.Fatal("jogador no mesmo space nao bloqueou area")
 	}
-	if w.instanceAreaOccupied(cfg, "other", otherSpace) {
-		t.Fatal("legacy room sem EntryAreas deveria ignorar somente por parametro? membro ainda deve ocupar")
+	if !w.instanceAreaOccupied(cfg, "other", otherSpace) {
+		t.Fatal("room legacy sem EntryAreas deve continuar ocupada pelo membro ignorado")
 	}
 
 	cfg.EntryAreas = []model.VolatileInstanceEntryArea{{MinX: 95, MaxX: 105, MinY: 95, MaxY: 105}}
@@ -94,8 +94,6 @@ func TestPlanInstancePositionsAllocatesDistinctTilesAndRejectsFullyBlockedArea(t
 		t.Fatalf("positions=%v ok=%v", positions, ok)
 	}
 
-	// O mapa 0,0 nao possui vizinhos validos negativos; bloquear o anel util via
-	// NPCs estaticos deixa a busca sem vaga sem depender do client.
 	blocked := testSpatialWorld(nil)
 	for y := uint16(1); y <= 5; y++ {
 		for x := uint16(1); x <= 5; x++ {
