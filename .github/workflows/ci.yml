@@ -62,6 +62,18 @@ jobs:
             ./internal/wire
           go tool cover -func=tmp/coverage.out | tail -n 1
 
+      - name: Fuzz framing
+        if: always()
+        run: go test ./internal/wire -run=^$ -fuzz=FuzzReadPacketNeverPanics -fuzztime=5s
+
+      - name: Fuzz trade parser
+        if: always()
+        run: go test ./internal/game -run=^$ -fuzz=FuzzParseTradeRequestNeverPanics -fuzztime=5s
+
+      - name: Fuzz item parsers
+        if: always()
+        run: go test ./internal/game -run=^$ -fuzz=FuzzItemPacketParsersNeverPanic -fuzztime=5s
+
       - name: Race detector
         if: always()
         run: go test -race -count=1 ./internal/game ./internal/net ./internal/store ./internal/account ./internal/accountapi
@@ -86,6 +98,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Materialize required KR source assets
+        shell: pwsh
+        run: git lfs pull --include="CLIENTS/WYD/ItemList.bin,CLIENTS/WYD/mesh/ValidIndex.bin"
 
       - name: Verify reproducible patch chain
         shell: pwsh
