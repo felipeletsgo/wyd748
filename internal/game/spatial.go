@@ -120,6 +120,33 @@ func (w *World) nearbyPlayersInGameplaySpace(x, y uint16, radius int, space stri
 	return result
 }
 
+// hasNearbyPlayerInGameplaySpace answers the activation question without
+// building the temporary []Player used by target-selection callers. Filters
+// and exact Chebyshev radius intentionally match nearbyPlayersInGameplaySpace.
+func (w *World) hasNearbyPlayerInGameplaySpace(x, y uint16, radius int, space string) bool {
+	if radius < 0 {
+		return false
+	}
+	space = strings.TrimSpace(space)
+	cx, cy := int(x)/spatialCellSize, int(y)/spatialCellSize
+	cr := radius/spatialCellSize + 1
+	now := w.now()
+	for yy := cy - cr; yy <= cy+cr; yy++ {
+		for xx := cx - cr; xx <= cx+cr; xx++ {
+			if xx < 0 || yy < 0 {
+				continue
+			}
+			for _, p := range w.playerCells[uint32(xx)<<16|uint32(yy)] {
+				if validMobTargetAt(p, now) && w.gameplaySpaceForPlayer(p) == space &&
+					chebyshev(x, y, p.X, p.Y) <= radius {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // nearbyWorldPlayers atende visibilidade/transporte e, ao contrario da busca
 // de alvo da IA, inclui jogadores mortos ou ocultos que ainda estao no mundo.
 func (w *World) nearbyWorldPlayers(x, y uint16, radius int) []*Player {
@@ -156,7 +183,7 @@ func (w *World) recomputeMobActive(m *Mob) {
 		// MemberIDs e a area da sala, nao apenas proximidade espacial.
 		awake = w.instanceMobHasNearbyMember(m, mobActivationRange)
 	} else {
-		awake = len(w.nearbyPlayersInGameplaySpace(m.X, m.Y, mobActivationRange, "")) != 0
+		awake = w.hasNearbyPlayerInGameplaySpace(m.X, m.Y, mobActivationRange, "")
 	}
 	m.Awake = awake
 	if awake {
