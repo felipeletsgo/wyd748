@@ -1,0 +1,196 @@
+name: NPC data repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fix-npc-data.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Repair NPC dataset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import copy
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          ROOT = pathlib.Path('.')
+          BASELINE = 'b2fb1a839cfd877d1d608b4ee3b7dbeff9d5637d'
+          IMPORT = '68321d55784ee460c40982b655ee4b5521e8e7c3'
+
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True)
+
+          def signature(obj):
+              obj = copy.deepcopy(obj)
+              if isinstance(obj, dict):
+                  obj.pop('name', None)
+              return json.dumps(obj, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+
+          baseline_by_sig = {}
+          for path in git('ls-tree', '-r', '--name-only', BASELINE, '--', 'data/npcs').splitlines():
+              if not path.endswith('.json'):
+                  continue
+              try:
+                  obj = json.loads(git('show', f'{BASELINE}:{path}'))
+              except Exception:
+                  continue
+              baseline_by_sig.setdefault(signature(obj), []).append((path, obj.get('name', '')))
+
+          added = []
+          for line in git('diff', '--name-status', f'{BASELINE}..{IMPORT}', '--', 'data/npcs').splitlines():
+              parts = line.split('\t')
+              if len(parts) >= 2 and parts[0] == 'A' and parts[1].endswith('.json'):
+                  added.append(parts[1])
+
+          mapping = {}
+          removed = []
+          ambiguous = []
+          for path in added:
+              p = ROOT / path
+              if not p.exists():
+                  continue
+              try:
+                  obj = json.loads(p.read_text(encoding='utf-8'))
+              except Exception:
+                  continue
+              candidates = baseline_by_sig.get(signature(obj), [])
+              if not candidates:
+                  continue
+              old = obj.get('name', '')
+              # Prefer a unique canonical baseline template. If there are several
+              # byte-identical gameplay templates, require a unique canonical name.
+              names = sorted({name for _, name in candidates if name})
+              if len(names) != 1:
+                  ambiguous.append((path, old, candidates))
+                  continue
+              new = names[0]
+              if not old or old == new:
+                  continue
+              mapping[old] = new
+              p.unlink()
+              removed.append((path, old, new))
+
+          arch = ROOT / 'data/npcs/Arch.json'
+          if arch.exists():
+              arch.unlink()
+              removed.append((str(arch), 'Arch', '<removed>'))
+
+          # Update exact NPC-name references in authoritative/runtime data and
+          # source/tests. Avoid touching historical documentation and reference trees.
+          roots = [ROOT / 'data', ROOT / 'internal', ROOT / 'cmd']
+          changed_refs = []
+          for base in roots:
+              if not base.exists():
+                  continue
+              for p in base.rglob('*'):
+                  if not p.is_file() or p.suffix.lower() in {'.exe', '.dll', '.dat', '.7z', '.png', '.jpg', '.jpeg', '.webp', '.bin'}:
+                      continue
+                  try:
+                      raw = p.read_text(encoding='utf-8')
+                  except UnicodeDecodeError:
+                      continue
+                  new_raw = raw
+                  for old, new in mapping.items():
+                      new_raw = new_raw.replace(old, new)
+                  if new_raw != raw:
+                      p.write_text(new_raw, encoding='utf-8')
+                      changed_refs.append(str(p))
+
+          # Dragon and Helriohdon were intentionally removed from the KR import:
+          # the 7.48 client already supplies equivalent meshes. The preview now
+          # materializes one mob per retained KR template at data-defined positions.
+          kr = ROOT / 'internal/data/kr_mobs_test.go'
+          s = kr.read_text(encoding='utf-8')
+          s = s.replace('\t{"Dragon", 199}, {"Helriohdon", 346}, {"BerialGuard", 347},\n', '\t{"BerialGuard", 347},\n')
+          marker = 'func TestKRMobPreviewGroupsMoveAwayFromArmia(t *testing.T) {'
+          if marker not in s:
+              raise SystemExit('KR preview test marker not found')
+          prefix = s[:s.index(marker)]
+          replacement = r'''func TestKRMobPreviewGroupsMaterializeOneMob(t *testing.T) {
+          	gens, err := LoadNPCGener(filepath.Join("..", "..", "data", "NPCGener.txt"))
+          	if err != nil {
+          		t.Fatal(err)
+          	}
+          
+          	for _, want := range krMobFaces {
+          		matches := 0
+          		for i := range gens {
+          			g := gens[i]
+          			if g.Leader != want.name || g.Follower != want.name {
+          				continue
+          			}
+          			if g.MaxNumMob == 1 && g.MinGroup == 1 && g.MaxGroup == 1 {
+          				matches++
+          			}
+          		}
+          		if matches != 1 {
+          			t.Errorf("%s possui %d grupos KR de um mob; esperado 1", want.name, matches)
+          		}
+          	}
+          }
+          '''
+          kr.write_text(prefix + replacement, encoding='utf-8')
+
+          print(f'duplicate NPC templates removed: {len(removed)}')
+          for row in removed:
+              print('  remove:', *row)
+          print(f'name mappings: {len(mapping)}')
+          for old, new in sorted(mapping.items()):
+              print(f'  {old} -> {new}')
+          print(f'reference files changed: {len(set(changed_refs))}')
+          for path in sorted(set(changed_refs)):
+              print('  ref:', path)
+          if ambiguous:
+              print('ambiguous duplicate signatures left untouched:')
+              for row in ambiguous:
+                  print(' ', row)
+          PY
+
+          gofmt -w internal/data/kr_mobs_test.go
+
+      - name: Validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          go test -count=1 ./...
+          go vet ./...
+          mkdir -p tmp
+          go build -o tmp/tm-check ./cmd/server
+          rm -f tmp/tm-check
+          git diff --check
+
+      - name: Commit repair directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/fix-npc-data.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+            exit 0
+          fi
+          git commit -m 'fix: clean NPC dataset and names'
+          git push origin HEAD:main
