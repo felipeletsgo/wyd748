@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -155,8 +156,9 @@ func TestRateLimiterCoversResetSweepCapacityAndLimit(t *testing.T) {
 
 	full := newRateLimiter(1)
 	full.lastSweep = time.Now()
+	resetAt := time.Now().Add(time.Minute)
 	for i := 0; i < maxRateLimiterVisitors; i++ {
-		full.visitors[string(rune(i+1))] = rateEntry{count: 1, reset: time.Now().Add(time.Minute)}
+		full.visitors[fmt.Sprintf("ip-%d", i)] = rateEntry{count: 1, reset: resetAt}
 	}
 	if full.Allow("new-key") {
 		t.Fatal("cardinalidade maxima aceitou visitante novo")
