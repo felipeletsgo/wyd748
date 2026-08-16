@@ -50,10 +50,8 @@ func TestCelestialCapsuleValidateCoversIdentityEvolutionAndScoreContracts(t *tes
 		{"zero id", func(c *CelestialCapsule) { c.ID = 0 }},
 		{"missing item uid", func(c *CelestialCapsule) { c.ItemUID = "" }},
 		{"invalid item uid", func(c *CelestialCapsule) { c.ItemUID = "xyz" }},
-		{"noncanonical item uid", func(c *CelestialCapsule) { c.ItemUID = strings.ToUpper(c.ItemUID) }},
 		{"missing source uid", func(c *CelestialCapsule) { c.SourceUID = "" }},
 		{"invalid source uid", func(c *CelestialCapsule) { c.SourceUID = "xyz" }},
-		{"noncanonical source uid", func(c *CelestialCapsule) { c.SourceUID = strings.ToUpper(c.SourceUID); c.Character.UID = c.SourceUID }},
 		{"missing character name", func(c *CelestialCapsule) { c.Character.Name = "" }},
 		{"missing character uid", func(c *CelestialCapsule) { c.Character.UID = "" }},
 		{"source mismatch", func(c *CelestialCapsule) { c.Character.UID = "33333333333343338333333333333333" }},
@@ -72,12 +70,15 @@ func TestCelestialCapsuleValidateCoversIdentityEvolutionAndScoreContracts(t *tes
 	}
 }
 
-func TestCelestialCapsuleValidateAcceptsBothNativeEvolutions(t *testing.T) {
+func TestCelestialCapsuleValidateAcceptsNormalizedIdentityAndBothNativeEvolutions(t *testing.T) {
 	for _, evolution := range []string{"celestial", " subcelestial "} {
 		capsule := validCapsuleContract()
 		capsule.Character.Evolution = evolution
+		capsule.ItemUID = strings.ToUpper(capsule.ItemUID)
+		capsule.SourceUID = strings.ToUpper(capsule.SourceUID)
+		capsule.Character.UID = capsule.SourceUID
 		if err := capsule.Validate(); err != nil {
-			t.Fatalf("evolucao %q foi recusada: %v", evolution, err)
+			t.Fatalf("evolucao/identidade normalizavel %q foi recusada: %v", evolution, err)
 		}
 	}
 }
