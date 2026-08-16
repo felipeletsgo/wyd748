@@ -87,7 +87,7 @@ func DefaultServerConfig() ServerConfig {
 		SessionQueueCapacity:         256,
 		WorldCommandQueueCapacity:    1024,
 		AuthHashConcurrency:          4,
-		MaxConnections:               250,
+		MaxConnections:               400,
 		MaxConnectionsPerIP:          4,
 		HandshakeTimeoutSecs:         5,
 		SessionIdleTimeoutSecs:       600,

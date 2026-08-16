@@ -238,8 +238,8 @@ func TestDefaultServerConfigUsesPackagedMapsAndNoInlineDatabaseURL(t *testing.T)
 		t.Fatalf("limites operacionais inesperados: world_queue=%d auth_hash=%d",
 			cfg.WorldCommandQueueCapacity, cfg.AuthHashConcurrency)
 	}
-	if cfg.MaxConnections != 250 || cfg.MaxConnectionsPerIP != 4 || cfg.MaxAuthenticatedClientsPerIP != 4 {
-		t.Fatalf("limites de conexao padrao=%d/%d/%d, quer 250/4/4",
+	if cfg.MaxConnections != 400 || cfg.MaxConnectionsPerIP != 4 || cfg.MaxAuthenticatedClientsPerIP != 4 {
+		t.Fatalf("limites de conexao padrao=%d/%d/%d, quer 400/4/4",
 			cfg.MaxConnections, cfg.MaxConnectionsPerIP, cfg.MaxAuthenticatedClientsPerIP)
 	}
 }
