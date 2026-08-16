@@ -113,7 +113,9 @@ type PostgresStore struct {
 	pool             *pgxpool.Pool
 	guildsTxtPath    string
 	writeQueue       chan postgresWriteJob
-	mu               sync.Mutex
+	mu               sync.RWMutex
+	accountFences    postgresFenceSet
+	stateFences      postgresFenceSet
 	overflowMu       sync.Mutex
 	overflowAcc      map[string]postgresWriteJob
 	overflowState    map[string]postgresWriteJob
@@ -304,6 +306,11 @@ func (s *PostgresStore) persistLoop() {
 				default:
 				}
 			}
+			keys := make([]string, 0, len(latest))
+			for key := range latest {
+				keys = append(keys, key)
+			}
+			unlockFences := s.accountFences.lock(keys...)
 			snapshots := make([]*accountSnapshot, 0, len(latest))
 			for _, candidate := range latest {
 				if s.isLatestAccountJob(candidate) {
@@ -311,9 +318,12 @@ func (s *PostgresStore) persistLoop() {
 				}
 			}
 			if len(snapshots) == 0 {
+				unlockFences()
 				continue
 			}
-			if err := s.saveSnapshots(snapshots); err != nil {
+			err := s.saveSnapshots(snapshots)
+			unlockFences()
+			if err != nil {
 				metricPostgresFailures.Add(1)
 				log.Printf("store PostgreSQL: lote de autosave (%d conta(s)): %v",
 					len(snapshots), err)
@@ -351,6 +361,11 @@ func (s *PostgresStore) persistLoop() {
 				default:
 				}
 			}
+			keys := make([]string, 0, len(latest))
+			for key := range latest {
+				keys = append(keys, key)
+			}
+			unlockFences := s.stateFences.lock(keys...)
 			snapshots := make([]*postgresCharStateSnapshot, 0, len(latest))
 			for _, candidate := range latest {
 				if s.isLatestCharStateJob(candidate) {
@@ -358,9 +373,12 @@ func (s *PostgresStore) persistLoop() {
 				}
 			}
 			if len(snapshots) == 0 {
+				unlockFences()
 				continue
 			}
-			if err := s.saveCharStateSnapshots(snapshots); err != nil {
+			err := s.saveCharStateSnapshots(snapshots)
+			unlockFences()
+			if err != nil {
 				metricPostgresFailures.Add(1)
 				log.Printf("store PostgreSQL: lote de charstate (%d personagem(ns)): %v",
 					len(snapshots), err)
@@ -530,8 +548,8 @@ func (s *PostgresStore) retryDerived(job postgresWriteJob) {
 		delay = time.Minute
 	}
 	time.AfterFunc(delay, func() {
-		s.mu.Lock()
-		defer s.mu.Unlock()
+		s.mu.RLock()
+		defer s.mu.RUnlock()
 		if !s.closed {
 			_ = s.enqueue(job)
 		}
@@ -1071,13 +1089,19 @@ func (s *PostgresStore) SaveAccount(acc *model.Account) error {
 	if s.readOnly {
 		return errors.New("store: PostgreSQL somente leitura")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	seq := s.writeSeq.Add(1)
+	release, err := s.beginPostgresWrite()
+	if err != nil {
+		return err
+	}
+	defer release()
+	unlockFences := s.accountFences.lock(accountModelKeys(acc)...)
+	defer unlockFences()
 	snapshot, err := snapshotAccount(acc)
 	if err != nil {
 		return err
 	}
-	s.flushLocked()
+	s.fenceAccountSnapshots(seq, []*accountSnapshot{snapshot})
 	return s.saveSnapshots([]*accountSnapshot{snapshot})
 }
 
@@ -1085,14 +1109,21 @@ func (s *PostgresStore) SaveAccountAsync(acc *model.Account) error {
 	if s.readOnly {
 		return errors.New("store: PostgreSQL somente leitura")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	seq := s.writeSeq.Add(1)
+	release, err := s.beginPostgresWrite()
+	if err != nil {
+		return err
+	}
+	defer release()
+	unlockFences := s.accountFences.lock(accountModelKeys(acc)...)
+	defer unlockFences()
 	snapshot, err := snapshotAccount(acc)
 	if err != nil {
 		return err
 	}
 	return s.enqueue(postgresWriteJob{
 		label:   "autosave da conta " + snapshot.display,
+		seq:     seq,
 		account: snapshot,
 	})
 }
@@ -1105,13 +1136,19 @@ func (s *PostgresStore) CreateAccount(acc *model.Account) error {
 	if s.readOnly {
 		return errors.New("store: PostgreSQL somente leitura")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	seq := s.writeSeq.Add(1)
+	release, err := s.beginPostgresWrite()
+	if err != nil {
+		return err
+	}
+	defer release()
+	unlockFences := s.accountFences.lock(accountModelKeys(acc)...)
+	defer unlockFences()
 	snapshot, err := snapshotAccount(acc)
 	if err != nil {
 		return err
 	}
-	s.flushLocked()
+	s.fenceAccountSnapshots(seq, []*accountSnapshot{snapshot})
 	err = s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
 		return persistAccountSnapshots(ctx, tx, []*accountSnapshot{snapshot}, true)
 	})
@@ -1227,9 +1264,11 @@ func (s *PostgresStore) SaveInstanceState(state *model.InstanceStateSnapshot) er
 	if err != nil {
 		return err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.flushLocked()
+	release, err := s.beginPostgresWrite()
+	if err != nil {
+		return err
+	}
+	defer release()
 	return s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
 		_, err := tx.Exec(ctx, `
 			INSERT INTO instance_state(singleton,payload) VALUES(true,$1)
@@ -1255,8 +1294,12 @@ func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStat
 	if s.readOnly {
 		return errors.New("store: PostgreSQL somente leitura")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	seq := s.writeSeq.Add(1)
+	release, err := s.beginPostgresWrite()
+	if err != nil {
+		return err
+	}
+	defer release()
 	if state == nil && guilds == nil && len(accounts) == 0 {
 		return nil
 	}
@@ -1265,7 +1308,6 @@ func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStat
 			state.Version, model.InstanceStateVersion)
 	}
 	var guildPayload []byte
-	var err error
 	if guilds != nil {
 		if err := guilds.Validate(); err != nil {
 			return fmt.Errorf("store: guilds invalidas: %w", err)
@@ -1282,11 +1324,13 @@ func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStat
 			return err
 		}
 	}
+	unlockFences := s.accountFences.lock(accountModelKeys(accounts...)...)
+	defer unlockFences()
 	snapshots, err := snapshotAccounts(accounts...)
 	if err != nil {
 		return err
 	}
-	s.flushLocked()
+	s.fenceAccountSnapshots(seq, snapshots)
 	err = s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
 		if err := persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
 			return err
@@ -1330,17 +1374,32 @@ func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStat
 // contadores por personagem: nao existe janela em que apenas metade sobreviva.
 func (s *PostgresStore) SavePlayerState(guilds *model.GuildRegistry, account *model.Account,
 	characterUID string, state *model.CharState) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	if s.readOnly {
+		return errors.New("store: PostgreSQL somente leitura")
+	}
+	seq := s.writeSeq.Add(1)
+	stateKey, err := postgresStateFenceKey(characterUID)
+	if err != nil {
+		return err
+	}
+	release, err := s.beginPostgresWrite()
+	if err != nil {
+		return err
+	}
+	defer release()
+	unlockAccounts := s.accountFences.lock(accountModelKeys(account)...)
+	defer unlockAccounts()
+	unlockState := s.stateFences.lock(stateKey)
+	defer unlockState()
 	snapshots, err := snapshotAccounts(account)
 	if err != nil {
 		return err
 	}
-	statePayload, err := charStatePayload(characterUID, state)
+	statePayload, err := charStatePayload(stateKey, state)
 	if err != nil {
 		return err
 	}
-	stateUID, err := postgresUUID(characterUID)
+	stateUID, err := postgresUUID(stateKey)
 	if err != nil {
 		return err
 	}
@@ -1354,7 +1413,8 @@ func (s *PostgresStore) SavePlayerState(guilds *model.GuildRegistry, account *mo
 			return err
 		}
 	}
-	s.flushLocked()
+	s.fenceAccountSnapshots(seq, snapshots)
+	s.fenceCharStates(seq, stateKey)
 	if err := s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
 		if err := persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
 			return err
@@ -1395,12 +1455,8 @@ func emptyCharState(state *model.CharState) bool {
 }
 
 func charStatePayload(uid string, state *model.CharState) ([]byte, error) {
-	normalized, err := model.NormalizeCharacterUID(uid)
-	if err != nil {
-		return nil, fmt.Errorf("store: charstate: %w", err)
-	}
-	if normalized == "" {
-		return nil, errors.New("store: charstate sem UID de personagem")
+	if _, err := postgresStateFenceKey(uid); err != nil {
+		return nil, err
 	}
 	if emptyCharState(state) {
 		return nil, nil
@@ -1458,29 +1514,50 @@ func (s *PostgresStore) SaveCharState(uid string, state *model.CharState) error 
 	if s.readOnly {
 		return errors.New("store: PostgreSQL somente leitura")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	payload, err := charStatePayload(uid, state)
+	seq := s.writeSeq.Add(1)
+	stateKey, err := postgresStateFenceKey(uid)
 	if err != nil {
 		return err
 	}
-	s.flushLocked()
-	return s.saveCharStatePayload(uid, payload)
+	release, err := s.beginPostgresWrite()
+	if err != nil {
+		return err
+	}
+	defer release()
+	unlockFences := s.stateFences.lock(stateKey)
+	defer unlockFences()
+	payload, err := charStatePayload(stateKey, state)
+	if err != nil {
+		return err
+	}
+	s.fenceCharStates(seq, stateKey)
+	return s.saveCharStatePayload(stateKey, payload)
 }
 
 func (s *PostgresStore) SaveCharStateAsync(uid string, state *model.CharState) error {
 	if s.readOnly {
 		return errors.New("store: PostgreSQL somente leitura")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	payload, err := charStatePayload(uid, state)
+	seq := s.writeSeq.Add(1)
+	stateKey, err := postgresStateFenceKey(uid)
+	if err != nil {
+		return err
+	}
+	release, err := s.beginPostgresWrite()
+	if err != nil {
+		return err
+	}
+	defer release()
+	unlockFences := s.stateFences.lock(stateKey)
+	defer unlockFences()
+	payload, err := charStatePayload(stateKey, state)
 	if err != nil {
 		return err
 	}
 	return s.enqueue(postgresWriteJob{
-		label:     "autosave do charstate " + uid,
-		charState: &postgresCharStateSnapshot{uid: uid, payload: payload},
+		label:     "autosave do charstate " + stateKey,
+		seq:       seq,
+		charState: &postgresCharStateSnapshot{uid: stateKey, payload: payload},
 	})
 }
 
