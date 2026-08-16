@@ -37,7 +37,7 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		if m.InstanceID != "" {
 			nearbyTarget = w.instanceMobHasNearbyMember(m, mobActivationRange)
 		} else {
-			nearbyTarget = len(w.nearbyPlayersInGameplaySpace(m.X, m.Y, mobActivationRange, "")) != 0
+			nearbyTarget = w.hasNearbyPlayerInGameplaySpace(m.X, m.Y, mobActivationRange, "")
 		}
 		if !nearbyTarget {
 			m.Awake = false
