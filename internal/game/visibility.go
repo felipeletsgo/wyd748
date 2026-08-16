@@ -370,10 +370,8 @@ func (w *World) publishGhostShopSpawn(shop *GhostShop) {
 	if shop == nil {
 		return
 	}
-	for _, p := range w.players {
-		if p.InWorld && inView(p.X, p.Y, shop.X, shop.Y) {
-			w.showGhostShop(p, shop)
-		}
+	for _, p := range w.nearbyWorldPlayers(shop.X, shop.Y, viewHalfX) {
+		w.showGhostShop(p, shop)
 	}
 }
 
@@ -381,8 +379,8 @@ func (w *World) publishGhostShopRemove(shop *GhostShop) {
 	if shop == nil {
 		return
 	}
-	for _, p := range w.players {
-		if p.InWorld && p.hasVisible(shop.ID) {
+	for _, p := range w.nearbyWorldPlayers(shop.X, shop.Y, viewHalfX) {
+		if p.hasVisible(shop.ID) {
 			p.Session.Send(wire.RemoveMob(shop.ID, 0))
 			p.hide(shop.ID)
 		}
@@ -393,8 +391,8 @@ func (w *World) publishGhostShopItemSold(shop *GhostShop, pos uint32) {
 	if shop == nil {
 		return
 	}
-	for _, p := range w.players {
-		if p.InWorld && p.hasVisible(shop.ID) {
+	for _, p := range w.nearbyWorldPlayers(shop.X, shop.Y, viewHalfX) {
+		if p.hasVisible(shop.ID) {
 			// A janela de auto-loja foi aberta para o ID virtual do clone.
 			p.Session.Send(wire.ItemSold(shop.ID, pos))
 		}
@@ -734,8 +732,11 @@ func (w *World) publishItemSpawn(g *GroundItem) {
 }
 
 func (w *World) publishItemRemove(g *GroundItem) {
-	for _, p := range w.players {
-		if p.InWorld && p.hasVisible(g.ID) {
+	if g == nil {
+		return
+	}
+	for _, p := range w.nearbyWorldPlayers(g.X, g.Y, viewHalfX) {
+		if p.hasVisible(g.ID) {
 			p.Session.Send(wire.RemoveItem(uint32(g.ID)))
 			p.hide(g.ID)
 		}
