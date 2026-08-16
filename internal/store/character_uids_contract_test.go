@@ -7,13 +7,17 @@ import (
 	"wydgo/internal/model"
 )
 
+func uidTestAccount(name string) *model.Account {
+	return &model.Account{Name: name, Chars: make([]model.Char, 4)}
+}
+
 func TestPrepareAccountCharacterUIDsCoversGenerationCanonicalizationAndArchOrigin(t *testing.T) {
 	var nilAccount *model.Account
 	if _, err := prepareAccountCharacterUIDs(nilAccount); err == nil {
 		t.Fatal("conta nil foi aceita")
 	}
 
-	account := &model.Account{Name: "acc"}
+	account := uidTestAccount("acc")
 	account.Chars[0] = model.Char{Name: "Generated"}
 	account.Chars[1] = model.Char{
 		Name: "Canonical",
@@ -45,13 +49,13 @@ func TestPrepareAccountCharacterUIDsCoversGenerationCanonicalizationAndArchOrigi
 }
 
 func TestPrepareAccountCharacterUIDsRejectsInvalidAndDuplicateIdentities(t *testing.T) {
-	invalid := &model.Account{Name: "bad"}
+	invalid := uidTestAccount("bad")
 	invalid.Chars[0] = model.Char{Name: "Bad", UID: "not-a-uid"}
 	if _, err := prepareAccountCharacterUIDs(invalid); err == nil {
 		t.Fatal("UID invalido foi aceito")
 	}
 
-	invalidArch := &model.Account{Name: "arch"}
+	invalidArch := uidTestAccount("arch")
 	invalidArch.Chars[0] = model.Char{
 		Name: "Arch", UID: "11111111111141118111111111111111", ArchMortalUID: "bad",
 	}
@@ -60,8 +64,8 @@ func TestPrepareAccountCharacterUIDsRejectsInvalidAndDuplicateIdentities(t *test
 	}
 
 	dup := "22222222222242228222222222222222"
-	a := &model.Account{Name: "a"}
-	b := &model.Account{Name: "b"}
+	a := uidTestAccount("a")
+	b := uidTestAccount("b")
 	a.Chars[0] = model.Char{Name: "One", UID: dup}
 	b.Chars[3] = model.Char{Name: "Two", UID: dup}
 	if _, err := prepareAccountCharacterUIDs(a, b); err == nil || !strings.Contains(err.Error(), "duplicado") {
@@ -70,7 +74,7 @@ func TestPrepareAccountCharacterUIDsRejectsInvalidAndDuplicateIdentities(t *test
 }
 
 func TestPrepareAccountCharacterUIDsSkipsEmptySlots(t *testing.T) {
-	account := &model.Account{Name: "empty"}
+	account := uidTestAccount("empty")
 	account.Chars[0].UID = "this stale field is ignored with empty name"
 	changed, err := prepareAccountCharacterUIDs(account)
 	if err != nil || changed != 0 {
