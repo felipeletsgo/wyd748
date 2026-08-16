@@ -62,6 +62,14 @@ jobs:
             ./internal/wire
           go tool cover -func=tmp/coverage.out | tee tmp/coverage.txt
 
+      - name: Enforce coverage floor
+        if: always()
+        run: |
+          test -s tmp/coverage.txt
+          coverage=$(awk '/^total:/ {gsub("%", "", $3); print $3}' tmp/coverage.txt)
+          echo "Total coverage: ${coverage}%"
+          awk -v got="$coverage" 'BEGIN { if ((got + 0) < 78.0) exit 1 }'
+
       - name: Upload coverage profile
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,7 +101,11 @@ jobs:
         if: always()
         run: go vet ./...
 
-      - name: Build server
+      - name: Build all commands
+        if: always()
+        run: go build ./cmd/...
+
+      - name: Build server artifact
         if: always()
         run: go build -o tmp/tm-check ./cmd/server
 
