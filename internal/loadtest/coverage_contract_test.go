@@ -4,28 +4,44 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"log"
 	stdnet "net"
+	"strings"
 	"testing"
 	"time"
 
 	"wydgo/internal/wire"
 )
 
-func TestRunBotsHonorsCancelledContextWithoutOpeningSockets(t *testing.T) {
+func TestRunBotsCancelledContextCannotProgressPastConnectionAttempt(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	report := RunBots(ctx, RunConfig{BotCount: 2, Ramp: time.Millisecond, Duration: time.Second}, nil)
-	if report.Started != 0 || report.Connected != 0 || report.Errors != 0 {
-		t.Fatalf("contexto ja cancelado iniciou carga: %+v", report)
+	report := RunBots(ctx, RunConfig{
+		Address: "127.0.0.1:0", BotCount: 2, Ramp: time.Millisecond, Duration: time.Second,
+	}, nil)
+	// O primeiro worker tem delay zero. Quando timer.C e ctx.Done ja estao
+	// prontos, select pode escolher qualquer um; portanto Started pode ser 0 ou 1.
+	// O contrato relevante e que uma execucao cancelada nao consegue conectar,
+	// entrar no mundo nem produzir gameplay.
+	if report.Started > 1 || report.Connected != 0 || report.Entered != 0 ||
+		report.Attacks != 0 || report.Moves != 0 || report.Packets != 0 || report.Errors > 1 {
+		t.Fatalf("contexto ja cancelado progrediu carga alem do worker inicial: %+v", report)
 	}
 }
 
 func TestRunBotsClampsOversizedBotCountBeforeCancelledRamp(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	report := RunBots(ctx, RunConfig{BotCount: 5000, Ramp: time.Second, Duration: time.Second}, nil)
-	if report.Started != 0 {
-		t.Fatalf("rampa cancelada iniciou %d bots", report.Started)
+	var logs bytes.Buffer
+	logger := log.New(&logs, "", 0)
+	report := RunBots(ctx, RunConfig{
+		Address: "127.0.0.1:0", BotCount: 5000, Ramp: time.Second, Duration: time.Second,
+	}, logger)
+	if !strings.Contains(logs.String(), "limitando bots de 5000 para 990") {
+		t.Fatalf("clamp de 990 nao foi observado no log: %q", logs.String())
+	}
+	if report.Started > 1 || report.Connected != 0 || report.Entered != 0 {
+		t.Fatalf("rampa cancelada progrediu carga inesperadamente: %+v", report)
 	}
 }
 
