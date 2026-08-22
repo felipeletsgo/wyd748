@@ -100,6 +100,9 @@ static_assert(sizeof(MSG_ReqBuy) == 36, "7.48 auto-trade purchase request must r
 // These values are mirrored byte-for-byte by internal/wire/source_client.go.
 static_assert(sizeof(STRUCT_SELCHAR) == 1272, "source STRUCT_SELCHAR ABI changed");
 static_assert(sizeof(STRUCT_MOB) == 1224, "source STRUCT_MOB ABI changed");
+static_assert(offsetof(STRUCT_MOB, ShortSkill) == 988, "source ShortSkill offset changed");
+static_assert(offsetof(STRUCT_MOB, GuildLevel) == 992, "source GuildLevel offset changed");
+static_assert(offsetof(STRUCT_MOB, CurrentKill) == 1220, "source CurrentKill offset changed");
 static_assert(sizeof(STRUCT_EXT1) == 288, "source STRUCT_EXT1 ABI changed");
 static_assert(sizeof(STRUCT_EXT2) == 552, "source STRUCT_EXT2 ABI changed");
 static_assert(sizeof(MSG_CNFAccountLogin) == 2360, "source character-list packet ABI changed");
@@ -112,9 +115,6 @@ static_assert(sizeof(MSG_CNFCharacterLogin) == 2104, "source enter-world packet 
 static_assert(offsetof(MSG_CNFCharacterLogin, Slot) == 1240, "source selected-slot offset changed");
 static_assert(offsetof(MSG_CNFCharacterLogin, ClientID) == 1242, "source runtime ClientID offset changed");
 static_assert(offsetof(MSG_CNFCharacterLogin, Ext1) == 1264, "source Ext1 alignment changed");
-static_assert(offsetof(STRUCT_MOB, ScoreBonus) == 988, "source status-point mirror offset changed");
-static_assert(offsetof(STRUCT_MOB, SpecialBonus) == 990, "source mastery-point mirror offset changed");
-static_assert(offsetof(STRUCT_MOB, SkillBonus) == 992, "source skill-point mirror offset changed");
 static_assert(sizeof(MSG_CreateMob) == 328, "source CreateMob packet ABI changed");
 static_assert(sizeof(MSG_CreateMobTrade) == 352, "source CreateMobTrade packet ABI changed");
 static_assert(sizeof(MSG_UpdateScore) == 244, "source UpdateScore packet ABI changed");

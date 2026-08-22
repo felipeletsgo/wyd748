@@ -695,10 +695,10 @@ void TMFieldScene::UpdateCompatScoreUI()
 	setNumber(TMT_CI_ATT, pMobData->CurrentScore.Attack);
 	setNumber(TMT_CI_DFE, pMobData->CurrentScore.Defense);
 	setNumber(TMT_CI_SPEED, pMobData->CurrentScore.AttackRun & 0x0F);
-	setNumber(TMT_CI_HOLY, pMobData->Resist[2]);
-	setNumber(TMT_CI_THUNDER, pMobData->Resist[3]);
-	setNumber(TMT_CI_FIRE, pMobData->Resist[0]);
-	setNumber(TMT_CI_ICE, pMobData->Resist[1]);
+	setNumber(TMT_CI_HOLY, pMobData->CurrentScore.ResistHoly);
+	setNumber(TMT_CI_THUNDER, pMobData->CurrentScore.ResistThunder);
+	setNumber(TMT_CI_FIRE, pMobData->CurrentScore.ResistFire);
+	setNumber(TMT_CI_ICE, pMobData->CurrentScore.ResistIce);
 	setNumber(TMT_CI_SPECIAL1, pMobData->CurrentScore.Mastery[0]);
 	setNumber(TMT_CI_SPECIAL2, pMobData->CurrentScore.Mastery[1]);
 	setNumber(TMT_CI_SPECIAL3, pMobData->CurrentScore.Mastery[2]);
@@ -735,7 +735,7 @@ void TMFieldScene::UpdateCompatScoreUI()
 	char percent[32]{};
 	sprintf_s(percent, "%d%%", attackSpeed);
 	setCompatText(TMT_CI_ATRT, percent);
-	sprintf_s(percent, "%d.%d%%", (pMobData->Critical * 4) / 10, (pMobData->Critical * 4) % 10);
+	sprintf_s(percent, "%d.%d%%", (pMobData->CurrentScore.Critical * 4) / 10, (pMobData->CurrentScore.Critical * 4) % 10);
 	setCompatText(TMT_CI_CRITICAL, percent);
 
 	if (m_pMainCharName && m_pMyHuman)
@@ -7282,7 +7282,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			if (skillId < 96)
 				Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[classId / 8 + 1];
 
-			if (BASE_GetManaSpent(skillId, g_pObjectManager->m_stMobData.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
+			if (BASE_GetManaSpent(skillId, g_pObjectManager->m_stMobData.CurrentScore.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 			{
 				auto ipNewItem = new SListBoxItem(g_pMessageStringTable[30],
 					0xFFFFAAAA,
@@ -10602,7 +10602,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 			nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
 		auto pChatList = m_pChatList;
-		if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, nSpecial) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
+		if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana, nSpecial) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 		{
 			auto ipNewItem = new SListBoxItem(g_pMessageStringTable[30],
 				0xFFFFAAAA,
@@ -10667,7 +10667,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 		{
 			stAttack.FlagLocal = 0;
 			int nTargetIndex = 0;
-			int nCritical = (unsigned char)g_pObjectManager->m_stMobData.Critical;
+			int nCritical = (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.Critical;
 
 			auto pNode = (TMHuman*)m_pHumanContainer->m_pDown;
 			if (!pNode)
@@ -10849,7 +10849,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 		{
 			stAttack.FlagLocal = 0;
 			int nTargetIndex = 0;
-			int nCritical = (unsigned char)g_pObjectManager->m_stMobData.Critical;
+			int nCritical = (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.Critical;
 
 			auto pNode = (TMHuman*)m_pHumanContainer->m_pDown;
 			if (!pNode)
@@ -11560,7 +11560,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 	if ((unsigned char)cSkillIndex < 96)
 		Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
+	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 	{
 		auto ipNewItem = new SListBoxItem(g_pMessageStringTable[30],
 			0xFFFFAAAA,
@@ -12089,7 +12089,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 		if ((unsigned char)cSkillIndex < 96)
 			nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-		if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, nSpecial) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
+		if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana, nSpecial) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 		{
 			auto pChatList = m_pChatList;
 
@@ -12132,7 +12132,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 		{
 			stAttack.FlagLocal = 0;
 			int nTargetIndex = 0;
-			int nCritical = (unsigned char)g_pObjectManager->m_stMobData.Critical;
+			int nCritical = (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.Critical;
 
 			auto pNode = (TMHuman*)m_pHumanContainer->m_pDown;
 			if (!pNode)
@@ -12227,7 +12227,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 		{
 			stAttack.FlagLocal = 0;
 			int nTargetIndex = 0;
-			int nCritical = (unsigned char)g_pObjectManager->m_stMobData.Critical;
+			int nCritical = (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.Critical;
 
 			auto pNode = (TMHuman*)m_pHumanContainer->m_pDown;
 			if (!pNode)
@@ -12739,7 +12739,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 	if ((unsigned char)cSkillIndex < 96)
 		Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
+	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 	{
 		auto ipNewItem = new SListBoxItem(g_pMessageStringTable[30],
 			0xFFFFAAAA,
@@ -13442,7 +13442,7 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 					m_pTargetHuman = pOver;
 				stAttack.Dam[0].TargetID = pOver->m_dwID;
 				auto pTarget = g_pObjectManager->GetHumanByID(stAttack.Dam[0].TargetID);
-				int nCritical = (unsigned char)pMobData->Critical;
+				int nCritical = (unsigned char)pMobData->CurrentScore.Critical;
 				stAttack.Dam[0].Damage = -2;
 				stAttack.Progress = TMFieldScene::m_usProgress;
 
@@ -16048,7 +16048,7 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 		sprintf(szStr, "%d%%", nAttSpeedValue);
 		if (m_pAttackSpeed)
 			m_pAttackSpeed->SetText(szStr, 0);
-		int nCriticalValue = pMobData->Critical;
+		int nCriticalValue = pMobData->CurrentScore.Critical;
 		nCriticalValue *= 4;
 
 		sprintf(szStr, "%d.%d%%", nCriticalValue / 10, nCriticalValue % 10);
@@ -16056,16 +16056,16 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 			m_pCritical->SetText(szStr, 0);
 
 
-		sprintf(szStr, "%d", pMobData->Resist[2]);
+		sprintf(szStr, "%d", pMobData->CurrentScore.ResistHoly);
 		if (m_pRegist1)
 			m_pRegist1->SetText(szStr, 0);
-		sprintf(szStr, "%d", pMobData->Resist[3]);
+		sprintf(szStr, "%d", pMobData->CurrentScore.ResistThunder);
 		if (m_pRegist2)
 			m_pRegist2->SetText(szStr, 0);
-		sprintf(szStr, "%d", pMobData->Resist[0]);
+		sprintf(szStr, "%d", pMobData->CurrentScore.ResistFire);
 		if (m_pRegist3)
 			m_pRegist3->SetText(szStr, 0);
-		sprintf(szStr, "%d", pMobData->Resist[1]);
+		sprintf(szStr, "%d", pMobData->CurrentScore.ResistIce);
 		if (m_pRegist4)
 			m_pRegist4->SetText(szStr, 0);
 
@@ -16103,17 +16103,17 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 		if (m_pParryRate)
 			m_pParryRate->SetText(szStr, 0);
 
-		sprintf(szStr, "%d", pMobData->SaveMana);
+		sprintf(szStr, "%d", pMobData->CurrentScore.SaveMana);
 		if (m_pSaveMana)
 			m_pSaveMana->SetText(szStr, 0);
 
-		sprintf(szStr, "%d", pMobData->RegenHP);
+		sprintf(szStr, "%d", pMobData->CurrentScore.RegenHP);
 		m_pRegenHP->SetText(szStr, 0);
 
 		if (m_pRegenHP)
 			m_pRegenHP->SetText(szStr, 0);
 
-		sprintf(szStr, "%d", pMobData->RegenMP);
+		sprintf(szStr, "%d", pMobData->CurrentScore.RegenMP);
 		m_pRegenMP->SetText(szStr, 0);
 
 		if (m_pRegenMP)
@@ -16135,7 +16135,7 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 		if (m_pCriticalNew)
 			m_pCriticalNew->SetText(szStr, 0);
 
-		sprintf(szStr, "%d%%", pMobData->Magician * 4);
+		sprintf(szStr, "%d%%", pMobData->CurrentScore.MagicAmp * 4);
 		if (m_pAtkMagic)
 			m_pAtkMagic->SetText(szStr, 0);
 
@@ -19350,7 +19350,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 
 		if (BASE_GetManaSpent(
 			83,
-			(unsigned char)g_pObjectManager->m_stMobData.SaveMana,
+			(unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana,
 			g_pObjectManager->m_stMobData.CurrentScore.Mastery[nSkill / 8 + 1]) <= g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 		{
 			MSG_AttackOne stAttack{};

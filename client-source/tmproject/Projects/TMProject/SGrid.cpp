@@ -3123,7 +3123,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 			if (SkillNumber < 96)
 			{
 				int Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[(SkillNumber - 24 * mob->Class) / 8 + 1];
-				manaSpent = BASE_GetManaSpent(SkillNumber, g_pObjectManager->m_stMobData.SaveMana, Special);
+				manaSpent = BASE_GetManaSpent(SkillNumber, g_pObjectManager->m_stMobData.CurrentScore.SaveMana, Special);
 			}
 
 			char szText[128]{};
@@ -4412,7 +4412,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 				nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Mastery[
 					(cSkillIndex - 24 * g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-			if (BASE_GetManaSpent(cSkillIndex, g_pObjectManager->m_stMobData.SaveMana, nSpecial) <=
+			if (BASE_GetManaSpent(cSkillIndex, g_pObjectManager->m_stMobData.CurrentScore.SaveMana, nSpecial) <=
 				g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 			{
 				MSG_Attack stAttack{};

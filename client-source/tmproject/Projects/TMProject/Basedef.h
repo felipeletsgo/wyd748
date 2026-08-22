@@ -233,7 +233,6 @@ struct STRUCT_MOB
 {
 	char MobName[16];
 	char Clan;
-	char Merchant;
 	unsigned short Guild;
 	char Class;
 	char Rsv;
@@ -247,54 +246,12 @@ struct STRUCT_MOB
 	STRUCT_ITEM Equip[MAX_EQUIPITEM];
 	STRUCT_ITEM Carry[64];
 	unsigned int LearnedSkill[2];
-	short ScoreBonus;
-	short SpecialBonus;
-	short SkillBonus;
-	char Critical;
-	char SaveMana;
 	char ShortSkill[4];
 	char GuildLevel;
-	char Magician;
-	char RegenHP;
-	char RegenMP;
-	char Resist[4];
-	char dummy[212];
+	char dummy[227];
 	unsigned short CurrentKill;
 	unsigned short TotalKill;
-
-	//char MobName[16];
-	//int8_t Clan;
-	//uint8_t Merchant;
-	//uint16_t Guild;
-	//uint8_t Class;
-	//uint8_t Rsv;
-	//uint16_t Quest;
-	//int32_t Coin;
-	//int64_t Exp;
-	//uint16_t HomeTownX;
-	//uint16_t HomeTownY;
-	//STRUCT_SCORE BaseScore;
-	//STRUCT_SCORE CurrentScore;
-	//STRUCT_ITEM Equip[18];
-	//STRUCT_ITEM Carry[64];
-	//uint32_t LearnedSkill[2];
-	//uint16_t ScoreBonus;
-	//uint16_t SpecialBonus;
-	//uint16_t SkillBonus;
-	//uint8_t Critical;
-	//uint8_t SaveMana;
-	//uint8_t ShortSkill[4];
-	//uint8_t GuildLevel;
-	//uint8_t Magician;
-	//uint8_t RegenHP;
-	//uint8_t RegenMP;
-	//uint8_t Resist[4];
-
-	//char dummy[212];
-	//unsigned short CurrentKill;
-	//unsigned short TotalKill;
-
-	bool HasSoulSkill() const
+bool HasSoulSkill() const
 	{
 		return this->LearnedSkill[0] & 0x40000000;
 	}
@@ -431,8 +388,7 @@ struct STRUCT_SUBCLASS
 	STRUCT_SCORE CurrentScore;
 	long long Exp;
 	char ShortSkill[20];
-	short ScoreBonus;
-	short SkillBonus;
+	char Reserved[4];
 };
 
 struct STRUCT_EXT2

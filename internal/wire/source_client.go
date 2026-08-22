@@ -116,21 +116,8 @@ func EnterWorld(id, slot uint16, ch model.Char) []byte {
 	}
 	putU32(b, mob+980, ch.LearnedSkill)
 	putU32(b, mob+984, ch.SecondaryLearnedSkill)
-	ext := wireScore(ch)
-	putU16(b, mob+988, packetU16(ext.StatusPts))
-	putU16(b, mob+990, packetU16(ext.MasterPts))
-	putU16(b, mob+992, packetU16(ext.SkillPts))
-	b[mob+994] = clampByte(int(ext.Critical))
-	b[mob+995] = clampByte(int(ext.SaveMana))
-	copy(b[mob+996:mob+1000], ch.ShortSkill[:4])
-	b[mob+1000] = ch.GuildRank
-	b[mob+1001] = clampByte(int(ext.MagicAmp))
-	b[mob+1002] = clampByte(int(ext.RegenHP))
-	b[mob+1003] = clampByte(int(ext.RegenMP))
-	b[mob+1004] = clampByte(int(ext.ResistFire))
-	b[mob+1005] = clampByte(int(ext.ResistIce))
-	b[mob+1006] = clampByte(int(ext.ResistHoly))
-	b[mob+1007] = clampByte(int(ext.ResistThunder))
+	copy(b[mob+988:mob+992], ch.ShortSkill[:4])
+	b[mob+992] = ch.GuildRank
 	// MSG_CNFCharacterLogin carries the selected account slot separately from
 	// ClientID. Sending the spawn marker here made every source client appear to
 	// have selected slot two even when the account selected another character.
