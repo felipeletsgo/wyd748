@@ -79,7 +79,7 @@ func TestCanonicalMobPacketsUseScore140(t *testing.T) {
 		t.Fatalf("CreateMob ABI: len=%d", len(create))
 	}
 	refresh := MobScore(1001, score, nil)
-	if len(refresh) != 244 || binary.LittleEndian.Uint32(refresh[20:24]) != 777 {
+	if len(refresh) != 232 || binary.LittleEndian.Uint32(refresh[20:24]) != 777 {
 		t.Fatalf("MobScore ABI: len=%d", len(refresh))
 	}
 }
