@@ -21,9 +21,17 @@ for name in [
     pattern = re.compile(rf"\nfunc {name}\(t \*testing\.T\) \{{.*?\n\}}\n", re.S)
     text = pattern.sub("\n", text, count=1)
 
-# Fix an accidentally tautological persistence assertion from the migration.
+# Canonical persistence must require `score` and reject only the removed name.
+text = text.replace(
+    'if bytes.Contains(data, []byte("baseScore")) ||\n\t\tbytes.Contains(data, []byte("nextExp")) ||\n\t\tbytes.Contains(data, []byte(`"score":`)) {',
+    'if bytes.Contains(data, []byte("baseScore")) ||\n\t\tbytes.Contains(data, []byte("nextExp")) ||\n\t\tbytes.Contains(data, []byte(`"extendedScore":`)) {',
+)
 text = text.replace(
     'if bytes.Contains(data, []byte(`"score":`)) || !bytes.Contains(data, []byte(`"score":`)) {',
+    'if !bytes.Contains(data, []byte(`"score":`)) || bytes.Contains(data, []byte(`"extendedScore":`)) {',
+)
+text = text.replace(
+    'if !bytes.Contains(data, []byte(`"score":`)) || !bytes.Contains(data, []byte(`"score":`)) {',
     'if !bytes.Contains(data, []byte(`"score":`)) || bytes.Contains(data, []byte(`"extendedScore":`)) {',
 )
 
@@ -48,10 +56,8 @@ func TestNPCUsesCanonicalScoreWithoutProjection(t *testing.T) {
 	}
 }
 '''
-text, count = pattern.subn("\n" + replacement + "\n", text, count=1)
-if count == 0:
-    # A prior repair may already have renamed it; leave the canonical version intact.
-    pass
+text = pattern.sub("\n" + replacement + "\n", text, count=1)
+text = text.replace("round-trip perdeu extended score", "round-trip perdeu score")
 path.write_text(text, encoding="utf-8", newline="\n")
 
 # npcconvert must verify Merchant/Direction merge in the canonical Score itself.
