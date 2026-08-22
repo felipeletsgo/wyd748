@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 
-root = Path(__file__).resolve().parents[1]
+root = Path(__file__).resolve().parents[1] if "__file__" in globals() else Path.cwd()
 
 
 def remove_tests(path: Path, forbidden: tuple[str, ...]) -> None:
