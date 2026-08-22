@@ -53,6 +53,14 @@ replacements = {
     ".MaxHp": ".MaxHP",
     ".MaxMp": ".MaxMP",
 }
+score_member_names = {
+    "Hp": "CurHP",
+    "Mp": "CurMP",
+    "Damage": "Attack",
+    "Ac": "Defense",
+    "Reserved": "Merchant",
+    "Special": "Mastery",
+}
 for path in project.rglob("*"):
     if path.suffix.lower() not in {".cpp", ".h"}:
         continue
@@ -61,18 +69,16 @@ for path in project.rglob("*"):
     for old, new in replacements.items():
         data = data.replace(old, new)
     for prefix in ["m_stScore", "BaseScore", "CurrentScore"]:
-        data = data.replace(f"{prefix}.Hp", f"{prefix}.CurHP")
-        data = data.replace(f"{prefix}.Mp", f"{prefix}.CurMP")
-        data = data.replace(f"{prefix}.Damage", f"{prefix}.Attack")
-        data = data.replace(f"{prefix}.Ac", f"{prefix}.Defense")
-        data = data.replace(f"{prefix}.Reserved", f"{prefix}.Merchant")
-        data = data.replace(f"{prefix}.Special", f"{prefix}.Mastery")
-    data = data.replace("pUpdateScore->Score.Hp", "pUpdateScore->Score.CurHP")
-    data = data.replace("pUpdateScore->Score.Mp", "pUpdateScore->Score.CurMP")
-    data = data.replace("pUpdateScore->Score.Damage", "pUpdateScore->Score.Attack")
-    data = data.replace("pUpdateScore->Score.Ac", "pUpdateScore->Score.Defense")
-    data = data.replace("pUpdateScore->Score.Reserved", "pUpdateScore->Score.Merchant")
-    data = data.replace("pUpdateScore->Score.Special", "pUpdateScore->Score.Mastery")
+        for old, new in score_member_names.items():
+            data = data.replace(f"{prefix}.{old}", f"{prefix}.{new}")
+    for old, new in score_member_names.items():
+        data = data.replace(f"pUpdateScore->Score.{old}", f"pUpdateScore->Score.{new}")
+        # Character-selection arrays are canonical STRUCT_SCORE values too.
+        data = re.sub(
+            rf"(\b(?:[A-Za-z_][A-Za-z0-9_]*(?:->|\.))*Score\[[^\]]+\])\.{old}\b",
+            rf"\1.{new}",
+            data,
+        )
     if data != original:
         write_source(path, data, encoding)
 
