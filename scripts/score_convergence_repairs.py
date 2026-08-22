@@ -79,6 +79,12 @@ replace_in(
     count=1,
 )
 replace_in(
+    "internal/game/affects.go",
+    "ext.AttackRun = effectiveMobAttackRunAt(m, now)",
+    "ext.AttackRun = uint32(effectiveMobAttackRunAt(m, now))",
+    count=1,
+)
+replace_in(
     "internal/game/boss_spawn.go",
     "def.Score.AttackRun = byte(*stats.AttackRun)",
     "def.Score.AttackRun = uint32(*stats.AttackRun)",
@@ -94,6 +100,21 @@ replace_in(
     "internal/game/extended_stats.go",
     "\t\treturn e.AttackRun\n\t}\n\treturn 0\n}\n\nfunc playerCurHP",
     "\t\treturn byte(e.AttackRun & 0xff)\n\t}\n\treturn 0\n}\n\nfunc playerCurHP",
+    count=1,
+)
+replace_in(
+    "internal/game/skill_summons.go",
+    "attackRun := byte(clampInt(int(t.MoveSpeed), 1, 15))",
+    "attackRun := uint32(clampInt(int(t.MoveSpeed), 1, 15))",
+    count=1,
+)
+
+# Merchant belongs to Score and is therefore uint32. Shop routing consumes the
+# authoritative value directly; protocol-specific byte packing happens later.
+replace_in(
+    "internal/game/handlers.go",
+    "func shopTypeForMerchant(merchant byte) (uint32, bool)",
+    "func shopTypeForMerchant(merchant uint32) (uint32, bool)",
     count=1,
 )
 
@@ -133,4 +154,28 @@ for old, new in replacements.items():
     text = text.replace(old, new)
 test.write_text(text, encoding="utf-8", newline="\n")
 
-print("score convergence compile and ABI repairs applied")
+# Persistence intentionally switches account characters to the canonical
+# `score` key. Old accounts are not migrated; the regression must now reject
+# the removed `extendedScore` representation instead of rejecting `score`.
+model_test = root / "internal/model/model_test.go"
+text = model_test.read_text(encoding="utf-8")
+text = text.replace("func TestCharJSONPersistsOnlyExtendedScore", "func TestCharJSONPersistsCanonicalScore", 1)
+text = text.replace(
+    'bytes.Contains(data, []byte("nextExp")) ||\n\t\tbytes.Contains(data, []byte(`"score":`))',
+    'bytes.Contains(data, []byte("nextExp")) ||\n\t\tbytes.Contains(data, []byte(`"extendedScore":`))',
+    1,
+)
+text = text.replace(
+    'if !bytes.Contains(data, []byte(`"extendedScore":{"version":2,"level":50,"attack":200`)) {\n\t\tt.Fatalf("extended score autoritativo ausente: %s", data)\n\t}',
+    'if !bytes.Contains(data, []byte(`"score":{"version":2,"level":50,"attack":200`)) {\n\t\tt.Fatalf("score canonico ausente: %s", data)\n\t}',
+    1,
+)
+text = text.replace("func TestExtendedCharJSONNeverPersistsLegacyProjection", "func TestWideCharJSONPersistsCanonicalScore", 1)
+text = text.replace(
+    'if bytes.Contains(data, []byte(`"score":`)) {\n\t\tt.Fatalf("personagem wide ainda gravou score legado: %s", data)\n\t}',
+    'if bytes.Contains(data, []byte(`"extendedScore":`)) || !bytes.Contains(data, []byte(`"score":`)) {\n\t\tt.Fatalf("personagem wide nao gravou somente o score canonico: %s", data)\n\t}',
+    1,
+)
+model_test.write_text(text, encoding="utf-8", newline="\n")
+
+print("score convergence uint32 and ABI repairs applied")
