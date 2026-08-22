@@ -43,10 +43,10 @@ func TestConvertSeparatesFunctionalMerchantFromDirection(t *testing.T) {
 
 	got, _ := convert("Kibita", b)
 	if got.Score == nil || got.Score.Merchant != 43 || got.Direction != 0xF0 {
-		t.Fatalf("extended=%+v direction=0x%X, quer Merchant 43/0xF0", got.Score, got.Direction)
+		t.Fatalf("score=%+v direction=0x%X, quer Merchant 43/0xF0", got.Score, got.Direction)
 	}
-	if score := got.MakeScore(got.Score.MaxHP).CompatibilityScore(); score.Merchant != 0xFB {
-		t.Fatalf("merchant visual=0x%X, quer 0xFB", score.Merchant)
+	if score := got.MakeScore(got.Score.MaxHP); score.Merchant != 0xFB {
+		t.Fatalf("merchant canonico=0x%X, quer 0xFB", score.Merchant)
 	}
 }
 

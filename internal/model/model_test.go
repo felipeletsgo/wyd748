@@ -98,16 +98,6 @@ func TestCharJSONRequiresAllStructuralInventorySlots(t *testing.T) {
 	}
 }
 
-func TestCompatibilityScoreCannotBePersistedAsJSON(t *testing.T) {
-	data, err := json.Marshal(LegacyScore28{Level: 400, Attack: 5000, MaxHP: 30000})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(data) != "{}" {
-		t.Fatalf("projecao de ABI foi serializada: %s", data)
-	}
-}
-
 func TestScoreRejectsFunctionalLimitViolations(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -201,7 +191,7 @@ func TestWideCharJSONPersistsCanonicalScore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Contains(data, []byte(`"score":`)) || !bytes.Contains(data, []byte(`"score":`)) {
+	if !bytes.Contains(data, []byte(`"score":`)) || bytes.Contains(data, []byte(`"extendedScore":`)) {
 		t.Fatalf("personagem wide nao gravou somente o score canonico: %s", data)
 	}
 	var loaded Char
@@ -213,25 +203,7 @@ func TestWideCharJSONPersistsCanonicalScore(t *testing.T) {
 	}
 }
 
-func TestExtendedCompatibilityScoreIsProportionalAndSafe(t *testing.T) {
-	e := &Score{
-		Level: 400, Attack: 300_000, Defense: 200_000,
-		MaxHP: 500_000, CurHP: 250_000,
-		MaxMP: 400_000, CurMP: 100_000,
-		Str: 150_000, Int: 160_000, Dex: 170_000, Con: 180_000,
-	}
-	score := e.CompatibilityScore()
-	if score.Attack != 1_000 || score.Defense != 1_000 ||
-		score.Str != 1_000 || score.Int != 1_000 {
-		t.Fatalf("projecao de atributos insegura: %+v", score)
-	}
-	if score.MaxHP > 30_000 || score.MaxMP > 30_000 ||
-		score.CurHP*2 < score.MaxHP-1 || score.CurHP*2 > score.MaxHP+1 {
-		t.Fatalf("projecao de recursos incorreta: %+v", score)
-	}
-}
-
-func TestNPCUsesExtendedStatsAndOnlyProjectsAtWireBoundary(t *testing.T) {
+func TestNPCUsesCanonicalScoreWithoutProjection(t *testing.T) {
 	def := NPCDef{
 		Score: &Score{
 			Version: ScoreVersion,
@@ -241,17 +213,11 @@ func TestNPCUsesExtendedStatsAndOnlyProjectsAtWireBoundary(t *testing.T) {
 			Mastery: [4]uint32{300, 301, 302, 303},
 		},
 	}
-	ext := def.MakeScore(750_000)
-	if ext.Attack != 350_000 || ext.MagicAttack != 420_000 ||
-		ext.Defense != 275_000 || ext.CurHP != 750_000 || ext.MaxHP != 1_000_000 ||
-		ext.Mastery[0] != 300 {
-		t.Fatalf("NPC perdeu valores extended: %+v", ext)
-	}
-	compatibility := ext.CompatibilityScore()
-	if compatibility.Attack != 1_000 || compatibility.Defense != 1_000 ||
-		compatibility.MaxHP > 30_000 || compatibility.CurHP*4 < compatibility.MaxHP*3-1 ||
-		compatibility.CurHP*4 > compatibility.MaxHP*3+1 || compatibility.Mastery[0] != 255 {
-		t.Fatalf("projecao visual do NPC incorreta: %+v", compatibility)
+	score := def.MakeScore(750_000)
+	if score.Attack != 350_000 || score.MagicAttack != 420_000 ||
+		score.Defense != 275_000 || score.CurHP != 750_000 || score.MaxHP != 1_000_000 ||
+		score.Mastery[0] != 300 {
+		t.Fatalf("NPC perdeu valores do Score canonico: %+v", score)
 	}
 }
 

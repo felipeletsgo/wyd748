@@ -117,9 +117,9 @@ func EnterWorld(id, slot uint16, ch model.Char) []byte {
 	putU32(b, mob+980, ch.LearnedSkill)
 	putU32(b, mob+984, ch.SecondaryLearnedSkill)
 	ext := wireScore(ch)
-	putU16(b, mob+988, compatibilityU16(ext.StatusPts))
-	putU16(b, mob+990, compatibilityU16(ext.MasterPts))
-	putU16(b, mob+992, compatibilityU16(ext.SkillPts))
+	putU16(b, mob+988, packetU16(ext.StatusPts))
+	putU16(b, mob+990, packetU16(ext.MasterPts))
+	putU16(b, mob+992, packetU16(ext.SkillPts))
 	b[mob+994] = clampByte(int(ext.Critical))
 	b[mob+995] = clampByte(int(ext.SaveMana))
 	copy(b[mob+996:mob+1000], ch.ShortSkill[:4])
@@ -162,7 +162,7 @@ func UpdateScore(id uint16, ch model.Char) []byte {
 	// ReqHp/ReqMp are pending skill costs in TMProject, not current resources.
 	// Score.Hp/Score.Mp already carry the authoritative values; leaving these
 	// fields zero prevents a score refresh from charging HP/MP on a later cast.
-	putU16(b, 236, compatibilityU16(ext.MagicAmp))
+	putU16(b, 236, packetU16(ext.MagicAmp))
 	// LearnedSkill is a one-byte avatar-effect selector in this packet, not the
 	// character's 32-bit learned-skill mask (which travels in UpdateEtc).
 	b[240] = 0
@@ -170,7 +170,7 @@ func UpdateScore(id uint16, ch model.Char) []byte {
 }
 
 // MobScore builds the source client's 244-byte score refresh for an NPC
-// or monster. The stock XSC2 packet cannot be broadcast to a mixed client view
+// or monster. The removed stock score packet cannot be broadcast to a mixed client view
 // because TMProject reads the canonical STRUCT_SCORE directly at byte 12.
 func MobScore(id uint16, ext *model.Score, affects []model.Affect, resist model.ElementalResists) []byte {
 	b := Build(OpUpdateScore, id, 244)
@@ -179,7 +179,7 @@ func MobScore(id uint16, ext *model.Score, affects []model.Affect, resist model.
 	if ext != nil {
 		b[152] = clampByte(int(ext.Critical))
 		b[153] = clampByte(int(ext.SaveMana))
-		putU16(b, 236, compatibilityU16(ext.MagicAmp))
+		putU16(b, 236, packetU16(ext.MagicAmp))
 	}
 	putAffectWords(b, 154, affects, time.Now())
 	b[222] = clampByte(int(resist.Fire))
@@ -192,7 +192,7 @@ func MobScore(id uint16, ext *model.Score, affects []model.Affect, resist model.
 // createMob serializes TMProject's 328-byte MSG_CreateMob. The source
 // ABI expands equipment and affect arrays to 18/32 entries and embeds the
 // canonical 140-byte Score, but receives the same authoritative values as
-// the stock-client builder.
+// the canonical builder.
 func createMob(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp *int16) []byte {
 	b := Build(OpCreateMob, SceneField, 328)
 	putU16(b, 12, x)

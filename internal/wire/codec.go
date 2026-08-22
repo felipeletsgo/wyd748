@@ -112,12 +112,12 @@ func CNFCapsuleInfo(sessionID, capsuleID uint16, info CapsuleInfoData) []byte {
 // PartyRequest replica MSG_REQParty do protocolo 7.54. A estrutura antiga tem
 // 44 bytes e carrega o Target como DWORD em @40. Versoes posteriores inseriram
 // outro campo e deslocaram o Target para @44, aumentando o pacote para 48 bytes.
-func PartyRequest(leaderID uint16, name string, class byte, level, hp, maxHP uint16, targetID uint16) []byte {
+func PartyRequest(leaderID uint16, name string, class byte, level, hp, maxHP uint32, targetID uint16) []byte {
 	b := Build(OpPartyRequest, SceneField, 44)
 	hp, maxHP = partyDisplayHP(hp, maxHP)
 	b[12] = class
 	b[13] = 0 // PartyIndex 0 = lider/convite pendente
-	putU16(b, 14, level)
+	putU16(b, 14, packetU16(level))
 	putU16(b, 16, maxHP)
 	putU16(b, 18, hp)
 	putU16(b, 20, leaderID)
@@ -128,12 +128,12 @@ func PartyRequest(leaderID uint16, name string, class byte, level, hp, maxHP uin
 
 // PartyMember monta MSG_CNFAddParty/MSG_AddParty (0x37D). PARTY ocupa 28 bytes
 // a partir de @12; o client usa PartyIndex 0 para destacar o lider.
-func PartyMember(id uint16, name string, class, partyIndex byte, level, hp, maxHP uint16) []byte {
+func PartyMember(id uint16, name string, class, partyIndex byte, level, hp, maxHP uint32) []byte {
 	b := Build(OpPartyAdd, SceneField, 40)
 	hp, maxHP = partyDisplayHP(hp, maxHP)
 	b[12] = class
 	b[13] = partyIndex
-	putU16(b, 14, level)
+	putU16(b, 14, packetU16(level))
 	putU16(b, 16, maxHP)
 	putU16(b, 18, hp)
 	putU16(b, 20, id)
@@ -151,14 +151,14 @@ func PartyRemove(memberID uint16) []byte {
 
 // Os campos de HP do PARTY nativo sao short com sinal. O TMSrv reduz valores
 // acima de 32000 para percentual/centena antes de montar o painel.
-func partyDisplayHP(hp, maxHP uint16) (uint16, uint16) {
+func partyDisplayHP(hp, maxHP uint32) (uint16, uint16) {
 	if hp > 32000 {
 		hp = (hp + 1) / 100
 	}
 	if maxHP > 32000 {
 		maxHP = (maxHP + 1) / 100
 	}
-	return hp, maxHP
+	return packetU16(hp), packetU16(maxHP)
 }
 
 func putU16(b []byte, off int, v uint16) { binary.LittleEndian.PutUint16(b[off:off+2], v) }
@@ -305,9 +305,9 @@ func wireScore(ch model.Char) *model.Score {
 	}
 	return &model.Score{Version: model.ScoreVersion}
 }
-func compatibilityU16(value uint32) uint16 {
-	if value > 30_000 {
-		return 30_000
+func packetU16(value uint32) uint16 {
+	if value > 65_535 {
+		return 65_535
 	}
 	return uint16(value)
 }
@@ -363,10 +363,10 @@ func UpdateEtc(id uint16, ch model.Char) []byte {
 	putU32(b, 12, 0)
 	putU32(b, 16, ch.Exp)
 	putU32(b, 20, ch.LearnedSkill)
-	putU16(b, 24, compatibilityU16(e.StatusPts))
-	putU16(b, 26, compatibilityU16(e.MasterPts))
-	putU16(b, 28, compatibilityU16(e.SkillPts))
-	putU16(b, 30, compatibilityU16(e.MagicAmp))
+	putU16(b, 24, packetU16(e.StatusPts))
+	putU16(b, 26, packetU16(e.MasterPts))
+	putU16(b, 28, packetU16(e.SkillPts))
+	putU16(b, 30, packetU16(e.MagicAmp))
 	putU32(b, 32, ch.Gold)
 	putU32(b, 36, e.StatusPts)
 	putU32(b, 40, e.MasterPts)
@@ -636,14 +636,22 @@ func wireDamage(t SkillTarget) uint16 {
 		return 0xFFFD
 	}
 	if t.Heal > 0 {
-		return uint16(-int16(model.ProjectHPDelta(t.Heal, t.MaxHP)))
+		v := t.Heal
+		if v > 32767 {
+			v = 32767
+		}
+		return uint16(-int16(v))
 	}
-	return model.ProjectHPDelta(t.Damage, t.MaxHP)
+	v := t.Damage
+	if v > 32767 {
+		v = 32767
+	}
+	return uint16(v)
 }
 
 // SkillHits usa a familia compacta p39D/p39E/p367 do 7.48. O opcode e o
 // tamanho dependem do MaxTarget da skill, mesmo quando ha somente um alvo vivo.
-func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
+func buildSkillHitsPacket(attackerID, attackerX, attackerY, targetX, targetY uint16,
 	currentExp, currentMP uint32, skill int16, motion, mastery byte,
 	maxTargets int, targets []SkillTarget) []byte {
 	opcode, size, capacity := uint16(OpAttackOne), 48, 1
@@ -666,7 +674,7 @@ func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 	// O 7.48 guarda CurrentMp como WORD no ataque; o valor wide pertence ao
 	// UpdateScore/SetHpMp estendido, nunca a este pacote compacto. Nunca deixa o
 	// valor wide dar wrap nesse canal (satura em 30000).
-	wireMP := compatibilityU16(currentMP)
+	wireMP := packetU16(currentMP)
 	putU16(b, 26, wireMP)
 	// FlagLocal=1 impede TMFieldScene::OnPacketAttack de sobrescrever o MP do
 	// proprio atacante a partir desse WORD legado. Observadores continuam no
@@ -687,7 +695,7 @@ func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 // SkillHit e o atalho para skills de alvo unico.
 func SkillHit(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
 	damage, targetMaxHP, currentExp, currentMP uint32, skill int16, motion, mastery byte) []byte {
-	return SkillHits(attackerID, attackerX, attackerY, targetX, targetY,
+	return buildSkillHitsPacket(attackerID, attackerX, attackerY, targetX, targetY,
 		currentExp, currentMP, skill, motion, mastery, 1,
 		[]SkillTarget{{ID: targetID, Damage: damage, MaxHP: targetMaxHP}})
 }

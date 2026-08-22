@@ -69,7 +69,7 @@ func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 
 	target.InviteFrom = inviter.ID
 	target.InviteUntil = w.now().Add(partyInviteTTL)
-	level, currentHP, maximumHP := wire.CompatibilityVitals(wireScoreState(inviter.Char))
+	level, currentHP, maximumHP := playerLevel(inviter.Char), playerCurHP(inviter.Char), playerMaxHP(inviter.Char)
 	target.Session.Send(wire.PartyRequest(inviter.ID, inviter.Char.Name, inviter.Char.Class,
 		level, currentHP, maximumHP, target.ID))
 	log.Printf("[#%d] PARTY convite %s(%d) -> %s(%d)", s.ID,
@@ -163,7 +163,7 @@ func (w *World) syncParty(party *Party) {
 			if member == nil || member.Char == nil || !member.InWorld {
 				continue
 			}
-			level, currentHP, maximumHP := wire.CompatibilityVitals(wireScoreState(member.Char))
+			level, currentHP, maximumHP := playerLevel(member.Char), playerCurHP(member.Char), playerMaxHP(member.Char)
 			receiver.Session.Send(wire.PartyMember(member.ID, member.Char.Name, member.Char.Class,
 				byte(index), level, currentHP, maximumHP))
 		}
@@ -194,7 +194,7 @@ func (w *World) updatePartyMember(member *Player) {
 			if candidate == nil || candidate.Char == nil || !candidate.InWorld {
 				continue
 			}
-			level, currentHP, maximumHP := wire.CompatibilityVitals(wireScoreState(candidate.Char))
+			level, currentHP, maximumHP := playerLevel(candidate.Char), playerCurHP(candidate.Char), playerMaxHP(candidate.Char)
 			receiver.Session.Send(wire.PartyMember(candidate.ID, candidate.Char.Name, candidate.Char.Class,
 				byte(slot), level, currentHP, maximumHP))
 		}

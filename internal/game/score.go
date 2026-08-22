@@ -2,7 +2,6 @@ package game
 
 import (
 	"wydgo/internal/model"
-	"wydgo/internal/wire"
 )
 
 const maxScoreValue uint32 = model.MaxScoreValue
@@ -260,10 +259,9 @@ func wireScoreState(ch *model.Char) *model.Score {
 	return effectiveScore(ch)
 }
 
-// Os pacotes de combate 7.48 ainda carregam CurrentMP em WORD. A projecao e
-// calculada sob demanda e nao pode contaminar o recurso real uint32.
+// playerCombatMP returns the authoritative MP; packet builders own any field-width encoding.
 func playerCombatMP(ch *model.Char) uint32 {
-	return wire.CompatibilityCombatMP(effectiveScore(ch))
+	return playerCurMP(ch)
 }
 
 func minU32(a, b uint32) uint32 {
