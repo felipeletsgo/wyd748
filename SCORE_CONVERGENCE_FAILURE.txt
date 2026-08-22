@@ -1,0 +1,38 @@
+Canonical Score convergence failed.
+
+migrate=success
+format=success
+test=failure
+vet=skipped
+server=skipped
+client=skipped
+whitespace=skipped
+--- output ---
+canonical Score convergence applied
+go: downloading github.com/yuin/gopher-lua v1.1.2
+go: downloading github.com/jackc/pgx/v5 v5.10.0
+go: downloading github.com/jackc/pgpassfile v1.0.0
+go: downloading github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761
+go: downloading golang.org/x/text v0.40.0
+go: downloading github.com/jackc/puddle/v2 v2.2.2
+go: downloading golang.org/x/sync v0.22.0
+# wydgo/internal/model
+internal\model\model.go:1229:19: invalid operation: direction | (score.Merchant & 0x0F) (mismatched types byte and uint32)
+FAIL	wydgo/cmd/account-api [build failed]
+FAIL	wydgo/cmd/account-create [build failed]
+FAIL	wydgo/cmd/loadtest [build failed]
+FAIL	wydgo/cmd/network-admission [build failed]
+FAIL	wydgo/cmd/npcconvert [build failed]
+FAIL	wydgo/cmd/server [build failed]
+FAIL	wydgo/internal/account [build failed]
+FAIL	wydgo/internal/accountapi [build failed]
+FAIL	wydgo/internal/data [build failed]
+FAIL	wydgo/internal/game [build failed]
+FAIL	wydgo/internal/loadtest [build failed]
+FAIL	wydgo/internal/model [build failed]
+FAIL	wydgo/internal/net [build failed]
+FAIL	wydgo/internal/networkpolicy [build failed]
+FAIL	wydgo/internal/store [build failed]
+FAIL	wydgo/internal/wire [build failed]
+FAIL
+
