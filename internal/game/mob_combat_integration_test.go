@@ -8,7 +8,7 @@ import (
 )
 
 func combatMob(id, x, y uint16) *Mob {
-	def := testNPCDef(model.ExtendedScore{
+	def := testNPCDef(model.Score{
 		Level: 10, MaxHP: 1000, CurHP: 1000,
 		Attack: 500, Defense: 10, AttackRun: 4,
 	})
@@ -20,8 +20,8 @@ func combatMob(id, x, y uint16) *Mob {
 
 func TestActiveMobAcquiresChasesAndAttacksNearbyPlayer(t *testing.T) {
 	p, session := networkedTestPlayer(1, "Target", 103, 100)
-	p.Char.Extended.Defense = 0
-	p.Char.Extended.Dex = 0
+	p.Char.Score.Defense = 0
+	p.Char.Score.Dex = 0
 	applyExtendedScore(p.Char)
 	m := combatMob(1000, 100, 100)
 	w := worldWithNetworkedPlayers(p)
@@ -55,8 +55,8 @@ func TestActiveMobAcquiresChasesAndAttacksNearbyPlayer(t *testing.T) {
 
 func TestMobCannotAttackAcrossIncompatibleTerrain(t *testing.T) {
 	p, session := networkedTestPlayer(1, "Target", 101, 100)
-	p.Char.Extended.Defense = 0
-	p.Char.Extended.Dex = 0
+	p.Char.Score.Defense = 0
+	p.Char.Score.Dex = 0
 	applyExtendedScore(p.Char)
 	m := combatMob(1000, 100, 100)
 	m.TargetID = p.ID

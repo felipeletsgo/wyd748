@@ -23,9 +23,9 @@ func TestCarbMastersUseBuffNPCProfile(t *testing.T) {
 		if !exists {
 			t.Fatalf("template %s ausente", name)
 		}
-		if npc.Tipo != model.TipoNPC || npc.Extended == nil || npc.Extended.Merchant != 43 ||
-			npc.Extended.Level < 23 || npc.Extended.Level > 26 {
-			t.Errorf("perfil de buff invalido em %s: tipo=%q score=%+v", name, npc.Tipo, npc.Extended)
+		if npc.Tipo != model.TipoNPC || npc.Score == nil || npc.Score.Merchant != 43 ||
+			npc.Score.Level < 23 || npc.Score.Level > 26 {
+			t.Errorf("perfil de buff invalido em %s: tipo=%q score=%+v", name, npc.Tipo, npc.Score)
 		}
 	}
 }

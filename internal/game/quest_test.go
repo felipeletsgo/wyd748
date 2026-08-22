@@ -10,7 +10,7 @@ import (
 )
 
 func questNPC(name string, merchant byte) model.NPCDef {
-	return model.NPCDef{Name: name, Extended: &model.ExtendedScore{Merchant: merchant}}
+	return model.NPCDef{Name: name, Score: &model.Score{Merchant: uint32(merchant)}}
 }
 
 func simpleQuest(id int, npc string) model.QuestDef {
@@ -114,9 +114,9 @@ func questTestPlayer(level uint32, gold uint32) *Player {
 	return &Player{
 		ID: 1,
 		Char: &model.Char{
-			Name:     "Felipe",
-			Gold:     gold,
-			Extended: &model.ExtendedScore{Level: level},
+			Name:  "Felipe",
+			Gold:  gold,
+			Score: &model.Score{Level: level},
 		},
 	}
 }
@@ -234,7 +234,7 @@ func TestQuestCompletedEMark(t *testing.T) {
 func TestQuestRepetivelNaoMarcaConclusao(t *testing.T) {
 	w := newZoneTestWorld()
 	p := addZonePlayer(w, 1, 2100, 2100, 500)
-	p.Char.Extended.Level = 39
+	p.Char.Score.Level = 39
 	quest := simpleQuest(1, "Gravedigger")
 	quest.Repeatable = true
 	quest.Requires = model.QuestRequirements{MinLevel: 39, MaxLevel: 115, MortalOnly: true}

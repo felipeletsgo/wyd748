@@ -51,7 +51,7 @@ transformar a hipótese em contrato.
 ## Invariantes
 
 - `World` é o único escritor de gameplay.
-- `ExtendedScore` é autoritativo; wire legado nunca volta ao cálculo.
+- `Score` é autoritativo; wire legado nunca volta ao cálculo.
 - Cliente é não confiável; revalidar tudo server-side.
 - Anti-dupe: validar → mutar cópia → persistir → publicar.
 - Sincronizar dono, observers, visibilidade e persistência na mesma feature.

@@ -115,8 +115,8 @@ func TestBuyItemKeepsSeededAmountAndAssignsUID(t *testing.T) {
 	w.items[411] = def
 	w.npcs = []model.NPCDef{{
 		Name: "Aki", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{Merchant: nativeShopMerchant},
-		Vende:    []model.Item{{Index: 411}},
+		Score: &model.Score{Merchant: nativeShopMerchant},
+		Vende: []model.Item{{Index: 411}},
 	}}
 	if err := w.initShopItemDefaults(); err != nil {
 		t.Fatalf("initShopItemDefaults: %v", err)

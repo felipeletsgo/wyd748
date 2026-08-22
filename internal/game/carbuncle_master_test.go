@@ -12,7 +12,7 @@ func carbMasterTestWorld(t *testing.T, name string) (*World, *Player, *Mob, *cra
 	t.Helper()
 	w, p, st := handlerTestWorld(t)
 	p.Char.Evolution = ""
-	p.Char.Extended = testExtended(model.ExtendedScore{
+	p.Char.Score = testExtended(model.Score{
 		Level: 0, Attack: 100, Defense: 100, MaxHP: 100, CurHP: 100,
 		MaxMP: 100, CurMP: 100, AttackRun: 2,
 	})
@@ -24,7 +24,7 @@ func carbMasterTestWorld(t *testing.T, name string) (*World, *Player, *Mob, *cra
 	}
 	master := &Mob{ID: 1900, X: p.X + 1, Y: p.Y, Def: &model.NPCDef{
 		Name: name, Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{Merchant: 43},
+		Score: &model.Score{Merchant: 43},
 	}}
 	w.registerMobSpatial(master)
 	p.show(master.ID)
@@ -85,8 +85,8 @@ func TestCarbMasterRejectsAdvancedAndOverleveledCharacters(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			w, p, master, st := carbMasterTestWorld(t, "Carb_Mstr1")
 			p.Char.Evolution = test.evolution
-			p.Char.Extended.Level = test.level
-			p.Char.ExtendedRuntime = nil
+			p.Char.Score.Level = test.level
+			p.Char.RuntimeScore = nil
 
 			w.onUseNPC(p.Session, useNPCPacket(master.ID))
 

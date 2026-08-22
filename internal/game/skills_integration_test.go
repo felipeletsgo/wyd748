@@ -11,8 +11,8 @@ import (
 func TestLearnSkillAtMasterPersistsAndRollsBack(t *testing.T) {
 	w, p, st := handlerTestWorld(t)
 	p.Char.Class = 0
-	p.Char.Extended.Level = 20
-	p.Char.Extended.SkillPts = 100
+	p.Char.Score.Level = 20
+	p.Char.Score.SkillPts = 100
 	applyExtendedScore(p.Char)
 	w.skills = map[int]model.SkillDef{
 		0: {Index: 0, Name: "Skill0", SkillPoint: 1},
@@ -24,8 +24,8 @@ func TestLearnSkillAtMasterPersistsAndRollsBack(t *testing.T) {
 		ID: 1200, X: p.X + 1, Y: p.Y,
 		Def: &model.NPCDef{
 			Name: "Master", Tipo: model.TipoNPC,
-			Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion, Merchant: skillMasterMerchant,
+			Score: &model.Score{
+				Version: model.ScoreVersion, Merchant: skillMasterMerchant,
 			},
 			Vende: []model.Item{{Index: 5000}, {Index: 5001}},
 		},
@@ -61,11 +61,11 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 			w, p, st := handlerTestWorld(t)
 			p.Char.Class = 0
 			p.Char.Evolution = test.evolution
-			p.Char.Extended.Level = 0
-			p.Char.Extended.Str = uint32(baseClassStats[0][0])
-			p.Char.Extended.Int = uint32(baseClassStats[0][1])
-			p.Char.Extended.Dex = uint32(baseClassStats[0][2])
-			p.Char.Extended.Con = uint32(baseClassStats[0][3])
+			p.Char.Score.Level = 0
+			p.Char.Score.Str = uint32(baseClassStats[0][0])
+			p.Char.Score.Int = uint32(baseClassStats[0][1])
+			p.Char.Score.Dex = uint32(baseClassStats[0][2])
+			p.Char.Score.Con = uint32(baseClassStats[0][3])
 			w.skills = map[int]model.SkillDef{0: {
 				Index: 0, Name: "LevelRestricted", SkillPoint: 1,
 			}}
@@ -74,8 +74,8 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 				ID: 1200, X: p.X + 1, Y: p.Y,
 				Def: &model.NPCDef{
 					Name: "Master", Tipo: model.TipoNPC,
-					Extended: &model.ExtendedScore{
-						Version: model.ExtendedScoreVersion, Merchant: skillMasterMerchant,
+					Score: &model.Score{
+						Version: model.ScoreVersion, Merchant: skillMasterMerchant,
 					},
 					Vende: []model.Item{{Index: 5000}},
 				},
@@ -102,7 +102,7 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 		w, p, st := handlerTestWorld(t)
 		p.Char.Class = 0
 		p.Char.Evolution = archEvolution
-		p.Char.Extended.Level = 0
+		p.Char.Score.Level = 0
 		w.skills = map[int]model.SkillDef{0: {
 			Index: 0, Name: "MasteryRestricted", SkillPoint: 1,
 		}}
@@ -111,8 +111,8 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 			ID: 1200, X: p.X + 1, Y: p.Y,
 			Def: &model.NPCDef{
 				Name: "Master", Tipo: model.TipoNPC,
-				Extended: &model.ExtendedScore{
-					Version: model.ExtendedScoreVersion, Merchant: skillMasterMerchant,
+				Score: &model.Score{
+					Version: model.ScoreVersion, Merchant: skillMasterMerchant,
 				},
 				Vende: []model.Item{{Index: 5000}},
 			},
@@ -132,11 +132,11 @@ func TestSkillAttackPvEAppliesDamageManaAndDebuff(t *testing.T) {
 	w.rng = fixedRNG{value: 0}
 	p.Char.Class = 1
 	p.Char.LearnedSkill = 1
-	p.Char.Extended.Int = 500
-	p.Char.Extended.MagicAttack = 1000
-	p.Char.Extended.Mastery[1] = 40
-	p.Char.Extended.CurMP = 800
-	p.Char.Extended.MaxMP = 800
+	p.Char.Score.Int = 500
+	p.Char.Score.MagicAttack = 1000
+	p.Char.Score.Mastery[1] = 40
+	p.Char.Score.CurMP = 800
+	p.Char.Score.MaxMP = 800
 	applyExtendedScore(p.Char)
 	skill := model.SkillDef{
 		Index: 24, Name: "Magic", InstanceType: 2, InstanceValue: 100,
@@ -146,7 +146,7 @@ func TestSkillAttackPvEAppliesDamageManaAndDebuff(t *testing.T) {
 	w.skills = map[int]model.SkillDef{24: skill}
 	mob := &Mob{
 		ID: 1300, X: p.X + 2, Y: p.Y, HP: 100_000, GenerIndex: -1,
-		Def: testNPCDef(model.ExtendedScore{
+		Def: testNPCDef(model.Score{
 			Level: 20, MaxHP: 100_000, CurHP: 100_000, MaxMP: 100,
 			Defense: 100, ResistFire: 20,
 		}),
@@ -176,11 +176,11 @@ func TestSkillAttackSupportHealsAndRejectsCooldown(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.Char.Class = 1
 	p.Char.LearnedSkill = 1 << 3 // skill global 27, local 3
-	p.Char.Extended.Mastery[1] = 40
-	p.Char.Extended.CurHP = 100
-	p.Char.Extended.MaxHP = 1000
-	p.Char.Extended.CurMP = 500
-	p.Char.Extended.MaxMP = 500
+	p.Char.Score.Mastery[1] = 40
+	p.Char.Score.CurHP = 100
+	p.Char.Score.MaxHP = 1000
+	p.Char.Score.CurMP = 500
+	p.Char.Score.MaxMP = 500
 	applyExtendedScore(p.Char)
 	skill := model.SkillDef{
 		Index: 27, Name: "Heal", InstanceValue: 100, ManaSpent: 10,
@@ -204,9 +204,9 @@ func TestSupportBuffManualRecastIsNotBlockedByAutomaticWindow(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.Char.Class = 0
 	p.Char.LearnedSkill = 1 << 5
-	p.Char.Extended.Mastery[1] = 40
-	p.Char.Extended.CurMP = 2_000
-	p.Char.Extended.MaxMP = 2_000
+	p.Char.Score.Mastery[1] = 40
+	p.Char.Score.CurMP = 2_000
+	p.Char.Score.MaxMP = 2_000
 	for i := range p.Char.ShortSkill {
 		p.Char.ShortSkill[i] = 0xFF
 	}
@@ -245,13 +245,13 @@ func TestSkillAttackPvPBreaksHideAndPreservesOverkillState(t *testing.T) {
 	w.ghostShops = make(map[uint16]*GhostShop)
 	caster.Char.Class = 0
 	caster.Char.LearnedSkill = 1
-	caster.Char.Extended.Attack = 50_000
-	caster.Char.Extended.MagicAttack = 50_000
-	caster.Char.Extended.Int = 10_000
-	caster.Char.Extended.CurMP = 1000
-	caster.Char.Extended.MaxMP = 1000
-	target.Char.Extended.CurHP = 100
-	target.Char.Extended.MaxHP = 100
+	caster.Char.Score.Attack = 50_000
+	caster.Char.Score.MagicAttack = 50_000
+	caster.Char.Score.Int = 10_000
+	caster.Char.Score.CurMP = 1000
+	caster.Char.Score.MaxMP = 1000
+	target.Char.Score.CurHP = 100
+	target.Char.Score.MaxHP = 100
 	caster.Char.Affects[0] = model.Affect{Type: 28, ExpiresAt: time.Now().Add(time.Minute)}
 	applyExtendedScore(caster.Char)
 	applyExtendedScore(target.Char)
@@ -273,9 +273,9 @@ func TestSkillAttackPvPBreaksHideAndPreservesOverkillState(t *testing.T) {
 func TestBMSummonCastReplacesCreatureFamily(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.Char.Class = 2
-	p.Char.Extended.Int = 1000
-	p.Char.Extended.Con = 500
-	p.Char.Extended.Mastery[2] = 255
+	p.Char.Score.Int = 1000
+	p.Char.Score.Con = 500
+	p.Char.Score.Mastery[2] = 255
 	applyExtendedScore(p.Char)
 
 	if !w.castSummon(p, model.SkillDef{Index: 56, InstanceValue: 1}, 255) {
@@ -378,9 +378,9 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 		p.Char.Class = 3
 		p.Char.LearnedSkill = 1 << 13 // global 85, local 13
 		p.Char.Gold = 1_000
-		p.Char.Extended.Level = 49 // nivel exibido 50; custo nativo 490 na escala interna
-		p.Char.Extended.CurMP = 1_000
-		p.Char.Extended.MaxMP = 1_000
+		p.Char.Score.Level = 49 // nivel exibido 50; custo nativo 490 na escala interna
+		p.Char.Score.CurMP = 1_000
+		p.Char.Score.MaxMP = 1_000
 		applyExtendedScore(p.Char)
 		w.skills = map[int]model.SkillDef{85: {
 			Index: 85, Name: "Golden_Shield", ManaSpent: 10, Delay: 1,

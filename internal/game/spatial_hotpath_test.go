@@ -14,8 +14,8 @@ func TestSameCellPlayerMoveRecomputesMobActivation(t *testing.T) {
 		InWorld: true,
 		X:       0,
 		Y:       8,
-		Char: &model.Char{Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Char: &model.Char{Score: &model.Score{
+			Version: model.ScoreVersion,
 			MaxHP:   100,
 			CurHP:   100,
 		}},
@@ -28,8 +28,8 @@ func TestSameCellPlayerMoveRecomputesMobActivation(t *testing.T) {
 		Y:  8,
 		Def: &model.NPCDef{
 			Tipo: model.TipoMonstro,
-			Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion,
+			Score: &model.Score{
+				Version: model.ScoreVersion,
 				MaxHP:   100,
 			},
 		},
@@ -68,8 +68,8 @@ func TestNearestLivingPlayerSpatialScanPreservesSelectionRules(t *testing.T) {
 			InWorld: true,
 			X:       x,
 			Y:       y,
-			Char: &model.Char{Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion,
+			Char: &model.Char{Score: &model.Score{
+				Version: model.ScoreVersion,
 				MaxHP:   100,
 				CurHP:   100,
 			}},
@@ -116,8 +116,8 @@ func BenchmarkUpdatePlayerSpatialSameCellNoMobs(b *testing.B) {
 		InWorld: true,
 		X:       1,
 		Y:       8,
-		Char: &model.Char{Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Char: &model.Char{Score: &model.Score{
+			Version: model.ScoreVersion,
 			MaxHP:   100,
 			CurHP:   100,
 		}},
@@ -139,8 +139,8 @@ func BenchmarkNearestLivingPlayerSpatialScan(b *testing.B) {
 			InWorld: true,
 			X:       uint16(98 + i%5),
 			Y:       uint16(98 + (i/5)%5),
-			Char: &model.Char{Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion,
+			Char: &model.Char{Score: &model.Score{
+				Version: model.ScoreVersion,
 				MaxHP:   100,
 				CurHP:   100,
 			}},
@@ -161,8 +161,8 @@ func TestCrossCellPlayerMoveRecomputesOldAndNewMobNeighborhoods(t *testing.T) {
 		InWorld: true,
 		X:       15,
 		Y:       8,
-		Char: &model.Char{Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Char: &model.Char{Score: &model.Score{
+			Version: model.ScoreVersion,
 			MaxHP:   100,
 			CurHP:   100,
 		}},
@@ -176,8 +176,8 @@ func TestCrossCellPlayerMoveRecomputesOldAndNewMobNeighborhoods(t *testing.T) {
 			Y:  8,
 			Def: &model.NPCDef{
 				Tipo: model.TipoMonstro,
-				Extended: &model.ExtendedScore{
-					Version: model.ExtendedScoreVersion,
+				Score: &model.Score{
+					Version: model.ScoreVersion,
 					MaxHP:   100,
 				},
 			},
@@ -210,8 +210,8 @@ func TestCrossCellPlayerMoveReusesActivationScratch(t *testing.T) {
 			InWorld: true,
 			X:       x,
 			Y:       8,
-			Char: &model.Char{Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion,
+			Char: &model.Char{Score: &model.Score{
+				Version: model.ScoreVersion,
 				MaxHP:   100,
 				CurHP:   100,
 			}},
@@ -250,8 +250,8 @@ func BenchmarkUpdatePlayerSpatialCrossCellNoMobs(b *testing.B) {
 			InWorld: true,
 			X:       x,
 			Y:       8,
-			Char: &model.Char{Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion,
+			Char: &model.Char{Score: &model.Score{
+				Version: model.ScoreVersion,
 				MaxHP:   100,
 				CurHP:   100,
 			}},

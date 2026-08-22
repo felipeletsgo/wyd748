@@ -30,8 +30,8 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 	t.Run("cargo access binds packet to nearby banker", func(t *testing.T) {
 		p, _ := networkedTestPlayer(1, "Cargo", 100, 100)
 		banker := &Mob{ID: 1000, X: 102, Y: 100, Def: &model.NPCDef{
-			Name: "Cargo", Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion, Merchant: 2,
+			Name: "Cargo", Score: &model.Score{
+				Version: model.ScoreVersion, Merchant: 2,
 			},
 		}}
 		w := testSpatialWorld([]*Mob{banker}, p)
@@ -60,7 +60,7 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 		p, _ := networkedTestPlayer(1, "Huntress", 100, 100)
 		p.Char.Class = 3
 		p.Char.LearnedSkill = 1 << 1
-		p.Char.Extended.Mastery[1] = 40
+		p.Char.Score.Mastery[1] = 40
 		setPlayerCurMP(p.Char, 800)
 		w := worldWithNetworkedPlayers(p)
 		w.skills = map[int]model.SkillDef{
@@ -94,7 +94,7 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 
 	t.Run("summon movement respects cooldown", func(t *testing.T) {
 		summon := &Mob{ID: 1000, X: 100, Y: 100, Def: testNPCDef(
-			model.ExtendedScore{AttackRun: 4, MaxHP: 100, CurHP: 100})}
+			model.Score{AttackRun: 4, MaxHP: 100, CurHP: 100})}
 		w := testSpatialWorld([]*Mob{summon})
 		now := time.Unix(2_000_000_000, 0)
 		w.moveSummonToward(summon, 110, 100, 1, now)
@@ -134,27 +134,27 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 func TestSummonCombatCoversAttackFollowPassiveAndImmobileKinds(t *testing.T) {
 	owner, _ := networkedTestPlayer(1, "BeastMaster", 100, 100)
 	target := &Mob{ID: 1500, X: 102, Y: 100, HP: 1000,
-		Def: testNPCDef(model.ExtendedScore{
+		Def: testNPCDef(model.Score{
 			Defense: 0, MaxHP: 1000, CurHP: 1000,
 		})}
 	attacker := &Mob{ID: 1600, X: 101, Y: 100, HP: 100,
 		SummonerID: owner.ID, SummonRange: 2,
-		Def: testNPCDef(model.ExtendedScore{
+		Def: testNPCDef(model.Score{
 			Attack: 500, AttackRun: 4, MaxHP: 100, CurHP: 100,
 		})}
 	follower := &Mob{ID: 1601, X: 50, Y: 50, HP: 100,
 		SummonerID: owner.ID,
-		Def: testNPCDef(model.ExtendedScore{
+		Def: testNPCDef(model.Score{
 			Attack: 100, AttackRun: 4, MaxHP: 100, CurHP: 100,
 		})}
 	pet := &Mob{ID: 1602, X: 85, Y: 85, HP: 100,
 		SummonerID: owner.ID, SummonKind: summonKindMount,
-		Def: testNPCDef(model.ExtendedScore{
+		Def: testNPCDef(model.Score{
 			AttackRun: 4, MaxHP: 100, CurHP: 100,
 		})}
 	wall := &Mob{ID: 1603, X: 80, Y: 80, HP: 100,
 		SummonerID: owner.ID, SummonKind: summonKindThornWall,
-		Def: testNPCDef(model.ExtendedScore{
+		Def: testNPCDef(model.Score{
 			AttackRun: 4, MaxHP: 100, CurHP: 100,
 		})}
 	w := testSpatialWorld([]*Mob{target, attacker, follower, pet, wall}, owner)
@@ -187,7 +187,7 @@ func networkedTestPlayer(id uint16, name string, x, y uint16) (*Player, *gameNet
 	session := gameNet.NewTestSession(int64(id), 128)
 	ch := &model.Char{
 		Name: name, UID: fmt.Sprintf("test-character-%d-%s", id, name), X: x, Y: y,
-		Extended: testExtended(model.ExtendedScore{
+		Score: testExtended(model.Score{
 			Level: 10, Attack: 500, MagicAttack: 600, Defense: 100,
 			Str: 100, Int: 100, Dex: 100, Con: 100,
 			MaxHP: 1000, CurHP: 1000, MaxMP: 800, CurMP: 800,
@@ -420,16 +420,16 @@ func TestCombatPathsUseAuthoritativeExtendedStats(t *testing.T) {
 
 	attacker, _ := networkedTestPlayer(1, "Attacker", 100, 100)
 	target, _ := networkedTestPlayer(2, "Target", 101, 100)
-	attacker.Char.Extended.Attack = 2000
-	attacker.Char.Extended.Dex = 1000
-	attacker.Char.Extended.Accuracy = 1000
-	target.Char.Extended.Dex = 0
-	target.Char.Extended.Defense = 10
+	attacker.Char.Score.Attack = 2000
+	attacker.Char.Score.Dex = 1000
+	attacker.Char.Score.Accuracy = 1000
+	target.Char.Score.Dex = 0
+	target.Char.Score.Defense = 10
 	applyExtendedScore(attacker.Char)
 	applyExtendedScore(target.Char)
 	mob := &Mob{
 		ID: 1000, HP: 1000,
-		Def: testNPCDef(model.ExtendedScore{
+		Def: testNPCDef(model.Score{
 			Level: 1, Attack: 1000, Defense: 10, Str: 100, Dex: 0, MaxHP: 1000, CurHP: 1000,
 		}),
 	}
@@ -447,7 +447,7 @@ func TestCombatPathsUseAuthoritativeExtendedStats(t *testing.T) {
 		t.Fatal("combate nil deveria retornar zero")
 	}
 	if playerSkillPoints(attacker.Char) != 9 || playerAttackRun(attacker.Char) != 4 {
-		t.Fatal("accessors Extended retornaram valor errado")
+		t.Fatal("accessors Score retornaram valor errado")
 	}
 }
 
@@ -455,7 +455,7 @@ func TestMobCombatAppliesDamageAndLethalState(t *testing.T) {
 	target, session := networkedTestPlayer(1, "Target", 101, 100)
 	mob := &Mob{
 		ID: 1000, X: 100, Y: 100, HP: 1000, Awake: true, TargetID: target.ID,
-		Def: testNPCDef(model.ExtendedScore{
+		Def: testNPCDef(model.Score{
 			Attack: 1000, Str: 100, Dex: 0, MaxHP: 1000, CurHP: 1000,
 		}),
 	}
@@ -607,7 +607,7 @@ func TestMountUtilityAndLifecycleBranches(t *testing.T) {
 }
 
 func TestSkillPVPAffectHelpers(t *testing.T) {
-	ch := &model.Char{Extended: testExtended(model.ExtendedScore{
+	ch := &model.Char{Score: testExtended(model.Score{
 		ResistFire: 1, ResistIce: 2, ResistHoly: 3, ResistThunder: 4,
 	})}
 	if hasActiveAffect(nil, 1) {

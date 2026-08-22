@@ -269,7 +269,7 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 	}
 	if shop := w.ghostShops[id]; shop != nil && inView(p.X, p.Y, shop.X, shop.Y) {
 		p.Session.Send(wire.CreateMobTradeExtendedForProtocol(p.Session.ClientProtocol(), shop.ID, shop.Name, shop.X, shop.Y,
-			shop.Mesh[:], &shop.Extended, shop.Title))
+			shop.Mesh[:], &shop.Score, shop.Title))
 		p.show(id)
 	}
 }

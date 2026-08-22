@@ -128,9 +128,9 @@ func statusPointBudget(ch *model.Char) int {
 		return celestialStatusPointBudget(ch)
 	}
 	if isArch(ch) {
-		return archStatusPointBudget(int(ch.Extended.Level), int(ch.ArchMortalLevel))
+		return archStatusPointBudget(int(ch.Score.Level), int(ch.ArchMortalLevel))
 	}
-	return mortalStatusPointBudget(int(ch.Extended.Level))
+	return mortalStatusPointBudget(int(ch.Score.Level))
 }
 
 func isCelestialEvolution(ch *model.Char) bool {
@@ -165,16 +165,16 @@ func celestialArchTierBonus(tier byte) int {
 // O nivel da outra forma contribui para o ORCAMENTO da ativa. Nao existe uma
 // carteira compartilhada: EXP e atributos ja distribuidos continuam separados.
 func celestialStatusPointBudget(ch *model.Char) int {
-	if ch == nil || ch.Extended == nil {
+	if ch == nil || ch.Score == nil {
 		return 0
 	}
 	total := 1001 + int(ch.ArchCrystals)*100 +
 		celestialArchTierBonus(ch.CelestialArchTier) +
-		int(ch.Extended.Level)*10
-	if ch.AlternateCelestial != nil && ch.AlternateCelestial.Extended != nil {
-		total += int(ch.AlternateCelestial.Extended.Level) * 6
+		int(ch.Score.Level)*10
+	if ch.AlternateCelestial != nil && ch.AlternateCelestial.Score != nil {
+		total += int(ch.AlternateCelestial.Score.Level) * 6
 	}
-	if ch.Extended.Level > 189 {
+	if ch.Score.Level > 189 {
 		total += 290
 	}
 	return maxInt(0, total)
@@ -189,20 +189,20 @@ func mortalSkillPointBudget(level int) int {
 }
 
 func skillPointBudget(ch *model.Char) int {
-	if ch == nil || ch.Extended == nil {
+	if ch == nil || ch.Score == nil {
 		return 0
 	}
 	if isCelestialEvolution(ch) {
 		// BASE_GetBonusSkillPoint do W2PP: Celestial/Sub recebe uma base de
 		// 1600 e preserva a curva 3/4 pontos por nivel.
-		return 1600 + mortalSkillPointBudget(int(ch.Extended.Level)) + int(ch.SkillPointBonus)
+		return 1600 + mortalSkillPointBudget(int(ch.Score.Level)) + int(ch.SkillPointBonus)
 	}
 	if isArch(ch) {
 		// BASE_GetBonusSkillPoint: todo Arch nasce com 168 pontos de
 		// habilidade alem do mesmo ganho por nivel do Mortal.
-		return mortalSkillPointBudget(int(ch.Extended.Level)) + 168 + int(ch.SkillPointBonus)
+		return mortalSkillPointBudget(int(ch.Score.Level)) + 168 + int(ch.SkillPointBonus)
 	}
-	return mortalSkillPointBudget(int(ch.Extended.Level)) + int(ch.SkillPointBonus)
+	return mortalSkillPointBudget(int(ch.Score.Level)) + int(ch.SkillPointBonus)
 }
 
 func masteryPointLimit(ch *model.Char, detail int) int {
@@ -225,7 +225,7 @@ func syncSkillPoints(ch *model.Char) {
 		return
 	}
 	ensureExtendedScore(ch)
-	ch.Extended.SkillPts = uint32(skillPointBudget(ch))
+	ch.Score.SkillPts = uint32(skillPointBudget(ch))
 }
 
 func syncMasteryPoints(ch *model.Char) {
@@ -234,10 +234,10 @@ func syncMasteryPoints(ch *model.Char) {
 	}
 	ensureExtendedScore(ch)
 	var spent uint32
-	for _, value := range ch.Extended.Mastery {
+	for _, value := range ch.Score.Mastery {
 		spent += value
 	}
-	total := ch.Extended.Level * masteryPointsPerLevel
+	total := ch.Score.Level * masteryPointsPerLevel
 	if isCelestialEvolution(ch) {
 		total = 855
 	} else if isArch(ch) {
@@ -245,10 +245,10 @@ func syncMasteryPoints(ch *model.Char) {
 		total += 112
 	}
 	if spent >= total {
-		ch.Extended.MasterPts = 0
+		ch.Score.MasterPts = 0
 		return
 	}
-	ch.Extended.MasterPts = total - spent
+	ch.Score.MasterPts = total - spent
 }
 
 // O saldo e sempre recalculado pelo nivel e atributos gastos. Um JSON
@@ -260,12 +260,12 @@ func syncStatusPoints(ch *model.Char) {
 	ensureExtendedScore(ch)
 	natural, ok := naturalStats(ch)
 	if !ok {
-		ch.Extended.StatusPts = 0
+		ch.Score.StatusPts = 0
 		return
 	}
 	stats := [4]*uint32{
-		&ch.Extended.Str, &ch.Extended.Int,
-		&ch.Extended.Dex, &ch.Extended.Con,
+		&ch.Score.Str, &ch.Score.Int,
+		&ch.Score.Dex, &ch.Score.Con,
 	}
 	var spent uint32
 	for i, value := range stats {
@@ -293,7 +293,7 @@ func syncStatusPoints(ch *model.Char) {
 		}
 		spent = total
 	}
-	ch.Extended.StatusPts = total - spent
+	ch.Score.StatusPts = total - spent
 }
 
 func applyBonus(ch *model.Char, bonusType, detail int) bool {
@@ -301,7 +301,7 @@ func applyBonus(ch *model.Char, bonusType, detail int) bool {
 		return false
 	}
 	ensureExtendedScore(ch)
-	e := ch.Extended
+	e := ch.Score
 	switch bonusType {
 	case 0:
 		if e.StatusPts == 0 {
@@ -326,6 +326,6 @@ func applyBonus(ch *model.Char, bonusType, detail int) bool {
 	default:
 		return false
 	}
-	ch.ExtendedRuntime = nil
+	ch.RuntimeScore = nil
 	return true
 }

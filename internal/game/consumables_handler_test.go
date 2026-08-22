@@ -195,7 +195,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 			MinLevel: 200, MaxLevelExclusive: 256, OnceQuestID: -194,
 		}
 		w, p, st := useItemWorld(rule)
-		p.Char.Extended.Level = 200
+		p.Char.Score.Level = 200
 		p.Char.Equip[1] = model.Item{Index: 200, Eff: [6]byte{43, 0}}
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 || itemSanc(p.Char.Equip[1]) != 6 ||
@@ -227,7 +227,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				w, p, st := useItemWorld(rule)
-				p.Char.Evolution, p.Char.Extended.Level = tc.evolution, tc.level
+				p.Char.Evolution, p.Char.Score.Level = tc.evolution, tc.level
 				p.Char.Equip[1] = model.Item{Index: 200, Eff: [6]byte{43, 0}}
 				w.onUseItem(p.Session, useItemPacket(0, 0))
 				if p.Char.Inv[0].Index != 100 || itemSanc(p.Char.Equip[1]) != 0 ||
@@ -387,20 +387,20 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 
 	t.Run("fairy dust advances exactly one level", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{Action: "grant_next_level", Consume: true})
-		p.Char.Extended.Level = 10
+		p.Char.Score.Level = 10
 		p.Char.Exp = mortalNextLevel[10]
 		syncProgression(p.Char)
 		w.onUseItem(p.Session, useItemPacket(0, 0))
-		if p.Char.Extended.Level != 11 || p.Char.Exp != mortalNextLevel[11] ||
+		if p.Char.Score.Level != 11 || p.Char.Exp != mortalNextLevel[11] ||
 			p.Char.Inv[0].Index != 0 || st.saves != 1 {
 			t.Fatalf("fairy dust: level=%d exp=%d item=%d saves=%d",
-				p.Char.Extended.Level, p.Char.Exp, p.Char.Inv[0].Index, st.saves)
+				p.Char.Score.Level, p.Char.Exp, p.Char.Inv[0].Index, st.saves)
 		}
 	})
 
 	t.Run("fairy dust refuses max level", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{Action: "grant_next_level", Consume: true})
-		p.Char.Extended.Level = maxMortalLevel
+		p.Char.Score.Level = maxMortalLevel
 		p.Char.Exp = mortalNextLevel[maxMortalLevel]
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || st.saves != 0 {
@@ -413,10 +413,10 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 			Action: "grant_next_level", Consume: true, MortalOnly: true,
 		})
 		p.Char.Evolution = "arch"
-		p.Char.Extended.Level = 10
+		p.Char.Score.Level = 10
 		p.Char.Exp = mortalNextLevel[10]
 		w.onUseItem(p.Session, useItemPacket(0, 0))
-		if p.Char.Extended.Level != 10 || p.Char.Inv[0].Index != 100 || st.saves != 0 {
+		if p.Char.Score.Level != 10 || p.Char.Inv[0].Index != 100 || st.saves != 0 {
 			t.Fatal("Poeira de Fada foi aceita por Arch")
 		}
 	})
@@ -499,16 +499,16 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 			MinLevel: 69, MaxLevelExclusive: 74, Amount: 50,
 		})
 		w.volatiles.ItemCodes[100] = 192
-		p.Char.Extended.Level = 70
-		p.Char.Extended.Mastery = [4]uint32{10, 80, 30, 5}
+		p.Char.Score.Level = 70
+		p.Char.Score.Mastery = [4]uint32{10, 80, 30, 5}
 		p.Char.LearnedSkill = 0x00FFFFFF
 		p.Char.ShortSkill[0] = 7
 		w.onUseItem(p.Session, useItemPacket(0, 0))
-		if p.Char.Extended.Mastery[1] != 30 || p.Char.Extended.Mastery[2] != 0 ||
+		if p.Char.Score.Mastery[1] != 30 || p.Char.Score.Mastery[2] != 0 ||
 			p.Char.LearnedSkill != 0 || p.Char.Inv[0].Index != 0 ||
 			!questCompleted(p.Char, questFlagOpportunityCompound) || st.saves != 1 {
 			t.Fatalf("compound: mastery=%v learned=%08X item=%d done=%v saves=%d",
-				p.Char.Extended.Mastery, p.Char.LearnedSkill, p.Char.Inv[0].Index,
+				p.Char.Score.Mastery, p.Char.LearnedSkill, p.Char.Inv[0].Index,
 				questCompleted(p.Char, questFlagOpportunityCompound), st.saves)
 		}
 

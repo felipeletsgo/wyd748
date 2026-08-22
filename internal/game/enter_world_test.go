@@ -43,8 +43,8 @@ func newEnterWorldPlayer(t *testing.T, curHP, maxHP uint32) (*World, *Player, *n
 	acc := &model.Account{Name: "conta", Chars: []model.Char{{
 		Name:  "Morto",
 		Class: 0,
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version: model.ScoreVersion,
 			Level:   50, MaxHP: maxHP, CurHP: curHP, MaxMP: 100, CurMP: 100,
 			Str: 10, Int: 10, Dex: 10, Con: 10,
 		},

@@ -41,7 +41,7 @@ func TestPlayerEnterViewRestoresAliveStateBeforeMovement(t *testing.T) {
 		Y:  2100,
 		Char: &model.Char{
 			Name: "Revived",
-			Extended: testExtended(model.ExtendedScore{
+			Score: testExtended(model.Score{
 				MaxHP: 123,
 				CurHP: 123,
 				MaxMP: 45,
@@ -73,7 +73,7 @@ func TestPlayerEnterViewRestoresAliveStateBeforeMovement(t *testing.T) {
 }
 
 func TestAppearanceUpdateUsesPositionlessUpdateEquip(t *testing.T) {
-	ch := model.Char{Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion}}
+	ch := model.Char{Score: &model.Score{Version: model.ScoreVersion}}
 	ch.Equip[6] = model.Item{Index: 700, Eff: [6]byte{116, 4}}
 	p := &Player{ID: 9, Char: &ch}
 	mesh := bodyMesh(p.Char)
@@ -94,7 +94,7 @@ func TestPlayerMovePublishesBeforeNewObserverEntersView(t *testing.T) {
 	newPlayer := func(id, x, y uint16) *Player {
 		s := net.NewTestSession(int64(id), 16)
 		ch := &model.Char{Name: "Player", X: x, Y: y,
-			Extended: testExtended(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+			Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}
 		return &Player{ID: id, Session: s, Char: ch, InWorld: true, X: x, Y: y,
 			Visible: make(map[uint16]struct{})}
 	}
@@ -135,7 +135,7 @@ func TestPlayerStopUsesSingleSoftAdjustmentOnlyWhenInterrupted(t *testing.T) {
 	makePlayer := func(id, x uint16) *Player {
 		s := net.NewTestSession(int64(id), 8)
 		ch := &model.Char{Name: "Walker", X: x, Y: 100,
-			Extended: testExtended(model.ExtendedScore{AttackRun: 4, MaxHP: 100, CurHP: 100})}
+			Score: testExtended(model.Score{AttackRun: 4, MaxHP: 100, CurHP: 100})}
 		return &Player{ID: id, Session: s, Char: ch, InWorld: true, X: x, Y: 100,
 			Visible: make(map[uint16]struct{})}
 	}

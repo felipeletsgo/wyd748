@@ -109,7 +109,7 @@ func TestRegistryRecusaPersonagemEmDuasGuilds(t *testing.T) {
 func TestRegistryRecusaVersaoDiferente(t *testing.T) {
 	registry := &GuildRegistry{Version: GuildRegistryVersion + 1}
 	if err := registry.Validate(); err == nil {
-		t.Fatal("versao diferente deveria ser recusada, como no ExtendedScore")
+		t.Fatal("versao diferente deveria ser recusada, como no Score")
 	}
 }
 

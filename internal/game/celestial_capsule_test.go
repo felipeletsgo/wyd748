@@ -30,7 +30,7 @@ func TestCelestialSealRoundTripUsesCargoAndCreatesNewCharacter(t *testing.T) {
 	}
 	p.Char.UID = uid
 	p.Char.Evolution = "celestial"
-	p.Char.Extended.Level = 90
+	p.Char.Score.Level = 90
 	p.Char.Inv[0] = model.Item{Index: model.CelestialSealItem}
 	w := worldWithNetworkedPlayers(p)
 	w.store = &craftStore{}
@@ -65,7 +65,7 @@ func TestCelestialSealRoundTripUsesCargoAndCreatesNewCharacter(t *testing.T) {
 	p.Account.Chars = []model.Char{{}, *active.Char}
 	p.Account.Chars[1].UID = activeUID
 	p.Account.Chars[1].Name = "Carrier"
-	p.Account.Chars[1].Extended = active.Char.Extended
+	p.Account.Chars[1].Score = active.Char.Score
 	p.Account.Chars[1].Inv[0] = p.Account.Cargo[0]
 	p.Account.Cargo[0] = model.Item{}
 	p.Char = &p.Account.Chars[1]
@@ -82,7 +82,7 @@ func TestCelestialSealRoundTripUsesCargoAndCreatesNewCharacter(t *testing.T) {
 			p.InWorld, p.Char, len(p.Account.CelestialCapsules), p.Account.Cargo[0], p.Account.Chars)
 	}
 	created := p.Account.Chars[0]
-	if created.Evolution != "celestial" || created.Extended.Level != 90 ||
+	if created.Evolution != "celestial" || created.Score.Level != 90 ||
 		created.Gold != 0 || created.Equip[1].Index != 0 || created.Inv[0].Index != 0 {
 		t.Fatalf("ficha extraida perdeu semantica nativa: %+v", created)
 	}
@@ -115,7 +115,7 @@ func TestCelestialSealRollbackOnPersistenceFailure(t *testing.T) {
 	}
 	p.Char.UID = uid
 	p.Char.Evolution = "celestial"
-	p.Char.Extended.Level = 90
+	p.Char.Score.Level = 90
 	p.Char.Inv[0] = model.Item{Index: model.CelestialSealItem}
 	w := worldWithNetworkedPlayers(p)
 	w.store = &atomicCharStateMemoryStore{atomicErr: errors.New("database unavailable")}
@@ -159,7 +159,7 @@ func celestialExtractionFixture(t *testing.T) (*World, *Player, model.Item) {
 	p.Char.Inv[0] = seal
 	sealed := model.Char{
 		UID: sourceUID, Name: "Original", Class: 1, Evolution: "celestial",
-		Extended: testExtended(model.ExtendedScore{Level: 90, Str: 100}),
+		Score: testExtended(model.Score{Level: 90, Str: 100}),
 	}
 	p.Account.CelestialCapsules = []model.CelestialCapsule{{
 		ID: 1, ItemUID: itemUID, SourceUID: sourceUID, Character: sealed,
@@ -202,12 +202,12 @@ func TestCapsuleInfoUses748Projection(t *testing.T) {
 	}
 	capsule := &model.CelestialCapsule{Character: model.Char{
 		Class: 1, Evolution: "celestial", LearnedSkill: learned, ArchCrystals: 4,
-		Extended: testExtended(model.ExtendedScore{
+		Score: testExtended(model.Score{
 			Level: 90, Str: 100_000, Int: 20, Dex: 30, Con: 40,
 			Mastery: [4]uint32{50, 60, 70, 80},
 		}),
 		AlternateCelestial: &model.CelestialForm{Class: 3, Evolution: "subcelestial",
-			Extended: testExtended(model.ExtendedScore{Level: 80})},
+			Score: testExtended(model.Score{Level: 80})},
 	}}
 	info := capsuleInfoFor(capsule)
 	if info.Class != 19 || info.Level != 90 || info.Str != 32767 ||
@@ -265,7 +265,7 @@ func tradeCapsuleFixture(t *testing.T, owner *Player, id uint16, slot int) model
 		ID: id, ItemUID: itemUID, SourceUID: sourceUID,
 		Character: model.Char{
 			UID: sourceUID, Name: "ReadyCelestial", Class: 1, Evolution: "celestial",
-			Extended: testExtended(model.ExtendedScore{Level: 190, Str: 1_000}),
+			Score: testExtended(model.Score{Level: 190, Str: 1_000}),
 		},
 	})
 	return seal

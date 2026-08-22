@@ -55,7 +55,7 @@ func TestProjecaoDeDanoAcompanhaAEscala(t *testing.T) {
 // golpe leva metade do HP, a barra tem de cair perto de metade.
 func TestProjecaoBateComABarra(t *testing.T) {
 	for _, maxHP := range []uint32{25_000, 200_000, 1_000_000, 2_000_000} {
-		e := ExtendedScore{Version: ExtendedScoreVersion, MaxHP: maxHP, CurHP: maxHP}
+		e := Score{Version: ScoreVersion, MaxHP: maxHP, CurHP: maxHP}
 		antes := e.CompatibilityScore()
 
 		dano := maxHP / 2

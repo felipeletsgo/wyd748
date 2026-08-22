@@ -82,7 +82,7 @@ func syncProgression(ch *model.Char) {
 	ensureExtendedScore(ch)
 	table := progressionTable(ch)
 	maxLevel := progressionMaxLevel(ch)
-	level := int(ch.Extended.Level)
+	level := int(ch.Score.Level)
 	if level >= 0 && level <= int(maxLevel) {
 		ch.NextExp = table[level+1]
 	} else if level > int(maxLevel) {
@@ -105,10 +105,10 @@ const (
 // Lindy. Enquanto travado ele NAO recebe EXP -- nao e um teto que ignora o
 // excedente, o ganho e barrado por inteiro.
 func archExperienceLocked(ch *model.Char) bool {
-	if ch == nil || ch.Extended == nil || !isArch(ch) {
+	if ch == nil || ch.Score == nil || !isArch(ch) {
 		return false
 	}
-	level := ch.Extended.Level
+	level := ch.Score.Level
 	if level >= archLockLevel370 && !ch.ArchLevel370 {
 		return true
 	}
@@ -120,24 +120,24 @@ func archExperienceLocked(ch *model.Char) bool {
 // que as composicoes/destraves tenham efeito real. A Sub nao possui essas duas
 // travas.
 func celestialExperienceLocked(ch *model.Char) bool {
-	if ch == nil || ch.Extended == nil || !advancedEvolution(ch, "celestial") {
+	if ch == nil || ch.Score == nil || !advancedEvolution(ch, "celestial") {
 		return false
 	}
-	if ch.Extended.Level >= 89 && !ch.CelestialLevel90Unlocked {
+	if ch.Score.Level >= 89 && !ch.CelestialLevel90Unlocked {
 		return true
 	}
-	return ch.Extended.Level >= 39 && !ch.CelestialLevel40Unlocked
+	return ch.Score.Level >= 39 && !ch.CelestialLevel40Unlocked
 }
 
 func canReceiveMortalExperience(ch *model.Char) bool {
-	if ch == nil || ch.Extended == nil {
+	if ch == nil || ch.Score == nil {
 		return false
 	}
 	if archExperienceLocked(ch) || celestialExperienceLocked(ch) {
 		return false
 	}
 	table := progressionTable(ch)
-	return ch.Extended.Level <= progressionMaxLevel(ch) &&
+	return ch.Score.Level <= progressionMaxLevel(ch) &&
 		ch.Exp < table[len(table)-1]
 }
 
@@ -262,10 +262,10 @@ func w2ppCelestialEXPDivisor(level uint32) uint32 {
 // de quest/item continuam integrais. O calculo usa uint64 para nao estourar
 // reward*100.
 func combatExperienceByEvolution(ch *model.Char, reward uint32) uint32 {
-	if ch == nil || ch.Extended == nil || reward == 0 {
+	if ch == nil || ch.Score == nil || reward == 0 {
 		return reward
 	}
-	level := ch.Extended.Level + 1 // nivel exibido usado pelo W2PP
+	level := ch.Score.Level + 1 // nivel exibido usado pelo W2PP
 	divisor := uint32(100)
 	switch {
 	case isCelestialEvolution(ch):
@@ -296,17 +296,17 @@ func grantExp(ch *model.Char, reward uint32) (int, uint32) {
 
 	gained := 0
 	for {
-		level := int(ch.Extended.Level)
-		if ch.Extended.Level >= maxLevel ||
+		level := int(ch.Score.Level)
+		if ch.Score.Level >= maxLevel ||
 			level+1 >= len(table) ||
 			ch.Exp < table[level+1] {
 			break
 		}
-		ch.Extended.Level++
+		ch.Score.Level++
 		gained++
 	}
 	syncProgression(ch)
-	ch.ExtendedRuntime = nil
+	ch.RuntimeScore = nil
 	applyExtendedScore(ch)
 	return gained, applied
 }

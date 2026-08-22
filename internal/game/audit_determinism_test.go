@@ -9,10 +9,10 @@ import (
 )
 
 func TestCombatUsesInjectedRNG(t *testing.T) {
-	attacker := &Player{Char: &model.Char{Name: "rng", Extended: testExtended(model.ExtendedScore{})}}
-	attacker.Char.Extended.Attack = 1_000
-	mob := &Mob{Def: &model.NPCDef{Extended: &model.ExtendedScore{
-		Version: model.ExtendedScoreVersion, Defense: 100, Dex: 0,
+	attacker := &Player{Char: &model.Char{Name: "rng", Score: testExtended(model.Score{})}}
+	attacker.Char.Score.Attack = 1_000
+	mob := &Mob{Def: &model.NPCDef{Score: &model.Score{
+		Version: model.ScoreVersion, Defense: 100, Dex: 0,
 	}}}
 
 	wLow := &World{rng: fixedRNG{value: 0}}
@@ -26,14 +26,14 @@ func TestCombatUsesInjectedRNG(t *testing.T) {
 }
 
 func TestDropsUseInjectedRNG(t *testing.T) {
-	def := &model.NPCDef{Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, Level: 100},
+	def := &model.NPCDef{Score: &model.Score{Version: model.ScoreVersion, Level: 100},
 		Carry: make([]model.Item, 64)}
 	def.Carry[32] = model.Item{Index: 4011}
 	mob := &Mob{Def: def, X: 10, Y: 10}
 	newWorld := func(value int) (*World, *Player) {
 		w := &World{rng: fixedRNG{value: value}}
 		w.dropRates[32] = 2
-		p := &Player{Char: &model.Char{Name: "drop", Extended: testExtended(model.ExtendedScore{})}}
+		p := &Player{Char: &model.Char{Name: "drop", Score: testExtended(model.Score{})}}
 		return w, p
 	}
 
@@ -71,7 +71,7 @@ func TestEquippedMountAcceptsOnlyCanonicalSlot(t *testing.T) {
 func TestAffectLifecycleUsesInjectedClock(t *testing.T) {
 	now := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
 	w := &World{clock: newFakeClock(now)}
-	ch := &model.Char{Name: "clock", Extended: testExtended(model.ExtendedScore{})}
+	ch := &model.Char{Name: "clock", Score: testExtended(model.Score{})}
 	rule := model.VolatileRule{AffectType: 30, AffectValue: 1, DurationUnits: 10}
 	if got := w.applyVolatileBuff(ch, rule); got != volatileBuffApplied {
 		t.Fatalf("applyVolatileBuff=%d", got)
@@ -83,10 +83,10 @@ func TestAffectLifecycleUsesInjectedClock(t *testing.T) {
 
 func TestResurrectionUsesInjectedRNG(t *testing.T) {
 	newDeadPlayer := func() *Player {
-		ch := &model.Char{Name: "dead", Extended: testExtended(model.ExtendedScore{
+		ch := &model.Char{Name: "dead", Score: testExtended(model.Score{
 			Level: 399, MaxHP: 1_000, MaxMP: 500,
 		})}
-		ch.Extended.CurHP = 0
+		ch.Score.CurHP = 0
 		return &Player{ID: 1, InWorld: true, Char: ch, Session: &net.Session{ID: 1}}
 	}
 	skill := model.SkillDef{Index: 99, MaxTarget: 1}

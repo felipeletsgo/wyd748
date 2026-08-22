@@ -15,7 +15,7 @@
 - `model`: estado puro; `wire`: bytes; `net`: transporte; `store`: persistencia; `data`: loaders; `game`: coordenacao.
 - Uma goroutine de `World` altera gameplay. Sessoes apenas entregam comandos e enviam pela propria fila.
 - Separar features por responsabilidade. Handlers decodificam e roteiam; servicos de dominio validam e mutam.
-- `ExtendedScore` e autoritativo; o score WORD legado nasce apenas na borda do protocolo.
+- `Score` e autoritativo; o score WORD legado nasce apenas na borda do protocolo.
 
 ## Fronteiras de protocolo 7.48
 

@@ -24,8 +24,8 @@ func TestRebuyLifecycleUsesUIDAndAuthoritativePrice(t *testing.T) {
 	w.items[400] = model.ItemDef{Index: 400, Price: 1000}
 	shop := &Mob{ID: 1100, X: 2101, Y: 2100, Def: &model.NPCDef{
 		Name: "Merchant", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{Merchant: nativeShopMerchant},
-		Vende:    []model.Item{{Index: 400}},
+		Score: &model.Score{Merchant: nativeShopMerchant},
+		Vende: []model.Item{{Index: 400}},
 	}}
 	w.registerMobSpatial(shop)
 	w.mobs = append(w.mobs, shop)

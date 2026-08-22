@@ -321,7 +321,7 @@ func (w *World) validateItemInstanceTemplates() error {
 			}
 			for _, spawn := range cfg.HellGate.FinalNPCs {
 				def := w.npcDefByName(spawn.NPC)
-				if spawn.Count <= 0 || def == nil || def.IsMonster() || def.Extended == nil {
+				if spawn.Count <= 0 || def == nil || def.IsMonster() || def.Score == nil {
 					return fmt.Errorf("volatile %s: template NPC final %q ausente ou hostil", source, spawn.NPC)
 				}
 			}
@@ -329,7 +329,7 @@ func (w *World) validateItemInstanceTemplates() error {
 		for _, spawn := range spawns {
 			def := w.npcDefByName(spawn.NPC)
 			if spawn.Count <= 0 || def == nil || !def.IsMonster() ||
-				def.Extended == nil {
+				def.Score == nil {
 				return fmt.Errorf("volatile %s: template de instancia %q ausente ou nao-monstro",
 					source, spawn.NPC)
 			}
@@ -1552,7 +1552,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 				return
 			}
 			def := w.npcDefByName(spawn.NPC)
-			if def == nil || !def.IsMonster() || def.Extended == nil {
+			if def == nil || !def.IsMonster() || def.Score == nil {
 				s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 				s.Send(wire.MessagePanel(fmt.Sprintf("The instance monster %q is not configured.", spawn.NPC)))
 				return
@@ -1897,7 +1897,7 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 	for _, spawn := range stage.Spawns {
 		def := w.npcDefByName(spawn.NPC)
 		if spawn.Count <= 0 || def == nil || !def.IsMonster() ||
-			def.Extended == nil {
+			def.Score == nil {
 			return false, false
 		}
 	}
@@ -1965,7 +1965,7 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 				runtimeID = inst.Config.ID
 			}
 			mob := &Mob{ID: mobID, Def: def, X: x, Y: y,
-				HP: def.Extended.MaxHP, GenerIndex: -1, InstanceID: runtimeID}
+				HP: def.Score.MaxHP, GenerIndex: -1, InstanceID: runtimeID}
 			w.appendMobInstance(mob)
 			w.mobsByID[mob.ID] = mob
 			reserved[uint32(x)<<16|uint32(y)] = struct{}{}
@@ -2039,7 +2039,7 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 	}
 	for _, spawn := range stage.CompletionSpawns {
 		def := w.npcDefByName(spawn.NPC)
-		if spawn.Count <= 0 || def == nil || !def.IsMonster() || def.Extended == nil {
+		if spawn.Count <= 0 || def == nil || !def.IsMonster() || def.Score == nil {
 			return false
 		}
 	}
@@ -2095,7 +2095,7 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 			if runtimeID == "" {
 				runtimeID = inst.Config.ID
 			}
-			mob := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
+			mob := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
 				GenerIndex: -1, InstanceID: runtimeID}
 			w.appendMobInstance(mob)
 			w.mobsByID[mob.ID] = mob

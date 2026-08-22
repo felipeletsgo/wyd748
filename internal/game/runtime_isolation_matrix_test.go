@@ -18,7 +18,7 @@ func TestRuntimeIsolationMatrixMobsAndLoot(t *testing.T) {
 	}
 	w.rebuildPlayerInstanceIndex()
 	monster := &Mob{ID: 1400, X: 2200, Y: 2200, HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w.mobs = append(w.mobs, monster)
 	w.registerMobSpatial(monster)
 	if !w.mobVisibleToPlayer(public, monster) || !w.playerCanInteractWithMob(public, monster) {
@@ -110,14 +110,14 @@ func TestHellGateCollisionIgnoresOtherRuntimeButBlocksOwn(t *testing.T) {
 	member, _ := networkedTestPlayer(1, "Member", 2200, 2200)
 	w := testSpatialWorld(nil, member)
 	other := &Mob{ID: 1401, X: 2200, Y: 2200, HP: 100, InstanceID: "other",
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w.mobs = append(w.mobs, other)
 	w.registerMobSpatial(other)
 	if x, y, ok := findHellGatePosition(w, "target", 2200, 2200, 0, nil); !ok || x != 2200 || y != 2200 {
 		t.Fatalf("colisao de outro runtime bloqueou Hell Gate: (%d,%d) ok=%v", x, y, ok)
 	}
 	own := &Mob{ID: 1402, X: 2200, Y: 2200, HP: 100, InstanceID: "target",
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w.mobs = append(w.mobs, own)
 	w.registerMobSpatial(own)
 	if _, _, ok := findHellGatePosition(w, "target", 2200, 2200, 0, nil); ok {
@@ -130,7 +130,7 @@ func TestMobInteractionAllowsAttackToBreakHideButAIRejectsHiddenTarget(t *testin
 	p.Char.Affects[0] = model.Affect{Type: 28, ExpiresAt: time.Now().Add(time.Minute)}
 	w := testSpatialWorld(nil, p)
 	m := &Mob{ID: 1403, X: 2201, Y: 2200, HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	if !w.playerCanInteractWithMob(p, m) {
 		t.Fatal("ataque de jogador oculto foi bloqueado antes de quebrar Hide")
 	}
@@ -141,9 +141,9 @@ func TestMobInteractionAllowsAttackToBreakHideButAIRejectsHiddenTarget(t *testin
 
 func TestMobOwnedAffectCannotSurviveOwnerRuntimeReuse(t *testing.T) {
 	target := &Mob{ID: 1404, InstanceID: "runtime-a", HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	owner := &Mob{ID: 1405, InstanceID: "runtime-b", HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w := testSpatialWorld([]*Mob{target, owner})
 	w.activeMobs[target.ID] = target
 	w.activeMobs[owner.ID] = owner
@@ -161,7 +161,7 @@ func TestPlayerOwnedMobAffectDoesNotFollowReusedClientID(t *testing.T) {
 	owner, _ := networkedTestPlayer(1, "Owner", 2200, 2200)
 	targetPlayer, _ := networkedTestPlayer(2, "Target", 2200, 2200)
 	targetMob := &Mob{ID: 1415, X: 2200, Y: 2200, HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w := testSpatialWorld([]*Mob{targetMob}, owner, targetPlayer)
 	w.activeMobs[targetMob.ID] = targetMob
 	now := time.Unix(1_700_000_000, 0)
@@ -189,7 +189,7 @@ func TestPlayerOwnedMobAffectDoesNotFollowReusedClientID(t *testing.T) {
 func TestLethalMobDotCannotCreditReusedClientID(t *testing.T) {
 	owner, _ := networkedTestPlayer(1, "Owner", 2200, 2200)
 	targetMob := &Mob{ID: 1416, X: 2200, Y: 2200, HP: 1,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 1, CurHP: 1})}
+		Def: testNPCDef(model.Score{MaxHP: 1, CurHP: 1})}
 	w := testSpatialWorld([]*Mob{targetMob}, owner)
 	w.activeMobs[targetMob.ID] = targetMob
 	now := time.Unix(1_700_000_000, 0)
@@ -236,9 +236,9 @@ func TestOwnerIDOnlyPlayerAffectCannotRebind(t *testing.T) {
 
 func TestMobOwnedAffectKillsWithoutPlayerCredit(t *testing.T) {
 	target := &Mob{ID: 1406, InstanceID: "runtime-a", HP: 1,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 1, CurHP: 1})}
+		Def: testNPCDef(model.Score{MaxHP: 1, CurHP: 1})}
 	source := &Mob{ID: 1407, InstanceID: "runtime-a", HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	player, _ := networkedTestPlayer(1, "Observer", 2200, 2200)
 	w := testSpatialWorld([]*Mob{target, source}, player)
 	w.activeMobs[target.ID] = target
@@ -264,13 +264,13 @@ func TestGameplayCollisionMatrixSeparatesDynamicSpacesButSharesStatics(t *testin
 	public.X, public.Y = 2304, 2300
 	w.updatePlayerSpatial(public)
 	publicMob := &Mob{ID: 1410, X: 2300, Y: 2300, HP: 1,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 1, CurHP: 1})}
+		Def: testNPCDef(model.Score{MaxHP: 1, CurHP: 1})}
 	foreignMob := &Mob{ID: 1411, X: 2301, Y: 2300, HP: 1, InstanceID: "runtime-b",
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 1, CurHP: 1})}
+		Def: testNPCDef(model.Score{MaxHP: 1, CurHP: 1})}
 	ownMob := &Mob{ID: 1412, X: 2302, Y: 2300, HP: 1, InstanceID: "runtime-a",
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 1, CurHP: 1})}
+		Def: testNPCDef(model.Score{MaxHP: 1, CurHP: 1})}
 	staticNPC := &Mob{ID: 1413, X: 2303, Y: 2300, HP: 1,
-		Def: &model.NPCDef{Tipo: model.TipoNPC, Extended: &model.ExtendedScore{MaxHP: 1, CurHP: 1}}}
+		Def: &model.NPCDef{Tipo: model.TipoNPC, Score: &model.Score{MaxHP: 1, CurHP: 1}}}
 	w.mobs = append(w.mobs, publicMob, foreignMob, ownMob, staticNPC)
 	for _, mob := range []*Mob{publicMob, foreignMob, ownMob, staticNPC} {
 		w.registerMobSpatial(mob)

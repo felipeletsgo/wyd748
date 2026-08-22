@@ -14,7 +14,7 @@ import (
 func validStoredChar(name string, gold uint32) model.Char {
 	return model.Char{
 		Name: name, Gold: gold,
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion},
+		Score: &model.Score{Version: model.ScoreVersion},
 	}
 }
 
@@ -108,7 +108,7 @@ func TestSaveAccountsTransfersFilledCelestialSealAndSnapshot(t *testing.T) {
 		ID: 7, ItemUID: itemUID, SourceUID: sourceUID,
 		Character: model.Char{
 			UID: sourceUID, Name: "ReadyCelestial", Class: 1, Evolution: "celestial",
-			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion},
+			Score: &model.Score{Version: model.ScoreVersion},
 		},
 	}}
 	if err := s.SaveAccounts(a, b); err != nil {

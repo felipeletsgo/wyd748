@@ -35,17 +35,17 @@ type CharacterSpawn struct {
 }
 
 // CharacterTemplate contem somente o estado autoritativo concedido na criacao.
-// Campos efetivos como ExtendedRuntime nao pertencem ao arquivo.
+// Campos efetivos como RuntimeScore nao pertencem ao arquivo.
 type CharacterTemplate struct {
-	Name          string             `json:"name"`
-	Class         byte               `json:"class"`
-	ExtendedScore ExtendedScore      `json:"extendedScore"`
-	Gold          uint32             `json:"gold"`
-	CP            int16              `json:"cp"`
-	Exp           uint32             `json:"exp"`
-	LearnedSkill  uint32             `json:"learnedSkill"`
-	Equip         CharacterEquipment `json:"equip"`
-	Inventory     []Item             `json:"inventory,omitempty"`
+	Name         string             `json:"name"`
+	Class        byte               `json:"class"`
+	Score        Score              `json:"extendedScore"`
+	Gold         uint32             `json:"gold"`
+	CP           int16              `json:"cp"`
+	Exp          uint32             `json:"exp"`
+	LearnedSkill uint32             `json:"learnedSkill"`
+	Equip        CharacterEquipment `json:"equip"`
+	Inventory    []Item             `json:"inventory,omitempty"`
 }
 
 type CharacterTemplateFile struct {
@@ -56,13 +56,13 @@ type CharacterTemplateFile struct {
 // NewCharacter materializa uma copia independente do template. Atalhos vazios
 // usam 0xFF, convencao do client para "nenhuma habilidade neste slot".
 func (t CharacterTemplate) NewCharacter(name string, spawn CharacterSpawn) Char {
-	extended := t.ExtendedScore
+	extended := t.Score
 	ch := Char{
 		Name:         name,
 		Class:        t.Class,
 		X:            spawn.X,
 		Y:            spawn.Y,
-		Extended:     &extended,
+		Score:        &extended,
 		Equip:        t.Equip.Items(),
 		CP:           clampCP(t.CP),
 		ChaosVersion: ChaosFormatVersion,

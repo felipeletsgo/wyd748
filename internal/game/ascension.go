@@ -313,7 +313,7 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 		s.Send(wire.MessagePanel("Only a Mortal can ascend."))
 		return true
 	}
-	if p.Char.Extended == nil || p.Char.Extended.Level < archMinLevel {
+	if p.Char.Score == nil || p.Char.Score.Level < archMinLevel {
 		s.Send(wire.MessagePanel("You must be level 371 to ascend."))
 		return true
 	}
@@ -335,7 +335,7 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 	// Guarda a origem por identidade estavel. O slot pode ser apagado/reutilizado
 	// e nunca pode fazer um Arch passar a herdar nivel de outro personagem.
 	arch.ArchMortalUID = p.Char.UID
-	arch.ArchMortalLevel = p.Char.Extended.Level
+	arch.ArchMortalLevel = p.Char.Score.Level
 	// Rosto do Arch = rosto do Mortal + 5 + classe (CFileDB.cpp:1993).
 	arch.Equip[0].Index = p.Char.Equip[0].Index + archFaceOffset + uint16(class)
 
@@ -371,7 +371,7 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 	announcement := fmt.Sprintf("The character %s has become a God!", arch.Name)
 	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
 	log.Printf("[#%d] ARCH criado nome=%q classe=%d slot=%d rosto=%d (mortal nivel=%d)",
-		s.ID, arch.Name, class, slot, arch.Equip[0].Index, p.Char.Extended.Level)
+		s.ID, arch.Name, class, slot, arch.Equip[0].Index, p.Char.Score.Level)
 	w.returnToCharacterSelectionAfterCommittedChange(p, "criacao de Arch")
 	return true
 }
@@ -409,11 +409,11 @@ func refreshArchMortalLevel(account *model.Account) bool {
 				break
 			}
 		}
-		if mortal == nil || mortal.Name == "" || mortal.Extended == nil {
+		if mortal == nil || mortal.Name == "" || mortal.Score == nil {
 			continue
 		}
-		if arch.ArchMortalLevel != mortal.Extended.Level {
-			arch.ArchMortalLevel = mortal.Extended.Level
+		if arch.ArchMortalLevel != mortal.Score.Level {
+			arch.ArchMortalLevel = mortal.Score.Level
 			changed = true
 		}
 	}

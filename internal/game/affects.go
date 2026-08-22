@@ -497,7 +497,7 @@ func effectiveMobDefense(m *Mob) int {
 }
 
 func effectiveMobDefenseAt(m *Mob, now time.Time) int {
-	defense := int(m.Def.Extended.Defense)
+	defense := int(m.Def.Score.Defense)
 	if a := activeMobAffectAt(m, 12, now); a != nil {
 		defense = defense * (100 - clampInt(a.Value, 0, 100)) / 100
 	}
@@ -509,7 +509,7 @@ func effectiveMobAttack(m *Mob) int {
 }
 
 func effectiveMobAttackAt(m *Mob, now time.Time) int {
-	attack := int(m.Def.Extended.Attack)
+	attack := int(m.Def.Score.Attack)
 	if a := activeMobAffectAt(m, 10, now); a != nil {
 		attack -= a.Level/5 + a.Value
 	}
@@ -521,12 +521,12 @@ func effectiveMobAttackRun(m *Mob) byte {
 }
 
 func effectiveMobAttackRunAt(m *Mob, now time.Time) byte {
-	attackRun := m.Def.Extended.AttackRun
+	attackRun := m.Def.Score.AttackRun
 	if a := activeMobAffectAt(m, 1, now); a != nil {
 		run := maxInt(1, int(attackRun&0x0f)-a.Value)
-		attackRun = attackRun&0xf0 | byte(run)
+		attackRun = attackRun&0xf0 | uint32(run)
 	}
-	return attackRun
+	return byte(attackRun & 0xff)
 }
 
 func effectiveMobResistances(m *Mob) model.ElementalResists {
@@ -535,8 +535,8 @@ func effectiveMobResistances(m *Mob) model.ElementalResists {
 
 func effectiveMobResistancesAt(m *Mob, now time.Time) model.ElementalResists {
 	resist := model.ElementalResists{
-		Fire: m.Def.Extended.ResistFire, Ice: m.Def.Extended.ResistIce,
-		Sacred: m.Def.Extended.ResistHoly, Thunder: m.Def.Extended.ResistThunder,
+		Fire: m.Def.Score.ResistFire, Ice: m.Def.Score.ResistIce,
+		Sacred: m.Def.Score.ResistHoly, Thunder: m.Def.Score.ResistThunder,
 	}
 	if a := activeMobAffectAt(m, 3, now); a != nil {
 		reduce := func(value uint32) uint32 {
@@ -554,18 +554,18 @@ func effectiveMobResistancesAt(m *Mob, now time.Time) model.ElementalResists {
 	return resist
 }
 
-func mobPublicExtended(m *Mob) *model.ExtendedScore {
+func mobPublicExtended(m *Mob) *model.Score {
 	return mobPublicExtendedAt(m, time.Now())
 }
 
-func mobPublicExtendedAt(m *Mob, now time.Time) *model.ExtendedScore {
+func mobPublicExtendedAt(m *Mob, now time.Time) *model.Score {
 	if m == nil || m.Def == nil {
 		return nil
 	}
-	ext := m.Def.MakeExtendedScore(m.HP)
+	ext := m.Def.MakeScore(m.HP)
 	ext.Defense = uint32(effectiveMobDefenseAt(m, now))
 	ext.Attack = uint32(effectiveMobAttackAt(m, now))
-	ext.AttackRun = effectiveMobAttackRunAt(m, now)
+	ext.AttackRun = uint32(effectiveMobAttackRunAt(m, now))
 	return ext
 }
 
@@ -596,13 +596,13 @@ func (w *World) applyAffectStats(ch *model.Char) {
 // A base persistida nunca e modificada, portanto renovar/recalcular um buff nao
 // acumula bonus. Os calculos usam int64 para nao estourar antes do clamp.
 func (w *World) applyExtendedAffectStats(ch *model.Char) {
-	if ch == nil || ch.Extended == nil {
+	if ch == nil || ch.Score == nil {
 		return
 	}
-	if ch.ExtendedRuntime == nil {
+	if ch.RuntimeScore == nil {
 		applyExtendedScore(ch)
 	}
-	e := ch.ExtendedRuntime
+	e := ch.RuntimeScore
 	now := w.now()
 	mul := func(value uint32, percent int) uint32 {
 		if percent < 0 {
@@ -632,10 +632,10 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		switch a.Type {
 		case 1: // Lentidao
 			run := maxInt(1, int(e.AttackRun&0x0F)-a.Value)
-			e.AttackRun = e.AttackRun&0xF0 | byte(run)
+			e.AttackRun = e.AttackRun&0xF0 | uint32(run)
 		case 2: // Velocidade
 			run := minInt(15, int(e.AttackRun&0x0F)+a.Value)
-			e.AttackRun = e.AttackRun&0xF0 | byte(run)
+			e.AttackRun = e.AttackRun&0xF0 | uint32(run)
 		case 3: // Perseguicao
 			e.ResistFire = uint32(maxInt(0, int(e.ResistFire)-a.Value))
 			e.ResistIce = uint32(maxInt(0, int(e.ResistIce)-a.Value))
@@ -652,7 +652,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		case 7:
 			penalty := a.Level/10 + 20
 			attackSpeed := maxInt(0, int(e.AttackRun>>4)-penalty)
-			e.AttackRun = byte(attackSpeed<<4) | e.AttackRun&0x0F
+			e.AttackRun = uint32(attackSpeed<<4) | e.AttackRun&0x0F
 			e.Int = add(e.Int, int64(-penalty))
 		case 9:
 			e.Attack = add(e.Attack, int64((a.Level*5/20+a.Value)*3/2))
@@ -724,7 +724,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 				e.ResistThunder = uint32(clampInt(int(e.ResistThunder)+resistAdd, 0, 100))
 				run := minInt(15, int(e.AttackRun&0x0F)+b.run)
 				attackSpeed := minInt(15, int(e.AttackRun>>4)+(b.attackSpeed+attackSpeedAdd)/10)
-				e.AttackRun = byte(attackSpeed<<4) | byte(run)
+				e.AttackRun = uint32(attackSpeed<<4 | run)
 			}
 		case 18: // Controle de Mana
 			e.SaveMana = uint32(minInt(99, int(e.SaveMana)+a.Level/10+a.Value))
@@ -755,7 +755,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			}
 			config := int(ch.SoulInfo) - 1
 			if isCelestialEvolution(ch) && config >= 0 && config < len(bonuses) {
-				raw := ch.Extended
+				raw := ch.Score
 				strAdd := int64(raw.Str/100) * int64(bonuses[config][0])
 				intAdd := int64(raw.Int/100) * int64(bonuses[config][1])
 				dexAdd := int64(raw.Dex/100) * int64(bonuses[config][2])
@@ -789,11 +789,11 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 	}
 	if e.CurHP > e.MaxHP {
 		e.CurHP = e.MaxHP
-		ch.Extended.CurHP = e.CurHP
+		ch.Score.CurHP = e.CurHP
 	}
 	if e.CurMP > e.MaxMP {
 		e.CurMP = e.MaxMP
-		ch.Extended.CurMP = e.CurMP
+		ch.Score.CurMP = e.CurMP
 	}
 	projectExtendedRuntime(ch)
 }
@@ -851,8 +851,8 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			}
 			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 				// Periodic effects share the same protocol boundary as direct hits.
-				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Extended.MaxHP,
-					m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
+				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Score.MaxHP,
+					m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 			})
 		}
 		if expired && !m.Dead && m.HP > 0 {
@@ -967,7 +967,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		} else {
 			m.HP -= damage
 		}
-		wireTargets = append(wireTargets, wire.SkillTarget{ID: m.ID, Damage: damage, MaxHP: m.Def.Extended.MaxHP})
+		wireTargets = append(wireTargets, wire.SkillTarget{ID: m.ID, Damage: damage, MaxHP: m.Def.Score.MaxHP})
 	}
 	primary := targets[0]
 	w.sendToMobView(primary, func() []byte {
@@ -986,8 +986,8 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		} else {
 			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 				// Area effects must not collapse source-client resources to WORDs.
-				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Extended.MaxHP,
-					m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
+				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Score.MaxHP,
+					m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 			})
 		}
 	}

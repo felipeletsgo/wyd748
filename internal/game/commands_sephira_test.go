@@ -143,8 +143,8 @@ func TestSephiraCannonAndThornWallLifecycle(t *testing.T) {
 
 	vine := model.NPCDef{
 		Name: "Vinha", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion, MaxHP: 500, CurHP: 100,
+		Score: &model.Score{
+			Version: model.ScoreVersion, MaxHP: 500, CurHP: 100,
 		},
 	}
 	w.npcs = []model.NPCDef{vine}
@@ -165,7 +165,7 @@ func TestSephiraCannonAndThornWallLifecycle(t *testing.T) {
 	for _, mob := range w.sephiraObjects {
 		wall = mob
 	}
-	if wall.HP != 500 || wall.Def.Extended.CurHP != 500 || wall.SummonerID != p.ID {
+	if wall.HP != 500 || wall.Def.Score.CurHP != 500 || wall.SummonerID != p.ID {
 		t.Fatalf("estado da Vinha incorreto: %+v", wall)
 	}
 	if w.canCastThornWall(p, req, skill) {

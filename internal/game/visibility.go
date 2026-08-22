@@ -164,7 +164,7 @@ func (w *World) showGhostShop(p *Player, shop *GhostShop) {
 		return
 	}
 	p.Session.Send(wire.CreateMobTradeExtendedForProtocol(p.Session.ClientProtocol(), shop.ID, shop.Name, shop.X, shop.Y,
-		shop.Mesh[:], &shop.Extended, shop.Title))
+		shop.Mesh[:], &shop.Score, shop.Title))
 	p.show(shop.ID)
 }
 

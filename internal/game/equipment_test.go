@@ -52,7 +52,7 @@ func TestEquipmentCriticalUsesCurrentScoreScale(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{
 		100: {Index: 100, StaticEffects: []model.StaticEffect{{Name: "EF_CRITICAL", Value: 40}}},
 	}}
-	ch := &model.Char{Class: 0, Extended: testExtended(model.ExtendedScore{Str: 8, Int: 4, Dex: 7, Con: 6})}
+	ch := &model.Char{Class: 0, Score: testExtended(model.Score{Str: 8, Int: 4, Dex: 7, Con: 6})}
 	ch.Equip[1] = model.Item{Index: 100}
 	w.recalcPlayer(ch)
 	if got := effectiveExtended(ch).Critical; got != 10 {
@@ -64,7 +64,7 @@ func TestCanEquipIsServerAuthoritative(t *testing.T) {
 	def := model.ItemDef{Index: 100, Pos: 1 << 6, ReqLevel: 10, ReqStr: 20,
 		StaticEffects: []model.StaticEffect{{Name: "EF_CLASS", Value: 1}}}
 	w := &World{items: map[uint16]model.ItemDef{100: def}}
-	ch := &model.Char{Class: 0, Extended: testExtended(model.ExtendedScore{Level: 10, Str: 20})}
+	ch := &model.Char{Class: 0, Score: testExtended(model.Score{Level: 10, Str: 20})}
 	item := model.Item{Index: 100}
 	if !w.canEquip(ch, item, 6) {
 		t.Fatal("item valido foi rejeitado")
@@ -103,7 +103,7 @@ func TestAdvancedEvolutionEquipUsesMortalBodyAndIgnoresRequirements(t *testing.T
 			// Corpo TK (rosto 9 => 9/10 = 0), classe de skills HT.
 			ch := &model.Char{
 				Class: 3, Evolution: evolution,
-				Extended: testExtended(model.ExtendedScore{
+				Score: testExtended(model.Score{
 					Level: 1, Str: 1, Int: 1, Dex: 1, Con: 1,
 				}),
 			}
@@ -133,11 +133,11 @@ func TestMortalStillChecksClassAndRequirements(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{100: def}}
 	item := model.Item{Index: 100}
 
-	lowTK := &model.Char{Class: 0, Extended: testExtended(model.ExtendedScore{Level: 1, Str: 1})}
+	lowTK := &model.Char{Class: 0, Score: testExtended(model.Score{Level: 1, Str: 1})}
 	if w.canEquip(lowTK, item, 6) {
 		t.Fatal("Mortal nao pode receber a isencao de requisitos do Arch")
 	}
-	strongHT := &model.Char{Class: 3, Extended: testExtended(model.ExtendedScore{Level: 100, Str: 100})}
+	strongHT := &model.Char{Class: 3, Score: testExtended(model.Score{Level: 100, Str: 100})}
 	if w.canEquip(strongHT, item, 6) {
 		t.Fatal("Mortal nao pode usar arma de outra classe")
 	}
@@ -179,13 +179,13 @@ func TestSkillPointsUseServerSkillDataCost(t *testing.T) {
 		items:  map[uint16]model.ItemDef{1: {Index: 1}},
 		skills: map[int]model.SkillDef{0: {Index: 0, SkillPoint: 24}},
 	}
-	ch := &model.Char{Class: 0, LearnedSkill: 1, Extended: testExtended(model.ExtendedScore{
+	ch := &model.Char{Class: 0, LearnedSkill: 1, Score: testExtended(model.Score{
 		Level: 10, MaxHP: 100, MaxMP: 100, CurHP: 100, CurMP: 100,
 		Str: 8, Int: 4, Dex: 7, Con: 6,
 	})}
 	w.recalcPlayer(ch)
-	if ch.Extended.SkillPts != 6 { // level*3 (30) - SkillData[0].SkillPoint (24)
-		t.Fatalf("skill points=%d, esperado 6", ch.Extended.SkillPts)
+	if ch.Score.SkillPts != 6 { // level*3 (30) - SkillData[0].SkillPoint (24)
+		t.Fatalf("skill points=%d, esperado 6", ch.Score.SkillPts)
 	}
 }
 
@@ -230,13 +230,13 @@ func TestRecalcPlayerCombinesBaseAndEquipmentResistances(t *testing.T) {
 	}}
 	ch := &model.Char{
 		Class: 0,
-		Extended: testExtended(model.ExtendedScore{
+		Score: testExtended(model.Score{
 			Level: 1, MaxHP: 100, MaxMP: 100, CurHP: 100, CurMP: 100,
 			Str: 8, Int: 4, Dex: 7, Con: 6,
 		}),
 	}
-	ch.Extended.ResistFire, ch.Extended.ResistIce = 5, 6
-	ch.Extended.ResistHoly, ch.Extended.ResistThunder = 7, 60
+	ch.Score.ResistFire, ch.Score.ResistIce = 5, 6
+	ch.Score.ResistHoly, ch.Score.ResistThunder = 7, 60
 	ch.Equip[1] = model.Item{Index: 100}
 	w.recalcPlayer(ch)
 	if got := effectiveExtended(ch).ResistFire; got != 35 {
@@ -266,7 +266,7 @@ func TestRecalcPlayerUsesBaseClassAndItemRegeneration(t *testing.T) {
 			47: "EF_REGENHP", 48: "EF_REGENMP",
 		}},
 	}}
-	ch := &model.Char{Class: 0, Extended: testExtended(model.ExtendedScore{
+	ch := &model.Char{Class: 0, Score: testExtended(model.Score{
 		Level: 1, MaxHP: 100, MaxMP: 100, CurHP: 100, CurMP: 100,
 		Str: 8, Int: 4, Dex: 7, Con: 6,
 	})}
@@ -284,7 +284,7 @@ func TestRecalcPlayerRemovesEquipmentBonuses(t *testing.T) {
 			{Name: "EF_AC", Value: 80}, {Name: "EF_STR", Value: 20},
 		}},
 	}}
-	ch := &model.Char{Extended: testExtended(model.ExtendedScore{
+	ch := &model.Char{Score: testExtended(model.Score{
 		Level: 10, Defense: 10, Attack: 10, MaxHP: 100, MaxMP: 100,
 		CurHP: 100, CurMP: 100, Str: 8, Int: 4, Dex: 7, Con: 6,
 	})}
@@ -308,8 +308,8 @@ func TestExtendedMagicRecalcUsesRefinedMagicAmplification(t *testing.T) {
 			},
 		},
 	}}
-	ch := &model.Char{Class: 1, Extended: &model.ExtendedScore{
-		Version: model.ExtendedScoreVersion, Level: 400,
+	ch := &model.Char{Class: 1, Score: &model.Score{
+		Version: model.ScoreVersion, Level: 400,
 		MaxHP: 60, CurHP: 60, MaxMP: 65, CurMP: 65,
 		Str: 5, Int: 308, Dex: 5, Con: 5,
 	}}

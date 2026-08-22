@@ -30,7 +30,7 @@ passar pelo build e pelo fluxo real afetado.
 - Toda alteracao nesta source deve possuir comentario explicativo junto ao
   codigo editado, registrando intencao, contrato e motivo da compatibilidade.
   Comentarios devem explicar o "por que", nao apenas repetir a operacao.
-- `ExtendedScore` no servidor continua autoritativo.
+- `Score` no servidor continua autoritativo.
 - Estruturas C++ e packets devem possuir `static_assert`/testes de tamanho e
   offsets; nunca depender de `sizeof` implicito sem teste do wire.
 - Campos recebidos do client sao intencoes e nunca restauram estado de score.

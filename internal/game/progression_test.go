@@ -4,11 +4,11 @@ import "testing"
 
 func TestGrantExpLevelsAndAwardsPoints(t *testing.T) {
 	ch := testChar()
-	ch.Extended.Level = 10
+	ch.Score.Level = 10
 	ch.Exp = mortalNextLevel[11] - 10
-	ch.Extended.SkillPts = 0
+	ch.Score.SkillPts = 0
 	syncProgression(&ch)
-	beforeStatus := ch.Extended.StatusPts
+	beforeStatus := ch.Score.StatusPts
 	gained, applied := grantExp(&ch, 10)
 	if gained != 1 || applied != 10 {
 		t.Fatalf("gained=%d applied=%d", gained, applied)
@@ -16,8 +16,8 @@ func TestGrantExpLevelsAndAwardsPoints(t *testing.T) {
 	if playerLevel(&ch) != 11 {
 		t.Fatalf("level wide=%d", playerLevel(&ch))
 	}
-	if ch.Extended.StatusPts != beforeStatus+5 || ch.Extended.SkillPts != 33 {
-		t.Fatalf("status=%d (antes %d), skill=%d", ch.Extended.StatusPts, beforeStatus, ch.Extended.SkillPts)
+	if ch.Score.StatusPts != beforeStatus+5 || ch.Score.SkillPts != 33 {
+		t.Fatalf("status=%d (antes %d), skill=%d", ch.Score.StatusPts, beforeStatus, ch.Score.SkillPts)
 	}
 	if ch.NextExp != mortalNextLevel[12] {
 		t.Fatalf("nextExp=%d", ch.NextExp)
@@ -26,7 +26,7 @@ func TestGrantExpLevelsAndAwardsPoints(t *testing.T) {
 
 func TestGrantExpCanCrossMultipleLevels(t *testing.T) {
 	ch := testChar()
-	ch.Extended.Level = 1
+	ch.Score.Level = 1
 	ch.Exp = 0
 	gained, applied := grantExp(&ch, mortalNextLevel[4])
 	if gained != 3 || applied != mortalNextLevel[4] || playerLevel(&ch) != 4 {
@@ -50,7 +50,7 @@ func TestMortalExpTableIsCompleteAndIncreasing(t *testing.T) {
 
 func TestGrantExpReachesInternal399DisplayedAsLevel400(t *testing.T) {
 	ch := testChar()
-	ch.Extended.Level = 398
+	ch.Score.Level = 398
 	ch.Exp = mortalNextLevel[399] - 1
 	gained, applied := grantExp(&ch, 1)
 	if gained != 1 || applied != 1 || playerLevel(&ch) != maxMortalLevel {
@@ -63,20 +63,20 @@ func TestGrantExpReachesInternal399DisplayedAsLevel400(t *testing.T) {
 
 func TestGrantExpCapsAtFinalMarkerWithoutCreatingInternalLevel400(t *testing.T) {
 	ch := testChar()
-	ch.Extended.Level = maxMortalLevel
+	ch.Score.Level = maxMortalLevel
 	ch.Exp = mortalNextLevel[400] - 50
 
 	gained, applied := grantExp(&ch, 100)
 	if gained != 0 || applied != 50 {
 		t.Fatalf("gained=%d applied=%d, quer 0/50", gained, applied)
 	}
-	if ch.Extended.Level != maxMortalLevel || ch.Exp != mortalNextLevel[400] {
-		t.Fatalf("progressao final incorreta: level=%d exp=%d", ch.Extended.Level, ch.Exp)
+	if ch.Score.Level != maxMortalLevel || ch.Exp != mortalNextLevel[400] {
+		t.Fatalf("progressao final incorreta: level=%d exp=%d", ch.Score.Level, ch.Exp)
 	}
 
 	gained, applied = grantExp(&ch, 10_000)
-	if gained != 0 || applied != 0 || ch.Extended.Level != maxMortalLevel {
+	if gained != 0 || applied != 0 || ch.Score.Level != maxMortalLevel {
 		t.Fatalf("nivel interno 400 criado: gained=%d applied=%d level=%d",
-			gained, applied, ch.Extended.Level)
+			gained, applied, ch.Score.Level)
 	}
 }

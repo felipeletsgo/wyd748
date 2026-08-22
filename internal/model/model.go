@@ -140,10 +140,10 @@ func normalizePersistentUID(uid string, length int, label string) (string, error
 	return uid, nil
 }
 
-// WireScore = STRUCT_SCORE 7.48 (28 bytes no wire). Merchant/AttackRun sao bytes
+// LegacyScore28 = STRUCT_SCORE stock 7.48 (28 bytes no wire). Merchant/AttackRun sao bytes
 // CHEIOS (Merchant: low=tipo|high=direcao; AttackRun: Att*16+Run) -- NAO nibbles
 // separados. Este tipo nunca e persistido nem usado em calculos.
-type WireScore struct {
+type LegacyScore28 struct {
 	Level     uint16  `json:"-"`
 	Defense   uint16  `json:"-"`
 	Attack    uint16  `json:"-"`
@@ -161,17 +161,18 @@ type WireScore struct {
 }
 
 const (
-	ExtendedScoreVersion  uint32 = 2
-	MaxExtendedScoreValue uint32 = 2_000_000_000
+	ScoreVersion  uint32 = 2
+	MaxScoreValue uint32 = 2_000_000_000
 )
 
-// ExtendedScore e o score autoritativo de 32 bits usado por personagens e mobs.
-// WireScore continua sendo apenas a projecao de ABI de 28 bytes; nenhuma rotina
-// server-side de combate deve usa-lo como fonte de verdade.
+// Score e o unico score autoritativo de personagens e mobs e tambem o
+// contrato binario do client-source 7.48+. Todos os campos sao uint32; o
+// executavel stock 7.48 recebe somente LegacyScore28 na borda de protocolo.
+// Nenhuma projecao legada participa de calculo ou persistencia.
 //
 // Os calculos intermediarios do game usam int64 e os resultados persistidos
 // ficam limitados a 2.000.000.000, evitando overflow nos campos signed do client.
-type ExtendedScore struct {
+type Score struct {
 	Version       uint32    `json:"version"`
 	Level         uint32    `json:"level"`
 	Attack        uint32    `json:"attack"`
@@ -202,18 +203,18 @@ type ExtendedScore struct {
 	MasterPts     uint32    `json:"masteryPoints,omitempty"`
 	SkillPts      uint32    `json:"skillPoints,omitempty"`
 	Mastery       [4]uint32 `json:"mastery,omitempty"`
-	AttackRun     byte      `json:"attackRun,omitempty"`
-	Merchant      byte      `json:"merchant,omitempty"`
+	AttackRun     uint32    `json:"attackRun,omitempty"`
+	Merchant      uint32    `json:"merchant,omitempty"`
 }
 
 // Validate garante que todo estado persistido usa exatamente o contrato atual
 // e que nenhum valor ultrapassa os inteiros signed usados nos calculos.
-func (e *ExtendedScore) Validate() error {
+func (e *Score) Validate() error {
 	if e == nil {
-		return fmt.Errorf("extendedScore ausente")
+		return fmt.Errorf("score ausente")
 	}
-	if e.Version != ExtendedScoreVersion {
-		return fmt.Errorf("extendedScore v%d; esperado v%d", e.Version, ExtendedScoreVersion)
+	if e.Version != ScoreVersion {
+		return fmt.Errorf("score v%d; esperado v%d", e.Version, ScoreVersion)
 	}
 	fields := []struct {
 		name  string
@@ -232,15 +233,15 @@ func (e *ExtendedScore) Validate() error {
 		{"skillPoints", e.SkillPts},
 	}
 	for _, field := range fields {
-		if field.value > MaxExtendedScoreValue {
-			return fmt.Errorf("extendedScore.%s=%d excede %d",
-				field.name, field.value, MaxExtendedScoreValue)
+		if field.value > MaxScoreValue {
+			return fmt.Errorf("score.%s=%d excede %d",
+				field.name, field.value, MaxScoreValue)
 		}
 	}
 	for i, value := range e.Mastery {
-		if value > MaxExtendedScoreValue {
-			return fmt.Errorf("extendedScore.mastery[%d]=%d excede %d",
-				i, value, MaxExtendedScoreValue)
+		if value > MaxScoreValue {
+			return fmt.Errorf("score.mastery[%d]=%d excede %d",
+				i, value, MaxScoreValue)
 		}
 	}
 	return nil
@@ -250,7 +251,7 @@ func (e *ExtendedScore) Validate() error {
 // NPC source data keeps byte-domain sentinel values (notably SaveMana=255)
 // inherited from the native files, so those static definitions use Validate;
 // account/character state must pass this stricter boundary.
-func (e *ExtendedScore) ValidatePlayerState() error {
+func (e *Score) ValidatePlayerState() error {
 	if err := e.Validate(); err != nil {
 		return err
 	}
@@ -262,20 +263,20 @@ func (e *ExtendedScore) ValidatePlayerState() error {
 		{"resistHoly", e.ResistHoly}, {"resistThunder", e.ResistThunder},
 	} {
 		if resistance.value > 100 {
-			return fmt.Errorf("extendedScore.%s=%d excede 100", resistance.name, resistance.value)
+			return fmt.Errorf("score.%s=%d excede 100", resistance.name, resistance.value)
 		}
 	}
 	if e.SaveMana > 99 {
-		return fmt.Errorf("extendedScore.saveMana=%d excede 99", e.SaveMana)
+		return fmt.Errorf("score.saveMana=%d excede 99", e.SaveMana)
 	}
 	if e.RegenHP > 255 || e.RegenMP > 255 {
-		return fmt.Errorf("extendedScore regen fora de 0..255: hp=%d mp=%d", e.RegenHP, e.RegenMP)
+		return fmt.Errorf("score regen fora de 0..255: hp=%d mp=%d", e.RegenHP, e.RegenMP)
 	}
 	if e.CurHP > e.MaxHP {
-		return fmt.Errorf("extendedScore.curHP=%d excede maxHP=%d", e.CurHP, e.MaxHP)
+		return fmt.Errorf("score.curHP=%d excede maxHP=%d", e.CurHP, e.MaxHP)
 	}
 	if e.CurMP > e.MaxMP {
-		return fmt.Errorf("extendedScore.curMP=%d excede maxMP=%d", e.CurMP, e.MaxMP)
+		return fmt.Errorf("score.curMP=%d excede maxMP=%d", e.CurMP, e.MaxMP)
 	}
 	return nil
 }
@@ -350,17 +351,17 @@ func minScoreValue(value, maximum uint32) uint32 {
 }
 
 // CompatibilityScore gera a projecao signed-safe consumida pelo motor 7.48.
-// Os valores reais continuam exclusivamente neste ExtendedScore.
-func (e *ExtendedScore) CompatibilityScore() WireScore {
+// Os valores reais continuam exclusivamente neste Score.
+func (e *Score) CompatibilityScore() LegacyScore28 {
 	if e == nil {
-		return WireScore{}
+		return LegacyScore28{}
 	}
-	score := WireScore{
+	score := LegacyScore28{
 		Level:     uint16(minScoreValue(e.Level, 65_535)),
 		Defense:   uint16(minScoreValue(e.Defense, compatibilityDerived)),
 		Attack:    uint16(minScoreValue(e.Attack, compatibilityDerived)),
-		Merchant:  e.Merchant,
-		AttackRun: e.AttackRun,
+		Merchant:  byte(minScoreValue(e.Merchant, 255)),
+		AttackRun: byte(minScoreValue(e.AttackRun, 255)),
 		Str:       uint16(minScoreValue(e.Str, compatibilityDerived)),
 		Int:       uint16(minScoreValue(e.Int, compatibilityDerived)),
 		Dex:       uint16(minScoreValue(e.Dex, compatibilityDerived)),
@@ -406,15 +407,15 @@ type Affect struct {
 // rosto, EXP, atributos, aprendizagens, skills, barra e affects pertencem a
 // cada forma, como Persos[0..1] da 7.54.
 type CelestialForm struct {
-	Evolution             string         `json:"evolution"`
-	Class                 byte           `json:"class"`
-	Face                  Item           `json:"face"`
-	Extended              *ExtendedScore `json:"extendedScore"`
-	Exp                   uint32         `json:"exp"`
-	LearnedSkill          uint32         `json:"learnedSkill"`
-	SecondaryLearnedSkill uint32         `json:"secondaryLearnedSkill,omitempty"`
-	ShortSkill            [20]byte       `json:"shortSkill,omitempty"`
-	Affects               [16]Affect     `json:"affects,omitempty"`
+	Evolution             string     `json:"evolution"`
+	Class                 byte       `json:"class"`
+	Face                  Item       `json:"face"`
+	Score                 *Score     `json:"score"`
+	Exp                   uint32     `json:"exp"`
+	LearnedSkill          uint32     `json:"learnedSkill"`
+	SecondaryLearnedSkill uint32     `json:"secondaryLearnedSkill,omitempty"`
+	ShortSkill            [20]byte   `json:"shortSkill,omitempty"`
+	Affects               [16]Affect `json:"affects,omitempty"`
 }
 
 func (f *CelestialForm) Validate() error {
@@ -431,12 +432,12 @@ func (f *CelestialForm) Validate() error {
 	if f.Face.Index == 0 {
 		return fmt.Errorf("forma celestial sem rosto")
 	}
-	if err := f.Extended.ValidatePlayerState(); err != nil {
+	if err := f.Score.ValidatePlayerState(); err != nil {
 		return fmt.Errorf("forma celestial: %w", err)
 	}
-	if f.Extended.Level > 199 {
+	if f.Score.Level > 199 {
 		return fmt.Errorf("forma celestial possui level interno %d; maximo 199",
-			f.Extended.Level)
+			f.Score.Level)
 	}
 	return nil
 }
@@ -448,14 +449,14 @@ type Char struct {
 	Class byte   `json:"class"`
 	X     uint16 `json:"x"`
 	Y     uint16 `json:"y"`
-	// Jogadores nao armazenam STRUCT_SCORE. Ele e projetado na borda.
-	Extended *ExtendedScore `json:"extendedScore"`
-	// ExtendedRuntime contem o score efetivo depois de buffs/debuffs. Extended
-	// permanece a base persistida; separar os dois impede que cada recálculo
+	// Score e persistido diretamente e compartilhado com o client-source.
+	Score *Score `json:"score"`
+	// RuntimeScore contem a copia efetiva depois de buffs/debuffs. Score
+	// permanece a base persistida; essa copia nao define outro formato de score; separar os dois impede que cada recálculo
 	// acumule Possuido/transformacoes e grave o bonus temporario no JSON.
-	ExtendedRuntime *ExtendedScore `json:"-"`
-	Equip           [16]Item       `json:"equip"` // slots de equipamento
-	Inv             [64]Item       `json:"inv"`   // wire/persistencia tem 64; UI usa 0..62
+	RuntimeScore *Score   `json:"-"`
+	Equip        [16]Item `json:"equip"` // slots de equipamento
+	Inv          [64]Item `json:"inv"`   // wire/persistencia tem 64; UI usa 0..62
 	// CP e o Chaos/PK Point exibido, assinado e autoritativo (-75..+75).
 	// CP 0 e o estado neutro de um personagem novo; o byte legado de CreateMob
 	// usa CP+75 somente na borda do protocolo.
@@ -615,7 +616,7 @@ func (c *Char) IsEmpty() bool {
 // sem nome nunca pode ser serializado como null enquanto ainda contem dominio.
 func (c Char) equalsZero() bool {
 	return c.UID == "" && c.Name == "" && c.Class == 0 && c.X == 0 && c.Y == 0 &&
-		c.Extended == nil && c.ExtendedRuntime == nil &&
+		c.Score == nil && c.RuntimeScore == nil &&
 		c.Equip == [16]Item{} && c.Inv == [64]Item{} &&
 		c.CP == 0 && c.ChaosVersion == 0 && c.Gold == 0 && c.Exp == 0 && c.NextExp == 0 &&
 		c.LearnedSkill == 0 && c.SecondaryLearnedSkill == 0 &&
@@ -659,7 +660,7 @@ func (c Char) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// UnmarshalJSON le exclusivamente o formato autoritativo atual: extendedScore
+// UnmarshalJSON le exclusivamente o formato autoritativo atual: score
 // v2, equipamento nomeado e inventario posicional completo.
 func (c *Char) UnmarshalJSON(b []byte) error {
 	if bytes.Equal(bytes.TrimSpace(b), []byte("null")) {
@@ -720,7 +721,7 @@ func (c *Char) UnmarshalJSON(b []byte) error {
 	if c.CP < MinCP || c.CP > MaxCP {
 		return fmt.Errorf("personagem %q possui cp fora de -75..75: %d", c.Name, c.CP)
 	}
-	if err := c.Extended.ValidatePlayerState(); err != nil {
+	if err := c.Score.ValidatePlayerState(); err != nil {
 		return fmt.Errorf("personagem %q: %w", c.Name, err)
 	}
 	if err := c.AlternateCelestial.Validate(); err != nil {
@@ -732,9 +733,9 @@ func (c *Char) UnmarshalJSON(b []byte) error {
 	}
 	activeEvolution := strings.ToLower(strings.TrimSpace(c.Evolution))
 	if (activeEvolution == "celestial" || activeEvolution == "subcelestial") &&
-		c.Extended.Level > 199 {
+		c.Score.Level > 199 {
 		return fmt.Errorf("personagem %q possui level Celestial interno %d; maximo 199",
-			c.Name, c.Extended.Level)
+			c.Name, c.Score.Level)
 	}
 	if c.AlternateCelestial != nil {
 		active := activeEvolution
@@ -837,7 +838,7 @@ func (a *Account) Validate() error {
 			}
 			continue
 		}
-		if err := character.Extended.ValidatePlayerState(); err != nil {
+		if err := character.Score.ValidatePlayerState(); err != nil {
 			return fmt.Errorf("conta %q personagem[%d] %q: %w",
 				a.Name, i, character.Name, err)
 		}
@@ -1119,9 +1120,9 @@ type NPCDef struct {
 	Equip     Equip  `json:"equip"`          // aparencia (16 slots nomeados)
 	ClassInfo byte   `json:"classInfo,omitempty"`
 	ExpReward uint32 `json:"expReward"`
-	// Extended e a unica fonte de atributos do NPC. Assim como nos personagens,
+	// Score e a unica fonte de atributos do NPC. Assim como nos personagens,
 	// STRUCT_SCORE WORD e somente uma projecao criada na borda do protocolo.
-	Extended *ExtendedScore `json:"extendedScore"`
+	Score *Score `json:"extendedScore"`
 	// Carry = o inventario de DROP do monstro (mecanica nativa do WYD): a POSICAO
 	// no array e o slot (0..63) e define a chance via a tabela de drop rates
 	// (data/droprate.json, portada do g_pDropRate[64] do W2PP). Na morte, cada slot
@@ -1131,8 +1132,8 @@ type NPCDef struct {
 	// MobKilled) direto pro gold do killer.
 	Gold uint32 `json:"gold,omitempty"`
 	// Direction preserva somente o nibble alto de Status.Merchant. No wire, o
-	// client recebe Direction | (Extended.Merchant & 0x0F). O valor completo de
-	// Merchant continua em Extended para a logica server-side (19, 43 etc.).
+	// client recebe Direction | (Score.Merchant & 0x0F). O valor completo de
+	// Merchant continua em Score para a logica server-side (19, 43 etc.).
 	Direction    byte    `json:"direction,omitempty"`
 	LearnedSkill uint32  `json:"learnedSkill,omitempty"`
 	SkillBar     [4]byte `json:"skillBar,omitempty"`
@@ -1208,7 +1209,7 @@ type Teleport struct {
 // de zero sempre identifica uma funcao de NPC no protocolo; essa segunda trava
 // impede um template convertido incorretamente de transformar loja/artesao em mob.
 func (n *NPCDef) IsMonster() bool {
-	return n != nil && n.Tipo == TipoMonstro && (n.Extended == nil || n.Extended.Merchant == 0)
+	return n != nil && n.Tipo == TipoMonstro && (n.Score == nil || n.Score.Merchant == 0)
 }
 
 // Mesh devolve os 16 slots de aparencia (ItemEff@34 do CreateMob) como slice.
@@ -1217,14 +1218,14 @@ func (n *NPCDef) Mesh() []uint16 {
 	return s[:]
 }
 
-// MakeExtendedScore clona os atributos autoritativos e injeta os recursos atuais.
-func (n *NPCDef) MakeExtendedScore(currentHP uint32) *ExtendedScore {
-	if n == nil || n.Extended == nil {
-		return &ExtendedScore{Version: ExtendedScoreVersion}
+// MakeScore clona os atributos autoritativos e injeta os recursos atuais.
+func (n *NPCDef) MakeScore(currentHP uint32) *Score {
+	if n == nil || n.Score == nil {
+		return &Score{Version: ScoreVersion}
 	}
-	score := *n.Extended
-	score.Version = ExtendedScoreVersion
-	direction := n.Direction & 0xF0
+	score := *n.Score
+	score.Version = ScoreVersion
+	direction := uint32(n.Direction & 0xF0)
 	score.Merchant = direction | (score.Merchant & 0x0F)
 	score.CurHP = minScoreValue(currentHP, score.MaxHP)
 	score.CurMP = score.MaxMP

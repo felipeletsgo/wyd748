@@ -43,10 +43,10 @@ func LoadCharacterTemplates(path string, items map[uint16]model.ItemDef) (model.
 			return cfg, fmt.Errorf("data: %s: classe %d duplicada", path, class.Class)
 		}
 		seen[class.Class] = true
-		if err := class.ExtendedScore.Validate(); err != nil {
+		if err := class.Score.Validate(); err != nil {
 			return cfg, fmt.Errorf("data: %s classe %d: %w", path, class.Class, err)
 		}
-		if class.ExtendedScore.MaxHP == 0 || class.ExtendedScore.MaxMP == 0 {
+		if class.Score.MaxHP == 0 || class.Score.MaxMP == 0 {
 			return cfg, fmt.Errorf("data: %s classe %d: HP/MP base devem ser maiores que zero", path, class.Class)
 		}
 		if len(class.Inventory) > model.PlayerCarrySlots {

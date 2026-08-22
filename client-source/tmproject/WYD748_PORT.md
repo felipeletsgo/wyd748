@@ -49,7 +49,7 @@ vazamento antes da primeira cena.
 
 ## Contratos
 
-1. `model.ExtendedScore` continua sendo a unica autoridade de atributos.
+1. `model.Score` continua sendo a unica autoridade de atributos.
 2. `STRUCT_SCORE` de 48 bytes e uma projecao do servidor para o client.
 3. Campos de score recebidos do client nunca alimentam gameplay.
 4. A extensao `XSC2` permanece enquanto houver atributos que nao cabem no

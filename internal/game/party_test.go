@@ -28,7 +28,7 @@ func TestPartyRequestTarget759Compatibility(t *testing.T) {
 func partyTestPlayer(id uint16, x, y uint16) *Player {
 	return &Player{
 		ID: id, X: x, Y: y, InWorld: true,
-		Char: &model.Char{Name: "Player", Extended: testExtended(model.ExtendedScore{MaxHP: 100, CurHP: 100})},
+		Char: &model.Char{Name: "Player", Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})},
 	}
 }
 
@@ -121,7 +121,7 @@ func TestDefaultGlobalExperienceProducesTenThousandTwoHundredSolo(t *testing.T) 
 
 func TestPartyExperienceExcludesInternalLevel399AtFinalEXPCap(t *testing.T) {
 	maxed := partyTestPlayer(1, 2200, 2100)
-	maxed.Char.Extended.Level = maxMortalLevel
+	maxed.Char.Score.Level = maxMortalLevel
 	maxed.Char.Exp = mortalNextLevel[400]
 	if shares := partyExpShares(maxed, 10_000, 2); len(shares) != 0 {
 		t.Fatalf("personagem no limite recebeu EXP: %+v", shares)

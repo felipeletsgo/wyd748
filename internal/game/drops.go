@@ -113,7 +113,7 @@ func (w *World) planMobDrops(p *Player, m *Mob) []plannedDrop {
 		return nil
 	}
 	planned := make([]plannedDrop, 0, len(m.Def.Carry))
-	lvl := int(m.Def.Extended.Level)
+	lvl := int(m.Def.Score.Level)
 	for i, item := range m.Def.Carry {
 		if i >= len(w.dropRates) {
 			break
@@ -166,7 +166,7 @@ func (w *World) rollMobGold(p *Player, m *Mob) uint32 {
 		return 0
 	}
 	unk := 18
-	switch lvl := int(m.Def.Extended.Level); {
+	switch lvl := int(m.Def.Score.Level); {
 	case lvl < 10:
 		unk = 2
 	case lvl < 20:

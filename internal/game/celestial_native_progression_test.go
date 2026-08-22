@@ -127,7 +127,7 @@ func TestSubCelestialRequires100Fame(t *testing.T) {
 	w, p, st := newCelestialWorld(t, 399)
 	w.useCelestialIdeal(p.Session, p, &p.Char.Inv[0], 0)
 	reenterCelestialTestCharacter(t, w, p)
-	p.Char.Extended.Level = 120
+	p.Char.Score.Level = 120
 	p.Char.Equip[sefirotSlot] = model.Item{Index: 1763}
 	p.Char.Inv[0] = model.Item{Index: idealStoneItem}
 	p.SpecialCoins = map[string]uint32{fameCounter: subCelestialFameCost - 1}
@@ -148,7 +148,7 @@ func TestSubCelestialSaveFailureRestoresFameAndItems(t *testing.T) {
 	w, p, st := newCelestialWorld(t, 399)
 	w.useCelestialIdeal(p.Session, p, &p.Char.Inv[0], 0)
 	reenterCelestialTestCharacter(t, w, p)
-	p.Char.Extended.Level = 120
+	p.Char.Score.Level = 120
 	p.Char.Equip[sefirotSlot] = model.Item{Index: 1763}
 	p.Char.Inv[0] = model.Item{Index: idealStoneItem}
 	p.SpecialCoins = map[string]uint32{fameCounter: subCelestialFameCost}

@@ -18,7 +18,7 @@ const (
 )
 
 func isAbilityResetMasterNPC(def *model.NPCDef) bool {
-	return def != nil && def.Extended != nil && def.Extended.Merchant == abilityResetMasterMerchant
+	return def != nil && def.Score != nil && def.Score.Merchant == abilityResetMasterMerchant
 }
 
 func abilityResetEquipmentEmpty(ch *model.Char) bool {
@@ -37,11 +37,11 @@ func abilityResetEquipmentEmpty(ch *model.Char) bool {
 
 func resetDistributedAttributes(ch *model.Char) (uint32, bool) {
 	base, ok := naturalStats(ch)
-	if !ok || ch == nil || ch.Extended == nil {
+	if !ok || ch == nil || ch.Score == nil {
 		return 0, false
 	}
 	stats := [4]*uint32{
-		&ch.Extended.Str, &ch.Extended.Int, &ch.Extended.Dex, &ch.Extended.Con,
+		&ch.Score.Str, &ch.Score.Int, &ch.Score.Dex, &ch.Score.Con,
 	}
 	var recovered uint32
 	for index, stat := range stats {
@@ -61,7 +61,7 @@ func resetDistributedAttributes(ch *model.Char) (uint32, bool) {
 }
 
 // handleAbilityResetMasterNPC porta o MESTREHAB do W2PP para o estado
-// ExtendedScore autoritativo. Return Of Ability tem prioridade; sem ele, o
+// Score autoritativo. Return Of Ability tem prioridade; sem ele, o
 // custo é 30 Safiras (avulsas e/ou pacotes de dez).
 func (w *World) handleAbilityResetMasterNPC(s *net.Session, p *Player, m *Mob, clickOk int32) bool {
 	if m == nil || !isAbilityResetMasterNPC(m.Def) {

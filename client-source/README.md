@@ -14,7 +14,7 @@ gameplay.
 ## Primeiro marco
 
 O baseline importado usa DirectX 9, Win32 e `STRUCT_SCORE` de 48 bytes. O
-WYD-Go continuara persistindo e calculando exclusivamente com `ExtendedScore`;
+WYD-Go continuara persistindo e calculando exclusivamente com `Score`;
 o score do client e apenas uma projecao de apresentacao e protocolo.
 
 Para compilar no Windows:

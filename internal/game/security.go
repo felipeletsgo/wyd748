@@ -345,7 +345,7 @@ func movementTilesPerSecond(p *Player) float64 {
 		speed = int(playerAttackRun(p.Char) & 0x0F)
 	}
 	// TMHuman interpola um passo a cada 1000/Speed ms. A autoridade usa a mesma
-	// cadencia, mas deriva Speed do ExtendedScore server-side; o campo recebido
+	// cadencia, mas deriva Speed do Score server-side; o campo recebido
 	// no pacote nunca aumenta a velocidade. BASE_GetSpeed do TMSrv limita 1..6.
 	if speed < 1 {
 		speed = 1

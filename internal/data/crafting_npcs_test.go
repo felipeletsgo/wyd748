@@ -35,10 +35,10 @@ func TestCraftingNPCDataset(t *testing.T) {
 			t.Errorf("template do compositor %q ausente", name)
 			continue
 		}
-		if npc.Tipo != model.TipoNPC || npc.Extended == nil ||
-			npc.Extended.Merchant&0x0F != craftingMerchant {
+		if npc.Tipo != model.TipoNPC || npc.Score == nil ||
+			npc.Score.Merchant&0x0F != craftingMerchant {
 			t.Errorf("%s: tipo=%q merchant=%v; esperado npc/8",
-				name, npc.Tipo, npc.Extended)
+				name, npc.Tipo, npc.Score)
 		}
 		if npc.Equip.Rosto.Index != face {
 			t.Errorf("%s: face=%d, esperado %d para seletor do client",

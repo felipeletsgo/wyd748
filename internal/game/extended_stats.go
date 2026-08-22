@@ -5,7 +5,7 @@ import (
 	"wydgo/internal/wire"
 )
 
-const maxExtendedStat uint32 = model.MaxExtendedScoreValue
+const maxExtendedStat uint32 = model.MaxScoreValue
 
 func clampExtended(value uint32) uint32 {
 	if value > maxExtendedStat {
@@ -19,19 +19,19 @@ func ensureExtendedScore(ch *model.Char) {
 	if ch == nil {
 		return
 	}
-	if ch.Extended == nil {
+	if ch.Score == nil {
 		panic("game: personagem sem extendedScore")
 	}
-	if ch.Extended.Version != model.ExtendedScoreVersion {
+	if ch.Score.Version != model.ScoreVersion {
 		panic("game: versao de extendedScore invalida")
 	}
 }
 
-func clampRuntime(e *model.ExtendedScore) {
+func clampRuntime(e *model.Score) {
 	if e == nil {
 		return
 	}
-	e.Version = model.ExtendedScoreVersion
+	e.Version = model.ScoreVersion
 	e.Level = clampExtended(e.Level)
 	e.Attack = clampExtended(e.Attack)
 	e.MagicAttack = clampExtended(e.MagicAttack)
@@ -70,29 +70,29 @@ func applyExtendedScore(ch *model.Char) {
 		return
 	}
 	ensureExtendedScore(ch)
-	effective := *ch.Extended
+	effective := *ch.Score
 	clampRuntime(&effective)
-	ch.ExtendedRuntime = &effective
+	ch.RuntimeScore = &effective
 }
 
 // projectExtendedRuntime foi mantida como ponto unico de validacao para os
 // recalculos existentes. Nenhum Score estreito e armazenado aqui.
 func projectExtendedRuntime(ch *model.Char) {
-	if ch == nil || ch.ExtendedRuntime == nil {
+	if ch == nil || ch.RuntimeScore == nil {
 		return
 	}
-	clampRuntime(ch.ExtendedRuntime)
+	clampRuntime(ch.RuntimeScore)
 }
 
-func effectiveExtended(ch *model.Char) *model.ExtendedScore {
+func effectiveExtended(ch *model.Char) *model.Score {
 	if ch == nil {
 		return nil
 	}
 	ensureExtendedScore(ch)
-	if ch.ExtendedRuntime != nil {
-		return ch.ExtendedRuntime
+	if ch.RuntimeScore != nil {
+		return ch.RuntimeScore
 	}
-	return ch.Extended
+	return ch.Score
 }
 
 func playerLevel(ch *model.Char) uint32 {
@@ -121,7 +121,7 @@ func playerSkillPoints(ch *model.Char) uint32 {
 
 func playerAttackRun(ch *model.Char) byte {
 	if e := effectiveExtended(ch); e != nil {
-		return e.AttackRun
+		return byte(e.AttackRun & 0xff)
 	}
 	return 0
 }
@@ -162,9 +162,9 @@ func setPlayerCurHP(ch *model.Char, value uint32) {
 	value = minU32(value, playerMaxHP(ch))
 	// O valor VIVO (limitado pelo teto efetivo) fica no runtime; o base
 	// so aceita ate o proprio teto, senao o autosave grava cur > max.
-	ch.Extended.CurHP = minU32(value, ch.Extended.MaxHP)
-	if ch.ExtendedRuntime != nil {
-		ch.ExtendedRuntime.CurHP = value
+	ch.Score.CurHP = minU32(value, ch.Score.MaxHP)
+	if ch.RuntimeScore != nil {
+		ch.RuntimeScore.CurHP = value
 	} else {
 		applyExtendedScore(ch)
 	}
@@ -178,9 +178,9 @@ func setPlayerCurMP(ch *model.Char, value uint32) {
 	value = minU32(value, playerMaxMP(ch))
 	// O valor VIVO (limitado pelo teto efetivo) fica no runtime; o base
 	// so aceita ate o proprio teto, senao o autosave grava cur > max.
-	ch.Extended.CurMP = minU32(value, ch.Extended.MaxMP)
-	if ch.ExtendedRuntime != nil {
-		ch.ExtendedRuntime.CurMP = value
+	ch.Score.CurMP = minU32(value, ch.Score.MaxMP)
+	if ch.RuntimeScore != nil {
+		ch.RuntimeScore.CurMP = value
 	} else {
 		applyExtendedScore(ch)
 	}
@@ -256,7 +256,7 @@ func spendPlayerMP(ch *model.Char, amount uint32) bool {
 	return true
 }
 
-func wireExtendedScore(ch *model.Char) *model.ExtendedScore {
+func wireExtendedScore(ch *model.Char) *model.Score {
 	return effectiveExtended(ch)
 }
 

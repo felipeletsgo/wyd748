@@ -145,13 +145,13 @@ func (w *World) useNightmareTicket(s *net.Session, p *Player, item *model.Item, 
 
 // useMasteryReset porta os Compostos de Chance/Equilibrio. O nativo devolve
 // ate 50/100 pontos de cada um dos ramos 1 e 2 e apaga as skills Mortais.
-// No modelo ExtendedScore, MasterPts e derivado do orçamento; reduzir Mastery
+// No modelo Score, MasterPts e derivado do orçamento; reduzir Mastery
 // e recalcular devolve os pontos sem manter um segundo saldo mutável.
 func (w *World) useMasteryReset(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule, code int) {
 	ch := p.Char
-	if ch == nil || ch.Extended == nil || !matchesEvolution(ch, "mortal") ||
-		ch.Extended.Level < rule.MinLevel || ch.Extended.Level >= rule.MaxLevelExclusive ||
+	if ch == nil || ch.Score == nil || !matchesEvolution(ch, "mortal") ||
+		ch.Score.Level < rule.MinLevel || ch.Score.Level >= rule.MaxLevelExclusive ||
 		questCompleted(ch, masteryResetFlag(code)) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -160,10 +160,10 @@ func (w *World) useMasteryReset(s *net.Session, p *Player, item *model.Item, slo
 	snapshot := cloneCharacterState(ch)
 	limit := uint32(rule.Amount)
 	for branch := 1; branch <= 2; branch++ {
-		if ch.Extended.Mastery[branch] > limit {
-			ch.Extended.Mastery[branch] -= limit
+		if ch.Score.Mastery[branch] > limit {
+			ch.Score.Mastery[branch] -= limit
 		} else {
-			ch.Extended.Mastery[branch] = 0
+			ch.Score.Mastery[branch] = 0
 		}
 	}
 	ch.LearnedSkill &= 0xFF000000

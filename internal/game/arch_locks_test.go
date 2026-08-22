@@ -15,7 +15,7 @@ func archNoNivel(level uint32, d355, d370 bool) *model.Char {
 		Name: "God", Evolution: "arch",
 		Exp:          mortalNextLevel[level],
 		ArchLevel355: d355, ArchLevel370: d370,
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, Level: level},
+		Score: &model.Score{Version: model.ScoreVersion, Level: level},
 	}
 }
 
@@ -68,7 +68,7 @@ func TestDestraveSobreviveAoRebaixamentoDoCristal(t *testing.T) {
 	usarCristal(w, p, s, firstArchCrystal)
 
 	// O desconto rebaixou o nivel...
-	if p.Char.Extended.Level >= 2_600_000_000 {
+	if p.Char.Score.Level >= 2_600_000_000 {
 		t.Fatal("cenario invalido")
 	}
 	// ...mas o destrave persiste na conta.

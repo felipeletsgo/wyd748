@@ -225,11 +225,11 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// Poeira de Fada nativa: posiciona a EXP exatamente no proximo marco,
 		// portanto concede um unico nivel (e nao uma quantidade fixa arbitraria).
 		if !matchesEvolution(p.Char, "mortal") ||
-			p.Char.Extended == nil || p.Char.Extended.Level >= maxMortalLevel {
+			p.Char.Score == nil || p.Char.Score.Level >= maxMortalLevel {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
-		next := mortalNextLevel[int(p.Char.Extended.Level)+1]
+		next := mortalNextLevel[int(p.Char.Score.Level)+1]
 		if p.Char.Exp >= next {
 			syncProgression(p.Char)
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -813,7 +813,7 @@ func refineChance(sanc int) int {
 // confirmar, como o refino Ori/Lac.
 func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderSlot byte,
 	rule model.VolatileRule, code int) {
-	if p == nil || p.Char == nil || p.Char.Extended == nil {
+	if p == nil || p.Char == nil || p.Char.Score == nil {
 		return
 	}
 	resend := func() {
@@ -835,7 +835,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 		s.Send(wire.MessagePanel("This item cannot be used by this evolution."))
 		return
 	}
-	playerLevel := p.Char.Extended.Level
+	playerLevel := p.Char.Score.Level
 	if (rule.MinLevel != 0 && playerLevel < rule.MinLevel) ||
 		(rule.MaxLevelExclusive != 0 && playerLevel >= rule.MaxLevelExclusive) {
 		resend()

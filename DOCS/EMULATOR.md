@@ -276,7 +276,7 @@ deliberadamente distintos:
 3. O sidecar `.xstat` do client guarda os valores reais recebidos nas caudas:
    `0x336` tem 236 bytes e `0x181` tem 36 bytes.
 
-Todo personagem, template e NPC usa exclusivamente `ExtendedScore` versão 2.
+Todo personagem, template e NPC usa exclusivamente `Score` versão 2.
 Os loaders rejeitam campos desconhecidos, versões diferentes e estruturas
 antigas; não existe conversão silenciosa durante o boot.
 
@@ -441,7 +441,7 @@ Cada um custou horas. **Leia antes de mexer no wire.**
 **`model.Item`** = `{Index u16, Eff [6]byte}`. MarshalJSON omite `eff` zerado →
 `{"index":N}`.
 
-**`model.WireScore`** = os 28 bytes do STRUCT_SCORE (ver §5), usado somente como
+**`model.LegacyScore28`** = os 28 bytes do STRUCT_SCORE (ver §5), usado somente como
 projeção descartável de ABI no pacote `wire`.
 
 **`model.Char`** persiste apenas `Extended` (`extendedScore` v2). O
@@ -460,11 +460,11 @@ Somente `passwordHash` é válido; senha em texto não pertence ao schema.
 Slots vazios em `Chars` são gravados como `null`, preservando os quatro índices.
 
 **`model.NPCDef`** = `Name, Tipo ("monstro"|"npc"), Equip (16 STRUCT_ITEM nomeados),
-ClassInfo, ExpReward, ExtendedScore v2, Carry, Gold, Direction, LearnedSkill,
+ClassInfo, ExpReward, Score v2, Carry, Gold, Direction, LearnedSkill,
 SkillBar e Vende`. A posição e a rota pertencem ao `NPCGener.txt`, não ao
 template. → `data/npcs/<nome>.json`.
 `Equip.Slots()` calcula os 16 `ItemEff` visuais, incluindo refino/cor/montaria;
-`Equip.AncientCodes()` gera os bytes de cor; `MakeExtendedScore()` clona o estado
+`Equip.AncientCodes()` gera os bytes de cor; `MakeScore()` clona o estado
 wide com o HP atual; `CompatibilityScore()` é chamado somente no wire;
 `IsMonster()` → `Tipo=="monstro"`; `Mesh()` → os 16 slots como slice pro ItemEff@34.
 
@@ -919,7 +919,7 @@ cmd/account-create/    criador local interativo
 internal/
   account/             validação compartilhada de conta/senha e PBKDF2
   accountapi/          HTTP, limites, cabeçalhos e rate limit
-  model/model.go       tipos puros: Item, ExtendedScore, WireScore, Char, Account, Equip, NPCDef
+  model/model.go       tipos puros: Item, Score, LegacyScore28, Char, Account, Equip, NPCDef
   wire/
     crypt.go           pKeyWord[512] + Encrypt/Decrypt
     packet.go          Header (12B), ReadPacket (framing+decrypt), FinishPacket

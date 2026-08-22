@@ -73,7 +73,7 @@ type GuildRegistry struct {
 }
 
 // GuildRegistryVersion e a unica versao aceita pelo loader, seguindo o mesmo
-// contrato estrito do ExtendedScore v2.
+// contrato estrito do Score v2.
 const GuildRegistryVersion = 1
 
 // NormalizeGuildName devolve a forma usada para comparar unicidade. A exibicao

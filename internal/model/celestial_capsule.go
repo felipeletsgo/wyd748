@@ -75,7 +75,7 @@ func (c CelestialCapsule) Validate() error {
 	if evolution != "celestial" && evolution != "subcelestial" {
 		return fmt.Errorf("capsula Celestial %d possui evolucao invalida %q", c.ID, evolution)
 	}
-	if err := c.Character.Extended.ValidatePlayerState(); err != nil {
+	if err := c.Character.Score.ValidatePlayerState(); err != nil {
 		return fmt.Errorf("capsula Celestial %d: %w", c.ID, err)
 	}
 	return nil

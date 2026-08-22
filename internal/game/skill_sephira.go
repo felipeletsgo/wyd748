@@ -47,20 +47,20 @@ func (w *World) castThornWall(p *Player, req skillCastRequest, skill model.Skill
 			break
 		}
 	}
-	if source == nil || source.Extended == nil {
+	if source == nil || source.Score == nil {
 		return false
 	}
 	def := *source
-	ext := *source.Extended
-	def.Extended = &ext
-	def.Extended.CurHP = def.Extended.MaxHP
+	ext := *source.Score
+	def.Score = &ext
+	def.Score.CurHP = def.Score.MaxHP
 	mobID := w.allocMobID()
 	if mobID == 0 {
 		return false
 	}
 	m := &Mob{ID: mobID, Def: &def, X: req.TargetX, Y: req.TargetY,
 		InstanceID: w.playerRuntimeInstanceID(p.ID),
-		HP:         def.Extended.MaxHP, GenerIndex: -1, SummonerID: p.ID,
+		HP:         def.Score.MaxHP, GenerIndex: -1, SummonerID: p.ID,
 		SummonKind: summonKindThornWall, ExpiresAt: w.now().Add(thornWallLifetime)}
 	w.appendMobInstance(m)
 	w.publishMobSpawn(m)

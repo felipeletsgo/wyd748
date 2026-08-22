@@ -85,7 +85,7 @@ func kingdomCapeForJoin(ch *model.Char, kingdom byte) (kingdomCapeChange, error)
 	if kingdom != model.KingdomHekalotia && kingdom != model.KingdomAkelonia {
 		return kingdomCapeChange{}, errKingdomInvalidCape
 	}
-	if ch == nil || ch.Extended == nil {
+	if ch == nil || ch.Score == nil {
 		return kingdomCapeChange{}, errKingdomNeedLevel220
 	}
 	currentIndex := ch.Equip[model.CapeSlot].Index
@@ -103,13 +103,13 @@ func kingdomCapeForJoin(ch *model.Char, kingdom byte) (kingdomCapeChange, error)
 		// o rei tambem repara personagens antigos que ainda carreguem tier menor.
 		return kingdomCapeChange{Index: cape, Tier: model.CapeTierMaster, Preserve: currentIndex == 3199}, nil
 	}
-	if ch.Extended.Level < kingdomJoinMinLevel {
+	if ch.Score.Level < kingdomJoinMinLevel {
 		return kingdomCapeChange{}, errKingdomNeedLevel220
 	}
 
 	tier, knownTier := model.KingdomCapeTierOf(currentIndex)
 	if currentKingdom == kingdom {
-		if knownTier && tier == model.CapeTierBasic && ch.Extended.Level >= kingdomKnightLevel {
+		if knownTier && tier == model.CapeTierBasic && ch.Score.Level >= kingdomKnightLevel {
 			cape, _ := model.KingdomCapeAtTier(model.CapeTierKnight, kingdom)
 			return kingdomCapeChange{Index: cape, Tier: model.CapeTierKnight}, nil
 		}
@@ -126,7 +126,7 @@ func kingdomCapeForJoin(ch *model.Char, kingdom byte) (kingdomCapeChange, error)
 	if tier == model.CapeTierMaster {
 		return kingdomCapeChange{}, errKingdomNeedCelestial
 	}
-	if ch.Extended.Level < kingdomKnightLevel {
+	if ch.Score.Level < kingdomKnightLevel {
 		return kingdomCapeChange{}, errKingdomNeedLevel256
 	}
 	cape, ok := model.KingdomCape(currentIndex, kingdom)

@@ -16,10 +16,10 @@ func archComExp(exp uint32, cristais byte) (*World, *Player, *net.Session) {
 	s := net.NewTestSession(1, 64)
 	ch := model.Char{
 		Name: "God", Evolution: "arch", Exp: exp, ArchCrystals: cristais,
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion,
+		Score: &model.Score{Version: model.ScoreVersion,
 			MaxHP: 1000, CurHP: 1000},
 	}
-	ch.Extended.Level = levelForExp(exp)
+	ch.Score.Level = levelForExp(exp)
 	acc := &model.Account{Name: "c", Chars: []model.Char{ch}}
 	p := &Player{ID: 1, Session: s, Account: acc, Char: &acc.Chars[0], InWorld: true}
 	w := &World{store: &craftStore{}, players: map[*net.Session]*Player{s: p},
@@ -38,7 +38,7 @@ func usarCristal(w *World, p *Player, s *net.Session, indice uint16) {
 func TestCristalCobraCemMilhoesERebaixaNivel(t *testing.T) {
 	const exp = uint32(2_600_000_000)
 	w, p, s := archComExp(exp, 0)
-	nivelAntes := p.Char.Extended.Level
+	nivelAntes := p.Char.Score.Level
 
 	usarCristal(w, p, s, firstArchCrystal)
 
@@ -49,11 +49,11 @@ func TestCristalCobraCemMilhoesERebaixaNivel(t *testing.T) {
 		t.Errorf("exp=%d, quer %d", p.Char.Exp, exp-archCrystalExpCost)
 	}
 	// O nivel acompanha a EXP reduzida: nao pode ficar parado.
-	if p.Char.Extended.Level >= nivelAntes {
-		t.Errorf("nivel %d -> %d; deveria cair com a EXP", nivelAntes, p.Char.Extended.Level)
+	if p.Char.Score.Level >= nivelAntes {
+		t.Errorf("nivel %d -> %d; deveria cair com a EXP", nivelAntes, p.Char.Score.Level)
 	}
-	if p.Char.Extended.Level != levelForExp(p.Char.Exp) {
-		t.Errorf("nivel %d nao corresponde a EXP %d", p.Char.Extended.Level, p.Char.Exp)
+	if p.Char.Score.Level != levelForExp(p.Char.Exp) {
+		t.Errorf("nivel %d nao corresponde a EXP %d", p.Char.Score.Level, p.Char.Exp)
 	}
 	if p.Char.Inv[0].Index != 0 {
 		t.Error("o cristal nao foi consumido")
@@ -133,7 +133,7 @@ func TestCristalNaoDaVoltaNoUnderflow(t *testing.T) {
 // niveis nessa faixa, quem esta no limite faz UM e precisa recuperar nivel.
 func TestCristalExigeNivelMinimo(t *testing.T) {
 	w, p, s := archComExp(2_600_000_000, 0)
-	p.Char.Extended.Level = archCrystalMinLevel - 1
+	p.Char.Score.Level = archCrystalMinLevel - 1
 	expAntes := p.Char.Exp
 
 	usarCristal(w, p, s, firstArchCrystal)
@@ -152,7 +152,7 @@ func TestCristalExigeNivelMinimo(t *testing.T) {
 func TestCristalNaoCobraSeOSaveFalhar(t *testing.T) {
 	const exp = uint32(2_600_000_000)
 	w, p, s := archComExp(exp, 0)
-	nivelAntes := p.Char.Extended.Level
+	nivelAntes := p.Char.Score.Level
 	w.store = &craftStore{err: errors.New("disco cheio")}
 
 	usarCristal(w, p, s, firstArchCrystal)
@@ -163,8 +163,8 @@ func TestCristalNaoCobraSeOSaveFalhar(t *testing.T) {
 	if p.Char.ArchCrystals != 0 {
 		t.Error("marcou o cristal apesar da falha")
 	}
-	if p.Char.Extended.Level != nivelAntes {
-		t.Errorf("nivel mudou apesar da falha: %d -> %d", nivelAntes, p.Char.Extended.Level)
+	if p.Char.Score.Level != nivelAntes {
+		t.Errorf("nivel mudou apesar da falha: %d -> %d", nivelAntes, p.Char.Score.Level)
 	}
 	if p.Char.Inv[0].Index != firstArchCrystal {
 		t.Error("o cristal sumiu apesar da falha")

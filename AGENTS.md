@@ -364,9 +364,9 @@ jogo.
 
 ## Score
 
-`ExtendedScore` v2 é autoritativo.
+`Score` v2 é autoritativo.
 
-`WireScore` existe apenas como projeção do protocolo.
+`LegacyScore28` existe apenas como projeção do protocolo.
 
 Nunca derive estado autoritativo de valores recebidos do client.
 

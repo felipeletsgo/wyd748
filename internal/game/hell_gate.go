@@ -38,7 +38,7 @@ func (w *World) spawnHellGateWave(inst *ItemInstance, spawns []model.VolatileIns
 	}
 	for _, spawn := range spawns {
 		def := w.npcDefByName(spawn.NPC)
-		if def == nil || def.Extended == nil || spawn.Count <= 0 {
+		if def == nil || def.Score == nil || spawn.Count <= 0 {
 			rollback()
 			return nil, false
 		}
@@ -79,7 +79,7 @@ func (w *World) spawnHellGateWave(inst *ItemInstance, spawns []model.VolatileIns
 				return nil, false
 			}
 			mob := &Mob{ID: mobID, Def: def, X: x, Y: y,
-				HP: def.Extended.MaxHP, GenerIndex: -1, InstanceID: inst.RuntimeID}
+				HP: def.Score.MaxHP, GenerIndex: -1, InstanceID: inst.RuntimeID}
 			w.appendMobInstance(mob)
 			w.mobsByID[mob.ID] = mob
 			reserved[uint32(x)<<16|uint32(y)] = struct{}{}
@@ -249,7 +249,7 @@ func (w *World) spawnHellGateFinal(inst *ItemInstance, now time.Time) bool {
 	inst.Remaining = len(created)
 	for _, spawn := range cfg.FinalNPCs {
 		def := w.npcDefByName(spawn.NPC)
-		if def == nil || def.Extended == nil || def.IsMonster() || spawn.Count <= 0 {
+		if def == nil || def.Score == nil || def.IsMonster() || spawn.Count <= 0 {
 			w.removeHellGateMobs(inst)
 			return false
 		}
@@ -264,7 +264,7 @@ func (w *World) spawnHellGateFinal(inst *ItemInstance, now time.Time) bool {
 				w.removeHellGateMobs(inst)
 				return false
 			}
-			mob := &Mob{ID: id, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
+			mob := &Mob{ID: id, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
 				GenerIndex: -1, InstanceID: inst.RuntimeID}
 			w.appendMobInstance(mob)
 			w.mobsByID[id] = mob

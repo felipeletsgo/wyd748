@@ -31,13 +31,13 @@ const maxBossEventDepth = 16
 
 // mobHPPercent devolve o HP do mob em porcentagem (0-100).
 func mobHPPercent(m *Mob) int {
-	if m == nil || m.Def == nil || m.Def.Extended.MaxHP == 0 {
+	if m == nil || m.Def == nil || m.Def.Score.MaxHP == 0 {
 		return 0
 	}
-	if m.HP >= m.Def.Extended.MaxHP {
+	if m.HP >= m.Def.Score.MaxHP {
 		return 100
 	}
-	return int(uint64(m.HP) * 100 / uint64(m.Def.Extended.MaxHP))
+	return int(uint64(m.HP) * 100 / uint64(m.Def.Score.MaxHP))
 }
 
 // notifyMobDamaged e o gancho chamado pelos caminhos de dano DEPOIS de alterar
@@ -52,7 +52,7 @@ func (w *World) notifyMobDamaged(m *Mob, oldHP uint32, sourceID uint16, damage u
 		return
 	}
 	now := w.now()
-	oldPercent := hpPercentOf(oldHP, m.Def.Extended.MaxHP)
+	oldPercent := hpPercentOf(oldHP, m.Def.Score.MaxHP)
 	newPercent := mobHPPercent(m)
 
 	if !boss.InCombat {

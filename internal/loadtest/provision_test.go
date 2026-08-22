@@ -32,8 +32,8 @@ func testSourceAccount() *model.Account {
 	mortal := model.Char{
 		UID:  "11111111111141118111111111111111",
 		Name: "Felipe", Class: 0,
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version: model.ScoreVersion,
 			Level:   399, MaxHP: 100000, CurHP: 90000,
 			MaxMP: 90000, CurMP: 80000, Attack: 5000,
 		},
@@ -78,8 +78,8 @@ func TestCloneForLoadtestRegeneratesIdentityAndRestoresVitals(t *testing.T) {
 		t.Fatal(err)
 	}
 	ch := clone.Chars[0]
-	if ch.UID != "" || ch.Name != "BotAAAAA" || ch.Extended.CurHP != ch.Extended.MaxHP ||
-		ch.Extended.CurMP != ch.Extended.MaxMP {
+	if ch.UID != "" || ch.Name != "BotAAAAA" || ch.Score.CurHP != ch.Score.MaxHP ||
+		ch.Score.CurMP != ch.Score.MaxMP {
 		t.Fatalf("clone incorreto: %+v", ch)
 	}
 	if ch.Equip[0].UID != "" || ch.LearnedSkill != source.LearnedSkill {

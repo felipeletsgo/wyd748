@@ -42,25 +42,25 @@ func TestSpecialSkillBits(t *testing.T) {
 }
 
 func TestMagicalPillBonusEntersAuthoritativeBudget(t *testing.T) {
-	ch := &model.Char{Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, Level: 50}, SkillPointBonus: 9}
+	ch := &model.Char{Score: &model.Score{Version: model.ScoreVersion, Level: 50}, SkillPointBonus: 9}
 	syncSkillPoints(ch)
 	want := uint32(mortalSkillPointBudget(50) + 9)
-	if ch.Extended.SkillPts != want {
-		t.Fatalf("skillPts=%d want=%d", ch.Extended.SkillPts, want)
+	if ch.Score.SkillPts != want {
+		t.Fatalf("skillPts=%d want=%d", ch.Score.SkillPts, want)
 	}
 }
 
 func TestAffect35AddsTenPercentWithoutAccumulating(t *testing.T) {
-	ch := &model.Char{Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 1000, CurHP: 1000}}
+	ch := &model.Char{Score: &model.Score{Version: model.ScoreVersion, MaxHP: 1000, CurHP: 1000}}
 	ch.Affects[0] = model.Affect{Type: 35, Value: 10, ExpiresAt: time.Now().Add(time.Hour)}
 	w := &World{}
 	w.applyExtendedAffectStats(ch)
-	if ch.ExtendedRuntime.MaxHP != 1100 {
-		t.Fatalf("primeiro maxHP=%d", ch.ExtendedRuntime.MaxHP)
+	if ch.RuntimeScore.MaxHP != 1100 {
+		t.Fatalf("primeiro maxHP=%d", ch.RuntimeScore.MaxHP)
 	}
-	ch.ExtendedRuntime = nil
+	ch.RuntimeScore = nil
 	w.applyExtendedAffectStats(ch)
-	if ch.ExtendedRuntime.MaxHP != 1100 {
-		t.Fatalf("recalculo acumulou: %d", ch.ExtendedRuntime.MaxHP)
+	if ch.RuntimeScore.MaxHP != 1100 {
+		t.Fatalf("recalculo acumulou: %d", ch.RuntimeScore.MaxHP)
 	}
 }

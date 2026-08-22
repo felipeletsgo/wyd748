@@ -98,11 +98,11 @@ func validCapsuleCharacterName(name string) bool {
 
 func capsuleInfoFor(capsule *model.CelestialCapsule) wire.CapsuleInfoData {
 	var info wire.CapsuleInfoData
-	if capsule == nil || capsule.Character.Extended == nil {
+	if capsule == nil || capsule.Character.Score == nil {
 		return info
 	}
 	ch := &capsule.Character
-	e := ch.Extended
+	e := ch.Score
 	info.Class = capsuleDisplayClass(ch)
 	info.Level = clampCapsuleStat(e.Level)
 	info.Str = clampCapsuleStat(e.Str)
@@ -181,7 +181,7 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 		s.Send(wire.MessagePanel("Only a Celestial can use an empty Spirit's Seal."))
 		return
 	}
-	if p.Char.UID == "" || p.Char.Extended == nil {
+	if p.Char.UID == "" || p.Char.Score == nil {
 		resend()
 		return
 	}
@@ -218,7 +218,7 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 	// Timed affects are session state, not progression. The native capsule file
 	// stores the character snapshot but does not keep active server timers.
 	sealedCharacter.Affects = [16]model.Affect{}
-	sealedCharacter.ExtendedRuntime = nil
+	sealedCharacter.RuntimeScore = nil
 	sealedCharacter.X, sealedCharacter.Y = w.charSpawn.X, w.charSpawn.Y
 	consumeOne(&sealedCharacter.Inv[slot])
 	p.Account.CelestialCapsules = append(p.Account.CelestialCapsules, model.CelestialCapsule{
@@ -374,7 +374,7 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 	created := cloneCharacterState(&capsule.Character)
 	created.UID, created.Name = newUID, req.name
 	created.X, created.Y = w.charSpawn.X, w.charSpawn.Y
-	created.ExtendedRuntime = nil
+	created.RuntimeScore = nil
 	created.Affects = [16]model.Affect{}
 	// W2PP keeps only the face and cape (Equip[0] and Equip[15]) from the
 	// capsule. All carry is cleared before the new character is committed.

@@ -12,7 +12,7 @@ import (
 
 func jogadorComSaldo(saldos map[string]uint32) *Player {
 	ch := &model.Char{Name: "A",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 10, CurHP: 10}}
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 10, CurHP: 10}}
 	return &Player{Char: ch, SpecialCoins: saldos}
 }
 

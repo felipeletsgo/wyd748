@@ -11,7 +11,7 @@ import (
 func livingPlayer(id, x, y uint16) (*netpkg.Session, *Player) {
 	s := &netpkg.Session{ID: int64(id)}
 	return s, &Player{ID: id, InWorld: true, X: x, Y: y,
-		Char: &model.Char{Extended: testExtended(model.ExtendedScore{MaxHP: 100, CurHP: 100})}}
+		Char: &model.Char{Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}}
 }
 
 func TestNearestLivingPlayerIgnoresDeadAndOutOfRange(t *testing.T) {
@@ -47,7 +47,7 @@ func TestCraftMerchantCannotExecuteActiveAttack(t *testing.T) {
 		ID: 1500, X: 100, Y: 100, TargetID: target.ID,
 		Def: &model.NPCDef{
 			Name: "Compositor", Tipo: model.TipoMonstro,
-			Extended: &model.ExtendedScore{Merchant: craftingMerchant, Attack: 9999},
+			Score: &model.Score{Merchant: craftingMerchant, Attack: 9999},
 		},
 	}
 	w := &World{

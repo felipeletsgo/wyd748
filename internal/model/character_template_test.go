@@ -4,10 +4,10 @@ import "testing"
 
 func TestCharacterTemplateCreatesIndependentCleanCharacter(t *testing.T) {
 	tpl := CharacterTemplate{
-		Class:         2,
-		ExtendedScore: ExtendedScore{MaxHP: 70, MaxMP: 55, CurHP: 70, CurMP: 55},
-		Equip:         CharacterEquipment{Rosto: Item{Index: 21}, Arma: Item{Index: 861}},
-		Inventory:     []Item{{Index: 400}},
+		Class:     2,
+		Score:     Score{MaxHP: 70, MaxMP: 55, CurHP: 70, CurMP: 55},
+		Equip:     CharacterEquipment{Rosto: Item{Index: 21}, Arma: Item{Index: 861}},
+		Inventory: []Item{{Index: 400}},
 	}
 	ch := tpl.NewCharacter("TesteBM", CharacterSpawn{X: 2112, Y: 2088})
 	if ch.Name != "TesteBM" || ch.Class != 2 || ch.X != 2112 || ch.Y != 2088 {

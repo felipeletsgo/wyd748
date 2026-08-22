@@ -8,10 +8,10 @@ import (
 
 func TestMarshalCP(t *testing.T) {
 	c := Char{
-		Name:     "Test",
-		CP:       -25,
-		Gold:     1000,
-		Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+		Name:  "Test",
+		CP:    -25,
+		Gold:  1000,
+		Score: &Score{Version: ScoreVersion},
 	}
 
 	b, err := json.Marshal(c)
@@ -33,7 +33,7 @@ func TestMarshalCP(t *testing.T) {
 
 func TestUnmarshalMigratesLegacyChaosByteToSignedCP(t *testing.T) {
 	c := Char{
-		Name: "Test", Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+		Name: "Test", Score: &Score{Version: ScoreVersion},
 	}
 	b, err := json.Marshal(c)
 	if err != nil {
@@ -66,7 +66,7 @@ func TestUnmarshalMigratesLegacyChaosByteToSignedCP(t *testing.T) {
 }
 
 func TestUnmarshalMigratesMissingLegacyMechanicToNeutralCP(t *testing.T) {
-	c := Char{Name: "Test", Extended: &ExtendedScore{Version: ExtendedScoreVersion}}
+	c := Char{Name: "Test", Score: &Score{Version: ScoreVersion}}
 	b, err := json.Marshal(c)
 	if err != nil {
 		t.Fatal(err)
@@ -92,9 +92,9 @@ func TestUnmarshalMigratesMissingLegacyMechanicToNeutralCP(t *testing.T) {
 
 func TestUnmarshalMigratesOldExplicitNeutralCP(t *testing.T) {
 	seed := Char{
-		Name:     "Old",
-		CP:       MaxCP,
-		Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+		Name:  "Old",
+		CP:    MaxCP,
+		Score: &Score{Version: ScoreVersion},
 	}
 	raw, err := json.Marshal(seed)
 	if err != nil {
@@ -124,7 +124,7 @@ func TestSignedCPIsPreservedAfterChaosFormatMarker(t *testing.T) {
 		Name:         "Current",
 		CP:           MaxCP,
 		ChaosVersion: ChaosFormatVersion,
-		Extended:     &ExtendedScore{Version: ExtendedScoreVersion},
+		Score:        &Score{Version: ScoreVersion},
 	}
 	raw, err := json.Marshal(seed)
 	if err != nil {

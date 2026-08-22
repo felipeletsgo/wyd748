@@ -10,8 +10,8 @@ import (
 )
 
 func TestUpdateScore754LayoutIncludesSixteenAffects(t *testing.T) {
-	ch := model.Char{GuildID: 0x1234, GuildRank: model.GuildRankLeader, Extended: &model.ExtendedScore{
-		Version: model.ExtendedScoreVersion, Level: 65,
+	ch := model.Char{GuildID: 0x1234, GuildRank: model.GuildRankLeader, Score: &model.Score{
+		Version: model.ScoreVersion, Level: 65,
 		MaxHP: 900, CurHP: 900, MaxMP: 700, CurMP: 700, MagicAmp: 12,
 		Critical: 3, SaveMana: 4, RegenHP: 5, RegenMP: 6,
 		ResistFire: 7, ResistIce: 8, ResistHoly: 9, ResistThunder: 10,
@@ -49,7 +49,7 @@ func TestUpdateAffects748FullLayout(t *testing.T) {
 func TestCreateMobCarriesVisualAffects(t *testing.T) {
 	affects := [16]model.Affect{}
 	affects[0] = model.Affect{Type: 31, ClientType: 24, ExpiresAt: time.Now().Add(80 * time.Second)}
-	b := CreateMob(77, "Buffed", 2200, 2100, nil, model.WireScore{CurHP: 100}, affects[:], 2)
+	b := CreateMob(77, "Buffed", 2200, 2100, nil, model.LegacyScore28{CurHP: 100}, affects[:], 2)
 	if len(b) != 176 || b[66] != 10 || b[67] != 24 {
 		t.Fatalf("CreateMob sem Affect[0] visual: % X", b[66:70])
 	}
@@ -58,7 +58,7 @@ func TestCreateMobCarriesVisualAffects(t *testing.T) {
 func TestCreateMobCarriesAncientCodes(t *testing.T) {
 	anct := []byte{0x20, 116, 0x40}
 	b := CreateMobVisual(77, "Refinado", 2200, 2100, nil, anct,
-		model.WireScore{CurHP: 100}, nil, 0)
+		model.LegacyScore28{CurHP: 100}, nil, 0)
 	if !bytes.Equal(b[130:133], anct) {
 		t.Fatalf("CreateMob perdeu AnctCode: % X", b[130:146])
 	}
@@ -67,7 +67,7 @@ func TestCreateMobCarriesAncientCodes(t *testing.T) {
 func TestMobScoreCarriesAndClearsVisualAffects(t *testing.T) {
 	affects := [16]model.Affect{}
 	affects[2] = model.Affect{Type: 1, ExpiresAt: time.Now().Add(16 * time.Second)}
-	b := MobScore(1000, model.WireScore{CurHP: 90, CurMP: 20}, affects[:],
+	b := MobScore(1000, model.LegacyScore28{CurHP: 90, CurMP: 20}, affects[:],
 		model.ElementalResists{Fire: 7, Ice: 8, Sacred: 9, Thunder: 10})
 	if len(b) != 92 || b[46] != 2 || b[47] != 1 ||
 		!bytes.Equal(b[78:82], []byte{7, 8, 9, 10}) ||
@@ -75,7 +75,7 @@ func TestMobScoreCarriesAndClearsVisualAffects(t *testing.T) {
 		t.Fatalf("MobScore visual incorreto: % X", b[42:86])
 	}
 
-	cleared := MobScore(1000, model.WireScore{CurHP: 90}, nil, model.ElementalResists{})
+	cleared := MobScore(1000, model.LegacyScore28{CurHP: 90}, nil, model.ElementalResists{})
 	if !bytes.Equal(cleared[42:74], make([]byte, 32)) {
 		t.Fatalf("MobScore nao limpou affects: % X", cleared[42:74])
 	}
@@ -151,7 +151,7 @@ func TestGhostShop748Layouts(t *testing.T) {
 	}
 
 	create := CreateMobTrade(25009, "Felipe", 2112, 2088, nil,
-		model.WireScore{CurHP: 100}, "Minha Loja")
+		model.LegacyScore28{CurHP: 100}, "Minha Loja")
 	if len(create) != 200 || ParseHeader(create).Type != OpCreateMobTrade ||
 		binary.LittleEndian.Uint16(create[16:18]) != 25009 ||
 		string(create[172:182]) != "Minha Loja" {
@@ -196,13 +196,13 @@ func TestAttackHit748CompactLayout(t *testing.T) {
 }
 
 func TestExtendedScoreVitalsUseSignedCompatibilityPrefix(t *testing.T) {
-	ext := &model.ExtendedScore{
+	ext := &model.Score{
 		Attack: 150_000, MagicAttack: 175_000, Defense: 125_000,
 		MaxHP: 250_000, MaxMP: 200_000, CurHP: 225_000, CurMP: 180_000,
 		Str: 110_000, Int: 120_000, Dex: 130_000, Con: 140_000,
 	}
 	ch := model.Char{
-		Extended: ext,
+		Score: ext,
 	}
 	compat := ext.CompatibilityScore()
 	score := UpdateScore(7, ch)
@@ -213,7 +213,7 @@ func TestExtendedScoreVitalsUseSignedCompatibilityPrefix(t *testing.T) {
 		binary.LittleEndian.Uint16(score[20:22]) != compat.MaxHP ||
 		binary.LittleEndian.Uint16(score[26:28]) != compat.CurMP ||
 		binary.LittleEndian.Uint16(score[84:86]) != compat.CurMP ||
-		binary.LittleEndian.Uint32(score[228:232]) != model.ExtendedScoreVersion ||
+		binary.LittleEndian.Uint32(score[228:232]) != model.ScoreVersion ||
 		binary.LittleEndian.Uint32(score[232:236]) != 0x32435358 {
 		t.Fatalf("cauda extended do score incorreta: len=%d tail=% X", len(score), score[92:])
 	}
@@ -237,21 +237,21 @@ func TestExtendedScoreVitalsUseSignedCompatibilityPrefix(t *testing.T) {
 }
 
 func TestExtendedScoreV2TailAlignment(t *testing.T) {
-	e := &model.ExtendedScore{
-		Version: model.ExtendedScoreVersion,
+	e := &model.Score{
+		Version: model.ScoreVersion,
 		Level:   101, Mastery: [4]uint32{102, 103, 104, 105},
 		Critical: 106, Parry: 107, Range: 108,
 		ResistFire: 109, ResistIce: 110, ResistHoly: 111, ResistThunder: 112,
 		SaveMana: 113, MagicAmp: 114, RegenHP: 115, RegenMP: 116,
 		AttackRun: 117, Merchant: 118,
 	}
-	packet := UpdateScore(7, model.Char{Extended: e})
+	packet := UpdateScore(7, model.Char{Score: e})
 	checks := map[int]uint32{
 		156: 101, 160: 102, 164: 103, 168: 104, 172: 105,
 		176: 106, 180: 107, 184: 108,
 		188: 109, 192: 110, 196: 111, 200: 112,
 		204: 113, 208: 114, 212: 115, 216: 116,
-		220: 117, 224: 118, 228: model.ExtendedScoreVersion,
+		220: 117, 224: 118, 228: model.ScoreVersion,
 		232: 0x32435358,
 	}
 	if len(packet) != 236 {
@@ -265,8 +265,8 @@ func TestExtendedScoreV2TailAlignment(t *testing.T) {
 }
 
 func TestLegacyVitalsAlsoRefreshWideSidecar(t *testing.T) {
-	ext := &model.ExtendedScore{
-		Version: model.ExtendedScoreVersion,
+	ext := &model.Score{
+		Version: model.ScoreVersion,
 		MaxHP:   321, MaxMP: 654, CurHP: 123, CurMP: 456,
 	}
 	b := SetHpMpExtended(7, ext)
@@ -448,7 +448,7 @@ func TestUpdateEtc748Layout(t *testing.T) {
 	// e daqui que o client aprende as skills), statusPts@24, masterPts@26,
 	// skillPts@28, magic@30, gold@32.
 	ch := model.Char{CP: -25, Exp: 34000, LearnedSkill: 1 << 3, NextExp: 649715, Gold: 99424,
-		Extended: &model.ExtendedScore{StatusPts: 7, MasterPts: 100, SkillPts: 150, MagicAmp: 70}}
+		Score: &model.Score{StatusPts: 7, MasterPts: 100, SkillPts: 150, MagicAmp: 70}}
 	b := UpdateEtc(1, ch)
 	if len(b) != 48 || ParseHeader(b).Type != OpUpdateEtc ||
 		binary.LittleEndian.Uint32(b[12:16]) != 0 || binary.LittleEndian.Uint32(b[16:20]) != 34000 ||
@@ -477,7 +477,7 @@ func TestCreateMobProjectsSignedChaosToNativeByte(t *testing.T) {
 		{-75, 0}, {0, 75}, {75, 150},
 	} {
 		b := CreateMobExtendedWithGuildRank(7, "Player", 2100, 2100, nil, nil,
-			&model.ExtendedScore{Version: model.ExtendedScoreVersion}, nil, 2, 0, 0, tc.cp)
+			&model.Score{Version: model.ScoreVersion}, nil, 2, 0, 0, tc.cp)
 		if got := b[30]; got != tc.want {
 			t.Fatalf("CP=%d byte=%d, esperado %d", tc.cp, got, tc.want)
 		}
@@ -486,7 +486,7 @@ func TestCreateMobProjectsSignedChaosToNativeByte(t *testing.T) {
 
 func TestCreateMobCarriesGuildRankInSpawnWord(t *testing.T) {
 	b := CreateMobExtendedWithGuildRank(7, "Guilded", 2100, 2100, nil, nil,
-		&model.ExtendedScore{Version: model.ExtendedScoreVersion}, nil, 2, 0x1234,
+		&model.Score{Version: model.ScoreVersion}, nil, 2, 0x1234,
 		model.GuildRankSubFirst, 0)
 	if got := binary.LittleEndian.Uint16(b[98:100]); got != 0x0234 {
 		t.Fatalf("guild wire=%#x, esperado id de 12 bits", got)
@@ -512,7 +512,7 @@ func TestEnterWorldProjectsSignedChaosToNativeByte(t *testing.T) {
 	} {
 		b := EnterWorld(7, model.Char{
 			Name: "Player", CP: tc.cp,
-			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion},
+			Score: &model.Score{Version: model.ScoreVersion},
 		})
 		if got := b[16+12]; got != tc.want {
 			t.Fatalf("CP=%d byte=%d, esperado %d", tc.cp, got, tc.want)
@@ -560,12 +560,12 @@ func TestCharacterListsWriteAllFourSlots(t *testing.T) {
 	chars := make([]model.Char, 4)
 	for i := range chars {
 		chars[i] = model.Char{
-			Name:     []string{"TKTeste", "FMTeste", "BMTeste", "HTTeste"}[i],
-			X:        uint16(2112 + i),
-			Y:        uint16(2088 + i),
-			Gold:     uint32(100 + i),
-			Exp:      uint32(1000 + i),
-			Extended: &model.ExtendedScore{Level: uint32(i)},
+			Name:  []string{"TKTeste", "FMTeste", "BMTeste", "HTTeste"}[i],
+			X:     uint16(2112 + i),
+			Y:     uint16(2088 + i),
+			Gold:  uint32(100 + i),
+			Exp:   uint32(1000 + i),
+			Score: &model.Score{Level: uint32(i)},
 		}
 		chars[i].Equip[0].Index = uint16(1 + i*10)
 	}
@@ -614,7 +614,7 @@ func TestEnterWorldWritesAuthoritativeMobTail(t *testing.T) {
 		GuildID:      12,
 		GuildRank:    model.GuildRankLeader,
 		ShortSkill:   short,
-		Extended: &model.ExtendedScore{
+		Score: &model.Score{
 			StatusPts: 115, MasterPts: 44, SkillPts: 192, MagicAmp: 70,
 			Critical: 9, SaveMana: 10, RegenHP: 11, RegenMP: 12,
 			ResistFire: 13, ResistIce: 14, ResistHoly: 15, ResistThunder: 16,
@@ -640,7 +640,7 @@ func TestEnterWorldWritesAuthoritativeMobTail(t *testing.T) {
 
 func TestUpdateEtcExtendedWritesWidePointsTail(t *testing.T) {
 	ch := model.Char{
-		Extended: &model.ExtendedScore{
+		Score: &model.Score{
 			StatusPts: 100000,
 			MasterPts: 110000,
 			SkillPts:  120000,

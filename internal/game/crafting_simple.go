@@ -112,7 +112,7 @@ func (w *World) commitCombineWithSave(p *Player, oldInv [model.MaxCarry]model.It
 		// Composicoes que alteram equipamento recalculam o runtime antes de
 		// persistir. Restaurar apenas o array deixava os stats autoritativos
 		// apontando para o item que falhou no banco.
-		if len(equipSlots) != 0 && p.Char.Extended != nil {
+		if len(equipSlots) != 0 && p.Char.Score != nil {
 			w.recalcPlayer(p.Char)
 		}
 		for pos := range invSlots {
@@ -474,10 +474,10 @@ func lindyMaterialStack(item model.Item) bool {
 // So vale para Arch parado EXATAMENTE numa das travas e ainda nao liberada --
 // gastar a receita fora disso nao pode marcar nada.
 func lindyLevelUnlock(ch *model.Char) (uint32, bool) {
-	if ch == nil || ch.Extended == nil || !isArch(ch) {
+	if ch == nil || ch.Score == nil || !isArch(ch) {
 		return 0, false
 	}
-	switch ch.Extended.Level {
+	switch ch.Score.Level {
 	case archLockLevel355:
 		return archLockLevel355, !ch.ArchLevel355
 	case archLockLevel370:

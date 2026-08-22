@@ -64,9 +64,9 @@ func uxmalTestWorld() (*World, *Player, *Player, *guildFlowStore, *fakeClock) {
 	}()
 	w.npcs = []model.NPCDef{
 		{Name: "RoomMob", Tipo: model.TipoMonstro,
-			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100}},
+			Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}},
 		{Name: "Uxmal", Tipo: model.TipoNPC,
-			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion}},
+			Score: &model.Score{Version: model.ScoreVersion}},
 	}
 	w.items = map[uint16]model.ItemDef{
 		5134: {Index: 5134}, 7001: {Index: 7001},

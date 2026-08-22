@@ -57,7 +57,7 @@ func (w *World) spawnConfiguredBosses() error {
 		// O loader de NPC ja recusa extendedScore ausente; a guarda existe para
 		// que um catalogo montado a mao (teste, ferramenta) devolva erro claro
 		// em vez de panicar no deref logo abaixo.
-		if base.Extended == nil {
+		if base.Score == nil {
 			return fmt.Errorf("boss %q (%s): NPC base %q sem extendedScore",
 				config.ID, config.SourceFile, config.NPC)
 		}
@@ -89,27 +89,27 @@ func bossDefFrom(base *model.NPCDef, config model.BossConfig) *model.NPCDef {
 	// Um boss e sempre hostil, mesmo que o NPC base nao fosse.
 	def.Tipo = model.TipoMonstro
 
-	// Extended e ponteiro no base: copiar o valor evita que o boss altere os
+	// Score e ponteiro no base: copiar o valor evita que o boss altere os
 	// atributos de todos os mobs daquele NPC.
-	extended := *base.Extended
-	def.Extended = &extended
+	extended := *base.Score
+	def.Score = &extended
 
 	stats := config.Stats
 	if stats.Level != nil {
-		def.Extended.Level = *stats.Level
+		def.Score.Level = *stats.Level
 	}
 	if stats.MaxHP != nil {
-		def.Extended.MaxHP = *stats.MaxHP
-		def.Extended.CurHP = *stats.MaxHP
+		def.Score.MaxHP = *stats.MaxHP
+		def.Score.CurHP = *stats.MaxHP
 	}
 	if stats.Attack != nil {
-		def.Extended.Attack = *stats.Attack
+		def.Score.Attack = *stats.Attack
 	}
 	if stats.Defense != nil {
-		def.Extended.Defense = *stats.Defense
+		def.Score.Defense = *stats.Defense
 	}
 	if stats.AttackRun != nil {
-		def.Extended.AttackRun = byte(*stats.AttackRun)
+		def.Score.AttackRun = uint32(*stats.AttackRun)
 	}
 	if stats.ExpReward != nil {
 		def.ExpReward = *stats.ExpReward
@@ -136,7 +136,7 @@ func (w *World) spawnBoss(state *bossSpawnState) error {
 	}
 	mob := &Mob{
 		ID: mobID, Def: state.def, X: x, Y: y,
-		HP: state.def.Extended.MaxHP, GenerIndex: -1,
+		HP: state.def.Score.MaxHP, GenerIndex: -1,
 	}
 	// Segments[0] e a "casa" usada pelo leash da IA comum.
 	mob.Segments[0].X, mob.Segments[0].Y = state.config.Spawn.X, state.config.Spawn.Y

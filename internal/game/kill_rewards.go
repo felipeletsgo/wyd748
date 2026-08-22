@@ -202,15 +202,15 @@ func (w *World) commitKillRewardBatch(p *Player, plans []*killRewardPlan,
 			plans[i].rollback()
 		}
 		for _, plan := range plans {
-			if plan == nil || plan.mob == nil || plan.mob.Def == nil || plan.mob.Def.Extended == nil {
+			if plan == nil || plan.mob == nil || plan.mob.Def == nil || plan.mob.Def.Score == nil {
 				continue
 			}
 			m := plan.mob
 			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 				// Persistence rollback resurrects the mob, so each observer must
 				// receive the HP ABI negotiated by its own login packet.
-				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Extended.MaxHP,
-					m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
+				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Score.MaxHP,
+					m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 			})
 		}
 		log.Printf("persistir %s: %v", operation, err)
@@ -246,9 +246,9 @@ func (plan *killRewardPlan) rollback() {
 	if plan.mob != nil {
 		plan.mob.Dead = false
 		plan.mob.HP = plan.mobHPBeforeDeath
-		if plan.mob.Def != nil && plan.mob.Def.Extended != nil &&
-			plan.mob.HP > plan.mob.Def.Extended.MaxHP {
-			plan.mob.HP = plan.mob.Def.Extended.MaxHP
+		if plan.mob.Def != nil && plan.mob.Def.Score != nil &&
+			plan.mob.HP > plan.mob.Def.Score.MaxHP {
+			plan.mob.HP = plan.mob.Def.Score.MaxHP
 		}
 	}
 }
@@ -317,7 +317,7 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 		}
 		w.gameplayLogf("kill", "[#%d] MATOU mob id=%d %q (dmg_calculado=%d aplicado=%d hp_alvo=%d exp=+%d/%d membros level=%d +%d)",
 			p.Session.ID, m.ID, m.Def.Name, plan.calculatedDamage, plan.appliedDamage,
-			m.Def.Extended.MaxHP, reward, len(plan.shares), playerLevel(p.Char), levels)
+			m.Def.Score.MaxHP, reward, len(plan.shares), playerLevel(p.Char), levels)
 	}
 }
 

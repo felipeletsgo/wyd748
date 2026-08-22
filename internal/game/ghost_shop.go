@@ -38,7 +38,7 @@ type GhostShop struct {
 	Prices   [maxGhostShopItems]uint32
 	Tax      uint16
 	Mesh     [16]uint16
-	Extended model.ExtendedScore
+	Score    model.Score
 }
 
 type autoTradeRequest struct {
@@ -243,7 +243,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 		Prices:   req.Prices,
 	}
 	if extended := wireExtendedScore(p.Char); extended != nil {
-		shop.Extended = *extended
+		shop.Score = *extended
 	}
 	w.applyGhostShopLook(shop)
 	if _, exists := w.ghostShops[shop.ID]; exists {

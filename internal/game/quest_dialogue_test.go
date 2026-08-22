@@ -60,7 +60,7 @@ func TestFalaChegaAQuemEstaPerto(t *testing.T) {
 	}{{perto, 2100, 2100}, {longe, 2100 + viewHalfX + 20, 2100}} {
 		id := uint16(c.s.ID)
 		acc := &model.Account{Name: "c", Chars: []model.Char{{Name: "n",
-			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 10, CurHP: 10}}}}
+			Score: &model.Score{Version: model.ScoreVersion, MaxHP: 10, CurHP: 10}}}}
 		p := &Player{ID: id, Session: c.s, Account: acc, Char: &acc.Chars[0],
 			InWorld: true, X: c.x, Y: c.y}
 		w.players[c.s] = p
@@ -111,7 +111,7 @@ func TestValidacaoRecusaFalaLonga(t *testing.T) {
 
 func charComEquip(slots ...int) *model.Char {
 	ch := &model.Char{Name: "R",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 10, CurHP: 10}}
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 10, CurHP: 10}}
 	for _, s := range slots {
 		ch.Equip[s] = model.Item{Index: uint16(100 + s), Eff: [6]byte{43, 0}}
 	}

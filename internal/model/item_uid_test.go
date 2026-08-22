@@ -68,7 +68,7 @@ func TestAccountRejectsInvalidTimedItemMetadata(t *testing.T) {
 	}
 	base := Account{Name: "timed", PasswordHash: "hash", Chars: []Char{{
 		Name: "Timed", UID: charUID,
-		Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+		Score: &Score{Version: ScoreVersion},
 	}}}
 	for _, item := range []Item{
 		{Index: 4200, UID: uid, ActivatedUnix: 10},

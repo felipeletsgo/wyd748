@@ -19,12 +19,12 @@ import (
 func jogadorComBuffDeMaxHP(baseMax, buffMax uint32) *model.Char {
 	ch := &model.Char{
 		Name: "A",
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version: model.ScoreVersion,
 			MaxHP:   baseMax, CurHP: baseMax,
 		},
-		ExtendedRuntime: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		RuntimeScore: &model.Score{
+			Version: model.ScoreVersion,
 			MaxHP:   buffMax, CurHP: baseMax,
 		},
 	}
@@ -40,13 +40,13 @@ func TestBaseNuncaGuardaCurHPAcimaDoMaxHPBase(t *testing.T) {
 	// ao HP corrente para quem estava cheio continuar cheio.
 	restorePlayerHP(ch, buffMax-baseMax)
 
-	if ch.ExtendedRuntime.CurHP != buffMax {
+	if ch.RuntimeScore.CurHP != buffMax {
 		t.Errorf("runtime CurHP=%d, quer %d (o buff precisa valer em jogo)",
-			ch.ExtendedRuntime.CurHP, buffMax)
+			ch.RuntimeScore.CurHP, buffMax)
 	}
-	if ch.Extended.CurHP > ch.Extended.MaxHP {
+	if ch.Score.CurHP > ch.Score.MaxHP {
 		t.Errorf("base guardou CurHP=%d acima do MaxHP base=%d -- estado impossivel "+
-			"e persistido no autosave", ch.Extended.CurHP, ch.Extended.MaxHP)
+			"e persistido no autosave", ch.Score.CurHP, ch.Score.MaxHP)
 	}
 }
 
@@ -59,12 +59,12 @@ func TestBuffDeMaxHPNaoInflaOBasePorRepeticao(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		restorePlayerHP(ch, buffMax-baseMax)
 	}
-	if ch.Extended.CurHP > ch.Extended.MaxHP {
+	if ch.Score.CurHP > ch.Score.MaxHP {
 		t.Errorf("apos 5 recasts o base ficou em %d/%d",
-			ch.Extended.CurHP, ch.Extended.MaxHP)
+			ch.Score.CurHP, ch.Score.MaxHP)
 	}
-	if ch.ExtendedRuntime.CurHP > ch.ExtendedRuntime.MaxHP {
+	if ch.RuntimeScore.CurHP > ch.RuntimeScore.MaxHP {
 		t.Errorf("apos 5 recasts o runtime ficou em %d/%d",
-			ch.ExtendedRuntime.CurHP, ch.ExtendedRuntime.MaxHP)
+			ch.RuntimeScore.CurHP, ch.RuntimeScore.MaxHP)
 	}
 }

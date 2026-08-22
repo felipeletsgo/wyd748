@@ -24,7 +24,7 @@ func TestLoadCharacterTemplatesProjectFile(t *testing.T) {
 		t.Fatalf("layout carregado incorretamente: %+v", cfg)
 	}
 	for class, tpl := range cfg.Classes {
-		if int(tpl.Class) != class || tpl.ExtendedScore.MaxHP == 0 || tpl.Equip.Rosto.Index == 0 {
+		if int(tpl.Class) != class || tpl.Score.MaxHP == 0 || tpl.Equip.Rosto.Index == 0 {
 			t.Fatalf("classe %d invalida: %+v", class, tpl)
 		}
 	}

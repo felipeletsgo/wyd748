@@ -137,8 +137,8 @@ func convert(name string, b []byte) (model.NPCDef, conversionReport) {
 		Tipo:      tipo,
 		Equip:     equip,
 		ClassInfo: b[20],
-		Extended: &model.ExtendedScore{
-			Version:       model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version:       model.ScoreVersion,
 			Level:         uint32(u16(b, s+0)),
 			Defense:       uint32(u16(b, s+2)),
 			Attack:        uint32(u16(b, s+4)),
@@ -152,8 +152,8 @@ func convert(name string, b []byte) (model.NPCDef, conversionReport) {
 			Dex:           uint32(u16(b, s+20)),
 			Con:           uint32(u16(b, s+22)),
 			Mastery:       [4]uint32{uint32(b[s+24]), uint32(b[s+25]), uint32(b[s+26]), uint32(b[s+27])},
-			Merchant:      merchant,
-			AttackRun:     b[s+7], // ChaosRate no 7.54 = AttackRun no wyd-go
+			Merchant:      uint32(merchant),
+			AttackRun:     uint32(b[s+7]), // ChaosRate no 7.54 = AttackRun no wyd-go
 			Critical:      uint32(b[742]),
 			SaveMana:      uint32(b[743]),
 			RegenHP:       uint32(b[750]),

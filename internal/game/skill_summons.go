@@ -113,14 +113,14 @@ func (w *World) planContractSummon(owner *Player, t *model.VolatileSummon) (*con
 	if !w.terrain.Walkable(x, y) {
 		return nil, false
 	}
-	attackRun := byte(clampInt(int(t.MoveSpeed), 1, 15))
+	attackRun := uint32(clampInt(int(t.MoveSpeed), 1, 15))
 	def := &model.NPCDef{
 		Name: t.Name + "^", Tipo: model.TipoMonstro,
 		Equip: model.Equip{Rosto: model.Item{Index: t.Face}, Arma: model.Item{Index: t.Weapon}, Escudo: model.Item{Index: t.Shield}},
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, Level: playerLevel(owner.Char),
+		Score: &model.Score{Version: model.ScoreVersion, Level: playerLevel(owner.Char),
 			Attack: t.Attack, Defense: t.Defense, MaxHP: t.HP, MaxMP: 100, AttackRun: attackRun},
 	}
-	def.Extended.CurHP, def.Extended.CurMP = t.HP, 100
+	def.Score.CurHP, def.Score.CurMP = t.HP, 100
 	mobID := w.allocMobID()
 	if mobID == 0 {
 		return nil, false
@@ -182,7 +182,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		w.rebindSummonGameplaySpace(m, space)
 		oldX, oldY := m.X, m.Y
 		m.X, m.Y = w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
-		w.publishMobMove(m, oldX, oldY, uint32(m.Def.Extended.AttackRun&0x0f))
+		w.publishMobMove(m, oldX, oldY, uint32(m.Def.Score.AttackRun&0x0f))
 		current++
 	}
 	for _, m := range obsolete {
@@ -198,8 +198,8 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		def := &model.NPCDef{
 			Name: template.name + "^", Tipo: model.TipoMonstro,
 			Equip: model.Equip{Rosto: model.Item{Index: template.face}},
-			Extended: &model.ExtendedScore{
-				Version:   model.ExtendedScoreVersion,
+			Score: &model.Score{
+				Version:   model.ScoreVersion,
 				Level:     playerLevel(owner.Char),
 				Defense:   uint32(clampInt(defense, 0, int(maxExtendedStat))),
 				Attack:    uint32(clampInt(attack, 0, int(maxExtendedStat))),
@@ -210,13 +210,13 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 				AttackRun: 0x64,
 			},
 		}
-		def.Extended.CurHP, def.Extended.CurMP = def.Extended.MaxHP, def.Extended.MaxMP
+		def.Score.CurHP, def.Score.CurMP = def.Score.MaxHP, def.Score.MaxMP
 		mobID := w.allocMobID()
 		if mobID == 0 {
 			log.Printf("[#%d] invocacao %q interrompida: faixa de IDs de mob esgotada", owner.Session.ID, template.name)
 			break
 		}
-		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
+		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
 			InstanceID: space,
 			GenerIndex: -1, LeaderID: 0, SummonerID: owner.ID, SummonKind: summonKindBM, SummonRange: mobAttackRange}
 		w.appendMobInstance(m)
@@ -328,18 +328,18 @@ func (w *World) tickSummonCombat(now time.Time) {
 		}
 		summon.NextAttack = now.Add(mobAttackInterval)
 		if target.mob != nil {
-			chance := combatAccuracyPercent(int(target.mob.Def.Extended.Dex),
-				int(summon.Def.Extended.Accuracy), int(target.mob.Def.Extended.Evasion), false)
+			chance := combatAccuracyPercent(int(target.mob.Def.Score.Dex),
+				int(summon.Def.Score.Accuracy), int(target.mob.Def.Score.Evasion), false)
 			if !combatRollHits(chance, w.intn) {
 				w.sendToMobView(summon, func() []byte {
 					return wire.AttackHitExtendedResult(summon.ID, target.mob.ID, summon.X, summon.Y,
-						target.mob.X, target.mob.Y, 0, target.mob.Def.Extended.MaxHP, 0,
-						summon.Def.Extended.MaxMP, 0, true)
+						target.mob.X, target.mob.Y, 0, target.mob.Def.Score.MaxHP, 0,
+						summon.Def.Score.MaxMP, 0, true)
 				})
 				continue
 			}
-			damage := uint32(clampInt(int(summon.Def.Extended.Attack)-
-				int(target.mob.Def.Extended.Defense)/2, 1, int(maxExtendedStat)))
+			damage := uint32(clampInt(int(summon.Def.Score.Attack)-
+				int(target.mob.Def.Score.Defense)/2, 1, int(maxExtendedStat)))
 			oldHP := target.mob.HP
 			if damage >= target.mob.HP {
 				target.mob.HP = 0
@@ -348,7 +348,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 			}
 			w.sendToMobView(summon, func() []byte {
 				return wire.AttackHitExtended(summon.ID, target.mob.ID, summon.X, summon.Y, target.mob.X, target.mob.Y,
-					damage, target.mob.Def.Extended.MaxHP, 0, summon.Def.Extended.MaxMP)
+					damage, target.mob.Def.Score.MaxHP, 0, summon.Def.Score.MaxMP)
 			})
 			if target.mob.HP == 0 {
 				w.killMobState(owner, target.mob, damage, minU32(damage, oldHP))
@@ -360,7 +360,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 			w.sendToPlayerView(target.user, func() []byte {
 				return wire.AttackHitExtendedResult(summon.ID, target.user.ID, summon.X, summon.Y,
 					target.user.X, target.user.Y, 0, playerMaxHP(target.user.Char), 0,
-					summon.Def.Extended.MaxMP, 0, true)
+					summon.Def.Score.MaxMP, 0, true)
 			})
 			continue
 		}
@@ -380,7 +380,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 		target.user.LastAttackerID = owner.ID
 		w.sendToPlayerView(target.user, func() []byte {
 			return wire.AttackHitExtended(summon.ID, target.user.ID, summon.X, summon.Y, target.user.X, target.user.Y,
-				damage, playerMaxHP(target.user.Char), 0, summon.Def.Extended.MaxMP)
+				damage, playerMaxHP(target.user.Char), 0, summon.Def.Score.MaxMP)
 		})
 		w.syncPlayerVitals(target.user)
 		w.updatePartyMember(target.user)

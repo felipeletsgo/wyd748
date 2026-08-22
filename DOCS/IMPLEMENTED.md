@@ -11,7 +11,7 @@ implementadas ficam exclusivamente em `DOCS/ROADMAP.md`. O código e os arquivos
 - `World` é o único escritor do estado mutável de gameplay.
 - O client 7.48 é uma fronteira não confiável. Pacotes representam intenção;
   posição, alvo, item, preço, requisito, cooldown e resultado são recalculados.
-- `ExtendedScore` v2 é a fonte de verdade dos atributos. O score legado existe
+- `Score` v2 é a fonte de verdade dos atributos. O score legado existe
   apenas como projeção compatível com o protocolo.
 - Operações econômicas seguem `validar → mutar snapshot → persistir → publicar`.
 - Itens materializados possuem UID de 128 bits somente no servidor.

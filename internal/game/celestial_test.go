@@ -13,7 +13,7 @@ func celestialCharacter(evolution string, level uint32) *model.Char {
 	return &model.Char{
 		Name:      "Celestial",
 		Evolution: evolution,
-		Extended: testExtended(model.ExtendedScore{
+		Score: testExtended(model.Score{
 			Level: level, Str: uint32(natural[0]), Int: uint32(natural[1]),
 			Dex: uint32(natural[2]), Con: uint32(natural[3]),
 			MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
@@ -55,7 +55,7 @@ func TestCelestialCrossFormLevelBonusKeepsAllocationSeparate(t *testing.T) {
 	ch.CelestialArchTier = 5
 	ch.AlternateCelestial = &model.CelestialForm{
 		Evolution: "subcelestial", Class: 3, Face: model.Item{Index: 18},
-		Extended: testExtended(model.ExtendedScore{Level: 100, Str: 5, Int: 5, Dex: 5, Con: 5}),
+		Score: testExtended(model.Score{Level: 100, Str: 5, Int: 5, Dex: 5, Con: 5}),
 	}
 	// 1001 base + 400 cristais + 1200 faixa Arch + 1900 forma ativa
 	// + 600 forma alterna + 290 ao chegar no nivel interno 190.
@@ -63,13 +63,13 @@ func TestCelestialCrossFormLevelBonusKeepsAllocationSeparate(t *testing.T) {
 		t.Fatalf("budget Celestial=%d, quer %d", got, want)
 	}
 	syncStatusPoints(ch)
-	if ch.Extended.StatusPts != 5391 {
-		t.Fatalf("saldo com stats naturais=%d, quer 5391", ch.Extended.StatusPts)
+	if ch.Score.StatusPts != 5391 {
+		t.Fatalf("saldo com stats naturais=%d, quer 5391", ch.Score.StatusPts)
 	}
-	ch.Extended.Str += 391
+	ch.Score.Str += 391
 	syncStatusPoints(ch)
-	if ch.Extended.StatusPts != 5000 {
-		t.Fatalf("saldo nao descontou atributos distribuidos: %d", ch.Extended.StatusPts)
+	if ch.Score.StatusPts != 5000 {
+		t.Fatalf("saldo nao descontou atributos distribuidos: %d", ch.Score.StatusPts)
 	}
 }
 
@@ -79,10 +79,10 @@ func TestCelestialSkillAndMasteryBudgets(t *testing.T) {
 	if got, want := skillPointBudget(ch), 1909; got != want {
 		t.Fatalf("skill budget=%d, quer %d", got, want)
 	}
-	ch.Extended.Mastery = [4]uint32{100, 200, 50, 5}
+	ch.Score.Mastery = [4]uint32{100, 200, 50, 5}
 	syncMasteryPoints(ch)
-	if ch.Extended.MasterPts != 500 {
-		t.Fatalf("mastery restante=%d, quer 500", ch.Extended.MasterPts)
+	if ch.Score.MasterPts != 500 {
+		t.Fatalf("mastery restante=%d, quer 500", ch.Score.MasterPts)
 	}
 	if masteryPointLimit(ch, 1) != 200 {
 		t.Fatalf("ramo comum Celestial nao ficou limitado a 200")
@@ -91,7 +91,7 @@ func TestCelestialSkillAndMasteryBudgets(t *testing.T) {
 	if masteryPointLimit(ch, 1) != 255 {
 		t.Fatalf("oitava skill nao liberou mastery 255")
 	}
-	ch.Extended.Level = 200
+	ch.Score.Level = 200
 	if got, want := skillPointBudget(ch), 2210; got != want {
 		t.Fatalf("skill budget acima do limiar=%d, quer %d", got, want)
 	}
@@ -104,9 +104,9 @@ func TestCelestialClassHPMPGrowthUsesW2PPNonMortalColumns(t *testing.T) {
 			Name:      "Growth",
 			Class:     class,
 			Evolution: "celestial",
-			Extended:  newCelestialScore(class, nil),
+			Score:     newCelestialScore(class, nil),
 		}
-		ch.Extended.Level = 100
+		ch.Score.Level = 100
 		w.recalcPlayer(ch)
 		bonusHP, bonusMP := celestialHPMPBonus(int(class), 0)
 		wantHP := uint32(baseClassHPMP[class][0]+archHPPerLevel[class]*100) + uint32(bonusHP)
@@ -120,11 +120,11 @@ func TestCelestialClassHPMPGrowthUsesW2PPNonMortalColumns(t *testing.T) {
 
 func TestEvolutionInitialCombatBasesMatchNormalW2PP(t *testing.T) {
 	w := &World{}
-	main := &model.Char{Class: 0, Evolution: "celestial", Extended: newCelestialScore(0, nil)}
+	main := &model.Char{Class: 0, Evolution: "celestial", Score: newCelestialScore(0, nil)}
 	w.recalcPlayer(main)
-	if main.Extended.Attack != 488 || main.Extended.Defense != 954 {
+	if main.Score.Attack != 488 || main.Score.Defense != 954 {
 		t.Fatalf("base Celestial ATK/DEF=%d/%d, quer 488/954",
-			main.Extended.Attack, main.Extended.Defense)
+			main.Score.Attack, main.Score.Defense)
 	}
 	if playerAttack(main) != 890 || playerDefense(main) != 955 {
 		t.Fatalf("score Celestial nivel 0 ATK/DEF=%d/%d, quer 890/955",
@@ -135,11 +135,11 @@ func TestEvolutionInitialCombatBasesMatchNormalW2PP(t *testing.T) {
 			playerMaxHP(main), playerMaxMP(main))
 	}
 
-	sub := &model.Char{Class: 0, Evolution: "subcelestial", Extended: newCelestialScore(0, nil)}
+	sub := &model.Char{Class: 0, Evolution: "subcelestial", Score: newCelestialScore(0, nil)}
 	w.recalcPlayer(sub)
-	if sub.Extended.Attack != 488 || sub.Extended.Defense != 954 {
+	if sub.Score.Attack != 488 || sub.Score.Defense != 954 {
 		t.Fatalf("base SubCelestial ATK/DEF=%d/%d, quer 488/954",
-			sub.Extended.Attack, sub.Extended.Defense)
+			sub.Score.Attack, sub.Score.Defense)
 	}
 	if playerAttack(sub) != 890 || playerDefense(sub) != 955 {
 		t.Fatalf("score SubCelestial nivel 0 ATK/DEF=%d/%d, quer 890/955",
@@ -177,7 +177,7 @@ func TestArchGrowthAndInitialPointBudgetsMatchW2PP(t *testing.T) {
 		natural := baseClassStats[class]
 		ch := &model.Char{
 			Class: class, Evolution: archEvolution,
-			Extended: testExtended(model.ExtendedScore{
+			Score: testExtended(model.Score{
 				Level: 100, Attack: [...]uint32{5, 6, 5, 9}[class], Defense: 4,
 				MaxHP: uint32(baseClassHPMP[class][0]), MaxMP: uint32(baseClassHPMP[class][1]),
 				Str: uint32(natural[0]), Int: uint32(natural[1]),
@@ -191,11 +191,11 @@ func TestArchGrowthAndInitialPointBudgetsMatchW2PP(t *testing.T) {
 			t.Errorf("classe=%d Arch HP/MP=%d/%d, quer %d/%d",
 				class, playerMaxHP(ch), playerMaxMP(ch), wantHP, wantMP)
 		}
-		if ch.Extended.SkillPts != uint32(mortalSkillPointBudget(100)+168) {
-			t.Errorf("classe=%d Arch skill points=%d", class, ch.Extended.SkillPts)
+		if ch.Score.SkillPts != uint32(mortalSkillPointBudget(100)+168) {
+			t.Errorf("classe=%d Arch skill points=%d", class, ch.Score.SkillPts)
 		}
-		if ch.Extended.MasterPts != 312 {
-			t.Errorf("classe=%d Arch mastery points=%d, quer 312", class, ch.Extended.MasterPts)
+		if ch.Score.MasterPts != 312 {
+			t.Errorf("classe=%d Arch mastery points=%d, quer 312", class, ch.Score.MasterPts)
 		}
 	}
 }
@@ -203,10 +203,10 @@ func TestArchGrowthAndInitialPointBudgetsMatchW2PP(t *testing.T) {
 func TestCelestialProgressionLocksAndExperienceCurve(t *testing.T) {
 	ch := celestialCharacter("celestial", 0)
 	levels, applied := grantExp(ch, ^uint32(0))
-	if levels != 39 || ch.Extended.Level != 39 ||
+	if levels != 39 || ch.Score.Level != 39 ||
 		ch.Exp != celestialNextLevel[39] || applied != celestialNextLevel[39] {
 		t.Fatalf("trava 40 atravessada: levels=%d level=%d exp=%d applied=%d",
-			levels, ch.Extended.Level, ch.Exp, applied)
+			levels, ch.Score.Level, ch.Exp, applied)
 	}
 	if _, applied = grantExp(ch, 1); applied != 0 {
 		t.Fatalf("Celestial recebeu EXP ainda travado no 40: %d", applied)
@@ -214,20 +214,20 @@ func TestCelestialProgressionLocksAndExperienceCurve(t *testing.T) {
 
 	ch.CelestialLevel40Unlocked = true
 	_, _ = grantExp(ch, ^uint32(0))
-	if ch.Extended.Level != 89 || ch.Exp != celestialNextLevel[89] {
-		t.Fatalf("trava 90 atravessada: level=%d exp=%d", ch.Extended.Level, ch.Exp)
+	if ch.Score.Level != 89 || ch.Exp != celestialNextLevel[89] {
+		t.Fatalf("trava 90 atravessada: level=%d exp=%d", ch.Score.Level, ch.Exp)
 	}
 	ch.CelestialLevel90Unlocked = true
 	_, _ = grantExp(ch, ^uint32(0))
-	if ch.Extended.Level != maxCelestialLevel ||
+	if ch.Score.Level != maxCelestialLevel ||
 		ch.Exp != celestialNextLevel[len(celestialNextLevel)-1] {
-		t.Fatalf("cap Celestial incorreto: level=%d exp=%d", ch.Extended.Level, ch.Exp)
+		t.Fatalf("cap Celestial incorreto: level=%d exp=%d", ch.Score.Level, ch.Exp)
 	}
 
 	sub := celestialCharacter("subcelestial", 0)
 	_, _ = grantExp(sub, ^uint32(0))
-	if sub.Extended.Level != maxCelestialLevel {
-		t.Fatalf("SubCelestial sofreu travas exclusivas do Celestial: %d", sub.Extended.Level)
+	if sub.Score.Level != maxCelestialLevel {
+		t.Fatalf("SubCelestial sofreu travas exclusivas do Celestial: %d", sub.Score.Level)
 	}
 }
 
@@ -302,7 +302,7 @@ func TestCelestialCytheraMilestonesReplaceInsteadOfStack(t *testing.T) {
 	if updateCelestialCythera(ch) {
 		t.Fatal("mesmo milestone foi aplicado duas vezes")
 	}
-	ch.Extended.Level = 198
+	ch.Score.Level = 198
 	if !updateCelestialCythera(ch) ||
 		ch.Equip[1].Eff != [6]byte{43, 10, 3, 50, 4, 70} ||
 		ch.CelestialCytheraTier != 4 {
@@ -334,7 +334,7 @@ func newCelestialWorld(t *testing.T, level uint32) (*World, *Player, *craftStore
 	p.Char.Evolution = archEvolution
 	p.Char.ArchMortalLevel = maxMortalLevel
 	p.Char.ArchCrystals = 0 // nao e requisito no Secrets 7.54
-	p.Char.Extended = testExtended(model.ExtendedScore{
+	p.Char.Score = testExtended(model.Score{
 		Level: level, Str: 500, Int: 600, Dex: 700, Con: 800,
 		MaxHP: 5000, CurHP: 4000, MaxMP: 3000, CurMP: 2000,
 	})
@@ -372,11 +372,11 @@ func TestIdealCreatesCelestialWithoutCrystalPrerequisite(t *testing.T) {
 	ch := &p.Account.Chars[0]
 
 	if st.saves != 1 || ch.Evolution != "celestial" ||
-		ch.Extended.Level != 0 || ch.Exp != 0 ||
-		ch.Extended.Str != uint32(baseClassStats[2][0]) ||
-		ch.Extended.Int != uint32(baseClassStats[2][1]) ||
-		ch.Extended.Dex != uint32(baseClassStats[2][2]) ||
-		ch.Extended.Con != uint32(baseClassStats[2][3]) {
+		ch.Score.Level != 0 || ch.Exp != 0 ||
+		ch.Score.Str != uint32(baseClassStats[2][0]) ||
+		ch.Score.Int != uint32(baseClassStats[2][1]) ||
+		ch.Score.Dex != uint32(baseClassStats[2][2]) ||
+		ch.Score.Con != uint32(baseClassStats[2][3]) {
 		t.Fatalf("criacao Celestial incompleta: saves=%d char=%+v",
 			st.saves, ch)
 	}
@@ -385,11 +385,11 @@ func TestIdealCreatesCelestialWithoutCrystalPrerequisite(t *testing.T) {
 		ch.Equip[model.CapeSlot].Eff != [6]byte{} ||
 		ch.Equip[0].Eff[3] != celestialFaceType ||
 		ch.LearnedSkill != celestialSoulBit ||
-		ch.Extended.MasterPts != 855 || ch.Inv[0].Index != 0 {
+		ch.Score.MasterPts != 855 || ch.Inv[0].Index != 0 {
 		t.Fatalf("recompensas Celestial incorretas: tier=%d cythera=%d cape=%d learn=%X mastery=%d item=%d",
 			ch.CelestialArchTier, ch.Equip[1].Index,
 			ch.Equip[model.CapeSlot].Index, ch.LearnedSkill,
-			ch.Extended.MasterPts, ch.Inv[0].Index)
+			ch.Score.MasterPts, ch.Inv[0].Index)
 	}
 	if p.InWorld || p.Char != nil || p.ID != 0 ||
 		p.Session.QueuedPacketsForTest() < packetsBefore+2 {
@@ -420,9 +420,9 @@ func TestSubCelestialHasSeparateProgressionAndSharedBody(t *testing.T) {
 	w, p, st := newCelestialWorld(t, 399)
 	w.useCelestialIdeal(p.Session, p, &p.Char.Inv[0], 0)
 	reenterCelestialTestCharacter(t, w, p)
-	p.Char.Extended.Level = 120
+	p.Char.Score.Level = 120
 	p.Char.Exp = celestialNextLevel[120]
-	p.Char.Extended.Str = 111
+	p.Char.Score.Str = 111
 	p.Char.SoulInfo = 7
 	p.Char.Gold = 123456
 	p.SpecialCoins = map[string]uint32{fameCounter: subCelestialFameCost}
@@ -439,7 +439,7 @@ func TestSubCelestialHasSeparateProgressionAndSharedBody(t *testing.T) {
 		p.Char.AlternateCelestial.Class != 3 ||
 		p.Char.AlternateCelestial.Face.Index != 18 ||
 		p.Char.AlternateCelestial.Face.Eff[3] != subCelestialFaceType ||
-		p.Char.AlternateCelestial.Extended.Level != 0 {
+		p.Char.AlternateCelestial.Score.Level != 0 {
 		t.Fatalf("SubCelestial incorreta: saves=%d alt=%+v", st.saves, p.Char.AlternateCelestial)
 	}
 
@@ -461,7 +461,7 @@ func TestSubCelestialHasSeparateProgressionAndSharedBody(t *testing.T) {
 		p.Session, p, &p.Char.Inv[mysterySlot], byte(mysterySlot))
 
 	if p.Char.Evolution != "subcelestial" || p.Char.Class != 3 ||
-		p.Char.Extended.Level != 0 || p.Char.Extended.Str != uint32(baseClassStats[3][0]) ||
+		p.Char.Score.Level != 0 || p.Char.Score.Str != uint32(baseClassStats[3][0]) ||
 		p.Char.SoulInfo != 7 || p.Char.Gold != 123456 ||
 		p.Char.Equip[1] != sharedCythera ||
 		itemStackAmount(p.Char.Inv[mysterySlot]) != 9 {
@@ -470,8 +470,8 @@ func TestSubCelestialHasSeparateProgressionAndSharedBody(t *testing.T) {
 	if p.Char.Affects[0].Type != 0 ||
 		p.Char.AlternateCelestial == nil ||
 		p.Char.AlternateCelestial.Evolution != "celestial" ||
-		p.Char.AlternateCelestial.Extended.Level != 120 ||
-		p.Char.AlternateCelestial.Extended.Str != 111 ||
+		p.Char.AlternateCelestial.Score.Level != 120 ||
+		p.Char.AlternateCelestial.Score.Str != 111 ||
 		p.Char.AlternateCelestial.Affects[0].Type != 2 {
 		t.Fatalf("estado por forma vazou ou se perdeu: alt=%+v affects=%+v",
 			p.Char.AlternateCelestial, p.Char.Affects)
@@ -482,7 +482,7 @@ func TestMysteriousStoneOnlyWorksInsideNativeCity(t *testing.T) {
 	w, p, st := newCelestialWorld(t, 399)
 	w.useCelestialIdeal(p.Session, p, &p.Char.Inv[0], 0)
 	reenterCelestialTestCharacter(t, w, p)
-	p.Char.Extended.Level = 120
+	p.Char.Score.Level = 120
 	p.Char.Equip[sefirotSlot] = model.Item{Index: 1760}
 	p.Char.Inv[0] = model.Item{Index: idealStoneItem}
 	p.SpecialCoins = map[string]uint32{fameCounter: subCelestialFameCost}
@@ -505,7 +505,7 @@ func TestFuryUnlockAndArcanaComposition(t *testing.T) {
 		w.store = st
 		p.Char.Evolution = "celestial"
 		p.Char.CelestialLevel40Unlocked = true
-		p.Char.Extended.Level = 89
+		p.Char.Score.Level = 89
 		p.SpecialCoins = map[string]uint32{fameCounter: 500}
 		p.Char.Inv[0] = model.Item{Index: furyStoneItem}
 		w.useFuryStone(p.Session, p, &p.Char.Inv[0], 0)
@@ -523,7 +523,7 @@ func TestFuryUnlockAndArcanaComposition(t *testing.T) {
 		st := &craftStore{}
 		w.store, w.rng = st, fixedRNG{value: 1}
 		p.Char.Evolution = "celestial"
-		p.Char.Extended.Level = maxCelestialLevel
+		p.Char.Score.Level = maxCelestialLevel
 		p.SpecialCoins = map[string]uint32{fameCounter: 500}
 		p.Char.Inv[0] = model.Item{Index: furyStoneItem}
 		for i, stone := 1, uint16(5334); stone <= 5337; i, stone = i+1, stone+1 {
@@ -554,7 +554,7 @@ func TestFuryUnlockAndArcanaComposition(t *testing.T) {
 		st := &craftStore{err: errors.New("postgres indisponivel")}
 		w.store = st
 		p.Char.Evolution = "celestial"
-		p.Char.Extended.Level = 89
+		p.Char.Score.Level = 89
 		p.SpecialCoins = map[string]uint32{fameCounter: 500}
 		p.Char.Inv[0] = model.Item{Index: furyStoneItem}
 		w.useFuryStone(p.Session, p, &p.Char.Inv[0], 0)
@@ -614,7 +614,7 @@ func TestCelestialSoulUsesSharedConfiguration(t *testing.T) {
 	w := &World{}
 	ch := celestialCharacter("celestial", 100)
 	ch.SoulInfo = 5 // +80% STR, +40% CON
-	ch.Extended.Str, ch.Extended.Con = 1000, 500
+	ch.Score.Str, ch.Score.Con = 1000, 500
 	ch.Affects[0] = model.Affect{
 		Type: 29, Value: 102, ExpiresAt: time.Now().Add(time.Hour),
 	}
@@ -622,8 +622,8 @@ func TestCelestialSoulUsesSharedConfiguration(t *testing.T) {
 	w.applyExtendedAffectStats(ch)
 	e := effectiveExtended(ch)
 	if e.Str != 1800 || e.Con != 700 ||
-		e.Attack != ch.Extended.Attack+800/3 ||
-		e.MaxHP != ch.Extended.MaxHP+400 {
+		e.Attack != ch.Score.Attack+800/3 ||
+		e.MaxHP != ch.Score.MaxHP+400 {
 		t.Fatalf("Soul Celestial incorreta: STR=%d CON=%d ATK=%d HP=%d",
 			e.Str, e.Con, e.Attack, e.MaxHP)
 	}

@@ -12,8 +12,8 @@ import (
 // dumpHPProjection mostra, lado a lado, os TRES numeros que decidem a barra de
 // vida do proprio jogador:
 //
-//   - base      -- ExtendedScore persistido, sem buff;
-//   - efetivo   -- ExtendedRuntime, com equipamento e affects (o que vai na
+//   - base      -- Score persistido, sem buff;
+//   - efetivo   -- RuntimeScore, com equipamento e affects (o que vai na
 //     cauda wide dos pacotes, e o que o HUD patcheado deveria ler);
 //   - projetado -- os WORDs de 16 bits do STRUCT_SCORE nativo, que e o que o
 //     handler legado do client escreve no TMHuman.
@@ -27,7 +27,7 @@ func (w *World) dumpHPProjection(s *net.Session, p *Player) {
 	if p == nil || p.Char == nil {
 		return
 	}
-	base := p.Char.Extended
+	base := p.Char.Score
 	efetivo := effectiveExtended(p.Char)
 	if base == nil || efetivo == nil {
 		s.Send(wire.MessagePanel("No extended score."))

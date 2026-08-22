@@ -11,7 +11,7 @@ import (
 
 func TestKingdomJoinPromoteLeaveLifecycle(t *testing.T) {
 	w, p, st := handlerTestWorld(t)
-	p.Char.Extended.Level = 255
+	p.Char.Score.Level = 255
 	p.Char.Inv[0] = model.Item{Index: model.SapphireItem, Eff: [6]byte{effectAmount, 25}}
 	applyExtendedScore(p.Char)
 
@@ -42,7 +42,7 @@ func TestKingdomJoinPromoteLeaveLifecycle(t *testing.T) {
 
 func TestKingdomJoinWithEmblemAndRollback(t *testing.T) {
 	w, p, st := handlerTestWorld(t)
-	p.Char.Extended.Level = kingdomJoinMinLevel
+	p.Char.Score.Level = kingdomJoinMinLevel
 	p.Char.Equip[13] = model.Item{Index: model.KingdomEmblem}
 	applyExtendedScore(p.Char)
 
@@ -65,7 +65,7 @@ func TestKingdomJoinWithEmblemAndRollback(t *testing.T) {
 
 func TestHandleKingdomNPCAndTeleportCommands(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
-	p.Char.Extended.Level = kingdomJoinMinLevel
+	p.Char.Score.Level = kingdomJoinMinLevel
 	p.Char.Inv[0] = model.Item{Index: model.SapphireItem, Eff: [6]byte{effectAmount, 20}}
 	applyExtendedScore(p.Char)
 	king := &Mob{ID: 1600, Def: &model.NPCDef{Name: "King_Glantuar"}}
@@ -97,7 +97,7 @@ func TestHandleKingdomNPCAndTeleportCommands(t *testing.T) {
 
 func TestKingdomRejectsDeadInsufficientAndSundayLeave(t *testing.T) {
 	w, p, st := handlerTestWorld(t)
-	p.Char.Extended.Level = kingdomJoinMinLevel
+	p.Char.Score.Level = kingdomJoinMinLevel
 	applyExtendedScore(p.Char)
 
 	w.joinKingdom(p.Session, p, model.KingdomHekalotia)

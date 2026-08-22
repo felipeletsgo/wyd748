@@ -189,8 +189,8 @@ func TestBossDefHerdaAssetsESobrescreveStats(t *testing.T) {
 		Name: "Aparicao", Tipo: "npc",
 		Equip:     model.Equip{Rosto: model.Item{Index: 218}},
 		ExpReward: 100, Gold: 50,
-		Carry:    []model.Item{{Index: 999}},
-		Extended: &model.ExtendedScore{Version: 2, MaxHP: 4200, Attack: 100, Defense: 50, Level: 10},
+		Carry: []model.Item{{Index: 999}},
+		Score: &model.Score{Version: 2, MaxHP: 4200, Attack: 100, Defense: 50, Level: 10},
 	}
 	config := chaserConfig()
 	config.Name = "Chefe"
@@ -207,12 +207,12 @@ func TestBossDefHerdaAssetsESobrescreveStats(t *testing.T) {
 	if def.Tipo != model.TipoMonstro {
 		t.Errorf("boss precisa ser hostil, tipo=%q", def.Tipo)
 	}
-	if def.Extended.MaxHP != 90000 || def.Extended.Attack != 700 {
-		t.Errorf("stats nao sobrescritos: %+v", def.Extended)
+	if def.Score.MaxHP != 90000 || def.Score.Attack != 700 {
+		t.Errorf("stats nao sobrescritos: %+v", def.Score)
 	}
 	// Defesa nao foi configurada: mantem a do NPC base.
-	if def.Extended.Defense != 50 {
-		t.Errorf("defesa=%d, quer manter 50 do NPC base", def.Extended.Defense)
+	if def.Score.Defense != 50 {
+		t.Errorf("defesa=%d, quer manter 50 do NPC base", def.Score.Defense)
 	}
 	if def.ExpReward != 250000 {
 		t.Errorf("expReward=%d", def.ExpReward)
@@ -222,7 +222,7 @@ func TestBossDefHerdaAssetsESobrescreveStats(t *testing.T) {
 		t.Errorf("carry do NPC base deveria ser ignorado: %+v", def.Carry)
 	}
 	// E o mais importante: o NPC base NAO pode ter sido alterado.
-	if base.Extended.MaxHP != 4200 || base.Name != "Aparicao" || base.Tipo != "npc" {
-		t.Errorf("o NPC base foi mutado: %+v", base.Extended)
+	if base.Score.MaxHP != 4200 || base.Name != "Aparicao" || base.Tipo != "npc" {
+		t.Errorf("o NPC base foi mutado: %+v", base.Score)
 	}
 }

@@ -46,7 +46,7 @@ func (w *World) validateUxmalConfig() error {
 		return fmt.Errorf("npc de entrada ausente")
 	}
 	entryNPC := w.npcDefByName(cfg.Uxmal.NPC)
-	if entryNPC == nil || entryNPC.IsMonster() || entryNPC.Extended == nil {
+	if entryNPC == nil || entryNPC.IsMonster() || entryNPC.Score == nil {
 		return fmt.Errorf("npc de entrada invalido %q", cfg.Uxmal.NPC)
 	}
 	if cfg.Uxmal.TicketItem == 0 {
@@ -80,7 +80,7 @@ func (w *World) validateUxmalConfig() error {
 		}
 		for _, spawn := range stage.Spawns {
 			def := w.npcDefByName(spawn.NPC)
-			if spawn.Count <= 0 || def == nil || !def.IsMonster() || def.Extended == nil {
+			if spawn.Count <= 0 || def == nil || !def.IsMonster() || def.Score == nil {
 				return fmt.Errorf("sala %d usa template hostil ausente %q", room, spawn.NPC)
 			}
 		}

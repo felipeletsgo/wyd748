@@ -43,7 +43,7 @@ func killRewardTestWorld(t *testing.T, storeErr error) (*World, *Player, *Mob, *
 	mob := &Mob{ID: 1400, X: 2101, Y: 2100, HP: 0, GenerIndex: -1,
 		Def: &model.NPCDef{Name: "RewardMob", Tipo: model.TipoMonstro,
 			ExpReward: 1000, Gold: 100,
-			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion,
+			Score: &model.Score{Version: model.ScoreVersion,
 				Level: 20, MaxHP: 100, CurHP: 100, MaxMP: 10, CurMP: 10},
 			Carry: make([]model.Item, 12)}}
 	mob.Def.Carry[11] = model.Item{Index: 500}

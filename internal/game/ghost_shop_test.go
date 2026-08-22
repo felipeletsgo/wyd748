@@ -146,7 +146,7 @@ func TestBuildGhostShopPurchaseRejectsChangedItemFullInventoryAndGoldOverflow(t 
 func TestGhostShopResetsOwnerBeforePublishingClone(t *testing.T) {
 	ch := &model.Char{
 		Name: "Felipe",
-		Extended: testExtended(model.ExtendedScore{
+		Score: testExtended(model.Score{
 			MaxHP: 321,
 			CurHP: 321,
 			MaxMP: 123,
@@ -249,7 +249,7 @@ func TestVitalsDeObservadorNaoVaoParaODono(t *testing.T) {
 	novo := func(id uint16, x uint16) (*Player, *net.Session) {
 		s := net.NewTestSession(int64(id), 64)
 		acc := &model.Account{Name: "c", Chars: []model.Char{{Name: "n",
-			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100}}}}
+			Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}}}}
 		p := &Player{ID: id, Session: s, Account: acc, Char: &acc.Chars[0],
 			InWorld: true, X: x, Y: 2100, Visible: map[uint16]struct{}{}}
 		w.players[s] = p

@@ -523,8 +523,8 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 	def := &model.NPCDef{
 		Name: "Cria^", Tipo: model.TipoMonstro,
 		Equip: model.Equip{Rosto: model.Item{Index: face}},
-		Extended: &model.ExtendedScore{
-			Version:   model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version:   model.ScoreVersion,
 			Level:     playerLevel(p.Char),
 			MaxHP:     uint32(hp),
 			CurHP:     uint32(hp),
@@ -605,8 +605,8 @@ func (w *World) applyMountHuntExp(p *Player, m *Mob) mountHuntUpdate {
 		return result
 	}
 	mobLevel := 0
-	if m.Def.Extended != nil {
-		mobLevel = int(m.Def.Extended.Level)
+	if m.Def.Score != nil {
+		mobLevel = int(m.Def.Score.Level)
 	}
 	if mobLevel < mount.MountLevel() {
 		return result // mob fraco demais nao ensina a cria

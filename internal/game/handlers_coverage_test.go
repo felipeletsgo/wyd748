@@ -69,8 +69,8 @@ func TestShopOpenBuyAndSellLifecycle(t *testing.T) {
 		ID: 1100, X: 2101, Y: 2100,
 		Def: &model.NPCDef{
 			Name: "Merchant", Tipo: model.TipoNPC,
-			Extended: &model.ExtendedScore{Merchant: nativeShopMerchant},
-			Vende:    []model.Item{{Index: 400}},
+			Score: &model.Score{Merchant: nativeShopMerchant},
+			Vende: []model.Item{{Index: 400}},
 		},
 	}
 	w.registerMobSpatial(shop)
@@ -102,12 +102,12 @@ func TestShopAndCargoRejectInvalidOperations(t *testing.T) {
 	w.items[401] = model.ItemDef{Index: 401, Price: 1000}
 	shop := &Mob{ID: 1101, X: 2101, Y: 2100, Def: &model.NPCDef{
 		Name: "Merchant", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{Merchant: nativeShopMerchant},
-		Vende:    []model.Item{{Index: 401}},
+		Score: &model.Score{Merchant: nativeShopMerchant},
+		Vende: []model.Item{{Index: 401}},
 	}}
 	cargo := &Mob{ID: 1102, X: 2102, Y: 2100, Def: &model.NPCDef{
 		Name: "Cargo", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{Merchant: 2},
+		Score: &model.Score{Merchant: 2},
 	}}
 	w.registerMobSpatial(shop)
 	w.registerMobSpatial(cargo)

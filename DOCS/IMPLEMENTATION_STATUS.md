@@ -6,7 +6,7 @@ cliente 7.48.
 
 ## Personagem e progressão
 
-- `ExtendedScore` v2 é a única fonte autoritativa dos atributos. `Char.Extended`
+- `Score` v2 é a única fonte autoritativa dos atributos. `Char.Extended`
   guarda a base persistida e `ExtendedRuntime` é recomposto com equipamentos,
   passivas e affects. O `STRUCT_SCORE` de 28 bytes é apenas uma projeção de wire.
 - Os atributos naturais por classe são os de `BaseSIDCHM` do W2PP:
@@ -105,13 +105,13 @@ cliente 7.48.
 - Ataque, defesa, HP/MP, atributos, especiais, accuracy/evasion, crítico,
   resistências, regeneração, alcance e velocidades passam a ser derivados no
   servidor.
-- Todo personagem usa `ExtendedScore` v2 `uint32` como base persistida e
+- Todo personagem usa `Score` v2 `uint32` como base persistida e
   `ExtendedRuntime` como score efetivo. O loader rejeita qualquer campo antigo,
   versão diferente de 2 ou inventário que não possua os 64 slots estruturais.
 - Todo NPC/monstro também persiste seus atributos exclusivamente em
   `NPCDef.Extended`; ataque, defesa, HP/MP, atributos, masteries e resistências
   planos foram removidos dos modelos e dos 476 JSONs.
-- O `WireScore` de ABI foi retirado dos cálculos de atributos, equipamento, combate,
+- O `LegacyScore28` de ABI foi retirado dos cálculos de atributos, equipamento, combate,
   skills, progressão, regeneração e pontos. Ele existe somente como projeção
   proporcional até 30000 exigida pelo protocolo/client 7.48.
 - HP/MP acima de 32767 usam o estado real wide no servidor e no sidecar `.xstat`.
@@ -208,7 +208,7 @@ cliente 7.48.
 | Pacote | Implementação final 7.48 |
 | --- | --- |
 | `0x114 EnterWorld` | 788 bytes. A cauda do `STRUCT_MOB` inclui LearnedSkill, pontos, SkillBar, MagicIncrement, regen e quatro resistências em @748..771; zerar essa região fazia o client inicializar skills/campos incorretamente. |
-| `0x336 UpdateScore` | 236 bytes no client patched: prefixo nativo de 92 bytes com Score@12 e Affect[16]@42..73; ExtendedScore `uint32` @92..228 e assinatura XSC2@232. É público e aciona os efeitos visuais de players e mobs. |
+| `0x336 UpdateScore` | 236 bytes no client patched: prefixo nativo de 92 bytes com Score@12 e Affect[16]@42..73; Score `uint32` @92..228 e assinatura XSC2@232. É público e aciona os efeitos visuais de players e mobs. |
 | `0x3B9 UpdateAffect` | 140 bytes: 16 estruturas `{Type,Value,Level,Time}` em unidades de 8 s. É enviado somente ao dono para ícones, descrição e timer. |
 | `0x337 UpdateEtc` | 36 bytes: Hold/Chaos@12, EXP@16, LearnedSkill@20, status@24, mastery@26, skill@28, Magic@30, gold@32. É o layout p754 confirmado pelo dump real. |
 | `0x338 CNFMobKill` | 24 bytes: FakeExp@12, morto/assassino@16, EXP@20. Atualiza EXP quando o morto é mob e chama `Die()` quando o morto é o jogador. |
@@ -384,8 +384,8 @@ go build -o tm.exe ./cmd/server
 go build -o account-api.exe ./cmd/account-api
 go build -o account-create.exe ./cmd/account-create
 ```
-# ExtendedScore v2
+# Score v2
 
 Os atributos de jogadores, NPCs e monstros foram consolidados em uma única
-estrutura `uint32`. O WireScore WORD do client é somente uma projeção gerada no
-wire; o contrato estrito e o patch do client estão em `DOCS/EXTENDED_SCORE.md`.
+estrutura `uint32`. O LegacyScore28 WORD do client é somente uma projeção gerada no
+wire; o contrato estrito e o patch do client estão em `DOCS/SCORE.md`.

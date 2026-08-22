@@ -16,7 +16,7 @@ func mountMasterTestWorld(t *testing.T, random int) (*World, *Player, *Mob, *cra
 		ID: 1800, X: p.X + 1, Y: p.Y,
 		Def: &model.NPCDef{
 			Name: "Mount_Master", Tipo: model.TipoNPC,
-			Extended: &model.ExtendedScore{Merchant: mountMasterMerchant},
+			Score: &model.Score{Merchant: mountMasterMerchant},
 		},
 	}
 	w.registerMobSpatial(master)

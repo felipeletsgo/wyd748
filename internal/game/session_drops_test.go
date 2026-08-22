@@ -40,7 +40,7 @@ func TestREQMobByIDRecoversMobAndPlayer(t *testing.T) {
 	target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
 	w := worldWithNetworkedPlayers(requester, target)
 	w.ghostShops = make(map[uint16]*GhostShop)
-	mob := &Mob{ID: 1000, X: 2102, Y: 2100, Def: testNPCDef(model.ExtendedScore{
+	mob := &Mob{ID: 1000, X: 2102, Y: 2100, Def: testNPCDef(model.Score{
 		MaxHP: 100, CurHP: 100,
 	})}
 	w.registerMobSpatial(mob)
@@ -89,7 +89,7 @@ func TestREQMobByIDDoesNotLeakPrivateInstanceMob(t *testing.T) {
 	}
 	w.itemInstances = map[string]*ItemInstance{inst.Config.ID: inst}
 	mob := &Mob{ID: 1500, X: 2200, Y: 2200, HP: 100, InstanceID: inst.Config.ID,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w.mobs = []*Mob{mob}
 	w.registerMobSpatial(mob)
 	pkt := make([]byte, 16)
@@ -136,7 +136,7 @@ func TestGuaranteedMobDropUsesInventoryAndGroundFallback(t *testing.T) {
 	carry[11] = model.Item{Index: 500, Eff: [6]byte{1, 2, 3, 4, 5, 6}}
 	mob := &Mob{ID: 1000, X: 2100, Y: 2100, Def: &model.NPCDef{
 		Name: "Dropper", Tipo: model.TipoMonstro, Carry: carry,
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, Level: 10},
+		Score: &model.Score{Version: model.ScoreVersion, Level: 10},
 	}}
 
 	w.rollMobDrops(p, mob)

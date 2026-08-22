@@ -70,15 +70,15 @@ func TestRestartAndSysQuitRejectInvalidOrTooEarlyRequests(t *testing.T) {
 
 func TestPhysicalAttackHandlerDamagesMobAndTracksAggro(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
-	p.Char.Extended.Attack = 1000
-	p.Char.Extended.Dex = 1000
-	p.Char.Extended.Accuracy = 1000
+	p.Char.Score.Attack = 1000
+	p.Char.Score.Dex = 1000
+	p.Char.Score.Accuracy = 1000
 	applyExtendedScore(p.Char)
 	mob := &Mob{
 		ID: 1000, X: 2101, Y: 2100, HP: 10_000,
 		Def: &model.NPCDef{
 			Name: "TargetMob", Tipo: model.TipoMonstro,
-			Extended: testExtended(model.ExtendedScore{
+			Score: testExtended(model.Score{
 				MaxHP: 10_000, CurHP: 10_000, Defense: 0,
 			}),
 		},
@@ -102,12 +102,12 @@ func TestPhysicalAttackHandlerDamagesMobAndTracksAggro(t *testing.T) {
 func TestPhysicalAttackHandlerDamagesEnemyPlayerOnly(t *testing.T) {
 	attacker, _ := networkedTestPlayer(1, "Attacker", 2100, 2100)
 	target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
-	attacker.Char.Extended.Attack = 2000
-	attacker.Char.Extended.Dex = 1000
-	attacker.Char.Extended.Accuracy = 1000
-	target.Char.Extended.Defense = 0
-	target.Char.Extended.Dex = 0
-	target.Char.Extended.Parry = 0
+	attacker.Char.Score.Attack = 2000
+	attacker.Char.Score.Dex = 1000
+	attacker.Char.Score.Accuracy = 1000
+	target.Char.Score.Defense = 0
+	target.Char.Score.Dex = 0
+	target.Char.Score.Parry = 0
 	applyExtendedScore(attacker.Char)
 	applyExtendedScore(target.Char)
 	w := worldWithNetworkedPlayers(attacker, target)

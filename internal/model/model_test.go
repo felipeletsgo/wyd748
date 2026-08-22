@@ -17,12 +17,12 @@ func TestItemEffLoadsFromJSON(t *testing.T) {
 	}
 }
 
-func TestCharJSONPersistsOnlyExtendedScore(t *testing.T) {
+func TestCharJSONPersistsCanonicalScore(t *testing.T) {
 	ch := Char{
 		Name:    "felipe",
 		NextExp: 649715,
-		Extended: &ExtendedScore{
-			Version: ExtendedScoreVersion, Level: 50, Attack: 200,
+		Score: &Score{
+			Version: ScoreVersion, Level: 50, Attack: 200,
 			StatusPts: 250, MasterPts: 100, SkillPts: 150,
 			ResistFire: 10, ResistIce: 20, ResistHoly: 30, ResistThunder: 40,
 		},
@@ -33,27 +33,27 @@ func TestCharJSONPersistsOnlyExtendedScore(t *testing.T) {
 	}
 	if bytes.Contains(data, []byte("baseScore")) ||
 		bytes.Contains(data, []byte("nextExp")) ||
-		bytes.Contains(data, []byte(`"score":`)) {
+		bytes.Contains(data, []byte(`"extendedScore":`)) {
 		t.Fatalf("JSON persistiu estado legado/derivado: %s", data)
 	}
-	if !bytes.Contains(data, []byte(`"extendedScore":{"version":2,"level":50,"attack":200`)) {
-		t.Fatalf("extended score autoritativo ausente: %s", data)
+	if !bytes.Contains(data, []byte(`"score":{"version":2,"level":50,"attack":200`)) {
+		t.Fatalf("score canonico ausente: %s", data)
 	}
 
 	var loaded Char
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Extended == nil || loaded.Extended.Level != 50 || loaded.Extended.Attack != 200 {
-		t.Fatalf("round-trip perdeu extended score: %+v", loaded.Extended)
+	if loaded.Score == nil || loaded.Score.Level != 50 || loaded.Score.Attack != 200 {
+		t.Fatalf("round-trip perdeu extended score: %+v", loaded.Score)
 	}
-	if loaded.Extended.ResistFire != 10 || loaded.Extended.ResistThunder != 40 {
-		t.Fatalf("round-trip perdeu resistencias: %+v", loaded.Extended)
+	if loaded.Score.ResistFire != 10 || loaded.Score.ResistThunder != 40 {
+		t.Fatalf("round-trip perdeu resistencias: %+v", loaded.Score)
 	}
 }
 
 func TestCharJSONUsesNativeMountAndCapeSlots(t *testing.T) {
-	ch := Char{Name: "Slots", Extended: &ExtendedScore{Version: ExtendedScoreVersion}}
+	ch := Char{Name: "Slots", Score: &Score{Version: ScoreVersion}}
 	ch.Equip[14] = Item{Index: 2376}
 	ch.Equip[15] = Item{Index: 545}
 	data, err := json.Marshal(ch)
@@ -99,7 +99,7 @@ func TestCharJSONRequiresAllStructuralInventorySlots(t *testing.T) {
 }
 
 func TestCompatibilityScoreCannotBePersistedAsJSON(t *testing.T) {
-	data, err := json.Marshal(WireScore{Level: 400, Attack: 5000, MaxHP: 30000})
+	data, err := json.Marshal(LegacyScore28{Level: 400, Attack: 5000, MaxHP: 30000})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,21 +111,21 @@ func TestCompatibilityScoreCannotBePersistedAsJSON(t *testing.T) {
 func TestExtendedScoreRejectsFunctionalLimitViolations(t *testing.T) {
 	tests := []struct {
 		name   string
-		mutate func(*ExtendedScore)
+		mutate func(*Score)
 	}{
-		{"save mana above 99", func(e *ExtendedScore) { e.SaveMana = 100 }},
-		{"fire resistance above 100", func(e *ExtendedScore) { e.ResistFire = 101 }},
-		{"ice resistance above 100", func(e *ExtendedScore) { e.ResistIce = 101 }},
-		{"holy resistance above 100", func(e *ExtendedScore) { e.ResistHoly = 101 }},
-		{"thunder resistance above 100", func(e *ExtendedScore) { e.ResistThunder = 101 }},
-		{"hp regen above 255", func(e *ExtendedScore) { e.RegenHP = 256 }},
-		{"mp regen above 255", func(e *ExtendedScore) { e.RegenMP = 256 }},
-		{"current hp above maximum", func(e *ExtendedScore) { e.CurHP = 101 }},
-		{"current mp above maximum", func(e *ExtendedScore) { e.CurMP = 101 }},
+		{"save mana above 99", func(e *Score) { e.SaveMana = 100 }},
+		{"fire resistance above 100", func(e *Score) { e.ResistFire = 101 }},
+		{"ice resistance above 100", func(e *Score) { e.ResistIce = 101 }},
+		{"holy resistance above 100", func(e *Score) { e.ResistHoly = 101 }},
+		{"thunder resistance above 100", func(e *Score) { e.ResistThunder = 101 }},
+		{"hp regen above 255", func(e *Score) { e.RegenHP = 256 }},
+		{"mp regen above 255", func(e *Score) { e.RegenMP = 256 }},
+		{"current hp above maximum", func(e *Score) { e.CurHP = 101 }},
+		{"current mp above maximum", func(e *Score) { e.CurMP = 101 }},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			extended := &ExtendedScore{Version: ExtendedScoreVersion,
+			extended := &Score{Version: ScoreVersion,
 				MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100}
 			test.mutate(extended)
 			if err := extended.ValidatePlayerState(); err == nil {
@@ -179,42 +179,42 @@ func TestEmptyCharacterSlotDetectsEveryLatePersistedField(t *testing.T) {
 
 func TestAccountValidateRejectsDuplicateCharacterUID(t *testing.T) {
 	uid := "11111111111141118111111111111111"
-	validScore := func() *ExtendedScore {
-		return &ExtendedScore{Version: ExtendedScoreVersion, MaxHP: 100, CurHP: 100,
+	validScore := func() *Score {
+		return &Score{Version: ScoreVersion, MaxHP: 100, CurHP: 100,
 			MaxMP: 100, CurMP: 100}
 	}
 	account := &Account{Name: "duplicate", PasswordHash: "hash", Chars: []Char{
-		{UID: uid, Name: "First", Extended: validScore()},
-		{UID: uid, Name: "Second", Extended: validScore()},
+		{UID: uid, Name: "First", Score: validScore()},
+		{UID: uid, Name: "Second", Score: validScore()},
 	}}
 	if err := account.Validate(); err == nil {
 		t.Fatal("dois personagens ativos com o mesmo UID foram aceitos")
 	}
 }
 
-func TestExtendedCharJSONNeverPersistsLegacyProjection(t *testing.T) {
-	ch := Char{Name: "Wide", Extended: &ExtendedScore{
-		Version: ExtendedScoreVersion,
+func TestWideCharJSONPersistsCanonicalScore(t *testing.T) {
+	ch := Char{Name: "Wide", Score: &Score{
+		Version: ScoreVersion,
 		MaxHP:   500_000, MaxMP: 400_000, CurHP: 480_000, CurMP: 350_000,
 	}}
 	data, err := json.Marshal(ch)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Contains(data, []byte(`"score":`)) {
-		t.Fatalf("personagem wide ainda gravou score legado: %s", data)
+	if bytes.Contains(data, []byte(`"extendedScore":`)) || !bytes.Contains(data, []byte(`"score":`)) {
+		t.Fatalf("personagem wide nao gravou somente o score canonico: %s", data)
 	}
 	var loaded Char
 	if err := json.Unmarshal(data, &loaded); err != nil {
 		t.Fatal(err)
 	}
-	if loaded.Extended == nil || loaded.Extended.CurHP != 480_000 || loaded.Extended.CurMP != 350_000 {
-		t.Fatalf("recursos wide nao foram persistidos: %+v", loaded.Extended)
+	if loaded.Score == nil || loaded.Score.CurHP != 480_000 || loaded.Score.CurMP != 350_000 {
+		t.Fatalf("recursos wide nao foram persistidos: %+v", loaded.Score)
 	}
 }
 
 func TestExtendedCompatibilityScoreIsProportionalAndSafe(t *testing.T) {
-	e := &ExtendedScore{
+	e := &Score{
 		Level: 400, Attack: 300_000, Defense: 200_000,
 		MaxHP: 500_000, CurHP: 250_000,
 		MaxMP: 400_000, CurMP: 100_000,
@@ -233,15 +233,15 @@ func TestExtendedCompatibilityScoreIsProportionalAndSafe(t *testing.T) {
 
 func TestNPCUsesExtendedStatsAndOnlyProjectsAtWireBoundary(t *testing.T) {
 	def := NPCDef{
-		Extended: &ExtendedScore{
-			Version: ExtendedScoreVersion,
+		Score: &Score{
+			Version: ScoreVersion,
 			Level:   400, Attack: 350_000, MagicAttack: 420_000, Defense: 275_000,
 			MaxHP: 1_000_000, MaxMP: 500_000,
 			Str: 180_000, Int: 190_000, Dex: 170_000, Con: 200_000,
 			Mastery: [4]uint32{300, 301, 302, 303},
 		},
 	}
-	ext := def.MakeExtendedScore(750_000)
+	ext := def.MakeScore(750_000)
 	if ext.Attack != 350_000 || ext.MagicAttack != 420_000 ||
 		ext.Defense != 275_000 || ext.CurHP != 750_000 || ext.MaxHP != 1_000_000 ||
 		ext.Mastery[0] != 300 {
@@ -256,8 +256,8 @@ func TestNPCUsesExtendedStatsAndOnlyProjectsAtWireBoundary(t *testing.T) {
 }
 
 func TestNPCJSONPersistsOnlyExtendedScore(t *testing.T) {
-	def := NPCDef{Name: "Mago", Extended: &ExtendedScore{
-		Version: ExtendedScoreVersion, MagicAttack: 123456,
+	def := NPCDef{Name: "Mago", Score: &Score{
+		Version: ScoreVersion, MagicAttack: 123456,
 	}}
 	data, err := json.Marshal(def)
 	if err != nil {
@@ -307,8 +307,8 @@ func TestVisualItemCodeHidesDeadMountWithoutDeletingIt(t *testing.T) {
 
 func TestAccountRejectsReservedInventorySlot(t *testing.T) {
 	ch := Char{
-		Name:     "Invalido",
-		Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+		Name:  "Invalido",
+		Score: &Score{Version: ScoreVersion},
 	}
 	ch.Inv[PlayerCarrySlots] = Item{Index: 4011}
 	acc := &Account{Name: "conta", PasswordHash: "hash", Chars: []Char{ch}}
@@ -322,8 +322,8 @@ func TestAccountRejectsCharacterWithoutStableUID(t *testing.T) {
 		Name: "conta", PasswordHash: "hash",
 		Chars: []Char{{
 			Name: "SemUID",
-			Extended: &ExtendedScore{
-				Version: ExtendedScoreVersion,
+			Score: &Score{
+				Version: ScoreVersion,
 			},
 		}},
 	}
@@ -343,7 +343,7 @@ func TestAccountRejectsActiveCharacterDuplicatedByCelestialCapsule(t *testing.T)
 	}
 	ch := Char{
 		Name: "Celestial", UID: uid, Evolution: "celestial",
-		Extended: &ExtendedScore{Version: ExtendedScoreVersion, Level: 90},
+		Score: &Score{Version: ScoreVersion, Level: 90},
 	}
 	seal := NewCelestialSeal(itemUID, 1)
 	acc := &Account{
@@ -373,11 +373,11 @@ func TestAccountAcceptsCelestialSealInVisibleCarry(t *testing.T) {
 	}
 	sealed := Char{
 		UID: sourceUID, Name: "Sealed", Evolution: "celestial",
-		Extended: &ExtendedScore{Version: ExtendedScoreVersion, Level: 90},
+		Score: &Score{Version: ScoreVersion, Level: 90},
 	}
 	carrier := Char{
 		UID: carrierUID, Name: "Carrier",
-		Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+		Score: &Score{Version: ScoreVersion},
 	}
 	carrier.Inv[0] = NewCelestialSeal(itemUID, 7)
 	acc := &Account{
@@ -407,7 +407,7 @@ func TestAccountRejectsFilledCelestialSealWithoutSnapshot(t *testing.T) {
 	}
 	carrier := Char{
 		UID: carrierUID, Name: "Carrier",
-		Extended: &ExtendedScore{Version: ExtendedScoreVersion},
+		Score: &Score{Version: ScoreVersion},
 	}
 	carrier.Inv[0] = NewCelestialSeal(itemUID, 9)
 	acc := &Account{Name: "conta", PasswordHash: "hash", Chars: []Char{carrier}}
@@ -421,8 +421,8 @@ func TestCelestialFormValidationRejectsInvalidPersistentState(t *testing.T) {
 		Evolution: "subcelestial",
 		Class:     2,
 		Face:      Item{Index: 18},
-		Extended: &ExtendedScore{
-			Version: ExtendedScoreVersion,
+		Score: &Score{
+			Version: ScoreVersion,
 			Level:   199,
 		},
 	}
@@ -431,8 +431,8 @@ func TestCelestialFormValidationRejectsInvalidPersistentState(t *testing.T) {
 	}
 
 	tooHigh := *valid
-	tooHigh.Extended = &ExtendedScore{
-		Version: ExtendedScoreVersion,
+	tooHigh.Score = &Score{
+		Version: ScoreVersion,
 		Level:   200,
 	}
 	if err := tooHigh.Validate(); err == nil {
@@ -442,14 +442,14 @@ func TestCelestialFormValidationRejectsInvalidPersistentState(t *testing.T) {
 	sameForm := Char{
 		Name:      "Duplicado",
 		Evolution: "celestial",
-		Extended: &ExtendedScore{
-			Version: ExtendedScoreVersion,
+		Score: &Score{
+			Version: ScoreVersion,
 		},
 		AlternateCelestial: &CelestialForm{
 			Evolution: "celestial",
 			Face:      Item{Index: 6},
-			Extended: &ExtendedScore{
-				Version: ExtendedScoreVersion,
+			Score: &Score{
+				Version: ScoreVersion,
 			},
 		},
 	}

@@ -28,9 +28,9 @@ func TestNativeMerchantOneOpensNormalShop(t *testing.T) {
 func TestSummonOnlyUsesOwnerCombatOrders(t *testing.T) {
 	owner := partyTestPlayer(1, 2200, 2100)
 	attacked := &Mob{ID: 1000, X: 2201, Y: 2100, HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100})}
 	ordered := &Mob{ID: 1001, X: 2202, Y: 2100, HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100})}
 	w := testSpatialWorld([]*Mob{attacked, ordered})
 
 	owner.LastAttackerID = attacked.ID

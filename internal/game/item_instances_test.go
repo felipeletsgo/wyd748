@@ -41,7 +41,7 @@ func instanceTestWorld() (*World, *Player, *Player, *guildFlowStore, *fakeClock)
 	w.itemInstances = make(map[string]*ItemInstance)
 	w.npcs = []model.NPCDef{{
 		Name: "RoomMob", Tipo: model.TipoMonstro,
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100},
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100},
 	}}
 	w.volatiles = model.VolatileCatalog{
 		Default:   model.VolatileRule{Action: "generic"},
@@ -373,7 +373,7 @@ func TestInstanceMobTargetsOnlyMembersAndStaysInsideRoom(t *testing.T) {
 	w.itemInstances = map[string]*ItemInstance{inst.Config.ID: inst}
 	def := &model.NPCDef{
 		Name: "RoomMob", Tipo: model.TipoMonstro,
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100, AttackRun: 4},
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100, AttackRun: 4},
 	}
 	mob := &Mob{ID: 1000, Def: def, X: 2200, Y: 2200, HP: 100, InstanceID: inst.Config.ID}
 	w.mobs = []*Mob{mob}
@@ -425,8 +425,8 @@ func TestNightmareCelestialGatesAndEntryCharge(t *testing.T) {
 	rule := nightmareTestRule("normal")
 	w.volatiles.Items[100] = rule
 	leader.Char.Evolution = "celestial"
-	leader.Char.Extended.Level = 180
-	leader.Char.ExtendedRuntime = nil
+	leader.Char.Score.Level = 180
+	leader.Char.RuntimeScore = nil
 	applyExtendedScore(leader.Char)
 	leader.Char.NightmareTickets = 3
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
@@ -443,8 +443,8 @@ func TestNightmareCelestialGatesAndEntryCharge(t *testing.T) {
 	rule = nightmareTestRule("arcane")
 	w.volatiles.Items[100] = rule
 	leader.Char.Evolution = "celestial"
-	leader.Char.Extended.Level = 238
-	leader.Char.ExtendedRuntime = nil
+	leader.Char.Score.Level = 238
+	leader.Char.RuntimeScore = nil
 	applyExtendedScore(leader.Char)
 	leader.Char.NightmareTickets = 1
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
@@ -460,8 +460,8 @@ func TestNightmareCelestialGatesAndEntryCharge(t *testing.T) {
 	rule = nightmareTestRule("arcane")
 	w.volatiles.Items[100] = rule
 	leader.Char.Evolution = "celestial"
-	leader.Char.Extended.Level = 238
-	leader.Char.ExtendedRuntime = nil
+	leader.Char.Score.Level = 238
+	leader.Char.RuntimeScore = nil
 	applyExtendedScore(leader.Char)
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
 	if w.itemInstances[rule.Instance.ID] != nil || leader.Char.Inv[0].Index != 100 ||
@@ -478,8 +478,8 @@ func TestNightmareSkipsIneligiblePartyCelestial(t *testing.T) {
 	w.volatiles.Items[100] = rule
 	leader.Char.Evolution = "mortal"
 	member.Char.Evolution = "celestial"
-	member.Char.Extended.Level = 180
-	member.Char.ExtendedRuntime = nil
+	member.Char.Score.Level = 180
+	member.Char.RuntimeScore = nil
 	applyExtendedScore(member.Char)
 	oldX, oldY := member.X, member.Y
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
@@ -498,8 +498,8 @@ func TestNightmareEntryChargeRollsBackOnSpawnFailure(t *testing.T) {
 	rule := nightmareTestRule("arcane")
 	w.volatiles.Items[100] = rule
 	leader.Char.Evolution = "celestial"
-	leader.Char.Extended.Level = 238
-	leader.Char.ExtendedRuntime = nil
+	leader.Char.Score.Level = 238
+	leader.Char.RuntimeScore = nil
 	applyExtendedScore(leader.Char)
 	leader.Char.NightmareTickets = 1
 	for id := uint32(firstMobID); id <= uint32(^uint16(0)); id++ {
@@ -687,8 +687,8 @@ func TestInstanceSupportsMixedBossPopulationWithoutReward(t *testing.T) {
 	w, leader, _, _, _ := instanceTestWorld()
 	w.npcs = append(w.npcs, model.NPCDef{
 		Name: "BossMob", Tipo: model.TipoMonstro,
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion, MaxHP: 1000, CurHP: 1000,
+		Score: &model.Score{
+			Version: model.ScoreVersion, MaxHP: 1000, CurHP: 1000,
 		},
 	})
 	rule := instanceTestRule()
@@ -917,10 +917,10 @@ func TestHellGateStateMachineRequiresConfiguredLichPair(t *testing.T) {
 	w.rng = fixedRNG{value: 0} // variante 1: quadrantes 2 e 4
 	for _, name := range []string{"Hell_Spider", "Skeleton", "Lich_Dragon"} {
 		w.npcs = append(w.npcs, model.NPCDef{Name: name, Tipo: model.TipoMonstro,
-			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100}})
+			Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}})
 	}
 	w.npcs = append(w.npcs, model.NPCDef{Name: "Aki", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100}})
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}})
 	rule := instanceTestRule()
 	rule.PartyMode = "solo"
 	rule.Instance.ID = "hell-gate-test"
@@ -1179,7 +1179,7 @@ func TestExclusiveInstanceLockIncludesExitGrace(t *testing.T) {
 func TestMagicChamberBossUsesFourthRoomDeadline(t *testing.T) {
 	w, leader, _, _, clock := instanceTestWorld()
 	w.npcs = append(w.npcs, model.NPCDef{Name: "ChamberBoss", Tipo: model.TipoMonstro,
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 500, CurHP: 500}})
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 500, CurHP: 500}})
 	rule := instanceTestRule()
 	rule.PartyMode = "solo"
 	rule.Instance.ID = "magic-chamber-fourth"

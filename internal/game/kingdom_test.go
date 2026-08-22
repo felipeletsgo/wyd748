@@ -81,7 +81,7 @@ func TestOnlyGuildLeaderChangesGuildKingdom(t *testing.T) {
 }
 
 func kingdomTestChar(level uint32, evolution string, cape uint16) *model.Char {
-	ch := &model.Char{Evolution: evolution, Extended: &model.ExtendedScore{Version: 2, Level: level}}
+	ch := &model.Char{Evolution: evolution, Score: &model.Score{Version: 2, Level: level}}
 	ch.Equip[model.CapeSlot] = model.Item{Index: cape, Eff: [6]byte{54, 16}}
 	return ch
 }
@@ -91,7 +91,7 @@ func TestKingdomCapeProgressionHasSecondMortalCape(t *testing.T) {
 	if _, err := kingdomCapeForJoin(ch, model.KingdomHekalotia); !errors.Is(err, errKingdomAlready) {
 		t.Fatalf("nivel 255 exibido promoveu antes da hora: %v", err)
 	}
-	ch.Extended.Level = 255
+	ch.Score.Level = 255
 	change, err := kingdomCapeForJoin(ch, model.KingdomHekalotia)
 	if err != nil || change.Index != 543 || change.Tier != model.CapeTierKnight || change.Preserve {
 		t.Fatalf("segunda capa azul = %+v, %v", change, err)

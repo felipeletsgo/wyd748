@@ -28,9 +28,9 @@ func TestCombineNPCResolvesClientSideOpenedArtisan(t *testing.T) {
 	artisan := &Mob{
 		ID: 1500, X: 100, Y: 100,
 		Def: &model.NPCDef{
-			Name:     "Lindy",
-			Tipo:     model.TipoNPC,
-			Extended: &model.ExtendedScore{Merchant: craftingMerchant},
+			Name:  "Lindy",
+			Tipo:  model.TipoNPC,
+			Score: &model.Score{Merchant: craftingMerchant},
 		},
 	}
 	w.registerMobSpatial(artisan)
@@ -52,11 +52,11 @@ func TestCombineNPCReplacesStaleArtisanContext(t *testing.T) {
 	w := &World{}
 	old := &Mob{ID: 1500, X: 100, Y: 100, Def: &model.NPCDef{
 		Name: "Tiny", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{Merchant: craftingMerchant},
+		Score: &model.Score{Merchant: craftingMerchant},
 	}}
 	wanted := &Mob{ID: 1501, X: 101, Y: 100, Def: &model.NPCDef{
 		Name: "Aylin", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{Merchant: craftingMerchant},
+		Score: &model.Score{Merchant: craftingMerchant},
 	}}
 	w.registerMobSpatial(old)
 	w.registerMobSpatial(wanted)
@@ -111,8 +111,8 @@ func newCraftWorld(t *testing.T, npcName string, items map[uint16]model.ItemDef,
 	mob := &Mob{
 		ID: 2000,
 		Def: &model.NPCDef{
-			Name:     npcName,
-			Extended: &model.ExtendedScore{Merchant: craftingMerchant},
+			Name:  npcName,
+			Score: &model.Score{Merchant: craftingMerchant},
 		},
 		X: 100, Y: 100,
 	}
@@ -156,7 +156,7 @@ func TestCombineLindyCreatesEliteCape(t *testing.T) {
 		pos[index] = int8(index)
 	}
 	placeItems(p.Char, items, pos)
-	p.Char.Extended = testExtended(model.ExtendedScore{
+	p.Char.Score = testExtended(model.Score{
 		Level: archLockLevel355, MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
 	})
 	p.Char.Evolution = archEvolution
@@ -217,7 +217,7 @@ func TestCombineLindyRejectsCharacterOutsideArchLock(t *testing.T) {
 		pos[index] = int8(index)
 	}
 	placeItems(p.Char, items, pos)
-	p.Char.Extended = testExtended(model.ExtendedScore{Level: 360, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testExtended(model.Score{Level: 360, MaxHP: 100, CurHP: 100})
 	p.Char.Evolution = archEvolution
 	before := p.Char.Inv
 
@@ -244,7 +244,7 @@ func TestCombineLindyLevel370KeepsEquippedCape(t *testing.T) {
 		pos[index] = int8(index)
 	}
 	placeItems(p.Char, items, pos)
-	p.Char.Extended = testExtended(model.ExtendedScore{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testExtended(model.Score{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
 	p.Char.Evolution = archEvolution
 	p.Char.ArchLevel355 = true
 	p.Char.Equip[15] = model.Item{Index: 3197, UID: "11111111111141118111111111111111", Eff: [6]byte{43, 7}}
@@ -278,7 +278,7 @@ func TestCombineLindyLevel370RequiresOneFameWithoutConsumingRecipe(t *testing.T)
 		pos[index] = int8(index)
 	}
 	placeItems(p.Char, items, pos)
-	p.Char.Extended = testExtended(model.ExtendedScore{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testExtended(model.Score{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
 	p.Char.Evolution = archEvolution
 	p.Char.ArchLevel355 = true
 	before := p.Char.Inv
@@ -324,7 +324,7 @@ func TestCombineLindyUnlocksRollBackFlagsFameAndRecipeOnSaveFailure(t *testing.T
 				pos[index] = int8(index)
 			}
 			placeItems(p.Char, items, pos)
-			p.Char.Extended = testExtended(model.ExtendedScore{Level: test.level, MaxHP: 100, CurHP: 100})
+			p.Char.Score = testExtended(model.Score{Level: test.level, MaxHP: 100, CurHP: 100})
 			p.Char.Evolution = archEvolution
 			p.Char.ArchLevel355 = test.level == archLockLevel370
 			p.Char.Equip[15] = model.Item{Index: 3197, UID: "11111111111141118111111111111111", Eff: [6]byte{43, 7}}
@@ -595,7 +595,7 @@ func TestCombineEhreRollsBackExperienceOnSaveFailure(t *testing.T) {
 	placeItems(p.Char, items, pos)
 	p.Char.Evolution = "celestial"
 	p.Char.Exp = 10_000_000
-	p.Char.Extended = testExtended(model.ExtendedScore{Level: 190, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testExtended(model.Score{Level: 190, MaxHP: 100, CurHP: 100})
 	beforeInv, beforeExp := p.Char.Inv, p.Char.Exp
 	st.err = errors.New("postgres indisponivel")
 
@@ -621,7 +621,7 @@ func TestCombineEhreRejectsRefinementWithoutEffectSlot(t *testing.T) {
 	placeItems(p.Char, items, pos)
 	p.Char.Evolution = "celestial"
 	p.Char.Exp = 10_000_000
-	p.Char.Extended = testExtended(model.ExtendedScore{
+	p.Char.Score = testExtended(model.Score{
 		Level: 190, MaxHP: 100, CurHP: 100,
 	})
 	beforeInv, beforeExp := p.Char.Inv, p.Char.Exp
@@ -645,7 +645,7 @@ func TestCombineOdinCapeRejectsWhenRefinementHasNoEffectSlot(t *testing.T) {
 	}
 	placeItems(p.Char, items, pos)
 	p.Char.Evolution = "celestial"
-	p.Char.Extended = testExtended(model.ExtendedScore{Level: 39, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testExtended(model.Score{Level: 39, MaxHP: 100, CurHP: 100})
 	p.Char.Equip[15] = model.Item{
 		Index: 3199,
 		UID:   "11111111111141118111111111111111",

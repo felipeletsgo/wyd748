@@ -790,7 +790,7 @@ func (w *World) spawnGroup(g *generState) {
 			log.Printf("NPCGener[%d]: spawn interrompido: faixa de IDs de mob esgotada", g.def.Index)
 			break
 		}
-		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Extended.MaxHP,
+		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
 			GenerIndex: g.def.Index, Segments: segments, RouteType: g.def.RouteType,
 			WaitUntil: w.now().Add(time.Duration(g.def.Segments[0].Wait) * time.Second)}
 		if i == 0 {

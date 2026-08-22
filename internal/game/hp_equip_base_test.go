@@ -18,13 +18,13 @@ func TestClampDoBaseNaoReduzOHPEmJogo(t *testing.T) {
 
 	ch := &model.Char{
 		Name: "A",
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version: model.ScoreVersion,
 			MaxHP:   baseMax, CurHP: baseMax,
 			MaxMP: baseMax, CurMP: baseMax,
 		},
-		ExtendedRuntime: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		RuntimeScore: &model.Score{
+			Version: model.ScoreVersion,
 			MaxHP:   efetivoMax, CurHP: efetivoMax,
 			MaxMP: efetivoMax, CurMP: efetivoMax,
 		},
@@ -37,9 +37,9 @@ func TestClampDoBaseNaoReduzOHPEmJogo(t *testing.T) {
 		t.Errorf("HP em jogo caiu para %d, esperava %d -- o clamp do base vazou "+
 			"para o runtime", got, efetivoMax)
 	}
-	if ch.Extended.CurHP > ch.Extended.MaxHP {
+	if ch.Score.CurHP > ch.Score.MaxHP {
 		t.Errorf("base gravou %d/%d, um estado impossivel",
-			ch.Extended.CurHP, ch.Extended.MaxHP)
+			ch.Score.CurHP, ch.Score.MaxHP)
 	}
 	_ = w
 }
@@ -52,13 +52,13 @@ func TestBaseNuncaExcedeOTetoEmNenhumRecurso(t *testing.T) {
 	novo := func() *model.Char {
 		return &model.Char{
 			Name: "A",
-			Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion,
+			Score: &model.Score{
+				Version: model.ScoreVersion,
 				MaxHP:   baseMax, CurHP: baseMax / 2,
 				MaxMP: baseMax, CurMP: baseMax / 2,
 			},
-			ExtendedRuntime: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion,
+			RuntimeScore: &model.Score{
+				Version: model.ScoreVersion,
 				MaxHP:   efetivoMax, CurHP: baseMax / 2,
 				MaxMP: efetivoMax, CurMP: baseMax / 2,
 			},
@@ -68,11 +68,11 @@ func TestBaseNuncaExcedeOTetoEmNenhumRecurso(t *testing.T) {
 	restorePlayerHP(ch, efetivoMax)
 	restorePlayerMP(ch, efetivoMax)
 
-	if ch.Extended.CurHP > ch.Extended.MaxHP {
-		t.Errorf("base HP %d/%d", ch.Extended.CurHP, ch.Extended.MaxHP)
+	if ch.Score.CurHP > ch.Score.MaxHP {
+		t.Errorf("base HP %d/%d", ch.Score.CurHP, ch.Score.MaxHP)
 	}
-	if ch.Extended.CurMP > ch.Extended.MaxMP {
-		t.Errorf("base MP %d/%d", ch.Extended.CurMP, ch.Extended.MaxMP)
+	if ch.Score.CurMP > ch.Score.MaxMP {
+		t.Errorf("base MP %d/%d", ch.Score.CurMP, ch.Score.MaxMP)
 	}
 	// E o teto efetivo continua alcancavel em jogo.
 	if playerCurHP(ch) != efetivoMax || playerCurMP(ch) != efetivoMax {

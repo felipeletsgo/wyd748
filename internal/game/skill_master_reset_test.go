@@ -15,17 +15,17 @@ func abilityResetTestWorld(t *testing.T) (*World, *Player, *Mob, *craftStore) {
 		ID: 1810, X: p.X + 1, Y: p.Y,
 		Def: &model.NPCDef{
 			Name: "Skill_Master", Tipo: model.TipoNPC,
-			Extended: &model.ExtendedScore{Merchant: abilityResetMasterMerchant},
+			Score: &model.Score{Merchant: abilityResetMasterMerchant},
 		},
 	}
 	w.registerMobSpatial(master)
 	p.show(master.ID)
 	p.Char.Class = 0
-	p.Char.Extended.Level = 100
-	p.Char.Extended.Str = 158 // base 8 + 150: somente 100 retornam
-	p.Char.Extended.Int = 54  // base 4 + 50: todos retornam
-	p.Char.Extended.Dex = 17  // base 7 + 10: todos retornam
-	p.Char.Extended.Con = 6
+	p.Char.Score.Level = 100
+	p.Char.Score.Str = 158 // base 8 + 150: somente 100 retornam
+	p.Char.Score.Int = 54  // base 4 + 50: todos retornam
+	p.Char.Score.Dex = 17  // base 7 + 10: todos retornam
+	p.Char.Score.Con = 6
 	w.recalcPlayer(p.Char)
 	return w, p, master, store
 }
@@ -45,7 +45,7 @@ func TestSkillMasterUsesPremiumFirstAndResetsAtMostOneHundredPerStat(t *testing.
 
 	w.onUseNPC(p.Session, confirmedAbilityResetPacket(master.ID))
 
-	e := p.Char.Extended
+	e := p.Char.Score
 	if store.saves != 1 || p.Char.Inv[0].Index != 0 ||
 		p.Char.Inv[1].Index != model.SapphirePack || p.Char.Inv[2].Index != model.SapphirePack ||
 		e.Str != 58 || e.Int != 4 || e.Dex != 7 || e.Con != 6 || e.StatusPts != 450 {
@@ -91,7 +91,7 @@ func TestSkillMasterRejectsEquipmentAndMissingPayment(t *testing.T) {
 			w.onUseNPC(p.Session, confirmedAbilityResetPacket(master.ID))
 
 			if store.saves != 0 || p.Char.Inv != before.Inv || p.Char.Equip != before.Equip ||
-				p.Char.Extended.Str != before.Extended.Str {
+				p.Char.Score.Str != before.Score.Str {
 				t.Fatalf("recusa alterou estado: saves=%d char=%+v", store.saves, p.Char)
 			}
 		})
@@ -107,9 +107,9 @@ func TestSkillMasterRollsBackMaterialAndStatsOnSaveFailure(t *testing.T) {
 	w.onUseNPC(p.Session, confirmedAbilityResetPacket(master.ID))
 
 	if store.saves != 1 || p.Char.Inv != before.Inv ||
-		p.Char.Extended.Str != before.Extended.Str || p.Char.Extended.Int != before.Extended.Int ||
-		p.Char.Extended.StatusPts != before.Extended.StatusPts {
-		t.Fatalf("rollback incompleto: saves=%d inv=%v stats=%+v", store.saves, p.Char.Inv[0], p.Char.Extended)
+		p.Char.Score.Str != before.Score.Str || p.Char.Score.Int != before.Score.Int ||
+		p.Char.Score.StatusPts != before.Score.StatusPts {
+		t.Fatalf("rollback incompleto: saves=%d inv=%v stats=%+v", store.saves, p.Char.Inv[0], p.Char.Score)
 	}
 }
 
@@ -120,7 +120,7 @@ func TestSkillMasterDoesNotExecuteBeforeNativeConfirmation(t *testing.T) {
 
 	w.onUseNPC(p.Session, useNPCPacket(master.ID))
 
-	if store.saves != 0 || p.Char.Inv != before.Inv || p.Char.Extended.Str != before.Extended.Str {
+	if store.saves != 0 || p.Char.Inv != before.Inv || p.Char.Score.Str != before.Score.Str {
 		t.Fatal("clique sem confirmacao executou o reset")
 	}
 }

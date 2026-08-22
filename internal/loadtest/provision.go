@@ -226,26 +226,26 @@ func selectCharacter(acc *model.Account, name string, slot *int) (*model.Char, e
 }
 
 func cloneForLoadtest(origin *model.Char, accountName, charName, passwordHash string) (*model.Account, error) {
-	if origin == nil || origin.Extended == nil {
-		return nil, fmt.Errorf("personagem fonte sem ExtendedScore")
+	if origin == nil || origin.Score == nil {
+		return nil, fmt.Errorf("personagem fonte sem Score")
 	}
 	clone := *origin
 	clone.Name = charName
 	clone.UID = ""
 	clone.X, clone.Y = 1162, 1700
-	clone.ExtendedRuntime = nil
+	clone.RuntimeScore = nil
 	clone.ArchMortalUID = "" // o Mortal de origem nao e clonado para cada bot
 	clone.GuildID, clone.GuildRank = 0, 0
 	clone.QuestsDone = append([]int32(nil), origin.QuestsDone...)
-	extended := *origin.Extended
+	extended := *origin.Score
 	extended.CurHP, extended.CurMP = extended.MaxHP, extended.MaxMP
-	clone.Extended = &extended
+	clone.Score = &extended
 	if origin.AlternateCelestial != nil {
 		alternate := *origin.AlternateCelestial
-		if alternate.Extended != nil {
-			ext := *alternate.Extended
+		if alternate.Score != nil {
+			ext := *alternate.Score
 			ext.CurHP, ext.CurMP = ext.MaxHP, ext.MaxMP
-			alternate.Extended = &ext
+			alternate.Score = &ext
 		}
 		clone.AlternateCelestial = &alternate
 	}

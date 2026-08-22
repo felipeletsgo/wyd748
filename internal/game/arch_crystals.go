@@ -76,7 +76,7 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	if ch.Extended.Level < archCrystalMinLevel {
+	if ch.Score.Level < archCrystalMinLevel {
 		s.Send(wire.MessagePanel("You must reach level 355 to take this oath."))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -103,11 +103,11 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 	}
 
 	anteriorItem, anteriorExp := *item, ch.Exp
-	anteriorNivel, anteriorCristais := ch.Extended.Level, ch.ArchCrystals
+	anteriorNivel, anteriorCristais := ch.Score.Level, ch.ArchCrystals
 
 	ch.ArchCrystals = passo
 	ch.Exp -= archCrystalExpCost
-	ch.Extended.Level = levelForExp(ch.Exp)
+	ch.Score.Level = levelForExp(ch.Exp)
 	syncProgression(ch)
 	if rule.Consume {
 		consumeOne(item)
@@ -118,7 +118,7 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 	// estar em disco. Uma falha aqui devolve tudo.
 	if err := w.saveAccount(p.Account); err != nil {
 		*item, ch.Exp = anteriorItem, anteriorExp
-		ch.Extended.Level, ch.ArchCrystals = anteriorNivel, anteriorCristais
+		ch.Score.Level, ch.ArchCrystals = anteriorNivel, anteriorCristais
 		syncProgression(ch)
 		w.recalcPlayer(ch)
 		s.Send(wire.MessagePanel("Save failed. The oath was not taken."))
@@ -136,5 +136,5 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 	}
 	log.Printf("[#%d] CRISTAL %d (%d/%d) item=%d volatile=%d exp=%d->%d nivel=%d->%d",
 		s.ID, passo, ch.ArchCrystals, archCrystalCount, anteriorItem.Index, code,
-		anteriorExp, ch.Exp, anteriorNivel, ch.Extended.Level)
+		anteriorExp, ch.Exp, anteriorNivel, ch.Score.Level)
 }

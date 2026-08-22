@@ -17,7 +17,7 @@ func TestSkillAffectUsesSkillDataWithoutIndexOverride(t *testing.T) {
 
 func TestTKAffectFormulas759(t *testing.T) {
 	w := &World{}
-	base := model.ExtendedScore{Level: 10, Attack: 100, Defense: 100, MaxHP: 1000,
+	base := model.Score{Level: 10, Attack: 100, Defense: 100, MaxHP: 1000,
 		CurHP: 1000, Str: 8, Int: 4, Dex: 7, Con: 6}
 	tests := []struct {
 		affect     model.Affect
@@ -30,7 +30,7 @@ func TestTKAffectFormulas759(t *testing.T) {
 		{model.Affect{Type: 31, Value: 150, Level: 40}, 100, 270, 1000, 6},
 	}
 	for _, tt := range tests {
-		ch := &model.Char{Class: 0, Extended: testExtended(base)}
+		ch := &model.Char{Class: 0, Score: testExtended(base)}
 		tt.affect.ExpiresAt = time.Now().Add(time.Minute)
 		ch.Affects[0] = tt.affect
 		w.applyAffectStats(ch)
@@ -86,7 +86,7 @@ func TestSetAffectRejectsWeakerOrShorterReplacement(t *testing.T) {
 
 func TestBMTransformationUsesW2PPInterpolation(t *testing.T) {
 	now := time.Now()
-	ch := &model.Char{Class: 2, LearnedSkill: 1 << (65 - 48), Extended: testExtended(model.ExtendedScore{
+	ch := &model.Char{Class: 2, LearnedSkill: 1 << (65 - 48), Score: testExtended(model.Score{
 		Attack: 100, Defense: 100, MaxHP: 1000, AttackRun: 0x11,
 	})}
 	ch.Affects[0] = model.Affect{Type: 16, Value: 1, Level: 200, ExpiresAt: now.Add(time.Minute)}
@@ -103,7 +103,7 @@ func TestBMTransformationUsesW2PPInterpolation(t *testing.T) {
 func TestBMTransformationKeepsFullHPWhenAnotherBuffRecalculatesScore(t *testing.T) {
 	now := time.Now()
 	w := &World{clock: newFakeClock(now)}
-	ch := &model.Char{Class: 2, Extended: testExtended(model.ExtendedScore{
+	ch := &model.Char{Class: 2, Score: testExtended(model.Score{
 		Level: 100, MaxHP: 70, CurHP: 70, MaxMP: 55, CurMP: 55,
 		Int: 6, Con: 5, AttackRun: 0x11,
 	})}
@@ -114,9 +114,9 @@ func TestBMTransformationKeepsFullHPWhenAnotherBuffRecalculatesScore(t *testing.
 	w.recalcPlayer(ch)
 	transformedMax := playerMaxHP(ch)
 	setPlayerCurHP(ch, transformedMax)
-	if transformedMax <= ch.Extended.MaxHP {
+	if transformedMax <= ch.Score.MaxHP {
 		t.Fatalf("pre-condicao: transformacao nao elevou MaxHP: base=%d runtime=%d",
-			ch.Extended.MaxHP, transformedMax)
+			ch.Score.MaxHP, transformedMax)
 	}
 
 	// Passe pelo caminho vivo de uma skill de suporte posterior. Protecao e
@@ -132,13 +132,13 @@ func TestBMTransformationKeepsFullHPWhenAnotherBuffRecalculatesScore(t *testing.
 
 	if got := playerCurHP(ch); got != transformedMax {
 		t.Fatalf("buff derrubou HP transformado: atual=%d, quer=%d (base sem transformacao=%d)",
-			got, transformedMax, ch.Extended.MaxHP)
+			got, transformedMax, ch.Score.MaxHP)
 	}
 	if playerCurHP(ch) != playerMaxHP(ch) {
 		t.Fatalf("personagem deixou de estar cheio: %d/%d", playerCurHP(ch), playerMaxHP(ch))
 	}
-	if ch.Extended.CurHP > ch.Extended.MaxHP {
-		t.Fatalf("persistencia recebeu HP impossivel: %d/%d", ch.Extended.CurHP, ch.Extended.MaxHP)
+	if ch.Score.CurHP > ch.Score.MaxHP {
+		t.Fatalf("persistencia recebeu HP impossivel: %d/%d", ch.Score.CurHP, ch.Score.MaxHP)
 	}
 
 	// O mesmo recalc nao pode funcionar como cura para um BM ferido.
@@ -151,13 +151,13 @@ func TestBMTransformationKeepsFullHPWhenAnotherBuffRecalculatesScore(t *testing.
 }
 
 func TestMobPublicExtendedDoesNotTruncateAuthoritativeHP(t *testing.T) {
-	def := testNPCDef(model.ExtendedScore{
+	def := testNPCDef(model.Score{
 		Attack: 300_000, Defense: 250_000, MaxHP: 1_000_000, MaxMP: 500_000,
 	})
 	mob := &Mob{Def: def, HP: 750_000}
 	extended := mobPublicExtended(mob)
-	if mob.HP != 750_000 || def.Extended.MaxHP != 1_000_000 {
-		t.Fatalf("projecao alterou estado autoritativo: hp=%d max=%d", mob.HP, def.Extended.MaxHP)
+	if mob.HP != 750_000 || def.Score.MaxHP != 1_000_000 {
+		t.Fatalf("projecao alterou estado autoritativo: hp=%d max=%d", mob.HP, def.Score.MaxHP)
 	}
 	score := extended.CompatibilityScore()
 	if extended.Attack != 300_000 || extended.Defense != 250_000 ||

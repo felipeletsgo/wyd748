@@ -13,7 +13,7 @@ func TestArchFieldsRoundTrip(t *testing.T) {
 		original := Char{
 			UID: origin, Name: "Arch", Evolution: "arch",
 			ArchMortalUID: origin, ArchMortalLevel: 395,
-			Extended: &ExtendedScore{Version: ExtendedScoreVersion, MaxHP: 1, CurHP: 1},
+			Score: &Score{Version: ScoreVersion, MaxHP: 1, CurHP: 1},
 		}
 		blob, err := json.Marshal(original)
 		if err != nil {

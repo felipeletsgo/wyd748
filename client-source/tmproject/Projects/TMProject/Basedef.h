@@ -163,22 +163,43 @@ struct		stWaterScrollMacro
 	int PosY;
 };
 
+// Canonical WYD 7.48+ score shared byte-for-byte with model.Score.
+// Every member occupies one uint32 word. The anonymous aliases preserve the
+// imported TMProject names without creating a second representation.
 struct STRUCT_SCORE
 {
-	short Level;
-	int Ac;
-	int Damage;
-	char Reserved;
-	char AttackRun;
-	int MaxHp;
-	int MaxMp;
-	int Hp;
-	int Mp;
-	short Str;
-	short Int;
-	short Dex;
-	short Con;
-	unsigned short Special[4];
+	unsigned int Version;
+	unsigned int Level;
+	union { unsigned int Attack; unsigned int Damage; };
+	unsigned int MagicAttack;
+	union { unsigned int Defense; unsigned int Ac; };
+	union { unsigned int MaxHP; unsigned int MaxHp; };
+	union { unsigned int MaxMP; unsigned int MaxMp; };
+	union { unsigned int CurHP; unsigned int Hp; };
+	union { unsigned int CurMP; unsigned int Mp; };
+	unsigned int Str;
+	unsigned int Int;
+	unsigned int Dex;
+	unsigned int Con;
+	unsigned int Accuracy;
+	unsigned int Evasion;
+	unsigned int Parry;
+	unsigned int Critical;
+	unsigned int Range;
+	unsigned int ResistFire;
+	unsigned int ResistIce;
+	unsigned int ResistHoly;
+	unsigned int ResistThunder;
+	unsigned int SaveMana;
+	unsigned int MagicAmp;
+	unsigned int RegenHP;
+	unsigned int RegenMP;
+	unsigned int StatusPts;
+	unsigned int MasterPts;
+	unsigned int SkillPts;
+	union { unsigned int Mastery[4]; unsigned int Special[4]; };
+	unsigned int AttackRun;
+	union { unsigned int Merchant; unsigned int Reserved; };
 };
 
 union STRUCT_BONUSEFFECT

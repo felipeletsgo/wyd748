@@ -182,7 +182,7 @@ func TestSummonsInheritRuntimeAndCannotTargetAnotherRuntime(t *testing.T) {
 	w.rebuildPlayerInstanceIndex()
 	otherMob := &Mob{ID: 1500, X: owner.X, Y: owner.Y, HP: 100,
 		InstanceID: "water-b", Def: &model.NPCDef{Tipo: model.TipoMonstro,
-			Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100}}}
+			Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}}}
 	w.mobs = append(w.mobs, otherMob)
 	w.mobsByID[otherMob.ID] = otherMob
 	w.registerMobSpatial(otherMob)
@@ -208,7 +208,7 @@ func TestExistingSummonRebindsWhenOwnerEntersPrivateRuntime(t *testing.T) {
 	w := testSpatialWorld(nil, owner)
 	oldDef := &model.NPCDef{Tipo: model.TipoMonstro,
 		Equip: model.Equip{Rosto: model.Item{Index: summonTemplates[0].face}},
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion,
+		Score: &model.Score{Version: model.ScoreVersion,
 			MaxHP: 100, CurHP: 100, AttackRun: 4}}
 	existing := &Mob{ID: 1501, Def: oldDef, X: 2201, Y: 2200, HP: 100,
 		SummonerID: owner.ID, SummonKind: summonKindBM}

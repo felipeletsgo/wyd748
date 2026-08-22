@@ -40,8 +40,8 @@ func killExperienceTestMob(t *testing.T, w *World, killer *Player, id uint16) {
 		ID: id, X: killer.X + 1, Y: killer.Y, HP: 100,
 		Def: &model.NPCDef{
 			Name: "EXP Test Mob", Tipo: model.TipoMonstro, ExpReward: 10_000,
-			Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion, Level: 1, MaxHP: 100, CurHP: 100,
+			Score: &model.Score{
+				Version: model.ScoreVersion, Level: 1, MaxHP: 100, CurHP: 100,
 			},
 		},
 	}
@@ -136,7 +136,7 @@ func TestMobKillKeepsReceiverSpecificCelestialReduction(t *testing.T) {
 	w, killer, member := experiencePartyKillWorld(t)
 	equipCombatExperienceBonuses(t, w, killer)
 	member.Char.Evolution = "celestial"
-	member.Char.Extended.Level = 159 // nivel exibido 160: divisor W2PP 65.
+	member.Char.Score.Level = 159 // nivel exibido 160: divisor W2PP 65.
 
 	const partyReward = uint32(10_400)
 	killerReward := w.mobKillExperienceForReceiver(killer.Char, killer.Char, partyReward)
@@ -150,7 +150,7 @@ func TestMobKillKeepsReceiverSpecificArchReduction(t *testing.T) {
 	w, killer, member := experiencePartyKillWorld(t)
 	equipCombatExperienceBonuses(t, w, killer)
 	member.Char.Evolution = "arch"
-	member.Char.Extended.Level = 300 // nivel exibido 301: divisor W2PP 8.
+	member.Char.Score.Level = 300 // nivel exibido 301: divisor W2PP 8.
 
 	const partyReward = uint32(10_400)
 	killerReward := w.mobKillExperienceForReceiver(killer.Char, killer.Char, partyReward)

@@ -447,7 +447,7 @@ func TestMovementAcceptsCapturedNoatumReplanOnAuthoritativeTerrain(t *testing.T)
 	w.terrain = terrain
 	p.X, p.Y = 1116, 1713
 	p.Char.X, p.Char.Y = p.X, p.Y
-	p.Char.Extended.AttackRun = 6
+	p.Char.Score.AttackRun = 6
 	applyExtendedScore(p.Char)
 
 	// Primeiro pacote da captura que iniciou a cascata de recusas em Noatum.
@@ -485,7 +485,7 @@ func TestMovementVisualCatchupUsesMaximumSpeedWithoutAcceleratingFutureRoute(t *
 	w.terrain = loadedFlatTerrain()
 	clock := newFakeClock(time.Unix(100, 0))
 	w.clock = clock
-	p.Char.Extended.AttackRun = 1
+	p.Char.Score.AttackRun = 1
 	applyExtendedScore(p.Char)
 
 	// Seis passos até o Pos já percorrido visualmente + um passo futuro.
@@ -527,7 +527,7 @@ func TestMovementCollisionUsesPlayersGameplaySpace(t *testing.T) {
 	// Um mob publico na mesma coordenada fisica nao existe dentro da sala
 	// privada e portanto nao pode bloquear o passo do jogador.
 	public := &Mob{ID: 1000, X: p.X + 1, Y: p.Y, HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w.appendMobInstance(public)
 	w.registerMobSpatial(public)
 
@@ -546,7 +546,7 @@ func TestMovementCollisionUsesPlayersGameplaySpace(t *testing.T) {
 
 	// Uma entidade da propria sala continua sendo colisao autoritativa.
 	private := &Mob{ID: 1001, X: p.X + 1, Y: p.Y, HP: 100, InstanceID: "private-a",
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w.appendMobInstance(private)
 	w.registerMobSpatial(private)
 	binary.LittleEndian.PutUint16(move[12:14], p.X)
@@ -568,7 +568,7 @@ func TestMovementCrossesOccupiedIntermediateTileButNotOccupiedDestination(t *tes
 	// O NPC está no meio da rota, como as lojas de teste em Armia. O client
 	// nativo permite atravessá-lo porque o destino final continua livre.
 	npc := &Mob{ID: 1000, X: p.X + 2, Y: p.Y, HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100, Merchant: 1})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100, Merchant: 1})}
 	w.appendMobInstance(npc)
 	w.registerMobSpatial(npc)
 	move := make([]byte, 52)
@@ -603,8 +603,8 @@ func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	clock := newFakeClock(time.Unix(100, 0))
 	w.clock = clock
-	p.Char.Extended.Attack = 10_000
-	p.Char.Extended.Accuracy = 10_000
+	p.Char.Score.Attack = 10_000
+	p.Char.Score.Accuracy = 10_000
 	applyExtendedScore(p.Char)
 
 	targetX := p.X + 12
@@ -614,7 +614,7 @@ func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
 	w.onMove(p.Session, move)
 
 	hostile := &Mob{ID: 1000, X: targetX, Y: p.Y, HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w.appendMobInstance(hostile)
 	w.registerMobSpatial(hostile)
 	p.show(hostile.ID)
@@ -624,7 +624,7 @@ func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
 	}
 
 	merchant := &Mob{ID: 1100, X: targetX, Y: p.Y,
-		Def: &model.NPCDef{Name: "Merchant", Extended: testExtended(model.ExtendedScore{Merchant: 1})}}
+		Def: &model.NPCDef{Name: "Merchant", Score: testExtended(model.Score{Merchant: 1})}}
 	w.appendMobInstance(merchant)
 	w.registerMobSpatial(merchant)
 	p.show(merchant.ID)
@@ -654,7 +654,7 @@ func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
 func TestMovementAcceptsFull748RouteForSlowCharacter(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	w.terrain = loadedFlatTerrain()
-	p.Char.Extended.AttackRun = 0 // reproduz o antigo limite artificial de 8.
+	p.Char.Score.AttackRun = 0 // reproduz o antigo limite artificial de 8.
 
 	packet := make([]byte, 52)
 	binary.LittleEndian.PutUint16(packet[12:14], p.X)
@@ -788,12 +788,12 @@ func TestPhysicalAttackCannotCrossBlockedTerrain(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	w.terrain = loadedFlatTerrain()
 	w.terrain.Height[int(p.Y)*model.TerrainWidth+int(p.X+1)] = model.TerrainBlockedByte
-	p.Char.Extended.Attack = 10_000
-	p.Char.Extended.Accuracy = 10_000
+	p.Char.Score.Attack = 10_000
+	p.Char.Score.Accuracy = 10_000
 	applyExtendedScore(p.Char)
 	mob := &Mob{
 		ID: 1000, X: p.X + 2, Y: p.Y, HP: 10_000,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 10_000, CurHP: 10_000}),
+		Def: testNPCDef(model.Score{MaxHP: 10_000, CurHP: 10_000}),
 	}
 	w.registerMobSpatial(mob)
 	p.show(mob.ID)
@@ -836,8 +836,8 @@ func TestShopOperationsRevalidateRangeAndRejectEquipmentSale(t *testing.T) {
 	w.items[400] = model.ItemDef{Index: 400, Price: 1000}
 	shop := &Mob{ID: 1100, X: p.X + 1, Y: p.Y, Def: &model.NPCDef{
 		Name: "Merchant", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{Merchant: nativeShopMerchant},
-		Vende:    []model.Item{{Index: 400}},
+		Score: &model.Score{Merchant: nativeShopMerchant},
+		Vende: []model.Item{{Index: 400}},
 	}}
 	w.registerMobSpatial(shop)
 	p.show(shop.ID)
@@ -866,7 +866,7 @@ func TestSkillDelayUsesSecondsFromCatalog(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.Char.Class = 1
 	p.Char.LearnedSkill = 1 << 3
-	p.Char.Extended.Mastery[1] = 40
+	p.Char.Score.Mastery[1] = 40
 	applyExtendedScore(p.Char)
 	skill := model.SkillDef{
 		Index: 27, Name: "Heal", InstanceValue: 10, ManaSpent: 1,

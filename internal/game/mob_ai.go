@@ -27,7 +27,7 @@ func mobMoveDelay(attackRun byte) time.Duration {
 // distancia maxima = 2*Speed. Um unico Action mantem o ciclo de caminhada do
 // client ativo ate o fim, em vez de reinicia-lo em toda coordenada.
 func (w *World) moveMobToward(m *Mob, targetX, targetY uint16, stopDistance int, now time.Time) int {
-	if m == nil || m.Def == nil || m.Def.Extended == nil {
+	if m == nil || m.Def == nil || m.Def.Score == nil {
 		return 0
 	}
 	attackRun := effectiveMobAttackRunAt(m, now)

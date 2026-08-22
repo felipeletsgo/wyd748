@@ -11,7 +11,7 @@ import (
 // reconciliada por identidade, nunca rematerializada a cada tick.
 func TestSyncCriaPetDoesNotRecreateExistingPet(t *testing.T) {
 	session := gameNet.NewTestSession(1, 8)
-	ch := &model.Char{Extended: testExtended(model.ExtendedScore{
+	ch := &model.Char{Score: testExtended(model.Score{
 		Level: 10, MaxHP: 100, CurHP: 100,
 	})}
 	ch.Equip[mountSlot] = model.Item{Index: model.MountBabyBase}

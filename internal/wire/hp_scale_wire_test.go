@@ -104,8 +104,8 @@ func TestMonstroPequenoNaoEscala(t *testing.T) {
 // projectPairForTest reproduz a projecao do STRUCT_SCORE via caminho publico,
 // para o teste comparar com o mesmo numero que o client recebe.
 func projectPairForTest(current, maximum uint32) (uint16, uint16) {
-	e := model.ExtendedScore{
-		Version: model.ExtendedScoreVersion,
+	e := model.Score{
+		Version: model.ScoreVersion,
 		MaxHP:   maximum, CurHP: current,
 	}
 	sc := e.CompatibilityScore()

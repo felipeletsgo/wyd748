@@ -24,8 +24,8 @@ func bossSpawnTestWorld() (*World, *fakeClock) {
 	}
 	w.npcs = []model.NPCDef{{
 		Name: "Base_Boss", Tipo: model.TipoNPC,
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version: model.ScoreVersion,
 			Level:   10, MaxHP: 1000, CurHP: 1000,
 			Attack: 100, Defense: 50, AttackRun: 4,
 		},
@@ -65,15 +65,15 @@ func TestConfiguredBossSpawnDeathAndRespawnLifecycle(t *testing.T) {
 	if first.Def.Name != "Configured Boss" || first.Def.Tipo != model.TipoMonstro {
 		t.Fatalf("identidade do boss incorreta: nome=%q tipo=%q", first.Def.Name, first.Def.Tipo)
 	}
-	if first.HP != 50000 || first.Def.Extended.Level != 200 ||
-		first.Def.Extended.Attack != 900 || first.Def.Extended.Defense != 700 ||
-		first.Def.Extended.AttackRun != 6 || first.Def.ExpReward != 12345 || first.Def.Gold != 678 {
-		t.Fatalf("overrides nao aplicados: mob=%+v extended=%+v", first, first.Def.Extended)
+	if first.HP != 50000 || first.Def.Score.Level != 200 ||
+		first.Def.Score.Attack != 900 || first.Def.Score.Defense != 700 ||
+		first.Def.Score.AttackRun != 6 || first.Def.ExpReward != 12345 || first.Def.Gold != 678 {
+		t.Fatalf("overrides nao aplicados: mob=%+v extended=%+v", first, first.Def.Score)
 	}
 	if len(first.Def.Carry) != 0 || len(first.Def.Vende) != 0 {
 		t.Fatal("boss herdou carry/vende do NPC base")
 	}
-	if w.npcs[0].Tipo != model.TipoNPC || w.npcs[0].Extended.MaxHP != 1000 ||
+	if w.npcs[0].Tipo != model.TipoNPC || w.npcs[0].Score.MaxHP != 1000 ||
 		len(w.npcs[0].Carry) != 1 || len(w.npcs[0].Vende) != 1 {
 		t.Fatal("configuracao do boss alterou o NPC base")
 	}
@@ -113,7 +113,7 @@ func TestConfiguredBossRejectsMissingOrLegacyBase(t *testing.T) {
 	}
 
 	w, _ = bossSpawnTestWorld()
-	w.npcs[0].Extended = nil
+	w.npcs[0].Score = nil
 	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "sem extendedScore") {
 		t.Fatalf("NPC sem extended deveria falhar claramente: %v", err)
 	}

@@ -22,8 +22,8 @@ func installTestCharacterTemplates(w *World) {
 	for class := 0; class < 4; class++ {
 		w.charTemplates[class] = model.CharacterTemplate{
 			Name: "Class", Class: byte(class),
-			ExtendedScore: model.ExtendedScore{
-				Version: model.ExtendedScoreVersion,
+			Score: model.Score{
+				Version: model.ScoreVersion,
 				MaxHP:   100, CurHP: 100, MaxMP: 100, CurMP: 100,
 			},
 		}

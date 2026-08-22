@@ -11,24 +11,24 @@ import (
 )
 
 // cloneCharacterState faz o snapshot profundo necessario para operacoes que
-// podem subir level. grantExp altera EXP, ExtendedScore e campos derivados;
+// podem subir level. grantExp altera EXP, Score e campos derivados;
 // restaurar apenas o item deixaria progressao aplicada quando o save falhasse.
 func cloneCharacterState(ch *model.Char) model.Char {
 	clone := *ch
 	clone.QuestsDone = append([]int32(nil), ch.QuestsDone...)
-	if ch.Extended != nil {
-		extended := *ch.Extended
-		clone.Extended = &extended
+	if ch.Score != nil {
+		extended := *ch.Score
+		clone.Score = &extended
 	}
-	if ch.ExtendedRuntime != nil {
-		runtime := *ch.ExtendedRuntime
-		clone.ExtendedRuntime = &runtime
+	if ch.RuntimeScore != nil {
+		runtime := *ch.RuntimeScore
+		clone.RuntimeScore = &runtime
 	}
 	if ch.AlternateCelestial != nil {
 		alternate := *ch.AlternateCelestial
-		if ch.AlternateCelestial.Extended != nil {
-			extended := *ch.AlternateCelestial.Extended
-			alternate.Extended = &extended
+		if ch.AlternateCelestial.Score != nil {
+			extended := *ch.AlternateCelestial.Score
+			alternate.Score = &extended
 		}
 		clone.AlternateCelestial = &alternate
 	}
@@ -49,7 +49,7 @@ type expRewardOutcome struct {
 
 // grantItemExpReward concentra a transacao "consumir item -> ganhar EXP (e gold)"
 // dos baus de XP (grant_exp) e das caixas de quest (quest_reward). Faz SNAPSHOT
-// COMPLETO do personagem porque grantExp altera level, ExtendedScore e pontos --
+// COMPLETO do personagem porque grantExp altera level, Score e pontos --
 // nao so a EXP; restaurar apenas o item deixaria progressao aplicada numa falha
 // de save. O chamador ja validou os requisitos e calculou `exp` (bruto para os
 // baus; escalado por rate/buff para as caixas). Persist-before-confirm: nada e
@@ -116,13 +116,13 @@ func (w *World) grantItemExpReward(s *net.Session, p *Player, item *model.Item,
 }
 
 func questRewardAllowed(ch *model.Char, rule model.VolatileRule) bool {
-	if ch == nil || ch.Extended == nil {
+	if ch == nil || ch.Score == nil {
 		return false
 	}
 	if rule.MortalOnly && strings.TrimSpace(ch.Evolution) != "" {
 		return false
 	}
-	level := ch.Extended.Level
+	level := ch.Score.Level
 	return level >= rule.MinLevel && level < rule.MaxLevelExclusive
 }
 
@@ -157,5 +157,5 @@ func (w *World) useQuestReward(s *net.Session, p *Player, item *model.Item, slot
 	}
 	s.Send(wire.MessagePanel(fmt.Sprintf("Reward received: +%d EXP and +%d gold.", res.Exp, res.Gold)))
 	log.Printf("[#%d] QUEST-REWARD item=%d volatile=%d exp=+%d gold=+%d level=%d +%d",
-		s.ID, oldItemIndex, code, res.Exp, res.Gold, p.Char.Extended.Level, res.Levels)
+		s.ID, oldItemIndex, code, res.Exp, res.Gold, p.Char.Score.Level, res.Levels)
 }

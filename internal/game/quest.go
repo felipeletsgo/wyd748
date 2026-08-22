@@ -41,16 +41,16 @@ const (
 // vocabulario de tipos para que o roteamento e a validacao de boot nao possam
 // divergir.
 func reservedNPCKind(def *model.NPCDef) (string, bool) {
-	if def == nil || def.Extended == nil {
+	if def == nil || def.Score == nil {
 		return "", false
 	}
-	if _, isShop := shopTypeForMerchant(def.Extended.Merchant); isShop {
+	if _, isShop := shopTypeForMerchant(def.Score.Merchant); isShop {
 		return npcKindShop, true
 	}
-	if def.Extended.Merchant&0x0F == craftingMerchant {
+	if def.Score.Merchant&0x0F == craftingMerchant {
 		return npcKindCraft, true
 	}
-	if def.Extended.Merchant&0xF == cargoMerchantType {
+	if def.Score.Merchant&0xF == cargoMerchantType {
 		return npcKindCargo, true
 	}
 	if isMountMasterNPC(def) {
@@ -138,8 +138,8 @@ func questBlockedMessage(quest *model.QuestDef, reason string) string {
 func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, bool) {
 	ch := p.Char
 	level := uint32(0)
-	if ch.Extended != nil {
-		level = ch.Extended.Level
+	if ch.Score != nil {
+		level = ch.Score.Level
 	}
 	req := quest.Requires
 	if req.MortalOnly && strings.TrimSpace(ch.Evolution) != "" {

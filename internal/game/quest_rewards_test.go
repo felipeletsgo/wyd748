@@ -15,10 +15,10 @@ func questRewardTestPlayer(t *testing.T, level uint32) (*World, *Player, *craftS
 	w.store = st
 	w.gameplay = model.DefaultGameplayConfig()
 	p := addZonePlayer(w, 1, 2100, 2100, 800)
-	p.Char.Extended.Level = level
-	p.Char.Extended.Version = model.ExtendedScoreVersion
-	p.Char.Extended.MaxHP, p.Char.Extended.CurHP = 1000, 800
-	p.Char.Extended.MaxMP, p.Char.Extended.CurMP = 700, 600
+	p.Char.Score.Level = level
+	p.Char.Score.Version = model.ScoreVersion
+	p.Char.Score.MaxHP, p.Char.Score.CurHP = 1000, 800
+	p.Char.Score.MaxMP, p.Char.Score.CurMP = 700, 600
 	p.Char.Inv[0] = model.Item{Index: 4117}
 	return w, p, st
 }
@@ -34,12 +34,12 @@ func TestQuestRewardUsaMaximoExclusivoEMortal(t *testing.T) {
 		level uint32
 		want  bool
 	}{{38, false}, {39, true}, {114, true}, {115, false}} {
-		ch := &model.Char{Extended: &model.ExtendedScore{Level: tc.level}}
+		ch := &model.Char{Score: &model.Score{Level: tc.level}}
 		if got := questRewardAllowed(ch, rule); got != tc.want {
 			t.Fatalf("level %d: allowed=%v, quer %v", tc.level, got, tc.want)
 		}
 	}
-	ch := &model.Char{Evolution: "arch", Extended: &model.ExtendedScore{Level: 39}}
+	ch := &model.Char{Evolution: "arch", Score: &model.Score{Level: 39}}
 	if questRewardAllowed(ch, rule) {
 		t.Fatal("Arch nao pode usar recompensa Mortal")
 	}

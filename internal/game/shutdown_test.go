@@ -58,8 +58,8 @@ func addShutdownPlayer(w *World, id uint16, account *model.Account) *Player {
 
 func newShutdownAccount(name string) *model.Account {
 	return &model.Account{Name: name, Chars: []model.Char{{
-		Name:     name,
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 1000, CurHP: 900},
+		Name:  name,
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 1000, CurHP: 900},
 	}}}
 }
 
@@ -69,9 +69,9 @@ func TestShutdownPersistsEachRuntimeCharacterAndFlushes(t *testing.T) {
 	// Dois personagens da MESMA conta compartilham o ponteiro: o desligamento
 	// nao pode gravar o mesmo arquivo duas vezes.
 	shared.Chars = append(shared.Chars, model.Char{
-		UID:      "second-character",
-		Name:     "segundo",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 1000, CurHP: 900},
+		UID:   "second-character",
+		Name:  "segundo",
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 1000, CurHP: 900},
 	})
 	addShutdownPlayer(w, 1, shared)
 	second := addShutdownPlayer(w, 2, shared)

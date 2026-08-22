@@ -20,7 +20,7 @@ func bossAreaWorld(t *testing.T) (*World, *Mob) {
 func poeJogador(w *World, id uint16, x, y uint16) *net.Session {
 	s := net.NewTestSession(int64(id), 64)
 	acc := &model.Account{Name: "c", Chars: []model.Char{{Name: "n",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 10, CurHP: 10}}}}
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 10, CurHP: 10}}}}
 	p := &Player{ID: id, Session: s, Account: acc, Char: &acc.Chars[0], InWorld: true, X: x, Y: y}
 	w.players[s] = p
 	w.updatePlayerSpatial(p)

@@ -67,8 +67,8 @@ func bossRuleOfKind(t *testing.T, profile *BossProfile, kind BossActionKind) Bos
 func bossTestNPC(name string, maxHP uint32) *model.NPCDef {
 	return &model.NPCDef{
 		Name: name, Tipo: model.TipoMonstro,
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version: model.ScoreVersion,
 			MaxHP:   maxHP, CurHP: maxHP, Level: 100,
 			Attack: 50, Defense: 10, AttackRun: 0x64,
 		},
@@ -413,9 +413,9 @@ func TestCommonMobIgnoresBossSubsystem(t *testing.T) {
 
 func TestBossSkillDamageUsesMagicCoreAndGuardsInvalidInputs(t *testing.T) {
 	p, _ := networkedTestPlayer(1, "Target", 2100, 2100)
-	p.Char.Extended.Defense = 100
+	p.Char.Score.Defense = 100
 	applyExtendedScore(p.Char)
-	m := &Mob{ID: 1000, Def: testNPCDef(model.ExtendedScore{
+	m := &Mob{ID: 1000, Def: testNPCDef(model.Score{
 		Level: 100, MaxHP: 1000, CurHP: 1000,
 		MagicAttack: 2000, Int: 400, Attack: 10,
 	})}
@@ -429,10 +429,10 @@ func TestBossSkillDamageUsesMagicCoreAndGuardsInvalidInputs(t *testing.T) {
 		t.Fatal("entrada invalida deveria produzir dano zero")
 	}
 
-	m.Def.Extended.MagicAttack = 0
-	m.Def.Extended.Int = 0
-	m.Def.Extended.Level = 0
-	m.Def.Extended.Attack = 500
+	m.Def.Score.MagicAttack = 0
+	m.Def.Score.Int = 0
+	m.Def.Score.Level = 0
+	m.Def.Score.Attack = 500
 	if damage := bossSkillDamage(m, p, model.SkillDef{}); damage <= 1 {
 		t.Fatalf("fallback para ataque fisico nao funcionou: %d", damage)
 	}

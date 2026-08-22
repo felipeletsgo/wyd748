@@ -42,10 +42,10 @@ func TestConvertSeparatesFunctionalMerchantFromDirection(t *testing.T) {
 	putU16(b, offStatus+8, 100)
 
 	got, _ := convert("Kibita", b)
-	if got.Extended == nil || got.Extended.Merchant != 43 || got.Direction != 0xF0 {
-		t.Fatalf("extended=%+v direction=0x%X, quer Merchant 43/0xF0", got.Extended, got.Direction)
+	if got.Score == nil || got.Score.Merchant != 43 || got.Direction != 0xF0 {
+		t.Fatalf("extended=%+v direction=0x%X, quer Merchant 43/0xF0", got.Score, got.Direction)
 	}
-	if score := got.MakeExtendedScore(got.Extended.MaxHP).CompatibilityScore(); score.Merchant != 0xFB {
+	if score := got.MakeScore(got.Score.MaxHP).CompatibilityScore(); score.Merchant != 0xFB {
 		t.Fatalf("merchant visual=0x%X, quer 0xFB", score.Merchant)
 	}
 }
@@ -120,11 +120,11 @@ func TestConvertPreservesNativeFieldsAndSanitizesRewards(t *testing.T) {
 	b[742], b[743], b[749], b[750], b[751] = 7, 8, 9, 10, 11
 
 	got, report := convert("Completo", b)
-	if got.Extended == nil || got.ClassInfo != 3 ||
-		got.Extended.Mastery != [4]uint32{10, 20, 30, 40} ||
-		got.LearnedSkill != 0x1234 || got.Extended.Critical != 7 ||
-		got.Extended.SaveMana != 8 || got.Extended.MagicAttack != 9 ||
-		got.Extended.RegenHP != 10 || got.Extended.RegenMP != 11 {
+	if got.Score == nil || got.ClassInfo != 3 ||
+		got.Score.Mastery != [4]uint32{10, 20, 30, 40} ||
+		got.LearnedSkill != 0x1234 || got.Score.Critical != 7 ||
+		got.Score.SaveMana != 8 || got.Score.MagicAttack != 9 ||
+		got.Score.RegenHP != 10 || got.Score.RegenMP != 11 {
 		t.Fatalf("campos nativos perdidos: %+v", got)
 	}
 	if got.Gold != 0 || got.ExpReward != 250_000 ||

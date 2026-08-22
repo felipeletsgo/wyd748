@@ -20,16 +20,16 @@ func newAscensionWorld(t *testing.T) (*World, *Player, *craftStore) {
 	for class := 0; class < 4; class++ {
 		w.charTemplates[class] = model.CharacterTemplate{
 			Name: "classe", Class: byte(class),
-			ExtendedScore: model.ExtendedScore{
-				Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100,
+			Score: model.Score{
+				Version: model.ScoreVersion, MaxHP: 100, CurHP: 100,
 			},
 		}
 	}
 
 	session := net.NewTestSession(1, 128)
 	acc := &model.Account{Name: "conta", Chars: []model.Char{{
-		Name:     "Mortal",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 1000, CurHP: 1000},
+		Name:  "Mortal",
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 1000, CurHP: 1000},
 	}}}
 	p := &Player{ID: 1, Session: session, Account: acc, Char: &acc.Chars[0],
 		InWorld: true, X: 2100, Y: 2100, Visible: map[uint16]struct{}{}}
@@ -208,7 +208,7 @@ func prepareArchCandidate(p *Player, class int) {
 	if p.Char.UID == "" {
 		p.Char.UID = "11111111111141118111111111111111"
 	}
-	p.Char.Extended.Level = archMinLevel
+	p.Char.Score.Level = archMinLevel
 	p.Char.Equip[0] = model.Item{Index: uint16(1 + 10*class)} // rosto Mortal
 	p.Char.Equip[eternalStoneSlot] = model.Item{Index: eternalStoneItem}
 	p.Char.Equip[sefirotSlot] = model.Item{Index: uint16(sefirotFirstItem + class)}
@@ -218,7 +218,7 @@ func prepareArchCandidate(p *Player, class int) {
 // sendo pedido de CAPA, e nao de ascensao.
 func TestArchIgnoredWithoutItems(t *testing.T) {
 	w, p, _ := newAscensionWorld(t)
-	p.Char.Extended.Level = archMinLevel
+	p.Char.Score.Level = archMinLevel
 
 	if w.createArch(p.Session, p) {
 		t.Fatal("sem os itens equipados o rei nao deveria tratar como ascensao")
@@ -228,7 +228,7 @@ func TestArchIgnoredWithoutItems(t *testing.T) {
 func TestArchRequiresLevel(t *testing.T) {
 	w, p, st := newAscensionWorld(t)
 	prepareArchCandidate(p, 0)
-	p.Char.Extended.Level = archMinLevel - 1
+	p.Char.Score.Level = archMinLevel - 1
 
 	if !w.createArch(p.Session, p) {
 		t.Fatal("com os itens equipados o rei deveria tratar como ascensao")

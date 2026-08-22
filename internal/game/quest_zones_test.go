@@ -31,8 +31,8 @@ func newZoneTestWorld() *World {
 func addZonePlayer(w *World, id uint16, x, y uint16, hp uint32) *Player {
 	session := net.NewTestSession(int64(id), 64)
 	acc := &model.Account{Name: "p", Chars: []model.Char{{
-		Name:     "p",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 1000, CurHP: hp},
+		Name:  "p",
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 1000, CurHP: hp},
 	}}}
 	p := &Player{ID: id, Session: session, Account: acc, Char: &acc.Chars[0],
 		InWorld: true, X: x, Y: y, Visible: map[uint16]struct{}{}}

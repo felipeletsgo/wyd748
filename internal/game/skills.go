@@ -30,7 +30,7 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 		return
 	}
 	master := w.mobByID(p.ShopNPC)
-	if master == nil || master.Def.Extended == nil || master.Def.Extended.Merchant != skillMasterMerchant {
+	if master == nil || master.Def.Score == nil || master.Def.Score.Merchant != skillMasterMerchant {
 		log.Printf("[#%d] aprender skill sem mestre aberto", s.ID)
 		return
 	}
@@ -218,13 +218,13 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	if adc {
 		levelPart = level
 	}
-	// O MagicAttack BASE do personagem (ch.Extended.MagicAttack) integra o core
+	// O MagicAttack BASE do personagem (ch.Score.MagicAttack) integra o core
 	// magico exatamente como no calculo do MagicAttack exibido (equipment.go
 	// magicCore = base.MagicAttack + ...). Sem ele, um char com muito magic
 	// persistido mostrava o valor alto mas a skill saia so com o termo de INT.
 	magicAttackBase := 0
-	if ch.Extended != nil {
-		magicAttackBase = int(ch.Extended.MagicAttack)
+	if ch.Score != nil {
+		magicAttackBase = int(ch.Score.MagicAttack)
 	}
 	if skill.Index == 97 {
 		damage = 15*level + base
@@ -622,7 +622,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	for _, target := range targets {
 		if !combatRollHits(playerVersusMobAccuracy(p.Char, target.Def), w.intn) {
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID, Miss: true,
-				MaxHP: target.Def.Extended.MaxHP})
+				MaxHP: target.Def.Score.MaxHP})
 			results = append(results, skillResult{mob: target})
 			continue
 		}
@@ -654,7 +654,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				// O mesmo pacote carrega o WORD projetado da barra e o uint32
 				// real na cauda DMGX consumida pelo patch do client.
 				wireTargets = append(wireTargets, wire.SkillTarget{
-					ID: target.ID, Damage: perHitCalculated, MaxHP: target.Def.Extended.MaxHP,
+					ID: target.ID, Damage: perHitCalculated, MaxHP: target.Def.Score.MaxHP,
 				})
 			}
 			// Uma notificacao com o TOTAL da skill, nao uma por golpe: um limiar
@@ -668,7 +668,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		if skillIndex == 6 { // Furia Divina puxa o alvo para junto do caster.
 			oldX, oldY := target.X, target.Y
 			target.X, target.Y = w.findFreePosition(p.X, p.Y, 2)
-			w.publishMobMove(target, oldX, oldY, uint32(target.Def.Extended.AttackRun&0x0f))
+			w.publishMobMove(target, oldX, oldY, uint32(target.Def.Score.AttackRun&0x0f))
 		}
 		if skillIndex == 26 { // Flash encerra o combate/aggro do alvo.
 			target.TargetID = 0
@@ -705,12 +705,12 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			mob := result.mob
 			w.sendToMobViewProtocol(mob, func(observer *Player) []byte {
 				// Keep mixed client views valid after every non-fatal skill hit.
-				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), mob.ID, mob.HP, mob.Def.Extended.MaxHP,
-					mob.Def.Extended.MaxMP, mob.Def.Extended.MaxMP)
+				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), mob.ID, mob.HP, mob.Def.Score.MaxHP,
+					mob.Def.Score.MaxMP, mob.Def.Score.MaxMP)
 			})
 			w.gameplayLogf("skill", "[#%d] skill=%d %q mob=%d dmg=%d base=%d magic=%t amp=%d mastery=%d hp=%d/%d mp=-%d", p.Session.ID,
 				skillIndex, skill.Name, mob.ID, result.applied, baseDamage, magicDamage,
-				effectiveExtended(p.Char).MagicAmp, mastery, mob.HP, mob.Def.Extended.MaxHP, mana)
+				effectiveExtended(p.Char).MagicAmp, mastery, mob.HP, mob.Def.Score.MaxHP, mana)
 		}
 	}
 	w.commitKillRewardBatch(p, batchPlans, batchAccounts, "mortes multi-alvo")

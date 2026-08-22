@@ -33,7 +33,7 @@ func TestMobSkillEffectsChangeEffectiveCombatStats(t *testing.T) {
 	w, owner, _ := handlerTestWorld(t)
 	mob := &Mob{
 		ID: 1400, X: owner.X + 1, Y: owner.Y, HP: 1000,
-		Def: testNPCDef(model.ExtendedScore{
+		Def: testNPCDef(model.Score{
 			Attack: 500, Defense: 400, AttackRun: 0x64,
 			MaxHP: 1000, CurHP: 1000,
 			ResistFire: 50, ResistIce: 40, ResistHoly: 30, ResistThunder: 20,
@@ -73,7 +73,7 @@ func TestTickMobAffectsDamagesAndExpires(t *testing.T) {
 	now := time.Now()
 	mob := &Mob{
 		ID: 1401, X: owner.X + 1, Y: owner.Y, HP: 1000,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 1000, CurHP: 1000, MaxMP: 100}),
+		Def: testNPCDef(model.Score{MaxHP: 1000, CurHP: 1000, MaxMP: 100}),
 	}
 	mob.Affects[0] = model.Affect{
 		Type: 20, Level: 20, Value: 5,
@@ -102,8 +102,8 @@ func TestTickMobAffectsDamagesAndExpires(t *testing.T) {
 func TestTickPlayerAffectsRegenPoisonAreaAndExpiration(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	now := time.Now()
-	p.Char.Extended.CurHP = 500
-	p.Char.Extended.MaxHP = 1000
+	p.Char.Score.CurHP = 500
+	p.Char.Score.MaxHP = 1000
 	applyExtendedScore(p.Char)
 	p.Char.Affects[0] = model.Affect{
 		Type: 17, Level: 40, Value: 10,
@@ -121,7 +121,7 @@ func TestTickPlayerAffectsRegenPoisonAreaAndExpiration(t *testing.T) {
 	p.Char.Affects[3] = model.Affect{Type: 4, ExpiresAt: now.Add(-time.Second)}
 	mob := &Mob{
 		ID: 1402, X: p.X + 1, Y: p.Y, HP: 1000,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 1000, CurHP: 1000, MaxMP: 100}),
+		Def: testNPCDef(model.Score{MaxHP: 1000, CurHP: 1000, MaxMP: 100}),
 	}
 	w.mobs = append(w.mobs, mob)
 	w.registerMobSpatial(mob)
@@ -148,7 +148,7 @@ func TestTickAreaDamageKillsAtMostSixTargets(t *testing.T) {
 		mob := &Mob{
 			ID: uint16(1500 + i), X: p.X + uint16(i%3), Y: p.Y + uint16(i/3),
 			HP: 100, GenerIndex: -1,
-			Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100, MaxMP: 10}),
+			Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100, MaxMP: 10}),
 		}
 		all = append(all, mob)
 		w.mobs = append(w.mobs, mob)

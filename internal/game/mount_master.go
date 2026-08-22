@@ -18,7 +18,7 @@ const (
 )
 
 func isMountMasterNPC(def *model.NPCDef) bool {
-	return def != nil && def.Extended != nil && def.Extended.Merchant == mountMasterMerchant
+	return def != nil && def.Score != nil && def.Score.Merchant == mountMasterMerchant
 }
 
 // speakMountMaster reproduz SendSay: a fala sai do ID do NPC e e recebida por

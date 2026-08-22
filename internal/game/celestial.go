@@ -71,13 +71,13 @@ func celestialCytheraForTier(tier byte) uint16 {
 	}
 }
 
-func newCelestialScore(class byte, previous *model.ExtendedScore) *model.ExtendedScore {
+func newCelestialScore(class byte, previous *model.Score) *model.Score {
 	if class > 3 {
 		class = 0
 	}
 	natural := baseClassStats[class]
-	score := &model.ExtendedScore{
-		Version: model.ExtendedScoreVersion,
+	score := &model.Score{
+		Version: model.ScoreVersion,
 		// Ramo normal (isHardCore=0) da Pedra Ideal no W2PP.
 		Attack: 488, Defense: 954,
 		MaxHP: uint32(baseClassHPMP[class][0]),
@@ -145,7 +145,7 @@ func celestialInventoryHasItem(ch *model.Char, index uint16) bool {
 func activeCelestialForm(ch *model.Char) model.CelestialForm {
 	return model.CelestialForm{
 		Evolution: ch.Evolution, Class: ch.Class, Face: ch.Equip[0],
-		Extended: ch.Extended, Exp: ch.Exp, LearnedSkill: ch.LearnedSkill,
+		Score: ch.Score, Exp: ch.Exp, LearnedSkill: ch.LearnedSkill,
 		SecondaryLearnedSkill: ch.SecondaryLearnedSkill,
 		ShortSkill:            ch.ShortSkill, Affects: ch.Affects,
 	}
@@ -153,10 +153,10 @@ func activeCelestialForm(ch *model.Char) model.CelestialForm {
 
 func loadCelestialForm(ch *model.Char, form model.CelestialForm) {
 	ch.Evolution, ch.Class, ch.Equip[0] = form.Evolution, form.Class, form.Face
-	ch.Extended, ch.Exp, ch.LearnedSkill = form.Extended, form.Exp, form.LearnedSkill
+	ch.Score, ch.Exp, ch.LearnedSkill = form.Score, form.Exp, form.LearnedSkill
 	ch.SecondaryLearnedSkill = form.SecondaryLearnedSkill
 	ch.ShortSkill, ch.Affects = form.ShortSkill, form.Affects
-	ch.ExtendedRuntime = nil
+	ch.RuntimeScore = nil
 }
 
 func (w *World) syncCelestialPlayer(p *Player) {
@@ -254,7 +254,7 @@ func (w *World) useCelestialIdeal(s *net.Session, p *Player, item *model.Item, s
 
 func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slot byte) {
 	ch := p.Char
-	if ch.Extended == nil || ch.Extended.Level < 355 {
+	if ch.Score == nil || ch.Score.Level < 355 {
 		s.Send(wire.MessagePanel("The Arch must be level 356 or higher."))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -264,7 +264,7 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	tier := celestialArchTier(ch.Extended.Level)
+	tier := celestialArchTier(ch.Score.Level)
 	cytheraIndex := celestialCytheraForTier(tier)
 	if tier == 0 || cytheraIndex == 0 {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -285,9 +285,9 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	ch.Evolution = "celestial"
 	markCelestialFace(&ch.Equip[0], ch.Evolution)
 	ch.Exp = 0
-	ch.Extended = newCelestialScore(ch.Class, snapshot.Extended)
-	ch.Extended.Defense = celestialBaseDefense(snapshot.ArchCrystals)
-	ch.ExtendedRuntime = nil
+	ch.Score = newCelestialScore(ch.Class, snapshot.Score)
+	ch.Score.Defense = celestialBaseDefense(snapshot.ArchCrystals)
+	ch.RuntimeScore = nil
 	ch.LearnedSkill = celestialSoulBit
 	ch.SecondaryLearnedSkill = 0
 	ch.ShortSkill = [20]byte{}
@@ -335,7 +335,7 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	if ch.Extended == nil || ch.Extended.Level < 120 {
+	if ch.Score == nil || ch.Score.Level < 120 {
 		s.Send(wire.MessagePanel("The Celestial must be level 121 or higher."))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -369,10 +369,10 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 	markCelestialFace(&subFace, "subcelestial")
 	ch.AlternateCelestial = &model.CelestialForm{
 		Evolution: "subcelestial", Class: byte(subClass), Face: subFace,
-		Extended:     newCelestialScore(byte(subClass), ch.Extended),
+		Score:        newCelestialScore(byte(subClass), ch.Score),
 		LearnedSkill: celestialSoulBit,
 	}
-	ch.AlternateCelestial.Extended.Defense = celestialBaseDefense(ch.ArchCrystals)
+	ch.AlternateCelestial.Score.Defense = celestialBaseDefense(ch.ArchCrystals)
 	consumeOne(item)
 	ch.Equip[sefirotSlot] = model.Item{}
 	target := addToInv(ch, mystery)
@@ -442,7 +442,7 @@ func (w *World) useMysteriousStone(s *net.Session, p *Player, item *model.Item, 
 	s.Send(wire.SendItem(p.ID, placeEquip, 0, ch.Equip[0]))
 	w.syncCelestialPlayer(p)
 	s.Send(wire.MessagePanel("Celestial form changed."))
-	log.Printf("[#%d] forma ativa=%s classe=%d level=%d", s.ID, ch.Evolution, ch.Class, ch.Extended.Level)
+	log.Printf("[#%d] forma ativa=%s classe=%d level=%d", s.ID, ch.Evolution, ch.Class, ch.Score.Level)
 }
 
 func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot byte) {
@@ -459,8 +459,8 @@ func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot b
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	if ch.Extended.Level < maxCelestialLevel {
-		if ch.Extended.Level != 89 || ch.CelestialLevel90Unlocked ||
+	if ch.Score.Level < maxCelestialLevel {
+		if ch.Score.Level != 89 || ch.CelestialLevel90Unlocked ||
 			!advancedEvolution(ch, "celestial") {
 			s.Send(wire.MessagePanel("This unlock is only available at Celestial level 90."))
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -534,11 +534,11 @@ func celestialCytheraMilestone(level uint32) (tier byte, ac, hp byte) {
 }
 
 func updateCelestialCythera(ch *model.Char) bool {
-	if !isCelestialEvolution(ch) || ch.Extended == nil ||
+	if !isCelestialEvolution(ch) || ch.Score == nil ||
 		ch.Equip[1].Index < 3500 || ch.Equip[1].Index > 3507 {
 		return false
 	}
-	tier, ac, hp := celestialCytheraMilestone(ch.Extended.Level)
+	tier, ac, hp := celestialCytheraMilestone(ch.Score.Level)
 	if tier == 0 || tier <= ch.CelestialCytheraTier {
 		return false
 	}
@@ -561,6 +561,6 @@ func updateCelestialCythera(ch *model.Char) bool {
 		item.Eff = [6]byte{43, sancValue, 3, ac, 4, hp}
 	}
 	ch.CelestialCytheraTier = tier
-	ch.ExtendedRuntime = nil
+	ch.RuntimeScore = nil
 	return true
 }

@@ -74,8 +74,8 @@ func TestCharacterRuntimeIsFullyReset(t *testing.T) {
 
 	session := net.NewTestSession(1, 64)
 	acc := &model.Account{Name: "conta", Chars: []model.Char{{
-		Name:     "A",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100},
+		Name:  "A",
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100},
 	}}}
 	p := &Player{Session: session, Account: acc}
 
@@ -142,8 +142,8 @@ func TestCharacterRuntimeIsFullyReset(t *testing.T) {
 func TestSpecialCoinsDoNotLeakBetweenCharacters(t *testing.T) {
 	session := net.NewTestSession(1, 64)
 	acc := &model.Account{Name: "conta", Chars: []model.Char{{
-		Name:     "A",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100},
+		Name:  "A",
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100},
 	}}}
 	p := &Player{Session: session, Account: acc, Char: &acc.Chars[0],
 		SpecialCoins: map[string]uint32{"evento": 500}}
@@ -162,7 +162,7 @@ func TestSpecialCoinsDoNotLeakBetweenCharacters(t *testing.T) {
 func TestApplyCharStateReplacesCoins(t *testing.T) {
 	w := newZoneTestWorld()
 	p := &Player{
-		Char:         &model.Char{Name: "B", Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion}},
+		Char:         &model.Char{Name: "B", Score: &model.Score{Version: model.ScoreVersion}},
 		SpecialCoins: map[string]uint32{"do_personagem_anterior": 999},
 	}
 
@@ -192,8 +192,8 @@ func TestApplyCharStateReplacesCoins(t *testing.T) {
 func TestGuildInviteDoesNotSurviveCharacterSwitch(t *testing.T) {
 	session := net.NewTestSession(1, 64)
 	acc := &model.Account{Name: "conta", Chars: []model.Char{{
-		Name:     "A",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100},
+		Name:  "A",
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100},
 	}}}
 	p := &Player{Session: session, Account: acc, Char: &acc.Chars[0],
 		GuildInviteFrom: 3, GuildInviteUntil: time.Now().Add(guildInviteTTL)}
@@ -211,8 +211,8 @@ func TestGuildInviteDoesNotSurviveCharacterSwitch(t *testing.T) {
 func TestSkillCooldownsDoNotLeakBetweenCharacters(t *testing.T) {
 	session := net.NewTestSession(1, 64)
 	acc := &model.Account{Name: "conta", Chars: []model.Char{{
-		Name:     "A",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100},
+		Name:  "A",
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100},
 	}}}
 	p := &Player{Session: session, Account: acc, Char: &acc.Chars[0],
 		SkillReady: map[int]time.Time{26: time.Now().Add(time.Hour)}}

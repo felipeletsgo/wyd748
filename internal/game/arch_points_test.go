@@ -48,13 +48,13 @@ func TestArchGetsMorePointsThanMortal(t *testing.T) {
 // TestStatusPointBudgetPicksFormulaByEvolution garante que o Mortal continua na
 // formula antiga: a mudanca nao pode alterar personagem nenhum ja existente.
 func TestStatusPointBudgetPicksFormulaByEvolution(t *testing.T) {
-	mortal := &model.Char{Extended: &model.ExtendedScore{Level: 100}}
+	mortal := &model.Char{Score: &model.Score{Level: 100}}
 	if got, want := statusPointBudget(mortal), mortalStatusPointBudget(100); got != want {
 		t.Errorf("mortal: orcamento=%d, quer %d", got, want)
 	}
 	arch := &model.Char{
 		Evolution: archEvolution, ArchMortalLevel: 370,
-		Extended: &model.ExtendedScore{Level: 100},
+		Score: &model.Score{Level: 100},
 	}
 	if got, want := statusPointBudget(arch), archStatusPointBudget(100, 370); got != want {
 		t.Errorf("arch: orcamento=%d, quer %d", got, want)
@@ -65,14 +65,14 @@ func TestStatusPointBudgetPicksFormulaByEvolution(t *testing.T) {
 // o Mortal DEPOIS da ascensao continua fortalecendo o Arch.
 func TestRefreshArchMortalLevelFollowsMortal(t *testing.T) {
 	acc := &model.Account{Chars: []model.Char{
-		{Name: "Mortal", UID: "11111111111141118111111111111111", Extended: &model.ExtendedScore{Level: 370}},
+		{Name: "Mortal", UID: "11111111111141118111111111111111", Score: &model.Score{Level: 370}},
 		{Name: "Mortal", UID: "22222222222242228222222222222222", Evolution: archEvolution,
 			ArchMortalUID: "11111111111141118111111111111111", ArchMortalLevel: 370,
-			Extended: &model.ExtendedScore{Level: 10}},
+			Score: &model.Score{Level: 10}},
 	}}
 
 	// Mortal sobe de nivel; o proximo login precisa refletir isso.
-	acc.Chars[0].Extended.Level = 395
+	acc.Chars[0].Score.Level = 395
 	if !refreshArchMortalLevel(acc) {
 		t.Fatal("o refresh deveria detectar a mudanca de nivel do Mortal")
 	}
@@ -92,7 +92,7 @@ func TestRefreshArchMortalLevelKeepsValueWhenMortalGone(t *testing.T) {
 		{}, // slot do Mortal, agora vazio
 		{Name: "Orfao", UID: "22222222222242228222222222222222", Evolution: archEvolution,
 			ArchMortalUID: "11111111111141118111111111111111", ArchMortalLevel: 380,
-			Extended: &model.ExtendedScore{Level: 10}},
+			Score: &model.Score{Level: 10}},
 	}}
 	refreshArchMortalLevel(acc)
 	if got := acc.Chars[1].ArchMortalLevel; got != 380 {
@@ -106,7 +106,7 @@ func TestRefreshArchMortalLevelIgnoresSelfReference(t *testing.T) {
 	acc := &model.Account{Chars: []model.Char{
 		{Name: "Arch", UID: "11111111111141118111111111111111", Evolution: archEvolution,
 			ArchMortalUID: "11111111111141118111111111111111", ArchMortalLevel: 380,
-			Extended: &model.ExtendedScore{Level: 10}},
+			Score: &model.Score{Level: 10}},
 	}}
 	refreshArchMortalLevel(acc)
 	if got := acc.Chars[0].ArchMortalLevel; got != 380 {

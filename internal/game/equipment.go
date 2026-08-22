@@ -264,7 +264,7 @@ func extendedValue(v int64) uint32 {
 // depois aplica passivas e affects na copia runtime.
 func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	ensureExtendedScore(ch)
-	base := ch.Extended
+	base := ch.Score
 	oldHP, oldMP := playerCurHP(ch), playerCurMP(ch)
 	wasFullHP := oldHP != 0 && oldHP == playerMaxHP(ch)
 	wasFullMP := oldMP != 0 && oldMP == playerMaxMP(ch)
@@ -464,7 +464,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	// "estava cheio" so pode acontecer depois do ultimo modificador de MaxHP/MP.
 	runtime.CurHP = minU32(oldHP, runtime.MaxHP)
 	runtime.CurMP = minU32(oldMP, runtime.MaxMP)
-	ch.ExtendedRuntime = &runtime
+	ch.RuntimeScore = &runtime
 
 	attackSpeed := minInt(15, int(base.AttackRun>>4)+int(total("EF_ATTSPEED")))
 	runSpeed := minInt(15, int(base.AttackRun&0x0F)+int(total("EF_RUNSPEED")))
@@ -477,7 +477,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 		// additive item bonus. The authoritative 7.48 movement ceiling is 6.
 		runSpeed = clampInt(premium.runSpeed, 1, 6)
 	}
-	ch.ExtendedRuntime.AttackRun = byte(attackSpeed<<4 | runSpeed)
+	ch.RuntimeScore.AttackRun = uint32(attackSpeed<<4 | runSpeed)
 	w.applyPassiveSkills(ch)
 	w.applyAffectStats(ch)
 
@@ -486,19 +486,19 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	// (por exemplo 1833) e o deixava visivel por baixo do teto final (3207) a
 	// cada buff subsequente. Preserve o estado vivo contra o teto FINAL.
 	if wasFullHP {
-		ch.ExtendedRuntime.CurHP = ch.ExtendedRuntime.MaxHP
+		ch.RuntimeScore.CurHP = ch.RuntimeScore.MaxHP
 	} else {
-		ch.ExtendedRuntime.CurHP = minU32(oldHP, ch.ExtendedRuntime.MaxHP)
+		ch.RuntimeScore.CurHP = minU32(oldHP, ch.RuntimeScore.MaxHP)
 	}
 	if wasFullMP {
-		ch.ExtendedRuntime.CurMP = ch.ExtendedRuntime.MaxMP
+		ch.RuntimeScore.CurMP = ch.RuntimeScore.MaxMP
 	} else {
-		ch.ExtendedRuntime.CurMP = minU32(oldMP, ch.ExtendedRuntime.MaxMP)
+		ch.RuntimeScore.CurMP = minU32(oldMP, ch.RuntimeScore.MaxMP)
 	}
 	// O base e o score SEM equipamento e SEM affect: seu proprio MaxHP e o unico
 	// teto valido para persistencia. O runtime conserva os recursos efetivos.
-	base.CurHP = minU32(ch.ExtendedRuntime.CurHP, base.MaxHP)
-	base.CurMP = minU32(ch.ExtendedRuntime.CurMP, base.MaxMP)
+	base.CurHP = minU32(ch.RuntimeScore.CurHP, base.MaxHP)
+	base.CurMP = minU32(ch.RuntimeScore.CurMP, base.MaxMP)
 	projectExtendedRuntime(ch)
 }
 

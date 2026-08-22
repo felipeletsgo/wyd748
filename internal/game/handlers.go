@@ -101,7 +101,7 @@ func countShopItems(vende []model.Item) int {
 	return count
 }
 
-func shopTypeForMerchant(merchant byte) (uint32, bool) {
+func shopTypeForMerchant(merchant uint32) (uint32, bool) {
 	if merchant == skillMasterMerchant {
 		return wire.ShopSkill, true
 	}
@@ -662,7 +662,7 @@ func (w *World) validCargoAccess(p *Player, pkt []byte) bool {
 		return false
 	}
 	m, err := w.resolveNPCInteraction(p, npcID)
-	return err == nil && m.Def.Extended != nil && m.Def.Extended.Merchant&0xF == cargoMerchantType
+	return err == nil && m.Def.Score != nil && m.Def.Score.Merchant&0xF == cargoMerchantType
 }
 
 func (w *World) nearCargoNPC(p *Player) bool {
@@ -670,7 +670,7 @@ func (w *World) nearCargoNPC(p *Player) bool {
 		return false
 	}
 	m, err := w.resolveNPCInteraction(p, p.CargoNPC)
-	return err == nil && m.Def.Extended != nil && m.Def.Extended.Merchant&0xF == cargoMerchantType
+	return err == nil && m.Def.Score != nil && m.Def.Score.Merchant&0xF == cargoMerchantType
 }
 
 func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
@@ -804,7 +804,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	if w.handleCarbMasterNPC(s, p, m) {
 		return
 	}
-	if shopType, isShop := shopTypeForMerchant(m.Def.Extended.Merchant); isShop {
+	if shopType, isShop := shopTypeForMerchant(m.Def.Score.Merchant); isShop {
 		p.ShopNPC = m.ID // lembra a loja aberta pro buy (server-authoritative)
 		display := shopDisplayList(m.Def.Vende, shopType)
 		// TMProject renders 27 shop entries; stock 7.48 keeps its 64-entry ABI.
@@ -816,7 +816,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] loja aberta: %q (%d itens exibidos)", s.ID, m.Def.Name, countShopItems(display))
 		return
 	}
-	if m.Def.Extended.Merchant&0x0F == craftingMerchant {
+	if m.Def.Score.Merchant&0x0F == craftingMerchant {
 		// A janela e escolhida localmente pelo client a partir do rosto/posicao do
 		// NPC. Guardamos apenas o contexto autoritativo para validar o opcode de
 		// composicao que chegar depois.
@@ -824,7 +824,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] compositor aberto: %q", s.ID, m.Def.Name)
 		return
 	}
-	if m.Def.Extended.Merchant&0x0F == cargoMerchantType {
+	if m.Def.Score.Merchant&0x0F == cargoMerchantType {
 		p.CargoNPC = m.ID
 		log.Printf("[#%d] cargo aberto: %q", s.ID, m.Def.Name)
 		return
@@ -895,7 +895,7 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	// O slot vem da grade que o CLIENT desenhou, entao precisa ser resolvido
 	// contra a MESMA lista enviada no 0x17C -- que e compactada para caber nas
 	// 27 posicoes exibiveis. Indexar o Vende cru aqui compraria outro item.
-	shopType, isShop := shopTypeForMerchant(m.Def.Extended.Merchant)
+	shopType, isShop := shopTypeForMerchant(m.Def.Score.Merchant)
 	if !isShop {
 		log.Printf("[#%d] compra em npc que nao e loja: %q", s.ID, m.Def.Name)
 		return
@@ -914,7 +914,7 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	// A compra no mestre e uma requisicao de aprendizado. O item 5000..5095
 	// nunca existe fisicamente no inventario; onLearnSkill valida classe,
 	// requisitos, pontos, gold e persiste a conta.
-	if m.Def.Extended.Merchant == skillMasterMerchant {
+	if m.Def.Score.Merchant == skillMasterMerchant {
 		w.onLearnSkill(s, p, int(it.Index))
 		return
 	}
@@ -967,7 +967,7 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 		p.ShopNPC = 0
 		return
 	}
-	if _, isShop := shopTypeForMerchant(m.Def.Extended.Merchant); !isShop {
+	if _, isShop := shopTypeForMerchant(m.Def.Score.Merchant); !isShop {
 		p.ShopNPC = 0
 		return
 	}
@@ -1567,7 +1567,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	if !hit.Hit {
 		w.sendToMobView(m, func() []byte {
 			return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
-				0, m.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char), 0, true))
+				0, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), 0, true))
 		})
 		log.Printf("[#%d] errou ataque no mob id=%d %q (accuracy=%d%%)", s.ID, m.ID, m.Def.Name,
 			playerVersusMobAccuracy(p.Char, m.Def))
@@ -1595,7 +1595,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// let a client observe an encounter it could not target).
 	w.sendToMobView(m, func() []byte {
 		return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
-			dmg, m.Def.Extended.MaxHP, p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
+			dmg, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
 	})
 	if m.HP == 0 {
 		w.killMobState(p, m, dmg, minU32(dmg, oldHP))
@@ -1604,11 +1604,11 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 			// Source observers own a uint32 resource handler; stock observers
 			// keep the proportional WORD projection used by the original 7.48.
-			return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Extended.MaxHP,
-				m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
+			return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Score.MaxHP,
+				m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 		})
 		w.gameplayLogf("attack", "[#%d] atacou mob id=%d %q dmg=%d hp=%d/%d",
-			s.ID, m.ID, m.Def.Name, dmg, m.HP, m.Def.Extended.MaxHP)
+			s.ID, m.ID, m.Def.Name, dmg, m.HP, m.Def.Score.MaxHP)
 	}
 }
 

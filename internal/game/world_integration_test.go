@@ -12,8 +12,8 @@ import (
 func minimalWorldInputs() ([]model.NPCDef, []model.NPCGener, model.Catalog, model.CharacterTemplateFile) {
 	npc := model.NPCDef{
 		Name: "Test_Mob", Tipo: model.TipoMonstro,
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version: model.ScoreVersion,
 			Level:   1, MaxHP: 100, CurHP: 100, Attack: 10, Defense: 2, AttackRun: 4,
 		},
 	}
@@ -32,8 +32,8 @@ func minimalWorldInputs() ([]model.NPCDef, []model.NPCGener, model.Catalog, mode
 		Spawn: model.CharacterSpawn{X: 2100, Y: 2100},
 		Classes: []model.CharacterTemplate{{
 			Name: "TransKnight", Class: 0,
-			ExtendedScore: model.ExtendedScore{
-				Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100,
+			Score: model.Score{
+				Version: model.ScoreVersion, MaxHP: 100, CurHP: 100,
 			},
 		}},
 	}

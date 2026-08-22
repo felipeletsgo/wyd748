@@ -85,7 +85,7 @@ func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef,
 	if !combatRollHits(mobVersusPlayerAccuracy(mob.Def, target.Char), w.intn) {
 		w.sendToMobView(mob, func() []byte {
 			return wire.SkillHitsWide(mob.ID, mob.X, mob.Y, target.X, target.Y,
-				0, mob.Def.Extended.MaxMP, int16(skill.Index), 0, 0, 1,
+				0, mob.Def.Score.MaxMP, int16(skill.Index), 0, 0, 1,
 				[]wire.SkillTarget{{ID: target.ID, Miss: true, MaxHP: playerMaxHP(target.Char)}})
 		})
 		log.Printf("BOSS %q: skill %d (%s) errou jogador id=%d",
@@ -98,7 +98,7 @@ func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef,
 		// o golpe corpo a corpo. Motion/mastery em 0: o boss nao tem barra de
 		// skill, o efeito visual vem do proprio indice.
 		return wire.SkillHitExtended(mob.ID, target.ID, mob.X, mob.Y, target.X, target.Y,
-			applied, playerMaxHP(target.Char), 0, mob.Def.Extended.MaxMP, int16(skill.Index), 0, 0)
+			applied, playerMaxHP(target.Char), 0, mob.Def.Score.MaxMP, int16(skill.Index), 0, 0)
 	})
 	log.Printf("BOSS %q: skill %d (%s) em jogador id=%d dano=%d",
 		boss.Profile.ID, action.SkillID, skill.Name, target.ID, damage)
@@ -123,7 +123,7 @@ func bossSkillDamageWithRNG(m *Mob, target *Player, skill model.SkillDef, intn f
 	if m == nil || m.Def == nil || target == nil || target.Char == nil {
 		return 0
 	}
-	extended := m.Def.Extended
+	extended := m.Def.Score
 	// Nucleo magico do mob: MagicAttack proprio mais a contribuicao de INT e do
 	// nivel, na mesma forma do calculo de skill do jogador.
 	core := int(extended.MagicAttack) + int(extended.Int)/4 + int(extended.Level)
@@ -171,7 +171,7 @@ func (w *World) bossSummonAdds(boss *BossRuntime, mob *Mob, action BossActionDef
 		}
 		add := &Mob{
 			ID: mobID, Def: template, X: x, Y: y,
-			HP: template.Extended.MaxHP, GenerIndex: -1,
+			HP: template.Score.MaxHP, GenerIndex: -1,
 			InstanceID: mob.InstanceID,
 			// LeaderID aponta para o boss: e a ligacao natural do encontro.
 			LeaderID: mob.ID,

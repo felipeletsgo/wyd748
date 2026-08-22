@@ -259,7 +259,7 @@ func AutoTrade(title string, items [12]model.Item, carryPos [12]int8, prices [12
 // CreateMobTrade segue a conversao exata do PacketProtocolV754: o prefixo
 // visual/status coincide com CreateMob ate @171 e StoreName[27] comeca em @172.
 // O MobID e o ID virtual da loja fantasma, nao o ID do personagem que a criou.
-func CreateMobTrade(id uint16, name string, x, y uint16, mesh []uint16, sc model.WireScore, title string) []byte {
+func CreateMobTrade(id uint16, name string, x, y uint16, mesh []uint16, sc model.LegacyScore28, title string) []byte {
 	// FixGetCreateMobTrade_SERVER zera @66..99: clones de loja nao carregam
 	// affects nem guild do personagem real.
 	normal := CreateMob(id, name, x, y, mesh, sc, nil, 2)
@@ -270,7 +270,7 @@ func CreateMobTrade(id uint16, name string, x, y uint16, mesh []uint16, sc model
 }
 
 // CreateMobTradeExtended mantem a projecao STRUCT_SCORE confinada ao wire.
-func CreateMobTradeExtended(id uint16, name string, x, y uint16, mesh []uint16, ext *model.ExtendedScore, title string) []byte {
+func CreateMobTradeExtended(id uint16, name string, x, y uint16, mesh []uint16, ext *model.Score, title string) []byte {
 	return CreateMobTrade(id, name, x, y, mesh, compatibilityScore(ext), title)
 }
 
@@ -286,7 +286,7 @@ func ItemSold(tradeEntityID uint16, pos uint32) []byte {
 // PutScore escreve um STRUCT_SCORE 7.48 (28B) em b@off. Merchant@+6 e AttackRun@+7
 // sao bytes CHEIOS (nao nibbles) -- foi o erro que quebrou o engine no C++.
 // Este e o layout do Status@100 do CreateMob, do enter-world e do 0x336.
-func PutScore(b []byte, off int, sc model.WireScore) {
+func PutScore(b []byte, off int, sc model.LegacyScore28) {
 	putU16(b, off+0, sc.Level)
 	putU16(b, off+2, sc.Defense)
 	putU16(b, off+4, sc.Attack)
@@ -454,12 +454,12 @@ func clampByte(v int) byte {
 // CreateMob monta o 0x364 (176B) no layout REAL do client 7.48 (= Secrets p754,
 // PROVADO in-game): @12 PosXY, @16 ClientId, @18 Name[12], @34 ItemEff[16],
 // @66 Affect[16], @98 Guild, @100 Status(28), @128 Spawn. spawn: 0=NPC, 2=player.
-func CreateMob(id uint16, name string, x, y uint16, mesh []uint16, sc model.WireScore, affects []model.Affect, spawn uint16) []byte {
+func CreateMob(id uint16, name string, x, y uint16, mesh []uint16, sc model.LegacyScore28, affects []model.Affect, spawn uint16) []byte {
 	return CreateMobVisual(id, name, x, y, mesh, nil, sc, affects, spawn)
 }
 
 // CreateMobVisual inclui AnctCode@130, necessario para cores/refinos antigos.
-func CreateMobVisual(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, sc model.WireScore, affects []model.Affect, spawn uint16) []byte {
+func CreateMobVisual(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, sc model.LegacyScore28, affects []model.Affect, spawn uint16) []byte {
 	b := Build(OpCreateMob, SceneField, 176)
 	putU16(b, 12, x)
 	putU16(b, 14, y)
@@ -483,7 +483,7 @@ func CreateMobVisual(id uint16, name string, x, y uint16, mesh []uint16, anct []
 // (12 bits) e o canal (4 bits); o byte alto de Spawn em @129 e o
 // GuildMemberType/GuildLevel. Sem esse segundo byte o client desenha o nome,
 // mas nao consegue escolher o layout da guildmark (membro, sublider ou lider).
-func CreateMobExtendedWithGuildRank(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn uint16, guild uint16, guildRank byte, cp int16) []byte {
+func CreateMobExtendedWithGuildRank(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn uint16, guild uint16, guildRank byte, cp int16) []byte {
 	b := CreateMobVisual(id, name, x, y, mesh, anct, compatibilityScore(ext), affects, spawn)
 	putU16(b, 98, GuildWireID(guild))
 	// CreateMobVisual escreve o tipo de spawn no byte baixo. Preserve-o e
@@ -504,7 +504,7 @@ func CreateMobExtendedWithGuildRank(id uint16, name string, x, y uint16, mesh []
 func GuildWireID(id uint16) uint16 { return id & 0x0FFF }
 
 // CreateMobVisualExtended e a variante com AnctCode para NPCs/monstros.
-func CreateMobVisualExtended(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn uint16) []byte {
+func CreateMobVisualExtended(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn uint16) []byte {
 	return CreateMobVisual(id, name, x, y, mesh, anct, compatibilityScore(ext), affects, spawn)
 }
 
@@ -512,8 +512,8 @@ func CreateMobVisualExtended(id uint16, name string, x, y uint16, mesh []uint16,
 // a mesma escala proporcional usada para personagens; o estado real permanece
 // exclusivamente no servidor.
 func SetMobHpMp(id uint16, currentHP, maxHP, currentMP, maxMP uint32) []byte {
-	ext := model.ExtendedScore{
-		Version: model.ExtendedScoreVersion,
+	ext := model.Score{
+		Version: model.ScoreVersion,
 		CurHP:   currentHP, MaxHP: maxHP, CurMP: currentMP, MaxMP: maxMP,
 	}
 	sc := ext.CompatibilityScore()
@@ -528,9 +528,9 @@ func SetMobHpMp(id uint16, currentHP, maxHP, currentMP, maxMP uint32) []byte {
 // SetHpMpExtended preserva o prefixo 0x181 de 20 bytes e acrescenta os quatro
 // valores reais em uint32. O client sem patch ignora a cauda; o WYD748 patched
 // alimenta BigHP/BigMP e os textos a partir dela.
-func SetHpMpExtended(id uint16, ext *model.ExtendedScore) []byte {
+func SetHpMpExtended(id uint16, ext *model.Score) []byte {
 	if ext == nil {
-		ext = &model.ExtendedScore{}
+		ext = &model.Score{}
 	}
 	sc := ext.CompatibilityScore()
 	// Score ja contem a projecao proporcional e signed-safe calculada pelo
@@ -557,9 +557,9 @@ func SetHpMpExtended(id uint16, ext *model.ExtendedScore) []byte {
 // `unsigned short Guild` (MSG_UpdateScore em Basedef.h do client) e o decompoe
 // como (canal << 12) | guildID -- por isso o id util tem 12 bits (1..4095).
 // O prefixo nativo permanece byte-compativel justamente para o client conseguir
-// ler campos como este; o ExtendedScore vive na cauda XSC2 e nao o substitui.
+// ler campos como este; o Score vive na cauda XSC2 e nao o substitui.
 func UpdateScore(id uint16, ch model.Char) []byte {
-	// A cauda wide e sempre enviada para jogadores e carrega o ExtendedRuntime.
+	// A cauda wide e sempre enviada para jogadores e carrega o RuntimeScore.
 	// O prefixo STRUCT_SCORE existe somente para manter a ABI do handler 7.48.
 	e := scoreWireExtension(ch)
 	wireScore := clientCompatibilityScore(ch)
@@ -613,47 +613,47 @@ func UpdateScore(id uint16, ch model.Char) []byte {
 	putU32(b, 216, e.RegenMP)
 	putU32(b, 220, uint32(e.AttackRun))
 	putU32(b, 224, uint32(e.Merchant))
-	putU32(b, 228, model.ExtendedScoreVersion)
+	putU32(b, 228, model.ScoreVersion)
 	putU32(b, 232, 0x32435358) // "XSC2"
 	return b
 }
 
-func scoreWireExtension(ch model.Char) *model.ExtendedScore {
-	if ch.ExtendedRuntime != nil {
-		return ch.ExtendedRuntime
+func scoreWireExtension(ch model.Char) *model.Score {
+	if ch.RuntimeScore != nil {
+		return ch.RuntimeScore
 	}
-	if ch.Extended != nil {
-		return ch.Extended
+	if ch.Score != nil {
+		return ch.Score
 	}
-	return &model.ExtendedScore{Version: model.ExtendedScoreVersion}
+	return &model.Score{Version: model.ScoreVersion}
 }
 
 // clientCompatibilityScore e somente a representacao estreita consumida pela
 // logica legada do client. O estado autoritativo nunca e reduzido: os valores
 // reais seguem na extensao uint32 de UpdateScore/SetHpMpExtended.
-func clientCompatibilityScore(ch model.Char) model.WireScore {
+func clientCompatibilityScore(ch model.Char) model.LegacyScore28 {
 	// Para chars extended, Score e deliberadamente uma projecao proporcional
 	// <= 30000. Saturar atual e maximo separadamente em 32767 transforma toda
 	// barra em 100% e impede o client de mostrar dano/gasto de mana.
 	return scoreWireExtension(ch).CompatibilityScore()
 }
 
-func compatibilityScore(ext *model.ExtendedScore) model.WireScore {
+func compatibilityScore(ext *model.Score) model.LegacyScore28 {
 	if ext == nil {
-		return model.WireScore{}
+		return model.LegacyScore28{}
 	}
 	return ext.CompatibilityScore()
 }
 
 // CompatibilityVitals devolve apenas os campos estreitos exigidos pelo painel
 // de party. A estrutura Score nao atravessa a fronteira do wire.
-func CompatibilityVitals(ext *model.ExtendedScore) (level, currentHP, maximumHP uint16) {
+func CompatibilityVitals(ext *model.Score) (level, currentHP, maximumHP uint16) {
 	score := compatibilityScore(ext)
 	return score.Level, score.CurHP, score.MaxHP
 }
 
 // CompatibilityCombatMP projeta a mana para o WORD dos pacotes de ataque.
-func CompatibilityCombatMP(ext *model.ExtendedScore) uint32 {
+func CompatibilityCombatMP(ext *model.Score) uint32 {
 	return uint32(compatibilityScore(ext).CurMP)
 }
 
@@ -666,7 +666,7 @@ func compatibilityU16(value uint32) uint16 {
 
 // MobScore monta o mesmo 0x336 usado por jogadores, mas sem exigir model.Char.
 // O client usa Affect[16] para ativar CheckAffect também em NPCs/monstros.
-func MobScore(id uint16, sc model.WireScore, affects []model.Affect, resist model.ElementalResists) []byte {
+func MobScore(id uint16, sc model.LegacyScore28, affects []model.Affect, resist model.ElementalResists) []byte {
 	b := Build(OpUpdateScore, id, 92)
 	PutScore(b, 12, sc)
 	putAffectWords(b, 42, affects, time.Now())
@@ -680,7 +680,7 @@ func MobScore(id uint16, sc model.WireScore, affects []model.Affect, resist mode
 }
 
 // MobScoreExtended recebe o estado wide; Score so existe dentro do builder.
-func MobScoreExtended(id uint16, ext *model.ExtendedScore, affects []model.Affect, resist model.ElementalResists) []byte {
+func MobScoreExtended(id uint16, ext *model.Score, affects []model.Affect, resist model.ElementalResists) []byte {
 	return MobScore(id, compatibilityScore(ext), affects, resist)
 }
 

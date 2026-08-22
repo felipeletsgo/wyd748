@@ -81,8 +81,8 @@ func playerVersusMobAccuracy(attacker *model.Char, defender *model.NPCDef) int {
 	if attacker == nil || defender == nil {
 		return 0
 	}
-	return combatAccuracyPercent(int(defender.Extended.Dex), playerAccuracyBonusPoints(attacker),
-		int(defender.Extended.Evasion),
+	return combatAccuracyPercent(int(defender.Score.Dex), playerAccuracyBonusPoints(attacker),
+		int(defender.Score.Evasion),
 		playerHasConcentration(attacker))
 }
 
@@ -90,6 +90,6 @@ func mobVersusPlayerAccuracy(attacker *model.NPCDef, defender *model.Char) int {
 	if attacker == nil || defender == nil {
 		return 0
 	}
-	return combatAccuracyPercent(playerDex(defender), int(attacker.Extended.Accuracy),
+	return combatAccuracyPercent(playerDex(defender), int(attacker.Score.Accuracy),
 		playerEvasionBonusPoints(defender), false)
 }

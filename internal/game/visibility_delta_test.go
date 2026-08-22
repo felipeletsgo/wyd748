@@ -75,10 +75,10 @@ func TestIncrementalPlayerVisibilityHandlesSameCellPvPBoundary(t *testing.T) {
 	newPlayer := func(id, x, y uint16) *Player {
 		s := net.NewTestSession(int64(id), 16)
 		ch := &model.Char{
-			Name:     "Player",
-			X:        x,
-			Y:        y,
-			Extended: testExtended(model.ExtendedScore{MaxHP: 100, CurHP: 100}),
+			Name:  "Player",
+			X:     x,
+			Y:     y,
+			Score: testExtended(model.Score{MaxHP: 100, CurHP: 100}),
 		}
 		return &Player{
 			ID:      id,

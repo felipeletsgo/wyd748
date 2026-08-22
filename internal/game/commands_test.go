@@ -57,8 +57,8 @@ func TestFameMessageNilPlayerIsZero(t *testing.T) {
 func TestParryCommandReportsOneAuthoritativeMatchup(t *testing.T) {
 	viewer, _ := networkedTestPlayer(1, "Viewer", 2100, 2100)
 	target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
-	viewer.Char.Extended.Dex = 4_000
-	target.Char.Extended.Dex = 0
+	viewer.Char.Score.Dex = 4_000
+	target.Char.Score.Dex = 0
 	applyExtendedScore(viewer.Char)
 	applyExtendedScore(target.Char)
 	w := worldWithNetworkedPlayers(viewer, target)

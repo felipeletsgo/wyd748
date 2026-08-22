@@ -40,8 +40,8 @@ func newTimedSwapWorld(t *testing.T, saveErr error) (*World, *Player, *craftStor
 		Name:  "Premium",
 		Class: 0,
 		Inv:   [64]model.Item{item},
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version: model.ScoreVersion,
 		},
 	}}}
 	session := net.NewTestSession(1, 64)
@@ -178,8 +178,8 @@ func TestPremiumMountRecalcAppliesExactAttackMagicAndSpeed(t *testing.T) {
 		clock: newFakeClock(now),
 	}
 	newChar := func() *model.Char {
-		return &model.Char{Class: 1, Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		return &model.Char{Class: 1, Score: &model.Score{
+			Version: model.ScoreVersion,
 			Attack:  100, MagicAttack: 200, AttackRun: 1,
 			MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
 		}}

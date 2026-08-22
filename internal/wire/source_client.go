@@ -38,9 +38,8 @@ func ClientProtocolFromLogin(packet []byte) ClientProtocol {
 	return ClientProtocolStock748
 }
 
-// putSourceSelChar writes TMProject's 904-byte STRUCT_SELCHAR. Its 48-byte
-// score and uint64 EXP are source-client presentation fields; ExtendedScore
-// and the account model remain the only server-authoritative state.
+// putSourceSelChar writes TMProject's 1272-byte STRUCT_SELCHAR. Its canonical 140-byte
+// Score is copied without narrowing; uint64 EXP remains a presentation field.
 func putSourceSelChar(dst []byte, offset int, chars []model.Char) {
 	for slot := 0; slot < 4 && slot < len(chars); slot++ {
 		ch := chars[slot]
@@ -50,36 +49,36 @@ func putSourceSelChar(dst []byte, offset int, chars []model.Char) {
 		putU16(dst, offset+slot*2, ch.X)
 		putU16(dst, offset+8+slot*2, ch.Y)
 		copy(dst[offset+16+slot*16:offset+32+slot*16], ch.Name)
-		score := EncodeClientScore48(scoreWireExtension(ch))
-		copy(dst[offset+80+slot*ClientScore48Size:], score[:])
+		score := EncodeClientScore(scoreWireExtension(ch))
+		copy(dst[offset+80+slot*ClientScoreSize:], score[:])
 		for equipSlot, item := range ch.Equip {
 			// TMProject keeps 18 source-side equipment entries. The server model
 			// has the canonical 16 slots, so the two trailing entries remain zero.
-			PutItem(dst, offset+272+(slot*18+equipSlot)*8, item)
+			PutItem(dst, offset+640+(slot*18+equipSlot)*8, item)
 		}
-		putU16(dst, offset+848+slot*2, GuildWireID(ch.GuildID))
-		putU32(dst, offset+856+slot*4, ch.Gold)
-		putU64(dst, offset+872+slot*8, uint64(ch.Exp))
+		putU16(dst, offset+1216+slot*2, GuildWireID(ch.GuildID))
+		putU32(dst, offset+1224+slot*4, ch.Gold)
+		putU64(dst, offset+1240+slot*8, uint64(ch.Exp))
 	}
 }
 
-// SourceCharList builds the exact 1992-byte MSG_CNFAccountLogin expected by
-// the source client: Header, alignment padding, SecretCode, 904-byte SelChar,
+// SourceCharList builds the exact 2360-byte MSG_CNFAccountLogin expected by
+// the source client: Header, alignment padding, SecretCode, 1272-byte SelChar,
 // Cargo, cargo coin and account identity. SecretCode stays zero because the Go
 // transport authenticates each frame from its own header keyword/checksum.
 func SourceCharList(accName string, chars []model.Char, cargo []model.Item, cargoGold uint32) []byte {
 	const (
-		packetSize = 1992
+		packetSize = 2360
 		selOffset  = 32
-		cargoOff   = 936
+		cargoOff   = 1304
 	)
 	b := Build(SourceOpCharList, SceneCharList, packetSize)
 	putSourceSelChar(b, selOffset, chars)
 	for i := 0; i < len(cargo) && i < model.MaxCargo; i++ {
 		PutItem(b, cargoOff+i*8, cargo[i])
 	}
-	putU32(b, 1960, cargoGold)
-	copy(b[1964:1980], accName)
+	putU32(b, 2328, cargoGold)
+	copy(b[2332:2348], accName)
 	return b
 }
 
@@ -103,7 +102,7 @@ func CharacterSelectionUpdateForProtocol(protocol ClientProtocol, opcode, id uin
 		}
 		return CNFNewCharacter(id, chars)
 	}
-	b := Build(opcode, id, 920)
+	b := Build(opcode, id, 1288)
 	putSourceSelChar(b, 16, chars)
 	return b
 }
@@ -136,17 +135,19 @@ func putSourceAffects(dst []byte, offset int, affects []model.Affect, now time.T
 	}
 }
 
-// SourceEnterWorld serializes the 1728-byte MSG_CNFCharacterLogin produced by
+// SourceEnterWorld serializes the 2104-byte MSG_CNFCharacterLogin produced by
 // the Win32 compiler. Padding and the two source-only equipment slots are
 // deliberately zero. This is a projection from Char, never a model copy-back.
 func SourceEnterWorld(id, slot uint16, ch model.Char) []byte {
-	b := Build(OpEnterWorld, id, 1728)
+	b := Build(OpEnterWorld, id, 2104)
 	// MSG_CNFCharacterLogin places Ext1 immediately after ShortSkill[16].
 	// Keeping these offsets named prevents the 32-byte Ext1.Data prefix from
 	// being mistaken for padding and shifting every source affect by two bytes.
 	const (
-		sourceShortSkillOffset = 1062
-		sourceExt1Offset       = sourceShortSkillOffset + 16
+		sourceShortSkillOffset = 1246
+		// MSVC aligns STRUCT_EXT1 to four bytes after ShortSkill[16].
+		// The old serializer incorrectly started it two bytes early.
+		sourceExt1Offset       = 1264
 		sourceExt1AffectOffset = sourceExt1Offset + 8*4
 	)
 	putU16(b, 12, ch.X)
@@ -160,41 +161,40 @@ func SourceEnterWorld(id, slot uint16, ch model.Char) []byte {
 	putU64(b, mob+32, uint64(ch.Exp))
 	putU16(b, mob+40, ch.X)
 	putU16(b, mob+42, ch.Y)
-	baseScore := EncodeClientScore48(ch.Extended)
-	runtimeScore := EncodeClientScore48(scoreWireExtension(ch))
-	copy(b[mob+44:mob+92], baseScore[:])
-	copy(b[mob+92:mob+140], runtimeScore[:])
+	baseScore := EncodeClientScore(ch.Score)
+	runtimeScore := EncodeClientScore(scoreWireExtension(ch))
+	copy(b[mob+44:mob+184], baseScore[:])
+	copy(b[mob+184:mob+324], runtimeScore[:])
 	for i, item := range ch.Equip {
-		PutItem(b, mob+140+i*8, item)
+		PutItem(b, mob+324+i*8, item)
 	}
 	for i, item := range ch.Inv {
-		PutItem(b, mob+284+i*8, item)
+		PutItem(b, mob+468+i*8, item)
 	}
-	putU32(b, mob+796, ch.LearnedSkill)
-	putU32(b, mob+800, ch.SecondaryLearnedSkill)
+	putU32(b, mob+980, ch.LearnedSkill)
+	putU32(b, mob+984, ch.SecondaryLearnedSkill)
 	ext := scoreWireExtension(ch)
-	putU16(b, mob+804, compatibilityU16(ext.StatusPts))
-	putU16(b, mob+806, compatibilityU16(ext.MasterPts))
-	putU16(b, mob+808, compatibilityU16(ext.SkillPts))
-	b[mob+810] = clampByte(int(ext.Critical))
-	b[mob+811] = clampByte(int(ext.SaveMana))
-	copy(b[mob+812:mob+816], ch.ShortSkill[:4])
-	b[mob+816] = ch.GuildRank
-	b[mob+817] = clampByte(int(ext.MagicAmp))
-	b[mob+818] = clampByte(int(ext.RegenHP))
-	b[mob+819] = clampByte(int(ext.RegenMP))
-	b[mob+820] = clampByte(int(ext.ResistFire))
-	b[mob+821] = clampByte(int(ext.ResistIce))
-	b[mob+822] = clampByte(int(ext.ResistHoly))
-	b[mob+823] = clampByte(int(ext.ResistThunder))
+	putU16(b, mob+988, compatibilityU16(ext.StatusPts))
+	putU16(b, mob+990, compatibilityU16(ext.MasterPts))
+	putU16(b, mob+992, compatibilityU16(ext.SkillPts))
+	b[mob+994] = clampByte(int(ext.Critical))
+	b[mob+995] = clampByte(int(ext.SaveMana))
+	copy(b[mob+996:mob+1000], ch.ShortSkill[:4])
+	b[mob+1000] = ch.GuildRank
+	b[mob+1001] = clampByte(int(ext.MagicAmp))
+	b[mob+1002] = clampByte(int(ext.RegenHP))
+	b[mob+1003] = clampByte(int(ext.RegenMP))
+	b[mob+1004] = clampByte(int(ext.ResistFire))
+	b[mob+1005] = clampByte(int(ext.ResistIce))
+	b[mob+1006] = clampByte(int(ext.ResistHoly))
+	b[mob+1007] = clampByte(int(ext.ResistThunder))
 	// MSG_CNFCharacterLogin carries the selected account slot separately from
 	// ClientID. Sending the spawn marker here made every source client appear to
 	// have selected slot two even when the account selected another character.
-	putU16(b, 1056, slot)
-	putU16(b, 1058, id)
+	putU16(b, 1240, slot)
+	putU16(b, 1242, id)
 	copy(b[sourceShortSkillOffset:sourceShortSkillOffset+16], ch.ShortSkill[:16])
-	// The first affect is Ext1.Affect[0] at 1110 (not 1112): Ext1.Data is
-	// eight DWORDs and is part of the native 0x114 packet, not optional padding.
+	// The first affect is Ext1.Affect[0] at 1296: Ext1.Data is eight DWORDs; the two bytes before Ext1 are MSVC alignment padding.
 	putSourceAffects(b, sourceExt1AffectOffset, ch.Affects[:], time.Now())
 	return b
 }
@@ -209,55 +209,55 @@ func EnterWorldForProtocol(protocol ClientProtocol, id, slot uint16, ch model.Ch
 }
 
 // SourceUpdateScore maps the authoritative runtime score to TMProject's
-// 152-byte 0x336 structure. Fields absent from that native structure continue
+// 244-byte 0x336 structure. Fields absent from that native structure continue
 // to be synchronized by dedicated packets/extensions rather than trusted back.
 func SourceUpdateScore(id uint16, ch model.Char) []byte {
-	b := Build(OpUpdateScore, id, 152)
+	b := Build(OpUpdateScore, id, 244)
 	ext := scoreWireExtension(ch)
-	score := EncodeClientScore48(ext)
-	copy(b[12:60], score[:])
-	b[60] = clampByte(int(ext.Critical))
-	b[61] = clampByte(int(ext.SaveMana))
-	putAffectWords(b, 62, ch.Affects[:], time.Now())
-	putU16(b, 126, GuildWireID(ch.GuildID))
-	putU16(b, 128, uint16(ch.GuildRank))
-	b[130] = clampByte(int(ext.ResistFire))
-	b[131] = clampByte(int(ext.ResistIce))
-	b[132] = clampByte(int(ext.ResistHoly))
-	b[133] = clampByte(int(ext.ResistThunder))
+	score := EncodeClientScore(ext)
+	copy(b[12:152], score[:])
+	b[152] = clampByte(int(ext.Critical))
+	b[153] = clampByte(int(ext.SaveMana))
+	putAffectWords(b, 154, ch.Affects[:], time.Now())
+	putU16(b, 218, GuildWireID(ch.GuildID))
+	putU16(b, 220, uint16(ch.GuildRank))
+	b[222] = clampByte(int(ext.ResistFire))
+	b[223] = clampByte(int(ext.ResistIce))
+	b[224] = clampByte(int(ext.ResistHoly))
+	b[225] = clampByte(int(ext.ResistThunder))
 	// ReqHp/ReqMp are pending skill costs in TMProject, not current resources.
 	// Score.Hp/Score.Mp already carry the authoritative values; leaving these
 	// fields zero prevents a score refresh from charging HP/MP on a later cast.
-	putU16(b, 144, compatibilityU16(ext.MagicAmp))
+	putU16(b, 236, compatibilityU16(ext.MagicAmp))
 	// LearnedSkill is a one-byte avatar-effect selector in this packet, not the
 	// character's 32-bit learned-skill mask (which travels in UpdateEtc).
-	b[148] = 0
+	b[240] = 0
 	return b
 }
 
-// SourceMobScore builds the source client's 152-byte score refresh for an NPC
+// SourceMobScore builds the source client's 244-byte score refresh for an NPC
 // or monster. The stock XSC2 packet cannot be broadcast to a mixed client view
-// because TMProject reads a 48-byte STRUCT_SCORE directly at byte 12.
-func SourceMobScore(id uint16, ext *model.ExtendedScore, affects []model.Affect, resist model.ElementalResists) []byte {
-	b := Build(OpUpdateScore, id, 152)
-	score := EncodeClientScore48(ext)
-	copy(b[12:60], score[:])
+// because TMProject reads the canonical STRUCT_SCORE directly at byte 12.
+func SourceMobScore(id uint16, ext *model.Score, affects []model.Affect, resist model.ElementalResists) []byte {
+	b := Build(OpUpdateScore, id, 244)
+	score := EncodeClientScore(ext)
+	copy(b[12:152], score[:])
 	if ext != nil {
-		b[60] = clampByte(int(ext.Critical))
-		b[61] = clampByte(int(ext.SaveMana))
-		putU16(b, 144, compatibilityU16(ext.MagicAmp))
+		b[152] = clampByte(int(ext.Critical))
+		b[153] = clampByte(int(ext.SaveMana))
+		putU16(b, 236, compatibilityU16(ext.MagicAmp))
 	}
-	putAffectWords(b, 62, affects, time.Now())
-	b[130] = clampByte(int(resist.Fire))
-	b[131] = clampByte(int(resist.Ice))
-	b[132] = clampByte(int(resist.Sacred))
-	b[133] = clampByte(int(resist.Thunder))
+	putAffectWords(b, 154, affects, time.Now())
+	b[222] = clampByte(int(resist.Fire))
+	b[223] = clampByte(int(resist.Ice))
+	b[224] = clampByte(int(resist.Sacred))
+	b[225] = clampByte(int(resist.Thunder))
 	return b
 }
 
 // MobScoreForProtocol serializes one authoritative mob score for the observer
 // ABI. Gameplay remains a single mutation regardless of client presentation.
-func MobScoreForProtocol(protocol ClientProtocol, id uint16, ext *model.ExtendedScore, affects []model.Affect, resist model.ElementalResists) []byte {
+func MobScoreForProtocol(protocol ClientProtocol, id uint16, ext *model.Score, affects []model.Affect, resist model.ElementalResists) []byte {
 	if protocol == ClientProtocolSource748 {
 		return SourceMobScore(id, ext, affects, resist)
 	}
@@ -272,8 +272,8 @@ func MobHpMpForProtocol(protocol ClientProtocol, id uint16, currentHP, maxHP, cu
 	if protocol != ClientProtocolSource748 {
 		return SetMobHpMp(id, currentHP, maxHP, currentMP, maxMP)
 	}
-	ext := &model.ExtendedScore{
-		Version: model.ExtendedScoreVersion,
+	ext := &model.Score{
+		Version: model.ScoreVersion,
 		CurHP:   currentHP,
 		MaxHP:   maxHP,
 		CurMP:   currentMP,
@@ -287,9 +287,9 @@ func MobHpMpForProtocol(protocol ClientProtocol, id uint16, currentHP, maxHP, cu
 // stock 7.48 executable only understands the original 20-byte projection.
 // Selecting the layout from the recipient session prevents a mixed World
 // from sending a newer tail to a legacy client without changing gameplay.
-func HpMpForProtocol(protocol ClientProtocol, id uint16, ext *model.ExtendedScore) []byte {
+func HpMpForProtocol(protocol ClientProtocol, id uint16, ext *model.Score) []byte {
 	if ext == nil {
-		ext = &model.ExtendedScore{Version: model.ExtendedScoreVersion}
+		ext = &model.Score{Version: model.ScoreVersion}
 	}
 	if protocol == ClientProtocolSource748 {
 		return SetHpMpExtended(id, ext)
@@ -317,12 +317,12 @@ func UpdateAffectsForProtocol(protocol ClientProtocol, id uint16, ch model.Char)
 	return b
 }
 
-// sourceCreateMob serializes TMProject's 236-byte MSG_CreateMob. The source
+// sourceCreateMob serializes TMProject's 328-byte MSG_CreateMob. The source
 // ABI expands equipment and affect arrays to 18/32 entries and embeds the
-// 48-byte presentation score, but receives the same authoritative values as
+// canonical 140-byte Score, but receives the same authoritative values as
 // the stock-client builder.
-func sourceCreateMob(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn, guild uint16, guildRank byte, cp *int16) []byte {
-	b := Build(OpCreateMob, SceneField, 236)
+func sourceCreateMob(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp *int16) []byte {
+	b := Build(OpCreateMob, SceneField, 328)
 	putU16(b, 12, x)
 	putU16(b, 14, y)
 	putU16(b, 16, id)
@@ -339,16 +339,16 @@ func sourceCreateMob(id uint16, name string, x, y uint16, mesh []uint16, anct []
 	putAffectWords(b, 70, affects, time.Now())
 	putU16(b, 134, GuildWireID(guild))
 	b[136] = guildRank
-	score := EncodeClientScore48(ext)
-	copy(b[140:188], score[:])
-	putU16(b, 188, spawn)
-	copy(b[190:208], anct)
+	score := EncodeClientScore(ext)
+	copy(b[140:280], score[:])
+	putU16(b, 280, spawn)
+	copy(b[282:300], anct)
 	return b
 }
 
 // CreateMobVisualExtendedForProtocol keeps entity materialization compatible
 // with both clients. NPCs and monsters do not receive a player CP byte.
-func CreateMobVisualExtendedForProtocol(protocol ClientProtocol, id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn uint16) []byte {
+func CreateMobVisualExtendedForProtocol(protocol ClientProtocol, id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn uint16) []byte {
 	if protocol == ClientProtocolSource748 {
 		return sourceCreateMob(id, name, x, y, mesh, anct, ext, affects, spawn, 0, 0, nil)
 	}
@@ -357,23 +357,23 @@ func CreateMobVisualExtendedForProtocol(protocol ClientProtocol, id uint16, name
 
 // CreateMobExtendedWithGuildRankForProtocol is the player-specific
 // materialization boundary. Guild rank and CP remain projections only.
-func CreateMobExtendedWithGuildRankForProtocol(protocol ClientProtocol, id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.ExtendedScore, affects []model.Affect, spawn, guild uint16, guildRank byte, cp int16) []byte {
+func CreateMobExtendedWithGuildRankForProtocol(protocol ClientProtocol, id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp int16) []byte {
 	if protocol == ClientProtocolSource748 {
 		return sourceCreateMob(id, name, x, y, mesh, anct, ext, affects, spawn, guild, guildRank, &cp)
 	}
 	return CreateMobExtendedWithGuildRank(id, name, x, y, mesh, anct, ext, affects, spawn, guild, guildRank, cp)
 }
 
-// CreateMobTradeExtendedForProtocol uses the source client's 260-byte trade
+// CreateMobTradeExtendedForProtocol uses the source client's 352-byte trade
 // clone without leaking its wider layout to stock 7.48 observers.
-func CreateMobTradeExtendedForProtocol(protocol ClientProtocol, id uint16, name string, x, y uint16, mesh []uint16, ext *model.ExtendedScore, title string) []byte {
+func CreateMobTradeExtendedForProtocol(protocol ClientProtocol, id uint16, name string, x, y uint16, mesh []uint16, ext *model.Score, title string) []byte {
 	if protocol != ClientProtocolSource748 {
 		return CreateMobTradeExtended(id, name, x, y, mesh, ext, title)
 	}
 	normal := sourceCreateMob(id, name, x, y, mesh, nil, ext, nil, 2, 0, 0, nil)
-	b := Build(OpCreateMobTrade, SceneField, 260)
-	copy(b[12:234], normal[12:234])
-	copy(b[234:258], title)
+	b := Build(OpCreateMobTrade, SceneField, 352)
+	copy(b[12:326], normal[12:326])
+	copy(b[326:350], title)
 	return b
 }
 

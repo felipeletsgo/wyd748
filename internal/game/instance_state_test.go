@@ -30,7 +30,7 @@ func TestRestoreHellGateRuntimeKeepsSelectedLichProgress(t *testing.T) {
 	w := testSpatialWorld(nil)
 	for _, name := range []string{"Hell_Spider", "Skeleton", "Lich_Dragon"} {
 		w.npcs = append(w.npcs, model.NPCDef{Name: name, Tipo: model.TipoMonstro,
-			Extended: testExtended(model.ExtendedScore{MaxHP: 10, CurHP: 10})})
+			Score: testExtended(model.Score{MaxHP: 10, CurHP: 10})})
 	}
 	inst := &ItemInstance{Config: cfg, RuntimeID: cfg.ID, State: "lich_puzzle",
 		HellGateVariant: 1, HellGateValidLichMask: hellGateBit(2) | hellGateBit(4),
@@ -88,7 +88,7 @@ func TestRestoreHellGateRuntimeRollsBackPartialWave(t *testing.T) {
 	w := testSpatialWorld(nil)
 	for _, name := range []string{"Hell_Spider", "Lich_Dragon"} {
 		w.npcs = append(w.npcs, model.NPCDef{Name: name, Tipo: model.TipoMonstro,
-			Extended: testExtended(model.ExtendedScore{MaxHP: 10, CurHP: 10})})
+			Score: testExtended(model.Score{MaxHP: 10, CurHP: 10})})
 	}
 	inst := &ItemInstance{
 		Config: cfg, RuntimeID: cfg.ID, State: "lich_puzzle",

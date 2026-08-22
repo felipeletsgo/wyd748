@@ -35,7 +35,7 @@ func mundoComPorta(keyIDPorta int, portaX, portaY uint16) (*World, *GroundItem) 
 func jogadorComChave(w *World, indiceChave uint16, x, y uint16) (*Player, *net.Session) {
 	session := net.NewTestSession(1, 64)
 	acc := &model.Account{Name: "conta", Chars: []model.Char{{Name: "A",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100}}}}
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}}}}
 	p := &Player{ID: 1, Session: session, Account: acc, Char: &acc.Chars[0],
 		InWorld: true, X: x, Y: y, Visible: map[uint16]struct{}{}}
 	p.Char.Inv[0] = model.Item{Index: indiceChave}

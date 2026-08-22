@@ -10,7 +10,7 @@ import (
 func mountTestChar() *model.Char {
 	return &model.Char{
 		Class: 0,
-		Extended: testExtended(model.ExtendedScore{
+		Score: testExtended(model.Score{
 			Level: 1, MaxHP: 100, MaxMP: 100, CurHP: 100, CurMP: 100,
 			Str: 8, Int: 4, Dex: 7, Con: 6,
 		}),
@@ -192,7 +192,7 @@ func TestCriaHuntExpLevelsUpAndGatesWeakMobs(t *testing.T) {
 	cria.SetMountHP(20000)
 	p.Char.Equip[14] = cria
 
-	strong := &Mob{Def: &model.NPCDef{Extended: &model.ExtendedScore{Level: 50}}}
+	strong := &Mob{Def: &model.NPCDef{Score: &model.Score{Level: 50}}}
 	w.grantMountHuntExp(p, strong) // 1a morte: progresso, sem subir
 	if p.Char.Equip[14].MountLevel() != 0 {
 		t.Fatalf("nao deveria subir com 1 morte, veio %d", p.Char.Equip[14].MountLevel())
@@ -202,7 +202,7 @@ func TestCriaHuntExpLevelsUpAndGatesWeakMobs(t *testing.T) {
 		t.Fatalf("deveria subir pra level 1, veio %d", p.Char.Equip[14].MountLevel())
 	}
 	// Mob de level menor que a cria nao ensina.
-	weak := &Mob{Def: &model.NPCDef{Extended: &model.ExtendedScore{Level: 0}}}
+	weak := &Mob{Def: &model.NPCDef{Score: &model.Score{Level: 0}}}
 	before := p.Char.Equip[14].Eff[5]
 	w.grantMountHuntExp(p, weak)
 	if p.Char.Equip[14].Eff[5] != before {

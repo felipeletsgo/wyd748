@@ -27,7 +27,7 @@ func TestVisibilityShowHidePlayerAndGhostShopPairs(t *testing.T) {
 
 	shop := &GhostShop{
 		ID: 25001, Name: "Carbunkle", Title: "Test Shop", X: 2100, Y: 2100,
-		Extended: model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 1, CurHP: 1},
+		Score: model.Score{Version: model.ScoreVersion, MaxHP: 1, CurHP: 1},
 	}
 	w.showGhostShop(a, shop)
 	if !a.hasVisible(shop.ID) {

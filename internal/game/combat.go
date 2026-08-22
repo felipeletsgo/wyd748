@@ -13,7 +13,7 @@ const (
 )
 
 // applyCouragePvEDamage aplica o bonus fixo do affect Courage somente sobre um
-// hit valido contra monstro. Ele nao altera ExtendedScore nem participa de PvP:
+// hit valido contra monstro. Ele nao altera Score nem participa de PvP:
 // o bonus existe apenas no resultado autoritativo de cada golpe PvE.
 func applyCouragePvEDamage(ch *model.Char, damage int, magical bool) int {
 	return applyCouragePvEDamageAt(ch, damage, magical, time.Now())
@@ -233,8 +233,8 @@ func mobPhysicalHitPlayerAt(m *Mob, def *model.Char, intn func(int) int, now tim
 	if !combatRollHits(mobVersusPlayerAccuracy(m.Def, def), intn) {
 		return physicalHitResult{}
 	}
-	damBase := effectiveMobAttackAt(m, now) + int(m.Def.Extended.Str)/2 +
-		int(m.Def.Extended.Dex)/4 + int(m.Def.Extended.Level)
+	damBase := effectiveMobAttackAt(m, now) + int(m.Def.Score.Str)/2 +
+		int(m.Def.Score.Dex)/4 + int(m.Def.Score.Level)
 	defense := playerDefense(def)
 	dam := hitDamageWithRNG(damBase, defense, 0, intn)
 	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxExtendedStat))), Hit: true}

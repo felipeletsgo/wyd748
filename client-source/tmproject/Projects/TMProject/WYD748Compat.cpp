@@ -4,20 +4,41 @@
 
 #include "Basedef.h"
 
-// These assertions protect the source client's side of the contract mirrored
-// by internal/wire/score48.go. ExtendedScore remains server-authoritative.
-static_assert(sizeof(STRUCT_SCORE) == 48, "STRUCT_SCORE wire ABI must remain 48 bytes");
-static_assert(offsetof(STRUCT_SCORE, Level) == 0, "STRUCT_SCORE.Level offset changed");
-static_assert(offsetof(STRUCT_SCORE, Ac) == 4, "STRUCT_SCORE.Ac offset changed");
-static_assert(offsetof(STRUCT_SCORE, Damage) == 8, "STRUCT_SCORE.Damage offset changed");
-static_assert(offsetof(STRUCT_SCORE, Reserved) == 12, "STRUCT_SCORE.Reserved offset changed");
-static_assert(offsetof(STRUCT_SCORE, AttackRun) == 13, "STRUCT_SCORE.AttackRun offset changed");
-static_assert(offsetof(STRUCT_SCORE, MaxHp) == 16, "STRUCT_SCORE.MaxHp offset changed");
-static_assert(offsetof(STRUCT_SCORE, MaxMp) == 20, "STRUCT_SCORE.MaxMp offset changed");
-static_assert(offsetof(STRUCT_SCORE, Hp) == 24, "STRUCT_SCORE.Hp offset changed");
-static_assert(offsetof(STRUCT_SCORE, Mp) == 28, "STRUCT_SCORE.Mp offset changed");
-static_assert(offsetof(STRUCT_SCORE, Str) == 32, "STRUCT_SCORE.Str offset changed");
-static_assert(offsetof(STRUCT_SCORE, Special) == 40, "STRUCT_SCORE.Special offset changed");
+// These assertions lock the canonical 7.48+ Score shared with Go. Any field
+// insertion, narrowing or reordering must fail the Win32 build immediately.
+static_assert(sizeof(STRUCT_SCORE) == 140, "canonical STRUCT_SCORE must remain 140 bytes");
+static_assert(offsetof(STRUCT_SCORE, Version) == 0, "STRUCT_SCORE.Version offset changed");
+static_assert(offsetof(STRUCT_SCORE, Level) == 4, "STRUCT_SCORE.Level offset changed");
+static_assert(offsetof(STRUCT_SCORE, Attack) == 8, "STRUCT_SCORE.Attack offset changed");
+static_assert(offsetof(STRUCT_SCORE, MagicAttack) == 12, "STRUCT_SCORE.MagicAttack offset changed");
+static_assert(offsetof(STRUCT_SCORE, Defense) == 16, "STRUCT_SCORE.Defense offset changed");
+static_assert(offsetof(STRUCT_SCORE, MaxHP) == 20, "STRUCT_SCORE.MaxHP offset changed");
+static_assert(offsetof(STRUCT_SCORE, MaxMP) == 24, "STRUCT_SCORE.MaxMP offset changed");
+static_assert(offsetof(STRUCT_SCORE, CurHP) == 28, "STRUCT_SCORE.CurHP offset changed");
+static_assert(offsetof(STRUCT_SCORE, CurMP) == 32, "STRUCT_SCORE.CurMP offset changed");
+static_assert(offsetof(STRUCT_SCORE, Str) == 36, "STRUCT_SCORE.Str offset changed");
+static_assert(offsetof(STRUCT_SCORE, Int) == 40, "STRUCT_SCORE.Int offset changed");
+static_assert(offsetof(STRUCT_SCORE, Dex) == 44, "STRUCT_SCORE.Dex offset changed");
+static_assert(offsetof(STRUCT_SCORE, Con) == 48, "STRUCT_SCORE.Con offset changed");
+static_assert(offsetof(STRUCT_SCORE, Accuracy) == 52, "STRUCT_SCORE.Accuracy offset changed");
+static_assert(offsetof(STRUCT_SCORE, Evasion) == 56, "STRUCT_SCORE.Evasion offset changed");
+static_assert(offsetof(STRUCT_SCORE, Parry) == 60, "STRUCT_SCORE.Parry offset changed");
+static_assert(offsetof(STRUCT_SCORE, Critical) == 64, "STRUCT_SCORE.Critical offset changed");
+static_assert(offsetof(STRUCT_SCORE, Range) == 68, "STRUCT_SCORE.Range offset changed");
+static_assert(offsetof(STRUCT_SCORE, ResistFire) == 72, "STRUCT_SCORE.ResistFire offset changed");
+static_assert(offsetof(STRUCT_SCORE, ResistIce) == 76, "STRUCT_SCORE.ResistIce offset changed");
+static_assert(offsetof(STRUCT_SCORE, ResistHoly) == 80, "STRUCT_SCORE.ResistHoly offset changed");
+static_assert(offsetof(STRUCT_SCORE, ResistThunder) == 84, "STRUCT_SCORE.ResistThunder offset changed");
+static_assert(offsetof(STRUCT_SCORE, SaveMana) == 88, "STRUCT_SCORE.SaveMana offset changed");
+static_assert(offsetof(STRUCT_SCORE, MagicAmp) == 92, "STRUCT_SCORE.MagicAmp offset changed");
+static_assert(offsetof(STRUCT_SCORE, RegenHP) == 96, "STRUCT_SCORE.RegenHP offset changed");
+static_assert(offsetof(STRUCT_SCORE, RegenMP) == 100, "STRUCT_SCORE.RegenMP offset changed");
+static_assert(offsetof(STRUCT_SCORE, StatusPts) == 104, "STRUCT_SCORE.StatusPts offset changed");
+static_assert(offsetof(STRUCT_SCORE, MasterPts) == 108, "STRUCT_SCORE.MasterPts offset changed");
+static_assert(offsetof(STRUCT_SCORE, SkillPts) == 112, "STRUCT_SCORE.SkillPts offset changed");
+static_assert(offsetof(STRUCT_SCORE, Mastery) == 116, "STRUCT_SCORE.Mastery offset changed");
+static_assert(offsetof(STRUCT_SCORE, AttackRun) == 132, "STRUCT_SCORE.AttackRun offset changed");
+static_assert(offsetof(STRUCT_SCORE, Merchant) == 136, "STRUCT_SCORE.Merchant offset changed");
 
 // These packet assertions document the two first C->S authentication
 // boundaries. They prevent a later source merge from silently moving the
@@ -75,53 +96,38 @@ static_assert(sizeof(MSG_UpdateItem) == 20, "7.48 item-update request must remai
 static_assert(sizeof(MSG_SetShortSkill) == 32, "7.48 short-skill request must remain 32 bytes");
 static_assert(sizeof(MSG_ReqBuy) == 36, "7.48 auto-trade purchase request must remain 36 bytes");
 
-// The source-client response family deliberately keeps the imported 48-byte
-// score and therefore cannot share the stock binary's compact S->C sizes.
+// The source-client response family embeds the canonical 140-byte Score.
 // These values are mirrored byte-for-byte by internal/wire/source_client.go.
-static_assert(sizeof(STRUCT_SELCHAR) == 904, "source STRUCT_SELCHAR ABI changed");
-static_assert(sizeof(STRUCT_MOB) == 1040, "source STRUCT_MOB ABI changed");
+static_assert(sizeof(STRUCT_SELCHAR) == 1272, "source STRUCT_SELCHAR ABI changed");
+static_assert(sizeof(STRUCT_MOB) == 1224, "source STRUCT_MOB ABI changed");
 static_assert(sizeof(STRUCT_EXT1) == 288, "source STRUCT_EXT1 ABI changed");
-static_assert(sizeof(STRUCT_EXT2) == 360, "source STRUCT_EXT2 ABI changed");
-static_assert(sizeof(MSG_CNFAccountLogin) == 1992, "source character-list packet ABI changed");
+static_assert(sizeof(STRUCT_EXT2) == 552, "source STRUCT_EXT2 ABI changed");
+static_assert(sizeof(MSG_CNFAccountLogin) == 2360, "source character-list packet ABI changed");
 static_assert(offsetof(MSG_CNFAccountLogin, SecretCode) == 12, "source character-list SecretCode offset changed");
 static_assert(offsetof(MSG_CNFAccountLogin, SelChar) == 32, "source character-list SelChar offset changed");
-static_assert(offsetof(MSG_CNFAccountLogin, Cargo) == 936, "source character-list cargo offset changed");
-static_assert(sizeof(MSG_CNFNewCharacter) == 920, "source create-character response ABI changed");
-static_assert(sizeof(MSG_CNFDeleteCharacter) == 920, "source delete-character response ABI changed");
-static_assert(sizeof(MSG_CNFCharacterLogin) == 1728, "source enter-world packet ABI changed");
-// Character slot and runtime ClientID are adjacent but have different owners;
-// lock both offsets so selection cannot silently become the scene ID again.
-static_assert(offsetof(MSG_CNFCharacterLogin, Slot) == 1056, "source selected-slot offset changed");
-static_assert(offsetof(MSG_CNFCharacterLogin, ClientID) == 1058, "source runtime ClientID offset changed");
-// Returning from FieldScene can enter through the same 0x114 structure, so
-// both scene handlers rely on these native short counters until 0x337 supplies
-// their authoritative DWORD sidecars.  The offsets below are derived from the
-// current source definitions (including the 8-byte STRUCT_ITEM ABI); keeping
-// them explicit prevents a newer source merge from silently shifting the
-// counters that the 7.48 character-list and field packets consume.
-static_assert(offsetof(STRUCT_MOB, ScoreBonus) == 804, "source status-point prefix offset changed");
-static_assert(offsetof(STRUCT_MOB, SpecialBonus) == 806, "source mastery-point prefix offset changed");
-static_assert(offsetof(STRUCT_MOB, SkillBonus) == 808, "source skill-point prefix offset changed");
-static_assert(sizeof(MSG_CreateMob) == 236, "source CreateMob packet ABI changed");
-static_assert(sizeof(MSG_CreateMobTrade) == 260, "source CreateMobTrade packet ABI changed");
-static_assert(sizeof(MSG_UpdateScore) == 152, "source UpdateScore packet ABI changed");
-// ReqHp/ReqMp are aligned pending-cost fields, while Magician and
-// LearnedSkill are distinct presentation values consumed at later stages.
-static_assert(offsetof(MSG_UpdateScore, ReqHp) == 136, "source UpdateScore.ReqHp offset changed");
-static_assert(offsetof(MSG_UpdateScore, ReqMp) == 140, "source UpdateScore.ReqMp offset changed");
-static_assert(offsetof(MSG_UpdateScore, Magician) == 144, "source UpdateScore.Magician offset changed");
-static_assert(offsetof(MSG_UpdateScore, LearnedSkill) == 148, "source UpdateScore.LearnedSkill offset changed");
+static_assert(offsetof(MSG_CNFAccountLogin, Cargo) == 1304, "source character-list cargo offset changed");
+static_assert(sizeof(MSG_CNFNewCharacter) == 1288, "source create-character response ABI changed");
+static_assert(sizeof(MSG_CNFDeleteCharacter) == 1288, "source delete-character response ABI changed");
+static_assert(sizeof(MSG_CNFCharacterLogin) == 2104, "source enter-world packet ABI changed");
+static_assert(offsetof(MSG_CNFCharacterLogin, Slot) == 1240, "source selected-slot offset changed");
+static_assert(offsetof(MSG_CNFCharacterLogin, ClientID) == 1242, "source runtime ClientID offset changed");
+static_assert(offsetof(MSG_CNFCharacterLogin, Ext1) == 1264, "source Ext1 alignment changed");
+static_assert(offsetof(STRUCT_MOB, ScoreBonus) == 988, "source status-point mirror offset changed");
+static_assert(offsetof(STRUCT_MOB, SpecialBonus) == 990, "source mastery-point mirror offset changed");
+static_assert(offsetof(STRUCT_MOB, SkillBonus) == 992, "source skill-point mirror offset changed");
+static_assert(sizeof(MSG_CreateMob) == 328, "source CreateMob packet ABI changed");
+static_assert(sizeof(MSG_CreateMobTrade) == 352, "source CreateMobTrade packet ABI changed");
+static_assert(sizeof(MSG_UpdateScore) == 244, "source UpdateScore packet ABI changed");
+static_assert(offsetof(MSG_UpdateScore, ReqHp) == 228, "source UpdateScore.ReqHp offset changed");
+static_assert(offsetof(MSG_UpdateScore, ReqMp) == 232, "source UpdateScore.ReqMp offset changed");
+static_assert(offsetof(MSG_UpdateScore, Magician) == 236, "source UpdateScore.Magician offset changed");
+static_assert(offsetof(MSG_UpdateScore, LearnedSkill) == 240, "source UpdateScore.LearnedSkill offset changed");
 static_assert(sizeof(MSG_UpdateAffect) == 268, "source UpdateAffect packet ABI changed");
 static_assert(sizeof(MSG_ShopList) == 236, "source ShopList packet ABI changed");
-// These field-scene packets intentionally follow the existing WYD-Go wire
-// extensions rather than the imported 7.69 layouts.
+// These packets are incremental notifications, not alternative score models.
 static_assert(sizeof(MSG_UpdateEquip) == 60, "7.48 UpdateEquip packet ABI changed");
 static_assert(sizeof(MSG_UpdateEtc) == 48, "WYD-Go UpdateEtc extension ABI changed");
-// Wide progression counters occupy the tail after the native 36-byte prefix.
-static_assert(offsetof(MSG_UpdateEtc, ScoreBonusWide) == 36, "UpdateEtc status sidecar offset changed");
-static_assert(offsetof(MSG_UpdateEtc, SpecialBonusWide) == 40, "UpdateEtc mastery sidecar offset changed");
-static_assert(offsetof(MSG_UpdateEtc, SkillBonusWide) == 44, "UpdateEtc skill sidecar offset changed");
-static_assert(sizeof(MSG_SetHpMp) == 36, "WYD-Go HP/MP extension ABI changed");
+static_assert(sizeof(MSG_SetHpMp) == 36, "WYD-Go HP/MP incremental ABI changed");
 // Client diagnostics are accepted by WYD-Go only in the canonical 7.48 form.
 static_assert(sizeof(MSG_MessageLog) == 108, "7.48 client diagnostic packet ABI changed");
 // These common world responses share the stock 7.48 layout for both clients.

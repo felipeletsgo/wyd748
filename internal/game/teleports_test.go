@@ -133,7 +133,7 @@ func TestArmiaTeleportRouteCanCrossTestShopRow(t *testing.T) {
 	// Reproduz a fileira de lojas de teste entre o nascimento e o portal. O
 	// destino (2116,2101) está livre, mas o trajeto atravessa o NPC em 2109,2100.
 	shop := &Mob{ID: 1000, X: 2109, Y: 2100, HP: 100,
-		Def: testNPCDef(model.ExtendedScore{MaxHP: 100, CurHP: 100, Merchant: 1})}
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100, Merchant: 1})}
 	w.appendMobInstance(shop)
 	w.registerMobSpatial(shop)
 	move := make([]byte, 52)

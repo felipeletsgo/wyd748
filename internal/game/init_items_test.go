@@ -104,7 +104,7 @@ func TestObjetoDeMundoNaoPodeSerRecolhido(t *testing.T) {
 
 	session := net.NewTestSession(1, 64)
 	acc := &model.Account{Name: "conta", Chars: []model.Char{{Name: "A",
-		Extended: &model.ExtendedScore{Version: model.ExtendedScoreVersion, MaxHP: 100, CurHP: 100}}}}
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}}}}
 	p := &Player{ID: 1, Session: session, Account: acc, Char: &acc.Chars[0],
 		InWorld: true, X: 2100, Y: 2100}
 	w.players = map[*net.Session]*Player{session: p}

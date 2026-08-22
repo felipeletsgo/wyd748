@@ -18,8 +18,8 @@ func postgresTestAccount(accountName, characterName string, item model.Item) *mo
 		Name: accountName, PasswordHash: "hash",
 		Chars: []model.Char{{
 			Name: characterName,
-			Extended: &model.ExtendedScore{
-				Version: model.ExtendedScoreVersion,
+			Score: &model.Score{
+				Version: model.ScoreVersion,
 			},
 			Inv: [64]model.Item{item},
 		}},
@@ -245,8 +245,8 @@ func TestPostgresCharacterUIDStateCascadeAndIncrementalItems(t *testing.T) {
 	acc := postgresTestAccount(accountName, "Twin", model.Item{Index: 4011})
 	acc.Chars = append(acc.Chars, model.Char{
 		Name: "Twin",
-		Extended: &model.ExtendedScore{
-			Version: model.ExtendedScoreVersion,
+		Score: &model.Score{
+			Version: model.ScoreVersion,
 		},
 	})
 	if err := st.CreateAccount(acc); err != nil {

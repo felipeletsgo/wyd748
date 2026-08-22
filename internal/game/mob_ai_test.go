@@ -35,7 +35,7 @@ func testSpatialWorld(mobs []*Mob, players ...*Player) *World {
 
 func TestRouteType2MovesAndReturns(t *testing.T) {
 	m := &Mob{ID: 1000, X: 10, Y: 10, RouteType: 2, SegmentProgress: 0,
-		Def: testNPCDef(model.ExtendedScore{AttackRun: 1})}
+		Def: testNPCDef(model.Score{AttackRun: 1})}
 	m.Segments[0] = model.GenerSegment{X: 10, Y: 10}
 	m.Segments[4] = model.GenerSegment{X: 12, Y: 12}
 	w := testSpatialWorld([]*Mob{m})
@@ -75,7 +75,7 @@ func TestMobMoveDelayFollowsNativeSpeedRange(t *testing.T) {
 
 func TestMobMovementUsesOneEightTileSegmentAtSpeedFour(t *testing.T) {
 	m := &Mob{ID: 1000, X: 10, Y: 10,
-		Def: testNPCDef(model.ExtendedScore{AttackRun: 6})}
+		Def: testNPCDef(model.Score{AttackRun: 6})}
 	w := testSpatialWorld([]*Mob{m})
 	now := time.Now()
 
@@ -111,9 +111,9 @@ func TestFindFreeSpawnPosition(t *testing.T) {
 
 func TestFindFreeRecallPositionPushesPlayerSideways(t *testing.T) {
 	blocker := &Player{ID: 1, InWorld: true, X: 2112, Y: 2088,
-		Char: &model.Char{Extended: testExtended(model.ExtendedScore{MaxHP: 100, CurHP: 100})}}
+		Char: &model.Char{Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}}
 	recalling := &Player{ID: 2, InWorld: true, X: 2200, Y: 2100,
-		Char: &model.Char{Extended: testExtended(model.ExtendedScore{MaxHP: 200, CurHP: 200})}}
+		Char: &model.Char{Score: testExtended(model.Score{MaxHP: 200, CurHP: 200})}}
 	w := testSpatialWorld(nil, blocker)
 
 	x, y := w.findFreePlayerPosition(2112, 2088, 8, recalling)
@@ -124,7 +124,7 @@ func TestFindFreeRecallPositionPushesPlayerSideways(t *testing.T) {
 
 func TestFindFreeRecallPositionIgnoresTheRecallingPlayer(t *testing.T) {
 	recalling := &Player{ID: 2, InWorld: true, X: 2112, Y: 2088,
-		Char: &model.Char{Extended: testExtended(model.ExtendedScore{MaxHP: 200, CurHP: 200})}}
+		Char: &model.Char{Score: testExtended(model.Score{MaxHP: 200, CurHP: 200})}}
 	w := testSpatialWorld(nil, recalling)
 
 	x, y := w.findFreePlayerPosition(2112, 2088, 8, recalling)

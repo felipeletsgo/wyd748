@@ -119,10 +119,10 @@ func validateNPCs(path string, npcs []model.NPCDef) error {
 				}
 			}
 		}
-		if npc.Extended == nil {
+		if npc.Score == nil {
 			return fmt.Errorf("data: %s NPC[%d] %q sem extendedScore", path, i, npc.Name)
 		}
-		score := npc.Extended
+		score := npc.Score
 		if err := score.Validate(); err != nil {
 			return fmt.Errorf("data: %s NPC[%d] %q: %w", path, i, npc.Name, err)
 		}

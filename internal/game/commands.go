@@ -405,10 +405,10 @@ func (w *World) sendCharacterInfo(s *net.Session, p *Player, target string) {
 // displayLevel converte o nivel interno (base zero) no numero que o jogador ve.
 // O ConsultaInfoPlayer nativo faz o mesmo +1.
 func displayLevel(ch *model.Char) uint32 {
-	if ch == nil || ch.Extended == nil {
+	if ch == nil || ch.Score == nil {
 		return 1
 	}
-	return ch.Extended.Level + 1
+	return ch.Score.Level + 1
 }
 
 // characterInfoLine monta o resumo em UMA linha, no formato que cabe no painel
