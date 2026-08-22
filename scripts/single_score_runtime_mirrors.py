@@ -8,11 +8,11 @@ project = root / "client-source/tmproject/Projects/TMProject"
 def read_source(path: Path) -> tuple[str, str]:
     raw = path.read_bytes()
     if raw.startswith(b"\xef\xbb\xbf"):
-        return raw.decode("utf-8-sig"), "utf-8-sig"
+        return raw.decode("utf-8-sig").replace("\r\n", "\n"), "utf-8-sig"
     try:
-        return raw.decode("utf-8"), "utf-8"
+        return raw.decode("utf-8").replace("\r\n", "\n"), "utf-8"
     except UnicodeDecodeError:
-        return raw.decode("cp1252"), "cp1252"
+        return raw.decode("cp1252").replace("\r\n", "\n"), "cp1252"
 
 
 def write_source(path: Path, text: str, encoding: str) -> None:
@@ -118,7 +118,6 @@ for path in project.rglob("*"):
     for i, field in enumerate(resist_fields):
         data = data.replace(f"m_stMobData.Resist[{i}]", f"m_stMobData.CurrentScore.{field}")
         data = data.replace(f"pMobData->Resist[{i}]", f"pMobData->CurrentScore.{field}")
-    # UpdateScore previously copied the four-byte resistance mirror as an array.
     data = data.replace(
         "memcpy(pMobData->Resist, pUpdateScore->Resist, sizeof(pMobData->Resist));",
         "pMobData->CurrentScore.ResistFire = pUpdateScore->Resist[0];\n"
@@ -129,9 +128,6 @@ for path in project.rglob("*"):
     if data != original:
         write_source(path, data, enc)
 
-# EnterWorld no longer serializes score mirrors after LearnedSkill. ShortSkill
-# and GuildLevel move to their canonical runtime-only positions; the remainder
-# of STRUCT_MOB stays zero padding so Slot/ClientID offsets do not move.
 source = root / "internal/wire/source_client.go"
 data = source.read_text(encoding="utf-8")
 old = """\text := wireScore(ch)
@@ -159,7 +155,6 @@ elif new not in data:
     raise RuntimeError("EnterWorld score mirror block not found")
 source.write_text(data, encoding="utf-8", newline="\n")
 
-# Compile-time ABI guards document that only internal score mirrors moved.
 compat = project / "WYD748Compat.cpp"
 data, enc = read_source(compat)
 data = re.sub(r'^static_assert\(offsetof\(STRUCT_MOB, (?:ScoreBonus|SpecialBonus|SkillBonus)\).*?\n', '', data, flags=re.M)
