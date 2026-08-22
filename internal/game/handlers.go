@@ -125,6 +125,10 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	accountName := cstr(pkt[12:28])
 	password := cstr(pkt[28:40])
 	cliver := binary.LittleEndian.Uint32(pkt[40:44])
+	// Select the response ABI before authentication. This changes only packet
+	// serialization; account/password and all gameplay values are still
+	// validated from the canonical server-side sources.
+	s.SetClientProtocol(wire.ClientProtocolFromLogin(pkt))
 	if reason, rejected := w.networkRejected(s); rejected {
 		log.Printf("[#%d] LOGIN recusado antes do auth ip=%q: politica de rede (%s)",
 			s.ID, s.RemoteIP(), reason)
@@ -238,7 +242,7 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	}
 	p := &Player{Session: s, Account: acc, CharSlot: -1}
 	w.players[s] = p
-	s.Send(wire.CharList(acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
+	s.Send(wire.CharacterListForProtocol(s.ClientProtocol(), acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
 	log.Printf("[#%d] char-list enviada (%d personagem(ns))", s.ID, characterCount(acc.Chars))
 }
 
@@ -350,7 +354,9 @@ func (w *World) onCreateCharacter(s *net.Session, pkt []byte) {
 	if w.charNames != nil {
 		w.charNames[strings.ToLower(name)] = struct{}{}
 	}
-	s.Send(wire.CNFNewCharacter(uint16(s.ID), p.Account.Chars))
+	// Character creation must return the selection aggregate in the ABI chosen
+	// by this session's login packet; stock and source structs are not isomorphic.
+	s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
 	log.Printf("[#%d] personagem criado: %q slot=%d classe=%d nascimento=(%d,%d)",
 		s.ID, name, slot, class, created.X, created.Y)
 }
@@ -442,20 +448,22 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	log.Printf("[#%d] ENTER-WORLD %s id=%d @(%d,%d)", s.ID, ch.Name, p.ID, ch.X, ch.Y)
 
 	// 1) enter-world (STRUCT_MOB completo)
-	s.Send(wire.EnterWorld(p.ID, *ch))
+	s.Send(wire.EnterWorldForProtocol(s.ClientProtocol(), p.ID, uint16(slot), *ch))
 	// 2) self-CreateMob (spawn=2): materializa o proprio player. Parte da sequencia
 	// COMPROVADA in-game; sem ele o re-enter (2o login do mesmo client) reconstroi o
 	// self com estado velho (HP/MP travados). ActionStop vem depois, senao reseta a pose.
-	s.Send(wire.CreateMobExtendedWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
+	s.Send(wire.CreateMobExtendedWithGuildRankForProtocol(s.ClientProtocol(), p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
 		bodyAncient(ch), wireExtendedScore(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP))
 	// 3) sequencia de login (ordem Micronics): 3A8 -> 336 -> 185 -> 337 -> 36B -> 181 -> 366
 	s.Send(wire.WarInfo())
-	s.Send(wire.UpdateScore(p.ID, *ch))
-	s.Send(wire.UpdateAffects(p.ID, *ch))
+	s.Send(playerScorePacket(p))
+	s.Send(playerAffectsPacket(p))
 	s.Send(wire.UpdateCarry(p.ID, ch.Inv[:], ch.Gold))
 	s.Send(wire.UpdateEtc(p.ID, *ch))
 	s.Send(wire.SelfEquip(p.ID, ch.Equip[:]))
-	s.Send(wire.SetHpMpExtended(p.ID, wireExtendedScore(ch)))
+	// The source client consumes the wide 36-byte resource ABI; stock 7.48
+	// must receive the original 20-byte projection for the same live state.
+	s.Send(wire.HpMpForProtocol(s.ClientProtocol(), p.ID, wireExtendedScore(ch)))
 	s.Send(wire.ActionStop(p.ID, ch.X, ch.Y))
 	s.Send(wire.SetShortSkill(p.ID, ch.ShortSkill))
 
@@ -519,7 +527,7 @@ func (w *World) onApplyBonus(s *net.Session, pkt []byte) {
 	if oldMP > 0 {
 		setPlayerCurMP(p.Char, minU32(oldMP, playerMaxMP(p.Char)))
 	}
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	w.syncPlayerVitalsToObservers(p)
 	w.updatePartyMember(p)
@@ -631,7 +639,7 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 			w.initFreshMount(mount)
 		}
 		w.recalcPlayer(p.Char)
-		s.Send(wire.UpdateScore(p.ID, *p.Char))
+		s.Send(playerScorePacket(p))
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
 		w.syncPlayerVitalsToObservers(p)
 		w.syncCriaPet(p) // cria equipada nasce como pet; desequipada some
@@ -799,7 +807,8 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	if shopType, isShop := shopTypeForMerchant(m.Def.Extended.Merchant); isShop {
 		p.ShopNPC = m.ID // lembra a loja aberta pro buy (server-authoritative)
 		display := shopDisplayList(m.Def.Vende, shopType)
-		s.Send(wire.ShopList(display, 0, shopType))
+		// TMProject renders 27 shop entries; stock 7.48 keeps its 64-entry ABI.
+		s.Send(wire.ShopListForProtocol(s.ClientProtocol(), display, 0, shopType))
 		if dropped := countShopItems(m.Def.Vende) - countShopItems(display); dropped > 0 {
 			log.Printf("[#%d] loja %q: %d item(ns) alem do limite de %d do client",
 				s.ID, m.Def.Name, dropped, clientShopSlots)
@@ -1196,7 +1205,7 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 		log.Printf("[#%d] recall (%s): salvar posicao: %v", p.ID, reason, err)
 	}
 	if p.Session != nil {
-		p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+		p.Session.Send(playerScorePacket(p))
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	}
 	w.refreshPlayerVisibility(p)
@@ -1592,8 +1601,10 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		w.killMobState(p, m, dmg, minU32(dmg, oldHP))
 	} else {
 		// golpe nao-fatal: so baixa a barra de HP.
-		w.sendToMobView(m, func() []byte {
-			return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
+		w.sendToMobViewProtocol(m, func(observer *Player) []byte {
+			// Source observers own a uint32 resource handler; stock observers
+			// keep the proportional WORD projection used by the original 7.48.
+			return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Extended.MaxHP,
 				m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
 		})
 		w.gameplayLogf("attack", "[#%d] atacou mob id=%d %q dmg=%d hp=%d/%d",

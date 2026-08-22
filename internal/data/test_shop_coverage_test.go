@@ -17,7 +17,7 @@ func loadTestShopFixture(t *testing.T) (map[string]map[uint16]struct{}, map[uint
 		t.Fatal(err)
 	}
 	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.txt"), catalog.Items, catalog.Skills)
+		filepath.Join(root, "instances.json"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -44,7 +44,7 @@ itemnames=data/Itemname.csv
 skills=data/SkillData.csv
 droprates=data/droprate.json
 volatiles=data/volatiles.json
-instances=data/instances.txt
+instances=data/instances.json
 character_templates=data/character_templates.json
 
 # Mapas incluidos no pacote de deploy

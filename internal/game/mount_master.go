@@ -29,7 +29,7 @@ func (w *World) speakMountMaster(m *Mob, message string) {
 	}
 	for _, listener := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
 		if listener != nil && listener.InWorld && listener.Session != nil {
-			listener.Session.Send(wire.MessageChat(m.ID, message))
+			listener.Session.Send(wire.MessageChatForProtocol(listener.Session.ClientProtocol(), m.ID, message))
 		}
 	}
 }
@@ -91,7 +91,7 @@ func (w *World) handleMountMasterNPC(s *net.Session, p *Player, m *Mob, clickOk 
 
 	s.Send(wire.SendItem(p.ID, placeEquip, mountSlot, p.Char.Equip[mountSlot]))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	w.refreshAppearance(p)
 	w.syncCriaPet(p)
 	if p.Char.Equip[mountSlot].Index == 0 {

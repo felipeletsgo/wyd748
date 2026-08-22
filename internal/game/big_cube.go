@@ -160,7 +160,7 @@ func (w *World) resolveBigCubeQuestion(inst *ItemInstance, now time.Time) bool {
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
 		if current.levels > 0 {
-			p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+			p.Session.Send(playerScorePacket(p))
 		}
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 		p.Session.Send(wire.MessagePanel(fmt.Sprintf("Correct! +%d EXP.", current.exp)))

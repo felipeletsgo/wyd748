@@ -172,6 +172,10 @@ func partyDisplayHP(hp, maxHP uint16) (uint16, uint16) {
 func putU16(b []byte, off int, v uint16) { binary.LittleEndian.PutUint16(b[off:off+2], v) }
 func putU32(b []byte, off int, v uint32) { binary.LittleEndian.PutUint32(b[off:off+4], v) }
 
+// putU64 is used by the source-client ABI where EXP remains a native uint64;
+// stock 7.48 builders keep their established 32-bit projection.
+func putU64(b []byte, off int, v uint64) { binary.LittleEndian.PutUint64(b[off:off+8], v) }
+
 // O byte de CreateMob guarda o PK bruto nativo, CP+75. O dominio do modelo
 // permanece assinado (-75..+75), portanto o personagem neutro (CP 0) transmite
 // 75. 150 e reservado ao extremo positivo (+75), nao ao estado normal.

@@ -113,7 +113,7 @@ func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 
 	s.Send(wire.SendItem(p.ID, placeInv, sourceSlot, *source))
 	s.Send(wire.SendItem(p.ID, placeEquip, byte(req.dstPos), *target))
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	w.syncPlayerVitalsToObservers(p)
 	w.refreshAppearance(p)
 	w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 3) })
@@ -195,7 +195,7 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 	resend(target, targetType, targetPos, "")
 	if success {
 		if targetType == placeEquip {
-			s.Send(wire.UpdateScore(p.ID, *p.Char))
+			s.Send(playerScorePacket(p))
 			w.syncPlayerVitalsToObservers(p)
 			w.refreshAppearance(p)
 		}

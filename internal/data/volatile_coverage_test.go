@@ -13,7 +13,7 @@ import (
 func loadRealVolatiles(t *testing.T, root string, catalog model.Catalog) model.VolatileCatalog {
 	t.Helper()
 	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.txt"), catalog.Items, catalog.Skills)
+		filepath.Join(root, "instances.json"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

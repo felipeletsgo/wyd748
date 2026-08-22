@@ -224,7 +224,7 @@ func (w *World) tickTimedItems(now time.Time) {
 		}
 		w.recalcPlayer(p.Char)
 		if p.Session != nil {
-			p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+			p.Session.Send(playerScorePacket(p))
 			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 		}
 		w.syncPlayerVitalsToObservers(p)

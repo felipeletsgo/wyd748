@@ -37,7 +37,7 @@ party_exp_bonus = 3
 	if cfg.ListenAddress != "127.0.0.1:9000" ||
 		cfg.AccountsPath != "/srv/wyd/accounts" ||
 		cfg.NPCPath != "data/npcs" ||
-		cfg.InstancesPath != "data/instances.txt" ||
+		cfg.InstancesPath != "data/instances.json" ||
 		cfg.NPCGenerLog != "verbose" || cfg.GameplayLog != "quiet" || cfg.TeleportPath != "custom/teleports.ini" ||
 		cfg.HeightMapPath != "data/maps/HeightMap.dat" ||
 		cfg.Gameplay.EXPMinimum != 10_000 || cfg.Gameplay.EXPRatePercent != 250 ||

@@ -2488,7 +2488,7 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
 		if result.levels > 0 {
-			p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+			p.Session.Send(playerScorePacket(p))
 		}
 		if result.cytheraChanged {
 			p.Session.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))

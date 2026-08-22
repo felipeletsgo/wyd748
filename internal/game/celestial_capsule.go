@@ -252,8 +252,9 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 	// antiga para fechar loja, trade, party e summons com a identidade correta.
 	p.Char = &oldChar
 	w.removePlayerFromWorld(p, "encapsulamento Celestial")
-	s.Send(wire.CNFDeleteCharacter(uint16(s.ID), p.Account.Chars))
-	s.Send(wire.CharList(p.Account.Name, p.Account.Chars, p.Account.Cargo[:], p.Account.CargoGold))
+	// Capsule transitions rebuild selection using the login-negotiated ABI.
+	s.Send(selectionUpdatePacket(s, wire.OpCNFDeleteCharacter, uint16(s.ID), p))
+	s.Send(characterListPacket(s, p))
 	s.Send(wire.MessagePanel("Celestial character sealed successfully."))
 	log.Printf("[#%d] Celestial %q encapsulado id=%d cargo=%d", s.ID, name, id, cargoSlot)
 }
@@ -426,8 +427,9 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 		w.charNames[strings.ToLower(req.name)] = struct{}{}
 	}
 	w.removePlayerFromWorld(p, "extracao Celestial")
-	s.Send(wire.CNFNewCharacter(uint16(s.ID), p.Account.Chars))
-	s.Send(wire.CharList(p.Account.Name, p.Account.Chars, p.Account.Cargo[:], p.Account.CargoGold))
+	// Extraction follows the same source/stock selection boundary as creation.
+	s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
+	s.Send(characterListPacket(s, p))
 	s.Send(wire.MessagePanel("Celestial character extracted successfully."))
 	log.Printf("[#%d] Celestial capsule id=%d extraida como %q slot=%d", s.ID, id, req.name, newSlot)
 }

@@ -272,7 +272,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			w.recalcPlayer(p.Char)
 			return
 		}
-		s.Send(wire.UpdateScore(p.ID, *p.Char))
+		s.Send(playerScorePacket(p))
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
 		s.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -309,7 +309,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			*item, p.Char.LearnedSkill = oldItem, oldLearned
 			return
 		}
-		s.Send(wire.UpdateScore(p.ID, *p.Char))
+		s.Send(playerScorePacket(p))
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
 		s.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -708,7 +708,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		if destType == placeEquip {
 			w.recalcPlayer(p.Char)
 			s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
-			s.Send(wire.UpdateScore(p.ID, *p.Char))
+			s.Send(playerScorePacket(p))
 			w.syncPlayerVitalsToObservers(p)
 		}
 
@@ -899,7 +899,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 			s.Send(wire.SendItem(p.ID, placeEquip, byte(slot), p.Char.Equip[slot]))
 		}
 	}
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	w.syncPlayerVitalsToObservers(p)
 	// O brilho/mesh do refino viaja no UpdateEquip incremental.
 	w.refreshAppearance(p)
@@ -1017,7 +1017,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	s.Send(wire.SendItem(p.ID, byte(destType), byte(destPos), *dest))
 	if destType == placeEquip {
 		w.recalcPlayer(p.Char)
-		s.Send(wire.UpdateScore(p.ID, *p.Char))
+		s.Send(playerScorePacket(p))
 		w.syncPlayerVitals(p)
 		// O brilho/mesh do refino viaja no UpdateEquip incremental.
 		w.refreshAppearance(p)

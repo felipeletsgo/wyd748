@@ -122,7 +122,7 @@ func (w *World) publishGuildIdentity(p *Player) {
 		return
 	}
 	w.syncPlayerChaos(p)
-	p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+	p.Session.Send(playerScorePacket(p))
 	p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 }
 

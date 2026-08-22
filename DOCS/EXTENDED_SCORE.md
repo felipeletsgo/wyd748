@@ -79,6 +79,18 @@ O `0x181` segue a mesma separação: 20 bytes nativos mais HP/MP reais na cauda,
 totalizando 36 bytes. Pacotes de ataque recebem somente a projeção de mana no
 campo WORD. Assim, nenhum campo estreito sobrescreve os recursos autoritativos.
 
+## Client recompilável
+
+A obrigação de manter `STRUCT_SCORE` em 28 bytes pertence ao executável binário
+atual em `client748/`. A source recompilável em `client-source/tmproject/` usa
+um score de 48 bytes, com ataque, defesa e HP/MP em 32 bits. O servidor possui
+um encoder separado e byte-exato para esse layout, mas os packets vivos ainda
+permanecem no protocolo 7.48 até serem migrados individualmente.
+
+Mesmo no client novo, o score de 48 bytes continua sendo projeção. Atributos que
+não cabem nele permanecem no `ExtendedScore` e na extensão `XSC2`; nada recebido
+do client retorna aos cálculos do servidor.
+
 ## Regra para futuras alterações
 
 Todo novo atributo deve entrar primeiro em `ExtendedScore`, receber fórmula

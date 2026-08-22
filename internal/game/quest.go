@@ -245,7 +245,7 @@ func (w *World) speakQuestNPC(p *Player, m *Mob, quest *model.QuestDef) {
 	}
 	linha := quest.Dialogue[w.intn(len(quest.Dialogue))]
 	for _, ouvinte := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
-		ouvinte.Session.Send(wire.MessageChat(m.ID, linha))
+		ouvinte.Session.Send(wire.MessageChatForProtocol(ouvinte.Session.ClientProtocol(), m.ID, linha))
 	}
 	_ = p
 }
@@ -377,7 +377,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	w.recalcPlayer(p.Char)
 	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	if cytheraChanged {
 		s.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
 		w.refreshAppearance(p)

@@ -206,8 +206,10 @@ func (w *World) commitKillRewardBatch(p *Player, plans []*killRewardPlan,
 				continue
 			}
 			m := plan.mob
-			w.sendToMobView(m, func() []byte {
-				return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
+			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
+				// Persistence rollback resurrects the mob, so each observer must
+				// receive the HP ABI negotiated by its own login packet.
+				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Extended.MaxHP,
 					m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
 			})
 		}
@@ -282,7 +284,7 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 			}
 			receiver.Session.Send(wire.UpdateEtc(receiver.ID, *receiver.Char))
 			if plan.leveledUp[receiver] {
-				receiver.Session.Send(wire.UpdateScore(receiver.ID, *receiver.Char))
+				receiver.Session.Send(playerScorePacket(receiver))
 			}
 			if plan.cytheraChanged[receiver] {
 				receiver.Session.Send(wire.SendItem(receiver.ID, placeEquip, 1, receiver.Char.Equip[1]))
@@ -353,7 +355,7 @@ func (w *World) publishKillBatchPlayerState(plans []*killRewardPlan) {
 		receiver := current.player
 		receiver.Session.Send(wire.UpdateEtc(receiver.ID, *receiver.Char))
 		if current.leveled {
-			receiver.Session.Send(wire.UpdateScore(receiver.ID, *receiver.Char))
+			receiver.Session.Send(playerScorePacket(receiver))
 		}
 		if current.cythera {
 			receiver.Session.Send(wire.SendItem(receiver.ID, placeEquip, 1, receiver.Char.Equip[1]))

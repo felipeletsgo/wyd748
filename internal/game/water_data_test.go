@@ -21,7 +21,7 @@ func TestRealWaterRoom1EntryAreas(t *testing.T) {
 		t.Fatal(err)
 	}
 	volatiles, err := data.LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.txt"), catalog.Items, catalog.Skills)
+		filepath.Join(root, "instances.json"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

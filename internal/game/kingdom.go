@@ -357,7 +357,7 @@ func (w *World) syncKingdomChange(p *Player) {
 	p.Session.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 	p.Session.Send(wire.SendItem(p.ID, placeEquip, 13, p.Char.Equip[13]))
 	p.Session.Send(wire.SendItem(p.ID, placeEquip, model.CapeSlot, p.Char.Equip[model.CapeSlot]))
-	p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+	p.Session.Send(playerScorePacket(p))
 	p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	w.syncPlayerVitals(p)
 	w.refreshAppearance(p)

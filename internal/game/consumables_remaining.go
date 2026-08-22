@@ -104,7 +104,7 @@ func (w *World) useMountRevive(s *net.Session, p *Player, item *model.Item, slot
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	s.Send(wire.SendItem(p.ID, placeEquip, byte(mountPos), *mount))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	w.refreshAppearance(p)
 	w.syncCriaPet(p)
 	if mount.Index == 0 {

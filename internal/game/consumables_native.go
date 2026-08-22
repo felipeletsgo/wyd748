@@ -104,7 +104,7 @@ func (w *World) useEquippedRefine(s *net.Session, p *Player, item *model.Item, s
 	}
 	s.Send(wire.SendItem(p.ID, placeEquip, byte(rule.TargetSlot), *target))
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	w.refreshAppearance(p)
 	s.Send(wire.MessagePanel("Refine successful!"))
 }
@@ -179,7 +179,8 @@ func (w *World) useMasteryReset(s *net.Session, p *Player, item *model.Item, slo
 		s.Send(wire.SendItem(p.ID, placeInv, slot, ch.Inv[slot]))
 		return
 	}
-	s.Send(wire.UpdateScore(p.ID, *ch))
+	// This local score snapshot still uses the session-negotiated packet ABI.
+	s.Send(wire.UpdateScoreForProtocol(s.ClientProtocol(), p.ID, *ch))
 	s.Send(wire.UpdateEtc(p.ID, *ch))
 	s.Send(wire.SetShortSkill(p.ID, ch.ShortSkill))
 	s.Send(wire.SendItem(p.ID, placeInv, slot, ch.Inv[slot]))

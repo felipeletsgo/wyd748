@@ -59,7 +59,8 @@ func (w *World) returnToCharacterSelectionAfterCommittedChange(p *Player, reason
 	w.removePlayerFromWorld(p, reason)
 	w.flushInstanceStateIfDirty()
 	s.Send(wire.CNFCharacterLogout(charID))
-	s.Send(wire.CNFNewCharacter(uint16(s.ID), p.Account.Chars))
+	// Evolution returns through the same negotiated selection ABI as login.
+	s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
 }
 
 // resetCharacterRuntime zera TODO estado do Player que pertence ao PERSONAGEM,
@@ -209,7 +210,9 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 	if w.charNames != nil && !accountUsesName(p.Account, previous.Name) {
 		delete(w.charNames, strings.ToLower(previous.Name))
 	}
-	s.Send(wire.CNFDeleteCharacter(uint16(s.ID), p.Account.Chars))
+	// Deletion replaces all four selection slots because source and stock
+	// clients keep different STRUCT_SELCHAR sizes.
+	s.Send(selectionUpdatePacket(s, wire.OpCNFDeleteCharacter, uint16(s.ID), p))
 	log.Printf("[#%d] personagem excluido: %q slot=%d", s.ID, name, slot)
 }
 
@@ -253,7 +256,7 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 		w.showMob(p, m)
 		if wasVisible { // pode ser uma recuperacao apos perda local do client.
 			ancient := m.Def.Equip.AncientCodes()
-			p.Session.Send(wire.CreateMobVisualExtended(m.ID, m.Def.Name, m.X, m.Y,
+			p.Session.Send(wire.CreateMobVisualExtendedForProtocol(p.Session.ClientProtocol(), m.ID, m.Def.Name, m.X, m.Y,
 				m.Def.Mesh(), ancient[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
 		}
 		return
@@ -265,7 +268,7 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 		return
 	}
 	if shop := w.ghostShops[id]; shop != nil && inView(p.X, p.Y, shop.X, shop.Y) {
-		p.Session.Send(wire.CreateMobTradeExtended(shop.ID, shop.Name, shop.X, shop.Y,
+		p.Session.Send(wire.CreateMobTradeExtendedForProtocol(p.Session.ClientProtocol(), shop.ID, shop.Name, shop.X, shop.Y,
 			shop.Mesh[:], &shop.Extended, shop.Title))
 		p.show(id)
 	}

@@ -574,8 +574,11 @@ func (w *World) publishMobAffects(m *Mob) {
 		return
 	}
 	now := w.now()
-	w.sendToMobView(m, func() []byte {
-		return wire.MobScoreExtended(m.ID, mobPublicExtendedAt(m, now), m.Affects[:], effectiveMobResistancesAt(m, now))
+	w.sendToMobViewProtocol(m, func(observer *Player) []byte {
+		// Mob score embeds STRUCT_SCORE, so each observer receives the ABI selected
+		// at login instead of interpreting another client's score layout.
+		return wire.MobScoreForProtocol(observer.Session.ClientProtocol(), m.ID,
+			mobPublicExtendedAt(m, now), m.Affects[:], effectiveMobResistancesAt(m, now))
 	})
 }
 
@@ -846,8 +849,9 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 				}
 				break
 			}
-			w.sendToMobView(m, func() []byte {
-				return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
+			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
+				// Periodic effects share the same protocol boundary as direct hits.
+				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Extended.MaxHP,
 					m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
 			})
 		}
@@ -980,8 +984,9 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 				killPlans = append(killPlans, plan)
 			}
 		} else {
-			w.sendToMobView(m, func() []byte {
-				return wire.SetMobHpMp(m.ID, m.HP, m.Def.Extended.MaxHP,
+			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
+				// Area effects must not collapse source-client resources to WORDs.
+				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Extended.MaxHP,
 					m.Def.Extended.MaxMP, m.Def.Extended.MaxMP)
 			})
 		}

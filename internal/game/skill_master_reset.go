@@ -117,7 +117,7 @@ func (w *World) handleAbilityResetMasterNPC(s *net.Session, p *Player, m *Mob, c
 	}
 
 	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	w.syncPlayerVitalsToObservers(p)
 	w.updatePartyMember(p)

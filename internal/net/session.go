@@ -51,6 +51,27 @@ type Session struct {
 	frameReadTimeout        time.Duration
 	maxInboundPacketsPerSec int
 	maxInboundBytesPerSec   int
+	// protocol is selected once from the authenticated login envelope. Atomic
+	// storage keeps diagnostic/test reads safe without giving I/O ownership of
+	// any gameplay state.
+	protocol atomic.Uint32
+}
+
+// SetClientProtocol records which packet serialization family this socket
+// requested. The game loop calls it before starting password verification.
+func (s *Session) SetClientProtocol(protocol wire.ClientProtocol) {
+	if s != nil {
+		s.protocol.Store(uint32(protocol))
+	}
+}
+
+// ClientProtocol returns stock 7.48 for zero-value sessions, preserving all
+// existing clients and tests unless the source marker was observed at login.
+func (s *Session) ClientProtocol() wire.ClientProtocol {
+	if s == nil {
+		return wire.ClientProtocolStock748
+	}
+	return wire.ClientProtocol(s.protocol.Load())
 }
 
 // IsClosed informa se Serve concluiu o ciclo de I/O. Sessões de teste sem

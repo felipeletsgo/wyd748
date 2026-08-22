@@ -42,7 +42,7 @@ func (w *World) showMob(p *Player, m *Mob) {
 		return
 	}
 	anct := m.Def.Equip.AncientCodes()
-	p.Session.Send(wire.CreateMobVisualExtended(m.ID, m.Def.Name, m.X, m.Y,
+	p.Session.Send(wire.CreateMobVisualExtendedForProtocol(p.Session.ClientProtocol(), m.ID, m.Def.Name, m.X, m.Y,
 		m.Def.Mesh(), anct[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
 	p.show(m.ID)
 }
@@ -163,7 +163,7 @@ func (w *World) showGhostShop(p *Player, shop *GhostShop) {
 	if p == nil || !p.InWorld || shop == nil || p.hasVisible(shop.ID) {
 		return
 	}
-	p.Session.Send(wire.CreateMobTradeExtended(shop.ID, shop.Name, shop.X, shop.Y,
+	p.Session.Send(wire.CreateMobTradeExtendedForProtocol(p.Session.ClientProtocol(), shop.ID, shop.Name, shop.X, shop.Y,
 		shop.Mesh[:], &shop.Extended, shop.Title))
 	p.show(shop.ID)
 }
@@ -182,13 +182,19 @@ func (w *World) hideGhostShop(p *Player, shop *GhostShop) {
 // confirma que a entidade esta viva e ActionStop fixa a pose e a coordenada
 // inicial antes de receber o proximo trajeto de movimento.
 func playerEnterViewPackets(subject *Player) [][]byte {
+	return playerEnterViewPacketsFor(wire.ClientProtocolStock748, subject)
+}
+
+// playerEnterViewPacketsFor materializes a subject with the observer's ABI.
+// The compatibility wrapper above remains for stock-oriented unit tests.
+func playerEnterViewPacketsFor(protocol wire.ClientProtocol, subject *Player) [][]byte {
 	if subject == nil || subject.Char == nil {
 		return nil
 	}
 	return [][]byte{
-		wire.CreateMobExtendedWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
+		wire.CreateMobExtendedWithGuildRankForProtocol(protocol, subject.ID, subject.Char.Name, subject.X, subject.Y,
 			bodyMesh(subject.Char), bodyAncient(subject.Char), wireExtendedScore(subject.Char), subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP),
-		wire.SetHpMpExtended(subject.ID, wireExtendedScore(subject.Char)),
+		wire.HpMpForProtocol(protocol, subject.ID, wireExtendedScore(subject.Char)),
 		wire.ActionStop(subject.ID, subject.X, subject.Y),
 	}
 }
@@ -197,7 +203,7 @@ func sendPlayerEnterView(observer, subject *Player) {
 	if observer == nil || observer.Session == nil {
 		return
 	}
-	for _, pkt := range playerEnterViewPackets(subject) {
+	for _, pkt := range playerEnterViewPacketsFor(observer.Session.ClientProtocol(), subject) {
 		observer.Session.Send(pkt)
 	}
 }
@@ -629,6 +635,20 @@ func (w *World) sendToMobView(m *Mob, build func() []byte) {
 	}
 }
 
+// sendToMobViewProtocol is the mixed-client counterpart of sendToMobView. Use
+// it when a payload embeds a protocol-specific structure such as Score; the
+// ordinary helper remains preferable for packets whose ABI is shared.
+func (w *World) sendToMobViewProtocol(m *Mob, build func(*Player) []byte) {
+	if m == nil {
+		return
+	}
+	for _, observer := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
+		if w.mobVisibleToPlayer(observer, m) && observer.hasVisible(m.ID) {
+			observer.Session.Send(build(observer))
+		}
+	}
+}
+
 func (w *World) sendToPlayerView(subject *Player, build func() []byte) {
 	if subject == nil || !subject.InWorld {
 		return
@@ -643,6 +663,22 @@ func (w *World) sendToPlayerView(subject *Player, build func() []byte) {
 	}
 }
 
+// sendToPlayerViewProtocol lets one authoritative mutation fan out different
+// packet layouts to stock and source observers without duplicating gameplay.
+func (w *World) sendToPlayerViewProtocol(subject *Player, build func(*Player) []byte) {
+	if subject == nil || !subject.InWorld {
+		return
+	}
+	for _, observer := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
+		if !w.playersVisibleTogether(observer, subject) {
+			continue
+		}
+		if observer == subject || observer.hasVisible(subject.ID) {
+			observer.Session.Send(build(observer))
+		}
+	}
+}
+
 // publishPlayerAffects alimenta os dois canais distintos do client 7.48:
 // 0x336 e publico e aciona TMHuman::CheckAffect; 0x3B9 e privado e atualiza
 // somente os icones/timers do personagem controlado pela sessao.
@@ -650,10 +686,10 @@ func (w *World) publishPlayerAffects(subject *Player) {
 	if subject == nil || subject.Char == nil || subject.Session == nil {
 		return
 	}
-	w.sendToPlayerView(subject, func() []byte {
-		return wire.UpdateScore(subject.ID, *subject.Char)
+	w.sendToPlayerViewProtocol(subject, func(observer *Player) []byte {
+		return observedPlayerScorePacket(observer, subject)
 	})
-	subject.Session.Send(wire.UpdateAffects(subject.ID, *subject.Char))
+	subject.Session.Send(playerAffectsPacket(subject))
 }
 
 // syncPlayerVitals mantem HP/MP do personagem identicos no proprio client e em
@@ -663,8 +699,8 @@ func (w *World) syncPlayerVitals(subject *Player) {
 	if subject == nil || subject.Char == nil {
 		return
 	}
-	w.sendToPlayerView(subject, func() []byte {
-		return wire.SetHpMpExtended(subject.ID, wireExtendedScore(subject.Char))
+	w.sendToPlayerViewProtocol(subject, func(observer *Player) []byte {
+		return wire.HpMpForProtocol(observer.Session.ClientProtocol(), subject.ID, wireExtendedScore(subject.Char))
 	})
 }
 
@@ -687,7 +723,7 @@ func (w *World) syncPlayerVitalsToObservers(subject *Player) {
 	}
 	for _, p := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
 		if p != subject && w.playersVisibleTogether(p, subject) && p.hasVisible(subject.ID) {
-			p.Session.Send(wire.SetHpMpExtended(subject.ID, wireExtendedScore(subject.Char)))
+			p.Session.Send(wire.HpMpForProtocol(p.Session.ClientProtocol(), subject.ID, wireExtendedScore(subject.Char)))
 		}
 	}
 }
@@ -702,8 +738,8 @@ func (w *World) syncPlayerScoreAndVitals(subject *Player) {
 	if subject == nil || subject.Char == nil {
 		return
 	}
-	w.sendToPlayerView(subject, func() []byte {
-		return wire.UpdateScore(subject.ID, *subject.Char)
+	w.sendToPlayerViewProtocol(subject, func(observer *Player) []byte {
+		return observedPlayerScorePacket(observer, subject)
 	})
 }
 
@@ -715,8 +751,8 @@ func (w *World) syncPlayerChaos(subject *Player) {
 	if subject == nil || !subject.InWorld || subject.Char == nil {
 		return
 	}
-	w.sendToPlayerView(subject, func() []byte {
-		return wire.CreateMobExtendedWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
+	w.sendToPlayerViewProtocol(subject, func(observer *Player) []byte {
+		return wire.CreateMobExtendedWithGuildRankForProtocol(observer.Session.ClientProtocol(), subject.ID, subject.Char.Name, subject.X, subject.Y,
 			bodyMesh(subject.Char), bodyAncient(subject.Char), wireExtendedScore(subject.Char),
 			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP)
 	})

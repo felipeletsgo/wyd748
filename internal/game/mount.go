@@ -196,7 +196,7 @@ func (w *World) tickPlayerMounts(now time.Time) {
 			w.recalcPlayer(p.Char)
 			if p.Session != nil {
 				p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
-				p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+				p.Session.Send(playerScorePacket(p))
 				p.Session.Send(wire.MessagePanel("Your mount is starving and stopped helping you."))
 			}
 			w.refreshAppearance(p)
@@ -472,7 +472,7 @@ func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, inv
 	w.recalcPlayer(p.Char)
 	resend()
 	s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	w.syncCriaPet(p)
 	w.refreshAppearance(p)
 	s.Send(wire.MessagePanel("The hatch accelerator transformed the egg into a hatchling."))
@@ -643,7 +643,7 @@ func (w *World) publishMountHuntUpdate(result mountHuntUpdate) {
 	}
 	if p.Session != nil {
 		p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(result.slot), *mount))
-		p.Session.Send(wire.UpdateScore(p.ID, *p.Char))
+		p.Session.Send(playerScorePacket(p))
 		if result.evolved {
 			p.Session.Send(wire.MessagePanel("Your hatchling grew to the next stage!"))
 		} else if result.level > 0 {
@@ -704,7 +704,7 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 		w.recalcPlayer(target.Char)
 		if target.Session != nil {
 			target.Session.Send(wire.SendItem(target.ID, placeEquip, byte(mslot), *mount))
-			target.Session.Send(wire.UpdateScore(target.ID, *target.Char))
+			target.Session.Send(playerScorePacket(target))
 			w.refreshAppearance(target)
 			target.Session.Send(wire.MessagePanel("Your mount was wounded!"))
 		}
@@ -809,7 +809,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	w.recalcPlayer(p.Char)
 	resend()
 	s.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	w.syncPlayerVitals(p)
 	w.refreshAppearance(p)
 	w.syncCriaPet(p) // cria pode ter virado adulta (some) ou continuar cria

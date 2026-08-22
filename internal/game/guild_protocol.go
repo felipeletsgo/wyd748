@@ -113,7 +113,7 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	// CreateMob somente nesta mudança de identidade; movimento continua usando
 	// Action, sem recriar o avatar a cada tick.
 	w.syncPlayerChaos(target)
-	target.Session.Send(wire.UpdateScore(target.ID, *target.Char))
+	target.Session.Send(playerScorePacket(target))
 	target.Session.Send(wire.UpdateEtc(target.ID, *target.Char))
 	target.Session.Send(wire.MessagePanel(fmt.Sprintf("You joined the guild %s.", guild.Name)))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))

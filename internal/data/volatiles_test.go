@@ -12,7 +12,7 @@ import (
 func TestSplitVolatileFilesEnforceInstanceBoundary(t *testing.T) {
 	dir := t.TempDir()
 	volatilesPath := filepath.Join(dir, "volatiles.json")
-	instancesPath := filepath.Join(dir, "instances.txt")
+	instancesPath := filepath.Join(dir, "instances.json")
 	write := func(path, contents string) {
 		t.Helper()
 		if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
@@ -36,7 +36,7 @@ func TestSplitVolatileFilesEnforceInstanceBoundary(t *testing.T) {
 		"items":{}
 	}`)
 	if _, err := LoadVolatilesWithInstances(volatilesPath, instancesPath, nil, nil); err == nil {
-		t.Fatal("instances.txt aceitou regra volatile comum")
+		t.Fatal("instances.json aceitou regra volatile comum")
 	}
 }
 
@@ -216,7 +216,7 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 		t.Fatal(err)
 	}
 	vc, err := LoadVolatilesWithInstances("../../data/volatiles.json",
-		"../../data/instances.txt", catalog.Items, catalog.Skills)
+		"../../data/instances.json", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatalf("volatiles.json real nao carrega contra o catalogo: %v", err)
 	}
@@ -588,7 +588,7 @@ func TestVolatileInstancesReferenceExistingHostileNPCs(t *testing.T) {
 		t.Fatal(err)
 	}
 	volatiles, err := LoadVolatilesWithInstances("../../data/volatiles.json",
-		"../../data/instances.txt", catalog.Items, catalog.Skills)
+		"../../data/instances.json", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

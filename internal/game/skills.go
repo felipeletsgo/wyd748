@@ -105,7 +105,7 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 		log.Printf("[#%d] salvar skill aprendida: %v", s.ID, err)
 		return
 	}
-	s.Send(wire.UpdateScore(p.ID, *p.Char))
+	s.Send(playerScorePacket(p))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	s.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
 	log.Printf("[#%d] aprendeu skill=%d %q custo=%d pontos restantes=%d", s.ID,
@@ -703,8 +703,9 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			}
 		} else {
 			mob := result.mob
-			w.sendToMobView(mob, func() []byte {
-				return wire.SetMobHpMp(mob.ID, mob.HP, mob.Def.Extended.MaxHP,
+			w.sendToMobViewProtocol(mob, func(observer *Player) []byte {
+				// Keep mixed client views valid after every non-fatal skill hit.
+				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), mob.ID, mob.HP, mob.Def.Extended.MaxHP,
 					mob.Def.Extended.MaxMP, mob.Def.Extended.MaxMP)
 			})
 			w.gameplayLogf("skill", "[#%d] skill=%d %q mob=%d dmg=%d base=%d magic=%t amp=%d mastery=%d hp=%d/%d mp=-%d", p.Session.ID,

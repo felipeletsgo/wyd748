@@ -3,7 +3,7 @@ package wire
 // Opcodes do protocolo WYD 7.48 (campo Type@4 do header _MSG).
 // C->S = client manda; S->C = server manda.
 const (
-	OpMessagePanel       = 0x101 // S->C aviso flutuante no topo (140B, ID=0)
+	OpMessagePanel       = 0x101 // S->C aviso flutuante no topo (108B: Header + texto[96], ID=0)
 	OpConnectAccount     = 0x20D // C->S login (conta@12, senha@28, cliver@40)
 	OpCharList           = 0x10E // S->C lista de chars (1800B)
 	OpCreateCharacter    = 0x20F // C->S criar char (slot@12, nome@16, classe@32)

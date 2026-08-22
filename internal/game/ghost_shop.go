@@ -279,7 +279,7 @@ func ghostShopOwnerResetPackets(p *Player) [][]byte {
 	return [][]byte{
 		wire.CloseTrade(p.ID),
 		playerAppearancePacket(p),
-		wire.SetHpMpExtended(p.ID, wireExtendedScore(p.Char)),
+		wire.HpMpForProtocol(p.Session.ClientProtocol(), p.ID, wireExtendedScore(p.Char)),
 	}
 }
 

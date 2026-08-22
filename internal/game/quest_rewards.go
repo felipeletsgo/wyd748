@@ -104,7 +104,7 @@ func (w *World) grantItemExpReward(s *net.Session, p *Player, item *model.Item,
 	w.syncPlayerVitals(p)
 	w.updatePartyMember(p)
 	if levels > 0 {
-		s.Send(wire.UpdateScore(p.ID, *p.Char))
+		s.Send(playerScorePacket(p))
 	}
 	if cytheraChanged {
 		s.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))

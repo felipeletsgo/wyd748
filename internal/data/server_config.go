@@ -118,7 +118,7 @@ func DefaultServerConfig() ServerConfig {
 		SkillPath:                    "data/SkillData.csv",
 		DropRatePath:                 "data/droprate.json",
 		VolatilePath:                 "data/volatiles.json",
-		InstancesPath:                "data/instances.txt",
+		InstancesPath:                "data/instances.json",
 		ReplictionPath:               "data/repliction.json",
 		MountPath:                    "data/mounts.json",
 		CharacterTemplatePath:        "data/character_templates.json",

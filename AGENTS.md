@@ -237,6 +237,19 @@ Toda decisão de gameplay é validada e executada pelo servidor.
 
 # Regra fundamental de trabalho
 
+## Comentarios explicativos obrigatorios no codigo
+
+Toda edicao ou implementacao deve deixar no proprio codigo um comentario
+explicativo junto ao trecho alterado. O comentario deve registrar a intencao,
+o contrato ou o motivo tecnico da mudanca, especialmente quando houver
+compatibilidade de versao, protocolo, seguranca, persistencia ou comportamento
+nao obvio.
+
+Nao escrever comentarios que apenas repitam literalmente a instrucao. O
+comentario precisa ajudar o proximo mantenedor a entender por que o codigo
+existe e qual invariante nao deve ser quebrada. Ao editar codigo existente sem
+comentario suficiente, adicionar ou atualizar o comentario no mesmo patch.
+
 Nunca considere uma implementação correta apenas porque:
 
 - o usuário informou que foi corrigida;
@@ -288,6 +301,55 @@ Ao usar implementação de outra versão:
 - não assuma tamanho de estrutura.
 
 Tudo que depende do client 7.48 deve ser confirmado no próprio client 7.48.
+
+## Gate Ghidra obrigatório para o client 7.48
+
+Toda tarefa que altere `client-source/`, protocolo, ABI, structs, UI, input,
+render, assets ou comportamento do executável deve consultar a descompilação
+Ghidra do `client748/WYD.exe` antes da primeira edição. O agente deve ler também
+`.agents/skills/wyd-go-feature/references/ghidra-client748.md` e registrar as
+funções nativas, callers/callees e contratos usados como evidência.
+
+TMProject, W2PP, Secrets e Micronics podem oferecer implementações melhores ou
+mais legíveis, mas não substituem a confirmação do fluxo 7.48. É proibido
+ajustar esses caminhos por tentativa visual quando a descompilação permite
+recuperar IDs, lifecycle, offsets, tamanhos ou condições nativas.
+
+## Referência mais nova e dados mais completos
+
+O TMProject pode ser de uma versão superior (por exemplo, 7.59) e por isso
+conter correções de comportamento ou tabelas mais completas. Essa vantagem é
+semântica, não uma autorização para transportar ABI. Quando uma tabela nova
+for necessária, ela deve ser traduzida para o formato que o executável 7.48
+consome, com limites, offsets e tamanho validados no client 7.48. Se não houver
+uma projeção comprovadamente segura, usar o dado legado ou manter a feature
+desabilitada; nunca enviar uma struct moderna diretamente ao 7.48.
+
+## Source recompilável exclusiva do client 7.48
+
+`client-source/tmproject` não é uma source multi-versão. O produto dessa árvore
+é exclusivamente o client WYD 7.48 usado por este repositório.
+
+Depois que o comportamento equivalente for confirmado no `WYD.exe` 7.48 pelo
+Ghidra, excluir da source recompilável:
+
+- branches alternativos exclusivos de 7.54/7.59+;
+- layouts, controles e páginas de UI inexistentes no 7.48;
+- opcodes, structs e campos sem representação no protocolo 7.48;
+- loaders e formatos modernos que só servem ao client mais novo;
+- flags de compatibilidade cuja única função seja escolher entre 7.48 e uma
+  versão posterior.
+
+Não manter o caminho moderno "por compatibilidade futura": ele cria uma segunda
+ABI, confunde a auditoria e aumenta a superfície de crash. Sources mais novas
+continuam válidas como referência semântica read-only. Uma feature ou dado novo
+só entra quando puder ser projetado explicitamente no formato suportado pelo
+7.48; nesse caso a implementação final ainda deve possuir apenas o contrato
+7.48.
+
+A remoção deve ser baseada em evidência. Não apagar código apenas por nome,
+idade ou suspeita: identificar primeiro o equivalente nativo, callers, recursos
+e lifecycle no Ghidra para não remover uma rotina que o 7.48 também utiliza.
 
 ---
 

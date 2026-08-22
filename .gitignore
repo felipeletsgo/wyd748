@@ -15,6 +15,16 @@ client748/.tmp-*
 /tm-check*
 /tm-review*
 
+# Diagnosticos e simbolos locais do client recompilavel. O executavel de teste
+# e versionado, mas dumps/PDBs/objetos sao regenerados pela source e inflam o
+# historico sem fazer parte da distribuicao.
+client748/client-crash-*.dmp
+client748/*.pdb
+/dia_lookup.obj
+/dump_context.obj
+/resolve-pdb.obj
+/client-source/v769ClientRelease/
+
 # Metadados locais dos agentes Codex/Claude; nao fazem parte do runtime.
 /.codex/
 

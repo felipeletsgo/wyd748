@@ -497,7 +497,7 @@ them.
 | `NPCGener.txt` + `npcs/*.json` | NPC and mob spawns, statistics, shop items |
 | `character_templates.json` | start statistics and items for each class |
 | `volatiles.json` | server behavior for each consumable item-effect code |
-| `instances.txt` | instance templates, rooms, waves, tickets, and state machines |
+| `instances.json` | instance templates, rooms, waves, tickets, and state machines |
 | `repliction.json` | native paired bonus pools and A–E Repliction limits |
 | `mounts.json` | combat bonus for each mount type |
 | `quests.json` | quest definitions and prerequisites |
