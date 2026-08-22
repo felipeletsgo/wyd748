@@ -1,0 +1,73 @@
+name: Canonical Score Convergence
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/score-convergence.yml
+
+permissions:
+  contents: write
+
+jobs:
+  converge:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Apply canonical Score migration
+        shell: pwsh
+        run: python scripts/score_convergence.py
+
+      - name: Format Go sources
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path . -Recurse -Filter *.go | ForEach-Object { gofmt -w $_.FullName }
+
+      - name: Go tests
+        shell: pwsh
+        run: go test ./...
+
+      - name: Go vet
+        shell: pwsh
+        run: go vet ./...
+
+      - name: Server build
+        shell: pwsh
+        run: go build -o tmp/tm-check.exe ./cmd/server
+
+      - name: Client Win32 build
+        shell: pwsh
+        run: ./client-source/tmproject/Build-Client.ps1
+
+      - name: Remove validation artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -Force -ErrorAction SilentlyContinue tmp/tm-check.exe
+
+      - name: Diff whitespace check
+        shell: pwsh
+        run: git diff --check
+
+      - name: Commit validated convergence
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if (git diff --cached --quiet) {
+            Write-Host "No migration changes to commit"
+            exit 0
+          }
+          git commit -m "refactor: converge client and server on canonical score"
+          git push origin HEAD:main
