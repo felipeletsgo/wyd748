@@ -177,4 +177,16 @@ if game_score_tests.exists():
         text = text.replace('\t"wydgo/internal/wire"\n', '')
     game_score_tests.write_text(text, encoding="utf-8", newline="\n")
 
+# CreateMob source layout carries 18 equipment WORDs at 34..69; visual affect
+# words therefore start at byte 70. The previous test still read the stock
+# offset 66 even after the source/client paths were unified.
+visibility_tests = root / "internal/game/visibility_test.go"
+if visibility_tests.exists():
+    text = visibility_tests.read_text(encoding="utf-8")
+    text = text.replace(
+        'if packets[0][66] != 10 || packets[0][67] != 13 {\n\t\tt.Fatalf("CreateMob nao restaurou affect visual: % X", packets[0][66:70])\n\t}',
+        'if packets[0][70] != 10 || packets[0][71] != 13 {\n\t\tt.Fatalf("CreateMob nao restaurou affect visual: % X", packets[0][70:74])\n\t}',
+    )
+    visibility_tests.write_text(text, encoding="utf-8", newline="\n")
+
 print("canonical score test regressions aligned")
