@@ -1,18 +1,17 @@
-name: Canonical Score Convergence
+name: Single Score Cleanup
 
 on:
   push:
     branches: [main]
     paths:
       - .github/workflows/score-convergence.yml
-      - scripts/score_convergence.py
-      - scripts/score_convergence_repairs.py
+      - scripts/remove_legacy_score.py
 
 permissions:
   contents: write
 
 jobs:
-  converge:
+  cleanup:
     runs-on: windows-latest
     steps:
       - name: Checkout main
@@ -26,14 +25,12 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Apply canonical Score migration
+      - name: Apply single-score cleanup
         id: migrate
         continue-on-error: true
         shell: pwsh
         run: |
-          python scripts/score_convergence.py 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python scripts/score_convergence_repairs.py 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          python scripts/remove_legacy_score.py 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Format Go sources
@@ -45,7 +42,7 @@ jobs:
           Get-ChildItem -Path . -Recurse -Filter *.go | ForEach-Object { gofmt -w $_.FullName }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Materialize convergence on main
+      - name: Materialize cleanup on main
         id: materialize
         if: steps.migrate.outcome == 'success' && steps.format.outcome == 'success'
         shell: pwsh
@@ -54,12 +51,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git reset -- score-convergence-run.log 2>$null
-          if (git diff --cached --quiet) {
-            Write-Host "Canonical Score migration already materialized on main"
-            exit 0
-          }
-          git commit -m "refactor: converge client and server on canonical score"
+          git reset -- score-cleanup-run.log 2>$null
+          if (git diff --cached --quiet) { exit 0 }
+          git commit -m "refactor: remove legacy score compatibility"
           git push origin HEAD:main
 
       - name: Go tests
@@ -68,7 +62,7 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          go test ./... 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          go test ./... 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Go vet
@@ -77,7 +71,7 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          go vet ./... 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          go vet ./... 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Server build
@@ -86,7 +80,7 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          go build -o tmp/tm-check.exe ./cmd/server 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          go build -o tmp/tm-check.exe ./cmd/server 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Client Win32 build
@@ -95,7 +89,7 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          ./client-source/tmproject/Build-Client.ps1 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          ./client-source/tmproject/Build-Client.ps1 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Remove validation artifacts
@@ -110,14 +104,14 @@ jobs:
         continue-on-error: true
         shell: pwsh
         run: |
-          git diff --check 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          git diff --check 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Publish failure diagnostic
         if: always() && (steps.migrate.outcome == 'failure' || steps.format.outcome == 'failure' || steps.materialize.outcome == 'failure' || steps.test.outcome == 'failure' || steps.vet.outcome == 'failure' || steps.server.outcome == 'failure' || steps.client.outcome == 'failure' || steps.whitespace.outcome == 'failure')
         shell: pwsh
         run: |
-          $log = if (Test-Path score-convergence-run.log) { Get-Content score-convergence-run.log -Raw } else { "No command output was captured." }
+          $log = if (Test-Path score-cleanup-run.log) { Get-Content score-cleanup-run.log -Raw } else { "No command output was captured." }
           $outcomes = @"
           migrate=${{ steps.migrate.outcome }}
           format=${{ steps.format.outcome }}
@@ -130,7 +124,7 @@ jobs:
           "@
           git reset --hard HEAD
           @"
-          Canonical Score convergence failed.
+          Single Score cleanup failed.
 
           $outcomes
           --- output ---
@@ -140,20 +134,19 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add SCORE_CONVERGENCE_FAILURE.txt
           if (-not (git diff --cached --quiet)) {
-            git commit -m "ci: record canonical score convergence failure"
+            git commit -m "ci: record single-score cleanup failure"
             git push origin HEAD:main
           }
           exit 1
 
-      - name: Record successful convergence
+      - name: Clear failure diagnostic
         if: steps.whitespace.outcome == 'success'
         shell: pwsh
         run: |
-          Remove-Item -Force -ErrorAction SilentlyContinue score-convergence-run.log
           if (Test-Path SCORE_CONVERGENCE_FAILURE.txt) {
             git rm SCORE_CONVERGENCE_FAILURE.txt
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "ci: clear canonical score convergence failure"
+            git commit -m "ci: clear single-score cleanup failure"
             git push origin HEAD:main
           }
