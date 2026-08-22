@@ -67,8 +67,8 @@ func TestPlayerEnterViewRestoresAliveStateBeforeMovement(t *testing.T) {
 	if got := binary.LittleEndian.Uint16(packets[0][16:18]); got != p.ID {
 		t.Fatalf("CreateMob materializou ID=%d, esperado %d", got, p.ID)
 	}
-	if packets[0][66] != 10 || packets[0][67] != 13 {
-		t.Fatalf("CreateMob nao restaurou affect visual: % X", packets[0][66:70])
+	if packets[0][70] != 10 || packets[0][71] != 13 {
+		t.Fatalf("CreateMob nao restaurou affect visual: % X", packets[0][70:74])
 	}
 }
 
