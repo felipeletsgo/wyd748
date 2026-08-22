@@ -1,0 +1,668 @@
+Single Score cleanup failed.
+
+migrate=success
+format=success
+materialize=success
+test=failure
+vet=skipped
+server=skipped
+client=skipped
+whitespace=skipped
+--- output ---
+single-score repairs applied
+party wire narrowing repaired
+canonical score test regressions aligned
+obsolete score compatibility tests removed
+obsolete C++ score structs, sidecars and protocol marker removed
+gameplay protocol compatibility remnants removed
+final single-score Go/test references removed
+canonical score test regressions aligned
+?   	wydgo/cmd/account-api	[no test files]
+?   	wydgo/cmd/account-create	[no test files]
+?   	wydgo/cmd/loadtest	[no test files]
+ok  	wydgo/cmd/network-admission	(cached)
+ok  	wydgo/cmd/npcconvert	0.054s
+ok  	wydgo/cmd/server	0.033s
+ok  	wydgo/internal/account	1.372s
+ok  	wydgo/internal/accountapi	0.259s
+ok  	wydgo/internal/data	3.461s
+2026/08/22 21:29:18 [#1] suporte "Elemental Protection" afetou=1 mastery=255
+2026/08/22 21:29:18 [#1] CRISTAL 1 (1/4) item=4106 volatile=187 exp=2600000000->2500000000 nivel=369->366
+2026/08/22 21:29:18 [#1] CRISTAL 1 (1/4) item=4106 volatile=187 exp=2600000000->2500000000 nivel=369->366
+2026/08/22 21:29:18 [#1] CRISTAL 2 (2/4) item=4107 volatile=187 exp=2500000000->2400000000 nivel=366->364
+2026/08/22 21:29:18 [#1] CRISTAL 3 (3/4) item=4108 volatile=187 exp=2400000000->2300000000 nivel=364->361
+2026/08/22 21:29:18 [#1] CRISTAL 4 (4/4) item=4109 volatile=187 exp=2300000000->2200000000 nivel=361->359
+2026/08/22 21:29:18 [#1] ERRO ao salvar cristal 4106: disco cheio
+2026/08/22 21:29:18 [#1] CRISTAL 1 (1/4) item=4106 volatile=187 exp=2600000000->2500000000 nivel=369->366
+2026/08/22 21:29:18 [#1] SEFIROT criado classe=0 item=1760
+2026/08/22 21:29:18 [#1] SEFIROT criado classe=1 item=1761
+2026/08/22 21:29:18 [#1] SEFIROT criado classe=2 item=1762
+2026/08/22 21:29:18 [#1] SEFIROT criado classe=3 item=1763
+2026/08/22 21:29:18 [#1] ERRO ao salvar Sefirot: disco indisponivel
+2026/08/22 21:29:18 [#1] PEDRA ETERNA criada slot=0
+2026/08/22 21:29:18 [#1] ARCH criado nome="Mortal" classe=1 slot=1 rosto=17 (mortal nivel=370)
+2026/08/22 21:29:18 [#1] ARCH criado nome="Mortal" classe=3 slot=1 rosto=9 (mortal nivel=370)
+2026/08/22 21:29:18 [#1] ARCH criado nome="Mortal" classe=0 slot=1 rosto=6 (mortal nivel=370)
+2026/08/22 21:29:18 [#1] ARCH criado nome="Mortal" classe=1 slot=1 rosto=17 (mortal nivel=370)
+2026/08/22 21:29:18 [#1] ARCH criado nome="Mortal" classe=2 slot=1 rosto=28 (mortal nivel=370)
+2026/08/22 21:29:18 [#1] ARCH criado nome="Mortal" classe=3 slot=1 rosto=39 (mortal nivel=370)
+2026/08/22 21:29:18 [#1] ERRO ao salvar ascensao de "Mortal": disco indisponivel
+2026/08/22 21:29:18 [#1] ARCH criado nome="Mortal" classe=0 slot=1 rosto=6 (mortal nivel=370)
+2026/08/22 21:29:18 [#1] ERRO ao salvar ascensao de "Mortal": disco indisponivel
+2026/08/22 21:29:18 [#1] suporte "" afetou=1 mastery=0
+2026/08/22 21:29:18 persistir party batch: database unavailable
+2026/08/22 21:29:18 CRITICO: party batch nao persistiu (database unavailable); 2 conta(s) isolada(s)
+2026/08/22 21:29:18 INSTANCIA "big-cube-test" encerrada
+2026/08/22 21:29:18 INSTANCIA "big-cube-wrong" encerrada
+2026/08/22 21:29:18 BOSS "Demon Lord": premiacao de area, 50 de 50 unidades do item 420 no chao
+2026/08/22 21:29:18 BOSS: premiacao de area ignorada, item 9999 nao existe
+2026/08/22 21:29:18 BOSS "spawn_test" registrado no mob id=1000 (0 regras)
+2026/08/22 21:29:18 BOSS "spawn_test" nasceu em (2100,2100) mob=1000 hp=50000
+2026/08/22 21:29:18 bosses: 1 encontros carregados de data/boss
+2026/08/22 21:29:18 BOSS "Configured Boss": premiacao de area, 3 de 3 unidades do item 420 no chao
+2026/08/22 21:29:18 BOSS "spawn_test" morreu; renasce em 5s
+2026/08/22 21:29:18 BOSS "spawn_test" registrado no mob id=1001 (0 regras)
+2026/08/22 21:29:18 BOSS "spawn_test" nasceu em (2100,2100) mob=1001 hp=50000
+2026/08/22 21:29:18 Tentou dropar item inexistente: 999
+2026/08/22 21:29:18 BOSS "boss_teste" registrado no mob id=1000 (6 regras)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 agendada (regra 101, geracao 1)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 cancelada por prioridade (95 > 50)
+2026/08/22 21:29:18 BOSS "boss_teste": fase 1 -> 2 (summoner)
+2026/08/22 21:29:18 BOSS "boss_teste": efeito 19 aplicado
+2026/08/22 21:29:18 BOSS "boss_teste": acao 104 agendada (regra 104, geracao 3)
+2026/08/22 21:29:18 BOSS "boss_teste" registrado no mob id=1000 (0 regras)
+2026/08/22 21:29:18 BOSS "boss_teste" registrado no mob id=1000 (6 regras)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 agendada (regra 101, geracao 1)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 cancelada por prioridade (95 > 50)
+2026/08/22 21:29:18 BOSS "boss_teste": fase 1 -> 2 (summoner)
+2026/08/22 21:29:18 BOSS "boss_teste": efeito 19 aplicado
+2026/08/22 21:29:18 BOSS "boss_teste": acao 104 agendada (regra 104, geracao 3)
+2026/08/22 21:29:18 BOSS "boss_teste" registrado no mob id=1000 (6 regras)
+2026/08/22 21:29:18 BOSS "boss_teste": limiar 60 pendente; acao bloqueada por conflito
+2026/08/22 21:29:18 BOSS "boss_teste": fase 1 -> 2 (summoner)
+2026/08/22 21:29:18 BOSS "boss_teste": efeito 19 aplicado
+2026/08/22 21:29:18 BOSS "boss_teste": acao 104 agendada (regra 104, geracao 1)
+2026/08/22 21:29:18 BOSS "boss_teste" registrado no mob id=1000 (6 regras)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 agendada (regra 101, geracao 1)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 cancelada por prioridade (95 > 50)
+2026/08/22 21:29:18 BOSS "boss_teste": fase 1 -> 2 (summoner)
+2026/08/22 21:29:18 BOSS "boss_teste": efeito 19 aplicado
+2026/08/22 21:29:18 BOSS "boss_teste": acao 104 agendada (regra 104, geracao 3)
+2026/08/22 21:29:18 BOSS "boss_teste": invocou 4 adds "Skeleton"
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 agendada (regra 101, geracao 4)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 cancelada por prioridade (90 > 50)
+2026/08/22 21:29:18 BOSS "boss_teste": efeito 19 removido
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 agendada (regra 101, geracao 6)
+2026/08/22 21:29:18 BOSS "boss_teste" registrado no mob id=1000 (6 regras)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 agendada (regra 101, geracao 1)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 cancelada por prioridade (95 > 50)
+2026/08/22 21:29:18 BOSS "boss_teste": fase 1 -> 2 (summoner)
+2026/08/22 21:29:18 BOSS "boss_teste": efeito 19 aplicado
+2026/08/22 21:29:18 BOSS "boss_teste": acao 104 agendada (regra 104, geracao 3)
+2026/08/22 21:29:18 BOSS "boss_teste" registrado no mob id=1000 (1 regras)
+2026/08/22 21:29:18 BOSS "boss_teste" registrado no mob id=1000 (6 regras)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 agendada (regra 101, geracao 1)
+2026/08/22 21:29:18 BOSS "boss_teste": acao 101 cancelada por prioridade (95 > 50)
+2026/08/22 21:29:18 BOSS "boss_teste": fase 1 -> 2 (summoner)
+2026/08/22 21:29:18 BOSS "boss_teste": efeito 19 aplicado
+2026/08/22 21:29:18 BOSS "boss_teste": acao 104 agendada (regra 104, geracao 3)
+2026/08/22 21:29:18 BOSS "boss_teste" registrado no mob id=1000 (6 regras)
+2026/08/22 21:29:18 [#1] 0x28B npc="Carb_Mstr4" id=1900 clickOk=0 dist=1 size=20
+2026/08/22 21:29:18 [#1] Carb_Mstr4 aplicou buffs de iniciante em "Handler"
+2026/08/22 21:29:18 [#1] 0x28B npc="Carb_Mstr1" id=1900 clickOk=0 dist=1 size=20
+2026/08/22 21:29:18 [#1] 0x28B npc="Carb_Mstr1" id=1900 clickOk=0 dist=1 size=20
+2026/08/22 21:29:18 [#1] 0x28B npc="Carb_Mstr6" id=1900 clickOk=0 dist=1 size=20
+2026/08/22 21:29:18 [#1] salvar buffs de "Carb_Mstr6": database unavailable
+2026/08/22 21:29:18 [#1] Celestial "Celestial" encapsulado id=1 cargo=0
+2026/08/22 21:29:18 [#1] Celestial capsule id=1 extraida como "Restored" slot=0
+2026/08/22 21:29:18 [#1] uso rejeitado: item 3443 ausente do catalogo server-side
+2026/08/22 21:29:18 [#1] encapsulamento Celestial cancelado: database unavailable
+2026/08/22 21:29:18 [#1] Celestial capsule id=1 extraida como "Restored" slot=1
+2026/08/22 21:29:18 TRADE cancelado para player=1: extracao Celestial
+2026/08/22 21:29:18 TRADE concluido: Seller(0 gold) <-> Buyer(0 gold)
+2026/08/22 21:29:18 TRADE concluido: Seller(0 gold) <-> Buyer(0 gold)
+2026/08/22 21:29:18 TRADE salvar contas "SellerAccount"/"BuyerAccount": database unavailable
+2026/08/22 21:29:18 TRADE cancelado para player=1: falha de persistencia
+2026/08/22 21:29:18 [#1] CELESTIAL criado tierArch=5 cythera=3502
+2026/08/22 21:29:18 [#1] CELESTIAL criado tierArch=5 cythera=3502
+2026/08/22 21:29:18 [#1] salvar criacao SubCelestial: postgres unavailable
+2026/08/22 21:29:18 [#1] CELESTIAL criado tierArch=5 cythera=3502
+2026/08/22 21:29:18 [#1] salvar criacao Celestial: postgres unavailable
+2026/08/22 21:29:18 [#1] CELESTIAL criado tierArch=5 cythera=3502
+2026/08/22 21:29:18 [#1] SUBCELESTIAL criado classe=3
+2026/08/22 21:29:18 [#1] forma ativa=subcelestial classe=3 level=0
+2026/08/22 21:29:18 [#1] CELESTIAL criado tierArch=5 cythera=3502
+2026/08/22 21:29:18 [#1] SUBCELESTIAL criado classe=0
+2026/08/22 21:29:18 [#1] PEDRA IDEAL criada inv[0]
+2026/08/22 21:29:18 [#1] personagem criado: "FelipeTest" slot=2 classe=3 nascimento=(2100,2100)
+2026/08/22 21:29:18 [#1] criacao recusada slot=-1 nome="ValidName" classe=0
+2026/08/22 21:29:18 [#1] criacao recusada slot=4 nome="ValidName" classe=0
+2026/08/22 21:29:18 [#1] criacao recusada slot=1 nome="abc" classe=0
+2026/08/22 21:29:18 [#1] criacao recusada slot=1 nome="ValidName" classe=4
+2026/08/22 21:29:18 [#1] salvar personagem novo "Rollback": disk
+2026/08/22 21:29:18 [#1] layout ausente para classe 1
+2026/08/22 21:29:19 [#1] personagem excluido: "Felipe" slot=1
+2026/08/22 21:29:19 [#1] personagem excluido: "Felipe" slot=0
+2026/08/22 21:29:19 [#1] personagem excluido: "Felipe" slot=0
+2026/08/22 21:29:19 [#1] personagem excluido: "Felipe" slot=0
+2026/08/22 21:29:20 [#1] exclusao recusada para "Felipe": senha invalida
+2026/08/22 21:29:20 [#1] ARCH criado nome="Mortal" classe=0 slot=1 rosto=6 (mortal nivel=370)
+2026/08/22 21:29:20 LOJA FANTASMA fechada id=0 owner=7: teste
+2026/08/22 21:29:20 TRADE cancelado para player=7: teste
+2026/08/22 21:29:20 [#1] ERRO ao salvar charstate de "Stateful": disk
+2026/08/22 21:29:20 [#1] ERRO no autosave de charstate "Stateful": disk
+2026/08/22 21:29:20 [#1] ERRO ao salvar estado de "Stateful" no character-logout: postgres unavailable
+2026/08/22 21:29:20 [#1] player removido
+2026/08/22 21:29:20 [#1] player removido
+2026/08/22 21:29:20 [#1] LOGIN recusado antes do auth ip="203.0.113.10": politica de rede (hosting)
+2026/08/22 21:29:20 [#1] LOGIN recusado antes do auth ip="invalid-origin": politica de rede (invalid remote IP)
+2026/08/22 21:29:20 [#1] recall (reset Gravedigger) -> Armia @(2112,2088) revivido=false
+2026/08/22 21:29:20 [#1] CHAT local "Sender" (2 observador(es))
+2026/08/22 21:29:20 [#1] WHISPER "Sender" -> "Recipient"
+2026/08/22 21:29:20 [#1] WHISPER "Sender" -> "Recipient"
+2026/08/22 21:29:20 [#1] /limparinv removeu 1 item(ns) da conta "SenderAccount"
+2026/08/22 21:29:20 [#1] /spk "server announcement"
+2026/08/22 21:29:20 [#1] WHISPER "Sender" -> "Offline": desconectado
+2026/08/22 21:29:20 [#1] INFO "Sender" consultou "Recipient"
+2026/08/22 21:29:20 [#1] ERRO ao salvar pocao item=100: database unavailable
+2026/08/22 21:29:20 [#1] usou barra item=100 gold=+500 total=600
+2026/08/22 21:29:20 [#1] barra item=100 rejeitada: gold=1999999900 valor=500 teto=2000000000
+2026/08/22 21:29:20 [#1] usou teleporte item=100 volatile=1 @(2100,2100)->(2200,2201)
+2026/08/22 21:29:20 [#1] gema estelar salvou (2300,2301) item=100 volatile=1
+2026/08/22 21:29:20 [#1] warp para coordenada salva (2300,2301) item=100 volatile=1
+2026/08/22 21:29:20 [#1] contador "kefra_ticket" +100 = 100 (item 100 volatile 1)
+2026/08/22 21:29:20 [#1] ERRO ao salvar refine_set: database unavailable
+2026/08/22 21:29:20 [#1] refine_set code=1 po=100 pecas=1 nivel=+6
+2026/08/22 21:29:20 [#1] refine_set code=1 po=100 pecas=1 nivel=+6
+2026/08/22 21:29:20 [#1] ERRO ao salvar refino alvo=200: database unavailable
+2026/08/22 21:29:20 CRITICO: refinement nao persistiu (database unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 [#1] refino code=1 po=100 alvo=200 +0->1 OK roll=89/100
+2026/08/22 21:29:20 [#1] cria-pet nasceu face=315
+2026/08/22 21:29:20 [#1] incubacao vol=1 ovo->2330 progresso=+0 critico=0 espera=0h chocou=true roll=48/100
+2026/08/22 21:29:20 [#1] mount longevity_restore item=100 montaria=2360 lvl=0 hp=10000 comida=0 long=21
+2026/08/22 21:29:20 [#1] ERRO ao salvar mount longevity_restore: database unavailable
+2026/08/22 21:29:20 CRITICO: mount item nao persistiu (database unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 [#1] mount level_set item=100 montaria=2360 lvl=100 hp=10000 comida=0 long=3
+2026/08/22 21:29:20 [#1] mount level_set item=100 montaria=2360 lvl=120 hp=10000 comida=0 long=3
+2026/08/22 21:29:20 [#1] ERRO ao salvar buff item=100: database unavailable
+2026/08/22 21:29:20 [#1] usou buff item=0 volatile=1 affects=1
+2026/08/22 21:29:20 [#1] ERRO ao salvar buff item=100: database unavailable
+2026/08/22 21:29:20 [#1] usou buff item=0 volatile=1 affects=1
+2026/08/22 21:29:20 [#1] usou buff item=0 volatile=1 affects=1
+2026/08/22 21:29:20 [#1] transformou rosto item=0 volatile=1 mesh=202 dur=10
+2026/08/22 21:29:20 [#1] restaurou rosto item=0 volatile=1 (havia=true)
+2026/08/22 21:29:20 [#1] volatile desativado item=0 code=1 (consumido=true)
+2026/08/22 21:29:20 [#1] tinturou item=0 alvo=200 cor=120 volatile=1
+2026/08/22 21:29:20 [#1] removeu tintura item=0 alvo=200 volatile=1
+2026/08/22 21:29:20 [#1] repliction item=0 alvo=200 adds=ef2/v30+ef3/v25 volatile=190
+2026/08/22 21:29:20 [#1] ERRO ao salvar repliction: disk
+2026/08/22 21:29:20 [#1] VOLATILE GENERICO code=1 item=100 src=1/0 dst=1/0 grid=(0,0) packetItem=0
+2026/08/22 21:29:20 [#1] item 100 volatile=1 action=future_action ainda nao possui handler ativo
+2026/08/22 21:29:20 [#1] pacote de uso de item invalido
+2026/08/22 21:29:20 [#1] uso rejeitado: item 100 ausente do catalogo server-side
+2026/08/22 21:29:20 [#1] usou Illusion @(100,100)->(105,100) mp=-10
+2026/08/22 21:29:20 [#1] QUEST 999 confirmada na janela nativa do client
+2026/08/22 21:29:20 [#1] QUEST 999 recusada: You must be level 99.
+2026/08/22 21:29:20 CRITICO: composition nao persistiu (database unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 [#1] PARTY convite Leader(1) -> Member(2)
+2026/08/22 21:29:20 [#2] PARTY Member entrou no grupo de Leader (2 membros)
+2026/08/22 21:29:20 [#1] WHISPER "Sender" -> "Recipient"
+2026/08/22 21:29:20 [#1] CARTA "Sender" -> "Recipient"
+2026/08/22 21:29:20 [#1] WHISPER "Sender" -> "Offline": desconectado
+2026/08/22 21:29:20 [#1] INFO "Sender" consultou "Recipient"
+2026/08/22 21:29:20 [#1] TELEPORTE "Destination" @(2118,2102)->(2200,2201) gold=-100
+2026/08/22 21:29:20 [#1] PK mode=true
+2026/08/22 21:29:20 [#1] PK mode=false
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x399 recusado: estado PK fora do contrato 0/1 (1/12)
+2026/08/22 21:29:20 [#1] desafio de guild ignorado com seguranca target=77
+2026/08/22 21:29:20 [#1] morreu para mob id=1000 "Gremlin" (dmg=5000)
+2026/08/22 21:29:20 [#1] cria-pet nasceu face=315
+2026/08/22 21:29:20 [#1] acelerador chocou ovo 2300 -> cria 2330
+2026/08/22 21:29:20 [#1] ERRO ao salvar acelerador do ovo 2300: disco cheio
+2026/08/22 21:29:20 CP PvP nao persistido: database unavailable
+2026/08/22 21:29:20 [#1] CRAFT Compositor sucesso=false roll=82/42 (base 10 + 9005(setE+9:8) 9005(setE+9:8) 9005(setE+9:8) 9005(setE+9:8))
+2026/08/22 21:29:20 CRITICO: composition nao persistiu (postgres unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 CRITICO: composition nao persistiu (postgres unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 [#1] ARCH destravou o nivel 355 (fama=0)
+2026/08/22 21:29:20 [#1] ARCH destravou o nivel 370 (fama=0)
+2026/08/22 21:29:20 CRITICO: composition nao persistiu (database unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 CRITICO: composition nao persistiu (database unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 [#1] CRAFT Tiny sucesso roll=48/100 gold=1
+2026/08/22 21:29:20 CRITICO: composition nao persistiu (disco cheio); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 CRITICO: composition nao persistiu (postgres indisponivel); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 CRITICO: composition nao persistiu (postgres indisponivel); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 [#1] CHARACTER-LOGOUT "Handler" -> selecao
+2026/08/22 21:29:20 [#1] SWAP ok 0/0 <-> 0/0
+2026/08/22 21:29:20 [#1] pacote de uso de item invalido
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3C9 recusado: layout ou bitmap do Premium FireCracker invalido (1/12)
+2026/08/22 21:29:20 [#1] 0x28B recusado id=0 clickOk=0: npc inexistente
+2026/08/22 21:29:20 [#1] 0x27B recusado id=0 clickOk=-1: npc inexistente
+2026/08/22 21:29:20 [#1] buy sem loja aberta
+2026/08/22 21:29:20 [#1] venda sem loja aberta
+2026/08/22 21:29:20 [#1] PARTY convite invalido: pacote 0x37F com 44 bytes
+2026/08/22 21:29:20 [#1] TRADE pacote rejeitado: oponente vazio
+2026/08/22 21:29:20 [#1] LOJA FANTASMA rejeitada: TargetID divergente
+2026/08/22 21:29:20 [#1] pacote de drop invalido
+2026/08/22 21:29:20 [#1] pacote de coleta invalido
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x2E4 recusado: slot/index de inventario invalido (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x2E5 recusado: parametros de pilha invalidos (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x374 recusado: id/estado de objeto invalido (1/12)
+2026/08/22 21:29:20 [#1] barra de skills atualizada: [255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255]
+2026/08/22 21:29:20 [#1] ChangeCity village=0 home=(2100,2100)
+2026/08/22 21:29:20 [#1] teleporte sem rota @(2100,2100)
+2026/08/22 21:29:20 [#1] PK mode=false
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3D5 recusado: ID do recrutador diverge da sessao (1/12)
+2026/08/22 21:29:20 [#1] desafio de guild ignorado com seguranca target=0
+2026/08/22 21:29:20 [#1] desafio de guild ignorado com seguranca target=0
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x2CB recusado: MoveStop tentou reposicionar o personagem (1/12)
+2026/08/22 21:29:20 [#1] DelayStart(0x3AE) ack (teleporte/morte/saida)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x366 recusado: rota/destino invalido auth=(2100,2100) pos=(0,0) target=(0,0) speed=0/4 route="" pending=(0,0 0/0) (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x366 recusado: rota/destino invalido auth=(2100,2100) pos=(0,0) target=(0,0) speed=0/4 route="" pending=(0,0 0/0) (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x39F recusado: id de jogador invalido (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0xFFFF recusado: opcode C->S desconhecido (1/12)
+2026/08/22 21:29:20 LOJA FANTASMA: NPC "Carbunkle" ausente do catalogo; clone sem rosto
+2026/08/22 21:29:20 [#1] LOJA FANTASMA aberta id=25001 owner=Seller @(2099,2099) itens=1
+2026/08/22 21:29:20 [#2] LOJA FANTASMA compra owner=Seller buyer=Buyer item=4011 price=1000 inv[0]
+2026/08/22 21:29:20 LOJA FANTASMA fechada id=25001 owner=1: estoque esgotado
+2026/08/22 21:29:20 LOJA FANTASMA: NPC "Carbunkle" ausente do catalogo; clone sem rosto
+2026/08/22 21:29:20 [#1] LOJA FANTASMA aberta id=25001 owner=Seller @(2099,2099) itens=1
+2026/08/22 21:29:20 LOJA FANTASMA salvar contas "BuyerAccount"/"SellerAccount": disk full
+2026/08/22 21:29:20 [#1] TRADE convite: TraderA(1) -> TraderB(2)
+2026/08/22 21:29:20 [#2] TRADE aceito: TraderB(2) <-> TraderA(1)
+2026/08/22 21:29:20 TRADE concluido: TraderB(200 gold) <-> TraderA(100 gold)
+2026/08/22 21:29:20 [#1] TRADE convite: TraderA(1) -> TraderB(2)
+2026/08/22 21:29:20 [#2] TRADE aceito: TraderB(2) <-> TraderA(1)
+2026/08/22 21:29:20 TRADE salvar contas "TraderBAccount"/"TraderAAccount": disk full
+2026/08/22 21:29:20 TRADE cancelado para player=2: falha de persistencia
+2026/08/22 21:29:20 TRADE cancelado para player=1: cancelado pelo jogador
+2026/08/22 21:29:20 [#1] ERRO ao carregar charstate de "Morto": postgres unavailable
+2026/08/22 21:29:20 [#1] Morto entrou morto; revivido com 1 de HP
+2026/08/22 21:29:20 [#1] ENTER-WORLD Morto id=1 @(2100,2100)
+2026/08/22 21:29:20 [#1] visibilidade inicial: 0 entidades
+2026/08/22 21:29:20 [#1] ENTER-WORLD Morto id=1 @(2100,2100)
+2026/08/22 21:29:20 [#1] visibilidade inicial: 0 entidades
+2026/08/22 21:29:20 [#1] ENTER-WORLD Morto id=1 @(1162,1700)
+2026/08/22 21:29:20 [#1] visibilidade inicial: 0 entidades
+2026/08/22 21:29:20 [#1] ENTER-WORLD recusado: limite de 999 jogadores atingido
+2026/08/22 21:29:20 [#1] Morto entrou morto; revivido com 1 de HP
+2026/08/22 21:29:20 [#1] ENTER-WORLD Morto id=1 @(2100,2100)
+2026/08/22 21:29:20 [#1] visibilidade inicial: 0 entidades
+2026/08/22 21:29:20 [#1] abriu a porta 10000 (item 458, keyid 2) com a chave 451 volatile=3
+2026/08/22 21:29:20 [#1] ERRO ao salvar uso da chave 451: disco cheio
+2026/08/22 21:29:20 [#1] abriu a porta 10000 (item 458, keyid 2) com a chave 451 volatile=3
+2026/08/22 21:29:20 [#1] abriu a porta 10000 (item 458, keyid 2) com a chave 451 volatile=3
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x374 recusado: id/estado de objeto invalido (1/12)
+2026/08/22 21:29:20 [#1] ERRO ao salvar uso da chave 451: postgres indisponivel
+2026/08/22 21:29:20 LOJA FANTASMA: NPC "Carbunkle" ausente do catalogo; clone sem rosto
+2026/08/22 21:29:20 [#1] GUILD criada id=1 "Alpha" por "Leader"
+2026/08/22 21:29:20 [#1] GUILD convite "Leader" -> "Member" (guild 1)
+2026/08/22 21:29:20 [#2] GUILD "Member" entrou na guild 1
+2026/08/22 21:29:20 [#1] GUILD chat "Leader" -> guild 1 (1 membro(s) online alem do emissor)
+2026/08/22 21:29:20 [#1] GUILD "Member" promovido a sub-lider (rank 6) na guild 1
+2026/08/22 21:29:20 [#1] GUILD "Leader" expulsou "Member" da guild 1
+2026/08/22 21:29:20 [#1] GUILD criada id=1 "Alpha" por "Leader"
+2026/08/22 21:29:20 [#1] GUILD "Leader" expulsou "Member" da guild 1
+2026/08/22 21:29:20 [#1] GUILD "Leader" saiu da guild 1
+2026/08/22 21:29:20 [#1] ERRO /criar "Alpha": disk full
+2026/08/22 21:29:20 [#1] GUILD 1 alianca -> 2
+2026/08/22 21:29:20 [#1] ERRO 0xE12: disk full
+2026/08/22 21:29:20 [#1] GUILD criada id=1 "Alpha" por "Leader"
+2026/08/22 21:29:20 [#1] 0x3D5 guild=1 recrutou "Member" tipo=0 custo=4000000
+2026/08/22 21:29:20 [#1] GUILD criada id=1 "Alpha" por "Leader"
+2026/08/22 21:29:20 [#1] ERRO 0x3D5 recrutando "Member": postgres indisponivel
+2026/08/22 21:29:20 [#1] GUILD criada id=1 "Alpha" por "Leader"
+2026/08/22 21:29:20 [#2] SEGURANCA opcode=0x3D5 recusado: ID do recrutador diverge da sessao (1/12)
+2026/08/22 21:29:20 guild: "Orfao" apontava para guild 7 inexistente; estado limpo
+2026/08/22 21:29:20 guild: "Felipe" reparado para guild=3 rank=9 (era guild=3 rank=0)
+2026/08/22 21:29:20 [#1] SWAP ok 1/0 <-> 1/1
+2026/08/22 21:29:20 [#1] SWAP invalido 1/63 -> 1/1
+2026/08/22 21:29:20 [#1] barra de skills atualizada: [2 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255 255]
+2026/08/22 21:29:20 [#1] 0x28B npc="Merchant" id=1100 clickOk=0 dist=1 size=20
+2026/08/22 21:29:20 [#1] loja aberta: "Merchant" (1 itens exibidos)
+2026/08/22 21:29:20 [#1] comprou item 400 por 1000 gold -> inv[0] (gold restante=4000)
+2026/08/22 21:29:20 [#1] vendeu item 400 por 250 gold (gold=4250)
+2026/08/22 21:29:20 [#1] jogou item 412 no chao @(2099,2101)
+2026/08/22 21:29:20 [#1] pegou item 412 do chao -> inv[7]
+2026/08/22 21:29:20 [#1] pacote de drop invalido
+2026/08/22 21:29:20 [#1] pegar item 10001 fora de alcance
+2026/08/22 21:29:20 [#1] ChangeCity village=4 home=(2105,2106)
+2026/08/22 21:29:20 [#1] ERRO /limparinv conta="HandlerAccount": save falhou
+2026/08/22 21:29:20 [#1] /limparinv removeu 3 item(ns) da conta "HandlerAccount"
+2026/08/22 21:29:20 [#1] player removido
+2026/08/22 21:29:20 [#1] recall (restart) -> Armia @(2112,2088) revivido=true
+2026/08/22 21:29:20 [#1] DelayStart(0x3AE) ack (teleporte/morte/saida)
+2026/08/22 21:29:20 [#1] erro ao salvar no DelayStart(0x3AE): disk
+2026/08/22 21:29:20 CP PvP nao persistido: store atual nao suporta transacao multi-conta
+2026/08/22 21:29:20 [#1] ataque PvP em "Target" dmg_calculado=2000 aplicado=1000 hp=0
+2026/08/22 21:29:20 [#1] gema item=3386 aplicada alvo=1000->1000 refino_raw=238
+2026/08/22 21:29:20 [#1] gema item=3387 aplicada alvo=1000->1000 refino_raw=239
+2026/08/22 21:29:20 [#1] gema item=3388 aplicada alvo=1000->1000 refino_raw=240
+2026/08/22 21:29:20 [#1] gema item=3389 aplicada alvo=1000->1000 refino_raw=241
+2026/08/22 21:29:20 [#1] gema item=3389 aplicada alvo=2000->2003 refino_raw=253
+2026/08/22 21:29:20 [#1] gema item=3387 aplicada alvo=2100->2101 refino_raw=7
+2026/08/22 21:29:20 [#1] ERRO ao salvar gema item=3387: database unavailable
+2026/08/22 21:29:20 [#1] Adamantita alvo=3000 resultado=3001 sucesso=true roll=1/50
+2026/08/22 21:29:20 [#1] Adamantita alvo=3000 resultado=3000 sucesso=false roll=100/50
+2026/08/22 21:29:20 [#1] ERRO ao salvar Adamantita item=578: database unavailable
+2026/08/22 21:29:20 CRITICO: adamantite upgrade nao persistiu (database unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 objetos de mundo: 2 postos no mapa
+2026/08/22 21:29:20 objetos de mundo: 1 postos no mapa
+2026/08/22 21:29:20 objetos de mundo: 1 postos no mapa
+2026/08/22 21:29:20 [#1] tentou recolher o objeto de mundo 10000 (item 773)
+2026/08/22 21:29:20 personagem "Leader" reconectado na instancia "water-normal-1"
+2026/08/22 21:29:20 [#1] apagou item=412 slot=4 uid="e048aefecb5641bb928cb540e0ce6861"
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x2E4 recusado: item informado diverge do inventario (1/12)
+2026/08/22 21:29:20 [#1] apagar item slot=2 uid="11111111111141118111111111111111": postgres indisponivel
+2026/08/22 21:29:20 [#1] separou item=412 6+4 slots=5/0
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x2E5 recusado: pilha informada diverge do inventario (1/12)
+2026/08/22 21:29:20 [#1] separar item=700 slot=3: save falhou
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" encerrada
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-2" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-2" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" encerrada
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#3] INSTANCIA "water-normal-1" aberta membros=1 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-boss" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-boss" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-boss" encerrada
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "nightmare-arcane" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "nightmare-arcane" aberta membros=1 mobs=1
+2026/08/22 21:29:20 INSTANCIA "nightmare-normal" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "nightmare-normal" aberta membros=1 mobs=1
+2026/08/22 21:29:20 ERRO: faixa de IDs de mob esgotada (64536 mobs vivos)
+2026/08/22 21:29:20 INSTANCIA "nightmare-normal" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "nightmare-normal" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "nightmare-normal" encerrada
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] uso rejeitado: item 101 nao possui EF_VOLATILE server-side
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" encerrada
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-3" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1": salvar recompensa 3174: database unavailable
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-boss" sala=1/1 mobs=3
+2026/08/22 21:29:20 [#1] INSTANCIA "water-boss" aberta membros=2 mobs=3
+2026/08/22 21:29:20 INSTANCIA "private-room" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "private-room" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "private-room" sala=1/1 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] recall (test restart) -> Armia @(2112,2088) revivido=true
+2026/08/22 21:29:20 INSTANCIA "cube-shared" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "cube-shared" aberta membros=1 mobs=1
+2026/08/22 21:29:20 [#2] INSTANCIA "cube-shared" ingresso individual membros=2
+2026/08/22 21:29:20 INSTANCIA "nightmare-normal-personal" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "nightmare-normal-personal" aberta membros=1 mobs=1
+2026/08/22 21:29:20 INSTANCIA "nightmare-normal-personal" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#2] INSTANCIA "nightmare-normal-personal" ingresso em zona compartilhada membros=2
+2026/08/22 21:29:20 INSTANCIA "hell-gate-test" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "hell-gate-test" aberta membros=1 mobs=1
+2026/08/22 21:29:20 INSTANCIA "shared:hell-gate" encerrada
+2026/08/22 21:29:20 INSTANCIA "cube-shared-lock" sala=1/2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "cube-shared-lock" aberta membros=1 mobs=1
+2026/08/22 21:29:20 INSTANCIA "cube-shared-lock" sala=2/2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "shared-expired-hard deadline" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "shared-expired-hard deadline" aberta membros=1 mobs=1
+2026/08/22 21:29:20 INSTANCIA "shared-expired-schedule window" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "shared-expired-schedule window" aberta membros=1 mobs=1
+2026/08/22 21:29:20 INSTANCIA "magic-chamber-normal-test" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "magic-chamber-normal-test" aberta membros=1 mobs=1
+2026/08/22 21:29:20 [#1] instancia recusada exclusiveGroup="magic-chamber" ativa=magic-chamber-normal-test
+2026/08/22 21:29:20 INSTANCIA "magic-chamber-fourth" sala=1/4 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "magic-chamber-fourth" aberta membros=1 mobs=1
+2026/08/22 21:29:20 INSTANCIA "magic-chamber-fourth" sala=2/4 mobs=1
+2026/08/22 21:29:20 INSTANCIA "magic-chamber-fourth" sala=3/4 mobs=1
+2026/08/22 21:29:20 INSTANCIA "magic-chamber-fourth" sala=4/4 mobs=1
+2026/08/22 21:29:20 INSTANCIA "magic-chamber-fourth" chefe/onda de conclusao mobs=1
+2026/08/22 21:29:20 ERRO: faixa de IDs de mob esgotada (64536 mobs vivos)
+2026/08/22 21:29:20 INSTANCIA "staged" sala=1/2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "staged" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "staged" sala=2/2 mobs=2
+2026/08/22 21:29:20 INSTANCIA "staged-retry" sala=1/2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "staged-retry" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "staged-retry": falha atomica ao mover grupo para sala 2
+2026/08/22 21:29:20 INSTANCIA "staged-retry" sala=2/2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] salvar teleporte: database unavailable
+2026/08/22 21:29:20 [#2] salvar teleporte: database unavailable
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" encerrada
+2026/08/22 21:29:20 INSTANCIA "cube-test" sala=1/2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "cube-test" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "cube-test" sala=2/2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" encerrada
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" encerrada
+2026/08/22 21:29:20 INSTANCIA "staged-deadline" sala=1/2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "staged-deadline" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "staged-deadline" sala=2/2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "staged-spawn-failure" sala=1/2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "staged-spawn-failure" aberta membros=2 mobs=1
+2026/08/22 21:29:20 ERRO: faixa de IDs de mob esgotada (64536 mobs vivos)
+2026/08/22 21:29:20 INSTANCIA "staged-spawn-failure" encerrada
+2026/08/22 21:29:20 persistir morte de mob: database unavailable
+2026/08/22 21:29:20 CRITICO: morte de mob nao persistiu (database unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 BOSS "transactional-boss" morreu; sem respawn configurado
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 persistir morte de mob: database unavailable
+2026/08/22 21:29:20 CRITICO: morte de mob nao persistiu (database unavailable); 2 conta(s) isolada(s)
+2026/08/22 21:29:20 [#1] REINO "Handler" capa=545 tier=0 reino=Hekalotia pagamento=4 safiras
+2026/08/22 21:29:20 [#1] REINO "Handler" capa=543 tier=1 reino=Hekalotia pagamento=4 safiras
+2026/08/22 21:29:20 [#1] REINO "Handler" deixou Hekalotia por 16 Safiras
+2026/08/22 21:29:20 [#1] REINO "Handler" capa=546 tier=0 reino=Akelonia pagamento=emblema 4081
+2026/08/22 21:29:20 [#1] REINO join save: disk full
+2026/08/22 21:29:20 [#1] REINO "Handler" capa=546 tier=0 reino=Akelonia pagamento=15 safiras
+2026/08/22 21:29:20 [#1] REINO comando "Handler" -> (1748,1880)
+2026/08/22 21:29:20 [#1] REINO comando "Handler" -> (1690,1842)
+2026/08/22 21:29:20 [#1] char-list enviada (1 personagem(ns))
+2026/08/22 21:29:20 [#1] LOGIN recusado conta="Felipe"
+2026/08/22 21:29:20 [#2] LOGIN recusado conta="Felipe": conta ja conectada
+2026/08/22 21:29:20 [#1] LOGIN erro ao recarregar conta "Felipe": disk
+2026/08/22 21:29:20 [#5] LOGIN recusado conta="Felipe" ip="198.51.100.30": limite de 4 clients autenticados
+2026/08/22 21:29:20 [#1] LOGIN recusado conta="Felipe" ip="203.0.113.50": politica de rede (hosting provider)
+2026/08/22 21:29:20 [#1] incubacao vol=1 ovo->2307 progresso=+1 critico=3 espera=6h chocou=false roll=1/100
+2026/08/22 21:29:20 [#1] incubacao vol=1 ovo->2307 progresso=+2 critico=3 espera=6h chocou=false roll=1/95
+2026/08/22 21:29:20 [#1] incubacao vol=1 ovo->2307 progresso=+3 critico=3 espera=6h chocou=false roll=1/90
+2026/08/22 21:29:20 [#1] cria-pet nasceu face=322
+2026/08/22 21:29:20 [#1] incubacao vol=1 ovo->2337 progresso=+0 critico=3 espera=0h chocou=true roll=1/85
+2026/08/22 21:29:20 [#1] incubacao vol=1 ovo->2307 progresso=+1 critico=3 espera=8h chocou=false roll=3/100
+2026/08/22 21:29:20 [#1] ERRO ao salvar incubacao: database unavailable
+2026/08/22 21:29:20 CRITICO: egg incubation nao persistiu (database unavailable); 1 conta(s) isolada(s)
+2026/08/22 21:29:20 [#1] incubacao vol=1 ovo->2307 progresso=+1 critico=3 espera=6h chocou=false roll=1/100
+2026/08/22 21:29:20 [#1] ERRO ao salvar hora de incubacao do ovo 2307: database unavailable
+2026/08/22 21:29:20 [#1] 0x28B npc="Mount_Master" id=1800 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] 0x28B npc="Mount_Master" id=1800 clickOk=0 dist=1 size=20
+2026/08/22 21:29:20 [#1] 0x28B npc="Mount_Master" id=1800 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] 0x28B npc="Mount_Master" id=1800 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] 0x28B npc="Mount_Master" id=1800 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] 0x28B npc="Mount_Master" id=1800 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] salvar revival no Mount_Master: database unavailable
+2026/08/22 21:29:20 [#1] cria-pet nasceu face=315
+2026/08/22 21:29:20 [#1] Premium FireCracker nao persistido: database unavailable
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3C9 recusado: slot 0 nao contem Premium FireCracker (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3C9 recusado: layout ou bitmap do Premium FireCracker invalido (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3C9 recusado: coordenada do Premium FireCracker diverge da posicao autoritativa (1/12)
+2026/08/22 21:29:20 [#1] QUEST-REWARD item=4117 volatile=191 exp=+10000 gold=+2000 level=39 +0
+2026/08/22 21:29:20 [#1] ERRO ao salvar recompensa de quest item=4117: disco indisponivel
+2026/08/22 21:29:20 [#1] QUEST 1 concluida por "p"
+2026/08/22 21:29:20 [#1] QUEST 77 concluida por "p"
+2026/08/22 21:29:20 [#1] ERRO quest 78: database unavailable
+2026/08/22 21:29:20 [#1] QUEST 79 recusada: Your inventory is full.
+2026/08/22 21:29:20 [#1] recall (reset Gravedigger) -> Armia @(2112,2088) revivido=false
+2026/08/22 21:29:20 [#2] recall (reset Gravedigger) -> Armia @(2113,2088) revivido=true
+2026/08/22 21:29:20 [#1] vendeu item 400 por 250 gold (gold=250)
+2026/08/22 21:29:20 [#1] recompra aberta (1 itens)
+2026/08/22 21:29:20 [#1] recomprou item 400 por 1000 gold -> inv[0]
+2026/08/22 21:29:20 [#1] ERRO ao salvar recompra item=501: falha
+2026/08/22 21:29:20 personagem "Offline" reconectado na instancia "shared-runtime"
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x39D recusado: tamanho 80, esperado 48 ou 96 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x211 recusado: tamanho 52, esperado 44 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x334 recusado: tamanho 136, esperado 128 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3C9 recusado: tamanho 60, esperado 52 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3C0 recusado: tamanho 92, esperado 84 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x2C3 recusado: tamanho 92, esperado 84 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3A6 recusado: tamanho 92, esperado 84 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3BA recusado: tamanho 92, esperado 84 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3B5 recusado: tamanho 92, esperado 84 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x2D3 recusado: tamanho 92, esperado 84 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x2D2 recusado: tamanho 92, esperado 84 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x3E8 recusado: tamanho 175, esperado 12 ou 176 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x213 recusado: opcode fora da fase 3 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x213 recusado: tamanho 16, esperado 36 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x39D recusado: tamanho 512, esperado 48 ou 96 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x28C recusado: tamanho 32, esperado 16 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0xE12 recusado: tamanho 36, esperado 20 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0xE0E recusado: tamanho 36, esperado 20 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x28E recusado: tamanho 32, esperado 16 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x28F recusado: tamanho 36, esperado 20 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x277 recusado: tamanho 18, esperado 20 (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x366 recusado: rota/destino invalido auth=(2100,2100) pos=(2100,2100) target=(2200,2100) speed=0/4 route="" pending=(0,0 0/0) (1/12)
+2026/08/22 21:29:20 [#1] 0x0 recusado id=1100 clickOk=0: npc fora de alcance (12 tiles)
+2026/08/22 21:29:20 [#1] pegar item 10001 fora de alcance
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x2CB recusado: MoveStop tentou reposicionar o personagem (1/12)
+2026/08/22 21:29:20 [#1] SEGURANCA opcode=0x367 recusado: Stop tentou reposicionar o personagem (1/12)
+2026/08/22 21:29:20 [#1] drop cancelado por falha ao salvar: disk
+2026/08/22 21:29:20 [#1] coleta cancelada por falha ao salvar: disk
+2026/08/22 21:29:20 [#1] compra invalida loja=1100 slot=0
+2026/08/22 21:29:20 [#1] venda rejeitada fora do inventario type=0 pos=0
+2026/08/22 21:29:20 [#1] suporte "Heal" afetou=1 mastery=40
+2026/08/22 21:29:20 [#1] CHARACTER-LOGOUT "Logout" -> selecao
+2026/08/22 21:29:20 [#1] protocolo 0x36A ignorado: tamanho inesperado
+2026/08/22 21:29:20 [#1] protocolo 0x2BC ignorado: tamanho inesperado
+2026/08/22 21:29:20 [#1] comprou item 411 por 15000 gold -> inv[0] (gold restante=5000)
+2026/08/22 21:29:20 desligamento: 3 contas persistidas, 0 falhas
+2026/08/22 21:29:20 desligamento: 1 contas persistidas, 0 falhas
+2026/08/22 21:29:20 desligamento: salvar estado de instancias: instance database unavailable
+2026/08/22 21:29:20 desligamento: 0 contas persistidas, 1 falhas
+2026/08/22 21:29:20 desligamento: 0 contas persistidas, 0 falhas
+2026/08/22 21:29:20 desligamento: salvar conta "falha": disco indisponivel
+2026/08/22 21:29:20 desligamento: 0 contas persistidas, 1 falhas
+2026/08/22 21:29:20 desligamento: 1 contas persistidas, 0 falhas
+2026/08/22 21:29:20 desligamento: salvar conta "failed": database unavailable
+2026/08/22 21:29:20 desligamento: 0 contas persistidas, 1 falhas
+2026/08/22 21:29:20 desligamento: 1 contas persistidas, 0 falhas
+2026/08/22 21:29:20 desligamento: salvar conta "failure": database unavailable
+2026/08/22 21:29:20 desligamento: 0 contas persistidas, 1 falhas
+2026/08/22 21:29:20 desligamento: persistencia final incompleta: conta "failure": database unavailable
+2026/08/22 21:29:20 [#1] 0x28B npc="Skill_Master" id=1810 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] Skill_Master resetou 160 ponto(s) de "Handler" (premium=true)
+2026/08/22 21:29:20 [#1] 0x28B npc="Skill_Master" id=1810 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] Skill_Master resetou 160 ponto(s) de "Handler" (premium=false)
+2026/08/22 21:29:20 [#1] 0x28B npc="Skill_Master" id=1810 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] 0x28B npc="Skill_Master" id=1810 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] 0x28B npc="Skill_Master" id=1810 clickOk=1 dist=1 size=20
+2026/08/22 21:29:20 [#1] salvar reset no Skill_Master: database unavailable
+2026/08/22 21:29:20 [#1] 0x28B npc="Skill_Master" id=1810 clickOk=0 dist=1 size=20
+2026/08/22 21:29:20 [#1] aprendeu skill=0 "Skill0" custo=1 pontos restantes=59
+2026/08/22 21:29:20 [#1] salvar skill aprendida: save failed
+2026/08/22 21:29:20 [#1] requisitos insuficientes para skill=0 pts=0/1 level=0/399 mastery=[0 0 0 0]
+2026/08/22 21:29:20 [#1] aprendeu skill=0 "LevelRestricted" custo=1 pontos restantes=167
+2026/08/22 21:29:20 [#1] aprendeu skill=0 "LevelRestricted" custo=1 pontos restantes=1599
+2026/08/22 21:29:20 [#1] aprendeu skill=0 "LevelRestricted" custo=1 pontos restantes=1599
+2026/08/22 21:29:20 [#1] requisitos insuficientes para skill=0 pts=168/1 level=0/399 mastery=[0 0 0 0]
+2026/08/22 21:29:20 [#1] suporte "Heal" afetou=1 mastery=40
+2026/08/22 21:29:20 [#1] suporte "Aura" afetou=1 mastery=40
+2026/08/22 21:29:20 CP PvP nao persistido: store atual nao suporta transacao multi-conta
+2026/08/22 21:29:20 [#1] executou PvP skill=0 "PvP" alvos=1
+2026/08/22 21:29:20 [#1] invocou "Condor" quantidade=7/7
+2026/08/22 21:29:20 [#1] invocou "Javali" quantidade=1/1
+2026/08/22 21:29:20 [#1] suporte "Golden_Shield" afetou=1 mastery=0
+2026/08/22 21:29:20 [#1] salvar custo do Escudo Dourado: database unavailable
+2026/08/22 21:29:20 [#1] suporte "" afetou=1 mastery=40
+2026/08/22 21:29:20 [#1] suporte "" afetou=1 mastery=40
+2026/08/22 21:29:20 [#2] suporte "" afetou=1 mastery=0
+2026/08/22 21:29:20 [#1] bonus type=0 detail=0 STR=9 INT=4 DEX=7 CON=6 ATK=34 MATK=7 DEF=21 HP=100/130 MP=50/60 special=[0 0 0 0]
+2026/08/22 21:29:20 [#1] TELEPORTE "Armia para Noatum" @(2118,2102)->(1044,1724) gold=-700
+2026/08/22 21:29:20 [#1] TELEPORTE "Armia para Noatum" @(2118,2102)->(1044,1724) gold=-700
+2026/08/22 21:29:20 [#1] TELEPORTE "Armia para Noatum" @(2116,2101)->(1044,1724) gold=-700
+2026/08/22 21:29:20 [#1] SWAP ok 1/0 <-> 0/13
+2026/08/22 21:29:20 [#1] save item move: db unavailable
+2026/08/22 21:29:20 [#1] failed to expire timed equipment: db unavailable
+2026/08/22 21:29:20 INSTANCIA "uxmal-room-0" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] UXMAL sala=0 vaga=0 lider=Leader membros=2
+2026/08/22 21:29:20 INSTANCIA "uxmal-room-0": falha atomica ao mover grupo para sala 1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#4] INSTANCIA "water-normal-1" aberta membros=1 mobs=1
+--- FAIL: TestPlayerEnterViewRestoresAliveStateBeforeMovement (0.00s)
+    visibility_test.go:71: CreateMob nao restaurou affect visual: 00 00 00 00
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-2" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-2" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-2" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-2" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1": salvar recompensa 3174: reward commit failed
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-2" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] invocou "Condor" quantidade=1/1
+2026/08/22 21:29:20 INSTANCIA "water-normal-1" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" aberta membros=2 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-1" concluida: item 3174 -> inv[0]
+2026/08/22 21:29:20 INSTANCIA "water-normal-2" sala=1/1 mobs=1
+2026/08/22 21:29:20 [#1] INSTANCIA "water-normal-2" aberta membros=2 mobs=1
+2026/08/22 21:29:20 objetos de mundo: 1 postos no mapa
+2026/08/22 21:29:20 GAMEPLAY resumo: skills=0 ataques=0 mortes=0 drops=0 gold=0 lotes=0
+2026/08/22 21:29:20 CRITICO: mundo em manutencao apos panic; snapshots em RAM nao serao persistidos
+2026/08/22 21:29:20 [#1] player removido
+FAIL
+FAIL	wydgo/internal/game	2.236s
+ok  	wydgo/internal/loadtest	0.456s
+ok  	wydgo/internal/model	0.066s
+ok  	wydgo/internal/net	0.153s
+ok  	wydgo/internal/networkpolicy	(cached)
+ok  	wydgo/internal/store	0.749s
+ok  	wydgo/internal/wire	0.025s
+FAIL
+
