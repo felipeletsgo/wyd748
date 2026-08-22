@@ -354,23 +354,13 @@ func putAffectWords(b []byte, offset int, affects []model.Affect, now time.Time)
 // (TMHuman::OnPacketUpdateEtc copia LearnedSkill/bonus/coin deste pacote). Remover
 // esse campo apaga as skills do client e desloca os pontos (regressao 2026-07-14).
 func UpdateEtc(id uint16, ch model.Char) []byte {
-	e := wireScore(ch)
-	b := Build(OpUpdateEtc, id, 48)
-	// O 7.54 insere um DWORD Hold antes de EXP e o patch nativo zera esse
-	// campo. CP nao faz parte do UpdateEtc: ele viaja no byte MobName[12] do
-	// CreateMob. Colocar CP aqui fazia o client interpretar, por exemplo, 75
-	// como EXP retida e contaminava a barra/progressao.
-	putU32(b, 12, 0)
-	putU32(b, 16, ch.Exp)
+	b := Build(OpUpdateEtc, id, 168)
+	putU32(b, 12, 0) // Hold: native reserved EXP field.
+	putU32(b, 16, uint32(ch.Exp))
 	putU32(b, 20, ch.LearnedSkill)
-	putU16(b, 24, packetU16(e.StatusPts))
-	putU16(b, 26, packetU16(e.MasterPts))
-	putU16(b, 28, packetU16(e.SkillPts))
-	putU16(b, 30, packetU16(e.MagicAmp))
-	putU32(b, 32, ch.Gold)
-	putU32(b, 36, e.StatusPts)
-	putU32(b, 40, e.MasterPts)
-	putU32(b, 44, e.SkillPts)
+	score := EncodeClientScore(wireScore(ch))
+	copy(b[24:164], score[:])
+	putU32(b, 164, ch.Gold)
 	return b
 }
 

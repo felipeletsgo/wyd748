@@ -133,46 +133,29 @@ func EnterWorld(id, slot uint16, ch model.Char) []byte {
 // 244-byte 0x336 structure. Fields absent from that native structure continue
 // to be synchronized by dedicated packets/extensions rather than trusted back.
 func UpdateScore(id uint16, ch model.Char) []byte {
-	b := Build(OpUpdateScore, id, 244)
-	ext := wireScore(ch)
-	score := EncodeClientScore(ext)
+	b := Build(OpUpdateScore, id, 232)
+	score := EncodeClientScore(wireScore(ch))
 	copy(b[12:152], score[:])
-	b[152] = clampByte(int(ext.Critical))
-	b[153] = clampByte(int(ext.SaveMana))
-	putAffectWords(b, 154, ch.Affects[:], time.Now())
-	putU16(b, 218, GuildWireID(ch.GuildID))
-	putU16(b, 220, uint16(ch.GuildRank))
-	b[222] = clampByte(int(ext.ResistFire))
-	b[223] = clampByte(int(ext.ResistIce))
-	b[224] = clampByte(int(ext.ResistHoly))
-	b[225] = clampByte(int(ext.ResistThunder))
-	// ReqHp/ReqMp are pending skill costs in TMProject, not current resources.
-	// Score.Hp/Score.Mp already carry the authoritative values; leaving these
-	// fields zero prevents a score refresh from charging HP/MP on a later cast.
-	putU16(b, 236, packetU16(ext.MagicAmp))
-	// LearnedSkill is a one-byte avatar-effect selector in this packet, not the
-	// character's 32-bit learned-skill mask (which travels in UpdateEtc).
-	b[240] = 0
+	putAffectWords(b, 152, ch.Affects[:], time.Now())
+	putU16(b, 216, GuildWireID(ch.GuildID))
+	putU16(b, 218, uint16(ch.GuildRank))
+	// ReqHp/ReqMp are pending skill costs, not current resources. A plain score
+	// refresh does not charge either resource.
+	putU32(b, 220, 0)
+	putU32(b, 224, 0)
+	// LearnedSkill here is only the one-byte avatar-effect selector.
+	b[228] = 0
 	return b
 }
 
 // MobScore builds the source client's 244-byte score refresh for an NPC
 // or monster. The removed stock score packet cannot be broadcast to a mixed client view
 // because TMProject reads the canonical STRUCT_SCORE directly at byte 12.
-func MobScore(id uint16, ext *model.Score, affects []model.Affect, resist model.ElementalResists) []byte {
-	b := Build(OpUpdateScore, id, 244)
-	score := EncodeClientScore(ext)
+func MobScore(id uint16, scoreState *model.Score, affects []model.Affect) []byte {
+	b := Build(OpUpdateScore, id, 232)
+	score := EncodeClientScore(scoreState)
 	copy(b[12:152], score[:])
-	if ext != nil {
-		b[152] = clampByte(int(ext.Critical))
-		b[153] = clampByte(int(ext.SaveMana))
-		putU16(b, 236, packetU16(ext.MagicAmp))
-	}
-	putAffectWords(b, 154, affects, time.Now())
-	b[222] = clampByte(int(resist.Fire))
-	b[223] = clampByte(int(resist.Ice))
-	b[224] = clampByte(int(resist.Sacred))
-	b[225] = clampByte(int(resist.Thunder))
+	putAffectWords(b, 152, affects, time.Now())
 	return b
 }
 

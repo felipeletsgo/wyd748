@@ -4630,7 +4630,6 @@ int TMHuman::OnPacketUpdateScore(MSG_STANDARD* pStd)
         }
         memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pUpdateScore->Score, sizeof(STRUCT_SCORE));
         m_sGuildLevel = static_cast<unsigned char>(g_pObjectManager->m_stMobData.GuildLevel);
-        g_pObjectManager->m_stMobData.CurrentScore.MagicAmp = static_cast<uint8_t>(pUpdateScore->Magician);//dano magico
     }
 
     unsigned short usGuild = pUpdateScore->Guild;
@@ -4683,8 +4682,6 @@ int TMHuman::OnPacketUpdateScore(MSG_STANDARD* pStd)
 
     if (this == g_pCurrentScene->m_pMyHuman)
     {
-        g_pObjectManager->m_stMobData.CurrentScore.Critical = pUpdateScore->Critical;
-        g_pObjectManager->m_stMobData.CurrentScore.SaveMana = pUpdateScore->SaveMana;
     }
 
     char oldShaow = m_cShadow;
@@ -4705,10 +4702,6 @@ int TMHuman::OnPacketUpdateScore(MSG_STANDARD* pStd)
     {
         auto pMobData = &g_pObjectManager->m_stMobData;
    
-        pMobData->CurrentScore.ResistFire = pUpdateScore->Resist[0];
-        pMobData->CurrentScore.ResistIce = pUpdateScore->Resist[1];
-        pMobData->CurrentScore.ResistHoly = pUpdateScore->Resist[2];
-        pMobData->CurrentScore.ResistThunder = pUpdateScore->Resist[3];
 
         g_pObjectManager->m_stSelCharData.Guild[g_pObjectManager->m_cCharacterSlot] = usGuild;
 
@@ -5274,23 +5267,8 @@ int TMHuman::OnPacketUpdateEtc(MSG_STANDARD* pStd)
         g_pObjectManager->m_stMobData.LearnedSkill[0] = (int)pUpdateEtc->LearnedSkill;
         g_pObjectManager->m_stMobData.LearnedSkill[1] = 0;
         g_pObjectManager->m_stMobData.Exp = pUpdateEtc->Exp;
-        g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pUpdateEtc->ScoreBonus;
-        g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pUpdateEtc->SpecialBonus;
-        g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pUpdateEtc->SkillBonus;
-        // The 48-byte WYD-Go packet appends the real uint32 counters. Retain
-        // the shorts above only for untouched native code and old captures.
-        if (pUpdateEtc->Header.Size >= sizeof(MSG_UpdateEtc))
-        {
-            g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pUpdateEtc->ScoreBonusWide;
-            g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pUpdateEtc->SpecialBonusWide;
-            g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pUpdateEtc->SkillBonusWide;
-        }
-        else
-        {
-            g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pUpdateEtc->ScoreBonus > 0 ? pUpdateEtc->ScoreBonus : 0;
-            g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pUpdateEtc->SpecialBonus > 0 ? pUpdateEtc->SpecialBonus : 0;
-            g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pUpdateEtc->SkillBonus > 0 ? pUpdateEtc->SkillBonus : 0;
-        }
+        memcpy(&m_stScore, &pUpdateEtc->Score, sizeof(m_stScore));
+        memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pUpdateEtc->Score, sizeof(STRUCT_SCORE));
         g_pObjectManager->m_stMobData.Coin = pUpdateEtc->Coin;
         // Hold is the native reserved EXP field; WYD-Go intentionally sends zero.
         g_pObjectManager->m_nFakeExp = pUpdateEtc->Hold;

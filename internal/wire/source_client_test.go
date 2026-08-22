@@ -55,7 +55,7 @@ func TestCanonicalSelectionAndEnterWorldUseScore140(t *testing.T) {
 func TestCanonicalScoreRefreshUsesEmbeddedScore(t *testing.T) {
 	ch := canonicalWireTestChar()
 	b := UpdateScore(7, ch)
-	if len(b) != 244 || ParseHeader(b).Type != OpUpdateScore {
+	if len(b) != 232 || ParseHeader(b).Type != OpUpdateScore {
 		t.Fatalf("UpdateScore ABI: len=%d", len(b))
 	}
 	if got := binary.LittleEndian.Uint32(b[20:24]); got != ch.Score.Attack {
@@ -67,7 +67,7 @@ func TestCanonicalScoreRefreshUsesEmbeddedScore(t *testing.T) {
 	if got := binary.LittleEndian.Uint32(b[40:44]); got != ch.Score.CurHP {
 		t.Fatalf("CurHP=%d", got)
 	}
-	if reqHP, reqMP := binary.LittleEndian.Uint32(b[228:232]), binary.LittleEndian.Uint32(b[232:236]); reqHP != 0 || reqMP != 0 {
+	if reqHP, reqMP := binary.LittleEndian.Uint32(b[220:224]), binary.LittleEndian.Uint32(b[224:228]); reqHP != 0 || reqMP != 0 {
 		t.Fatalf("pending costs=%d/%d", reqHP, reqMP)
 	}
 }
@@ -78,7 +78,7 @@ func TestCanonicalMobPacketsUseScore140(t *testing.T) {
 	if len(create) != 328 || ParseHeader(create).Type != OpCreateMob || binary.LittleEndian.Uint32(create[148:152]) != 777 {
 		t.Fatalf("CreateMob ABI: len=%d", len(create))
 	}
-	refresh := MobScore(1001, score, nil, model.ElementalResists{Fire: 10, Ice: 20, Sacred: 30, Thunder: 40})
+	refresh := MobScore(1001, score, nil)
 	if len(refresh) != 244 || binary.LittleEndian.Uint32(refresh[20:24]) != 777 {
 		t.Fatalf("MobScore ABI: len=%d", len(refresh))
 	}

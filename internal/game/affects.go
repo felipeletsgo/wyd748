@@ -566,6 +566,11 @@ func mobPublicExtendedAt(m *Mob, now time.Time) *model.Score {
 	ext.Defense = uint32(effectiveMobDefenseAt(m, now))
 	ext.Attack = uint32(effectiveMobAttackAt(m, now))
 	ext.AttackRun = uint32(effectiveMobAttackRunAt(m, now))
+	resist := effectiveMobResistancesAt(m, now)
+	ext.ResistFire = resist.Fire
+	ext.ResistIce = resist.Ice
+	ext.ResistHoly = resist.Sacred
+	ext.ResistThunder = resist.Thunder
 	return ext
 }
 
@@ -577,8 +582,7 @@ func (w *World) publishMobAffects(m *Mob) {
 	w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 		// Mob score embeds STRUCT_SCORE, so each observer receives the ABI selected
 		// at login instead of interpreting another client's score layout.
-		return wire.MobScore(m.ID,
-			mobPublicExtendedAt(m, now), m.Affects[:], effectiveMobResistancesAt(m, now))
+		return wire.MobScore(m.ID, mobPublicExtendedAt(m, now), m.Affects[:])
 	})
 }
 

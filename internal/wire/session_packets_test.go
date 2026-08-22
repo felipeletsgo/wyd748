@@ -18,15 +18,17 @@ func TestUpdateScoreCanonicalLayoutIncludesScoreAndAffects(t *testing.T) {
 	}}
 	ch.Affects[0] = model.Affect{Type: 24, ExpiresAt: time.Now().Add(80 * time.Second)}
 	b := UpdateScore(1, ch)
-	if len(b) != 244 || ParseHeader(b).Type != OpUpdateScore || ParseHeader(b).ID != 1 ||
+	if len(b) != 232 || ParseHeader(b).Type != OpUpdateScore || ParseHeader(b).ID != 1 ||
 		binary.LittleEndian.Uint32(b[32:36]) != 900 ||
 		binary.LittleEndian.Uint32(b[40:44]) != 900 ||
-		b[152] != 3 || b[153] != 4 ||
-		binary.LittleEndian.Uint16(b[154:156]) != 0x180A ||
-		binary.LittleEndian.Uint16(b[218:220]) != 0x0234 ||
-		binary.LittleEndian.Uint16(b[220:222]) != model.GuildRankLeader ||
-		!bytes.Equal(b[222:226], []byte{7, 8, 9, 10}) ||
-		binary.LittleEndian.Uint16(b[236:238]) != 12 {
+		binary.LittleEndian.Uint32(b[12+64:12+68]) != 3 ||
+		binary.LittleEndian.Uint32(b[12+88:12+92]) != 4 ||
+		binary.LittleEndian.Uint32(b[12+72:12+76]) != 7 ||
+		binary.LittleEndian.Uint16(b[152:154]) != 0x180A ||
+		binary.LittleEndian.Uint16(b[216:218]) != 0x0234 ||
+		binary.LittleEndian.Uint16(b[218:220]) != model.GuildRankLeader ||
+		binary.LittleEndian.Uint32(b[220:224]) != 0 ||
+		binary.LittleEndian.Uint32(b[224:228]) != 0 {
 		t.Fatalf("canonical UpdateScore incorreto: % X", b)
 	}
 }
@@ -296,20 +298,26 @@ func TestIllusionMoveUsesEffectSix(t *testing.T) {
 	}
 }
 
-func TestUpdateEtc748Layout(t *testing.T) {
-	// Layout p754_SendEtc: Hold zerado DWORD@12, exp@16, LearnedSkill@20 (OBRIGATORIO:
-	// e daqui que o client aprende as skills), statusPts@24, masterPts@26,
-	// skillPts@28, magic@30, gold@32.
-	ch := model.Char{CP: -25, Exp: 34000, LearnedSkill: 1 << 3, NextExp: 649715, Gold: 99424,
-		Score: &model.Score{StatusPts: 7, MasterPts: 100, SkillPts: 150, MagicAmp: 70}}
-	b := UpdateEtc(1, ch)
-	if len(b) != 48 || ParseHeader(b).Type != OpUpdateEtc ||
-		binary.LittleEndian.Uint32(b[12:16]) != 0 || binary.LittleEndian.Uint32(b[16:20]) != 34000 ||
-		binary.LittleEndian.Uint32(b[20:24]) != 1<<3 || binary.LittleEndian.Uint16(b[24:26]) != 7 ||
-		binary.LittleEndian.Uint16(b[26:28]) != 100 || binary.LittleEndian.Uint16(b[28:30]) != 150 ||
-		binary.LittleEndian.Uint16(b[30:32]) != 70 ||
-		binary.LittleEndian.Uint32(b[32:36]) != 99424 {
-		t.Fatalf("UpdateEtc 7.48 invalido: %v", b)
+func TestUpdateEtcCanonicalScoreLayout(t *testing.T) {
+	ch := model.Char{
+		CP: -25, Exp: 34000, LearnedSkill: 1 << 3, Gold: 99424,
+		Score: &model.Score{
+			Version:   model.ScoreVersion,
+			StatusPts: 7, MasterPts: 100, SkillPts: 150, MagicAmp: 70,
+		},
+	}
+	b := UpdateEtc(7, ch)
+	if len(b) != 168 || ParseHeader(b).Type != OpUpdateEtc || ParseHeader(b).ID != 7 ||
+		binary.LittleEndian.Uint32(b[12:16]) != 0 ||
+		binary.LittleEndian.Uint32(b[16:20]) != 34000 ||
+		binary.LittleEndian.Uint32(b[20:24]) != 1<<3 ||
+		binary.LittleEndian.Uint32(b[24:28]) != model.ScoreVersion ||
+		binary.LittleEndian.Uint32(b[116:120]) != 70 ||
+		binary.LittleEndian.Uint32(b[128:132]) != 7 ||
+		binary.LittleEndian.Uint32(b[132:136]) != 100 ||
+		binary.LittleEndian.Uint32(b[136:140]) != 150 ||
+		binary.LittleEndian.Uint32(b[164:168]) != 99424 {
+		t.Fatalf("canonical UpdateEtc invalido: % X", b)
 	}
 }
 
@@ -376,26 +384,21 @@ func cStringForTest(b []byte) string {
 	return string(b)
 }
 
-func TestUpdateEtcExtendedWritesWidePointsTail(t *testing.T) {
+func TestUpdateEtcCarriesWidePointsInsideCanonicalScore(t *testing.T) {
 	ch := model.Char{
 		Score: &model.Score{
+			Version:   model.ScoreVersion,
 			StatusPts: 100000,
 			MasterPts: 110000,
 			SkillPts:  120000,
 		},
 	}
-	b := UpdateEtc(7, ch)
-	if len(b) != 48 || ParseHeader(b).Type != OpUpdateEtc {
-		t.Fatalf("UpdateEtc extended invalido: len=%d header=%+v", len(b), ParseHeader(b))
-	}
-	if got := binary.LittleEndian.Uint32(b[36:40]); got != 100000 {
-		t.Fatalf("status wide=%d", got)
-	}
-	if got := binary.LittleEndian.Uint32(b[40:44]); got != 110000 {
-		t.Fatalf("mastery wide=%d", got)
-	}
-	if got := binary.LittleEndian.Uint32(b[44:48]); got != 120000 {
-		t.Fatalf("skill wide=%d", got)
+	b := UpdateEtc(1, ch)
+	if len(b) != 168 ||
+		binary.LittleEndian.Uint32(b[128:132]) != 100000 ||
+		binary.LittleEndian.Uint32(b[132:136]) != 110000 ||
+		binary.LittleEndian.Uint32(b[136:140]) != 120000 {
+		t.Fatalf("wide points nao viajaram dentro do Score canonico: % X", b[120:144])
 	}
 }
 

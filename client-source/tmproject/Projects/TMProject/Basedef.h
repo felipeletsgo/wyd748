@@ -1012,18 +1012,12 @@ constexpr auto MSG_UpdateScore_Opcode = 0x336;
 struct MSG_UpdateScore
 {
 	MSG_STANDARD Header;
-
-	STRUCT_SCORE   Score;
-	char Critical;
-	char SaveMana;
+	STRUCT_SCORE Score;
 	unsigned short Affect[32];
 	unsigned short Guild;
 	unsigned short GuildLevel;
-	char Resist[4];
 	int ReqHp;
 	int ReqMp;
-	unsigned short Magician;
-	unsigned short Rsv;
 	char LearnedSkill;
 };
 
@@ -1031,20 +1025,11 @@ constexpr auto MSG_UpdateEtc_Opcode = 0x337;
 struct MSG_UpdateEtc
 {
 	MSG_STANDARD Header;
-	// WYD-Go extends the native 36-byte prefix with three authoritative DWORD
-	// point counters. The client consumes both sections without confusing the
-	// first wide counter for a second learned-skill mask.
 	unsigned int Hold;
 	unsigned int Exp;
 	unsigned int LearnedSkill;
-	short ScoreBonus;
-	short SpecialBonus;
-	short SkillBonus;
-	short Magician;
+	STRUCT_SCORE Score;
 	int Coin;
-	unsigned int ScoreBonusWide;
-	unsigned int SpecialBonusWide;
-	unsigned int SkillBonusWide;
 };
 
 constexpr auto MSG_MessagePanel_Opcode = 0x101;

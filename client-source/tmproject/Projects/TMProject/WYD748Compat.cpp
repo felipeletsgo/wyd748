@@ -117,16 +117,19 @@ static_assert(offsetof(MSG_CNFCharacterLogin, ClientID) == 1242, "source runtime
 static_assert(offsetof(MSG_CNFCharacterLogin, Ext1) == 1264, "source Ext1 alignment changed");
 static_assert(sizeof(MSG_CreateMob) == 328, "source CreateMob packet ABI changed");
 static_assert(sizeof(MSG_CreateMobTrade) == 352, "source CreateMobTrade packet ABI changed");
-static_assert(sizeof(MSG_UpdateScore) == 244, "source UpdateScore packet ABI changed");
-static_assert(offsetof(MSG_UpdateScore, ReqHp) == 228, "source UpdateScore.ReqHp offset changed");
-static_assert(offsetof(MSG_UpdateScore, ReqMp) == 232, "source UpdateScore.ReqMp offset changed");
-static_assert(offsetof(MSG_UpdateScore, Magician) == 236, "source UpdateScore.Magician offset changed");
-static_assert(offsetof(MSG_UpdateScore, LearnedSkill) == 240, "source UpdateScore.LearnedSkill offset changed");
+static_assert(sizeof(MSG_UpdateScore) == 232, "canonical UpdateScore packet ABI changed");
+static_assert(offsetof(MSG_UpdateScore, Affect) == 152, "canonical UpdateScore.Affect offset changed");
+static_assert(offsetof(MSG_UpdateScore, Guild) == 216, "canonical UpdateScore.Guild offset changed");
+static_assert(offsetof(MSG_UpdateScore, ReqHp) == 220, "canonical UpdateScore.ReqHp offset changed");
+static_assert(offsetof(MSG_UpdateScore, ReqMp) == 224, "canonical UpdateScore.ReqMp offset changed");
+static_assert(offsetof(MSG_UpdateScore, LearnedSkill) == 228, "canonical UpdateScore.LearnedSkill offset changed");
 static_assert(sizeof(MSG_UpdateAffect) == 268, "source UpdateAffect packet ABI changed");
 static_assert(sizeof(MSG_ShopList) == 236, "source ShopList packet ABI changed");
 // Incremental notifications never carry an alternate score representation.
 static_assert(sizeof(MSG_UpdateEquip) == 60, "7.48 UpdateEquip packet ABI changed");
-static_assert(sizeof(MSG_UpdateEtc) == 48, "WYD-Go UpdateEtc extension ABI changed");
+static_assert(sizeof(MSG_UpdateEtc) == 168, "canonical UpdateEtc packet ABI changed");
+static_assert(offsetof(MSG_UpdateEtc, Score) == 24, "canonical UpdateEtc.Score offset changed");
+static_assert(offsetof(MSG_UpdateEtc, Coin) == 164, "canonical UpdateEtc.Coin offset changed");
 static_assert(sizeof(MSG_SetHpMp) == 28, "canonical HP/MP incremental ABI changed");
 // Client diagnostics are accepted by WYD-Go only in the canonical 7.48 form.
 static_assert(sizeof(MSG_MessageLog) == 108, "7.48 client diagnostic packet ABI changed");
