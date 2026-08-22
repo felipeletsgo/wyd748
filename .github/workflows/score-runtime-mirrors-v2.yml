@@ -1,0 +1,131 @@
+name: Runtime Score Mirror Cleanup v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/score-runtime-mirrors-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Apply runtime mirror cleanup
+        id: migrate
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          python scripts/single_score_runtime_mirrors.py 2>&1 | Tee-Object -FilePath runtime-score-cleanup.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Format
+        id: format
+        if: steps.migrate.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: Get-ChildItem -Recurse -Filter *.go | ForEach-Object { gofmt -w $_.FullName }
+      - name: Materialize on main
+        id: materialize
+        if: steps.migrate.outcome == 'success' && steps.format.outcome == 'success'
+        shell: pwsh
+        run: |
+          Remove-Item -Force -ErrorAction SilentlyContinue SCORE_RUNTIME_MIRRORS_FAILURE.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git reset -- runtime-score-cleanup.log 2>$null
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "refactor: remove runtime score mirrors"
+            git push origin HEAD:main
+          }
+      - name: Go tests
+        id: test
+        if: steps.materialize.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          go test ./... 2>&1 | Tee-Object -FilePath runtime-score-cleanup.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Go vet
+        id: vet
+        if: steps.test.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          go vet ./... 2>&1 | Tee-Object -FilePath runtime-score-cleanup.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Server build
+        id: server
+        if: steps.vet.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          go build -o tmp/tm-check.exe ./cmd/server 2>&1 | Tee-Object -FilePath runtime-score-cleanup.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Client Win32 build
+        id: client
+        if: steps.server.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./client-source/tmproject/Build-Client.ps1 2>&1 | Tee-Object -FilePath runtime-score-cleanup.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Cleanup validation artifact
+        if: always()
+        shell: pwsh
+        run: Remove-Item -Force -ErrorAction SilentlyContinue tmp/tm-check.exe
+      - name: Diff check
+        id: whitespace
+        if: steps.client.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          git diff --check 2>&1 | Tee-Object -FilePath runtime-score-cleanup.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Failure diagnostic
+        if: always() && (steps.migrate.outcome == 'failure' || steps.format.outcome == 'failure' || steps.materialize.outcome == 'failure' || steps.test.outcome == 'failure' || steps.vet.outcome == 'failure' || steps.server.outcome == 'failure' || steps.client.outcome == 'failure' || steps.whitespace.outcome == 'failure')
+        shell: pwsh
+        run: |
+          $log = if (Test-Path runtime-score-cleanup.log) { Get-Content runtime-score-cleanup.log -Raw } else { "No output." }
+          git reset --hard HEAD
+          @"
+          Runtime score mirror cleanup failed.
+          migrate=${{ steps.migrate.outcome }}
+          format=${{ steps.format.outcome }}
+          materialize=${{ steps.materialize.outcome }}
+          test=${{ steps.test.outcome }}
+          vet=${{ steps.vet.outcome }}
+          server=${{ steps.server.outcome }}
+          client=${{ steps.client.outcome }}
+          whitespace=${{ steps.whitespace.outcome }}
+          --- output ---
+          $log
+          "@ | Set-Content -Encoding UTF8 SCORE_RUNTIME_MIRRORS_FAILURE.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add SCORE_RUNTIME_MIRRORS_FAILURE.txt
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "ci: record runtime score mirror cleanup failure"
+            git push origin HEAD:main
+          }
+          exit 1
+      - name: Clear diagnostic
+        if: steps.whitespace.outcome == 'success'
+        shell: pwsh
+        run: |
+          if (Test-Path SCORE_RUNTIME_MIRRORS_FAILURE.txt) {
+            git rm SCORE_RUNTIME_MIRRORS_FAILURE.txt
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "ci: clear runtime score mirror cleanup failure"
+            git push origin HEAD:main
+          }
