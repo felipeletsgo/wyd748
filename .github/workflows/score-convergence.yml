@@ -11,6 +11,7 @@ on:
       - scripts/single_score_cpp_repairs.py
       - scripts/single_score_game_repairs.py
       - scripts/single_score_final_repairs.py
+      - scripts/single_score_compile_repairs.py
 
 permissions:
   contents: write
@@ -46,6 +47,8 @@ jobs:
           python scripts/single_score_game_repairs.py 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python scripts/single_score_final_repairs.py 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/single_score_compile_repairs.py 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Format Go sources
@@ -161,7 +164,7 @@ jobs:
           if (Test-Path SCORE_CONVERGENCE_FAILURE.txt) {
             git rm SCORE_CONVERGENCE_FAILURE.txt
             git config user.name "github-actions[bot]"
-            git config user.email "41898268+github-actions[bot]@users.noreply.github.com"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "ci: clear single-score cleanup failure"
             git push origin HEAD:main
           }
