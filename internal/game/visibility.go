@@ -176,25 +176,18 @@ func (w *World) hideGhostShop(p *Player, shop *GhostShop) {
 	p.hide(shop.ID)
 }
 
-// playerEnterViewPackets monta a sequencia necessaria para materializar um
-// jogador no client 7.48. CreateMob sozinho nao limpa de forma confiavel o
-// estado ECMOTION_DEAD mantido para um ID que morreu anteriormente: HP/MP
-// confirma que a entidade esta viva e ActionStop fixa a pose e a coordenada
-// inicial antes de receber o proximo trajeto de movimento.
+// playerEnterViewPackets materializes one player with the canonical 7.48+
+// packet ABI. HP/MP follows CreateMob so a reused entity ID cannot retain a
+// stale dead-state resource cache.
 func playerEnterViewPackets(subject *Player) [][]byte {
-	return playerEnterViewPacketsFor(wire.ClientProtocolStock748, subject)
-}
-
-// playerEnterViewPacketsFor materializes a subject with the observer's ABI.
-// The compatibility wrapper above remains for stock-oriented unit tests.
-func playerEnterViewPacketsFor(protocol wire.ClientProtocol, subject *Player) [][]byte {
 	if subject == nil || subject.Char == nil {
 		return nil
 	}
 	return [][]byte{
-		wire.CreateMobWithGuildRank(protocol, subject.ID, subject.Char.Name, subject.X, subject.Y,
-			bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char), subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP),
-		wire.HpMp(protocol, subject.ID, wireScoreState(subject.Char)),
+		wire.CreateMobWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
+			bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char),
+			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP),
+		wire.HpMp(subject.ID, wireScoreState(subject.Char)),
 		wire.ActionStop(subject.ID, subject.X, subject.Y),
 	}
 }
@@ -203,7 +196,7 @@ func sendPlayerEnterView(observer, subject *Player) {
 	if observer == nil || observer.Session == nil {
 		return
 	}
-	for _, pkt := range playerEnterViewPacketsFor(subject) {
+	for _, pkt := range playerEnterViewPackets(subject) {
 		observer.Session.Send(pkt)
 	}
 }

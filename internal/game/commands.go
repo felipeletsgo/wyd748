@@ -279,7 +279,7 @@ func parseSlashCommand(message string) (name, arg string, ok bool) {
 var chatCommandAliases = map[string]string{
 	"day": "day", "time": "time", "cp": "cp", "chaos": "cp", "fame": "fame",
 	"parry": "parry",
-	"nig":   "nig", "limparinv": "clearinv", "clearinv": "clearinv", "hpdebug": "hpdebug",
+	"nig":   "nig", "limparinv": "clearinv", "clearinv": "clearinv",
 	"spk": "spk", "kingdom": "kingdom", "reino": "kingdom", "king": "king", "rei": "king",
 	"criar": "create", "create": "create", "convidar": "invite", "invite": "invite",
 	"aceitar": "accept", "accept": "accept", "sair": "leave", "leave": "leave",
@@ -318,8 +318,6 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		s.Send(wire.MessagePanel(nightmareTimeMessage(w.now())))
 	case "clearinv":
 		w.executeClearInventory(s, p)
-	case "hpdebug":
-		w.dumpHPProjection(s, p)
 	case "spk":
 		w.executeShout(s, p, arg)
 	case "kingdom":

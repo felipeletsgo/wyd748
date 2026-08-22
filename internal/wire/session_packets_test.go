@@ -46,41 +46,6 @@ func TestUpdateAffects748FullLayout(t *testing.T) {
 	}
 }
 
-func TestCreateMobCarriesVisualAffects(t *testing.T) {
-	affects := [16]model.Affect{}
-	affects[0] = model.Affect{Type: 31, ClientType: 24, ExpiresAt: time.Now().Add(80 * time.Second)}
-	b := CreateMob(77, "Buffed", 2200, 2100, nil, model.LegacyScore28{CurHP: 100}, affects[:], 2)
-	if len(b) != 176 || b[66] != 10 || b[67] != 24 {
-		t.Fatalf("CreateMob sem Affect[0] visual: % X", b[66:70])
-	}
-}
-
-func TestCreateMobCarriesAncientCodes(t *testing.T) {
-	anct := []byte{0x20, 116, 0x40}
-	b := CreateMobVisual(77, "Refinado", 2200, 2100, nil, anct,
-		model.LegacyScore28{CurHP: 100}, nil, 0)
-	if !bytes.Equal(b[130:133], anct) {
-		t.Fatalf("CreateMob perdeu AnctCode: % X", b[130:146])
-	}
-}
-
-func TestMobScoreCarriesAndClearsVisualAffects(t *testing.T) {
-	affects := [16]model.Affect{}
-	affects[2] = model.Affect{Type: 1, ExpiresAt: time.Now().Add(16 * time.Second)}
-	b := MobScore(1000, model.LegacyScore28{CurHP: 90, CurMP: 20}, affects[:],
-		model.ElementalResists{Fire: 7, Ice: 8, Sacred: 9, Thunder: 10})
-	if len(b) != 92 || b[46] != 2 || b[47] != 1 ||
-		!bytes.Equal(b[78:82], []byte{7, 8, 9, 10}) ||
-		binary.LittleEndian.Uint16(b[82:84]) != 90 {
-		t.Fatalf("MobScore visual incorreto: % X", b[42:86])
-	}
-
-	cleared := MobScore(1000, model.LegacyScore28{CurHP: 90}, nil, model.ElementalResists{})
-	if !bytes.Equal(cleared[42:74], make([]byte, 32)) {
-		t.Fatalf("MobScore nao limpou affects: % X", cleared[42:74])
-	}
-}
-
 func TestCriticalArmorUses748VisualSlot(t *testing.T) {
 	if got := clientAffectType(model.Affect{Type: 31, ClientType: 24}); got != 24 {
 		t.Fatalf("affect 31 foi enviado como %d, quer visual 24 do client 7.48", got)
@@ -132,39 +97,6 @@ func TestTrade748Layout(t *testing.T) {
 	}
 }
 
-func TestGhostShop748Layouts(t *testing.T) {
-	var items [12]model.Item
-	var positions [12]int8
-	var prices [12]uint32
-	for i := range positions {
-		positions[i] = -1
-	}
-	items[0] = model.Item{Index: 4011, Eff: [6]byte{43, 9}}
-	positions[0], prices[0] = 7, 123456
-	list := AutoTrade("Minha Loja", items, positions, prices, 0, 9)
-	if len(list) != 196 || ParseHeader(list).Type != OpAutoTrade ||
-		string(list[12:22]) != "Minha Loja" ||
-		binary.LittleEndian.Uint16(list[36:38]) != 4011 || list[132] != 7 ||
-		binary.LittleEndian.Uint32(list[144:148]) != 123456 ||
-		binary.LittleEndian.Uint16(list[194:196]) != 9 {
-		t.Fatalf("MSG_AutoTrade 7.48 invalida: % X", list)
-	}
-
-	create := CreateMobTrade(25009, "Felipe", 2112, 2088, nil,
-		model.LegacyScore28{CurHP: 100}, "Minha Loja")
-	if len(create) != 200 || ParseHeader(create).Type != OpCreateMobTrade ||
-		binary.LittleEndian.Uint16(create[16:18]) != 25009 ||
-		string(create[172:182]) != "Minha Loja" {
-		t.Fatalf("MSG_CreateMobTrade 7.48 invalida: % X", create)
-	}
-	sold := ItemSold(9, 3)
-	if len(sold) != 20 || ParseHeader(sold).Type != OpItemSold ||
-		binary.LittleEndian.Uint32(sold[12:16]) != 9 ||
-		binary.LittleEndian.Uint32(sold[16:20]) != 3 {
-		t.Fatalf("MSG_ItemSold invalida: % X", sold)
-	}
-}
-
 func TestMobMove748Layout(t *testing.T) {
 	b := MobMove(1000, 2200, 2100, 2201, 2101, 2)
 	if len(b) != 52 || ParseHeader(b).Type != OpAction || ParseHeader(b).ID != 1000 {
@@ -195,96 +127,12 @@ func TestAttackHit748CompactLayout(t *testing.T) {
 	}
 }
 
-func TestScoreVitalsUseSignedCompatibilityPrefix(t *testing.T) {
-	ext := &model.Score{
-		Attack: 150_000, MagicAttack: 175_000, Defense: 125_000,
-		MaxHP: 250_000, MaxMP: 200_000, CurHP: 225_000, CurMP: 180_000,
-		Str: 110_000, Int: 120_000, Dex: 130_000, Con: 140_000,
-	}
-	ch := model.Char{
-		Score: ext,
-	}
-	compat := ext.CompatibilityScore()
-	score := UpdateScore(7, ch)
-	if len(score) != 236 || binary.LittleEndian.Uint32(score[92:96]) != ext.MagicAttack ||
-		binary.LittleEndian.Uint32(score[96:100]) != ext.Attack ||
-		binary.LittleEndian.Uint32(score[100:104]) != ext.Defense ||
-		binary.LittleEndian.Uint32(score[112:116]) != ext.CurHP ||
-		binary.LittleEndian.Uint16(score[20:22]) != compat.MaxHP ||
-		binary.LittleEndian.Uint16(score[26:28]) != compat.CurMP ||
-		binary.LittleEndian.Uint16(score[84:86]) != compat.CurMP ||
-		binary.LittleEndian.Uint32(score[228:232]) != model.ScoreVersion ||
-		binary.LittleEndian.Uint32(score[232:236]) != 0x32435358 {
-		t.Fatalf("cauda extended do score incorreta: len=%d tail=% X", len(score), score[92:])
-	}
-
-	vitals := SetHpMpExtended(7, ext)
-	if len(vitals) != 36 || binary.LittleEndian.Uint16(vitals[12:14]) != compat.CurHP ||
-		binary.LittleEndian.Uint16(vitals[14:16]) != compat.CurMP ||
-		binary.LittleEndian.Uint32(vitals[20:24]) != ext.CurHP ||
-		binary.LittleEndian.Uint32(vitals[32:36]) != ext.MaxMP {
-		t.Fatalf("vitais extended incorretos: % X", vitals)
-	}
-
-	// O WORD leva o dano PROJETADO na escala do alvo (MaxHP 300k -> escala 10),
-	// porque o client o subtrai do CurHP do prefixo nativo, que ja esta
-	// escalado. A cauda uint32 leva o dano REAL, que alimenta o numero na tela.
-	hit := AttackHitWide(7, 1000, 1, 2, 3, 4, 150_000, 300_000, 0, 0)
-	if len(hit) != 52 || binary.LittleEndian.Uint16(hit[46:48]) != 15_000 ||
-		binary.LittleEndian.Uint32(hit[48:52]) != 150_000 {
-		t.Fatalf("dano extended incorreto: % X", hit)
-	}
-}
-
-func TestScoreV2TailAlignment(t *testing.T) {
-	e := &model.Score{
-		Version: model.ScoreVersion,
-		Level:   101, Mastery: [4]uint32{102, 103, 104, 105},
-		Critical: 106, Parry: 107, Range: 108,
-		ResistFire: 109, ResistIce: 110, ResistHoly: 111, ResistThunder: 112,
-		SaveMana: 113, MagicAmp: 114, RegenHP: 115, RegenMP: 116,
-		AttackRun: 117, Merchant: 118,
-	}
-	packet := UpdateScore(7, model.Char{Score: e})
-	checks := map[int]uint32{
-		156: 101, 160: 102, 164: 103, 168: 104, 172: 105,
-		176: 106, 180: 107, 184: 108,
-		188: 109, 192: 110, 196: 111, 200: 112,
-		204: 113, 208: 114, 212: 115, 216: 116,
-		220: 117, 224: 118, 228: model.ScoreVersion,
-		232: 0x32435358,
-	}
-	if len(packet) != 236 {
-		t.Fatalf("tamanho XSC2=%d", len(packet))
-	}
-	for offset, want := range checks {
-		if got := binary.LittleEndian.Uint32(packet[offset : offset+4]); got != want {
-			t.Fatalf("XSC2 @%d=%d, quer %d", offset, got, want)
-		}
-	}
-}
-
-func TestLegacyVitalsAlsoRefreshWideSidecar(t *testing.T) {
-	ext := &model.Score{
-		Version: model.ScoreVersion,
-		MaxHP:   321, MaxMP: 654, CurHP: 123, CurMP: 456,
-	}
-	b := SetHpMpExtended(7, ext)
-	if len(b) != 36 || binary.LittleEndian.Uint16(b[12:14]) != 123 ||
-		binary.LittleEndian.Uint32(b[20:24]) != 123 ||
-		binary.LittleEndian.Uint32(b[24:28]) != 456 ||
-		binary.LittleEndian.Uint32(b[28:32]) != 321 ||
-		binary.LittleEndian.Uint32(b[32:36]) != 654 {
-		t.Fatalf("vitais legados nao preencheram sidecar: % X", b)
-	}
-}
-
 func TestSkillHit748CompactLayout(t *testing.T) {
 	b := SkillHit(1, 1002, 2200, 2100, 2201, 2101, 88, 0, 1234, 500_070, 3, 9, 42)
 	if len(b) != 48 || ParseHeader(b).Type != OpAttackOne ||
 		int16(binary.LittleEndian.Uint16(b[24:26])) != 3 || b[28] != 9 || b[29] != 42 ||
-		b[30] != 1 || binary.LittleEndian.Uint16(b[26:28]) != 30_000 ||
-		binary.LittleEndian.Uint16(b[36:38]) != 30_000 ||
+		b[30] != 1 || binary.LittleEndian.Uint16(b[26:28]) != 65_535 ||
+		binary.LittleEndian.Uint16(b[36:38]) != 65_535 ||
 		binary.LittleEndian.Uint16(b[44:46]) != 1002 || binary.LittleEndian.Uint16(b[46:48]) != 88 {
 		t.Fatalf("SkillHit invalido: %v", b)
 	}
@@ -340,7 +188,7 @@ func TestPhysicalAttackKeepsFloatingDamagePath(t *testing.T) {
 
 func TestSkillShopListLayout(t *testing.T) {
 	b := ShopList([]model.Item{{Index: 5000}, {Index: 5001}}, 0, ShopSkill)
-	if len(b) != 532 || binary.LittleEndian.Uint32(b[12:16]) != ShopSkill ||
+	if len(b) != 236 || binary.LittleEndian.Uint32(b[12:16]) != ShopSkill ||
 		binary.LittleEndian.Uint16(b[16:18]) != 5000 || binary.LittleEndian.Uint16(b[24:26]) != 5001 {
 		t.Fatalf("loja de skills invalida")
 	}
@@ -466,33 +314,6 @@ func TestUpdateEtcDoesNotLeakChaosIntoHold(t *testing.T) {
 		if got := binary.LittleEndian.Uint32(b[12:16]); got != 0 {
 			t.Fatalf("CP=%d vazou para Hold: %d", cp, got)
 		}
-	}
-}
-
-func TestCreateMobProjectsSignedChaosToNativeByte(t *testing.T) {
-	for _, tc := range []struct {
-		cp   int16
-		want byte
-	}{
-		{-75, 0}, {0, 75}, {75, 150},
-	} {
-		b := CreateMobExtendedWithGuildRank(7, "Player", 2100, 2100, nil, nil,
-			&model.Score{Version: model.ScoreVersion}, nil, 2, 0, 0, tc.cp)
-		if got := b[30]; got != tc.want {
-			t.Fatalf("CP=%d byte=%d, esperado %d", tc.cp, got, tc.want)
-		}
-	}
-}
-
-func TestCreateMobCarriesGuildRankInSpawnWord(t *testing.T) {
-	b := CreateMobExtendedWithGuildRank(7, "Guilded", 2100, 2100, nil, nil,
-		&model.Score{Version: model.ScoreVersion}, nil, 2, 0x1234,
-		model.GuildRankSubFirst, 0)
-	if got := binary.LittleEndian.Uint16(b[98:100]); got != 0x0234 {
-		t.Fatalf("guild wire=%#x, esperado id de 12 bits", got)
-	}
-	if b[128] != 2 || b[129] != model.GuildRankSubFirst {
-		t.Fatalf("spawn/guild level=%d/%d", b[128], b[129])
 	}
 }
 

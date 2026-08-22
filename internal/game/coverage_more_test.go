@@ -319,23 +319,6 @@ func TestWhisperMailPartyChatAndCharacterInfo(t *testing.T) {
 	}
 }
 
-func TestDeathLetterAndHPDebugProduceClientFeedback(t *testing.T) {
-	victim, session := networkedTestPlayer(1, "Victim", 2100, 2100)
-	w := worldWithNetworkedPlayers(victim)
-	w.receiveDeathLetter(victim, "Gremlin", "mob")
-	if session.QueuedPacketsForTest() != 1 {
-		t.Fatalf("carta de morte nao enviada: %d", session.QueuedPacketsForTest())
-	}
-	w.receiveDeathLetter(nil, "Gremlin", "mob")
-	w.receiveDeathLetter(victim, "", "mob")
-
-	w.dumpHPProjection(session, victim)
-	if session.QueuedPacketsForTest() != 5 {
-		t.Fatalf("hpdebug deveria acrescentar quatro mensagens, fila=%d", session.QueuedPacketsForTest())
-	}
-	w.dumpHPProjection(session, nil)
-}
-
 func TestNPCInteractionResolutionAndMessages(t *testing.T) {
 	p, _ := networkedTestPlayer(1, "Player", 100, 100)
 	npc := &Mob{ID: 1000, X: 102, Y: 100, Def: &model.NPCDef{Name: "Merchant"}}
