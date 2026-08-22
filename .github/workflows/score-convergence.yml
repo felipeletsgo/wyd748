@@ -92,13 +92,13 @@ jobs:
         run: |
           $log = if (Test-Path score-convergence-run.log) { Get-Content score-convergence-run.log -Raw } else { "No command output was captured." }
           $outcomes = @"
-          migrate=$(${{ steps.migrate.outcome }})
-          format=$(${{ steps.format.outcome }})
-          test=$(${{ steps.test.outcome }})
-          vet=$(${{ steps.vet.outcome }})
-          server=$(${{ steps.server.outcome }})
-          client=$(${{ steps.client.outcome }})
-          whitespace=$(${{ steps.whitespace.outcome }})
+          migrate=${{ steps.migrate.outcome }}
+          format=${{ steps.format.outcome }}
+          test=${{ steps.test.outcome }}
+          vet=${{ steps.vet.outcome }}
+          server=${{ steps.server.outcome }}
+          client=${{ steps.client.outcome }}
+          whitespace=${{ steps.whitespace.outcome }}
           "@
           git reset --hard HEAD
           @"
