@@ -69,4 +69,9 @@ text = text.replace(old, new)
 text = text.replace("extended=%+v", "score=%+v")
 path.write_text(text, encoding="utf-8", newline="\n")
 
+# Compile-stage regressions from the removed score adapters are handled in a
+# separate idempotent pass but chained here so the existing workflow trigger
+# continues to materialize everything directly on main.
+exec((root / "scripts/single_score_compile_repairs.py").read_text(encoding="utf-8"), {})
+
 print("obsolete score compatibility tests removed")
