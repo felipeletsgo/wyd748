@@ -1126,7 +1126,7 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 
 				if (pKilled)
 				{
-					pKilled->m_stScore.Hp = 0;
+					pKilled->m_stScore.CurHP = 0;
 					pKilled->Die();
 				}
 

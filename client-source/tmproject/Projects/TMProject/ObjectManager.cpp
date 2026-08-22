@@ -50,9 +50,9 @@ ObjectManager::ObjectManager()
 	memset(&m_stMobData, 0, sizeof(m_stMobData));
 	// Wide counters are initialized independently because they deliberately do
 	// not participate in STRUCT_MOB's legacy memset/copy ABI.
-	m_dwScoreBonus = 0;
-	m_dwSpecialBonus = 0;
-	m_dwSkillBonus = 0;
+	m_stMobData.CurrentScore.StatusPts = 0;
+	m_stMobData.CurrentScore.MasterPts = 0;
+	m_stMobData.CurrentScore.SkillPts = 0;
 	memset(m_stCapsuleInfo, 0, sizeof(m_stCapsuleInfo));
 	memset(m_strGuildName, 0, sizeof(m_strGuildName));
 

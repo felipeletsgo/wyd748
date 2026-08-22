@@ -640,20 +640,20 @@ void TMFieldScene::UpdateCompatScoreUI()
 	m_pDefence = static_cast<SText*>(m_pControlContainer->FindControl(TMT_DEF_C));
 	m_pMoney1 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_MONEY_TEXT));
 
-	if (pMobData->CurrentScore.Hp > pMobData->CurrentScore.MaxHp)
-		pMobData->CurrentScore.Hp = pMobData->CurrentScore.MaxHp;
-	if (pMobData->CurrentScore.Mp > pMobData->CurrentScore.MaxMp)
-		pMobData->CurrentScore.Mp = pMobData->CurrentScore.MaxMp;
+	if (pMobData->CurrentScore.CurHP > pMobData->CurrentScore.MaxHP)
+		pMobData->CurrentScore.CurHP = pMobData->CurrentScore.MaxHP;
+	if (pMobData->CurrentScore.CurMP > pMobData->CurrentScore.MaxMP)
+		pMobData->CurrentScore.CurMP = pMobData->CurrentScore.MaxMP;
 
 	if (m_pHPBar)
 	{
-		m_pHPBar->SetMaxProgress(pMobData->CurrentScore.MaxHp);
-		m_pHPBar->SetCurrentProgress(pMobData->CurrentScore.Hp);
+		m_pHPBar->SetMaxProgress(pMobData->CurrentScore.MaxHP);
+		m_pHPBar->SetCurrentProgress(pMobData->CurrentScore.CurHP);
 	}
 	if (m_pMPBar)
 	{
-		m_pMPBar->SetMaxProgress(pMobData->CurrentScore.MaxMp);
-		m_pMPBar->SetCurrentProgress(pMobData->CurrentScore.Mp);
+		m_pMPBar->SetMaxProgress(pMobData->CurrentScore.MaxMP);
+		m_pMPBar->SetCurrentProgress(pMobData->CurrentScore.CurMP);
 	}
 
 	auto setNumber = [this](unsigned int controlID, long long value)
@@ -666,14 +666,14 @@ void TMFieldScene::UpdateCompatScoreUI()
 		}
 	};
 
-	setNumber(TMT_CURRENT_HP, pMobData->CurrentScore.Hp);
-	setNumber(TMT_MAX_HP, pMobData->CurrentScore.MaxHp);
-	setNumber(TMT_CURRENT_MP, pMobData->CurrentScore.Mp);
-	setNumber(TMT_MAX_MP, pMobData->CurrentScore.MaxMp);
-	setNumber(TMT_ATT_C, pMobData->CurrentScore.Damage);
-	setNumber(TMT_ATT, pMobData->CurrentScore.Damage);
-	setNumber(TMT_DEF_C, pMobData->CurrentScore.Ac);
-	setNumber(TMT_DEF, pMobData->CurrentScore.Ac);
+	setNumber(TMT_CURRENT_HP, pMobData->CurrentScore.CurHP);
+	setNumber(TMT_MAX_HP, pMobData->CurrentScore.MaxHP);
+	setNumber(TMT_CURRENT_MP, pMobData->CurrentScore.CurMP);
+	setNumber(TMT_MAX_MP, pMobData->CurrentScore.MaxMP);
+	setNumber(TMT_ATT_C, pMobData->CurrentScore.Attack);
+	setNumber(TMT_ATT, pMobData->CurrentScore.Attack);
+	setNumber(TMT_DEF_C, pMobData->CurrentScore.Defense);
+	setNumber(TMT_DEF, pMobData->CurrentScore.Defense);
 	setNumber(TMT_EXP_C, pMobData->Exp);
 	setNumber(TMT_MONEY_C, pMobData->Coin);
 	setNumber(TMT_MONEY, pMobData->Coin);
@@ -689,21 +689,21 @@ void TMFieldScene::UpdateCompatScoreUI()
 	setNumber(TMT_CI_INT, pMobData->CurrentScore.Int);
 	setNumber(TMT_CI_DEX, pMobData->CurrentScore.Dex);
 	setNumber(TMT_CI_CON, pMobData->CurrentScore.Con);
-	setNumber(TMT_CI_SCOREPOINT, g_pObjectManager->m_dwScoreBonus);
-	setNumber(TMT_CI_HP, pMobData->CurrentScore.Hp);
-	setNumber(TMT_CI_MP, pMobData->CurrentScore.Mp);
-	setNumber(TMT_CI_ATT, pMobData->CurrentScore.Damage);
-	setNumber(TMT_CI_DFE, pMobData->CurrentScore.Ac);
+	setNumber(TMT_CI_SCOREPOINT, g_pObjectManager->m_stMobData.CurrentScore.StatusPts);
+	setNumber(TMT_CI_HP, pMobData->CurrentScore.CurHP);
+	setNumber(TMT_CI_MP, pMobData->CurrentScore.CurMP);
+	setNumber(TMT_CI_ATT, pMobData->CurrentScore.Attack);
+	setNumber(TMT_CI_DFE, pMobData->CurrentScore.Defense);
 	setNumber(TMT_CI_SPEED, pMobData->CurrentScore.AttackRun & 0x0F);
 	setNumber(TMT_CI_HOLY, pMobData->Resist[2]);
 	setNumber(TMT_CI_THUNDER, pMobData->Resist[3]);
 	setNumber(TMT_CI_FIRE, pMobData->Resist[0]);
 	setNumber(TMT_CI_ICE, pMobData->Resist[1]);
-	setNumber(TMT_CI_SPECIAL1, pMobData->CurrentScore.Special[0]);
-	setNumber(TMT_CI_SPECIAL2, pMobData->CurrentScore.Special[1]);
-	setNumber(TMT_CI_SPECIAL3, pMobData->CurrentScore.Special[2]);
-	setNumber(TMT_CI_SPECIAL4, pMobData->CurrentScore.Special[3]);
-	setNumber(TMT_CI_SPECIALPOINT, g_pObjectManager->m_dwSpecialBonus);
+	setNumber(TMT_CI_SPECIAL1, pMobData->CurrentScore.Mastery[0]);
+	setNumber(TMT_CI_SPECIAL2, pMobData->CurrentScore.Mastery[1]);
+	setNumber(TMT_CI_SPECIAL3, pMobData->CurrentScore.Mastery[2]);
+	setNumber(TMT_CI_SPECIAL4, pMobData->CurrentScore.Mastery[3]);
+	setNumber(TMT_CI_SPECIALPOINT, g_pObjectManager->m_stMobData.CurrentScore.MasterPts);
 
 	auto setCompatText = [this](unsigned int controlID, const char* value)
 	{
@@ -729,7 +729,7 @@ void TMFieldScene::UpdateCompatScoreUI()
 
 	// Attack speed and critical are presentation formulas from the source
 	// client; the server remains authoritative for hit cadence and damage.
-	int attackSpeed = (pMobData->CurrentScore.Special[2] / 10 + 10)
+	int attackSpeed = (pMobData->CurrentScore.Mastery[2] / 10 + 10)
 		* (m_pMyHuman ? m_pMyHuman->m_cSpeedUp - m_pMyHuman->m_cSpeedDown : 0)
 		+ pMobData->CurrentScore.Dex / 5 + BASE_GetMobAbility(pMobData, 26) + 100;
 	char percent[32]{};
@@ -959,7 +959,7 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 	}
 	if (g_pCursor && g_pCursor->m_pAttachedItem)
 		return 1;
-	if (g_pObjectManager->m_stMobData.CurrentScore.Hp <= 0 || m_pMyHuman->m_cCantMove)
+	if (g_pObjectManager->m_stMobData.CurrentScore.CurHP <= 0 || m_pMyHuman->m_cCantMove)
 		return 1;
 
 	const int screenWidth = static_cast<int>(g_pDevice->m_dwScreenWidth - g_pDevice->m_nWidthShift);
@@ -1281,7 +1281,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 		static_cast<float>(pMobData->HomeTownY) + 0.5f};
 	const float selfHeight = m_pGround->GetHeight(selfPosition);
 	m_pMyHuman->InitPosition(selfPosition.x, selfHeight, selfPosition.y);
-	m_pMyHuman->m_cHide = (m_pMyHuman->m_dwID < 1000) && (m_pMyHuman->m_stScore.Reserved & 1);
+	m_pMyHuman->m_cHide = (m_pMyHuman->m_dwID < 1000) && (m_pMyHuman->m_stScore.Merchant & 1);
 	if (m_pHumanContainer)
 		m_pHumanContainer->AddChild(m_pMyHuman);
 	if (g_pObjectManager->m_pCamera)
@@ -3429,7 +3429,7 @@ int TMFieldScene::InitializeScene()
 
 	SetSanc();
 
-	m_pMyHuman->m_cHide = (m_pMyHuman->m_dwID >= 0 && m_pMyHuman->m_dwID < 1000) == 1 && m_pMyHuman->m_stScore.Reserved & 1;
+	m_pMyHuman->m_cHide = (m_pMyHuman->m_dwID >= 0 && m_pMyHuman->m_dwID < 1000) == 1 && m_pMyHuman->m_stScore.Merchant & 1;
 	m_pHumanContainer->AddChild(m_pMyHuman);
 
 	auto pSoundManager = g_pSoundManager;
@@ -6646,8 +6646,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stReqParty.Leader.Class = m_pMyHuman->m_nSkinMeshType - 1;
 			stReqParty.Leader.PartyIndex = 0;
 			stReqParty.Leader.Level = m_pMyHuman->m_stScore.Level;
-			stReqParty.Leader.Hp = m_pMyHuman->m_stScore.Hp;
-			stReqParty.Leader.MaxHp = m_pMyHuman->m_stScore.MaxHp;
+			stReqParty.Leader.Hp = m_pMyHuman->m_stScore.CurHP;
+			stReqParty.Leader.MaxHP = m_pMyHuman->m_stScore.MaxHP;
 			stReqParty.Leader.ID = m_pMyHuman->m_dwID;
 			sprintf(stReqParty.Leader.Name, "%s", m_pMyHuman->m_szName);
 			stReqParty.TargetID = m_dwOpID;
@@ -7002,7 +7002,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			return 1;
 		// Point-button gates use the uint32 sidecars populated by 0x337; relying
 		// on STRUCT_MOB shorts would disable allocation after 32767 points.
-		if (g_pObjectManager->m_dwScoreBonus == 0)
+		if (g_pObjectManager->m_stMobData.CurrentScore.StatusPts == 0)
 			return 0;
 
 		MSG_ApplyBonus stApplyBonus{};
@@ -7017,7 +7017,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 		if (m_pMyHuman->m_cDie == 1)
 			return 1;
-		if (g_pObjectManager->m_dwScoreBonus == 0)
+		if (g_pObjectManager->m_stMobData.CurrentScore.StatusPts == 0)
 			return 0;
 
 		MSG_ApplyBonus stApplyBonus{};
@@ -7032,7 +7032,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 		if (m_pMyHuman->m_cDie == 1)
 			return 1;
-		if (g_pObjectManager->m_dwScoreBonus == 0)
+		if (g_pObjectManager->m_stMobData.CurrentScore.StatusPts == 0)
 			return 0;
 
 		MSG_ApplyBonus stApplyBonus{};
@@ -7047,7 +7047,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 		if (m_pMyHuman->m_cDie == 1)
 			return 1;
-		if (g_pObjectManager->m_dwScoreBonus == 0)
+		if (g_pObjectManager->m_stMobData.CurrentScore.StatusPts == 0)
 			return 0;
 
 		MSG_ApplyBonus stApplyBonus{};
@@ -7063,7 +7063,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (m_pMyHuman->m_cDie == 1)
 			return 1;
 		// Mastery allocation follows the same wide-counter contract as status.
-		if (g_pObjectManager->m_dwSpecialBonus == 0)
+		if (g_pObjectManager->m_stMobData.CurrentScore.MasterPts == 0)
 			return 0;
 
 		int totalSpecial = 0;
@@ -7084,7 +7084,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			totalSpecial = 230;
 		}
 
-		if (pMobData->CurrentScore.Special[0] < totalSpecial)
+		if (pMobData->CurrentScore.Mastery[0] < totalSpecial)
 		{
 			MSG_ApplyBonus stApplyBonus{};
 			stApplyBonus.Header.ID = m_pMyHuman->m_dwID;
@@ -7104,7 +7104,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 		if (m_pMyHuman->m_cDie == 1)
 			return 1;
-		if (g_pObjectManager->m_dwSpecialBonus == 0)
+		if (g_pObjectManager->m_stMobData.CurrentScore.MasterPts == 0)
 			return 0;
 
 		int totalSpecial = 0;
@@ -7129,7 +7129,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			totalSpecial = 200;
 		}
 
-		if (pMobData->CurrentScore.Special[1] < totalSpecial)
+		if (pMobData->CurrentScore.Mastery[1] < totalSpecial)
 		{
 			MSG_ApplyBonus stApplyBonus{};
 			stApplyBonus.Header.ID = m_pMyHuman->m_dwID;
@@ -7149,7 +7149,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 		if (m_pMyHuman->m_cDie == 1)
 			return 1;
-		if (g_pObjectManager->m_dwSpecialBonus == 0)
+		if (g_pObjectManager->m_stMobData.CurrentScore.MasterPts == 0)
 			return 0;
 
 		int totalSpecial = 0;
@@ -7170,7 +7170,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			totalSpecial = 200;
 		}
 
-		if (pMobData->CurrentScore.Special[2] < totalSpecial)
+		if (pMobData->CurrentScore.Mastery[2] < totalSpecial)
 		{
 			MSG_ApplyBonus stApplyBonus{};
 			stApplyBonus.Header.ID = m_pMyHuman->m_dwID;
@@ -7190,7 +7190,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 		if (m_pMyHuman->m_cDie == 1)
 			return 1;
-		if (g_pObjectManager->m_dwSpecialBonus == 0)
+		if (g_pObjectManager->m_stMobData.CurrentScore.MasterPts == 0)
 			return 0;
 
 		int totalSpecial = 3 * (pMobData->CurrentScore.Level + 1) / 2;
@@ -7209,7 +7209,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			totalSpecial = 200;
 		}
 
-		if (pMobData->CurrentScore.Special[3] < totalSpecial)
+		if (pMobData->CurrentScore.Mastery[3] < totalSpecial)
 		{
 			MSG_ApplyBonus stApplyBonus{};
 			stApplyBonus.Header.ID = m_pMyHuman->m_dwID;
@@ -7280,9 +7280,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			int Special = m_pMyHuman->m_stScore.Level;
 			int classId = skillId - 24 * g_pObjectManager->m_stMobData.Class;
 			if (skillId < 96)
-				Special = g_pObjectManager->m_stMobData.CurrentScore.Special[classId / 8 + 1];
+				Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[classId / 8 + 1];
 
-			if (BASE_GetManaSpent(skillId, g_pObjectManager->m_stMobData.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.Mp)
+			if (BASE_GetManaSpent(skillId, g_pObjectManager->m_stMobData.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 			{
 				auto ipNewItem = new SListBoxItem(g_pMessageStringTable[30],
 					0xFFFFAAAA,
@@ -7694,7 +7694,7 @@ int TMFieldScene::OnCharEvent(char iCharCode, int lParam)
 	if (OnKeyFeedMount(iCharCode, lParam))
 		return 1;
 
-	if (g_pObjectManager->m_stMobData.CurrentScore.Hp > 0)
+	if (g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
 	{
 		if (OnKeyHPotion(iCharCode, lParam))
 			return 1;
@@ -8069,7 +8069,7 @@ int TMFieldScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 
 	if (m_pMessageBox->m_bVisible == 1 && 
 		m_pMessageBox->m_dwMessage == 99 &&
-		g_pObjectManager->m_stMobData.CurrentScore.Hp > 0 &&
+		g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0 &&
 		!m_pMyHuman->m_cDie)
 	{
 		m_pMessageBox->SetVisible(0);
@@ -8079,7 +8079,7 @@ int TMFieldScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 
 	if (m_cResurrect ||
 		pMobData->Equip[13].sIndex == 769 ||
-		g_pObjectManager->m_stMobData.CurrentScore.Hp > 0 && m_pMyHuman->m_cDie != 1 ||
+		g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0 && m_pMyHuman->m_cDie != 1 ||
 		dwFlags != 516 ||
 		wParam & 8 ||
 		nX <= 0 ||
@@ -8087,7 +8087,7 @@ int TMFieldScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 		nX >= static_cast<int>(g_pDevice->m_dwScreenWidth - g_pDevice->m_nWidthShift) ||
 		nY >= static_cast<int>(g_pDevice->m_dwScreenHeight - g_pDevice->m_nHeightShift))
 	{
-		if ((g_pObjectManager->m_stMobData.CurrentScore.Hp <= 0 || m_pMyHuman->m_cDie == 1)
+		if ((g_pObjectManager->m_stMobData.CurrentScore.CurHP <= 0 || m_pMyHuman->m_cDie == 1)
 			&& dwFlags == 513
 			&& !m_pMyHuman->m_sFamCount)
 		{
@@ -8155,7 +8155,7 @@ int TMFieldScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 			m_cLastFlagLButtonUp = 0;
 		}
 
-		if (g_pObjectManager->m_stMobData.CurrentScore.Hp > 0)
+		if (g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
 		{
 			int SWidth = g_pDevice->m_dwScreenWidth - g_pDevice->m_nWidthShift;
 			int SHeight = g_pDevice->m_dwScreenHeight - g_pDevice->m_nHeightShift;
@@ -8701,7 +8701,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	}
 
 	if (m_pMessagePanel && m_pMessageBox->m_dwMessage == 11 && m_pMessageBox->IsVisible() == 1 && 
-		g_pObjectManager->m_stMobData.CurrentScore.Hp > 0)
+		g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
 	{
 		m_pMessageBox->SetVisible(0);
 	}
@@ -9253,7 +9253,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 			m_dwAffectBlinkTime[i] = 0;
 		}
 	}
-	if (g_pObjectManager->m_stMobData.CurrentScore.Hp > 0 && m_bAutoRun && !g_pCursor->m_pAttachedItem)
+	if (g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0 && m_bAutoRun && !g_pCursor->m_pAttachedItem)
 	{
 		TMVector2 vec = m_pMyHuman->m_vecPosition;
 		float fDir = 1.0f;
@@ -10094,7 +10094,7 @@ int TMFieldScene::OnAccel(int nMsg)
 	case 40095:
 		return OnKeyVisibleParty(112, 0);
 	}
-	if (g_pObjectManager->m_stMobData.CurrentScore.Hp > 0)
+	if (g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
 	{
 		switch (nMsg)
 		{
@@ -10213,7 +10213,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 	if (!pOver || pOver->m_bMouseOver != 1)
 	{
 		if (dwServerTime - m_dwLastMouseDownTime > 1000 &&
-			m_dwLastMouseDownTime && !m_pMyHuman->m_cLastMoveStop && m_pMyHuman->m_stScore.Hp > 0)
+			m_dwLastMouseDownTime && !m_pMyHuman->m_cLastMoveStop && m_pMyHuman->m_stScore.CurHP > 0)
 		{
 			MobStop(vec);
 		}
@@ -10245,7 +10245,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 		(int)m_pMyHuman->m_vecPosition.y >> 7 == 28)
 		return 1;
 
-	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Reserved & 0xF) == 1)
+	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 1)
 	{
 		if (!m_pShopPanel->IsVisible())
 		{
@@ -10275,12 +10275,12 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 		}
 		return 1;
 	}
-	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Reserved & 0xF) == 3)
+	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 3)
 	{
 		MouseClick_SkillMasterNPC(dwServerTime, pOver);
 		return 1;
 	}
-	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Reserved & 0xF) == 3)
+	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 3)
 	{
 		if (!m_pShopPanel->IsVisible())
 		{
@@ -10311,7 +10311,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 		return 1;
 	}
 
-	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Reserved & 0xF) == 2 && pOver->m_sHeadIndex != 51)
+	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 2 && pOver->m_sHeadIndex != 51)
 	{
 		if (!m_pCargoPanel->IsVisible())
 		{
@@ -10355,7 +10355,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 
 		if (pOver->m_dwID >= 1000 &&
 			pOver->m_sHeadIndex == 63 &&
-			(pOver->m_stScore.Reserved & 0xF) == 7 &&
+			(pOver->m_stScore.Merchant & 0xF) == 7 &&
 			m_pGround->m_vecOffsetIndex.x == 16 &&
 			m_pGround->m_vecOffsetIndex.y == 16)
 		{
@@ -10363,13 +10363,13 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 			return 1;
 		}
 
-		if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Reserved & 0xF) == 4 || (pOver->m_stScore.Reserved & 0xF) >= 8 && (pOver->m_stScore.Reserved & 0xF) <= 15)
+		if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 4 || (pOver->m_stScore.Merchant & 0xF) >= 8 && (pOver->m_stScore.Merchant & 0xF) <= 15)
 		{
 			MouseClick_QuestNPC(dwServerTime, pOver);
 			return 1;
 		}
 
-		if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Reserved & 0xF) >= 6 && (pOver->m_stScore.Reserved & 0xF) <= 8)
+		if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) >= 6 && (pOver->m_stScore.Merchant & 0xF) <= 8)
 		{
 			MSG_STANDARDPARM stPacket{};
 
@@ -10599,10 +10599,10 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 	{
 		int nSpecial = m_pMyHuman->m_stScore.Level;
 		if ((unsigned char)cSkillIndex < 96)
-			nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Special[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
+			nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
 		auto pChatList = m_pChatList;
-		if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, nSpecial) > g_pObjectManager->m_stMobData.CurrentScore.Mp)
+		if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, nSpecial) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 		{
 			auto ipNewItem = new SListBoxItem(g_pMessageStringTable[30],
 				0xFFFFAAAA,
@@ -10620,7 +10620,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 			GetSoundAndPlay(33, 0, 0);
 			return 0;
 		}
-		if (cSkillIndex == 85 && (100 * m_pMyHuman->m_stScore.Special[2]) > g_pObjectManager->m_stMobData.Coin)
+		if (cSkillIndex == 85 && (100 * m_pMyHuman->m_stScore.Mastery[2]) > g_pObjectManager->m_stMobData.Coin)
 		{
 			auto ipNewItem = new SListBoxItem(g_pMessageStringTable[155],
 				0xFFFFAAAA,
@@ -10675,7 +10675,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 
 			float fMyAngle = atan2f(vec.x - m_pMyHuman->m_vecPosition.x, vec.z - m_pMyHuman->m_vecPosition.y);
 
-			int nMastery = m_pMyHuman->m_stScore.Special[3] / 75;
+			int nMastery = m_pMyHuman->m_stScore.Mastery[3] / 75;
 			if (nMastery > 3)
 				nMastery = 3;
 
@@ -11391,7 +11391,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 			}
 			if (cSkillIndex == 73)
 			{
-				if (g_pObjectManager->m_stMobData.CurrentScore.Mp < g_pSpell[73].ManaSpent)
+				if (g_pObjectManager->m_stMobData.CurrentScore.CurMP < g_pSpell[73].ManaSpent)
 					return 1;
 
 				if (dwServerTime - m_pMyHuman->m_dwOldMovePacketTime > 1000)
@@ -11558,9 +11558,9 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 
 	int Special = m_pMyHuman->m_stScore.Level;
 	if ((unsigned char)cSkillIndex < 96)
-		Special = g_pObjectManager->m_stMobData.CurrentScore.Special[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
+		Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.Mp)
+	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 	{
 		auto ipNewItem = new SListBoxItem(g_pMessageStringTable[30],
 			0xFFFFAAAA,
@@ -11673,7 +11673,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 	{
 		return GetItemFromGround(dwServerTime);
 	}
-	if ((pOver->m_stScore.Reserved & 0xF) == 15 && g_pSpell[(unsigned char)cSkillIndex].Aggressive == 1)
+	if ((pOver->m_stScore.Merchant & 0xF) == 15 && g_pSpell[(unsigned char)cSkillIndex].Aggressive == 1)
 	{
 		if (!m_pMyHuman->m_cMantua)
 			return 1;
@@ -12087,9 +12087,9 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 	{
 		int nSpecial = m_pMyHuman->m_stScore.Level;
 		if ((unsigned char)cSkillIndex < 96)
-			nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Special[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
+			nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-		if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, nSpecial) > g_pObjectManager->m_stMobData.CurrentScore.Mp)
+		if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, nSpecial) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 		{
 			auto pChatList = m_pChatList;
 
@@ -12141,7 +12141,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 			float fMyAngle = atan2f(vec.x - m_pMyHuman->m_vecPosition.x,
 				vec.z - m_pMyHuman->m_vecPosition.y);
 
-			int nMastery = m_pMyHuman->m_stScore.Special[3] / 75;
+			int nMastery = m_pMyHuman->m_stScore.Mastery[3] / 75;
 			if (nMastery > 3)
 				nMastery = 3;
 
@@ -12737,9 +12737,9 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 
 	int Special = m_pMyHuman->m_stScore.Level;
 	if ((unsigned char)cSkillIndex < 96)
-		Special = g_pObjectManager->m_stMobData.CurrentScore.Special[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
+		Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.Mp)
+	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.SaveMana, Special) > g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 	{
 		auto ipNewItem = new SListBoxItem(g_pMessageStringTable[30],
 			0xFFFFAAAA,
@@ -12851,7 +12851,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 		return 0;
 	if (pOver->m_TradeDesc[0])
 		return 0;
-	if ((pOver->m_stScore.Reserved & 0xF) == 15 && g_pSpell[(unsigned char)cSkillIndex].Aggressive == 1)
+	if ((pOver->m_stScore.Merchant & 0xF) == 15 && g_pSpell[(unsigned char)cSkillIndex].Aggressive == 1)
 	{
 		if (!m_pMyHuman->m_cMantua)
 			return 0;
@@ -13127,11 +13127,11 @@ int TMFieldScene::CheckMerchant(TMHuman* pOver)
 
 	if (pOver->m_TradeDesc[0])
 		return 1;
-	if ((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Reserved & 0xF) == 1)
+	if ((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Merchant & 0xF) == 1)
 		return 1;
-	if ((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Reserved & 0xF) == 2)
+	if ((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Merchant & 0xF) == 2)
 		return 1;
-	if ((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Reserved & 0xF) == 3)
+	if ((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Merchant & 0xF) == 3)
 		return 1;
 	if ((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && pOver->m_sHeadIndex == 67 && m_pGround->m_vecOffsetIndex.x == 13 && m_pGround->m_vecOffsetIndex.y == 13)
 		return 1;
@@ -13149,10 +13149,10 @@ int TMFieldScene::CheckMerchant(TMHuman* pOver)
 		return 1;
 
 
-	if (((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Reserved & 0xF) == 4) ||
-		(pOver->m_stScore.Reserved & 0xF) >= 8 && (pOver->m_stScore.Reserved & 0xF) <= 15)
+	if (((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Merchant & 0xF) == 4) ||
+		(pOver->m_stScore.Merchant & 0xF) >= 8 && (pOver->m_stScore.Merchant & 0xF) <= 15)
 	{
-		if ((pOver->m_stScore.Reserved & 0xF) == 15)
+		if ((pOver->m_stScore.Merchant & 0xF) == 15)
 		{
 			if (!m_pMyHuman->IsInTown())
 			{
@@ -13175,15 +13175,15 @@ int TMFieldScene::CheckMerchant(TMHuman* pOver)
 			}
 		}
 
-		if ((pOver->m_stScore.Reserved & 0xF) == 13)
+		if ((pOver->m_stScore.Merchant & 0xF) == 13)
 			return 1;
-		if ((pOver->m_stScore.Reserved & 0xF) == 14)
+		if ((pOver->m_stScore.Merchant & 0xF) == 14)
 			return 1;
 
 		return 1;
 	}
 
-	if ((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Reserved & 0xF) >= 6 && (pOver->m_stScore.Reserved & 0xF) <= 8)
+	if ((pOver->m_dwID < 0 || pOver->m_dwID >= 1000) && (pOver->m_stScore.Merchant & 0xF) >= 6 && (pOver->m_stScore.Merchant & 0xF) <= 8)
 		return 1;
 
 	return 0;
@@ -13253,7 +13253,7 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 			if (pOver->IsMerchant())
 				return 0;
 
-			if ((pOver->m_stScore.Reserved & 0xF) == 15)
+			if ((pOver->m_stScore.Merchant & 0xF) == 15)
 			{
 				if (!m_pMyHuman->m_cMantua || m_pMyHuman->m_cMantua == 3)
 					return 0;
@@ -15426,32 +15426,32 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 		m_pHPBar->Update();
 	}
 
-	if (pMobData->CurrentScore.Hp > pMobData->CurrentScore.MaxHp)
-		pMobData->CurrentScore.Hp = pMobData->CurrentScore.MaxHp;
+	if (pMobData->CurrentScore.CurHP > pMobData->CurrentScore.MaxHP)
+		pMobData->CurrentScore.CurHP = pMobData->CurrentScore.MaxHP;
 
 	if (m_pHPBar)
-		m_pHPBar->SetMaxProgress(pMobData->CurrentScore.MaxHp);
+		m_pHPBar->SetMaxProgress(pMobData->CurrentScore.MaxHP);
 
 	if (m_pHPBar)
-		m_pHPBar->SetCurrentProgress(pMobData->CurrentScore.Hp);
+		m_pHPBar->SetCurrentProgress(pMobData->CurrentScore.CurHP);
 
 
 	char szStr[128]{};
-	sprintf(szStr, "%d", pMobData->CurrentScore.Hp);
+	sprintf(szStr, "%d", pMobData->CurrentScore.CurHP);
 	if (m_pCHP)
 		m_pCHP->SetText(szStr, 0);
 
 	// HP on "C"
-	sprintf(szStr, "%d", pMobData->CurrentScore.Hp);
+	sprintf(szStr, "%d", pMobData->CurrentScore.CurHP);
 	if (m_pCIHP)
 		m_pCIHP->SetText(szStr, 0);
 	if (m_pMPBar)
-		m_pMPBar->SetMaxProgress(pMobData->CurrentScore.MaxMp);
+		m_pMPBar->SetMaxProgress(pMobData->CurrentScore.MaxMP);
 	if (m_pMPBar)
-		m_pMPBar->SetCurrentProgress(pMobData->CurrentScore.Mp);
+		m_pMPBar->SetCurrentProgress(pMobData->CurrentScore.CurMP);
 
 	// MP on "C"
-	sprintf(szStr, "%d", pMobData->CurrentScore.Mp);
+	sprintf(szStr, "%d", pMobData->CurrentScore.CurMP);
 	if (m_pCMP)
 		m_pCMP->SetText(szStr, 0);
 	if (m_pCIMP)
@@ -15523,15 +15523,15 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 
 		// The UI renders authoritative counters, not their signed-short
 		// compatibility projection stored inside STRUCT_MOB.
-		sprintf(szStr, "%u", g_pObjectManager->m_dwScoreBonus);
+		sprintf(szStr, "%u", g_pObjectManager->m_stMobData.CurrentScore.StatusPts);
 		if (m_pScBonus)
 			m_pScBonus->SetText(szStr, 0);
 
-		sprintf(szStr, "%u", g_pObjectManager->m_dwSpecialBonus);
+		sprintf(szStr, "%u", g_pObjectManager->m_stMobData.CurrentScore.MasterPts);
 		if (m_pSpBonus)
 			m_pSpBonus->SetText(szStr, 0);
 
-		sprintf(szStr, "%u", g_pObjectManager->m_dwSkillBonus);
+		sprintf(szStr, "%u", g_pObjectManager->m_stMobData.CurrentScore.SkillPts);
 		if (m_pSkBonus)
 			m_pSkBonus->SetText(szStr, 0);
 
@@ -15646,16 +15646,16 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 		else if (IsValidSkill(47) == 1)
 			nMax3 = 255;
 
-		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Special[0], nMaxLevel);
+		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Mastery[0], nMaxLevel);
 		if (m_pCISpecial1)
 			m_pCISpecial1->SetText(szStr, 0);
-		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Special[1], nMax1);
+		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Mastery[1], nMax1);
 		if (m_pCISpecial2)
 			m_pCISpecial2->SetText(szStr, 0);
-		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Special[2], nMax2);
+		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Mastery[2], nMax2);
 		if (m_pCISpecial3)
 			m_pCISpecial3->SetText(szStr, 0);
-		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Special[3], nMax3);
+		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Mastery[3], nMax3);
 		if (m_pCISpecial4)
 			m_pCISpecial4->SetText(szStr, 0);
 
@@ -15949,8 +15949,8 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 			break;
 		}
 
-		int nRate = pMobData->CurrentScore.Special[0];
-		int nDamageValue = pMobData->CurrentScore.Damage;
+		int nRate = pMobData->CurrentScore.Mastery[0];
+		int nDamageValue = pMobData->CurrentScore.Attack;
 		if (nRate > 100)
 			nRate = 100;
 
@@ -16007,12 +16007,12 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 		if (m_pSpeed)
 			m_pSpeed->SetText(szStr, 0);
 
-		int nACValue = pMobData->CurrentScore.Ac;
+		int nACValue = pMobData->CurrentScore.Defense;
 		sprintf(szStr, "%d", nACValue);
 		if (m_pDefence)
 			m_pDefence->SetText(szStr, 0);
 
-		int nDef = BASE_GetMobAbility(pMobData, 53) + (BASE_GetMobAbility(pMobData, 3) + pMobData->BaseScore.Ac);
+		int nDef = BASE_GetMobAbility(pMobData, 53) + (BASE_GetMobAbility(pMobData, 3) + pMobData->BaseScore.Defense);
 		sprintf(szStr, "%d", nDef);
 		int nSpeedClass = 0;
 
@@ -16035,7 +16035,7 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 		else if (m_pMyHuman->m_nClass == 63)
 			nSpeedClass = 30;
 		
-		int nAttSpeedValue = (pMobData->CurrentScore.Special[2] / 10 + 10)
+		int nAttSpeedValue = (pMobData->CurrentScore.Mastery[2] / 10 + 10)
 			* (m_pMyHuman->m_cSpeedUp - m_pMyHuman->m_cSpeedDown)
 			+ pMobData->CurrentScore.Dex / 5
 			+ nSpeedClass
@@ -19351,7 +19351,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		if (BASE_GetManaSpent(
 			83,
 			(unsigned char)g_pObjectManager->m_stMobData.SaveMana,
-			g_pObjectManager->m_stMobData.CurrentScore.Special[nSkill / 8 + 1]) <= g_pObjectManager->m_stMobData.CurrentScore.Mp)
+			g_pObjectManager->m_stMobData.CurrentScore.Mastery[nSkill / 8 + 1]) <= g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 		{
 			MSG_AttackOne stAttack{};
 			
@@ -20424,7 +20424,7 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 	// Reserved's high nibble is the native direction field; preserving it makes
 	// observers see the same initial facing as the authoritative 7.48 packet.
 	float fAngle = 0.0f;
-	switch ((static_cast<unsigned char>(pHuman->m_stScore.Reserved) >> 4) & 0x0F)
+	switch ((static_cast<unsigned char>(pHuman->m_stScore.Merchant) >> 4) & 0x0F)
 	{
 	case 6: fAngle = D3DXToRadian(180.0f); break;
 	case 9: fAngle = D3DXToRadian(135.0f); break;
@@ -20441,7 +20441,7 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 		static_cast<float>(pCreateMob->PosX) + 0.5f,
 		static_cast<float>(pCreateMob->PosY) + 0.5f};
 	pHuman->InitPosition(vecPosition.x, m_pGround->GetHeight(vecPosition), vecPosition.y);
-	pHuman->m_cHide = (pHuman->m_dwID < 1000) && ((pHuman->m_stScore.Reserved & 1) != 0);
+	pHuman->m_cHide = (pHuman->m_dwID < 1000) && ((pHuman->m_stScore.Merchant & 1) != 0);
 	m_pHumanContainer->AddChild(pHuman);
 	return 1;
 }
@@ -20636,7 +20636,7 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 		}
 
 		float fAngle = 0.0f;
-		unsigned char nDir = ((unsigned char)pHuman->m_stScore.Reserved >> 4);
+		unsigned char nDir = ((unsigned char)pHuman->m_stScore.Merchant >> 4);
 		if (nDir == 6)
 			fAngle = D3DXToRadian(180);
 		if (nDir == 9)
@@ -20660,8 +20660,8 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 				
 		pHuman->InitPosition(vecPosition.x, GroundGetMask(vecPosition) * 0.1f, vecPosition.y);
 
-		pHuman->m_cHide = (pHuman->m_dwID >= 0 && pHuman->m_dwID < 1000) && pHuman->m_stScore.Reserved & 1;
-		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && (pHuman->IsMerchant() || (pHuman->m_stScore.Reserved & 0xF) == 15))
+		pHuman->m_cHide = (pHuman->m_dwID >= 0 && pHuman->m_dwID < 1000) && pHuman->m_stScore.Merchant & 1;
+		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && (pHuman->IsMerchant() || (pHuman->m_stScore.Merchant & 0xF) == 15))
 			pHuman->m_pNameLabel->SetTextColor(0xFFAAFFAA);
 
 		int nItemCode = pCreateMob->Equip[13] & 0xFFF;
@@ -20686,7 +20686,7 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 				tmp = 2000000000;
 
 			pHuman->m_BigHp = tmp;
-			tmp = pCreateMob->Score.MaxHp * nSanc;
+			tmp = pCreateMob->Score.MaxHP * nSanc;
 			if (tmp > 2000000000)
 				tmp = 2000000000;
 			pHuman->m_MaxBigHp = tmp;
@@ -20759,7 +20759,7 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 					tmp = 2000000000;
 
 				pHuman->m_BigHp = tmp;
-				tmp = pCreateMob->Score.MaxHp * nSanc;
+				tmp = pCreateMob->Score.MaxHP * nSanc;
 				if (tmp > 2000000000)
 					tmp = 2000000000;
 				pHuman->m_MaxBigHp = tmp;
@@ -20821,7 +20821,7 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 		pHuman->InitObject();
 
 		float fAngle = 0.0f;
-		unsigned char nDir = ((unsigned char)pHuman->m_stScore.Reserved >> 4);
+		unsigned char nDir = ((unsigned char)pHuman->m_stScore.Merchant >> 4);
 		if (nDir == 6)
 			fAngle = D3DXToRadian(180);
 		if (nDir == 9)
@@ -20893,8 +20893,8 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 				Guildmark_Create(&pHuman->m_stGuildMark);
 		}
 
-		pHuman->m_cHide = (pHuman->m_dwID >= 0 && pHuman->m_dwID < 1000) && pHuman->m_stScore.Reserved & 1;
-		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && (pHuman->m_stScore.Reserved & 0xF) >= 1 && (pHuman->m_stScore.Reserved & 0xF) <= 15)
+		pHuman->m_cHide = (pHuman->m_dwID >= 0 && pHuman->m_dwID < 1000) && pHuman->m_stScore.Merchant & 1;
+		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && (pHuman->m_stScore.Merchant & 0xF) >= 1 && (pHuman->m_stScore.Merchant & 0xF) <= 15)
 			pHuman->m_pNameLabel->SetTextColor(0xFFAAFFAA);
 
 		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && pHuman->m_sHeadIndex == 54)
@@ -20933,7 +20933,7 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 				tmp = 2000000000;
 
 			pNode->m_BigHp = tmp;
-			tmp = pCreateMob->Score.MaxHp * nSanc;
+			tmp = pCreateMob->Score.MaxHP * nSanc;
 			if (tmp > 2000000000)
 				tmp = 2000000000;
 			pNode->m_MaxBigHp = tmp;
@@ -20944,7 +20944,7 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 	if (pHuman)
 	{
 		pHuman->m_pNameLabel->m_GCBorder.dwColor = 0x55AA0000;
-		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && !pHuman->m_stScore.Ac)
+		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && !pHuman->m_stScore.Defense)
 		{
 			pHuman->m_pNameLabel->m_GCBorder.dwColor = 0x5500AA00;
 			pHuman->m_pNameLabel->m_cBorder = 1;
@@ -21275,9 +21275,9 @@ int TMFieldScene::OnPacketCNFCharacterLogin(MSG_CNFCharacterLogin* pStd)
 	// Channel re-entry reaches this FieldScene handler instead of the initial
 	// SelectCharScene handler. Seed the wide point sidecars here as well so a
 	// valid 0x114 never leaves the UI with counters from the previous character.
-	g_pObjectManager->m_dwScoreBonus = pStd->MOB.ScoreBonus > 0 ? pStd->MOB.ScoreBonus : 0;
-	g_pObjectManager->m_dwSpecialBonus = pStd->MOB.SpecialBonus > 0 ? pStd->MOB.SpecialBonus : 0;
-	g_pObjectManager->m_dwSkillBonus = pStd->MOB.SkillBonus > 0 ? pStd->MOB.SkillBonus : 0;
+	g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pStd->MOB.ScoreBonus > 0 ? pStd->MOB.ScoreBonus : 0;
+	g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pStd->MOB.SpecialBonus > 0 ? pStd->MOB.SpecialBonus : 0;
+	g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pStd->MOB.SkillBonus > 0 ? pStd->MOB.SkillBonus : 0;
 	g_pObjectManager->m_nFakeExp = pStd->Ext1.Data[0];
 	g_pObjectManager->m_stMobData.HomeTownX = pStd->PosX;
 	g_pObjectManager->m_stMobData.HomeTownY = pStd->PosY;
@@ -22312,7 +22312,7 @@ int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)
 	auto pKilled = g_pObjectManager->GetHumanByID(pStd->KilledMob);
 	if (pKilled)
 	{
-		pKilled->m_stScore.Hp = 0;
+		pKilled->m_stScore.CurHP = 0;
 		pKilled->Die();
 	}
 
@@ -22380,7 +22380,7 @@ int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 		pStd->Leader.Class,
 		pStd->Leader.Level,
 		pStd->Leader.Hp,
-		pStd->Leader.MaxHp);
+		pStd->Leader.MaxHP);
 
 	if (!pStd->Leader.PartyIndex)
 		pPartyItem->m_nState = 1;
@@ -22469,7 +22469,7 @@ int TMFieldScene::OnPacketAddParty(MSG_AddParty* pStd)
 		pStd->Party.Class,
 		pStd->Party.Level,
 		pStd->Party.Hp,
-		pStd->Party.MaxHp);
+		pStd->Party.MaxHP);
 
 	if (!pStd->Party.PartyIndex)
 		pPartyItem->m_nState = 2;
@@ -22915,19 +22915,19 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 		if ((pAttacker != m_pMyHuman || !pAttack->FlagLocal && pAttacker == m_pMyHuman)	&& 
 			pAttack->SkillIndex >= 0 && pAttack->SkillIndex < 104)
 		{
-			pAttacker->m_stScore.Mp = pAttack->CurrentMp;
+			pAttacker->m_stScore.CurMP = pAttack->CurrentMp;
 			if (pAttacker == m_pMyHuman)
 			{
-				g_pObjectManager->m_stMobData.CurrentScore.Mp = pAttack->CurrentMp;
+				g_pObjectManager->m_stMobData.CurrentScore.CurMP = pAttack->CurrentMp;
 				auto pMPBar = (SProgressBar*)m_pControlContainer->FindControl(1170);
 				auto pCurrentMPText = (SText*)m_pControlContainer->FindControl(65616);
 
 				if (pMPBar)
-					pMPBar->SetCurrentProgress(pAttacker->m_stScore.Mp);
+					pMPBar->SetCurrentProgress(pAttacker->m_stScore.CurMP);
 				if (pCurrentMPText)
 				{
 					char szText[128]{};
-					sprintf(szText, "%d", pAttacker->m_stScore.Mp);
+					sprintf(szText, "%d", pAttacker->m_stScore.CurMP);
 					pCurrentMPText->SetText(szText, 0);
 				}
 			}
@@ -24165,14 +24165,14 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 							if (!pTargetHuman->m_MaxBigHp)
 							{
 								int HealDam = pAttack->Dam[i].Damage / nDamageRate;
-								int Dam = pTargetHuman->m_stScore.Hp - HealDam;
+								int Dam = pTargetHuman->m_stScore.CurHP - HealDam;
 
-								if (Dam > pTargetHuman->m_stScore.MaxHp)
-									Dam = pTargetHuman->m_stScore.MaxHp;
+								if (Dam > pTargetHuman->m_stScore.MaxHP)
+									Dam = pTargetHuman->m_stScore.MaxHP;
 								if (Dam <= 0)
-									pTargetHuman->m_stScore.Hp = 0;
+									pTargetHuman->m_stScore.CurHP = 0;
 								else
-									pTargetHuman->m_stScore.Hp = Dam;
+									pTargetHuman->m_stScore.CurHP = Dam;
 							}
 							else
 							{
@@ -24184,7 +24184,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 								if (!nDamageRate)
 									nDamageRate = 1;
 
-								pTargetHuman->m_stScore.Hp = (short)(pTargetHuman->m_BigHp / nDamageRate);
+								pTargetHuman->m_stScore.CurHP = (short)(pTargetHuman->m_BigHp / nDamageRate);
 							}
 
 							if (pTargetHuman == m_pMyHuman)
@@ -24250,19 +24250,19 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 								if (!pTargetHuman->m_MaxBigHp)
 								{
 									nValue /= nDamageRate;
-									int hp = pTargetHuman->m_stScore.Hp - nValue;
+									int hp = pTargetHuman->m_stScore.CurHP - nValue;
 									if (hp < 0)
 										hp = 0;
-									pTargetHuman->m_stScore.Hp = hp;
+									pTargetHuman->m_stScore.CurHP = hp;
 								}
 								else
 								{
 									pTargetHuman->m_BigHp -= nValue;
-									pTargetHuman->m_stScore.Hp = (short)(pTargetHuman->m_BigHp / nDamageRate);
+									pTargetHuman->m_stScore.CurHP = (short)(pTargetHuman->m_BigHp / nDamageRate);
 								}
 							}
-							if (pTargetHuman->m_stScore.Hp < 0)
-								pTargetHuman->m_stScore.Hp = 0;
+							if (pTargetHuman->m_stScore.CurHP < 0)
+								pTargetHuman->m_stScore.CurHP = 0;
 							if (pTargetHuman == m_pMyHuman)
 							{
 								if (m_nReqHP - pAttack->Dam[i].Damage > 0)
@@ -24275,7 +24275,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 									if (pAttack->ReqMp > 0)
 										m_nReqMP -= pAttack->ReqMp;
 
-									pTargetHuman->m_stScore.Mp = m_nReqMP;
+									pTargetHuman->m_stScore.CurMP = m_nReqMP;
 								}
 
 								memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pTargetHuman->m_stScore, sizeof(pTargetHuman->m_stScore));
@@ -24611,15 +24611,15 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 						}
 					}
 
-					if (pTargetHuman->m_stScore.Hp < 0 && !pAttack->FlagLocal)
+					if (pTargetHuman->m_stScore.CurHP < 0 && !pAttack->FlagLocal)
 					{
-						pTargetHuman->m_stScore.Hp = 0;
+						pTargetHuman->m_stScore.CurHP = 0;
 						m_nReqHP = 0;
 					}
-					if (pTargetHuman->m_stScore.Hp > pTargetHuman->m_stScore.MaxHp && !pAttack->FlagLocal)
-						pTargetHuman->m_stScore.Hp = pTargetHuman->m_stScore.MaxHp;
+					if (pTargetHuman->m_stScore.CurHP > pTargetHuman->m_stScore.MaxHP && !pAttack->FlagLocal)
+						pTargetHuman->m_stScore.CurHP = pTargetHuman->m_stScore.MaxHP;
 					if (pTargetHuman == m_pMyHuman && !pAttack->FlagLocal)
-						g_pObjectManager->m_stMobData.CurrentScore.Hp = pTargetHuman->m_stScore.Hp;
+						g_pObjectManager->m_stMobData.CurrentScore.CurHP = pTargetHuman->m_stScore.CurHP;
 
 					pTargetHuman->UpdateScore(0);
 
@@ -24631,8 +24631,8 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 							auto pPartyItem = (SListBoxPartyItem*)pPartyList->m_pItemList[i];
 							if (pPartyItem->m_dwCharID == pTargetHuman->m_dwID)
 							{
-								pPartyItem->m_pHpProgress->SetMaxProgress(pTargetHuman->m_stScore.MaxHp);
-								pPartyItem->m_pHpProgress->SetCurrentProgress(pTargetHuman->m_stScore.Hp);
+								pPartyItem->m_pHpProgress->SetMaxProgress(pTargetHuman->m_stScore.MaxHP);
+								pPartyItem->m_pHpProgress->SetCurrentProgress(pTargetHuman->m_stScore.CurHP);
 								break;
 							}
 						}
@@ -24724,10 +24724,10 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					{
 						if (!pAttack->FlagLocal)
 						{
-							if (pTargetHuman->m_stScore.Hp - pAttack->Dam[i].Damage / nDamageRate <= 0)
-								pTargetHuman->m_stScore.Hp = 0;
+							if (pTargetHuman->m_stScore.CurHP - pAttack->Dam[i].Damage / nDamageRate <= 0)
+								pTargetHuman->m_stScore.CurHP = 0;
 							else
-								pTargetHuman->m_stScore.Hp -= pAttack->Dam[i].Damage / nDamageRate;
+								pTargetHuman->m_stScore.CurHP -= pAttack->Dam[i].Damage / nDamageRate;
 							if (pTargetHuman == m_pMyHuman)
 							{
 								if (m_nReqHP - pAttack->Dam[i].Damage <= 0)
@@ -24781,10 +24781,10 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 						{
 							if (!pTargetHuman->m_MaxBigHp)
 							{
-								if (pTargetHuman->m_stScore.Hp - pAttack->Dam[i].Damage / nDamageRate <= 0)
-									pTargetHuman->m_stScore.Hp = 0;
+								if (pTargetHuman->m_stScore.CurHP - pAttack->Dam[i].Damage / nDamageRate <= 0)
+									pTargetHuman->m_stScore.CurHP = 0;
 								else
-									pTargetHuman->m_stScore.Hp -= pAttack->Dam[i].Damage / nDamageRate;
+									pTargetHuman->m_stScore.CurHP -= pAttack->Dam[i].Damage / nDamageRate;
 							}
 							else
 							{
@@ -24792,7 +24792,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 									pTargetHuman->m_BigHp = 0;
 								else
 									pTargetHuman->m_BigHp -= pAttack->Dam[i].Damage;
-								pTargetHuman->m_stScore.Hp = (short)pTargetHuman->m_BigHp;
+								pTargetHuman->m_stScore.CurHP = (short)pTargetHuman->m_BigHp;
 							}
 							if (pTargetHuman == m_pMyHuman)
 							{
@@ -25003,23 +25003,23 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 							}
 						}
 					}
-					if (pTargetHuman->m_stScore.Hp < 0 && !pAttack->FlagLocal)
+					if (pTargetHuman->m_stScore.CurHP < 0 && !pAttack->FlagLocal)
 					{
-						pTargetHuman->m_stScore.Hp = 0;
+						pTargetHuman->m_stScore.CurHP = 0;
 						if (pTargetHuman == m_pMyHuman)
 							memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pTargetHuman->m_stScore, sizeof(pTargetHuman->m_stScore));
 
 						m_nReqHP = 0;
 					}
-					if (pTargetHuman->m_stScore.Hp > pTargetHuman->m_stScore.MaxHp && !pAttack->FlagLocal)
+					if (pTargetHuman->m_stScore.CurHP > pTargetHuman->m_stScore.MaxHP && !pAttack->FlagLocal)
 					{
-						pTargetHuman->m_stScore.Hp = pTargetHuman->m_stScore.MaxHp;
+						pTargetHuman->m_stScore.CurHP = pTargetHuman->m_stScore.MaxHP;
 						if (pTargetHuman == m_pMyHuman)
 							memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pTargetHuman->m_stScore, sizeof(pTargetHuman->m_stScore));
 					}
 					if (pTargetHuman == m_pMyHuman && !pAttack->FlagLocal)
 					{
-						g_pObjectManager->m_stMobData.CurrentScore.Hp = pTargetHuman->m_stScore.Hp;
+						g_pObjectManager->m_stMobData.CurrentScore.CurHP = pTargetHuman->m_stScore.CurHP;
 						if (pTargetHuman == m_pMyHuman)
 							memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pTargetHuman->m_stScore, sizeof(pTargetHuman->m_stScore));
 					}
@@ -25073,12 +25073,12 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					float fFlashTerm = 0.0f;
 					if (m_pMyHuman->m_stScore.Level <= 0)
 						fFlashTerm = (((float)m_pMyHuman->m_stScore.Level * 4000.0f)
-							* (float)pAttacker->m_stScore.Special[1])
+							* (float)pAttacker->m_stScore.Mastery[1])
 						/ 100.0f;
 					else
 						fFlashTerm = (((float)(pAttacker->m_stScore.Level / m_pMyHuman->m_stScore.Level)
 							* 4000.0f)
-							* (float)pAttacker->m_stScore.Special[1])
+							* (float)pAttacker->m_stScore.Mastery[1])
 						/ 100.0f;
 					if (fFlashTerm < 2000.0)
 						fFlashTerm = 2000.0;
@@ -25206,26 +25206,26 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 		if (pAttacker == m_pMyHuman)
 		{
 			m_nReqMP = pAttack->ReqMp;
-			if (m_nReqHP < static_cast<unsigned short>(m_pMyHuman->m_stScore.Hp))
-				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.Hp);
-			if (m_nReqMP < static_cast<unsigned int>(m_pMyHuman->m_stScore.Mp))
-				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.Mp);
-			if (m_nReqHP > static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHp))
-				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHp);
-			if (m_nReqMP > static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMp))
-				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMp);
+			if (m_nReqHP < static_cast<unsigned short>(m_pMyHuman->m_stScore.CurHP))
+				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.CurHP);
+			if (m_nReqMP < static_cast<unsigned int>(m_pMyHuman->m_stScore.CurMP))
+				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.CurMP);
+			if (m_nReqHP > static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHP))
+				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHP);
+			if (m_nReqMP > static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMP))
+				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMP);
 			UpdateScoreUI(0);
 		}
 		else if (pTarget == m_pMyHuman)
 		{
-			if (m_nReqHP < static_cast<unsigned short>(m_pMyHuman->m_stScore.Hp))
-				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.Hp);
-			if (m_nReqMP < static_cast<unsigned int>(m_pMyHuman->m_stScore.Mp))
-				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.Mp);
-			if (m_nReqHP > static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHp))
-				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHp);
-			if (m_nReqMP > static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMp))
-				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMp);
+			if (m_nReqHP < static_cast<unsigned short>(m_pMyHuman->m_stScore.CurHP))
+				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.CurHP);
+			if (m_nReqMP < static_cast<unsigned int>(m_pMyHuman->m_stScore.CurMP))
+				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.CurMP);
+			if (m_nReqHP > static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHP))
+				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHP);
+			if (m_nReqMP > static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMP))
+				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMP);
 			UpdateScoreUI(16);
 		}
 	}
@@ -27255,7 +27255,7 @@ void TMFieldScene::GameAuto()
 		return;
 	}
 
-	int CharHp = g_pObjectManager->m_stMobData.CurrentScore.Hp;
+	int CharHp = g_pObjectManager->m_stMobData.CurrentScore.CurHP;
 	if (m_pMyHuman->m_cDie)
 	{
 		m_pAutoTarget = nullptr;
@@ -27264,9 +27264,9 @@ void TMFieldScene::GameAuto()
 
 	int nSX = (int)m_pMyHuman->m_vecPosition.x;
 	int nSY = (int)m_pMyHuman->m_vecPosition.y;
-	int CharMaxHp = g_pObjectManager->m_stMobData.CurrentScore.MaxHp;
-	int CharMp = g_pObjectManager->m_stMobData.CurrentScore.Mp;
-	int CharMaxMp = g_pObjectManager->m_stMobData.CurrentScore.MaxMp;
+	int CharMaxHp = g_pObjectManager->m_stMobData.CurrentScore.MaxHP;
+	int CharMp = g_pObjectManager->m_stMobData.CurrentScore.CurMP;
+	int CharMaxMp = g_pObjectManager->m_stMobData.CurrentScore.MaxMP;
 	int nMountHP = BASE_GetItemAbility(&g_pObjectManager->m_stMobData.Equip[14], 80);
 	int nMountFeed = BASE_GetItemAbility(&g_pObjectManager->m_stMobData.Equip[14], 82);
 	int sIndex = g_pObjectManager->m_stMobData.Equip[14].sIndex - 2045;
@@ -27382,13 +27382,13 @@ void TMFieldScene::GameAuto()
 			{
 				int DelayTime = 0;
 				if (idxSkill == 3 || idxSkill == 5 || idxSkill == 53 || idxSkill == 54 || idxSkill == 74 || idxSkill == 76 || idxSkill == 77)
-					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Special[1];
+					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Mastery[1];
 				else if (idxSkill == 9 || idxSkill == 11 || idxSkill == 13 || idxSkill == 15 || idxSkill == 37 || idxSkill == 86 || idxSkill == 87)
-					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Special[2];
+					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Mastery[2];
 				else if (idxSkill == 41 || idxSkill == 43 || idxSkill == 44 || idxSkill == 45 || idxSkill == 46 || idxSkill == 64 || idxSkill == 66 ||
 					idxSkill == 68 || idxSkill == 70 || idxSkill == 71 || idxSkill == 89 || idxSkill == 90)
 				{
-					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Special[3];
+					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Mastery[3];
 				}
 
 				if (DelayTime + m_dwSkillLastTime[idxSkill] <= dwServerTime)
@@ -27706,7 +27706,7 @@ int TMFieldScene::MouseClick_MixNPC(TMHuman* pOver)
 		return 1;
 	}
 	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 67 && 
-		(pOver->m_stScore.Reserved & 0xF) == 8 && 
+		(pOver->m_stScore.Merchant & 0xF) == 8 && 
 		m_pGround->m_vecOffsetIndex.x == 25 && m_pGround->m_vecOffsetIndex.y == 13)
 	{
 		m_ItemMixClass.ResultItemListSet(67, 25, 13);
@@ -27759,7 +27759,7 @@ int TMFieldScene::MouseClick_SkillMasterNPC(unsigned int dwServerTime, TMHuman* 
 
 int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 {
-	if ((pOver->m_stScore.Reserved & 0xF) == 15 && !m_pMyHuman->IsInTown())
+	if ((pOver->m_stScore.Merchant & 0xF) == 15 && !m_pMyHuman->IsInTown())
 	{
 		if (pOver->m_cMantua > 0 && m_pMyHuman->m_cMantua > 0 && pOver->m_cMantua != m_pMyHuman->m_cMantua && m_pMyHuman->m_cMantua != 3)
 			return 1;
@@ -27781,7 +27781,7 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 			}
 		}
 	}
-	if ((pOver->m_stScore.Reserved & 0xF) == 13)
+	if ((pOver->m_stScore.Merchant & 0xF) == 13)
 	{
 		if (!m_pMessageBox->IsVisible())
 		{
@@ -27792,7 +27792,7 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 
 		return 1;
 	}
-	if ((pOver->m_stScore.Reserved & 0xF) == 14)
+	if ((pOver->m_stScore.Merchant & 0xF) == 14)
 	{
 		char cLifeStone = 0;
 		char cSapha = 0;
@@ -27814,14 +27814,14 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 			}
 		}
 	}
-	if ((pOver->m_stScore.Reserved & 0xF) == 15 || (pOver->m_stScore.Reserved & 0xF) == 10)
+	if ((pOver->m_stScore.Merchant & 0xF) == 15 || (pOver->m_stScore.Merchant & 0xF) == 10)
 	{
 		if (!m_pMessageBox->IsVisible())
 		{
 			if (pOver->m_sHeadIndex == 51 && _locationCheck(pOver->m_vecPosition, 16, 16))
-				m_pMessageBox->SetMessage(g_pMessageStringTable[404], pOver->m_stScore.Reserved & 0xF, 0);
+				m_pMessageBox->SetMessage(g_pMessageStringTable[404], pOver->m_stScore.Merchant & 0xF, 0);
 			else
-				m_pMessageBox->SetMessage(g_pMessageStringTable[152], pOver->m_stScore.Reserved & 0xF, 0);
+				m_pMessageBox->SetMessage(g_pMessageStringTable[152], pOver->m_stScore.Merchant & 0xF, 0);
 
 			m_pMessageBox->m_dwArg = pOver->m_dwID;
 			m_pMessageBox->SetVisible(1);
@@ -27829,7 +27829,7 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 
 		return 1;
 	}
-	if ((pOver->m_stScore.Reserved & 0xF) == 4 && pOver->m_sHeadIndex == 271)
+	if ((pOver->m_stScore.Merchant & 0xF) == 4 && pOver->m_sHeadIndex == 271)
 	{
 		if (!m_pMessageBox->IsVisible())
 		{
@@ -27840,7 +27840,7 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 		return 1;
 	}
 
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && (pOver->m_stScore.Reserved & 0xF) == 9 && pOver->m_sHeadIndex == 51)
+	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 9 && pOver->m_sHeadIndex == 51)
 	{
 		m_pInputGoldPanel->SetVisible(1);
 		auto pText = (SText*)m_pControlContainer->FindControl(65888);
@@ -27852,7 +27852,7 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 			m_pControlContainer->SetFocusedControl((SControl*)pEdit);
 		}
 	}
-	else if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 58 && (pOver->m_stScore.Reserved & 0xF) == 11)
+	else if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 58 && (pOver->m_stScore.Merchant & 0xF) == 11)
 	{
 		if (!m_pMessageBox->IsVisible())
 		{
@@ -27862,7 +27862,7 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 		}
 		return 1;
 	}
-	else if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 58 && pOver->m_stScore.Reserved == 76)
+	else if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 58 && pOver->m_stScore.Merchant == 76)
 	{
 		if (!m_pMessageBox->IsVisible())
 		{

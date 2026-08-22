@@ -1964,7 +1964,7 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
     if (level >= 400)
         level = 400;
 
-    int special = mob->CurrentScore.Special[skillnum % 24 / 8 + 1];//ok
+    int special = mob->CurrentScore.Mastery[skillnum % 24 / 8 + 1];//ok
     int base = g_pSpell[skillnum].InstanceValue;
     int affectbase = g_pSpell[skillnum].AffectValue;
     int skillclass = skillnum / 8 % 3;
@@ -2021,7 +2021,7 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
                     break;
                 case 3:
                     if (skillnum == 79)
-                        dam = mob->CurrentScore.Damage;
+                        dam = mob->CurrentScore.Attack;
                     else
                         dam = 3 * weapondamage + 3 * mob->CurrentScore.Str + level / 2 + special + base;
                     break;
@@ -2046,7 +2046,7 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
                 break;
             case 3:
                 if (skillnum == 79)
-                    dam = mob->CurrentScore.Damage;
+                    dam = mob->CurrentScore.Attack;
                 else
                     dam = 3 * weapondamage + 3 * mob->CurrentScore.Str + level / 2 + special + base;
                 break;

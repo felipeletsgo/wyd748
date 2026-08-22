@@ -33,7 +33,7 @@ func TestCharJSONPersistsCanonicalScore(t *testing.T) {
 	}
 	if bytes.Contains(data, []byte("baseScore")) ||
 		bytes.Contains(data, []byte("nextExp")) ||
-		bytes.Contains(data, []byte(`"score":`)) {
+		bytes.Contains(data, []byte(`"extendedScore":`)) {
 		t.Fatalf("JSON persistiu estado legado/derivado: %s", data)
 	}
 	if !bytes.Contains(data, []byte(`"score":{"version":2,"level":50,"attack":200`)) {
@@ -45,7 +45,7 @@ func TestCharJSONPersistsCanonicalScore(t *testing.T) {
 		t.Fatal(err)
 	}
 	if loaded.Score == nil || loaded.Score.Level != 50 || loaded.Score.Attack != 200 {
-		t.Fatalf("round-trip perdeu extended score: %+v", loaded.Score)
+		t.Fatalf("round-trip perdeu score: %+v", loaded.Score)
 	}
 	if loaded.Score.ResistFire != 10 || loaded.Score.ResistThunder != 40 {
 		t.Fatalf("round-trip perdeu resistencias: %+v", loaded.Score)

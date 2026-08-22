@@ -73,12 +73,6 @@ public:
 	STRUCT_SELCHAR m_stSelCharData;
 	STRUCT_ITEM m_stItemCargo[128];
 	STRUCT_MOB m_stMobData;
-	// WYD-Go keeps progression counters in uint32. These sidecars preserve that
-	// authority without changing STRUCT_MOB, whose binary layout is shared with
-	// the 7.48 assets and packets.
-	unsigned int m_dwScoreBonus;
-	unsigned int m_dwSpecialBonus;
-	unsigned int m_dwSkillBonus;
 	MSG_CAPSULEINFO m_stCapsuleInfo[12];
 	int m_nFakeExp;
 	int m_nAuto;

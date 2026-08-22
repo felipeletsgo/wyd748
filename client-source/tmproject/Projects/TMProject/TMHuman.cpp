@@ -3705,7 +3705,7 @@ int TMHuman::OnPacketIllusion(MSG_STANDARD* pStd)
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
     if (!m_cHide && pStd->Type == MSG_Action2_Opcode)
     {
-        g_pObjectManager->m_stMobData.CurrentScore.Mp -= g_pSpell[73].ManaSpent;
+        g_pObjectManager->m_stMobData.CurrentScore.CurMP -= g_pSpell[73].ManaSpent;
         bool bExpand = false;
         if (m_nClass == 4 || m_nClass == 8)
             bExpand = true;
@@ -4657,7 +4657,7 @@ int TMHuman::OnPacketUpdateScore(MSG_STANDARD* pStd)
     SetCharHeight(static_cast<float>(m_stScore.Con));
 
     if (m_nClass == 40)
-        m_fScale *= (((float)m_stScore.Special[3] * 0.003f) + 1.0f);
+        m_fScale *= (((float)m_stScore.Mastery[3] * 0.003f) + 1.0f);
 
     if (pFScene && g_pCurrentScene->m_pMyHuman == this)
     {
@@ -5278,15 +5278,15 @@ int TMHuman::OnPacketUpdateEtc(MSG_STANDARD* pStd)
         // the shorts above only for untouched native code and old captures.
         if (pUpdateEtc->Header.Size >= sizeof(MSG_UpdateEtc))
         {
-            g_pObjectManager->m_dwScoreBonus = pUpdateEtc->ScoreBonusWide;
-            g_pObjectManager->m_dwSpecialBonus = pUpdateEtc->SpecialBonusWide;
-            g_pObjectManager->m_dwSkillBonus = pUpdateEtc->SkillBonusWide;
+            g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pUpdateEtc->ScoreBonusWide;
+            g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pUpdateEtc->SpecialBonusWide;
+            g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pUpdateEtc->SkillBonusWide;
         }
         else
         {
-            g_pObjectManager->m_dwScoreBonus = pUpdateEtc->ScoreBonus > 0 ? pUpdateEtc->ScoreBonus : 0;
-            g_pObjectManager->m_dwSpecialBonus = pUpdateEtc->SpecialBonus > 0 ? pUpdateEtc->SpecialBonus : 0;
-            g_pObjectManager->m_dwSkillBonus = pUpdateEtc->SkillBonus > 0 ? pUpdateEtc->SkillBonus : 0;
+            g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pUpdateEtc->ScoreBonus > 0 ? pUpdateEtc->ScoreBonus : 0;
+            g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pUpdateEtc->SpecialBonus > 0 ? pUpdateEtc->SpecialBonus : 0;
+            g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pUpdateEtc->SkillBonus > 0 ? pUpdateEtc->SkillBonus : 0;
         }
         g_pObjectManager->m_stMobData.Coin = pUpdateEtc->Coin;
         // Hold is the native reserved EXP field; WYD-Go intentionally sends zero.
@@ -5638,7 +5638,7 @@ int TMHuman::OnPacketVisualEffect(MSG_STANDARD* pStd)
 
 int TMHuman::IsMerchant()
 {
-    if ((m_stScore.Reserved & 0xF) >= 1 && (m_stScore.Reserved & 0xF) <= 14)
+    if ((m_stScore.Merchant & 0xF) >= 1 && (m_stScore.Merchant & 0xF) <= 14)
         return 1;
 
     if (m_sHeadIndex == 54 || m_sHeadIndex == 55 || m_sHeadIndex == 56 || m_sHeadIndex == 57 || m_sHeadIndex == 51 || m_sHeadIndex == 68 || m_sHeadIndex == 67)
@@ -5789,7 +5789,7 @@ void TMHuman::SetRace(short sIndex)
     m_nSkinMeshType = BASE_DefineSkinMeshType(m_nClass);
 
     if(sIndex == 25)
-        m_fScale = (((float)m_stScore.Special[3] * 0.003f) + 1.0f) * m_fScale;
+        m_fScale = (((float)m_stScore.Mastery[3] * 0.003f) + 1.0f) * m_fScale;
 }
 
 void TMHuman::UpdateScore(int nGuildLevel)
@@ -6526,7 +6526,7 @@ void TMHuman::SetColorMaterial()
 
         if (g_pCurrentScene->m_pMouseOverHuman == this && pFocused != this)
         {
-            if ((m_dwID >= 0 && m_dwID < 1000) || (m_stScore.Reserved & 0xF) != 15)
+            if ((m_dwID >= 0 && m_dwID < 1000) || (m_stScore.Merchant & 0xF) != 15)
             {
                 if (m_dwID < 0 || m_dwID >= 1000 && IsMerchant())//cor do contorno do npc
                     m_dwEdgeColor = 0x8800FF00;
@@ -6550,7 +6550,7 @@ void TMHuman::SetColorMaterial()
                 m_dwEdgeColor = 0x8800FF00;
             }
 
-            if ((m_stScore.Reserved & 0xF) == 15 && pFocused->m_cMantua && pFocused->m_cMantua != 3 && m_pMantua && pFocused->m_pMantua
+            if ((m_stScore.Merchant & 0xF) == 15 && pFocused->m_cMantua && pFocused->m_cMantua != 3 && m_pMantua && pFocused->m_pMantua
                 && m_cMantua != pFocused->m_cMantua)
             {
                 m_dwEdgeColor = 0x88FF0000;
@@ -7614,7 +7614,7 @@ void TMHuman::LabelPosition()
             m_bParty != 1 && 
             (int)m_usGuild <= 0 && 
             (m_dwID < 0 || m_dwID >= 1000) &&
-            (m_sHeadIndex != 271 || !(m_stScore.Reserved & 0xF)) && 
+            (m_sHeadIndex != 271 || !(m_stScore.Merchant & 0xF)) && 
             bTargetMob != 1)
         {
             m_pNameLabel->SetVisible(0);
@@ -7886,7 +7886,7 @@ void TMHuman::LabelPosition()
                     }
 
                     else if (m_nClass == 1 || m_nClass == 2 || m_nClass == 4 || m_nClass == 8 || m_nClass == 26 || m_nClass == 33 && 
-                        !m_stLookInfo.FaceMesh || m_sHeadIndex == 271 && m_stScore.Reserved & 0xF)
+                        !m_stLookInfo.FaceMesh || m_sHeadIndex == 271 && m_stScore.Merchant & 0xF)
                     {
                         if (_locationCheck(m_vecPosition, 14, 28) && m_sHeadIndex == 51)
                         {
@@ -8104,7 +8104,7 @@ void TMHuman::LabelPosition2()
             m_bParty != 1 &&
             (int)m_usGuild <= 0 &&
             (m_dwID < 0 || m_dwID >= 1000) &&
-            (m_sHeadIndex != 271 || !(m_stScore.Reserved & 0xF)) &&
+            (m_sHeadIndex != 271 || !(m_stScore.Merchant & 0xF)) &&
             bTargetMob != 1)
         {
             m_pNameLabel->SetVisible(0);
@@ -8373,7 +8373,7 @@ void TMHuman::LabelPosition2()
                     }
 
                     else if (m_nClass == 1 || m_nClass == 2 || m_nClass == 4 || m_nClass == 8 || m_nClass == 26 || m_nClass == 33 &&
-                        !m_stLookInfo.FaceMesh || m_sHeadIndex == 271 && m_stScore.Reserved & 0xF)
+                        !m_stLookInfo.FaceMesh || m_sHeadIndex == 271 && m_stScore.Merchant & 0xF)
                     {
                         if (_locationCheck(m_vecPosition, 14, 28) && m_sHeadIndex == 51)
                         {
@@ -9721,7 +9721,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                         + m_stEffectEvent.pTarget->m_fHeight,
                         m_stEffectEvent.pTarget->m_vecPosition.y };
 
-                    nCount += m_stScore.Special[3] / 80;
+                    nCount += m_stScore.Mastery[3] / 80;
                     if (nCount < 3)
                         nCount = 3;
                     if (nCount > 6)
@@ -10979,7 +10979,7 @@ void TMHuman::MoveAttack(TMHuman* pTarget)
         return;
 
     auto pFocused = g_pCurrentScene->m_pMyHuman;
-    if ((m_stScore.Reserved & 0xF) == 15 && m_cMantua > 0 && pFocused->m_cMantua > 0 && m_cMantua == pFocused->m_cMantua)
+    if ((m_stScore.Merchant & 0xF) == 15 && m_cMantua > 0 && pFocused->m_cMantua > 0 && m_cMantua == pFocused->m_cMantua)
         return;
 
     if (m_cCantAttk)
@@ -15550,7 +15550,7 @@ int TMHuman::MAutoAttack(TMHuman* pTarget, int mode)
         return 0;
     if (pTarget->m_cSummons == 1)
         return 0;
-    if ((m_stScore.Reserved & 0xF) == 15)
+    if ((m_stScore.Merchant & 0xF) == 15)
     {
         auto pFocused = g_pCurrentScene->m_pMyHuman;
         if (m_cMantua > 0 && pFocused->m_cMantua > 0 && m_cMantua == pFocused->m_cMantua)
@@ -15833,7 +15833,7 @@ void  TMHuman::SetMountCostume(unsigned int  index)
     int nSanc = 0, nSkin = 0;
     int curIndex = index;
 
-    if (index >= 11 && index <= 200 && (!(m_stScore.Reserved & 2)))
+    if (index >= 11 && index <= 200 && (!(m_stScore.Merchant & 2)))
     {
         float m_fMountScale = 0;
         m_stMountLook.Mesh2 = 0;

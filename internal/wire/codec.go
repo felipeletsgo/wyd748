@@ -118,8 +118,8 @@ func PartyRequest(leaderID uint16, name string, class byte, level, hp, maxHP uin
 	b[12] = class
 	b[13] = 0 // PartyIndex 0 = lider/convite pendente
 	putU16(b, 14, packetU16(level))
-	putU16(b, 16, maxHP)
-	putU16(b, 18, hp)
+	putU16(b, 16, packetU16(maxHP))
+	putU16(b, 18, packetU16(hp))
 	putU16(b, 20, leaderID)
 	copy(b[22:38], name)
 	putU32(b, 40, uint32(targetID))
@@ -134,8 +134,8 @@ func PartyMember(id uint16, name string, class, partyIndex byte, level, hp, maxH
 	b[12] = class
 	b[13] = partyIndex
 	putU16(b, 14, packetU16(level))
-	putU16(b, 16, maxHP)
-	putU16(b, 18, hp)
+	putU16(b, 16, packetU16(maxHP))
+	putU16(b, 18, packetU16(hp))
 	putU16(b, 20, id)
 	copy(b[22:38], name)
 	return b
@@ -151,14 +151,14 @@ func PartyRemove(memberID uint16) []byte {
 
 // Os campos de HP do PARTY nativo sao short com sinal. O TMSrv reduz valores
 // acima de 32000 para percentual/centena antes de montar o painel.
-func partyDisplayHP(hp, maxHP uint32) (uint16, uint16) {
+func partyDisplayHP(hp, maxHP uint32) (uint32, uint32) {
 	if hp > 32000 {
 		hp = (hp + 1) / 100
 	}
 	if maxHP > 32000 {
 		maxHP = (maxHP + 1) / 100
 	}
-	return packetU16(hp), packetU16(maxHP)
+	return hp, maxHP
 }
 
 func putU16(b []byte, off int, v uint16) { binary.LittleEndian.PutUint16(b[off:off+2], v) }

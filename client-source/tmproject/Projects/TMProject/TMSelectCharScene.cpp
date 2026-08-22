@@ -365,7 +365,7 @@ int TMSelectCharScene::InitializeScene()
 					m_pSampleHuman[i]->m_ucMantuaLegend = static_cast<char>(g_pItemList[Mantua].nGrade);
 				}
 
-				m_pSampleHuman[i]->m_stScore.Hp = 1;
+				m_pSampleHuman[i]->m_stScore.CurHP = 1;
 				m_pSampleHuman[i]->SetRace(sFace);
 				m_pSampleHuman[i]->InitObject();
 				m_pSampleHuman[i]->CheckWeapon(Left, Right);
@@ -1126,16 +1126,16 @@ int TMSelectCharScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, i
 		sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Con);
 		pCon->SetText(szValue, 0);
 
-		sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Special[0]);
+		sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Mastery[0]);
 		pSp1->SetText(szValue, 0);
 
-		sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Special[1]);
+		sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Mastery[1]);
 		pSp2->SetText(szValue, 0);
 
-		sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Special[2]);
+		sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Mastery[2]);
 		pSp3->SetText(szValue, 0);
 
-		sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Special[3]);
+		sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Mastery[3]);
 		pSp4->SetText(szValue, 0);
 
 		if (g_pObjectManager->m_stSelCharData.Equip[i][0].stEffect[1].cEffect == 28)
@@ -1527,9 +1527,9 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		memcpy(&g_pObjectManager->m_stMobData, &pCharLogin->MOB, sizeof(pCharLogin->MOB));
 		// CharacterLogin still embeds the native STRUCT_MOB. Seed the sidecars
 		// from that prefix until the authoritative 0x337 update arrives.
-		g_pObjectManager->m_dwScoreBonus = pCharLogin->MOB.ScoreBonus > 0 ? pCharLogin->MOB.ScoreBonus : 0;
-		g_pObjectManager->m_dwSpecialBonus = pCharLogin->MOB.SpecialBonus > 0 ? pCharLogin->MOB.SpecialBonus : 0;
-		g_pObjectManager->m_dwSkillBonus = pCharLogin->MOB.SkillBonus > 0 ? pCharLogin->MOB.SkillBonus : 0;
+		g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pCharLogin->MOB.ScoreBonus > 0 ? pCharLogin->MOB.ScoreBonus : 0;
+		g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pCharLogin->MOB.SpecialBonus > 0 ? pCharLogin->MOB.SpecialBonus : 0;
+		g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pCharLogin->MOB.SkillBonus > 0 ? pCharLogin->MOB.SkillBonus : 0;
 		g_pObjectManager->m_nFakeExp = pCharLogin->Ext1.Data[0];
 		g_pObjectManager->m_stMobData.HomeTownX = pCharLogin->PosX;
 		g_pObjectManager->m_stMobData.HomeTownY= pCharLogin->PosY;
@@ -2184,7 +2184,7 @@ void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)
 		m_pHuman[i]->SetCharHeight(fCon);
 		m_pHuman[i]->SetRace(pSelChar->Equip[i][0].sIndex);
 
-		m_pHuman[i]->m_stScore.Hp = 1;
+		m_pHuman[i]->m_stScore.CurHP = 1;
 
 		int nWeaponTypeL = BASE_GetItemAbility(&pSelChar->Equip[i][6], 21);
 

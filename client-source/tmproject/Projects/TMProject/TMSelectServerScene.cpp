@@ -1113,7 +1113,7 @@ void TMSelectServerScene::ResetDemoPlayer()
 				break;
 
 			m_pCheckHumanList[i] = new TMHuman(this);
-			m_pCheckHumanList[i]->m_stScore.Hp = 1;
+			m_pCheckHumanList[i]->m_stScore.CurHP = 1;
 			m_pCheckHumanList[i]->m_dwID = 10000;
 
 			sprintf(m_pCheckHumanList[i]->m_szName, "person%d", i);

@@ -164,7 +164,7 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 	// this callback made every item and NPC shop appear visually empty/inert.
 	if (!m_bSelectEnable)
 		return 0;
-	if (g_pObjectManager->m_stMobData.CurrentScore.Hp <= 0)
+	if (g_pObjectManager->m_stMobData.CurrentScore.CurHP <= 0)
 		return 0;
 	if (!m_bEnable)
 		return 0;
@@ -3122,7 +3122,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 			int manaSpent = 0;
 			if (SkillNumber < 96)
 			{
-				int Special = g_pObjectManager->m_stMobData.CurrentScore.Special[(SkillNumber - 24 * mob->Class) / 8 + 1];
+				int Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[(SkillNumber - 24 * mob->Class) / 8 + 1];
 				manaSpent = BASE_GetManaSpent(SkillNumber, g_pObjectManager->m_stMobData.SaveMana, Special);
 			}
 
@@ -4100,7 +4100,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 
 			// Skill-book affordability must compare against the uint32 counter
 			// received from WYD-Go, not STRUCT_MOB's signed-short projection.
-			if ((unsigned int)nSkillPoint > g_pObjectManager->m_dwSkillBonus)
+			if ((unsigned int)nSkillPoint > g_pObjectManager->m_stMobData.CurrentScore.SkillPts)
 				pParamText->SetTextColor(0xFFFF0000);
 
 			sprintf(szText, g_pMessageStringTable[59], nSkillPoint);
@@ -4409,11 +4409,11 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 
 			int nSpecial = pMyHuman->m_stScore.Level;
 			if (cSkillIndex < 96)
-				nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Special[
+				nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Mastery[
 					(cSkillIndex - 24 * g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
 			if (BASE_GetManaSpent(cSkillIndex, g_pObjectManager->m_stMobData.SaveMana, nSpecial) <=
-				g_pObjectManager->m_stMobData.CurrentScore.Mp)
+				g_pObjectManager->m_stMobData.CurrentScore.CurMP)
 			{
 				MSG_Attack stAttack{};
 

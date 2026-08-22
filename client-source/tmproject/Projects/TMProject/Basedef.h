@@ -577,17 +577,6 @@ struct STRUCT_ACCOUNTFILE
 	STRUCT_EXT2 Ext2[4];
 };
 
-struct STRUCT_EXT2
-{
-	char Quest[12];
-	unsigned int LastConnectTime;
-	STRUCT_SUBCLASS_OLD SubClass[2];
-	char ItemPassWord[16];
-	unsigned int ItemPos;
-	int SendLevItem;
-	char dummy[112];
-};
-
 struct STRUCT_REQ
 {
 	bool Class;
@@ -645,37 +634,6 @@ struct
 	char Help[9][128];
 };
 
-struct STRUCT_MOB
-{
-	char MobName[16];
-	char Clan;
-	char Merchant;
-	unsigned short Guild;
-	char Class;
-	char Rsv;
-	unsigned short Quest;
-	int Coin;
-	unsigned int Exp;
-	unsigned short HomeTownX;
-	unsigned short HomeTownY;
-	STRUCT_SCORE_OLD BaseScore;
-	STRUCT_SCORE_OLD CurrentScore;
-	STRUCT_ITEM Equip[MAX_EQUIPITEM];
-	STRUCT_ITEM Carry[64];
-	unsigned int LearnedSkill;
-	short ScoreBonus;
-	short SpecialBonus;
-	short SkillBonus;
-	char Critical;
-	char SaveMana;
-	char ShortSkill[4];
-	char GuildLevel;
-	char Magician;
-	char RegenHP;
-	char RegenMP;
-	char Resist[4];
-};
-
 struct STRUCT_COMBINE
 {
 	int Target;
@@ -711,22 +669,6 @@ struct STRUCT_EXT
 	char Quest[32];
 };
 
-struct STRUCT_ACCOUNTFILE_OLD
-{
-	STRUCT_ACCOUNT Account;
-	STRUCT_MOB Char[4];
-	STRUCT_ITEM Cargo[MAX_CARGO];
-	int Coin;
-	char ShortSkill[4][16];
-	STRUCT_EXT Ext[4];
-};
-
-struct STRUCT_EXT1
-{
-	int Data[8];
-	STRUCT_AFFECT Affect[16];
-};
-
 struct STRUCT_MISSION
 {
 	int Arrival;
@@ -735,17 +677,6 @@ struct STRUCT_MISSION
 	STRUCT_M_CHECK Item[8][10];
 	STRUCT_M_CHECK Condition[10];
 	STRUCT_M_CHECK Reward[10];
-};
-
-struct STRUCT_ACCOUNTFILE_OLD2
-{
-	STRUCT_ACCOUNT Account;
-	STRUCT_MOB Char[4];
-	STRUCT_ITEM Cargo[MAX_CARGO];
-	int Coin;
-	char ShortSkill[4][16];
-	STRUCT_EXT1 Ext1[4];
-	STRUCT_EXT2 Ext2[4];
 };
 
 struct STRUCT_GUILDZONE
@@ -772,18 +703,6 @@ struct STRUCT_GUILDZONE
 	int ChargeCount;
 };
 
-struct STRUCT_SELCHAR_OLD
-{
-	unsigned short HomeTownX[4];
-	unsigned short HomeTownY[4];
-	char MobName[4][16];
-	STRUCT_SCORE_OLD Score[4];
-	STRUCT_ITEM Equip[4][MAX_EQUIPITEM];
-	unsigned short Guild[4];
-	int Coin[4];
-	unsigned int Exp[4];
-};
-
 struct STRUCT_ACCOUNT_NEW
 {
 	char AccountName[16];
@@ -798,16 +717,6 @@ struct STRUCT_ACCOUNT_NEW
 	char ItemPassWord[16];
 	unsigned short GameServer;
 	unsigned short Rsv;
-};
-
-struct STRUCT_ACCOUNTFILE_OLD_NEW
-{
-	STRUCT_ACCOUNT_NEW Account;
-	STRUCT_MOB Char[4];
-	STRUCT_ITEM Cargo[MAX_CARGO];
-	int Coin;
-	char ShortSkill[4][16];
-	STRUCT_EXT Ext[4];
 };
 
 struct STRUCT_SAME
@@ -832,17 +741,6 @@ struct STRUCT_ADMINGUILDITEM
 };
 
 struct STRUCT_ACCOUNTFILE_NEW
-{
-	STRUCT_ACCOUNT_NEW Account;
-	STRUCT_MOB Char[4];
-	STRUCT_ITEM Cargo[MAX_CARGO];
-	int Coin;
-	char ShortSkill[4][16];
-	STRUCT_EXT1 Ext1[4];
-	STRUCT_EXT2 Ext2[4];
-};
-
-struct STRUCT_ACCOUNTFILE_OLD2_NEW
 {
 	STRUCT_ACCOUNT_NEW Account;
 	STRUCT_MOB Char[4];
