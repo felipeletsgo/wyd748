@@ -1,0 +1,59 @@
+Single Score cleanup failed.
+
+migrate=success
+format=success
+materialize=success
+test=failure
+vet=skipped
+server=skipped
+client=skipped
+whitespace=skipped
+--- output ---
+single-score repairs applied
+party wire narrowing repaired
+obsolete score compatibility tests removed
+obsolete C++ score structs and sidecars removed
+?   	wydgo/cmd/account-api	[no test files]
+?   	wydgo/cmd/account-create	[no test files]
+?   	wydgo/cmd/loadtest	[no test files]
+ok  	wydgo/cmd/network-admission	(cached)
+# wydgo/internal/game
+internal\game\visibility.go:185:40: undefined: wire.ClientProtocolStock748
+internal\game\visibility.go:190:46: undefined: wire.ClientProtocol
+internal\game\visibility.go:196:159: too many arguments in call to wire.CreateMobWithGuildRank
+	have (unknown type, uint16, string, uint16, uint16, []uint16, []byte, *model.Score, []model.Affect, number, uint16, byte, int16)
+	want (uint16, string, uint16, uint16, []uint16, []byte, *model.Score, []model.Affect, uint16, uint16, byte, int16)
+internal\game\visibility.go:197:35: too many arguments in call to wire.HpMp
+	have (unknown type, uint16, *model.Score)
+	want (uint16, *model.Score)
+internal\game\visibility.go:206:48: not enough arguments in call to playerEnterViewPacketsFor
+	have (*Player)
+	want (unknown type, *Player)
+internal\game\hp_debug.go:36:18: undefined: model.CompatibilityHPScale
+internal\game\hp_debug.go:37:23: efetivo.CompatibilityScore undefined (type *model.Score has no field or method CompatibilityScore)
+ok  	wydgo/cmd/npcconvert	0.045s
+FAIL	wydgo/cmd/server [build failed]
+ok  	wydgo/internal/account	1.511s
+ok  	wydgo/internal/accountapi	0.224s
+# wydgo/internal/wire [wydgo/internal/wire.test]
+internal\wire\session_packets_test.go:52:7: undefined: CreateMob
+internal\wire\session_packets_test.go:52:54: undefined: model.LegacyScore28
+internal\wire\session_packets_test.go:61:9: undefined: model.LegacyScore28
+internal\wire\session_packets_test.go:70:28: undefined: model.LegacyScore28
+internal\wire\session_packets_test.go:78:34: undefined: model.LegacyScore28
+internal\wire\session_packets_test.go:154:9: undefined: model.LegacyScore28
+internal\wire\session_packets_test.go:207:16: ext.CompatibilityScore undefined (type *model.Score has no field or method CompatibilityScore)
+internal\wire\session_packets_test.go:221:12: undefined: SetHpMpExtended
+internal\wire\session_packets_test.go:272:7: undefined: SetHpMpExtended
+internal\wire\session_packets_test.go:479:8: undefined: CreateMobExtendedWithGuildRank
+internal\wire\session_packets_test.go:479:8: too many errors
+ok  	wydgo/internal/data	2.848s
+FAIL	wydgo/internal/game [build failed]
+ok  	wydgo/internal/loadtest	0.515s
+ok  	wydgo/internal/model	0.041s
+ok  	wydgo/internal/net	0.252s
+ok  	wydgo/internal/networkpolicy	(cached)
+ok  	wydgo/internal/store	0.760s
+FAIL	wydgo/internal/wire [build failed]
+FAIL
+
