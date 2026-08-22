@@ -129,3 +129,5 @@ jobs:
             git commit -m "ci: clear runtime score mirror cleanup failure"
             git push origin HEAD:main
           }
+
+# trigger: structural parser is now authoritative for this one-shot migration
