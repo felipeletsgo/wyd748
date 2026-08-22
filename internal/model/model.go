@@ -1112,7 +1112,10 @@ func (n *NPCDef) MakeScore(currentHP uint32) *Score {
 	score.Version = ScoreVersion
 	direction := uint32(n.Direction & 0xF0)
 	score.Merchant = direction | (score.Merchant & 0x0F)
-	score.CurHP = minScoreValue(currentHP, score.MaxHP)
+	score.CurHP = currentHP
+	if score.CurHP > score.MaxHP {
+		score.CurHP = score.MaxHP
+	}
 	score.CurMP = score.MaxMP
 	return &score
 }
