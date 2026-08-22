@@ -1,0 +1,41 @@
+Single Score cleanup failed.
+
+migrate=success
+format=success
+materialize=success
+test=failure
+vet=skipped
+server=skipped
+client=skipped
+whitespace=skipped
+--- output ---
+single-score repairs applied
+obsolete score compatibility tests removed
+# wydgo/internal/wire
+internal\wire\codec.go:117:14: cannot use partyDisplayHP(hp, maxHP) (value of type uint16) as uint32 value in assignment
+internal\wire\codec.go:121:16: cannot use maxHP (variable of type uint32) as uint16 value in argument to putU16
+internal\wire\codec.go:122:16: cannot use hp (variable of type uint32) as uint16 value in argument to putU16
+internal\wire\codec.go:133:14: cannot use partyDisplayHP(hp, maxHP) (value of type uint16) as uint32 value in assignment
+internal\wire\codec.go:137:16: cannot use maxHP (variable of type uint32) as uint16 value in argument to putU16
+internal\wire\codec.go:138:16: cannot use hp (variable of type uint32) as uint16 value in argument to putU16
+?   	wydgo/cmd/account-api	[no test files]
+?   	wydgo/cmd/account-create	[no test files]
+FAIL	wydgo/cmd/loadtest [build failed]
+ok  	wydgo/cmd/network-admission	(cached)
+ok  	wydgo/cmd/npcconvert	0.066s
+FAIL	wydgo/cmd/server [build failed]
+ok  	wydgo/internal/account	1.738s
+ok  	wydgo/internal/accountapi	0.450s
+ok  	wydgo/internal/data	2.147s
+FAIL	wydgo/internal/game [build failed]
+FAIL	wydgo/internal/loadtest [build failed]
+--- FAIL: TestCharJSONPersistsCanonicalScore (0.00s)
+    model_test.go:37: JSON persistiu estado legado/derivado: {"uid":"","name":"felipe","class":0,"x":0,"y":0,"score":{"version":2,"level":50,"attack":200,"magicAttack":0,"defense":0,"maxHP":0,"maxMP":0,"curHP":0,"curMP":0,"str":0,"int":0,"dex":0,"con":0,"resistFire":10,"resistIce":20,"resistHoly":30,"resistThunder":40,"statusPoints":250,"masteryPoints":100,"skillPoints":150,"mastery":[0,0,0,0]},"cp":0,"chaosVersion":1,"gold":0,"exp":0,"learnedSkill":0,"shortSkill":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"affects":[{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"}],"equip":{"rosto":{"index":0},"elmo":{"index":0},"armadura":{"index":0},"calca":{"index":0},"luva":{"index":0},"bota":{"index":0},"arma":{"index":0},"escudo":{"index":0},"acessorio1":{"index":0},"acessorio2":{"index":0},"acessorio3":{"index":0},"acessorio4":{"index":0},"acessorio5":{"index":0},"acessorio6":{"index":0},"montaria":{"index":0},"capa":{"index":0}},"inv":[{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0}]}
+FAIL
+FAIL	wydgo/internal/model	0.044s
+FAIL	wydgo/internal/net [build failed]
+ok  	wydgo/internal/networkpolicy	(cached)
+ok  	wydgo/internal/store	0.891s
+FAIL	wydgo/internal/wire [build failed]
+FAIL
+
