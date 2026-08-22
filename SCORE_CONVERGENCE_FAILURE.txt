@@ -1,40 +1,18 @@
 Canonical Score convergence failed.
 
-migrate=success
-format=success
-test=failure
+migrate=failure
+format=skipped
+test=skipped
 vet=skipped
 server=skipped
 client=skipped
 whitespace=skipped
 --- output ---
 canonical Score convergence applied
-score convergence uint32 and ABI repairs applied
-go: downloading github.com/yuin/gopher-lua v1.1.2
-go: downloading github.com/jackc/pgx/v5 v5.10.0
-go: downloading github.com/jackc/pgpassfile v1.0.0
-go: downloading github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761
-go: downloading golang.org/x/text v0.40.0
-go: downloading github.com/jackc/puddle/v2 v2.2.2
-go: downloading golang.org/x/sync v0.22.0
-?   	wydgo/cmd/account-api	[no test files]
-?   	wydgo/cmd/account-create	[no test files]
-?   	wydgo/cmd/loadtest	[no test files]
-ok  	wydgo/cmd/network-admission	0.052s
-ok  	wydgo/cmd/npcconvert	0.029s
-# wydgo/internal/game [wydgo/internal/game.test]
-internal\game\combat_test.go:56:64: cannot use speedNibble (variable of type byte) as uint32 value in struct literal
-internal\game\quest_test.go:13:64: cannot use merchant (variable of type byte) as uint32 value in struct literal
-ok  	wydgo/cmd/server	0.103s
-ok  	wydgo/internal/account	1.550s
-ok  	wydgo/internal/accountapi	0.323s
-ok  	wydgo/internal/data	2.486s
-FAIL	wydgo/internal/game [build failed]
-ok  	wydgo/internal/loadtest	0.617s
-ok  	wydgo/internal/model	0.093s
-ok  	wydgo/internal/net	0.173s
-ok  	wydgo/internal/networkpolicy	0.070s
-ok  	wydgo/internal/store	1.139s
-ok  	wydgo/internal/wire	0.036s
-FAIL
+Traceback (most recent call last):
+  File "D:\a\wyd748\wyd748\scripts\score_convergence_repairs.py", line 123, in <module>
+    replace_in(
+  File "D:\a\wyd748\wyd748\scripts\score_convergence_repairs.py", line 12, in replace_in
+    raise RuntimeError(f"{rel}: expected {count} matches for {old!r}, found {found}")
+RuntimeError: internal/game/combat_test.go: expected 1 matches for 'testExtended(model.ExtendedScore{AttackRun: speedNibble})', found 0
 
