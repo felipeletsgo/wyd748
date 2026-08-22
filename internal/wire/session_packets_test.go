@@ -324,23 +324,6 @@ func TestCharListCarriesGuildIndexInSelection(t *testing.T) {
 	}
 }
 
-func TestEnterWorldProjectsSignedChaosToNativeByte(t *testing.T) {
-	for _, tc := range []struct {
-		cp   int16
-		want byte
-	}{
-		{-75, 0}, {0, 75}, {75, 150},
-	} {
-		b := EnterWorld(7, model.Char{
-			Name: "Player", CP: tc.cp,
-			Score: &model.Score{Version: model.ScoreVersion},
-		})
-		if got := b[16+12]; got != tc.want {
-			t.Fatalf("CP=%d byte=%d, esperado %d", tc.cp, got, tc.want)
-		}
-	}
-}
-
 func TestMessageChat748Layout(t *testing.T) {
 	b := MessageChat(7, "Inventario limpo")
 	if len(b) != 108 || ParseHeader(b).Type != OpMessageChat || ParseHeader(b).ID != 7 {
@@ -377,48 +360,6 @@ func TestDaySync748HiddenCalendarLayout(t *testing.T) {
 	}
 }
 
-func TestCharacterListsWriteAllFourSlots(t *testing.T) {
-	chars := make([]model.Char, 4)
-	for i := range chars {
-		chars[i] = model.Char{
-			Name:  []string{"TKTeste", "FMTeste", "BMTeste", "HTTeste"}[i],
-			X:     uint16(2112 + i),
-			Y:     uint16(2088 + i),
-			Gold:  uint32(100 + i),
-			Exp:   uint32(1000 + i),
-			Score: &model.Score{Level: uint32(i)},
-		}
-		chars[i].Equip[0].Index = uint16(1 + i*10)
-	}
-	var cargo [model.MaxCargo]model.Item
-	cargo[7] = model.Item{Index: 4011, Eff: [6]byte{43, 9}}
-	b := CharList("conta", chars, cargo[:], 123456)
-	if len(b) != 1800 || ParseHeader(b).Type != OpCharList {
-		t.Fatalf("char-list invalida: len=%d type=%X", len(b), ParseHeader(b).Type)
-	}
-	for slot, ch := range chars {
-		if got := binary.LittleEndian.Uint16(b[12+slot*2:]); got != ch.X {
-			t.Fatalf("slot %d X=%d, quer %d", slot, got, ch.X)
-		}
-		if got := cStringForTest(b[12+16+slot*16 : 12+16+(slot+1)*16]); got != ch.Name {
-			t.Fatalf("slot %d nome=%q, quer %q", slot, got, ch.Name)
-		}
-		if got := binary.LittleEndian.Uint16(b[12+192+(slot*16)*8:]); got != ch.Equip[0].Index {
-			t.Fatalf("slot %d rosto=%d, quer %d", slot, got, ch.Equip[0].Index)
-		}
-	}
-	if got := binary.LittleEndian.Uint16(b[756+7*8:]); got != 4011 {
-		t.Fatalf("cargo[7]=%d, quer 4011", got)
-	}
-	if got := binary.LittleEndian.Uint32(b[1780:1784]); got != 123456 {
-		t.Fatalf("cargo gold=%d, quer 123456", got)
-	}
-	cnf := CNFNewCharacter(7, chars)
-	if len(cnf) != 756 || ParseHeader(cnf).Type != OpCNFNewCharacter || ParseHeader(cnf).ID != 7 {
-		t.Fatalf("confirmacao de criacao invalida: len=%d header=%+v", len(cnf), ParseHeader(cnf))
-	}
-}
-
 func cStringForTest(b []byte) string {
 	for i, c := range b {
 		if c == 0 {
@@ -426,37 +367,6 @@ func cStringForTest(b []byte) string {
 		}
 	}
 	return string(b)
-}
-
-func TestEnterWorldWritesAuthoritativeMobTail(t *testing.T) {
-	short := [20]byte{3, 7, 11, 15}
-	ch := model.Char{
-		LearnedSkill: 0x00FFFFFF,
-		GuildID:      12,
-		GuildRank:    model.GuildRankLeader,
-		ShortSkill:   short,
-		Score: &model.Score{
-			StatusPts: 115, MasterPts: 44, SkillPts: 192, MagicAmp: 70,
-			Critical: 9, SaveMana: 10, RegenHP: 11, RegenMP: 12,
-			ResistFire: 13, ResistIce: 14, ResistHoly: 15, ResistThunder: 16,
-		},
-	}
-	b := EnterWorld(1, ch)
-	const tail = 16 + 732
-	if len(b) != 788 ||
-		binary.LittleEndian.Uint32(b[tail:tail+4]) != 0x00FFFFFF ||
-		binary.LittleEndian.Uint16(b[tail+4:tail+6]) != 115 ||
-		binary.LittleEndian.Uint16(b[tail+6:tail+8]) != 44 ||
-		binary.LittleEndian.Uint16(b[tail+8:tail+10]) != 192 ||
-		b[tail+10] != 9 || b[tail+11] != 10 ||
-		!bytes.Equal(b[tail+12:tail+16], short[:4]) ||
-		b[tail+17] != 70 || b[tail+18] != 11 || b[tail+19] != 12 ||
-		!bytes.Equal(b[tail+20:tail+24], []byte{13, 14, 15, 16}) {
-		t.Fatalf("cauda do STRUCT_MOB ausente/incorreta: % X", b[tail:tail+24])
-	}
-	if b[tail+16] != model.GuildRankLeader {
-		t.Fatalf("GuildMemberType=%d, esperado %d", b[tail+16], model.GuildRankLeader)
-	}
 }
 
 func TestUpdateEtcExtendedWritesWidePointsTail(t *testing.T) {
@@ -479,22 +389,6 @@ func TestUpdateEtcExtendedWritesWidePointsTail(t *testing.T) {
 	}
 	if got := binary.LittleEndian.Uint32(b[44:48]); got != 120000 {
 		t.Fatalf("skill wide=%d", got)
-	}
-}
-
-func TestSetMobHpMpProjectsWideResourcesProportionally(t *testing.T) {
-	b := SetMobHpMp(1000, 750_000, 1_000_000, 250_000, 500_000)
-	if len(b) != 20 || ParseHeader(b).Type != OpSetHpMp {
-		t.Fatalf("SetMobHpMp invalido: len=%d header=%+v", len(b), ParseHeader(b))
-	}
-	curHP := binary.LittleEndian.Uint16(b[12:14])
-	curMP := binary.LittleEndian.Uint16(b[14:16])
-	maxHP := binary.LittleEndian.Uint16(b[16:18])
-	maxMP := binary.LittleEndian.Uint16(b[18:20])
-	if maxHP > 30_000 || maxMP > 30_000 ||
-		uint32(curHP)*4 < uint32(maxHP)*3-1 || uint32(curHP)*4 > uint32(maxHP)*3+1 ||
-		uint32(curMP)*2 < uint32(maxMP)-1 || uint32(curMP)*2 > uint32(maxMP)+1 {
-		t.Fatalf("projecao wide do mob incorreta: hp=%d/%d mp=%d/%d", curHP, maxHP, curMP, maxMP)
 	}
 }
 

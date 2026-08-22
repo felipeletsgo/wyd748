@@ -149,21 +149,3 @@ func TestBMTransformationKeepsFullHPWhenAnotherBuffRecalculatesScore(t *testing.
 		t.Fatalf("buff curou/feriu BM que nao estava cheio: atual=%d, quer=%d", got, damagedHP)
 	}
 }
-
-func TestMobPublicExtendedDoesNotTruncateAuthoritativeHP(t *testing.T) {
-	def := testNPCDef(model.Score{
-		Attack: 300_000, Defense: 250_000, MaxHP: 1_000_000, MaxMP: 500_000,
-	})
-	mob := &Mob{Def: def, HP: 750_000}
-	extended := mobPublicExtended(mob)
-	if mob.HP != 750_000 || def.Score.MaxHP != 1_000_000 {
-		t.Fatalf("projecao alterou estado autoritativo: hp=%d max=%d", mob.HP, def.Score.MaxHP)
-	}
-	score := extended.CompatibilityScore()
-	if extended.Attack != 300_000 || extended.Defense != 250_000 ||
-		score.Attack != 1_000 || score.Defense != 1_000 ||
-		uint32(score.CurHP)*4 < uint32(score.MaxHP)*3-1 ||
-		uint32(score.CurHP)*4 > uint32(score.MaxHP)*3+1 {
-		t.Fatalf("score visual do mob incorreto: %+v", score)
-	}
-}

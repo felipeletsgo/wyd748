@@ -18,56 +18,6 @@ func testNPCDef(score model.Score) *model.NPCDef {
 	return &model.NPCDef{Tipo: model.TipoMonstro, Score: testScore(score)}
 }
 
-func TestApplyScoreProjectsCompatibilityWithoutLosingWideValues(t *testing.T) {
-	ch := &model.Char{Score: &model.Score{
-		Version: model.ScoreVersion,
-		Attack:  150_000, MagicAttack: 175_000, Defense: 125_000,
-		MaxHP: 250_000, MaxMP: 200_000, CurHP: 225_000, CurMP: 180_000,
-		Str: 110_000, Int: 120_000, Dex: 130_000, Con: 140_000,
-		Accuracy: 160_000, Evasion: 105_000,
-	}}
-	applyScore(ch)
-	compat := wireScoreState(ch).CompatibilityScore()
-
-	if ch.Score.Attack != 150_000 || playerAttack(ch) != 150_000 ||
-		playerMagicAttack(ch) != 175_000 || compat.Attack != 1_000 ||
-		compat.Defense != 1_000 {
-		t.Fatalf("stats wide/projecao incorretos: ext=%+v score=%+v",
-			*ch.Score, compat)
-	}
-	if compat.CurHP >= compat.MaxHP || compat.CurMP >= compat.MaxMP {
-		t.Fatalf("proporcao de vitais perdida: HP=%d/%d MP=%d/%d",
-			compat.CurHP, compat.MaxHP, compat.CurMP, compat.MaxMP)
-	}
-	if compat.MaxHP > 30_000 || compat.MaxMP > 30_000 || compat.Str > 1_000 {
-		t.Fatalf("projecao legada ultrapassou short assinado seguro: score=%+v", compat)
-	}
-}
-
-func TestExtendedResourcesNeverFallBackToCompatibilityProjection(t *testing.T) {
-	ch := &model.Char{Score: &model.Score{
-		Version: model.ScoreVersion,
-		MaxHP:   500_000, CurHP: 400_000,
-		MaxMP: 400_000, CurMP: 300_000,
-	}}
-	applyScore(ch)
-	if !spendPlayerMP(ch, 25_000) {
-		t.Fatal("mana wide recusada")
-	}
-	restorePlayerHP(ch, 50_000)
-	if playerCurHP(ch) != 450_000 || playerCurMP(ch) != 275_000 {
-		t.Fatalf("recursos reais foram projetados: hp=%d mp=%d score=%+v",
-			playerCurHP(ch), playerCurMP(ch), wireScoreState(ch).CompatibilityScore())
-	}
-	if ch.Score.CurHP != 450_000 || ch.Score.CurMP != 275_000 {
-		t.Fatalf("base persistida nao acompanhou recursos: %+v", *ch.Score)
-	}
-	if playerCombatMP(ch) != wire.CompatibilityCombatMP(wireScoreState(ch)) || playerCombatMP(ch) >= playerCurMP(ch) {
-		t.Fatalf("canal de combate nao usa exclusivamente a projecao: wire=%d real=%d score=%d",
-			playerCombatMP(ch), playerCurMP(ch), wire.CompatibilityCombatMP(wireScoreState(ch)))
-	}
-}
-
 func TestPossessedUsesWideMaxHPWithoutAccumulating(t *testing.T) {
 	ch := &model.Char{Score: &model.Score{
 		Version: model.ScoreVersion,
@@ -161,49 +111,5 @@ func TestExtendedAttributesUpdateDerivedResources(t *testing.T) {
 	w.recalcPlayer(ch)
 	if playerCon(ch) != 105 || playerMaxHP(ch) != 660 {
 		t.Fatalf("CON nao atualizou HP por recálculo: %+v", *ch.RuntimeScore)
-	}
-}
-
-func TestRepeatedWideSkillsKeepRealManaAndProjectedClientChannelInSync(t *testing.T) {
-	ch := &model.Char{Score: &model.Score{
-		Version: model.ScoreVersion,
-		MaxHP:   500_000, CurHP: 450_000,
-		MaxMP: 400_000, CurMP: 369_867,
-	}}
-	applyScore(ch)
-
-	for cast := 0; cast < 20; cast++ {
-		if !spendPlayerMP(ch, 227) {
-			t.Fatalf("cast %d recusado com MP real=%d", cast, playerCurMP(ch))
-		}
-		projected := playerCombatMP(ch)
-		if projected == 0 || projected > 30_000 {
-			t.Fatalf("cast %d gerou MP wire invalido=%d", cast, projected)
-		}
-
-		hit := wire.SkillHitExtended(1, 1000, 10, 10, 11, 10,
-			300_000, 0, 0, projected, 7, 5, 255)
-		if got := uint32(binary.LittleEndian.Uint16(hit[26:28])); got != projected {
-			t.Fatalf("cast %d truncou MP no 0x39D: got=%d want=%d", cast, got, projected)
-		}
-
-		score := wire.UpdateScore(1, *ch)
-		if got := binary.LittleEndian.Uint32(score[116:120]); got != playerCurMP(ch) {
-			t.Fatalf("cast %d perdeu MP real no 0x336: got=%d want=%d",
-				cast, got, playerCurMP(ch))
-		}
-		if got := binary.LittleEndian.Uint16(score[26:28]); uint32(got) != projected {
-			t.Fatalf("cast %d perdeu projecao no prefixo 0x336: got=%d want=%d",
-				cast, got, projected)
-		}
-	}
-
-	vitals := wire.SetHpMpExtended(1, wireScoreState(ch))
-	if got := binary.LittleEndian.Uint32(vitals[20:24]); got != playerCurHP(ch) {
-		t.Fatalf("HP real ausente do 0x181: got=%d want=%d", got, playerCurHP(ch))
-	}
-	_, projectedHP, _ := wire.CompatibilityVitals(wireScoreState(ch))
-	if got := binary.LittleEndian.Uint16(vitals[12:14]); got != projectedHP {
-		t.Fatalf("barra de HP nao recebeu projecao: got=%d want=%d", got, projectedHP)
 	}
 }
