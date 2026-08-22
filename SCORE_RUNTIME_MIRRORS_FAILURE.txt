@@ -1,0 +1,16 @@
+Runtime score mirror cleanup failed.
+
+migrate=failure
+format=skipped
+materialize=skipped
+test=skipped
+vet=skipped
+server=skipped
+client=skipped
+whitespace=skipped
+--- output ---
+Traceback (most recent call last):
+  File "D:\a\wyd748\wyd748\scripts\single_score_runtime_mirrors.py", line 57, in <module>
+    raise RuntimeError("STRUCT_MOB score mirror tail not found")
+RuntimeError: STRUCT_MOB score mirror tail not found
+
