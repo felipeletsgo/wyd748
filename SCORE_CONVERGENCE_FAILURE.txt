@@ -9,7 +9,7 @@ client=skipped
 whitespace=skipped
 --- output ---
 canonical Score convergence applied
-score convergence compile and ABI repairs applied
+score convergence uint32 and ABI repairs applied
 go: downloading github.com/yuin/gopher-lua v1.1.2
 go: downloading github.com/jackc/pgx/v5 v5.10.0
 go: downloading github.com/jackc/pgpassfile v1.0.0
@@ -20,30 +20,21 @@ go: downloading golang.org/x/sync v0.22.0
 ?   	wydgo/cmd/account-api	[no test files]
 ?   	wydgo/cmd/account-create	[no test files]
 ?   	wydgo/cmd/loadtest	[no test files]
-# wydgo/internal/game
-internal\game\affects.go:568:18: cannot use effectiveMobAttackRunAt(m, now) (value of type byte) as uint32 value in assignment
-internal\game\handlers.go:807:45: cannot use m.Def.Score.Merchant (variable of type uint32) as byte value in argument to shopTypeForMerchant
-internal\game\handlers.go:898:42: cannot use m.Def.Score.Merchant (variable of type uint32) as byte value in argument to shopTypeForMerchant
-internal\game\handlers.go:970:38: cannot use m.Def.Score.Merchant (variable of type uint32) as byte value in argument to shopTypeForMerchant
-internal\game\quest.go:47:38: cannot use def.Score.Merchant (variable of type uint32) as byte value in argument to shopTypeForMerchant
-internal\game\skill_summons.go:121:78: cannot use attackRun (variable of type byte) as uint32 value in struct literal
-ok  	wydgo/cmd/network-admission	0.067s
-ok  	wydgo/cmd/npcconvert	0.039s
-FAIL	wydgo/cmd/server [build failed]
-ok  	wydgo/internal/account	1.284s
-ok  	wydgo/internal/accountapi	0.206s
-ok  	wydgo/internal/data	3.000s
+ok  	wydgo/cmd/network-admission	0.052s
+ok  	wydgo/cmd/npcconvert	0.029s
+# wydgo/internal/game [wydgo/internal/game.test]
+internal\game\combat_test.go:56:64: cannot use speedNibble (variable of type byte) as uint32 value in struct literal
+internal\game\quest_test.go:13:64: cannot use merchant (variable of type byte) as uint32 value in struct literal
+ok  	wydgo/cmd/server	0.103s
+ok  	wydgo/internal/account	1.550s
+ok  	wydgo/internal/accountapi	0.323s
+ok  	wydgo/internal/data	2.486s
 FAIL	wydgo/internal/game [build failed]
-ok  	wydgo/internal/loadtest	0.557s
---- FAIL: TestCharJSONPersistsOnlyExtendedScore (0.00s)
-    model_test.go:37: JSON persistiu estado legado/derivado: {"uid":"","name":"felipe","class":0,"x":0,"y":0,"score":{"version":2,"level":50,"attack":200,"magicAttack":0,"defense":0,"maxHP":0,"maxMP":0,"curHP":0,"curMP":0,"str":0,"int":0,"dex":0,"con":0,"resistFire":10,"resistIce":20,"resistHoly":30,"resistThunder":40,"statusPoints":250,"masteryPoints":100,"skillPoints":150,"mastery":[0,0,0,0]},"cp":0,"chaosVersion":1,"gold":0,"exp":0,"learnedSkill":0,"shortSkill":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"affects":[{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"}],"equip":{"rosto":{"index":0},"elmo":{"index":0},"armadura":{"index":0},"calca":{"index":0},"luva":{"index":0},"bota":{"index":0},"arma":{"index":0},"escudo":{"index":0},"acessorio1":{"index":0},"acessorio2":{"index":0},"acessorio3":{"index":0},"acessorio4":{"index":0},"acessorio5":{"index":0},"acessorio6":{"index":0},"montaria":{"index":0},"capa":{"index":0}},"inv":[{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0}]}
---- FAIL: TestExtendedCharJSONNeverPersistsLegacyProjection (0.00s)
-    model_test.go:205: personagem wide ainda gravou score legado: {"uid":"","name":"Wide","class":0,"x":0,"y":0,"score":{"version":2,"level":0,"attack":0,"magicAttack":0,"defense":0,"maxHP":500000,"maxMP":400000,"curHP":480000,"curMP":350000,"str":0,"int":0,"dex":0,"con":0,"mastery":[0,0,0,0]},"cp":0,"chaosVersion":1,"gold":0,"exp":0,"learnedSkill":0,"shortSkill":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"affects":[{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"}],"equip":{"rosto":{"index":0},"elmo":{"index":0},"armadura":{"index":0},"calca":{"index":0},"luva":{"index":0},"bota":{"index":0},"arma":{"index":0},"escudo":{"index":0},"acessorio1":{"index":0},"acessorio2":{"index":0},"acessorio3":{"index":0},"acessorio4":{"index":0},"acessorio5":{"index":0},"acessorio6":{"index":0},"montaria":{"index":0},"capa":{"index":0}},"inv":[{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0}]}
-FAIL
-FAIL	wydgo/internal/model	0.046s
-ok  	wydgo/internal/net	0.136s
-ok  	wydgo/internal/networkpolicy	0.082s
-ok  	wydgo/internal/store	1.050s
-ok  	wydgo/internal/wire	0.038s
+ok  	wydgo/internal/loadtest	0.617s
+ok  	wydgo/internal/model	0.093s
+ok  	wydgo/internal/net	0.173s
+ok  	wydgo/internal/networkpolicy	0.070s
+ok  	wydgo/internal/store	1.139s
+ok  	wydgo/internal/wire	0.036s
 FAIL
 
