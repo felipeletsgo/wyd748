@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - .github/workflows/score-convergence.yml
+      - scripts/score_convergence.py
+      - scripts/score_convergence_repairs.py
 
 permissions:
   contents: write
