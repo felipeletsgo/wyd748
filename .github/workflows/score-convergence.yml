@@ -31,6 +31,8 @@ jobs:
         run: |
           python scripts/score_convergence.py 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/score_convergence_repairs.py 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Format Go sources
         id: format
