@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/score-convergence.yml
-      - scripts/remove_legacy_score.py
+      - scripts/single_score_repairs.py
 
 permissions:
   contents: write
@@ -25,12 +25,12 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Apply single-score cleanup
+      - name: Apply single-score repairs
         id: migrate
         continue-on-error: true
         shell: pwsh
         run: |
-          python scripts/remove_legacy_score.py 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
+          python scripts/single_score_repairs.py 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Format Go sources
@@ -42,7 +42,7 @@ jobs:
           Get-ChildItem -Path . -Recurse -Filter *.go | ForEach-Object { gofmt -w $_.FullName }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Materialize cleanup on main
+      - name: Materialize repairs on main
         id: materialize
         if: steps.migrate.outcome == 'success' && steps.format.outcome == 'success'
         shell: pwsh
@@ -53,7 +53,7 @@ jobs:
           git add -A
           git reset -- score-cleanup-run.log 2>$null
           if (git diff --cached --quiet) { exit 0 }
-          git commit -m "refactor: remove legacy score compatibility"
+          git commit -m "fix: complete single-score cleanup"
           git push origin HEAD:main
 
       - name: Go tests
