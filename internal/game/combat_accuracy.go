@@ -54,14 +54,14 @@ func playerAccuracyBonusPoints(ch *model.Char) int {
 	if ch == nil {
 		return 0
 	}
-	return int(effectiveExtended(ch).Accuracy)
+	return int(effectiveScore(ch).Accuracy)
 }
 
 func playerEvasionBonusPoints(ch *model.Char) int {
 	if ch == nil {
 		return 0
 	}
-	return maxInt(0, int(effectiveExtended(ch).Evasion))
+	return maxInt(0, int(effectiveScore(ch).Evasion))
 }
 
 func playerHasConcentration(ch *model.Char) bool {

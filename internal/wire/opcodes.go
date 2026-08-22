@@ -5,22 +5,22 @@ package wire
 const (
 	OpMessagePanel       = 0x101 // S->C aviso flutuante no topo (108B: Header + texto[96], ID=0)
 	OpConnectAccount     = 0x20D // C->S login (conta@12, senha@28, cliver@40)
-	OpCharList           = 0x10E // S->C lista de chars (1800B)
+	OpCharList           = 0x10A // S->C lista de chars (2360B, Score uint32)
 	OpCreateCharacter    = 0x20F // C->S criar char (slot@12, nome@16, classe@32)
 	OpCNFNewCharacter    = 0x110 // S->C confirma criacao e atualiza STRUCT_SELCHAR
 	OpNewCharacterFail   = 0x11A // S->C criacao recusada (MSG_STANDARD)
 	OpAlreadyPlaying     = 0x11C // S->C conta ja conectada (MSG_STANDARD)
 	OpCharacterLogin     = 0x213 // C->S entrar no mundo (slot selecionado)
 	OpCharacterLogout    = 0x215 // C->S volta do mundo para a selecao de personagem
-	OpEnterWorld         = 0x114 // S->C STRUCT_MOB completo (788B)
+	OpEnterWorld         = 0x114 // S->C STRUCT_MOB completo (2104B)
 	OpCNFCharacterLogout = 0x116 // S->C confirma CharacterLogout (MSG_STANDARD)
 	OpDeleteCharacter    = 0x211 // C->S apaga personagem (slot/nome/senha)
 	OpCNFDeleteCharacter = 0x112 // S->C atualiza a selecao apos exclusao
-	OpCreateMobTrade     = 0x363 // S->C cria clone de auto-loja com titulo (200B)
-	OpCreateMob          = 0x364 // S->C cria mob/player (176B, Status@100)
-	OpSetHpMp            = 0x181 // S->C HP/MP do mob (20B)
-	OpUpdateScore        = 0x336 // S->C score/affects publicos de player ou mob (92B)
-	OpUpdateAffect       = 0x3B9 // S->C 16 affects completos (140B no client 7.48)
+	OpCreateMobTrade     = 0x363 // S->C cria clone de auto-loja com titulo (352B)
+	OpCreateMob          = 0x364 // S->C cria mob/player (328B, Score@140)
+	OpSetHpMp            = 0x181 // S->C HP/MP uint32 (28B)
+	OpUpdateScore        = 0x336 // S->C Score uint32/affects (244B)
+	OpUpdateAffect       = 0x3B9 // S->C 32 affects completos (268B)
 	OpUpdateEtc          = 0x337 // S->C Hold/exp/pontos/gold (48B com cauda wide; CP fica no CreateMob)
 	OpCNFMobKill         = 0x338 // S->C confirma morte e atualiza EXP do killer
 	OpUpdateCarry        = 0x185 // S->C inventario interativo (528B)
@@ -74,7 +74,7 @@ const (
 	OpPKMode             = 0x399 // C->S ativa/desativa modo PK (Parm@12)
 	OpPKInfo             = 0x166 // S->C publica estado PK (MSG_STANDARDPARM)
 	OpReqShopList        = 0x27B // C->S clicou num mercador tipo 3 (TargetID@12) -> pede loja
-	OpShopList           = 0x17C // S->C lista da loja / abre a janela (532B, ShopType@12=1)
+	OpShopList           = 0x17C // S->C lista da loja / abre a janela (236B, 27 slots)
 	OpBuyItem            = 0x379 // C->S compra item da loja (TargetID@12, sellSlot@14)
 	OpSellItem           = 0x37A // C->S vende item pro mercador (TargetID@12, MyType@14, MyPos@16)
 	OpApplyBonus         = 0x277 // C->S stats/mastery/skill (BonusType@12, Detail@14, TargetID@16, 20B)

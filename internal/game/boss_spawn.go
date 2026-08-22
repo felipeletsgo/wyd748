@@ -54,11 +54,11 @@ func (w *World) spawnConfiguredBosses() error {
 			return fmt.Errorf("boss %q (%s): NPC base %q nao existe em data/npcs",
 				config.ID, config.SourceFile, config.NPC)
 		}
-		// O loader de NPC ja recusa extendedScore ausente; a guarda existe para
+		// O loader de NPC ja recusa score ausente; a guarda existe para
 		// que um catalogo montado a mao (teste, ferramenta) devolva erro claro
 		// em vez de panicar no deref logo abaixo.
 		if base.Score == nil {
-			return fmt.Errorf("boss %q (%s): NPC base %q sem extendedScore",
+			return fmt.Errorf("boss %q (%s): NPC base %q sem score",
 				config.ID, config.SourceFile, config.NPC)
 		}
 		profile, err := compileBossProfile(config)

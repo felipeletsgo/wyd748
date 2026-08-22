@@ -11,8 +11,8 @@ const playerRegenInterval = 3 * time.Second
 
 func regenAmount(max uint32, rate int) uint32 {
 	value := uint64(max)*uint64(clampInt(rate, 0, 255))/120 + 10
-	if value > uint64(maxExtendedStat) {
-		return maxExtendedStat
+	if value > uint64(maxScoreValue) {
+		return maxScoreValue
 	}
 	return uint32(value)
 }
@@ -22,7 +22,7 @@ func applyPlayerRegen(ch *model.Char) bool {
 		return false
 	}
 	oldHP, oldMP := playerCurHP(ch), playerCurMP(ch)
-	e := effectiveExtended(ch)
+	e := effectiveScore(ch)
 	restorePlayerHP(ch, regenAmount(playerMaxHP(ch), int(e.RegenHP)))
 	restorePlayerMP(ch, regenAmount(playerMaxMP(ch), int(e.RegenMP)))
 	return oldHP != playerCurHP(ch) || oldMP != playerCurMP(ch)

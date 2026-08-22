@@ -187,7 +187,7 @@ func networkedTestPlayer(id uint16, name string, x, y uint16) (*Player, *gameNet
 	session := gameNet.NewTestSession(int64(id), 128)
 	ch := &model.Char{
 		Name: name, UID: fmt.Sprintf("test-character-%d-%s", id, name), X: x, Y: y,
-		Score: testExtended(model.Score{
+		Score: testScore(model.Score{
 			Level: 10, Attack: 500, MagicAttack: 600, Defense: 100,
 			Str: 100, Int: 100, Dex: 100, Con: 100,
 			MaxHP: 1000, CurHP: 1000, MaxMP: 800, CurMP: 800,
@@ -199,7 +199,7 @@ func networkedTestPlayer(id uint16, name string, x, y uint16) (*Player, *gameNet
 		ID: id, Session: session, Account: acc, Char: &acc.Chars[0], CharSlot: 0,
 		InWorld: true, X: x, Y: y, Visible: make(map[uint16]struct{}),
 	}
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	return p, session
 }
 
@@ -425,8 +425,8 @@ func TestCombatPathsUseAuthoritativeExtendedStats(t *testing.T) {
 	attacker.Char.Score.Accuracy = 1000
 	target.Char.Score.Dex = 0
 	target.Char.Score.Defense = 10
-	applyExtendedScore(attacker.Char)
-	applyExtendedScore(target.Char)
+	applyScore(attacker.Char)
+	applyScore(target.Char)
 	mob := &Mob{
 		ID: 1000, HP: 1000,
 		Def: testNPCDef(model.Score{
@@ -607,7 +607,7 @@ func TestMountUtilityAndLifecycleBranches(t *testing.T) {
 }
 
 func TestSkillPVPAffectHelpers(t *testing.T) {
-	ch := &model.Char{Score: testExtended(model.Score{
+	ch := &model.Char{Score: testScore(model.Score{
 		ResistFire: 1, ResistIce: 2, ResistHoly: 3, ResistThunder: 4,
 	})}
 	if hasActiveAffect(nil, 1) {

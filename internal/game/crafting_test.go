@@ -156,7 +156,7 @@ func TestCombineLindyCreatesEliteCape(t *testing.T) {
 		pos[index] = int8(index)
 	}
 	placeItems(p.Char, items, pos)
-	p.Char.Score = testExtended(model.Score{
+	p.Char.Score = testScore(model.Score{
 		Level: archLockLevel355, MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
 	})
 	p.Char.Evolution = archEvolution
@@ -217,7 +217,7 @@ func TestCombineLindyRejectsCharacterOutsideArchLock(t *testing.T) {
 		pos[index] = int8(index)
 	}
 	placeItems(p.Char, items, pos)
-	p.Char.Score = testExtended(model.Score{Level: 360, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testScore(model.Score{Level: 360, MaxHP: 100, CurHP: 100})
 	p.Char.Evolution = archEvolution
 	before := p.Char.Inv
 
@@ -244,7 +244,7 @@ func TestCombineLindyLevel370KeepsEquippedCape(t *testing.T) {
 		pos[index] = int8(index)
 	}
 	placeItems(p.Char, items, pos)
-	p.Char.Score = testExtended(model.Score{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testScore(model.Score{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
 	p.Char.Evolution = archEvolution
 	p.Char.ArchLevel355 = true
 	p.Char.Equip[15] = model.Item{Index: 3197, UID: "11111111111141118111111111111111", Eff: [6]byte{43, 7}}
@@ -278,7 +278,7 @@ func TestCombineLindyLevel370RequiresOneFameWithoutConsumingRecipe(t *testing.T)
 		pos[index] = int8(index)
 	}
 	placeItems(p.Char, items, pos)
-	p.Char.Score = testExtended(model.Score{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testScore(model.Score{Level: archLockLevel370, MaxHP: 100, CurHP: 100})
 	p.Char.Evolution = archEvolution
 	p.Char.ArchLevel355 = true
 	before := p.Char.Inv
@@ -324,7 +324,7 @@ func TestCombineLindyUnlocksRollBackFlagsFameAndRecipeOnSaveFailure(t *testing.T
 				pos[index] = int8(index)
 			}
 			placeItems(p.Char, items, pos)
-			p.Char.Score = testExtended(model.Score{Level: test.level, MaxHP: 100, CurHP: 100})
+			p.Char.Score = testScore(model.Score{Level: test.level, MaxHP: 100, CurHP: 100})
 			p.Char.Evolution = archEvolution
 			p.Char.ArchLevel355 = test.level == archLockLevel370
 			p.Char.Equip[15] = model.Item{Index: 3197, UID: "11111111111141118111111111111111", Eff: [6]byte{43, 7}}
@@ -595,7 +595,7 @@ func TestCombineEhreRollsBackExperienceOnSaveFailure(t *testing.T) {
 	placeItems(p.Char, items, pos)
 	p.Char.Evolution = "celestial"
 	p.Char.Exp = 10_000_000
-	p.Char.Score = testExtended(model.Score{Level: 190, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testScore(model.Score{Level: 190, MaxHP: 100, CurHP: 100})
 	beforeInv, beforeExp := p.Char.Inv, p.Char.Exp
 	st.err = errors.New("postgres indisponivel")
 
@@ -621,7 +621,7 @@ func TestCombineEhreRejectsRefinementWithoutEffectSlot(t *testing.T) {
 	placeItems(p.Char, items, pos)
 	p.Char.Evolution = "celestial"
 	p.Char.Exp = 10_000_000
-	p.Char.Score = testExtended(model.Score{
+	p.Char.Score = testScore(model.Score{
 		Level: 190, MaxHP: 100, CurHP: 100,
 	})
 	beforeInv, beforeExp := p.Char.Inv, p.Char.Exp
@@ -645,7 +645,7 @@ func TestCombineOdinCapeRejectsWhenRefinementHasNoEffectSlot(t *testing.T) {
 	}
 	placeItems(p.Char, items, pos)
 	p.Char.Evolution = "celestial"
-	p.Char.Score = testExtended(model.Score{Level: 39, MaxHP: 100, CurHP: 100})
+	p.Char.Score = testScore(model.Score{Level: 39, MaxHP: 100, CurHP: 100})
 	p.Char.Equip[15] = model.Item{
 		Index: 3199,
 		UID:   "11111111111141118111111111111111",

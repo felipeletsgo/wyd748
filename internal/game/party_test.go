@@ -28,7 +28,7 @@ func TestPartyRequestTarget759Compatibility(t *testing.T) {
 func partyTestPlayer(id uint16, x, y uint16) *Player {
 	return &Player{
 		ID: id, X: x, Y: y, InWorld: true,
-		Char: &model.Char{Name: "Player", Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})},
+		Char: &model.Char{Name: "Player", Score: testScore(model.Score{MaxHP: 100, CurHP: 100})},
 	}
 }
 

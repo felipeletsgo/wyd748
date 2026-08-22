@@ -124,10 +124,10 @@ static_assert(offsetof(MSG_UpdateScore, Magician) == 236, "source UpdateScore.Ma
 static_assert(offsetof(MSG_UpdateScore, LearnedSkill) == 240, "source UpdateScore.LearnedSkill offset changed");
 static_assert(sizeof(MSG_UpdateAffect) == 268, "source UpdateAffect packet ABI changed");
 static_assert(sizeof(MSG_ShopList) == 236, "source ShopList packet ABI changed");
-// These packets are incremental notifications, not alternative score models.
+// Incremental notifications never carry an alternate score representation.
 static_assert(sizeof(MSG_UpdateEquip) == 60, "7.48 UpdateEquip packet ABI changed");
 static_assert(sizeof(MSG_UpdateEtc) == 48, "WYD-Go UpdateEtc extension ABI changed");
-static_assert(sizeof(MSG_SetHpMp) == 36, "WYD-Go HP/MP incremental ABI changed");
+static_assert(sizeof(MSG_SetHpMp) == 28, "canonical HP/MP incremental ABI changed");
 // Client diagnostics are accepted by WYD-Go only in the canonical 7.48 form.
 static_assert(sizeof(MSG_MessageLog) == 108, "7.48 client diagnostic packet ABI changed");
 // These common world responses share the stock 7.48 layout for both clients.

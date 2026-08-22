@@ -93,7 +93,7 @@
   },
   "classInfo": 1,
   "expReward": 0,
-  "extendedScore": {
+  "score": {
     "version": 2,
     "level": 2,
     "attack": 32000,

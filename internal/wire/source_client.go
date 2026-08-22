@@ -1,46 +1,14 @@
 package wire
 
 import (
-	"encoding/binary"
 	"time"
 
 	"wydgo/internal/model"
 )
 
-// ClientProtocol identifies only the serialization ABI spoken by a session.
-// It never changes gameplay rules or makes client-provided score fields
-// authoritative. Zero deliberately means the already deployed stock client.
-type ClientProtocol uint32
-
-const (
-	ClientProtocolStock748 ClientProtocol = iota
-	ClientProtocolSource748
-)
-
-const (
-	// SourceClientProtocolMarker is carried at login offset 44, in the legacy
-	// DBNeedSave field. "SRC2" is deliberately outside the stock zero/one
-	// domain, so old WYD.exe builds keep selecting the stock packet family.
-	SourceClientProtocolMarker uint32 = 0x32435253
-
-	// SourceOpCharList is the opcode consumed by TMProject's source selection
-	// scene. The stock binary continues to receive OpCharList (0x10E).
-	SourceOpCharList uint16 = 0x10A
-)
-
-// ClientProtocolFromLogin detects the source-client marker without trusting
-// any other login payload field. Invalid or short packets remain stock and are
-// rejected by the normal exact-size/phase validation before authentication.
-func ClientProtocolFromLogin(packet []byte) ClientProtocol {
-	if len(packet) >= 48 && binary.LittleEndian.Uint32(packet[44:48]) == SourceClientProtocolMarker {
-		return ClientProtocolSource748
-	}
-	return ClientProtocolStock748
-}
-
-// putSourceSelChar writes TMProject's 1272-byte STRUCT_SELCHAR. Its canonical 140-byte
+// putSelChar writes TMProject's 1272-byte STRUCT_SELCHAR. Its canonical 140-byte
 // Score is copied without narrowing; uint64 EXP remains a presentation field.
-func putSourceSelChar(dst []byte, offset int, chars []model.Char) {
+func putSelChar(dst []byte, offset int, chars []model.Char) {
 	for slot := 0; slot < 4 && slot < len(chars); slot++ {
 		ch := chars[slot]
 		if ch.Name == "" {
@@ -49,7 +17,7 @@ func putSourceSelChar(dst []byte, offset int, chars []model.Char) {
 		putU16(dst, offset+slot*2, ch.X)
 		putU16(dst, offset+8+slot*2, ch.Y)
 		copy(dst[offset+16+slot*16:offset+32+slot*16], ch.Name)
-		score := EncodeClientScore(scoreWireExtension(ch))
+		score := EncodeClientScore(wireScore(ch))
 		copy(dst[offset+80+slot*ClientScoreSize:], score[:])
 		for equipSlot, item := range ch.Equip {
 			// TMProject keeps 18 source-side equipment entries. The server model
@@ -62,48 +30,23 @@ func putSourceSelChar(dst []byte, offset int, chars []model.Char) {
 	}
 }
 
-// SourceCharList builds the exact 2360-byte MSG_CNFAccountLogin expected by
+// CharList builds the exact 2360-byte MSG_CNFAccountLogin expected by
 // the source client: Header, alignment padding, SecretCode, 1272-byte SelChar,
 // Cargo, cargo coin and account identity. SecretCode stays zero because the Go
 // transport authenticates each frame from its own header keyword/checksum.
-func SourceCharList(accName string, chars []model.Char, cargo []model.Item, cargoGold uint32) []byte {
+func CharList(accName string, chars []model.Char, cargo []model.Item, cargoGold uint32) []byte {
 	const (
 		packetSize = 2360
 		selOffset  = 32
 		cargoOff   = 1304
 	)
-	b := Build(SourceOpCharList, SceneCharList, packetSize)
-	putSourceSelChar(b, selOffset, chars)
+	b := Build(OpCharList, SceneCharList, packetSize)
+	putSelChar(b, selOffset, chars)
 	for i := 0; i < len(cargo) && i < model.MaxCargo; i++ {
 		PutItem(b, cargoOff+i*8, cargo[i])
 	}
 	putU32(b, 2328, cargoGold)
 	copy(b[2332:2348], accName)
-	return b
-}
-
-// CharacterListForProtocol is the single selection boundary used by game
-// handlers. Keeping the switch here prevents features from accidentally
-// sending a stock score layout to the source client after a later mutation.
-func CharacterListForProtocol(protocol ClientProtocol, accName string, chars []model.Char, cargo []model.Item, cargoGold uint32) []byte {
-	if protocol == ClientProtocolSource748 {
-		return SourceCharList(accName, chars, cargo, cargoGold)
-	}
-	return CharList(accName, chars, cargo, cargoGold)
-}
-
-// CharacterSelectionUpdateForProtocol rebuilds the entire selection aggregate
-// after create/delete/evolution. TMProject aligns STRUCT_SELCHAR at byte 16;
-// the stock client keeps its compact 744-byte value at byte 12.
-func CharacterSelectionUpdateForProtocol(protocol ClientProtocol, opcode, id uint16, chars []model.Char) []byte {
-	if protocol != ClientProtocolSource748 {
-		if opcode == OpCNFDeleteCharacter {
-			return CNFDeleteCharacter(id, chars)
-		}
-		return CNFNewCharacter(id, chars)
-	}
-	b := Build(opcode, id, 1288)
-	putSourceSelChar(b, 16, chars)
 	return b
 }
 
@@ -135,10 +78,10 @@ func putSourceAffects(dst []byte, offset int, affects []model.Affect, now time.T
 	}
 }
 
-// SourceEnterWorld serializes the 2104-byte MSG_CNFCharacterLogin produced by
+// EnterWorld serializes the 2104-byte MSG_CNFCharacterLogin produced by
 // the Win32 compiler. Padding and the two source-only equipment slots are
 // deliberately zero. This is a projection from Char, never a model copy-back.
-func SourceEnterWorld(id, slot uint16, ch model.Char) []byte {
+func EnterWorld(id, slot uint16, ch model.Char) []byte {
 	b := Build(OpEnterWorld, id, 2104)
 	// MSG_CNFCharacterLogin places Ext1 immediately after ShortSkill[16].
 	// Keeping these offsets named prevents the 32-byte Ext1.Data prefix from
@@ -162,7 +105,7 @@ func SourceEnterWorld(id, slot uint16, ch model.Char) []byte {
 	putU16(b, mob+40, ch.X)
 	putU16(b, mob+42, ch.Y)
 	baseScore := EncodeClientScore(ch.Score)
-	runtimeScore := EncodeClientScore(scoreWireExtension(ch))
+	runtimeScore := EncodeClientScore(wireScore(ch))
 	copy(b[mob+44:mob+184], baseScore[:])
 	copy(b[mob+184:mob+324], runtimeScore[:])
 	for i, item := range ch.Equip {
@@ -173,7 +116,7 @@ func SourceEnterWorld(id, slot uint16, ch model.Char) []byte {
 	}
 	putU32(b, mob+980, ch.LearnedSkill)
 	putU32(b, mob+984, ch.SecondaryLearnedSkill)
-	ext := scoreWireExtension(ch)
+	ext := wireScore(ch)
 	putU16(b, mob+988, compatibilityU16(ext.StatusPts))
 	putU16(b, mob+990, compatibilityU16(ext.MasterPts))
 	putU16(b, mob+992, compatibilityU16(ext.SkillPts))
@@ -199,21 +142,12 @@ func SourceEnterWorld(id, slot uint16, ch model.Char) []byte {
 	return b
 }
 
-// EnterWorldForProtocol selects the source or stock character aggregate while
-// keeping the call site independent from the packet ABI.
-func EnterWorldForProtocol(protocol ClientProtocol, id, slot uint16, ch model.Char) []byte {
-	if protocol == ClientProtocolSource748 {
-		return SourceEnterWorld(id, slot, ch)
-	}
-	return EnterWorld(id, ch)
-}
-
-// SourceUpdateScore maps the authoritative runtime score to TMProject's
+// UpdateScore maps the authoritative runtime score to TMProject's
 // 244-byte 0x336 structure. Fields absent from that native structure continue
 // to be synchronized by dedicated packets/extensions rather than trusted back.
-func SourceUpdateScore(id uint16, ch model.Char) []byte {
+func UpdateScore(id uint16, ch model.Char) []byte {
 	b := Build(OpUpdateScore, id, 244)
-	ext := scoreWireExtension(ch)
+	ext := wireScore(ch)
 	score := EncodeClientScore(ext)
 	copy(b[12:152], score[:])
 	b[152] = clampByte(int(ext.Critical))
@@ -235,10 +169,10 @@ func SourceUpdateScore(id uint16, ch model.Char) []byte {
 	return b
 }
 
-// SourceMobScore builds the source client's 244-byte score refresh for an NPC
+// MobScore builds the source client's 244-byte score refresh for an NPC
 // or monster. The stock XSC2 packet cannot be broadcast to a mixed client view
 // because TMProject reads the canonical STRUCT_SCORE directly at byte 12.
-func SourceMobScore(id uint16, ext *model.Score, affects []model.Affect, resist model.ElementalResists) []byte {
+func MobScore(id uint16, ext *model.Score, affects []model.Affect, resist model.ElementalResists) []byte {
 	b := Build(OpUpdateScore, id, 244)
 	score := EncodeClientScore(ext)
 	copy(b[12:152], score[:])
@@ -255,73 +189,11 @@ func SourceMobScore(id uint16, ext *model.Score, affects []model.Affect, resist 
 	return b
 }
 
-// MobScoreForProtocol serializes one authoritative mob score for the observer
-// ABI. Gameplay remains a single mutation regardless of client presentation.
-func MobScoreForProtocol(protocol ClientProtocol, id uint16, ext *model.Score, affects []model.Affect, resist model.ElementalResists) []byte {
-	if protocol == ClientProtocolSource748 {
-		return SourceMobScore(id, ext, affects, resist)
-	}
-	return MobScoreExtended(id, ext, affects, resist)
-}
-
-// MobHpMpForProtocol keeps the stock client's projected 20-byte resource
-// update while giving TMProject the authoritative uint32 values carried by its
-// 36-byte handler. This prevents a later mob hit from replacing the full score
-// loaded at materialization with the legacy WORD projection.
-func MobHpMpForProtocol(protocol ClientProtocol, id uint16, currentHP, maxHP, currentMP, maxMP uint32) []byte {
-	if protocol != ClientProtocolSource748 {
-		return SetMobHpMp(id, currentHP, maxHP, currentMP, maxMP)
-	}
-	ext := &model.Score{
-		Version: model.ScoreVersion,
-		CurHP:   currentHP,
-		MaxHP:   maxHP,
-		CurMP:   currentMP,
-		MaxMP:   maxMP,
-	}
-	return SetHpMpExtended(id, ext)
-}
-
-// HpMpForProtocol is the player-side counterpart to MobHpMpForProtocol. The
-// source build consumes the 36-byte wide resource packet, while the deployed
-// stock 7.48 executable only understands the original 20-byte projection.
-// Selecting the layout from the recipient session prevents a mixed World
-// from sending a newer tail to a legacy client without changing gameplay.
-func HpMpForProtocol(protocol ClientProtocol, id uint16, ext *model.Score) []byte {
-	if ext == nil {
-		ext = &model.Score{Version: model.ScoreVersion}
-	}
-	if protocol == ClientProtocolSource748 {
-		return SetHpMpExtended(id, ext)
-	}
-	return SetMobHpMp(id, ext.CurHP, ext.MaxHP, ext.CurMP, ext.MaxMP)
-}
-
-// UpdateScoreForProtocol is the authoritative score publication boundary for
-// both supported clients.
-func UpdateScoreForProtocol(protocol ClientProtocol, id uint16, ch model.Char) []byte {
-	if protocol == ClientProtocolSource748 {
-		return SourceUpdateScore(id, ch)
-	}
-	return UpdateScore(id, ch)
-}
-
-// UpdateAffectsForProtocol keeps the source client's 32-slot structure and the
-// stock client's 16-slot structure separate without expanding the game model.
-func UpdateAffectsForProtocol(protocol ClientProtocol, id uint16, ch model.Char) []byte {
-	if protocol != ClientProtocolSource748 {
-		return UpdateAffects(id, ch)
-	}
-	b := Build(OpUpdateAffect, id, 268)
-	putSourceAffects(b, 12, ch.Affects[:], time.Now())
-	return b
-}
-
-// sourceCreateMob serializes TMProject's 328-byte MSG_CreateMob. The source
+// createMob serializes TMProject's 328-byte MSG_CreateMob. The source
 // ABI expands equipment and affect arrays to 18/32 entries and embeds the
 // canonical 140-byte Score, but receives the same authoritative values as
 // the stock-client builder.
-func sourceCreateMob(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp *int16) []byte {
+func createMob(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp *int16) []byte {
 	b := Build(OpCreateMob, SceneField, 328)
 	putU16(b, 12, x)
 	putU16(b, 14, y)
@@ -346,43 +218,63 @@ func sourceCreateMob(id uint16, name string, x, y uint16, mesh []uint16, anct []
 	return b
 }
 
-// CreateMobVisualExtendedForProtocol keeps entity materialization compatible
-// with both clients. NPCs and monsters do not receive a player CP byte.
-func CreateMobVisualExtendedForProtocol(protocol ClientProtocol, id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn uint16) []byte {
-	if protocol == ClientProtocolSource748 {
-		return sourceCreateMob(id, name, x, y, mesh, anct, ext, affects, spawn, 0, 0, nil)
-	}
-	return CreateMobVisualExtended(id, name, x, y, mesh, anct, ext, affects, spawn)
+// CharacterSelectionUpdate rebuilds the canonical four-character selection
+// aggregate after create/delete/evolution.
+func CharacterSelectionUpdate(opcode, id uint16, chars []model.Char) []byte {
+	b := Build(opcode, id, 1288)
+	putSelChar(b, 16, chars)
+	return b
 }
 
-// CreateMobExtendedWithGuildRankForProtocol is the player-specific
-// materialization boundary. Guild rank and CP remain projections only.
-func CreateMobExtendedWithGuildRankForProtocol(protocol ClientProtocol, id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp int16) []byte {
-	if protocol == ClientProtocolSource748 {
-		return sourceCreateMob(id, name, x, y, mesh, anct, ext, affects, spawn, guild, guildRank, &cp)
+// SetHpMp publishes the four authoritative uint32 resources directly. There
+// is no WORD prefix and no legacy fallback.
+func SetHpMp(id uint16, score *model.Score) []byte {
+	if score == nil {
+		score = &model.Score{Version: model.ScoreVersion}
 	}
-	return CreateMobExtendedWithGuildRank(id, name, x, y, mesh, anct, ext, affects, spawn, guild, guildRank, cp)
+	b := Build(OpSetHpMp, id, 28)
+	putU32(b, 12, score.CurHP)
+	putU32(b, 16, score.CurMP)
+	putU32(b, 20, score.MaxHP)
+	putU32(b, 24, score.MaxMP)
+	return b
 }
 
-// CreateMobTradeExtendedForProtocol uses the source client's 352-byte trade
-// clone without leaking its wider layout to stock 7.48 observers.
-func CreateMobTradeExtendedForProtocol(protocol ClientProtocol, id uint16, name string, x, y uint16, mesh []uint16, ext *model.Score, title string) []byte {
-	if protocol != ClientProtocolSource748 {
-		return CreateMobTradeExtended(id, name, x, y, mesh, ext, title)
-	}
-	normal := sourceCreateMob(id, name, x, y, mesh, nil, ext, nil, 2, 0, 0, nil)
+func MobHpMp(id uint16, currentHP, maxHP, currentMP, maxMP uint32) []byte {
+	return SetHpMp(id, &model.Score{
+		Version: model.ScoreVersion,
+		CurHP:   currentHP, MaxHP: maxHP,
+		CurMP: currentMP, MaxMP: maxMP,
+	})
+}
+
+func HpMp(id uint16, score *model.Score) []byte { return SetHpMp(id, score) }
+
+func UpdateAffects(id uint16, ch model.Char) []byte {
+	b := Build(OpUpdateAffect, id, 268)
+	putSourceAffects(b, 12, ch.Affects[:], time.Now())
+	return b
+}
+
+func CreateMobVisual(id uint16, name string, x, y uint16, mesh []uint16, anct []byte,
+	score *model.Score, affects []model.Affect, spawn uint16) []byte {
+	return createMob(id, name, x, y, mesh, anct, score, affects, spawn, 0, 0, nil)
+}
+
+func CreateMobWithGuildRank(id uint16, name string, x, y uint16, mesh []uint16, anct []byte,
+	score *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp int16) []byte {
+	return createMob(id, name, x, y, mesh, anct, score, affects, spawn, guild, guildRank, &cp)
+}
+
+func CreateMobTrade(id uint16, name string, x, y uint16, mesh []uint16, score *model.Score, title string) []byte {
+	normal := createMob(id, name, x, y, mesh, nil, score, nil, 2, 0, 0, nil)
 	b := Build(OpCreateMobTrade, SceneField, 352)
 	copy(b[12:326], normal[12:326])
 	copy(b[326:350], title)
 	return b
 }
 
-// ShopListForProtocol preserves the native limits of each renderer: stock
-// 7.48 accepts 64 item records, while TMProject's source panel owns 27.
-func ShopListForProtocol(protocol ClientProtocol, items []model.Item, tax, shopType uint32) []byte {
-	if protocol != ClientProtocolSource748 {
-		return ShopList(items, tax, shopType)
-	}
+func ShopList(items []model.Item, tax, shopType uint32) []byte {
 	b := Build(OpShopList, SceneField, 236)
 	putU32(b, 12, shopType)
 	for i := 0; i < len(items) && i < 27; i++ {
@@ -392,12 +284,7 @@ func ShopListForProtocol(protocol ClientProtocol, items []model.Item, tax, shopT
 	return b
 }
 
-// MessageChatForProtocol keeps TMProject's 128-byte text field while stock
-// observers continue receiving the captured 96-byte 7.48 layout.
-func MessageChatForProtocol(protocol ClientProtocol, id uint16, message string) []byte {
-	if protocol != ClientProtocolSource748 {
-		return MessageChat(id, message)
-	}
+func MessageChat(id uint16, message string) []byte {
 	b := Build(OpMessageChat, id, 140)
 	copy(b[12:139], message)
 	return b

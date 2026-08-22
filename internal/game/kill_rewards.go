@@ -209,7 +209,7 @@ func (w *World) commitKillRewardBatch(p *Player, plans []*killRewardPlan,
 			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 				// Persistence rollback resurrects the mob, so each observer must
 				// receive the HP ABI negotiated by its own login packet.
-				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Score.MaxHP,
+				return wire.MobHpMp(m.ID, m.HP, m.Def.Score.MaxHP,
 					m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 			})
 		}

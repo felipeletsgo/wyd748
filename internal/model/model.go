@@ -140,35 +140,14 @@ func normalizePersistentUID(uid string, length int, label string) (string, error
 	return uid, nil
 }
 
-// LegacyScore28 = STRUCT_SCORE stock 7.48 (28 bytes no wire). Merchant/AttackRun sao bytes
-// CHEIOS (Merchant: low=tipo|high=direcao; AttackRun: Att*16+Run) -- NAO nibbles
-// separados. Este tipo nunca e persistido nem usado em calculos.
-type LegacyScore28 struct {
-	Level     uint16  `json:"-"`
-	Defense   uint16  `json:"-"`
-	Attack    uint16  `json:"-"`
-	Merchant  byte    `json:"-"`
-	AttackRun byte    `json:"-"`
-	MaxHP     uint16  `json:"-"`
-	MaxMP     uint16  `json:"-"`
-	CurHP     uint16  `json:"-"`
-	CurMP     uint16  `json:"-"`
-	Str       uint16  `json:"-"`
-	Int       uint16  `json:"-"`
-	Dex       uint16  `json:"-"`
-	Con       uint16  `json:"-"`
-	Mastery   [4]byte `json:"-"`
-}
-
 const (
 	ScoreVersion  uint32 = 2
 	MaxScoreValue uint32 = 2_000_000_000
 )
 
-// Score e o unico score autoritativo de personagens e mobs e tambem o
-// contrato binario do client-source 7.48+. Todos os campos sao uint32; o
-// executavel stock 7.48 recebe somente LegacyScore28 na borda de protocolo.
-// Nenhuma projecao legada participa de calculo ou persistencia.
+// Score e a unica representacao de atributos de personagens e mobs e o
+// contrato binario compartilhado com o client-source 7.48+. Todos os
+// campos sao uint32; nao existe score legado, sidecar ou projecao paralela.
 //
 // Os calculos intermediarios do game usam int64 e os resultados persistidos
 // ficam limitados a 2.000.000.000, evitando overflow nos campos signed do client.
@@ -279,100 +258,6 @@ func (e *Score) ValidatePlayerState() error {
 		return fmt.Errorf("score.curMP=%d excede maxMP=%d", e.CurMP, e.MaxMP)
 	}
 	return nil
-}
-
-const (
-	compatibilityMaximum = uint32(30_000)
-	compatibilityDerived = uint32(1_000)
-)
-
-// CompatibilityHPScale e o divisor que leva o HP real para a faixa que o
-// STRUCT_SCORE nativo comporta. Vale 1 enquanto o MaxHP couber direto.
-//
-// Existe exportado porque NAO basta projetar o HP: o dano dos pacotes de
-// ataque viaja num WORD que o client subtrai do CurHP JA PROJETADO. Mandar o
-// dano cru fazia a barra cair `scale` vezes mais rapido que o correto, e
-// depois saltar de volta quando chegava o 0x181.
-func CompatibilityHPScale(maximum uint32) uint32 {
-	if maximum <= compatibilityMaximum {
-		return 1
-	}
-	return (maximum + compatibilityMaximum - 1) / compatibilityMaximum
-}
-
-// ProjectHPDelta converte uma variacao de HP real (dano, cura) para a escala
-// do prefixo nativo. Arredonda para CIMA: com MaxHP alto, truncar deixaria
-// todo golpe menor que a escala invisivel na barra.
-func ProjectHPDelta(delta, maximum uint32) uint16 {
-	if delta == 0 {
-		return 0
-	}
-	scale := CompatibilityHPScale(maximum)
-	projected := (delta + scale - 1) / scale
-	// O teto e a BARRA CHEIA do alvo, nao a constante de 30.000: com MaxHP de
-	// 5.000.000 a barra projetada vale 29.941, e um overkill que mandasse
-	// 30.000 ainda passaria dela. Alvo sem MaxHP conhecido cai na constante.
-	teto := compatibilityMaximum
-	if maximum > 0 {
-		teto = (maximum + scale - 1) / scale
-	}
-	if projected > teto {
-		projected = teto
-	}
-	return uint16(projected)
-}
-
-func projectCompatibilityPair(current, maximum uint32) (uint16, uint16) {
-	if current > maximum {
-		current = maximum
-	}
-	if maximum <= compatibilityMaximum {
-		return uint16(current), uint16(maximum)
-	}
-	scale := CompatibilityHPScale(maximum)
-	project := func(value uint32) uint16 {
-		if value == 0 {
-			return 0
-		}
-		value = (value + scale - 1) / scale
-		if value > compatibilityMaximum {
-			value = compatibilityMaximum
-		}
-		return uint16(value)
-	}
-	return project(current), project(maximum)
-}
-
-func minScoreValue(value, maximum uint32) uint32 {
-	if value < maximum {
-		return value
-	}
-	return maximum
-}
-
-// CompatibilityScore gera a projecao signed-safe consumida pelo motor 7.48.
-// Os valores reais continuam exclusivamente neste Score.
-func (e *Score) CompatibilityScore() LegacyScore28 {
-	if e == nil {
-		return LegacyScore28{}
-	}
-	score := LegacyScore28{
-		Level:     uint16(minScoreValue(e.Level, 65_535)),
-		Defense:   uint16(minScoreValue(e.Defense, compatibilityDerived)),
-		Attack:    uint16(minScoreValue(e.Attack, compatibilityDerived)),
-		Merchant:  byte(minScoreValue(e.Merchant, 255)),
-		AttackRun: byte(minScoreValue(e.AttackRun, 255)),
-		Str:       uint16(minScoreValue(e.Str, compatibilityDerived)),
-		Int:       uint16(minScoreValue(e.Int, compatibilityDerived)),
-		Dex:       uint16(minScoreValue(e.Dex, compatibilityDerived)),
-		Con:       uint16(minScoreValue(e.Con, compatibilityDerived)),
-	}
-	score.CurHP, score.MaxHP = projectCompatibilityPair(e.CurHP, e.MaxHP)
-	score.CurMP, score.MaxMP = projectCompatibilityPair(e.CurMP, e.MaxMP)
-	for i := range score.Mastery {
-		score.Mastery[i] = byte(minScoreValue(e.Mastery[i], 255))
-	}
-	return score
 }
 
 // ElementalResists segue a ordem funcional da 7.59: Resist[0..3] =
@@ -1122,7 +1007,7 @@ type NPCDef struct {
 	ExpReward uint32 `json:"expReward"`
 	// Score e a unica fonte de atributos do NPC. Assim como nos personagens,
 	// STRUCT_SCORE WORD e somente uma projecao criada na borda do protocolo.
-	Score *Score `json:"extendedScore"`
+	Score *Score `json:"score"`
 	// Carry = o inventario de DROP do monstro (mecanica nativa do WYD): a POSICAO
 	// no array e o slot (0..63) e define a chance via a tabela de drop rates
 	// (data/droprate.json, portada do g_pDropRate[64] do W2PP). Na morte, cada slot

@@ -4,7 +4,7 @@
   "equip": { "rosto": { "index": 199, "eff": [43, 7, 0, 0, 0, 0] } },
   "classInfo": 1,
   "expReward": 25000,
-  "extendedScore": {
+  "score": {
     "version": 2, "level": 60, "attack": 0, "magicAttack": 0,
     "defense": 200, "maxHP": 50000000, "maxMP": 0,
     "curHP": 50000000, "curMP": 0, "str": 4, "int": 100,

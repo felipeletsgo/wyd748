@@ -195,7 +195,7 @@ func TestAttackHit748CompactLayout(t *testing.T) {
 	}
 }
 
-func TestExtendedScoreVitalsUseSignedCompatibilityPrefix(t *testing.T) {
+func TestScoreVitalsUseSignedCompatibilityPrefix(t *testing.T) {
 	ext := &model.Score{
 		Attack: 150_000, MagicAttack: 175_000, Defense: 125_000,
 		MaxHP: 250_000, MaxMP: 200_000, CurHP: 225_000, CurMP: 180_000,
@@ -229,14 +229,14 @@ func TestExtendedScoreVitalsUseSignedCompatibilityPrefix(t *testing.T) {
 	// O WORD leva o dano PROJETADO na escala do alvo (MaxHP 300k -> escala 10),
 	// porque o client o subtrai do CurHP do prefixo nativo, que ja esta
 	// escalado. A cauda uint32 leva o dano REAL, que alimenta o numero na tela.
-	hit := AttackHitExtended(7, 1000, 1, 2, 3, 4, 150_000, 300_000, 0, 0)
+	hit := AttackHitWide(7, 1000, 1, 2, 3, 4, 150_000, 300_000, 0, 0)
 	if len(hit) != 52 || binary.LittleEndian.Uint16(hit[46:48]) != 15_000 ||
 		binary.LittleEndian.Uint32(hit[48:52]) != 150_000 {
 		t.Fatalf("dano extended incorreto: % X", hit)
 	}
 }
 
-func TestExtendedScoreV2TailAlignment(t *testing.T) {
+func TestScoreV2TailAlignment(t *testing.T) {
 	e := &model.Score{
 		Version: model.ScoreVersion,
 		Level:   101, Mastery: [4]uint32{102, 103, 104, 105},
@@ -332,9 +332,9 @@ func TestSkillHitExtendedKeepsSkillAndWideDamage(t *testing.T) {
 }
 
 func TestPhysicalAttackKeepsFloatingDamagePath(t *testing.T) {
-	b := AttackHitExtended(1, 1001, 2200, 2100, 2201, 2101, 275_000, 550_000, 1234, 70)
+	b := AttackHitWide(1, 1001, 2200, 2100, 2201, 2101, 275_000, 550_000, 1234, 70)
 	if len(b) != 52 || b[30] != 0 || binary.LittleEndian.Uint32(b[48:52]) != 275_000 {
-		t.Fatalf("AttackHitExtended sem visual/full damage: % X", b)
+		t.Fatalf("AttackHitWide sem visual/full damage: % X", b)
 	}
 }
 

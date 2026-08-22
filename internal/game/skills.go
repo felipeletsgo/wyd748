@@ -73,7 +73,7 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 		int(playerMastery(p.Char, 3)) < itemDef.ReqCon {
 		log.Printf("[#%d] requisitos insuficientes para skill=%d pts=%d/%d level=%d/%d mastery=%v",
 			s.ID, globalSkill, playerSkillPoints(p.Char), skill.SkillPoint,
-			playerLevel(p.Char), itemDef.ReqLevel, effectiveExtended(p.Char).Mastery)
+			playerLevel(p.Char), itemDef.ReqLevel, effectiveScore(p.Char).Mastery)
 		return
 	}
 	oldGold, oldLearned := p.Char.Gold, p.Char.LearnedSkill
@@ -208,7 +208,7 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 		case 11:
 			damage = base
 		default:
-			damage = 2 * int(effectiveExtended(ch).MagicAmp)
+			damage = 2 * int(effectiveScore(ch).MagicAmp)
 		}
 		return maxInt(1, damage)
 	}
@@ -251,7 +251,7 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	}
 	if skill.Index != 97 {
 		if ch.Class != 3 && (ch.Class != 0 || !tkTransformationSkill(skill.Index)) {
-			damage = (4*int(effectiveExtended(ch).MagicAmp) + 100) * damage / 100
+			damage = (4*int(effectiveScore(ch).MagicAmp) + 100) * damage / 100
 		}
 		damage = 5 * damage / 4
 	}
@@ -318,8 +318,8 @@ func skillFinalDamageWithRNG(damage, defense, mastery int, intn func(int) int) i
 	if damage < 1 {
 		damage = 1
 	}
-	if damage > int(maxExtendedStat) {
-		damage = int(maxExtendedStat)
+	if damage > int(maxScoreValue) {
+		damage = int(maxScoreValue)
 	}
 	return damage
 }
@@ -501,7 +501,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		chebyshev(p.X, p.Y, targets[0].X, targets[0].Y) < 4) {
 		return
 	}
-	mana := skillManaCost(skill, mastery, int(effectiveExtended(p.Char).SaveMana))
+	mana := skillManaCost(skill, mastery, int(effectiveScore(p.Char).SaveMana))
 	if playerCurMP(p.Char) < uint32(mana) {
 		return
 	}
@@ -634,12 +634,12 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			damageValue = damageValue * 70 / 100 // reducao PvE Mortal da _MSG_Attack 7.59
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, effectiveMobResistancesAt(target, now), true)
 			damageValue = applyCouragePvEDamageAt(p.Char, damageValue, magicDamage, now)
-			damageValue = int(addFlatDamage(uint32(clampInt(damageValue, 1, int(maxExtendedStat))),
+			damageValue = int(addFlatDamage(uint32(clampInt(damageValue, 1, int(maxScoreValue))),
 				w.equipmentGemBonuses(p.Char).forceDamage))
-			perHitCalculated := uint32(clampInt(damageValue, 1, int(maxExtendedStat)))
+			perHitCalculated := uint32(clampInt(damageValue, 1, int(maxScoreValue)))
 			calculatedWide := uint64(perHitCalculated) * uint64(hitCount)
-			if calculatedWide > uint64(maxExtendedStat) {
-				calculatedWide = uint64(maxExtendedStat)
+			if calculatedWide > uint64(maxScoreValue) {
+				calculatedWide = uint64(maxScoreValue)
 			}
 			calculatedTotal = uint32(calculatedWide)
 			hpBeforeSkill := target.HP
@@ -679,7 +679,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	primary := targets[0]
 	w.sendToMobView(primary, func() []byte {
 		if directDamage {
-			return spectralPacket(p.Char, wire.SkillHitsWide(p.ID, p.X, p.Y, primary.X, primary.Y,
+			return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
 				p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
 				offensiveSkillWireMaxTargets(p.Char, skill), wireTargets))
 		}
@@ -690,7 +690,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	w.syncPlayerScoreAndVitals(p)
 	w.gameplayLogf("skill", "[#%d] executou skill=%d %q alvos=%d base=%d magic=%t amp=%d mastery=%d mp=-%d",
 		p.Session.ID, skillIndex, skill.Name, len(results), baseDamage, magicDamage,
-		effectiveExtended(p.Char).MagicAmp, mastery, mana)
+		effectiveScore(p.Char).MagicAmp, mastery, mana)
 	// Capture os receptores antes da primeira morte. Um membro pode atingir o
 	// level maximo no meio do lote e deixaria de aparecer se recalculassemos a
 	// elegibilidade somente no final, fazendo sua ultima EXP nao ser persistida.
@@ -705,12 +705,12 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			mob := result.mob
 			w.sendToMobViewProtocol(mob, func(observer *Player) []byte {
 				// Keep mixed client views valid after every non-fatal skill hit.
-				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), mob.ID, mob.HP, mob.Def.Score.MaxHP,
+				return wire.MobHpMp(mob.ID, mob.HP, mob.Def.Score.MaxHP,
 					mob.Def.Score.MaxMP, mob.Def.Score.MaxMP)
 			})
 			w.gameplayLogf("skill", "[#%d] skill=%d %q mob=%d dmg=%d base=%d magic=%t amp=%d mastery=%d hp=%d/%d mp=-%d", p.Session.ID,
 				skillIndex, skill.Name, mob.ID, result.applied, baseDamage, magicDamage,
-				effectiveExtended(p.Char).MagicAmp, mastery, mob.HP, mob.Def.Score.MaxHP, mana)
+				effectiveScore(p.Char).MagicAmp, mastery, mob.HP, mob.Def.Score.MaxHP, mana)
 		}
 	}
 	w.commitKillRewardBatch(p, batchPlans, batchAccounts, "mortes multi-alvo")

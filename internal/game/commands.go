@@ -171,7 +171,7 @@ func (w *World) onMessageChat(s *net.Session, pkt []byte) {
 			continue
 		}
 		// Chat text width is selected by the observer's negotiated client ABI.
-		observer.Session.Send(wire.MessageChatForProtocol(observer.Session.ClientProtocol(), p.ID, message))
+		observer.Session.Send(wire.MessageChat(p.ID, message))
 		observers++
 	}
 	log.Printf("[#%d] CHAT local %q (%d observador(es))", s.ID, p.Char.Name, observers)

@@ -23,8 +23,8 @@ func TestLoadNPCsRejectsFlatObsoleteScore(t *testing.T) {
 
 func TestLoadNPCsRejectsTrailingJSON(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "double.json")
-	body := `{"name":"A","tipo":"npc","extendedScore":{"version":2}}` +
-		`{"name":"B","tipo":"npc","extendedScore":{"version":2}}`
+	body := `{"name":"A","tipo":"npc","score":{"version":2}}` +
+		`{"name":"B","tipo":"npc","score":{"version":2}}`
 	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}

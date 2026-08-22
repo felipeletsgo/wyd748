@@ -78,7 +78,7 @@ func TestIncrementalPlayerVisibilityHandlesSameCellPvPBoundary(t *testing.T) {
 			Name:  "Player",
 			X:     x,
 			Y:     y,
-			Score: testExtended(model.Score{MaxHP: 100, CurHP: 100}),
+			Score: testScore(model.Score{MaxHP: 100, CurHP: 100}),
 		}
 		return &Player{
 			ID:      id,

@@ -111,7 +111,7 @@ cliente 7.48.
 - Todo NPC/monstro também persiste seus atributos exclusivamente em
   `NPCDef.Extended`; ataque, defesa, HP/MP, atributos, masteries e resistências
   planos foram removidos dos modelos e dos 476 JSONs.
-- O `LegacyScore28` de ABI foi retirado dos cálculos de atributos, equipamento, combate,
+- O `Score` de ABI foi retirado dos cálculos de atributos, equipamento, combate,
   skills, progressão, regeneração e pontos. Ele existe somente como projeção
   proporcional até 30000 exigida pelo protocolo/client 7.48.
 - HP/MP acima de 32767 usam o estado real wide no servidor e no sidecar `.xstat`.
@@ -208,7 +208,7 @@ cliente 7.48.
 | Pacote | Implementação final 7.48 |
 | --- | --- |
 | `0x114 EnterWorld` | 788 bytes. A cauda do `STRUCT_MOB` inclui LearnedSkill, pontos, SkillBar, MagicIncrement, regen e quatro resistências em @748..771; zerar essa região fazia o client inicializar skills/campos incorretamente. |
-| `0x336 UpdateScore` | 236 bytes no client patched: prefixo nativo de 92 bytes com Score@12 e Affect[16]@42..73; Score `uint32` @92..228 e assinatura XSC2@232. É público e aciona os efeitos visuais de players e mobs. |
+| `0x336 UpdateScore` | 236 bytes no client patched: prefixo nativo de 92 bytes com Score@12 e Affect[16]@42..73; Score `uint32` @92..228 e assinatura canonical Score@232. É público e aciona os efeitos visuais de players e mobs. |
 | `0x3B9 UpdateAffect` | 140 bytes: 16 estruturas `{Type,Value,Level,Time}` em unidades de 8 s. É enviado somente ao dono para ícones, descrição e timer. |
 | `0x337 UpdateEtc` | 36 bytes: Hold/Chaos@12, EXP@16, LearnedSkill@20, status@24, mastery@26, skill@28, Magic@30, gold@32. É o layout p754 confirmado pelo dump real. |
 | `0x338 CNFMobKill` | 24 bytes: FakeExp@12, morto/assassino@16, EXP@20. Atualiza EXP quando o morto é mob e chama `Die()` quando o morto é o jogador. |
@@ -387,5 +387,5 @@ go build -o account-create.exe ./cmd/account-create
 # Score v2
 
 Os atributos de jogadores, NPCs e monstros foram consolidados em uma única
-estrutura `uint32`. O LegacyScore28 WORD do client é somente uma projeção gerada no
+estrutura `uint32`. O Score WORD do client é somente uma projeção gerada no
 wire; o contrato estrito e o patch do client estão em `DOCS/SCORE.md`.

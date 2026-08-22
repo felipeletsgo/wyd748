@@ -51,10 +51,6 @@ type Session struct {
 	frameReadTimeout        time.Duration
 	maxInboundPacketsPerSec int
 	maxInboundBytesPerSec   int
-	// protocol is selected once from the authenticated login envelope. Atomic
-	// storage keeps diagnostic/test reads safe without giving I/O ownership of
-	// any gameplay state.
-	protocol atomic.Uint32
 }
 
 // SetClientProtocol records which packet serialization family this socket

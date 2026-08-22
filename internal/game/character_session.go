@@ -256,7 +256,7 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 		w.showMob(p, m)
 		if wasVisible { // pode ser uma recuperacao apos perda local do client.
 			ancient := m.Def.Equip.AncientCodes()
-			p.Session.Send(wire.CreateMobVisualExtendedForProtocol(p.Session.ClientProtocol(), m.ID, m.Def.Name, m.X, m.Y,
+			p.Session.Send(wire.CreateMobVisual(m.ID, m.Def.Name, m.X, m.Y,
 				m.Def.Mesh(), ancient[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
 		}
 		return
@@ -268,7 +268,7 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 		return
 	}
 	if shop := w.ghostShops[id]; shop != nil && inView(p.X, p.Y, shop.X, shop.Y) {
-		p.Session.Send(wire.CreateMobTradeExtendedForProtocol(p.Session.ClientProtocol(), shop.ID, shop.Name, shop.X, shop.Y,
+		p.Session.Send(wire.CreateMobTrade(shop.ID, shop.Name, shop.X, shop.Y,
 			shop.Mesh[:], &shop.Score, shop.Title))
 		p.show(id)
 	}

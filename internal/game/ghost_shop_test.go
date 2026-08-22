@@ -146,7 +146,7 @@ func TestBuildGhostShopPurchaseRejectsChangedItemFullInventoryAndGoldOverflow(t 
 func TestGhostShopResetsOwnerBeforePublishingClone(t *testing.T) {
 	ch := &model.Char{
 		Name: "Felipe",
-		Score: testExtended(model.Score{
+		Score: testScore(model.Score{
 			MaxHP: 321,
 			CurHP: 321,
 			MaxMP: 123,

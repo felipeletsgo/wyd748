@@ -17,7 +17,7 @@ $ErrorActionPreference = 'Stop'
 # desta ordem.
 #
 # 1. Patch-WYD748.ps1              base: camera, mouse e cores de dano
-# 2. Patch-WYD748-ExtendedStats.ps1 score/HP/MP/dano 32-bit (.xstat)
+# 2.  score/HP/MP/dano 32-bit (.xstat)
 # 3. Patch-WYD748-Bypass.ps1       versao + checksums de SkillData/ItemList
 # 4. Patch-WYD748-Macro.ps1        rotacao de skills e renovacao de buffs
 # 5. Patch-WYD748-Lindy.ps1        receita 3448 da janela da Lindy
@@ -80,7 +80,7 @@ $steps = @(
     },
     # ETAPA 2 — campos estendidos usados pelo servidor autoritativo.
     [pscustomobject]@{
-        Number = 2; Name = 'extended stats (.xstat)'; Script = 'Patch-WYD748-ExtendedStats.ps1'
+        Number = 2; Name = 'extended stats (.xstat)'; Script = ''
         Input = '2AA1773AAC6A7EE186CD62B3B609004AD63D9A03E4B685CAE7E1B4AC2BB521EE'
         Output = '4724B76F19702645D6052A9D7437971135376DDCF55E94FC934F44C349216234'
     },

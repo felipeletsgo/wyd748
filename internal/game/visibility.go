@@ -42,7 +42,7 @@ func (w *World) showMob(p *Player, m *Mob) {
 		return
 	}
 	anct := m.Def.Equip.AncientCodes()
-	p.Session.Send(wire.CreateMobVisualExtendedForProtocol(p.Session.ClientProtocol(), m.ID, m.Def.Name, m.X, m.Y,
+	p.Session.Send(wire.CreateMobVisual(m.ID, m.Def.Name, m.X, m.Y,
 		m.Def.Mesh(), anct[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
 	p.show(m.ID)
 }
@@ -163,7 +163,7 @@ func (w *World) showGhostShop(p *Player, shop *GhostShop) {
 	if p == nil || !p.InWorld || shop == nil || p.hasVisible(shop.ID) {
 		return
 	}
-	p.Session.Send(wire.CreateMobTradeExtendedForProtocol(p.Session.ClientProtocol(), shop.ID, shop.Name, shop.X, shop.Y,
+	p.Session.Send(wire.CreateMobTrade(shop.ID, shop.Name, shop.X, shop.Y,
 		shop.Mesh[:], &shop.Score, shop.Title))
 	p.show(shop.ID)
 }
@@ -192,9 +192,9 @@ func playerEnterViewPacketsFor(protocol wire.ClientProtocol, subject *Player) []
 		return nil
 	}
 	return [][]byte{
-		wire.CreateMobExtendedWithGuildRankForProtocol(protocol, subject.ID, subject.Char.Name, subject.X, subject.Y,
-			bodyMesh(subject.Char), bodyAncient(subject.Char), wireExtendedScore(subject.Char), subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP),
-		wire.HpMpForProtocol(protocol, subject.ID, wireExtendedScore(subject.Char)),
+		wire.CreateMobWithGuildRank(protocol, subject.ID, subject.Char.Name, subject.X, subject.Y,
+			bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char), subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP),
+		wire.HpMp(protocol, subject.ID, wireScoreState(subject.Char)),
 		wire.ActionStop(subject.ID, subject.X, subject.Y),
 	}
 }
@@ -203,7 +203,7 @@ func sendPlayerEnterView(observer, subject *Player) {
 	if observer == nil || observer.Session == nil {
 		return
 	}
-	for _, pkt := range playerEnterViewPacketsFor(observer.Session.ClientProtocol(), subject) {
+	for _, pkt := range playerEnterViewPacketsFor(subject) {
 		observer.Session.Send(pkt)
 	}
 }
@@ -700,7 +700,7 @@ func (w *World) syncPlayerVitals(subject *Player) {
 		return
 	}
 	w.sendToPlayerViewProtocol(subject, func(observer *Player) []byte {
-		return wire.HpMpForProtocol(observer.Session.ClientProtocol(), subject.ID, wireExtendedScore(subject.Char))
+		return wire.HpMp(subject.ID, wireScoreState(subject.Char))
 	})
 }
 
@@ -723,7 +723,7 @@ func (w *World) syncPlayerVitalsToObservers(subject *Player) {
 	}
 	for _, p := range w.nearbyWorldPlayers(subject.X, subject.Y, viewHalfX) {
 		if p != subject && w.playersVisibleTogether(p, subject) && p.hasVisible(subject.ID) {
-			p.Session.Send(wire.HpMpForProtocol(p.Session.ClientProtocol(), subject.ID, wireExtendedScore(subject.Char)))
+			p.Session.Send(wire.HpMp(subject.ID, wireScoreState(subject.Char)))
 		}
 	}
 }
@@ -752,8 +752,8 @@ func (w *World) syncPlayerChaos(subject *Player) {
 		return
 	}
 	w.sendToPlayerViewProtocol(subject, func(observer *Player) []byte {
-		return wire.CreateMobExtendedWithGuildRankForProtocol(observer.Session.ClientProtocol(), subject.ID, subject.Char.Name, subject.X, subject.Y,
-			bodyMesh(subject.Char), bodyAncient(subject.Char), wireExtendedScore(subject.Char),
+		return wire.CreateMobWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
+			bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char),
 			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP)
 	})
 }

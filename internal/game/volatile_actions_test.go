@@ -10,7 +10,7 @@ import (
 func mountTestChar() *model.Char {
 	return &model.Char{
 		Class: 0,
-		Score: testExtended(model.Score{
+		Score: testScore(model.Score{
 			Level: 1, MaxHP: 100, MaxMP: 100, CurHP: 100, CurMP: 100,
 			Str: 8, Int: 4, Dex: 7, Con: 6,
 		}),
@@ -28,17 +28,17 @@ func TestMountEquipAddsStatBonus(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{2379: {Index: 2379}}, mounts: fireTigerCatalog()}
 	ch := mountTestChar()
 	w.recalcPlayer(ch)
-	baseAtk := effectiveExtended(ch).Attack
+	baseAtk := effectiveScore(ch).Attack
 
 	// Tigre de Fogo adulta (2379, tipo 19), level 0, viva. Bonus dano = (0+20)*650/100 = 130.
 	mount := model.Item{Index: 2379}
 	mount.SetMountHP(20000)
 	ch.Equip[14] = mount
 	w.recalcPlayer(ch)
-	if got := effectiveExtended(ch).Attack; got != baseAtk+130 {
+	if got := effectiveScore(ch).Attack; got != baseAtk+130 {
 		t.Fatalf("attack com montaria=%d, quer %d (base %d + 130)", got, baseAtk+130, baseAtk)
 	}
-	if got := effectiveExtended(ch).AttackRun & 0x0F; got != 6 {
+	if got := effectiveScore(ch).AttackRun & 0x0F; got != 6 {
 		t.Fatalf("runSpeed=%d, quer piso 6", got)
 	}
 
@@ -46,7 +46,7 @@ func TestMountEquipAddsStatBonus(t *testing.T) {
 	dead := model.Item{Index: 2379}
 	ch.Equip[14] = dead
 	w.recalcPlayer(ch)
-	if got := effectiveExtended(ch).Attack; got != baseAtk {
+	if got := effectiveScore(ch).Attack; got != baseAtk {
 		t.Fatalf("attack com montaria morta=%d, quer %d", got, baseAtk)
 	}
 }
@@ -55,7 +55,7 @@ func TestMountDamageScalesWithLevel(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{2379: {Index: 2379}}, mounts: fireTigerCatalog()}
 	ch := mountTestChar()
 	w.recalcPlayer(ch)
-	base := effectiveExtended(ch).Attack
+	base := effectiveScore(ch).Attack
 
 	mount := model.Item{Index: 2379}
 	mount.SetMountHP(20000)
@@ -63,7 +63,7 @@ func TestMountDamageScalesWithLevel(t *testing.T) {
 	ch.Equip[14] = mount
 	w.recalcPlayer(ch)
 	// Dano = (80+20)*650/100 = 650; magia = (80+15)*100/100 = 95.
-	if got := effectiveExtended(ch).Attack; got != base+650 {
+	if got := effectiveScore(ch).Attack; got != base+650 {
 		t.Fatalf("attack lvl80=%d, quer %d", got, base+650)
 	}
 }

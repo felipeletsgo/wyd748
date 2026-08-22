@@ -28,7 +28,7 @@ func (w *World) dumpHPProjection(s *net.Session, p *Player) {
 		return
 	}
 	base := p.Char.Score
-	efetivo := effectiveExtended(p.Char)
+	efetivo := effectiveScore(p.Char)
 	if base == nil || efetivo == nil {
 		s.Send(wire.MessagePanel("No extended score."))
 		return

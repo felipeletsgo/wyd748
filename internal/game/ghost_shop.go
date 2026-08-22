@@ -242,7 +242,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 		CarryPos: req.CarryPos,
 		Prices:   req.Prices,
 	}
-	if extended := wireExtendedScore(p.Char); extended != nil {
+	if extended := wireScoreState(p.Char); extended != nil {
 		shop.Score = *extended
 	}
 	w.applyGhostShopLook(shop)
@@ -279,7 +279,7 @@ func ghostShopOwnerResetPackets(p *Player) [][]byte {
 	return [][]byte{
 		wire.CloseTrade(p.ID),
 		playerAppearancePacket(p),
-		wire.HpMpForProtocol(p.Session.ClientProtocol(), p.ID, wireExtendedScore(p.Char)),
+		wire.HpMp(p.ID, wireScoreState(p.Char)),
 	}
 }
 

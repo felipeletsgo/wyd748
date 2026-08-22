@@ -13,7 +13,7 @@ func TestLearnSkillAtMasterPersistsAndRollsBack(t *testing.T) {
 	p.Char.Class = 0
 	p.Char.Score.Level = 20
 	p.Char.Score.SkillPts = 100
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	w.skills = map[int]model.SkillDef{
 		0: {Index: 0, Name: "Skill0", SkillPoint: 1},
 		1: {Index: 1, Name: "Skill1", SkillPoint: 1},
@@ -137,7 +137,7 @@ func TestSkillAttackPvEAppliesDamageManaAndDebuff(t *testing.T) {
 	p.Char.Score.Mastery[1] = 40
 	p.Char.Score.CurMP = 800
 	p.Char.Score.MaxMP = 800
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	skill := model.SkillDef{
 		Index: 24, Name: "Magic", InstanceType: 2, InstanceValue: 100,
 		ManaSpent: 20, Delay: 1, Range: 6, MaxTarget: 1, Aggressive: 1,
@@ -181,7 +181,7 @@ func TestSkillAttackSupportHealsAndRejectsCooldown(t *testing.T) {
 	p.Char.Score.MaxHP = 1000
 	p.Char.Score.CurMP = 500
 	p.Char.Score.MaxMP = 500
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	skill := model.SkillDef{
 		Index: 27, Name: "Heal", InstanceValue: 100, ManaSpent: 10,
 		Delay: 4, Range: 6, MaxTarget: 1,
@@ -211,7 +211,7 @@ func TestSupportBuffManualRecastIsNotBlockedByAutomaticWindow(t *testing.T) {
 		p.Char.ShortSkill[i] = 0xFF
 	}
 	p.Char.ShortSkill[0] = 5
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	skill := model.SkillDef{
 		Index: 5, Name: "Aura", ManaSpent: 10, AffectTime: 99,
 		TickType: 17, TickValue: 75,
@@ -253,8 +253,8 @@ func TestSkillAttackPvPBreaksHideAndPreservesOverkillState(t *testing.T) {
 	target.Char.Score.CurHP = 100
 	target.Char.Score.MaxHP = 100
 	caster.Char.Affects[0] = model.Affect{Type: 28, ExpiresAt: time.Now().Add(time.Minute)}
-	applyExtendedScore(caster.Char)
-	applyExtendedScore(target.Char)
+	applyScore(caster.Char)
+	applyScore(target.Char)
 	w.skills = map[int]model.SkillDef{0: {
 		Index: 0, Name: "PvP", InstanceType: 2, InstanceValue: 5000,
 		ManaSpent: 10, Delay: 1, Range: 6, MaxTarget: 1, Aggressive: 1,
@@ -276,7 +276,7 @@ func TestBMSummonCastReplacesCreatureFamily(t *testing.T) {
 	p.Char.Score.Int = 1000
 	p.Char.Score.Con = 500
 	p.Char.Score.Mastery[2] = 255
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 
 	if !w.castSummon(p, model.SkillDef{Index: 56, InstanceValue: 1}, 255) {
 		t.Fatal("Condor nao foi invocado")
@@ -381,7 +381,7 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 		p.Char.Score.Level = 49 // nivel exibido 50; custo nativo 490 na escala interna
 		p.Char.Score.CurMP = 1_000
 		p.Char.Score.MaxMP = 1_000
-		applyExtendedScore(p.Char)
+		applyScore(p.Char)
 		w.skills = map[int]model.SkillDef{85: {
 			Index: 85, Name: "Golden_Shield", ManaSpent: 10, Delay: 1,
 			AffectType: 1, AffectValue: 10, AffectTime: 10,

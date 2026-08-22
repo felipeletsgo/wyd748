@@ -17,14 +17,6 @@ func Build(typ, id uint16, size int) []byte {
 	return b
 }
 
-// MessageChat monta o wire 7.48 de 0x333: header de 12 bytes seguido por
-// String[96]. O 7.54 nativo rejeita qualquer tamanho diferente de 108 bytes.
-func MessageChat(id uint16, message string) []byte {
-	b := Build(OpMessageChat, id, 108)
-	copy(b[12:107], message)
-	return b
-}
-
 // MessageWhisper tambem e o correio nativo do 7.48: quando message inicia em
 // '!', TMFieldScene::OnPacketMessageWhisper grava o corpo no painel H em vez
 // de exibi-lo no chat. O cliente 7.48 usa Name[16]@12, String[96]@28 e
@@ -256,89 +248,12 @@ func AutoTrade(title string, items [12]model.Item, carryPos [12]int8, prices [12
 	return b
 }
 
-// CreateMobTrade segue a conversao exata do PacketProtocolV754: o prefixo
-// visual/status coincide com CreateMob ate @171 e StoreName[27] comeca em @172.
-// O MobID e o ID virtual da loja fantasma, nao o ID do personagem que a criou.
-func CreateMobTrade(id uint16, name string, x, y uint16, mesh []uint16, sc model.LegacyScore28, title string) []byte {
-	// FixGetCreateMobTrade_SERVER zera @66..99: clones de loja nao carregam
-	// affects nem guild do personagem real.
-	normal := CreateMob(id, name, x, y, mesh, sc, nil, 2)
-	b := Build(OpCreateMobTrade, SceneField, 200)
-	copy(b[12:172], normal[12:172])
-	copy(b[172:199], title)
-	return b
-}
-
-// CreateMobTradeExtended mantem a projecao STRUCT_SCORE confinada ao wire.
-func CreateMobTradeExtended(id uint16, name string, x, y uint16, mesh []uint16, ext *model.Score, title string) []byte {
-	return CreateMobTrade(id, name, x, y, mesh, compatibilityScore(ext), title)
-}
-
 // ItemSold usa MSG_STANDARDPARM2: tradeEntityID@12 e posicao do anuncio@16.
 // Em lojas fantasma, tradeEntityID e o ID virtual do clone.
 func ItemSold(tradeEntityID uint16, pos uint32) []byte {
 	b := Build(OpItemSold, SceneField, 20)
 	putU32(b, 12, uint32(tradeEntityID))
 	putU32(b, 16, pos)
-	return b
-}
-
-// PutScore escreve um STRUCT_SCORE 7.48 (28B) em b@off. Merchant@+6 e AttackRun@+7
-// sao bytes CHEIOS (nao nibbles) -- foi o erro que quebrou o engine no C++.
-// Este e o layout do Status@100 do CreateMob, do enter-world e do 0x336.
-func PutScore(b []byte, off int, sc model.LegacyScore28) {
-	putU16(b, off+0, sc.Level)
-	putU16(b, off+2, sc.Defense)
-	putU16(b, off+4, sc.Attack)
-	b[off+6] = sc.Merchant
-	b[off+7] = sc.AttackRun
-	putU16(b, off+8, sc.MaxHP)
-	putU16(b, off+10, sc.MaxMP)
-	putU16(b, off+12, sc.CurHP)
-	putU16(b, off+14, sc.CurMP)
-	putU16(b, off+16, sc.Str)
-	putU16(b, off+18, sc.Int)
-	putU16(b, off+20, sc.Dex)
-	putU16(b, off+22, sc.Con)
-	copy(b[off+24:off+28], sc.Mastery[:])
-}
-
-// putSelChar escreve o STRUCT_SELCHAR 7.48 (744B): HomeTownX[4]@0,
-// HomeTownY[4]@8, nomes@16, scores@80, equips@192, guild@704,
-// coin@712 e EXP uint32@728.
-func putSelChar(b []byte, sel int, chars []model.Char) {
-	for slot := 0; slot < 4 && slot < len(chars); slot++ {
-		ch := chars[slot]
-		if ch.Name == "" {
-			continue
-		}
-		putU16(b, sel+slot*2, ch.X)
-		putU16(b, sel+8+slot*2, ch.Y)
-		copy(b[sel+16+slot*16:sel+16+(slot+1)*16], ch.Name)
-		PutScore(b, sel+80+slot*28, clientCompatibilityScore(ch))
-		for i, it := range ch.Equip {
-			PutItem(b, sel+192+(slot*16+i)*8, it)
-		}
-		// STRUCT_SELCHAR.Guild e a fonte que o client usa no SelectChar e na
-		// primeira entrada do FieldScene para reconstruir a guildmark do proprio
-		// personagem. O rank chega no EnterWorld/UpdateScore; o indice precisa
-		// estar presente aqui tambem.
-		putU16(b, sel+704+slot*2, GuildWireID(ch.GuildID))
-		putU32(b, sel+712+slot*4, ch.Gold)
-		putU32(b, sel+728+slot*4, ch.Exp)
-	}
-}
-
-// CharList monta o login 0x10E (1800B): SelChar(744)@12 + Cargo(1024) +
-// Coin + AccountName@1784.
-func CharList(accName string, chars []model.Char, cargo []model.Item, cargoGold uint32) []byte {
-	b := Build(OpCharList, SceneCharList, 1800)
-	putSelChar(b, 12, chars)
-	for i := 0; i < len(cargo) && i < model.MaxCargo; i++ {
-		PutItem(b, 756+i*8, cargo[i])
-	}
-	putU32(b, 1780, cargoGold)
-	copy(b[1784:1784+16], accName)
 	return b
 }
 
@@ -356,23 +271,6 @@ func CargoGoldTransfer(op uint16, id uint16, amount uint32) []byte {
 	putU32(b, 12, amount)
 	return b
 }
-
-// CNFNewCharacter monta o 0x110 que faz a tela de selecao recarregar os
-// quatro slots depois de uma criacao bem-sucedida.
-func CNFNewCharacter(id uint16, chars []model.Char) []byte {
-	b := Build(OpCNFNewCharacter, id, 756)
-	putSelChar(b, 12, chars)
-	return b
-}
-
-// CNFDeleteCharacter usa o mesmo STRUCT_SELCHAR da confirmacao de criacao,
-// mas o client 7.48 o despacha pelo opcode 0x112 e redesenha a selecao.
-func CNFDeleteCharacter(id uint16, chars []model.Char) []byte {
-	b := Build(OpCNFDeleteCharacter, id, 756)
-	putSelChar(b, 12, chars)
-	return b
-}
-
 func NewCharacterFail() []byte { return Build(OpNewCharacterFail, 0, 12) }
 
 // CNFCharacterLogout e somente um MSG_STANDARD. O ID deve ser o ClientID do
@@ -383,64 +281,6 @@ func CNFCharacterLogout(id uint16) []byte { return Build(OpCNFCharacterLogout, i
 // AlreadyPlaying e a resposta nativa que o TMSelectServerScene 7.48 trata
 // ainda na tela de login, reabilitando os campos e exibindo o erro localizado.
 func AlreadyPlaying() []byte { return Build(OpAlreadyPlaying, 0, 12) }
-
-// EnterWorld monta o 0x114 (788B): PosXY@12 + STRUCT_MOB(756)@16 + trailing@772.
-// Mob (base @16): Name@0 Class@20 Coin@24 Exp@28 SPX@32 SPY@34 BaseScore@36,
-// CurrentScore@64, Equip@92, Inventory@220 e a cauda autoritativa @732..755.
-// Essa cauda termina exatamente no byte 755 do MOB truncado usado pelo 7.48;
-// omiti-la inicializa LearnedSkill/pontos/regen/resists como lixo ou zero.
-func EnterWorld(id uint16, ch model.Char) []byte {
-	b := Build(OpEnterWorld, id, 788)
-	putU16(b, 12, ch.X) // PosX (antes do mob)
-	putU16(b, 14, ch.Y) // PosY
-	const m = 16
-	copy(b[m+0:m+16], ch.Name)
-	// MobName[12]=@28 carries the same native CP+75 projection used by
-	// CreateMob. Keeping this neutral would make a relogged PK character look
-	// neutral until the later visibility refresh arrives.
-	b[m+12] = CPNameByte(ch.CP)
-	b[m+20] = ch.Class
-	putU32(b, m+24, ch.Gold) // Coin (coerente com o 0x337; nao alimenta o display)
-	putU32(b, m+28, ch.Exp)  // Exp
-	putU16(b, m+32, ch.X)    // SPX
-	putU16(b, m+34, ch.Y)    // SPY
-	wireScore := clientCompatibilityScore(ch)
-	e := scoreWireExtension(ch)
-	PutScore(b, m+36, wireScore)
-	PutScore(b, m+64, wireScore)
-	for i, it := range ch.Equip {
-		PutItem(b, m+92+i*8, it)
-	}
-	for i, it := range ch.Inv {
-		PutItem(b, m+220+i*8, it)
-	}
-	putU32(b, m+732, ch.LearnedSkill)
-	putU16(b, m+736, compatibilityU16(e.StatusPts))
-	putU16(b, m+738, compatibilityU16(e.MasterPts))
-	putU16(b, m+740, compatibilityU16(e.SkillPts))
-	b[m+742] = clampByte(int(e.Critical))
-	b[m+743] = clampByte(int(e.SaveMana))
-	copy(b[m+744:m+748], ch.ShortSkill[:4])
-	// m+748 = GuildMemberType/GuildLevel. O client usa esse byte no proprio
-	// login para selecionar a moldura da guildmark antes do primeiro 0x364.
-	b[m+748] = ch.GuildRank
-	b[m+749] = clampByte(int(e.MagicAmp))
-	b[m+750] = clampByte(int(e.RegenHP))
-	b[m+751] = clampByte(int(e.RegenMP))
-	b[m+752] = clampByte(int(e.ResistFire))
-	b[m+753] = clampByte(int(e.ResistIce))
-	b[m+754] = clampByte(int(e.ResistHoly))
-	b[m+755] = clampByte(int(e.ResistThunder))
-	// Cauda decifrada (era o "trailing magico" 02 00 01 00 da captura): Slot@772 e
-	// **ClientID@774** -- e DAQUI que o client aprende o ID do proprio personagem
-	// (TMSelectCharScene: m_dwCharID = pCharLogin->ClientID). Hardcodar 1 aqui foi a
-	// causa-raiz do bug do relog (id=2 + ClientID=1 -> self dessincronizado: CP lixo,
-	// HP/MP travados). Weather@776 fica 0.
-	putU16(b, 772, 2)  // Slot (valor da captura; char unico por ora)
-	putU16(b, 774, id) // ClientID = o id REAL do player
-	return b
-}
-
 func clampByte(v int) byte {
 	if v < 0 {
 		return 0
@@ -451,174 +291,12 @@ func clampByte(v int) byte {
 	return byte(v)
 }
 
-// CreateMob monta o 0x364 (176B) no layout REAL do client 7.48 (= Secrets p754,
-// PROVADO in-game): @12 PosXY, @16 ClientId, @18 Name[12], @34 ItemEff[16],
-// @66 Affect[16], @98 Guild, @100 Status(28), @128 Spawn. spawn: 0=NPC, 2=player.
-func CreateMob(id uint16, name string, x, y uint16, mesh []uint16, sc model.LegacyScore28, affects []model.Affect, spawn uint16) []byte {
-	return CreateMobVisual(id, name, x, y, mesh, nil, sc, affects, spawn)
-}
-
-// CreateMobVisual inclui AnctCode@130, necessario para cores/refinos antigos.
-func CreateMobVisual(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, sc model.LegacyScore28, affects []model.Affect, spawn uint16) []byte {
-	b := Build(OpCreateMob, SceneField, 176)
-	putU16(b, 12, x)
-	putU16(b, 14, y)
-	putU16(b, 16, id)
-	copy(b[18:18+12], name)
-	if spawn == 2 { // self: MobName[12]=@30 colore o nome (75 = neutro)
-		b[30] = NormalNameChaos
-	}
-	for i, v := range mesh {
-		putU16(b, 34+i*2, v)
-	}
-	putAffectWords(b, 66, affects, time.Now())
-	PutScore(b, 100, sc) // Status @100 (curHP@112 = a vida real do mob)
-	putU16(b, 128, spawn)
-	copy(b[130:146], anct)
-	return b
-}
-
-// CreateMobExtendedWithGuildRank monta o CreateMob 7.54 com a identidade
-// completa da guild. No protocolo p754 o WORD em @98 guarda o id da guild
-// (12 bits) e o canal (4 bits); o byte alto de Spawn em @129 e o
-// GuildMemberType/GuildLevel. Sem esse segundo byte o client desenha o nome,
-// mas nao consegue escolher o layout da guildmark (membro, sublider ou lider).
-func CreateMobExtendedWithGuildRank(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn uint16, guild uint16, guildRank byte, cp int16) []byte {
-	b := CreateMobVisual(id, name, x, y, mesh, anct, compatibilityScore(ext), affects, spawn)
-	putU16(b, 98, GuildWireID(guild))
-	// CreateMobVisual escreve o tipo de spawn no byte baixo. Preserve-o e
-	// materialize o GuildLevel no byte alto, como STRUCT_MOB.Spawn do client.
-	b[128] = byte(spawn)
-	b[129] = guildRank
-	// O byte de chaos/PK @30 colore o nome; para players ele e a projecao
-	// CP+75, tanto no self quanto para observadores. Mobs/NPCs usam
-	// CreateMobVisualExtended e nao passam por aqui.
-	b[30] = CPNameByte(cp)
-	return b
-}
-
 // GuildWireID aplica a faixa da ABI nativa: quatro bits de canal (atualmente
 // canal unico = 0) e doze bits para o indice. IDs fora da faixa nao podem
 // aparecer no wire; o registro canonico ja os rejeita, e a mascara evita que
 // um estado legado corrompa a parte reservada ao canal.
 func GuildWireID(id uint16) uint16 { return id & 0x0FFF }
-
-// CreateMobVisualExtended e a variante com AnctCode para NPCs/monstros.
-func CreateMobVisualExtended(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn uint16) []byte {
-	return CreateMobVisual(id, name, x, y, mesh, anct, compatibilityScore(ext), affects, spawn)
-}
-
-// SetMobHpMp projeta os recursos uint32 do mob no 0x181 legado. A barra recebe
-// a mesma escala proporcional usada para personagens; o estado real permanece
-// exclusivamente no servidor.
-func SetMobHpMp(id uint16, currentHP, maxHP, currentMP, maxMP uint32) []byte {
-	ext := model.Score{
-		Version: model.ScoreVersion,
-		CurHP:   currentHP, MaxHP: maxHP, CurMP: currentMP, MaxMP: maxMP,
-	}
-	sc := ext.CompatibilityScore()
-	b := Build(OpSetHpMp, id, 20)
-	putU16(b, 12, sc.CurHP)
-	putU16(b, 14, sc.CurMP)
-	putU16(b, 16, sc.MaxHP)
-	putU16(b, 18, sc.MaxMP)
-	return b
-}
-
-// SetHpMpExtended preserva o prefixo 0x181 de 20 bytes e acrescenta os quatro
-// valores reais em uint32. O client sem patch ignora a cauda; o WYD748 patched
-// alimenta BigHP/BigMP e os textos a partir dela.
-func SetHpMpExtended(id uint16, ext *model.Score) []byte {
-	if ext == nil {
-		ext = &model.Score{}
-	}
-	sc := ext.CompatibilityScore()
-	// Score ja contem a projecao proporcional e signed-safe calculada pelo
-	// servidor. Ela alimenta somente barras/animacoes do engine legado; a cauda
-	// abaixo continua sendo a fonte numerica autoritativa uint32.
-	b := Build(OpSetHpMp, id, 36)
-	putU16(b, 12, sc.CurHP)
-	putU16(b, 14, sc.CurMP)
-	putU16(b, 16, sc.MaxHP)
-	putU16(b, 18, sc.MaxMP)
-	putU32(b, 20, ext.CurHP)
-	putU32(b, 24, ext.CurMP)
-	putU32(b, 28, ext.MaxHP)
-	putU32(b, 32, ext.MaxMP)
-	return b
-}
-
-// UpdateScore monta o p754_SendScore (92B) no layout que o PacketProtocolV754
-// envia ao client 7.48: Status@12, Critical@40, SaveMana@41, Affect[16]@42,
-// Guild@74 (WORD), GuildLevel@76 (WORD), Resist@78, CurrHP@82, CurrMP@84,
-// MagicIncrement@86, Unk[5]@87.
-//
-// O @74 e UM campo de 16 bits, nao dois bytes separados: o client le
-// `unsigned short Guild` (MSG_UpdateScore em Basedef.h do client) e o decompoe
-// como (canal << 12) | guildID -- por isso o id util tem 12 bits (1..4095).
-// O prefixo nativo permanece byte-compativel justamente para o client conseguir
-// ler campos como este; o Score vive na cauda XSC2 e nao o substitui.
-func UpdateScore(id uint16, ch model.Char) []byte {
-	// A cauda wide e sempre enviada para jogadores e carrega o RuntimeScore.
-	// O prefixo STRUCT_SCORE existe somente para manter a ABI do handler 7.48.
-	e := scoreWireExtension(ch)
-	wireScore := clientCompatibilityScore(ch)
-	b := Build(OpUpdateScore, id, 236)
-	PutScore(b, 12, wireScore)
-	b[40] = clampByte(int(e.Critical))
-	b[41] = clampByte(int(e.SaveMana))
-	putAffectWords(b, 42, ch.Affects[:], time.Now())
-	putU16(b, 74, GuildWireID(ch.GuildID))
-	// O client 7.48 lê GuildLevel como WORD, embora o servidor nativo use
-	// somente o byte baixo. RegenHP/MP pertencem ao XSC2 da cauda; escrever
-	// esses valores em @76/@77 apagava o rank e impedia a guildmark visível.
-	putU16(b, 76, uint16(ch.GuildRank))
-	b[78] = clampByte(int(e.ResistFire))
-	b[79] = clampByte(int(e.ResistIce))
-	b[80] = clampByte(int(e.ResistHoly))
-	b[81] = clampByte(int(e.ResistThunder))
-	putU16(b, 82, wireScore.CurHP)
-	putU16(b, 84, wireScore.CurMP)
-	b[86] = clampByte(int(e.MagicAmp))
-	putU32(b, 92, e.MagicAttack)
-	putU32(b, 96, e.Attack)
-	putU32(b, 100, e.Defense)
-	putU32(b, 104, e.MaxHP)
-	putU32(b, 108, e.MaxMP)
-	putU32(b, 112, e.CurHP)
-	putU32(b, 116, e.CurMP)
-	putU32(b, 120, e.Str)
-	putU32(b, 124, e.Int)
-	putU32(b, 128, e.Dex)
-	putU32(b, 132, e.Con)
-	putU32(b, 136, e.Accuracy)
-	putU32(b, 140, e.Evasion)
-	putU32(b, 144, e.StatusPts)
-	putU32(b, 148, e.MasterPts)
-	putU32(b, 152, e.SkillPts)
-	putU32(b, 156, e.Level)
-	for i := range e.Mastery {
-		putU32(b, 160+i*4, e.Mastery[i])
-	}
-	putU32(b, 176, e.Critical)
-	putU32(b, 180, e.Parry)
-	putU32(b, 184, e.Range)
-	putU32(b, 188, e.ResistFire)
-	putU32(b, 192, e.ResistIce)
-	putU32(b, 196, e.ResistHoly)
-	putU32(b, 200, e.ResistThunder)
-	putU32(b, 204, e.SaveMana)
-	putU32(b, 208, e.MagicAmp)
-	putU32(b, 212, e.RegenHP)
-	putU32(b, 216, e.RegenMP)
-	putU32(b, 220, uint32(e.AttackRun))
-	putU32(b, 224, uint32(e.Merchant))
-	putU32(b, 228, model.ScoreVersion)
-	putU32(b, 232, 0x32435358) // "XSC2"
-	return b
-}
-
-func scoreWireExtension(ch model.Char) *model.Score {
+func wireScore(ch model.Char) *model.Score {
 	if ch.RuntimeScore != nil {
 		return ch.RuntimeScore
 	}
@@ -627,61 +305,11 @@ func scoreWireExtension(ch model.Char) *model.Score {
 	}
 	return &model.Score{Version: model.ScoreVersion}
 }
-
-// clientCompatibilityScore e somente a representacao estreita consumida pela
-// logica legada do client. O estado autoritativo nunca e reduzido: os valores
-// reais seguem na extensao uint32 de UpdateScore/SetHpMpExtended.
-func clientCompatibilityScore(ch model.Char) model.LegacyScore28 {
-	// Para chars extended, Score e deliberadamente uma projecao proporcional
-	// <= 30000. Saturar atual e maximo separadamente em 32767 transforma toda
-	// barra em 100% e impede o client de mostrar dano/gasto de mana.
-	return scoreWireExtension(ch).CompatibilityScore()
-}
-
-func compatibilityScore(ext *model.Score) model.LegacyScore28 {
-	if ext == nil {
-		return model.LegacyScore28{}
-	}
-	return ext.CompatibilityScore()
-}
-
-// CompatibilityVitals devolve apenas os campos estreitos exigidos pelo painel
-// de party. A estrutura Score nao atravessa a fronteira do wire.
-func CompatibilityVitals(ext *model.Score) (level, currentHP, maximumHP uint16) {
-	score := compatibilityScore(ext)
-	return score.Level, score.CurHP, score.MaxHP
-}
-
-// CompatibilityCombatMP projeta a mana para o WORD dos pacotes de ataque.
-func CompatibilityCombatMP(ext *model.Score) uint32 {
-	return uint32(compatibilityScore(ext).CurMP)
-}
-
 func compatibilityU16(value uint32) uint16 {
 	if value > 30_000 {
 		return 30_000
 	}
 	return uint16(value)
-}
-
-// MobScore monta o mesmo 0x336 usado por jogadores, mas sem exigir model.Char.
-// O client usa Affect[16] para ativar CheckAffect também em NPCs/monstros.
-func MobScore(id uint16, sc model.LegacyScore28, affects []model.Affect, resist model.ElementalResists) []byte {
-	b := Build(OpUpdateScore, id, 92)
-	PutScore(b, 12, sc)
-	putAffectWords(b, 42, affects, time.Now())
-	b[78] = clampByte(int(resist.Fire))
-	b[79] = clampByte(int(resist.Ice))
-	b[80] = clampByte(int(resist.Sacred))
-	b[81] = clampByte(int(resist.Thunder))
-	putU16(b, 82, sc.CurHP)
-	putU16(b, 84, sc.CurMP)
-	return b
-}
-
-// MobScoreExtended recebe o estado wide; Score so existe dentro do builder.
-func MobScoreExtended(id uint16, ext *model.Score, affects []model.Affect, resist model.ElementalResists) []byte {
-	return MobScore(id, compatibilityScore(ext), affects, resist)
 }
 
 // O servidor usa a semantica 7.59 para Armadura Critica (affect 31), mas o
@@ -720,34 +348,13 @@ func putAffectWords(b []byte, offset int, affects []model.Affect, now time.Time)
 	}
 }
 
-// UpdateAffects monta o 0x3B9 p754/7.48: header + 16 STRUCT_AFFECT de 8B,
-// cada um {Type, Value, Level, Time}. Time e contado em unidades de 8 segundos.
-func UpdateAffects(id uint16, ch model.Char) []byte {
-	b := Build(OpUpdateAffect, id, 140)
-	now := time.Now()
-	for i, affect := range ch.Affects {
-		if i >= 16 {
-			break
-		}
-		units := affectTimeUnits(affect.ExpiresAt, now)
-		if affect.Type == 0 || units == 0 {
-			continue
-		}
-		b[12+i*8] = clientAffectType(affect)
-		b[13+i*8] = clampByte(affect.Value)
-		putU16(b, 14+i*8, uint16(affect.Level))
-		putU32(b, 16+i*8, units)
-	}
-	return b
-}
-
 // UpdateEtc monta o p754_SendEtc final: Hold@12, EXP@16,
 // LearnedSkill@20, Status@24, Mastery@26, SkillPts@28, Magic@30 e Gold@32.
 // LearnedSkill@20 e OBRIGATORIO: e daqui que o client sabe as skills aprendidas
 // (TMHuman::OnPacketUpdateEtc copia LearnedSkill/bonus/coin deste pacote). Remover
 // esse campo apaga as skills do client e desloca os pontos (regressao 2026-07-14).
 func UpdateEtc(id uint16, ch model.Char) []byte {
-	e := scoreWireExtension(ch)
+	e := wireScore(ch)
 	b := Build(OpUpdateEtc, id, 48)
 	// O 7.54 insere um DWORD Hold antes de EXP e o patch nativo zera esse
 	// campo. CP nao faz parte do UpdateEtc: ele viaja no byte MobName[12] do
@@ -923,7 +530,7 @@ func SendItem(id uint16, placeType, pos byte, it model.Item) []byte {
 	return b
 }
 
-// AttackHitExtended conserva o MSG_AttackOne 7.48 nos primeiros 48 bytes e
+// AttackHitWide conserva o MSG_AttackOne 7.48 nos primeiros 48 bytes e
 // anexa o dano REAL em uint32 (a cauda DMGX, que o client patcheado le para o
 // texto flutuante).
 //
@@ -931,15 +538,15 @@ func SendItem(id uint16, placeType, pos byte, it model.Item) []byte {
 // client subtrai esse WORD do CurHP do prefixo nativo, que ja esta escalado.
 // Os dois valores sao propositalmente diferentes -- um alimenta o numero na
 // tela, o outro a barra.
-func AttackHitExtended(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
+func AttackHitWide(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
 	damage, targetMaxHP, currentExp, currentMP uint32) []byte {
-	return AttackHitExtendedResult(attackerID, targetID, attackerX, attackerY, targetX, targetY,
+	return AttackHitWideResult(attackerID, targetID, attackerX, attackerY, targetX, targetY,
 		damage, targetMaxHP, currentExp, currentMP, 0, false)
 }
 
-// AttackHitExtendedResult adds the native Double/Critical visual bits and the
+// AttackHitWideResult adds the native Double/Critical visual bits and the
 // signed -3 MISS sentinel without trusting any client-provided combat result.
-func AttackHitExtendedResult(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
+func AttackHitWideResult(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
 	damage, targetMaxHP, currentExp, currentMP uint32, doubleCritical byte, miss bool) []byte {
 	b := AttackHit(attackerID, targetID, attackerX, attackerY, targetX, targetY,
 		damage, targetMaxHP, currentExp, currentMP)
@@ -996,21 +603,6 @@ func CNFMobKill(killedID, killerID uint16, exp uint32) []byte {
 // ignora o pacote e a janela nao abre.
 const ShopNormal = 1
 const ShopSkill = 3
-
-// ShopList monta o 0x17C (532B) -- ABRE a loja no client. ShopType@12,
-// List[64] (STRUCT_ITEM 8B)@16, Tax@528. ID do header = SceneField (0x7530),
-// igual ao SendShopList nativo. O client le os 27 primeiros num grid de 5 colunas
-// e o preco vem do itemlist DELE. A lista e LINEAR: o client compra mandando 0x379
-// com sellSlot = o indice do item aqui, que o servidor le direto de Vende[sellSlot].
-func ShopList(items []model.Item, tax, shopType uint32) []byte {
-	b := Build(OpShopList, SceneField, 532)
-	putU32(b, 12, shopType)
-	for i := 0; i < 64 && i < len(items); i++ {
-		PutItem(b, 16+i*8, items[i])
-	}
-	putU32(b, 528, tax)
-	return b
-}
 
 // SkillTarget carrega o dano REAL e o MaxHP do alvo. O WORD que vai no pacote
 // e derivado dos dois: o client subtrai esse WORD do CurHP ja projetado, entao
@@ -1114,7 +706,7 @@ func SpectralVisual(packet []byte) []byte {
 // tail so the patched 7.48 client cannot confuse the two result families.
 func SkillHitExtended(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
 	damage, targetMaxHP, currentExp, currentMP uint32, skill int16, motion, mastery byte) []byte {
-	return SkillHitsWide(attackerID, attackerX, attackerY, targetX, targetY,
+	return SkillHits(attackerID, attackerX, attackerY, targetX, targetY,
 		currentExp, currentMP, skill, motion, mastery, 1,
 		[]SkillTarget{{ID: targetID, Damage: damage, MaxHP: targetMaxHP}})
 }

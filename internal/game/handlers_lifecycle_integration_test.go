@@ -73,12 +73,12 @@ func TestPhysicalAttackHandlerDamagesMobAndTracksAggro(t *testing.T) {
 	p.Char.Score.Attack = 1000
 	p.Char.Score.Dex = 1000
 	p.Char.Score.Accuracy = 1000
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	mob := &Mob{
 		ID: 1000, X: 2101, Y: 2100, HP: 10_000,
 		Def: &model.NPCDef{
 			Name: "TargetMob", Tipo: model.TipoMonstro,
-			Score: testExtended(model.Score{
+			Score: testScore(model.Score{
 				MaxHP: 10_000, CurHP: 10_000, Defense: 0,
 			}),
 		},
@@ -108,8 +108,8 @@ func TestPhysicalAttackHandlerDamagesEnemyPlayerOnly(t *testing.T) {
 	target.Char.Score.Defense = 0
 	target.Char.Score.Dex = 0
 	target.Char.Score.Parry = 0
-	applyExtendedScore(attacker.Char)
-	applyExtendedScore(target.Char)
+	applyScore(attacker.Char)
+	applyScore(target.Char)
 	w := worldWithNetworkedPlayers(attacker, target)
 	w.store = &craftStore{}
 	w.showPlayerPair(attacker, target)

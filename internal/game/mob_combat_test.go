@@ -11,7 +11,7 @@ import (
 func livingPlayer(id, x, y uint16) (*netpkg.Session, *Player) {
 	s := &netpkg.Session{ID: int64(id)}
 	return s, &Player{ID: id, InWorld: true, X: x, Y: y,
-		Char: &model.Char{Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}}
+		Char: &model.Char{Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
 }
 
 func TestNearestLivingPlayerIgnoresDeadAndOutOfRange(t *testing.T) {

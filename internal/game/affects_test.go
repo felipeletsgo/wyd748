@@ -30,11 +30,11 @@ func TestTKAffectFormulas759(t *testing.T) {
 		{model.Affect{Type: 31, Value: 150, Level: 40}, 100, 270, 1000, 6},
 	}
 	for _, tt := range tests {
-		ch := &model.Char{Class: 0, Score: testExtended(base)}
+		ch := &model.Char{Class: 0, Score: testScore(base)}
 		tt.affect.ExpiresAt = time.Now().Add(time.Minute)
 		ch.Affects[0] = tt.affect
 		w.applyAffectStats(ch)
-		e := effectiveExtended(ch)
+		e := effectiveScore(ch)
 		if e.Attack != uint32(tt.attack) || e.Defense != uint32(tt.ac) ||
 			e.MaxHP != uint32(tt.hp) || e.Con != uint32(tt.con) {
 			t.Fatalf("affect=%d score=%+v", tt.affect.Type, e)
@@ -86,12 +86,12 @@ func TestSetAffectRejectsWeakerOrShorterReplacement(t *testing.T) {
 
 func TestBMTransformationUsesW2PPInterpolation(t *testing.T) {
 	now := time.Now()
-	ch := &model.Char{Class: 2, LearnedSkill: 1 << (65 - 48), Score: testExtended(model.Score{
+	ch := &model.Char{Class: 2, LearnedSkill: 1 << (65 - 48), Score: testScore(model.Score{
 		Attack: 100, Defense: 100, MaxHP: 1000, AttackRun: 0x11,
 	})}
 	ch.Affects[0] = model.Affect{Type: 16, Value: 1, Level: 200, ExpiresAt: now.Add(time.Minute)}
 	(&World{}).applyAffectStats(ch)
-	e := effectiveExtended(ch)
+	e := effectiveScore(ch)
 	if e.Attack != 180 || e.Defense != 105 || e.MaxHP != 1050 {
 		t.Fatalf("transformacao lobo incorreta: %+v", e)
 	}
@@ -103,7 +103,7 @@ func TestBMTransformationUsesW2PPInterpolation(t *testing.T) {
 func TestBMTransformationKeepsFullHPWhenAnotherBuffRecalculatesScore(t *testing.T) {
 	now := time.Now()
 	w := &World{clock: newFakeClock(now)}
-	ch := &model.Char{Class: 2, Score: testExtended(model.Score{
+	ch := &model.Char{Class: 2, Score: testScore(model.Score{
 		Level: 100, MaxHP: 70, CurHP: 70, MaxMP: 55, CurMP: 55,
 		Int: 6, Con: 5, AttackRun: 0x11,
 	})}

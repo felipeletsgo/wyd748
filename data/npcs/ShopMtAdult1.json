@@ -1,7 +1,7 @@
 {
   "name": "ShopMtAdult1",
   "equip": { "rosto": { "index": 59 } },
-  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "score": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
   "vende": [
     { "index": 2360 }, { "index": 2361 }, { "index": 2362 }, { "index": 2363 }, { "index": 2364 },
     { "index": 2365 }, { "index": 2366 }, { "index": 2367 }, { "index": 2368 }, { "index": 2369 },

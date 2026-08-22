@@ -29,7 +29,7 @@ func (w *World) speakMountMaster(m *Mob, message string) {
 	}
 	for _, listener := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
 		if listener != nil && listener.InWorld && listener.Session != nil {
-			listener.Session.Send(wire.MessageChatForProtocol(listener.Session.ClientProtocol(), m.ID, message))
+			listener.Session.Send(wire.MessageChat(m.ID, message))
 		}
 	}
 }

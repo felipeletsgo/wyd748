@@ -245,7 +245,7 @@ func (w *World) speakQuestNPC(p *Player, m *Mob, quest *model.QuestDef) {
 	}
 	linha := quest.Dialogue[w.intn(len(quest.Dialogue))]
 	for _, ouvinte := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
-		ouvinte.Session.Send(wire.MessageChatForProtocol(ouvinte.Session.ClientProtocol(), m.ID, linha))
+		ouvinte.Session.Send(wire.MessageChat(m.ID, linha))
 	}
 	_ = p
 }

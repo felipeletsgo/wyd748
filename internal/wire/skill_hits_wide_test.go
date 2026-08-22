@@ -11,7 +11,7 @@ func TestSkillHitsWideMultiCarriesAllRealDamagesInOnePacket(t *testing.T) {
 		{ID: 1002, Damage: 80_000, MaxHP: 300_000},
 		{ID: 1003, Damage: 90_000, MaxHP: 400_000},
 	}
-	pkt := SkillHitsWide(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 13, targets)
+	pkt := SkillHits(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 13, targets)
 	if got, want := len(pkt), 96+8+4*len(targets); got != want {
 		t.Fatalf("size=%d want=%d", got, want)
 	}
@@ -40,7 +40,7 @@ func TestSkillHitsWideMultiCarriesAllRealDamagesInOnePacket(t *testing.T) {
 
 func TestSkillHitsWideTwoTargetOffsetsMatchClientPatch(t *testing.T) {
 	targets := []SkillTarget{{ID: 1001, Damage: 111}, {ID: 1002, Damage: 222}}
-	pkt := SkillHitsWide(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 2, targets)
+	pkt := SkillHits(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 2, targets)
 	if got, want := len(pkt), 52+8+8; got != want {
 		t.Fatalf("size=%d want=%d", got, want)
 	}
@@ -57,7 +57,7 @@ func TestSkillHitsWideTwoTargetOffsetsMatchClientPatch(t *testing.T) {
 
 func TestSkillHitsWideSingleUsesDedicatedSkillTail(t *testing.T) {
 	target := SkillTarget{ID: 1001, Damage: 123_456, MaxHP: 500_000}
-	pkt := SkillHitsWide(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 1, []SkillTarget{target})
+	pkt := SkillHits(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 1, []SkillTarget{target})
 	if len(pkt) != 60 {
 		t.Fatalf("size=%d want=60", len(pkt))
 	}
@@ -76,7 +76,7 @@ func TestSkillHitsWideSingleUsesDedicatedSkillTail(t *testing.T) {
 }
 
 func TestSkillHitsWideSingleMissUsesNativeSentinelWithoutWideDamage(t *testing.T) {
-	pkt := SkillHitsWide(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 1,
+	pkt := SkillHits(1, 10, 10, 12, 12, 0, 500, 34, 5, 100, 1,
 		[]SkillTarget{{ID: 1001, Miss: true, MaxHP: 500_000}})
 	if got := binary.LittleEndian.Uint16(pkt[46:48]); got != 0xFFFD {
 		t.Fatalf("miss WORD=%04X want=FFFD", got)
@@ -87,7 +87,7 @@ func TestSkillHitsWideSingleMissUsesNativeSentinelWithoutWideDamage(t *testing.T
 }
 
 func TestAttackHitExtendedCarriesNativeDoubleCriticalAndMiss(t *testing.T) {
-	hit := AttackHitExtendedResult(1, 1001, 10, 10, 11, 11, 123_456, 500_000, 0, 100, 3, false)
+	hit := AttackHitWideResult(1, 1001, 10, 10, 11, 11, 123_456, 500_000, 0, 100, 3, false)
 	if hit[31] != 3 {
 		t.Fatalf("DoubleCritical=%d want=3", hit[31])
 	}
@@ -95,7 +95,7 @@ func TestAttackHitExtendedCarriesNativeDoubleCriticalAndMiss(t *testing.T) {
 		t.Fatalf("wide damage=%d want=123456", got)
 	}
 
-	miss := AttackHitExtendedResult(1, 1001, 10, 10, 11, 11, 0, 500_000, 0, 100, 0, true)
+	miss := AttackHitWideResult(1, 1001, 10, 10, 11, 11, 0, 500_000, 0, 100, 0, true)
 	if got := binary.LittleEndian.Uint16(miss[46:48]); got != 0xFFFD {
 		t.Fatalf("miss WORD=%04X want=FFFD", got)
 	}

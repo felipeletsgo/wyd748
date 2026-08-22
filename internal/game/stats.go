@@ -224,7 +224,7 @@ func syncSkillPoints(ch *model.Char) {
 	if ch == nil {
 		return
 	}
-	ensureExtendedScore(ch)
+	ensureScore(ch)
 	ch.Score.SkillPts = uint32(skillPointBudget(ch))
 }
 
@@ -232,7 +232,7 @@ func syncMasteryPoints(ch *model.Char) {
 	if ch == nil {
 		return
 	}
-	ensureExtendedScore(ch)
+	ensureScore(ch)
 	var spent uint32
 	for _, value := range ch.Score.Mastery {
 		spent += value
@@ -257,7 +257,7 @@ func syncStatusPoints(ch *model.Char) {
 	if ch == nil {
 		return
 	}
-	ensureExtendedScore(ch)
+	ensureScore(ch)
 	natural, ok := naturalStats(ch)
 	if !ok {
 		ch.Score.StatusPts = 0
@@ -300,7 +300,7 @@ func applyBonus(ch *model.Char, bonusType, detail int) bool {
 	if ch == nil || detail < 0 || detail > 3 {
 		return false
 	}
-	ensureExtendedScore(ch)
+	ensureScore(ch)
 	e := ch.Score
 	switch bonusType {
 	case 0:
@@ -315,7 +315,7 @@ func applyBonus(ch *model.Char, bonusType, detail int) bool {
 			points = e.StatusPts
 		}
 		target := []*uint32{&e.Str, &e.Int, &e.Dex, &e.Con}[detail]
-		*target = clampExtended(*target + points)
+		*target = clampScoreValue(*target + points)
 		e.StatusPts -= points
 	case 1:
 		if e.MasterPts == 0 || int(e.Mastery[detail]) >= masteryPointLimit(ch, detail) {

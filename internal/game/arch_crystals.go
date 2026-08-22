@@ -128,7 +128,7 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	// Score publication follows the source/stock ABI negotiated at login.
-	s.Send(wire.UpdateScoreForProtocol(s.ClientProtocol(), p.ID, *ch))
+	s.Send(wire.UpdateScore(p.ID, *ch))
 	s.Send(wire.UpdateEtc(p.ID, *ch))
 	w.syncPlayerVitalsToObservers(p)
 	if ch.ArchCrystals == archCrystalCount {

@@ -12,7 +12,7 @@ func playerScorePacket(p *Player) []byte {
 	if p == nil || p.Session == nil || p.Char == nil {
 		return nil
 	}
-	return wire.UpdateScoreForProtocol(p.Session.ClientProtocol(), p.ID, *p.Char)
+	return wire.UpdateScore(p.ID, *p.Char)
 }
 
 // playerAffectsPacket follows the same recipient-owned ABI rule as score.
@@ -20,16 +20,16 @@ func playerAffectsPacket(p *Player) []byte {
 	if p == nil || p.Session == nil || p.Char == nil {
 		return nil
 	}
-	return wire.UpdateAffectsForProtocol(p.Session.ClientProtocol(), p.ID, *p.Char)
+	return wire.UpdateAffects(p.ID, *p.Char)
 }
 
 // observedPlayerScorePacket serializes one subject for a specific observer;
-// mixed stock/source sessions can therefore coexist in the same World.
+// every observer receives the same canonical score ABI.
 func observedPlayerScorePacket(observer, subject *Player) []byte {
 	if observer == nil || observer.Session == nil || subject == nil || subject.Char == nil {
 		return nil
 	}
-	return wire.UpdateScoreForProtocol(observer.Session.ClientProtocol(), subject.ID, *subject.Char)
+	return wire.UpdateScore(subject.ID, *subject.Char)
 }
 
 // selectionUpdatePacket rebuilds the four-character selection aggregate after
@@ -38,7 +38,7 @@ func selectionUpdatePacket(s *gameNet.Session, opcode, id uint16, p *Player) []b
 	if s == nil || p == nil || p.Account == nil {
 		return nil
 	}
-	return wire.CharacterSelectionUpdateForProtocol(s.ClientProtocol(), opcode, id, p.Account.Chars)
+	return wire.CharacterSelectionUpdate(opcode, id, p.Account.Chars)
 }
 
 // characterListPacket is used when a feature returns to character selection;
@@ -47,5 +47,5 @@ func characterListPacket(s *gameNet.Session, p *Player) []byte {
 	if s == nil || p == nil || p.Account == nil {
 		return nil
 	}
-	return wire.CharacterListForProtocol(s.ClientProtocol(), p.Account.Name, p.Account.Chars, p.Account.Cargo[:], p.Account.CargoGold)
+	return wire.CharList(p.Account.Name, p.Account.Chars, p.Account.Cargo[:], p.Account.CargoGold)
 }

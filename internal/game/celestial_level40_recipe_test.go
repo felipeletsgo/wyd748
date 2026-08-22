@@ -10,7 +10,7 @@ func odinLevel40Attempt(t *testing.T, recipe [7]uint16) (*Player, *craftStore) {
 	t.Helper()
 	w, p, session, st := newCraftWorld(t, "Odin", nil, 0)
 	p.Char.Evolution = "celestial"
-	p.Char.Score = testExtended(model.Score{
+	p.Char.Score = testScore(model.Score{
 		Level: 39, Str: 5, Int: 5, Dex: 5, Con: 5,
 		MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
 	})

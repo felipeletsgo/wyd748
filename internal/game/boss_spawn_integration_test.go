@@ -114,7 +114,7 @@ func TestConfiguredBossRejectsMissingOrLegacyBase(t *testing.T) {
 
 	w, _ = bossSpawnTestWorld()
 	w.npcs[0].Score = nil
-	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "sem extendedScore") {
+	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "sem score") {
 		t.Fatalf("NPC sem extended deveria falhar claramente: %v", err)
 	}
 }

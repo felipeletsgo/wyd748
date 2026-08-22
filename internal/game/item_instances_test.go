@@ -427,7 +427,7 @@ func TestNightmareCelestialGatesAndEntryCharge(t *testing.T) {
 	leader.Char.Evolution = "celestial"
 	leader.Char.Score.Level = 180
 	leader.Char.RuntimeScore = nil
-	applyExtendedScore(leader.Char)
+	applyScore(leader.Char)
 	leader.Char.NightmareTickets = 3
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
 	if w.itemInstances[rule.Instance.ID] != nil || leader.Char.Inv[0].Index != 100 ||
@@ -445,7 +445,7 @@ func TestNightmareCelestialGatesAndEntryCharge(t *testing.T) {
 	leader.Char.Evolution = "celestial"
 	leader.Char.Score.Level = 238
 	leader.Char.RuntimeScore = nil
-	applyExtendedScore(leader.Char)
+	applyScore(leader.Char)
 	leader.Char.NightmareTickets = 1
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
 	if w.itemInstances[rule.Instance.ID] == nil || leader.Char.Inv[0].Index != 0 ||
@@ -462,7 +462,7 @@ func TestNightmareCelestialGatesAndEntryCharge(t *testing.T) {
 	leader.Char.Evolution = "celestial"
 	leader.Char.Score.Level = 238
 	leader.Char.RuntimeScore = nil
-	applyExtendedScore(leader.Char)
+	applyScore(leader.Char)
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
 	if w.itemInstances[rule.Instance.ID] != nil || leader.Char.Inv[0].Index != 100 ||
 		st.gameSaves != 0 {
@@ -480,7 +480,7 @@ func TestNightmareSkipsIneligiblePartyCelestial(t *testing.T) {
 	member.Char.Evolution = "celestial"
 	member.Char.Score.Level = 180
 	member.Char.RuntimeScore = nil
-	applyExtendedScore(member.Char)
+	applyScore(member.Char)
 	oldX, oldY := member.X, member.Y
 	w.onUseItem(leader.Session, useItemPacket(0, 0))
 	inst := w.itemInstances[rule.Instance.ID]
@@ -500,7 +500,7 @@ func TestNightmareEntryChargeRollsBackOnSpawnFailure(t *testing.T) {
 	leader.Char.Evolution = "celestial"
 	leader.Char.Score.Level = 238
 	leader.Char.RuntimeScore = nil
-	applyExtendedScore(leader.Char)
+	applyScore(leader.Char)
 	leader.Char.NightmareTickets = 1
 	for id := uint32(firstMobID); id <= uint32(^uint16(0)); id++ {
 		w.mobsByID[uint16(id)] = nil

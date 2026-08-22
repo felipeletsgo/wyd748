@@ -159,7 +159,7 @@ func celestialExtractionFixture(t *testing.T) (*World, *Player, model.Item) {
 	p.Char.Inv[0] = seal
 	sealed := model.Char{
 		UID: sourceUID, Name: "Original", Class: 1, Evolution: "celestial",
-		Score: testExtended(model.Score{Level: 90, Str: 100}),
+		Score: testScore(model.Score{Level: 90, Str: 100}),
 	}
 	p.Account.CelestialCapsules = []model.CelestialCapsule{{
 		ID: 1, ItemUID: itemUID, SourceUID: sourceUID, Character: sealed,
@@ -202,12 +202,12 @@ func TestCapsuleInfoUses748Projection(t *testing.T) {
 	}
 	capsule := &model.CelestialCapsule{Character: model.Char{
 		Class: 1, Evolution: "celestial", LearnedSkill: learned, ArchCrystals: 4,
-		Score: testExtended(model.Score{
+		Score: testScore(model.Score{
 			Level: 90, Str: 100_000, Int: 20, Dex: 30, Con: 40,
 			Mastery: [4]uint32{50, 60, 70, 80},
 		}),
 		AlternateCelestial: &model.CelestialForm{Class: 3, Evolution: "subcelestial",
-			Score: testExtended(model.Score{Level: 80})},
+			Score: testScore(model.Score{Level: 80})},
 	}}
 	info := capsuleInfoFor(capsule)
 	if info.Class != 19 || info.Level != 90 || info.Str != 32767 ||
@@ -265,7 +265,7 @@ func tradeCapsuleFixture(t *testing.T, owner *Player, id uint16, slot int) model
 		ID: id, ItemUID: itemUID, SourceUID: sourceUID,
 		Character: model.Char{
 			UID: sourceUID, Name: "ReadyCelestial", Class: 1, Evolution: "celestial",
-			Score: testExtended(model.Score{Level: 190, Str: 1_000}),
+			Score: testScore(model.Score{Level: 190, Str: 1_000}),
 		},
 	})
 	return seal

@@ -30,7 +30,7 @@ func TestCombatAccuracyStartsAtOneHundredAndFallsWithDefenderEvasion(t *testing.
 }
 
 func TestPhysicalFlagsUseW2PPDoubleProgressionAndIndependentCritical(t *testing.T) {
-	ch := &model.Char{Score: testExtended(model.Score{AttackRun: 0xF0, Critical: 255})}
+	ch := &model.Char{Score: testScore(model.Score{AttackRun: 0xF0, Critical: 255})}
 	progress := uint16(0)
 	double, critical := rollPhysicalHitFlags(ch, &progress, func(int) int { return 254 })
 	if !double || !critical {
@@ -53,7 +53,7 @@ func TestDoubleHitCountsFullServerProgression(t *testing.T) {
 	// contains 499 doubles in one complete 1,024-action cycle. At 200% every
 	// table value (maximum 999) is below the 1,000 threshold.
 	for speedNibble, want := range map[byte]int{0x50: 0, 0xA0: 499, 0xF0: 1024} {
-		ch := &model.Char{Score: testExtended(model.Score{AttackRun: uint32(speedNibble)})}
+		ch := &model.Char{Score: testScore(model.Score{AttackRun: uint32(speedNibble)})}
 		progress := uint16(0)
 		got := 0
 		for range 1024 {
@@ -138,8 +138,8 @@ func TestAcceptClientSkillRejectsReplayAndOnlyBusyLoops(t *testing.T) {
 }
 
 func TestPhysicalAttackIntervalIsFixedAndSpeedFeedsDoubleChance(t *testing.T) {
-	slow := &model.Char{Score: testExtended(model.Score{AttackRun: 0x00})} // speed 0
-	fast := &model.Char{Score: testExtended(model.Score{AttackRun: 0xF0})} // speed 15
+	slow := &model.Char{Score: testScore(model.Score{AttackRun: 0x00})} // speed 0
+	fast := &model.Char{Score: testScore(model.Score{AttackRun: 0xF0})} // speed 15
 	slowInterval := attackIntervalFor(slow)
 	fastInterval := attackIntervalFor(fast)
 	if slowInterval != 400*time.Millisecond || fastInterval != slowInterval {
@@ -180,8 +180,8 @@ func TestAttackClockValidationDoesNotConsumeRejectedTargetIntent(t *testing.T) {
 
 func TestCourageAppliesFixedPvEBonusWithoutChangingScore(t *testing.T) {
 	ch := &model.Char{
-		Score:        testExtended(model.Score{Attack: 500, MagicAttack: 700, Accuracy: 25}),
-		RuntimeScore: testExtended(model.Score{Attack: 500, MagicAttack: 700, Accuracy: 25}),
+		Score:        testScore(model.Score{Attack: 500, MagicAttack: 700, Accuracy: 25}),
+		RuntimeScore: testScore(model.Score{Attack: 500, MagicAttack: 700, Accuracy: 25}),
 	}
 	ch.Affects[0] = model.Affect{
 		Type: affectCourage, ClientType: affectCourage, ExpiresAt: time.Now().Add(time.Hour),
@@ -206,29 +206,29 @@ func TestCourageAppliesFixedPvEBonusWithoutChangingScore(t *testing.T) {
 }
 
 func TestCourageExpiredDoesNotApplyAndDamageIsClamped(t *testing.T) {
-	ch := &model.Char{Score: testExtended(model.Score{})}
+	ch := &model.Char{Score: testScore(model.Score{})}
 	ch.Affects[0] = model.Affect{Type: affectCourage, ExpiresAt: time.Now().Add(-time.Second)}
 	if got := applyCouragePvEDamage(ch, 300, true); got != 300 {
 		t.Fatalf("Courage expirado aplicou bonus: %d", got)
 	}
 
 	ch.Affects[0].ExpiresAt = time.Now().Add(time.Hour)
-	if got := applyCouragePvEDamage(ch, int(maxExtendedStat)-500, true); got != int(maxExtendedStat) {
+	if got := applyCouragePvEDamage(ch, int(maxScoreValue)-500, true); got != int(maxScoreValue) {
 		t.Fatalf("Courage ultrapassou clamp wide: %d", got)
 	}
 }
 
 func TestCourageIsNotAppliedByPvPDamagePipeline(t *testing.T) {
 	attacker := &Player{Char: &model.Char{
-		Score:        testExtended(model.Score{Attack: 1_000, Dex: 1_000, Accuracy: 10_000}),
-		RuntimeScore: testExtended(model.Score{Attack: 1_000, Dex: 1_000, Accuracy: 10_000}),
+		Score:        testScore(model.Score{Attack: 1_000, Dex: 1_000, Accuracy: 10_000}),
+		RuntimeScore: testScore(model.Score{Attack: 1_000, Dex: 1_000, Accuracy: 10_000}),
 	}}
 	attacker.Char.Affects[0] = model.Affect{
 		Type: affectCourage, ExpiresAt: time.Now().Add(time.Hour),
 	}
 	target := &Player{Char: &model.Char{
-		Score:        testExtended(model.Score{Defense: 100, Dex: 1}),
-		RuntimeScore: testExtended(model.Score{Defense: 100, Dex: 1}),
+		Score:        testScore(model.Score{Defense: 100, Dex: 1}),
+		RuntimeScore: testScore(model.Score{Defense: 100, Dex: 1}),
 	}}
 
 	// playerHitsPlayer e o pipeline PvP. Courage nao aparece nele.

@@ -14,7 +14,7 @@ func TestRegenAmountMatchesRegenMobFormula(t *testing.T) {
 
 func TestApplyPlayerRegenRestoresAndCapsHPMP(t *testing.T) {
 	ch := &model.Char{
-		Score: testExtended(model.Score{MaxHP: 600, MaxMP: 300, CurHP: 590, CurMP: 280}),
+		Score: testScore(model.Score{MaxHP: 600, MaxMP: 300, CurHP: 590, CurMP: 280}),
 	}
 	ch.Score.RegenHP, ch.Score.RegenMP = 2, 4
 	if !applyPlayerRegen(ch) {
@@ -26,7 +26,7 @@ func TestApplyPlayerRegenRestoresAndCapsHPMP(t *testing.T) {
 }
 
 func TestApplyPlayerRegenDoesNotRevive(t *testing.T) {
-	ch := &model.Char{Score: testExtended(model.Score{MaxHP: 100, MaxMP: 100})}
+	ch := &model.Char{Score: testScore(model.Score{MaxHP: 100, MaxMP: 100})}
 	if applyPlayerRegen(ch) || playerCurHP(ch) != 0 {
 		t.Fatal("regeneracao reviveu personagem morto")
 	}

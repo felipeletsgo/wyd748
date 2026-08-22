@@ -7,7 +7,7 @@
     {
       "name": "TransKnight",
       "class": 0,
-      "extendedScore": {
+      "score": {
         "version": 2,
         "level": 0,
         "defense": 4,
@@ -49,7 +49,7 @@
     {
       "name": "Foema",
       "class": 1,
-      "extendedScore": {
+      "score": {
         "version": 2,
         "level": 0,
         "defense": 4,
@@ -91,7 +91,7 @@
     {
       "name": "BeastMaster",
       "class": 2,
-      "extendedScore": {
+      "score": {
         "version": 2,
         "level": 0,
         "defense": 4,
@@ -133,7 +133,7 @@
     {
       "name": "Huntress",
       "class": 3,
-      "extendedScore": {
+      "score": {
         "version": 2,
         "level": 0,
         "defense": 4,

@@ -8,7 +8,7 @@ inteira reproduz o binário em uso **bit a bit**.
 WYD.original.exe              B545EA10…619C   client 7.48 de 23/04/2007
   └─ Patch-WYD748.ps1                         câmera/mouse, cores de dano e linha-base
 WYD.pre-extended-stats.exe    2AA1773A…21EE   ← LINHA-BASE
-  └─ Patch-WYD748-ExtendedStats.ps1           stats 32-bit, seção .xstat
+  └─            stats 32-bit, seção .xstat
   (intermediário)             4724B76F…45D6
   └─ Patch-WYD748-Bypass.ps1                  versão + 3 checksums
   (intermediário)             E704DA0A…E20D

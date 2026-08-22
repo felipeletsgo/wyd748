@@ -889,7 +889,7 @@ int TMHuman::InitObject()
     }
 
     UpdateMount();
-    if (m_stScore.Hp <= 0)
+    if (m_stScore.CurHP <= 0)
     {
         m_nWillDie = 4;
         SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 1);
@@ -2318,7 +2318,7 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
 
     if (vecNow.x == vecNext.x && vecNow.y == vecNext.y)
     {
-        if (m_stScore.Hp > 0 && (m_eMotion == ECHAR_MOTION::ECMOTION_WALK || m_eMotion == ECHAR_MOTION::ECMOTION_RUN))
+        if (m_stScore.CurHP > 0 && (m_eMotion == ECHAR_MOTION::ECMOTION_WALK || m_eMotion == ECHAR_MOTION::ECMOTION_RUN))
         {
             SetAnimation(ECHAR_MOTION::ECMOTION_STAND02, 1);
 
@@ -2359,10 +2359,10 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
                 return 1;
             }
         }
-        else if (m_stScore.Hp <= 0 && m_eMotion != ECHAR_MOTION::ECMOTION_DIE && m_nWillDie == 4)
+        else if (m_stScore.CurHP <= 0 && m_eMotion != ECHAR_MOTION::ECMOTION_DIE && m_nWillDie == 4)
             SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 1);
 
-        else if (m_stScore.Hp <= 0 && m_eMotion != ECHAR_MOTION::ECMOTION_DIE && m_eMotion != ECHAR_MOTION::ECMOTION_DEAD
+        else if (m_stScore.CurHP <= 0 && m_eMotion != ECHAR_MOTION::ECMOTION_DIE && m_eMotion != ECHAR_MOTION::ECMOTION_DEAD
             && m_nWillDie == 1)
         {
             SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 0);
@@ -4013,7 +4013,7 @@ int TMHuman::OnPacketRemoveMob(MSG_STANDARD* pStd)
     auto pRemoveMob = (MSG_RemoveMob*)pStd;
     if (g_pCurrentScene->m_pMyHuman == this)
     {
-        if (m_stScore.Hp <= 0 && !m_sFamCount)
+        if (m_stScore.CurHP <= 0 && !m_sFamCount)
             Die();
 
         return 1;
@@ -4096,7 +4096,7 @@ int TMHuman::OnPacketRemoveMob(MSG_STANDARD* pStd)
             m_nWillDie = pRemoveMob->RemoveType;
             if (!m_dwDeadTime)
                 m_dwDeadTime = dwServerTime;
-            m_stScore.Hp = 0;
+            m_stScore.CurHP = 0;
             Die();
             return 1;
         }
@@ -4543,7 +4543,7 @@ int TMHuman::OnPacketUpdateScore(MSG_STANDARD* pStd)
     if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
         static_cast<TMFieldScene*>(g_pCurrentScene)->Bag_View();
 
-    m_cHide = m_dwID < 1000 == 1 && pUpdateScore->Score.Reserved & 1;
+    m_cHide = m_dwID < 1000 == 1 && pUpdateScore->Score.Merchant & 1;
     
     if (m_dwID >= 1000 && pUpdateScore->ReqHp == 1)
     {
@@ -4579,11 +4579,11 @@ int TMHuman::OnPacketUpdateScore(MSG_STANDARD* pStd)
 
                 pPartyItem->m_pLevelText->SetText(szVal, 0);
 
-                if (pUpdateScore->Score.Hp > pUpdateScore->Score.MaxHp)
-                    pUpdateScore->Score.Hp = pUpdateScore->Score.MaxHp;
+                if (pUpdateScore->Score.CurHP > pUpdateScore->Score.MaxHP)
+                    pUpdateScore->Score.CurHP = pUpdateScore->Score.MaxHP;
 
-                pPartyItem->m_pHpProgress->SetMaxProgress(pUpdateScore->Score.MaxHp);
-                pPartyItem->m_pHpProgress->SetCurrentProgress(pUpdateScore->Score.Hp);
+                pPartyItem->m_pHpProgress->SetMaxProgress(pUpdateScore->Score.MaxHP);
+                pPartyItem->m_pHpProgress->SetCurrentProgress(pUpdateScore->Score.CurHP);
                 break;
             }
         }
@@ -4796,30 +4796,18 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
     if (g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
         return 1;
 
-    // WYD-Go selects 0x181 by observer ABI: stock 7.48 receives the 20-byte
-    // compatibility prefix, while this source client receives the 36-byte
-    // uint32 form for both players and mobs. The size branch also keeps old
-    // packet captures safe instead of reading a nonexistent tail.
-    const bool hasWideResources = pStd->Header.Size >= sizeof(MSG_SetHpMp);
-    const unsigned int hp = hasWideResources
-        ? pStd->Hp
-        : static_cast<unsigned short>(pStd->HpCompat);
-    const unsigned int mp = hasWideResources
-        ? pStd->Mp
-        : static_cast<unsigned short>(pStd->MpCompat);
-    const unsigned int maxHp = hasWideResources
-        ? pStd->ReqHp
-        : static_cast<unsigned short>(pStd->ReqHpCompat);
-    const unsigned int maxMp = hasWideResources
-        ? pStd->ReqMp
-        : static_cast<unsigned short>(pStd->ReqMpCompat);
+    // WYD-Go 7.48+ carries one uint32 resource layout.
+    const unsigned int hp = pStd->Hp;
+    const unsigned int mp = pStd->Mp;
+    const unsigned int maxHp = pStd->MaxHp;
+    const unsigned int maxMp = pStd->MaxMp;
 
-    m_stScore.Hp = hp;
-    m_stScore.Mp = mp;
+    m_stScore.CurHP = hp;
+    m_stScore.CurMP = mp;
     if (maxHp)
-        m_stScore.MaxHp = maxHp;
+        m_stScore.MaxHP = maxHp;
     if (maxMp)
-        m_stScore.MaxMp = maxMp;
+        m_stScore.MaxMP = maxMp;
     
     auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
     if (pFScene->m_cAutoAttack == 1 && pFScene->m_pTargetHuman == this && hp == 0)
@@ -4827,16 +4815,16 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
     auto pFScene1 = static_cast<TMFieldScene*>(g_pCurrentScene);
     if (pFScene1->m_cAutoAttack == 1 && pFScene->m_pTargetHuman == this && mp == 0)
         pFScene1->m_pTargetHuman = 0;
-    if (m_stScore.Hp >= m_stScore.MaxHp)
-        m_stScore.Hp = m_stScore.MaxHp;
-    if (m_stScore.Mp >= m_stScore.MaxMp)
-        m_stScore.Mp = m_stScore.MaxMp;
+    if (m_stScore.CurHP >= m_stScore.MaxHP)
+        m_stScore.CurHP = m_stScore.MaxHP;
+    if (m_stScore.CurMP >= m_stScore.MaxMP)
+        m_stScore.CurMP = m_stScore.MaxMP;
 
-    m_pProgressBar->SetCurrentProgress(m_stScore.Hp);
-    SetGuildBattleHPBar(m_stScore.Hp);
+    m_pProgressBar->SetCurrentProgress(m_stScore.CurHP);
+    SetGuildBattleHPBar(m_stScore.CurHP);
 
-    m_pProgressBar1->SetCurrentProgress(m_stScore.Mp);
-    SetGuildBattleMPBar(m_stScore.Mp);
+    m_pProgressBar1->SetCurrentProgress(m_stScore.CurMP);
+    SetGuildBattleMPBar(m_stScore.CurMP);
 
     SetGuildBattleLifeCount();
 
@@ -4848,9 +4836,9 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         pFScene->m_nReqMP = maxMp;
         memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &m_stScore, sizeof(m_stScore));
         if (pFScene->m_pHPBar)
-            pFScene->m_pHPBar->SetCurrentProgress(m_stScore.Hp);
+            pFScene->m_pHPBar->SetCurrentProgress(m_stScore.CurHP);
         if (pFScene->m_pMPBar)
-            pFScene->m_pMPBar->SetCurrentProgress(m_stScore.Mp);
+            pFScene->m_pMPBar->SetCurrentProgress(m_stScore.CurMP);
 
         if (m_pMountHPBar && pFScene->m_pMHPBar && pFScene->m_pMHPBarT)
             pFScene->m_pMHPBar->SetCurrentProgress(m_pMountHPBar->GetCurrentProgress());
@@ -4859,28 +4847,28 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         if (pFScene->m_pCurrentHPText)
         {
             char szHP[32]{};
-            sprintf(szHP, "%d", m_stScore.Hp);
+            sprintf(szHP, "%d", m_stScore.CurHP);
             if (pFScene->m_pCurrentHPText)
                 pFScene->m_pCurrentHPText->SetText(szHP, 0);
         }
         if (pFScene->m_pMaxHPText)
         {
             char szHP[32]{};
-            sprintf(szHP, "/ %d", m_stScore.MaxHp);
+            sprintf(szHP, "/ %d", m_stScore.MaxHP);
             if (pFScene->m_pMaxHPText)
                 pFScene->m_pMaxHPText->SetText(szHP, 0);
         }
         if (pFScene->m_pCurrentMPText)
         {
             char szMP[32]{};
-            sprintf(szMP, "%d", m_stScore.Mp);
+            sprintf(szMP, "%d", m_stScore.CurMP);
             if (pFScene->m_pCurrentMPText)
                 pFScene->m_pCurrentMPText->SetText(szMP, 0);
         }
         if (pFScene->m_pMaxMPText)
         {
             char szMP[32]{};
-            sprintf(szMP, "/ %d", m_stScore.MaxMp);
+            sprintf(szMP, "/ %d", m_stScore.MaxMP);
             if (pFScene->m_pMaxMPText)
                 pFScene->m_pMaxMPText->SetText(szMP, 0);
         }
@@ -4905,7 +4893,7 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
             pFScene->m_pMaxMHPText->SetText(szMHP, 0);
         }
     }
-    if (m_stScore.Hp > 0 && (m_cDie == 1 || m_eMotion == ECHAR_MOTION::ECMOTION_DEAD))
+    if (m_stScore.CurHP > 0 && (m_cDie == 1 || m_eMotion == ECHAR_MOTION::ECMOTION_DEAD))
     {
         m_cDie = 0;
         SetAnimation(ECHAR_MOTION::ECMOTION_LEVELUP, 0);
@@ -4920,9 +4908,9 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
     if (g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
         return 1;
 
-    m_stScore.Hp = pSetHpDam->Hp;
+    m_stScore.CurHP = pSetHpDam->Hp;
     m_pProgressBar->SetCurrentProgress(pSetHpDam->Hp);
-    SetGuildBattleHPBar(m_stScore.Hp);
+    SetGuildBattleHPBar(m_stScore.CurHP);
     SetGuildBattleLifeCount();
 
     TMFont3* pFont = nullptr;
@@ -4995,11 +4983,11 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
         memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &m_stScore, sizeof(m_stScore));
         auto pCurrentHPText = (SText*)pScene->m_pControlContainer->FindControl(65614);
         auto pHPBar = (SProgressBar*)pScene->m_pControlContainer->FindControl(65621);
-        pHPBar->SetCurrentProgress(m_stScore.Hp);
+        pHPBar->SetCurrentProgress(m_stScore.CurHP);
         if (pCurrentHPText)
         {
             char szHP[32]{};
-            sprintf(szHP, "%d", m_stScore.Hp);
+            sprintf(szHP, "%d", m_stScore.CurHP);
             pCurrentHPText->SetText(szHP, 0);
         }
     }
@@ -5812,13 +5800,13 @@ void TMHuman::UpdateScore(int nGuildLevel)
         {
             if (m_pProgressBar)
             {
-                m_pProgressBar->SetMaxProgress(m_stScore.MaxHp);
-                m_pProgressBar->SetCurrentProgress(m_stScore.Hp);
-                m_pTitleProgressBar->SetMaxProgress(m_stScore.MaxHp);
-                m_pTitleProgressBar->SetCurrentProgress(m_stScore.Hp);
+                m_pProgressBar->SetMaxProgress(m_stScore.MaxHP);
+                m_pProgressBar->SetCurrentProgress(m_stScore.CurHP);
+                m_pTitleProgressBar->SetMaxProgress(m_stScore.MaxHP);
+                m_pTitleProgressBar->SetCurrentProgress(m_stScore.CurHP);
             }
 
-            SetGuildBattleHPBar(m_stScore.Hp);
+            SetGuildBattleHPBar(m_stScore.CurHP);
         }
         else
         {
@@ -5831,11 +5819,11 @@ void TMHuman::UpdateScore(int nGuildLevel)
         {
             if (m_pProgressBar1)
             {
-                m_pProgressBar1->SetMaxProgress(m_stScore.MaxMp);
-                m_pProgressBar1->SetCurrentProgress(m_stScore.Mp);
+                m_pProgressBar1->SetMaxProgress(m_stScore.MaxMP);
+                m_pProgressBar1->SetCurrentProgress(m_stScore.CurMP);
             }
 
-            SetGuildBattleHPBar(m_stScore.Hp);
+            SetGuildBattleHPBar(m_stScore.CurHP);
         }
         else
         {
@@ -5924,41 +5912,41 @@ void TMHuman::UpdateScore(int nGuildLevel)
             memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &m_stScore, sizeof m_stScore);
             if (pCurrentHPText)
             {
-                if (m_stScore.Hp > m_stScore.MaxHp)
-                    m_stScore.Hp = m_stScore.MaxHp;
+                if (m_stScore.CurHP > m_stScore.MaxHP)
+                    m_stScore.CurHP = m_stScore.MaxHP;
 
                 char szHP[32] = { 0 };
-                sprintf_s(szHP, "%d", m_stScore.Hp);
+                sprintf_s(szHP, "%d", m_stScore.CurHP);
                 pCurrentHPText->SetText(szHP, 0);
             }
             if (pMaxHPText)
             {
                 char _Buffer[32] = { 0 };
-                sprintf_s(_Buffer, "/ %d", m_stScore.MaxHp);
+                sprintf_s(_Buffer, "/ %d", m_stScore.MaxHP);
                 pMaxHPText->SetText(_Buffer, 0);
             }
             if (pCurrentMPText)
             {
                 char szMP[32] = { 0 };
-                sprintf_s(szMP, "%d", m_stScore.Mp);
+                sprintf_s(szMP, "%d", m_stScore.CurMP);
                 pCurrentMPText->SetText(szMP, 0);
             }
             if (pMaxMPText)
             {
                 char szMP[32] = { 0 };
-                sprintf_s(szMP, "/ %d", m_stScore.MaxMp);
+                sprintf_s(szMP, "/ %d", m_stScore.MaxMP);
                 pMaxMPText->SetText(szMP, 0);
             }
             if (pHPBar)
             {
-                pHPBar->SetMaxProgress(m_stScore.MaxHp);
-                pHPBar->SetCurrentProgress(m_stScore.Hp);
+                pHPBar->SetMaxProgress(m_stScore.MaxHP);
+                pHPBar->SetCurrentProgress(m_stScore.CurHP);
             }
 
             if (pMPBar)
             {
-                pMPBar->SetMaxProgress(m_stScore.MaxMp);
-                pMPBar->SetCurrentProgress(m_stScore.Mp);
+                pMPBar->SetMaxProgress(m_stScore.MaxMP);
+                pMPBar->SetCurrentProgress(m_stScore.CurMP);
                 pMPBar->SetVisible(1);
             }
         }
@@ -11539,12 +11527,12 @@ void TMHuman::Punched(int nDamage, TMVector2 vecFrom)
             }
 
             float fDam = 0.0f;
-            if (m_stScore.Hp <= 0)
+            if (m_stScore.CurHP <= 0)
                 fDam = (float)nDamage;
             else
-                fDam = (float)nDamage / (float)m_stScore.Hp;
+                fDam = (float)nDamage / (float)m_stScore.CurHP;
 
-            if ((fDam > Tvalue || !(rand() % Trand) && (int)fDam > 0) && m_stScore.Hp > 0)
+            if ((fDam > Tvalue || !(rand() % Trand) && (int)fDam > 0) && m_stScore.CurHP > 0)
             {
                 if (g_pCurrentScene->m_pMyHuman == this)
                 {
@@ -11584,8 +11572,8 @@ void TMHuman::Punched(int nDamage, TMVector2 vecFrom)
         }
     }
 
-    if (m_stScore.Hp < 0)
-        m_stScore.Hp = 0;
+    if (m_stScore.CurHP < 0)
+        m_stScore.CurHP = 0;
     if (g_pCurrentScene->m_pMyHuman == this)
     {
         auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
@@ -11596,25 +11584,25 @@ void TMHuman::Punched(int nDamage, TMVector2 vecFrom)
             if (pFScene->m_pCurrentHPText)
             {
                 char szHP[32]{};
-                sprintf(szHP, "%d", m_stScore.Hp);
+                sprintf(szHP, "%d", m_stScore.CurHP);
                 pFScene->m_pCurrentHPText->SetText(szHP, 0);
             }
             if (pFScene->m_pMaxHPText)
             {
                 char szHP[32]{};
-                sprintf(szHP, "/ %d", m_stScore.MaxHp);
+                sprintf(szHP, "/ %d", m_stScore.MaxHP);
                 pFScene->m_pMaxHPText->SetText(szHP, 0);
             }
             if (pFScene->m_pCurrentMPText)
             {
                 char szMP[32]{};
-                sprintf(szMP, "%d", m_stScore.Mp);
+                sprintf(szMP, "%d", m_stScore.CurMP);
                 pFScene->m_pCurrentMPText->SetText(szMP, 0);
             }
             if (pFScene->m_pMaxMPText)
             {
                 char szMP[32]{};
-                sprintf(szMP, "/ %d", m_stScore.MaxMp);
+                sprintf(szMP, "/ %d", m_stScore.MaxMP);
                 pFScene->m_pMaxMPText->SetText(szMP, 0);
             }
             if (pFScene->m_pCurrentMHPText && m_pMountHPBar)
@@ -11638,11 +11626,11 @@ void TMHuman::Punched(int nDamage, TMVector2 vecFrom)
                 pFScene->m_pMaxMHPText->SetText(szMHP, 0);
             }
             if (pFScene->m_pHPBar)
-                pFScene->m_pHPBar->SetMaxProgress(m_stScore.MaxHp);
+                pFScene->m_pHPBar->SetMaxProgress(m_stScore.MaxHP);
             if (pFScene->m_pMPBar)
             {
-                pFScene->m_pMPBar->SetMaxProgress(m_stScore.MaxMp);
-                pFScene->m_pMPBar->SetCurrentProgress(m_stScore.Mp);
+                pFScene->m_pMPBar->SetMaxProgress(m_stScore.MaxMP);
+                pFScene->m_pMPBar->SetCurrentProgress(m_stScore.CurMP);
             }
             if (m_pMountHPBar && pFScene->m_pMHPBar && pFScene->m_pMHPBarT)
             {
@@ -11656,14 +11644,14 @@ void TMHuman::Punched(int nDamage, TMVector2 vecFrom)
     if (m_MaxBigHp)
         m_pProgressBar->SetCurrentProgress(m_BigHp);
     else
-        m_pProgressBar->SetCurrentProgress(m_stScore.Hp);
+        m_pProgressBar->SetCurrentProgress(m_stScore.CurHP);
 
     if (m_MaxBigMp)
         m_pProgressBar1->SetCurrentProgress(m_BigMp);
     else
-        m_pProgressBar1->SetCurrentProgress(m_stScore.Mp);
-    SetGuildBattleHPBar(m_stScore.Mp);
-    SetGuildBattleHPBar(m_stScore.Hp);
+        m_pProgressBar1->SetCurrentProgress(m_stScore.CurMP);
+    SetGuildBattleHPBar(m_stScore.CurMP);
+    SetGuildBattleHPBar(m_stScore.CurHP);
     SetGuildBattleLifeCount();
 
     auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
@@ -11680,13 +11668,13 @@ void TMHuman::Punched(int nDamage, TMHuman* pFrom)
         return;
 
     float fDam = 0.0f;
-    if (m_stScore.Hp <= 0)
+    if (m_stScore.CurHP <= 0)
         fDam = (float)nDamage;
     else
-        fDam = (float)nDamage / (float)m_stScore.Hp;
+        fDam = (float)nDamage / (float)m_stScore.CurHP;
 
     int nBlood = GetBloodColor();
-    if ((fDam > 0.2f || !(rand() % 10) && (int)fDam > 0) && m_stScore.Hp > 0)
+    if ((fDam > 0.2f || !(rand() % 10) && (int)fDam > 0) && m_stScore.CurHP > 0)
     {
         if (g_pCurrentScene->m_pMyHuman == this)
         {
@@ -11724,8 +11712,8 @@ void TMHuman::Punched(int nDamage, TMHuman* pFrom)
         g_pCurrentScene->AddChild(pDamageEffect);
     }
 
-    if (m_stScore.Hp < 0)
-        m_stScore.Hp = 0;
+    if (m_stScore.CurHP < 0)
+        m_stScore.CurHP = 0;
     if (g_pCurrentScene->m_pMyHuman == this)
     {
         auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
@@ -11736,25 +11724,25 @@ void TMHuman::Punched(int nDamage, TMHuman* pFrom)
             if (pFScene->m_pCurrentHPText)
             {
                 char szHP[32]{};
-                sprintf(szHP, "%d", m_stScore.Hp);
+                sprintf(szHP, "%d", m_stScore.CurHP);
                 pFScene->m_pCurrentHPText->SetText(szHP, 0);
             }
             if (pFScene->m_pMaxHPText)
             {
                 char szHP[32]{};
-                sprintf(szHP, "/ %d", m_stScore.MaxHp);
+                sprintf(szHP, "/ %d", m_stScore.MaxHP);
                 pFScene->m_pMaxHPText->SetText(szHP, 0);
             }
             if (pFScene->m_pCurrentMPText)
             {
                 char szMP[32]{};
-                sprintf(szMP, "%d", m_stScore.Mp);
+                sprintf(szMP, "%d", m_stScore.CurMP);
                 pFScene->m_pCurrentMPText->SetText(szMP, 0);
             }
             if (pFScene->m_pMaxMPText)
             {
                 char szMP[32]{};
-                sprintf(szMP, "/ %d", m_stScore.MaxMp);
+                sprintf(szMP, "/ %d", m_stScore.MaxMP);
                 pFScene->m_pMaxMPText->SetText(szMP, 0);
             }
             if (pFScene->m_pCurrentMHPText && m_pMountHPBar)
@@ -11778,11 +11766,11 @@ void TMHuman::Punched(int nDamage, TMHuman* pFrom)
                 pFScene->m_pMaxMHPText->SetText(szMHP, 0);
             }
             if (pFScene->m_pHPBar)
-                pFScene->m_pHPBar->SetMaxProgress(m_stScore.MaxHp);
+                pFScene->m_pHPBar->SetMaxProgress(m_stScore.MaxHP);
             if (pFScene->m_pMPBar)
             {
-                pFScene->m_pMPBar->SetMaxProgress(m_stScore.MaxMp);
-                pFScene->m_pMPBar->SetCurrentProgress(m_stScore.Mp);
+                pFScene->m_pMPBar->SetMaxProgress(m_stScore.MaxMP);
+                pFScene->m_pMPBar->SetCurrentProgress(m_stScore.CurMP);
             }
             if (m_pMountHPBar && pFScene->m_pMHPBar && pFScene->m_pMHPBarT)
             {
@@ -11796,10 +11784,10 @@ void TMHuman::Punched(int nDamage, TMHuman* pFrom)
     auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
     if (pFScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
     {
-        m_pProgressBar->SetCurrentProgress(m_stScore.Hp);
-        m_pProgressBar1->SetCurrentProgress(m_stScore.Mp);
-        SetGuildBattleHPBar(m_stScore.Hp);
-        SetGuildBattleHPBar(m_stScore.Mp);
+        m_pProgressBar->SetCurrentProgress(m_stScore.CurHP);
+        m_pProgressBar1->SetCurrentProgress(m_stScore.CurMP);
+        SetGuildBattleHPBar(m_stScore.CurHP);
+        SetGuildBattleHPBar(m_stScore.CurMP);
         SetGuildBattleLifeCount();
 
         if (pFScene->m_pInfoText)

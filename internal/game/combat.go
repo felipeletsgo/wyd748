@@ -27,8 +27,8 @@ func applyCouragePvEDamageAt(ch *model.Char, damage int, magical bool, now time.
 	if magical {
 		bonus = courageMagicBonus
 	}
-	if damage > int(maxExtendedStat)-bonus {
-		return int(maxExtendedStat)
+	if damage > int(maxScoreValue)-bonus {
+		return int(maxScoreValue)
 	}
 	return damage + bonus
 }
@@ -105,7 +105,7 @@ func attackSpeedPercent(ch *model.Char) int {
 	}
 	// W2PP encodes attack speed as the high AttackRun nibble. Five represents
 	// 100%; every following point adds 10%, reaching 200% at the native cap 15.
-	return clampInt((int(effectiveExtended(ch).AttackRun>>4)+5)*10, 50, 200)
+	return clampInt((int(effectiveScore(ch).AttackRun>>4)+5)*10, 50, 200)
 }
 
 func doubleHitChance(ch *model.Char) int {
@@ -142,7 +142,7 @@ func rollPhysicalHitFlags(ch *model.Char, progress *uint16, intn func(int) int) 
 	*progress = (*progress + 1) & 0x3FF
 	doubleThreshold := clampInt(doubleHitChance(ch)*10, 0, 1000)
 	double = hitRateProgression[index] < doubleThreshold
-	critical = intn(255) < clampInt(int(effectiveExtended(ch).Critical), 0, 255)
+	critical = intn(255) < clampInt(int(effectiveScore(ch).Critical), 0, 255)
 	return double, critical
 }
 
@@ -171,7 +171,7 @@ func playerPhysicalHitMobAt(atk *Player, m *Mob, intn func(int) int, now time.Ti
 	if double {
 		dam *= 2
 	}
-	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxExtendedStat))),
+	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxScoreValue))),
 		Hit: true, Double: double, Critical: critical}
 }
 
@@ -205,7 +205,7 @@ func playerPhysicalHitPlayerWithRNG(atk, target *Player, intn func(int) int) phy
 	if double {
 		dam *= 2
 	}
-	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxExtendedStat))),
+	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxScoreValue))),
 		Hit: true, Double: double, Critical: critical}
 }
 
@@ -237,7 +237,7 @@ func mobPhysicalHitPlayerAt(m *Mob, def *model.Char, intn func(int) int, now tim
 		int(m.Def.Score.Dex)/4 + int(m.Def.Score.Level)
 	defense := playerDefense(def)
 	dam := hitDamageWithRNG(damBase, defense, 0, intn)
-	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxExtendedStat))), Hit: true}
+	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxScoreValue))), Hit: true}
 }
 
 func mobHitsPlayer(m *Mob, def *model.Char) uint32 {

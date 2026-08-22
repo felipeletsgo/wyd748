@@ -12,7 +12,7 @@ func carbMasterTestWorld(t *testing.T, name string) (*World, *Player, *Mob, *cra
 	t.Helper()
 	w, p, st := handlerTestWorld(t)
 	p.Char.Evolution = ""
-	p.Char.Score = testExtended(model.Score{
+	p.Char.Score = testScore(model.Score{
 		Level: 0, Attack: 100, Defense: 100, MaxHP: 100, CurHP: 100,
 		MaxMP: 100, CurMP: 100, AttackRun: 2,
 	})
@@ -68,8 +68,8 @@ func TestCarbMasterClickAppliesAuthoritativeSkillDataPackage(t *testing.T) {
 			t.Fatalf("duracao do affect %d=%s, esperava cerca de 1200s", want.typeID, remaining)
 		}
 	}
-	if effectiveExtended(p.Char).Defense <= 100 || effectiveExtended(p.Char).Attack <= 100 {
-		t.Fatalf("buffs nao alteraram score efetivo: %+v", effectiveExtended(p.Char))
+	if effectiveScore(p.Char).Defense <= 100 || effectiveScore(p.Char).Attack <= 100 {
+		t.Fatalf("buffs nao alteraram score efetivo: %+v", effectiveScore(p.Char))
 	}
 }
 

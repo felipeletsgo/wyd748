@@ -9,16 +9,16 @@ import (
 	"wydgo/internal/wire"
 )
 
-func testExtended(score model.Score) *model.Score {
+func testScore(score model.Score) *model.Score {
 	score.Version = model.ScoreVersion
 	return &score
 }
 
 func testNPCDef(score model.Score) *model.NPCDef {
-	return &model.NPCDef{Tipo: model.TipoMonstro, Score: testExtended(score)}
+	return &model.NPCDef{Tipo: model.TipoMonstro, Score: testScore(score)}
 }
 
-func TestApplyExtendedScoreProjectsCompatibilityWithoutLosingWideValues(t *testing.T) {
+func TestApplyScoreProjectsCompatibilityWithoutLosingWideValues(t *testing.T) {
 	ch := &model.Char{Score: &model.Score{
 		Version: model.ScoreVersion,
 		Attack:  150_000, MagicAttack: 175_000, Defense: 125_000,
@@ -26,8 +26,8 @@ func TestApplyExtendedScoreProjectsCompatibilityWithoutLosingWideValues(t *testi
 		Str: 110_000, Int: 120_000, Dex: 130_000, Con: 140_000,
 		Accuracy: 160_000, Evasion: 105_000,
 	}}
-	applyExtendedScore(ch)
-	compat := wireExtendedScore(ch).CompatibilityScore()
+	applyScore(ch)
+	compat := wireScoreState(ch).CompatibilityScore()
 
 	if ch.Score.Attack != 150_000 || playerAttack(ch) != 150_000 ||
 		playerMagicAttack(ch) != 175_000 || compat.Attack != 1_000 ||
@@ -50,21 +50,21 @@ func TestExtendedResourcesNeverFallBackToCompatibilityProjection(t *testing.T) {
 		MaxHP:   500_000, CurHP: 400_000,
 		MaxMP: 400_000, CurMP: 300_000,
 	}}
-	applyExtendedScore(ch)
+	applyScore(ch)
 	if !spendPlayerMP(ch, 25_000) {
 		t.Fatal("mana wide recusada")
 	}
 	restorePlayerHP(ch, 50_000)
 	if playerCurHP(ch) != 450_000 || playerCurMP(ch) != 275_000 {
 		t.Fatalf("recursos reais foram projetados: hp=%d mp=%d score=%+v",
-			playerCurHP(ch), playerCurMP(ch), wireExtendedScore(ch).CompatibilityScore())
+			playerCurHP(ch), playerCurMP(ch), wireScoreState(ch).CompatibilityScore())
 	}
 	if ch.Score.CurHP != 450_000 || ch.Score.CurMP != 275_000 {
 		t.Fatalf("base persistida nao acompanhou recursos: %+v", *ch.Score)
 	}
-	if playerCombatMP(ch) != wire.CompatibilityCombatMP(wireExtendedScore(ch)) || playerCombatMP(ch) >= playerCurMP(ch) {
+	if playerCombatMP(ch) != wire.CompatibilityCombatMP(wireScoreState(ch)) || playerCombatMP(ch) >= playerCurMP(ch) {
 		t.Fatalf("canal de combate nao usa exclusivamente a projecao: wire=%d real=%d score=%d",
-			playerCombatMP(ch), playerCurMP(ch), wire.CompatibilityCombatMP(wireExtendedScore(ch)))
+			playerCombatMP(ch), playerCurMP(ch), wire.CompatibilityCombatMP(wireScoreState(ch)))
 	}
 }
 
@@ -102,7 +102,7 @@ func TestExtendedMagicAttackScalesSkillDamage(t *testing.T) {
 			Attack: 250_000, MagicAttack: matk, Int: 150_000,
 			MaxHP: 500_000, CurHP: 500_000, MaxMP: 400_000, CurMP: 400_000,
 		}}
-		applyExtendedScore(ch)
+		applyScore(ch)
 		return ch
 	}
 	skill := model.SkillDef{Index: 24, InstanceType: 1, InstanceValue: 100}
@@ -127,7 +127,7 @@ func TestApplyBonusConsumesExtendedPointsAndRaisesWideAttribute(t *testing.T) {
 			StatusPts: 3_372, MaxHP: 80, CurHP: 80, MaxMP: 45, CurMP: 45,
 		},
 	}
-	applyExtendedScore(ch)
+	applyScore(ch)
 	if !applyBonus(ch, 0, 0) {
 		t.Fatal("bonus STR wide recusado")
 	}
@@ -145,7 +145,7 @@ func TestExtendedAttributesUpdateDerivedResources(t *testing.T) {
 		MaxHP: 60, CurHP: 60, MaxMP: 65, CurMP: 65,
 		Str: 5, Int: 8, Dex: 5, Con: 5, StatusPts: 3_372,
 	}}
-	applyExtendedScore(ch)
+	applyScore(ch)
 	if !applyBonus(ch, 0, 1) { // +100 INT
 		t.Fatal("bonus INT wide recusado")
 	}
@@ -170,7 +170,7 @@ func TestRepeatedWideSkillsKeepRealManaAndProjectedClientChannelInSync(t *testin
 		MaxHP:   500_000, CurHP: 450_000,
 		MaxMP: 400_000, CurMP: 369_867,
 	}}
-	applyExtendedScore(ch)
+	applyScore(ch)
 
 	for cast := 0; cast < 20; cast++ {
 		if !spendPlayerMP(ch, 227) {
@@ -198,11 +198,11 @@ func TestRepeatedWideSkillsKeepRealManaAndProjectedClientChannelInSync(t *testin
 		}
 	}
 
-	vitals := wire.SetHpMpExtended(1, wireExtendedScore(ch))
+	vitals := wire.SetHpMpExtended(1, wireScoreState(ch))
 	if got := binary.LittleEndian.Uint32(vitals[20:24]); got != playerCurHP(ch) {
 		t.Fatalf("HP real ausente do 0x181: got=%d want=%d", got, playerCurHP(ch))
 	}
-	_, projectedHP, _ := wire.CompatibilityVitals(wireExtendedScore(ch))
+	_, projectedHP, _ := wire.CompatibilityVitals(wireScoreState(ch))
 	if got := binary.LittleEndian.Uint16(vitals[12:14]); got != projectedHP {
 		t.Fatalf("barra de HP nao recebeu projecao: got=%d want=%d", got, projectedHP)
 	}

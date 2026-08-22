@@ -52,7 +52,7 @@
     }
   },
   "expReward": 8000,
-  "extendedScore": {
+  "score": {
     "version": 2,
     "level": 23,
     "attack": 50,

@@ -41,7 +41,7 @@ func TestPlayerEnterViewRestoresAliveStateBeforeMovement(t *testing.T) {
 		Y:  2100,
 		Char: &model.Char{
 			Name: "Revived",
-			Score: testExtended(model.Score{
+			Score: testScore(model.Score{
 				MaxHP: 123,
 				CurHP: 123,
 				MaxMP: 45,
@@ -94,7 +94,7 @@ func TestPlayerMovePublishesBeforeNewObserverEntersView(t *testing.T) {
 	newPlayer := func(id, x, y uint16) *Player {
 		s := net.NewTestSession(int64(id), 16)
 		ch := &model.Char{Name: "Player", X: x, Y: y,
-			Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}
+			Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}
 		return &Player{ID: id, Session: s, Char: ch, InWorld: true, X: x, Y: y,
 			Visible: make(map[uint16]struct{})}
 	}
@@ -135,7 +135,7 @@ func TestPlayerStopUsesSingleSoftAdjustmentOnlyWhenInterrupted(t *testing.T) {
 	makePlayer := func(id, x uint16) *Player {
 		s := net.NewTestSession(int64(id), 8)
 		ch := &model.Char{Name: "Walker", X: x, Y: 100,
-			Score: testExtended(model.Score{AttackRun: 4, MaxHP: 100, CurHP: 100})}
+			Score: testScore(model.Score{AttackRun: 4, MaxHP: 100, CurHP: 100})}
 		return &Player{ID: id, Session: s, Char: ch, InWorld: true, X: x, Y: 100,
 			Visible: make(map[uint16]struct{})}
 	}

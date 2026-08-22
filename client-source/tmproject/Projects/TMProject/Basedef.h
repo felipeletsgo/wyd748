@@ -164,19 +164,18 @@ struct		stWaterScrollMacro
 };
 
 // Canonical WYD 7.48+ score shared byte-for-byte with model.Score.
-// Every member occupies one uint32 word. The anonymous aliases preserve the
-// imported TMProject names without creating a second representation.
+// Every field is one unsigned 32-bit word; no legacy aliases are retained.
 struct STRUCT_SCORE
 {
 	unsigned int Version;
 	unsigned int Level;
-	union { unsigned int Attack; unsigned int Damage; };
+	unsigned int Attack;
 	unsigned int MagicAttack;
-	union { unsigned int Defense; unsigned int Ac; };
-	union { unsigned int MaxHP; unsigned int MaxHp; };
-	union { unsigned int MaxMP; unsigned int MaxMp; };
-	union { unsigned int CurHP; unsigned int Hp; };
-	union { unsigned int CurMP; unsigned int Mp; };
+	unsigned int Defense;
+	unsigned int MaxHP;
+	unsigned int MaxMP;
+	unsigned int CurHP;
+	unsigned int CurMP;
 	unsigned int Str;
 	unsigned int Int;
 	unsigned int Dex;
@@ -197,9 +196,9 @@ struct STRUCT_SCORE
 	unsigned int StatusPts;
 	unsigned int MasterPts;
 	unsigned int SkillPts;
-	union { unsigned int Mastery[4]; unsigned int Special[4]; };
+	unsigned int Mastery[4];
 	unsigned int AttackRun;
-	union { unsigned int Merchant; unsigned int Reserved; };
+	unsigned int Merchant;
 };
 
 union STRUCT_BONUSEFFECT
@@ -513,24 +512,6 @@ struct STRUCT_LOTTO
 	char Num[6];
 };
 
-struct STRUCT_SCORE_OLD
-{
-	short Level;
-	short Ac;
-	short Damage;
-	char Reserved;
-	char AttackRun;
-	unsigned short MaxHp;
-	unsigned short MaxMp;
-	unsigned short Hp;
-	unsigned short Mp;
-	short Str;
-	short Int;
-	short Dex;
-	short Con;
-	char Special[4];
-};
-
 struct STRUCT_M_CHECK
 {
 	int Type;
@@ -596,18 +577,7 @@ struct STRUCT_ACCOUNTFILE
 	STRUCT_EXT2 Ext2[4];
 };
 
-struct STRUCT_SUBCLASS_OLD
-{
-	unsigned int LearnedSkill;
-	STRUCT_ITEM Equip;
-	STRUCT_SCORE_OLD CurrentScore;
-	unsigned int Exp;
-	char ShortSkill[20];
-	short ScoreBonus;
-	short SkillBonus;
-};
-
-struct STRUCT_EXT2_OLD
+struct STRUCT_EXT2
 {
 	char Quest[12];
 	unsigned int LastConnectTime;
@@ -675,7 +645,7 @@ struct
 	char Help[9][128];
 };
 
-struct STRUCT_MOB_OLD
+struct STRUCT_MOB
 {
 	char MobName[16];
 	char Clan;
@@ -744,14 +714,14 @@ struct STRUCT_EXT
 struct STRUCT_ACCOUNTFILE_OLD
 {
 	STRUCT_ACCOUNT Account;
-	STRUCT_MOB_OLD Char[4];
+	STRUCT_MOB Char[4];
 	STRUCT_ITEM Cargo[MAX_CARGO];
 	int Coin;
 	char ShortSkill[4][16];
 	STRUCT_EXT Ext[4];
 };
 
-struct STRUCT_EXT1_OLD
+struct STRUCT_EXT1
 {
 	int Data[8];
 	STRUCT_AFFECT Affect[16];
@@ -770,12 +740,12 @@ struct STRUCT_MISSION
 struct STRUCT_ACCOUNTFILE_OLD2
 {
 	STRUCT_ACCOUNT Account;
-	STRUCT_MOB_OLD Char[4];
+	STRUCT_MOB Char[4];
 	STRUCT_ITEM Cargo[MAX_CARGO];
 	int Coin;
 	char ShortSkill[4][16];
-	STRUCT_EXT1_OLD Ext1[4];
-	STRUCT_EXT2_OLD Ext2[4];
+	STRUCT_EXT1 Ext1[4];
+	STRUCT_EXT2 Ext2[4];
 };
 
 struct STRUCT_GUILDZONE
@@ -833,7 +803,7 @@ struct STRUCT_ACCOUNT_NEW
 struct STRUCT_ACCOUNTFILE_OLD_NEW
 {
 	STRUCT_ACCOUNT_NEW Account;
-	STRUCT_MOB_OLD Char[4];
+	STRUCT_MOB Char[4];
 	STRUCT_ITEM Cargo[MAX_CARGO];
 	int Coin;
 	char ShortSkill[4][16];
@@ -875,12 +845,12 @@ struct STRUCT_ACCOUNTFILE_NEW
 struct STRUCT_ACCOUNTFILE_OLD2_NEW
 {
 	STRUCT_ACCOUNT_NEW Account;
-	STRUCT_MOB_OLD Char[4];
+	STRUCT_MOB Char[4];
 	STRUCT_ITEM Cargo[MAX_CARGO];
 	int Coin;
 	char ShortSkill[4][16];
-	STRUCT_EXT1_OLD Ext1[4];
-	STRUCT_EXT2_OLD Ext2[4];
+	STRUCT_EXT1 Ext1[4];
+	STRUCT_EXT2 Ext2[4];
 };
 
 struct STRUCT_RUNEQUESTZONE
@@ -1689,16 +1659,10 @@ struct MSG_DAILYREWARDINFO
 struct MSG_SetHpMp
 {
 	MSG_STANDARD Header;
-	// The legacy WORD prefix drives old bars while the uint32 XSC2-compatible
-	// tail preserves real HP/MP. This is the 36-byte packet emitted by WYD-Go.
-	short HpCompat;
-	short MpCompat;
-	short ReqHpCompat;
-	short ReqMpCompat;
 	unsigned int Hp;
 	unsigned int Mp;
-	unsigned int ReqHp;
-	unsigned int ReqMp;
+	unsigned int MaxHp;
+	unsigned int MaxMp;
 };
 
 struct MSG_SetHpDam

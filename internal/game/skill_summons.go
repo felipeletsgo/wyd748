@@ -201,9 +201,9 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 			Score: &model.Score{
 				Version:   model.ScoreVersion,
 				Level:     playerLevel(owner.Char),
-				Defense:   uint32(clampInt(defense, 0, int(maxExtendedStat))),
-				Attack:    uint32(clampInt(attack, 0, int(maxExtendedStat))),
-				MaxHP:     uint32(clampInt(hp, 1, int(maxExtendedStat))),
+				Defense:   uint32(clampInt(defense, 0, int(maxScoreValue))),
+				Attack:    uint32(clampInt(attack, 0, int(maxScoreValue))),
+				MaxHP:     uint32(clampInt(hp, 1, int(maxScoreValue))),
 				MaxMP:     100,
 				Int:       uint32(playerInt(owner.Char)),
 				Con:       uint32(playerCon(owner.Char)),
@@ -332,14 +332,14 @@ func (w *World) tickSummonCombat(now time.Time) {
 				int(summon.Def.Score.Accuracy), int(target.mob.Def.Score.Evasion), false)
 			if !combatRollHits(chance, w.intn) {
 				w.sendToMobView(summon, func() []byte {
-					return wire.AttackHitExtendedResult(summon.ID, target.mob.ID, summon.X, summon.Y,
+					return wire.AttackHitWideResult(summon.ID, target.mob.ID, summon.X, summon.Y,
 						target.mob.X, target.mob.Y, 0, target.mob.Def.Score.MaxHP, 0,
 						summon.Def.Score.MaxMP, 0, true)
 				})
 				continue
 			}
 			damage := uint32(clampInt(int(summon.Def.Score.Attack)-
-				int(target.mob.Def.Score.Defense)/2, 1, int(maxExtendedStat)))
+				int(target.mob.Def.Score.Defense)/2, 1, int(maxScoreValue)))
 			oldHP := target.mob.HP
 			if damage >= target.mob.HP {
 				target.mob.HP = 0
@@ -347,7 +347,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 				target.mob.HP -= damage
 			}
 			w.sendToMobView(summon, func() []byte {
-				return wire.AttackHitExtended(summon.ID, target.mob.ID, summon.X, summon.Y, target.mob.X, target.mob.Y,
+				return wire.AttackHitWide(summon.ID, target.mob.ID, summon.X, summon.Y, target.mob.X, target.mob.Y,
 					damage, target.mob.Def.Score.MaxHP, 0, summon.Def.Score.MaxMP)
 			})
 			if target.mob.HP == 0 {
@@ -358,7 +358,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 		hit := mobPhysicalHitPlayerAt(summon, target.user.Char, w.intn, now)
 		if !hit.Hit {
 			w.sendToPlayerView(target.user, func() []byte {
-				return wire.AttackHitExtendedResult(summon.ID, target.user.ID, summon.X, summon.Y,
+				return wire.AttackHitWideResult(summon.ID, target.user.ID, summon.X, summon.Y,
 					target.user.X, target.user.Y, 0, playerMaxHP(target.user.Char), 0,
 					summon.Def.Score.MaxMP, 0, true)
 			})
@@ -379,7 +379,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 		}
 		target.user.LastAttackerID = owner.ID
 		w.sendToPlayerView(target.user, func() []byte {
-			return wire.AttackHitExtended(summon.ID, target.user.ID, summon.X, summon.Y, target.user.X, target.user.Y,
+			return wire.AttackHitWide(summon.ID, target.user.ID, summon.X, summon.Y, target.user.X, target.user.Y,
 				damage, playerMaxHP(target.user.Char), 0, summon.Def.Score.MaxMP)
 		})
 		w.syncPlayerVitals(target.user)

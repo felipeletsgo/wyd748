@@ -75,8 +75,8 @@ func addFlatDamage(damage uint32, bonus int) uint32 {
 	if damage == 0 || bonus <= 0 {
 		return damage
 	}
-	if uint64(damage)+uint64(bonus) > uint64(maxExtendedStat) {
-		return maxExtendedStat
+	if uint64(damage)+uint64(bonus) > uint64(maxScoreValue) {
+		return maxScoreValue
 	}
 	return damage + uint32(bonus)
 }

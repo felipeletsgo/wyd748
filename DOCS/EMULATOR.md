@@ -255,7 +255,7 @@ que converte o nome da loja para @172. Usar @176 deixa o letreiro truncado ou va
 **0x181 SetHpMp (20B nativo / 36B player extended, ID=mobID):** Hp@12, Mp@14,
 ReqHp@16, ReqMp@18. (Só baixa a barra.)
 
-**0x336 UpdateScore (92B nativo / 236B player XSC2, ID=mobID):** Score@12,
+**0x336 UpdateScore (92B nativo / 236B player canonical Score, ID=mobID):** Score@12,
 Critical@40, SaveMana@41,
 **Affect[16] compacto@42..73**, GuildMemberType@74, GuildIndex@75,
 RegenHP/MP@76/@77, Resist[4]@78..81, CurHP@82, CurMP@84 e Magic@86.
@@ -286,7 +286,7 @@ de ataque `0x39D/0x39E/0x36C` tambem possuem `CurrentMp` em `WORD`; eles recebem
 somente `Score.CurMP`. Converter a mana real diretamente para `uint16` causa
 wrap e pode zerar a mana local depois de uma unica skill multi-alvo.
 
-Os wrappers regenerados por `Patch-WYD748-ExtendedStats.ps1` copiam o prefixo
+Os wrappers regenerados por `` copiam o prefixo
 proporcional para `TMHuman+44C..452`, enquanto HUD e painel numerico leem apenas
 o sidecar `uint32`. Nunca use a projecao para calculo, gasto, regeneracao ou
 persistencia server-side.
@@ -441,10 +441,10 @@ Cada um custou horas. **Leia antes de mexer no wire.**
 **`model.Item`** = `{Index u16, Eff [6]byte}`. MarshalJSON omite `eff` zerado →
 `{"index":N}`.
 
-**`model.LegacyScore28`** = os 28 bytes do STRUCT_SCORE (ver §5), usado somente como
+**`model.Score`** = os 28 bytes do STRUCT_SCORE (ver §5), usado somente como
 projeção descartável de ABI no pacote `wire`.
 
-**`model.Char`** persiste apenas `Extended` (`extendedScore` v2). O
+**`model.Char`** persiste apenas `Extended` (`score` v2). O
 `ExtendedRuntime` efetivo é derivado em memória e não é serializado. Também
 contém `LearnedSkill`, `ShortSkill[20]`, `Affects[16]`, progressão, localização,
 `Equip[16]` e `Inv[64]`.
@@ -488,7 +488,7 @@ carrega a definição inteira e cruza nomes de `Itemname.csv`; `SkillData.csv`
 fornece o catálogo de skills.
 
 O servidor armazena cada `STRUCT_ITEM` em exatamente uma entrada de inventario
-ou cargo. No client 7.48, `Patch-WYD748-ExtendedStats.ps1` tambem normaliza as
+ou cargo. No client 7.48, `` tambem normaliza as
 oito dimensoes e mascaras de `EF_GRID` para 1x1. Assim elmos, armaduras, calcas,
 armas e os demais itens ocupam uma unica celula tanto no inventario quanto no
 bau; `EF_GRID` continua presente no catalogo apenas como metadado legado.
@@ -844,7 +844,7 @@ um item específico.
 `store.SaveAccount` chamado em `onDisconnect` → char (itens, gold, posição)
 sobrevive ao relog. `jsonStore` grava `data/accounts/<nome>.json`. O marshal
 customizado mantém o JSON enxuto (equip nomeado, inventário estrutural de 64
-slots). O loader aceita somente o schema atual, exige `extendedScore` v2 e
+slots). O loader aceita somente o schema atual, exige `score` v2 e
 rejeita campos desconhecidos.
 Enquanto o personagem está no mundo, o game loop executa autosave a cada 3 segundos.
 A escrita usa arquivo temporário, `Sync` e rename atômico para preservar o último JSON
@@ -919,7 +919,7 @@ cmd/account-create/    criador local interativo
 internal/
   account/             validação compartilhada de conta/senha e PBKDF2
   accountapi/          HTTP, limites, cabeçalhos e rate limit
-  model/model.go       tipos puros: Item, Score, LegacyScore28, Char, Account, Equip, NPCDef
+  model/model.go       tipos puros: Item, Score, Score, Char, Account, Equip, NPCDef
   wire/
     crypt.go           pKeyWord[512] + Encrypt/Decrypt
     packet.go          Header (12B), ReadPacket (framing+decrypt), FinishPacket

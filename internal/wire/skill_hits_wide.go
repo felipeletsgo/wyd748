@@ -1,6 +1,6 @@
 package wire
 
-// SkillHitsWide preserva o prefixo nativo 7.48 e acrescenta os danos reais
+// SkillHits preserva o prefixo nativo 7.48 e acrescenta os danos reais
 // que o patch .xstat ja sabe consumir. Isso evita enviar um segundo 0x39D por
 // alvo apenas para o floating damage.
 //
@@ -13,7 +13,7 @@ package wire
 // Os WORDs do prefixo continuam vindo de wireDamage(target), portanto a barra
 // de HP permanece na escala projetada do alvo; a cauda leva o dano real apenas
 // para o texto flutuante.
-func SkillHitsWide(attackerID, attackerX, attackerY, targetX, targetY uint16,
+func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 	currentExp, currentMP uint32, skill int16, motion, mastery byte,
 	maxTargets int, targets []SkillTarget) []byte {
 	capacity := 1

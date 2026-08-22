@@ -1,7 +1,7 @@
 {
   "name": "ShopVolTest1",
   "equip": { "rosto": { "index": 59 } },
-  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "score": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
   "vende": [
     { "index": 400 }, { "index": 401 }, { "index": 402 }, { "index": 403 }, { "index": 404 },
     { "index": 405 }, { "index": 406 }, { "index": 407 }, { "index": 408 }, { "index": 409 },

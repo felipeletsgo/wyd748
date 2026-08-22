@@ -84,7 +84,7 @@ func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef,
 	now := w.now()
 	if !combatRollHits(mobVersusPlayerAccuracy(mob.Def, target.Char), w.intn) {
 		w.sendToMobView(mob, func() []byte {
-			return wire.SkillHitsWide(mob.ID, mob.X, mob.Y, target.X, target.Y,
+			return wire.SkillHits(mob.ID, mob.X, mob.Y, target.X, target.Y,
 				0, mob.Def.Score.MaxMP, int16(skill.Index), 0, 0, 1,
 				[]wire.SkillTarget{{ID: target.ID, Miss: true, MaxHP: playerMaxHP(target.Char)}})
 		})
@@ -138,7 +138,7 @@ func bossSkillDamageWithRNG(m *Mob, target *Player, skill model.SkillDef, intn f
 	}
 	damage := skillFinalDamageWithRNG(core, playerDefense(target.Char), 0, intn)
 	damage = applySkillResistance(damage, skill.InstanceType, playerElementalResists(target.Char), false)
-	return uint32(clampInt(damage, 1, int(maxExtendedStat)))
+	return uint32(clampInt(damage, 1, int(maxScoreValue)))
 }
 
 // bossSummonAdds cria os adds do encontro a partir de um NPC do catalogo. Os

@@ -9,7 +9,7 @@ import (
 )
 
 func TestCombatUsesInjectedRNG(t *testing.T) {
-	attacker := &Player{Char: &model.Char{Name: "rng", Score: testExtended(model.Score{})}}
+	attacker := &Player{Char: &model.Char{Name: "rng", Score: testScore(model.Score{})}}
 	attacker.Char.Score.Attack = 1_000
 	mob := &Mob{Def: &model.NPCDef{Score: &model.Score{
 		Version: model.ScoreVersion, Defense: 100, Dex: 0,
@@ -33,7 +33,7 @@ func TestDropsUseInjectedRNG(t *testing.T) {
 	newWorld := func(value int) (*World, *Player) {
 		w := &World{rng: fixedRNG{value: value}}
 		w.dropRates[32] = 2
-		p := &Player{Char: &model.Char{Name: "drop", Score: testExtended(model.Score{})}}
+		p := &Player{Char: &model.Char{Name: "drop", Score: testScore(model.Score{})}}
 		return w, p
 	}
 
@@ -71,7 +71,7 @@ func TestEquippedMountAcceptsOnlyCanonicalSlot(t *testing.T) {
 func TestAffectLifecycleUsesInjectedClock(t *testing.T) {
 	now := time.Date(2026, 8, 10, 12, 0, 0, 0, time.UTC)
 	w := &World{clock: newFakeClock(now)}
-	ch := &model.Char{Name: "clock", Score: testExtended(model.Score{})}
+	ch := &model.Char{Name: "clock", Score: testScore(model.Score{})}
 	rule := model.VolatileRule{AffectType: 30, AffectValue: 1, DurationUnits: 10}
 	if got := w.applyVolatileBuff(ch, rule); got != volatileBuffApplied {
 		t.Fatalf("applyVolatileBuff=%d", got)
@@ -83,7 +83,7 @@ func TestAffectLifecycleUsesInjectedClock(t *testing.T) {
 
 func TestResurrectionUsesInjectedRNG(t *testing.T) {
 	newDeadPlayer := func() *Player {
-		ch := &model.Char{Name: "dead", Score: testExtended(model.Score{
+		ch := &model.Char{Name: "dead", Score: testScore(model.Score{
 			Level: 399, MaxHP: 1_000, MaxMP: 500,
 		})}
 		ch.Score.CurHP = 0

@@ -448,7 +448,7 @@ func TestMovementAcceptsCapturedNoatumReplanOnAuthoritativeTerrain(t *testing.T)
 	p.X, p.Y = 1116, 1713
 	p.Char.X, p.Char.Y = p.X, p.Y
 	p.Char.Score.AttackRun = 6
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 
 	// Primeiro pacote da captura que iniciou a cascata de recusas em Noatum.
 	move := make([]byte, 52)
@@ -486,7 +486,7 @@ func TestMovementVisualCatchupUsesMaximumSpeedWithoutAcceleratingFutureRoute(t *
 	clock := newFakeClock(time.Unix(100, 0))
 	w.clock = clock
 	p.Char.Score.AttackRun = 1
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 
 	// Seis passos até o Pos já percorrido visualmente + um passo futuro.
 	move := make([]byte, 52)
@@ -605,7 +605,7 @@ func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
 	w.clock = clock
 	p.Char.Score.Attack = 10_000
 	p.Char.Score.Accuracy = 10_000
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 
 	targetX := p.X + 12
 	move := make([]byte, 52)
@@ -624,7 +624,7 @@ func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
 	}
 
 	merchant := &Mob{ID: 1100, X: targetX, Y: p.Y,
-		Def: &model.NPCDef{Name: "Merchant", Score: testExtended(model.Score{Merchant: 1})}}
+		Def: &model.NPCDef{Name: "Merchant", Score: testScore(model.Score{Merchant: 1})}}
 	w.appendMobInstance(merchant)
 	w.registerMobSpatial(merchant)
 	p.show(merchant.ID)
@@ -790,7 +790,7 @@ func TestPhysicalAttackCannotCrossBlockedTerrain(t *testing.T) {
 	w.terrain.Height[int(p.Y)*model.TerrainWidth+int(p.X+1)] = model.TerrainBlockedByte
 	p.Char.Score.Attack = 10_000
 	p.Char.Score.Accuracy = 10_000
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	mob := &Mob{
 		ID: 1000, X: p.X + 2, Y: p.Y, HP: 10_000,
 		Def: testNPCDef(model.Score{MaxHP: 10_000, CurHP: 10_000}),
@@ -867,7 +867,7 @@ func TestSkillDelayUsesSecondsFromCatalog(t *testing.T) {
 	p.Char.Class = 1
 	p.Char.LearnedSkill = 1 << 3
 	p.Char.Score.Mastery[1] = 40
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	skill := model.SkillDef{
 		Index: 27, Name: "Heal", InstanceValue: 10, ManaSpent: 1,
 		Delay: 4, Range: 6, MaxTarget: 1,

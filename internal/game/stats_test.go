@@ -57,7 +57,7 @@ func testChar() model.Char {
 func TestRecalcExtendedUsesAllAttributes(t *testing.T) {
 	ch := testChar()
 	(&World{}).recalcPlayer(&ch)
-	e := effectiveExtended(&ch)
+	e := effectiveScore(&ch)
 	if e.Attack != 33 {
 		t.Fatalf("attack=%d, esperado 33", e.Attack)
 	}

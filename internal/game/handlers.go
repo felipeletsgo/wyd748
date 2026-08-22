@@ -128,7 +128,6 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	// Select the response ABI before authentication. This changes only packet
 	// serialization; account/password and all gameplay values are still
 	// validated from the canonical server-side sources.
-	s.SetClientProtocol(wire.ClientProtocolFromLogin(pkt))
 	if reason, rejected := w.networkRejected(s); rejected {
 		log.Printf("[#%d] LOGIN recusado antes do auth ip=%q: politica de rede (%s)",
 			s.ID, s.RemoteIP(), reason)
@@ -242,7 +241,7 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	}
 	p := &Player{Session: s, Account: acc, CharSlot: -1}
 	w.players[s] = p
-	s.Send(wire.CharacterListForProtocol(s.ClientProtocol(), acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
+	s.Send(wire.CharList(acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
 	log.Printf("[#%d] char-list enviada (%d personagem(ns))", s.ID, characterCount(acc.Chars))
 }
 
@@ -448,12 +447,12 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	log.Printf("[#%d] ENTER-WORLD %s id=%d @(%d,%d)", s.ID, ch.Name, p.ID, ch.X, ch.Y)
 
 	// 1) enter-world (STRUCT_MOB completo)
-	s.Send(wire.EnterWorldForProtocol(s.ClientProtocol(), p.ID, uint16(slot), *ch))
+	s.Send(wire.EnterWorld(p.ID, uint16(slot), *ch))
 	// 2) self-CreateMob (spawn=2): materializa o proprio player. Parte da sequencia
 	// COMPROVADA in-game; sem ele o re-enter (2o login do mesmo client) reconstroi o
 	// self com estado velho (HP/MP travados). ActionStop vem depois, senao reseta a pose.
-	s.Send(wire.CreateMobExtendedWithGuildRankForProtocol(s.ClientProtocol(), p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
-		bodyAncient(ch), wireExtendedScore(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP))
+	s.Send(wire.CreateMobWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
+		bodyAncient(ch), wireScoreState(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP))
 	// 3) sequencia de login (ordem Micronics): 3A8 -> 336 -> 185 -> 337 -> 36B -> 181 -> 366
 	s.Send(wire.WarInfo())
 	s.Send(playerScorePacket(p))
@@ -463,7 +462,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	s.Send(wire.SelfEquip(p.ID, ch.Equip[:]))
 	// The source client consumes the wide 36-byte resource ABI; stock 7.48
 	// must receive the original 20-byte projection for the same live state.
-	s.Send(wire.HpMpForProtocol(s.ClientProtocol(), p.ID, wireExtendedScore(ch)))
+	s.Send(wire.HpMp(p.ID, wireScoreState(ch)))
 	s.Send(wire.ActionStop(p.ID, ch.X, ch.Y))
 	s.Send(wire.SetShortSkill(p.ID, ch.ShortSkill))
 
@@ -536,7 +535,7 @@ func (w *World) onApplyBonus(s *net.Session, pkt []byte) {
 		playerCon(p.Char),
 		playerAttack(p.Char), playerMagicAttack(p.Char), playerDefense(p.Char),
 		playerCurHP(p.Char), playerMaxHP(p.Char), playerCurMP(p.Char), playerMaxMP(p.Char),
-		effectiveExtended(p.Char).Mastery)
+		effectiveScore(p.Char).Mastery)
 }
 
 // onSwapItem: 0x376. Move/equipa item de forma AUTORITATIVA -- troca no estado do
@@ -808,7 +807,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		p.ShopNPC = m.ID // lembra a loja aberta pro buy (server-authoritative)
 		display := shopDisplayList(m.Def.Vende, shopType)
 		// TMProject renders 27 shop entries; stock 7.48 keeps its 64-entry ABI.
-		s.Send(wire.ShopListForProtocol(s.ClientProtocol(), display, 0, shopType))
+		s.Send(wire.ShopList(display, 0, shopType))
 		if dropped := countShopItems(m.Def.Vende) - countShopItems(display); dropped > 0 {
 			log.Printf("[#%d] loja %q: %d item(ns) alem do limite de %d do client",
 				s.ID, m.Def.Name, dropped, clientShopSlots)
@@ -1097,7 +1096,7 @@ func (w *World) onIllusionMove(p *Player, pkt []byte) {
 		return
 	}
 	mastery := int(playerMastery(p.Char, 1))
-	mana := skillManaCost(skill, mastery, int(effectiveExtended(p.Char).SaveMana))
+	mana := skillManaCost(skill, mastery, int(effectiveScore(p.Char).SaveMana))
 	if playerCurMP(p.Char) < uint32(mana) {
 		return
 	}
@@ -1510,7 +1509,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		hit := playerPhysicalHitPlayerWithRNG(p, target, w.intn)
 		if !hit.Hit {
 			w.sendToPlayerView(target, func() []byte {
-				return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, target.ID,
+				return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, target.ID,
 					p.X, p.Y, target.X, target.Y, 0, playerMaxHP(target.Char), p.Char.Exp,
 					playerCombatMP(p.Char), 0, true))
 			})
@@ -1536,7 +1535,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		// O numero flutuante recebe o dano calculado integral, inclusive
 		// overkill. A vida autoritativa continua reduzida somente pelo HP real.
 		w.sendToPlayerView(target, func() []byte {
-			return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
+			return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
 				calculated, playerMaxHP(target.Char), p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
 		})
 		w.syncPlayerVitals(target)
@@ -1566,7 +1565,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	hit := playerPhysicalHitMobAt(p, m, w.intn, now)
 	if !hit.Hit {
 		w.sendToMobView(m, func() []byte {
-			return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
+			return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
 				0, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), 0, true))
 		})
 		log.Printf("[#%d] errou ataque no mob id=%d %q (accuracy=%d%%)", s.ID, m.ID, m.Def.Name,
@@ -1594,7 +1593,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// Sending this through broadcast leaked combat packets to outsiders (and
 	// let a client observe an encounter it could not target).
 	w.sendToMobView(m, func() []byte {
-		return spectralPacket(p.Char, wire.AttackHitExtendedResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
+		return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
 			dmg, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
 	})
 	if m.HP == 0 {
@@ -1604,7 +1603,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 			// Source observers own a uint32 resource handler; stock observers
 			// keep the proportional WORD projection used by the original 7.48.
-			return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Score.MaxHP,
+			return wire.MobHpMp(m.ID, m.HP, m.Def.Score.MaxHP,
 				m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 		})
 		w.gameplayLogf("attack", "[#%d] atacou mob id=%d %q dmg=%d hp=%d/%d",

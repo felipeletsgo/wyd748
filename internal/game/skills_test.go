@@ -56,7 +56,7 @@ func TestSkillFinalDamageDoesNotClampWideAttackToWord(t *testing.T) {
 
 func TestPvPWideHitPreservesCalculatedOverkill(t *testing.T) {
 	target := &Player{ID: 2, InWorld: true, X: 11, Y: 10,
-		Char: &model.Char{Score: testExtended(model.Score{CurHP: 100, MaxHP: 100})}}
+		Char: &model.Char{Score: testScore(model.Score{CurHP: 100, MaxHP: 100})}}
 	if got := skillFinalDamage(250_000, playerDefense(target.Char), 0); got <= int(playerCurHP(target.Char)) {
 		t.Fatalf("pre-condicao: dano=%d hp=%d", got, playerCurHP(target.Char))
 	}
@@ -129,7 +129,7 @@ func TestSkillMonsterTargetsUsesAreaAndMaxTarget(t *testing.T) {
 }
 
 func TestOffensiveSkillNativeAreaRadiiAndCap(t *testing.T) {
-	ch := &model.Char{Score: testExtended(model.Score{})}
+	ch := &model.Char{Score: testScore(model.Score{})}
 	for _, tc := range []struct {
 		targetType int
 		want       int
@@ -305,7 +305,7 @@ func TestTwoTargetSkillUsesOnlyTheExplicitValidatedSecondTarget(t *testing.T) {
 }
 
 func TestTKCriticalArmorAndHTCoinArmorUseDistinctClientTypes(t *testing.T) {
-	ch := &model.Char{Score: testExtended(
+	ch := &model.Char{Score: testScore(
 		model.Score{MaxHP: 100, MaxMP: 100, CurHP: 100, CurMP: 100})}
 	p := &Player{ID: 1, Char: ch, Session: &net.Session{ID: 1}}
 	w := &World{}
@@ -347,9 +347,9 @@ func TestSummonCountScalesToPerCreatureLimitAt255(t *testing.T) {
 }
 
 func TestSkillPlayerTargetsRejectsPartyAndUsesSelectedEnemy(t *testing.T) {
-	caster := &Player{ID: 1, InWorld: true, X: 10, Y: 10, Char: &model.Char{Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}}
-	enemy := &Player{ID: 2, InWorld: true, X: 12, Y: 10, Char: &model.Char{Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}}
-	member := &Player{ID: 3, InWorld: true, X: 11, Y: 10, Char: &model.Char{Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}}
+	caster := &Player{ID: 1, InWorld: true, X: 10, Y: 10, Char: &model.Char{Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
+	enemy := &Player{ID: 2, InWorld: true, X: 12, Y: 10, Char: &model.Char{Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
+	member := &Player{ID: 3, InWorld: true, X: 11, Y: 10, Char: &model.Char{Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
 	party := &Party{Members: []*Player{caster, member}}
 	caster.Party, member.Party = party, party
 	w := testSpatialWorld(nil, caster, enemy, member)
@@ -365,7 +365,7 @@ func TestSkillPlayerTargetsRejectsPartyAndUsesSelectedEnemy(t *testing.T) {
 func TestSkillPvPAOEDoesNotHitSecondaryAcrossBlockedLineOfSight(t *testing.T) {
 	player := func(id, x uint16) *Player {
 		return &Player{ID: id, InWorld: true, X: x, Y: 10,
-			Char: &model.Char{Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}}
+			Char: &model.Char{Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
 	}
 	caster, primary, secondary := player(1, 10), player(2, 11), player(3, 13)
 	w := testSpatialWorld(nil, caster, primary, secondary)
@@ -380,7 +380,7 @@ func TestSkillPvPAOEDoesNotHitSecondaryAcrossBlockedLineOfSight(t *testing.T) {
 
 func TestTKMagicDamageMatches759Formula(t *testing.T) {
 	w := &World{}
-	ch := &model.Char{Class: 0, LearnedSkill: 1 << 7, Score: testExtended(model.Score{
+	ch := &model.Char{Class: 0, LearnedSkill: 1 << 7, Score: testScore(model.Score{
 		Level: 41, Int: 79,
 	})}
 	skill := model.SkillDef{Index: 0, InstanceType: 4, InstanceValue: 5}
@@ -400,7 +400,7 @@ func TestTKMagicDamageMatches759Formula(t *testing.T) {
 
 func TestTKTransformationUsesStrengthAndNotIntelligence(t *testing.T) {
 	w := &World{}
-	ch := &model.Char{Class: 0, Score: testExtended(model.Score{
+	ch := &model.Char{Class: 0, Score: testScore(model.Score{
 		Level: 41, Str: 79, Int: 30_000,
 	})}
 	skill := model.SkillDef{Index: 8, InstanceType: 1, InstanceValue: 5}
@@ -436,7 +436,7 @@ func TestFoemaHealMatches759AndDoesNotRecalculateStats(t *testing.T) {
 		Version: model.ScoreVersion, Level: 73, Attack: 777, Defense: 555,
 		MaxHP: 500, CurHP: 100, Int: 250,
 	}}
-	applyExtendedScore(ch)
+	applyScore(ch)
 	p := &Player{ID: 2, Char: ch, Session: &net.Session{ID: 2}}
 	w := &World{}
 	results := w.applySupportSkill(p, skillCastRequest{}, model.SkillDef{
@@ -446,7 +446,7 @@ func TestFoemaHealMatches759AndDoesNotRecalculateStats(t *testing.T) {
 		t.Fatalf("cura incorreta: results=%+v hp=%d", results, playerCurHP(ch))
 	}
 	if playerAttack(ch) != 777 || playerDefense(ch) != 555 || playerInt(ch) != 250 {
-		t.Fatalf("cura recalculou/reduziu stats: %+v", effectiveExtended(ch))
+		t.Fatalf("cura recalculou/reduziu stats: %+v", effectiveScore(ch))
 	}
 	if got := foemaHealAmount(29, 40, 150); got != 294 {
 		t.Fatalf("Recovery 7.59=%d, quer 294", got)

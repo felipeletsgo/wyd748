@@ -79,7 +79,7 @@ func progressionMaxLevel(ch *model.Char) uint32 {
 }
 
 func syncProgression(ch *model.Char) {
-	ensureExtendedScore(ch)
+	ensureScore(ch)
 	table := progressionTable(ch)
 	maxLevel := progressionMaxLevel(ch)
 	level := int(ch.Score.Level)
@@ -283,7 +283,7 @@ func combatExperienceByEvolution(ch *model.Char, reward uint32) uint32 {
 // grantExp adiciona EXP ate o ultimo marco da evolucao e processa level-ups. Os
 // retornos informam niveis ganhos e a EXP realmente aplicada.
 func grantExp(ch *model.Char, reward uint32) (int, uint32) {
-	ensureExtendedScore(ch)
+	ensureScore(ch)
 	table := progressionTable(ch)
 	maxLevel := progressionMaxLevel(ch)
 	maximum := progressionExperienceCap(ch)
@@ -307,6 +307,6 @@ func grantExp(ch *model.Char, reward uint32) (int, uint32) {
 	}
 	syncProgression(ch)
 	ch.RuntimeScore = nil
-	applyExtendedScore(ch)
+	applyScore(ch)
 	return gained, applied
 }

@@ -59,8 +59,8 @@ func TestParryCommandReportsOneAuthoritativeMatchup(t *testing.T) {
 	target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
 	viewer.Char.Score.Dex = 4_000
 	target.Char.Score.Dex = 0
-	applyExtendedScore(viewer.Char)
-	applyExtendedScore(target.Char)
+	applyScore(viewer.Char)
+	applyScore(target.Char)
 	w := worldWithNetworkedPlayers(viewer, target)
 	before := viewer.Session.QueuedPacketsForTest()
 	if !w.dispatchChatCommand(viewer.Session, viewer, "parry", "Target") {

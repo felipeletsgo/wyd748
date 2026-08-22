@@ -414,7 +414,7 @@ func TestCommonMobIgnoresBossSubsystem(t *testing.T) {
 func TestBossSkillDamageUsesMagicCoreAndGuardsInvalidInputs(t *testing.T) {
 	p, _ := networkedTestPlayer(1, "Target", 2100, 2100)
 	p.Char.Score.Defense = 100
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	m := &Mob{ID: 1000, Def: testNPCDef(model.Score{
 		Level: 100, MaxHP: 1000, CurHP: 1000,
 		MagicAttack: 2000, Int: 400, Attack: 10,

@@ -727,9 +727,6 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 		MSG_AccountLogin stAccountLogin{};
 		stAccountLogin.Header.ID = 0;
 		stAccountLogin.Header.Type = MSG_AccountLogin_Opcode;
-		// Advertise the source-client packet family before authentication so the
-		// server can answer with its 48-byte-score character-list ABI.
-		stAccountLogin.DBNeedSave = WYD748_SOURCE_PROTOCOL_MARKER;
 		// The source-built client must identify the same 7.48 protocol selected by
 		// its packet layouts; advertising TMProject's newer value is rejected by
 		// the server before password verification.

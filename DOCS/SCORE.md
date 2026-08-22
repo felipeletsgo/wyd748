@@ -21,17 +21,17 @@ cálculos intermediários e caminhos antigos do renderer dentro do domínio sign
 - `RuntimeScore` é apenas uma cópia calculada do mesmo tipo `Score` com buffs/debuffs;
   não é um segundo formato nem uma fonte persistente.
 - PostgreSQL persiste `Score` diretamente no estado da conta. O JSON antigo com
-  `extendedScore` não possui migração: as contas anteriores a este contrato serão
+  `score` não possui migração: as contas anteriores a este contrato serão
   recriadas.
-- `LegacyScore28` existe somente na borda do executável stock 7.48. Ele não pode
+- `Score` existe somente na borda do executável stock 7.48. Ele não pode
   entrar em fórmulas, store ou estado do World.
 
 ## Client-source 7.48+
 
 O client-source recebe os 140 bytes diretamente nos pacotes que embutem score.
 Não há truncamento de level, atributos, masteries, HP/MP, ataque ou defesa, e os
-campos que antes dependiam do sidecar `XSC2` agora fazem parte de `STRUCT_SCORE`.
-`XSC2` pode continuar existindo exclusivamente para o executável stock enquanto
+campos que antes dependiam do sidecar `canonical Score` agora fazem parte de `STRUCT_SCORE`.
+`canonical Score` pode continuar existindo exclusivamente para o executável stock enquanto
 essa compatibilidade for mantida.
 
 A ABI C++ é protegida por `WYD748Compat.cpp`; o encoder Go possui teste byte-a-byte.

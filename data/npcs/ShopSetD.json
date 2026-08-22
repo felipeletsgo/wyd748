@@ -1,7 +1,7 @@
 {
   "name": "ShopSetD",
   "equip": { "rosto": { "index": 59 } },
-  "extendedScore": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "score": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
   "vende": [
     { "index": 1206 }, { "index": 1209 }, { "index": 1212 }, { "index": 1215 }, { "index": 1218 },
     { "index": 1341 }, { "index": 1344 }, { "index": 1347 }, { "index": 1350 }, { "index": 1353 },

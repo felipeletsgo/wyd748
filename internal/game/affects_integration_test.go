@@ -104,7 +104,7 @@ func TestTickPlayerAffectsRegenPoisonAreaAndExpiration(t *testing.T) {
 	now := time.Now()
 	p.Char.Score.CurHP = 500
 	p.Char.Score.MaxHP = 1000
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	p.Char.Affects[0] = model.Affect{
 		Type: 17, Level: 40, Value: 10,
 		ExpiresAt: now.Add(time.Minute), NextTick: now.Add(-time.Second),

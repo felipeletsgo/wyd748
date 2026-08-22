@@ -38,7 +38,7 @@ func loginResultWorld(st *loginReloadStore, session *gameNet.Session) *World {
 func loginTestAccount() *model.Account {
 	return &model.Account{Name: "Felipe", Chars: []model.Char{{
 		Name: "Hero", X: 999, Y: 999,
-		Score: testExtended(model.Score{
+		Score: testScore(model.Score{
 			Version: model.ScoreVersion,
 			Level:   10, MaxHP: 1000, CurHP: 1000, MaxMP: 500, CurMP: 500,
 		}),

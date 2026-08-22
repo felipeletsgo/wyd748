@@ -577,7 +577,7 @@ func (w *World) publishMobAffects(m *Mob) {
 	w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 		// Mob score embeds STRUCT_SCORE, so each observer receives the ABI selected
 		// at login instead of interpreting another client's score layout.
-		return wire.MobScoreForProtocol(observer.Session.ClientProtocol(), m.ID,
+		return wire.MobScore(m.ID,
 			mobPublicExtendedAt(m, now), m.Affects[:], effectiveMobResistancesAt(m, now))
 	})
 }
@@ -588,7 +588,7 @@ func (w *World) applyAffectStats(ch *model.Char) {
 	if ch == nil {
 		return
 	}
-	ensureExtendedScore(ch)
+	ensureScore(ch)
 	w.applyExtendedAffectStats(ch)
 }
 
@@ -600,7 +600,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		return
 	}
 	if ch.RuntimeScore == nil {
-		applyExtendedScore(ch)
+		applyScore(ch)
 	}
 	e := ch.RuntimeScore
 	now := w.now()
@@ -609,8 +609,8 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			percent = 0
 		}
 		result := int64(value) * int64(percent) / 100
-		if result > int64(maxExtendedStat) {
-			return maxExtendedStat
+		if result > int64(maxScoreValue) {
+			return maxScoreValue
 		}
 		return uint32(result)
 	}
@@ -619,8 +619,8 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		if result < 0 {
 			return 0
 		}
-		if result > int64(maxExtendedStat) {
-			return maxExtendedStat
+		if result > int64(maxScoreValue) {
+			return maxScoreValue
 		}
 		return uint32(result)
 	}
@@ -672,7 +672,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		case 15: // Toque de Athena
 			value := uint32(maxInt(0, a.Level/10+a.Value))
 			for j := range e.Mastery {
-				e.Mastery[j] = minU32(maxExtendedStat, e.Mastery[j]+value)
+				e.Mastery[j] = minU32(maxScoreValue, e.Mastery[j]+value)
 			}
 		case 16: // Transformacoes BM; pTransBonus da W2PP
 			type transformBonus struct {
@@ -695,7 +695,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 				case 0:
 					if learnedLocal(ch, 65-48) {
 						damageAdd = 50
-						e.Critical = clampExtended(e.Critical + 11)
+						e.Critical = clampScoreValue(e.Critical + 11)
 					}
 				case 1:
 					if learnedLocal(ch, 67-48) {
@@ -710,7 +710,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 					defenseAdd = 10
 				case 4:
 					damageAdd, hpAdd, resistAdd, attackSpeedAdd = 40, 17, 5, 17
-					e.Critical = clampExtended(e.Critical + 5)
+					e.Critical = clampScoreValue(e.Critical + 5)
 				}
 				interpolate := func(minimum, maximum int) int {
 					return minimum + (maximum-minimum)*a.Level/200
@@ -795,7 +795,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		e.CurMP = e.MaxMP
 		ch.Score.CurMP = e.CurMP
 	}
-	projectExtendedRuntime(ch)
+	normalizeRuntimeScore(ch)
 }
 
 func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
@@ -851,7 +851,7 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			}
 			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 				// Periodic effects share the same protocol boundary as direct hits.
-				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Score.MaxHP,
+				return wire.MobHpMp(m.ID, m.HP, m.Def.Score.MaxHP,
 					m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 			})
 		}
@@ -960,7 +960,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 	wireTargets := make([]wire.SkillTarget, 0, len(targets))
 	appliedByMob := make(map[*Mob]uint32, len(targets))
 	for _, m := range targets {
-		damage := uint32(clampInt(affect.Level+affect.Value, 1, int(maxExtendedStat)))
+		damage := uint32(clampInt(affect.Level+affect.Value, 1, int(maxScoreValue)))
 		appliedByMob[m] = minU32(damage, m.HP)
 		if damage >= m.HP {
 			m.HP = 0
@@ -986,7 +986,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		} else {
 			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 				// Area effects must not collapse source-client resources to WORDs.
-				return wire.MobHpMpForProtocol(observer.Session.ClientProtocol(), m.ID, m.HP, m.Def.Score.MaxHP,
+				return wire.MobHpMp(m.ID, m.HP, m.Def.Score.MaxHP,
 					m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 			})
 		}

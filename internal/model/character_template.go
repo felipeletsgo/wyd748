@@ -39,7 +39,7 @@ type CharacterSpawn struct {
 type CharacterTemplate struct {
 	Name         string             `json:"name"`
 	Class        byte               `json:"class"`
-	Score        Score              `json:"extendedScore"`
+	Score        Score              `json:"score"`
 	Gold         uint32             `json:"gold"`
 	CP           int16              `json:"cp"`
 	Exp          uint32             `json:"exp"`

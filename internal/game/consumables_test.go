@@ -18,10 +18,10 @@ func TestDamageBuffAffectScalesByPercent(t *testing.T) {
 	}{
 		{10, 110, 220}, {15, 115, 230}, {25, 125, 250},
 	} {
-		ch := &model.Char{Score: testExtended(model.Score{Attack: 100, MagicAttack: 200})}
+		ch := &model.Char{Score: testScore(model.Score{Attack: 100, MagicAttack: 200})}
 		ch.Affects[0] = model.Affect{Type: 4, Value: tc.pct, ExpiresAt: time.Now().Add(time.Minute)}
 		(&World{}).applyAffectStats(ch)
-		e := effectiveExtended(ch)
+		e := effectiveScore(ch)
 		if e.Attack != tc.wantAtk || e.MagicAttack != tc.wantMagicAtk {
 			t.Fatalf("buff %d%%: atk=%d matk=%d (queria %d/%d)",
 				tc.pct, e.Attack, e.MagicAttack, tc.wantAtk, tc.wantMagicAtk)
@@ -263,19 +263,19 @@ func TestConsumeOneSupportsStacks(t *testing.T) {
 }
 
 func TestApplyPotionUsesServerCatalogAndClamps(t *testing.T) {
-	ch := model.Char{Score: testExtended(model.Score{CurHP: 80, MaxHP: 100, CurMP: 20, MaxMP: 100})}
+	ch := model.Char{Score: testScore(model.Score{CurHP: 80, MaxHP: 100, CurMP: 20, MaxMP: 100})}
 	def := model.ItemDef{StaticEffects: []model.StaticEffect{
 		{Name: "EF_VOLATILE", Value: 1}, {Name: "EF_HP", Value: 50}, {Name: "EF_MP", Value: 50},
 	}}
 	hp, mp := applyRestore(&ch, model.Item{Index: 400}, def,
 		model.VolatileRule{ValueSource: "item_effects"})
 	if hp != 20 || mp != 50 || playerCurHP(&ch) != 100 || playerCurMP(&ch) != 70 {
-		t.Fatalf("resultado da pocao incorreto: hp=%d mp=%d score=%+v", hp, mp, effectiveExtended(&ch))
+		t.Fatalf("resultado da pocao incorreto: hp=%d mp=%d score=%+v", hp, mp, effectiveScore(&ch))
 	}
 }
 
 func TestApplyPotionReportsEffectiveRestore(t *testing.T) {
-	ch := model.Char{Score: testExtended(model.Score{CurHP: 90, MaxHP: 100, CurMP: 100, MaxMP: 100})}
+	ch := model.Char{Score: testScore(model.Score{CurHP: 90, MaxHP: 100, CurMP: 100, MaxMP: 100})}
 	def := model.ItemDef{StaticEffects: []model.StaticEffect{
 		{Name: "EF_VOLATILE", Value: 1}, {Name: "EF_HP", Value: 50}, {Name: "EF_MP", Value: 50},
 	}}

@@ -55,11 +55,6 @@ struct		  MSG_AccountLogin
 
 };
 
-// The source-built client advertises its extended 48-byte score ABI through
-// the legacy DBNeedSave field. Stock 7.48 leaves this field at zero/one; the
-// Go server uses the marker only to select packet serializers and never as
-// gameplay authority.
-constexpr int WYD748_SOURCE_PROTOCOL_MARKER = 0x32435253; // "SRC2" in LE.
 
 // These assertions make a future compiler/layout edit fail at build time
 // instead of silently turning valid credentials into a different wire packet.

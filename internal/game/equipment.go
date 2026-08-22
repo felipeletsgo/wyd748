@@ -253,8 +253,8 @@ func extendedValue(v int64) uint32 {
 	if v <= 0 {
 		return 0
 	}
-	if v > int64(maxExtendedStat) {
-		return maxExtendedStat
+	if v > int64(maxScoreValue) {
+		return maxScoreValue
 	}
 	return uint32(v)
 }
@@ -263,7 +263,7 @@ func extendedValue(v int64) uint32 {
 // começa sempre na base persistida, reaplica equipamento/refinação e somente
 // depois aplica passivas e affects na copia runtime.
 func (w *World) recalcExtendedPlayer(ch *model.Char) {
-	ensureExtendedScore(ch)
+	ensureScore(ch)
 	base := ch.Score
 	oldHP, oldMP := playerCurHP(ch), playerCurMP(ch)
 	wasFullHP := oldHP != 0 && oldHP == playerMaxHP(ch)
@@ -499,7 +499,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	// teto valido para persistencia. O runtime conserva os recursos efetivos.
 	base.CurHP = minU32(ch.RuntimeScore.CurHP, base.MaxHP)
 	base.CurMP = minU32(ch.RuntimeScore.CurMP, base.MaxMP)
-	projectExtendedRuntime(ch)
+	normalizeRuntimeScore(ch)
 }
 
 func (w *World) recalcPlayer(ch *model.Char) {

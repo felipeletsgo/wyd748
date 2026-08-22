@@ -22,7 +22,7 @@ func TestActiveMobAcquiresChasesAndAttacksNearbyPlayer(t *testing.T) {
 	p, session := networkedTestPlayer(1, "Target", 103, 100)
 	p.Char.Score.Defense = 0
 	p.Char.Score.Dex = 0
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	m := combatMob(1000, 100, 100)
 	w := worldWithNetworkedPlayers(p)
 	w.rng = fixedRNG{value: 0}
@@ -57,7 +57,7 @@ func TestMobCannotAttackAcrossIncompatibleTerrain(t *testing.T) {
 	p, session := networkedTestPlayer(1, "Target", 101, 100)
 	p.Char.Score.Defense = 0
 	p.Char.Score.Dex = 0
-	applyExtendedScore(p.Char)
+	applyScore(p.Char)
 	m := combatMob(1000, 100, 100)
 	m.TargetID = p.ID
 	w := worldWithNetworkedPlayers(p)

@@ -30,7 +30,7 @@ func TestSourceSelectionUpdateAndEnterWorldMatchTMProjectABI(t *testing.T) {
 	ch.Inv[62] = model.Item{Index: 4011}
 	ch.Affects[0] = model.Affect{Type: 24, Level: 40, Value: 150, ExpiresAt: time.Now().Add(80 * time.Second)}
 
-	selection := CharacterSelectionUpdateForProtocol(ClientProtocolSource748, OpCNFNewCharacter, 3, []model.Char{ch})
+	selection := CharacterSelectionUpdate(ClientProtocolSource748, OpCNFNewCharacter, 3, []model.Char{ch})
 	if len(selection) != 1288 || binary.LittleEndian.Uint16(selection[16:18]) != 2100 {
 		t.Fatalf("source selection layout invalid: len=%d x=%d", len(selection), binary.LittleEndian.Uint16(selection[16:18]))
 	}
@@ -63,15 +63,15 @@ func TestSourceWorldPacketsKeepSourceOnlySizes(t *testing.T) {
 	if len(create) != 328 || ParseHeader(create).Type != OpCreateMob || binary.LittleEndian.Uint32(create[148:152]) != 999 {
 		t.Fatalf("source CreateMob layout invalid: len=%d header=%+v", len(create), ParseHeader(create))
 	}
-	trade := CreateMobTradeExtendedForProtocol(ClientProtocolSource748, 5, "Shop", 102, 103, []uint16{22}, ext, "Store")
+	trade := CreateMobTrade(ClientProtocolSource748, 5, "Shop", 102, 103, []uint16{22}, ext, "Store")
 	if len(trade) != 352 || string(trade[326:331]) != "Store" {
 		t.Fatalf("source CreateMobTrade layout invalid")
 	}
-	shop := ShopListForProtocol(ClientProtocolSource748, []model.Item{{Index: 4011}}, 3, ShopNormal)
+	shop := ShopList(ClientProtocolSource748, []model.Item{{Index: 4011}}, 3, ShopNormal)
 	if len(shop) != 236 || binary.LittleEndian.Uint16(shop[16:18]) != 4011 || binary.LittleEndian.Uint32(shop[232:236]) != 3 {
 		t.Fatalf("source ShopList layout invalid")
 	}
-	chat := MessageChatForProtocol(ClientProtocolSource748, 5, "hello")
+	chat := MessageChat(ClientProtocolSource748, 5, "hello")
 	if len(chat) != 140 || string(chat[12:17]) != "hello" {
 		t.Fatalf("source MessageChat layout invalid")
 	}
@@ -126,7 +126,7 @@ func TestSourceMobScoreUsesTheSourceScoreABI(t *testing.T) {
 }
 
 func TestMobHpMpForProtocolKeepsSourceResourcesWide(t *testing.T) {
-	b := MobHpMpForProtocol(ClientProtocolSource748, 1001, 750_000, 1_000_000, 250_000, 500_000)
+	b := MobHpMp(ClientProtocolSource748, 1001, 750_000, 1_000_000, 250_000, 500_000)
 	if len(b) != 36 || ParseHeader(b).Type != OpSetHpMp {
 		t.Fatalf("source mob HP/MP len/opcode = %d/%#x", len(b), ParseHeader(b).Type)
 	}
@@ -139,7 +139,7 @@ func TestMobHpMpForProtocolKeepsSourceResourcesWide(t *testing.T) {
 		t.Fatalf("source max HP = %d; want 1000000", got)
 	}
 
-	stock := MobHpMpForProtocol(ClientProtocolStock748, 1001, 750_000, 1_000_000, 250_000, 500_000)
+	stock := MobHpMp(ClientProtocolStock748, 1001, 750_000, 1_000_000, 250_000, 500_000)
 	if len(stock) != 20 {
 		t.Fatalf("stock mob HP/MP len = %d; want 20", len(stock))
 	}
@@ -153,11 +153,11 @@ func TestHpMpForProtocolUsesRecipientABI(t *testing.T) {
 		CurMP:   250_000,
 		MaxMP:   500_000,
 	}
-	source := HpMpForProtocol(ClientProtocolSource748, 1001, ext)
+	source := HpMp(ClientProtocolSource748, 1001, ext)
 	if len(source) != 36 || binary.LittleEndian.Uint32(source[20:24]) != ext.CurHP {
 		t.Fatalf("source player HP/MP packet = len %d hp %d; want 36/%d", len(source), binary.LittleEndian.Uint32(source[20:24]), ext.CurHP)
 	}
-	stock := HpMpForProtocol(ClientProtocolStock748, 1001, ext)
+	stock := HpMp(ClientProtocolStock748, 1001, ext)
 	if len(stock) != 20 {
 		t.Fatalf("stock player HP/MP packet len = %d; want 20", len(stock))
 	}

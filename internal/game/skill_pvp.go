@@ -92,10 +92,10 @@ func playerElementalResists(ch *model.Char) model.ElementalResists {
 		return model.ElementalResists{}
 	}
 	return model.ElementalResists{
-		Fire:    effectiveExtended(ch).ResistFire,
-		Ice:     effectiveExtended(ch).ResistIce,
-		Sacred:  effectiveExtended(ch).ResistHoly,
-		Thunder: effectiveExtended(ch).ResistThunder,
+		Fire:    effectiveScore(ch).ResistFire,
+		Ice:     effectiveScore(ch).ResistIce,
+		Sacred:  effectiveScore(ch).ResistHoly,
+		Thunder: effectiveScore(ch).ResistThunder,
 	}
 }
 
@@ -192,7 +192,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		if directDamage {
 			damageValue := w.skillFinalDamage(baseDamage, playerDefense(target.Char), skillDamageMastery(caster.Char))
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, playerElementalResists(target.Char), false)
-			perHit := uint32(clampInt(damageValue, 1, int(maxExtendedStat)))
+			perHit := uint32(clampInt(damageValue, 1, int(maxScoreValue)))
 			perHit = addFlatDamage(perHit, w.equipmentGemBonuses(caster.Char).forceDamage)
 			perHit = absorbFlatDamage(perHit, w.equipmentGemBonuses(target.Char).absorbDamage)
 			for hit := 0; hit < hitCount && playerCurHP(target.Char) > 0; hit++ {

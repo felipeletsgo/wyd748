@@ -13,7 +13,7 @@ func celestialCharacter(evolution string, level uint32) *model.Char {
 	return &model.Char{
 		Name:      "Celestial",
 		Evolution: evolution,
-		Score: testExtended(model.Score{
+		Score: testScore(model.Score{
 			Level: level, Str: uint32(natural[0]), Int: uint32(natural[1]),
 			Dex: uint32(natural[2]), Con: uint32(natural[3]),
 			MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
@@ -55,7 +55,7 @@ func TestCelestialCrossFormLevelBonusKeepsAllocationSeparate(t *testing.T) {
 	ch.CelestialArchTier = 5
 	ch.AlternateCelestial = &model.CelestialForm{
 		Evolution: "subcelestial", Class: 3, Face: model.Item{Index: 18},
-		Score: testExtended(model.Score{Level: 100, Str: 5, Int: 5, Dex: 5, Con: 5}),
+		Score: testScore(model.Score{Level: 100, Str: 5, Int: 5, Dex: 5, Con: 5}),
 	}
 	// 1001 base + 400 cristais + 1200 faixa Arch + 1900 forma ativa
 	// + 600 forma alterna + 290 ao chegar no nivel interno 190.
@@ -177,7 +177,7 @@ func TestArchGrowthAndInitialPointBudgetsMatchW2PP(t *testing.T) {
 		natural := baseClassStats[class]
 		ch := &model.Char{
 			Class: class, Evolution: archEvolution,
-			Score: testExtended(model.Score{
+			Score: testScore(model.Score{
 				Level: 100, Attack: [...]uint32{5, 6, 5, 9}[class], Defense: 4,
 				MaxHP: uint32(baseClassHPMP[class][0]), MaxMP: uint32(baseClassHPMP[class][1]),
 				Str: uint32(natural[0]), Int: uint32(natural[1]),
@@ -334,7 +334,7 @@ func newCelestialWorld(t *testing.T, level uint32) (*World, *Player, *craftStore
 	p.Char.Evolution = archEvolution
 	p.Char.ArchMortalLevel = maxMortalLevel
 	p.Char.ArchCrystals = 0 // nao e requisito no Secrets 7.54
-	p.Char.Score = testExtended(model.Score{
+	p.Char.Score = testScore(model.Score{
 		Level: level, Str: 500, Int: 600, Dex: 700, Con: 800,
 		MaxHP: 5000, CurHP: 4000, MaxMP: 3000, CurMP: 2000,
 	})
@@ -618,9 +618,9 @@ func TestCelestialSoulUsesSharedConfiguration(t *testing.T) {
 	ch.Affects[0] = model.Affect{
 		Type: 29, Value: 102, ExpiresAt: time.Now().Add(time.Hour),
 	}
-	applyExtendedScore(ch)
+	applyScore(ch)
 	w.applyExtendedAffectStats(ch)
-	e := effectiveExtended(ch)
+	e := effectiveScore(ch)
 	if e.Str != 1800 || e.Con != 700 ||
 		e.Attack != ch.Score.Attack+800/3 ||
 		e.MaxHP != ch.Score.MaxHP+400 {

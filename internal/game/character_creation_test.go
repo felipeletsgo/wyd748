@@ -51,7 +51,7 @@ func TestAllFourClassTemplatesCreatePlayableCharacters(t *testing.T) {
 		if int(ch.Class) != class || ch.X != 2100 || ch.Y != 2100 {
 			t.Fatalf("classe %d identidade/nascimento incorretos: %+v", class, ch)
 		}
-		e := effectiveExtended(&ch)
+		e := effectiveScore(&ch)
 		if e.CurHP == 0 || e.CurHP != e.MaxHP ||
 			e.CurMP == 0 || e.CurMP != e.MaxMP {
 			t.Fatalf("classe %d nao nasceu cheia: HP=%d/%d MP=%d/%d", class,

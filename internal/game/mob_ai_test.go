@@ -111,9 +111,9 @@ func TestFindFreeSpawnPosition(t *testing.T) {
 
 func TestFindFreeRecallPositionPushesPlayerSideways(t *testing.T) {
 	blocker := &Player{ID: 1, InWorld: true, X: 2112, Y: 2088,
-		Char: &model.Char{Score: testExtended(model.Score{MaxHP: 100, CurHP: 100})}}
+		Char: &model.Char{Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
 	recalling := &Player{ID: 2, InWorld: true, X: 2200, Y: 2100,
-		Char: &model.Char{Score: testExtended(model.Score{MaxHP: 200, CurHP: 200})}}
+		Char: &model.Char{Score: testScore(model.Score{MaxHP: 200, CurHP: 200})}}
 	w := testSpatialWorld(nil, blocker)
 
 	x, y := w.findFreePlayerPosition(2112, 2088, 8, recalling)
@@ -124,7 +124,7 @@ func TestFindFreeRecallPositionPushesPlayerSideways(t *testing.T) {
 
 func TestFindFreeRecallPositionIgnoresTheRecallingPlayer(t *testing.T) {
 	recalling := &Player{ID: 2, InWorld: true, X: 2112, Y: 2088,
-		Char: &model.Char{Score: testExtended(model.Score{MaxHP: 200, CurHP: 200})}}
+		Char: &model.Char{Score: testScore(model.Score{MaxHP: 200, CurHP: 200})}}
 	w := testSpatialWorld(nil, recalling)
 
 	x, y := w.findFreePlayerPosition(2112, 2088, 8, recalling)

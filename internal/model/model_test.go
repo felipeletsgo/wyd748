@@ -33,7 +33,7 @@ func TestCharJSONPersistsCanonicalScore(t *testing.T) {
 	}
 	if bytes.Contains(data, []byte("baseScore")) ||
 		bytes.Contains(data, []byte("nextExp")) ||
-		bytes.Contains(data, []byte(`"extendedScore":`)) {
+		bytes.Contains(data, []byte(`"score":`)) {
 		t.Fatalf("JSON persistiu estado legado/derivado: %s", data)
 	}
 	if !bytes.Contains(data, []byte(`"score":{"version":2,"level":50,"attack":200`)) {
@@ -74,24 +74,24 @@ func TestCharJSONUsesNativeMountAndCapeSlots(t *testing.T) {
 	}
 }
 
-func TestCharJSONRejectsMissingExtendedScore(t *testing.T) {
+func TestCharJSONRejectsMissingScore(t *testing.T) {
 	raw := []byte(`{"name":"x","equip":{},"inv":[]}`)
 	var ch Char
 	if err := json.Unmarshal(raw, &ch); err == nil {
-		t.Fatal("personagem sem extendedScore foi aceito")
+		t.Fatal("personagem sem score foi aceito")
 	}
 }
 
-func TestCharJSONRejectsObsoleteExtendedScoreVersion(t *testing.T) {
-	raw := []byte(`{"name":"x","extendedScore":{"version":1},"equip":{},"inv":[]}`)
+func TestCharJSONRejectsObsoleteScoreVersion(t *testing.T) {
+	raw := []byte(`{"name":"x","score":{"version":1},"equip":{},"inv":[]}`)
 	var ch Char
 	if err := json.Unmarshal(raw, &ch); err == nil {
-		t.Fatal("extendedScore obsoleto foi aceito")
+		t.Fatal("score obsoleto foi aceito")
 	}
 }
 
 func TestCharJSONRequiresAllStructuralInventorySlots(t *testing.T) {
-	raw := []byte(`{"name":"x","extendedScore":{"version":2},"equip":{},"inv":[]}`)
+	raw := []byte(`{"name":"x","score":{"version":2},"equip":{},"inv":[]}`)
 	var ch Char
 	if err := json.Unmarshal(raw, &ch); err == nil {
 		t.Fatal("inventario incompleto foi aceito")
@@ -108,7 +108,7 @@ func TestCompatibilityScoreCannotBePersistedAsJSON(t *testing.T) {
 	}
 }
 
-func TestExtendedScoreRejectsFunctionalLimitViolations(t *testing.T) {
+func TestScoreRejectsFunctionalLimitViolations(t *testing.T) {
 	tests := []struct {
 		name   string
 		mutate func(*Score)
@@ -201,7 +201,7 @@ func TestWideCharJSONPersistsCanonicalScore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Contains(data, []byte(`"extendedScore":`)) || !bytes.Contains(data, []byte(`"score":`)) {
+	if bytes.Contains(data, []byte(`"score":`)) || !bytes.Contains(data, []byte(`"score":`)) {
 		t.Fatalf("personagem wide nao gravou somente o score canonico: %s", data)
 	}
 	var loaded Char
@@ -255,7 +255,7 @@ func TestNPCUsesExtendedStatsAndOnlyProjectsAtWireBoundary(t *testing.T) {
 	}
 }
 
-func TestNPCJSONPersistsOnlyExtendedScore(t *testing.T) {
+func TestNPCJSONPersistsOnlyScore(t *testing.T) {
 	def := NPCDef{Name: "Mago", Score: &Score{
 		Version: ScoreVersion, MagicAttack: 123456,
 	}}
@@ -263,7 +263,7 @@ func TestNPCJSONPersistsOnlyExtendedScore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(data, []byte(`"extendedScore"`)) ||
+	if !bytes.Contains(data, []byte(`"score"`)) ||
 		bytes.Contains(data, []byte(`"magic":`)) {
 		t.Fatalf("NPC nao usa estrutura unica: %s", data)
 	}
