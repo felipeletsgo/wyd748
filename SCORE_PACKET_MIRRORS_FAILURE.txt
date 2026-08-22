@@ -1,0 +1,33 @@
+Canonical score packet migration failed.
+migrate=success
+format=success
+materialize=success
+test=failure
+vet=skipped
+server=skipped
+client=skipped
+whitespace=skipped
+--- output ---
+score packet mirrors removed; all score-bearing packets use STRUCT_SCORE
+canonical UpdateEtc packet regressions staged
+?   	wydgo/cmd/account-api	[no test files]
+?   	wydgo/cmd/account-create	[no test files]
+?   	wydgo/cmd/loadtest	[no test files]
+ok  	wydgo/cmd/network-admission	(cached)
+ok  	wydgo/cmd/npcconvert	0.060s
+ok  	wydgo/cmd/server	0.030s
+ok  	wydgo/internal/account	1.548s
+ok  	wydgo/internal/accountapi	0.299s
+ok  	wydgo/internal/data	4.365s
+ok  	wydgo/internal/game	2.256s
+ok  	wydgo/internal/loadtest	0.484s
+ok  	wydgo/internal/model	0.062s
+ok  	wydgo/internal/net	0.127s
+ok  	wydgo/internal/networkpolicy	(cached)
+ok  	wydgo/internal/store	0.953s
+--- FAIL: TestCanonicalMobPacketsUseScore140 (0.00s)
+    source_client_test.go:83: MobScore ABI: len=232
+FAIL
+FAIL	wydgo/internal/wire	0.045s
+FAIL
+
