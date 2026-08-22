@@ -1,9 +1,9 @@
 Single Score cleanup failed.
 
-migrate=success
-format=success
-materialize=success
-test=failure
+migrate=failure
+format=skipped
+materialize=skipped
+test=skipped
 vet=skipped
 server=skipped
 client=skipped
@@ -11,42 +11,9 @@ whitespace=skipped
 --- output ---
 single-score repairs applied
 party wire narrowing repaired
-obsolete score compatibility tests removed
-obsolete C++ score structs, sidecars and protocol marker removed
-gameplay protocol compatibility remnants removed
-final single-score Go/test references removed
-?   	wydgo/cmd/account-api	[no test files]
-?   	wydgo/cmd/account-create	[no test files]
-?   	wydgo/cmd/loadtest	[no test files]
-ok  	wydgo/cmd/network-admission	(cached)
-ok  	wydgo/cmd/npcconvert	0.044s
-# wydgo/internal/wire [wydgo/internal/wire.test]
-internal\wire\session_packets_test.go:334:22: not enough arguments in call to EnterWorld
-	have (number, model.Char)
-	want (uint16, uint16, model.Char)
-internal\wire\session_packets_test.go:416:9: undefined: CNFNewCharacter
-internal\wire\session_packets_test.go:444:21: not enough arguments in call to EnterWorld
-	have (number, model.Char)
-	want (uint16, uint16, model.Char)
-internal\wire\session_packets_test.go:486:7: undefined: SetMobHpMp
-# wydgo/internal/game [wydgo/internal/game.test]
-internal\game\affects_test.go:162:20: extended.CompatibilityScore undefined (type *model.Score has no field or method CompatibilityScore)
-internal\game\score_test.go:30:31: wireScoreState(ch).CompatibilityScore undefined (type *model.Score has no field or method CompatibilityScore)
-internal\game\score_test.go:60:57: wireScoreState(ch).CompatibilityScore undefined (type *model.Score has no field or method CompatibilityScore)
-internal\game\score_test.go:65:32: undefined: wire.CompatibilityCombatMP
-internal\game\score_test.go:67:46: undefined: wire.CompatibilityCombatMP
-internal\game\score_test.go:201:17: undefined: wire.SetHpMpExtended
-internal\game\score_test.go:205:28: undefined: wire.CompatibilityVitals
-ok  	wydgo/cmd/server	0.040s
-ok  	wydgo/internal/account	1.436s
-ok  	wydgo/internal/accountapi	0.273s
-ok  	wydgo/internal/data	2.477s
-FAIL	wydgo/internal/game [build failed]
-ok  	wydgo/internal/loadtest	0.559s
-ok  	wydgo/internal/model	0.080s
-ok  	wydgo/internal/net	0.151s
-ok  	wydgo/internal/networkpolicy	(cached)
-ok  	wydgo/internal/store	0.738s
-FAIL	wydgo/internal/wire [build failed]
-FAIL
+Traceback (most recent call last):
+  File "D:\a\wyd748\wyd748\scripts\single_score_test_repairs.py", line 75, in <module>
+    exec((root / "scripts/single_score_compile_repairs.py").read_text(encoding="utf-8"), {})
+  File "<string>", line 4, in <module>
+NameError: name '__file__' is not defined. Did you mean: '__name__'?
 
