@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/score-convergence.yml
       - scripts/single_score_repairs.py
+      - scripts/single_score_test_repairs.py
 
 permissions:
   contents: write
@@ -31,6 +32,8 @@ jobs:
         shell: pwsh
         run: |
           python scripts/single_score_repairs.py 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/single_score_test_repairs.py 2>&1 | Tee-Object -FilePath score-cleanup-run.log -Append
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Format Go sources
