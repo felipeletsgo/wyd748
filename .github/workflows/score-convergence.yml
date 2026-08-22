@@ -25,43 +25,103 @@ jobs:
           go-version-file: go.mod
 
       - name: Apply canonical Score migration
+        id: migrate
+        continue-on-error: true
         shell: pwsh
-        run: python scripts/score_convergence.py
+        run: |
+          python scripts/score_convergence.py 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Format Go sources
+        id: format
+        if: steps.migrate.outcome == 'success'
+        continue-on-error: true
         shell: pwsh
         run: |
           Get-ChildItem -Path . -Recurse -Filter *.go | ForEach-Object { gofmt -w $_.FullName }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Go tests
+        id: test
+        if: steps.migrate.outcome == 'success' && steps.format.outcome == 'success'
+        continue-on-error: true
         shell: pwsh
-        run: go test ./...
+        run: |
+          go test ./... 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Go vet
+        id: vet
+        if: steps.test.outcome == 'success'
+        continue-on-error: true
         shell: pwsh
-        run: go vet ./...
+        run: |
+          go vet ./... 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Server build
+        id: server
+        if: steps.vet.outcome == 'success'
+        continue-on-error: true
         shell: pwsh
-        run: go build -o tmp/tm-check.exe ./cmd/server
+        run: |
+          go build -o tmp/tm-check.exe ./cmd/server 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Client Win32 build
+        id: client
+        if: steps.server.outcome == 'success'
+        continue-on-error: true
         shell: pwsh
-        run: ./client-source/tmproject/Build-Client.ps1
+        run: |
+          ./client-source/tmproject/Build-Client.ps1 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Remove validation artifacts
-        if: always()
+      - name: Diff whitespace check
+        id: whitespace
+        if: steps.client.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          git diff --check 2>&1 | Tee-Object -FilePath score-convergence-run.log -Append
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish failure diagnostic
+        if: always() && (steps.migrate.outcome == 'failure' || steps.format.outcome == 'failure' || steps.test.outcome == 'failure' || steps.vet.outcome == 'failure' || steps.server.outcome == 'failure' || steps.client.outcome == 'failure' || steps.whitespace.outcome == 'failure')
+        shell: pwsh
+        run: |
+          $log = if (Test-Path score-convergence-run.log) { Get-Content score-convergence-run.log -Raw } else { "No command output was captured." }
+          $outcomes = @"
+          migrate=$(${{ steps.migrate.outcome }})
+          format=$(${{ steps.format.outcome }})
+          test=$(${{ steps.test.outcome }})
+          vet=$(${{ steps.vet.outcome }})
+          server=$(${{ steps.server.outcome }})
+          client=$(${{ steps.client.outcome }})
+          whitespace=$(${{ steps.whitespace.outcome }})
+          "@
+          git reset --hard HEAD
+          @"
+          Canonical Score convergence failed.
+
+          $outcomes
+          --- output ---
+          $log
+          "@ | Set-Content -Encoding UTF8 SCORE_CONVERGENCE_FAILURE.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add SCORE_CONVERGENCE_FAILURE.txt
+          git commit -m "ci: record canonical score convergence failure"
+          git push origin HEAD:main
+          exit 1
+
+      - name: Commit validated convergence
+        if: steps.whitespace.outcome == 'success'
         shell: pwsh
         run: |
           Remove-Item -Force -ErrorAction SilentlyContinue tmp/tm-check.exe
-
-      - name: Diff whitespace check
-        shell: pwsh
-        run: git diff --check
-
-      - name: Commit validated convergence
-        shell: pwsh
-        run: |
+          Remove-Item -Force -ErrorAction SilentlyContinue score-convergence-run.log
+          Remove-Item -Force -ErrorAction SilentlyContinue SCORE_CONVERGENCE_FAILURE.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
