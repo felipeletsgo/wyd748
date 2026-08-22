@@ -118,6 +118,21 @@ replace_in(
     count=1,
 )
 
+# Tests must exercise the canonical uint32 fields too; keeping byte literals in
+# struct initializers would reintroduce an artificial legacy type dependency.
+replace_in(
+    "internal/game/combat_test.go",
+    "testExtended(model.ExtendedScore{AttackRun: speedNibble})",
+    "testExtended(model.ExtendedScore{AttackRun: uint32(speedNibble)})",
+    count=1,
+)
+replace_in(
+    "internal/game/quest_test.go",
+    "&model.ExtendedScore{Merchant: merchant}",
+    "&model.ExtendedScore{Merchant: uint32(merchant)}",
+    count=1,
+)
+
 # The source-client tests are part of the ABI contract. Update them atomically
 # with the packet definitions instead of weakening/removing the assertions.
 test = root / "internal/wire/source_client_test.go"
