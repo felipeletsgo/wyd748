@@ -122,14 +122,14 @@ replace_in(
 # struct initializers would reintroduce an artificial legacy type dependency.
 replace_in(
     "internal/game/combat_test.go",
-    "testExtended(model.ExtendedScore{AttackRun: speedNibble})",
-    "testExtended(model.ExtendedScore{AttackRun: uint32(speedNibble)})",
+    "testExtended(model.Score{AttackRun: speedNibble})",
+    "testExtended(model.Score{AttackRun: uint32(speedNibble)})",
     count=1,
 )
 replace_in(
     "internal/game/quest_test.go",
-    "&model.ExtendedScore{Merchant: merchant}",
-    "&model.ExtendedScore{Merchant: uint32(merchant)}",
+    "&model.Score{Merchant: merchant}",
+    "&model.Score{Merchant: uint32(merchant)}",
     count=1,
 )
 
