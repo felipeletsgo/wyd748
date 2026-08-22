@@ -11,9 +11,11 @@ whitespace=skipped
 --- output ---
 single-score repairs applied
 party wire narrowing repaired
+obsolete compile-time score compatibility regressions removed
+obsolete score compatibility tests removed
+obsolete C++ score structs, sidecars and protocol marker removed
 Traceback (most recent call last):
-  File "D:\a\wyd748\wyd748\scripts\single_score_test_repairs.py", line 75, in <module>
-    exec((root / "scripts/single_score_compile_repairs.py").read_text(encoding="utf-8"), {})
-  File "<string>", line 4, in <module>
-NameError: name '__file__' is not defined. Did you mean: '__name__'?
+  File "D:\a\wyd748\wyd748\scripts\single_score_game_repairs.py", line 39, in <module>
+    raise RuntimeError(f"visibility.go playerEnterView block matches={count}")
+RuntimeError: visibility.go playerEnterView block matches=0
 
