@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - .github/workflows/score-packet-mirrors.yml
+      - scripts/single_score_packet_mirrors.py
+      - scripts/single_score_packet_test_repairs.py
+      - internal/wire/source_client_test.go
 
 permissions:
   contents: write
