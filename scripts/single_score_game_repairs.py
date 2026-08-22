@@ -3,7 +3,8 @@ import re
 
 root = Path(__file__).resolve().parents[1]
 
-# Visibility has one packet ABI. Remove observer-protocol plumbing entirely.
+# Visibility has one packet ABI. Rewrite the old observer-protocol block once;
+# subsequent cleanup runs verify the canonical function instead of failing.
 path = root / "internal/game/visibility.go"
 text = path.read_text(encoding="utf-8")
 pattern = re.compile(
@@ -35,14 +36,15 @@ func sendPlayerEnterView(observer, subject *Player) {
 	}
 }'''
 text, count = pattern.subn(replacement, text, count=1)
-if count != 1:
-    raise RuntimeError(f"visibility.go playerEnterView block matches={count}")
+if count == 0 and "func playerEnterViewPackets(subject *Player)" not in text:
+    raise RuntimeError("visibility.go has neither legacy nor canonical materialization block")
 path.write_text(text, encoding="utf-8", newline="\n")
 
-# HP debug now compares persisted and effective canonical Score only. The old
-# projection diagnostic would recreate concepts deliberately deleted here.
+# HP debug, when still present during an intermediate pass, reports only the
+# persisted and effective copies of the same canonical Score type.
 path = root / "internal/game/hp_debug.go"
-path.write_text(r'''package game
+if path.exists():
+    path.write_text(r'''package game
 
 import (
 	"fmt"
@@ -52,8 +54,7 @@ import (
 	"wydgo/internal/wire"
 )
 
-// dumpHPState reports the persisted Score and its effective runtime copy.
-// Both have the exact same model; differences are only active equipment/affects.
+// dumpHPState reports persisted and effective values from the same Score model.
 func (w *World) dumpHPState(s *net.Session, p *Player) {
 	if p == nil || p.Char == nil {
 		return
@@ -76,14 +77,8 @@ func (w *World) dumpHPState(s *net.Session, p *Player) {
 	} {
 		s.Send(wire.MessagePanel(line))
 	}
-	affects := 0
-	for _, affect := range p.Char.Affects {
-		if affect.Type != 0 {
-			affects++
-		}
-	}
-	log.Printf("[#%d] HPDEBUG base=%d/%d runtime=%d/%d affects=%d",
-		s.ID, base.CurHP, base.MaxHP, effective.CurHP, effective.MaxHP, affects)
+	log.Printf("[#%d] HPDEBUG base=%d/%d runtime=%d/%d", s.ID,
+		base.CurHP, base.MaxHP, effective.CurHP, effective.MaxHP)
 }
 ''', encoding="utf-8", newline="\n")
 
