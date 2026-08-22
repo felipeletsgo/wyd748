@@ -9,7 +9,7 @@ client=skipped
 whitespace=skipped
 --- output ---
 canonical Score convergence applied
-score convergence compile repairs applied
+score convergence compile and ABI repairs applied
 go: downloading github.com/yuin/gopher-lua v1.1.2
 go: downloading github.com/jackc/pgx/v5 v5.10.0
 go: downloading github.com/jackc/pgpassfile v1.0.0
@@ -20,92 +20,30 @@ go: downloading golang.org/x/sync v0.22.0
 ?   	wydgo/cmd/account-api	[no test files]
 ?   	wydgo/cmd/account-create	[no test files]
 ?   	wydgo/cmd/loadtest	[no test files]
-# wydgo/cmd/npcconvert [wydgo/cmd/npcconvert.test]
-cmd\npcconvert\main.go:155:19: cannot use merchant (variable of type byte) as uint32 value in struct literal
-cmd\npcconvert\main.go:156:19: cannot use b[s + 7] (variable of type byte) as uint32 value in struct literal
-cmd\npcconvert\main_test.go:48:18: got.MakeExtendedScore undefined (type model.NPCDef has no field or method MakeExtendedScore)
 # wydgo/internal/game
-internal\game\affects.go:527:15: invalid operation: attackRun & 0xf0 | byte(run) (mismatched types uint32 and byte)
-internal\game\affects.go:529:9: cannot use attackRun (variable of type uint32) as byte value in return statement
-internal\game\affects.go:565:15: m.Def.MakeExtendedScore undefined (type *model.NPCDef has no field or method MakeExtendedScore)
-internal\game\affects.go:635:18: invalid operation: e.AttackRun & 0xF0 | byte(run) (mismatched types uint32 and byte)
-internal\game\affects.go:638:18: invalid operation: e.AttackRun & 0xF0 | byte(run) (mismatched types uint32 and byte)
-internal\game\affects.go:655:18: invalid operation: byte(attackSpeed << 4) | e.AttackRun & 0x0F (mismatched types byte and uint32)
-internal\game\affects.go:727:19: cannot use byte(attackSpeed << 4) | byte(run) (value of type byte) as uint32 value in assignment
-internal\game\boss_spawn.go:112:25: cannot use byte(*stats.AttackRun) (value of type byte) as uint32 value in assignment
-internal\game\equipment.go:480:30: cannot use byte(attackSpeed << 4 | runSpeed) (value of type byte) as uint32 value in assignment
-internal\game\extended_stats.go:124:10: cannot use e.AttackRun (variable of type uint32) as byte value in return statement
-internal\game\extended_stats.go:124:10: too many errors
-ok  	wydgo/cmd/network-admission	0.046s
-FAIL	wydgo/cmd/npcconvert [build failed]
+internal\game\affects.go:568:18: cannot use effectiveMobAttackRunAt(m, now) (value of type byte) as uint32 value in assignment
+internal\game\handlers.go:807:45: cannot use m.Def.Score.Merchant (variable of type uint32) as byte value in argument to shopTypeForMerchant
+internal\game\handlers.go:898:42: cannot use m.Def.Score.Merchant (variable of type uint32) as byte value in argument to shopTypeForMerchant
+internal\game\handlers.go:970:38: cannot use m.Def.Score.Merchant (variable of type uint32) as byte value in argument to shopTypeForMerchant
+internal\game\quest.go:47:38: cannot use def.Score.Merchant (variable of type uint32) as byte value in argument to shopTypeForMerchant
+internal\game\skill_summons.go:121:78: cannot use attackRun (variable of type byte) as uint32 value in struct literal
+ok  	wydgo/cmd/network-admission	0.067s
+ok  	wydgo/cmd/npcconvert	0.039s
 FAIL	wydgo/cmd/server [build failed]
-# wydgo/internal/model [wydgo/internal/model.test]
-internal\model\model_test.go:244:13: def.MakeExtendedScore undefined (type NPCDef has no field or method MakeExtendedScore)
-ok  	wydgo/internal/account	1.799s
-ok  	wydgo/internal/accountapi	0.370s
---- FAIL: TestCarbMastersUseBuffNPCProfile (0.00s)
-    carbuncle_master_test.go:14: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestCraftingNPCDataset (0.00s)
-    crafting_npcs_test.go:26: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestKRMobsCloneAgmoKrillAndHaveCatalogFaces (0.00s)
-    kr_mobs_test.go:26: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestNomesDeNPCCabemNoWire (0.00s)
-    npc_names_test.go:33: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestNomesDeNPCEstaoEmIngles (0.00s)
-    npc_names_test.go:55: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestNomesDeNPCSaoUnicos (0.00s)
-    npc_names_test.go:71: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestBossesReferenciamNPCsExistentes (0.00s)
-    npc_refs_test.go:33: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestZonasDeQuestReferenciamNPCsExistentes (0.00s)
-    npc_refs_test.go:58: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestMicronicsNPCDatasetMatchesNPCGener (0.00s)
-    npcgener_test.go:131: carregar NPCs convertidos: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestSkillMastersReserveClientBranchSeparators (0.00s)
-    skill_masters_test.go:8: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestCadaItemVolatileTemLojaDeTeste (0.02s)
-    test_shop_coverage_test.go:78: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste (0.02s)
-    test_shop_coverage_test.go:97: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestMontariasKRUsamContratoPremium748 (0.05s)
-    test_shop_coverage_test.go:169: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestTrajesKRCompletosMantemContrato748 (0.03s)
-    test_shop_coverage_test.go:238: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestSetsDEDeTodasAsClassesTemLojaDeTeste (0.07s)
-    test_shop_coverage_test.go:276: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestTodasAsArmasDEDoCatalogoTemLojaDeTeste (0.03s)
-    test_shop_coverage_test.go:292: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestEscudosDETemLojaDeTeste (0.02s)
-    test_shop_coverage_test.go:339: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestTodoVolatileTemLoja (0.02s)
-    volatile_coverage_test.go:189: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestLojasDeVolatileCabemNaJanela (0.00s)
-    volatile_coverage_test.go:232: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestInstanciasDeItemReferenciamNPCExistente (0.02s)
-    volatile_coverage_test.go:264: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestLojasDaRodadaVendemTodasAsVariantesNaoCelestial (0.00s)
-    volatile_coverage_test.go:331: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
---- FAIL: TestVolatileInstancesReferenceExistingHostileNPCs (0.17s)
-    volatiles_test.go:597: data: parse ..\..\data\npcs\ABJ_Master.json: json: unknown field "extendedScore"
-FAIL
-FAIL	wydgo/internal/data	1.185s
+ok  	wydgo/internal/account	1.284s
+ok  	wydgo/internal/accountapi	0.206s
+ok  	wydgo/internal/data	3.000s
 FAIL	wydgo/internal/game [build failed]
-ok  	wydgo/internal/loadtest	0.516s
-FAIL	wydgo/internal/model [build failed]
-ok  	wydgo/internal/net	0.130s
-ok  	wydgo/internal/networkpolicy	0.093s
-ok  	wydgo/internal/store	0.739s
---- FAIL: TestSourceSelectionUpdateAndEnterWorldMatchTMProjectABI (0.00s)
-    source_client_test.go:35: source selection layout invalid: len=1288 x=2100
---- FAIL: TestSourceWorldPacketsKeepSourceOnlySizes (0.00s)
-    source_client_test.go:64: source CreateMob layout invalid: len=328 header={Size:0 KeyWord:0 CheckSum:0 Type:868 ID:30000 Tick:0}
---- FAIL: TestSourceScoreRefreshKeepsPendingCostsSeparateFromCurrentResources (0.00s)
-    source_client_test.go:89: source UpdateScore len/opcode = 244/0x336
---- FAIL: TestSourceMobScoreUsesTheSourceScoreABI (0.00s)
-    source_client_test.go:114: source mob score len/opcode = 244/0x336
---- FAIL: TestSourceCharListMatchesTMProjectABI (0.00s)
-    source_client_test.go:175: source char-list len/opcode = 2360/0x10a
+ok  	wydgo/internal/loadtest	0.557s
+--- FAIL: TestCharJSONPersistsOnlyExtendedScore (0.00s)
+    model_test.go:37: JSON persistiu estado legado/derivado: {"uid":"","name":"felipe","class":0,"x":0,"y":0,"score":{"version":2,"level":50,"attack":200,"magicAttack":0,"defense":0,"maxHP":0,"maxMP":0,"curHP":0,"curMP":0,"str":0,"int":0,"dex":0,"con":0,"resistFire":10,"resistIce":20,"resistHoly":30,"resistThunder":40,"statusPoints":250,"masteryPoints":100,"skillPoints":150,"mastery":[0,0,0,0]},"cp":0,"chaosVersion":1,"gold":0,"exp":0,"learnedSkill":0,"shortSkill":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"affects":[{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"}],"equip":{"rosto":{"index":0},"elmo":{"index":0},"armadura":{"index":0},"calca":{"index":0},"luva":{"index":0},"bota":{"index":0},"arma":{"index":0},"escudo":{"index":0},"acessorio1":{"index":0},"acessorio2":{"index":0},"acessorio3":{"index":0},"acessorio4":{"index":0},"acessorio5":{"index":0},"acessorio6":{"index":0},"montaria":{"index":0},"capa":{"index":0}},"inv":[{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0}]}
+--- FAIL: TestExtendedCharJSONNeverPersistsLegacyProjection (0.00s)
+    model_test.go:205: personagem wide ainda gravou score legado: {"uid":"","name":"Wide","class":0,"x":0,"y":0,"score":{"version":2,"level":0,"attack":0,"magicAttack":0,"defense":0,"maxHP":500000,"maxMP":400000,"curHP":480000,"curMP":350000,"str":0,"int":0,"dex":0,"con":0,"mastery":[0,0,0,0]},"cp":0,"chaosVersion":1,"gold":0,"exp":0,"learnedSkill":0,"shortSkill":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"affects":[{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"},{"expiresAt":"0001-01-01T00:00:00Z","nextTick":"0001-01-01T00:00:00Z"}],"equip":{"rosto":{"index":0},"elmo":{"index":0},"armadura":{"index":0},"calca":{"index":0},"luva":{"index":0},"bota":{"index":0},"arma":{"index":0},"escudo":{"index":0},"acessorio1":{"index":0},"acessorio2":{"index":0},"acessorio3":{"index":0},"acessorio4":{"index":0},"acessorio5":{"index":0},"acessorio6":{"index":0},"montaria":{"index":0},"capa":{"index":0}},"inv":[{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0},{"index":0}]}
 FAIL
-FAIL	wydgo/internal/wire	0.030s
+FAIL	wydgo/internal/model	0.046s
+ok  	wydgo/internal/net	0.136s
+ok  	wydgo/internal/networkpolicy	0.082s
+ok  	wydgo/internal/store	1.050s
+ok  	wydgo/internal/wire	0.038s
 FAIL
 
