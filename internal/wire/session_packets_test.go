@@ -9,7 +9,7 @@ import (
 	"wydgo/internal/model"
 )
 
-func TestUpdateScore754LayoutIncludesSixteenAffects(t *testing.T) {
+func TestUpdateScoreCanonicalLayoutIncludesScoreAndAffects(t *testing.T) {
 	ch := model.Char{GuildID: 0x1234, GuildRank: model.GuildRankLeader, Score: &model.Score{
 		Version: model.ScoreVersion, Level: 65,
 		MaxHP: 900, CurHP: 900, MaxMP: 700, CurMP: 700, MagicAmp: 12,
@@ -18,18 +18,20 @@ func TestUpdateScore754LayoutIncludesSixteenAffects(t *testing.T) {
 	}}
 	ch.Affects[0] = model.Affect{Type: 24, ExpiresAt: time.Now().Add(80 * time.Second)}
 	b := UpdateScore(1, ch)
-	if len(b) != 236 || b[40] != 3 || b[41] != 4 || b[42] != 10 || b[43] != 24 ||
-		binary.LittleEndian.Uint16(b[74:76]) != 0x0234 ||
-		binary.LittleEndian.Uint16(b[76:78]) != model.GuildRankLeader ||
-		!bytes.Equal(b[78:82], []byte{7, 8, 9, 10}) ||
-		binary.LittleEndian.Uint16(b[82:84]) != 900 || binary.LittleEndian.Uint16(b[84:86]) != 700 ||
-		b[86] != 12 || binary.LittleEndian.Uint32(b[104:108]) != 900 ||
-		binary.LittleEndian.Uint32(b[112:116]) != 900 || binary.LittleEndian.Uint32(b[116:120]) != 700 {
-		t.Fatalf("p754 SendScore incorreto: % X", b[40:92])
+	if len(b) != 244 || ParseHeader(b).Type != OpUpdateScore || ParseHeader(b).ID != 1 ||
+		binary.LittleEndian.Uint32(b[32:36]) != 900 ||
+		binary.LittleEndian.Uint32(b[40:44]) != 900 ||
+		b[152] != 3 || b[153] != 4 ||
+		binary.LittleEndian.Uint16(b[154:156]) != 0x180A ||
+		binary.LittleEndian.Uint16(b[218:220]) != 0x0234 ||
+		binary.LittleEndian.Uint16(b[220:222]) != model.GuildRankLeader ||
+		!bytes.Equal(b[222:226], []byte{7, 8, 9, 10}) ||
+		binary.LittleEndian.Uint16(b[236:238]) != 12 {
+		t.Fatalf("canonical UpdateScore incorreto: % X", b)
 	}
 }
 
-func TestUpdateAffects748FullLayout(t *testing.T) {
+func TestUpdateAffectsCanonicalFullLayout(t *testing.T) {
 	ch := model.Char{}
 	ch.Affects[0] = model.Affect{Type: 24, Value: 7, Level: 40,
 		ExpiresAt: time.Now().Add(80 * time.Second)}
@@ -37,12 +39,12 @@ func TestUpdateAffects748FullLayout(t *testing.T) {
 		ExpiresAt: time.Now().Add(40 * time.Second)}
 	b := UpdateAffects(9, ch)
 	last := 12 + 15*8
-	if len(b) != 140 || ParseHeader(b).Type != OpUpdateAffect || ParseHeader(b).ID != 9 ||
-		b[12] != 24 || b[13] != 7 || binary.LittleEndian.Uint16(b[14:16]) != 40 ||
+	if len(b) != 268 || ParseHeader(b).Type != OpUpdateAffect || ParseHeader(b).ID != 9 ||
+		b[12] != 24 || b[13] != 40 || binary.LittleEndian.Uint16(b[14:16]) != 7 ||
 		binary.LittleEndian.Uint32(b[16:20]) != 10 ||
-		b[last] != 24 || b[last+1] != 150 || binary.LittleEndian.Uint16(b[last+2:last+4]) != 55 ||
+		b[last] != 24 || b[last+1] != 55 || binary.LittleEndian.Uint16(b[last+2:last+4]) != 150 ||
 		binary.LittleEndian.Uint32(b[last+4:last+8]) != 5 {
-		t.Fatalf("0x3B9 incorreto: first=% X last=% X", b[12:20], b[last:last+8])
+		t.Fatalf("canonical UpdateAffects incorreto: first=% X last=% X", b[12:20], b[last:last+8])
 	}
 }
 
@@ -154,28 +156,31 @@ func TestMessageWhisperKeepsNativeSlashCommandBody(t *testing.T) {
 	}
 }
 
-func TestSkillHits748MultiLayout(t *testing.T) {
+func TestSkillHitsCanonicalWideMultiLayout(t *testing.T) {
 	targets := []SkillTarget{{ID: 1001, Damage: 40}, {ID: 1002, Damage: 55}}
 	b := SkillHits(1, 2200, 2100, 2201, 2101, 1234, 70, 0, 9, 42, 13, targets)
-	if len(b) != 96 || ParseHeader(b).Type != 0x36C ||
+	if len(b) != 112 || ParseHeader(b).Type != 0x36C ||
 		binary.LittleEndian.Uint16(b[14:16]) != 2 ||
 		binary.LittleEndian.Uint16(b[44:46]) != 1001 || binary.LittleEndian.Uint16(b[46:48]) != 40 ||
-		binary.LittleEndian.Uint16(b[48:50]) != 1002 || binary.LittleEndian.Uint16(b[50:52]) != 55 {
-		t.Fatalf("SkillHits multi invalido: %v", b)
+		binary.LittleEndian.Uint16(b[48:50]) != 1002 || binary.LittleEndian.Uint16(b[50:52]) != 55 ||
+		binary.LittleEndian.Uint32(b[96:100]) != 0x58474D44 ||
+		binary.LittleEndian.Uint32(b[100:104]) != 2 ||
+		binary.LittleEndian.Uint32(b[104:108]) != 40 ||
+		binary.LittleEndian.Uint32(b[108:112]) != 55 {
+		t.Fatalf("SkillHits canonical multi invalido: %v", b)
 	}
 }
 
-func TestSkillHitExtendedKeepsSkillAndWideDamage(t *testing.T) {
-	// Alvo com MaxHP 550k -> escala 19; 275_000/19 = 14474 (arredondado p/ cima).
+func TestSkillHitWideKeepsSkillAndFullDamage(t *testing.T) {
 	b := SkillHitExtended(1, 1001, 2200, 2100, 2201, 2101,
 		275_000, 550_000, 1234, 70, 7, 0, 255)
-	if len(b) != 60 || ParseHeader(b).Size != 60 ||
+	if len(b) != 60 ||
 		int16(binary.LittleEndian.Uint16(b[24:26])) != 7 ||
-		binary.LittleEndian.Uint16(b[46:48]) != 14_474 ||
+		binary.LittleEndian.Uint16(b[46:48]) != 32_767 ||
 		binary.LittleEndian.Uint32(b[48:52]) != 0x58474D44 ||
 		binary.LittleEndian.Uint32(b[52:56]) != 1 ||
 		binary.LittleEndian.Uint32(b[56:60]) != 275_000 || b[30] != 0 {
-		t.Fatalf("SkillHitExtended invalido: %v", b)
+		t.Fatalf("SkillHit wide invalido: %v", b)
 	}
 }
 
@@ -318,22 +323,24 @@ func TestUpdateEtcDoesNotLeakChaosIntoHold(t *testing.T) {
 }
 
 func TestCharListCarriesGuildIndexInSelection(t *testing.T) {
-	b := CharList("account", []model.Char{{Name: "Guilded", GuildID: 0x1234}}, nil, 0)
-	if got := binary.LittleEndian.Uint16(b[12+704 : 12+706]); got != 0x0234 {
-		t.Fatalf("Guild no SelectChar=%#x, esperado id de 12 bits", got)
+	ch := model.Char{Name: "GuildHero", X: 2100, Y: 2101, GuildID: 0x1234,
+		Score: &model.Score{Version: model.ScoreVersion}}
+	b := CharList("account", []model.Char{ch}, nil, 0)
+	const guildOffset = 32 + 1216
+	if len(b) != 2360 || binary.LittleEndian.Uint16(b[guildOffset:guildOffset+2]) != 0x0234 {
+		t.Fatalf("Guild no SelectChar=0x%X, esperado id de 12 bits", binary.LittleEndian.Uint16(b[guildOffset:guildOffset+2]))
 	}
 }
 
-func TestMessageChat748Layout(t *testing.T) {
-	b := MessageChat(7, "Inventario limpo")
-	if len(b) != 108 || ParseHeader(b).Type != OpMessageChat || ParseHeader(b).ID != 7 {
-		t.Fatalf("MessageChat header/layout invalido: len=%d header=%+v", len(b), ParseHeader(b))
+func TestMessageChatCanonicalLayout(t *testing.T) {
+	b := MessageChat(7, "hello")
+	h := ParseHeader(b)
+	if len(b) != 140 || h.Type != OpMessageChat || h.ID != 7 || string(b[12:17]) != "hello" {
+		t.Fatalf("MessageChat header/layout invalido: len=%d header=%+v", len(b), h)
 	}
-	if got := string(b[12 : 12+16]); got != "Inventario limpo" {
-		t.Fatalf("MessageChat texto=%q", got)
-	}
-	if b[107] != 0 {
-		t.Fatal("MessageChat sem terminador final")
+	// Size/checksum/tick are transport-owned and are finalized only by Session.Send.
+	if h.Size != 0 || h.CheckSum != 0 || h.Tick != 0 {
+		t.Fatalf("builder finalizou campos de transporte prematuramente: %+v", h)
 	}
 }
 

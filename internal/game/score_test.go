@@ -1,12 +1,10 @@
 package game
 
 import (
-	"encoding/binary"
 	"testing"
 	"time"
 
 	"wydgo/internal/model"
-	"wydgo/internal/wire"
 )
 
 func testScore(score model.Score) *model.Score {
