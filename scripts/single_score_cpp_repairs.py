@@ -3,6 +3,7 @@ import re
 
 root = Path(__file__).resolve().parents[1]
 project = root / "client-source/tmproject/Projects/TMProject"
+common = root / "client-source/tmproject/CommonFiles"
 
 
 def read_source(path: Path) -> tuple[str, str]:
@@ -106,4 +107,26 @@ for path in project.rglob("*"):
     if data != original:
         write_source(path, data, encoding)
 
-print("obsolete C++ score structs and sidecars removed")
+# A single wire ABI no longer needs the SRC2 login marker that selected between
+# stock and source score layouts. DBNeedSave returns to an ordinary zero field.
+shared = common / "SharedStructs.h"
+shared_text, shared_encoding = read_source(shared)
+shared_text = re.sub(
+    r"\n// The source-built client advertises.*?WYD748_SOURCE_PROTOCOL_MARKER = 0x32435253;[^\n]*\n",
+    "\n",
+    shared_text,
+    flags=re.S,
+)
+write_source(shared, shared_text, shared_encoding)
+
+login = project / "TMSelectServerScene.cpp"
+login_text, login_encoding = read_source(login)
+login_text = re.sub(
+    r"\n\s*// Advertise the source-client packet family.*?stAccountLogin\.DBNeedSave = WYD748_SOURCE_PROTOCOL_MARKER;",
+    "\n\t\tstAccountLogin.DBNeedSave = 0;",
+    login_text,
+    flags=re.S,
+)
+write_source(login, login_text, login_encoding)
+
+print("obsolete C++ score structs, sidecars and protocol marker removed")
