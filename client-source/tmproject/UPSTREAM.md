@@ -16,6 +16,13 @@ distribuido sob GNU GPL v3; o arquivo `LICENSE` na raiz do WYD-Go permanece
 aplicavel a esta copia modificada. Os creditos originais permanecem no
 `README.md` deste diretorio.
 
-Esta copia sera modificada para interoperar com o protocolo e os dados do
-WYD-Go. Atualizacoes futuras do upstream devem ser revisadas e portadas por
-commit; este diretorio nao e um submodulo e nao deve receber um `.git` proprio.
+Esta copia e o único produto source-built do client WYD 7.48 no WYD-Go.
+Atualizacoes futuras do upstream devem ser revisadas campo a campo e somente a
+semantica comprovada no 7.48 pode ser portada por commit. Nunca importar em
+massa ABI, packets, controles, loaders ou branches 7.59/7.69, nem manter um
+segundo alvo de versão. Este diretorio nao e um submodulo e nao deve receber um
+`.git` proprio.
+
+Executaveis e patchers historicos nao participam da sincronizacao com upstream,
+do build ou da validacao. Toda mudanca ativa termina nesta source ou nos assets
+consumidos diretamente por `client748/project.exe`.

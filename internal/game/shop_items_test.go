@@ -128,6 +128,8 @@ func TestBuyItemKeepsSeededAmountAndAssignsUID(t *testing.T) {
 	p.Char.Gold = 20_000
 
 	buy := make([]byte, 24)
+	// Merchant identity is mandatory in the native 0x379 request.
+	binary.LittleEndian.PutUint16(buy[12:14], shop.ID)
 	binary.LittleEndian.PutUint16(buy[14:16], 0)
 	w.onBuyItem(p.Session, buy)
 

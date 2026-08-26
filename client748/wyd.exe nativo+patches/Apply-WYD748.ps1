@@ -32,6 +32,7 @@ $ErrorActionPreference = 'Stop'
 # D. Patch-WYD748-KRMountAssets.ps1 meshes e animacoes das montarias KR
 # D. Patch-WYD748-KRMobItems.ps1     faces KR traduzidas para o ItemList 7.48
 # D. Patch-WYD748-KRMobAssets.ps1    meshes, texturas, bones e animacoes KR
+# D. Patch-WYD748-ItemGrid1x1.ps1    normaliza todo EF_GRID para uma celula
 #    (ItemList/MeshTextureList; nao alteram a cadeia SHA do executavel)
 #
 # O progresso e retomavel: se o processo for interrompido, a proxima execucao
@@ -224,19 +225,27 @@ if ($current -eq $final) {
     $mountAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountAssets.ps1'
     $mobItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMobItems.ps1'
     $mobAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMobAssets.ps1'
+    $gridItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-ItemGrid1x1.ps1'
     foreach ($script in @($mountItemScript, $mountAssetScript, $mobItemScript, $mobAssetScript)) {
         if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "Elo de montarias KR ausente: $script" }
+    }
+    if (-not (Test-Path -LiteralPath $gridItemScript -PathType Leaf)) {
+        throw "Elo de normalizacao 1x1 do ItemList ausente: $gridItemScript"
     }
     if ($VerifyOnly) {
         & $mountItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin') -VerifyOnly
         & $mountAssetScript -ClientRoot $PSScriptRoot -VerifyOnly
         & $mobItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin') -VerifyOnly
         & $mobAssetScript -ClientRoot $PSScriptRoot -VerifyOnly
+        # Run after every ItemList writer so imported records cannot reintroduce
+        # a legacy multi-cell EF_GRID value.
+        & $gridItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin') -VerifyOnly
     } else {
         & $mountItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
         & $mountAssetScript -ClientRoot $PSScriptRoot
         & $mobItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
         & $mobAssetScript -ClientRoot $PSScriptRoot
+        & $gridItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
     }
     Write-Host "Cadeia WYD 7.48 ja concluida: $current"
     return
@@ -298,10 +307,17 @@ $mountItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountItems.ps1'
 $mountAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMountAssets.ps1'
 $mobItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMobItems.ps1'
 $mobAssetScript = Join-Path $PSScriptRoot 'Patch-WYD748-KRMobAssets.ps1'
+$gridItemScript = Join-Path $PSScriptRoot 'Patch-WYD748-ItemGrid1x1.ps1'
 foreach ($script in @($mountItemScript, $mountAssetScript, $mobItemScript, $mobAssetScript)) {
     if (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw "Elo de montarias KR ausente: $script" }
+}
+if (-not (Test-Path -LiteralPath $gridItemScript -PathType Leaf)) {
+    throw "Elo de normalizacao 1x1 do ItemList ausente: $gridItemScript"
 }
 & $mountItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
 & $mountAssetScript -ClientRoot $PSScriptRoot
 & $mobItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')
 & $mobAssetScript -ClientRoot $PSScriptRoot
+# This is deliberately the last ItemList stage: costume, mount and mob clones
+# may carry their source record's original EF_GRID metadata.
+& $gridItemScript -ItemList (Join-Path $PSScriptRoot 'ItemList.bin')

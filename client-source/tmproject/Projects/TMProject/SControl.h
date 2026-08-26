@@ -462,11 +462,10 @@ public:
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivItemPos, int inParentLayer, int nFlag) override;
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
 public:
-    int m_dwIndex;
+    // WYD.exe 7.48 appends only this background-mode flag to SText. Keeping
+    // later list-item state here changes the native widget contract and makes
+    // server/channel selection depend on a texture that 7.48 never creates.
     int m_bBGColor;
-    unsigned int m_dwTime;
-    SPanel* m_pBackSelection;
-    SListBox* m_pMainListBox;
 };
 
 class SListBoxBoardItem : public SListBoxItem
@@ -551,7 +550,6 @@ public:
     int OnControlEvent(DWORD idwControlID, DWORD idwEvent) override;
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag) override;
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
-    void SetTextTimer(unsigned int dTime);
 
 public:
     char m_cScrollBar;
@@ -569,8 +567,6 @@ public:
     SScrollBar* m_pScrollBar;
     int m_nNumItem;
     SListBoxItem* m_pItemList[1000];
-    unsigned int m_dwSetTime;
-    unsigned int m_dwNowTime;
 };
 
 class SMessageBox : public SPanel, public IEventListener

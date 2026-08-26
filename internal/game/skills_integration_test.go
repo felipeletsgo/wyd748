@@ -361,6 +361,7 @@ func TestContractSummonPersistenceFailureKeepsItemAndPreviousSummon(t *testing.T
 		previous = summon
 	}
 	st.err = errors.New("database unavailable")
+	beforePackets := p.Session.QueuedPacketsForTest()
 
 	w.onUseItem(p.Session, useItemPacket(0, 0))
 
@@ -368,6 +369,9 @@ func TestContractSummonPersistenceFailureKeepsItemAndPreviousSummon(t *testing.T
 		w.mobsByID[previous.ID] != previous || len(w.summons) != 1 {
 		t.Fatalf("falha de save substituiu summon/item: item=%d old=%+v summons=%d",
 			p.Char.Inv[0].Index, previous, len(w.summons))
+	}
+	if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
+		t.Fatalf("rollback do contrato nao republicou o slot: %d -> %d", beforePackets, got)
 	}
 }
 

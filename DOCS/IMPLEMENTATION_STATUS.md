@@ -90,9 +90,10 @@ cliente 7.48.
   removidos e recompensas Gold/EXP recebem saneamento seletivo.
 - O layout de Equip dos NPCs segue a ABI real: acessórios 8-13, montaria 14 e
   capa 15. `CreateMob` recebe também o `AnctCode` calculado dos equipamentos.
-- O patch do client normaliza todas as oito formas de `EF_GRID` para 1x1,
-  incluindo largura/altura visual e mascara de colisao usada por inventario,
-  cargo, trade e lojas.
+- O loader da source em `WYD748Assets.cpp` normaliza `EF_GRID` no catálogo
+  runtime, enquanto as tabelas de footprint/máscara da source permanecem 1x1.
+  O `ItemList.bin` ativo não é reescrito e nenhum patch binário participa do
+  contrato usado por inventário, cargo, trade e lojas.
 - Preço, nome, slot permitido, classe, requisitos e efeitos dos itens pertencem
   ao servidor. Valores enviados pelo cliente não participam dos cálculos.
 - Equipar valida `EF_POS`, `EF_CLASS`, level, STR, INT, DEX e CON antes do swap.
@@ -208,7 +209,7 @@ cliente 7.48.
 | Pacote | Implementação final 7.48 |
 | --- | --- |
 | `0x114 EnterWorld` | 788 bytes. A cauda do `STRUCT_MOB` inclui LearnedSkill, pontos, SkillBar, MagicIncrement, regen e quatro resistências em @748..771; zerar essa região fazia o client inicializar skills/campos incorretamente. |
-| `0x336 UpdateScore` | 236 bytes no client patched: prefixo nativo de 92 bytes com Score@12 e Affect[16]@42..73; Score `uint32` @92..228 e assinatura canonical Score@232. É público e aciona os efeitos visuais de players e mobs. |
+| `0x336 UpdateScore` | 236 bytes no client source-built: prefixo nativo de 92 bytes com Score@12 e Affect[16]@42..73; Score `uint32` @92..228 e assinatura canonical Score@232. É público e aciona os efeitos visuais de players e mobs. |
 | `0x3B9 UpdateAffect` | 140 bytes: 16 estruturas `{Type,Value,Level,Time}` em unidades de 8 s. É enviado somente ao dono para ícones, descrição e timer. |
 | `0x337 UpdateEtc` | 36 bytes: Hold/Chaos@12, EXP@16, LearnedSkill@20, status@24, mastery@26, skill@28, Magic@30, gold@32. É o layout p754 confirmado pelo dump real. |
 | `0x338 CNFMobKill` | 24 bytes: FakeExp@12, morto/assassino@16, EXP@20. Atualiza EXP quando o morto é mob e chama `Die()` quando o morto é o jogador. |
@@ -388,4 +389,4 @@ go build -o account-create.exe ./cmd/account-create
 
 Os atributos de jogadores, NPCs e monstros foram consolidados em uma única
 estrutura `uint32`. O Score WORD do client é somente uma projeção gerada no
-wire; o contrato estrito e o patch do client estão em `DOCS/SCORE.md`.
+wire; o contrato estrito da source está em `DOCS/SCORE.md`.

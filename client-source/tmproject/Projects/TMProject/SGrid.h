@@ -136,6 +136,10 @@ public:
     virtual STRUCT_ITEM* GetItem();
 
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivItemPos, int inParentLayer, int nFlag) override;
+    // Native 7.48 trade/mix receptacles already provide the final visual centre;
+    // this path bypasses FrameMove2's vertical origin conversion while preserving
+    // the item's intentional local offset and previously selected mesh scale.
+    void FrameMoveAtCenter748(stGeomList* pDrawList, TMVector2 ivItemCenter, int inParentLayer);
     int PtInItem(int inPosX, int inPosY);
     int PtAtItem(int inPosX, int inPosY);
 

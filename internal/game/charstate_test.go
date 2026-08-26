@@ -97,6 +97,24 @@ func TestApplyCharStateDropsExpiredOnLoad(t *testing.T) {
 	}
 }
 
+// TestApplyCharStateProjectsLegacyCriticalArmor748 garante que sidecars antigos
+// nao restaurem o tipo cru 50, invisivel no client 7.48, nem percam a semantica
+// autoritativa 31 usada pelo calculo de Armadura Critica.
+func TestApplyCharStateProjectsLegacyCriticalArmor748(t *testing.T) {
+	now := time.Now()
+	state := &model.CharState{Version: model.CharStateVersion, Affects: []model.PersistedAffect{
+		{Type: 50, ExpiresUnix: now.Add(5 * time.Minute).Unix()},
+	}}
+	p := &Player{Char: &model.Char{}}
+
+	(&World{}).applyCharState(p, state, now)
+
+	a := activePlayerAffect(p.Char, 31)
+	if a == nil || a.ClientType != 24 {
+		t.Fatalf("Armadura Critica legada nao foi projetada para 31/24: %+v", p.Char.Affects)
+	}
+}
+
 func TestCharStateStoreLoadSyncAndAsyncPaths(t *testing.T) {
 	p, _ := networkedTestPlayer(1, "Stateful", 2100, 2100)
 	expires := time.Now().Add(time.Hour).Unix()

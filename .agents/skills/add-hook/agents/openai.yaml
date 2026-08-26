@@ -1,4 +1,4 @@
 interface:
   display_name: "WYD Native Hook"
   short_description: "Criar hooks seguros no TMSRV 7.54 nativo"
-  default_prompt: "Use $add-hook para implementar com seguran�a um hook no TMSRV 7.54."
+  default_prompt: "Use $add-hook para implementar um hook no TMSRV 7.54 somente após confirmar hash, bytes originais, limites de instrução, calling convention, stack e callers/callees; valide build, deploy hasheado, runtime e recuperação."

@@ -1673,46 +1673,21 @@ void BASE_SortTradeItem(STRUCT_ITEM* Item, int Type)
 
 int BASE_CanCargo(STRUCT_ITEM* item, STRUCT_ITEM* cargo, int DestX, int DestY)
 {
-    int grid = BASE_GetItemAbility(item, EF_GRID);
+    if (!item || !item->sIndex || !cargo)
+        return 0;
 
-    char SourGrid[4][2]{};
-    char CargoGrid[14][9]{};
+    // The source-built 7.48 client and the authoritative Go server store every item
+    // in exactly one cargo entry.  Checking the destination entry directly
+    // avoids the old malformed 2x4 mask indexing and keeps drag feedback equal
+    // to the packet slot that the server validates.
+    if (DestX < 0 || DestX >= 9 || DestY < 0 || DestY >= 14)
+        return 0;
 
-    for (int i = 0; i < MAX_CARGO; ++i)
-    {
-        if (cargo[i].sIndex)
-        {
-            char TempGrid[4][2]{};
-            memcpy((char*)TempGrid, (char*)g_pItemGrid[BASE_GetItemAbility(&cargo[i], EF_GRID)], 8u);
+    const int destination = DestX + 9 * DestY;
+    if (destination < 0 || destination >= MAX_CARGO)
+        return 0;
 
-            int tx = i % 9;
-            int ty = i / 9;
-            for (int yy = 0; yy < 4; ++yy)
-            {
-                for (int xx = 0; xx < 2; ++xx)
-                {
-                    if (TempGrid[yy][xx] == 1 && ty + yy >= 0 && tx + xx >= 0 && ty + yy < 14 && tx + xx < 9)
-                        CargoGrid[ty][9 * yy + tx + xx] = 1;
-                }
-            }
-        }
-    }
-    for (int j = 0; j < 4; ++j)
-    {
-        for (int k = 0; k < 2; ++k)
-        {
-            if (SourGrid[j][k] == 1)
-            {
-                if (DestY + j < 0 || DestX + k < 0 || DestY + j >= 14 || DestX + k >= 9)
-                    return 0;
-
-                if (CargoGrid[DestY][9 * j + DestX + k] == 1)
-                    return 0;
-            }
-        }
-    }
-
-    return 1;
+    return cargo[destination].sIndex == 0;
 }
 
 int BASE_CanEquip(STRUCT_ITEM* item, STRUCT_SCORE* score, int Pos, int Class, STRUCT_ITEM* pBaseEquip, int OriginalFace, bool hasSoulLimitSkill)
@@ -2068,7 +2043,9 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
             if (!mob->Class && skind == 1 || mob->Class == 3)
                 dam = 5 * dam / 4;
             else
-                dam = 5 * (dam * (4 * (unsigned __int8)mob->Magician + 100) / 100) / 4;
+                // The 7.48 canonical Score owns MagicAmp; the removed Magician
+                // sidecar represented the same value and must not be read again.
+                dam = 5 * (dam * (4 * (unsigned __int8)mob->CurrentScore.MagicAmp + 100) / 100) / 4;
         }
         if ((1 << (8 * skillclass)) & mob->LearnedSkill[0])
         {
@@ -2114,7 +2091,8 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
     else if (instanceindex == 11)
         dam = g_pSpell[skillnum].InstanceValue;
     else
-        dam = 2 * (unsigned char)mob->Magician;
+        // Skill instance 11 also consumes the canonical MagicAmp field.
+        dam = 2 * (unsigned char)mob->CurrentScore.MagicAmp;
 
     return dam;
 }
@@ -2970,7 +2948,9 @@ int BASE_GetDoubleCritical(STRUCT_MOB* mob, unsigned short* sProgress, unsigned 
     int hitvalue[2] = 
     {
         100 * (((int)(unsigned char)mob->CurrentScore.AttackRun >> 4) - 5),
-        4 * (unsigned char)mob->Critical
+        // Critical is part of the shared canonical Score in the 7.48 source
+        // client; keeping a second byte in STRUCT_MOB caused ABI divergence.
+        4 * (unsigned char)mob->CurrentScore.Critical
     };
    
     if (sProgress && cProgress && *cProgress != *sProgress)

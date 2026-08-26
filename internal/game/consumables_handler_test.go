@@ -59,10 +59,14 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{Action: "restore", Consume: true, HP: 100})
 		setPlayerCurHP(p.Char, 500)
 		st.err = errors.New("database unavailable")
+		beforePackets := p.Session.QueuedPacketsForTest()
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if playerCurHP(p.Char) != 500 || p.Char.Inv[0].Index != 100 || !p.LastPotion.IsZero() {
 			t.Fatalf("rollback da pocao incompleto: hp=%d item=%d last=%v",
 				playerCurHP(p.Char), p.Char.Inv[0].Index, p.LastPotion)
+		}
+		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
+			t.Fatalf("rollback da pocao nao republicou o slot: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -72,6 +76,20 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Gold != 600 || p.Char.Inv[0].Index != 0 || st.saves != 1 {
 			t.Fatalf("gold: total=%d item=%d saves=%d", p.Char.Gold, p.Char.Inv[0].Index, st.saves)
+		}
+	})
+
+	t.Run("gold rollback resyncs source", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{Action: "gold", Consume: true, Gold: 500})
+		p.Char.Gold = 100
+		st.err = errors.New("database unavailable")
+		beforePackets := p.Session.QueuedPacketsForTest()
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.Gold != 100 || p.Char.Inv[0].Index != 100 {
+			t.Fatalf("rollback gold alterou estado: gold=%d item=%d", p.Char.Gold, p.Char.Inv[0].Index)
+		}
+		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
+			t.Fatalf("rollback gold nao republicou o slot: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -106,6 +124,22 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.X != 2300 || p.Y != 2301 || st.saves != 2 {
 			t.Fatalf("warp_saved: pos=(%d,%d) saves=%d", p.X, p.Y, st.saves)
+		}
+	})
+
+	t.Run("save position rollback resyncs source", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{Action: "save_position", Consume: true})
+		p.Char.SavedX, p.Char.SavedY = 2000, 2001
+		p.X, p.Y = 2300, 2301
+		st.err = errors.New("database unavailable")
+		beforePackets := p.Session.QueuedPacketsForTest()
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.SavedX != 2000 || p.Char.SavedY != 2001 || p.Char.Inv[0].Index != 100 {
+			t.Fatalf("rollback save_position alterou estado: saved=(%d,%d) item=%d",
+				p.Char.SavedX, p.Char.SavedY, p.Char.Inv[0].Index)
+		}
+		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
+			t.Fatalf("rollback save_position nao republicou o slot: %d -> %d", beforePackets, got)
 		}
 	})
 }
@@ -606,6 +640,20 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		}
 	})
 
+	t.Run("magical pill rollback resyncs source", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{Action: "magical_pill", Consume: true})
+		st.err = errors.New("database unavailable")
+		beforePackets := p.Session.QueuedPacketsForTest()
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.MagicalPillUsed || p.Char.SkillPointBonus != 0 || p.Char.Inv[0].Index != 100 {
+			t.Fatalf("rollback pill alterou estado: used=%v bonus=%d item=%d",
+				p.Char.MagicalPillUsed, p.Char.SkillPointBonus, p.Char.Inv[0].Index)
+		}
+		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
+			t.Fatalf("rollback pill nao republicou o slot: %d -> %d", beforePackets, got)
+		}
+	})
+
 	t.Run("special skill", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{
 			Action: "learn_special_skill", Consume: true, LearnedBit: 25,
@@ -613,6 +661,22 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.LearnedSkill&(1<<25) == 0 || p.Char.Inv[0].Index != 0 || st.saves != 1 {
 			t.Fatal("livro especial nao foi aprendido")
+		}
+	})
+
+	t.Run("special skill rollback resyncs source", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{
+			Action: "learn_special_skill", Consume: true, LearnedBit: 25,
+		})
+		st.err = errors.New("database unavailable")
+		beforePackets := p.Session.QueuedPacketsForTest()
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if p.Char.LearnedSkill&(1<<25) != 0 || p.Char.Inv[0].Index != 100 {
+			t.Fatalf("rollback skill alterou estado: learned=%08X item=%d",
+				p.Char.LearnedSkill, p.Char.Inv[0].Index)
+		}
+		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
+			t.Fatalf("rollback skill nao republicou o slot: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -658,6 +722,44 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 		}
 	})
 
+	t.Run("tint rollback resyncs source and target", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{Action: "tint", Consume: true, Color: 120})
+		beforeTarget := model.Item{Index: 200, Eff: [6]byte{43, 9}}
+		p.Char.Inv[1] = beforeTarget
+		st.err = errors.New("database unavailable")
+		beforePackets := p.Session.QueuedPacketsForTest()
+
+		w.onUseItem(p.Session, useItemPacket(0, 1))
+
+		if p.Char.Inv[0].Index != 100 || p.Char.Inv[1] != beforeTarget {
+			t.Fatalf("rollback tint alterou estado: source=%d target=% X",
+				p.Char.Inv[0].Index, p.Char.Inv[1].Eff)
+		}
+		// MSG_UseItem e otimista nas duas pontas do arraste; o rollback deve
+		// devolver exatamente os dois slots autoritativos ao client.
+		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+2 {
+			t.Fatalf("rollback tint nao republicou origem e alvo: %d -> %d", beforePackets, got)
+		}
+	})
+
+	t.Run("untint rollback resyncs source and target", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{Action: "untint", Consume: true})
+		beforeTarget := model.Item{Index: 200, Eff: [6]byte{120, 9}}
+		p.Char.Inv[1] = beforeTarget
+		st.err = errors.New("database unavailable")
+		beforePackets := p.Session.QueuedPacketsForTest()
+
+		w.onUseItem(p.Session, useItemPacket(0, 1))
+
+		if p.Char.Inv[0].Index != 100 || p.Char.Inv[1] != beforeTarget {
+			t.Fatalf("rollback untint alterou estado: source=%d target=% X",
+				p.Char.Inv[0].Index, p.Char.Inv[1].Eff)
+		}
+		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+2 {
+			t.Fatalf("rollback untint nao republicou origem e alvo: %d -> %d", beforePackets, got)
+		}
+	})
+
 	t.Run("repliction", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{Action: "repliction", Consume: true})
 		delete(w.volatiles.Items, 100)
@@ -694,10 +796,14 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 		before := model.Item{Index: 200, Eff: [6]byte{43, 4, 60, 8, 71, 50}}
 		p.Char.Equip[4] = before
 		st.err = errors.New("disk")
+		beforePackets := p.Session.QueuedPacketsForTest()
 		w.onUseItem(p.Session, pkt)
 		if p.Char.Inv[0].Index != 4016 || p.Char.Equip[4] != before || st.saves != 2 {
 			t.Fatalf("rollback repliction: source=%d target=% X saves=%d",
 				p.Char.Inv[0].Index, p.Char.Equip[4].Eff, st.saves)
+		}
+		if got := p.Session.QueuedPacketsForTest(); got < beforePackets+4 {
+			t.Fatalf("rollback repliction nao republicou slots e equipamento: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -734,9 +840,13 @@ func TestOnUseItemRejectsInvalidStateAndCooldown(t *testing.T) {
 
 	delete(w.items, 100)
 	p.LastPotion = time.Time{}
+	beforePackets := p.Session.QueuedPacketsForTest()
 	w.onUseItem(p.Session, useItemPacket(0, 0))
 	if p.Char.Inv[0].Index != 100 {
 		t.Fatal("item fora do catalogo foi consumido")
+	}
+	if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
+		t.Fatalf("item fora do catalogo nao foi ressincronizado: %d -> %d", beforePackets, got)
 	}
 }
 

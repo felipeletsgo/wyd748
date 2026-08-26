@@ -17,6 +17,29 @@ hook merely because a native address or wrapper exists.
 
 A "hook" overwrites bytes at a fixed address inside `TMSRV.exe` so control jumps into our DLL. Get the asm/stack wrong and the server **crashes on every trigger** (often at login, since score recompute runs constantly). Work carefully and prefer verifying against a live OllyDbg data point over guessing.
 
+## Preflight obrigatório
+
+O checkout Go fica em `.../SERVER 7.54/wyd-go`, enquanto os projetos legados
+ficam ao lado, em `.../SERVER 7.54/Sourcer Star Micronics` e
+`.../SERVER 7.54/Server Star Micronics`. Resolver e exibir os caminhos absolutos
+antes de editar; não assumir que `Sourcer Star Micronics/` existe no diretório
+corrente. Se a solution, o exe alvo ou a pasta de deploy não existirem, parar e
+informar qual artefato falta.
+
+Antes da primeira edição, registrar:
+
+- SHA-256 do `TMSRV.exe` realmente executado;
+- endereço preferido, RVA e bytes originais completos no ponto de patch;
+- limites das instruções sobrescritas e bytes que precisarão ser reproduzidos;
+- callers/callees, thunk versus função real e frequência/thread de execução;
+- calling convention, argumentos, retorno e cleanup (`RETN`/`RETN n`);
+- registradores, flags, stack e estado global que devem sobreviver;
+- risco de reentrância, recursão e concorrência;
+- plano de desabilitação/recuperação se o servidor crashar no gatilho.
+
+Endereço ou bytes vindos de outra versão são apenas pista. Não escrever o patch
+se qualquer item acima ainda for inferido por semelhança.
+
 ## The 5 wiring points (all required)
 
 1. **Handler** — write the C++ logic. Either a method on an existing class in `Objetos.h` (`Merch` = NPC interactions, `Volatiles` = item-use, `Outros`/`Atualizar`/`Packets`/`Respawn`), or a free function. New `.cpp` files must be added to `FunctionsV02.vcxproj` `<ClCompile>`.
@@ -56,3 +79,15 @@ This is correct for both `RETN` and `RETN 4` native functions (the native fn's o
   `$wyd-dev-knowledge` for source routing, then re-verify every address from a
   reference source in OllyDbg against our executable. When unsure of an address,
   calling convention, or `RETN` vs `RETN 4`, get the live data point first.
+
+## Validação e recuperação
+
+Depois da edição, usar `build-deploy` e separar claramente: build da DLL,
+igualdade SHA-256 entre origem/deploy, startup do DBSRV/TMSRV e teste do gatilho
+real. Validar também um caminho que não deve acionar o hook e repetir o gatilho
+para revelar estado global ou reentrância.
+
+Se houver crash, guardar dump/log e hashes, remover/desabilitar somente o patch
+novo por uma cópia recuperável, confirmar que o servidor volta a iniciar e então
+mapear a exceção para RVA/instrução. Nunca corrigir um crash alterando stack ou
+número de NOPs por tentativa.

@@ -82,6 +82,15 @@ static_assert(offsetof(MSG_Action, Route) == 28, "7.48 movement Route offset cha
 static_assert(sizeof(MSG_Motion) == 20, "7.48 motion must remain 20 bytes");
 static_assert(sizeof(MSG_MOVESTOP) == 36, "7.48 stop request must remain 36 bytes");
 static_assert(sizeof(MSG_UseItem) == 36, "7.48 use-item request must remain 36 bytes");
+// FUN_0055890a reads opcode 0x373 at these exact offsets. Locking every field
+// prevents a newer TMProject layout from silently changing the server wire ABI.
+static_assert(offsetof(MSG_UseItem, SourType) == 12, "7.48 UseItem.SourType offset changed");
+static_assert(offsetof(MSG_UseItem, SourPos) == 16, "7.48 UseItem.SourPos offset changed");
+static_assert(offsetof(MSG_UseItem, DestType) == 20, "7.48 UseItem.DestType offset changed");
+static_assert(offsetof(MSG_UseItem, DestPos) == 24, "7.48 UseItem.DestPos offset changed");
+static_assert(offsetof(MSG_UseItem, GridX) == 28, "7.48 UseItem.GridX offset changed");
+static_assert(offsetof(MSG_UseItem, GridY) == 30, "7.48 UseItem.GridY offset changed");
+static_assert(offsetof(MSG_UseItem, ItemID) == 32, "7.48 UseItem.ItemID offset changed");
 static_assert(sizeof(MSG_UseItem2) == 52, "7.48 premium-firework request must remain 52 bytes");
 static_assert(sizeof(MSG_Buy) == 24, "7.48 buy request must remain 24 bytes");
 static_assert(sizeof(MSG_Sell) == 20, "7.48 sell request must remain 20 bytes");
@@ -123,13 +132,19 @@ static_assert(offsetof(MSG_UpdateScore, Guild) == 216, "canonical UpdateScore.Gu
 static_assert(offsetof(MSG_UpdateScore, ReqHp) == 220, "canonical UpdateScore.ReqHp offset changed");
 static_assert(offsetof(MSG_UpdateScore, ReqMp) == 224, "canonical UpdateScore.ReqMp offset changed");
 static_assert(offsetof(MSG_UpdateScore, LearnedSkill) == 228, "canonical UpdateScore.LearnedSkill offset changed");
-static_assert(sizeof(MSG_UpdateAffect) == 268, "source UpdateAffect packet ABI changed");
+// FUN_0052b72a proves Header(12) + 16 * STRUCT_AFFECT(8) for opcode 0x3B9.
+static_assert(sizeof(MSG_UpdateAffect) == 140, "7.48 UpdateAffect packet ABI changed");
 static_assert(sizeof(MSG_ShopList) == 236, "source ShopList packet ABI changed");
 // Incremental notifications never carry an alternate score representation.
 static_assert(sizeof(MSG_UpdateEquip) == 60, "7.48 UpdateEquip packet ABI changed");
-static_assert(sizeof(MSG_UpdateEtc) == 168, "canonical UpdateEtc packet ABI changed");
-static_assert(offsetof(MSG_UpdateEtc, Score) == 24, "canonical UpdateEtc.Score offset changed");
-static_assert(offsetof(MSG_UpdateEtc, Coin) == 164, "canonical UpdateEtc.Coin offset changed");
+// Ghidra FUN_0052d93d and the dispatch gate at 0x0055890a prove that 0x337 is
+// exactly 36 bytes: three DWORDs, four WORDs and Coin after the standard header.
+static_assert(sizeof(MSG_UpdateEtc) == 36, "7.48 UpdateEtc packet ABI changed");
+static_assert(offsetof(MSG_UpdateEtc, StatusPoint) == 24, "7.48 UpdateEtc.StatusPoint offset changed");
+static_assert(offsetof(MSG_UpdateEtc, MasterPoint) == 26, "7.48 UpdateEtc.MasterPoint offset changed");
+static_assert(offsetof(MSG_UpdateEtc, SkillPoint) == 28, "7.48 UpdateEtc.SkillPoint offset changed");
+static_assert(offsetof(MSG_UpdateEtc, Magic) == 30, "7.48 UpdateEtc.Magic offset changed");
+static_assert(offsetof(MSG_UpdateEtc, Coin) == 32, "7.48 UpdateEtc.Coin offset changed");
 static_assert(sizeof(MSG_SetHpMp) == 28, "canonical HP/MP incremental ABI changed");
 // Client diagnostics are accepted by WYD-Go only in the canonical 7.48 form.
 static_assert(sizeof(MSG_MessageLog) == 108, "7.48 client diagnostic packet ABI changed");

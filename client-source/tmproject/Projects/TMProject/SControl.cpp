@@ -365,7 +365,12 @@ void SPanel::SetVisible(int bVisible)
 	if (m_bVisible == 0 && g_pCurrentScene != nullptr && g_pCurrentScene->m_pControlContainer != nullptr)
 	{
 		if (g_pCurrentScene->m_pControlContainer->m_pPickedControl == this)
-			g_pCurrentScene->m_pControlContainer = nullptr;
+		{
+			// Native 7.48 FUN_004015dd releases only the hidden panel captured by
+			// the mouse.  Destroying the scene container made every later X/ESC
+			// lookup fail after a panel was closed once.
+			g_pCurrentScene->m_pControlContainer->m_pPickedControl = nullptr;
+		}
 	}
 }
 
@@ -398,7 +403,10 @@ S3DObj::S3DObj(int nObjIndex, float inX, float inY, float inWidth, float inHeigh
 
 S3DObj::~S3DObj()
 {
-	SControlContainer* pControlContainer = g_pCurrentScene->m_pControlContainer;
+	// WYD 7.48 can destroy transient inventory/shop objects while a scene is
+	// being replaced.  Do not dereference the old scene during that teardown.
+	SControlContainer* pControlContainer =
+		g_pCurrentScene != nullptr ? g_pCurrentScene->m_pControlContainer : nullptr;
 
 	if (pControlContainer != nullptr && m_GCObj.nLayer >= 0)
 		RemoveRenderControlItem(pControlContainer->m_pDrawControl, &m_GCObj, m_GCObj.nLayer);
@@ -422,7 +430,9 @@ int S3DObj::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int 
 	if (dwFlags == WM_MOUSEMOVE)
 		return 0;
 
-	return OnMouseEvent(dwFlags, wParam, nX, nY);
+	// Native WYD 7.48 FUN_00401bf5 delegates clicks to SControl.  Calling this
+	// override again recurses until stack overflow whenever a 3D item is clicked.
+	return SControl::OnMouseEvent(dwFlags, wParam, nX, nY);
 }
 
 void S3DObj::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag)
@@ -504,11 +514,17 @@ void SCursor::FrameMove2(stGeomList* pDrawList, TMVector2 ivParenPos, int inPare
 
 		if (m_GeomItem.eRenderType == RENDERCTRLTYPE::RENDER_3DOBJ)
 		{
-			m_GeomItem.nPosX += m_pAttachedItem->GetPos().x;
-			m_GeomItem.nPosY += m_pAttachedItem->GetPos().y;
+			// The attached geometry is a local copy: anchor it to the live cursor
+			// before adding the item's pickup offset.  The imported 7.59 branch
+			// reused the grid's absolute coordinates, so 3D inventory icons stayed
+			// behind while the cursor moved.
+			m_GeomItem.nPosX = m_nPosX + m_pAttachedItem->GetPos().x;
+			m_GeomItem.nPosY = m_nPosY + m_pAttachedItem->GetPos().y;
 
 			m_GeomItem.nLayer = m_GCPanel.nLayer;
-			m_GeomItem.fScale = 1.5f;
+			// PickupItem applies the same complete-AABB containment used by every 1x1
+			// receptacle. Copying the geometry preserves that fScale on the cursor;
+			// replacing it with 1.5 made dragged models invade adjacent cells.
 
 			unsigned int dwServerTime = g_pTimerManager->GetServerTime() % 3000;
 			m_GeomItem.fAngle = ((float)dwServerTime * 6.28f) / 3000.0f;
@@ -1115,8 +1131,6 @@ int SEditableText::OnCharEvent(char iCharCode, int lParam)
 	if (m_bFocused != 1)
 		return 0;
 
-	if (iCharCode == VK_LEFT)
-		return 0;
 	if (iCharCode == VK_ESCAPE)
 	{
 		if (g_nKeyType == 0)
@@ -1142,78 +1156,10 @@ int SEditableText::OnCharEvent(char iCharCode, int lParam)
 		return 0;
 	}
 
-	SButton* Button = nullptr;
-	SButton* Button2 = nullptr;
-
-	int nTextLen = strlen(m_strText);
-	if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD && 
-		iCharCode != VK_BACK &&
-		nTextLen <= 1 && 
-		(iCharCode == '=' || iCharCode == '-' || iCharCode == '@'))
-	{		
-		if (nTextLen == 0)
-		{
-			switch (iCharCode)
-			{
-			case '-':
-				Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_GUILD));
-				strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "-");
-				break;
-			case '=':
-				Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_PARTY));
-				strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "=");
-				break;
-			case '@':
-
-				Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_KINGDOM));
-				strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "@");
-				break;
-			}
-
-			if (Button != nullptr)
-			{
-				Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-				Button2->SetText(Button->m_GCPanel.strString);
-			}
-		}
-		else if (iCharCode == '-' && m_strText[0] == '-')
-		{
-			Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_GUILD2));
-			strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "--");
-			Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-			Button2->SetText(Button->m_GCPanel.strString);
-		}
-		else if (iCharCode == '@' && m_strText[0] == '@')
-		{
-			Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_CITY));
-			strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "@@");
-			Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-			Button2->SetText(Button->m_GCPanel.strString);
-		}
-		
-		
-	}
-	if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD && iCharCode != VK_BACK)
-	{
-		char temp[64]{};
-		sprintf(temp, "/%s", g_pMessageStringTable[389]);
-		int length = strlen(temp);
-
-		if (m_strText[0] == '/' && !strncmp(m_strText, temp, length))
-		{
-			Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_SHOUT));
-			strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "");
-			Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-			Button2->SetText(Button->m_GCPanel.strString);
-		}
-		else if (m_strText[0] == '/' && strncmp(m_strText, temp, length))
-		{
-			Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_WHISPER));
-			strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "");
-			Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-			Button2->SetText(Button->m_GCPanel.strString);
-		}
-	}
+	// Native WYD 7.48 FUN_00406bd7 keeps text editing independent from the
+	// field chat UI.  The imported chat-selector block required controls
+	// 90114/90129..90136 that do not exist in the 7.48 RC and dereferenced a
+	// null B_CHAT_SELECT while typing or deleting text.
 	if (iCharCode == VK_BACK)
 	{
 		if (strlen(m_strComposeText))
@@ -1222,15 +1168,11 @@ int SEditableText::OnCharEvent(char iCharCode, int lParam)
 		int nTextLen = strlen(m_strText);
 		if (nTextLen == 0)
 		{
-			if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
-			{
-				Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_NOMAL));
-				strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "");
-				Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-				Button2->SetText(Button->m_GCPanel.strString);
-			}
-
-			return m_pEventListener->OnControlEvent(m_dwControlID, 7);
+			// Valid 7.48 edit controls own a listener; keep a defensive guard for
+			// compatibility-created controls without changing the native event.
+			return m_pEventListener != nullptr
+				? m_pEventListener->OnControlEvent(m_dwControlID, TMEDIT_MSG_NO_STRING)
+				: 0;
 		}
 
 		LPSTR szPrevText = CharPrev(m_strText, &m_strText[nTextLen]);
@@ -1239,43 +1181,6 @@ int SEditableText::OnCharEvent(char iCharCode, int lParam)
 		m_strText[nLen] = 0;
 		Update();
 
-		if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
-		{
-			if (!strcmp(m_strText, "="))
-			{
-				Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_PARTY));
-				strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "=");
-				Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-				Button2->SetText(Button->m_GCPanel.strString);
-			}
-			else if (!strcmp(m_strText, "-"))
-			{
-				Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_GUILD));
-				strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "-");
-				Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-				Button2->SetText(Button->m_GCPanel.strString);
-			}
-			else if (!strcmp(m_strText, "--"))
-			{
-				Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_GUILD2));
-				strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "--");
-				Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-				Button2->SetText(Button->m_GCPanel.strString);
-			}
-			else if (!strcmp(m_strText, "@"))
-			{
-				Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_KINGDOM));
-				strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "@");
-				Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-				Button2->SetText(Button->m_GCPanel.strString);			}
-			else if (!strcmp(m_strText, "@@"))
-			{
-				Button = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT_CITY));
-				strcpy(static_cast<TMFieldScene*>(g_pCurrentScene)->m_cChatType, "@@");
-				Button2 = static_cast<SButton*>(g_pCurrentScene->m_pControlContainer->FindControl(B_CHAT_SELECT));
-				Button2->SetText(Button->m_GCPanel.strString);
-			}
-		}
 		return 1;
 	}
 	else if (m_nMaxStringLen > strlen(m_strText))
@@ -2107,12 +2012,9 @@ SListBoxItem::SListBoxItem(const char* istrText, unsigned int idwFontColor, floa
 		dwAlignType)
 {
 	m_eCtrlType = CONTROL_TYPE::CTRL_TYPE_LISTBOXITEM;
+	// Ghidra FUN_00407203 proves that the native 7.48 list item owns no
+	// selection panel: SText type/border state is the translucent highlight.
 	m_bBGColor = 0;
-	m_dwTime = 0;
-
-	m_pBackSelection = new SPanel(566, inX - 2.0f, inY, inWidth, inHeight, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-	m_pBackSelection->GetGeomControl()->eRenderType = RENDERCTRLTYPE::RENDER_IMAGE_STRETCH;
-	m_pBackSelection->GetGeomControl()->nTextureIndex = 0;
 }
 
 SListBoxItem::~SListBoxItem()
@@ -2121,46 +2023,23 @@ SListBoxItem::~SListBoxItem()
 
 void SListBoxItem::FrameMove2(stGeomList* pDrawList, TMVector2 ivItemPos, int inParentLayer, int nFlag)
 {
-	/*if (m_pMainListBox)
-	{
-		m_pBackSelection->m_nWidth = m_pMainListBox->m_nWidth;
-		for (int i = 0; i < m_pMainListBox->m_nNumItem; i++)
-		{
-			m_pBackSelection->GetGeomControl()->nTextureIndex = 3;
-		}
-		printf("m_pMainListBox->m_nHoverItem  %d - m_dwIndex %d nFlag %d\n", m_pMainListBox->m_nHoverItem, m_dwID, nFlag);
-		if (m_pMainListBox->m_nHoverItem == m_dwID)
-			m_pBackSelection->GetGeomControl()->nTextureIndex = 1;
-	}*/
 	if (m_bBGColor == 0)
 	{
-		 
+		// Ghidra FUN_00407281 uses type 2 plus a one-pixel border for the
+		// selected row and type 1 with no border for every other row.
 		if (nFlag == 1)
 		{
-			m_cBorder = 0;
-			SetType(0);	
-			if (m_pBackSelection)
-				m_pBackSelection->GetGeomControl()->nTextureIndex = 0;
+			m_cBorder = 1;
+			SetType(2);
 		}
 		else
 		{
 			m_cBorder = 0;
-			SetType(0);
-			if (m_pBackSelection)
-				m_pBackSelection->GetGeomControl()->nTextureIndex = 2;
+			SetType(1);
 		}
 	}
 
 	SText::FrameMove2(pDrawList, ivItemPos, inParentLayer, nFlag);
-
-	
-
-	if (m_pBackSelection)
-	{
-		m_pBackSelection->m_nWidth = m_pMainListBox->m_nWidth;
-		m_pBackSelection->m_nHeight = m_nHeight - 1.8f;
-		m_pBackSelection->FrameMove2(pDrawList, ivItemPos, inParentLayer, nFlag);
-	}
 }
 
 int SListBoxItem::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)
@@ -2398,8 +2277,6 @@ SListBox::SListBox(int inTextureSetIndex, int inMaxCount, int inVisibleCount, fl
 
 	m_fPickWidth = m_nWidth;
 	m_fPickHeight = m_nHeight;
-	m_dwSetTime = 0;
-	m_dwNowTime = 0;
 }
 
 SListBox::~SListBox()
@@ -2417,24 +2294,13 @@ int SListBox::AddItem(SListBoxItem* ipNewItem)
 			m_pItemList[i - 1] = m_pItemList[i];
 
 		m_pItemList[m_nNumItem - 1] = ipNewItem;
-		m_pItemList[m_nNumItem - 1]->m_pMainListBox = this;
 		m_pItemList[m_nNumItem - 1]->m_dwID = m_nNumItem - 1;
-
-		if (m_dwSetTime != 0)
-		{
-			m_pItemList[m_nNumItem - 1]->m_dwTime = timeGetTime();
-			m_pItemList[m_nNumItem - 1]->m_GCText.bVisible = 1;
-		}
 
 		return 1;
 	}
 
 	m_pItemList[m_nNumItem] = ipNewItem;
-	m_pItemList[m_nNumItem]->m_pMainListBox = this;
 	m_pItemList[m_nNumItem]->m_dwID = m_nNumItem;
-
-	if (m_dwSetTime)
-		m_pItemList[m_nNumItem]->m_dwTime = timeGetTime();
 
 	++m_nNumItem;
 
@@ -2501,7 +2367,9 @@ int SListBox::DeleteItem(SListBoxItem* ipItem)
 
 SListBoxItem* SListBox::GetItem(int inItemIndex)
 {
-	if (inItemIndex < 0 || inItemIndex > m_nNumItem)
+	// The valid range is [0, m_nNumItem); accepting the end index leaks the
+	// uninitialized sentinel into server selection and confirmation handlers.
+	if (inItemIndex < 0 || inItemIndex >= m_nNumItem)
 		return nullptr;
 
 	return m_pItemList[inItemIndex];
@@ -2658,15 +2526,6 @@ void SListBox::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inPa
 			}
 		}
 	}
-	if (m_dwSetTime != 0)
-	{
-		unsigned int dwTime = timeGetTime();
-		for (int i = 0; i < m_nNumItem; ++i)
-		{
-			if (m_pItemList[i] != nullptr && m_dwSetTime + m_pItemList[i]->m_dwTime < dwTime)
-				m_pItemList[i]->m_GCText.bVisible = 0;
-		}
-	}
 	if (m_cEditable == 1 && m_pEditLine != nullptr)
 	{
 		m_pEditLine->SetPos(0.0f, ((float)(m_sEditLine - m_nStartItemIndex) * m_nHeight) / (float)m_nVisibleCount);
@@ -2744,13 +2603,8 @@ int SListBox::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, in
 	return 1;
 }
 
-void SListBox::SetTextTimer(unsigned int dTime)
-{
-	m_dwSetTime = dTime;
-}
-
 SMessageBox::SMessageBox(const char* istrMessage, char ibyMessageBoxType, float inX, float inY)
-	: SPanel(-2, inX, inY, 256.0f, g_UIVer == 2 ? 128.0f : 172.0f,
+	: SPanel(-2, inX, inY, 256.0f, 128.0f,
 		0x1010101, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH)
 {
 	// WYD 7.48's NewUI message box is not the older 256x172 composition kept by
@@ -2774,7 +2628,7 @@ SMessageBox::SMessageBox(const char* istrMessage, char ibyMessageBoxType, float 
 	m_dwMessage = -1;
 
 	const float centeredWidth = useWYD748NewUI ? 232.0f : 256.0f;
-	const float centeredHeight = useWYD748NewUI ? 128.0f : 172.0f;
+	const float centeredHeight = 128.0f;
 	SetCenterPos(m_dwControlID, inX, inY, centeredWidth * RenderDevice::m_fWidthRatio,
 		centeredHeight * RenderDevice::m_fHeightRatio);
 
@@ -2791,14 +2645,15 @@ SMessageBox::SMessageBox(const char* istrMessage, char ibyMessageBoxType, float 
 	}
 	else
 	{
-		m_pPanel1 = new SPanel(501, 0.0f, 0.0f, 256.0f, 172.0f,
+		// Classic FUN_00403eb8 uses the compact MessageBox texture set 9.  Sets
+		// 501+ and the 172-pixel layout belong to the later client and render as
+		// missing/bare UI with the distributed 7.48 atlas.
+		m_pPanel1 = new SPanel(9, 0.0f, 0.0f, 256.0f, 97.0f,
 			0x77777777, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-		m_pMessage = new SText(-1, istrMessage, 0xFFFFFFFF, 20.0f, 36.0f,
-			(float)strlen(istrMessage) * 6.0f, 52.0f, -1, 1, 0, 0);
-		m_pMessage2 = new SText(-1, istrMessage, 0xFFFFFFFF, 20.0f, 52.0f,
-			(float)strlen(istrMessage) * 6.0f, 52.0f, -1, 1, 0, 0);
-		m_pCaption = new SText(-1, g_pMessageStringTable[237], 0xFFFFFFFF, 96.0f, 9.0f,
-			(float)strlen(g_pMessageStringTable[237]) * 6.0f, 22.0f, -1, 1, 0, 0);
+		m_pMessage = new SText(-1, istrMessage, 0xFFFFFFFF, 20.0f, 17.0f,
+			(float)strlen(istrMessage) * 6.0f, 14.0f, -1, 1, 0, 0);
+		m_pMessage2 = new SText(-1, istrMessage, 0xFFFFFFFF, 20.0f, 32.0f,
+			(float)strlen(istrMessage) * 6.0f, 14.0f, -1, 1, 0, 0);
 	}
 
 	m_bPickable = 1;
@@ -2828,7 +2683,7 @@ SMessageBox::SMessageBox(const char* istrMessage, char ibyMessageBoxType, float 
 				0, 1, g_pMessageStringTable[238]);
 		}
 		else
-			m_pOKButton = new SButton(-2, 17.0f, 132.0f, 103.0f, 21.0f,
+			m_pOKButton = new SButton(14, 25.0f, 56.0f, 103.0f, 21.0f,
 				0, 1, g_pMessageStringTable[238]);
 
 		if (m_pOKButton != nullptr)
@@ -2842,7 +2697,7 @@ SMessageBox::SMessageBox(const char* istrMessage, char ibyMessageBoxType, float 
 			m_pCancelButton = new SButton(-2, 117.0f, 77.0f, 103.0f, 21.0f,
 				0, 1, g_pMessageStringTable[239]);
 		else
-			m_pCancelButton = new SButton(-2, 137.0f, 132.0f, 103.0f, 21.0f,
+			m_pCancelButton = new SButton(15, 128.0f, 56.0f, 103.0f, 21.0f,
 				0, 1, g_pMessageStringTable[239]);
 		if (m_pCancelButton != nullptr)
 		{
@@ -2861,7 +2716,7 @@ SMessageBox::SMessageBox(const char* istrMessage, char ibyMessageBoxType, float 
 				0, 1, g_pMessageStringTable[238]);
 		}
 		else
-			m_pOKButton = new SButton(-2, 70.0f, 132.0f, 88.0f, 23.0f,
+			m_pOKButton = new SButton(14, 79.0f, 56.0f, 103.0f, 21.0f,
 				0, 1, g_pMessageStringTable[238]);
 
 		if (m_pOKButton != nullptr)
@@ -3008,16 +2863,23 @@ int SMessageBox::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX,
 }
 
 SMessagePanel::SMessagePanel(const char* istrMessage, float inX, float inY, float inWidth, float inHeight, unsigned int dwTime)
-	: SPanel(-45, inX, inY, inWidth, inHeight, 0xAAFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH)//new
+	: SPanel(-45, inX, inY, inWidth, inHeight, 0xAAFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH)
 {
+	// FUN_00403924 constructs the stock texture first and then applies the 7.48
+	// MessagePanel2 composition.  This project deliberately keeps that translucent
+	// notification contract even with the classic HUD because login errors, notices
+	// and the delayed-exit countdown all share this panel.
+	SetTextureSetIndex(-178);
 	m_eCtrlType = CONTROL_TYPE::CTRL_TYPE_MESSAGEPANEL;
-	m_GCPanel.nTextureSetIndex = -502;
 	m_dwControlID = 5638;
+	SetCenterPos(m_dwControlID, inX, inY, inWidth, inHeight);
+	m_pPanelL = nullptr;
+	m_pPanelR = nullptr;
 
-	m_pText = new SText(-2, istrMessage, 0xFFFFFFFF, 20.0f, 1.0f, (float)(inWidth - 2.0f) - 50.0f, inHeight - 2.0f, 1, 0, 1, 1);
+	m_pText = new SText(-2, istrMessage, 0xFFFFFFFF, 30.0f, 1.0f, (float)(inWidth - 2.0f) - 50.0f, inHeight - 2.0f, 1, 0, 1, 1);
 	m_pText2 = new SText(-2, "", 0xFFFFFFFF, 50.0f, 24.0f, (float)(inWidth - 2.0) - 50.0f, 14.0f, 1, 0, 1, 1);
-	m_pPanelL = new SPanel(-503, -11.0f, 0.0f, 11.0f, inHeight, 0xAAFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-	m_pPanelR = new SPanel(-504, inWidth, 0.0f, 11.0f, inHeight, 0xAAFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+	m_pPanelL = new SPanel(-259, -11.0f, 0.0f, 11.0f, inHeight, 0xAAFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+	m_pPanelR = new SPanel(-260, inWidth, 0.0f, 11.0f, inHeight, 0xAAFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
 
 	if (m_pPanelL != nullptr)
 		AddChild(m_pPanelL);

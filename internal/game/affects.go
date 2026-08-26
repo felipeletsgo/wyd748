@@ -367,6 +367,12 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 		default:
 			affectType, value, ok := skillAffect(skill)
 			if ok {
+				// SkillData.csv preserva o identificador cru 50 da Armadura Critica,
+				// mas a regra autoritativa usa affect 31 e o executavel 7.48 exige o
+				// visual 24. Normalize antes de persistir para não perder os stats.
+				if skill.Index == 15 {
+					affectType = 31
+				}
 				applied = setAffectAt(target.Char, affectType, value, mastery, skill.AffectTime, now)
 				if applied && skill.Index == 15 { // Critical Armor TK usa o visual 24 no 7.48.
 					for i := range target.Char.Affects {

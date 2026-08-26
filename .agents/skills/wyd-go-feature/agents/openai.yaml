@@ -1,4 +1,4 @@
 interface:
   display_name: "WYD-Go Feature"
-  short_description: "Portar WYD-Go/7.48 com evidência Ghidra obrigatória"
-  default_prompt: "Use $wyd-go-feature; para client, protocolo ou ABI, consulte obrigatoriamente a descompilação Ghidra do WYD.exe 7.48 antes de editar."
+  short_description: "Portar WYD-Go/7.48 com evidência e handoff verificável"
+  default_prompt: "Use $wyd-go-feature; verifique o handoff e consulte obrigatoriamente o Ghidra 7.48 para client, protocolo, UI ou ABI. Implemente toda alteração ativa em client-source ou assets, compile com Build-Client.ps1 e exija a instalação automática de client748/project.exe; nunca execute ou aplique os patches históricos."

@@ -1,8 +1,9 @@
 # WYD 7.48 field-window catalog
 
-This catalog records top-level windows found in the original
-`UI/FieldScene2.bin`. It prevents compatibility work from hiding controls by
-appearance or by IDs copied from the newer TMProject resource.
+This catalog records top-level windows found in the historical 7.48
+`UI/FieldScene2.bin`. It prevents the source adaptation from hiding controls by
+appearance or by IDs copied from the newer TMProject resource. It does not
+authorize a second-version compatibility path.
 
 The source-built client also writes a live `UI window ...` record to
 `client-debug.log` for every top-level control, including its current caption,
@@ -67,11 +68,11 @@ the compatibility bootstrap:
 
 ## Verification rule
 
-Whenever another unknown panel appears, capture a fresh compatibility startup
+Whenever another unknown panel appears, capture a fresh `project.exe` startup
 log and register its root ID, captions and intended trigger here before adding
 it to the startup-hidden list.
 
-The compatibility bootstrap must also bind controls that native input code
+The 7.48 bootstrap must also bind controls that native input code
 consults while they are closed. A 2026-08-20 dump proved two such requirements:
 the teleport list (`12545`) and auto-trade root (`646`). Visibility controls
 startup state; a null pointer is not an acceptable substitute for a closed

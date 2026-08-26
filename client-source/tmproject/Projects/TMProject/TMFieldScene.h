@@ -10,6 +10,9 @@
 // Later TMProject controls 800/801 are outside this single-version client ABI.
 constexpr auto NUM_ITEM_DESC_PARAMS = 12;
 class SGridControlItem;
+// SGrid.h owns the grid-mode enum; the scene header only needs its opaque type
+// here, which avoids pulling the full control implementation into every scene user.
+enum class TMEGRIDTYPE;
 class SButton;
 class SButtonBox;
 class SPanel;
@@ -59,11 +62,23 @@ public:
 	void SetVisibleCargo1(int bShow);
 	void SetVisibleTrade(int bShow);
 	void ClearCombine();
+	void ClearCombine2();
+	void ClearCombine3();
 	void ClearCombine4();
+	void ClearCombine5();
+	void ClearCombine6();
 	void DoCombine();
+	void DoCombine2();
+	void DoCombine3();
 	void DoCombine4();
+	void DoCombine5();
+	void DoCombine6();
 	void SetVisibleMixItem(int bShow);
+	void SetVisibleMixItem2(int bShow);
+	void SetVisibleMixItem3(int bShow);
 	void SetVisibleMixItemTiini(int bShow);
+	void SetVisibleMixItem5(int bShow);
+	void SetVisibleMixItem6(int bShow);
 	void SetVisibleHellGateStore(int bShow);
 	void SetVisibleGamble(int bShow, char cType);
 	void SetVisiblePotal(int bShow, int nPos);
@@ -288,12 +303,14 @@ private:
 	// handler (Ghidra FUN_00489023 -> FUN_004470b9).  FieldScene2.bin does not
 	// serialize these runtime grids, so the imported 7.59 initializer cannot bind them.
 	void InitializeCompatSkillBelts();
+	// Changes the interaction mode only on inventory grids materialized by the
+	// active resource. FieldScene2 has one native 9x7 grid, not four newer pages.
+	void SetInventoryGridType(TMEGRIDTYPE gridType);
 
 public:
-	// Centralizes the incompatible 7.48/7.59 inventory layouts.  Native 7.48
-	// uses one 9x7 Carry grid and one 9-column Cargo grid, while TMProject 7.59
-	// splits both aggregates into smaller pages.  TMHuman packet projections use
-	// these public helpers so all client subsystems share one ABI mapping.
+	// Centralizes the native 7.48 inventory ABI: one 9x7 Carry grid and one
+	// nine-column Cargo grid. Every packet and UI caller shares this mapping so
+	// later-client page IDs cannot leak into the recompilable 7.48 product.
 	SGridControl* GetCarryGridForSlot(int slot) const;
 	SGridControl* GetCargoGridForSlot(int slot) const;
 	void GetCarryCellForSlot(int slot, int& cellX, int& cellY) const;
@@ -303,13 +320,27 @@ public:
 	// numbering instead of letting each caller recreate the newer paged formula.
 	int GetCarrySlotForCell(const SGridControl* grid, int cellX, int cellY) const;
 	int GetCargoSlotForCell(const SGridControl* grid, int cellX, int cellY) const;
-	// WYD748 compatibility: dependent UI systems query the active inventory ABI instead of duplicating the 7.59 page layout.
-	bool UsesNative748InventoryLayout() const { return m_bCompatFieldScene; }
+	// Native mix grids reuse numeric enum values later assigned to quickslots.
+	// Resolve them by the visible 7.48 panel and exact control pointer instead.
+	int TryStageNativeMixItem(SGridControl* sourceGrid, SGridControlItem* sourceItem,
+		SGridControl* preferredTarget);
+	int TryRemoveNativeMixItem(SGridControl* mixGrid);
+	// The recompilable client targets only WYD 7.48; dependent systems must not
+	// select a second inventory ABI from runtime resource detection.
+	bool UsesNative748InventoryLayout() const { return true; }
 
 private:
 	// Reproduces the native 7.48 world-click movement path without touching the
 	// optional 7.59 target/chat controls that are absent from FieldScene2.bin.
 	int OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, int nX, int nY);
+	SPanel* GetNativeMixPanel(int mixIndex) const;
+	SGridControl* GetNativeMixGrid(int mixIndex, int slot) const;
+	MSG_CombineItem* GetNativeMixPacket(int mixIndex);
+	int GetNativeMixSlotCount(int mixIndex) const;
+	void ResetNativeMixPacket(int mixIndex);
+	void ClearNativeMix(int mixIndex);
+	void DoNativeMix(int mixIndex);
+	void SetVisibleNativeMix(int mixIndex, int bShow);
 	int MouseClick_MixNPC(TMHuman* pOver);
 	void MouseClick_PremiumNPC(TMHuman* pOver);
 	int MouseClick_SkillMasterNPC(unsigned int dwServerTime, TMHuman* pOver);
@@ -457,7 +488,10 @@ public:
 	SText* m_pRankTimeText;
 	SText* m_pDescNameText;
 	SText* m_pRemainText;
-	SText* m_pParamText[14];
+	// WYD.exe 7.48 FUN_00435b13 owns exactly twelve tooltip rows (0..11).
+	// Keeping the native bound in the type prevents later-client rows 12/13
+	// from being addressed anywhere in the recompilable 7.48 client.
+	SText* m_pParamText[NUM_ITEM_DESC_PARAMS];
 	unsigned int m_dwRemainTime;
 	SButton* m_PkButton;
 	SText* m_pJPNBag_Day1;
@@ -582,11 +616,19 @@ public:
 	CMission m_MissionClass;
 	SPanel* m_pItemMixPanel;
 	SGridControl* m_pGridItemMix[8];
+	SPanel* m_pItemMixPanel2;
+	SGridControl* m_pGridItemMix2[8];
+	SPanel* m_pItemMixPanel3;
+	SGridControl* m_pGridItemMix3[6];
 	SPanel* m_pHellgateStore;
 	SListBox* m_pHellStoreDesc;
 	SPanel* m_pGambleStore;
 	SPanel* m_pItemMixPanel4;
 	SGridControl* m_pGridItemMix4[8];
+	SPanel* m_pItemMixPanel5;
+	SGridControl* m_pGridItemMix5[7];
+	SPanel* m_pItemMixPanel6;
+	SGridControl* m_pGridItemMix6[3];
 	SListBox* m_pMix4Desc;
 	SGridControl* m_pGridMixResult[4];
 	SPanel* m_pSystemPanel;

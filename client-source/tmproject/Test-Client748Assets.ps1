@@ -84,6 +84,55 @@ foreach ($entry in $requiredFiles.GetEnumerator()) {
     }
 }
 
+# ItemList.bin is the canonical footprint source for the source-built client.
+# Decode every compact row exactly as WYD748_LoadItemList does and reject any
+# EF_GRID value that would select a multi-cell layout at runtime.
+$itemListPath = Join-Path $AssetRoot 'ItemList.bin'
+$itemListRecords = 6500
+$itemListRecordSize = 140
+$itemListPayloadLength = $itemListRecords * $itemListRecordSize
+$itemListGridEffects = 0
+$itemListGridRecords = 0
+$itemListStamp = $null
+if (Test-Path -LiteralPath $itemListPath -PathType Leaf) {
+    $itemListBytes = [IO.File]::ReadAllBytes($itemListPath)
+    if ($itemListBytes.Length -eq ($itemListPayloadLength + 4)) {
+        for ($itemIndex = 0; $itemIndex -lt $itemListRecords; $itemIndex++) {
+            $recordHasGrid = $false
+            for ($effectIndex = 0; $effectIndex -lt 12; $effectIndex++) {
+                $typeOffset = ($itemIndex * $itemListRecordSize) + 0x50 + ($effectIndex * 4)
+                $type = (($itemListBytes[$typeOffset] -bxor 0x5A) -bor
+                    (($itemListBytes[$typeOffset + 1] -bxor 0x5A) -shl 8))
+                if ($type -ne 33) {
+                    continue
+                }
+
+                $recordHasGrid = $true
+                $itemListGridEffects++
+                $valueOffset = $typeOffset + 2
+                $value = (($itemListBytes[$valueOffset] -bxor 0x5A) -bor
+                    (($itemListBytes[$valueOffset + 1] -bxor 0x5A) -shl 8))
+                if ($value -ne 0) {
+                    $errors.Add("ItemList.bin EF_GRID is not 1x1 at item $itemIndex, effect $effectIndex`: $value")
+                }
+            }
+            if ($recordHasGrid) {
+                $itemListGridRecords++
+            }
+        }
+
+        if ($itemListGridEffects -ne 1980) {
+            $errors.Add("invalid ItemList.bin EF_GRID count: $itemListGridEffects, expected 1980")
+        }
+
+        # The native 7.48 loader XORs only the 910000-byte payload. Keeping the
+        # final four bytes separate proves the complete file shape and stamp.
+        $stampBytes = [byte[]]::new(4)
+        [Array]::Copy($itemListBytes, $itemListPayloadLength, $stampBytes, 0, 4)
+        $itemListStamp = [Convert]::ToHexString($stampBytes)
+    }
+}
+
 # Runtime loaders require these textual indexes and directories but their
 # lengths legitimately grow as assets are imported.
 $requiredPaths = @(
@@ -208,6 +257,10 @@ if ($errors.Count -ne 0) {
     TextureRecordSize = 264
     TextureRows = 512 + 512 + 2048 + 512
     SkillRows = 104
+    ItemListRows = $itemListRecords
+    ItemListGridEffects = $itemListGridEffects
+    ItemListGridRecords = $itemListGridRecords
+    ItemListStamp = $itemListStamp
     ShaderPrograms = $requiredShaderHashes.Count
     Status = 'STATICALLY VERIFIED'
 }

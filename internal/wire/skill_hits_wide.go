@@ -40,7 +40,7 @@ func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 	base[30] = 0
 
 	// Skill single-target must not collide with the physical 0x39D/52 layout.
-	// The client patch deliberately reserves 52 bytes for melee and reads a
+	// The source-built client deliberately reserves 52 bytes for melee and reads a
 	// skill's self-describing DMGX tail only from a packet of at least 60 bytes.
 	if maxTargets <= 1 {
 		extended := make([]byte, 60)
@@ -54,7 +54,7 @@ func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 		return extended
 	}
 
-	// O helper do patch reserva oito bytes antes do vetor. Ele hoje testa o
+	// O helper do client recompilado reserva oito bytes antes do vetor. Ele testa o
 	// tamanho e le o vetor diretamente, mas manter assinatura+count deixa o
 	// contrato auto-descritivo e permite validacao futura sem mudar offsets.
 	baseSize := len(base)

@@ -312,12 +312,16 @@ func packetU16(value uint32) uint16 {
 	return uint16(value)
 }
 
-// O servidor usa a semantica 7.59 para Armadura Critica (affect 31), mas o
-// client 7.48 chama esse slot de Coin Armor. Nesse client o visual/nome de
-// Armadura Critica pertence ao slot 24; somente a representacao wire muda.
+// O servidor mantem a semantica canonica da Armadura Critica no affect 31,
+// enquanto o client 7.48 desenha essa skill no slot visual 24. Estados antigos
+// podem ainda conter o tipo cru 50 do SkillData.csv; projete-o como 24 para que
+// eles continuem visiveis ate serem normalizados no carregamento do charstate.
 func clientAffectType(affect model.Affect) byte {
 	if affect.ClientType != 0 {
 		return affect.ClientType
+	}
+	if affect.Type == 50 {
+		return 24
 	}
 	return affect.Type
 }
@@ -348,19 +352,24 @@ func putAffectWords(b []byte, offset int, affects []model.Affect, now time.Time)
 	}
 }
 
-// UpdateEtc monta o p754_SendEtc final: Hold@12, EXP@16,
+// UpdateEtc monta o MSG_UpdateEtc 7.48 exato de 36 bytes: Hold@12, EXP@16,
 // LearnedSkill@20, Status@24, Mastery@26, SkillPts@28, Magic@30 e Gold@32.
 // LearnedSkill@20 e OBRIGATORIO: e daqui que o client sabe as skills aprendidas
 // (TMHuman::OnPacketUpdateEtc copia LearnedSkill/bonus/coin deste pacote). Remover
 // esse campo apaga as skills do client e desloca os pontos (regressao 2026-07-14).
 func UpdateEtc(id uint16, ch model.Char) []byte {
-	b := Build(OpUpdateEtc, id, 168)
+	b := Build(OpUpdateEtc, id, 36)
 	putU32(b, 12, 0) // Hold: native reserved EXP field.
 	putU32(b, 16, uint32(ch.Exp))
 	putU32(b, 20, ch.LearnedSkill)
-	score := EncodeClientScore(wireScore(ch))
-	copy(b[24:164], score[:])
-	putU32(b, 164, ch.Gold)
+	score := wireScore(ch)
+	// The native packet has WORD counters.  Wide values continue travelling in
+	// 0x336, while this incremental projection follows the executable ABI.
+	putU16(b, 24, packetU16(score.StatusPts))
+	putU16(b, 26, packetU16(score.MasterPts))
+	putU16(b, 28, packetU16(score.SkillPts))
+	putU16(b, 30, packetU16(score.MagicAmp))
+	putU32(b, 32, ch.Gold)
 	return b
 }
 
@@ -510,8 +519,8 @@ func AttackHit(attackerID, targetID, attackerX, attackerY, targetX, targetY uint
 	return b
 }
 
-// SendItem monta o 0x182 (24B): DestType@12, DestPos@14, Item(8)@16. Confirma
-// UM slot (o client so aplica o swap quando recebe este pacote).
+// SendItem monta o 0x182 (24B): DestType@12, DestPos@14, Item(8)@16. Ele
+// ressincroniza um slot isolado; o lifecycle de swap bem-sucedido usa 0x376.
 func SendItem(id uint16, placeType, pos byte, it model.Item) []byte {
 	b := Build(OpSendItem, id, 24)
 	putU16(b, 12, uint16(placeType))
@@ -520,8 +529,29 @@ func SendItem(id uint16, placeType, pos byte, it model.Item) []byte {
 	return b
 }
 
+// SwapItem confirma a mesma estrutura 0x376 enviada pelo client.  O handler
+// nativo FUN_00486808 somente solta o item do cursor e troca os dois controles
+// quando recebe SourType/SourPos/DestType/DestPos de volta neste pacote.
+func SwapItem(id uint16, sourType, sourPos, destType, destPos byte, targetID uint16) []byte {
+	b := Build(OpSwapItem, id, 20)
+	b[12], b[13], b[14], b[15] = sourType, sourPos, destType, destPos
+	putU16(b, 16, targetID)
+	return b
+}
+
+// BuyItem monta a confirmacao nativa 0x379 (24B).  Ela carrega as posicoes da
+// loja e do Carry e o gold final; o item e copiado da grade de loja pelo client.
+func BuyItem(id, targetID, targetCarryPos, myCarryPos uint16, coin uint32) []byte {
+	b := Build(OpBuyItem, id, 24)
+	putU16(b, 12, targetID)
+	putU16(b, 14, targetCarryPos)
+	putU16(b, 16, myCarryPos)
+	putU32(b, 20, coin)
+	return b
+}
+
 // AttackHitWide conserva o MSG_AttackOne 7.48 nos primeiros 48 bytes e
-// anexa o dano REAL em uint32 (a cauda DMGX, que o client patcheado le para o
+// anexa o dano REAL em uint32 (a cauda DMGX, que o client recompilado le para o
 // texto flutuante).
 //
 // O WORD legado leva o dano PROJETADO na escala do alvo, nao o dano cru: o
@@ -701,7 +731,7 @@ func SpectralVisual(packet []byte) []byte {
 
 // SkillHitExtended is the single-target skill-wide adapter. Physical hits own
 // the compact 0x39D/52 contract; skills use the self-describing 0x39D/60 DMGX
-// tail so the patched 7.48 client cannot confuse the two result families.
+// tail so the source-built 7.48 client cannot confuse the two result families.
 func SkillHitExtended(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
 	damage, targetMaxHP, currentExp, currentMP uint32, skill int16, motion, mastery byte) []byte {
 	return SkillHits(attackerID, attackerX, attackerY, targetX, targetY,

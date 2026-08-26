@@ -73,6 +73,15 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 		if slot >= len(p.Char.Affects) {
 			break
 		}
+		// Sidecars gravados antes da projecao 7.48 podem conter o tipo cru 50 da
+		// Armadura Critica. Converta a semantica e o visual juntos no relogin para
+		// que o buff volte a afetar score e apareca no slot nativo 24.
+		if pa.Type == 50 {
+			pa.Type = 31
+			if pa.ClientType == 0 || pa.ClientType == 50 {
+				pa.ClientType = 24
+			}
+		}
 		clientType := pa.ClientType
 		if clientType == 0 {
 			clientType = pa.Type

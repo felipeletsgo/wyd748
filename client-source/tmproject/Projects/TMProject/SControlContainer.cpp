@@ -380,12 +380,16 @@ SControl* SControlContainer::FindControl(unsigned int dwID)
 				if ((!translate && actualID == wantedID) ||
 					(translate && WYD748_TranslateControlID(actualID) == wantedID))
 					return pCurrentControl;
+			}
 
-				if (pCurrentControl->m_pDown)
-				{
-					pCurrentControl = static_cast<SControl*>(pCurrentControl->m_pDown);
-					continue;
-				}
+			// RC trees can retain a deleted wrapper while live native children remain
+			// linked below it.  Deleted controls must not match, but skipping their
+			// subtree made Character control 259 unreachable and left its auxiliary
+			// black bar visible.  Traverse children independently of wrapper state.
+			if (pCurrentControl->m_pDown)
+			{
+				pCurrentControl = static_cast<SControl*>(pCurrentControl->m_pDown);
+				continue;
 			}
 
 			do

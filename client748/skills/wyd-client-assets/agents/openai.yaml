@@ -1,4 +1,4 @@
 interface:
   display_name: "WYD Client Assets"
   short_description: "Importar e validar meshes e texturas WYD"
-  default_prompt: "Use $wyd-client-assets para investigar e implementar assets visuais no client WYD 7.48."
+  default_prompt: "Use $wyd-client-assets para rastrear origem, hash, transformação, consumer e dependências de cada asset WYD 7.48. Cumpra o gate Ghidra para lógica, implemente em client-source/assets, compile com Build-Client.ps1 e valide owner/observer no project.exe sem executar patches históricos."

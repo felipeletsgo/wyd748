@@ -310,7 +310,9 @@ func TestTKCriticalArmorAndHTCoinArmorUseDistinctClientTypes(t *testing.T) {
 	p := &Player{ID: 1, Char: ch, Session: &net.Session{ID: 1}}
 	w := &World{}
 	w.applySupportSkill(p, skillCastRequest{}, model.SkillDef{
-		Index: 15, AffectType: 31, AffectValue: 150, AffectTime: 10, MaxTarget: 1,
+		// O catalogo 7.48 entrega 50; a camada de gameplay deve normalizar para a
+		// semantica 31 sem perder o slot visual 24 do executavel.
+		Index: 15, AffectType: 50, AffectValue: 150, AffectTime: 10, MaxTarget: 1,
 	}, 40)
 	if ch.Affects[0].Type != 31 || ch.Affects[0].ClientType != 24 {
 		t.Fatalf("Critical Armor TK incorreta: %+v", ch.Affects[0])

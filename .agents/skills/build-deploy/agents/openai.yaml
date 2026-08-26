@@ -1,4 +1,4 @@
 interface:
   display_name: "WYD Plugin Build"
   short_description: "Compilar e implantar o plugin Micronics"
-  default_prompt: "Use $build-deploy para compilar e implantar o plugin Micronics com verificação."
+  default_prompt: "Use $build-deploy para localizar os projetos legados ao lado de wyd-go, compilar Win32, encerrar TMSRV antes da cÃ³pia, comparar SHA-256, reiniciar na ordem correta e testar o fluxo real."

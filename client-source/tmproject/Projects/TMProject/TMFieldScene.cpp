@@ -88,6 +88,9 @@ TMFieldScene::TMFieldScene()
 	// Start in the full source path; InitializeScene switches this flag only
 	// when the deployed 7.48 resource lacks the newer HUD controls.
 	m_bCompatFieldScene = false;
+	// FieldScene2.bin exposes only the native 7.48 cargo page; keep the
+	// imported second-page pointer deterministic when that 7.59 control is absent.
+	m_pCargoPanel1 = nullptr;
 
 	g_bLastStop = 0;
 	g_bCastleWar = 0;
@@ -246,6 +249,17 @@ TMFieldScene::TMFieldScene()
 	memset(m_dwLastChatTime, 0, sizeof(m_dwLastChatTime));
 	memset(m_pGridAutoTrade, 0, sizeof(m_pGridAutoTrade));
 	memset(m_pGridItemMix, 0, sizeof(m_pGridItemMix));
+	// Mix2 and Mix3 are stock FieldScene2 panels, not optional modern systems.
+	// Their pointers stay deterministic until the 7.48 control tree is loaded.
+	memset(m_pGridItemMix2, 0, sizeof(m_pGridItemMix2));
+	memset(m_pGridItemMix3, 0, sizeof(m_pGridItemMix3));
+	// The 7.48 compatibility initializer skips the later tiny-mix bindings, so
+	// these optional pointers must remain deterministic until a real control is found.
+	memset(m_pGridItemMix4, 0, sizeof(m_pGridItemMix4));
+	// ItemMix5 is present in the stock 7.48 resource even though the imported
+	// source had lost its bindings. Keep the seven native receptacles deterministic.
+	memset(m_pGridItemMix5, 0, sizeof(m_pGridItemMix5));
+	memset(m_pGridItemMix6, 0, sizeof(m_pGridItemMix6));
 	memset(m_pGridMixResult, 0, sizeof(m_pGridMixResult));
 
 	m_pChatList = nullptr;
@@ -257,13 +271,24 @@ TMFieldScene::TMFieldScene()
 	m_pMiniMapPanel = nullptr;
 	m_pMiniMapZoomIn = nullptr;
 	m_pMiniMapZoomOut = nullptr;
+	m_pMiniMapServerPanel = nullptr;
+	m_pMiniMapServerText = nullptr;
+	// Both initializers create the 256 legacy marker pairs only after the map
+	// panel has been resolved. Deterministic nulls keep partial initialization
+	// and allocation failure from turning the first M shortcut into stale access.
+	memset(m_pInMiniMapPosPanel, 0, sizeof(m_pInMiniMapPosPanel));
+	memset(m_pInMiniMapPosText, 0, sizeof(m_pInMiniMapPosText));
 	m_pFadePanel = nullptr;
 	m_pEditChat = nullptr;
 	m_pInputBG2 = nullptr;
 	m_pInvenPanel = nullptr;
 	m_pAutoTrade = nullptr;
 	m_pItemMixPanel = nullptr;
+	m_pItemMixPanel2 = nullptr;
+	m_pItemMixPanel3 = nullptr;
 	m_pItemMixPanel4 = nullptr;
+	m_pItemMixPanel5 = nullptr;
+	m_pItemMixPanel6 = nullptr;
 	m_pSystemPanel = nullptr;
 	m_pPGTPanel = nullptr;
 	m_pInputGoldPanel = nullptr;
@@ -636,8 +661,12 @@ void TMFieldScene::UpdateCompatScoreUI()
 	m_pMainCharName = static_cast<SText*>(m_pControlContainer->FindControl(TMT_MAIN_INFO2_NAME));
 	m_pMainInfo2_Name = m_pMainCharName;
 	m_pMainInfo2_Lv = static_cast<SText*>(m_pControlContainer->FindControl(TMT_MAIN_INFO2_LEVEL));
-	m_pDamage = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATT_C));
-	m_pDefence = static_cast<SText*>(m_pControlContainer->FindControl(TMT_DEF_C));
+	// FUN_00435b13 binds the six native compact-HUD texts at 1029..1040.
+	// IDs 5718..5720 belong to the imported 7.59 graph and overwrite unrelated
+	// children in FieldScene2.bin, which is why ATT/DEF appeared displaced.
+	m_pDamage = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATT));
+	m_pSkillDam = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATT_ENC));
+	m_pDefence = static_cast<SText*>(m_pControlContainer->FindControl(TMT_DEF));
 	m_pMoney1 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_MONEY_TEXT));
 
 	if (pMobData->CurrentScore.CurHP > pMobData->CurrentScore.MaxHP)
@@ -670,11 +699,95 @@ void TMFieldScene::UpdateCompatScoreUI()
 	setNumber(TMT_MAX_HP, pMobData->CurrentScore.MaxHP);
 	setNumber(TMT_CURRENT_MP, pMobData->CurrentScore.CurMP);
 	setNumber(TMT_MAX_MP, pMobData->CurrentScore.MaxMP);
-	setNumber(TMT_ATT_C, pMobData->CurrentScore.Attack);
+
+	// FUN_004431e4 writes paired values into the resource-owned ATT and DEF
+	// cells.  Keep that split intact instead of duplicating one value into the
+	// later 7.59 labels: current attack/defense are the primary values, while
+	// selected-skill damage and native base/ability defense are the companions.
+	int selectedSkillDamage = 0;
+	const int selectedShortSlot = g_pObjectManager->m_cSelectShortSkill;
+	if (m_pMyHuman && selectedShortSlot >= 0 && selectedShortSlot < 20)
+	{
+		const int selectedSkill = g_pObjectManager->m_cShortSkill[selectedShortSlot];
+		if (selectedSkill >= 0 && selectedSkill < 248)
+		{
+			SetMyHumanMagic();
+			int weather = g_nWeather == 3 ? 2 : g_nWeather;
+			const int mapX = static_cast<int>(m_pMyHuman->m_vecPosition.x) >> 7;
+			const int mapY = static_cast<int>(m_pMyHuman->m_vecPosition.y) >> 7;
+			if (mapX > 26 && mapX < 31 && mapY > 20 && mapY < 25)
+				weather = 2;
+			selectedSkillDamage = BASE_GetSkillDamage(selectedSkill, pMobData,
+				weather, GetWeaponDamage(), pMobData->Equip[0].sIndex);
+			if (selectedSkillDamage < 0)
+				selectedSkillDamage = -selectedSkillDamage;
+		}
+	}
+
+	const int nativeDefense = BASE_GetMobAbility(pMobData, 53)
+		+ BASE_GetMobAbility(pMobData, 3) + pMobData->BaseScore.Defense;
 	setNumber(TMT_ATT, pMobData->CurrentScore.Attack);
-	setNumber(TMT_DEF_C, pMobData->CurrentScore.Defense);
+	setNumber(TMT_ATT_ENC, selectedSkillDamage);
 	setNumber(TMT_DEF, pMobData->CurrentScore.Defense);
-	setNumber(TMT_EXP_C, pMobData->Exp);
+	setNumber(TMT_DEF_ENC, nativeDefense);
+
+	// The EXP band is two absolute counters in 7.48 (current and next-level
+	// threshold).  FUN_004431e4 updates 1031 and 1032 independently; leaving the
+	// second control empty made the range look broken even when Exp was valid.
+	const bool secondClass = m_pMyHuman && m_pMyHuman->Is2stClass() == 2;
+	const long long* levelTable = secondClass ? g_pNextLevel_G2 : g_pNextLevel;
+	const int levelTableCount = secondClass ? _countof(g_pNextLevel_G2) : _countof(g_pNextLevel);
+	int currentLevel = pMobData->CurrentScore.Level;
+	if (currentLevel < 0)
+		currentLevel = 0;
+	if (currentLevel >= levelTableCount - 1)
+		currentLevel = levelTableCount - 2;
+	setNumber(TMT_EXP, pMobData->Exp);
+	setNumber(TMT_EXP_ENC, levelTable[currentLevel + 1]);
+
+	// FUN_004431e4 divides the active 7.48 level interval into four quarters:
+	// panels 1172..1174 mark completed quarters and progress 1171 renders only
+	// the current quarter. Reproducing that contract restores the native EXP
+	// strip instead of leaving a full-width but permanently empty decoration.
+	const long long levelStart = levelTable[currentLevel];
+	const long long levelEnd = levelTable[currentLevel + 1];
+	long long levelProgress = static_cast<long long>(pMobData->Exp) - levelStart;
+	const long long levelSpan = max(levelEnd - levelStart, 1LL);
+	if (levelProgress < 0)
+		levelProgress = 0;
+	if (levelProgress > levelSpan)
+		levelProgress = levelSpan;
+	const long long quarterSpan = max(levelSpan >> 2, 1LL);
+	int activeQuarter = 4;
+	if (levelProgress < quarterSpan)
+		activeQuarter = 1;
+	else if (levelProgress < (quarterSpan << 1))
+		activeQuarter = 2;
+	else if (levelProgress < quarterSpan * 3)
+		activeQuarter = 3;
+	for (int lamp = 0; lamp < 3; ++lamp)
+	{
+		if (auto pQuarterLamp = static_cast<SPanel*>(
+			m_pControlContainer->FindControl(1172 + lamp)))
+		{
+			pQuarterLamp->m_GCPanel.nTextureIndex = lamp < activeQuarter - 1 ? 1 : 0;
+		}
+	}
+	long long quarterProgress = levelProgress - (activeQuarter - 1) * quarterSpan;
+	if (quarterProgress < 0)
+		quarterProgress = 0;
+	if (quarterProgress > quarterSpan)
+		quarterProgress = quarterSpan;
+	if (auto pNativeExpProgress = static_cast<SProgressBar*>(
+		m_pControlContainer->FindControl(1171)))
+	{
+		const int nativeQuarterMax = static_cast<int>(
+			min(quarterSpan, 0x7FFFFFFFLL));
+		const int nativeQuarterProgress = static_cast<int>(
+			min(quarterProgress, static_cast<long long>(nativeQuarterMax)));
+		pNativeExpProgress->SetMaxProgress(nativeQuarterMax);
+		pNativeExpProgress->SetCurrentProgress(nativeQuarterProgress);
+	}
 	setNumber(TMT_MONEY_C, pMobData->Coin);
 	setNumber(TMT_MONEY, pMobData->Coin);
 	setNumber(TMT_MONEY_TEXT, pMobData->Coin);
@@ -699,10 +812,6 @@ void TMFieldScene::UpdateCompatScoreUI()
 	setNumber(TMT_CI_THUNDER, pMobData->CurrentScore.ResistThunder);
 	setNumber(TMT_CI_FIRE, pMobData->CurrentScore.ResistFire);
 	setNumber(TMT_CI_ICE, pMobData->CurrentScore.ResistIce);
-	setNumber(TMT_CI_SPECIAL1, pMobData->CurrentScore.Mastery[0]);
-	setNumber(TMT_CI_SPECIAL2, pMobData->CurrentScore.Mastery[1]);
-	setNumber(TMT_CI_SPECIAL3, pMobData->CurrentScore.Mastery[2]);
-	setNumber(TMT_CI_SPECIAL4, pMobData->CurrentScore.Mastery[3]);
 	setNumber(TMT_CI_SPECIALPOINT, g_pObjectManager->m_stMobData.CurrentScore.MasterPts);
 
 	auto setCompatText = [this](unsigned int controlID, const char* value)
@@ -727,11 +836,86 @@ void TMFieldScene::UpdateCompatScoreUI()
 	else
 		setCompatText(TMT_CI_CLASS2, "");
 
-	// Attack speed and critical are presentation formulas from the source
-	// client; the server remains authoritative for hit cadence and damage.
+	// WYD.exe 7.48 FUN_004431e4 formats every mastery as current/native-max.
+	// Deliberately omit the 7.59 skill IDs 200/204/205/208/233/238: they change
+	// these caps but have no representation in the target client's skill ABI.
+	int masteryMax[4]{};
+	masteryMax[0] = 3 * (pMobData->CurrentScore.Level + 1) / 2;
+	if (masteryMax[0] > 200 || (m_pMyHuman && m_pMyHuman->Is2stClass() == 2))
+		masteryMax[0] = 200;
+	masteryMax[1] = masteryMax[0];
+	masteryMax[2] = masteryMax[0];
+	masteryMax[3] = masteryMax[0];
+	if (IsValidSkill(31) == 1)
+		masteryMax[1] = 255;
+	if (IsValidSkill(39) == 1)
+		masteryMax[2] = 255;
+	if (IsValidSkill(47) == 1)
+		masteryMax[3] = 255;
+	// The fourth legacy row is intentionally non-contiguous (1153), so keep
+	// the resource IDs explicit instead of projecting the 7.59 stride onto it.
+	const unsigned int masteryValueIDs[4] = {
+		TMT_CI_SPECIAL1, TMT_CI_SPECIAL2, TMT_CI_SPECIAL3, TMT_CI_SPECIAL4
+	};
+	for (unsigned int mastery = 0; mastery < _countof(masteryMax); ++mastery)
+	{
+		char masteryText[32]{};
+		sprintf_s(masteryText, "%3d/%3d", pMobData->CurrentScore.Mastery[mastery], masteryMax[mastery]);
+		setCompatText(masteryValueIDs[mastery], masteryText);
+	}
+
+	// The four captions are class-specific in the native 7.48 score updater.
+	// Binding the original 5776..5779 controls avoids leaving the Trans Knight
+	// labels baked into FieldScene2.bin visible for every other base class.
+	for (unsigned int mastery = 0; mastery < 4; ++mastery)
+		setCompatText(TMT_CI_SPECIAL1_C + mastery,
+			g_pMessageStringTable[242 + characterClass * 4 + mastery]);
+
+	// Control 1376 is the native C.POINT value.  FUN_004431e4 derives its
+	// percentage from the hold-point counter and the active class EXP table;
+	// it is not the character's chaos-level byte despite the abbreviated label.
+	const long long holdPointRange = (levelTable[currentLevel + 1] + levelTable[currentLevel]) / 10;
+	const int holdPointPercent = holdPointRange > 0
+		? static_cast<int>((static_cast<double>(g_pObjectManager->m_nFakeExp) * 100.0) / holdPointRange)
+		: 0;
+	char holdPointText[64]{};
+	const char* holdPointFormat = g_pMessageStringTable[304]
+		? g_pMessageStringTable[304] : "%12d / %d%%";
+	sprintf_s(holdPointText, holdPointFormat, g_pObjectManager->m_nFakeExp, holdPointPercent);
+	if (auto pHoldPoint = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_FAKEEXPPOINT)))
+	{
+		pHoldPoint->SetText(holdPointText, 0);
+		pHoldPoint->SetTextColor(holdPointPercent < 80 ? 0xFFFFFFFF : 0xFFFF0000);
+	}
+
+	// WYD.exe 7.48 FUN_004431e4 includes the native class bonuses and freeze
+	// penalty in this presentation value. The server still authorizes cadence;
+	// this restores only the number shown by control 1104 (Att Speed).
+	int attackSpeedClass = 0;
+	if (m_pMyHuman && m_pMyHuman->m_nClass == 26 && m_pMyHuman->m_stLookInfo.FaceMesh == 0)
+		attackSpeedClass = 20;
+	else if (m_pMyHuman && m_pMyHuman->m_nClass == 26 && m_pMyHuman->m_stLookInfo.FaceMesh == 1)
+	{
+		if ((pMobData->LearnedSkill[0] & 0x80000) == 0x80000)
+			attackSpeedClass = 20;
+	}
+	else if (m_pMyHuman && m_pMyHuman->m_nClass == 33)
+	{
+		attackSpeedClass = 20;
+		if ((pMobData->LearnedSkill[0] & 0x200000) == 0x200000)
+			attackSpeedClass = 40;
+	}
+	else if (m_pMyHuman && m_pMyHuman->m_nClass == 40)
+		attackSpeedClass = 20;
+	else if (m_pMyHuman && m_pMyHuman->m_nClass == 63)
+		attackSpeedClass = 30;
+
 	int attackSpeed = (pMobData->CurrentScore.Mastery[2] / 10 + 10)
 		* (m_pMyHuman ? m_pMyHuman->m_cSpeedUp - m_pMyHuman->m_cSpeedDown : 0)
-		+ pMobData->CurrentScore.Dex / 5 + BASE_GetMobAbility(pMobData, 26) + 100;
+		+ pMobData->CurrentScore.Dex / 5 + attackSpeedClass
+		+ BASE_GetMobAbility(pMobData, 26) + 100;
+	if (m_pMyHuman && m_pMyHuman->m_cFreeze == 1)
+		attackSpeed -= 30;
 	char percent[32]{};
 	sprintf_s(percent, "%d%%", attackSpeed);
 	setCompatText(TMT_CI_ATRT, percent);
@@ -782,6 +966,22 @@ void TMFieldScene::InitializeCompatInventory()
 	m_pCargoGrid = findGrid(TMG_CARGO_GRID);
 	m_pCargoGridList[0] = m_pCargoGrid;
 	m_pGridSkillMaster = findGrid(TMG_SKILLM_GRID);
+	int autoTradeGridCount = 0;
+	for (int slot = 0; slot < 12; ++slot)
+	{
+		// Ghidra FUN_00435b13 binds all native auto-trade controls 653..664;
+		// keeping the twelve pointers contiguous is also the packet slot contract.
+		m_pGridAutoTrade[slot] = findGrid(TMG_ATRADE_MY1 + slot);
+		if (m_pGridAutoTrade[slot])
+		{
+			m_pGridAutoTrade[slot]->m_bSelectEnable = 1;
+			m_pGridAutoTrade[slot]->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
+			++autoTradeGridCount;
+		}
+		else
+			WYD748_DiagnosticsLog("compat auto-trade grid missing id=%u\r\n", TMG_ATRADE_MY1 + slot);
+	}
+	WYD748_DiagnosticsLog("compat auto-trade grids bound=%d/12\r\n", autoTradeGridCount);
 
 	if (!m_pGridInv || !m_pGridShop || !m_pCargoGrid || !m_pGridSkillMaster)
 	{
@@ -802,8 +1002,9 @@ void TMFieldScene::InitializeCompatInventory()
 	if (m_pGridMantua)
 		m_pGridMantua->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
 
-	// SGridControlItem owns its STRUCT_ITEM copy.  Preserve the catalogue-derived
-	// footprint and 3D renderer instead of forcing every legacy model to 1x1.
+	// SGridControlItem owns its STRUCT_ITEM copy and derives its dimensions from
+	// the normalized table.  This preserves the 3D renderer while enforcing the
+	// source-owned 7.48 contract in which every inventory icon is 1x1.
 	auto populateGridItem = [](SGridControl* grid, const STRUCT_ITEM& source, int x, int y)
 	{
 		if (!grid || source.sIndex <= 40)
@@ -857,69 +1058,51 @@ void TMFieldScene::InitializeCompatInventory()
 
 SGridControl* TMFieldScene::GetCarryGridForSlot(int slot) const
 {
-	// Native 7.48 has one Carry grid; the imported 7.59 UI uses 15-slot pages.
+	// WYD 7.48 owns one 9x7 Carry control. Returning a page selected by a newer
+	// resource would address a different UI ABI and corrupt drag targets.
 	if (slot < 0 || slot >= MAX_CARRY)
 		return nullptr;
-	return m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[slot / 15];
+	return m_pGridInv;
 }
 
 SGridControl* TMFieldScene::GetCargoGridForSlot(int slot) const
 {
-	// Native 7.48 has one Cargo grid; the imported 7.59 UI uses 40-slot pages.
+	// WYD 7.48 owns one nine-column Cargo control; no page selector participates
+	// in packet slot translation for this executable.
 	if (slot < 0 || slot >= 120)
 		return nullptr;
-	return m_bCompatFieldScene ? m_pCargoGrid : m_pCargoGridList[slot / 40];
+	return m_pCargoGrid;
 }
 
 void TMFieldScene::GetCarryCellForSlot(int slot, int& cellX, int& cellY) const
 {
-	// Ghidra FUN_0052a737 proves the 7.48 transform; retain the newer transform
-	// only when the newer UI resource was actually loaded.
-	if (m_bCompatFieldScene)
-	{
-		cellX = slot % 9;
-		cellY = slot / 9;
-		return;
-	}
-	cellX = slot % 15 % 5;
-	cellY = slot % 15 / 5;
+	// Ghidra FUN_0052a737 proves the only supported Carry transform is row-major
+	// x=slot%9, y=slot/9 for the 7.48 FieldScene2 resource.
+	cellX = slot % 9;
+	cellY = slot / 9;
 }
 
 void TMFieldScene::GetCargoCellForSlot(int slot, int& cellX, int& cellY) const
 {
 	// Ghidra FUN_0052a737 uses one nine-column cargo surface in 7.48.
-	if (m_bCompatFieldScene)
-	{
-		cellX = slot % 9;
-		cellY = slot / 9;
-		return;
-	}
-	cellX = slot % 40 % 5;
-	cellY = slot % 40 / 5;
+	cellX = slot % 9;
+	cellY = slot / 9;
 }
 
 int TMFieldScene::GetCarrySlotForCell(const SGridControl* grid, int cellX, int cellY) const
 {
-	// Ghidra FUN_0052a737 addresses native Carry as x + 9*y.  The fallback is
-	// retained solely for a newer FieldScene resource with four 15-slot pages.
-	if (m_bCompatFieldScene)
-		return cellX + 9 * cellY;
-	int page = grid ? static_cast<int>(grid->m_dwControlID) - 67072 : 0;
-	if (page < 0 || page > 3)
-		page = 0;
-	return 15 * page + cellX + 5 * cellY;
+	// Ghidra FUN_0052a737 addresses native Carry as x + 9*y; the control pointer
+	// is intentionally ignored because 7.48 has no inventory pages.
+	(void)grid;
+	return cellX + 9 * cellY;
 }
 
 int TMFieldScene::GetCargoSlotForCell(const SGridControl* grid, int cellX, int cellY) const
 {
-	// The 7.48 Cargo surface uses the same nine-column linearization and exposes
-	// slots 0..119; only the imported source resource uses 40-slot pages.
-	if (m_bCompatFieldScene)
-		return cellX + 9 * cellY;
-	int page = grid ? static_cast<int>(grid->m_dwControlID) - 67328 : 0;
-	if (page < 0 || page > 2)
-		page = 0;
-	return 40 * page + cellX + 5 * cellY;
+	// The 7.48 Cargo surface uses the same nine-column linearization. Cargo page
+	// IDs from later clients must never alter the packet slot sent to this server.
+	(void)grid;
+	return cellX + 9 * cellY;
 }
 
 void TMFieldScene::InitializeCompatSkillBelts()
@@ -932,6 +1115,10 @@ void TMFieldScene::InitializeCompatSkillBelts()
 	m_pGridSkillBelt = static_cast<SGridControl*>(m_pControlContainer->FindControl(TMG_SKILL_BELT));
 	m_pGridSkillBelt2 = static_cast<SGridControl*>(m_pControlContainer->FindControl(TMG_SKILL_BELT2));
 	m_pGridSkillBelt3 = static_cast<SGridControl*>(m_pControlContainer->FindControl(TMG_SKILL_BELT3));
+	// FUN_00435b13 also owns the page selectors 587/588. Binding their native
+	// instances keeps keyboard Z and mouse clicks on the same 7.48 state path.
+	m_pShortSkillTglBtn1 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SHORTSKILL_TGL1));
+	m_pShortSkillTglBtn2 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SHORTSKILL_TGL2));
 	if (m_pGridSkillBelt)
 		m_pGridSkillBelt->m_eGridType = TMEGRIDTYPE::GRID_SKILLB;
 	if (m_pGridSkillBelt2)
@@ -958,7 +1145,21 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 		return 0;
 	}
 	if (g_pCursor && g_pCursor->m_pAttachedItem)
+	{
+		// Native 7.48 processes a left click on the field as DropItem while the
+		// inventory is visible.  Returning here unconditionally leaves the item
+		// permanently attached to the cursor and makes ground drops impossible.
+		if (dwFlags == WM_LBUTTONDOWN && m_pInvenPanel && m_pInvenPanel->IsVisible())
+		{
+			const SGridControlItem* pAttachedItem = g_pCursor->m_pAttachedItem;
+			const short itemIndex = pAttachedItem->m_pItem ? pAttachedItem->m_pItem->sIndex : 0;
+			// WYD.exe 7.48 protects the quest/event range 5000..5095 from field
+			// drops; every other attached inventory item follows the packet path.
+			if (itemIndex < 5000 || itemIndex >= 5096)
+				DropItem(g_pTimerManager->GetServerTime());
+		}
 		return 1;
+	}
 	if (g_pObjectManager->m_stMobData.CurrentScore.CurHP <= 0 || m_pMyHuman->m_cCantMove)
 		return 1;
 
@@ -1024,7 +1225,9 @@ int TMFieldScene::InitializeCompatFieldScene()
 		const unsigned int hiddenFeaturePanels[] =
 		{
 			258u,    // item-description popup
-			289u,    // combined-server selector
+			259u,    // native Character auxiliary bar, hidden by FUN_00435b13
+			289u,    // native minimap foreground
+			290u,    // native minimap border/background
 			292u,    // native 7.48 main-menu flyout (opened only by button 5744)
 			320u,    // quest window
 			332u,    // new-quest notification button
@@ -1082,10 +1285,75 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pPotalList = static_cast<SListBox*>(m_pControlContainer->FindControl(12545));
 		if (m_pPotalList)
 			m_pPotalList->SetEventListener(m_pControlContainer);
-		// Native input and mouse-over code consults the auto-trade panel even while
-		// it is closed.  Bind the legacy 7.48 control so those checks do not use the
-		// constructor's null placeholder in compatibility mode.
+		// Native input and mouse-over code consults these panels even while they are
+		// closed. Ghidra FUN_00435b13 stores panel 626 as modal slot 3 and keeps its
+		// dimming background 574 separately, so preserve that ownership contract.
 		m_pAutoTrade = static_cast<SPanel*>(m_pControlContainer->FindControl(646));
+		m_pInputGoldPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_INPUT_GOLD));
+		m_pInputBG2 = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_INPUT_BG2));
+		m_pSystemPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(632));
+		if (m_pSystemPanel)
+		{
+			// FieldScene2.bin stores the native System panel at (0,0), while
+			// FUN_0044df53 presents it as a modal viewport-centred menu.  Reapply
+			// that runtime placement after RC scaling so its hitbox follows the UI.
+			m_pSystemPanel->SetPos(
+				static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f - m_pSystemPanel->m_nWidth * 0.5f,
+				static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f - m_pSystemPanel->m_nHeight * 0.5f);
+			m_pSystemPanel->SetVisible(0);
+		}
+		// FUN_00435b13 keeps these native 7.48 panels in the scene even while
+		// hidden.  ESC and close-button dispatch require the real resource IDs;
+		// leaving their 7.59 member aliases null silently disables those paths.
+		m_pMsgPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_MSG_PANEL));
+		m_pHelpPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_HELP_PANEL));
+		if (m_pHelpPanel)
+		{
+			// Native 7.48 FUN_0052d2c8 writes whisper notices beginning with '!'
+			// directly into list 874.  The compatibility initializer must therefore
+			// bind the complete resource-owned Help group before network packets can
+			// arrive; leaving only panel 864 bound caused SListBox::AddItem to run
+			// with a null this pointer while entering the world.
+			m_pHelpText = static_cast<SText*>(m_pControlContainer->FindControl(865));
+			m_pHelpButton[0] = static_cast<SButton*>(m_pControlContainer->FindControl(867));
+			m_pHelpList[0] = static_cast<SListBox*>(m_pControlContainer->FindControl(868));
+			m_pHelpButton[1] = static_cast<SButton*>(m_pControlContainer->FindControl(869));
+			m_pHelpList[1] = static_cast<SListBox*>(m_pControlContainer->FindControl(870));
+			m_pHelpButton[2] = static_cast<SButton*>(m_pControlContainer->FindControl(871));
+			m_pHelpList[2] = static_cast<SListBox*>(m_pControlContainer->FindControl(872));
+			m_pHelpButton[3] = static_cast<SButton*>(m_pControlContainer->FindControl(873));
+			m_pHelpList[3] = static_cast<SListBox*>(m_pControlContainer->FindControl(874));
+			m_pHelpMemo = static_cast<SButton*>(m_pControlContainer->FindControl(875));
+			m_pHelpSummon = static_cast<SButton*>(m_pControlContainer->FindControl(878));
+
+			if (m_pHelpList[1])
+				m_pHelpList[1]->SetVisible(0);
+			if (m_pHelpList[2])
+				m_pHelpList[2]->SetVisible(0);
+			if (m_pHelpList[3])
+				m_pHelpList[3]->SetVisible(0);
+			if (m_pHelpMemo)
+				m_pHelpMemo->SetVisible(0);
+			if (m_pHelpSummon)
+				m_pHelpSummon->SetVisible(0);
+		}
+		// FUN_00435b13 binds classic buttons 314/315/316 before the help,
+		// quest and autorun handlers can be reached. The imported 6579x IDs are
+		// from the newer UI and leave H/Esc dereferencing a null button in 7.48.
+		m_pHelpBtn = static_cast<SButton*>(m_pControlContainer->FindControl(314));
+		m_pQuestBtn = static_cast<SButton*>(m_pControlContainer->FindControl(315));
+		m_pAutoRunBtn = static_cast<SButton*>(m_pControlContainer->FindControl(316));
+		m_pServerPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12288));
+		m_pPartyPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1857));
+		m_pPartyBtn = static_cast<SButton*>(m_pControlContainer->FindControl(5742));
+		if (m_pInputGoldPanel)
+		{
+			m_pInputGoldPanel->SetVisible(0);
+			m_pInputGoldPanel->m_bModal = 1;
+			m_pControlContainer->m_pModalControl[3] = m_pInputGoldPanel;
+		}
+		if (m_pInputBG2)
+			m_pInputBG2->SetVisible(0);
 		// Ghidra FUN_00435b13 anchors the native bottom controls to the viewport,
 		// places the 292 flyout immediately above/left of button 5744 and hides it.
 		// FieldScene2.bin contains absolute 965x600 coordinates, so this must run
@@ -1093,7 +1361,82 @@ int TMFieldScene::InitializeCompatFieldScene()
 		SControl* pNativeMainMenuButton = m_pControlContainer->FindControl(5744);
 		SControl* pNativeShortSkillBar = m_pControlContainer->FindControl(5745);
 		SControl* pNativeChatBar = m_pControlContainer->FindControl(5739);
+		SControl* pNativeMainInfo = m_pControlContainer->FindControl(5716);
 		SControl* pNativeMainMenuPanel = m_pControlContainer->FindControl(292);
+		// Native 7.48 FUN_00435b13 uses control 292 only as the presence gate and
+		// allocates exactly sixteen 23x23 affect icons (IDs 12806..12821).  The
+		// imported 7.59 initializer instead expects IDs 90400+, which do not exist
+		// in FieldScene2.bin and made Affect_Main return before drawing any buff.
+		m_pMiniPanel = static_cast<SPanel*>(pNativeMainMenuPanel);
+		for (int affectIndex = 0; affectIndex < 16; ++affectIndex)
+		{
+			m_pAffectIcon[affectIndex] = new SPanel(200, 0.0f, 0.0f, 23.0f, 23.0f,
+				0x77777777u, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+			if (m_pAffectIcon[affectIndex])
+			{
+				m_pAffectIcon[affectIndex]->SetControlID(12806u + affectIndex);
+				m_pAffectIcon[affectIndex]->SetEventListener(m_pControlContainer);
+				m_pAffectIcon[affectIndex]->SetVisible(0);
+				m_pControlContainer->AddItem(m_pAffectIcon[affectIndex]);
+			}
+		}
+		m_pAffectDesc = static_cast<SText*>(m_pControlContainer->FindControl(12834));
+		if (m_pAffectDesc)
+			m_pAffectDesc->SetVisible(0);
+		// FUN_00435b13 binds the only 7.48 chat list (5377), its edit (5123)
+		// and the edit panel (5739).  The imported source split system and normal
+		// messages into two newer lists, so both logical aliases must target the
+		// single resource-owned legacy list instead of controls absent from 7.48.
+		m_pChatList = static_cast<SListBox*>(m_pControlContainer->FindControl(5377));
+		m_pChatListnotice = m_pChatList;
+		m_pEditChat = static_cast<SEditableText*>(m_pControlContainer->FindControl(5123));
+		m_pEditChatPanel = static_cast<SPanel*>(pNativeChatBar);
+		// FUN_00435b13 always binds the classic minimap controls, even when
+		// [CLASSIC] selects UI version 1. IDs 5714/5715/6136/6137 belong only to
+		// the UI2 branch and intentionally remain null in this 7.48 resource.
+		m_pPositionText = static_cast<SText*>(m_pControlContainer->FindControl(771));
+		m_pMiniMapPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(289));
+		m_pMiniMapDir = static_cast<SPanel*>(m_pControlContainer->FindControl(291));
+		SButton* pNativeMiniMapButton = static_cast<SButton*>(m_pControlContainer->FindControl(296));
+		if (m_pPositionText)
+			m_pPositionText->SetVisible(0);
+		if (m_pMiniMapPanel)
+		{
+			m_pMiniMapPanel->GetGeomControl()->fAngle = -0.78539819f;
+			m_pMiniMapPanel->m_bSelectEnable = 0;
+			m_pMiniMapPanel->m_GCPanel.dwColor = 0x80FFFFFF;
+			m_pMiniMapPanel->SetVisible(0);
+			if (m_pMiniMapDir)
+				m_pMiniMapDir->m_bSelectEnable = 0;
+			if (pNativeMiniMapButton)
+				pNativeMiniMapButton->SetSelected(0);
+
+			// The native initializer allocates one marker panel and one label for
+			// every g_MinimapPos entry before M can expose the map. FrameMove and
+			// FUN_0044ca65 both assume this complete 256-pair ownership contract.
+			for (int markerIndex = 0; markerIndex < 256; ++markerIndex)
+			{
+				m_pInMiniMapPosPanel[markerIndex] = new SPanel(-2, 0.0f, 0.0f, 4.0f, 4.0f,
+					g_MinimapPos[markerIndex].dwColor, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+				if (m_pInMiniMapPosPanel[markerIndex])
+				{
+					m_pInMiniMapPosPanel[markerIndex]->m_bSelectEnable = 0;
+					m_pInMiniMapPosPanel[markerIndex]->SetVisible(0);
+					m_pMiniMapPanel->AddChild(m_pInMiniMapPosPanel[markerIndex]);
+				}
+
+				m_pInMiniMapPosText[markerIndex] = new SText(-2,
+					g_MinimapPos[markerIndex].szTarget,
+					g_MinimapPos[markerIndex].dwColor,
+					0.0f, 0.0f, 8.0f, 12.0f, 0, 0x77777777u, 1u, 0);
+				if (m_pInMiniMapPosText[markerIndex])
+				{
+					m_pInMiniMapPosText[markerIndex]->m_bSelectEnable = 0;
+					m_pInMiniMapPosText[markerIndex]->SetVisible(0);
+					m_pMiniMapPanel->AddChild(m_pInMiniMapPosText[markerIndex]);
+				}
+			}
+		}
 		if (pNativeMainMenuButton)
 		{
 			pNativeMainMenuButton->SetStickRight();
@@ -1111,6 +1454,74 @@ int TMFieldScene::InitializeCompatFieldScene()
 			pNativeChatBar->SetStickLeft();
 			pNativeChatBar->SetStickBottom();
 		}
+		if (pNativeMainInfo && pNativeChatBar && pNativeShortSkillBar)
+		{
+			// FieldScene2.bin stores the status panel at its 965x600 width.  At wider
+			// resolutions the original 7.48 layout fills the complete interval between
+			// chat and shortcuts; leaving the resource width unchanged creates the
+			// large transparent hole visible beside EXP/ATT/DEF.
+			const float originalWidth = pNativeMainInfo->m_nWidth;
+			const float expandedX = pNativeChatBar->m_nPosX + pNativeChatBar->m_nWidth;
+			const float expandedWidth = pNativeShortSkillBar->m_nPosX - expandedX;
+			if (expandedWidth > 0.0f)
+			{
+				const float horizontalScale = originalWidth > 0.0f
+					? expandedWidth / originalWidth
+					: 1.0f;
+				pNativeMainInfo->SetPos(expandedX, pNativeMainInfo->m_nPosY);
+				pNativeMainInfo->SetSize(expandedWidth, pNativeMainInfo->m_nHeight);
+				pNativeMainInfo->SetStickBottom();
+
+				SControl* pNativeMainInfoBackground = m_pControlContainer->FindControl(5717);
+				if (pNativeMainInfoBackground)
+					pNativeMainInfoBackground->SetSize(expandedWidth,
+						pNativeMainInfoBackground->m_nHeight);
+
+				// The 7.48 labels have resource-authored widths matched to their bitmap
+				// font.  Stretching those widths distorted ATT/DEF and made EXP values
+				// overlap.  Map each text centre into the wider interval while preserving
+				// its native dimensions; this changes spacing without deforming glyphs.
+				const unsigned int horizontallyPositionedInfoIDs[] = {
+					TMT_EXP_DESC, TMT_EXP, TMT_EXP_ENC,
+					TMT_ATT, TMT_ATT_ENC, TMT_DEF, TMT_DEF_ENC
+				};
+				for (unsigned int infoID : horizontallyPositionedInfoIDs)
+				{
+					SControl* pInfo = m_pControlContainer->FindControl(infoID);
+					if (!pInfo)
+						continue;
+					const float nativeCenterX = pInfo->m_nPosX + (pInfo->m_nWidth * 0.5f);
+					pInfo->SetPos((nativeCenterX * horizontalScale)
+						- (pInfo->m_nWidth * 0.5f), pInfo->m_nPosY);
+				}
+
+				SControl* pNativeExpProgress = m_pControlContainer->FindControl(1171);
+				if (pNativeExpProgress)
+				{
+					// Unlike text, the EXP gauge is a stretchable control.  Transform both
+					// horizontal edges so its fill covers the same central interval as 7.48.
+					pNativeExpProgress->SetPos(
+						pNativeExpProgress->m_nPosX * horizontalScale,
+						pNativeExpProgress->m_nPosY);
+					pNativeExpProgress->SetSize(
+						pNativeExpProgress->m_nWidth * horizontalScale,
+						pNativeExpProgress->m_nHeight);
+					static_cast<SProgressBar*>(pNativeExpProgress)->Update();
+				}
+
+				// HOLD and its three right-edge ornaments belong to the trailing edge of
+				// the native status panel, so move them by exactly the width extension.
+				const unsigned int rightAnchoredInfoIDs[] = { 1168, 1172, 1173, 1174 };
+				const float widthDelta = expandedWidth - originalWidth;
+				for (unsigned int rightInfoID : rightAnchoredInfoIDs)
+				{
+					SControl* pRightInfo = m_pControlContainer->FindControl(rightInfoID);
+					if (pRightInfo)
+						pRightInfo->SetPos(pRightInfo->m_nPosX + widthDelta,
+							pRightInfo->m_nPosY);
+				}
+			}
+		}
 		if (pNativeMainMenuPanel && pNativeMainMenuButton)
 		{
 			pNativeMainMenuPanel->SetPos(
@@ -1127,15 +1538,93 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pShopPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1793));
 		m_pCargoPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1825));
 		m_pSkillMPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1889));
+		// FUN_00435b13 binds the 7.48 Skill Apprentice children independently
+		// from root 1889.  The imported 7.59 IDs (65604..65608) do not exist in
+		// FieldScene2.bin; leaving these members null crashes on the first 0x3C4
+		// shop list when OnPacketShopList writes the section captions.
+		m_pSkillMDesc = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_SKILLM_DESC));
+		m_pSkillMSec1 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_SKILLM_SEC1_C));
+		m_pSkillMSec2 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_SKILLM_SEC2_C));
+		m_pSkillMSec3 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_SKILLM_SEC3_C));
+		if (auto pSkillMPanel1 = static_cast<SPanel*>(
+			m_pControlContainer->FindControl(TMP_SKILLM_PANEL1)))
+		{
+			// The stock 7.48 initializer makes this decorative child non-selectable
+			// so clicks continue to reach the skill grid and close control.
+			pSkillMPanel1->m_bSelectEnable = 0;
+		}
 		m_pSkillPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1905));
 		m_pTradePanel = static_cast<SPanel*>(m_pControlContainer->FindControl(576));
+		// FUN_00435b13 binds all six stock artisan panels.  Numeric grid values
+		// 14..23 were later reused by TMProject for unrelated controls, so retain
+		// the native values only on these exact FieldScene2 control IDs and let the
+		// interaction layer below resolve them by panel/control identity.
+		m_pItemMixPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_ITEMMIX_PANEL));
+		m_pItemMixPanel2 = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_ITEMMIX2_PANEL));
+		m_pItemMixPanel3 = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_ITEMMIX3_PANEL));
+		m_pItemMixPanel4 = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_ITEMMIX4_PANEL));
+		m_pItemMixPanel5 = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_ITEMMIX5_PANEL));
+		m_pItemMixPanel6 = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_ITEMMIX6_PANEL));
+		for (int slot = 0; slot < 8; ++slot)
+		{
+			m_pGridItemMix[slot] = static_cast<SGridControl*>(
+				m_pControlContainer->FindControl(TMG_ITEMMIX_MY1 + slot));
+			m_pGridItemMix2[slot] = static_cast<SGridControl*>(
+				m_pControlContainer->FindControl(TMG_ITEMMIX2_MY1 + slot));
+			if (m_pGridItemMix[slot])
+				m_pGridItemMix[slot]->m_eGridType = static_cast<TMEGRIDTYPE>(12);
+			if (m_pGridItemMix2[slot])
+				m_pGridItemMix2[slot]->m_eGridType = static_cast<TMEGRIDTYPE>(14);
+		}
+		for (int slot = 0; slot < 6; ++slot)
+		{
+			m_pGridItemMix3[slot] = static_cast<SGridControl*>(
+				m_pControlContainer->FindControl(TMG_ITEMMIX3_MY1 + slot));
+			if (m_pGridItemMix3[slot])
+				m_pGridItemMix3[slot]->m_eGridType = static_cast<TMEGRIDTYPE>(16);
+		}
+		for (int slot = 0; slot < 3; ++slot)
+		{
+			m_pGridItemMix4[slot] = static_cast<SGridControl*>(
+				m_pControlContainer->FindControl(TMG_ITEMMIX4_MY1 + slot));
+			m_pGridItemMix6[slot] = static_cast<SGridControl*>(
+				m_pControlContainer->FindControl(TMG_ITEMMIX6_MY1 + slot));
+			if (m_pGridItemMix4[slot])
+				m_pGridItemMix4[slot]->m_eGridType = static_cast<TMEGRIDTYPE>(18);
+			if (m_pGridItemMix6[slot])
+				m_pGridItemMix6[slot]->m_eGridType = static_cast<TMEGRIDTYPE>(22);
+		}
+		for (int slot = 0; slot < 7; ++slot)
+		{
+			m_pGridItemMix5[slot] = static_cast<SGridControl*>(
+				m_pControlContainer->FindControl(TMG_ITEMMIX5_MY1 + slot));
+			if (m_pGridItemMix5[slot])
+				m_pGridItemMix5[slot]->m_eGridType = static_cast<TMEGRIDTYPE>(20);
+		}
+		for (int slot = 0; slot < 4; ++slot)
+		{
+			m_pGridMixResult[slot] = static_cast<SGridControl*>(
+				m_pControlContainer->FindControl(TMG_ITEMMIX2_RESULT1 + slot));
+			if (m_pGridMixResult[slot])
+				m_pGridMixResult[slot]->m_eGridType = TMEGRIDTYPE::GRID_ITEMMIXRESULT;
+		}
+		// FUN_0044df53 includes panel 6400 in the native 7.48 ESC cascade.  The
+		// compact initializer does not allocate the newer reel helpers, so retain
+		// only the resource-owned panel and close it directly when ESC is pressed.
+		m_pGambleStore = static_cast<SPanel*>(m_pControlContainer->FindControl(6400));
+		// These are the original Character values consumed by FUN_004431e4. The
+		// imported initializer otherwise leaves only its 65xxx replacement aliases,
+		// which makes C.POINT and mastery values disappear in FieldScene2.bin.
+		m_pCIFakeExp = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_FAKEEXPPOINT));
+		m_pCISpecial1 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_SPECIAL1));
+		m_pCISpecial2 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_SPECIAL2));
+		m_pCISpecial3 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_SPECIAL3));
+		m_pCISpecial4 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_SPECIAL4));
 		// Grid hover writes the native 7.48 item description into this hidden panel;
 		// binding it restores tooltips without importing the 7.59 tooltip resource.
 		m_pDescPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(258));
 		// WYD748 Ghidra FUN_00435b13 binds the tooltip name at 772 and exactly
-		// twelve parameter rows at 773..799 (with the native ID gaps below).  The
-		// imported 7.59 grid hover scans fourteen pointers, so clear the two rows
-		// that do not exist in FieldScene2.bin instead of leaving stale addresses.
+		// twelve parameter rows at 773..799 (with the native ID gaps below).
 		m_pDescNameText = static_cast<SText*>(m_pControlContainer->FindControl(772));
 		for (auto& pParamText : m_pParamText)
 			pParamText = nullptr;
@@ -1145,13 +1634,6 @@ int TMFieldScene::InitializeCompatFieldScene()
 		};
 		for (unsigned int i = 0; i < _countof(native748DescParamIDs); ++i)
 			m_pParamText[i] = static_cast<SText*>(m_pControlContainer->FindControl(native748DescParamIDs[i]));
-		// Ghidra FUN_00435b13 proves that FieldScene2.bin owns only rows 0..11,
-		// while the imported 7.59 MouseOver implementation still writes rows 12
-		// and 13 for long descriptions. Alias those compatibility-only slots to
-		// the final native row so hovering an item cannot dereference nullptr; the
-		// control container remains the sole owner of the shared SText instance.
-		m_pParamText[12] = m_pParamText[11];
-		m_pParamText[13] = m_pParamText[11];
 		if (m_pDescPanel)
 		{
 			// The native initializer keeps the tooltip hidden and non-selectable
@@ -1302,10 +1784,19 @@ int TMFieldScene::InitializeCompatFieldScene()
 	// Populate the two legacy presentation adapters only after the character
 	// exists, because name/level and item icon construction depend on that state.
 	InitializeCompatInventory();
+	// Bootstrap must not run the interactive cleanup path: these packet members
+	// have no valid CarryPos state yet, and cleanup also changes live UI grids.
+	for (int mixIndex = 1; mixIndex <= 6; ++mixIndex)
+		ResetNativeMixPacket(mixIndex);
 	// Ghidra FUN_00489023 immediately calls the native shortcut-grid updater for
 	// opcode 0x378, so both runtime belts must exist before queued world packets
 	// are dispatched after this initializer returns.
 	InitializeCompatSkillBelts();
+	// The full field initializer runs this exact sequence after focusing the local
+	// human.  Without it the compact 7.48 path leaves TMCamera in quarter-view 1,
+	// and native FUN_004aec3d deliberately rejects mouse rotation in that mode.
+	InitCameraView();
+	SetCameraView();
 	UpdateCompatScoreUI();
 	return 1;
 }
@@ -1971,12 +2462,6 @@ int TMFieldScene::InitializeScene()
 	m_pParamText[9] = (SText*)m_pControlContainer->FindControl(797);
 	m_pParamText[10] = (SText*)m_pControlContainer->FindControl(798);
 	m_pParamText[11] = (SText*)m_pControlContainer->FindControl(799);
-	// WYD 7.48 Ghidra FUN_00435B13 stops at control 799.  The imported 7.59
-	// initializer used 800/801 here and overwrote the compatibility aliases
-	// installed above with nullptr, causing SGridControl::MouseOver to crash.
-	// Reuse the final native row for the two optional 7.59 description lines.
-	m_pParamText[12] = m_pParamText[11];
-	m_pParamText[13] = m_pParamText[11];
 	m_pSystemPanel = (SPanel*)m_pControlContainer->FindControl(65879);
 
 
@@ -3726,13 +4211,27 @@ int TMFieldScene::InitializeScene()
 	if (m_pPartyPanel)
 		m_pPartyPanel->SetVisible(0);
 
-	for (int ih = 0; ih < 32; ++ih)
+	if (!m_bCompatFieldScene)
 	{
-		m_pAffectIcon[ih] = (SPanel*)m_pControlContainer->FindControl(ih + 90400);
-		m_pTargetAffectIcon[ih] = (SPanel*)m_pControlContainer->FindControl(ih + 90369);
-	}
+		for (int ih = 0; ih < 32; ++ih)
+		{
+			m_pAffectIcon[ih] = (SPanel*)m_pControlContainer->FindControl(ih + 90400);
+			m_pTargetAffectIcon[ih] = (SPanel*)m_pControlContainer->FindControl(ih + 90369);
+		}
 
-	m_pAffectDesc = (SText*)m_pControlContainer->FindControl(65798);
+		m_pAffectDesc = (SText*)m_pControlContainer->FindControl(65798);
+	}
+	else
+	{
+		// FUN_00435b13 creates the sixteen 7.48 affect panels dynamically. The
+		// imported 7.59 lookup above targets absent 90400+/65798 controls and used
+		// to overwrite every valid icon/description pointer with null immediately
+		// after construction, leaving Affect_Main with nothing it could display.
+		for (int ih = 16; ih < 32; ++ih)
+			m_pAffectIcon[ih] = nullptr;
+		for (int ih = 0; ih < 32; ++ih)
+			m_pTargetAffectIcon[ih] = nullptr;
+	}
 	m_pAffectDescList[0] = (SText*)m_pControlContainer->FindControl(773);
 	m_pAffectDescList[1] = (SText*)m_pControlContainer->FindControl(774);
 	m_pAffectDescList[2] = (SText*)m_pControlContainer->FindControl(775);
@@ -3801,6 +4300,27 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		// from entering unrelated 7.59 handlers and dereferencing absent windows.
 		switch (idwControlID)
 		{
+		case 1375: // ItemMix1 run (Compositor)
+			DoCombine();
+			return 1;
+		case 1376: // ItemMix1 close
+			SetVisibleMixItem(0);
+			return 1;
+		case 6111: // ItemMix2 run (Aylin)
+			DoCombine2();
+			return 1;
+		case 6146: // ItemMix3 run (Agatha)
+			DoCombine3();
+			return 1;
+		case 6434: // ItemMix4 run (Tiny)
+			DoCombine4();
+			return 1;
+		case 6482: // ItemMix5 run (Lindy/Odin)
+			DoCombine5();
+			return 1;
+		case 6514: // ItemMix6 run (Ehre)
+			DoCombine6();
+			return 1;
 		case 5744: // native main-menu button toggles flyout panel 292
 			if (auto panel = m_pControlContainer->FindControl(292))
 			{
@@ -3817,11 +4337,30 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				m_pInvenPanel->SetVisible(0);
 			if (m_pDescPanel)
 				m_pDescPanel->SetVisible(0);
-			return 0;
+			// Button 294 is the native 7.48 equipment toggle.  Synchronizing it
+			// here prevents the menu from remaining visually pressed after X/ESC.
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_EQUIP)))
+				button->SetSelected(0);
+			return 1;
 		case 533: // native character close button
 			if (m_pCPanel)
 				m_pCPanel->SetVisible(0);
-			return 0;
+			// The 7.48 Character X releases the same button selected by shortcut C.
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_CHAR)))
+				button->SetSelected(0);
+			return 1;
+		case 636: // native System cancel button
+			if (m_pSystemPanel)
+				m_pSystemPanel->SetVisible(0);
+			// Native cancel and ESC both release the bottom-bar System toggle.
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SYSTEM)))
+				button->SetSelected(0);
+			return 1;
+		case TMB_ATRADE_CLOSE:
+			// Ghidra FUN_004662c5 routes native close 668 through the same
+			// state-restoring routine as main-menu auto-trade button 313.
+			SetVisibleAutoTrade(0, 0);
+			return 1;
 		case 1913: // native skill close button
 			if (m_pSkillPanel)
 				m_pSkillPanel->SetVisible(0);
@@ -3829,7 +4368,34 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				m_pSkillMPanel->SetVisible(0);
 			if (m_pDescPanel)
 				m_pDescPanel->SetVisible(0);
+			// Skill and mastery are one native 7.48 window and share button 295.
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SKILL)))
+				button->SetSelected(0);
+			return 1;
+		case TMB_SHORTSKILL_TGL1:
+		case TMB_SHORTSKILL_TGL2:
+		{
+			// FUN_004662c5 handles 587/588 entirely through the two native belt
+			// grids and selectors. The 7.59 page text does not exist in FieldScene2.
+			const bool secondPage = idwControlID == TMB_SHORTSKILL_TGL2;
+			if (m_pGridSkillBelt2)
+				m_pGridSkillBelt2->SetVisible(!secondPage);
+			if (m_pGridSkillBelt3)
+				m_pGridSkillBelt3->SetVisible(secondPage);
+			if (m_pShortSkillTglBtn1)
+				m_pShortSkillTglBtn1->SetSelected(!secondPage);
+			if (m_pShortSkillTglBtn2)
+				m_pShortSkillTglBtn2->SetSelected(secondPage);
+			GetSoundAndPlay(53, 0, 0);
+			m_pControlContainer->SetFocusedControl(0);
+			m_bSkillBeltSwitch = secondPage ? 1 : 0;
+			OnKeyShortSkill('1', 0);
 			return 0;
+		}
+		case TMB_AUTORUN:
+			// Native button 316 and the ']' shortcut share FUN_00452733; routing
+			// both here prevents a visible button that cannot change autorun state.
+			return OnKeyAutoRun(']', 0) ? 0 : 1;
 		default:
 			break;
 		}
@@ -3854,19 +4420,28 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			return 0;
 		case 65793: // quest
 			if (auto panel = m_pControlContainer->FindControl(320))
-				panel->SetVisible(panel->IsVisible() == 0);
-			return 0;
-		case 65794: // auto trade
-			if (m_pAutoTrade)
-				m_pAutoTrade->SetVisible(m_pAutoTrade->IsVisible() == 0);
+			{
+				const int visible = panel->IsVisible() == 0;
+				panel->SetVisible(visible);
+				// FUN_004662c5 mirrors panel 320 on native bottom button 315.
+				if (m_pQuestBtn)
+					m_pQuestBtn->SetSelected(visible);
+			}
 			return 0;
 		case 65795: // helper
 			if (auto panel = m_pControlContainer->FindControl(864))
 				panel->SetVisible(panel->IsVisible() == 0);
 			return 0;
 		case 65796: // system
-			if (auto panel = m_pControlContainer->FindControl(632))
-				panel->SetVisible(panel->IsVisible() == 0);
+			if (m_pSystemPanel)
+			{
+				// Keep visual button state coupled to panel visibility; the imported
+				// 7.59 handler toggled only the panel and left a stuck pressed button.
+				const int visible = m_pSystemPanel->IsVisible() == 0;
+				m_pSystemPanel->SetVisible(visible);
+				if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SYSTEM)))
+					button->SetSelected(visible);
+			}
 			return 0;
 		default:
 			break;
@@ -4532,7 +5107,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		auto pText = static_cast<SText*>(m_pControlContainer->FindControl(T_INPUT_GOLD));
 		auto pEdit = m_pControlContainer->FindControl(E_INPUT_GOLD);
 
-		if (m_pCargoPanel1->IsVisible() == 1)
+		// The native 7.48 layout has no imported second Cargo page, so the shared
+		// money button may inspect it only when a newer resource actually bound it.
+		if (m_pCargoPanel1 && m_pCargoPanel1->IsVisible() == 1)
 		{
 			m_nCoinMsgType = 0;
 			pText->SetText(g_pMessageStringTable[136], 0);
@@ -4587,6 +5164,11 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	if (idwControlID == B_IG_OK)
 	{
 		auto pInputText = static_cast<SEditableText*>(m_pControlContainer->FindControl(E_INPUT_GOLD));
+		// FieldScene2.bin dispatches the native edit through the compatibility ID
+		// translator.  Treat a missing control as an incomplete resource instead of
+		// dereferencing it while processing the modal confirmation.
+		if (!pInputText)
+			return 1;
 
 		char* inputText = pInputText->GetText();
 
@@ -4630,7 +5212,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					m_pMessagePanel->SetMessage(g_pMessageStringTable[34], 1000);
 					m_pMessagePanel->SetVisible(1, 1);
 					m_pControlContainer->SetFocusedControl(pInputText);
-					m_pChatSelectPanel->SetVisible(0);
+					// The stock 7.48 price prompt has no newer chat selector; keep
+					// invalid-price feedback usable when that optional control is absent.
+					if (m_pChatSelectPanel)
+						m_pChatSelectPanel->SetVisible(0);
 					return 1;
 				}
 			}
@@ -4713,7 +5298,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					pATradeTitle->SetText(pInputText->GetText(), 0);
 				}
 
-				pATradeName->SetText(m_pMyHuman->m_szName, 1);
+				if (!m_pMyHuman)
+					return 1;
+				if (pATradeName)
+					pATradeName->SetText(m_pMyHuman->m_szName, 1);
 
 				m_stAutoTrade.TargetID = m_pMyHuman->m_dwID;
 
@@ -4724,9 +5312,16 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 				pInputText->m_nMaxStringLen = 10;
 
-				for (int i = 0; i < 10; ++i)
+				// MSG_AutoTrade and native FUN_004656af both carry twelve 7.48
+				// slots. Newer resources expose ten, so only compatibility mode
+				// widens the cleanup loop to the packet's native boundary.
+				const int autoTradeSlotCount = m_bCompatFieldScene ? 12 : 10;
+				for (int i = 0; i < autoTradeSlotCount; ++i)
 				{
-					SGridControlItem* pAutoTradeItem = m_pGridAutoTrade[i]->PickupAtItem(0, 0);
+					auto pAutoTradeGrid = m_pGridAutoTrade[i];
+					if (!pAutoTradeGrid)
+						continue;
+					SGridControlItem* pAutoTradeItem = pAutoTradeGrid->PickupAtItem(0, 0);
 
 					// The 7.48 cargo is one 9-column surface (Ghidra FUN_0052a737),
 					// while the imported source assumed a five-column cargo page.
@@ -4739,7 +5334,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					if (pCargoItem)
 						pCargoItem->m_GCObj.dwColor = -1;
 
-					if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pAutoTradeItem)
+					if (g_pCursor && g_pCursor->m_pAttachedItem == pAutoTradeItem)
 						g_pCursor->m_pAttachedItem = nullptr;
 
 					if (pAutoTradeItem)
@@ -4765,9 +5360,15 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			{
 				if (m_nLastAutoTradePos >= 0)
 				{
-					for (int j = 0; j < 10; ++j)
+					// MSG_AutoTrade and FUN_004662c5 both enumerate twelve native
+					// sale cells.  Stopping at ten made the full-store branch
+					// unreachable and silently discarded clicks once those cells filled.
+					constexpr int kNativeAutoTradeSlots = 12;
+					for (int j = 0; j < kNativeAutoTradeSlots; ++j)
 					{
 						SGridControl* pParent = m_pGridAutoTrade[j];
+						if (!pParent)
+							continue;
 						SGridControlItem* pAutoTradeItem = pParent->GetAtItem(0, 0);
 
 						// Resolve the selected cargo slot through the active ABI instead of
@@ -4800,12 +5401,13 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 							break;
 						}
 
-						if (pAutoTradeItem && j == 11)
+						if (pAutoTradeItem && j == kNativeAutoTradeSlots - 1)
 						{
 							m_pMessagePanel->SetMessage(g_pMessageStringTable[1], 2000);
 							m_pMessagePanel->SetVisible(1, 1);
 
-							pCargoItem->m_GCObj.dwColor = 0xFFFFFFFF;
+							if (pCargoItem)
+								pCargoItem->m_GCObj.dwColor = 0xFFFFFFFF;
 						}
 					}
 					m_nLastAutoTradePos = -1;
@@ -4918,18 +5520,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					return 1;
 				}
 
-				// WYD 7.48 keeps all 63 visible Carry slots in one 9x7 grid; only the
-				// newer TMProject layout derives a 15-slot page from the control ID.
+				// WYD 7.48 keeps all 63 Carry slots in one 9x7 grid. Splitting an item
+				// therefore sends the native row-major slot with no synthetic page.
 				int pos = SGridControl::m_pSellItem->m_nCellIndexX
-					+ (m_bCompatFieldScene ? 9 : 5) * SGridControl::m_pSellItem->m_nCellIndexY;
-				int page = m_bCompatFieldScene
-					? 0
-					: 15 * (SGridControl::m_pSellItem->m_pGridControl->m_dwControlID - 67072);
-
-				if (page < 0 || page > 45)
-					page = 0;
-
-				pos += page;
+					+ 9 * SGridControl::m_pSellItem->m_nCellIndexY;
 
 				MSG_STANDARDPARM3 stPacket{};
 
@@ -5361,152 +5955,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		return 0;
 	}
-	if (idwControlID == B_INV_PAGE1)
-	{
-		m_bJPNBag[0] = 1;
-		m_bJPNBag[3] = 0;
-		m_bJPNBag[2] = 0;
-		m_bJPNBag[1] = 0;
-		m_pGridInvList[0]->SetVisible(0);
-		m_pGridInvList[1]->SetVisible(0);
-		m_pGridInvList[2]->SetVisible(0);
-		m_pGridInvList[3]->SetVisible(0);
-		m_pGridInv = m_pGridInvList[0];
-		m_pGridInv->SetVisible(1);
-		m_pInvPageBtn1->SetTextureSetIndex(527);
-		m_pInvPageBtn2->SetTextureSetIndex(528);
-
-		if (g_pObjectManager->m_stMobData.Carry[60].sIndex == 3467)
-			m_pInvPageBtn3->SetTextureSetIndex(528);
-		else
-			m_pInvPageBtn3->SetTextureSetIndex(549);
-
-		if (g_pObjectManager->m_stMobData.Carry[61].sIndex == 3467)
-			m_pInvPageBtn4->SetTextureSetIndex(528);
-		else
-			m_pInvPageBtn4->SetTextureSetIndex(549);
-
-		return 0;
-	}
-	if (idwControlID == B_INV_PAGE2)
-	{
-		m_bJPNBag[1] = 1;
-		m_bJPNBag[3] = 0;
-		m_bJPNBag[2] = 0;
-		m_bJPNBag[0] = 0;
-		m_pGridInvList[0]->SetVisible(0);
-		m_pGridInvList[1]->SetVisible(0);
-		m_pGridInvList[2]->SetVisible(0);
-		m_pGridInvList[3]->SetVisible(0);
-		m_pGridInv = m_pGridInvList[1];
-		m_pGridInv->SetVisible(1);
-		m_pInvPageBtn1->SetTextureSetIndex(528);
-		m_pInvPageBtn2->SetTextureSetIndex(527);
-
-		if (g_pObjectManager->m_stMobData.Carry[60].sIndex == 3467)
-			m_pInvPageBtn3->SetTextureSetIndex(528);
-		else
-			m_pInvPageBtn3->SetTextureSetIndex(549);
-
-		if (g_pObjectManager->m_stMobData.Carry[61].sIndex == 3467)
-			m_pInvPageBtn4->SetTextureSetIndex(528);
-		else
-			m_pInvPageBtn4->SetTextureSetIndex(549);
-
-		return 0;
-	}
-
-	
-	if (idwControlID == B_INV_PAGE3)
-	{
-		m_bJPNBag[2] = 1;
-		m_bJPNBag[3] = 0;
-		m_bJPNBag[1] = 0;
-		m_bJPNBag[0] = 0;
-		m_pGridInvList[0]->SetVisible(0);
-		m_pGridInvList[1]->SetVisible(0);
-		m_pGridInvList[2]->SetVisible(0);
-		m_pGridInvList[3]->SetVisible(0);
-		m_pGridInv = m_pGridInvList[2];
-		m_pGridInv->SetVisible(1);
-		m_pInvPageBtn1->SetTextureSetIndex(528);
-		m_pInvPageBtn2->SetTextureSetIndex(528);
-
-		if (g_pObjectManager->m_stMobData.Carry[60].sIndex == 3467)
-			m_pInvPageBtn3->SetTextureSetIndex(527);
-		else
-			m_pInvPageBtn3->SetTextureSetIndex(548);
-
-		if (g_pObjectManager->m_stMobData.Carry[61].sIndex == 3467)
-			m_pInvPageBtn4->SetTextureSetIndex(528);
-		else
-			m_pInvPageBtn4->SetTextureSetIndex(549);
-
-		return 0;
-	}
-	if (idwControlID == B_INV_PAGE4)
-	{
-		m_bJPNBag[3] = 1;
-		m_bJPNBag[2] = 0;
-		m_bJPNBag[1] = 0;
-		m_bJPNBag[0] = 0;
-		m_pGridInvList[0]->SetVisible(0);
-		m_pGridInvList[1]->SetVisible(0);
-		m_pGridInvList[2]->SetVisible(0);
-		m_pGridInvList[3]->SetVisible(0);
-		m_pGridInv = m_pGridInvList[3];
-		m_pGridInv->SetVisible(1);
-		m_pInvPageBtn1->SetTextureSetIndex(528);
-		m_pInvPageBtn2->SetTextureSetIndex(528);
-
-		if (g_pObjectManager->m_stMobData.Carry[60].sIndex == 3467)
-			m_pInvPageBtn3->SetTextureSetIndex(528);
-		else
-			m_pInvPageBtn3->SetTextureSetIndex(549);
-
-		if (g_pObjectManager->m_stMobData.Carry[61].sIndex == 3467)
-			m_pInvPageBtn4->SetTextureSetIndex(527);
-		else
-			m_pInvPageBtn4->SetTextureSetIndex(548);
-
-		return 0;
-	}
-	if (idwControlID == B_CARGO_PAGE1)
-	{
-		m_pCargoGridList[0]->SetVisible(0);
-		m_pCargoGridList[1]->SetVisible(0);
-		m_pCargoGridList[2]->SetVisible(0);
-		m_pCargoGrid = m_pCargoGridList[0];
-		m_pCargoGrid->SetVisible(1);
-		m_pStorePageBtn1->SetTextureSetIndex(532);
-		m_pStorePageBtn2->SetTextureSetIndex(533);
-		m_pStorePageBtn3->SetTextureSetIndex(535);
-		return 0;
-	}
-	if (idwControlID == B_CARGO_PAGE2)
-	{
-		m_pCargoGridList[0]->SetVisible(0);
-		m_pCargoGridList[1]->SetVisible(0);
-		m_pCargoGridList[2]->SetVisible(0);
-		m_pCargoGrid = m_pCargoGridList[1];
-		m_pCargoGrid->SetVisible(1);
-		m_pStorePageBtn1->SetTextureSetIndex(531);
-		m_pStorePageBtn2->SetTextureSetIndex(534);
-		m_pStorePageBtn3->SetTextureSetIndex(535);
-		return 0;
-	}
-	if (idwControlID == B_CARGO_PAGE3)
-	{
-		m_pCargoGridList[0]->SetVisible(0);
-		m_pCargoGridList[1]->SetVisible(0);
-		m_pCargoGridList[2]->SetVisible(0);
-		m_pCargoGrid = m_pCargoGridList[2];
-		m_pCargoGrid->SetVisible(1);
-		m_pStorePageBtn1->SetTextureSetIndex(531);
-		m_pStorePageBtn2->SetTextureSetIndex(533);
-		m_pStorePageBtn3->SetTextureSetIndex(536);
-		return 0;
-	}
+	// FieldScene2 7.48 has one Carry and one Cargo grid.  It intentionally has
+	// no handlers for the Japanese bag/page controls introduced after 7.48.
 	if (idwControlID == P_CCMODE_DLG_PONT)
 	{
 		int posX = 0;
@@ -5600,7 +6050,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == B_AUTOTRADEBTN)
 	{
-		if (!m_pMyHuman->IsInTown())
+		// The bottom-bar event can be delivered during scene bootstrap; town state
+		// is meaningful only after the local human has been attached to the scene.
+		if (!m_pMyHuman || !m_pMyHuman->IsInTown())
 			return 1;
 
 		if (m_pAutoTrade && m_pAutoTrade->IsVisible() == 1)
@@ -6647,7 +7099,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stReqParty.Leader.PartyIndex = 0;
 			stReqParty.Leader.Level = m_pMyHuman->m_stScore.Level;
 			stReqParty.Leader.Hp = m_pMyHuman->m_stScore.CurHP;
-			stReqParty.Leader.MaxHP = m_pMyHuman->m_stScore.MaxHP;
+			// PARTY keeps the native 7.48 MaxHp spelling while the canonical Score
+			// supplies its uint32 value.
+			stReqParty.Leader.MaxHp = m_pMyHuman->m_stScore.MaxHP;
 			stReqParty.Leader.ID = m_pMyHuman->m_dwID;
 			sprintf(stReqParty.Leader.Name, "%s", m_pMyHuman->m_szName);
 			stReqParty.TargetID = m_dwOpID;
@@ -7465,8 +7919,12 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		auto pAutoTrade =  m_pAutoTrade;
 		if (pAutoTrade && pAutoTrade->IsVisible() == 1)
 		{
-			m_pCargoPanel->SetVisible(0);
-			m_pCargoPanel1->SetVisible(0);
+			// FUN_004662c5 hides each available 7.48 Cargo surface independently;
+			// publishing AutoTrade cannot depend on the absent 7.59 second page.
+			if (m_pCargoPanel)
+				m_pCargoPanel->SetVisible(0);
+			if (m_pCargoPanel1)
+				m_pCargoPanel1->SetVisible(0);
 
 			pAutoTrade->SetRealPos((float)g_pDevice->m_dwScreenWidth - pAutoTrade->m_nWidth, 0.0f);
 		}
@@ -7788,66 +8246,8 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 		SendOneMessage((char*)&stWhisper, sizeof(stWhisper));
 	}
 
-	if (iKeyCode >= VK_F1 && iKeyCode <= VK_F4)
-	{
-		if (!m_pInvenPanel->IsVisible())
-			SetVisibleInventory();
-
-		switch (iKeyCode)
-		{
-		case 112:
-			m_pGridInvList[0]->SetVisible(0);
-			m_pGridInvList[1]->SetVisible(0);
-			m_pGridInvList[2]->SetVisible(0);
-			m_pGridInvList[3]->SetVisible(0);
-			m_pGridInv = m_pGridInvList[0];
-			m_pGridInv->SetVisible(1);
-			m_pInvPageBtn1->SetTextureSetIndex(527);
-			m_pInvPageBtn2->SetTextureSetIndex(528);
-			m_pInvPageBtn3->SetTextureSetIndex(528);
-			m_pInvPageBtn4->SetTextureSetIndex(528);
-			break;
-		case 113:
-			m_pGridInvList[0]->SetVisible(0);
-			m_pGridInvList[1]->SetVisible(0);
-			m_pGridInvList[2]->SetVisible(0);
-			m_pGridInvList[3]->SetVisible(0);
-			m_pGridInv = m_pGridInvList[1];
-			m_pGridInv->SetVisible(1);
-			m_pInvPageBtn1->SetTextureSetIndex(528);
-			m_pInvPageBtn2->SetTextureSetIndex(527);
-			m_pInvPageBtn3->SetTextureSetIndex(528);
-			m_pInvPageBtn4->SetTextureSetIndex(528);
-			break;
-		case 114:
-			m_pGridInvList[0]->SetVisible(0);
-			m_pGridInvList[1]->SetVisible(0);
-			m_pGridInvList[2]->SetVisible(0);
-			m_pGridInvList[3]->SetVisible(0);
-			m_pGridInv = m_pGridInvList[2];
-			m_pGridInv->SetVisible(1);
-			m_pInvPageBtn1->SetTextureSetIndex(528);
-			m_pInvPageBtn2->SetTextureSetIndex(528);
-			m_pInvPageBtn3->SetTextureSetIndex(527);
-			m_pInvPageBtn4->SetTextureSetIndex(528);
-			break;
-		case 115:
-			m_pGridInvList[0]->SetVisible(0);
-			m_pGridInvList[1]->SetVisible(0);
-			m_pGridInvList[2]->SetVisible(0);
-			m_pGridInvList[3]->SetVisible(0);
-			m_pGridInv = m_pGridInvList[3];
-			m_pGridInv->SetVisible(1);
-			m_pInvPageBtn1->SetTextureSetIndex(528);
-			m_pInvPageBtn2->SetTextureSetIndex(528);
-			m_pInvPageBtn3->SetTextureSetIndex(528);
-			m_pInvPageBtn4->SetTextureSetIndex(527);
-			break;
-		}
-
-		// Fix the "lock" missing on change inv
-		Bag_View();
-	}
+	// F1-F4 are not inventory-page shortcuts in the 7.48 executable.  Leaving
+	// them out of this dispatcher preserves the native shortcut ownership.
 
 	if (iKeyCode == VK_F11)
 	{
@@ -7865,14 +8265,13 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 		int nY{};
 		int bFind{};
 
-		// The Ghidra 7.48 inventory path scans one 9x7 Carry grid.  Preserve the
-		// four 5x3 pages only when the newer TMProject UI is actually loaded.
-		const int carryPages = m_bCompatFieldScene ? 1 : 4;
-		const int carryRows = m_bCompatFieldScene ? 7 : 3;
-		const int carryColumns = m_bCompatFieldScene ? 9 : 5;
+		// Ghidra proves the 7.48 inventory scan is exactly one 9x7 Carry grid.
+		const int carryPages = 1;
+		const int carryRows = 7;
+		const int carryColumns = 9;
 		for (int i = 0; i < carryPages; ++i)
 		{
-			pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
+			pGridInv = m_pGridInv;
 
 			for (nY = 0; nY < carryRows; ++nY)
 			{
@@ -7883,7 +8282,8 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 					if (pItem && BASE_GetItemAbility(pItem->m_pItem, EF_VOLATILE) == 11)
 					{
 						bFind = 1;
-						page = 15 * i;
+						// There is no page contribution in the native 7.48 Carry address.
+						page = 0;
 						break;
 					}
 				}
@@ -7900,7 +8300,7 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 			{
 				// F11 teleport consumables use the same 9-column Carry address as all
 				// other native 7.48 item actions.
-				short SourPos = nX + (m_bCompatFieldScene ? 9 : 5) * nY;
+				short SourPos = nX + 9 * nY;
 				m_dwGetItemTime = g_pTimerManager->GetServerTime();
 				m_dwLastTeleport = m_dwGetItemTime;
 				m_cLastTeleport = 1;
@@ -8513,7 +8913,21 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	if (m_bCompatFieldScene)
 	{
 		dwServerTime = g_pTimerManager->GetServerTime();
-		return TMScene::FrameMove(dwServerTime);
+		TMScene::FrameMove(dwServerTime);
+		// Native field lifecycle advances the five-second quit/logout/server-change
+		// countdown immediately after the base scene.  Keep that proven slice even
+		// while unsafe 7.59-only HUD ticks remain excluded from the compact path.
+		if (TimeDelay(dwServerTime) == 1)
+			return 1;
+		// FUN_004776c3 invokes FUN_0047ef1d immediately after TimeDelay.  The
+		// source implementation is the same guarded 7.48 air-move state machine;
+		// omitting it leaves a completed teleport transition permanently pending.
+		AirMove_Main(dwServerTime);
+		// The compact lifecycle must also advance the stock affect row.  Returning
+		// before this call left every 0x3B9 duration entry permanently invisible,
+		// even though InitializeCompatFieldScene created the native 7.48 icons.
+		Affect_Main(dwServerTime);
+		return 1;
 	}
 
 	if (g_bEffectFirst == 1)
@@ -9237,7 +9651,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 
 			if (m_pAffectL[i])
 				m_pAffectL[i]->SetVisible(0);
-			if (m_pMiniPanel)
+			if (m_pMiniPanel && m_pAffectIcon[i])
 			{
 				if ((unsigned char)m_pMyHuman->m_stAffect[i].Type < 50)
 					m_pAffectIcon[i]->m_GCPanel.nTextureIndex = g_AffectSkillType[(unsigned char)m_pMyHuman->m_stAffect[i].Type];
@@ -13626,6 +14040,11 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 
 						m_vecMyNext.x = nMoveSX;
 						m_vecMyNext.y = nMoveSY;
+						// Native FieldScene2 FUN_0051a939 stores this same in-range
+						// destination and immediately invokes route constructor FUN_00520216.
+						// Deferring GetRoute to FrameMove leaves a single attack click inert
+						// whenever the progress gate is not revisited.
+						m_pMyHuman->GetRoute(m_vecMyNext, 0, 0);
 					}
 				}
 			}
@@ -13646,7 +14065,9 @@ int TMFieldScene::MobMove(D3DXVECTOR3 vec, unsigned int dwServerTime)
 		return 0;
 	if (m_pCargoPanel->IsVisible() == 1)
 		return 1;
-	if (m_pCargoPanel1->IsVisible() == 1)
+	// Movement blocking follows whichever Cargo surfaces the loaded resource
+	// actually provides; FieldScene2.bin does not materialize the 7.59 page.
+	if (m_pCargoPanel1 && m_pCargoPanel1->IsVisible() == 1)
 		return 1;
 	if (!g_pApp->m_binactive)
 		return 1;
@@ -13781,12 +14202,12 @@ void TMFieldScene::DropItem(unsigned int dwServerTime)
 		if (stDrop.SourType == 1)
 		{
 			// Drop from native Carry uses its single 9-column row-major slot.
-			stDrop.SourPos = nAX + (m_bCompatFieldScene ? 9 : 5) * nAY;
+			stDrop.SourPos = nAX + 9 * nAY;
 		}
 		else if (stDrop.SourType == 2)
 		{
 			// Native Cargo also uses nine columns (Ghidra FUN_0052a737).
-			stDrop.SourPos = nAX + (m_bCompatFieldScene ? 9 : 5) * nAY;
+			stDrop.SourPos = nAX + 9 * nAY;
 		}
 		else
 			stDrop.SourPos = pAttachItem->m_pGridControl->CheckPos(pAttachItem->m_pGridControl->m_eItemType);
@@ -14073,12 +14494,12 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 int TMFieldScene::GetItem(TMItem* pItem)
 {
 	IVector2 vecGrid{};
-	// Native 7.48 exposes one 9x7 Carry grid, whereas TMProject 7.59 exposes
-	// four pages.  Query only the grids that exist in the active UI contract.
-	const int carryPages = m_bCompatFieldScene ? 1 : 4;
+	// Native 7.48 exposes one 9x7 Carry grid. This source no longer queries the
+	// four page controls imported from TMProject 7.59.
+	const int carryPages = 1;
 	for (int i = 0; i < carryPages; ++i)
 	{
-		auto pGrid = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
+		auto pGrid = m_pGridInv;
 		int nGridIndex = BASE_GetItemAbility(&pItem->m_stItem, 33);
 		vecGrid = pGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
 		if (vecGrid.x > -1 && vecGrid.y > -1 || BASE_GetItemAbility(&pItem->m_stItem, 38) == 2)
@@ -14311,10 +14732,7 @@ void TMFieldScene::SetVisibleShop(int bShow)
 		if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
 			SetVisibleTrade(0);
 
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_SELL;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_SELL;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_SELL;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_SELL;
+		SetInventoryGridType(TMEGRIDTYPE::GRID_SELL);
 
 		SetEquipGridState(0);
 
@@ -14322,10 +14740,7 @@ void TMFieldScene::SetVisibleShop(int bShow)
 	}
 	else
 	{
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+		SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
 
 		SetEquipGridState(1);
 
@@ -14484,6 +14899,8 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 		for (int i = 0; i < carryPages; ++i)
 		{
 			SGridControl* pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
+			if (!pGridInv)
+				continue;
 
 			for (int nY = 0; nY < carryRows; ++nY)
 			{
@@ -14537,20 +14954,14 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 
 	if (bShow == 1)
 	{
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV;
+		SetInventoryGridType(TMEGRIDTYPE::GRID_TRADEINV);
 		SetEquipGridState(0);
 		g_pObjectManager->m_stTrade.Header.Type = MSG_Trade_Opcode;
 		g_pObjectManager->m_stTrade.Header.ID = m_pMyHuman->m_dwID;
 	}
 	else
 	{
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+		SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
 		SetEquipGridState(1);
 		memset(&g_pObjectManager->m_stTrade, 0, sizeof(g_pObjectManager->m_stTrade));
 
@@ -14605,246 +15016,487 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 	}
 }
 
-void TMFieldScene::ClearCombine()
+SPanel* TMFieldScene::GetNativeMixPanel(int mixIndex) const
 {
-	// Combination cleanup must address the single 9x7 grid used by the 7.48
-	// client; the original loop assumed TMProject's paged inventory controls.
-	const int carryPages = m_bCompatFieldScene ? 1 : 3;
-	const int carryRows = m_bCompatFieldScene ? 7 : 3;
-	const int carryColumns = m_bCompatFieldScene ? 9 : 5;
-	for (int i = 0; i < carryPages; ++i)
+	switch (mixIndex)
 	{
-		auto pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
-		for (int nY = 0; nY < carryRows; ++nY)
+	case 1: return m_pItemMixPanel;
+	case 2: return m_pItemMixPanel2;
+	case 3: return m_pItemMixPanel3;
+	case 4: return m_pItemMixPanel4;
+	case 5: return m_pItemMixPanel5;
+	case 6: return m_pItemMixPanel6;
+	default: return nullptr;
+	}
+}
+
+SGridControl* TMFieldScene::GetNativeMixGrid(int mixIndex, int slot) const
+{
+	if (slot < 0 || slot >= GetNativeMixSlotCount(mixIndex))
+		return nullptr;
+
+	switch (mixIndex)
+	{
+	case 1: return m_pGridItemMix[slot];
+	case 2: return m_pGridItemMix2[slot];
+	case 3: return m_pGridItemMix3[slot];
+	case 4: return m_pGridItemMix4[slot];
+	case 5: return m_pGridItemMix5[slot];
+	case 6: return m_pGridItemMix6[slot];
+	default: return nullptr;
+	}
+}
+
+MSG_CombineItem* TMFieldScene::GetNativeMixPacket(int mixIndex)
+{
+	if (!g_pObjectManager)
+		return nullptr;
+
+	switch (mixIndex)
+	{
+	case 1: return &g_pObjectManager->m_stCombineItem;
+	case 2: return &g_pObjectManager->m_stCombineItem2;
+	case 3: return &g_pObjectManager->m_stCombineItem3;
+	case 4: return &g_pObjectManager->m_stCombineItem4;
+	case 5: return &g_pObjectManager->m_stCombineItem5;
+	case 6: return &g_pObjectManager->m_stCombineItem6;
+	default: return nullptr;
+	}
+}
+
+int TMFieldScene::GetNativeMixSlotCount(int mixIndex) const
+{
+	switch (mixIndex)
+	{
+	case 1:
+	case 2:
+		return 8;
+	case 3:
+		return 6;
+	case 4:
+	case 6:
+		return 3;
+	case 5:
+		return 7;
+	default:
+		return 0;
+	}
+}
+
+void TMFieldScene::ResetNativeMixPacket(int mixIndex)
+{
+	auto packet = GetNativeMixPacket(mixIndex);
+	if (!packet)
+		return;
+
+	// Every 7.48 artisan packet starts with no staged inventory position. Keep
+	// this reset side-effect free so it is safe before any mix UI is opened.
+	memset(packet, 0, sizeof(*packet));
+	packet->Header.ID = m_pMyHuman ? m_pMyHuman->m_dwID : g_pObjectManager->m_dwCharID;
+	switch (mixIndex)
+	{
+	case 1: packet->Header.Type = MSG_CombineItem_Opcode; break;
+	case 2: packet->Header.Type = MSG_CombineItemAylin_Opcode; break;
+	case 3: packet->Header.Type = MSG_CombineItemAgatha_Opcode; break;
+	case 4: packet->Header.Type = MSG_CombineItemTiny_Opcode; break;
+	case 5: packet->Header.Type = MSG_CombineItemLindy_Opcode; break;
+	case 6: packet->Header.Type = MSG_CombineItemEhre_Opcode; break;
+	}
+	for (int slot = 0; slot < 8; ++slot)
+		packet->CarryPos[slot] = -1;
+}
+
+void TMFieldScene::ClearNativeMix(int mixIndex)
+{
+	auto packet = GetNativeMixPacket(mixIndex);
+	if (!packet)
+		return;
+
+	const int slotCount = GetNativeMixSlotCount(mixIndex);
+	for (int slot = 0; slot < slotCount; ++slot)
+	{
+		// A red Carry item is only restored from the packet that owns its clone;
+		// this prevents one mix panel from unlocking an item staged elsewhere.
+		const int carrySlot = packet->CarryPos[slot];
+		if (carrySlot >= 0)
 		{
-			for (int nX = 0; nX < carryColumns; ++nX)
-			{
-				auto pItem = pGridInv->GetItem(nX, nY);
-				if (pItem)
-				{
-					if (pItem->m_GCObj.dwColor == 0xFFFF0000)
-						pItem->m_GCObj.dwColor = 0xFFFFFFFF;
-				}
-			}
+			int carryX = 0;
+			int carryY = 0;
+			GetCarryCellForSlot(carrySlot, carryX, carryY);
+			auto carryGrid = GetCarryGridForSlot(carrySlot);
+			auto carryItem = carryGrid ? carryGrid->GetAtItem(carryX, carryY) : nullptr;
+			if (carryItem)
+				carryItem->m_GCObj.dwColor = 0xFFFFFFFF;
 		}
+
+		auto mixGrid = GetNativeMixGrid(mixIndex, slot);
+		auto stagedItem = mixGrid ? mixGrid->PickupItem(0, 0) : nullptr;
+		if (g_pCursor && g_pCursor->m_pAttachedItem == stagedItem)
+			g_pCursor->m_pAttachedItem = nullptr;
+		SAFE_DELETE(stagedItem);
 	}
 
-	memset(&g_pObjectManager->m_stCombineItem, 0, sizeof(g_pObjectManager->m_stCombineItem));
-	g_pObjectManager->m_stCombineItem.Header.ID = m_pMyHuman->m_dwID;
-	g_pObjectManager->m_stCombineItem.Header.Type = MSG_CombineItem_Opcode;
-	for (int i = 0; i < 8; ++i)
-		g_pObjectManager->m_stCombineItem.CarryPos[i] = -1;
+	ResetNativeMixPacket(mixIndex);
 
-	SGridControl* pGridMix[8]{};
-	for (int i = 0; i < 8; ++i)
-	{
-		SGridControlItem* pPickedItem = nullptr;
-		pGridMix[i] = (SGridControl*)m_pControlContainer->FindControl(i + 65861);
-		if (pGridMix[i])
-			pPickedItem = pGridMix[i]->PickupItem(0, 0);
-
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-			g_pCursor->m_pAttachedItem = 0;
-		
-		SAFE_DELETE(pPickedItem);
-	}
-
-	m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+	SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
 	SetEquipGridState(1);
 }
 
-void TMFieldScene::ClearCombine4()
+void TMFieldScene::DoNativeMix(int mixIndex)
 {
-	// Tiny-combine shares the same native Carry topology as regular combine.
-	const int carryPages = m_bCompatFieldScene ? 1 : 3;
-	const int carryRows = m_bCompatFieldScene ? 7 : 3;
-	const int carryColumns = m_bCompatFieldScene ? 9 : 5;
-	for (int i = 0; i < carryPages; ++i)
+	auto packet = GetNativeMixPacket(mixIndex);
+	if (!packet)
+		return;
+
+	auto rejectRecipe = [this]()
 	{
-		auto pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
-		for (int nY = 0; nY < carryRows; ++nY)
+		if (m_pMessagePanel)
 		{
-			for (int nX = 0; nX < carryColumns; ++nX)
-			{
-				auto pItem = pGridInv->GetItem(nX, nY);
-				if (pItem)
-				{
-					if (pItem->m_GCObj.dwColor == 0xFFFF0000)
-						pItem->m_GCObj.dwColor = 0xFFFFFFFF;
-				}
-			}
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[274], 2000);
+			m_pMessagePanel->SetVisible(1, 1);
 		}
-	}
-
-	memset(&g_pObjectManager->m_stCombineItem4, 0, sizeof(g_pObjectManager->m_stCombineItem4));
-	g_pObjectManager->m_stCombineItem4.Header.ID = m_pMyHuman->m_dwID;
-	g_pObjectManager->m_stCombineItem4.Header.Type = MSG_CombineItemTiny_Opcode;
-	for (int i = 0; i < 8; ++i)
-		g_pObjectManager->m_stCombineItem4.CarryPos[i] = -1;
-
-	SGridControl* pGridMix[8]{};
-	for (int i = 0; i < 3; ++i)
+	};
+	auto hasItem = [packet](int slot)
 	{
-		SGridControlItem* pPickedItem = nullptr;
-		if (m_pGridItemMix4[i])
-			pPickedItem = m_pGridItemMix4[i]->PickupItem(0, 0);
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-			g_pCursor->m_pAttachedItem = 0;
+		return packet->Item[slot].sIndex > 0;
+	};
 
-		SAFE_DELETE(pPickedItem);
+	bool valid = true;
+	switch (mixIndex)
+	{
+	case 1:
+		if (g_nCombineMode == 1)
+		{
+			for (int slot = 0; slot < 6; ++slot)
+				valid = valid && hasItem(slot);
+		}
+		packet->Header.Type = MSG_CombineItem_Opcode;
+		break;
+	case 2:
+		packet->Header.Type = MSG_CombineItemAylin_Opcode;
+		break;
+	case 3:
+		valid = hasItem(0) && hasItem(1);
+		for (int slot = 2; slot < 6; ++slot)
+			valid = valid && packet->Item[slot].sIndex == 3140;
+		packet->Header.Type = MSG_CombineItemAgatha_Opcode;
+		break;
+	case 4:
+		valid = hasItem(0) && hasItem(1);
+		packet->Header.Type = MSG_CombineItemTiny_Opcode;
+		break;
+	case 5:
+		if (g_nCombineMode == 0 || g_nCombineMode == 1)
+		{
+			valid = hasItem(0) && hasItem(1);
+			packet->Header.Type = g_nCombineMode == 0
+				? MSG_CombineItemLindy_Opcode : MSG_CombineItemLindyAlt_Opcode;
+		}
+		else if (g_nCombineMode == 2)
+		{
+			const int first = packet->Item[0].sIndex;
+			if (first == 413)
+			{
+				for (int slot = 0; slot < 7; ++slot)
+					valid = valid && packet->Item[slot].sIndex == 413;
+			}
+			else if (first == 4127)
+			{
+				valid = packet->Item[1].sIndex == 4127 && packet->Item[2].sIndex == 5135;
+				for (int slot = 3; slot < 7; ++slot)
+					valid = valid && packet->Item[slot].sIndex == 413;
+			}
+			else if (first >= 5110 && first <= 5133)
+			{
+				for (int slot = 0; slot < 7; ++slot)
+					valid = valid && packet->Item[slot].sIndex >= 5110 && packet->Item[slot].sIndex <= 5133;
+			}
+			else if (first == 421)
+			{
+				for (int slot = 0; slot < 7; ++slot)
+					valid = valid && packet->Item[slot].sIndex == 421 + slot;
+			}
+			else if (first == 4146)
+			{
+				valid = packet->Item[1].sIndex == 4146 && packet->Item[2].sIndex == 5135;
+				for (int slot = 3; slot < 7; ++slot)
+					valid = valid && packet->Item[slot].sIndex >= 5110 && packet->Item[slot].sIndex <= 5133;
+			}
+			else
+				valid = false;
+			packet->Header.Type = MSG_CombineItemOdin_Opcode;
+		}
+		else
+			valid = false;
+		break;
+	case 6:
+		valid = hasItem(0) && hasItem(1) && hasItem(2);
+		packet->Header.Type = MSG_CombineItemEhre_Opcode;
+		break;
+	default:
+		valid = false;
+		break;
 	}
 
-	m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	SetEquipGridState(1);
+	if (!valid)
+	{
+		rejectRecipe();
+		return;
+	}
+
+	bool hasCarryItem = false;
+	for (int slot = 0; slot < GetNativeMixSlotCount(mixIndex); ++slot)
+		hasCarryItem = hasCarryItem || packet->CarryPos[slot] >= 0;
+	if (hasCarryItem)
+		SendOneMessage(reinterpret_cast<char*>(packet), sizeof(*packet));
 }
 
-void TMFieldScene::DoCombine()
+void TMFieldScene::SetVisibleNativeMix(int mixIndex, int bShow)
 {
-	if (g_nCombineMode == 1)
-	{
-		for (int i = 0; i < 6; ++i)
-		{
-			if (!g_pObjectManager->m_stCombineItem.Item[i].sIndex)
-			{
-				m_pMessagePanel->SetMessage(g_pMessageStringTable[274], 2000);
-				m_pMessagePanel->SetVisible(1, 1);
-				return;
-			}
-		}
-	}
+	auto panel = GetNativeMixPanel(mixIndex);
+	if (!panel)
+		return;
 
-	bool bFind = false;
-	for (int i = 0; i < 8; ++i)
-	{
-		if (g_pObjectManager->m_stCombineItem.CarryPos[i] != -1)
-		{
-			bFind = true;
-			break;
-		}
-	}
-
-
-
-	if (bFind)
-		SendOneMessage((char*)&g_pObjectManager->m_stCombineItem, sizeof(g_pObjectManager->m_stCombineItem));
-}
-
-void TMFieldScene::DoCombine4()
-{
-	if (g_pObjectManager->m_stCombineItem4.Item[0].sIndex && g_pObjectManager->m_stCombineItem4.Item[1].sIndex)
-	{
-		bool bFind = false;
-		for (int i = 0; i < 8; ++i)
-		{
-			if (g_pObjectManager->m_stCombineItem4.CarryPos[i] != -1)
-			{
-				bFind = true;
-				break;
-			}
-		}
-		if (bFind)
-			SendOneMessage((char*)&g_pObjectManager->m_stCombineItem4, sizeof(g_pObjectManager->m_stCombineItem4));
-	}
-	else
-	{
-		m_pMessagePanel->SetMessage(g_pMessageStringTable[274], 2000);
-		m_pMessagePanel->SetVisible(1, 1);
-	}
-}
-
-void TMFieldScene::SetVisibleMixItem(int bShow)
-{
 	SGridControl::m_sLastMouseOverIndex = -1;
-
-	if (m_pInputGoldPanel->IsVisible() == 1)
+	if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible())
 		SetInVisibleInputCoin();
-	if (bShow == 1 && m_pSkillPanel && m_pSkillPanel->m_bVisible == 1)
-		SetVisibleSkill();
-	if (bShow == 1 && m_pCPanel && m_pCPanel->m_bVisible == 1)
-		SetVisibleCharInfo();
-	if (bShow == 1 && m_pCargoPanel && m_pCargoPanel->m_bVisible == 1)
-		SetVisibleCargo(1);
-	if (bShow == 1 && m_pCargoPanel1 && m_pCargoPanel1->m_bVisible == 1)
-		SetVisibleCargo(1);
-	if (bShow == 1 && m_pAutoTrade && m_pAutoTrade->m_bVisible == 1)
-		SetVisibleAutoTrade(0, 0);
 
-	if (bShow == 1)
+	if (bShow)
 	{
-		if (m_pInvenPanel)
+		// The stock client exposes one artisan window at a time. Close and clear
+		// every other native panel before assigning Carry to this panel's raw type.
+		for (int other = 1; other <= 6; ++other)
 		{
-			if (!m_pInvenPanel->m_bVisible)
-				SetVisibleInventory();
+			if (other == mixIndex)
+				continue;
+			auto otherPanel = GetNativeMixPanel(other);
+			if (otherPanel && otherPanel->IsVisible())
+			{
+				otherPanel->SetVisible(0);
+				ClearNativeMix(other);
+			}
 		}
 
-		m_pItemMixPanel->SetVisible(1);
-		g_pDevice->m_nWidthShift = 0;
-		g_pCursor->DetachItem();
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV3;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV3;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV3;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV3;
-		TMFieldScene::SetEquipGridState(0);
-	}
-	else
-	{
-		if (m_pInvenPanel && m_pInvenPanel->m_bVisible == 1)
-			SetVisibleInventory();
+		if (m_pSkillPanel) m_pSkillPanel->SetVisible(0);
+		if (m_pSkillMPanel) m_pSkillMPanel->SetVisible(0);
+		if (m_pCPanel) m_pCPanel->SetVisible(0);
+		if (m_pCargoPanel) m_pCargoPanel->SetVisible(0);
+		if (m_pAutoTrade && m_pAutoTrade->IsVisible())
+			SetVisibleAutoTrade(0, 0);
+		if (m_pInvenPanel) m_pInvenPanel->SetVisible(1);
 
-		g_pDevice->m_nWidthShift = 0;
-		m_pItemMixPanel->SetVisible(0);
-		ClearCombine();
-	}
-}
-
-void TMFieldScene::SetVisibleMixItemTiini(int bShow)
-{
-	SGridControl::m_sLastMouseOverIndex = -1;
-
-	if (m_pInputGoldPanel->IsVisible() == 1)
-		SetInVisibleInputCoin();
-	if (bShow == 1 && m_pSkillPanel && m_pSkillPanel->m_bVisible == 1)
-		SetVisibleSkill();
-	if (bShow == 1 && m_pCPanel && m_pCPanel->m_bVisible == 1)
-		SetVisibleCharInfo();
-	if (bShow == 1 && m_pCargoPanel && m_pCargoPanel->m_bVisible == 1)
-		SetVisibleCargo(1);
-	if (bShow == 1 && m_pCargoPanel1 && m_pCargoPanel1->m_bVisible == 1)
-		SetVisibleCargo(1);
-	if (bShow == 1 && m_pAutoTrade && m_pAutoTrade->m_bVisible == 1)
-		SetVisibleAutoTrade(0, 0);
-	
-	if (bShow == 1)
-	{
-		if (m_pInvenPanel)
-		{
-			if (!m_pInvenPanel->m_bVisible)
-				SetVisibleInventory();
-		}
-		m_pItemMixPanel4->SetVisible(1);
-		g_pDevice->m_nWidthShift = 0;
-		g_pCursor->DetachItem();
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV6;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV6;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV6;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV6;
+		ClearNativeMix(mixIndex);
+		panel->SetVisible(1);
+		if (g_pDevice) g_pDevice->m_nWidthShift = 0;
+		if (g_pCursor) g_pCursor->DetachItem();
+		// Native 7.48 uses odd Carry types 13..23 for ItemMix1..6. The modern
+		// enum names at these values are unrelated and must not drive dispatch.
+		SetInventoryGridType(static_cast<TMEGRIDTYPE>(mixIndex * 2 + 11));
 		SetEquipGridState(0);
 	}
 	else
 	{
-		if (m_pInvenPanel && m_pInvenPanel->m_bVisible == 1)
-			SetVisibleInventory();
-
-		g_pDevice->m_nWidthShift = 0;
-		m_pItemMixPanel4->SetVisible(0);
-		ClearCombine4();
+		panel->SetVisible(0);
+		ClearNativeMix(mixIndex);
+		if (m_pInvenPanel && m_pInvenPanel->IsVisible())
+			m_pInvenPanel->SetVisible(0);
+		if (g_pDevice) g_pDevice->m_nWidthShift = 0;
 	}
+
+	GetSoundAndPlay(51, 0, 0);
+}
+
+int TMFieldScene::TryStageNativeMixItem(SGridControl* sourceGrid,
+	SGridControlItem* sourceItem, SGridControl* preferredTarget)
+{
+	if (!m_bCompatFieldScene || !sourceGrid || !sourceItem || !sourceItem->m_pItem)
+		return -1;
+
+	int activeMix = 0;
+	for (int mixIndex = 1; mixIndex <= 6; ++mixIndex)
+	{
+		auto panel = GetNativeMixPanel(mixIndex);
+		if (panel && panel->IsVisible())
+		{
+			activeMix = mixIndex;
+			break;
+		}
+	}
+	if (!activeMix)
+		return -1;
+
+	const int carrySlot = GetCarrySlotForCell(sourceGrid,
+		sourceItem->m_nCellIndexX, sourceItem->m_nCellIndexY);
+	if (carrySlot < 0)
+		return -1;
+	if (sourceItem->m_GCObj.dwColor != 0xFFFFFFFF)
+		return 1;
+
+	int targetSlot = -1;
+	for (int slot = 0; slot < GetNativeMixSlotCount(activeMix); ++slot)
+	{
+		auto targetGrid = GetNativeMixGrid(activeMix, slot);
+		if (preferredTarget && targetGrid == preferredTarget)
+		{
+			targetSlot = slot;
+			break;
+		}
+		if (!preferredTarget && targetSlot < 0 && targetGrid && !targetGrid->GetItem(0, 0))
+			targetSlot = slot;
+	}
+	if (targetSlot < 0)
+		return preferredTarget ? -1 : 1;
+
+	auto targetGrid = GetNativeMixGrid(activeMix, targetSlot);
+	if (!targetGrid || targetGrid->GetItem(0, 0))
+		return 1;
+	auto packet = GetNativeMixPacket(activeMix);
+	if (!packet)
+		return 1;
+
+	auto itemCopy = new STRUCT_ITEM;
+	memcpy(itemCopy, sourceItem->m_pItem, sizeof(*itemCopy));
+	auto stagedItem = new SGridControlItem(nullptr, itemCopy, 0.0f, 0.0f);
+	targetGrid->AddItem(stagedItem, 0, 0);
+	memcpy(&packet->Item[targetSlot], sourceItem->m_pItem, sizeof(packet->Item[targetSlot]));
+	packet->CarryPos[targetSlot] = static_cast<char>(carrySlot);
+	sourceItem->m_GCObj.dwColor = 0xFFFF0000;
+	if (g_pCursor) g_pCursor->DetachItem();
+	return 1;
+}
+
+int TMFieldScene::TryRemoveNativeMixItem(SGridControl* mixGrid)
+{
+	if (!m_bCompatFieldScene || !mixGrid)
+		return -1;
+
+	for (int mixIndex = 1; mixIndex <= 6; ++mixIndex)
+	{
+		auto panel = GetNativeMixPanel(mixIndex);
+		if (!panel || !panel->IsVisible())
+			continue;
+
+		for (int slot = 0; slot < GetNativeMixSlotCount(mixIndex); ++slot)
+		{
+			if (GetNativeMixGrid(mixIndex, slot) != mixGrid)
+				continue;
+
+			auto packet = GetNativeMixPacket(mixIndex);
+			auto stagedItem = mixGrid->PickupItem(0, 0);
+			if (!stagedItem || !packet)
+				return 1;
+
+			const int carrySlot = packet->CarryPos[slot];
+			if (carrySlot >= 0)
+			{
+				int carryX = 0;
+				int carryY = 0;
+				GetCarryCellForSlot(carrySlot, carryX, carryY);
+				auto carry = GetCarryGridForSlot(carrySlot);
+				auto sourceItem = carry ? carry->GetAtItem(carryX, carryY) : nullptr;
+				if (sourceItem)
+					sourceItem->m_GCObj.dwColor = 0xFFFFFFFF;
+			}
+			memset(&packet->Item[slot], 0, sizeof(packet->Item[slot]));
+			packet->CarryPos[slot] = -1;
+			if (g_pCursor && g_pCursor->m_pAttachedItem == stagedItem)
+				g_pCursor->m_pAttachedItem = nullptr;
+			SAFE_DELETE(stagedItem);
+			return 1;
+		}
+	}
+
+	return -1;
+}
+
+void TMFieldScene::ClearCombine()
+{
+	ClearNativeMix(1);
+}
+
+void TMFieldScene::ClearCombine2()
+{
+	ClearNativeMix(2);
+}
+
+void TMFieldScene::ClearCombine3()
+{
+	ClearNativeMix(3);
+}
+
+void TMFieldScene::ClearCombine4()
+{
+	ClearNativeMix(4);
+}
+
+void TMFieldScene::ClearCombine5()
+{
+	ClearNativeMix(5);
+}
+
+void TMFieldScene::ClearCombine6()
+{
+	ClearNativeMix(6);
+}
+
+void TMFieldScene::DoCombine()
+{
+	DoNativeMix(1);
+}
+
+void TMFieldScene::DoCombine2()
+{
+	DoNativeMix(2);
+}
+
+void TMFieldScene::DoCombine3()
+{
+	DoNativeMix(3);
+}
+
+void TMFieldScene::DoCombine4()
+{
+	DoNativeMix(4);
+}
+
+void TMFieldScene::DoCombine5()
+{
+	DoNativeMix(5);
+}
+
+void TMFieldScene::DoCombine6()
+{
+	DoNativeMix(6);
+}
+
+void TMFieldScene::SetVisibleMixItem(int bShow)
+{
+	SetVisibleNativeMix(1, bShow);
+}
+
+void TMFieldScene::SetVisibleMixItem2(int bShow)
+{
+	SetVisibleNativeMix(2, bShow);
+}
+
+void TMFieldScene::SetVisibleMixItem3(int bShow)
+{
+	SetVisibleNativeMix(3, bShow);
+}
+
+void TMFieldScene::SetVisibleMixItemTiini(int bShow)
+{
+	SetVisibleNativeMix(4, bShow);
+}
+
+void TMFieldScene::SetVisibleMixItem5(int bShow)
+{
+	SetVisibleNativeMix(5, bShow);
+}
+
+void TMFieldScene::SetVisibleMixItem6(int bShow)
+{
+	SetVisibleNativeMix(6, bShow);
 }
 
 void TMFieldScene::SetVisibleHellGateStore(int bShow)
@@ -14870,10 +15522,7 @@ void TMFieldScene::SetVisibleHellGateStore(int bShow)
 
 		m_pHellgateStore->SetVisible(1);
 		g_pDevice->m_nWidthShift = 0;
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_SELL;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_SELL;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_SELL;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_SELL;
+		SetInventoryGridType(TMEGRIDTYPE::GRID_SELL);
 		SetEquipGridState(0);
 	}
 	else
@@ -14885,10 +15534,7 @@ void TMFieldScene::SetVisibleHellGateStore(int bShow)
 		m_pHellgateStore->SetVisible(0);
 		m_dwHellStoreID = 0;
 		m_nHellStoreValue = 0;
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+		SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
 		SetEquipGridState(1);
 	}
 	if (!bShow)
@@ -15038,6 +15684,77 @@ void TMFieldScene::SetVisibleMiniMap()
 		return;
 
 	SGridControl::m_sLastMouseOverIndex = -1;
+
+	if (m_bCompatFieldScene)
+	{
+		// FUN_0044ca65 has a dedicated CLASSIC/UI1 branch using only IDs
+		// 289/290/291/296/771. Keep its hidden -> compact -> expanded cycle and
+		// exclude every UI2-only server/zoom control from the 7.48 path.
+		SPanel* pMiniMapBorder = static_cast<SPanel*>(m_pControlContainer->FindControl(290));
+		const bool wasVisible = m_pMiniMapPanel->m_bVisible != 0;
+		for (int markerIndex = 0; markerIndex < 256; ++markerIndex)
+		{
+			if (m_pInMiniMapPosPanel[markerIndex])
+				m_pInMiniMapPosPanel[markerIndex]->SetVisible(0);
+			if (m_pInMiniMapPosText[markerIndex])
+				m_pInMiniMapPosText[markerIndex]->SetVisible(0);
+		}
+
+		if (wasVisible)
+		{
+			if (TMGround::m_fMiniMapScale >= 1.0f)
+			{
+				m_pMiniMapPanel->SetVisible(0);
+				if (pMiniMapBorder)
+					pMiniMapBorder->SetVisible(0);
+			}
+			else
+			{
+				TMGround::m_fMiniMapScale = 1.5f;
+				m_pMiniMapPanel->SetPos(200.0f, 40.0f);
+				m_pMiniMapPanel->SetSize(400.0f, 400.0f);
+				if (pMiniMapBorder)
+				{
+					pMiniMapBorder->SetPos(196.0f, 36.0f);
+					pMiniMapBorder->SetSize(408.0f, 408.0f);
+				}
+				if (m_pMiniMapDir)
+					m_pMiniMapDir->SetPos(196.0f, 184.0f);
+			}
+		}
+		else
+		{
+			TMGround::m_fMiniMapScale = 0.6f;
+			// The stock executable uses x=636/635 at 800 pixels. Preserve those
+			// right-edge offsets when the source client runs at a wider viewport.
+			const float rightEdge = static_cast<float>(g_pDevice->m_dwScreenWidth);
+			m_pMiniMapPanel->SetPos(rightEdge - 164.0f, 4.0f);
+			m_pMiniMapPanel->SetSize(160.0f, 160.0f);
+			m_pMiniMapPanel->SetVisible(1);
+			if (pMiniMapBorder)
+			{
+				pMiniMapBorder->SetPos(rightEdge - 165.0f, 0.0f);
+				pMiniMapBorder->SetSize(168.0f, 168.0f);
+				pMiniMapBorder->SetVisible(1);
+			}
+			if (m_pMiniMapDir)
+				m_pMiniMapDir->SetPos(76.0f, 64.0f);
+		}
+
+		const bool isVisible = m_pMiniMapPanel->m_bVisible != 0;
+		if (isVisible && m_pGround)
+			m_pGround->RestoreDeviceObjects();
+		if (auto pMiniMapButton = static_cast<SButton*>(m_pControlContainer->FindControl(296)))
+			pMiniMapButton->SetSelected(isVisible ? 1 : 0);
+		if (m_pPositionText)
+			m_pPositionText->SetVisible(isVisible ? 1 : 0);
+		if (g_pSoundManager)
+		{
+			if (auto pSoundData = g_pSoundManager->GetSoundData(51))
+				pSoundData->Play(0, 0);
+		}
+		return;
+	}
 
 	int bVisible = m_pMiniMapPanel->m_bVisible;
 
@@ -15240,15 +15957,15 @@ void TMFieldScene::SetVisibleSkillMaster()
 void TMFieldScene::SetVisibleSkill()
 {
 	SGridControl::m_sLastMouseOverIndex = -1;
-	// Skill list and mastery share the original 7.48 window.  Toggle those two
-	// bound panels directly and leave later store/cargo panels out of the path.
+	// FUN_00435b13 binds root 1905 (the character Skill window) separately from
+	// root 1889 (the NPC Skill Apprentice window) and hides 1889 at startup. The
+	// player hotkey/button must therefore toggle only 1905; coupling both roots
+	// resurrects the trainer shop whenever the ordinary Skill UI is opened.
 	if (m_bCompatFieldScene)
 	{
 		const int visible = m_pSkillPanel && m_pSkillPanel->IsVisible() == 0;
 		if (m_pSkillPanel)
 			m_pSkillPanel->SetVisible(visible);
-		if (m_pSkillMPanel)
-			m_pSkillMPanel->SetVisible(visible);
 		if (!visible && m_pDescPanel)
 			m_pDescPanel->SetVisible(0);
 		GetSoundAndPlay(51, 0, 0);
@@ -15313,13 +16030,21 @@ void TMFieldScene::SetVisibleRefuseServerWar()
 
 void TMFieldScene::SetInVisibleInputCoin()
 {
-	auto pEdit = (SEditableText*)m_pControlContainer->FindControl(65889u);
+	// Native FUN_00447594 closes edit 627; the imported scene uses 65889.
+	// Resolve through the active resource ABI and tolerate an absent optional UI.
+	const unsigned int editControlID = m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD;
+	auto pEdit = m_pControlContainer
+		? static_cast<SEditableText*>(m_pControlContainer->FindControl(editControlID))
+		: nullptr;
 	auto pInputGoldPanel = (SControl*)m_pInputGoldPanel;
 
-	m_pControlContainer->SetFocusedControl(nullptr);
+	if (m_pControlContainer)
+		m_pControlContainer->SetFocusedControl(nullptr);
 
-	pInputGoldPanel->SetVisible(0);
-	pEdit->SetText((char*)"");
+	if (pInputGoldPanel)
+		pInputGoldPanel->SetVisible(0);
+	if (pEdit)
+		pEdit->SetText((char*)"");
 
 	if (m_nLastAutoTradePos >= 0)
 	{
@@ -15335,62 +16060,48 @@ void TMFieldScene::SetInVisibleInputCoin()
 
 		m_nLastAutoTradePos = -1;
 	}
-	if (g_nKeyType == 1)
+	if (g_nKeyType == 1 && m_pControlContainer && m_pEditChat)
 		m_pControlContainer->SetFocusedControl(m_pEditChat);
+}
+
+void TMFieldScene::SetInventoryGridType(TMEGRIDTYPE gridType)
+{
+	// The 7.48 resource materializes only list[0]. Null-aware iteration keeps
+	// newer source-only pages from becoming a dereference or a second slot ABI.
+	for (auto* pGridInv : m_pGridInvList)
+	{
+		if (pGridInv)
+			pGridInv->m_eGridType = gridType;
+	}
 }
 
 void TMFieldScene::SetGridState()
 {
-	m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+	SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
 
 	SetEquipGridState(1);
 }
 
 void TMFieldScene::SetEquipGridState(int bDefault)
 {
-	if (bDefault == 1)
+	const auto gridType = bDefault == 1 ? TMEGRIDTYPE::GRID_DEFAULT : TMEGRIDTYPE::GRID_TRADENONE;
+	SGridControl* equipGrids[] = {
+		m_pGridHelm, m_pGridCoat, m_pGridPants, m_pGridGloves, m_pGridBoots,
+		m_pGridRight, m_pGridLeft, m_pGridGuild, m_pGridEvent, m_pGridRing,
+		m_pGridNecklace, m_pGridOrb, m_pGridCabuncle, m_pGridDRing,
+		m_pGridNewSlot1, m_pGridNewSlot2
+	};
+	// FieldScene2.bin 7.48 does not materialize the newer NewSlot controls.
+	// Mutating only bound grids matches the native optional-control lifecycle.
+	for (auto* grid : equipGrids)
 	{
-		m_pGridHelm->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridCoat->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridPants->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridGloves->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridBoots->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridRight->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridLeft->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridGuild->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridEvent->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridRing->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridNecklace->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridOrb->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridCabuncle->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridDRing->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridNewSlot1->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		m_pGridNewSlot2->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	}
-	else
-	{
-		m_pGridHelm->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridCoat->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridPants->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridGloves->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridBoots->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridRight->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridLeft->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridGuild->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridEvent->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridRing->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridNecklace->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridOrb->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridCabuncle->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridDRing->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridNewSlot1->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		m_pGridNewSlot1->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
+		if (grid)
+			grid->m_eGridType = gridType;
 	}
 
-	m_pGridMantua->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
+	// Mantua is never accepted as a trade source in the original behavior.
+	if (m_pGridMantua)
+		m_pGridMantua->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
 }
 
 void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
@@ -16220,7 +16931,7 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 						}
 					}
 				}
-				if (m_pMiniPanel)
+				if (m_pMiniPanel && m_pAffectIcon[i])
 				{
 					if (m_pMyHuman->m_stAffect[i].Type < 50)
 						m_pAffectIcon[i]->m_GCPanel.nTextureIndex = g_AffectSkillType[m_pMyHuman->m_stAffect[i].Type];
@@ -16705,18 +17416,94 @@ void TMFieldScene::SetSkillColor(TMHuman* pAttacker, char cSkillIndex)
 
 void TMFieldScene::OnESC()
 {
-	// Compatibility mode intentionally owns only the world and the compact
-	// 7.48 HUD.  The imported ESC chain references optional panels that are not
-	// constructed in that mode; handle focus locally and return before any of
-	// those legacy pointers can be touched.
 	if (m_bCompatFieldScene)
 	{
 		if (m_pControlContainer && m_pControlContainer->m_pFocusControl)
 		{
-			// SetFocusedControl also updates optional IME/chat controls that are
-			// absent in the compact scene, so clear the focus locally instead.
+			// The 7.48 resource has no 7.59 IME controls, so release focus locally
+			// before applying FUN_0044df53's one-visible-window ESC cascade.
 			m_pControlContainer->m_pFocusControl->SetFocused(0);
 			m_pControlContainer->m_pFocusControl = nullptr;
+		}
+
+		if (m_pAutoTrade && m_pAutoTrade->IsVisible())
+			SetVisibleAutoTrade(0, 0);
+		else if (m_pQuestPanel && m_pQuestPanel->IsVisible())
+		{
+			// FUN_0044df53 closes the native quest panel before the inventory and
+			// releases button 315, preserving the one-window-per-ESC cascade.
+			m_pQuestPanel->SetVisible(0);
+			if (m_pQuestBtn)
+				m_pQuestBtn->SetSelected(0);
+			GetSoundAndPlay(51, 0, 0);
+		}
+		else if (m_pItemMixPanel && m_pItemMixPanel->IsVisible())
+			SetVisibleMixItem(0);
+		else if (m_pItemMixPanel2 && m_pItemMixPanel2->IsVisible())
+			SetVisibleMixItem2(0);
+		else if (m_pItemMixPanel3 && m_pItemMixPanel3->IsVisible())
+			SetVisibleMixItem3(0);
+		else if (m_pItemMixPanel4 && m_pItemMixPanel4->IsVisible())
+			SetVisibleMixItemTiini(0);
+		else if (m_pItemMixPanel5 && m_pItemMixPanel5->IsVisible())
+			SetVisibleMixItem5(0);
+		else if (m_pItemMixPanel6 && m_pItemMixPanel6->IsVisible())
+			SetVisibleMixItem6(0);
+		else if (m_pInvenPanel && m_pInvenPanel->IsVisible())
+			OnControlEvent(368, 0);
+		else if (m_pCPanel && m_pCPanel->IsVisible())
+			OnControlEvent(TMB_CHAR_CLOSE, 0);
+		else if ((m_pSkillPanel && m_pSkillPanel->IsVisible()) ||
+			(m_pSkillMPanel && m_pSkillMPanel->IsVisible()))
+			OnControlEvent(TMB_SKILL_CLOSE, 0);
+		else if (m_pTradePanel && m_pTradePanel->IsVisible())
+			SetVisibleTrade(0);
+		else if (m_pPartyPanel && m_pPartyPanel->IsVisible())
+		{
+			// Party panel 1857 is the native 7.48 window; close it directly so
+			// the imported 7.59 party-list members are never dereferenced.
+			m_pPartyPanel->SetVisible(0);
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PARTY)))
+				button->SetSelected(0);
+		}
+		else if (m_pShopPanel && m_pShopPanel->IsVisible())
+			SetVisibleShop(0);
+		else if (m_pCargoPanel && m_pCargoPanel->IsVisible())
+			SetVisibleCargo(0);
+		else if (m_pGambleStore && m_pGambleStore->IsVisible())
+		{
+			// The 7.48 compact path owns no m_pReelPanel2; calling the imported
+			// SetVisibleGamble helper here would dereference that 7.59-only state.
+			m_pGambleStore->SetVisible(0);
+		}
+		else if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible())
+		{
+			m_pInputGoldPanel->SetVisible(0);
+			if (m_pInputBG2)
+				m_pInputBG2->SetVisible(0);
+		}
+		else if (m_pMsgPanel && m_pMsgPanel->IsVisible())
+			m_pMsgPanel->SetVisible(0);
+		else if (m_pHelpPanel && m_pHelpPanel->IsVisible())
+		{
+			m_pHelpPanel->SetVisible(0);
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_HELP)))
+				button->SetSelected(0);
+		}
+		else if (m_pServerPanel && m_pServerPanel->IsVisible())
+			m_pServerPanel->SetVisible(0);
+		else if (m_pPotalPanel && m_pPotalPanel->IsVisible())
+			m_pPotalPanel->SetVisible(0);
+		else if (m_pMessageBox && m_pMessageBox->IsVisible())
+			m_pMessageBox->SetVisible(0);
+		else if (m_pSystemPanel)
+		{
+			// With no modal window open, native ESC toggles the system panel and
+			// mirrors that state on the bottom-bar system button.
+			const int visible = m_pSystemPanel->IsVisible() == 0;
+			m_pSystemPanel->SetVisible(visible);
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SYSTEM)))
+				button->SetSelected(visible);
 		}
 		return;
 	}
@@ -17020,8 +17807,213 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 {
 	SGridControl::m_sLastMouseOverIndex = -1;
 
-	if (m_pInputGoldPanel->IsVisible() == 1)
+	if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible() == 1)
 		SetInVisibleInputCoin();
+
+	if (m_bCompatFieldScene)
+	{
+		// Native WYD 7.48 FUN_0044ae38 owns panel 646, twelve grids 653..664,
+		// price labels 800..811 and a single inventory/cargo surface.  The imported
+		// 7.59 implementation below assumes different panels and page arrays, which
+		// is why clicking control 313 previously dereferenced a null panel at +0x28.
+		if (!m_pControlContainer || !m_pAutoTrade)
+			return;
+
+		auto pBtnCloseAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_CLOSE));
+		// FieldScene2.bin owns the native bottom-bar IDs; using the 7.59 aliases
+		// left their selected state detached from the visible 7.48 buttons.
+		auto pBtnAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_AUTOTRADEBTN));
+		auto pBtnChar = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_CHAR));
+		auto pBtnInv = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_EQUIP));
+		auto pBtnSkill = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SKILL));
+		auto pRunAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_RUN));
+		auto pMyCargoCoin = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATRADE_COIN));
+		auto pMyCargoCoinB = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_COIN));
+
+		if (pBtnCloseAutoTrade)
+			pBtnCloseAutoTrade->SetVisible(0);
+
+		const bool bSendQuit = m_pAutoTrade->IsVisible() == 1 && !bShow
+			&& (!m_pInvenPanel || !m_pInvenPanel->IsVisible());
+		if (pBtnAutoTrade)
+			pBtnAutoTrade->SetSelected(bShow);
+		m_pAutoTrade->SetVisible(bShow);
+
+		auto setPanelVisible = [](SPanel* panel, int visible)
+		{
+			if (panel)
+				panel->SetVisible(visible);
+		};
+		auto setEquipGridState748 = [this](bool enabled)
+		{
+			// FUN_00447f6f exposes fourteen normal equipment cells and keeps Mantua
+			// non-tradeable in both states; the two 7.59 extension slots do not exist.
+			SGridControl* equipment[] = {
+				m_pGridHelm, m_pGridCoat, m_pGridPants, m_pGridGloves,
+				m_pGridBoots, m_pGridRight, m_pGridLeft, m_pGridGuild,
+				m_pGridEvent, m_pGridRing, m_pGridNecklace, m_pGridOrb,
+				m_pGridCabuncle, m_pGridDRing
+			};
+			for (auto grid : equipment)
+			{
+				if (grid)
+					grid->m_eGridType = enabled
+						? TMEGRIDTYPE::GRID_DEFAULT
+						: TMEGRIDTYPE::GRID_TRADENONE;
+			}
+			if (m_pGridMantua)
+				m_pGridMantua->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
+		};
+
+		if (bShow == 1)
+		{
+			if (g_pCursor)
+				g_pCursor->DetachItem();
+			setPanelVisible(m_pSystemPanel, 0);
+			setPanelVisible(m_pCPanel, 0);
+			setPanelVisible(m_pSkillPanel, 0);
+			setPanelVisible(m_pSkillMPanel, 0);
+			setPanelVisible(m_pShopPanel, 0);
+
+			// FUN_0044ae38 closes normal trade before exposing auto-trade.  The
+			// imported SetVisibleTrade walks four absent 7.59 pages, so perform the
+			// compatible state transition directly for FieldScene2.bin.
+			if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
+			{
+				m_pTradePanel->SetVisible(0);
+				if (g_pObjectManager->m_stTrade.OpponentID > 0 && m_pMyHuman)
+				{
+					MSG_STANDARD closeTrade{};
+					closeTrade.Type = MSG_CloseTrade_Opcode;
+					closeTrade.ID = m_pMyHuman->m_dwID;
+					SendOneMessage(reinterpret_cast<char*>(&closeTrade), sizeof(closeTrade));
+				}
+				memset(&g_pObjectManager->m_stTrade, 0, sizeof(g_pObjectManager->m_stTrade));
+				for (int slot = 0; slot < 15; ++slot)
+					g_pObjectManager->m_stTrade.CarryPos[slot] = -1;
+			}
+
+			if (pBtnInv)
+				pBtnInv->SetSelected(0);
+			if (pBtnChar)
+				pBtnChar->SetSelected(0);
+			if (pBtnSkill)
+				pBtnSkill->SetSelected(0);
+
+			if (bCargo == 1)
+			{
+				// Native FUN_0044ae38 places the sale chooser at x=530 while
+				// AutoTrade remains at its x=280 anchor.  Keeping both positions
+				// explicit prevents the topmost AutoTrade panel from swallowing
+				// Cargo clicks and makes the two 7.48 windows truly side by side.
+				m_pAutoTrade->SetPos(RenderDevice::m_fWidthRatio * 280.0f,
+					RenderDevice::m_fHeightRatio * 35.0f);
+				if (m_pCargoPanel)
+					m_pCargoPanel->SetPos(RenderDevice::m_fWidthRatio * 530.0f,
+						RenderDevice::m_fHeightRatio * 35.0f);
+				setPanelVisible(m_pCargoPanel, 1);
+				setPanelVisible(m_pInvenPanel, 0);
+				if (pRunAutoTrade)
+					pRunAutoTrade->SetVisible(1);
+				if (pMyCargoCoin)
+					pMyCargoCoin->SetVisible(1);
+				if (pMyCargoCoinB)
+					pMyCargoCoinB->SetVisible(1);
+				for (int slot = 0; slot < 12; ++slot)
+				{
+					if (m_pGridAutoTrade[slot])
+						m_pGridAutoTrade[slot]->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
+				}
+			}
+			else
+			{
+				// Customer view uses the same native AutoTrade anchor and the
+				// equipment window on the opposite side of the screen.
+				m_pAutoTrade->SetPos(RenderDevice::m_fWidthRatio * 280.0f,
+					RenderDevice::m_fHeightRatio * 35.0f);
+				setPanelVisible(m_pCargoPanel, 0);
+				setPanelVisible(m_pInvenPanel, 1);
+				if (pRunAutoTrade)
+					pRunAutoTrade->SetVisible(0);
+				if (pMyCargoCoin)
+					pMyCargoCoin->SetVisible(0);
+				if (pMyCargoCoinB)
+					pMyCargoCoinB->SetVisible(0);
+				for (int slot = 0; slot < 12; ++slot)
+				{
+					if (m_pGridAutoTrade[slot])
+						m_pGridAutoTrade[slot]->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY2;
+				}
+				if (m_pGridInv)
+					m_pGridInv->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
+				setEquipGridState748(false);
+			}
+			if (m_pCargoGrid)
+				m_pCargoGrid->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
+		}
+		else
+		{
+			if (m_pMyHuman)
+			{
+				m_pMyHuman->m_TradeDesc[0] = 0;
+				if (m_pMyHuman->m_pAutoTradeDesc)
+					m_pMyHuman->m_pAutoTradeDesc->SetText(m_pMyHuman->m_TradeDesc, 0);
+				m_stAutoTrade.Header.ID = m_pMyHuman->m_dwID;
+			}
+			m_stAutoTrade.TargetID = 0;
+
+			if (m_pInvenPanel && m_pInvenPanel->IsVisible() == 1)
+			{
+				if (m_pGridInv)
+					m_pGridInv->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+				setEquipGridState748(true);
+			}
+
+			for (int slot = 0; slot < 12; ++slot)
+			{
+				// Native labels 800..811 are price state, not decoration; clearing them
+				// with their comma mode prevents values leaking into the next trade.
+				auto pPrice = static_cast<SText*>(m_pControlContainer->FindControl(800 + slot));
+				if (pPrice)
+				{
+					pPrice->m_cComma = 1;
+					pPrice->SetText((char*)"", 0);
+				}
+
+				auto pGrid = m_pGridAutoTrade[slot];
+				if (!pGrid)
+					continue;
+				auto pItem = pGrid->PickupAtItem(0, 0);
+				int cargoX = 0;
+				int cargoY = 0;
+				GetCargoCellForSlot(m_stAutoTrade.CarryPos[slot], cargoX, cargoY);
+				auto pCargoGrid = GetCargoGridForSlot(m_stAutoTrade.CarryPos[slot]);
+				auto pSrcItem = pCargoGrid ? pCargoGrid->GetAtItem(cargoX, cargoY) : nullptr;
+				if (pSrcItem)
+					pSrcItem->m_GCObj.dwColor = 0xFFFFFFFF;
+				if (g_pCursor && g_pCursor->m_pAttachedItem == pItem)
+					g_pCursor->m_pAttachedItem = nullptr;
+				SAFE_DELETE(pItem);
+			}
+
+			setPanelVisible(m_pInvenPanel, 0);
+			setPanelVisible(m_pCargoPanel, 0);
+			if (g_pDevice)
+				g_pDevice->m_nWidthShift = 0;
+			if (m_pCargoGrid)
+				m_pCargoGrid->m_eGridType = TMEGRIDTYPE::GRID_CARGO;
+			memset(&m_stAutoTrade, 0, sizeof(m_stAutoTrade));
+
+			if (bSendQuit && m_pMyHuman)
+			{
+				MSG_STANDARD quitAutoTrade{};
+				quitAutoTrade.Type = 0x384;
+				quitAutoTrade.ID = m_pMyHuman->m_dwID;
+				SendOneMessage(reinterpret_cast<char*>(&quitAutoTrade), sizeof(quitAutoTrade));
+			}
+		}
+		return;
+	}
 
 	if (m_pAutoTrade)
 	{
@@ -17106,10 +18098,7 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 					if (m_pGridAutoTrade[j])
 						m_pGridAutoTrade[j]->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY2;
 				}
-				m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
-				m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
-				m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
-				m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
+				SetInventoryGridType(TMEGRIDTYPE::GRID_TRADEINV2);
 				SetEquipGridState(0);
 			}
 			m_pCargoGridList[0]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
@@ -17123,10 +18112,7 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 
 			if (m_pInvenPanel->IsVisible() == 1)
 			{
-				m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-				m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-				m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-				m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+				SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
 				SetEquipGridState(1);
 			}
 
@@ -17788,44 +18774,33 @@ void TMFieldScene::SetPosPKRun()
 
 char TMFieldScene::UseHPotion()
 {
-	SGridControl* pGridInv = nullptr;
+	SGridControl* pGridInv = m_pGridInv;
 	SGridControlItem* pItem = nullptr;
+	if (!pGridInv)
+		return 0;
 
 	bool bFind = false;
-	int Page = 0;
-	// Ghidra FUN_0052a737 proves that 7.48 searches one 9x7 Carry surface.
-	// Keep the newer four-page scan only when the newer resource is active.
-	const int carryPages = m_bCompatFieldScene ? 1 : 4;
-	const int carryRows = m_bCompatFieldScene ? 7 : 3;
-	const int carryColumns = m_bCompatFieldScene ? 9 : 5;
-	for (int i = 0; i < carryPages; ++i)
+	// FUN_0044effc searches the sole 9x7 Carry from the last row/column toward
+	// zero. There is no 7.59 page selector in the client 7.48 executable.
+	for (int j = 6; j >= 0; --j)
 	{
-		pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
-		if (!pGridInv)
-			continue;
-		for (int j = 0; j < carryRows; ++j)
+		for (int k = 8; k >= 0; --k)
 		{
-			for (int k = 0; k < carryColumns; ++k)
+			pItem = pGridInv->GetItem(k, j);
+			if (pItem &&
+				(pItem->m_pItem->sIndex == 4097
+					|| pItem->m_pItem->sIndex == 3431
+					|| pItem->m_pItem->sIndex == 3322
+					|| pItem->m_pItem->sIndex == 3477
+					|| pItem->m_pItem->sIndex >= 400 && pItem->m_pItem->sIndex <= 404
+					|| pItem->m_pItem->sIndex >= 428 && pItem->m_pItem->sIndex <= 431
+					|| pItem->m_pItem->sIndex >= 680 && pItem->m_pItem->sIndex <= 685))
 			{
-				pItem = pGridInv->GetItem(k, j);
-				if (pItem &&
-					(pItem->m_pItem->sIndex == 4097
-						|| pItem->m_pItem->sIndex == 3431
-						|| pItem->m_pItem->sIndex == 3322
-						|| pItem->m_pItem->sIndex == 3477
-						|| pItem->m_pItem->sIndex >= 400 && pItem->m_pItem->sIndex <= 404
-						|| pItem->m_pItem->sIndex >= 428 && pItem->m_pItem->sIndex <= 431
-						|| pItem->m_pItem->sIndex >= 680 && pItem->m_pItem->sIndex <= 685))
-				{
-					bFind = true;
-					Page = m_bCompatFieldScene ? 0 : 15 * i;
-					break;
-				}
-			}
-			if (bFind == 1)
+				bFind = true;
 				break;
+			}
 		}
-		if (bFind == 1)
+		if (bFind)
 			break;
 	}
 
@@ -17847,9 +18822,10 @@ char TMFieldScene::UseHPotion()
 
 		int SourPos = pGridInv->CheckPos(pItem->m_pGridControl->m_eItemType);
 		if (SourPos == -1)
-			SourPos = pItem->m_nCellIndexX + (m_bCompatFieldScene ? 9 : 5) * pItem->m_nCellIndexY;
-
-		int SourPosa = Page + SourPos;
+			SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+		// Slot 63 exists only as structure padding; the 7.48 Carry exposes 0..62.
+		if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+			return 0;
 
 		auto vec = m_pMyHuman->m_vecPosition;
 		
@@ -17857,7 +18833,7 @@ char TMFieldScene::UseHPotion()
 		stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
 		stUseItem.Header.Type = MSG_UseItem_Opcode;
 		stUseItem.SourType = 1;
-		stUseItem.SourPos = SourPosa;
+		stUseItem.SourPos = SourPos;
 		stUseItem.ItemID = 0;
 		stUseItem.GridX = (int)vec.x;
 		stUseItem.GridY = (int)vec.y;
@@ -17868,12 +18844,11 @@ char TMFieldScene::UseHPotion()
 
 		if (nAmount <= 1)
 		{
-			// Remove the consumed potion from the same native cell represented by
-			// SourPosa; the previous 15-slot transform corrupted slots 15..62.
+			// Remove the consumed potion from the exact native slot sent on the wire.
 			int carryX = 0;
 			int carryY = 0;
-			GetCarryCellForSlot(SourPosa, carryX, carryY);
-			auto pCarryGrid = GetCarryGridForSlot(SourPosa);
+			GetCarryCellForSlot(SourPos, carryX, carryY);
+			auto pCarryGrid = GetCarryGridForSlot(SourPos);
 			auto pPickedItem = pCarryGrid ? pCarryGrid->PickupItem(carryX, carryY) : nullptr;
 			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
 				g_pCursor->m_pAttachedItem = 0;
@@ -17888,7 +18863,7 @@ char TMFieldScene::UseHPotion()
 			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
 		}
 		if (nAmount <= 1)
-			memset(&g_pObjectManager->m_stMobData.Carry[SourPosa], 0, sizeof(STRUCT_ITEM));
+			memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
 
 		GetSoundAndPlay(41, 0, 0);
 	}
@@ -17899,41 +18874,29 @@ char TMFieldScene::UseHPotion()
 
 char TMFieldScene::UseMPotion()
 {
-	SGridControl* pGridInv = nullptr;
+	SGridControl* pGridInv = m_pGridInv;
 	SGridControlItem* pItem = nullptr;
+	if (!pGridInv)
+		return 0;
 
 	bool bFind = false;
-	int Page = 0;
-	// MP potion lookup follows the same native 9x7 Carry ABI as HP potions;
-	// scanning four 5x3 pages dereferenced absent compatibility grids.
-	const int carryPages = m_bCompatFieldScene ? 1 : 4;
-	const int carryRows = m_bCompatFieldScene ? 7 : 3;
-	const int carryColumns = m_bCompatFieldScene ? 9 : 5;
-	for (int i = 0; i < carryPages; ++i)
+	// FUN_0044f46b uses the same reverse 9x7 scan as the native HP shortcut.
+	for (int j = 6; j >= 0; --j)
 	{
-		pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
-		if (!pGridInv)
-			continue;
-		for (int j = 0; j < carryRows; ++j)
+		for (int k = 8; k >= 0; --k)
 		{
-			for (int k = 0; k < carryColumns; ++k)
+			pItem = pGridInv->GetItem(k, j);
+			if (pItem && (pItem->m_pItem->sIndex == 3323
+				|| pItem->m_pItem->sIndex == 3472
+				|| pItem->m_pItem->sIndex >= 405 && pItem->m_pItem->sIndex <= 409
+				|| pItem->m_pItem->sIndex >= 432 && pItem->m_pItem->sIndex <= 435
+				|| pItem->m_pItem->sIndex >= 686 && pItem->m_pItem->sIndex <= 691))
 			{
-				pItem = pGridInv->GetItem(k, j);
-				if (pItem && (pItem->m_pItem->sIndex == 3323
-					|| pItem->m_pItem->sIndex == 3472
-					|| pItem->m_pItem->sIndex >= 405 && pItem->m_pItem->sIndex <= 409
-					|| pItem->m_pItem->sIndex >= 432 && pItem->m_pItem->sIndex <= 435
-					|| pItem->m_pItem->sIndex >= 686 && pItem->m_pItem->sIndex <= 691))
-				{
-					bFind = true;
-					Page = m_bCompatFieldScene ? 0 : 15 * i;
-					break;
-				}
-			}
-			if (bFind == 1)
+				bFind = true;
 				break;
+			}
 		}
-		if (bFind == 1)
+		if (bFind)
 			break;
 	}
 
@@ -17955,9 +18918,9 @@ char TMFieldScene::UseMPotion()
 
 		int SourPos = pGridInv->CheckPos(pItem->m_pGridControl->m_eItemType);
 		if (SourPos == -1)
-			SourPos = pItem->m_nCellIndexX + (m_bCompatFieldScene ? 9 : 5) * pItem->m_nCellIndexY;
-
-		int SourPosa = Page + SourPos;
+			SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+		if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+			return 0;
 
 		auto vec = m_pMyHuman->m_vecPosition;
 
@@ -17965,7 +18928,7 @@ char TMFieldScene::UseMPotion()
 		stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
 		stUseItem.Header.Type = MSG_UseItem_Opcode;
 		stUseItem.SourType = 1;
-		stUseItem.SourPos = SourPosa;
+		stUseItem.SourPos = SourPos;
 		stUseItem.ItemID = 0;
 		stUseItem.GridX = (int)vec.x;
 		stUseItem.GridY = (int)vec.y;
@@ -17979,8 +18942,8 @@ char TMFieldScene::UseMPotion()
 			// Keep the visual removal and server Carry index on one ABI mapping.
 			int carryX = 0;
 			int carryY = 0;
-			GetCarryCellForSlot(SourPosa, carryX, carryY);
-			auto pCarryGrid = GetCarryGridForSlot(SourPosa);
+			GetCarryCellForSlot(SourPos, carryX, carryY);
+			auto pCarryGrid = GetCarryGridForSlot(SourPos);
 			auto pPickedItem = pCarryGrid ? pCarryGrid->PickupItem(carryX, carryY) : nullptr;
 			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
 				g_pCursor->m_pAttachedItem = 0;
@@ -17995,7 +18958,7 @@ char TMFieldScene::UseMPotion()
 			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
 		}
 		if (nAmount <= 1)
-			memset(&g_pObjectManager->m_stMobData.Carry[SourPosa], 0, sizeof(STRUCT_ITEM));
+			memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
 
 		GetSoundAndPlay(41, 0, 0);
 	}
@@ -18053,38 +19016,26 @@ int TMFieldScene::IsFeedPotion(short sMountIndex, short sItemIndex)
 
 char TMFieldScene::FeedMount()
 {
-	SGridControl* pGridInv = nullptr;
+	SGridControl* pGridInv = m_pGridInv;
 	SGridControlItem* pItem = nullptr;
+	if (!pGridInv)
+		return 0;
 
 	bool bFind = false;
-	int Page = 0;
-	// Mount food is also stored in native Carry.  Scan the materialized 9x7
-	// grid in 7.48 mode instead of probing three uninitialized page pointers.
-	const int carryPages = m_bCompatFieldScene ? 1 : 4;
-	const int carryRows = m_bCompatFieldScene ? 7 : 3;
-	const int carryColumns = m_bCompatFieldScene ? 9 : 5;
-	for (int i = 0; i < carryPages; ++i)
+	// FUN_004502a7 searches mount food in reverse over the sole 9x7 Carry.
+	for (int j = 6; j >= 0; --j)
 	{
-		pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
-		if (!pGridInv)
-			continue;
-		for (int j = 0; j < carryRows; ++j)
+		for (int k = 8; k >= 0; --k)
 		{
-			for (int k = 0; k < carryColumns; ++k)
+			pItem = pGridInv->GetItem(k, j);
+			if (pItem && IsFeedPotion(g_pObjectManager->m_stMobData.Equip[14].sIndex,
+				pItem->m_pItem->sIndex))
 			{
-				pItem = pGridInv->GetItem(k, j);
-				if (pItem && IsFeedPotion(g_pObjectManager->m_stMobData.Equip[14].sIndex,
-					pItem->m_pItem->sIndex))
-				{
-					bFind = true;
-					Page = m_bCompatFieldScene ? 0 : 15 * i;
-					break;
-				}
-			}
-			if (bFind == 1)
+				bFind = true;
 				break;
+			}
 		}
-		if (bFind == 1)
+		if (bFind)
 			break;
 	}
 
@@ -18103,9 +19054,9 @@ char TMFieldScene::FeedMount()
 
 		int SourPos = pGridInv->CheckPos(pItem->m_pGridControl->m_eItemType);
 		if (SourPos == -1)
-			SourPos = pItem->m_nCellIndexX + (m_bCompatFieldScene ? 9 : 5) * pItem->m_nCellIndexY;
-
-		int SourPosa = Page + SourPos;
+			SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+		if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+			return 0;
 
 		auto vec = m_pMyHuman->m_vecPosition;
 
@@ -18115,7 +19066,7 @@ char TMFieldScene::FeedMount()
 		stUseItem.DestType = 0;
 		stUseItem.DestPos = 14;
 		stUseItem.SourType = 1;
-		stUseItem.SourPos = SourPosa;
+		stUseItem.SourPos = SourPos;
 		stUseItem.ItemID = 0;
 		stUseItem.GridX = (int)vec.x;
 		stUseItem.GridY = (int)vec.y;
@@ -18128,8 +19079,8 @@ char TMFieldScene::FeedMount()
 			// Remove food by its real 7.48 Carry coordinate.
 			int carryX = 0;
 			int carryY = 0;
-			GetCarryCellForSlot(SourPosa, carryX, carryY);
-			auto pCarryGrid = GetCarryGridForSlot(SourPosa);
+			GetCarryCellForSlot(SourPos, carryX, carryY);
+			auto pCarryGrid = GetCarryGridForSlot(SourPos);
 			auto pPickedItem = pCarryGrid ? pCarryGrid->PickupItem(carryX, carryY) : nullptr;
 			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
 				g_pCursor->m_pAttachedItem = 0;
@@ -18144,7 +19095,7 @@ char TMFieldScene::FeedMount()
 			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
 		}
 		if (nAmount <= 1)
-			memset(&g_pObjectManager->m_stMobData.Carry[SourPosa], 0, sizeof(STRUCT_ITEM));
+			memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
 	}
 
 	UpdateScoreUI(0);
@@ -18164,7 +19115,11 @@ void TMFieldScene::SetRunMode()
 
 void TMFieldScene::UseTicket(int nCellX, int nCellY)
 {
-	auto pGrid = (SGridControl*)m_pControlContainer->FindControl(65554);
+	// FUN_0045061f resolves EF_VOLATILE 14 directly against FieldScene2 Carry;
+	// control 65554 and page arithmetic belong to a later client resource.
+	auto pGrid = m_pGridInv;
+	if (!pGrid)
+		return;
 	auto pItem = pGrid->GetItem(nCellX, nCellY);
 	if (!pItem)
 		return;
@@ -18178,11 +19133,9 @@ void TMFieldScene::UseTicket(int nCellX, int nCellY)
 
 	int SourPos = pGrid->CheckPos(pItem->m_pGridControl->m_eItemType);
 	if (SourPos == -1)
-	{
-		// A legacy inventory row has nine cells; using the newer five-cell
-		// stride sent UseItem for another Carry slot and hid the real item.
-		SourPos = pItem->m_nCellIndexX + (m_bCompatFieldScene ? 9 : 5) * pItem->m_nCellIndexY;
-	}
+		SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+	if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+		return;
 
 	MSG_UseItem stUseItem{};
 	stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
@@ -18209,7 +19162,10 @@ void TMFieldScene::UseTicket(int nCellX, int nCellY)
 	}
 	else
 	{
-		auto pPickedItem = pGrid->PickupItem(nCellX, nCellY);
+		int carryX = 0;
+		int carryY = 0;
+		GetCarryCellForSlot(SourPos, carryX, carryY);
+		auto pPickedItem = pGrid->PickupItem(carryX, carryY);
 		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
 			g_pCursor->m_pAttachedItem = 0;
 		
@@ -18256,37 +19212,25 @@ char TMFieldScene::UseQuickSloat(char key)
 	if (!pItemFind)
 		return 0;
 
-	int page = 0;
-
 	SGridControlItem* pItem = nullptr;
-	SGridControl* pGridInv = nullptr;
+	SGridControl* pGridInv = m_pGridInv;
+	if (!pGridInv)
+		return 0;
 	bool bFind = false;
-	// Quick-slot resolution must search all 63 native Carry positions.  The
-	// old four-page loop saw only 60 positions and crashed on absent 7.59 grids.
-	const int carryPages = m_bCompatFieldScene ? 1 : 4;
-	const int carryRows = m_bCompatFieldScene ? 7 : 3;
-	const int carryColumns = m_bCompatFieldScene ? 9 : 5;
-	for (int i = 0; i < carryPages; ++i)
+	// FUN_0044effc..FUN_0044fc4b resolve shortcut items by scanning the single
+	// native Carry from (8,6) to (0,0); no page contributes to SourPos.
+	for (int j = 6; j >= 0; --j)
 	{
-		pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
-		if (!pGridInv)
-			continue;
-		for (int j = 0; j < carryRows; ++j)
+		for (int k = 8; k >= 0; --k)
 		{
-			for (int k = 0; k < carryColumns; ++k)
+			pItem = pGridInv->GetItem(k, j);
+			if (pItem && pItem->m_pItem->sIndex == pItemFind->m_pItem->sIndex)
 			{
-				pItem = pGridInv->GetItem(k, j);
-				if (pItem && pItem->m_pItem->sIndex == pItemFind->m_pItem->sIndex)
-				{
-					bFind = true;
-					page = m_bCompatFieldScene ? 0 : 15 * i;
-					break;
-				}
-			}
-			if (bFind == true)
+				bFind = true;
 				break;
+			}
 		}
-		if (bFind == true)
+		if (bFind)
 			break;
 	}
 	if (bFind != true || !pItem)
@@ -18297,16 +19241,16 @@ char TMFieldScene::UseQuickSloat(char key)
 	if (m_dwUseItemTime && dwServerTime - m_dwUseItemTime < 200)
 		return 0;
 
-	int SourType = pGridInv->CheckType(pItem->m_pGridControl->m_eItemType, pItem->m_pGridControl->m_eGridType);
 	int SourPos = pGridInv->CheckPos(pItem->m_pGridControl->m_eItemType);
 	if (SourPos == -1)
-		SourPos = pItem->m_nCellIndexX + (m_bCompatFieldScene ? 9 : 5) * pItem->m_nCellIndexY;
-	SourPos = page + SourPos;
+		SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+	if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+		return 0;
 
 	MSG_UseItem stUseItem{};
 	stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
 	stUseItem.Header.Type = MSG_UseItem_Opcode;
-	stUseItem.SourType = SourType;
+	stUseItem.SourType = 1;
 	stUseItem.SourPos = SourPos;
 	stUseItem.ItemID = 0;
 	stUseItem.GridX = (int)m_pMyHuman->m_vecPosition.x;
@@ -18346,26 +19290,18 @@ char TMFieldScene::UseQuickSloat(char key)
 
 		g_pCursor->DetachItem();
 		bool bFind = false;
-		for (int i = 0; i < carryPages; ++i)
+		for (int l = 6; l >= 0; --l)
 		{
-			auto pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
-			if (!pGridInv)
-				continue;
-			for (int l = 0; l < carryRows; ++l)
+			for (int m = 8; m >= 0; --m)
 			{
-				for (int m = 0; m < carryColumns; ++m)
+				auto pCandidate = pGridInv->GetItem(m, l);
+				if (pCandidate && pCandidate->m_pItem->sIndex == pItemFind->m_pItem->sIndex)
 				{
-					auto pItem = pGridInv->GetItem(m, l);
-					if (pItem && pItem->m_pItem->sIndex == pItemFind->m_pItem->sIndex)
-					{
-						bFind = true;
-						break;
-					}
-				}
-				if (bFind == true)
+					bFind = true;
 					break;
+				}
 			}
-			if (bFind == true)
+			if (bFind)
 				break;
 		}
 		if (!bFind)
@@ -18432,11 +19368,10 @@ void TMFieldScene::UseFireWork()
 
 	int SourPos = m_pGridInv->CheckPos(pItem->m_pGridControl->m_eItemType);
 	if (SourPos == -1)
-	{
-		// FieldScene2 addresses Carry as row-major 9x7; using the TMProject
-		// five-column stride sends the wrong consumable slot to the server.
-		SourPos = pItem->m_nCellIndexX + (m_bCompatFieldScene ? 9 : 5) * pItem->m_nCellIndexY;
-	}
+		SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+	// MSG_UseItem2 shares the native Carry address space with MSG_UseItem.
+	if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+		return;
 
 	int nType = BASE_GetItemAbility(pItem->m_pItem, 38);
 
@@ -18475,7 +19410,10 @@ void TMFieldScene::UseFireWork()
 	}
 	else
 	{
-		auto pPickedItem = m_pGridInv->PickupItem(pItem->m_nCellIndexX, pItem->m_nCellIndexY);
+		int carryX = 0;
+		int carryY = 0;
+		GetCarryCellForSlot(SourPos, carryX, carryY);
+		auto pPickedItem = m_pGridInv->PickupItem(carryX, carryY);
 		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
 			g_pCursor->m_pAttachedItem = 0;
 
@@ -18606,20 +19544,30 @@ void TMFieldScene::MobStop(D3DXVECTOR3 vec)
 
 void TMFieldScene::VisibleInputTradeName()
 {
+	if (!m_pControlContainer)
+		return;
+
+	// Ghidra FUN_004656af uses caption/edit 630/627 and background 574 in
+	// FieldScene2.bin. Keep newer IDs only for the non-7.48 resource path.
+	const unsigned int textControlID = m_bCompatFieldScene ? TMT_INPUT_GOLD : T_INPUT_GOLD;
+	const unsigned int editControlID = m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD;
 	auto pInputGoldPanel = (SControl*)m_pInputGoldPanel;
-	auto pText = (SText*)m_pControlContainer->FindControl(65888u);
-	auto pEdit = (SEditableText*)m_pControlContainer->FindControl(65889u);
-	if (pText && pEdit)
+	auto pText = (SText*)m_pControlContainer->FindControl(textControlID);
+	auto pEdit = (SEditableText*)m_pControlContainer->FindControl(editControlID);
+	if (pInputGoldPanel && pText && pEdit)
 	{
 		m_nCoinMsgType = 3;
 		pText->SetText(g_pMessageStringTable[141], 0);
 		m_pControlContainer->SetFocusedControl(pEdit);
 		pInputGoldPanel->SetVisible(1);
-		auto pInputBG2 = (SPanel*)m_pControlContainer->FindControl(574u);
+		auto pInputBG2 = m_pInputBG2
+			? m_pInputBG2
+			: static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_INPUT_BG2));
 		if (pInputBG2)
 			pInputBG2->SetVisible(1);
 		pEdit->m_nMaxStringLen = 20;
-		m_pChatSelectPanel->SetVisible(0);
+		if (m_pChatSelectPanel)
+			m_pChatSelectPanel->SetVisible(0);
 	}
 }
 
@@ -18674,22 +19622,16 @@ void TMFieldScene::VisibleInputCharName(SGridControlItem* pItem, int nCellX, int
 	{
 		short SourPos = m_pGridInv->CheckPos(pItem->m_pGridControl->m_eItemType);
 		if (SourPos == -1)
-		{
-			// Native 7.48 stores Carry in one 9-column grid and has no page ID.
-			SourPos = pItem->m_nCellIndexX + (m_bCompatFieldScene ? 9 : 5) * pItem->m_nCellIndexY;
-		}
-
-		int SourPage = m_bCompatFieldScene
-			? 0
-			: 15 * (pItem->m_pGridControl->m_dwControlID - 67072);
-		if (SourPage < 0 || SourPage > 45)
-			SourPage = 0;
+			SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+		// Capsule naming stores the same 0..62 Carry index for the later send.
+		if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+			return;
 
 		memset(&m_stCapsuleItem, 0, sizeof(m_stCapsuleItem));
 		m_stCapsuleItem.Header.ID = g_pObjectManager->m_dwCharID;
 		m_stCapsuleItem.Header.Type = 972;
 		m_stCapsuleItem.SourType = 1;
-		m_stCapsuleItem.SourPos = SourPage + SourPos;
+		m_stCapsuleItem.SourPos = SourPos;
 		m_stCapsuleItem.ItemID = 0;
 		m_stCapsuleItem.GridX = nCellX;
 		m_stCapsuleItem.GridY = nCellY;
@@ -18726,22 +19668,17 @@ void TMFieldScene::UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, 
 		short SourPos = m_pGridInv->CheckPos(pItem->m_pGridControl->m_eItemType);
 
 		if (SourPos == -1)
-		{
-			// Use the 7.48 row-major Carry slot so every item action references the
-			// same slot that the server projected into the 63 visible positions.
-			SourPos = pItem->m_nCellIndexX + (m_bCompatFieldScene ? 9 : 5) * pItem->m_nCellIndexY;
-		}
-
-		int SourPage = m_bCompatFieldScene
-			? 0
-			: 15 * (pItem->m_pGridControl->m_dwControlID - 67072);
+			SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+		// FUN_0045061f sends one row-major Carry index; slot 63 is not exposed.
+		if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+			return;
 
 		MSG_UseItem stUseItem{};
 
 		stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
 		stUseItem.Header.Type = MSG_UseItem_Opcode;
 		stUseItem.SourType = 1;
-		stUseItem.SourPos = SourPage + SourPos;
+		stUseItem.SourPos = SourPos;
 
 		if (nType == 15)
 		{
@@ -18776,12 +19713,11 @@ void TMFieldScene::UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, 
 		}
 		else
 		{
-			// FieldScene2 owns one Carry grid; never derive a page pointer from a
-			// resource control ID when removing a consumed native item.
-			SGridControl* sourceGrid = m_bCompatFieldScene
-				? m_pGridInv
-				: m_pGridInvList[pItem->m_pGridControl->m_dwControlID - 67072];
-			SGridControlItem* pPickedItem = sourceGrid ? sourceGrid->PickupItem(nCellX, nCellY) : nullptr;
+			// Optimistic removal must target the exact slot encoded in the packet.
+			int carryX = 0;
+			int carryY = 0;
+			GetCarryCellForSlot(SourPos, carryX, carryY);
+			SGridControlItem* pPickedItem = m_pGridInv->PickupItem(carryX, carryY);
 
 			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
 				g_pCursor->m_pAttachedItem = nullptr;
@@ -19529,6 +20465,21 @@ int TMFieldScene::OnKeyPlus(char iCharCode, int lParam)
 		return 0;
 
 	auto pChatList = m_pChatList;
+	if (m_bCompatFieldScene)
+	{
+		// WYD.exe 7.48 FUN_00452271 resizes only legacy list 5377. Its
+		// scrollbar/backdrop are not the 656xx controls imported from 7.59,
+		// so touching those newer pointers makes the native '+' shortcut unsafe.
+		pChatList->SetSize(300.0f, static_cast<float>(140 * m_nChatListSize + 112));
+		pChatList->m_nVisibleCount = 10 * m_nChatListSize + 8;
+		if (m_nChatListSize == 3)
+			pChatList->SetVisible(0);
+		else if (!pChatList->m_bVisible)
+			pChatList->SetVisible(1);
+
+		GetSoundAndPlay(51, 0, 0);
+		return 1;
+	}
 
 	pChatList->SetSize(pChatList->m_nWidth, (float)(140 * m_nChatListSize + 60) * RenderDevice::m_fHeightRatio);
 	pChatList->m_pScrollBar->SetSize(pChatList->m_pScrollBar->m_nWidth, (float)(140 * m_nChatListSize + 60) * RenderDevice::m_fHeightRatio);
@@ -19608,7 +20559,10 @@ int TMFieldScene::OnKeyHelp(char iCharCode, int lParam)
 	{
 		int bVisible = m_pHelpPanel->IsVisible();
 		m_pHelpPanel->SetVisible(bVisible == 0);
-		m_pHelpBtn->SetSelected(bVisible == 0);
+		// Native resources pair panel 864 with button 314, but keep the guard so
+		// a malformed RC cannot turn an optional Help window into an input crash.
+		if (m_pHelpBtn)
+			m_pHelpBtn->SetSelected(bVisible == 0);
 		GetSoundAndPlay(51, 0, 0);
 	}
 
@@ -19662,6 +20616,15 @@ int TMFieldScene::OnKeySkillPage(char iCharCode, int lParam)
 	if (iCharCode != 'z' && iCharCode != 'Z')
 		return 0;
 
+	if (m_bCompatFieldScene)
+	{
+		// WYD.exe 7.48 FUN_00452691 dispatches the resource-owned buttons
+		// 587/588. The 6564x controls belong to the imported 7.59 layout.
+		if (m_pGridSkillBelt2)
+			OnControlEvent(m_pGridSkillBelt2->m_bVisible ? TMB_SHORTSKILL_TGL2 : TMB_SHORTSKILL_TGL1, 0);
+		return 1;
+	}
+
 	if (m_pGridSkillBelt2->m_bVisible)
 		OnControlEvent(65647, 0);
 	else
@@ -19674,6 +20637,14 @@ int TMFieldScene::OnKeyQuestLog(char iCharCode, int lParam)
 {
 	if (iCharCode != 'x' && iCharCode != 'X')
 		return 0;
+
+	if (m_bCompatFieldScene)
+	{
+		// FUN_004526ee routes X through classic quest button 315; 65793 is a
+		// newer resource ID and can neither open nor close the 7.48 window.
+		OnControlEvent(TMB_QUESTLOG, 0);
+		return 1;
+	}
 
 	OnControlEvent(65793, 0);
 	return 1;
@@ -19722,7 +20693,7 @@ int TMFieldScene::OnKeyGuildOnOff(char iCharCode, int lParam)
 int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)
 {
 	if ((iCharCode < '0' || iCharCode > '9') && iCharCode != '!' && iCharCode != '@' &&
-		iCharCode != '#' && iCharCode != '$' && iCharCode != '%' && iCharCode != '¨' &&
+		iCharCode != '#' && iCharCode != '$' && iCharCode != '%' && iCharCode != '^' &&
 		iCharCode != '&' && iCharCode != '*' && iCharCode != '(' && iCharCode != ')')
 	{
 		return 0;
@@ -19759,7 +20730,7 @@ int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)
 		case '%':
 			g_pObjectManager->m_cSelectShortSkill = 4;
 			break;
-		case '¨':
+		case '^':
 			g_pObjectManager->m_cSelectShortSkill = 5;
 			break;
 		case '&':
@@ -19776,6 +20747,11 @@ int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)
 			break;
 		}
 	}
+	// FUN_004528c5 always receives both native belt grids from FUN_00435b13.
+	// A malformed resource must consume the shortcut safely instead of crashing.
+	if (!m_pGridSkillBelt2 || !m_pGridSkillBelt3)
+		return 1;
+
 	if (m_pGridSkillBelt3->IsVisible())
 		g_pObjectManager->m_cSelectShortSkill += 10;
 
@@ -19828,29 +20804,34 @@ int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)
 
 		int nSkillDam = BASE_GetSkillDamage(cSkillIndex, pMobData, nWeather, GetWeaponDamage(),
 			g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][0].sIndex);
-		auto pSkillDam = (SText*)m_pControlContainer->FindControl(65735);
-
 		char szStr[128]{};
 		if (nSkillDam < 0)
 		{
 			sprintf(szStr, "%d", -nSkillDam);
-			pSkillDam->SetText(szStr, 0);
-			pSkillDam->SetTextColor(0xFFAAFFAA);
+			// Native FUN_004528c5 writes the compact HUD damage member; 65735 is
+			// a 7.59 Character control and is absent from FieldScene2.bin 7.48.
+			if (m_pSkillDam)
+			{
+				m_pSkillDam->SetText(szStr, 0);
+				m_pSkillDam->SetTextColor(0xFFAAFFAA);
+			}
 		}
 		else
 		{
 			sprintf(szStr, "%d", nSkillDam);
-			pSkillDam->SetText(szStr, 0);
-			pSkillDam->SetTextColor(0xFFBBBBFF);
+			if (m_pSkillDam)
+			{
+				m_pSkillDam->SetText(szStr, 0);
+				m_pSkillDam->SetTextColor(0xFFBBBBFF);
+			}
 		}
 	}
 	else
 	{
-		auto pText = static_cast<SText*>(m_pControlContainer->FindControl(65735));
-
 		char szStr[128]{};
 		sprintf(szStr, "%d", 0);
-		pText->SetText(szStr, 0);
+		if (m_pSkillDam)
+			m_pSkillDam->SetText(szStr, 0);
 	}
 
 	return 1;
@@ -19861,11 +20842,18 @@ int TMFieldScene::OnKeyVisibleSkill(char iCharCode, int lParam)
 	if (iCharCode != 's' && iCharCode != 'S')
 		return 0;
 
-	if (m_pAutoTrade->IsVisible())
+	if (m_pAutoTrade && m_pAutoTrade->IsVisible())
 		return 1;
 
-	if (m_pShopPanel->IsVisible() != 1)
+	if (!m_pShopPanel || m_pShopPanel->IsVisible() != 1)
+	{
 		SetVisibleSkill();
+		// Native 7.48 shortcut S drives bottom button 295.  The imported alias
+		// 65792 belongs to the newer resource and does not exist in FieldScene2.
+		const unsigned int buttonID = m_bCompatFieldScene ? TMB_SKILL : 65792u;
+		if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(buttonID)))
+			button->SetSelected(m_pSkillPanel && m_pSkillPanel->IsVisible());
+	}
 
 	return 1;
 }
@@ -19884,15 +20872,18 @@ int TMFieldScene::OnKeyVisibleInven(char iCharCode, int lParam)
 	if (iCharCode != 'i' && iCharCode != 'I' && iCharCode != 'g' && iCharCode != 'G')
 		return 0;
 
-	if (m_pAutoTrade->IsVisible())
+	if (m_pAutoTrade && m_pAutoTrade->IsVisible())
 		return 1;
 
 	SetVisibleInventory();
 
 	auto pPanel = m_pInvenPanel;
-	auto pBtnEquip = static_cast<SButton*>(m_pControlContainer->FindControl(65791u));
+	// Native 7.48 inventory shortcut I/G selects button 294, not the 7.59
+	// compatibility alias 65791.
+	const unsigned int buttonID = m_bCompatFieldScene ? TMB_EQUIP : 65791u;
+	auto pBtnEquip = static_cast<SButton*>(m_pControlContainer->FindControl(buttonID));
 
-	if (pBtnEquip)
+	if (pBtnEquip && pPanel)
 		pBtnEquip->SetSelected(pPanel->m_bVisible);
 
 	return 1;
@@ -19902,18 +20893,20 @@ int TMFieldScene::OnKeyVisibleCharInfo(char iCharCode, int lParam)
 {
 	if (iCharCode != 'c' && iCharCode != 'C')
 		return 0;
-	if (m_pAutoTrade->IsVisible())
+	if (m_pAutoTrade && m_pAutoTrade->IsVisible())
 		return 1;
-	if (m_pShopPanel->IsVisible())
+	if (m_pShopPanel && m_pShopPanel->IsVisible())
 		return 1;
-	if (m_pTradePanel->IsVisible())
+	if (m_pTradePanel && m_pTradePanel->IsVisible())
 		return 1;
 
 	SetVisibleCharInfo();
 
 	auto pPanel = m_pCPanel;
-	auto pBtnChar = static_cast<SButton*>(m_pControlContainer->FindControl(65790));
-	if (pBtnChar)
+	// Native 7.48 shortcut C selects button 293; 65790 is a newer resource ID.
+	const unsigned int buttonID = m_bCompatFieldScene ? TMB_CHAR : 65790u;
+	auto pBtnChar = static_cast<SButton*>(m_pControlContainer->FindControl(buttonID));
+	if (pBtnChar && pPanel)
 		pBtnChar->SetSelected(pPanel->m_bVisible);
 
 	return 1;
@@ -19939,6 +20932,31 @@ int TMFieldScene::OnKeyVisibleParty(char iCharCode, int lParam)
 
 int TMFieldScene::OnKeyReturn(char iCharCode, int lParam)
 {
+	if (m_bCompatFieldScene)
+	{
+		// Native FUN_00453b65 only toggles edit 5123 (and panel 5739 when
+		// g_UIVer == 2).  The 901xx chat selector is a later-client control set
+		// and must never be reached by the 7.48 resource path.
+		if (iCharCode != 13 || !m_pEditChat)
+			return 0;
+
+		if (m_pEditChat->IsFocused())
+		{
+			m_pEditChat->SetVisible(0);
+			if (g_UIVer == 2 && m_pEditChatPanel)
+				m_pEditChatPanel->SetVisible(0);
+			m_pControlContainer->SetFocusedControl(0);
+		}
+		else
+		{
+			m_pEditChat->SetVisible(1);
+			if (g_UIVer == 2 && m_pEditChatPanel)
+				m_pEditChatPanel->SetVisible(1);
+			m_pControlContainer->SetFocusedControl(m_pEditChat);
+		}
+		return 1;
+	}
+
 	if (!m_pEditChatPanel)
 		return 0;
 	if (!m_pEditChat)
@@ -20100,7 +21118,9 @@ int TMFieldScene::OnKeyTotoEnter(char iCharCode, int lParam)
 
 int TMFieldScene::OnPacketMessageChat(MSG_MessageChat* pStd)
 {
-	if (m_pPartyList->m_nNumItem <= 0)
+	// The 7.48 native handler (FUN_00481dd6) verifies both optional UI controls
+	// before consuming party chat; FieldScene2 can legitimately leave them unbound.
+	if (!pStd || !m_pChatList || !m_pPartyList || m_pPartyList->m_nNumItem <= 0)
 		return 0;
 
 	if (!g_pObjectManager->GetHumanByID(pStd->Header.ID))
@@ -20132,6 +21152,11 @@ int TMFieldScene::OnPacketMessageChat(MSG_MessageChat* pStd)
 
 int TMFieldScene::OnPacketMessageChat_Index(MSG_MessageChat* pStd)
 {
+	// Keep the indexed form on the same native 7.48 lifecycle contract: packets
+	// may arrive while the chat/party controls are absent during scene transitions.
+	if (!pStd || !m_pChatList || !m_pPartyList)
+		return 0;
+
 	if (pStd->String[0] != 1)
 		return 0;
 
@@ -20542,7 +21567,10 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 
 		pHuman->SetPacketEquipItem(pCreateMob->Equip);
 
-		if ((pCreateMob->Equip[14] & 0xFFF) && pCreateMob->Equip2[14] && 
+		// CreateMob carries imported KR mounts in the full slot-14 word. Keep the
+		// legacy Equip2 selector only when that full ID was not handled.
+		if (!pHuman->SetImportedMountCostume(pCreateMob->Equip[14])
+			&& (pCreateMob->Equip[14] & 0xFFF) && pCreateMob->Equip2[14] &&
 			((pCreateMob->Equip2[14] & 0xFFF)< 3980 || (pCreateMob->Equip2[14] & 0xFFF) >= 3999))
 		{
 			pHuman->SetMountCostume((unsigned char)pCreateMob->Equip2[14]);
@@ -20681,7 +21709,8 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 				nSanc *= 1000;
 			}
 			
-			int tmp = pCreateMob->Score.Hp * nSanc;
+			// The canonical Score renamed the ambiguous Hp member to CurHP.
+			int tmp = pCreateMob->Score.CurHP * nSanc;
 			if (tmp > 2000000000)
 				tmp = 2000000000;
 
@@ -20754,7 +21783,8 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 					nSanc *= 1000;
 				}
 
-				int tmp = pCreateMob->Score.Hp * nSanc;
+				// Big-HP display scales the canonical current HP value.
+				int tmp = pCreateMob->Score.CurHP * nSanc;
 				if (tmp > 2000000000)
 					tmp = 2000000000;
 
@@ -20774,7 +21804,10 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 
 		pHuman->SetPacketEquipItem(pCreateMob->Equip);
 
-		if ((pCreateMob->Equip[14] & 0xFFF) && pCreateMob->Equip2[14] &&
+		// This second native spawn path must obey the same full-ID precedence or
+		// nearby entities regress to the truncated costume byte after creation.
+		if (!pHuman->SetImportedMountCostume(pCreateMob->Equip[14])
+			&& (pCreateMob->Equip[14] & 0xFFF) && pCreateMob->Equip2[14] &&
 			((pCreateMob->Equip2[14] & 0xFFF) < 3980 || (pCreateMob->Equip2[14] & 0xFFF) >= 3999))
 		{
 			pHuman->SetMountCostume((unsigned char)pCreateMob->Equip2[14]);
@@ -20928,7 +21961,8 @@ int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
 				nSanc *= 1000;
 			}
 
-			int tmp = pCreateMob->Score.Hp * nSanc;
+			// Big-HP display scales the canonical current HP value.
+			int tmp = pCreateMob->Score.CurHP * nSanc;
 			if (tmp > 2000000000)
 				tmp = 2000000000;
 
@@ -21182,9 +22216,9 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 			// same 7.48 version marker as the initial login instead of reverting to
 			// the newer TMProject protocol during reconnect.
 			stAccountLogin.ClientVersion = 748;
-			// Channel reconnects must retain the source-client protocol marker;
-			// otherwise the server would fall back to stock 7.48 serializers.
-			stAccountLogin.DBNeedSave = WYD748_SOURCE_PROTOCOL_MARKER;
+			// WYD-Go now exposes one canonical 7.48 protocol, so reconnect must keep
+			// the legacy DBNeedSave field zero instead of selecting a second ABI.
+			stAccountLogin.DBNeedSave = 0;
 			stAccountLogin.Header.Size = sizeof(MSG_AccountLogin);
 
 			ULONG dwSize = 0;
@@ -21272,12 +22306,8 @@ int TMFieldScene::OnPacketCNFCharacterLogin(MSG_CNFCharacterLogin* pStd)
 	g_pTimerManager->SetServerTime(pStd->Header.Tick);
 	g_pObjectManager->m_dwCharID = pStd->ClientID;
 	memcpy(&g_pObjectManager->m_stMobData, &pStd->MOB, sizeof(pStd->MOB));
-	// Channel re-entry reaches this FieldScene handler instead of the initial
-	// SelectCharScene handler. Seed the wide point sidecars here as well so a
-	// valid 0x114 never leaves the UI with counters from the previous character.
-	g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pStd->MOB.ScoreBonus > 0 ? pStd->MOB.ScoreBonus : 0;
-	g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pStd->MOB.SpecialBonus > 0 ? pStd->MOB.SpecialBonus : 0;
-	g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pStd->MOB.SkillBonus > 0 ? pStd->MOB.SkillBonus : 0;
+	// The complete canonical Score is embedded in STRUCT_MOB. No legacy point
+	// sidecars are copied here; doing so used stale offsets and zeroed live data.
 	g_pObjectManager->m_nFakeExp = pStd->Ext1.Data[0];
 	g_pObjectManager->m_stMobData.HomeTownX = pStd->PosX;
 	g_pObjectManager->m_stMobData.HomeTownY = pStd->PosY;
@@ -21310,11 +22340,21 @@ int TMFieldScene::OnPacketCNFCharacterLogin(MSG_CNFCharacterLogin* pStd)
 
 int TMFieldScene::OnPacketItemSold(MSG_STANDARDPARM2* pStd)
 {
+	if (!pStd)
+		return 1;
+
 	auto pPanel = this->m_pAutoTrade;
-	if (pPanel && pPanel->IsVisible() == 1 && pStd->Parm1 == m_stAutoTrade.TargetID)
+	const int autoTradeSlotCount = m_bCompatFieldScene ? 12 : 10;
+	// Parm2 originates at the server boundary.  Validate it against the active
+	// packet/UI ABI before indexing the grid array so a stale or malformed sale
+	// acknowledgement cannot turn into an out-of-bounds client write.
+	if (pPanel && pPanel->IsVisible() == 1
+		&& pStd->Parm1 == m_stAutoTrade.TargetID
+		&& pStd->Parm2 >= 0 && pStd->Parm2 < autoTradeSlotCount
+		&& m_pGridAutoTrade[pStd->Parm2])
 	{
 		auto pItem = m_pGridAutoTrade[pStd->Parm2]->PickupAtItem(0, 0);
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pItem)
+		if (g_pCursor && g_pCursor->m_pAttachedItem == pItem)
 			g_pCursor->m_pAttachedItem = nullptr;
 
 		SAFE_DELETE(pItem);
@@ -21478,8 +22518,8 @@ int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)
 	}
 	else if (pMsg->SourType == 1)
 	{
-		// Resolve Carry through the shared 7.48/7.59 mapping so a confirmed drop
-		// removes the same cell that the player clicked.
+		// Resolve Carry through the single 7.48 9x7 mapping so a confirmed drop
+		// removes the exact cell that originated the request.
 		int cellX = 0;
 		int cellY = 0;
 		GetCarryCellForSlot(pMsg->SourPos, cellX, cellY);
@@ -21586,6 +22626,11 @@ int TMFieldScene::OnPacketRemoveItem(MSG_STANDARDPARM* pStd)
 
 int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 {
+	// The response materializes controls and twelve packet slots.  Reject a
+	// scene-bootstrap delivery before touching either resource-owned pointer.
+	if (!pStd || !m_pControlContainer)
+		return 1;
+
 	auto pAutoTrade = reinterpret_cast<MSG_AutoTrade*>(pStd);
 
 	auto pTitle = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATRADE_TITLE));
@@ -21601,18 +22646,23 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 
 	memcpy(&m_stAutoTrade, pAutoTrade, sizeof(m_stAutoTrade));
 
-	if (pHuman)
+	if (pHuman && pName)
 		pName->SetText(pHuman->m_szName, 1);
 
-	for (int i = 0; i < 10; ++i)
+	// MSG_AutoTrade in the 7.48 wire contract has twelve slots; retain ten only
+	// for the imported 7.59 resource whose UI genuinely exposes that boundary.
+	const int autoTradeSlotCount = m_bCompatFieldScene ? 12 : 10;
+	for (int i = 0; i < autoTradeSlotCount; ++i)
 	{
 		SGridControl* pGrid = m_pGridAutoTrade[i];
+		if (!pGrid)
+			continue;
 
 		pGrid->m_nTradeMoney = pAutoTrade->TradeMoney[i];
 
 		SGridControlItem* pItem = pGrid->PickupAtItem(0, 0);
 
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pItem)
+		if (g_pCursor && g_pCursor->m_pAttachedItem == pItem)
 			g_pCursor->m_pAttachedItem = nullptr;
 
 		if (pItem)
@@ -21630,6 +22680,8 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 
 				if (ipNewItem)
 					pGrid->AddItem(ipNewItem, 0, 0);
+				else
+					delete pstItem;
 			}
 		}
 	}
@@ -21639,11 +22691,17 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 	if (pButton)
 		pButton->SetVisible(0);
 
+	if (!m_pMyHuman)
+		return 1;
+
 	if (pAutoTrade->TargetID == m_pMyHuman->m_dwID)
 	{
-		sprintf(m_pMyHuman->m_TradeDesc, pAutoTrade->Desc);
+		// Desc is network data, never a printf format string.  An auto-trade title
+		// containing '%' must be copied literally and remain bounded to 24 bytes.
+		sprintf_s(m_pMyHuman->m_TradeDesc, sizeof(m_pMyHuman->m_TradeDesc), "%s", pAutoTrade->Desc);
 
-		m_pMyHuman->m_pAutoTradeDesc->SetText(m_pMyHuman->m_TradeDesc, 0);
+		if (m_pMyHuman->m_pAutoTradeDesc)
+			m_pMyHuman->m_pAutoTradeDesc->SetText(m_pMyHuman->m_TradeDesc, 0);
 	}
 	else
 	{
@@ -21994,7 +23052,18 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 	}
 	else if (pShopList->ShopType == 3)
 	{
-
+		// The native 7.48 window is composed of independently bound controls.
+		// Reject a damaged/incomplete resource tree instead of dereferencing the
+		// first missing child and terminating the process inside packet dispatch.
+		if (!m_pGridSkillMaster || !m_pSkillMPanel ||
+			!m_pSkillMSec1 || !m_pSkillMSec2 || !m_pSkillMSec3)
+		{
+			WYD748_DiagnosticsLog(
+				"skill-master controls missing grid=%p panel=%p sections=%p/%p/%p\r\n",
+				m_pGridSkillMaster, m_pSkillMPanel,
+				m_pSkillMSec1, m_pSkillMSec2, m_pSkillMSec3);
+			return 0;
+		}
 
 		m_pGridSkillMaster->Empty();
 
@@ -22022,10 +23091,13 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			break;
 		}
 
-		for (int j = 0; j < 27; ++j)
+		for (int j = 0; j + 2 < 27; ++j)
 		{
 			if (pShopList->List[j].sIndex == 5027)
 			{
+				// The stock three-way reorder reads j+1 and j+2.  Bounding the scan
+				// preserves it while preventing a malformed list tail from escaping
+				// the fixed 27-entry 7.48 packet.
 				std::swap(pShopList->List[j], pShopList->List[j + 1]);
 				std::swap(pShopList->List[j + 1], pShopList->List[j + 2]);
 				break;
@@ -22118,7 +23190,32 @@ int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)
 		SetVisibleShop(1);
 	}
 	else if (pMsg->ShopType == 3)
-	{		
+	{
+		// RMB and ordinary shop-list packets converge on the same stock 7.48
+		// Skill Apprentice controls.  Validate the complete native control set in
+		// both handlers so an alternate packet family cannot reintroduce the null
+		// dereference fixed in OnPacketShopList.
+		if (!m_pGridSkillMaster || !m_pSkillMPanel ||
+			!m_pSkillMSec1 || !m_pSkillMSec2 || !m_pSkillMSec3)
+		{
+			WYD748_DiagnosticsLog(
+				"rmb skill-master controls missing grid=%p panel=%p sections=%p/%p/%p\r\n",
+				m_pGridSkillMaster, m_pSkillMPanel,
+				m_pSkillMSec1, m_pSkillMSec2, m_pSkillMSec3);
+			return 0;
+		}
+
+		if (pMsg->List[0].sIndex < 5000)
+		{
+			// The first skill determines the three section captions in the native
+			// packet.  A missing/out-of-range row is malformed and must not index the
+			// message table or construct catalog-backed grid objects.
+			WYD748_DiagnosticsLog(
+				"rmb skill-master malformed first item=%d\r\n",
+				pMsg->List[0].sIndex);
+			return 0;
+		}
+
 		switch ((pMsg->List[0].sIndex - 5000) / 24)
 		{
 		case 0:
@@ -22143,10 +23240,12 @@ int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)
 			break;
 		}
 
-		for (int j = 0; j < 27; ++j)
+		for (int j = 0; j + 2 < 27; ++j)
 		{
 			if (pMsg->List[j].sIndex == 5027)
 			{
+				// The stock three-way reorder consumes j+1 and j+2.  Keep its
+				// fixed 27-entry packet boundary explicit for malformed list tails.
 				std::swap(pMsg->List[j], pMsg->List[j + 1]);
 				std::swap(pMsg->List[j + 1], pMsg->List[j + 2]);
 				break;
@@ -22179,7 +23278,49 @@ int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)
 
 int TMFieldScene::OnPacketBuy(MSG_STANDARD* pStd)
 {
-	// Just that
+	// Native 7.48 FUN_00487b92 confirms a purchase with the same 0x379 packet:
+	// copy the advertised shop item into the server-selected Carry cell, then
+	// adopt the authoritative Coin value.  SendItem/UpdateEtc cannot replace
+	// this lifecycle because only 0x379 materializes the bought grid control.
+	if (!pStd || !m_pGridShop || !m_pGridInv || !g_pObjectManager)
+		return 1;
+
+	auto pBuy = reinterpret_cast<MSG_Buy*>(pStd);
+	if (pBuy->TargetCarryPos < 0 || pBuy->MyCarryPos < 0 ||
+		pBuy->TargetCarryPos >= 81 || pBuy->MyCarryPos >= 63)
+		return 1;
+
+	// The merchant identity binds the confirmation to the list currently shown;
+	// accepting a stale packet would copy an item from an unrelated shop panel.
+	if (m_pGridShop->m_dwMerchantID != pBuy->TargetID)
+		return 1;
+
+	auto pShopItem = m_pGridShop->GetItem(pBuy->TargetCarryPos % 9,
+		pBuy->TargetCarryPos / 9);
+	if (!pShopItem || !pShopItem->m_pItem || pShopItem->m_pItem->sIndex <= 0)
+		return 1;
+
+	auto pStructItem = new STRUCT_ITEM;
+	if (!pStructItem)
+		return 1;
+	memcpy(pStructItem, pShopItem->m_pItem, sizeof(STRUCT_ITEM));
+
+	auto pControlItem = new SGridControlItem(m_pGridInv, pStructItem, 0.0f, 0.0f);
+	if (!pControlItem)
+	{
+		delete pStructItem;
+		return 1;
+	}
+
+	// The server chooses MyCarryPos after validating the one-cell 9x7 Carry.
+	// Mirror that exact slot in both the UI control and STRUCT_MOB cache.
+	m_pGridInv->AddItem(pControlItem, pBuy->MyCarryPos % 9, pBuy->MyCarryPos / 9);
+	memcpy(&g_pObjectManager->m_stMobData.Carry[pBuy->MyCarryPos],
+		pStructItem, sizeof(STRUCT_ITEM));
+	g_pObjectManager->m_stMobData.Coin = pBuy->Coin;
+
+	GetSoundAndPlay(31, 0, 0);
+	UpdateScoreUI(0);
 	return 1;
 }
 
@@ -22380,7 +23521,8 @@ int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 		pStd->Leader.Class,
 		pStd->Leader.Level,
 		pStd->Leader.Hp,
-		pStd->Leader.MaxHP);
+		// PARTY retains the native member name MaxHp.
+		pStd->Leader.MaxHp);
 
 	if (!pStd->Leader.PartyIndex)
 		pPartyItem->m_nState = 1;
@@ -22469,7 +23611,8 @@ int TMFieldScene::OnPacketAddParty(MSG_AddParty* pStd)
 		pStd->Party.Class,
 		pStd->Party.Level,
 		pStd->Party.Hp,
-		pStd->Party.MaxHP);
+		// PARTY retains the native member name MaxHp.
+		pStd->Party.MaxHp);
 
 	if (!pStd->Party.PartyIndex)
 		pPartyItem->m_nState = 2;
@@ -22658,9 +23801,26 @@ int TMFieldScene::OnPacketClearMenu(MSG_STANDARD* pStd)
 
 int TMFieldScene::OnPacketCombineComplete(MSG_STANDARD* pStd)
 {
-	SetVisibleMixItem(0);
-	SetVisibleMixItemTiini(0);
-	SetVisibleMixPanel(0);
+	if (m_bCompatFieldScene)
+	{
+		// The acknowledgement belongs to whichever one of the six stock artisan
+		// windows is active; never close the unrelated generic 7.59 mix panel.
+		for (int mixIndex = 1; mixIndex <= 6; ++mixIndex)
+		{
+			auto panel = GetNativeMixPanel(mixIndex);
+			if (panel && panel->IsVisible())
+			{
+				SetVisibleNativeMix(mixIndex, 0);
+				break;
+			}
+		}
+	}
+	else
+	{
+		SetVisibleMixItem(0);
+		SetVisibleMixItemTiini(0);
+		SetVisibleMixPanel(0);
+	}
 	return 1;
 }
 
@@ -26743,7 +27903,10 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 		else if (m_pHelpPanel && m_pHelpPanel->IsVisible() == 1)
 		{
 			m_pHelpPanel->SetVisible(0);
-			m_pHelpBtn->SetSelected(0);
+			// Keep Esc usable even if the 314 Help button was omitted by a damaged
+			// resource; the 7.48 panel itself is still safe to close independently.
+			if (m_pHelpBtn)
+				m_pHelpBtn->SetSelected(0);
 			GetSoundAndPlay(51, 0, 0);
 		}
 		else if (pServerPanel && pServerPanel->IsVisible() == 1)
@@ -26761,6 +27924,87 @@ int TMFieldScene::Affect_Main(unsigned int dwServerTime)
 {
 	if (!m_pMyHuman || !m_pMiniPanel)
 		return 0;
+
+	if (m_bCompatFieldScene)
+	{
+		// FUN_004770ad defines the stock row geometry: only the first sixteen
+		// STRUCT_AFFECT entries are visualized, types 0..40 are accepted, and the
+		// row begins three pixels after HUD anchor 5723 at y=5.  The source's
+		// compatibility scene explicitly recreates these panels over the classic
+		// FieldScene2 tree, so applying the imported UI2-only gate here would make
+		// the original 7.48 CLASSIC=1 configuration hide every buff icon.
+
+		SControl* pNativeAffectAnchor = m_pControlContainer
+			? m_pControlContainer->FindControl(5723)
+			: nullptr;
+		if (!pNativeAffectAnchor)
+			return 0;
+
+		if (m_pAffectDesc)
+		{
+			m_pAffectDesc->SetVisible(0);
+			m_pAffectDesc->SetText((char*)"", 0);
+		}
+
+		int visibleCount = 0;
+		for (int affectIndex = 0; affectIndex < 16; ++affectIndex)
+		{
+			SPanel* pIcon = m_pAffectIcon[affectIndex];
+			if (!pIcon)
+				continue;
+
+			const unsigned char affectType =
+				static_cast<unsigned char>(m_pMyHuman->m_stAffect[affectIndex].Type);
+			const int nativeTime = m_pMyHuman->m_stAffect[affectIndex].Time;
+			const bool active = affectType < 41
+				&& ((affectIndex != 0 && affectType != 0) || (affectIndex == 0 && nativeTime > 0));
+			if (!active)
+			{
+				pIcon->SetVisible(0);
+				m_dwAffectBlinkTime[affectIndex] = 0;
+				continue;
+			}
+
+			const int secondsLeft = nativeTime * 8
+				- static_cast<int>((dwServerTime - m_dwStartAffectTime[affectIndex]) / 1000);
+			pIcon->m_GCPanel.nTextureIndex = g_AffectSkillType[affectType];
+			pIcon->m_GCPanel.nLayer = 29;
+			pIcon->SetPos(pNativeAffectAnchor->m_nPosX + pNativeAffectAnchor->m_nWidth
+				+ 3.0f + static_cast<float>(visibleCount * 23), 5.0f);
+			++visibleCount;
+
+			if (pIcon->m_bOver == 1 && m_pAffectDesc)
+			{
+				char timeText[128]{};
+				char affectText[128]{};
+				GetTimeString(timeText, secondsLeft, nativeTime, affectIndex);
+				sprintf_s(affectText, "%s : %s", g_pAffectTable[affectType], timeText);
+				m_pAffectDesc->SetText(affectText, 0);
+				m_pAffectDesc->SetPos(pIcon->m_nPosX, pIcon->m_nPosY + 40.0f);
+				m_pAffectDesc->SetVisible(1);
+			}
+
+			if (!m_dwAffectBlinkTime[affectIndex] && secondsLeft <= 10 && secondsLeft > 1)
+				m_dwAffectBlinkTime[affectIndex] = dwServerTime;
+			else if (!m_dwAffectBlinkTime[affectIndex] || secondsLeft >= 10)
+				pIcon->SetVisible(1);
+			else
+			{
+				const unsigned int blinkDelay = 3 * nativeTime * nativeTime + 200;
+				if (dwServerTime - m_dwAffectBlinkTime[affectIndex] >= blinkDelay)
+				{
+					pIcon->SetVisible(pIcon->m_bVisible == 0);
+					m_dwAffectBlinkTime[affectIndex] = dwServerTime;
+				}
+			}
+			if (nativeTime >= 10)
+			{
+				pIcon->SetVisible(1);
+				m_dwAffectBlinkTime[affectIndex] = 0;
+			}
+		}
+		return 1;
+	}
 
 	int i = 0;
 	int nAvailCount = 0;
@@ -27094,10 +28338,7 @@ void TMFieldScene::SetVisibleMixPanel(int bShow)
 
 		g_pDevice->m_nWidthShift = 0;
 		g_pCursor->DetachItem();
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV8;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV8;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV8;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV8;
+		SetInventoryGridType(TMEGRIDTYPE::GRID_TRADEINV8);
 		SetEquipGridState(0);
 	}
 	else
@@ -27121,6 +28362,8 @@ void TMFieldScene::ClearMixPannel()
 	for (int i = 0; i < carryPages; ++i)
 	{
 		auto pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
+		if (!pGridInv)
+			continue;
 		for (int nY = 0; nY < carryRows; ++nY)
 		{
 			for (int nX = 0; nX < carryColumns; ++nX)
@@ -27139,10 +28382,13 @@ void TMFieldScene::ClearMixPannel()
 	m_ItemMixClass.m_stCombineItem.Header.ID = m_pMyHuman->m_dwID;
 	m_ItemMixClass.m_stCombineItem.Header.Type = MSG_CombineItemTiny_Opcode;
 
-	m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+	// FieldScene2.bin binds only the native 7.48 Carry grid; newer resources
+	// can bind four pages, so reset every control that actually exists.
+	for (auto pGridInv : m_pGridInvList)
+	{
+		if (pGridInv)
+			pGridInv->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+	}
 	SetEquipGridState(1);
 }
 
@@ -27176,10 +28422,7 @@ void TMFieldScene::SetVisibleMissionPanel(int bShow)
 
 		g_pDevice->m_nWidthShift = 0;
 		g_pCursor->DetachItem();
-		m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV3;
-		m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV3;
-		m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV3;
-		m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV3;
+		SetInventoryGridType(TMEGRIDTYPE::GRID_TRADEINV3);
 		SetEquipGridState(0);
 	}
 	else
@@ -27202,6 +28445,8 @@ void TMFieldScene::ClearMissionPannel()
 	for (int i = 0; i < carryPages; ++i)
 	{
 		auto pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
+		if (!pGridInv)
+			continue;
 		for (int nY = 0; nY < carryRows; ++nY)
 		{
 			for (int nX = 0; nX < carryColumns; ++nX)
@@ -27219,10 +28464,13 @@ void TMFieldScene::ClearMissionPannel()
 	m_MissionClass.ClearGridList();
 	m_MissionClass.m_stCombineItem.Header.ID = m_pMyHuman->m_dwID;
 	m_MissionClass.m_stCombineItem.Header.Type = MSG_CombineItemTiny_Opcode;
-	m_pGridInvList[0]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[1]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[2]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	m_pGridInvList[3]->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+	// Mission cleanup must not manufacture the three 7.59 Carry pages that
+	// do not exist in the stock 7.48 control tree.
+	for (auto pGridInv : m_pGridInvList)
+	{
+		if (pGridInv)
+			pGridInv->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+	}
 	SetEquipGridState(1);
 }
 
@@ -27618,100 +28866,55 @@ void TMFieldScene::GameAuto()
 
 int TMFieldScene::MouseClick_MixNPC(TMHuman* pOver)
 {
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 67 && 
-		m_pGround->m_vecOffsetIndex.x == 13 && m_pGround->m_vecOffsetIndex.y == 13)
-	{
-		m_ItemMixClass.ResultItemListSet(67, 13, 13);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
-	}
+	if (!pOver || !m_pGround || pOver->m_dwID < 1000)
+		return 0;
 
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 67 && 
-		m_pGround->m_vecOffsetIndex.x == 28 && m_pGround->m_vecOffsetIndex.y == 24 && pOver->m_dwID != 1033)
+	const int chunkX = static_cast<int>(m_pGround->m_vecOffsetIndex.x);
+	const int chunkY = static_cast<int>(m_pGround->m_vecOffsetIndex.y);
+	auto toggleMix = [this](int mixIndex)
 	{
-		m_ItemMixClass.ResultItemListSet(67, 28, 24);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
-	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 54 && 
-		m_pGround->m_vecOffsetIndex.x == 19 && m_pGround->m_vecOffsetIndex.y == 13)
-	{
-		m_ItemMixClass.ResultItemListSet(54, 19, 13);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
-	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 54 && 
-		m_pGround->m_vecOffsetIndex.x == 25 && m_pGround->m_vecOffsetIndex.y == 13)
-	{
-		g_nCombineMode = 1;
-		if (m_pItemMixPanel)
-			SetVisibleMixItem(m_pItemMixPanel->m_bVisible == 0);
+		auto panel = GetNativeMixPanel(mixIndex);
+		if (!panel)
+			return false;
+		SetVisibleNativeMix(mixIndex, panel->IsVisible() == 0);
+		return true;
+	};
 
-		return 1;
-	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 68 &&//newnpc
-		m_pGround->m_vecOffsetIndex.x == 16 && m_pGround->m_vecOffsetIndex.y == 16)
+	// FUN_0047e4d6 checks these routes in this exact order. Head alone is not
+	// sufficient because 7.48 deliberately reuses Lindy/Odin and Tiny/Ehre skins.
+	if (pOver->m_sHeadIndex == 67 && chunkX == 13 && chunkY == 13)
 	{
-		//g_nCombineMode = 1;
-		m_ItemMixClass.ResultItemListSet(68, 16, 16);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
+		g_nCombineMode = 0;
+		return toggleMix(5) ? 1 : 0; // Lindy
 	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 68 &&//newnpc
-		m_pGround->m_vecOffsetIndex.x == 8 && m_pGround->m_vecOffsetIndex.y == 13)
+	if (pOver->m_sHeadIndex == 67 && chunkX == 28 && chunkY == 24 && pOver->m_dwID != 1033)
 	{
 		g_nCombineMode = 1;
-		m_ItemMixClass.ResultItemListSet(68, 8, 13);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
+		return toggleMix(5) ? 1 : 0; // dormant stock 0x2C4 mode
 	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 66 &&//newnpc
-		m_pGround->m_vecOffsetIndex.x == 8 && m_pGround->m_vecOffsetIndex.y == 13)
+	if (pOver->m_sHeadIndex == 54 && chunkX == 19 && chunkY == 13)
+	{
+		g_nCombineMode = 0;
+		return toggleMix(1) ? 1 : 0; // Compositor, normal
+	}
+	if (pOver->m_sHeadIndex == 54 && chunkX == 25 && chunkY == 13)
 	{
 		g_nCombineMode = 1;
-		m_ItemMixClass.ResultItemListSet(66, 8, 13);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
+		return toggleMix(1) ? 1 : 0; // Compositor, six-slot mode
 	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 55)
+	if (pOver->m_sHeadIndex == 55)
+		return toggleMix(2) ? 1 : 0; // Aylin
+	if (pOver->m_sHeadIndex == 56)
+		return toggleMix(3) ? 1 : 0; // Agatha
+	if (pOver->m_sHeadIndex == 68 && chunkX == 19 && chunkY == 15)
+		return toggleMix(6) ? 1 : 0; // Ehre
+	if (pOver->m_sHeadIndex == 68)
+		return toggleMix(4) ? 1 : 0; // Tiny
+	if (pOver->m_sHeadIndex == 67 && (pOver->m_stScore.Merchant & 0xF) == 8 &&
+		chunkX == 25 && chunkY == 13)
 	{
-		m_ItemMixClass.ResultItemListSet(55, 19, 13);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
-	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 56)
-	{
-		m_ItemMixClass.ResultItemListSet(56, 19, 13);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
-	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 66 && 
-		m_pGround->m_vecOffsetIndex.x == 25 && m_pGround->m_vecOffsetIndex.y == 13)
-	{
-		m_ItemMixClass.ResultItemListSet(66, 25, 13);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
-	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 68 && 
-		m_pGround->m_vecOffsetIndex.x == 19 && m_pGround->m_vecOffsetIndex.y == 15)
-	{
-		g_nCombineMode = 1;
-		m_ItemMixClass.ResultItemListSet(68, 19, 15);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
-	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 68)
-	{		
-		SetVisibleMixItemTiini(m_pItemMixPanel4->m_bVisible == 0);
-		return 1;
-	}
-	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 67 && 
-		(pOver->m_stScore.Merchant & 0xF) == 8 && 
-		m_pGround->m_vecOffsetIndex.x == 25 && m_pGround->m_vecOffsetIndex.y == 13)
-	{
-		m_ItemMixClass.ResultItemListSet(67, 25, 13);
-		SetVisibleMixPanel(m_ItemMixClass.m_pMixPanel->m_bVisible == 0);
-		return 1;
+		g_nCombineMode = 2;
+		return toggleMix(5) ? 1 : 0; // Odin
 	}
 
 	return 0;

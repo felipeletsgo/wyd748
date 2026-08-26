@@ -7,8 +7,17 @@
 #include "TMUtil.h"
 #include "ItemEffect.h"
 
+#include <cmath>
+
 namespace
 {
+	bool WYD748_IsValidItemIndex(const short itemIndex)
+	{
+		// ItemList.bin 7.48 contains exactly MAX_ITEMLIST rows.  Rejecting newer
+		// TMProject indices prevents shop/inventory code from reading past it.
+		return itemIndex >= 0 && itemIndex < MAX_ITEMLIST;
+	}
+
 	int WYD748_ResolveWireSlot(TMFieldScene* scene, const SGridControl* grid,
 		short wireType, int cellX, int cellY)
 	{
@@ -21,6 +30,80 @@ namespace
 		if (scene && wireType == 2)
 			return scene->GetCargoSlotForCell(grid, cellX, cellY);
 		return cellX + (grid ? grid->m_nColumnGridCount : 5) * cellY;
+	}
+
+	bool WYD748_IsCenteredSingleCellGrid(const TMEGRIDTYPE gridType)
+	{
+		// FUN_0040fc3e treats trade/mix result controls as one visual receptacle,
+		// even though their packet position is still a single logical cell.
+		return gridType == TMEGRIDTYPE::GRID_TRADENONE
+			|| gridType == TMEGRIDTYPE::GRID_TRADEOP
+			|| gridType == TMEGRIDTYPE::GRID_TRADEMY
+			|| gridType == TMEGRIDTYPE::GRID_TRADEMY2
+			|| gridType == TMEGRIDTYPE::GRID_ITEMMIX
+			|| gridType == TMEGRIDTYPE::GRID_ITEMMIX4
+			|| gridType == TMEGRIDTYPE::GRID_ITEMMIXRESULT
+			|| gridType == TMEGRIDTYPE::GRID_ITEMMIXNEED
+			|| gridType == TMEGRIDTYPE::GRID_MISSION_RESULT
+			|| gridType == TMEGRIDTYPE::GRID_MISSION_NEED
+			|| gridType == TMEGRIDTYPE::GRID_MISSION_NEEDLIST;
+	}
+
+	bool WYD748_IsEggMesh(const int meshIndex)
+	{
+		// ItemList 7.48 maps egg001..egg014 exclusively to these two mesh ranges.
+		return (meshIndex >= 300 && meshIndex <= 303)
+			|| (meshIndex >= 937 && meshIndex <= 946);
+	}
+
+	float WYD748_GetSingleCellMeshScale(const SGridControlItem* item)
+	{
+		if (!item || !g_pMeshManager || item->m_GCObj.n3DObjIndex < 0)
+			return 1.0f;
+
+		TMMesh* mesh = g_pMeshManager->GetCommonMesh(item->m_GCObj.n3DObjIndex, 0, 180000);
+		if (!mesh)
+			return 1.0f;
+
+		// FUN_0040e817 sizes the proven egg001..egg014 family from positive MaxZ.
+		// Keeping this exception mesh-scoped restores the native egg size without
+		// weakening full-AABB containment for armour, weapons, or other grid items.
+		if (WYD748_IsEggMesh(item->m_GCObj.n3DObjIndex))
+		{
+			constexpr float NativeSingleCellHeightLimit = 0.3f;
+			if (!std::isfinite(mesh->m_fMaxZ) || mesh->m_fMaxZ <= 0.0f)
+				return 1.0f;
+
+			return (std::min)(1.0f, NativeSingleCellHeightLimit / mesh->m_fMaxZ);
+		}
+
+		const float extentX = mesh->m_fMaxX - mesh->m_fMinX;
+		const float extentY = mesh->m_fMaxY - mesh->m_fMinY;
+		const float extentZ = mesh->m_fMaxZ - mesh->m_fMinZ;
+		const float aabbDiagonal = std::sqrt(
+			extentX * extentX + extentY * extentY + extentZ * extentZ);
+
+		// FUN_0040e817 uses 0.3 mesh units for one 24-pixel cell, but checks only
+		// MaxZ.  The source 7.48 contract deliberately fits the complete centered
+		// AABB and reserves a 10% border so armour and long weapons cannot bleed
+		// into adjacent cells.  min(1, ...) guarantees that small items never grow.
+		constexpr float SingleCellAabbLimit = 0.27f;
+		if (!std::isfinite(aabbDiagonal) || aabbDiagonal <= 0.0f)
+			return 1.0f;
+
+		return (std::min)(1.0f, SingleCellAabbLimit / aabbDiagonal);
+	}
+
+	void WYD748_ApplyGridMeshScale(SGridControlItem* item, const bool fitSingleCell)
+	{
+		if (!item)
+			return;
+
+		// Equipment panels are irregular body slots and retain their stock 1.0
+		// presentation.  Every cell-based grid and the cursor use the same fit.
+		item->m_GCObj.fScale = fitSingleCell
+			? WYD748_GetSingleCellMeshScale(item)
+			: 1.0f;
 	}
 }
 
@@ -128,7 +211,10 @@ SGridControl::~SGridControl()
 {
 	Empty();
 
-	auto pControlContainer = g_pCurrentScene->m_pControlContainer;
+	// A grid can outlive its field scene during disconnect or scene changes;
+	// release render nodes only while the owning 7.48 container still exists.
+	auto pControlContainer =
+		g_pCurrentScene != nullptr ? g_pCurrentScene->m_pControlContainer : nullptr;
 	if (pControlContainer)
 	{
 		if (m_bDrawGrid == 1)
@@ -201,7 +287,9 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 			nItemPos = BASE_GetItemAbility(&item, 17);
 		}
 		auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-		bool bClick = true;
+		// Keep the outer click state used by the common event tail.  The previous
+		// redeclaration changed only a temporary and made the press look unhandled.
+		bClick = true;
 		if (g_pCursor->GetStyle() == ECursorStyle::TMC_CURSOR_HAND && bPtInRect)
 		{
 			if (g_pTimerManager->GetServerTime() < m_dwLastBuyTime + 500)
@@ -225,7 +313,7 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 	{
 		if (g_pEventTranslator->m_bCtrl)
 		{
-			if (pFScene->m_pCargoPanel->m_bVisible)
+			if (pFScene->m_pCargoPanel && pFScene->m_pCargoPanel->m_bVisible)
 			{
 				g_pCursor->m_pAttachedItem = nullptr;
 				automove(nCellX, nCellY);
@@ -301,12 +389,8 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 		if (bPtInRect && g_pCursor->GetStyle() == ECursorStyle::TMC_CURSOR_PICKUP && 
 			SGridControl::m_pLastAttachedItem && g_pCursor->m_pAttachedItem)
 		{
-			int page = pFScene->m_pGridInv->m_dwControlID - 67072;
-			if (page == 2 && g_pObjectManager->m_stMobData.Carry[60].sIndex != 3467)
-				return 0;
-			if (page == 3 && g_pObjectManager->m_stMobData.Carry[61].sIndex != 3467)
-				return 0;
-
+			// WYD 7.48 exposes one contiguous Carry grid; page-unlock items belong to
+			// the later client and must never prevent a native inventory drop target.
 			SwapItem(nCellX, nCellY, nCellVWidth, nCellVHeight, &dst);
 		}
 	}
@@ -367,12 +451,8 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 	else if (!bClick && dwFlags == 517 && bPtInRect && g_pCursor->GetStyle() == ECursorStyle::TMC_CURSOR_HAND && 
 		(m_eGridType == TMEGRIDTYPE::GRID_CARGO || m_eGridType == TMEGRIDTYPE::GRID_DEFAULT))
 	{
-		int page = m_dwControlID - 67072;
-		if (page == 2 && g_pObjectManager->m_stMobData.Carry[60].sIndex != 3467)
-			return 0;
-		if (page == 3 && g_pObjectManager->m_stMobData.Carry[61].sIndex != 3467)
-			return 0;
-
+		// Double-click actions use the same native grid regardless of visual row;
+		// there are no 7.59 bag pages to unlock in the 7.48 control topology.
 		if (!pFScene || !pFScene->m_pMyHuman)
 			return 0;
 
@@ -390,7 +470,9 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 					pFScene->m_pGridShop->m_dwMerchantID = 0;
 					SGridControl::m_pSellItem = pItem;
 					char szMessage[128];
-					sprintf(szMessage, g_pMessageStringTable[342], &g_pItemList[pItem->m_pItem->sIndex]);
+					// Message 342 expects a C string; passing the ItemList row address
+					// corrupted the native 7.48 sell-confirmation text and hid its modal.
+					sprintf(szMessage, g_pMessageStringTable[342], g_pItemList[pItem->m_pItem->sIndex].Name);
 					pFScene->m_pMessageBox->SetMessage(szMessage, 890, g_pMessageStringTable[343]);
 					pFScene->m_pMessageBox->SetVisible(1);
 					return 1;
@@ -471,15 +553,9 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 					}
 					else if (sDestType)
 					{
-						// WYD748 compatibility: the native Carry control is one 9x7 grid, so it has no 15-slot page offset.
-						int page = pFScene->UsesNative748InventoryLayout() ? 0 : m_dwControlID - 67072;
-						if (page == 2 && g_pObjectManager->m_stMobData.Carry[60].sIndex != 3467)
-							return 0;
-						if (page == 3 && g_pObjectManager->m_stMobData.Carry[61].sIndex != 3467)
-							return 0;
-						stSwapItem.DestPos = pFScene->UsesNative748InventoryLayout()
-							? nAX + 9 * nAY
-							: 15 * page + nAX + 5 * nAY;
+						// Native 7.48 serializes Carry cells as x + 9*y; retaining the
+						// later 5x3 page path would address a different server slot.
+						stSwapItem.DestPos = nAX + 9 * nAY;
 					}
 					else
 					{
@@ -494,52 +570,26 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 					return 0;
 				}
 
-				int SourPage = 0;
 				IVector2 vecGrid{};
 
 				auto pMyGrid = pFScene->m_pGridInv;
+				if (!pMyGrid)
+					return 0;
+
 				int nGridIndex = BASE_GetItemAbility(pItem->m_pItem, 33);
 				if (nGridIndex > 7 || nGridIndex < 0)
 					nGridIndex = 0;
 
 				vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-				SourPage = pFScene->UsesNative748InventoryLayout()
-					? 0
-					: 15 * (pFScene->m_pGridInv->m_dwControlID - 67072);
-
-				int j = 0;
 				if (vecGrid.x == -1)
-				{
-					for (j = 0; j < (pFScene->UsesNative748InventoryLayout() ? 1 : 4); ++j)
-					{
-						pMyGrid = pFScene->UsesNative748InventoryLayout() ? pFScene->m_pGridInv : pFScene->m_pGridInvList[j];
-						nGridIndex = BASE_GetItemAbility(pItem->m_pItem, 33);
-						if (nGridIndex > 7 || nGridIndex < 0)
-							nGridIndex = 0;
-
-						vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-						if (vecGrid.x != -1)
-						{
-							SourPage = 15 * j;
-							break;
-						}
-					}
-				}
-
-				if (!pFScene->UsesNative748InventoryLayout() && j == 3)
-					return 0;
-				if (SourPage < 0 || SourPage > 45)
-					SourPage = 0;
-				if (SourPage / 15 == 2 && g_pObjectManager->m_stMobData.Carry[60].sIndex != 3467)
-					return 0;
-				if (SourPage / 15 == 3 && g_pObjectManager->m_stMobData.Carry[61].sIndex != 3467)
 					return 0;
 
 				MSG_SwapItem Msg{};
 				Msg.Header.ID = g_pObjectManager->m_dwCharID;
 				Msg.Header.Type = MSG_SwapItem_Opcode;
 				Msg.SourType = 1;
-				Msg.SourPos = SourPage + vecGrid.x + (pFScene->UsesNative748InventoryLayout() ? 9 : 5) * vecGrid.y;
+				// The 7.48 server contract consumes the one-grid Carry slot directly.
+				Msg.SourPos = vecGrid.x + 9 * vecGrid.y;
 				Msg.DestType = sDestType;
 				Msg.DestPos = sDestPos;
 				Msg.TargetID = TMFieldScene::m_dwCargoID; 
@@ -617,18 +667,43 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 		}
 		return;
 	}
-	if (m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE
-		&& m_eGridType == TMEGRIDTYPE::GRID_TRADENONE
-		&& m_eGridType == TMEGRIDTYPE::GRID_TRADEOP
-		&& m_eGridType == TMEGRIDTYPE::GRID_TRADEMY
-		&& m_eGridType == TMEGRIDTYPE::GRID_TRADEMY2
-		&& m_eGridType == TMEGRIDTYPE::GRID_ITEMMIX
-		&& m_eGridType == TMEGRIDTYPE::GRID_ITEMMIX4
-		&& m_eGridType == TMEGRIDTYPE::GRID_ITEMMIXRESULT
-		&& m_eGridType == TMEGRIDTYPE::GRID_ITEMMIXNEED
-		&& m_eGridType == TMEGRIDTYPE::GRID_MISSION_RESULT
-		&& m_eGridType == TMEGRIDTYPE::GRID_MISSION_NEED
-		&& m_eGridType == TMEGRIDTYPE::GRID_MISSION_NEEDLIST)
+	// These native single-cell panels center their item instead of applying the
+	// regular multi-cell grid transform.  The imported source joined mutually
+	// exclusive grid kinds with &&, making this 7.48 rendering path unreachable.
+	const bool isCenteredSingleCellGrid = WYD748_IsCenteredSingleCellGrid(m_eGridType);
+	const bool isEquipmentGrid =
+		m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE;
+	if (isEquipmentGrid)
+	{
+		// Equipment controls are irregular panels, not 24-pixel Carry cells.  The
+		// native 7.48 path first centers the item's box origin inside that receptacle
+		// and then lets the common item frame convert the origin to the renderer
+		// centre. Keeping those two stages preserves both axes for every footprint.
+		if (m_nNumItem > 0 && m_pItemList[0])
+		{
+			auto pItem = m_pItemList[0];
+			TMVector2 vecItemOrigin = TMVector2(
+				(ivParentPos.x + m_nPosX) + ((m_nWidth - pItem->m_nWidth) * 0.5f),
+				(ivParentPos.y + m_nPosY) + ((m_nHeight - pItem->m_nHeight) * 0.5f));
+
+			pItem->FrameMove2(pDrawList, vecItemOrigin, inParentLayer, 0);
+		}
+
+		if (m_dwEnableColor != 0)
+		{
+			// The equip target is the whole native body slot.  A one-cell rectangle
+			// here produced the small red/blue square seen over armour slots.
+			m_GCEnable.nPosX = ivParentPos.x + m_nPosX;
+			m_GCEnable.nPosY = ivParentPos.y + m_nPosY;
+			m_GCEnable.nWidth = m_nWidth;
+			m_GCEnable.nHeight = m_nHeight;
+			m_GCEnable.nLayer = inParentLayer;
+			m_GCEnable.dwColor = m_dwEnableColor;
+			AddRenderControlItem(pDrawList, &m_GCEnable, inParentLayer);
+		}
+		return;
+	}
+	if (isCenteredSingleCellGrid)
 	{
 		if (!m_pItemList[0])
 			return;
@@ -644,12 +719,11 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 			m_pItemList[0]->m_GCEnable.dwColor = 0x0FF000000;
 			AddRenderControlItem(pDrawList, &m_pItemList[0]->m_GCEnable, inParentLayer);
 		}
-		TMVector2 vecPos = TMVector2((ivParentPos.x + m_nPosX)
-			+ ((float)(m_nWidth - m_pItemList[0]->m_GCObj.nWidth) / 2.0f),
-			(ivParentPos.y + m_nPosY)
-			+ ((float)(m_nHeight - m_pItemList[0]->m_GCObj.nHeight) / 2.0f));
-
-		m_pItemList[0]->FrameMove2(pDrawList, vecPos, inParentLayer, 0);
+		// Trade/mix receptacles follow the same native centre contract as equipment;
+		// item-local offsets remain available for the few stock mix arrangements.
+		TMVector2 vecCenter = TMVector2((ivParentPos.x + m_nPosX) + (m_nWidth * 0.5f),
+			(ivParentPos.y + m_nPosY) + (m_nHeight * 0.5f));
+		m_pItemList[0]->FrameMoveAtCenter748(pDrawList, vecCenter, inParentLayer);
 		return;
 	}
 
@@ -659,22 +733,31 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 		if (!pGridCurrent)
 			continue;
 
-		TMVector2 vecPos = TMVector2((ivParentPos.x + m_nPosX)
-			+ ((float)((float)pGridCurrent->m_nCellIndexX * m_nWidth) / (float)m_nColumnGridCount),
-			(float)(ivParentPos.y + m_nPosY)
-			+ ((float)((float)pGridCurrent->m_nCellIndexY * m_nHeight) / (float)m_nRowGridCount));
+		const float cellWidth = m_nWidth / static_cast<float>(m_nColumnGridCount);
+		const float cellHeight = m_nHeight / static_cast<float>(m_nRowGridCount);
+		// FUN_0040fc3e proves that regular grids derive one origin per occupied
+		// cell. FUN_0040dd00 then converts that box origin to the renderer centre by
+		// adding half of the item's width and height in the common child frame.
+		TMVector2 vecItemOrigin = TMVector2((ivParentPos.x + m_nPosX)
+			+ (pGridCurrent->m_nCellIndexX * cellWidth),
+			(ivParentPos.y + m_nPosY)
+			+ (pGridCurrent->m_nCellIndexY * cellHeight));
 
-		pGridCurrent->FrameMove2(pDrawList, vecPos, inParentLayer, 0);
+		pGridCurrent->FrameMove2(pDrawList, vecItemOrigin, inParentLayer, 0);
 		if (pGridCurrent->m_GCObj.dwColor != 0xFFFF0000)
 			continue;
 
-		pGridCurrent->m_GCEnable.nPosX = (ivParentPos.x + m_nPosX) + (float)((float)pGridCurrent->m_nCellIndexX * BASE_ScreenResize(m_GCGrid->nWidth));
-		pGridCurrent->m_GCEnable.nPosY = (ivParentPos.y + m_nPosY) + (float)((float)pGridCurrent->m_nCellIndexY * BASE_ScreenResize(m_GCGrid->nHeight));
+		pGridCurrent->m_GCEnable.nPosX = (ivParentPos.x + m_nPosX)
+			+ (pGridCurrent->m_nCellIndexX * cellWidth);
+		pGridCurrent->m_GCEnable.nPosY = (ivParentPos.y + m_nPosY)
+			+ (pGridCurrent->m_nCellIndexY * cellHeight);
 
 		if (m_bDrawGrid)
 		{
-			pGridCurrent->m_GCEnable.nWidth = BASE_ScreenResize((float)(SControl::m_nGridCellSize * pGridCurrent->m_nCellWidth));
-			pGridCurrent->m_GCEnable.nHeight = BASE_ScreenResize((float)(SControl::m_nGridCellSize * pGridCurrent->m_nCellHeight));
+			// The blocked-item overlay must match the same one-cell rectangle used by
+			// rendering and hit-testing, not the unrelated legacy 35-pixel constant.
+			pGridCurrent->m_GCEnable.nWidth = cellWidth * pGridCurrent->m_nCellWidth;
+			pGridCurrent->m_GCEnable.nHeight = cellHeight * pGridCurrent->m_nCellHeight;
 		}
 		else
 		{
@@ -685,6 +768,29 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 		pGridCurrent->m_GCEnable.nLayer = inParentLayer;
 		pGridCurrent->m_GCEnable.dwColor = 0x33FF0000;
 		AddRenderControlItem(pDrawList, &pGridCurrent->m_GCEnable, inParentLayer);
+	}
+
+	if (m_dwEnableColor != 0 &&
+		m_vecPickupedPos.x >= 0 && m_vecPickupedPos.x < m_nColumnGridCount &&
+		m_vecPickupedPos.y >= 0 && m_vecPickupedPos.y < m_nRowGridCount)
+	{
+		// MouseOver already applies the native 7.48 placement rules and records
+		// blue for a legal target or red for a blocked one. ItemList.bin provides
+		// the canonical 1x1 footprint, so the preview covers exactly one cell.
+		const float cellWidth = m_nWidth / static_cast<float>(m_nColumnGridCount);
+		const float cellHeight = m_nHeight / static_cast<float>(m_nRowGridCount);
+		const int visibleWidth = min(m_vecPickupedSize.x, m_nColumnGridCount - m_vecPickupedPos.x);
+		const int visibleHeight = min(m_vecPickupedSize.y, m_nRowGridCount - m_vecPickupedPos.y);
+		if (visibleWidth > 0 && visibleHeight > 0)
+		{
+			m_GCEnable.nPosX = ivParentPos.x + m_nPosX + cellWidth * m_vecPickupedPos.x;
+			m_GCEnable.nPosY = ivParentPos.y + m_nPosY + cellHeight * m_vecPickupedPos.y;
+			m_GCEnable.nWidth = cellWidth * visibleWidth;
+			m_GCEnable.nHeight = cellHeight * visibleHeight;
+			m_GCEnable.nLayer = inParentLayer;
+			m_GCEnable.dwColor = m_dwEnableColor;
+			AddRenderControlItem(pDrawList, &m_GCEnable, inParentLayer);
+		}
 	}
 }
 
@@ -724,13 +830,8 @@ int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 	ipNewItem->m_nCellIndexY = inCellIndexY;
 	m_pItemList[m_nNumItem++] = ipNewItem;
 
-	TMMesh* pMesh = g_pMeshManager->GetCommonMesh(ipNewItem->m_GCObj.n3DObjIndex, 0, 180000);
-	if (pMesh)
-	{
-		float fLen = pMesh->m_fMaxZ;
-		if (fLen > ((float)ipNewItem->m_nCellHeight * 0.3f))
-			ipNewItem->m_GCObj.fScale = ((float)ipNewItem->m_nCellHeight * 0.3f) / fLen;
-	}
+	const bool isEquipmentGrid = m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE;
+	WYD748_ApplyGridMeshScale(ipNewItem, !isEquipmentGrid);
 
 	return 1;
 }
@@ -753,13 +854,8 @@ int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, in
 	ipNewItem->m_nHeight = 24.0f * RenderDevice::m_fHeightRatio;
 	m_pItemList[m_nNumItem++] = ipNewItem;
 
-	TMMesh* pMesh = g_pMeshManager->GetCommonMesh(ipNewItem->m_GCObj.n3DObjIndex, 0, 180000);
-	if (pMesh)
-	{
-		float fLen = pMesh->m_fMaxZ;
-		if (fLen > ((float)ipNewItem->m_nCellHeight * 0.3f))
-			ipNewItem->m_GCObj.fScale = ((float)ipNewItem->m_nCellHeight * 0.3f) / fLen;
-	}
+	const bool isEquipmentGrid = m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE;
+	WYD748_ApplyGridMeshScale(ipNewItem, !isEquipmentGrid);
 
 	return 1;
 }
@@ -780,13 +876,8 @@ int SGridControl::SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 	ipNewItem->m_nCellIndexY = inCellIndexY;
 	m_pItemList[m_nNumItem++] = ipNewItem;
 
-	TMMesh* pMesh = g_pMeshManager->GetCommonMesh(ipNewItem->m_GCObj.n3DObjIndex, 0, 180000);
-	if (pMesh)
-	{
-		float fLen = pMesh->m_fMaxZ;
-		if (fLen > ((float)ipNewItem->m_nCellHeight * 0.3f))
-			ipNewItem->m_GCObj.fScale = ((float)ipNewItem->m_nCellHeight * 0.3f) / fLen;
-	}
+	const bool isEquipmentGrid = m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE;
+	WYD748_ApplyGridMeshScale(ipNewItem, !isEquipmentGrid);
 
 	return 1;
 }
@@ -963,6 +1054,10 @@ SGridControlItem* SGridControl::PickupItem(int inCellIndexX, int inCellIndexY)
 		m_nNumItem--;
 	}
 
+	// A dragged item always uses the cell-safe presentation, including when it
+	// originated in an irregular equipment panel. AddItem restores scale 1.0
+	// if the item is placed back into equipment.
+	WYD748_ApplyGridMeshScale(pItem, true);
 	return pItem;
 }
 
@@ -1000,6 +1095,9 @@ SGridControlItem* SGridControl::PickupAtItem(int inCellIndexX, int inCellIndexY)
 		m_nNumItem--;
 	}
 
+	// PickupAtItem feeds the same cursor path as PickupItem and must not preserve
+	// equipment scale while the mesh is hovering over the inventory grid.
+	WYD748_ApplyGridMeshScale(pItem, true);
 	return pItem;
 }
 
@@ -1203,16 +1301,32 @@ int SGridControl::OnKeyDownEvent(unsigned int iKeyCode)
 
 void SGridControl::Empty()
 {
-
 	memset(m_pbFilled, 0, m_nColumnGridCount * sizeof(int) * m_nRowGridCount);
 	for (int i = 0; i < m_nNumItem; ++i)
 	{
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == m_pItemList[i])
-			g_pCursor->m_pAttachedItem = 0;
+		SGridControlItem* item = m_pItemList[i];
+		if (item == nullptr)
+			continue;
 
-		SAFE_DELETE(m_pItemList[i]);		
+		// The native 7.48 UI keeps these as process-wide interaction pointers.
+		// Clear every alias before deleting an item so shop close/reopen cannot
+		// dispatch hover, sell or attachment events through freed memory.
+		if (m_pLastMouseOverItem == item)
+			m_pLastMouseOverItem = nullptr;
+		if (m_pLastAttachedItem == item)
+			m_pLastAttachedItem = nullptr;
+		if (m_pSellItem == item)
+			m_pSellItem = nullptr;
+		if (g_pCursor != nullptr && g_pCursor->m_pAttachedItem == item)
+			g_pCursor->m_pAttachedItem = nullptr;
+
+		SAFE_DELETE(m_pItemList[i]);
 	}
 
+	// Keep the complete fixed-size table deterministic after a shop or inventory
+	// closes; stale entries beyond m_nNumItem must never be rediscovered later.
+	memset(m_pItemList, 0, sizeof(m_pItemList));
+	m_sLastMouseOverIndex = -1;
 	m_nNumItem = 0;
 }
 
@@ -1353,29 +1467,11 @@ void SGridControl::BuyItem(int nCellX, int nCellY)
 				nGridIndex = 0;
 
 			IVector2 vecGrid;
-			int page = 0;
 			auto pMyGrid = pScene->m_pGridInv;
-			vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-			// WYD748 compatibility: purchases search the single native 9x7 Carry grid and encode its linear slot directly.
-			page = pScene->UsesNative748InventoryLayout()
-				? 0
-				: 15 * (pScene->m_pGridInv->m_dwControlID - 67072);
+			if (!pMyGrid)
+				return;
 
-			if (vecGrid.x == -1 && vecGrid.y == -1)
-			{
-				for (int i = 0; i < (pScene->UsesNative748InventoryLayout() ? 1 : 4); ++i)
-				{
-					pMyGrid = pScene->UsesNative748InventoryLayout() ? pScene->m_pGridInv : pScene->m_pGridInvList[i];
-					vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-					if (vecGrid.x > -1 && vecGrid.y > -1)
-					{
-						page = 15 * i;
-						break;
-					}
-				}
-			}
-			if (page < 0 || page > 45)
-				page = 0;
+			vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
 
 			MSG_Buy stBuy{};
 			stBuy.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
@@ -1386,7 +1482,9 @@ void SGridControl::BuyItem(int nCellX, int nCellY)
 				stBuy.TargetID = g_pCurrentScene->m_pMyHuman->m_dwID;
 
 			stBuy.TargetCarryPos = SourPos;
-			stBuy.MyCarryPos = page + vecGrid.x + (pScene->UsesNative748InventoryLayout() ? 9 : 5) * vecGrid.y;
+			// A 7.48 purchase targets the first fitting cell in the sole 9-column
+			// Carry control; there is no modern page number in MSG_Buy.
+			stBuy.MyCarryPos = vecGrid.x + 9 * vecGrid.y;
 
 			if (vecGrid.x > -1 && vecGrid.y > -1)
 			{
@@ -1456,6 +1554,16 @@ void SGridControl::BuyItem(int nCellX, int nCellY)
 int SGridControl::TradeItem(int nCellX, int nCellY)
 {
 	auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+	// ItemMix2..6 use raw grid values that the imported source later renamed as
+	// cargo/quickslot modes. Resolve the visible 7.48 panel before enum dispatch.
+	auto nativeMixItem = GetItem(nCellX, nCellY);
+	int nativeMixResult = pFScene->TryStageNativeMixItem(this, nativeMixItem, nullptr);
+	if (nativeMixResult >= 0)
+		return nativeMixResult;
+	nativeMixResult = pFScene->TryRemoveNativeMixItem(this);
+	if (nativeMixResult >= 0)
+		return nativeMixResult;
+
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV)
 	{
 		auto pItem = GetItem(nCellX, nCellY);
@@ -1506,17 +1614,16 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV2)
 	{
-		if (pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
+		if (pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && pFScene->m_pCargoGrid)
 		{
-			int page = m_dwControlID - 67328;
-			if (page >= 3)
-				return 0;
-
 			auto pInputGold = (SPanel*)pFScene->m_pControlContainer->FindControl(65885);
-			auto pItem = pFScene->m_pCargoGridList[page]->GetItem(nCellX, nCellY);
+			// Select from the grid that actually received the click.  The old code
+			// always queried m_pCargoGrid, so an overlapping/translated native
+			// surface could hit visually yet resolve no item for AutoTrade.
+			auto pItem = GetItem(nCellX, nCellY);
 			auto pRunAutoTrade = (SButton*)pFScene->m_pControlContainer->FindControl(667);
 
-			if (!pRunAutoTrade->IsVisible())
+			if (!pInputGold || !pRunAutoTrade || !pRunAutoTrade->IsVisible())
 				return 1;
 
 			if (!pItem || !pItem->m_pItem)
@@ -1528,9 +1635,11 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 				pFScene->m_pMessagePanel->SetVisible(1, 1);
 				return 1;
 			}
+			// Native 7.48 FUN_004110f5 rejects 508, 509, 522, 526..537, 747
+			// and 3200..3299. Item 4905 belonged to the imported newer client rule.
 			if (pItem->m_pItem->sIndex == 508 || pItem->m_pItem->sIndex == 509 || pItem->m_pItem->sIndex == 522 || 
 				pItem->m_pItem->sIndex >= 526 && pItem->m_pItem->sIndex <= 537 || pItem->m_pItem->sIndex == 747 || 
-				pItem->m_pItem->sIndex == 4905)
+				pItem->m_pItem->sIndex >= 3200 && pItem->m_pItem->sIndex <= 3299)
 			{
 				pFScene->m_pMessagePanel->SetMessage(g_pMessageStringTable[309], 2000);
 				pFScene->m_pMessagePanel->SetVisible(1, 1);
@@ -1545,7 +1654,15 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 				pItem->m_GCObj.dwColor = 0xFFFF00FF;
 
 				pFScene->m_nCoinMsgType = 4;
-				pFScene->m_nLastAutoTradePos = 40 * page + 5 * pItem->m_nCellIndexY + pItem->m_nCellIndexX;
+				// Resolve the packet slot from the clicked native grid so the visual
+				// cell and the Cargo wire position cannot diverge.
+				pFScene->m_nLastAutoTradePos = pFScene->GetCargoSlotForCell(
+					this, pItem->m_nCellIndexX, pItem->m_nCellIndexY);
+				if (pFScene->m_nLastAutoTradePos < 0)
+				{
+					pItem->m_GCObj.dwColor = 0xFFFFFFFF;
+					return 1;
+				}
 
 				pText->SetText(g_pMessageStringTable[142], 0);
 
@@ -1554,24 +1671,23 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 				memset(pEdit->m_strComposeText, 0, sizeof(pEdit->m_strComposeText));
 				pEdit->SetText((char*)"");
 				pInputGold->SetVisible(1);
-				pFScene->m_pChatSelectPanel->SetVisible(0);
+				// FieldScene2.bin has no 7.59 chat selector. The native 7.48 path
+				// opens only input panel 626, edit 627 and caption 630 here.
+				if (pFScene->m_pChatSelectPanel)
+					pFScene->m_pChatSelectPanel->SetVisible(0);
 			}
 		}
 		return 1;
 	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV3)
 	{
-		int Sourpage = 0;
-		if (m_dwControlID >= 67072 && m_dwControlID <= 67075)
-		{
-			Sourpage = m_dwControlID - 67072;
-			if (Sourpage < 0 || Sourpage > 3)
-				Sourpage = 0;
-		}
-
 		auto pItem = GetItem(nCellX, nCellY);
 		if (pItem)
-			pFScene->m_MissionClass.ClickInvItem(pItem, pFScene->m_pGridInvList, Sourpage);
+		{
+			// Missions consume Carry page zero because the 7.48 client has no page
+			// selector or secondary inventory controls.
+			pFScene->m_MissionClass.ClickInvItem(pItem, pFScene->m_pGridInvList, 0);
+		}
 		return 2;
 	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV6)
@@ -1713,17 +1829,13 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV8)
 	{
-		int Sourpage = 0;
-		if (m_dwControlID >= 67072 && m_dwControlID <= 67075)
-		{
-			Sourpage = m_dwControlID - 67072;
-			if (Sourpage < 0 || Sourpage > 3)
-				Sourpage = 0;
-		}
-
 		auto pItem = GetItem(nCellX, nCellY);
 		if (pItem)
-			pFScene->m_ItemMixClass.ClickInvItem(pItem, pFScene->m_pGridInvList, Sourpage);
+		{
+			// Item mix uses the sole native 7.48 Carry page; deriving a page from
+			// 67072..67075 could select controls absent from FieldScene2.bin.
+			pFScene->m_ItemMixClass.ClickInvItem(pItem, pFScene->m_pGridInvList, 0);
+		}
 		return 2;
 	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEMY)
@@ -1734,12 +1846,13 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 		if (!pItem)
 			return 1;
 
-		SGridControl* pGridMyItem[13];
-		for (size_t i = 0; i < 13; ++i)
+		// MSG_CombineItem and the panel initialization both define eight recipe
+		// slots; scanning thirteen controls indexed beyond both packet arrays.
+		SGridControl* pGridMyItem[8];
+		for (size_t i = 0; i < 8; ++i)
 			pGridMyItem[i] = (SGridControl*)pFScene->m_pControlContainer->FindControl(i + 65861);
 
-		// TODO: review this code latter, possible buffer overflow.
-		for (size_t i = 0; i < 13; ++i)
+		for (size_t i = 0; i < 8; ++i)
 		{
 			if (pGridMyItem[i] != this)
 				continue;
@@ -1811,23 +1924,27 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 		if (!pItem)
 			return 1;
 
-		for (size_t i = 0; i < (pFScene->UsesNative748InventoryLayout() ? 1u : 4u); i++)
+		auto pGrid = pFScene->m_pGridInv;
+		if (!pGrid)
+			return 1;
+
+		int nGridIndex = BASE_GetItemAbility(pItem->m_pItem, 33);
+		if (nGridIndex < 0 || nGridIndex > 7)
+			nGridIndex = 0;
+
+		IVector2 vecGrid = pGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
+
+		// Trade return validation must inspect the one native Carry grid. Iterating
+		// four 7.59 pages could approve a return into storage that 7.48 cannot show.
+		if ((vecGrid.x > -1 && vecGrid.y > -1) || BASE_GetItemAbility(pItem->m_pItem, 38) == 2)
 		{
-			auto pGrid = pFScene->UsesNative748InventoryLayout() ? pFScene->m_pGridInv : pFScene->m_pGridInvList[i];
-			int nGridIndex = BASE_GetItemAbility(pItem->m_pItem, 33);
-
-			IVector2 vecGrid = pGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-
-			if (vecGrid.x > -1 && vecGrid.y > -1 || BASE_GetItemAbility(pItem->m_pItem, 38) == 2)
+			if (pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 			{
-				if (pItem && pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-				{
-					pFScene->m_pMessageBox->SetMessage(g_pMessageStringTable[144], 646, 0);
-					pFScene->m_pMessageBox->SetVisible(1);
-					pFScene->m_pMessageBox->m_dwArg = m_dwControlID;
-				}
-				return 1;
+				pFScene->m_pMessageBox->SetMessage(g_pMessageStringTable[144], 646, 0);
+				pFScene->m_pMessageBox->SetVisible(1);
+				pFScene->m_pMessageBox->m_dwArg = m_dwControlID;
 			}
+			return 1;
 		}
 
 		auto pListBox = pFScene->m_pChatList;
@@ -1867,6 +1984,17 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigned int wParam)
 {
 	auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+	// A drop onto a native mix slot must win over the modern quickslot branches
+	// sharing raw values 18..22, otherwise recipes silently become shortcuts.
+	if (g_pCursor && g_pCursor->m_pAttachedItem)
+	{
+		auto sourceItem = g_pCursor->m_pAttachedItem;
+		int nativeMixResult = pScene->TryStageNativeMixItem(
+			sourceItem->m_pGridControl, sourceItem, this);
+		if (nativeMixResult >= 0)
+			return nativeMixResult;
+	}
+
 	if (m_eGridType == TMEGRIDTYPE::GRID_SHOP)
 	{
 		SGridControl::m_pSellItem = g_pCursor->m_pAttachedItem;
@@ -1899,7 +2027,9 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 		else
 		{
 			char szMessage[128]{};
-			sprintf(szMessage, g_pMessageStringTable[342], &g_pItemList[SGridControl::m_pSellItem->m_pItem->sIndex]);
+			// The 7.48 confirmation formatter receives ItemList.Name, never the
+			// address of the complete catalog record.
+			sprintf(szMessage, g_pMessageStringTable[342], g_pItemList[SGridControl::m_pSellItem->m_pItem->sIndex].Name);
 			pScene->m_pMessageBox->SetMessage(szMessage, 890, g_pMessageStringTable[343]);
 			pScene->m_pMessageBox->SetVisible(1);
 			g_pCursor->m_pAttachedItem = 0;
@@ -2125,16 +2255,9 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 			return 1;
 		}
 
-		// WYD748: the native 9x7 inventory has no 15-slot unlock pages; keep the
-		// later-client bag-key checks only when the compatibility layout is disabled.
-		if (!pScene->UsesNative748InventoryLayout() && sSrcType == 1 && sSrcPos / 15 == 2 &&
-			g_pObjectManager->m_stMobData.Carry[60].sIndex != 3467)
-			return 1;
-		if (!pScene->UsesNative748InventoryLayout() && sSrcType == 1 && sSrcPos / 15 == 3 &&
-			g_pObjectManager->m_stMobData.Carry[61].sIndex != 3467)
-			return 1;
-
 		MSG_UseItem stUseItem{};
+		// Native 7.48 validates the resolved Carry slot directly; modern bag-key
+		// gates would reject valid rows 4-7 in its contiguous 9x7 inventory.
 
 		stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
 		stUseItem.Header.Type = 883;
@@ -2196,12 +2319,8 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 	}
 	else if (CanChangeItem(g_pCursor->m_pAttachedItem, nCellX, nCellY, 0))
 	{
-		int page = m_dwControlID - 67072;
-		if (page == 2 && g_pObjectManager->m_stMobData.Carry[60].sIndex != 3467)
-			return 0;
-		if (page == 3 && g_pObjectManager->m_stMobData.Carry[61].sIndex != 3467)
-			return 0;
-
+		// The 7.48 grid has no locked pages; every valid CanChangeItem target must
+		// reach the scene swap handler so the blue preview and mouse-up agree.
 		SGridControl::m_pLastAttachedItem = g_pCursor->m_pAttachedItem;
 
 		auto pos = g_pCursor->GetPos();
@@ -2434,9 +2553,8 @@ void SGridControl::SwapItem(int nCellX, int nCellY, int nCellVWidth, int nCellVH
 
 	auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
-	int page = pFScene->m_pGridInv->m_dwControlID - 67072;
-	if ((page != 2 || g_pObjectManager->m_stMobData.Carry[60].sIndex == 3467) && 
-		(page != 3 || g_pObjectManager->m_stMobData.Carry[61].sIndex == 3467))
+	// This unconditional scope mirrors the native 7.48 swap lifecycle. The old
+	// condition represented 7.59 bag pages and could silently discard mouse-up.
 	{
 		if (m_eItemType == TMEITEMTYPE::ITEMTYPE_NONE)
 		{
@@ -2522,6 +2640,9 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 {
 	if (g_pCursor->GetStyle() != ECursorStyle::TMC_CURSOR_HAND)
 	{
+		// A stale enable color must not remain visible after the cursor releases
+		// its item or changes mode outside the native pickup flow.
+		m_dwEnableColor = 0;
 		if (g_pCursor->GetStyle() == ECursorStyle::TMC_CURSOR_PICKUP && g_pCursor->m_pAttachedItem)
 		{
 			auto pDescPanel = g_pCurrentScene->m_pDescPanel;
@@ -2540,9 +2661,9 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 
 			auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
-			if (pFScene->m_pGridInvList[0] == this || pFScene->m_pGridInvList[1] == this ||
-				pFScene->m_pGridInvList[2] == this || pFScene->m_pGridInvList[3] == this ||
-				pFScene->m_pCargoGrid == this)
+			// Only the native 7.48 Carry and Cargo controls can clip a dragged item
+			// against their visible bounds; later-client page controls do not exist.
+			if (pFScene->m_pGridInv == this || pFScene->m_pCargoGrid == this)
 			{
 				IVector2 vecGrid;
 				vecGrid.x = m_vecPickupedSize.x + nCellX;
@@ -4131,235 +4252,33 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 
 
 
-	int nItemPrice = 0;
-	if (pItem->m_pItem->sIndex > 0 && pItem->m_pItem->sIndex < 6500)
-		nItemPrice = g_pItemList[pItem->m_pItem->sIndex].nPrice;
-
+	const int itemIndex = pItem->m_pItem->sIndex;
+	const int nItemPrice = WYD748_IsValidItemIndex(static_cast<short>(itemIndex))
+		? g_pItemList[itemIndex].nPrice : 0;
 	char szText[128]{};
 
-	float taxPrice = (float)nItemPrice * ((float)g_pObjectManager->m_nTax / 100.0f);
-
-	if (pFScene->m_nIsMP == 2)
+	// FUN_00418828 in WYD.exe 7.48 has exactly three shop-price modes: the
+	// fixed 1% tax group, MP, and Gold plus the current kingdom tax.  Removing
+	// later donate/coupon/repurchase branches keeps the displayed amount equal
+	// to the value used by native BuyItem and by the 7.48 server protocol.
+	if (itemIndex == 4010 || itemIndex == 4011 ||
+		(itemIndex >= 4026 && itemIndex <= 4029))
 	{
-		sprintf(szText, g_pMessageStringTable[487], nItemPrice);
-		sprintf(szText, "%s", szText);
+		sprintf(szText, g_pMessageStringTable[57], nItemPrice + nItemPrice / 100);
+		sprintf(szText, "%s (%s:%d%%)", szText, g_pMessageStringTable[146], 1);
 	}
 	else if (pFScene->m_nIsMP == 1)
 	{
 		sprintf(szText, g_pMessageStringTable[385], nItemPrice);
-		sprintf(szText, "%s", szText);
 	}
 	else
 	{
-		if (pFScene->m_bIsUndoShoplist)
-		{
-			for (int nn = 0; nn < 10; ++nn)
-			{
-				if (pItem->m_pItem->sIndex == pFScene->m_stRepurcharse[nn].stItem.sIndex)
-					sprintf(szText, g_pMessageStringTable[486], nItemPrice);
-			}
-		}
-		else if (pFScene->m_bEventCouponOpen == 1)
-		{
-			int nItemId = pItem->m_pItem->sIndex;
-			int nCoupons = 0;
-
-			if (nItemId == 3477)
-				nCoupons = 10;
-			else if (nItemId == 3431)
-				nCoupons = 5;
-			else if (nItemId == 2397)
-				nCoupons = 1;
-			else if (nItemId == 4028)
-				nCoupons = 100;
-			else if (nItemId == 4127)
-				nCoupons = 50;
-
-			sprintf(szText, "%s: %d", g_pItemList[4906].Name, nCoupons);
-		}
-		else//new donate price
-		{
-				sprintf(szText, g_pMessageStringTable[57], nItemPrice + (int)taxPrice);
-				sprintf(szText, "%s (%s:%d%%)", szText, g_pMessageStringTable[146], g_pObjectManager->m_nTax);
-				
-					if (pItem->m_pItem->sIndex == 3343)
-					{
-						nItemPrice = 150;
-					}
-					if (pItem->m_pItem->sIndex >= 3407 && pItem->m_pItem->sIndex <= 3416)
-					{
-						nItemPrice = 10;
-					}
-					if (pItem->m_pItem->sIndex == 3336 || pItem->m_pItem->sIndex == 3417)
-					{
-						nItemPrice = 15;
-					}
-					if (pItem->m_pItem->sIndex == 3429)
-					{
-						nItemPrice = 20;
-					}
-					if (pItem->m_pItem->sIndex == 774 || pItem->m_pItem->sIndex == 775)
-					{
-						nItemPrice = 200;
-					}
-					if (pItem->m_pItem->sIndex >= 3900 && pItem->m_pItem->sIndex <= 3917)
-					{
-						nItemPrice = 100;
-					}
-					if (pItem->m_pItem->sIndex == 3344)
-					{
-						nItemPrice = 140;
-					}
-					if (pItem->m_pItem->sIndex == 3345)
-					{
-						nItemPrice = 150;
-					}
-					if (pItem->m_pItem->sIndex == 3346)
-					{
-						nItemPrice = 160;
-					}
-					if (pItem->m_pItem->sIndex == 3352 || pItem->m_pItem->sIndex >= 2390 && pItem->m_pItem->sIndex <= 2419)
-					{
-						nItemPrice = 50;
-					}
-					if (pItem->m_pItem->sIndex == 3353)
-					{
-						nItemPrice = 60;
-					}
-					if (pItem->m_pItem->sIndex == 3373)
-					{
-						nItemPrice = 30;
-					}
-					if (pItem->m_pItem->sIndex == 4194 || pItem->m_pItem->sIndex == 4195)
-					{
-						nItemPrice = 150;
-					}
-					if (pItem->m_pItem->sIndex == 413)
-					{
-						nItemPrice = 30;
-					}
-					if (pItem->m_pItem->sIndex == 412)
-					{
-						nItemPrice = 25;
-					}
-					if (pItem->m_pItem->sIndex == 4019)
-					{
-						nItemPrice = 30;
-					}
-					if (pItem->m_pItem->sIndex == 4020)
-					{
-						nItemPrice = 35;
-					}
-					if (pItem->m_pItem->sIndex == 4189)
-					{
-						nItemPrice = 250;
-					}
-
-					if (pItem->m_pItem->sIndex == 4189)
-					{
-						nItemPrice = 250;
-					}
-
-					if (pItem->m_pItem->sIndex == 4323 ||
-						pItem->m_pItem->sIndex == 4328)
-					{
-						nItemPrice = 2;
-					}
-					if (pItem->m_pItem->sIndex == 4174 ||
-						pItem->m_pItem->sIndex == 4362)
-					{
-						nItemPrice = 4;
-					}
-					if (
-						pItem->m_pItem->sIndex == 4313 ||
-						pItem->m_pItem->sIndex == 4312)
-					{
-						nItemPrice = 6;
-				
-				    }
-					if (
-						pItem->m_pItem->sIndex == 4191 ||
-						pItem->m_pItem->sIndex == 4196 ||
-						pItem->m_pItem->sIndex == 4197 ||
-						pItem->m_pItem->sIndex == 4192)
-					{
-						nItemPrice = 120;
-
-					}
-                
-		}
-
-		if (pItem->m_pItem->sIndex == 4998 || pItem->m_pItem->sIndex == 4999)
-			strcpy(szText, "");
+		const int taxPrice = static_cast<int>(static_cast<float>(nItemPrice)
+			* (static_cast<float>(g_pObjectManager->m_nTax) / 100.0f));
+		sprintf(szText, g_pMessageStringTable[57], nItemPrice + taxPrice);
+		sprintf(szText, "%s (%s:%d%%)", szText, g_pMessageStringTable[146],
+			g_pObjectManager->m_nTax);
 	}
-
-		int nItemDonate = 0;
-		if (pItem->m_pItem->sIndex >= 3200 && pItem->m_pItem->sIndex <= 3209 || pItem->m_pItem->sIndex == 3173 ||
-			pItem->m_pItem->sIndex == 777 || pItem->m_pItem->sIndex == 3182 || pItem->m_pItem->sIndex == 3361 ||
-			pItem->m_pItem->sIndex >= 3362 && pItem->m_pItem->sIndex <= 3366 || pItem->m_pItem->sIndex >= 3379 && pItem->m_pItem->sIndex <= 3381 ||
-			pItem->m_pItem->sIndex == 4140 || pItem->m_pItem->sIndex == 3467 || pItem->m_pItem->sIndex == 3343 ||
-			pItem->m_pItem->sIndex == 4051 || pItem->m_pItem->sIndex == 4052 || pItem->m_pItem->sIndex == 4053 ||
-			pItem->m_pItem->sIndex == 4054 || pItem->m_pItem->sIndex == 4055 || pItem->m_pItem->sIndex == 3314 ||
-			pItem->m_pItem->sIndex == 3318 || pItem->m_pItem->sIndex == 4144 || pItem->m_pItem->sIndex == 774 ||
-			pItem->m_pItem->sIndex == 775 || pItem->m_pItem->sIndex == 3430 || pItem->m_pItem->sIndex == 3429 ||
-			pItem->m_pItem->sIndex == 3336 || pItem->m_pItem->sIndex == 4146 || pItem->m_pItem->sIndex >= 3407 && pItem->m_pItem->sIndex <= 3417 ||
-			pItem->m_pItem->sIndex >= 4128 && pItem->m_pItem->sIndex <= 4130 ||
-			pItem->m_pItem->sIndex >= 3900 && pItem->m_pItem->sIndex <= 3917 || pItem->m_pItem->sIndex >= 4150 && pItem->m_pItem->sIndex <= 4500 ||
-			pItem->m_pItem->sIndex == 3438 || pItem->m_pItem->sIndex >= 3344 && pItem->m_pItem->sIndex <= 3357 ||
-			pItem->m_pItem->sIndex == 4899 || pItem->m_pItem->sIndex >= 3368 && pItem->m_pItem->sIndex <= 3376)
-		{
-
-			auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-			nItemDonate = g_pItemList[pItem->m_pItem->sIndex].nPrice;
-			sprintf(szText, g_pMessageStringTable[56], nItemPrice, "%s");
-			if (pItem->m_pItem->stEffect[0].cEffect == 61)
-			{
-				sprintf(szText, g_pMessageStringTable[56], (nItemPrice * pItem->m_pItem->stEffect[0].cValue * 100) / 110, "%s");
-			}
-			// 7.48 has no tooltip rows 12/13; currency information occupies the
-			// final native row and cannot alias two nonexistent controls.
-			pFScene->m_pParamText[NUM_ITEM_DESC_PARAMS - 1]->SetText(szText, 0);
-			pFScene->m_pParamText[NUM_ITEM_DESC_PARAMS - 1]->SetTextColor(LawnGreen);
-		}
-		int nItemHonra = 0;
-		if (pItem->m_pItem->sIndex >= 412 && pItem->m_pItem->sIndex <= 413 ||
-			pItem->m_pItem->sIndex == 4189 ||
-			pItem->m_pItem->sIndex >= 4019 && pItem->m_pItem->sIndex <= 4020 ||
-			pItem->m_pItem->sIndex >= 2390 && pItem->m_pItem->sIndex <= 2419)
-		{
-			auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-			nItemHonra = g_pItemList[pItem->m_pItem->sIndex].nPrice;
-			sprintf(szText, g_pMessageStringTable[72], nItemPrice, "%s");
-			if (pItem->m_pItem->stEffect[0].cEffect == 61)
-			{
-				sprintf(szText, g_pMessageStringTable[56], (nItemPrice * pItem->m_pItem->stEffect[0].cValue * 100) / 110, "%s");
-			}
-			// Honor prices use the same final native 7.48 row as every other
-			// non-gold price; the later client added rows that FieldScene2 lacks.
-			pFScene->m_pParamText[NUM_ITEM_DESC_PARAMS - 1]->SetText(szText, 0);
-			pFScene->m_pParamText[NUM_ITEM_DESC_PARAMS - 1]->SetTextColor(DeepSkyBlue);
-		}
-		int nItemitem = 0;
-		if (pItem->m_pItem->sIndex == 4174 ||
-			pItem->m_pItem->sIndex == 4323 ||
-			pItem->m_pItem->sIndex == 4313 ||
-			pItem->m_pItem->sIndex == 4312 ||
-			pItem->m_pItem->sIndex == 4362 ||
-			pItem->m_pItem->sIndex == 4328)
-		{
-			auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-			nItemitem = g_pItemList[pItem->m_pItem->sIndex].nPrice;
-			sprintf(szText, g_pMessageStringTable[190], nItemPrice);//
-			//sprintf(szText, g_pMessageStringTable[342], "Bolsa da Sorte");
-			if (pItem->m_pItem->stEffect[0].cEffect == 61)
-			{
-				sprintf(szText, g_pMessageStringTable[190], (nItemPrice * pItem->m_pItem->stEffect[0].cValue), "%s");
-			}
-			// Special-item prices also terminate at row 11 in the native 7.48 UI.
-			pFScene->m_pParamText[NUM_ITEM_DESC_PARAMS - 1]->SetText(szText, 0);
-			pFScene->m_pParamText[NUM_ITEM_DESC_PARAMS - 1]->SetTextColor(Yellow);
-		}
-	
 
 	pParamText->SetText(szText, 0);
 	return 1;
@@ -4487,12 +4406,11 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 	if (g_pCursor->GetStyle() == ECursorStyle::TMC_CURSOR_HAND && m_eItemType == TMEITEMTYPE::ITEMTYPE_NONE &&
 		(m_eGridType == TMEGRIDTYPE::GRID_DEFAULT || m_eGridType == TMEGRIDTYPE::GRID_SELL))
 	{
-		int page = pFScene->m_pGridInv->m_dwControlID - 67072;
 		unsigned int dwServerTime = g_pTimerManager->GetServerTime();
 
-		if ((pFScene->m_dwUseItemTime && dwServerTime - pFScene->m_dwUseItemTime < 200) ||
-			(page == 2 && g_pObjectManager->m_stMobData.Carry[60].sIndex != 3467) ||
-			(page == 3 && g_pObjectManager->m_stMobData.Carry[61].sIndex != 3467))
+		// Preserve the native anti-double-click throttle without importing the
+		// later client's bag-page locks into valid 7.48 Carry rows.
+		if (pFScene->m_dwUseItemTime && dwServerTime - pFScene->m_dwUseItemTime < 200)
 			return;
 
 		if (!bPtInRect)
@@ -5045,74 +4963,31 @@ char SGridControl::automove(int nCellX, int nCellY)
 		auto pMobData = &g_pObjectManager->m_stMobData;
 
 		IVector2 vecGrid;
-		int page = 0;
 		if (Type == 1)
 		{
 			auto pMyGrid = pScene->m_pGridInv;
+			if (!pMyGrid)
+				return 0;
+
 			int nGridIndex = BASE_GetItemAbility(pItem->m_pItem, 33);
 			if (nGridIndex > 7 || nGridIndex < 0)
 				nGridIndex = 0;
 
 			vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-			// WYD748 compatibility: returning an item to Carry uses the single native 9x7 grid rather than a 7.59 page.
-			page = pScene->UsesNative748InventoryLayout()
-				? 0
-				: 15 * (pScene->m_pGridInv->m_dwControlID - 67072);
-
-			if (vecGrid.x == -1)
-			{
-				for (int i = 0; i < (pScene->UsesNative748InventoryLayout() ? 1 : 4); ++i)
-				{
-					pMyGrid = pScene->UsesNative748InventoryLayout() ? pScene->m_pGridInv : pScene->m_pGridInvList[i];
-					nGridIndex = BASE_GetItemAbility(pItem->m_pItem, 33);
-					if (nGridIndex > 7 || nGridIndex < 0)
-						nGridIndex = 0;
-
-					vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-					if (vecGrid.x != -1)
-					{
-						page = 15 * i;
-						break;
-					}
-				}
-			}
-			if (page < 0 || page > 45)
-				page = 0;
 		}
 		else if (Type != 2)
 			return 0;
 		else
 		{
 			auto pMyGrid = pScene->m_pCargoGrid;
+			if (!pMyGrid)
+				return 0;
+
 			int nGridIndex = BASE_GetItemAbility(pItem->m_pItem, 33);
 			if (nGridIndex > 7 || nGridIndex < 0)
 				nGridIndex = 0;
 
 			vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-			// WYD748 compatibility: native Cargo is also a single 9-column grid and therefore has no 40-slot page offset.
-			page = pScene->UsesNative748InventoryLayout()
-				? 0
-				: 40 * (pScene->m_pCargoGrid->m_dwControlID - 67328);
-
-			if (vecGrid.x == -1)
-			{
-				for (int j = 0; j < (pScene->UsesNative748InventoryLayout() ? 1 : 3); ++j)
-				{
-					pMyGrid = pScene->UsesNative748InventoryLayout() ? pScene->m_pCargoGrid : pScene->m_pCargoGridList[j];
-					nGridIndex = BASE_GetItemAbility(pItem->m_pItem, 33);
-					if (nGridIndex > 7 || nGridIndex < 0)
-						nGridIndex = 0;
-
-					vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-					if (vecGrid.x != -1)
-					{
-						page = 40 * j;
-						break;
-					}
-				}
-			}
-			if (page < 0 || page > 80)
-				page = 0;
 		}
 
 		if (vecGrid.x == -1)
@@ -5122,7 +4997,9 @@ char SGridControl::automove(int nCellX, int nCellY)
 		stSwapItem.Header.ID = g_pObjectManager->m_dwCharID;
 		stSwapItem.Header.Type = MSG_SwapItem_Opcode;
 		stSwapItem.SourType = Type;
-		stSwapItem.SourPos = page + vecGrid.x + (pScene->UsesNative748InventoryLayout() ? 9 : 5) * vecGrid.y;
+		// Carry and Cargo both use the native 9-column linear slot contract here;
+		// later page offsets cannot be represented by the 7.48 controls.
+		stSwapItem.SourPos = vecGrid.x + 9 * vecGrid.y;
 		stSwapItem.DestType = static_cast<char>(sDestType);
 		stSwapItem.DestPos = static_cast<char>(sDestPos);
 		stSwapItem.TargetID = TMFieldScene::m_dwCargoID;
@@ -5332,18 +5209,26 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 	m_GCEnable = GeomControl(RENDERCTRLTYPE::RENDER_IMAGE_STRETCH, -2, 0.0f, 0.0f, 1.0f, 1.0f, 0, 0x33FF0000);
 	m_GCText = GeomControl(RENDERCTRLTYPE::RENDER_TEXT, -1, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0xFFFFFFFF);
 
+	// Initialize the complete interaction state even for malformed wire items;
+	// this keeps destruction safe without consulting an invalid catalog row.
 	m_pItem = pItem;
+	m_pGridControl = pParent;
+	m_bSelect = 0;
+	m_fTimer = 1.0f;
+	m_nCellIndexX = 0;
+	m_nCellIndexY = 0;
+	m_nCellWidth = 1;
+	m_nCellHeight = 1;
+	m_GCObj.n3DObjIndex = -1;
 
-	if (m_pItem && pItem->sIndex >= 0 && pItem->sIndex <= 11600)
+	if (m_pItem && WYD748_IsValidItemIndex(pItem->sIndex))
 	{
-
-
-		m_GCObj.n3DObjIndex = g_pItemList[pItem->sIndex].nIndexMesh;
-		m_pGridControl = pParent;
+		// FUN_0040d13e resolves the catalog entry through FUN_0040cea0 before mesh
+		// binding.  BASE_GetMeshIndex is that source-side translation; using the raw
+		// nIndexMesh here was client-tested and produced generic spheres/rocks.
+		m_GCObj.n3DObjIndex = BASE_GetMeshIndex(pItem->sIndex);
 		m_GCText.strString[0] = 0;
 		m_GCText.pFont = &m_Font;
-		m_bSelect = 0;
-		m_fTimer = 1.0f;
 
 		int nSizeIndex = BASE_GetItemAbility(pItem, 33);
 		int nType = BASE_GetItemAbility(pItem, 38);
@@ -5352,11 +5237,11 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 
 		m_nCellWidth = g_pItemGridXY[nSizeIndex][0];
 		m_nCellHeight = g_pItemGridXY[nSizeIndex][1];
-		// Ghidra FUN_0040d13e proves that 7.48 sizes each 3D item from its real
-		// g_pItemGridXY footprint. The imported 34.5/40-pixel 7.59 icon shortcut
-		// flattened every item to one cell and stretched meshes in inventory/shop.
-		m_nWidth = BASE_ScreenResize(static_cast<float>(SControl::m_nGridCellSize * m_nCellWidth));
-		m_nHeight = BASE_ScreenResize(static_cast<float>(SControl::m_nGridCellSize * m_nCellHeight));
+		// DAT_005b1094 is the fixed integer 24 in the historical 7.48 Ghidra reference.
+		// FUN_0040d13e does not apply viewport ratios to this item-local box; the
+		// parent grid and FrameMove2 perform the UI2 coordinate conversion.
+		m_nWidth = 24.0f * static_cast<float>(m_nCellWidth);
+		m_nHeight = 24.0f * static_cast<float>(m_nCellHeight);
 		m_GCObj.m_fWidth = m_nWidth;
 		m_GCObj.m_fHeight = m_nHeight;
 
@@ -5435,13 +5320,21 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 
 SGridControlItem::~SGridControlItem()
 {
-	if (m_pItem && m_pItem->sIndex <= 11600 && m_pItem->sIndex >= 0)
+	// Render controls belong to the current scene, but the item allocation always
+	// belongs to this grid object and must be released even for an invalid index.
+	auto pControlContainer =
+		g_pCurrentScene != nullptr ? g_pCurrentScene->m_pControlContainer : nullptr;
+	if (m_pItem && WYD748_IsValidItemIndex(m_pItem->sIndex))
 	{
-		auto pControlContainer = g_pCurrentScene->m_pControlContainer;
 		if (g_pItemList[m_pItem->sIndex].nIndexMesh < 0)
 		{
 			if (pControlContainer && m_GCObj.nLayer >= 0)
+			{
 				RemoveRenderControlItem(pControlContainer->m_pDrawControl, &m_GCObj, m_GCObj.nLayer);
+				// The base S3DObj destructor runs next; mark this native 7.48 node as
+				// detached so it cannot attempt a second removal from the draw list.
+				m_GCObj.nLayer = -1;
+			}
 		}
 		else if (pControlContainer)
 		{
@@ -5454,12 +5347,12 @@ SGridControlItem::~SGridControlItem()
 		if (pControlContainer && m_GCEnable.nLayer >= 0)
 			RemoveRenderControlItem(pControlContainer->m_pDrawControl, &m_GCEnable, m_GCEnable.nLayer);
 
-		if (m_pItem)
-		{
-			delete m_pItem;
-			m_pItem = nullptr;
-		}
 	}
+
+	// S3DObj owns m_GCObj and releases it in its base destructor.  Keeping that
+	// ownership in one place avoids removing the same 7.48 render node twice.
+	delete m_pItem;
+	m_pItem = nullptr;
 }
 
 void SGridControlItem::SelectThis(int bSelect)
@@ -5489,15 +5382,36 @@ STRUCT_ITEM* SGridControlItem::GetItem()
 
 void SGridControlItem::FrameMove2(stGeomList* pDrawList, TMVector2 ivItemPos, int inParentLayer, int nFlag)
 {
-	if (m_pItem && m_pItem->sIndex <= 11600 && m_pItem->sIndex >= 0)
+	// Only catalog-backed 7.48 items may enter the render list; this prevents a
+	// malformed shop row from becoming an out-of-bounds mesh lookup.
+	if (m_pItem && WYD748_IsValidItemIndex(m_pItem->sIndex))
 	{
-		m_GCObj.nPosX = ivItemPos.x + m_nPosX;
-		m_GCObj.nPosY = ivItemPos.y + m_nPosY;
+		// FUN_0040dd00 receives the item's box origin and converts it to the renderer
+		// centre on both axes. Omitting the half-width uniformly shifts grid and
+		// equipment meshes half a cell to the left.
+		m_GCObj.nPosX = ivItemPos.x + m_nPosX + (m_nWidth * 0.5f);
+		m_GCObj.nPosY = ivItemPos.y + m_nPosY + (m_nHeight * 0.5f);
 		m_GCObj.nWidth = m_nWidth;
 		m_GCObj.nHeight = m_nHeight;
 		m_GCObj.nLayer = inParentLayer;
 		AddRenderControlItem(pDrawList, &m_GCObj, inParentLayer);
 	}
+}
+
+void SGridControlItem::FrameMoveAtCenter748(stGeomList* pDrawList, TMVector2 ivItemCenter, int inParentLayer)
+{
+	// Trade/mix controls already provide the final visual centre and must bypass
+	// FrameMove2's vertical origin conversion. This helper changes no mesh offset;
+	// it only preserves the scale selected for those native centered receptacles.
+	if (!m_pItem || !WYD748_IsValidItemIndex(m_pItem->sIndex))
+		return;
+
+	m_GCObj.nPosX = ivItemCenter.x + m_nPosX;
+	m_GCObj.nPosY = ivItemCenter.y + m_nPosY;
+	m_GCObj.nWidth = m_nWidth;
+	m_GCObj.nHeight = m_nHeight;
+	m_GCObj.nLayer = inParentLayer;
+	AddRenderControlItem(pDrawList, &m_GCObj, inParentLayer);
 }
 
 int SGridControlItem::PtInItem(int inPosX, int inPosY)

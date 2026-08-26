@@ -26,7 +26,7 @@ addresses.
 
 ## Status
 
-You can play the game from start to end with the patched 7.48 client. The server
+You can play the game from start to end with the source-built 7.48 client. The server
 connects these functions through the native protocol:
 
 - account creation and character creation;
@@ -49,8 +49,10 @@ The technical documentation has two canonical files:
 - [`DOCS/ROADMAP.md`](DOCS/ROADMAP.md) is the only roadmap and contains only work that
   is not complete.
 
-The client patch chain stays in [`client748/PATCHES.md`](client748/PATCHES.md),
-next to the files that it documents.
+The active client workflow is documented in
+[`client-source/README.md`](client-source/README.md). Historical executables,
+patchers, and their notes stay read-only under
+`client748/wyd.exe nativo+patches/` and are not part of the build.
 
 ## Systems
 
@@ -124,7 +126,8 @@ The server has these systems. The server has authority on each system.
   guild id/rank fields in `CreateMob`, `UpdateScore`, and `EnterWorld`, and
   rewrites `Guilds.txt`; this is the complete server side of the 7.48 mark
   flow. The client still downloads `b010000<guild-id>.bmp` from its hardcoded
-  mark host, so a public mark requires that asset (or a client URL patch).
+  mark host, so a public mark requires that asset or an equivalent URL behavior
+  implemented in the 7.48 client source.
   Guild war remains future work.
 - **Kingdoms** — A player selects Akelonia or Hekalotia at the kings. The server
   applies the Sapphire cost. The player leaves through the broker. The server
@@ -380,24 +383,33 @@ You make an account with one of two tools:
   `/healthz` reports process health and `/readyz` verifies the database. Publish
   this API only through an HTTPS reverse proxy that replaces forwarded headers.
 
-## Prepare and verify the client
+## Build and verify the client
 
-The repository contains the supported 7.48 client in `client748/`. Do not edit
-`WYD.exe` manually. Rebuild or verify the complete patch chain with:
+The supported 7.48 client is built exclusively from `client-source/tmproject`.
+The executables and PowerShell patchers under
+`client748/wyd.exe nativo+patches/` are read-only historical material for
+Ghidra and must never be executed, edited, or used as a validation gate.
+
+Validate the active assets and build the source with:
 
 ```powershell
-cd client748
-./Apply-WYD748.ps1 -VerifyOnly
+cd client-source/tmproject
+.\Test-Client748Assets.ps1 -AssetRoot ..\..\client748
+.\Build-Client.ps1 -Configuration Release
 ```
 
-The supported SHA-256 and the reproducible patch order are in
-[`client748/PATCHES.md`](client748/PATCHES.md). Configure the client connection
-for the public address of your server, keep TCP port 8281 allowed in the game
-host firewall, and keep PostgreSQL and the diagnostic HTTP endpoint private.
+Every successful build automatically installs `client748/project.exe`, verifies
+that its hash matches the transient build output, and prints the installed hash.
+An installation or hash failure fails the build workflow.
+
+Every client behavior change must be adapted in the 7.48 source; visual data
+changes belong in the assets. Configure the client connection for the public
+address of your server, keep TCP port 8281 allowed in the game host firewall,
+and keep PostgreSQL and the diagnostic HTTP endpoint private.
 
 The client package contains 135 costumes imported from the supplied current KR
 clients. Their exact male, female, or dynamic body mapping and per-part assets
-are installed by the reproducible patch chain. Five `ShopCostum*` merchants in
+must be consumed by the source-built client. Five `ShopCostum*` merchants in
 Armia expose at most 27 costumes each. Every costume grants 80 defense and 10%
 mana saving and expires 30 calendar days after its first equip.
 

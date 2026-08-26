@@ -27,14 +27,13 @@ if ($Build) {
     & (Join-Path $PSScriptRoot 'Build-Client.ps1') -Configuration $Configuration
 }
 
-$fileName = if ($Configuration -eq 'Release') { 'WYD.exe' } else { 'WYDestiny.exe' }
-$executable = Join-Path $PSScriptRoot "build\$Configuration\$fileName"
+$executable = Join-Path $AssetRoot 'project.exe'
 if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
-    throw "Source-built client was not found: $executable. Use -Build first."
+    throw "Installed source-built client was not found: $executable. Use -Build first."
 }
 
 # The executable reads relative paths. The environment variable is consumed by
-# WYD748_InitializeAssetRoot and avoids copying over client748/WYD.exe.
+# WYD748_InitializeAssetRoot and never touches the historical executables.
 $previousRoot = $env:WYD_ASSET_ROOT
 $env:WYD_ASSET_ROOT = $AssetRoot
 try {

@@ -562,8 +562,8 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		})
 		for _, result := range affected {
 			target := result.player
-			// O dono PRECISA do 0x181 alem do 0x336. Os dois wrappers do patch
-			// wide alimentam o sidecar que o HUD le, e o 0x336 sozinho nao
+			// O dono PRECISA do 0x181 alem do 0x336. Os dois handlers wide da
+			// source alimentam o sidecar que o HUD le, e o 0x336 sozinho nao
 			// estava bastando: com so ele, as barras de HP e MP ficavam quase
 			// zeradas -- o desenho caia para o WORD escalado (29.322) sobre o
 			// MaxHP wide (1.202.183), 2,4% da barra.
@@ -652,7 +652,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				// O HP recebe somente o que ainda restava no alvo, mas o numero
 				// flutuante representa o dano calculado (overkill inclusive).
 				// O mesmo pacote carrega o WORD projetado da barra e o uint32
-				// real na cauda DMGX consumida pelo patch do client.
+				// real na cauda DMGX consumida pelo client recompilado.
 				wireTargets = append(wireTargets, wire.SkillTarget{
 					ID: target.ID, Damage: perHitCalculated, MaxHP: target.Def.Score.MaxHP,
 				})

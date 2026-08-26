@@ -13,9 +13,15 @@ $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $project = Join-Path $root 'Projects\TMProject\TMProject.vcxproj'
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+$repositoryRoot = Split-Path (Split-Path $root -Parent) -Parent
+$clientDirectory = Join-Path $repositoryRoot 'client748'
+$installedExecutable = Join-Path $clientDirectory 'project.exe'
 
 if (-not (Test-Path -LiteralPath $project)) {
     throw "TMProject.vcxproj not found: $project"
+}
+if (-not (Test-Path -LiteralPath $clientDirectory -PathType Container)) {
+    throw "Client installation directory not found: $clientDirectory"
 }
 if (-not (Test-Path -LiteralPath $vswhere)) {
     throw 'Visual Studio Installer (vswhere.exe) was not found.'
@@ -72,4 +78,15 @@ if (-not (Test-Path -LiteralPath $executable)) {
     throw "Build completed without the expected executable: $executable"
 }
 
-Get-FileHash -Algorithm SHA256 -LiteralPath $executable
+# Source builds have one supported installation target. Failing the copy also
+# fails the build workflow so a stale project.exe cannot be mistaken for it.
+Copy-Item -LiteralPath $executable -Destination $installedExecutable -Force
+
+$buildHash = Get-FileHash -Algorithm SHA256 -LiteralPath $executable
+$installedHash = Get-FileHash -Algorithm SHA256 -LiteralPath $installedExecutable
+if ($buildHash.Hash -ne $installedHash.Hash) {
+    throw "Installed project.exe hash does not match the source build."
+}
+
+Write-Host "Installed client: $installedExecutable"
+$installedHash

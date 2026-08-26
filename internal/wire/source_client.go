@@ -50,11 +50,11 @@ func CharList(accName string, chars []model.Char, cargo []model.Item, cargoGold 
 	return b
 }
 
-// putSourceAffects stores the full Type/Level/Value/Time representation used
-// by TMProject. Only the 16 authoritative model slots are populated; the
-// source-only trailing slots remain zero instead of inventing new affects.
+// putSourceAffects stores the Type/Level/Value/Time representation consumed by
+// the 16-slot WYD 7.48 affect ABI. The destination bound also protects packet
+// builders with a shorter payload from writing beyond their proven layout.
 func putSourceAffects(dst []byte, offset int, affects []model.Affect, now time.Time) {
-	for i := 0; i < len(affects) && i < 32; i++ {
+	for i := 0; i < len(affects) && i < 16 && offset+(i+1)*8 <= len(dst); i++ {
 		affect := affects[i]
 		units := affectTimeUnits(affect.ExpiresAt, now)
 		if affect.Type == 0 || units == 0 {
@@ -130,7 +130,7 @@ func EnterWorld(id, slot uint16, ch model.Char) []byte {
 }
 
 // UpdateScore maps the authoritative runtime score to TMProject's
-// 244-byte 0x336 structure. Fields absent from that native structure continue
+// 232-byte 0x336 structure. Fields absent from that native structure continue
 // to be synchronized by dedicated packets/extensions rather than trusted back.
 func UpdateScore(id uint16, ch model.Char) []byte {
 	b := Build(OpUpdateScore, id, 232)
@@ -148,7 +148,7 @@ func UpdateScore(id uint16, ch model.Char) []byte {
 	return b
 }
 
-// MobScore builds the source client's 244-byte score refresh for an NPC
+// MobScore builds the source client's 232-byte score refresh for an NPC
 // or monster. The removed stock score packet cannot be broadcast to a mixed client view
 // because TMProject reads the canonical STRUCT_SCORE directly at byte 12.
 func MobScore(id uint16, scoreState *model.Score, affects []model.Affect) []byte {
@@ -221,7 +221,8 @@ func MobHpMp(id uint16, currentHP, maxHP, currentMP, maxMP uint32) []byte {
 func HpMp(id uint16, score *model.Score) []byte { return SetHpMp(id, score) }
 
 func UpdateAffects(id uint16, ch model.Char) []byte {
-	b := Build(OpUpdateAffect, id, 268)
+	// Native 7.48 opcode 0x3B9 is Header(12) + 16 affects of eight bytes.
+	b := Build(OpUpdateAffect, id, 140)
 	putSourceAffects(b, 12, ch.Affects[:], time.Now())
 	return b
 }

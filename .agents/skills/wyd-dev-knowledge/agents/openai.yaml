@@ -1,4 +1,4 @@
 interface:
   display_name: "WYD Dev Knowledge"
-  short_description: "Consultar conhecimento t�cnico consolidado do WYD"
-  default_prompt: "Use $wyd-dev-knowledge para pesquisar fatos t�cnicos confirmados sobre WYD."
+  short_description: "Consultar conhecimento técnico de referência do WYD"
+  default_prompt: "Use $wyd-dev-knowledge somente como referência secundária. Para client, cumpra primeiro o gate Ghidra 7.48, adapte qualquer semântica confirmada em client-source ou assets, compile com Build-Client.ps1 e valide o client748/project.exe instalado automaticamente; nunca execute ou reaplique patches históricos."

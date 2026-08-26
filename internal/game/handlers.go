@@ -539,7 +539,7 @@ func (w *World) onApplyBonus(s *net.Session, pkt []byte) {
 }
 
 // onSwapItem: 0x376. Move/equipa item de forma AUTORITATIVA -- troca no estado do
-// servidor e confirma com um 0x182 por slot afetado (o client so aplica ao receber).
+// servidor e confirma sucesso ecoando o 0x376 que encerra o drag nativo.
 func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || p.Account == nil || len(pkt) != 20 {
@@ -627,8 +627,10 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 			return
 		}
 	}
-	s.Send(wire.SendItem(p.ID, st, sp, *src))
-	s.Send(wire.SendItem(p.ID, dt, dp, *dst))
+	// FUN_00486808 e o source OnPacketSwapItem consomem uma unica confirmacao
+	// 0x376. Dois 0x182 atualizam celulas, mas nao concluem o estado do cursor.
+	targetID := binary.LittleEndian.Uint16(pkt[16:18])
+	s.Send(wire.SwapItem(p.ID, st, sp, dt, dp, targetID))
 	if st == placeEquip || dt == placeEquip {
 		if (st == placeEquip && sp == mountSlot) || (dt == placeEquip && dp == mountSlot) {
 			w.resetEggIncubationClock(p)
@@ -657,19 +659,62 @@ func (w *World) validCargoAccess(p *Player, pkt []byte) bool {
 		return false
 	}
 	npcID := uint16(rawNPCID)
-	if npcID == 0 || npcID != p.CargoNPC {
-		return false
-	}
-	m, err := w.resolveNPCInteraction(p, npcID)
-	return err == nil && m.Def.Score != nil && m.Def.Score.Merchant&0xF == cargoMerchantType
+	return npcID != 0 && w.resolveCargoNPC(p, npcID) != nil
 }
 
 func (w *World) nearCargoNPC(p *Player) bool {
-	if p == nil || p.CargoNPC == 0 {
-		return false
+	return w.resolveCargoNPC(p, 0) != nil
+}
+
+func (w *World) resolveCargoNPC(p *Player, requestedID uint16) *Mob {
+	if p == nil || p.Char == nil {
+		return nil
 	}
-	m, err := w.resolveNPCInteraction(p, p.CargoNPC)
-	return err == nil && m.Def.Score != nil && m.Def.Score.Merchant&0xF == cargoMerchantType
+	// The native 7.48 Cargo branch opens locally (FUN_0045ee28) and only puts
+	// the banker ID in MSG_SwapItem.TargetID; it does not send the newer 0x28B
+	// context packet. Validate that packet target authoritatively, then bind it
+	// for cargo-gold and cargo-item operations that carry no NPC ID themselves.
+	if requestedID != 0 {
+		m, err := w.resolveNPCInteraction(p, requestedID)
+		if err != nil || !cargoNPCMatches(m) {
+			return nil
+		}
+		p.CargoNPC = m.ID
+		return m
+	}
+	if p.CargoNPC != 0 {
+		m, err := w.resolveNPCInteraction(p, p.CargoNPC)
+		if err == nil && cargoNPCMatches(m) {
+			return m
+		}
+	}
+
+	// Deposit/withdraw packets do not carry TargetID. Resolve the nearest
+	// visible banker from the spatial index so a locally opened native Cargo
+	// window remains usable before the first item swap.
+	var selected *Mob
+	bestDistance := npcInteractionRange + 1
+	for _, m := range w.nearbyMobs(p.X, p.Y, npcInteractionRange) {
+		if !p.hasVisible(m.ID) || !cargoNPCMatches(m) {
+			continue
+		}
+		distance := chebyshev(p.X, p.Y, m.X, m.Y)
+		if selected == nil || distance < bestDistance ||
+			(distance == bestDistance && m.ID < selected.ID) {
+			selected, bestDistance = m, distance
+		}
+	}
+	if selected == nil {
+		p.CargoNPC = 0
+		return nil
+	}
+	p.CargoNPC = selected.ID
+	return selected
+}
+
+func cargoNPCMatches(m *Mob) bool {
+	return m != nil && !m.Dead && m.Def != nil && m.Def.Score != nil &&
+		m.Def.Score.Merchant&0x0F == cargoMerchantType
 }
 
 func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
@@ -854,8 +899,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 }
 
 // onBuyItem: 0x379. Cliente comprou o item Vende[sellSlot] do mercador. Cobra o
-// preco (do itemlist), adiciona no primeiro slot livre do inventario, confirma com
-// 0x182 e atualiza o gold no client (0x337).
+// preco (do itemlist), adiciona no Carry e confirma com o mesmo 0x379 nativo.
 func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	// len(pkt) >= 16: le sellSlot@14 abaixo. Sem esta checagem um 0x379 curto
@@ -864,9 +908,8 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 		return
 	}
 	w.cancelTrade(p, "compra em loja")
-	// O client manda TargetID=0 no buy; a loja aberta vem do estado do servidor.
-	// A excecao nativa e a janela de recompra: nela TargetID e o proprio
-	// ClientID. O alvo/slot continuam sendo validados no fluxo separado.
+	// A grade 7.48 envia o MerchantID exibido.  Recompra e a excecao nativa:
+	// nela TargetID e o proprio ClientID e segue pelo fluxo separado abaixo.
 	targetID := binary.LittleEndian.Uint16(pkt[12:14])
 	sellSlot := binary.LittleEndian.Uint16(pkt[14:16]) // TargetCarryPos@14
 	if targetID == p.ID {
@@ -883,12 +926,22 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	}
 	if p.ShopNPC == 0 {
 		log.Printf("[#%d] buy sem loja aberta", s.ID)
+		s.Send(wire.MessagePanel("Open a merchant before buying an item."))
+		return
+	}
+	if targetID != p.ShopNPC {
+		// Nao confiar no alvo fornecido pelo client: alem de seguranca, devolver
+		// um painel encerra visualmente o clique em vez de falhar em silencio.
+		log.Printf("[#%d] buy para merchant divergente packet=%d aberto=%d", s.ID, targetID, p.ShopNPC)
+		s.Send(wire.MessagePanel("That merchant is no longer available."))
 		return
 	}
 	m, interactionErr := w.resolveNPCInteraction(p, p.ShopNPC)
 	if interactionErr != nil {
 		log.Printf("[#%d] compra invalida loja=%d slot=%d", s.ID, p.ShopNPC, sellSlot)
 		p.ShopNPC = 0
+		// The 7.48 UI has no local fallback for a stale merchant interaction.
+		s.Send(wire.MessagePanel("The merchant is no longer available."))
 		return
 	}
 	// O slot vem da grade que o CLIENT desenhou, entao precisa ser resolvido
@@ -897,6 +950,7 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	shopType, isShop := shopTypeForMerchant(m.Def.Score.Merchant)
 	if !isShop {
 		log.Printf("[#%d] compra em npc que nao e loja: %q", s.ID, m.Def.Name)
+		s.Send(wire.MessagePanel("That character is not a merchant."))
 		return
 	}
 	display := shopDisplayList(m.Def.Vende, shopType)
@@ -904,10 +958,13 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	if !ok || index >= len(display) {
 		log.Printf("[#%d] compra invalida loja=%d slot=%d -> indice=%d (lista tem %d)",
 			s.ID, p.ShopNPC, sellSlot, index, len(display))
+		s.Send(wire.MessagePanel("That shop item is no longer available."))
 		return
 	}
 	it := display[index]
 	if it.Index == 0 {
+		// Empty visual cells are not purchasable and need a terminal UI response.
+		s.Send(wire.MessagePanel("That shop item is no longer available."))
 		return
 	}
 	// A compra no mestre e uma requisicao de aprendizado. O item 5000..5095
@@ -920,16 +977,22 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	def, exists := w.items[it.Index]
 	if !exists {
 		log.Printf("[#%d] compra rejeitada: item %d ausente do catalogo server-side", s.ID, it.Index)
+		s.Send(wire.MessagePanel("That item is unavailable on this server."))
 		return
 	}
 	price := def.Price
 	if p.Char.Gold < price {
 		log.Printf("[#%d] gold insuficiente: item %d custa %d, tem %d", s.ID, it.Index, price, p.Char.Gold)
+		// O client 7.48 nao sintetiza esse erro: ele exibe o painel 0x101
+		// enviado pelo servidor, portanto toda rejeicao esperada precisa responder.
+		s.Send(wire.MessagePanel("You do not have enough gold."))
 		return
 	}
 	dst := addToInv(p.Char, it)
 	if dst < 0 {
 		log.Printf("[#%d] inventario cheio, compra abortada", s.ID)
+		// Mantem a compra server-authoritative e informa o motivo sem alterar gold.
+		s.Send(wire.MessagePanel("Your inventory is full."))
 		return
 	}
 	oldGold := p.Char.Gold
@@ -940,10 +1003,15 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 		p.Char.Inv[dst] = model.Item{}
 		p.Char.Gold = oldGold
 		log.Printf("[#%d] ERRO ao salvar compra item=%d: %v", s.ID, it.Index, err)
+		// Depois do rollback o client precisa receber um resultado terminal; sem
+		// este painel a interface 7.48 aparenta ter ignorado o botao de compra.
+		s.Send(wire.MessagePanel("The purchase could not be completed."))
 		return
 	}
-	s.Send(wire.SendItem(p.ID, placeInv, byte(dst), p.Char.Inv[dst]))
-	s.Send(wire.UpdateEtc(p.ID, *p.Char)) // refaz o display de gold
+	// FUN_00487b92 copia o item da grade de loja para MyCarryPos e atualiza Coin
+	// diretamente desta confirmacao. SendItem+UpdateEtc nao materializa a compra
+	// no lifecycle nativo da janela de merchant.
+	s.Send(wire.BuyItem(p.ID, p.ShopNPC, sellSlot, uint16(dst), p.Char.Gold))
 	log.Printf("[#%d] comprou item %d por %d gold -> inv[%d] (gold restante=%d)", s.ID, it.Index, price, dst, p.Char.Gold)
 }
 
@@ -1637,14 +1705,16 @@ type dropItemRequest struct {
 }
 
 func parseDropItemRequest(pkt []byte) (dropItemRequest, bool) {
-	if len(pkt) < 32 {
+	if len(pkt) != 32 {
 		return dropItemRequest{}, false
 	}
 	srcType := binary.LittleEndian.Uint32(pkt[12:16])
 	srcPos := binary.LittleEndian.Uint32(pkt[16:20])
-	// O servidor nativo nao permite jogar equipamento diretamente no chao.
-	// Cargo ainda nao existe no wyd-go; por enquanto somente Carry/Inv e valido.
-	if srcType != placeInv || srcPos >= model.PlayerCarrySlots {
+	// O 0x175 nativo remove tanto Carry (1) quanto Cargo (2). Equipamento (0)
+	// continua proibido; cada origem tem seu limite de slots autoritativo.
+	validInventory := srcType == placeInv && srcPos < model.PlayerCarrySlots
+	validCargo := srcType == placeStorage && srcPos < model.PlayerCargoSlots
+	if !validInventory && !validCargo {
 		return dropItemRequest{}, false
 	}
 	return dropItemRequest{srcType: byte(srcType), srcPos: byte(srcPos),
@@ -1674,7 +1744,9 @@ func parseGetItemRequest(pkt []byte) (getItemRequest, bool) {
 // materializa um GroundItem na posicao do player, com os EFEITOS preservados.
 func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
+	// Carry and Cargo are persisted through the owning account.  A session that
+	// has not completed account binding must never publish a non-durable drop.
+	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
 		return
 	}
 	w.cancelTrade(p, "item jogado no chao")
@@ -1683,9 +1755,22 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] pacote de drop invalido", s.ID)
 		return
 	}
-	src := slotOf(p.Char, req.srcType, req.srcPos)
+	if req.srcType == placeStorage {
+		if p.Account == nil || !w.nearCargoNPC(p) {
+			s.Send(wire.MessagePanel("Move closer to the Warehouse to drop Cargo items."))
+			return
+		}
+		if p.ghostShopLocksCargoSlot(int(req.srcPos)) {
+			s.Send(wire.MessagePanel("The item is locked while it is listed on Auto Trade."))
+			return
+		}
+	}
+	// playerSlotOf resolves both Character Carry and account-owned Cargo; slotOf
+	// only knows Character storage and made every valid type-2 drop impossible.
+	src := playerSlotOf(p, req.srcType, req.srcPos)
 	if src == nil || src.Index == 0 {
 		log.Printf("[#%d] drop invalido type=%d pos=%d", s.ID, req.srcType, req.srcPos)
+		s.Send(wire.MessagePanel("That item can no longer be dropped."))
 		return
 	}
 	item := *src
@@ -1697,6 +1782,7 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	// que a remocao autoritativa do inventario estiver persistida.
 	g := w.createGroundDropForInstance(p.X, p.Y, item, false, w.gameplaySpaceForPlayer(p))
 	if g == nil {
+		s.Send(wire.MessagePanel("There is no room to drop that item here."))
 		return
 	}
 	*src = model.Item{}
@@ -1706,6 +1792,7 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 		*src = item
 		w.unregisterGroundItem(g)
 		log.Printf("[#%d] drop cancelado por falha ao salvar: %v", s.ID, err)
+		s.Send(wire.MessagePanel("Save failed. The item was not dropped."))
 		return
 	}
 	w.publishItemSpawn(g)

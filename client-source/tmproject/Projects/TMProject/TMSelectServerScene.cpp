@@ -193,7 +193,9 @@ int TMSelectServerScene::InitializeScene()
 		int nAddHeight = 0;
 		if (g_pDevice->m_dwScreenWidth == 1024)
 			nAddHeight = 20;
-		else if (g_pDevice->m_dwScreenWidth == 12180)
+		// WYD.exe 7.48 FUN_004a8f14 adds forty pixels only at 1280-wide mode.
+		// The transposed literal left the native logo/server composition displaced.
+		else if (g_pDevice->m_dwScreenWidth == 1280)
 			nAddHeight = 40;
 
 		m_pLogoPanels[0]->SetPos(static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f - m_pLogoPanels[0]->m_nWidth, 10.0f * RenderDevice::m_fHeightRatio + static_cast<float>(nAddHeight));
@@ -404,11 +406,18 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 
 	SListBoxServerItem* pServerItem[11]{ nullptr };
 
-	int nIndexN = g_nServerCountList[nMaxGroupN - idwEvent - 1] - 1;
 	switch (idwControlID)
 	{
 	case L_SELECT_SERVERG:
 	{
+		// The list event is a zero-based visible-row index.  Native 7.48 stores
+		// groups in reverse display order, so validate before indexing the table.
+		if (idwEvent >= static_cast<unsigned int>(nMaxGroupN))
+			return 1;
+		const int nIndexN = g_nServerCountList[nMaxGroupN - static_cast<int>(idwEvent) - 1] - 1;
+		if (nIndexN < 0 || nIndexN >= MAX_SERVERGROUP)
+			return 1;
+
 		char szStr[128] = { 0 };
 
 		int nUserCount[MAX_SERVERNUMBER] = { 0 };
@@ -525,7 +534,8 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 
 							nServerAge = m_nDay[nGIndex];
 
-							if (nUserCount[num] > 600)
+							// Native 7.48 marks and rejects a channel only after 700 users.
+							if (nUserCount[num] > 700)
 							{
 								int len = strlen(szStr);
 
@@ -548,7 +558,7 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 						{
 							sprintf_s(szStr, "%s-%d", g_szServerNameList[nIndexN], num);
 
-							if (nUserCount[num] > 600)
+							if (nUserCount[num] > 700)
 							{
 								int len = strlen(szStr);
 
@@ -606,23 +616,45 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 	break;
 	case B_SERVER_SEL_OK:
 	{
-		int nServerGroupIndex = g_nServerCountList[nIndexN - m_pNServerGroupList->GetSelectedIndex() - 1] - 1;
-		int nServerIndex = m_pNServerList->GetSelectedIndex() + 1;
+		if (!m_pNServerGroupList || !m_pNServerList)
+			return 1;
 
-		SListBoxServerItem* pItem = static_cast<SListBoxServerItem*>(m_pNServerList->GetItem(nServerIndex - 1));
-		if (!pItem || nServerGroupIndex < 0 || nServerIndex < 1)
+		const int selectedGroup = m_pNServerGroupList->GetSelectedIndex();
+		const int selectedChannel = m_pNServerList->GetSelectedIndex();
+		SListBoxServerItem* pItem = static_cast<SListBoxServerItem*>(m_pNServerList->GetItem(selectedChannel));
+		if (!pItem || selectedGroup < 0 || selectedGroup >= nMaxGroupN || selectedChannel < 0)
 		{
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
 			m_pMessagePanel->SetVisible(1, 1);
 			return 1;
 		}
 
-		if (pItem->m_nCurrent >= 600)
+		// FUN_004ac985 resolves the reverse-ordered visible group first.  The
+		// admission aggregate then maps its selected row back to that group's
+		// rotating daily channel; no 7.59 server-index shortcut is valid here.
+		int nServerGroupIndex = g_nServerCountList[nMaxGroupN - selectedGroup - 1] - 1;
+		int nServerIndex = selectedChannel + 1;
+		if (m_bAdmit == 1 && nServerGroupIndex == m_nAdmitGroup)
 		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[25], 4000);
+			const int mappedGroupSlot = nMaxGroupN - selectedChannel - 1;
+			if (mappedGroupSlot < 0 || mappedGroupSlot >= nMaxGroupN)
+				return 1;
+			nServerGroupIndex = g_nServerCountList[mappedGroupSlot] - 1;
+			nServerIndex = m_nDay[nServerGroupIndex];
+		}
+
+		if (nServerGroupIndex < 0 || nServerGroupIndex >= MAX_SERVERGROUP ||
+			nServerIndex < 1 || nServerIndex >= MAX_SERVERNUMBER)
+		{
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
 			m_pMessagePanel->SetVisible(1, 1);
 			return 1;
 		}
+
+		// FUN_004ac985 normally treats population and m_cConnected as launcher
+		// availability hints.  This 7.48 client must still reach login when that
+		// status feed is stale or unavailable; the selected endpoint and the game
+		// server remain authoritative and can reject a genuinely offline channel.
 
 		g_pObjectManager->m_nServerGroupIndex = nServerGroupIndex;
 		g_pObjectManager->m_nServerIndex = nServerIndex;

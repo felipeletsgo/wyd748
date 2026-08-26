@@ -1,4 +1,13 @@
-# Cadeia de patches do client 7.48
+# Histórico da cadeia de patches do client 7.48
+
+> **DOCUMENTO HISTÓRICO — NÃO EXECUTAR.** Os comandos, scripts, hashes e
+> instruções abaixo registram a antiga cadeia binária apenas para estudo e
+> comparação no Ghidra. Eles não são build, fallback, teste nem procedimento
+> suportado. Toda alteração ativa deve ser adaptada em `client-source/` ou nos
+> assets, compilada como `client748/project.exe` e validada sem patch binário.
+
+As frases no imperativo abaixo descrevem o processo aposentado e não autorizam
+sua execução.
 
 O `WYD.exe` em uso **não** é o executável original: ele é o resultado de nove
 scripts aplicados em ordem. Cada elo é verificado por SHA‑256, e a cadeia

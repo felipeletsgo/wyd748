@@ -57,6 +57,17 @@ func TestParseGroundItemRequestsRejectsTruncatedAndWrappedFields(t *testing.T) {
 	if _, ok := parseDropItemRequest(drop[:31]); ok {
 		t.Fatal("drop truncado foi aceito")
 	}
+	// The native handler accepts Cargo type 2 through its full persisted range.
+	binary.LittleEndian.PutUint32(drop[12:16], placeStorage)
+	binary.LittleEndian.PutUint32(drop[16:20], model.PlayerCargoSlots-1)
+	if req, ok := parseDropItemRequest(drop); !ok || req.srcType != placeStorage ||
+		req.srcPos != model.PlayerCargoSlots-1 {
+		t.Fatalf("drop de Cargo valido rejeitado: %+v ok=%v", req, ok)
+	}
+	if _, ok := parseDropItemRequest(append(drop, 0)); ok {
+		t.Fatal("drop com cauda fora do contrato exato de 32 bytes foi aceito")
+	}
+	binary.LittleEndian.PutUint32(drop[12:16], placeInv)
 	binary.LittleEndian.PutUint32(drop[16:20], 256) // antes truncava para slot 0
 	if _, ok := parseDropItemRequest(drop); ok {
 		t.Fatal("SourPos 256 foi truncado/aceito")

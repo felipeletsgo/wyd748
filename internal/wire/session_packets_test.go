@@ -41,7 +41,8 @@ func TestUpdateAffectsCanonicalFullLayout(t *testing.T) {
 		ExpiresAt: time.Now().Add(40 * time.Second)}
 	b := UpdateAffects(9, ch)
 	last := 12 + 15*8
-	if len(b) != 268 || ParseHeader(b).Type != OpUpdateAffect || ParseHeader(b).ID != 9 ||
+	// Opcode 0x3B9 must end immediately after the sixteenth native 7.48 affect.
+	if len(b) != 140 || ParseHeader(b).Type != OpUpdateAffect || ParseHeader(b).ID != 9 ||
 		b[12] != 24 || b[13] != 40 || binary.LittleEndian.Uint16(b[14:16]) != 7 ||
 		binary.LittleEndian.Uint32(b[16:20]) != 10 ||
 		b[last] != 24 || b[last+1] != 55 || binary.LittleEndian.Uint16(b[last+2:last+4]) != 150 ||
@@ -53,6 +54,9 @@ func TestUpdateAffectsCanonicalFullLayout(t *testing.T) {
 func TestCriticalArmorUses748VisualSlot(t *testing.T) {
 	if got := clientAffectType(model.Affect{Type: 31, ClientType: 24}); got != 24 {
 		t.Fatalf("affect 31 foi enviado como %d, quer visual 24 do client 7.48", got)
+	}
+	if got := clientAffectType(model.Affect{Type: 50}); got != 24 {
+		t.Fatalf("estado legado da Armadura Critica foi enviado como %d, quer visual 24", got)
 	}
 	if got := clientAffectType(model.Affect{Type: 31}); got != 31 {
 		t.Fatalf("Coin Armor HT foi enviada como %d, quer 31", got)
@@ -298,7 +302,7 @@ func TestIllusionMoveUsesEffectSix(t *testing.T) {
 	}
 }
 
-func TestUpdateEtcCanonicalScoreLayout(t *testing.T) {
+func TestUpdateEtcNativeCompactLayout(t *testing.T) {
 	ch := model.Char{
 		CP: -25, Exp: 34000, LearnedSkill: 1 << 3, Gold: 99424,
 		Score: &model.Score{
@@ -307,17 +311,17 @@ func TestUpdateEtcCanonicalScoreLayout(t *testing.T) {
 		},
 	}
 	b := UpdateEtc(7, ch)
-	if len(b) != 168 || ParseHeader(b).Type != OpUpdateEtc || ParseHeader(b).ID != 7 ||
+	// 0x337 is not STRUCT_SCORE in 7.48: FUN_0055890a accepts exactly 36 bytes.
+	if len(b) != 36 || ParseHeader(b).Type != OpUpdateEtc || ParseHeader(b).ID != 7 ||
 		binary.LittleEndian.Uint32(b[12:16]) != 0 ||
 		binary.LittleEndian.Uint32(b[16:20]) != 34000 ||
 		binary.LittleEndian.Uint32(b[20:24]) != 1<<3 ||
-		binary.LittleEndian.Uint32(b[24:28]) != model.ScoreVersion ||
-		binary.LittleEndian.Uint32(b[116:120]) != 70 ||
-		binary.LittleEndian.Uint32(b[128:132]) != 7 ||
-		binary.LittleEndian.Uint32(b[132:136]) != 100 ||
-		binary.LittleEndian.Uint32(b[136:140]) != 150 ||
-		binary.LittleEndian.Uint32(b[164:168]) != 99424 {
-		t.Fatalf("canonical UpdateEtc invalido: % X", b)
+		binary.LittleEndian.Uint16(b[24:26]) != 7 ||
+		binary.LittleEndian.Uint16(b[26:28]) != 100 ||
+		binary.LittleEndian.Uint16(b[28:30]) != 150 ||
+		binary.LittleEndian.Uint16(b[30:32]) != 70 ||
+		binary.LittleEndian.Uint32(b[32:36]) != 99424 {
+		t.Fatalf("UpdateEtc compacto invalido: % X", b)
 	}
 }
 
@@ -384,7 +388,7 @@ func cStringForTest(b []byte) string {
 	return string(b)
 }
 
-func TestUpdateEtcCarriesWidePointsInsideCanonicalScore(t *testing.T) {
+func TestUpdateEtcClampsWidePointsToNativeWords(t *testing.T) {
 	ch := model.Char{
 		Score: &model.Score{
 			Version:   model.ScoreVersion,
@@ -394,11 +398,35 @@ func TestUpdateEtcCarriesWidePointsInsideCanonicalScore(t *testing.T) {
 		},
 	}
 	b := UpdateEtc(1, ch)
-	if len(b) != 168 ||
-		binary.LittleEndian.Uint32(b[128:132]) != 100000 ||
-		binary.LittleEndian.Uint32(b[132:136]) != 110000 ||
-		binary.LittleEndian.Uint32(b[136:140]) != 120000 {
-		t.Fatalf("wide points nao viajaram dentro do Score canonico: % X", b[120:144])
+	// Wide counters still travel in 0x336; this incremental packet exposes only
+	// the WORD projection present in the 7.48 executable.
+	if len(b) != 36 ||
+		binary.LittleEndian.Uint16(b[24:26]) != 65_535 ||
+		binary.LittleEndian.Uint16(b[26:28]) != 65_535 ||
+		binary.LittleEndian.Uint16(b[28:30]) != 65_535 {
+		t.Fatalf("wide points nao foram limitados ao ABI WORD: % X", b[24:30])
+	}
+}
+
+func TestSwapItem748ConfirmationLayout(t *testing.T) {
+	b := SwapItem(7, 1, 3, 1, 14, 1100)
+	// FUN_00486808 consumes the echoed four cell bytes and merchant target.
+	if len(b) != 20 || ParseHeader(b).Type != OpSwapItem || ParseHeader(b).ID != 7 ||
+		b[12] != 1 || b[13] != 3 || b[14] != 1 || b[15] != 14 ||
+		binary.LittleEndian.Uint16(b[16:18]) != 1100 {
+		t.Fatalf("SwapItem 7.48 invalido: % X", b)
+	}
+}
+
+func TestBuyItem748ConfirmationLayout(t *testing.T) {
+	b := BuyItem(7, 1100, 27, 14, 4321)
+	// FUN_00487b92 copies the shop cell to Carry and updates Coin from this 24B response.
+	if len(b) != 24 || ParseHeader(b).Type != OpBuyItem || ParseHeader(b).ID != 7 ||
+		binary.LittleEndian.Uint16(b[12:14]) != 1100 ||
+		binary.LittleEndian.Uint16(b[14:16]) != 27 ||
+		binary.LittleEndian.Uint16(b[16:18]) != 14 ||
+		binary.LittleEndian.Uint32(b[20:24]) != 4321 {
+		t.Fatalf("BuyItem 7.48 invalido: % X", b)
 	}
 }
 

@@ -1274,6 +1274,9 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 			else
 				SendMessageA(hWnd, 0x281, 0, -1);
 		}
+		// WYD.exe 7.48 FUN_0055dab8 has only two activation states: active
+		// restores BGM and inactive mutes it.  The imported fullscreen branches
+		// were unreachable duplicates and skipped the native focus transition.
 		if (wParam != 0)
 		{
 			if (m_pEventTranslator != nullptr)
@@ -1282,14 +1285,6 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 				m_pBGMManager->SetVolume(0, m_pBGMManager->m_lBGMVolume);
 
 			g_pApp->m_binactive = 1;
-		}
-		else if (!g_bEndGame && m_pRenderDevice != nullptr && m_bwFullScreen == 1)
-		{
-			ShowWindow(hWnd, 3);
-		}
-		else if (!g_bEndGame && m_pRenderDevice != nullptr && m_bwFullScreen == 1)
-		{
-			CloseWindow(hWnd);
 		}
 		else
 		{

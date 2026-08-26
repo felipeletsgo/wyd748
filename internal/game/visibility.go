@@ -700,11 +700,10 @@ func (w *World) syncPlayerVitals(subject *Player) {
 // syncPlayerVitalsToObservers manda o 0x181 para quem VE o jogador, menos ele
 // proprio. Serve aos fluxos que ja enviaram um 0x336 privado ao dono.
 //
-// O motivo e o flicker da barra: o wrapper do patch wide copia a cauda uint32
-// para o sidecar e DEPOIS chama o handler nativo, sempre (o comentario do
-// Patch-WYD748-ExtendedStats.ps1 afirma que as sincronizacoes seguintes
-// retornam antes dele, mas os quatro desvios e o fall-through convergem no
-// mesmo `call`). Cada pacote de vitals custa um redesenho nativo; mandar 0x336
+// O motivo e o flicker da barra: o handler wide do client recompilado copia a
+// cauda uint32 para o sidecar e DEPOIS chama o handler nativo. A analise 7.48
+// confirmou que os quatro desvios e o fall-through convergem no mesmo `call`.
+// Cada pacote de vitals custa um redesenho nativo; mandar 0x336
 // e 0x181 em sequencia ao mesmo jogador custa DOIS, e a barra pisca.
 //
 // O 0x336 ja carrega HP/MP nos WORDs legados e na cauda wide, entao o dono nao

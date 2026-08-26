@@ -101,6 +101,20 @@ func applyRestore(ch *model.Char, item model.Item, def model.ItemDef, rule model
 	return hp, mp
 }
 
+// resyncUsedItem desfaz a reducao visual otimista que o client 7.48 aplica ao
+// enviar MSG_UseItem. Toda recusa ou falha de persistencia deve republicar o
+// slot autoritativo, mesmo quando o estado server-side ja foi restaurado.
+func resyncUsedItem(s *net.Session, p *Player, slot byte) {
+	s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
+}
+
+// resyncUsedItemTarget restaura as duas pontas de um uso por arraste; o client
+// pode ter antecipado tanto o consumo da origem quanto a alteracao do destino.
+func resyncUsedItemTarget(s *net.Session, p *Player, slot, destType, destPos byte, dest model.Item) {
+	resyncUsedItem(s, p, slot)
+	s.Send(wire.SendItem(p.ID, destType, destPos, dest))
+}
+
 // onUseItem trata o MSG_UseItem 0x373. Toda decisao usa o item e o catalogo
 // presentes no servidor; o ID/efeito alegado pelo cliente nunca e confiado.
 func (w *World) onUseItem(s *net.Session, pkt []byte) {
@@ -122,6 +136,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	def, ok := w.items[item.Index]
 	if !ok {
 		log.Printf("[#%d] uso rejeitado: item %d ausente do catalogo server-side", s.ID, item.Index)
+		resyncUsedItem(s, p, slot)
 		return
 	}
 	rule, code, registered := w.volatiles.Rule(item.Index)
@@ -270,6 +285,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		if err := w.saveAccount(p.Account); err != nil {
 			*item, p.Char.SkillPointBonus, p.Char.MagicalPillUsed = oldItem, oldBonus, false
 			w.recalcPlayer(p.Char)
+			resyncUsedItem(s, p, slot)
 			return
 		}
 		s.Send(playerScorePacket(p))
@@ -307,6 +323,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		filterShortSkills(p.Char)
 		if err := w.saveAccount(p.Account); err != nil {
 			*item, p.Char.LearnedSkill = oldItem, oldLearned
+			resyncUsedItem(s, p, slot)
 			return
 		}
 		s.Send(playerScorePacket(p))
@@ -330,6 +347,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		}
 		if err := w.saveAccount(p.Account); err != nil {
 			*item = oldItem
+			resyncUsedItem(s, p, slot)
 			return
 		}
 		w.commitContractSummon(plan)
@@ -375,6 +393,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		value := volatileGoldValue(rule, *item, def)
 		if value == 0 || value > maxCharacterGold {
 			log.Printf("[#%d] volatile gold invalido item=%d valor=%d", s.ID, item.Index, value)
+			resyncUsedItem(s, p, slot)
 			return
 		}
 		if p.Char.Gold > maxCharacterGold || value > maxCharacterGold-p.Char.Gold {
@@ -394,6 +413,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// impedir duplicacao por desconexao entre o uso e o autosave.
 		if err := w.saveAccount(p.Account); err != nil {
 			*item, p.Char.Gold = oldItem, oldGold
+			resyncUsedItem(s, p, slot)
 			log.Printf("[#%d] ERRO ao salvar uso da barra item=%d: %v", s.ID, oldItem.Index, err)
 			return
 		}
@@ -438,6 +458,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		}
 		if err := w.saveAccount(p.Account); err != nil {
 			p.Char.SavedX, p.Char.SavedY, *item = oldSX, oldSY, oldItem
+			resyncUsedItem(s, p, slot)
 			log.Printf("[#%d] ERRO ao salvar save_position item=%d: %v", s.ID, oldItem.Index, err)
 			return
 		}
@@ -621,6 +642,10 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		}
 		if err := w.saveAccount(p.Account); err != nil {
 			*dest, *item = oldDest, oldItem
+			resyncUsedItemTarget(s, p, slot, byte(destType), byte(destPos), *dest)
+			if destType == placeEquip {
+				w.refreshAppearance(p)
+			}
 			log.Printf("[#%d] ERRO ao salvar tint: %v", s.ID, err)
 			return
 		}
@@ -652,6 +677,10 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		}
 		if err := w.saveAccount(p.Account); err != nil {
 			*dest, *item = oldDest, oldItem
+			resyncUsedItemTarget(s, p, slot, byte(destType), byte(destPos), *dest)
+			if destType == placeEquip {
+				w.refreshAppearance(p)
+			}
 			log.Printf("[#%d] ERRO ao salvar untint: %v", s.ID, err)
 			return
 		}
@@ -693,6 +722,13 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 
 		if err := w.saveAccount(p.Account); err != nil {
 			*dest, *item = oldDest, oldItem
+			resyncUsedItemTarget(s, p, slot, byte(destType), byte(destPos), *dest)
+			// Repliction altera bonus de equipamento; republica score, equipamento
+			// e vitais para eliminar qualquer preview otimista no dono/observadores.
+			w.recalcPlayer(p.Char)
+			s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
+			s.Send(playerScorePacket(p))
+			w.syncPlayerVitalsToObservers(p)
 			log.Printf("[#%d] ERRO ao salvar repliction: %v", s.ID, err)
 			return
 		}

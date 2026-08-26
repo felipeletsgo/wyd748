@@ -6,12 +6,26 @@ Esta referência governa qualquer port do executável nativo para
 
 ## Artefatos canônicos
 
-O binário de referência é:
+Os executáveis têm papéis distintos:
 
 ```text
-client748/WYD.exe
-SHA-256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
+client748/wyd.exe nativo+patches/WYDoriginal.exe  stock histórico imutável
+client748/wyd.exe nativo+patches/WYD.exe          referência histórica Ghidra
+client748/project.exe                            único candidato executável e de validação
 ```
+
+Hashes confirmados no snapshot de 23/08/2026:
+
+```text
+WYDoriginal.exe  B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
+WYD.exe          8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
+project.exe      variável por build; registrar o hash em cada validação
+```
+
+Os scripts e patches em `client748/wyd.exe nativo+patches/` são somente material
+histórico. Não executá-los nem editá-los. O build de `client-source/tmproject`
+deve ser copiado/renomeado diretamente para `client748/project.exe`, sem patch;
+toda alteração ativa pertence à source ou aos assets.
 
 Os artefatos Ghidra ficam fora do Git e devem ser descobertos no perfil do
 usuário, sem gravar caminho absoluto da máquina no código:
@@ -33,7 +47,8 @@ use o export para busca rápida em massa.
 
 ## Procedimento obrigatório
 
-1. Calcular o SHA-256 de `client748/WYD.exe` e comparar com o valor acima. Se
+1. Calcular o SHA-256 de `client748/wyd.exe nativo+patches/WYD.exe` e comparar
+   com o valor acima. Se
    divergir, não reutilizar endereços silenciosamente: reanalisar o novo binário.
 2. Localizar o comportamento por string, opcode, tamanho, constante, import ou
    símbolo relacionado no export e no Ghidra.
@@ -49,8 +64,9 @@ use o export para busca rápida em massa.
    endereços virtuais ou pseudocódigo desestruturado como arquitetura final.
 8. Inserir comentário explicativo junto a todo código editado, registrando por
    que a compatibilidade 7.48 exige aquele comportamento.
-9. Compilar com `client-source/tmproject/Build-Client.ps1`, instalar como
-   `client748/project.exe` e executar o fluxo real afetado.
+9. Compilar com `client-source/tmproject/Build-Client.ps1`, confirmar a
+   instalação e o hash automáticos de `client748/project.exe` e executar o fluxo
+   real afetado.
 
 ## Evidência mínima por área
 
@@ -69,6 +85,11 @@ use o export para busca rápida em massa.
 - função de input/click/tecla;
 - callback e condição que abre/fecha a janela;
 - ownership e ordem de destruição para evitar crash.
+
+Além do código, confirmar que cada ID é materializado no recurso de UI carregado.
+Um membro herdado do TMProject 7.59 pode ficar legitimamente nulo no 7.48. Nesse
+caso, proteger todos os acessos e preservar o lifecycle principal; não criar um
+widget moderno apenas para satisfazer o ponteiro.
 
 ### Personagem, item e render
 
@@ -92,6 +113,43 @@ FUN_00489a3e  dispatch de packets recebidos
 FUN_00441823  criação/inicialização principal da UI de campo
 ```
 
+## Triagem de crash com minidump e ASLR
+
+Para mapear um endereço carregado ao endereço preferido usado no Ghidra:
+
+```text
+RVA = endereço_da_falha - base_carregada_do_módulo
+VA_preferido = ImageBase_preferido + RVA
+```
+
+Registrar dump, exceção, módulo, base carregada, RVA, image base e hash exato do
+executável. Depois desassemblar a instrução, identificar o registrador/ponteiro
+inválido e mapear o acesso à linha da source; não concluir apenas pelo endereço.
+
+Exemplo confirmado em 23/08/2026: `0x009A1F46` com módulo carregado em
+`0x008B0000` resulta em RVA `0x000F1F46` e VA preferido `0x004F1F46`. A instrução
+fazia chamada virtual com `ecx == 0`, correspondente a acesso direto a
+`pFScene->m_pMHPBar` durante materialização do personagem.
+
+Exemplo confirmado em 26/08/2026: o dump
+`client748/client-crash-20260826-154302.dmp` falhou em
+`SGridControl::TradeItem`, RVA `0x000718AC`, ao desreferenciar
+`m_pChatSelectPanel`. A UI 7.48 do AutoTrade usa painel 626, edit 627, caption
+630 e botão 667, sem o seletor de chat herdado da 7.59. A regra extraída desse
+caso é global: depois de identificar um controle opcional ausente, localizar
+todos os seus acessos, inclusive erro, reentrada e fechamento; proteger somente
+o frame que apareceu no primeiro dump deixa crashes equivalentes ativos.
+
+Os controles modernos `T_CURRENT_MHP=65618`, `T_MAX_MHP=65619`,
+`P_MHP_PROGRESS=65625` e `P_MHP_PROGRESS_TR=65626` não existem no dump atual da
+UI 7.48, nem como IDs truncados para 16 bits (`82`, `83`, `89`, `90`). Portanto,
+os bindings podem ser nulos por contrato: updates de score/equip/montaria devem
+testá-los sem impedir a entrada no mundo ou a criação do personagem.
+
+Ausência comprovada de um controle moderno não autoriza fabricar ID, truncar o
+ID para 16 bits ou instanciar um widget substituto. Preservar a transição nativa
+principal e tornar todos os paths auxiliares tolerantes a nulo.
+
 ## Proibições
 
 - Não declarar paridade com base apenas em compilação ou imagem semelhante.
@@ -100,18 +158,19 @@ FUN_00441823  criação/inicialização principal da UI de campo
   ainda divergir.
 - Não aceitar packet moderno no servidor só para mascarar um construtor errado
   no client recompilado.
-- Não apagar compatibilidade do client distribuído antes do `project.exe` passar
-  pelo mesmo fluxo in-game.
+- Não promover uma adaptação antes do `project.exe` passar pelo fluxo in-game
+  afetado; o binário histórico permanece somente referência e nunca fallback.
+- Não executar nem editar o patcher binário legado; ele é evidência histórica.
 
 ## Saída esperada da investigação
 
-Antes do patch, deixar uma matriz concisa:
+Antes da alteração, deixar uma matriz concisa:
 
 ```text
 comportamento | função 7.48 | contrato nativo | TMProject atual | correção
 ```
 
-Depois do patch, classificar o estado como:
+Depois da alteração, classificar o estado como:
 
 ```text
 IMPLEMENTED

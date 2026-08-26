@@ -4022,14 +4022,24 @@ int TMHuman::OnPacketRemoveMob(MSG_STANDARD* pStd)
     auto pScene = g_pCurrentScene;
     auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
-    if (pFScene && pFScene->m_pPGTPanel->IsVisible() == 1 && pFScene->m_pPGTOver && m_dwID == pFScene->m_pPGTOver->m_dwID)
+    // Native WYD 7.48 FUN_00529bf8 first proves that both the tracked target
+    // and its panel exist.  Removal packets also arrive for ordinary NPCs,
+    // where these optional UI pointers are null.
+    if (pFScene && pFScene->m_pPGTOver && pFScene->m_pPGTPanel &&
+        m_dwID == pFScene->m_pPGTOver->m_dwID &&
+        pFScene->m_pPGTPanel->IsVisible() == 1)
         pFScene->m_pPGTPanel->SetVisible(0);
 
     if (pFScene && pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
     {
-        if (m_dwID == pFScene->m_pGridShop->m_dwMerchantID && pFScene->m_pShopPanel->m_bVisible == 1)
+        // The 7.48 field can receive an NPC removal while optional shop panels
+        // are not constructed; only close a shop whose controls still exist.
+        if (pFScene->m_pGridShop && pFScene->m_pShopPanel &&
+            m_dwID == pFScene->m_pGridShop->m_dwMerchantID &&
+            pFScene->m_pShopPanel->m_bVisible == 1)
             pFScene->SetVisibleShop(0);
-        if (m_dwID == pFScene->m_dwHellStoreID && pFScene->m_pHellgateStore->m_bVisible == 1)
+        if (pFScene->m_pHellgateStore && m_dwID == pFScene->m_dwHellStoreID &&
+            pFScene->m_pHellgateStore->m_bVisible == 1)
             pFScene->SetVisibleHellGateStore(0);
 
         if (m_dwID == pFScene->m_stAutoTrade.TargetID)
@@ -4355,16 +4365,21 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
     {
         int nMountHP = BASE_GetItemAbility(&pMobData->Equip[14], EF_MOUNTHP);
 
-        m_pMountHPBar->SetCurrentProgress(nMountHP);
+        if (m_pMountHPBar)
+            m_pMountHPBar->SetCurrentProgress(nMountHP);
 
         if (pFScene)
         {
-            pFScene->m_pMHPBar->SetCurrentProgress(nMountHP);
+            // The 7.48 field resource legitimately omits the 7.59 mount-HUD
+            // controls. Mount materialization must not require those widgets.
+            if (pFScene->m_pMHPBar)
+                pFScene->m_pMHPBar->SetCurrentProgress(nMountHP);
 
             char szMHP[32]{};
             sprintf_s(szMHP, "%d", nMountHP);
 
-            pFScene->m_pCurrentMHPText->SetText(szMHP, 0);
+            if (pFScene->m_pCurrentMHPText)
+                pFScene->m_pCurrentMHPText->SetText(szMHP, 0);
         }
     }
 
@@ -4423,22 +4438,31 @@ int TMHuman::OnPacketUpdateEquip(MSG_STANDARD* pStd)
         if (m_cMount == 1)
         {
             int nMountHP = BASE_GetItemAbility(&pMobData->Equip[14], EF_MOUNTHP);
-            m_pMountHPBar->SetCurrentProgress(nMountHP);
+            if (m_pMountHPBar)
+                m_pMountHPBar->SetCurrentProgress(nMountHP);
             auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
             if (g_pCurrentScene)
             {
-                pFScene->m_pMHPBar->SetCurrentProgress(nMountHP);
+                // Equip refresh can arrive before optional 7.59 HUD controls;
+                // the 7.48 character and mount state remain authoritative.
+                if (pFScene->m_pMHPBar)
+                    pFScene->m_pMHPBar->SetCurrentProgress(nMountHP);
                 char szMHP[32] = { 0 };
                 sprintf_s(szMHP, "%d", nMountHP);
 
-                pFScene->m_pCurrentMHPText->SetText(szMHP, 0);
+                if (pFScene->m_pCurrentMHPText)
+                    pFScene->m_pCurrentMHPText->SetText(szMHP, 0);
             }
         }
     }
 
     SetPacketEquipItem(pEquip->sEquip);
 
-    if (pEquip->sEquip[14] & 0xFFF && ((pEquip->sEquip[14] & 0xFFF) < 3980) || (pEquip->sEquip[14] & 0xFFF) >= 3999)
+    // The full-ID helper also acts as a handled guard: legacy Equip2 must not
+    // overwrite a KR visual selected from slot 14 with an unrelated byte case.
+    if (!SetImportedMountCostume(pEquip->sEquip[14])
+        && ((pEquip->sEquip[14] & 0xFFF) && ((pEquip->sEquip[14] & 0xFFF) < 3980)
+            || (pEquip->sEquip[14] & 0xFFF) >= 3999))
         SetMountCostume(pEquip->Equip2[14]);
 
 
@@ -4496,7 +4520,9 @@ int TMHuman::OnPacketUpdateAffect(MSG_STANDARD* pStd)
 
         unsigned int dwServerTime = g_pTimerManager->GetServerTime();
 
-        for (int i = 0; i < 32; ++i)
+        // Opcode 0x3B9 is the native 7.48 16-entry icon/timer snapshot.  Use
+        // the packet member count so this handler cannot read a newer ABI tail.
+        for (int i = 0; i < _countof(pUpdateAffect->Affect); ++i)
         {
             if ((8 * pUpdateAffect->Affect[i].Time - 8 - (dwServerTime - pFScene->m_dwStartAffectTime[i]) / 1000) / 8 != pUpdateAffect->Affect[i].Time
                 || m_stAffect[i].Type != pUpdateAffect->Affect[i].Type)
@@ -4713,18 +4739,23 @@ int TMHuman::OnPacketUpdateScore(MSG_STANDARD* pStd)
         if (m_cMount == 1)
         {
             int nMountHP = BASE_GetItemAbility(&pMobData->Equip[14], EF_MOUNTHP);
-            m_pMountHPBar->SetCurrentProgress(nMountHP);
+            if (m_pMountHPBar)
+                m_pMountHPBar->SetCurrentProgress(nMountHP);
             
             if (pFScene)
             {
-                pFScene->m_pMHPBar->SetCurrentProgress(nMountHP);
+                // Score packets also precede optional modern HUD binding on a
+                // 7.48 field scene, so update only controls that actually exist.
+                if (pFScene->m_pMHPBar)
+                    pFScene->m_pMHPBar->SetCurrentProgress(nMountHP);
 
                 if (nMountHP < 0)
                     nMountHP = 0;
 
                 char szMHP[32]{};
                 sprintf(szMHP, "%d", nMountHP);
-                pFScene->m_pCurrentMHPText->SetText(szMHP, 0);
+                if (pFScene->m_pCurrentMHPText)
+                    pFScene->m_pCurrentMHPText->SetText(szMHP, 0);
             }
         }
 
@@ -5267,8 +5298,18 @@ int TMHuman::OnPacketUpdateEtc(MSG_STANDARD* pStd)
         g_pObjectManager->m_stMobData.LearnedSkill[0] = (int)pUpdateEtc->LearnedSkill;
         g_pObjectManager->m_stMobData.LearnedSkill[1] = 0;
         g_pObjectManager->m_stMobData.Exp = pUpdateEtc->Exp;
-        memcpy(&m_stScore, &pUpdateEtc->Score, sizeof(m_stScore));
-        memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pUpdateEtc->Score, sizeof(STRUCT_SCORE));
+        // FUN_0052d93d updates only the three point counters from compact
+        // 0x337.  Replacing the complete Score here destroyed combat fields
+        // that belong exclusively to UpdateScore (0x336).
+        // STRUCT_SCORE keeps the canonical server names (*Pts), while the
+        // compact native packet names its WORD fields *Point.  Assign fields
+        // explicitly so no alias or layout-dependent memcpy is introduced.
+        m_stScore.StatusPts = pUpdateEtc->StatusPoint;
+        m_stScore.MasterPts = pUpdateEtc->MasterPoint;
+        m_stScore.SkillPts = pUpdateEtc->SkillPoint;
+        g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pUpdateEtc->StatusPoint;
+        g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pUpdateEtc->MasterPoint;
+        g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pUpdateEtc->SkillPoint;
         g_pObjectManager->m_stMobData.Coin = pUpdateEtc->Coin;
         // Hold is the native reserved EXP field; WYD-Go intentionally sends zero.
         g_pObjectManager->m_nFakeExp = pUpdateEtc->Hold;
@@ -5420,113 +5461,56 @@ int TMHuman::OnPacketCarry(MSG_Carry* pStd)
 {
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
-    // WYD 7.48 exposes Carry as one 9x7 grid with 63 visible slots.  The newer
-    // client splits the same aggregate into four 5x3 pages; running that path
-    // against FieldScene2 dereferences m_pGridInvList[1] at slot 15 and crashes.
-    if (pScene && pStd && pScene->m_bCompatFieldScene)
-    {
-        if (pScene->m_pMyHuman != this || !pScene->m_pGridInv)
-            return 1;
-
-        // Empty() also detaches a cursor-owned item before deleting the old
-        // presentation objects, so rebuilding the projection cannot leave a
-        // dangling drag-and-drop pointer behind.
-        pScene->m_pGridInv->Empty();
-        memcpy(g_pObjectManager->m_stMobData.Carry, pStd->Carry, sizeof(pStd->Carry));
-
-        // Ghidra FUN_0052a737 proves the native row-major slot formula is
-        // x=slot%9, y=slot/9; keep presentation dimensions on that exact grid.
-        const float cellWidth = pScene->m_pGridInv->m_nWidth / 9.0f;
-        const float cellHeight = pScene->m_pGridInv->m_nHeight / 7.0f;
-        for (int nCarryIndex = 0; nCarryIndex < 63; ++nCarryIndex)
-        {
-            if (pStd->Carry[nCarryIndex].sIndex <= 40)
-                continue;
-
-            auto pItemCarry = new STRUCT_ITEM;
-            if (!pItemCarry)
-                continue;
-
-            memcpy(pItemCarry, &pStd->Carry[nCarryIndex], sizeof(STRUCT_ITEM));
-            auto pGridItem = new SGridControlItem(pScene->m_pGridInv, pItemCarry, 0.0f, 0.0f);
-            if (!pGridItem)
-            {
-                delete pItemCarry;
-                continue;
-            }
-
-            // The 7.48 inventory treats every item as one structural slot and
-            // scales its 3D presentation to the corresponding legacy cell.
-            pGridItem->m_nCellWidth = 1;
-            pGridItem->m_nCellHeight = 1;
-            pGridItem->m_nWidth = cellWidth;
-            pGridItem->m_nHeight = cellHeight;
-            pGridItem->m_GCObj.m_fWidth = cellWidth;
-            pGridItem->m_GCObj.m_fHeight = cellHeight;
-            pScene->m_pGridInv->AddItem(pGridItem, nCarryIndex % 9, nCarryIndex / 9);
-        }
-
-        g_pObjectManager->m_stMobData.Coin = pStd->Coin;
-        g_pObjectManager->m_stTrade.OpponentID = 0;
-        g_pObjectManager->m_stTrade.MyCheck = 0;
-
-        // An initial Carry snapshot is state synchronization, not an inventory
-        // toggle request; visibility remains controlled by the 7.48 I/menu flow.
-        pScene->UpdateScoreUI(0);
+    // WYD 7.48 exposes Carry as one 9x7 grid with 63 visible slots. This source
+    // is single-version, so a Carry snapshot can only rebuild that native grid.
+    if (!pScene || !pStd || pScene->m_pMyHuman != this || !pScene->m_pGridInv)
         return 1;
-    }
 
-    if (pScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-        pScene->Bag_View();
+	// Empty() also detaches a cursor-owned item before deleting the old
+	// presentation objects, so rebuilding the projection cannot leave a
+	// dangling drag-and-drop pointer behind.
+	pScene->m_pGridInv->Empty();
+	memcpy(g_pObjectManager->m_stMobData.Carry, pStd->Carry, sizeof(pStd->Carry));
 
-    if (pScene->m_pMyHuman == this)
-    {
-        //pScene->m_pControlContainer->FindControl(65554u);
-        for (int nCarryIndex = 0; nCarryIndex < 63; ++nCarryIndex)
-        {
-            if (nCarryIndex / 15 < 4)
-            {
-                auto pPickupItem = pScene->m_pGridInvList[nCarryIndex / 15]->PickupAtItem(nCarryIndex % 15 % 5, nCarryIndex % 15 / 5);
-                if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickupItem)
-                    g_pCursor->m_pAttachedItem = 0;
-                
-                SAFE_DELETE(pPickupItem);
-            }
-        }
+	// Ghidra FUN_0052a737 proves the native row-major slot formula is
+	// x=slot%9, y=slot/9; keep presentation dimensions on that exact grid.
+	const float cellWidth = pScene->m_pGridInv->m_nWidth / 9.0f;
+	const float cellHeight = pScene->m_pGridInv->m_nHeight / 7.0f;
+	for (int nCarryIndex = 0; nCarryIndex < 63; ++nCarryIndex)
+	{
+		if (pStd->Carry[nCarryIndex].sIndex <= 40)
+			continue;
 
-        pScene->m_pGridInvList[0]->Empty();
-        pScene->m_pGridInvList[1]->Empty();
-        pScene->m_pGridInvList[2]->Empty();
-        pScene->m_pGridInvList[3]->Empty();
-        memcpy(g_pObjectManager->m_stMobData.Carry, pStd->Carry, sizeof(pStd->Carry));
+		auto pItemCarry = new STRUCT_ITEM;
+		if (!pItemCarry)
+			continue;
 
-        for (int nCarryIndex = 0; nCarryIndex < 63; ++nCarryIndex)
-        {
-            if (pStd->Carry[nCarryIndex].sIndex > 40)
-            {
-                auto pItemCarry = new STRUCT_ITEM;
-                if (pItemCarry)
-                {
-                    memset(pItemCarry, 0, sizeof(STRUCT_ITEM));
-                    memcpy(pItemCarry, &pStd->Carry[nCarryIndex], sizeof(STRUCT_ITEM));                   
-                    if (nCarryIndex / 15 < 4)
-                        pScene->m_pGridInvList[nCarryIndex / 15]->AddItem(new SGridControlItem(0, pItemCarry, 0.0f, 0.0f), nCarryIndex % 15 % 5, nCarryIndex % 15 / 5);
-                }
-            }
-        }
+		memcpy(pItemCarry, &pStd->Carry[nCarryIndex], sizeof(STRUCT_ITEM));
+		auto pGridItem = new SGridControlItem(pScene->m_pGridInv, pItemCarry, 0.0f, 0.0f);
+		if (!pGridItem)
+		{
+			delete pItemCarry;
+			continue;
+		}
 
-        g_pObjectManager->m_stMobData.Coin = pStd->Coin;
-        g_pObjectManager->m_stTrade.OpponentID = 0;
-        g_pObjectManager->m_stTrade.MyCheck = 0;
-        if (pScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
-        {
-            pScene->SetVisibleTrade(0);
-            pScene->SetVisibleInventory();
-        }
+		// The 7.48 inventory treats every item as one structural slot and
+		// scales its 3D presentation to the corresponding legacy cell.
+		pGridItem->m_nCellWidth = 1;
+		pGridItem->m_nCellHeight = 1;
+		pGridItem->m_nWidth = cellWidth;
+		pGridItem->m_nHeight = cellHeight;
+		pGridItem->m_GCObj.m_fWidth = cellWidth;
+		pGridItem->m_GCObj.m_fHeight = cellHeight;
+		pScene->m_pGridInv->AddItem(pGridItem, nCarryIndex % 9, nCarryIndex / 9);
+	}
 
-        pScene->UpdateScoreUI(0);
-    }
+	g_pObjectManager->m_stMobData.Coin = pStd->Coin;
+	g_pObjectManager->m_stTrade.OpponentID = 0;
+	g_pObjectManager->m_stTrade.MyCheck = 0;
 
+	// An initial Carry snapshot is state synchronization, not an inventory
+	// toggle request; visibility remains controlled by the 7.48 I/menu flow.
+	pScene->UpdateScoreUI(0);
 	return 1;
 }
 
@@ -9811,66 +9795,70 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         }
     }
 
-    //if (m_cLighten == 1 && !g_bHideEffect) //effeito da skill trov�o
-    //{
-    //    if (dwServerTime - m_dwLastLighten > 500)
-    //    {
-    //        float fRand = (float)(rand() % 5);
+    // FUN_00506f9d keeps two rotating texture-109 billboards alive while the
+    // 7.48 Lighten flag is set and destroys them as soon as the affect ends.
+    if (m_cLighten == 1 && !g_bHideEffect)
+    {
+        if (dwServerTime - m_dwLastLighten > 500)
+        {
+            float fRand = (float)(rand() % 5);
 
-    //        float fScale = 0.6f;
-    //        if (m_cMount == 1)
-    //            fScale = 1.3f;
+            float fScale = 0.6f;
+            if (m_cMount == 1)
+                fScale = 1.3f;
 
-    //        for (int i = 0; i < 2; i++)
-    //        {
-    //            if (!m_pLightenStorm[i])
-    //            {
-    //                m_pLightenStorm[i] = new TMEffectBillBoard(109,
-    //                    0,
-    //                    (((0.2f * fRand) + 1.0f) * fScale) - ((float)i * 0.40000001f),
-    //                    (((0.2f * fRand) + 1.0f) * fScale) - ((float)i * 0.40000001f),
-    //                    (((0.2f * fRand) + 1.0f) * fScale) - ((float)i * 0.40000001f),
-    //                    0.0,
-    //                    8,
-    //                    80);
+            for (int i = 0; i < 2; i++)
+            {
+                if (!m_pLightenStorm[i])
+                {
+                    m_pLightenStorm[i] = new TMEffectBillBoard(109,
+                        0,
+                        (((0.2f * fRand) + 1.0f) * fScale) - ((float)i * 0.40000001f),
+                        (((0.2f * fRand) + 1.0f) * fScale) - ((float)i * 0.40000001f),
+                        (((0.2f * fRand) + 1.0f) * fScale) - ((float)i * 0.40000001f),
+                        0.0,
+                        8,
+                        80);
 
-    //                m_pLightenStorm[i]->SetColor(0xFFFFDD00);
-    //                m_pLightenStorm[i]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-    //                m_pLightenStorm[i]->m_nFade = 0;
-    //                g_pCurrentScene->m_pEffectContainer->AddChild(m_pLightenStorm[i]);
-    //            }
-    //            if (m_pLightenStorm[i])
-    //            {
-    //                m_pLightenStorm[i]->m_fAxisAngle = (((float)((dwServerTime - m_pLightenStorm[i]->m_dwCreateTime) % 1000) * D3DXToRadian(360)) / 1000.0f) + (float)i;
-    //                m_pLightenStorm[i]->m_vecPosition = { m_vecPosition.x + 0.5f, m_fHeight + 1.8f, m_vecPosition.y + 0.5f };
-    //            }
-    //        }
-    //        m_dwLastLighten = dwServerTime;
-    //    }
-    //    for (int i = 0; i < 2; ++i)
-    //    {
-    //        if (m_pLightenStorm[i])
-    //            m_pLightenStorm[i]->m_vecPosition = { m_vecSkinPos.x, m_vecSkinPos.y + 1.3f, m_vecSkinPos.z + 0.1f };
-    //    }
-    //}
-    //else
-    //{
-    //    for (int i = 0; i < 2; ++i)
-    //    {
-    //        if (m_pLightenStorm[i])
-    //        {
-    //            g_pObjectManager->DeleteObject(m_pLightenStorm[i]);
-    //            m_pLightenStorm[i] = nullptr;
-    //        }
-    //    }
-    //}
+                    m_pLightenStorm[i]->SetColor(0xFFFFDD00);
+                    m_pLightenStorm[i]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                    m_pLightenStorm[i]->m_nFade = 0;
+                    g_pCurrentScene->m_pEffectContainer->AddChild(m_pLightenStorm[i]);
+                }
+                if (m_pLightenStorm[i])
+                {
+                    m_pLightenStorm[i]->m_fAxisAngle = (((float)((dwServerTime - m_pLightenStorm[i]->m_dwCreateTime) % 1000) * D3DXToRadian(360)) / 1000.0f) + (float)i;
+                    m_pLightenStorm[i]->m_vecPosition = { m_vecPosition.x + 0.5f, m_fHeight + 1.8f, m_vecPosition.y + 0.5f };
+                }
+            }
+            m_dwLastLighten = dwServerTime;
+        }
+        for (int i = 0; i < 2; ++i)
+        {
+            if (m_pLightenStorm[i])
+                m_pLightenStorm[i]->m_vecPosition = { m_vecSkinPos.x, m_vecSkinPos.y + 1.3f, m_vecSkinPos.z + 0.1f };
+        }
+    }
+    else
+    {
+        for (int i = 0; i < 2; ++i)
+        {
+            if (m_pLightenStorm[i])
+            {
+                g_pObjectManager->DeleteObject(m_pLightenStorm[i]);
+                m_pLightenStorm[i] = nullptr;
+            }
+        }
+    }
 
-   /* if (m_cShield == 1 && dwServerTime - m_dwLastMagicShield > 1000)//escudo magico
+    // FUN_00506f9d restarts the stock magic-shield object once per second
+    // while affect flag 11 is active; CheckAffect already owns that flag.
+    if (m_cShield == 1 && dwServerTime - m_dwLastMagicShield > 1000)
     {
         if (m_pMagicShield)
             m_pMagicShield->StartVisible(dwServerTime);
         m_dwLastMagicShield = dwServerTime;
-    }*/
+    }
 
     if (m_cCancel == 1)
     {
@@ -10035,32 +10023,39 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         m_dwDodgeTime = dwServerTime;
     }
     
-    //if (m_cSKillAmp == 1)//buff de slkill da foema
-    //{
-    //    if (m_pSkillAmp)
-    //    {
-    //        m_pSkillAmp->m_vecPosition = { m_vecPosition.x,
-    //            m_fHeight + 1.40000001f,
-    //            m_vecPosition.y };
-    //    }
-    //    else
-    //    {
-    //        m_pSkillAmp = new TMEffectBillBoard2(93, 0, 0.5f, 0.5f, 0.5f, 0.0f, 5000);
+    // FUN_00506f9d identifies affect 15 as the texture-93 Skill Amp plane.
+    // Keep that plane just above the terrain so it follows the feet without
+    // z-fighting; a character-height offset incorrectly draws it on the head.
+    constexpr float kSkillAmpGroundOffset = 0.05f;
+    if (m_cSKillAmp == 1)
+    {
+        if (m_pSkillAmp)
+        {
+            m_pSkillAmp->m_vecPosition = { m_vecPosition.x,
+                m_fHeight + kSkillAmpGroundOffset,
+                m_vecPosition.y };
+        }
+        else
+        {
+            m_pSkillAmp = new TMEffectBillBoard2(93, 0, 0.5f, 0.5f, 0.5f, 0.0f, 5000);
 
-    //        m_pSkillAmp->m_nFade = 3;
-    //        m_pSkillAmp->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-    //        m_pSkillAmp->m_vecPosition = { m_vecPosition.x,
-    //            m_fHeight + 1.40000001f,
-    //            m_vecPosition.y };
-    //        m_pSkillAmp->SetColor(0x88888800);
-    //        g_pCurrentScene->m_pEffectContainer->AddChild(m_pSkillAmp);
-    //    }
-    //}
-    //else if (m_pSkillAmp)
-    //{
-    //    g_pObjectManager->DeleteObject(m_pSkillAmp);
-    //    m_pSkillAmp = nullptr;
-    //}
+            if (m_pSkillAmp)
+            {
+                m_pSkillAmp->m_nFade = 3;
+                m_pSkillAmp->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                m_pSkillAmp->m_vecPosition = { m_vecPosition.x,
+                    m_fHeight + kSkillAmpGroundOffset,
+                    m_vecPosition.y };
+                m_pSkillAmp->SetColor(0x88888800);
+                g_pCurrentScene->m_pEffectContainer->AddChild(m_pSkillAmp);
+            }
+        }
+    }
+    else if (m_pSkillAmp)
+    {
+        g_pObjectManager->DeleteObject(m_pSkillAmp);
+        m_pSkillAmp = nullptr;
+    }
 
     if (m_cShadow == 1 && g_pCurrentScene->m_pMyHuman == this)
     {
@@ -13694,13 +13689,21 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
 
         bool bSvadilfari = false;
         int tempIndex = pMobData->Equip[14].sIndex;
+        // STRUCT_ITEM preserves the complete mount item ID. Consume imported KR
+        // IDs before the legacy range mapper can reinterpret their low 12 bits.
+        const bool hasImportedMount = SetImportedMountCostume(tempIndex);
 
         if (pMobData->Equip[14].sIndex == 2383 || pMobData->Equip[14].sIndex == 2382)
             pMobData->Equip[14].sIndex = 2387;
         else if (pMobData->Equip[14].sIndex == 2387)
             bSvadilfari = true;
 
-        if (tempIndex >= 2360 && tempIndex < 2390
+        if (hasImportedMount)
+        {
+            // The table has already populated m_stMountLook/m_stMountSanc; the
+            // common InitObject path below will materialize the TMSkinMesh.
+        }
+        else if (tempIndex >= 2360 && tempIndex < 2390
             || tempIndex >= 3980 && tempIndex < 3999
             || tempIndex >= 2960 && tempIndex < 3000)
         {
@@ -14154,7 +14157,11 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
         if ((sEquip[11] & 0xFFF) == 786)
             m_cDamageRate += 16 * ((int)sEquip[11] >> 12);
 
-        int nMountIndex = sEquip[14] & 0xFFF;
+        // Imported KR item IDs intentionally exceed the native 12-bit table.
+        // Resolve them before applying the mask used only by legacy 7.48 mounts.
+        const unsigned int fullMountIndex = sEquip[14];
+        const bool hasImportedMount = SetImportedMountCostume(fullMountIndex);
+        int nMountIndex = fullMountIndex & 0xFFF;
         bool bSvadilfari = false;
         if (nMountIndex == 2383 || nMountIndex == 2382)
         {
@@ -14165,7 +14172,11 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
             bSvadilfari = 1;
         }
 
-        if (nMountIndex >= 2360 && nMountIndex < 2390
+        if (hasImportedMount)
+        {
+            // SetImportedMountCostume owns the complete visual contract.
+        }
+        else if (nMountIndex >= 2360 && nMountIndex < 2390
             || nMountIndex >= 3980 && nMountIndex < 3999
             || nMountIndex >= 2960 && nMountIndex < 3000)
         {
@@ -15809,6 +15820,137 @@ int TMHuman::MAutoAttack(TMHuman* pTarget, int mode)
 
 
 
+bool TMHuman::SetImportedMountCostume(unsigned int itemIndex)
+{
+    struct ImportedMountVisual
+    {
+        unsigned short item;
+        short type;
+        float scale;
+        short mesh0;
+        short mesh1;
+        short mesh2;
+        short skin0;
+        short skin1;
+        short skin2;
+        unsigned char sanc0;
+        unsigned char sanc1;
+        unsigned char sanc2;
+    };
+
+    // The original KR patch selected these visuals from the complete item ID.
+    // Keep that table in source so the rebuilt 7.48 client no longer depends on
+    // executable hooks or on the lossy Equip2 costume byte. A negative type is
+    // an authentic KR entry whose required mesh is absent from the supplied data.
+    static const ImportedMountVisual kImportedMounts[] =
+    {
+        {4190, 29, 1.25f, 5, 5, 0, 0, 0, 0, 13, 13, 13},
+        {4191, 31, 1.00f, 8, 8, 0, 1, 1, 0, 0, 0, 0},
+        {4192, 31, 1.00f, 8, 8, 0, 0, 0, 0, 12, 12, 12},
+        {4193, 48, 0.80f, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {4194, 49, 0.70f, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {4195, 49, 0.70f, 0, 0, 0, 1, 0, 0, 0, 0, 0},
+        {4196, 31, 0.90f, 14, 14, 0, 0, 0, 0, 13, 13, 13},
+        {4197, 31, 0.90f, 14, 14, 0, 1, 1, 0, 13, 13, 13},
+        {4198, 50, 1.00f, 0, 0, 0, 0, 0, 0, 13, 13, 13},
+        {4199, 49, 0.70f, 1, 1, 0, 1, 1, 0, 0, 0, 0},
+        {4200, 51, 1.00f, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {4201, 59, 1.00f, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {4202, 31, 1.00f, 11, 11, 0, 0, 0, 0, 12, 12, 12},
+        {4203, 39, 1.00f, 1, 1, 0, 0, 0, 0, 12, 12, 12},
+        {4204, 39, 1.00f, 2, 2, 0, 0, 0, 0, 12, 12, 12},
+        {4205, 31, 1.00f, 12, 12, 0, 0, 0, 0, 12, 12, 12},
+        {4206, 31, 1.00f, 13, 13, 0, 0, 0, 0, 13, 13, 13},
+        {4207, 29, 1.00f, 6, 6, 0, 0, 0, 0, 13, 13, 13},
+        {4208, 40, 1.00f, 46, 46, 0, 0, 0, 0, 8, 8, 8},
+        {4209, 40, 1.00f, 46, 46, 0, 1, 1, 0, 13, 13, 13},
+        {4210, 48, 0.80f, 1, 1, 0, 0, 0, 0, 13, 13, 13},
+        {4211, -1, 1.00f, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {4212, 49, 0.70f, 3, 3, 0, 0, 0, 0, 0, 0, 0},
+        {4213, 20, 0.50f, 48, 48, 0, 0, 0, 0, 13, 13, 13},
+        {4214, 40, 1.00f, 46, 46, 46, 3, 3, 0, 6, 6, 6},
+        {4215, 51, 1.00f, 0, 0, 0, 1, 1, 1, 6, 6, 6},
+        {4216, 49, 0.70f, 4, 4, 0, 0, 0, 0, 12, 12, 12},
+        {4217, 39, 1.00f, 3, 3, 0, 0, 0, 0, 12, 12, 12},
+        {4218, 50, 1.00f, 1, 1, 0, 0, 0, 0, 13, 13, 13},
+        {4219, 31, 1.00f, 18, 18, 0, 0, 0, 0, 10, 10, 10},
+        {4220, 31, 1.00f, 19, 19, 0, 0, 0, 0, 13, 13, 13},
+        {4221, 49, 0.70f, 0, 0, 0, 5, 0, 0, 0, 0, 0},
+        {4222, 31, 1.00f, 20, 20, 0, 0, 0, 0, 13, 13, 13},
+        {4223, 59, 1.00f, 1, 1, 1, 0, 0, 0, 7, 7, 7},
+        {4224, 49, 0.70f, 0, 0, 0, 6, 0, 0, 0, 0, 0},
+        {4225, 31, 0.90f, 21, 21, 0, 0, 0, 0, 10, 10, 10},
+        {4226, 40, 0.90f, 48, 48, 48, 0, 0, 0, 9, 9, 9},
+        {4227, 31, 1.00f, 17, 17, 0, 0, 0, 0, 15, 15, 15},
+        {4228, 49, 0.80f, 7, 7, 0, 0, 0, 0, 13, 13, 13},
+        {4229, 49, 0.80f, 8, 8, 0, 0, 0, 0, 13, 13, 13},
+        {4230, 29, 1.25f, 10, 10, 0, 0, 0, 0, 13, 13, 13},
+        {4231, 49, 0.60f, 9, 9, 0, 0, 0, 0, 12, 12, 12},
+        {4232, 49, 0.70f, 0, 0, 0, 10, 0, 0, 0, 0, 0},
+        {4233, 49, 0.70f, 0, 0, 0, 10, 0, 0, 0, 0, 0},
+        {4234, 49, 0.70f, 0, 0, 0, 10, 0, 0, 0, 0, 0},
+        {4235, -1, 1.00f, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {4241, 49, 0.70f, 17, 17, 0, 0, 0, 0, 12, 12, 12},
+        {6000, 30, 1.00f, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {6001, 31, 1.00f, 0, 0, 4, 1, 1, 0, 0, 0, 0},
+        {6002, 31, 1.00f, 0, 0, 5, 1, 1, 0, 0, 0, 0},
+        {6003, -1, 1.00f, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {6004, 25, 1.00f, 3, 3, 0, 0, 0, 0, 12, 12, 12},
+        {6005, 31, 1.00f, 50, 50, 0, 0, 0, 0, 0, 0, 0},
+        {6006, 49, 0.60f, 9, 9, 0, 0, 0, 0, 12, 12, 12},
+        {6007, 49, 0.70f, 0, 0, 0, 10, 0, 0, 0, 0, 0},
+        {6008, 38, 1.00f, 4, 4, 0, 0, 0, 0, 8, 8, 8},
+        {6009, 29, 1.00f, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {6010, 38, 1.00f, 1, 1, 0, 0, 0, 0, 8, 8, 8},
+        {6011, 38, 1.00f, 2, 2, 0, 0, 0, 0, 8, 8, 8},
+        {6012, 49, 0.80f, 7, 7, 0, 0, 0, 0, 13, 13, 13},
+        {6013, 49, 0.80f, 8, 8, 0, 0, 0, 0, 13, 13, 13},
+        {6014, 29, 1.25f, 10, 10, 0, 0, 0, 0, 13, 13, 13}
+    };
+
+    const ImportedMountVisual* visual = nullptr;
+    for (const ImportedMountVisual& candidate : kImportedMounts)
+    {
+        if (candidate.item == itemIndex)
+        {
+            visual = &candidate;
+            break;
+        }
+    }
+
+    if (!visual)
+        return false;
+
+    memset(&m_stMountLook, 0, sizeof(m_stMountLook));
+    memset(&m_stMountSanc, 0, sizeof(m_stMountSanc));
+    memset(&m_stOldMountSanc, 0, sizeof(m_stOldMountSanc));
+    m_cLastMount = m_cMount;
+
+    // Do not fabricate replacement visuals for unavailable authentic assets or
+    // for merchant bodies, which the native costume selector also excludes.
+    if (visual->type < 0 || (m_stScore.Merchant & 2))
+    {
+        m_cMount = 0;
+        return true;
+    }
+
+    m_cMount = 1;
+    m_sMountIndex = -1;
+    m_nMountSkinMeshType = visual->type;
+    m_fMountScale = visual->scale;
+    m_stMountLook.Mesh0 = visual->mesh0;
+    m_stMountLook.Mesh1 = visual->mesh1;
+    m_stMountLook.Mesh2 = visual->mesh2;
+    m_stMountLook.Skin0 = visual->skin0;
+    m_stMountLook.Skin1 = visual->skin1;
+    m_stMountLook.Skin2 = visual->skin2;
+    m_stMountSanc.Sanc0 = visual->sanc0;
+    m_stMountSanc.Sanc1 = visual->sanc1;
+    m_stMountSanc.Sanc2 = visual->sanc2;
+    m_stOldMountSanc = m_stMountSanc;
+    return true;
+}
+
 void  TMHuman::SetMountCostume(unsigned int  index)
 {
     int nSanc = 0, nSkin = 0;
@@ -15816,7 +15958,9 @@ void  TMHuman::SetMountCostume(unsigned int  index)
 
     if (index >= 11 && index <= 200 && (!(m_stScore.Merchant & 2)))
     {
-        float m_fMountScale = 0;
+        // This must update the member consumed by UpdateMount; the former local
+        // variable shadowed it and discarded every costume-specific KR scale.
+        m_fMountScale = 1.0f;
         m_stMountLook.Mesh2 = 0;
         m_stMountLook.Mesh1 = 0;
         m_stMountLook.Mesh0 = 0;

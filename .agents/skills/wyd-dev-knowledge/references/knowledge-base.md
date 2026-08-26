@@ -1,32 +1,28 @@
----
-name: wyd-dev-knowledge
-description: >-
-  Documented knowledge base of WYD (With Your Destiny) server/client development,
-  learned from the WebCheats forum (the top WYD dev community) and our own reverse
-  engineering. Consult when working on WYD packet protocol/encryption, stat/score
-  formulas, client versions (Cliver), GM commands, dev tooling, or the native
-  7.5x function inventory. The FACTS are written here directly — you do not need
-  to re-open the forum to use them. Complements `wyd-researcher` (local source
-  sweep) and the `wyd-forum-scout` agent (fresh web lookups for gaps).
----
-
 # WYD development — documented knowledge base
 
-Self-contained notes on how WYD servers/clients work, distilled from the WebCheats WYD community
-and our own work on this project. Use the facts directly; forum URLs appear only as provenance.
+> Referência histórica extensa carregada apenas por tópico. O `SKILL.md` do
+> diretório é o roteador canônico e prevalece em caso de conflito.
+
+Notas de referência sobre servidores e clients WYD, consolidadas de fontes
+locais, engenharia reversa e um snapshot do fórum WebCheats. As seções rotuladas
+como históricas são pistas semânticas: o contrato atual vem do código/testes do
+WYD-Go e, para o client, do executável 7.48 e sua descompilação.
 
 ## 0. The knowledge landscape (so you know where truth lives)
 
-- **Our project stack**: closed-source **7.54** `TMSRV.exe` extended by a hook plugin
-  (`Sourcer Star Micronics/`), and the full-source **7.59-based SERVER W2PP**. Target client: **7.48**.
-- **Most reliable sources, in order**: (1) our own code + live OllyDbg/Ghidra on the 7.54 exe;
-  (2) local reference trees — `SOURCE(secrets) para referência/Descompilação/` (hand-decompiled 7.54
-  natives, closest to our exe) and `source 7.59/Code/` (full readable 7.59 server); (3) the WebCheats
-  forum.
+- **Stack atual**: servidor autoritativo em Go neste repositório e client
+  recompilável direcionado exclusivamente ao WYD 7.48. `TMSRV.exe`, Micronics,
+  Secrets e W2PP são referências legadas, salvo tarefa explicitamente limitada
+  a esses subtrees.
+- **Hierarquia atual**: (1) código e testes do WYD-Go; (2) dados autoritativos;
+  (3) source 7.48 e comportamento vivo de `client748/project.exe`; (4) Ghidra
+  histórico de `client748/wyd.exe nativo+patches/WYD.exe`; (5) W2PP;
+  (6) Secrets/Micronics; (7) fórum. Para client, seguir primeiro
+  `$wyd-go-feature`; a referência histórica nunca é produto nem fallback.
 - **WebCheats reality**: thread titles/discussion are public, but **verbatim code/source is behind a
   registration wall** (*"É necessário se cadastrar para acessar o conteúdo"*). We do **not** use the
   user's password. So the forum is best for *leads and public facts*, not code dumps — for actual code
-  our LOCAL trees are both richer and fully accessible.
+  local source trees are richer and fully accessible.
 - **Era map** (learned by sweeping the archive back to 2008): 2008–~2012 WYD content is almost entirely
   **player-side** (CheatEngine speedhacks, gold/arch/celestial tricks, wall-jumping, file editors). The
   serious **server-source, protocol, and decompilation** work is **recent (2017–2025)**, concentrated in
@@ -35,7 +31,8 @@ and our own work on this project. Use the facts directly; forum URLs appear only
 
 ## 1. Packet protocol & encryption
 
-**Header** (`_MSG`, 12 bytes, little-endian) — confirmed from our W2PP `CPSock`/`Basedef.h`:
+**Header** (`_MSG`, 12 bytes, little-endian) — referência comum confirmada no
+código ativo antes de qualquer uso:
 
 | off | field | type |
 |---|---|---|
@@ -46,10 +43,11 @@ and our own work on this project. Use the facts directly; forum URLs appear only
 | 6 | `ID` | int16 (client/conn id) |
 | 8 | `ClientTick` | uint32 |
 
-**Opcode/FLAG scheme** (stable across 7.48→7.59; verified both directions):
+**Opcode/FLAG scheme** (recorrente nas famílias 7.5x; confirmar no fluxo alvo):
 `FLAG_GAME2CLIENT 0x100`, `FLAG_CLIENT2GAME 0x200`, `FLAG_DB2GAME 0x400`, `FLAG_GAME2DB 0x800`.
-Opcode = `base | flags`. Known anchors: `AccountLogin 0x20D` (13|C2G), `CNFAccountLogin 0x10A`
-(10|G2C, the char-list/login-confirm to client), `CreateChar 0x20F`, `DeleteChar 0x211`,
+Opcode = `base | flags`. No caminho source-client atual, anchors incluem
+`AccountLogin 0x20D` (13|C2G), `CNFAccountLogin 0x10A`
+(10|G2C, char-list/login-confirm), `CreateChar 0x20F`, `DeleteChar 0x211`,
 `CNFCharacterLogin/enter-world 0x114` (20|G2C), `UpdateScore 0x336`, `CreateMob 0x364`,
 `DBAccountLogin 0x803` (3|G2D). Char-list *refresh* after create/delete rides `0x110`/`0x112`.
 
@@ -57,10 +55,11 @@ Opcode = `base | flags`. Known anchors: `AccountLogin 0x20D` (13|C2G), `CNFAccou
 onward), driven by a **512-byte key table** (`pKeyWord[512]`; pairs — `[i*2]` selects the keyword,
 `[i*2+1]` is the transform byte). `KeyWord` field (offset 2) is a random index chosen per packet;
 `CheckSum` (offset 3) is a running sum validated on receive. Sibling game **Aika** uses the *same
-logic but in 4-byte chunks* — useful mental model. `INITCODE` handshake for our stack = `0x1F11F311`.
+logic but in 4-byte chunks* — useful mental model. O handshake `INITCODE`
+confirmado no caminho atual é `0x1F11F311`.
 
-**Login-confirm (`0x10A`) body — the layout the 7.48 client actually reads** (learned the hard way
-porting W2PP; the client casts the buffer and reads a 16-byte preamble BEFORE the char list):
+**Login-confirm (`0x10A`) body — caminho ativo do client recompilado 7.48**: o
+client lê um preâmbulo de 16 bytes antes da lista:
 `header(12)` · `char SecretCode[16]` (client copies this to its send-queue = crypto seed for next
 packets) · `STRUCT_SELCHAR SelChar` **@offset 28** · `STRUCT_ITEM Cargo[128]` · `int Coin` ·
 `char AccountName[16]` · `int SSN1,SSN2`. The 7.48 `STRUCT_SELCHAR`/`STRUCT_SCORE` are the **28-byte**
@@ -83,36 +82,40 @@ packets) · `STRUCT_SELCHAR SelChar` **@offset 28** · `STRUCT_ITEM Cargo[128]` 
   (`STRUCT_MOB_GLOBAL` **1368 B**, `STRUCT_ITEM_GLOBAL` **12 B**) — never assume 7.x sizes for Global.
 - **`STRUCT_ITEM` is stable at 8 bytes** across 7.48/7.54/7.59 (`short Index` + 3×{`uint8 eff, uint8 val`}).
   Global's item is 12 B (different).
-- **Physical damage** (our worked example): 7.54 exe ≈ `Attack += Str/3 + Master[0] + Level` (no DEX
+- **Physical damage** (exemplo histórico): 7.54 exe ≈ `Attack += Str/3 + Master[0] + Level` (no DEX
   term); 7.59 `Basedef.cpp` adds a DEX term (`Str/2 + Dex/3 + Special[0] + Level`, only when untransformed
   `face<4`). That gap is why "add DEX to damage" is a real feature, not a bug.
 - **`bStatus` vs `Status`**: `bStatus` = base/raw score; `Status` = recomputed score (by
-  `BASE_GetCurrentScore`) that gets sent to the client and used in combat. Patch the right one.
+  `BASE_GetCurrentScore`) that gets sent to the client and used in combat. Adapt
+  the correct live field in the current source; do not reproduce a binary patch.
 - **Rule for all ported formulas**: algorithms port across versions; **struct layouts / field offsets /
-  absolute addresses do NOT** — re-express against our field names and re-verify offsets on our exe.
+  absolute addresses do NOT** — re-express against current field names and
+  re-verify in the target code, wire tests and Ghidra artifact.
 
-The community has hand-decompiled these 7.56/7.57 natives (leads if our local `Descompilação/` lacks a
+The community has hand-decompiled these 7.56/7.57 natives (leads if the local `Descompilação/` lacks a
 version): `BASE_GetCurrentScore`, `CPSock::AddMessage`, `CUser`, `GetBonusHp/GetBonusMP`, `GetMountBonus`,
 `BASE_GetRoute`, `BASE_ReadItemListFile`, CMOB `BattleProcessor`/`StandingByProcessor`,
 `ProcessHardCoreDeath`, `DoWar/DoAlly/SetCityTower`, `DoRanking`, `CreateGuild/CreateSubGuild`,
-`GetMobID(const char*)`. (Verbatim code login-walled; prefer our local trees.)
+`GetMobID(const char*)`. (Verbatim code login-walled; prefer local trees.)
 
 ## 3. Client versions (Cliver)
 
-- **7.48** — older client; the target of this project (needs the 7.54 server to speak 7.48 wire format).
+- **7.48** — única versão alvo do servidor Go e da source recompilável deste
+  repositório.
 - **7.54–7.56** — mid; sequential update patches. **7.58** — OnGame. **7.59–7.60** — newer; several
   reports of crashing on Windows 10. **6.80** — Supreme Destiny (legacy).
 - **Version detection**: client config file carries the version in its **first two bytes** (hex).
 - **Patch naming**: sequential `<from><to>.zip` (e.g. `10001001.zip` = 1000→1001).
-- **Our Cliver bypass** (already live): the server reads the live accepted `min` version at each `0x20D`
-  and rewrites the packet's Cliver to `min+1`, so a downgraded 7.48 client connects to the 7.54 exe
-  without patching the client. Don't hardcode a fixed Cliver — a stock protocol DLL rewrites `min`.
+- **Contrato atual de Cliver**: o servidor Go aceita diretamente o Cliver 748 do
+  client alvo. A reescrita para `min+1` pertence ao plugin TMSRV legado e não
+  deve ser copiada para o fluxo atual.
 
-## 4. GM commands (this W2PP/Thyra-lineage server supports them)
+## 4. GM commands históricos do W2PP/Thyra
 
-Sent as a **whisper to the NPC named `gm`** with `+command args` (standard GM level = **2000**). The
-active `+set` group maps to our config constants (`BILLING`, `FREEEXP`, `CHARSELBILL`, `POTIONCOUNT`,
-event vars). Legacy `+set` (level ≠ 2000) is inert on a standard GM.
+Este catálogo descreve aquela linhagem de servidor; não prova que o WYD-Go
+implemente os comandos. Nela, eles são enviados como **whisper ao NPC `gm`** com
+`+command args` (nível GM padrão = **2000**) e o grupo `+set` usa constantes do
+servidor legado.
 
 - **Reload/maint**: `+timer <ms≥5000>` `+saveall` `+decay` `+reboot` `+delayreboot` `+log` `+reloadnpc`
   `+reloaddroplist` `+makedroplist` `+reloadevento` `+reloadpesa` `+reloadbalanceamento` `+reloadperga`
@@ -123,7 +126,7 @@ event vars). Legacy `+set` (level ≠ 2000) is inert on a standard GM.
   `champ|chall <zone> <guild>`, `drop <pos> <rate>`.
 - **Moderation**: `+derrubar`(0) `+desligar`(1) `+banfirewall`(2) `+mute` `+muteall` `+desmuteall`
   `+kick <nick>` `+bann <account> <days>` (<30 temp, ≥30 perm).
-- **Char (current target)**: `+name` `+cp` `+frag` `+celestial <0..3>` `+class` `+learn` `+buff <type>`
+- **Char (catálogo legado)**: `+name` `+cp` `+frag` `+celestial <0..3>` `+class` `+learn` `+buff <type>`
   `+nobuff` `+citizen` `+soul` `+snoop` `+divinetime` `+isdivine`.
 - **Mob/item/spawn**: `+generate <genIdx>` `+create <mobFile>`(./npc/) `+read` `+save` `+kill <name>`
   `+gift <target> <item> <e1> <v1> <e2> <v2>` `+createkefra` `+killkefra` `+setjoias` `+nojoias`
@@ -139,7 +142,7 @@ event vars). Legacy `+set` (level ≠ 2000) is inert on a standard GM.
   `onlineiplist`.
 - **Broken**: `+npko` (IPPos=-1), `+gerar` (empty parser buffer).
 
-## 5. Common build/DB/crash gotchas (community-confirmed, matches ours)
+## 5. Gotchas históricos de build/DB/crash do servidor C++
 
 - **MySQL "Client does not support authentication protocol"** — MySQL 8 `caching_sha2_password` vs old
   client; use `mysql_native_password` / MySQL 5.7. We hit the sibling issue (`skip_ssl` + connector 6.1
@@ -152,12 +155,13 @@ event vars). Legacy `+set` (level ≠ 2000) is inert on a standard GM.
   grid math wrong = teleport bugs. (This is the same `SPX/SPY`↔`Position` space we convert in the char
   list.)
 
-## 6. Running a 7.48 client against a 759/754 server (wire-format deltas)
+## 6. Port legado de client 7.48 para servidor 7.59/7.54
 
-Hard-won facts from porting **SERVER W2PP** (759) to the **7.48 client**. Method that works: hook the
-7.54 Micronics plugin's `CPSock::AddMessage` to **capture the real 7.48 wire bytes**, then replicate
-byte-for-byte — never guess struct sizes. Full detail lives in the auto-memory `project_w2pp_748_protocol.md`;
-the deltas that generalize:
+Esta seção registra o caminho histórico TMSRV/W2PP; ela não define por si só o
+wire atual do servidor Go ou do `project.exe`. Os fatos do port de **SERVER
+W2PP** (759) para um **client 7.48** foram obtidos capturando
+`CPSock::AddMessage` no plugin Micronics 7.54 e replicando os bytes. Os deltas
+são pistas que precisam ser revalidadas no artefato atual:
 
 - **Enter-world (0x114) Size field = 788** (`0x0314`), even though the send buffer is 1244. The client
   frames packets by the Size field; sending 1244 leaves 456 stray bytes → **stream desync → a phantom
@@ -170,8 +174,11 @@ the deltas that generalize:
   `0x36C` (`_MSG_Action`=108) and treats `0x366` (`_MSG_Action2`=102) as *Stop* (and rejects repeats +
   a 900ms anti-speed on the 0x36C path). So: inbound, remap the 0x366 layout to `MSG_Action` and treat as
   walk (disable the 900ms check); outbound, convert 0x36C→0x366.
-- **Char-list is `0x10E`** (not 0x10A), **1800 bytes**, positions as separate `HomeTownX[4]`+`HomeTownY[4]`,
-  no SecretCode preamble (SelChar@offset 12).
+- **Char-list do binário distribuído capturado nesse port legado:** `0x10E`,
+  **1800 bytes**, posições em `HomeTownX[4]` + `HomeTownY[4]`, sem preâmbulo
+  `SecretCode` (`SelChar@12`). Isso não substitui o contrato ativo do client
+  recompilado deste repositório, `0x10A`/2360 bytes; distinguir os artefatos antes
+  de alterar `internal/wire`.
 - **Second/numeric password ("senha numerica")** is a 759 step the 7.48 client doesn't do; it gates
   USER_SELCHAR→USER_CHARWAIT. Open both gates (TMSrv char-login + DBSrv SecurePass) to let 7.48 through.
 - **Appearance:** the 7.48 client builds a humanoid from **body-part item meshes**, so a "naked" char
@@ -185,10 +192,11 @@ the deltas that generalize:
 
 ## 7. NPC interaction & merchant shop (7.48 protocol, verified in-game)
 
-The **client decides** a lot here — when the local NPC source is silent, read the **client source**
-`SERVER W2PP/SOURCE GAME/Projects/TMProject/` (759 client, same logic as 7.48): `Basedef.h` for the
-`MSG_*` structs + opcode `constexpr`s, `TMFieldScene.cpp` for the `OnPacket*` handlers and the NPC
-click handler. This is how the facts below were nailed (each cost hours of guessing before reading it).
+O client decide parte importante desse fluxo. Confirmar primeiro no Ghidra do
+`client748/wyd.exe nativo+patches/WYD.exe` e no caminho vivo do
+`client-source/tmproject`; a source 7.59 pode
+ajudar a nomear `MSG_*`, handlers `OnPacket*` e o click de NPC, mas não prova
+layout, precondição ou igualdade de comportamento.
 
 - **NPC click:** the client recognizes an NPC's *type* from **`m_stScore.Reserved & 0xF`** — and
   `Reserved` is the **`Merchant` byte** of the score (offset 6 in the 28-byte score = **@106 in the
@@ -232,7 +240,7 @@ source/decompilation.
 - Every Decompilation topic was opened and the authenticated account reacted to
   all **163 topics**. The unlocked snapshot contains code artifacts in 159
   topics. The complete source/symbol index lives in
-  [`references/webcheats-decompilation-catalog.md`](references/webcheats-decompilation-catalog.md).
+  [`webcheats-decompilation-catalog.md`](webcheats-decompilation-catalog.md).
 - Every Development topic was opened: **422 topics / 506 substantive public
   posts**.
 - Questions was indexed through all **186 pages / 4,602 unique topics**. Title
@@ -251,8 +259,10 @@ source/decompilation.
 - The initial `0x1F11F311` hello and the 116-byte `0x20D` login may arrive in a
   **single 120-byte TCP read**. Framing must consume the first four bytes then
   decrypt/frame the remaining packet; one TCP read is not one WYD packet.
-- Login scene reply is `0x10E` on clients **below 7.55**, while newer families
-  use `0x10A`. This matches our 7.48 char-list choice.
+- O fórum relata `0x10E` para alguns clients abaixo de 7.55 e `0x10A` em famílias
+  novas, mas essa generalização não define o artefato atual. Neste repositório,
+  o source-client ativo usa `0x10A`/2360 bytes; o `0x10E`/1800 acima pertence ao
+  caminho legado capturado. Confirmar por executável antes de portar.
 - `0x182` is a generic **grid item update** (inventory/cargo/equip), not the
   packet that creates a ground drop. Do not infer semantics from the name alone.
 - Client opcode `0x1C1` is named `REQArray` in a client source but its handler
@@ -284,7 +294,7 @@ source/decompilation.
 - Buff lifetime is server-owned. A robust design keeps an active-affect list,
   ticks/removes it centrally, broadcasts add/remove, and triggers score
   recalculation only for affects that change derived stats. This agrees with
-  our actor/tick design.
+  the current WYD-Go actor/tick design.
 - Client/server `SkillData` mismatch or extreme edits can break automatic rebuff;
   keep both files structurally compatible and vary one field at a time.
 - A skill can deal correct high damage while the UI shows a wrapped/smaller magic
@@ -308,7 +318,7 @@ source/decompilation.
 
 These are semantic findings from the unlocked bodies. Function addresses and
 posted struct widths were deliberately not promoted because they belong to the
-author's 7.56/7.57 binaries, not our 7.54 executable.
+author's 7.56/7.57 binaries, not the current Go server or client 7.48 artifact.
 
 **Character points and base HP/MP (7.56 family):**
 
@@ -532,7 +542,7 @@ mysterious stone 4148, fortune cube 4905, ideal stone 5338, skill books
   forum migrations. Even authenticated code should be treated as a lead, not a
   byte-perfect source file.
 - Never copy public absolute addresses (for example the 7.57 MobList address)
-  into 7.54 hooks. Only semantics are portable.
+  into the Go server, client 7.48 or legacy hooks. Only semantics are portable.
 - Download threads frequently contain dead links or unreviewed binaries. Prefer
   source repositories; validate hashes and run unknown tools isolated.
 
@@ -572,8 +582,9 @@ contracts. The following facts are portable knowledge learned while matching the
 WebCheats WYD: `/forum/135-`. Subforums by age (low id = older): Downloads `136`, Dúvidas `137`,
 Tutoriais `138` (back to Jun 2008), Bate-Papo `139`, Servidores Privados `215`, Desenvolvimento `362`
 (2017+), Descompilação `732`. Sort a subforum oldest-first with
-`?sortby=start_date&sortdirection=asc`. For a *new* gap not covered above, use the `wyd-forum-scout`
-agent (it won't log in) and then **write the newly-learned fact back into this file**.
+`?sortby=start_date&sortdirection=asc`. Para lacunas novas, pesquisar apenas
+depois das fontes locais e promover um fato somente com evidência reproduzível;
+não pressupor a existência de um agent externo nem editar esta skill por padrão.
 
 High-value public provenance from the 2026-07-15 sweep:
 

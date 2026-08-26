@@ -16,14 +16,19 @@
 Aplicar estes fatos ao client 7.48 deste repositório. Revalidar quando o
 executável ou os clients-fonte forem substituídos.
 
+Separar os artefatos: `wyd.exe nativo+patches/WYDoriginal.exe` é o stock
+histórico imutável; `wyd.exe nativo+patches/WYD.exe` é a referência Ghidra;
+`project.exe` é o único candidato ativo, recompilado da source. Nunca executar
+os scripts históricos nem usar seus offsets ou bytes como mecanismo de build.
+
 Fontes locais usadas nesta investigação:
 
 ```text
-client748/WYD.exe
+client748/wyd.exe nativo+patches/WYD.exe
 CLIENTS/WYD
 CLIENTS/wyd-test
-client748/Costumes-KR.json
-client748/Mounts-KR.json
+client748/wyd.exe nativo+patches/Costumes-KR.json
+client748/wyd.exe nativo+patches/Mounts-KR.json
 ```
 
 Na auditoria de 13/08/2026, `CLIENTS/wyd-test` era subconjunto exato dos assets
@@ -229,7 +234,7 @@ item do `STRUCT_MOB`; o `UpdateEquip 0x36B` passa pelos 16 `sEquip` compactos e
 reconstrói o objeto imediatamente. No caminho incremental nativo, `Equip[14]` é
 mascarado com `0x0FFF`. Por isso um item importado `4190+` pode funcionar no
 login/teleporte e desaparecer ou demorar ao equipar: o selector enxerga apenas
-o valor baixo `94+`. Um patch de montaria só está completo quando resolve a
+o valor baixo `94+`. A adaptação da montaria na source só está completa quando resolve a
 mesma tabela visual nos dois caminhos, antes de `InitObject()/UpdateMount()`.
 
 O renderer de montaria possui duas transformações independentes:
@@ -240,10 +245,10 @@ offset do TMHuman    -> posição/orientação aparente do cavaleiro
 ```
 
 Montaria vertical exige comparar a matriz com o client fonte. Montaria correta
-com o jogador vertical/deslocado exige comparar o ramo de assento. Não instalar
-um hook global de matriz antes de validar cada família no 7.48: a tentativa
-global feita em 13/08/2026 quebrou inclusive montarias antes funcionais e foi
-revertida para o build `78B27091…2005`.
+com o jogador vertical/deslocado exige comparar o ramo de assento. Não portar
+uma transformação global de matriz para a source antes de validar cada família
+no 7.48: a tentativa global feita em 13/08/2026 quebrou inclusive montarias
+antes funcionais e foi revertida para o build `78B27091…2005`.
 
 Para as famílias `48..51`, a transformação correta não fica em
 `SetMountCostume` nem nos assets. Ela está em `CFrame::UpdateFrames` da source
@@ -283,8 +288,11 @@ skeleton/índice.
 5. Traduzir a tabela de textura campo a campo.
 6. Materializar item e nome nos dados autoritativos.
 7. Distribuir lojas em blocos de no máximo 27.
-8. Patchar o executável somente com script guardado por SHA e byte assertions.
-9. Reconstruir desde backups conhecidos e registrar hashes intermediários.
+8. Adaptar selector, renderer e lifecycle diretamente em `client-source/`, com
+   a semântica 7.48 comprovada no Ghidra e sem endereços absolutos.
+9. Compilar a source com `client-source/tmproject/Build-Client.ps1` e confirmar a
+   instalação e o hash automáticos de `client748/project.exe`. Os binários
+   históricos não são reconstruídos.
 
 Não associar item sem case visual a uma mesh “parecida”. Não considerar um
 arquivo ausente resolvido apenas porque outra versão possui nome semelhante.
@@ -293,19 +301,19 @@ arquivo ausente resolvido apenas porque outra versão possui nome semelhante.
 
 | sintoma | verificar primeiro |
 | --- | --- |
-| item equipa, aparência não muda | item->type/skin, hook e slot 13/14 |
+| item equipa, aparência não muda | item->type/skin, handler da source e slot 13/14 |
 | somente face aparece | alpha `C` gravado incorretamente ou partes deslocadas |
 | torso esticado | body class/skin incompatível ou part mapping errado |
 | mãos/pés somem | parts 1..5 incompletas/deslocadas |
 | mesh aparece branca | WYS ausente ou não registrado em MeshTextureList |
 | IDs antigos funcionam e IDs modernos não mudam o corpo | gate nativo anterior ao selector ainda limita `4151..4200` |
 | montaria fica invisível | skeleton/ValidIndex/mesh/type e tabela de textura |
-| montaria aparece apenas segundos/minutos depois | hook ausente no `UpdateEquip 0x36B`; somente a materialização completa foi coberta |
+| montaria aparece apenas segundos/minutos depois | caminho da source ausente no `UpdateEquip 0x36B`; somente a materialização completa foi coberta |
 | montaria inteira fica em pé | matriz de rotação do skeleton moderno tratada como legacy |
 | montaria correta, rider em pé/deslocado | ramo de assento do tipo/mesh não portado |
 | olhos/interior visíveis através da mesh | verificar primeiro `CULL_NONE` indevido; depois material `C`/alpha |
 | funciona no owner, não observer | `UpdateEquip`, materialização e assets do observer |
-| funciona até relogar | item/slot ou cadeia de patch não persistida/reproduzida |
+| funciona até relogar | item/slot não persistido ou caminho incremental da source incompleto |
 
 ## Validação
 
@@ -314,11 +322,12 @@ Validação estática mínima:
 - manifesto sem IDs/tipos duplicados;
 - todo asset disponível existe;
 - todo WYS usado está registrado com alpha correto;
-- renderer binário coincide com o manifesto;
+- selector/renderer da source coincide com o manifesto;
 - partes 0..5 preservam a anatomia esperada;
 - ItemList e lojas cobrem exatamente os itens disponíveis;
-- hashes de cada elo da cadeia coincidem;
-- `-VerifyOnly` não escreve.
+- o hash de `client748/project.exe` e os hashes dos assets ativos correspondem
+  ao build validado;
+- a validação estática não altera assets nem executáveis.
 
 Validação in-game mínima:
 

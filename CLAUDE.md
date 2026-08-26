@@ -33,13 +33,20 @@ com conhecimento próprio do modelo e não considere uma skill usada sem abrir o
 `SKILL.md` na tarefa atual.
 
 Para qualquer tarefa relacionada ao WYD — incluindo mecânicas, protocolo,
-client 7.48, descompilação, patches do `WYD.exe`, itens, skills, mobs, bosses,
+client source 7.48, descompilação histórica, assets, itens, skills, mobs, bosses,
 quests, instâncias, combate, affects, inventário, crafting, macros ou pesquisa
 em W2PP/Secrets/Micronics — abra **antes de qualquer análise**:
 
 ```text
 .agents/skills/wyd-go-feature/SKILL.md
 ```
+
+No client, `client-source/tmproject` e os assets são as únicas fronteiras de
+implementação. O conteúdo de `client748/wyd.exe nativo+patches/` é histórico e
+read-only: nunca executar, editar, verificar ou reutilizar seus `.ps1`, nem
+tratar um binário patchado como produto ou fallback. Compilar a source com
+`client-source/tmproject/Build-Client.ps1`, que deve instalar e validar
+automaticamente o candidato como `client748/project.exe`.
 
 Para GitHub, PR, CI, review ou publicação, use obrigatoriamente a skill GitHub
 mais específica disponível na sessão Codex ou no repositório.

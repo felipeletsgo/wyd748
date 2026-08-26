@@ -82,7 +82,13 @@ public:
 	unsigned int m_dwCharID;
 	MSG_Trade m_stTrade;
 	MSG_CombineItem m_stCombineItem;
+	// Each stock 7.48 artisan owns an independent request buffer. Sharing one
+	// buffer lets stale CarryPos entries leak between panels and changes opcodes.
+	MSG_CombineItem m_stCombineItem2;
+	MSG_CombineItem m_stCombineItem3;
 	MSG_CombineItem m_stCombineItem4;
+	MSG_CombineItem m_stCombineItem5;
+	MSG_CombineItem m_stCombineItem6;
 	char m_cCharacterSlot;
 	char m_cSelectShortSkill;
 	char m_cShortSkill[20];

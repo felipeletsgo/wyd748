@@ -272,7 +272,10 @@ int EventTranslator::CameraEventData()
     {
         if (pCamera->m_dwSetTime == 0)
         {
-            if (!pCamera->m_nQuaterView && (button[2] || m_bAlt == 1 && button[1]) && g_pCurrentScene->m_pGround != nullptr)
+			// Historical 7.48 input analysis established that right-click belongs to
+			// SkillUse and middle-click rotates the camera.  The source now owns that
+			// behavior directly; no binary input patch participates in this contract.
+			if (!pCamera->m_nQuaterView && button[2] && g_pCurrentScene->m_pGround != nullptr)
             {
                 pCamera->m_fVerticalAngle = pCamera->m_fVerticalAngle - (float)((float)dy * 0.002f);
                 if (pCamera->m_fVerticalAngle < -0.98539817f)
@@ -308,7 +311,11 @@ int EventTranslator::CameraEventData()
             }
             if (pCamera->m_nQuaterView == 0 || pCamera->m_nQuaterView == 1)
             {
-                if (pCamera->m_fSightLength > fClose && wheel < 0)
+                // WYD.exe 7.48 FUN_004aec3d selects the wheel direction from
+                // viewchange when [CAMERAVIEW] is 0 and from wheel when it is 1;
+                // the distance delta itself always remains the configured wheel.
+                const int zoomDirection = g_pApp->m_nCameraView == 0 ? viewchange : wheel;
+                if (pCamera->m_fSightLength > fClose && zoomDirection < 0)
                 {
                     pCamera->m_fSightLength = (float)((float)wheel / 240.0f) + pCamera->m_fSightLength;
                     pCamera->m_fWantLength = pCamera->m_fSightLength;
@@ -318,7 +325,7 @@ int EventTranslator::CameraEventData()
                     pCamera->m_fSightLength = fClose;
                     pCamera->m_fWantLength = pCamera->m_fSightLength;
                 }
-                if (wheel > 0 && pCamera->m_fMaxCamLen > pCamera->m_fSightLength)
+                if (zoomDirection > 0 && pCamera->m_fMaxCamLen > pCamera->m_fSightLength)
                 {
                     pCamera->m_fSightLength = (float)((float)wheel / 240.0f) + pCamera->m_fSightLength;
                     pCamera->m_fWantLength = pCamera->m_fSightLength;

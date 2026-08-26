@@ -1854,7 +1854,9 @@ HRESULT RenderDevice::SetProjectionMatrix()
 int RenderDevice::SetMatrixForUI()
 {
 	D3DXMATRIX matUIProjection;
-	D3DXMatrixPerspectiveFovLH(&matUIProjection, 0.1f, (float)((float)m_d3dsdBackBuffer.Width / (float)m_d3dsdBackBuffer.Height) * 0.94f, 10.0f, 100.0f);
+	// The 7.48 native UI path (FUN_00430c46) uses the viewport aspect ratio
+	// verbatim; a horizontal correction factor creates radial drift across grids.
+	D3DXMatrixPerspectiveFovLH(&matUIProjection, 0.1f, (float)m_d3dsdBackBuffer.Width / (float)m_d3dsdBackBuffer.Height, 10.0f, 100.0f);
 
 	m_pd3dDevice->SetTransform(D3DTS_PROJECTION, &matUIProjection);
 

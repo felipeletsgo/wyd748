@@ -840,7 +840,18 @@ constexpr auto MSG_Withdraw_Opcode = 0x387;
 constexpr auto MSG_Deposit_Opcode = 0x388;
 
 constexpr auto MSG_CombineItem_Opcode = 0x3A6;
+// Stock WYD 7.48 assigns one 84-byte combine request to each native artisan
+// panel.  Keep these opcodes explicit instead of routing them through the
+// later generic ItemMix protocol, whose UI and recipe ABI do not exist here.
+constexpr auto MSG_CombineItemAylin_Opcode = 0x3B5;
+constexpr auto MSG_CombineItemAgatha_Opcode = 0x3BA;
 constexpr auto MSG_CombineItemTiny_Opcode = 0x3C0;
+// WYD 7.48 FUN_00463aa8 sends the native seven-slot Lindy panel as the
+// standard 84-byte combine packet with opcode 0x2C3.
+constexpr auto MSG_CombineItemLindy_Opcode = 0x2C3;
+constexpr auto MSG_CombineItemLindyAlt_Opcode = 0x2C4;
+constexpr auto MSG_CombineItemOdin_Opcode = 0x2D2;
+constexpr auto MSG_CombineItemEhre_Opcode = 0x2D3;
 struct MSG_CombineItem
 {
 	MSG_STANDARD Header;
@@ -974,7 +985,9 @@ constexpr auto MSG_UpdateAffect_Opcode = 0x3B9;
 struct MSG_UpdateAffect
 {
 	MSG_STANDARD Header;
-	STRUCT_AFFECT Affect[32];
+	// WYD.exe 7.48 FUN_0052b72a consumes exactly 16 eight-byte affects; keeping
+	// the newer 32-slot tail changes opcode 0x3B9 from 140 to 268 bytes.
+	STRUCT_AFFECT Affect[16];
 };
 
 constexpr auto MSG_AccountLogin_Opcode = 0x20D;
@@ -1028,7 +1041,13 @@ struct MSG_UpdateEtc
 	unsigned int Hold;
 	unsigned int Exp;
 	unsigned int LearnedSkill;
-	STRUCT_SCORE Score;
+	// WYD748: 0x337 is the compact 36-byte native packet.  Extended Score data
+	// remains in 0x336; importing the newer full Score here shifts Coin and makes
+	// the stock 7.48 size gate reject every incremental points/gold update.
+	unsigned short StatusPoint;
+	unsigned short MasterPoint;
+	unsigned short SkillPoint;
+	unsigned short Magic;
 	int Coin;
 };
 
@@ -1344,7 +1363,9 @@ static_assert(sizeof(MSG_SendItem) == 24, "WYD 7.48 MSG_SendItem must be 24 byte
 static_assert(sizeof(MSG_UpdateEquip) == 60, "WYD 7.48 MSG_UpdateEquip must be 60 bytes");
 static_assert(sizeof(MSG_MessageWhisper) == 128, "WYD 7.48 MSG_MessageWhisper must be 128 bytes");
 static_assert(sizeof(MSG_MessageChat) == 140, "WYD 7.48 MSG_MessageChat must be 140 bytes");
-static_assert(sizeof(MSG_UpdateEtc) == 48, "WYD 7.48 MSG_UpdateEtc must be 48 bytes");
+// The stock 7.48 dispatcher rejects 0x337 unless it is exactly 36 bytes.  Full
+// score state belongs to 0x336; this packet only projects the incremental WORDs.
+static_assert(sizeof(MSG_UpdateEtc) == 36, "WYD 7.48 MSG_UpdateEtc must be 36 bytes");
 static_assert(sizeof(MSG_MessagePanel) == 108, "WYD 7.48 MSG_MessagePanel must be 108 bytes");
 static_assert(sizeof(MSG_CharacterLogin) == 36, "WYD 7.48 MSG_CharacterLogin must be 36 bytes");
 static_assert(sizeof(MSG_NewCharacter) == 36, "WYD 7.48 MSG_NewCharacter must be 36 bytes");

@@ -94,7 +94,11 @@ TMScene::TMScene() : TreeNode(0)
 	m_pTextBillMsg->m_bSelectEnable = 0;
 	m_pTextBillMsg->SetVisible(0);
 
-	m_pMessagePanel = new SMessagePanel("Message Panel", 160.0f, 80.0f, 480.0f, 24.0f, 2000);
+	// FUN_00493e70 constructs the 7.48 MessagePanel2 at 480x28.  Keep that exact
+	// geometry for the shared login/notice/exit notification while the rest of the
+	// HUD remains classic; the 40px branch belongs to the stock opaque composition.
+	m_pMessagePanel = new SMessagePanel("Message Panel", 150.0f, 80.0f, 480.0f,
+		28.0f, 2000);
 
 	m_pMessageBox = new SMessageBox(
 		"Message Box",

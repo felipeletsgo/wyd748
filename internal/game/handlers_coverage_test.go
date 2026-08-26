@@ -83,6 +83,8 @@ func TestShopOpenBuyAndSellLifecycle(t *testing.T) {
 	}
 
 	buy := make([]byte, 24)
+	// The 7.48 request binds the clicked list to the visible merchant at @12.
+	binary.LittleEndian.PutUint16(buy[12:14], shop.ID)
 	binary.LittleEndian.PutUint16(buy[14:16], 0)
 	w.onBuyItem(p.Session, buy)
 	if p.Char.Inv[0].Index != 400 || p.Char.Gold != 4000 || st.saves != 1 {
@@ -118,10 +120,19 @@ func TestShopAndCargoRejectInvalidOperations(t *testing.T) {
 
 	p.ShopNPC = shop.ID
 	p.Char.Gold = 999
-	buy := make([]byte, 16)
+	// O 0x379 nativo tem 24 bytes; um buffer de 16 bytes exercitava apenas a
+	// rejeicao de packet malformado e nunca alcançava a regra de gold.
+	buy := make([]byte, 24)
+	// Exercise the expected insufficient-gold path with a valid merchant ID.
+	binary.LittleEndian.PutUint16(buy[12:14], shop.ID)
 	w.onBuyItem(p.Session, buy)
 	if p.Char.Inv[0].Index != 0 || st.saves != 0 {
 		t.Fatal("compra sem gold foi aplicada")
+	}
+	// Rejeicoes normais de compra precisam gerar o painel 0x101 consumido pelo
+	// client 7.48, em vez de terminar silenciosamente no servidor.
+	if got := p.Session.QueuedPacketsForTest(); got != 1 {
+		t.Fatalf("compra sem gold enfileirou %d packets, esperado painel de erro", got)
 	}
 
 	transfer := make([]byte, 16)

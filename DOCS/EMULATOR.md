@@ -262,7 +262,7 @@ RegenHP/MP@76/@77, Resist[4]@78..81, CurHP@82, CurMP@84 e Magic@86.
 É um pacote público: em players e mobs, atualiza `m_usAffect` e dispara os
 efeitos visuais que os demais clientes precisam enxergar.
 
-### Contrato HP/MP extended do client 7.48 patched
+### Contrato HP/MP extended do client 7.48 recompilado
 
 Personagens acima do limite nativo usam tres representacoes com papeis
 deliberadamente distintos:

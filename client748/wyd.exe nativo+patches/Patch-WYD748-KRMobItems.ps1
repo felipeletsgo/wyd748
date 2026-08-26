@@ -23,6 +23,7 @@ $supportedInputs = @(
     '678D5A500B70F8DC83B26387C4884B05336D09B0BBB3190AD34FF73DB6D977B1'
 )
 $expectedOutputHash = '2C9323E0374FCE22D33CD9C29F633D2650559364B298D1FD73CD2836A18F0DC5' # KRMOB_ITEM_OUTPUT_HASH
+$grid1x1OutputHash = '112C6CFAC316232F009CB7250538F4337E9A35FDBF084E6A2742D444AE8627E3'
 
 function Get-Sha([string]$Path) { return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToUpperInvariant() }
 function Decode-Record([byte[]]$Data, [int]$Size, [int]$ID) {
@@ -74,7 +75,11 @@ foreach ($item in $items) {
 }
 if ($installed) {
     $hash = Get-Sha $ItemList
-    if ($expectedOutputHash -and $hash -ne $expectedOutputHash) { throw "ItemList KR mobs divergiu do SHA esperado: $hash" }
+    # The final grid stage changes only EF_GRID values outside these translated
+    # face records, so both deterministic chain states are valid here.
+    if ($hash -notin @($expectedOutputHash, $grid1x1OutputHash)) {
+        throw "ItemList KR mobs divergiu dos SHAs esperados: $hash"
+    }
     Write-Host 'As 19 faces KR de monstros ja estao materializadas no ItemList 7.48.'
     Write-Host "SHA-256: $hash"
     return

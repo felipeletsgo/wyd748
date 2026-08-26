@@ -74,18 +74,19 @@ ainda pode desenhar HP/MP altos quase zerados. Próxima investigação:
 1. breakpoint na escrita do sidecar wide;
 2. confirmar todos os produtores de CurHP/MaxHP/CurMP/MaxMP;
 3. identificar a rotina da barra e sua escala;
-4. criar novo patch independente, com SHA guard e teste de bytes;
-5. atualizar `client748/PATCHES.md` e reproduzir a cadeia completa.
+4. adaptar a rotina correspondente em `client-source/` com teste focado;
+5. compilar, confirmar a instalação automática de `client748/project.exe` e
+   validar a barra in-game.
 
 Não alterar o servidor para compensar um erro exclusivamente visual.
 
 ### Macro de combate 7.48
 
-O construtor do macro já foi confirmado no executável atual: ele chama a rotina
+O construtor do macro já foi confirmado no executável histórico: ele chama a rotina
 nativa que escolhe `0x39D/48`, `0x39E/52` ou `0x36C/96` por
-`SkillData.MaxTarget`. O patch de macro trava essa chamada e os dois builders
-com assertions de bytes. O servidor conserva `0x39D/96` C→S apenas para clients
-beta antigos.
+`SkillData.MaxTarget`. Essa semântica deve existir na source 7.48 e nos dois
+builders, com testes de código e validação do `project.exe`. O servidor conserva
+`0x39D/96` C→S apenas para clients beta antigos.
 
 Ainda falta executar e registrar a matriz in-game:
 
@@ -100,7 +101,7 @@ Ainda falta executar e registrar a matriz in-game:
 
 - publicar os BMP 16x12 em host controlado;
 - localizar/confirmar a URL usada pelo client 7.48;
-- aplicar patch reprodutível somente se o host nativo não puder ser usado;
+- adaptar a URL ou o loader diretamente na source se o host nativo não puder ser usado;
 - validar cache, atualização e visual para membros/observadores.
 
 ### Assets
@@ -111,7 +112,9 @@ importados. Ainda falta:
 1. validar a coleção in-game por corpo, para owner e observador, incluindo
    equipar, desequipar, relogar e transformações do BeastMaster;
 2. obter de uma distribuição KR completa os arquivos ausentes que bloqueiam
-   outros 96 itens já catalogados em `Costumes-KR.json`; o client KR Test
+   outros 96 itens catalogados historicamente em
+   `client748/wyd.exe nativo+patches/Costumes-KR.json`; promover cada entrada
+   comprovada para os assets/dados ativos antes de habilitá-la. O client KR Test
    fornecido é subconjunto do KR atual e não completa essas dependências;
 3. validar sob carga o prazo absoluto server-side já compartilhado por fadas,
    trajes e montarias premium, incluindo troca, relogin e expiração offline;

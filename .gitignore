@@ -46,10 +46,9 @@ client748/screenshot/
 # Documentacao do projeto e instrucoes de desenvolvimento sao parte da fonte
 # publicada e devem acompanhar cada versao do emulador.
 
-# Backups intermediarios da cadeia de patches do client. Os dois elos
-# IRRECUPERAVEIS -- WYD.original.exe e WYD.pre-extended-stats.exe -- ficam
-# versionados de proposito: a ausencia deles custou uma investigacao inteira e
-# quase levou junto os bypasses de checksum. Ver client748/PATCHES.md.
+# Nomes legados que nao podem reaparecer na raiz ativa de client748/. A cadeia
+# binaria preservada pertence exclusivamente a `wyd.exe nativo+patches/` como
+# material historico read-only; o unico candidato executavel e project.exe.
 client748/WYD.patched-wide.exe
 client748/WYD.premacro.exe
 client748/WYDoriginal.exe

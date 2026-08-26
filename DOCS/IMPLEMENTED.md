@@ -32,7 +32,7 @@ internal/store/      PostgreSQL e JSON de desenvolvimento
 internal/account/    autenticação e criação de conta
 internal/game/       sistemas de gameplay coordenados pelo World
 data/                conteúdo e configuração server-side
-client748/           client e cadeia reprodutível de patches
+client748/           assets ativos e project.exe recompilado
 ```
 
 ## Conta, autenticação e admissão
@@ -70,7 +70,7 @@ client748/           client e cadeia reprodutível de patches
 - Equipamentos são recalculados server-side ao equipar, remover, trocar ou
   descartar.
 - HP, MP, STR, INT, DEX, CON, ataque, ataque mágico e defesa usam `uint32` no
-  domínio e no pacote extended do client patched.
+  domínio e no pacote extended do client source-built.
 - Regeneração, morte, revive, recall e retorno à visibilidade são sincronizados
   para dono e observadores.
 - Atributos, buffs e troca de equipamento atualizam score/estado sem recriar o
@@ -157,7 +157,7 @@ client748/           client e cadeia reprodutível de patches
 - Equip possui 16 slots; `Equip[14]` é montaria e `Equip[15]` é capa.
 - Carry possui 64 posições estruturais e 63 visíveis; o slot 63 é inacessível.
 - Cargo possui 128 posições estruturais e 120 utilizáveis pelo jogador.
-- Cada item ocupa uma célula no Carry e no Cargo do client patched.
+- Cada item ocupa uma célula no Carry e no Cargo do `project.exe` recompilado.
 - Compra, venda, split, delete, swap, equip, drop e pickup revalidam container,
   slot, item e UID autoritativos.
 - Itens de loja preservam efeitos base do `itemlist.csv`, incluindo pilhas.
@@ -360,21 +360,26 @@ git diff --check
 
 ## Client 7.48
 
-O executável versionado é produzido somente pela cadeia documentada em
-`client748/PATCHES.md`. O ponto de entrada é `client748/Apply-WYD748.ps1`.
+O único candidato ativo é `client748/project.exe`, produzido pela source em
+`client-source/tmproject`. A cadeia PowerShell e os executáveis em
+`client748/wyd.exe nativo+patches/` são somente histórico para estudo/Ghidra e
+não podem ser executados nem usados como gate.
 
-Hash SHA-256 suportado do `WYD.exe`:
+Hash SHA-256 do candidato source verificado em 25/08/2026:
 
 ```text
-F6F99CC0405654629D9867C84F6587B2064B30D58F67A2151E1ACD36F394E72D
+5D5A01C008398FE3FC6539E71D2C1DE544E19EAE2F87E9ED5D17042C6339E98E
 ```
 
-Os sete elos atuais são base, ExtendedStats, Bypass, macro normal, Lindy, a
-coleção de trajes KR e as montarias KR. Foram importados 135 trajes completos, com classificação
+O hash é volátil e deve ser recalculado após cada build. Toda funcionalidade
+historicamente obtida por patch só conta como implementada depois de adaptada
+na source 7.48 e validada no `project.exe`.
+
+Foram importados 135 trajes completos, com classificação
 corporal 5 (TK/BM), 10 (FM/HT) ou 15 (dinâmica), 129 renderers, 176 registros
 de textura de traje e 856 assets. Eles reutilizam o ícone 36, permanecem no slot 13 do
 7.48 e estão distribuídos em cinco `ShopCostum*`, com no máximo 27 por loja.
-Um gate por lista exata permite que os IDs modernos ultrapassem a faixa nativa
+O selector da source deve usar uma lista exata para que os IDs modernos ultrapassem a faixa nativa
 `4151..4200` sem liberar outros itens. O gate e o selector também reconstroem o
 ID `4xxx` a partir dos 12 bits transportados no visual do mundo, mantendo o
 traje após `EnterWorld`. Partes vazias são omitidas sem deslocar as partes
@@ -384,13 +389,14 @@ não possuem todas as dependências referenciadas. Cada traje habilitado concede
 80 de defesa e 10% de economia de mana por 30 dias corridos desde o primeiro
 equipamento. O prazo absoluto é persistido com o UID e nunca vem do wire. O
 WaterMacro foi removido; Water automática pertence ao servidor. O ajuste de
-clique do Warrior's Seal ocorre no `ItemList.bin` pelo orquestrador.
+clique do Warrior's Seal deve existir no loader da source ou no asset ativo,
+sem orquestrador de patch binário.
 
 Também foram importadas 59 aparências de montaria disponíveis comprovadas pelo renderer KR.
 Elas reutilizam o contrato da Shire (`342`) no `Equip[14]`, sem ovo/cria,
 comida ou longevidade, e estão divididas entre
-`ShopKRMt01`, `ShopKRMt02` e `ShopKRMt03`, respeitando o limite de 27 itens por loja. O patch
-trata tanto a materialização completa quanto o `UpdateEquip 0x36B`; a aparência
+`ShopKRMt01`, `ShopKRMt02` e `ShopKRMt03`, respeitando o limite de 27 itens por loja. A source
+deve tratar tanto a materialização completa quanto o `UpdateEquip 0x36B`; a aparência
 da montaria muda imediatamente ao equipar ou desequipar. A tabela visual vem do
 `MountDataV.bin` KR e os offsets de assento comprovados para os tipos modernos
 cobertos foram portados; os 58 pathnames de textura usados em runtime estão
@@ -415,9 +421,10 @@ nomes maiores que os 12 bytes do protocolo.
 Prioridade para comportamento nativo:
 
 1. implementação viva e testes do WYD-Go;
-2. W2PP 7.59 para algoritmos;
-3. Secrets 7.54;
-4. Micronics e capturas do client 7.48 para confirmação final.
+2. assets e dados autoritativos atuais;
+3. Ghidra do client 7.48 histórico;
+4. W2PP 7.59 para algoritmos;
+5. Secrets 7.54 e Micronics como referências secundárias.
 
 Portar semântica e fórmulas; nunca copiar structs, offsets ou endereços de outra
 versão.

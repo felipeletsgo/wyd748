@@ -846,6 +846,9 @@ func TestShopOperationsRevalidateRangeAndRejectEquipmentSale(t *testing.T) {
 	p.X += 20
 
 	buy := make([]byte, 24)
+	// Keep the forged request bound to the opened merchant so this assertion
+	// specifically exercises the server-side distance revalidation.
+	binary.LittleEndian.PutUint16(buy[12:14], shop.ID)
 	w.onBuyItem(p.Session, buy)
 	if p.Char.Inv[0].Index != 0 || p.Char.Gold != 5000 || p.ShopNPC != 0 {
 		t.Fatal("compra remota em loja stale foi aceita")

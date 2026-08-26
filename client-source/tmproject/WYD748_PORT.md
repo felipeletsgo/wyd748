@@ -2,9 +2,14 @@
 
 ## Estado
 
-O codigo importado tem como alvo original o client Global/KR 7.69+. Ele compila
-como aplicacao Win32/DirectX 9, mas ainda nao e compativel com o protocolo vivo
-do WYD-Go 7.48.
+O codigo importado tinha como alvo original o client Global/KR 7.69+. Nesta
+árvore ele é adaptado como uma implementação de versão única, Win32/DirectX 9,
+para o protocolo, ABI, UI e assets comprovados do WYD-Go 7.48. Não conservar
+um caminho executável para a versão upstream.
+
+O único candidato ativo é `client748/project.exe`, instalado diretamente a
+partir do build. Os executáveis e patchers históricos não são fallback, produto
+ou gate de validação.
 
 ## Perfil de assets 7.48
 
@@ -56,8 +61,8 @@ vazamento antes da primeira cena.
    `STRUCT_SCORE`: ataque magico, accuracy, evasion, parry, resistencias,
    pontos, regeneracao e outros campos wide.
 5. Cada packet sera migrado com tamanho e offsets testados nos dois lados.
-6. O executavel atual em `client748/` permanece como referencia do protocolo
-  7.48 e como fallback ate a paridade in-game.
+6. `client748/project.exe` é o único candidato executável; o binário histórico
+   7.48 serve apenas como referência Ghidra read-only.
 
 ### Regra de comparacao entre versoes
 
@@ -109,16 +114,18 @@ explicar no codigo qual lado e a fonte e qual lado e a representacao final.
 O tamanho e os offsets sao protegidos por `static_assert` no client e por
 testes byte-a-byte em `internal/wire`.
 
-## Ordem de migracao
+## Ordem de adaptacao
 
-1. Compilar e executar o baseline sem alterar o client 7.48 distribuido.
-2. Adicionar identificacao explicita da variante de protocolo na autenticacao.
-3. Migrar char-list e entrada no mundo.
-4. Migrar `CreateMob`, `UpdateScore` e HP/MP.
-5. Migrar equipamento, inventario, movimento, ataque e skills.
-6. Portar a extensao wide, macro, trajes, montarias e faces ja validados.
-7. Validar owner e observer antes de promover o novo executavel.
+1. Confirmar o fluxo nativo e o SHA da referência histórica no Ghidra 7.48.
+2. Localizar callers, callees, structs e assets correspondentes na source viva.
+3. Adaptar um grupo pequeno de packets ou uma janela por vez, removendo o
+   caminho exclusivo da versão upstream quando o contrato 7.48 estiver coberto.
+4. Proteger wire/ABI com `static_assert` e testes byte-a-byte.
+5. Validar assets, compilar e confirmar que o build instalou e conferiu
+   automaticamente `client748/project.exe`.
+6. Testar owner, observer, falha e relogin antes de promover o comportamento.
 
 Nao alterar varios packets estruturais de uma vez: `STRUCT_SCORE` esta embutido
 em estruturas maiores, portanto cada mudanca deve possuir corpus e teste do
-packet final.
+packet final. Nunca criar seleção de variante 7.48/7.59 na autenticação ou em
+outro ponto; esta source tem apenas o contrato 7.48.

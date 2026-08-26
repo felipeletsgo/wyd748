@@ -4,6 +4,7 @@
 #include "TMGlobal.h"
 #include "TMObject.h"
 #include "TMLog.h"
+#include <cfloat>
 
 TMMesh::TMMesh()
 {
@@ -21,12 +22,16 @@ TMMesh::TMMesh()
 	m_fScaleH = 1.0f;
 	m_fRadius = 1.0f;
 
-	m_fMaxX = 1.175494f;
-	m_fMinX = 3.402823f;
-	m_fMaxY = 1.175494f;
-	m_fMinY = 3.402823f;
-	m_fMaxZ = 1.175494f;
-	m_fMinZ = 3.402823f;
+	// Native WYD 7.48 FUN_004baf10 initializes every maximum with FLT_MIN
+	// (0x00800000) and every minimum with FLT_MAX (0x7F7FFFFF).  The recovered
+	// source had lost the decimal exponents, which biased m_vecCenter and moved
+	// inventory/equipment meshes away from the centre of their controls.
+	m_fMaxX = FLT_MIN;
+	m_fMinX = FLT_MAX;
+	m_fMaxY = FLT_MIN;
+	m_fMinY = FLT_MAX;
+	m_fMaxZ = FLT_MIN;
+	m_fMinZ = FLT_MAX;
 
 	m_bEffect = 0;
 

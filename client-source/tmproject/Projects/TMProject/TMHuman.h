@@ -169,6 +169,9 @@ public:
     int UnSetCitizenMantle(int BaseSkin);
     int MAutoAttack(TMHuman* pTarget, int mode);
     void SetMountCostume(unsigned int index);
+    // Imported KR mounts use full item IDs that cannot be represented by the
+    // legacy one-byte costume selector; true means the ID was fully handled.
+    bool SetImportedMountCostume(unsigned int itemIndex);
 
 private:
     bool _locationCheck(TMVector2 vec2, int mapX, int mapY);

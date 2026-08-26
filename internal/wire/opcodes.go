@@ -19,9 +19,9 @@ const (
 	OpCreateMobTrade     = 0x363 // S->C cria clone de auto-loja com titulo (352B)
 	OpCreateMob          = 0x364 // S->C cria mob/player (328B, Score@140)
 	OpSetHpMp            = 0x181 // S->C HP/MP uint32 (28B)
-	OpUpdateScore        = 0x336 // S->C Score uint32/affects (244B)
-	OpUpdateAffect       = 0x3B9 // S->C 32 affects completos (268B)
-	OpUpdateEtc          = 0x337 // S->C Hold/exp/pontos/gold (48B com cauda wide; CP fica no CreateMob)
+	OpUpdateScore        = 0x336 // S->C Score uint32/affects (232B)
+	OpUpdateAffect       = 0x3B9 // S->C 16 affects completos do dono (140B)
+	OpUpdateEtc          = 0x337 // S->C Hold/exp/tres pontos WORD/gold (36B nativos; CP fica no CreateMob)
 	OpCNFMobKill         = 0x338 // S->C confirma morte e atualiza EXP do killer
 	OpUpdateCarry        = 0x185 // S->C inventario interativo (528B)
 	OpUpdateCargoGold    = 0x339 // S->C gold armazenado no Cargo (16B)
@@ -34,7 +34,7 @@ const (
 	OpInstanceTime       = 0x3A1 // S->C contador verde de tempo
 	OpInstanceMobs       = 0x3B0 // S->C contador de monstros restantes
 	OpClientUnknown2BC   = 0x2BC // C->S telemetria/estado do client 7.48 (108B)
-	OpSwapItem           = 0x376 // C->S mover/equipar item (20B)
+	OpSwapItem           = 0x376 // C<->S mover/equipar item e confirmar lifecycle (20B)
 	OpWithdraw           = 0x387 // C<->S retirar gold do Cargo (16B)
 	OpDeposit            = 0x388 // C<->S depositar gold no Cargo (16B)
 	OpUseItem            = 0x373 // C->S usar item volatil (36B)
@@ -75,7 +75,7 @@ const (
 	OpPKInfo             = 0x166 // S->C publica estado PK (MSG_STANDARDPARM)
 	OpReqShopList        = 0x27B // C->S clicou num mercador tipo 3 (TargetID@12) -> pede loja
 	OpShopList           = 0x17C // S->C lista da loja / abre a janela (236B, 27 slots)
-	OpBuyItem            = 0x379 // C->S compra item da loja (TargetID@12, sellSlot@14)
+	OpBuyItem            = 0x379 // C<->S compra/confirma item da loja (24B)
 	OpSellItem           = 0x37A // C->S vende item pro mercador (TargetID@12, MyType@14, MyPos@16)
 	OpApplyBonus         = 0x277 // C->S stats/mastery/skill (BonusType@12, Detail@14, TargetID@16, 20B)
 	OpPartyAdd           = 0x37D // S->C adiciona/atualiza membro no painel do grupo (40B)

@@ -71,7 +71,8 @@ namespace
         std::int16_t Grade;
     };
 
-    // These offsets are the on-disk 7.48 ABI proved by the client patch chain.
+    // These offsets are the on-disk 7.48 ABI proved from the historical client
+    // and implemented here so project.exe consumes the legacy table directly.
     // In particular, Position is a WORD at 0x86; TMProject 7.59 inserted a
     // field there and widened Position, so raw fread would corrupt every row.
     static_assert(sizeof(LegacyItemRecord) == LegacyItemRecordSize);
@@ -634,6 +635,15 @@ unsigned int WYD748_TranslateControlID(const unsigned int controlID)
         { 314, 65795 }, // Helper
         { 315, 65793 }, // Quest log
         { 368, 65562 }, // Inventory close
+
+		// The native text prompt is shared by auto-trade and coin operations.
+		// Ghidra FUN_004110f5/FUN_00447594 prove the panel and child controls
+		// are the 7.48 equivalents used to select an AutoTrade item and its price.
+		{ 626, 65885 }, // Input panel
+		{ 627, 65889 }, // Input edit
+		{ 628, 65886 }, // Input confirm
+		{ 629, 65887 }, // Input cancel
+		{ 630, 65888 }, // Input caption
         { 533, 65769 }, // Character close
         { 1913, 65568 }, // Skill close
 

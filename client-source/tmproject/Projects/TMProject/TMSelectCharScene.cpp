@@ -1525,11 +1525,8 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 
 		g_pObjectManager->m_dwCharID = pCharLogin->ClientID;
 		memcpy(&g_pObjectManager->m_stMobData, &pCharLogin->MOB, sizeof(pCharLogin->MOB));
-		// CharacterLogin still embeds the native STRUCT_MOB. Seed the sidecars
-		// from that prefix until the authoritative 0x337 update arrives.
-		g_pObjectManager->m_stMobData.CurrentScore.StatusPts = pCharLogin->MOB.ScoreBonus > 0 ? pCharLogin->MOB.ScoreBonus : 0;
-		g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pCharLogin->MOB.SpecialBonus > 0 ? pCharLogin->MOB.SpecialBonus : 0;
-		g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pCharLogin->MOB.SkillBonus > 0 ? pCharLogin->MOB.SkillBonus : 0;
+		// CharacterLogin already embeds the complete canonical Score. Reading the
+		// removed 7.59 sidecars would reinterpret unrelated 7.48 bytes as points.
 		g_pObjectManager->m_nFakeExp = pCharLogin->Ext1.Data[0];
 		g_pObjectManager->m_stMobData.HomeTownX = pCharLogin->PosX;
 		g_pObjectManager->m_stMobData.HomeTownY= pCharLogin->PosY;

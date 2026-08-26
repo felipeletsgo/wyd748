@@ -33,7 +33,7 @@ func TestApplyBonusDoesNotRematerializeMovingPlayer(t *testing.T) {
 
 	// UpdateScore + UpdateEtc. O SetHpMp NAO vai mais para o dono: o 0x336 ja
 	// leva HP/MP nos WORDs legados e na cauda wide, e cada pacote de vitals
-	// custa um redesenho nativo no client patcheado -- dois seguidos faziam a
+	// custa um redesenho nativo no client recompilado -- dois seguidos faziam a
 	// barra piscar. Os observadores continuam recebendo o 0x181.
 	//
 	// Um terceiro pacote aqui seria o CreateMob que encaixava o avatar no

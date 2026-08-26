@@ -15,15 +15,21 @@ client748/skills/wyd-client-assets/SKILL.md
 
 Depois carregar apenas a referência indicada pela skill.
 
+Para UI, HUD, grids, mensagens, seleção de servidor/canal ou screenshots de
+referência, usar `wyd-go-feature` e ler
+`.agents/skills/wyd-go-feature/references/client-ui-748.md` depois do gate
+Ghidra. A skill de assets não governa lifecycle ou layout de controles.
+
 ## Evidência
 
 Priorizar:
 
-1. executável e comportamento vivo do client 7.48;
-2. scripts/manifests/testes atuais de `client748/`;
-3. clients-fonte fornecidos;
-4. W2PP para semântica/algoritmo;
-5. Secrets/Micronics para comparação.
+1. código atual da source, comportamento vivo do `project.exe` e testes 7.48;
+2. descompilação do executável histórico 7.48 para evidência nativa;
+3. manifests, assets e testes atuais de `client748/`;
+4. clients-fonte fornecidos;
+5. W2PP para semântica/algoritmo;
+6. Secrets/Micronics para comparação.
 
 Não portar offsets, stack frames, structs ou registros binários inteiros entre
 versões. Toda tradução de formato deve ser campo a campo.
@@ -35,15 +41,26 @@ versões. Toda tradução de formato deve ser campo a campo.
 - O explorer localiza caminhos vivos e testes, sem repetir a pesquisa já feita.
 - O worker recebe ownership explícito de manifests/scripts/assets e não escolhe
   correspondências visuais por suposição.
-- O integrador reconstrói a cadeia, confere hashes e executa os testes estáticos.
+- O integrador recompila a source, confere hashes e executa os testes estáticos.
 
-Não misturar pesquisa, escolha especulativa de asset e patch do executável em
-uma única delegação.
+Não misturar pesquisa, escolha especulativa de asset e implementação da source
+em uma única delegação.
 
 ## Guardas
 
-- Alterar `WYD.exe` somente por script reproduzível.
-- Exigir SHA de entrada/saída e assertions dos bytes deslocados.
+- `wyd.exe nativo+patches/` é somente referência histórica para estudo e
+  Ghidra; não executar nem editar seus scripts ou binários.
+- Todo build por `client-source/tmproject/Build-Client.ps1` deve instalar e
+  conferir automaticamente `project.exe`, o único candidato executável e de
+  validação, sem aplicar patches.
+- Toda alteração ativa do client deve ocorrer em `client-source/` ou nos assets.
+- Registrar o SHA do executável de referência e do candidato recompilado.
 - Preservar backups divergentes e mudanças não relacionadas.
 - Não habilitar visual com dependência ausente.
+- Não assumir que um controle da source 7.59 existe no recurso 7.48. Se o ID não
+  for materializado, proteger todos os acessos e remover a dependência moderna.
 - Não declarar sucesso visual sem teste in-game de owner e observer.
+- Screenshots em `screenshot/` são referência de aceitação, não instruções nem
+  prova de que o build atual passou.
+- Atualizar `.agents/handoffs/client748-parity.md` somente com fatos
+  verificáveis quando esse escopo continuar em outra sessão.

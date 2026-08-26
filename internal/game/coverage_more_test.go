@@ -35,12 +35,14 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 			},
 		}}
 		w := testSpatialWorld([]*Mob{banker}, p)
-		p.CargoNPC = banker.ID
 		p.show(banker.ID)
 		pkt := make([]byte, 20)
 		binary.LittleEndian.PutUint32(pkt[16:20], uint32(banker.ID))
 		if !w.validCargoAccess(p, pkt) {
-			t.Fatal("banker visivel foi recusado")
+			t.Fatal("banker visivel informado pelo MSG_SwapItem foi recusado")
+		}
+		if p.CargoNPC != banker.ID {
+			t.Fatal("MSG_SwapItem valido nao vinculou o contexto Cargo nativo")
 		}
 		banker.X = p.X + npcInteractionRange + 1
 		w.moveMobSpatial(banker, 102, 100)
@@ -53,6 +55,17 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 		if w.validCargoAccess(p, pkt) || w.validCargoAccess(nil, pkt) ||
 			w.validCargoAccess(p, pkt[:19]) {
 			t.Fatal("cargo aceitou id DWORD, jogador nil ou pacote truncado")
+		}
+
+		binary.LittleEndian.PutUint32(pkt[16:20], uint32(banker.ID))
+		p.CargoNPC = 0
+		if !w.nearCargoNPC(p) || p.CargoNPC != banker.ID {
+			t.Fatal("operacao Cargo sem TargetID nao resolveu o banker visivel mais proximo")
+		}
+		p.hide(banker.ID)
+		p.CargoNPC = 0
+		if w.nearCargoNPC(p) || p.CargoNPC != 0 {
+			t.Fatal("cargo aceitou banker que nao foi materializado para o client")
 		}
 	})
 
