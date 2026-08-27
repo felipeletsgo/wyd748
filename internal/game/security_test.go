@@ -279,6 +279,31 @@ func TestMovementAdvancesOnlyAsAuthoritativeTimePasses(t *testing.T) {
 	}
 }
 
+func TestMovementUsesNative748MaximumSpeedSeven(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.terrain = loadedFlatTerrain()
+	clock := newFakeClock(time.Unix(100, 0))
+	w.clock = clock
+	p.Char.Score.AttackRun = 7
+	applyScore(p.Char)
+
+	move := make([]byte, 52)
+	binary.LittleEndian.PutUint16(move[12:14], p.X)
+	binary.LittleEndian.PutUint16(move[14:16], p.Y)
+	binary.LittleEndian.PutUint32(move[16:20], 7)
+	binary.LittleEndian.PutUint16(move[24:26], p.X+7)
+	binary.LittleEndian.PutUint16(move[26:28], p.Y)
+	copy(move[28:], []byte("6666666"))
+	w.onMove(p.Session, move)
+
+	clock.Advance(time.Second)
+	w.advancePlayerMovement(p, clock.Now())
+	if p.X != 2107 || p.Y != 2100 || p.MovePublished {
+		t.Fatalf("RunSpeed 7 nao avancou sete tiles em um segundo: (%d,%d) moving=%v",
+			p.X, p.Y, p.MovePublished)
+	}
+}
+
 func TestMovementUsesCaptured748RouteDirections(t *testing.T) {
 	tests := []struct {
 		encoded byte
@@ -488,28 +513,28 @@ func TestMovementVisualCatchupUsesMaximumSpeedWithoutAcceleratingFutureRoute(t *
 	p.Char.Score.AttackRun = 1
 	applyScore(p.Char)
 
-	// Seis passos até o Pos já percorrido visualmente + um passo futuro.
+	// Sete passos até o Pos já percorrido visualmente + um passo futuro.
 	move := make([]byte, 52)
-	binary.LittleEndian.PutUint16(move[12:14], p.X+6)
+	binary.LittleEndian.PutUint16(move[12:14], p.X+7)
 	binary.LittleEndian.PutUint16(move[14:16], p.Y)
-	binary.LittleEndian.PutUint16(move[24:26], p.X+7)
+	binary.LittleEndian.PutUint16(move[24:26], p.X+8)
 	binary.LittleEndian.PutUint16(move[26:28], p.Y)
 	move[28] = '6'
 	w.onMove(p.Session, move)
 
 	clock.Advance(time.Second)
 	w.advancePlayerMovement(p, clock.Now())
-	if p.X != 2106 || p.Y != 2100 {
+	if p.X != 2107 || p.Y != 2100 {
 		t.Fatalf("catch-up nao usou velocidade maxima: (%d,%d)", p.X, p.Y)
 	}
 	clock.Advance(999 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
-	if p.X != 2106 {
+	if p.X != 2107 {
 		t.Fatalf("trecho futuro foi acelerado junto com catch-up: x=%d", p.X)
 	}
 	clock.Advance(time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
-	if p.X != 2107 || p.MovePublished {
+	if p.X != 2108 || p.MovePublished {
 		t.Fatalf("trecho futuro nao respeitou RunSpeed 1: x=%d moving=%v", p.X, p.MovePublished)
 	}
 }

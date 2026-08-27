@@ -4414,6 +4414,16 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		case 65792: // skill
 			SetVisibleSkill();
 			return 0;
+		case B_AUTOTRADEBTN:
+			// FUN_004662c5 routes native button 313 directly to the title prompt
+			// while AutoTrade is closed and to the native close path while visible.
+			if (!m_pMyHuman || !m_pMyHuman->IsInTown())
+				return 1;
+			if (m_pAutoTrade && m_pAutoTrade->IsVisible())
+				SetVisibleAutoTrade(0, 0);
+			else
+				VisibleInputTradeName();
+			return 1;
 		case 65799: // party
 			if (auto panel = m_pControlContainer->FindControl(1857))
 				panel->SetVisible(panel->IsVisible() == 0);
@@ -14779,6 +14789,16 @@ void TMFieldScene::SetVisibleCargo(int bShow)
 	// page or gamble controls that exist only in the imported 7.59 resource.
 	if (m_bCompatFieldScene)
 	{
+		if (bShow && m_pCargoPanel && m_pInvenPanel && g_pDevice)
+		{
+			// Reapply the native Cargo pair geometry on every open so AutoTrade,
+			// shops, or other panels cannot leave either window at a stale position.
+			const float cargoX = ((float)g_pDevice->m_dwScreenWidth - m_pCargoPanel->m_nWidth) * 0.5f;
+			const float sharedY = RenderDevice::m_fHeightRatio * 35.0f;
+			const float panelGap = RenderDevice::m_fWidthRatio * 24.4f;
+			m_pCargoPanel->SetPos(cargoX, sharedY);
+			m_pInvenPanel->SetPos(cargoX + m_pCargoPanel->m_nWidth + panelGap, sharedY);
+		}
 		if (m_pCargoPanel)
 			m_pCargoPanel->SetVisible(bShow);
 		if (m_pInvenPanel)
@@ -17927,11 +17947,14 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 			}
 			else
 			{
-				// Customer view uses the same native AutoTrade anchor and the
-				// equipment window on the opposite side of the screen.
+				// Customer view keeps both 7.48 panels on the same top baseline:
+				// AutoTrade at x=280 and Carry immediately beside it at x=530.
 				m_pAutoTrade->SetPos(RenderDevice::m_fWidthRatio * 280.0f,
 					RenderDevice::m_fHeightRatio * 35.0f);
 				setPanelVisible(m_pCargoPanel, 0);
+				if (m_pInvenPanel)
+					m_pInvenPanel->SetPos(RenderDevice::m_fWidthRatio * 530.0f,
+						RenderDevice::m_fHeightRatio * 35.0f);
 				setPanelVisible(m_pInvenPanel, 1);
 				if (pRunAutoTrade)
 					pRunAutoTrade->SetVisible(0);
@@ -17978,6 +18001,7 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 				{
 					pPrice->m_cComma = 1;
 					pPrice->SetText((char*)"", 0);
+					pPrice->SetVisible(0);
 				}
 
 				auto pGrid = m_pGridAutoTrade[slot];
@@ -21443,6 +21467,23 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 	pHuman->SetCharHeight(static_cast<float>(pHuman->m_stScore.Con));
 	pHuman->SetRace(pCreateMob->Equip[0] & 0x0FFF);
 	pHuman->InitObject();
+	if (pStd->Type == MSG_CreateMobTrade_Opcode)
+	{
+		auto pCreateMobTrade = reinterpret_cast<MSG_CreateMobTrade*>(pStd);
+
+		// The native 7.48 lifecycle uses this same field to render the shop title
+		// and to enable the 0x39A click request, so the compat spawn must retain it.
+		memcpy(pHuman->m_TradeDesc, pCreateMobTrade->Desc, sizeof(pHuman->m_TradeDesc));
+		pHuman->m_TradeDesc[sizeof(pHuman->m_TradeDesc) - 1] = 0;
+		if (pHuman->m_pAutoTradeDesc)
+			pHuman->m_pAutoTradeDesc->SetText(pHuman->m_TradeDesc, 0);
+	}
+	else
+	{
+		memset(pHuman->m_TradeDesc, 0, sizeof(pHuman->m_TradeDesc));
+		if (pHuman->m_pAutoTradeDesc)
+			pHuman->m_pAutoTradeDesc->SetText(pHuman->m_TradeDesc, 0);
+	}
 	pHuman->CheckAffect();
 	pHuman->CheckWeapon(pCreateMob->Equip[6] & 0x0FFF, pCreateMob->Equip[7] & 0x0FFF);
 
@@ -22654,6 +22695,22 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 	const int autoTradeSlotCount = m_bCompatFieldScene ? 12 : 10;
 	for (int i = 0; i < autoTradeSlotCount; ++i)
 	{
+		// FieldScene2.bin reserves controls 800..811 for the native price row
+		// beneath each item.  Empty offers are hidden to prevent stale values.
+		auto pPrice = static_cast<SText*>(m_pControlContainer->FindControl(800 + i));
+		const bool hasOffer = pAutoTrade->Item[i].sIndex > 0 && pAutoTrade->TradeMoney[i] > 0;
+		if (pPrice)
+		{
+			pPrice->m_cComma = 1;
+
+			char price[32]{};
+			if (hasOffer)
+				sprintf_s(price, "%d", pAutoTrade->TradeMoney[i]);
+
+			pPrice->SetText(price, 0);
+			pPrice->SetVisible(hasOffer ? 1 : 0);
+		}
+
 		SGridControl* pGrid = m_pGridAutoTrade[i];
 		if (!pGrid)
 			continue;

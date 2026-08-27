@@ -281,9 +281,13 @@ type Affect struct {
 	// OwnerCharacterUID is the stable source identity for player-owned
 	// hostile affects. OwnerID is a process-local wire/session id and is kept
 	// only for compatibility with active legacy sessions.
-	OwnerCharacterUID string    `json:"ownerCharacterUid,omitempty"`
-	ExpiresAt         time.Time `json:"expiresAt,omitempty"`
-	NextTick          time.Time `json:"nextTick,omitempty"`
+	OwnerCharacterUID string `json:"ownerCharacterUid,omitempty"`
+	// SourceItem identifica a instancia economica que criou ou estendeu o buff;
+	// o indice facilita auditoria humana sem substituir o UID autoritativo.
+	SourceItemUID   string    `json:"sourceItemUid,omitempty"`
+	SourceItemIndex uint16    `json:"sourceItemIndex,omitempty"`
+	ExpiresAt       time.Time `json:"expiresAt,omitempty"`
+	NextTick        time.Time `json:"nextTick,omitempty"`
 }
 
 // CelestialForm guarda exclusivamente a forma INATIVA do par

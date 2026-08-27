@@ -32,6 +32,8 @@ func buildCharState(p *Player, now time.Time) *model.CharState {
 			state.Affects = append(state.Affects, model.PersistedAffect{
 				Type: a.Type, ClientType: a.ClientType, Value: a.Value, Level: a.Level,
 				OwnerID: a.OwnerID, OwnerCharacterUID: a.OwnerCharacterUID,
+				// O sidecar liga a expiracao absoluta ao UID da unidade consumida.
+				SourceItemUID: a.SourceItemUID, SourceItemIndex: a.SourceItemIndex,
 				ExpiresUnix: a.ExpiresAt.Unix(),
 			})
 		}
@@ -89,6 +91,9 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 		p.Char.Affects[slot] = model.Affect{
 			Type: pa.Type, ClientType: clientType, Value: pa.Value, Level: pa.Level,
 			OwnerID: pa.OwnerID, OwnerCharacterUID: pa.OwnerCharacterUID,
+			// Relog restaura a mesma origem economica; sidecars antigos continuam
+			// validos porque os campos opcionais chegam vazios.
+			SourceItemUID: pa.SourceItemUID, SourceItemIndex: pa.SourceItemIndex,
 			ExpiresAt: time.Unix(pa.ExpiresUnix, 0),
 			NextTick:  now.Add(8 * time.Second),
 		}

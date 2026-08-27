@@ -2611,7 +2611,11 @@ SMessageBox::SMessageBox(const char* istrMessage, char ibyMessageBoxType, float 
 	// TMProject. The original constructor at VA 0x00403EB8 uses texture sets
 	// 164/165 and a 232x107 visible frame; preserving that exact tree also keeps
 	// the rendered buttons and their hit boxes on the same coordinates.
-	const bool useWYD748NewUI = g_UIVer == 2;
+	// Keep the classic global mode for the 7.48 HUD and hit-test geometry, but
+	// confirmations still use the native NewUI composition requested in-game.
+	// Type 0 is the shared Yes/No box used by AutoTrade purchase confirmation.
+	const bool useWYD748NewUI =
+		ibyMessageBoxType == TMC_MESSAGEBOX_MESSAGE || g_UIVer == 2;
 	m_pPanel1 = nullptr;
 	m_pPanel2 = nullptr;
 	m_pMessage = nullptr;

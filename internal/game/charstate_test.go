@@ -58,7 +58,13 @@ func (s *charStateMemoryStore) SaveCharStateAsync(_ string, state *model.CharSta
 func TestCharStateRoundTripsActiveBuffs(t *testing.T) {
 	now := time.Now()
 	p := &Player{Char: &model.Char{}, SpecialCoins: map[string]uint32{"wyden": 5}}
-	p.Char.Affects[0] = model.Affect{Type: 4, ClientType: 4, Value: 25, ExpiresAt: now.Add(10 * time.Minute)}
+	// A origem precisa sobreviver ao relog mesmo quando a unidade consumida ja
+	// nao existe no inventario.
+	p.Char.Affects[0] = model.Affect{
+		Type: 4, ClientType: 4, Value: 25,
+		SourceItemUID: "11111111111141118111111111110414", SourceItemIndex: 4140,
+		ExpiresAt: now.Add(10 * time.Minute),
+	}
 	p.Char.Affects[1] = model.Affect{Type: 30, ExpiresAt: now.Add(-time.Minute)} // ja expirado
 
 	state := buildCharState(p, now)
@@ -71,7 +77,8 @@ func TestCharStateRoundTripsActiveBuffs(t *testing.T) {
 
 	fresh := &Player{Char: &model.Char{}}
 	(&World{}).applyCharState(fresh, state, now)
-	if a := activePlayerAffect(fresh.Char, 4); a == nil || a.Value != 25 {
+	if a := activePlayerAffect(fresh.Char, 4); a == nil || a.Value != 25 ||
+		a.SourceItemUID != "11111111111141118111111111110414" || a.SourceItemIndex != 4140 {
 		t.Fatalf("buff nao restaurado no relog: %+v", fresh.Char.Affects)
 	}
 	if fresh.SpecialCoins["wyden"] != 5 {

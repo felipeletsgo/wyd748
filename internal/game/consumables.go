@@ -493,6 +493,9 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// dado (AffectType) e sua formula vive em applyExtendedAffectStats. O
 		// numero de balanceamento (% ou nivel) e a duracao vem do volatiles.json.
 		snapshot := cloneCharacterState(p.Char)
+		// O slot pode ser zerado ao consumir a ultima unidade; preserve antes o
+		// indice e o UID usados tanto pelo charstate quanto pela auditoria.
+		usedItem := *item
 		affects := rule.Affects
 		if len(affects) == 0 && rule.AffectType > 0 {
 			affects = []model.VolatileAffect{{
@@ -505,7 +508,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
-		buffResult := w.applyVolatileBuff(p.Char, rule)
+		buffResult := w.applyVolatileBuff(p.Char, rule, usedItem)
 		if buffResult != volatileBuffApplied {
 			// Buff igual/mais forte ja ativo, ou tempo ja no teto: o nativo nao deixa
 			// "usar/comer mais". Reenvia o slot autoritativo, avisa o motivo e nao
@@ -537,8 +540,22 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		log.Printf("[#%d] usou buff item=%d volatile=%d affects=%d",
-			s.ID, item.Index, code, len(affects))
+		// Registre os tipos e prazos que ficaram ativos, nao apenas a quantidade
+		// configurada. Isso diferencia itens que compartilham EF_VOLATILE.
+		appliedTypes := make([]byte, 0, len(affects))
+		expiresUnix := make([]int64, 0, len(affects))
+		for _, configured := range affects {
+			affectType := configured.Type
+			if configured.SkillID > 0 {
+				affectType = w.skills[configured.SkillID].AffectType
+			}
+			if active := activePlayerAffectAt(p.Char, byte(affectType), w.now()); active != nil {
+				appliedTypes = append(appliedTypes, active.Type)
+				expiresUnix = append(expiresUnix, active.ExpiresAt.Unix())
+			}
+		}
+		log.Printf("[#%d] usou buff item=%d uid=%q volatile=%d affects=%v expires_unix=%v",
+			s.ID, usedItem.Index, usedItem.UID, code, appliedTypes, expiresUnix)
 
 	case "grant_exp":
 		// Baus e poeiras de XP. Delegam a transacao comum de EXP (snapshot completo
@@ -1042,7 +1059,8 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	// confirmar ao client um refino que o disco nao guardou.
 	if err := w.saveAccount(p.Account); err != nil {
 		*powder, *dest = oldPowder, oldDest
-		log.Printf("[#%d] ERRO ao salvar refino alvo=%d: %v", s.ID, oldDest.Index, err)
+		log.Printf("[#%d] ERRO ao salvar refino po=%d po_uid=%q alvo=%d alvo_uid=%q consumiu=false: %v",
+			s.ID, oldPowder.Index, oldPowder.UID, oldDest.Index, oldDest.UID, err)
 		resend()
 		s.Send(wire.SendItem(p.ID, byte(destType), byte(destPos), *dest))
 		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
@@ -1063,6 +1081,15 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	if success {
 		result = "OK"
 	}
-	log.Printf("[#%d] refino code=%d po=%d alvo=%d +%d->%d %s roll=%d/%d",
-		s.ID, code, oldPowder.Index, oldDest.Index, sanc, sanc+1, result, roll.Roll, roll.Chance)
+	// UID distingue unidades e pilhas iguais; a quantidade restante comprova se
+	// a tentativa valida consumiu a poeira no sucesso ou na falha da rolagem.
+	remaining := uint32(0)
+	if powder.Index != 0 {
+		// itemStackAmount devolve 1 para itens nao empilhados; slot vazio e a
+		// excecao economica que precisa aparecer como zero na auditoria.
+		remaining = itemStackAmount(*powder)
+	}
+	log.Printf("[#%d] refino code=%d po=%d po_uid=%q alvo=%d alvo_uid=%q +%d->%d %s consumiu=%t restante=%d roll=%d/%d",
+		s.ID, code, oldPowder.Index, oldPowder.UID, oldDest.Index, oldDest.UID,
+		sanc, sanc+1, result, rule.Consume, remaining, roll.Roll, roll.Chance)
 }

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"strings"
@@ -72,6 +73,31 @@ func TestPostgresSchemaContainsAuthoritativeItemConstraints(t *testing.T) {
 		if !strings.Contains(postgresSchema, contract) {
 			t.Fatalf("schema perdeu contrato %q", contract)
 		}
+	}
+}
+
+func TestPostgresCharStatePayloadPreservesBuffSourceAndAbsoluteDeadline(t *testing.T) {
+	const characterUID = "aaaaaaaaaaaa4aaa8aaaaaaaaaaaaaaa"
+	const itemUID = "11111111111141118111111111104140"
+	// Este e o encoder usado por SavePlayerState/SaveCharState antes do INSERT
+	// em character_states.payload; a origem e o prazo nao podem ficar so na RAM.
+	payload, err := charStatePayload(characterUID, &model.CharState{
+		Version: model.CharStateVersion,
+		Affects: []model.PersistedAffect{{
+			Type: 39, SourceItemUID: itemUID, SourceItemIndex: 4140,
+			ExpiresUnix: 2_000_007_200,
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got model.CharState
+	if err := json.Unmarshal(payload, &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Affects) != 1 || got.Affects[0].SourceItemUID != itemUID ||
+		got.Affects[0].SourceItemIndex != 4140 || got.Affects[0].ExpiresUnix != 2_000_007_200 {
+		t.Fatalf("payload PostgreSQL perdeu origem/prazo do buff: %+v", got)
 	}
 }
 

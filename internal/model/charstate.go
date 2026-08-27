@@ -27,7 +27,11 @@ type PersistedAffect struct {
 	Level             int    `json:"level,omitempty"`
 	OwnerID           uint16 `json:"ownerId,omitempty"`
 	OwnerCharacterUID string `json:"ownerCharacterUid,omitempty"`
-	ExpiresUnix       int64  `json:"expiresUnix"`
+	// A origem economica permanece no payload PostgreSQL durante toda a vida do
+	// buff, inclusive depois que a unidade consumida sai do inventario.
+	SourceItemUID   string `json:"sourceItemUid,omitempty"`
+	SourceItemIndex uint16 `json:"sourceItemIndex,omitempty"`
+	ExpiresUnix     int64  `json:"expiresUnix"`
 }
 
 // CharStateVersion e a versao do contrato do sidecar. Campos opcionais aditivos

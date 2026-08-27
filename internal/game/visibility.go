@@ -457,7 +457,7 @@ func (w *World) publishPlayerMove(player *Player, fromX, fromY, targetX, targetY
 	if fromX == targetX && fromY == targetY {
 		return
 	}
-	// BASE_GetSpeed: nibble baixo de AttackRun, limitado a 1..6. Usar o score
+	// BASE_GetSpeed 7.48: nibble baixo de AttackRun, limitado a 1..7. Usar o score
 	// impede speed hack e conserva visualmente botas/buffs de corrida.
 	speed := uint32(playerAttackRun(player.Char) & 0x0F)
 	// O jogador ainda esta indexado na celula anterior neste ponto. Consulte a

@@ -309,7 +309,8 @@ TMHuman::TMHuman(TMScene* pParentScene)
     {
         m_pNameLabel = new SText(-1, "NoName", 0xFFFFFFAA, 0.0f, 650.0f, 128.0f, 16.0f, 0, 0x55AA0000, 1, 0);
         m_pAutoTradeDesc = new SText(-1, "", 0xFFFFFFFF, 0.0, 650.0f, 143.0f, 50.0f, 0, 0xFFFFFFFF, 1, 0);
-        m_pAutoTradePanel = new SPanel(512, -10.0f, 635.0f, 141.0f, 43.0f, 0x77777777u, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+        // The 7.48 client renders the persistent shop sign with NewUI_AutoTrade_BG (texture set 446) at its native 143x50 size.
+        m_pAutoTradePanel = new SPanel(446, -10.0f, 635.0f, 143.0f, 50.0f, 0x77777777u, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
         m_pAutoTradePanel->m_bSelectEnable = 0;
         m_pChatMsg = new SText(-2, "", 0xFFFFFFFF, 0.0f, 650.0f, 256.0f, 64.0f, 1, 0x77000000, 1, 0);
         m_pChatMsg->m_Font.m_bMultiLine = 1;
@@ -353,8 +354,11 @@ TMHuman::TMHuman(TMScene* pParentScene)
 
         g_pCurrentScene->m_pControlContainer->AddItem(m_pNameLabel);
         g_pCurrentScene->m_pControlContainer->AddItem(m_stGuildMark.pGuildMark);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pAutoTradeDesc);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pAutoTradePanel);
+		// The 7.48 renderer walks the control list in reverse. Native
+		// FUN_004f7ea6 therefore inserts the title before NewUI_AutoTrade_BG so
+		// the panel remains the background instead of covering the shop name.
+		g_pCurrentScene->m_pControlContainer->AddItem(m_pAutoTradeDesc);
+		g_pCurrentScene->m_pControlContainer->AddItem(m_pAutoTradePanel);
         g_pCurrentScene->m_pControlContainer->AddItem(m_pNickNameLabel);
         g_pCurrentScene->m_pControlContainer->AddItem(m_pChatMsg);
         g_pCurrentScene->m_pControlContainer->AddItem(m_pProgressBar);
@@ -1920,10 +1924,16 @@ int TMHuman::Render()
 
 int TMHuman::FrameMove(unsigned int dwServerTime)
 {
+    // FUN_00504a80 keeps the 7.48 shop title and its background alive while
+    // the live actor is visible and has a TradeDesc; a delayed-deletion actor
+    // must never revive a stale screen-space panel after MSG_RemoveMob.
+    const bool bShowAutoTradeSign = m_bVisible == 1 &&
+        m_nWillDie != 0 && m_dwDelayDel == 0 && m_cDeleted == 0 &&
+        m_TradeDesc[0] != 0;
     if (m_pAutoTradeDesc)
-        m_pAutoTradeDesc->SetVisible(0);
+        m_pAutoTradeDesc->SetVisible(bShowAutoTradeSign ? 1 : 0);
     if (m_pAutoTradePanel)
-        m_pAutoTradePanel->SetVisible(0);
+        m_pAutoTradePanel->SetVisible(bShowAutoTradeSign ? 1 : 0);
 
     int a = 10;
 
@@ -4097,6 +4107,17 @@ int TMHuman::OnPacketRemoveMob(MSG_STANDARD* pStd)
         {
             if (g_pCurrentScene->m_pMyHuman != this)
                 m_nWillDie = pRemoveMob->RemoveType;
+
+            // RemoveType 0 keeps the actor in DelayDelete briefly, but its native
+            // AutoTrade overlay belongs to the removed shop and must disappear now.
+            memset(m_TradeDesc, 0, sizeof(m_TradeDesc));
+            if (m_pAutoTradeDesc)
+            {
+                m_pAutoTradeDesc->SetText((char*)"", 0);
+                m_pAutoTradeDesc->SetVisible(0);
+            }
+            if (m_pAutoTradePanel)
+                m_pAutoTradePanel->SetVisible(0);
 
             return 1;
         }
@@ -7542,7 +7563,7 @@ void TMHuman::LabelPosition()
         bTargetMob = 1;
         m_pTitleProgressBar->SetVisible(1);
     }
-    if (pFScene->m_pMouseOverHuman != this && 
+    if (pFScene->m_pMouseOverHuman != this && !m_TradeDesc[0] &&
         (m_sHeadIndex == 216 || m_sHeadIndex == 226 || m_sHeadIndex == 298))
     {
         m_pNameLabel->SetVisible(0);
@@ -7571,7 +7592,9 @@ void TMHuman::LabelPosition()
         if (g_bEvent == 1)
             return;
 
-        if (pFScene->m_pMouseOverHuman != this
+        // FUN_00504a80 evaluates TradeDesc before the generic non-hover cull;
+        // an open 7.48 shop therefore keeps its title and panel in this path.
+        if (pFScene->m_pMouseOverHuman != this && !m_TradeDesc[0]
             && (m_nClass != 1 && m_nClass != 2 && m_nClass != 4 && m_nClass != 8 && m_nClass != 26 && 
                 (m_nClass != 33 || m_stLookInfo.FaceMesh) || 
                 (m_dwID < 0 || m_dwID >= 1000)) && 
@@ -7823,8 +7846,11 @@ void TMHuman::LabelPosition()
                     else
                         m_pChatMsg->SetRealPos((float)vPosInX - (float)(m_pChatMsg->m_nWidth / 2.0f), (float)vPosInY - 75.0f);
 
-                    m_pAutoTradeDesc->SetRealPos((float)vPosInX - ((150.0f * fWidthRatio) / 2.0f), (float)vPosInY - (float)(3.0f * RenderDevice::m_fHeightRatio));
-                    m_pAutoTradePanel->SetRealPos((float)vPosInX - ((150.0f * fWidthRatio) / 2.0f), (float)vPosInY - (float)(3.0f * RenderDevice::m_fHeightRatio));
+                    // Native FUN_00504a80 anchors the title 13 scaled pixels below
+                    // NewUI_AutoTrade_BG (140/150 centering widths respectively).
+                    m_pAutoTradeDesc->SetRealPos((float)vPosInX - ((140.0f * fWidthRatio) / 2.0f), (float)vPosInY);
+                    m_pAutoTradePanel->SetRealPos((float)vPosInX - ((150.0f * fWidthRatio) / 2.0f),
+                        (float)vPosInY - (float)(13.0f * RenderDevice::m_fHeightRatio));
 
                     float nPosY = (float)vPosInY;
                     if (m_cMount && !m_pAutoTradeDesc->IsVisible())
@@ -7973,8 +7999,13 @@ void TMHuman::LabelPosition()
         m_pMountHPBar->SetVisible(0);
         if (m_stGuildMark.pGuildMark)
             m_stGuildMark.pGuildMark->SetVisible(0);
-        m_pAutoTradeDesc->SetVisible(0);
-        m_pAutoTradePanel->SetVisible(0);
+        // The global name-label toggle must not hide an active 7.48 shop sign;
+        // native AutoTrade visibility is governed by TradeDesc, not mouse hover.
+        if (!m_TradeDesc[0])
+        {
+            m_pAutoTradeDesc->SetVisible(0);
+            m_pAutoTradePanel->SetVisible(0);
+        }
         m_pKillLabel->SetVisible(0);
         m_pNickNameLabel->SetVisible(0);
     }
@@ -8032,7 +8063,9 @@ void TMHuman::LabelPosition2()
         bTargetMob = 1;
         m_pTitleProgressBar->SetVisible(1);
     }
-    if (pFScene->m_pMouseOverHuman != this &&
+    // Carbunkle shop actors use these head indices, but an active 7.48
+    // TradeDesc keeps their AutoTrade sign visible independently of hover.
+    if (pFScene->m_pMouseOverHuman != this && !m_TradeDesc[0] &&
         (m_sHeadIndex == 216 || m_sHeadIndex == 226 || m_sHeadIndex == 298))
     {
         m_pNameLabel->SetVisible(0);
@@ -8061,7 +8094,9 @@ void TMHuman::LabelPosition2()
         if (g_bEvent == 1)
             return;
 
-        if (pFScene->m_pMouseOverHuman != this
+        // FUN_00504a80 lets a non-empty TradeDesc enter the positioning path;
+        // the generic non-hover label cull must not hide the shop panel/title.
+        if (pFScene->m_pMouseOverHuman != this && !m_TradeDesc[0]
             && (m_nClass != 1 && m_nClass != 2 && m_nClass != 4 && m_nClass != 8 && m_nClass != 26 &&
                 (m_nClass != 33 || m_stLookInfo.FaceMesh) ||
                 (m_dwID < 0 || m_dwID >= 1000)) &&
@@ -8310,8 +8345,11 @@ void TMHuman::LabelPosition2()
                     int nLen4 = strlen(m_pNickNameLabel->GetText());
 
                     m_pChatMsg->SetRealPos((float)vPosInX - (float)(m_pChatMsg->m_nWidth / 2.0f), (float)vPosInY - 120.0f);
-                    m_pAutoTradeDesc->SetRealPos((float)vPosInX - ((150.0f * fWidthRatio) / 2.0f), (float)vPosInY - (float)(3.0f * RenderDevice::m_fHeightRatio));
-                    m_pAutoTradePanel->SetRealPos((float)vPosInX - ((150.0f * fWidthRatio) / 2.0f), (float)vPosInY - (float)(3.0f * RenderDevice::m_fHeightRatio));
+                    // Keep the alternate render path byte-for-byte equivalent to
+                    // FUN_00504a80's separate title/background screen anchors.
+                    m_pAutoTradeDesc->SetRealPos((float)vPosInX - ((140.0f * fWidthRatio) / 2.0f), (float)vPosInY);
+                    m_pAutoTradePanel->SetRealPos((float)vPosInX - ((150.0f * fWidthRatio) / 2.0f),
+                        (float)vPosInY - (float)(13.0f * RenderDevice::m_fHeightRatio));
 
                     float nPosY = (float)vPosInY;
                     if (m_cMount && !m_pAutoTradeDesc->IsVisible())
@@ -15284,7 +15322,8 @@ void TMHuman::CreateControl()
     m_pNameLabel = new SText(-1, "MoName", 0xFFFFFFAA, 0.0f, 650.0f, 128.0f, 16.0f, 0, 0x55AA0000u, 1u, 0);
     m_pKillLabel = new SText(-1, "", 0xFF1E821E, 0.0f, 650.0f, 128.0, 16.0f, 0, 0x55AA0000u, 1u, 0);
     m_pAutoTradeDesc = new SText(-1, "", 0xFFFFFFFF, 0.0f, 650.0f, 143.0f, 50.0f, 0, 0xFFFFFFFF, 1u, 0);
-    m_pAutoTradePanel = new SPanel(512, -10.0f, 635.0f, 141.0f, 43.0f, 0x77777777u, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+    // Recreated controls must preserve the native 7.48 shop sign asset and dimensions used by the primary constructor.
+    m_pAutoTradePanel = new SPanel(446, -10.0f, 635.0f, 143.0f, 50.0f, 0x77777777u, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
     m_pAutoTradePanel->m_bSelectEnable = 0;
 
     m_pChatMsg = new SText(-2, "", 0xFFFFFFFF, 0.0, 650.0, (float)256, 64.0, 1, 0x77000000u, 1u, 0);
@@ -15319,7 +15358,10 @@ void TMHuman::CreateControl()
         g_pCurrentScene->m_pControlContainer->AddItem(m_pNameLabel);
         g_pCurrentScene->m_pControlContainer->AddItem(m_pKillLabel);
         g_pCurrentScene->m_pControlContainer->AddItem(m_stGuildMark.pGuildMark);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pAutoTradePanel);
+		// Recreated controls must keep FUN_004f7ea6's title-before-panel insertion
+		// because reverse traversal renders the title above the dark background.
+		g_pCurrentScene->m_pControlContainer->AddItem(m_pAutoTradeDesc);
+		g_pCurrentScene->m_pControlContainer->AddItem(m_pAutoTradePanel);
         g_pCurrentScene->m_pControlContainer->AddItem(m_pNickNameLabel);
         g_pCurrentScene->m_pControlContainer->AddItem(m_pChatMsg);
         g_pCurrentScene->m_pControlContainer->AddItem(m_pProgressBar);

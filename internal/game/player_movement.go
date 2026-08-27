@@ -11,7 +11,9 @@ func movementStepInterval(p *Player) time.Duration {
 }
 
 func movementCatchupStepInterval() time.Duration {
-	return time.Second / 6
+	// A ponte recompõe passos visuais já percorridos e usa o teto nativo 7.48.
+	// O trecho futuro volta ao intervalo derivado do Score autoritativo.
+	return time.Second / 7
 }
 
 func movementStepDeadline(p *Player, step int) time.Time {

@@ -125,6 +125,8 @@ static_assert(offsetof(MSG_CNFCharacterLogin, Slot) == 1240, "source selected-sl
 static_assert(offsetof(MSG_CNFCharacterLogin, ClientID) == 1242, "source runtime ClientID offset changed");
 static_assert(offsetof(MSG_CNFCharacterLogin, Ext1) == 1264, "source Ext1 alignment changed");
 static_assert(sizeof(MSG_CreateMob) == 328, "source CreateMob packet ABI changed");
+// FUN_004829f2 reads the 24-byte shop title at wire offset 326 before updating TMHuman::m_TradeDesc.
+static_assert(offsetof(MSG_CreateMobTrade, Desc) == 326, "7.48 CreateMobTrade.Desc offset changed");
 static_assert(sizeof(MSG_CreateMobTrade) == 352, "source CreateMobTrade packet ABI changed");
 static_assert(sizeof(MSG_UpdateScore) == 232, "canonical UpdateScore packet ABI changed");
 static_assert(offsetof(MSG_UpdateScore, Affect) == 152, "canonical UpdateScore.Affect offset changed");

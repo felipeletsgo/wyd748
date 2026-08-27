@@ -73,7 +73,7 @@ func TestAffectLifecycleUsesInjectedClock(t *testing.T) {
 	w := &World{clock: newFakeClock(now)}
 	ch := &model.Char{Name: "clock", Score: testScore(model.Score{})}
 	rule := model.VolatileRule{AffectType: 30, AffectValue: 1, DurationUnits: 10}
-	if got := w.applyVolatileBuff(ch, rule); got != volatileBuffApplied {
+	if got := w.applyVolatileBuff(ch, rule, model.Item{}); got != volatileBuffApplied {
 		t.Fatalf("applyVolatileBuff=%d", got)
 	}
 	if want := now.Add(80 * time.Second); !ch.Affects[0].ExpiresAt.Equal(want) {

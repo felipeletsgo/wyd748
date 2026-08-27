@@ -1,8 +1,11 @@
 package game
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
+	"log"
+	"strings"
 	"testing"
 	"time"
 
@@ -34,6 +37,271 @@ func useItemWorld(rule model.VolatileRule) (*World, *Player, *craftStore) {
 	}
 	p.Char.Inv[0] = model.Item{Index: 100}
 	return w, p, st
+}
+
+func TestBuffConsumablesPersistSourceUIDAndAbsoluteExpiration(t *testing.T) {
+	now := time.Unix(2_000_000_000, 0)
+
+	t.Run("experience box consumes last unit and tracks its UID", func(t *testing.T) {
+		rule := model.VolatileRule{Action: "buff", Consume: true, AffectType: 39,
+			DurationUnits: 900, Accumulate: true, MaxDurationUnits: 10800}
+		w, p, _ := useItemWorld(rule)
+		w.clock = newFakeClock(now)
+		st := &atomicCharStateMemoryStore{}
+		w.store = st
+		const uid = "11111111111141118111111111104140"
+		p.Char.Inv[0] = model.Item{Index: 4140, UID: uid}
+		w.items = map[uint16]model.ItemDef{4140: {Index: 4140}}
+		w.volatiles.Items = map[uint16]model.VolatileRule{4140: rule}
+		w.volatiles.ItemCodes = map[uint16]int{4140: 198}
+
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+
+		a := activePlayerAffectAt(p.Char, 39, now)
+		if p.Char.Inv[0] != (model.Item{}) || a == nil ||
+			a.SourceItemUID != uid || a.SourceItemIndex != 4140 ||
+			a.ExpiresAt.Unix() != now.Add(2*time.Hour).Unix() {
+			t.Fatalf("bau EXP incompleto: item=%+v affect=%+v", p.Char.Inv[0], a)
+		}
+		if st.atomicSaves != 1 || st.state == nil || len(st.state.Affects) != 1 ||
+			st.state.Affects[0].SourceItemUID != uid ||
+			st.state.Affects[0].ExpiresUnix != now.Add(2*time.Hour).Unix() ||
+			st.accountSnapshot.Chars[0].Inv[0] != (model.Item{}) {
+			t.Fatalf("snapshot atomico do bau EXP incorreto: saves=%d state=%+v account=%+v",
+				st.atomicSaves, st.state, st.accountSnapshot)
+		}
+		// Persistir o affect nao basta: prove que o pipeline autoritativo de EXP
+		// reconhece o mesmo prazo absoluto enquanto ele esta ativo.
+		if got := expWithDoubleBuffAt(p.Char, 100, now); got != 200 {
+			t.Fatalf("bau EXP persistiu sem dobrar recompensa: got=%d want=200", got)
+		}
+	})
+
+	t.Run("meat decrements stack without changing UID", func(t *testing.T) {
+		rule := model.VolatileRule{Action: "buff", Consume: true, AffectType: 30,
+			DurationUnits: 1800, Accumulate: true, MaxDurationUnits: 10800}
+		w, p, _ := useItemWorld(rule)
+		w.clock = newFakeClock(now)
+		st := &atomicCharStateMemoryStore{}
+		w.store = st
+		const uid = "11111111111141118111111111100498"
+		p.Char.Inv[0] = model.Item{Index: 498, UID: uid, Eff: [6]byte{effectAmount, 5}}
+		w.items = map[uint16]model.ItemDef{498: {Index: 498}}
+		w.volatiles.Items = map[uint16]model.VolatileRule{498: rule}
+		w.volatiles.ItemCodes = map[uint16]int{498: 62}
+
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+
+		a := activePlayerAffectAt(p.Char, 30, now)
+		if itemStackAmount(p.Char.Inv[0]) != 4 || p.Char.Inv[0].UID != uid ||
+			a == nil || a.SourceItemUID != uid || a.SourceItemIndex != 498 ||
+			a.ExpiresAt.Unix() != now.Add(4*time.Hour).Unix() {
+			t.Fatalf("pilha Meat/affect incorretos: item=%+v affect=%+v", p.Char.Inv[0], a)
+		}
+		if st.atomicSaves != 1 || st.accountSnapshot.Chars[0].Inv[0].UID != uid ||
+			itemStackAmount(st.accountSnapshot.Chars[0].Inv[0]) != 4 ||
+			st.state.Affects[0].SourceItemUID != uid {
+			t.Fatalf("snapshot atomico da pilha incorreto: state=%+v account=%+v",
+				st.state, st.accountSnapshot)
+		}
+		// Courage e consultado no golpe PvE, fora do RuntimeScore; teste os dois
+		// caminhos para evitar um buff salvo que nao produz efeito no combate.
+		if got := applyCouragePvEDamageAt(p.Char, 100, false, now); got != 1100 {
+			t.Fatalf("Meat nao aplicou Courage fisico: got=%d want=1100", got)
+		}
+		if got := applyCouragePvEDamageAt(p.Char, 100, true, now); got != 2100 {
+			t.Fatalf("Meat nao aplicou Courage magico: got=%d want=2100", got)
+		}
+	})
+
+	t.Run("love candy applies four affects from one UID", func(t *testing.T) {
+		rule := model.VolatileRule{Action: "buff", Consume: true, Affects: []model.VolatileAffect{
+			{SkillID: 43, Level: 320, DurationUnits: 320},
+			{SkillID: 44, Level: 320, DurationUnits: 320},
+			{SkillID: 45, Level: 320, DurationUnits: 320},
+			{SkillID: 41, Level: 320, DurationUnits: 320},
+		}}
+		w, p, _ := useItemWorld(rule)
+		w.clock = newFakeClock(now)
+		w.skills = map[int]model.SkillDef{
+			43: {AffectType: 11, AffectValue: 15}, 44: {AffectType: 9, AffectValue: 90},
+			45: {AffectType: 15, AffectValue: 7}, 41: {AffectType: 2, AffectValue: 1},
+		}
+		st := &atomicCharStateMemoryStore{}
+		w.store = st
+		const uid = "11111111111141118111111111104145"
+		p.Char.Inv[0] = model.Item{Index: 4145, UID: uid, Eff: [6]byte{effectAmount, 10}}
+		w.items = map[uint16]model.ItemDef{4145: {Index: 4145}}
+		w.volatiles.Items = map[uint16]model.VolatileRule{4145: rule}
+		w.volatiles.ItemCodes = map[uint16]int{4145: 67}
+
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+
+		for _, typ := range []byte{11, 9, 15, 2} {
+			a := activePlayerAffectAt(p.Char, typ, now)
+			if a == nil || a.SourceItemUID != uid || a.SourceItemIndex != 4145 {
+				t.Fatalf("affect %d sem origem do doce: %+v", typ, a)
+			}
+		}
+		if itemStackAmount(p.Char.Inv[0]) != 9 || len(st.state.Affects) != 4 {
+			t.Fatalf("doce nao confirmou pacote atomico: item=%+v state=%+v", p.Char.Inv[0], st.state)
+		}
+		for _, persisted := range st.state.Affects {
+			if persisted.SourceItemUID != uid || persisted.SourceItemIndex != 4145 {
+				t.Fatalf("affect persistido sem origem comum: %+v", persisted)
+			}
+		}
+		// O pacote do Doce do Amor precisa materializar todos os quatro efeitos
+		// no score runtime. Recalcule um clone sem affects para isolar o bonus do
+		// item da recalculacao normal de atributos/equipamentos do personagem.
+		withoutCandy := cloneCharacterState(p.Char)
+		withoutCandy.Affects = [16]model.Affect{}
+		withoutCandy.RuntimeScore = nil
+		w.recalcPlayer(&withoutCandy)
+		base := effectiveScore(&withoutCandy)
+		got := effectiveScore(p.Char)
+		if got.Defense != base.Defense+121 || got.Attack != base.Attack+255 {
+			t.Fatalf("doce nao alterou defesa/ataque: base=%+v got=%+v", base, got)
+		}
+		for branch := range got.Mastery {
+			if got.Mastery[branch] != base.Mastery[branch]+39 {
+				t.Fatalf("doce nao alterou mastery[%d]: base=%d got=%d",
+					branch, base.Mastery[branch], got.Mastery[branch])
+			}
+		}
+		wantRun := uint32(minInt(15, int(base.AttackRun&0x0F)+1))
+		if got.AttackRun&0x0F != wantRun || got.AttackRun&0xF0 != base.AttackRun&0xF0 {
+			t.Fatalf("doce nao alterou movimento corretamente: base=%#x got=%#x wantRun=%d",
+				base.AttackRun, got.AttackRun, wantRun)
+		}
+	})
+
+	t.Run("failed atomic save restores item and all affects", func(t *testing.T) {
+		rule := model.VolatileRule{Action: "buff", Consume: true, AffectType: 39,
+			DurationUnits: 900, Accumulate: true, MaxDurationUnits: 10800}
+		w, p, _ := useItemWorld(rule)
+		w.clock = newFakeClock(now)
+		st := &atomicCharStateMemoryStore{atomicErr: errors.New("postgres unavailable")}
+		w.store = st
+		const uid = "11111111111141118111111111104140"
+		p.Char.Inv[0] = model.Item{Index: 4140, UID: uid}
+		w.items = map[uint16]model.ItemDef{4140: {Index: 4140}}
+		w.volatiles.Items = map[uint16]model.VolatileRule{4140: rule}
+		w.volatiles.ItemCodes = map[uint16]int{4140: 198}
+
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+
+		if p.Char.Inv[0].Index != 4140 || p.Char.Inv[0].UID != uid ||
+			activePlayerAffectAt(p.Char, 39, now) != nil {
+			t.Fatalf("rollback PostgreSQL deixou estado parcial: item=%+v affects=%+v",
+				p.Char.Inv[0], p.Char.Affects)
+		}
+	})
+}
+
+func TestLaktoreriumPowderConsumesOnlyCommittedValidAttempts(t *testing.T) {
+	newWorld := func(index uint16, powder model.Item) (*World, *Player, *craftStore, []byte) {
+		rule := model.VolatileRule{Action: "refine", Consume: true, RefineMax: 9}
+		w, p, st := useItemWorld(rule)
+		p.Char.Inv[0] = powder
+		p.Char.Equip[4] = model.Item{Index: 200, UID: "22222222222242228222222222200200"}
+		w.items = map[uint16]model.ItemDef{
+			index: {Index: index},
+			200:   {Index: 200, Pos: 4},
+		}
+		w.volatiles.Items = map[uint16]model.VolatileRule{index: rule}
+		w.volatiles.ItemCodes = map[uint16]int{index: 5}
+		pkt := useItemPacket(0, 4)
+		binary.LittleEndian.PutUint32(pkt[20:24], placeEquip)
+		return w, p, st, pkt
+	}
+
+	t.Run("item 413 last unit disappears after successful commit", func(t *testing.T) {
+		const uid = "11111111111141118111111111100413"
+		w, p, st, pkt := newWorld(413, model.Item{Index: 413, UID: uid})
+		w.rng = fixedRNG{value: 0}
+		var logs bytes.Buffer
+		oldWriter := log.Writer()
+		log.SetOutput(&logs)
+		t.Cleanup(func() { log.SetOutput(oldWriter) })
+
+		w.onUseItem(p.Session, pkt)
+
+		if p.Char.Inv[0] != (model.Item{}) || itemSanc(p.Char.Equip[4]) != 1 ||
+			p.Char.Equip[4].UID != "22222222222242228222222222200200" || st.saves != 1 {
+			t.Fatalf("refino confirmado nao consumiu uma unidade: po=%+v alvo=%+v saves=%d",
+				p.Char.Inv[0], p.Char.Equip[4], st.saves)
+		}
+		if got := logs.String(); !strings.Contains(got, "consumiu=true restante=0") {
+			t.Fatalf("auditoria do ultimo po nao registrou pilha vazia: %q", got)
+		}
+	})
+
+	t.Run("item 4141 failed roll still decrements the committed stack", func(t *testing.T) {
+		const uid = "11111111111141118111111111104141"
+		powder := model.Item{Index: 4141, UID: uid, Eff: [6]byte{effectAmount, 2}}
+		w, p, st, pkt := newWorld(4141, powder)
+		// +0 tem chance autoritativa de 100%; partimos de +1 para que a rolagem
+		// 100 falhe contra 95 sem tornar o teste dependente de aleatoriedade.
+		if !setItemSanc(&p.Char.Equip[4], 1) {
+			t.Fatal("fixture sem slot para EF_SANC")
+		}
+		w.rng = fixedRNG{value: 99}
+
+		w.onUseItem(p.Session, pkt)
+
+		if p.Char.Inv[0].Index != 4141 || p.Char.Inv[0].UID != uid ||
+			itemStackAmount(p.Char.Inv[0]) != 1 || itemSanc(p.Char.Equip[4]) != 1 || st.saves != 1 {
+			t.Fatalf("falha valida nao consumiu exatamente uma unidade: po=%+v alvo=%+v saves=%d",
+				p.Char.Inv[0], p.Char.Equip[4], st.saves)
+		}
+	})
+
+	t.Run("invalid target and refinement ceiling preserve the powder", func(t *testing.T) {
+		const uid = "11111111111141118111111111104141"
+		for _, tc := range []struct {
+			name    string
+			prepare func(*Player, []byte)
+		}{
+			{name: "inventory target", prepare: func(_ *Player, pkt []byte) {
+				binary.LittleEndian.PutUint32(pkt[20:24], placeInv)
+			}},
+			{name: "plus nine", prepare: func(p *Player, _ []byte) {
+				if !setItemSanc(&p.Char.Equip[4], 9) {
+					t.Fatal("fixture sem slot para EF_SANC")
+				}
+			}},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				powder := model.Item{Index: 4141, UID: uid}
+				w, p, st, pkt := newWorld(4141, powder)
+				tc.prepare(p, pkt)
+
+				w.onUseItem(p.Session, pkt)
+
+				if p.Char.Inv[0] != powder || st.saves != 0 {
+					t.Fatalf("tentativa invalida consumiu/salvou o po: po=%+v saves=%d",
+						p.Char.Inv[0], st.saves)
+				}
+			})
+		}
+	})
+
+	t.Run("PostgreSQL failure restores powder UID and target", func(t *testing.T) {
+		const uid = "11111111111141118111111111104141"
+		powder := model.Item{Index: 4141, UID: uid}
+		w, p, st, pkt := newWorld(4141, powder)
+		beforeTarget := p.Char.Equip[4]
+		w.rng = fixedRNG{value: 0}
+		st.err = errors.New("postgres unavailable")
+
+		w.onUseItem(p.Session, pkt)
+
+		if p.Char.Inv[0] != powder || p.Char.Equip[4] != beforeTarget || st.saves != 1 {
+			t.Fatalf("rollback do refino perdeu identidade/estado: po=%+v alvo=%+v saves=%d",
+				p.Char.Inv[0], p.Char.Equip[4], st.saves)
+		}
+	})
 }
 
 func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {

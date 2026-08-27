@@ -175,7 +175,7 @@ const (
 // nunca existiu no handler nativo. O resultado distingue uma recusa causada por
 // affect ativo de erro de configuracao/falta de slot, permitindo feedback fiel
 // sem consumir o item.
-func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) volatileBuffResult {
+func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule, source model.Item) volatileBuffResult {
 	if ch == nil {
 		return volatileBuffRejected
 	}
@@ -216,6 +216,16 @@ func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule) volat
 			}
 			return volatileBuffRejected
 		}
+		// O affect ativo guarda a instancia que efetivamente pagou por esta
+		// aplicacao. Em buffs acumulativos, a origem passa a ser a ultima unidade
+		// que estendeu o prazo absoluto.
+		active := activePlayerAffectAt(ch, byte(affectType), now)
+		if active == nil {
+			*ch = snapshot
+			return volatileBuffRejected
+		}
+		active.SourceItemUID = source.UID
+		active.SourceItemIndex = source.Index
 	}
 	return volatileBuffApplied
 }
@@ -945,6 +955,10 @@ func (w *World) tickPlayerAffects(now time.Time) {
 			w.publishPlayerAffects(p)
 			w.syncPlayerVitals(p)
 			w.sendToPlayerView(p, func() []byte { return playerAppearancePacket(p) })
+			// Remover o affect em memoria e esperar o proximo autosave permitiria
+			// que um relog rapido o ressuscitasse. Grave imediatamente o charstate
+			// expirado fora do game-loop.
+			w.saveCharStateAsync(p)
 		}
 	}
 }

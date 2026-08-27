@@ -1,6 +1,6 @@
 # Handoff: paridade visual e funcional do client 7.48
 
-Atualizado em: 2026-08-26
+Atualizado em: 2026-08-27
 Estado geral: `STATICALLY VERIFIED`
 
 ## Objetivo e limites
@@ -17,10 +17,10 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | 30DA37B94389AB6BF6EBBBE831278FFB62902591C4EEE035C3CDBB1340992044
+client748/project.exe                            | candidato source | 7BA846DAE559464491739B104903CE4E843BC57C8AED57EF00E368D5F7E27171
 ```
 
-Hashes acima foram reverificados em 2026-08-26. O hash de `project.exe` é
+Hashes acima foram reverificados em 2026-08-27. O hash de `project.exe` é
 volátil e deve ser recalculado depois de qualquer build.
 
 ## Evidência confirmada
@@ -170,11 +170,29 @@ volátil e deve ser recalculado depois de qualquer build.
   nativa o tipo 50 de Armadura Crítica. Aplicação, persistência/relogin e wire
   agora o projetam para semântica 31 e ícone 24; os demais tipos permanecem
   conforme `CheckAffect` do executável 7.48.
+- `FUN_004431e4` indexa `DAT_005b77c0[Type]` para os tipos de affect `0..39`.
+  A source herdada misturava 17 índices de textura da 7.59, inclusive EXP
+  `39 -> 162`, que não existe no atlas clássico de 128 células. Os primeiros
+  40 valores de `g_AffectSkillType` agora são byte-idênticos à tabela nativa;
+  EXP usa a célula `85` e o maior índice dessa faixa é `125`.
 - `FUN_004110f5` confirma que a seleção de item para AutoTrade no Cargo de tipo
   10 abre o painel 626, foca o edit 627 e usa caption 630, enquanto o botão 667
   precisa estar visível. O adapter já traduzia os filhos, mas omitia o painel;
   `WYD748_TranslateControlID` agora mapeia `626 -> 65885`, eliminando o retorno
   silencioso de `SGridControl::TradeItem` sem alterar grid ou posicionamento.
+- O dump `client-crash-20260826-162021.dmp` mapeia a nova falha em
+  `TMFieldScene::OnControlEvent`, RVA `0x000A9570`: após publicar AutoTrade, a
+  source ocultava diretamente `m_pCargoPanel1`, controle herdado da 7.59 que
+  não existe no FieldScene2 do 7.48. `FUN_004662c5` confirma que o evento 667
+  envia `919 / 0x397` e testa cada superfície de Cargo antes de ocultá-la;
+  o cancelamento 668 delega a `FUN_0044ae38`. O ponteiro agora nasce nulo e é
+  guardado no botão compartilhado de dinheiro, na confirmação da AutoTrade,
+  no bloqueio de movimento e no fechamento das superfícies após a publicação.
+- `FUN_004662c5` também confirma que o botão nativo 313 chama
+  `FUN_004656af` quando a AutoTrade está fechada e `FUN_0044ae38` quando está
+  visível. O dispatch compatível agora consome o alias 65794 imediatamente;
+  isso impede handlers intermediários de engolirem a abertura do prompt 626,
+  que publica o título usado no render e no clique de consulta da loja.
 
 Reabrir funções e callers/callees antes de uma nova edição; os endereços valem
 para o hash legado acima.
@@ -213,6 +231,7 @@ autoaproximação para atacar         | STATICALLY VERIFIED    | GetRoute confor
 efeitos públicos de buffs           | AUTOMATED TESTED       | 0x336 para dono e observers
 efeitos Lighten/Shield/Skill Amp    | STATICALLY VERIFIED    | FUN_00506f9d restaurada na source
 ícones/duração de buffs no topo     | AUTOMATED TESTED       | ABI 0x3B9 140B + 16 painéis 12806–12821
+atlas dos buffs 0..39 C3108E5A      | STATICALLY VERIFIED    | DAT_005b77c0 exata; EXP 39 -> textura 85
 Armadura Crítica tipo 50            | AUTOMATED TESTED       | semântica 31 / ícone 24 inclusive relog
 grid/buffs do candidato 4BE5943C    | CLIENT-TESTED/FALHOU   | itens multisslot e nenhum ícone de buff
 grid do candidato 44677EF8          | CLIENT-TESTED/FALHOU   | itens ainda invadiam células vizinhas
@@ -222,15 +241,22 @@ startup do candidato 1EEA1FC1       | CLIENT-TESTED/PASSOU   | captura em jogo c
 startup do candidato F8DA50A0       | CLIENT-TESTED/PASSOU   | captura em jogo confirmou entrada no mundo
 startup do candidato 5A4AEC0A       | CLIENT-TESTED/PASSOU   | captura confirmou entrada e render no mundo
 seleção AutoTrade 35DA2FB6          | STATICALLY VERIFIED    | painel nativo 626 traduzido para 65885; build/assets passaram
+abertura AutoTrade 9290A758          | STATICALLY VERIFIED    | dump 162021 corrigido; Release/assets/hash passaram
+prompt/nome AutoTrade 0A5AD930        | STATICALLY VERIFIED    | botão 313 roteado conforme FUN_004662c5; build/assets passaram
+título/clique da loja 1AA86EE3        | STATICALLY VERIFIED    | Desc 0x364 preservado; build/wire/assets/hash passaram
+placa/preços AutoTrade 73CABC41       | STATICALLY VERIFIED    | lifecycle por TradeDesc e labels 800..811 restaurados
+placa/clique AutoTrade E077183B       | STATICALLY VERIFIED    | LabelPosition2 + left-click GRID_TRADEMY2 restaurados
+confirmação/título AutoTrade 7BA846DA | STATICALLY VERIFIED    | message box NewUI e ordem nativa texto/painel restauradas
+posição/persistência AutoTrade CAF93919 | IMPLEMENTED            | build passou; instalação bloqueada pelo project.exe PID 11008
 escala dos ovos 30DA37B9            | STATICALLY VERIFIED    | fórmula nativa por MaxZ; Release e assets passaram
 paridade visual dentro do mundo     | NÃO TESTADO          | autenticação não automatizada
 fechamento X/Esc e modais real      | NÃO TESTADO          | checklist client-ui-748.md
 ```
 
-O rebuild Release Win32 com toolset v145 terminou com duas advertências
-preexistentes em `SGrid.cpp` e zero erros para o candidato atual.
+O rebuild Release Win32 com toolset v145 terminou sem erros para o candidato
+atual; a compilação completa registrou 6 advertências preexistentes.
 O artefato instalado e o output de build possuem o mesmo SHA-256
-`30DA37B9...92044`; `Build-Client.ps1` instalou e verificou o candidato
+`E077183B...F3B4F9`; `Build-Client.ps1` instalou e verificou o candidato
 automaticamente, sem patch. Os candidatos
 `4BE5943C...`, `44677EF8...`, `41669031...`, `1EEA1FC1...` e `F8DA50A0...` foram
 testados pelo usuário e reprovaram no grid/mesh; não atribuir essas falhas ao
@@ -282,6 +308,38 @@ novo binário antes do teste real.
 
 ```text
 verificado em 2026-08-26:
+- a tabela nativa `DAT_005b77c0` de `FUN_004431e4` foi comparada com os 40
+  tipos visuais da source: as 17 divergências herdadas foram removidas; EXP
+  agora traduz `Type 39` para textura `85`, dentro do atlas clássico 0..127
+- build oficial Release Win32 v145 passou com 31 warnings preexistentes e zero
+  erros; output e `client748/project.exe` são idênticos com SHA-256
+  `C3108E5A3806539BD3C95E63ABFF92F436745B2CD83A0EE188F04AAFF4065001`
+- `git diff --check` passou, restando somente avisos LF/CRLF; a correção dos
+  ícones está `STATICALLY VERIFIED` até o teste visual no client real
+- `Test-Client748Assets.ps1` passou para o pacote instalado: 3.584 texturas,
+  104 skills, 6.500 itens e 18 shaders no perfil WYD 7.48
+- `FUN_004662c5` reconfirmou o toggle do botão 313: `FUN_004656af` abre o
+  prompt nativo 626/627/630/574 e `FUN_0044ae38` fecha a AutoTrade visível
+- o alias 313 -> 65794 agora é consumido no primeiro switch compatível de
+  `TMFieldScene::OnControlEvent`, antes dos handlers genéricos intermediários
+- build oficial Release Win32 v145 passou com 13 warnings preexistentes e zero
+  erros; output e `client748/project.exe` são idênticos com SHA-256
+  `0A5AD9303F8435AE4A1DB45C0528B7C9B13971A88ED3F6F52008404154F1D71D`
+- `Test-Client748Assets.ps1` e
+  `go test -count=1 ./internal/game ./internal/wire` passaram
+- dump `client-crash-20260826-162021.dmp` mapeado até
+  `TMFieldScene::OnControlEvent`, RVA `0x000A9570`: a confirmação da AutoTrade
+  desreferenciava `m_pCargoPanel1`, página 7.59 ausente no FieldScene2 7.48
+- `FUN_004662c5` confirmou o envio `919 / 0x397` pelo botão 667 com testes
+  individuais das superfícies de Cargo; o botão 668 chama `FUN_0044ae38`
+- `m_pCargoPanel1` agora é inicializado deterministicamente e possui guardas no
+  botão de dinheiro, na confirmação da loja, no bloqueio de movimento e ao
+  ocultar Cargo depois da publicação
+- build oficial Release Win32 v145 passou com 13 warnings preexistentes e zero
+  erros; output e `client748/project.exe` são idênticos com SHA-256
+  `9290A75860833401AF2C7A539DDEF532F3414EC1283ABB6FF89E464A6D3E7C1D`
+- `Test-Client748Assets.ps1` passou com 6.500 itens, 3.584 texturas, 104 skills
+  e 18 shaders; `git diff --check` passou, restando só avisos LF/CRLF
 - dump `client-crash-20260826-154302.dmp` do candidato
   `30DA37B9...92044` mapeado por ASLR/PDB até RVA `0x718AC`,
   `SGridControl::TradeItem`: o crash era a desreferência de
@@ -375,22 +433,194 @@ verificado em 2026-08-26:
   resync. `go test ./...` ficou bloqueado somente pela ausência local de
   `client748/Mounts-KR.json` e `client748/Costumes-KR.json`; `internal/game`
   permaneceu verde nessa execução.
+- Ghidra 7.48 reconfirmou que `FUN_00492e7d` despacha `0x363/0x364` para
+  `FUN_004829f2`; no spawn de loja, a descrição de 24 bytes no offset wire 326
+  alimenta o campo equivalente a `TMHuman::m_TradeDesc` e seu controle de texto.
+- `OnPacketCreateMobCompat` agora preserva esse título após `InitObject`; o
+  mesmo `m_TradeDesc[0]` governa tanto o label visual quanto o envio `0x39A` ao
+  clicar na loja. Spawn comum limpa explicitamente o campo e o controle.
+- `offsetof(MSG_CreateMobTrade, Desc) == 326` e o tamanho total de 352 bytes
+  ficaram protegidos por `static_assert`; a cópia termina o buffer sem usar o
+  `sprintf` inseguro do handler legado.
+- build oficial Release Win32 v145 passou e instalou output idêntico ao
+  `client748/project.exe`, SHA-256
+  `1AA86EE3CC292C0BD0FF429F83145D874867A13C7CF258649CAC66084BD2B17B`.
+- `go test -count=1 ./internal/wire`, `Test-Client748Assets.ps1` (6.500 itens,
+  3.584 texturas, 104 skills e 18 shaders) e `git diff --check` passaram; este
+  ajuste está `STATICALLY VERIFIED` até confirmar título e abertura no client.
 ```
 
 Repetir build, instalação e hash se o código mudar.
 
+## Placa persistente da AutoTrade
+
+- A captura do usuário confirmou que o título textual já era publicado, mas o
+  fundo visual persistente da loja permanecia invisível.
+- Ghidra 7.48 (`FUN_004f7ea6`, `FUN_004ff400` e `FUN_00504a80`) confirmou o
+  contrato nativo: texture set `446`, posição inicial `(-10, 635)`, dimensões
+  `143x50`, cor `0x77777777`, `IMAGE_STRETCH` e seleção desabilitada.
+- `client748/UI/UITextureSetList.txt` confirma que o set `446` é
+  `NewUI_AutoTrade_BG`, com um item `143x50`. O índice anterior `512` estava
+  fora do intervalo válido `0..511` e por isso não produzia imagem.
+- As duas criações de `m_pAutoTradePanel` em `TMHuman.cpp` agora usam o asset e
+  as dimensões nativas. Como o renderer percorre a lista em ordem inversa,
+  construtor e `CreateControl()` inserem o texto antes do painel; assim o painel
+  permanece como fundo e o título fica visível após recriação dos controles.
+- `Build-Client.ps1` passou com 0 erros e 4 warnings C4018 preexistentes,
+  instalou output idêntico em `client748/project.exe`, SHA-256
+  `24451257F36DEAE9A103C0578E9E6B0204D55003B3B39F6AA9F71A32321173FC`.
+- `Test-Client748Assets.ps1` passou com 6.500 itens, 3.584 texturas, 104 skills
+  e 18 shaders; `git diff --check` não encontrou erro de whitespace. A placa
+  está `STATICALLY VERIFIED` até confirmação no fluxo real.
+- `TMHuman::FrameMove` não apaga mais a placa a cada quadro; texto e painel
+  seguem `m_bVisible && m_TradeDesc[0]`, e o toggle global de nomes preserva a
+  placa ativa fora do hover, conforme o lifecycle de `FUN_00504a80`.
+- `FUN_00486424` e `FieldScene2.bin` confirmaram os labels nativos `800..811`
+  na faixa escura sob os grids `653..664`. `OnPacketAutoTrade` agora formata,
+  exibe e habilita comma mode nesses controles; slots vazios e o fechamento da
+  janela limpam e ocultam os labels para impedir preço residual.
+- A compilação completa Release Win32 v145 passou com 17 warnings C4018
+  preexistentes e zero erros. Depois de fechar o client que bloqueava a cópia,
+  `Build-Client.ps1` instalou output idêntico em `client748/project.exe`,
+  SHA-256 `73CABC41CD7573E90A8CB42D8003572728E7E42921C06244132B1B575BB4A5CE`.
+- `Test-Client748Assets.ps1` passou com 6.500 itens, 3.584 texturas, 104 skills
+  e 18 shaders; `git diff --check` passou, restando apenas avisos LF/CRLF. Esta
+  etapa permanece `STATICALLY VERIFIED` até o teste visual no client real.
+
+## Compra e composição da AutoTrade do comprador
+
+- Os ramos de Carbunkle em `TMHuman::LabelPosition` e `LabelPosition2` só
+  aplicam a ocultação por hover quando `m_TradeDesc` está vazio; clones de loja
+  preservam painel e título continuamente em ambas as rotas de posicionamento.
+- `GRID_TRADEMY2` não desenha mais a máscara preta usada pelos grids do
+  vendedor. O receptáculo nativo de `FieldScene2.bin` continua intacto.
+- O clique esquerdo ordinário em `GRID_TRADEMY2` agora entra em `TradeItem()` e
+  abre a confirmação nativa 7.48 de controle `646`; somente o callback positivo
+  chama `SendReqBuy`. O servidor ainda retorna `Not enough gold.` nas rejeições
+  e confirma sucesso somente depois da persistência atômica das duas contas.
+- A janela Carry do comprador recebe a âncora `(530,35)`, na mesma baseline da
+  AutoTrade `(280,35)`, seguindo a composição lateral 7.48.
+- Testes focados das compras, `go test -count=1 ./internal/game
+  ./internal/wire` e `go vet ./...` passaram. `go test -count=1 ./...` só
+  falhou em dois testes paralelos de `internal/data` porque
+  `client748/Mounts-KR.json` e `client748/Costumes-KR.json` não existem.
+- O build oficial Release Win32 v145 passou; após fechar o `project.exe` que
+  bloqueava a cópia, instalou output idêntico em `client748/project.exe`,
+  SHA-256 `93DA0B486941CF8B381068F1D87BE3320EECA830EAB8EE9E637B4E86AEDB684A`.
+  `Test-Client748Assets.ps1` e `git diff --check` passaram. UI está
+  `STATICALLY VERIFIED`; compra do servidor está `AUTOMATED TESTED`.
+- Após cobrir a segunda rota de labels e o dispatch do clique esquerdo, o build
+  oficial Release Win32 v145 passou com 0 erros e 6 warnings preexistentes. O
+  output foi instalado em `client748/project.exe`, SHA-256
+  `E077183BA1E2110005B8E5190EAA188BBF48FF7893C92D66BC9BFA0941F3B4F9`.
+  `go test -count=1 ./internal/game ./internal/wire`, `go vet ./...`,
+  `Test-Client748Assets.ps1` e `git diff --check` passaram. Este fluxo segue
+  `STATICALLY VERIFIED` até o teste real de placa e compra.
+- O usuário confirmou no candidato `E077183B...F3B4F9` que a compra funciona,
+  mas mostrou duas regressões: ausência da confirmação e placa vazia congelada
+  após comprar o último item. `TradeItem()` voltou a abrir o message box nativo
+  `646`, cujo callback existente envia a compra. `OnPacketRemoveMob` agora limpa
+  e oculta imediatamente o título/painel no `RemoveType 0`, e `FrameMove` não
+  reexibe overlays de atores em `DelayDelete` ou já deletados.
+- O build Release Win32 v145 passou e instalou o novo candidato em
+  `client748/project.exe`, SHA-256
+  `4BC9C8EC95DEBF66D751F5F29C4B8F2401133E5C4FAC66C708ADCA46A67E1472`.
+  `Test-Client748Assets.ps1`, `go test -count=1 ./internal/game
+  ./internal/wire`, `go vet ./...` e `git diff --check` passaram. As duas
+  correções estão `STATICALLY VERIFIED` e aguardam o fluxo real.
+- As capturas seguintes mostraram que a compra ainda usava a caixa clássica de
+  madeira e que `NewUI_AutoTrade_BG` aparecia sem o título. Ghidra 7.48
+  (`FUN_00403eb8`) confirma a composição NewUI com texture sets `164/165`, e
+  `FUN_004f7ea6` confirma a inserção do texto antes do painel `446`.
+- `SMessageBox` agora seleciona a composição NewUI para o tipo
+  `TMC_MESSAGEBOX_MESSAGE` usado pela confirmação Sim/Não da AutoTrade, sem
+  mudar `g_UIVer` global nem a geometria/hit-test do HUD clássico.
+- `TMHuman::CreateControl()` voltou a adicionar `m_pAutoTradeDesc` ao container
+  e mantém a ordem nativa texto/painel também após recriar os controles. O
+  construtor principal já usava essa ordem e foi documentado junto ao código.
+- O build oficial Release Win32 v145 passou com 0 erros e 6 warnings
+  preexistentes. `build/Release/WYD.exe` e `client748/project.exe` são idênticos,
+  SHA-256 `7BA846DAE559464491739B104903CE4E843BC57C8AED57EF00E368D5F7E27171`.
+  `Test-Client748Assets.ps1`, `go test -count=1 ./internal/game
+  ./internal/wire`, `go vet ./...` e `git diff --check` passaram. O ajuste está
+  `STATICALLY VERIFIED` até a confirmação visual no jogo.
+
+## Geometria estável do Cargo 7.48
+
+- O usuário mostrou que Cargo e Carry abriam em posições diferentes conforme a
+  janela usada anteriormente. No ramo compatível, `SetVisibleCargo` apenas
+  alterava visibilidade e conservava coordenadas residuais de AutoTrade/loja.
+- Ghidra 7.48 reconfirmou `FUN_004484f3` como o toggle nativo de Cargo/Carry;
+  o stock depende da geometria original do recurso, enquanto a source precisa
+  reaplicá-la porque compartilha os painéis com outros fluxos.
+- Ao abrir, o Cargo agora é centralizado pela largura real da tela e do próprio
+  painel. O Carry recebe a mesma baseline `35` e abre imediatamente à direita,
+  separado pelo gap nativo escalado de aproximadamente `24.4`; as dimensões dos
+  painéis já estão escaladas e não são multiplicadas novamente.
+- O build oficial Release Win32 v145 passou com zero erros e instalou o output
+  em `client748/project.exe`, SHA-256
+  `7D203FE6A1B8DB99BF320BC3D2DA020435BB83E537C052EC374A57F09A2BB71D`.
+  `Test-Client748Assets.ps1`, `go test -count=1 ./internal/game
+  ./internal/wire`, `go vet ./...` e `git diff --check` passaram. A correção
+  está `STATICALLY VERIFIED` e aguarda confirmação visual em jogo.
+
+## Posição e persistência finais da placa AutoTrade
+
+- As capturas de 2026-08-27 confirmaram dois desvios no candidato instalado
+  `7BA846DA...27171`: o título ficava acima da faixa escura e o conjunto só
+  aparecia durante hover.
+- Ghidra 7.48 reconfirmou `FUN_004f7ea6` para criação/inserção e
+  `FUN_00504a80` para visibilidade/posição. No hash histórico
+  `8AA2F918...5F593`, o texto usa âncora horizontal `140` em `baseY`, enquanto
+  `NewUI_AutoTrade_BG` usa `150` em `baseY - 13 * heightRatio`; a visibilidade
+  é governada por `TradeDesc[0]`.
+- `TMHuman::LabelPosition()` e `LabelPosition2()` agora preservam atores com
+  `TradeDesc` no cull sem hover e usam as duas âncoras nativas separadas. As
+  ocultações legítimas por ator removido, profundidade, sombra e fora da tela
+  permanecem intactas.
+- O build oficial Release Win32 v145 foi repetido após o encerramento do client
+  e instalou output idêntico em `client748/project.exe`, SHA-256
+  `CAF93919F4B1CBC9CE8EED10B4BFE56E860FF78978F20A31473EDDF35F79B8C4`.
+  `Test-Client748Assets.ps1`, `go vet ./...`, `gofmt -l` e
+  `git diff --check` passaram. `internal/game`, `internal/wire` e
+  `internal/store` passaram com `-count=1`; `internal/data` conserva somente
+  as duas falhas conhecidas pelos assets ausentes `Mounts-KR.json` e
+  `Costumes-KR.json`. A correção permanece `STATICALLY VERIFIED` até o teste
+  visual no candidato instalado.
+
+## Crash ao abrir o NPC de habilidades em 2026-08-27
+
+- O fluxo real de abrir o NPC de habilidades falhou no client e gerou
+  `client748/client-crash-20260827-140525.dmp`, com 62.464.379 bytes e horário
+  local 2026-08-27 14:05:25. O dump não integra o Git.
+- Estado do fluxo: `CLIENT-TESTED / FALHOU`. A causa permanece `não confirmada`;
+  build verde não estabelece segurança do lifecycle da janela de habilidades.
+- Antes de corrigir, analisar o minidump pelo procedimento ASLR de
+  `ghidra-client748.md`, recuperando exceção, módulo, base carregada, RVA/VA e o
+  ponteiro ou registrador inválido. Depois comparar callers, callees e lifecycle
+  nativos 7.48 com a source; não materializar controle herdado de 7.59.
+
 ## Pendências e riscos
 
-- No candidato `A63DD267...922ABA`, abrir AutoTrade, adicionar o mesmo item que
-  causou o dump, informar preço válido e confirmar que ele entra na loja sem
-  crash nem mensagem indevida de item não vendável; repetir com preço inválido.
+- No candidato `7D203FE6...A2BB71D`, abrir primeiro AutoTrade/loja e depois o
+  banqueiro para comprovar que o Cargo sempre volta ao centro e o Carry abre à
+  direita, com topo e espaçamento simétricos. Repetir em 1024x768 e 1280x960.
+- No candidato `4BC9C8E...E1472`, criar uma loja com título e confirmar que
+  `NewUI_AutoTrade_BG` fica visível junto do texto, acompanha o Carbunkle e
+  desaparece em personagens sem loja. Em outro personagem, abrir os itens,
+  confirmar fundo normal e preço abaixo de cada item; clicar, escolher `Não` e
+  comprovar que nada foi comprado; depois escolher `Sim` e conferir os avisos
+  de sucesso/gold insuficiente. Ao comprar o último item, o clone e a placa
+  devem sumir sem congelar na tela nem acompanhar o comprador. Repetir depois
+  de uma recriação de cena/relogin e validar o alinhamento lateral do Carry.
 - Executar em jogo os fluxos de inventário, cargo, NPC shop, equipamento e
   drag válido/inválido, comparando com screenshots 7.48.
 - Confirmar no candidato `30DA37B9...` que os ovos ficaram legíveis na loja,
   inventário, Cargo e durante o drag, sem invadir células vizinhas.
 - A entrada no mundo e a centralização de inventário/loja/equipamento já foram
-  confirmadas no candidato `5A4AEC0A...`; ainda validar notices `!`, Kibita, NPC
-  Skill Apprentice e digitação/backspace no chat sem crash.
+  confirmadas no candidato `5A4AEC0A...`; ainda validar notices `!`, Kibita e
+  digitação/backspace. A abertura do NPC Skill Apprentice falhou em
+  2026-08-27 e deve ser diagnosticada pelo dump registrado acima.
 - Ao lado de um banqueiro, mover item inventário↔Cargo e conferir persistência,
   rejeição fora de alcance e atualização de gold/slots.
 - Clicar para atacar um inimigo fora do alcance e confirmar aproximação até o
@@ -421,16 +651,23 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Próximo passo executável
 
-1. Ler `wyd-go-feature/SKILL.md`, `ghidra-client748.md` e
-   `client-ui-748.md`.
-2. Inspecionar `git diff` dos arquivos ativos sem reverter a worktree do usuário.
-3. Testar primeiro a AutoTrade no candidato `A63DD267...922ABA`: adicionar o
-   mesmo item, informar preço válido, repetir com preço inválido e abrir a loja.
-4. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
+1. Analisar `client748/client-crash-20260827-140525.dmp` pelo procedimento ASLR
+   e recuperar a causa concreta do crash ao abrir o NPC Skill Apprentice.
+2. Testar a placa sem hover e o título dentro da faixa escura no candidato
+   instalado `CAF93919...B8C4`.
+3. Testar Cargo no novo candidato, abrindo antes e
+   depois de AutoTrade/loja para excluir posições residuais, em 1024x768 e
+   1280x960.
+4. Testar a AutoTrade no mesmo candidato: adicionar o
+   mesmo item, informar preço válido, repetir com preço inválido, conferir a
+   placa `NewUI_AutoTrade_BG` junto do título e, ao abrir por outro personagem,
+   conferir fundo/preço, confirmação `Não`/`Sim`, avisos, remoção imediata da
+   placa após o último item e alinhamento do Carry.
+5. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
    família `egg001..egg014`; depois repetir `Steel_Pants`, armadura larga, arma
    longa e item pequeno para excluir regressão nos demais itens.
-5. Testar entrada no mundo, digitação/backspace, notice e Kibita no candidato
-   `5A4AEC0A...`, incluindo a abertura do NPC Skill Apprentice; depois testar
-   Cargo, autoaproximação, HUD, câmera e fechamento em 1280×960.
-6. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
+6. Após corrigir o crash com evidência do dump/Ghidra, repetir entrada no mundo,
+   digitação/backspace, notice, Kibita e abertura do NPC Skill Apprentice;
+   depois testar Cargo, autoaproximação, HUD, câmera e fechamento em 1280×960.
+7. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
    real correspondente.

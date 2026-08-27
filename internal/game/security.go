@@ -16,11 +16,11 @@ const (
 	securityViolationWindow = time.Minute
 	maxMovementRouteBytes   = 24
 	maxMovementQueuedSteps  = maxMovementRouteBytes * 2
-	// O client 7.48 pode ficar visualmente ate uma Route[24] inteira a frente
-	// quando um plano intermediario se perde ou e refeito. A ponte nunca promove
-	// a coordenada recebida: ela so reconstrói passos validos, executados depois
-	// pelo relogio server-side. Limitar em 12 gerava cascata de recusas reais.
-	maxMovementVisualBridge = maxMovementRouteBytes
+	// O client 7.48 recalcula a rota a partir da posicao visual, que pode passar
+	// de Route[24] quando a autoridade ficou atrasada por planos substituidos.
+	// A recuperacao usa o mesmo teto da fila: cada tile ainda precisa formar uma
+	// rota transitavel e vencer no relogio server-side, nunca vira teleporte.
+	maxMovementVisualBridge = maxMovementQueuedSteps
 	maxStopPositionDrift    = 3
 	// O client 7.48 calcula no maximo seis passos ao montar ActionStop 0x367,
 	// mas transmite apenas Pos/Target; a Route[24] desse pacote vem zerada.
@@ -345,12 +345,12 @@ func movementTilesPerSecond(p *Player) float64 {
 		speed = int(playerAttackRun(p.Char) & 0x0F)
 	}
 	// TMHuman interpola um passo a cada 1000/Speed ms. A autoridade usa a mesma
-	// cadencia, mas deriva Speed do Score server-side; o campo recebido
-	// no pacote nunca aumenta a velocidade. BASE_GetSpeed do TMSrv limita 1..6.
+	// cadencia, mas deriva Speed do Score server-side; o campo recebido no pacote
+	// nunca aumenta a velocidade. BASE_GetSpeed do client 7.48 limita 1..7.
 	if speed < 1 {
 		speed = 1
-	} else if speed > 6 {
-		speed = 6
+	} else if speed > 7 {
+		speed = 7
 	}
 	return float64(speed)
 }
@@ -416,7 +416,7 @@ func (w *World) validatedPlayerMoveRoute(p *Player, pkt []byte) (uint16, uint16,
 	if startX == 0 || startY == 0 {
 		startX, startY = p.X, p.Y
 	}
-	if chebyshev(p.X, p.Y, startX, startY) > maxMovementRouteBytes ||
+	if chebyshev(p.X, p.Y, startX, startY) > maxMovementVisualBridge ||
 		!w.terrain.Walkable(startX, startY) {
 		return 0, 0, nil, nil, false
 	}
@@ -669,7 +669,20 @@ func (w *World) validReportedStop(p *Player, x, y uint16) bool {
 		w.terrain.LineOfSight(p.X, p.Y, x, y) {
 		return true
 	}
-	return false
+	// FUN_0046087b copia a posicao visual corrente para o 0x2CB antes de certos
+	// ataques. Aceite uma coordenada que ainda pertence ao plano autoritativo,
+	// mas onMoveStop apenas encerra a rota na posicao server-side atual.
+	if _, found := playerMovementPrefixTo(p, x, y); found {
+		return true
+	}
+	// Se o plano intermediario se perdeu, aplique o mesmo limite transitavel do
+	// 0x366. Isto valida a plausibilidade do relato sem promover x/y nem criar
+	// movimento futuro a partir de um pacote de parada.
+	if chebyshev(p.X, p.Y, x, y) > maxMovementVisualBridge {
+		return false
+	}
+	_, found := w.shortTerrainRoute(p.X, p.Y, x, y, maxMovementVisualBridge)
+	return found
 }
 
 // validatedActionStopRoute reconstrói o pequeno trecho final omitido pelo

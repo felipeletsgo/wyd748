@@ -368,6 +368,9 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 	seller.Session.Send(wire.SendItem(seller.ID, placeStorage, byte(storageSlot), model.Item{}))
 	seller.Session.Send(wire.UpdateCargoGold(wire.SceneField, seller.Account.CargoGold))
 	w.publishGhostShopItemSold(shop, uint32(req.Pos))
+	// Only acknowledge the buyer after the atomic account save succeeded; a
+	// rejected or rolled-back purchase must never display a false success.
+	buyer.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d purchased for %d gold.", item.Index, price)))
 	seller.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d sold for %d gold.", item.Index, price)))
 	log.Printf("[#%d] LOJA FANTASMA compra owner=%s buyer=%s item=%d price=%d inv[%d]",
 		s.ID, seller.Char.Name, buyer.Char.Name, item.Index, price, buyerSlot)

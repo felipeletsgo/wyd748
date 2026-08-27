@@ -65,6 +65,7 @@ func TestGhostShopOpenBrowseBuyAndAutoClose(t *testing.T) {
 		t.Fatal("comprador nao ficou vinculado ao clone")
 	}
 
+	buyerPacketsBefore := buyer.Session.QueuedPacketsForTest()
 	w.onReqBuyAutoTrade(buyer.Session, ghostBuyPacket(shop, 0))
 	if buyer.Char.Inv[0] != item || buyer.Char.Gold != 4000 ||
 		seller.Account.Cargo[7].Index != 0 || seller.Account.CargoGold != 1000 {
@@ -74,8 +75,43 @@ func TestGhostShopOpenBrowseBuyAndAutoClose(t *testing.T) {
 	if st.batchSaves != 1 {
 		t.Fatalf("compra deveria persistir as duas contas em lote: %d", st.batchSaves)
 	}
+	// UpdateCarry and the post-persistence success notice are both mandatory;
+	// visibility/close packets may add more messages to this same flow.
+	if got := buyer.Session.QueuedPacketsForTest(); got < buyerPacketsBefore+2 {
+		t.Fatalf("comprador nao recebeu estado e confirmacao de sucesso: %d -> %d", buyerPacketsBefore, got)
+	}
 	if seller.GhostShop != nil || len(w.ghostShops) != 0 || buyer.BrowsingGhostShopID != 0 {
 		t.Fatal("loja sem estoque nao foi encerrada para dono e comprador")
+	}
+}
+
+func TestGhostShopPurchaseRejectsInsufficientGoldWithNotice(t *testing.T) {
+	seller, _ := networkedTestPlayer(1, "Seller", 2100, 2100)
+	buyer, _ := networkedTestPlayer(2, "Buyer", 2102, 2100)
+	w, st := economyWorld(seller, buyer)
+	item := model.Item{Index: 4013}
+	w.items[item.Index] = model.ItemDef{Index: item.Index}
+	seller.Account.Cargo[10] = item
+	buyer.Char.Gold = 999
+	w.onAutoTrade(seller.Session, autoTradePacket(seller.ID, seller.Account, "Expensive", 10))
+	shop := seller.GhostShop
+	buyer.BrowsingGhostShopID = shop.ID
+
+	before := buyer.Session.QueuedPacketsForTest()
+	w.onReqBuyAutoTrade(buyer.Session, ghostBuyPacket(shop, 0))
+
+	if buyer.Char.Inv[0].Index != 0 || buyer.Char.Gold != 999 ||
+		seller.Account.Cargo[10] != item || seller.Account.CargoGold != 0 ||
+		shop.Items[0] != item {
+		t.Fatal("rejeicao por gold insuficiente alterou a compra")
+	}
+	if st.batchSaves != 0 {
+		t.Fatalf("rejeicao por gold insuficiente chegou a persistir: %d", st.batchSaves)
+	}
+	// This rejection exits before any state publication, so the sole new packet
+	// is the authoritative MessagePanel explaining that gold is insufficient.
+	if got := buyer.Session.QueuedPacketsForTest(); got != before+1 {
+		t.Fatalf("aviso de gold insuficiente ausente ou duplicado: %d -> %d", before, got)
 	}
 }
 

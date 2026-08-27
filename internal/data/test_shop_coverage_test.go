@@ -74,6 +74,45 @@ func requireShopItems(t *testing.T, shops map[string]map[uint16]struct{}, name s
 	}
 }
 
+func TestOneShotConsumablesDoNotLeaveTestShopsAsArtificialStacks(t *testing.T) {
+	const effectAmount byte = 61
+	want := map[string]map[uint16]bool{
+		"ShopTest":  {412: false, 413: false, 4140: false},
+		"ShopTest2": {412: false, 413: false},
+	}
+
+	npcs, err := LoadNPCs(filepath.Join("..", "..", "data", "npcs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, npc := range npcs {
+		items, ok := want[npc.Name]
+		if !ok {
+			continue
+		}
+		for _, item := range npc.Vende {
+			if _, tracked := items[item.Index]; !tracked {
+				continue
+			}
+			items[item.Index] = true
+			// Estes consumiveis representam uma tentativa por UID; EF_AMOUNT aqui faria
+			// uma compra parecer nao consumida e esconderia a remocao da ultima unidade.
+			for slot := 0; slot < 3; slot++ {
+				if item.Eff[slot*2] == effectAmount {
+					t.Errorf("%s item %d possui EF_AMOUNT artificial=%d", npc.Name, item.Index, item.Eff[slot*2+1])
+				}
+			}
+		}
+	}
+	for shop, items := range want {
+		for item, found := range items {
+			if !found {
+				t.Errorf("%s nao vende o consumivel unitario %d", shop, item)
+			}
+		}
+	}
+}
+
 func TestCadaItemVolatileTemLojaDeTeste(t *testing.T) {
 	shops, volatileItems := loadTestShopFixture(t)
 	covered := itemsInShops(shops, func(name string) bool {

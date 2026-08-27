@@ -14,8 +14,13 @@ func TestCharStateRoundTripAndEmptyRemoval(t *testing.T) {
 	s := NewJSONStore(filepath.Join(dir, "accounts"))
 
 	st := &model.CharState{
-		Version:      model.CharStateVersion,
-		Affects:      []model.PersistedAffect{{Type: 4, Value: 25, ExpiresUnix: 1234567890}},
+		Version: model.CharStateVersion,
+		// PostgreSQL usa o mesmo payload JSON deste teste; manter a origem aqui
+		// prova que UID, indice e expiracao atravessam a serializacao do sidecar.
+		Affects: []model.PersistedAffect{{
+			Type: 4, Value: 25, SourceItemUID: "11111111111141118111111111110414",
+			SourceItemIndex: 4140, ExpiresUnix: 1234567890,
+		}},
 		SpecialCoins: map[string]uint32{"wyden": 3},
 	}
 	if err := s.SaveCharState("Felipe", st); err != nil {
@@ -25,7 +30,9 @@ func TestCharStateRoundTripAndEmptyRemoval(t *testing.T) {
 	if err != nil || got == nil {
 		t.Fatalf("load falhou: got=%v err=%v", got, err)
 	}
-	if len(got.Affects) != 1 || got.Affects[0].Value != 25 || got.SpecialCoins["wyden"] != 3 {
+	if len(got.Affects) != 1 || got.Affects[0].Value != 25 ||
+		got.Affects[0].SourceItemUID != "11111111111141118111111111110414" ||
+		got.Affects[0].SourceItemIndex != 4140 || got.SpecialCoins["wyden"] != 3 {
 		t.Fatalf("round-trip incorreto: %+v", got)
 	}
 

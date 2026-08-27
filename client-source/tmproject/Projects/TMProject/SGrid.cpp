@@ -294,6 +294,17 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 		{
 			if (g_pTimerManager->GetServerTime() < m_dwLastBuyTime + 500)
 				return 0;
+
+			// The 7.48 AutoTrade customer grid buys with the ordinary left click.
+			// Route that intent through TradeItem so it emits MSG_ReqBuy instead of
+			// falling into the NPC-shop BuyItem path or the trade-grid blacklist.
+			if (m_eGridType == TMEGRIDTYPE::GRID_TRADEMY2)
+			{
+				const int nHandled = TradeItem(nCellX, nCellY);
+				if (nHandled)
+					m_dwLastBuyTime = g_pTimerManager->GetServerTime();
+				return nHandled;
+			}
 			
 
 		
@@ -708,8 +719,10 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 		if (!m_pItemList[0])
 			return;
 
-		if (m_eGridType == TMEGRIDTYPE::GRID_TRADEOP || m_eGridType == TMEGRIDTYPE::GRID_TRADEMY ||
-			m_eGridType == TMEGRIDTYPE::GRID_TRADEMY2)
+		// GRID_TRADEMY2 is the buyer's display slot: FieldScene2 already supplies
+		// its native receptacle, so the seller-side dark selection mask must not
+		// cover the item artwork in the customer window.
+		if (m_eGridType == TMEGRIDTYPE::GRID_TRADEOP || m_eGridType == TMEGRIDTYPE::GRID_TRADEMY)
 		{
 			m_pItemList[0]->m_GCEnable.nPosX = ivParentPos.x + m_nPosX;
 			m_pItemList[0]->m_GCEnable.nPosY = ivParentPos.y + m_nPosY;
@@ -1940,6 +1953,8 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 		{
 			if (pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 			{
+				// The native 7.48 flow confirms control 646 before sending MSG_ReqBuy.
+				// The server remains authoritative and revalidates every purchase field.
 				pFScene->m_pMessageBox->SetMessage(g_pMessageStringTable[144], 646, 0);
 				pFScene->m_pMessageBox->SetVisible(1);
 				pFScene->m_pMessageBox->m_dwArg = m_dwControlID;

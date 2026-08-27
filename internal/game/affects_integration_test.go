@@ -101,6 +101,10 @@ func TestTickMobAffectsDamagesAndExpires(t *testing.T) {
 
 func TestTickPlayerAffectsRegenPoisonAreaAndExpiration(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
+	// Expiracao e estado economico: o sidecar deve ser salvo imediatamente para
+	// que um relog rapido nao ressuscite o buff removido pelo tick.
+	stateStore := &charStateMemoryStore{}
+	w.store = stateStore
 	now := time.Now()
 	p.Char.Score.CurHP = 500
 	p.Char.Score.MaxHP = 1000
@@ -137,6 +141,15 @@ func TestTickPlayerAffectsRegenPoisonAreaAndExpiration(t *testing.T) {
 	}
 	if p.Char.Affects[3].Type != 0 {
 		t.Fatal("affect expirado do jogador nao foi removido")
+	}
+	if stateStore.asyncSaves != 1 || stateStore.state == nil {
+		t.Fatalf("expiracao nao enfileirou charstate: saves=%d state=%+v",
+			stateStore.asyncSaves, stateStore.state)
+	}
+	for _, persisted := range stateStore.state.Affects {
+		if persisted.Type == 4 {
+			t.Fatal("affect expirado foi gravado novamente no sidecar")
+		}
 	}
 }
 
