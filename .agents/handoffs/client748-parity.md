@@ -210,7 +210,8 @@ correção de posição F8DA50A0        | CLIENT-TESTED/FALHOU  | meia largura o
 correção de posição 5A4AEC0A        | CLIENT-TESTED/PASSOU  | captura confirmou grades e equipamento centralizados
 notificação translúcida 7.48        | STATICALLY VERIFIED  | recursos 178/259/260
 Skill 1905 separada do NPC 1889     | STATICALLY VERIFIED  | TMFieldScene.cpp + Ghidra
-crash NPC Skill Apprentice          | STATICALLY VERIFIED  | dump/PDB + controles 1889/1890/6049–6052/6128
+crash NPC Skill Apprentice 20260825 | STATICALLY VERIFIED  | dump/PDB + controles 1889/1890/6049–6052/6128
+crash NPC Skill Apprentice 20260827 | STATICALLY VERIFIED  | m_pHellgateStore nulo; lifecycle 1889/1905 protegido
 layout/valores do HUD compacto      | STATICALLY VERIFIED  | texto sem stretch + IDs nativos
 EXP nativa em quatro quartos        | STATICALLY VERIFIED  | controles 1171–1174
 wheel/rotação de câmera             | STATICALLY VERIFIED  | input/lifecycle nativo
@@ -593,12 +594,22 @@ Repetir build, instalação e hash se o código mudar.
 - O fluxo real de abrir o NPC de habilidades falhou no client e gerou
   `client748/client-crash-20260827-140525.dmp`, com 62.464.379 bytes e horário
   local 2026-08-27 14:05:25. O dump não integra o Git.
-- Estado do fluxo: `CLIENT-TESTED / FALHOU`. A causa permanece `não confirmada`;
-  build verde não estabelece segurança do lifecycle da janela de habilidades.
-- Antes de corrigir, analisar o minidump pelo procedimento ASLR de
-  `ghidra-client748.md`, recuperando exceção, módulo, base carregada, RVA/VA e o
-  ponteiro ou registrador inválido. Depois comparar callers, callees e lifecycle
-  nativos 7.48 com a source; não materializar controle herdado de 7.59.
+- O dump/PDB resolve a falha para `TMFieldScene::SetVisibleSkillMaster`, no
+  acesso `m_pHellgateStore->SetVisible(0)`: `m_pHellgateStore == nullptr`. O
+  acesso seguinte a `m_pGambleStore` também dependia de um controle opcional.
+- `FUN_00435b13`, `FUN_004875c0`, `FUN_0044c15c`, `FUN_0044c53f` e
+  `FUN_0044df53` confirmam que o 7.48 abre conjuntamente os roots 1889 e 1905,
+  enquanto Hellgate/Gamble herdados podem não ser materializados pelo layout.
+- `SetVisibleSkillMaster` agora exige os dois roots nativos, protege todos os
+  painéis concorrentes opcionais e preserva posição, som e o fechamento por
+  X/Esc. Nenhum widget 7.59 foi fabricado.
+- `Build-Client.ps1` passou com 13 warnings C4018 preexistentes e zero erros,
+  instalando output idêntico em `client748/project.exe`, SHA-256
+  `F8251714775601720307940598522E6D2924E5C61DAB300728F949FE0C8A380B`.
+  `Test-Client748Assets.ps1` passou com 6.500 itens, 3.584 texturas, 104 skills
+  e 18 shaders; `git diff --check` não encontrou erro de whitespace.
+- Estado: `STATICALLY VERIFIED`. Ainda é obrigatório testar no client abertura,
+  X, reabertura, Esc, nova interação e clique nas habilidades.
 
 ## Pendências e riscos
 
@@ -619,8 +630,8 @@ Repetir build, instalação e hash se o código mudar.
   inventário, Cargo e durante o drag, sem invadir células vizinhas.
 - A entrada no mundo e a centralização de inventário/loja/equipamento já foram
   confirmadas no candidato `5A4AEC0A...`; ainda validar notices `!`, Kibita e
-  digitação/backspace. A abertura do NPC Skill Apprentice falhou em
-  2026-08-27 e deve ser diagnosticada pelo dump registrado acima.
+  digitação/backspace. A abertura do NPC Skill Apprentice falhou no candidato
+  anterior; a correção `F8251714...A380B` ainda requer o fluxo real completo.
 - Ao lado de um banqueiro, mover item inventário↔Cargo e conferir persistência,
   rejeição fora de alcance e atualização de gold/slots.
 - Clicar para atacar um inimigo fora do alcance e confirmar aproximação até o
@@ -651,10 +662,10 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Próximo passo executável
 
-1. Analisar `client748/client-crash-20260827-140525.dmp` pelo procedimento ASLR
-   e recuperar a causa concreta do crash ao abrir o NPC Skill Apprentice.
-2. Testar a placa sem hover e o título dentro da faixa escura no candidato
-   instalado `CAF93919...B8C4`.
+1. No candidato `F8251714...A380B`, abrir o NPC Skill Apprentice, fechar pelo X,
+   reabrir, fechar por Esc, interagir novamente e clicar nas habilidades.
+2. Testar a placa sem hover e o título dentro da faixa escura no mesmo
+   candidato `F8251714...A380B`.
 3. Testar Cargo no novo candidato, abrindo antes e
    depois de AutoTrade/loja para excluir posições residuais, em 1024x768 e
    1280x960.
@@ -666,8 +677,8 @@ Repetir build, instalação e hash se o código mudar.
 5. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
    família `egg001..egg014`; depois repetir `Steel_Pants`, armadura larga, arma
    longa e item pequeno para excluir regressão nos demais itens.
-6. Após corrigir o crash com evidência do dump/Ghidra, repetir entrada no mundo,
-   digitação/backspace, notice, Kibita e abertura do NPC Skill Apprentice;
-   depois testar Cargo, autoaproximação, HUD, câmera e fechamento em 1280×960.
+6. Depois do teste do NPC no novo candidato, repetir entrada no mundo,
+   digitação/backspace, notice e Kibita; depois testar Cargo, autoaproximação,
+   HUD, câmera e fechamento em 1280×960.
 7. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
    real correspondente.

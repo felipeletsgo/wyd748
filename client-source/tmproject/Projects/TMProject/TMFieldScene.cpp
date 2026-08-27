@@ -15940,14 +15940,24 @@ void TMFieldScene::SetVisibleSkillMaster()
 {
 	SGridControl::m_sLastMouseOverIndex = -1;
 
+	// FieldScene2.bin 7.48 materializes the Skill Apprentice roots (1889/1905),
+	// but newer auxiliary store controls may legitimately be absent.  Keep the
+	// native paired lifecycle and never dereference a control the active layout
+	// did not create.
+	if (!m_pSkillMPanel || !m_pSkillPanel)
+		return;
+
 	int bVisible = m_pSkillMPanel->IsVisible() == 0;
 
 	m_pSkillPanel->SetVisible(m_pSkillMPanel->m_bVisible == 0);
 
 	if (bVisible == 1)
 	{
-		m_pSystemPanel->SetVisible(0);
-		m_pCargoPanel->SetVisible(0);
+		if (m_pSystemPanel)
+			m_pSystemPanel->SetVisible(0);
+
+		if (m_pCargoPanel)
+			m_pCargoPanel->SetVisible(0);
 
 		if (m_pAutoTrade && m_pAutoTrade->IsVisible() == 1)
 			SetVisibleAutoTrade(0, 0);
@@ -15955,13 +15965,24 @@ void TMFieldScene::SetVisibleSkillMaster()
 		if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
 			SetVisibleTrade(0);
 
-		m_pInvenPanel->SetVisible(0);
-		m_pCPanel->SetVisible(0);
-		m_pShopPanel->SetVisible(0);
+		if (m_pInvenPanel)
+			m_pInvenPanel->SetVisible(0);
+
+		if (m_pCPanel)
+			m_pCPanel->SetVisible(0);
+
+		if (m_pShopPanel)
+			m_pShopPanel->SetVisible(0);
+
 		m_pSkillMPanel->SetVisible(1);
 		m_pSkillPanel->SetVisible(1);
-		m_pHellgateStore->SetVisible(0);
-		m_pGambleStore->SetVisible(0);
+
+		if (m_pHellgateStore)
+			m_pHellgateStore->SetVisible(0);
+
+		if (m_pGambleStore)
+			m_pGambleStore->SetVisible(0);
+
 		m_pSkillPanel->SetPos(RenderDevice::m_fWidthRatio * 380.0f, RenderDevice::m_fHeightRatio * 35.0f);
 	}
 
