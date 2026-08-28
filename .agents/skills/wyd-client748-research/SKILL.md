@@ -13,6 +13,11 @@ comportamento do client, protocolo, ABI, UI, input, render, assets, lifecycle ou
 o contrato observado pelo servidor. A implementação só começa depois que a
 ficha do fluxo atingir a maturidade exigida pelo escopo.
 
+No programa de cobertura completa, esta é a segunda trilha: primeiro use
+`wyd-client748-catalog` para validar o censo, escolher uma raiz e registrar a
+lane; depois rastreie uma transição observável aqui. A triagem ordena trabalho,
+mas não é evidência e não pode promover o estado da ficha.
+
 O TMProject importado é uma fonte 7.59/7.69. Ele pode sugerir nomes e intenção,
 mas nunca decide o contrato 7.48. Comentários já presentes na source são índices
 de busca, não prova. Toda conclusão volta ao binário 7.48 e ao fluxo atual do
@@ -26,13 +31,17 @@ alterado sem confirmação do ambiente.
 ## Leituras e artefatos obrigatórios
 
 1. Ler `AGENTS.md`, o `AGENTS.md` scoped e esta skill integralmente.
-2. Ler `../wyd-go-feature/references/ghidra-client748.md`.
-3. Para UI, HUD, grid, inventário, equipamento ou mensagens, ler também
+2. No programa de cobertura ou ao escolher a próxima raiz, ler
+   `../wyd-client748-catalog/SKILL.md` e executar seu triador. Registrar na ficha
+   a contagem, a lane e o motivo da escolha; não editar `functions.tsv` para
+   marcar progresso.
+3. Ler `../wyd-go-feature/references/ghidra-client748.md`.
+4. Para UI, HUD, grid, inventário, equipamento ou mensagens, ler também
    `../wyd-go-feature/references/client-ui-748.md`.
-4. Verificar `git status --short` e o SHA-256 da referência histórica.
-5. Abrir `references/research-method.md` e somente a linha de domínio relevante
+5. Verificar `git status --short` e o SHA-256 da referência histórica.
+6. Abrir `references/research-method.md` e somente a linha de domínio relevante
    em `references/subsystem-map.md`.
-6. Criar ou atualizar uma ficha em `.agents/research/client748/flows/` a partir
+7. Criar ou atualizar uma ficha em `.agents/research/client748/flows/` a partir
    do template. Handoff não substitui ficha de evidência.
 
 Antes de declarar uma pesquisa pronta, deixar na ficha o hash do binário, a
@@ -69,8 +78,9 @@ Quando o fluxo for amplo, dividi-lo por transição. Não criar uma ficha genér
 
 1. Formular uma pergunta concreta e localizar a entrada por string, opcode,
    constante, import, ID de recurso, endereço ou efeito observado.
-2. Consultar o corpus exportado com `scripts/query_corpus.py`; ele acelera busca,
-   mas seus callers sintáticos não substituem xrefs do projeto Ghidra. Ausência
+2. Consultar a fila produzida pelo catálogo e o corpus exportado com
+   `scripts/query_corpus.py`; eles aceleram busca, mas seus callers sintáticos
+   não substituem xrefs do projeto Ghidra. Ausência
    no índice textual, inclusive para uma função referenciada pela source, nunca
    prova ausência no binário.
 3. Abrir a função no projeto Ghidra e registrar xrefs, callers, callees, dados,
@@ -113,6 +123,11 @@ Quando o fluxo for amplo, dividi-lo por transição. Não criar uma ficha genér
 Não promover maturidade para contornar uma lacuna. Uma ficha pode conter claims
 `HYPOTHESIS`, mas o trecho dependente delas não entra no contrato nem autoriza
 edição.
+
+O inventário também pode exibir `IMPLEMENTED` e `CLIENT_TESTED` como estados de
+entrega. Eles não substituem `TRACED`/`CONTRACT`: `IMPLEMENTED` exige código e
+`CLIENT_TESTED` exige execução real no `client748/project.exe` com hash e cenário
+registrados.
 
 ## Gates
 

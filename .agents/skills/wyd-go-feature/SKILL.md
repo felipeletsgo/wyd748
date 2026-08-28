@@ -6,9 +6,10 @@ description: Implementar, corrigir ou auditar o WYD-Go e o client 7.48. Para cli
 # WYD-Go feature
 
 Para qualquer mudança que atravesse o client ou o contrato que ele observa,
-`wyd-client748-research` é um gate anterior, não uma referência opcional. A
-skill desta página implementa somente o que a ficha 7.48 já tornou verificável;
-ela não deve transformar uma semelhança do TMProject em contrato.
+`wyd-client748-catalog` e `wyd-client748-research` são gates anteriores, não
+referências opcionais: o catálogo escolhe e ordena a raiz; a pesquisa fecha a
+transição. A skill desta página implementa somente o que a ficha 7.48 já tornou
+verificável; ela não deve transformar uma semelhança do TMProject em contrato.
 
 ## Roteamento e autoridade
 
@@ -18,9 +19,9 @@ mudança compilar não permite pular a evidência específica da área.
 | Escopo | Leitura/skill obrigatória | Evidência que decide |
 | --- | --- | --- |
 | Servidor Go, regra ou persistência | esta skill + `AGENTS.md` scoped | código, testes e dados atuais |
-| Packet, wire, struct ou ABI 7.48 | `wyd-client748-research` + `references/ghidra-client748.md` | ficha `CONTRACT`, binário/Ghidra 7.48 + contrato server-side |
-| UI, input, grid, inventário ou render | `wyd-client748-research` + Ghidra + `references/client-ui-748.md` | ficha `TRACED` e lifecycle, recursos e função nativa 7.48 |
-| Asset sob `client748/` | `wyd-client748-research` + referências acima + `client748/skills/wyd-client-assets/SKILL.md` | consumidor real, manifest/hash e teste visual |
+| Packet, wire, struct ou ABI 7.48 | `wyd-client748-catalog` → `wyd-client748-research` + `references/ghidra-client748.md` | ficha `CONTRACT`, binário/Ghidra 7.48 + contrato server-side |
+| UI, input, grid, inventário ou render | `wyd-client748-catalog` → `wyd-client748-research` + Ghidra + `references/client-ui-748.md` | ficha `TRACED` e lifecycle, recursos e função nativa 7.48 |
+| Asset sob `client748/` | `wyd-client748-catalog` → `wyd-client748-research` + referências acima + `client748/skills/wyd-client-assets/SKILL.md` | consumidor real, manifest/hash e teste visual |
 | Auditoria | `references/audit.md` | fluxo vivo, callers/callees e testes atuais |
 | Hook/plugin Micronics | `add-hook`; `build-deploy` ao compilar/implantar | exe 7.54 exato + bytes e runtime do plugin |
 | Conhecimento histórico | `wyd-dev-knowledge` por último | hipótese revalidada na versão alvo |
@@ -34,47 +35,50 @@ uma fonte superior nem fornecer ABI para outra versão.
 
 1. Respeitar `wyd-go/AGENTS.md` e qualquer `AGENTS.md` scoped; não reler a
    referência detalhada inteira por padrão.
-2. Em continuação entre sessões, ler
+2. Para a campanha de mapeamento ou uma nova raiz, executar o triador de
+   `wyd-client748-catalog`, registrar sua lane/motivo e formar um grupo pequeno
+   de funções ligado a uma entrada observável. O triador não promove maturidade.
+3. Em continuação entre sessões, ler
    [`references/session-continuity.md`](references/session-continuity.md) e
    somente o handoff do escopo. Comparar seus fatos com `git status`, código e
    hashes atuais antes de reutilizá-los.
-3. Localizar o caminho vivo com `rg` e preservar mudanças alheias.
-4. Reproduzir o bug e identificar a fronteira: `wire`, `net`, `data`, `game`,
+4. Localizar o caminho vivo com `rg` e preservar mudanças alheias.
+5. Reproduzir o bug e identificar a fronteira: `wire`, `net`, `data`, `game`,
    `model`, `store` ou `client-source`.
-5. Se a tarefa tocar client, protocolo, packet, ABI, struct, UI, input, render,
+6. Se a tarefa tocar client, protocolo, packet, ABI, struct, UI, input, render,
    assets ou comportamento observado do executável, ler primeiro
    `wyd-client748-research/SKILL.md`, criar/atualizar a ficha de fluxo e então
    ler [`references/ghidra-client748.md`](references/ghidra-client748.md) e
    consultar a função nativa correspondente na descompilação Ghidra do
    `WYD.exe` 7.48. Essa consulta é obrigatória mesmo quando TMProject/W2PP já têm
    código similar.
-6. Se o escopo incluir HUD, janelas, input, mensagens, grid, inventário,
+7. Se o escopo incluir HUD, janelas, input, mensagens, grid, inventário,
    equipamento ou drag, ler também
    [`references/client-ui-748.md`](references/client-ui-748.md).
    Se alterar asset sob `client748/`, ler também
    `client748/skills/wyd-client-assets/SKILL.md` e o `client748/AGENTS.md`.
-7. Para regra nativa ainda incerta depois da evidência 7.48, pesquisar somente
+8. Para regra nativa ainda incerta depois da evidência 7.48, pesquisar somente
    o necessário: W2PP → Secrets 7.54 → Micronics → `wyd-dev-knowledge`.
-8. Portar semântica, nunca layout, offset ou endereço de outra versão. Layout,
+9. Portar semântica, nunca layout, offset ou endereço de outra versão. Layout,
    offset, opcode, tamanho e lifecycle do client precisam vir do 7.48.
    `client-source/tmproject` é uma source de versão única: depois de confirmar o
    equivalente nativo, remover o caminho exclusivo de 7.59+ em vez de manter
    branches de compatibilidade entre versões. Dados novos só podem permanecer
    quando traduzidos para uma representação comprovadamente suportada pelo 7.48.
-9. Implementar no arquivo da feature; manter handlers como roteadores.
-10. Comentar no próprio código todo trecho editado ou implementado, explicando
+10. Implementar no arquivo da feature; manter handlers como roteadores.
+11. Comentar no próprio código todo trecho editado ou implementado, explicando
    intenção, contrato ou motivo técnico. Não usar comentário redundante que
    apenas repita a instrução executada.
-11. Testar a transição real, inclusive falha, rollback e relogin quando aplicável.
-12. Rodar testes, vet, build proporcional ao escopo e `git diff --check`.
-13. Se o trabalho continuar em outra sessão, atualizar somente o handoff do
+12. Testar a transição real, inclusive falha, rollback e relogin quando aplicável.
+13. Rodar testes, vet, build proporcional ao escopo e `git diff --check`.
+14. Se o trabalho continuar em outra sessão, atualizar somente o handoff do
     escopo com fatos verificáveis, estado de validação e próximo passo.
 
 Antes da primeira edição no escopo client, registrar no trabalho o caminho da
 ficha e sua maturidade. `TRACED` é o mínimo para comportamento, UI, input,
 render, lifecycle e assets. `CONTRACT` é obrigatório para packet, wire, ABI,
 struct, offset, packing, signedness ou loader. Uma ficha `LOCATED` autoriza
-somente investigação/documentação; ela não é um “quase aprovado”.
+somente investigação/documentação; ela não é um "quase aprovado".
 
 ## Condições de parada
 
@@ -172,7 +176,7 @@ o contrato à referência apropriada em vez de perpetuá-lo no handoff.
 
 Aplicar validação proporcional e declarar cada camada separadamente:
 
-| Área | Mínimo antes de concluir |
+| Area | Mínimo antes de concluir |
 | --- | --- |
 | Servidor Go | teste focado de sucesso/rejeição/rollback, persistência/relogin quando aplicável, `go test`, `go vet` e build do alvo |
 | Client source | build por `Build-Client.ps1`, candidato instalado e hasheado, mais fluxo real para qualquer alegação comportamental |

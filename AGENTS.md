@@ -68,6 +68,48 @@ técnicos detalhados ficam em
 `.agents/skills/wyd-go-feature/references/repository-contracts.md` e devem ser
 lidos apenas na seção indicada pela skill, não por padrão.
 
+## Programa obrigatório de cobertura do client 7.48
+
+O objetivo de mapear as 4.146 funções deve ser alcançado por catálogo,
+callgraph e fluxos observáveis, e não por tradução linear de pseudocódigo ou
+por análise isolada de uma função. `functions.tsv` é o censo do corpus; uma
+entrada catalogada não é uma função compreendida.
+
+Toda retomada ou nova frente de pesquisa deve seguir três trilhas:
+
+1. `wyd-client748-catalog`: conferir o hash, atualizar a triagem determinística
+   e escolher raízes por subsistema, fan-out, referências na source e callbacks;
+2. `wyd-client748-research`: rastrear uma transição observável completa no
+   projeto Ghidra, com callers, callees, estado, efeitos, erros e teardown;
+3. `wyd-go-feature`: adaptar no TMProject ou no WYD-Go somente o delta
+   comprovado pela ficha `TRACED`/`CONTRACT`, validar e registrar o resultado.
+
+As frentes devem ser priorizadas nesta ordem, salvo evidência que justifique
+outra sequência: bootstrap/lifecycle, transporte e login, dispatcher e cenas,
+tick/input, movimento, entidades, inventário/equipamento, NPC/lojas/trade,
+combate/skills, UI e render/assets, shutdown/reconexão. Cada ficha cobre uma
+transição; não criar uma ficha genérica que misture vários fluxos.
+
+O catálogo deve distinguir `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT`,
+`IMPLEMENTED` e `CLIENT_TESTED`. O avanço da contagem só pode ocorrer quando a
+evidência correspondente existir. Funções sem caller textual devem ser
+revisadas no Ghidra como possíveis callbacks, vtables, thunks ou entradas
+indiretas; zero resultados em um export não prova código morto.
+
+Nenhum código do client, packet, ABI, UI, lifecycle ou comportamento observado
+pode ser alterado enquanto a ficha do fluxo permanecer `LOCATED`. O TMProject
+7.69+ só pode sugerir semântica; não pode fornecer contrato, endereço, offset,
+layout, recurso ou packet do 7.48. Uma função auxiliar sem impacto observável
+pode ser catalogada e classificada sem uma tradução artificial para aumentar a
+cobertura.
+
+### Política Git desta campanha
+
+O trabalho desta campanha é feito diretamente em `main`. Não criar branches,
+worktrees ou PRs para dividir o mapeamento. Cada commit deve conter uma unidade
+documental, de pesquisa ou de implementação verificável e deve ser publicado
+em `origin/main` quando a validação correspondente estiver concluída.
+
 ## Gate Ghidra do client 7.48
 
 Qualquer mudança em `client-source/`, protocolo, ABI, structs, UI, input,

@@ -4,6 +4,31 @@ Estado: `INVENTORY_GENERATED`
 
 Este relatório cobre todas as entradas presentes em `functions.tsv`. Ele identifica o material disponível e cria uma fila de pesquisa; não transforma pseudocódigo exportado em compreensão ou contrato.
 
+## Estratégia operacional
+
+O programa segue a transição `catálogo -> callgraph -> fluxo observável ->
+adaptação -> validação`. O catálogo é o censo e o triador fornece uma ordem
+reproduzível; a compreensão só é atribuída pela ficha do fluxo após confirmação
+no projeto Ghidra. Não criar uma ficha isolada para cada função nem usar o
+TMProject 7.69+ como contrato do 7.48.
+
+Para iniciar ou retomar uma frente:
+
+```powershell
+python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
+python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format json --top 20
+```
+
+O JSON conserva a contagem e as lanes de todo o corpus e limita somente a lista
+`top`. Para gerar uma fila TSV completa, use `--format tsv --top 0 --output
+<arquivo temporário>`; nunca substitua `functions.tsv` com a saída da triagem.
+
+Os estados do programa são distintos: `UNMAPPED` (sem entrada de pesquisa),
+`LOCATED` (localizado), `TRACED` (fluxo confirmado), `CONTRACT` (contrato
+wire/ABI/recursos confirmado), `IMPLEMENTED` (delta aplicado) e
+`CLIENT_TESTED` (fluxo real executado no `client748/project.exe`). O triador
+apenas ordena; não promove nenhum estado.
+
 ## Artefatos
 
 - Corpus: `C:\Users\felipe\Tools\GhidraAnalysis\20260821\decompiled`
@@ -18,8 +43,8 @@ Este relatório cobre todas as entradas presentes em `functions.tsv`. Ele identi
 - Funções citadas nas fichas formais: **23**
 - Funções distintas documentadas: **62**
 - Documentadas e presentes no índice: **62**
-- Referências documentadas resolvidas como endereço interno: **2**
-- Referências documentadas ainda não resolvidas: **0**
+- Referências documentadas resolvidas como endereço interno: **0**
+- Referências documentadas ausentes do índice textual: **2**
 - Funções com referência direta na source C++/H: **69**
 - Funções no catálogo estrutural Ghidra: **4146**
 - Linhas com callgraph direto Ghidra: **4146**
@@ -48,7 +73,9 @@ Este relatório cobre todas as entradas presentes em `functions.tsv`. Ele identi
 
 Uma função só sai da fila quando estiver vinculada a uma transição observável com entrada, callers/callees confirmados no Ghidra, estado, side effects, erros, teardown/relogin quando aplicável, equivalente na source e validação proporcional. Packet/ABI exige `CONTRACT`; execução no candidato exige `CLIENT_TESTED`.
 
-Referências resolvidas dentro do corpo de uma função:
+Referências documentadas ainda não confirmadas no índice textual:
 
-- `FUN_00452733` -> `FUN_00452728`
-- `FUN_0047E4D6` -> `FUN_0047E49D`
+- `FUN_00452733` — referência observada no repositório; resolver diretamente
+  no projeto Ghidra antes de atribuir qualquer endereço.
+- `FUN_0047E4D6` — referência observada no repositório; resolver diretamente
+  no projeto Ghidra antes de atribuir qualquer endereço.

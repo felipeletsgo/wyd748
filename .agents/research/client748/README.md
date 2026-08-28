@@ -63,7 +63,7 @@ wire/ABI/recursos testáveis; `CLIENT_TESTED` exige o fluxo real no
 O corpus textual auxiliar está em
 `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled` e corresponde ao
 projeto `%USERPROFILE%\Tools\GhidraProjects\WYD748Native_20260821.gpr`.
-Ele possui 4.146 funções e atualmente indexa 100 referências nativas citadas no
+Ele possui 4.146 funções e atualmente indexa 108 referências nativas citadas no
 repositório;
 `FUN_00452733` e `FUN_0047E4D6` não aparecem no índice. Essa ausência textual
 nunca prova ausência no binário: resolver diretamente no projeto Ghidra, com

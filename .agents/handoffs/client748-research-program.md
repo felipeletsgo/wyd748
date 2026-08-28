@@ -11,12 +11,27 @@ reproduzível antes de qualquer implementação no WYD-Go ou em
 semântica herdada do TMProject 7.59/7.69+ e exige uma ficha por transição.
 
 Este handoff cobre somente a infraestrutura de pesquisa, suas duas fichas
-iniciais e as regras que bloqueiam edição prematura. A paridade funcional e
-visual já implementada possui estado próprio em
+iniciais, a estratégia de cobertura e as regras que bloqueiam edição prematura.
+A paridade funcional e visual já implementada possui estado próprio em
 `.agents/handoffs/client748-parity.md`; não duplicar esse histórico aqui.
 
 Nenhum código ativo do client ou servidor foi alterado neste escopo. Não houve
 build, startup ou teste in-game.
+
+## Estratégia formalizada nesta etapa
+
+O fluxo de trabalho agora é uma regra do repositório:
+
+```text
+catálogo -> callgraph -> fluxo observável -> adaptação -> validação
+```
+
+`wyd-client748-catalog` valida o censo das 4.146 funções, ordena raízes por
+evidência disponível e entrega uma fila reproduzível. `wyd-client748-research`
+fecha uma transição no projeto Ghidra, com callers/callees, estado, efeitos,
+erros e teardown. `wyd-go-feature` só adapta o delta comprovado pela ficha
+`TRACED`/`CONTRACT`. O triador não promove estado, não cria stubs e não usa o
+TMProject 7.69+ como contrato 7.48.
 
 ## Fontes e artefatos
 
@@ -37,6 +52,18 @@ Ghidra.
 - `wyd-client748-research` é o gate anterior a `wyd-go-feature` para client,
   protocolo, wire/ABI, UI, input, render, assets e lifecycle. A skill foi
   validada em 2026-08-28 pelo `quick_validate.py` do `skill-creator`.
+- `wyd-client748-catalog` é a trilha anterior de censo e priorização. O
+  triador validou as 4.146 entradas e produziu as lanes
+  `CORPUS_TRIAGE=1831`, `DOCUMENTED_FIRST=62`, `HIGH_FANOUT=304` e
+  `INDIRECT_OR_CALLBACK=1949`; isso é prioridade, não compreensão.
+- O triador foi corrigido e validado nos formatos `summary`, `json` e `tsv`.
+  Com `--top 5`, o JSON mantém `functions=4146` e informa
+  `selected_functions=5`; o TSV completo produz 4.147 linhas com cabeçalho.
+- `wyd-client748-research` e `wyd-go-feature` agora exigem o catálogo antes de
+  escolher uma raiz client/protocolo e documentam a separação entre os estados
+  de pesquisa (`UNMAPPED`/`LOCATED`/`TRACED`/`CONTRACT`) e entrega
+  (`IMPLEMENTED`/`CLIENT_TESTED`). As três skills passaram no
+  `quick_validate.py`.
 - `LOCATED` autoriza somente pesquisa/documentação. Comportamento exige ficha
   `TRACED`; packet, wire, ABI, struct, offset, packing, signedness e loader
   exigem `CONTRACT`.
@@ -44,9 +71,10 @@ Ghidra.
   `ui/control-focus-ime-lifecycle.md` passaram no validador estrutural, mas
   permanecem `LOCATED` porque callers/callees indiretos, erros e lifecycle não
   foram completamente fechados no projeto Ghidra.
-- `query_corpus.py stats --repo .` encontrou 4.146 funções e 108 funções
-  nativas citadas no repositório. `FUN_00452733` e `FUN_0047E4D6` não existem
-  no índice textual atual; essa ausência não prova ausência no binário.
+- `query_corpus.py stats --repo .` encontrou 4.146 funções e 108 referências
+  nativas no repositório: 106 resolvidas no índice textual e 2 ausentes.
+  `FUN_00452733` e `FUN_0047E4D6` permanecem não confirmadas; essa ausência não
+  prova ausência no binário.
 - `FUN_004AFAC0` e `FUN_004AFBA0` gravam a vtable `0x005A45F0`, confirmando a
   instância nativa do `ObjectManager`. Nessa vtable, os slots `+0x60`, `+0x64`
   e `+0x68` apontam para `FUN_004B3500`, `FUN_004B37C9` e `FUN_004B3952`.
@@ -100,6 +128,7 @@ Ghidra.
 
 ```text
 regras globais e scoped                  | STATICALLY VERIFIED | gate de pesquisa e versão única documentados
+skill wyd-client748-catalog                | STATICALLY VERIFIED | triagem determinística do corpus e fila por lane
 skill wyd-client748-research             | STATICALLY VERIFIED | quick_validate.py e script headless passaram
 infraestrutura e schema das fichas       | STATICALLY VERIFIED | scripts e template revisados; validador passou
 gate de tamanho por opcode               | LOCATED             | entrada nativa localizada; caller/direção pendentes
@@ -113,6 +142,8 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
 
 - `AGENTS.md` — gate da pesquisa 7.48, política `gpt-5.6-sol/xhigh` quando
   disponível e proibição de contrato vindo do TMProject moderno.
+- `.agents/skills/wyd-client748-catalog/` — skill, estratégia, metadados e
+  triador determinístico do corpus.
 - `client-source/AGENTS.md` — source de versão única e maturidade mínima antes
   de qualquer edição comportamental.
 - `.agents/skills/wyd-go-feature/SKILL.md` — consome fichas já maduras; não
@@ -120,7 +151,8 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
 - `.agents/skills/wyd-client748-research/` — nova skill, referências, metadados
   e ferramentas reproduzíveis.
 - `.agents/research/client748/` — README, template, dois exports focados e as
-  duas fichas iniciais. Seis exports exploratórios amplos e não citados foram
+  duas fichas iniciais; o inventário README inclui o procedimento do triador.
+  Seis exports exploratórios amplos e não citados foram
   removidos da worktree e preservados temporariamente em
   `%TEMP%\wyd748-broad-exports-20260828`; são regeneráveis pelo projeto Ghidra.
 - `.agents/handoffs/client748-research-program.md` — estado operacional deste
@@ -140,6 +172,22 @@ resultado: exit 0; duas fichas válidas; LOCATED=2
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-research
 resultado: exit 0; Skill is valid!
+
+python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-catalog
+python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-go-feature
+resultado: exit 0; ambas as skills adicionais são válidas
+
+python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
+resultado: exit 0; 4.146 funções, 4 lanes, 4.084 UNMAPPED, 23 LOCATED e 39 STATICALLY_EVIDENCED
+
+python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format json --top 5
+resultado: exit 0; functions=4146, selected_functions=5 e top=5
+
+python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format tsv --top 3
+resultado: exit 0; cabeçalho e três linhas de dados
+
+python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format tsv --top 0 | Measure-Object -Line
+resultado: exit 0; 4.147 linhas incluindo cabeçalho
 
 python .agents/skills/wyd-client748-research/scripts/query_corpus.py stats --repo .
 resultado: exit 1 diagnóstico; corpus=4146, referências=108, ausentes=2

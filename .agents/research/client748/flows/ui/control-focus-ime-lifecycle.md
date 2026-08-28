@@ -199,7 +199,7 @@ ser usado como autoridade de gameplay.
 
 - Pesquisa: hash do executável e pseudocódigo/export focado conferidos em
   2026-08-27.
-- Automação: `query_corpus.py stats --repo .` encontrou 4.146 funções e 100
+- Automação: `query_corpus.py stats --repo .` encontrou 4.146 funções e 108
   referências nativas citadas no repositório; duas referências
   (`FUN_00452733` e `FUN_0047E4D6`) continuam ausentes do índice textual.
   `validate_research.py --repo .` aprovou a estrutura desta ficha em

@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD Client 7.48 Catalog"
+  short_description: "Priorizar funções nativas 7.48 com evidência"
+  default_prompt: "Use $wyd-client748-catalog para validar o corpus 7.48, ordenar a próxima raiz e entregar uma fila reproduzível à pesquisa Ghidra."
