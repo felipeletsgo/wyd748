@@ -4,6 +4,7 @@
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressOverflowException;
+import ghidra.program.model.lang.Register;
 import ghidra.program.model.listing.Data;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.FunctionIterator;
@@ -14,6 +15,7 @@ import ghidra.program.model.listing.Listing;
 import ghidra.program.model.mem.Memory;
 import ghidra.program.model.mem.MemoryAccessException;
 import ghidra.program.model.mem.MemoryBlock;
+import ghidra.program.model.scalar.Scalar;
 import ghidra.program.model.symbol.Reference;
 import ghidra.program.model.symbol.ReferenceIterator;
 import ghidra.program.model.symbol.ReferenceManager;
@@ -95,6 +97,36 @@ public class ExportWydFlow extends GhidraScript {
                 result.append(',');
             }
             result.append(safeValue(object));
+        }
+        return result.toString();
+    }
+
+    private String registerList(Object[] objects) {
+        StringBuilder result = new StringBuilder();
+        for (Object object : objects) {
+            if (!(object instanceof Register)) {
+                continue;
+            }
+            if (result.length() != 0) {
+                result.append(',');
+            }
+            result.append(((Register) object).getName());
+        }
+        return result.toString();
+    }
+
+    private String scalarList(Object[] objects) {
+        StringBuilder result = new StringBuilder();
+        for (Object object : objects) {
+            if (!(object instanceof Scalar)) {
+                continue;
+            }
+            Scalar scalar = (Scalar) object;
+            if (result.length() != 0) {
+                result.append(',');
+            }
+            result.append("0x").append(Long.toUnsignedString(
+                    scalar.getUnsignedValue(), 16));
         }
         return result.toString();
     }
@@ -577,6 +609,114 @@ public class ExportWydFlow extends GhidraScript {
                 + ";body_max=" + function.getBody().getMaxAddress());
     }
 
+    private long parseVirtualSlotOffset(String raw) {
+        String normalized = raw;
+        if (normalized.startsWith("0x") || normalized.startsWith("0X")) {
+            normalized = normalized.substring(2);
+        }
+        if (normalized.isEmpty() || normalized.startsWith("-")
+                || normalized.startsWith("+")) {
+            throw new IllegalArgumentException("offset de slot virtual invalido: " + raw);
+        }
+
+        long offset;
+        try {
+            // Slots sao enderecados em hexadecimal nos exports e na listing;
+            // aceitar 54 e 0x54 evita que a mesma prova dependa de notacao.
+            offset = Long.parseUnsignedLong(normalized, 16);
+        }
+        catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(
+                    "offset de slot virtual invalido: " + raw, exception);
+        }
+        if (offset > 0xffffffffL) {
+            throw new IllegalArgumentException(
+                    "offset de slot virtual fora do limite de 32 bits: " + raw);
+        }
+        return offset;
+    }
+
+    private void writeVirtualSlotHits(PrintWriter writer, long slotOffset,
+            FunctionManager functions, Listing listing) {
+        // CALL [reg+offset] prova somente o uso estrutural daquele slot. Classes
+        // distintas podem compartilhar o mesmo offset; o tipo do receptor deve
+        // ser fechado pelo fluxo de dados, vptr e lifecycle no projeto Ghidra.
+        InstructionIterator instructions = listing.getInstructions(true);
+        long instructionCount = 0;
+        long candidateCount = 0;
+        long hitCount = 0;
+        String requestedSlot = "0x" + Long.toUnsignedString(slotOffset, 16);
+
+        while (instructions.hasNext() && !monitor.isCancelled()) {
+            Instruction instruction = instructions.next();
+            instructionCount++;
+            if (!instruction.getFlowType().isCall()
+                    || !instruction.getFlowType().isComputed()) {
+                continue;
+            }
+            candidateCount++;
+
+            int matchingOperand = -1;
+            Object[] matchingObjects = null;
+            for (int operandIndex = 0;
+                    operandIndex < instruction.getNumOperands(); operandIndex++) {
+                Object[] operandObjects = instruction.getOpObjects(operandIndex);
+                boolean hasRegister = false;
+                boolean hasRequestedScalar = false;
+                for (Object object : operandObjects) {
+                    if (object instanceof Register) {
+                        hasRegister = true;
+                    }
+                    else if (object instanceof Scalar
+                            && ((Scalar) object).getUnsignedValue() == slotOffset) {
+                        hasRequestedScalar = true;
+                    }
+                }
+                if (hasRegister && hasRequestedScalar) {
+                    matchingOperand = operandIndex;
+                    matchingObjects = operandObjects;
+                    break;
+                }
+            }
+            if (matchingOperand < 0) {
+                continue;
+            }
+
+            hitCount++;
+            Address address = instruction.getAddress();
+            Address fallThrough = instruction.getFallThrough();
+            Function owner = functions.getFunctionContaining(address);
+            String ownerName = owner == null ? symbolName(address) : owner.getName();
+            String ownerEntry = owner == null ? "" : owner.getEntryPoint().toString();
+            writer.println("virtual_slot_hit\t" + requestedSlot + "\t" + ownerName
+                    + "\t" + address + "\t"
+                    + (fallThrough == null ? "" : fallThrough) + "\t"
+                    + instruction.getFlowType() + "\t" + ownerName
+                    + "\towner_entry=" + ownerEntry
+                    + ";bytes=" + bytesHex(instruction)
+                    + ";mnemonic=" + safeValue(instruction.getMnemonicString())
+                    + ";instruction=" + safeValue(instruction)
+                    + ";operand_index=" + matchingOperand
+                    + ";operand=" + safeValue(
+                            instruction.getDefaultOperandRepresentation(matchingOperand))
+                    + ";objects=" + objectList(matchingObjects)
+                    + ";registers=" + registerList(matchingObjects)
+                    + ";scalars=" + scalarList(matchingObjects)
+                    + ";slot=" + requestedSlot
+                    + ";inputs=" + objectList(instruction.getInputObjects())
+                    + ";results=" + objectList(instruction.getResultObjects())
+                    + ";flows=" + addressList(instruction.getFlows())
+                    + ";fallthrough=" + (fallThrough == null ? "" : fallThrough));
+        }
+
+        // O resumo permanece presente com zero hits. Isso torna a busca
+        // reproduzivel sem converter ausencia estrutural em prova de classe.
+        writer.println("virtual_slot_search\t" + requestedSlot
+                + "\t\t\t\tcomputed_call\t\thits=" + hitCount
+                + ";candidates=" + candidateCount
+                + ";instructions=" + instructionCount);
+    }
+
     private int parseTableSlotCount(String raw) {
         int count;
         try {
@@ -673,7 +813,8 @@ public class ExportWydFlow extends GhidraScript {
             throw new IllegalArgumentException(
                     "uso: <arquivo-saida.tsv> "
                     + "<entry|exact:entry|pointers:entry|relatives:entry|rawrelatives:entry|"
-                    + "bodyrefs:entry|instructions:entry|table:base:slot-count> [entry ...]");
+                    + "bodyrefs:entry|instructions:entry|virtualslot:offset|"
+                    + "table:base:slot-count> [entry ...]");
         }
 
         File output = new File(args[0]);
@@ -690,6 +831,12 @@ public class ExportWydFlow extends GhidraScript {
 
             for (int i = 1; i < args.length && !monitor.isCancelled(); i++) {
                 String argument = args[i];
+                if (argument.startsWith("virtualslot:")) {
+                    String rawOffset = argument.substring("virtualslot:".length());
+                    writeVirtualSlotHits(writer, parseVirtualSlotOffset(rawOffset),
+                            functions, listing);
+                    continue;
+                }
                 if (argument.startsWith("table:")) {
                     String[] tableParts = argument.split(":", -1);
                     if (tableParts.length != 3 || tableParts[1].isEmpty()

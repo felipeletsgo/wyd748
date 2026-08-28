@@ -99,6 +99,20 @@ Quando o fluxo for amplo, dividi-lo por transição. Não criar uma ficha genér
    classifica xrefs externos para todo o corpo; o segundo cobre bytes `E8/E9`
    em blocos executáveis inicializados. Validar ambos contra controles positivos
    conhecidos no mesmo binário antes de interpretar um resultado zero.
+   Para chamadas virtuais computadas, `virtualslot:<offset>` localiza
+   `CALL [reg+offset]` e registra owner, callsite, bytes, operandos,
+   registradores e escalares. Um hit prova o uso estrutural do slot, não a
+   classe do receptor: resolver fluxo de dados, vptr, vtable e lifecycle no
+   projeto Ghidra antes de atribuir a chamada a um manager ou cena.
+   Em headless, não confiar somente no exit code: o Ghidra pode retornar `0`
+   mesmo com `SCRIPT ERROR`. Aceitar o export apenas quando o log não contiver
+   esse marcador e o TSV trouxer o hash do programa e o registro-resumo do
+   modo solicitado, inclusive para zero hits.
+   Para acelerar a correlação em massa com a source recompilável, exportar os
+   dois programas com `scripts/ExportWydFingerprints.java` e comparar os TSVs
+   com `scripts/correlate_fingerprints.py`. `EXACT_MATCH` e `STRONG_MATCH`
+   escolhem candidatos para revisão; não nomeiam a função nativa, não alteram a
+   maturidade e não substituem xrefs, ownership, erros ou lifecycle no Ghidra.
 4. Para wire/ABI, provar direção, opcode, tamanho, offsets, packing e signedness
    no packet final. `sizeof` moderno ou struct homônima não é evidência 7.48.
 5. Seguir o fluxo vivo na source e no Go com `rg`, incluindo caminhos de erro,
@@ -175,7 +189,10 @@ python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo
 
 Passe `--corpus <diretorio>` quando a descoberta automática não encontrar
 `functions.tsv`. Leia `references/research-method.md` antes de interpretar a
-saída.
+saída. Para a correlação diferencial, conferir os hashes gravados nos dois
+exports e passá-los explicitamente ao `correlate_fingerprints.py`; manter os
+corpora completos fora do Git e versionar somente evidência focada citada por
+uma ficha.
 
 ## Conclusão
 

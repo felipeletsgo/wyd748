@@ -75,9 +75,12 @@ Ghidra.
   nativas no repositório: 106 resolvidas no índice textual e 2 ausentes.
   `FUN_00452733` e `FUN_0047E4D6` permanecem não confirmadas; essa ausência não
   prova ausência no binário.
-- `FUN_004AFAC0` e `FUN_004AFBA0` gravam a vtable `0x005A45F0`, confirmando a
-  instância nativa do `ObjectManager`. Nessa vtable, os slots `+0x60`, `+0x64`
-  e `+0x68` apontam para `FUN_004B3500`, `FUN_004B37C9` e `FUN_004B3952`.
+- `FUN_004AFAC0` e `FUN_004AFBA0` instalam o vptr efetivo `0x005A45FC`,
+  confirmando a instância nativa do `ObjectManager`. Nessa vtable, os slots
+  `+0x54`, `+0x58` e `+0x5C` apontam para `FUN_004B3500`, `FUN_004B37C9` e
+  `FUN_004B3952`; os slots `+0x60`, `+0x64` e `+0x68` apontam para
+  `FUN_004B21F0`, `FUN_004B21C9` e `FUN_004B27DA`. O endereço `0x005A45F0`
+  pertence ao preâmbulo adjacente e não é a base dos slots desta classe.
 - `FUN_004B3500` localiza a transição de estado/cena: o estado solicitado `9`
   vira estado interno `0`; somente `0`, `5`, `7` e `8` instanciam cenas; o
   client reinicializa a câmera, registra a nova cena, inicializa-a pelo slot
@@ -90,6 +93,21 @@ Ghidra.
   da chamada final foi resolvido pelas instruções como o próprio manager; a
   semântica de encadeamento/teardown ainda exige os callers e o consumidor de
   `m_cDeleted` antes de promover a ficha.
+- A vtable da aplicação em `0x005A6104` contém, nos slots `+0x00..+0x1C`,
+  `FUN_0055F3E0`, `FUN_0055BC0A`, `FUN_0055D066`, `FUN_0055D345`,
+  `FUN_0055EDF7`, `FUN_0055D6E6`, `FUN_0055EE1E` e `FUN_0055EE45`.
+  `FUN_0055EE1E` grava o argumento em `app+0xF8` e em `DAT_013B71E8`.
+- No branch `0x464` de `FUN_0055DAB8`, o dispatch em `0x0055E80D` usa
+  comprovadamente o objeto em `app+0xF8`, enquanto o dispatch em `0x0055E8CA`
+  usa `app+0xF4`. O segundo receptor, seu ownership e o significado exato do
+  evento permanecem não confirmados; sem imports, argumentos e teardown esse
+  trecho não integra contrato.
+- `ExportWydFingerprints.java` foi executado em modo headless/read-only nos
+  dois projetos Ghidra: exportou 4.146 funções do binário nativo e 3.135 do
+  `project.exe` atual. `correlate_fingerprints.py`, revalidando ambos os hashes,
+  classificou `EXACT_MATCH=88`, `CANDIDATE=385` e `NO_MATCH=3673`. Esses
+  resultados formam uma fila diferencial; não promovem maturidade nem atribuem
+  nomes sem revisão do fluxo no Ghidra.
 - O modo headless/read-only `pointers:0055890a` do `ExportWydFlow.java` foi
   executado no Ghidra 12.1.3 e encontrou zero VAs brutos de 32 bits. Isso não
   elimina chamada calculada, thunk ou tabela construída em runtime; a ficha
@@ -131,6 +149,7 @@ regras globais e scoped                  | STATICALLY VERIFIED | gate de pesquis
 skill wyd-client748-catalog                | STATICALLY VERIFIED | triagem determinística do corpus e fila por lane
 skill wyd-client748-research             | STATICALLY VERIFIED | quick_validate.py e script headless passaram
 infraestrutura e schema das fichas       | STATICALLY VERIFIED | scripts e template revisados; validador passou
+correlação estrutural native/source       | AUTOMATED TESTED     | Ghidra real + correlator: 88 exact, 385 candidates
 gate de tamanho por opcode               | LOCATED             | entrada nativa localizada; caller/direção pendentes
 foco, IME e lifecycle de controles       | LOCATED             | fluxo principal localizado; xrefs/teardown pendentes
 transição e troca de cenas                | LOCATED             | criação/initialize/falha/registro localizados; callers e teardown pendentes
@@ -149,12 +168,14 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
 - `.agents/skills/wyd-go-feature/SKILL.md` — consome fichas já maduras; não
   promove hipótese do TMProject.
 - `.agents/skills/wyd-client748-research/` — nova skill, referências, metadados
-  e ferramentas reproduzíveis.
+  e ferramentas reproduzíveis, incluindo export e correlação diferencial de
+  fingerprints com testes determinísticos.
 - `.agents/research/client748/` — README, template, dois exports focados e as
   duas fichas iniciais; o inventário README inclui o procedimento do triador.
-  Seis exports exploratórios amplos e não citados foram
-  removidos da worktree e preservados temporariamente em
-  `%TEMP%\wyd748-broad-exports-20260828`; são regeneráveis pelo projeto Ghidra.
+  Exports exploratórios amplos e não citados foram removidos da worktree e
+  preservados temporariamente em
+  `%TEMP%\wyd748-broad-exports-20260828-commit`; são regeneráveis pelo projeto
+  Ghidra e não pertencem ao commit.
 - `.agents/handoffs/client748-research-program.md` — estado operacional deste
   programa.
 - `.agents/handoffs/client748-parity.md` — escopo anterior preservado e não
@@ -204,6 +225,17 @@ resultado: exit 0; vtable do ObjectManager e instruções de `FUN_004B3500`,
 `FUN_004B37C9`, quatro construtores de cena e `FUN_0054AC09` exportadas em
 `scene-transition-instructions.tsv`; fluxo ainda sem maturidade `TRACED`
 
+ExportWydFingerprints.java em Ghidra 12.1.3 headless/read-only
+resultado: exit 0; 4.146/4.146 funções nativas e 3.135/3.135 funções da source;
+logs sem `SCRIPT ERROR`; SHA-256 embutidos iguais aos binários consultados
+
+python .agents/skills/wyd-client748-research/scripts/correlate_fingerprints.py
+resultado: exit 0; 4.146 correlacionadas; EXACT_MATCH=88, CANDIDATE=385 e
+NO_MATCH=3673; binários revalidados por SHA-256
+
+python -m unittest discover -s .agents/skills/wyd-client748-research/scripts -p 'test_*.py' -v
+resultado: exit 0; 12 testes passaram
+
 forward-test somente leitura com gpt-5.6-sol/xhigh
 resultado: classificou a ficha como LOCATED, bloqueou edição e exigiu CONTRACT
 
@@ -235,17 +267,20 @@ ocorrências.
 - Não iniciar build ou teste do client apenas para validar documentação. Quando
   houver implementação futura, usar `Build-Client.ps1` e testar o fluxo real no
   novo hash de `project.exe`.
+- Não converter os 88 matches estruturais em nomes ou estado de pesquisa por
+  lote. Usá-los como âncoras de localização e fechar cada transição observável
+  com xrefs, estado, erro, ownership e lifecycle.
 
 ## Próximo passo executável
 
-1. Continuar o fluxo de cenas a partir de `FUN_004B3500` e `FUN_004B37C9` no
-   projeto `WYD748Native_20260821.gpr`: resolver callers diretos/indiretos,
-   vtables e destrutores das cenas criadas por `FUN_004343A4`, `FUN_0049EE30`,
-   `FUN_004A8CCF` e `FUN_00431D00`.
-2. Rastrear o consumidor de `TreeNode+0x14 = 1`, a remoção da cena antiga da
-   árvore em `manager+0x1B07C`, logout/relogin e todos os caminhos de falha.
-3. Comparar o fluxo integral com `ObjectManager.cpp/.h`, `TMScene.cpp/.h` e
-   `TreeNode.cpp/.h`, então criar
+1. Continuar o lifecycle da aplicação a partir de `FUN_0055DAB8`: fechar quem
+   atribui, consulta, invalida e destrói `app+0xF4`, `app+0xF8` e `app+0xFC`,
+   incluindo os imports e o significado Win32 dos branches `0x464` e `0x465`.
+2. Fechar `FUN_0055BC0A`, inicialização parcial, shutdown, logout e relogin;
+   depois reconectar esse lifecycle a `FUN_004B3500`/`FUN_004B37C9`, aos
+   destrutores das quatro cenas e ao consumidor de `TreeNode+0x14 = 1`.
+3. Comparar o fluxo integral com `TMProject.cpp/.h`, `ObjectManager.cpp/.h`,
+   `TMScene.cpp/.h` e `TreeNode.cpp/.h`, então criar
    `.agents/research/client748/flows/lifecycle/scene-transition.md`.
 4. Promover a ficha somente quando entrada, callers, callees, estado, erros,
    ownership e teardown estiverem fechados. Só depois adaptar o delta

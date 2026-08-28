@@ -62,7 +62,10 @@ def command_flow(corpus: Path, entry_arg: str) -> int:
         if candidate == path:
             continue
         text = candidate.read_text(encoding="utf-8", errors="ignore")
-        if needle in text:
+        # Ghidra's C export may vary the hexadecimal casing by function/file;
+        # caller discovery must not turn that formatting detail into a false
+        # negative before the project-level xrefs are reviewed.
+        if needle in text.upper():
             callers.append(candidate.name)
     print(f"corpus: {corpus}")
     print(f"function: FUN_{entry}")

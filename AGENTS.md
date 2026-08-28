@@ -75,6 +75,19 @@ callgraph e fluxos observáveis, e não por tradução linear de pseudocódigo o
 por análise isolada de uma função. `functions.tsv` é o censo do corpus; uma
 entrada catalogada não é uma função compreendida.
 
+O pipeline obrigatório é:
+
+```text
+catálogo -> callgraph -> fluxo observável -> adaptação -> validação
+```
+
+Cada seta é um gate: o catálogo não substitui xrefs; o callgraph não substitui
+estado/lifecycle; a semelhança com o TMProject não substitui a adaptação
+decidida por claim; build não substitui validação do fluxo. Em lifecycle,
+`TRACED` ou superior exige entrada observável, matriz de transições,
+vtables/vptrs/receptores, ownership, falha parcial, cleanup/teardown, shutdown
+e logout/relogin resolvidos ou marcados como não aplicáveis com justificativa.
+
 Toda retomada ou nova frente de pesquisa deve seguir três trilhas:
 
 1. `wyd-client748-catalog`: conferir o hash, atualizar a triagem determinística

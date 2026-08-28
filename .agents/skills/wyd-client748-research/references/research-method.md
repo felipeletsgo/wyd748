@@ -48,6 +48,44 @@ mas os xrefs de um slot só entram como prova quando o endereço exato também f
 solicitado. Não versionar uma varredura ampla apenas para manter possibilidades
 de busca futura.
 
+Para procurar dispatch virtual computado, usar `virtualslot:<offset>`, com o
+offset hexadecimal com ou sem prefixo `0x`. O relatório registra cada
+`CALL [reg+offset]` compatível e termina com `virtual_slot_search`, incluindo
+hits, candidatos e instruções varridas. O mesmo offset aparece em vtables de
+classes diferentes: owner da instrução não é owner do receptor. Antes de nomear
+a classe, provar a origem do registrador receptor, o vptr observado, a vtable e
+a transição de lifecycle que torna aquela instância alcançável.
+
+O Ghidra headless pode capturar uma exceção de script e ainda encerrar o processo
+com código `0`. Toda execução deve validar em conjunto: ausência de
+`SCRIPT ERROR` no log, presença do SHA-256 esperado na linha `program` e presença
+do resumo do modo solicitado no TSV. Argumentos inválidos devem produzir
+`SCRIPT ERROR` e nenhum resumo aceito; não tratar apenas o exit code como teste.
+
+### Correlação diferencial em lote
+
+`ExportWydFingerprints.java` extrai, para cada função, hashes de bytes,
+mnemônicos, operandos normalizados, p-code e CFG, além de strings, imports,
+constantes e vizinhos diretos. Executá-lo em projetos Ghidra separados e
+read-only para o binário 7.48 e para o `project.exe` exato que será comparado.
+O export precisa conter o SHA-256 do programa; o correlator deve também validar
+os binários quando eles estiverem disponíveis.
+
+`correlate_fingerprints.py` usa unicidade, melhor candidato recíproco, margem e
+suporte limitado do callgraph. Interpretar as classes assim:
+
+- `EXACT_MATCH`: fingerprint estrutural único ou bytes únicos, ainda sujeito a
+  revisão do fluxo;
+- `STRONG_MATCH`: candidato único com sinais estáveis e margem suficiente;
+- `CANDIDATE`: útil para ordenar análise manual, sem decisão comportamental;
+- `NO_MATCH`: nenhuma correlação útil; não prova ausência na source.
+
+A correlação reduz a busca, mas não prova semântica, ABI, tipo do receptor,
+ownership, alcançabilidade ou lifecycle. Revisar no projeto Ghidra a raiz e os
+vizinhos relevantes antes de registrar um nome ou promover a ficha. Os exports
+completos são caches regeneráveis e ficam fora do Git; versionar apenas recortes
+focados que sustentem claims de uma ficha.
+
 Quando uma função não possuir xref tipado, usar `pointers:<entry>` para procurar
 o VA bruto de 32 bits em toda a memória carregada. Registrar o número de hits e
 classificar cada slot no projeto. Zero hits elimina apenas essa representação
@@ -144,3 +182,9 @@ Antes de promover a ficha:
 
 `CLIENT_TESTED` exige execução do fluxo no `client748/project.exe`; build ou
 startup isolado não bastam.
+
+Para fichas de lifecycle em `TRACED`, `CONTRACT` ou `CLIENT_TESTED`, o validador
+exige conteúdo verificável para entrada observável, matriz de transições,
+vtables/vptrs/receptores, ownership, falha parcial, cleanup/teardown, shutdown e
+logout/relogin. Quando um item realmente não se aplicar, registrar `N/A:` seguido
+da justificativa; marcador vazio não fecha o gate.

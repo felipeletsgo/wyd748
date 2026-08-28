@@ -23,7 +23,11 @@ Qual entrada, transição e saída esta ficha precisa explicar?
 
 ## Fluxo nativo 7.48
 
-### Entrada
+### Entrada observável
+
+- Evento:
+- Precondições e estado inicial:
+- Saída observável:
 
 ### Callers
 
@@ -34,6 +38,23 @@ Qual entrada, transição e saída esta ficha precisa explicar?
 ### Saídas e erros
 
 ## Estado e lifecycle
+
+### Matriz de transições
+
+| Evento/estado | Precondição | Função/call | Estado resultante | Side effects | Erro/saída |
+| --- | --- | --- | --- | --- | --- |
+
+### Vtables, vptrs e receptores
+
+### Ownership
+
+### Falha parcial
+
+### Cleanup e teardown
+
+### Shutdown
+
+### Logout e relogin
 
 ## Wire, ABI e recursos
 
