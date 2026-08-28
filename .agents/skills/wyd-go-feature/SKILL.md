@@ -5,6 +5,11 @@ description: Implementar, corrigir ou auditar o WYD-Go e o client 7.48. Para cli
 
 # WYD-Go feature
 
+Para qualquer mudança que atravesse o client ou o contrato que ele observa,
+`wyd-client748-research` é um gate anterior, não uma referência opcional. A
+skill desta página implementa somente o que a ficha 7.48 já tornou verificável;
+ela não deve transformar uma semelhança do TMProject em contrato.
+
 ## Roteamento e autoridade
 
 Escolher o menor conjunto de referências que cobre o risco real. O fato de uma
@@ -13,9 +18,9 @@ mudança compilar não permite pular a evidência específica da área.
 | Escopo | Leitura/skill obrigatória | Evidência que decide |
 | --- | --- | --- |
 | Servidor Go, regra ou persistência | esta skill + `AGENTS.md` scoped | código, testes e dados atuais |
-| Packet, wire, struct ou ABI 7.48 | `references/ghidra-client748.md` | binário/Ghidra 7.48 + contrato server-side |
-| UI, input, grid, inventário ou render | Ghidra + `references/client-ui-748.md` | lifecycle, recursos e função nativa 7.48 |
-| Asset sob `client748/` | acima + `client748/skills/wyd-client-assets/SKILL.md` | consumidor real, manifest/hash e teste visual |
+| Packet, wire, struct ou ABI 7.48 | `wyd-client748-research` + `references/ghidra-client748.md` | ficha `CONTRACT`, binário/Ghidra 7.48 + contrato server-side |
+| UI, input, grid, inventário ou render | `wyd-client748-research` + Ghidra + `references/client-ui-748.md` | ficha `TRACED` e lifecycle, recursos e função nativa 7.48 |
+| Asset sob `client748/` | `wyd-client748-research` + referências acima + `client748/skills/wyd-client-assets/SKILL.md` | consumidor real, manifest/hash e teste visual |
 | Auditoria | `references/audit.md` | fluxo vivo, callers/callees e testes atuais |
 | Hook/plugin Micronics | `add-hook`; `build-deploy` ao compilar/implantar | exe 7.54 exato + bytes e runtime do plugin |
 | Conhecimento histórico | `wyd-dev-knowledge` por último | hipótese revalidada na versão alvo |
@@ -38,9 +43,11 @@ uma fonte superior nem fornecer ABI para outra versão.
    `model`, `store` ou `client-source`.
 5. Se a tarefa tocar client, protocolo, packet, ABI, struct, UI, input, render,
    assets ou comportamento observado do executável, ler primeiro
-   [`references/ghidra-client748.md`](references/ghidra-client748.md) e consultar
-   a função nativa correspondente na descompilação Ghidra do `WYD.exe` 7.48.
-   Essa consulta é obrigatória mesmo quando TMProject/W2PP já têm código similar.
+   `wyd-client748-research/SKILL.md`, criar/atualizar a ficha de fluxo e então
+   ler [`references/ghidra-client748.md`](references/ghidra-client748.md) e
+   consultar a função nativa correspondente na descompilação Ghidra do
+   `WYD.exe` 7.48. Essa consulta é obrigatória mesmo quando TMProject/W2PP já têm
+   código similar.
 6. Se o escopo incluir HUD, janelas, input, mensagens, grid, inventário,
    equipamento ou drag, ler também
    [`references/client-ui-748.md`](references/client-ui-748.md).
@@ -63,12 +70,19 @@ uma fonte superior nem fornecer ABI para outra versão.
 13. Se o trabalho continuar em outra sessão, atualizar somente o handoff do
     escopo com fatos verificáveis, estado de validação e próximo passo.
 
+Antes da primeira edição no escopo client, registrar no trabalho o caminho da
+ficha e sua maturidade. `TRACED` é o mínimo para comportamento, UI, input,
+render, lifecycle e assets. `CONTRACT` é obrigatório para packet, wire, ABI,
+struct, offset, packing, signedness ou loader. Uma ficha `LOCATED` autoriza
+somente investigação/documentação; ela não é um “quase aprovado”.
+
 ## Condições de parada
 
 Não editar ainda quando faltar qualquer prova necessária para decidir o
 contrato: hash divergente sem nova análise, função/lifecycle 7.48 não
 identificado, offset/packing/signedness incerto, recurso ou ID não materializado,
-ou regra server-side sem fonte autoritativa. Continuar a investigação por
+ou regra server-side sem fonte autoritativa, ou quando a ficha permanecer
+`LOCATED`. Continuar a investigação por
 strings, xrefs, call graph, dados e testes; se a lacuna permanecer, registrar
 `não confirmado` e entregar a limitação, sem fabricar compatibilidade.
 
@@ -94,6 +108,7 @@ aceitar build bem-sucedido que deixe o candidato ausente ou desatualizado.
 
 Antes de alterar código relacionado ao client, registrar na análise de trabalho:
 
+- ficha `.agents/research/client748/flows/...` e maturidade aplicável;
 - executável e SHA-256 usados como referência;
 - funções Ghidra consultadas;
 - callers/callees relevantes;
@@ -106,6 +121,11 @@ descompilação. Se a função não estiver identificada, localizar por strings,
 xrefs, opcode, tamanho, constantes, imports ou call graph antes de implementar.
 Se ainda não houver evidência suficiente, marcar como `não confirmado` e não
 transformar a hipótese em contrato.
+
+O corpus exportado é auxiliar: ausência textual, caller sintático ausente ou
+função não indexada nunca prova ausência no binário. Reabrir a função e seus
+xrefs no projeto Ghidra. O TMProject 7.69+ pode sugerir semântica, mas não pode
+fornecer ID, recurso, packet, offset, endereço, layout ou lifecycle do 7.48.
 
 ## Invariantes
 

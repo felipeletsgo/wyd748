@@ -1,1 +1,5 @@
 CLIENTS/WYD/** filter=lfs diff=lfs merge=lfs -text
+
+# Ghidra exports keep a fixed TSV schema; a final tab represents an empty last
+# column and is evidence structure rather than accidental source whitespace.
+.agents/research/client748/**/*.tsv whitespace=-blank-at-eol

@@ -13,7 +13,7 @@ comprovado do 7.48.
 
 ## Política de modelo
 
-Preferir `gpt-5.6-luna` com esforço `max` quando o ambiente oferecer essa
+Preferir `gpt-5.6-sol` com esforço `xhigh` quando o ambiente oferecer essa
 seleção. Caso contrário, usar o maior nível disponível e nunca afirmar que um
 modelo indisponível foi usado. Skills e subagentes não reduzem o rigor exigido.
 
@@ -27,7 +27,9 @@ Antes de qualquer tarefa técnica não trivial:
 4. verificar `git status --short` e preservar mudanças alheias;
 5. localizar o fluxo vivo com `rg`, incluindo callers, callees e testes;
 6. carregar somente as referências indicadas pela skill para o assunto atual;
-7. implementar, validar e registrar o estado real da validação.
+7. se tocar client/protocolo/ABI/UI/input/render/asset/lifecycle, concluir a
+   ficha de pesquisa 7.48 no estado exigido antes de editar;
+8. implementar, validar e registrar o estado real da validação.
 
 Se uma skill obrigatória estiver ausente ou ilegível, informar a limitação. Não
 fingir que ela foi consultada nem declarar a tarefa concluída.
@@ -36,9 +38,9 @@ fingir que ela foi consultada nem declarar a tarefa concluída.
 
 | Escopo | Skill obrigatória | Referência adicional |
 | --- | --- | --- |
-| Qualquer comportamento do servidor/client WYD | `.agents/skills/wyd-go-feature/SKILL.md` | A própria skill escolhe referências por área |
-| Client, packet, ABI, UI, input ou render 7.48 | `wyd-go-feature` | `references/ghidra-client748.md` antes da primeira edição |
-| UI, HUD, grid, inventário, equipamento ou mensagens 7.48 | `wyd-go-feature` | `references/client-ui-748.md` |
+| Qualquer comportamento do servidor/client WYD | `.agents/skills/wyd-go-feature/SKILL.md` | Para escopo client/contrato, `wyd-client748-research` vem antes |
+| Client, packet, ABI, UI, input, render, asset ou lifecycle 7.48 | `wyd-client748-research` → `wyd-go-feature` | ficha `TRACED`; `CONTRACT` para wire/ABI/loader |
+| UI, HUD, grid, inventário, equipamento ou mensagens 7.48 | `wyd-client748-research` → `wyd-go-feature` | `references/ghidra-client748.md` e `references/client-ui-748.md` |
 | Asset visual sob `client748/` | `wyd-go-feature` + `client748/skills/wyd-client-assets/SKILL.md` | `client748/AGENTS.md` |
 | Hook nativo no plugin Micronics | `add-hook` | Usar `build-deploy` se houver build/deploy da DLL |
 | Build/deploy de `FunctionsV02.dll` | `build-deploy` | Seguir a ordem kill/build/copy/start da skill |
@@ -71,6 +73,9 @@ lidos apenas na seção indicada pela skill, não por padrão.
 Qualquer mudança em `client-source/`, protocolo, ABI, structs, UI, input,
 render, assets ou comportamento do executável exige, antes da primeira edição:
 
+- usar `.agents/skills/wyd-client748-research/SKILL.md` e registrar a ficha do
+  fluxo; `TRACED` é o mínimo para comportamento e `CONTRACT` para wire/ABI,
+  structs, offsets, packing, signedness ou loaders;
 - ler `wyd-go-feature/references/ghidra-client748.md`;
 - confirmar o SHA-256 do executável analisado;
 - registrar funções nativas, callers/callees e lifecycle relevantes;
@@ -81,6 +86,8 @@ render, assets ou comportamento do executável exige, antes da primeira edição
 Não corrigir por tentativa visual quando IDs, recursos, lifecycle ou condições
 nativas podem ser recuperados da descompilação. Hipótese insuficiente deve ficar
 marcada como `não confirmada`, nunca promovida silenciosamente a contrato.
+Ausência de uma função ou caller no export textual também não prova ausência no
+binário; resolver xrefs e chamadas indiretas diretamente no projeto Ghidra.
 
 ### Papéis dos executáveis
 
@@ -113,6 +120,9 @@ para satisfazer um ponteiro.
 - Inventário: 64 slots, 63 utilizáveis; cargo: 128 slots, 120 utilizáveis.
 - Handlers roteiam; regra de negócio fica no módulo da feature.
 - Não copiar ABI, structs, offsets, endereços ou packets de outra versão.
+- TMProject 7.69+ e referências posteriores são apenas fontes semânticas
+  secundárias; não fornecem contrato 7.48 nem justificam branches de
+  compatibilidade na source única.
 
 ## Edição e validação
 

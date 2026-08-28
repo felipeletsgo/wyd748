@@ -1,0 +1,4 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+pointer_search	0055890a	FUN_0055890a		0055890a	pointer_scan		hits=0

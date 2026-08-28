@@ -1,8 +1,8 @@
 # WYD-Go
 
-Política canônica do repositório: prefira `gpt-5.6-luna` com esforço `max`
+Política canônica do repositório: prefira `gpt-5.6-sol` com esforço `xhigh`
 quando essa seleção estiver disponível na sessão Codex. O ambiente continua
-autoridade sobre o modelo efetivamente usado; caso Luna não esteja disponível,
+autoridade sobre o modelo efetivamente usado; caso Sol não esteja disponível,
 use o maior nível exposto e não declare uso de um modelo indisponível.
 
 `AGENTS.md` é o contrato canônico deste repositório. Leia e siga suas regras

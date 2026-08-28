@@ -37,6 +37,8 @@ data/charstate/*.json
 
 # Artefatos de IDE/OS comuns
 .vs/
+__pycache__/
+*.py[cod]
 *.log
 *~
 

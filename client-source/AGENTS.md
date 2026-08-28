@@ -1,12 +1,34 @@
 # Source-built WYD client
 
-Ler primeiro o `AGENTS.md` da raiz e a skill `wyd-go-feature`. Em continuidade
-de trabalho, ler também somente o handoff correspondente em `.agents/handoffs/`
-e verificar seus fatos contra a worktree atual.
+Ler primeiro o `AGENTS.md` da raiz. Para qualquer comportamento, protocolo,
+ABI, UI, input, render, asset ou lifecycle do client, usar nesta ordem
+`wyd-client748-research` e `wyd-go-feature`. Em continuidade de trabalho, ler
+também somente o handoff correspondente em `.agents/handoffs/` e verificar seus
+fatos contra a worktree atual.
 
 Esta arvore e a unica implementacao ativa do client. Paridade funcional e
 visual ainda precisa ser comprovada no `client748/project.exe`, mas o binario
 historico nao volta a ser produto ou fallback durante essa migracao.
+
+## Gate de evidencia 7.48
+
+Antes da primeira edicao de codigo que altere comportamento do client:
+
+- criar ou atualizar a ficha da transicao em
+  `.agents/research/client748/flows/`;
+- confirmar o SHA-256 do `WYD.exe` historico analisado e reabrir no projeto
+  Ghidra a entrada, os callers/callees e o lifecycle relevantes;
+- exigir ficha `TRACED` para comportamento, UI, input, render, assets e
+  lifecycle;
+- exigir ficha `CONTRACT` para packet, wire, ABI, struct, offset, packing,
+  signedness ou loader;
+- manter a tarefa em pesquisa/documentacao enquanto a ficha estiver
+  `UNMAPPED` ou `LOCATED`.
+
+O corpus textual exportado e apenas um acelerador. Funcao ou caller ausente do
+indice precisa ser resolvido no projeto Ghidra ou permanecer `nao confirmado`.
+TMProject 7.59/7.69+ pode sugerir nomes e semantica, mas nunca fornece IDs,
+recursos, offsets, layouts, packets, ABI ou lifecycle do 7.48.
 
 ## Versao unica
 
@@ -44,8 +66,8 @@ passar pelo build e pelo fluxo real afetado.
   `client748/skills/wyd-client-assets/SKILL.md` e suas evidencias.
 - Nao copiar structs, offsets ou enderecos de W2PP/Secrets/Micronics. Portar
   semantica e confirmar o layout nesta source e no servidor Go.
-- O build deve passar por `tmproject/Build-Client.ps1`; nao versionar a pasta
-  `build/`.
+- O build deve passar exclusivamente por `tmproject/Build-Client.ps1`; nao
+  versionar a pasta `build/` nem aceitar compilacao manual como candidato.
 
 ## Artefato e implantacao
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD Client 7.48 Research"
+  short_description: "Rastrear fluxos nativos 7.48 com evidência"
+  default_prompt: "Use $wyd-client748-research para rastrear um fluxo completo do client nativo 7.48, registrar a ficha de evidência e separar o contrato comprovado da herança do TMProject."
