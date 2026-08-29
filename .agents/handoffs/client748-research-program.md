@@ -10,7 +10,7 @@ reproduzível antes de qualquer implementação no WYD-Go ou em
 `client-source/tmproject`. O programa separa contrato 7.48 comprovado de
 semântica herdada do TMProject 7.59/7.69+ e exige uma ficha por transição.
 
-Este handoff cobre somente a infraestrutura de pesquisa, suas duas fichas
+Este handoff cobre somente a infraestrutura de pesquisa, suas três fichas
 iniciais, a estratégia de cobertura e as regras que bloqueiam edição prematura.
 A paridade funcional e visual já implementada possui estado próprio em
 `.agents/handoffs/client748-parity.md`; não duplicar esse histórico aqui.
@@ -170,8 +170,9 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
 - `.agents/skills/wyd-client748-research/` — nova skill, referências, metadados
   e ferramentas reproduzíveis, incluindo export e correlação diferencial de
   fingerprints com testes determinísticos.
-- `.agents/research/client748/` — README, template, dois exports focados e as
-  duas fichas iniciais; o inventário README inclui o procedimento do triador.
+- `.agents/research/client748/` — README, template, quatro exports focados e as
+  três fichas iniciais, incluindo `flows/lifecycle/scene-transition.md`; o
+  inventário README inclui o procedimento do triador.
   Exports exploratórios amplos e não citados foram removidos da worktree e
   preservados temporariamente em
   `%TEMP%\wyd748-broad-exports-20260828-commit`; são regeneráveis pelo projeto
@@ -189,7 +190,7 @@ antes de editar; handoff não funciona como lock.
 
 ```text
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-resultado: exit 0; duas fichas válidas; LOCATED=2
+resultado: exit 0; três fichas válidas; LOCATED=3
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-research
 resultado: exit 0; Skill is valid!
@@ -243,7 +244,7 @@ hashes SHA-256 da referência e do candidato
 resultado: 8AA2F918...15F593 e F8251714...A380B
 
 git diff --check
-resultado: exit 0; somente avisos informativos LF/CRLF do Git
+resultado: exit 0; somente avisos informativos LF/CRLF do Git no Windows
 ```
 
 O `exit 1` de `query_corpus.py stats` é um alerta de cobertura textual, não uma

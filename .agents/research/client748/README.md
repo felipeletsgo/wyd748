@@ -52,6 +52,7 @@ Estado atual do mapa:
 | --- | --- | --- |
 | Gate de tamanho por opcode | `LOCATED` | `flows/transport/packet-size-gate.md` |
 | Foco, IME e lifecycle de controles | `LOCATED` | `flows/ui/control-focus-ime-lifecycle.md` |
+| Transição e troca de cenas | `LOCATED` | `flows/lifecycle/scene-transition.md` |
 
 `LOCATED` permite investigação e documentação, não edição comportamental.
 `TRACED` exige callers/callees e estado/erros fechados; `CONTRACT` acrescenta
