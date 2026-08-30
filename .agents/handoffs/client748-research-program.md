@@ -106,6 +106,12 @@ Ghidra.
   `FUN_004B3500:0x004B370F`. O único retorno normal do initializer grava
   `EAX=1`, portanto o ramo `"Initialize Scene Fail."` não é alcançável por
   retorno falso desse override. Falhas não locais não são convertidas em zero.
+- O initializer `+0x4C` da cena `5`, `FUN_0049F0E7`, possui um único `RET`. Se
+  `FUN_00541065` retorna zero, ele registra `"DataFile Not Found  "`, mostra
+  `MessageBoxA("DataFile Not Found.", "File Lost", 0)`, agenda `WM_CLOSE` e
+  retorna `0`; todos os demais caminhos normais retornam `1`. O caller genérico
+  então destrói a cena parcial, mostra `"Initialize Scene Fail."` e agenda outro
+  `WM_CLOSE`. A semântica específica de `FUN_00541065` não foi atribuída.
 - `FUN_004A32DD`, no evento `0x1204`, aplica debounce de 2 s, valida índice
   assinado `0..3` e personagem habilitado, monta packet `0x213` de `0x24` bytes
   com índice em `+0x0C` e envia no callsite `0x004A3422`; depois grava timestamp
@@ -140,10 +146,10 @@ Ghidra.
   nula e estado `-1`; `FUN_004B3A20 -> FUN_004B2155` desmonta a raiz e zera
   `DAT_0067CF38`. O timer usa vtable `0x005A4688`, é publicado em
   `DAT_0092E654` e atualiza `DAT_0092E658`.
-- Os 45 exports TSV desta rodada estão inventariados, classificados e ligados
+- Os 47 exports TSV desta rodada estão inventariados, classificados e ligados
   às conclusões/lacunas em
   `.agents/research/client748/inventory/scene-transition-evidence-log.md`.
-  Os aproximadamente 30,43 MiB regeneráveis permanecem fora do Git em
+  Os aproximadamente 33,22 MiB regeneráveis permanecem fora do Git em
   `%TEMP%\codex-wyd748-lifecycle-149205b7`.
 - A vtable da aplicação em `0x005A6104` contém, nos slots `+0x00..+0x1C`,
   `FUN_0055F3E0`, `FUN_0055BC0A`, `FUN_0055D066`, `FUN_0055D345`,
@@ -253,10 +259,11 @@ resultado: 47/47 exports presentes no ledger; nenhum ausente dos dois lados;
 22 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 2 AINDA NÃO INTERPRETADO e
 6 LACUNA SEGUINTE; volume aproximado 33,22 MiB
 
-scene0-initialize-00435b13-focused.tsv
-resultado: 2.893.027 bytes; SHA-256
-F2BF4BB6926A773D9938F2D1735F49592822C8A6BB9999E1CBF9FB09C027CEA2;
-log irmão sem SCRIPT ERROR
+scene5-select-enter-focused.tsv
+resultado: 1.978.822 bytes; SHA-256
+074F55D599977F1A0D3045DEC0B23428FAD8C11A86A64383862673210B8E9906;
+hash nativo embutido correto; 2.509 instruções de FUN_0049F0E7; um RET;
+nenhum SCRIPT ERROR
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-research
 resultado: exit 0; Skill is valid!
@@ -341,16 +348,15 @@ ocorrências.
   com xrefs, estado, erro, ownership e lifecycle.
 - Não reler por padrão os exports já inventariados do lifecycle. Consultar o ledger, abrir
   somente o export ligado à lacuna atual e escrever a conclusão no mesmo ciclo.
-- A ficha de cenas permanece `LOCATED`: o receiver/retorno `+0x4C` da cena `0`
-  está fechado; faltam as cenas `5/7/8`, a ordem global de teardown, shutdown e
+- A ficha de cenas permanece `LOCATED`: os receivers/retornos `+0x4C` das cenas
+  `0/5` estão fechados; faltam as cenas `7/8`, a ordem global de teardown, shutdown e
   logout/relogin.
 
 ## Próximo passo executável
 
-1. Fechar retorno e caminho de falha de `FUN_0049F0E7`, receiver `+0x4C` da
-   cena `5`, abrindo somente o export ligado a esse xref e escrevendo a
-   conclusão no mesmo ciclo.
-2. Fechar os receivers/retornos `+0x4C` restantes e a ordem integral entre
+1. Abrir `scene-vtables-focused.tsv`, resolver os endereços dos initializers
+   `+0x4C` das cenas `7/8` e fechar retorno/falha de um deles no mesmo ciclo.
+2. Fechar o outro receiver `+0x4C` e a ordem integral entre
    `FUN_004B16C0`, os cleanups específicos, `FUN_00494C00` e `FUN_0054AA45`.
 3. Continuar `FUN_0055D066`, shutdown e logout/relogin usando somente os exports
    marcados `LACUNA SEGUINTE` no ledger.
