@@ -104,7 +104,15 @@ Ghidra.
 - `FUN_004A32DD`, no evento `0x1204`, aplica debounce de 2 s, valida índice
   assinado `0..3` e personagem habilitado, monta packet `0x213` de `0x24` bytes
   com índice em `+0x0C` e envia no callsite `0x004A3422`; depois grava timestamp
-  e desabilita três controles. A origem UI concreta do evento está pendente.
+  e desabilita três controles.
+- A origem UI concreta de `0x1204` foi fechada. `FUN_00493E70 -> FUN_0040C2CD`
+  cria em `scene+0x28` o container com vptr `0x005A3F34`, receptor embutido em
+  `container+0x24` com vptr `0x005A3F30` e owner em `container+0x2C`.
+  `FUN_004974EC`, no registro tipo `2`, cria o `SButton`, guarda ID em `+0x44`
+  e receptor em `+0x5C`. No release `0x202`, `FUN_004032E8` chama o slot zero
+  do receptor; `FUN_0040CDA4` encaminha ID/ação ao slot `+0x58` da cena, que na
+  vtable `0x005A44B4` é `FUN_004A32DD`. `FUN_0049F0E7` carrega
+  `UI_SelCharScene.txt`/`UI_SelCharScene2.txt` e localiza o controle `0x1204`.
 - O transporte do `0x213` foi seguido por
   `FUN_0042550E -> FUN_00424C2C -> FUN_00424DFE -> FUN_00425266`: enqueue,
   seed/checksum/tempo, cifragem de `+0x04..fim`, limite de `0x20000`, uma
@@ -187,7 +195,7 @@ infraestrutura e schema das fichas       | STATICALLY VERIFIED | scripts e templ
 correlação estrutural native/source       | AUTOMATED TESTED     | Ghidra real + correlator: 88 exact, 385 candidates
 gate de tamanho por opcode               | LOCATED             | entrada nativa localizada; caller/direção pendentes
 foco, IME e lifecycle de controles       | LOCATED             | fluxo principal localizado; xrefs/teardown pendentes
-transição e troca de cenas                | LOCATED             | seleção/packet/resposta/cleanup localizados; ordem, shutdown e relogin pendentes
+transição e troca de cenas                | LOCATED             | origem UI/packet/resposta/cleanup localizados; ordem do 0x114, shutdown e relogin pendentes
 código ativo do client/servidor          | NÃO ALTERADO         | nenhum build ou teste funcional necessário nesta etapa
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
@@ -233,8 +241,8 @@ inventory/; três fichas válidas; LOCATED=3
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
 resultado: 45/45 exports presentes no ledger; nenhum ausente dos dois lados;
-14 CONCLUSÃO CONFIRMADA, 16 PISTA LOCALIZADA, 6 AINDA NÃO INTERPRETADO e
-9 LACUNA SEGUINTE
+20 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 2 AINDA NÃO INTERPRETADO e
+6 LACUNA SEGUINTE
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-research
 resultado: exit 0; Skill is valid!
@@ -319,26 +327,24 @@ ocorrências.
   com xrefs, estado, erro, ownership e lifecycle.
 - Não reler por padrão os 45 exports do lifecycle. Consultar o ledger, abrir
   somente o export ligado à lacuna atual e escrever a conclusão no mesmo ciclo.
-- A ficha de cenas permanece `LOCATED`: faltam a origem UI de `0x1204`, a ordem
-  dos consumidores de `0x114`, os receivers `+0x4C` restantes, a ordem global
-  de teardown, shutdown e logout/relogin.
+- A ficha de cenas permanece `LOCATED`: faltam a ordem dos consumidores de
+  `0x114`, os receivers `+0x4C` restantes, a ordem global de teardown, shutdown
+  e logout/relogin.
 
 ## Próximo passo executável
 
-1. Abrir somente `sbutton-methods-next.tsv`,
-   `sbutton-vtable-event-loader-focused.tsv` e `loader-sbutton-branch.tsv` para
-   ligar `FUN_004A32DD`/evento `0x1204` ao controle, container e loader
-   concretos. Escrever a conclusão ou a ausência comprovada no mesmo ciclo.
-2. Resolver a ordem entre `FUN_00492E7D` e `FUN_004A626E` ao consumir `0x114`.
-3. Fechar os receivers/retornos `+0x4C` restantes e a ordem integral entre
+1. Resolver a ordem entre `FUN_00492E7D` e `FUN_004A626E` ao consumir `0x114`,
+   abrindo somente o export ligado a esse xref e escrevendo a conclusão no
+   mesmo ciclo.
+2. Fechar os receivers/retornos `+0x4C` restantes e a ordem integral entre
    `FUN_004B16C0`, os cleanups específicos, `FUN_00494C00` e `FUN_0054AA45`.
-4. Continuar `FUN_0055D066`, shutdown e logout/relogin usando somente os exports
+3. Continuar `FUN_0055D066`, shutdown e logout/relogin usando somente os exports
    marcados `LACUNA SEGUINTE` no ledger.
-5. Promover a ficha somente quando entrada, callers, callees, estado, erros,
+4. Promover a ficha somente quando entrada, callers, callees, estado, erros,
    ownership e teardown estiverem fechados. Só depois adaptar delta comprovado.
-6. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
+5. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
    sua maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
-7. Reexecutar `validate_research.py`, triagem, `git diff --check` e atualizar
+6. Reexecutar `validate_research.py`, triagem, `git diff --check` e atualizar
    este handoff quando
    houver nova evidência ou mudança de estado.
 

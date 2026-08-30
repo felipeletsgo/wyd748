@@ -38,19 +38,33 @@ Classificação usada abaixo:
 2. A cena do estado `5` usa vtable `0x005A44B4`; seu deleting destructor é
    `FUN_004A8910`, packet handler `FUN_004A626E`, initializer `FUN_0049F0E7` e
    control/event handler `FUN_004A32DD`.
-3. O evento `0x1204` valida índice `0..3`, aplica debounce, monta o packet
+3. `FUN_00493E70 -> FUN_0040C2CD` cria em `scene+0x28` o container de
+   controles, instala o vptr principal `0x005A3F34`, constrói em
+   `container+0x24` o receptor `0x005A3F30` e guarda a cena em
+   `container+0x2C`.
+4. Para o registro tipo `2`, `FUN_004974EC` lê `0x28` bytes, cria um `SButton`
+   de `0x208` bytes, guarda o ID em `SButton+0x44` e associa em `SButton+0x5C`
+   o receptor `scene[10]+0x24` por `FUN_0040C030`.
+5. No release `0x202`, `FUN_004032E8` chama o slot zero do receptor. Esse slot
+   é `FUN_0040CDA4`, que lê a cena em `[this+8]`, retorna `0` se ela for nula e
+   encaminha ID/ação ao slot virtual `+0x58` da cena no callsite `0x0040CDCA`.
+   Para a vtable `0x005A44B4`, o destino é `FUN_004A32DD`.
+6. `FUN_0049F0E7` carrega `UI_SelCharScene.txt`/`UI_SelCharScene2.txt`, procura
+   o controle `0x1204` no container e o guarda em `scene[0x9B94]`. A cadeia
+   concreta fica `SButton release -> FUN_0040CDA4 -> FUN_004A32DD -> 0x1204`.
+7. O evento `0x1204` valida índice `0..3`, aplica debounce, monta o packet
    `0x213` de `0x24` bytes e o envia no callsite `0x004A3422`.
-4. `FUN_0042550E -> FUN_00424C2C -> FUN_00424DFE -> FUN_00425266` fecha o
+8. `FUN_0042550E -> FUN_00424C2C -> FUN_00424DFE -> FUN_00425266` fecha o
    enqueue, cifragem, buffer de `0x20000` bytes e tentativa de flush do `0x213`.
-5. A resposta `0x114` passa tanto pelo dispatcher global quanto pelo handler da
+9. A resposta `0x114` passa tanto pelo dispatcher global quanto pelo handler da
    cena 5 e converge na solicitação da cena `0`; a ordem entre eles está aberta.
-6. `FUN_004B21C9` grava as flags de deleção e `FUN_004B16C0` é o consumidor que
+10. `FUN_004B21C9` grava as flags de deleção e `FUN_004B16C0` é o consumidor que
    chama o deleting destructor e limpa previous scene/flag do manager.
-7. Os cleanups específicos das cenas `0/5/7/8` convergem em `FUN_00494C00`, que
+11. Os cleanups específicos das cenas `0/5/7/8` convergem em `FUN_00494C00`, que
    por sua vez converge em `FUN_0054AA45` para filhos e detach da árvore.
-8. `FUN_004B1EA9` inicializa o `ObjectManager`; `FUN_004B3A20 -> FUN_004B2155`
+12. `FUN_004B1EA9` inicializa o `ObjectManager`; `FUN_004B3A20 -> FUN_004B2155`
    desmonta sua raiz, cena global e opcionalmente o próprio manager.
-9. O timer usa vtable `0x005A4688`, é publicado em `DAT_0092E654` e atualiza
+13. O timer usa vtable `0x005A4688`, é publicado em `DAT_0092E654` e atualiza
    `DAT_0092E658`.
 
 ## Pistas qualificadas já transcritas
@@ -72,18 +86,18 @@ Classificação usada abaixo:
 | `application-shutdown-focused.tsv` | teardown da aplicação | `LACUNA SEGUINTE` | ancora `FUN_0055D066`; falta ordenar cenas, socket, timer, foco e janela |
 | `application-vslots-callers.tsv` | callers dos slots da aplicação | `PISTA LOCALIZADA` | vtable `0x005A6104` localizada; chamadas indiretas ainda incompletas |
 | `application-wrapper-finalize-xrefs.tsv` | wrappers/finalizers da aplicação | `PISTA LOCALIZADA` | xrefs coletados; papel de cada wrapper ainda não consolidado |
-| `control-container-0040cda4.tsv` | container em `FUN_0040CDA4` | `AINDA NÃO INTERPRETADO` | não produzir claim antes de fechar receptor e ownership |
-| `control-container-ownership-focused.tsv` | ownership dos containers UI | `AINDA NÃO INTERPRETADO` | corpus amplo preservado; sem cadeia observável fechada |
-| `control-container-vtable-loader-focused.tsv` | vtables/loaders de containers | `AINDA NÃO INTERPRETADO` | candidatos preservados; nenhum ID/recurso atribuído |
-| `control-vtables-callers-destructors-focused.tsv` | callers e destrutores de controles | `AINDA NÃO INTERPRETADO` | não usar para inferir callback de `0x1204` sem xref direto |
-| `control-vtables-constructors-focused.tsv` | construtores de controles | `AINDA NÃO INTERPRETADO` | candidatos preservados; correspondência de classe pendente |
+| `control-container-0040cda4.tsv` | container em `FUN_0040CDA4` | `CONCLUSÃO CONFIRMADA` | receptor em `container+0x24`; cena em `[this+8]`; dispatch à cena pelo slot `+0x58` |
+| `control-container-ownership-focused.tsv` | ownership dos containers UI | `PISTA LOCALIZADA` | owner concreto da cena 5 fechado; ownership amplo dos demais containers continua aberto |
+| `control-container-vtable-loader-focused.tsv` | vtables/loaders de containers | `CONCLUSÃO CONFIRMADA` | vptrs `0x005A3F34/0x005A3F30`, loader tipo `2` e ID `0x1204` ligados à cena 5 |
+| `control-vtables-callers-destructors-focused.tsv` | callers e destrutores de controles | `AINDA NÃO INTERPRETADO` | callback direto de `0x1204` já transcrito por outros exports; destrutores deste corpus ainda não interpretados |
+| `control-vtables-constructors-focused.tsv` | construtores de controles | `CONCLUSÃO CONFIRMADA` | `FUN_00493E70 -> FUN_0040C2CD` cria o container e `FUN_004974EC -> FUN_00402F01` cria o `SButton` |
 | `dat-013b7220-owners-focused.tsv` | owners de `DAT_013B7220` | `PISTA LOCALIZADA` | muitos acessos reunidos; owner final e relação com logout pendentes |
 | `dat-013b7220-xrefs-verified.tsv` | xrefs verificados de `DAT_013B7220` | `PISTA LOCALIZADA` | conjunto focado preservado; sem conclusão de lifecycle |
 | `dat-013b7220-xrefs.tsv` | xrefs iniciais de `DAT_013B7220` | `PISTA LOCALIZADA` | duplicata de exploração mantida para rastreabilidade |
 | `fieldscene-vtable-005a4294-focused.tsv` | vtable candidata de FieldScene | `PISTA LOCALIZADA` | vtable localizada; slots completos e lifecycle ainda pendentes |
 | `lifecycle-flag-1b090-focused.tsv` | significado de `manager+0x1B090` | `PISTA LOCALIZADA` | acessos reunidos; sem semântica final comprovada |
 | `lifecycle-roots.tsv` | raízes gerais do lifecycle | `PISTA LOCALIZADA` | mapa amplo para retomada; não é claim por si só |
-| `loader-sbutton-branch.tsv` | branch do loader de `SButton` | `LACUNA SEGUINTE` | precisa ligar loader/container ao evento `0x1204` |
+| `loader-sbutton-branch.tsv` | branch do loader de `SButton` | `CONCLUSÃO CONFIRMADA` | registro tipo `2`, tamanho `0x28`, ID em `+0x44` e receptor em `+0x5C` fechados |
 | `logout-relogin-next-roots.tsv` | próximas raízes de logout/relogin | `LACUNA SEGUINTE` | fila de xrefs para reconstrução da sessão/cena |
 | `logout-relogin-roots-focused.tsv` | raízes focadas de logout/relogin | `LACUNA SEGUINTE` | transição observável ainda não fechada |
 | `logout-ui-vtable-roots.tsv` | vtables UI usadas no logout | `LACUNA SEGUINTE` | candidatos amplos; ordem de teardown pendente |
@@ -93,8 +107,8 @@ Classificação usada abaixo:
 | `objectmanager-destructor-004b3a20-focused.tsv` | destrutor do manager | `CONCLUSÃO CONFIRMADA` | `FUN_004B3A20 -> FUN_004B2155` desmonta raiz e zera cena global |
 | `objectmanager-ownership-lifecycle-focused.tsv` | construção/ownership/cleanup | `CONCLUSÃO CONFIRMADA` | `FUN_004B1EA9` inicializa vptr, estado, raiz e ownership; consumidor localizado |
 | `objectmanager-vtable-005a45fc-focused.tsv` | slots da vtable efetiva | `CONCLUSÃO CONFIRMADA` | base `0x005A45FC`; slots `+0x54..+0x68` transcritos na ficha |
-| `sbutton-methods-next.tsv` | métodos e callbacks de `SButton` | `LACUNA SEGUINTE` | fechar controle/callback que produz `0x1204` |
-| `sbutton-vtable-event-loader-focused.tsv` | vtable, evento e loader de `SButton` | `LACUNA SEGUINTE` | candidatos existem; conexão ao handler ainda não demonstrada |
+| `sbutton-methods-next.tsv` | métodos e callbacks de `SButton` | `CONCLUSÃO CONFIRMADA` | release `0x202` em `FUN_004032E8` chama o receptor com ID e ação `0` |
+| `sbutton-vtable-event-loader-focused.tsv` | vtable, evento e loader de `SButton` | `CONCLUSÃO CONFIRMADA` | cadeia `SButton -> FUN_0040CDA4 -> scene+0x58 -> FUN_004A32DD` demonstrada |
 | `scene-base-cleanup-0054aa45-focused.tsv` | cleanup base e detach | `CONCLUSÃO CONFIRMADA` | destrói filhos, religa pai/irmãos e desanexa o nó |
 | `scene-class-lifecycle.tsv` | lifecycle amplo das classes de cena | `PISTA LOCALIZADA` | corpus de 4,57 MiB; consultar pontualmente, não reler por inteiro |
 | `scene-cleanup-destructors-focused.tsv` | destrutores das quatro cenas | `CONCLUSÃO CONFIRMADA` | cadeias específicas `0/5/7/8` convergem em `FUN_00494C00` |
@@ -119,11 +133,11 @@ Usar o ciclo aprovado `HEAD/status/hash -> última evidência -> próximo xref`.
 Não reler os 45 exports. A próxima unidade é:
 
 ```text
-1 xref: ligar FUN_004A32DD/evento 0x1204 a SButton/container/loader
-1 conclusão: identificar o emissor concreto ou registrar por que continua indireto
+1 xref: resolver a ordem de FUN_00492E7D e FUN_004A626E para opcode 0x114
+1 conclusão: identificar a ordem do dispatcher global e do handler da cena
 1 escrita: atualizar este ledger e scene-transition.md no mesmo ciclo
 ```
 
-Depois, resolver a ordem entre `FUN_00492E7D` e `FUN_004A626E` para opcode
-`0x114`. Shutdown e logout/relogin permanecem as lacunas seguintes. Nenhuma
-edição em `client-source/` é permitida enquanto a ficha estiver `LOCATED`.
+Depois, fechar os receivers `+0x4C` restantes e a ordem de teardown. Shutdown e
+logout/relogin permanecem as lacunas seguintes. Nenhuma edição em
+`client-source/` é permitida enquanto a ficha estiver `LOCATED`.

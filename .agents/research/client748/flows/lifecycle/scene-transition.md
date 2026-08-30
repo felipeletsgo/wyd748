@@ -124,9 +124,29 @@ em `+0x04`, grava o índice em `+0x0C` e chama
 `FUN_0042550E(packet, 0x24)` no callsite `0x004A3422`. Após o envio, grava o
 timestamp e desabilita três controles por chamadas no slot virtual `+0x64`.
 
-`UNRESOLVED`: o controle e a cadeia de containers que originam o evento
-`0x1204` ainda não foram fechados. Os exports de `SButton`, loader e ownership
-são pistas, mas não autorizam atribuir um widget ou callback por semelhança.
+`CONFIRMED`: `FUN_00493E70` aloca o container de controles com `0x154` bytes e
+chama `FUN_0040C2CD` em `0x004940B1`, passando a própria cena como owner. O
+objeto retornado fica em `scene[10]` (`scene+0x28`). O construtor instala o vptr
+principal `0x005A3F34`, constrói em `container+0x24` um receptor embutido com
+vptr `0x005A3F30` e guarda a cena em `container+0x2C`.
+
+No registro de tipo `2`, `FUN_004974EC` lê `0x28` bytes, aloca um `SButton` de
+`0x208` bytes e chama `FUN_00402F01`. O ID do controle fica em `SButton+0x44`;
+`FUN_0040C030` guarda em `SButton+0x5C` o receptor
+`scene[10]+0x24`. No release `0x202`, `FUN_004032E8` chama o slot zero desse
+receptor com o ID do botão e ação `0`.
+
+O slot zero de `0x005A3F30` é `FUN_0040CDA4`. Com
+`this=container+0x24`, ela lê a cena em `[this+8]` (`container+0x2C`), retorna
+`0` quando o owner é nulo e, caso contrário, encaminha os dois argumentos ao
+slot virtual `+0x58` da cena no callsite `0x0040CDCA`. Na cena 5, a vtable
+`0x005A44B4` resolve esse slot para `FUN_004A32DD`. Assim, a origem do evento
+está fechada como `SButton release -> receptor embutido -> FUN_0040CDA4 ->
+scene vtable +0x58 -> FUN_004A32DD -> 0x1204`.
+
+`FUN_0049F0E7` carrega `UI_SelCharScene.txt` ou `UI_SelCharScene2.txt`, procura
+o controle `0x1204` em `scene[10]` e o guarda em `scene[0x9B94]`, ligando o ID
+do recurso carregado ao botão usado pelo handler.
 
 ### Transporte do `0x213`
 
@@ -206,7 +226,7 @@ enquanto a ficha permanecer neste estado.
 | Estado interno `0`, `5`, `7` ou `8` | estado aceito | construtor específico; virtual `+0x4C` | cena nova criada/inicializada | vptr próprio, seleção da cena | falha parcial destrói cena e fecha janela |
 | Cena criada com sucesso | cena inicializada | `FUN_0054AC09` | cena sob a raiz `manager+0x1B07C` | ownership passa à árvore | ordem integral de deleção pendente |
 | Cena anterior existente | cena atual não nula | `FUN_004B37C9` | nova cena global; anterior marcada | mensagem/tempo são copiados | teardown posterior não fechado |
-| Evento `0x1204` | índice `0..3`, personagem existente/habilitado e debounce > 2 s | `FUN_004A32DD` | packet `0x213` de `0x24` bytes | timestamp atualizado; três controles desabilitados | origem UI exata pendente |
+| Release `0x202` do `SButton` ID `0x1204` | receptor `scene[10]+0x24`, owner não nulo, índice `0..3`, personagem existente/habilitado e debounce > 2 s | `FUN_004032E8 -> FUN_0040CDA4 -> scene vtable +0x58 -> FUN_004A32DD` | evento `0x1204`; packet `0x213` de `0x24` bytes | timestamp atualizado; três controles desabilitados | receptor retorna `0` se a cena for nula |
 | Packet `0x213` | socket e espaço no buffer | `FUN_0042550E -> FUN_00424C2C -> FUN_00424DFE -> FUN_00425266` | dados cifrados/enfileirados; flush tentado | seed, checksum e tempo gravados | enqueue falho pode ser mascarado pelo retorno do flush |
 | Resposta `0x114` | dispatcher global e handler da cena 5 recebem o packet | `FUN_00492E7D` / `FUN_004A626E` | estado `9 -> 0` ou `0`; cena 0 solicitada | personagem selecionado atualizado | ordem entre consumidores pendente |
 | Cena marcada | `scene+0x14 != 0` | `FUN_004B16C0` | deleting destructor chamado | previous scene e flag do manager zerados | ordem integral de detach ainda pendente |
@@ -255,6 +275,17 @@ Vtable confirmada da cena do estado `5` em `0x005A44B4`:
 +0x58 FUN_004A32DD  control/event handler
 +0x64 FUN_0049AD57
 ```
+
+O container de controles da cena 5 fica em `scene+0x28`. Seu vptr principal é
+`0x005A3F34`; o receptor embutido em `container+0x24` usa a tabela unitária
+`0x005A3F30`:
+
+```text
+0x005A3F30 +0x00 FUN_0040CDA4  encaminha (control_id, action) à cena +0x58
+```
+
+`FUN_0040C2CD` associa ambos os objetos e grava a cena em `container+0x2C`, que
+é `[receiver+8]` para `FUN_0040CDA4`.
 
 Vtable do timer em `0x005A4688`:
 
@@ -370,23 +401,23 @@ inventário, observers e persistência continuam sendo validados no servidor.
 | Inicialização | virtual `+0x4C` | `InitializeScene()` | pode ter outra ABI | não aplicável | adaptar só com receptor/retorno 7.48 fechados |
 | Ownership | root `manager+0x1B07C` e `FUN_0054AC09` | `m_pRoot->AddChild` | árvore moderna não decide offset | não aplicável | preservar decisão nativa após fechar teardown |
 | Troca/limpeza | marca anterior, consumidor e quatro cadeias específicas | `m_cDeleted`, `DeleteObject`, `CleanUp` | lifecycle posterior é pista | não aplicável | fechar a ordem integral de detach/iteração antes de editar |
-| Seleção de personagem | evento `0x1204`; packet `0x213`, `0x24` bytes, índice `+0x0C` | sem comparação autorizada nesta etapa | nomes modernos são apenas pista | contrato server-side ainda não correlacionado | fechar origem UI e ficha wire antes de adaptar |
+| Seleção de personagem | `SButton` ID `0x1204`; release `0x202`; receptor embutido; cena `+0x58`; packet `0x213`, `0x24` bytes, índice `+0x0C` | sem comparação autorizada nesta etapa | nomes modernos são apenas pista | contrato server-side ainda não correlacionado | origem UI fechada; fechar ordem do `0x114` e ficha wire antes de adaptar |
 | Transporte | enqueue cifra `+0x04..fim`; flush preserva pendências parciais | sem comparação autorizada nesta etapa | implementação posterior não decide ABI | transporte server-side não analisado nesta ficha | registrar como comportamento nativo, sem portar layout |
 | Resposta de seleção | `0x114`; dois consumidores solicitam cena 0 | sem comparação autorizada nesta etapa | semântica posterior não decide ordem | handler server-side não correlacionado | fechar ordem global/cena antes de promover |
 | Falha | mensagem, destruição parcial e `PostMessageA` | `MessageBox`/`PostMessage` equivalentes | não decide erro 7.48 | não aplicável | manter como claim nativa; testar somente após contrato |
 
 ## Decisões
 
-- Manter esta ficha em `LOCATED`. A criação, seleção `0x213`, resposta `0x114`,
-  consumidor da marca e destrutores foram localizados, mas origem UI, ordem dos
-  consumidores da resposta, receptores virtuais completos, shutdown e
-  logout/relogin ainda não estão fechados.
+- Manter esta ficha em `LOCATED`. A criação, origem UI da seleção, packet
+  `0x213`, resposta `0x114`, consumidor da marca e destrutores foram
+  localizados, mas a ordem dos consumidores da resposta, receptores virtuais
+  completos, shutdown e logout/relogin ainda não estão fechados.
 - Não alterar `ObjectManager`, `TMScene`, `TreeNode` ou `NewApp` por causa da
   semelhança observada. A implementação do TMProject 7.69+ é referência
   semântica secundária, não contrato 7.48.
 - Não importar endereço, offset, vtable, enum, recurso ou ABI do TMProject para
-  o client 7.48. O delta `9 -> 0` só poderá ser adaptado depois de origem UI,
-  ordenação da resposta e teardown integral estarem comprovados.
+  o client 7.48. O delta `9 -> 0` só poderá ser adaptado depois de ordenação da
+  resposta e teardown integral estarem comprovados.
 - Não declarar `TRACED`, `CONTRACT`, `IMPLEMENTED` ou `CLIENT_TESTED` por causa
   de export, build ou correspondência estrutural.
 
@@ -394,7 +425,6 @@ inventário, observers e persistência continuam sendo validados no servidor.
 
 - callers restantes e transições que fornecem outros estados a `FUN_004B3500`;
 - receptores/retornos completos do slot virtual `+0x4C` para as quatro cenas;
-- origem UI/container/callback exata do evento `0x1204`;
 - ordem entre `FUN_00492E7D` e `FUN_004A626E` ao consumir `0x114`;
 - ordem integral de detach, remoção da árvore, destrutor-base e liberação de
   `m_pPreviousScene`;
