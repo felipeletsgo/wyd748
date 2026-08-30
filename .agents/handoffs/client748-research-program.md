@@ -119,6 +119,13 @@ Ghidra.
   `0`; os demais caminhos normais retornam `1`. O caller genérico destrói a
   cena parcial e repete diagnóstico/`WM_CLOSE`. Não foi atribuída semântica
   específica ao helper.
+- A cena `8` instala o vptr `0x005A421C`; o slot `+0x4C`, armazenado em
+  `0x005A4268`, aponta para `FUN_00432181` e usa o caller indireto
+  `FUN_004B3500:0x004B370F`. O initializer possui 431 instruções e um único
+  `RET`. Falha de `FUN_00541065` produz log, `MessageBoxA`, `WM_CLOSE` e retorno
+  `0`; os demais caminhos normais retornam `1`. O caller genérico destrói a
+  cena parcial e repete diagnóstico/`WM_CLOSE`. Não foi atribuída semântica
+  específica ao helper. Os initializers `0/5/7/8` estão fechados no CFG normal.
 - `FUN_004A32DD`, no evento `0x1204`, aplica debounce de 2 s, valida índice
   assinado `0..3` e personagem habilitado, monta packet `0x213` de `0x24` bytes
   com índice em `+0x0C` e envia no callsite `0x004A3422`; depois grava timestamp
@@ -153,10 +160,10 @@ Ghidra.
   nula e estado `-1`; `FUN_004B3A20 -> FUN_004B2155` desmonta a raiz e zera
   `DAT_0067CF38`. O timer usa vtable `0x005A4688`, é publicado em
   `DAT_0092E654` e atualiza `DAT_0092E658`.
-- Os 48 exports TSV desta rodada estão inventariados, classificados e ligados
+- Os 49 exports TSV desta rodada estão inventariados, classificados e ligados
   às conclusões/lacunas em
   `.agents/research/client748/inventory/scene-transition-evidence-log.md`.
-  Os aproximadamente 33,76 MiB regeneráveis permanecem fora do Git em
+  Os aproximadamente 33,98 MiB regeneráveis permanecem fora do Git em
   `%TEMP%\codex-wyd748-lifecycle-149205b7`.
 - A vtable da aplicação em `0x005A6104` contém, nos slots `+0x00..+0x1C`,
   `FUN_0055F3E0`, `FUN_0055BC0A`, `FUN_0055D066`, `FUN_0055D345`,
@@ -238,7 +245,7 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
 - `.agents/research/client748/` — README, template, quatro exports focados e as
   três fichas iniciais, incluindo `flows/lifecycle/scene-transition.md`; o
   inventário README inclui o procedimento do triador. O ledger
-  `inventory/scene-transition-evidence-log.md` preserva a rodada de 45
+  `inventory/scene-transition-evidence-log.md` preserva a rodada de 49
   exports sem versionar os recortes amplos.
   Exports exploratórios amplos e não citados foram removidos da worktree e
   preservados temporariamente em
@@ -262,9 +269,9 @@ inventory/; três fichas válidas; LOCATED=3
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
-resultado: 48/48 exports presentes no ledger; nenhum ausente dos dois lados;
-23 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 2 AINDA NÃO INTERPRETADO e
-6 LACUNA SEGUINTE; volume aproximado 33,76 MiB
+resultado: 49/49 exports presentes no ledger; nenhum ausente dos dois lados;
+24 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 2 AINDA NÃO INTERPRETADO e
+6 LACUNA SEGUINTE; volume aproximado 33,98 MiB
 
 scene5-select-enter-focused.tsv
 resultado: 1.978.822 bytes; SHA-256
@@ -277,6 +284,13 @@ resultado: 564.561 bytes; SHA-256
 F4DCEB6F8016879FD2D1D15D4D361AE88020B6825463D94AC9D62E1D71E650F6;
 hash nativo embutido correto; 1.626 instruções de FUN_004A8F14; um RET;
 nenhum SCRIPT ERROR
+
+scene8-initialize-00432181-focused.tsv
+resultado: 226.544 bytes; SHA-256
+3BC37C89D001D8AEADEA19E4F359A49E111E0D5DEACFEA53B4B3281A09C2BEE1;
+hash nativo embutido correto; 431 instruções de FUN_00432181; um RET;
+nenhum SCRIPT ERROR; a autoanálise temporária iniciada pela ausência de
+-noanalysis foi descartada sem gravação no projeto
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-research
 resultado: exit 0; Skill is valid!
@@ -362,23 +376,21 @@ ocorrências.
 - Não reler por padrão os exports já inventariados do lifecycle. Consultar o ledger, abrir
   somente o export ligado à lacuna atual e escrever a conclusão no mesmo ciclo.
 - A ficha de cenas permanece `LOCATED`: os receivers/retornos `+0x4C` das cenas
-  `0/5/7` estão fechados; falta a cena `8`, a ordem global de teardown, shutdown
-  e logout/relogin.
+  `0/5/7/8` estão fechados; faltam callers restantes, a ordem global de
+  teardown, shutdown e logout/relogin.
 
 ## Próximo passo executável
 
-1. Abrir `scene-vtables-focused.tsv`, confirmar `0x005A421C +0x4C` em
-   `0x005A4268 -> FUN_00432181` para a cena `8` e fechar retorno/falha no mesmo
-   ciclo.
-2. Fechar a ordem integral entre
-   `FUN_004B16C0`, os cleanups específicos, `FUN_00494C00` e `FUN_0054AA45`.
-3. Continuar `FUN_0055D066`, shutdown e logout/relogin usando somente os exports
+1. Fechar a ordem integral entre `FUN_004B21C9`, `FUN_004B16C0`, os deleting
+   destructors/cleanups específicos das cenas `0/5/7/8`, `FUN_00494C00` e
+   `FUN_0054AA45`, incluindo a relação com `FUN_004B3A20 -> FUN_004B2155`.
+2. Continuar `FUN_0055D066`, shutdown e logout/relogin usando somente os exports
    marcados `LACUNA SEGUINTE` no ledger.
-4. Promover a ficha somente quando entrada, callers, callees, estado, erros,
+3. Promover a ficha somente quando entrada, callers, callees, estado, erros,
    ownership e teardown estiverem fechados. Só depois adaptar delta comprovado.
-5. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
+4. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
    sua maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
-6. Reexecutar `validate_research.py`, triagem, `git diff --check` e atualizar
+5. Reexecutar `validate_research.py`, triagem, `git diff --check` e atualizar
    este handoff quando
    houver nova evidência ou mudança de estado.
 
