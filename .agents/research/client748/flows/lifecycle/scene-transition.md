@@ -27,10 +27,10 @@ cena anterior para destruição? Quais partes da implementação do TMProject
   `scene-lifecycle-network-focused.tsv`, `scene-lifecycle-helpers.tsv` e
   `scene-lifecycle-missing-helpers.tsv`.
 - Ledger da rodada posterior:
-  `inventory/scene-transition-evidence-log.md`. Ele inventaria os 47
+  `inventory/scene-transition-evidence-log.md`. Ele inventaria os 48
   exports TSV gerados em `%TEMP%\codex-wyd748-lifecycle-149205b7`, separa o
   que foi interpretado do que ainda é somente pista e preserva a pergunta de
-  cada export sem versionar aproximadamente 33,22 MiB de recortes regeneráveis.
+  cada export sem versionar aproximadamente 33,76 MiB de recortes regeneráveis.
 - Source recompilável consultada: `client-source/tmproject/Projects/TMProject/`
   (`ObjectManager`, `TMScene`, `TreeNode` e `NewApp`).
 - Servidor: não há regra server-side direta para troca de cena local; qualquer
@@ -130,6 +130,25 @@ Quando recebe esse zero, `FUN_004B3500` também destrói a cena parcial quando
 aplicável, mostra `"Initialize Scene Fail."` e agenda outro `WM_CLOSE`. Assim,
 essa falha da cena `5` produz diagnóstico e fechamento tanto no initializer
 quanto na camada genérica de criação da cena.
+
+`CONFIRMED`: para a cena do estado `7`, `FUN_004A8CCF` instala o vptr
+`0x005A4544` em `0x004A8D14`; o slot `+0x4C`, armazenado em `0x005A4590`,
+resolve para `FUN_004A8F14` e usa o mesmo caller indireto em
+`FUN_004B3500:0x004B370F`. O initializer possui 1.626 instruções e um único
+`RET`, em `0x004AAD83`. Quando `FUN_00541065`, chamada em `0x004AA982`,
+retorna zero, o branch registra `"DataFile Not Found  "`, mostra
+`MessageBoxA("DataFile Not Found.", "File Lost", 0)`, agenda
+`PostMessageA(hwnd, WM_CLOSE, 0, 0)`, executa `XOR EAX,EAX` em `0x004AA9C9`
+e salta de `0x004AA9CB` para o epílogo em `0x004AAD75`. Esse salto evita o
+`MOV EAX,1` de `0x004AAD70`; os demais caminhos normais passam por essa
+atribuição. Portanto, a falha retorna `0` e todos os demais caminhos normais
+retornam `1`. O papel mais específico de `FUN_00541065` permanece não
+confirmado.
+
+Ao receber esse zero, `FUN_004B3500` aplica o mesmo tratamento genérico:
+destrói a cena parcial quando aplicável, mostra `"Initialize Scene Fail."` e
+agenda outro `WM_CLOSE`. Assim, as cenas `5` e `7` compartilham o mesmo padrão
+de falha dupla observável, sem que isso autorize inferir a semântica do helper.
 
 ### Cenas dos estados 0 e 5
 
@@ -243,7 +262,7 @@ enquanto a ficha permanecer neste estado.
 - `FUN_004343A4`, `FUN_0049EE30`, `FUN_004A8CCF` e `FUN_00431D00`: construtores
   das cenas dos estados `0`, `5`, `7` e `8`, respectivamente.
 - Virtual `+0x4C`: inicialização da cena nova; retorno e falha estão fechados
-  para as cenas `0` e `5`, mas ainda precisam ser confirmados nas cenas `7/8`.
+  para as cenas `0`, `5` e `7`, mas ainda precisam ser confirmados na cena `8`.
 - `FUN_0054AC09`: anexa um objeto/cena à árvore de ownership.
 - `FUN_004B21C9`, slot `ObjectManager+0x64`: marca `scene+0x14 = 1` e
   `manager+0x1B08C = 1` quando a cena existe.
@@ -269,6 +288,7 @@ enquanto a ficha permanecer neste estado.
 | Estado solicitado `9` | dispatcher/bootstrap fornece o estado | `FUN_004B3500` | estado interno `0` | câmera e cena são preparados | cadeia de entrada ainda `LOCATED` |
 | Estado interno `0`, `5`, `7` ou `8` | estado aceito | construtor específico; virtual `+0x4C` | cena nova criada/inicializada | vptr próprio, seleção da cena | falha parcial destrói cena e fecha janela |
 | Initializer da cena `5` | `FUN_00541065` retorna zero | `FUN_0049F0E7` | retorno `0` ao caller genérico | log, `MessageBoxA` e primeiro `WM_CLOSE` | `FUN_004B3500` destrói a cena parcial, exibe o segundo diagnóstico e agenda outro `WM_CLOSE` |
+| Initializer da cena `7` | `FUN_00541065` retorna zero | `FUN_004A8F14` | retorno `0` ao caller genérico | log, `MessageBoxA` e primeiro `WM_CLOSE` | `FUN_004B3500` destrói a cena parcial, exibe o segundo diagnóstico e agenda outro `WM_CLOSE` |
 | Cena criada com sucesso | cena inicializada | `FUN_0054AC09` | cena sob a raiz `manager+0x1B07C` | ownership passa à árvore | ordem integral de deleção pendente |
 | Cena anterior existente | cena atual não nula | `FUN_004B37C9` | nova cena global; anterior marcada | mensagem/tempo são copiados | teardown posterior não fechado |
 | Release `0x202` do `SButton` ID `0x1204` | receptor `scene[10]+0x24`, owner não nulo, índice `0..3`, personagem existente/habilitado e debounce > 2 s | `FUN_004032E8 -> FUN_0040CDA4 -> scene vtable +0x58 -> FUN_004A32DD` | evento `0x1204`; packet `0x213` de `0x24` bytes | timestamp atualizado; três controles desabilitados | receptor retorna `0` se a cena for nula |
@@ -332,6 +352,15 @@ Vtable confirmada da cena do estado `5` em `0x005A44B4`:
 +0x64 FUN_0049AD57
 ```
 
+Vtable confirmada da cena do estado `7` em `0x005A4544`:
+
+```text
++0x4C FUN_004A8F14  initialize
+```
+
+`FUN_004A8CCF` instala esse vptr; os demais slots não recebem semântica nova
+nesta unidade documental.
+
 O container de controles da cena 5 fica em `scene+0x28`. Seu vptr principal é
 `0x005A3F34`; o receptor embutido em `container+0x24` usa a tabela unitária
 `0x005A3F30`:
@@ -376,7 +405,9 @@ tipo de cena. Para a cena `0`, `FUN_00435B13` não produz retorno falso em
 conclusão normal. Para a cena `5`, `FUN_0049F0E7` retorna zero quando
 `FUN_00541065` falha, depois de emitir seu próprio diagnóstico e `WM_CLOSE`; a
 camada genérica repete ambos os side effects e destrói a cena parcial. O
-tratamento dos initializers das cenas `7/8` ainda não está fechado.
+initializer da cena `7`, `FUN_004A8F14`, repete esse contrato de retorno e
+falha observável. O tratamento do initializer da cena `8` ainda não está
+fechado.
 
 ### Cleanup e teardown
 
@@ -458,7 +489,7 @@ inventário, observers e persistência continuam sendo validados no servidor.
 | --- | --- | --- | --- | --- | --- |
 | Conversão de estado | `9 -> 0` | `TM_FIELD2_STATE -> TM_NONE_STATE` | semântica homônima sugerida | não aplicável | confirmar enum/entrada 7.48 antes de portar |
 | Estados que criam cena | `0`, `5`, `7`, `8` | quatro classes de cena | referência semântica posterior | não aplicável | manter no estudo; não alterar enquanto `LOCATED` |
-| Inicialização | virtual `+0x4C`; cena `0` retorna `1` em toda conclusão normal; cena `5` retorna `0` após falha de `FUN_00541065` e `1` nos demais caminhos normais | `InitializeScene()` | pode ter outra ABI | não aplicável | fechar retorno/falha das cenas `7/8` antes de adaptar |
+| Inicialização | virtual `+0x4C`; cena `0` retorna `1` em toda conclusão normal; cenas `5/7` retornam `0` após falha de `FUN_00541065` e `1` nos demais caminhos normais | `InitializeScene()` | pode ter outra ABI | não aplicável | fechar retorno/falha da cena `8` antes de adaptar |
 | Ownership | root `manager+0x1B07C` e `FUN_0054AC09` | `m_pRoot->AddChild` | árvore moderna não decide offset | não aplicável | preservar decisão nativa após fechar teardown |
 | Troca/limpeza | marca anterior, consumidor e quatro cadeias específicas | `m_cDeleted`, `DeleteObject`, `CleanUp` | lifecycle posterior é pista | não aplicável | fechar a ordem integral de detach/iteração antes de editar |
 | Seleção de personagem | `SButton` ID `0x1204`; release `0x202`; receptor embutido; cena `+0x58`; packet `0x213`, `0x24` bytes, índice `+0x0C` | sem comparação autorizada nesta etapa | nomes modernos são apenas pista | contrato server-side ainda não correlacionado | origem UI fechada; fechar ordem do `0x114` e ficha wire antes de adaptar |
@@ -470,8 +501,9 @@ inventário, observers e persistência continuam sendo validados no servidor.
 
 - Manter esta ficha em `LOCATED`. A criação, origem UI da seleção, packet
   `0x213`, resposta `0x114`, consumidor da marca e destrutores foram
-  localizados, mas os initializers das cenas `7/8`, a ordem dos consumidores da
-  resposta, shutdown e logout/relogin ainda não estão fechados.
+  localizados; os initializers das cenas `0/5/7` e os consumidores mutuamente
+  exclusivos da resposta estão fechados, mas a cena `8`, callers restantes,
+  teardown integral, shutdown e logout/relogin ainda não estão fechados.
 - Não alterar `ObjectManager`, `TMScene`, `TreeNode` ou `NewApp` por causa da
   semelhança observada. A implementação do TMProject 7.69+ é referência
   semântica secundária, não contrato 7.48.
@@ -484,8 +516,8 @@ inventário, observers e persistência continuam sendo validados no servidor.
 ## Lacunas
 
 - callers restantes e transições que fornecem outros estados a `FUN_004B3500`;
-- receptores/retornos completos do slot virtual `+0x4C` para as cenas `7/8`;
-  os initializers das cenas `0` e `5` já estão fechados no CFG normal;
+- receptor/retorno completo do slot virtual `+0x4C` para a cena `8`; os
+  initializers das cenas `0`, `5` e `7` já estão fechados no CFG normal;
 - ordem integral de detach, remoção da árvore, destrutor-base e liberação de
   `m_pPreviousScene`;
 - atribuição, consulta, invalidação e destruição de `app+0xF4`, `app+0xF8` e
@@ -505,15 +537,15 @@ inventário, observers e persistência continuam sendo validados no servidor.
   `functions=4146`, `UNMAPPED=4084`, `LOCATED=23` e
   `STATICALLY_EVIDENCED=39`. O corpus permanece com 4.146 funções; a triagem
   não é contagem de funções compreendidas.
-- Cobertura documental: as 47 linhas do ledger correspondem aos 47 TSVs ainda
-  presentes no diretório regenerável, sem ausências de nenhum lado: 22
+- Cobertura documental: as 48 linhas do ledger correspondem aos 48 TSVs ainda
+  presentes no diretório regenerável, sem ausências de nenhum lado: 23
   conclusões confirmadas, 17 pistas localizadas, 2 exports ainda não
   interpretados e 6 lacunas seguintes.
-- Recorte mais recente interpretado: `scene5-select-enter-focused.tsv`,
-  1.978.822 bytes, SHA-256
-  `074F55D599977F1A0D3045DEC0B23428FAD8C11A86A64383862673210B8E9906`;
-  o TSV contém o hash nativo esperado, 2.509 instruções para `FUN_0049F0E7` e
-  nenhum `SCRIPT ERROR`.
+- Recorte mais recente interpretado: `scene7-initialize-004a8f14-focused.tsv`,
+  564.561 bytes, SHA-256
+  `F4DCEB6F8016879FD2D1D15D4D361AE88020B6825463D94AC9D62E1D71E650F6`;
+  o TSV contém o hash nativo esperado, 1.626 instruções para `FUN_004A8F14`,
+  um único `RET` e nenhum `SCRIPT ERROR`.
 - Integridade: `git diff --check` passou nesta documentação; os avisos exibidos
   referem-se somente à conversão normal de LF/CRLF pelo Git no Windows.
 - Source: inspeção estática de `ObjectManager.cpp`, `TMScene.cpp` e

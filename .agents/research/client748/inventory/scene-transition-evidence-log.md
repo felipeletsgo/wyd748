@@ -11,15 +11,15 @@ que uma retomada comece na última lacuna, não numa releitura ampla.
 - Projeto: `WYD748Native_20260821.gpr`, Ghidra 12.1.3, consultas read-only com
   `ExportWydFlow.java`.
 - Diretório regenerável: `%TEMP%\codex-wyd748-lifecycle-149205b7`.
-- Inventário: 47 arquivos TSV, aproximadamente 33,22 MiB; logs irmãos guardam
+- Inventário: 48 arquivos TSV, aproximadamente 33,76 MiB; logs irmãos guardam
   as consultas completas. Os binários e scripts históricos não foram alterados
   nem executados.
-- Distribuição conferida nas 47 linhas do inventário: 22
+- Distribuição conferida nas 48 linhas do inventário: 23
   `CONCLUSÃO CONFIRMADA`, 17 `PISTA LOCALIZADA`, 2
   `AINDA NÃO INTERPRETADO` e 6 `LACUNA SEGUINTE`.
-- Último recorte interpretado: `scene5-select-enter-focused.tsv`, 1.978.822
+- Último recorte interpretado: `scene7-initialize-004a8f14-focused.tsv`, 564.561
   bytes, SHA-256
-  `074F55D599977F1A0D3045DEC0B23428FAD8C11A86A64383862673210B8E9906`;
+  `F4DCEB6F8016879FD2D1D15D4D361AE88020B6825463D94AC9D62E1D71E650F6`;
   o TSV contém o hash nativo esperado e nenhum `SCRIPT ERROR`.
 - Documento canônico das conclusões:
   `flows/lifecycle/scene-transition.md`, que permanece `LOCATED`.
@@ -88,6 +88,15 @@ Classificação usada abaixo:
     por `MOV EAX,1`. Ao receber zero, `FUN_004B3500` destrói a cena parcial,
     mostra `"Initialize Scene Fail."` e agenda um segundo `WM_CLOSE`. A semântica
     específica de `FUN_00541065` continua não confirmada.
+16. `FUN_004A8CCF` instala o vptr `0x005A4544` da cena `7`; seu slot `+0x4C`,
+    armazenado em `0x005A4590`, aponta para `FUN_004A8F14` e usa o mesmo caller
+    indireto. A função possui 1.626 instruções e um único `RET`. Se
+    `FUN_00541065` retorna zero, ela registra `"DataFile Not Found  "`, mostra
+    `MessageBoxA("DataFile Not Found.", "File Lost", 0)`, agenda `WM_CLOSE`,
+    evita o `MOV EAX,1` do epílogo e retorna `0`; todos os demais caminhos
+    normais retornam `1`. O caller genérico repete destruição parcial,
+    diagnóstico e `WM_CLOSE`. A semântica específica do helper não foi
+    atribuída.
 
 ## Pistas qualificadas já transcritas
 
@@ -145,6 +154,7 @@ Classificação usada abaixo:
 | `scene0-initialize-00435b13-focused.tsv` | retorno e caminho de falha do initializer `+0x4C` da cena 0 | `CONCLUSÃO CONFIRMADA` | slot `0x005A4294+0x4C`; caller indireto em `0x004B370F`; único retorno normal grava `EAX=1` |
 | `scene5-select-enter-focused.tsv` | seleção/entrada e initializer da cena 5 | `CONCLUSÃO CONFIRMADA` | evento `0x1204`, packet `0x213`, resposta `0x114` e retorno `0/1` de `FUN_0049F0E7` com falha dupla localizados |
 | `scene5-vtable-app-timer-focused.tsv` | cena 5, aplicação e timer | `CONCLUSÃO CONFIRMADA` | liga vtable `0x005A44B4` e timer publicado em `DAT_0092E654` |
+| `scene7-initialize-004a8f14-focused.tsv` | retorno e caminho de falha do initializer `+0x4C` da cena 7 | `CONCLUSÃO CONFIRMADA` | vptr `0x005A4544`; slot em `0x005A4590`; retorno `0/1` de `FUN_004A8F14` e falha dupla localizados |
 | `timer-destructor-focused.tsv` | destrutor do timer | `CONCLUSÃO CONFIRMADA` | deleting destructor `FUN_004BAEB0` localizado |
 | `timer-vtable-005a4688-focused.tsv` | slots do timer | `CONCLUSÃO CONFIRMADA` | slots `+0x00..+0x10` e atualização de `DAT_0092E658` transcritos |
 | `virtual-slot-04-all.tsv` | dispatch virtual de packets | `CONCLUSÃO CONFIRMADA` | 116 hits; `FUN_004B263E` fornece o receptor `DAT_0067CF38` e separa os overrides das cenas 0 e 5 |
@@ -157,11 +167,11 @@ Usar o ciclo aprovado `HEAD/status/hash -> última evidência -> próximo xref`.
 Não reler os exports já inventariados. A próxima unidade é:
 
 ```text
-1 xref: resolver no scene-vtables-focused.tsv os slots +0x4C das cenas 7/8
-1 conclusão: fechar retorno e falha do primeiro initializer restante
+1 xref: resolver no scene-vtables-focused.tsv o slot +0x4C da cena 8
+1 conclusão: fechar retorno e falha de FUN_00432181
 1 escrita: atualizar este ledger e scene-transition.md no mesmo ciclo
 ```
 
-Depois do segundo initializer, fechar a ordem de teardown. Shutdown e
-logout/relogin permanecem as lacunas seguintes. Nenhuma edição em
+Depois desse initializer, fechar a ordem de teardown. Shutdown e logout/relogin
+permanecem as lacunas seguintes. Nenhuma edição em
 `client-source/` é permitida enquanto a ficha estiver `LOCATED`.

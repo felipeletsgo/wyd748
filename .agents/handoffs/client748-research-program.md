@@ -112,6 +112,13 @@ Ghidra.
   retorna `0`; todos os demais caminhos normais retornam `1`. O caller genérico
   então destrói a cena parcial, mostra `"Initialize Scene Fail."` e agenda outro
   `WM_CLOSE`. A semântica específica de `FUN_00541065` não foi atribuída.
+- A cena `7` instala o vptr `0x005A4544`; o slot `+0x4C`, armazenado em
+  `0x005A4590`, aponta para `FUN_004A8F14` e usa o caller indireto
+  `FUN_004B3500:0x004B370F`. O initializer possui 1.626 instruções e um único
+  `RET`. Falha de `FUN_00541065` produz log, `MessageBoxA`, `WM_CLOSE` e retorno
+  `0`; os demais caminhos normais retornam `1`. O caller genérico destrói a
+  cena parcial e repete diagnóstico/`WM_CLOSE`. Não foi atribuída semântica
+  específica ao helper.
 - `FUN_004A32DD`, no evento `0x1204`, aplica debounce de 2 s, valida índice
   assinado `0..3` e personagem habilitado, monta packet `0x213` de `0x24` bytes
   com índice em `+0x0C` e envia no callsite `0x004A3422`; depois grava timestamp
@@ -146,10 +153,10 @@ Ghidra.
   nula e estado `-1`; `FUN_004B3A20 -> FUN_004B2155` desmonta a raiz e zera
   `DAT_0067CF38`. O timer usa vtable `0x005A4688`, é publicado em
   `DAT_0092E654` e atualiza `DAT_0092E658`.
-- Os 47 exports TSV desta rodada estão inventariados, classificados e ligados
+- Os 48 exports TSV desta rodada estão inventariados, classificados e ligados
   às conclusões/lacunas em
   `.agents/research/client748/inventory/scene-transition-evidence-log.md`.
-  Os aproximadamente 33,22 MiB regeneráveis permanecem fora do Git em
+  Os aproximadamente 33,76 MiB regeneráveis permanecem fora do Git em
   `%TEMP%\codex-wyd748-lifecycle-149205b7`.
 - A vtable da aplicação em `0x005A6104` contém, nos slots `+0x00..+0x1C`,
   `FUN_0055F3E0`, `FUN_0055BC0A`, `FUN_0055D066`, `FUN_0055D345`,
@@ -255,14 +262,20 @@ inventory/; três fichas válidas; LOCATED=3
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
-resultado: 47/47 exports presentes no ledger; nenhum ausente dos dois lados;
-22 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 2 AINDA NÃO INTERPRETADO e
-6 LACUNA SEGUINTE; volume aproximado 33,22 MiB
+resultado: 48/48 exports presentes no ledger; nenhum ausente dos dois lados;
+23 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 2 AINDA NÃO INTERPRETADO e
+6 LACUNA SEGUINTE; volume aproximado 33,76 MiB
 
 scene5-select-enter-focused.tsv
 resultado: 1.978.822 bytes; SHA-256
 074F55D599977F1A0D3045DEC0B23428FAD8C11A86A64383862673210B8E9906;
 hash nativo embutido correto; 2.509 instruções de FUN_0049F0E7; um RET;
+nenhum SCRIPT ERROR
+
+scene7-initialize-004a8f14-focused.tsv
+resultado: 564.561 bytes; SHA-256
+F4DCEB6F8016879FD2D1D15D4D361AE88020B6825463D94AC9D62E1D71E650F6;
+hash nativo embutido correto; 1.626 instruções de FUN_004A8F14; um RET;
 nenhum SCRIPT ERROR
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-research
@@ -349,14 +362,15 @@ ocorrências.
 - Não reler por padrão os exports já inventariados do lifecycle. Consultar o ledger, abrir
   somente o export ligado à lacuna atual e escrever a conclusão no mesmo ciclo.
 - A ficha de cenas permanece `LOCATED`: os receivers/retornos `+0x4C` das cenas
-  `0/5` estão fechados; faltam as cenas `7/8`, a ordem global de teardown, shutdown e
-  logout/relogin.
+  `0/5/7` estão fechados; falta a cena `8`, a ordem global de teardown, shutdown
+  e logout/relogin.
 
 ## Próximo passo executável
 
-1. Abrir `scene-vtables-focused.tsv`, resolver os endereços dos initializers
-   `+0x4C` das cenas `7/8` e fechar retorno/falha de um deles no mesmo ciclo.
-2. Fechar o outro receiver `+0x4C` e a ordem integral entre
+1. Abrir `scene-vtables-focused.tsv`, confirmar `0x005A421C +0x4C` em
+   `0x005A4268 -> FUN_00432181` para a cena `8` e fechar retorno/falha no mesmo
+   ciclo.
+2. Fechar a ordem integral entre
    `FUN_004B16C0`, os cleanups específicos, `FUN_00494C00` e `FUN_0054AA45`.
 3. Continuar `FUN_0055D066`, shutdown e logout/relogin usando somente os exports
    marcados `LACUNA SEGUINTE` no ledger.
