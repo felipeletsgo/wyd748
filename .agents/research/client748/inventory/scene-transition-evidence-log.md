@@ -11,12 +11,16 @@ que uma retomada comece na última lacuna, não numa releitura ampla.
 - Projeto: `WYD748Native_20260821.gpr`, Ghidra 12.1.3, consultas read-only com
   `ExportWydFlow.java`.
 - Diretório regenerável: `%TEMP%\codex-wyd748-lifecycle-149205b7`.
-- Inventário: 46 arquivos TSV, aproximadamente 30,47 MiB; logs irmãos guardam
+- Inventário: 47 arquivos TSV, aproximadamente 33,22 MiB; logs irmãos guardam
   as consultas completas. Os binários e scripts históricos não foram alterados
   nem executados.
-- Distribuição conferida nas 46 linhas do inventário: 15
-  `CONCLUSÃO CONFIRMADA`, 16 `PISTA LOCALIZADA`, 6
-  `AINDA NÃO INTERPRETADO` e 9 `LACUNA SEGUINTE`.
+- Distribuição conferida nas 47 linhas do inventário: 22
+  `CONCLUSÃO CONFIRMADA`, 17 `PISTA LOCALIZADA`, 2
+  `AINDA NÃO INTERPRETADO` e 6 `LACUNA SEGUINTE`.
+- Último recorte: `scene0-initialize-00435b13-focused.tsv`, 2.893.027 bytes,
+  SHA-256
+  `F2BF4BB6926A773D9938F2D1735F49592822C8A6BB9999E1CBF9FB09C027CEA2`;
+  o log irmão não contém `SCRIPT ERROR`.
 - Documento canônico das conclusões:
   `flows/lifecycle/scene-transition.md`, que permanece `LOCATED`.
 
@@ -70,6 +74,12 @@ Classificação usada abaixo:
    desmonta sua raiz, cena global e opcionalmente o próprio manager.
 13. O timer usa vtable `0x005A4688`, é publicado em `DAT_0092E654` e atualiza
    `DAT_0092E658`.
+14. O slot `0x005A4294 +0x4C` da cena `0` aponta para `FUN_00435B13` e é
+    chamado indiretamente por `FUN_004B3500` em `0x004B370F`. O único retorno
+    normal do initializer grava `EAX=1`; por isso o ramo
+    `"Initialize Scene Fail."` não é alcançável por retorno falso desse
+    override. Falhas não locais não são convertidas em zero e permanecem fora
+    dessa conclusão.
 
 ## Pistas qualificadas já transcritas
 
@@ -124,6 +134,7 @@ Classificação usada abaixo:
 | `scene-packet-forwarders-focused.tsv` | encaminhamento dos packets da cena | `CONCLUSÃO CONFIRMADA` | fecha enqueue/cifra/flush de `FUN_0042550E` até `FUN_00425266` |
 | `scene-teardown-application-focused.tsv` | convergência scene/app teardown | `PISTA LOCALIZADA` | relações coletadas; sequência global não demonstrada |
 | `scene-vtables-focused.tsv` | vtables e slots das cenas | `CONCLUSÃO CONFIRMADA` | resolve cena 5 em `0x005A44B4` e apoia as quatro cadeias de cleanup |
+| `scene0-initialize-00435b13-focused.tsv` | retorno e caminho de falha do initializer `+0x4C` da cena 0 | `CONCLUSÃO CONFIRMADA` | slot `0x005A4294+0x4C`; caller indireto em `0x004B370F`; único retorno normal grava `EAX=1` |
 | `scene5-select-enter-focused.tsv` | seleção/entrada da cena 5 | `CONCLUSÃO CONFIRMADA` | evento `0x1204`, validações, packet `0x213` e resposta `0x114` localizados |
 | `scene5-vtable-app-timer-focused.tsv` | cena 5, aplicação e timer | `CONCLUSÃO CONFIRMADA` | liga vtable `0x005A44B4` e timer publicado em `DAT_0092E654` |
 | `timer-destructor-focused.tsv` | destrutor do timer | `CONCLUSÃO CONFIRMADA` | deleting destructor `FUN_004BAEB0` localizado |
@@ -138,11 +149,11 @@ Usar o ciclo aprovado `HEAD/status/hash -> última evidência -> próximo xref`.
 Não reler os exports já inventariados. A próxima unidade é:
 
 ```text
-1 xref: fechar retorno/falha de FUN_00435B13 no slot +0x4C da cena 0
-1 conclusão: registrar o contrato observado do initializer da cena 0
+1 xref: fechar retorno/falha de FUN_0049F0E7 no slot +0x4C da cena 5
+1 conclusão: registrar o contrato observado do initializer da cena 5
 1 escrita: atualizar este ledger e scene-transition.md no mesmo ciclo
 ```
 
-Depois, fechar os receivers `+0x4C` restantes e a ordem de teardown. Shutdown e
+Depois, fechar os receivers `+0x4C` das cenas `7/8` e a ordem de teardown. Shutdown e
 logout/relogin permanecem as lacunas seguintes. Nenhuma edição em
 `client-source/` é permitida enquanto a ficha estiver `LOCATED`.

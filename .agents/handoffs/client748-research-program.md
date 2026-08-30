@@ -101,6 +101,11 @@ Ghidra.
   `+0x00 FUN_004A8910` (deleting destructor), `+0x04 FUN_004A626E` (packet),
   `+0x4C FUN_0049F0E7` (initialize), `+0x58 FUN_004A32DD` (controle/evento) e
   `+0x64 FUN_0049AD57`.
+- A cena do estado `0` instala a vtable `0x005A4294`; seu slot `+0x4C`,
+  armazenado em `0x005A42E0`, é `FUN_00435B13`. O caller indireto fica em
+  `FUN_004B3500:0x004B370F`. O único retorno normal do initializer grava
+  `EAX=1`, portanto o ramo `"Initialize Scene Fail."` não é alcançável por
+  retorno falso desse override. Falhas não locais não são convertidas em zero.
 - `FUN_004A32DD`, no evento `0x1204`, aplica debounce de 2 s, valida índice
   assinado `0..3` e personagem habilitado, monta packet `0x213` de `0x24` bytes
   com índice em `+0x0C` e envia no callsite `0x004A3422`; depois grava timestamp
@@ -244,9 +249,14 @@ inventory/; três fichas válidas; LOCATED=3
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
-resultado: 45/45 exports presentes no ledger; nenhum ausente dos dois lados;
-20 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 2 AINDA NÃO INTERPRETADO e
-6 LACUNA SEGUINTE
+resultado: 47/47 exports presentes no ledger; nenhum ausente dos dois lados;
+22 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 2 AINDA NÃO INTERPRETADO e
+6 LACUNA SEGUINTE; volume aproximado 33,22 MiB
+
+scene0-initialize-00435b13-focused.tsv
+resultado: 2.893.027 bytes; SHA-256
+F2BF4BB6926A773D9938F2D1735F49592822C8A6BB9999E1CBF9FB09C027CEA2;
+log irmão sem SCRIPT ERROR
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-research
 resultado: exit 0; Skill is valid!
@@ -331,13 +341,14 @@ ocorrências.
   com xrefs, estado, erro, ownership e lifecycle.
 - Não reler por padrão os exports já inventariados do lifecycle. Consultar o ledger, abrir
   somente o export ligado à lacuna atual e escrever a conclusão no mesmo ciclo.
-- A ficha de cenas permanece `LOCATED`: faltam os receivers/retornos `+0x4C`
-  restantes, a ordem global de teardown, shutdown e logout/relogin.
+- A ficha de cenas permanece `LOCATED`: o receiver/retorno `+0x4C` da cena `0`
+  está fechado; faltam as cenas `5/7/8`, a ordem global de teardown, shutdown e
+  logout/relogin.
 
 ## Próximo passo executável
 
-1. Fechar retorno e caminho de falha de `FUN_00435B13`, receiver `+0x4C` da
-   cena `0`, abrindo somente o export ligado a esse xref e escrevendo a
+1. Fechar retorno e caminho de falha de `FUN_0049F0E7`, receiver `+0x4C` da
+   cena `5`, abrindo somente o export ligado a esse xref e escrevendo a
    conclusão no mesmo ciclo.
 2. Fechar os receivers/retornos `+0x4C` restantes e a ordem integral entre
    `FUN_004B16C0`, os cleanups específicos, `FUN_00494C00` e `FUN_0054AA45`.
