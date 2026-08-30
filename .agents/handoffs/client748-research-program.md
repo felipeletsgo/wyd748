@@ -1,6 +1,6 @@
 # Handoff: programa de pesquisa do client 7.48
 
-Atualizado em: 2026-08-28
+Atualizado em: 2026-08-30
 Estado geral: `STATICALLY VERIFIED`
 
 ## Objetivo e limites
@@ -90,9 +90,44 @@ Ghidra.
 - `FUN_004B37C9` troca `DAT_0067CF38`, marca a cena anterior para deleção,
   transfere o estado de dois controles em `scene+0x84`, copia estado e tempo e
   chama novamente o slot `ObjectManager+0x64` com a cena anterior. O receptor
-  da chamada final foi resolvido pelas instruções como o próprio manager; a
-  semântica de encadeamento/teardown ainda exige os callers e o consumidor de
-  `m_cDeleted` antes de promover a ficha.
+  da chamada final foi resolvido pelas instruções como o próprio manager. O
+  consumidor de `m_cDeleted` foi localizado posteriormente em `FUN_004B16C0`;
+  a ordem integral de encadeamento/detach ainda impede promover a ficha.
+- A matriz de construtores foi corrigida diretamente nas instruções de
+  `FUN_004B3500`: estado `0 -> FUN_004343A4`, `5 -> FUN_0049EE30`,
+  `7 -> FUN_004A8CCF` e `8 -> FUN_00431D00`. A associação anterior na ficha
+  estava invertida e não deve ser reutilizada.
+- A cena do estado `5` instala a vtable `0x005A44B4`. Os slots confirmados são
+  `+0x00 FUN_004A8910` (deleting destructor), `+0x04 FUN_004A626E` (packet),
+  `+0x4C FUN_0049F0E7` (initialize), `+0x58 FUN_004A32DD` (controle/evento) e
+  `+0x64 FUN_0049AD57`.
+- `FUN_004A32DD`, no evento `0x1204`, aplica debounce de 2 s, valida índice
+  assinado `0..3` e personagem habilitado, monta packet `0x213` de `0x24` bytes
+  com índice em `+0x0C` e envia no callsite `0x004A3422`; depois grava timestamp
+  e desabilita três controles. A origem UI concreta do evento está pendente.
+- O transporte do `0x213` foi seguido por
+  `FUN_0042550E -> FUN_00424C2C -> FUN_00424DFE -> FUN_00425266`: enqueue,
+  seed/checksum/tempo, cifragem de `+0x04..fim`, limite de `0x20000`, uma
+  tentativa de `send` e preservação de pendência em erro parcial. O retorno do
+  enqueue é ignorado; a wrapper retorna apenas o flush.
+- A resposta `0x114` possui dois consumidores localizados. O dispatcher
+  `FUN_00492E7D -> FUN_0048529B` solicita estado `9`, normalizado para `0`; o
+  handler da cena 5 `FUN_004A626E` atualiza o personagem e solicita estado `0`.
+  A ordem entre ambos continua `UNRESOLVED`; registrar como uma cadeia com
+  ordenação pendente, não como duas transições independentes.
+- `FUN_004B21C9` grava `scene+0x14 = 1` e `manager+0x1B08C = 1`.
+  `FUN_004B16C0` consome a marca, chama o deleting destructor e limpa
+  `manager+0x1B088/+0x1B08C`. Os cleanups das cenas `0/5/7/8` convergem em
+  `FUN_00494C00`, e `FUN_0054AA45` destrói filhos e desanexa o nó da árvore.
+- `FUN_004B1EA9` inicializa o `ObjectManager` com vptr `0x005A45FC`, cena global
+  nula e estado `-1`; `FUN_004B3A20 -> FUN_004B2155` desmonta a raiz e zera
+  `DAT_0067CF38`. O timer usa vtable `0x005A4688`, é publicado em
+  `DAT_0092E654` e atualiza `DAT_0092E658`.
+- Os 45 exports TSV desta rodada estão inventariados, classificados e ligados
+  às conclusões/lacunas em
+  `.agents/research/client748/inventory/scene-transition-evidence-log.md`.
+  Os aproximadamente 30,43 MiB regeneráveis permanecem fora do Git em
+  `%TEMP%\codex-wyd748-lifecycle-149205b7`.
 - A vtable da aplicação em `0x005A6104` contém, nos slots `+0x00..+0x1C`,
   `FUN_0055F3E0`, `FUN_0055BC0A`, `FUN_0055D066`, `FUN_0055D345`,
   `FUN_0055EDF7`, `FUN_0055D6E6`, `FUN_0055EE1E` e `FUN_0055EE45`.
@@ -152,7 +187,7 @@ infraestrutura e schema das fichas       | STATICALLY VERIFIED | scripts e templ
 correlação estrutural native/source       | AUTOMATED TESTED     | Ghidra real + correlator: 88 exact, 385 candidates
 gate de tamanho por opcode               | LOCATED             | entrada nativa localizada; caller/direção pendentes
 foco, IME e lifecycle de controles       | LOCATED             | fluxo principal localizado; xrefs/teardown pendentes
-transição e troca de cenas                | LOCATED             | criação/initialize/falha/registro localizados; callers e teardown pendentes
+transição e troca de cenas                | LOCATED             | seleção/packet/resposta/cleanup localizados; ordem, shutdown e relogin pendentes
 código ativo do client/servidor          | NÃO ALTERADO         | nenhum build ou teste funcional necessário nesta etapa
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
@@ -172,7 +207,9 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
   fingerprints com testes determinísticos.
 - `.agents/research/client748/` — README, template, quatro exports focados e as
   três fichas iniciais, incluindo `flows/lifecycle/scene-transition.md`; o
-  inventário README inclui o procedimento do triador.
+  inventário README inclui o procedimento do triador. O ledger
+  `inventory/scene-transition-evidence-log.md` preserva a rodada de 45
+  exports sem versionar os recortes amplos.
   Exports exploratórios amplos e não citados foram removidos da worktree e
   preservados temporariamente em
   `%TEMP%\wyd748-broad-exports-20260828-commit`; são regeneráveis pelo projeto
@@ -190,7 +227,14 @@ antes de editar; handoff não funciona como lock.
 
 ```text
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-resultado: exit 0; três fichas válidas; LOCATED=3
+resultado: exit 0; reexecutado em 2026-08-30 após mover o ledger para
+inventory/; três fichas válidas; LOCATED=3
+
+conferência do ledger scene-transition-evidence-log.md contra
+%TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
+resultado: 45/45 exports presentes no ledger; nenhum ausente dos dois lados;
+14 CONCLUSÃO CONFIRMADA, 16 PISTA LOCALIZADA, 6 AINDA NÃO INTERPRETADO e
+9 LACUNA SEGUINTE
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-research
 resultado: exit 0; Skill is valid!
@@ -200,7 +244,8 @@ python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.
 resultado: exit 0; ambas as skills adicionais são válidas
 
 python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
-resultado: exit 0; 4.146 funções, 4 lanes, 4.084 UNMAPPED, 23 LOCATED e 39 STATICALLY_EVIDENCED
+resultado: exit 0; reexecutado em 2026-08-30; 4.146 funções, 4 lanes,
+4.084 UNMAPPED, 23 LOCATED e 39 STATICALLY_EVIDENCED
 
 python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format json --top 5
 resultado: exit 0; functions=4146, selected_functions=5 e top=5
@@ -244,7 +289,8 @@ hashes SHA-256 da referência e do candidato
 resultado: 8AA2F918...15F593 e F8251714...A380B
 
 git diff --check
-resultado: exit 0; somente avisos informativos LF/CRLF do Git no Windows
+resultado: exit 0; reexecutado em 2026-08-30; somente avisos informativos
+LF/CRLF do Git no Windows
 ```
 
 O `exit 1` de `query_corpus.py stats` é um alerta de cobertura textual, não uma
@@ -271,25 +317,29 @@ ocorrências.
 - Não converter os 88 matches estruturais em nomes ou estado de pesquisa por
   lote. Usá-los como âncoras de localização e fechar cada transição observável
   com xrefs, estado, erro, ownership e lifecycle.
+- Não reler por padrão os 45 exports do lifecycle. Consultar o ledger, abrir
+  somente o export ligado à lacuna atual e escrever a conclusão no mesmo ciclo.
+- A ficha de cenas permanece `LOCATED`: faltam a origem UI de `0x1204`, a ordem
+  dos consumidores de `0x114`, os receivers `+0x4C` restantes, a ordem global
+  de teardown, shutdown e logout/relogin.
 
 ## Próximo passo executável
 
-1. Continuar o lifecycle da aplicação a partir de `FUN_0055DAB8`: fechar quem
-   atribui, consulta, invalida e destrói `app+0xF4`, `app+0xF8` e `app+0xFC`,
-   incluindo os imports e o significado Win32 dos branches `0x464` e `0x465`.
-2. Fechar `FUN_0055BC0A`, inicialização parcial, shutdown, logout e relogin;
-   depois reconectar esse lifecycle a `FUN_004B3500`/`FUN_004B37C9`, aos
-   destrutores das quatro cenas e ao consumidor de `TreeNode+0x14 = 1`.
-3. Comparar o fluxo integral com `TMProject.cpp/.h`, `ObjectManager.cpp/.h`,
-   `TMScene.cpp/.h` e `TreeNode.cpp/.h`, então criar
-   `.agents/research/client748/flows/lifecycle/scene-transition.md`.
-4. Promover a ficha somente quando entrada, callers, callees, estado, erros,
-   ownership e teardown estiverem fechados. Só depois adaptar o delta
-   comprovado `estado 9 -> estado interno 0` na source recompilável.
-5. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
+1. Abrir somente `sbutton-methods-next.tsv`,
+   `sbutton-vtable-event-loader-focused.tsv` e `loader-sbutton-branch.tsv` para
+   ligar `FUN_004A32DD`/evento `0x1204` ao controle, container e loader
+   concretos. Escrever a conclusão ou a ausência comprovada no mesmo ciclo.
+2. Resolver a ordem entre `FUN_00492E7D` e `FUN_004A626E` ao consumir `0x114`.
+3. Fechar os receivers/retornos `+0x4C` restantes e a ordem integral entre
+   `FUN_004B16C0`, os cleanups específicos, `FUN_00494C00` e `FUN_0054AA45`.
+4. Continuar `FUN_0055D066`, shutdown e logout/relogin usando somente os exports
+   marcados `LACUNA SEGUINTE` no ledger.
+5. Promover a ficha somente quando entrada, callers, callees, estado, erros,
+   ownership e teardown estiverem fechados. Só depois adaptar delta comprovado.
+6. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
    sua maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
-6. Reexecutar `validate_research.py`, `query_corpus.py stats`,
-   `quick_validate.py`, `git diff --check` e atualizar este handoff quando
+7. Reexecutar `validate_research.py`, triagem, `git diff --check` e atualizar
+   este handoff quando
    houver nova evidência ou mudança de estado.
 
 ## Critérios de aceite pendentes

@@ -40,6 +40,10 @@ Recalcular antes de usar: o candidato muda a cada build.
 - `exports/`: relatórios focados que aceleram a busca; passar funções, vtables e
   slots decisivos explicitamente ao `ExportWydFlow.java`. Não versionar exports
   exploratórios amplos sem claim e ficha que os consumam.
+- `inventory/scene-transition-evidence-log.md`: ledger reproduzível dos 45
+  exports exploratórios da rodada de lifecycle, com a pergunta de cada recorte,
+  interpretação atual e lacuna seguinte. É índice de evidência, não ficha, e
+  portanto não altera sozinho a maturidade de `scene-transition.md`.
 - `.agents/skills/wyd-client748-research/references/evidence-record.md`:
   schema, citações e estados `UNMAPPED`/`LOCATED`/`TRACED`/`CONTRACT`/
   `CLIENT_TESTED`.
