@@ -65,13 +65,17 @@ completo à transição de cena.
 instância instala essa vtable por `FUN_004AFAC0` e `FUN_004AFBA0`. O endereço
 `0x005A45F0` é um preâmbulo adjacente, não a base da vtable.
 
-Dois caminhos que fornecem estado ao slot `+0x54` foram localizados para a
-resposta `0x114`: o dispatcher global `FUN_00492E7D` chama `FUN_0048529B` e
-solicita estado `9`, que `FUN_004B3500` normaliza para `0`; o handler da cena 5
-`FUN_004A626E` atualiza o personagem selecionado e solicita diretamente o
-estado `0`. A ordenação entre o dispatcher global e o handler da cena ainda
-não foi resolvida; eles formam uma cadeia observável com ordem pendente, não
-duas transições independentes já comprovadas.
+`CONFIRMED`: o consumidor de packets do `ObjectManager` é `FUN_004B263E`, no
+slot `+0x08` de `0x005A45FC`. Ele captura a raiz ativa em `DAT_0067CF38`, chama
+primeiro o slot `+0x04` dessa raiz e percorre em profundidade os filhos ainda
+ativos; o primeiro handler que retorna `1` encerra o dispatch. Portanto o
+receptor virtual nasce da cena ativa, não de um dispatcher global fixo.
+
+Para a resposta `0x114`, os dois caminhos de mudança para a cena `0` são
+alternativas por estado. `FUN_00492E7D` é o override `+0x04` da cena `0`,
+enquanto `FUN_004A626E` ocupa o mesmo slot na cena `5`. O primeiro chama
+`FUN_0048529B` e solicita estado `9`, normalizado por `FUN_004B3500`; o segundo
+atualiza o personagem selecionado e solicita diretamente estado `0`.
 
 ### Função principal: `FUN_004B3500`
 
@@ -96,7 +100,12 @@ de erro e agenda o fechamento da janela por `PostMessageA`. Quando a cena existe
 mas sua inicialização falha, a cena parcialmente criada é destruída quando
 aplicável, uma mensagem de erro é exibida e o mesmo fechamento é agendado.
 
-### Cena do estado 5
+### Cenas dos estados 0 e 5
+
+`CONFIRMED`: o ramo `case 0` de `FUN_004B3500` chama `FUN_004343A4`, que
+instala explicitamente o vptr `0x005A4294`. O slot `+0x04` dessa tabela aponta
+para `FUN_00492E7D`. Essa é a raiz de cena consultada por `FUN_004B263E` quando
+o estado ativo é `0`.
 
 `CONFIRMED`: o ramo `case 5` de `FUN_004B3500` aloca `0x26EFC` bytes e chama
 `FUN_0049EE30`. Esse construtor instala explicitamente o vptr `0x005A44B4`,
@@ -171,13 +180,17 @@ estado e retornam `0`.
 
 ### Resposta `0x114`
 
-`LOCATED`: o dispatcher `FUN_00492E7D` reconhece opcode `0x114`, chama
-`FUN_0048529B` e solicita estado `9` pelo slot `ObjectManager+0x54`; o estado é
-normalizado para `0` em `FUN_004B3500`. O packet handler da cena 5
-`FUN_004A626E` também reconhece `0x114`, atualiza o estado global do personagem
-selecionado e solicita estado `0` pelo mesmo slot. A resposta fecha a ligação
-observável `0x1204 -> 0x213 -> 0x114 -> cena 0`, mas a ordem dos dois
-consumidores do `0x114` continua pendente e impede promover o fluxo.
+`CONFIRMED` dentro da ficha ainda `LOCATED`: `FUN_004B263E` despacha o packet
+para o slot `+0x04` da raiz em `DAT_0067CF38`. Na cena `5`, essa chamada resolve
+para `FUN_004A626E`; o handler processa `0x114`, atualiza o estado global do
+personagem, solicita sincronamente estado `0` por `ObjectManager+0x54` e retorna
+`1`. Esse retorno faz `FUN_004B263E` encerrar, sem reenviar o mesmo packet à
+nova raiz. Na cena `0`, o slot resolve para `FUN_00492E7D`, que chama primeiro a
+base `FUN_0049889A` e, se ela não consumir o packet, trata `0x114` por
+`FUN_0048529B`. `FUN_004A626E` também chama essa base antes de seus opcodes.
+Logo, os dois handlers são overrides mutuamente exclusivos por cena, não dois
+consumidores sequenciais. A ligação observável da seleção permanece
+`0x1204 -> 0x213 -> 0x114 -> cena 0`.
 
 ### Substituição: `FUN_004B37C9`
 
@@ -228,7 +241,7 @@ enquanto a ficha permanecer neste estado.
 | Cena anterior existente | cena atual não nula | `FUN_004B37C9` | nova cena global; anterior marcada | mensagem/tempo são copiados | teardown posterior não fechado |
 | Release `0x202` do `SButton` ID `0x1204` | receptor `scene[10]+0x24`, owner não nulo, índice `0..3`, personagem existente/habilitado e debounce > 2 s | `FUN_004032E8 -> FUN_0040CDA4 -> scene vtable +0x58 -> FUN_004A32DD` | evento `0x1204`; packet `0x213` de `0x24` bytes | timestamp atualizado; três controles desabilitados | receptor retorna `0` se a cena for nula |
 | Packet `0x213` | socket e espaço no buffer | `FUN_0042550E -> FUN_00424C2C -> FUN_00424DFE -> FUN_00425266` | dados cifrados/enfileirados; flush tentado | seed, checksum e tempo gravados | enqueue falho pode ser mascarado pelo retorno do flush |
-| Resposta `0x114` | dispatcher global e handler da cena 5 recebem o packet | `FUN_00492E7D` / `FUN_004A626E` | estado `9 -> 0` ou `0`; cena 0 solicitada | personagem selecionado atualizado | ordem entre consumidores pendente |
+| Resposta `0x114` | raiz ativa em `DAT_0067CF38`; slot de packet `+0x04` | `FUN_004B263E -> FUN_004A626E` na cena 5 ou `FUN_004B263E -> FUN_00492E7D` na cena 0 | estado `0` solicitado; `9` é normalizado para `0` no caminho da cena 0 | personagem selecionado atualizado na cena 5; retorno `1` encerra o dispatch | handlers são overrides alternativos, sem segundo consumo do mesmo packet |
 | Cena marcada | `scene+0x14 != 0` | `FUN_004B16C0` | deleting destructor chamado | previous scene e flag do manager zerados | ordem integral de detach ainda pendente |
 | Loop de aplicação | janela e subsistemas ativos | `FUN_0055DAB8` | mensagens/input/rede processados | dispatch Win32 e timer | branches `0x464/0x465` ainda parcialmente resolvidos |
 | Shutdown | aplicação em encerramento | `FUN_0055D066` | subsistemas em teardown | janela, socket e objetos são finalizados | ordem completa ainda não confirmada |
@@ -252,6 +265,7 @@ Vtable da aplicação em `0x005A6104`:
 Vtable efetiva do `ObjectManager` em `0x005A45FC`:
 
 ```text
++0x08 FUN_004B263E  dispatch de packet pela árvore da cena ativa
 +0x54 FUN_004B3500
 +0x58 FUN_004B37C9
 +0x5C FUN_004B3952
@@ -265,6 +279,16 @@ Vtable efetiva do `ObjectManager` em `0x005A45FC`:
 `DAT_0067CF38 = 0`, grava estado atual `-1` e cria os objetos raiz/ownership.
 `FUN_004B3A20 -> FUN_004B2155` destrói `manager+0x1B07C`, zera esse campo e
 `DAT_0067CF38`, e opcionalmente libera o próprio manager.
+
+Vtable confirmada da cena do estado `0` em `0x005A4294`:
+
+```text
++0x00 FUN_00493BC0  deleting destructor
++0x04 FUN_00492E7D  packet handler
++0x4C FUN_00435B13  initialize
++0x58 FUN_004662C5  control/event handler
++0x64 FUN_0049AD57
+```
 
 Vtable confirmada da cena do estado `5` em `0x005A44B4`:
 
@@ -416,8 +440,8 @@ inventário, observers e persistência continuam sendo validados no servidor.
   semelhança observada. A implementação do TMProject 7.69+ é referência
   semântica secundária, não contrato 7.48.
 - Não importar endereço, offset, vtable, enum, recurso ou ABI do TMProject para
-  o client 7.48. O delta `9 -> 0` só poderá ser adaptado depois de ordenação da
-  resposta e teardown integral estarem comprovados.
+  o client 7.48. O delta `9 -> 0` só poderá ser adaptado depois que o teardown
+  integral e as demais lacunas obrigatórias estiverem comprovados.
 - Não declarar `TRACED`, `CONTRACT`, `IMPLEMENTED` ou `CLIENT_TESTED` por causa
   de export, build ou correspondência estrutural.
 
@@ -425,7 +449,6 @@ inventário, observers e persistência continuam sendo validados no servidor.
 
 - callers restantes e transições que fornecem outros estados a `FUN_004B3500`;
 - receptores/retornos completos do slot virtual `+0x4C` para as quatro cenas;
-- ordem entre `FUN_00492E7D` e `FUN_004A626E` ao consumir `0x114`;
 - ordem integral de detach, remoção da árvore, destrutor-base e liberação de
   `m_pPreviousScene`;
 - atribuição, consulta, invalidação e destruição de `app+0xF4`, `app+0xF8` e

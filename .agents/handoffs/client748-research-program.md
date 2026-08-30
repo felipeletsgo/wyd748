@@ -118,11 +118,15 @@ Ghidra.
   seed/checksum/tempo, cifragem de `+0x04..fim`, limite de `0x20000`, uma
   tentativa de `send` e preservação de pendência em erro parcial. O retorno do
   enqueue é ignorado; a wrapper retorna apenas o flush.
-- A resposta `0x114` possui dois consumidores localizados. O dispatcher
-  `FUN_00492E7D -> FUN_0048529B` solicita estado `9`, normalizado para `0`; o
-  handler da cena 5 `FUN_004A626E` atualiza o personagem e solicita estado `0`.
-  A ordem entre ambos continua `UNRESOLVED`; registrar como uma cadeia com
-  ordenação pendente, não como duas transições independentes.
+- O dispatch de packets foi fechado em `FUN_004B263E`, slot
+  `ObjectManager+0x08`: ele começa pela raiz ativa `DAT_0067CF38`, chama o slot
+  `+0x04` e percorre os filhos até um handler retornar `1`. A cena `0` instala
+  `0x005A4294 +0x04 -> FUN_00492E7D`; a cena `5` instala
+  `0x005A44B4 +0x04 -> FUN_004A626E`. Portanto os consumidores de `0x114` são
+  overrides mutuamente exclusivos. Na cena 5, `FUN_004A626E` troca para estado
+  `0` e retorna `1`; o mesmo packet não é reenviado à nova raiz. O scan
+  `virtual-slot-04-all.tsv` registrou 116 hits, hash correto e resumo
+  `virtual_slot_search`, sem `SCRIPT ERROR`.
 - `FUN_004B21C9` grava `scene+0x14 = 1` e `manager+0x1B08C = 1`.
   `FUN_004B16C0` consome a marca, chama o deleting destructor e limpa
   `manager+0x1B088/+0x1B08C`. Os cleanups das cenas `0/5/7/8` convergem em
@@ -325,17 +329,16 @@ ocorrências.
 - Não converter os 88 matches estruturais em nomes ou estado de pesquisa por
   lote. Usá-los como âncoras de localização e fechar cada transição observável
   com xrefs, estado, erro, ownership e lifecycle.
-- Não reler por padrão os 45 exports do lifecycle. Consultar o ledger, abrir
+- Não reler por padrão os exports já inventariados do lifecycle. Consultar o ledger, abrir
   somente o export ligado à lacuna atual e escrever a conclusão no mesmo ciclo.
-- A ficha de cenas permanece `LOCATED`: faltam a ordem dos consumidores de
-  `0x114`, os receivers `+0x4C` restantes, a ordem global de teardown, shutdown
-  e logout/relogin.
+- A ficha de cenas permanece `LOCATED`: faltam os receivers/retornos `+0x4C`
+  restantes, a ordem global de teardown, shutdown e logout/relogin.
 
 ## Próximo passo executável
 
-1. Resolver a ordem entre `FUN_00492E7D` e `FUN_004A626E` ao consumir `0x114`,
-   abrindo somente o export ligado a esse xref e escrevendo a conclusão no
-   mesmo ciclo.
+1. Fechar retorno e caminho de falha de `FUN_00435B13`, receiver `+0x4C` da
+   cena `0`, abrindo somente o export ligado a esse xref e escrevendo a
+   conclusão no mesmo ciclo.
 2. Fechar os receivers/retornos `+0x4C` restantes e a ordem integral entre
    `FUN_004B16C0`, os cleanups específicos, `FUN_00494C00` e `FUN_0054AA45`.
 3. Continuar `FUN_0055D066`, shutdown e logout/relogin usando somente os exports

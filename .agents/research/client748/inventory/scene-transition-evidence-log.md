@@ -11,10 +11,10 @@ que uma retomada comece na última lacuna, não numa releitura ampla.
 - Projeto: `WYD748Native_20260821.gpr`, Ghidra 12.1.3, consultas read-only com
   `ExportWydFlow.java`.
 - Diretório regenerável: `%TEMP%\codex-wyd748-lifecycle-149205b7`.
-- Inventário: 45 arquivos TSV, aproximadamente 30,43 MiB; logs irmãos guardam
+- Inventário: 46 arquivos TSV, aproximadamente 30,47 MiB; logs irmãos guardam
   as consultas completas. Os binários e scripts históricos não foram alterados
   nem executados.
-- Distribuição conferida nas 45 linhas do inventário: 14
+- Distribuição conferida nas 46 linhas do inventário: 15
   `CONCLUSÃO CONFIRMADA`, 16 `PISTA LOCALIZADA`, 6
   `AINDA NÃO INTERPRETADO` e 9 `LACUNA SEGUINTE`.
 - Documento canônico das conclusões:
@@ -56,8 +56,12 @@ Classificação usada abaixo:
    `0x213` de `0x24` bytes e o envia no callsite `0x004A3422`.
 8. `FUN_0042550E -> FUN_00424C2C -> FUN_00424DFE -> FUN_00425266` fecha o
    enqueue, cifragem, buffer de `0x20000` bytes e tentativa de flush do `0x213`.
-9. A resposta `0x114` passa tanto pelo dispatcher global quanto pelo handler da
-   cena 5 e converge na solicitação da cena `0`; a ordem entre eles está aberta.
+9. `FUN_004B263E`, slot `ObjectManager+0x08`, inicia na raiz ativa
+   `DAT_0067CF38` e chama o slot de packet `+0x04` em profundidade até um nó
+   retornar `1`. A cena `0` instala `0x005A4294 +0x04 -> FUN_00492E7D`; a cena
+   `5` instala `0x005A44B4 +0x04 -> FUN_004A626E`. São overrides alternativos,
+   não consumidores sequenciais de `0x114`; na cena 5 o retorno `1` após a troca
+   para estado `0` encerra o dispatch sem entregar o mesmo packet à nova raiz.
 10. `FUN_004B21C9` grava as flags de deleção e `FUN_004B16C0` é o consumidor que
    chama o deleting destructor e limpa previous scene/flag do manager.
 11. Os cleanups específicos das cenas `0/5/7/8` convergem em `FUN_00494C00`, que
@@ -124,17 +128,18 @@ Classificação usada abaixo:
 | `scene5-vtable-app-timer-focused.tsv` | cena 5, aplicação e timer | `CONCLUSÃO CONFIRMADA` | liga vtable `0x005A44B4` e timer publicado em `DAT_0092E654` |
 | `timer-destructor-focused.tsv` | destrutor do timer | `CONCLUSÃO CONFIRMADA` | deleting destructor `FUN_004BAEB0` localizado |
 | `timer-vtable-005a4688-focused.tsv` | slots do timer | `CONCLUSÃO CONFIRMADA` | slots `+0x00..+0x10` e atualização de `DAT_0092E658` transcritos |
+| `virtual-slot-04-all.tsv` | dispatch virtual de packets | `CONCLUSÃO CONFIRMADA` | 116 hits; `FUN_004B263E` fornece o receptor `DAT_0067CF38` e separa os overrides das cenas 0 e 5 |
 | `virtual-slot-58-all.tsv` | todos os usos de slot virtual `+0x58` | `PISTA LOCALIZADA` | conjunto amplo; filtrar por receptor antes de atribuir semântica |
 | `wm-close-sources-focused.tsv` | origens de fechamento da janela | `PISTA LOCALIZADA` | apoia caminhos de falha/close; shutdown completo continua aberto |
 
 ## Ponto exato de retomada
 
 Usar o ciclo aprovado `HEAD/status/hash -> última evidência -> próximo xref`.
-Não reler os 45 exports. A próxima unidade é:
+Não reler os exports já inventariados. A próxima unidade é:
 
 ```text
-1 xref: resolver a ordem de FUN_00492E7D e FUN_004A626E para opcode 0x114
-1 conclusão: identificar a ordem do dispatcher global e do handler da cena
+1 xref: fechar retorno/falha de FUN_00435B13 no slot +0x4C da cena 0
+1 conclusão: registrar o contrato observado do initializer da cena 0
 1 escrita: atualizar este ledger e scene-transition.md no mesmo ciclo
 ```
 
