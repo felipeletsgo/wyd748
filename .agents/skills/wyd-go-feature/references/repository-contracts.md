@@ -303,19 +303,26 @@ Ao usar implementação de outra versão:
 - não assuma layout de packet;
 - não assuma tamanho de estrutura.
 
-Tudo que depende do client 7.48 deve ser confirmado no próprio client 7.48.
+Toda alegação sobre uma fronteira legada deve ser confirmada no próprio client
+7.48. Contrato novo coordenado deve ser especificado e testado nos seus
+consumidores atuais, sem ser apresentado como fato do executável histórico.
 
-## Gate Ghidra obrigatório para o client 7.48
+## Gate Ghidra para fronteiras legadas do client 7.48
 
-Toda tarefa que altere `client-source/`, protocolo, ABI, structs, UI, input,
-render, assets ou comportamento do executável deve consultar a descompilação
-Ghidra do binário histórico `client748/wyd.exe nativo+patches/WYD.exe` antes da
-primeira edição. O agente deve ler também
+Toda tarefa deve primeiro classificar o delta. `PARIDADE_NATIVA` e alteração de
+fronteira legada em `client-source/`, protocolo, ABI, structs, UI, input, render
+ou assets consultam a descompilação Ghidra do binário histórico
+`client748/wyd.exe nativo+patches/WYD.exe`. O agente deve ler também
 `.agents/skills/wyd-go-feature/references/ghidra-client748.md` e registrar as
 funções nativas, callers/callees e contratos usados como evidência.
 
+`MODERNIZACAO_COMPATIVEL` reutiliza a evidência já fechada e prova apenas as
+fronteiras alteradas. `EXTENSAO_COORDENADA` documenta e testa o contrato novo
+nos dois lados; consulta Ghidra somente nos pontos de integração ou colisão com
+o legado, sem fabricar um equivalente nativo.
+
 TMProject, W2PP, Secrets e Micronics podem oferecer implementações melhores ou
-mais legíveis, mas não substituem a confirmação do fluxo 7.48. É proibido
+mais legíveis. Não substituem a confirmação de um claim nativo. É proibido
 ajustar esses caminhos por tentativa visual quando a descompilação permite
 recuperar IDs, lifecycle, offsets, tamanhos ou condições nativas.
 
@@ -324,36 +331,33 @@ recuperar IDs, lifecycle, offsets, tamanhos ou condições nativas.
 O TMProject pode ser de uma versão superior (por exemplo, 7.59) e por isso
 conter correções de comportamento ou tabelas mais completas. Essa vantagem é
 semântica, não uma autorização para transportar ABI. Quando uma tabela nova
-for necessária, ela deve ser traduzida para o formato que o executável 7.48
-consome, com limites, offsets e tamanho validados no client 7.48. Se não houver
-uma projeção comprovadamente segura, usar o dado legado ou manter a feature
-desabilitada; nunca enviar uma struct moderna diretamente ao 7.48.
+for necessária, ela pode ser traduzida para a fronteira legada ou entrar por um
+contrato coordenado novo, com limites, offsets, tamanho e consumidores testados
+no client e no servidor. Nunca assumir que uma struct moderna já é compatível.
 
 ## Source recompilável exclusiva do client 7.48
 
 `client-source/tmproject` não é uma source multi-versão. O produto dessa árvore
-é exclusivamente o client WYD 7.48 usado por este repositório.
+é o client customizado do ecossistema WYD 7.48 usado por este repositório.
 
-Depois que o comportamento equivalente for confirmado no `WYD.exe` 7.48 pelo
-Ghidra, excluir da source recompilável:
+Depois de escolher e validar o caminho ativo, excluir somente implementações
+paralelas sem consumidor. Não excluir por ausência no nativo:
 
-- branches alternativos exclusivos de 7.54/7.59+;
-- layouts, controles e páginas de UI inexistentes no 7.48;
-- opcodes, structs e campos sem representação no protocolo 7.48;
-- loaders e formatos modernos que só servem ao client mais novo;
+- branches alternativos de versão que não são o caminho selecionado;
+- layouts, controles, opcodes, structs ou loaders sem consumidor, contrato ou
+  asset materializado;
 - flags de compatibilidade cuja única função seja escolher entre 7.48 e uma
   versão posterior.
 
-Não manter o caminho moderno "por compatibilidade futura": ele cria uma segunda
-ABI, confunde a auditoria e aumenta a superfície de crash. Sources mais novas
-continuam válidas como referência semântica read-only. Uma feature ou dado novo
-só entra quando puder ser projetado explicitamente no formato suportado pelo
-7.48; nesse caso a implementação final ainda deve possuir apenas o contrato
-7.48.
+Não manter dois caminhos apenas por “compatibilidade futura”. Uma estrutura
+moderna pode tornar-se o único caminho ativo quando for superior e compatível.
+Uma feature ou dado novo também pode entrar como extensão coordenada, com
+contrato client/server próprio e integração legada explícita.
 
-A remoção deve ser baseada em evidência. Não apagar código apenas por nome,
-idade ou suspeita: identificar primeiro o equivalente nativo, callers, recursos
-e lifecycle no Ghidra para não remover uma rotina que o 7.48 também utiliza.
+A remoção deve ser baseada em evidência. Código e assets manuais são presumidos
+intencionais. Não apagar por nome, idade, origem 7.69 ou ausência no nativo:
+identificar consumidores, recursos, lifecycle, contrato server-side e fluxo
+real antes de decidir.
 
 ## Papéis dos executáveis do client 7.48
 

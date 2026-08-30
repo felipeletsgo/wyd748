@@ -23,6 +23,12 @@ Em `TRACED`, `Callers` e `Callees` devem estar resolvidos no projeto Ghidra. Em
 `CLIENT_TESTED`, a seção de validação registra cenário, artefato/hash e resultado
 do fluxo real.
 
+O `status` mede conhecimento do fluxo nativo. Uma extensão coordenada sem
+equivalente 7.48 não deve inventar função, caller ou promoção: registre o
+contrato novo na documentação/testes da feature e use a ficha apenas para a
+fronteira legada realmente interceptada. `LOCATED` bloqueia o claim nativo
+incompleto, não a extensão independente.
+
 ## Citações
 
 Cite evidência com endereço/símbolo e arquivo atual, por exemplo:

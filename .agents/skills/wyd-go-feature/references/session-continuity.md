@@ -39,6 +39,27 @@ Não reler toda a referência histórica, todo o chat ou todo o repositório par
 “recuperar contexto”. Começar pelo ponto de retomada e ampliar somente quando a
 evidência exigir.
 
+A revisão inicial termina assim que `status + diff scoped + fingerprints dos
+inputs` confirmarem o ponto de retomada. Depois disso, executar o próximo passo;
+não iniciar uma segunda auditoria preventiva da mesma evidência.
+
+## Cache e invalidação
+
+Registre no handoff o input que torna um resultado reutilizável:
+
+| Resultado | Repetir quando |
+| --- | --- |
+| SHA-256 do nativo | caminho, tamanho ou mtime mudarem, ou faltar fingerprint confiável |
+| triagem/censo | catálogo, corpus, script ou objetivo da raiz mudar |
+| export/fingerprint Ghidra | binário/projeto/script ou funções solicitadas mudarem |
+| leitura de referência | arquivo mudar ou surgir uma decisão não coberta |
+| `validate_research.py` | ficha, template, schema ou validador mudar |
+| build client | source, asset ou input de build mudar |
+| testes Go | código/dado/contrato consumido pelo teste mudar; suíte ampla no gate de integração |
+
+Resultado com inputs idênticos é evidência reutilizável, não trabalho pendente.
+Não duplicar comandos só para gerar um timestamp mais novo.
+
 ## Conteúdo obrigatório de um handoff
 
 - objetivo exato e limites do escopo;
@@ -72,15 +93,17 @@ Não atualizar apenas para registrar atividade sem mudança de conhecimento.
 
 Uma sessão nova deve tratar como volátil:
 
-- hash de `project.exe`;
+- hash de `project.exe` quando houver novo build;
 - conteúdo de logs e dumps;
 - PID/processo em execução;
-- resultado de build/teste anterior;
+- resultado de build/teste anterior quando input, toolchain, ambiente ou gate
+  de integração tiver mudado;
 - lista de mudanças da worktree;
 - line numbers de arquivos em edição.
 
-Reverificar antes de usar. Hashes de artefatos imutáveis ainda devem ser
-checados quando a tarefa depende de endereços Ghidra no binário histórico.
+Reverificar somente o item cujo gatilho mudou. Para artefato histórico
+imutável, conferir primeiro caminho/tamanho/mtime e o hash registrado;
+recalcular somente pelos gatilhos da tabela acima.
 
 ## Concorrência e múltiplas sessões
 

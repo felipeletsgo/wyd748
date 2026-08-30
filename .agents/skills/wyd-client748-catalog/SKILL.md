@@ -1,95 +1,84 @@
 ---
 name: wyd-client748-catalog
-description: Catalogar, validar e priorizar as funções nativas do client WYD 7.48 usando o corpus Ghidra e o callgraph antes de escolher ou adaptar um fluxo no TMProject.
+description: Catalogar e correlacionar rapidamente funções do client WYD 7.48 com a source atual, priorizando raízes e callgraph antes de claims de paridade ou adaptação.
 ---
 
 # Catálogo do client WYD 7.48
 
-Use esta skill quando a tarefa envolver o programa completo de mapeamento,
-retomada de pesquisa, escolha da próxima função/raiz ou auditoria de heranças
-7.59/7.69+ no TMProject. Ela é a primeira trilha do trabalho e não substitui a
-skill `wyd-client748-research`: seu resultado é uma fila de pesquisa, não um
-contrato comportamental.
+Esta skill mantém o censo nativo e escolhe raízes de pesquisa. Ela não exige
+análise linear das 4.146 funções e não substitui `wyd-client748-research`.
+
+## Fast path
+
+Em continuação, use o handoff, `git status`, diff scoped e fingerprints já
+registrados. Não rerode triagem, inventário, export ou SHA-256 quando os
+respectivos inputs não mudaram. Execute o triador somente em campanha nova,
+mudança do corpus/catálogo ou escolha de uma raiz sem fila válida.
+
+Parta preferencialmente da source viva:
+
+```text
+função/feature TMProject
+-> candidatos nativos por seed, string, fingerprint, vtable e callgraph
+-> vizinhos que decidem a transição
+-> ficha do fluxo
+```
+
+Agrupe helpers pela transição e reduza a prioridade de runtime/D3DX. Seeds
+confirmados são cache de pesquisa: reutilize-os e propague pelos callers,
+callees e slots adjacentes.
 
 ## Autoridade e limites
 
-- O binário de referência é `client748/wyd.exe nativo+patches/WYD.exe`.
-- Confirme o SHA-256 antes de interpretar endereços ou exports.
-- `functions.tsv` e `ghidra-functions.tsv` devem representar as mesmas 4.146
-  entradas do corpus 7.48.
-- O corpus exportado acelera a descoberta; callers, callees indiretos, vtables,
-  callbacks, dados e lifecycle precisam ser confirmados no projeto Ghidra.
-- TMProject, W2PP e referências posteriores sugerem semântica, mas não criam
-  contrato 7.48.
-- A triagem nunca promove uma função para `TRACED`, `CONTRACT`, `IMPLEMENTED`
-  ou `CLIENT_TESTED`.
+- A referência nativa é `client748/wyd.exe nativo+patches/WYD.exe`.
+- `functions.tsv` e `ghidra-functions.tsv` censam as mesmas 4.146 entradas.
+- Export e correlação aceleram descoberta; xrefs indiretos, vtables, callbacks
+  e lifecycle que sustentam um claim são confirmados no projeto Ghidra.
+- `EXACT_MATCH`, lane e pontuação são candidatos, não maturidade.
+- TMProject posterior pode fornecer arquitetura candidata, mas não fatos do
+  nativo 7.48.
+- O catálogo é gate para novo claim de paridade, não para uma extensão
+  coordenada explicitamente projetada sem alegação nativa.
 
-## Procedimento obrigatório
+## Procedimento
 
-1. Verificar `git status --short --branch` e preservar qualquer alteração alheia.
-2. Executar o triador sem modificar o catálogo:
+1. Preservar mudanças alheias e decidir se há cache válido da fila.
+2. Quando necessário, executar:
 
    ```powershell
    python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
    ```
 
-3. Escolher uma raiz ou grupo pequeno de funções pela fila e formular uma
-   pergunta observável. Não transformar cada linha do TSV em uma tarefa isolada.
-4. Consultar `query_corpus.py` para localizar strings e pseudocódigo, e então
-   abrir a função, seus xrefs e suas chamadas no projeto Ghidra.
-5. Para entradas sem caller direto, revisar vtable, callback, thunk, referência
-   de dados, `bodyrefs` e `rawrelatives` antes de concluir que são inativas.
-6. Entregar a função/raiz e sua transição para
-   `wyd-client748-research`, que cria ou atualiza uma ficha por fluxo.
-7. Só depois de `TRACED`/`CONTRACT` o `wyd-go-feature` pode adaptar o delta
-   comprovado no TMProject ou no WYD-Go.
+3. Escolher uma raiz ou lote pequeno ligado a uma entrada observável. Para
+   migração, começar pela função atual da source; para pesquisa aberta, usar a
+   fila por subsistema/fan-out.
+4. Consultar o corpus para candidatos e abrir no Ghidra somente a raiz e os
+   vizinhos que decidem a pergunta.
+5. Sem caller direto, revisar vtable, callback, thunk, `bodyrefs` e
+   `rawrelatives`; zero textual não prova código morto.
+6. Entregar a transição a `wyd-client748-research` e registrar a descoberta no
+   mesmo ciclo, antes de trocar de lote.
 
-## Lanes de pesquisa
+## Lanes
 
-O script escolhe uma lane primária, apenas para ordenar trabalho:
+- `DOCUMENTED_FIRST`: evidência existente a fechar;
+- `SOURCE_REFERENCED`: correlação direta com a source atual;
+- `INDIRECT_OR_CALLBACK`: vtable, callback, thunk ou dado;
+- `HIGH_FANOUT`: raiz que explica múltiplas transições;
+- `CORPUS_TRIAGE`: ainda precisa ser agrupada.
 
-- `DOCUMENTED_FIRST`: já aparece em ficha, handoff ou evidência não textual;
-- `SOURCE_REFERENCED`: possui referência direta no C++/header recompilável;
-- `INDIRECT_OR_CALLBACK`: não possui caller direto e exige revisão de callback,
-  vtable, thunk ou referência de dados;
-- `HIGH_FANOUT`: tem muitos callers/callees ou referências de entrada e pode
-  explicar várias transições;
-- `CORPUS_TRIAGE`: ainda não tem evidência suficiente e deve ser agrupada por
-  caller, callee, string ou subsistema.
+A lane apenas ordena. O caminho crítico tem precedência prática:
+bootstrap → login → cenas → dispatcher → mundo → logout/relogin.
 
-A lane e uma pontuação são somente instrumentos de triagem. A prioridade nunca
-substitui a pergunta concreta, a ficha ou a confirmação Ghidra.
+## Saída
 
-## Saída esperada
+Registrar somente o delta novo: raiz/lote, motivo, binário/corpus identificados,
+candidatos descartados ou confirmados e próximo símbolo/comando. Não duplicar
+contagens e hashes estáveis em cada sessão.
 
-Ao terminar a triagem, registrar no handoff ou na ficha:
+Use a ficha em `.agents/research/client748/flows/` para claims nativos. Uma
+feature deliberadamente nova deve ser documentada como extensão coordenada,
+sem fabricar equivalente ou maturidade nativa.
 
-- contagem total e eventual divergência do corpus;
-- lane e motivo da raiz escolhida;
-- entrada e hash do binário consultado;
-- export/query usado e a limitação conhecida;
-- próximo comando ou função reproduzível.
-
-Para o fluxo pesquisado, use a ficha em `.agents/research/client748/flows/` e
-classifique cada claim como `CONFIRMED`, `PROBABLE`, `HYPOTHESIS` ou `REJECTED`.
-Não usar este catálogo para fabricar stubs no TMProject ou preencher nomes
-ausentes no Ghidra.
-
-## Prioridade dos fluxos
-
-Quando não houver uma urgência de produção, seguir a ordem:
-
-1. bootstrap, configuração, lifecycle e shutdown;
-2. transporte, framing, criptografia e login;
-3. dispatcher, cenas e entrada no mundo;
-4. tick, input, movimento e entidades;
-5. inventário, equipamento, NPC, loja e trade;
-6. combate, skills, affects e score;
-7. UI, HUD, render e assets;
-8. helpers, wrappers e rotinas sem impacto observável.
-
-A ordem pode mudar por evidência de um fluxo bloqueante, mas a decisão deve ser
-documentada e não pode importar ABI, packet, recurso ou offset de versão nova.
-
-Leia [references/catalog-strategy.md](references/catalog-strategy.md) para o
-schema, a política de ranking e os critérios de conclusão da campanha.
+Leia [references/catalog-strategy.md](references/catalog-strategy.md) ao mudar o
+schema, ranking ou critério de cobertura; não é leitura de toda retomada.

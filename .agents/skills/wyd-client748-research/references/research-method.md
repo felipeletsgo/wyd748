@@ -2,7 +2,9 @@
 
 ## Fontes e limites
 
-Use as fontes nesta ordem para responder perguntas sobre o client:
+Para entender trabalho já implementado, abra primeiro a source atual e seu diff;
+ela revela o que realmente precisa ser decidido. Para responder claims de
+paridade nativa, use as fontes nesta ordem:
 
 1. executável histórico `WYD.exe` com hash confirmado e projeto Ghidra;
 2. assets 7.48 realmente consumidos;
@@ -14,6 +16,20 @@ O corpus `.c` exportado permite busca em massa, mas perde informação important
 xrefs de dados, chamadas indiretas, tipos, stack, estruturas e parte do call
 graph. Uma ocorrência textual ausente não prova ausência de caller. Resolver no
 projeto Ghidra antes de promover a ficha a `TRACED`.
+
+## Modos de decisão
+
+- `PARIDADE_NATIVA`: o nativo decide comportamento e a ficha mede sua
+  compreensão.
+- `MODERNIZACAO_COMPATIVEL`: a source pode usar estrutura superior; investigar
+  somente as fronteiras nativas que precisam permanecer equivalentes.
+- `EXTENSAO_COORDENADA`: client e servidor definem um contrato novo. O Ghidra
+  serve para localizar integração e colisões, não para provar uma feature
+  ausente.
+
+Uma ficha `LOCATED` bloqueia apenas o claim nativo dependente dela. Não usar
+maturidade nativa para aprovar ou rejeitar extensão. Código/assets existentes
+são preservados até que incompatibilidade concreta seja demonstrada.
 
 ## Delimitação do fluxo
 
@@ -152,8 +168,10 @@ Registrar em conjunto:
 - resolução/escala usada na comparação;
 - assets, textura, mesh, blend/depth e ordem de desenho quando visual.
 
-Controle moderno ausente pode ser `nullptr`; provar todos os callers e preservar
-a transição principal. Não fabricar um ID para satisfazer a topologia 7.59.
+Controle moderno ausente pode ser `nullptr`; provar os callers e preservar a
+transição principal. Não fabricar um ID apenas para satisfazer topologia 7.59.
+Ele pode ser materializado como extensão deliberada quando recurso, binding,
+input, ownership e teardown forem implementados e testados.
 
 ## Matriz de delta
 
@@ -161,7 +179,7 @@ Compare por claim, não por arquivo inteiro:
 
 | Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
-| comportamento/layout | evidência | implementação | origem/risco | contrato | portar/remover/manter/não confirmar |
+| comportamento/layout | evidência | implementação | origem/risco | contrato | portar/manter/modernizar/estender/remover/não confirmar |
 
 Use estas classes:
 
@@ -172,11 +190,13 @@ Use estas classes:
 
 ## Revisão e promoção
 
-Antes de promover a ficha:
+Antes de promover uma ficha nativa:
 
 1. executar `validate_research.py`;
 2. reabrir pelo menos a entrada, um caller e um callee relevante;
-3. conferir que o hash ainda corresponde;
+3. conferir que o fingerprint registrado ainda corresponde; recalcular o hash
+   somente se caminho, tamanho ou mtime mudaram, ou se o registro não for
+   suficiente para identificar o binário;
 4. garantir que gaps e claims não confirmados não foram usados na decisão;
 5. registrar testes reproduzíveis e estado real da validação.
 

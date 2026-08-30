@@ -11,16 +11,18 @@ que uma retomada comece na última lacuna, não numa releitura ampla.
 - Projeto: `WYD748Native_20260821.gpr`, Ghidra 12.1.3, consultas read-only com
   `ExportWydFlow.java`.
 - Diretório regenerável: `%TEMP%\codex-wyd748-lifecycle-149205b7`.
-- Inventário: 49 arquivos TSV, aproximadamente 33,98 MiB; logs irmãos guardam
-  as consultas completas. Os binários e scripts históricos não foram alterados
-  nem executados.
-- Distribuição conferida nas 49 linhas do inventário: 24
-  `CONCLUSÃO CONFIRMADA`, 17 `PISTA LOCALIZADA`, 2
-  `AINDA NÃO INTERPRETADO` e 6 `LACUNA SEGUINTE`.
-- Último recorte interpretado: `scene8-initialize-00432181-focused.tsv`, 226.544
-  bytes, SHA-256
-  `3BC37C89D001D8AEADEA19E4F359A49E111E0D5DEACFEA53B4B3281A09C2BEE1`;
-  o TSV contém o hash nativo esperado e nenhum `SCRIPT ERROR`.
+- Inventário: 54 arquivos TSV, aproximadamente 34,87 MiB; 36 logs irmãos
+  guardam as consultas completas. Os binários e scripts históricos não foram
+  alterados nem executados.
+- Distribuição conferida nas 54 linhas do inventário: 29
+  `CONCLUSÃO CONFIRMADA`, 17 `PISTA LOCALIZADA`, 1
+  `AINDA NÃO INTERPRETADO` e 7 `LACUNA SEGUINTE`.
+- Últimos recortes interpretados: `fun-00423c61-shutdown-focused.tsv`, SHA-256
+  `5799FB5705F68DBB188B53D2989E635DBD1C146AA559161696F844B438676991`, e
+  `windows-hook-lifecycle-focused.tsv`, SHA-256
+  `ACC5288A10463BABD0FA2DD83058F78BB2B65130A52D1AA90169B0397EA97D43`.
+  Eles fecham o lifecycle do hook global de teclado entre o bootstrap e o ramo
+  `WM_CLOSE`, inclusive callback, globals, falha parcial e finalizador.
 - Documento canônico das conclusões:
   `flows/lifecycle/scene-transition.md`, que permanece `LOCATED`.
 
@@ -107,6 +109,80 @@ Classificação usada abaixo:
     normais retornam `1`. O caller genérico repete destruição parcial,
     diagnóstico e `WM_CLOSE`. A semântica específica do helper não foi
     atribuída. Assim, os initializers `0/5/7/8` estão fechados no CFG normal.
+18. `FUN_004B16C0` captura `DAT_0067CF38` como raiz/sentinela, percorre apenas
+    essa subárvore e interrompe a subida antes de seguir irmãos da raiz. Depois
+    processa separadamente `manager+0x1B088`. Quando o deleting destructor da
+    cena anterior alcança `FUN_00494C00`, esse campo é zerado antes da reentrada
+    em `FUN_004B16C0`; portanto a cena antiga não pode ser selecionada novamente
+    por esse caminho. `FUN_0054AA45` efetua o detach depois da coleta reentrante.
+19. `FUN_0054A9E0` inicializa a raiz com vptr `0x005A5CFC`; o slot zero é
+    `FUN_0054AE10 -> FUN_0054AA45`, com liberação condicional a `flag & 1`.
+    `FUN_00401152` não é esse deleting destructor: ele instala `0x005A3420`,
+    cujo slot zero é `FUN_0040B980 -> FUN_00401152`. `FUN_0054AC09` insere o
+    filho no início da lista intrusiva e atualiza parent, primeiro filho e
+    irmãos anterior/seguinte.
+20. Depois do tick, `FUN_0055D345` testa `manager+0x1B08C`, carrega
+    `ECX = app+0xF8` e chama `FUN_004B16C0` em `0x0055D6C5`. Esse é o caller
+    periódico confirmado do coletor de cenas marcadas.
+21. `FUN_0055D066` desmonta, na ordem observada, três recursos em 100 registros,
+    `DAT_013B71E8`, `app+0xF4`, `+0xE0`, `+0xE4`, `+0xFC`, `+0xEC`, `+0xE8`,
+    `+0xF0`, zera `DAT_013B71E4`, chama `DeleteObject(app+0x110)` e, quando
+    presente, `FUN_0059DFE0(DAT_013B7364)`. A ordem de instruções está
+    preservada; classes/ownership continuam abertas e o caller efetivo foi
+    fechado posteriormente na conclusão 26.
+22. `FUN_0055F7F9` aloca `0x114` bytes, chama `FUN_0055B18F`, executa o slot
+    `+0x04` de bootstrap e, após sucesso, o slot `+0x0C` do loop principal.
+    Quando o loop retorna, chama o slot `+0x00` com flag `1`; não há chamada
+    direta ao slot `+0x08/FUN_0055D066` nesse wrapper porque ela ocorre antes,
+    dentro do window procedure. Falhas anteriores ou do bootstrap retornam sem
+    cleanup explícito no CFG, o que não basta para afirmar leak fora desse
+    recorte.
+23. `FUN_0055FBB9:0x0055FC85` chama `+0x08` sobre `local_8`, vindo do slot
+    `+0x18` de `param_1`, sem ligação de dados com `DAT_013B71E0`.
+24. Os hits `+0x08` de `FUN_0055D345` em `0x0055D415/0x0055D4DF` recebem
+    `app+0xF4/app+0xF8`; `FUN_0055EE59:0x0055EFF7` recebe o timer global
+    `DAT_0092E654`, de vtable `0x005A4688`. Os três são candidatos rejeitados
+    ao caller de `FUN_0055D066`: o mesmo offset virtual não prova a classe.
+25. `FUN_0055F3E0 -> FUN_0055B26F` reinstala a vtable da aplicação, chama
+    `FUN_004312DD` para fechar/zerar o handle global de logging
+    `DAT_005CCFAC` e libera o bloco somente quando `flag & 1`. Depois,
+    `FUN_0055F7F9 -> FUN_004B428E` desmonta a camada de DLL/callback, buffers,
+    critical section e filtro de exceção. Nenhuma dessas funções chama
+    `FUN_0055D066`; são finalizadores distintos e posteriores ao shutdown.
+26. No ramo `WM_CLOSE` de `FUN_0055DAB8`, `0x0055EB9C` carrega o vptr e o
+    receptor do próprio `param_1`. Como `FUN_0055FA89` fornece
+    `DAT_013B71E0` e a vtable `0x005A6104` resolve `+0x08` para
+    `FUN_0055D066`, a cadeia efetiva é `WM_CLOSE -> app vslot +0x08 ->
+    FUN_0055D066`. Antes do callsite, `0x0055EB5A/0x0055EB74` obtêm
+    `app+0xF4` e chamam o slot `+0x08` desse objeto; `0x0055EB77..0x0055EB85`
+    comparam o retorno com `DAT_013B7220 + 0xBB8` e só prosseguem quando o
+    limite de 3000 unidades é atingido. A unidade não foi atribuída. Depois do
+    retorno, o ramo testa `DAT_013B71F0`, chama `FUN_0058F75F` quando positivo,
+    zera o global, grava `DAT_013B7228 = 1`, chama `FUN_00423C61`,
+    `DestroyWindow`, `PostQuitMessage(0)` e zera `DAT_013B7220`. O shutdown
+    ocorre dentro do window procedure antes do retorno do loop e do deleting
+    destructor em `FUN_0055F7F9`.
+27. `FUN_00423C61` possui um único caller em `FUN_0055DAB8:0x0055EBCB`. Se
+    `DAT_005CCF84 == 0`, retorna; caso contrário, chama `FUN_00423B25`, remove
+    `DAT_005CCF80` com `UnhookWindowsHookEx` quando o helper retorna zero e
+    sempre termina com `DAT_005CCF84 = 0`. Isso fecha o finalizador entre
+    `FUN_0055D066` e `DestroyWindow`.
+28. `FUN_0055F7F9:0x0055FA08 -> FUN_00423C1F` instala, depois do bootstrap e
+    antes do loop, um `WH_KEYBOARD_LL` global com callback `FUN_00423B74`.
+    O instalador é idempotente pelo flag `DAT_005CCF84`, grava o handle em
+    `DAT_005CCF80` e marca o flag mesmo quando `SetWindowsHookExA` retorna
+    nulo. `FUN_00423B25` separa `dwPlatformId == 1`; nessa plataforma as APIs
+    de instalação/remoção são puladas, mas o flag lógico transiciona. O callback
+    bloqueia `Ctrl+Esc`, `Alt+Esc`, `0x5B`, `0x5C` e `0x5D`, encaminhando os
+    demais casos por `CallNextHookEx`. Os xrefs dos dois globals estão fechados.
+29. O slot `+0x14` da vtable da aplicação `0x005A6104` resolve para
+    `FUN_0055D6E6`. `FUN_0055D345:0x0055D5BC` chama esse slot usando a própria
+    aplicação como receptor quando `app+0xE8 != 0` e
+    `[app+0xE8]+0x10C != 2`. A função usa `app+0xE0`, `app+0xF8`,
+    `DAT_0067CF38`, `FUN_0040C0F0`, `FUN_00494DCF`, `FUN_004AFFF7`,
+    `FUN_004B7F0D` e `__ftol`, caracterizando uma etapa de frame/render. Em
+    `0x0055D8F7`, ela chama o slot `+0x48` do objeto em `scene+0x28`; não chama
+    estruturalmente os slots de cena `+0x14` ou `+0x20`.
 
 ## Pistas qualificadas já transcritas
 
@@ -117,6 +193,11 @@ Classificação usada abaixo:
   classe do segundo receptor, seu ownership, o significado do evento e o
   teardown continuam abertos. Por isso os exports correspondentes permanecem
   `PISTA LOCALIZADA`, sem promoção de maturidade.
+- O loop `FUN_0055D345`, a sequência interna de `FUN_0055D066`, seu caller
+  pelo ramo `WM_CLOSE` e o lifecycle do hook foram interpretados até os limites
+  descritos nas conclusões 20, 21 e 26–28. A identidade e o ownership dos
+  campos desmontados, as fontes de `WM_CLOSE` e a convergência integral do
+  teardown continuam abertos.
 
 ## Inventário integral dos exports
 
@@ -124,18 +205,20 @@ Classificação usada abaixo:
 | --- | --- | --- | --- |
 | `app-f4-f8-fc-ownership-focused.tsv` | ownership de `app+0xF4/+0xF8/+0xFC` | `PISTA LOCALIZADA` | raízes de acesso reunidas; atribuição, invalidação e destruição ainda não fechadas |
 | `application-entry-lifecycle.tsv` | bootstrap e entrada observável | `PISTA LOCALIZADA` | ancora `FUN_0055BC0A`, `FUN_0055CA18` e `FUN_0055DAB8`; ordem parcial |
-| `application-shutdown-focused.tsv` | teardown da aplicação | `LACUNA SEGUINTE` | ancora `FUN_0055D066`; falta ordenar cenas, socket, timer, foco e janela |
-| `application-vslots-callers.tsv` | callers dos slots da aplicação | `PISTA LOCALIZADA` | vtable `0x005A6104` localizada; chamadas indiretas ainda incompletas |
-| `application-wrapper-finalize-xrefs.tsv` | wrappers/finalizers da aplicação | `PISTA LOCALIZADA` | xrefs coletados; papel de cada wrapper ainda não consolidado |
+| `application-frame-0055d6e6-focused.tsv` | estágio de frame/render da aplicação | `CONCLUSÃO CONFIRMADA` | `FUN_0055D345:0x0055D5BC` chama `app+0x14/FUN_0055D6E6`; a função usa cena/UI/render e chama `scene+0x28` slot `+0x48`, não os slots de cena `+0x14/+0x20` |
+| `application-shutdown-focused.tsv` | teardown da aplicação | `LACUNA SEGUINTE` | ordem interna de `FUN_0055D066` transcrita; caller fechado em export posterior; faltam classes/ownership e convergência com socket, timer, foco e janela |
+| `application-vslots-callers.tsv` | callers dos slots da aplicação | `PISTA LOCALIZADA` | wrapper `FUN_0055F7F9` fechado para bootstrap, loop e deleting destructor; hits `+0x08` de `FUN_0055D345/FUN_0055EE59` rejeitados pelo receptor; caller correto foi fechado depois no ramo `WM_CLOSE` |
+| `application-wrapper-finalize-xrefs.tsv` | wrappers/finalizers da aplicação | `PISTA LOCALIZADA` | `FUN_0055FA89` fecha o thunk do dispatcher; `FUN_0055FBB9:0x0055FC85` é rejeitado; deleting destructor fecha logging e `FUN_004B428E` fecha DLL/exceção, ambos sem chamar o shutdown |
 | `control-container-0040cda4.tsv` | container em `FUN_0040CDA4` | `CONCLUSÃO CONFIRMADA` | receptor em `container+0x24`; cena em `[this+8]`; dispatch à cena pelo slot `+0x58` |
 | `control-container-ownership-focused.tsv` | ownership dos containers UI | `PISTA LOCALIZADA` | owner concreto da cena 5 fechado; ownership amplo dos demais containers continua aberto |
 | `control-container-vtable-loader-focused.tsv` | vtables/loaders de containers | `CONCLUSÃO CONFIRMADA` | vptrs `0x005A3F34/0x005A3F30`, loader tipo `2` e ID `0x1204` ligados à cena 5 |
-| `control-vtables-callers-destructors-focused.tsv` | callers e destrutores de controles | `AINDA NÃO INTERPRETADO` | callback direto de `0x1204` já transcrito por outros exports; destrutores deste corpus ainda não interpretados |
+| `control-vtables-callers-destructors-focused.tsv` | callers e destrutores de controles | `CONCLUSÃO CONFIRMADA` | distingue `0x005A5CFC -> FUN_0054AE10` de `0x005A3420 -> FUN_0040B980`; corrige a atribuição de `FUN_00401152` |
 | `control-vtables-constructors-focused.tsv` | construtores de controles | `CONCLUSÃO CONFIRMADA` | `FUN_00493E70 -> FUN_0040C2CD` cria o container e `FUN_004974EC -> FUN_00402F01` cria o `SButton` |
 | `dat-013b7220-owners-focused.tsv` | owners de `DAT_013B7220` | `PISTA LOCALIZADA` | muitos acessos reunidos; owner final e relação com logout pendentes |
 | `dat-013b7220-xrefs-verified.tsv` | xrefs verificados de `DAT_013B7220` | `PISTA LOCALIZADA` | conjunto focado preservado; sem conclusão de lifecycle |
 | `dat-013b7220-xrefs.tsv` | xrefs iniciais de `DAT_013B7220` | `PISTA LOCALIZADA` | duplicata de exploração mantida para rastreabilidade |
 | `fieldscene-vtable-005a4294-focused.tsv` | vtable candidata de FieldScene | `PISTA LOCALIZADA` | vtable localizada; slots completos e lifecycle ainda pendentes |
+| `fun-00423c61-shutdown-focused.tsv` | função entre shutdown e `DestroyWindow` | `CONCLUSÃO CONFIRMADA` | único caller em `0x0055EBCB`; remove o hook quando aplicável e sempre zera `DAT_005CCF84` |
 | `lifecycle-flag-1b090-focused.tsv` | significado de `manager+0x1B090` | `PISTA LOCALIZADA` | acessos reunidos; sem semântica final comprovada |
 | `lifecycle-roots.tsv` | raízes gerais do lifecycle | `PISTA LOCALIZADA` | mapa amplo para retomada; não é claim por si só |
 | `loader-sbutton-branch.tsv` | branch do loader de `SButton` | `CONCLUSÃO CONFIRMADA` | registro tipo `2`, tamanho `0x28`, ID em `+0x44` e receptor em `+0x5C` fechados |
@@ -150,11 +233,11 @@ Classificação usada abaixo:
 | `objectmanager-vtable-005a45fc-focused.tsv` | slots da vtable efetiva | `CONCLUSÃO CONFIRMADA` | base `0x005A45FC`; slots `+0x54..+0x68` transcritos na ficha |
 | `sbutton-methods-next.tsv` | métodos e callbacks de `SButton` | `CONCLUSÃO CONFIRMADA` | release `0x202` em `FUN_004032E8` chama o receptor com ID e ação `0` |
 | `sbutton-vtable-event-loader-focused.tsv` | vtable, evento e loader de `SButton` | `CONCLUSÃO CONFIRMADA` | cadeia `SButton -> FUN_0040CDA4 -> scene+0x58 -> FUN_004A32DD` demonstrada |
-| `scene-base-cleanup-0054aa45-focused.tsv` | cleanup base e detach | `CONCLUSÃO CONFIRMADA` | destrói filhos, religa pai/irmãos e desanexa o nó |
+| `scene-base-cleanup-0054aa45-focused.tsv` | cleanup base e detach | `CONCLUSÃO CONFIRMADA` | destrói filhos, religa pai/irmãos, desanexa o nó e fecha o deleting destructor da raiz em `0x005A5CFC` |
 | `scene-class-lifecycle.tsv` | lifecycle amplo das classes de cena | `PISTA LOCALIZADA` | corpus de 4,57 MiB; consultar pontualmente, não reler por inteiro |
-| `scene-cleanup-destructors-focused.tsv` | destrutores das quatro cenas | `CONCLUSÃO CONFIRMADA` | cadeias específicas `0/5/7/8` convergem em `FUN_00494C00` |
+| `scene-cleanup-destructors-focused.tsv` | destrutores das quatro cenas | `CONCLUSÃO CONFIRMADA` | cadeias `0/5/7/8` convergem em `FUN_00494C00`; zero de `+0x1B088` antes da reentrada impede dupla seleção da cena antiga |
 | `scene-control-event-handlers-focused.tsv` | handlers virtuais de controles/eventos | `CONCLUSÃO CONFIRMADA` | localiza `FUN_004A32DD`, evento `0x1204` e side effects pós-envio |
-| `scene-lifecycle-shutdown-next.tsv` | ligação cenas-shutdown | `LACUNA SEGUINTE` | raízes reunidas; ordem completa continua aberta |
+| `scene-lifecycle-shutdown-next.tsv` | ligação cenas-shutdown | `LACUNA SEGUINTE` | fecha `FUN_0055D345 -> FUN_004B16C0` após o tick; caller de `FUN_0055D066` foi fechado depois, mas a ordem global continua aberta |
 | `scene-owner-unwind-actions-focused.tsv` | ações de unwind dos owners | `CONCLUSÃO CONFIRMADA` | uso em unwind corrobora `FUN_0054AA45` como cleanup base |
 | `scene-owner-vtable-eh-focused.tsv` | vtables e exception handlers de owners | `PISTA LOCALIZADA` | candidatos preservados; não generalizar além dos cleanups confirmados |
 | `scene-owner-wrapper-funcinfo-focused.tsv` | wrappers e FuncInfo de owner | `PISTA LOCALIZADA` | útil para unwind; wrappers restantes sem semântica fechada |
@@ -170,6 +253,9 @@ Classificação usada abaixo:
 | `timer-vtable-005a4688-focused.tsv` | slots do timer | `CONCLUSÃO CONFIRMADA` | slots `+0x00..+0x10` e atualização de `DAT_0092E658` transcritos |
 | `virtual-slot-04-all.tsv` | dispatch virtual de packets | `CONCLUSÃO CONFIRMADA` | 116 hits; `FUN_004B263E` fornece o receptor `DAT_0067CF38` e separa os overrides das cenas 0 e 5 |
 | `virtual-slot-58-all.tsv` | todos os usos de slot virtual `+0x58` | `PISTA LOCALIZADA` | conjunto amplo; filtrar por receptor antes de atribuir semântica |
+| `virtual-slots-14-20-all.tsv` | todos os usos estruturais dos slots `+0x14/+0x20` | `LACUNA SEGUINTE` | 34 e 53 hits após 8.173 candidatos/441.614 instruções por scan; `FUN_004B29B9:0x004B29F3` e `FUN_004B2D35:0x004B2D86` são candidatos próximos do manager, ainda sem classe ou semântica atribuída |
+| `windows-hook-lifecycle-focused.tsv` | instalação, callback, globals e teardown do hook | `CONCLUSÃO CONFIRMADA` | fecha `FUN_00423C1F/FUN_00423B74/FUN_00423C61`, inclusive o flag marcado após falha da API |
+| `wm-close-dispatch-instructions.tsv` | dispatch e ordem do ramo `WM_CLOSE` | `CONCLUSÃO CONFIRMADA` | `0x0055EB9C` chama `app+0x08/FUN_0055D066`; depois seguem `FUN_00423C61`, `DestroyWindow`, `PostQuitMessage(0)` e zero de `DAT_013B7220` |
 | `wm-close-sources-focused.tsv` | origens de fechamento da janela | `PISTA LOCALIZADA` | apoia caminhos de falha/close; shutdown completo continua aberto |
 
 ## Ponto exato de retomada
@@ -178,11 +264,15 @@ Usar o ciclo aprovado `HEAD/status/hash -> última evidência -> próximo xref`.
 Não reler os exports já inventariados. A próxima unidade é:
 
 ```text
-1 xref: ordenar FUN_004B21C9 -> FUN_004B16C0 -> deleting destructor
-1 conclusão: fechar cleanups específicos -> FUN_00494C00 -> FUN_0054AA45
+1 xref: abrir FUN_004B29B9 e FUN_004B2D35 com callers, bodyrefs e instruções
+1 conclusão: resolver receptor, vptr e slot efetivo dos dois traversals
 1 escrita: atualizar este ledger e scene-transition.md no mesmo ciclo
 ```
 
-Depois da ordem integral de teardown, avançar para `FUN_004B3A20 ->
-FUN_004B2155`, `FUN_0055D066`, shutdown e logout/relogin. Nenhuma edição em
-`client-source/` é permitida enquanto a ficha estiver `LOCATED`.
+`FUN_0055D6E6` já está fechado como etapa de frame/render e não deve ser
+reinvestigado. A varredura global prova apenas o uso estrutural dos offsets:
+não nomear `+0x14/+0x20` como eventos ou frame sem resolver o receptor. Após os
+dois traversals próximos do `ObjectManager`, avançar para
+`logout-relogin-next-roots.tsv` e fechar a reconstrução da sessão/cena.
+Nenhuma edição em `client-source/` é permitida enquanto a ficha estiver
+`LOCATED`.

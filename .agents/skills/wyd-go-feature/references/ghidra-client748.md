@@ -1,8 +1,9 @@
 # Ghidra — client nativo WYD 7.48
 
-Esta referência governa qualquer port do executável nativo para
-`client-source/tmproject`. O objetivo é reproduzir o comportamento comprovado do
-7.48 sem transportar cegamente ABI de versões posteriores.
+Esta referência governa claims de paridade e mudanças que interceptam uma
+fronteira legada em `client-source/tmproject`. O objetivo é reproduzir o que
+precisa permanecer 7.48 sem impedir modernizações internas ou extensões
+coordenadas client/server.
 
 ## Artefatos canônicos
 
@@ -47,9 +48,11 @@ use o export para busca rápida em massa.
 
 ## Procedimento obrigatório
 
-1. Calcular o SHA-256 de `client748/wyd.exe nativo+patches/WYD.exe` e comparar
-   com o valor acima. Se
-   divergir, não reutilizar endereços silenciosamente: reanalisar o novo binário.
+1. Conferir o fingerprint registrado de
+   `client748/wyd.exe nativo+patches/WYD.exe`. Reutilizar o SHA-256 confirmado se
+   caminho, tamanho e mtime não mudaram; recalculá-lo quando esses inputs
+   mudarem ou o registro for insuficiente. Se divergir, não reutilizar endereços
+   silenciosamente: reanalisar o novo binário.
 2. Localizar o comportamento por string, opcode, tamanho, constante, import ou
    símbolo relacionado no export e no Ghidra.
 3. Abrir a função nativa e conferir callers e callees, não apenas o bloco que
@@ -57,13 +60,13 @@ use o export para busca rápida em massa.
 4. Mapear estado inicial, mutações, side effects, lifecycle e condições de erro.
 5. Para wire/ABI, registrar tamanho, offsets, signedness, packing e direção
    C→S/S→C. Confirmar com `static_assert` ou teste byte a byte na source.
-6. Comparar com TMProject/W2PP. Aproveitar melhorias semânticas da versão mais
-   nova somente quando elas puderem ser projetadas com segurança no contrato
-   comprovado do 7.48.
+6. Comparar com a source atual e TMProject/W2PP. Preservar melhorias manuais e
+   adotar estrutura posterior superior quando ela mantiver a fronteira legada
+   ou quando client e servidor definirem deliberadamente um contrato novo.
 7. Portar o comportamento para código legível. Não copiar nomes temporários,
    endereços virtuais ou pseudocódigo desestruturado como arquitetura final.
-8. Inserir comentário explicativo junto a todo código editado, registrando por
-   que a compatibilidade 7.48 exige aquele comportamento.
+8. Inserir comentário apenas junto a decisões não óbvias de contrato,
+   compatibilidade ou ownership.
 9. Compilar com `client-source/tmproject/Build-Client.ps1`, confirmar a
    instalação e o hash automáticos de `client748/project.exe` e executar o fluxo
    real afetado.
@@ -101,7 +104,8 @@ widget moderno apenas para satisfazer o ponteiro.
 
 ## Funções já identificadas
 
-Use estes pontos como âncoras, sempre reconfirmando no projeto Ghidra:
+Use estes pontos como seeds. Reconfirmar no projeto Ghidra quando o binário,
+corpus, função candidata ou claim dependente tiver mudado:
 
 ```text
 FUN_0055890a  validador nativo de opcode e tamanho
@@ -154,6 +158,10 @@ principal e tornar todos os paths auxiliares tolerantes a nulo.
 
 - Não declarar paridade com base apenas em compilação ou imagem semelhante.
 - Não portar `sizeof`, packing, offsets ou IDs do TMProject 7.59 sem prova 7.48.
+- Não remover função, asset ou estrutura manual apenas porque não existe no
+  nativo 7.48; ausência pode representar uma extensão intencional.
+- Não exigir equivalente nativo para contrato novo explicitamente coordenado;
+  exigir em seu lugar especificação e teste client/server.
 - Não corrigir UI apenas deslocando coordenadas se o lifecycle/ID do controle
   ainda divergir.
 - Não aceitar packet moderno no servidor só para mascarar um construtor errado
@@ -167,7 +175,7 @@ principal e tornar todos os paths auxiliares tolerantes a nulo.
 Antes da alteração, deixar uma matriz concisa:
 
 ```text
-comportamento | função 7.48 | contrato nativo | TMProject atual | correção
+modo | comportamento | função/fronteira 7.48 | source atual | contrato server | decisão
 ```
 
 Depois da alteração, classificar o estado como:

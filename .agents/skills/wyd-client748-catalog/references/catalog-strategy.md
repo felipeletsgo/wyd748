@@ -16,17 +16,19 @@ localização; a compreensão é medida por transições observáveis e evidênc
 | `flows/<subsystem>/<transition>.md` | evidência por transição | sim, no estado exigido |
 | `handoffs/client748-research-program.md` | estado operacional e próximo ponto de entrada | não |
 
-Antes de uma campanha, validar a identidade do binário e a correspondência das
-4.146 entradas. Se o hash ou a cardinalidade mudar, interromper a interpretação
-de endereços até regenerar o corpus.
+Antes de uma campanha nova, validar a identidade do binário e a correspondência
+das 4.146 entradas. Em continuação, reutilizar o resultado se caminho, tamanho,
+mtime e corpus registrado não mudaram. Se hash ou cardinalidade mudar,
+interromper a interpretação de endereços até regenerar o corpus.
 
 ## Unidade de trabalho
 
-Uma unidade contém uma entrada observável, uma raiz nativa e o caminho relevante:
+Uma unidade contém uma entrada observável, uma função viva da source ou raiz
+nativa e somente o caminho que decide o delta:
 
 ```text
-evento/input/packet
-  -> caller ou callback
+função/feature source ou evento/input/packet
+  -> candidatos e caller/callback
   -> função nativa 7.48
   -> callees e dados
   -> estado/global/objeto mutado
@@ -35,8 +37,9 @@ evento/input/packet
   -> decisão de adaptação e validação
 ```
 
-Funções auxiliares são agrupadas pela transição. Não criar 4.146 fichas
-isoladas nem declarar uma função compreendida porque o pseudocódigo compila.
+Funções auxiliares são agrupadas pela transição. Preferir busca source→native,
+seeds confirmados e propagação pelo callgraph. Não criar 4.146 fichas isoladas
+nem esperar o censo inteiro para adaptar um fluxo crítico já decidido.
 
 ## Lanes e ranking
 
@@ -61,19 +64,22 @@ pelo endereço hexadecimal, mantendo a fila reproduzível entre sessões.
    erros e teardown/relogin aplicáveis comprovados no Ghidra.
 4. **Contrato** — ficha `CONTRACT` para ABI, packet, offsets, packing,
    signedness, loaders ou recursos.
-5. **Adaptação** — TMProject/WYD-Go alterado somente no escopo autorizado pela
-   ficha, sem compatibilidade artificial com 7.59+.
+5. **Adaptação** — para paridade, alterar somente o claim autorizado pela ficha;
+   para modernização ou extensão coordenada, preservar o claim nativo separado
+   e validar o contrato externo ou o novo contrato client/server.
 6. **Validação** — testes estáticos/automatizados e, quando alegado,
    `CLIENT_TESTED` no `client748/project.exe` com hash registrado.
 
-Uma função pode continuar `LOCATED` mesmo estando presente no catálogo. Uma
-função sem caller pode ser válida, mas precisa de xref indireto, vtable,
-callback ou evidência de runtime antes de se tornar contrato.
+Uma função pode continuar `LOCATED` mesmo estando presente no catálogo. Isso
+bloqueia claims dependentes de paridade, não uma extensão deliberadamente nova.
+Uma função sem caller pode ser válida, mas precisa de xref indireto, vtable,
+callback ou evidência de runtime antes de se tornar contrato nativo.
 
 ## Critério de encerramento da campanha
 
-Não basta contar linhas. A campanha só pode ser apresentada como funcional
-quando cada fluxo crítico tiver ficha e decisão; o restante deve estar
+Não basta contar linhas. O client pode avançar por fluxos críticos sem concluir
+o censo inteiro. A campanha só pode ser apresentada como cobertura nativa
+completa quando cada fluxo crítico tiver ficha e decisão; o restante deve estar
 explicitamente classificado como wrapper, runtime, helper, código não alcançado
 ou lacuna. Nenhuma categoria desconhecida pode ser escondida em “compreendida”.
 

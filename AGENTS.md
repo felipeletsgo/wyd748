@@ -5,11 +5,18 @@
 Emulador Go server-authoritative para o client WYD 7.48. O client envia
 intenções e apresenta estado; nunca é fonte de verdade.
 
-`client-source/tmproject` produz exclusivamente o client 7.48 deste
-repositório. Não manter branches, controles, packets, layouts ou loaders
-exclusivos de 7.54/7.59 por “compatibilidade futura”. Referências mais novas
-podem fornecer semântica, mas qualquer dado novo deve ser projetado no formato
-comprovado do 7.48.
+`client-source/tmproject` produz o único client ativo deste ecossistema 7.48,
+mas não é uma réplica arqueológica do executável nativo. O 7.48 histórico é a
+baseline dos contratos legados; estruturas, funções e assets posteriores ou
+implementados manualmente podem permanecer quando forem superiores e
+compatíveis. Como client e servidor pertencem ao mesmo projeto, extensões
+coordenadas são permitidas quando o contrato novo é explícito e testado nos
+dois lados.
+
+Não manter duas implementações apenas por versão. Para cada delta, escolher um
+único caminho ativo e classificá-lo como `PARIDADE_NATIVA`,
+`MODERNIZACAO_COMPATIVEL` ou `EXTENSAO_COORDENADA`. Ausência no nativo 7.48,
+isoladamente, nunca autoriza remover código ou asset existente.
 
 ## Política de modelo
 
@@ -25,22 +32,30 @@ Antes de qualquer tarefa técnica não trivial:
 2. ler integralmente o `SKILL.md` aplicável antes de analisar ou editar;
 3. ler o `AGENTS.md` mais específico de cada subtree afetado;
 4. verificar `git status --short` e preservar mudanças alheias;
-5. localizar o fluxo vivo com `rg`, incluindo callers, callees e testes;
+5. classificar o delta nos três modos acima e localizar o fluxo vivo com `rg`;
 6. carregar somente as referências indicadas pela skill para o assunto atual;
-7. se tocar client/protocolo/ABI/UI/input/render/asset/lifecycle, concluir a
-   ficha de pesquisa 7.48 no estado exigido antes de editar;
+7. se tocar uma fronteira legada do client, reutilizar ou concluir a ficha 7.48
+   no estado exigido; se for extensão coordenada, documentar o contrato novo e
+   inspecionar no Ghidra apenas as fronteiras nativas que ela intercepta;
 8. implementar, validar e registrar o estado real da validação.
 
 Se uma skill obrigatória estiver ausente ou ilegível, informar a limitação. Não
 fingir que ela foi consultada nem declarar a tarefa concluída.
+
+Em continuação, não reiniciar a investigação. Handoff, `git status`, diff
+scoped e fingerprints dos inputs bastam para retomar o próximo passo. Não
+reler referência já lida, recalcular hash imutável, rerodar triagem global ou
+revalidar artefato não alterado na mesma sessão. Repetir uma verificação apenas
+quando seu input mudou, a evidência registrada é insuficiente ou ela é gate da
+alteração atual.
 
 ## Roteamento de skills
 
 | Escopo | Skill obrigatória | Referência adicional |
 | --- | --- | --- |
 | Qualquer comportamento do servidor/client WYD | `.agents/skills/wyd-go-feature/SKILL.md` | Para escopo client/contrato, `wyd-client748-research` vem antes |
-| Client, packet, ABI, UI, input, render, asset ou lifecycle 7.48 | `wyd-client748-research` → `wyd-go-feature` | ficha `TRACED`; `CONTRACT` para wire/ABI/loader |
-| UI, HUD, grid, inventário, equipamento ou mensagens 7.48 | `wyd-client748-research` → `wyd-go-feature` | `references/ghidra-client748.md` e `references/client-ui-748.md` |
+| Client, packet, ABI, UI, input, render, asset ou lifecycle | `wyd-client748-research` → `wyd-go-feature` | classificar o delta; paridade usa `TRACED`/`CONTRACT`, extensão usa contrato client/server explícito |
+| Paridade ou integração legada de UI, HUD, grid, inventário, equipamento ou mensagens | `wyd-client748-research` → `wyd-go-feature` | `references/ghidra-client748.md` e `references/client-ui-748.md` |
 | Asset visual sob `client748/` | `wyd-go-feature` + `client748/skills/wyd-client-assets/SKILL.md` | `client748/AGENTS.md` |
 | Hook nativo no plugin Micronics | `add-hook` | Usar `build-deploy` se houver build/deploy da DLL |
 | Build/deploy de `FunctionsV02.dll` | `build-deploy` | Seguir a ordem kill/build/copy/start da skill |
@@ -68,34 +83,43 @@ técnicos detalhados ficam em
 `.agents/skills/wyd-go-feature/references/repository-contracts.md` e devem ser
 lidos apenas na seção indicada pela skill, não por padrão.
 
-## Programa obrigatório de cobertura do client 7.48
+## Programa de cobertura e migração do client 7.48
 
 O objetivo de mapear as 4.146 funções deve ser alcançado por catálogo,
 callgraph e fluxos observáveis, e não por tradução linear de pseudocódigo ou
 por análise isolada de uma função. `functions.tsv` é o censo do corpus; uma
 entrada catalogada não é uma função compreendida.
 
-O pipeline obrigatório é:
+Para claims de paridade nativa e mudanças em fronteiras legadas, o pipeline é:
 
 ```text
 catálogo -> callgraph -> fluxo observável -> adaptação -> validação
 ```
 
-Cada seta é um gate: o catálogo não substitui xrefs; o callgraph não substitui
+Cada seta é um gate de paridade: o catálogo não substitui xrefs; o callgraph não substitui
 estado/lifecycle; a semelhança com o TMProject não substitui a adaptação
 decidida por claim; build não substitui validação do fluxo. Em lifecycle,
 `TRACED` ou superior exige entrada observável, matriz de transições,
 vtables/vptrs/receptores, ownership, falha parcial, cleanup/teardown, shutdown
 e logout/relogin resolvidos ou marcados como não aplicáveis com justificativa.
 
-Toda retomada ou nova frente de pesquisa deve seguir três trilhas:
+Uma nova raiz de paridade segue três trilhas:
 
-1. `wyd-client748-catalog`: conferir o hash, atualizar a triagem determinística
-   e escolher raízes por subsistema, fan-out, referências na source e callbacks;
+1. `wyd-client748-catalog`: reutilizar o censo/hash válidos, atualizar a
+   triagem somente se seus inputs mudaram e escolher raízes por subsistema,
+   fan-out, referências na source e callbacks;
 2. `wyd-client748-research`: rastrear uma transição observável completa no
    projeto Ghidra, com callers, callees, estado, efeitos, erros e teardown;
-3. `wyd-go-feature`: adaptar no TMProject ou no WYD-Go somente o delta
-   comprovado pela ficha `TRACED`/`CONTRACT`, validar e registrar o resultado.
+3. `wyd-go-feature`: adaptar o delta comprovado, ou implementar uma extensão
+   coordenada separada do claim nativo, validar e registrar o resultado.
+
+Na migração, o caminho inverso é preferencial: partir de uma função ou feature
+viva da source, localizar a candidata nativa e propagar pelos vizinhos do
+callgraph. Seeds já confirmados, vtables e correlações em lote devem ser
+reutilizados. Não pesquisar as 4.146 funções em sequência antes de fazer o
+client funcionar; fechar primeiro o caminho crítico
+bootstrap → login → cenas → dispatcher → mundo → logout/relogin e implementar
+lotes pequenos assim que cada fronteira estiver decidida.
 
 As frentes devem ser priorizadas nesta ordem, salvo evidência que justifique
 outra sequência: bootstrap/lifecycle, transporte e login, dispatcher e cenas,
@@ -109,12 +133,17 @@ evidência correspondente existir. Funções sem caller textual devem ser
 revisadas no Ghidra como possíveis callbacks, vtables, thunks ou entradas
 indiretas; zero resultados em um export não prova código morto.
 
-Nenhum código do client, packet, ABI, UI, lifecycle ou comportamento observado
-pode ser alterado enquanto a ficha do fluxo permanecer `LOCATED`. O TMProject
-7.69+ só pode sugerir semântica; não pode fornecer contrato, endereço, offset,
+Uma ficha `LOCATED` bloqueia somente a edição que depende de um claim de
+paridade ainda não rastreado. Ela não bloqueia uma modernização interna que
+preserva um contrato já comprovado nem uma extensão coordenada que não se
+apresenta como comportamento nativo. TMProject 7.69+ pode fornecer arquitetura,
+algoritmos e assets candidatos; nunca fornece, por semelhança, endereço, offset,
 layout, recurso ou packet do 7.48. Uma função auxiliar sem impacto observável
-pode ser catalogada e classificada sem uma tradução artificial para aumentar a
-cobertura.
+pode ser catalogada sem tradução artificial.
+
+Código e assets manuais existentes são trabalho intencional do usuário.
+Preservá-los por padrão e só remover, substituir ou rebaixar após demonstrar
+incompatibilidade em wire/ABI, recurso, lifecycle, server-side ou fluxo real.
 
 ### Política Git desta campanha
 
@@ -123,20 +152,34 @@ worktrees ou PRs para dividir o mapeamento. Cada commit deve conter uma unidade
 documental, de pesquisa ou de implementação verificável e deve ser publicado
 em `origin/main` quando a validação correspondente estiver concluída.
 
-## Gate Ghidra do client 7.48
+## Gate Ghidra e extensões coordenadas
 
-Qualquer mudança em `client-source/`, protocolo, ABI, structs, UI, input,
-render, assets ou comportamento do executável exige, antes da primeira edição:
+Mudança de paridade nativa ou de uma fronteira legada em `client-source/`,
+protocolo, ABI, structs, UI, input, render ou assets exige, antes da edição:
 
 - usar `.agents/skills/wyd-client748-research/SKILL.md` e registrar a ficha do
   fluxo; `TRACED` é o mínimo para comportamento e `CONTRACT` para wire/ABI,
   structs, offsets, packing, signedness ou loaders;
 - ler `wyd-go-feature/references/ghidra-client748.md`;
-- confirmar o SHA-256 do executável analisado;
+- confirmar a identidade do executável analisado; reutilizar o SHA-256
+  registrado se caminho, tamanho e mtime não mudaram;
 - registrar funções nativas, callers/callees e lifecycle relevantes;
 - comprovar offsets, tamanhos, packing e signedness quando houver wire/ABI;
 - comparar o comportamento nativo com a source atual;
 - separar semântica portada de layout/ABI deliberadamente não portados.
+
+Para `MODERNIZACAO_COMPATIVEL`, provar que o contrato externo e o lifecycle
+afetados permanecem equivalentes e reutilizar a ficha existente. Para
+`EXTENSAO_COORDENADA`, registrar formato, ownership, IDs/opcodes, fallback,
+teardown, rollback/relogin e testes client/server. Consultar o Ghidra somente
+para verificar colisões e pontos de integração com o legado; não exigir que o
+binário nativo prove uma feature que deliberadamente não possuía.
+
+Antes de escolher a estrutura 7.48 ou a posterior, comparar wire/ABI, assets
+materializados, lifecycle/ownership, suporte server-side, manutenção e
+evolução coordenada. Preferir a estrutura tecnicamente superior quando esses
+limites forem compatíveis. Se necessário, adaptar ambos os lados em um único
+contrato, sem manter branches históricos paralelos.
 
 Não corrigir por tentativa visual quando IDs, recursos, lifecycle ou condições
 nativas podem ser recuperados da descompilação. Hipótese insuficiente deve ficar
@@ -160,9 +203,10 @@ compilação deve passar por `client-source/tmproject/Build-Client.ps1`; o próp
 build deve instalar e validar automaticamente a saída recompilada como
 `client748/project.exe`, sem patch binário.
 
-Controle herdado da 7.59 sem ID/recurso no 7.48 pode ser legitimamente nulo.
-Proteger acessos e preservar a transição principal; não fabricar widget moderno
-para satisfazer um ponteiro.
+Controle herdado sem ID/recurso carregado pode ser legitimamente nulo. Proteger
+acessos e preservar a transição principal. Um controle moderno só deve ser
+materializado como extensão deliberada, com recurso, binding, lifecycle e teste
+completos; nunca apenas para mascarar um ponteiro nulo.
 
 ## Invariantes globais
 
@@ -174,16 +218,17 @@ para satisfazer um ponteiro.
 - Consultas locais usam índice espacial; `Merchant != 0` nunca entra em combate.
 - Inventário: 64 slots, 63 utilizáveis; cargo: 128 slots, 120 utilizáveis.
 - Handlers roteiam; regra de negócio fica no módulo da feature.
-- Não copiar ABI, structs, offsets, endereços ou packets de outra versão.
-- TMProject 7.69+ e referências posteriores são apenas fontes semânticas
-  secundárias; não fornecem contrato 7.48 nem justificam branches de
-  compatibilidade na source única.
+- Não copiar ABI, structs, offsets, endereços ou packets de outra versão para
+  uma fronteira legada. Contrato coordenado novo deve ser projetado e testado,
+  não inferido por cópia.
+- A source é única. Estruturas posteriores podem tornar-se o único caminho
+  ativo quando compatíveis; não manter branches mortos de múltiplas versões.
 
 ## Edição e validação
 
-Toda edição de código deve deixar comentário próximo ao trecho alterado
-explicando intenção, contrato ou motivo técnico não óbvio. Comentários que apenas
-repetem a operação não atendem à regra.
+Toda decisão não óbvia de contrato, compatibilidade ou ownership deve deixar
+comentário próximo ao trecho alterado. Edição mecânica ou autoexplicativa não
+exige comentário artificial; comentários que repetem a operação são proibidos.
 
 Em implementação ou correção:
 
@@ -219,6 +264,12 @@ Ao continuar trabalho existente:
 4. atualizar o handoff quando houver nova evidência, alteração material,
    bloqueio ou ponto claro de retomada;
 5. não copiar transcrições de chat para o handoff.
+
+Retomar diretamente do próximo comando ou símbolo registrado. Hashes, exports,
+triagem e validações anteriores são cacheáveis por seus inputs: se os inputs
+não mudaram, reutilizar o resultado e avançar. Executar apenas validações cujas
+fronteiras foram alteradas; a suíte ampla continua sendo gate de integração,
+não ritual de cada edição documental.
 
 O formato e as regras completas ficam em
 `.agents/skills/wyd-go-feature/references/session-continuity.md`. Use

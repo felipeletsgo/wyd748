@@ -6,9 +6,10 @@ Estado geral: `STATICALLY VERIFIED`
 ## Objetivo e limites
 
 Transformar a descompilação do client nativo WYD 7.48 em conhecimento
-reproduzível antes de qualquer implementação no WYD-Go ou em
-`client-source/tmproject`. O programa separa contrato 7.48 comprovado de
-semântica herdada do TMProject 7.59/7.69+ e exige uma ficha por transição.
+reproduzível para claims de paridade e fronteiras legadas, sem bloquear
+modernizações internas ou extensões coordenadas do WYD-Go e de
+`client-source/tmproject`. O programa separa fatos do 7.48, estrutura posterior
+compatível e contratos novos deliberadamente implementados nos dois lados.
 
 Este handoff cobre somente a infraestrutura de pesquisa, suas três fichas
 iniciais, a estratégia de cobertura e as regras que bloqueiam edição prematura.
@@ -26,12 +27,19 @@ O fluxo de trabalho agora é uma regra do repositório:
 catálogo -> callgraph -> fluxo observável -> adaptação -> validação
 ```
 
-`wyd-client748-catalog` valida o censo das 4.146 funções, ordena raízes por
-evidência disponível e entrega uma fila reproduzível. `wyd-client748-research`
-fecha uma transição no projeto Ghidra, com callers/callees, estado, efeitos,
-erros e teardown. `wyd-go-feature` só adapta o delta comprovado pela ficha
-`TRACED`/`CONTRACT`. O triador não promove estado, não cria stubs e não usa o
-TMProject 7.69+ como contrato 7.48.
+`wyd-client748-catalog` mantém o censo das 4.146 funções e entrega uma fila
+reproduzível. `wyd-client748-research` fecha claims nativos no projeto Ghidra.
+`wyd-go-feature` classifica cada delta como `PARIDADE_NATIVA`,
+`MODERNIZACAO_COMPATIVEL` ou `EXTENSAO_COORDENADA`: paridade depende da ficha
+`TRACED`/`CONTRACT`; modernização prova somente as fronteiras preservadas;
+extensão especifica e testa o contrato client/server novo sem fabricar um
+equivalente nativo.
+
+Na migração, partir preferencialmente da função ou feature viva da source,
+localizar a candidata nativa por seed/fingerprint/string/vtable e seguir apenas
+os vizinhos do callgraph que decidem o delta. Reutilizar hash, triagem, exports,
+fichas e validações quando seus inputs não mudaram. Código e assets manuais são
+presumidos intencionais; ausência no nativo 7.48 não autoriza remoção.
 
 ## Fontes e artefatos
 
@@ -59,14 +67,15 @@ Ghidra.
 - O triador foi corrigido e validado nos formatos `summary`, `json` e `tsv`.
   Com `--top 5`, o JSON mantém `functions=4146` e informa
   `selected_functions=5`; o TSV completo produz 4.147 linhas com cabeçalho.
-- `wyd-client748-research` e `wyd-go-feature` agora exigem o catálogo antes de
-  escolher uma raiz client/protocolo e documentam a separação entre os estados
-  de pesquisa (`UNMAPPED`/`LOCATED`/`TRACED`/`CONTRACT`) e entrega
-  (`IMPLEMENTED`/`CLIENT_TESTED`). As três skills passaram no
+- `wyd-client748-research` e `wyd-go-feature` separam estados de pesquisa
+  (`UNMAPPED`/`LOCATED`/`TRACED`/`CONTRACT`) de entrega
+  (`IMPLEMENTED`/`CLIENT_TESTED`). O catálogo é usado ao abrir raiz sem fila
+  válida ou quando seus inputs mudam. As três skills passaram no
   `quick_validate.py`.
-- `LOCATED` autoriza somente pesquisa/documentação. Comportamento exige ficha
-  `TRACED`; packet, wire, ABI, struct, offset, packing, signedness e loader
-  exigem `CONTRACT`.
+- `LOCATED` bloqueia somente edição dependente do claim nativo incompleto.
+  Paridade comportamental exige ficha `TRACED`; packet, wire, ABI, struct,
+  offset, packing, signedness e loader legados exigem `CONTRACT`. Extensão
+  independente exige contrato client/server e testes dos dois lados.
 - `transport/packet-size-gate.md` e
   `ui/control-focus-ime-lifecycle.md` passaram no validador estrutural, mas
   permanecem `LOCATED` porque callers/callees indiretos, erros e lifecycle não
@@ -156,19 +165,99 @@ Ghidra.
   `FUN_004B16C0` consome a marca, chama o deleting destructor e limpa
   `manager+0x1B088/+0x1B08C`. Os cleanups das cenas `0/5/7/8` convergem em
   `FUN_00494C00`, e `FUN_0054AA45` destrói filhos e desanexa o nó da árvore.
+- A ordem local de coleta foi fechada. `FUN_004B16C0` captura
+  `DAT_0067CF38` como raiz/sentinela, percorre somente essa subárvore e para
+  antes de seguir irmãos da raiz; depois processa separadamente
+  `manager+0x1B088`. Na destruição da cena anterior, `FUN_00494C00` zera
+  `+0x1B088` antes de reentrar em `FUN_004B16C0`, removendo o único caminho
+  explícito que poderia selecionar a cena antiga novamente. O detach por
+  `FUN_0054AA45` ocorre depois dessa reentrada.
+- A raiz é construída por `FUN_0054A9E0` com vptr `0x005A5CFC`; seu slot zero
+  é `FUN_0054AE10 -> FUN_0054AA45`, com free condicional a `flag & 1`.
+  `FUN_00401152` não é esse deleting destructor: pertence à cadeia
+  `0x005A3420 -> FUN_0040B980 -> FUN_00401152`. `FUN_0054AC09` insere filhos
+  no início da lista intrusiva, atualizando parent, primeiro filho e irmãos.
+- `FUN_0055D345` testa `manager+0x1B08C` depois do tick, carrega
+  `ECX = app+0xF8` e chama `FUN_004B16C0` em `0x0055D6C5`; esse é o caller
+  periódico fechado do coletor de cenas marcadas.
+- A ordem interna observada de `FUN_0055D066` começa por três recursos em 100
+  registros, destrói `DAT_013B71E8`, depois desmonta `app+0xF4`, `+0xE0`,
+  `+0xE4`, `+0xFC`, `+0xEC`, `+0xE8`, `+0xF0`, zera `DAT_013B71E4`, chama
+  `DeleteObject(app+0x110)` e opcionalmente
+  `FUN_0059DFE0(DAT_013B7364)`. Classes/ownership desses campos continuam
+  abertos; o caller efetivo do slot de shutdown foi fechado no ramo
+  `WM_CLOSE` descrito abaixo.
 - `FUN_004B1EA9` inicializa o `ObjectManager` com vptr `0x005A45FC`, cena global
   nula e estado `-1`; `FUN_004B3A20 -> FUN_004B2155` desmonta a raiz e zera
   `DAT_0067CF38`. O timer usa vtable `0x005A4688`, é publicado em
   `DAT_0092E654` e atualiza `DAT_0092E658`.
-- Os 49 exports TSV desta rodada estão inventariados, classificados e ligados
+- Os 54 exports TSV desta rodada estão inventariados, classificados e ligados
   às conclusões/lacunas em
   `.agents/research/client748/inventory/scene-transition-evidence-log.md`.
-  Os aproximadamente 33,98 MiB regeneráveis permanecem fora do Git em
+  Os aproximadamente 34,87 MiB regeneráveis permanecem fora do Git em
   `%TEMP%\codex-wyd748-lifecycle-149205b7`.
 - A vtable da aplicação em `0x005A6104` contém, nos slots `+0x00..+0x1C`,
   `FUN_0055F3E0`, `FUN_0055BC0A`, `FUN_0055D066`, `FUN_0055D345`,
   `FUN_0055EDF7`, `FUN_0055D6E6`, `FUN_0055EE1E` e `FUN_0055EE45`.
+- `FUN_0055D345:0x0055D5BC` chama `app+0x14/FUN_0055D6E6` usando a própria
+  aplicação como receptor quando `app+0xE8 != 0` e
+  `[app+0xE8]+0x10C != 2`. A função consome estado da aplicação/cena e chama o
+  slot `+0x48` do objeto em `scene+0x28`, fechando-a como etapa de frame/render;
+  ela não chama os slots de cena `+0x14/+0x20`.
+- A varredura global desses offsets encontrou 34 hits em `+0x14` e 53 em
+  `+0x20`, após 8.173 candidatos/441.614 instruções por scan. Os candidatos
+  próximos do manager são `FUN_004B29B9:0x004B29F3` e
+  `FUN_004B2D35:0x004B2D86`; receptor, vptr, classe e semântica ainda precisam
+  ser resolvidos antes de atribuir nomes aos slots.
+- `FUN_0055B18F` instala essa vtable e publica o mesmo objeto em
+  `DAT_013B71E0`. `FUN_0055FA89` copia quatro argumentos, carrega esse global
+  como `ECX`, chama `FUN_0055DAB8` em `0x0055FAA2` e retorna com `RET 0x10`;
+  portanto, o dispatcher recebe o singleton da aplicação.
   `FUN_0055EE1E` grava o argumento em `app+0xF8` e em `DAT_013B71E8`.
+- `FUN_0055F7F9` aloca `0x114` bytes, constrói/publica a aplicação, chama o
+  slot `+0x04` para bootstrap, o slot `+0x0C` para o loop e, ao retorno, o slot
+  `+0x00` com flag `1`. Ele não chama diretamente `+0x08/FUN_0055D066` porque
+  o shutdown ocorre dentro do window procedure, antes de o loop retornar.
+  Falhas anteriores ou do bootstrap não mostram cleanup explícito no recorte,
+  sem que isso autorize concluir leak.
+- Três candidatos de slot `+0x08` foram rejeitados por receptor:
+  `FUN_0055FBB9:0x0055FC85` usa um objeto vindo de `param_1` slot `+0x18`;
+  `FUN_0055D345:0x0055D415/0x0055D4DF` usa `app+0xF4/app+0xF8`; e
+  `FUN_0055EE59:0x0055EFF7` usa o timer `DAT_0092E654`. Nenhum possui fluxo de
+  dados comprovado até o singleton `DAT_013B71E0`.
+- `FUN_0055F3E0 -> FUN_0055B26F` reinstala a vtable da aplicação, fecha o
+  handle global de logging `DAT_005CCFAC` por `FUN_004312DD` e, com flag `1`,
+  libera o objeto. Depois, `FUN_004B428E` desmonta DLL/callback, buffers,
+  critical section e filtro de exceção. Essa cadeia posterior não chama
+  `FUN_0055D066`; o shutdown já ocorre antes dela, no ramo `WM_CLOSE`.
+- No ramo `WM_CLOSE` de `FUN_0055DAB8`, `0x0055EB9C` carrega o vptr e o
+  receptor diretamente de `param_1`. Como `FUN_0055FA89` fornece
+  `DAT_013B71E0` e a vtable `0x005A6104` resolve `+0x08` para
+  `FUN_0055D066`, a cadeia efetiva é `WM_CLOSE -> 0x0055EB9C -> app vslot
+  +0x08 -> FUN_0055D066`. Antes disso, `0x0055EB5A/0x0055EB74` chamam o slot
+  `+0x08` do objeto em `app+0xF4`; seu retorno é comparado em
+  `0x0055EB77..0x0055EB85` com `DAT_013B7220 + 0xBB8`, e o shutdown só
+  prossegue quando esse limite de 3000 unidades é atingido. A unidade não foi
+  atribuída. Depois do retorno, `DAT_013B71F0` pode acionar `FUN_0058F75F`, é
+  zerado, `DAT_013B7228` recebe `1`, e seguem `FUN_00423C61` em `0x0055EBCB`,
+  `DestroyWindow` em `0x0055EBD4`, `PostQuitMessage(0)` em `0x0055EBDC` e
+  `DAT_013B7220 = 0` em `0x0055EBE2`.
+- `FUN_00423C61` tem um único caller, `FUN_0055DAB8:0x0055EBCB`. Quando
+  `DAT_005CCF84 == 0`, retorna. Caso contrário, consulta `FUN_00423B25`, chama
+  `UnhookWindowsHookEx(DAT_005CCF80)` quando o helper retorna zero e sempre
+  finaliza com `DAT_005CCF84 = 0`. Isso fecha sua função entre o shutdown da
+  aplicação e `DestroyWindow`.
+- O outro extremo do hook está em `FUN_0055F7F9:0x0055FA08 -> FUN_00423C1F`,
+  após bootstrap bem-sucedido e antes do loop principal. O instalador usa
+  `WH_KEYBOARD_LL`, callback `FUN_00423B74`, thread id global `0`, grava o
+  handle em `DAT_005CCF80` e marca `DAT_005CCF84 = 1` mesmo se a API retornar
+  nulo. `FUN_00423B25` testa `dwPlatformId == 1`; nessa plataforma as APIs de
+  instalação/remoção são puladas, mas o flag lógico é mantido.
+- `FUN_00423B74` é callback indireto comprovado pelo ponteiro em `0x00423C46`.
+  Para hook code não negativo, bloqueia `Ctrl+Esc`, `Alt+Esc`, Windows esquerda
+  `0x5B`, Windows direita `0x5C` e Apps `0x5D`; encaminha os demais casos por
+  `CallNextHookEx`. Somente o instalador escreve `DAT_005CCF80`, e somente
+  instalador/finalizador acessam `DAT_005CCF84`.
 - No branch `0x464` de `FUN_0055DAB8`, o dispatch em `0x0055E80D` usa
   comprovadamente o objeto em `app+0xF8`, enquanto o dispatch em `0x0055E8CA`
   usa `app+0xF4`. O segundo receptor, seu ownership e o significado exato do
@@ -207,9 +296,10 @@ Ghidra.
 - `FUN_0058F078` foi confirmado como formatter que termina o buffer em nulo.
   `FUN_00423B20` retorna imediatamente e não apresenta side effect próprio
   observável no binário analisado. Isso fecha os dois callees, mas não o caller.
-- O TMProject 7.59/7.69+ fornece somente pistas semânticas. IDs, recursos,
-  packets, offsets, endereços, layouts, loaders e lifecycle precisam ser
-  comprovados no 7.48.
+- O TMProject 7.59/7.69+ pode fornecer estrutura, algoritmos e assets superiores.
+  Para uma fronteira legada, IDs, recursos, packets, offsets, endereços, layouts,
+  loaders e lifecycle continuam sendo claims a provar no 7.48. Para extensão
+  coordenada, esses elementos são projetados e testados nos consumidores atuais.
 - Toda alteração ativa do client pertence a `client-source/` ou aos assets. O
   build oficial é `client-source/tmproject/Build-Client.ps1`, e
   `client748/project.exe` é o único candidato executável e de validação.
@@ -224,28 +314,28 @@ infraestrutura e schema das fichas       | STATICALLY VERIFIED | scripts e templ
 correlação estrutural native/source       | AUTOMATED TESTED     | Ghidra real + correlator: 88 exact, 385 candidates
 gate de tamanho por opcode               | LOCATED             | entrada nativa localizada; caller/direção pendentes
 foco, IME e lifecycle de controles       | LOCATED             | fluxo principal localizado; xrefs/teardown pendentes
-transição e troca de cenas                | LOCATED             | origem UI/packet/resposta/cleanup localizados; ordem do 0x114, shutdown e relogin pendentes
+transição e troca de cenas                | LOCATED             | shutdown e hook fechados; ownership, convergência e relogin pendentes
 código ativo do client/servidor          | NÃO ALTERADO         | nenhum build ou teste funcional necessário nesta etapa
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
 
 ## Worktree e arquivos ativos
 
-- `AGENTS.md` — gate da pesquisa 7.48, política `gpt-5.6-sol/xhigh` quando
-  disponível e proibição de contrato vindo do TMProject moderno.
+- `AGENTS.md` — classificação dos três modos, fast path de continuidade,
+  política `gpt-5.6-sol/xhigh` quando disponível e proteção do trabalho manual.
 - `.agents/skills/wyd-client748-catalog/` — skill, estratégia, metadados e
   triador determinístico do corpus.
-- `client-source/AGENTS.md` — source de versão única e maturidade mínima antes
-  de qualquer edição comportamental.
-- `.agents/skills/wyd-go-feature/SKILL.md` — consome fichas já maduras; não
-  promove hipótese do TMProject.
+- `client-source/AGENTS.md` — source de implementação única, escolha da
+  estrutura superior compatível e gates distintos para paridade e extensão.
+- `.agents/skills/wyd-go-feature/SKILL.md` — implementa paridade, modernização
+  compatível ou extensão coordenada sem promover hipótese nativa.
 - `.agents/skills/wyd-client748-research/` — nova skill, referências, metadados
   e ferramentas reproduzíveis, incluindo export e correlação diferencial de
   fingerprints com testes determinísticos.
 - `.agents/research/client748/` — README, template, quatro exports focados e as
   três fichas iniciais, incluindo `flows/lifecycle/scene-transition.md`; o
   inventário README inclui o procedimento do triador. O ledger
-  `inventory/scene-transition-evidence-log.md` preserva a rodada de 49
+  `inventory/scene-transition-evidence-log.md` preserva a rodada de 50
   exports sem versionar os recortes amplos.
   Exports exploratórios amplos e não citados foram removidos da worktree e
   preservados temporariamente em
@@ -269,9 +359,9 @@ inventory/; três fichas válidas; LOCATED=3
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
-resultado: 49/49 exports presentes no ledger; nenhum ausente dos dois lados;
-24 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 2 AINDA NÃO INTERPRETADO e
-6 LACUNA SEGUINTE; volume aproximado 33,98 MiB
+resultado: 54/54 exports presentes no ledger; nenhum ausente dos dois lados;
+29 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 1 AINDA NÃO INTERPRETADO e
+7 LACUNA SEGUINTE; volume aproximado 34,87 MiB
 
 scene5-select-enter-focused.tsv
 resultado: 1.978.822 bytes; SHA-256
@@ -291,6 +381,43 @@ resultado: 226.544 bytes; SHA-256
 hash nativo embutido correto; 431 instruções de FUN_00432181; um RET;
 nenhum SCRIPT ERROR; a autoanálise temporária iniciada pela ausência de
 -noanalysis foi descartada sem gravação no projeto
+
+application-shutdown-focused.tsv
+resultado: 804.704 bytes; SHA-256
+5676C66782F8635FF65A59F48C64099DD397F2FC0C977A26CD1BC25A06B0051B;
+ordem interna de FUN_0055D066 transcrita; classes/ownership ainda pendentes
+
+wm-close-dispatch-instructions.tsv
+resultado: 302.057 bytes; SHA-256
+D52A8CE0C54610CBBE2230A4689632481A96D19E65FD40827ECB91EA506F0686;
+hash nativo embutido correto; 975 instruções e 649 referências de
+FUN_0055DAB8; caller da aplicação em 0x0055EB9C e sequência posterior até
+PostQuitMessage(0) transcritos; nenhum SCRIPT ERROR
+
+fun-00423c61-shutdown-focused.tsv
+resultado: 304.785 bytes; SHA-256
+5799FB5705F68DBB188B53D2989E635DBD1C146AA559161696F844B438676991;
+hash nativo embutido correto; 18 instruções, 10 referências, único caller em
+0x0055EBCB; pointer hits=0 e rel32/raw hits=1; nenhum SCRIPT ERROR
+
+windows-hook-lifecycle-focused.tsv
+resultado: 37.306 bytes; SHA-256
+ACC5288A10463BABD0FA2DD83058F78BB2B65130A52D1AA90169B0397EA97D43;
+hash nativo embutido correto; lifecycle de instalação/callback/finalização e
+xrefs dos globals transcritos; callback por ponteiro imediato confirmado;
+nenhum SCRIPT ERROR
+
+application-frame-0055d6e6-focused.tsv
+resultado: 259.951 bytes; SHA-256
+DD7762EA1384BC1A21E1DF4B58F2F94DF486B912A0C212E9B587B3349A61ED09;
+hash nativo embutido correto; caller FUN_0055D345:0x0055D5BC, receptor da
+aplicação e estágio de frame/render transcritos; nenhum SCRIPT ERROR
+
+virtual-slots-14-20-all.tsv
+resultado: 30.094 bytes; SHA-256
+BC4CF4ECDBACD7412DE9F42045B58DCDD2185E919C4E0277E7FC0B2AD4E1FDD6;
+hash nativo embutido correto; 34 hits em +0x14, 53 em +0x20, 8.173
+candidatos e 441.614 instruções por scan; nenhum SCRIPT ERROR
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-research
 resultado: exit 0; Skill is valid!
@@ -376,29 +503,37 @@ ocorrências.
 - Não reler por padrão os exports já inventariados do lifecycle. Consultar o ledger, abrir
   somente o export ligado à lacuna atual e escrever a conclusão no mesmo ciclo.
 - A ficha de cenas permanece `LOCATED`: os receivers/retornos `+0x4C` das cenas
-  `0/5/7/8` estão fechados; faltam callers restantes, a ordem global de
-  teardown, shutdown e logout/relogin.
+  `0/5/7/8`, a ordem local de coleta/detach, o caller do shutdown e o lifecycle
+  do hook global de teclado estão fechados; faltam callers de estado restantes,
+  classes/ownership, convergência integral do teardown e logout/relogin.
+- Os offsets virtuais `+0x14/+0x20` não têm semântica global: fechar primeiro
+  callers e fluxo de dados de `FUN_004B29B9` e `FUN_004B2D35` no Ghidra.
 
 ## Próximo passo executável
 
-1. Fechar a ordem integral entre `FUN_004B21C9`, `FUN_004B16C0`, os deleting
-   destructors/cleanups específicos das cenas `0/5/7/8`, `FUN_00494C00` e
-   `FUN_0054AA45`, incluindo a relação com `FUN_004B3A20 -> FUN_004B2155`.
-2. Continuar `FUN_0055D066`, shutdown e logout/relogin usando somente os exports
-   marcados `LACUNA SEGUINTE` no ledger.
-3. Promover a ficha somente quando entrada, callers, callees, estado, erros,
-   ownership e teardown estiverem fechados. Só depois adaptar delta comprovado.
-4. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
+1. Exportar `FUN_004B29B9` e `FUN_004B2D35` com callers, instruções, bodyrefs,
+   vtable efetiva do `ObjectManager` e os oito destinos de cena `+0x14/+0x20`.
+2. Resolver os callers reais, receptores, vptrs e slots dos dois traversals.
+3. Continuar por `logout-relogin-next-roots.tsv` e reconstrução da sessão/cena.
+4. Inspecionar a source atual e classificar o primeiro delta concreto. Se ele
+   depender de paridade nativa, fechar entrada, callers, callees, estado, erros,
+   ownership e teardown antes de adaptá-lo; se for modernização/extensão
+   independente, provar a fronteira correspondente e prosseguir sem aguardar a
+   promoção de claims não relacionados.
+5. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
    sua maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
-5. Reexecutar `validate_research.py`, triagem, `git diff --check` e atualizar
-   este handoff quando
-   houver nova evidência ou mudança de estado.
+6. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
+   fila/input mudar e `git diff --check` após edições. Atualizar este handoff
+   somente quando houver nova evidência, decisão, validação ou ponto de retomada.
 
 ## Critérios de aceite pendentes
 
 - Outra sessão consegue reproduzir cada claim sem recorrer à conversa.
-- Nenhuma edição comportamental começa com ficha `LOCATED`.
-- Toda decisão futura separa comportamento 7.48 confirmado, ABI/recurso
-  confirmado, semântica moderna apenas sugerida e lacunas bloqueantes.
+- Nenhuma edição de paridade depende de claim `LOCATED`; extensões independentes
+  não são bloqueadas nem apresentadas como comportamento nativo.
+- Toda decisão futura separa comportamento 7.48 confirmado, estrutura moderna
+  compatível, contrato coordenado novo e lacunas realmente bloqueantes.
+- Código e assets manuais são preservados até incompatibilidade concreta ou
+  caminho substituto validado justificar sua alteração.
 - `CLIENT-TESTED` aparece somente depois do fluxo real no hash registrado de
   `client748/project.exe`.

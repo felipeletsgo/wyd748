@@ -1,204 +1,129 @@
 ---
 name: wyd-client748-research
-description: Investigar e documentar fluxos do client nativo WYD 7.48 antes de implementar mudanças no WYD-Go ou no client recompilável. Use para protocolo, ABI, UI, input, render, assets, lifecycle, cenas, rede e para auditar heranças 7.59/7.69 do TMProject. Exige hash do binário, funções e xrefs Ghidra, callers/callees, estado, side effects, recursos, equivalente server-side e uma ficha de evidência versionada.
+description: Investigar e documentar a fronteira nativa do client WYD 7.48, correlacionando-a com a source atual; use para paridade, compatibilidade e integração segura de extensões client/server.
 ---
 
 # Pesquisa do client WYD 7.48
 
-## Papel
+Esta skill produz evidência reproduzível sem transformar toda melhoria do
+TMProject em uma reconstrução arqueológica. Use-a antes de `wyd-go-feature`
+quando uma mudança tocar comportamento, protocolo, ABI, UI, input, render,
+assets ou lifecycle.
 
-Esta skill adquire conhecimento verificável. Ela não autoriza implementar uma
-hipótese. Use-a antes de `wyd-go-feature` sempre que o resultado puder alterar
-comportamento do client, protocolo, ABI, UI, input, render, assets, lifecycle ou
-o contrato observado pelo servidor. A implementação só começa depois que a
-ficha do fluxo atingir a maturidade exigida pelo escopo.
+## Classifique antes de pesquisar
 
-No programa de cobertura completa, esta é a segunda trilha: primeiro use
-`wyd-client748-catalog` para validar o censo, escolher uma raiz e registrar a
-lane; depois rastreie uma transição observável aqui. A triagem ordena trabalho,
-mas não é evidência e não pode promover o estado da ficha.
+| Modo | Objetivo | Gate |
+| --- | --- | --- |
+| `PARIDADE_NATIVA` | reproduzir ou corrigir comportamento legado | ficha `TRACED`; `CONTRACT` para wire/ABI/loader/recurso |
+| `MODERNIZACAO_COMPATIVEL` | manter contrato externo com estrutura interna superior | reutilizar a ficha do contrato e provar somente as fronteiras afetadas |
+| `EXTENSAO_COORDENADA` | adicionar feature/asset/contrato ausente no nativo | contrato client/server explícito e testes dos dois lados; Ghidra apenas nas integrações legadas |
 
-O TMProject importado é uma fonte 7.59/7.69. Ele pode sugerir nomes e intenção,
-mas nunca decide o contrato 7.48. Comentários já presentes na source são índices
-de busca, não prova. Toda conclusão volta ao binário 7.48 e ao fluxo atual do
-WYD-Go.
+`LOCATED` bloqueia edição dependente de um claim nativo incompleto. Não bloqueia
+uma extensão que declara corretamente não possuir equivalente nativo. Não crie
+uma ficha falsa nem promova maturidade para justificar feature nova.
 
-Para investigação de paridade 7.48, preferir `gpt-5.6-sol` com esforço `xhigh`
-quando essa seleção estiver realmente disponível. Caso contrário, usar o maior
-nível disponível e registrar a limitação; nunca afirmar que o modelo foi
-alterado sem confirmação do ambiente.
+Código e assets já existentes na source são presumidos intencionais. Antes de
+removê-los, demonstre incompatibilidade em wire/ABI, recurso, lifecycle,
+server-side ou runtime.
 
-## Leituras e artefatos obrigatórios
+## Fast path de continuidade
 
-1. Ler `AGENTS.md`, o `AGENTS.md` scoped e esta skill integralmente.
-2. No programa de cobertura ou ao escolher a próxima raiz, ler
-   `../wyd-client748-catalog/SKILL.md` e executar seu triador. Registrar na ficha
-   a contagem, a lane e o motivo da escolha; não editar `functions.tsv` para
-   marcar progresso.
-3. Ler `../wyd-go-feature/references/ghidra-client748.md`.
-4. Para UI, HUD, grid, inventário, equipamento ou mensagens, ler também
-   `../wyd-go-feature/references/client-ui-748.md`.
-5. Verificar `git status --short` e o SHA-256 da referência histórica.
-6. Abrir `references/research-method.md` e somente a linha de domínio relevante
-   em `references/subsystem-map.md`.
-7. Criar ou atualizar uma ficha em `.agents/research/client748/flows/` a partir
-   do template. Handoff não substitui ficha de evidência.
+1. Ler esta skill, o `AGENTS.md` scoped e somente o handoff do escopo.
+2. Conferir `git status`, diff scoped e o fingerprint dos inputs registrados.
+3. Se binário/corpus/source relevante não mudou, reutilizar hash, triagem,
+   exports, seeds e claims confirmados; não refazer leitura ampla.
+4. Partir da função/feature viva da source, localizar a candidata nativa e
+   seguir apenas callers/callees/vtables que decidem o delta.
+5. Registrar cada descoberta no mesmo ciclo e implementar lotes pequenos assim
+   que a fronteira estiver decidida.
 
-Antes de declarar uma pesquisa pronta, deixar na ficha o hash do binário, a
-pergunta observável, funções nativas, callers/callees, estado, mutações,
-side-effects, erros, recursos/ABI quando aplicável, equivalente na source,
-equivalente autoritativo no WYD-Go, delta do TMProject e os testes realmente
-executados. Se a investigação terminar incompleta, atualizar também um handoff
-compacto com o próximo ponto de entrada; não esconder a lacuna em uma conclusão
-genérica.
+Execute o triador do catálogo somente para nova raiz sem fila válida ou quando
+seus inputs mudarem. Execute `validate_research.py` somente quando fichas ou seu
+schema mudarem.
 
-## Unidade mínima de pesquisa
+## Evidência nativa
 
-Uma investigação rastreia uma transição observável completa, não uma função
-isolada:
+Uma unidade de paridade é uma transição observável:
 
 ```text
 entrada/evento
--> função nativa 7.48
--> callers e callees
--> precondições e estado inicial
--> mutações, globals e side effects
--> saída, erro, fechamento e relogin
--> wire/ABI ou recursos consumidos
--> equivalente atual no client-source
--> equivalente autoritativo no WYD-Go
--> diferença da herança TMProject
--> decisão e lacunas
+-> raiz nativa e callers/callees relevantes
+-> estado, mutações, erros e teardown
+-> wire/ABI/recursos aplicáveis
+-> source atual e servidor
+-> delta e decisão
+-> validação
 ```
 
-Quando o fluxo for amplo, dividi-lo por transição. Não criar uma ficha genérica
-"inventário" que misture abertura, drag, uso, equip, venda e rollback.
+No projeto Ghidra, confirme chamadas indiretas, vtables, callbacks, ownership e
+lifecycle que sustentam a decisão. O corpus e os fingerprints escolhem
+candidatos; ausência textual e `EXACT_MATCH` não provam semântica.
 
-## Procedimento
+Para wire/ABI, provar direção, opcode, tamanho, offsets, packing e signedness no
+packet final. Para UI/assets, provar recurso materializado, binding, input,
+ownership, fechamento e teardown. Lifecycle `TRACED` cobre entrada observável,
+transições, vptr/receptor, falha parcial, cleanup, shutdown e logout/relogin, ou
+marca `N/A` com justificativa.
 
-1. Formular uma pergunta concreta e localizar a entrada por string, opcode,
-   constante, import, ID de recurso, endereço ou efeito observado.
-2. Consultar a fila produzida pelo catálogo e o corpus exportado com
-   `scripts/query_corpus.py`; eles aceleram busca, mas seus callers sintáticos
-   não substituem xrefs do projeto Ghidra. Ausência
-   no índice textual, inclusive para uma função referenciada pela source, nunca
-   prova ausência no binário.
-3. Abrir a função no projeto Ghidra e registrar xrefs, callers, callees, dados,
-   globals, calling convention e lifecycle. Confirmar callers/callees indiretos,
-   slots de vtable e callbacks diretamente no projeto Ghidra; exports são apenas
-   aceleradores. Use `scripts/ExportWydFlow.java` para gerar um relatório auxiliar
-   reproduzível quando possível. Para callback sem xref tipado, o argumento
-   `pointers:<entry>` procura o VA bruto de forma focada; zero hits não prova
-   ausência de chamada computada. Para um alvo de código sem caller direto,
-   `relatives:<entry>` procura somente instruções decodificadas `CALL E8` e
-   `JMP E9`, calcula o destino pelo `rel32` assinado e registra a função
-   proprietária. Zero hits nesse modo elimina apenas esses branches relativos;
-   não elimina chamada indireta, thunk, bytes não analisados ou tabela runtime.
-   Quando o entry point continuar sem caller, usar também `bodyrefs:<entry>` e
-   `rawrelatives:<entry>` conforme `references/research-method.md`. O primeiro
-   classifica xrefs externos para todo o corpo; o segundo cobre bytes `E8/E9`
-   em blocos executáveis inicializados. Validar ambos contra controles positivos
-   conhecidos no mesmo binário antes de interpretar um resultado zero.
-   Para chamadas virtuais computadas, `virtualslot:<offset>` localiza
-   `CALL [reg+offset]` e registra owner, callsite, bytes, operandos,
-   registradores e escalares. Um hit prova o uso estrutural do slot, não a
-   classe do receptor: resolver fluxo de dados, vptr, vtable e lifecycle no
-   projeto Ghidra antes de atribuir a chamada a um manager ou cena.
-   Em headless, não confiar somente no exit code: o Ghidra pode retornar `0`
-   mesmo com `SCRIPT ERROR`. Aceitar o export apenas quando o log não contiver
-   esse marcador e o TSV trouxer o hash do programa e o registro-resumo do
-   modo solicitado, inclusive para zero hits.
-   Para acelerar a correlação em massa com a source recompilável, exportar os
-   dois programas com `scripts/ExportWydFingerprints.java` e comparar os TSVs
-   com `scripts/correlate_fingerprints.py`. `EXACT_MATCH` e `STRONG_MATCH`
-   escolhem candidatos para revisão; não nomeiam a função nativa, não alteram a
-   maturidade e não substituem xrefs, ownership, erros ou lifecycle no Ghidra.
-4. Para wire/ABI, provar direção, opcode, tamanho, offsets, packing e signedness
-   no packet final. `sizeof` moderno ou struct homônima não é evidência 7.48.
-5. Seguir o fluxo vivo na source e no Go com `rg`, incluindo caminhos de erro,
-   teardown, owner, observers, persistência e relogin conforme o domínio.
-6. Comparar 7.48, source atual e TMProject por campo/comportamento. Classificar
-   cada afirmação como `CONFIRMED`, `PROBABLE`, `HYPOTHESIS` ou `REJECTED`.
-7. Reabrir a entrada, ao menos um caller e um callee relevante no projeto Ghidra,
-   conferir novamente o hash, atualizar a ficha e executar
-   `scripts/validate_research.py`. Só depois entregar um contrato `TRACED` ou
-   superior à skill `wyd-go-feature`.
+Detalhes dos modos `pointers`, `relatives`, `bodyrefs`, `rawrelatives`,
+`virtualslot`, headless e fingerprints ficam em
+[references/research-method.md](references/research-method.md). Leia essa
+referência ao executar ou interpretar essas operações, não em toda retomada.
 
-## Maturidade da ficha
+## Modernização e extensão
 
-| Estado | Significado | Autoriza edição comportamental? |
-| --- | --- | --- |
-| `UNMAPPED` | domínio inventariado, sem entrada nativa localizada | não |
-| `LOCATED` | função/asset/opcode localizado, fluxo ainda incompleto | não |
-| `TRACED` | entrada, callers/callees, estado, side effects e erros rastreados | sim, no escopo traçado |
-| `CONTRACT` | `TRACED` mais ABI/recursos e delta server/source decididos e testáveis | sim, inclusive wire/ABI coberto |
-| `CLIENT_TESTED` | contrato implementado e executado no `project.exe` no fluxo real | já validado no cenário registrado |
+Antes de escolher estrutura 7.48 ou posterior, compare por claim:
 
-Não promover maturidade para contornar uma lacuna. Uma ficha pode conter claims
-`HYPOTHESIS`, mas o trecho dependente delas não entra no contrato nem autoriza
-edição.
+- wire/ABI e compatibilidade com a fronteira existente;
+- assets/IDs realmente materializados;
+- lifecycle, ownership, teardown e relogin;
+- suporte e autoridade server-side;
+- manutenção, clareza e possibilidade de evolução coordenada.
 
-O inventário também pode exibir `IMPLEMENTED` e `CLIENT_TESTED` como estados de
-entrega. Eles não substituem `TRACED`/`CONTRACT`: `IMPLEMENTED` exige código e
-`CLIENT_TESTED` exige execução real no `client748/project.exe` com hash e cenário
-registrados.
+Prefira a estrutura tecnicamente superior quando esses limites forem
+compatíveis. Se um contrato novo for necessário e ambos os lados estiverem no
+escopo, documente formato, versionamento/capability quando aplicável,
+IDs/opcodes sem colisão, validação de entrada, rollback e fallback. Depois teste
+client e servidor. Não chame isso de paridade nativa.
 
-## Gates
+TMProject/W2PP/Secrets/Micronics podem fornecer nomes, arquitetura e algoritmos
+candidatos. Não fornecem por semelhança os fatos do executável 7.48.
 
-- Mudança comportamental no client exige ficha `TRACED` no mínimo.
-- Packet, struct, offset, packing, signedness ou loader exige ficha `CONTRACT`.
-- UI exige criação, binding, IDs materializados, input, abertura, fechamento e
-  ownership; screenshot não substitui lifecycle.
-- Ausência de caller/callee confirmado mantém a ficha em `LOCATED`.
-- Valor vindo somente do TMProject permanece `HYPOTHESIS`.
-- Divergência de hash invalida reutilização silenciosa dos endereços.
-- Uma função que não apareceu no export textual deve ser resolvida pelo projeto
-  Ghidra ou permanecer `não confirmada`; não criar um stub, endereço ou caller
-  para preencher o índice.
-- A maturidade é por transição e por claim. Uma ficha `TRACED` de abertura não
-  libera automaticamente drag, uso, rollback, relogin ou teardown de outra
-  transição do mesmo subsistema.
-- Alteração de comportamento bloqueia em `LOCATED`; alteração de packet, ABI,
-  struct, offset, packing, signedness ou loader bloqueia até `CONTRACT`.
-- Conhecimento estável vai para ficha/referência; estado operacional vai para
-  handoff compacto. Não acumular pseudocódigo ou transcrição em handoff.
+## Maturidade nativa
 
-## Entrega para implementação
+| Estado | Significado |
+| --- | --- |
+| `UNMAPPED` | entrada nativa não localizada |
+| `LOCATED` | entrada localizada, fluxo incompleto |
+| `TRACED` | transição, estado, efeitos, erros e lifecycle rastreados |
+| `CONTRACT` | `TRACED` mais wire/ABI/recurso decidido e testável |
+| `CLIENT_TESTED` | fluxo real executado no `project.exe` registrado |
 
-Ao concluir a pesquisa, entregar à `wyd-go-feature` o caminho da ficha e uma
-decisão explícita por claim: `portar`, `remover`, `manter`, `proteger como
-opcional` ou `não implementar`. A entrega deve separar:
+A maturidade é por claim/transição e mede conhecimento nativo, não qualidade de
+uma extensão. `IMPLEMENTED`, `STATICALLY VERIFIED` e `AUTOMATED TESTED` são
+estados de entrega separados.
 
-- comportamento confirmado que pode ser reproduzido;
-- layout/ABI/recursos confirmados, quando houver;
-- semântica apenas sugerida pelo TMProject;
-- lacunas que continuam bloqueando edição ou teste.
+## Entrega
 
-Se o usuário pedir implementação no mesmo turno e o gate ainda estiver em
-`LOCATED`, permanecer em investigação/documentação e registrar o bloqueio no
-handoff. Não promover a ficha apenas porque o build atual compila.
+Atualize a ficha apenas com evidência nova e classifique claims como
+`CONFIRMED`, `PROBABLE`, `HYPOTHESIS` ou `REJECTED`. A decisão deve ser uma de:
+`portar`, `manter`, `modernizar`, `estender`, `remover`, `proteger como
+opcional` ou `não implementar`.
 
-## Ferramentas
+Documente imediatamente função/endereço, relação source, motivo da decisão e
+lacuna restante. Handoff guarda só estado operacional e próximo comando; não
+duplica pseudocódigo, logs ou fatos estáveis da ficha.
+
+Ferramentas usuais:
 
 ```powershell
 python .agents/skills/wyd-client748-research/scripts/query_corpus.py stats --repo .
 python .agents/skills/wyd-client748-research/scripts/query_corpus.py flow 0055890a
-python .agents/skills/wyd-client748-research/scripts/query_corpus.py search "FieldScene2.bin"
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
 ```
 
-Passe `--corpus <diretorio>` quando a descoberta automática não encontrar
-`functions.tsv`. Leia `references/research-method.md` antes de interpretar a
-saída. Para a correlação diferencial, conferir os hashes gravados nos dois
-exports e passá-los explicitamente ao `correlate_fingerprints.py`; manter os
-corpora completos fora do Git e versionar somente evidência focada citada por
-uma ficha.
-
-## Conclusão
-
-Entregar a ficha atualizada, a maturidade real, as evidências que sustentam cada
-claim, as diferenças 7.48/TMProject/WYD-Go e as lacunas restantes. A pesquisa
-termina quando outra pessoa consegue reproduzir a conclusão sem confiar na
-conversa que a originou. O resultado mínimo de uma sessão incompleta é: ficha
-com estado correto, validação executada, hash confirmado e handoff com próximo
-comando executável.
+Leia [references/evidence-record.md](references/evidence-record.md) ao criar ou
+promover ficha e somente a linha relevante de
+[references/subsystem-map.md](references/subsystem-map.md) ao abrir nova frente.
+Para seleção de modelo, preferir `gpt-5.6-sol`/`xhigh` apenas quando o ambiente
+confirmar que essa opção está disponível.
