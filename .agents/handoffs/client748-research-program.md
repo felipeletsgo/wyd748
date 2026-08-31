@@ -716,8 +716,11 @@ ocorrências.
 - `FUN_004481C5(1)` não foi portado: é uma rotina ampla de UI ainda sem
   correlação source única. `TotoBuy` e `0x3CE` continuam bloqueados até ficha
   `CONTRACT` client/server com rejeição, rollback e relogin.
-- Build e hash do novo `client748/project.exe` devem ser registrados após a
-  validação deste lote. Não alegar `CLIENT_TESTED` sem execução real.
+- `validate_research.py` e `git diff --check` passaram. `Build-Client.ps1`
+  passou com 13 warnings preexistentes e zero erros; o `client748/project.exe`
+  instalado tem SHA-256
+  `90D7B460A2D6B0E1072A8BA992A4911535E789ECEB10DC80CE756D6ED41F01F9`.
+- Não houve execução real do painel; não alegar `CLIENT_TESTED`.
 
 1. Executar no candidato hasheado a seleção de um personagem comum e um de
    segunda classe, confirmando que `1314` mostra a EXP atual e `1315` o limiar

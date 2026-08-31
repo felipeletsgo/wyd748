@@ -218,4 +218,11 @@ compra/aposta depende de pesquisa separada do wire e de sua autoridade.
 - Pesquisa: callers, callees, IDs, estado, foco, ownership, falha parcial,
   teardown, shutdown e relogin fechados para seleção/fechamento no corpus do
   hash registrado.
+- Automação: `validate_research.py` e `git diff --check` passaram.
+- Build: `Build-Client.ps1` passou em Release/Win32 com 13 warnings
+  preexistentes de signed/unsigned e zero erros; instalou o candidato em
+  `client748/project.exe`.
+- SHA-256 do candidato compilado:
+  `90D7B460A2D6B0E1072A8BA992A4911535E789ECEB10DC80CE756D6ED41F01F9`.
+- Estado máximo alegado: `STATICALLY VERIFIED`; build não testa a interação.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.
