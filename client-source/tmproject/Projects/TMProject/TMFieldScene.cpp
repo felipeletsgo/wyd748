@@ -4349,6 +4349,32 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_CHAR)))
 				button->SetSelected(0);
 			return 1;
+		case 633: // native System: select server
+		case 634: // native System: return to character selection
+		case 635: // native System: quit game
+		{
+			// FieldScene2 binds 633-635 directly to the three native countdowns.
+			// Do not translate them to the newer System controls: that path owns
+			// 7.59 grids which are deliberately absent from the 7.48 layout.
+			if (idwControlID == 633)
+				m_dwLastSelServer = dwServerTime;
+			else if (idwControlID == 634)
+				m_dwLastLogout = dwServerTime;
+			else
+				g_dwStartQuitGameTime = dwServerTime;
+
+			MSG_STANDARDPARM stParm{};
+			stParm.Header.ID = m_pMyHuman->m_dwID;
+			stParm.Header.Type = MSG_SysQuit_Opcode;
+			stParm.Parm = 0;
+			g_pSocketManager->SendOneMessage((char*)&stParm, sizeof(stParm));
+
+			if (m_pSystemPanel)
+				m_pSystemPanel->SetVisible(0);
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SYSTEM)))
+				button->SetSelected(0);
+			return 1;
+		}
 		case 636: // native System cancel button
 			if (m_pSystemPanel)
 				m_pSystemPanel->SetVisible(0);

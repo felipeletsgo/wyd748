@@ -39,9 +39,10 @@ cena anterior para destruição? Quais partes da implementação do TMProject
 Os exports são aceleradores de busca. A ordem local entre coletor, deleting
 destructor, cleanup específico/base e detach, o caller de shutdown da aplicação
 e o lifecycle do hook global de teclado já foram fechados; callers de estado,
-ownership dos demais campos da aplicação, convergência integral do teardown e
-transições de logout/relogin ainda precisam ser fechados no projeto Ghidra
-antes de transformar esta ficha em contrato de implementação.
+ownership dos demais campos da aplicação e convergência integral do teardown
+ainda precisam ser fechados no projeto Ghidra antes de transformar esta ficha
+em contrato de implementação. O logout/relogin explícito foi fechado numa
+ficha `CONTRACT` separada e não promove automaticamente este fluxo mais amplo.
 
 ## Fluxo nativo 7.48
 
@@ -295,8 +296,9 @@ separadamente a cena anterior guardada em `manager+0x1B088`, em
 subárvore da cena nova e não possui mais o único ponteiro explícito que poderia
 selecionar a cena antiga uma segunda vez. `FUN_0054AA45`, chamado em
 `0x00494D70`, desanexa a cena antiga depois dessa coleta. A ordem local e a
-prevenção de dupla destruição estão fechadas; shutdown global e relogin ainda
-não estão.
+prevenção de dupla destruição estão fechadas; shutdown global ainda não está.
+O logout/relogin explícito é coberto pela ficha estreita
+`character-logout-selectchar-relogin.md`.
 
 ### Callees e helpers
 
@@ -326,7 +328,7 @@ não estão.
   `FUN_0040B980`, que chama `FUN_00401152` e libera o bloco quando `flag & 1`.
 - `FUN_00423CA0`, `FUN_00423DD8`, `FUN_004BAC70` e `FUN_004BACFF`: helpers de
   transporte/socket e timer localizados no lifecycle adjacente; sua interação
-  completa com logout, relogin e troca de cena permanece pendente.
+  completa com shutdown, reconexão e troca de cena permanece pendente.
 
 ## Estado e lifecycle
 
@@ -349,7 +351,7 @@ não estão.
 | Traversal `+0x20` | raiz ativa | `FUN_004B2D35`, vtable `0x005A4624` | estado auxiliar preservado | mantém `DAT_0067CF3C`; pode sinalizar `manager+0x1B08C` | demais slots globais não são inferidos |
 | Loop de aplicação | janela e subsistemas ativos | `FUN_0055D345` | tick concluído e coleta condicional executada | testa `manager+0x1B08C`; chama `FUN_004B16C0` com `app+0xF8` | origem completa do loop ainda parcialmente resolvida |
 | Shutdown | `WM_CLOSE`; retorno de `app+0xF4` alcança o baseline `DAT_013B7220 + 0xBB8` | `FUN_0055DAB8:0x0055EB9C -> app vslot +0x08 -> FUN_0055D066` | recursos e owners desmontados; janela destruída e quit postado | limpa `DAT_013B71F0`, grava `DAT_013B7228=1`, chama `FUN_00423C61`, `DestroyWindow` e `PostQuitMessage(0)` | caller fechado; unidade do gate, `FUN_00423C61` e classes dos campos ainda não confirmados |
-| Logout/relogin | transição de sessão | não resolvido | não resolvido | não resolvido | bloqueia `TRACED`/`CONTRACT` |
+| Logout/relogin | personagem em Field; sessão autenticada | `FUN_004662C5 -> FUN_004776C3 -> 0x215`; `0x116 -> FUN_00492E7D -> FUN_00484C8A`; `0x213 -> 0x114` | estado `0 -> 5 -> 0` | persiste/remove no servidor; copia Score/Equip; preserva sessão | fechado na ficha `character-logout-selectchar-relogin.md`; não resolve shutdown global |
 
 ### Vtables, vptrs e receptores
 
@@ -535,8 +537,9 @@ tick marca/coleta -> subárvore da cena nova -> previous scene
 -> zera previous scene -> reentrada limitada à cena nova -> FUN_0054AA45
 ```
 
-Continuam `LOCATED` a desativação de input/foco e o teardown após erro,
-shutdown, logout e relogin; por isso a ficha não é promovida a `TRACED`.
+Continuam `LOCATED` a desativação de input/foco e o teardown após erro e
+shutdown; por isso a ficha não é promovida a `TRACED`. Logout/relogin explícito
+foi isolado e fechado sem inflar a maturidade desta ficha geral.
 
 ### Shutdown
 
@@ -662,20 +665,21 @@ pelo finalizador, e somente instalador/finalizador leem ou escrevem
 Essa sequência prova que o `ObjectManager` global é destruído antes dos demais
 campos listados, fecha o caller do slot de shutdown e o teardown do hook até
 `PostQuitMessage(0)`, mas ainda não identifica as classes/ownership de todos os
-campos nem a unidade do gate. Socket, timer, foco, fontes de `WM_CLOSE`,
-logout/relogin e a convergência integral com `FUN_0055D066` permanecem abertos.
+campos nem a unidade do gate. Socket, timer, foco, fontes de `WM_CLOSE` e a
+convergência integral com `FUN_0055D066` permanecem abertos.
 
 ### Logout e relogin
 
-`UNRESOLVED`: não foi fechada uma transição observável de logout/relogin que
-prove a limpeza e a reconstrução da árvore, do estado global da cena, dos
-controles e dos recursos de transporte. Não portar comportamento moderno para
-preencher essa lacuna.
+`CONTRACT` estreito: `character-logout-selectchar-relogin.md` fecha os controles
+`633..636`, timers, `0x215`, `0x116`, cópia de `Score/Equip`, estado `5`, novo
+`0x213` e retorno por `0x114` ao estado `0`. O contrato preserva a sessão TCP e
+o ownership server-authoritative; não reivindica troca de conta, reconexão ou
+shutdown global.
 
 O relogin estreito de migração de servidor/canal está separado em
 `field-scene-rebuild-after-server-move.md`, no estado `CONTRACT`. Ele cobre
 `0x52A`, login `0x20D`, replay one-shot e reconstrução Field `9 -> 0`; não
-resolve logout explícito, troca de conta ou shutdown global desta ficha.
+resolve troca de conta ou shutdown global desta ficha.
 
 ## Wire, ABI e recursos
 
@@ -723,7 +727,8 @@ inventário, observers e persistência continuam sendo validados no servidor.
 | Estados que criam cena | `0`, `5`, `7`, `8` | quatro classes de cena | referência semântica posterior | não aplicável | manter no estudo; não alterar enquanto `LOCATED` |
 | Inicialização | virtual `+0x4C`; cena `0` retorna `1` em toda conclusão normal; cenas `5/7/8` retornam `0` após falha de `FUN_00541065` e `1` nos demais caminhos normais | `InitializeScene()` | pode ter outra ABI | não aplicável | initializers fechados no CFG normal; fechar teardown antes de adaptar |
 | Ownership | root `manager+0x1B07C`; `FUN_0054AC09` insere no início da lista intrusiva | `m_pRoot->AddChild` | árvore moderna não decide offset | não aplicável | ordem local comprovada; não portar layout |
-| Troca/limpeza | marca anterior, sentinela de subárvore, quatro cadeias específicas, zero preventivo e detach | `m_cDeleted`, `DeleteObject`, `CleanUp` | lifecycle posterior é pista | não aplicável | ordem local fechada; concluir shutdown/relogin antes de editar |
+| Troca/limpeza | marca anterior, sentinela de subárvore, quatro cadeias específicas, zero preventivo e detach | `m_cDeleted`, `DeleteObject`, `CleanUp` | lifecycle posterior é pista | não aplicável | ordem local fechada; concluir shutdown global antes de ampliar |
+| Logout/relogin explícito | `633..636`; `0x215 -> 0x116`; estado `0 -> 5 -> 0` | dispatch compatível, timers e confirmação | handlers modernos não decidem recurso/ABI | persiste antes de confirmar e preserva sessão | implementado sob ficha `CONTRACT`; ainda não `CLIENT_TESTED` |
 | Seleção de personagem | `SButton` ID `0x1204`; release `0x202`; receptor embutido; cena `+0x58`; packet `0x213`, `0x24` bytes, índice `+0x0C` | sem comparação autorizada nesta etapa | nomes modernos são apenas pista | contrato server-side ainda não correlacionado | origem UI fechada; fechar ordem do `0x114` e ficha wire antes de adaptar |
 | Transporte | enqueue cifra `+0x04..fim`; flush preserva pendências parciais | sem comparação autorizada nesta etapa | implementação posterior não decide ABI | transporte server-side não analisado nesta ficha | registrar como comportamento nativo, sem portar layout |
 | Resposta de seleção | `0x114`; dois consumidores solicitam cena 0 | sem comparação autorizada nesta etapa | semântica posterior não decide ordem | handler server-side não correlacionado | fechar ordem global/cena antes de promover |
@@ -736,8 +741,9 @@ inventário, observers e persistência continuam sendo validados no servidor.
   localizados; os initializers das cenas `0/5/7/8` e os consumidores mutuamente
   exclusivos da resposta estão fechados. A ordem local de coleta, deleting
   destructor, prevenção de dupla destruição, detach e caller do shutdown
-  também está fechada, mas callers de estado restantes, ownership, convergência
-  integral do teardown e logout/relogin ainda não estão.
+  também está fechada, mas callers de estado restantes, ownership e
+  convergência integral do teardown ainda não estão. Logout/relogin explícito
+  foi fechado separadamente sem promover esta ficha geral.
 - A migração estreita já alterou `ObjectManager`, `TMScene`, `TMFieldScene` e
   `Basedef.h` no commit `60c57760`, amparada por ficha `CONTRACT`. Fora desse
   recorte, a implementação do TMProject 7.69+ continua referência semântica
@@ -758,7 +764,7 @@ inventário, observers e persistência continuam sendo validados no servidor.
   e dos globals desmontados;
 - convergência do shutdown observado com janela, socket, timer, cenas,
   controles e foco;
-- logout/relogin e reconstrução completa da sessão/cena;
+- troca de conta/reconexão e convergência completa da sessão/cena com shutdown;
 - comparação campo a campo com o recurso e a source 7.48, após o fluxo nativo
   estar fechado.
 

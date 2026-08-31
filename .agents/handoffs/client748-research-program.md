@@ -11,14 +11,15 @@ modernizações internas ou extensões coordenadas do WYD-Go e de
 `client-source/tmproject`. O programa separa fatos do 7.48, estrutura posterior
 compatível e contratos novos deliberadamente implementados nos dois lados.
 
-Este handoff cobre a infraestrutura de pesquisa, as fichas do programa e o
-primeiro contrato nativo aplicado à source recompilável.
+Este handoff cobre a infraestrutura de pesquisa, as fichas do programa e os
+contratos nativos aplicados à source recompilável.
 A paridade funcional e visual já implementada possui estado próprio em
 `.agents/handoffs/client748-parity.md`; não duplicar esse histórico aqui.
 
-O commit `60c57760` alterou código ativo do client para preservar a migração
-nativa de servidor/canal; nenhum código do servidor foi alterado. A validação
-permanece estática e não houve teste in-game.
+O commit `60c57760` preservou a migração nativa de servidor/canal. Esta unidade
+também restaura na source o dispatch 7.48 dos controles System `633..635` para
+seleção de servidor, logout de personagem e saída. Nenhum código do servidor
+foi alterado; a validação permanece estática e não houve teste in-game.
 
 ## Estratégia formalizada nesta etapa
 
@@ -46,15 +47,15 @@ presumidos intencionais; ausência no nativo 7.48 não autoriza remoção.
 
 ```text
 client748/wyd.exe nativo+patches/WYD.exe | referência histórica Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                    | candidato source volátil    | F8251714775601720307940598522E6D2924E5C61DAB300728F949FE0C8A380B
+client748/project.exe                    | candidato source volátil    | 746A2913FA62DD56892319BD136CD15810A4B74092AD75F354E60C6B3FFC5BBD
 %USERPROFILE%\Tools\GhidraProjects\WYD748Native_20260821.gpr | projeto Ghidra | descobrir no perfil
 %USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled       | corpus auxiliar | 4.146 funções
 ```
 
-Os hashes foram recalculados em 2026-08-28. O hash de `project.exe` deve ser
-recalculado após qualquer build. O corpus textual acelera buscas, mas não
-substitui xrefs, chamadas indiretas, tipos, stack ou lifecycle no projeto
-Ghidra.
+O hash nativo foi recalculado em 2026-08-28 e o de `project.exe` após o build
+de 2026-08-31. O candidato deve ser recalculado após qualquer novo build. O
+corpus textual acelera buscas, mas não substitui xrefs, chamadas indiretas,
+tipos, stack ou lifecycle no projeto Ghidra.
 
 ## Evidência confirmada
 
@@ -205,6 +206,12 @@ Ghidra.
   dispatch `FUN_00492E7D:0x00493037 -> FUN_00484D44`, packet `0x52A/0x50`,
   login `0x20D/0x74` versão 748, replay Field-only por até 15 segundos, consumo
   one-shot e reconstrução `9 -> 0`. A source foi adaptada no commit `60c57760`.
+- A ficha `character-logout-selectchar-relogin.md` está em `CONTRACT`: os
+  controles nativos `633..635` enviam `0x3AE/0x10`; `634` dispara após cinco
+  segundos `0x215/0x0C`, o servidor persiste/remove o runtime e responde
+  `0x116/0x0C`; `FUN_00492E7D -> FUN_00484C8A` reconstrói a seleção, seguida de
+  `0x213 -> 0x114` para retornar ao Field. O dispatch faltante foi restaurado
+  na source; `636` continua sendo cancelamento local sem packet.
 - A vtable da aplicação em `0x005A6104` contém, nos slots `+0x00..+0x1C`,
   `FUN_0055F3E0`, `FUN_0055BC0A`, `FUN_0055D066`, `FUN_0055D345`,
   `FUN_0055EDF7`, `FUN_0055D6E6`, `FUN_0055EE1E` e `FUN_0055EE45`.
@@ -323,8 +330,9 @@ infraestrutura e schema das fichas       | STATICALLY VERIFIED | scripts e templ
 correlação estrutural native/source       | AUTOMATED TESTED     | Ghidra real + correlator: 88 exact, 385 candidates
 gate de tamanho por opcode               | LOCATED             | entrada nativa localizada; caller/direção pendentes
 foco, IME e lifecycle de controles       | LOCATED             | fluxo principal localizado; xrefs/teardown pendentes
-transição e troca de cenas                | LOCATED             | shutdown e hook fechados; ownership, convergência e relogin pendentes
+transição e troca de cenas                | LOCATED             | logout/relogin fechado à parte; ownership e convergência global pendentes
 reconstrução Field pós-migração           | STATICALLY VERIFIED | ficha CONTRACT e source no commit 60c57760; fluxo real pendente
+logout para seleção e relogin             | STATICALLY VERIFIED | ficha CONTRACT; dispatch 633..635 compilado; fluxo real pendente
 código ativo do client                    | IMPLEMENTED         | Basedef/ObjectManager/TMFieldScene/TMScene alterados; servidor preservado
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
@@ -343,7 +351,8 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
   e ferramentas reproduzíveis, incluindo export e correlação diferencial de
   fingerprints com testes determinísticos.
 - `.agents/research/client748/` — README, template, quatro exports focados e as
-  três fichas iniciais, incluindo `flows/lifecycle/scene-transition.md`; o
+  fichas do programa, incluindo `flows/lifecycle/scene-transition.md` e o
+  contrato `character-logout-selectchar-relogin.md`; o
   inventário README inclui o procedimento do triador. O ledger
   `inventory/scene-transition-evidence-log.md` preserva a rodada de 56
   exports e a ficha de migração registra o contrato aplicado.
@@ -364,8 +373,19 @@ antes de editar; handoff não funciona como lock.
 
 ```text
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-resultado: exit 0; reexecutado em 2026-08-30 após mover o ledger para
-inventory/; três fichas válidas; LOCATED=3
+resultado: exit 0; reexecutado em 2026-08-31; cinco fichas válidas;
+CONTRACT=2 e LOCATED=3
+
+python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
+resultado: exit 0; 4.146 funções, 40 STATICALLY_EVIDENCED, 23 LOCATED e
+4.083 UNMAPPED
+
+go test ./internal/game ./internal/wire
+resultado: exit 0
+
+client-source/tmproject/Build-Client.ps1
+resultado: exit 0; 31 warnings preexistentes, zero erros; candidato instalado
+com SHA-256 746A2913FA62DD56892319BD136CD15810A4B74092AD75F354E60C6B3FFC5BBD
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
@@ -492,14 +512,13 @@ ocorrências.
 
 ## Pendências e riscos
 
-- Resolver no projeto Ghidra os xrefs e o caller real de `FUN_0055890A`, a
-  direção do packet, a fase do transporte e a rejeição aplicada pelo caller.
-  A evidência atual permite somente a conclusão `PROBABLE` de que não há entrada
-  estática identificada por xref `FLOW`, thunk ou `E8/E9 rel32`; alcançabilidade
-  indireta/runtime continua `UNRESOLVED` e não autoriza declarar código morto.
+- O branch `0x116` de `FUN_0055890A` está fechado pelo contrato de relogin, mas
+  a função completa permanece `LOCATED`: sua alcançabilidade indireta/runtime e
+  os demais branches ainda não autorizam promoção integral nem declaração de
+  código morto.
 - Reabrir no Ghidra a cadeia de entrada, foco, IME, árvore e teardown registrada
-  em `ui/control-focus-ime-lifecycle.md`; fechar alocação parcial, troca de cena,
-  logout/relogin e controles opcionais.
+  em `ui/control-focus-ime-lifecycle.md`; fechar alocação parcial, troca de cena
+  e controles opcionais. O menu System de logout está fechado na ficha própria.
 - Resolver `FUN_00452733` e `FUN_0047E4D6` diretamente no projeto Ghidra ou
   mantê-las explicitamente como não confirmadas. Não fabricar entrada no corpus.
 - Não promover nenhuma ficha por compilação, semelhança de source ou pressão de
@@ -514,17 +533,19 @@ ocorrências.
 - A ficha de cenas permanece `LOCATED`: os receivers/retornos `+0x4C` das cenas
   `0/5/7/8`, a ordem local de coleta/detach, o caller do shutdown e o lifecycle
   do hook global de teclado estão fechados; faltam callers de estado restantes,
-  classes/ownership, convergência integral do teardown e logout/relogin.
+  classes/ownership e convergência integral do teardown. Logout/relogin explícito
+  está fechado na ficha própria.
 - Os traversals `FUN_004B29B9` e `FUN_004B2D35` estão fechados no recorte do
   `ObjectManager`; não generalizar sua semântica aos demais hits globais.
 
 ## Próximo passo executável
 
-1. Abrir `logout-relogin-next-roots.tsv`, `logout-relogin-roots-focused.tsv`,
-   `logout-ui-vtable-roots.tsv` e `logout-ui-vtable-table-window.tsv` sem reler
-   exports já fechados.
-2. Fechar uma transição observável de logout/relogin, incluindo entrada,
-   receptores, estado, teardown e reconstrução da sessão/cena.
+1. Executar no candidato hasheado os controles `633`, `634`, `635` e `636`, a
+   volta à seleção e o relogin no mesmo personagem e em outro slot; até isso,
+   manter o estado máximo `STATICALLY VERIFIED`.
+2. Continuar o lifecycle por uma ficha estreita de shutdown global, troca de
+   conta ou reconexão TCP, partindo da source viva e abrindo no Ghidra somente
+   os callers/callees que decidirem a transição escolhida.
 3. Inspecionar a source atual e classificar o próximo delta concreto. Se ele
    depender de paridade nativa, fechar entrada, callers, callees, estado, erros,
    ownership e teardown antes de adaptá-lo; se for modernização/extensão
