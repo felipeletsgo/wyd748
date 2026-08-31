@@ -36,7 +36,6 @@ constexpr DWORD operator""_sec(unsigned long long sec)
 
 extern NewApp* g_pApp;
 extern CPSock* g_pSocketManager;
-extern CPSock* g_LoginSocket;
 extern ObjectManager* g_pObjectManager;
 extern EventTranslator* g_pEventTranslator;
 extern MeshManager* g_pMeshManager;

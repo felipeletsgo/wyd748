@@ -3,7 +3,6 @@
 
 NewApp* g_pApp;
 CPSock* g_pSocketManager;
-CPSock* g_LoginSocket;
 ObjectManager* g_pObjectManager;
 EventTranslator* g_pEventTranslator;
 MeshManager* g_pMeshManager;

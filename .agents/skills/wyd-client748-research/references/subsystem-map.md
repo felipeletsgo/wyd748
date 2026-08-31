@@ -7,7 +7,7 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Subsistema | Transições a mapear | Estado atual | Fichas |
 | --- | --- | --- | --- |
 | Bootstrap e configuração | WinMain, config, device, managers, primeira cena, falha de boot | `UNMAPPED` | — |
-| Transporte e criptografia | connect, seed/queues, framing, decrypt, checksum, disconnect | `UNMAPPED` | — |
+| Transporte e criptografia | connect, seed/queues, framing, decrypt, checksum, disconnect | `CONTRACT` estreito | `transport/socket-disconnect-return-selectserver.md` cobre connect, callback, ownership e disconnect; framing, decrypt e checksum permanecem abertos |
 | Gate de tamanho por opcode | header recebido, opcode/tamanho, log/rejeição, caller real | `LOCATED` | `transport/packet-size-gate.md` |
 | Seleção de servidor e login | server list, credenciais, resposta, troca de chaves, falhas | `UNMAPPED` | — |
 | Seleção/criação de personagem | lista, create/delete, slot, enter world, teardown | `CONTRACT` estreito | `lifecycle/character-logout-selectchar-relogin.md` cobre logout, retorno à seleção e novo enter world; criação/delete permanecem abertos |
@@ -23,7 +23,7 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Mix, quest e sistemas especiais | recipes, slots, intents, resposta, falha | `UNMAPPED` | — |
 | UI e lifecycle | construção, binding, root, input, focus, destroy, relogin | `LOCATED` | `ui/control-focus-ime-lifecycle.md` |
 | Render e assets | loaders, meshes, texturas, escala, pipeline, device reset | `UNMAPPED` | — |
-| Shutdown e reconexão | socket close, cena teardown, globals, retry, exit | `CONTRACT` por fluxos estreitos | `lifecycle/application-close-global-shutdown.md` cobre teardown terminal; `field-scene-rebuild-after-server-move.md` cobre migração e `character-logout-selectchar-relogin.md` cobre logout na mesma sessão; troca de conta/reconexão TCP permanecem abertas |
+| Shutdown e reconexão | socket close, cena teardown, globals, retry, exit | `CONTRACT` por fluxos estreitos | `lifecycle/application-close-global-shutdown.md` cobre teardown terminal; `transport/socket-disconnect-return-selectserver.md` cobre disconnect e novo login; `field-scene-rebuild-after-server-move.md` cobre migração e `character-logout-selectchar-relogin.md` cobre logout na mesma sessão; troca explícita de conta permanece aberta |
 
 Os documentos `WYD748_PORT.md`, `WYD748_UI_WINDOWS.md` e comentários atuais da
 source são índices legados. Migre conhecimento estável deles para fichas por

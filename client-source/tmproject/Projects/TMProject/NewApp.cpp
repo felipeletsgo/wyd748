@@ -479,7 +479,6 @@ HRESULT NewApp::InitDevice()
 		return 0;
 	}
 	g_pSocketManager = m_pSocketManager;
-	g_LoginSocket = new CPSock();
 	g_pTimerManager->SetServerTime(0);
 
 	m_bActive = 1;
@@ -1126,65 +1125,6 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	case WM_IME_NOTIFY:
 	{
 		// stuffs for china
-	}
-	break;
-	case WM_USER + 1:
-	{
-		if (g_LoginSocket == nullptr)
-			break;
-
-		if (lParam != 1)
-		{
-			g_LoginSocket->CloseSocket();
-			m_pObjectManager->OnPacketEvent(0, nullptr);
-			break;
-		}
-
-		if (!g_LoginSocket->Receive())
-		{
-			g_LoginSocket->CloseSocket();
-			break;
-		}
-
-		int Error = 0;
-		int nType = 0;
-		while (1)
-		{
-			char* Msg = g_LoginSocket->ReadMessage(&Error, &nType);
-
-			if (Msg == nullptr || Error != 0)
-				break;
-
-			MSG_STANDARD* pStd = (MSG_STANDARD*)Msg;
-
-			unsigned int dwServerTime = m_pTimerManager->GetServerTime();
-			g_dwServerTime = pStd->Tick;
-			g_dwClientTime = dwServerTime / 1000;
-
-			if (g_hPacketDump != nullptr)
-			{
-				unsigned int dwTermTime = dwServerTime - g_dwStartPacketTime;
-				fwrite(&dwTermTime, 4, 1, g_hPacketDump);
-				fwrite(pStd, pStd->Size, 1, g_hPacketDump);
-			}
-
-			if (dwServerTime > g_pLastFixTime + 10000)
-			{
-				if (g_pCurrentScene != nullptr && g_pCurrentScene->m_nAdjustTime != 0)
-				{
-					if (g_dwServerTime > dwServerTime + 500)
-					{
-						m_pTimerManager->SetServerTime(dwServerTime + 85);
-					}
-					else if (g_dwServerTime < dwServerTime - 500)
-					{
-						m_pTimerManager->SetServerTime(dwServerTime - 85);
-					}
-				}
-				g_pLastFixTime = dwServerTime;
-			}
-			m_pObjectManager->OnPacketEvent(pStd->Type, Msg);
-		}
 	}
 	break;
 	case WM_USER + 100:

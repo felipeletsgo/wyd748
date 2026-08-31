@@ -57,6 +57,7 @@ Estado atual do mapa:
 | Gate de tamanho por opcode | `LOCATED` | `flows/transport/packet-size-gate.md` |
 | Foco, IME e lifecycle de controles | `LOCATED` | `flows/ui/control-focus-ime-lifecycle.md` |
 | Transição e troca de cenas | `LOCATED` | `flows/lifecycle/scene-transition.md` |
+| Disconnect TCP e retorno à seleção | `CONTRACT` | `flows/transport/socket-disconnect-return-selectserver.md` |
 | Reconstrução Field após migração de servidor | `CONTRACT` | `flows/lifecycle/field-scene-rebuild-after-server-move.md` |
 | Logout de personagem, seleção e relogin | `CONTRACT` | `flows/lifecycle/character-logout-selectchar-relogin.md` |
 | Fechamento da aplicação e shutdown global | `CONTRACT` | `flows/lifecycle/application-close-global-shutdown.md` |

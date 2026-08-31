@@ -47,7 +47,7 @@ presumidos intencionais; ausência no nativo 7.48 não autoriza remoção.
 
 ```text
 client748/wyd.exe nativo+patches/WYD.exe | referência histórica Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                    | candidato source volátil    | 746A2913FA62DD56892319BD136CD15810A4B74092AD75F354E60C6B3FFC5BBD
+client748/project.exe                    | candidato source volátil    | 484580A681FB12226660084DAFBB1DACB93665C4F06C4A0853AEFFD13660069D
 %USERPROFILE%\Tools\GhidraProjects\WYD748Native_20260821.gpr | projeto Ghidra | descobrir no perfil
 %USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled       | corpus auxiliar | 4.146 funções
 ```
@@ -341,7 +341,8 @@ transição e troca de cenas                | LOCATED             | shutdown/log
 reconstrução Field pós-migração           | STATICALLY VERIFIED | ficha CONTRACT e source no commit 60c57760; fluxo real pendente
 logout para seleção e relogin             | STATICALLY VERIFIED | ficha CONTRACT; dispatch 633..635 compilado; fluxo real pendente
 fechamento e shutdown global              | STATICALLY VERIFIED | ficha CONTRACT; source atual mantida; fluxo real pendente
-código ativo do client                    | IMPLEMENTED         | Basedef/ObjectManager/TMFieldScene/TMScene alterados; servidor preservado
+disconnect TCP e retorno à seleção        | STATICALLY VERIFIED | ficha CONTRACT; socket redundante removido; fluxo real pendente
+código ativo do client                    | IMPLEMENTED         | inclui NewApp/TMGlobal; servidor preservado
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
 
@@ -361,7 +362,8 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
 - `.agents/research/client748/` — README, template, quatro exports focados e as
   fichas do programa, incluindo `flows/lifecycle/scene-transition.md` e o
   contrato `character-logout-selectchar-relogin.md`, além do contrato terminal
-  `application-close-global-shutdown.md`; o
+  `application-close-global-shutdown.md` e do contrato de transporte
+  `socket-disconnect-return-selectserver.md`; o
   inventário README inclui o procedimento do triador. O ledger
   `inventory/scene-transition-evidence-log.md` preserva a rodada de 56
   exports e a ficha de migração registra o contrato aplicado.
@@ -371,6 +373,9 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
   Ghidra e não pertencem ao commit.
 - `.agents/handoffs/client748-research-program.md` — estado operacional deste
   programa.
+- `client-source/tmproject/Projects/TMProject/NewApp.cpp`, `TMGlobal.cpp` e
+  `TMGlobal.h` — remoção do `g_LoginSocket` e do callback `WM_USER + 1`
+  inalcançáveis; `g_pSocketManager`/`WM_USER + 100` permanecem ativos.
 - `.agents/handoffs/client748-parity.md` — escopo anterior preservado e não
   alterado por este programa.
 
@@ -382,8 +387,8 @@ antes de editar; handoff não funciona como lock.
 
 ```text
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-resultado: exit 0; reexecutado em 2026-08-31; seis fichas válidas;
-CONTRACT=3 e LOCATED=3
+resultado: exit 0; reexecutado em 2026-08-31; sete fichas válidas;
+CONTRACT=4 e LOCATED=3
 
 python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
 resultado: exit 0; 4.146 funções, 46 STATICALLY_EVIDENCED, 22 LOCATED e
@@ -394,7 +399,7 @@ resultado: exit 0
 
 client-source/tmproject/Build-Client.ps1
 resultado: exit 0; 31 warnings preexistentes, zero erros; candidato instalado
-com SHA-256 746A2913FA62DD56892319BD136CD15810A4B74092AD75F354E60C6B3FFC5BBD
+com SHA-256 484580A681FB12226660084DAFBB1DACB93665C4F06C4A0853AEFFD13660069D
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
@@ -549,9 +554,10 @@ ocorrências.
 
 ## Próximo passo executável
 
-1. Executar no candidato hasheado os controles `633`, `634`, `635` e `636`, a
-   volta à seleção e o relogin no mesmo personagem e em outro slot; até isso,
-   manter o estado máximo `STATICALLY VERIFIED`.
+1. Executar no candidato hasheado os controles `633`, `634`, `635` e `636`, uma
+   queda TCP com retorno à seleção, novo login no mesmo personagem e em outro
+   slot e migração entre servidores/canais; até isso, manter o estado máximo
+   `STATICALLY VERIFIED`.
 2. Continuar o lifecycle por uma ficha estreita de troca de conta ou reconexão
    TCP, partindo da source viva e abrindo no Ghidra somente os callers/callees
    que decidirem a transição escolhida. Não reabrir o shutdown global sem nova
