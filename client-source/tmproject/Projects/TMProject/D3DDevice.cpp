@@ -1056,7 +1056,7 @@ void D3DDevice::CaptureScreen()
 	int nCount = 0;
 	TCHAR szFileName[128];
 
-	sprintf((char*)szFileName, "ScreenShot\\Capture%04d.bmp", 0);
+	sprintf((char*)szFileName, "ScreenShot\\Capture%04d.jpg", 0);
 
 	do
 	{
@@ -1065,12 +1065,14 @@ void D3DDevice::CaptureScreen()
 			break;
 
 		_close(handle);
-		sprintf((char*)szFileName, "ScreenShot\\Capture%04d.bmp", ++nCount);
+		sprintf((char*)szFileName, "ScreenShot\\Capture%04d.jpg", ++nCount);
 	} while (nCount <= 9999);
 
 	m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE::D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
 
-	if (D3DXSaveSurfaceToFile(szFileName, D3DXIMAGE_FILEFORMAT::D3DXIFF_BMP, pBackBuffer, 0, 0) < 0)
+	// The 7.48 contract exposes only the numbered JPG; D3DX can produce it
+	// directly without the native client's temporary BMP conversion step.
+	if (D3DXSaveSurfaceToFile(szFileName, D3DXIMAGE_FILEFORMAT::D3DXIFF_JPG, pBackBuffer, 0, 0) < 0)
 		LOG_WRITELOG("Can't capture screen\r\n");
 
 	pBackBuffer->Release();

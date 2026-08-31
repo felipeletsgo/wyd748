@@ -350,6 +350,7 @@ logout para seleção e relogin             | STATICALLY VERIFIED | ficha CONTRA
 fechamento e shutdown global              | STATICALLY VERIFIED | ficha CONTRACT; source atual mantida; fluxo real pendente
 disconnect TCP e retorno à seleção        | STATICALLY VERIFIED | ficha CONTRACT; socket redundante removido; fluxo real pendente
 counters EXP na seleção de personagem     | STATICALLY VERIFIED | ficha TRACED; controles 1314/1315 compilados; fluxo real pendente
+captura Print Screen em JPG              | STATICALLY VERIFIED | ficha TRACED; JPG compilado; fluxo real pendente
 código ativo do client                    | IMPLEMENTED         | inclui NewApp/TMGlobal; servidor preservado
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
@@ -369,6 +370,24 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
   estava em execução como PID `16144`. Após confirmar o caminho exato e encerrar
   esse processo, o pipeline oficial instalou o novo `project.exe` com SHA-256
   `51AFF48D55D475E510A083CE8B469776E657BDBEA61E200BFA81FAD26E3C76CE`.
+
+### Delta de 2026-08-31 — captura de tela em JPG
+
+- `ui/screenshot-capture.md` fechou em `TRACED` a entrada
+  `WM_KEYUP/VK_SNAPSHOT`, o caller `FUN_0055DAB8`, a raiz `FUN_00427AA8`, seus
+  callees, a numeração, as falhas e o release do backbuffer.
+- O scraping do guia oficial KR em `DOCS/GUIA/GUIAS_JOGABILIDADE.md` confirma
+  o contrato observável `ScreenShot\Capture0000.jpg`.
+- `D3DDevice::CaptureScreen` agora procura o primeiro nome JPG livre e grava
+  `D3DXIFF_JPG`. O nome/formato é `PARIDADE_NATIVA`; o encoder D3DX direto é
+  `MODERNIZACAO_COMPATIVEL` e substitui somente o BMP temporário/conversão.
+- Não há mudança server-side, packet, ABI, layout ou estado persistente.
+- O build oficial concluiu com zero warnings e zero erros e instalou
+  `client748/project.exe` com SHA-256
+  `221AB0DB498D7193A64F884A32F2A7A0086A5CEBE352F3EEED918CE6F7FC4D09`.
+- O estado máximo é `STATICALLY VERIFIED`. O teste real de duas capturas,
+  abertura dos JPGs e falha de escrita permanece pendente; não alegar
+  `CLIENT_TESTED`.
 
 ## Worktree e arquivos ativos
 
@@ -411,8 +430,8 @@ antes de editar; handoff não funciona como lock.
 
 ```text
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-resultado: exit 0; reexecutado em 2026-08-31; oito fichas válidas;
-CONTRACT=4, LOCATED=3 e TRACED=1
+resultado: exit 0; reexecutado em 2026-08-31; nove fichas válidas;
+CONTRACT=4, LOCATED=3 e TRACED=2
 
 python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
 resultado: exit 0; 4.146 funções, 46 STATICALLY_EVIDENCED, 22 LOCATED e
@@ -424,7 +443,7 @@ resultado: exit 0
 client-source/tmproject/Build-Client.ps1
 resultado desta retomada: exit 0; zero warnings e zero erros; candidato
 instalado com SHA-256
-51AFF48D55D475E510A083CE8B469776E657BDBEA61E200BFA81FAD26E3C76CE
+221AB0DB498D7193A64F884A32F2A7A0086A5CEBE352F3EEED918CE6F7FC4D09
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
