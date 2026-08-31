@@ -19043,7 +19043,83 @@ char TMFieldScene::UseMPotion()
 
 void TMFieldScene::UsePPotion()
 {
-	;
+	if (!m_pGridInv || !m_pMyHuman || !g_pObjectManager || !g_pTimerManager)
+		return;
+
+	SGridControlItem* pItem = nullptr;
+	// FUN_0044F88F scans X first, then Y, and deliberately skips item 3378.
+	for (int nX = 8; nX >= 0 && !pItem; --nX)
+	{
+		for (int nY = 6; nY >= 0; --nY)
+		{
+			auto* pCandidate = m_pGridInv->GetItem(nX, nY);
+			if (pCandidate && pCandidate->m_pItem
+				&& BASE_GetItemAbility(pCandidate->m_pItem, 38) == 230
+				&& pCandidate->m_pItem->sIndex != 3378)
+			{
+				pItem = pCandidate;
+				break;
+			}
+		}
+	}
+
+	if (!pItem || !pItem->m_pItem || !pItem->m_pGridControl)
+		return;
+
+	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
+	if (m_dwUseItemTime && dwServerTime - m_dwUseItemTime < 200)
+		return;
+
+	m_pGridInv->CheckType(pItem->m_pGridControl->m_eItemType,
+		pItem->m_pGridControl->m_eGridType);
+
+	int SourPos = m_pGridInv->CheckPos(pItem->m_pGridControl->m_eItemType);
+	if (SourPos == -1)
+		SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+	if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+		return;
+
+	auto vec = m_pMyHuman->m_vecPosition;
+
+	MSG_UseItem stUseItem{};
+	stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
+	stUseItem.Header.Type = MSG_UseItem_Opcode;
+	stUseItem.SourType = 1;
+	stUseItem.SourPos = SourPos;
+	stUseItem.ItemID = 0;
+	stUseItem.GridX = (int)vec.x;
+	stUseItem.GridY = (int)vec.y;
+	SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+	m_dwUseItemTime = dwServerTime;
+
+	// This shortcut is one of the native optimistic-consumption paths. Once the
+	// server resolves a valid occupied slot, rejected uses republish that slot.
+	int nAmount = BASE_GetItemAmount(pItem->m_pItem);
+	if (nAmount <= 1)
+	{
+		int carryX = 0;
+		int carryY = 0;
+		GetCarryCellForSlot(SourPos, carryX, carryY);
+		auto* pCarryGrid = GetCarryGridForSlot(SourPos);
+		auto* pPickedItem = pCarryGrid ? pCarryGrid->PickupItem(carryX, carryY) : nullptr;
+		if (g_pCursor && g_pCursor->m_pAttachedItem == pPickedItem)
+			g_pCursor->m_pAttachedItem = nullptr;
+
+		SAFE_DELETE(pPickedItem);
+		if (g_pCursor)
+			g_pCursor->DetachItem();
+		memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
+	}
+	else
+	{
+		BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
+		sprintf(pItem->m_GCText.strString, "%2d", nAmount - 1);
+		if (pItem->m_GCText.pFont)
+			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
+	}
+
+	GetSoundAndPlay(41, 0, 0);
+	UpdateScoreUI(16);
 }
 
 int TMFieldScene::IsFeedPotion(short sMountIndex, short sItemIndex)

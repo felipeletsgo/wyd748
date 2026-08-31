@@ -1101,14 +1101,18 @@ func TestOnUseItemRejectsInvalidStateAndCooldown(t *testing.T) {
 	}
 
 	p.LastPotion = time.Now()
+	beforePackets := p.Session.QueuedPacketsForTest()
 	w.onUseItem(p.Session, useItemPacket(0, 0))
 	if p.Char.Inv[0].Index != 100 || playerCurHP(p.Char) != 500 {
 		t.Fatal("cooldown de pocao nao preservou estado")
 	}
+	if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
+		t.Fatalf("cooldown nao ressincronizou consumo otimista: %d -> %d", beforePackets, got)
+	}
 
 	delete(w.items, 100)
 	p.LastPotion = time.Time{}
-	beforePackets := p.Session.QueuedPacketsForTest()
+	beforePackets = p.Session.QueuedPacketsForTest()
 	w.onUseItem(p.Session, useItemPacket(0, 0))
 	if p.Char.Inv[0].Index != 100 {
 		t.Fatal("item fora do catalogo foi consumido")

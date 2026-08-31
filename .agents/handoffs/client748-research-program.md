@@ -603,6 +603,23 @@ ocorrências.
 
 ## Próximo passo executável
 
+### Lote implementado em 2026-08-31: atalho `E/e`
+
+- `TMFieldScene::UsePPotion` foi implementado por paridade nativa a partir de
+  `FUN_0044F88F`: busca X/Y reversa, ability 38 = 230, exclusão do item 3378,
+  cooldown compartilhado, `MSG_UseItem 0x373/36`, consumo otimista, cursor,
+  som 41 e refresh 16.
+- A ficha `flows/ui/special-potion-shortcut.md` está `CONTRACT` e fecha os
+  callers `FUN_00452661`, `FUN_00453C59`, `FUN_004541F3` e `FUN_004662C5`,
+  além de ownership, falhas, teardown, shutdown e relogin.
+- O teste server-side de cooldown agora exige `SendItem` para recompor a
+  redução visual antecipada pelo client. O teste focado, a suíte Go completa,
+  `validate_research.py` e `git diff --check` passaram.
+- `Build-Client.ps1` passou com 13 warnings já existentes e zero erros; o
+  `client748/project.exe` instalado tem SHA-256
+  `813DB51D963D14728A3D3ECB014759DAB77ADBDECA10D3AF4C9D80355039CB2A`.
+- Não houve execução real do atalho; não alegar `CLIENT_TESTED`.
+
 ### Lote implementado em 2026-08-31: atalho `F/f`
 
 - `TMFieldScene::OnKeyAuto` foi implementado por paridade nativa a partir de

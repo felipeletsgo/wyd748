@@ -62,6 +62,7 @@ Estado atual do mapa:
 | Logout de personagem, seleção e relogin | `CONTRACT` | `flows/lifecycle/character-logout-selectchar-relogin.md` |
 | Fechamento da aplicação e shutdown global | `CONTRACT` | `flows/lifecycle/application-close-global-shutdown.md` |
 | Atalho F para consumível vinculado ao equipamento | `CONTRACT` | `flows/ui/equipped-item-matched-consumable-shortcut.md` |
+| Atalho E para poção especial | `CONTRACT` | `flows/ui/special-potion-shortcut.md` |
 
 `LOCATED` permite investigação e documentação, não edição comportamental.
 `TRACED` exige callers/callees e estado/erros fechados; `CONTRACT` acrescenta
