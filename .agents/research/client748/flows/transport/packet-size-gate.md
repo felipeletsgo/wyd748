@@ -4,7 +4,7 @@ title: Validar tamanho fixo pelo opcode do packet
 subsystem: transport
 status: LOCATED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-08-28
+updated: 2026-08-31
 ---
 
 # Validar tamanho fixo pelo opcode do packet
@@ -68,6 +68,11 @@ para o corpo e thunks reconhecidos. Chamada ou branch indireto, destino derivado
 tabela construída em runtime ou mecanismo não materializado pelo Ghidra
 continuam possíveis.
 
+`CONFIRMED`: a imagem PE não possui Export Directory (`RVA=0`, `size=0`) e
+`dumpbin /exports` não lista símbolos. Portanto, `FUN_0055890A` também não é
+alcançada como exportação do executável. Essa ausência não decide entradas
+internas calculadas em runtime.
+
 ### Função principal
 
 `CONFIRMED`: `FUN_0055890A` compara dezenas de pares opcode/tamanho. Exemplos:
@@ -100,9 +105,10 @@ permanece `UNRESOLVED`.
 Não há mutação visível no packet. O lifecycle de recepção/rejeição ainda depende
 do caller não resolvido; portanto a ficha permanece `LOCATED`.
 
-`PROBABLE`: a rotina foi compilada em seção executável sem entrada estática
-identificada por xref `FLOW`, thunk, `CALL/JMP rel32` decodificado ou
-`CALL/JMP rel32` bruto. Isso não autoriza classificá-la como código morto.
+`PROBABLE`: a rotina está inalcançável nesta build pelos mecanismos estáticos
+inspecionados: exportação PE, xref `FLOW`, thunk, ponteiro VA literal e
+`CALL/JMP rel32` decodificado ou bruto. Isso não autoriza classificá-la como
+código morto, pois um destino ainda pode ser derivado ou construído em runtime.
 
 `UNRESOLVED`: alcançabilidade em runtime por chamada/branch indireto, destino
 derivado, tabela construída em runtime ou outro mecanismo não materializado
@@ -123,6 +129,16 @@ pelo projeto Ghidra atual.
 keyword e checksum, mas a investigação atual não localizou chamada equivalente
 ao gate opcode/tamanho. `WYD748Compat.cpp` protege diversos layouts com
 `static_assert`; isso é proteção de build, não validação runtime de entrada.
+
+`REJECTED` como correspondência semântica: a correlação diferencial contra o
+`project.exe` de SHA-256
+`F8251714775601720307940598522E6D2924E5C61DAB300728F949FE0C8A380B` retornou
+somente candidatos fracos e não recíprocos: `D3DX::jpeg_idct_float` em
+`0x0043C550` (`NO_MATCH`, score `10.51`), `TMHouse::Render @ 0x004E5110`
+(`CANDIDATE`, `10.48`) e `TMHuman::CheckWeapon @ 0x00507D40` (`CANDIDATE`,
+`10.36`), todos sem suporte de vizinhos. Nenhum deles implementa um gate de
+packet; o cache apenas descarta uma correspondência estrutural confiável nessa
+source antiga e não prova ausência na source atual.
 
 ### WYD-Go
 
@@ -170,5 +186,9 @@ enviados ao client. A equivalência completa por opcode ainda não foi comparada
   `E51351C895E0F9439AF37E97DDE30F12F98A3822E728EA691115B10E9542EAF6`.
   Depois de tornar a expansão das jump tables segura contra wrap no limite do
   address space, o script recompilou e reproduziu o arquivo byte a byte. O
-  caller permanece pendente e impede promoção além de `LOCATED`.
+  `dumpbin /headers /exports` confirmou `RVA=0` e `size=0` para a Export
+  Directory. A correlação diferencial cacheada do candidato
+  `F8251714...A380B` retornou um `NO_MATCH` e dois `CANDIDATE` sem reciprocidade
+  ou suporte de callgraph; nenhum corresponde semanticamente ao gate. O caller
+  permanece pendente e impede promoção além de `LOCATED`.
 - Client real: não executado; nenhuma mudança comportamental foi feita.
