@@ -700,6 +700,25 @@ ocorrências.
 - Não houve execução real da Field; não alegar `CLIENT_TESTED`. Compra/aposta
   permanece fora deste lote.
 
+### Lote implementado em 2026-08-31: seleção e fechamento TOTO
+
+- `TotoSelect`, `TotoClose`, `OnKeyTotoTab` e `OnKeyTotoEnter` foram
+  implementados por paridade com `FUN_00472651`, `FUN_00472966`,
+  `FUN_00455B5B` e `FUN_00455C38`.
+- A seleção valida `1..g_nTOTOListCount`, limpa os três edits, publica
+  horário/equipes e conserva zero para entrada inválida. Tab e Enter percorrem
+  número, placar A e placar B conforme o fluxo nativo.
+- Botão fechar e ambos os caminhos de Esc passam por `TotoClose`, removendo
+  foco, ocultando o painel e zerando `m_nTotoNum`.
+- A ficha `flows/ui/toto-selection-close.md` está `TRACED` e registra callers,
+  IDs, vtables/receptores, ownership, falha parcial, teardown, shutdown e
+  relogin.
+- `FUN_004481C5(1)` não foi portado: é uma rotina ampla de UI ainda sem
+  correlação source única. `TotoBuy` e `0x3CE` continuam bloqueados até ficha
+  `CONTRACT` client/server com rejeição, rollback e relogin.
+- Build e hash do novo `client748/project.exe` devem ser registrados após a
+  validação deste lote. Não alegar `CLIENT_TESTED` sem execução real.
+
 1. Executar no candidato hasheado a seleção de um personagem comum e um de
    segunda classe, confirmando que `1314` mostra a EXP atual e `1315` o limiar
    correto da tabela normal/G2; até isso, manter `STATICALLY VERIFIED`.

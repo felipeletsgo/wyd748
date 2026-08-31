@@ -17518,7 +17518,7 @@ void TMFieldScene::OnESC()
 	}
 	else if (m_pTotoPanel && m_pTotoPanel->IsVisible() == 1)
 	{
-		m_pTotoPanel->SetVisible(0);
+		TotoClose();
 	}
 	else if (m_pInvenPanel->IsVisible() == 1)
 	{
@@ -19499,6 +19499,29 @@ void TMFieldScene::DrawCustomFireWork(int nIndex)
 
 void TMFieldScene::TotoSelect()
 {
+	if (!m_pTotoPanel || !m_pTotoNumber_Edit || !m_pTotoScoreA_Edit ||
+		!m_pTotoScoreB_Edit || !m_pTotoTime_Txt || !m_pTotoTeamA_Txt ||
+		!m_pTotoTeamB_Txt)
+	{
+		m_nTotoNum = 0;
+		return;
+	}
+
+	const int totoNumber = atoi(m_pTotoNumber_Edit->GetText());
+	m_pTotoNumber_Edit->SetText((char*)"");
+	m_pTotoScoreA_Edit->SetText((char*)"");
+	m_pTotoScoreB_Edit->SetText((char*)"");
+
+	if (totoNumber < 1 || totoNumber > g_nTOTOListCount)
+	{
+		m_nTotoNum = 0;
+		return;
+	}
+
+	m_pTotoTime_Txt->SetText(g_pTOTOList[totoNumber].szTime, 0);
+	m_pTotoTeamA_Txt->SetText(g_pTOTOList[totoNumber].szTeamA, 0);
+	m_pTotoTeamB_Txt->SetText(g_pTOTOList[totoNumber].szTeamB, 0);
+	m_nTotoNum = totoNumber;
 }
 
 void TMFieldScene::TotoBuy()
@@ -19507,6 +19530,17 @@ void TMFieldScene::TotoBuy()
 
 void TMFieldScene::TotoClose()
 {
+	if (!m_pTotoPanel)
+		return;
+
+	if (m_pTotoPanel->IsVisible())
+	{
+		if (m_pControlContainer)
+			m_pControlContainer->SetFocusedControl(nullptr);
+
+		m_pTotoPanel->SetVisible(0);
+		m_nTotoNum = 0;
+	}
 }
 
 void TMFieldScene::MobStop(D3DXVECTOR3 vec)
@@ -21231,12 +21265,44 @@ int TMFieldScene::OnKeyNumPad(unsigned int iKeyCode)
 
 int TMFieldScene::OnKeyTotoTab(char iCharCode, int lParam)
 {
-	return 0;
+	if (iCharCode != '\t' || !m_pTotoPanel || !m_pTotoPanel->IsVisible() ||
+		!m_pControlContainer || !m_pTotoNumber_Edit || !m_pTotoScoreA_Edit ||
+		!m_pTotoScoreB_Edit)
+	{
+		return 0;
+	}
+
+	if (m_pControlContainer->m_pFocusControl == m_pTotoNumber_Edit)
+		m_pControlContainer->SetFocusedControl(m_pTotoScoreA_Edit);
+	else if (m_pControlContainer->m_pFocusControl == m_pTotoScoreA_Edit)
+		m_pControlContainer->SetFocusedControl(m_pTotoScoreB_Edit);
+	else if (m_pControlContainer->m_pFocusControl == m_pTotoScoreB_Edit)
+		m_pControlContainer->SetFocusedControl(m_pTotoNumber_Edit);
+	else
+		return 0;
+
+	return 1;
 }
 
 int TMFieldScene::OnKeyTotoEnter(char iCharCode, int lParam)
 {
-	return 0;
+	if (iCharCode != '\r' || !m_pTotoPanel || !m_pTotoPanel->IsVisible() ||
+		!m_pControlContainer || !m_pTotoNumber_Edit || !m_pTotoScoreA_Edit ||
+		!m_pTotoScoreB_Edit)
+	{
+		return 0;
+	}
+
+	if (m_pControlContainer->m_pFocusControl == m_pTotoNumber_Edit)
+		TotoSelect();
+	else if (m_pControlContainer->m_pFocusControl == m_pTotoScoreA_Edit)
+		m_pControlContainer->SetFocusedControl(m_pTotoScoreB_Edit);
+	else if (m_pControlContainer->m_pFocusControl == m_pTotoScoreB_Edit)
+		m_pControlContainer->SetFocusedControl(m_pTotoNumber_Edit);
+	else
+		return 0;
+
+	return 1;
 }
 
 int TMFieldScene::OnPacketMessageChat(MSG_MessageChat* pStd)
@@ -28035,7 +28101,7 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 		else if (m_pFireWorkPanel && m_pFireWorkPanel->IsVisible() == 1)
 			m_pFireWorkPanel->SetVisible(0);
 		else if (m_pTotoPanel && m_pTotoPanel->IsVisible() == 1)
-			m_pTotoPanel->SetVisible(0);
+			TotoClose();
 		else if (pInvPanel->IsVisible() == 1)
 			OnControlEvent(65562, 0);
 		else if (pSkillPanel->IsVisible() == 1)

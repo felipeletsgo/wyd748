@@ -63,7 +63,9 @@ Estado atual do mapa:
 | Fechamento da aplicação e shutdown global | `CONTRACT` | `flows/lifecycle/application-close-global-shutdown.md` |
 | Atalho F para consumível vinculado ao equipamento | `CONTRACT` | `flows/ui/equipped-item-matched-consumable-shortcut.md` |
 | Atalho E para poção especial | `CONTRACT` | `flows/ui/special-potion-shortcut.md` |
-| Sincronização de estado e controles C.C | `UNMAPPED` | `flows/ui/cc-auto-combat-state-sync.md` |
+| Loader da lista TOTO | `CONTRACT` | `flows/ui/toto-list-loader.md` |
+| Seleção, teclado e fechamento TOTO | `TRACED` | `flows/ui/toto-selection-close.md` |
+| Sincronização de estado e controles C.C | `TRACED` | `flows/ui/cc-auto-combat-state-sync.md` |
 | `SetMyHumanMagic` nativo sem efeito | `STATICALLY_EVIDENCED` | `inventory/set-my-human-magic-noop.md` |
 
 `LOCATED` permite investigação e documentação, não edição comportamental.
