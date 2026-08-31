@@ -926,7 +926,26 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 
 	if (!pStd)
 	{
-		if(!m_pMessagePanel->IsVisible())
+		// During a channel migration the native client defers packet 0x52A until
+		// the socket-close callback, but only inside its 15-second retry window.
+		if (m_dwDelayDisconnectTime != 0
+			&& m_dwDelayDisconnectTime + 15000U >= dwServerTime
+			&& m_bMsgRemoveServer == 1)
+		{
+			if (m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
+			{
+				auto pFieldScene = static_cast<TMFieldScene*>(this);
+				pFieldScene->OnPacketEvent(0x52A, reinterpret_cast<char*>(&pFieldScene->m_stRemoveServer));
+			}
+
+			// Native 7.48 consumes the pending migration in every scene, preventing
+			// an obsolete ticket from being replayed after a later return to Field.
+			m_dwDelayDisconnectTime = 0;
+			m_bMsgRemoveServer = 0;
+			return 1;
+		}
+
+		if (m_pMessagePanel && !m_pMessagePanel->IsVisible())
 		{
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[13], 4000u);
 			m_pMessagePanel->SetVisible(1, 1);

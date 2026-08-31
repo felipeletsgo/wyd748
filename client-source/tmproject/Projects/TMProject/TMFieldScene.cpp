@@ -8709,9 +8709,9 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	// The 7.48 compatibility layer changes resource bindings, not gameplay
 	// protocol.  Dispatch every proven opcode through the normal handler table;
 	// dropping the default cases here disabled inventory, stats, shops and NPCs.
-	if (buf == nullptr)
-		return 1;
 	if (TMScene::OnPacketEvent(dwCode, buf) == 1)
+		return 1;
+	if (buf == nullptr)
 		return 1;
 
 	auto pStd = (MSG_STANDARD*)buf;
@@ -22255,7 +22255,12 @@ int TMFieldScene::OnPacketCNFCharacterLogout(MSG_STANDARD* pStd)
 //Reviewed
 int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 {
-	if (pStd->Header.ID != g_pObjectManager->m_dwCharID || g_pSocketManager->Sock)
+	// A migration response belongs only to the active character; accepting a
+	// stale response can reconnect this scene with another session's ticket.
+	if (pStd->Header.ID != g_pObjectManager->m_dwCharID)
+		return 1;
+
+	if (!g_pSocketManager->Sock)
 	{
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[7], 0);
 		m_pMessagePanel->SetVisible(1, 0);
@@ -22324,18 +22329,18 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[8], 4000);
 		m_pMessagePanel->SetVisible(1, 1);
 
-		if (m_eSceneType != ESCENE_TYPE::ESCENE_LOGIN) {
-			printf("Hit 2\n");
+		if (m_eSceneType != ESCENE_TYPE::ESCENE_LOGIN)
+		{
 			g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_SELECTSERVER_STATE);
 		}
 
 		return 1;
 	}
-	else if (pStd->Header.ID == g_pObjectManager->m_dwCharID && g_pSocketManager->Sock)
-	{
-		memcpy(&m_stRemoveServer, pStd, sizeof(m_stRemoveServer));
-		m_bMsgRemoveServer = 1;
-	}
+
+	// Native 7.48 defers an already-connected migration packet until the
+	// disconnect callback, preserving the complete 0x50-byte wire image.
+	memmove(&m_stRemoveServer, pStd, sizeof(m_stRemoveServer));
+	m_bMsgRemoveServer = 1;
 
 	return 1;
 }

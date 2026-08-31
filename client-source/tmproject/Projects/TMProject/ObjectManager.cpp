@@ -702,7 +702,9 @@ void ObjectManager::SetCurrentState(TM_GAME_STATE ieNewState)
 {
 	if (ieNewState == TM_GAME_STATE::TM_FIELD2_STATE)
 	{
-		m_eCurrentState = TM_GAME_STATE::TM_NONE_STATE;
+		// Native 7.48 maps the synthetic state 9 to field state 0 before scene
+		// creation, while bypassing the equality guard to force a fresh FieldScene.
+		m_eCurrentState = TM_GAME_STATE::TM_FIELD_STATE;
 	}
 	else
 	{

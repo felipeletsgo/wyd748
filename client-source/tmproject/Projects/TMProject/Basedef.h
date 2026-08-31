@@ -962,6 +962,12 @@ struct MSG_CNFRemoveServer
 	char TID[52];
 };
 
+// Channel migration is replayed from a byte-for-byte pending packet, so its
+// 7.48 wire layout must not drift with later TMProject definitions.
+static_assert(sizeof(MSG_CNFRemoveServer) == 0x50, "WYD 7.48 remove-server packet size mismatch");
+static_assert(offsetof(MSG_CNFRemoveServer, AccountName) == 0x0C, "WYD 7.48 remove-server AccountName offset mismatch");
+static_assert(offsetof(MSG_CNFRemoveServer, TID) == 0x1C, "WYD 7.48 remove-server TID offset mismatch");
+
 constexpr auto MSG_SendItem_Opcode = 0x182;
 struct MSG_SendItem
 {
