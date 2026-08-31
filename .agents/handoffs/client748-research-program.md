@@ -311,6 +311,13 @@ tipos, stack ou lifecycle no projeto Ghidra.
   e sem erro. No mesmo export, os controles positivos recuperaram 16 e 757
   xrefs `FLOW` e os mesmos 16 e 757 hits brutos, todos classificados como
   instrução.
+- A busca final por RVA armazenado encontrou zero hits para `0x0015890A` e
+  recuperou como controle positivo o entry point
+  `0x001927AC @ 0x00400150 -> 0x005927AC`. Os três usos localizados de
+  `GetModuleHandleA(NULL)` servem a DirectInput, ao bootstrap da aplicação e à
+  leitura do cabeçalho PE; nenhum deriva ou chama `0x0055890A`. A frente
+  estática do gate foi encerrada sem promoção: geração arbitrária de destino em
+  runtime não pode ser eliminada e a ficha permanece `LOCATED`.
 - O export focado `packet-size-gate-bodyrefs.tsv` tem SHA-256
   `E51351C895E0F9439AF37E97DDE30F12F98A3822E728EA691115B10E9542EAF6`.
   `ExportWydFlow.java` passou a encerrar a expansão de jump tables no limite do
@@ -493,6 +500,10 @@ tables; raw_rel32 hits=0 entre 34.511 candidatos/1.859.564 bytes; controles
 positivos dos dois callees passaram; endurecimento boundary-safe preservou o
 export E51351C8...EAF6 byte a byte
 
+wyd748-packet-size-rva-search.tsv em Ghidra 12.1.3 headless/read-only
+resultado: SHA-256 92A97EDC...249A92; zero hits para RVA 0x0015890A e um hit
+para o controle positivo 0x001927AC do entry point; hash nativo embutido correto
+
 ExportWydFlow.java em Ghidra 12.1.3, modos `instructions:` e `table:`
 resultado: exit 0; vtable do ObjectManager e instruções de `FUN_004B3500`,
 `FUN_004B37C9`, quatro construtores de cena e `FUN_0054AC09` exportadas em
@@ -527,9 +538,10 @@ ocorrências.
 ## Pendências e riscos
 
 - O branch `0x116` de `FUN_0055890A` está fechado pelo contrato de relogin, mas
-  a função completa permanece `LOCATED`: sua alcançabilidade indireta/runtime e
-  os demais branches ainda não autorizam promoção integral nem declaração de
-  código morto.
+  a função completa permanece `LOCATED`. VA/RVA literais, exports, xrefs,
+  thunks, branches relativos e consumidores da base do módulo foram esgotados;
+  não repetir esses scans sem novo indício. A alcançabilidade indireta/runtime e
+  os demais branches ainda impedem promoção ou declaração de código morto.
 - Reabrir no Ghidra a cadeia de entrada, foco, IME, árvore e teardown registrada
   em `ui/control-focus-ime-lifecycle.md`; fechar alocação parcial, troca de cena
   e controles opcionais. O menu System de logout está fechado na ficha própria.
@@ -567,8 +579,10 @@ ocorrências.
    ownership e teardown antes de adaptá-lo; se for modernização/extensão
    independente, provar a fronteira correspondente e prosseguir sem aguardar a
    promoção de claims não relacionados.
-4. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
-   sua maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
+4. Não reabrir `packet-size-gate.md` com novos scans estáticos equivalentes. A
+   frente só deve voltar com evidência runtime, novo mecanismo concreto de
+   dispatch indireto ou necessidade de auditar um opcode específico; sua
+   maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
 5. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
    fila/input mudar e `git diff --check` após edições. Atualizar este handoff
    somente quando houver nova evidência, decisão, validação ou ponto de retomada.

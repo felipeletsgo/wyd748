@@ -73,6 +73,19 @@ continuam possíveis.
 alcançada como exportação do executável. Essa ausência não decide entradas
 internas calculadas em runtime.
 
+`CONFIRMED`: uma busca read-only por ponteiros contendo o RVA da função,
+`0x0015890A`, encontrou zero hits na imagem. O controle positivo executado no
+mesmo scan encontrou em `0x00400150` o RVA `0x001927AC` do entry point e o
+resolveu para `0x005927AC`, demonstrando que o scanner reconhece RVAs
+armazenados no cabeçalho PE.
+
+`CONFIRMED`: os três consumidores localizados de `GetModuleHandleA(NULL)` não
+derivam o destino do gate. `FUN_004AE862` usa a base exclusivamente como
+`HINSTANCE` de `DirectInput8Create`; `entry @ 0x005927AC` passa a instância para
+`FUN_0055F7F9`; `FUN_0059569E` lê o cabeçalho PE para recuperar campos de
+versão/subsystem. Nenhum deles soma `0x0015890A`, produz `0x0055890A` ou chama
+o gate.
+
 ### Função principal
 
 `CONFIRMED`: `FUN_0055890A` compara dezenas de pares opcode/tamanho. Exemplos:
@@ -107,7 +120,8 @@ do caller não resolvido; portanto a ficha permanece `LOCATED`.
 
 `PROBABLE`: a rotina está inalcançável nesta build pelos mecanismos estáticos
 inspecionados: exportação PE, xref `FLOW`, thunk, ponteiro VA literal e
-`CALL/JMP rel32` decodificado ou bruto. Isso não autoriza classificá-la como
+RVA literal, `CALL/JMP rel32` decodificado ou bruto e pelos consumidores
+localizados da base do módulo principal. Isso não autoriza classificá-la como
 código morto, pois um destino ainda pode ser derivado ou construído em runtime.
 
 `UNRESOLVED`: alcançabilidade em runtime por chamada/branch indireto, destino
@@ -190,5 +204,11 @@ enviados ao client. A equivalência completa por opcode ainda não foi comparada
   Directory. A correlação diferencial cacheada do candidato
   `F8251714...A380B` retornou um `NO_MATCH` e dois `CANDIDATE` sem reciprocidade
   ou suporte de callgraph; nenhum corresponde semanticamente ao gate. O caller
-  permanece pendente e impede promoção além de `LOCATED`.
+  permanece pendente e impede promoção além de `LOCATED`. A última busca por
+  RVA construído encontrou `hits=0` para `0x0015890A` e `hits=1` para o controle
+  positivo do entry point `0x001927AC -> 0x005927AC`; o arquivo temporário
+  `wyd748-packet-size-rva-search.tsv` tem SHA-256
+  `92A97EDC2638C585C93B4DD51CD163DB7A9795C0AA358EF55115E7A9AF249A92`.
+  A revisão dos três usos de `GetModuleHandleA(NULL)` também não encontrou
+  derivação ou chamada do gate.
 - Client real: não executado; nenhuma mudança comportamental foi feita.
