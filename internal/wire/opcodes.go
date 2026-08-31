@@ -42,6 +42,7 @@ const (
 	OpPremiumFirework    = 0x3CA // S->C publica o desenho aos observadores (36B, bitmap@20)
 	OpCapsuleInfo        = 0x2CD // C->S consulta os dados de um Spirit's Seal (16B)
 	OpPutoutSeal         = 0x3CC // C->S extrai o personagem de um Spirit's Seal (52B)
+	OpBuyToto            = 0x3CE // C->S compra bilhete TOTO (36B: loja/destino/partida/placares)
 	OpCNFCapsuleInfo     = 0xDC3 // S->C MSG_CAPSULEINFO compacto do client 7.48 (52B)
 	OpSendItem           = 0x182 // S->C confirma UM slot (24B)
 	OpWarInfo            = 0x3A8 // S->C info de guerra (24B)

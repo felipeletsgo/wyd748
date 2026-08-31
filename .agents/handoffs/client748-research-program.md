@@ -47,7 +47,7 @@ presumidos intencionais; ausência no nativo 7.48 não autoriza remoção.
 
 ```text
 client748/wyd.exe nativo+patches/WYD.exe | referência histórica Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                    | candidato source volátil    | CC317B6FB3EE4723DD0348AA32431ABA45D87AF7329936D5F15E3D0D8A06AFA3
+client748/project.exe                    | candidato source volátil    | E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94
 %USERPROFILE%\Tools\GhidraProjects\WYD748Native_20260821.gpr | projeto Ghidra | descobrir no perfil
 %USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled       | corpus auxiliar | 4.146 funções
 ```
@@ -352,6 +352,8 @@ disconnect TCP e retorno à seleção        | STATICALLY VERIFIED | ficha CONTR
 counters EXP na seleção de personagem     | STATICALLY VERIFIED | ficha TRACED; controles 1314/1315 compilados; fluxo real pendente
 captura Print Screen em JPG              | STATICALLY VERIFIED | ficha TRACED; JPG compilado; fluxo real pendente
 sincronização C.C físico/mágico           | STATICALLY VERIFIED | ficha TRACED; IDs 318/319 e teclas A/D compilados; fluxo real pendente
+loader/seleção TOTO                      | STATICALLY VERIFIED | loader zero-based e UI compilados; fluxo real pendente
+compra TOTO 0x3CE                       | AUTOMATED TESTED     | ficha CONTRACT; server autoritativo e rollback testados
 código ativo do client                    | IMPLEMENTED         | inclui NewApp/TMGlobal; servidor preservado
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
@@ -431,20 +433,23 @@ antes de editar; handoff não funciona como lock.
 
 ```text
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-resultado: exit 0; reexecutado em 2026-08-31; doze fichas válidas;
-CONTRACT=6, LOCATED=3 e TRACED=3
+resultado: exit 0; reexecutado em 2026-08-31; quinze fichas válidas;
+CONTRACT=8, LOCATED=3 e TRACED=4
 
 python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
 resultado: exit 0; 4.146 funções, 46 STATICALLY_EVIDENCED, 22 LOCATED e
 4.078 UNMAPPED
 
-go test ./internal/game ./internal/wire
-resultado: exit 0
+go test -count=1 ./internal/game ./internal/wire
+resultado: exit 0; lote TOTO focado
+
+go test -count=1 ./...
+resultado: exit 0; suíte completa após o lote TOTO
 
 client-source/tmproject/Build-Client.ps1
-resultado desta retomada: exit 0; 21 warnings preexistentes e zero erros; candidato
+resultado mais recente: exit 0; 23 warnings preexistentes e zero erros; candidato
 instalado com SHA-256
-CE4F2775B382200601EAF59ABA4271D4EDC271C2A072EE29915AFB1B0E525F94
+E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
@@ -683,10 +688,11 @@ ocorrências.
 
 ### Lote implementado em 2026-08-31: loader TOTO
 
-- `BASE_ReadTOTOList` agora materializa o contrato nativo de
-  `FUN_00558290`: tabela `80 x 96`, header menor que 80, registros
-  `index,time,teamA,teamB`, underscores convertidos em espaços e índices
-  válidos `1..78`.
+- `BASE_ReadTOTOList` preserva o formato nativo de `FUN_00558290`: tabela
+  `80 x 96`, header nativo `<80`, registros `index,time,teamA,teamB` e
+  underscores convertidos em espaços. O nativo escreve índices `1..78` nos
+  slots homônimos; a source modernizada aceita até 80 e guarda a partida
+  pública `N` em `g_pTOTOList[N-1]`.
 - O parser limita cada campo a 31 bytes e ignora linhas incompletas, mantendo
   o asset válido equivalente sem reproduzir overflow ou estado parcial do
   `%s` legado.
@@ -714,35 +720,62 @@ ocorrências.
   IDs, vtables/receptores, ownership, falha parcial, teardown, shutdown e
   relogin.
 - `FUN_004481C5(1)` não foi portado: é uma rotina ampla de UI ainda sem
-  correlação source única. `TotoBuy` e `0x3CE` continuam bloqueados até ficha
-  `CONTRACT` client/server com rejeição, rollback e relogin.
+  correlação source única. `TotoBuy` e `0x3CE` foram fechados depois na ficha
+  `flows/transport/toto-buy.md`, sem promover esta ficha além de `TRACED`.
 - `validate_research.py` e `git diff --check` passaram. `Build-Client.ps1`
   passou com 13 warnings preexistentes e zero erros; o `client748/project.exe`
   instalado tem SHA-256
   `90D7B460A2D6B0E1072A8BA992A4911535E789ECEB10DC80CE756D6ED41F01F9`.
 - Não houve execução real do painel; não alegar `CLIENT_TESTED`.
 
-1. Executar no candidato hasheado a seleção de um personagem comum e um de
+### Lote implementado em 2026-08-31: compra TOTO `0x3CE`
+
+- `FUN_004727CC`, seu caller `FUN_004662C5` e os callees
+  `FUN_00472966`, `FUN_0055F2DD`, `FUN_005909D2` e `FUN_00591258` fecharam o
+  fluxo nativo de validação, envio de 36 bytes e fechamento do painel.
+- A ficha `flows/transport/toto-buy.md` está `CONTRACT`: direção C->S, opcode
+  `0x3CE`, tamanho 36, offsets, padding e signedness foram registrados. O
+  wire/UI é `PARIDADE_NATIVA`; o loader zero-based é
+  `MODERNIZACAO_COMPATIVEL`; UID, preço autoritativo, persistência e rollback
+  são `EXTENSAO_COORDENADA`.
+- O servidor revalida sessão, NPC/loja, alcance/visibilidade, item 4147,
+  destino, partida e placares, ignora `Coin` forjado e usa o preço da ItemList.
+  Sucesso materializa UID/efeitos, persiste antes de publicar e envia apenas
+  `UpdateCarry + UpdateEtc`; rejeição ou falha envia apenas `MessagePanel` e
+  rollback restaura integralmente gold/inventário.
+- Os testes focados `go test -count=1 ./internal/game ./internal/wire`
+  e a suíte completa `go test -count=1 ./...` passaram. O validador registra
+  quinze fichas válidas e `git diff --check` não encontrou erros.
+  `Build-Client.ps1` passou com 23 warnings existentes e zero erros; o
+  candidato instalado tem SHA-256
+  `E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94`.
+- Não houve execução real do fluxo; não alegar `CLIENT_TESTED`.
+
+1. Executar no candidato hasheado o fluxo TOTO completo: abrir com item 4147,
+   selecionar partidas 1 e 80, navegar por Tab/Enter, comprar com sucesso,
+   testar placar inválido, gold insuficiente e destino ocupado, e confirmar o
+   mesmo UID/efeitos do bilhete após logout/relogin.
+2. Executar no candidato hasheado a seleção de um personagem comum e um de
    segunda classe, confirmando que `1314` mostra a EXP atual e `1315` o limiar
    correto da tabela normal/G2; até isso, manter `STATICALLY VERIFIED`.
-2. Executar no mesmo candidato os controles `633`, `634`, `635` e `636`, uma
+3. Executar no mesmo candidato os controles `633`, `634`, `635` e `636`, uma
    queda TCP com retorno à seleção, novo login no mesmo personagem e em outro
    slot e migração entre servidores/canais; até isso, manter o estado máximo
    `STATICALLY VERIFIED`.
-3. Continuar o lifecycle por uma ficha estreita de troca de conta ou reconexão
+4. Continuar o lifecycle por uma ficha estreita de troca de conta ou reconexão
    TCP, partindo da source viva e abrindo no Ghidra somente os callers/callees
    que decidirem a transição escolhida. Não reabrir o shutdown global sem nova
    evidência de incompatibilidade ou falha runtime.
-4. Inspecionar a source atual e classificar o próximo delta concreto. Se ele
+5. Inspecionar a source atual e classificar o próximo delta concreto. Se ele
    depender de paridade nativa, fechar entrada, callers, callees, estado, erros,
    ownership e teardown antes de adaptá-lo; se for modernização/extensão
    independente, provar a fronteira correspondente e prosseguir sem aguardar a
    promoção de claims não relacionados.
-5. Não reabrir `packet-size-gate.md` com novos scans estáticos equivalentes. A
+6. Não reabrir `packet-size-gate.md` com novos scans estáticos equivalentes. A
    frente só deve voltar com evidência runtime, novo mecanismo concreto de
    dispatch indireto ou necessidade de auditar um opcode específico; sua
    maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
-6. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
+7. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
    fila/input mudar e `git diff --check` após edições. Atualizar este handoff
    somente quando houver nova evidência, decisão, validação ou ponto de retomada.
 

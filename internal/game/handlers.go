@@ -1015,6 +1015,99 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	log.Printf("[#%d] comprou item %d por %d gold -> inv[%d] (gold restante=%d)", s.ID, it.Index, price, dst, p.Char.Gold)
 }
 
+// onBuyToto: 0x3CE. O wire e o fluxo da janela pertencem ao client 7.48; a
+// identidade do bilhete e a transacao gold+inventario sao extensoes
+// server-authoritative. Coin@20 nunca e confiavel: o preco vem do ItemList.
+func (w *World) onBuyToto(s *net.Session, pkt []byte) {
+	p := w.players[s]
+	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || len(pkt) != 36 {
+		return
+	}
+	w.cancelTrade(p, "compra de bilhete TOTO")
+
+	targetID := binary.LittleEndian.Uint16(pkt[12:14])
+	shopSlot := int16(binary.LittleEndian.Uint16(pkt[14:16]))
+	dst := int16(binary.LittleEndian.Uint16(pkt[16:18]))
+	match := int32(binary.LittleEndian.Uint32(pkt[24:28]))
+	scoreA := int32(binary.LittleEndian.Uint32(pkt[28:32]))
+	scoreB := int32(binary.LittleEndian.Uint32(pkt[32:36]))
+
+	if p.ShopNPC == 0 {
+		s.Send(wire.MessagePanel("Open a merchant before buying a TOTO ticket."))
+		return
+	}
+	if targetID != p.ShopNPC {
+		s.Send(wire.MessagePanel("That merchant is no longer available."))
+		return
+	}
+	m, err := w.resolveNPCInteraction(p, p.ShopNPC)
+	if err != nil {
+		p.ShopNPC = 0
+		s.Send(wire.MessagePanel("The merchant is no longer available."))
+		return
+	}
+	shopType, isShop := shopTypeForMerchant(m.Def.Score.Merchant)
+	if !isShop {
+		s.Send(wire.MessagePanel("That character is not a merchant."))
+		return
+	}
+	if shopSlot < 0 {
+		s.Send(wire.MessagePanel("That shop item is no longer available."))
+		return
+	}
+	display := shopDisplayList(m.Def.Vende, shopType)
+	index, ok := shopSlotFromClient(uint16(shopSlot))
+	if !ok || index >= len(display) || display[index].Index != 4147 {
+		s.Send(wire.MessagePanel("That shop item is not a TOTO ticket."))
+		return
+	}
+	if dst < 0 || dst >= model.PlayerCarrySlots || p.Char.Inv[dst].Index != 0 {
+		s.Send(wire.MessagePanel("Choose an empty inventory slot."))
+		return
+	}
+	if match < 1 || match > 80 || scoreA < 0 || scoreA > 127 || scoreB < 0 || scoreB > 127 {
+		s.Send(wire.MessagePanel("Invalid TOTO match or score."))
+		return
+	}
+	def, exists := w.items[4147]
+	if !exists {
+		s.Send(wire.MessagePanel("TOTO tickets are unavailable on this server."))
+		return
+	}
+	price := def.Price
+	if p.Char.Gold < price {
+		s.Send(wire.MessagePanel("You do not have enough gold."))
+		return
+	}
+
+	ticket, err := materializeItem(model.Item{
+		Index: 4147,
+		Eff:   [6]byte{64, byte(match), 65, byte(scoreA), 66, byte(scoreB)},
+	})
+	if err != nil {
+		log.Printf("[#%d] ERRO ao materializar bilhete TOTO: %v", s.ID, err)
+		s.Send(wire.MessagePanel("The TOTO ticket could not be created."))
+		return
+	}
+	oldGold := p.Char.Gold
+	p.Char.Inv[dst] = ticket
+	p.Char.Gold -= price
+	if err := w.saveAccount(p.Account); err != nil {
+		p.Char.Inv[dst] = model.Item{}
+		p.Char.Gold = oldGold
+		log.Printf("[#%d] ERRO ao salvar bilhete TOTO partida=%d: %v", s.ID, match, err)
+		s.Send(wire.MessagePanel("The TOTO purchase could not be completed."))
+		return
+	}
+
+	// O 0x3CE nao possui confirmacao S->C. Publicamos somente os dois snapshots
+	// nativos necessarios para materializar o bilhete e o novo saldo.
+	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
+	s.Send(wire.UpdateEtc(p.ID, *p.Char))
+	log.Printf("[#%d] comprou TOTO partida=%d placar=%d-%d por %d gold -> inv[%d]",
+		s.ID, match, scoreA, scoreB, price, dst)
+}
+
 // onSellItem: 0x37A. Vende um item do inventario pro mercador aberto por
 // 25% do preco de compra. Server-authoritative (usa p.ShopNPC, nao o TargetID).
 func (w *World) onSellItem(s *net.Session, pkt []byte) {

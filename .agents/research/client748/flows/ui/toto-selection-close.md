@@ -26,8 +26,9 @@ foco obsoletos?
   `004727cc_FUN_004727cc.c`.
 - Source: `TMFieldScene.cpp/.h`, abertura no uso do item em `SGrid.cpp` e
   tabela descrita em `toto-list-loader.md`.
-- O envio de aposta de `FUN_004727CC`, o opcode `0x3CE` e sua validação no
-  servidor não pertencem a esta ficha.
+- O envio de aposta de `FUN_004727CC`, o contrato `0x3CE` e sua validação
+  autoritativa no servidor estão fechados separadamente em
+  [`../transport/toto-buy.md`](../transport/toto-buy.md).
 
 ## Fluxo nativo 7.48
 
@@ -36,8 +37,9 @@ foco obsoletos?
 O fluxo existente abre o painel ao usar o item `4147` (`0x1033`), conserva a
 mensagem-base com tipo TOTO `0x3CE`, oculta shop/descrição, limpa os três
 edits e entrega foco ao número da partida. Esta abertura aparece em
-`FUN_00410A91` e já existia na source; citar o tipo da mensagem aqui apenas
-delimita o contexto e não promove o wire a `CONTRACT`.
+`FUN_00410A91` e já existia na source. O wire foi promovido a `CONTRACT` na
+ficha de compra; esta ficha permanece `TRACED` porque seu claim é somente a
+interação local de seleção, navegação e fechamento.
 
 Com o painel aberto, as entradas deste recorte são:
 
@@ -57,7 +59,7 @@ Com o painel aberto, as entradas deste recorte são:
 
 O caller de compra fecha o painel somente depois de validar os dois placares,
 copiar partida/placares para a mensagem e aceitar partida em `1..80`. Essa
-transição permanece separada porque envolve wire ainda não comprovado.
+transição permanece separada e está documentada em `toto-buy.md`.
 
 ### Seleção
 
@@ -69,6 +71,11 @@ equipe A e equipe B da entrada de 96 bytes e grava o número em `+0x28B40`.
 Os três setters de texto são chamadas virtuais nos controles. A conversão
 numérica usa o helper `FUN_005909D2`; a source expressa a mesma entrada decimal
 com `atoi`.
+
+Na source, a seleção pública aceita `1..min(g_nTOTOListCount, 80)` e consulta a
+entrada modernizada em `g_pTOTOList[N-1]`. Controles ausentes, quantidade zero,
+entrada vazia ou valor fora do intervalo deixam `m_nTotoNum=0`; assim, nem a
+modernização zero-based nem seus fallbacks introduzem leitura fora da tabela.
 
 ### Callees
 
@@ -168,8 +175,9 @@ ou relogin. Nenhum estado server-side é criado antes de `TotoBuy`.
 - Recurso de dados: `UI\TOTOGame.csv`, já fechado em ficha `CONTRACT`.
 - O layout nativo foi usado apenas para correlacionar estado e receptores; a
   source preserva sua própria ABI recompilável.
-- Este recorte não envia packet. `0x3CE` permanece somente como pista do fluxo
-  de compra e exige ficha `CONTRACT` client/server antes de implementação.
+- Este recorte não envia packet. O wire `0x3CE` está comprovado e implementado
+  na ficha `../transport/toto-buy.md`; isso não altera a maturidade deste claim
+  local de UI.
 
 ## Mapeamento atual
 
@@ -182,8 +190,8 @@ mesmo teardown local.
 
 ### WYD-Go
 
-Não participa de seleção, foco ou fechamento. Nenhum handler foi adicionado;
-compra/aposta depende de pesquisa separada do wire e de sua autoridade.
+Não participa de seleção, foco ou fechamento. A compra/aposta usa o handler
+autoritativo descrito na ficha separada `../transport/toto-buy.md`.
 
 ## Matriz de delta
 
@@ -193,7 +201,7 @@ compra/aposta depende de pesquisa separada do wire e de sua autoridade.
 | Tab/Enter | ciclo entre três edits e seleção | stubs | N/A | `PARIDADE_NATIVA` |
 | fechar | remove foco, oculta e zera seleção | ocultava diretamente em Esc; stub no botão | N/A | `PARIDADE_NATIVA` do núcleo local |
 | estado global após fechar | `FUN_004481C5(1)` | sem correlação única | N/A | não portar neste lote |
-| compra/aposta | valida placares e envia `0x3CE` | stub e mensagem-base existente | não comprovado | pesquisar como `CONTRACT` |
+| compra/aposta | valida placares e envia `0x3CE` | implementada em lote separado | handler autoritativo implementado | ver ficha `CONTRACT` separada |
 
 ## Decisões
 
@@ -201,17 +209,18 @@ compra/aposta depende de pesquisa separada do wire e de sua autoridade.
   não altera nem comprova wire/ABI.
 - Preservar a estrutura atual de controles tipados e guards de ponteiro, que é
   compatível e mais segura que reproduzir dereferências implícitas.
-- Não ativar `TotoBuy`, não inventar handler server-side e não portar
-  `FUN_004481C5(1)` por semelhança.
+- Manter `TotoBuy` e a autoridade server-side na ficha `CONTRACT` separada;
+  não portar `FUN_004481C5(1)` por semelhança.
 
 ## Lacunas
 
 - Executar no `client748/project.exe`: abrir com item 4147, testar partida 1,
-  limite carregado, zero e acima do limite, e confirmar textos/limpeza.
+  partida 80, limite carregado, zero e acima do limite, e confirmar
+  textos/limpeza e a conversão `N -> N-1`.
 - Confirmar Tab, Enter, botão fechar e os dois caminhos de Esc em jogo.
 - Correlacionar `FUN_004481C5(1)` somente se surgir efeito observável ausente.
-- Fechar `TotoBuy`/`0x3CE`, servidor, rejeição, rollback e relogin em ficha
-  `CONTRACT` separada.
+- Executar compra, rejeição, rollback observável e relogin conforme a ficha
+  `../transport/toto-buy.md` antes de alegar o fluxo TOTO como `CLIENT_TESTED`.
 
 ## Validação
 
@@ -219,10 +228,10 @@ compra/aposta depende de pesquisa separada do wire e de sua autoridade.
   teardown, shutdown e relogin fechados para seleção/fechamento no corpus do
   hash registrado.
 - Automação: `validate_research.py` e `git diff --check` passaram.
-- Build: `Build-Client.ps1` passou em Release/Win32 com 13 warnings
+- Build: `Build-Client.ps1` passou em Release/Win32 com 23 warnings
   preexistentes de signed/unsigned e zero erros; instalou o candidato em
   `client748/project.exe`.
 - SHA-256 do candidato compilado:
-  `90D7B460A2D6B0E1072A8BA992A4911535E789ECEB10DC80CE756D6ED41F01F9`.
+  `E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94`.
 - Estado máximo alegado: `STATICALLY VERIFIED`; build não testa a interação.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

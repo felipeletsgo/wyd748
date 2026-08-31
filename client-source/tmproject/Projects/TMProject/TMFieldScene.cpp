@@ -60,6 +60,30 @@
 #include <WinInet.h>
 #include <regex> //require c++11
 
+namespace
+{
+	bool WYD748_ParseDecimal(const char* text, int maximum, int* value)
+	{
+		if (!text || !text[0] || !value || maximum < 0)
+			return false;
+
+		int parsed = 0;
+		for (const unsigned char* cursor = reinterpret_cast<const unsigned char*>(text); *cursor; ++cursor)
+		{
+			if (*cursor < '0' || *cursor > '9')
+				return false;
+
+			const int digit = *cursor - '0';
+			if (parsed > (maximum - digit) / 10)
+				return false;
+			parsed = parsed * 10 + digit;
+		}
+
+		*value = parsed;
+		return true;
+	}
+}
+
 RECT TMFieldScene::m_rectWarning[7] =
 {
   { 2255, 1535, 2263, 1538 },
@@ -19507,25 +19531,53 @@ void TMFieldScene::TotoSelect()
 		return;
 	}
 
-	const int totoNumber = atoi(m_pTotoNumber_Edit->GetText());
+	int totoNumber = 0;
+	const bool validNumber = WYD748_ParseDecimal(m_pTotoNumber_Edit->GetText(), 80, &totoNumber);
 	m_pTotoNumber_Edit->SetText((char*)"");
 	m_pTotoScoreA_Edit->SetText((char*)"");
 	m_pTotoScoreB_Edit->SetText((char*)"");
 
-	if (totoNumber < 1 || totoNumber > g_nTOTOListCount)
+	if (!validNumber || totoNumber < 1 || totoNumber > 80)
 	{
 		m_nTotoNum = 0;
 		return;
 	}
 
-	m_pTotoTime_Txt->SetText(g_pTOTOList[totoNumber].szTime, 0);
-	m_pTotoTeamA_Txt->SetText(g_pTOTOList[totoNumber].szTeamA, 0);
-	m_pTotoTeamB_Txt->SetText(g_pTOTOList[totoNumber].szTeamB, 0);
+	STRUCT_TOTOLIST& toto = g_pTOTOList[totoNumber - 1];
+	char matchFallback[32]{};
+	sprintf_s(matchFallback, "Match %d", totoNumber);
+	m_pTotoTime_Txt->SetText(toto.szTime[0] ? toto.szTime : matchFallback, 0);
+	m_pTotoTeamA_Txt->SetText(toto.szTeamA[0] ? toto.szTeamA : (char*)"Team A", 0);
+	m_pTotoTeamB_Txt->SetText(toto.szTeamB[0] ? toto.szTeamB : (char*)"Team B", 0);
 	m_nTotoNum = totoNumber;
 }
 
 void TMFieldScene::TotoBuy()
 {
+	if (!m_pTotoPanel || !m_pTotoScoreA_Edit || !m_pTotoScoreB_Edit ||
+		m_nTotoNum < 1 || m_nTotoNum > 80 ||
+		m_stToto.Header.Size != sizeof(m_stToto) ||
+		m_stToto.Header.Type != MSG_BuyToto_Opcode ||
+		m_stToto.TargetID == 0 || m_stToto.TargetCarryPos < 0 ||
+		m_stToto.MyCarryPos < 0 || m_stToto.MyCarryPos >= 63 ||
+		!g_pSocketManager || !g_pSocketManager->Sock)
+	{
+		return;
+	}
+
+	int scoreA = 0;
+	int scoreB = 0;
+	if (!WYD748_ParseDecimal(m_pTotoScoreA_Edit->GetText(), 127, &scoreA) ||
+		!WYD748_ParseDecimal(m_pTotoScoreB_Edit->GetText(), 127, &scoreB))
+	{
+		return;
+	}
+
+	m_stToto.Gindex = m_nTotoNum;
+	m_stToto.A_Score = scoreA;
+	m_stToto.B_Score = scoreB;
+	SendOneMessage((char*)&m_stToto, sizeof(m_stToto));
+	TotoClose();
 }
 
 void TMFieldScene::TotoClose()

@@ -25,8 +25,8 @@ inválido, linhas incompletas e reconstrução da Field?
   `00418828_FUN_00418828.c` e `0054f0f2_FUN_0054f0f2.c`.
 - Asset: `client748/UI/TOTOGame.csv`, header declarado `64` e 64 registros.
 - Source: `Basedef.cpp/.h` e caller em `TMFieldScene.cpp`.
-- Servidor: não participa deste loader; compra/aposta e seu packet ficam fora
-  desta ficha.
+- Servidor: não participa deste loader; compra/aposta está fechada separadamente
+  em `../transport/toto-buy.md`.
 
 ## Fluxo nativo 7.48
 
@@ -135,7 +135,10 @@ função e nada precisa atravessar logout/relogin.
 - Registro: `index,time,teamA,teamB`; underscores codificam espaços.
 - Tabela: 80 entradas estáticas de 96 bytes (`0x1E00` no total).
 - Entrada: `szTime[32]`, `szTeamA[32]`, `szTeamB[32]`, sem padding.
-- Índices materializados: `1..78`; slot zero e slot 79 não são escritos.
+- Nativo: índices `1..78` são escritos em slots homônimos; slot zero e slot 79
+  não são escritos.
+- Source atual: aceita header até 80 e guarda a partida pública `N` em
+  `g_pTOTOList[N-1]`, usando todos os 80 slots sem índice sentinela.
 - Texto coreano é tratado como bytes do arquivo legado; o loader não converte
   encoding.
 - Não há packet, opcode ou ABI server-side nesta transição.
@@ -147,30 +150,34 @@ função e nada precisa atravessar logout/relogin.
 `STRUCT_TOTOLIST` já possuía o layout correto e
 `TMFieldScene::InitializeScene` já chamava `BASE_ReadTOTOList` com o recurso
 correto. O stub foi substituído por uma implementação de largura limitada,
-com `g_pTOTOList[80]`, quantidade declarada e `static_assert` de 96 bytes.
+com `g_pTOTOList[80]`, quantidade declarada e `static_assert` de 96 bytes. O
+armazenamento foi modernizado para zero-based: header `80` é aceito e partida
+`N` ocupa `N-1`; os consumidores usam a mesma conversão explícita.
 
 ### WYD-Go
 
-Não há consumo server-side do CSV. Métodos de seleção/compra e contrato de
-aposta permanecem desativados até pesquisa própria de UI e wire.
+Não há consumo server-side do CSV. Seleção e compra possuem fichas próprias; o
+servidor revalida partida `1..80` sem confiar no conteúdo textual deste asset.
 
 ## Matriz de delta
 
 | Claim | Nativo 7.48 | Source atual | TMProject/W2PP | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
 | entrada | initializer da Field | caller já vivo | mesmo caller | N/A | manter |
-| armazenamento | 80 x 96 bytes | layout e tabela materializados | struct presente, loader stub | N/A | portar |
+| armazenamento | 80 x 96; índices 1..78 em slots homônimos | 80 slots zero-based para partidas 1..80 | struct presente, loader stub | N/A | modernizar compatível |
 | parsing válido | header + CSV + underscores | parser limitado equivalente | stub | N/A | portar com limites |
 | malformado | `%s` sem largura e resultado parcial | exige quatro campos/31 bytes | stub | N/A | modernizar com segurança |
-| aposta/packet | consumidores nativos separados | métodos ainda vazios | implementação incompleta | ausente/não confirmado | não implementar neste lote |
+| aposta/packet | consumidores nativos separados | seleção/compra implementadas | implementação incompleta | contrato autoritativo separado | manter fora deste loader |
 
 ## Decisões
 
 - Classificar o loader válido como `PARIDADE_NATIVA` e o endurecimento de
   linhas malformadas como `MODERNIZACAO_COMPATIVEL` do mesmo contrato externo.
-- Preservar o layout nativo exato e a faixa incomum `1..78`.
-- Expor a quantidade declarada para os consumidores futuros, sem ativar UI de
-  aposta ou inventar packet a partir de versão posterior.
+- Preservar o layout de 96 bytes, mas escolher como caminho ativo o array
+  zero-based completo para partidas `1..80`; a divergência nativa `1..78` fica
+  documentada, não ocultada como paridade literal.
+- Expor a quantidade declarada para diagnóstico; seleção/compra usam o limite
+  compatível `1..80` e não leem fora do array.
 - Manter a ficha em `CONTRACT`; build não equivale a teste real da Field.
 
 ## Lacunas
@@ -178,8 +185,9 @@ aposta permanecem desativados até pesquisa própria de UI e wire.
 - Executar entrada/reentrada na Field com asset presente, ausente e truncado.
 - Confirmar visualmente os três textos depois que o fluxo de seleção for
   implementado em lote próprio.
-- Investigar separadamente `TotoSelect`, `TotoClose`, `TotoBuy`, reel e wire
-  antes de ativar apostas.
+- Executar também o caso de partida 80, específico da modernização zero-based.
+- Reel permanece fora deste fluxo; seleção/fechamento e compra/wire estão em
+  fichas próprias.
 
 ## Validação
 
@@ -188,7 +196,7 @@ aposta permanecem desativados até pesquisa própria de UI e wire.
 - Automação: o asset possui 64 registros para o header 64, índices 1..64 e
   nenhum campo acima de 31 bytes; `validate_research.py` e `git diff --check`
   passaram.
-- Build: `Build-Client.ps1` passou em Release/Win32 e instalou um candidato
-  byte a byte idêntico ao build. `client748/project.exe` tem SHA-256
-  `CC317B6FB3EE4723DD0348AA32431ABA45D87AF7329936D5F15E3D0D8A06AFA3`.
+- Build: a modernização integra o candidato final do lote TOTO; o build
+  Release/Win32 passou e instalou `client748/project.exe` SHA-256
+  `E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

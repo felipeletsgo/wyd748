@@ -1501,24 +1501,32 @@ void SGridControl::BuyItem(int nCellX, int nCellY)
 
 			if (vecGrid.x > -1 && vecGrid.y > -1)
 			{
-				if (pItem->m_pItem->sIndex != 3331 && pItem->m_pItem->sIndex == 4147)
+				if (pItem->m_pItem->sIndex == 4147)
 				{
 					memset(&pScene->m_stToto, 0, sizeof(pScene->m_stToto));
-					memcpy(&pScene->m_stToto, &stBuy, sizeof(stBuy));
-					pScene->m_stToto.Header.Type = 0x3CE;
+					pScene->m_stToto.Header.Size = sizeof(pScene->m_stToto);
+					pScene->m_stToto.Header.ID = stBuy.Header.ID;
+					pScene->m_stToto.Header.Type = MSG_BuyToto_Opcode;
+					pScene->m_stToto.TargetID = stBuy.TargetID;
+					pScene->m_stToto.TargetCarryPos = static_cast<short>(stBuy.TargetCarryPos);
+					pScene->m_stToto.MyCarryPos = static_cast<short>(stBuy.MyCarryPos);
 					if (pScene->m_pTotoPanel)
 					{
-						if (pScene->m_pShopPanel->IsVisible())
+						if (pScene->m_pShopPanel && pScene->m_pShopPanel->IsVisible())
 							pScene->SetVisibleShop(0);
 
-						if (pScene->m_pDescPanel->IsVisible())
+						if (pScene->m_pDescPanel && pScene->m_pDescPanel->IsVisible())
 							pScene->m_pDescPanel->SetVisible(0);
 
 						pScene->m_pTotoPanel->SetVisible(1);
-						pScene->m_pTotoNumber_Edit->SetText((char*)"");
-						pScene->m_pTotoScoreA_Edit->SetText((char*)"");
-						pScene->m_pTotoScoreB_Edit->SetText((char*)"");
-						pScene->m_pControlContainer->SetFocusedControl(pScene->m_pTotoNumber_Edit);
+						if (pScene->m_pTotoNumber_Edit)
+							pScene->m_pTotoNumber_Edit->SetText((char*)"");
+						if (pScene->m_pTotoScoreA_Edit)
+							pScene->m_pTotoScoreA_Edit->SetText((char*)"");
+						if (pScene->m_pTotoScoreB_Edit)
+							pScene->m_pTotoScoreB_Edit->SetText((char*)"");
+						if (pScene->m_pControlContainer && pScene->m_pTotoNumber_Edit)
+							pScene->m_pControlContainer->SetFocusedControl(pScene->m_pTotoNumber_Edit);
 					}
 					return;
 				}
@@ -3622,10 +3630,46 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	{
 		// Yeah!
 	}
-	else if (pItem->m_pItem->sIndex == 4147 && m_eGridType == TMEGRIDTYPE::GRID_SHOP)
+	else if (pItem->m_pItem->sIndex == 4147)
 	{
-		// TOTO stuffs
-		return 0;
+		int match = 0;
+		int scoreA = 0;
+		int scoreB = 0;
+		for (int i = 0; i < 3; ++i)
+		{
+			switch (pItem->m_pItem->stEffect[i].cEffect)
+			{
+			case 64:
+				match = pItem->m_pItem->stEffect[i].cValue;
+				break;
+			case 65:
+				scoreA = pItem->m_pItem->stEffect[i].cValue;
+				break;
+			case 66:
+				scoreB = pItem->m_pItem->stEffect[i].cValue;
+				break;
+			}
+		}
+
+		if (match > 0 && nLineId < NUM_ITEM_DESC_PARAMS)
+		{
+			sprintf_s(szDesc, "Match: %d", match);
+			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
+			pFScene->m_pParamText[nLineId++]->SetTextColor(0xFFFFFFAA);
+		}
+		if (match > 0 && nLineId < NUM_ITEM_DESC_PARAMS)
+		{
+			sprintf_s(szDesc, "Team A score: %d", scoreA);
+			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
+			pFScene->m_pParamText[nLineId++]->SetTextColor(0xFFFFFFFF);
+		}
+		if (match > 0 && nLineId < NUM_ITEM_DESC_PARAMS)
+		{
+			sprintf_s(szDesc, "Team B score: %d", scoreB);
+			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
+			pFScene->m_pParamText[nLineId++]->SetTextColor(0xFFFFFFFF);
+		}
+		return 1;
 	}
 	else
 	{

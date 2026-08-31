@@ -34,6 +34,7 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 		wire.OpUseNPC:             20,
 		wire.OpReqShopList:        16,
 		wire.OpBuyItem:            24,
+		wire.OpBuyToto:            36,
 		wire.OpSellItem:           20,
 		wire.OpApplyBonus:         applyBonusPacketSize,
 		wire.OpPartyRequest:       44,

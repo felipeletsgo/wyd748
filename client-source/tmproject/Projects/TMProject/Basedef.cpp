@@ -1410,7 +1410,7 @@ int BASE_ReadTOTOList(char* szFileName)
     }
 
     int declaredCount = 0;
-    if (sscanf_s(line, "%d", &declaredCount) != 1 || declaredCount < 0 || declaredCount >= 80)
+    if (sscanf_s(line, "%d", &declaredCount) != 1 || declaredCount < 0 || declaredCount > 80)
     {
         fclose(file);
         return 0;
@@ -1441,8 +1441,10 @@ int BASE_ReadTOTOList(char* szFileName)
         BASE_UnderBarToSpace(entry.szTeamA);
         BASE_UnderBarToSpace(entry.szTeamB);
 
-        if (index > 0 && index < 79)
-            g_pTOTOList[index] = entry;
+        // The native table names matches 1..80. Keep the public number while
+        // storing it in the complete zero-based array used by the source UI.
+        if (index >= 1 && index <= 80)
+            g_pTOTOList[index - 1] = entry;
     }
 
     fclose(file);

@@ -1848,6 +1848,8 @@ func (w *World) handle(cmd command) {
 		w.onUseNPC(cmd.s, cmd.pkt)
 	case wire.OpBuyItem:
 		w.onBuyItem(cmd.s, cmd.pkt)
+	case wire.OpBuyToto:
+		w.onBuyToto(cmd.s, cmd.pkt)
 	case wire.OpSellItem:
 		w.onSellItem(cmd.s, cmd.pkt)
 	case wire.OpApplyBonus:
