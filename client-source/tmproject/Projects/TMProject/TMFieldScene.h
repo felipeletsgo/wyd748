@@ -306,6 +306,8 @@ private:
 	// Changes the interaction mode only on inventory grids materialized by the
 	// active resource. FieldScene2 has one native 9x7 grid, not four newer pages.
 	void SetInventoryGridType(TMEGRIDTYPE gridType);
+	// Keeps the native 7.48 physical/magic selectors on one shared state path.
+	int ToggleNativeCCMode(int mode);
 
 public:
 	// Centralizes the native 7.48 inventory ABI: one 9x7 Carry grid and one
@@ -659,6 +661,8 @@ public:
 	SButton* m_pMGameAutoBtn;
 	SButton* m_pSGameAutoBtn;
 	SButton* m_pSetType;
+	SButton* m_pNativeCCPhysicalBtn;
+	SButton* m_pNativeCCMagicBtn;
 	SText* m_pCCModeHpSte;
 	SText* m_pCCModeMountSte;
 	SPanel* m_pDonateStore;

@@ -2,7 +2,7 @@
 id: cc-auto-combat-state-sync
 title: Sincronização dos controles e do estado do C.C
 subsystem: ui-gameplay
-status: UNMAPPED
+status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
 updated: 2026-08-31
 ---
@@ -21,9 +21,9 @@ posterior em uma alegação de paridade nativa?
   extraída de `https://www.wyd2.co.kr/guide/firstguide12.asp`.
 - Source atual: `TMFieldScene::GameAuto`, `OnControlEvent`, `NewCCMode` e os
   initializers da Field em `TMFieldScene.cpp`.
-- Recursos: IDs modernos `B_CCMODE_*` e controles antigos
-  `B_CCATTACK`/`B_CCPOTION`/`B_CCMOVE`; o layout compatível é carregado de
-  `FieldScene2`.
+- Recursos: IDs modernos `B_CCMODE_*`, controles antigos
+  `B_CCATTACK`/`B_CCPOTION`/`B_CCMOVE` e seletores nativos `318`/`319`; o
+  layout compatível é carregado de `FieldScene2`.
 - Servidor: nenhuma regra de combate, packet ou estado autoritativo foi
   alterado por este lote.
 - Executável nativo: o hash do frontmatter identifica a baseline. Esta ficha
@@ -31,12 +31,42 @@ posterior em uma alegação de paridade nativa?
 
 ## Fluxo nativo 7.48
 
-O guia oficial confirma a funcionalidade e seus quatro modos, mas esta ficha
-ainda não atribui endereço ou função nativa ao sincronizador de apresentação.
-Consequentemente, nenhuma textura, ID de controle ou topologia moderna abaixo
-é apresentada como claim do executável 7.48. O estado documental permanece
-`UNMAPPED`; isso não bloqueia a modernização interna que preserva os contratos
-externos já observados.
+`FUN_00435B13` materializa o fluxo de campo compatível e vincula os controles
+`318` (combate físico) e `319` (combate mágico). O dispatcher de teclado
+`FUN_00453C59` chama `FUN_004539BC`, que altera o estado global
+`DAT_005D03F4` com a seguinte semântica confirmada:
+
+### Callers
+
+- `FUN_00453C59` é o único caller direto de `FUN_004539BC` registrado no
+  inventário Ghidra. Ele é o dispatcher de caracteres da Field e encaminha a
+  tecla somente dentro do fluxo vivo da cena.
+- `FUN_00435B13` não chama a transição: ele é o initializer que resolve os
+  controles `318/319` usados para apresentar o estado.
+
+### Função principal
+
+`FUN_004539BC` interpreta `A/a` e `D/d` e escreve diretamente em
+`DAT_005D03F4`. Outras teclas saem sem alterar o modo.
+
+| Entrada | Estado anterior | Estado seguinte |
+| --- | ---: | ---: |
+| `A` | `1` | `0` |
+| `A` | qualquer outro | `1` |
+| `D` | `2` | `0` |
+| `D` | qualquer outro | `2` |
+
+### Callees
+
+O inventário Ghidra registra zero callees diretos para `FUN_004539BC`. A
+transição é local: compara a tecla e o estado anterior, grava
+`DAT_005D03F4` e retorna ao dispatcher; não envia packet, não aloca objeto e
+não inicia callback.
+
+Os dois modos são mutuamente exclusivos. O modo moderno `3` não seleciona
+nenhum dos dois indicadores nativos. O dispatcher nativo de clique não possui
+cases para `318`/`319`; portanto, oferecer clique equivalente no client
+recompilável é `MODERNIZACAO_COMPATIVEL`, não claim de paridade.
 
 ## Mapeamento atual
 
@@ -65,6 +95,11 @@ target/delays quando o modo de combate muda. A posição inicial só é capturad
 ao entrar no estado de posição fixa; outros refreshes não deslocam o ponto do
 farm.
 
+No caminho `FieldScene2`, `ToggleNativeCCMode()` reproduz a transição de
+`FUN_004539BC` tanto para `A`/`D` quanto para os cliques modernos em `318`/`319`.
+`NewCCMode()` reflete `g_GameAuto == 1/2` nos dois botões nativos e não consulta
+os textos ou texturas modernos ausentes nesse recurso.
+
 Os tooltips de posição seguem a ordem dos handlers antigos, escolhida como
 canônica para o layout compatível:
 
@@ -86,14 +121,16 @@ pelo C.C continua entrando nos handlers existentes e sendo revalidada.
 
 - Os globais e campos de `TMFieldScene` continuam sendo o estado local; os
   botões apenas o apresentam e encaminham intenção.
-- `m_pSGameAutoBtn`, `m_pCCPotionBtn` e `m_pCCFeedBtn` são vinculados quando o
-  recurso os fornece. `m_pccmode`, `m_pCCModeHpSte` e
-  `m_pCCModeMountSte` começam nulos e permanecem opcionais.
+- `m_pNativeCCPhysicalBtn` e `m_pNativeCCMagicBtn` começam nulos e são
+  vinculados aos IDs `318`/`319` somente no initializer compatível.
+  `m_pSGameAutoBtn`, `m_pCCPotionBtn`, `m_pCCFeedBtn`, `m_pccmode`,
+  `m_pCCModeHpSte` e `m_pCCModeMountSte` permanecem opcionais.
 - Inicialização parcial não derruba a cena: cada atualização tolera ausência
   de painel, botão, texto alternativo ou humano local.
-- O lote não aloca controles e não cria ownership novo. O teardown continua
-  pertencendo ao container da Field; não há callback ou buffer persistente
-  adicional para limpar em logout, relogin ou shutdown.
+- O lote não aloca controles e não cria ownership novo. O teardown dos botões
+  continua pertencendo ao container da Field; os membros são descartados junto
+  com a cena e não há callback ou buffer adicional em logout, relogin ou
+  shutdown. A ação é síncrona e não possui falha parcial a desfazer.
 - `B_CCMODE_SYSTEM` não abre um painel ausente. Isso preserva o lifecycle da
   cena em vez de materializar silenciosamente um widget moderno incompleto.
 
@@ -108,8 +145,9 @@ inventário, skill, alvo ou movimento.
 
 | Claim | Baseline 7.48 | Source antes | Estrutura posterior/manual | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
-| modos `0..3` | guia oficial descreve off/físico/mágico/Not attack | `GameAuto()` já consome os quatro | controles modernos editam o mesmo global | regras inalteradas | preservar |
-| apresentação | layout compatível pode ter só controles antigos | handlers duplicados e divergentes | painel moderno é opcional | N/A | sincronizador único e null-safe |
+| modos `0..2` | `FUN_004539BC` alterna `A: 0↔1` e `D: 0↔2` em `DAT_005D03F4` | `GameAuto()` já consome os modos | controles modernos editam o mesmo global | regras inalteradas | reproduzir no helper compartilhado |
+| modo `3` | não seleciona `318` nem `319`; guia o descreve como Not attack | `GameAuto()` já o consome | painel moderno o seleciona | regras inalteradas | preservar como modernização |
+| apresentação | `FUN_00435B13` vincula `318`/`319`; click nativo não os despacha | source não os vinculava | painel moderno é opcional | N/A | bind nativo, teclado equivalente e clique moderno |
 | thresholds | incrementos de 10% documentados | valores podiam divergir do texto | steppers modernos reutilizados quando existem | N/A | normalizar e refletir |
 | posição | caça pode manter posição | captura repetida em branches distintos | handler moderno divergia nos tooltips | movimento continua validado | capturar somente na transição |
 | painel moderno | não comprovado como recurso nativo | ponteiros não vinculados | arquitetura útil se materializada | N/A | não alegar paridade; extensão futura explícita |
@@ -122,17 +160,16 @@ inventário, skill, alvo ou movimento.
   materializar, mas manter um único caminho ativo de sincronização.
 - Não criar dinamicamente o painel moderno neste lote. Se `FieldScene2` não o
   fornecer, sua criação será uma extensão visual deliberada e documentada.
-- Manter esta ficha em `UNMAPPED`: a funcionalidade source foi fechada, mas a
-  topologia nativa ainda não foi atribuída a funções/endereços e os controles
-  não foram testados visualmente.
+- Promover a transição de teclado para `TRACED`: entrada, caller, mutação,
+  controles, ownership e teardown estão resolvidos. O clique permanece
+  explicitamente uma modernização e a validação visual continua pendente.
 
 ## Lacunas
 
 - Confirmar em runtime os quatro modos, as quatro opções de poção, as três
   opções de posição e os thresholds de HP/mount.
 - Confirmar a ordem visual dos tooltips `232..234`.
-- Verificar quais IDs C.C são materializados por `FieldScene2`; criar apenas
-  os controles mínimos ausentes, como extensão, se o painel for desejado.
+- Confirmar em runtime a materialização e o estado visual dos IDs `318`/`319`.
 - Exercitar logout/relogin e reconstrução da Field com C.C ligado.
 
 ## Validação
@@ -142,5 +179,5 @@ inventário, skill, alvo ou movimento.
 - Automação: `git diff --check` aprovado antes desta ficha.
 - Build: `Build-Client.ps1` aprovado em Release/Win32 com zero erros e 21
   warnings preexistentes; candidato instalado em `client748/project.exe`,
-  SHA-256 `8CD73ED35D59482C27EC3760C59D05EC44B5DAB4ACE39DFFAD540AF9D4A28002`.
+  SHA-256 `CE4F2775B382200601EAF59ABA4271D4EDC271C2A072EE29915AFB1B0E525F94`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

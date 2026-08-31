@@ -47,7 +47,7 @@ presumidos intencionais; ausência no nativo 7.48 não autoriza remoção.
 
 ```text
 client748/wyd.exe nativo+patches/WYD.exe | referência histórica Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                    | candidato source volátil    | 484580A681FB12226660084DAFBB1DACB93665C4F06C4A0853AEFFD13660069D
+client748/project.exe                    | candidato source volátil    | CE4F2775B382200601EAF59ABA4271D4EDC271C2A072EE29915AFB1B0E525F94
 %USERPROFILE%\Tools\GhidraProjects\WYD748Native_20260821.gpr | projeto Ghidra | descobrir no perfil
 %USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled       | corpus auxiliar | 4.146 funções
 ```
@@ -351,6 +351,7 @@ fechamento e shutdown global              | STATICALLY VERIFIED | ficha CONTRACT
 disconnect TCP e retorno à seleção        | STATICALLY VERIFIED | ficha CONTRACT; socket redundante removido; fluxo real pendente
 counters EXP na seleção de personagem     | STATICALLY VERIFIED | ficha TRACED; controles 1314/1315 compilados; fluxo real pendente
 captura Print Screen em JPG              | STATICALLY VERIFIED | ficha TRACED; JPG compilado; fluxo real pendente
+sincronização C.C físico/mágico           | STATICALLY VERIFIED | ficha TRACED; IDs 318/319 e teclas A/D compilados; fluxo real pendente
 código ativo do client                    | IMPLEMENTED         | inclui NewApp/TMGlobal; servidor preservado
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
@@ -430,8 +431,8 @@ antes de editar; handoff não funciona como lock.
 
 ```text
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-resultado: exit 0; reexecutado em 2026-08-31; nove fichas válidas;
-CONTRACT=4, LOCATED=3 e TRACED=2
+resultado: exit 0; reexecutado em 2026-08-31; doze fichas válidas;
+CONTRACT=6, LOCATED=3 e TRACED=3
 
 python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
 resultado: exit 0; 4.146 funções, 46 STATICALLY_EVIDENCED, 22 LOCATED e
@@ -441,9 +442,9 @@ go test ./internal/game ./internal/wire
 resultado: exit 0
 
 client-source/tmproject/Build-Client.ps1
-resultado desta retomada: exit 0; zero warnings e zero erros; candidato
+resultado desta retomada: exit 0; 21 warnings preexistentes e zero erros; candidato
 instalado com SHA-256
-221AB0DB498D7193A64F884A32F2A7A0086A5CEBE352F3EEED918CE6F7FC4D09
+CE4F2775B382200601EAF59ABA4271D4EDC271C2A072EE29915AFB1B0E525F94
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
@@ -608,18 +609,23 @@ ocorrências.
 - `TMFieldScene::NewCCMode` passou a centralizar os estados dos handlers C.C
   antigos e modernos, normalizar thresholds, atualizar somente controles
   materializados e limpar target/delays ao trocar o modo de combate.
-- Os ponteiros C.C opcionais agora começam nulos e os IDs disponíveis são
-  vinculados sem presumir que o painel moderno exista em `FieldScene2`.
+- Os ponteiros C.C opcionais agora começam nulos. `FUN_00435B13` confirmou que
+  `FieldScene2` materializa os IDs `318` (físico) e `319` (mágico), agora
+  vinculados no initializer compatível sem presumir que o painel moderno exista.
+- O dispatcher `FUN_00453C59` chama `FUN_004539BC`: `A` alterna o estado
+  `DAT_005D03F4` entre `0/1` e `D` entre `0/2`. A source reproduz essas
+  transições em `OnCharEvent`; cliques em `318/319` são uma modernização
+  compatível porque o dispatcher nativo de clique não trata esses IDs.
 - A posição de farm é capturada somente na transição correspondente. A ordem
   de tooltips escolhida segue os handlers antigos: estados `0/1/2` usam
   `g_UIString[233]/[234]/[232]`; falta confirmação visual.
 - O delta é `MODERNIZACAO_COMPATIVEL`: não mudou wire, ABI, asset ou regra
   server-side. A ficha é
-  `flows/ui/cc-auto-combat-state-sync.md` e permanece `UNMAPPED` quanto à
-  topologia nativa.
+  `flows/ui/cc-auto-combat-state-sync.md` e está `TRACED`; entrada, caller,
+  mutação, controles, ownership e teardown foram registrados.
 - `Build-Client.ps1` passou com zero erros e 21 warnings preexistentes; o
   `client748/project.exe` instalado tem SHA-256
-  `8CD73ED35D59482C27EC3760C59D05EC44B5DAB4ACE39DFFAD540AF9D4A28002`.
+  `CE4F2775B382200601EAF59ABA4271D4EDC271C2A072EE29915AFB1B0E525F94`.
 - Não houve execução real dos controles; não alegar `CLIENT_TESTED`.
 
 ### Paridade estática fechada: `SetMyHumanMagic`
@@ -636,13 +642,10 @@ ocorrências.
 
 ### Continuação imediata
 
-1. Verificar no initializer compatível quais controles C.C `FieldScene2`
-   realmente materializa.
-2. Se os controles essenciais estiverem ausentes, criar o conjunto mínimo no
-   `InitializeCompatFieldScene` como extensão visual deliberada, sem alegar UI
-   nativa 7.48.
-3. Buildar, registrar o novo hash e manter o teste real como pendente até
-   executar os quatro modos e logout/relogin.
+1. Executar no candidato hasheado as teclas `A/D` e os controles `318/319`,
+   confirmando seleção mutuamente exclusiva, desligamento e modo moderno `3`.
+2. Exercitar reconstrução da Field e logout/relogin com C.C ligado.
+3. Manter `CLIENT_TESTED` pendente até essa validação real.
 
 ### Lote implementado em 2026-08-31: atalho `E/e`
 

@@ -320,6 +320,8 @@ TMFieldScene::TMFieldScene()
 	m_pHelpBtn = 0;
 	m_pMGameAutoBtn = 0;
 	m_pSGameAutoBtn = 0;
+	m_pNativeCCPhysicalBtn = nullptr;
+	m_pNativeCCMagicBtn = nullptr;
 	m_pAutoTarget = 0;
 	m_pCCPotionBtn = 0;
 	m_pCCFeedBtn = 0;
@@ -1346,6 +1348,8 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pHelpBtn = static_cast<SButton*>(m_pControlContainer->FindControl(314));
 		m_pQuestBtn = static_cast<SButton*>(m_pControlContainer->FindControl(315));
 		m_pAutoRunBtn = static_cast<SButton*>(m_pControlContainer->FindControl(316));
+		m_pNativeCCPhysicalBtn = static_cast<SButton*>(m_pControlContainer->FindControl(318));
+		m_pNativeCCMagicBtn = static_cast<SButton*>(m_pControlContainer->FindControl(319));
 		m_pServerPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12288));
 		m_pPartyPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1857));
 		m_pPartyBtn = static_cast<SButton*>(m_pControlContainer->FindControl(5742));
@@ -2140,10 +2144,16 @@ int TMFieldScene::InitializeScene()
 
 
 	char chtmp[128]{};//aqui alterado
-	sprintf(chtmp, "%d", g_GameAuto_hpValue);
-	m_pCCModeHpSte->SetText(chtmp, 0);
-	sprintf(chtmp, "%d", g_GameAuto_mountValue);
-	m_pCCModeMountSte->SetText(chtmp, 0);
+	if (m_pCCModeHpSte)
+	{
+		sprintf(chtmp, "%d", g_GameAuto_hpValue);
+		m_pCCModeHpSte->SetText(chtmp, 0);
+	}
+	if (m_pCCModeMountSte)
+	{
+		sprintf(chtmp, "%d", g_GameAuto_mountValue);
+		m_pCCModeMountSte->SetText(chtmp, 0);
+	}
 
 	m_pCIName = (SText*)m_pControlContainer->FindControl(65703u);
 	m_pCIClass = (SText*)m_pControlContainer->FindControl(65707u);
@@ -4308,6 +4318,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		// from entering unrelated 7.59 handlers and dereferencing absent windows.
 		switch (idwControlID)
 		{
+		case 318: // native physical C.C selector
+			return ToggleNativeCCMode(1);
+		case 319: // native magic C.C selector
+			return ToggleNativeCCMode(2);
 		case 1375: // ItemMix1 run (Compositor)
 			DoCombine();
 			return 1;
@@ -8038,6 +8052,14 @@ int TMFieldScene::OnCharEvent(char iCharCode, int lParam)
 
 	if (g_nKeyType)
 		return 0;
+
+	if (m_bCompatFieldScene)
+	{
+		if (iCharCode == 'a' || iCharCode == 'A')
+			return ToggleNativeCCMode(1);
+		if (iCharCode == 'd' || iCharCode == 'D')
+			return ToggleNativeCCMode(2);
+	}
 
 	if (UseQuickSloat(iCharCode))
 		return 1;
@@ -29226,6 +29248,16 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 	return 1;
 }
 
+int TMFieldScene::ToggleNativeCCMode(int mode)
+{
+	if (mode != 1 && mode != 2)
+		return 0;
+
+	g_GameAuto = g_GameAuto == mode ? 0 : mode;
+	NewCCMode(true);
+	return 1;
+}
+
 void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 {
 	if (g_GameAuto < 0 || g_GameAuto > 3)
@@ -29275,30 +29307,38 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 			pButton->m_pAltText->SetText(pAltText, 0);
 	};
 
-	int modeTexture = 458;
-	char* pModeText = g_UIString[229];
-	if (g_GameAuto == 1)
-	{
-		modeTexture = 455;
-		pModeText = g_UIString[226];
-	}
-	else if (g_GameAuto == 2)
-	{
-		modeTexture = 456;
-		pModeText = g_UIString[227];
-	}
-	else if (g_GameAuto == 3)
-	{
-		modeTexture = 459;
-		pModeText = g_UIString[230];
-	}
+	if (m_pNativeCCPhysicalBtn)
+		m_pNativeCCPhysicalBtn->SetSelected(g_GameAuto == 1);
+	if (m_pNativeCCMagicBtn)
+		m_pNativeCCMagicBtn->SetSelected(g_GameAuto == 2);
 
-	SButton* pLegacyMode = m_pControlContainer
+	SButton* pLegacyMode = !m_bCompatFieldScene && m_pControlContainer
 		? static_cast<SButton*>(m_pControlContainer->FindControl(B_CCATTACK))
 		: nullptr;
-	SetButtonState(m_pMGameAutoBtn, modeTexture, pModeText);
-	if (pLegacyMode != m_pMGameAutoBtn)
-		SetButtonState(pLegacyMode, modeTexture, pModeText);
+	if (!m_bCompatFieldScene || m_pMGameAutoBtn)
+	{
+		int modeTexture = 458;
+		char* pModeText = g_UIString[229];
+		if (g_GameAuto == 1)
+		{
+			modeTexture = 455;
+			pModeText = g_UIString[226];
+		}
+		else if (g_GameAuto == 2)
+		{
+			modeTexture = 456;
+			pModeText = g_UIString[227];
+		}
+		else if (g_GameAuto == 3)
+		{
+			modeTexture = 459;
+			pModeText = g_UIString[230];
+		}
+
+		SetButtonState(m_pMGameAutoBtn, modeTexture, pModeText);
+		if (pLegacyMode != m_pMGameAutoBtn)
+			SetButtonState(pLegacyMode, modeTexture, pModeText);
+	}
 
 	int potionTexture = 462;
 	if (m_AutoHpMp == 1)
@@ -29313,28 +29353,31 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 		m_pSGameAutoBtn->SetVisible(g_GameAuto != 0);
 	}
 
-	int positionTexture = 465;
-	char* pPositionText = g_UIString[232];
-	if (m_AutoPostionUse == 0)
-	{
-		positionTexture = 463;
-		pPositionText = g_UIString[233];
-	}
-	else if (m_AutoPostionUse == 1)
-	{
-		positionTexture = 464;
-		pPositionText = g_UIString[234];
-	}
-
-	SButton* pLegacyMove = m_pControlContainer
+	SButton* pLegacyMove = !m_bCompatFieldScene && m_pControlContainer
 		? static_cast<SButton*>(m_pControlContainer->FindControl(B_CCMOVE))
 		: nullptr;
-	SetButtonState(m_pSetType, positionTexture, pPositionText);
-	if (pLegacyMove != m_pSetType)
+	if (!m_bCompatFieldScene || m_pSetType)
 	{
-		SetButtonState(pLegacyMove, positionTexture, pPositionText);
-		if (pLegacyMove)
-			pLegacyMove->SetVisible(g_GameAuto != 0);
+		int positionTexture = 465;
+		char* pPositionText = g_UIString[232];
+		if (m_AutoPostionUse == 0)
+		{
+			positionTexture = 463;
+			pPositionText = g_UIString[233];
+		}
+		else if (m_AutoPostionUse == 1)
+		{
+			positionTexture = 464;
+			pPositionText = g_UIString[234];
+		}
+
+		SetButtonState(m_pSetType, positionTexture, pPositionText);
+		if (pLegacyMove != m_pSetType)
+		{
+			SetButtonState(pLegacyMove, positionTexture, pPositionText);
+			if (pLegacyMove)
+				pLegacyMove->SetVisible(g_GameAuto != 0);
+		}
 	}
 
 	char szThreshold[16]{};
