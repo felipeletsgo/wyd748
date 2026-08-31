@@ -1100,16 +1100,20 @@ int TMSelectCharScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, i
 		pExp->m_cComma = 1;
 		pExp->SetText(szValue, 0);
 
-		int mantua = g_pObjectManager->m_stSelCharData.Equip[i][15].sIndex;
+		const int mantua = g_pObjectManager->m_stSelCharData.Equip[i][15].sIndex;
+		// 3197..3199 select the native 7.48 G2 table. The additional capes are
+		// compatible extensions; clamping keeps malformed/max levels in bounds.
+		const bool secondClass =
+			mantua == 3197 || mantua == 3198 || mantua == 3199 ||
+			mantua == 573 || mantua == 1767 || mantua == 1770;
+		const long long* levelTable = secondClass ? g_pNextLevel_G2 : g_pNextLevel;
+		const int levelTableCount = secondClass ? _countof(g_pNextLevel_G2) : _countof(g_pNextLevel);
+		const unsigned int level = g_pObjectManager->m_stSelCharData.Score[i].Level;
+		const int nextLevelIndex = level >= static_cast<unsigned int>(levelTableCount - 1)
+			? levelTableCount - 1
+			: static_cast<int>(level + 1);
 
-		if (mantua != 3197 && mantua != 3198 && mantua != 3199 && mantua != 573 && mantua != 1767 && mantua != 1770)
-		{
-			// TODO
-		}
-		else
-		{
-			// TODO
-		}
+		sprintf_s(szValue, "%I64d", levelTable[nextLevelIndex]);
 
 		pExpC->m_cComma = 1;
 		pExpC->SetText(szValue, 0);

@@ -10,7 +10,7 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Transporte e criptografia | connect, seed/queues, framing, decrypt, checksum, disconnect | `CONTRACT` estreito | `transport/socket-disconnect-return-selectserver.md` cobre connect, callback, ownership e disconnect; framing, decrypt e checksum permanecem abertos |
 | Gate de tamanho por opcode | header recebido, opcode/tamanho, log/rejeição, caller real | `LOCATED` | `transport/packet-size-gate.md` |
 | Seleção de servidor e login | server list, credenciais, resposta, troca de chaves, falhas | `UNMAPPED` | — |
-| Seleção/criação de personagem | lista, create/delete, slot, enter world, teardown | `CONTRACT` estreito | `lifecycle/character-logout-selectchar-relogin.md` cobre logout, retorno à seleção e novo enter world; criação/delete permanecem abertos |
+| Seleção/criação de personagem | lista, create/delete, slot, enter world, teardown | `CONTRACT` estreito | `lifecycle/character-logout-selectchar-relogin.md` cobre logout, retorno à seleção e novo enter world; `ui/select-character-exp-threshold.md` rastreia a apresentação de EXP na seleção; criação/delete permanecem abertos |
 | Dispatcher de cena/campo | socket -> cena atual -> controles -> handler -> side effects | `UNMAPPED` | — |
 | Tick e input do mundo | message loop, FrameMove, mouse/tecla, focus, auto-run | `UNMAPPED` | — |
 | Movimento | intenção, rota, predição local, stop, correção server-side | `UNMAPPED` | — |

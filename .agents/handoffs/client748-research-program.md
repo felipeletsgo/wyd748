@@ -349,9 +349,26 @@ reconstrução Field pós-migração           | STATICALLY VERIFIED | ficha CON
 logout para seleção e relogin             | STATICALLY VERIFIED | ficha CONTRACT; dispatch 633..635 compilado; fluxo real pendente
 fechamento e shutdown global              | STATICALLY VERIFIED | ficha CONTRACT; source atual mantida; fluxo real pendente
 disconnect TCP e retorno à seleção        | STATICALLY VERIFIED | ficha CONTRACT; socket redundante removido; fluxo real pendente
+counters EXP na seleção de personagem     | STATICALLY VERIFIED | ficha TRACED; controles 1314/1315 compilados; fluxo real pendente
 código ativo do client                    | IMPLEMENTED         | inclui NewApp/TMGlobal; servidor preservado
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
+
+### Delta de 2026-08-31 — EXP na seleção de personagem
+
+- `ui/select-character-exp-threshold.md` fechou em `TRACED` a entrada indireta
+  `0x005A44BC`, `FUN_004A4582`, o callee `FUN_0049AB73`, os controles
+  `1314/1315` e a seleção das tabelas normal/G2.
+- `TMSelectCharScene.cpp` agora escreve em `1315` o limiar absoluto
+  `levelTable[Score.Level + 1]`, com clamp. Capas nativas `3197..3199` usam G2;
+  as extensões manuais `573`, `1767` e `1770` foram preservadas como
+  modernização compatível.
+- A diferença `WM_LBUTTONDOWN` nativo versus `WM_LBUTTONUP` da source foi
+  registrada, mas não alterada por não integrar este delta textual.
+- O primeiro build compilou sem erros, mas não instalou porque o candidato
+  estava em execução como PID `16144`. Após confirmar o caminho exato e encerrar
+  esse processo, o pipeline oficial instalou o novo `project.exe` com SHA-256
+  `51AFF48D55D475E510A083CE8B469776E657BDBEA61E200BFA81FAD26E3C76CE`.
 
 ## Worktree e arquivos ativos
 
@@ -394,8 +411,8 @@ antes de editar; handoff não funciona como lock.
 
 ```text
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-resultado: exit 0; reexecutado em 2026-08-31; sete fichas válidas;
-CONTRACT=4 e LOCATED=3
+resultado: exit 0; reexecutado em 2026-08-31; oito fichas válidas;
+CONTRACT=4, LOCATED=3 e TRACED=1
 
 python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
 resultado: exit 0; 4.146 funções, 46 STATICALLY_EVIDENCED, 22 LOCATED e
@@ -405,8 +422,9 @@ go test ./internal/game ./internal/wire
 resultado: exit 0
 
 client-source/tmproject/Build-Client.ps1
-resultado: exit 0; 31 warnings preexistentes, zero erros; candidato instalado
-com SHA-256 484580A681FB12226660084DAFBB1DACB93665C4F06C4A0853AEFFD13660069D
+resultado desta retomada: exit 0; zero warnings e zero erros; candidato
+instalado com SHA-256
+51AFF48D55D475E510A083CE8B469776E657BDBEA61E200BFA81FAD26E3C76CE
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
@@ -566,24 +584,27 @@ ocorrências.
 
 ## Próximo passo executável
 
-1. Executar no candidato hasheado os controles `633`, `634`, `635` e `636`, uma
+1. Executar no candidato hasheado a seleção de um personagem comum e um de
+   segunda classe, confirmando que `1314` mostra a EXP atual e `1315` o limiar
+   correto da tabela normal/G2; até isso, manter `STATICALLY VERIFIED`.
+2. Executar no mesmo candidato os controles `633`, `634`, `635` e `636`, uma
    queda TCP com retorno à seleção, novo login no mesmo personagem e em outro
    slot e migração entre servidores/canais; até isso, manter o estado máximo
    `STATICALLY VERIFIED`.
-2. Continuar o lifecycle por uma ficha estreita de troca de conta ou reconexão
+3. Continuar o lifecycle por uma ficha estreita de troca de conta ou reconexão
    TCP, partindo da source viva e abrindo no Ghidra somente os callers/callees
    que decidirem a transição escolhida. Não reabrir o shutdown global sem nova
    evidência de incompatibilidade ou falha runtime.
-3. Inspecionar a source atual e classificar o próximo delta concreto. Se ele
+4. Inspecionar a source atual e classificar o próximo delta concreto. Se ele
    depender de paridade nativa, fechar entrada, callers, callees, estado, erros,
    ownership e teardown antes de adaptá-lo; se for modernização/extensão
    independente, provar a fronteira correspondente e prosseguir sem aguardar a
    promoção de claims não relacionados.
-4. Não reabrir `packet-size-gate.md` com novos scans estáticos equivalentes. A
+5. Não reabrir `packet-size-gate.md` com novos scans estáticos equivalentes. A
    frente só deve voltar com evidência runtime, novo mecanismo concreto de
    dispatch indireto ou necessidade de auditar um opcode específico; sua
    maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
-5. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
+6. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
    fila/input mudar e `git diff --check` após edições. Atualizar este handoff
    somente quando houver nova evidência, decisão, validação ou ponto de retomada.
 
