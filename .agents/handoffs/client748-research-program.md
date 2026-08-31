@@ -47,7 +47,7 @@ presumidos intencionais; ausência no nativo 7.48 não autoriza remoção.
 
 ```text
 client748/wyd.exe nativo+patches/WYD.exe | referência histórica Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                    | candidato source volátil    | CE4F2775B382200601EAF59ABA4271D4EDC271C2A072EE29915AFB1B0E525F94
+client748/project.exe                    | candidato source volátil    | CC317B6FB3EE4723DD0348AA32431ABA45D87AF7329936D5F15E3D0D8A06AFA3
 %USERPROFILE%\Tools\GhidraProjects\WYD748Native_20260821.gpr | projeto Ghidra | descobrir no perfil
 %USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled       | corpus auxiliar | 4.146 funções
 ```
@@ -678,9 +678,27 @@ ocorrências.
   tem SHA-256
   `A9C2233C26957ED2415A796AB55034DBC2A6A0B600A38570F35F0CCD8846FF24`.
 - Não houve execução real do atalho; não alegar `CLIENT_TESTED`.
-- Próxima raiz source-first: `UsePPotion`/`OnKeyPPotion` (`E/e`). Localizar a
-  função nativa chamada pelo dispatcher vizinho, fechar o contrato e
-  implementar sem reabrir pesquisa global.
+- Próxima raiz source-first: continuar o painel TOTO pelos métodos vivos de
+  seleção/fechamento, sem ativar compra ou packet até o wire ser confirmado.
+
+### Lote implementado em 2026-08-31: loader TOTO
+
+- `BASE_ReadTOTOList` agora materializa o contrato nativo de
+  `FUN_00558290`: tabela `80 x 96`, header menor que 80, registros
+  `index,time,teamA,teamB`, underscores convertidos em espaços e índices
+  válidos `1..78`.
+- O parser limita cada campo a 31 bytes e ignora linhas incompletas, mantendo
+  o asset válido equivalente sem reproduzir overflow ou estado parcial do
+  `%s` legado.
+- A ficha `flows/ui/toto-list-loader.md` está `CONTRACT`; fecha caller da
+  inicialização da Field, helpers, consumidores, falhas, ownership e relogin.
+- O asset atual passou na verificação estrutural com header 64, 64 registros,
+  índices 1..64 e nenhum campo acima do limite. `validate_research.py` e
+  `git diff --check` passaram.
+- `Build-Client.ps1` passou e instalou `client748/project.exe` com SHA-256
+  `CC317B6FB3EE4723DD0348AA32431ABA45D87AF7329936D5F15E3D0D8A06AFA3`.
+- Não houve execução real da Field; não alegar `CLIENT_TESTED`. Compra/aposta
+  permanece fora deste lote.
 
 1. Executar no candidato hasheado a seleção de um personagem comum e um de
    segunda classe, confirmando que `1314` mostra a EXP atual e `1315` o limiar

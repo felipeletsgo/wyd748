@@ -21,6 +21,10 @@ STRUCT_ITEMLIST g_pItemList[MAX_ITEMLIST];
 STRUCT_SPELL g_pSpell[MAX_SPELL_LIST];
 STRUCT_INITITEM g_pInitItem[100];
 int g_itemicon[6500];
+STRUCT_TOTOLIST g_pTOTOList[80];
+int g_nTOTOListCount;
+
+static_assert(sizeof(STRUCT_TOTOLIST) == 96, "7.48 TOTO list entry must remain 96 bytes");
 
 STRUCT_GUILDZONE g_pGuildZone[MAX_GUILDZONE] =
 {
@@ -1387,7 +1391,62 @@ char BASE_GetAttr(int nX, int nY)
 
 int BASE_ReadTOTOList(char* szFileName)
 {
-    return 0;
+    if (szFileName == nullptr)
+        return 0;
+
+    FILE* file = nullptr;
+    fopen_s(&file, szFileName, "rt");
+    if (file == nullptr)
+        return 0;
+
+    memset(g_pTOTOList, 0, sizeof(g_pTOTOList));
+    g_nTOTOListCount = 0;
+
+    char line[1024]{};
+    if (fgets(line, sizeof(line), file) == nullptr)
+    {
+        fclose(file);
+        return 0;
+    }
+
+    int declaredCount = 0;
+    if (sscanf_s(line, "%d", &declaredCount) != 1 || declaredCount < 0 || declaredCount >= 80)
+    {
+        fclose(file);
+        return 0;
+    }
+
+    g_nTOTOListCount = declaredCount;
+    for (int row = 0; row < declaredCount && fgets(line, sizeof(line), file) != nullptr; ++row)
+    {
+        for (char* cursor = line; *cursor != '\0'; ++cursor)
+        {
+            if (*cursor == ',')
+                *cursor = ' ';
+        }
+
+        int index = -1;
+        STRUCT_TOTOLIST entry{};
+        const int parsedFields = sscanf_s(
+            line,
+            "%d %31s %31s %31s",
+            &index,
+            entry.szTime, static_cast<unsigned int>(_countof(entry.szTime)),
+            entry.szTeamA, static_cast<unsigned int>(_countof(entry.szTeamA)),
+            entry.szTeamB, static_cast<unsigned int>(_countof(entry.szTeamB)));
+        if (parsedFields != 4)
+            continue;
+
+        BASE_UnderBarToSpace(entry.szTime);
+        BASE_UnderBarToSpace(entry.szTeamA);
+        BASE_UnderBarToSpace(entry.szTeamB);
+
+        if (index > 0 && index < 79)
+            g_pTOTOList[index] = entry;
+    }
+
+    fclose(file);
+    return 1;
 }
 
 int BASE_GetStaticItemAbility(STRUCT_ITEM* item, char Type)

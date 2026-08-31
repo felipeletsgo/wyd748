@@ -3063,6 +3063,8 @@ extern STRUCT_GUILDZONE g_pGuildZone[MAX_GUILDZONE];
 extern STRUCT_SPELL g_pSpell[MAX_SPELL_LIST];
 extern STRUCT_INITITEM g_pInitItem[100];
 extern int g_itemicon[6500];
+extern STRUCT_TOTOLIST g_pTOTOList[80];
+extern int g_nTOTOListCount;
 
 float BASE_ScreenResize(float size);
 char* strfmt(const char* str, ...);
