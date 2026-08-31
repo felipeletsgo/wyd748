@@ -603,6 +603,24 @@ ocorrências.
 
 ## Próximo passo executável
 
+### Lote implementado em 2026-08-31: atalho `F/f`
+
+- `TMFieldScene::OnKeyAuto` foi implementado por paridade nativa a partir de
+  `FUN_0044FC4B`, com dispatch de `FUN_004525A1`, busca reversa do Carry,
+  vínculo por abilities `56/57`, cooldown de 200 ms e `MSG_UseItem 0x373/36`.
+- A ficha
+  `flows/ui/equipped-item-matched-consumable-shortcut.md` está `CONTRACT` e
+  registra os callers adicionais `FUN_004541F3` e `FUN_004662C5`, falhas sem
+  mutação e lifecycle completo desta ação síncrona.
+- `validate_research.py` e `git diff --check` passaram. `Build-Client.ps1`
+  passou com 13 warnings preexistentes e zero erros; `client748/project.exe`
+  tem SHA-256
+  `A9C2233C26957ED2415A796AB55034DBC2A6A0B600A38570F35F0CCD8846FF24`.
+- Não houve execução real do atalho; não alegar `CLIENT_TESTED`.
+- Próxima raiz source-first: `UsePPotion`/`OnKeyPPotion` (`E/e`). Localizar a
+  função nativa chamada pelo dispatcher vizinho, fechar o contrato e
+  implementar sem reabrir pesquisa global.
+
 1. Executar no candidato hasheado a seleção de um personagem comum e um de
    segunda classe, confirmando que `1314` mostra a EXP atual e `1315` o limiar
    correto da tabela normal/G2; até isso, manter `STATICALLY VERIFIED`.

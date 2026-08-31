@@ -8190,6 +8190,9 @@ int TMFieldScene::OnCharEvent(char iCharCode, int lParam)
 
 	if (g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
 	{
+		if (OnKeyAuto(iCharCode, lParam))
+			return 1;
+
 		if (OnKeyHPotion(iCharCode, lParam))
 			return 1;
 
@@ -20617,8 +20620,72 @@ int TMFieldScene::OnKeyAutoTarget(char iCharCode, int lParam)
 
 int TMFieldScene::OnKeyAuto(char iCharCode, int lParam)
 {
-	// Just that
-	return 0;
+	if (iCharCode != 'f' && iCharCode != 'F')
+		return 0;
+
+	if (!m_pGridInv || !m_pMyHuman || !g_pObjectManager || !g_pTimerManager || !g_pEventTranslator)
+		return 1;
+
+	auto* pEquippedItem = &g_pObjectManager->m_stMobData.Equip[12];
+	if (!pEquippedItem->sIndex)
+		return 1;
+
+	SGridControlItem* pItem = nullptr;
+	for (int nX = 8; nX >= 0 && !pItem; --nX)
+	{
+		for (int nY = 6; nY >= 0; --nY)
+		{
+			auto* pCandidate = m_pGridInv->GetItem(nX, nY);
+			if (pCandidate && pCandidate->m_pItem && BASE_GetItemAbility(pCandidate->m_pItem, 38) == 17)
+			{
+				pItem = pCandidate;
+				break;
+			}
+		}
+	}
+
+	if (!pItem || !pItem->m_pItem || !pItem->m_pGridControl)
+		return 1;
+
+	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
+	if (m_dwUseItemTime && dwServerTime - m_dwUseItemTime < 200)
+		return 1;
+
+	const unsigned short equippedKey = static_cast<unsigned short>(
+		((BASE_GetItemAbility(pEquippedItem, 56) & 0xFF) << 8)
+		| (BASE_GetItemAbility(pEquippedItem, 57) & 0xFF));
+	const unsigned short consumableKey = static_cast<unsigned short>(
+		((BASE_GetItemAbility(pItem->m_pItem, 56) & 0xFF) << 8)
+		| (BASE_GetItemAbility(pItem->m_pItem, 57) & 0xFF));
+	if (equippedKey != consumableKey)
+		return 1;
+
+	m_pGridInv->CheckType(pItem->m_pGridControl->m_eItemType,
+		pItem->m_pGridControl->m_eGridType);
+
+	int SourPos = m_pGridInv->CheckPos(pItem->m_pGridControl->m_eItemType);
+	if (SourPos == -1)
+		SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+	if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
+		return 1;
+
+	auto vec = m_pMyHuman->m_vecPosition;
+
+	// FUN_0044FC4B sends only the server-authoritative intent; it never consumes
+	// or removes this matched item optimistically in the client.
+	MSG_UseItem stUseItem{};
+	stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
+	stUseItem.Header.Type = MSG_UseItem_Opcode;
+	stUseItem.SourType = 1;
+	stUseItem.SourPos = SourPos;
+	stUseItem.GridX = (int)vec.x;
+	stUseItem.GridY = (int)vec.y;
+	SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+
+	m_dwUseItemTime = dwServerTime;
+	g_pEventTranslator->m_bRBtn = 1;
+	GetSoundAndPlay(54, 0, 0);
+	return 1;
 }
 
 int TMFieldScene::OnKeyHelp(char iCharCode, int lParam)
