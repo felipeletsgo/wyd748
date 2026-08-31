@@ -126,8 +126,8 @@ de marca, coleta e deleting destructor documentado na ficha geral de cenas.
 ### Shutdown
 
 O controle `635` chega ao `WM_CLOSE` após a mesma contagem de cinco segundos.
-A desmontagem posterior pertence ao shutdown global já descrito em
-`scene-transition.md`; esta ficha não amplia o contrato dessa etapa.
+A desmontagem posterior pertence ao contrato
+`application-close-global-shutdown.md`; esta ficha não duplica essa etapa.
 
 ### Logout e relogin
 
@@ -194,15 +194,15 @@ confirmação quando a persistência atômica falha.
   o relogin do mesmo e de outro slot.
 - Validar em runtime falha de save, rejeição de login e queda de conexão entre
   `0x215` e `0x116`.
-- Troca de conta, reconexão TCP e convergência com shutdown global permanecem
-  em fichas separadas.
+- Troca de conta e reconexão TCP permanecem em fichas separadas. A convergência
+  terminal está fechada em `application-close-global-shutdown.md`.
 
 ## Validação
 
 - Pesquisa: funções `FUN_004662C5`, `FUN_004776C3`, `FUN_0055890A`,
   `FUN_00492E7D` e `FUN_00484C8A` fechadas para esta transição no projeto
   Ghidra do hash registrado.
-- Automação: `validate_research.py` aprovado com `CONTRACT=2` e `LOCATED=3`;
+- Automação: `validate_research.py` aprovado com `CONTRACT=3` e `LOCATED=3`;
   `triage_catalog.py` confirmou 4.146 funções, 40 `STATICALLY_EVIDENCED`, 23
   `LOCATED` e 4.083 `UNMAPPED`.
 - Servidor: `go test ./internal/game ./internal/wire` aprovado.

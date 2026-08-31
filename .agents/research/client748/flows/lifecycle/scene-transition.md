@@ -37,12 +37,12 @@ cena anterior para destruição? Quais partes da implementação do TMProject
   intenção posterior continua sujeita à autoridade do WYD-Go.
 
 Os exports são aceleradores de busca. A ordem local entre coletor, deleting
-destructor, cleanup específico/base e detach, o caller de shutdown da aplicação
-e o lifecycle do hook global de teclado já foram fechados; callers de estado,
-ownership dos demais campos da aplicação e convergência integral do teardown
-ainda precisam ser fechados no projeto Ghidra antes de transformar esta ficha
-em contrato de implementação. O logout/relogin explícito foi fechado numa
-ficha `CONTRACT` separada e não promove automaticamente este fluxo mais amplo.
+destructor, cleanup específico/base e detach já foi fechada. O shutdown global,
+incluindo ownership dos campos da aplicação e lifecycle do hook de teclado,
+foi promovido numa ficha `CONTRACT` separada; callers de estado e a convergência
+das demais transições ainda precisam ser fechados antes de transformar esta
+ficha ampla em contrato. Logout/relogin também foi fechado numa ficha própria e
+nenhum dos dois contratos promove automaticamente este fluxo mais amplo.
 
 ## Fluxo nativo 7.48
 
@@ -663,10 +663,11 @@ pelo finalizador, e somente instalador/finalizador leem ou escrevem
 `DAT_005CCF84`.
 
 Essa sequência prova que o `ObjectManager` global é destruído antes dos demais
-campos listados, fecha o caller do slot de shutdown e o teardown do hook até
-`PostQuitMessage(0)`, mas ainda não identifica as classes/ownership de todos os
-campos nem a unidade do gate. Socket, timer, foco, fontes de `WM_CLOSE` e a
-convergência integral com `FUN_0055D066` permanecem abertos.
+campos listados e fecha o caller do slot de shutdown e o teardown do hook até
+`PostQuitMessage(0)`. A correlação dos owners, o wire e a falha parcial da
+source foram consolidados em `application-close-global-shutdown.md`, no estado
+`CONTRACT`. Fontes individuais de `WM_CLOSE`, troca de conta e reconexão TCP
+continuam fora desta ficha ampla.
 
 ### Logout e relogin
 
@@ -675,6 +676,11 @@ convergência integral com `FUN_0055D066` permanecem abertos.
 `0x213` e retorno por `0x114` ao estado `0`. O contrato preserva a sessão TCP e
 o ownership server-authoritative; não reivindica troca de conta, reconexão ou
 shutdown global.
+
+O shutdown terminal está separado em
+`application-close-global-shutdown.md`, no estado `CONTRACT`. Ele cobre
+Field/não-Field, o packet `0x3AE/0x10`, ownership global, hook e término do
+message loop; não resolve troca de conta ou reconexão TCP.
 
 O relogin estreito de migração de servidor/canal está separado em
 `field-scene-rebuild-after-server-move.md`, no estado `CONTRACT`. Ele cobre
@@ -727,7 +733,7 @@ inventário, observers e persistência continuam sendo validados no servidor.
 | Estados que criam cena | `0`, `5`, `7`, `8` | quatro classes de cena | referência semântica posterior | não aplicável | manter no estudo; não alterar enquanto `LOCATED` |
 | Inicialização | virtual `+0x4C`; cena `0` retorna `1` em toda conclusão normal; cenas `5/7/8` retornam `0` após falha de `FUN_00541065` e `1` nos demais caminhos normais | `InitializeScene()` | pode ter outra ABI | não aplicável | initializers fechados no CFG normal; fechar teardown antes de adaptar |
 | Ownership | root `manager+0x1B07C`; `FUN_0054AC09` insere no início da lista intrusiva | `m_pRoot->AddChild` | árvore moderna não decide offset | não aplicável | ordem local comprovada; não portar layout |
-| Troca/limpeza | marca anterior, sentinela de subárvore, quatro cadeias específicas, zero preventivo e detach | `m_cDeleted`, `DeleteObject`, `CleanUp` | lifecycle posterior é pista | não aplicável | ordem local fechada; concluir shutdown global antes de ampliar |
+| Troca/limpeza | marca anterior, sentinela de subárvore, quatro cadeias específicas, zero preventivo e detach | `m_cDeleted`, `DeleteObject`, `CleanUp` | lifecycle posterior é pista | não aplicável | ordem local fechada; shutdown terminal fechado em ficha própria |
 | Logout/relogin explícito | `633..636`; `0x215 -> 0x116`; estado `0 -> 5 -> 0` | dispatch compatível, timers e confirmação | handlers modernos não decidem recurso/ABI | persiste antes de confirmar e preserva sessão | implementado sob ficha `CONTRACT`; ainda não `CLIENT_TESTED` |
 | Seleção de personagem | `SButton` ID `0x1204`; release `0x202`; receptor embutido; cena `+0x58`; packet `0x213`, `0x24` bytes, índice `+0x0C` | sem comparação autorizada nesta etapa | nomes modernos são apenas pista | contrato server-side ainda não correlacionado | origem UI fechada; fechar ordem do `0x114` e ficha wire antes de adaptar |
 | Transporte | enqueue cifra `+0x04..fim`; flush preserva pendências parciais | sem comparação autorizada nesta etapa | implementação posterior não decide ABI | transporte server-side não analisado nesta ficha | registrar como comportamento nativo, sem portar layout |
@@ -740,10 +746,10 @@ inventário, observers e persistência continuam sendo validados no servidor.
   `0x213`, resposta `0x114`, consumidor da marca e destrutores foram
   localizados; os initializers das cenas `0/5/7/8` e os consumidores mutuamente
   exclusivos da resposta estão fechados. A ordem local de coleta, deleting
-  destructor, prevenção de dupla destruição, detach e caller do shutdown
-  também está fechada, mas callers de estado restantes, ownership e
-  convergência integral do teardown ainda não estão. Logout/relogin explícito
-  foi fechado separadamente sem promover esta ficha geral.
+  destructor, prevenção de dupla destruição e detach também está fechada. O
+  shutdown terminal e o logout/relogin explícito foram fechados separadamente;
+  callers de estado e convergência das demais transições ainda impedem promover
+  esta ficha geral.
 - A migração estreita já alterou `ObjectManager`, `TMScene`, `TMFieldScene` e
   `Basedef.h` no commit `60c57760`, amparada por ficha `CONTRACT`. Fora desse
   recorte, a implementação do TMProject 7.69+ continua referência semântica
@@ -759,12 +765,10 @@ inventário, observers e persistência continuam sendo validados no servidor.
 - callers restantes e transições que fornecem outros estados a `FUN_004B3500`;
 - atribuição, consulta, invalidação e destruição de `app+0xF4`, `app+0xF8` e
   `app+0xFC` no loop de mensagens;
-- fontes normais, de bootstrap e de falha que conduzem ao `WM_CLOSE`;
-- classe e ownership de `app+0xE0/+0xE4/+0xE8/+0xEC/+0xF0/+0xF4/+0xFC/+0x110`
-  e dos globals desmontados;
-- convergência do shutdown observado com janela, socket, timer, cenas,
-  controles e foco;
-- troca de conta/reconexão e convergência completa da sessão/cena com shutdown;
+- fontes individuais normais, de bootstrap e de falha que conduzem ao
+  `WM_CLOSE`, quando relevantes aos fluxos próprios;
+- troca de conta/reconexão e convergência completa da sessão/cena nesses
+  fluxos não terminais;
 - comparação campo a campo com o recurso e a source 7.48, após o fluxo nativo
   estar fechado.
 

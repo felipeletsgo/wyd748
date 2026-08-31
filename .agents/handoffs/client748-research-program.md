@@ -186,9 +186,9 @@ tipos, stack ou lifecycle no projeto Ghidra.
   registros, destrói `DAT_013B71E8`, depois desmonta `app+0xF4`, `+0xE0`,
   `+0xE4`, `+0xFC`, `+0xEC`, `+0xE8`, `+0xF0`, zera `DAT_013B71E4`, chama
   `DeleteObject(app+0x110)` e opcionalmente
-  `FUN_0059DFE0(DAT_013B7364)`. Classes/ownership desses campos continuam
-  abertos; o caller efetivo do slot de shutdown foi fechado no ramo
-  `WM_CLOSE` descrito abaixo.
+  `FUN_0059DFE0(DAT_013B7364)`. Receptores, ownership e falha parcial foram
+  correlacionados com a source e fechados no contrato estreito de shutdown;
+  o caller efetivo do slot é o ramo `WM_CLOSE` descrito abaixo.
 - `FUN_004B1EA9` inicializa o `ObjectManager` com vptr `0x005A45FC`, cena global
   nula e estado `-1`; `FUN_004B3A20 -> FUN_004B2155` desmonta a raiz e zera
   `DAT_0067CF38`. O timer usa vtable `0x005A4688`, é publicado em
@@ -212,6 +212,13 @@ tipos, stack ou lifecycle no projeto Ghidra.
   `0x116/0x0C`; `FUN_00492E7D -> FUN_00484C8A` reconstrói a seleção, seguida de
   `0x213 -> 0x114` para retornar ao Field. O dispatch faltante foi restaurado
   na source; `636` continua sendo cancelamento local sem packet.
+- A ficha `application-close-global-shutdown.md` está em `CONTRACT`:
+  `FUN_0055FA89 -> FUN_0055DAB8` recebe `WM_CLOSE`; Field envia uma vez
+  `0x3AE/0x10` e aguarda 3.000 unidades do TimerManager, enquanto outras cenas
+  fecham imediatamente. `FUN_0055D066` desmonta os owners, `FUN_00423C61`
+  remove o hook e a cadeia termina em `DestroyWindow -> PostQuitMessage(0)`.
+  Source e WYD-Go já preservam o contrato, com guardas seguras de init parcial;
+  não há delta funcional nem alegação de `CLIENT_TESTED`.
 - A vtable da aplicação em `0x005A6104` contém, nos slots `+0x00..+0x1C`,
   `FUN_0055F3E0`, `FUN_0055BC0A`, `FUN_0055D066`, `FUN_0055D345`,
   `FUN_0055EDF7`, `FUN_0055D6E6`, `FUN_0055EE1E` e `FUN_0055EE45`.
@@ -330,9 +337,10 @@ infraestrutura e schema das fichas       | STATICALLY VERIFIED | scripts e templ
 correlação estrutural native/source       | AUTOMATED TESTED     | Ghidra real + correlator: 88 exact, 385 candidates
 gate de tamanho por opcode               | LOCATED             | entrada nativa localizada; caller/direção pendentes
 foco, IME e lifecycle de controles       | LOCATED             | fluxo principal localizado; xrefs/teardown pendentes
-transição e troca de cenas                | LOCATED             | logout/relogin fechado à parte; ownership e convergência global pendentes
+transição e troca de cenas                | LOCATED             | shutdown/logout fechados à parte; demais callers/transições pendentes
 reconstrução Field pós-migração           | STATICALLY VERIFIED | ficha CONTRACT e source no commit 60c57760; fluxo real pendente
 logout para seleção e relogin             | STATICALLY VERIFIED | ficha CONTRACT; dispatch 633..635 compilado; fluxo real pendente
+fechamento e shutdown global              | STATICALLY VERIFIED | ficha CONTRACT; source atual mantida; fluxo real pendente
 código ativo do client                    | IMPLEMENTED         | Basedef/ObjectManager/TMFieldScene/TMScene alterados; servidor preservado
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
@@ -352,7 +360,8 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
   fingerprints com testes determinísticos.
 - `.agents/research/client748/` — README, template, quatro exports focados e as
   fichas do programa, incluindo `flows/lifecycle/scene-transition.md` e o
-  contrato `character-logout-selectchar-relogin.md`; o
+  contrato `character-logout-selectchar-relogin.md`, além do contrato terminal
+  `application-close-global-shutdown.md`; o
   inventário README inclui o procedimento do triador. O ledger
   `inventory/scene-transition-evidence-log.md` preserva a rodada de 56
   exports e a ficha de migração registra o contrato aplicado.
@@ -373,12 +382,12 @@ antes de editar; handoff não funciona como lock.
 
 ```text
 python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-resultado: exit 0; reexecutado em 2026-08-31; cinco fichas válidas;
-CONTRACT=2 e LOCATED=3
+resultado: exit 0; reexecutado em 2026-08-31; seis fichas válidas;
+CONTRACT=3 e LOCATED=3
 
 python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
-resultado: exit 0; 4.146 funções, 40 STATICALLY_EVIDENCED, 23 LOCATED e
-4.083 UNMAPPED
+resultado: exit 0; 4.146 funções, 46 STATICALLY_EVIDENCED, 22 LOCATED e
+4.078 UNMAPPED
 
 go test ./internal/game ./internal/wire
 resultado: exit 0
@@ -531,10 +540,10 @@ ocorrências.
 - Não reler por padrão os exports já inventariados do lifecycle. Consultar o ledger, abrir
   somente o export ligado à lacuna atual e escrever a conclusão no mesmo ciclo.
 - A ficha de cenas permanece `LOCATED`: os receivers/retornos `+0x4C` das cenas
-  `0/5/7/8`, a ordem local de coleta/detach, o caller do shutdown e o lifecycle
-  do hook global de teclado estão fechados; faltam callers de estado restantes,
-  classes/ownership e convergência integral do teardown. Logout/relogin explícito
-  está fechado na ficha própria.
+  `0/5/7/8`, a ordem local de coleta/detach, o shutdown terminal e o lifecycle
+  do hook global de teclado estão fechados; faltam callers de estado e a
+  convergência das demais transições. Logout/relogin explícito e shutdown global
+  estão fechados em fichas próprias.
 - Os traversals `FUN_004B29B9` e `FUN_004B2D35` estão fechados no recorte do
   `ObjectManager`; não generalizar sua semântica aos demais hits globais.
 
@@ -543,9 +552,10 @@ ocorrências.
 1. Executar no candidato hasheado os controles `633`, `634`, `635` e `636`, a
    volta à seleção e o relogin no mesmo personagem e em outro slot; até isso,
    manter o estado máximo `STATICALLY VERIFIED`.
-2. Continuar o lifecycle por uma ficha estreita de shutdown global, troca de
-   conta ou reconexão TCP, partindo da source viva e abrindo no Ghidra somente
-   os callers/callees que decidirem a transição escolhida.
+2. Continuar o lifecycle por uma ficha estreita de troca de conta ou reconexão
+   TCP, partindo da source viva e abrindo no Ghidra somente os callers/callees
+   que decidirem a transição escolhida. Não reabrir o shutdown global sem nova
+   evidência de incompatibilidade ou falha runtime.
 3. Inspecionar a source atual e classificar o próximo delta concreto. Se ele
    depender de paridade nativa, fechar entrada, callers, callees, estado, erros,
    ownership e teardown antes de adaptá-lo; se for modernização/extensão

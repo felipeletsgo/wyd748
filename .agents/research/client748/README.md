@@ -59,6 +59,7 @@ Estado atual do mapa:
 | Transição e troca de cenas | `LOCATED` | `flows/lifecycle/scene-transition.md` |
 | Reconstrução Field após migração de servidor | `CONTRACT` | `flows/lifecycle/field-scene-rebuild-after-server-move.md` |
 | Logout de personagem, seleção e relogin | `CONTRACT` | `flows/lifecycle/character-logout-selectchar-relogin.md` |
+| Fechamento da aplicação e shutdown global | `CONTRACT` | `flows/lifecycle/application-close-global-shutdown.md` |
 
 `LOCATED` permite investigação e documentação, não edição comportamental.
 `TRACED` exige callers/callees e estado/erros fechados; `CONTRACT` acrescenta

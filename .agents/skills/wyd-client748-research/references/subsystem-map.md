@@ -23,7 +23,7 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Mix, quest e sistemas especiais | recipes, slots, intents, resposta, falha | `UNMAPPED` | — |
 | UI e lifecycle | construção, binding, root, input, focus, destroy, relogin | `LOCATED` | `ui/control-focus-ime-lifecycle.md` |
 | Render e assets | loaders, meshes, texturas, escala, pipeline, device reset | `UNMAPPED` | — |
-| Shutdown e reconexão | socket close, cena teardown, globals, retry, exit | `CONTRACT` estreito | `lifecycle/field-scene-rebuild-after-server-move.md` cobre reconstrução pós-migração e `lifecycle/character-logout-selectchar-relogin.md` cobre logout explícito na mesma sessão; shutdown global permanece aberto |
+| Shutdown e reconexão | socket close, cena teardown, globals, retry, exit | `CONTRACT` por fluxos estreitos | `lifecycle/application-close-global-shutdown.md` cobre teardown terminal; `field-scene-rebuild-after-server-move.md` cobre migração e `character-logout-selectchar-relogin.md` cobre logout na mesma sessão; troca de conta/reconexão TCP permanecem abertas |
 
 Os documentos `WYD748_PORT.md`, `WYD748_UI_WINDOWS.md` e comentários atuais da
 source são índices legados. Migre conhecimento estável deles para fichas por
