@@ -345,6 +345,8 @@ não estão.
 | Packet `0x213` | socket e espaço no buffer | `FUN_0042550E -> FUN_00424C2C -> FUN_00424DFE -> FUN_00425266` | dados cifrados/enfileirados; flush tentado | seed, checksum e tempo gravados | enqueue falho pode ser mascarado pelo retorno do flush |
 | Resposta `0x114` | raiz ativa em `DAT_0067CF38`; slot de packet `+0x04` | `FUN_004B263E -> FUN_004A626E` na cena 5 ou `FUN_004B263E -> FUN_00492E7D` na cena 0 | estado `0` solicitado; `9` é normalizado para `0` no caminho da cena 0 | personagem selecionado atualizado na cena 5; retorno `1` encerra o dispatch | handlers são overrides alternativos, sem segundo consumo do mesmo packet |
 | Cena marcada | `scene+0x14 != 0` | `FUN_0055D345 -> FUN_004B16C0` | subárvore ativa coletada; previous scene finalizada | sentinela impede sair da raiz; `+0x1B088` zerado antes da reentrada | ordem local de detach fechada |
+| Traversal `+0x14` | raiz ativa | `FUN_004B29B9`, vtable `0x005A4614` | primeiro nó elegível que retorna `1` encerra a busca | ignora `node+0x14 != 0` | sem match retorna sem promover outro estado |
+| Traversal `+0x20` | raiz ativa | `FUN_004B2D35`, vtable `0x005A4624` | estado auxiliar preservado | mantém `DAT_0067CF3C`; pode sinalizar `manager+0x1B08C` | demais slots globais não são inferidos |
 | Loop de aplicação | janela e subsistemas ativos | `FUN_0055D345` | tick concluído e coleta condicional executada | testa `manager+0x1B08C`; chama `FUN_004B16C0` com `app+0xF8` | origem completa do loop ainda parcialmente resolvida |
 | Shutdown | `WM_CLOSE`; retorno de `app+0xF4` alcança o baseline `DAT_013B7220 + 0xBB8` | `FUN_0055DAB8:0x0055EB9C -> app vslot +0x08 -> FUN_0055D066` | recursos e owners desmontados; janela destruída e quit postado | limpa `DAT_013B71F0`, grava `DAT_013B7228=1`, chama `FUN_00423C61`, `DestroyWindow` e `PostQuitMessage(0)` | caller fechado; unidade do gate, `FUN_00423C61` e classes dos campos ainda não confirmados |
 | Logout/relogin | transição de sessão | não resolvido | não resolvido | não resolvido | bloqueia `TRACED`/`CONTRACT` |
@@ -447,12 +449,13 @@ Vtable confirmada da cena do estado `8` em `0x005A421C`:
 `FUN_00431D00` instala esse vptr em `0x00431D4A`; os demais slots não recebem
 semântica nova nesta unidade documental.
 
-`LOCATED`: a varredura global de chamadas virtuais encontrou 34 hits para o
-offset `+0x14` e 53 para `+0x20`; cada scan examinou 8.173 candidatos e
-441.614 instruções. Entre os callsites próximos do `ObjectManager`, estão
-`FUN_004B29B9:0x004B29F3` no slot `+0x14` e
-`FUN_004B2D35:0x004B2D86` no slot `+0x20`. O offset prova somente a forma da
-chamada: receptor, vptr, classe e semântica continuam não atribuídos.
+`CONFIRMED` para os dois traversals adjacentes: `FUN_004B29B9` instala/usa a
+vtable `0x005A4614`, percorre `DAT_0067CF38`, ignora nós marcados em `+0x14`,
+chama o slot `+0x14` e para no primeiro retorno `1`. `FUN_004B2D35` usa a
+vtable `0x005A4624`, chama o slot `+0x20`, preserva `DAT_0067CF3C` e pode
+sinalizar deleção em `manager+0x1B08C`. O scan global ainda não atribui
+semântica aos demais 34/53 callsites, mas essa lacuna já não bloqueia o recorte
+do `ObjectManager`.
 
 O container de controles da cena 5 fica em `scene+0x28`. Seu vptr principal é
 `0x005A3F34`; o receptor embutido em `container+0x24` usa a tabela unitária
@@ -669,6 +672,11 @@ prove a limpeza e a reconstrução da árvore, do estado global da cena, dos
 controles e dos recursos de transporte. Não portar comportamento moderno para
 preencher essa lacuna.
 
+O relogin estreito de migração de servidor/canal está separado em
+`field-scene-rebuild-after-server-move.md`, no estado `CONTRACT`. Ele cobre
+`0x52A`, login `0x20D`, replay one-shot e reconstrução Field `9 -> 0`; não
+resolve logout explícito, troca de conta ou shutdown global desta ficha.
+
 ## Wire, ABI e recursos
 
 O fluxo localiza a intenção `0x213` com tamanho `0x24`, opcode em `+0x04` e
@@ -687,7 +695,7 @@ foi inferido a partir do TMProject.
 O equivalente semântico atual está em:
 
 - `client-source/tmproject/Projects/TMProject/ObjectManager.cpp:701-764`:
-  `SetCurrentState` converte `TM_FIELD2_STATE` para `TM_NONE_STATE`, cria
+  `SetCurrentState` converte `TM_FIELD2_STATE` para `TM_FIELD_STATE`, cria
   `TMFieldScene`, `TMSelectCharScene`, `TMSelectServerScene` ou `TMDemoScene`,
   inicializa, anexa ao root e reporta falhas.
 - `client-source/tmproject/Projects/TMProject/ObjectManager.cpp:766-783`:
@@ -711,7 +719,7 @@ inventário, observers e persistência continuam sendo validados no servidor.
 
 | Claim | Nativo 7.48 | Source atual | TMProject 7.69+ | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
-| Conversão de estado | `9 -> 0` | `TM_FIELD2_STATE -> TM_NONE_STATE` | semântica homônima sugerida | não aplicável | confirmar enum/entrada 7.48 antes de portar |
+| Conversão de estado | `9 -> 0` | `TM_FIELD2_STATE -> TM_FIELD_STATE` antes do equality guard | semântica posterior foi apenas pista | não aplicável | implementado sob o contrato estreito de migração; ainda não `CLIENT_TESTED` |
 | Estados que criam cena | `0`, `5`, `7`, `8` | quatro classes de cena | referência semântica posterior | não aplicável | manter no estudo; não alterar enquanto `LOCATED` |
 | Inicialização | virtual `+0x4C`; cena `0` retorna `1` em toda conclusão normal; cenas `5/7/8` retornam `0` após falha de `FUN_00541065` e `1` nos demais caminhos normais | `InitializeScene()` | pode ter outra ABI | não aplicável | initializers fechados no CFG normal; fechar teardown antes de adaptar |
 | Ownership | root `manager+0x1B07C`; `FUN_0054AC09` insere no início da lista intrusiva | `m_pRoot->AddChild` | árvore moderna não decide offset | não aplicável | ordem local comprovada; não portar layout |
@@ -730,20 +738,19 @@ inventário, observers e persistência continuam sendo validados no servidor.
   destructor, prevenção de dupla destruição, detach e caller do shutdown
   também está fechada, mas callers de estado restantes, ownership, convergência
   integral do teardown e logout/relogin ainda não estão.
-- Não alterar `ObjectManager`, `TMScene`, `TreeNode` ou `NewApp` por causa da
-  semelhança observada. A implementação do TMProject 7.69+ é referência
-  semântica secundária, não contrato 7.48.
-- Não importar endereço, offset, vtable, enum, recurso ou ABI do TMProject para
-  o client 7.48. O delta `9 -> 0` só poderá ser adaptado depois que o teardown
-  integral e as demais lacunas obrigatórias estiverem comprovados.
+- A migração estreita já alterou `ObjectManager`, `TMScene`, `TMFieldScene` e
+  `Basedef.h` no commit `60c57760`, amparada por ficha `CONTRACT`. Fora desse
+  recorte, a implementação do TMProject 7.69+ continua referência semântica
+  secundária, não contrato 7.48.
+- Não importar endereço, offset, vtable, recurso ou ABI do TMProject para o
+  client 7.48. O delta `9 -> 0` foi adaptado apenas porque entrada, wire,
+  replay, consumo e reconstrução foram fechados no contrato específico.
 - Não declarar `TRACED`, `CONTRACT`, `IMPLEMENTED` ou `CLIENT_TESTED` por causa
   de export, build ou correspondência estrutural.
 
 ## Lacunas
 
 - callers restantes e transições que fornecem outros estados a `FUN_004B3500`;
-- callers, receptores e vptrs dos traversals `FUN_004B29B9` e `FUN_004B2D35`,
-  candidatos aos slots estruturais `+0x14/+0x20` próximos do manager;
 - atribuição, consulta, invalidação e destruição de `app+0xF4`, `app+0xF8` e
   `app+0xFC` no loop de mensagens;
 - fontes normais, de bootstrap e de falha que conduzem ao `WM_CLOSE`;
@@ -765,10 +772,10 @@ inventário, observers e persistência continuam sendo validados no servidor.
   `functions=4146`, `UNMAPPED=4084`, `LOCATED=23` e
   `STATICALLY_EVIDENCED=39`. O corpus permanece com 4.146 funções; a triagem
   não é contagem de funções compreendidas.
-- Cobertura documental: as 54 linhas do ledger correspondem aos 54 TSVs ainda
-  presentes no diretório regenerável, sem ausências de nenhum lado: 29
+- Cobertura documental: as 56 linhas do ledger correspondem aos 56 TSVs
+  inventariados: 31
   conclusões confirmadas, 17 pistas localizadas, 1 export ainda não
-  interpretado e 7 lacunas seguintes; volume aproximado 34,87 MiB.
+  interpretado e 7 lacunas seguintes; volume aproximado 37,39 MiB.
 - Recortes mais recentes interpretados: `fun-00423c61-shutdown-focused.tsv`,
   304.785 bytes, SHA-256
   `5799FB5705F68DBB188B53D2989E635DBD1C146AA559161696F844B438676991`,
@@ -790,8 +797,9 @@ inventário, observers e persistência continuam sendo validados no servidor.
   final e não alteram o corpus versionado.
 - Integridade: `git diff --check` passou nesta documentação; os avisos exibidos
   referem-se somente à conversão normal de LF/CRLF pelo Git no Windows.
-- Source: inspeção estática de `ObjectManager.cpp`, `TMScene.cpp` e
-  `TreeNode.cpp`; nenhum arquivo ativo foi alterado nesta etapa.
+- Source: o commit `60c57760` implementou o contrato nativo de migração em
+  `Basedef.h`, `ObjectManager.cpp`, `TMFieldScene.cpp` e `TMScene.cpp`; a
+  classificação máxima antes do fluxo real permanece `STATICALLY VERIFIED`.
 - Client real: não executado; não há build, startup, screenshot, dump ou fluxo
   real em `client748/project.exe`. Portanto, nenhuma alegação `CLIENT_TESTED` é
   permitida.

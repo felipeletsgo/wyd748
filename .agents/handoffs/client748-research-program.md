@@ -1,6 +1,6 @@
 # Handoff: programa de pesquisa do client 7.48
 
-Atualizado em: 2026-08-30
+Atualizado em: 2026-08-31
 Estado geral: `STATICALLY VERIFIED`
 
 ## Objetivo e limites
@@ -11,13 +11,14 @@ modernizações internas ou extensões coordenadas do WYD-Go e de
 `client-source/tmproject`. O programa separa fatos do 7.48, estrutura posterior
 compatível e contratos novos deliberadamente implementados nos dois lados.
 
-Este handoff cobre somente a infraestrutura de pesquisa, suas três fichas
-iniciais, a estratégia de cobertura e as regras que bloqueiam edição prematura.
+Este handoff cobre a infraestrutura de pesquisa, as fichas do programa e o
+primeiro contrato nativo aplicado à source recompilável.
 A paridade funcional e visual já implementada possui estado próprio em
 `.agents/handoffs/client748-parity.md`; não duplicar esse histórico aqui.
 
-Nenhum código ativo do client ou servidor foi alterado neste escopo. Não houve
-build, startup ou teste in-game.
+O commit `60c57760` alterou código ativo do client para preservar a migração
+nativa de servidor/canal; nenhum código do servidor foi alterado. A validação
+permanece estática e não houve teste in-game.
 
 ## Estratégia formalizada nesta etapa
 
@@ -191,11 +192,19 @@ Ghidra.
   nula e estado `-1`; `FUN_004B3A20 -> FUN_004B2155` desmonta a raiz e zera
   `DAT_0067CF38`. O timer usa vtable `0x005A4688`, é publicado em
   `DAT_0092E654` e atualiza `DAT_0092E658`.
-- Os 54 exports TSV desta rodada estão inventariados, classificados e ligados
+- Os 56 exports TSV desta rodada estão inventariados, classificados e ligados
   às conclusões/lacunas em
   `.agents/research/client748/inventory/scene-transition-evidence-log.md`.
-  Os aproximadamente 34,87 MiB regeneráveis permanecem fora do Git em
+  Os aproximadamente 37,39 MiB regeneráveis permanecem fora do Git em
   `%TEMP%\codex-wyd748-lifecycle-149205b7`.
+- `FUN_004B29B9` foi fechado como traversal de vtable `0x005A4614`, raiz
+  `DAT_0067CF38`, guard `node+0x14` e parada no primeiro retorno `1`.
+  `FUN_004B2D35` usa `0x005A4624/+0x20`, preserva `DAT_0067CF3C` e sinaliza
+  deleção em `manager+0x1B08C` na condição observada.
+- A ficha `field-scene-rebuild-after-server-move.md` está em `CONTRACT`:
+  dispatch `FUN_00492E7D:0x00493037 -> FUN_00484D44`, packet `0x52A/0x50`,
+  login `0x20D/0x74` versão 748, replay Field-only por até 15 segundos, consumo
+  one-shot e reconstrução `9 -> 0`. A source foi adaptada no commit `60c57760`.
 - A vtable da aplicação em `0x005A6104` contém, nos slots `+0x00..+0x1C`,
   `FUN_0055F3E0`, `FUN_0055BC0A`, `FUN_0055D066`, `FUN_0055D345`,
   `FUN_0055EDF7`, `FUN_0055D6E6`, `FUN_0055EE1E` e `FUN_0055EE45`.
@@ -315,7 +324,8 @@ correlação estrutural native/source       | AUTOMATED TESTED     | Ghidra real
 gate de tamanho por opcode               | LOCATED             | entrada nativa localizada; caller/direção pendentes
 foco, IME e lifecycle de controles       | LOCATED             | fluxo principal localizado; xrefs/teardown pendentes
 transição e troca de cenas                | LOCATED             | shutdown e hook fechados; ownership, convergência e relogin pendentes
-código ativo do client/servidor          | NÃO ALTERADO         | nenhum build ou teste funcional necessário nesta etapa
+reconstrução Field pós-migração           | STATICALLY VERIFIED | ficha CONTRACT e source no commit 60c57760; fluxo real pendente
+código ativo do client                    | IMPLEMENTED         | Basedef/ObjectManager/TMFieldScene/TMScene alterados; servidor preservado
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
 
@@ -335,8 +345,8 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
 - `.agents/research/client748/` — README, template, quatro exports focados e as
   três fichas iniciais, incluindo `flows/lifecycle/scene-transition.md`; o
   inventário README inclui o procedimento do triador. O ledger
-  `inventory/scene-transition-evidence-log.md` preserva a rodada de 50
-  exports sem versionar os recortes amplos.
+  `inventory/scene-transition-evidence-log.md` preserva a rodada de 56
+  exports e a ficha de migração registra o contrato aplicado.
   Exports exploratórios amplos e não citados foram removidos da worktree e
   preservados temporariamente em
   `%TEMP%\wyd748-broad-exports-20260828-commit`; são regeneráveis pelo projeto
@@ -359,9 +369,9 @@ inventory/; três fichas válidas; LOCATED=3
 
 conferência do ledger scene-transition-evidence-log.md contra
 %TEMP%\codex-wyd748-lifecycle-149205b7\*.tsv
-resultado: 54/54 exports presentes no ledger; nenhum ausente dos dois lados;
-29 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 1 AINDA NÃO INTERPRETADO e
-7 LACUNA SEGUINTE; volume aproximado 34,87 MiB
+resultado antes da validação desta retomada: 56 exports inventariados;
+31 CONCLUSÃO CONFIRMADA, 17 PISTA LOCALIZADA, 1 AINDA NÃO INTERPRETADO e
+7 LACUNA SEGUINTE; volume aproximado 37,39 MiB
 
 scene5-select-enter-focused.tsv
 resultado: 1.978.822 bytes; SHA-256
@@ -494,9 +504,8 @@ ocorrências.
   mantê-las explicitamente como não confirmadas. Não fabricar entrada no corpus.
 - Não promover nenhuma ficha por compilação, semelhança de source ou pressão de
   implementação. Claims `HYPOTHESIS` não integram contrato.
-- Não iniciar build ou teste do client apenas para validar documentação. Quando
-  houver implementação futura, usar `Build-Client.ps1` e testar o fluxo real no
-  novo hash de `project.exe`.
+- A implementação de migração exige `Build-Client.ps1`; registrar o novo hash
+  de `project.exe`, sem confundir build com teste real do fluxo.
 - Não converter os 88 matches estruturais em nomes ou estado de pesquisa por
   lote. Usá-los como âncoras de localização e fechar cada transição observável
   com xrefs, estado, erro, ownership e lifecycle.
@@ -506,23 +515,24 @@ ocorrências.
   `0/5/7/8`, a ordem local de coleta/detach, o caller do shutdown e o lifecycle
   do hook global de teclado estão fechados; faltam callers de estado restantes,
   classes/ownership, convergência integral do teardown e logout/relogin.
-- Os offsets virtuais `+0x14/+0x20` não têm semântica global: fechar primeiro
-  callers e fluxo de dados de `FUN_004B29B9` e `FUN_004B2D35` no Ghidra.
+- Os traversals `FUN_004B29B9` e `FUN_004B2D35` estão fechados no recorte do
+  `ObjectManager`; não generalizar sua semântica aos demais hits globais.
 
 ## Próximo passo executável
 
-1. Exportar `FUN_004B29B9` e `FUN_004B2D35` com callers, instruções, bodyrefs,
-   vtable efetiva do `ObjectManager` e os oito destinos de cena `+0x14/+0x20`.
-2. Resolver os callers reais, receptores, vptrs e slots dos dois traversals.
-3. Continuar por `logout-relogin-next-roots.tsv` e reconstrução da sessão/cena.
-4. Inspecionar a source atual e classificar o primeiro delta concreto. Se ele
+1. Abrir `logout-relogin-next-roots.tsv`, `logout-relogin-roots-focused.tsv`,
+   `logout-ui-vtable-roots.tsv` e `logout-ui-vtable-table-window.tsv` sem reler
+   exports já fechados.
+2. Fechar uma transição observável de logout/relogin, incluindo entrada,
+   receptores, estado, teardown e reconstrução da sessão/cena.
+3. Inspecionar a source atual e classificar o próximo delta concreto. Se ele
    depender de paridade nativa, fechar entrada, callers, callees, estado, erros,
    ownership e teardown antes de adaptá-lo; se for modernização/extensão
    independente, provar a fronteira correspondente e prosseguir sem aguardar a
    promoção de claims não relacionados.
-5. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
+4. Retomar `packet-size-gate.md` após o fluxo de cenas ou em campanha paralela;
    sua maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
-6. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
+5. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
    fila/input mudar e `git diff --check` após edições. Atualizar este handoff
    somente quando houver nova evidência, decisão, validação ou ponto de retomada.
 

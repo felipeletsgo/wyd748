@@ -40,7 +40,7 @@ Recalcular antes de usar: o candidato muda a cada build.
 - `exports/`: relatórios focados que aceleram a busca; passar funções, vtables e
   slots decisivos explicitamente ao `ExportWydFlow.java`. Não versionar exports
   exploratórios amplos sem claim e ficha que os consumam.
-- `inventory/scene-transition-evidence-log.md`: ledger reproduzível dos 54
+- `inventory/scene-transition-evidence-log.md`: ledger reproduzível dos 56
   exports exploratórios da rodada de lifecycle, com a pergunta de cada recorte,
   interpretação atual e lacuna seguinte. É índice de evidência, não ficha, e
   portanto não altera sozinho a maturidade de `scene-transition.md`.
@@ -57,6 +57,7 @@ Estado atual do mapa:
 | Gate de tamanho por opcode | `LOCATED` | `flows/transport/packet-size-gate.md` |
 | Foco, IME e lifecycle de controles | `LOCATED` | `flows/ui/control-focus-ime-lifecycle.md` |
 | Transição e troca de cenas | `LOCATED` | `flows/lifecycle/scene-transition.md` |
+| Reconstrução Field após migração de servidor | `CONTRACT` | `flows/lifecycle/field-scene-rebuild-after-server-move.md` |
 
 `LOCATED` permite investigação e documentação, não edição comportamental.
 `TRACED` exige callers/callees e estado/erros fechados; `CONTRACT` acrescenta

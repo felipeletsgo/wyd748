@@ -11,18 +11,19 @@ que uma retomada comece na última lacuna, não numa releitura ampla.
 - Projeto: `WYD748Native_20260821.gpr`, Ghidra 12.1.3, consultas read-only com
   `ExportWydFlow.java`.
 - Diretório regenerável: `%TEMP%\codex-wyd748-lifecycle-149205b7`.
-- Inventário: 54 arquivos TSV, aproximadamente 34,87 MiB; 36 logs irmãos
+- Inventário: 56 arquivos TSV, aproximadamente 37,39 MiB; os logs irmãos
   guardam as consultas completas. Os binários e scripts históricos não foram
   alterados nem executados.
-- Distribuição conferida nas 54 linhas do inventário: 29
+- Distribuição conferida nas 56 linhas do inventário: 31
   `CONCLUSÃO CONFIRMADA`, 17 `PISTA LOCALIZADA`, 1
   `AINDA NÃO INTERPRETADO` e 7 `LACUNA SEGUINTE`.
-- Últimos recortes interpretados: `fun-00423c61-shutdown-focused.tsv`, SHA-256
-  `5799FB5705F68DBB188B53D2989E635DBD1C146AA559161696F844B438676991`, e
-  `windows-hook-lifecycle-focused.tsv`, SHA-256
-  `ACC5288A10463BABD0FA2DD83058F78BB2B65130A52D1AA90169B0397EA97D43`.
-  Eles fecham o lifecycle do hook global de teclado entre o bootstrap e o ramo
-  `WM_CLOSE`, inclusive callback, globals, falha parcial e finalizador.
+- Últimos recortes interpretados:
+  `field-scene-rebuild-server-move-focused.tsv`, SHA-256
+  `0915A41D0E59658EF713780AA08D48F9130423BD0CAB9FA5978A1FD6A07BDFCC`, e
+  `objectmanager-slots-14-20-traversals-focused.tsv`, SHA-256
+  `DBDF4B418A5D59757046FC5BC4089F1A9CB3E852949E1CA64D16180895035421`.
+  Eles fecham a reconstrução Field pós-migração e os dois traversals adjacentes
+  do `ObjectManager`.
 - Documento canônico das conclusões:
   `flows/lifecycle/scene-transition.md`, que permanece `LOCATED`.
 
@@ -183,6 +184,19 @@ Classificação usada abaixo:
     `FUN_004B7F0D` e `__ftol`, caracterizando uma etapa de frame/render. Em
     `0x0055D8F7`, ela chama o slot `+0x48` do objeto em `scene+0x28`; não chama
     estruturalmente os slots de cena `+0x14` ou `+0x20`.
+30. `FUN_004B29B9` usa vtable `0x005A4614`, percorre a raiz
+    `DAT_0067CF38`, ignora nós com `node+0x14 != 0`, chama o slot virtual
+    `+0x14` dos demais nós e encerra no primeiro retorno `1`.
+    `FUN_004B2D35` usa vtable `0x005A4624`, percorre a mesma árvore pelo slot
+    `+0x20`, preserva `DAT_0067CF3C` e sinaliza deleção em
+    `manager+0x1B08C` quando o traversal produz a condição observada.
+31. `FUN_00492E7D:0x00493037 -> FUN_00484D44` fecha a entrada de migração
+    `0x52A/0x50`. O client valida o personagem, envia login `0x20D/0x74`
+    versão 748 quando o socket já fechou ou copia o packet para replay por até
+    15 segundos. `FUN_0049889A` consome esse replay uma vez, somente em Field,
+    e `FUN_004B3500` converte o estado sintético `9 -> 0` para reconstruir a
+    cena. O contrato estreito está em
+    `flows/lifecycle/field-scene-rebuild-after-server-move.md`.
 
 ## Pistas qualificadas já transcritas
 
@@ -218,6 +232,7 @@ Classificação usada abaixo:
 | `dat-013b7220-xrefs-verified.tsv` | xrefs verificados de `DAT_013B7220` | `PISTA LOCALIZADA` | conjunto focado preservado; sem conclusão de lifecycle |
 | `dat-013b7220-xrefs.tsv` | xrefs iniciais de `DAT_013B7220` | `PISTA LOCALIZADA` | duplicata de exploração mantida para rastreabilidade |
 | `fieldscene-vtable-005a4294-focused.tsv` | vtable candidata de FieldScene | `PISTA LOCALIZADA` | vtable localizada; slots completos e lifecycle ainda pendentes |
+| `field-scene-rebuild-server-move-focused.tsv` | reconstrução Field após migração de servidor/canal | `CONCLUSÃO CONFIRMADA` | fecha dispatch `0x52A`, wire `0x50`, login `0x20D/0x74`, replay de 15 s e reconstrução `9 -> 0` |
 | `fun-00423c61-shutdown-focused.tsv` | função entre shutdown e `DestroyWindow` | `CONCLUSÃO CONFIRMADA` | único caller em `0x0055EBCB`; remove o hook quando aplicável e sempre zera `DAT_005CCF84` |
 | `lifecycle-flag-1b090-focused.tsv` | significado de `manager+0x1B090` | `PISTA LOCALIZADA` | acessos reunidos; sem semântica final comprovada |
 | `lifecycle-roots.tsv` | raízes gerais do lifecycle | `PISTA LOCALIZADA` | mapa amplo para retomada; não é claim por si só |
@@ -230,6 +245,7 @@ Classificação usada abaixo:
 | `objectmanager-cleanup-004b21c9-focused.tsv` | semântica do slot `+0x64` | `CONCLUSÃO CONFIRMADA` | `scene+0x14=1` e `manager+0x1B08C=1` quando scene existe |
 | `objectmanager-destructor-004b3a20-focused.tsv` | destrutor do manager | `CONCLUSÃO CONFIRMADA` | `FUN_004B3A20 -> FUN_004B2155` desmonta raiz e zera cena global |
 | `objectmanager-ownership-lifecycle-focused.tsv` | construção/ownership/cleanup | `CONCLUSÃO CONFIRMADA` | `FUN_004B1EA9` inicializa vptr, estado, raiz e ownership; consumidor localizado |
+| `objectmanager-slots-14-20-traversals-focused.tsv` | receptores e semântica dos traversals próximos do manager | `CONCLUSÃO CONFIRMADA` | fecha `FUN_004B29B9` em `0x005A4614/+0x14` e `FUN_004B2D35` em `0x005A4624/+0x20`, incluindo guards, parada e sinalização de deleção |
 | `objectmanager-vtable-005a45fc-focused.tsv` | slots da vtable efetiva | `CONCLUSÃO CONFIRMADA` | base `0x005A45FC`; slots `+0x54..+0x68` transcritos na ficha |
 | `sbutton-methods-next.tsv` | métodos e callbacks de `SButton` | `CONCLUSÃO CONFIRMADA` | release `0x202` em `FUN_004032E8` chama o receptor com ID e ação `0` |
 | `sbutton-vtable-event-loader-focused.tsv` | vtable, evento e loader de `SButton` | `CONCLUSÃO CONFIRMADA` | cadeia `SButton -> FUN_0040CDA4 -> scene+0x58 -> FUN_004A32DD` demonstrada |
@@ -253,7 +269,7 @@ Classificação usada abaixo:
 | `timer-vtable-005a4688-focused.tsv` | slots do timer | `CONCLUSÃO CONFIRMADA` | slots `+0x00..+0x10` e atualização de `DAT_0092E658` transcritos |
 | `virtual-slot-04-all.tsv` | dispatch virtual de packets | `CONCLUSÃO CONFIRMADA` | 116 hits; `FUN_004B263E` fornece o receptor `DAT_0067CF38` e separa os overrides das cenas 0 e 5 |
 | `virtual-slot-58-all.tsv` | todos os usos de slot virtual `+0x58` | `PISTA LOCALIZADA` | conjunto amplo; filtrar por receptor antes de atribuir semântica |
-| `virtual-slots-14-20-all.tsv` | todos os usos estruturais dos slots `+0x14/+0x20` | `LACUNA SEGUINTE` | 34 e 53 hits após 8.173 candidatos/441.614 instruções por scan; `FUN_004B29B9:0x004B29F3` e `FUN_004B2D35:0x004B2D86` são candidatos próximos do manager, ainda sem classe ou semântica atribuída |
+| `virtual-slots-14-20-all.tsv` | todos os usos estruturais dos slots `+0x14/+0x20` | `LACUNA SEGUINTE` | 34 e 53 hits após 8.173 candidatos/441.614 instruções por scan; os dois traversals próximos do manager foram fechados no export focado, mas os demais receptores globais continuam fora desta transição |
 | `windows-hook-lifecycle-focused.tsv` | instalação, callback, globals e teardown do hook | `CONCLUSÃO CONFIRMADA` | fecha `FUN_00423C1F/FUN_00423B74/FUN_00423C61`, inclusive o flag marcado após falha da API |
 | `wm-close-dispatch-instructions.tsv` | dispatch e ordem do ramo `WM_CLOSE` | `CONCLUSÃO CONFIRMADA` | `0x0055EB9C` chama `app+0x08/FUN_0055D066`; depois seguem `FUN_00423C61`, `DestroyWindow`, `PostQuitMessage(0)` e zero de `DAT_013B7220` |
 | `wm-close-sources-focused.tsv` | origens de fechamento da janela | `PISTA LOCALIZADA` | apoia caminhos de falha/close; shutdown completo continua aberto |
@@ -264,15 +280,12 @@ Usar o ciclo aprovado `HEAD/status/hash -> última evidência -> próximo xref`.
 Não reler os exports já inventariados. A próxima unidade é:
 
 ```text
-1 xref: abrir FUN_004B29B9 e FUN_004B2D35 com callers, bodyrefs e instruções
-1 conclusão: resolver receptor, vptr e slot efetivo dos dois traversals
-1 escrita: atualizar este ledger e scene-transition.md no mesmo ciclo
+1 xref: abrir logout-relogin-next-roots.tsv
+1 conclusão: fechar uma entrada observável de logout e sua reconstrução de sessão/cena
+1 escrita: atualizar ledger, ficha lifecycle e handoff no mesmo ciclo
 ```
 
-`FUN_0055D6E6` já está fechado como etapa de frame/render e não deve ser
-reinvestigado. A varredura global prova apenas o uso estrutural dos offsets:
-não nomear `+0x14/+0x20` como eventos ou frame sem resolver o receptor. Após os
-dois traversals próximos do `ObjectManager`, avançar para
-`logout-relogin-next-roots.tsv` e fechar a reconstrução da sessão/cena.
-Nenhuma edição em `client-source/` é permitida enquanto a ficha estiver
-`LOCATED`.
+`FUN_0055D6E6`, `FUN_004B29B9` e `FUN_004B2D35` já estão fechados nos limites
+documentados e não devem ser reinvestigados. Avançar diretamente pelos quatro
+exports `logout-relogin-*`; a ficha geral continua `LOCATED`, enquanto a
+reconstrução Field pós-migração possui contrato estreito próprio.
