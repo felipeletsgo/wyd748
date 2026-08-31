@@ -603,6 +603,47 @@ ocorrências.
 
 ## Próximo passo executável
 
+### Lote implementado em 2026-08-31: sincronização do C.C
+
+- `TMFieldScene::NewCCMode` passou a centralizar os estados dos handlers C.C
+  antigos e modernos, normalizar thresholds, atualizar somente controles
+  materializados e limpar target/delays ao trocar o modo de combate.
+- Os ponteiros C.C opcionais agora começam nulos e os IDs disponíveis são
+  vinculados sem presumir que o painel moderno exista em `FieldScene2`.
+- A posição de farm é capturada somente na transição correspondente. A ordem
+  de tooltips escolhida segue os handlers antigos: estados `0/1/2` usam
+  `g_UIString[233]/[234]/[232]`; falta confirmação visual.
+- O delta é `MODERNIZACAO_COMPATIVEL`: não mudou wire, ABI, asset ou regra
+  server-side. A ficha é
+  `flows/ui/cc-auto-combat-state-sync.md` e permanece `UNMAPPED` quanto à
+  topologia nativa.
+- `Build-Client.ps1` passou com zero erros e 21 warnings preexistentes; o
+  `client748/project.exe` instalado tem SHA-256
+  `8CD73ED35D59482C27EC3760C59D05EC44B5DAB4ACE39DFFAD540AF9D4A28002`.
+- Não houve execução real dos controles; não alegar `CLIENT_TESTED`.
+
+### Paridade estática fechada: `SetMyHumanMagic`
+
+- `TMFieldScene::SetMyHumanMagic()` corresponde ao no-op nativo
+  `FUN_004431D9` de 11 bytes, com callers diretos `FUN_004431E4`,
+  `FUN_004528C5` e `FUN_00454763` e nenhum callee.
+- Manter a função vazia é `PARIDADE_NATIVA`; não restaurar o mirror
+  `STRUCT_MOB::Magician`, pois o cálculo ativo usa
+  `CurrentScore.MagicAmp`.
+- A evidência fica em `inventory/set-my-human-magic-noop.md` e no
+  inventário como `STATICALLY_EVIDENCED`/`PARITY_STATIC_EVIDENCE`, sem claim
+  runtime.
+
+### Continuação imediata
+
+1. Verificar no initializer compatível quais controles C.C `FieldScene2`
+   realmente materializa.
+2. Se os controles essenciais estiverem ausentes, criar o conjunto mínimo no
+   `InitializeCompatFieldScene` como extensão visual deliberada, sem alegar UI
+   nativa 7.48.
+3. Buildar, registrar o novo hash e manter o teste real como pendente até
+   executar os quatro modos e logout/relogin.
+
 ### Lote implementado em 2026-08-31: atalho `E/e`
 
 - `TMFieldScene::UsePPotion` foi implementado por paridade nativa a partir de

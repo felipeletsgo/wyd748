@@ -28,7 +28,7 @@ client748/wyd.exe nativo+patches/WYD.exe
 
 O candidato source mais recente registrado no handoff do programa é
 `client748/project.exe`, SHA-256
-`F8251714775601720307940598522E6D2924E5C61DAB300728F949FE0C8A380B`.
+`8CD73ED35D59482C27EC3760C59D05EC44B5DAB4ACE39DFFAD540AF9D4A28002`.
 Recalcular antes de usar: o candidato muda a cada build.
 
 ## Organização e maturidade
@@ -63,6 +63,8 @@ Estado atual do mapa:
 | Fechamento da aplicação e shutdown global | `CONTRACT` | `flows/lifecycle/application-close-global-shutdown.md` |
 | Atalho F para consumível vinculado ao equipamento | `CONTRACT` | `flows/ui/equipped-item-matched-consumable-shortcut.md` |
 | Atalho E para poção especial | `CONTRACT` | `flows/ui/special-potion-shortcut.md` |
+| Sincronização de estado e controles C.C | `UNMAPPED` | `flows/ui/cc-auto-combat-state-sync.md` |
+| `SetMyHumanMagic` nativo sem efeito | `STATICALLY_EVIDENCED` | `inventory/set-my-human-magic-noop.md` |
 
 `LOCATED` permite investigação e documentação, não edição comportamental.
 `TRACED` exige callers/callees e estado/erros fechados; `CONTRACT` acrescenta

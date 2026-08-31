@@ -345,7 +345,7 @@ private:
 	void MouseClick_PremiumNPC(TMHuman* pOver);
 	int MouseClick_SkillMasterNPC(unsigned int dwServerTime, TMHuman* pOver);
 	int MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver);
-	void NewCCMode();
+	void NewCCMode(bool bResetCombat = false, bool bCapturePosition = false);
 	
 	void InsertInChatList(SListBox* pChatList, STRUCT_MOB* pMobData, SEditableText* pEditChat, unsigned int dwColor, int colorId, unsigned int startId);
 

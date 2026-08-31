@@ -323,6 +323,9 @@ TMFieldScene::TMFieldScene()
 	m_pAutoTarget = 0;
 	m_pCCPotionBtn = 0;
 	m_pCCFeedBtn = 0;
+	m_pccmode = 0;
+	m_pCCModeHpSte = 0;
+	m_pCCModeMountSte = 0;
 	m_AutoStartPointX = 0;
 	m_AutoStartPointY = 0;
 	m_AutoPostionUse = 2;
@@ -2638,6 +2641,9 @@ int TMFieldScene::InitializeScene()
 	m_pStorePageBtn2 = (SButton*)m_pControlContainer->FindControl(67333);
 	m_pStorePageBtn3 = (SButton*)m_pControlContainer->FindControl(67334);
 	m_pMGameAutoBtn = (SButton*)m_pControlContainer->FindControl(66818);
+	m_pSGameAutoBtn = (SButton*)m_pControlContainer->FindControl(B_CCPOTION);
+	m_pCCPotionBtn = (SButton*)m_pControlContainer->FindControl(B_CCMODE_DLG_HP);
+	m_pCCFeedBtn = (SButton*)m_pControlContainer->FindControl(B_CCMODE_DLG_MOUNT);
 	m_pSetType = (SButton*)m_pControlContainer->FindControl(66821);
 	m_pHPBar = (SProgressBar*)m_pControlContainer->FindControl(65621);
 	m_pMPBar = (SProgressBar*)m_pControlContainer->FindControl(65623);
@@ -4268,6 +4274,8 @@ int TMFieldScene::InitializeScene()
 	if (m_pDailyQuestButton)
 		m_pDailyQuestButton->SetVisible(0);
 
+	NewCCMode();
+
 	LOG_WRITELOG(">> Init Field Scene::End\r\n");
 	g_bEffectFirst = 1;
 	return 1;
@@ -5804,6 +5812,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == B_CCMODE_SYSTEM)
 	{
+		if (!m_pccmode)
+			return 0;
+
 		if (m_pccmode->IsVisible())
 		{
 			m_pccmode->SetVisible(0);
@@ -5843,9 +5854,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (pChatItem)
 			m_pChatList->AddItem(pChatItem);
 
-		sprintf_s(szText, "%d%%", g_GameAuto_mountValue);
-
-		m_pCCModeMountSte->SetText(szText, 0);
+		NewCCMode();
 
 		return 0;
 	}
@@ -5868,9 +5877,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (pChatItem)
 			m_pChatList->AddItem(pChatItem);
 
-		sprintf_s(szText, "%d%%", g_GameAuto_hpValue);
-
-		m_pCCModeHpSte->SetText(szText, 0);
+		NewCCMode();
 		return 0;
 	}
 	if (idwControlID == B_CCMODE_DLG_MODE)
@@ -5878,25 +5885,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (++g_GameAuto > 3)
 			g_GameAuto = 0;
 
-		switch (g_GameAuto)
-		{
-		case 0:
-			m_pMGameAutoBtn->SetTextureSetIndex(458);
-			m_pMGameAutoBtn->m_pAltText->SetText(g_UIString[229], 0);
-			break;
-		case 1:
-			m_pMGameAutoBtn->SetTextureSetIndex(455);
-			m_pMGameAutoBtn->m_pAltText->SetText(g_UIString[226], 0);
-			break;
-		case 2:
-			m_pMGameAutoBtn->SetTextureSetIndex(456);
-			m_pMGameAutoBtn->m_pAltText->SetText(g_UIString[227], 0);
-			break;
-		case 3:
-			m_pMGameAutoBtn->SetTextureSetIndex(459);
-			m_pMGameAutoBtn->m_pAltText->SetText(g_UIString[230], 0);
-			break;
-		}
+		NewCCMode(true);
 
 		return 0;
 	}
@@ -5995,34 +5984,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	// no handlers for the Japanese bag/page controls introduced after 7.48.
 	if (idwControlID == P_CCMODE_DLG_PONT)
 	{
-		int posX = 0;
-		int posY = 0;
-
 		if (++m_AutoPostionUse >= 3)
 			m_AutoPostionUse = 0;
 
-		if (m_AutoPostionUse == 0)
-		{
-			m_pSetType->SetTextureSetIndex(463);
-			m_pSetType->m_pAltText->SetText(g_UIString[232], 0);
-		}
-		else if (m_AutoPostionUse == 1)
-		{
-			m_pSetType->SetTextureSetIndex(464);
-
-			posX = static_cast<int>(m_pMyHuman->m_vecPosition.x);
-			posY = static_cast<int>(m_pMyHuman->m_vecPosition.y);
-
-			m_pSetType->m_pAltText->SetText(g_UIString[233], 0);
-		}
-		else if (m_AutoPostionUse == 2)
-		{
-			m_pSetType->SetTextureSetIndex(465);
-			m_pSetType->m_pAltText->SetText((char*)"", 0);
-		}
-
-		m_AutoStartPointX = posX;
-		m_AutoStartPointY = posY;
+		NewCCMode(false, true);
 
 		return 0;
 	}
@@ -6617,71 +6582,16 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 		if (++g_GameAuto >= 4)
 			g_GameAuto = 0;
-		if (m_pMyHuman)
-			m_pMyHuman->_dwAttackDelay = 0;
-		if (g_GameAuto)
-		{
-			m_pSGameAutoBtn->SetVisible(1);
-			m_pSetType->SetVisible(1);
-		}
-		else
-		{
-			m_pSGameAutoBtn->SetVisible(0);
-			m_pSetType->SetVisible(0);
-		}
 
-		switch (g_GameAuto)
-		{
-		case 0:
-			m_pMGameAutoBtn->SetTextureSetIndex(458);
-			m_pMGameAutoBtn->m_pAltText->SetText(
-				g_UIString[229],
-				0);
-			break;
-		case 1:
-			m_pMGameAutoBtn->SetTextureSetIndex(455);
-			m_pMGameAutoBtn->m_pAltText->SetText(
-				g_UIString[226],
-				0);
-			break;
-		case 2:
-			m_pMGameAutoBtn->SetTextureSetIndex(456);
-			m_pMGameAutoBtn->m_pAltText->SetText(
-				g_UIString[227],
-				0);
-			break;
-		case 3:
-			m_pMGameAutoBtn->SetTextureSetIndex(459);
-			m_pMGameAutoBtn->m_pAltText->SetText(
-				g_UIString[230],
-				0);
-			break;
-		}
+		NewCCMode(true);
 		return 1;
 	}
 	if (idwControlID == B_CCPOTION)
 	{
 		if (++m_AutoHpMp >= 4)
 			m_AutoHpMp = 0;
-		if (m_AutoHpMp)
-		{
-			switch (m_AutoHpMp)
-			{
-			case 1:
-				m_pSGameAutoBtn->SetTextureSetIndex(461);
-				break;
-			case 2:
-				m_pSGameAutoBtn->SetTextureSetIndex(460);
-				break;
-			case 3:
-				m_pSGameAutoBtn->SetTextureSetIndex(466);
-				break;
-			}
-		}
-		else
-		{
-			m_pSGameAutoBtn->SetTextureSetIndex(462);
-		}
+
+		NewCCMode();
 		return 1;
 	}
 	if (idwControlID == B_CCMOVE)
@@ -6689,30 +6599,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (++m_AutoPostionUse >= 3)
 			m_AutoPostionUse = 0;
 
-		int nAutoPostionUse = m_AutoPostionUse;
-
-		int startX = 0;
-		int startY = 0;
-		if (!nAutoPostionUse)
-		{
-			m_pSetType->SetTextureSetIndex(463);
-			m_pSetType->m_pAltText->SetText(g_UIString[233], 0);
-		}
-		else if (nAutoPostionUse == 1)
-		{
-			m_pSetType->SetTextureSetIndex(464);
-			startX = (int)m_pMyHuman->m_vecPosition.x;
-			startY = (int)m_pMyHuman->m_vecPosition.y;
-			m_pSetType->m_pAltText->SetText(g_UIString[234], 0);
-		}
-		else if (nAutoPostionUse == 2)
-		{
-			m_pSetType->SetTextureSetIndex(465);
-			m_pSetType->m_pAltText->SetText(g_UIString[232], 0);
-		}
-
-		m_AutoStartPointX = startX;
-		m_AutoStartPointY = startY;
+		NewCCMode(false, true);
 		return 1;
 	}
 	if (idwControlID == B_ITEMMIX_RUN)
@@ -29339,9 +29226,128 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 	return 1;
 }
 
-void TMFieldScene::NewCCMode()
+void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 {
-	;
+	if (g_GameAuto < 0 || g_GameAuto > 3)
+		g_GameAuto = 0;
+	if (m_AutoHpMp < 0 || m_AutoHpMp > 3)
+		m_AutoHpMp = 0;
+	if (m_AutoPostionUse < 0 || m_AutoPostionUse > 2)
+		m_AutoPostionUse = 2;
+
+	if (g_GameAuto_hpValue < 0)
+		g_GameAuto_hpValue = 0;
+	else if (g_GameAuto_hpValue > 90)
+		g_GameAuto_hpValue = 90;
+	g_GameAuto_hpValue -= g_GameAuto_hpValue % 10;
+
+	if (g_GameAuto_mountValue < 30)
+		g_GameAuto_mountValue = 30;
+	else if (g_GameAuto_mountValue > 90)
+		g_GameAuto_mountValue = 90;
+	g_GameAuto_mountValue -= g_GameAuto_mountValue % 10;
+
+	if (bResetCombat)
+	{
+		m_pAutoTarget = nullptr;
+		m_dwAttackDelay = 0;
+		if (m_pMyHuman)
+			m_pMyHuman->_dwAttackDelay = 0;
+	}
+
+	if (bCapturePosition && m_AutoPostionUse == 1 && m_pMyHuman)
+	{
+		m_AutoStartPointX = static_cast<int>(m_pMyHuman->m_vecPosition.x);
+		m_AutoStartPointY = static_cast<int>(m_pMyHuman->m_vecPosition.y);
+	}
+	else if (bCapturePosition && m_AutoPostionUse != 1)
+	{
+		m_AutoStartPointX = 0;
+		m_AutoStartPointY = 0;
+	}
+
+	auto SetButtonState = [](SButton* pButton, int textureSet, char* pAltText)
+	{
+		if (!pButton)
+			return;
+		pButton->SetTextureSetIndex(textureSet);
+		if (pButton->m_pAltText && pAltText)
+			pButton->m_pAltText->SetText(pAltText, 0);
+	};
+
+	int modeTexture = 458;
+	char* pModeText = g_UIString[229];
+	if (g_GameAuto == 1)
+	{
+		modeTexture = 455;
+		pModeText = g_UIString[226];
+	}
+	else if (g_GameAuto == 2)
+	{
+		modeTexture = 456;
+		pModeText = g_UIString[227];
+	}
+	else if (g_GameAuto == 3)
+	{
+		modeTexture = 459;
+		pModeText = g_UIString[230];
+	}
+
+	SButton* pLegacyMode = m_pControlContainer
+		? static_cast<SButton*>(m_pControlContainer->FindControl(B_CCATTACK))
+		: nullptr;
+	SetButtonState(m_pMGameAutoBtn, modeTexture, pModeText);
+	if (pLegacyMode != m_pMGameAutoBtn)
+		SetButtonState(pLegacyMode, modeTexture, pModeText);
+
+	int potionTexture = 462;
+	if (m_AutoHpMp == 1)
+		potionTexture = 461;
+	else if (m_AutoHpMp == 2)
+		potionTexture = 460;
+	else if (m_AutoHpMp == 3)
+		potionTexture = 466;
+	if (m_pSGameAutoBtn)
+	{
+		m_pSGameAutoBtn->SetTextureSetIndex(potionTexture);
+		m_pSGameAutoBtn->SetVisible(g_GameAuto != 0);
+	}
+
+	int positionTexture = 465;
+	char* pPositionText = g_UIString[232];
+	if (m_AutoPostionUse == 0)
+	{
+		positionTexture = 463;
+		pPositionText = g_UIString[233];
+	}
+	else if (m_AutoPostionUse == 1)
+	{
+		positionTexture = 464;
+		pPositionText = g_UIString[234];
+	}
+
+	SButton* pLegacyMove = m_pControlContainer
+		? static_cast<SButton*>(m_pControlContainer->FindControl(B_CCMOVE))
+		: nullptr;
+	SetButtonState(m_pSetType, positionTexture, pPositionText);
+	if (pLegacyMove != m_pSetType)
+	{
+		SetButtonState(pLegacyMove, positionTexture, pPositionText);
+		if (pLegacyMove)
+			pLegacyMove->SetVisible(g_GameAuto != 0);
+	}
+
+	char szThreshold[16]{};
+	if (m_pCCModeHpSte)
+	{
+		sprintf_s(szThreshold, "%d%%", g_GameAuto_hpValue);
+		m_pCCModeHpSte->SetText(szThreshold, 0);
+	}
+	if (m_pCCModeMountSte)
+	{
+		sprintf_s(szThreshold, "%d%%", g_GameAuto_mountValue);
+		m_pCCModeMountSte->SetText(szThreshold, 0);
+	}
 }
 
 void TMFieldScene::InsertInChatList(SListBox* pChatList, STRUCT_MOB *pMobData, SEditableText* pEditChat, unsigned int dwColor, int colorId, unsigned int startId)

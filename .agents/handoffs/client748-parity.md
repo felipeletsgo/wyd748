@@ -611,6 +611,16 @@ Repetir build, instalação e hash se o código mudar.
 - Estado: `STATICALLY VERIFIED`. Ainda é obrigatório testar no client abertura,
   X, reabertura, Esc, nova interação e clique nas habilidades.
 
+## Paridade estática: `SetMyHumanMagic`
+
+- `TMFieldScene::SetMyHumanMagic()` permanece vazio por paridade com
+  `FUN_004431D9`, no-op nativo de 11 bytes sem callees.
+- Os callers diretos são `FUN_004431E4`, `FUN_004528C5` e `FUN_00454763`.
+- Não restaurar o sidecar `STRUCT_MOB::Magician`; o cálculo ativo usa
+  `CurrentScore.MagicAmp` como representação canônica.
+- Evidência: `inventory/set-my-human-magic-noop.md`. Estado do símbolo:
+  `STATICALLY_EVIDENCED`/`PARITY_STATIC_EVIDENCE`, sem claim runtime.
+
 ## Pendências e riscos
 
 - No candidato `7D203FE6...A2BB71D`, abrir primeiro AutoTrade/loja e depois o
