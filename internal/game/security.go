@@ -93,32 +93,40 @@ func opcodeAllowedInPhase(phase sessionPhase, opcode uint16) bool {
 // continuam validando os campos especificos; esta e a fronteira comum.
 func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 	if s == nil || len(pkt) < wire.HeaderSize || len(pkt) > wire.MaxPacketSize {
-		if s != nil {
-			w.recordSecurityViolation(s, 0, "tamanho de pacote invalido")
-		}
-		return false
+		return w.rejectInboundCommand(s, pkt, 0, "tamanho de pacote invalido")
 	}
 	header := wire.ParseHeader(pkt)
 	if int(header.Size) != len(pkt) {
-		w.recordSecurityViolation(s, header.Type, fmt.Sprintf("Size=%d bytes=%d", header.Size, len(pkt)))
-		return false
+		return w.rejectInboundCommand(s, pkt, header.Type,
+			fmt.Sprintf("Size=%d bytes=%d", header.Size, len(pkt)))
 	}
 	if !knownInboundOpcode(header.Type) {
-		w.recordSecurityViolation(s, header.Type, "opcode C->S desconhecido")
-		return false
+		return w.rejectInboundCommand(s, pkt, header.Type, "opcode C->S desconhecido")
 	}
 	if allowed, expected := inboundPacketSizeAllowed(header.Type, len(pkt)); !allowed {
-		w.recordSecurityViolation(s, header.Type,
+		return w.rejectInboundCommand(s, pkt, header.Type,
 			fmt.Sprintf("tamanho %d, esperado %s", len(pkt), expected))
-		return false
 	}
 	phase := w.phaseFor(s)
 	if !opcodeAllowedInPhase(phase, header.Type) {
-		w.recordSecurityViolation(s, header.Type, fmt.Sprintf("opcode fora da fase %d", phase))
-		return false
+		return w.rejectInboundCommand(s, pkt, header.Type,
+			fmt.Sprintf("opcode fora da fase %d", phase))
 	}
 	w.relaxLearnedSkillIngressThrottle(s, pkt, header.Type)
 	return true
+}
+
+func (w *World) rejectInboundCommand(s *net.Session, pkt []byte, opcode uint16, reason string) bool {
+	if opcode == 0 && len(pkt) >= 6 {
+		opcode = binary.LittleEndian.Uint16(pkt[4:6])
+	}
+	w.recordSecurityViolation(s, opcode, reason)
+	// O 0x2C2 e uma resposta a um desafio server-side e nao uma intencao de
+	// gameplay. Framing, fase ou layout invalidos sao fail-closed imediatamente.
+	if s != nil && opcode == wire.OpClientIntegrityResponse {
+		s.Close()
+	}
+	return false
 }
 
 // relaxLearnedSkillIngressThrottle remove somente o piso temporal GLOBAL entre
@@ -199,6 +207,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return characterLoginPacketSize, true
 	case wire.OpCharacterLogout:
 		return 12, true
+	case wire.OpClientIntegrityResponse:
+		return wire.ClientIntegrityPacketSize, true
 	case wire.OpSwapItem:
 		return 20, true
 	case wire.OpDeposit, wire.OpWithdraw:

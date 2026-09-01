@@ -61,6 +61,7 @@ type ServerConfig struct {
 	AttributeMapPath             string
 	TeleportPath                 string
 	NetworkAdmissionPath         string
+	ClientIntegrityPath          string
 	NPCGenerLog                  string
 	// GameplayLog controla diagnosticos quentes (skills, ataques, mortes e
 	// drops): quiet, summary ou verbose. Summary evita I/O por evento no World.
@@ -126,6 +127,7 @@ func DefaultServerConfig() ServerConfig {
 		AttributeMapPath:             "data/maps/AttributeMap.dat",
 		TeleportPath:                 "data/teleports.ini",
 		NetworkAdmissionPath:         "data/network_admission.json",
+		ClientIntegrityPath:          "data/client_integrity.json",
 		NPCGenerLog:                  "summary",
 		GameplayLog:                  "summary",
 		DebugAddress:                 "", // diagnostico desligado por padrao
@@ -218,6 +220,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"attributemap":                     func(v string) error { cfg.AttributeMapPath = v; return nil },
 		"teleports":                        func(v string) error { cfg.TeleportPath = v; return nil },
 		"network_admission":                func(v string) error { cfg.NetworkAdmissionPath = v; return nil },
+		"client_integrity":                 func(v string) error { cfg.ClientIntegrityPath = v; return nil },
 		"npcgener_log":                     func(v string) error { cfg.NPCGenerLog = strings.ToLower(v); return nil },
 		"gameplay_log":                     func(v string) error { cfg.GameplayLog = strings.ToLower(v); return nil },
 		"debug_address":                    func(v string) error { cfg.DebugAddress = v; return nil },

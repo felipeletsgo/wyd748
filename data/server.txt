@@ -36,6 +36,7 @@ critical_persistence_timeout_ms=500
 channel_id=1
 # Regras CIDR locais de allow/deny/limit. O login nunca consulta API externa.
 network_admission=data/network_admission.json
+client_integrity=data/client_integrity.json
 
 # Log do gerador: quiet, summary ou verbose
 npcgener_log=summary

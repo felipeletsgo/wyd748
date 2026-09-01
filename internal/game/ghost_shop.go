@@ -343,7 +343,11 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 	buyerInv, sellerCargo, buyerGold, sellerCargoGold, buyerSlot, err :=
 		buildGhostShopPurchase(buyer.Char, seller.Account, shop, req.Pos)
 	if err != nil {
-		s.Send(wire.MessagePanel(err.Error()))
+		if err.Error() == "Not enough gold." {
+			s.Send(wire.MessageIndexed(-845))
+		} else {
+			s.Send(wire.MessagePanel(err.Error()))
+		}
 		return
 	}
 

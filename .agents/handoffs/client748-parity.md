@@ -216,7 +216,7 @@ crash NPC Skill Apprentice 20260827 | STATICALLY VERIFIED  | m_pHellgateStore nu
 compra de skill no mestre 85FC6B25  | CONTRACT              | renderer 2D + TargetID 0x277 + testes byte-level
 composição e candidatos IME 1DF5956A | TRACED/STATIC VERIFIED | dispatcher, foco, candidatos e teardown adaptados
 Premium Firework 76B3E66E             | IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED | contrato 0x3C9/0x3CA; efeito nativo restaurado
-array de animação 0x1C1/0x2C2 DA9F578E | CONTRACT / STATICALLY VERIFIED | resposta nativa de 24 bytes; tamanho bruto .bon preservado
+array de animação 0x1C1/0x2C2 DA9F578E | CONTRACT / STATICALLY VERIFIED / AUTOMATED TESTED | wire nativo; probe server-side fail-closed
 layout/valores do HUD compacto      | STATICALLY VERIFIED  | texto sem stretch + IDs nativos
 EXP nativa em quatro quartos        | STATICALLY VERIFIED  | controles 1171–1174
 wheel/rotação de câmera             | STATICALLY VERIFIED  | input/lifecycle nativo
@@ -303,6 +303,9 @@ novo binário antes do teste real.
 - `.agents/research/client748/flows/transport/bone-animation-array-probe.md` —
   ficha `CONTRACT` do dispatcher, gate, handler, loader, sender, wire,
   ownership e teardown do fluxo.
+- `internal/wire/client_integrity.go`, `internal/game/client_integrity.go` e
+  `data/client_integrity.json` — contrato de 24 bytes, manifesto server-side,
+  seleção, pending, timeout, fail-closed e cleanup de sessão.
 - `client-source/tmproject/Projects/TMProject/TMHuman.cpp` — efeitos nativos
   Lighten, Magic Shield e Skill Amp restaurados conforme `FUN_00506f9d`.
 - `client-source/tmproject/Projects/TMProject/EventTranslator.cpp` — wheel e
@@ -744,14 +747,20 @@ Repetir build, instalação e hash se o código mudar.
 - A source tipou o packet e seus offsets, restaurou a resposta com o ID do
   humano local e passou a conservar o tamanho bruto exato do `.bon`. Isso evita
   truncar `ed.bon` e `tn.bon`, cujos tamanhos não são múltiplos de oito.
-- O servidor atual não emite `0x1C1` nem consome `0x2C2`; não foi criado um uso
-  server-side artificial neste lote.
+- O servidor agora carrega um manifesto versionado, escolhe um probe depois da
+  entrada no mundo, emite `0x1C1` e consome `0x2C2`. Mantém um único pending
+  efêmero por jogador e fecha imediatamente em replay, framing/fase inválidos,
+  ID/conteúdo divergente ou resposta no/após o deadline; o tick cobre ausência.
+- Wire/layout permanecem `PARIDADE_NATIVA`; manifesto, seleção, prazo e política
+  fail-closed são `EXTENSAO_COORDENADA`, sem claim criptográfico do client.
 - `Build-Client.ps1` passou em Release Win32 v145 com zero erros e 31 warnings
   preexistentes. `validate_research.py` e `git diff --check` passaram; o
   candidato instalado tem SHA-256
   `DA9F578E6AEF2A6F2ED923E893F412717F7966AC861A21F3A17D939EDF70EE3F`.
-- Estado: `CONTRACT` e `STATICALLY VERIFIED`; sem emissor no servidor, o fluxo
-  ainda não foi executado end-to-end e não é `CLIENT-TESTED`.
+- Testes Go cobrem layout/parser, manifesto, cópia/seleção, pending único,
+  sucesso, replay, mismatch, timeout, gate, fase e cleanup no reset.
+- Estado: `CONTRACT`, `STATICALLY VERIFIED` e `AUTOMATED TESTED`; o fluxo ainda
+  não foi executado no client real e não é `CLIENT-TESTED`.
 
 ## Extensão de avisos indexados em 2026-09-01
 
@@ -765,15 +774,16 @@ Repetir build, instalação e hash se o código mudar.
   check da tabela e substitui somente `%s`/`%%` sem usar o asset como format
   string. Os stubs por entidade permanecem deliberadamente fora do contrato.
 - O WYD-Go possui builders byte-level para os dois opcodes, com `ID=0`, CSV de
-  91 bytes e vírgula/NUL interno normalizado. Eles não foram ligados a gameplay
-  arbitrário porque o asset ativo possui somente 440 linhas.
+  91 bytes e vírgula/NUL interno normalizado. O convite de grupo usa
+  `MessageParameterized(-938, nome do líder)` e gold insuficiente na loja
+  fantasma usa `MessageIndexed(-845)`; outros erros preservam o painel legado.
 - `go test -count=1 ./internal/wire ./internal/game`, o validador de pesquisa e
   `Build-Client.ps1` passaram. O build `Release|Win32` v145 terminou com zero
   erros e 31 warnings preexistentes, instalando `client748/project.exe` com
   SHA-256
   `9E225456063C5DC77917C007FDCA9ECD05DDC9312FD25D9AB28FE55F334B5BF4`.
-- Estado: `IMPLEMENTED`, `AUTOMATED TESTED` no wire e `STATICALLY VERIFIED` no
-  client. Sem emissor funcional e execução real, não é `CLIENT-TESTED`.
+- Estado: `IMPLEMENTED`, `AUTOMATED TESTED` no wire/gameplay e
+  `STATICALLY VERIFIED` no client. Sem execução real, não é `CLIENT-TESTED`.
 
 ## Pendências e riscos
 
@@ -828,9 +838,9 @@ Repetir build, instalação e hash se o código mudar.
   incluindo staging, remoção, rejeição, sucesso, rollback e relogin.
 - Não implementar `0x2C4` até recuperar uma receita e resposta autoritativas;
   ele é um modo dormente do ItemMix5, não uma UI livre.
-- Não adicionar emissor `0x1C1` ou consumidor `0x2C2` apenas para exercitar o
-  handler restaurado. Um uso futuro precisa de propósito e contrato coordenado
-  próprios; até lá, a consulta de array permanece sem `CLIENT_TESTED`.
+- Testar em jogo o probe `0x1C1/0x2C2` com o manifesto ativo: sucesso deve
+  preservar a sessão; byte divergente e timeout devem fechá-la. Repetir após
+  logout/relogin; até lá, a consulta permanece sem `CLIENT_TESTED`.
 - Testar em jogo uma recusa/rollback de `MSG_UseItem` e confirmar que origem e
   alvo voltam imediatamente; até isso, o conserto está `AUTOMATED TESTED`, não
   `CLIENT-TESTED`.
@@ -839,29 +849,36 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Próximo passo executável
 
-1. No candidato `DA9F578E...EE3F`, executar o fluxo Premium Firework com
+1. No candidato `DA9F578E...EE3F`, entrar no mundo com o manifesto de
+   integridade ativo e confirmar sucesso do probe. Em ambiente de teste,
+   alterar o byte esperado e reduzir o timeout para confirmar o fail-closed;
+   repetir depois de logout/relogin e restaurar o manifesto versionado.
+2. No mesmo candidato, convidar outro personagem para grupo e confirmar o aviso
+   `-938` com o nome do líder; tentar comprar em loja fantasma sem gold e
+   confirmar `-845`, sem compra ou estado stale após relogin.
+3. No candidato `DA9F578E...EE3F`, executar o fluxo Premium Firework com
    dois padrões e o fallback vazio; observar dono, um observer e um outsider,
    sons, render, expiração, troca de cena e logout/relogin.
-2. No candidato `DA9F578E...EE3F`, testar composição IME real, página de
+4. No candidato `DA9F578E...EE3F`, testar composição IME real, página de
    candidatos, troca de foco, fim da composição, troca de cena e relogin.
-3. No mesmo candidato, abrir o NPC Skill Master e conferir os ícones dos
+5. No mesmo candidato, abrir o NPC Skill Master e conferir os ícones dos
    livros; cancelar uma compra, confirmar outra e validar uma rejeição sem
    estado visual stale. Fechar por X/Esc e repetir depois de relogin.
-4. Testar a placa sem hover e o título dentro da faixa escura no mesmo
+6. Testar a placa sem hover e o título dentro da faixa escura no mesmo
    candidato.
-5. Testar Cargo no mesmo candidato, abrindo antes e
+7. Testar Cargo no mesmo candidato, abrindo antes e
    depois de AutoTrade/loja para excluir posições residuais, em 1024x768 e
    1280x960.
-6. Testar a AutoTrade no mesmo candidato: adicionar o
+8. Testar a AutoTrade no mesmo candidato: adicionar o
    mesmo item, informar preço válido, repetir com preço inválido, conferir a
    placa `NewUI_AutoTrade_BG` junto do título e, ao abrir por outro personagem,
    conferir fundo/preço, confirmação `Não`/`Sim`, avisos, remoção imediata da
    placa após o último item e alinhamento do Carry.
-7. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
+9. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
    família `egg001..egg014`; depois repetir `Steel_Pants`, armadura larga, arma
    longa e item pequeno para excluir regressão nos demais itens.
-8. Depois do teste do NPC no novo candidato, repetir entrada no mundo,
+10. Depois do teste do NPC no novo candidato, repetir entrada no mundo,
    digitação/backspace, notice e Kibita; depois testar Cargo, autoaproximação,
    HUD, câmera e fechamento em 1280×960.
-9. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
+11. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
    real correspondente.

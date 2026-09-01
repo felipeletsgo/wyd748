@@ -3,8 +3,10 @@ package wire
 // Opcodes do protocolo WYD 7.48 (campo Type@4 do header _MSG).
 // C->S = client manda; S->C = server manda.
 const (
-	OpMessageIndexed       = 0x105 // S->C extensao coordenada: indice int16 relativo a 1000 em String[2:4]
-	OpMessageParameterized = 0x106 // S->C extensao coordenada: 0x105 + ate seis parametros CSV em String[4:]
+	OpMessageIndexed           = 0x105 // S->C extensao coordenada: indice int16 relativo a 1000 em String[2:4]
+	OpMessageParameterized     = 0x106 // S->C extensao coordenada: 0x105 + ate seis parametros CSV em String[4:]
+	OpClientIntegrityChallenge = 0x1C1 // S->C probe nativo de byte do array de animacao
+	OpClientIntegrityResponse  = 0x2C2 // C->S resposta nativa ao probe de integridade
 )
 
 const (

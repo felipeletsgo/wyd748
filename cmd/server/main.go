@@ -82,6 +82,8 @@ func main() {
 	teleportPath := flag.String("teleports", cfg.TeleportPath, "arquivo server-side de portais")
 	networkAdmissionPath := flag.String("network-admission", cfg.NetworkAdmissionPath,
 		"politica server-side de redes VPS/VPN/datacenter")
+	clientIntegrityPath := flag.String("client-integrity", cfg.ClientIntegrityPath,
+		"manifesto server-side de probes do client")
 	accDir := flag.String("accounts", cfg.AccountsPath, "diretorio de contas")
 	guildsPath := flag.String("guilds", cfg.GuildsPath, "registro de guilds (guilds.json)")
 	guildsTxtPath := flag.String("guilds-txt", cfg.GuildsTxtPath, "Guilds.txt exportado para o client 7.48")
@@ -155,6 +157,12 @@ func main() {
 		log.Fatalf("carregar politica de admissao de rede (%s): %v", *networkAdmissionPath, err)
 	}
 	log.Printf("politica de admissao de rede: %d faixa(s) carregada(s)", len(networkAdmission.Rules))
+
+	clientIntegrity, err := data.LoadClientIntegrity(*clientIntegrityPath)
+	if err != nil {
+		log.Fatalf("carregar manifesto de integridade do client (%s): %v", *clientIntegrityPath, err)
+	}
+	log.Printf("integridade do client: %d probe(s) carregado(s)", len(clientIntegrity.Probes))
 
 	catalog, err := data.LoadCatalog(*itemPath, *itemNamePath, *itemEffectPath, *skillPath)
 	if err != nil {
@@ -266,6 +274,7 @@ func main() {
 		game.WithGameplayLog(cfg.GameplayLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),
 		game.WithNetworkAdmission(networkAdmission),
+		game.WithClientIntegrity(clientIntegrity),
 		game.WithOperationalConfig(game.OperationalConfig{
 			AuthAttemptsPerMinuteIP:      int(cfg.AuthAttemptsPerMinIP),
 			AuthAttemptsPerMinuteAccount: int(cfg.AuthAttemptsPerMinAccount),

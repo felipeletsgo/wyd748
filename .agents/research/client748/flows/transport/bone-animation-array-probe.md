@@ -25,8 +25,10 @@ um buffer `.bon`, lê um byte e devolve a resposta client-to-server `0x2C2`?
   `NewApp::Finalize`.
 - Assets ativos: `Mesh/BoneAni4.txt`, `Mesh/ValidIndex.bin` e os buffers
   `<nome>.bon` selecionados pelo catálogo.
-- Server: a árvore atual não possui opcode, handler ou emissor para `0x1C1`
-  nem consumidor para `0x2C2`.
+- Server: `internal/wire/client_integrity.go`,
+  `internal/game/client_integrity.go`, o gate/dispatcher da `World` e o
+  manifesto `data/client_integrity.json` implementam o emissor `0x1C1` e o
+  consumidor `0x2C2` sem alterar o layout nativo.
 
 ## Fluxo nativo 7.48
 
@@ -98,24 +100,38 @@ rollback transacional. A source responde zero quando o buffer está ausente ou
 vazio, proteção necessária para bootstrap parcial; com assets completos, os
 clamps e a leitura são equivalentes ao nativo.
 
-### Cleanup e teardown
+### Cleanup e teardown do client nativo
 
-O request/response é síncrono e não cria timer, fila, callback ou estado
-pendente. A cópia local desaparece no retorno. Os buffers continuam pertencendo
-ao `MeshManager` e são liberados por `NewApp::Finalize`.
+No client, o request/response é síncrono e não cria timer, fila, callback ou
+estado pendente. A cópia local desaparece no retorno. Os buffers continuam
+pertencendo ao `MeshManager` e são liberados por `NewApp::Finalize`.
 
 ### Shutdown
 
-Depois que o socket deixa de aceitar mensagens, não há consulta pendente para
-cancelar. `NewApp::Finalize` libera `pBone`, `matAnimation` e `matQuaternion`
-de todas as cem categorias durante o shutdown global.
+Depois que o socket do client deixa de aceitar mensagens, não há consulta local
+para cancelar. `NewApp::Finalize` libera `pBone`, `matAnimation` e
+`matQuaternion` de todas as cem categorias durante o shutdown global.
 
 ### Logout e relogin
 
-O fluxo não armazena resposta na conta, personagem ou cena. Logout elimina a
-Field sem deixar consulta pendente. Relogin reutiliza os buffers globais ainda
+O client não armazena resposta na conta, personagem ou cena. Logout elimina a
+Field sem estado local stale. Relogin reutiliza os buffers globais ainda
 carregados no mesmo processo; um novo processo os materializa novamente no
-bootstrap. Nenhum `Value`, categoria ou offset atravessa sessões.
+bootstrap. Nenhum `Value`, categoria ou offset é persistido pelo client.
+
+### Lifecycle coordenado no WYD-Go
+
+Depois de `refreshPlayerVisibility`, a `World` escolhe um probe do manifesto
+por `w.intn`, envia `0x1C1` e mantém exatamente um pending efêmero por jogador,
+com categoria, offset, valor esperado e deadline. Um segundo challenge não é
+emitido enquanto esse pending existir.
+
+A resposta precisa chegar antes do deadline e coincidir em ID do jogador,
+categoria, offset e valor. Sucesso elimina o pending. Resposta ausente,
+repetida, vencida, malformada, fora de fase ou divergente registra violação e
+fecha a sessão imediatamente. O tick fecha pendings vencidos mesmo sem
+resposta. Reset de personagem, logout e relogin também eliminam o estado; ele
+nunca entra na conta, personagem persistido ou sidecar.
 
 ## Wire, ABI e recursos
 
@@ -156,10 +172,17 @@ ausente produz valor zero sem mascarar a transição principal.
 
 ### WYD-Go
 
-Não existe emissor `0x1C1` nem consumidor `0x2C2` no servidor atual. Este lote
-restaura a capacidade nativa do client sem inventar uso server-side. Qualquer
-uso futuro deve nascer como contrato coordenado separado, com propósito,
-autorização, limites e testes próprios.
+O servidor carrega um manifesto versionado com timeout de `1..60` segundos e
+até cem probes. Cada entrada registra categoria `0..99`, offset dentro do
+asset, byte esperado em `int8`, caminho relativo, tamanho e SHA-256 de
+proveniência. Asset vazio, `.` e traversal são rejeitados. O hash identifica o
+input usado para gerar o probe; o protocolo compara somente o byte solicitado
+e não é apresentado como verificação criptográfica do client inteiro.
+
+O challenge é enviado depois da entrada no mundo e da visibilidade inicial. O
+parser da resposta exige 24 bytes, `Header.Size=24` e opcode `0x2C2`; gate,
+dispatcher e métricas reconhecem o opcode. O comportamento é fail-closed para
+qualquer `0x2C2` identificável rejeitado pelo framing, fase ou contrato.
 
 ## Matriz de delta
 
@@ -170,7 +193,7 @@ autorização, limites e testes próprios.
 | signedness | `char` assinado para `int32` | ausente | `PARIDADE_NATIVA` |
 | limite do `.bon` | tamanho bruto em bytes | apenas `tamanho / 8` | `MODERNIZACAO_COMPATIVEL` interna |
 | buffer ausente | bootstrap nativo pressupõe assets | stub não respondia | proteção compatível, valor zero |
-| suporte server-side | não inferido pelo handler client | inexistente | fora deste lote |
+| operação server-side | não inferida além do wire nativo | inexistente | `EXTENSAO_COORDENADA`: manifesto, seleção, pending e fail-closed |
 
 ## Decisões
 
@@ -179,15 +202,19 @@ autorização, limites e testes próprios.
   offsets usados pelo renderer herdado.
 - Preservar os campos recebidos no eco e aplicar clamps somente aos índices de
   leitura.
-- Não criar opcode ou handler no WYD-Go sem uma feature coordenada concreta.
+- Separar a paridade do wire da política operacional: layout e resposta são
+  `PARIDADE_NATIVA`; manifesto, seleção, prazo e rejeição são
+  `EXTENSAO_COORDENADA` server-authoritative.
+- Manter no máximo um pending por personagem ativo, não persistir esse estado e
+  falhar fechado em timeout, replay, fase, framing, ID ou conteúdo divergente.
 
 ## Lacunas
 
-- O servidor atual não emite a consulta; portanto o fluxo não pode ser
-  exercitado end-to-end sem adicionar uma funcionalidade fora deste lote.
-- Executar um teste client real apenas quando houver consumidor coordenado e
-  seguro para `0x2C2`.
-- Até esse cenário, não alegar `CLIENT_TESTED`.
+- Executar no `client748/project.exe` a entrada no mundo com manifesto ativo,
+  confirmar permanência da sessão no sucesso e fechamento em um probe
+  deliberadamente divergente.
+- Repetir depois de logout/relogin e com timeout antes de alegar
+  `CLIENT_TESTED`.
 
 ## Validação
 
@@ -199,4 +226,8 @@ autorização, limites e testes próprios.
   `DA9F578E6AEF2A6F2ED923E893F412717F7966AC861A21F3A17D939EDF70EE3F`.
 - Automação documental: `validate_research.py --repo .` reconheceu esta ficha
   como `CONTRACT` e `git diff --check` passou sem erro de whitespace.
+- Servidor: testes byte a byte e de integração cobrem layout, parser,
+  cópia/seleção do manifesto, pending único, sucesso, replay, mismatch,
+  ID incorreto, framing, fase, timeout no handler e no tick e cleanup no reset.
+  Estado de entrega: `AUTOMATED TESTED`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

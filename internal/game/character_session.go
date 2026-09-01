@@ -142,6 +142,7 @@ func resetCharacterRuntime(p *Player) {
 
 	// Moedas especiais vivem no charstate do PERSONAGEM.
 	p.SpecialCoins = nil
+	p.clientIntegrityPending = nil
 }
 
 // onCharacterLogout trata 0x215. A resposta 0x116 e comprovadamente a

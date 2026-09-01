@@ -72,6 +72,7 @@ func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 	level, currentHP, maximumHP := playerLevel(inviter.Char), playerCurHP(inviter.Char), playerMaxHP(inviter.Char)
 	target.Session.Send(wire.PartyRequest(inviter.ID, inviter.Char.Name, inviter.Char.Class,
 		level, currentHP, maximumHP, target.ID))
+	target.Session.Send(wire.MessageParameterized(-938, inviter.Char.Name))
 	log.Printf("[#%d] PARTY convite %s(%d) -> %s(%d)", s.ID,
 		inviter.Char.Name, inviter.ID, target.Char.Name, target.ID)
 }

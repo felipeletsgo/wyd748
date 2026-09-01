@@ -470,6 +470,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	// Antes mandava CreateMob de todos os mobs sem filtro (e sem semear p.Visible),
 	// deixando o sistema de visibilidade inconsistente e sem escalar pra milhares.
 	w.refreshPlayerVisibility(p)
+	w.issueClientIntegrityChallenge(p)
 	log.Printf("[#%d] visibilidade inicial: %d entidades", s.ID, len(p.Visible))
 }
 

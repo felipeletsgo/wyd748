@@ -173,6 +173,9 @@ type Player struct {
 	// SpecialCoins sao contadores nomeados, persistidos pelo UID do personagem
 	// no sidecar de estado de sessao junto com os buffs.
 	SpecialCoins map[string]uint32
+	// Probe efemero do personagem ativo. E limpo em sucesso, rejeicao,
+	// timeout, logout e relogin; nunca pertence ao agregado persistido.
+	clientIntegrityPending *clientIntegrityPending
 }
 
 // Party e estado exclusivo do mundo e nunca e persistido na conta. Members
@@ -427,6 +430,7 @@ type World struct {
 	nextGameplayLog       time.Time
 	teleports             []model.Teleport
 	gameplay              model.GameplayConfig
+	clientIntegrity       model.ClientIntegrityFile
 	// guilds e o registro canonico carregado do guilds.json. Char.GuildID e
 	// apenas uma copia desnormalizada reparada no login.
 	guilds *model.GuildRegistry
@@ -1682,6 +1686,7 @@ func (w *World) tick() {
 	w.tickGroundItems(now)
 	w.tickItemInstances(now)
 	w.tickTrades(now)
+	w.tickClientIntegrity(now)
 	if !now.Before(w.nextQuestZoneReset) {
 		w.tickQuestZoneReset(now)
 		w.nextQuestZoneReset = now.Add(questZoneResetInterval)
@@ -1832,6 +1837,8 @@ func (w *World) handle(cmd command) {
 		w.onEnterWorld(cmd.s, cmd.pkt)
 	case wire.OpCharacterLogout:
 		w.onCharacterLogout(cmd.s, cmd.pkt)
+	case wire.OpClientIntegrityResponse:
+		w.onClientIntegrityResponse(cmd.s, cmd.pkt)
 	case wire.OpDeleteCharacter:
 		w.onDeleteCharacter(cmd.s, cmd.pkt)
 	case wire.OpSwapItem:

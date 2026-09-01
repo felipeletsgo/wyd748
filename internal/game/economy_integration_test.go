@@ -109,7 +109,7 @@ func TestGhostShopPurchaseRejectsInsufficientGoldWithNotice(t *testing.T) {
 		t.Fatalf("rejeicao por gold insuficiente chegou a persistir: %d", st.batchSaves)
 	}
 	// This rejection exits before any state publication, so the sole new packet
-	// is the authoritative MessagePanel explaining that gold is insufficient.
+	// is the localized indexed message explaining that gold is insufficient.
 	if got := buyer.Session.QueuedPacketsForTest(); got != before+1 {
 		t.Fatalf("aviso de gold insuficiente ausente ou duplicado: %d -> %d", before, got)
 	}

@@ -242,7 +242,7 @@ func TestPartyInviteAcceptAndLeaveLifecycle(t *testing.T) {
 	if member.InviteFrom != leader.ID || member.InviteUntil.IsZero() {
 		t.Fatalf("convite nao registrado: from=%d until=%v", member.InviteFrom, member.InviteUntil)
 	}
-	if memberSession.QueuedPacketsForTest() != 1 {
+	if memberSession.QueuedPacketsForTest() != 2 {
 		t.Fatalf("convite enviou %d pacotes", memberSession.QueuedPacketsForTest())
 	}
 

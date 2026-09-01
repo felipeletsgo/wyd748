@@ -26,8 +26,9 @@ cópia ou format string não confiáveis e com um contrato explícito no WYD-Go?
   whisper, sem alias com esta extensão.
 - Source atual: `Basedef.h`, `TMScene.cpp`, `WYD748Assets.cpp` e a tabela
   `g_pMessageStringTable` carregada de `UI/strdef.bin`.
-- Servidor: `internal/wire/opcodes.go`, `source_client.go` e testes byte a byte
-  em `session_packets_test.go`.
+- Servidor: builders em `internal/wire`, emissores funcionais em
+  `internal/game/party.go` e `internal/game/ghost_shop.go`, e testes byte a
+  byte/de integração.
 
 ## Fluxo nativo 7.48
 
@@ -77,6 +78,8 @@ com `memcpy`, resolve a linha e entrega uma cópia limitada ao painel da cena.
 | receber `0x105` | cena e painel ativos; frame válido | `TMScene::OnPacketEvent` | aviso visível | copia linha/fallback | frame/selector inválido: descarta |
 | receber `0x106` | anterior + CSV opcional | parse limitado + substituição | aviso formatado visível | consome até seis parâmetros | diretiva não suportada fica literal |
 | índice sem linha | tabela fora da faixa ou vazia | fallback decimal | aviso visível | nenhum acesso à tabela inválida | mostra índice relativo |
+| convite de grupo | convite autoritativo aceito pelo servidor | `MessageParameterized(-938, nome)` | aviso localizado acompanha `PartyRequest` | parâmetro é o nome do líder | nenhuma mutação adicional |
+| gold insuficiente | compra em loja fantasma rejeitada antes de persistir | `MessageIndexed(-845)` | aviso localizado | substitui apenas o texto genérico dessa rejeição | compra continua sem mutação |
 | troca de cena | aviso ativo | teardown normal da cena | painel eliminado | nenhuma referência ao frame permanece | N/A |
 
 ### Vtables, vptrs e receptores
@@ -141,9 +144,10 @@ parâmetros depois do sexto. Nenhum template do asset chega a uma função da
 família `printf`.
 
 Não foi criado capability bit porque este ecossistema possui um único client
-ativo compilado da source. Os builders permanecem sem ligação a gameplay; um
-emissor futuro deve escolher um índice realmente materializado e usar
-`MessagePanel` se algum peer legado voltar a ser suportado deliberadamente.
+ativo compilado da source. Os usos funcionais ficam restritos às linhas
+materializadas: `-938` parametriza o convite com o nome do líder e `-845`
+apresenta gold insuficiente na loja fantasma. `MessagePanel` continua sendo o
+fallback para erros da loja sem índice coordenado.
 
 ## Mapeamento atual
 
@@ -160,8 +164,11 @@ demais permanecem em quatro segundos.
 
 `MessageIndexed` e `MessageParameterized` constroem frames de 108 bytes com
 `ID=0`, índice assinado em `0x0E` e NUL final preservado. O builder
-parametrizado limita e sanitiza o CSV. Nenhum handler de gameplay passou a
-emitir os packets por suposição.
+parametrizado limita e sanitiza o CSV. O convite de grupo envia
+`MessageParameterized(-938, inviter.Char.Name)` junto do packet estrutural de
+convite. A rejeição específica de gold insuficiente na loja fantasma envia
+`MessageIndexed(-845)` sem alterar a validação, persistência ou rollback da
+compra; os demais erros continuam no painel textual legado.
 
 ## Matriz de delta
 
@@ -173,6 +180,7 @@ emitir os packets por suposição.
 | tabela | N/A | escrevia NUL na global | cópia somente leitura de até 127 bytes | preservar ownership do loader |
 | parâmetros | N/A | `strcpy`/`sscanf`/`sprintf` | seis campos, `%s`/`%%`, saída limitada | modernizar internamente |
 | receptor por entidade | inexistente | stubs vazios | fora do contrato | não preencher por hipótese |
+| emissores funcionais | inexistentes | builders dormentes | convite `-938`; gold insuficiente `-845` | extensão coordenada restrita a linhas existentes |
 
 ## Decisões
 
@@ -184,15 +192,16 @@ emitir os packets por suposição.
   nativos confirmados.
 - Restringir o contrato a `Header.ID == 0` e ao painel da cena. Não implementar
   handlers de humano/party sem emissor e sem semântica observável.
-- Manter o servidor sem emissão automática até uma feature viva escolher linha
-  existente e testes de runtime cobrirem o texto exibido.
+- Ligar somente usos funcionais cuja linha e parâmetros já foram escolhidos:
+  convite de grupo `-938` e gold insuficiente `-845`; manter os demais fluxos
+  no contrato anterior até haver semântica coordenada.
 
 ## Lacunas
 
-- Ligar um uso funcional deliberado a uma linha realmente presente no
-  `strdef.bin`; não escolher índice apenas para exercitar o builder.
-- Executar `0x105` válido, fallback por índice vazio/inválido e `0x106` com
-  zero/seis parâmetros no `client748/project.exe`.
+- Executar no `client748/project.exe` um convite de grupo e uma compra em loja
+  fantasma sem gold, confirmando os textos localizados e o nome do líder.
+- Executar também fallback por índice vazio/inválido e `0x106` com zero/seis
+  parâmetros.
 - Repetir após troca de cena e logout/relogin antes de qualquer claim
   `CLIENT_TESTED`.
 
@@ -202,7 +211,8 @@ emitir os packets por suposição.
   focalizados; não foi atribuído equivalente inexistente.
 - Automação: `go test -count=1 ./internal/wire ./internal/game` passou; os
   testes byte a byte cobrem header, tamanho, `ID=0`, índice assinado, limite de
-  seis parâmetros, normalização de vírgula/NUL, truncamento e NUL final.
+  seis parâmetros, normalização de vírgula/NUL, truncamento e NUL final. Testes
+  de gameplay cobrem os emissores `-938` e `-845` sem mutação indevida.
 - Validador: `validate_research.py --repo .` passou com esta ficha mantida em
   `UNMAPPED`, por ser extensão sem transição nativa correspondente.
 - Build: `Build-Client.ps1` passou em `Release|Win32` com toolset v145, zero
