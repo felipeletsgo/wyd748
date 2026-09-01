@@ -1225,8 +1225,15 @@ int SEditableText::OnChangeIME()
 
 int SEditableText::OnIMEEvent(char* ipComposeString)
 {
-	// No need for now
-	return 0;
+	if (ipComposeString == nullptr)
+		return 0;
+
+	if (m_bFocused != 1)
+		return SText::OnIMEEvent(ipComposeString);
+
+	strncpy_s(m_strComposeText, ipComposeString, _TRUNCATE);
+	Update();
+	return 1;
 }
 
 int SEditableText::OnKeyDownEvent(unsigned int iKeyCode)

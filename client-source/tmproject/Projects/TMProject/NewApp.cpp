@@ -1026,8 +1026,13 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 			break;
 
 		m_pEventTranslator->SetVisibleCandidateList(lParam, 0);
-		static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTextCompose->SetVisible(0);
-		static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTextComposeB->SetVisible(0);
+		if (g_pCurrentScene != nullptr)
+		{
+			if (g_pCurrentScene->m_pTextCompose != nullptr)
+				g_pCurrentScene->m_pTextCompose->SetVisible(0);
+			if (g_pCurrentScene->m_pTextComposeB != nullptr)
+				g_pCurrentScene->m_pTextComposeB->SetVisible(0);
+		}
 	}
 	break;
 	case WM_IME_COMPOSITION:
@@ -1035,7 +1040,7 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 		if (m_pEventTranslator == nullptr)
 			break;
 
-		m_pEventTranslator->OnIME(static_cast<char>(wParam), static_cast<char>(lParam));
+		m_pEventTranslator->OnIME(static_cast<char>(wParam), static_cast<int>(lParam));
 	}
 	break;
 	case WM_COMMAND:
@@ -1124,7 +1129,22 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	break;
 	case WM_IME_NOTIFY:
 	{
-		// stuffs for china
+		if (m_pEventTranslator == nullptr)
+			break;
+
+		switch (wParam)
+		{
+		case IMN_OPENCANDIDATE:
+		case IMN_CHANGECANDIDATE:
+			m_pEventTranslator->OnIME2();
+			m_pEventTranslator->SetVisibleCandidateList(static_cast<int>(lParam), 1);
+			break;
+		case IMN_CLOSECANDIDATE:
+			m_pEventTranslator->SetVisibleCandidateList(static_cast<int>(lParam), 0);
+			break;
+		default:
+			break;
+		}
 	}
 	break;
 	case WM_USER + 100:

@@ -17,7 +17,7 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | 85FC6B2541784C4AF83A275B5614FD74B8990A303A6618AEC21DFBB02FE602D2
+client748/project.exe                            | candidato source | 1DF5956AC134BCAEB5C072E84B77EF9BBDFF6EDE30DAC8ACBE8616375CED6082
 ```
 
 Os hashes históricos permanecem os fingerprints imutáveis registrados; o
@@ -214,6 +214,7 @@ Skill 1905 separada do NPC 1889     | STATICALLY VERIFIED  | TMFieldScene.cpp + 
 crash NPC Skill Apprentice 20260825 | STATICALLY VERIFIED  | dump/PDB + controles 1889/1890/6049–6052/6128
 crash NPC Skill Apprentice 20260827 | STATICALLY VERIFIED  | m_pHellgateStore nulo; lifecycle 1889/1905 protegido
 compra de skill no mestre 85FC6B25  | CONTRACT              | renderer 2D + TargetID 0x277 + testes byte-level
+composição e candidatos IME 1DF5956A | TRACED/STATIC VERIFIED | dispatcher, foco, candidatos e teardown adaptados
 layout/valores do HUD compacto      | STATICALLY VERIFIED  | texto sem stretch + IDs nativos
 EXP nativa em quatro quartos        | STATICALLY VERIFIED  | controles 1171–1174
 wheel/rotação de câmera             | STATICALLY VERIFIED  | input/lifecycle nativo
@@ -293,10 +294,17 @@ novo binário antes do teste real.
 - `client-source/tmproject/Projects/TMProject/TMHuman.cpp` — efeitos nativos
   Lighten, Magic Shield e Skill Amp restaurados conforme `FUN_00506f9d`.
 - `client-source/tmproject/Projects/TMProject/EventTranslator.cpp` — wheel e
-  sentido do zoom 7.48.
+  sentido do zoom 7.48; composição `GCS_COMPSTR` e página agregada de
+  candidatos IME com validação integral do bloco `CANDIDATELIST`.
+- `client-source/tmproject/Projects/TMProject/NewApp.cpp` — dispatch nativo de
+  `WM_IME_COMPOSITION`, `WM_IME_ENDCOMPOSITION` e `WM_IME_NOTIFY`, protegendo
+  cena e controles opcionais.
 - `client-source/tmproject/Projects/TMProject/SControl.cpp` — cursor preserva o
-  `GeomControl`, `SMessagePanel` usa recursos translúcidos e o input de texto
-  não consulta seletores de chat exclusivos da 7.59.
+  `GeomControl`, `SMessagePanel` usa recursos translúcidos, o input de texto
+  não consulta seletores de chat exclusivos da 7.59 e `SEditableText` recebe
+  composição IME somente com foco.
+- `client-source/tmproject/Projects/TMProject/SControlContainer.cpp` — foco,
+  pick e modais são desligados antes da destruição da árvore de controles.
 - `client-source/tmproject/Projects/TMProject/TMScene.cpp` — painel compartilhado
   de login/notice/saída com altura nativa de 24 pixels.
 - `client-source/AGENTS.md` e `references/client-ui-748.md` — gates de regressão
@@ -640,6 +648,26 @@ Repetir build, instalação e hash se o código mudar.
 - Estado máximo: `CONTRACT`. O fluxo real de abrir, renderizar, cancelar,
   confirmar, rejeitar, fechar, reabrir e relogar ainda não foi executado.
 
+## Paridade IME em 2026-09-01
+
+- A ficha `flows/ui/control-focus-ime-lifecycle.md` avançou para `TRACED` após
+  fechar o dispatcher `FUN_0055DAB8`, os handlers `FUN_004AF545`,
+  `FUN_004AF550`, `FUN_004AF5EB` e `FUN_004AF5F6`, o receptor editável
+  `FUN_00406F5E`, ownership e teardown de troca de cena/logout.
+- A source lê composição com `GCS_COMPSTR`, entrega texto limitado ao
+  `SEditableText` focado e reproduz a página candidata agregada no primeiro
+  controle. Tamanhos, tabela de offsets, strings terminadas e alocação da
+  `CANDIDATELIST` são validados antes da publicação.
+- `WM_IME_NOTIFY` agora abre, muda e fecha candidatos; fim de composição,
+  teardown da árvore e controles opcionais são protegidos sem fabricar widgets
+  posteriores ausentes do recurso 7.48.
+- `validate_research.py`, `git diff --check` e o build oficial Release Win32
+  v145 passaram. O build terminou com zero erros e dois warnings C4305/C4309
+  preexistentes, instalando `client748/project.exe` com SHA-256
+  `1DF5956AC134BCAEB5C072E84B77EF9BBDFF6EDE30DAC8ACBE8616375CED6082`.
+- Estado: `TRACED` e `STATICALLY VERIFIED`; composição, candidatos, foco,
+  troca de cena e relogin ainda não foram executados no client real.
+
 ## Paridade estática: `SetMyHumanMagic`
 
 - `TMFieldScene::SetMyHumanMagic()` permanece vazio por paridade com
@@ -671,7 +699,10 @@ Repetir build, instalação e hash se o código mudar.
   confirmadas no candidato `5A4AEC0A...`; ainda validar notices `!`, Kibita e
   digitação/backspace. A abertura do NPC Skill Apprentice falhou no candidato
   anterior; a correção e a compra no Skill Master agora devem ser testadas no
-  candidato `85FC6B25...02FE602D2`.
+  candidato `1DF5956A...CED6082`.
+- No candidato `1DF5956A...CED6082`, testar composição real, abertura/mudança/
+  fechamento de candidatos, troca de foco e fim de composição. Repetir após
+  troca de cena e logout/relogin; até isso, IME não é `CLIENT-TESTED`.
 - Ao lado de um banqueiro, mover item inventário↔Cargo e conferir persistência,
   rejeição fora de alcance e atualização de gold/slots.
 - Clicar para atacar um inimigo fora do alcance e confirmar aproximação até o
@@ -702,14 +733,14 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Próximo passo executável
 
-1. No candidato `85FC6B25...02FE602D2`, abrir o NPC Skill Master e conferir os
-   ícones dos livros; cancelar uma compra, confirmar outra e validar uma
-   rejeição sem estado visual stale.
-2. Fechar o Skill Master pelo X e por Esc, reabrir entre os dois caminhos e
-   repetir depois de logout/relogin.
+1. No candidato `1DF5956A...CED6082`, testar composição IME real, página de
+   candidatos, troca de foco, fim da composição, troca de cena e relogin.
+2. No mesmo candidato, abrir o NPC Skill Master e conferir os ícones dos
+   livros; cancelar uma compra, confirmar outra e validar uma rejeição sem
+   estado visual stale. Fechar por X/Esc e repetir depois de relogin.
 3. Testar a placa sem hover e o título dentro da faixa escura no mesmo
-   candidato `85FC6B25...02FE602D2`.
-4. Testar Cargo no novo candidato, abrindo antes e
+   candidato.
+4. Testar Cargo no mesmo candidato, abrindo antes e
    depois de AutoTrade/loja para excluir posições residuais, em 1024x768 e
    1280x960.
 5. Testar a AutoTrade no mesmo candidato: adicionar o

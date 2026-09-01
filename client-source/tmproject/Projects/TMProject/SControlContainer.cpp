@@ -25,6 +25,13 @@ SControlContainer::SControlContainer(TMScene* pScene)
 
 SControlContainer::~SControlContainer()
 {
+	if (m_pFocusControl != nullptr)
+		m_pFocusControl->SetFocused(0);
+
+	m_pFocusControl = nullptr;
+	m_pPickedControl = nullptr;
+	memset(m_pModalControl, 0, sizeof m_pModalControl);
+
 	SAFE_DELETE(m_pControlRoot);
 	SAFE_DELETE(m_pCursor);
 }

@@ -4,6 +4,7 @@
 #include "TMCamera.h"
 #include "TMFieldScene.h"
 #include "TMHuman.h"
+#include <cstddef>
 
 EventTranslator::EventTranslator()
 {
@@ -168,8 +169,115 @@ int EventTranslator::IsIMEOpenStatus()
 
 void EventTranslator::SetVisibleCandidateList(int lParam, int bVisible)
 {
-    // NOTE: this function is used only in chinese client
-    // no need for descompile for now
+    // Native WYD 7.48 receives the notify lParam but always queries list zero.
+    (void)lParam;
+
+    TMScene* pScene = g_pCurrentScene;
+    if (pScene == nullptr)
+        return;
+
+    if (!bVisible)
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+            if (pScene->m_pTextCandidate[i] != nullptr)
+                pScene->m_pTextCandidate[i]->SetVisible(0);
+        }
+        return;
+    }
+
+    SText* pCandidateText = pScene->m_pTextCandidate[0];
+    if (pCandidateText == nullptr)
+        return;
+
+    HIMC hIMC = ImmGetContext(m_hWnd);
+    if (hIMC == nullptr)
+        return;
+
+    const size_t offsetTableStart = offsetof(CANDIDATELIST, dwOffset);
+    const DWORD requiredBytes = ImmGetCandidateListA(hIMC, 0, nullptr, 0);
+    if (requiredBytes < offsetTableStart)
+    {
+        char emptyText[1]{};
+        pCandidateText->SetText(emptyText, 0);
+        pCandidateText->SetVisible(0);
+        ImmReleaseContext(m_hWnd, hIMC);
+        return;
+    }
+
+    LPCANDIDATELIST pNewList = static_cast<LPCANDIDATELIST>(GlobalAlloc(GPTR, requiredBytes));
+    if (pNewList == nullptr)
+    {
+        ImmReleaseContext(m_hWnd, hIMC);
+        return;
+    }
+
+    const DWORD receivedBytes = ImmGetCandidateListA(hIMC, 0, pNewList, requiredBytes);
+    ImmReleaseContext(m_hWnd, hIMC);
+
+    const bool invalidHeader = receivedBytes == 0
+        || receivedBytes > requiredBytes
+        || pNewList->dwSize < offsetTableStart
+        || pNewList->dwSize > receivedBytes
+        || pNewList->dwSize > requiredBytes;
+    const size_t listBytes = invalidHeader ? 0 : pNewList->dwSize;
+    const size_t offsetCapacity = listBytes < offsetTableStart
+        ? 0
+        : (listBytes - offsetTableStart) / sizeof(DWORD);
+    const bool invalidPage = invalidHeader
+        || pNewList->dwCount > offsetCapacity
+        || pNewList->dwPageStart > pNewList->dwCount;
+
+    if (invalidPage)
+    {
+        GlobalFree(pNewList);
+        return;
+    }
+
+    const DWORD availableCandidates = pNewList->dwCount - pNewList->dwPageStart;
+    const DWORD pageCount = pNewList->dwPageSize < availableCandidates
+        ? pNewList->dwPageSize
+        : availableCandidates;
+    const size_t candidateDataStart = offsetTableStart
+        + static_cast<size_t>(pNewList->dwCount) * sizeof(DWORD);
+    char candidateText[128]{};
+    size_t textLength = 0;
+
+    for (DWORD pageIndex = 0; pageIndex < pageCount; ++pageIndex)
+    {
+        const DWORD candidateIndex = pNewList->dwPageStart + pageIndex;
+        const DWORD candidateOffset = pNewList->dwOffset[candidateIndex];
+        if (candidateOffset < candidateDataStart || candidateOffset >= listBytes)
+            break;
+
+        const char* candidate = reinterpret_cast<const char*>(pNewList) + candidateOffset;
+        const size_t candidateCapacity = listBytes - candidateOffset;
+        if (memchr(candidate, '\0', candidateCapacity) == nullptr)
+            break;
+
+        const int appended = _snprintf_s(
+            candidateText + textLength,
+            sizeof(candidateText) - textLength,
+            _TRUNCATE,
+            "%u:%s ",
+            pageIndex + 1,
+            candidate);
+        if (appended < 0)
+            break;
+
+        textLength += static_cast<size_t>(appended);
+    }
+
+    GlobalFree(m_lpCandList);
+    m_lpCandList = pNewList;
+
+    for (int i = 1; i < 10; ++i)
+    {
+        if (pScene->m_pTextCandidate[i] != nullptr)
+            pScene->m_pTextCandidate[i]->SetVisible(0);
+    }
+    pCandidateText->SetText(candidateText, 0);
+    pCandidateText->SetVisible(1);
 }
 
 void EventTranslator::Lock()
@@ -406,15 +514,42 @@ void EventTranslator::OnChar(char iCharCode, int lParam)
 
 void EventTranslator::OnIME(char iCharCode, int lParam)
 {
-    // NOTE: china stuffs
+    (void)iCharCode;
+
+    HIMC hIMC = ImmGetContext(m_hWnd);
+    if (hIMC == nullptr)
+        return;
+
+    m_szResultStr[0] = 0;
+    if (lParam & GCS_COMPSTR)
+    {
+        const LONG length = ImmGetCompositionStringA(
+            hIMC,
+            GCS_COMPSTR,
+            m_szResultStr,
+            sizeof(m_szResultStr) - 1);
+        if (length > 0)
+        {
+            const size_t end = static_cast<size_t>(length) < sizeof(m_szResultStr)
+                ? static_cast<size_t>(length)
+                : sizeof(m_szResultStr) - 1;
+            m_szResultStr[end] = 0;
+        }
+    }
+
+    ImmReleaseContext(m_hWnd, hIMC);
+    if (g_pObjectManager != nullptr)
+        g_pObjectManager->OnIMEEvent(m_szResultStr);
 }
 
 void EventTranslator::OnIME2()
 {
+    // Native WYD 7.48 FUN_004AF5EB is intentionally empty.
 }
 
 void EventTranslator::UpdateCompositionPos()
 {
+    // Native WYD 7.48 FUN_004AF545 is intentionally empty.
 }
 
 void EventTranslator::OnLMousePressed()
