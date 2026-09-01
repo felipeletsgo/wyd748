@@ -798,6 +798,25 @@ ocorrências.
 - Não houve execução real de chat curto, truncamento, party fora da tela,
   logout ou relogin; não alegar `CLIENT_TESTED`.
 
+### Lote concluído em 2026-09-01: consumo opaco `0x102/0x104`
+
+- A ficha `flows/ui/legacy-scene-message-102-104-consume.md` está `CONTRACT`.
+  `FUN_0055890A` confirma 116 bytes para `0x102` e 152 para `0x104`; com
+  `Header.ID=0`, `FUN_0049889A` consome ambos imediatamente sem ler payload,
+  chamar callee, encaminhar a controles ou alterar estado.
+- Os callers diretos são `FUN_004339D8`, `FUN_00492E7D`, `FUN_004A626E` e
+  `FUN_004AE3D6`; a referência virtual é `0x005A4440`. Ownership, falha
+  parcial, cleanup, shutdown e relogin estão fechados como sem estado/N/A.
+- `Basedef.h` agora nomeia os opcodes e congela os corpos opacos e tamanhos com
+  `static_assert`; `TMScene.cpp` remove os números mágicos, valida 116/152 e
+  preserva o consumo silencioso sem inventar semântica ou emissor no servidor.
+- `validate_research.py` passou com `CONTRACT=14`, `TRACED=6`, `LOCATED=4` e
+  `UNMAPPED=2`; `git diff --check` passou. `Build-Client.ps1` terminou com 31
+  warnings preexistentes e zero erros e instalou `client748/project.exe` com
+  SHA-256 `06598F434D36BC52CEDBEA63B8C2248DC8072B8857D4A08B0B92568A886940CB`.
+- Não houve execução real de frames válidos/malformados; não alegar
+  `CLIENT_TESTED`.
+
 1. Executar no candidato hasheado o fluxo Gamble completo: abrir os dois tipos,
    apostar com sucesso, validar rejeição e timeout, prêmio, jackpot, overflow,
    fechamento, logout durante animação e relogin; até isso, não alegar

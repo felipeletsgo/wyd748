@@ -1113,6 +1113,23 @@ struct MSG_MessagePanel
 	char String[96];
 };
 
+// Stock 7.48 recognizes these server-to-client scene messages but deliberately
+// treats their bodies as opaque.  Keep the canonical frame sizes so later
+// TMProject layouts cannot silently change the receive contract.
+constexpr auto MSG_LegacySceneMessage102_Opcode = 0x102;
+struct MSG_LegacySceneMessage102
+{
+	MSG_STANDARD Header;
+	unsigned char OpaquePayload[104];
+};
+
+constexpr auto MSG_LegacySceneMessage104_Opcode = 0x104;
+struct MSG_LegacySceneMessage104
+{
+	MSG_STANDARD Header;
+	unsigned char OpaquePayload[140];
+};
+
 constexpr auto MSG_CharPassword_Opcode = 0xFDE;
 struct MSG_CHARPASSWORD
 {
@@ -1421,6 +1438,8 @@ static_assert(sizeof(MSG_MessageChat) == 108, "WYD 7.48 MSG_MessageChat must be 
 // score state belongs to 0x336; this packet only projects the incremental WORDs.
 static_assert(sizeof(MSG_UpdateEtc) == 36, "WYD 7.48 MSG_UpdateEtc must be 36 bytes");
 static_assert(sizeof(MSG_MessagePanel) == 108, "WYD 7.48 MSG_MessagePanel must be 108 bytes");
+static_assert(sizeof(MSG_LegacySceneMessage102) == 116, "WYD 7.48 legacy scene message 0x102 must be 116 bytes");
+static_assert(sizeof(MSG_LegacySceneMessage104) == 152, "WYD 7.48 legacy scene message 0x104 must be 152 bytes");
 static_assert(sizeof(MSG_CharacterLogin) == 36, "WYD 7.48 MSG_CharacterLogin must be 36 bytes");
 static_assert(sizeof(MSG_NewCharacter) == 36, "WYD 7.48 MSG_NewCharacter must be 36 bytes");
 static_assert(sizeof(MSG_DeleteCharacter) == 44, "WYD 7.48 MSG_DeleteCharacter must be 44 bytes");

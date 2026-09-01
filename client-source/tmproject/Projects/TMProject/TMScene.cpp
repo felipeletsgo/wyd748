@@ -1138,12 +1138,25 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 		// need to decompile here... and other encode packets
 		return 1;
 	}
-	if (!pStd->ID && (pStd->Type == MSG_MessagePanel_Opcode || pStd->Type == 0x102 || pStd->Type == 0x104 ||
+	if (!pStd->ID && (pStd->Type == MSG_MessagePanel_Opcode ||
+		pStd->Type == MSG_LegacySceneMessage102_Opcode || pStd->Type == MSG_LegacySceneMessage104_Opcode ||
 		pStd->Type == MSG_MessageIndexed_Opcode || pStd->Type == MSG_MessageParameterized_Opcode))
 	{
 		char szStr[128] = { 0 };
 		if (pStd->Type != MSG_MessagePanel_Opcode)
 		{
+			// Native FUN_0055890A admits only these exact frame sizes, while
+			// FUN_0049889A consumes both opcodes without reading their payload.
+			// Silently consume malformed variants as well so they cannot fall
+			// through to unrelated controls in this rebuilt dispatcher.
+			if ((pStd->Type == MSG_LegacySceneMessage102_Opcode &&
+				pStd->Size != sizeof(MSG_LegacySceneMessage102)) ||
+				(pStd->Type == MSG_LegacySceneMessage104_Opcode &&
+					pStd->Size != sizeof(MSG_LegacySceneMessage104)))
+			{
+				return 1;
+			}
+
 			if (pStd->Type == MSG_MessageIndexed_Opcode || pStd->Type == MSG_MessageParameterized_Opcode)
 			{
 				const MSG_MessageChat* pMessageChat = nullptr;
