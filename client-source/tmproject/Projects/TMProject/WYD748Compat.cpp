@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "Basedef.h"
+#include "TMEffectFirework.h"
 
 // These assertions lock the canonical 7.48+ Score shared with Go. Any field
 // insertion, narrowing or reordering must fail the Win32 build immediately.
@@ -92,6 +93,10 @@ static_assert(offsetof(MSG_UseItem, GridX) == 28, "7.48 UseItem.GridX offset cha
 static_assert(offsetof(MSG_UseItem, GridY) == 30, "7.48 UseItem.GridY offset changed");
 static_assert(offsetof(MSG_UseItem, ItemID) == 32, "7.48 UseItem.ItemID offset changed");
 static_assert(sizeof(MSG_UseItem2) == 52, "7.48 premium-firework request must remain 52 bytes");
+static_assert(sizeof(MSG_PremiumFirework) == 36, "7.48 premium-firework response must remain 36 bytes");
+static_assert(offsetof(MSG_PremiumFirework, Bitmap) == 20, "7.48 premium-firework bitmap offset changed");
+static_assert(sizeof(Particle) == 0x40, "7.48 firework particle layout changed");
+static_assert(sizeof(TMEffectFireWork) == 0x1EAC, "7.48 firework effect layout changed");
 static_assert(sizeof(MSG_Buy) == 24, "7.48 buy request must remain 24 bytes");
 static_assert(sizeof(MSG_Sell) == 20, "7.48 sell request must remain 20 bytes");
 static_assert(sizeof(MSG_ApplyBonus) == 20, "7.48 apply-bonus request must remain 20 bytes");

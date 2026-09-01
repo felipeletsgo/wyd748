@@ -925,6 +925,14 @@ struct MSG_UseItem2
 	char Parm[16];
 };
 
+constexpr auto MSG_PremiumFirework_Opcode = 0x3CA;
+struct MSG_PremiumFirework
+{
+	MSG_STANDARD Header;
+	char Reserved[8];
+	char Bitmap[16];
+};
+
 struct MSG_CAPSULEUSEITEM
 {
 	MSG_STANDARD Header;

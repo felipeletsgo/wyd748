@@ -24,7 +24,7 @@ public:
     int FrameMove(unsigned int dwServerTime) override;
     int Render() override;
     Particle* SetParticle(Particle* result, unsigned short wType, float fLifeTime, TMVector3 vBasePosition, TMVector3 vBaseVelocity);
-    void SetCustomFireWork(char* pBuffer);
+    void SetCustomFireWork(const char* pBuffer);
 
 public:
     int m_nType;

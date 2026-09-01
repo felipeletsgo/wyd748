@@ -3480,8 +3480,8 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
 
     switch (pStandard->Type)
     {
-    case 0x3CA:
-        return OnPacketPremiumFireWork((MSG_STANDARD*)buf);
+    case MSG_PremiumFirework_Opcode:
+        return OnPacketPremiumFireWork(reinterpret_cast<MSG_PremiumFirework*>(buf));
         break;
     case 0x36A:
         return OnPacketFireWork(reinterpret_cast<MSG_Motion*>(buf));
@@ -4013,9 +4013,17 @@ int TMHuman::OnPacketFireWork(MSG_Motion* pStd)
 	return 1;
 }
 
-int TMHuman::OnPacketPremiumFireWork(MSG_STANDARD* pStd)
+int TMHuman::OnPacketPremiumFireWork(MSG_PremiumFirework* pFirework)
 {
-	return 0;
+	if (!pFirework || !g_pCurrentScene || !g_pCurrentScene->m_pEffectContainer)
+		return 1;
+
+	auto pEffect = new TMEffectFireWork(
+		{ m_vecPosition.x, m_fHeight + 5.0f, m_vecPosition.y },
+		6);
+	pEffect->SetCustomFireWork(pFirework->Bitmap);
+	g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+	return 1;
 }
 
 int TMHuman::OnPacketRemoveMob(MSG_STANDARD* pStd)

@@ -26,10 +26,8 @@ client748/wyd.exe nativo+patches/WYD.exe
 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
 ```
 
-O candidato source mais recente registrado no handoff do programa é
-`client748/project.exe`, SHA-256
-`85FC6B2541784C4AF83A275B5614FD74B8990A303A6618AEC21DFBB02FE602D2`.
-Recalcular antes de usar: o candidato muda a cada build.
+O candidato source mais recente fica registrado no handoff do programa.
+Recalcular antes de usar: `client748/project.exe` muda a cada build.
 
 ## Organização e maturidade
 
@@ -55,7 +53,7 @@ Estado atual do mapa:
 | Fluxo | Estado | Ficha |
 | --- | --- | --- |
 | Gate de tamanho por opcode | `LOCATED` | `flows/transport/packet-size-gate.md` |
-| Foco, IME e lifecycle de controles | `LOCATED` | `flows/ui/control-focus-ime-lifecycle.md` |
+| Foco, IME e lifecycle de controles | `TRACED` | `flows/ui/control-focus-ime-lifecycle.md` |
 | Transição e troca de cenas | `LOCATED` | `flows/lifecycle/scene-transition.md` |
 | Disconnect TCP e retorno à seleção | `CONTRACT` | `flows/transport/socket-disconnect-return-selectserver.md` |
 | Reconstrução Field após migração de servidor | `CONTRACT` | `flows/lifecycle/field-scene-rebuild-after-server-move.md` |
@@ -70,6 +68,7 @@ Estado atual do mapa:
 | Compra e materialização do bilhete TOTO | `CONTRACT` | `flows/transport/toto-buy.md` |
 | Aposta, rolagem e resultado Gamble/Jackpot | `CONTRACT` | `flows/ui/gamble-jackpot.md` |
 | Abertura, render e compra de skill no mestre | `CONTRACT` | `flows/ui/skill-master-purchase.md` |
+| Exibição do Premium Firework `0x3CA` | `CONTRACT` | `flows/ui/premium-firework-display.md` |
 | Sincronização de estado e controles C.C | `TRACED` | `flows/ui/cc-auto-combat-state-sync.md` |
 | `SetMyHumanMagic` nativo sem efeito | `STATICALLY_EVIDENCED` | `inventory/set-my-human-magic-noop.md` |
 

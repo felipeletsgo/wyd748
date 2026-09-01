@@ -17,7 +17,7 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | 87431F0B066FD782CE1231F1E76C1905671E8C0D2C23E9CA75EDD4DC351F9979
+client748/project.exe                            | candidato source | 76B3E66EAC6E17EB615B80B7CAE7F900BA8D836CC89A8874BDD3C9D59A088ECF
 ```
 
 Os hashes históricos permanecem os fingerprints imutáveis registrados; o
@@ -215,6 +215,7 @@ crash NPC Skill Apprentice 20260825 | STATICALLY VERIFIED  | dump/PDB + controle
 crash NPC Skill Apprentice 20260827 | STATICALLY VERIFIED  | m_pHellgateStore nulo; lifecycle 1889/1905 protegido
 compra de skill no mestre 85FC6B25  | CONTRACT              | renderer 2D + TargetID 0x277 + testes byte-level
 composição e candidatos IME 1DF5956A | TRACED/STATIC VERIFIED | dispatcher, foco, candidatos e teardown adaptados
+Premium Firework 76B3E66E             | IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED | contrato 0x3C9/0x3CA; efeito nativo restaurado
 layout/valores do HUD compacto      | STATICALLY VERIFIED  | texto sem stretch + IDs nativos
 EXP nativa em quatro quartos        | STATICALLY VERIFIED  | controles 1171–1174
 wheel/rotação de câmera             | STATICALLY VERIFIED  | input/lifecycle nativo
@@ -668,6 +669,33 @@ Repetir build, instalação e hash se o código mudar.
 - Estado: `TRACED` e `STATICALLY VERIFIED`; composição, candidatos, foco,
   troca de cena e relogin ainda não foram executados no client real.
 
+## Premium Firework em 2026-09-01
+
+- A ficha `flows/ui/premium-firework-display.md` fechou em `CONTRACT` a
+  apresentação nativa do desenho Premium Firework, incluindo dispatcher,
+  callers/callees, bitmap, render, ownership, expiração, teardown, shutdown e
+  relogin.
+- O fluxo começa na intenção C->S `0x3C9` de 52 bytes, com bitmap no offset
+  34. O servidor valida item, posição, catálogo, bits reservados e cooldown,
+  persiste o consumo e só então publica `0x3CA` ao dono e observadores visíveis.
+- O pacote S->C `0x3CA` possui 36 bytes e bitmap no offset 20. A source agora
+  despacha o pacote tipado e cria o efeito `6` sobre o humano indicado pelo
+  header, usando a posição corrente dessa entidade.
+- `TMEffectFirework` restaura a grade 10x10 LSB-first, a forma mínima para
+  bitmap vazio, cem partículas, sons `315/316`, textura `(7, 360000)`, duração
+  de 10 segundos e as duas passagens de render nativas.
+- O effect container/ObjectManager possui o nó depois da inserção; a expiração
+  normal, troca de cena, logout e shutdown eliminam o efeito sem estado
+  persistente entre cenas.
+- Asserts Win32 verificam tamanho/offset do pacote e layout usado pelo efeito.
+  Os testes Go cobrem wire byte-level, consumo, persistência, rollback,
+  validações, cooldown, dono/observers e exclusão de outsiders.
+- `Build-Client.ps1` passou em Release Win32 v145 com zero erros e instalou
+  `client748/project.exe` com SHA-256
+  `76B3E66EAC6E17EB615B80B7CAE7F900BA8D836CC89A8874BDD3C9D59A088ECF`.
+- Estado: `IMPLEMENTED`, `STATICALLY VERIFIED` e `AUTOMATED TESTED`. O fluxo
+  ainda não foi executado no client real e não é `CLIENT-TESTED`.
+
 ## Paridade estática: `SetMyHumanMagic`
 
 - `TMFieldScene::SetMyHumanMagic()` permanece vazio por paridade com
@@ -696,6 +724,12 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Pendências e riscos
 
+- No candidato `76B3E66E...A088ECF`, enviar desenhos Premium Firework com mais
+  de um padrão e o fallback vazio; confirmar a mesma forma para dono e
+  observador, nenhuma publicação para outsider, sons `315/316`, as duas
+  passagens visuais, expiração após 10 segundos e ausência de efeito stale.
+  Repetir durante troca de cena e depois de logout/relogin; até concluir esse
+  fluxo, não promover a implementação para `CLIENT-TESTED`.
 - No candidato `7D203FE6...A2BB71D`, abrir primeiro AutoTrade/loja e depois o
   banqueiro para comprovar que o Cargo sempre volta ao centro e o Carry abre à
   direita, com topo e espaçamento simétricos. Repetir em 1024x768 e 1280x960.
@@ -749,26 +783,29 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Próximo passo executável
 
-1. No candidato `1DF5956A...CED6082`, testar composição IME real, página de
+1. No candidato `76B3E66E...A088ECF`, executar o fluxo Premium Firework com
+   dois padrões e o fallback vazio; observar dono, um observer e um outsider,
+   sons, render, expiração, troca de cena e logout/relogin.
+2. No candidato `76B3E66E...A088ECF`, testar composição IME real, página de
    candidatos, troca de foco, fim da composição, troca de cena e relogin.
-2. No mesmo candidato, abrir o NPC Skill Master e conferir os ícones dos
+3. No mesmo candidato, abrir o NPC Skill Master e conferir os ícones dos
    livros; cancelar uma compra, confirmar outra e validar uma rejeição sem
    estado visual stale. Fechar por X/Esc e repetir depois de relogin.
-3. Testar a placa sem hover e o título dentro da faixa escura no mesmo
+4. Testar a placa sem hover e o título dentro da faixa escura no mesmo
    candidato.
-4. Testar Cargo no mesmo candidato, abrindo antes e
+5. Testar Cargo no mesmo candidato, abrindo antes e
    depois de AutoTrade/loja para excluir posições residuais, em 1024x768 e
    1280x960.
-5. Testar a AutoTrade no mesmo candidato: adicionar o
+6. Testar a AutoTrade no mesmo candidato: adicionar o
    mesmo item, informar preço válido, repetir com preço inválido, conferir a
    placa `NewUI_AutoTrade_BG` junto do título e, ao abrir por outro personagem,
    conferir fundo/preço, confirmação `Não`/`Sim`, avisos, remoção imediata da
    placa após o último item e alinhamento do Carry.
-6. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
+7. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
    família `egg001..egg014`; depois repetir `Steel_Pants`, armadura larga, arma
    longa e item pequeno para excluir regressão nos demais itens.
-7. Depois do teste do NPC no novo candidato, repetir entrada no mundo,
+8. Depois do teste do NPC no novo candidato, repetir entrada no mundo,
    digitação/backspace, notice e Kibita; depois testar Cargo, autoaproximação,
    HUD, câmera e fechamento em 1280×960.
-8. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
+9. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
    real correspondente.
