@@ -779,6 +779,25 @@ ocorrências.
   falta o teste real de abertura, aposta, rejeição, prêmio, jackpot, overflow,
   fechamento, logout durante animação e relogin; não alegar `CLIENT_TESTED`.
 
+### Lote concluído em 2026-09-01: chat local `0x333`
+
+- A ficha `flows/ui/local-chat-message.md` está `CONTRACT`. O gate S->C
+  `FUN_0055890A` e o construtor C->S `FUN_004662C5` confirmam o frame nativo
+  bidirecional de 108 bytes: `MSG_STANDARD[12] + String[96]`.
+- `Basedef.h`, `WYD748Compat.cpp`, `TMFieldScene.cpp` e `TMHuman.cpp` agora
+  preservam esse ABI, limitam texto livre a 95 bytes e garantem NUL final sem
+  alterar o roteamento entre Field, party fora da tela e humano materializado.
+- O WYD-Go agora gera e aceita `0x333/108`; builder, gate, comentários e testes
+  deixaram de usar os 140 bytes herdados da source posterior.
+- `go test -count=1 ./internal/wire ./internal/game`, `go test -count=1 ./...`,
+  `validate_research.py` (`CONTRACT=11`, `TRACED=6`, `LOCATED=4`,
+  `UNMAPPED=1`) e `git diff --check` passaram.
+- `Build-Client.ps1` passou com 31 warnings preexistentes e zero erros. O
+  `client748/project.exe` instalado tem SHA-256
+  `E0B3D433B8C0CAD7E9AD015101A4BA0214E6E3D6D38E9EACFF264109234598C5`.
+- Não houve execução real de chat curto, truncamento, party fora da tela,
+  logout ou relogin; não alegar `CLIENT_TESTED`.
+
 1. Executar no candidato hasheado o fluxo Gamble completo: abrir os dois tipos,
    apostar com sucesso, validar rejeição e timeout, prêmio, jackpot, overflow,
    fechamento, logout durante animação e relogin; até isso, não alegar

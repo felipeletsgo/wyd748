@@ -42,7 +42,7 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		{wire.OpDeleteItem, deleteItemPacketSize},
 		{wire.OpSplitItem, splitItemPacketSize},
 		{wire.OpUpdateItem, 20},
-		{wire.OpMessageChat, 140},
+		{wire.OpMessageChat, 108},
 		{wire.OpMessageWhisper, 128},
 		{wire.OpSetShortSkill, 32},
 		{wire.OpChangeCity, 16},

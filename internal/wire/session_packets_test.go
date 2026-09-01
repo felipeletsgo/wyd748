@@ -347,12 +347,25 @@ func TestCharListCarriesGuildIndexInSelection(t *testing.T) {
 func TestMessageChatCanonicalLayout(t *testing.T) {
 	b := MessageChat(7, "hello")
 	h := ParseHeader(b)
-	if len(b) != 140 || h.Type != OpMessageChat || h.ID != 7 || string(b[12:17]) != "hello" {
+	if len(b) != 108 || h.Type != OpMessageChat || h.ID != 7 || string(b[12:17]) != "hello" {
 		t.Fatalf("MessageChat header/layout invalido: len=%d header=%+v", len(b), h)
 	}
 	// Size/checksum/tick are transport-owned and are finalized only by Session.Send.
 	if h.Size != 0 || h.CheckSum != 0 || h.Tick != 0 {
 		t.Fatalf("builder finalizou campos de transporte prematuramente: %+v", h)
+	}
+}
+
+func TestMessageChatTruncatesTextAndKeepsTerminator(t *testing.T) {
+	b := MessageChat(7, string(bytes.Repeat([]byte{'x'}, 120)))
+	if len(b) != 108 {
+		t.Fatalf("MessageChat len=%d, esperado 108", len(b))
+	}
+	if !bytes.Equal(b[12:107], bytes.Repeat([]byte{'x'}, 95)) {
+		t.Fatal("MessageChat nao preservou exatamente os primeiros 95 bytes")
+	}
+	if b[107] != 0 {
+		t.Fatalf("MessageChat perdeu terminador NUL final: 0x%02X", b[107])
 	}
 }
 

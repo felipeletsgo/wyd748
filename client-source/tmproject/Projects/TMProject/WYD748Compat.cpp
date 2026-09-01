@@ -57,7 +57,7 @@ static_assert(sizeof(MSG_STANDARDPARM2) == 20, "7.48 two-parameter packet must r
 static_assert(sizeof(MSG_STANDARDPARM3) == 24, "7.48 three-parameter packet must remain 24 bytes");
 static_assert(sizeof(MSG_SwapItem) == 20, "7.48 swap request must remain 20 bytes");
 static_assert(sizeof(MSG_REQShopList) == 16, "7.48 shop request must remain 16 bytes");
-static_assert(sizeof(MSG_MessageChat) == 140, "7.48 outbound chat must remain 140 bytes");
+static_assert(sizeof(MSG_MessageChat) == 108, "7.48 bidirectional chat must remain 108 bytes");
 static_assert(sizeof(MSG_MessageWhisper) == 128, "7.48 whisper must remain 128 bytes");
 static_assert(sizeof(MSG_MessagePanel) == 108, "7.48 message panel must remain 108 bytes");
 // Combat and small interaction requests are especially sensitive to implicit

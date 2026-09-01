@@ -1049,9 +1049,8 @@ constexpr auto MSG_MessageChat_Opcode = 0x333;
 struct MSG_MessageChat
 {
 	MSG_STANDARD Header;
-	// Local/global chat places text directly at byte 12. This source client
-	// keeps the 128-byte C->S body accepted by WYD-Go (140 bytes total).
-	char String[128];
+	// Native 7.48 uses the same 96-byte text body in both directions.
+	char String[96];
 };
 
 constexpr auto MSG_UpdateScore_Opcode = 0x336;
@@ -1395,7 +1394,7 @@ static_assert(sizeof(MSG_MOVESTOP) == 36, "WYD 7.48 MSG_MOVESTOP must be 36 byte
 static_assert(sizeof(MSG_SendItem) == 24, "WYD 7.48 MSG_SendItem must be 24 bytes");
 static_assert(sizeof(MSG_UpdateEquip) == 60, "WYD 7.48 MSG_UpdateEquip must be 60 bytes");
 static_assert(sizeof(MSG_MessageWhisper) == 128, "WYD 7.48 MSG_MessageWhisper must be 128 bytes");
-static_assert(sizeof(MSG_MessageChat) == 140, "WYD 7.48 MSG_MessageChat must be 140 bytes");
+static_assert(sizeof(MSG_MessageChat) == 108, "WYD 7.48 MSG_MessageChat must be 108 bytes");
 // The stock 7.48 dispatcher rejects 0x337 unless it is exactly 36 bytes.  Full
 // score state belongs to 0x336; this packet only projects the incremental WORDs.
 static_assert(sizeof(MSG_UpdateEtc) == 36, "WYD 7.48 MSG_UpdateEtc must be 36 bytes");

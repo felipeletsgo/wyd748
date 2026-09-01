@@ -52,7 +52,7 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 		wire.OpSplitItem:          splitItemPacketSize,
 		wire.OpUpdateItem:         20,
 		wire.OpSetShortSkill:      32,
-		wire.OpMessageChat:        140,
+		wire.OpMessageChat:        108,
 		wire.OpMessageWhisper:     128,
 		wire.OpChangeCity:         16,
 		wire.OpReqTeleport:        16,

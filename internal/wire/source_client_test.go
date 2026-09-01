@@ -113,7 +113,7 @@ func TestCanonicalCharListAndPresentationPackets(t *testing.T) {
 		t.Fatalf("ShopList ABI")
 	}
 	chat := MessageChat(5, "hello")
-	if len(chat) != 140 || string(chat[12:17]) != "hello" {
+	if len(chat) != 108 || string(chat[12:17]) != "hello" {
 		t.Fatalf("MessageChat ABI")
 	}
 }

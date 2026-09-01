@@ -16,7 +16,7 @@ const commandClearInventory = "/limparinv"
 const magicTrumpet = uint16(3330)
 
 func parseChatText(pkt []byte) (string, bool) {
-	if len(pkt) < 13 || len(pkt) > 140 {
+	if len(pkt) < 13 || len(pkt) > 108 {
 		return "", false
 	}
 	body := pkt[12:]

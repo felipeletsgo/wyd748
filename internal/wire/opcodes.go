@@ -57,7 +57,7 @@ const (
 	OpUpdateItem         = 0x374 // C<->S solicita/confirma estado de objeto do chao (20B)
 	OpDeleteItem         = 0x2E4 // C->S apaga item do Carry (Slot@12, Index@16)
 	OpSplitItem          = 0x2E5 // C->S separa pilha do Carry (Slot@12, Index@16, Amount@20)
-	OpMessageChat        = 0x333 // C<->S chat local/comandos (140B, texto@12)
+	OpMessageChat        = 0x333 // C<->S chat local/comandos (String[96]@12, 108B)
 	OpMessageWhisper     = 0x334 // C->S whisper/comando/day (MobName[16]@12, String[96]@28, 128B observado)
 	OpSetShortSkill      = 0x378 // C<->S barra de 20 atalhos de skill (32B)
 	OpChangeCity         = 0x291 // C->S entrou/trocou de cidade (village@12, 16B)

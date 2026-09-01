@@ -256,7 +256,7 @@ func ShopList(items []model.Item, tax, shopType uint32) []byte {
 }
 
 func MessageChat(id uint16, message string) []byte {
-	b := Build(OpMessageChat, id, 140)
-	copy(b[12:139], message)
+	b := Build(OpMessageChat, id, 108)
+	copy(b[12:107], message)
 	return b
 }

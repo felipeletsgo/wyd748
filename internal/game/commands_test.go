@@ -80,7 +80,7 @@ func TestParryCommandReportsOneAuthoritativeMatchup(t *testing.T) {
 }
 
 func TestParseChatText(t *testing.T) {
-	pkt := make([]byte, 140)
+	pkt := make([]byte, 108)
 	copy(pkt[12:], "  /limparinv  \x00texto ignorado")
 	got, ok := parseChatText(pkt)
 	if !ok || got != commandClearInventory {
@@ -88,6 +88,9 @@ func TestParseChatText(t *testing.T) {
 	}
 	if _, ok := parseChatText(pkt[:12]); ok {
 		t.Fatal("chat sem payload aceito")
+	}
+	if _, ok := parseChatText(make([]byte, 109)); ok {
+		t.Fatal("chat maior que o contrato 7.48 aceito")
 	}
 }
 

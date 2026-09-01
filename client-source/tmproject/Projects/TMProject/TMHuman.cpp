@@ -5047,8 +5047,8 @@ int TMHuman::OnPacketMessageChat(MSG_STANDARD* pStd)//mudar aqui pacote de chat 
 {
     auto pMsgChat = reinterpret_cast<MSG_MessageChat*>(pStd);
 
-    pMsgChat->String[127] = 0;
-    pMsgChat->String[126] = 0;
+    pMsgChat->String[sizeof(pMsgChat->String) - 2] = 0;
+    pMsgChat->String[sizeof(pMsgChat->String) - 1] = 0;
 
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
@@ -5140,8 +5140,8 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
     SListBox* pChatList = pScene->m_pChatList;
 
     pMsg->MobName[15] = 0;
-    pMsg->String[127] = 0;
-    pMsg->String[126] = 0;
+    pMsg->String[sizeof(pMsg->String) - 2] = 0;
+    pMsg->String[sizeof(pMsg->String) - 1] = 0;
 
     int nIndex = 0;
     unsigned int dwColor = 0xFFFFFF00;

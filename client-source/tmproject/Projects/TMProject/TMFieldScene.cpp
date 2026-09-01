@@ -5078,7 +5078,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 			stMsgChat.Header.Type = MSG_MessageChat_Opcode;
 
-			sprintf(stMsgChat.String, "%s", pEditChat->GetText());
+			strncpy_s(stMsgChat.String, pEditChat->GetText(), _TRUNCATE);
 
 			BASE_TransCurse(stMsgChat.String);
 
@@ -6093,7 +6093,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		MSG_MessageChat stMsgChat{};
 		stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 		stMsgChat.Header.Type = MSG_MessageChat_Opcode;
-		sprintf(stMsgChat.String, "whisper");
+		strcpy_s(stMsgChat.String, "whisper");
 		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
 		return 1;
 	}
@@ -6102,7 +6102,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		MSG_MessageChat stMsgChat{};
 		stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 		stMsgChat.Header.Type = MSG_MessageChat_Opcode;
-		sprintf(stMsgChat.String, "partychat");
+		strcpy_s(stMsgChat.String, "partychat");
 		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
 		return 1;
 	}
@@ -6111,7 +6111,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		MSG_MessageChat stMsgChat{};
 		stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 		stMsgChat.Header.Type = MSG_MessageChat_Opcode;
-		sprintf(stMsgChat.String, "kingdomchat");
+		strcpy_s(stMsgChat.String, "kingdomchat");
 		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
 		return 1;
 	}
@@ -6120,7 +6120,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		MSG_MessageChat stMsgChat{};
 		stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 		stMsgChat.Header.Type = MSG_MessageChat_Opcode;
-		sprintf(stMsgChat.String, "guildchat");
+		strcpy_s(stMsgChat.String, "guildchat");
 		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
 		return 1;
 	}
@@ -6133,17 +6133,17 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (m_pBtnGuildOnOff)
 		{
 			if(m_pBtnGuildOnOff->m_bSelected == 1)
-				sprintf(stMsgChat.String, "guildon");
+				strcpy_s(stMsgChat.String, "guildon");
 			else
-				sprintf(stMsgChat.String, "guildoff");
+				strcpy_s(stMsgChat.String, "guildoff");
 		}
 		else
 		{
 			m_cGuildOnOff = m_cGuildOnOff == 0;
 			if (m_cGuildOnOff == 1)
-				sprintf(stMsgChat.String, "guildon");
+				strcpy_s(stMsgChat.String, "guildon");
 			else
-				sprintf(stMsgChat.String, "guildoff");
+				strcpy_s(stMsgChat.String, "guildoff");
 		}
 		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
 		return 1;
@@ -21395,8 +21395,8 @@ int TMFieldScene::OnPacketMessageChat(MSG_MessageChat* pStd)
 			auto pPartyItem = (SListBoxPartyItem*)pPartyList->m_pItemList[i];
 			if (pPartyItem->m_dwCharID == pStd->Header.ID)
 			{
-				pStd->String[127] = 0;
-				pStd->String[126] = 0;
+				pStd->String[sizeof(pStd->String) - 2] = 0;
+				pStd->String[sizeof(pStd->String) - 1] = 0;
 
 				auto pChatList = m_pChatList;
 
@@ -21449,8 +21449,8 @@ int TMFieldScene::OnPacketMessageChat_Index(MSG_MessageChat* pStd)
 			auto pPartyItem = (SListBoxPartyItem*)pPartyList->m_pItemList[i];
 			if (pPartyItem->m_dwCharID == pStd->Header.ID)
 			{
-				pStd->String[127] = 0;
-				pStd->String[126] = 0;
+				pStd->String[sizeof(pStd->String) - 2] = 0;
+				pStd->String[sizeof(pStd->String) - 1] = 0;
 
 				auto pChatList = m_pChatList;
 
@@ -21480,8 +21480,8 @@ int TMFieldScene::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 
 	auto pChatList = m_pChatList;
 	pMsg->MobName[15] = 0;
-	pMsg->String[127] = 0;
-	pMsg->String[126] = 0;
+	pMsg->String[sizeof(pMsg->String) - 2] = 0;
+	pMsg->String[sizeof(pMsg->String) - 1] = 0;
 
 	int nIndex = 0;
 	unsigned int dwColor = 0xFFFFFF00;

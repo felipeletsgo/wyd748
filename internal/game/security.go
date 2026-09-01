@@ -254,7 +254,7 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 	case wire.OpSetShortSkill:
 		return 32, true
 	case wire.OpMessageChat:
-		return 140, true
+		return 108, true
 	case wire.OpMessageWhisper:
 		// 7.48: Header + MobName[16] + String[96] + Color DWORD.
 		return 128, true

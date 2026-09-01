@@ -61,6 +61,8 @@ Estado atual do mapa:
 | Reconstrução Field após migração de servidor | `CONTRACT` | `flows/lifecycle/field-scene-rebuild-after-server-move.md` |
 | Logout de personagem, seleção e relogin | `CONTRACT` | `flows/lifecycle/character-logout-selectchar-relogin.md` |
 | Fechamento da aplicação e shutdown global | `CONTRACT` | `flows/lifecycle/application-close-global-shutdown.md` |
+| Atualização e consumo dos filtros AutoKick `0x2C8` | `TRACED` | `flows/transport/autokick-filter-update.md` |
+| Chat local bidirecional `0x333` | `CONTRACT` | `flows/ui/local-chat-message.md` |
 | Atalho F para consumível vinculado ao equipamento | `CONTRACT` | `flows/ui/equipped-item-matched-consumable-shortcut.md` |
 | Atalho E para poção especial | `CONTRACT` | `flows/ui/special-potion-shortcut.md` |
 | Loader da lista TOTO | `CONTRACT` | `flows/ui/toto-list-loader.md` |
