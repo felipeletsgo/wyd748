@@ -17685,10 +17685,9 @@ void TMFieldScene::SetAutoSkillNum(int nCount)
 	{
 		for (int i = 1; i <= 10; ++i)
 		{
-			if (i > nCount)
-				m_pAutoSkillPanelChild[i - 1]->SetVisible(0);
-			else
-				m_pAutoSkillPanelChild[i - 1]->SetVisible(1);
+			auto pSkill = m_pAutoSkillPanelChild[i - 1];
+			if (pSkill)
+				pSkill->SetVisible(i <= nCount);
 		}
 	}
 }
@@ -17826,7 +17825,8 @@ void TMFieldScene::SetAutoTarget()
 	if (pBtnAuto)
 		pBtnAuto->SetSelected(m_cAutoAttack);
 
-	m_pAutoSkillPanel->SetVisible(m_cAutoAttack);
+	if (m_pAutoSkillPanel)
+		m_pAutoSkillPanel->SetVisible(m_cAutoAttack);
 }
 
 void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
@@ -20340,8 +20340,8 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		m_ItemMixClass.DoCombine(m_pMessagePanel, m_pGridInvList, m_Coin);
 		break;
 	case 86019:
-		m_MissionClass.DoCombine(m_pMessagePanel, m_pGridInvList, m_pMyHuman->Is2stClass(), m_Level, m_Coin);
-		SetVisibleMissionPanel(0);
+		// Mission is a preserved later UI extension, but it has no client/server
+		// contract yet. In particular, it must never alias native Tiny opcode 0x3C0.
 		break;
 	case 51:
 	{
@@ -28801,7 +28801,9 @@ void TMFieldScene::ClearMissionPannel()
 
 	m_MissionClass.ClearGridList();
 	m_MissionClass.m_stCombineItem.Header.ID = m_pMyHuman->m_dwID;
-	m_MissionClass.m_stCombineItem.Header.Type = MSG_CombineItemTiny_Opcode;
+	// Mission is not part of the native 7.48 combine ABI. Keep it unavailable
+	// until a distinct, coordinated client/server contract is implemented.
+	m_MissionClass.m_stCombineItem.Header.Type = 0;
 	// Mission cleanup must not manufacture the three 7.59 Carry pages that
 	// do not exist in the stock 7.48 control tree.
 	for (auto pGridInv : m_pGridInvList)
@@ -29260,6 +29262,9 @@ int TMFieldScene::MouseClick_MixNPC(TMHuman* pOver)
 
 void TMFieldScene::MouseClick_PremiumNPC(TMHuman* pOver)
 {
+	// Preserved later extension point. Native 7.48 only classifies head 57 as a
+	// merchant; no Premium request contract has been recovered or implemented.
+	(void)pOver;
 }
 
 int TMFieldScene::MouseClick_SkillMasterNPC(unsigned int dwServerTime, TMHuman* pOver)

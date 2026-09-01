@@ -17,7 +17,7 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | 1DF5956AC134BCAEB5C072E84B77EF9BBDFF6EDE30DAC8ACBE8616375CED6082
+client748/project.exe                            | candidato source | 87431F0B066FD782CE1231F1E76C1905671E8C0D2C23E9CA75EDD4DC351F9979
 ```
 
 Os hashes históricos permanecem os fingerprints imutáveis registrados; o
@@ -677,6 +677,22 @@ Repetir build, instalação e hash se o código mudar.
   `CurrentScore.MagicAmp` como representação canônica.
 - Evidência: `inventory/set-my-human-magic-noop.md`. Estado do símbolo:
   `STATICALLY_EVIDENCED`/`PARITY_STATIC_EVIDENCE`, sem claim runtime.
+
+## Input e extensões dormentes em 2026-09-01
+
+- `FUN_004AF910` confirma que a liberação do botão esquerdo é no-op; a source
+  preserva o corpo vazio e não inventa `WM_LBUTTONUP`.
+- Mission foi preservada como extensão manual, mas o botão `86019` não simula
+  mais sucesso. `MSG_Mission` tem 88 bytes e permanece sem opcode; `0x3C0`
+  continua exclusivo ao Tiny nativo de 84 bytes.
+- `SetAutoSkillNum()` e `SetAutoTarget()` toleram o painel moderno `65648` e
+  seus dez filhos ausentes, sem materializar widgets posteriores.
+- Cabeça `57` continua classificada e protegida como merchant. O stub Premium
+  não envia packet até existir evidência nativa ou contrato coordenado.
+- Fichas: `left-mouse-release-noop.md`, `mission-panel-dormant.md` e
+  `premium-npc-click-dormant.md`. Validador e `git diff --check` passaram.
+- Build Release/Win32: zero erros, 13 warnings C4018 preexistentes; candidato
+  `87431F0B066FD782CE1231F1E76C1905671E8C0D2C23E9CA75EDD4DC351F9979`.
 
 ## Pendências e riscos
 

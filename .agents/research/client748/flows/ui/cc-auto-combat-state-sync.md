@@ -126,7 +126,9 @@ pelo C.C continua entrando nos handlers existentes e sendo revalidada.
   `m_pSGameAutoBtn`, `m_pCCPotionBtn`, `m_pCCFeedBtn`, `m_pccmode`,
   `m_pCCModeHpSte` e `m_pCCModeMountSte` permanecem opcionais.
 - Inicialização parcial não derruba a cena: cada atualização tolera ausência
-  de painel, botão, texto alternativo ou humano local.
+  de painel, botão, texto alternativo ou humano local. `SetAutoSkillNum()`
+  também testa individualmente os dez filhos modernos `65775..65784`, e
+  `SetAutoTarget()` não desreferencia o painel `65648` quando ele não existe.
 - O lote não aloca controles e não cria ownership novo. O teardown dos botões
   continua pertencendo ao container da Field; os membros são descartados junto
   com a cena e não há callback ou buffer adicional em logout, relogin ou
@@ -160,6 +162,8 @@ inventário, skill, alvo ou movimento.
   materializar, mas manter um único caminho ativo de sincronização.
 - Não criar dinamicamente o painel moderno neste lote. Se `FieldScene2` não o
   fornecer, sua criação será uma extensão visual deliberada e documentada.
+- Proteger o painel `65648` e cada filho `65775..65784` como opcionais; a
+  ausência desses recursos não pode impedir a alternância do estado local.
 - Promover a transição de teclado para `TRACED`: entrada, caller, mutação,
   controles, ownership e teardown estão resolvidos. O clique permanece
   explicitamente uma modernização e a validação visual continua pendente.
@@ -176,8 +180,9 @@ inventário, skill, alvo ou movimento.
 
 - Pesquisa: guia oficial, fluxo source vivo e duplicações de handlers
   comparados; nenhuma alegação de topologia nativa foi promovida.
-- Automação: `git diff --check` aprovado antes desta ficha.
-- Build: `Build-Client.ps1` aprovado em Release/Win32 com zero erros e 21
-  warnings preexistentes; candidato instalado em `client748/project.exe`,
-  SHA-256 `CE4F2775B382200601EAF59ABA4271D4EDC271C2A072EE29915AFB1B0E525F94`.
+- Automação: `validate_research.py` e `git diff --check` aprovados depois das
+  guardas adicionais.
+- Build: `Build-Client.ps1` aprovado em Release/Win32 com zero erros e 13
+  warnings C4018 preexistentes; candidato instalado em `client748/project.exe`,
+  SHA-256 `87431F0B066FD782CE1231F1E76C1905671E8C0D2C23E9CA75EDD4DC351F9979`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

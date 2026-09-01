@@ -570,6 +570,7 @@ void EventTranslator::OnLMousePressed()
 
 void EventTranslator::OnLMouseReleased()
 {
+    // Native WYD 7.48 FUN_004AF910 intentionally performs no release dispatch.
 }
 
 void EventTranslator::OnRMousePressed()

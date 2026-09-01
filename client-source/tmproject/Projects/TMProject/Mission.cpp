@@ -5,6 +5,9 @@
 #include "TMGlobal.h"
 #include "SGrid.h"
 
+static_assert(sizeof(MSG_Mission) == 88,
+    "Dormant Mission payload must remain distinct from the 84-byte native combine ABI");
+
 CMission::CMission()
 {
 }
