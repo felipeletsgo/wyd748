@@ -3,6 +3,11 @@ package wire
 // Opcodes do protocolo WYD 7.48 (campo Type@4 do header _MSG).
 // C->S = client manda; S->C = server manda.
 const (
+	OpMessageIndexed       = 0x105 // S->C extensao coordenada: indice int16 relativo a 1000 em String[2:4]
+	OpMessageParameterized = 0x106 // S->C extensao coordenada: 0x105 + ate seis parametros CSV em String[4:]
+)
+
+const (
 	OpMessagePanel       = 0x101 // S->C aviso flutuante no topo (108B: Header + texto[96], ID=0)
 	OpConnectAccount     = 0x20D // C->S login (conta@12, senha@28, cliver@40)
 	OpCharList           = 0x10A // S->C lista de chars (2360B, Score uint32)

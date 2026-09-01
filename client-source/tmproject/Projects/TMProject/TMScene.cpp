@@ -21,6 +21,141 @@
 #include "TMRain.h"
 #include "WYD748Assets.h"
 
+#include <cstdint>
+#include <cstring>
+
+namespace
+{
+	constexpr size_t kIndexedMessageCapacity = MAX_STRING_LENGTH;
+	constexpr size_t kIndexedParameterCount = 6;
+	constexpr size_t kIndexedParameterCapacity = sizeof(MSG_MessageChat::String) - 3;
+
+	bool DecodeIndexedMessage(const MSG_STANDARD* pStd, const MSG_MessageChat*& pMessage,
+		std::int16_t& relativeIndex, int& tableIndex)
+	{
+		if (!pStd || pStd->Size != sizeof(MSG_MessageChat))
+			return false;
+
+		pMessage = reinterpret_cast<const MSG_MessageChat*>(pStd);
+		if (pMessage->String[0] != '\0')
+			return false;
+
+		// The extension keeps the legacy TMProject signed relative index, but
+		// avoids the old unaligned short dereference on packet memory.
+		std::memcpy(&relativeIndex, &pMessage->String[2], sizeof(relativeIndex));
+		tableIndex = static_cast<int>(relativeIndex) + 1000;
+		return true;
+	}
+
+	bool CopyIndexedTemplate(int tableIndex, char* output, size_t outputCapacity)
+	{
+		if (!output || outputCapacity == 0 || tableIndex < 0 || tableIndex >= MAX_STRING)
+			return false;
+
+		const char* source = g_pMessageStringTable[tableIndex];
+		size_t length = 0;
+		while (length + 1 < outputCapacity && length < MAX_STRING_LENGTH - 1 && source[length] != '\0')
+			++length;
+
+		if (length == 0)
+			return false;
+
+		std::memcpy(output, source, length);
+		output[length] = '\0';
+		return true;
+	}
+
+	void CopyRelativeIndexFallback(std::int16_t relativeIndex, char* output, size_t outputCapacity)
+	{
+		if (!output || outputCapacity == 0)
+			return;
+
+		sprintf_s(output, outputCapacity, "%d", static_cast<int>(relativeIndex));
+	}
+
+	size_t ParseIndexedParameters(const MSG_MessageChat* pMessage,
+		char parameters[kIndexedParameterCount][kIndexedParameterCapacity])
+	{
+		std::memset(parameters, 0, kIndexedParameterCount * kIndexedParameterCapacity);
+		size_t parameterIndex = 0;
+		size_t parameterOffset = 0;
+		size_t parameterCount = 1;
+
+		for (size_t i = 4; i < sizeof(pMessage->String) && pMessage->String[i] != '\0'; ++i)
+		{
+			if (pMessage->String[i] == ',')
+			{
+				if (parameterIndex + 1 >= kIndexedParameterCount)
+					break;
+
+				++parameterIndex;
+				parameterOffset = 0;
+				parameterCount = parameterIndex + 1;
+				continue;
+			}
+
+			if (parameterOffset + 1 < kIndexedParameterCapacity)
+				parameters[parameterIndex][parameterOffset++] = pMessage->String[i];
+		}
+
+		return parameterCount;
+	}
+
+	void AppendIndexedText(char* output, size_t outputCapacity, size_t& outputOffset, const char* text)
+	{
+		if (!text)
+			return;
+
+		for (size_t i = 0; text[i] != '\0' && outputOffset + 1 < outputCapacity; ++i)
+			output[outputOffset++] = text[i];
+		output[outputOffset] = '\0';
+	}
+
+	void FormatIndexedTemplate(const char* messageTemplate,
+		const char parameters[kIndexedParameterCount][kIndexedParameterCapacity],
+		size_t parameterCount, char* output, size_t outputCapacity)
+	{
+		if (!output || outputCapacity == 0)
+			return;
+
+		output[0] = '\0';
+		size_t outputOffset = 0;
+		size_t parameterIndex = 0;
+		for (size_t i = 0; messageTemplate && messageTemplate[i] != '\0' && outputOffset + 1 < outputCapacity; ++i)
+		{
+			if (messageTemplate[i] == '%' && messageTemplate[i + 1] == '%')
+			{
+				output[outputOffset++] = '%';
+				output[outputOffset] = '\0';
+				++i;
+				continue;
+			}
+
+			if (messageTemplate[i] == '%' && messageTemplate[i + 1] == 's')
+			{
+				if (parameterIndex < parameterCount)
+					AppendIndexedText(output, outputCapacity, outputOffset, parameters[parameterIndex]);
+				++parameterIndex;
+				++i;
+				continue;
+			}
+
+			// Unsupported printf directives remain literal asset text. The packet
+			// never becomes a format string, so malformed assets cannot consume
+			// stack arguments or write outside the destination.
+			output[outputOffset++] = messageTemplate[i];
+			output[outputOffset] = '\0';
+		}
+	}
+
+	DWORD IndexedMessageDuration(int tableIndex)
+	{
+		return tableIndex == 465 || tableIndex == 466 || tableIndex == 484 || tableIndex == 485
+			? 600000
+			: 4000;
+	}
+}
+
 TMScene::TMScene() : TreeNode(0)
 {
 	m_eSceneType = ESCENE_TYPE::ESCENE_NONE;
@@ -1003,74 +1138,36 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 		// need to decompile here... and other encode packets
 		return 1;
 	}
-	if (!pStd->ID && (pStd->Type == MSG_MessagePanel_Opcode || pStd->Type == 0x102 || pStd->Type == 0x104 || pStd->Type == 0x105 || pStd->Type == 0x106))
+	if (!pStd->ID && (pStd->Type == MSG_MessagePanel_Opcode || pStd->Type == 0x102 || pStd->Type == 0x104 ||
+		pStd->Type == MSG_MessageIndexed_Opcode || pStd->Type == MSG_MessageParameterized_Opcode))
 	{
 		char szStr[128] = { 0 };
 		if (pStd->Type != MSG_MessagePanel_Opcode)
 		{
-			if (pStd->Type == 0x105)
+			if (pStd->Type == MSG_MessageIndexed_Opcode || pStd->Type == MSG_MessageParameterized_Opcode)
 			{
-				auto pMessageChat = reinterpret_cast<MSG_MessageChat*>(pStd);
-				if (!pMessageChat->String[0])
+				const MSG_MessageChat* pMessageChat = nullptr;
+				std::int16_t relativeIndex = 0;
+				int tableIndex = 0;
+				if (DecodeIndexedMessage(pStd, pMessageChat, relativeIndex, tableIndex) && m_pMessagePanel)
 				{
-					char str[128]{};
-					char num[5]{};
-
-					int index = *reinterpret_cast<short*>(&pMessageChat->String[2]) + 1000;
-					g_pMessageStringTable[index][127] = 0;
-					g_pMessageStringTable[index][126] = 0;
-
-					strcpy(str, g_pMessageStringTable[index]);
-					if (strlen(str) < 1)
-						strcpy(str, _itoa(*reinterpret_cast<short*>(&pMessageChat->String[2]), num, 10));
-
-					if (index == 465 || index == 466 || index == 485 || index == 484)
-						m_pMessagePanel->SetMessage(str, 600000);
-					else
-						m_pMessagePanel->SetMessage(str, 4000);
-
-					m_pMessagePanel->SetVisible(1, 1);
-				}
-			}
-			else if (pStd->Type == 0x106)
-			{
-				auto pMessageChat = reinterpret_cast<MSG_MessageChat*>(pStd);
-				if (!pMessageChat->String[0])
-				{
-					char szStr[128]{};
-					char szParse[6][128]{};
-					int Param = 0;
-					strcpy(szStr, &pMessageChat->String[4]);
-
-					for (int k = 0; k < 128; ++k)
+					char messageTemplate[kIndexedMessageCapacity]{};
+					char messageText[kIndexedMessageCapacity]{};
+					if (!CopyIndexedTemplate(tableIndex, messageTemplate, sizeof(messageTemplate)))
+						CopyRelativeIndexFallback(relativeIndex, messageText, sizeof(messageText));
+					else if (pStd->Type == MSG_MessageParameterized_Opcode)
 					{
-						if (szStr[k] == ',')
-						{
-							szStr[k] = ' ';
-							++Param;
-						}
-						if (!szStr[k])
-							break;
+						char parameters[kIndexedParameterCount][kIndexedParameterCapacity]{};
+						const size_t parameterCount = ParseIndexedParameters(pMessageChat, parameters);
+						FormatIndexedTemplate(messageTemplate, parameters, parameterCount, messageText, sizeof(messageText));
+					}
+					else
+					{
+						std::memcpy(messageText, messageTemplate, sizeof(messageText));
+						messageText[sizeof(messageText) - 1] = '\0';
 					}
 
-					sscanf(szStr, "%s %s %s %s %s %s", szParse[0], szParse[1], szParse[2], szParse[3], szParse[4], szParse[5]);
-
-
-					int index = *reinterpret_cast<short*>(&pMessageChat->String[2]) + 1000;
-
-					memset(szStr, 0, sizeof(szStr));
-					sprintf(szStr, g_pMessageStringTable[index], szParse[0], szParse[1], szParse[2], szParse[3], szParse[4], szParse[5]);
-
-					char buffer[4]{};
-
-					if (strlen(szStr) < 1)
-						strcpy(szStr, _itoa(*reinterpret_cast<short*>(&pMessageChat->String[2]), buffer, 10));
-
-					if (index == 465 || index == 466 || index == 485 || index == 484)
-						m_pMessagePanel->SetMessage(szStr, 600000);
-					else
-						m_pMessagePanel->SetMessage(szStr, 4000);
-
+					m_pMessagePanel->SetMessage(messageText, IndexedMessageDuration(tableIndex));
 					m_pMessagePanel->SetVisible(1, 1);
 				}
 			}

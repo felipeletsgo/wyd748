@@ -369,6 +369,42 @@ func TestMessageChatTruncatesTextAndKeepsTerminator(t *testing.T) {
 	}
 }
 
+func TestIndexedMessageExtensionCanonicalLayout(t *testing.T) {
+	b := MessageIndexed(-1000)
+	h := ParseHeader(b)
+	if len(b) != 108 || h.Type != OpMessageIndexed || h.ID != 0 {
+		t.Fatalf("MessageIndexed header/layout invalido: len=%d header=%+v", len(b), h)
+	}
+	if got := int16(binary.LittleEndian.Uint16(b[14:16])); got != -1000 {
+		t.Fatalf("MessageIndexed indice relativo=%d, esperado -1000", got)
+	}
+	if b[12] != 0 || b[13] != 0 || b[107] != 0 {
+		t.Fatalf("MessageIndexed seletor/reservado/terminador alterados: % X", []byte{b[12], b[13], b[107]})
+	}
+}
+
+func TestParameterizedMessageExtensionBoundsAndSanitizesCSV(t *testing.T) {
+	b := MessageParameterized(-561, "alpha,beta", "ga\x00mma", "three", "four", "five", "six", "ignored")
+	h := ParseHeader(b)
+	if len(b) != 108 || h.Type != OpMessageParameterized || h.ID != 0 {
+		t.Fatalf("MessageParameterized header/layout invalido: len=%d header=%+v", len(b), h)
+	}
+	if got := int16(binary.LittleEndian.Uint16(b[14:16])); got != -561 {
+		t.Fatalf("MessageParameterized indice relativo=%d, esperado -561", got)
+	}
+	if got := cStringForTest(b[16:108]); got != "alpha beta,ga mma,three,four,five,six" {
+		t.Fatalf("MessageParameterized CSV=%q", got)
+	}
+	if bytes.Contains(b[16:107], []byte("ignored")) || b[107] != 0 {
+		t.Fatal("MessageParameterized aceitou o setimo parametro ou perdeu o terminador")
+	}
+
+	long := MessageParameterized(-1000, string(bytes.Repeat([]byte{'x'}, 200)))
+	if !bytes.Equal(long[16:107], bytes.Repeat([]byte{'x'}, 91)) || long[107] != 0 {
+		t.Fatal("MessageParameterized nao truncou o CSV no limite de 91 bytes")
+	}
+}
+
 func TestMessagePanel748Layout(t *testing.T) {
 	b := MessagePanel("Inventario limpo")
 	if len(b) != 108 || ParseHeader(b).Type != OpMessagePanel || ParseHeader(b).ID != 0 {

@@ -1064,6 +1064,10 @@ struct MSG_Encode
 };
 
 constexpr auto MSG_MessageChat_Opcode = 0x333;
+// Coordinated source/server extension. Stock 7.48 does not dispatch these
+// opcodes; they deliberately reuse only the proven 108-byte chat envelope.
+constexpr auto MSG_MessageIndexed_Opcode = 0x105;
+constexpr auto MSG_MessageParameterized_Opcode = 0x106;
 struct MSG_MessageChat
 {
 	MSG_STANDARD Header;

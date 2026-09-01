@@ -260,3 +260,37 @@ func MessageChat(id uint16, message string) []byte {
 	copy(b[12:107], message)
 	return b
 }
+
+// MessageIndexed and MessageParameterized form a coordinated extension used
+// only by the source-built client. Stock 7.48 has no handlers for 0x105/0x106.
+// Both packets keep ID=0 so TMScene owns the borrowed payload for this call.
+func MessageIndexed(relativeIndex int16) []byte {
+	b := Build(OpMessageIndexed, 0, 108)
+	putU16(b, 14, uint16(relativeIndex))
+	return b
+}
+
+func MessageParameterized(relativeIndex int16, params ...string) []byte {
+	b := Build(OpMessageParameterized, 0, 108)
+	putU16(b, 14, uint16(relativeIndex))
+
+	// String[4:95] has 92 bytes, but the last byte remains NUL. Build the CSV
+	// directly into a bounded scratch slice so large caller input cannot grow an
+	// intermediate allocation. Commas/NULs would change the field count and are
+	// therefore normalized to spaces inside each parameter.
+	payload := make([]byte, 0, 91)
+	for i := 0; i < len(params) && i < 6 && len(payload) < cap(payload); i++ {
+		if i > 0 {
+			payload = append(payload, ',')
+		}
+		for j := 0; j < len(params[i]) && len(payload) < cap(payload); j++ {
+			value := params[i][j]
+			if value == ',' || value == 0 {
+				value = ' '
+			}
+			payload = append(payload, value)
+		}
+	}
+	copy(b[16:107], payload)
+	return b
+}

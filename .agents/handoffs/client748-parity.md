@@ -753,6 +753,28 @@ Repetir build, instalação e hash se o código mudar.
 - Estado: `CONTRACT` e `STATICALLY VERIFIED`; sem emissor no servidor, o fluxo
   ainda não foi executado end-to-end e não é `CLIENT-TESTED`.
 
+## Extensão de avisos indexados em 2026-09-01
+
+- `0x105/0x106` não existem nos dispatchers nativos 7.48 focalizados;
+  `FUN_0049889A` trata somente `0x101`, `0x102` e `0x104` para `ID=0`.
+- O lote foi classificado como `EXTENSAO_COORDENADA`, não paridade. A ficha
+  `flows/ui/indexed-parameterized-message-extension.md` registra o frame de
+  108 bytes, índice `int16` relativo a `+1000`, CSV de até seis parâmetros,
+  fallback, ownership e teardown.
+- `TMScene` agora exige tamanho exato, seletor e painel válidos, faz bounds
+  check da tabela e substitui somente `%s`/`%%` sem usar o asset como format
+  string. Os stubs por entidade permanecem deliberadamente fora do contrato.
+- O WYD-Go possui builders byte-level para os dois opcodes, com `ID=0`, CSV de
+  91 bytes e vírgula/NUL interno normalizado. Eles não foram ligados a gameplay
+  arbitrário porque o asset ativo possui somente 440 linhas.
+- `go test -count=1 ./internal/wire ./internal/game`, o validador de pesquisa e
+  `Build-Client.ps1` passaram. O build `Release|Win32` v145 terminou com zero
+  erros e 31 warnings preexistentes, instalando `client748/project.exe` com
+  SHA-256
+  `9E225456063C5DC77917C007FDCA9ECD05DDC9312FD25D9AB28FE55F334B5BF4`.
+- Estado: `IMPLEMENTED`, `AUTOMATED TESTED` no wire e `STATICALLY VERIFIED` no
+  client. Sem emissor funcional e execução real, não é `CLIENT-TESTED`.
+
 ## Pendências e riscos
 
 - No candidato `DA9F578E...EE3F`, enviar desenhos Premium Firework com mais
