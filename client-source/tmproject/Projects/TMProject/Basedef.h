@@ -6,6 +6,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include <array>
+#include <cstdint>
 #include <tchar.h> 
 #include <stdio.h>
 #include <tlhelp32.h>
@@ -128,6 +129,7 @@ struct MSG_SendInfoPlay
 constexpr auto MSG_DeleteItem_Opcode = 0x2E4;
 constexpr auto MSG_SplitItem_Opcode = 0x2E5;
 constexpr auto MSG_DoJackpotBet_Opcode = 0x2BE;
+constexpr auto MSG_ResultGamble_Opcode = 0x1BF;
 constexpr auto MSG_InviteGuild_Opcode = 0x3D5;
 constexpr auto MSG_Quest_Opcode = 0x28B;
 constexpr auto MSG_AirMove_Start_Opcode = 0xAD9;
@@ -137,6 +139,22 @@ struct MSG_STANDARDPARM2
 	INT32 Parm1;
 	INT32 Parm2;
 };
+static_assert(sizeof(MSG_STANDARDPARM2) == 20, "WYD 7.48 gamble request must be 20 bytes");
+
+struct MSG_ResultGamble
+{
+	MSG_STANDARD Header;
+	std::uint8_t Result[5];
+	std::uint8_t StopPosition[3];
+	std::uint8_t Reserved[8];
+	INT32 Prize;
+	UINT32 Jackpot;
+};
+static_assert(sizeof(MSG_ResultGamble) == 36, "WYD 7.48 gamble result must be 36 bytes");
+static_assert(offsetof(MSG_ResultGamble, Result) == 0x0C, "WYD 7.48 gamble Result offset mismatch");
+static_assert(offsetof(MSG_ResultGamble, StopPosition) == 0x11, "WYD 7.48 gamble StopPosition offset mismatch");
+static_assert(offsetof(MSG_ResultGamble, Prize) == 0x1C, "WYD 7.48 gamble Prize offset mismatch");
+static_assert(offsetof(MSG_ResultGamble, Jackpot) == 0x20, "WYD 7.48 gamble Jackpot offset mismatch");
 
 struct MSG_STANDARDPARM3
 {

@@ -208,6 +208,11 @@ TMFieldScene::TMFieldScene()
 	m_pHellStoreDesc = nullptr;
 	m_pGridHellStore = nullptr;
 	m_pGambleStore = nullptr;
+	m_pReelPanel = nullptr;
+	m_pReelPanel2 = nullptr;
+	m_cGambleType = 0;
+	m_cPendingGambleType = 0;
+	m_dwGambleRequestTime = 0;
 	m_pQuestPanel = nullptr;
 	m_pQuestQuitBtn = nullptr;
 	m_pQuestMemo = nullptr;
@@ -1639,10 +1644,16 @@ int TMFieldScene::InitializeCompatFieldScene()
 			if (m_pGridMixResult[slot])
 				m_pGridMixResult[slot]->m_eGridType = TMEGRIDTYPE::GRID_ITEMMIXRESULT;
 		}
-		// FUN_0044df53 includes panel 6400 in the native 7.48 ESC cascade.  The
-		// compact initializer does not allocate the newer reel helpers, so retain
-		// only the resource-owned panel and close it directly when ESC is pressed.
+		// FUN_0044df53 includes panel 6400 in the native 7.48 ESC cascade.
 		m_pGambleStore = static_cast<SPanel*>(m_pControlContainer->FindControl(6400));
+		if (m_pGambleStore)
+		{
+			m_pReelPanel = new SReelPanel(330, 21.0f, 79.0f, 62.0f, 62.0f, 1.0f);
+			m_pReelPanel2 = new SReelPanel(340, 21.0f, 79.0f, 62.0f, 62.0f, 1.0f);
+			m_pGambleStore->AddChild(m_pReelPanel);
+			m_pGambleStore->AddChild(m_pReelPanel2);
+			m_pGambleStore->SetVisible(0);
+		}
 		// These are the original Character values consumed by FUN_004431e4. The
 		// imported initializer otherwise leaves only its 65xxx replacement aliases,
 		// which makes C.POINT and mastery values disappear in FieldScene2.bin.
@@ -2481,7 +2492,14 @@ int TMFieldScene::InitializeScene()
 
 	m_pGambleStore = (SPanel*)m_pControlContainer->FindControl(6400);
 	if (m_pGambleStore)
-		m_pGambleStore->SetVisible(0);
+	{
+		m_pReelPanel = new SReelPanel(330, 21.0f, 79.0f, 62.0f, 62.0f, 1.0f);
+		m_pReelPanel2 = new SReelPanel(340, 21.0f, 79.0f, 62.0f, 62.0f, 1.0f);
+		m_pGambleStore->AddChild(m_pReelPanel);
+		m_pGambleStore->AddChild(m_pReelPanel2);
+		if (m_pGambleStore)
+			SetVisibleGamble(0, 0);
+	}
 
 	m_pDescPanel = (SPanel*)m_pControlContainer->FindControl(258);
 	m_pDescPanel->m_bSelectEnable = 0;
@@ -4147,12 +4165,6 @@ int TMFieldScene::InitializeScene()
 			m_pHelpMemo->SetVisible(1);
 	}
 
-	m_pReelPanel = new SReelPanel(330, 21.0f, 79.0f, 62.0f, 62.0f, 1.0f);
-	m_pReelPanel2 = new SReelPanel(340, 21.0f, 79.0f, 62.0f, 62.0f, 1.0f);
-
-	m_pGambleStore->AddChild(m_pReelPanel);
-	m_pGambleStore->AddChild(m_pReelPanel2);
-
 	if (!strcmp(g_TempName, g_pObjectManager->m_stMobData.MobName))
 	{
 		if (strcmp(g_TempNick, " "))
@@ -4632,66 +4644,42 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		
 		char szText[128]{};
 		sprintf(szText, "%6d", m_nBet);
-		pText->SetText(szText, 0);
+		if (pText)
+			pText->SetText(szText, 0);
 
-		sprintf(szText, "%10d", g_pObjectManager->m_stMobData.Coin - m_nBet);
+		sprintf(szText, "%10d", g_pObjectManager->m_stMobData.Coin);
 
-		m_pMoney3->m_cComma = 1;
-		m_pMoney3->SetText(szText, 0);
+		if (m_pMoney3)
+		{
+			m_pMoney3->m_cComma = 1;
+			m_pMoney3->SetText(szText, 0);
+		}
 		return 1;
 	}
 	if (idwControlID == TMB_GAMBLE_START)
 	{
-		if (m_pReelPanel2->m_dwStopTime || m_pReelPanel2->m_bRoling == 1)
+		if ((m_cGambleType != 1 && m_cGambleType != 2) ||
+			!m_pGambleStore || !m_pGambleStore->IsVisible() ||
+			m_cPendingGambleType != 0 || m_nBet < 1000 || m_nBet > 100000 ||
+			pMobData->Coin < m_nBet)
 			return 1;
-		if (m_pReelPanel->m_dwStopTime || m_pReelPanel->m_bRoling == 1)
+
+		SReelPanel* reel = m_cGambleType == 1 ? m_pReelPanel : m_pReelPanel2;
+		if (!reel || !reel->IsVisible() || reel->m_dwStopTime || reel->m_bRoling)
 			return 1;
 
-		auto pGridInv = m_pGridInv;
-		auto vec = pGridInv->CanAddItemInEmpty(1, 1);
-		if (vec.x < 0 || vec.y < 0)
-		{
-			auto pChatList = m_pChatList;
+		MSG_STANDARDPARM2 stParm2{};
+		stParm2.Header.ID = g_pObjectManager->m_dwCharID;
+		stParm2.Header.Type = MSG_DoJackpotBet_Opcode;
+		stParm2.Parm1 = m_cGambleType;
+		stParm2.Parm2 = m_nBet;
+		m_cPendingGambleType = m_cGambleType;
+		m_dwGambleRequestTime = g_pTimerManager->GetServerTime();
+		SendOneMessage((char*)&stParm2, sizeof(stParm2));
 
-			auto ipNewItem = new SListBoxItem(g_pMessageStringTable[1],
-				0xFFFFAAAA,
-				0.0,
-				0.0,
-				300.0f,
-				16.0f,
-				0,
-				0x77777777,
-				1u,
-				0);
-
-			if (ipNewItem)
-				pChatList->AddItem(ipNewItem);
-
-			GetSoundAndPlay(33, 0, 0);
-			return 1;
-		}
-
-		if (pMobData->Coin - m_nBet >= 0)
-		{
-			MSG_STANDARDPARM2 stParm2{};
-			stParm2.Header.ID = g_pObjectManager->m_dwCharID;
-			stParm2.Header.Type = MSG_DoJackpotBet_Opcode;
-			stParm2.Parm1 = 1;
-			stParm2.Parm2 = m_nBet;
-			SendOneMessage((char*)&stParm2, sizeof(stParm2));
-
-			m_pReelPanel->m_dwBatCoin = m_nBet;
-			m_pReelPanel2->m_dwBatCoin = m_nBet;
-
-			m_pReelPanel->SetRoll(1, 0, 0, 0, 3000);
-			m_pReelPanel2->SetRoll(1, 0, 0, 0, 3000);
-			pMobData->Coin -= m_nBet;
-
-			GetSoundAndPlay(338, 0, 0);
-
-			UpdateScoreUI(0);
-			return 1;
-		}
+		reel->m_dwBatCoin = m_nBet;
+		reel->SetRoll(true, 0, 0, 0, 3000);
+		GetSoundAndPlay(338, 0, 0);
 		return 1;
 	}
 	if (idwControlID == TMB_GAMBLE_QUIT)
@@ -8791,8 +8779,8 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case 0x3BB:
 		return OnPacketRemainNPCCount(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
 		break;
-	case 0x1BF:
-		return OnPacketRESULTGAMBLE(pStd);
+	case MSG_ResultGamble_Opcode:
+		return OnPacketRESULTGAMBLE(reinterpret_cast<MSG_ResultGamble*>(pStd));
 		break;
 	case MSG_AutoTrade_Opcode:
 		return OnPacketAutoTrade(pStd);
@@ -8886,6 +8874,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	{
 		dwServerTime = g_pTimerManager->GetServerTime();
 		TMScene::FrameMove(dwServerTime);
+		UpdateGambleRequestTimeout();
 		// Native field lifecycle advances the five-second quit/logout/server-change
 		// countdown immediately after the base scene.  Keep that proven slice even
 		// while unsafe 7.59-only HUD ticks remain excluded from the compact path.
@@ -8911,6 +8900,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	dwServerTime = g_pTimerManager->GetServerTime();
 
 	TMScene::FrameMove(dwServerTime);
+	UpdateGambleRequestTimeout();
 
 	if (TimeDelay(dwServerTime) == 1)
 		return 1;
@@ -9232,7 +9222,8 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	if ((int)m_pMyHuman->m_vecPosition.x >> 7 == 6 && (int)m_pMyHuman->m_vecPosition.y >> 7 == 28 && m_pPositionText)
 		m_pPositionText->SetVisible(0);
 
-	if ((int)m_pMyHuman->m_vecPosition.x >> 7 != 31 && (int)m_pMyHuman->m_vecPosition.y >> 7 != 31 && m_pGambleStore->m_bVisible == 1)
+	if ((int)m_pMyHuman->m_vecPosition.x >> 7 != 31 && (int)m_pMyHuman->m_vecPosition.y >> 7 != 31 &&
+		m_pGambleStore && m_pGambleStore->m_bVisible == 1)
 		SetVisibleGamble(0, 0);
 
 	if (!g_bCastleWar2)
@@ -9451,7 +9442,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 
 				if ((int)m_pMyHuman->m_vecPosition.x >> 7 != 31 && (int)m_pMyHuman->m_vecPosition.y >> 7 != 31)
 				{
-					if (m_pGambleStore->m_bVisible == 1)
+					if (m_pGambleStore && m_pGambleStore->m_bVisible == 1)
 						SetVisibleGamble(0, 0);
 				}
 				else
@@ -14565,10 +14556,10 @@ void TMFieldScene::SetVisibleInventory()
 	auto pHellgateStore = m_pHellgateStore;
 	auto pGambleStore = m_pGambleStore;
 
-	if (m_pGambleStore->IsVisible() == 1)
+	if (m_pGambleStore && m_pGambleStore->IsVisible() == 1)
 		pPanel->m_bVisible = 0;
 
-	if (pGambleStore->IsVisible() == 1)
+	if (pGambleStore && pGambleStore->IsVisible() == 1)
 		pCPanel->m_bVisible = 0;
 
 	int bInv = pPanel->m_bVisible == 0; 
@@ -14768,7 +14759,7 @@ void TMFieldScene::SetVisibleCargo(int bShow)
 		GetSoundAndPlay(51, 0, 0);
 		return;
 	}
-	if (m_pGambleStore->IsVisible() == 1)
+	if (m_pGambleStore && m_pGambleStore->IsVisible() == 1)
 		bShow = 0;
 
 	SGridControl::m_sLastMouseOverIndex = -1;
@@ -14851,7 +14842,8 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 	if (bShow == 1)
 	{
 		g_pCursor->DetachItem();
-		m_pGambleStore->SetVisible(0);
+		if (m_pGambleStore)
+			SetVisibleGamble(0, 0);
 		
 		if (m_pTradePanel->IsVisible() == 1 && m_pAutoTrade)
 			SetVisibleAutoTrade(0, 0);
@@ -15533,52 +15525,86 @@ void TMFieldScene::SetVisibleHellGateStore(int bShow)
 void TMFieldScene::SetVisibleGamble(int bShow, char cType)
 {
 	SGridControl::m_sLastMouseOverIndex = -1;
-	if (bShow || m_pGambleStore->m_bVisible != 1 || !m_pReelPanel2->m_dwStopTime && m_pReelPanel2->m_bRoling != 1)
-	{
-		if (m_pInputGoldPanel->IsVisible() == 1)
-			SetInVisibleInputCoin();
-		if (bShow == 1 && m_pSkillPanel && m_pSkillPanel->m_bVisible == 1)
-			SetVisibleSkill();
-		if (bShow == 1 && m_pCPanel && m_pCPanel->m_bVisible == 1)
-			SetVisibleCharInfo();
-		if (bShow == 1 && m_pCargoPanel && m_pCargoPanel->m_bVisible == 1)
-			SetVisibleCargo(0);
-		if (bShow == 1 && m_pCargoPanel1 && m_pCargoPanel1->m_bVisible == 1)
-			SetVisibleCargo(0);
-		if (bShow == 1 && m_pAutoTrade && m_pAutoTrade->m_bVisible == 1)
-			SetVisibleAutoTrade(0, 0);
-		if (bShow == 1 && m_pInvenPanel && m_pInvenPanel->m_bVisible == 1)
-			SetVisibleInventory();
-		if (bShow == 1 && m_pShopPanel && m_pShopPanel->m_bVisible == 1)
-			SetVisibleShop(0);
-		auto pGambleStore = m_pGambleStore;
-		if (bShow == 1)
-		{
-			if (pGambleStore)
-			{
-				pGambleStore->SetVisible(1);
-				if (cType == 1)
-				{
-					m_pReelPanel->SetVisible(1);
-					m_pReelPanel2->SetVisible(0);
-				}
-				else if (cType == 2)
-				{
-					m_pReelPanel->SetVisible(0);
-					m_pReelPanel2->SetVisible(1);
-				}
-			}
+	if (!m_pGambleStore)
+		return;
 
+	if (bShow)
+	{
+		if (!m_pReelPanel || !m_pReelPanel2)
+			return;
+		if (cType != 1 && cType != 2)
+			return;
+		if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible() == 1)
+			SetInVisibleInputCoin();
+		if (m_pSkillPanel && m_pSkillPanel->m_bVisible == 1)
+			SetVisibleSkill();
+		if (m_pCPanel && m_pCPanel->m_bVisible == 1)
+			SetVisibleCharInfo();
+		if (m_pCargoPanel && m_pCargoPanel->m_bVisible == 1)
+			SetVisibleCargo(0);
+		if (m_pCargoPanel1 && m_pCargoPanel1->m_bVisible == 1)
+			SetVisibleCargo(0);
+		if (m_pAutoTrade && m_pAutoTrade->m_bVisible == 1)
+			SetVisibleAutoTrade(0, 0);
+		if (m_pInvenPanel && m_pInvenPanel->m_bVisible == 1)
+			SetVisibleInventory();
+		if (m_pShopPanel && m_pShopPanel->m_bVisible == 1)
+			SetVisibleShop(0);
+		m_cGambleType = static_cast<unsigned char>(cType);
+		m_cPendingGambleType = 0;
+		m_dwGambleRequestTime = 0;
+		m_pGambleStore->SetVisible(1);
+		m_pReelPanel->SetVisible(cType == 1);
+		m_pReelPanel2->SetVisible(cType == 2);
+		if (m_pGridHelm)
 			m_pGridHelm->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-			SetEquipGridState(0);
-		}
-		else
-		{
-			if (pGambleStore)
-				pGambleStore->SetVisible(0);
-			g_pDevice->m_nWidthShift = 0;
-		}
+		SetEquipGridState(0);
 	}
+	else
+	{
+		m_pGambleStore->SetVisible(0);
+		if (m_pReelPanel)
+		{
+			m_pReelPanel->SetVisible(0);
+			m_pReelPanel->m_bRoling = false;
+			m_pReelPanel->m_dwStopTime = 0;
+		}
+		if (m_pReelPanel2)
+		{
+			m_pReelPanel2->SetVisible(0);
+			m_pReelPanel2->m_bRoling = false;
+			m_pReelPanel2->m_dwStopTime = 0;
+		}
+		m_cGambleType = 0;
+		m_cPendingGambleType = 0;
+		m_dwGambleRequestTime = 0;
+		if (g_pDevice)
+			g_pDevice->m_nWidthShift = 0;
+		SetEquipGridState(1);
+	}
+}
+
+void TMFieldScene::UpdateGambleRequestTimeout()
+{
+	if (m_dwGambleRequestTime == 0 ||
+		(m_cPendingGambleType != 1 && m_cPendingGambleType != 2))
+		return;
+
+	const unsigned int now = g_pTimerManager->GetServerTime();
+	if (now - m_dwGambleRequestTime < 10000)
+		return;
+
+	// Rejections are reported through MessagePanel without a synthetic 0x1BF.
+	// Release only the requested reel so the UI can retry without inventing a
+	// result or changing the native Gamble wire contract.
+	SReelPanel* reel = m_cPendingGambleType == 1 ? m_pReelPanel : m_pReelPanel2;
+	if (reel)
+	{
+		reel->m_bRoling = false;
+		reel->m_dwStopTime = 0;
+	}
+	m_cPendingGambleType = 0;
+	m_dwGambleRequestTime = 0;
 }
 
 void TMFieldScene::SetVisiblePotal(int bShow, int nPos)
@@ -15943,7 +15969,7 @@ void TMFieldScene::SetVisibleSkillMaster()
 			m_pHellgateStore->SetVisible(0);
 
 		if (m_pGambleStore)
-			m_pGambleStore->SetVisible(0);
+			SetVisibleGamble(0, 0);
 
 		m_pSkillPanel->SetPos(RenderDevice::m_fWidthRatio * 380.0f, RenderDevice::m_fHeightRatio * 35.0f);
 	}
@@ -15988,7 +16014,8 @@ void TMFieldScene::SetVisibleSkill()
 		m_pShopPanel->SetVisible(0);
 		m_pCargoPanel->SetVisible(0);
 		m_pHellgateStore->SetVisible(0);
-		m_pGambleStore->SetVisible(0);
+		if (m_pGambleStore)
+			SetVisibleGamble(0, 0);
 		m_pSkillMPanel->SetVisible(0);
 		m_pDescPanel->SetVisible(0);
 		g_pCursor->DetachItem();
@@ -16271,7 +16298,7 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 			m_pMoney2->SetText(szMoeny, 0);
 		}
 
-		sprintf(szMoeny, "%10d", pMobData->Coin - m_nBet);
+		sprintf(szMoeny, "%10d", pMobData->Coin);
 		if (m_pMoney3)
 		{
 			m_pMoney3->m_cComma = 1;
@@ -17474,11 +17501,7 @@ void TMFieldScene::OnESC()
 		else if (m_pCargoPanel && m_pCargoPanel->IsVisible())
 			SetVisibleCargo(0);
 		else if (m_pGambleStore && m_pGambleStore->IsVisible())
-		{
-			// The 7.48 compact path owns no m_pReelPanel2; calling the imported
-			// SetVisibleGamble helper here would dereference that 7.59-only state.
-			m_pGambleStore->SetVisible(0);
-		}
+			SetVisibleGamble(0, 0);
 		else if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible())
 		{
 			m_pInputGoldPanel->SetVisible(0);
@@ -17582,7 +17605,7 @@ void TMFieldScene::OnESC()
 	{
 		SetVisibleCargo(0);
 	}
-	else if (m_pGambleStore->IsVisible() == 1)
+	else if (m_pGambleStore && m_pGambleStore->IsVisible() == 1)
 	{
 		SetVisibleGamble(0, 0);
 	}
@@ -18357,7 +18380,7 @@ int TMFieldScene::GetItemFromGround(unsigned int dwServerTime)
 
 	if (BASE_GetItemAbility(&pOverItem->m_stItem, 34) == 10 && pOverItem->m_stItem.sIndex >= 4100 && pOverItem->m_stItem.sIndex < 4200)
 	{
-		if (m_pGambleStore->m_bVisible == 1)
+		if (m_pGambleStore && m_pGambleStore->m_bVisible == 1)
 			return 1;
 
 		if (pOverItem->m_stItem.sIndex == 4102)
@@ -22832,7 +22855,7 @@ int TMFieldScene::OnPacketCNFGetItem(MSG_CNFGetItem* pMsg)
 		m_pMoney2->m_cComma = 2;
 		m_pMoney2->SetText(szMoney, 0);
 
-		sprintf(szMoney, "%10d", g_pObjectManager->m_stMobData.Coin - m_nBet);
+		sprintf(szMoney, "%10d", g_pObjectManager->m_stMobData.Coin);
 		m_pMoney3->m_cComma = 2;
 		m_pMoney3->SetText(szMoney, 0);
 	}
@@ -24211,9 +24234,45 @@ int TMFieldScene::OnPacketRemainNPCCount(MSG_STANDARDPARM* pStd)
 	return 1;
 }
 
-int TMFieldScene::OnPacketRESULTGAMBLE(MSG_STANDARD* pStd)
+int TMFieldScene::OnPacketRESULTGAMBLE(MSG_ResultGamble* pStd)
 {
-	return 0;
+	if (!pStd || pStd->Header.Size != sizeof(MSG_ResultGamble))
+		return 0;
+
+	for (unsigned int result : pStd->Result)
+		if (result >= 19)
+			return 0;
+	for (unsigned int stop : pStd->StopPosition)
+		if (stop >= 22)
+			return 0;
+
+	if ((m_cPendingGambleType != 1 && m_cPendingGambleType != 2) ||
+		!m_pGambleStore || !m_pGambleStore->IsVisible())
+		return 0;
+
+	SReelPanel* reel = m_cPendingGambleType == 1 ? m_pReelPanel : m_pReelPanel2;
+	if (!reel || !reel->IsVisible())
+		return 0;
+
+	if (m_pReelPanel)
+		m_pReelPanel->m_dwJackpot = pStd->Jackpot;
+	if (m_pReelPanel2)
+		m_pReelPanel2->m_dwJackpot = pStd->Jackpot;
+
+	for (char line = 0; line < 5; ++line)
+		if (pStd->Result[line] > 0)
+			reel->SetResult(line);
+	if (pStd->Prize > 0)
+		reel->m_nPresent = pStd->Prize;
+
+	reel->SetRoll(false,
+		pStd->StopPosition[0],
+		pStd->StopPosition[1],
+		pStd->StopPosition[2],
+		3000);
+	m_cPendingGambleType = 0;
+	m_dwGambleRequestTime = 0;
+	return 1;
 }
 
 int TMFieldScene::OnPacketREQArray(MSG_STANDARD* pStd)
@@ -28170,7 +28229,7 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 			SetVisibleCargo(0);
 		else if (pCargoPanel1->IsVisible() == 1)
 			SetVisibleCargo(0);
-		else if (pGambleStore->IsVisible() == 1)
+		else if (pGambleStore && pGambleStore->IsVisible() == 1)
 			SetVisibleGamble(0, 0);
 		else if (pInputGoldPanel->IsVisible() == 1)
 			pInputGoldPanel->SetVisible(0);

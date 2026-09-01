@@ -1,6 +1,6 @@
 # Handoff: programa de pesquisa do client 7.48
 
-Atualizado em: 2026-08-31
+Atualizado em: 2026-09-01
 Estado geral: `STATICALLY VERIFIED`
 
 ## Objetivo e limites
@@ -47,13 +47,13 @@ presumidos intencionais; ausência no nativo 7.48 não autoriza remoção.
 
 ```text
 client748/wyd.exe nativo+patches/WYD.exe | referência histórica Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                    | candidato source volátil    | E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94
+client748/project.exe                    | candidato source volátil    | DB88DCC9D3CE085F383CD8B357EDEF6E5FB0C439DA91A8F075ADC5302C6385E7
 %USERPROFILE%\Tools\GhidraProjects\WYD748Native_20260821.gpr | projeto Ghidra | descobrir no perfil
 %USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled       | corpus auxiliar | 4.146 funções
 ```
 
 O hash nativo foi recalculado em 2026-08-28 e o de `project.exe` após o build
-de 2026-08-31. O candidato deve ser recalculado após qualquer novo build. O
+de 2026-09-01. O candidato deve ser recalculado após qualquer novo build. O
 corpus textual acelera buscas, mas não substitui xrefs, chamadas indiretas,
 tipos, stack ou lifecycle no projeto Ghidra.
 
@@ -354,6 +354,7 @@ captura Print Screen em JPG              | STATICALLY VERIFIED | ficha TRACED; J
 sincronização C.C físico/mágico           | STATICALLY VERIFIED | ficha TRACED; IDs 318/319 e teclas A/D compilados; fluxo real pendente
 loader/seleção TOTO                      | STATICALLY VERIFIED | loader zero-based e UI compilados; fluxo real pendente
 compra TOTO 0x3CE                       | AUTOMATED TESTED     | ficha CONTRACT; server autoritativo e rollback testados
+Gamble/Jackpot 0x2BE/0x1BF             | AUTOMATED TESTED     | ficha CONTRACT; timeout de rejeição e server autoritativo implementados
 código ativo do client                    | IMPLEMENTED         | inclui NewApp/TMGlobal; servidor preservado
 client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
@@ -751,31 +752,62 @@ ocorrências.
   `E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94`.
 - Não houve execução real do fluxo; não alegar `CLIENT_TESTED`.
 
-1. Executar no candidato hasheado o fluxo TOTO completo: abrir com item 4147,
+### Lote concluído em 2026-09-01: Gamble/Jackpot `0x2BE/0x1BF`
+
+- A ficha `flows/ui/gamble-jackpot.md` está `CONTRACT`. O client envia somente
+  a intenção `0x2BE/20`; `Result[5]` classifica as três linhas horizontais e as
+  duas diagonais, enquanto `StopPosition[3]` posiciona os três reels visuais.
+- `Basedef.h`, `SControl.cpp` e `TMFieldScene.h/.cpp` agora implementam o ABI de
+  36 bytes, os reels, a aposta sem desconto otimista, o dispatcher, validação
+  de resposta, prêmio/jackpot e fechamento centralizado que limpa animação,
+  stops e intenção pendente. Os initializers compatível e moderno são caminhos
+  mutuamente exclusivos.
+- Rejeições server-side permanecem somente em `MessagePanel`, sem publicar um
+  resultado falso. Um timeout local de dez segundos, executado nos caminhos
+  compatível e moderno de `FrameMove`, para somente o reel solicitado e libera
+  a intenção pendente sem alterar wire, coin, prêmio ou jackpot.
+- O servidor no commit `d5b77f6c` implementa handler, RNG, fórmula, overflow em
+  barras, jackpot/pool persistentes, persist-before-publish e rollback de gold,
+  inventário e pools. Os testes vivem em `internal/game/gamble_test.go` e
+  `internal/wire/gamble_test.go`.
+- `Build-Client.ps1` passou com 21 warnings existentes e zero erros. O
+  `client748/project.exe` instalado tem SHA-256
+  `DB88DCC9D3CE085F383CD8B357EDEF6E5FB0C439DA91A8F075ADC5302C6385E7`.
+- `go test -count=1 ./internal/game ./internal/wire`, `go test -count=1 ./...`,
+  `validate_research.py` (16 fichas válidas) e `git diff --check` passaram.
+- Entrega atual: `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED`. Ainda
+  falta o teste real de abertura, aposta, rejeição, prêmio, jackpot, overflow,
+  fechamento, logout durante animação e relogin; não alegar `CLIENT_TESTED`.
+
+1. Executar no candidato hasheado o fluxo Gamble completo: abrir os dois tipos,
+   apostar com sucesso, validar rejeição e timeout, prêmio, jackpot, overflow,
+   fechamento, logout durante animação e relogin; até isso, não alegar
+   `CLIENT_TESTED`.
+2. Executar no candidato hasheado o fluxo TOTO completo: abrir com item 4147,
    selecionar partidas 1 e 80, navegar por Tab/Enter, comprar com sucesso,
    testar placar inválido, gold insuficiente e destino ocupado, e confirmar o
    mesmo UID/efeitos do bilhete após logout/relogin.
-2. Executar no candidato hasheado a seleção de um personagem comum e um de
+3. Executar no candidato hasheado a seleção de um personagem comum e um de
    segunda classe, confirmando que `1314` mostra a EXP atual e `1315` o limiar
    correto da tabela normal/G2; até isso, manter `STATICALLY VERIFIED`.
-3. Executar no mesmo candidato os controles `633`, `634`, `635` e `636`, uma
+4. Executar no mesmo candidato os controles `633`, `634`, `635` e `636`, uma
    queda TCP com retorno à seleção, novo login no mesmo personagem e em outro
    slot e migração entre servidores/canais; até isso, manter o estado máximo
    `STATICALLY VERIFIED`.
-4. Continuar o lifecycle por uma ficha estreita de troca de conta ou reconexão
+5. Continuar o lifecycle por uma ficha estreita de troca de conta ou reconexão
    TCP, partindo da source viva e abrindo no Ghidra somente os callers/callees
    que decidirem a transição escolhida. Não reabrir o shutdown global sem nova
    evidência de incompatibilidade ou falha runtime.
-5. Inspecionar a source atual e classificar o próximo delta concreto. Se ele
+6. Inspecionar a source atual e classificar o próximo delta concreto. Se ele
    depender de paridade nativa, fechar entrada, callers, callees, estado, erros,
    ownership e teardown antes de adaptá-lo; se for modernização/extensão
    independente, provar a fronteira correspondente e prosseguir sem aguardar a
    promoção de claims não relacionados.
-6. Não reabrir `packet-size-gate.md` com novos scans estáticos equivalentes. A
+7. Não reabrir `packet-size-gate.md` com novos scans estáticos equivalentes. A
    frente só deve voltar com evidência runtime, novo mecanismo concreto de
    dispatch indireto ou necessidade de auditar um opcode específico; sua
    maturidade continua `LOCATED`, sem autorização para alterar wire/ABI.
-7. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
+8. Executar `validate_research.py` quando ficha/schema mudar, triagem quando a
    fila/input mudar e `git diff --check` após edições. Atualizar este handoff
    somente quando houver nova evidência, decisão, validação ou ponto de retomada.
 

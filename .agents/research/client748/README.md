@@ -28,7 +28,7 @@ client748/wyd.exe nativo+patches/WYD.exe
 
 O candidato source mais recente registrado no handoff do programa é
 `client748/project.exe`, SHA-256
-`E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94`.
+`DB88DCC9D3CE085F383CD8B357EDEF6E5FB0C439DA91A8F075ADC5302C6385E7`.
 Recalcular antes de usar: o candidato muda a cada build.
 
 ## Organização e maturidade
@@ -66,6 +66,7 @@ Estado atual do mapa:
 | Loader da lista TOTO | `CONTRACT` | `flows/ui/toto-list-loader.md` |
 | Seleção, teclado e fechamento TOTO | `TRACED` | `flows/ui/toto-selection-close.md` |
 | Compra e materialização do bilhete TOTO | `CONTRACT` | `flows/transport/toto-buy.md` |
+| Aposta, rolagem e resultado Gamble/Jackpot | `CONTRACT` | `flows/ui/gamble-jackpot.md` |
 | Sincronização de estado e controles C.C | `TRACED` | `flows/ui/cc-auto-combat-state-sync.md` |
 | `SetMyHumanMagic` nativo sem efeito | `STATICALLY_EVIDENCED` | `inventory/set-my-human-magic-noop.md` |
 

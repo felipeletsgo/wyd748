@@ -81,6 +81,7 @@ public:
 	void SetVisibleMixItem6(int bShow);
 	void SetVisibleHellGateStore(int bShow);
 	void SetVisibleGamble(int bShow, char cType);
+	void UpdateGambleRequestTimeout();
 	void SetVisiblePotal(int bShow, int nPos);
 	void SetVisibleMiniMap();
 	void SetVisibleParty();
@@ -233,7 +234,7 @@ public:
 	int OnPacketGuildDisable(MSG_STANDARDPARM* pStd);
 	int OnPacketEnvEffect(MSG_STANDARD* pStd);
 	int OnPacketRemainNPCCount(MSG_STANDARDPARM* pStd);
-	int OnPacketRESULTGAMBLE(MSG_STANDARD* pStd);
+	int OnPacketRESULTGAMBLE(MSG_ResultGamble* pStd);
 	int OnPacketREQArray(MSG_STANDARD* pStd);
 	int OnPacketAttack(MSG_STANDARD* pStd);
 	int OnPacketNuke(MSG_STANDARD* pStd);
@@ -858,6 +859,9 @@ public:
 	int m_nCurrEventTextIndex;
 	SReelPanel* m_pReelPanel;
 	SReelPanel* m_pReelPanel2;
+	unsigned char m_cGambleType;
+	unsigned char m_cPendingGambleType;
+	unsigned int m_dwGambleRequestTime;
 	SPanel* m_pFireWorkPanel;
 	SButton* m_pFireWorkButton[100];
 	SButton* m_pFireWorkOKButton;
