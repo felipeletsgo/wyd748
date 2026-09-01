@@ -97,6 +97,16 @@ constexpr auto MAX_ITEM_PRICE_REPLACE = 100;
 
 constexpr auto MSG_Recall_Opcode = 0x289;
 constexpr auto MSG_Ping_Opcode = 0x3A0;
+constexpr auto MSG_REQArray_Opcode = 0x1C1;
+constexpr auto MSG_CNFArray_Opcode = 0x2C2;
+
+struct MSG_REQArray
+{
+	MSG_STANDARD Header;
+	INT32 Category;
+	INT32 ByteOffset;
+	INT32 Value;
+};
 
 
 constexpr auto MSG_RequestCapsuleInfo_Opcode = 0x2CD;

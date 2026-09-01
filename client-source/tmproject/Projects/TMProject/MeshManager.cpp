@@ -121,6 +121,7 @@ int MeshManager::InitBoneAnimation()
 		_close(handle);
 
 		MeshManager::m_BoneAnimationList[nCount].numBone = sz / 8;
+		MeshManager::m_BoneAnimationList[nCount].numBoneBytes = static_cast<unsigned int>(sz);
 		unsigned int dwFileIndex = 0;
 		for (size_t nFI = 0; nFI < MeshManager::m_BoneAnimationList[nCount].numAniTypeCount; ++nFI)
 		{

@@ -56,6 +56,10 @@ static_assert(sizeof(MSG_NewCharacter) == 36, "7.48 create-character request mus
 static_assert(sizeof(MSG_STANDARDPARM) == 16, "7.48 one-parameter packet must remain 16 bytes");
 static_assert(sizeof(MSG_STANDARDPARM2) == 20, "7.48 two-parameter packet must remain 20 bytes");
 static_assert(sizeof(MSG_STANDARDPARM3) == 24, "7.48 three-parameter packet must remain 24 bytes");
+static_assert(sizeof(MSG_REQArray) == 24, "7.48 animation-array probe must remain 24 bytes");
+static_assert(offsetof(MSG_REQArray, Category) == 0x0C, "7.48 animation-array category offset changed");
+static_assert(offsetof(MSG_REQArray, ByteOffset) == 0x10, "7.48 animation-array byte offset changed");
+static_assert(offsetof(MSG_REQArray, Value) == 0x14, "7.48 animation-array value offset changed");
 static_assert(sizeof(MSG_SwapItem) == 20, "7.48 swap request must remain 20 bytes");
 static_assert(sizeof(MSG_REQShopList) == 16, "7.48 shop request must remain 16 bytes");
 static_assert(sizeof(MSG_MessageChat) == 108, "7.48 bidirectional chat must remain 108 bytes");

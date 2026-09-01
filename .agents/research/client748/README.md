@@ -53,6 +53,7 @@ Estado atual do mapa:
 | Fluxo | Estado | Ficha |
 | --- | --- | --- |
 | Gate de tamanho por opcode | `LOCATED` | `flows/transport/packet-size-gate.md` |
+| Consulta de byte do array de animação `0x1C1/0x2C2` | `CONTRACT` | `flows/transport/bone-animation-array-probe.md` |
 | Foco, IME e lifecycle de controles | `TRACED` | `flows/ui/control-focus-ime-lifecycle.md` |
 | Transição e troca de cenas | `LOCATED` | `flows/lifecycle/scene-transition.md` |
 | Disconnect TCP e retorno à seleção | `CONTRACT` | `flows/transport/socket-disconnect-return-selectserver.md` |

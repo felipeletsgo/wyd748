@@ -8676,7 +8676,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case MSG_Action_Opcode:
 	case MSG_Action_Stop_Opcode:
 		return OnPacketAction(pStd);
-	case 0x1C1:
+	case MSG_REQArray_Opcode:
 		return OnPacketREQArray(pStd);
 	case 0x333:
 		return OnPacketMessageChat(reinterpret_cast<MSG_MessageChat*>(pStd));
@@ -24277,7 +24277,32 @@ int TMFieldScene::OnPacketRESULTGAMBLE(MSG_ResultGamble* pStd)
 
 int TMFieldScene::OnPacketREQArray(MSG_STANDARD* pStd)
 {
-	return 0;
+	if (!pStd || !m_pMyHuman)
+		return 0;
+
+	MSG_REQArray response = *reinterpret_cast<MSG_REQArray*>(pStd);
+
+	int category = response.Category;
+	if (category < 0 || category >= MAX_BONE_ANIMATION_LIST)
+		category = 0;
+
+	const stBoneAni& animation = MeshManager::m_BoneAnimationList[category];
+	int byteOffset = response.ByteOffset;
+	if (byteOffset < 0 || static_cast<unsigned int>(byteOffset) >= animation.numBoneBytes)
+		byteOffset = 0;
+
+	INT32 value = 0;
+	if (animation.pBone && animation.numBoneBytes != 0)
+	{
+		const auto bytes = reinterpret_cast<const std::int8_t*>(animation.pBone);
+		value = static_cast<INT32>(bytes[byteOffset]);
+	}
+
+	response.Header.Type = MSG_CNFArray_Opcode;
+	response.Header.ID = static_cast<WORD>(m_pMyHuman->m_dwID);
+	response.Value = value;
+	SendOneMessage(reinterpret_cast<char*>(&response), sizeof(response));
+	return 1;
 }
 
 // GetWYD748AttackVisualDamage reads only the optional server-authoritative

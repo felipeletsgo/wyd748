@@ -17,7 +17,7 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | 76B3E66EAC6E17EB615B80B7CAE7F900BA8D836CC89A8874BDD3C9D59A088ECF
+client748/project.exe                            | candidato source | DA9F578E6AEF2A6F2ED923E893F412717F7966AC861A21F3A17D939EDF70EE3F
 ```
 
 Os hashes históricos permanecem os fingerprints imutáveis registrados; o
@@ -216,6 +216,7 @@ crash NPC Skill Apprentice 20260827 | STATICALLY VERIFIED  | m_pHellgateStore nu
 compra de skill no mestre 85FC6B25  | CONTRACT              | renderer 2D + TargetID 0x277 + testes byte-level
 composição e candidatos IME 1DF5956A | TRACED/STATIC VERIFIED | dispatcher, foco, candidatos e teardown adaptados
 Premium Firework 76B3E66E             | IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED | contrato 0x3C9/0x3CA; efeito nativo restaurado
+array de animação 0x1C1/0x2C2 DA9F578E | CONTRACT / STATICALLY VERIFIED | resposta nativa de 24 bytes; tamanho bruto .bon preservado
 layout/valores do HUD compacto      | STATICALLY VERIFIED  | texto sem stretch + IDs nativos
 EXP nativa em quatro quartos        | STATICALLY VERIFIED  | controles 1171–1174
 wheel/rotação de câmera             | STATICALLY VERIFIED  | input/lifecycle nativo
@@ -259,9 +260,9 @@ fechamento X/Esc e modais real      | NÃO TESTADO          | checklist client-u
 ```
 
 O rebuild Release Win32 com toolset v145 terminou sem erros para o candidato
-atual; a compilação completa registrou 6 advertências preexistentes.
+atual; a compilação completa registrou 31 advertências preexistentes.
 O artefato instalado e o output de build possuem o mesmo SHA-256
-`E077183B...F3B4F9`; `Build-Client.ps1` instalou e verificou o candidato
+`DA9F578E...EE3F`; `Build-Client.ps1` instalou e verificou o candidato
 automaticamente, sem patch. Os candidatos
 `4BE5943C...`, `44677EF8...`, `41669031...`, `1EEA1FC1...` e `F8DA50A0...` foram
 testados pelo usuário e reprovaram no grid/mesh; não atribuir essas falhas ao
@@ -291,7 +292,17 @@ novo binário antes do teste real.
   não editar nem executar os scripts desse diretório.
 - `client-source/tmproject/Projects/TMProject/TMFieldScene.cpp` — HUD 7.48,
   seis ItemMix nativos, controles Help/affect/Skill Apprentice 7.48, linha de
-  buffs no FieldScene2 clássico e autoaproximação de ataque.
+  buffs no FieldScene2 clássico, autoaproximação de ataque e resposta nativa
+  ao request de array de animação `0x1C1`.
+- `client-source/tmproject/Projects/TMProject/Basedef.h` e
+  `WYD748Compat.cpp` — contrato Win32 de 24 bytes de `MSG_REQArray`, opcodes
+  `0x1C1/0x2C2` e asserts dos offsets `0x0C`, `0x10` e `0x14`.
+- `client-source/tmproject/Projects/TMProject/MeshManager.h/.cpp` — conserva o
+  tamanho bruto exato dos buffers `.bon` sem alterar os offsets herdados de
+  `stBoneAni`.
+- `.agents/research/client748/flows/transport/bone-animation-array-probe.md` —
+  ficha `CONTRACT` do dispatcher, gate, handler, loader, sender, wire,
+  ownership e teardown do fluxo.
 - `client-source/tmproject/Projects/TMProject/TMHuman.cpp` — efeitos nativos
   Lighten, Magic Shield e Skill Amp restaurados conforme `FUN_00506f9d`.
 - `client-source/tmproject/Projects/TMProject/EventTranslator.cpp` — wheel e
@@ -722,9 +733,29 @@ Repetir build, instalação e hash se o código mudar.
 - Build Release/Win32: zero erros, 13 warnings C4018 preexistentes; candidato
   `87431F0B066FD782CE1231F1E76C1905671E8C0D2C23E9CA75EDD4DC351F9979`.
 
+## Consulta do array de animação em 2026-09-01
+
+- A ficha `flows/transport/bone-animation-array-probe.md` fechou em `CONTRACT`
+  o fluxo nativo `0x1C1` S->C para `0x2C2` C->S, ambos com 24 bytes.
+- `FUN_00492E7D`, `FUN_0055890A`, `FUN_004927DD`, `FUN_004B00E4` e
+  `FUN_0055F2DD` confirmam dispatcher, gate de tamanho, handler, loader `.bon`
+  e sender. Categoria e offset inválidos são clampados somente para a leitura;
+  o eco preserva os campos originais e promove o byte como `int8_t` assinado.
+- A source tipou o packet e seus offsets, restaurou a resposta com o ID do
+  humano local e passou a conservar o tamanho bruto exato do `.bon`. Isso evita
+  truncar `ed.bon` e `tn.bon`, cujos tamanhos não são múltiplos de oito.
+- O servidor atual não emite `0x1C1` nem consome `0x2C2`; não foi criado um uso
+  server-side artificial neste lote.
+- `Build-Client.ps1` passou em Release Win32 v145 com zero erros e 31 warnings
+  preexistentes. `validate_research.py` e `git diff --check` passaram; o
+  candidato instalado tem SHA-256
+  `DA9F578E6AEF2A6F2ED923E893F412717F7966AC861A21F3A17D939EDF70EE3F`.
+- Estado: `CONTRACT` e `STATICALLY VERIFIED`; sem emissor no servidor, o fluxo
+  ainda não foi executado end-to-end e não é `CLIENT-TESTED`.
+
 ## Pendências e riscos
 
-- No candidato `76B3E66E...A088ECF`, enviar desenhos Premium Firework com mais
+- No candidato `DA9F578E...EE3F`, enviar desenhos Premium Firework com mais
   de um padrão e o fallback vazio; confirmar a mesma forma para dono e
   observador, nenhuma publicação para outsider, sons `315/316`, as duas
   passagens visuais, expiração após 10 segundos e ausência de efeito stale.
@@ -775,6 +806,9 @@ Repetir build, instalação e hash se o código mudar.
   incluindo staging, remoção, rejeição, sucesso, rollback e relogin.
 - Não implementar `0x2C4` até recuperar uma receita e resposta autoritativas;
   ele é um modo dormente do ItemMix5, não uma UI livre.
+- Não adicionar emissor `0x1C1` ou consumidor `0x2C2` apenas para exercitar o
+  handler restaurado. Um uso futuro precisa de propósito e contrato coordenado
+  próprios; até lá, a consulta de array permanece sem `CLIENT_TESTED`.
 - Testar em jogo uma recusa/rollback de `MSG_UseItem` e confirmar que origem e
   alvo voltam imediatamente; até isso, o conserto está `AUTOMATED TESTED`, não
   `CLIENT-TESTED`.
@@ -783,10 +817,10 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Próximo passo executável
 
-1. No candidato `76B3E66E...A088ECF`, executar o fluxo Premium Firework com
+1. No candidato `DA9F578E...EE3F`, executar o fluxo Premium Firework com
    dois padrões e o fallback vazio; observar dono, um observer e um outsider,
    sons, render, expiração, troca de cena e logout/relogin.
-2. No candidato `76B3E66E...A088ECF`, testar composição IME real, página de
+2. No candidato `DA9F578E...EE3F`, testar composição IME real, página de
    candidatos, troca de foco, fim da composição, troca de cena e relogin.
 3. No mesmo candidato, abrir o NPC Skill Master e conferir os ícones dos
    livros; cancelar uma compra, confirmar outra e validar uma rejeição sem

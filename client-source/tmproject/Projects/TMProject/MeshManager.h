@@ -29,6 +29,7 @@ struct stBoneAni
 	unsigned int numAniFrame; // 0x0ED9858
 	LPD3DXMATRIX matAnimation; // 0x0ED985C
 	LPD3DXQUATERNION matQuaternion; // 0x0ED9860
+	unsigned int numBoneBytes;
 };
 
 constexpr auto MAX_COMMON_MESH = 3048;
