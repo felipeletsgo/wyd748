@@ -1,6 +1,6 @@
 # Handoff: paridade visual e funcional do client 7.48
 
-Atualizado em: 2026-08-27
+Atualizado em: 2026-09-01
 Estado geral: `STATICALLY VERIFIED`
 
 ## Objetivo e limites
@@ -17,10 +17,11 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | 7BA846DAE559464491739B104903CE4E843BC57C8AED57EF00E368D5F7E27171
+client748/project.exe                            | candidato source | 85FC6B2541784C4AF83A275B5614FD74B8990A303A6618AEC21DFBB02FE602D2
 ```
 
-Hashes acima foram reverificados em 2026-08-27. O hash de `project.exe` é
+Os hashes históricos permanecem os fingerprints imutáveis registrados; o
+hash de `project.exe` foi atualizado pelo build de 2026-09-01. Esse hash é
 volátil e deve ser recalculado depois de qualquer build.
 
 ## Evidência confirmada
@@ -212,6 +213,7 @@ notificação translúcida 7.48        | STATICALLY VERIFIED  | recursos 178/259
 Skill 1905 separada do NPC 1889     | STATICALLY VERIFIED  | TMFieldScene.cpp + Ghidra
 crash NPC Skill Apprentice 20260825 | STATICALLY VERIFIED  | dump/PDB + controles 1889/1890/6049–6052/6128
 crash NPC Skill Apprentice 20260827 | STATICALLY VERIFIED  | m_pHellgateStore nulo; lifecycle 1889/1905 protegido
+compra de skill no mestre 85FC6B25  | CONTRACT              | renderer 2D + TargetID 0x277 + testes byte-level
 layout/valores do HUD compacto      | STATICALLY VERIFIED  | texto sem stretch + IDs nativos
 EXP nativa em quatro quartos        | STATICALLY VERIFIED  | controles 1171–1174
 wheel/rotação de câmera             | STATICALLY VERIFIED  | input/lifecycle nativo
@@ -266,7 +268,9 @@ novo binário antes do teste real.
 ## Worktree e arquivos ativos
 
 - `client-source/tmproject/Projects/TMProject/SGrid.cpp` — grid ordinário usa
-  `BASE_GetMeshIndex`, caixa local fixa 24×24, origem da célula e contenção
+  `BASE_GetMeshIndex` para itens com mesh e o renderer 2D nativo para entradas
+  com `nIndexMesh < 0`, incluindo os livros de skill no atlas 199/1. Sprites
+  usam a origem da célula; meshes mantêm a centralização e contenção
   compartilhada pela diagonal completa do AABB. Inventário, Cargo, loja,
   trade/mix e drag usam o helper; os meshes `egg001..egg014` usam a escala
   nativa por `MaxZ`; equipamento preserva escala `1.0`.
@@ -300,6 +304,9 @@ novo binário antes do teste real.
 - `internal/game/handlers.go` — resolução autoritativa do banqueiro para Cargo.
 - `internal/game/coverage_more_test.go` — cobertura de bind, fallback, distância,
   visibilidade, DWORD alto e packets inválidos de Cargo.
+- `internal/game/skills_integration_test.go` — contrato byte-level de
+  `MSG_ApplyBonus` para o Skill Master, incluindo TargetID, catálogo vendido,
+  persistência, publicação e rollback.
 - `internal/game/affects.go`, `charstate.go` e `internal/wire/codec.go` — projeção
   7.48 de Armadura Crítica em aplicação, relogin e serialização.
 - A worktree contém muitas mudanças de sessões anteriores; inspecionar o diff
@@ -611,6 +618,28 @@ Repetir build, instalação e hash se o código mudar.
 - Estado: `STATICALLY VERIFIED`. Ainda é obrigatório testar no client abertura,
   X, reabertura, Esc, nova interação e clique nas habilidades.
 
+## Compra de skill no mestre em 2026-09-01
+
+- A ficha `flows/ui/skill-master-purchase.md` fechou em `CONTRACT` o fluxo
+  nativo desde a abertura dos roots 1889/1905 até `MSG_ApplyBonus` (`0x277`,
+  20 bytes), incluindo callers/callees, ownership, teardown e relogin.
+- `FUN_0040D13E` e `FUN_0040DD00` confirmam que itens sem mesh usam renderer
+  2D, atlas 199 na UI2 ou 1 no legado, textura do catálogo e origem da célula.
+  `SGridControlItem` agora preserva esse caminho para livros de skill sem
+  alterar a centralização dos itens 3D.
+- `FUN_004640E5`, via caller `FUN_004662C5`, confirma `BonusType=2`, o item em
+  `Detail` e o mestre em `TargetID`. `MouseClick_SkillMasterNPC` agora conserva
+  esse mestre em `m_sShopTarget` para o pacote de confirmação.
+- O teste byte-level cobre sucesso, target divergente, faixa e catálogo de
+  venda, persistência, rollback e ausência de publicação em falha.
+- `go test -count=1 ./...`, `go vet ./...`, o validador de pesquisa,
+  `git diff --check` e `Build-Client.ps1` passaram. O build Win32 terminou com
+  zero erros e 15 warnings C4018 preexistentes, instalando
+  `client748/project.exe` com SHA-256
+  `85FC6B2541784C4AF83A275B5614FD74B8990A303A6618AEC21DFBB02FE602D2`.
+- Estado máximo: `CONTRACT`. O fluxo real de abrir, renderizar, cancelar,
+  confirmar, rejeitar, fechar, reabrir e relogar ainda não foi executado.
+
 ## Paridade estática: `SetMyHumanMagic`
 
 - `TMFieldScene::SetMyHumanMagic()` permanece vazio por paridade com
@@ -641,7 +670,8 @@ Repetir build, instalação e hash se o código mudar.
 - A entrada no mundo e a centralização de inventário/loja/equipamento já foram
   confirmadas no candidato `5A4AEC0A...`; ainda validar notices `!`, Kibita e
   digitação/backspace. A abertura do NPC Skill Apprentice falhou no candidato
-  anterior; a correção `F8251714...A380B` ainda requer o fluxo real completo.
+  anterior; a correção e a compra no Skill Master agora devem ser testadas no
+  candidato `85FC6B25...02FE602D2`.
 - Ao lado de um banqueiro, mover item inventário↔Cargo e conferir persistência,
   rejeição fora de alcance e atualização de gold/slots.
 - Clicar para atacar um inimigo fora do alcance e confirmar aproximação até o
@@ -672,23 +702,26 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Próximo passo executável
 
-1. No candidato `F8251714...A380B`, abrir o NPC Skill Apprentice, fechar pelo X,
-   reabrir, fechar por Esc, interagir novamente e clicar nas habilidades.
-2. Testar a placa sem hover e o título dentro da faixa escura no mesmo
-   candidato `F8251714...A380B`.
-3. Testar Cargo no novo candidato, abrindo antes e
+1. No candidato `85FC6B25...02FE602D2`, abrir o NPC Skill Master e conferir os
+   ícones dos livros; cancelar uma compra, confirmar outra e validar uma
+   rejeição sem estado visual stale.
+2. Fechar o Skill Master pelo X e por Esc, reabrir entre os dois caminhos e
+   repetir depois de logout/relogin.
+3. Testar a placa sem hover e o título dentro da faixa escura no mesmo
+   candidato `85FC6B25...02FE602D2`.
+4. Testar Cargo no novo candidato, abrindo antes e
    depois de AutoTrade/loja para excluir posições residuais, em 1024x768 e
    1280x960.
-4. Testar a AutoTrade no mesmo candidato: adicionar o
+5. Testar a AutoTrade no mesmo candidato: adicionar o
    mesmo item, informar preço válido, repetir com preço inválido, conferir a
    placa `NewUI_AutoTrade_BG` junto do título e, ao abrir por outro personagem,
    conferir fundo/preço, confirmação `Não`/`Sim`, avisos, remoção imediata da
    placa após o último item e alinhamento do Carry.
-5. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
+6. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
    família `egg001..egg014`; depois repetir `Steel_Pants`, armadura larga, arma
    longa e item pequeno para excluir regressão nos demais itens.
-6. Depois do teste do NPC no novo candidato, repetir entrada no mundo,
+7. Depois do teste do NPC no novo candidato, repetir entrada no mundo,
    digitação/backspace, notice e Kibita; depois testar Cargo, autoaproximação,
    HUD, câmera e fechamento em 1280×960.
-7. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
+8. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
    real correspondente.

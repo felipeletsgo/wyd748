@@ -1,12 +1,121 @@
 package game
 
 import (
+	"encoding/binary"
 	"errors"
 	"testing"
 	"time"
 
 	"wydgo/internal/model"
 )
+
+func skillMasterApplyBonusPacket(item, master uint16) []byte {
+	pkt := make([]byte, applyBonusPacketSize)
+	binary.LittleEndian.PutUint16(pkt[12:14], 2)
+	binary.LittleEndian.PutUint16(pkt[14:16], item)
+	binary.LittleEndian.PutUint16(pkt[16:18], master)
+	return pkt
+}
+
+func skillMasterPacketTestWorld(t *testing.T) (*World, *Player, *craftStore, *Mob) {
+	t.Helper()
+	w, p, st := handlerTestWorld(t)
+	p.Char.Class = 0
+	p.Char.Score.Level = 20
+	p.Char.Score.SkillPts = 100
+	applyScore(p.Char)
+	w.skills = map[int]model.SkillDef{
+		0: {Index: 0, Name: "Skill0", SkillPoint: 1},
+		1: {Index: 1, Name: "Skill1", SkillPoint: 1},
+	}
+	w.items[5000] = model.ItemDef{Index: 5000}
+	w.items[5001] = model.ItemDef{Index: 5001}
+	master := &Mob{
+		ID: 1200, X: p.X + 1, Y: p.Y,
+		Def: &model.NPCDef{
+			Name: "Master", Tipo: model.TipoNPC,
+			Score: &model.Score{
+				Version: model.ScoreVersion, Merchant: skillMasterMerchant,
+			},
+			Vende: []model.Item{{Index: 5000}},
+		},
+	}
+	w.registerMobSpatial(master)
+	p.ShopNPC = master.ID
+	return w, p, st, master
+}
+
+func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
+	t.Run("persiste e publica os tres estados", func(t *testing.T) {
+		w, p, st, master := skillMasterPacketTestWorld(t)
+		packetsBefore := p.Session.QueuedPacketsForTest()
+
+		w.onApplyBonus(p.Session, skillMasterApplyBonusPacket(5000, master.ID))
+
+		if p.Char.LearnedSkill&1 == 0 || st.saves != 1 {
+			t.Fatalf("skill nao foi aprendida/persistida: mask=%X saves=%d", p.Char.LearnedSkill, st.saves)
+		}
+		if got := p.Session.QueuedPacketsForTest(); got != packetsBefore+3 {
+			t.Fatalf("sucesso publicou %d pacotes adicionais, quer 3", got-packetsBefore)
+		}
+	})
+
+	t.Run("rejeita target diferente da loja aberta", func(t *testing.T) {
+		w, p, st, master := skillMasterPacketTestWorld(t)
+		learnedBefore := p.Char.LearnedSkill
+		packetsBefore := p.Session.QueuedPacketsForTest()
+
+		w.onApplyBonus(p.Session, skillMasterApplyBonusPacket(5000, master.ID+1))
+
+		if p.Char.LearnedSkill != learnedBefore || st.saves != 0 ||
+			p.Session.QueuedPacketsForTest() != packetsBefore {
+			t.Fatal("target incorreto alterou, persistiu ou publicou estado")
+		}
+	})
+
+	for _, test := range []struct {
+		name string
+		item uint16
+	}{
+		{name: "item fora da faixa", item: 5096},
+		{name: "item nao vendido", item: 5001},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			w, p, st, master := skillMasterPacketTestWorld(t)
+			if test.item == 5096 {
+				master.Def.Vende = append(master.Def.Vende, model.Item{Index: test.item})
+			}
+			packetsBefore := p.Session.QueuedPacketsForTest()
+
+			w.onApplyBonus(p.Session, skillMasterApplyBonusPacket(test.item, master.ID))
+
+			if p.Char.LearnedSkill != 0 || st.saves != 0 ||
+				p.Session.QueuedPacketsForTest() != packetsBefore {
+				t.Fatal("item invalido alterou, persistiu ou publicou estado")
+			}
+		})
+	}
+
+	t.Run("rollback em falha de persistencia", func(t *testing.T) {
+		w, p, st, master := skillMasterPacketTestWorld(t)
+		p.Char.LearnedSkill = 1 << 3
+		learnedBefore := p.Char.LearnedSkill
+		packetsBefore := p.Session.QueuedPacketsForTest()
+		st.err = errors.New("save failed")
+
+		w.onApplyBonus(p.Session, skillMasterApplyBonusPacket(5000, master.ID))
+
+		if st.saves != 1 {
+			t.Fatalf("falha de persistencia tentou %d saves, quer 1", st.saves)
+		}
+		if p.Char.LearnedSkill != learnedBefore {
+			t.Fatalf("rollback nao preservou LearnedSkill: %X -> %X", learnedBefore, p.Char.LearnedSkill)
+		}
+		if p.Session.QueuedPacketsForTest() != packetsBefore {
+			t.Fatal("falha de persistencia publicou estado")
+		}
+	})
+}
 
 func TestLearnSkillAtMasterPersistsAndRollsBack(t *testing.T) {
 	w, p, st := handlerTestWorld(t)

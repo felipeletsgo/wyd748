@@ -5282,10 +5282,24 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 
 	if (m_pItem && WYD748_IsValidItemIndex(pItem->sIndex))
 	{
-		// FUN_0040d13e resolves the catalog entry through FUN_0040cea0 before mesh
-		// binding.  BASE_GetMeshIndex is that source-side translation; using the raw
-		// nIndexMesh here was client-tested and produced generic spheres/rocks.
-		m_GCObj.n3DObjIndex = BASE_GetMeshIndex(pItem->sIndex);
+		const auto& itemDef = g_pItemList[pItem->sIndex];
+		if (itemDef.nIndexMesh < 0)
+		{
+			// FUN_0040d13e keeps catalog rows without a mesh in the native 2D item
+			// path. Skill books (5000..5095) use the UI skill atlas instead of a
+			// translated model index, so they must never reach BASE_GetMeshIndex.
+			m_GCObj.eRenderType = RENDERCTRLTYPE::RENDER_IMAGE_STRETCH;
+			m_GCObj.nTextureSetIndex = g_UIVer == 2 ? 199 : 1;
+			m_GCObj.nTextureIndex = itemDef.nIndexTexture;
+			m_GCObj.n3DObjIndex = -1;
+		}
+		else
+		{
+			// FUN_0040d13e resolves mesh-backed rows through FUN_0040cea0. The
+			// source-side equivalent is BASE_GetMeshIndex; using nIndexMesh raw
+			// produced generic spheres/rocks in the active client.
+			m_GCObj.n3DObjIndex = BASE_GetMeshIndex(pItem->sIndex);
+		}
 		m_GCText.strString[0] = 0;
 		m_GCText.pFont = &m_Font;
 
@@ -5445,11 +5459,11 @@ void SGridControlItem::FrameMove2(stGeomList* pDrawList, TMVector2 ivItemPos, in
 	// malformed shop row from becoming an out-of-bounds mesh lookup.
 	if (m_pItem && WYD748_IsValidItemIndex(m_pItem->sIndex))
 	{
-		// FUN_0040dd00 receives the item's box origin and converts it to the renderer
-		// centre on both axes. Omitting the half-width uniformly shifts grid and
-		// equipment meshes half a cell to the left.
-		m_GCObj.nPosX = ivItemPos.x + m_nPosX + (m_nWidth * 0.5f);
-		m_GCObj.nPosY = ivItemPos.y + m_nPosY + (m_nHeight * 0.5f);
+		const bool isSprite = g_pItemList[m_pItem->sIndex].nIndexMesh < 0;
+		// FUN_0040dd00 leaves native sprites at the item-box origin. Only meshes
+		// convert that origin to the renderer centre by adding half their footprint.
+		m_GCObj.nPosX = ivItemPos.x + m_nPosX + (isSprite ? 0.0f : m_nWidth * 0.5f);
+		m_GCObj.nPosY = ivItemPos.y + m_nPosY + (isSprite ? 0.0f : m_nHeight * 0.5f);
 		m_GCObj.nWidth = m_nWidth;
 		m_GCObj.nHeight = m_nHeight;
 		m_GCObj.nLayer = inParentLayer;
@@ -5465,8 +5479,11 @@ void SGridControlItem::FrameMoveAtCenter748(stGeomList* pDrawList, TMVector2 ivI
 	if (!m_pItem || !WYD748_IsValidItemIndex(m_pItem->sIndex))
 		return;
 
-	m_GCObj.nPosX = ivItemCenter.x + m_nPosX;
-	m_GCObj.nPosY = ivItemCenter.y + m_nPosY;
+	const bool isSprite = g_pItemList[m_pItem->sIndex].nIndexMesh < 0;
+	// The parent supplied a final visual centre. A 2D control is origin-based,
+	// while a 3D control consumes that centre directly.
+	m_GCObj.nPosX = ivItemCenter.x + m_nPosX - (isSprite ? m_nWidth * 0.5f : 0.0f);
+	m_GCObj.nPosY = ivItemCenter.y + m_nPosY - (isSprite ? m_nHeight * 0.5f : 0.0f);
 	m_GCObj.nWidth = m_nWidth;
 	m_GCObj.nHeight = m_nHeight;
 	m_GCObj.nLayer = inParentLayer;

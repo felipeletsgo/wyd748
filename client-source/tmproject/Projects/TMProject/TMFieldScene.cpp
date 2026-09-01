@@ -29291,6 +29291,9 @@ int TMFieldScene::MouseClick_SkillMasterNPC(unsigned int dwServerTime, TMHuman* 
 		stReqShopList.TargetID = pOver->m_dwID;
 
 		m_pGridSkillMaster->m_dwMerchantID = pOver->m_dwID;
+		// MSG_ApplyBonus (0x277) confirms the selected 7.48 skill master through
+		// TargetID. Keep the same target captured by the shop-list request.
+		m_sShopTarget = pOver->m_dwID;
 
 		SendOneMessage((char*)&stReqShopList, sizeof(stReqShopList));
 		m_dwNPCClickTime = dwServerTime;
