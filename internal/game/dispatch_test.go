@@ -26,6 +26,7 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		{wire.OpReqShopList, 16},
 		{wire.OpBuyItem, 24},
 		{wire.OpBuyToto, 36},
+		{wire.OpDoJackpotBet, 20},
 		{wire.OpSellItem, 20},
 		{wire.OpApplyBonus, applyBonusPacketSize},
 		{wire.OpPartyRequest, 44},

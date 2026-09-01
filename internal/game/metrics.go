@@ -75,6 +75,7 @@ var inboundCommandMetricLabels = map[uint16]string{
 	wire.OpCapsuleInfo:        "0x2CD",
 	wire.OpPutoutSeal:         "0x3CC",
 	wire.OpBuyToto:            "0x3CE",
+	wire.OpDoJackpotBet:       "0x2BE",
 	wire.OpUseNPC:             "0x28B",
 	wire.OpReqShopList:        "0x27B",
 	wire.OpBuyItem:            "0x379",

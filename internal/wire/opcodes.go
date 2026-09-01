@@ -43,6 +43,8 @@ const (
 	OpCapsuleInfo        = 0x2CD // C->S consulta os dados de um Spirit's Seal (16B)
 	OpPutoutSeal         = 0x3CC // C->S extrai o personagem de um Spirit's Seal (52B)
 	OpBuyToto            = 0x3CE // C->S compra bilhete TOTO (36B: loja/destino/partida/placares)
+	OpDoJackpotBet       = 0x2BE // C->S aposta Gamble 7.48 (20B: tipo@12, aposta@16)
+	OpResultGamble       = 0x1BF // S->C resultado Gamble 7.48 (36B)
 	OpCNFCapsuleInfo     = 0xDC3 // S->C MSG_CAPSULEINFO compacto do client 7.48 (52B)
 	OpSendItem           = 0x182 // S->C confirma UM slot (24B)
 	OpWarInfo            = 0x3A8 // S->C info de guerra (24B)

@@ -17,6 +17,18 @@ func Build(typ, id uint16, size int) []byte {
 	return b
 }
 
+// ResultGamble preserva o layout exato consumido pelo dispatcher 0x1BF do
+// client 7.48. Os oito bytes entre as paradas e o premio sao reservados e
+// permanecem zerados.
+func ResultGamble(id uint16, result [5]byte, stops [3]byte, prize int32, jackpot uint32) []byte {
+	b := Build(OpResultGamble, id, 36)
+	copy(b[12:17], result[:])
+	copy(b[17:20], stops[:])
+	putU32(b, 28, uint32(prize))
+	putU32(b, 32, jackpot)
+	return b
+}
+
 // MessageWhisper tambem e o correio nativo do 7.48: quando message inicia em
 // '!', TMFieldScene::OnPacketMessageWhisper grava o corpo no painel H em vez
 // de exibi-lo no chat. O cliente 7.48 usa Name[16]@12, String[96]@28 e

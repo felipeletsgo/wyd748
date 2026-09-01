@@ -258,6 +258,8 @@ type InstanceStateSnapshot struct {
 	Version            int                    `json:"version"`
 	Instances          []InstanceRuntimeState `json:"instances,omitempty"`
 	NightmarePartyRuns map[string]int         `json:"nightmarePartyRuns,omitempty"`
+	GambleJackpot      uint32                 `json:"gambleJackpot,omitempty"`
+	GamblePool         uint64                 `json:"gamblePool,omitempty"`
 }
 
 const InstanceStateVersion = 1

@@ -29,6 +29,8 @@ func (w *World) instanceStateSnapshot() *model.InstanceStateSnapshot {
 	snapshot := &model.InstanceStateSnapshot{
 		Version:            model.InstanceStateVersion,
 		NightmarePartyRuns: make(map[string]int, len(w.nightmarePartyRuns)),
+		GambleJackpot:      w.gambleJackpot,
+		GamblePool:         w.gamblePool,
 	}
 	for key, count := range w.nightmarePartyRuns {
 		if count > 0 {
@@ -311,6 +313,8 @@ func (w *World) restoreInstanceState() error {
 			w.nightmarePartyRuns[key] = count
 		}
 	}
+	w.gambleJackpot = min(snapshot.GambleJackpot, gambleJackpotMax)
+	w.gamblePool = min(snapshot.GamblePool, gamblePoolMax)
 	now := w.now()
 	for _, saved := range snapshot.Instances {
 		if saved.RuntimeID == "" || saved.ConfigID == "" ||

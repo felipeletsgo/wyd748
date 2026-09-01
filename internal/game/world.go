@@ -481,7 +481,11 @@ type World struct {
 	pendingInstanceMembers map[string]map[string]struct{}
 	pendingInstanceLeaders map[string]string
 	nightmarePartyRuns     map[string]int
-	instanceStateDirty     bool
+	// GambleJackpot/Pool sao agregados globais duraveis. Vivem no World para
+	// manter aposta, conta e pools sob o mesmo escritor e a mesma transacao.
+	gambleJackpot      uint32
+	gamblePool         uint64
+	instanceStateDirty bool
 }
 
 // firstMobID e o inicio da faixa de mobs; abaixo dela ficam os jogadores.
@@ -1850,6 +1854,8 @@ func (w *World) handle(cmd command) {
 		w.onBuyItem(cmd.s, cmd.pkt)
 	case wire.OpBuyToto:
 		w.onBuyToto(cmd.s, cmd.pkt)
+	case wire.OpDoJackpotBet:
+		w.onDoJackpotBet(cmd.s, cmd.pkt)
 	case wire.OpSellItem:
 		w.onSellItem(cmd.s, cmd.pkt)
 	case wire.OpApplyBonus:
