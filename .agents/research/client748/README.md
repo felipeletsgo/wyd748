@@ -70,6 +70,14 @@ Estado atual do mapa:
 | Compra e materialização do bilhete TOTO | `CONTRACT` | `flows/transport/toto-buy.md` |
 | Aposta, rolagem e resultado Gamble/Jackpot | `CONTRACT` | `flows/ui/gamble-jackpot.md` |
 | Abertura, render e compra de skill no mestre | `CONTRACT` | `flows/ui/skill-master-purchase.md` |
+| Caixa visual e escala de itens em grids | `TRACED` | `flows/ui/grid-item-mesh-scale.md` |
+| Composição lado a lado de Shop e Inventory | `TRACED` | `flows/ui/shop-inventory-layout.md` |
+| Composição lado a lado de Trade e Inventory | `TRACED` | `flows/ui/trade-inventory-layout.md` |
+| Posição compartilhada de AutoTrade, Cargo e Inventory | `TRACED` | `flows/ui/auto-trade-inventory-layout.md` |
+| Composição dos seis ItemMix com Inventory | `TRACED` | `flows/ui/native-mix-inventory-layout.md` |
+| Posição inicial e toggle do menu inferior direito | `TRACED` | `flows/ui/system-menu-initial-layout.md` |
+| Composição lado a lado de Character, Skill e Inventory | `TRACED` | `flows/ui/feature-panel-layout.md` |
+| Posição do painel de seleção de personagem | `TRACED` | `flows/ui/select-character-layout.md` |
 | Exibição do Premium Firework `0x3CA` | `CONTRACT` | `flows/ui/premium-firework-display.md` |
 | Sincronização de estado e controles C.C | `TRACED` | `flows/ui/cc-auto-combat-state-sync.md` |
 | `SetMyHumanMagic` nativo sem efeito | `STATICALLY_EVIDENCED` | `inventory/set-my-human-magic-noop.md` |

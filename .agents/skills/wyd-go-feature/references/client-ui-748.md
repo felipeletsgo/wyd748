@@ -27,10 +27,10 @@ Exportações Ghidra citadas abaixo são descobertas pelo procedimento de
 
 | Função 7.48 | Contrato recuperado |
 | --- | --- |
-| `FUN_0040d13e` | Construtor nativo de `SGridControlItem`; célula visual de 24×24 e largura/altura lógicas vindas de `g_pItemGridXY`. |
+| `FUN_0040d13e` | Construtor nativo de `SGridControlItem`; meshes e UI legada usam caixa de 24 por dimensão lógica. Sprites UI2 usam 23 para itens 5000..5102 e 32 para os demais, sempre multiplicados por `g_pItemGridXY`. |
 | `FUN_0040e817` | Ao adicionar item à grid ordinária, limita a escala a `(altura_lógica × 0.3) / mesh->m_fMaxZ` quando a malha excede o alvo. A comparação histórica com o binário patchado mostra altura lógica 1 sem alteração do renderer; esse fato deve ser adaptado na source. |
 | `FUN_0040dd00` | Atualiza frame/posição do item e centraliza a representação na célula/região nativa. |
-| `FUN_00435b13` | Materializa os seis textos do HUD compacto nos IDs 1029, 1030, 1031, 1032, 1033 e 1040; também vincula separadamente a Skill comum (root 1905) e o Skill Apprentice de NPC (root 1889). |
+| `FUN_00435b13` | Materializa os seis textos do HUD compacto nos IDs 1029, 1030, 1031, 1032, 1033 e 1040; vincula Skill comum (1905), Skill Apprentice (1889), Inventory (257) e os seis ItemMix; recompõe em runtime os layouts responsivos desses roots. |
 | `FUN_004431e4` | Atualiza EXP atual/limiar absoluto do próximo nível, ATT/dano da skill selecionada, DEF/defesa base-companheira e o progresso de EXP dividido em quatro quartos. |
 
 Antes de alterar esse fluxo, abrir a função e seus callers/callees novamente.
@@ -116,28 +116,23 @@ targetExtent = 0.3
 scale = min(1, targetExtent / meshMaxZ)
 ```
 
-Entretanto, a source recompilável precisou de uma adaptação delimitada porque
-malhas não-ovo com origem/extremos assimétricos escapavam da célula quando
-avaliadas apenas por `MaxZ`. O contrato atual separa explicitamente:
+`FUN_0040e6aa` (slot virtual `+0x8c`) e `FUN_0040e817` (slot virtual `+0x90`)
+executam a mesma regra de inserção e escala. Ambas consultam exclusivamente
+`mesh+0x354` (`MaxZ`); o client nativo não usa AABB, raio nem exceção por família
+de item. A source ativa mantém essa fórmula única para grids de células,
+mantém equipamento em escala própria `1.0` e recalcula o contexto durante drag.
 
-- `egg001..egg014` (meshes 300–303 e 937–946 comprovadas pelo ItemList 7.48):
-  usa exatamente `min(1, 0.3 / MaxZ)`, evitando que os ovos fiquem minúsculos;
-- demais itens em grids de uma célula: contém a diagonal completa do AABB em
-  `0.27`, reservando borda conservadora sem ampliar malhas pequenas;
-- equipamento: mantém escala própria `1.0`, sem herdar o fit de grid;
-- drag: recalcula conforme o contexto de destino.
-
-A fórmula dos ovos é comportamento nativo recuperado; a contenção por AABB é
-uma adaptação deliberada da source atual, não uma alegação de que o binário
-stock fazia o mesmo. Não generalizar a exceção de ovos nem trocar novamente a
-métrica sem comparar famílias representativas de armas, armaduras e itens
-assimétricos.
+Os tamanhos `23`, `24` e `32` são coordenadas lógicas da UI 800×600. Na source,
+a caixa visual (`m_nWidth`/`m_nHeight` e `m_GCObj.m_fWidth`/`m_fHeight`) deve
+aplicar `RenderDevice::m_fWidthRatio`/`m_fHeightRatio`, assim como a grid. Isso
+preserva o resultado em 800×600 e evita ícones fisicamente pequenos dentro de
+slots ampliados em resoluções maiores sem alterar `fScale`.
 
 `FUN_0040fc3e` calcula a origem com `largura/colunas` e `altura/linhas`.
 `FUN_0040dd00` centraliza usando metade da largura e metade da altura da região;
 essa centralização foi confirmada visualmente no client atual. Isso não prova,
 sozinho, drag, equipamento ou todas as famílias de malha. O redimensionamento
-dos ovos ainda exige execução real documentada antes de receber
+dos itens ainda exige execução real documentada antes de receber
 `CLIENT-TESTED`.
 
 Equipamento não deve reutilizar a escala reduzida do inventário. Recalcular a
@@ -206,6 +201,16 @@ fluxo nativo; portanto nenhum deles é uma UI livre para um sistema novo.
 | 5 | 6481 / 6483–6489 / 6482 | Lindy no chunk 13,13 e Odin no chunk 25,13 com Merchant baixo = 8 | `0x2C3` Lindy; `0x2D2` Odin |
 | 6 | 6512 / 6516–6518 / 6514 | Ehre, cabeça 68 no chunk 19,15 | `0x2D3` |
 
+`FUN_00435b13` centraliza cada um dos seis roots ItemMix separadamente e
+posiciona Inventory à direita por
+`centerX + Inventory.width*0.5 + 10`, com ambos centralizados verticalmente.
+Como Shop, Trade e AutoTrade movem o mesmo root 257, essa composição deve ser
+reaplicada ao abrir qualquer artesão; a posição serializada ou residual não é
+o layout final nativo. Os toggles/cleanups correspondentes são, em ordem,
+`FUN_00449384`/`FUN_004487E2`, `FUN_00449632`/`FUN_004489C5`,
+`FUN_004498E0`/`FUN_00448C38`, `FUN_00449B8E`/`FUN_00448E0B`,
+`FUN_00449E3C`/`FUN_00448FDE` e `FUN_0044A0FB`/`FUN_004491B1`.
+
 ItemMix2 também possui quatro grids de resultado, IDs 6129–6132. A ordem das
 condições em `MouseClick_MixNPC` faz parte do contrato: Ehre deve ser testada
 antes do fallback Tiny e os casos específicos da cabeça 67 antes do fallback.
@@ -242,6 +247,13 @@ Roots 1905 e 1889 possuem lifecycles distintos no 7.48. A tecla/botão Skill
 alterna somente 1905. O root 1889 é a janela Skill Apprentice controlada pela
 interação com NPC e deve iniciar oculto; nunca vinculá-lo ao mesmo toggle da
 Skill comum.
+
+Durante a interação com o Skill Apprentice, `FUN_0044c15c` abre os dois roots:
+1889 centralizado e 1905 à direita em
+`centerX + skillWidth*0.5 + 10`. O fechamento oculta o par e devolve 1905 ao
+centro para seu toggle independente. A grade do mestre em `FieldScene2.bin` é
+1894 (`type=16`, parent 1889, `31,63`, `191x241`, `8x4`); 6128 é o controle de
+descrição `TML_SKILLM_DESC`, não uma grade.
 
 ## Mensagens, login e seleção de servidor
 

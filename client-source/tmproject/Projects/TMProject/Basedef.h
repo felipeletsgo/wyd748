@@ -12,6 +12,9 @@
 #include <tlhelp32.h>
 #include <timeapi.h>
 
+constexpr float WYD748_UI_BASE_WIDTH = 800.0f;
+constexpr float WYD748_UI_BASE_HEIGHT = 600.0f;
+
 
 #define Snow                    0xFFFFFAFA
 #define GhostWhite              0xFFF8F8FF

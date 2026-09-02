@@ -4,7 +4,7 @@ title: Aposta, rolagem e resultado Gamble/Jackpot
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # Aposta, rolagem e resultado Gamble/Jackpot
@@ -151,6 +151,22 @@ Recursos/controles `6400..6422` e assets Jackpot já existem na source atual;
 ausência de algum filho no recurso carregado deve ser tratada como controle
 opcional, não como autorização para fabricar um widget diferente.
 
+### Layout nativo
+
+Na inicialização de FieldScene2, `FUN_00435B13` resolve o root `0x1900`
+(`6400`) e aplica `SetPos` antes de ocultá-lo. Com as constantes nativas
+`0.5f` e `10.0f`, a posição é:
+
+```text
+x = viewportWidth * 0.5 - panelWidth * 0.5 + 10
+y = viewportHeight * 0.5 - panelHeight * 0.5
+```
+
+Assim, Gamble permanece centralizado verticalmente e dez pixels lógicos à
+direita do centro. A source reaplica essa composição tanto ao materializar o
+root compatível quanto em cada abertura, impedindo que posição serializada ou
+residual de outra janela determine o layout final.
+
 ## Mapeamento atual
 
 ### Source recompilável
@@ -160,10 +176,11 @@ offsets. `SReelPanel` implementa preparação, avanço, parada, linhas premiadas
 prêmio e jackpot. Os inicializadores compatível e moderno criam os reels em
 caminhos mutuamente exclusivos. `TMFieldScene` envia `0x2BE/20`, bloqueia
 intenção concorrente, valida integralmente `0x1BF`, aplica resultado somente ao
-reel ativo e centraliza fechamento/teardown em `SetVisibleGamble`. O desconto
-visual otimista foi removido; saldo só muda pelos snapshots do servidor. Se uma
-rejeição chegar somente por `MessagePanel`, o timeout interno de dez segundos
-interrompe o reel solicitado e libera a intenção sem modificar o wire.
+reel ativo, reaplica a posição nativa do root `6400` na abertura e centraliza
+fechamento/teardown em `SetVisibleGamble`. O desconto visual otimista foi
+removido; saldo só muda pelos snapshots do servidor. Se uma rejeição chegar
+somente por `MessagePanel`, o timeout interno de dez segundos interrompe o reel
+solicitado e libera a intenção sem modificar o wire.
 
 ### WYD-Go
 
@@ -207,6 +224,7 @@ referência de compatibilidade 7.59, não prova nativa 7.48.
 | --- | --- | --- | --- | --- | --- |
 | wire `0x2BE/0x1BF` | tamanhos/offsets confirmados | implementado com asserts e validação | compatível | implementado e testado byte a byte | `PARIDADE_NATIVA` |
 | animação/lifecycle | funções e destrutores confirmados | implementado com guards e fechamento central | estrutura semelhante | N/A | `PARIDADE_NATIVA` com guards |
+| layout do root `6400` | centro vertical e `+10` no eixo X em `FUN_00435B13` | reaplicado no bootstrap e em toda abertura | não utilizado como prova | N/A | `PARIDADE_NATIVA` |
 | RNG/pagamento | client não decide | não deve decidir | algoritmo recuperado | ausente | `MODERNIZACAO_COMPATIVEL` |
 | jackpot persistente | apenas apresenta | apenas apresenta | pool global | implementado no snapshot do `World` | autoridade Go persistente |
 | saldo | snapshots do servidor | sem desconto otimista | servidor paga | autoritativo, com rollback | manter snapshots autoritativos |
@@ -239,7 +257,7 @@ referência de compatibilidade 7.59, não prova nativa 7.48.
   único contrato ativo, sem patch binário.
 - Build: `Build-Client.ps1` passou com 0 erros e 21 warnings existentes e
   instalou `client748/project.exe`, SHA-256
-  `DB88DCC9D3CE085F383CD8B357EDEF6E5FB0C439DA91A8F075ADC5302C6385E7`.
+  `3EDB581805265E8CB23ED81B44483EF59F9CDB48A170178D5B7E272F1C364774`.
 - Automação: `go test -count=1 ./internal/game ./internal/wire`,
   `go test -count=1 ./...`, `validate_research.py` e `git diff --check`
   passaram em 2026-08-31.

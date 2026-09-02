@@ -61,8 +61,8 @@ RenderDevice::RenderDevice(DWORD dwScreenWidth, DWORD dwScreenHeight, DWORD dwBi
 	m_bSupportPS11 = 0;
 	m_bSupportVS20 = 0;
 
-	RenderDevice::m_fWidthRatio = (float)m_dwScreenWidth / 965.0f;
-	RenderDevice::m_fHeightRatio = (float)m_dwScreenHeight / 600.0f;
+	RenderDevice::m_fWidthRatio = (float)m_dwScreenWidth / WYD748_UI_BASE_WIDTH;
+	RenderDevice::m_fHeightRatio = (float)m_dwScreenHeight / WYD748_UI_BASE_HEIGHT;
 
 	m_bSavage = 0;
 

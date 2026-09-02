@@ -23,8 +23,9 @@ autoritativos?
   `FUN_00435B13`, `FUN_0044C15C`, `FUN_0044C53F`, `FUN_0044DF53`,
   `FUN_004640E5`, caller `FUN_004662C5`, `FUN_004875C0`, gate
   `FUN_0055890A` e sender `FUN_0055F2DD`.
-- Asset/UI: `FieldScene2.bin`, roots `1889/0x761` e `1905/0x771`, catálogo de
-  itens e atlas de skills `199` para UI2 ou `1` para o layout legado.
+- Asset/UI: `FieldScene2.bin`, roots `1889/0x761` e `1905/0x771`, grade
+  `1894/0x766`, catálogo de itens e atlas de skills `199` para UI2 ou `1` para
+  o layout legado.
 - Source: `Basedef.h`, `SGrid.cpp`, `TMFieldScene.cpp` e
   `WYD748Compat.cpp` em `client-source/tmproject/Projects/TMProject/`.
 - Server: `internal/game/skills.go`, dispatcher em `internal/game/world.go`,
@@ -65,7 +66,10 @@ decide classe, pré-requisitos, pontos, custo nem aquisição.
 No caminho anterior, `FUN_004875C0` materializa a lista recebida. Para cada
 item válido, `FUN_0040D13E` escolhe entre mesh e imagem. Entradas cujo
 `nIndexMesh` é negativo permanecem no renderer 2D, usam o atlas `199`/`1` e a
-textura `nIndexTexture`; não passam pelo resolvedor de mesh.
+textura `nIndexTexture`; não passam pelo resolvedor de mesh. Na UI2, as
+dimensões lógicas são multiplicadas por `23.0f` para itens `5000..5102` e por
+`32.0f` para os demais sprites. O caminho legado e os itens com mesh preservam
+o multiplicador `24.0f`.
 
 ### Callees
 
@@ -99,7 +103,7 @@ autoriza atualização otimista no client.
 | --- | --- | --- | --- | --- | --- |
 | selecionar mestre | NPC válido e painel de loja fechado | pedido da lista | mestre e pedido pendentes | envia intenção de lista | NPC/estado inválido não abre |
 | receber lista tipo 3 | roots, grade e seções materializados | `FUN_004875C0` | Skill Master visível | esvazia e preenche até 27 itens | recurso incompleto aborta |
-| renderizar livro 2D | item válido e `nIndexMesh < 0` | `FUN_0040D13E`/`FUN_0040DD00` | sprite na célula | atlas e `nIndexTexture`; posição pela origem | índice inválido não acessa catálogo |
+| renderizar livro 2D | item válido e `nIndexMesh < 0` | `FUN_0040D13E`/`FUN_0040DD00` | sprite 23×23 por célula na UI2 | atlas e `nIndexTexture`; posição pela origem | índice inválido não acessa catálogo |
 | clicar livro | painel visível e célula preenchida | grid Skill Master | MessageBox visível | preserva item e mestre no argumento | célula vazia não envia |
 | cancelar | confirmação visível | MessageBox | confirmação fechada | nenhum packet | estado server-side intacto |
 | confirmar | item e mestre capturados | `FUN_004662C5` -> `FUN_004640E5` | aguarda resposta/snapshots | envia `0x277/20` | client não publica sucesso local |
@@ -133,11 +137,14 @@ skill, score e gold e impede qualquer publicação de sucesso.
 ### Cleanup e teardown
 
 O native usa `FUN_0044C15C`/`FUN_0044C53F` para visibilidade e
-`FUN_0044DF53` no fechamento global. Na source, `SetVisibleSkillMaster`
-centraliza a transição dos dois roots, protege controles opcionais, fecha
-painéis concorrentes e limpa o hover. Esvaziar ou destruir a grade libera seus
-itens visuais pela árvore da Field; o pedido não mantém callback ou buffer
-externo vivo.
+`FUN_0044DF53` no fechamento global. Ao abrir o par, root `1889` fica
+centralizado e root `1905` fica à direita em
+`(centerX + skillWidth*0.5 + 10, centerY - skillHeight*0.5)`. Ao fechar, ambos
+ficam ocultos e root `1905` retorna à posição central de sua abertura comum.
+Na source, `SetVisibleSkillMaster` centraliza essa transição, protege controles
+opcionais, fecha painéis concorrentes e limpa o hover. Esvaziar ou destruir a
+grade libera seus itens visuais pela árvore da Field; o pedido não mantém
+callback ou buffer externo vivo.
 
 ### Shutdown
 
@@ -174,10 +181,12 @@ Opcode `0x277`, tamanho 20, little-endian.
 ### Recursos e render
 
 `FUN_00435B13` vincula separadamente root `1889/0x761` do Skill Master e root
-`1905/0x771` da janela Skill comum. O renderer 2D usa atlas `199` em UI2 ou
-atlas `1` no layout legado e seleciona `nIndexTexture` do item. Sprites usam
-origem da célula; apenas meshes recebem meia largura/altura para converter ao
-centro.
+`1905/0x771` da janela Skill comum. A grade real do mestre no recurso é o
+controle `1894/0x766`, `type=16`, filho de `1889`, em `(31,63)`, com
+`191x241`, `8` linhas e `4` colunas. O ID `6128` é um controle tipo `6`
+(`TML_SKILLM_DESC`), não a grade. O renderer 2D usa atlas `199` em UI2 ou atlas
+`1` no layout legado e seleciona `nIndexTexture` do item. Sprites usam origem
+da célula; apenas meshes recebem meia largura/altura para converter ao centro.
 
 ## Mapeamento atual
 
@@ -187,7 +196,8 @@ centro.
 `m_sShopTarget`. O grid combina mestre e item no argumento da confirmação; o
 handler da MessageBox separa os 16 bits altos/baixos e envia
 `MSG_ApplyBonus`. `SGridControlItem` agora preserva livros sem mesh no caminho
-2D, com atlas/textura nativos e sem chamar `BASE_GetMeshIndex`.
+2D, com atlas/textura e caixa 23×23 nativos na UI2, sem chamar
+`BASE_GetMeshIndex`.
 
 `OnPacketShopList` aceita tipo `3`, valida controles essenciais, esvazia a
 grade, cria no máximo 27 itens e abre a UI por `SetVisibleSkillMaster`.
@@ -207,7 +217,8 @@ os três estados; falha de save restaura tudo.
 | --- | --- | --- | --- | --- | --- |
 | wire da compra | `0x277/20`, tipo 2, item e mestre confirmados | struct e sender compatíveis | nomes ajudam, não decidem ABI | parser/testes nos offsets nativos | `PARIDADE_NATIVA` |
 | mestre da confirmação | `TargetID` vem da interação corrente | capturado junto do pedido da lista | estado posterior não decide alvo 7.48 | revalida contra loja aberta | `PARIDADE_NATIVA` |
-| livros sem mesh | sprite por atlas/textura | caminho 2D restaurado | renderer genérico podia traduzir como mesh | N/A | `PARIDADE_NATIVA` |
+| livros sem mesh | sprite por atlas/textura; UI2 usa 23× para 5000..5102 | caminho 2D e dimensões restaurados | renderer genérico podia traduzir como mesh | N/A | `PARIDADE_NATIVA` |
+| composição Skill Master | 1889 central; 1905 à direita durante o NPC e central ao fechar | toggle simétrico dos dois roots | hardcode posterior não decide posição 7.48 | N/A | `PARIDADE_NATIVA` |
 | autoridade da compra | client envia intenção | sem mutação otimista | lógica local posterior não é autoridade | valida, persiste, rollback e publica | manter arquitetura server-authoritative |
 | controles auxiliares | somente roots/filhos materializados são válidos | ponteiros opcionais protegidos | pode possuir widgets extras | N/A | manter estrutura superior compatível, sem fabricar recurso |
 
@@ -243,4 +254,10 @@ os três estados; falha de save restaura tudo.
   preexistentes fora das linhas alteradas.
 - Artefato: o build oficial instalou `client748/project.exe` com SHA-256
   `85FC6B2541784C4AF83A275B5614FD74B8990A303A6618AEC21DFBB02FE602D2`.
+- Follow-up visual em 2026-09-01: `SGridControlItem` passou a aplicar as caixas
+  UI2 nativas `23/32`, e `SetVisibleSkillMaster` passou a reproduzir a
+  composição e o fechamento simétrico dos roots `1889/1905`. O validador,
+  `git diff --check` e `Build-Client.ps1` passaram; Release Win32 v145 terminou
+  com zero erros e 15 warnings C4018 preexistentes. O candidato instalado tem
+  SHA-256 `9DE77CE65766703FADA3FEDA006388D907E5E53A55D5DFFC90669AB84931004F`.
 - Client real: não executado nesta entrega. Estado máximo `CONTRACT`.

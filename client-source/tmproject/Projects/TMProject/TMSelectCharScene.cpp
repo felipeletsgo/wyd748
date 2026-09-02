@@ -1812,7 +1812,13 @@ void TMSelectCharScene::VisibleSelectCreate(int bSelect)
 
 		if (pSelChar)
 		{
-			pSelChar->SetPos(RenderDevice::m_fWidthRatio * 650.0f, RenderDevice::m_fHeightRatio * 40.0f);
+			// Native 7.48 centers this panel on the right-hand quarter of the
+			// viewport. The control dimensions are already scaled by SControl.
+			pSelChar->SetPos(
+				(static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.75f)
+					- (pSelChar->m_nWidth * 0.5f),
+				(static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f)
+					- (pSelChar->m_nHeight * 0.5f));
 			pSelChar->SetVisible(0);
 		}
 

@@ -1,6 +1,6 @@
 # Handoff: paridade visual e funcional do client 7.48
 
-Atualizado em: 2026-09-01
+Atualizado em: 2026-09-02
 Estado geral: `STATICALLY VERIFIED`
 
 ## Objetivo e limites
@@ -17,12 +17,15 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | DA9F578E6AEF2A6F2ED923E893F412717F7966AC861A21F3A17D939EDF70EE3F
+client748/project.exe                            | candidato source | 3EDB581805265E8CB23ED81B44483EF59F9CDB48A170178D5B7E272F1C364774
 ```
 
 Os hashes históricos permanecem os fingerprints imutáveis registrados; o
-hash de `project.exe` foi atualizado pelo build de 2026-09-01. Esse hash é
+hash de `project.exe` foi atualizado pelo build de 2026-09-02. Esse hash é
 volátil e deve ser recalculado depois de qualquer build.
+
+O build `Release|Win32` deste candidato concluiu com zero erros e 21 warnings;
+`validate_research.py` e `git diff --check` também passaram.
 
 ## Evidência confirmada
 
@@ -49,22 +52,22 @@ volátil e deve ser recalculado depois de qualquer build.
 - As capturas do candidato `2C92F658...` confirmaram o sintoma dessa soma
   duplicada: itens de grades regulares apareciam aproximadamente meia célula à
   direita, enquanto os slots irregulares de equipamento continuavam centrados.
-- `FUN_0040e817` comprova a redução uniforme da malha e
-  `TMMesh::RenderForUI` comprova a centralização pelo AABB. A correção 1×1
-  deliberadamente adapta a redução para a diagonal completa do AABB, com
-  limite conservador de `0.27`, margem de 10% dentro da célula nativa de
-  `0.3` e teto de escala `1.0`; itens pequenos nunca são ampliados.
+- `FUN_0040e6aa` e `FUN_0040e817` ocupam os slots `+0x8C/+0x90` da vtable em
+  `0x005A4024` e leem exclusivamente `mesh+0x354` (`MaxZ`). A fórmula nativa é
+  `targetHeight = itemCellHeight * 0.3` e
+  `scale = MaxZ > targetHeight ? targetHeight / MaxZ : 1.0`; não há leitura da
+  diagonal do AABB, limite `0.27` ou ampliação acima de `1.0`.
 - A comparação histórica entre os binários 7.48 altera somente
   `g_pItemGridXY` e a máscara de ocupação; ela não corrige escala nem posição de
   render. Essa evidência foi portada para a source, sem executar ou reutilizar
   os patches, e o candidato mantém a fórmula stock de `FUN_0040e817`.
 - Inventário, Cargo, loja, trade/mix e item arrastado compartilham o helper de
-  contenção por AABB. O painel irregular de equipamento continua centralizado
-  em sua própria região e recebe escala explícita `1.0`, sem a contenção 1×1.
-- Os meshes exclusivos `egg001..egg014` (`300..303` e `937..946`) são uma
-  exceção comprovada: `FUN_0040e817` usa `min(1, 0.3 / MaxZ)`. Como todos têm
-  `MaxZ = 0.48`, a escala visual passa de aproximadamente `0.191` para `0.625`,
-  sem alterar centralização, footprint lógico 1×1 ou os demais itens.
+  escala por `MaxZ`. O painel irregular de equipamento continua centralizado
+  em sua própria região e recebe escala explícita `1.0`.
+- Não existe exceção nativa por nome, tipo ou família: `egg001..egg014` segue
+  exatamente a mesma fórmula por `MaxZ` dos demais meshes. As caixas lógicas
+  são `24x24` para mesh/UI legada, `23x23` para sprites UI2 `5000..5102` e
+  `32x32` para os demais sprites UI2.
 - `SCursor::FrameMove2` copia o `GeomControl` do item, incluindo `fScale`, antes
   de ancorá-lo ao cursor; assim o drag preserva a escala do contexto de origem.
 - `FUN_00435b13`: HUD compacto usa IDs 1029, 1030, 1031, 1032, 1033 e 1040;
@@ -132,8 +135,9 @@ volátil e deve ser recalculado depois de qualquer build.
 - O dump `client748/client-crash-20260825-151016.dmp` registra leitura nula em
   RVA `0xCC643`, resolvida pelo PDB para `TMFieldScene.cpp:23080` ao abrir o NPC
   Skill Apprentice. O bootstrap 7.48 não ligava `m_pSkillMSec1`; a árvore real
-  `FieldScene2.bin` e `FUN_00435b13` confirmam root 1889, child 1890, lista 6128
-  e textos 6049–6052. O candidato atual liga esses controles, desabilita a
+  `FieldScene2.bin` e `FUN_00435b13` confirmam root 1889, child 1890, grade 1894
+  e textos 6049–6052. O ID 6128 é `TML_SKILLM_DESC`, não a grade. O candidato
+  atual liga esses controles, desabilita a
   seleção do child como o nativo e protege os dois handlers de ShopType 3.
 - `FUN_004baf10` inicializa máximos da malha com `FLT_MIN` e mínimos com
   `FLT_MAX`. Os decimais recuperados na source quebravam o pivô/AABB e
@@ -202,8 +206,8 @@ para o hash legado acima.
 
 ```text
 grid lógico 1x1 no asset            | AUTOMATED TESTED      | 1980 EF_GRID=0; XOR/stamp/diff seletivo validados
-contenção visual em célula 1x1      | AUTOMATED TESTED      | AABB completo; limite 0.27; escala nunca acima de 1
-inventário/cargo/loja/trade/drag    | AUTOMATED TESTED      | helper compartilhado compilado em Release Win32
+escala visual em célula 1x1         | STATICALLY VERIFIED   | MaxZ e altura 0.3; escala nunca acima de 1
+inventário/cargo/loja/trade/drag    | STATICALLY VERIFIED   | helper por MaxZ; Release v145 passou
 equipamento sem contenção 1x1       | AUTOMATED TESTED      | centro do controle + escala explícita 1.0
 centralização candidato 2C92F658    | CLIENT-TESTED/FALHOU  | meia célula adicionada duas vezes em grades regulares
 correção de posição 1EEA1FC1        | CLIENT-TESTED/FALHOU  | inventário subiu meia célula; equipamento ficou 12 px à direita
@@ -219,6 +223,8 @@ Premium Firework 76B3E66E             | IMPLEMENTED / STATICALLY VERIFIED / AUTO
 array de animação 0x1C1/0x2C2 DA9F578E | CONTRACT / STATICALLY VERIFIED / AUTOMATED TESTED | wire nativo; probe server-side fail-closed
 layout/valores do HUD compacto      | STATICALLY VERIFIED  | texto sem stretch + IDs nativos
 EXP nativa em quatro quartos        | STATICALLY VERIFIED  | controles 1171–1174
+layout C/S/I lado a lado CD92A005   | STATICALLY VERIFIED  | FUN_00435b13 + roots 513/1905/257
+layout Gamble 3EDB5818              | STATICALLY VERIFIED  | root 6400; centro vertical e +10 X reaplicados no open
 wheel/rotação de câmera             | STATICALLY VERIFIED  | input/lifecycle nativo
 contagem de 5 s após X              | STATICALLY VERIFIED  | TimeDelay no frame compat
 atalhos/chat/minimap clássicos      | STATICALLY VERIFIED  | somente controles 7.48
@@ -254,15 +260,15 @@ placa/preços AutoTrade 73CABC41       | STATICALLY VERIFIED    | lifecycle por 
 placa/clique AutoTrade E077183B       | STATICALLY VERIFIED    | LabelPosition2 + left-click GRID_TRADEMY2 restaurados
 confirmação/título AutoTrade 7BA846DA | STATICALLY VERIFIED    | message box NewUI e ordem nativa texto/painel restauradas
 posição/persistência AutoTrade CAF93919 | IMPLEMENTED            | build passou; instalação bloqueada pelo project.exe PID 11008
-escala dos ovos 30DA37B9            | STATICALLY VERIFIED    | fórmula nativa por MaxZ; Release e assets passaram
+escala por MaxZ 30DA37B9            | HISTÓRICO/REFUTADO     | aplicava fórmula nativa só aos ovos; trace posterior removeu a exceção
 paridade visual dentro do mundo     | NÃO TESTADO          | autenticação não automatizada
 fechamento X/Esc e modais real      | NÃO TESTADO          | checklist client-ui-748.md
 ```
 
 O rebuild Release Win32 com toolset v145 terminou sem erros para o candidato
-atual; a compilação completa registrou 31 advertências preexistentes.
+atual; a compilação registrou 21 advertências preexistentes.
 O artefato instalado e o output de build possuem o mesmo SHA-256
-`DA9F578E...EE3F`; `Build-Client.ps1` instalou e verificou o candidato
+`3EDB5818...64774`; `Build-Client.ps1` instalou e verificou o candidato
 automaticamente, sem patch. Os candidatos
 `4BE5943C...`, `44677EF8...`, `41669031...`, `1EEA1FC1...` e `F8DA50A0...` foram
 testados pelo usuário e reprovaram no grid/mesh; não atribuir essas falhas ao
@@ -273,10 +279,10 @@ novo binário antes do teste real.
 - `client-source/tmproject/Projects/TMProject/SGrid.cpp` — grid ordinário usa
   `BASE_GetMeshIndex` para itens com mesh e o renderer 2D nativo para entradas
   com `nIndexMesh < 0`, incluindo os livros de skill no atlas 199/1. Sprites
-  usam a origem da célula; meshes mantêm a centralização e contenção
-  compartilhada pela diagonal completa do AABB. Inventário, Cargo, loja,
-  trade/mix e drag usam o helper; os meshes `egg001..egg014` usam a escala
-  nativa por `MaxZ`; equipamento preserva escala `1.0`.
+  usam a origem da célula; meshes mantêm a centralização. Inventário, Cargo,
+  loja, trade/mix e drag usam a fórmula nativa compartilhada por `MaxZ`, sem
+  exceção por família; equipamento preserva escala `1.0`. As caixas lógicas
+  `23/24/32` acompanham o ratio do viewport e sincronizam item e `GeomControl`.
 - `client-source/tmproject/Projects/TMProject/TMMesh.cpp` — sentinelas nativas
   `FLT_MIN`/`FLT_MAX` para AABB e pivô estáveis.
 - `client-source/tmproject/Projects/TMProject/WYD748Assets.cpp` — o adapter do
@@ -390,9 +396,10 @@ verificado em 2026-08-26:
 - correção da AutoTrade está `STATICALLY VERIFIED`; promover para
   `CLIENT-TESTED` somente após adicionar item, testar preço válido/inválido e
   confirmar a abertura da loja no client real
-- `FUN_0040e817` reaberta para a escala de itens: a família exclusiva
-  `egg001..egg014` agora usa `min(1, 0.3 / MaxZ)`, enquanto os demais itens
-  preservam a contenção conservadora pela diagonal completa do AABB
+- `FUN_0040e817` foi reaberta em uma etapa intermediária para aplicar
+  `min(1, 0.3 / MaxZ)` somente a `egg001..egg014`; a investigação posterior de
+  `FUN_0040e6aa`, da vtable e dos dispatches indiretos refutou essa exceção e a
+  contenção pela diagonal do AABB
 - build Release Win32 v145 passou com duas advertências preexistentes e zero
   erros; output e `client748/project.exe` = `30DA37B9...92044`
 - `Test-Client748Assets.ps1` passou com perfil 7.48, 6.500 itens, 3.584 texturas,
@@ -413,7 +420,8 @@ verificado em 2026-08-26:
 - auditoria de todos os tipos de affect usados por `SkillData`; somente o tipo
   50 exigia projeção para a faixa visual nativa
 - build Release Win32 v145 com 31 warnings preexistentes e zero erros depois da
-  contenção visual por AABB completo
+  contenção visual por AABB completo, hipótese intermediária posteriormente
+  refutada pelo trace nativo por `MaxZ`
 - build Release Win32 v145 com 21 advertências preexistentes e zero erros depois
   da correção assimétrica dos anchors de grid/equipamento
 - hashes do output e `client748/project.exe` = `5A4AEC0A...E48F6`, idênticos
@@ -435,8 +443,9 @@ verificado em 2026-08-26:
 - o candidato `41669031...` foi reprovado pelo usuário: a troca para
   `nIndexMesh` bruto removeu as meshes corretas e exibiu esferas/pedras genéricas
 - o candidato `2C92F658...` mantém `BASE_GetMeshIndex`, usa o footprint zero do
-  asset e contém meshes por AABB completo em todos os grids regulares; as
-  capturas do usuário reprovaram sua posição por deslocamento de meia célula
+  asset e aplicava a hipótese posteriormente refutada de contenção por AABB em
+  todos os grids regulares; as capturas do usuário reprovaram sua posição por
+  deslocamento de meia célula
 - o candidato `1EEA1FC1...` foi reprovado pela captura do usuário: os itens das
   grades regulares ficaram centralizados horizontalmente, mas meia célula acima;
   os itens equipados continuaram meia célula à direita
@@ -648,8 +657,14 @@ Repetir build, instalação e hash se o código mudar.
   20 bytes), incluindo callers/callees, ownership, teardown e relogin.
 - `FUN_0040D13E` e `FUN_0040DD00` confirmam que itens sem mesh usam renderer
   2D, atlas 199 na UI2 ou 1 no legado, textura do catálogo e origem da célula.
-  `SGridControlItem` agora preserva esse caminho para livros de skill sem
-  alterar a centralização dos itens 3D.
+  Na UI2, itens 5000–5102 usam caixa 23×23 por dimensão lógica e os demais
+  sprites usam 32×32; meshes e UI legada preservam 24×24. `SGridControlItem`
+  agora preserva esse caminho sem alterar a centralização dos itens 3D.
+- `FieldScene2.bin` confirma que a grade é 1894 (`type=16`, parent 1889,
+  `31,63`, `191x241`, `8x4`); 6128 é o texto `TML_SKILLM_DESC`.
+- `FUN_0044C15C` centraliza root 1889 e posiciona root 1905 à direita em
+  `centerX + skillWidth*0.5 + 10`. O toggle recompilável agora abre e oculta os
+  dois roots simetricamente e restaura 1905 ao centro no fechamento.
 - `FUN_004640E5`, via caller `FUN_004662C5`, confirma `BonusType=2`, o item em
   `Detail` e o mestre em `TargetID`. `MouseClick_SkillMasterNPC` agora conserva
   esse mestre em `m_sShopTarget` para o pacote de confirmação.
@@ -662,6 +677,12 @@ Repetir build, instalação e hash se o código mudar.
   `85FC6B2541784C4AF83A275B5614FD74B8990A303A6618AEC21DFBB02FE602D2`.
 - Estado máximo: `CONTRACT`. O fluxo real de abrir, renderizar, cancelar,
   confirmar, rejeitar, fechar, reabrir e relogar ainda não foi executado.
+- Follow-up visual: caixas UI2 `23×23` para itens 5000–5102, `32×32` para os
+  demais sprites e composição/fechamento nativos dos roots 1889/1905 foram
+  recompilados. Validador, `git diff --check` e build Win32 v145 passaram; zero
+  erros, 15 warnings C4018 preexistentes. Candidato instalado:
+  `9DE77CE65766703FADA3FEDA006388D907E5E53A55D5DFFC90669AB84931004F`.
+  Continua `CONTRACT`, não `CLIENT-TESTED`.
 
 ## Paridade IME em 2026-09-01
 
@@ -785,6 +806,197 @@ Repetir build, instalação e hash se o código mudar.
 - Estado: `IMPLEMENTED`, `AUTOMATED TESTED` no wire/gameplay e
   `STATICALLY VERIFIED` no client. Sem execução real, não é `CLIENT-TESTED`.
 
+## Baseline visual 800x600 da UI em 2026-09-01
+
+- A comparação do TMProject em aproximadamente 1280x960 com o client original
+  em 800x600 mostrou compressão horizontal sistemática no HUD superior,
+  buffs, textos, controles, HUD inferior e placas sobre personagens.
+- A causa era uma baseline dividida: `BASE_ScreenResize()` e os quatro roots
+  inferiores de `FieldScene2.bin` já fechavam exatamente 800 pixels, mas
+  `RenderDevice`, `SControl`, clipping e `SProgressBar` calculavam a razão
+  horizontal contra 965. Em 1024 pixels, os roots 5739/5716/5745/5744 medem na
+  origem 311/185/264/40 e totalizam 800, confirmando a largura do recurso.
+- `Basedef.h` agora centraliza `WYD748_UI_BASE_WIDTH=800` e
+  `WYD748_UI_BASE_HEIGHT=600`; criação, autosize, centralização, clipping e
+  progress bars usam a mesma base. `m_dwCurrScreenX=965` foi preservado porque
+  guarda/restaura o modo físico e é sobrescrito por `GetDeviceCaps`, não define
+  coordenadas da UI.
+- O remendo que esticava o root 5716, fundo 5717, labels EXP/ATT/DEF, barra EXP,
+  HOLD e ornamentos foi removido. Os roots inferiores preservam dimensões do
+  recurso e recebem somente as ancoragens de viewport: chat à esquerda,
+  status ao rodapé, atalhos antes do menu e menu à direita.
+- As barras sobre personagens continuam na ordem correta
+  `barras -> nome -> personagem`. A cor superior roxa/azulada ainda difere do
+  vermelho/laranja original, mas não foi alterada neste lote porque os dois
+  caminhos de `TMHuman::LabelPosition` usam paletas diferentes e a evidência
+  nativa da seleção ainda não está fechada.
+- Classificação: `PARIDADE_NATIVA`; validação estática/build não equivalem a
+  teste visual. Gerar novo print em 1280x960 com o candidato recompilado antes
+  de promover qualquer parte deste ajuste para `CLIENT-TESTED`.
+- `Build-Client.ps1` passou em `Release|Win32` v145 com zero erros e 31 warnings
+  preexistentes. O candidato foi instalado em `client748/project.exe` com
+  SHA-256 `66F17B2CE195035122CBAC8C07C5907E5CAF88B4102CE82E22DE005835824FB0`.
+
+## Composição lado a lado de Character, Skill e Inventory em 2026-09-01
+
+- As capturas do candidato mostraram os painéis Character, Skill e Inventory
+  sobrepostos; a referência original mostrou a ordem lado a lado
+  `Character -> Skill -> Inventory`.
+- `FieldScene2.bin` serializa intencionalmente os três roots na mesma posição
+  `(530,0)`, todos com `227x421`: Character `513`, Skill `1905` e Inventory
+  `257`. Portanto, mover roots no asset não reproduziria o lifecycle nativo.
+- `FUN_00435b13` recompõe as posições depois do carregamento. As constantes do
+  executável são `0.5f`, `1.5f` e `10.0f`; em `800x600`, os resultados exatos
+  são Character `(49.5,89.5)`, Skill `(286.5,89.5)` e Inventory
+  `(523.5,89.5)`.
+- `TMFieldScene::PositionCompatFeaturePanels()` aplica essas fórmulas usando o
+  viewport atual e as dimensões materializadas. A chamada ocorre uma vez na
+  construção compatível, após os três bindings, para não apagar movimento
+  manual ao fechar/reabrir uma janela.
+- A ficha completa está em
+  `.agents/research/client748/flows/ui/feature-panel-layout.md`.
+- Classificação: `PARIDADE_NATIVA`. O validador de pesquisa, `git diff --check`
+  e o build `Release|Win32` v145 passaram; foram zero erros e 21 warnings
+  preexistentes. O pipeline instalou `client748/project.exe` com SHA-256
+  `CD92A005EBDAB0DF21D9BF5B1CB1C1FC593F048BB9011802B67D2F71539BF40B`.
+  Estado: `STATICALLY VERIFIED`; promover para `CLIENT-TESTED` somente após
+  teste visual, reabertura e relogin.
+
+## Posição do painel de seleção de personagem em 2026-09-01
+
+- A captura em `1280x960` mostrou o controle de seleção iniciado perto de
+  `x=1040` e cortado pela borda direita. A causa era
+  `VisibleSelectCreate()` multiplicar os literais `(650,40)` pela nova razão
+  correta de `800x600`; com largura renderizada `398.4`, o limite direito
+  chegava a `1438.4`.
+- `FUN_0049F0E7` carrega `SelCharScene2`, resolve `0x502`/`1282` e chama o slot
+  virtual `+0x68`. A vtable `0x005A44B4`, slot `0x005A451C`, resolve para
+  `FUN_004A250F`.
+- No branch responsivo, `FUN_004A250F` usa
+  `x=W*0.75-PW*0.5` e `y=H*0.5-PH*0.5`. Em `1280x960`, com controle
+  `398.4x592`, o resultado é `(760.8,184)`, inteiramente dentro do viewport.
+- `SControl` já materializa `m_nWidth/m_nHeight` escalados. A source agora usa
+  essas dimensões diretamente; botões, câmeras, visibilidade, asset, wire e
+  servidor não foram alterados.
+- A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/select-character-layout.md` e cobre
+  callers, callees, vtable, create/return, teardown e logout/relogin.
+- O validador, `git diff --check` e o build `Release|Win32` v145 passaram com
+  zero erros e zero warnings. O candidato instalado tem SHA-256
+  `C6184EBD938BC6120539958D049C1538DD3A27A0972108B635531A23E3C19254`.
+  Estado: `STATICALLY VERIFIED`, ainda não `CLIENT-TESTED`.
+
+## Caixa visual e escala de itens em grids em 2026-09-02
+
+- As capturas mostraram itens pequenos dentro da loja e do inventário. A
+  hipótese anterior de contenção pela diagonal do AABB, com limite `0.27` e
+  exceção para `egg001..egg014`, foi refutada pela reabertura do fluxo nativo.
+- `FUN_0040d13e` materializa caixa lógica `24x24` para mesh/UI legada,
+  `23x23` para sprites UI2 `5000..5102` e `32x32` para os demais sprites UI2.
+  `FUN_0040e6aa` e `FUN_0040e817`, slots `+0x8C/+0x90` da vtable
+  `0x005A4024`, leem somente `mesh+0x354` (`MaxZ`) e aplicam
+  `min(1, itemCellHeight * 0.3 / MaxZ)`.
+- `SGrid.cpp` agora aplica essa fórmula a todos os grids e ao drag, sem branch
+  por família, preserva equipamento em `1.0` e materializa as caixas
+  `23/24/32` no mesmo espaço escalado dos slots. Item e `GeomControl` recebem
+  a mesma geometria, inclusive no Skill Master.
+- A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/grid-item-mesh-scale.md`, com xrefs,
+  dispatches virtuais, lifecycle, teardown e relogin. Estado de entrega:
+  `STATICALLY VERIFIED`; build passou, mas o teste visual segue pendente.
+
+## Composição lado a lado de Shop e Inventory em 2026-09-02
+
+- A captura do candidato mostrou a loja de NPC deslocada e o Inventory fora da
+  composição; a referência original mostra Shop `1793` centralizada e
+  Inventory `257` à direita.
+- `FUN_00435b13` usa
+  `Shop.x=W*0.5-Shop.width*0.5`, `Shop.y=H*0.5-Shop.height*0.5`,
+  `Inventory.x=W*0.5+Inventory.width*0.5+10` e
+  `Inventory.y=H*0.5-Inventory.height*0.5`. `FUN_004481c5` abre a dupla,
+  fecha AutoTrade e Trade concorrentes e restaura o modo do grid no fechamento.
+- `TMFieldScene::PositionCompatShopPanels()` reaplica a composição na abertura,
+  pois AutoTrade e outras features movem o mesmo root de Inventory.
+  `SetVisibleShop()` também fecha AutoTrade antes de expor Shop + Inventory.
+- A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/shop-inventory-layout.md`. Estado de
+  entrega: `STATICALLY VERIFIED`; falta validação visual em três resoluções.
+
+## Composição lado a lado de Trade e Inventory em 2026-09-02
+
+- O root Trade `576` corresponde ao membro nativo `this+0x285F0`; Inventory
+  `257` corresponde a `this+0x27B34`. `FUN_00435b13` centraliza Trade e coloca
+  Inventory à direita com o mesmo gap lógico de dez pixels das outras duplas.
+- `FUN_0044b890` é o toggle de Trade: possui treze callers únicos, fecha
+  AutoTrade e painéis concorrentes, mostra Trade + Inventory, usa modo de grid
+  `7` durante a negociação e limpa highlights, buffers e controles temporários
+  ao fechar.
+- `TMFieldScene::PositionCompatTradePanels()` reaplica a fórmula ao abrir,
+  impedindo que o Inventory compartilhado herde a posição de Shop, Cargo ou
+  AutoTrade. A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/trade-inventory-layout.md`.
+- Estado da source: `IMPLEMENTED`; validação estática e novo build do lote ainda
+  estão pendentes, portanto não é `CLIENT-TESTED`.
+
+## Posição inicial e toggle do menu inferior direito em 2026-09-02
+
+- O root do menu `292` não usa a posição serializada como posição final.
+  `FUN_00435b13` o coloca em `x=resourceX-2` e
+  `y=button5744.y-menu.height`, iniciando oculto.
+- `FUN_004662c5`, branch `0x1670`, alterna a visibilidade e mantém sincronizada
+  a seleção do botão. A source aplica os mesmos anchors depois de materializar
+  o HUD e preserva o lifecycle de toggle, fechamento de cena e relogin.
+- A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/system-menu-initial-layout.md`. Estado
+  de entrega: `STATICALLY VERIFIED`; falta validação visual/click em jogo.
+
+## Posição residual do Inventory após AutoTrade em 2026-09-02
+
+- `FUN_0044AE38` posiciona explicitamente Cargo no branch vendedor, mas no
+  branch cliente apenas oculta Cargo e mostra Inventory. Não há `SetPos` do
+  root Inventory nesse caminho nem no toggle normal `FUN_00447691`.
+- A source movia Inventory para `530x35` ao abrir a loja de outro personagem.
+  Como o fechamento e o toggle normal alteram somente visibilidade, essa
+  coordenada sobrevivia e deslocava as aberturas seguintes.
+- `TMFieldScene::SetVisibleAutoTrade(1,0)` agora preserva a composição
+  responsiva criada por `PositionCompatFeaturePanels()`. O branch vendedor
+  continua posicionando Cargo como no nativo; nenhuma restauração foi colocada
+  no fechamento para não sobrescrever a composição seguinte.
+- A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/auto-trade-inventory-layout.md`. Estado
+  de entrega: `IMPLEMENTED`; validação estática, build e teste visual ainda
+  precisam ser atualizados para o novo candidato.
+
+## Composição dos seis ItemMix com Inventory em 2026-09-02
+
+- `FUN_00435B13` vincula os roots ItemMix `1360`, `6110`, `6145`, `6432`,
+  `6481` e `6512` em seis membros distintos, centraliza cada um pelo viewport
+  e posiciona Inventory `257` à direita com gap lógico de dez pixels.
+- Os toggles `FUN_00449384`, `FUN_00449632`, `FUN_004498E0`, `FUN_00449B8E`,
+  `FUN_00449E3C` e `FUN_0044A0FB` convergem na cascata `FUN_00447691` e nos
+  cleanups específicos `FUN_004487E2`, `FUN_004489C5`, `FUN_00448C38`,
+  `FUN_00448E0B`, `FUN_00448FDE` e `FUN_004491B1`.
+- A source chamava o compositor de painéis antes de vincular os seis ItemMix e
+  não reaplicava posição no open. `PositionCompatNativeMixPanels()` agora roda
+  após os bindings e em `SetVisibleNativeMix(1)`, eliminando a coordenada
+  herdada de Shop, Trade ou AutoTrade sem alterar staging, receita ou wire.
+- A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/native-mix-inventory-layout.md`. Estado
+  de entrega: `STATICALLY VERIFIED` no candidato `3EDB5818...64774`; falta
+  apenas o teste visual e funcional dentro do jogo.
+
+## Posição nativa do Gamble em 2026-09-02
+
+- `FUN_00435B13` resolve o root `6400` e o posiciona em
+  `centerX-panelWidth/2+10`, `centerY-panelHeight/2` antes de ocultá-lo.
+- `TMFieldScene::PositionCompatGamblePanel()` aplica essa fórmula depois de
+  materializar os reels e novamente em `SetVisibleGamble(1)`, descartando
+  coordenada serializada ou residual sem alterar aposta, animação ou wire.
+- A ficha `CONTRACT` está em
+  `.agents/research/client748/flows/ui/gamble-jackpot.md`. Estado de entrega:
+  `STATICALLY VERIFIED` no candidato `3EDB5818...64774`; falta abertura dos
+  dois tipos, rolagem, fechamento e relogin dentro do jogo.
+
 ## Pendências e riscos
 
 - No candidato `DA9F578E...EE3F`, enviar desenhos Premium Firework com mais
@@ -804,10 +1016,9 @@ Repetir build, instalação e hash se o código mudar.
   de sucesso/gold insuficiente. Ao comprar o último item, o clone e a placa
   devem sumir sem congelar na tela nem acompanhar o comprador. Repetir depois
   de uma recriação de cena/relogin e validar o alinhamento lateral do Carry.
-- Executar em jogo os fluxos de inventário, cargo, NPC shop, equipamento e
-  drag válido/inválido, comparando com screenshots 7.48.
-- Confirmar no candidato `30DA37B9...` que os ovos ficaram legíveis na loja,
-  inventário, Cargo e durante o drag, sem invadir células vizinhas.
+- Executar em jogo os fluxos de inventário, Cargo, NPC shop, equipamento e
+  drag válido/inválido, comparando com screenshots 7.48 e verificando as caixas
+  `23/24/32` e a fórmula uniforme por `MaxZ`.
 - A entrada no mundo e a centralização de inventário/loja/equipamento já foram
   confirmadas no candidato `5A4AEC0A...`; ainda validar notices `!`, Kibita e
   digitação/backspace. A abertura do NPC Skill Apprentice falhou no candidato
@@ -820,10 +1031,10 @@ Repetir build, instalação e hash se o código mudar.
   rejeição fora de alcance e atualização de gold/slots.
 - Clicar para atacar um inimigo fora do alcance e confirmar aproximação até o
   range da arma, ataque e cancelamento seguro se o alvo morrer/desaparecer.
-- Confirmar que o catálogo canônico e a contenção AABB fazem `Steel_Pants`, uma
-  armadura larga, uma arma longa e um item pequeno ocuparem uma célula sem
-  invadir vizinhas em inventário, Cargo, loja, trade/mix e drag; equipamento
-  deve manter escala e posicionamento próprios sem regressão.
+- Confirmar que `Steel_Pants`, uma armadura larga, uma arma longa, um ovo e um
+  sprite pequeno ocupam a célula sem invadir vizinhas em inventário, Cargo,
+  loja, trade/mix e drag; equipamento deve manter escala e posicionamento
+  próprios sem regressão.
 - Aplicar Armadura Crítica e buffs representativos com flags visuais (Haste,
   Magic Weapon, Shield, Critical e Poison); conferir efeito no avatar/observers,
   ícone 23×23 no topo, contagem de duração, hover e desaparecimento ao expirar.
@@ -831,6 +1042,9 @@ Repetir build, instalação e hash se o código mudar.
   estreito, sem o fundo marrom alternativo.
 - Confirmar highlight azul/vermelho completo em grid e equipamento.
 - Validar EXP/ATT/DEF visualmente no HUD e após mudanças de score/skill/equip.
+- Abrir C, S e I simultaneamente e confirmar a ordem lado a lado
+  Character/Skill/Inventory, fechar/reabrir e repetir após logout/relogin e em
+  resolução superior.
 - Validar wheel, botão do meio, Alt+direito e contagem de cinco segundos após X.
 - Percorrer o checklist de login, notice, servidor/canal, Character, venda,
   gold/preço, system menu, `X`, `Esc` e montarias KR.
@@ -874,11 +1088,27 @@ Repetir build, instalação e hash se o código mudar.
    placa `NewUI_AutoTrade_BG` junto do título e, ao abrir por outro personagem,
    conferir fundo/preço, confirmação `Não`/`Sim`, avisos, remoção imediata da
    placa após o último item e alinhamento do Carry.
-9. No mesmo candidato, testar loja/inventário/Cargo/drag usando um ovo da
-   família `egg001..egg014`; depois repetir `Steel_Pants`, armadura larga, arma
-   longa e item pequeno para excluir regressão nos demais itens.
+9. No novo candidato, testar loja/inventário/Cargo/drag com `Steel_Pants`, uma
+   armadura larga, uma arma longa, um ovo e um sprite pequeno. Confirmar a
+   fórmula única por `MaxZ`, sem tratamento visual especial por família.
 10. Depois do teste do NPC no novo candidato, repetir entrada no mundo,
    digitação/backspace, notice e Kibita; depois testar Cargo, autoaproximação,
    HUD, câmera e fechamento em 1280×960.
 11. Atualizar esta matriz item a item; usar `CLIENT-TESTED` somente após o fluxo
    real correspondente.
+12. No candidato `C6184EBD...C19254`, entrar na seleção em `1280x960`, abrir
+    Create e retornar, confirmar posição/hitboxes, entrar no mundo e repetir
+    depois de logout/relogin. O painel deve permanecer inteiro e centralizado
+    no quarto direito.
+13. No candidato `3EDB5818...64774`, abrir uma loja de NPC depois de AutoTrade,
+    confirmar Shop centralizada e Inventory à direita com gap proporcional;
+    abrir o menu inferior direito, conferir posição, seleção do botão, X/Esc e
+    repetir após troca de cena e logout/relogin em `800x600`, `1024x768` e
+    `1280x960`.
+14. No mesmo candidato, testar Compositor, Aylin, Agatha, Tiny, Lindy, Odin e
+    Ehre; em cada caso confirmar ItemMix centralizado, Inventory à direita,
+    troca com Shop/Trade/AutoTrade e fechamento por botão e Esc. Repetir após
+    logout/relogin nas três resoluções acima.
+15. No mesmo candidato, abrir os dois tipos de Gamble depois de outras janelas
+    terem sido movidas, confirmar centro vertical e deslocamento de dez pixels
+    à direita, fechar por `Esc`, executar uma rolagem e repetir após relogin.

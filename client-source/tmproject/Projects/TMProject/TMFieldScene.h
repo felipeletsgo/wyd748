@@ -304,6 +304,24 @@ private:
 	// handler (Ghidra FUN_00489023 -> FUN_004470b9).  FieldScene2.bin does not
 	// serialize these runtime grids, so the imported 7.59 initializer cannot bind them.
 	void InitializeCompatSkillBelts();
+	// Reapplies the native FUN_00435b13 runtime composition for the three player
+	// feature panels, whose FieldScene2 roots all serialize at the same position.
+	void PositionCompatFeaturePanels();
+	// Reapplies the native centered ItemMix + right-hand Inventory composition
+	// after another feature has moved the shared Inventory root.
+	void PositionCompatNativeMixPanels();
+	// Reapplies the native paired Shop + Inventory composition after another
+	// feature (notably AutoTrade) has moved the shared Inventory root.
+	void PositionCompatShopPanels();
+	// Reapplies the native paired Trade + Inventory composition after another
+	// feature has reused the shared Inventory root.
+	void PositionCompatTradePanels();
+	// Reapplies the native centered Gamble position after any persisted or
+	// residual layout has moved root 6400.
+	void PositionCompatGamblePanel();
+	// Reapplies the native lower-left Party placement shared by root 1857 and
+	// its bottom-bar toggle 5742.
+	void PositionCompatPartyPanel();
 	// Changes the interaction mode only on inventory grids materialized by the
 	// active resource. FieldScene2 has one native 9x7 grid, not four newer pages.
 	void SetInventoryGridType(TMEGRIDTYPE gridType);

@@ -28,8 +28,8 @@ SControl::SControl(float inPosX, float inPosY, float inWidth, float inHeight)
 	m_pEventListener = nullptr;
 	m_bModal = 0;
 
-	float fWidthRatio = (float)g_pDevice->m_dwScreenWidth / 965.0f;
-	float fHeightRatio = (float)g_pDevice->m_dwScreenHeight / 600.0f;
+	float fWidthRatio = (float)g_pDevice->m_dwScreenWidth / WYD748_UI_BASE_WIDTH;
+	float fHeightRatio = (float)g_pDevice->m_dwScreenHeight / WYD748_UI_BASE_HEIGHT;
 	m_nPosX = inPosX * fWidthRatio;
 	m_nPosY = inPosY * fHeightRatio;
 	m_nWidth = inWidth * fWidthRatio;
@@ -182,14 +182,14 @@ void SControl::SetRealSize(float nWidth, float nHeight)
 
 void SControl::SetAutoSize()
 {
-	m_nPosX = (float)(m_nPosX / 965.0f) * (float)g_pDevice->m_dwScreenWidth;
-	m_nPosY = (float)(m_nPosY / 600.0f) * (float)g_pDevice->m_dwScreenHeight;
+	m_nPosX = (m_nPosX / WYD748_UI_BASE_WIDTH) * (float)g_pDevice->m_dwScreenWidth;
+	m_nPosY = (m_nPosY / WYD748_UI_BASE_HEIGHT) * (float)g_pDevice->m_dwScreenHeight;
 }
 
 void SControl::SetCenterSize()
 {
-	m_nPosX = (float)((g_pDevice->m_dwScreenWidth - 965) >> 1) + m_nPosX;
-	m_nPosY = (float)((g_pDevice->m_dwScreenHeight - 600) >> 1) + m_nPosY;
+	m_nPosX = ((float)g_pDevice->m_dwScreenWidth - WYD748_UI_BASE_WIDTH) * 0.5f + m_nPosX;
+	m_nPosY = ((float)g_pDevice->m_dwScreenHeight - WYD748_UI_BASE_HEIGHT) * 0.5f + m_nPosY;
 }
 
 void SControl::SetStickLeft()
@@ -235,7 +235,7 @@ void SControl::SetCenterPos(unsigned int dwControlID, float inPosX, float inPosY
 		{
 			// The constructor has already converted the RC width into the active
 			// 7.48 resolution.  Center the scaled control, not the raw RC width,
-			// otherwise non-965px windows drift horizontally and miss their hitbox.
+			// otherwise non-800px windows drift horizontally and miss their hitbox.
 			m_nPosX = ((float)g_pDevice->m_dwScreenWidth * 0.5f) - m_nWidth * 0.5f;
 		}
 	}
@@ -385,8 +385,8 @@ void SPanel::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inPare
 		m_GCPanel.nLayer = inParentLayer;
 		if ((float)(m_GCPanel.nPosX + m_GCPanel.nWidth) >= 0.0f && 
 			(float)(m_GCPanel.nPosY + m_GCPanel.nHeight) >= 0.0f &&
-			m_GCPanel.nPosX <= (float)(965.0 * RenderDevice::m_fWidthRatio) && 
-			m_GCPanel.nPosY <= (float)(600.0 * RenderDevice::m_fHeightRatio))
+			m_GCPanel.nPosX <= WYD748_UI_BASE_WIDTH * RenderDevice::m_fWidthRatio &&
+			m_GCPanel.nPosY <= WYD748_UI_BASE_HEIGHT * RenderDevice::m_fHeightRatio)
 		{
 			AddRenderControlItem(pDrawList, &m_GCPanel, inParentLayer);
 		}
@@ -896,8 +896,8 @@ void SText::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParen
 
 		if ((float)(m_GCBorder.nPosX + m_GCBorder.nWidth) < 0.0f || 
 			(float)(m_GCBorder.nPosY + m_GCBorder.nHeight) < 0.0f ||
-			m_GCBorder.nPosX > (float)(965.0f * RenderDevice::m_fWidthRatio) ||
-			m_GCBorder.nPosY > (float)(600.0f * RenderDevice::m_fHeightRatio))
+			m_GCBorder.nPosX > WYD748_UI_BASE_WIDTH * RenderDevice::m_fWidthRatio ||
+			m_GCBorder.nPosY > WYD748_UI_BASE_HEIGHT * RenderDevice::m_fHeightRatio)
 		{
 			return;
 		}
@@ -998,8 +998,8 @@ void SText::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParen
 
 	if ((float)(m_GCText.nPosX + m_GCText.nWidth) >= 0.0f && 
 		(float)(m_GCText.nPosY + m_GCText.nHeight) >= 0.0f &&
-		m_GCText.nPosX <= (float)(965.0f * RenderDevice::m_fWidthRatio) && 
-		m_GCText.nPosY <= (float)(600.0f * RenderDevice::m_fHeightRatio))
+		m_GCText.nPosX <= WYD748_UI_BASE_WIDTH * RenderDevice::m_fWidthRatio &&
+		m_GCText.nPosY <= WYD748_UI_BASE_HEIGHT * RenderDevice::m_fHeightRatio)
 	{		
 		AddRenderControlItem(pDrawList, &m_GCText, inParentLayer);
 
@@ -1719,8 +1719,8 @@ void SProgressBar::Update()
 
 void SProgressBar::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag)
 {
-	float fWidthRatio = (float)g_pDevice->m_dwScreenWidth / 965.0f;
-	float fHeightRatio = (float)g_pDevice->m_dwScreenHeight / 600.0f;
+	float fWidthRatio = (float)g_pDevice->m_dwScreenWidth / WYD748_UI_BASE_WIDTH;
+	float fHeightRatio = (float)g_pDevice->m_dwScreenHeight / WYD748_UI_BASE_HEIGHT;
 
 	SPanel::FrameMove2(pDrawList, ivParentPos, inParentLayer, nFlag);
 

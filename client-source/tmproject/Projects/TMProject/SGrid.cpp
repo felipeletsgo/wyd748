@@ -49,14 +49,7 @@ namespace
 			|| gridType == TMEGRIDTYPE::GRID_MISSION_NEEDLIST;
 	}
 
-	bool WYD748_IsEggMesh(const int meshIndex)
-	{
-		// ItemList 7.48 maps egg001..egg014 exclusively to these two mesh ranges.
-		return (meshIndex >= 300 && meshIndex <= 303)
-			|| (meshIndex >= 937 && meshIndex <= 946);
-	}
-
-	float WYD748_GetSingleCellMeshScale(const SGridControlItem* item)
+	float WYD748_GetGridMeshScale(const SGridControlItem* item)
 	{
 		if (!item || !g_pMeshManager || item->m_GCObj.n3DObjIndex < 0)
 			return 1.0f;
@@ -65,33 +58,16 @@ namespace
 		if (!mesh)
 			return 1.0f;
 
-		// FUN_0040e817 sizes the proven egg001..egg014 family from positive MaxZ.
-		// Keeping this exception mesh-scoped restores the native egg size without
-		// weakening full-AABB containment for armour, weapons, or other grid items.
-		if (WYD748_IsEggMesh(item->m_GCObj.n3DObjIndex))
-		{
-			constexpr float NativeSingleCellHeightLimit = 0.3f;
-			if (!std::isfinite(mesh->m_fMaxZ) || mesh->m_fMaxZ <= 0.0f)
-				return 1.0f;
-
-			return (std::min)(1.0f, NativeSingleCellHeightLimit / mesh->m_fMaxZ);
-		}
-
-		const float extentX = mesh->m_fMaxX - mesh->m_fMinX;
-		const float extentY = mesh->m_fMaxY - mesh->m_fMinY;
-		const float extentZ = mesh->m_fMaxZ - mesh->m_fMinZ;
-		const float aabbDiagonal = std::sqrt(
-			extentX * extentX + extentY * extentY + extentZ * extentZ);
-
-		// FUN_0040e817 uses 0.3 mesh units for one 24-pixel cell, but checks only
-		// MaxZ.  The source 7.48 contract deliberately fits the complete centered
-		// AABB and reserves a 10% border so armour and long weapons cannot bleed
-		// into adjacent cells.  min(1, ...) guarantees that small items never grow.
-		constexpr float SingleCellAabbLimit = 0.27f;
-		if (!std::isfinite(aabbDiagonal) || aabbDiagonal <= 0.0f)
+		// Native FUN_0040e817 compares only MaxZ against 0.3 mesh units for each
+		// occupied cell row.  It shrinks meshes that exceed that vertical budget
+		// and never enlarges a mesh beyond its authored 1.0 scale.
+		constexpr float NativeCellHeight = 0.3f;
+		if (!std::isfinite(mesh->m_fMaxZ) || mesh->m_fMaxZ <= 0.0f
+			|| item->m_nCellHeight <= 0)
 			return 1.0f;
 
-		return (std::min)(1.0f, SingleCellAabbLimit / aabbDiagonal);
+		const float targetHeight = static_cast<float>(item->m_nCellHeight) * NativeCellHeight;
+		return mesh->m_fMaxZ > targetHeight ? targetHeight / mesh->m_fMaxZ : 1.0f;
 	}
 
 	void WYD748_ApplyGridMeshScale(SGridControlItem* item, const bool fitSingleCell)
@@ -102,7 +78,7 @@ namespace
 		// Equipment panels are irregular body slots and retain their stock 1.0
 		// presentation.  Every cell-based grid and the cursor use the same fit.
 		item->m_GCObj.fScale = fitSingleCell
-			? WYD748_GetSingleCellMeshScale(item)
+			? WYD748_GetGridMeshScale(item)
 			: 1.0f;
 	}
 }
@@ -865,6 +841,8 @@ int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, in
 	ipNewItem->m_nCellIndexY = inCellIndexY;
 	ipNewItem->m_nWidth = 23.0f * RenderDevice::m_fWidthRatio;
 	ipNewItem->m_nHeight = 24.0f * RenderDevice::m_fHeightRatio;
+	ipNewItem->m_GCObj.m_fWidth = ipNewItem->m_nWidth;
+	ipNewItem->m_GCObj.m_fHeight = ipNewItem->m_nHeight;
 	m_pItemList[m_nNumItem++] = ipNewItem;
 
 	const bool isEquipmentGrid = m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE;
@@ -5310,11 +5288,22 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 
 		m_nCellWidth = g_pItemGridXY[nSizeIndex][0];
 		m_nCellHeight = g_pItemGridXY[nSizeIndex][1];
-		// DAT_005b1094 is the fixed integer 24 in the historical 7.48 Ghidra reference.
-		// FUN_0040d13e does not apply viewport ratios to this item-local box; the
-		// parent grid and FrameMove2 perform the UI2 coordinate conversion.
-		m_nWidth = 24.0f * static_cast<float>(m_nCellWidth);
-		m_nHeight = 24.0f * static_cast<float>(m_nCellHeight);
+		// FUN_0040d13e uses a distinct UI2 box for image-backed catalog rows:
+		// skill books 5000..5102 are 23 logical pixels per cell and the remaining
+		// sprites are 32. Meshes and the legacy UI keep the historical 24-pixel
+		// item box. The parent grid still owns viewport coordinate conversion.
+		float itemBoxSize = 24.0f;
+		if (itemDef.nIndexMesh < 0 && g_UIVer == 2)
+			itemBoxSize = pItem->sIndex >= 5000 && pItem->sIndex <= 5102 ? 23.0f : 32.0f;
+
+		// The native sizes above are logical 800x600 coordinates. FieldScene2.bin
+		// scales its grids with the viewport, so materialize the item box in the
+		// same physical coordinate space or icons remain 23/24/32 pixels inside
+		// enlarged slots at higher resolutions.
+		m_nWidth = itemBoxSize * static_cast<float>(m_nCellWidth)
+			* RenderDevice::m_fWidthRatio;
+		m_nHeight = itemBoxSize * static_cast<float>(m_nCellHeight)
+			* RenderDevice::m_fHeightRatio;
 		m_GCObj.m_fWidth = m_nWidth;
 		m_GCObj.m_fHeight = m_nHeight;
 

@@ -1382,6 +1382,9 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pServerPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12288));
 		m_pPartyPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1857));
 		m_pPartyBtn = static_cast<SButton*>(m_pControlContainer->FindControl(5742));
+		PositionCompatPartyPanel();
+		if (m_pPartyPanel && m_pPartyBtn)
+			m_pPartyBtn->SetSelected(m_pPartyPanel->m_bVisible == 0);
 		if (m_pInputGoldPanel)
 		{
 			m_pInputGoldPanel->SetVisible(0);
@@ -1392,7 +1395,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pInputBG2->SetVisible(0);
 		// Ghidra FUN_00435b13 anchors the native bottom controls to the viewport,
 		// places the 292 flyout immediately above/left of button 5744 and hides it.
-		// FieldScene2.bin contains absolute 965x600 coordinates, so this must run
+		// FieldScene2.bin contains absolute 800x600 coordinates, so this must run
 		// after RC scaling to make the bar reach the actual window edge.
 		SControl* pNativeMainMenuButton = m_pControlContainer->FindControl(5744);
 		SControl* pNativeShortSkillBar = m_pControlContainer->FindControl(5745);
@@ -1490,78 +1493,14 @@ int TMFieldScene::InitializeCompatFieldScene()
 			pNativeChatBar->SetStickLeft();
 			pNativeChatBar->SetStickBottom();
 		}
-		if (pNativeMainInfo && pNativeChatBar && pNativeShortSkillBar)
-		{
-			// FieldScene2.bin stores the status panel at its 965x600 width.  At wider
-			// resolutions the original 7.48 layout fills the complete interval between
-			// chat and shortcuts; leaving the resource width unchanged creates the
-			// large transparent hole visible beside EXP/ATT/DEF.
-			const float originalWidth = pNativeMainInfo->m_nWidth;
-			const float expandedX = pNativeChatBar->m_nPosX + pNativeChatBar->m_nWidth;
-			const float expandedWidth = pNativeShortSkillBar->m_nPosX - expandedX;
-			if (expandedWidth > 0.0f)
-			{
-				const float horizontalScale = originalWidth > 0.0f
-					? expandedWidth / originalWidth
-					: 1.0f;
-				pNativeMainInfo->SetPos(expandedX, pNativeMainInfo->m_nPosY);
-				pNativeMainInfo->SetSize(expandedWidth, pNativeMainInfo->m_nHeight);
-				pNativeMainInfo->SetStickBottom();
-
-				SControl* pNativeMainInfoBackground = m_pControlContainer->FindControl(5717);
-				if (pNativeMainInfoBackground)
-					pNativeMainInfoBackground->SetSize(expandedWidth,
-						pNativeMainInfoBackground->m_nHeight);
-
-				// The 7.48 labels have resource-authored widths matched to their bitmap
-				// font.  Stretching those widths distorted ATT/DEF and made EXP values
-				// overlap.  Map each text centre into the wider interval while preserving
-				// its native dimensions; this changes spacing without deforming glyphs.
-				const unsigned int horizontallyPositionedInfoIDs[] = {
-					TMT_EXP_DESC, TMT_EXP, TMT_EXP_ENC,
-					TMT_ATT, TMT_ATT_ENC, TMT_DEF, TMT_DEF_ENC
-				};
-				for (unsigned int infoID : horizontallyPositionedInfoIDs)
-				{
-					SControl* pInfo = m_pControlContainer->FindControl(infoID);
-					if (!pInfo)
-						continue;
-					const float nativeCenterX = pInfo->m_nPosX + (pInfo->m_nWidth * 0.5f);
-					pInfo->SetPos((nativeCenterX * horizontalScale)
-						- (pInfo->m_nWidth * 0.5f), pInfo->m_nPosY);
-				}
-
-				SControl* pNativeExpProgress = m_pControlContainer->FindControl(1171);
-				if (pNativeExpProgress)
-				{
-					// Unlike text, the EXP gauge is a stretchable control.  Transform both
-					// horizontal edges so its fill covers the same central interval as 7.48.
-					pNativeExpProgress->SetPos(
-						pNativeExpProgress->m_nPosX * horizontalScale,
-						pNativeExpProgress->m_nPosY);
-					pNativeExpProgress->SetSize(
-						pNativeExpProgress->m_nWidth * horizontalScale,
-						pNativeExpProgress->m_nHeight);
-					static_cast<SProgressBar*>(pNativeExpProgress)->Update();
-				}
-
-				// HOLD and its three right-edge ornaments belong to the trailing edge of
-				// the native status panel, so move them by exactly the width extension.
-				const unsigned int rightAnchoredInfoIDs[] = { 1168, 1172, 1173, 1174 };
-				const float widthDelta = expandedWidth - originalWidth;
-				for (unsigned int rightInfoID : rightAnchoredInfoIDs)
-				{
-					SControl* pRightInfo = m_pControlContainer->FindControl(rightInfoID);
-					if (pRightInfo)
-						pRightInfo->SetPos(pRightInfo->m_nPosX + widthDelta,
-							pRightInfo->m_nPosY);
-				}
-			}
-		}
+		if (pNativeMainInfo)
+			pNativeMainInfo->SetStickBottom();
 		if (pNativeMainMenuPanel && pNativeMainMenuButton)
 		{
+			// FUN_00435b13 preserves root 292's resource-authored X and subtracts
+			// _DAT_005A365C (2.0f); only Y is anchored above button 5744.
 			pNativeMainMenuPanel->SetPos(
-				pNativeMainMenuButton->m_nPosX - pNativeMainMenuPanel->m_nWidth,
+				pNativeMainMenuPanel->m_nPosX - 2.0f,
 				pNativeMainMenuButton->m_nPosY - pNativeMainMenuPanel->m_nHeight);
 			pNativeMainMenuPanel->SetVisible(0);
 		}
@@ -1591,6 +1530,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 		}
 		m_pSkillPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1905));
 		m_pTradePanel = static_cast<SPanel*>(m_pControlContainer->FindControl(576));
+		PositionCompatFeaturePanels();
 		// FUN_00435b13 binds all six stock artisan panels.  Numeric grid values
 		// 14..23 were later reused by TMProject for unrelated controls, so retain
 		// the native values only on these exact FieldScene2 control IDs and let the
@@ -1601,6 +1541,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pItemMixPanel4 = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_ITEMMIX4_PANEL));
 		m_pItemMixPanel5 = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_ITEMMIX5_PANEL));
 		m_pItemMixPanel6 = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_ITEMMIX6_PANEL));
+		PositionCompatNativeMixPanels();
 		for (int slot = 0; slot < 8; ++slot)
 		{
 			m_pGridItemMix[slot] = static_cast<SGridControl*>(
@@ -1652,6 +1593,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pReelPanel2 = new SReelPanel(340, 21.0f, 79.0f, 62.0f, 62.0f, 1.0f);
 			m_pGambleStore->AddChild(m_pReelPanel);
 			m_pGambleStore->AddChild(m_pReelPanel2);
+			PositionCompatGamblePanel();
 			m_pGambleStore->SetVisible(0);
 		}
 		// These are the original Character values consumed by FUN_004431e4. The
@@ -1841,6 +1783,148 @@ int TMFieldScene::InitializeCompatFieldScene()
 	SetCameraView();
 	UpdateCompatScoreUI();
 	return 1;
+}
+
+void TMFieldScene::PositionCompatFeaturePanels()
+{
+	if (!m_bCompatFieldScene || !g_pDevice)
+		return;
+
+	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
+	const float viewportCenterY = static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f;
+
+	// Native WYD 7.48 FUN_00435b13 resolves roots 513, 1905 and 257 after the
+	// resource is loaded. The constants at 005A34A0, 005A430C and 005A3670 are
+	// 0.5f, 1.5f and 10.0f respectively. At 800x600 this yields the original
+	// Character (49.5, 89.5), Skill (286.5, 89.5), Inventory (523.5, 89.5)
+	// composition instead of the shared (530, 0) serialized root position.
+	if (m_pCPanel)
+	{
+		m_pCPanel->SetPos(
+			viewportCenterX - m_pCPanel->m_nWidth * 1.5f - 10.0f,
+			viewportCenterY - m_pCPanel->m_nHeight * 0.5f);
+	}
+	if (m_pSkillPanel)
+	{
+		m_pSkillPanel->SetPos(
+			viewportCenterX - m_pSkillPanel->m_nWidth * 0.5f,
+			viewportCenterY - m_pSkillPanel->m_nHeight * 0.5f);
+	}
+	if (m_pInvenPanel)
+	{
+		m_pInvenPanel->SetPos(
+			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + 10.0f,
+			viewportCenterY - m_pInvenPanel->m_nHeight * 0.5f);
+	}
+	PositionCompatShopPanels();
+	PositionCompatTradePanels();
+}
+
+void TMFieldScene::PositionCompatNativeMixPanels()
+{
+	if (!m_bCompatFieldScene || !g_pDevice)
+		return;
+
+	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
+	const float viewportCenterY = static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f;
+
+	// FUN_00435b13 centers each independent ItemMix root (1360, 6110, 6145,
+	// 6432, 6481 and 6512) and places the shared Inventory root 257 at the
+	// native right-hand position with a ten-pixel logical gap.
+	for (int mixIndex = 1; mixIndex <= 6; ++mixIndex)
+	{
+		auto panel = GetNativeMixPanel(mixIndex);
+		if (panel)
+		{
+			panel->SetPos(
+				viewportCenterX - panel->m_nWidth * 0.5f,
+				viewportCenterY - panel->m_nHeight * 0.5f);
+		}
+	}
+	if (m_pInvenPanel)
+	{
+		m_pInvenPanel->SetPos(
+			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + 10.0f,
+			viewportCenterY - m_pInvenPanel->m_nHeight * 0.5f);
+	}
+}
+
+void TMFieldScene::PositionCompatShopPanels()
+{
+	if (!m_bCompatFieldScene || !g_pDevice)
+		return;
+
+	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
+	const float viewportCenterY = static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f;
+
+	// FUN_00435b13 centers root 1793 (Shop) and places root 257 (Inventory)
+	// immediately to its right using the native 10-pixel logical gap.
+	if (m_pShopPanel)
+	{
+		m_pShopPanel->SetPos(
+			viewportCenterX - m_pShopPanel->m_nWidth * 0.5f,
+			viewportCenterY - m_pShopPanel->m_nHeight * 0.5f);
+	}
+	if (m_pInvenPanel)
+	{
+		m_pInvenPanel->SetPos(
+			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + 10.0f,
+			viewportCenterY - m_pInvenPanel->m_nHeight * 0.5f);
+	}
+}
+
+void TMFieldScene::PositionCompatTradePanels()
+{
+	if (!m_bCompatFieldScene || !g_pDevice)
+		return;
+
+	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
+	const float viewportCenterY = static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f;
+
+	// FUN_00435b13 centers root 576 (Trade) and places root 257 (Inventory)
+	// immediately to its right using the same native 10-pixel logical gap.
+	if (m_pTradePanel)
+	{
+		m_pTradePanel->SetPos(
+			viewportCenterX - m_pTradePanel->m_nWidth * 0.5f,
+			viewportCenterY - m_pTradePanel->m_nHeight * 0.5f);
+	}
+	if (m_pInvenPanel)
+	{
+		m_pInvenPanel->SetPos(
+			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + 10.0f,
+			viewportCenterY - m_pInvenPanel->m_nHeight * 0.5f);
+	}
+}
+
+void TMFieldScene::PositionCompatGamblePanel()
+{
+	if (!m_bCompatFieldScene || !g_pDevice || !m_pGambleStore)
+		return;
+
+	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
+	const float viewportCenterY = static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f;
+
+	// Native WYD 7.48 FUN_00435b13 positions root 6400 ten logical pixels to
+	// the right of the viewport center while preserving vertical centering.
+	m_pGambleStore->SetPos(
+		viewportCenterX - m_pGambleStore->m_nWidth * 0.5f + 10.0f,
+		viewportCenterY - m_pGambleStore->m_nHeight * 0.5f);
+}
+
+void TMFieldScene::PositionCompatPartyPanel()
+{
+	if (!m_bCompatFieldScene || !g_pDevice || !m_pPartyPanel)
+		return;
+
+	// Native WYD 7.48 FUN_00435b13 places both the Party root 1857 and its
+	// toggle 5742 at the same lower-left anchor. FieldScene2.bin alone does
+	// not account for the active viewport height.
+	const float partyY = static_cast<float>(g_pDevice->m_dwScreenHeight)
+		- m_pPartyPanel->m_nHeight - 165.0f;
+	m_pPartyPanel->SetPos(0.0f, partyY);
+	if (m_pPartyBtn)
+		m_pPartyBtn->SetPos(0.0f, partyY);
 }
 
 int TMFieldScene::InitializeScene()
@@ -4261,7 +4345,11 @@ int TMFieldScene::InitializeScene()
 	g_pTextureManager->Release_GuildMarkList();
 	g_pObjectManager->m_pCamera->m_fMaxCamLen = 20.0f; //new camera
 	if (m_pPartyPanel)
+	{
 		m_pPartyPanel->SetVisible(0);
+		if (m_pPartyBtn)
+			m_pPartyBtn->SetSelected(1);
+	}
 
 	if (!m_bCompatFieldScene)
 	{
@@ -6848,11 +6936,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 5742)
 	{
-		if (m_pPartyPanel && m_pPartyBtn)
-		{
-			m_pPartyPanel->SetVisible(m_pPartyPanel->m_bVisible == 0);
-			m_pPartyBtn->m_bSelected = m_pPartyBtn->m_bSelected == 0;
-		}
+		SetVisibleParty();
 		return 0;
 	}
 	if (idwControlID == 6068)
@@ -7812,7 +7896,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 			SendOneMessage((char*)&stParm, sizeof(stParm));
 
-			m_pPartyPanel->SetVisible(0);
+			if (m_pPartyPanel && m_pPartyPanel->IsVisible())
+				SetVisibleParty();
 		}
 		return 1;
 	}
@@ -14665,6 +14750,14 @@ void TMFieldScene::SetVisibleShop(int bShow)
 	// grid state but avoid four-page inventory and optional store dereferences.
 	if (m_bCompatFieldScene)
 	{
+		if (bShow)
+		{
+			// Native FUN_004481C5 closes AutoTrade before showing the paired Shop
+			// and Inventory roots. AutoTrade is allowed to keep its own 280/530 layout.
+			if (m_pAutoTrade && m_pAutoTrade->IsVisible() == 1)
+				SetVisibleAutoTrade(0, 0);
+			PositionCompatShopPanels();
+		}
 		if (m_pGridInv)
 			m_pGridInv->m_eGridType = bShow ? TMEGRIDTYPE::GRID_SELL : TMEGRIDTYPE::GRID_DEFAULT;
 		if (m_pShopPanel)
@@ -14845,10 +14938,10 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 		if (m_pGambleStore)
 			SetVisibleGamble(0, 0);
 		
-		if (m_pTradePanel->IsVisible() == 1 && m_pAutoTrade)
+		if (m_pAutoTrade && m_pAutoTrade->IsVisible() == 1)
 			SetVisibleAutoTrade(0, 0);
+		PositionCompatTradePanels();
 
-		
 		m_pSystemPanel->SetVisible(0);
 		m_pCPanel->SetVisible(0);
 		m_pCargoPanel->SetVisible(0);
@@ -15258,6 +15351,7 @@ void TMFieldScene::SetVisibleNativeMix(int mixIndex, int bShow)
 		if (m_pAutoTrade && m_pAutoTrade->IsVisible())
 			SetVisibleAutoTrade(0, 0);
 		if (m_pInvenPanel) m_pInvenPanel->SetVisible(1);
+		PositionCompatNativeMixPanels();
 
 		ClearNativeMix(mixIndex);
 		panel->SetVisible(1);
@@ -15553,6 +15647,7 @@ void TMFieldScene::SetVisibleGamble(int bShow, char cType)
 		m_cGambleType = static_cast<unsigned char>(cType);
 		m_cPendingGambleType = 0;
 		m_dwGambleRequestTime = 0;
+		PositionCompatGamblePanel();
 		m_pGambleStore->SetVisible(1);
 		m_pReelPanel->SetVisible(cType == 1);
 		m_pReelPanel2->SetVisible(cType == 2);
@@ -15920,8 +16015,15 @@ void TMFieldScene::SetVisibleMiniMap()
 
 void TMFieldScene::SetVisibleParty()
 {
-	if (m_pPartyPanel)
-		m_pPartyPanel->SetVisible(m_pPartyPanel->m_bVisible == 0);
+	if (!m_pPartyPanel)
+		return;
+
+	const int visible = m_pPartyPanel->m_bVisible == 0;
+	if (visible)
+		PositionCompatPartyPanel();
+	m_pPartyPanel->SetVisible(visible);
+	if (m_pPartyBtn)
+		m_pPartyBtn->SetSelected(visible == 0);
 }
 
 void TMFieldScene::SetVisibleSkillMaster()
@@ -15935,9 +16037,13 @@ void TMFieldScene::SetVisibleSkillMaster()
 	if (!m_pSkillMPanel || !m_pSkillPanel)
 		return;
 
-	int bVisible = m_pSkillMPanel->IsVisible() == 0;
-
-	m_pSkillPanel->SetVisible(m_pSkillMPanel->m_bVisible == 0);
+	const int bVisible = m_pSkillMPanel->IsVisible() == 0;
+	const float viewportCenterX = g_pDevice
+		? static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f
+		: 0.0f;
+	const float viewportCenterY = g_pDevice
+		? static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f
+		: 0.0f;
 
 	if (bVisible == 1)
 	{
@@ -15962,6 +16068,18 @@ void TMFieldScene::SetVisibleSkillMaster()
 		if (m_pShopPanel)
 			m_pShopPanel->SetVisible(0);
 
+		if (g_pDevice)
+		{
+			// Native FUN_0044c15c centers root 1889 and moves root 1905 to its
+			// right, leaving a 10-pixel logical gap between the two panels.
+			m_pSkillMPanel->SetPos(
+				viewportCenterX - m_pSkillMPanel->m_nWidth * 0.5f,
+				viewportCenterY - m_pSkillMPanel->m_nHeight * 0.5f);
+			m_pSkillPanel->SetPos(
+				viewportCenterX + m_pSkillPanel->m_nWidth * 0.5f + 10.0f,
+				viewportCenterY - m_pSkillPanel->m_nHeight * 0.5f);
+		}
+
 		m_pSkillMPanel->SetVisible(1);
 		m_pSkillPanel->SetVisible(1);
 
@@ -15971,7 +16089,20 @@ void TMFieldScene::SetVisibleSkillMaster()
 		if (m_pGambleStore)
 			SetVisibleGamble(0, 0);
 
-		m_pSkillPanel->SetPos(RenderDevice::m_fWidthRatio * 380.0f, RenderDevice::m_fHeightRatio * 35.0f);
+	}
+	else
+	{
+		m_pSkillMPanel->SetVisible(0);
+		m_pSkillPanel->SetVisible(0);
+
+		if (g_pDevice)
+		{
+			// Closing the paired NPC view restores root 1905 to the normal Skill
+			// position used by its independent keyboard/button toggle.
+			m_pSkillPanel->SetPos(
+				viewportCenterX - m_pSkillPanel->m_nWidth * 0.5f,
+				viewportCenterY - m_pSkillPanel->m_nHeight * 0.5f);
+		}
 	}
 
 	if (g_pSoundManager)
@@ -17490,11 +17621,10 @@ void TMFieldScene::OnESC()
 			SetVisibleTrade(0);
 		else if (m_pPartyPanel && m_pPartyPanel->IsVisible())
 		{
-			// Party panel 1857 is the native 7.48 window; close it directly so
-			// the imported 7.59 party-list members are never dereferenced.
-			m_pPartyPanel->SetVisible(0);
-			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PARTY)))
-				button->SetSelected(0);
+			// Party panel 1857 is the native 7.48 window. Use the same transition
+			// as click/keyboard so the inverse selected state of button 5742 cannot
+			// become stale, without touching the absent 7.59 Party list.
+			SetVisibleParty();
 		}
 		else if (m_pShopPanel && m_pShopPanel->IsVisible())
 			SetVisibleShop(0);
@@ -17953,14 +18083,13 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 			}
 			else
 			{
-				// Customer view keeps both 7.48 panels on the same top baseline:
-				// AutoTrade at x=280 and Carry immediately beside it at x=530.
+				// The classic branch of native FUN_0044ae38 only exposes Carry here;
+				// it does not rewrite root 257. Preserve the responsive position built
+				// by FUN_00435b13 so later Inventory toggles cannot inherit an
+				// AutoTrade-only coordinate.
 				m_pAutoTrade->SetPos(RenderDevice::m_fWidthRatio * 280.0f,
 					RenderDevice::m_fHeightRatio * 35.0f);
 				setPanelVisible(m_pCargoPanel, 0);
-				if (m_pInvenPanel)
-					m_pInvenPanel->SetPos(RenderDevice::m_fWidthRatio * 530.0f,
-						RenderDevice::m_fHeightRatio * 35.0f);
 				setPanelVisible(m_pInvenPanel, 1);
 				if (pRunAutoTrade)
 					pRunAutoTrade->SetVisible(0);
@@ -23833,17 +23962,12 @@ int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 
 	pPartyList->AddItem(pPartyItem);
 
-	if (m_pPartyPanel)
-		m_pPartyPanel->SetVisible(1);
-	if (m_pPartyBtn)
-		m_pPartyBtn->m_bSelected = 0;
+	if (m_pPartyPanel && !m_pPartyPanel->IsVisible())
+		SetVisibleParty();
 
 	auto pNode = (TMHuman*)g_pObjectManager->GetHumanByID(pStd->Leader.ID);
 	if (pNode)
 		pNode->SetInMiniMap(0xAAFFFF00);
-	if (!m_pPartyPanel->IsVisible())
-		SetVisibleParty();
-
 	auto pChatList = m_pChatList;
 
 	char szMsg[128]{};
@@ -23927,7 +24051,7 @@ int TMFieldScene::OnPacketAddParty(MSG_AddParty* pStd)
 		pNode->m_bParty = 1;
 		pNode->SetInMiniMap(0xAAFFFF00);
 	}
-	if (!m_pPartyPanel->IsVisible())
+	if (m_pPartyPanel && !m_pPartyPanel->IsVisible())
 	{
 		if (pStd->Party.ID > 0 && pStd->Party.ID < 1000)
 			SetVisibleParty();
