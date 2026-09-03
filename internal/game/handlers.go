@@ -1650,7 +1650,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	m := w.mobByID(req.TargetID)
 	if m == nil {
 		target := w.playerByID(req.TargetID)
-		if target == nil || target == p || !target.InWorld || target.Char == nil ||
+		if !w.canInitiatePvP(p, target) || target == p || !target.InWorld || target.Char == nil ||
 			playerCurHP(target.Char) == 0 || sameSupportGroup(p, target) ||
 			!w.playersShareGameplaySpace(p, target) ||
 			chebyshev(p.X, p.Y, target.X, target.Y) > maxRange ||

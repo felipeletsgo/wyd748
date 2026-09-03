@@ -200,6 +200,10 @@ TMFieldScene::TMFieldScene()
 	m_pTargetItem = nullptr;
 	m_pTargetHuman = nullptr;
 	m_pAutoSkillPanel = nullptr;
+	// The 7.48 FieldScene2 resource does not expose the newer PK button.
+	// Keep this optional binding deterministic; SetPK still sends the native
+	// mode packet when no visual button is materialized.
+	m_PkButton = nullptr;
 	m_pPGTOver = nullptr;
 	m_pTradePanel = nullptr;
 	m_pLottoPanel = nullptr;
@@ -905,26 +909,56 @@ void TMFieldScene::UpdateCompatScoreUI()
 		setCompatText(TMT_CI_SPECIAL1_C + mastery,
 			g_pMessageStringTable[242 + characterClass * 4 + mastery]);
 
-	// Control 1376 is the native C.POINT value.  FUN_004431e4 derives its
-	// percentage from the hold-point counter and the active class EXP table;
+	// Control 1376 is the native C.POINT value. FUN_004431e4 derives the shown
+	// percentage from the reserved hold counter and the active class EXP table;
 	// it is not the character's chaos-level byte despite the abbreviated label.
-	const long long holdPointRange = (levelTable[currentLevel + 1] + levelTable[currentLevel]) / 10;
+	const long long holdPointRange =
+		(levelTable[currentLevel + 1] + levelTable[currentLevel]) / 10;
 	const int holdPointPercent = holdPointRange > 0
-		? static_cast<int>((static_cast<double>(g_pObjectManager->m_nFakeExp) * 100.0) / holdPointRange)
+		? static_cast<int>(
+			(static_cast<double>(g_pObjectManager->m_nFakeExp) * 100.0)
+			/ holdPointRange)
 		: 0;
 	char holdPointText[64]{};
 	const char* holdPointFormat = g_pMessageStringTable[304]
 		? g_pMessageStringTable[304] : "%12d / %d%%";
-	sprintf_s(holdPointText, holdPointFormat, g_pObjectManager->m_nFakeExp, holdPointPercent);
+	sprintf_s(holdPointText, holdPointFormat,
+		g_pObjectManager->m_nFakeExp, holdPointPercent);
 	if (auto pHoldPoint = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_FAKEEXPPOINT)))
 	{
 		pHoldPoint->SetText(holdPointText, 0);
-		pHoldPoint->SetTextColor(holdPointPercent < 80 ? 0xFFFFFFFF : 0xFFFF0000);
+		pHoldPoint->SetTextColor(
+			holdPointPercent < 80 ? 0xFFFFFFFF : 0xFFFF0000);
+	}
+	if (auto pExpHold = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_EXP_HOLD)))
+		pExpHold->SetVisible(g_pObjectManager->m_nFakeExp > 0);
+
+	// Native control 1377 is the kingdom mantle emblem. Keep it hidden for a
+	// character without a valid mantle, but preserve the native helmet override
+	// and citizen-mantle normalization for characters that do belong to a realm.
+	if (m_pKingDomFlag)
+	{
+		if (!m_pMyHuman || !m_pMyHuman->m_pMantua || m_pMyHuman->m_pMantua->m_Look.Skin0 == 19)
+			m_pKingDomFlag->SetVisible(0);
+		else
+		{
+			m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pMyHuman->m_pMantua->m_Look.Skin0;
+			if ((m_pMyHuman->m_sHelmIndex == 3503 || m_pMyHuman->m_sHelmIndex == 3504 ||
+				m_pMyHuman->m_sHelmIndex == 3505 || m_pMyHuman->m_sHelmIndex == 3506) &&
+				m_pMyHuman->m_pMantua->m_Look.Skin0 == 2)
+			{
+				m_pKingDomFlag->m_GCPanel.nTextureIndex = 33;
+			}
+
+			m_pKingDomFlag->m_GCPanel.nTextureIndex =
+				m_pMyHuman->UnSetCitizenMantle(m_pKingDomFlag->m_GCPanel.nTextureIndex);
+			m_pKingDomFlag->SetVisible(1);
+		}
 	}
 
 	// WYD.exe 7.48 FUN_004431e4 includes the native class bonuses and freeze
 	// penalty in this presentation value. The server still authorizes cadence;
-	// this restores only the number shown by control 1104 (Att Speed).
+	// this restores only the number shown by control 1110 (Att Speed).
 	int attackSpeedClass = 0;
 	if (m_pMyHuman && m_pMyHuman->m_nClass == 26 && m_pMyHuman->m_stLookInfo.FaceMesh == 0)
 		attackSpeedClass = 20;
@@ -952,7 +986,7 @@ void TMFieldScene::UpdateCompatScoreUI()
 		attackSpeed -= 30;
 	char percent[32]{};
 	sprintf_s(percent, "%d%%", attackSpeed);
-	setCompatText(TMT_CI_ATRT, percent);
+	setCompatText(TMT_CI_DFBT, percent);
 	sprintf_s(percent, "%d.%d%%", (pMobData->CurrentScore.Critical * 4) / 10, (pMobData->CurrentScore.Critical * 4) % 10);
 	setCompatText(TMT_CI_CRITICAL, percent);
 
@@ -1377,10 +1411,58 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pHelpBtn = static_cast<SButton*>(m_pControlContainer->FindControl(314));
 		m_pQuestBtn = static_cast<SButton*>(m_pControlContainer->FindControl(315));
 		m_pAutoRunBtn = static_cast<SButton*>(m_pControlContainer->FindControl(316));
+		// Native FUN_00441823 owns the complete Quest group. Binding only button
+		// 315 left the 7.48 window without tabs, list callbacks or close lifecycle.
+		m_pQuestPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_QUEST_PANEL));
+		m_pQuestQuitBtn = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_QUEST_QUIT));
+		m_pQuestButton[0] = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_QUEST_BUTTON));
+		m_pQuestButton[1] = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_QUEST_BUTTON2));
+		m_pQuestButton[2] = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_QUEST_BUTTON3));
+		m_pQuestButton[3] = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_QUEST_BUTTON4));
+		m_pQuestList[0] = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_QUEST_LIST));
+		m_pQuestList[1] = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_QUEST_LIST2));
+		m_pQuestList[2] = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_QUEST_LIST3));
+		m_pQuestList[3] = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_QUEST_LIST4));
+		m_pQuestContentList[0] = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_QUEST_CONTENT));
+		m_pQuestContentList[1] = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_QUEST_CONTENT2));
+		m_pQuestContentList[2] = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_QUEST_CONTENT3));
+		m_pQuestContentList[3] = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_QUEST_CONTENT4));
+		m_pQuestMemo = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_QUEST_MEMO));
+		for (int questIndex = 0; questIndex < 4; ++questIndex)
+		{
+			if (m_pQuestList[questIndex])
+			{
+				m_pQuestList[questIndex]->SetEventListener(m_pControlContainer);
+				m_pQuestList[questIndex]->SetVisible(0);
+				m_pQuestList[questIndex]->m_bSelectEnable = 0;
+			}
+			if (m_pQuestContentList[questIndex])
+				m_pQuestContentList[questIndex]->SetVisible(0);
+		}
+		if (m_pQuestMemo)
+		{
+			m_pQuestMemo->m_cAlwaysAlt = 1;
+			m_pQuestMemo->m_cBlink = 1;
+			m_pQuestMemo->SetVisible(0);
+		}
+		if (m_pQuestPanel)
+		{
+			PositionCompatQuestPanel();
+			m_pQuestPanel->SetVisible(0);
+		}
+		if (m_pQuestBtn)
+			m_pQuestBtn->SetSelected(0);
+		memset(m_pLevelQuest, 0, sizeof(m_pLevelQuest));
+		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects.txt", 97);
+		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects2.txt", 98);
+		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects3.txt", 99);
+		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects4.txt", 101);
+		LoadMsgLevel(m_pLevelQuest, "UI\\QuestMessage.txt", 100);
 		m_pNativeCCPhysicalBtn = static_cast<SButton*>(m_pControlContainer->FindControl(318));
 		m_pNativeCCMagicBtn = static_cast<SButton*>(m_pControlContainer->FindControl(319));
 		m_pServerPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12288));
 		m_pPartyPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1857));
+		m_pPartyList = static_cast<SListBox*>(m_pControlContainer->FindControl(1863));
 		m_pPartyBtn = static_cast<SButton*>(m_pControlContainer->FindControl(5742));
 		PositionCompatPartyPanel();
 		if (m_pPartyPanel && m_pPartyBtn)
@@ -1604,6 +1686,11 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pCISpecial2 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_SPECIAL2));
 		m_pCISpecial3 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_SPECIAL3));
 		m_pCISpecial4 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_SPECIAL4));
+		m_pKingDomFlag = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_KINGDOMFLAG));
+		if (m_pKingDomFlag)
+			m_pKingDomFlag->SetVisible(0);
+		if (auto pExpHold = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_EXP_HOLD)))
+			pExpHold->SetVisible(0);
 		// Grid hover writes the native 7.48 item description into this hidden panel;
 		// binding it restores tooltips without importing the 7.59 tooltip resource.
 		m_pDescPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(258));
@@ -1927,6 +2014,82 @@ void TMFieldScene::PositionCompatPartyPanel()
 		m_pPartyBtn->SetPos(0.0f, partyY);
 }
 
+void TMFieldScene::PositionCompatQuestPanel()
+{
+	if (!g_pDevice || !m_pQuestPanel)
+		return;
+
+	// Native FUN_00441823 centers root 320 on both axes. The imported 7.59
+	// initializer used 0.6 of the panel height and shifted the whole hitbox up.
+	m_pQuestPanel->SetPos(
+		(static_cast<float>(g_pDevice->m_dwScreenWidth) - m_pQuestPanel->m_nWidth) * 0.5f,
+		(static_cast<float>(g_pDevice->m_dwScreenHeight) - m_pQuestPanel->m_nHeight) * 0.5f);
+}
+
+void TMFieldScene::SelectQuestTab(int tabIndex)
+{
+	if (tabIndex < 0 || tabIndex >= 4)
+		return;
+
+	for (int questIndex = 0; questIndex < 4; ++questIndex)
+	{
+		const int selected = questIndex == tabIndex;
+		if (m_pQuestButton[questIndex])
+			m_pQuestButton[questIndex]->SetSelected(selected);
+		if (m_pQuestList[questIndex])
+		{
+			m_pQuestList[questIndex]->SetVisible(selected);
+			m_pQuestList[questIndex]->m_bSelectEnable = selected;
+		}
+		if (m_pQuestContentList[questIndex])
+			m_pQuestContentList[questIndex]->SetVisible(selected);
+	}
+
+	if (m_pQuestMemo)
+		m_pQuestMemo->SetVisible(0);
+}
+
+void TMFieldScene::SetQuestPanelVisible(bool visible)
+{
+	if (!m_pQuestPanel)
+		return;
+
+	const bool changed = (m_pQuestPanel->IsVisible() != 0) != visible;
+	if (visible)
+	{
+		PositionCompatQuestPanel();
+		if (g_pObjectManager)
+		{
+			static const char* const questSubjectFiles[4] =
+			{
+				"UI\\QuestSubjects.txt",
+				"UI\\QuestSubjects2.txt",
+				"UI\\QuestSubjects3.txt",
+				"UI\\QuestSubjects4.txt"
+			};
+			const STRUCT_MOB* pMobData = &g_pObjectManager->m_stMobData;
+			for (int questIndex = 0; questIndex < 4; ++questIndex)
+			{
+				if (m_pQuestList[questIndex])
+				{
+					TMScene::LoadMsgText3(
+						m_pQuestList[questIndex],
+						questSubjectFiles[questIndex],
+						pMobData->CurrentScore.Level + 1,
+						pMobData->Equip[0].sIndex % 10);
+				}
+			}
+		}
+		SelectQuestTab(0);
+	}
+
+	m_pQuestPanel->SetVisible(visible);
+	if (m_pQuestBtn)
+		m_pQuestBtn->SetSelected(visible);
+	if (changed)
+		GetSoundAndPlay(51, 0, 0);
+}
+
 int TMFieldScene::InitializeScene()
 {
 	LOG_WRITELOG(">> Init Field Scene::Start\r\n");
@@ -2052,8 +2215,11 @@ int TMFieldScene::InitializeScene()
 	m_pAutoRunBtn = (SButton*)m_pControlContainer->FindControl(316);
 	m_pSysMsgList = (SListBox*)m_pControlContainer->FindControl(5695);
 	m_PkButton = (SButton*)m_pControlContainer->FindControl(65786);
-	m_PkButton->m_nPosX = BASE_ScreenResize(215.0f);
-	m_PkButton->SetSelected(TMFieldScene::m_bPK == 0);
+	if (m_PkButton)
+	{
+		m_PkButton->m_nPosX = BASE_ScreenResize(215.0f);
+		m_PkButton->SetSelected(TMFieldScene::m_bPK == 0);
+	}
 	m_pPGTText = (SText*)m_pControlContainer->FindControl(645);
 
 	char szStr[128]{};
@@ -2130,20 +2296,21 @@ int TMFieldScene::InitializeScene()
 
 	m_pFadePanel->SetSize((float)g_pDevice->m_dwScreenWidth, (float)g_pDevice->m_dwScreenHeight);
 
-	m_pKingDomFlag = (SPanel*)m_pControlContainer->FindControl(65768);
+	if (!m_bCompatFieldScene)
+	{
+		m_pKingDomFlag = (SPanel*)m_pControlContainer->FindControl(65768);
+		m_pFlagDesc = (SPanel*)m_pControlContainer->FindControl(65771);
+		m_pFlagDescText[0] = (SText*)m_pControlContainer->FindControl(65772);
+		m_pFlagDescText[1] = (SText*)m_pControlContainer->FindControl(65773);
+		m_pFlagDescText[2] = (SText*)m_pControlContainer->FindControl(65774);
+
+		if (m_pFlagDesc)
+			m_pFlagDesc->SetVisible(0);
+		if (m_pKingDomFlag)
+			m_pKingDomFlag->m_pDescPanel = m_pFlagDesc;
+	}
 	if (m_pKingDomFlag)
 		m_pKingDomFlag->SetVisible(0);
-
-	m_pFlagDesc = (SPanel*)m_pControlContainer->FindControl(65771);
-	if (m_pFlagDesc)
-		m_pFlagDesc->SetVisible(0);
-
-	m_pFlagDescText[0] = (SText*)m_pControlContainer->FindControl(65772);
-	m_pFlagDescText[1] = (SText*)m_pControlContainer->FindControl(65773);
-	m_pFlagDescText[2] = (SText*)m_pControlContainer->FindControl(65774);
-
-	if (m_pKingDomFlag)
-		m_pKingDomFlag->m_pDescPanel = m_pFlagDesc;
 
 	m_pRankTimeText = new SText(-2,
 		"00 : 00",
@@ -4169,10 +4336,10 @@ int TMFieldScene::InitializeScene()
 		pPartyPanel->m_nPosY = pPartyPanel->m_nPosY + 135.0f;
 	}
 
-	if (m_pPartyBtn)
+	if (m_pPartyBtn && pPartyPanel)
 		m_pPartyBtn->SetPos(0.0f, ((float)g_pDevice->m_dwScreenHeight - pPartyPanel->m_nHeight) - 165.0f);
 
-	if (m_pPartyBtn)
+	if (m_pPartyBtn && m_pPartyBtn->m_pAltText && pPartyPanel)
 		m_pPartyBtn->m_pAltText->SetPos(m_pPartyBtn->m_pAltText->m_nPosX + 5.0f, (pPartyPanel->m_nHeight * 0.5f) - 13.0f);
 
 	OnControlEvent(5742, 0);
@@ -4597,18 +4764,11 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				VisibleInputTradeName();
 			return 1;
 		case 65799: // party
-			if (auto panel = m_pControlContainer->FindControl(1857))
-				panel->SetVisible(panel->IsVisible() == 0);
+			SetVisibleParty();
 			return 0;
 		case 65793: // quest
-			if (auto panel = m_pControlContainer->FindControl(320))
-			{
-				const int visible = panel->IsVisible() == 0;
-				panel->SetVisible(visible);
-				// FUN_004662c5 mirrors panel 320 on native bottom button 315.
-				if (m_pQuestBtn)
-					m_pQuestBtn->SetSelected(visible);
-			}
+			if (m_pQuestPanel)
+				SetQuestPanelVisible(m_pQuestPanel->IsVisible() == 0);
 			return 0;
 		case 65795: // helper
 			if (auto panel = m_pControlContainer->FindControl(864))
@@ -6445,153 +6605,38 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			}
 		}
 	}
-	if (idwControlID == B_QUEST_BUTTON)
+	if (idwControlID == B_QUEST_BUTTON || idwControlID == TMB_QUEST_BUTTON)
 	{
-		if (m_pQuestList[0])
-		{
-			m_pQuestList[0]->SetVisible(1);
-			m_pQuestList[0]->m_bSelectEnable = 1;
-		}
-		if (m_pQuestContentList[0])
-			m_pQuestContentList[0]->SetVisible(1);
-		if (m_pQuestList[1])
-		{
-			m_pQuestList[1]->SetVisible(0);
-			m_pQuestList[1]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[1])
-			m_pQuestContentList[1]->SetVisible(0);
-		if (m_pQuestList[2])
-		{
-			m_pQuestList[2]->SetVisible(0);
-			m_pQuestList[2]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[2])
-			m_pQuestContentList[2]->SetVisible(0);
-		if (m_pQuestList[3])
-		{
-			m_pQuestList[3]->SetVisible(0);
-			m_pQuestList[3]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[3])
-			m_pQuestContentList[3]->SetVisible(0);
-
-		m_pQuestMemo->SetVisible(0);
-
+		SelectQuestTab(0);
 		return 1;
 	}
-	if (idwControlID == B_QUEST_BUTTON2)
+	if (idwControlID == B_QUEST_BUTTON2 || idwControlID == TMB_QUEST_BUTTON2)
 	{
-		if (m_pQuestList[0])
-		{
-			m_pQuestList[0]->SetVisible(0);
-			m_pQuestList[0]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[0])
-			m_pQuestContentList[0]->SetVisible(0);
-		if (m_pQuestList[1])
-		{
-			m_pQuestList[1]->SetVisible(1);
-			m_pQuestList[1]->m_bSelectEnable = 1;
-		}
-		if (m_pQuestContentList[1])
-			m_pQuestContentList[1]->SetVisible(1);
-		if (m_pQuestList[2])
-		{
-			m_pQuestList[2]->SetVisible(0);
-			m_pQuestList[2]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[2])
-			m_pQuestContentList[2]->SetVisible(0);
-		if (m_pQuestList[3])
-		{
-			m_pQuestList[3]->SetVisible(0);
-			m_pQuestList[3]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[3])
-			m_pQuestContentList[3]->SetVisible(0);
-
-		m_pQuestMemo->SetVisible(0);
+		SelectQuestTab(1);
 		return 1;
 	}
-	if (idwControlID == B_QUEST_BUTTON3)
+	if (idwControlID == B_QUEST_BUTTON3 || idwControlID == TMB_QUEST_BUTTON3)
 	{
-		if (m_pQuestList[0])
-		{
-			m_pQuestList[0]->SetVisible(0);
-			m_pQuestList[0]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[0])
-			m_pQuestContentList[0]->SetVisible(0);
-		if (m_pQuestList[1])
-		{
-			m_pQuestList[1]->SetVisible(0);
-			m_pQuestList[1]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[1])
-			m_pQuestContentList[1]->SetVisible(0);
-		if (m_pQuestList[2])
-		{
-			m_pQuestList[2]->SetVisible(1);
-			m_pQuestList[2]->m_bSelectEnable = 1;
-		}
-		if (m_pQuestContentList[2])
-			m_pQuestContentList[2]->SetVisible(1);
-		if (m_pQuestList[3])
-		{
-			m_pQuestList[3]->SetVisible(0);
-			m_pQuestList[3]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[3])
-			m_pQuestContentList[3]->SetVisible(0);
-
-		m_pQuestMemo->SetVisible(0);
+		SelectQuestTab(2);
 		return 1;
 	}
-	if (idwControlID == B_QUEST_BUTTON4)
+	if (idwControlID == B_QUEST_BUTTON4 || idwControlID == TMB_QUEST_BUTTON4)
 	{
-		if (m_pQuestList[0])
-		{
-			m_pQuestList[0]->SetVisible(0);
-			m_pQuestList[0]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[0])
-			m_pQuestContentList[0]->SetVisible(0);
-		if (m_pQuestList[1])
-		{
-			m_pQuestList[1]->SetVisible(0);
-			m_pQuestList[1]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[1])
-			m_pQuestContentList[1]->SetVisible(0);
-		if (m_pQuestList[2])
-		{
-			m_pQuestList[2]->SetVisible(0);
-			m_pQuestList[2]->m_bSelectEnable = 0;
-		}
-		if (m_pQuestContentList[2])
-			m_pQuestContentList[2]->SetVisible(0);
-		if (m_pQuestList[3])
-		{
-			m_pQuestList[3]->SetVisible(1);
-			m_pQuestList[3]->m_bSelectEnable = 1;
-		}
-		if (m_pQuestContentList[3])
-			m_pQuestContentList[3]->SetVisible(1);
-		m_pQuestMemo->SetVisible(0);
+		SelectQuestTab(3);
 		return 1;
 	}
-	if (idwControlID == B_QUEST_MEMO)
+	if (idwControlID == B_QUEST_MEMO || idwControlID == TMB_QUEST_MEMO)
 	{
-		if (m_pMsgPanel)
+		if (m_pMsgPanel && m_pMsgList && g_pDevice)
 		{
 			if (!LoadMsgText(m_pMsgList, (char*)"notice.txt"))
-			m_pMsgList->SetVisible(1);
+				m_pMsgList->SetVisible(1);
 			m_pMsgPanel->SetVisible(1);
 			m_pMsgPanel->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pMsgPanel->m_nWidth * 0.5f),
 				((float)g_pDevice->m_dwScreenHeight * 0.3f) - (m_pMsgPanel->m_nHeight * 0.3f));
 
-			m_pQuestMemo->SetVisible(0);
+			if (m_pQuestMemo)
+				m_pQuestMemo->SetVisible(0);
 		}	
 		return 1;
 	}
@@ -6682,14 +6727,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		return 0;
 	}
-	if (idwControlID == B_QUEST_QUIT)
+	if (idwControlID == B_QUEST_QUIT || idwControlID == TMB_QUEST_QUIT)
 	{
-		if (m_pQuestPanel)
-		{
-			m_pQuestPanel->SetVisible(0);
-			m_pQuestBtn->SetSelected(0);
-		}
-
+		SetQuestPanelVisible(false);
 		return 0;
 	}
 	if (idwControlID == B_CCATTACK)
@@ -6825,77 +6865,60 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		return 0;
 	}
 
-	if (idwControlID == B_QUESTLOG)
+	if (idwControlID == B_QUESTLOG || idwControlID == TMB_QUESTLOG)
 	{
-		int nIsVisible = m_pQuestPanel->IsVisible();
-		m_pQuestPanel->SetVisible(nIsVisible == 0);
-		m_pQuestBtn->SetSelected(nIsVisible == 0);
-
-		if (!nIsVisible)
+		if (m_pQuestPanel)
+			SetQuestPanelVisible(m_pQuestPanel->IsVisible() == 0);
+		return 0;
+	}
+	if (idwControlID == L_QUEST_LIST || idwControlID == TML_QUEST_LIST)
+	{
+		if (m_pQuestContentList[0])
 		{
-			TMScene::LoadMsgText3(
-				m_pQuestList[0],
-				(char*)"UI\\QuestSubjects.txt",
-				pMobData->CurrentScore.Level + 1,
-				pMobData->Equip[0].sIndex % 10);
-			TMScene::LoadMsgText3(
-				m_pQuestList[1],
-				(char*)"UI\\QuestSubjects2.txt",
-				pMobData->CurrentScore.Level + 1,
-				pMobData->Equip[0].sIndex % 10);
-			TMScene::LoadMsgText3(
-				m_pQuestList[2],
-				(char*)"UI\\QuestSubjects3.txt",
-				pMobData->CurrentScore.Level + 1,
-				pMobData->Equip[0].sIndex % 10);
-			TMScene::LoadMsgText3(
-				m_pQuestList[3],
-				(char*)"UI\\QuestSubjects4.txt",
-				pMobData->CurrentScore.Level + 1,
-				pMobData->Equip[0].sIndex % 10);
+			TMScene::LoadMsgText2(
+				m_pQuestContentList[0],
+				(char*)"UI\\QuestContents.txt",
+				20 * idwEvent,
+				20 * (idwEvent + 1) - 1);
 		}
 
-		// Open the mortal quests list as default
-		OnControlEvent(B_QUEST_BUTTON, 0);
-		GetSoundAndPlay(51, 0, 0);
 		return 0;
 	}
-	if (idwControlID == 1054260)
+	if (idwControlID == L_QUEST_LIST2 || idwControlID == TML_QUEST_LIST2)
 	{
-		TMScene::LoadMsgText2(
-			m_pQuestContentList[0],
-			(char*)"UI\\QuestContents.txt",
-			20 * idwEvent,
-			20 * (idwEvent + 1) - 1);
+		if (m_pQuestContentList[1])
+		{
+			TMScene::LoadMsgText2(
+				m_pQuestContentList[1],
+				(char*)"UI\\QuestContents2.txt",
+				20 * idwEvent,
+				20 * (idwEvent + 1) - 1);
+		}
 
 		return 0;
 	}
-	if (idwControlID == 1054263)
+	if (idwControlID == L_QUEST_LIST3 || idwControlID == TML_QUEST_LIST3)
 	{
-		TMScene::LoadMsgText2(
-			m_pQuestContentList[1],
-			(char*)"UI\\QuestContents2.txt",
-			20 * idwEvent,
-			20 * (idwEvent + 1) - 1);
-
+		if (m_pQuestContentList[2])
+		{
+			TMScene::LoadMsgText2(
+				m_pQuestContentList[2],
+				(char*)"UI\\QuestContents3.txt",
+				20 * idwEvent,
+				20 * (idwEvent + 1) - 1);
+		}
 		return 0;
 	}
-	if (idwControlID == 1054266)
+	if (idwControlID == L_QUEST_LIST4 || idwControlID == TML_QUEST_LIST4)
 	{
-		TMScene::LoadMsgText2(
-			m_pQuestContentList[2],
-			(char*)"UI\\QuestContents3.txt",
-			20 * idwEvent,
-			20 * (idwEvent + 1) - 1);
-		return 0;
-	}
-	if (idwControlID == 1054269)
-	{
-		TMScene::LoadMsgText2(
-			m_pQuestContentList[3],
-			(char*)"UI\\QuestContents4.txt",
-			20 * idwEvent,
-			20 * (idwEvent + 1) - 1);
+		if (m_pQuestContentList[3])
+		{
+			TMScene::LoadMsgText2(
+				m_pQuestContentList[3],
+				(char*)"UI\\QuestContents4.txt",
+				20 * idwEvent,
+				20 * (idwEvent + 1) - 1);
+		}
 		return 0;
 	}
 	if (idwControlID == 5696)
@@ -7712,9 +7735,12 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		}
 		return 1;
 	}
-	if (idwControlID == 475138)
+	if (idwControlID == 475138 || (m_bCompatFieldScene && idwControlID == 1863))
 	{
 		auto pPartyList = m_pPartyList;
+		if (!pPartyList)
+			return 0;
+
 		auto pPartyItem = (SListBoxPartyItem*)pPartyList->GetItem(idwEvent);
 
 		if (pPartyItem && pPartyItem->m_nState == 1 && !pPartyList->m_bRButton)
@@ -17121,30 +17147,34 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 				m_pMyCargoCoin->SetText(szVal, 0);
 		}
 
-		if (!m_pMyHuman->m_pMantua)
-			m_pKingDomFlag->SetVisible(0);
-		else if (m_pMyHuman->m_pMantua->m_Look.Skin0 == 19)
-			m_pKingDomFlag->SetVisible(0);
-		else
+		if (m_pKingDomFlag)
 		{
-			char szTemp[256]{};
-			m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pMyHuman->m_pMantua->m_Look.Skin0;
-			if ((m_pMyHuman->m_sHelmIndex == 3503 || m_pMyHuman->m_sHelmIndex == 3504 || 
-				m_pMyHuman->m_sHelmIndex == 3505 || m_pMyHuman->m_sHelmIndex == 3506) && 
-				m_pMyHuman->m_pMantua->m_Look.Skin0 == 2)
+			if (!m_pMyHuman->m_pMantua || m_pMyHuman->m_pMantua->m_Look.Skin0 == 19)
+				m_pKingDomFlag->SetVisible(0);
+			else
 			{
-				m_pKingDomFlag->m_GCPanel.nTextureIndex = 33;
+				char szTemp[256]{};
+				m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pMyHuman->m_pMantua->m_Look.Skin0;
+				if ((m_pMyHuman->m_sHelmIndex == 3503 || m_pMyHuman->m_sHelmIndex == 3504 ||
+					m_pMyHuman->m_sHelmIndex == 3505 || m_pMyHuman->m_sHelmIndex == 3506) &&
+					m_pMyHuman->m_pMantua->m_Look.Skin0 == 2)
+				{
+					m_pKingDomFlag->m_GCPanel.nTextureIndex = 33;
+				}
+
+				m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pMyHuman->UnSetCitizenMantle(m_pKingDomFlag->m_GCPanel.nTextureIndex);
+				if (m_pFlagDescText[0])
+					m_pFlagDescText[0]->SetText(g_pItemList[pMobData->Equip[15].sIndex].Name, 0);
+
+				sprintf(szTemp, "%s %d", g_pMessageStringTable[80], BASE_GetItemAbility(&pMobData->Equip[15], 3));
+				if (m_pFlagDescText[1])
+					m_pFlagDescText[1]->SetText(szTemp, 0);
+
+				sprintf(szTemp, "%s %d", g_pMessageStringTable[81], BASE_GetItemAbility(&pMobData->Equip[15], 4));
+				if (m_pFlagDescText[2])
+					m_pFlagDescText[2]->SetText(szTemp, 0);
+				m_pKingDomFlag->SetVisible(1);
 			}
-
-			m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pMyHuman->UnSetCitizenMantle(m_pKingDomFlag->m_GCPanel.nTextureIndex);
-			m_pFlagDescText[0]->SetText(g_pItemList[pMobData->Equip[15].sIndex].Name, 0);
-
-			sprintf(szTemp, "%s %d", g_pMessageStringTable[80], BASE_GetItemAbility(&pMobData->Equip[15], 3));
-			m_pFlagDescText[1]->SetText(szTemp, 0);
-
-			sprintf(szTemp, "%s %d", g_pMessageStringTable[81], BASE_GetItemAbility(&pMobData->Equip[15], 4));
-			m_pFlagDescText[2]->SetText(szTemp, 0);
-			m_pKingDomFlag->SetVisible(1);
 		}
 
 		if (m_pMyHuman->m_cMount == 1 && 
@@ -17593,10 +17623,7 @@ void TMFieldScene::OnESC()
 		{
 			// FUN_0044df53 closes the native quest panel before the inventory and
 			// releases button 315, preserving the one-window-per-ESC cascade.
-			m_pQuestPanel->SetVisible(0);
-			if (m_pQuestBtn)
-				m_pQuestBtn->SetSelected(0);
-			GetSoundAndPlay(51, 0, 0);
+			SetQuestPanelVisible(false);
 		}
 		else if (m_pItemMixPanel && m_pItemMixPanel->IsVisible())
 			SetVisibleMixItem(0);
@@ -17676,18 +17703,9 @@ void TMFieldScene::OnESC()
 	{
 		m_pPGTPanel->SetVisible(0);
 	}
-	else if (m_pQuestPanel->IsVisible() == 1)
+	else if (m_pQuestPanel && m_pQuestPanel->IsVisible() == 1)
 	{
-		m_pQuestPanel->SetVisible(0);
-		m_pQuestBtn->SetSelected(0);
-
-		if (g_pSoundManager)
-		{
-			auto pSoundData = g_pSoundManager->GetSoundData(51);
-
-			if (pSoundData)
-				pSoundData->Play(0, 0);
-		}
+		SetQuestPanelVisible(false);
 	}
 	else if (m_pFireWorkPanel && m_pFireWorkPanel->IsVisible() == 1)
 	{
@@ -17919,10 +17937,15 @@ void TMFieldScene::SetPK()
 {
 	TMFieldScene::m_bPK = TMFieldScene::m_bPK == 0;
 
-	m_PkButton->SetSelected(TMFieldScene::m_bPK == 0);
-	m_PkButton->Update();
+	if (m_PkButton)
+	{
+		m_PkButton->SetSelected(TMFieldScene::m_bPK == 0);
+		m_PkButton->Update();
+	}
 
-	auto pBtnPK = (SButton*)m_pControlContainer->FindControl(306);
+	auto pBtnPK = m_pControlContainer
+		? (SButton*)m_pControlContainer->FindControl(306)
+		: nullptr;
 	MSG_STANDARDPARM stParam{};
 	stParam.Header.ID = g_pObjectManager->m_dwCharID;
 	stParam.Header.Type = MSG_SetPKMode_Opcode;
@@ -18751,6 +18774,7 @@ void TMFieldScene::InitBoard()
 	m_pQuestPanel = (SPanel*)m_pControlContainer->FindControl(1054256);
 	if (m_pQuestPanel)
 	{
+		m_pQuestQuitBtn = (SButton*)m_pControlContainer->FindControl(B_QUEST_QUIT);
 		m_pQuestButton[0] = (SButton*)m_pControlContainer->FindControl(1054259);
 		m_pQuestList[0] = (SListBox*)m_pControlContainer->FindControl(1054260);
 		m_pQuestContentList[0] = (SListBox*)m_pControlContainer->FindControl(1054261);
@@ -18764,33 +18788,20 @@ void TMFieldScene::InitBoard()
 		m_pQuestList[3] = (SListBox*)m_pControlContainer->FindControl(1054269);
 		m_pQuestContentList[3] = (SListBox*)m_pControlContainer->FindControl(1054271);
 
-		if (m_pQuestList[0])
-			m_pQuestList[0]->SetVisible(0);
-		if (m_pQuestList[1])
-			m_pQuestList[1]->SetVisible(0);
-		if (m_pQuestList[2])
-			m_pQuestList[2]->SetVisible(0);
-		if (m_pQuestList[3])
-			m_pQuestList[3]->SetVisible(0);
-
-		if (m_pQuestContentList[0])
-			m_pQuestContentList[0]->SetVisible(1);
-		if (m_pQuestContentList[1])
-			m_pQuestContentList[1]->SetVisible(0);
-		if (m_pQuestContentList[2])
-			m_pQuestContentList[2]->SetVisible(0);
-		if (m_pQuestContentList[3])
-			m_pQuestContentList[3]->SetVisible(0);
+		for (int questIndex = 0; questIndex < 4; ++questIndex)
+		{
+			if (m_pQuestList[questIndex])
+			{
+				m_pQuestList[questIndex]->SetVisible(0);
+				m_pQuestList[questIndex]->m_bSelectEnable = 0;
+				m_pQuestList[questIndex]->SetEventListener(m_pControlContainer);
+			}
+			if (m_pQuestContentList[questIndex])
+				m_pQuestContentList[questIndex]->SetVisible(0);
+		}
 
 		m_pQuestPanel->SetVisible(0);
-
-		m_pQuestList[0]->SetEventListener(m_pControlContainer ? m_pControlContainer : nullptr);
-		m_pQuestList[1]->SetEventListener(m_pControlContainer ? m_pControlContainer : nullptr);
-		m_pQuestList[2]->SetEventListener(m_pControlContainer ? m_pControlContainer : nullptr);
-		m_pQuestList[3]->SetEventListener(m_pControlContainer ? m_pControlContainer : nullptr);
-
-		m_pQuestPanel->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pQuestPanel->m_nWidth * 0.5f),
-			((float)g_pDevice->m_dwScreenHeight * 0.5f) - (m_pQuestPanel->m_nHeight * 0.6f));
+		PositionCompatQuestPanel();
 
 		memset(m_pLevelQuest, 0, sizeof(m_pLevelQuest));
 
@@ -18801,37 +18812,46 @@ void TMFieldScene::InitBoard()
 		LoadMsgLevel(m_pLevelQuest, "UI\\QuestMessage.txt", 100);
 
 		m_pQuestMemo = (SButton*)m_pControlContainer->FindControl(1054273);
-		m_pQuestMemo->m_cAlwaysAlt = 1;//botao que pisca
-		m_pQuestMemo->m_cBlink = 1;
+		if (m_pQuestMemo)
+		{
+			m_pQuestMemo->m_cAlwaysAlt = 1;//botao que pisca
+			m_pQuestMemo->m_cBlink = 1;
+			if (m_pQuestMemo->m_pAltText)
+				m_pQuestMemo->m_pAltText->SetPos(-20.0f, -10.0f);
 
-		m_pQuestMemo->m_pAltText->SetPos(-20.0f, -10.0f);
-
-		m_pQuestMemo->m_nPosX = (float)(300.0f * RenderDevice::m_fWidthRatio)
-			+ m_pMainInfo1->m_nPosX;//adicionado
-		m_pQuestMemo->m_nPosY = m_pMainInfo1->m_nPosY
-			- (float)(480.0f * RenderDevice::m_fHeightRatio);
+			if (m_pMainInfo1)
+			{
+				m_pQuestMemo->m_nPosX = (float)(300.0f * RenderDevice::m_fWidthRatio)
+					+ m_pMainInfo1->m_nPosX;//adicionado
+				m_pQuestMemo->m_nPosY = m_pMainInfo1->m_nPosY
+					- (float)(480.0f * RenderDevice::m_fHeightRatio);
+			}
+		}
 		
-		if (!g_pObjectManager->m_stMobData.CurrentScore.Level)
+		if (g_pObjectManager && !g_pObjectManager->m_stMobData.CurrentScore.Level)
 		{
 			const STRUCT_MOB* pMobData = &g_pObjectManager->m_stMobData;
-			LoadMsgText3(m_pQuestList[0], 
-				(char*)"UI\\QuestSubjects.txt",	
-				g_pObjectManager->m_stMobData.CurrentScore.Level + 1, 
-				g_pObjectManager->m_stMobData.Equip[0].sIndex % 10);
-			LoadMsgText3(m_pQuestList[1],
-				(char*)"UI\\QuestSubjects2.txt",
-				pMobData->CurrentScore.Level + 1,
-				pMobData->Equip[0].sIndex % 10);
-			LoadMsgText3(m_pQuestList[2],
-				(char*)"UI\\QuestSubjects3.txt",
-				pMobData->CurrentScore.Level + 1,
-				pMobData->Equip[0].sIndex % 10);
-			LoadMsgText3(m_pQuestList[3],
-				(char*)"UI\\QuestSubjects4.txt",
-				pMobData->CurrentScore.Level + 1,
-				pMobData->Equip[0].sIndex % 10);
+			static const char* const questSubjectFiles[4] =
+			{
+				"UI\\QuestSubjects.txt",
+				"UI\\QuestSubjects2.txt",
+				"UI\\QuestSubjects3.txt",
+				"UI\\QuestSubjects4.txt"
+			};
+			for (int questIndex = 0; questIndex < 4; ++questIndex)
+			{
+				if (m_pQuestList[questIndex])
+				{
+					LoadMsgText3(
+						m_pQuestList[questIndex],
+						questSubjectFiles[questIndex],
+						pMobData->CurrentScore.Level + 1,
+						pMobData->Equip[0].sIndex % 10);
+				}
+			}
 
-			m_pQuestMemo->SetVisible(1);
+			if (m_pQuestMemo)
+				m_pQuestMemo->SetVisible(1);
 			
 			char szStr[128]{};
 			unsigned int dwCol = 0xFFAAAAFF;
@@ -23940,6 +23960,9 @@ int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)
 int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 {
 	auto pPartyList = m_pPartyList;
+	if (!pStd || !pPartyList)
+		return 0;
+
 	pStd->Leader.Name[15] = 0;
 
 	auto pPartyItem = new SListBoxPartyItem(pStd->Leader.Name,
@@ -23973,19 +23996,29 @@ int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 	char szMsg[128]{};
 	sprintf(szMsg, g_pMessageStringTable[62], pStd->Leader.Name);
 
-	pChatList->AddItem(new SListBoxItem(szMsg, 0xFFCCAAFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
+	if (pChatList)
+		pChatList->AddItem(new SListBoxItem(szMsg, 0xFFCCAAFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 
 	if (!m_bAutoParty)
 	{
 		sprintf(szMsg, g_pMessageStringTable[63], pStd->Leader.Name);
 
-		pChatList->AddItem(new SListBoxItem(szMsg, 0xFFCCAAFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
-		m_pPartyAutoButton->SetVisible(0);
-		m_pPartyAutoText->SetVisible(0);
+		if (pChatList)
+			pChatList->AddItem(new SListBoxItem(szMsg, 0xFFCCAAFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 
-		auto partyback = (SPanel*)m_pControlContainer->FindControl(7602196);
-		if (partyback)
-			partyback->SetVisible(0);
+		if (!m_bCompatFieldScene)
+		{
+			if (m_pPartyAutoButton)
+				m_pPartyAutoButton->SetVisible(0);
+			if (m_pPartyAutoText)
+				m_pPartyAutoText->SetVisible(0);
+
+			auto partyback = m_pControlContainer
+				? static_cast<SPanel*>(m_pControlContainer->FindControl(7602196))
+				: nullptr;
+			if (partyback)
+				partyback->SetVisible(0);
+		}
 	}
 	else
 	{
@@ -24012,6 +24045,9 @@ int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 int TMFieldScene::OnPacketAddParty(MSG_AddParty* pStd)
 {
 	auto pPartyList = m_pPartyList;
+	if (!pStd || !pPartyList)
+		return 0;
+
 	pStd->Party.Name[15] = 0;
 	for (int i = 0; i < pPartyList->m_nNumItem; ++i)
 	{
@@ -24062,7 +24098,7 @@ int TMFieldScene::OnPacketAddParty(MSG_AddParty* pStd)
 
 int TMFieldScene::OnPacketRemoveParty(MSG_STANDARDPARM* pStd)
 {
-	if (!m_pPartyList)
+	if (!pStd || !m_pPartyList)
 		return 0;
 
 	auto pPartyList = m_pPartyList;
@@ -28352,11 +28388,9 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 			SetVisibleAutoTrade(0, 0);
 		else if (pPGTPanel->IsVisible() == 1)
 			pPGTPanel->SetVisible(0);
-		else if (m_pQuestPanel->IsVisible() == 1)
+		else if (m_pQuestPanel && m_pQuestPanel->IsVisible() == 1)
 		{
-			m_pQuestPanel->SetVisible(0);
-			m_pQuestBtn->SetSelected(0);
-			GetSoundAndPlay(51, 0, 0);
+			SetQuestPanelVisible(false);
 		}
 		else if (m_pFireWorkPanel && m_pFireWorkPanel->IsVisible() == 1)
 			m_pFireWorkPanel->SetVisible(0);

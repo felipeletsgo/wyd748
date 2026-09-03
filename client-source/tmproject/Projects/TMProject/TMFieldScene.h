@@ -322,6 +322,13 @@ private:
 	// Reapplies the native lower-left Party placement shared by root 1857 and
 	// its bottom-bar toggle 5742.
 	void PositionCompatPartyPanel();
+	// Reapplies the exact native 7.48 viewport centering for the Quest root.
+	void PositionCompatQuestPanel();
+	// Keeps every Quest entry/exit path on one visibility, reload and button-state
+	// transition for both the native 7.48 and imported control IDs.
+	void SetQuestPanelVisible(bool visible);
+	// Selects one of the four resource-owned Quest list/content pairs.
+	void SelectQuestTab(int tabIndex);
 	// Changes the interaction mode only on inventory grids materialized by the
 	// active resource. FieldScene2 has one native 9x7 grid, not four newer pages.
 	void SetInventoryGridType(TMEGRIDTYPE gridType);

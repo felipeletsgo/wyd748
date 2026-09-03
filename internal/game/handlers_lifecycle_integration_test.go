@@ -116,6 +116,15 @@ func TestPhysicalAttackHandlerDamagesEnemyPlayerOnly(t *testing.T) {
 
 	hpBefore := playerCurHP(target.Char)
 	w.onAttack(attacker.Session, physicalAttackPacket(1000, target.ID, target.X, target.Y))
+	if playerCurHP(target.Char) != hpBefore || target.LastAttackerID != 0 ||
+		attacker.LastAttackTick != 0 || !attacker.LastAttackAt.IsZero() {
+		t.Fatalf("PK desligado alterou combate ou consumiu relogio: hp=%d/%d attacker=%d tick=%d at=%v",
+			playerCurHP(target.Char), hpBefore, target.LastAttackerID,
+			attacker.LastAttackTick, attacker.LastAttackAt)
+	}
+
+	attacker.PKMode = true
+	w.onAttack(attacker.Session, physicalAttackPacket(1000, target.ID, target.X, target.Y))
 	if playerCurHP(target.Char) >= hpBefore || target.LastAttackerID != attacker.ID {
 		t.Fatalf("PvP fisico nao aplicado: hp=%d/%d attacker=%d", playerCurHP(target.Char), hpBefore, target.LastAttackerID)
 	}

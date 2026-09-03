@@ -369,6 +369,17 @@ func TestSkillAttackPvPBreaksHideAndPreservesOverkillState(t *testing.T) {
 		ManaSpent: 10, Delay: 1, Range: 6, MaxTarget: 1, Aggressive: 1,
 	}}
 
+	hpBefore := playerCurHP(target.Char)
+	mpBefore := playerCurMP(caster.Char)
+	w.onSkillAttack(caster, skillCastRequest{Skill: 0, TargetID: target.ID, Motion: 5})
+	if playerCurHP(target.Char) != hpBefore || playerCurMP(caster.Char) != mpBefore ||
+		!hasActiveAffect(caster.Char, 28) || !caster.SkillReady[0].IsZero() {
+		t.Fatalf("skill PvP com modo desligado alterou estado: hp=%d/%d mp=%d/%d hide=%t cooldown=%v",
+			playerCurHP(target.Char), hpBefore, playerCurMP(caster.Char), mpBefore,
+			hasActiveAffect(caster.Char, 28), caster.SkillReady[0])
+	}
+
+	caster.PKMode = true
 	w.onSkillAttack(caster, skillCastRequest{Skill: 0, TargetID: target.ID, Motion: 5})
 	if hasActiveAffect(caster.Char, 28) {
 		t.Fatal("atacar nao removeu Hide in Shadows")

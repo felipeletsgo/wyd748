@@ -17,14 +17,15 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | 3EDB581805265E8CB23ED81B44483EF59F9CDB48A170178D5B7E272F1C364774
+client748/project.exe                            | candidato source | 6884415003707C8C8A0EE1BDF02BE296D70F65D268E4995C3E701D3B73F7457C
 ```
 
 Os hashes históricos permanecem os fingerprints imutáveis registrados; o
 hash de `project.exe` foi atualizado pelo build de 2026-09-02. Esse hash é
 volátil e deve ser recalculado depois de qualquer build.
 
-O build `Release|Win32` deste candidato concluiu com zero erros e 21 warnings;
+O build `Release|Win32` deste candidato concluiu com zero erros e 13 warnings
+C4018 preexistentes; o warning C4805 introduzido no helper Quest foi eliminado;
 `validate_research.py` e `git diff --check` também passaram.
 
 ## Evidência confirmada
@@ -224,7 +225,10 @@ array de animação 0x1C1/0x2C2 DA9F578E | CONTRACT / STATICALLY VERIFIED / AUTO
 layout/valores do HUD compacto      | STATICALLY VERIFIED  | texto sem stretch + IDs nativos
 EXP nativa em quatro quartos        | STATICALLY VERIFIED  | controles 1171–1174
 layout C/S/I lado a lado CD92A005   | STATICALLY VERIFIED  | FUN_00435b13 + roots 513/1905/257
+campos Character 1110/1168/1376/1377 | IMPLEMENTED / STATICALLY VERIFIED | Att Speed/C.POINT/HOLD/Kingdom nativos
 layout Gamble 3EDB5818              | STATICALLY VERIFIED  | root 6400; centro vertical e +10 X reaplicados no open
+layout/lifecycle Party              | IMPLEMENTED / STATICALLY VERIFIED | roots 1857/1863/5742; toggle e handlers nativos restaurados
+layout/lifecycle Quest              | IMPLEMENTED / STATICALLY VERIFIED | toggle 315; root 320; quatro abas/listas e teardown restaurados
 wheel/rotação de câmera             | STATICALLY VERIFIED  | input/lifecycle nativo
 contagem de 5 s após X              | STATICALLY VERIFIED  | TimeDelay no frame compat
 atalhos/chat/minimap clássicos      | STATICALLY VERIFIED  | somente controles 7.48
@@ -997,7 +1001,100 @@ Repetir build, instalação e hash se o código mudar.
   `STATICALLY VERIFIED` no candidato `3EDB5818...64774`; falta abertura dos
   dois tipos, rolagem, fechamento e relogin dentro do jogo.
 
+## Painel Party nativo em 2026-09-02
+
+- `FUN_00435B13` vincula root `1857`, lista `1863` e botão `5742`, colocando
+  root e botão em `x=0` e `y=viewportHeight-root.height-165`.
+- `FUN_0044DA6F` centraliza o toggle e a seleção inversa do botão. Click
+  `5742`, tecla `P`, packets, `Esc` e UI concorrente convergem nesse lifecycle.
+- `FUN_004883BF`, `FUN_00488879` e `FUN_00488B52`, via dispatcher
+  `FUN_00492E7D`, cobrem convite `0x37F`, inclusão `0x37D` e remoção `0x37E`;
+  a lista `1863` mantém aceite `0x3AB`, `Ctrl`+click e click direito.
+- A source agora vincula os controles nativos, reaplica a posição no open,
+  aceita a lista nativa no callback e protege payload, lista, chat e AutoParty
+  opcional. A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/party-panel-layout-lifecycle.md`.
+- Estado de entrega: `IMPLEMENTED / STATICALLY VERIFIED`; o build oficial
+  passou e instalou o candidato `B51D48AC...9AE6BC`. Teste real ainda
+  pendente, sem claim `CLIENT-TESTED`.
+
+## Painel Quest nativo em 2026-09-02
+
+- `FUN_00435B13` chama `FUN_00441823`, que vincula toggle `315`, root `320`,
+  os quatro pares lista/conteúdo `321/322`, `325/326`, `327/328`, `335/334`,
+  fechar `323`, título `324`, abas `329/330/331/333` e memo `332`.
+- O root recebe centro exato em X/Y. `FUN_004662C5` centraliza toggle, abas,
+  seleções, memo e fechamento; `FUN_0049E50F` carrega conteúdo somente quando
+  o destino é válido.
+- A source agora vincula o grupo nativo completo, reaplica a posição no open,
+  recarrega as quatro listas, compartilha helpers entre click, tecla `X`,
+  fechar, `Esc` e AirMove e protege controles opcionais. O callback aceita
+  tanto `65793` quanto o ID nativo `315`; isso corrige o atalho `X` no modo
+  compatível.
+- A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/quest-panel-layout-lifecycle.md`.
+- Estado de entrega: `IMPLEMENTED / STATICALLY VERIFIED`; o build oficial
+  passou sem o warning C4805 e instalou o candidato
+  `B51D48AC...9AE6BC`. Teste real ainda pendente, sem claim
+  `CLIENT-TESTED`.
+
+## Campos Character nativos em 2026-09-02
+
+- `FUN_00435B13` vincula o grupo Character e `FUN_004431E4` atualiza os
+  controles em construção, Score, equipamento e skill. Os IDs relevantes são
+  Att Speed `1110`, HOLD `1168`, C.POINT `1376` e Kingdom `1377`.
+- A source agora publica Att Speed em `1110`, mantém o texto C.POINT em `1376`,
+  oculta HOLD quando `m_nFakeExp == 0` e oculta Kingdom quando não existe manto
+  de reino válido. O binding moderno `65768` não sobrescreve mais o emblema
+  nativo no modo 7.48.
+- O servidor não precisou de alteração: `MSG_UpdateEtc::Hold` e
+  `Ext1.Data[0]` continuam zerados e o teste de wire comprova que CP/Chaos não
+  vaza para Hold.
+- A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/character-stat-fields-update.md`.
+- Estado de entrega: `IMPLEMENTED / STATICALLY VERIFIED`; o build oficial
+  passou com zero erros e 13 warnings C4018 preexistentes e instalou o
+  candidato `B51D48AC...9AE6BC`. Teste real ainda pendente, sem claim
+  `CLIENT-TESTED`.
+
+## Tela inicial e seleção de servidor em 2026-09-02
+
+- `FUN_004A8F14`, initializer virtual `+0x4C` da cena `7`, centraliza o root
+  nativo `4622` exatamente em X/Y. A source o traduz para `P_SERVER_SEL`
+  (`65537`).
+- A source já aplicava essa fórmula, mas adicionava `75.0f` a `m_nPosY`; esse
+  offset ausente no nativo deslocava Server/Channel e todos os seus filhos para
+  baixo.
+- `TMSelectServerScene::InitializeUI` agora conserva somente a centralização
+  nativa. Largura de canal, offsets dos títulos, branches dos logos, listas,
+  callbacks e wire permaneceram inalterados.
+- A ficha `TRACED` está em
+  `.agents/research/client748/flows/ui/server-selection-layout-lifecycle.md`.
+- Estado de entrega: `IMPLEMENTED / STATICALLY VERIFIED`; o validador, o
+  `diff --check` e o build oficial passaram com zero erros e zero warnings. O
+  candidato instalado é `6E6AF9A8...9A380BC`; falta o teste real, sem claim
+  `CLIENT-TESTED`.
+
+## PK Mode autoritativo em 2026-09-02
+
+- O contrato nativo `0x399`, o input `K` e o lifecycle completo estão na ficha
+  `.agents/research/client748/flows/ui/pk-mode-toggle-lifecycle.md`, validada em
+  `CONTRACT`.
+- O client protege os controles PK moderno e legado opcionais sem interromper
+  o toggle nem o envio. O WYD-Go agora exige `Player.PKMode` para ataque físico,
+  skill e summon contra jogador, antes de consumir efeitos; PvE permanece livre.
+- `validate_research.py`, `go test -count=1 ./...`, `gofmt -d` e
+  `git diff --check` passaram. O build oficial `Release|Win32` concluiu com zero
+  erros e 13 warnings C4018 e instalou o candidato
+  `68844150...3F7457C`.
+- Estado: `CONTRACT / IMPLEMENTED / AUTOMATED TESTED / STATICALLY VERIFIED`.
+  Falta executar o fluxo real; não é `CLIENT_TESTED`.
+
 ## Pendências e riscos
+
+- No candidato `68844150...3F7457C`, pressionar `K`, confirmar ausência de
+  crash, bloqueio de PvP desligado, liberação ligado, PvE preservado e reset
+  para desligado depois de logout/relogin.
 
 - No candidato `DA9F578E...EE3F`, enviar desenhos Premium Firework com mais
   de um padrão e o fallback vazio; confirmar a mesma forma para dono e
@@ -1063,6 +1160,11 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Próximo passo executável
 
+Prioridade imediata: testar o PK Mode no candidato
+`6884415003707C8C8A0EE1BDF02BE296D70F65D268E4995C3E701D3B73F7457C` com
+dois jogadores e um mob, incluindo logout/relogin. Registrar o resultado na
+ficha antes de promover para `CLIENT_TESTED`.
+
 1. No candidato `DA9F578E...EE3F`, entrar no mundo com o manifesto de
    integridade ativo e confirmar sucesso do probe. Em ambiente de teste,
    alterar o byte esperado e reduzir o timeout para confirmar o fail-closed;
@@ -1112,3 +1214,16 @@ Repetir build, instalação e hash se o código mudar.
 15. No mesmo candidato, abrir os dois tipos de Gamble depois de outras janelas
     terem sido movidas, confirmar centro vertical e deslocamento de dez pixels
     à direita, fechar por `Esc`, executar uma rolagem e repetir após relogin.
+16. No candidato `B51D48AC...9AE6BC`, abrir Party pelo botão `5742` e pela tecla `P`, aceitar
+    convite, adicionar/remover membro e testar click esquerdo, `Ctrl`+click e
+    direito na lista. Fechar por `Esc` e UI concorrente; repetir após troca de
+    cena e logout/relogin nas três resoluções de referência.
+17. No candidato `B51D48AC...9AE6BC`, abrir Quest pelo botão `315` e pela tecla `X`, testar as
+    quatro abas/listas, conteúdos e memo, fechar por `323`, `Esc` e AirMove e
+    repetir após troca de cena e logout/relogin em `800x600`, `1024x768` e
+    `1280x960`.
+18. No candidato `B51D48AC...9AE6BC`, abrir Character e confirmar Att Speed em
+    `1110`, HOLD oculto com Hold zero, C.POINT com valor/percentual e Kingdom
+    oculto para personagem sem reino. Repetir após atualização de Score,
+    troca de equipamento e logout/relogin; testar também um personagem com
+    manto de reino válido.

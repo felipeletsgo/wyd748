@@ -76,10 +76,15 @@ Estado atual do mapa:
 | Posição compartilhada de AutoTrade, Cargo e Inventory | `TRACED` | `flows/ui/auto-trade-inventory-layout.md` |
 | Composição dos seis ItemMix com Inventory | `TRACED` | `flows/ui/native-mix-inventory-layout.md` |
 | Posição inicial e toggle do menu inferior direito | `TRACED` | `flows/ui/system-menu-initial-layout.md` |
+| Layout e lifecycle do painel Party | `TRACED` | `flows/ui/party-panel-layout-lifecycle.md` |
+| Layout e lifecycle do painel Quest | `TRACED` | `flows/ui/quest-panel-layout-lifecycle.md` |
 | Composição lado a lado de Character, Skill e Inventory | `TRACED` | `flows/ui/feature-panel-layout.md` |
+| Atualização de Att Speed, C.POINT, HOLD e Kingdom em Character | `TRACED` | `flows/ui/character-stat-fields-update.md` |
 | Posição do painel de seleção de personagem | `TRACED` | `flows/ui/select-character-layout.md` |
+| Posição e lifecycle da seleção de servidor | `TRACED` | `flows/ui/server-selection-layout-lifecycle.md` |
 | Exibição do Premium Firework `0x3CA` | `CONTRACT` | `flows/ui/premium-firework-display.md` |
 | Sincronização de estado e controles C.C | `TRACED` | `flows/ui/cc-auto-combat-state-sync.md` |
+| Alternância e aplicação autoritativa do PK Mode `0x399` | `CONTRACT` | `flows/ui/pk-mode-toggle-lifecycle.md` |
 | `SetMyHumanMagic` nativo sem efeito | `STATICALLY_EVIDENCED` | `inventory/set-my-human-magic-noop.md` |
 
 `LOCATED` permite investigação e documentação, não edição comportamental.

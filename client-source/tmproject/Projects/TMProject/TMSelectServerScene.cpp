@@ -1422,9 +1422,10 @@ void TMSelectServerScene::InitializeUI()
 	for (SPanel* panel : m_pSelectSvPanel)
 		m_pNServerSelect->AddChild(static_cast<TreeNode*>(panel));
 
+	// WYD 7.48 centers the root in both axes. Its child panels and list hitboxes
+	// inherit this position, so no additional vertical offset belongs here.
 	m_pNServerSelect->SetPos(((float)g_pDevice->m_dwScreenWidth - m_pNServerSelect->m_nWidth) * 0.5f,
 		((float)g_pDevice->m_dwScreenHeight - m_pNServerSelect->m_nHeight) * 0.5f);
-	m_pNServerSelect->m_nPosY += 75.0f;
 
 	_SYSTEMTIME time{};
 	GetLocalTime(&time);

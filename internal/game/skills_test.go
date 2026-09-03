@@ -356,6 +356,10 @@ func TestSkillPlayerTargetsRejectsPartyAndUsesSelectedEnemy(t *testing.T) {
 	caster.Party, member.Party = party, party
 	w := testSpatialWorld(nil, caster, enemy, member)
 	skill := model.SkillDef{Range: 6, MaxTarget: 1, Aggressive: 1}
+	if got := w.skillPlayerTargets(caster, skillCastRequest{TargetID: enemy.ID}, skill); len(got) != 0 {
+		t.Fatalf("PK desligado aceitou alvo jogador: %+v", got)
+	}
+	caster.PKMode = true
 	if got := w.skillPlayerTargets(caster, skillCastRequest{TargetID: enemy.ID}, skill); len(got) != 1 || got[0] != enemy {
 		t.Fatalf("inimigo selecionado nao foi aceito: %+v", got)
 	}
@@ -370,6 +374,7 @@ func TestSkillPvPAOEDoesNotHitSecondaryAcrossBlockedLineOfSight(t *testing.T) {
 			Char: &model.Char{Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
 	}
 	caster, primary, secondary := player(1, 10), player(2, 11), player(3, 13)
+	caster.PKMode = true
 	w := testSpatialWorld(nil, caster, primary, secondary)
 	w.terrain = loadedFlatTerrain()
 	w.terrain.Height[10*model.TerrainWidth+12] = model.TerrainBlockedByte

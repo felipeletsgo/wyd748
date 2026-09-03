@@ -250,7 +250,8 @@ func (w *World) summonTarget(owner *Player, id uint16) summonCombatTarget {
 		return summonCombatTarget{id: id, x: m.X, y: m.Y, mob: m}
 	}
 	p := w.playerByID(id)
-	if !validMobTargetAt(p, w.now()) || p == owner || !w.playersShareGameplaySpace(owner, p) ||
+	if !w.canInitiatePvP(owner, p) || !validMobTargetAt(p, w.now()) || p == owner ||
+		!w.playersShareGameplaySpace(owner, p) ||
 		p.Party != nil && p.Party == owner.Party ||
 		chebyshev(owner.X, owner.Y, p.X, p.Y) > summonCommandRange {
 		return summonCombatTarget{}

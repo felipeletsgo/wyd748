@@ -16,6 +16,7 @@ func privateTestInstance(id string, member uint16) *ItemInstance {
 
 func TestGameplaySpaceBlocksPlayerSkillAndSupportAcrossRuntimes(t *testing.T) {
 	caster, _ := networkedTestPlayer(1, "Caster", 2200, 2200)
+	caster.PKMode = true
 	enemy, _ := networkedTestPlayer(2, "Enemy", 2200, 2200)
 	w := testSpatialWorld(nil, caster, enemy)
 	w.itemInstances = map[string]*ItemInstance{
@@ -71,6 +72,7 @@ func TestSharedAndStateMachineRuntimesStayOutOfPublicGameplaySpace(t *testing.T)
 
 func TestPlayerAreaSkillAndSummonCannotCrossRuntime(t *testing.T) {
 	caster, _ := networkedTestPlayer(1, "Caster", 2200, 2200)
+	caster.PKMode = true
 	ally, _ := networkedTestPlayer(2, "Ally", 2200, 2200)
 	other, _ := networkedTestPlayer(3, "Other", 2200, 2200)
 	w := testSpatialWorld(nil, caster, ally, other)

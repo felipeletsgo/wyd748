@@ -12,6 +12,12 @@ const (
 	courageMagicBonus    int  = 2_000
 )
 
+func (w *World) canInitiatePvP(attacker, target *Player) bool {
+	// Excecoes futuras (Kingdom, Castle ou Guild War) devem ser autorizadas
+	// explicitamente aqui, sem enfraquecer o PK Mode do combate comum.
+	return attacker != nil && target != nil && attacker.PKMode
+}
+
 // applyCouragePvEDamage aplica o bonus fixo do affect Courage somente sobre um
 // hit valido contra monstro. Ele nao altera Score nem participa de PvP:
 // o bonus existe apenas no resultado autoritativo de cada golpe PvE.

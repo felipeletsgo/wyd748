@@ -28,6 +28,9 @@ func hasActiveAffectAt(ch *model.Char, affectType byte, now time.Time) bool {
 
 func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill model.SkillDef) []*Player {
 	primary := w.playerByID(req.TargetID)
+	if !w.canInitiatePvP(caster, primary) {
+		return nil
+	}
 	castRange := maxInt(attackRange, skill.Range)
 	if primary == nil || primary == caster || !primary.InWorld || primary.Char == nil ||
 		playerCurHP(primary.Char) == 0 || sameSupportGroup(caster, primary) ||

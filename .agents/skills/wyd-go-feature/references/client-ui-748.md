@@ -30,8 +30,10 @@ Exportações Ghidra citadas abaixo são descobertas pelo procedimento de
 | `FUN_0040d13e` | Construtor nativo de `SGridControlItem`; meshes e UI legada usam caixa de 24 por dimensão lógica. Sprites UI2 usam 23 para itens 5000..5102 e 32 para os demais, sempre multiplicados por `g_pItemGridXY`. |
 | `FUN_0040e817` | Ao adicionar item à grid ordinária, limita a escala a `(altura_lógica × 0.3) / mesh->m_fMaxZ` quando a malha excede o alvo. A comparação histórica com o binário patchado mostra altura lógica 1 sem alteração do renderer; esse fato deve ser adaptado na source. |
 | `FUN_0040dd00` | Atualiza frame/posição do item e centraliza a representação na célula/região nativa. |
-| `FUN_00435b13` | Materializa os seis textos do HUD compacto nos IDs 1029, 1030, 1031, 1032, 1033 e 1040; vincula Skill comum (1905), Skill Apprentice (1889), Inventory (257) e os seis ItemMix; recompõe em runtime os layouts responsivos desses roots. |
-| `FUN_004431e4` | Atualiza EXP atual/limiar absoluto do próximo nível, ATT/dano da skill selecionada, DEF/defesa base-companheira e o progresso de EXP dividido em quatro quartos. |
+| `FUN_00435b13` | Materializa os seis textos do HUD compacto nos IDs 1029, 1030, 1031, 1032, 1033 e 1040; vincula Skill comum (1905), Skill Apprentice (1889), Inventory (257), os seis ItemMix e Party (root 1857, lista 1863, botão 5742); recompõe em runtime os layouts responsivos desses roots. |
+| `FUN_004431e4` | Atualiza EXP atual/limiar absoluto do próximo nível, ATT/dano da skill selecionada, DEF/defesa base-companheira, progresso de EXP dividido em quatro quartos e os campos Character Att Speed/C.POINT/HOLD/Kingdom. |
+| `FUN_0044da6f` | Toggle central do painel Party: alterna o root 1857 e mantém a seleção do botão 5742 inversa à visibilidade. |
+| `FUN_00492e7d` | Dispatcher FieldScene que encaminha `0x37F`, `0x37D` e `0x37E` aos handlers de convite, inclusão e remoção Party. |
 
 Antes de alterar esse fluxo, abrir a função e seus callers/callees novamente.
 Os nomes acima são âncoras do hash legado registrado em
@@ -83,6 +85,27 @@ horizontal deve ser aplicada aos filhos 1029–1040 e ao progresso 1171. Alargar
 somente parent/background mantém os filhos nas coordenadas estreitas originais e
 amontoa EXP/ATT/DEF no lado esquerdo. Os ornamentos 1168 e 1172–1174 permanecem
 ancorados à direita, preservando o tamanho nativo.
+
+## Contrato dos campos de estado em Character
+
+`FUN_00435b13` vincula e `FUN_004431e4` atualiza os controles nativos abaixo:
+
+```text
+1110  Att Speed
+1168  ornamento HOLD, visível somente com Hold/FakeExp positivo
+1376  texto C.POINT no formato da mensagem 304
+1377  emblema Kingdom, visível somente com manto/reino válido
+```
+
+O grupo moderno `65768/65771..65774` não substitui `1377` no recurso 7.48.
+HOLD e Kingdom devem partir ocultos durante a construção e ser recalculados
+em cada atualização de estado. Textos de tooltip modernos são opcionais;
+ausência deles não pode bloquear nem derrubar a atualização nativa.
+
+A ficha `flows/ui/character-stat-fields-update.md` fecha callers, callees,
+ownership, teardown e relogin. CP/Chaos não ocupa `MSG_UpdateEtc::Hold`; o
+servidor escreve zero no campo reservado e publica CP na borda legada de
+`CreateMob`.
 
 ## Contrato contextual dos itens
 
@@ -228,6 +251,48 @@ grid foram reaproveitados na source moderna, resolver os destinos ItemMix pelo
 painel visível e pelos IDs/ponteiros exatos; não renumerar a ABI nem deixar os
 ramos de quickslot capturarem as grids nativas.
 
+## Painel Party nativo
+
+O 7.48 usa root `1857`, lista `1863` e botão inferior `5742`.
+`FUN_00435b13` coloca root e botão em `x=0` e
+`y=viewportHeight-root.height-165`. `FUN_0044da6f` é o toggle compartilhado
+por botão, tecla `P`, packets, `Esc` e fechamento por UI concorrente; o botão
+fica selecionado quando o painel está oculto e não selecionado quando visível.
+
+Os packets `0x37F`, `0x37D` e `0x37E` alimentam convite, inclusão e remoção;
+o click esquerdo no convite envia `0x3AB`. A lista também trata
+`Ctrl`+click para remoção e click direito para skill de suporte. O container é
+dono dos controles e a lista dos itens; esconder Party não encerra o grupo.
+No teardown, o deleting destructor da FieldScene converge em `FUN_004358da`.
+
+A source compatível deve vincular `1857/1863/5742`, reaplicar a posição ao
+abrir e centralizar a seleção do botão no mesmo helper de visibilidade. Os
+controles modernos `475136/475138/65799` podem permanecer no layout posterior,
+mas não substituem os IDs nativos. AutoParty moderno é opcional no modo 7.48 e
+não justifica fabricar controles ausentes. A ficha `TRACED` é
+`flows/ui/party-panel-layout-lifecycle.md`.
+
+## Painel Quest nativo
+
+O 7.48 materializa o toggle `315`, root `320`, listas/conteúdos
+`321/322`, `325/326`, `327/328` e `335/334`, fechar `323`, título `324`, abas
+`329/330/331/333` e memo `332`. `FUN_00441823` centraliza `320` exatamente em
+`(viewport-panel)/2` nos dois eixos e carrega `QuestSubjects.txt` até
+`QuestSubjects4.txt`, além de `QuestMessage.txt`.
+
+`FUN_004662C5` centraliza toggle, abas, seleção das listas, memo e fechamento.
+Os conteúdos passam por `FUN_0049E50F`, que rejeita destino nulo. A tecla `X`
+deve convergir no toggle nativo `315`; `65793` é o ID importado e não substitui
+o callback clássico. `FUN_00453C59` encaminha `Esc` para `FUN_0044DF53`, e o
+deleting destructor da FieldScene converge em `FUN_004358DA`.
+
+A source deve reaplicar a centralização no open, vincular todo o grupo
+`320..335`, selecionar somente um par lista/conteúdo e proteger controles
+opcionais. Click, tecla `X`, botão fechar, `Esc` e AirMove precisam compartilhar
+o mesmo helper de visibilidade. Após troca de cena ou relogin, todos os
+bindings e textos são recriados; nenhum ponteiro antigo pode sobreviver. A
+ficha `TRACED` é `flows/ui/quest-panel-layout-lifecycle.md`.
+
 ## Lifecycle e fechamento
 
 Para cada janela, recuperar no 7.48:
@@ -271,6 +336,14 @@ controle nativo. O bypass de disponibilidade de canal, quando necessário para
 desenvolvimento, não pode substituir o estado visual de seleção nem relaxar a
 validação autoritativa depois da conexão.
 
+No branch Scene2 de `FUN_004A8F14`, o root nativo `4622` é centralizado em X e
+Y por `(viewport-root)/2`. A tradução da source é `P_SERVER_SEL` (`65537`). Os
+filhos dinâmicos, textos, listas e hitboxes acompanham esse root; não aplicar
+offset vertical adicional nem corrigir cada filho separadamente. Os ajustes
+independentes já comprovados são largura de canal 140, Server `y += 5`, Channel
+`x += 8`, `y += 5` e os branches de logo para 1024/1280/1600. A ficha
+`TRACED` é `flows/ui/server-selection-layout-lifecycle.md`.
+
 ## Checklist de aceitação ainda não provado
 
 Os itens abaixo vieram de regressões observadas e precisam de teste real. Eles
@@ -287,6 +360,8 @@ não são `CLIENT-TESTED` apenas por estarem documentados:
 - item pode ser movido, equipado e jogado no chão com feedback correto;
 - compra sem gold, preço, gold e confirmação de venda aparecem corretamente;
 - menu de venda de NPC e menu de sistema têm layout/lifecycle nativos;
+- Party abre por botão e `P`, mantém lista/callbacks funcionais e fecha por
+  `Esc`/UI concorrente sem perder membros; repetir após troca de cena/relogin;
 - montarias KR importadas são renderizadas sem corromper ABI 7.48;
 - barra inferior exibe EXP/ATT/DEF nos IDs nativos e ocupa a composição correta.
 

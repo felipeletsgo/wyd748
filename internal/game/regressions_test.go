@@ -47,6 +47,26 @@ func TestSummonOnlyUsesOwnerCombatOrders(t *testing.T) {
 	}
 }
 
+func TestSummonRequiresPKModeOnlyForPlayerTargets(t *testing.T) {
+	owner := partyTestPlayer(1, 2200, 2100)
+	target := partyTestPlayer(2, 2201, 2100)
+	mob := &Mob{ID: 1000, X: 2201, Y: 2100, HP: 100,
+		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
+	w := testSpatialWorld([]*Mob{mob}, owner, target)
+
+	if got := w.summonTarget(owner, target.ID); got.id != 0 {
+		t.Fatalf("summon alvejou jogador com PK desligado: %+v", got)
+	}
+	if got := w.summonTarget(owner, mob.ID); got.mob != mob {
+		t.Fatalf("PK desligado bloqueou alvo PvE: %+v", got)
+	}
+
+	owner.PKMode = true
+	if got := w.summonTarget(owner, target.ID); got.user != target {
+		t.Fatalf("summon recusou jogador com PK ligado: %+v", got)
+	}
+}
+
 func TestSummonIsNotPartyMember(t *testing.T) {
 	owner := partyTestPlayer(1, 2200, 2100)
 	member := partyTestPlayer(2, 2201, 2100)
