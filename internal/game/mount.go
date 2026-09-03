@@ -673,10 +673,12 @@ func loseMountLongevity(mount *model.Item, intn func(int) int) {
 	mount.SetMountLongev(mount.MountLongev() - intn(4))
 }
 
-// absorbMountDamage aplica a absorcao da montaria adulta viva: o cavaleiro toma
-// 75% do dano ((dam*3)>>2) e a montaria tanka 25% no proprio HP. Ao zerar o HP,
-// a montaria fica ferida (perde o bonus de stat e -0..3 longevidade). Devolve o
-// dano que o cavaleiro efetivamente recebe. Fiel a _MSG_Attack.cpp:2419.
+// absorbMountDamage aplica a absorcao da montaria adulta viva. A tabela nativa
+// g_pMountBonus[30][6] usa uma parcela de dano do cavaleiro por tipo (65..75),
+// em vez de uma absorcao fixa para todas as montarias. Ao zerar o HP, a
+// montaria fica ferida (perde o bonus de stat e -0..3 longevidade). Devolve o
+// dano que o cavaleiro efetivamente recebe. O bonus de nivel 120 documentado
+// no guia KR ainda nao foi atribuido a esta fronteira sem evidencia do fluxo.
 func (w *World) absorbMountDamage(target *Player, incoming int) int {
 	if incoming <= 0 || target == nil || target.Char == nil {
 		return incoming
@@ -685,7 +687,12 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 	if mount == nil || !model.IsMountAdult(mount.Index) || mount.MountHP() <= 0 {
 		return incoming
 	}
-	rider := incoming * 3 / 4
+	riderPct := 75
+	if stats, ok := w.mounts.Stats(model.MountType(mount.Index)); ok &&
+		stats.RiderDamagePct > 0 {
+		riderPct = stats.RiderDamagePct
+	}
+	rider := incoming * riderPct / 100
 	if rider < 1 {
 		rider = 1
 	}

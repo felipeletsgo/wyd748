@@ -217,6 +217,10 @@ client748/           assets ativos e project.exe recompilado
   de estágio e transformação final em cria.
 - Montarias possuem HP, food, longevidade, recuperação, morte visual e revive;
   a montaria adulta viva consome 1 de Food por hora completa online e equipada.
+- A absorção de dano da montaria adulta é data-driven por tipo, usando o sexto
+  campo de `g_pMountBonus[30][6]`: `riderDamagePct` define a parcela que fica
+  no cavaleiro e o restante é absorvido pela montaria. O bônus textual de
+  absorção no nível 120 ainda não foi aplicado sem evidência do fluxo exato.
 - Fadas, trajes e montarias premium usam prazo absoluto server-side vinculado
   ao UID do item. O prazo nasce no primeiro equipamento, continua offline ou
   desequipado e nunca reinicia em trade ou relogin.

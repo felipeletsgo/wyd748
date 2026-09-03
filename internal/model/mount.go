@@ -26,16 +26,19 @@ const (
 )
 
 // MountStats sao os atributos base de um tipo de montaria (g_pMountBonus do
-// W2PP): [AttackAdd, MagicAdd, Evasion, Resistence, Speed]. Dano e magia escalam
-// com o level da montaria; evasao/resist/velocidade sao flat.
+// W2PP): [AttackAdd, MagicAdd, Evasion, Resistence, Speed, RiderDamagePct].
+// Dano e magia escalam com o level da montaria; evasao/resist/velocidade sao
+// flat. RiderDamagePct e a parcela do dano que permanece no cavaleiro quando
+// a montaria absorve dano.
 type MountStats struct {
-	Attack  int    `json:"attack"`
-	Magic   int    `json:"magic"`
-	Evasion int    `json:"evasion"`
-	Resist  int    `json:"resist"`
-	Speed   int    `json:"speed"`
-	MaxHP   int    `json:"maxHP,omitempty"`
-	Name    string `json:"name,omitempty"`
+	Attack         int    `json:"attack"`
+	Magic          int    `json:"magic"`
+	Evasion        int    `json:"evasion"`
+	Resist         int    `json:"resist"`
+	Speed          int    `json:"speed"`
+	RiderDamagePct int    `json:"riderDamagePct,omitempty"`
+	MaxHP          int    `json:"maxHP,omitempty"`
+	Name           string `json:"name,omitempty"`
 }
 
 // MountCatalog resolve os atributos de um tipo de montaria (0..29). Vazio, o

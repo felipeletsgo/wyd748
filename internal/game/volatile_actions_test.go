@@ -141,6 +141,23 @@ func TestMountAbsorbs25Percent(t *testing.T) {
 	}
 }
 
+func TestMountDamageAbsorptionUsesNativeTypeRate(t *testing.T) {
+	w := &World{mounts: model.MountCatalog{Types: map[int]model.MountStats{
+		19: {RiderDamagePct: 65},
+	}}}
+	mount := model.Item{Index: 2379}
+	mount.SetMountHP(20000)
+	p := &Player{Char: mountTestChar()}
+	p.Char.Equip[14] = mount
+
+	if got := w.absorbMountDamage(p, 100); got != 65 {
+		t.Fatalf("dano ao cavaleiro=%d, quer 65", got)
+	}
+	if got := p.Char.Equip[14].MountHP(); got != 19965 {
+		t.Fatalf("HP da montaria=%d, quer 19965 (absorveu 35)", got)
+	}
+}
+
 func TestMountFreshInitAndFeedRevive(t *testing.T) {
 	w := &World{mounts: fireTigerCatalog()}
 	fresh := model.Item{Index: 2379} // adulta, Eff zerado

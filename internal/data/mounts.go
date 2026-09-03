@@ -9,7 +9,7 @@ import (
 )
 
 // LoadMounts le data/mounts.json: os atributos base de cada TIPO de montaria
-// (0..29) portados da tabela g_pMountBonus do W2PP. Arquivo ausente NAO e erro
+// (0..29) portados da tabela g_pMountBonus[30][6] do TMProject. Arquivo ausente NAO e erro
 // -- devolve um catalogo vazio, e a montaria simplesmente nao adiciona bonus.
 func LoadMounts(path string) (model.MountCatalog, error) {
 	b, err := os.ReadFile(path)
