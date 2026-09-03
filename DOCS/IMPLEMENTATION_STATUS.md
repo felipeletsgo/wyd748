@@ -211,8 +211,8 @@ cliente 7.48.
 | `0x114 EnterWorld` | 788 bytes. A cauda do `STRUCT_MOB` inclui LearnedSkill, pontos, SkillBar, MagicIncrement, regen e quatro resistências em @748..771; zerar essa região fazia o client inicializar skills/campos incorretamente. |
 | `0x336 UpdateScore` | 236 bytes no client source-built: prefixo nativo de 92 bytes com Score@12 e Affect[16]@42..73; Score `uint32` @92..228 e assinatura canonical Score@232. É público e aciona os efeitos visuais de players e mobs. |
 | `0x3B9 UpdateAffect` | 140 bytes: 16 estruturas `{Type,Value,Level,Time}` em unidades de 8 s. É enviado somente ao dono para ícones, descrição e timer. |
-| `0x337 UpdateEtc` | 36 bytes: Hold/Chaos@12, EXP@16, LearnedSkill@20, status@24, mastery@26, skill@28, Magic@30, gold@32. É o layout p754 confirmado pelo dump real. |
-| `0x338 CNFMobKill` | 24 bytes: FakeExp@12, morto/assassino@16, EXP@20. Atualiza EXP quando o morto é mob e chama `Die()` quando o morto é o jogador. |
+| `0x337 UpdateEtc` | 36 bytes: Held EXP@12, EXP@16, LearnedSkill@20, status@24, mastery@26, skill@28, Magic@30, gold@32. CP/Chaos não ocupa Hold. |
+| `0x338 CNFMobKill` | 24 bytes: Held EXP/FakeExp@12, morto/assassino@16, EXP@20. Atualiza EXP/Hold do destinatário e chama `Die()` quando o morto é o jogador. |
 | `0x39D AttackOne` | Target/Damage no layout pós-`PacketProtocolV754`, em @44/@46. |
 | `0x366 Action` | Movimento de mobs com Speed@16 e Effect@20. |
 | `0x165 RemoveMob` | RemoveType 0 ao sair da visão, 1 após `CNFMobKill` para morte normal e 3 para excluir imediatamente a representação morta antes de recriar um jogador revivido. |

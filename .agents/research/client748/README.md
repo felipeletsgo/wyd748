@@ -85,6 +85,7 @@ Estado atual do mapa:
 | Exibição do Premium Firework `0x3CA` | `CONTRACT` | `flows/ui/premium-firework-display.md` |
 | Sincronização de estado e controles C.C | `TRACED` | `flows/ui/cc-auto-combat-state-sync.md` |
 | Alternância e aplicação autoritativa do PK Mode `0x399` | `CONTRACT` | `flows/ui/pk-mode-toggle-lifecycle.md` |
+| Lifecycle da dívida Held EXP por morte PvP | `CONTRACT` | `flows/combat/pvp-death-held-exp-lifecycle.md` |
 | `SetMyHumanMagic` nativo sem efeito | `STATICALLY_EVIDENCED` | `inventory/set-my-human-magic-noop.md` |
 
 `LOCATED` permite investigação e documentação, não edição comportamental.

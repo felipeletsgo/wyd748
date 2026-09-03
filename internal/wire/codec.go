@@ -371,7 +371,7 @@ func putAffectWords(b []byte, offset int, affects []model.Affect, now time.Time)
 // esse campo apaga as skills do client e desloca os pontos (regressao 2026-07-14).
 func UpdateEtc(id uint16, ch model.Char) []byte {
 	b := Build(OpUpdateEtc, id, 36)
-	putU32(b, 12, 0) // Hold: native reserved EXP field.
+	putU32(b, 12, ch.Hold)
 	putU32(b, 16, uint32(ch.Exp))
 	putU32(b, 20, ch.LearnedSkill)
 	score := wireScore(ch)
@@ -620,10 +620,10 @@ func RemoveMob(id uint16, removeType uint32) []byte {
 }
 
 // CNFMobKill usa o wire final 7.48 produzido por FixSendExp_SERVER do
-// PacketProtocolV754: FakeExp@12, Killed/Killer@16, Exp uint32@20.
-func CNFMobKill(killedID, killerID uint16, exp uint32) []byte {
+// PacketProtocolV754: Hold/FakeExp@12, Killed/Killer@16, Exp uint32@20.
+func CNFMobKill(killedID, killerID uint16, hold, exp uint32) []byte {
 	b := Build(OpCNFMobKill, SceneField, 24)
-	putU32(b, 12, 0)
+	putU32(b, 12, hold)
 	putU16(b, 16, killedID)
 	putU16(b, 18, killerID)
 	putU32(b, 20, exp)

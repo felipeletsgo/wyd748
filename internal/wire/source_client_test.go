@@ -15,7 +15,7 @@ func canonicalWireTestChar() model.Char {
 		MaxHP: 6000, MaxMP: 2000, CurHP: 5000, CurMP: 1500,
 		Critical: 11, SaveMana: 9, MagicAmp: 65,
 	}
-	ch := model.Char{Name: "ProtocolHero", X: 2100, Y: 2101, Gold: 777, Exp: 998877, Score: score}
+	ch := model.Char{Name: "ProtocolHero", X: 2100, Y: 2101, Gold: 777, Exp: 998877, Hold: 4321, Score: score}
 	ch.Equip[15] = model.Item{Index: 4152}
 	ch.Inv[62] = model.Item{Index: 4011}
 	ch.Affects[0] = model.Affect{Type: 24, Level: 40, Value: 150, ExpiresAt: time.Now().Add(80 * time.Second)}
@@ -49,6 +49,9 @@ func TestCanonicalSelectionAndEnterWorldUseScore140(t *testing.T) {
 	}
 	if got := binary.LittleEndian.Uint16(enter[16+468+62*8 : 16+470+62*8]); got != 4011 {
 		t.Fatalf("inv[62]=%d", got)
+	}
+	if got := binary.LittleEndian.Uint32(enter[1264:1268]); got != ch.Hold {
+		t.Fatalf("Ext1.Data[0]/Hold=%d", got)
 	}
 }
 

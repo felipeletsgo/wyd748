@@ -124,6 +124,7 @@ func EnterWorld(id, slot uint16, ch model.Char) []byte {
 	putU16(b, 1240, slot)
 	putU16(b, 1242, id)
 	copy(b[sourceShortSkillOffset:sourceShortSkillOffset+16], ch.ShortSkill[:16])
+	putU32(b, sourceExt1Offset, ch.Hold)
 	// The first affect is Ext1.Affect[0] at 1296: Ext1.Data is eight DWORDs; the two bytes before Ext1 are MSVC alignment padding.
 	putSourceAffects(b, sourceExt1AffectOffset, ch.Affects[:], time.Now())
 	return b

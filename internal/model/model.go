@@ -349,10 +349,13 @@ type Char struct {
 	// CP e o Chaos/PK Point exibido, assinado e autoritativo (-75..+75).
 	// CP 0 e o estado neutro de um personagem novo; o byte legado de CreateMob
 	// usa CP+75 somente na borda do protocolo.
-	CP              int16  `json:"cp"`
-	ChaosVersion    uint8  `json:"chaosVersion,omitempty"`
-	Gold            uint32 `json:"gold"`
-	Exp             uint32 `json:"exp"`
+	CP           int16  `json:"cp"`
+	ChaosVersion uint8  `json:"chaosVersion,omitempty"`
+	Gold         uint32 `json:"gold"`
+	Exp          uint32 `json:"exp"`
+	// Hold e a divida persistente de EXP criada por morte PvP. EXP recebida em
+	// combate paga esta divida antes de voltar a aumentar Exp.
+	Hold            uint32 `json:"hold"`
 	NextExp         uint32 `json:"-"` // derivado da tabela pelo level
 	LearnedSkill    uint32 `json:"learnedSkill"`
 	MagicalPillUsed bool   `json:"magicalPillUsed,omitempty"`
@@ -507,7 +510,7 @@ func (c Char) equalsZero() bool {
 	return c.UID == "" && c.Name == "" && c.Class == 0 && c.X == 0 && c.Y == 0 &&
 		c.Score == nil && c.RuntimeScore == nil &&
 		c.Equip == [16]Item{} && c.Inv == [64]Item{} &&
-		c.CP == 0 && c.ChaosVersion == 0 && c.Gold == 0 && c.Exp == 0 && c.NextExp == 0 &&
+		c.CP == 0 && c.ChaosVersion == 0 && c.Gold == 0 && c.Exp == 0 && c.Hold == 0 && c.NextExp == 0 &&
 		c.LearnedSkill == 0 && c.SecondaryLearnedSkill == 0 &&
 		!c.MagicalPillUsed && c.SkillPointBonus == 0 &&
 		c.Evolution == "" && c.ArchCrystals == 0 && !c.ArchLevel355 &&

@@ -2,6 +2,7 @@ package game
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -37,12 +38,17 @@ func TestPvPKillRollsBackCPWhenPersistenceFails(t *testing.T) {
 	victim, _ := networkedTestPlayer(2, "Victim", 2101, 2100)
 	killer.Char.CP = 75
 	victim.Char.CP = -10
+	victim.Char.Exp = 50_000
+	victim.Char.Hold = 7
 	w, st := guildFlowWorld(killer, victim)
 	st.err = errors.New("database unavailable")
+	killerBefore := cloneCharacterState(killer.Char)
+	victimBefore := cloneCharacterState(victim.Char)
 
 	w.applyPvPKills(killer, victim)
-	if killer.Char.CP != 75 || victim.Char.CP != -10 {
-		t.Fatalf("rollback falhou killer=%d victim=%d", killer.Char.CP, victim.Char.CP)
+	if !reflect.DeepEqual(*killer.Char, killerBefore) || !reflect.DeepEqual(*victim.Char, victimBefore) {
+		t.Fatalf("rollback nao restaurou Char/Score/RuntimeScore: killer=%+v victim=%+v",
+			*killer.Char, *victim.Char)
 	}
 }
 

@@ -103,9 +103,12 @@ em cada atualização de estado. Textos de tooltip modernos são opcionais;
 ausência deles não pode bloquear nem derrubar a atualização nativa.
 
 A ficha `flows/ui/character-stat-fields-update.md` fecha callers, callees,
-ownership, teardown e relogin. CP/Chaos não ocupa `MSG_UpdateEtc::Hold`; o
-servidor escreve zero no campo reservado e publica CP na borda legada de
-`CreateMob`.
+ownership, teardown e relogin. CP/Chaos não ocupa `MSG_UpdateEtc::Hold`: esse
+campo transporta a dívida Held EXP persistida, enquanto CP continua na borda
+legada de `CreateMob`. Hold zero significa somente ausência de dívida; Hold
+positivo torna `1168` visível e `1376` mostra valor/percentual sobre 10% do
+intervalo do nível atual. O lifecycle completo está em
+`flows/combat/pvp-death-held-exp-lifecycle.md`.
 
 ## Contrato contextual dos itens
 

@@ -18,8 +18,9 @@ type killRewardPlan struct {
 	shares                      []partyExpShare
 	accounts                    []*model.Account
 	snapshots                   []killPlayerSnapshot
-	expByPlayer                 map[*Player]uint32
+	progressByPlayer            map[*Player]clientExperienceState
 	leveledUp                   map[*Player]bool
+	holdPenaltyChanged          map[*Player]bool
 	cytheraChanged              map[*Player]bool
 	mountUpdates                []mountHuntUpdate
 	drops                       []plannedDrop
@@ -30,6 +31,11 @@ type killRewardPlan struct {
 	generatorSlot               int
 	generatorCounterShouldLower bool
 	mobHPBeforeDeath            uint32
+}
+
+type clientExperienceState struct {
+	exp  uint32
+	hold uint32
 }
 
 type killPlayerSnapshot struct {
@@ -54,7 +60,7 @@ func (w *World) killMobWithoutPlayer(m *Mob) {
 		return
 	}
 	m.Dead = true
-	w.publishMobDeath(m, 0, 0, nil)
+	w.publishMobDeath(m, 0, nil)
 	w.notifyBossAddDied(m.ID)
 	w.finishBossMobKilled(m, false)
 	w.UnregisterBoss(m.ID)
@@ -77,9 +83,10 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 	plan := &killRewardPlan{
 		killer: p, mob: m, calculatedDamage: calculatedDamage, appliedDamage: appliedDamage,
 		shares: shares, accounts: uniqueKillAccounts(p, shares),
-		expByPlayer:    make(map[*Player]uint32, len(shares)),
-		leveledUp:      make(map[*Player]bool, len(shares)),
-		cytheraChanged: make(map[*Player]bool, len(shares)), generatorSlot: -1,
+		progressByPlayer:   make(map[*Player]clientExperienceState, len(shares)),
+		leveledUp:          make(map[*Player]bool, len(shares)),
+		holdPenaltyChanged: make(map[*Player]bool, len(shares)),
+		cytheraChanged:     make(map[*Player]bool, len(shares)), generatorSlot: -1,
 	}
 	plan.mobHPBeforeDeath = m.HP
 	if plan.mobHPBeforeDeath == 0 {
@@ -106,8 +113,9 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 	for _, share := range shares {
 		receiver := share.player
 		oldHP, oldMP := playerCurHP(receiver.Char), playerCurMP(receiver.Char)
+		wasHoldPenalized := heldExperiencePenaltyActive(receiver.Char)
 		combatReward := w.mobKillExperienceForReceiver(p.Char, receiver.Char, share.reward)
-		levels, appliedEXP := grantExp(receiver.Char, combatReward)
+		levels, appliedEXP := grantCombatExp(receiver.Char, combatReward)
 		if levels > 0 && updateCelestialCythera(receiver.Char) {
 			plan.cytheraChanged[receiver] = true
 		}
@@ -118,8 +126,11 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 		if oldMP > 0 {
 			setPlayerCurMP(receiver.Char, minU32(oldMP, playerMaxMP(receiver.Char)))
 		}
-		plan.expByPlayer[receiver] = receiver.Char.Exp
+		plan.progressByPlayer[receiver] = clientExperienceState{
+			exp: receiver.Char.Exp, hold: receiver.Char.Hold,
+		}
 		plan.leveledUp[receiver] = levels > 0
+		plan.holdPenaltyChanged[receiver] = wasHoldPenalized != heldExperiencePenaltyActive(receiver.Char)
 		plan.mountUpdates = append(plan.mountUpdates, w.applyMountHuntExp(receiver, m))
 		if receiver == p {
 			plan.killerLevels, plan.killerReward = levels, appliedEXP
@@ -128,7 +139,9 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 	if p.Party != nil {
 		for _, member := range p.Party.Members {
 			if member != nil && member.Char != nil {
-				plan.expByPlayer[member] = member.Char.Exp
+				plan.progressByPlayer[member] = clientExperienceState{
+					exp: member.Char.Exp, hold: member.Char.Hold,
+				}
 			}
 		}
 	}
@@ -262,20 +275,18 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 		return
 	}
 	p, m := plan.killer, plan.mob
-	expByPlayer := plan.expByPlayer
-	killerExp := uint32(0)
-	if p != nil && p.Char != nil {
-		killerExp = p.Char.Exp
-	}
+	progressByPlayer := plan.progressByPlayer
 	if !rewardCommitted {
-		expByPlayer = make(map[*Player]uint32, len(plan.expByPlayer))
-		for player := range plan.expByPlayer {
+		progressByPlayer = make(map[*Player]clientExperienceState, len(plan.progressByPlayer))
+		for player := range plan.progressByPlayer {
 			if player != nil && player.Char != nil {
-				expByPlayer[player] = player.Char.Exp
+				progressByPlayer[player] = clientExperienceState{
+					exp: player.Char.Exp, hold: player.Char.Hold,
+				}
 			}
 		}
 	}
-	w.publishMobDeath(m, p.ID, killerExp, expByPlayer)
+	w.publishMobDeath(m, p.ID, progressByPlayer)
 	if rewardCommitted {
 		for _, share := range plan.shares {
 			receiver := share.player
@@ -283,7 +294,7 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 				continue
 			}
 			receiver.Session.Send(wire.UpdateEtc(receiver.ID, *receiver.Char))
-			if plan.leveledUp[receiver] {
+			if plan.leveledUp[receiver] || plan.holdPenaltyChanged[receiver] {
 				receiver.Session.Send(playerScorePacket(receiver))
 			}
 			if plan.cytheraChanged[receiver] {
@@ -328,9 +339,9 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 // are coalesced.
 func (w *World) publishKillBatchPlayerState(plans []*killRewardPlan) {
 	type state struct {
-		player  *Player
-		leveled bool
-		cythera bool
+		player       *Player
+		scoreChanged bool
+		cythera      bool
 	}
 	states := make(map[*Player]*state)
 	for _, plan := range plans {
@@ -347,14 +358,15 @@ func (w *World) publishKillBatchPlayerState(plans []*killRewardPlan) {
 				current = &state{player: receiver}
 				states[receiver] = current
 			}
-			current.leveled = current.leveled || plan.leveledUp[receiver]
+			current.scoreChanged = current.scoreChanged ||
+				plan.leveledUp[receiver] || plan.holdPenaltyChanged[receiver]
 			current.cythera = current.cythera || plan.cytheraChanged[receiver]
 		}
 	}
 	for _, current := range states {
 		receiver := current.player
 		receiver.Session.Send(wire.UpdateEtc(receiver.ID, *receiver.Char))
-		if current.leveled {
+		if current.scoreChanged {
 			receiver.Session.Send(playerScorePacket(receiver))
 		}
 		if current.cythera {

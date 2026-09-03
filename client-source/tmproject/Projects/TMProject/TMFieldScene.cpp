@@ -913,7 +913,7 @@ void TMFieldScene::UpdateCompatScoreUI()
 	// percentage from the reserved hold counter and the active class EXP table;
 	// it is not the character's chaos-level byte despite the abbreviated label.
 	const long long holdPointRange =
-		(levelTable[currentLevel + 1] + levelTable[currentLevel]) / 10;
+		(levelTable[currentLevel + 1] - levelTable[currentLevel]) / 10;
 	const int holdPointPercent = holdPointRange > 0
 		? static_cast<int>(
 			(static_cast<double>(g_pObjectManager->m_nFakeExp) * 100.0)
@@ -16371,11 +16371,13 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 		int ckind = m_pMyHuman->Is2stClass();
 		int CurLevel = pMobData->CurrentScore.Level;
 		if (ckind == 2)
-			nLevelCount = (g_pNextLevel_G2[CurLevel + 1] + g_pNextLevel_G2[CurLevel]) / 10;
+			nLevelCount = (g_pNextLevel_G2[CurLevel + 1] - g_pNextLevel_G2[CurLevel]) / 10;
 		else
-			nLevelCount = (g_pNextLevel[CurLevel + 1] + g_pNextLevel[CurLevel]) / 10;
+			nLevelCount = (g_pNextLevel[CurLevel + 1] - g_pNextLevel[CurLevel]) / 10;
 
-		nLevelCount = static_cast<int>((((float)g_pObjectManager->m_nFakeExp * 100.0f) / (float)nLevelCount));
+		nLevelCount = nLevelCount > 0
+			? static_cast<int>((((float)g_pObjectManager->m_nFakeExp * 100.0f) / (float)nLevelCount))
+			: 0;
 		sprintf(szStr, g_pMessageStringTable[304], g_pObjectManager->m_nFakeExp, nLevelCount);
 		if (m_pGridCharFace)
 		{

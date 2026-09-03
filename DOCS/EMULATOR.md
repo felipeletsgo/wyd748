@@ -296,9 +296,10 @@ possui Type, Value, Level e Time. É enviado somente ao próprio jogador e
 alimenta `m_stAffect`: ícones, descrição e contadores. O campo Time usa unidades
 de **8 segundos**, arredondadas para cima no wire.
 
-**0x337 UpdateEtc (36B, ID=mobID):** Hold/Chaos@12, exp@16, LearnedSkill@20,
+**0x337 UpdateEtc (36B, ID=mobID):** Held EXP@12, exp@16, LearnedSkill@20,
 statusPts@24, masterPts@26, skillPts@28, Magic@30, gold@32. É o `p754_SendEtc`
-confirmado pelo dump real do Micronics. `NextExp` não pertence a este pacote.
+confirmado pelo dump real do Micronics. CP/Chaos não ocupa Hold e `NextExp`
+não pertence a este pacote.
 
 **0x185 UpdateCarry (528B, ID=mobID):** Item[64]@12, Coin@524. O array deve
 continuar com 64 itens para preservar o wire, mas a UI 7.48 só expõe os índices

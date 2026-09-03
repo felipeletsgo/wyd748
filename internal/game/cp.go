@@ -70,8 +70,8 @@ func (w *World) applyPvPKills(killer *Player, victims ...*Player) {
 		return
 	}
 	changed := make([]*Player, 0, len(victims)+1)
-	oldCP := make(map[*Player]int16, len(victims)+1)
-	oldCP[killer] = killer.Char.CP
+	snapshots := make(map[*Player]model.Char, len(victims)+1)
+	snapshots[killer] = cloneCharacterState(killer.Char)
 	changed = append(changed, killer)
 
 	accounts := make([]*model.Account, 0, len(victims)+1)
@@ -92,10 +92,10 @@ func (w *World) applyPvPKills(killer *Player, victims ...*Player) {
 		if victim == nil || victim == killer || victim.Char == nil {
 			continue
 		}
-		if _, duplicate := oldCP[victim]; duplicate {
+		if _, duplicate := snapshots[victim]; duplicate {
 			continue
 		}
-		oldCP[victim] = victim.Char.CP
+		snapshots[victim] = cloneCharacterState(victim.Char)
 		changed = append(changed, victim)
 		addAccount(victim)
 
@@ -103,21 +103,27 @@ func (w *World) applyPvPKills(killer *Player, victims ...*Player) {
 		if victim.Char.CP < 0 {
 			victim.Char.CP = model.ClampCP(int(victim.Char.CP) + 1)
 		}
+		addHeldExperienceDeathDebt(victim.Char)
+		w.recalcPlayer(victim.Char)
 	}
 	if len(changed) == 1 {
 		return
 	}
 	if err := w.saveAccountsAtomic(accounts...); err != nil {
-		for player, cp := range oldCP {
-			player.Char.CP = cp
+		for player, snapshot := range snapshots {
+			restored := cloneCharacterState(&snapshot)
+			*player.Char = restored
 		}
 		log.Printf("CP PvP nao persistido: %v", err)
 		return
 	}
-	for _, player := range changed {
+	for index, player := range changed {
 		if player.Session != nil {
 			player.Session.Send(wire.UpdateEtc(player.ID, *player.Char))
 			w.syncPlayerChaos(player)
+			if index > 0 {
+				player.Session.Send(playerScorePacket(player))
+			}
 		}
 	}
 }

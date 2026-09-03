@@ -559,19 +559,27 @@ func clearPublishedPlayerMove(player *Player) {
 	player.MoveAuthorityStepInterval = 0
 }
 
-func (w *World) publishMobDeath(m *Mob, killerID uint16, killerExp uint32, expByPlayer map[*Player]uint32) {
+func (w *World) publishMobDeath(m *Mob, killerID uint16, progressByPlayer map[*Player]clientExperienceState) {
 	for _, p := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
 		if !w.mobVisibleToPlayer(p, m) || !p.hasVisible(m.ID) {
 			continue
 		}
-		exp := killerExp
-		if personal, ok := expByPlayer[p]; ok {
-			exp = personal
-		}
-		p.Session.Send(wire.CNFMobKill(m.ID, killerID, exp))
+		p.Session.Send(mobDeathPacket(p, m.ID, killerID, progressByPlayer))
 		p.Session.Send(wire.RemoveMob(m.ID, 1))
 		p.hide(m.ID)
 	}
+}
+
+func mobDeathPacket(recipient *Player, killedID, killerID uint16,
+	progressByPlayer map[*Player]clientExperienceState) []byte {
+	progress := clientExperienceState{}
+	if recipient != nil && recipient.Char != nil {
+		progress = clientExperienceState{exp: recipient.Char.Exp, hold: recipient.Char.Hold}
+	}
+	if personal, ok := progressByPlayer[recipient]; ok {
+		progress = personal
+	}
+	return wire.CNFMobKill(killedID, killerID, progress.hold, progress.exp)
 }
 
 // publishPlayerDeath envia o total de EXP de CADA destinatario. O client chama
@@ -594,11 +602,12 @@ func (w *World) publishPlayerDeath(victim *Player, killerID uint16) {
 }
 
 func playerDeathPacket(recipient, victim *Player, killerID uint16) []byte {
-	var exp uint32
+	var exp, hold uint32
 	if recipient != nil && recipient.Char != nil {
 		exp = recipient.Char.Exp
+		hold = recipient.Char.Hold
 	}
-	return wire.CNFMobKill(victim.ID, killerID, exp)
+	return wire.CNFMobKill(victim.ID, killerID, hold, exp)
 }
 
 // publishMobRemoval retira um mob que nunca morreu em combate (rollback de

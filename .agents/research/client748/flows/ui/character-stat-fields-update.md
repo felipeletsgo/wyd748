@@ -4,7 +4,7 @@ title: Atualizacao dos campos de estado da janela Character
 subsystem: ui-lifecycle
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-02
+updated: 2026-09-03
 ---
 
 # Atualizacao dos campos de estado da janela Character
@@ -65,9 +65,10 @@ de velocidade, DEX, bonus de classe, ability 26 e penalidade de freeze. Esse
 valor pertence a `1110`; `1104` e outro campo do recurso e nao pode ser usado
 como alias.
 
-O texto C.POINT usa o Hold/FakeExp reservado e um decimo do intervalo do nivel
-atual. O painel `1168` e uma decoracao separada: valor zero deve deixa-lo
-oculto, sem apagar nem substituir o texto `1376`.
+O texto `1376`, apesar do label historico C.POINT, apresenta a divida
+Hold/FakeExp e seu percentual sobre 10% do intervalo do nivel atual. CP/Chaos
+e outro estado. O painel `1168` e uma decoracao separada: Hold zero deve
+deixa-lo oculto, sem apagar nem substituir o texto `1376`.
 
 O emblema Kingdom usa `1377`. Ele permanece oculto quando nao existe objeto de
 manto valido ou quando o skin representa a ausencia de reino (`Skin0 == 19`).
@@ -145,14 +146,17 @@ ocultos e reaplicando somente os estados recebidos para o novo personagem.
 
 ## Wire, ABI e recursos
 
-O campo `MSG_UpdateEtc::Hold` continua sendo o reservado de EXP do protocolo
-legado. `wire.UpdateEtc` escreve zero nesse offset e
-`TestUpdateEtcDoesNotLeakChaosIntoHold` prova que CP/Chaos nao e serializado em
-Hold. A entrada no mundo tambem deixa `Ext1.Data[0]` zerado. CP permanece no
-byte legado de `CreateMob`, com conversao autoritativa feita no servidor.
+O campo `MSG_UpdateEtc::Hold` transporta a divida EXP do protocolo legado.
+`wire.UpdateEtc` escreve `Char.Hold` em `@12`, `CNFMobKill` escreve o Hold de
+cada destinatario em `@12` e a entrada no mundo escreve o estado persistido em
+`Ext1.Data[0]@1264`. `TestUpdateEtcDoesNotLeakChaosIntoHold` prova apenas que
+CP/Chaos nao e serializado nesse campo; zero significa ausencia de divida.
+CP permanece no byte legado de `CreateMob`, com conversao autoritativa feita
+no servidor.
 
-Portanto, exibir `HOLD` em um personagem com Hold zero era defeito de binding
-e visibilidade do client, nao ausencia de uma funcao server-side.
+O lifecycle server-side completo esta em
+`../combat/pvp-death-held-exp-lifecycle.md`: morte PvP cria e persiste Hold,
+EXP de combate o paga primeiro e o limiar de 80% reduz somente o MaxHP efetivo.
 
 ## Mapeamento atual
 
@@ -167,23 +171,25 @@ e visibilidade do client, nao ausencia de uma funcao server-side.
 
 ### WYD-Go
 
-Nenhuma mudanca foi necessaria. O servidor ja mantem Score/CP autoritativos e
-envia Hold zero no pacote legado.
+`Char.Hold` agora e persistente e separado de CP. A morte PvP cria a divida,
+os frames `EnterWorld`, `UpdateEtc` e `CNFMobKill` publicam o valor, e a EXP de
+combate a amortiza antes de progredir. Score/CP continuam autoritativos e
+independentes.
 
 ## Matriz de delta
 
 | Claim | Nativo 7.48 | Source anterior | WYD-Go | Decisao |
 | --- | --- | --- | --- | --- |
 | Att Speed | texto `1110` | escrevia em `1104` | fornece estado autoritativo | portar binding nativo |
-| C.POINT | texto `1376` | binding/formula incompletos | CP nao ocupa Hold | restaurar texto nativo |
-| HOLD | painel `1168`, condicional | default do asset podia permanecer visivel | envia Hold zero | ocultar por estado |
+| C.POINT | texto `1376` mostra Hold e percentual | binding/formula incompletos | CP nao ocupa Hold | restaurar texto nativo sem alias com CP |
+| HOLD | painel `1168`, condicional | default do asset podia permanecer visivel | publica a divida real | ocultar somente com Hold zero |
 | Kingdom | painel `1377`, condicional | `65768` sobrescrevia o binding nativo | sem mudanca | preservar ID/lifecycle 7.48 |
 
 ## Decisões
 
 - Classificar o lote como `PARIDADE_NATIVA`.
-- Preservar o Score e CP autoritativos do servidor; nao inventar um novo
-  packet para corrigir um estado visual.
+- Preservar Score e CP autoritativos e separados de Hold; reutilizar os tres
+  campos wire nativos em vez de inventar um packet.
 - Manter os controles modernos somente fora do modo compat 7.48 e sempre como
   opcionais.
 - Recalcular visibilidade em toda atualizacao e reconstruir os bindings no
@@ -203,11 +209,12 @@ envia Hold zero no pacote legado.
 - Pesquisa: `FUN_00435B13`, `FUN_004431E4`, callers/callees, IDs
   `1110/1168/1376/1377`, ownership, teardown e relogin fechados para este
   delta.
-- Servidor: `UpdateEtc` e seu teste impedem vazamento de CP/Chaos em Hold.
+- Servidor: `EnterWorld`, `UpdateEtc` e `CNFMobKill` transportam o Hold
+  persistido; testes impedem vazamento de CP/Chaos e cobrem seu lifecycle.
 - Client source: `IMPLEMENTED / STATICALLY VERIFIED`; `Build-Client.ps1`
-  concluiu `Release|Win32` com zero erros e 13 warnings C4018 preexistentes e
+  concluiu `Release|Win32` com zero erros e 13 warnings C4018 e
   instalou `client748/project.exe` com SHA-256
-  `B51D48ACF691B84A6B577DBB07E4981CED6F54DFB2616567C907863A9B9AE6BC`.
-- Automação: `go test -count=1 ./internal/wire`, `validate_research.py` e
+  `ADFA0B99C17F96367F05E6718E61512039AB50CA54CBDDB104333EF663210795`.
+- Automação: `go test -count=1 ./...`, `validate_research.py` e
   `git diff --check` passaram para o lote.
 - Client real: nao executado; `CLIENT_TESTED` nao e alegado.

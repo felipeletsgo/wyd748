@@ -257,9 +257,9 @@ func TestGroundItemPacketLayouts(t *testing.T) {
 }
 
 func TestCNFMobKill748Layout(t *testing.T) {
-	b := CNFMobKill(1003, 1, 9000)
+	b := CNFMobKill(1003, 1, 77, 9000)
 	if len(b) != 24 || ParseHeader(b).Type != OpCNFMobKill || ParseHeader(b).ID != SceneField ||
-		binary.LittleEndian.Uint32(b[12:16]) != 0 || binary.LittleEndian.Uint16(b[16:18]) != 1003 ||
+		binary.LittleEndian.Uint32(b[12:16]) != 77 || binary.LittleEndian.Uint16(b[16:18]) != 1003 ||
 		binary.LittleEndian.Uint16(b[18:20]) != 1 || binary.LittleEndian.Uint32(b[20:24]) != 9000 {
 		t.Fatalf("CNFMobKill invalido: %v", b)
 	}
@@ -304,7 +304,7 @@ func TestIllusionMoveUsesEffectSix(t *testing.T) {
 
 func TestUpdateEtcNativeCompactLayout(t *testing.T) {
 	ch := model.Char{
-		CP: -25, Exp: 34000, LearnedSkill: 1 << 3, Gold: 99424,
+		CP: -25, Exp: 34000, Hold: 1234, LearnedSkill: 1 << 3, Gold: 99424,
 		Score: &model.Score{
 			Version:   model.ScoreVersion,
 			StatusPts: 7, MasterPts: 100, SkillPts: 150, MagicAmp: 70,
@@ -313,7 +313,7 @@ func TestUpdateEtcNativeCompactLayout(t *testing.T) {
 	b := UpdateEtc(7, ch)
 	// 0x337 is not STRUCT_SCORE in 7.48: FUN_0055890a accepts exactly 36 bytes.
 	if len(b) != 36 || ParseHeader(b).Type != OpUpdateEtc || ParseHeader(b).ID != 7 ||
-		binary.LittleEndian.Uint32(b[12:16]) != 0 ||
+		binary.LittleEndian.Uint32(b[12:16]) != 1234 ||
 		binary.LittleEndian.Uint32(b[16:20]) != 34000 ||
 		binary.LittleEndian.Uint32(b[20:24]) != 1<<3 ||
 		binary.LittleEndian.Uint16(b[24:26]) != 7 ||

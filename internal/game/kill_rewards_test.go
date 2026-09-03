@@ -57,6 +57,7 @@ func TestMobKillPersistenceFailureRestoresAllRewardsBeforePublishing(t *testing.
 	w, p, mob, st := killRewardTestWorld(t, errors.New("database unavailable"))
 	p.Char.Equip[mountSlot] = model.Item{Index: model.MountBabyBase}
 	p.Char.Equip[mountSlot].SetMountHP(100)
+	p.Char.Hold = 50
 	beforeChar := cloneCharacterState(p.Char)
 	beforePackets := p.Session.QueuedPacketsForTest()
 
@@ -66,7 +67,7 @@ func TestMobKillPersistenceFailureRestoresAllRewardsBeforePublishing(t *testing.
 		t.Fatalf("reward published before commit: saves=%d queuedAtSave=%d before=%d",
 			st.saves, st.queuedAtSave, beforePackets)
 	}
-	if p.Char.Exp != beforeChar.Exp || p.Char.Gold != beforeChar.Gold ||
+	if p.Char.Exp != beforeChar.Exp || p.Char.Hold != beforeChar.Hold || p.Char.Gold != beforeChar.Gold ||
 		p.Char.Inv != beforeChar.Inv || p.Char.Equip != beforeChar.Equip {
 		t.Fatalf("failed kill was not rolled back: before=%+v after=%+v", beforeChar, *p.Char)
 	}

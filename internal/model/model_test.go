@@ -20,6 +20,7 @@ func TestItemEffLoadsFromJSON(t *testing.T) {
 func TestCharJSONPersistsCanonicalScore(t *testing.T) {
 	ch := Char{
 		Name:    "felipe",
+		Hold:    54321,
 		NextExp: 649715,
 		Score: &Score{
 			Version: ScoreVersion, Level: 50, Attack: 200,
@@ -49,6 +50,9 @@ func TestCharJSONPersistsCanonicalScore(t *testing.T) {
 	}
 	if loaded.Score.ResistFire != 10 || loaded.Score.ResistThunder != 40 {
 		t.Fatalf("round-trip perdeu resistencias: %+v", loaded.Score)
+	}
+	if loaded.Hold != ch.Hold {
+		t.Fatalf("round-trip perdeu Held EXP: %d", loaded.Hold)
 	}
 }
 
@@ -152,6 +156,7 @@ func TestEmptyCharacterSlotDetectsEveryLatePersistedField(t *testing.T) {
 		{"saved y", func(c *Char) { c.SavedY = 2100 }},
 		{"nightmare tickets", func(c *Char) { c.NightmareTickets = 1 }},
 		{"nightmare cooldown", func(c *Char) { c.LastNightmareUnix = 1 }},
+		{"held experience", func(c *Char) { c.Hold = 1 }},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

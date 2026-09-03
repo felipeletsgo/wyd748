@@ -5340,7 +5340,7 @@ int TMHuman::OnPacketUpdateEtc(MSG_STANDARD* pStd)
         g_pObjectManager->m_stMobData.CurrentScore.MasterPts = pUpdateEtc->MasterPoint;
         g_pObjectManager->m_stMobData.CurrentScore.SkillPts = pUpdateEtc->SkillPoint;
         g_pObjectManager->m_stMobData.Coin = pUpdateEtc->Coin;
-        // Hold is the native reserved EXP field; WYD-Go intentionally sends zero.
+        // Hold is the native PvP death EXP debt and is paid by combat EXP.
         g_pObjectManager->m_nFakeExp = pUpdateEtc->Hold;
         g_pObjectManager->m_stSelCharData.Coin[g_pObjectManager->m_cCharacterSlot] = pUpdateEtc->Coin;
 

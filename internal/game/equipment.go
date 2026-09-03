@@ -480,6 +480,9 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	ch.RuntimeScore.AttackRun = uint32(attackSpeed<<4 | runSpeed)
 	w.applyPassiveSkills(ch)
 	w.applyAffectStats(ch)
+	if heldExperiencePenaltyActive(ch) {
+		ch.RuntimeScore.MaxHP /= 2
+	}
 
 	// Homem Urso e as demais transformacoes BM mudam MaxHP dentro dos affects.
 	// Restaurar o HP cheio antes desse ponto usava o teto sem transformacao

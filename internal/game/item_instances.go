@@ -2597,7 +2597,7 @@ func (w *World) tickItemInstances(now time.Time) {
 		for mobID := range inst.MobIDs {
 			if mob := w.mobsByID[mobID]; mob != nil {
 				mob.Dead = true
-				w.publishMobDeath(mob, 0, 0, nil)
+				w.publishMobDeath(mob, 0, nil)
 				w.removeMobInstance(mob)
 			}
 		}

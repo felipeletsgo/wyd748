@@ -1,6 +1,6 @@
 # Handoff: paridade visual e funcional do client 7.48
 
-Atualizado em: 2026-09-02
+Atualizado em: 2026-09-03
 Estado geral: `STATICALLY VERIFIED`
 
 ## Objetivo e limites
@@ -17,7 +17,7 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | 6884415003707C8C8A0EE1BDF02BE296D70F65D268E4995C3E701D3B73F7457C
+client748/project.exe                            | candidato source | ADFA0B99C17F96367F05E6718E61512039AB50CA54CBDDB104333EF663210795
 ```
 
 Os hashes históricos permanecem os fingerprints imutáveis registrados; o
@@ -1047,14 +1047,17 @@ Repetir build, instalação e hash se o código mudar.
   oculta HOLD quando `m_nFakeExp == 0` e oculta Kingdom quando não existe manto
   de reino válido. O binding moderno `65768` não sobrescreve mais o emblema
   nativo no modo 7.48.
-- O servidor não precisou de alteração: `MSG_UpdateEtc::Hold` e
-  `Ext1.Data[0]` continuam zerados e o teste de wire comprova que CP/Chaos não
-  vaza para Hold.
+- O servidor agora mantém `Char.Hold` como dívida persistente de EXP, publica
+  o valor em `MSG_UpdateEtc::Hold`, `MSG_CNFMobKill::FakeExp` e
+  `Ext1.Data[0]`. Morte PvP cria a dívida, EXP de combate a paga primeiro e
+  CP/Chaos continua completamente separado.
+- O lifecycle e o contrato wire estão registrados em
+  `.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md`.
 - A ficha `TRACED` está em
   `.agents/research/client748/flows/ui/character-stat-fields-update.md`.
 - Estado de entrega: `IMPLEMENTED / STATICALLY VERIFIED`; o build oficial
-  passou com zero erros e 13 warnings C4018 preexistentes e instalou o
-  candidato `B51D48AC...9AE6BC`. Teste real ainda pendente, sem claim
+  passou com zero erros e 17 warnings C4018 e instalou o candidato
+  `A09722FF...5377BE`. Teste real ainda pendente, sem claim
   `CLIENT-TESTED`.
 
 ## Tela inicial e seleção de servidor em 2026-09-02
@@ -1090,11 +1093,28 @@ Repetir build, instalação e hash se o código mudar.
 - Estado: `CONTRACT / IMPLEMENTED / AUTOMATED TESTED / STATICALLY VERIFIED`.
   Falta executar o fluxo real; não é `CLIENT_TESTED`.
 
+## Held EXP por morte PvP em 2026-09-03
+
+- `Char.Hold` agora e persistente; morte PvP cria a divida sem retirar EXP ou
+  gold, e EXP de combate a paga antes da progressao. Quest/item nao amortizam.
+- O limite e 10% do intervalo do nivel atual. Em 80%, somente o MaxHP efetivo
+  cai pela metade; o recalc o restaura quando Hold volta abaixo do limiar.
+- `UpdateEtc@12`, `CNFMobKill@12` e `EnterWorld Ext1.Data[0]@1264` transportam
+  Hold. CP/Chaos permanece independente.
+- A ficha `CONTRACT` esta em
+  `.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md`.
+- `go test -count=1 ./...`, o validador e `git diff --check` passaram. O build
+  oficial instalou `A09722FF...5377BE` com zero erros e 17 warnings C4018.
+  Falta o fluxo real; nao e `CLIENT_TESTED`.
+
 ## Pendências e riscos
 
-- No candidato `68844150...3F7457C`, pressionar `K`, confirmar ausência de
+- No candidato `A09722FF...5377BE`, pressionar `K`, confirmar ausência de
   crash, bloqueio de PvP desligado, liberação ligado, PvE preservado e reset
   para desligado depois de logout/relogin.
+- No mesmo candidato, morrer em PvP, confirmar Hold sem perda imediata de
+  EXP/gold, pagar a divida matando mobs e validar o limiar/restauracao de MaxHP,
+  CP independente e persistencia depois de logout/relogin.
 
 - No candidato `DA9F578E...EE3F`, enviar desenhos Premium Firework com mais
   de um padrão e o fallback vazio; confirmar a mesma forma para dono e
@@ -1160,10 +1180,10 @@ Repetir build, instalação e hash se o código mudar.
 
 ## Próximo passo executável
 
-Prioridade imediata: testar o PK Mode no candidato
-`6884415003707C8C8A0EE1BDF02BE296D70F65D268E4995C3E701D3B73F7457C` com
-dois jogadores e um mob, incluindo logout/relogin. Registrar o resultado na
-ficha antes de promover para `CLIENT_TESTED`.
+Prioridade imediata: testar PK Mode e Held EXP no candidato
+`A09722FFFE127DB9BC95132F1DA323D55794BFD0A3270FE40ACE0CCA735377BE` com dois
+jogadores e um mob, incluindo morte PvP, pagamento da divida e logout/relogin.
+Registrar o resultado nas duas fichas antes de promover para `CLIENT_TESTED`.
 
 1. No candidato `DA9F578E...EE3F`, entrar no mundo com o manifesto de
    integridade ativo e confirmar sucesso do probe. Em ambiente de teste,
@@ -1222,8 +1242,8 @@ ficha antes de promover para `CLIENT_TESTED`.
     quatro abas/listas, conteúdos e memo, fechar por `323`, `Esc` e AirMove e
     repetir após troca de cena e logout/relogin em `800x600`, `1024x768` e
     `1280x960`.
-18. No candidato `B51D48AC...9AE6BC`, abrir Character e confirmar Att Speed em
-    `1110`, HOLD oculto com Hold zero, C.POINT com valor/percentual e Kingdom
+18. No candidato `ADFA0B99...10795`, abrir Character e confirmar Att Speed em
+    `1110`, HOLD oculto com Hold zero, Held EXP com valor/percentual e Kingdom
     oculto para personagem sem reino. Repetir após atualização de Score,
     troca de equipamento e logout/relogin; testar também um personagem com
     manto de reino válido.

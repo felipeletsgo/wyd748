@@ -126,6 +126,11 @@ client748/           assets ativos e project.exe recompilado
 - LoS, range, gameplay space, alvo vivo e cooldown são revalidados. Mobs e
   skills de boss repetem a checagem de LoS no instante do dano.
 - PvP não concede EXP nem gold do jogador morto.
+- Morte PvP cria Held EXP persistente sem retirar imediatamente EXP ou gold.
+  A dívida satura em 10% do intervalo do nível, EXP de combate a paga antes da
+  progressão e recompensas de quest/item não a amortizam. Em 80% do limite,
+  somente o MaxHP efetivo cai pela metade; o recálculo o restaura ao sair do
+  limiar. Held EXP e CP/Chaos são estados independentes.
 - As 96 skills das classes e os cinco livros Sephira possuem caminhos de
   execução, custo, mastery, cooldown, efeitos e persistência.
 - Buffs/debuffs usam affects públicos e timers privados do client.

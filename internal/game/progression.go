@@ -280,6 +280,105 @@ func combatExperienceByEvolution(ch *model.Char, reward uint32) uint32 {
 	return uint32(uint64(reward) * 100 / uint64(divisor))
 }
 
+// currentExperienceInterval devolve o tamanho do nivel interno atual. As
+// tabelas guardam EXP acumulada, portanto o intervalo e a diferenca entre os
+// dois marcos adjacentes, inclusive no ultimo nivel valido.
+func currentExperienceInterval(ch *model.Char) uint32 {
+	if ch == nil || ch.Score == nil {
+		return 0
+	}
+	table := progressionTable(ch)
+	level := int(ch.Score.Level)
+	if level < 0 || level+1 >= len(table) {
+		return 0
+	}
+	return table[level+1] - table[level]
+}
+
+func heldExperienceDeathDivisor(level uint32) uint32 {
+	switch {
+	case level >= 250:
+		return 100
+	case level >= 200:
+		return 85
+	case level >= 150:
+		return 70
+	case level >= 100:
+		return 55
+	case level >= 90:
+		return 50
+	case level >= 80:
+		return 45
+	case level >= 70:
+		return 40
+	case level >= 60:
+		return 35
+	case level >= 50:
+		return 30
+	case level >= 40:
+		return 25
+	case level >= 30:
+		return 22
+	default:
+		return 20
+	}
+}
+
+func heldExperienceLimit(ch *model.Char) uint32 {
+	return currentExperienceInterval(ch) / 10
+}
+
+func heldExperienceDeathDebt(ch *model.Char) uint32 {
+	if ch == nil || ch.Score == nil {
+		return 0
+	}
+	debt := currentExperienceInterval(ch) / heldExperienceDeathDivisor(ch.Score.Level)
+	return minU32(ch.Exp, debt)
+}
+
+func saturatingAddU32(left, right uint32) uint32 {
+	result := left + right
+	if result < left {
+		return ^uint32(0)
+	}
+	return result
+}
+
+// addHeldExperienceDeathDebt acrescenta a penalidade sem permitir que Hold
+// ultrapasse 10% do intervalo do nivel atual.
+func addHeldExperienceDeathDebt(ch *model.Char) {
+	if ch == nil {
+		return
+	}
+	limit := heldExperienceLimit(ch)
+	ch.Hold = minU32(limit, saturatingAddU32(ch.Hold, heldExperienceDeathDebt(ch)))
+}
+
+// heldExperiencePenaltyActive representa o limiar nativo que reduz apenas o
+// MaxHP efetivo quando a divida alcanca 80% do limite do nivel.
+func heldExperiencePenaltyActive(ch *model.Char) bool {
+	if ch == nil {
+		return false
+	}
+	limit := heldExperienceLimit(ch)
+	return limit > 0 && uint64(ch.Hold)*5 >= uint64(limit)*4
+}
+
+// grantCombatExp paga Hold primeiro. Recompensas de quest/item continuam
+// chamando grantExp diretamente e, portanto, nunca amortizam esta divida.
+func grantCombatExp(ch *model.Char, reward uint32) (int, uint32) {
+	if ch == nil || reward == 0 {
+		return 0, 0
+	}
+	paid := minU32(ch.Hold, reward)
+	ch.Hold -= paid
+	reward -= paid
+	if reward == 0 {
+		return 0, 0
+	}
+	return grantExp(ch, reward)
+}
+
 // grantExp adiciona EXP ate o ultimo marco da evolucao e processa level-ups. Os
 // retornos informam niveis ganhos e a EXP realmente aplicada.
 func grantExp(ch *model.Char, reward uint32) (int, uint32) {
