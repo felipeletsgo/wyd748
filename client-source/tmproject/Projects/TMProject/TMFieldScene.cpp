@@ -15188,6 +15188,16 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 	{
 		SetInventoryGridType(TMEGRIDTYPE::GRID_TRADEINV);
 		SetEquipGridState(0);
+		// Start every trade window with an empty local offer.  Keep the opponent
+		// identity supplied by the invite, but never reuse item bytes or positions
+		// from a previous session.
+		const unsigned short opponentID = g_pObjectManager->m_stTrade.OpponentID;
+		memset(g_pObjectManager->m_stTrade.Item, 0, sizeof(g_pObjectManager->m_stTrade.Item));
+		for (int k = 0; k < 15; ++k)
+			g_pObjectManager->m_stTrade.CarryPos[k] = -1;
+		g_pObjectManager->m_stTrade.TradeMoney = 0;
+		g_pObjectManager->m_stTrade.MyCheck = 0;
+		g_pObjectManager->m_stTrade.OpponentID = opponentID;
 		g_pObjectManager->m_stTrade.Header.Type = MSG_Trade_Opcode;
 		g_pObjectManager->m_stTrade.Header.ID = m_pMyHuman->m_dwID;
 	}

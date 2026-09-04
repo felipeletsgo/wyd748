@@ -1553,6 +1553,8 @@ void SGridControl::BuyItem(int nCellX, int nCellY)
 int SGridControl::TradeItem(int nCellX, int nCellY)
 {
 	auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+	if (!pFScene || !pFScene->m_pControlContainer || !g_pObjectManager)
+		return 0;
 	// ItemMix2..6 use raw grid values that the imported source later renamed as
 	// cargo/quickslot modes. Resolve the visible 7.48 panel before enum dispatch.
 	auto nativeMixItem = GetItem(nCellX, nCellY);
@@ -1566,28 +1568,39 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV)
 	{
 		auto pItem = GetItem(nCellX, nCellY);
-		if (pItem && pItem->m_GCObj.dwColor == 0xFFFFFFFF)
+		if (pItem && pItem->m_pItem && pItem->m_GCObj.dwColor == 0xFFFFFFFF)
 		{
 			int SourPos = pFScene->GetCarrySlotForCell(this,
 				pItem->m_nCellIndexX, pItem->m_nCellIndexY);
+			if (SourPos < 0 || SourPos >= MAX_VISIBLE_CARRY)
+				return 2;
+
+			// The grid item is only a presentation copy.  Serialize the synchronized
+			// Carry snapshot so the authoritative server-side byte comparison cannot
+			// be defeated by a stale visual item after an inventory update.
+			const STRUCT_ITEM& sourceItem = g_pObjectManager->m_stMobData.Carry[SourPos];
+			if (sourceItem.sIndex <= 0)
+				return 2;
 
 			SGridControl* pGridMyItem[15];
 			for (size_t i = 0; i < 15; ++i)
-				pGridMyItem[i] = (SGridControl*)pFScene->m_pControlContainer->FindControl(i + 8448);
+				pGridMyItem[i] = (SGridControl*)pFScene->m_pControlContainer->FindControl(i + TMG_TRADE_MY1);
 
 			bool bEmptyFind = false;
 			for (size_t i = 0; i < 15; ++i)
 			{
-				if (!pGridMyItem[i]->GetItem(0, 0))
+				if (pGridMyItem[i] && !pGridMyItem[i]->GetItem(0, 0))
 				{
 					auto pstItem = new STRUCT_ITEM;
-					memcpy(pstItem, pItem->m_pItem, sizeof(STRUCT_ITEM));
+					if (!pstItem)
+						return 0;
+					memcpy(pstItem, &sourceItem, sizeof(STRUCT_ITEM));
 
 					auto newItem = new SGridControlItem(nullptr, pstItem, 0.0f, 0.0f);
 					if (newItem)
 						pGridMyItem[i]->AddItem(newItem, 0, 0);
 
-					memcpy(&g_pObjectManager->m_stTrade.Item[i], pItem->m_pItem, sizeof(STRUCT_ITEM));
+					memcpy(&g_pObjectManager->m_stTrade.Item[i], &sourceItem, sizeof(STRUCT_ITEM));
 
 					g_pObjectManager->m_stTrade.CarryPos[i] = SourPos;
 					pItem->m_GCObj.dwColor = 0xFFFF0000;
@@ -1600,11 +1613,13 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 
 			auto pMyCheck = (SButton*)pFScene->m_pControlContainer->FindControl(617);
 			auto pOPCheck = (SButton*)pFScene->m_pControlContainer->FindControl(601);
-			pMyCheck->m_bSelected = 0;
-			pOPCheck->m_bSelected = 0;
+			if (pMyCheck)
+				pMyCheck->m_bSelected = 0;
+			if (pOPCheck)
+				pOPCheck->m_bSelected = 0;
 
 			pFScene->m_dwLastCheckTime = g_pApp->m_pTimerManager->GetServerTime();
-			g_pObjectManager->m_stTrade.MyCheck = pMyCheck->m_bSelected;
+			g_pObjectManager->m_stTrade.MyCheck = pMyCheck ? pMyCheck->m_bSelected : 0;
 			g_pObjectManager->m_stTrade.Header.Type = 0x383;
 			SendOneMessage((char*)&g_pObjectManager->m_stTrade, sizeof(g_pObjectManager->m_stTrade));
 			return 1;
