@@ -87,6 +87,15 @@ func StandardParm(opcode, id uint16, parm uint32) []byte {
 	return b
 }
 
+// StandardParm2 monta o layout de 20 bytes usado pelos comandos que carregam
+// dois DWORDs consecutivos em Parm1@12 e Parm2@16.
+func StandardParm2(opcode, id uint16, parm1, parm2 uint32) []byte {
+	b := Build(opcode, id, 20)
+	putU32(b, 12, parm1)
+	putU32(b, 16, parm2)
+	return b
+}
+
 // CapsuleInfoData representa os campos que a UI 7.48 aceita em
 // MSG_CAPSULEINFO. O executavel copia exatamente 13 DWORDs (52 bytes) para um
 // cache de 12 entradas. Nesta versao existem somente dois WORDs de Mastery;

@@ -97,6 +97,9 @@ func resetCharacterRuntime(p *Player) {
 	p.Party = nil
 	p.InviteFrom = 0
 	p.InviteUntil = time.Time{}
+	p.ChallengeFrom = 0
+	p.ChallengeMode = 0
+	p.ChallengeUntil = time.Time{}
 	p.GuildInviteFrom = 0
 	p.GuildInviteUntil = time.Time{}
 	p.NextGuildInvite = time.Time{}

@@ -205,6 +205,24 @@ func TestAliancaPrecisaApontarParaGuildExistente(t *testing.T) {
 	}
 }
 
+func TestGuerraPodeSerUnilateralMasNaoApontarParaGuildInvalida(t *testing.T) {
+	base := func(target uint16) *GuildRegistry {
+		return &GuildRegistry{Version: GuildRegistryVersion, Guilds: []Guild{
+			{ID: 1, Name: "Alfa", WarTarget: target, Members: []GuildMember{leaderMember("Lider1")}},
+			{ID: 2, Name: "Beta", Members: []GuildMember{leaderMember("Lider2")}},
+		}}
+	}
+	if err := base(2).Validate(); err != nil {
+		t.Fatalf("declaracao unilateral valida foi recusada: %v", err)
+	}
+	if err := base(1).Validate(); err == nil {
+		t.Fatal("guerra contra a propria guild deveria ser recusada")
+	}
+	if err := base(99).Validate(); err == nil {
+		t.Fatal("guerra contra guild inexistente deveria ser recusada")
+	}
+}
+
 func TestNextGuildIDReusaOMenorLivre(t *testing.T) {
 	registry := &GuildRegistry{Version: GuildRegistryVersion, Guilds: []Guild{
 		{ID: 1, Name: "Alfa", Members: []GuildMember{leaderMember("A")}},

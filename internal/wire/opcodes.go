@@ -77,7 +77,7 @@ const (
 	OpInviteGuild        = 0x3D5 // C->S recruta jogador (GuildTarget@12, InviteType@16)
 	OpRebuy              = 0x3E8 // C<->S abre/atualiza a lista de recompra
 	OpGuildAlly          = 0xE12 // C->S alianca entre guilds (Guild@12, Ally@16) -- so o mestre
-	OpGuildWar           = 0xE0E // C->S declara guerra (Guild@12, Enemy@16) -- sem sistema de guerra
+	OpGuildWar           = 0xE0E // C->S declara/cancela guerra (Guild@12, Enemy@16)
 	OpChallenge          = 0x28E // C->S interacao/desafio de zona de guild (Parm@12)
 	OpChallengeConfirm   = 0x28F // C->S confirma desafio de zona (Parm1/Parm2)
 	OpReqTeleport        = 0x290 // C->S solicita portal na coordenada atual (16B)
@@ -102,7 +102,7 @@ const (
 	OpAttackMulti        = 0x36C // C<->S skill multi-alvo (96B no client 7.48 real)
 	OpAttackOne          = 0x39D // C->S ataca alvo unico (o melee real do 7.48)
 	OpAttackTwo          = 0x39E // C->S ataca (2 maos)
-	OpReqRanking         = 0x39F // C->S consulta informacoes de outro jogador (Parm1=TargetID)
+	OpPlayerChallenge    = 0x39F // C<->S desafio entre jogadores (Parm1=TargetID, Parm2=modo)
 	OpCombineComplete    = 0x3A7 // S->C resultado comum de composicao (0/1/2)
 	OpCombineLindy       = 0x2C3 // C->S composicao Lindy
 	OpCombineOdin        = 0x2D2 // C->S composicao Alquimista Odin

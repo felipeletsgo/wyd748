@@ -1355,3 +1355,23 @@ Registrar o resultado nas duas fichas antes de promover para `CLIENT_TESTED`.
   `FA90D368E8EDE5F9D9E986263F13FAA0163A10DE8190C7B54C210AC59245B9C8`.
   Estado: `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED BUILD`; falta apenas
   o teste real com dois clients para `CLIENT-TESTED`.
+
+### Continuação server-side do menu de interação — 2026-09-04
+
+- O lote coordenado das ações Party/Trade/Challenge/Guild foi concluído no
+  servidor. `0x39F` agora trata desafio com convite, aceitação, expiração,
+  consumo único e validação de identidade/espaço; `0xE0E` trata declaração
+  unilateral, resposta recíproca, cancelamento, líder, alvo e rollback de
+  persistência. O client envia apenas intenção; `World` permanece autoritativo.
+- A guerra de guild usa somente `Guild.WarTarget`, persistido no estado da
+  guild. Não foram inventados neste lote zonas, torres ou cerco; esses fluxos
+  exigem evidência própria.
+- Regras, skill e protocolo de continuidade receberam uma guarda anti-loop:
+  uma checagem curta por retomada, seguida imediatamente de patch/teste;
+  duas chamadas sem alteração, teste ou evidência nova encerram o ciclo.
+- Validação: `go test ./internal/wire`, `go test -count=1 ./...` e
+  `git diff --check` passaram. Estado: `IMPLEMENTED / AUTOMATED TESTED` no
+  servidor; o menu ainda não é `CLIENT-TESTED`.
+- Próximo passo executável: teste manual com dois clients das ações Party,
+  Guild, Trade e Challenge, incluindo cancelamento, troca de cena e
+  logout/relogin. Não reabrir triagem ou listar chats para essa retomada.

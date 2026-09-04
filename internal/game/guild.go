@@ -602,6 +602,100 @@ func (w *World) onGuildAlly(s *net.Session, pkt []byte) {
 	log.Printf("[#%d] GUILD %d alianca -> %d", s.ID, guild.ID, guild.Ally)
 }
 
+// onGuildWar trata o 0xE0E _MSG_War. O nativo mantém uma declaracao
+// unilateral em g_pGuildWar; quando a guild alvo declara de volta, a segunda
+// chamada promove o par para guerra iniciada. O sistema de zonas/cerco fica
+// fora deste handler: aqui persistimos apenas a fronteira de guilds.
+func (w *World) onGuildWar(s *net.Session, pkt []byte) {
+	p := w.players[s]
+	if p == nil || p.Char == nil || !p.InWorld || len(pkt) != 20 {
+		return
+	}
+	if wire.ParseHeader(pkt).ID != p.ID {
+		w.recordSecurityViolation(s, wire.OpGuildWar, "ID do declarador diverge da sessao")
+		return
+	}
+	guild, err := w.requireGuildLeader(p.Char)
+	if err != nil {
+		s.Send(wire.MessagePanel(guildAuthMessage(err, "declare war")))
+		return
+	}
+	claimed := binary.LittleEndian.Uint32(pkt[12:16])
+	if claimed != 0 && claimed != uint32(guild.ID) {
+		log.Printf("[#%d] 0xE0E com guild divergente: pacote=%d real=%d", s.ID, claimed, guild.ID)
+	}
+	targetRaw := binary.LittleEndian.Uint32(pkt[16:20])
+	if targetRaw > uint32(model.MaxGuildID) {
+		w.recordSecurityViolation(s, wire.OpGuildWar, "guild alvo fora da faixa")
+		return
+	}
+	targetID := uint16(targetRaw)
+	if targetID == guild.ID {
+		s.Send(wire.MessagePanel("A guild cannot declare war on itself."))
+		return
+	}
+	if targetID != 0 && w.guilds.FindByID(targetID) == nil {
+		s.Send(wire.MessagePanel("Target guild not found."))
+		return
+	}
+	if targetID == 0 {
+		w.cancelGuildWar(s, guild)
+		return
+	}
+	if guild.WarTarget != 0 {
+		s.Send(wire.MessagePanel("Your guild already has a war declaration."))
+		return
+	}
+
+	target := w.guilds.FindByID(targetID)
+	reciprocal := target.WarTarget == guild.ID
+	snapshot := w.snapshotGuilds()
+	guild.WarTarget = targetID
+	if err := w.saveGuildState(); err != nil {
+		w.restoreGuilds(snapshot)
+		s.Send(wire.MessagePanel("Save failed. The war declaration was not applied."))
+		log.Printf("[#%d] ERRO 0xE0E declarando guerra guild=%d alvo=%d: %v", s.ID, guild.ID, targetID, err)
+		return
+	}
+	if reciprocal {
+		w.announceToGuild(guild.ID, fmt.Sprintf("War started against guild %s.", target.Name), nil)
+		w.announceToGuild(target.ID, fmt.Sprintf("War started against guild %s.", guild.Name), nil)
+	} else {
+		w.announceToGuild(guild.ID, fmt.Sprintf("War declared against guild %s.", target.Name), nil)
+		w.announceToGuild(target.ID, fmt.Sprintf("Guild %s declared war on your guild.", guild.Name), nil)
+	}
+	log.Printf("[#%d] 0xE0E guild=%d guerra -> %d reciproca=%t", s.ID, guild.ID, targetID, reciprocal)
+}
+
+func (w *World) cancelGuildWar(s *net.Session, guild *model.Guild) {
+	if guild.WarTarget == 0 {
+		return
+	}
+	target := w.guilds.FindByID(guild.WarTarget)
+	reciprocal := target != nil && target.WarTarget == guild.ID
+	snapshot := w.snapshotGuilds()
+	targetID := guild.WarTarget
+	guild.WarTarget = 0
+	if reciprocal {
+		target.WarTarget = 0
+	}
+	if err := w.saveGuildState(); err != nil {
+		w.restoreGuilds(snapshot)
+		s.Send(wire.MessagePanel("Save failed. The war declaration was not canceled."))
+		log.Printf("[#%d] ERRO 0xE0E cancelando guerra guild=%d alvo=%d: %v", s.ID, guild.ID, targetID, err)
+		return
+	}
+	message := "War declaration canceled."
+	if reciprocal {
+		message = "War canceled."
+	}
+	w.announceToGuild(guild.ID, message, nil)
+	if target != nil {
+		w.announceToGuild(target.ID, message, nil)
+	}
+	log.Printf("[#%d] 0xE0E guild=%d cancelou guerra alvo=%d reciproca=%t", s.ID, guild.ID, targetID, reciprocal)
+}
+
 // announceToGuild manda um aviso de painel para os membros online, opcionalmente
 // pulando um jogador (normalmente o autor da acao, que ja recebeu resposta).
 func (w *World) announceToGuild(guildID uint16, message string, skip *Player) {

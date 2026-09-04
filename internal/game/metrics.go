@@ -122,7 +122,7 @@ var inboundCommandMetricLabels = map[uint16]string{
 	wire.OpAttackOne:               "0x39D",
 	wire.OpAttackTwo:               "0x39E",
 	wire.OpAttackMulti:             "0x36C",
-	wire.OpReqRanking:              "0x39F",
+	wire.OpPlayerChallenge:         "0x39F",
 	wire.OpCombineTiny:             "0x3C0",
 	wire.OpCombineLindy:            "0x2C3",
 	wire.OpCombineCompositor:       "0x3A6",

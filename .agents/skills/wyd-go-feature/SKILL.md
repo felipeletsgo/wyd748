@@ -35,6 +35,25 @@ quando compatível, prefira a tecnicamente superior como único caminho ativo.
 5. Implemente e documente o lote no mesmo ciclo; valide somente os consumidores
    afetados e use a suíte ampla no gate de integração.
 
+## Anti-loop de continuidade
+
+Compactação automática não cria uma nova investigação. Trate o resumo e o
+handoff como estado já recuperado e continue do próximo passo executável.
+
+- Faça no máximo uma checagem curta de `git status` e diff scoped por retomada.
+- Não liste chats, releia a conversa ou reabra a tarefa original para confirmar
+  um handoff que já aponta o arquivo e o símbolo seguintes.
+- Limite cada comando ao trecho necessário e evite saídas repetidas; uma saída
+  já registrada com os mesmos inputs é reutilizável.
+- Após a checagem inicial, execute logo um patch ou um teste focado. Se duas
+  chamadas consecutivas não produzirem patch, teste ou evidência nova, pare e
+  registre o bloqueio.
+- Não declare a mesma intenção de “retomar” mais de uma vez. Mensagens de
+  status não substituem avanço técnico.
+- Se o usuário interromper a execução, finalize o ciclo. Não aguarde nem
+  inicie uma continuação automática; uma nova mensagem explícita inicia uma
+  única retomada delimitada.
+
 ## Roteamento
 
 | Escopo | Evidência/referência |

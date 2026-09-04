@@ -308,7 +308,7 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 52, true
 	case wire.OpAttackMulti:
 		return 96, true
-	case wire.OpReqRanking:
+	case wire.OpPlayerChallenge:
 		return 20, true
 	case wire.OpCombineTiny, wire.OpCombineLindy, wire.OpCombineCompositor,
 		wire.OpCombineAgatha, wire.OpCombineAylin, wire.OpCombineEhre,

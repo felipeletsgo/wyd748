@@ -69,7 +69,7 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		{wire.OpAttackOne, 48},
 		{wire.OpAttackTwo, 52},
 		{wire.OpAttackMulti, 96},
-		{wire.OpReqRanking, 20},
+		{wire.OpPlayerChallenge, 20},
 		{wire.OpCombineTiny, combinePacketSize},
 		{wire.OpCombineLindy, combinePacketSize},
 		{wire.OpCombineCompositor, combinePacketSize},

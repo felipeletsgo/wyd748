@@ -62,7 +62,10 @@ type Guild struct {
 	Kingdom byte `json:"kingdom,omitempty"`
 	// Ally e a guild aliada (0 = nenhuma). O nativo guarda UMA aliada por
 	// guild, e o client reflete isso num unico m_usAllyGuild.
-	Ally      uint16    `json:"ally,omitempty"`
+	Ally uint16 `json:"ally,omitempty"`
+	// WarTarget e a guild contra a qual esta guild declarou guerra. A
+	// declaracao pode ser unilateral ate a outra guild declarar de volta.
+	WarTarget uint16    `json:"warTarget,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -237,18 +240,27 @@ func (r *GuildRegistry) Validate() error {
 			characters[key] = struct{}{}
 		}
 	}
-	// Alianca so pode apontar para guild existente, nunca para si mesma.
+	// Alianca e guerra so podem apontar para guild existente, nunca para si
+	// mesmas. A relacao pode ser unilateral enquanto aguarda resposta.
 	for i := range r.Guilds {
 		guild := &r.Guilds[i]
-		if guild.Ally == 0 {
-			continue
-		}
-		if guild.Ally == guild.ID {
+		if guild.Ally != 0 && guild.Ally == guild.ID {
 			return fmt.Errorf("guild %q aliada de si mesma", guild.Name)
 		}
-		if _, exists := ids[guild.Ally]; !exists {
-			return fmt.Errorf("guild %q aliada da guild %d, que nao existe",
-				guild.Name, guild.Ally)
+		if guild.Ally != 0 {
+			if _, exists := ids[guild.Ally]; !exists {
+				return fmt.Errorf("guild %q aliada da guild %d, que nao existe",
+					guild.Name, guild.Ally)
+			}
+		}
+		if guild.WarTarget != 0 && guild.WarTarget == guild.ID {
+			return fmt.Errorf("guild %q em guerra consigo mesma", guild.Name)
+		}
+		if guild.WarTarget != 0 {
+			if _, exists := ids[guild.WarTarget]; !exists {
+				return fmt.Errorf("guild %q em guerra com a guild %d, que nao existe",
+					guild.Name, guild.WarTarget)
+			}
 		}
 	}
 	return nil

@@ -120,6 +120,9 @@ type Player struct {
 	Party               *Party
 	InviteFrom          uint16
 	InviteUntil         time.Time
+	ChallengeFrom       uint16
+	ChallengeMode       uint32
+	ChallengeUntil      time.Time
 	// Convite de guild pendente. Mesmo padrao do convite de grupo: guarda quem
 	// convidou e ate quando vale, para nao aceitar convite esquecido.
 	GuildInviteFrom  uint16
@@ -1914,8 +1917,7 @@ func (w *World) handle(cmd command) {
 	case wire.OpGuildAlly:
 		w.onGuildAlly(cmd.s, cmd.pkt)
 	case wire.OpGuildWar:
-		// Reconhecido para nao poluir o log nem virar amplificador de I/O.
-		// Guerra de guild continua fora deste marco: exige zonas, torre e cerco.
+		w.onGuildWar(cmd.s, cmd.pkt)
 	case wire.OpChallenge, wire.OpChallengeConfirm:
 		w.onGuildChallenge(cmd.s, cmd.pkt)
 	case wire.OpMoveStop:
@@ -1942,8 +1944,8 @@ func (w *World) handle(cmd command) {
 	case wire.OpAttackOne, wire.OpAttackMulti, wire.OpAttackTwo:
 		// 0x39D e o melee do 7.48 (confirmado in-game: repete ~1x/s ao atacar).
 		w.onAttack(cmd.s, cmd.pkt)
-	case wire.OpReqRanking:
-		w.onReqRanking(cmd.s, cmd.pkt)
+	case wire.OpPlayerChallenge:
+		w.onPlayerChallenge(cmd.s, cmd.pkt)
 	case wire.OpCombineTiny:
 		w.onCombineTiny(cmd.s, cmd.pkt)
 	case wire.OpCombineLindy:

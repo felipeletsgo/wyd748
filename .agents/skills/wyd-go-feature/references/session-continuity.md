@@ -43,6 +43,24 @@ A revisão inicial termina assim que `status + diff scoped + fingerprints dos
 inputs` confirmarem o ponto de retomada. Depois disso, executar o próximo passo;
 não iniciar uma segunda auditoria preventiva da mesma evidência.
 
+## Guarda contra looping
+
+Compactação ou interrupção não invalida automaticamente o handoff. É proibido
+reiniciar a recuperação por reflexo: não listar tarefas, reler o chat ou repetir
+triagem global quando o handoff, a worktree e o próximo símbolo continuam
+válidos.
+
+Uma retomada deve seguir este limite:
+
+1. uma única checagem curta de `git status` e diff scoped;
+2. o próximo comando é um patch, teste focado ou diagnóstico específico;
+3. se duas chamadas não trouxerem alteração, teste ou evidência nova, parar e
+   informar o bloqueio verificável.
+
+Não contar mensagens de progresso como avanço. Após uma interrupção, o ciclo
+termina; somente uma nova solicitação explícita autoriza uma retomada. Essa
+retomada não deve repetir o plano, o handoff ou as inspeções já concluídas.
+
 ## Cache e invalidação
 
 Registre no handoff o input que torna um resultado reutilizável:

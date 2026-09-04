@@ -75,7 +75,7 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 		wire.OpChallengeConfirm:        20,
 		wire.OpMotion:                  20,
 		wire.OpClientUnknown2BC:        108,
-		wire.OpReqRanking:              20,
+		wire.OpPlayerChallenge:         20,
 		wire.OpAttackOne:               48,
 		wire.OpAttackTwo:               52,
 		wire.OpAttackMulti:             96,

@@ -49,6 +49,22 @@ revalidar artefato não alterado na mesma sessão. Repetir uma verificação ape
 quando seu input mudou, a evidência registrada é insuficiente ou ela é gate da
 alteração atual.
 
+### Proteção contra loops de continuidade
+
+- Compactação é um reset de contexto, não um pedido para reiniciar a tarefa.
+  Usar o handoff e avançar diretamente para o próximo comando executável.
+- Em uma retomada, fazer no máximo uma checagem curta de `status + diff scoped`.
+  Não usar `list_threads`, `read_thread` ou busca ampla para recuperar a mesma
+  sessão quando o handoff e a árvore já identificam o escopo.
+- Depois da checagem inicial, o próximo passo deve ser `apply_patch`, teste
+  focado ou uma pergunta de bloqueio. Duas rodadas consecutivas sem patch,
+  teste ou evidência nova encerram a tentativa; relatar o bloqueio em vez de
+  repetir a inspeção.
+- Mensagem de progresso não conta como avanço. Cada ciclo deve produzir uma
+  alteração, uma validação nova ou uma causa de bloqueio verificável.
+- Uma interrupção encerra o ciclo atual. Só retomar após nova solicitação
+  explícita do usuário, e sem reemitir o plano ou as inspeções já concluídas.
+
 ## Roteamento de skills
 
 | Escopo | Skill obrigatória | Referência adicional |
