@@ -27,15 +27,24 @@ func TestChatHandlersRouteLocalWhisperAndChannels(t *testing.T) {
 	w := worldWithNetworkedPlayers(sender, recipient, third)
 	w.store = &craftStore{}
 	sender.show(recipient.ID)
-	recipient.show(sender.ID)
-	third.show(sender.ID)
+	// Chat local is spatial/gameplay-space publication. Visible is only the
+	// entity-materialization cache and may still be empty during a visibility
+	// refresh; it must not silently drop a valid nearby message.
+	w.itemInstances = make(map[string]*ItemInstance)
+	w.itemInstances["chat-isolated-runtime"] = &ItemInstance{
+		RuntimeID: "chat-isolated-runtime",
+		MemberIDs: []uint16{third.ID},
+	}
+	w.setPlayerInstanceIndex(third.ID, "chat-isolated-runtime")
 
 	beforeRecipient := recipient.Session.QueuedPacketsForTest()
 	beforeThird := third.Session.QueuedPacketsForTest()
 	w.onMessageChat(sender.Session, chatPacket("hello local"))
-	if recipient.Session.QueuedPacketsForTest() != beforeRecipient+1 ||
-		third.Session.QueuedPacketsForTest() != beforeThird+1 {
-		t.Fatal("chat local nao chegou a todos os observadores")
+	if recipient.Session.QueuedPacketsForTest() != beforeRecipient+1 {
+		t.Fatal("chat local dependeu incorretamente do cache Visible")
+	}
+	if third.Session.QueuedPacketsForTest() != beforeThird {
+		t.Fatal("chat local vazou para outro gameplay space")
 	}
 
 	beforeRecipient = recipient.Session.QueuedPacketsForTest()
@@ -64,6 +73,36 @@ func TestChatHandlersRouteLocalWhisperAndChannels(t *testing.T) {
 	if recipient.Session.QueuedPacketsForTest() != beforeRecipient+1 ||
 		third.Session.QueuedPacketsForTest() != beforeThird+1 {
 		t.Fatal("chat global nao foi difundido")
+	}
+}
+
+func TestChatHandlersRouteCitizenshipAndKingdomChannels(t *testing.T) {
+	sender, _ := networkedTestPlayer(1, "Sender", 2100, 2100)
+	citizen, _ := networkedTestPlayer(2, "Citizen", 2101, 2100)
+	outsider, _ := networkedTestPlayer(3, "Outsider", 2102, 2100)
+	w := worldWithNetworkedPlayers(sender, citizen, outsider)
+	sender.Char.Citizenship = 1
+	citizen.Char.Citizenship = 1
+	outsider.Char.Citizenship = 2
+
+	beforeCitizen := citizen.Session.QueuedPacketsForTest()
+	beforeOutsider := outsider.Session.QueuedPacketsForTest()
+	w.onMessageWhisper(sender.Session, whisperPacket("", "@@citizen"))
+	if citizen.Session.QueuedPacketsForTest() != beforeCitizen+1 ||
+		outsider.Session.QueuedPacketsForTest() != beforeOutsider {
+		t.Fatal("chat de cidadania nao respeitou o canal do personagem")
+	}
+
+	// Kingdom is derived from the cape in the same way as the live server.
+	sender.Char.Equip[model.CapeSlot].Index = 545
+	citizen.Char.Equip[model.CapeSlot].Index = 545
+	outsider.Char.Equip[model.CapeSlot].Index = 548
+	beforeCitizen = citizen.Session.QueuedPacketsForTest()
+	beforeOutsider = outsider.Session.QueuedPacketsForTest()
+	w.onMessageWhisper(sender.Session, whisperPacket("", "@kingdom"))
+	if citizen.Session.QueuedPacketsForTest() != beforeCitizen+1 ||
+		outsider.Session.QueuedPacketsForTest() != beforeOutsider {
+		t.Fatal("chat de reino nao respeitou o reino do personagem")
 	}
 }
 

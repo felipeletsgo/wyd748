@@ -17,7 +17,7 @@ testada.
 ```text
 client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | ADFA0B99C17F96367F05E6718E61512039AB50CA54CBDDB104333EF663210795
+client748/project.exe                            | candidato source | BA85D6CB23D88E3C56DE7A996D0A782E0888CE8819CAE23448A16334510D2277
 ```
 
 Os hashes históricos permanecem os fingerprints imutáveis registrados; o
@@ -1247,3 +1247,111 @@ Registrar o resultado nas duas fichas antes de promover para `CLIENT_TESTED`.
     oculto para personagem sem reino. Repetir após atualização de Score,
     troca de equipamento e logout/relogin; testar também um personagem com
     manto de reino válido.
+
+### Lote em andamento em 2026-09-03: chat não funcional no FieldScene compatível
+
+- Causa localizada na source: o campo nativo 7.48 é `TME_CHAT=5123`, mas
+  `OnControlEvent` aceitava somente `E_CHAT=65671`; envio, histórico, limpeza e
+  IME nunca eram processados para a árvore compatível.
+- Causa complementar na recepção: `TMHuman::OnPacketMessageChat` exige
+  `m_pChatGeneral`; `InitializeCompatFieldScene` não o ligava, descartando o
+  `0x333` antes da atualização da lista/balão.
+- `TMFieldScene.cpp` agora liga painel `5739`, canais `5697..5704`, seleciona o
+  geral e aceita `5123` apenas sob `m_bCompatFieldScene`. O wire `0x333/108`,
+  servidor e fallback de party permanecem inalterados.
+- Cliques nos controles `5697..5704` agora alternam juntos o botão do filtro e
+  seu estado visual pareado para geral, grupo, private e guild.
+- O mail `0x334` prefixado por `!` permanece no grupo Help nativo
+  `864/867..875`: a lista `874` recebe remetente, horário e texto, o indicador
+  `875` abre a quarta aba e o handler protege a chegada antecipada quando a
+  lista ainda não existe. Nenhum controle posterior foi fabricado.
+- `go test ./internal/game ./internal/wire` passou; `Build-Client.ps1
+  -Configuration Release` passou com zero erros e instalou `client748/project.exe`
+  com SHA-256 `BA85D6CB23D88E3C56DE7A996D0A782E0888CE8819CAE23448A16334510D2277`.
+- O teste com dois clients revelou outra causa independente: `onMessageChat`
+  exigia o cache transitório `observer.Visible` e descartava a mensagem para um
+  jogador próximo ainda não registrado nesse cache. A publicação agora usa
+  proximidade espacial + sessão/em-mundo + `playersVisibleTogether`; um teste
+  cobre cache vazio e impede vazamento para outro runtime nas mesmas coordenadas.
+- Estado: `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED`; ainda não há
+  `CLIENT-TESTED`. Próximo passo é testar Enter, os quatro filtros, chat comum,
+  comandos (`=`, `-`, `--`, `@`), whisper, mensagem recebida, party fora da
+  tela, mail/quarta aba/fechamento e relogin.
+- Ajuste posterior para o defeito específico de canal/cidadania: na
+  inicialização compatível, os primários `5697..5700` agora começam ligados e
+  os pares `5701..5704` começam desligados; o clique mantém `paired = !primary`.
+  Isso é necessário porque `-`/`--` usam a gate `m_pChatGuild` no receptor e o
+  estado duplicado anterior podia ocultar a mensagem do segundo client. A
+  ficha `flows/ui/local-chat-message.md` registra a distinção entre os vários
+  canais. Build e reteste de dois clients ainda pendentes.
+- O roteamento server-side dos modos do `0x334` foi concluído: `--` global,
+  `@@` cidadania, `@` reino, `-` guild e `=` party. `@@` compara
+  `Char.Citizenship` não nulo; `@` compara o reino derivado da capa e rejeita
+  reino neutro. O teste `TestChatHandlersRouteCitizenshipAndKingdomChannels`
+  passou após corrigir o fixture: `545` e `545` são Hekalotia, enquanto `546`
+  é Akelonia e `548` é neutra.
+- Validação desta continuação: `go test -count=1 ./internal/game ./internal/wire`,
+  `go test -count=1 ./...` e `git diff --check` passaram. A recepção visual
+  com dois clients ainda precisa ser executada; portanto o estado permanece
+  `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED`, sem claim
+  `CLIENT-TESTED`.
+
+### Correção visual do chat — 2026-09-04
+
+- O build oficial de Release foi concluído com zero erros e instalou
+  `client748/project.exe`; SHA-256:
+  `2B6E9635F9B10A2BA1E0231D2FDCFA0120DA5A3A5753BDFF51A5C51EAD163A0F`.
+- Em mensagens curtas, `OnPacketMessageWhisper` passou a inserir a linha
+  normalizada `szMsg` com `dwColor`, preservando remetente/cor e ocultando os
+  prefixos de roteamento.
+- Em mensagens longas, `InsertInChatList` passou a iniciar a continuação em
+  `maxLen - 1`, usar `dest[startId]` para a primeira linha e inserir a segunda
+  linha somente quando `dest2` não estiver vazia.
+- `go test -count=1 ./internal/game ./internal/wire` passou e `git diff
+  --check` não encontrou erro. Warnings do compilador são preexistentes.
+- Estado honesto: `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED`;
+  ainda não `CLIENT-TESTED`. É necessário testar com dois clients as mensagens
+  curta/longa, local, grupo, guild, global/canal, cidadania, reino, whisper e
+  mail, incluindo troca de cena, fechamento e relogin.
+
+### Correção complementar do receptor de mensagens longas — 2026-09-04
+
+- O caminho de recepção `OnPacketMessageWhisper` ainda possuía uma leitura
+  incorreta de continuação em `MobName[maxLen + 15]`; ela foi substituída por
+  `String[maxLen - 1]`, alinhada ao limite de quebra usado pelo texto.
+- A continuação agora adiciona `ipNewItem2` somente quando não está vazia; o
+  primeiro item não é mais duplicado.
+- Essa é uma `MODERNIZACAO_COMPATIVEL`: somente a apresentação da mensagem
+  foi corrigida. O frame `0x334/128`, prefixos, filtros, cor e ownership
+  permanecem iguais.
+- O build foi repetido após este ajuste, com zero erros e 13 warnings
+  preexistentes. O estado permanece sem `CLIENT-TESTED` até o teste entre
+  dois clients, incluindo mensagem longa.
+
+### Correção do menu de interação Ctrl+clique direito — 2026-09-04
+
+- Defeito confirmado no caminho compatível: `InitializeScene` retorna depois de
+  `InitializeCompatFieldScene` quando falta o controle moderno `66817`; por
+  isso os bindings nativos do menu root `640` não eram executados.
+- O evento nativo `WM_RBUTTONUP` (`517`) com `MK_CONTROL` (`wParam & 8`) também
+  não era tratado por `OnMouseEventCompat`, embora exista em
+  `FUN_0055DAB8`. O evento agora valida AutoTrade/alvo e chama `PGTVisible`.
+- `TMFieldScene.cpp` agora liga `640/645`, Party `641`, Guild `642`, Trade
+  `643`, Challenge `620`, variantes `639/621/622/623`, opções Guild
+  `816/817/862/863` e subopções `912..915`; o root é modal no slot 2 e
+  centralizado no viewport.
+- `PGTVisible` recebeu uma guarda de árvore incompleta para evitar crash em
+  falha parcial do recurso. A alteração é `PARIDADE_NATIVA`, sem mudança de
+  wire ou servidor. Ficha: `flows/ui/player-interaction-menu-lifecycle.md`.
+- Estado desta correção: `IMPLEMENTED / STATICALLY VERIFIED`; build, testes e
+  teste real com dois clients ainda pendentes. Não promover a `CLIENT-TESTED`
+  antes de testar Party, Guild, Trade, Challenge, Cancel/Esc, troca de cena e
+  logout/relogin.
+- Continuação em 2026-09-04: corrigido o despacho do evento. O adaptador agora
+  não entrega `WM_RBUTTONUP + MK_CONTROL` ao `SControlContainer` antes de
+  tentar abrir o PGT oculto; quando o menu já está visível, a UI modal mantém
+  prioridade. Build Release|Win32 passou (0 erros, 13 warnings preexistentes)
+  e instalou `client748/project.exe`, SHA-256
+  `FA90D368E8EDE5F9D9E986263F13FAA0163A10DE8190C7B54C210AC59245B9C8`.
+  Estado: `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED BUILD`; falta apenas
+  o teste real com dois clients para `CLIENT-TESTED`.

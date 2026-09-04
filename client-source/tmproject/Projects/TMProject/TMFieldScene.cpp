@@ -1203,8 +1203,17 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 	// Preserve the complete 7.48 input order: UI, hover, skill/NPC/attack, then
 	// movement.  The compact bootstrap only replaces unsafe HUD dereferences;
 	// it must not reduce world input to a movement-only shortcut.
-	if (TMScene::OnMouseEvent(dwFlags, wParam, nX, nY) == 1)
-		return 1;
+	// The PGT request is the one exception to the UI-first order.  In the 7.48
+	// resource the hidden PGT root is registered as modal; forwarding its
+	// opening click to SControlContainer first makes the container consume the
+	// WM_RBUTTONUP before this scene can inspect MK_CONTROL.
+	const bool bOpenPGT = dwFlags == WM_RBUTTONUP && (wParam & MK_CONTROL);
+	const bool bPGTAlreadyVisible = m_pPGTPanel && m_pPGTPanel->IsVisible();
+	if (!bOpenPGT || bPGTAlreadyVisible)
+	{
+		if (TMScene::OnMouseEvent(dwFlags, wParam, nX, nY) == 1)
+			return 1;
+	}
 	if (!m_pMyHuman || !m_pGround)
 		return 0;
 	if (dwFlags == 512)
@@ -1238,6 +1247,20 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 
 	const D3DXVECTOR3 pick = GroundGetPickPos();
 	const unsigned int serverTime = g_pTimerManager->GetServerTime();
+	// 7.48 opens the player interaction menu on WM_RBUTTONUP while Ctrl is
+	// held.  The full initializer handles this below its larger input state
+	// machine, but the compat path returns through this compact adapter first.
+	if (dwFlags == 517 && (wParam & 8))
+	{
+		if (m_stAutoTrade.TargetID == m_pMyHuman->m_dwID)
+			return 1;
+
+		if (m_pMouseOverHuman &&
+			m_pMouseOverHuman->m_dwEdgeColor != 0x8800FF00)
+			PGTVisible(serverTime);
+
+		return 1;
+	}
 	if (dwFlags == 516)
 		return SkillUse(nX, nY, pick, serverTime, (wParam & 4) ? 0 : 1, 0);
 	if (dwFlags == 514)
@@ -1512,6 +1535,36 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pChatListnotice = m_pChatList;
 		m_pEditChat = static_cast<SEditableText*>(m_pControlContainer->FindControl(5123));
 		m_pEditChatPanel = static_cast<SPanel*>(pNativeChatBar);
+		m_pChatPanel = static_cast<SPanel*>(pNativeChatBar);
+		// The native scene uses the 5696-5704 channel controls as the gate for
+		// TMHuman::OnPacketMessageChat. Without the general-channel binding the
+		// packet is rejected before the list/bubble update.
+		m_pChatGeneral = static_cast<SButton*>(m_pControlContainer->FindControl(5697));
+		m_pChatParty = static_cast<SButton*>(m_pControlContainer->FindControl(5698));
+		m_pChatWhisper = static_cast<SButton*>(m_pControlContainer->FindControl(5699));
+		m_pChatGuild = static_cast<SButton*>(m_pControlContainer->FindControl(5700));
+		m_pChatGeneral_C = static_cast<SButton*>(m_pControlContainer->FindControl(5701));
+		m_pChatParty_C = static_cast<SButton*>(m_pControlContainer->FindControl(5702));
+		m_pChatWhisper_C = static_cast<SButton*>(m_pControlContainer->FindControl(5703));
+		m_pChatGuild_C = static_cast<SButton*>(m_pControlContainer->FindControl(5704));
+		// The primary buttons are the receive gates.  The paired *_C controls
+		// render the opposite (off) state, as in the native initializer.
+		if (m_pChatGeneral)
+			m_pChatGeneral->m_bSelected = 1;
+		if (m_pChatParty)
+			m_pChatParty->m_bSelected = 1;
+		if (m_pChatWhisper)
+			m_pChatWhisper->m_bSelected = 1;
+		if (m_pChatGuild)
+			m_pChatGuild->m_bSelected = 1;
+		if (m_pChatGeneral_C)
+			m_pChatGeneral_C->m_bSelected = 0;
+		if (m_pChatParty_C)
+			m_pChatParty_C->m_bSelected = 0;
+		if (m_pChatWhisper_C)
+			m_pChatWhisper_C->m_bSelected = 0;
+		if (m_pChatGuild_C)
+			m_pChatGuild_C->m_bSelected = 0;
 		// FUN_00435b13 always binds the classic minimap controls, even when
 		// [CLASSIC] selects UI version 1. IDs 5714/5715/6136/6137 belong only to
 		// the UI2 branch and intentionally remain null in this 7.48 resource.
@@ -1612,6 +1665,40 @@ int TMFieldScene::InitializeCompatFieldScene()
 		}
 		m_pSkillPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1905));
 		m_pTradePanel = static_cast<SPanel*>(m_pControlContainer->FindControl(576));
+		// FUN_00435b13 binds the complete native player-interaction menu even
+		// though it starts hidden.  InitializeCompatFieldScene returns before the
+		// newer initializer reaches these assignments, so PGTVisible would
+		// otherwise dereference null controls after Ctrl+right-click.
+		m_pPGTPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_PGT_MENU));
+		m_pPGTText = static_cast<SText*>(m_pControlContainer->FindControl(TMT_PGT_TEXT));
+		m_pBtnPGTParty = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_PARTY));
+		m_pBtnPGTGuild = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GUILD));
+		m_pBtnPGTTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_TRADE));
+		m_pBtnPGTChallenge = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_CHALLENGE));
+		m_pBtnPGT1_V_1 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_1_V_1));
+		m_pBtnPGT5_V_5 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_5_V_5));
+		m_pBtnPGT10_V_10 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_10_V_10));
+		m_pBtnPGTAll_V_All = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_ALL_V_ALL));
+		m_pBtnPGTGuildDrop = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GDROP));
+		m_pBtnPGTGuildWar = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GWAR));
+		m_pBtnPGTGuildAlly = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GALLY));
+		m_pBtnPGTGuildInvite = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GINVITE));
+		m_pBtnPGTGICommon = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GICOMMON));
+		m_pBtnPGTGIChief1 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GICHIEF1));
+		m_pBtnPGTGIChief2 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GICHIEF2));
+		m_pBtnPGTGIChief3 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GICHIEF3));
+		if (m_pPGTPanel)
+		{
+			m_pPGTPanel->SetPos(
+				static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f - m_pPGTPanel->m_nWidth * 0.5f,
+				static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f - m_pPGTPanel->m_nHeight * 0.5f);
+			m_pPGTPanel->SetVisible(0);
+			m_pPGTPanel->m_bModal = 1;
+			m_pControlContainer->m_pModalControl[2] = m_pPGTPanel;
+		}
+		WYD748_DiagnosticsLog("compat PGT controls panel=%p text=%p party=%p guild=%p trade=%p challenge=%p\r\n",
+			m_pPGTPanel, m_pPGTText, m_pBtnPGTParty, m_pBtnPGTGuild, m_pBtnPGTTrade,
+			m_pBtnPGTChallenge);
 		PositionCompatFeaturePanels();
 		// FUN_00435b13 binds all six stock artisan panels.  Numeric grid values
 		// 14..23 were later reused by TMProject for unrelated controls, so retain
@@ -4601,6 +4688,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		return 1;
 	if (dwServerTime < m_dwLastWhisper + 6000)
 		return 1;
+	const bool isChatEdit = idwControlID == E_CHAT ||
+		(m_bCompatFieldScene && idwControlID == TME_CHAT);
 
 	if (m_bCompatFieldScene)
 	{
@@ -4807,7 +4896,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				g_pEventTranslator->SetIMENative();
 		}
 	}
-	else if (idwControlID == E_CHAT && idwEvent == 8)
+	else if (isChatEdit && idwEvent == 8)
 		return 1;
 
 	if (idwControlID == TMB_HELLSTORE_OK)
@@ -4935,7 +5024,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		SetVisibleGamble(0, 0);
 		return 0;
 	}
-	if (idwControlID == E_CHAT && !idwEvent)
+	if (isChatEdit && !idwEvent)
 	{
 		auto pEditChat = m_pEditChat;
 		if (!strlen(pEditChat->GetText()))
@@ -5306,7 +5395,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				else
 				{
 					strncpy(dest, stMsgWhisper.String, maxLen - 1);
-					sprintf(dest2, "%s", &stMsgWhisper.MobName[maxLen + 15]);
+					sprintf(dest2, "%s", &stMsgWhisper.String[maxLen - 1]);
 				}
 
 				auto ipNewItem = new SListBoxItem(istrText, idwFontColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
@@ -5314,8 +5403,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					pChatList->AddItem(ipNewItem);
 
 				auto ipNewItem2 = new SListBoxItem(dest2, idwFontColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
-				if (strlen(istrText) > maxLen && ipNewItem && pChatList)
-					pChatList->AddItem(ipNewItem);
+				if (dest2[0] && ipNewItem2 && pChatList)
+					pChatList->AddItem(ipNewItem2);
 			}
 		}
 		break;
@@ -5392,7 +5481,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			m_pMyHuman->SetChatMessage(istrText);
 		return 0;
 	}
-	if (idwControlID == E_CHAT && (idwEvent == 2 || idwEvent == 3))
+	if (isChatEdit && (idwEvent == 2 || idwEvent == 3))
 	{
 		char szText[128]{};
 		sprintf_s(szText, m_szLastChatList[m_sChatIndex]);
@@ -5402,7 +5491,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		m_sChatIndex %= 5;
 		return 0;
 	}
-	if (idwControlID == E_CHAT && (idwEvent == 4 || idwEvent == 5))
+	if (isChatEdit && (idwEvent == 4 || idwEvent == 5))
 	{
 		char szWhisperList[19]{};
 		sprintf(szWhisperList, "/%s ", m_szWhisperList[m_sWhisperIndex]);
@@ -5412,7 +5501,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		m_sWhisperIndex %= 5;
 		return 0;
 	}
-	if (idwControlID == E_CHAT && idwEvent == 6)
+	if (isChatEdit && idwEvent == 6)
 	{
 		m_pEditChat->SetText((char*)"");
 		return 0;
@@ -6206,6 +6295,48 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		else
 			m_pChatListPanel->SetVisible(1);
 
+		return 0;
+	}
+	if (m_bCompatFieldScene && idwControlID >= TMB_CHAT_GENERAL &&
+		idwControlID <= TMB_CHAT_GUILD_T)
+	{
+		// FieldScene2 exposes each chat filter as a native button plus a paired
+		// text-state button. Toggle the pair together so both hit targets and
+		// the rendered state stay synchronized in the 7.48 resource.
+		SButton* pPrimary = nullptr;
+		SButton* pState = nullptr;
+		switch (idwControlID)
+		{
+		case TMB_CHAT_GENERAL:
+		case TMB_CHAT_GENERAL_T:
+			pPrimary = m_pChatGeneral;
+			pState = m_pChatGeneral_C;
+			break;
+		case TMB_CHAT_PARTY:
+		case TMB_CHAT_PARTY_T:
+			pPrimary = m_pChatParty;
+			pState = m_pChatParty_C;
+			break;
+		case TMB_CHAT_WHISPER:
+		case TMB_CHAT_WHISPER_T:
+			pPrimary = m_pChatWhisper;
+			pState = m_pChatWhisper_C;
+			break;
+		case TMB_CHAT_GUILD:
+		case TMB_CHAT_GUILD_T:
+			pPrimary = m_pChatGuild;
+			pState = m_pChatGuild_C;
+			break;
+		}
+		if (pPrimary)
+		{
+			pPrimary->m_bSelected = pPrimary->m_bSelected == 0;
+			if (pState)
+				pState->m_bSelected = pPrimary->m_bSelected == 0;
+			pPrimary->Update();
+			if (pState)
+				pState->Update();
+		}
 		return 0;
 	}
 	if (idwControlID >= B_CHAT_SELECT_NOMAL && idwControlID <= B_CHAT_SELECT_SHOUT)
@@ -10644,6 +10775,14 @@ int TMFieldScene::OnAccel(int nMsg)
 
 void TMFieldScene::PGTVisible(unsigned int dwServerTime)
 {
+	if (!m_pPGTPanel || !m_pPGTText || !m_pBtnPGTParty || !m_pBtnPGTGuild ||
+		!m_pBtnPGTTrade || !m_pBtnPGTChallenge || !m_pBtnPGT1_V_1 ||
+		!m_pBtnPGT5_V_5 || !m_pBtnPGT10_V_10 || !m_pBtnPGTAll_V_All ||
+		!m_pBtnPGTGuildDrop || !m_pBtnPGTGuildWar || !m_pBtnPGTGuildAlly ||
+		!m_pBtnPGTGuildInvite || !m_pBtnPGTGICommon || !m_pBtnPGTGIChief1 ||
+		!m_pBtnPGTGIChief2 || !m_pBtnPGTGIChief3)
+		return;
+
 	auto pOver = m_pMouseOverHuman;
 	if (pOver && (pOver->m_dwID <= 0 || pOver->m_dwID > 1000))
 		return;
@@ -21693,15 +21832,18 @@ int TMFieldScene::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 		SYSTEMTIME sysTime{};
 		GetLocalTime(&sysTime);
 
-		m_pHelpList[3]->AddItem(new SListBoxItem((char*)" ", 0xFFFFFFFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
+		if (m_pHelpList[3])
+		{
+			m_pHelpList[3]->AddItem(new SListBoxItem((char*)" ", 0xFFFFFFFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 
-		sprintf(szMsg, g_pMessageStringTable[226], pMsg->MobName);
-		char szTime[128]{};
-		sprintf(szTime, "%s [%02d:%02d:%02d]", szMsg, sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
-		m_pHelpList[3]->AddItem(new SListBoxItem(szTime, 0xFFFFFFFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
+			sprintf(szMsg, g_pMessageStringTable[226], pMsg->MobName);
+			char szTime[128]{};
+			sprintf(szTime, "%s [%02d:%02d:%02d]", szMsg, sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+			m_pHelpList[3]->AddItem(new SListBoxItem(szTime, 0xFFFFFFFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 
-		sprintf(szMsg, "%s", &pMsg->String[1]);
-		m_pHelpList[3]->AddItem(new SListBoxItem(szMsg, 0xFFFFFFCC, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
+			sprintf(szMsg, "%s", &pMsg->String[1]);
+			m_pHelpList[3]->AddItem(new SListBoxItem(szMsg, 0xFFFFFFCC, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
+		}
 
 		if (m_pHelpMemo)
 			m_pHelpMemo->SetVisible(1);
@@ -21717,7 +21859,7 @@ int TMFieldScene::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 		sprintf(szMsg, "[%s]> %s", pMsg->MobName, &pMsg->String[nIndex]);
 
 		if(pChatList)
-			pChatList->AddItem(new SListBoxItem(pMsg->String, pMsg->Color, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0));
+			pChatList->AddItem(new SListBoxItem(szMsg, dwColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0));
 	}
 	else
 	{
@@ -29801,19 +29943,19 @@ void TMFieldScene::InsertInChatList(SListBox* pChatList, STRUCT_MOB *pMobData, S
 		else
 		{
 			strncpy(dest, stMsgWhisper.String, maxLen - 1);
-			sprintf(dest2, "%s", &stMsgWhisper.String[maxLen - + 15]);
+			sprintf(dest2, "%s", &stMsgWhisper.String[maxLen - 1]);
 		}
 
 		char istrText[128]{};
-		sprintf(istrText, "[%s]> %s", g_pObjectManager->m_stMobData.MobName, &dest[maxLen]);
+		sprintf(istrText, "[%s]> %s", g_pObjectManager->m_stMobData.MobName, &dest[startId]);
 
 		auto ipNewItem = new SListBoxItem(istrText, dwColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
 		if (ipNewItem && pChatList)
 			pChatList->AddItem(ipNewItem);
 
 		auto ipNewItem2 = new SListBoxItem(dest2, dwColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
-		if (strlen(stMsgWhisper.String) > maxLen && ipNewItem && pChatList)
-			pChatList->AddItem(ipNewItem);
+		if (dest2[0] && ipNewItem2 && pChatList)
+			pChatList->AddItem(ipNewItem2);
 	}
 }
 

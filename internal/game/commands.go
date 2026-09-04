@@ -167,7 +167,8 @@ func (w *World) onMessageChat(s *net.Session, pkt []byte) {
 	// reenviar para ele duplicaria a linha.
 	observers := 0
 	for _, observer := range w.nearbyWorldPlayers(p.X, p.Y, viewHalfX) {
-		if observer == p || !observer.InWorld || !observer.hasVisible(p.ID) {
+		if observer == p || !observer.InWorld || observer.Session == nil ||
+			!w.playersVisibleTogether(p, observer) {
 			continue
 		}
 		// Chat text width is selected by the observer's negotiated client ABI.
@@ -214,8 +215,34 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 			return
 		}
 		for _, observer := range w.players {
-			if observer == p || !observer.InWorld {
+			if observer == p || !observer.InWorld || observer.Session == nil {
 				continue // o client do emissor ja inseriu a propria mensagem.
+			}
+			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
+		}
+	case chatChannelCitizenship:
+		if !w.allowChat(p, chatChannelCitizenship, w.now()) || p.Char.Citizenship == 0 {
+			return
+		}
+		for _, observer := range w.players {
+			if observer == p || !observer.InWorld || observer.Session == nil ||
+				observer.Char == nil || observer.Char.Citizenship != p.Char.Citizenship {
+				continue
+			}
+			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
+		}
+	case chatChannelKingdom:
+		if !w.allowChat(p, chatChannelKingdom, w.now()) {
+			return
+		}
+		kingdom := characterKingdom(p.Char)
+		if kingdom == model.KingdomNeutral {
+			return
+		}
+		for _, observer := range w.players {
+			if observer == p || !observer.InWorld || observer.Session == nil ||
+				observer.Char == nil || characterKingdom(observer.Char) != kingdom {
+				continue
 			}
 			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
 		}
@@ -231,10 +258,12 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 
 // Canais selecionados por prefixo no 0x334.
 const (
-	chatChannelParty   = "party"
-	chatChannelGlobal  = "global"
-	chatChannelGuild   = "guild"
-	chatChannelWhisper = "whisper"
+	chatChannelParty       = "party"
+	chatChannelGlobal      = "global"
+	chatChannelCitizenship = "citizenship"
+	chatChannelKingdom     = "kingdom"
+	chatChannelGuild       = "guild"
+	chatChannelWhisper     = "whisper"
 )
 
 // chatChannelOf classifica a mensagem pelo prefixo digitado.
@@ -248,6 +277,10 @@ func chatChannelOf(message string) string {
 		return chatChannelParty
 	case strings.HasPrefix(message, "--"):
 		return chatChannelGlobal
+	case strings.HasPrefix(message, "@@"):
+		return chatChannelCitizenship
+	case strings.HasPrefix(message, "@"):
+		return chatChannelKingdom
 	case strings.HasPrefix(message, "-"):
 		return chatChannelGuild
 	default:
