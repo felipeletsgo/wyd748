@@ -62,6 +62,16 @@
 
 namespace
 {
+	void WYD748_ResetTradeOffer(MSG_Trade& trade, unsigned short opponentID)
+	{
+		memset(trade.Item, 0, sizeof(trade.Item));
+		for (int i = 0; i < 15; ++i)
+			trade.CarryPos[i] = -1;
+		trade.TradeMoney = 0;
+		trade.MyCheck = 0;
+		trade.OpponentID = opponentID;
+	}
+
 	bool WYD748_ParseDecimal(const char* text, int maximum, int* value)
 	{
 		if (!text || !text[0] || !value || maximum < 0)
@@ -7335,9 +7345,11 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		auto pTradePanel = m_pTradePanel;
 		if (!g_pObjectManager->m_stTrade.OpponentID || !pTradePanel || pTradePanel->IsVisible() != 1)
 		{
+			// Invitation packets carry no offer. Clear the reusable buffer before the
+			// server parses CarryPos/Item, otherwise stale trade bytes abort the invite.
+			WYD748_ResetTradeOffer(g_pObjectManager->m_stTrade, m_dwOpID);
 			g_pObjectManager->m_stTrade.Header.Type = 0x383;
 			g_pObjectManager->m_stTrade.Header.ID = m_pMyHuman->m_dwID;
-			g_pObjectManager->m_stTrade.OpponentID = m_dwOpID;
 			SendOneMessage((char*)&g_pObjectManager->m_stTrade, 156);
 
 			m_dwOpID = 0;
@@ -15191,13 +15203,8 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 		// Start every trade window with an empty local offer.  Keep the opponent
 		// identity supplied by the invite, but never reuse item bytes or positions
 		// from a previous session.
-		const unsigned short opponentID = g_pObjectManager->m_stTrade.OpponentID;
-		memset(g_pObjectManager->m_stTrade.Item, 0, sizeof(g_pObjectManager->m_stTrade.Item));
-		for (int k = 0; k < 15; ++k)
-			g_pObjectManager->m_stTrade.CarryPos[k] = -1;
-		g_pObjectManager->m_stTrade.TradeMoney = 0;
-		g_pObjectManager->m_stTrade.MyCheck = 0;
-		g_pObjectManager->m_stTrade.OpponentID = opponentID;
+		WYD748_ResetTradeOffer(g_pObjectManager->m_stTrade,
+			g_pObjectManager->m_stTrade.OpponentID);
 		g_pObjectManager->m_stTrade.Header.Type = MSG_Trade_Opcode;
 		g_pObjectManager->m_stTrade.Header.ID = m_pMyHuman->m_dwID;
 	}
@@ -20339,7 +20346,11 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	{
 	case 601:
 	{
-		g_pObjectManager->m_stTrade.OpponentID = m_pMessageBox->m_dwArg;
+		// The received invitation is opponent state, not our local offer. Build an
+		// empty acceptance before sending so stale Item/CarryPos bytes cannot be
+		// interpreted as an offer and prevent the trade window from opening.
+		WYD748_ResetTradeOffer(g_pObjectManager->m_stTrade,
+			static_cast<unsigned short>(m_pMessageBox->m_dwArg));
 
 		MSG_Trade stTrade{};
 		memcpy(&stTrade, &g_pObjectManager->m_stTrade, sizeof(stTrade));
