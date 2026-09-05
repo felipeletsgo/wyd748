@@ -86,3 +86,52 @@ nenhum processo. `git diff --check` deve ser executado apos liberar o arquivo.
 Proximo corte: extrair o proximo bloco autocontido de `OnPacketEvent`, depois
 repetir Debug/Release e atualizar este handoff. O teste in-game continua
 pendente e o objetivo global permanece incompleto.
+
+## Corte seguinte - mensagens de operacao
+
+`TMSelectCharScene::ShowCharacterOperationMessage` consolidou a exibicao das
+mensagens dos casos `0x11A`, `0x11B` e `0x119`, preservando indices 19, 20 e 21,
+duracao 2000 e visibilidade do painel. Nenhum contrato wire/ABI foi alterado.
+Release recompilado e instalado em `client748/project.exe`, com 118 checks e
+asserts de arquitetura PASS; `git diff --check` PASS. SHA-256 atual:
+`C4C65B1992ACBFC99CC39059869AA38E1849D2426AC06DC76E390FA20C8D13C7`.
+Teste in-game e compatibilidade total continuam pendentes.
+
+Debug posterior tambem foi recompilado e instalado com 118 checks e asserts de
+arquitetura PASS; `git diff --check` PASS. SHA-256 do candidato Debug:
+`5587F7FF2ABBDBD66EAC7DCECF857313C9F933C6622E8A7193E001C4050AC22D`.
+`MSG_ReqTransper` permanece sem alteracao por combinar protocolo, estado, UI e
+lifecycle; requer rastreamento nativo antes de novo corte.
+
+## Pesquisa seguinte — contrato de transferencia 0xFAA
+
+Release atual compilado e instalado via Build-Client.ps1: 118 checks PASS,
+SHA-256 `89359107F67A84164D408930B50C5C78B55ADFA16087CC3B8318BB250F757FE1`.
+Diff inicial contem tambem HandleMoveServerNotification e reposicionamento do
+cast apos guard nulo; preservados. Nenhuma alteracao funcional neste ciclo.
+Nova evidencia em `flows/ui/select-character-transfer.md` (LOCATED) e
+`exports/select-character-transfer-focused.tsv`: Ghidra read-only confirma
+callback 004a626e via slot 005a44b8, emissor 004a32dd e gate 0055890a/52 bytes.
+Encontrados deltas de duracao de mensagens, foco e transicoes de paineis;
+nao substituir automaticamente pelo nativo. Fonte atual e nativo so rejeitam
+Slot negativo; falta decidir limite superior e humano opcional.
+Proximo passo: initializer 0049f0e7/bindings rename, cancelamento e timeout em
+004a32dd/FrameMove; fechar receptores de cleanup antes de adaptar 0xFAA.
+Nao repetir pesquisa de 0x52A: migracao de servidor e outro contrato.
+
+## Corte seguinte — limites e controles de transferencia
+
+Implementado endurecimento local (MODERNIZACAO_COMPATIVEL) na source:
+slots fora de [0,4) rejeitados nos dois emissores, no retorno 0xFAA e na
+confirmacao por mouse; humano ausente bloqueia a confirmacao por mouse.
+Resposta de sucesso sem edit/humano usa nome do slot terminado e preserva
+limpeza. Result 1 protege painel opcional. Sem mudar duracoes ou UI valida.
+Assets confirmados por parser ate EOF: 1568/1569/628/629 em SelCharScene2.bin.
+Ghidra confirma initializer/construtor/vtable; FrameMove nativo nao tem timeout
+de transferencia, apenas debounces independentes. Ficha continua LOCATED.
+Debug/Release: 118 checks existentes PASS, ambos instalados; Release atual
+`08805042EA57594405431136EB00A9528ED16EC8B45C862487508313234186AD`.
+Esses checks nao exercitam os guards de UI: teste dinamico ainda pendente.
+Proximo passo: preservar comprimento do frame ate handler selecionado e
+validar 0xFAA antes de ler Result/Slot, sem mudar slots virtuais; estudar
+ObjectManager/TreeNode para manter percurso e eventos locais separados.

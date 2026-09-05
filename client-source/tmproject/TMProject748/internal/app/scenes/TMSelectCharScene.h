@@ -50,6 +50,8 @@ private:
 	// Atualiza a lista local depois da resposta de exclusao, incluindo o reset
 	// do controle selecionado antes de reconstruir os slots visuais.
 	void HandleCharacterDeleted(char* buf);
+	void ShowCharacterOperationMessage(int messageIndex);
+	void HandleMoveServerNotification();
 
 public:
 	char keybuf[10];

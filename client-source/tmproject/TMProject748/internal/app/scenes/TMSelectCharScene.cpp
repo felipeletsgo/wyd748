@@ -714,6 +714,11 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 			m_pRename->SetVisible(0);
 		if (!m_pEditRename)
 			return 1;
+		// A selecao pode ter sido limpa desde a abertura do rename. Nunca usar
+		// o sentinela -1 (ou um indice recebido invalido) para consultar MobName.
+		const int characterSlot = g_pObjectManager->m_cCharacterSlot;
+		if (characterSlot < 0 || characterSlot >= 4)
+			return 1;
 
 		int size = strlen(m_pEditRename->GetText());
 		if (size < 4)
@@ -756,9 +761,9 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		MSG_ReqTransper stReqTransper{}; 
 		stReqTransper.Header.ID = 0;
 		stReqTransper.Header.Type = MSG_ReqTransper_Opcode;
-		stReqTransper.Slot = g_pObjectManager->m_cCharacterSlot;
+		stReqTransper.Slot = characterSlot;
 		stReqTransper.Result = 0;
-		sprintf(stReqTransper.OldName, "%s", pSelChar->MobName[g_pObjectManager->m_cCharacterSlot]);
+		sprintf(stReqTransper.OldName, "%s", pSelChar->MobName[characterSlot]);
 		sprintf(stReqTransper.NewName, "%s", m_pEditRename->GetText());
 
 		g_pSocketManager->SendPacket({stReqTransper.Header.Type,
@@ -840,7 +845,7 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		}
 		if (m_pMessageBox->m_dwMessage == 1)
 		{
-			if (characterSlot < 0)
+			if (characterSlot < 0 || characterSlot >= 4)
 				return 1;
 
 			MSG_ReqTransper stReqTransper{};
@@ -1263,7 +1268,10 @@ int TMSelectCharScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, i
 
 		if (g_bMoveServer == 1)
 		{
-			if (g_pObjectManager->m_cCharacterSlot < 0)
+			// A confirmacao usa o nome do humano antes de chegar ao emissor.
+			// Proteger tambem essa entrada quando o slot ja foi removido.
+			const int characterSlot = g_pObjectManager->m_cCharacterSlot;
+			if (characterSlot < 0 || characterSlot >= 4 || !m_pHuman[characterSlot])
 				return 1;
 
 			if (m_bMovingNow == 1)
@@ -1274,7 +1282,7 @@ int TMSelectCharScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, i
 
 			char szName[128]{};
 
-			sprintf(szName, g_pMessageStringTable[149], m_pHuman[g_pObjectManager->m_cCharacterSlot]->m_szName);
+			sprintf(szName, g_pMessageStringTable[149], m_pHuman[characterSlot]->m_szName);
 
 			m_pMessageBox->SetMessage(szName, 1u, g_pMessageStringTable[200]);
 			m_pMessageBox->SetVisible(1);
@@ -1499,15 +1507,26 @@ void TMSelectCharScene::HandleCharacterDeleted(char* buf)
 	ReloadCharList(RELOAD_CHARLIST_TYPE::DELETE_CHARACTER);
 }
 
+void TMSelectCharScene::ShowCharacterOperationMessage(int messageIndex)
+{
+	m_pMessagePanel->SetMessage(g_pMessageStringTable[messageIndex], 2000);
+	m_pMessagePanel->SetVisible(1, 1);
+}
+
+void TMSelectCharScene::HandleMoveServerNotification()
+{
+	g_bMoveServer = 1;
+}
+
 int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 {
 	if (TMScene::OnPacketEvent(dwCode, buf) == 1)
 		return 1;
 
-	MSG_STANDARD* pStd = reinterpret_cast<MSG_STANDARD*>(buf);
-
 	if (buf == nullptr)
 		return 0;
+
+	MSG_STANDARD* pStd = reinterpret_cast<MSG_STANDARD*>(buf);
 
 	switch (pStd->Type)
 	{
@@ -1557,50 +1576,51 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		HandleCharacterCreated(buf);
 	return 1;
 	case 0x11A:
-	{
-		m_pMessagePanel->SetMessage(g_pMessageStringTable[19], 2000);
-		m_pMessagePanel->SetVisible(1, 1);
-	}
+		ShowCharacterOperationMessage(19);
 	return 1;
 	case MSG_CNFDeleteCharacter_Opcode:
 		HandleCharacterDeleted(buf);
 	return 1;
 	case 0x11B:
-	{
-		m_pMessagePanel->SetMessage(g_pMessageStringTable[20], 2000);
-		m_pMessagePanel->SetVisible(1, 1);
-	}
+		ShowCharacterOperationMessage(20);
 	return 1;
 	case MSG_CNFCharacterLogin_Opcode:
 		HandleCharacterLogin(buf);
 	return 1;
 	case 0x119:
-	{
-		m_pMessagePanel->SetMessage(g_pMessageStringTable[21], 2000);
-		m_pMessagePanel->SetVisible(1, 1);
-	}
+		ShowCharacterOperationMessage(21);
 	return 1;
 	case 0x7A9:
-	{
-		g_bMoveServer = 1;
-	}
+		HandleMoveServerNotification();
 	return 1;
 	case MSG_ReqTransper_Opcode:
 	{
 		MSG_ReqTransper* pReqTransper = (MSG_ReqTransper*)pStd;
 		m_bMovingNow = 0;
 
-		if (pReqTransper->Slot < 0)
+		// O retorno nao e autoridade para indexar alem dos quatro slots.
+		// Consome a operacao pendente mesmo na rejeicao, como no caso negativo.
+		if (pReqTransper->Slot < 0 || pReqTransper->Slot >= 4)
 			return 1;
 
 		if (!pReqTransper->Result)
 		{
 			char szCharName[128]{};
-			if (!strcmp(m_pEditRename->GetText(), ""))
-				sprintf(szCharName, g_pMessageStringTable[201], m_pHuman[pReqTransper->Slot]->m_szName);
+			// O controle e emprestado do recurso; sua ausencia nao impede aplicar
+			// a confirmacao. Um humano ja removido usa o nome do slot, terminado
+			// localmente, sem recriar objeto visual nem manter dados obsoletos.
+			const char* renamed = m_pEditRename ? m_pEditRename->GetText() : "";
+			if (!strcmp(renamed, ""))
+			{
+				char slotName[17]{};
+				memcpy(slotName, g_pObjectManager->m_stSelCharData.MobName[pReqTransper->Slot], 16);
+				const char* previousName = m_pHuman[pReqTransper->Slot]
+					? m_pHuman[pReqTransper->Slot]->m_szName : slotName;
+				sprintf(szCharName, g_pMessageStringTable[201], previousName);
+			}
 			else
 			{
-				sprintf(szCharName, g_pMessageStringTable[201], m_pEditRename->GetText());
+				sprintf(szCharName, g_pMessageStringTable[201], renamed);
 				m_pEditRename->SetText((char*)"");
 			}
 
@@ -1649,7 +1669,8 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		{
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[202], 3500);
 			m_pMessagePanel->SetVisible(1, 1);
-			m_pRename->SetVisible(1);
+			if (m_pRename)
+				m_pRename->SetVisible(1);
 
 			SEditableText* pEdit = (SEditableText*)m_pControlContainer->FindControl(1569);
 			if (pEdit)
