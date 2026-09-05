@@ -3,6 +3,7 @@
 #include "TreeNode.h"
 #include "Structures.h"
 
+// Define como o efeito combina sua cor com o framebuffer.
 enum class EEFFECT_ALPHATYPE
 {
 	EF_DEFAULT = 0x0,
@@ -11,6 +12,11 @@ enum class EEFFECT_ALPHATYPE
 	EF_ALPHA = 0x3,
 };
 
+// Base comum para objetos puramente visuais inseridos na arvore da cena.
+//
+// A classe conserva estado de transformacao, composicao e visibilidade. As
+// subclasses implementam animacao e desenho; regras autoritativas de jogo nao
+// devem depender deste tipo de apresentacao.
 class TMEffect : public TreeNode
 {
 public:

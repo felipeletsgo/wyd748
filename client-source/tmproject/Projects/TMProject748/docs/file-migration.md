@@ -38,6 +38,24 @@ mas comportamento, wire, ABI, recursos e lifecycle permanecem inalterados.
 | 27 | 385 | `TMLog.h` | `internal/platform/diagnostics/TMLog.h` | API de log dependente de Win32 e handle global. |
 | 28 | 390 | `TMSkillPoison.h` | `internal/render/effects/skills/TMSkillPoison.h` | Particulas de poison; dano periodico fica fora do renderer. |
 | 29 | 405 | `TMSnow.h` | `internal/render/effects/weather/TMSnow.h` | Neve e audio ambiente ao redor da camera/personagem. |
+| 30 | 416 | `TMSkillLusterFurnish.h` | `internal/render/effects/skills/TMSkillLusterFurnish.h` | Trajetoria visual temporaria; o nome historico `TMSKill` foi preservado. |
+| 31 | 422 | `TMProject.cpp` | `cmd/client/TMProject.cpp` | Unidade minima do executavel; nao define bootstrap ou estado proprio. |
+| 32 | 426 | `TMSkillJudgement.h` | `internal/render/effects/skills/TMSkillJudgement.h` | Controlador de variantes visuais; regras de combate permanecem fora do renderer. |
+| 33 | 436 | `framework.h` | `internal/platform/windows/framework.h` | Fachada minima do SDK Win32 e runtime C legado. |
+| 34 | 457 | `TMEffectStart.h` | `internal/render/effects/skills/TMEffectStart.h` | Inicio visual com owner opcional; variante ciclica depende de remocao externa. |
+| 35 | 491 | `TMLeaf.h` | `internal/render/world/vegetation/TMLeaf.h` | Objeto visual de vegetacao com lifecycle de skin mesh e dispositivo. |
+| 36 | 491 | `TMSun.h` | `internal/render/world/sky/TMSun.h` | Sol e lens flares pertencentes ao renderer da cena celeste. |
+| 37 | 498 | `CFrame.h` | `internal/render/animation/skeleton/CFrame.h` | No da hierarquia esqueletal; possui a malha, mas nao as ligacoes de filhos, irmaos ou skin. |
+| 38 | 499 | `TMLight.h` | `internal/render/lighting/TMLight.h` | Luz pontual, culling e sincronizacao Direct3D; cena, camera e dispositivo permanecem externos. |
+| 39 | 502 | `TMEffectDust.h` | `internal/render/effects/environment/TMEffectDust.h` | Poeira, pedras e respingos de impacto; malhas continuam pertencendo ao cache global. |
+| 40 | 504 | `TMSkillSlowSlash.h` | `internal/render/effects/skills/TMSkillSlowSlash.h` | Trajetoria e particulas de habilidade com owner temporario nao proprietario. |
+| 41 | 510 | `TMSkillSpChange.h` | `internal/render/effects/skills/TMSkillSpChange.h` | Composicao visual de mudanca de SP; objetos auxiliares usam o container global. |
+| 42 | 520 | `TMEffect.h` | `internal/render/effects/core/TMEffect.h` | Base dos efeitos visuais, com transformacao, alpha e visibilidade comuns. |
+| 43 | 529 | `TMFireEffect.h` | `internal/render/effects/skills/TMFireEffect.h` | Rastro visual de fogo; o alvo e apenas amostrado para calcular a trajetoria. |
+| 44 | 535 | `TMSkillFire.h` | `internal/render/effects/skills/TMSkillFire.h` | Emissor visual de fogo parametrizado; owner e light map nao sao possuidos. |
+| 45 | 549 | `TMCannon.h` | `internal/game/entities/TMCannon.h` | Entidade de canhao; apresenta recuo e disparo sem decidir projeteis ou dano. |
+| 46 | 558 | `TMFlail.cpp` | `internal/game/entities/TMFlail.cpp` | Stub inerte da entidade visual; o cabecalho aguarda sua propria posicao na fila. |
+| 47 | 565 | `TMSkillExplosion2.h` | `internal/render/effects/skills/TMSkillExplosion2.h` | Controlador radial visual; efeitos filhos pertencem ao container da cena. |
 
 Arquivos placeholder continuam compilaveis e documentados. Eles nao recebem
 APIs inventadas apenas para preencher nomes historicos.

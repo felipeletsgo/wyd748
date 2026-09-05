@@ -3,9 +3,16 @@
 #include "TMEffect.h"
 
 class TMObject;
+
+// Trajetoria visual temporaria da habilidade Slow Slash.
+//
+// O efeito interpola a origem ate o alvo e emite billboards periodicamente.
+// O owner recebido e apenas acompanhado durante a primeira metade da vida;
+// dano, alvo e aplicacao do debuff pertencem ao fluxo de jogo.
 class TMSkillSlowSlash : public TMEffect
 {
 public:
+    // pOwner e uma referencia nao proprietaria e pode ser nula.
     TMSkillSlowSlash(TMVector3 vecStart, TMVector3 vecTarget, int nType, TMObject* pOwner);
     ~TMSkillSlowSlash();
 
