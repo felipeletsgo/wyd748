@@ -240,3 +240,16 @@ Debug/Release passaram, 232 checks existentes (nao teste de UI). Release:
 Proximo: testar confirmacao de venda/hover/cursor apos 0x182 no jogo. Claims
 nativos corrigidos na ficha send-item-local-update; nao repetir a inferencia
 de paridade. Ownership de Carry/Equip pode ter os mesmos aliases pendentes.
+
+## Corte Carry/Equip — cleanup unico no SendItem
+
+Carry/Equip tinham a mesma lacuna confirmada por source: liberavam o visual
+mas so limpavam o cursor, sem hover/venda/ultimo attachment. Lambda local
+releaseReplacedItem agora atende os tres ramos; nao muda Pickup, coordenadas,
+ordem de copias ou ownership da grid. nullptr e alias de outro objeto ficam
+intactos. Delta MODERNIZACAO_COMPATIVEL local, sem claim de paridade.
+Debug/Release passaram com 232 checks existentes; Release instalado:
+`79ED78DEE7826F262C017096E006762B4755A16AA9C9FA41BD699130AE5B3C10`.
+Nao CLIENT-TESTED. Proximo ponto: criacao visual no ramo Equip ocorre mesmo
+sem grid de destino; verificar AddItem e ownership de falha antes de corrigir
+alocacoes sem owner. Teste in-game de hover/venda/relogin segue pendente.

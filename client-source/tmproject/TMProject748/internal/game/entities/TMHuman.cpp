@@ -4226,6 +4226,25 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 {
     auto pSendItem = reinterpret_cast<MSG_SendItem*>(pStd);
 
+    // Recebe ownership somente depois de PickupItem/PickupAtItem retirar o
+    // objeto da grid. Aplicar a mesma limpeza a Equip, Carry e Cargo evita
+    // deixar hover/venda/attachment apontando para memoria liberada. A politica
+    // e local, equivalente a Empty; nao afirma paridade do cleanup nativo.
+    const auto releaseReplacedItem = [](SGridControlItem* item)
+    {
+        if (!item)
+            return;
+        if (SGridControl::m_pLastMouseOverItem == item)
+            SGridControl::m_pLastMouseOverItem = nullptr;
+        if (SGridControl::m_pLastAttachedItem == item)
+            SGridControl::m_pLastAttachedItem = nullptr;
+        if (SGridControl::m_pSellItem == item)
+            SGridControl::m_pSellItem = nullptr;
+        if (g_pCursor && g_pCursor->m_pAttachedItem == item)
+            g_pCursor->m_pAttachedItem = nullptr;
+        delete item;
+    };
+
     TMFieldScene* pFScene{};
 
     // O tamanho do frame e validado na entrada do ObjectManager. Aqui a
@@ -4289,11 +4308,7 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
                 if (pGridEquip[pSendItem->DestPos] != nullptr)
                 {
                     SGridControlItem* pItem = pGridEquip[pSendItem->DestPos]->PickupItem(0, 0);
-
-                    if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pItem)
-                        g_pCursor->m_pAttachedItem = nullptr;
-
-                    delete pItem;
+                    releaseReplacedItem(pItem);
                 }
 
                 if (pSendItem->Item.sIndex > 0)
@@ -4333,11 +4348,7 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
             if (pGrid)
             {
                 SGridControlItem* pOldGridItem = pGrid->PickupAtItem(CellIndexX, CellIndexY);
-
-                if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pOldGridItem)
-                    g_pCursor->m_pAttachedItem = nullptr;
-
-                delete pOldGridItem;
+                releaseReplacedItem(pOldGridItem);
 
                 if (pSendItem->Item.sIndex > 0)
                 {
@@ -4369,22 +4380,8 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
             if (!pGrid)
                 return 1;
 
-            // PickupAtItem remove o ponteiro da grid, mas devolve ownership ao
-            // chamador. Liberar o visual antigo evita vazamento e limpar o
-            // cursor evita uma referencia pendente ao item confirmado.
             SGridControlItem* pOldGridItem = pGrid->PickupAtItem(CellIndexX, CellIndexY);
-            // Assim como SGridControl::Empty, invalidar todos os aliases de
-            // interacao antes da destruicao. O destructor nao limpa esses
-            // ponteiros globais; venda/hover podem ocorrer depois deste packet.
-            if (SGridControl::m_pLastMouseOverItem == pOldGridItem)
-                SGridControl::m_pLastMouseOverItem = nullptr;
-            if (SGridControl::m_pLastAttachedItem == pOldGridItem)
-                SGridControl::m_pLastAttachedItem = nullptr;
-            if (SGridControl::m_pSellItem == pOldGridItem)
-                SGridControl::m_pSellItem = nullptr;
-            if (g_pCursor && g_pCursor->m_pAttachedItem == pOldGridItem)
-                g_pCursor->m_pAttachedItem = nullptr;
-            SAFE_DELETE(pOldGridItem);
+            releaseReplacedItem(pOldGridItem);
 
             if (pSendItem->Item.sIndex > 0)
             {

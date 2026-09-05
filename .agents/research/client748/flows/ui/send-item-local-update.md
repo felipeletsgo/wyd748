@@ -129,3 +129,12 @@ Complemento de aliases: Debug/Release passaram com os 232 checks existentes;
 eles nao exercitam hover/venda no jogo. Release instalado:
 `29485CB8C6570801C72C3F82D0B9BA944D16B09D74AF40638A2CEC6750353067`.
 STATICALLY VERIFIED; teste in-game pendente.
+
+Extensao do mesmo endurecimento: `releaseReplacedItem`, lambda local de
+OnPacketSendItem, concentra a limpeza de aliases e a destruicao dos visuais
+retirados de Equip/Carry/Cargo. Cada ramo conserva seu Pickup e coordenadas;
+nullptr nao altera estado, e referencias a outros itens sao preservadas.
+Procedencia local; reaproveita evidencia de Pickup/Empty/destructor acima,
+sem novo claim nativo, ABI ou recurso. Debug/Release: 232 checks existentes
+PASS; nao cobrem eventos UI. Release instalado:
+`79ED78DEE7826F262C017096E006762B4755A16AA9C9FA41BD699130AE5B3C10`.
