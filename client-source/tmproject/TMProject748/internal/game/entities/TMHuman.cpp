@@ -4311,7 +4311,7 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
                     releaseReplacedItem(pItem);
                 }
 
-                if (pSendItem->Item.sIndex > 0)
+                if (pSendItem->Item.sIndex > 0 && pGridEquip[pSendItem->DestPos])
                 {
                     auto pstItem = new STRUCT_ITEM();
 
@@ -4326,7 +4326,8 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
                             if (pGridEquip[pSendItem->DestPos])
                             {
                                 pGridEquip[pSendItem->DestPos]->Empty();
-                                pGridEquip[pSendItem->DestPos]->AddItem(pItem, 0, 0);
+                                if (!pGridEquip[pSendItem->DestPos]->AddItem(pItem, 0, 0))
+                                    releaseReplacedItem(pItem);
                             }
                         }
                     }
@@ -4360,8 +4361,8 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 
                         auto pItem = new SGridControlItem(0, pstItem, 0.0f, 0.0f);
 
-                        if (pItem)
-                            pGrid->AddItem(pItem, CellIndexX, CellIndexY);
+                        if (pItem && !pGrid->AddItem(pItem, CellIndexX, CellIndexY))
+                            releaseReplacedItem(pItem);
                     }
                 }
             }
@@ -4393,8 +4394,8 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 
                     auto pItem = new SGridControlItem(0, pstItem, 0.0f, 0.0f);
 
-                    if (pItem)
-                        pGrid->AddItem(pItem, CellIndexX, CellIndexY);
+                    if (pItem && !pGrid->AddItem(pItem, CellIndexX, CellIndexY))
+                        releaseReplacedItem(pItem);
                 }
             }
         }

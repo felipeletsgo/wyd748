@@ -806,6 +806,12 @@ int SGridControl::CanItAdd(int* bFilledBuffer, int inCellIndexX, int inCellIndex
 
 int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)
 {
+	// Rejeicao nao transfere ownership nem altera ocupacao. Preservar a
+	// politica de sobreposicao/recorte dos callers; proteger somente a lista.
+	if (ipNewItem == nullptr || m_nNumItem < 0 ||
+		m_nNumItem >= static_cast<int>(sizeof(m_pItemList) / sizeof(m_pItemList[0])))
+		return 0;
+
 	for (int nY = 0; nY < ipNewItem->m_nCellHeight; ++nY)
 	{
 		for (int nX = 0; nX < ipNewItem->m_nCellWidth; ++nX)
@@ -828,6 +834,12 @@ int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 
 int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)
 {
+	// Rejeicao nao transfere ownership nem altera ocupacao. Preservar a
+	// politica de sobreposicao/recorte dos callers; proteger somente a lista.
+	if (ipNewItem == nullptr || m_nNumItem < 0 ||
+		m_nNumItem >= static_cast<int>(sizeof(m_pItemList) / sizeof(m_pItemList[0])))
+		return 0;
+
 	for (int nY = 0; nY < ipNewItem->m_nCellHeight; ++nY)
 	{
 		for (int nX = 0; nX < ipNewItem->m_nCellWidth; ++nX)
@@ -854,6 +866,12 @@ int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, in
 
 int SGridControl::SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)
 {
+	// Rejeicao nao transfere ownership nem altera ocupacao. Preservar a
+	// politica de sobreposicao/recorte dos callers; proteger somente a lista.
+	if (ipNewItem == nullptr || m_nNumItem < 0 ||
+		m_nNumItem >= static_cast<int>(sizeof(m_pItemList) / sizeof(m_pItemList[0])))
+		return 0;
+
 	for (int nY = 0; nY < ipNewItem->m_nCellHeight; ++nY)
 	{
 		for (int nX = 0; nX < ipNewItem->m_nCellWidth; ++nX)

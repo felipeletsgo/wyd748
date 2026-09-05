@@ -253,3 +253,18 @@ Debug/Release passaram com 232 checks existentes; Release instalado:
 Nao CLIENT-TESTED. Proximo ponto: criacao visual no ramo Equip ocorre mesmo
 sem grid de destino; verificar AddItem e ownership de falha antes de corrigir
 alocacoes sem owner. Teste in-game de hover/venda/relogin segue pendente.
+
+## Guard da capacidade de insercao
+
+AddItem/AddSkillItem/SetItem rejeitam ponteiro nulo, contador negativo e
+contador >= capacidade do array antes de qualquer escrita. Retorno 0 mantem
+ownership no caller. Ocupacao/coordenadas/recorte legados permanecem iguais;
+a tentativa inicial de chamar CanItAdd foi retirada antes da entrega.
+SendItem agora libera visuais rejeitados por AddItem e nao aloca visual de
+Equip quando sua grid nao existe. Origem local, MODERNIZACAO_COMPATIVEL;
+evidencia nativa reutilizada 0040E6AA (copia/append/retorno 1, sem teste de
+ocupacao) e source SGrid/Empty/destructor ja lidos. Nao novo claim nativo.
+Debug/Release passaram com 232 checks existentes, diff --check PASS. Estes
+checks nao exercitam SGrid cheio. Proximo passo obrigatorio: teste focado da
+rejeicao sem mutacao/ownership e revisar callers que ignoram retorno 0.
+Coordenadas negativas/overflow e AddItemInEmpty nulo nao foram corrigidos.
