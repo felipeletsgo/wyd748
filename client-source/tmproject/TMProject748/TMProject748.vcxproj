@@ -1,0 +1,395 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{34096901-E987-4241-A00A-6A0E448ED3BE}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>TMProject748</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>TMProject748</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)build\TMProject748\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\obj\TMProject748\$(Configuration)\</IntDir>
+    <IncludePath>$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</IncludePath>
+    <LibraryPath>$(SolutionDir)Dependencies\Directx\Lib;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <TargetName>WYDestiny</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)build\TMProject748\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)build\obj\TMProject748\$(Configuration)\</IntDir>
+    <IncludePath>$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(SolutionDir)Dependencies\Directx\Lib</LibraryPath>
+    <TargetName>WYD</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_WINDOWS;_WYDCLIENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)internal\app;$(ProjectDir)internal\core;$(ProjectDir)internal\game;$(ProjectDir)internal\platform;$(ProjectDir)internal\render;$(ProjectDir)internal\ui;$(ProjectDir)internal\wire;$(ProjectDir)internal\app\compat;$(ProjectDir)internal\app\scenes;$(ProjectDir)internal\game\entities;$(ProjectDir)internal\game\input;$(ProjectDir)internal\game\quest;$(ProjectDir)internal\platform\diagnostics;$(ProjectDir)internal\platform\windows;$(ProjectDir)internal\platform\windows\media;$(ProjectDir)internal\render\animation;$(ProjectDir)internal\render\camera;$(ProjectDir)internal\render\effects;$(ProjectDir)internal\render\lighting;$(ProjectDir)internal\render\mesh;$(ProjectDir)internal\render\misc;$(ProjectDir)internal\render\resources;$(ProjectDir)internal\render\world;$(ProjectDir)internal\render\animation\skeleton;$(ProjectDir)internal\render\effects\core;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\particles;$(ProjectDir)internal\render\effects\pending;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\render\effects\status;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\world\objects;$(ProjectDir)internal\render\world\sky;$(ProjectDir)internal\render\world\structures;$(ProjectDir)internal\render\world\terrain;$(ProjectDir)internal\render\world\vegetation;$(ProjectDir)internal\render\world\water;$(ProjectDir)internal\wire\crypto;$(ProjectDir)internal\app;$(ProjectDir)internal\core;$(ProjectDir)internal\game;$(ProjectDir)internal\platform;$(ProjectDir)internal\render;$(ProjectDir)internal\ui;$(ProjectDir)internal\wire;$(ProjectDir)internal\app\compat;$(ProjectDir)internal\app\scenes;$(ProjectDir)internal\game\entities;$(ProjectDir)internal\game\input;$(ProjectDir)internal\game\quest;$(ProjectDir)internal\platform\diagnostics;$(ProjectDir)internal\platform\windows;$(ProjectDir)internal\platform\windows\media;$(ProjectDir)internal\render\animation;$(ProjectDir)internal\render\effects;$(ProjectDir)internal\render\lighting;$(ProjectDir)internal\render\mesh;$(ProjectDir)internal\render\misc;$(ProjectDir)internal\render\world;$(ProjectDir)internal\render\animation\skeleton;$(ProjectDir)internal\render\effects\core;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\particles;$(ProjectDir)internal\render\effects\pending;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\render\effects\status;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\world\objects;$(ProjectDir)internal\render\world\sky;$(ProjectDir)internal\render\world\structures;$(ProjectDir)internal\render\world\vegetation;$(ProjectDir)internal\render\world\water;$(ProjectDir)internal\wire\crypto;$(ProjectDir)internal\game\entities;$(ProjectDir)internal\render\animation\skeleton;$(ProjectDir)internal\render\lighting;$(ProjectDir)internal\render\effects\core;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\render\effects\status;$(ProjectDir)internal\render\world\vegetation;$(ProjectDir)internal\render\world\sky;$(ProjectDir)internal\platform\windows;$(ProjectDir)internal\platform\diagnostics;$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)internal\platform\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>Wininet.lib;wsock32.lib;dxguid.lib;dsound.lib;imm32.lib;dinput8.lib;winmm.lib;d3d9.lib;d3dx9.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_WINDOWS;_WYDCLIENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)internal\app;$(ProjectDir)internal\core;$(ProjectDir)internal\game;$(ProjectDir)internal\platform;$(ProjectDir)internal\render;$(ProjectDir)internal\ui;$(ProjectDir)internal\wire;$(ProjectDir)internal\app\compat;$(ProjectDir)internal\app\scenes;$(ProjectDir)internal\game\entities;$(ProjectDir)internal\game\input;$(ProjectDir)internal\game\quest;$(ProjectDir)internal\platform\diagnostics;$(ProjectDir)internal\platform\windows;$(ProjectDir)internal\platform\windows\media;$(ProjectDir)internal\render\animation;$(ProjectDir)internal\render\camera;$(ProjectDir)internal\render\effects;$(ProjectDir)internal\render\lighting;$(ProjectDir)internal\render\mesh;$(ProjectDir)internal\render\misc;$(ProjectDir)internal\render\resources;$(ProjectDir)internal\render\world;$(ProjectDir)internal\render\animation\skeleton;$(ProjectDir)internal\render\effects\core;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\particles;$(ProjectDir)internal\render\effects\pending;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\render\effects\status;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\world\objects;$(ProjectDir)internal\render\world\sky;$(ProjectDir)internal\render\world\structures;$(ProjectDir)internal\render\world\terrain;$(ProjectDir)internal\render\world\vegetation;$(ProjectDir)internal\render\world\water;$(ProjectDir)internal\wire\crypto;$(ProjectDir)internal\app;$(ProjectDir)internal\core;$(ProjectDir)internal\game;$(ProjectDir)internal\platform;$(ProjectDir)internal\render;$(ProjectDir)internal\ui;$(ProjectDir)internal\wire;$(ProjectDir)internal\app\compat;$(ProjectDir)internal\app\scenes;$(ProjectDir)internal\game\entities;$(ProjectDir)internal\game\input;$(ProjectDir)internal\game\quest;$(ProjectDir)internal\platform\diagnostics;$(ProjectDir)internal\platform\windows;$(ProjectDir)internal\platform\windows\media;$(ProjectDir)internal\render\animation;$(ProjectDir)internal\render\effects;$(ProjectDir)internal\render\lighting;$(ProjectDir)internal\render\mesh;$(ProjectDir)internal\render\misc;$(ProjectDir)internal\render\world;$(ProjectDir)internal\render\animation\skeleton;$(ProjectDir)internal\render\effects\core;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\particles;$(ProjectDir)internal\render\effects\pending;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\render\effects\status;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\world\objects;$(ProjectDir)internal\render\world\sky;$(ProjectDir)internal\render\world\structures;$(ProjectDir)internal\render\world\vegetation;$(ProjectDir)internal\render\world\water;$(ProjectDir)internal\wire\crypto;$(ProjectDir)internal\game\entities;$(ProjectDir)internal\render\animation\skeleton;$(ProjectDir)internal\render\lighting;$(ProjectDir)internal\render\effects\core;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\render\effects\status;$(ProjectDir)internal\render\world\vegetation;$(ProjectDir)internal\render\world\sky;$(ProjectDir)internal\platform\windows;$(ProjectDir)internal\platform\diagnostics;$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)internal\platform\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>Wininet.lib;wsock32.lib;dxguid.lib;dsound.lib;imm32.lib;dinput8.lib;winmm.lib;d3d9.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\CommonFiles\SharedStructs.h" />
+    <ClInclude Include="internal\wire\crypto\AES.h" />
+    <ClInclude Include="internal\wire\crypto\Base64.h" />
+    <ClInclude Include="internal\core\Basedef.h" />
+    <ClInclude Include="internal\application\ports\ITransport.h" />
+    <ClInclude Include="internal\core\BasedefGlobals.h" />
+    <ClInclude Include="internal\core\UiLayout.h" />
+    <ClInclude Include="internal\platform\diagnostics\ClientDiagnostics.h" />
+    <ClInclude Include="internal\core\WYD748Assets.h" />
+    <ClInclude Include="internal\game\input\BlockKeyBoard.h" />
+    <ClInclude Include="internal\render\animation\skeleton\CFrame.h" />
+    <ClInclude Include="internal\render\mesh\CMesh.h" />
+    <ClInclude Include="internal\platform\windows\CPSock.h" />
+    <ClInclude Include="internal\platform\windows\D3DDevice.h" />
+    <ClInclude Include="internal\platform\windows\D3DEnumeration.h" />
+    <ClInclude Include="internal\platform\windows\D3DSettings.h" />
+    <ClInclude Include="internal\wire\crypto\desbase64.h" />
+    <ClInclude Include="internal\platform\windows\DirShow.h" />
+    <ClInclude Include="internal\platform\windows\dsutil.h" />
+    <ClInclude Include="internal\platform\windows\DXUtil.h" />
+    <ClInclude Include="internal\core\Enums.h" />
+    <ClInclude Include="internal\core\EventTranslator.h" />
+    <ClInclude Include="internal\platform\windows\framework.h" />
+    <ClInclude Include="internal\render\mesh\GeomObject.h" />
+    <ClInclude Include="internal\ui\HudController.h" />
+    <ClInclude Include="internal\ui\ItemEffect.h" />
+    <ClInclude Include="internal\render\effects\core\JBlur.h" />
+    <ClInclude Include="features\macro\MacroFactory.h" />
+    <ClInclude Include="internal\core\MacroLevel.h" />
+    <ClInclude Include="features\macro\MacroMsg.h" />
+    <ClInclude Include="internal\wire\crypto\md5.h" />
+    <ClInclude Include="internal\wire\crypto\MD5Checksum.h" />
+    <ClInclude Include="internal\render\mesh\MeshManager.h" />
+    <ClInclude Include="internal\core\Mission.h" />
+    <ClInclude Include="internal\core\MrItemMix.h" />
+    <ClInclude Include="internal\app\scenes\NewApp.h" />
+    <ClInclude Include="internal\app\compat\NewClientB.h" />
+    <ClInclude Include="internal\core\ObjectManager.h" />
+    <ClInclude Include="internal\core\pch.h" />
+    <ClInclude Include="internal\game\quest\Quest.h" />
+    <ClInclude Include="internal\platform\windows\RenderDevice.h" />
+    <ClInclude Include="internal\core\Resource.h" />
+    <ClInclude Include="internal\core\ResourceControl.h" />
+    <ClInclude Include="internal\ui\SControl.h" />
+    <ClInclude Include="internal\ui\SControlContainer.h" />
+    <ClInclude Include="internal\ui\SGrid.h" />
+    <ClInclude Include="internal\core\singleton.h" />
+    <ClInclude Include="internal\platform\diagnostics\StackWalker.h" />
+    <ClInclude Include="internal\core\Structures.h" />
+    <ClInclude Include="internal\platform\windows\targetver.h" />
+    <ClInclude Include="internal\render\resources\TextureManager.h" />
+    <ClInclude Include="internal\platform\windows\TimerManager.h" />
+    <ClInclude Include="internal\game\entities\TMArrow.h" />
+    <ClInclude Include="internal\game\entities\TMBike.h" />
+    <ClInclude Include="internal\game\entities\TMButterFly.h" />
+    <ClInclude Include="internal\render\camera\TMCamera.h" />
+    <ClInclude Include="internal\game\entities\TMCannon.h" />
+    <ClInclude Include="scenes\demo\TMDemoScene.h" />
+    <ClInclude Include="internal\render\effects\weather\TMDrop.h" />
+    <ClInclude Include="internal\render\effects\environment\TMDust.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffect.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectBillBoard.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectBillBoard2.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectBillBoard3.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectBillBoard4.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectCharge.h" />
+    <ClInclude Include="internal\render\effects\environment\TMEffectDust.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectFirework.h" />
+    <ClInclude Include="internal\render\effects\pending\TMEffectGold.h" />
+    <ClInclude Include="internal\render\effects\status\TMEffectLevelUp.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectMesh.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectMeshRotate.h" />
+    <ClInclude Include="internal\render\effects\particles\TMEffectParticle.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectSkinMesh.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectSpark.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectSpark2.h" />
+    <ClInclude Include="internal\render\effects\skills\TMEffectStart.h" />
+    <ClInclude Include="internal\render\effects\core\TMEffectSWSwing.h" />
+    <ClInclude Include="internal\app\scenes\TMFieldScene.h" />
+    <ClInclude Include="internal\render\effects\skills\TMFireEffect.h" />
+    <ClInclude Include="internal\game\entities\TMFish.h" />
+    <ClInclude Include="internal\game\entities\TMFlail.h" />
+    <ClInclude Include="internal\render\world\water\TMFloat.h" />
+    <ClInclude Include="internal\platform\windows\TMFont2.h" />
+    <ClInclude Include="internal\platform\windows\TMFont3.h" />
+    <ClInclude Include="internal\game\entities\TMGate.h" />
+    <ClInclude Include="internal\core\TMGlobal.h" />
+    <ClInclude Include="internal\render\world\terrain\TMGround.h" />
+    <ClInclude Include="internal\render\world\structures\TMHouse.h" />
+    <ClInclude Include="internal\game\entities\TMHuman.h" />
+    <ClInclude Include="internal\game\entities\TMItem.h" />
+    <ClInclude Include="internal\render\world\vegetation\TMLeaf.h" />
+    <ClInclude Include="internal\render\lighting\TMLight.h" />
+    <ClInclude Include="internal\platform\diagnostics\TMLog.h" />
+    <ClInclude Include="internal\render\mesh\TMMesh.h" />
+    <ClInclude Include="internal\game\entities\TMObject.h" />
+    <ClInclude Include="internal\render\world\objects\TMObjectContainer.h" />
+    <ClInclude Include="internal\platform\windows\TMPaths.h" />
+    <ClInclude Include="cmd\client\TMProject.h" />
+    <ClInclude Include="internal\render\effects\weather\TMRain.h" />
+    <ClInclude Include="internal\app\scenes\TMScene.h" />
+    <ClInclude Include="internal\render\world\water\TMSea.h" />
+    <ClInclude Include="internal\app\scenes\TMSelectCharScene.h" />
+    <ClInclude Include="internal\app\scenes\TMSelectServerScene.h" />
+    <ClInclude Include="internal\render\effects\core\TMShade.h" />
+    <ClInclude Include="internal\game\entities\TMShip.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillBash.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillCure.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillDoubleSwing.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillExplosion2.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillFire.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillFlash.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillFreezeBlade.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillHaste.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillHeal.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillHeavenDust.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillHolyTouch.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillIceSpear.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillJudgement.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillLusterFurnish.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillMagicArrow.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillMagicShield.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillMeteorStorm.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillPoison.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillSlowSlash.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillSnow.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillSpChange.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillSpeedUp.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillThunderBolt.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillTownPortal.h" />
+    <ClInclude Include="internal\render\mesh\TMSkinMesh.h" />
+    <ClInclude Include="internal\render\world\sky\TMSky.h" />
+    <ClInclude Include="internal\render\effects\weather\TMSnow.h" />
+    <ClInclude Include="internal\render\world\sky\TMSun.h" />
+    <ClInclude Include="internal\render\world\vegetation\TMTree.h" />
+    <ClInclude Include="internal\platform\windows\TMUtil.h" />
+    <ClInclude Include="internal\platform\windows\media\TMVideoWnd.h" />
+    <ClInclude Include="internal\core\TreeNode.h" />
+    <ClInclude Include="internal\ui\UIBinary.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="internal\platform\diagnostics\ClientDiagnostics.cpp" />
+    <ClCompile Include="internal\core\WYD748Assets.cpp" />
+    <ClCompile Include="internal\core\WYD748Compat.cpp" />
+    <ClCompile Include="internal\core\Basedef.cpp" />
+    <ClCompile Include="internal\core\CFrame.cpp" />
+    <ClCompile Include="internal\render\mesh\CMesh.cpp" />
+    <ClCompile Include="internal\platform\windows\CPSock.cpp" />
+    <ClCompile Include="internal\platform\windows\D3DDevice.cpp" />
+    <ClCompile Include="internal\platform\windows\D3DEnumeration.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="internal\platform\windows\DirShow.cpp" />
+    <ClCompile Include="internal\platform\windows\dsutil.cpp" />
+    <ClCompile Include="internal\platform\windows\DXUtil.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="internal\core\EventTranslator.cpp" />
+    <ClCompile Include="internal\render\mesh\GeomObject.cpp" />
+    <ClCompile Include="internal\render\effects\core\JBlur.cpp" />
+    <ClCompile Include="features\macro\MacroFactory.cpp" />
+    <ClCompile Include="internal\core\MacroLevel.cpp" />
+    <ClCompile Include="features\macro\MacroMsg.cpp" />
+    <ClCompile Include="internal\render\mesh\MeshManager.cpp" />
+    <ClCompile Include="internal\core\Mission.cpp" />
+    <ClCompile Include="internal\core\MrItemMix.cpp" />
+    <ClCompile Include="internal\app\scenes\NewApp.cpp" />
+    <ClCompile Include="internal\core\ObjectManager.cpp" />
+    <ClCompile Include="internal\platform\windows\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="internal\platform\windows\RenderDevice.cpp" />
+    <ClCompile Include="internal\ui\SControl.cpp" />
+    <ClCompile Include="internal\ui\SControlContainer.cpp" />
+    <ClCompile Include="internal\ui\SGrid.cpp" />
+    <ClCompile Include="internal\render\resources\TextureManager.cpp" />
+    <ClCompile Include="internal\platform\windows\TimerManager.cpp" />
+    <ClCompile Include="internal\game\entities\TMArrow.cpp" />
+    <ClCompile Include="internal\game\entities\TMBike.cpp" />
+    <ClCompile Include="internal\game\entities\TMButterFly.cpp" />
+    <ClCompile Include="internal\render\camera\TMCamera.cpp" />
+    <ClCompile Include="internal\game\entities\TMCannon.cpp" />
+    <ClCompile Include="scenes\demo\TMDemoScene.cpp" />
+    <ClCompile Include="internal\game\entities\TMDrop.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMDust.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffect.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectBillBoard.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectBillBoard2.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectBillBoard3.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectBillBoard4.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectCharge.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectDust.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectFirework.cpp" />
+    <ClCompile Include="internal\render\effects\pending\TMEffectGold.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectLevelUp.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectMesh.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectMeshRotate.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectParticle.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectSkinMesh.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectSpark.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectSpark2.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectStart.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMEffectSWSwing.cpp" />
+    <ClCompile Include="internal\app\scenes\TMFieldScene.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMFireEffect.cpp" />
+    <ClCompile Include="internal\game\entities\TMFish.cpp" />
+    <ClCompile Include="internal\game\entities\TMFlail.cpp" />
+    <ClCompile Include="internal\render\world\objects\TMFloat.cpp" />
+    <ClCompile Include="internal\platform\windows\TMFont2.cpp" />
+    <ClCompile Include="internal\platform\windows\TMFont3.cpp" />
+    <ClCompile Include="internal\game\entities\TMGate.cpp" />
+    <ClCompile Include="internal\core\TMGlobal.cpp" />
+    <ClCompile Include="internal\render\world\terrain\TMGround.cpp" />
+    <ClCompile Include="internal\render\world\terrain\TMHouse.cpp" />
+    <ClCompile Include="internal\game\entities\TMHuman.cpp" />
+    <ClCompile Include="internal\game\entities\TMItem.cpp" />
+    <ClCompile Include="internal\render\world\terrain\TMLeaf.cpp" />
+    <ClCompile Include="internal\render\world\terrain\TMLight.cpp" />
+    <ClCompile Include="internal\platform\windows\TMLog.cpp" />
+    <ClCompile Include="internal\render\mesh\TMMesh.cpp" />
+    <ClCompile Include="internal\game\entities\TMObject.cpp" />
+    <ClCompile Include="internal\render\world\objects\TMObjectContainer.cpp" />
+    <ClCompile Include="cmd\client\TMProject.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMRain.cpp" />
+    <ClCompile Include="internal\app\scenes\TMScene.cpp" />
+    <ClCompile Include="internal\render\world\terrain\TMSea.cpp" />
+    <ClCompile Include="internal\app\scenes\TMSelectCharScene.cpp" />
+    <ClCompile Include="internal\app\scenes\TMSelectServerScene.cpp" />
+    <ClCompile Include="internal\render\effects\core\TMShade.cpp" />
+    <ClCompile Include="internal\game\entities\TMShip.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillBash.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillCure.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillDoubleSwing.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillExplosion2.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillFire.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillFlash.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillFreezeBlade.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillHaste.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillHeal.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillHeavenDust.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillHolyTouch.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillIceSpear.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillJudgement.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillLusterFurnish.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillMagicArrow.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillMagicShield.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillMeteorStorm.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillPoison.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillSlowSlash.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillSnow.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillSpChange.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillSpeedUp.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillThunderBolt.cpp" />
+    <ClCompile Include="internal\render\effects\skills\TMSkillTownPortal.cpp" />
+    <ClCompile Include="internal\render\mesh\TMSkinMesh.cpp" />
+    <ClCompile Include="internal\render\world\sky\TMSky.cpp" />
+    <ClCompile Include="internal\render\world\sky\TMSnow.cpp" />
+    <ClCompile Include="internal\render\world\sky\TMSun.cpp" />
+    <ClCompile Include="internal\render\world\sky\TMTree.cpp" />
+    <ClCompile Include="internal\platform\windows\TMUtil.cpp" />
+    <ClCompile Include="internal\platform\windows\media\TMVideoWnd.cpp" />
+    <ClCompile Include="internal\core\TreeNode.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="TMProject.rc">
+      <AdditionalIncludeDirectories>$(ProjectDir)internal\core;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="small.ico" />
+    <Image Include="TMProject.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\CursorGroup162.cur" />
+    <None Include="Resources\CursorGroup164.cur" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
