@@ -121,3 +121,8 @@ frame e ApplyCargoSlot; nao executam os novos guards dentro de TMHuman.
 Debug/Release recompilados e instalados depois dos guards de TMHuman.
 Release: `5D1743014D80B9E34FEBE61CA8A3ADC34327363388A6841DCFA25C5C88A830AE`.
 STATICALLY VERIFIED para o novo corte. Nao CLIENT-TESTED.
+
+Atualizacao: Cargo captura agora o retorno de `PickupAtItem`, limpa o cursor
+quando ele aponta para o item removido e libera o objeto com `SAFE_DELETE`, em
+conformidade com o ownership nativo 0052A737. Release atual:
+`87F0FFCCFAC29E3950979515B864D6F9B77D7F4E930C894128E7DA76EFD323C6`.

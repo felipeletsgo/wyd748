@@ -4369,7 +4369,13 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
             if (!pGrid)
                 return 1;
 
-            pGrid->PickupAtItem(CellIndexX, CellIndexY);
+            // PickupAtItem remove o ponteiro da grid, mas devolve ownership ao
+            // chamador. Liberar o visual antigo evita vazamento e limpar o
+            // cursor evita uma referencia pendente ao item confirmado.
+            SGridControlItem* pOldGridItem = pGrid->PickupAtItem(CellIndexX, CellIndexY);
+            if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pOldGridItem)
+                g_pCursor->m_pAttachedItem = nullptr;
+            SAFE_DELETE(pOldGridItem);
 
             if (pSendItem->Item.sIndex > 0)
             {

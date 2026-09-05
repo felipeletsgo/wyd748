@@ -209,3 +209,9 @@ nao limpa explicitamente o cursor porque `PickupAtItem`/ownership local não
 estão comprovados. Nenhuma alteração funcional neste ciclo. Próximo passo
 continua revisar esse helper no SGrid e testar item/cursor no candidato antes
 de alterar o fluxo.
+
+Implementado: Cargo captura e libera o retorno de `PickupAtItem` e limpa o
+cursor quando necessário, alinhado ao nativo 0052A737. Debug/Release passaram
+com 232 checks; Release instalado com SHA-256
+`87F0FFCCFAC29E3950979515B864D6F9B77D7F4E930C894128E7DA76EFD323C6`.
+Teste visual/runtime ainda pendente.
