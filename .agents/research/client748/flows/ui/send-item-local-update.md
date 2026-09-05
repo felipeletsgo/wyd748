@@ -130,6 +130,10 @@ eles nao exercitam hover/venda no jogo. Release instalado:
 `29485CB8C6570801C72C3F82D0B9BA944D16B09D74AF40638A2CEC6750353067`.
 STATICALLY VERIFIED; teste in-game pendente.
 
+Inspecao de `SGridControl::AddItem` confirmou que o helper incrementa
+`m_nNumItem` sem validar capacidade interna. Essa frente permanece separada;
+nao foi alterada sem contrato e teste especificos de grid.
+
 Extensao do mesmo endurecimento: `releaseReplacedItem`, lambda local de
 OnPacketSendItem, concentra a limpeza de aliases e a destruicao dos visuais
 retirados de Equip/Carry/Cargo. Cada ramo conserva seu Pickup e coordenadas;
