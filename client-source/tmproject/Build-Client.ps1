@@ -3,6 +3,9 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Release',
 
+    [ValidateSet('TMProject748', 'TMProject')]
+    [string]$ProjectVariant = 'TMProject748',
+
     [string]$PlatformToolset,
 
     [switch]$Rebuild
@@ -11,14 +14,17 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $root = $PSScriptRoot
-$project = Join-Path $root 'Projects\TMProject\TMProject.vcxproj'
+# TMProject748 e o caminho ativo da modernizacao. TMProject permanece disponivel
+# apenas como referencia compilavel para comparacoes controladas.
+$projectFileName = "$ProjectVariant.vcxproj"
+$project = Join-Path $root "Projects\$ProjectVariant\$projectFileName"
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 $repositoryRoot = Split-Path (Split-Path $root -Parent) -Parent
 $clientDirectory = Join-Path $repositoryRoot 'client748'
 $installedExecutable = Join-Path $clientDirectory 'project.exe'
 
 if (-not (Test-Path -LiteralPath $project)) {
-    throw "TMProject.vcxproj not found: $project"
+    throw "$projectFileName not found: $project"
 }
 if (-not (Test-Path -LiteralPath $clientDirectory -PathType Container)) {
     throw "Client installation directory not found: $clientDirectory"
@@ -47,8 +53,10 @@ if (-not $PlatformToolset) {
     }
 }
 
-$output = Join-Path $root "build\$Configuration"
-$intermediate = Join-Path $root "build\obj\$Configuration"
+# Cada variante possui saidas proprias para impedir que objetos ou executaveis
+# do projeto de referencia contaminem o projeto 7.48 reestruturado.
+$output = Join-Path $root "build\$ProjectVariant\$Configuration"
+$intermediate = Join-Path $root "build\obj\$ProjectVariant\$Configuration"
 $target = if ($Rebuild) { 'Rebuild' } else { 'Build' }
 # MSBuild compatibility: a quoted property ending in one backslash escapes its closing quote; two preserve the required directory separator.
 $solutionDir = $root.TrimEnd('\') + '\\'
@@ -57,7 +65,7 @@ $intermediateDir = $intermediate.TrimEnd('\') + '\\'
 
 New-Item -ItemType Directory -Path $output, $intermediate -Force | Out-Null
 
-Write-Host "Building TMProject ($Configuration|Win32, $PlatformToolset)"
+Write-Host "Building $ProjectVariant ($Configuration|Win32, $PlatformToolset)"
 & $msbuild $project `
     '/m' `
     "/t:$target" `
@@ -69,7 +77,7 @@ Write-Host "Building TMProject ($Configuration|Win32, $PlatformToolset)"
     "/p:IntDir=$intermediateDir"
 
 if ($LASTEXITCODE -ne 0) {
-    throw "TMProject build failed with exit code $LASTEXITCODE."
+    throw "$ProjectVariant build failed with exit code $LASTEXITCODE."
 }
 
 $fileName = if ($Configuration -eq 'Release') { 'WYD.exe' } else { 'WYDestiny.exe' }
@@ -78,15 +86,22 @@ if (-not (Test-Path -LiteralPath $executable)) {
     throw "Build completed without the expected executable: $executable"
 }
 
-# Source builds have one supported installation target. Failing the copy also
-# fails the build workflow so a stale project.exe cannot be mistaken for it.
-Copy-Item -LiteralPath $executable -Destination $installedExecutable -Force
-
 $buildHash = Get-FileHash -Algorithm SHA256 -LiteralPath $executable
-$installedHash = Get-FileHash -Algorithm SHA256 -LiteralPath $installedExecutable
-if ($buildHash.Hash -ne $installedHash.Hash) {
-    throw "Installed project.exe hash does not match the source build."
-}
 
-Write-Host "Installed client: $installedExecutable"
-$installedHash
+if ($ProjectVariant -eq 'TMProject748') {
+    # Apenas a arquitetura nova instala o client ativo. Compilar TMProject
+    # nunca substitui project.exe por acidente; seu artefato fica em build/.
+    Copy-Item -LiteralPath $executable -Destination $installedExecutable -Force
+
+    $installedHash = Get-FileHash -Algorithm SHA256 -LiteralPath $installedExecutable
+    if ($buildHash.Hash -ne $installedHash.Hash) {
+        throw "Installed project.exe hash does not match the source build."
+    }
+
+    Write-Host "Installed client: $installedExecutable"
+    $installedHash
+}
+else {
+    Write-Host "Reference build preserved without installing over project.exe: $executable"
+    $buildHash
+}
