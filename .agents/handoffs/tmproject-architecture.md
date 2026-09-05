@@ -189,3 +189,15 @@ Nao CLIENT-TESTED; teste runtime dos guards de TMHuman continua pendente.
 Proximo ponto concreto: ramo cargo em OnPacketSendItem ignora retorno de
 PickupAtItem, diferente de Carry/Equip. Seguir ownership/cursor no nativo
 0052A737 e SGrid antes de decidir descarte do item visual.
+
+## Evidencia adicional — ownership visual SendItem
+
+O export `field-send-item.tsv` confirma `0052EAA9 -> 0052A737` e o ramo nativo
+de cargo: copia oito bytes para `cargo+0x2EC + DestPos*8`, resolve a grid por
+`DestPos%9, DestPos/9`, remove o visual antigo e cria o novo somente se
+`sIndex>0`; o cursor e limpo quando aponta para o item retirado. Carry/Equip
+seguem a mesma ordem. A source preserva essa ordem e deixa `PickupAtItem`
+sem retorno usado, aguardando ownership dos helpers atuais.
+Nenhum novo patch funcional neste ciclo; ficha `send-item-local-update.md`
+atualizada. Guards de capacidade permanecem STATICALLY VERIFIED pelos builds
+anteriores; teste visual, cursor, grid ausente e relogin ainda pendentes.

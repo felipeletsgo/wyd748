@@ -45,6 +45,11 @@ O ramo Equip atualiza o cache de selecao quando DestPos !=0, antes dos grids.
 O export Ghidra confirma o caller direto 0052EAA9 -> 0052A737; receptores dos
 metodos virtuais de grids e teardown completo ainda precisam ser fechados.
 
+No ramo nativo de cargo, `0052A737` remove o controle visual da célula
+`DestPos % 9, DestPos / 9`, limpa o cursor quando necessário e só cria/adiciona
+um novo item quando `sIndex > 0`. A mesma ordem aparece nos ramos de Carry e
+Equip: retirar o antigo, limpar cursor, criar o novo e inserir na grid.
+
 ## Estado e lifecycle
 
 Na selecao, qualquer 0x182 e consumido; somente DestType=2 escreve no cargo.
@@ -69,6 +74,10 @@ TMHuman::OnPacketSendItem agora rejeita indices negativos ou acima da capacidade
 real de Equip/Carry/Cargo antes de Bag_View/copias. O cache de selecao so e
 escrito com characterSlot em [0,4); ausencia desse cache nao impede atualizar
 equipamento do mundo. Slots extras locais de Equip sao mantidos.
+O ramo Cargo ainda usa `PickupAtItem` sem testar o retorno, como o nativo faz
+com seu receptor visual; essa decisao nao foi alterada sem prova do ownership
+dos grids atuais. A copia autoritativa do slot ocorre antes da consulta visual,
+preservando o estado mesmo quando a grid nao estiver materializada.
 
 ## Matriz de delta
 
