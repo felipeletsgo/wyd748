@@ -16,6 +16,7 @@
 #include "../wire/CharacterLoginPacket.h"
 #include "../wire/CharacterTransferPacket.h"
 #include "../wire/SendItemContract.h"
+#include "../wire/LegacySceneMessagePacket.h"
 
 // Basedef permanece como fachada de compatibilidade. Os tipos abaixo são
 // consumidos por cenas, UI, entidades e transporte; qualquer alteração de
@@ -1134,23 +1135,6 @@ struct MSG_MessagePanel
 	char String[96];
 };
 
-// Stock 7.48 recognizes these server-to-client scene messages but deliberately
-// treats their bodies as opaque.  Keep the canonical frame sizes so later
-// TMProject layouts cannot silently change the receive contract.
-constexpr auto MSG_LegacySceneMessage102_Opcode = 0x102;
-struct MSG_LegacySceneMessage102
-{
-	MSG_STANDARD Header;
-	unsigned char OpaquePayload[104];
-};
-
-constexpr auto MSG_LegacySceneMessage104_Opcode = 0x104;
-struct MSG_LegacySceneMessage104
-{
-	MSG_STANDARD Header;
-	unsigned char OpaquePayload[140];
-};
-
 // Header-only notification consumed by the base scene. Native 7.48 checks
 // the opcode and does not read a payload.
 constexpr auto MSG_BillingNotice_Opcode = 0x194;
@@ -1460,10 +1444,6 @@ static_assert(offsetof(MSG_MessageChat, String) == 12, "WYD 7.48 chat text offse
 static_assert(sizeof(MSG_UpdateEtc) == 36, "WYD 7.48 MSG_UpdateEtc must be 36 bytes");
 static_assert(sizeof(MSG_MessagePanel) == 108, "WYD 7.48 MSG_MessagePanel must be 108 bytes");
 static_assert(offsetof(MSG_MessagePanel, String) == 12, "WYD 7.48 panel text offset changed");
-static_assert(sizeof(MSG_LegacySceneMessage102) == 116, "WYD 7.48 legacy scene message 0x102 must be 116 bytes");
-static_assert(offsetof(MSG_LegacySceneMessage102, OpaquePayload) == 12, "WYD 7.48 legacy scene message 0x102 payload offset changed");
-static_assert(sizeof(MSG_LegacySceneMessage104) == 152, "WYD 7.48 legacy scene message 0x104 must be 152 bytes");
-static_assert(offsetof(MSG_LegacySceneMessage104, OpaquePayload) == 12, "WYD 7.48 legacy scene message 0x104 payload offset changed");
 static_assert(sizeof(MSG_CharacterLogin) == 36, "WYD 7.48 MSG_CharacterLogin must be 36 bytes");
 static_assert(sizeof(MSG_NewCharacter) == 36, "WYD 7.48 MSG_NewCharacter must be 36 bytes");
 static_assert(sizeof(MSG_DeleteCharacter) == 44, "WYD 7.48 MSG_DeleteCharacter must be 44 bytes");

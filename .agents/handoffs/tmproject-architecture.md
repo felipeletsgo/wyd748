@@ -420,3 +420,24 @@ cobrem gate puro, nao o lambda nem render. Release instalado/hasheado:
 Nao CLIENT_TESTED. Proximo: retomar fase 2 do implementation-plan pelo proximo
 contrato de recepcao com evidencia nativa; nao prolongar revisao de ownership
 por buscas de nomes sem confirmar callers e alcance do ramo.
+
+## Fase 2 — mensagens opacas 0x102/0x104
+
+Extraidos opcodes, structs e asserts de Basedef para wire/LegacySceneMessagePacket.h;
+Basedef reexporta o contrato. Reutilizada ficha CONTRACT
+ui/legacy-scene-message-102-104-consume.md: gate nativo 0055890A fixa 116/152
+bytes; 0049889A consome payload opaco. ReceivedPacketDispatch agora confere
+comprimento real/declarado e Type/opcode antes do ObjectManager encaminhar
+para callbacks. Handler de cena e fallback dos demais opcodes preservados.
+MODERNIZACAO_COMPATIVEL local, sem promover claim nativo ou CLIENT_TESTED.
+Source/testes e ficha nativa UTILIZADOS; assets e Go NAO APLICAVEIS (sem
+payload interpretado nem emissor Go existente). Nenhum builder inventado.
+
+Debug/Release Build-Client.ps1 PASS, 782 checks/asserts cada. Fixtures independentes
+116/152 cobrem todos os prefixos, excesso, nulo, Size/Type/opcode divergentes,
+entrega unica, identidade do buffer e bytes preservados. PROJECT_PATHS_OK e
+diff --check PASS. Teste do consumo real no jogo continua pendente.
+Proximo: migrar outro contrato fechado para wire; fases 1-7 e seus gates
+runtime permanecem incompletos conforme implementation-plan.md.
+Release instalado com hash identico ao artefato:
+`D2ABA7BA33609FD92FF578F36A9BA5B186FE2671ACCA2D605795F8C706C97971`.

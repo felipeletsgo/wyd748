@@ -99,5 +99,39 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(itemDelivered == 0, "SendItem invalido nao chama consumidor");
     check(received_packet::Dispatch({0x182, sendItem, 24}, receiveItem) && itemDelivered == 1,
         "SendItem exato entregue sem retry");
+    // Fixtures independentes das structs: valida comprimento real, declarado
+    // e ambos os discriminantes antes de qualquer callback de cena.
+    for (unsigned int opcode : {0x102u, 0x104u})
+    {
+        const std::size_t length = opcode == 0x102 ? 116 : 152;
+        std::array<char, 154> raw{};
+        char* frame = raw.data() + 1;
+        frame[0] = static_cast<char>(length);
+        frame[4] = static_cast<char>(opcode & 255);
+        frame[5] = 1;
+        const auto snapshot = raw;
+        int calls = 0;
+        const auto receiver = [&](const PacketView& view) {
+            ++calls;
+            check(view.data == frame && view.size == length,
+                "mensagem opaca preserva buffer e comprimento");
+        };
+        for (std::size_t n = 0; n < length; ++n)
+            check(!received_packet::Dispatch({opcode, frame, n}, receiver),
+                "mensagem opaca rejeita todos os prefixos truncados");
+        check(!received_packet::Dispatch({opcode, frame, length + 1}, receiver), "excesso rejeitado");
+        check(!received_packet::Dispatch({opcode, nullptr, length}, receiver), "nulo rejeitado");
+        check(!received_packet::Dispatch({0x119, frame, length}, receiver), "Type nao pode ser ocultado");
+        frame[0] = 12;
+        check(!received_packet::Dispatch({opcode, frame, length}, receiver), "Size divergente rejeitado");
+        frame[0] = static_cast<char>(length);
+        frame[4] = 0x19;
+        check(!received_packet::Dispatch({opcode, frame, length}, receiver), "opcode divergente rejeitado");
+        frame[4] = static_cast<char>(opcode & 255);
+        check(calls == 0, "rejeicoes opacas nao executam callback");
+        check(received_packet::Dispatch({opcode, frame, length}, receiver) && calls == 1,
+            "mensagem opaca entregue uma vez");
+        check(raw == snapshot, "bytes opacos preservados");
+    }
     return failures;
 }
