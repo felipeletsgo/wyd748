@@ -268,3 +268,18 @@ Debug/Release passaram com 232 checks existentes, diff --check PASS. Estes
 checks nao exercitam SGrid cheio. Proximo passo obrigatorio: teste focado da
 rejeicao sem mutacao/ownership e revisar callers que ignoram retorno 0.
 Coordenadas negativas/overflow e AddItemInEmpty nulo nao foram corrigidos.
+
+## Teste do gate de insercao e busca vazia
+
+GridInsertion.h concentra CanAppend/Execute; AddItem/AddSkillItem/SetItem
+executam seus corpos legados dentro do callback, somente depois do guard.
+GridInsertionTests usa o mesmo gate com lista/ocupacao/ownership observaveis:
+preenche 128, rejeita 129o, valida todos os slots preservados, nullptr,
+INT_MIN/-1/129/INT_MAX, capacidade derivada de outro array e falha sem retry.
+AddItemInEmpty agora testa o mesmo CanAppend antes de ler dimensoes ou buscar;
+lista cheia e nullptr retornam {-1,-1}. Nao houve mudanca de ocupacao/geometria.
+Debug/Release passaram com 496 checks e instalacao. Release:
+`A5C6BA276A332801A760E5CA6CD311FF9B6DB66E4C3C6E756E0A122EACBBB970`.
+Teste cobre gate/callback, nao render real ou todos os callers. Proximo ponto:
+revisar SetItemOnGrid e callers de AddItemInEmpty para ownership na rejeicao;
+coordenadas negativas/overflow continuam pendentes. Push segue sem credencial.

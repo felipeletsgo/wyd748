@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "SGrid.h"
+#include "GridInsertion.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
 #include "TMMesh.h"
@@ -806,11 +807,8 @@ int SGridControl::CanItAdd(int* bFilledBuffer, int inCellIndexX, int inCellIndex
 
 int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)
 {
-	// Rejeicao nao transfere ownership nem altera ocupacao. Preservar a
-	// politica de sobreposicao/recorte dos callers; proteger somente a lista.
-	if (ipNewItem == nullptr || m_nNumItem < 0 ||
-		m_nNumItem >= static_cast<int>(sizeof(m_pItemList) / sizeof(m_pItemList[0])))
-		return 0;
+	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
+	{
 
 	for (int nY = 0; nY < ipNewItem->m_nCellHeight; ++nY)
 	{
@@ -830,15 +828,13 @@ int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 	WYD748_ApplyGridMeshScale(ipNewItem, !isEquipmentGrid);
 
 	return 1;
+	});
 }
 
 int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)
 {
-	// Rejeicao nao transfere ownership nem altera ocupacao. Preservar a
-	// politica de sobreposicao/recorte dos callers; proteger somente a lista.
-	if (ipNewItem == nullptr || m_nNumItem < 0 ||
-		m_nNumItem >= static_cast<int>(sizeof(m_pItemList) / sizeof(m_pItemList[0])))
-		return 0;
+	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
+	{
 
 	for (int nY = 0; nY < ipNewItem->m_nCellHeight; ++nY)
 	{
@@ -862,15 +858,13 @@ int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, in
 	WYD748_ApplyGridMeshScale(ipNewItem, !isEquipmentGrid);
 
 	return 1;
+	});
 }
 
 int SGridControl::SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)
 {
-	// Rejeicao nao transfere ownership nem altera ocupacao. Preservar a
-	// politica de sobreposicao/recorte dos callers; proteger somente a lista.
-	if (ipNewItem == nullptr || m_nNumItem < 0 ||
-		m_nNumItem >= static_cast<int>(sizeof(m_pItemList) / sizeof(m_pItemList[0])))
-		return 0;
+	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
+	{
 
 	for (int nY = 0; nY < ipNewItem->m_nCellHeight; ++nY)
 	{
@@ -890,11 +884,15 @@ int SGridControl::SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 	WYD748_ApplyGridMeshScale(ipNewItem, !isEquipmentGrid);
 
 	return 1;
+	});
 }
 
 IVector2 SGridControl::AddItemInEmpty(SGridControlItem* ipNewItem)
 {
 	IVector2 vec{ -1, -1 };
+	// Nao ler dimensoes de item nulo nem procurar espaco em lista cheia.
+	if (!grid_insertion::CanAppend(m_pItemList, m_nNumItem, ipNewItem))
+		return vec;
 	for (int nY = 0; nY <= m_nRowGridCount - ipNewItem->m_nCellHeight; ++nY)
 	{
 		for (int nX = 0; nX <= m_nColumnGridCount - ipNewItem->m_nCellWidth; ++nX)

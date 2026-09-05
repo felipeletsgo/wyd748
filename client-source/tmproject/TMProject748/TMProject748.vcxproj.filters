@@ -177,6 +177,9 @@
     <ClInclude Include="internal\wire\SendItemContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\ui\GridInsertion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\application\ApplyCargoSlot.h">
       <Filter>Header Files</Filter>
     </ClInclude>

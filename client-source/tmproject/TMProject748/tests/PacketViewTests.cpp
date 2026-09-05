@@ -17,6 +17,7 @@
 int RunCharacterLoginUseCaseTests(int& checks);
 int RunReceivedPacketDispatchTests(int& checks);
 int RunCargoSlotTests(int& checks);
+int RunGridInsertionTests(int& checks);
 
 // Backend sem socket: registra metadados e usa o mesmo guard da producao.
 // Nao retém o buffer; a mutacao simula o preenchimento sincrono do cabecalho.
@@ -232,6 +233,7 @@ int main()
     }
     failures += RunReceivedPacketDispatchTests(checks);
     failures += RunCargoSlotTests(checks);
+    failures += RunGridInsertionTests(checks);
     if (failures == 0) std::printf("ArchitectureTests: %d checks PASS; static assertions PASS\n", checks);
     return failures == 0 ? 0 : 1;
 }

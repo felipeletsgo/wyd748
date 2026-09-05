@@ -35,6 +35,7 @@
     <ClCompile Include="CharacterLoginUseCaseTests.cpp" />
     <ClCompile Include="ReceivedPacketDispatchTests.cpp" />
     <ClCompile Include="CargoSlotTests.cpp" />
+    <ClCompile Include="GridInsertionTests.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
