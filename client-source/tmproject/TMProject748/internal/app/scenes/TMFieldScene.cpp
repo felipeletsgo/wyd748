@@ -4778,7 +4778,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stParm.Header.ID = m_pMyHuman->m_dwID;
 			stParm.Header.Type = MSG_SysQuit_Opcode;
 			stParm.Parm = 0;
-			g_pSocketManager->SendOneMessage((char*)&stParm, sizeof(stParm));
+			g_pSocketManager->SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 
 			if (m_pSystemPanel)
 				m_pSystemPanel->SetVisible(0);
@@ -5021,7 +5021,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stParm2.Parm2 = m_nBet;
 		m_cPendingGambleType = m_cGambleType;
 		m_dwGambleRequestTime = g_pTimerManager->GetServerTime();
-		SendOneMessage((char*)&stParm2, sizeof(stParm2));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm2)->Type, reinterpret_cast<char*>(&stParm2), sizeof(stParm2)});
 
 		reel->m_dwBatCoin = m_nBet;
 		reel->SetRoll(true, 0, 0, 0, 3000);
@@ -5290,7 +5290,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				if (m_pMyHuman->m_fProgressRate < 0.89999998f && m_pMyHuman->m_fProgressRate > 0.0f)
 					return 1;
 
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
 			else if (!strcmp(str1, "king") || !strcmp(str1, "kingdom") || !strcmp(str1, "King") || !strcmp(str1, "Kingdom"))
 			{
@@ -5305,7 +5305,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			{
 				sprintf(stMsgWhisper.MobName, "%s", "spk");
 				strcpy(m_cWhisperName, g_pMessageStringTable[389]);
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
 			else if (!strcmp(str1, g_pMessageStringTable[386]))
 			{
@@ -5322,7 +5322,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					return 1;
 				}
 				sprintf(stMsgWhisper.MobName, "%s", "create");
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
 			else if (!strcmp(str1, g_pMessageStringTable[387]))
 			{
@@ -5333,17 +5333,17 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					return 1;
 				}
 				sprintf(stMsgWhisper.MobName, "%s", "handover");
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
 			else if (!strcmp(str1, g_pMessageStringTable[391]))
 			{
 				sprintf(stMsgWhisper.MobName, "%s", "getout");
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
 			else if (!strcmp(str1, g_pMessageStringTable[390]))
 			{
 				sprintf(stMsgWhisper.MobName, "%s", "war");
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
 			else if (!strcmp(str1, "srv"))
 			{
@@ -5352,12 +5352,12 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			else if (!strcmp(str1, g_pMessageStringTable[496]))
 			{
 				sprintf(stMsgWhisper.MobName, "%s", "item_lock");
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
 			else if (!strcmp(str1, g_pMessageStringTable[497]))
 			{
 				sprintf(stMsgWhisper.MobName, "%s", "item_unlock");
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
 			else if (!strcmp(str1, "tab"))
 			{
@@ -5369,10 +5369,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 				sprintf(g_TempNick, "%s", stMsgWhisper.String);
 
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
 			else
-				SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 
 			if (!strcmp(str1, "r") || !(strcmp(str1, "re")))
 			{
@@ -5430,7 +5430,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 			pEditChat->SetText((char*)"");
 
-			SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgChat)->Type, reinterpret_cast<char*>(&stMsgChat), sizeof(stMsgChat)});
 
 			size_t len = strlen(stMsgChat.String) + strlen(pMobData->MobName);
 			const size_t maxLen = 40;
@@ -5672,7 +5672,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				stWithdraw.Header.Type = MSG_Withdraw_Opcode;
 				stWithdraw.Header.ID = m_pMyHuman->m_dwID;
 				stWithdraw.Parm = static_cast<int>(nInputValue);
-				SendOneMessage((char*)&stWithdraw, sizeof(stWithdraw));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stWithdraw)->Type, reinterpret_cast<char*>(&stWithdraw), sizeof(stWithdraw)});
 			}
 			break;
 			case 0:
@@ -5682,7 +5682,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				stDeposit.Header.Type = MSG_Deposit_Opcode;
 				stDeposit.Header.ID = m_pMyHuman->m_dwID;
 				stDeposit.Parm = static_cast<int>(nInputValue);
-				SendOneMessage((char*)&stDeposit, sizeof(stDeposit));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stDeposit)->Type, reinterpret_cast<char*>(&stDeposit), sizeof(stDeposit)});
 			}
 			break;
 			case 1:
@@ -5855,7 +5855,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				stPacket.Header.Type = 977;
 				stPacket.Header.ID = m_pMyHuman->m_dwID;
 				stPacket.Parm = static_cast<int>(nInputValue);
-				SendOneMessage((char*)&stPacket, sizeof(stPacket));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stPacket)->Type, reinterpret_cast<char*>(&stPacket), sizeof(stPacket)});
 			}
 			break;
 			case 8:
@@ -5919,7 +5919,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				stPacket.Header.Type = 0xED7;
 				stPacket.Header.ID = m_pMyHuman->m_dwID;
 				stPacket.Parm = static_cast<int>(nInputValue);
-				SendOneMessage((char*)&stPacket, sizeof(stPacket));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stPacket)->Type, reinterpret_cast<char*>(&stPacket), sizeof(stPacket)});
 			}
 			break;
 			case 10:
@@ -5929,7 +5929,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				stPacket.Header.Type = 0xED8;
 				stPacket.Header.ID = m_pMyHuman->m_dwID;
 				stPacket.Parm = static_cast<int>(nInputValue);
-				SendOneMessage((char*)&stPacket, sizeof(stPacket));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stPacket)->Type, reinterpret_cast<char*>(&stPacket), sizeof(stPacket)});
 			}
 			break;
 			case 12:
@@ -5963,7 +5963,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				stPacket.Parm1 = pos;
 				stPacket.Parm2 = SGridControl::m_pSellItem->m_pItem->sIndex;
 				stPacket.Parm3 = static_cast<int>(nInputValue);
-				SendOneMessage((char*)&stPacket, sizeof(stPacket));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stPacket)->Type, reinterpret_cast<char*>(&stPacket), sizeof(stPacket)});
 			}
 			break;
 			}
@@ -6053,7 +6053,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		MSG_STANDARDPARM stParm{};
 		stParm.Header.ID = m_pMyHuman->m_dwID;
 		stParm.Header.Type = 0xA08;
-		g_pSocketManager->SendOneMessage((char*)&stParm, sizeof(stParm));
+		g_pSocketManager->SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 
 		return 1;
 	}
@@ -6507,7 +6507,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 		stMsgChat.Header.Type = MSG_MessageChat_Opcode;
 		strcpy_s(stMsgChat.String, "whisper");
-		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgChat)->Type, reinterpret_cast<char*>(&stMsgChat), sizeof(stMsgChat)});
 		return 1;
 	}
 	if (idwControlID == B_CHAT_PARTY)
@@ -6516,7 +6516,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 		stMsgChat.Header.Type = MSG_MessageChat_Opcode;
 		strcpy_s(stMsgChat.String, "partychat");
-		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgChat)->Type, reinterpret_cast<char*>(&stMsgChat), sizeof(stMsgChat)});
 		return 1;
 	}
 	if (idwControlID == B_CHAT_KINGDOM)
@@ -6525,7 +6525,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 		stMsgChat.Header.Type = MSG_MessageChat_Opcode;
 		strcpy_s(stMsgChat.String, "kingdomchat");
-		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgChat)->Type, reinterpret_cast<char*>(&stMsgChat), sizeof(stMsgChat)});
 		return 1;
 	}
 	if (idwControlID == B_CHAT_GUILD)
@@ -6534,7 +6534,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 		stMsgChat.Header.Type = MSG_MessageChat_Opcode;
 		strcpy_s(stMsgChat.String, "guildchat");
-		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgChat)->Type, reinterpret_cast<char*>(&stMsgChat), sizeof(stMsgChat)});
 		return 1;
 	}
 	if (idwControlID == TMB_GUILDONOFF)
@@ -6558,7 +6558,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			else
 				strcpy_s(stMsgChat.String, "guildoff");
 		}
-		SendOneMessage((char*)&stMsgChat, sizeof(stMsgChat));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgChat)->Type, reinterpret_cast<char*>(&stMsgChat), sizeof(stMsgChat)});
 		return 1;
 	}
 	if (idwControlID == TMB_RUNMODE)
@@ -6577,7 +6577,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		MSG_STANDARDPARM stParm{};
 		stParm.Header.ID = m_pMyHuman->m_dwID;
 		stParm.Header.Type = MSG_SysQuit_Opcode;
-		g_pSocketManager->SendOneMessage((char*)&stParm, sizeof(stParm));
+		g_pSocketManager->SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 		return 0;
 	}
 	if (idwControlID == P_MINIBTNPANEL_BTN)
@@ -6598,7 +6598,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			MSG_STANDARDPARM stParm{};
 			stParm.Header.ID = m_pMyHuman->m_dwID;
 			stParm.Header.Type = MSG_SysQuit_Opcode;
-			g_pSocketManager->SendOneMessage((char*)&stParm, sizeof(stParm));
+			g_pSocketManager->SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 			return 1;
 		}
 
@@ -7154,7 +7154,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stParm.Header.ID = g_pObjectManager->m_dwCharID;
 		stParm.Header.Type = 0x2C7;
 		stParm.Parm = idwControlID - 897;
-		SendOneMessage((char*)&stParm, sizeof(stParm));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 		return 1;
 	}
 	if (idwControlID >= 8706 && idwControlID <= 8806)
@@ -7213,7 +7213,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stParm.Header.ID = m_pMyHuman->m_dwID;
 		stParm.Header.Type = 0x3AE;
 		stParm.Parm = 0;
-		SendOneMessage((char*)&stParm, sizeof(stParm));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 		return 1;
 	}
 	if (idwControlID == 12289)
@@ -7284,7 +7284,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stParm.Header.ID = m_pMyHuman->m_dwID;
 		stParm.Header.Type = MSG_SysQuit_Opcode;
 		stParm.Parm = 0;
-		SendOneMessage((char*)&stParm, sizeof(stParm));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 		return 1;
 	}
 	if (idwControlID == 65883)
@@ -7508,7 +7508,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stParm2.Header.ID = m_pMyHuman->m_dwID;
 			stParm2.Parm1 = m_pPGTOver->m_dwID;
 			
-			SendOneMessage((char*)&stParm2, sizeof(stParm2));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm2)->Type, reinterpret_cast<char*>(&stParm2), sizeof(stParm2)});
 			m_pPGTPanel->SetVisible(0);
 			m_pPGTOver = 0;
 			return 0;
@@ -7686,7 +7686,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				break;
 			}
 
-			SendOneMessage((char*)&stParm2, sizeof(stParm2));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm2)->Type, reinterpret_cast<char*>(&stParm2), sizeof(stParm2)});
 
 			m_pPGTOver = 0;
 			if (m_pPGTPanel)
@@ -7702,7 +7702,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		sprintf(stMsgWhisper.MobName, "_RPS_");
 		sprintf(stMsgWhisper.String, "rock");
-		SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 		m_pRPSGamePanel->SetVisible(0);
 		return 0;
 	}
@@ -7714,7 +7714,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		sprintf(stMsgWhisper.MobName, "_RPS_");
 		sprintf(stMsgWhisper.String, "paper");
-		SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 		m_pRPSGamePanel->SetVisible(0);
 		return 0;
 	}
@@ -7726,7 +7726,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		sprintf(stMsgWhisper.MobName, "_RPS_");
 		sprintf(stMsgWhisper.String, "scissor");
-		SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 		m_pRPSGamePanel->SetVisible(0);
 		return 0;
 	}
@@ -7753,7 +7753,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stApplyBonus.Header.Type = MSG_ApplyBonus_Opcode;
 		stApplyBonus.BonusType = 0;
 		stApplyBonus.Detail = 0;
-		SendOneMessage((char*)&stApplyBonus, sizeof(stApplyBonus));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stApplyBonus)->Type, reinterpret_cast<char*>(&stApplyBonus), sizeof(stApplyBonus)});
 		return 1;
 	}
 	if (idwControlID == 65719)
@@ -7768,7 +7768,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stApplyBonus.Header.Type = MSG_ApplyBonus_Opcode;
 		stApplyBonus.BonusType = 0;
 		stApplyBonus.Detail = 1;
-		SendOneMessage((char*)&stApplyBonus, sizeof(stApplyBonus));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stApplyBonus)->Type, reinterpret_cast<char*>(&stApplyBonus), sizeof(stApplyBonus)});
 		return 1;
 	}
 	if (idwControlID == 65722)
@@ -7783,7 +7783,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stApplyBonus.Header.Type = MSG_ApplyBonus_Opcode;
 		stApplyBonus.BonusType = 0;
 		stApplyBonus.Detail = 2;
-		SendOneMessage((char*)&stApplyBonus, sizeof(stApplyBonus));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stApplyBonus)->Type, reinterpret_cast<char*>(&stApplyBonus), sizeof(stApplyBonus)});
 		return 1;
 	}
 	if (idwControlID == 65725)
@@ -7798,7 +7798,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stApplyBonus.Header.Type = MSG_ApplyBonus_Opcode;
 		stApplyBonus.BonusType = 0;
 		stApplyBonus.Detail = 3;
-		SendOneMessage((char*)&stApplyBonus, sizeof(stApplyBonus));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stApplyBonus)->Type, reinterpret_cast<char*>(&stApplyBonus), sizeof(stApplyBonus)});
 		return 1;
 	}
 	if (idwControlID == 65754)
@@ -7834,7 +7834,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stApplyBonus.Header.Type = MSG_ApplyBonus_Opcode;
 			stApplyBonus.BonusType = 1;
 			stApplyBonus.Detail = 0;
-			SendOneMessage((char*)&stApplyBonus, sizeof(stApplyBonus));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stApplyBonus)->Type, reinterpret_cast<char*>(&stApplyBonus), sizeof(stApplyBonus)});
 		}
 		else
 		{
@@ -7879,7 +7879,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stApplyBonus.Header.Type = MSG_ApplyBonus_Opcode;
 			stApplyBonus.BonusType = 1;
 			stApplyBonus.Detail = 1;
-			SendOneMessage((char*)&stApplyBonus, sizeof(stApplyBonus));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stApplyBonus)->Type, reinterpret_cast<char*>(&stApplyBonus), sizeof(stApplyBonus)});
 		}
 		else
 		{
@@ -7920,7 +7920,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stApplyBonus.Header.Type = MSG_ApplyBonus_Opcode;
 			stApplyBonus.BonusType = 1;
 			stApplyBonus.Detail = 2;
-			SendOneMessage((char*)&stApplyBonus, sizeof(stApplyBonus));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stApplyBonus)->Type, reinterpret_cast<char*>(&stApplyBonus), sizeof(stApplyBonus)});
 		}
 		else
 		{
@@ -7959,7 +7959,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stApplyBonus.Header.Type = MSG_ApplyBonus_Opcode;
 			stApplyBonus.BonusType = 1;
 			stApplyBonus.Detail = 3;
-			SendOneMessage((char*)&stApplyBonus, sizeof(stApplyBonus));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stApplyBonus)->Type, reinterpret_cast<char*>(&stApplyBonus), sizeof(stApplyBonus)});
 		}
 		else
 		{
@@ -8127,7 +8127,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					stAttack.PosY = m_stMoveStop.NextY;
 					stAttack.TargetY = stAttack.PosY;
 				}
-				SendOneMessage((char*)&stAttack, sizeof(stAttack));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAttack)->Type, reinterpret_cast<char*>(&stAttack), sizeof(stAttack)});
 
 				MSG_Attack localAttack{};
 				memcpy(&localAttack, (char*)&stAttack, sizeof(localAttack));
@@ -8156,7 +8156,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stParm.Header.ID = m_pMyHuman->m_dwID;
 			stParm.Parm = 0;
 
-			SendOneMessage((char*)&stParm, sizeof(stParm));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 
 			if (m_pPartyPanel && m_pPartyPanel->IsVisible())
 				SetVisibleParty();
@@ -8189,7 +8189,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			stTrade.Header.ID = m_pMyHuman->m_dwID;
 			stTrade.Header.Type = MSG_Trade_Opcode;
 			WYD748_LogTradeSend("confirm", stTrade);
-			SendOneMessage((char*)&stTrade, sizeof(stTrade));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stTrade)->Type, reinterpret_cast<char*>(&stTrade), sizeof(stTrade)});
 
 			m_dwLastCheckTime = g_pApp->m_pTimerManager->GetServerTime();
 			return 0;
@@ -8333,7 +8333,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				stParm.Header.ID = m_pMyHuman->m_dwID;
 				stParm.Header.Type = MSG_SysQuit_Opcode;
 				stParm.Parm = 1;
-				SendOneMessage((char*)&stParm, sizeof(stParm));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 			}
 		}
 
@@ -8990,7 +8990,7 @@ int TMFieldScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 
 					m_pMyHuman->m_SendeMotion = static_cast<ECHAR_MOTION>(stMotion.Motion);
 
-					SendOneMessage((char*)&stMotion, sizeof(stMotion));
+					SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMotion)->Type, reinterpret_cast<char*>(&stMotion), sizeof(stMotion)});
 
 					m_dwKeyTime = dwServerTime;
 				}
@@ -10986,7 +10986,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 		stQuest.Header.Type = 0x39A;
 		stQuest.Header.ID = m_pMyHuman->m_dwID;
 		stQuest.Parm = pOver->m_dwID;
-		SendOneMessage((char*)&stQuest, sizeof(stQuest));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 		m_dwNPCClickTime = dwServerTime;
 		return 1;
 	}
@@ -11018,7 +11018,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 
 			m_pGridShop->m_dwMerchantID = pOver->m_dwID;
 
-			SendOneMessage((char*)&stReqShopList, sizeof(stReqShopList));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stReqShopList)->Type, reinterpret_cast<char*>(&stReqShopList), sizeof(stReqShopList)});
 
 			m_dwNPCClickTime = dwServerTime;
 			m_sShopTarget = pOver->m_dwID;
@@ -11053,7 +11053,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 
 			m_pGridShop->m_dwMerchantID = pOver->m_dwID;
 
-			SendOneMessage((char*)&stReqShopList, sizeof(stReqShopList));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stReqShopList)->Type, reinterpret_cast<char*>(&stReqShopList), sizeof(stReqShopList)});
 
 			m_dwNPCClickTime = dwServerTime;
 			m_sShopTarget = pOver->m_dwID;
@@ -11129,7 +11129,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 			m_dwTID = pOver->m_dwID;
 			stPacket.Parm = m_dwTID;
 
-			SendOneMessage((char*)&stPacket, sizeof(stPacket));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stPacket)->Type, reinterpret_cast<char*>(&stPacket), sizeof(stPacket)});
 
 			m_dwNPCClickTime = dwServerTime;
 			return 1;
@@ -12170,7 +12170,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 					m_stMoveStop.LastY = stAction.PosY;
 					m_stMoveStop.NextX = stAction.TargetX;
 					m_stMoveStop.NextY = stAction.TargetY;
-					SendOneMessage((char*)&stAction, sizeof(stAction));
+					SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAction)->Type, reinterpret_cast<char*>(&stAction), sizeof(stAction)});
 					IncSkillSel();
 					m_dwSkillLastTime[(unsigned char)cSkillIndex] = dwServerTime;
 					m_pMyHuman->m_dwOldMovePacketTime = dwServerTime;
@@ -13394,7 +13394,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 				stAttack.Dam[0].Damage = -1;
 			}
 
-			SendOneMessage((char*)&stAttack, sizeof(stAttack));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAttack)->Type, reinterpret_cast<char*>(&stAttack), sizeof(stAttack)});
 
 			MSG_Attack stAttackLocal{};
 			memcpy(&stAttackLocal, &stAttack, sizeof(MSG_Attack));
@@ -14588,7 +14588,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			MSG_STANDARD stStandard{};
 			stStandard.ID = g_pObjectManager->m_dwCharID;
 			stStandard.Type = 0x215;
-			SendOneMessage((char*)&stStandard, sizeof(stStandard));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stStandard)->Type, reinterpret_cast<char*>(&stStandard), sizeof(stStandard)});
 			m_dwLastLogout = 0;
 			return 1;
 		}
@@ -14700,7 +14700,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 		{
 			m_cResurrect = 0;
 			stAttack.FlagLocal = 0;
-			SendOneMessage((char*)&stAttack, sizeof(stAttack));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAttack)->Type, reinterpret_cast<char*>(&stAttack), sizeof(stAttack)});
 		}
 		else
 		{
@@ -14766,7 +14766,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			stMsgImp.Header.Type = MSG_MessageWhisper_Opcode;
 			sprintf(stMsgImp.MobName, "relo");
 			sprintf(stMsgImp.String, "%s", m_szSummoner);
-			SendOneMessage((char*)&stMsgImp, sizeof(stMsgImp));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgImp)->Type, reinterpret_cast<char*>(&stMsgImp), sizeof(stMsgImp)});
 			m_cLastRelo = 0;
 		}
 		else if (dwServerTime > m_dwLastRelo + 5000 && m_cLastRelo == 2)
@@ -14776,7 +14776,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			stMsgImp.Header.Type = MSG_MessageWhisper_Opcode;
 			sprintf(stMsgImp.MobName, "relo");
 			sprintf(stMsgImp.String, "%s", m_szSummoner2);
-			SendOneMessage((char*)&stMsgImp, sizeof(stMsgImp));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgImp)->Type, reinterpret_cast<char*>(&stMsgImp), sizeof(stMsgImp)});
 			m_cLastRelo = 0;
 		}
 		else
@@ -15321,7 +15321,7 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 
 			stStandard.Type = MSG_CloseTrade_Opcode;
 			stStandard.ID = m_pMyHuman->m_dwID;
-			SendOneMessage((char*)&stStandard, sizeof(stStandard));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stStandard)->Type, reinterpret_cast<char*>(&stStandard), sizeof(stStandard)});
 		}
 	}
 
@@ -17756,7 +17756,7 @@ void TMFieldScene::SetShortSkill(int nIndex, SGridControlItem* pGridItem)
 		}
 	}
 
-	SendOneMessage((char*)&stSetShortSkill, sizeof(stSetShortSkill));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSetShortSkill)->Type, reinterpret_cast<char*>(&stSetShortSkill), sizeof(stSetShortSkill)});
 
 	GetSoundAndPlay(31, 0, 0);
 }
@@ -18099,7 +18099,7 @@ void TMFieldScene::FindAuto()
 		MSG_STANDARD stStandard{};
 		stStandard.ID = g_pObjectManager->m_dwCharID;
 		stStandard.Type = MSG_Ping_Opcode;
-		SendOneMessage((char*)&stStandard, sizeof(stStandard));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stStandard)->Type, reinterpret_cast<char*>(&stStandard), sizeof(stStandard)});
 	}
 
 	// TODO: china stuffs here, not needed for now
@@ -18239,7 +18239,7 @@ void TMFieldScene::SetPK()
 	stParam.Header.ID = g_pObjectManager->m_dwCharID;
 	stParam.Header.Type = MSG_SetPKMode_Opcode;
 	stParam.Parm = TMFieldScene::m_bPK;
-	SendOneMessage((char*)&stParam, sizeof(stParam));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 
 	if (pBtnPK)
 		pBtnPK->SetSelected(TMFieldScene::m_bPK);
@@ -18614,7 +18614,7 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 				
 				stStandard.Type = 0x384;
 				stStandard.ID = m_pMyHuman->m_dwID;
-				SendOneMessage((char*)&stStandard, sizeof(stStandard));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stStandard)->Type, reinterpret_cast<char*>(&stStandard), sizeof(stStandard)});
 			}
 		}
 	}
@@ -18666,7 +18666,7 @@ void TMFieldScene::SendReqBuy(unsigned int dwControlID)
 	stReqBuy.Tax = m_stAutoTrade.Tax;
 	stReqBuy.item = m_stAutoTrade.Item[dwControlID - 653];
 
-	SendOneMessage((char*)&stReqBuy, sizeof(stReqBuy));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stReqBuy)->Type, reinterpret_cast<char*>(&stReqBuy), sizeof(stReqBuy)});
 }
 
 void TMFieldScene::SetSanc()
@@ -18829,7 +18829,7 @@ int TMFieldScene::GetItemFromGround(unsigned int dwServerTime)
 	stUpdateItem.ItemID = pOverItem->m_dwID;
 	stUpdateItem.Header.Type = MSG_UpdateItem_Opcode;
 	stUpdateItem.State = 1;
-	SendOneMessage((char*)&stUpdateItem, sizeof(stUpdateItem));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUpdateItem)->Type, reinterpret_cast<char*>(&stUpdateItem), sizeof(stUpdateItem)});
 
 	m_dwGetItemTime = g_pTimerManager->GetServerTime();
 
@@ -19293,7 +19293,7 @@ char TMFieldScene::UseHPotion()
 		stUseItem.ItemID = 0;
 		stUseItem.GridX = (int)vec.x;
 		stUseItem.GridY = (int)vec.y;
-		SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 		m_dwUseItemTime = dwServerTime;
 
 		int nAmount = BASE_GetItemAmount(pItem->m_pItem);
@@ -19388,7 +19388,7 @@ char TMFieldScene::UseMPotion()
 		stUseItem.ItemID = 0;
 		stUseItem.GridX = (int)vec.x;
 		stUseItem.GridY = (int)vec.y;
-		SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 		m_dwUseItemTime = dwServerTime;
 
 		int nAmount = BASE_GetItemAmount(pItem->m_pItem);
@@ -19471,7 +19471,7 @@ void TMFieldScene::UsePPotion()
 	stUseItem.ItemID = 0;
 	stUseItem.GridX = (int)vec.x;
 	stUseItem.GridY = (int)vec.y;
-	SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 	m_dwUseItemTime = dwServerTime;
 
 	// This shortcut is one of the native optimistic-consumption paths. Once the
@@ -19602,7 +19602,7 @@ char TMFieldScene::FeedMount()
 		stUseItem.ItemID = 0;
 		stUseItem.GridX = (int)vec.x;
 		stUseItem.GridY = (int)vec.y;
-		SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 		m_dwUseItemTime = dwServerTime;
 
 		int nAmount = BASE_GetItemAmount(pItem->m_pItem);
@@ -19677,7 +19677,7 @@ void TMFieldScene::UseTicket(int nCellX, int nCellY)
 	stUseItem.ItemID = 0;
 	stUseItem.GridX = (int)m_pMyHuman->m_vecPosition.x;
 	stUseItem.GridY = (int)m_pMyHuman->m_vecPosition.y;
-	SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 
 	m_dwUseItemTime = dwServerTime;
 	g_pEventTranslator->m_bRBtn = 1;
@@ -19794,7 +19794,7 @@ char TMFieldScene::UseQuickSloat(char key)
 		stUseItem.DestPos = 14;
 	}
 
-	SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 
 	m_dwUseItemTime = dwServerTime;
 	int nAmount = BASE_GetItemAmount(pItem->m_pItem);
@@ -19928,7 +19928,7 @@ void TMFieldScene::UseFireWork()
 			BASE_SetBit(stUseItem.Parm, i);
 	}
 
-	SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 	m_nFireWorkCellX = -1;
 	m_nFireWorkCellY = -1;
 	m_dwUseItemTime = dwServerTime;
@@ -20125,7 +20125,7 @@ void TMFieldScene::MobStop(D3DXVECTOR3 vec)
 		m_stMoveStop.NextX = stAction.TargetX;
 		m_stMoveStop.NextY = stAction.TargetY;
 
-		SendOneMessage((char*)&stAction, sizeof(stAction));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAction)->Type, reinterpret_cast<char*>(&stAction), sizeof(stAction)});
 
 		m_pMyHuman->OnPacketEvent(MSG_Action_Stop_Opcode, (char*)&stAction);
 
@@ -20284,7 +20284,7 @@ void TMFieldScene::UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, 
 		stUseItem.GridX = static_cast<int>(m_pMyHuman->m_vecPosition.x);
 		stUseItem.GridY = static_cast<int>(m_pMyHuman->m_vecPosition.y);
 
-		SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 
 		m_dwUseItemTime = dwServerTime;
 		g_pEventTranslator->m_bRBtn = 1;
@@ -20493,7 +20493,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stTrade.Header.ID = m_pMyHuman->m_dwID;
 		stTrade.Header.Type = MSG_Trade_Opcode;
 		WYD748_LogTradeSend("accept", stTrade);
-		SendOneMessage((char*)&stTrade, sizeof(stTrade));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stTrade)->Type, reinterpret_cast<char*>(&stTrade), sizeof(stTrade)});
 		if (!m_pTradePanel->IsVisible())
 		{
 			auto pTextMyName = static_cast<SText*>(m_pControlContainer->FindControl(TMT_TRADE_MYNAME));
@@ -20533,7 +20533,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stApplyBonus.BonusType = 2;
 		stApplyBonus.Detail = m_pMessageBox->m_dwArg >> 16;
 		stApplyBonus.TargetID = m_pMessageBox->m_dwArg;
-		SendOneMessage((char*)&stApplyBonus, sizeof(stApplyBonus));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stApplyBonus)->Type, reinterpret_cast<char*>(&stApplyBonus), sizeof(stApplyBonus)});
 	}
 	break;
 	case 6193:
@@ -20587,7 +20587,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 					? vecGrid.x + 9 * vecGrid.y
 					: 15 * i + vecGrid.x + 5 * vecGrid.y;
 
-				SendOneMessage((char*)&stHellBuy, sizeof(stHellBuy));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stHellBuy)->Type, reinterpret_cast<char*>(&stHellBuy), sizeof(stHellBuy)});
 
 				if (g_pSoundManager)
 				{
@@ -20620,7 +20620,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stGuildDep.Header.ID = m_pMyHuman->m_dwID;
 		stGuildDep.Header.Type = 652;
 		stGuildDep.Parm = m_pMessageBox->m_dwArg;
-		SendOneMessage((char*)&stGuildDep, sizeof(stGuildDep));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stGuildDep)->Type, reinterpret_cast<char*>(&stGuildDep), sizeof(stGuildDep)});
 		m_pPGTPanel->SetVisible(0);
 	}
 	break;
@@ -20632,7 +20632,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stParam.Header.Type = 3598;
 		stParam.Parm1 = m_pMyHuman->m_usGuild;
 		stParam.Parm2 = m_pMessageBox->m_dwArg;
-		SendOneMessage((char*)&stParam, sizeof(stParam));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 		m_pPGTPanel->SetVisible(0);
 	}
 	break;
@@ -20644,7 +20644,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stParam.Header.Type = 3602;
 		stParam.Parm1 = m_pMyHuman->m_usGuild;
 		stParam.Parm2 = m_pMessageBox->m_dwArg;
-		SendOneMessage((char*)&stParam, sizeof(stParam));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 		m_pPGTPanel->SetVisible(0);
 	}
 	break;
@@ -20663,7 +20663,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 			stParam.Header.ID = g_pObjectManager->m_dwCharID;
 			stParam.Header.Type = 656;
 			stParam.Parm = 0;
-			SendOneMessage((char*)&stParam, sizeof(stParam));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 		}
 		else
 		{
@@ -20686,7 +20686,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stQuest.Header.ID = m_pMyHuman->m_dwID;
 		stQuest.Parm1 = m_pMessageBox->m_dwArg;
 		stQuest.Parm2 = 4;
-		SendOneMessage((char*)&stQuest, sizeof(stQuest));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 		m_pPGTOver = nullptr;
 	}
 	break;
@@ -20714,7 +20714,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stParam.Parm1 = m_pMessageBox->m_dwArg;
 		stParam.Parm2 = 0;
 
-		SendOneMessage((char*)&stParam, sizeof(stParam));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 	}
 	break;
 	case 15:
@@ -20730,7 +20730,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stParam.Parm1 = m_pMessageBox->m_dwArg;
 		stParam.Parm2 = 1;
 
-		SendOneMessage((char*)&stParam, sizeof(stParam));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 	}
 	break;
 	case 646:
@@ -20769,7 +20769,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stParam.Header.Type = 655;
 		stParam.Parm1 = m_dwTID;
 		stParam.Parm2 = 0;
-		SendOneMessage((char*)&stParam, sizeof(stParam));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 	}
 	break;
 	case 65859:
@@ -20793,7 +20793,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stQuest.Header.ID = m_pMyHuman->m_dwID;
 		stQuest.Parm1 = m_pMessageBox->m_dwArg;
 		stQuest.Parm2 = 0;
-		SendOneMessage((char*)&stQuest, sizeof(stQuest));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 		m_dwNPCClickTime = dwServerTime;
 	}
 	break;
@@ -20828,7 +20828,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stDeleteItem.Header.Type = MSG_DeleteItem_Opcode;
 		stDeleteItem.Parm1 = DestPage + sDestPos;
 		stDeleteItem.Parm2 = pSellItem->m_pItem->sIndex;
-		SendOneMessage((char*)&stDeleteItem, sizeof(stDeleteItem));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stDeleteItem)->Type, reinterpret_cast<char*>(&stDeleteItem), sizeof(stDeleteItem)});
 		SGridControl::m_pSellItem = nullptr;
 	}
 	break;
@@ -20867,7 +20867,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 			stSell.MyType = sDestType;
 			stSell.MyPos = DestPage + sDestPos;
 
-			SendOneMessage((char*)&stSell, sizeof(stSell));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSell)->Type, reinterpret_cast<char*>(&stSell), sizeof(stSell)});
 		}
 		SGridControl::m_pSellItem = nullptr;
 	}
@@ -20882,7 +20882,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stQuest.Parm1 = m_pMessageBox->m_dwArg;
 		stQuest.Parm2 = 0;
 
-		SendOneMessage((char*)&stQuest, sizeof(stQuest));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 	}
 	break;
 	case 84:
@@ -20912,7 +20912,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 			stAttack.SkillIndex = 83;
 			stAttack.SkillParm = 0;
 			stAttack.Motion = -1;
-			SendOneMessage((char*)&stAttack, sizeof(stAttack));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAttack)->Type, reinterpret_cast<char*>(&stAttack), sizeof(stAttack)});
 			m_dwOldAttackTime = dwServerTime;
 			m_dwSkillLastTime[83] = dwServerTime;
 
@@ -20923,7 +20923,7 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 			stSell.MyType = m_sDestType;
 			stSell.MyPos = m_sDestPos;
 
-			SendOneMessage((char*)&stSell, sizeof(stSell));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSell)->Type, reinterpret_cast<char*>(&stSell), sizeof(stSell)});
 
 			m_sDestType = -1;
 			m_sDestPos = -1;
@@ -21216,7 +21216,7 @@ int TMFieldScene::OnKeyAuto(char iCharCode, int lParam)
 	stUseItem.SourPos = SourPos;
 	stUseItem.GridX = (int)vec.x;
 	stUseItem.GridY = (int)vec.y;
-	SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 
 	m_dwUseItemTime = dwServerTime;
 	g_pEventTranslator->m_bRBtn = 1;
@@ -21773,7 +21773,7 @@ int TMFieldScene::OnKeyNumPad(unsigned int iKeyCode)
 
 	stMotion.Direction = 0.0f;
 
-	SendOneMessage((char*)&stMotion, sizeof(stMotion));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMotion)->Type, reinterpret_cast<char*>(&stMotion), sizeof(stMotion)});
 
 	m_dwKeyTime = dwServerTime;
 	m_bNumPad = 1;
@@ -22104,7 +22104,7 @@ int TMFieldScene::OnPacketAction(MSG_STANDARD* pStd)
 	stReqMobById.Header.ID = g_pObjectManager->m_dwCharID;
 	stReqMobById.Header.Type = MSG_REQMobByID_Opcode;
 	stReqMobById.MobID = pStd->ID;
-	SendOneMessage((char*)&stReqMobById, sizeof(stReqMobById));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stReqMobById)->Type, reinterpret_cast<char*>(&stReqMobById), sizeof(stReqMobById)});
 	return 1;
 }
 
@@ -22985,7 +22985,7 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 			strncpy(stAccountLogin.AccountName, pStd->AccountName, sizeof(pStd->AccountName));
 			strncpy(stAccountLogin.Zero, pStd->TID, sizeof(pStd->TID));
 			sprintf(stAccountLogin.AccountPassword, "");
-			SendOneMessage((char*)&stAccountLogin, sizeof(stAccountLogin));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAccountLogin)->Type, reinterpret_cast<char*>(&stAccountLogin), sizeof(stAccountLogin)});
 
 			return 1;
 		}
@@ -24328,7 +24328,7 @@ int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 		if (pNode)
 			pNode->m_bParty = 1;
 
-		SendOneMessage((char*)&stCnfParty, sizeof(stCnfParty));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stCnfParty)->Type, reinterpret_cast<char*>(&stCnfParty), sizeof(stCnfParty)});
 	}
 
 	m_dwChatTime = g_pTimerManager->GetServerTime();
@@ -26059,7 +26059,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 			stParm.Header.ID = g_pObjectManager->m_dwCharID;
 			stParm.Header.Type = 0x369;
 			stParm.Parm = pAttack->AttackerID;
-			SendOneMessage((char*)&stParm, sizeof(stParm));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 		}
 	}
 
@@ -28496,7 +28496,7 @@ void TMFieldScene::AirMove_Start(int nIndex)
 	stAirmoveStart.Header.ID = m_pMyHuman->m_dwID;
 	stAirmoveStart.Parm1 = nIndex;
 	stAirmoveStart.Parm2 = 1;
-	SendOneMessage((char*)&stAirmoveStart, sizeof(stAirmoveStart));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAirmoveStart)->Type, reinterpret_cast<char*>(&stAirmoveStart), sizeof(stAirmoveStart)});
 	m_nAirMove_Index = nIndex;
 	m_nAirMove_RouteIndex = 0;
 	m_fAirMove_Speed = 0.2f;
@@ -28542,7 +28542,7 @@ void TMFieldScene::AirMove_End()
 		stAirmoveStart.Header.ID = m_pMyHuman->m_dwID;
 		stAirmoveStart.Parm1 = m_nAirMove_Index;
 		stAirmoveStart.Parm2 = 2;
-		SendOneMessage((char*)&stAirmoveStart, sizeof(stAirmoveStart));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAirmoveStart)->Type, reinterpret_cast<char*>(&stAirmoveStart), sizeof(stAirmoveStart)});
 	}
 }
 
@@ -29517,7 +29517,7 @@ void TMFieldScene::GameAuto()
 				m_stMoveStop.LastY = stAction.PosY;
 				m_stMoveStop.NextX = stAction.TargetX;
 				m_stMoveStop.NextY = stAction.TargetY;
-				SendOneMessage((char*)&stAction, sizeof(stAction));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAction)->Type, reinterpret_cast<char*>(&stAction), sizeof(stAction)});
 				m_pMyHuman->OnPacketEvent(MSG_Action_Opcode, (char*)&stAction);
 				m_pMyHuman->m_dwOldMovePacketTime = g_pTimerManager->GetServerTime();
 				return;
@@ -29768,7 +29768,7 @@ int TMFieldScene::MouseClick_SkillMasterNPC(unsigned int dwServerTime, TMHuman* 
 		stQuest.Header.ID = m_pMyHuman->m_dwID;
 		stQuest.Parm1 = pOver->m_dwID;
 		stQuest.Parm2 = 0;
-		SendOneMessage((char*)&stQuest, sizeof(stQuest));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 
 		m_dwNPCClickTime = dwServerTime;
 		return 1;
@@ -29787,7 +29787,7 @@ int TMFieldScene::MouseClick_SkillMasterNPC(unsigned int dwServerTime, TMHuman* 
 		// TargetID. Keep the same target captured by the shop-list request.
 		m_sShopTarget = pOver->m_dwID;
 
-		SendOneMessage((char*)&stReqShopList, sizeof(stReqShopList));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stReqShopList)->Type, reinterpret_cast<char*>(&stReqShopList), sizeof(stReqShopList)});
 		m_dwNPCClickTime = dwServerTime;
 	}
 	return 1;
@@ -29914,7 +29914,7 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 	stQuest.Header.ID = m_pMyHuman->m_dwID;
 	stQuest.Parm1 = pOver->m_dwID;
 	stQuest.Parm2 = 0;
-	SendOneMessage((char*)&stQuest, sizeof(stQuest));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 	m_dwNPCClickTime = dwServerTime;
 
 	return 1;
@@ -30078,7 +30078,7 @@ void TMFieldScene::InsertInChatList(SListBox* pChatList, STRUCT_MOB *pMobData, S
 
 	pEditChat->SetText((char*)"");
 
-	SendOneMessage((char*)&stMsgWhisper, sizeof(stMsgWhisper));
+	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 
 	int len = strlen(stMsgWhisper.String) + strlen(pMobData->MobName);
 	const size_t maxLen = 55;

@@ -2945,7 +2945,11 @@ void TMScene::LogMsgCriticalError(int Type, int ID, int nMesh, int X, int Y)
 			Y,
 			Type);
 
-	g_pSocketManager->SendOneMessage((char*)&stLog, sizeof(stLog));
+	g_pSocketManager->SendPacket({
+		stLog.Header.Type,
+		reinterpret_cast<char*>(&stLog),
+		sizeof(stLog)
+	});
 }
 
 void TMScene::DeleteOwnerAllContainer()

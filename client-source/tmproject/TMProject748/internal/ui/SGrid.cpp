@@ -1283,7 +1283,7 @@ int SGridControl::OnKeyDownEvent(unsigned int iKeyCode)
 			}
 		}
 
-		SendOneMessage((char*)&stSetShortSkill, sizeof(stSetShortSkill));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSetShortSkill)->Type, reinterpret_cast<char*>(&stSetShortSkill), sizeof(stSetShortSkill)});
 		pScene->UpdateScoreUI(0);
 		pScene->UpdateSkillBelt();
 	}
@@ -2145,7 +2145,7 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 			stSell.TargetID = m_dwMerchantID;
 			stSell.MyType = sDestType;
 			stSell.MyPos = sDestPos;
-			SendOneMessage((char*)&stSell, sizeof(stSell));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSell)->Type, reinterpret_cast<char*>(&stSell), sizeof(stSell)});
 			SGridControl::m_pSellItem = 0;
 		}
 		else
@@ -2290,7 +2290,7 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 			}
 		}
 
-		SendOneMessage((char*)&stSetShortSkill, sizeof(stSetShortSkill));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSetShortSkill)->Type, reinterpret_cast<char*>(&stSetShortSkill), sizeof(stSetShortSkill)});
 
 		auto pSoundManager = g_pSoundManager;
 		if (pSoundManager)
@@ -2392,7 +2392,7 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 		stUseItem.ItemID = 0;
 		stUseItem.GridX = 0;
 		stUseItem.GridY = 0;
-		SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 
 		pScene->m_dwUseItemTime = dwServerTime;
 		int nCellTempX = g_pCursor->m_pAttachedItem->m_nCellIndexX;
@@ -2494,7 +2494,7 @@ int SGridControl::SellItem2()
 			stSell.TargetID = m_dwMerchantID;
 			stSell.MyType = sDestType;
 			stSell.MyPos = sDestPos;
-			SendOneMessage((char*)&stSell, sizeof(stSell));
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSell)->Type, reinterpret_cast<char*>(&stSell), sizeof(stSell)});
 			SGridControl::m_pSellItem = 0;
 		}
 		m_dwEnableColor = 0;
@@ -2544,7 +2544,7 @@ int SGridControl::SellItem2()
 			}
 		}
 
-		SendOneMessage((char*)&stSetShortSkill, sizeof(stSetShortSkill));
+		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSetShortSkill)->Type, reinterpret_cast<char*>(&stSetShortSkill), sizeof(stSetShortSkill)});
 
 		auto pSoundManager = g_pSoundManager;
 		if (pSoundManager)
@@ -2709,7 +2709,7 @@ void SGridControl::SwapItem(int nCellX, int nCellY, int nCellVWidth, int nCellVH
 			if (stSwapItem.DestPos != stSwapItem.SourPos || 
 				stSwapItem.SourType != stSwapItem.DestType)
 			{
-				SendOneMessage((char*)&stSwapItem, sizeof(stSwapItem));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSwapItem)->Type, reinterpret_cast<char*>(&stSwapItem), sizeof(stSwapItem)});
 			}
 		}
 		else if ((nAtItemPos & (int)m_eItemType) == (int)m_eItemType)
@@ -2750,7 +2750,7 @@ void SGridControl::SwapItem(int nCellX, int nCellY, int nCellVWidth, int nCellVH
 				if (stSwapItem.DestPos != stSwapItem.SourPos ||
 					stSwapItem.SourType != stSwapItem.DestType)
 				{
-					SendOneMessage((char*)&stSwapItem, sizeof(stSwapItem));
+					SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSwapItem)->Type, reinterpret_cast<char*>(&stSwapItem), sizeof(stSwapItem)});
 				}
 			}
 		}
@@ -4642,7 +4642,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 				stUseItem.ItemID = 0;
 				stUseItem.GridX = (int)vec.x;
 				stUseItem.GridY = (int)vec.y;
-				SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 
 				int nAmount = BASE_GetItemAmount(pItem->m_pItem);
 				if (pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex < 2390)
@@ -4691,7 +4691,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 				stUseItem.ItemID = 0;
 				stUseItem.GridX = (int)vec.x;
 				stUseItem.GridY = (int)vec.y;
-				SendOneMessage((char*)&stUseItem, sizeof(stUseItem));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 
 				pFScene->m_dwUseItemTime = dwServerTime;
 
@@ -4747,7 +4747,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 				stDelayStart.Header.ID = pMyHuman->m_dwID;
 				stDelayStart.Header.Type = MSG_DelayStart_Opcode;
 				stDelayStart.Parm = 1;
-				SendOneMessage((char*)&stDelayStart, sizeof(stDelayStart));
+				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stDelayStart)->Type, reinterpret_cast<char*>(&stDelayStart), sizeof(stDelayStart)});
 			}
 
 			g_pEventTranslator->m_bRBtn = 1;
@@ -4886,7 +4886,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 						stParam.Header.Size = sizeof(stParam);
 						stParam.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
 						stParam.Parm = 0;
-						SendOneMessage((char*)&stParam, sizeof(stParam));
+						SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 						pFScene->m_dwUseItemTime = dwServerTime;
 					}
 				}

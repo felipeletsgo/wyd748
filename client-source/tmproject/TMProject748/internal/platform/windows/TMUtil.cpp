@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "TMUtil.h"
+#include "PacketSendBoundary.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
+#include <climits>
 
 TMVector3 ComputeNormalVector(TMVector3 v1, TMVector3 v2, TMVector3 v3)
 {
@@ -42,6 +44,18 @@ void SendOneMessage(char* Msg, int Size)
         g_pSocketManager->SendOneMessage(Msg, Size);
         g_usLastPacketType = pMsgStandard->Type;
     }
+}
+
+void SendPacket(const MutablePacketView& packet)
+{
+    // Rejeitar antes de o limitador ler Type ou converter size para int.
+    // Fachada transitoria: AddMessage altera Size/KeyWord/CheckSum/Tick no
+    // buffer original. Os emissores devem fornecer armazenamento gravavel.
+    SendValidatedPacket(packet, sizeof(MSG_STANDARD), [](char* data, int size) {
+        SendOneMessage(data, size);
+        // A API global nao informa entrega nem rejeicao pelo limitador.
+        return true;
+    });
 }
 
 void GetSoundAndPlay(int soundId, int priority, int flag)

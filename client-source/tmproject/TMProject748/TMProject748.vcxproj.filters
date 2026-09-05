@@ -135,10 +135,40 @@
     <ClInclude Include="internal\platform\windows\CPSock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="internal\core\Basedef.h">
+    <ClInclude Include="internal\platform\windows\SocketTransport.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="internal\application\ports\ITransport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\platform\network\SendBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\ports\PacketView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\ports\ICharacterLoginSender.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\CharacterLoginSender.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\RequestCharacterLogin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\MessageHeader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\CharacterLoginPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\Basedef.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\LoginPacketContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\PacketSendBoundary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="internal\core\BasedefGlobals.h">
@@ -510,7 +540,7 @@
     <ClInclude Include="internal\core\ResourceControl.h">
       <Filter>Header Files\Engine\UI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\CommonFiles\SharedStructs.h">
+    <ClInclude Include="CommonFiles\SharedStructs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="internal\ui\HudController.h">

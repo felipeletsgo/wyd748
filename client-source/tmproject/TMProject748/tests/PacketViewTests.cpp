@@ -1,0 +1,203 @@
+#include "../internal/application/ports/PacketView.h"
+#include "../internal/wire/PacketSendBoundary.h"
+#include "../internal/platform/windows/SocketTransport.h"
+#include "../internal/application/RequestCharacterLogin.h"
+#include "../internal/wire/CharacterLoginSender.h"
+#include <array>
+#include <cstring>
+#include <type_traits>
+#include <climits>
+#include <cstdio>
+#include <limits>
+#include "../internal/platform/network/SendBuffer.h"
+
+// Suite isolada de application, compilada sem os includes wire deste runner.
+int RunCharacterLoginUseCaseTests(int& checks);
+
+// Backend sem socket: registra metadados e usa o mesmo guard da producao.
+// Nao retém o buffer; a mutacao simula o preenchimento sincrono do cabecalho.
+struct FakeSocket
+{
+    int calls = 0;
+    int accepted = 0;
+    bool result = true;
+    unsigned int opcode = 0;
+    std::size_t size = 0;
+    int SendPacket(const MutablePacketView& packet)
+    {
+        ++calls;
+        opcode = packet.opcode;
+        size = packet.size;
+        return SendValidatedPacket(packet, 12, [&](char* data, int) {
+            ++accepted;
+            data[1] = 23;
+            return result;
+        });
+    }
+};
+
+// Espiao da porta: copia apenas para inspecao do teste, nunca retem o ponteiro
+// temporario do caso de uso. Nenhum socket e necessario para conferir o wire.
+struct RecordingTransport final : ITransport
+{
+    int calls = 0;
+    bool result = true;
+    unsigned int opcode = 0;
+    std::size_t size = 0;
+    std::array<char, 36> bytes{};
+    bool Send(const MutablePacketView& packet) override
+    {
+        ++calls;
+        opcode = packet.opcode;
+        size = packet.size;
+        if (!packet.data || packet.size != bytes.size()) return false;
+        std::memcpy(bytes.data(), packet.data, bytes.size());
+        return result;
+    }
+};
+
+// Testes locais da fronteira de tamanho, sem socket, Win32 ou DirectX.
+// Nao usam assert: as verificacoes devem permanecer ativas em Release.
+int main()
+{
+    char storage[16] = {};
+    int failures = 0;
+    int checks = 0;
+    const auto check = [&failures, &checks](bool condition, const char* name) {
+        ++checks;
+        if (!condition) {
+            std::fprintf(stderr, "FAIL: %s\n", name);
+            ++failures;
+        }
+    };
+
+    check(!PacketView{}.HasAtLeast(0), "view vazia nao possui buffer");
+    check(!PacketView{0, nullptr, 16}.HasSizeBetween(12, INT_MAX), "nulo com tamanho");
+    check(!PacketView{0, storage, 0}.HasSizeBetween(12, INT_MAX), "tamanho zero");
+    check(!PacketView{0, storage, 11}.HasSizeBetween(12, INT_MAX), "abaixo do minimo");
+    check(PacketView{0, storage, 12}.HasSizeBetween(12, INT_MAX), "minimo inclusivo");
+    check(PacketView{0, storage, 16}.HasSizeBetween(12, 16), "maximo inclusivo");
+    check(!PacketView{0, storage, 16}.HasSizeBetween(12, 15), "acima do maximo");
+    check(!PacketView{0, storage, 16}.HasSizeBetween(17, 16), "intervalo invertido");
+
+    // Comprimentos sinteticos: o predicado nunca pode desreferenciar data.
+    const auto intOverflow = static_cast<std::size_t>(INT_MAX) + 1;
+    check(!PacketView{0, storage, intOverflow}.HasSizeBetween(12, INT_MAX), "overflow int");
+    check(PacketView{0, storage, INT_MAX}.HasSizeBetween(12, INT_MAX), "limite int");
+    const auto sizeMaximum = (std::numeric_limits<std::size_t>::max)();
+    check(!PacketView{0, storage, sizeMaximum}.HasSizeBetween(12, INT_MAX), "limite size_t");
+
+    const PacketView valid{77, storage, sizeof(storage)};
+    check(valid.HasSizeBetween(12, INT_MAX) && valid.opcode == 77 &&
+        valid.data == storage && storage[0] == 0, "validacao sem mutacao");
+    // O compilador impede converter uma recepcao somente leitura em envio.
+    static_assert(!std::is_convertible<PacketView, MutablePacketView>::value,
+        "Recepcao nao pode remover const implicitamente");
+    static_assert(std::is_same<decltype(MutablePacketView::data), char*>::value,
+        "Envio exige armazenamento gravavel");
+    MutablePacketView outgoing{77, storage, sizeof(storage)};
+    const auto incoming = outgoing.AsReadOnly();
+    check(incoming.data == storage && incoming.size == sizeof(storage) &&
+        incoming.opcode == 77, "leitura empresta mesmo buffer");
+
+    int sends = 0;
+    const auto fakeSender = [&](char* data, int size) {
+        ++sends;
+        check(data == storage && size == sizeof(storage), "emissor recebe buffer e tamanho originais");
+        data[0] = 42;
+        return true;
+    };
+    check(SendValidatedPacket(outgoing, 12, fakeSender), "resultado de sucesso preservado");
+    check(sends == 1 && storage[0] == 42, "envio unico e mutacao visivel");
+    check(!SendValidatedPacket({77, nullptr, 16}, 12, fakeSender), "envio nulo rejeitado");
+    check(!SendValidatedPacket({77, storage, 11}, 12, fakeSender), "envio curto rejeitado");
+    check(!SendValidatedPacket({77, storage, intOverflow}, 12, fakeSender), "envio overflow rejeitado");
+    check(sends == 1, "rejeicoes nao invocam emissor");
+    check(!SendValidatedPacket(outgoing, 12, [&](char*, int) {
+        ++sends;
+        return false;
+    }), "falha do emissor propagada");
+    check(sends == 2, "falha nao causa retry implicito");
+    // A chamada virtual exercita a porta real, sem incluir Basedef ou Win32.
+    FakeSocket socket;
+    {
+        SocketTransport<FakeSocket> adapter(socket);
+        ITransport& transport = adapter;
+        check(transport.Send(outgoing), "porta propaga sucesso");
+        check(socket.calls == 1 && socket.accepted == 1, "adaptador envia uma vez");
+        check(socket.opcode == 77 && socket.size == sizeof(storage), "adaptador preserva metadados");
+        check(storage[1] == 23, "adaptador preserva mutacao no buffer original");
+        socket.result = false;
+        check(!transport.Send(outgoing), "porta propaga falha");
+        check(socket.calls == 2, "adaptador nao repete falha");
+        check(!transport.Send({77, nullptr, 16}), "porta rejeita nulo no backend");
+        check(!transport.Send({77, storage, 11}), "porta rejeita tamanho curto no backend");
+        check(!transport.Send({77, storage, intOverflow}), "porta rejeita overflow no backend");
+        check(socket.accepted == 2 && socket.calls == 5, "rejeicoes nao chegam ao emissor");
+    }
+    check(socket.calls == 5, "destruir adaptador nao fecha nem envia pelo backend");
+    RecordingTransport login;
+    CharacterLoginSender loginSender(login);
+    for (int slot = 0; slot < 4; ++slot)
+    {
+        check(RequestCharacterLogin(loginSender, slot), "login aceita slot valido");
+        check(login.calls == slot + 1, "login solicita envio unico");
+        check(login.opcode == 0x213 && login.size == 36, "login preserva opcode e tamanho");
+        // Expectativa independente do struct: todos os bytes zerados salvo
+        // opcode little-endian em +4 e slot em +12, antes do enquadramento.
+        std::array<char, 36> expected{};
+        expected[4] = 0x13;
+        expected[5] = 0x02;
+        expected[12] = static_cast<char>(slot);
+        check(login.bytes == expected, "login preserva os 36 bytes anteriores ao envio");
+    }
+    check(!RequestCharacterLogin(loginSender, -1), "login rejeita slot negativo");
+    check(!RequestCharacterLogin(loginSender, 4), "login rejeita slot fora do limite");
+    check(!RequestCharacterLogin(loginSender, INT_MAX), "login rejeita indice extremo");
+    check(login.calls == 4, "login invalido nao envia");
+    login.result = false;
+    check(!RequestCharacterLogin(loginSender, 0), "login propaga falha do transporte");
+    check(login.calls == 5, "login nao repete envio apos falha");
+    failures += RunCharacterLoginUseCaseTests(checks);
+    // Limites da fila sem soma signed e sem depender de um socket real.
+    check(send_buffer::CanAppendPacket(12, 0, 131072, 12), "fila aceita cabecalho");
+    check(send_buffer::CanAppendPacket(65535, 0, 131072, 12), "fila aceita limite WORD");
+    check(!send_buffer::CanAppendPacket(65536, 0, 131072, 12), "fila rejeita truncamento WORD");
+    check(!send_buffer::CanAppendPacket(INT_MAX, INT_MAX, 131072, 12), "fila rejeita overflow");
+    check(!send_buffer::CanAppendPacket(-1, 0, 131072, 12), "fila rejeita tamanho negativo");
+    check(!send_buffer::CanAppendPacket(11, 0, 131072, 12), "fila rejeita cabecalho curto");
+    check(!send_buffer::CanAppendPacket(12, -1, 131072, 12), "fila rejeita indice negativo");
+    check(!send_buffer::CanAppendPacket(12, 131060, 131072, 12), "fila preserva limite estrito");
+    check(send_buffer::CanAppendPacket(12, 131059, 131072, 12), "fila aceita ultimo intervalo valido");
+    char queuedBytes[] = "abcdefgh";
+    int queued = 8;
+    int sent = 2;
+    check(send_buffer::Compact(queuedBytes, 8, queued, sent), "compactacao aceita envio parcial");
+    check(queued == 6 && sent == 0 && std::memcmp(queuedBytes, "cdefgh", 6) == 0,
+        "compactacao preserva sufixo sobreposto da saida");
+    check(send_buffer::Compact(queuedBytes, 8, queued, sent) && queued == 6,
+        "compactacao repetida sem prefixo e idempotente");
+    sent = queued;
+    check(send_buffer::Compact(queuedBytes, 8, queued, sent) && queued == 0 && sent == 0,
+        "compactacao esvazia envio completo");
+    queued = 9;
+    sent = 1;
+    check(!send_buffer::Compact(queuedBytes, 8, queued, sent) && queued == 9 && sent == 1,
+        "compactacao invalida nao altera indices");
+    check(!send_buffer::Compact(nullptr, 8, queued, sent), "compactacao rejeita nulo");
+    queued = 3;
+    sent = 4;
+    check(!send_buffer::Compact(queuedBytes, 8, queued, sent), "compactacao rejeita sent maior que queued");
+    for (int accepted = 0; accepted < 2; ++accepted) {
+        for (int flushed = 0; flushed < 2; ++flushed) {
+            int stage = 0;
+            const bool result = send_buffer::EnqueueAndFlush(
+                [&] { check(stage++ == 0, "enqueue precede flush"); return accepted; },
+                [&] { check(stage++ == 1, "flush ocorre mesmo na rejeicao"); return flushed; });
+            check(result == (accepted != 0 && flushed != 0) && stage == 2,
+                "resultado nao mascara falha nem repete chamadas");
+        }
+    }
+    if (failures == 0) std::printf("ArchitectureTests: %d checks PASS; static assertions PASS\n", checks);
+    return failures == 0 ? 0 : 1;
+}

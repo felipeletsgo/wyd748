@@ -29,15 +29,12 @@ struct MSG_HSTANDARD
 #define _PCKHEADER MSG_HSTANDARD Header
 
 #ifdef _WYDCLIENT
-typedef struct		
-{
-	WORD Size;
-	BYTE KeyWord;
-	BYTE CheckSum;
-	WORD Type;
-	WORD ID;
-	DWORD Tick;
-} MSG_STANDARD;
+#include "../internal/wire/MessageHeader.h"
+#include <type_traits>
+// A extracao conserva inclusive os tipos subjacentes usados pelo SDK Windows.
+static_assert(std::is_same<decltype(MSG_STANDARD::Size), WORD>::value, "WORD changed");
+static_assert(std::is_same<decltype(MSG_STANDARD::KeyWord), BYTE>::value, "BYTE changed");
+static_assert(std::is_same<decltype(MSG_STANDARD::Tick), DWORD>::value, "DWORD changed");
 #endif // _WYDCLIENT
 struct		  MSG_AccountLogin
 {

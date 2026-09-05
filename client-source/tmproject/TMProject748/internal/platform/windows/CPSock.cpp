@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "CPSock.h"
+#include "../network/SendBuffer.h"
+#include "PacketSendBoundary.h"
+#include <climits>
 #include <WinSock2.h>
 #include "Basedef.h"
 #include "TMGlobal.h"
@@ -479,6 +482,8 @@ int CPSock::AddMessage(char* pMsg, int Size)
 	return AddMessage(pMsg, Size, Keyword);
 }
 
+// Empresta pMsg gravavel; enquadra/cifra na fila propria e tenta o flush.
+// Falhas de limites sao rejeitadas antes de escrever cabecalho ou fila.
 int CPSock::AddMessage(char* pMsg, int Size, int FixedKeyWord)
 {
 	if (!Sock)
@@ -488,7 +493,8 @@ int CPSock::AddMessage(char* pMsg, int Size, int FixedKeyWord)
 		return 0;
 	}
 
-	if (Size + nSendPosition < SEND_BUFFER_SIZE)
+	if (pMsg && pSendBuffer && send_buffer::CanAppendPacket(
+		Size, nSendPosition, SEND_BUFFER_SIZE, sizeof(MSG_STANDARD)))
 	{
 		unsigned char iKeyWord = FixedKeyWord;
 		if (!FixedKeyWord)
@@ -597,18 +603,38 @@ bool CPSock::SendMessageA()
 	return false;
 }
 
+int CPSock::SendPacket(const MutablePacketView& packet)
+{
+    // Validar antes de AddMessage consumir a chave ou escrever o cabecalho.
+    // O buffer pertence ao emissor e precisa ser gravavel: a codificacao
+    // legada atualiza o cabecalho nele, sem reter seu ponteiro apos a chamada.
+    return SendValidatedPacket(packet, sizeof(MSG_STANDARD),
+        [this](char* data, int size) { return SendOneMessage(data, size) != 0; });
+}
+
+PacketView CPSock::ReadPacketView(int* ErrorCode, int* ErrorType)
+{
+	char* message = ReadMessage(ErrorCode, ErrorType);
+	if (message == nullptr)
+		return {};
+
+	const auto* standard = reinterpret_cast<const MSG_STANDARD*>(message);
+	return { standard->Type, message, static_cast<std::size_t>(standard->Size) };
+}
+
 int CPSock::SendOneMessage(char* Msg, int Size)
 {
-	AddMessage(Msg, Size);
-
-	return SendMessageA();
+	// O flush final continua ocorrendo mesmo na rejeicao, mas nao pode mascarar
+	// que esta mensagem nao entrou na fila. AddMessage mantem seu flush interno.
+	return send_buffer::EnqueueAndFlush(
+		[&] { return AddMessage(Msg, Size); }, [this] { return SendMessageA(); });
 }
 
 int CPSock::SendOneMessageKeyword(char* Msg, int Size, int Keyword)
 {
-	AddMessage(Msg, Size, Keyword);
-
-	return SendMessageA();
+	// Mesma politica do envio automatico, sem alterar a chave explicita.
+	return send_buffer::EnqueueAndFlush(
+		[&] { return AddMessage(Msg, Size, Keyword); }, [this] { return SendMessageA(); });
 }
 
 int CPSock::AddMessage2(char* pMsg, int Size)
@@ -667,13 +693,7 @@ void CPSock::RefreshRecvBuffer()
 
 void CPSock::RefreshSendBuffer()
 {
-	int left = nSendPosition - nSentPosition;
-
-	if (left > 0 && left <= RECV_BUFFER_SIZE)
-	{
-		memcpy(pSendBuffer, &pRecvBuffer[nSentPosition], left);
-
-		nSentPosition = 0;
-		nSendPosition -= left;
-	}
+	// Compacta a propria fila de saida sem recifrar o sufixo pendente. Em estado
+	// invalido, nao acessa memoria; SendMessageA valida e descarta os indices.
+	send_buffer::Compact(pSendBuffer, SEND_BUFFER_SIZE, nSendPosition, nSentPosition);
 }

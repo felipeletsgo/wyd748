@@ -825,7 +825,8 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 		for (int i = 0; i < nLen2; ++i)
 			g_pObjectManager->m_szAccountPass[i] += i;
 
-		g_pSocketManager->SendOneMessage(reinterpret_cast<char*>(&stAccountLogin), sizeof MSG_AccountLogin);
+		g_pSocketManager->SendPacket({MSG_AccountLogin_Opcode,
+			reinterpret_cast<char*>(&stAccountLogin), sizeof MSG_AccountLogin});
 		LastSendMsgTime = g_pTimerManager->GetServerTime();
 	}
 	break;

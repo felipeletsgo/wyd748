@@ -58,6 +58,94 @@ Adicionar documentação de ownership/lifecycle, eliminar fachadas sem consumido
 
 ## Ordem operacional por ciclo
 
+### Entrada de build e estado da entrega
+
+Usar `./client-source/tmproject/Build-Client.ps1 -Configuration Release`
+(ou `Debug`; `-Rebuild` para recompilacao completa). O script local descobre
+MSBuild via Visual Studio/PATH, compila a solucao x86 e instala
+`client748/project.exe`. Divergencia SHA-256, falha de MSBuild ou copia
+interrompem a entrega. Nao encerra o jogo automaticamente.
+
+Baseline anterior de 2026-09-05: Release e copia verificados com SHA-256
+`2CEA4BCD8EE94A8C2E0E4D9640D941F3F8AF53B0D1A65D02A3F5A82ABFFFED49`.
+Isso nao comprova teste in-game das migracoes recentes de PacketView.
+Classificacao: `MODERNIZACAO_COMPATIVEL`; procedencia do script: local.
+As fases 1 a 7 continuam sujeitas aos seus gates: contar chamadas migradas
+nao comprova inversao de dependencias nem separacao de responsabilidades.
+
+### Lote de validacao de transporte — 2026-09-05
+
+- Implementado: predicado puro de intervalo em `PacketView`, usado antes dos
+  casts pelas fachadas `TMUtil`, `CPSock` e `ITransport`.
+- Implementado: gate automatico `ArchitectureTests.vcxproj`, executado por
+  `Build-Client.ps1` antes do client e da instalacao; 12 verificacoes de limites
+  e nulabilidade, ativas inclusive em Release e sem dependencias Win32/DirectX.
+- Evidencia: `AddMessage` modifica o cabecalho do buffer original. Documentado
+  o requisito de memoria gravavel; uma view const ainda nao resolve ownership.
+- Debug: build e instalacao passaram; SHA-256
+  `5A66C659A447FDDE74B314DBCDA8A02AD4ECC5068EDA87EB918BAADC8D372C61`.
+- Release: build, 12 testes e instalacao passaram; candidato atual SHA-256
+  `C06D3B39A77337D5A14FA1CA924DF5A23B193CFFF651808039663D483B59D458`.
+  Permanecem warnings legados C4018/C4305/C4309; nao houve teste in-game.
+- Fase 2 permanece parcial. Estes testes verificam o predicado de comprimento,
+  nao criptografia, dispatch, casos de uso, relogin ou funcionamento no jogo.
+- Lote seguinte implementado: `MutablePacketView` separado da recepcao;
+  `PacketSendBoundary.h` permite testar o emissor sem socket. Os 140 pontos de
+  envio passaram a fornecer `char*` e nao dependem de remover const na fachada.
+  Nenhum buffer e copiado: os efeitos de preenchimento continuam no original.
+- Validacao deste lote: 22 checks com emissor falso e 2 asserts de tipagem
+  passaram em Debug e Release. Debug compilado/instalado com SHA-256
+  `273017A66D93CEC7A60A119695CB5EFCC3F38F29850DE073C8726BC7BA0466C4`.
+  Release compilado/instalado com SHA-256
+  `DE8BF7F3FC2F2AA3453E573D9F551526CB8DFBFD3D6B9FF263D8526FC5B6DA2B`.
+- Lote seguinte implementado: ITransport independente de Basedef; adaptador
+  SocketTransport com consumidor vivo na selecao de personagem. Detalhes abaixo.
+
+### Lote de fila de envio — 2026-09-05
+
+- `SendBuffer.h` centraliza limite estrito, compactacao segura e enqueue/flush.
+- `CPSock` preserva cifragem, cabecalho, consumo de chave e flushes; propaga
+  rejeicao de fila como melhoria deliberada, nao como paridade nativa.
+- 98 checks passaram, incluindo WORD, overflow, fila cheia e envio parcial.
+- Debug SHA-256 `2CE0810D03C07F636CAD8BCB3223FFB67518DC88B6C8F30DA3687EEB0A0EE826`.
+- Release SHA-256 `861973D2A67BA63B99FBB018E43425804C4AF52ED30F03389D1047A0075A07F2`.
+- `AddMessage2`, recepcao e teste in-game continuam pendentes.
+
+### Lote de inversao do login de personagem — 2026-09-05
+
+- `RequestCharacterLogin` depende apenas de `ICharacterLoginSender`; o encoder
+  `CharacterLoginSender` implementa esta porta usando `ITransport`. A cena
+  compoe o encoder e `SocketTransport<CPSock>` com lifetime local emprestado.
+- `PacketView`/`MutablePacketView` pertencem a application/ports. Os quatro
+  consumidores migraram para esse header, removendo a fachada wire redundante.
+  Nao ha include wire/platform na application.
+- Extraidos `MessageHeader.h` e `CharacterLoginPacket.h`, reexportados pelos
+  headers anteriores, preservando tipos, sizeof, offsets e os 36 bytes de 0x213.
+- Caso de uso nao altera debounce, existencia de personagem, timer, botoes,
+  recepcao ou lifecycle. Evidencia reutilizada: `scene-transition.md`, evento
+  0x1204 e callsite 0x004A3422; nao ha novo claim de paridade.
+- 70 checks e assertions passaram em Debug/Release, incluindo a porta semantica
+  isolada sem wire e comparacao byte a byte dos quatro slots antes do transporte.
+- Debug compilado e inicialmente instalado com SHA-256
+  `BCDAA50A27A1B2340AA6C793A28A5D9CB5971766415B839E263A4766CEEDFB33`.
+  A repeticao apos adicionar testes passou compilacao/70 checks, mas a copia
+  encontrou `user-mapped section open`. Nenhum processo foi encerrado.
+- XML de projeto/filtros sem entradas duplicadas; `git diff --check` passou.
+- Fechamento da limpeza: Debug/Release, 70 checks e instalacao passaram.
+  Debug SHA-256 `BFC85AA5A10E90ABE8AAFA92A39424D779C0BD492275B06038D013EF79E0C36E`.
+  Release atual SHA-256 `2B03DE7585E48B9096D22A73D5F2A2F27F515343934A9B9F44EDDF616DAAC440`.
+  Corrigida a entrada antiga de SharedStructs no projeto/filtros para
+  `CommonFiles/SharedStructs.h` local. Warnings legados permanecem; nao CLIENT_TESTED.
+- Proximo gate de fluxo: login aceito/recusado, selecao, retorno, mundo e
+  logout/relogin no jogo. A migracao de handlers de recepcao depende deste
+  gate; callbacks ainda usam `char*` e descartam o tamanho enquadrado.
+- Proxima unidade tecnica independente: revisar limites de fila de AddMessage.
+  Evidencia de source: soma signed `Size + nSendPosition`; `SendOneMessage`
+  ignora rejeicao de AddMessage; `RefreshSendBuffer` copia de pRecvBuffer.
+  Nao assumir que true do backend comprova enfileiramento; testar fila cheia,
+  envio parcial e consumo de chave antes de corrigir estes caminhos.
+  Fases 1/2 continuam parciais; demais portas e casos de uso nao estao completos.
+
 1. Selecionar um único contrato/fluxo.
 2. Mapear callers/callees e dependências reais.
 3. Adicionar teste ou assertion de preservação.

@@ -13,6 +13,7 @@
 #include <tlhelp32.h>
 #include <timeapi.h>
 #include "UiLayout.h"
+#include "../wire/CharacterLoginPacket.h"
 
 // Basedef permanece como fachada de compatibilidade. Os tipos abaixo são
 // consumidos por cenas, UI, entidades e transporte; qualquer alteração de
@@ -1159,17 +1160,6 @@ struct MSG_CHARPASSWORD
 	MSG_STANDARD Header;
 	char ItemPassWord[16];
 	char State;
-};
-
-constexpr auto MSG_CharacterLogin_Opcode = 0x213;
-struct MSG_CharacterLogin
-{
-	MSG_STANDARD Header;
-	int Slot;
-	// Stock 7.48 keeps Force between Slot and SecretCode. Omitting it shortened
-	// the packet to 32 bytes and shifted the session proof by four bytes.
-	int Force;
-	char SecretCode[16];
 };
 
 constexpr auto MSG_NewCharacter_Opcode = 0x20F;

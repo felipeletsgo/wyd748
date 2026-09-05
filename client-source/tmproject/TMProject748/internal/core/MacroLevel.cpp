@@ -121,7 +121,7 @@ void Macro::Water_N::UseItem(const int posX, const int posY, const int level)
 
 							Packet.SourPos = (column + row * Inv->m_nColumnGridCount) + (i * 15);
 							Packet.ItemID = ItemST->m_pItem->sIndex;
-							SendOneMessage((char*)&Packet, sizeof(stUseItem));
+							SendPacket({Packet.Header.Type, reinterpret_cast<char*>(&Packet), sizeof(stUseItem)});
 							//Inv->ClearItem(column, row);
 							return;
 						}
@@ -136,7 +136,7 @@ void Macro::Water_N::UseItem(const int posX, const int posY, const int level)
 					repeat = true;
 					itemId = firstScroll;
 				}
-				else // Olhou todo o inventário e não encontrou nenhum pergaminho mais.
+				else // Olhou todo o inventï¿½rio e nï¿½o encontrou nenhum pergaminho mais.
 					break;
 			}
 		}
@@ -178,7 +178,7 @@ void Macro::Water_N::DoMove(const int posX, const int posY)
 
 	Packet.Speed = 255;
 
-	SendOneMessage((char*)&Packet, sizeof(stMove));
+	SendPacket({Packet.Header.Type, reinterpret_cast<char*>(&Packet), sizeof(stMove)});
 
 }
 
@@ -245,7 +245,7 @@ void Macro::Water_M::UseItem(const int posX, const int posY, const int level)
 
 							Packet.SourPos = (column + row * Inv->m_nColumnGridCount) + (i * 15);
 							Packet.ItemID = ItemST->m_pItem->sIndex;
-							SendOneMessage((char*)&Packet, sizeof(stUseItem));
+							SendPacket({Packet.Header.Type, reinterpret_cast<char*>(&Packet), sizeof(stUseItem)});
 
 							//Inv->ClearItem(column, row);
 							return;
@@ -261,7 +261,7 @@ void Macro::Water_M::UseItem(const int posX, const int posY, const int level)
 					repeat = true;
 					itemId = firstScroll;
 				}
-				else // Olhou todo o inventário e não encontrou nenhum pergaminho mais.
+				else // Olhou todo o inventï¿½rio e nï¿½o encontrou nenhum pergaminho mais.
 					break;
 			}
 		}
@@ -302,7 +302,7 @@ void Macro::Water_M::DoMove(const int posX, const int posY)
 	Packet.TargetY = waterY;
 
 	Packet.Speed = 255;
-	SendOneMessage((char*)&Packet, sizeof(stMove));
+	SendPacket({Packet.Header.Type, reinterpret_cast<char*>(&Packet), sizeof(stMove)});
 
 }
 
@@ -369,7 +369,7 @@ void Macro::Water_A::UseItem(const int posX, const int posY, const int level)
 
 							Packet.SourPos = (column + row * Inv->m_nColumnGridCount) + (i * 15);
 							Packet.ItemID = ItemST->m_pItem->sIndex;
-							SendOneMessage((char*)&Packet, sizeof(stUseItem));
+							SendPacket({Packet.Header.Type, reinterpret_cast<char*>(&Packet), sizeof(stUseItem)});
 
 							//Inv->ClearItem(column, row);
 							return;
@@ -385,7 +385,7 @@ void Macro::Water_A::UseItem(const int posX, const int posY, const int level)
 					repeat = true;
 					itemId = firstScroll;
 				}
-				else // Olhou todo o inventário e não encontrou nenhum pergaminho mais.
+				else // Olhou todo o inventï¿½rio e nï¿½o encontrou nenhum pergaminho mais.
 					break;
 			}
 		}
@@ -425,6 +425,6 @@ void Macro::Water_A::DoMove(const int posX, const int posY)
 	Packet.TargetY = waterY;
 
 	Packet.Speed = 255;
-	SendOneMessage((char*)&Packet, sizeof(stMove));
+	SendPacket({Packet.Header.Type, reinterpret_cast<char*>(&Packet), sizeof(stMove)});
 
 }

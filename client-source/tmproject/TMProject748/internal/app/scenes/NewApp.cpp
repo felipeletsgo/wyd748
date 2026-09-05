@@ -1168,12 +1168,13 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 		int ErrorType = 0;
 		while (1)
 		{
-			char* Msg = m_pSocketManager->ReadMessage(&ErrorCode, &ErrorType);
+			PacketView packet = m_pSocketManager->ReadPacketView(&ErrorCode, &ErrorType);
 
-			if (Msg == nullptr || ErrorCode != 0)
+			if (ErrorCode != 0 || !packet.HasAtLeast(sizeof(MSG_STANDARD)))
 				break;
 
-			MSG_STANDARD* pStd = (MSG_STANDARD*)Msg;
+			MSG_STANDARD* pStd = reinterpret_cast<MSG_STANDARD*>(
+				const_cast<char*>(packet.data));
 
 			unsigned int dwServerTime = m_pTimerManager->GetServerTime();
 			g_dwServerTime = pStd->Tick;
@@ -1183,7 +1184,7 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 			{
 				unsigned int dwTermTime = dwServerTime - g_dwStartPacketTime;
 				fwrite(&dwTermTime, 4, 1, g_hPacketDump);
-				fwrite(pStd, pStd->Size, 1, g_hPacketDump);
+				fwrite(pStd, packet.size, 1, g_hPacketDump);
 			}
 
 			if (dwServerTime > g_pLastFixTime + 10000)
@@ -1201,7 +1202,8 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 				}
 				g_pLastFixTime = dwServerTime;
 			}
-			m_pObjectManager->OnPacketEvent(pStd->Type, Msg);
+			m_pObjectManager->OnPacketEvent(packet.opcode,
+				const_cast<char*>(packet.data));
 		}
 	}
 	break;
@@ -1276,7 +1278,11 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 				stDelayStart.Header.Type = 942;
 				stDelayStart.Parm = 0;
 
-				g_pSocketManager->SendOneMessage((char*)&stDelayStart, sizeof(stDelayStart));
+				g_pSocketManager->SendPacket({
+					stDelayStart.Header.Type,
+					reinterpret_cast<char*>(&stDelayStart),
+					sizeof(stDelayStart)
+				});
 				return 0;
 			}
 

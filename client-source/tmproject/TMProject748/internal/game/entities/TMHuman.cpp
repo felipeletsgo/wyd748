@@ -4582,7 +4582,7 @@ int TMHuman::OnPacketUpdateAffect(MSG_STANDARD* pStd)
             stWhisper.Header.ID = g_pObjectManager->m_dwCharID;
             stWhisper.Header.Type = MSG_MessageWhisper_Opcode;
             sprintf_s(stWhisper.MobName, "day");
-            SendOneMessage((char*)&stWhisper, sizeof(stWhisper));
+            SendPacket({reinterpret_cast<MSG_STANDARD*>(&stWhisper)->Type, reinterpret_cast<char*>(&stWhisper), sizeof(stWhisper)});
         }
 
         if (pFScene)
@@ -5319,7 +5319,7 @@ int TMHuman::OnPacketUpdateEtc(MSG_STANDARD* pStd)
                     else if (stSetShortSkill.Skill[j] >= 105 && stSetShortSkill.Skill[j] < 153)
                         stSetShortSkill.Skill[j] -= 12 * g_pObjectManager->m_stMobData.Class;
                 }
-                SendOneMessage((char*)&stSetShortSkill, sizeof(stSetShortSkill));
+                SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSetShortSkill)->Type, reinterpret_cast<char*>(&stSetShortSkill), sizeof(stSetShortSkill)});
             }
         }
         // The 7.48 server has one learned-skill DWORD. The imported second
@@ -11448,7 +11448,7 @@ void TMHuman::MoveGet(TMItem* pTarget)
         : vecGrid.x + 5 * vecGrid.y;
     stGetItem.GridX = (int)pTarget->m_vecPosition.x;
     stGetItem.GridY = (int)pTarget->m_vecPosition.y;
-    SendOneMessage((char*)&stGetItem, sizeof(stGetItem));
+    SendPacket({reinterpret_cast<MSG_STANDARD*>(&stGetItem)->Type, reinterpret_cast<char*>(&stGetItem), sizeof(stGetItem)});
 
     pScene->m_pTargetItem = 0;
     pScene->m_dwOldAttackTime = dwServerTime;
@@ -12038,7 +12038,7 @@ void TMHuman::OnlyMove(int nX, int nY, int nLocal)
         pFScene->m_stMoveStop.LastY = stAction.PosY;
         pFScene->m_stMoveStop.NextX = stAction.TargetX;
         pFScene->m_stMoveStop.NextY = stAction.TargetY;
-        SendOneMessage((char*)&stAction, sizeof(stAction));
+        SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAction)->Type, reinterpret_cast<char*>(&stAction), sizeof(stAction)});
     }
     if (!nLocal || nLocal == 1)
         OnPacketEvent(876, (char*)&stAction);
@@ -13146,7 +13146,7 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
                                     pFScene->m_stMoveStop.LastY = stAction.PosY;
                                     pFScene->m_stMoveStop.NextX = stAction.TargetX;
                                     pFScene->m_stMoveStop.NextY = stAction.TargetY;
-                                    SendOneMessage((char*)&stAction, sizeof(stAction));
+                                    SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAction)->Type, reinterpret_cast<char*>(&stAction), sizeof(stAction)});
                                     g_bLastStop = stAction.Header.Type;
 
                                     m_dwOldMovePacketTime = g_pTimerManager->GetServerTime();

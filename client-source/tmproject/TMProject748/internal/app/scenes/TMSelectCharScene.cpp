@@ -15,6 +15,9 @@
 #include "TMSkillJudgement.h"
 #include "TMEffectSkinMesh.h"
 #include "ClientDiagnostics.h"
+#include "../../platform/windows/SocketTransport.h"
+#include "../../application/RequestCharacterLogin.h"
+#include "../../wire/CharacterLoginSender.h"
 
 namespace
 {
@@ -457,7 +460,8 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 			msLock.Header.ID = 0;
 			msLock.Header.Type = MSG_CharPassword_Opcode;
 
-			g_pSocketManager->SendOneMessage((char*)&msLock, sizeof(msLock));
+			g_pSocketManager->SendPacket({msLock.Header.Type,
+				reinterpret_cast<char*>(&msLock), sizeof(msLock)});
 			m_pAccountLockDlg->SetVisible(0);
 			m_pAccountLockTime = g_pTimerManager->GetServerTime();
 			g_AccountLock = 2;
@@ -491,7 +495,8 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 			msLock.Header.ID = 0;
 			msLock.Header.Type = MSG_CharPassword_Opcode;
 
-			g_pSocketManager->SendOneMessage((char*)&msLock, sizeof(msLock));
+			g_pSocketManager->SendPacket({msLock.Header.Type,
+				reinterpret_cast<char*>(&msLock), sizeof(msLock)});
 			m_pAccountLockDlg->SetVisible(0);
 			m_pAccountLockTime = g_pTimerManager->GetServerTime();
 			g_AccountLock = 3;
@@ -516,7 +521,8 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 				msLock.State = 1;
 				msLock.Header.Type = MSG_CharPassword_Opcode;
 
-				g_pSocketManager->SendOneMessage((char*)&msLock, sizeof(msLock));
+				g_pSocketManager->SendPacket({msLock.Header.Type,
+					reinterpret_cast<char*>(&msLock), sizeof(msLock)});
 				m_pAccountLockDlg->SetVisible(0);
 				m_pAccountLockTime = g_pTimerManager->GetServerTime();
 			}
@@ -564,12 +570,11 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		}
 		else if (m_pHuman[nSlot] && pSelChar->MobName[nSlot][0])
 		{
-			MSG_CharacterLogin stCharacterLogin{};
-			stCharacterLogin.Header.ID = 0;
-			stCharacterLogin.Header.Type = MSG_CharacterLogin_Opcode;
-			stCharacterLogin.Slot = nSlot;
-
-			g_pSocketManager->SendOneMessage((char*)&stCharacterLogin, sizeof(stCharacterLogin));
+			// Adaptador emprestado so durante o envio; a cena conserva controles,
+			// timestamp e politica legada de avancar mesmo se o envio falhar.
+			SocketTransport<CPSock> socketTransport(*g_pSocketManager);
+			CharacterLoginSender loginSender(socketTransport);
+			RequestCharacterLogin(loginSender, nSlot);
 			m_dwLastClickLoginBtnTime = dwServerTime;
 
 			m_pBtnLogin->SetEnable(0);
@@ -637,7 +642,8 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 
 			sprintf(stNewCharacter.MobName, "%s", szName);
 
-			g_pSocketManager->SendOneMessage((char*)&stNewCharacter, sizeof(stNewCharacter));
+			g_pSocketManager->SendPacket({stNewCharacter.Header.Type,
+				reinterpret_cast<char*>(&stNewCharacter), sizeof(stNewCharacter)});
 			m_dwLastClickCreateBtnTime = dwServerTime;
 			m_pBtnCreate->SetEnable(0);
 		}
@@ -755,7 +761,8 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		sprintf(stReqTransper.OldName, "%s", pSelChar->MobName[g_pObjectManager->m_cCharacterSlot]);
 		sprintf(stReqTransper.NewName, "%s", m_pEditRename->GetText());
 
-		g_pSocketManager->SendOneMessage((char*)&stReqTransper, sizeof(stReqTransper));
+		g_pSocketManager->SendPacket({stReqTransper.Header.Type,
+			reinterpret_cast<char*>(&stReqTransper), sizeof(stReqTransper)});
 		m_bMovingNow = 1;
 		m_dwLastMoveTime = dwServerTime;
 		return 1;
@@ -783,7 +790,8 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		sprintf(stDelCharacter.MobName, "%s", pSelChar->MobName[g_pObjectManager->m_cCharacterSlot]);
 		sprintf(stDelCharacter.Password, "%s", m_pPWEdit->GetText());
 
-		g_pSocketManager->SendOneMessage((char*)&stDelCharacter, sizeof(stDelCharacter));
+		g_pSocketManager->SendPacket({stDelCharacter.Header.Type,
+			reinterpret_cast<char*>(&stDelCharacter), sizeof(stDelCharacter)});
 		memset(m_pPWEdit->m_strText, 0, 4);
 		m_pInputPWPanel->SetVisible(0);
 		m_pControlContainer->SetFocusedControl(nullptr);
@@ -843,7 +851,8 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 			sprintf(stReqTransper.OldName, "%s", pSelChar->MobName[characterSlot]);
 			sprintf(stReqTransper.NewName, "%s", pSelChar->MobName[characterSlot]);
 
-			g_pSocketManager->SendOneMessage((char*)&stReqTransper, sizeof(stReqTransper));
+			g_pSocketManager->SendPacket({stReqTransper.Header.Type,
+				reinterpret_cast<char*>(&stReqTransper), sizeof(stReqTransper)});
 
 			m_bMovingNow = 1;
 			m_dwLastMoveTime = dwServerTime;
@@ -904,7 +913,8 @@ int TMSelectCharScene::OnKeyDownEvent(unsigned int iKeyCode)
 
 		sprintf_s(stWhisper.MobName, "time");
 
-		g_pSocketManager->SendOneMessage((char*)&stWhisper, sizeof stWhisper);
+		g_pSocketManager->SendPacket({stWhisper.Header.Type,
+			reinterpret_cast<char*>(&stWhisper), sizeof stWhisper});
 	}
 
 	return 1;
@@ -1689,7 +1699,8 @@ int TMSelectCharScene::FrameMove(unsigned int dwServerTime)
 		stStandard.ID = 0;
 		stStandard.Type = MSG_Ping_Opcode;
 
-		g_pSocketManager->SendOneMessage((char*)&stStandard, sizeof MSG_STANDARD);
+		g_pSocketManager->SendPacket({stStandard.Type,
+			reinterpret_cast<char*>(&stStandard), sizeof MSG_STANDARD});
 	}
 
 	if (m_bCriticalError == 1)
