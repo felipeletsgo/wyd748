@@ -3,6 +3,9 @@
 #include "TMEffect.h"
 
 class TMMesh;
+
+// Efeito baseado em mesh com cor, escala e rotação próprias. A malha apontada
+// é obtida do sistema de recursos; a instância não é sua proprietária.
 class TMEffectMesh : public TMEffect
 {
 public:
@@ -11,11 +14,14 @@ public:
 
     int Render() override;
     int FrameMove(unsigned int dwServerTime) override;
+    // Atualiza a cor ARGB e os canais usados durante Render.
     void SetColor(unsigned int dwColor);
     int IsVisible() override;
     int IsInView();
 
 public:
+    // m_pMesh pode ser nulo se o recurso não carregar; consumidores devem usar
+    // IsVisible/Render em vez de assumir que a malha está disponível.
     TMMesh* m_pMesh;
     int m_nMeshIndex;
     unsigned int m_dwColor;

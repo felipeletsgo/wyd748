@@ -82,8 +82,17 @@ delimita a integração.
 - Para contrato novo, definir direção, tamanho, campos, validação, IDs/opcodes,
   capability/fallback quando necessário e testes dos dois lados.
 - Não copiar ABI/offset/packet de versão posterior para uma fronteira legada.
-- Comentar decisões não óbvias de contrato, compatibilidade e ownership; não
-  adicionar comentário artificial em edição mecânica.
+- Em arquivo do client criado, convertido, adaptado ou funcionalmente alterado,
+  escrever documentação didática em português para responsabilidade da
+  unidade, APIs públicas, parâmetros/retornos e ownership, nulabilidade e
+  lifecycle relevantes. No corpo, explicar fases, invariantes, efeitos e
+  decisões não óbvias; não narrar cada instrução.
+- Registrar na ficha ou documento do lote a procedência comprovada (`7.48`,
+  `TMProject 7.69+` ou local) e o modo do delta. Marcar stub como pendente em
+  vez de inventar comportamento.
+- Refatorar somente quando a clareza, o ownership, o lifecycle ou a duplicação
+  melhorarem sem alterar comportamento, wire, ABI, recursos ou ordem dos
+  efeitos. Tratar mudança observável como delta separado.
 - Não descartar ou reformatar mudanças alheias numa worktree suja.
 
 Uma ficha `LOCATED` impede somente código que dependa daquele claim nativo. Se

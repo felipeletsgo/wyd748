@@ -64,12 +64,18 @@ namespace
 {
 	void WYD748_ResetTradeOffer(MSG_Trade& trade, unsigned short opponentID)
 	{
-		memset(trade.Item, 0, sizeof(trade.Item));
+		memset(&trade, 0, sizeof(trade));
 		for (int i = 0; i < 15; ++i)
 			trade.CarryPos[i] = -1;
-		trade.TradeMoney = 0;
-		trade.MyCheck = 0;
 		trade.OpponentID = opponentID;
+	}
+
+	void WYD748_LogTradeSend(const char* origin, const MSG_Trade& trade)
+	{
+		WYD748_DiagnosticsLog(
+			"TRADE_SEND origin=%s opponent=%u carry0=%d item0=%d size=%u\r\n",
+			origin, trade.OpponentID, static_cast<int>(trade.CarryPos[0]),
+			trade.Item[0].sIndex, static_cast<unsigned int>(sizeof(trade)));
 	}
 
 	bool WYD748_ParseDecimal(const char* text, int maximum, int* value)
@@ -304,9 +310,14 @@ TMFieldScene::TMFieldScene()
 	memset(m_pGridItemMix5, 0, sizeof(m_pGridItemMix5));
 	memset(m_pGridItemMix6, 0, sizeof(m_pGridItemMix6));
 	memset(m_pGridMixResult, 0, sizeof(m_pGridMixResult));
+	memset(m_pSlotTrade, 0, sizeof(m_pSlotTrade));
 
 	m_pChatList = nullptr;
 	m_pChatPanel = nullptr;
+	m_pChatBack = nullptr;
+	m_pChatSelectPanel = nullptr;
+	m_pChatListPanel = nullptr;
+	m_pChatType = nullptr;
 	m_pPositionText = nullptr;
 	// WYD-Go 7.48 compatibility: the compact field UI does not instantiate the
 	// newer minimap controls, so keep every optional minimap pointer deterministic.
@@ -605,13 +616,13 @@ TMFieldScene::~TMFieldScene()
 	g_nTempArray[1] = 0;
 	g_nTempArray[2] = 0;
 
-	if (g_bActiveWB == 1)
+	if (g_bActiveWB == 1 && g_pApp)
 	{
 		g_pApp->RenderScene();
 		g_pApp->SwitchWebBrowserState(0);
 	}
 
-	if (m_pHelpList[3])
+	if (m_pHelpList[3] && g_pObjectManager)
 	{
 		memset(g_pObjectManager->m_stMemo, 0, sizeof(g_pObjectManager->m_stMemo));
 		for (int i = 0; i < m_pHelpList[3]->m_nNumItem; ++i)
@@ -621,7 +632,8 @@ TMFieldScene::~TMFieldScene()
 		}
 	}
 
-	g_pDevice->m_nWidthShift = 0;
+	if (g_pDevice)
+		g_pDevice->m_nWidthShift = 0;
 
 	auto pSoundManager = g_pSoundManager;
 	if (pSoundManager)
@@ -635,7 +647,7 @@ TMFieldScene::~TMFieldScene()
 			pSoundData->Stop();
 	}
 
-	if (g_pCurrentScene
+	if (g_pCurrentScene && g_pApp
 		&& g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_SELECT_SERVER
 		&& g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_FIELD
 		&& g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_DEMO
@@ -644,7 +656,7 @@ TMFieldScene::~TMFieldScene()
 		g_pApp->m_pBGMManager->StopBGM();
 	}
 
-	if (m_pMyHuman)
+	if (m_pMyHuman && g_pObjectManager)
 	{
 		for (int j = 0; j < 4; ++j)
 		{
@@ -1675,6 +1687,31 @@ int TMFieldScene::InitializeCompatFieldScene()
 		}
 		m_pSkillPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1905));
 		m_pTradePanel = static_cast<SPanel*>(m_pControlContainer->FindControl(576));
+		// FieldScene2.bin is the native 7.48-compatible resource.  It does not
+		// necessarily materialize all ten pages from the newer trade layout, so
+		// configure only the grids that are actually present.
+		int tradeOpGridCount = 0;
+		int tradeMyGridCount = 0;
+		for (int slot = 0; slot < 15; ++slot)
+		{
+			if (auto pGrid = static_cast<SGridControl*>(m_pControlContainer->FindControl(8192 + slot)))
+			{
+				pGrid->m_bSelectEnable = 1;
+				pGrid->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
+				++tradeOpGridCount;
+			}
+			if (auto pGrid = static_cast<SGridControl*>(m_pControlContainer->FindControl(8448 + slot)))
+			{
+				pGrid->m_bSelectEnable = 1;
+				pGrid->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
+				++tradeMyGridCount;
+			}
+		}
+		WYD748_DiagnosticsLog(
+			"compat trade controls panel=%p opcheck=%p mycheck=%p grids=%d/%d\r\n",
+			m_pTradePanel, m_pControlContainer->FindControl(TMB_TRADE_OPCHECK),
+			m_pControlContainer->FindControl(TMB_TRADE_MYCHECK),
+			tradeOpGridCount, tradeMyGridCount);
 		// FUN_00435b13 binds the complete native player-interaction menu even
 		// though it starts hidden.  InitializeCompatFieldScene returns before the
 		// newer initializer reaches these assignments, so PGTVisible would
@@ -2339,7 +2376,7 @@ int TMFieldScene::InitializeScene()
 
 	SetAutoSkillNum(m_nAutoSkillNum);
 
-	memset(&g_pObjectManager->m_stTrade, 0, sizeof(g_pObjectManager->m_stTrade));
+	WYD748_ResetTradeOffer(g_pObjectManager->m_stTrade, 0);
 	memset(&g_pObjectManager->m_stCombineItem, 0, sizeof(g_pObjectManager->m_stCombineItem));
 	memset(&g_pObjectManager->m_stCombineItem4, 0, sizeof(g_pObjectManager->m_stCombineItem4));
 	g_pObjectManager->m_stCombineItem.Header.ID = g_pObjectManager->m_dwCharID;
@@ -2347,8 +2384,6 @@ int TMFieldScene::InitializeScene()
 	g_pObjectManager->m_stCombineItem4.Header.ID = g_pObjectManager->m_dwCharID;
 	g_pObjectManager->m_stCombineItem4.Header.Type = 0x3C0;
 
-	for (int i = 0; i < 15; ++i)
-		g_pObjectManager->m_stTrade.CarryPos[i] = -1;
 	for (int i = 0; i < 8; ++i)
 	{
 		g_pObjectManager->m_stCombineItem.CarryPos[i] = -1;
@@ -2967,15 +3002,17 @@ int TMFieldScene::InitializeScene()
 	SPanel* pTradePanel = (SPanel*)m_pControlContainer->FindControl(576);
 	SPanel* pTradePanel1 = (SPanel*)m_pControlContainer->FindControl(577);
 
-	pTradePanel->SetPos(RenderDevice::m_fWidthRatio * 423.0f,
-		RenderDevice::m_fHeightRatio * 35.0f);
+	if (pTradePanel)
+		pTradePanel->SetPos(RenderDevice::m_fWidthRatio * 423.0f,
+			RenderDevice::m_fHeightRatio * 35.0f);
 
 	m_pTradePanel = pTradePanel;
 
 	if (pTradePanel)
 	{
 		pTradePanel->SetVisible(0);
-		pTradePanel1->m_bSelectEnable = 0;
+		if (pTradePanel1)
+			pTradePanel1->m_bSelectEnable = 0;
 	}
 
 	m_pLottoPanel = (SPanel*)m_pControlContainer->FindControl(2048);
@@ -3157,16 +3194,15 @@ int TMFieldScene::InitializeScene()
 	SGridControl* pGridTradeOp15 = (SGridControl*)m_pControlContainer->FindControl(8206);
 
 
-	pGridTradeOp1->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-	pGridTradeOp2->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-	pGridTradeOp3->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-	pGridTradeOp4->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-	pGridTradeOp5->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-	pGridTradeOp6->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-	pGridTradeOp7->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-	pGridTradeOp8->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-	pGridTradeOp9->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-	pGridTradeOp10->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
+	SGridControl* pTradeOpGrids[15] = {
+		pGridTradeOp1, pGridTradeOp2, pGridTradeOp3, pGridTradeOp4, pGridTradeOp5,
+		pGridTradeOp6, pGridTradeOp7, pGridTradeOp8, pGridTradeOp9, pGridTradeOp10,
+		pGridTradeOp11, pGridTradeOp12, pGridTradeOp13, pGridTradeOp14, pGridTradeOp15 };
+	for (auto pGrid : pTradeOpGrids)
+	{
+		if (pGrid)
+			pGrid->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
+	}
 
 	SGridControl* pGridTradeMy1 = (SGridControl*)m_pControlContainer->FindControl(8448);
 	SGridControl* pGridTradeMy2 = (SGridControl*)m_pControlContainer->FindControl(8449);
@@ -3184,16 +3220,15 @@ int TMFieldScene::InitializeScene()
 	SGridControl* pGridTradeMy14 = (SGridControl*)m_pControlContainer->FindControl(8461);
 	SGridControl* pGridTradeMy15 = (SGridControl*)m_pControlContainer->FindControl(8462);
 
-	pGridTradeMy1->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
-	pGridTradeMy2->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
-	pGridTradeMy3->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
-	pGridTradeMy4->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
-	pGridTradeMy5->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
-	pGridTradeMy6->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
-	pGridTradeMy7->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
-	pGridTradeMy8->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
-	pGridTradeMy9->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
-	pGridTradeMy10->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
+	SGridControl* pTradeMyGrids[15] = {
+		pGridTradeMy1, pGridTradeMy2, pGridTradeMy3, pGridTradeMy4, pGridTradeMy5,
+		pGridTradeMy6, pGridTradeMy7, pGridTradeMy8, pGridTradeMy9, pGridTradeMy10,
+		pGridTradeMy11, pGridTradeMy12, pGridTradeMy13, pGridTradeMy14, pGridTradeMy15 };
+	for (auto pGrid : pTradeMyGrids)
+	{
+		if (pGrid)
+			pGrid->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY;
+	}
 
 	SControl* pOpCheckButton = m_pControlContainer->FindControl(601);
 	SControl* pMyCheckButton = m_pControlContainer->FindControl(617);
@@ -3514,77 +3549,35 @@ int TMFieldScene::InitializeScene()
 		m_pMixPanelTextDrop[8]->m_nPosX = BASE_ScreenResize(290.0f);
 
 		///////////////////////trade///////////////////////////
-		pOpCheckButton->m_nPosX = BASE_ScreenResize(208.0f);
-		pMyCheckButton->m_nPosX = BASE_ScreenResize(208.0f);
-		pTradePanel->m_nPosX = BASE_ScreenResize(310.0f);
-		pTradePanel->m_nWidth = BASE_ScreenResize(230.0f);
-		pTradePanel1->m_nWidth = BASE_ScreenResize(230.0f);
+		if (pOpCheckButton)
+			pOpCheckButton->m_nPosX = BASE_ScreenResize(208.0f);
+		if (pMyCheckButton)
+			pMyCheckButton->m_nPosX = BASE_ScreenResize(208.0f);
+		if (pTradePanel)
+		{
+			pTradePanel->m_nPosX = BASE_ScreenResize(310.0f);
+			pTradePanel->m_nWidth = BASE_ScreenResize(230.0f);
+		}
+		if (pTradePanel1)
+			pTradePanel1->m_nWidth = BASE_ScreenResize(230.0f);
 
+		const float tradeGridX[5] = { 13.5f, 55.4f, 97.3f, 139.2f, 181.1f };
 		for (int i = 0; i < 30; ++i)
-			m_pSlotTrade[i]->m_nWidth = BASE_ScreenResize(35.0f);
+		{
+			if (m_pSlotTrade[i])
+			{
+				m_pSlotTrade[i]->m_nWidth = BASE_ScreenResize(35.0f);
+				m_pSlotTrade[i]->m_nPosX = BASE_ScreenResize(tradeGridX[i % 5]);
+			}
+		}
 
-		m_pSlotTrade[0]->m_nPosX = BASE_ScreenResize(13.5f);
-		m_pSlotTrade[1]->m_nPosX = BASE_ScreenResize(55.4f);
-		m_pSlotTrade[2]->m_nPosX = BASE_ScreenResize(97.3f);
-		m_pSlotTrade[3]->m_nPosX = BASE_ScreenResize(139.2f);
-		m_pSlotTrade[4]->m_nPosX = BASE_ScreenResize(181.1f);
-		m_pSlotTrade[5]->m_nPosX = BASE_ScreenResize(13.5f);
-		m_pSlotTrade[6]->m_nPosX = BASE_ScreenResize(55.4f);
-		m_pSlotTrade[7]->m_nPosX = BASE_ScreenResize(97.3f);
-		m_pSlotTrade[8]->m_nPosX = BASE_ScreenResize(139.2f);
-		m_pSlotTrade[9]->m_nPosX = BASE_ScreenResize(181.1f);
-		m_pSlotTrade[10]->m_nPosX = BASE_ScreenResize(13.5f);
-		m_pSlotTrade[11]->m_nPosX = BASE_ScreenResize(55.4f);
-		m_pSlotTrade[12]->m_nPosX = BASE_ScreenResize(97.3f);
-		m_pSlotTrade[13]->m_nPosX = BASE_ScreenResize(139.2f);
-		m_pSlotTrade[14]->m_nPosX = BASE_ScreenResize(181.1f);
-		m_pSlotTrade[15]->m_nPosX = BASE_ScreenResize(13.5f);
-		m_pSlotTrade[16]->m_nPosX = BASE_ScreenResize(55.4f);
-		m_pSlotTrade[17]->m_nPosX = BASE_ScreenResize(97.3f);
-		m_pSlotTrade[18]->m_nPosX = BASE_ScreenResize(139.2f);
-		m_pSlotTrade[19]->m_nPosX = BASE_ScreenResize(181.1f);
-		m_pSlotTrade[20]->m_nPosX = BASE_ScreenResize(13.5f);
-		m_pSlotTrade[21]->m_nPosX = BASE_ScreenResize(55.4f);
-		m_pSlotTrade[22]->m_nPosX = BASE_ScreenResize(97.3f);
-		m_pSlotTrade[23]->m_nPosX = BASE_ScreenResize(139.2f);
-		m_pSlotTrade[24]->m_nPosX = BASE_ScreenResize(181.1f);
-		m_pSlotTrade[25]->m_nPosX = BASE_ScreenResize(13.5f);
-		m_pSlotTrade[26]->m_nPosX = BASE_ScreenResize(55.4f);
-		m_pSlotTrade[27]->m_nPosX = BASE_ScreenResize(97.3f);
-		m_pSlotTrade[28]->m_nPosX = BASE_ScreenResize(139.2f);
-		m_pSlotTrade[29]->m_nPosX = BASE_ScreenResize(181.1f);
-
-		pGridTradeOp1->m_nPosX = BASE_ScreenResize(13.5f);
-		pGridTradeOp2->m_nPosX = BASE_ScreenResize(55.4f);
-		pGridTradeOp3->m_nPosX = BASE_ScreenResize(97.3f);
-		pGridTradeOp4->m_nPosX = BASE_ScreenResize(139.2f);
-		pGridTradeOp5->m_nPosX = BASE_ScreenResize(181.1f);
-		pGridTradeOp6->m_nPosX = BASE_ScreenResize(13.5f);
-		pGridTradeOp7->m_nPosX = BASE_ScreenResize(55.4f);
-		pGridTradeOp8->m_nPosX = BASE_ScreenResize(97.3f);
-		pGridTradeOp9->m_nPosX = BASE_ScreenResize(139.2f);
-		pGridTradeOp10->m_nPosX = BASE_ScreenResize(181.1f);
-		pGridTradeOp11->m_nPosX = BASE_ScreenResize(13.5f);
-		pGridTradeOp12->m_nPosX = BASE_ScreenResize(55.4f);
-		pGridTradeOp13->m_nPosX = BASE_ScreenResize(97.3f);
-		pGridTradeOp14->m_nPosX = BASE_ScreenResize(139.2f);
-		pGridTradeOp15->m_nPosX = BASE_ScreenResize(181.1f);
-
-		pGridTradeMy1->m_nPosX = BASE_ScreenResize(13.5f);
-		pGridTradeMy2->m_nPosX = BASE_ScreenResize(55.4f);
-		pGridTradeMy3->m_nPosX = BASE_ScreenResize(97.3f);
-		pGridTradeMy4->m_nPosX = BASE_ScreenResize(139.2f);
-		pGridTradeMy5->m_nPosX = BASE_ScreenResize(181.1f);
-		pGridTradeMy6->m_nPosX = BASE_ScreenResize(13.5f);
-		pGridTradeMy7->m_nPosX = BASE_ScreenResize(55.4f);
-		pGridTradeMy8->m_nPosX = BASE_ScreenResize(97.3f);
-		pGridTradeMy9->m_nPosX = BASE_ScreenResize(139.2f);
-		pGridTradeMy10->m_nPosX = BASE_ScreenResize(181.1f);
-		pGridTradeMy11->m_nPosX = BASE_ScreenResize(13.5f);
-		pGridTradeMy12->m_nPosX = BASE_ScreenResize(55.4f);
-		pGridTradeMy13->m_nPosX = BASE_ScreenResize(97.3f);
-		pGridTradeMy14->m_nPosX = BASE_ScreenResize(139.2f);
-		pGridTradeMy15->m_nPosX = BASE_ScreenResize(181.1f);
+		for (int i = 0; i < 15; ++i)
+		{
+			if (pTradeOpGrids[i])
+				pTradeOpGrids[i]->m_nPosX = BASE_ScreenResize(tradeGridX[i % 5]);
+			if (pTradeMyGrids[i])
+				pTradeMyGrids[i]->m_nPosX = BASE_ScreenResize(tradeGridX[i % 5]);
+		}
 
 		///////////////////////composição///////////////////////////
 		m_pCompbuton->m_nPosX = BASE_ScreenResize(256.0f);
@@ -5523,6 +5516,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		auto pText = static_cast<SText*>(m_pControlContainer->FindControl(T_INPUT_GOLD));
 		auto pEdit = m_pControlContainer->FindControl(E_INPUT_GOLD);
+		if (!pText || !pEdit || !m_pInputGoldPanel)
+			return 1;
 
 		// The native 7.48 layout has no imported second Cargo page, so the shared
 		// money button may inspect it only when a newer resource actually bound it.
@@ -5533,14 +5528,14 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			m_pControlContainer->SetFocusedControl(pEdit);
 			m_pInputGoldPanel->SetVisible(1);
 		}
-		if (m_pCargoPanel->IsVisible() == 1)
+		if (m_pCargoPanel && m_pCargoPanel->IsVisible() == 1)
 		{
 			m_nCoinMsgType = 0;
 			pText->SetText(g_pMessageStringTable[136], 0);
 			m_pControlContainer->SetFocusedControl(pEdit);
 			m_pInputGoldPanel->SetVisible(1);
 		}
-		else if (m_pTradePanel->IsVisible() == 1)
+		else if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
 		{
 			if (g_pObjectManager->m_stTrade.TradeMoney > 0)
 				return 1;
@@ -5555,25 +5550,29 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			m_pInputGoldPanel->SetVisible(0);
 		}
 
-		m_pChatSelectPanel->SetVisible(0);
+		if (m_pChatSelectPanel)
+			m_pChatSelectPanel->SetVisible(0);
 		return 0;
 	}
 	if (idwControlID == B_CARGO_MONEY)
 	{
-		if (m_pMyHuman->m_cDie == 1)
+		if (!m_pMyHuman || !m_pControlContainer || !m_pInputGoldPanel ||
+			m_pMyHuman->m_cDie == 1)
 			return 1;
 
 		if (!m_pAutoTrade || m_pAutoTrade->IsVisible() != 1)
 		{
 			auto pText = static_cast<SText*>(m_pControlContainer->FindControl(T_INPUT_GOLD));
+			auto pEdit = m_pControlContainer->FindControl(E_INPUT_GOLD);
 
-			if (m_pCargoPanel->IsVisible() == 1)
+			if (pText && pEdit && m_pCargoPanel && m_pCargoPanel->IsVisible() == 1)
 			{
 				m_nCoinMsgType = 2;
 				pText->SetText(g_pMessageStringTable[138], 0);
-				m_pControlContainer->SetFocusedControl(m_pControlContainer->FindControl(E_INPUT_GOLD));
+				m_pControlContainer->SetFocusedControl(pEdit);
 				m_pInputGoldPanel->SetVisible(1);
-				m_pChatSelectPanel->SetVisible(0);
+				if (m_pChatSelectPanel)
+					m_pChatSelectPanel->SetVisible(0);
 			}
 		}
 		return 1;
@@ -5685,6 +5684,12 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				auto pMyCheckButton = static_cast<SButton*>(m_pControlContainer->FindControl(617u));
 				auto pOpCheckButton = static_cast<SButton*>(m_pControlContainer->FindControl(601u));
 
+				if (!pMyCheckButton || !pOpCheckButton || !m_pMyHuman ||
+					!m_pTradePanel || !m_pTradePanel->IsVisible() ||
+					!g_pApp || !g_pApp->m_pTimerManager ||
+					!g_pObjectManager || !g_pObjectManager->m_stTrade.OpponentID)
+					break;
+
 				pMyCheckButton->m_bSelected = 0;
 				pOpCheckButton->m_bSelected = 0;
 
@@ -5692,8 +5697,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 				g_pObjectManager->m_stTrade.MyCheck = pMyCheckButton->m_bSelected;
 				g_pObjectManager->m_stTrade.TradeMoney = static_cast<int>(nInputValue);
+				g_pObjectManager->m_stTrade.Header.ID = m_pMyHuman->m_dwID;
 				g_pObjectManager->m_stTrade.Header.Type = MSG_Trade_Opcode;
 
+				WYD748_LogTradeSend("gold", g_pObjectManager->m_stTrade);
 				SendOneMessage((char*)&g_pObjectManager->m_stTrade, sizeof(g_pObjectManager->m_stTrade));
 
 				auto pMyGold = static_cast<SText*>(m_pControlContainer->FindControl(619u));
@@ -5702,7 +5709,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 				sprintf_s(szText, "%10lld", nInputValue);
 
-				pMyGold->SetText(szText, 0);
+				if (pMyGold)
+					pMyGold->SetText(szText, 0);
 			}
 			break;
 			case 3:
@@ -6158,14 +6166,15 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (pATradePanel && pATradePanel->IsVisible())
 			return 1;
 
-		if (m_pShopPanel->IsVisible() == 1)
+		if (m_pShopPanel && m_pShopPanel->IsVisible() == 1)
 			return 1;
 
-		if (m_pTradePanel->IsVisible() != 1)
+		if (!m_pTradePanel || m_pTradePanel->IsVisible() != 1)
 		{
 			auto pCharBtn = static_cast<SButton*>(m_pControlContainer->FindControl(B_CHAR));
 
-			pCharBtn->SetSelected(pCharBtn->m_bSelected == 0);
+			if (pCharBtn)
+				pCharBtn->SetSelected(pCharBtn->m_bSelected == 0);
 
 			SetVisibleCharInfo();
 
@@ -6272,6 +6281,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 	if (idwControlID == B_CHATLIST_LIGHT)
 	{
+		if (!m_pChatBack)
+			return 0;
+
 		static short Color = 0;
 		switch (Color)
 		{
@@ -6300,6 +6312,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == B_CHAT_SELECT)
 	{
+		if (!m_pChatListPanel)
+			return 0;
+
 		if (m_pChatListPanel->IsVisible())
 			m_pChatListPanel->SetVisible(0);
 		else
@@ -6387,11 +6402,14 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		auto pChatSelectBtn = static_cast<SButton*>(m_pControlContainer->FindControl(B_CHAT_SELECT));
 
-		pChatSelectBtn->SetText(pBtn->m_GCPanel.strString);
+		if (pChatSelectBtn)
+			pChatSelectBtn->SetText(pBtn->m_GCPanel.strString);
 
-		m_pChatListPanel->SetVisible(0);
+		if (m_pChatListPanel)
+			m_pChatListPanel->SetVisible(0);
 
-		m_pEditChat->SetText(m_cChatType);
+		if (m_pEditChat)
+			m_pEditChat->SetText(m_cChatType);
 
 		return 0;
 	}
@@ -7270,6 +7288,11 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 641)
 	{
+		if (!g_pObjectManager || !m_pMyHuman || !m_pPartyList || !m_pPGTPanel || !m_pMessagePanel)
+		{
+			m_pPGTOver = 0;
+			return 1;
+		}
 		auto pHuman = (TMHuman*)g_pObjectManager->GetHumanByID(m_dwOpID);
 		if (!pHuman)
 		{
@@ -7315,19 +7338,45 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 643)
 	{
-		if (!m_pPGTOver	|| 
-			(float)BASE_GetDistance(
+		const unsigned int tradeTargetID = m_pPGTOver ? m_pPGTOver->m_dwID : m_dwOpID;
+		TMHuman* pTradeTarget = m_pPGTOver;
+		if (!pTradeTarget && tradeTargetID && g_pObjectManager)
+			pTradeTarget = (TMHuman*)g_pObjectManager->GetHumanByID(tradeTargetID);
+		int tradeDistance = -1;
+		if (m_pMyHuman && pTradeTarget)
+		{
+			tradeDistance = BASE_GetDistance(
 				(int)m_pMyHuman->m_vecPosition.x,
 				(int)m_pMyHuman->m_vecPosition.y,
-				(int)m_pPGTOver->m_vecPosition.x,
-				(int)m_pPGTOver->m_vecPosition.y) > ((float)(g_pObjectManager->m_pCamera->m_fMaxCamLen - 11.0) + 6.0))
+				(int)pTradeTarget->m_vecPosition.x,
+				(int)pTradeTarget->m_vecPosition.y);
+		}
+		WYD748_DiagnosticsLog(
+			"TRADE_CLICK target=%u opid=%u over=%p target_ptr=%p human=%p pgt=%p msg=%p obj=%p camera=%p panel=%p visible=%d distance=%d die=%d opponent=%u\r\n",
+			tradeTargetID, m_dwOpID, m_pPGTOver, pTradeTarget, m_pMyHuman, m_pPGTPanel,
+			m_pMessagePanel, g_pObjectManager, g_pObjectManager ? g_pObjectManager->m_pCamera : nullptr,
+			m_pTradePanel, m_pTradePanel ? m_pTradePanel->IsVisible() : -1,
+			tradeDistance, m_pMyHuman ? m_pMyHuman->m_cDie : -1,
+			g_pObjectManager ? g_pObjectManager->m_stTrade.OpponentID : 0);
+		if (!m_pTradePanel || !m_pMyHuman || !m_pPGTPanel || !m_pMessagePanel ||
+			!g_pObjectManager || !g_pObjectManager->m_pCamera)
 		{
+			WYD748_DiagnosticsLog("TRADE_CLICK blocked=missing-control\r\n");
 			return 1;
 		}
 
-		m_pPGTOver = 0;
-		if (m_pMyHuman->m_cDie == 1)
+		if (!pTradeTarget || tradeDistance > (int)(((float)(g_pObjectManager->m_pCamera->m_fMaxCamLen - 11.0) + 6.0)))
+		{
+			WYD748_DiagnosticsLog("TRADE_CLICK blocked=target-or-distance\r\n");
 			return 1;
+		}
+
+		m_pPGTOver = pTradeTarget;
+		if (m_pMyHuman->m_cDie == 1)
+		{
+			WYD748_DiagnosticsLog("TRADE_CLICK blocked=dead\r\n");
+			return 1;
+		}
 
 		RECT rc; 
 		
@@ -7340,18 +7389,27 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		pt.x = (int)m_pMyHuman->m_vecPosition.x;
 		pt.y = (int)m_pMyHuman->m_vecPosition.y;
 		if (PtInRect(&rc, pt) == 1)
+		{
+			WYD748_DiagnosticsLog("TRADE_CLICK blocked=restricted-position\r\n");
 			return 1;
+		}
 
 		auto pTradePanel = m_pTradePanel;
-		if (!g_pObjectManager->m_stTrade.OpponentID || !pTradePanel || pTradePanel->IsVisible() != 1)
+		if (!g_pObjectManager->m_stTrade.OpponentID || pTradePanel->IsVisible() != 1)
 		{
 			// Invitation packets carry no offer. Clear the reusable buffer before the
 			// server parses CarryPos/Item, otherwise stale trade bytes abort the invite.
-			WYD748_ResetTradeOffer(g_pObjectManager->m_stTrade, m_dwOpID);
-			g_pObjectManager->m_stTrade.Header.Type = 0x383;
+			// The interaction menu stores its target in m_pPGTOver.  m_dwOpID is
+			// only the legacy message-box target and may be zero on this path.
+			WYD748_ResetTradeOffer(
+				g_pObjectManager->m_stTrade,
+				static_cast<unsigned short>(tradeTargetID));
+			g_pObjectManager->m_stTrade.Header.Type = MSG_Trade_Opcode;
 			g_pObjectManager->m_stTrade.Header.ID = m_pMyHuman->m_dwID;
-			SendOneMessage((char*)&g_pObjectManager->m_stTrade, 156);
+			WYD748_LogTradeSend("invite", g_pObjectManager->m_stTrade);
+			SendOneMessage((char*)&g_pObjectManager->m_stTrade, sizeof(MSG_Trade));
 
+			m_pPGTOver = nullptr;
 			m_dwOpID = 0;
 			m_pPGTPanel->SetVisible(0);
 			return 0;
@@ -7359,10 +7417,18 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[35], 2000);
 		m_pMessagePanel->SetVisible(1, 1);
+		WYD748_DiagnosticsLog("TRADE_CLICK blocked=trade-busy opponent=%u visible=%d\r\n",
+			g_pObjectManager->m_stTrade.OpponentID, pTradePanel->IsVisible());
 		return 1;
 	}
 	if (idwControlID == 642)
 	{
+		if (!m_pMyHuman || !m_pPGTOver || !m_pPGTPanel ||
+			!m_pBtnPGTGuild || !m_pBtnPGTParty || !m_pBtnPGTTrade || !m_pBtnPGTChallenge ||
+			!m_pBtnPGT1_V_1 || !m_pBtnPGT5_V_5 || !m_pBtnPGT10_V_10 || !m_pBtnPGTAll_V_All ||
+			!m_pBtnPGTGuildDrop || !m_pBtnPGTGuildWar || !m_pBtnPGTGuildAlly || !m_pBtnPGTGuildInvite ||
+			!m_pBtnPGTGICommon || !m_pBtnPGTGIChief1 || !m_pBtnPGTGIChief2 || !m_pBtnPGTGIChief3)
+			return 0;
 		m_pBtnPGTGuild->SetVisible(0);
 		m_pBtnPGTParty->SetVisible(0);
 		m_pBtnPGTTrade->SetVisible(0);
@@ -7390,6 +7456,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 863)
 	{
+		if (!m_pMyHuman || !m_pPGTOver || !m_pPGTPanel ||
+			!m_pBtnPGTGuildDrop || !m_pBtnPGTGuildWar || !m_pBtnPGTGuildAlly || !m_pBtnPGTGuildInvite ||
+			!m_pBtnPGTGICommon || !m_pBtnPGTGIChief1 || !m_pBtnPGTGIChief2 || !m_pBtnPGTGIChief3)
+			return 0;
 		m_pBtnPGTGuildDrop->SetVisible(0);
 		m_pBtnPGTGuildWar->SetVisible(0);
 		m_pBtnPGTGuildAlly->SetVisible(0);
@@ -7413,7 +7483,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 912)
 	{
-		if (!m_pPGTOver)
+		if (!m_pPGTOver || !m_pMessagePanel || !g_pObjectManager || !m_pMyHuman || !m_pPGTPanel)
 			return 0;
 
 		if (!g_pCurrentScene)
@@ -7444,7 +7514,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID >= 913 && idwControlID <= 915)
 	{
-		if (!g_pCurrentScene)
+		if (!g_pCurrentScene || !m_pMessagePanel || !m_pMyHuman || !g_pObjectManager || !m_pPGTPanel)
 			return 0;
 
 		if (m_pPGTOver != nullptr)
@@ -7481,6 +7551,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 816)
 	{
+		if (!m_pMessageBox || !m_pPGTPanel)
+			return 0;
 		m_pPGTOver = 0;
 		if (m_pMessageBox->IsVisible())
 		{
@@ -7494,6 +7566,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 817)
 	{
+		if (!m_pMessageBox || !m_pPGTPanel)
+			return 0;
 		if (m_pMessageBox->IsVisible())
 		{
 			m_pPGTPanel->SetVisible(0);
@@ -7510,6 +7584,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 818)
 	{
+		if (!m_pMessageBox || !m_pPGTPanel)
+			return 0;
 		m_pPGTOver = 0;
 
 		if (m_pMessageBox->IsVisible())
@@ -7526,6 +7602,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 862)
 	{
+		if (!m_pMessageBox || !m_pPGTPanel)
+			return 0;
 		if (m_pMessageBox->IsVisible())
 		{
 			m_pPGTPanel->SetVisible(0);
@@ -7542,6 +7620,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 644)
 	{
+		if (!m_pPGTPanel)
+			return 0;
 		m_pPGTOver = 0;
 		m_pPGTPanel->SetVisible(0);
 		return 0;
@@ -7553,7 +7633,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 620)
 	{
-		if (m_pPGTPanel)
+		if (m_pPGTPanel && m_pBtnPGTParty && m_pBtnPGTGuild && m_pBtnPGTTrade && m_pBtnPGTChallenge &&
+			m_pBtnPGT1_V_1 && m_pBtnPGT5_V_5 && m_pBtnPGT10_V_10 && m_pBtnPGTAll_V_All &&
+			m_pBtnPGTGICommon && m_pBtnPGTGIChief1 && m_pBtnPGTGIChief2 && m_pBtnPGTGIChief3)
 		{
 			m_pBtnPGTParty->SetVisible(0);
 			m_pBtnPGTGuild->SetVisible(0);
@@ -7573,6 +7655,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 639 || idwControlID == 621 || idwControlID == 622 || idwControlID == 623)
 	{
+		if (!m_pMyHuman || !m_pPGTPanel)
+			return 0;
 		if (m_pPGTOver)
 		{
 			MSG_STANDARDPARM2 stParm2{};
@@ -8056,8 +8140,11 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 475139)
 	{
-		if (!m_pChatListPanel->IsVisible())
+		if (!m_pChatListPanel || !m_pChatListPanel->IsVisible())
 		{
+			if (!m_pMyHuman)
+				return 1;
+
 			MSG_STANDARDPARM stParm{};
 			stParm.Header.Type = 0x37E;
 			stParm.Header.ID = m_pMyHuman->m_dwID;
@@ -8072,24 +8159,41 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 617)
 	{
+		if (!m_pTradePanel || !m_pTradePanel->IsVisible() || !m_pMyHuman ||
+			!g_pObjectManager || !g_pObjectManager->m_stTrade.OpponentID ||
+			!g_pApp || !g_pApp->m_pTimerManager)
+			return 1;
+
 		if (m_dwLastCheckTime + 2000 <= g_pApp->m_pTimerManager->GetServerTime())
 		{
 			auto pButton = (SButton*)m_pControlContainer->FindControl(617u);
-			pButton->m_bSelected = pButton->m_bSelected == 0;
-			g_pObjectManager->m_stTrade.MyCheck = pButton->m_bSelected;
+			if (pButton)
+			{
+				pButton->m_bSelected = pButton->m_bSelected == 0;
+				g_pObjectManager->m_stTrade.MyCheck = pButton->m_bSelected;
+			}
+			else
+			{
+				g_pObjectManager->m_stTrade.MyCheck = !g_pObjectManager->m_stTrade.MyCheck;
+			}
 
 			MSG_Trade stTrade{};
 
 			memcpy(&stTrade, &g_pObjectManager->m_stTrade, sizeof(stTrade));
-			stTrade.Header.Type = 0x383;
+			stTrade.Header.ID = m_pMyHuman->m_dwID;
+			stTrade.Header.Type = MSG_Trade_Opcode;
+			WYD748_LogTradeSend("confirm", stTrade);
 			SendOneMessage((char*)&stTrade, sizeof(stTrade));
 
 			m_dwLastCheckTime = g_pApp->m_pTimerManager->GetServerTime();
 			return 0;
 		}
 
-		m_pMessagePanel->SetMessage(g_pMessageStringTable[41], 2000);
-		m_pMessagePanel->SetVisible(1, 1);
+		if (m_pMessagePanel)
+		{
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[41], 2000);
+			m_pMessagePanel->SetVisible(1, 1);
+		}
 		m_dwLastCheckTime = g_pApp->m_pTimerManager->GetServerTime();
 		return 1;
 	}
@@ -8843,7 +8947,7 @@ int TMFieldScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 				}
 				else if (m_pMyHuman->m_eMotion != ECHAR_MOTION::ECMOTION_SEATING && m_pMyHuman->m_eMotion != ECHAR_MOTION::ECMOTION_PUNISHING)
 				{
-					if (static_cast<float>(nX) >= (m_pChatBack->GetPos().x + 10.0f) &&
+					if ((!m_pChatBack || static_cast<float>(nX) >= (m_pChatBack->GetPos().x + 10.0f)) &&
 						abs(static_cast<int>(vec.x - m_pMyHuman->m_vecPosition.x)) < 15 &&
 						abs(static_cast<int>(vec.y - m_pMyHuman->m_vecPosition.y)) > 15)
 					{
@@ -9126,6 +9230,8 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	// the 7.48 FieldScene2.bin and was the remaining post-login crash path.
 	if (m_bCompatFieldScene)
 	{
+		if (!g_pTimerManager)
+			return 0;
 		dwServerTime = g_pTimerManager->GetServerTime();
 		TMScene::FrameMove(dwServerTime);
 		UpdateGambleRequestTimeout();
@@ -9330,7 +9436,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		return 1;
 	}
 
-	if (m_pMessagePanel && m_pMessageBox->m_dwMessage == 11 && m_pMessageBox->IsVisible() == 1 && 
+	if (m_pMessagePanel && m_pMessageBox && m_pMessageBox->m_dwMessage == 11 && m_pMessageBox->IsVisible() == 1 &&
 		g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
 	{
 		m_pMessageBox->SetVisible(0);
@@ -10787,7 +10893,7 @@ int TMFieldScene::OnAccel(int nMsg)
 
 void TMFieldScene::PGTVisible(unsigned int dwServerTime)
 {
-	if (!m_pPGTPanel || !m_pPGTText || !m_pBtnPGTParty || !m_pBtnPGTGuild ||
+	if (!g_pTimerManager || !m_pMyHuman || !m_pPGTPanel || !m_pPGTText || !m_pBtnPGTParty || !m_pBtnPGTGuild ||
 		!m_pBtnPGTTrade || !m_pBtnPGTChallenge || !m_pBtnPGT1_V_1 ||
 		!m_pBtnPGT5_V_5 || !m_pBtnPGT10_V_10 || !m_pBtnPGTAll_V_All ||
 		!m_pBtnPGTGuildDrop || !m_pBtnPGTGuildWar || !m_pBtnPGTGuildAlly ||
@@ -14863,10 +14969,11 @@ void TMFieldScene::SetVisibleInventory()
 
 		m_pInputGoldPanel->SetVisible(0);
 
-		if (pTradePanel->IsVisible() == 1)
+		if (pTradePanel && pTradePanel->IsVisible() == 1)
 			SetVisibleTrade(0);
 
-		g_pCursor->DetachItem();
+		if (g_pCursor)
+			g_pCursor->DetachItem();
 	}
 
 	pPanel->SetVisible(bInv);
@@ -15094,6 +15201,10 @@ void TMFieldScene::SetVisibleCargo1(int bShow)
 
 void TMFieldScene::SetVisibleTrade(int bShow)
 {
+	if (!m_pControlContainer || !m_pMyHuman || !g_pObjectManager ||
+		!g_pApp || !g_pApp->m_pTimerManager)
+		return;
+
 	SGridControl::m_sLastMouseOverIndex = -1;
 
 	auto pBtnChar = static_cast<SButton*>(m_pControlContainer->FindControl(B_CHAR));
@@ -15101,17 +15212,23 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 	auto pMyGold = static_cast<SText*>(m_pControlContainer->FindControl(TMT_TRADE_MYGOLD));
 	auto pOPGold = static_cast<SText*>(m_pControlContainer->FindControl(TMT_TRADE_OPGOLD));
 
-	pOPGold->m_cComma = 1;
-	pMyGold->m_cComma = 1;
+	if (pOPGold)
+		pOPGold->m_cComma = 1;
+	if (pMyGold)
+		pMyGold->m_cComma = 1;
 
 	bool bSendQuit = false;
+
+	if (!m_pTradePanel)
+		return;
 
 	if (m_pTradePanel->IsVisible() == 1 && !bShow)
 		bSendQuit = true;
 
 	if (bShow == 1)
 	{
-		g_pCursor->DetachItem();
+		if (g_pCursor)
+			g_pCursor->DetachItem();
 		if (m_pGambleStore)
 			SetVisibleGamble(0, 0);
 		
@@ -15119,18 +15236,28 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 			SetVisibleAutoTrade(0, 0);
 		PositionCompatTradePanels();
 
-		m_pSystemPanel->SetVisible(0);
-		m_pCPanel->SetVisible(0);
-		m_pCargoPanel->SetVisible(0);
+		if (m_pSystemPanel)
+			m_pSystemPanel->SetVisible(0);
+		if (m_pCPanel)
+			m_pCPanel->SetVisible(0);
+		if (m_pCargoPanel)
+			m_pCargoPanel->SetVisible(0);
 		m_pTradePanel->SetVisible(bShow);
-		m_pInvenPanel->SetVisible(bShow);
-		m_pSkillPanel->SetVisible(0);
-		m_pSkillMPanel->SetVisible(0);
-		m_pShopPanel->SetVisible(0);
-		m_pHellgateStore->SetVisible(0);
-		pBtnInv->SetSelected(0);
-		pBtnChar->SetSelected(0);
-		if (m_pSkillPanel->IsVisible() == 1)
+		if (m_pInvenPanel)
+			m_pInvenPanel->SetVisible(bShow);
+		if (m_pSkillPanel)
+			m_pSkillPanel->SetVisible(0);
+		if (m_pSkillMPanel)
+			m_pSkillMPanel->SetVisible(0);
+		if (m_pShopPanel)
+			m_pShopPanel->SetVisible(0);
+		if (m_pHellgateStore)
+			m_pHellgateStore->SetVisible(0);
+		if (pBtnInv)
+			pBtnInv->SetSelected(0);
+		if (pBtnChar)
+			pBtnChar->SetSelected(0);
+		if (m_pSkillPanel && m_pSkillPanel->IsVisible() == 1)
 			m_pSkillPanel->SetVisible(0);
 	}
 	else
@@ -15157,11 +15284,15 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 				}
 			}
 		}
-		pMyGold->SetText((char*)"         0", 0);
-		pOPGold->SetText((char*)"         0", 0);
+		if (pMyGold)
+			pMyGold->SetText((char*)"         0", 0);
+		if (pOPGold)
+			pOPGold->SetText((char*)"         0", 0);
 		m_pTradePanel->SetVisible(bShow);
-		m_pInvenPanel->SetVisible(0);
-		m_pInputGoldPanel->SetVisible(0);
+		if (m_pInvenPanel)
+			m_pInvenPanel->SetVisible(0);
+		if (m_pInputGoldPanel)
+			m_pInputGoldPanel->SetVisible(0);
 	}
 
 	if (g_pSoundManager)
@@ -15188,14 +15319,6 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 		}
 	}
 
-	if (bShow == 0)
-	{
-		memset(&g_pObjectManager->m_stTrade, 0, sizeof(g_pObjectManager->m_stTrade));
-
-		for (int j = 0; j < 15; ++j)
-			g_pObjectManager->m_stTrade.CarryPos[j] = -1;
-	}
-
 	if (bShow == 1)
 	{
 		SetInventoryGridType(TMEGRIDTYPE::GRID_TRADEINV);
@@ -15212,10 +15335,7 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 	{
 		SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
 		SetEquipGridState(1);
-		memset(&g_pObjectManager->m_stTrade, 0, sizeof(g_pObjectManager->m_stTrade));
-
-		for (int k = 0; k < 15; ++k)
-			g_pObjectManager->m_stTrade.CarryPos[k] = -1;
+		WYD748_ResetTradeOffer(g_pObjectManager->m_stTrade, 0);
 
 		SGridControl* pGridOp[15]{};
 		SGridControl* pGridMy[15]{};
@@ -15229,7 +15349,7 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 			if (pGridOp[l])
 				pPickedItem = pGridOp[l]->PickupItem(0, 0);
 
-			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
+			if (g_pCursor && g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
 				g_pCursor->m_pAttachedItem = nullptr;
 
 			if (pPickedItem)
@@ -15244,7 +15364,7 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 			if (pGridMy[l])
 				pPickedItem = pGridMy[l]->PickupItem(0, 0);
 
-			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
+			if (g_pCursor && g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
 				g_pCursor->m_pAttachedItem = nullptr;
 
 			if (pPickedItem)
@@ -15254,12 +15374,14 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 		auto pOpCheckButton = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_TRADE_OPCHECK));
 		auto pMyCheckButton = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_TRADE_MYCHECK));
 		
-		pOpCheckButton->m_bSelected = 0;
-		pMyCheckButton->m_bSelected = 0;
+		if (pOpCheckButton)
+			pOpCheckButton->m_bSelected = 0;
+		if (pMyCheckButton)
+			pMyCheckButton->m_bSelected = 0;
 
 		m_dwLastCheckTime = g_pApp->m_pTimerManager->GetServerTime();
 
-		if (m_pInvenPanel->IsVisible() == 1)
+		if (m_pInvenPanel && m_pInvenPanel->IsVisible() == 1)
 			SetVisibleInventory();
 
 	}
@@ -15954,8 +16076,11 @@ void TMFieldScene::SetVisiblePotal(int bShow, int nPos)
 			break;
 		}
 
-		m_pPotalText->SetText(szStr, 0);
-		m_pPotalText->SetTextColor(0xFFFFFFFF);
+		if (m_pPotalText)
+		{
+			m_pPotalText->SetText(szStr, 0);
+			m_pPotalText->SetTextColor(0xFFFFFFFF);
+		}
 	}
 	else
 	{
@@ -17857,7 +17982,7 @@ void TMFieldScene::OnESC()
 	{
 		SetVisibleAutoTrade(0, 0);
 	}
-	else if (m_pPGTPanel->IsVisible() == 1)
+	else if (m_pPGTPanel && m_pPGTPanel->IsVisible() == 1)
 	{
 		m_pPGTPanel->SetVisible(0);
 	}
@@ -17873,41 +17998,41 @@ void TMFieldScene::OnESC()
 	{
 		TotoClose();
 	}
-	else if (m_pInvenPanel->IsVisible() == 1)
+	else if (m_pInvenPanel && m_pInvenPanel->IsVisible() == 1)
 	{
 		OnControlEvent(65562u, 0);
 	}
-	else if (m_pSkillPanel->IsVisible() == 1)
+	else if (m_pSkillPanel && m_pSkillPanel->IsVisible() == 1)
 	{
 		OnControlEvent(65568u, 0);
 	}
-	else if (m_pDonateStore->IsVisible() == 1)//aqui sistema esc do donate
+	else if (m_pDonateStore && m_pDonateStore->IsVisible() == 1)//aqui sistema esc do donate
 	{
 	
 		m_pDonateStore->SetVisible(0);
 	}
-	else if (m_pDropListPanel->IsVisible() == 1)//aqui sistema esc do droplist
+	else if (m_pDropListPanel && m_pDropListPanel->IsVisible() == 1)//aqui sistema esc do droplist
 	{
 		m_pDropPanel[49]->SetVisible(0);//
 	}
-	else if (m_pCPanel->IsVisible() == 1)
+	else if (m_pCPanel && m_pCPanel->IsVisible() == 1)
 	{
 		OnControlEvent(65696u, 0);
 		//OnControlEvent(65769u, 0);
 	}
-	else if (m_pTradePanel->IsVisible() == 1)
+	else if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
 	{
 		SetVisibleTrade(0);
 	}
-	else if (m_pPartyPanel->IsVisible() == 1)
+	else if (m_pPartyPanel && m_pPartyPanel->IsVisible() == 1)
 	{
 		SetVisibleParty();
 	}
-	else if (m_pShopPanel->IsVisible() == 1)
+	else if (m_pShopPanel && m_pShopPanel->IsVisible() == 1)
 	{
 		SetVisibleShop(0);
 	}
-	else if (m_pCargoPanel->IsVisible() == 1)
+	else if (m_pCargoPanel && m_pCargoPanel->IsVisible() == 1)
 	{
 		SetVisibleCargo(0);
 	}
@@ -17915,7 +18040,7 @@ void TMFieldScene::OnESC()
 	{
 		SetVisibleGamble(0, 0);
 	}
-	else if (m_pInputGoldPanel->IsVisible() == 1)
+	else if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible() == 1)
 	{
 		m_pInputGoldPanel->SetVisible(0);
 	}
@@ -18212,23 +18337,11 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 			setPanelVisible(m_pSkillMPanel, 0);
 			setPanelVisible(m_pShopPanel, 0);
 
-			// FUN_0044ae38 closes normal trade before exposing auto-trade.  The
-			// imported SetVisibleTrade walks four absent 7.59 pages, so perform the
-			// compatible state transition directly for FieldScene2.bin.
+			// FUN_0044ae38 closes normal trade before exposing auto-trade. Keep that
+			// transition on the same cleanup path used by every other trade close so
+			// grids, equipment, offer items, buttons and gold are reset together.
 			if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
-			{
-				m_pTradePanel->SetVisible(0);
-				if (g_pObjectManager->m_stTrade.OpponentID > 0 && m_pMyHuman)
-				{
-					MSG_STANDARD closeTrade{};
-					closeTrade.Type = MSG_CloseTrade_Opcode;
-					closeTrade.ID = m_pMyHuman->m_dwID;
-					SendOneMessage(reinterpret_cast<char*>(&closeTrade), sizeof(closeTrade));
-				}
-				memset(&g_pObjectManager->m_stTrade, 0, sizeof(g_pObjectManager->m_stTrade));
-				for (int slot = 0; slot < 15; ++slot)
-					g_pObjectManager->m_stTrade.CarryPos[slot] = -1;
-			}
+				SetVisibleTrade(0);
 
 			if (pBtnInv)
 				pBtnInv->SetSelected(0);
@@ -20342,10 +20455,27 @@ void TMFieldScene::SetButtonTextXY(SButton* pButton)
 
 int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent, unsigned int dwServerTime)
 {
+	if (!m_pMessageBox || !m_pMyHuman || !m_pControlContainer || !g_pObjectManager)
+		return 1;
+
 	switch (m_pMessageBox->m_dwMessage)
 	{
 	case 601:
 	{
+		if (!m_pTradePanel)
+			return 1;
+
+		auto pNode = g_pObjectManager->GetHumanByID(m_pMessageBox->m_dwArg);
+		if (!pNode)
+		{
+			if (m_pMessagePanel)
+			{
+				m_pMessagePanel->SetMessage(g_pMessageStringTable[37], 2000);
+				m_pMessagePanel->SetVisible(1, 1);
+			}
+			return 1;
+		}
+
 		// The received invitation is opponent state, not our local offer. Build an
 		// empty acceptance before sending so stale Item/CarryPos bytes cannot be
 		// interpreted as an offer and prevent the trade window from opening.
@@ -20356,17 +20486,10 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		memcpy(&stTrade, &g_pObjectManager->m_stTrade, sizeof(stTrade));
 		stTrade.Header.ID = m_pMyHuman->m_dwID;
 		stTrade.Header.Type = MSG_Trade_Opcode;
+		WYD748_LogTradeSend("accept", stTrade);
 		SendOneMessage((char*)&stTrade, sizeof(stTrade));
-		if (m_pTradePanel && !m_pTradePanel->IsVisible())
+		if (!m_pTradePanel->IsVisible())
 		{
-			auto pNode = g_pObjectManager->GetHumanByID(m_pMessageBox->m_dwArg);
-			if (!pNode)
-			{
-				m_pMessagePanel->SetMessage(g_pMessageStringTable[37], 2000);
-				m_pMessagePanel->SetVisible(1, 1);
-				return 1;
-			}
-
 			auto pTextMyName = static_cast<SText*>(m_pControlContainer->FindControl(TMT_TRADE_MYNAME));
 			auto pTextOPName = static_cast<SText*>(m_pControlContainer->FindControl(TMT_TRADE_OPNAME));
 
@@ -20374,8 +20497,10 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 			char szOPName[128]{};
 			sprintf_s(szMyName, "[%s]:%d", m_pMyHuman->m_szName, strlen(m_pMyHuman->m_szName));
 			sprintf_s(szOPName, "[%s]:%d", pNode->m_szName, strlen(pNode->m_szName));
-			pTextMyName->SetText(szMyName, 1);
-			pTextOPName->SetText(szOPName, 1);
+			if (pTextMyName)
+				pTextMyName->SetText(szMyName, 1);
+			if (pTextOPName)
+				pTextOPName->SetText(szOPName, 1);
 			SetVisibleTrade(1);
 		}
 	}
@@ -28452,13 +28577,20 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 		if (m_pPotalText3)
 			m_pPotalText3->SetText(g_pMessageStringTable[381], 0);
 
-		LoadMsgText3(m_pQuestList[0], (char*)"UI\\QuestSubjects.txt", 400, 0);
-		LoadMsgText3(m_pQuestList[1], (char*)"UI\\QuestSubjects2.txt", 400, 0);
-		LoadMsgText3(m_pQuestList[2], (char*)"UI\\QuestSubjects3.txt", 400, 0);
-		LoadMsgText3(m_pQuestList[3], (char*)"UI\\QuestSubjects4.txt", 400, 0);
+		if (m_pQuestList[0])
+			LoadMsgText3(m_pQuestList[0], (char*)"UI\\QuestSubjects.txt", 400, 0);
+		if (m_pQuestList[1])
+			LoadMsgText3(m_pQuestList[1], (char*)"UI\\QuestSubjects2.txt", 400, 0);
+		if (m_pQuestList[2])
+			LoadMsgText3(m_pQuestList[2], (char*)"UI\\QuestSubjects3.txt", 400, 0);
+		if (m_pQuestList[3])
+			LoadMsgText3(m_pQuestList[3], (char*)"UI\\QuestSubjects4.txt", 400, 0);
 
 		char strAirMoveList[10][256]{};
-		if (!m_pQuestList[0] || !m_pQuestList[1])
+		if (!m_pQuestList[0] || !m_pQuestList[1] ||
+			!m_pQuestList[0]->m_pItemList[0] ||
+			!m_pQuestList[0]->m_pItemList[1] ||
+			!m_pQuestList[0]->m_pItemList[6])
 			return 0;
 
 		int i = 0;
@@ -28551,7 +28683,7 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 
 		if (pAutoTradePanel && pAutoTradePanel->IsVisible() == 1)
 			SetVisibleAutoTrade(0, 0);
-		else if (pPGTPanel->IsVisible() == 1)
+		else if (pPGTPanel && pPGTPanel->IsVisible() == 1)
 			pPGTPanel->SetVisible(0);
 		else if (m_pQuestPanel && m_pQuestPanel->IsVisible() == 1)
 		{
@@ -28561,30 +28693,31 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 			m_pFireWorkPanel->SetVisible(0);
 		else if (m_pTotoPanel && m_pTotoPanel->IsVisible() == 1)
 			TotoClose();
-		else if (pInvPanel->IsVisible() == 1)
+		else if (pInvPanel && pInvPanel->IsVisible() == 1)
 			OnControlEvent(65562, 0);
-		else if (pSkillPanel->IsVisible() == 1)
+		else if (pSkillPanel && pSkillPanel->IsVisible() == 1)
 			OnControlEvent(65568, 0);
-		else if (pCharPanel->IsVisible() == 1)
+		else if (pCharPanel && pCharPanel->IsVisible() == 1)
 			OnControlEvent(65769, 0);
-		else if (pTradePanel->IsVisible() == 1)
+		else if (pTradePanel && pTradePanel->IsVisible() == 1)
 			SetVisibleTrade(0);
-		else if (pPartyPanel->IsVisible() == 1)
+		else if (pPartyPanel && pPartyPanel->IsVisible() == 1)
 			SetVisibleParty();
-		else if (pShopPanel->IsVisible()== 1)
+		else if (pShopPanel && pShopPanel->IsVisible()== 1)
 			SetVisibleShop(0);
-		else if (pCargoPanel->IsVisible() == 1)
+		else if (pCargoPanel && pCargoPanel->IsVisible() == 1)
 			SetVisibleCargo(0);
-		else if (pCargoPanel1->IsVisible() == 1)
+		else if (pCargoPanel1 && pCargoPanel1->IsVisible() == 1)
 			SetVisibleCargo(0);
 		else if (pGambleStore && pGambleStore->IsVisible() == 1)
 			SetVisibleGamble(0, 0);
-		else if (pInputGoldPanel->IsVisible() == 1)
+		else if (pInputGoldPanel && pInputGoldPanel->IsVisible() == 1)
 			pInputGoldPanel->SetVisible(0);
 		else if (m_pMsgPanel && m_pMsgPanel->IsVisible() == 1)
 		{
 			m_pMsgPanel->SetVisible(0);
-			m_pControlContainer->SetFocusedControl(0);
+			if (m_pControlContainer)
+				m_pControlContainer->SetFocusedControl(0);
 		}
 		else if (m_pHelpPanel && m_pHelpPanel->IsVisible() == 1)
 		{

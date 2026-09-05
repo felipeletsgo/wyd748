@@ -154,8 +154,13 @@ func TestPlayerTradeInviteOffersAndAtomicCommit(t *testing.T) {
 	w.items[100] = model.ItemDef{Index: 100}
 	w.items[200] = model.ItemDef{Index: 200}
 
-	w.onTrade(a.Session, tradeOfferPacket(b.ID, a.Char, 0, false))
-	w.onTrade(b.Session, tradeOfferPacket(a.ID, b.Char, 0, false))
+	inviteA := tradeOfferPacket(b.ID, a.Char, 0, false)
+	inviteB := tradeOfferPacket(a.ID, b.Char, 0, false)
+	for i := 132; i < 147; i++ {
+		inviteA[i], inviteB[i] = 0, 0
+	}
+	w.onTrade(a.Session, inviteA)
+	w.onTrade(b.Session, inviteB)
 	if a.Trade == nil || b.Trade == nil || a.Trade.OpponentID != b.ID || b.Trade.OpponentID != a.ID {
 		t.Fatal("convite/aceite nao criou a sessao bilateral")
 	}
@@ -163,6 +168,8 @@ func TestPlayerTradeInviteOffersAndAtomicCommit(t *testing.T) {
 	w.onTrade(a.Session, tradeOfferPacket(b.ID, a.Char, 100, false, 0))
 	w.onTrade(b.Session, tradeOfferPacket(a.ID, b.Char, 200, false, 0))
 	w.onTrade(a.Session, tradeOfferPacket(b.ID, a.Char, 100, true, 0))
+	aPacketsBeforeCommit := a.Session.QueuedPacketsForTest()
+	bPacketsBeforeCommit := b.Session.QueuedPacketsForTest()
 	w.onTrade(b.Session, tradeOfferPacket(a.ID, b.Char, 200, true, 0))
 	if a.Trade != nil || b.Trade != nil {
 		t.Fatal("trade confirmado permaneceu aberto")
@@ -174,6 +181,13 @@ func TestPlayerTradeInviteOffersAndAtomicCommit(t *testing.T) {
 	}
 	if st.batchSaves != 1 {
 		t.Fatalf("trade nao persistiu em lote: %d", st.batchSaves)
+	}
+	if got := a.Session.QueuedPacketsForTest(); got != aPacketsBeforeCommit+3 {
+		t.Fatalf("confirmacao/commit publicou %d pacotes para A, quer Trade+UpdateCarry+CloseTrade", got-aPacketsBeforeCommit)
+	}
+	if got := b.Session.QueuedPacketsForTest(); got != bPacketsBeforeCommit+3 {
+		// B first receives its own CNFTradeCheck, then the atomic commit packets.
+		t.Fatalf("confirmacao/commit publicou %d pacotes para B, quer CNFTradeCheck+UpdateCarry+CloseTrade", got-bPacketsBeforeCommit)
 	}
 }
 

@@ -5,9 +5,13 @@
 
 class TMShade;
 class TMEffectBillBoard;
+
+// Composição visual do golpe Double Swing. Posição, nível e proprietário são
+// entradas para a animação; acerto e dano permanecem sob decisão do servidor.
 class TMSkillDoubleSwing : public TMEffect
 {
 public:
+    // pOwner é referência não proprietária usada para acompanhar a origem.
     TMSkillDoubleSwing(TMVector3 vecStart, TMVector3 vecTarget, int nLevel, TMObject* pOwner);
     ~TMSkillDoubleSwing();
 
@@ -16,6 +20,8 @@ public:
     int FrameMove(unsigned int dwServerTime) override;
 
 public:
+    // Os ponteiros de luz são efeitos auxiliares opcionais e podem ser nulos
+    // durante criação parcial ou teardown.
     unsigned int m_dwStartTime;
     TMVector3 m_vecStartPos;
     TMVector3 m_vecTargetPos;

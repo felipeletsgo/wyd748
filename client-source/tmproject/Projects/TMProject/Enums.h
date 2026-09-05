@@ -12,6 +12,16 @@ enum class RENDERCTRLTYPE
 	RENDER_TEXT_FOCUS = 6,
 };
 
+// Panel and list-box RC records persist these numeric render modes directly.
+static_assert(static_cast<int>(RENDERCTRLTYPE::RENDER_NONE) == -1, "RC render NONE value changed");
+static_assert(static_cast<int>(RENDERCTRLTYPE::RENDER_TEXT) == 0, "RC render TEXT value changed");
+static_assert(static_cast<int>(RENDERCTRLTYPE::RENDER_SHADOW) == 1, "RC render SHADOW value changed");
+static_assert(static_cast<int>(RENDERCTRLTYPE::RENDER_IMAGE) == 2, "RC render IMAGE value changed");
+static_assert(static_cast<int>(RENDERCTRLTYPE::RENDER_IMAGE_TILE) == 3, "RC render TILE value changed");
+static_assert(static_cast<int>(RENDERCTRLTYPE::RENDER_IMAGE_STRETCH) == 4, "RC render STRETCH value changed");
+static_assert(static_cast<int>(RENDERCTRLTYPE::RENDER_3DOBJ) == 5, "RC render 3DOBJ value changed");
+static_assert(static_cast<int>(RENDERCTRLTYPE::RENDER_TEXT_FOCUS) == 6, "RC render TEXT_FOCUS value changed");
+
 enum class TMEITEMTYPE
 {
 	ITEMTYPE_NONE = 0,

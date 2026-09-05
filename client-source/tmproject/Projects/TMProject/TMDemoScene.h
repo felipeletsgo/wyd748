@@ -7,12 +7,18 @@ class TMRain;
 class TMSnow;
 class SPanel;
 
+// Cena de demonstração herdada do TMProject posterior. No client 7.48 deste
+// projeto ela permanece como um esqueleto inerte: a interface é conservada
+// para compatibilidade de compilação, mas o fluxo nativo ainda não foi
+// identificado nem adaptado.
 class TMDemoScene : public TMScene
 {
 public:
 	TMDemoScene();
 	~TMDemoScene();
 
+	// Pontos de entrada do ciclo de cena. Enquanto a implementação continuar
+	// vazia, retornam 0 e não consomem eventos nem criam recursos.
 	int InitializeScene() override;
 	int OnControlEvent(unsigned int idwControlID, unsigned int idwEvent) override;
 	int OnCharEvent(char iCharCode, int lParam) override;
@@ -20,12 +26,16 @@ public:
 	int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
 	int FrameMove(unsigned int dwServerTime) override;
 
+	// Operações específicas da apresentação. São stubs deliberados; não devem
+	// ganhar comportamento sem contrato de assets, câmera e teardown.
 	void ResetDemoPlayer();
 	void ReadTimeTable();
 	void CamAction();
 	void ReadStrings();
 
 public:
+	// Estado previsto pela implementação posterior. Os ponteiros não possuem
+	// ownership confirmado no port atual e não são inicializados pelo stub.
 	int m_bPlayingBGM;
 	unsigned int m_dwStartTime;
 	TMRain* m_pRain;

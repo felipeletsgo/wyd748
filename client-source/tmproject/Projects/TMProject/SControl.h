@@ -28,6 +28,26 @@ enum class CONTROL_TYPE : int
     CTRL_TYPE_GRID = 16,
 };
 
+// CONTROL_TYPE is serialized as a 32-bit value in the RC stream.
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_NONE) == -1, "RC control NONE value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_CURSOR) == 0, "RC control CURSOR value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_PANEL) == 1, "RC control PANEL value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_BUTTON) == 2, "RC control BUTTON value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_CHECKBOX) == 3, "RC control CHECKBOX value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_RADIOBUTTON) == 4, "RC control RADIOBUTTON value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_RADIOBUTTONSET) == 5, "RC control RADIOBUTTONSET value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_LISTBOX) == 6, "RC control LISTBOX value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_LISTBOXITEM) == 7, "RC control LISTBOXITEM value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_MESSAGEBOX) == 8, "RC control MESSAGEBOX value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_MESSAGEPANEL) == 9, "RC control MESSAGEPANEL value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_PROGRESSBAR) == 10, "RC control PROGRESSBAR value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_SCROLLBAR) == 11, "RC control SCROLLBAR value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_TEXT) == 12, "RC control TEXT value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_EDITABLETEXT) == 13, "RC control EDITABLETEXT value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_DIALOG) == 14, "RC control DIALOG value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_3DOBJ) == 15, "RC control 3DOBJ value changed");
+static_assert(static_cast<int>(CONTROL_TYPE::CTRL_TYPE_GRID) == 16, "RC control GRID value changed");
+
 class IEventListener;
 class SControl : public TreeNode
 {

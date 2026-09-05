@@ -5,9 +5,13 @@
 class TMObject;
 class TMShade;
 class TMEffectBillBoard;
+
+// Efeito visual da Meteor Storm entre origem e destino. O proprietário é usado
+// apenas como referência de cena; resolução da skill pertence ao servidor.
 class TMSkillMeteorStorm : public TMEffect
 {
 public:
+    // pOwner não tem ownership transferido para o efeito.
     TMSkillMeteorStorm(TMVector3 vecStart, TMVector3 vecTarget, int nLevel, TMObject* pOwner);
     ~TMSkillMeteorStorm();
 
@@ -16,6 +20,8 @@ public:
     int FrameMove(unsigned int dwServerTime) override;
 
 public:
+    // Luzes auxiliares podem ser nulas em falha parcial/teardown. A flag de som
+    // impede repetição durante o ciclo de vida da mesma instância.
     unsigned int m_dwStartTime;
     TMVector3 m_vecStartPos;
     TMVector3 m_vecTargetPos;

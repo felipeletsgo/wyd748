@@ -1,17 +1,24 @@
 #pragma once
 
+// Mantém os relógios local, real e sincronizado com o servidor. O timer de alta
+// resolução é usado quando QPF está disponível, sem alterar o tempo autoritativo.
 class TimerManager
 {
 public:
 	TimerManager();
 	virtual ~TimerManager();
 
+	// Inicializa a base do relógio local; deve preceder as leituras de tempo.
 	void StartTimer();
+	// Ajusta/lê a estimativa de tempo do servidor usada pelas animações.
 	virtual void SetServerTime(DWORD dwServerTime);
 	virtual DWORD GetServerTime();
+	// Ajusta/lê o relógio real mantido separadamente da sincronização do servidor.
 	virtual void SetRealTime(DWORD dwTime);
 	virtual DWORD GetRealTime();
 public:
+	// Campos QPF armazenam ticks de alta resolução; os DWORD preservam os
+	// relógios legados e suas bases. Não há recursos externos com ownership.
 	int m_bTimerInitialized;
 	DWORD m_dwCurrentIndexNumber;
 	long double m_fLastElapsedTime;
@@ -31,4 +38,5 @@ public:
 	DWORD m_dwLastMin;
 };
 
+// Retorna o relógio global de alta resolução usado por medições locais.
 double GetTimerTime();

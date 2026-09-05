@@ -1,5 +1,4 @@
-// pch.cpp: source file corresponding to the pre-compiled header
+// Gera o cabeçalho pré-compilado configurado pelo projeto Visual C++.
+// Esta unidade não contém comportamento de runtime.
 
 #include "pch.h"
-
-// When you are using pre-compiled headers, this source file is necessary for compilation to succeed.

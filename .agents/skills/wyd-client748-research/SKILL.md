@@ -114,6 +114,12 @@ Documente imediatamente função/endereço, relação source, motivo da decisão
 lacuna restante. Handoff guarda só estado operacional e próximo comando; não
 duplica pseudocódigo, logs ou fatos estáveis da ficha.
 
+Ao preparar uma adaptação, registre também a procedência de cada unidade
+relevante (`7.48`, `TMProject 7.69+` ou implementação local) e se os comentários
+descrevem evidência confirmada ou apenas uma lacuna. A documentação didática em
+português não pode promover por redação uma hipótese para fato nativo. Um stub
+sem contrato suficiente permanece explicitamente pendente.
+
 Ferramentas usuais:
 
 ```powershell

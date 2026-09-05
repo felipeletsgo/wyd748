@@ -6,6 +6,9 @@ MacroFactory::MacroFactory() : _map()
 {
 }
 
+// Localiza o controlador da macro por nível e o cria sob demanda. A factory
+// conserva ownership exclusivo no mapa; o ponteiro devolvido é emprestado e
+// permanece válido enquanto a factory e a entrada correspondente existirem.
 Macro::MacroLevel* MacroFactory::getMacroLevel(const uint32_t level)
 {
 	auto it = _map.find(level);
@@ -14,6 +17,8 @@ Macro::MacroLevel* MacroFactory::getMacroLevel(const uint32_t level)
 	{
 		Macro::MacroLevel* currentLevel = nullptr;
 
+		// Cada faixa de água possui estratégia própria. Níveis desconhecidos não
+		// são materializados para evitar uma macro parcialmente configurada.
 		if (level == 1)
 			currentLevel = new Macro::Water_N();
 
@@ -29,12 +34,17 @@ Macro::MacroLevel* MacroFactory::getMacroLevel(const uint32_t level)
 		if (currentLevel == nullptr)
 			return nullptr;
 
+		// A partir daqui a unique_ptr transfere o ownership para a factory.
 		_map.insert(std::make_pair(level, std::unique_ptr<Macro::MacroLevel>(currentLevel)));
 	}
 
+	// operator[] é seguro aqui porque a entrada existente ou recém-criada foi
+	// confirmada acima; o chamador não deve liberar o ponteiro retornado.
 	return _map[level].get();
 }
 
+// Produz uma visão não proprietária dos níveis já instanciados. O vetor é uma
+// cópia, mas seus elementos continuam pertencendo à factory.
 const std::vector<Macro::MacroLevel*> MacroFactory::getAllMacroLevel() const
 {
 	auto tmp = std::vector<Macro::MacroLevel*>();
@@ -47,4 +57,6 @@ const std::vector<Macro::MacroLevel*> MacroFactory::getAllMacroLevel() const
 
 void MacroFactory::onEvent()
 {
+	// Ponto de extensão preservado por compatibilidade. Não há evento global da
+	// factory implementado no fluxo atual.
 }

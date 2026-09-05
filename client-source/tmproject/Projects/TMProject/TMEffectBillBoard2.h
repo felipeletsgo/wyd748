@@ -3,15 +3,20 @@
 #include "TMEffect.h"
 #include "Structures.h"
 
+// Billboard plano com escala, rotação e fade animados. Usa textura indexada
+// pelo gerenciador global e mantém localmente apenas vértices e parâmetros.
 class TMEffectBillBoard2 : public TMEffect
 {
 public:
+    // As escalas e velocidades são copiadas; nenhum recurso externo é adotado.
     TMEffectBillBoard2(int nTextureIndex, unsigned int dwLifeTime, float fScaleX, float fScaleY, float fScaleZ, float fVelocity, unsigned int dwVel);
     ~TMEffectBillBoard2();
 
     int Render() override;
+    // Decompõe ARGB nos canais mantidos pela instância.
     virtual void SetColor(unsigned int dwColor);
     int FrameMove(unsigned int dwServerTime) override;
+    // Substitui a duração usada por FrameMove sem recriar o billboard.
     virtual void SetLifeTime(unsigned int dwLifeTime);
 
 public:

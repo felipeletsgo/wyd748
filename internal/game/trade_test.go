@@ -33,6 +33,36 @@ func TestParseTradeRequestUsesAuthoritativeInventory(t *testing.T) {
 	}
 }
 
+func TestParseTradeRequestIgnoresResidualPositionsForEmptyItems(t *testing.T) {
+	ch := &model.Char{}
+	ch.Inv[0] = model.Item{Index: 4011, Eff: [6]byte{43, 9}}
+	pkt := tradePacket(2, ch)
+	for i := 132; i < 147; i++ {
+		pkt[i] = 0
+	}
+
+	req, err := parseTradeRequest(pkt, ch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.Items != [maxTradeItems]model.Item{} {
+		t.Fatalf("convite vazio produziu itens: %+v", req.Items)
+	}
+	if req.CarryPos != emptyTradePositions() {
+		t.Fatalf("posicoes residuais nao foram canonicalizadas: %+v", req.CarryPos)
+	}
+}
+
+func TestParseTradeRequestRejectsEffectsWithoutItem(t *testing.T) {
+	ch := &model.Char{}
+	pkt := tradePacket(2, ch)
+	pkt[14] = 1
+
+	if _, err := parseTradeRequest(pkt, ch); err == nil {
+		t.Fatal("efeito sem item foi aceito")
+	}
+}
+
 func TestParseTradeRequestRejectsTamperingAndDuplicatePosition(t *testing.T) {
 	ch := &model.Char{Gold: 500}
 	ch.Inv[7] = model.Item{Index: 4011}

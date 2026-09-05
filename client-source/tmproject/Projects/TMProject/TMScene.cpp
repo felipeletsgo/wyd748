@@ -30,6 +30,20 @@ namespace
 	constexpr size_t kIndexedParameterCount = 6;
 	constexpr size_t kIndexedParameterCapacity = sizeof(MSG_MessageChat::String) - 3;
 
+	bool CopyUIString(int stringIndex, char* output, size_t outputCapacity,
+		int controlID, const char* resourceName)
+	{
+		if (!output || outputCapacity == 0 || stringIndex < 0 || stringIndex >= MAX_STRING)
+		{
+			LOG_WRITELOG("Invalid UI string index [%d] for control [%d] in [%s]\r\n",
+				stringIndex, controlID, resourceName ? resourceName : "<unknown>");
+			return false;
+		}
+
+		strncpy_s(output, outputCapacity, g_UIString[stringIndex], _TRUNCATE);
+		return true;
+	}
+
 	bool DecodeIndexedMessage(const MSG_STANDARD* pStd, const MSG_MessageChat*& pMessage,
 		std::int16_t& relativeIndex, int& tableIndex)
 	{
@@ -650,7 +664,12 @@ int TMScene::ReadRCBin(char* szBinFileName)
 					fclose(fpBinary);
 					return 0;
 				}
-				sprintf_s(strbuf, "%s", g_UIString[binButtonData.nStringIndex]);
+				if (!CopyUIString(binButtonData.nStringIndex, strbuf, sizeof(strbuf),
+					binButtonData.nID, szBinFileName))
+				{
+					fclose(fpBinary);
+					return 0;
+				}
 			}
 
 			auto pButton = new SButton(
@@ -732,7 +751,12 @@ int TMScene::ReadRCBin(char* szBinFileName)
 					fclose(fpBinary);
 					return 0;
 				}
-				sprintf_s(strbuf, "%s", g_UIString[binTextData.nStringIndex]);
+				if (!CopyUIString(binTextData.nStringIndex, strbuf, sizeof(strbuf),
+					binTextData.nID, szBinFileName))
+				{
+					fclose(fpBinary);
+					return 0;
+				}
 			}
 
 			auto pText = new SText(
@@ -1093,20 +1117,29 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 		return 1;
 	}
 
-	if (pStd->Type == 0x194)
+	if (pStd->Size < sizeof(MSG_STANDARD))
+		return 1;
+
+	if (pStd->Type == MSG_BillingNotice_Opcode)
 	{
 		g_pObjectManager->m_bBilling = 1;
-		m_pMessageBox->SetMessage(g_pMessageStringTable[132], B_CREATE_ID, nullptr);
-		m_pMessageBox->SetVisible(1);
+		if (m_pMessageBox)
+		{
+			m_pMessageBox->SetMessage(g_pMessageStringTable[132], B_CREATE_ID, nullptr);
+			m_pMessageBox->SetVisible(1);
+		}
 		return 1;
 	}
 
 	if (pStd->Type == MSG_Encode_Opcode)
 	{
-		MSG_Encode* pEncode = reinterpret_cast<MSG_Encode*>(pStd);
+		if (pStd->Size != sizeof(MSG_Encode))
+			return 1;
 
-		int EncodeByte1 = *(DWORD*)&pEncode->Parm[40];
-		int EncodeByte2 = *(DWORD*)&pEncode->Parm[41];
+		const MSG_Encode* pEncode = reinterpret_cast<const MSG_Encode*>(pStd);
+
+		const int EncodeByte1 = pEncode->Parm[40];
+		const int EncodeByte2 = pEncode->Parm[41];
 
 		int type = (3 * (EncodeByte1 / 7) + 7 * (EncodeByte2 / 3) + 220) % 3;
 		if (type)
@@ -1188,12 +1221,15 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 			return 1;
 		}
 
+		if (pStd->Size != sizeof(MSG_MessagePanel))
+			return 1;
+
 		auto pMsgPanel = reinterpret_cast<MSG_MessagePanel*>(pStd);
+
 		// The 7.48 message-panel payload is 96 bytes (108 including Header).
 		// The imported newer client used a 128-byte body and wrote past the
 		// canonical packet, corrupting the next receive-buffer frame.
 		pMsgPanel->String[sizeof(pMsgPanel->String) - 1] = 0;
-		pMsgPanel->String[sizeof(pMsgPanel->String) - 2] = 0;
 
 		if (m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR && pMsgPanel->String[0] == '^')
 		{
@@ -1211,9 +1247,10 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 			m_pMessagePanel->SetMessage(szMsg, 7000);
 			m_pMessagePanel->SetVisible(1, 1);
 		}
-		else if (pMsgPanel->String[0] == '!' && pMsgPanel->String[1] == '#')
+		else if (m_eSceneType == ESCENE_TYPE::ESCENE_FIELD &&
+			pMsgPanel->String[0] == '!' && pMsgPanel->String[1] == '#')
 		{
-			for (int i = 2; i < 6; i++)
+			for (int i = 2; i <= 6; ++i)
 			{
 				if (pMsgPanel->String[i] < '0' || pMsgPanel->String[i] > '9')
 					pMsgPanel->String[i] = '0';
@@ -1230,6 +1267,9 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 		}
 		else if (pMsgPanel->String[1] == '!' && pMsgPanel->String[2] == '!' && pMsgPanel->String[3] == '!')
 		{
+			if (m_eSceneType != ESCENE_TYPE::ESCENE_FIELD || !m_pMyHuman)
+				return 1;
+
 			auto pFocusedObject = static_cast<TMObject*>(m_pMyHuman);
 
 			if ((int)pFocusedObject->m_vecPosition.x >> 7 == 31 && (int)pFocusedObject->m_vecPosition.y >> 7 == 31)
@@ -1352,7 +1392,9 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 			m_pMessagePanel->SetVisible(1, 1);
 		}
 
-		SListBox* pChatList = static_cast<SListBox*>(m_pControlContainer->FindControl(65667));
+		SListBox* pChatList = m_pControlContainer
+			? static_cast<SListBox*>(m_pControlContainer->FindControl(65667))
+			: nullptr;
 
 		int len = strlen(pMsgPanel->String);
 		int size = 50;
@@ -1364,12 +1406,12 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 			if (IsClearString(pMsgPanel->String, size - 1))
 			{
 				strncpy(szMsg3, pMsgPanel->String, size);
-				sprintf(szMsg2, "%s", &pMsgPanel->String[size]);
+				sprintf_s(szMsg2, "%s", &pMsgPanel->String[size]);
 			}
 			else
 			{
 				strncpy(szMsg3, pMsgPanel->String, size - 1);
-				sprintf(szMsg2, "%s", &pMsgPanel->String[size - 1]);
+				sprintf_s(szMsg2, "%s", &pMsgPanel->String[size - 1]);
 			}
 
 			SListBoxItem* ipNewItem = new SListBoxItem(szMsg3, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777, 1u, 0);
@@ -1387,42 +1429,42 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 				TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 				if (!strcmp(pMsgPanel->String, "Whisper : Off"))
 				{
-					sprintf(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[447]);
+					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[447]);
 					pFScene->SetWhisper(0);
 				}
 				if (!strcmp(pMsgPanel->String, "Whisper : On"))
 				{
-					sprintf(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[446]);
+					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[446]);
 					pFScene->SetWhisper(1);
 				}
 				if (!strcmp(pMsgPanel->String, "Citizen Chatting : Off"))
 				{
-					sprintf(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[447]);
+					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[447]);
 					pFScene->SetPartyChat(0);
 				}
 				if (!strcmp(pMsgPanel->String, "Citizen Chatting : On"))
 				{
-					sprintf(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[446]);
+					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[446]);
 					pFScene->SetPartyChat(1);
 				}
 				if (!strcmp(pMsgPanel->String, "Guild Chatting : Off"))
 				{
-					sprintf(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[447]);
+					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[447]);
 					pFScene->SetGuildChat(0);
 				}
 				if (!strcmp(pMsgPanel->String, "Guild Chatting : On"))
 				{
-					sprintf(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[446]);
+					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[446]);
 					pFScene->SetGuildChat(1);
 				}
 				if (!strcmp(pMsgPanel->String, "Kingdom Chatting : On"))
 				{
-					sprintf(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[446]);
+					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[446]);
 					pFScene->SetKingDomChat(1);
 				}
 				if (!strcmp(pMsgPanel->String, "Kingdom Chatting : Off"))
 				{
-					sprintf(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[447]);
+					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[447]);
 					pFScene->SetKingDomChat(0);
 				}
 			}
@@ -1432,19 +1474,27 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 				pChatList->AddItem(ipNewItem);
 		}
 
-		SControl* pLoginOK = m_pControlContainer->FindControl(65873);
+		SControl* pLoginOK = m_pControlContainer
+			? m_pControlContainer->FindControl(65873)
+			: nullptr;
 		if (pLoginOK)
 			pLoginOK->SetEnable(1);
 		return 1;
 	}
 	if (pStd->Type == MSG_MessageShout_Opcode)
 	{
+		if (pStd->Size != sizeof(MSG_MessageWhisper))
+			return 1;
+
 		MSG_MessageWhisper* pShoutMessage = reinterpret_cast<MSG_MessageWhisper*>(pStd);
-		pShoutMessage->String[111] = 0;
-		pShoutMessage->String[110] = 0;
+		pShoutMessage->MobName[sizeof(pShoutMessage->MobName) - 1] = 0;
+		pShoutMessage->String[sizeof(pShoutMessage->String) - 1] = 0;
+
+		if (GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
+			return 1;
 
 		TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-		if (!pFScene->m_pChatGeneral || pFScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD || pFScene->m_pCHP->m_bSelectEnable)
+		if (!pFScene->m_pChatGeneral || !pFScene->m_pCHP || pFScene->m_pCHP->m_bSelectEnable)
 		{
 			int nIndex = 0;
 			unsigned int dwColor = 0xFF00CD00;
@@ -1474,8 +1524,11 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 		else
 			return 1;
 	}
-	if (pStd->Type == 0x7DB)
+	if (pStd->Type == MSG_ChinaPlaytime_Opcode)
 	{
+		if (pStd->Size != sizeof(MSG_STANDARDPARM))
+			return 1;
+
 		MSG_STANDARDPARM* m = reinterpret_cast<MSG_STANDARDPARM*>(pStd);
 
 		g_pApp->china_bWrite = 1;
@@ -2877,14 +2930,17 @@ void TMScene::CheckPKNonePK(int nServerIndex)
 
 void TMScene::LogMsgCriticalError(int Type, int ID, int nMesh, int X, int Y)
 {
+	if (!m_pMyHuman || !g_pSocketManager)
+		return;
+
 	MSG_MessageLog stLog{};
 	stLog.Header.ID = m_pMyHuman->m_dwID;
 	stLog.Header.Type = MSG_MessageLog_Opcode;
 
 	if(Type == 10)
-		sprintf(stLog.String, "00000000 , Load Tile Map Fail");
+		sprintf_s(stLog.String, "00000000 , Load Tile Map Fail");
 	else
-		sprintf(stLog.String, "%08d , Critical Data Err Cl,%d,%d,%d,%d,%d, %d", ID,	nMesh, (int)m_pMyHuman->m_vecPosition.x, (int)m_pMyHuman->m_vecPosition.y,
+		sprintf_s(stLog.String, "%08d , Critical Data Err Cl,%d,%d,%d,%d,%d, %d", ID,	nMesh, (int)m_pMyHuman->m_vecPosition.x, (int)m_pMyHuman->m_vecPosition.y,
 			X,
 			Y,
 			Type);

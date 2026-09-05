@@ -161,6 +161,17 @@ Código e assets manuais existentes são trabalho intencional do usuário.
 Preservá-los por padrão e só remover, substituir ou rebaixar após demonstrar
 incompatibilidade em wire/ABI, recurso, lifecycle, server-side ou fluxo real.
 
+### Regra de seleção de UI posterior
+
+Quando uma função disponível no TMProject 7.69+ não existir no nativo 7.48,
+investigar primeiro se o próprio TMProject já possui uma UI compatível e
+reutilizável. Se não houver, comparar adaptações de UIs existentes com a mesma
+semântica — por exemplo Odin (7 slots) ou Composer (6 slots) — considerando
+recursos, grids, callbacks, input, ownership, fechamento e contrato client/
+server. Só criar uma UI nova ou remover/desabilitar a função depois de registrar
+por que as alternativas existentes não são seguras ou úteis para o 7.48. A
+ausência no nativo, sozinha, não é motivo para remoção.
+
 ### Política Git desta campanha
 
 O trabalho desta campanha é feito diretamente em `main`. Não criar branches,
@@ -245,6 +256,36 @@ completos; nunca apenas para mascarar um ponteiro nulo.
 Toda decisão não óbvia de contrato, compatibilidade ou ownership deve deixar
 comentário próximo ao trecho alterado. Edição mecânica ou autoexplicativa não
 exige comentário artificial; comentários que repetem a operação são proibidos.
+
+### Documentação didática do código
+
+O client é também material de estudo do projeto. Todo arquivo do client criado,
+convertido, adaptado ou funcionalmente alterado deve sair do lote com
+documentação em português suficiente para explicar o que existe e por que:
+
+- resumir no próprio arquivo a responsabilidade da unidade e sua relação com o
+  fluxo do client;
+- documentar classes, estruturas, métodos e campos públicos, incluindo
+  parâmetros, retorno, nulabilidade e ownership quando relevantes;
+- comentar no corpo as fases, invariantes, efeitos colaterais, fallbacks e
+  decisões que não sejam evidentes pela leitura do código;
+- registrar na ficha ou documentação do lote a origem conhecida (`7.48`,
+  `TMProject 7.69+` ou implementação local), a classificação do delta e a
+  evidência usada; não atribuir origem nativa sem prova;
+- documentar placeholders como tal e a evidência ainda necessária, sem criar
+  comportamento apenas para preencher um arquivo vazio.
+
+Comentários devem complementar nomes claros, não traduzir cada instrução nem
+congelar suposições. Identificadores, opcodes e termos canônicos podem permanecer
+em inglês; a explicação ao mantenedor deve ser em português. A migração da
+documentação é incremental: ao tocar um arquivo, atualizar também comentários
+obsoletos no trecho afetado, sem reformatar em massa código alheio.
+
+Refatorar durante a adaptação quando isso reduzir duplicação, explicitar
+ownership/lifecycle ou remover ambiguidade verificável. A refatoração deve
+preservar comportamento, wire, ABI, packing, offsets, recursos e ordem de
+efeitos; qualquer mudança observável é um delta separado e segue seu gate de
+evidência.
 
 Em implementação ou correção:
 

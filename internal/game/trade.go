@@ -69,11 +69,14 @@ func parseTradeRequest(pkt []byte, ch *model.Char) (tradeRequest, error) {
 	for i := 0; i < maxTradeItems; i++ {
 		rawPos := pkt[132+i]
 		packetItem := decodeTradeItem(pkt[12+i*8 : 20+i*8])
-		if rawPos == 0xFF {
-			if packetItem.Index != 0 {
-				return req, fmt.Errorf("item sem posicao no slot %d", i)
-			}
+		// Convites legados podem deixar CarryPos zerado mesmo quando o slot
+		// correspondente nao possui item. O conteudo wire vazio e autoritativo
+		// para essa decisao; uma posicao residual nao transforma o slot em oferta.
+		if packetItem.Index == 0 && packetItem.Eff == [6]byte{} {
 			continue
+		}
+		if rawPos == 0xFF {
+			return req, fmt.Errorf("item sem posicao no slot %d", i)
 		}
 		pos := int(rawPos)
 		if pos < 0 || pos >= model.PlayerCarrySlots {
@@ -388,6 +391,8 @@ func (w *World) commitTrade(a, b *Player) {
 	a.Trade, b.Trade = nil, nil
 	a.Session.Send(wire.UpdateCarry(a.ID, a.Char.Inv[:], a.Char.Gold))
 	b.Session.Send(wire.UpdateCarry(b.ID, b.Char.Inv[:], b.Char.Gold))
+	a.Session.Send(wire.CloseTrade(a.ID))
+	b.Session.Send(wire.CloseTrade(b.ID))
 	log.Printf("TRADE concluido: %s(%d gold) <-> %s(%d gold)",
 		a.Char.Name, aOfferGold, b.Char.Name, bOfferGold)
 }

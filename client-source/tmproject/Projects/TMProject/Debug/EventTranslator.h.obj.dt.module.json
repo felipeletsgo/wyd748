@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Debug\\EventTranslator.obj",
+            "outputs": [
+                "Debug\\EventTranslator.h.obj.dt.module.json",
+                "Debug\\EventTranslator.h.obj.dt.d.json",
+                "Debug\\WYDestiny.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

@@ -6,6 +6,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <tchar.h> 
 #include <stdio.h>
@@ -247,6 +248,11 @@ struct STRUCT_ITEM
 	short sIndex;
 	STRUCT_BONUSEFFECT stEffect[3];
 };
+
+static_assert(sizeof(STRUCT_BONUSEFFECT) == 2, "WYD item effect must be 2 bytes");
+static_assert(sizeof(STRUCT_ITEM) == 8, "WYD item must be 8 bytes");
+static_assert(offsetof(STRUCT_ITEM, sIndex) == 0, "WYD item index offset changed");
+static_assert(offsetof(STRUCT_ITEM, stEffect) == 2, "WYD item effects offset changed");
 
 struct STRUCT_SELCHAR
 {
@@ -1133,6 +1139,14 @@ struct MSG_LegacySceneMessage104
 	unsigned char OpaquePayload[140];
 };
 
+// Header-only notification consumed by the base scene. Native 7.48 checks
+// the opcode and does not read a payload.
+constexpr auto MSG_BillingNotice_Opcode = 0x194;
+
+// Server-to-client playtime notification. Its payload is the canonical
+// MSG_STANDARDPARM::Parm value expressed in seconds.
+constexpr auto MSG_ChinaPlaytime_Opcode = 0x7DB;
+
 constexpr auto MSG_CharPassword_Opcode = 0xFDE;
 struct MSG_CHARPASSWORD
 {
@@ -1429,6 +1443,11 @@ struct MSG_AttackOne
 // breaking movement, inventory, NPC, shop, stat, chat, or combat handlers.
 static_assert(sizeof(MSG_Motion) == 20, "WYD 7.48 MSG_Motion must be 20 bytes");
 static_assert(sizeof(MSG_Trade) == 156, "WYD 7.48 MSG_Trade must be 156 bytes");
+static_assert(offsetof(MSG_Trade, Item) == 12, "WYD 7.48 MSG_Trade Item offset must be 12");
+static_assert(offsetof(MSG_Trade, CarryPos) == 132, "WYD 7.48 MSG_Trade CarryPos offset must be 132");
+static_assert(offsetof(MSG_Trade, TradeMoney) == 148, "WYD 7.48 MSG_Trade TradeMoney offset must be 148");
+static_assert(offsetof(MSG_Trade, MyCheck) == 152, "WYD 7.48 MSG_Trade MyCheck offset must be 152");
+static_assert(offsetof(MSG_Trade, OpponentID) == 154, "WYD 7.48 MSG_Trade OpponentID offset must be 154");
 static_assert(sizeof(MSG_CombineItem) == 84, "WYD 7.48 MSG_CombineItem must be 84 bytes");
 static_assert(sizeof(MSG_UseItem) == 36, "WYD 7.48 MSG_UseItem must be 36 bytes");
 static_assert(sizeof(MSG_AutoTrade) == 196, "WYD 7.48 MSG_AutoTrade must be 196 bytes");
@@ -1436,17 +1455,29 @@ static_assert(sizeof(MSG_MOVESTOP) == 36, "WYD 7.48 MSG_MOVESTOP must be 36 byte
 static_assert(sizeof(MSG_SendItem) == 24, "WYD 7.48 MSG_SendItem must be 24 bytes");
 static_assert(sizeof(MSG_UpdateEquip) == 60, "WYD 7.48 MSG_UpdateEquip must be 60 bytes");
 static_assert(sizeof(MSG_MessageWhisper) == 128, "WYD 7.48 MSG_MessageWhisper must be 128 bytes");
+static_assert(offsetof(MSG_MessageWhisper, MobName) == 12, "WYD 7.48 whisper name offset changed");
+static_assert(offsetof(MSG_MessageWhisper, String) == 28, "WYD 7.48 whisper text offset changed");
+static_assert(offsetof(MSG_MessageWhisper, Color) == 124, "WYD 7.48 whisper color offset changed");
+static_assert(sizeof(MSG_Encode) == 180, "WYD 7.48 MSG_Encode must be 180 bytes");
+static_assert(offsetof(MSG_Encode, Parm) == 12, "WYD 7.48 encode parameters offset changed");
+static_assert(offsetof(MSG_Encode, Parm) + 40 * sizeof(int) == 172, "WYD 7.48 encode byte 40 offset changed");
+static_assert(offsetof(MSG_Encode, Parm) + 41 * sizeof(int) == 176, "WYD 7.48 encode byte 41 offset changed");
 static_assert(sizeof(MSG_MessageChat) == 108, "WYD 7.48 MSG_MessageChat must be 108 bytes");
+static_assert(offsetof(MSG_MessageChat, String) == 12, "WYD 7.48 chat text offset changed");
 // The stock 7.48 dispatcher rejects 0x337 unless it is exactly 36 bytes.  Full
 // score state belongs to 0x336; this packet only projects the incremental WORDs.
 static_assert(sizeof(MSG_UpdateEtc) == 36, "WYD 7.48 MSG_UpdateEtc must be 36 bytes");
 static_assert(sizeof(MSG_MessagePanel) == 108, "WYD 7.48 MSG_MessagePanel must be 108 bytes");
+static_assert(offsetof(MSG_MessagePanel, String) == 12, "WYD 7.48 panel text offset changed");
 static_assert(sizeof(MSG_LegacySceneMessage102) == 116, "WYD 7.48 legacy scene message 0x102 must be 116 bytes");
+static_assert(offsetof(MSG_LegacySceneMessage102, OpaquePayload) == 12, "WYD 7.48 legacy scene message 0x102 payload offset changed");
 static_assert(sizeof(MSG_LegacySceneMessage104) == 152, "WYD 7.48 legacy scene message 0x104 must be 152 bytes");
+static_assert(offsetof(MSG_LegacySceneMessage104, OpaquePayload) == 12, "WYD 7.48 legacy scene message 0x104 payload offset changed");
 static_assert(sizeof(MSG_CharacterLogin) == 36, "WYD 7.48 MSG_CharacterLogin must be 36 bytes");
 static_assert(sizeof(MSG_NewCharacter) == 36, "WYD 7.48 MSG_NewCharacter must be 36 bytes");
 static_assert(sizeof(MSG_DeleteCharacter) == 44, "WYD 7.48 MSG_DeleteCharacter must be 44 bytes");
 static_assert(sizeof(MSG_MessageLog) == 108, "WYD 7.48 MSG_MessageLog must be 108 bytes");
+static_assert(offsetof(MSG_MessageLog, String) == 12, "WYD 7.48 diagnostic text offset changed");
 static_assert(sizeof(MSG_REQMobByID) == 16, "WYD 7.48 MSG_REQMobByID must be 16 bytes");
 static_assert(sizeof(MSG_SetShortSkill) == 32, "WYD 7.48 MSG_SetShortSkill must be 32 bytes");
 static_assert(sizeof(MSG_ShopList) == 236, "WYD 7.48 MSG_ShopList must be 236 bytes");
@@ -1459,6 +1490,22 @@ static_assert(sizeof(MSG_AttackTwo) == 52, "WYD 7.48 MSG_AttackTwo must be 52 by
 static_assert(sizeof(MSG_AttackOne) == 48, "WYD 7.48 MSG_AttackOne must be 48 bytes");
 static_assert(offsetof(MSG_Attack, SkillIndex) == 24, "WYD 7.48 attack SkillIndex offset mismatch");
 static_assert(offsetof(MSG_Attack, Dam) == 44, "WYD 7.48 attack target list offset mismatch");
+static_assert(sizeof(MSG_STANDARD) == 12, "WYD 7.48 standard header must be 12 bytes");
+static_assert(offsetof(MSG_STANDARD, Size) == 0, "WYD 7.48 header Size offset changed");
+static_assert(offsetof(MSG_STANDARD, KeyWord) == 2, "WYD 7.48 header KeyWord offset changed");
+static_assert(offsetof(MSG_STANDARD, CheckSum) == 3, "WYD 7.48 header CheckSum offset changed");
+static_assert(offsetof(MSG_STANDARD, Type) == 4, "WYD 7.48 header Type offset changed");
+static_assert(offsetof(MSG_STANDARD, ID) == 6, "WYD 7.48 header ID offset changed");
+static_assert(offsetof(MSG_STANDARD, Tick) == 8, "WYD 7.48 header Tick offset changed");
+static_assert(sizeof(MSG_STANDARDPARM) == 16, "WYD 7.48 one-parameter packet must be 16 bytes");
+static_assert(offsetof(MSG_STANDARDPARM, Parm) == 12, "WYD 7.48 Parm offset changed");
+static_assert(sizeof(MSG_STANDARDPARM2) == 20, "WYD 7.48 two-parameter packet must be 20 bytes");
+static_assert(offsetof(MSG_STANDARDPARM2, Parm1) == 12, "WYD 7.48 Parm1 offset changed");
+static_assert(offsetof(MSG_STANDARDPARM2, Parm2) == 16, "WYD 7.48 Parm2 offset changed");
+static_assert(sizeof(MSG_STANDARDPARM3) == 24, "WYD 7.48 three-parameter packet must be 24 bytes");
+static_assert(offsetof(MSG_STANDARDPARM3, Parm1) == 12, "WYD 7.48 Parm1 offset changed");
+static_assert(offsetof(MSG_STANDARDPARM3, Parm2) == 16, "WYD 7.48 Parm2 offset changed");
+static_assert(offsetof(MSG_STANDARDPARM3, Parm3) == 20, "WYD 7.48 Parm3 offset changed");
 
 struct PARTY
 {
@@ -1469,6 +1516,9 @@ struct PARTY
 	short Hp;
 	unsigned short ID;
 	char Name[16];
+	// The wire record occupies 28 bytes. The server sends two trailing zero
+	// bytes in both MSG_REQParty and MSG_AddParty.
+	short Reserved;
 };
 
 constexpr auto MSG_REQParty_Opcode = 0x37F;
@@ -1495,6 +1545,20 @@ struct MSG_CNFParty2
 	// exactly, so make the trailing WORD explicit rather than compiler-dependent.
 	short Reserved;
 };
+
+static_assert(sizeof(PARTY) == 28, "WYD 7.48 party member must be 28 bytes");
+static_assert(offsetof(PARTY, ID) == 8, "WYD 7.48 party member ID offset changed");
+static_assert(offsetof(PARTY, Name) == 10, "WYD 7.48 party member name offset changed");
+static_assert(offsetof(PARTY, Reserved) == 26, "WYD 7.48 party reserved offset changed");
+static_assert(sizeof(MSG_REQParty) == 44, "WYD 7.48 party request must be 44 bytes");
+static_assert(offsetof(MSG_REQParty, Leader) == 12, "WYD 7.48 party leader offset changed");
+static_assert(offsetof(MSG_REQParty, TargetID) == 40, "WYD 7.48 party target offset changed");
+static_assert(sizeof(MSG_AddParty) == 40, "WYD 7.48 party-member packet must be 40 bytes");
+static_assert(offsetof(MSG_AddParty, Party) == 12, "WYD 7.48 party payload offset changed");
+static_assert(sizeof(MSG_CNFParty2) == 32, "WYD 7.48 party confirmation must be 32 bytes");
+static_assert(offsetof(MSG_CNFParty2, LeaderID) == 12, "WYD 7.48 party leader ID offset changed");
+static_assert(offsetof(MSG_CNFParty2, LeaderName) == 14, "WYD 7.48 party leader name offset changed");
+static_assert(offsetof(MSG_CNFParty2, Reserved) == 30, "WYD 7.48 party reserved offset changed");
 
 constexpr auto MSG_ApplyBonus_Opcode = 0x277;
 struct MSG_ApplyBonus
@@ -1614,6 +1678,10 @@ struct MSG_Carry
 	STRUCT_ITEM Carry[64];
 	int Coin;
 };
+
+static_assert(sizeof(MSG_Carry) == 528, "WYD 7.48 carry packet must be 528 bytes");
+static_assert(offsetof(MSG_Carry, Carry) == 12, "WYD 7.48 carry payload offset changed");
+static_assert(offsetof(MSG_Carry, Coin) == 524, "WYD 7.48 carry coin offset changed");
 
 struct MSG_HellBuy
 {

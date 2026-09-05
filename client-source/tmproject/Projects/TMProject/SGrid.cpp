@@ -6,6 +6,7 @@
 #include "TMFieldScene.h"
 #include "TMUtil.h"
 #include "ItemEffect.h"
+#include "ClientDiagnostics.h"
 
 #include <cmath>
 
@@ -1567,6 +1568,13 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV)
 	{
+		if (pFScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD ||
+			!pFScene->m_pMyHuman || !pFScene->m_pTradePanel ||
+			!pFScene->m_pTradePanel->IsVisible() ||
+			!g_pObjectManager->m_stTrade.OpponentID ||
+			!g_pApp || !g_pApp->m_pTimerManager)
+			return 0;
+
 		auto pItem = GetItem(nCellX, nCellY);
 		if (pItem && pItem->m_pItem && pItem->m_GCObj.dwColor == 0xFFFFFFFF)
 		{
@@ -1575,10 +1583,36 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 			if (SourPos < 0 || SourPos >= MAX_VISIBLE_CARRY)
 				return 2;
 
-			// The grid item is only a presentation copy.  Serialize the synchronized
-			// Carry snapshot so the authoritative server-side byte comparison cannot
-			// be defeated by a stale visual item after an inventory update.
-			const STRUCT_ITEM& sourceItem = g_pObjectManager->m_stMobData.Carry[SourPos];
+			// The grid item is only a presentation copy.  First prove that the cell
+			// still resolves to the same authoritative Carry entry.  A rebuilt/stale
+			// inventory surface may retain the visual item while its cell metadata no
+			// longer points at the slot that contains it.
+			int authoritativeSlot = SourPos;
+			if (memcmp(pItem->m_pItem,
+				&g_pObjectManager->m_stMobData.Carry[authoritativeSlot],
+				sizeof(STRUCT_ITEM)) != 0)
+			{
+				authoritativeSlot = -1;
+				int matchingSlots = 0;
+				for (int slot = 0; slot < MAX_VISIBLE_CARRY; ++slot)
+				{
+					if (memcmp(pItem->m_pItem, &g_pObjectManager->m_stMobData.Carry[slot],
+						sizeof(STRUCT_ITEM)) == 0)
+					{
+						++matchingSlots;
+						authoritativeSlot = slot;
+					}
+				}
+				if (matchingSlots != 1)
+				{
+					WYD748_DiagnosticsLog("TRADE_CLICK %s item=%d cell=%d,%d expected=%d matches=%d\r\n",
+						matchingSlots == 0 ? "stale" : "ambiguous",
+						pItem->m_pItem->sIndex, pItem->m_nCellIndexX, pItem->m_nCellIndexY, SourPos, matchingSlots);
+					return 2;
+				}
+			}
+
+			const STRUCT_ITEM& sourceItem = g_pObjectManager->m_stMobData.Carry[authoritativeSlot];
 			if (sourceItem.sIndex <= 0)
 				return 2;
 
@@ -1597,13 +1631,19 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 					memcpy(pstItem, &sourceItem, sizeof(STRUCT_ITEM));
 
 					auto newItem = new SGridControlItem(nullptr, pstItem, 0.0f, 0.0f);
-					if (newItem)
-						pGridMyItem[i]->AddItem(newItem, 0, 0);
+					if (!newItem)
+					{
+						delete pstItem;
+						return 0;
+					}
+					pGridMyItem[i]->AddItem(newItem, 0, 0);
 
 					memcpy(&g_pObjectManager->m_stTrade.Item[i], &sourceItem, sizeof(STRUCT_ITEM));
 
-					g_pObjectManager->m_stTrade.CarryPos[i] = SourPos;
+					g_pObjectManager->m_stTrade.CarryPos[i] = authoritativeSlot;
 					pItem->m_GCObj.dwColor = 0xFFFF0000;
+					WYD748_DiagnosticsLog("TRADE_CLICK cell=%d,%d visual=%d carry=%d trade=%d\r\n",
+						nCellX, nCellY, pItem->m_pItem->sIndex, authoritativeSlot, i);
 					bEmptyFind = true;
 					break;
 				}
@@ -1620,7 +1660,14 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 
 			pFScene->m_dwLastCheckTime = g_pApp->m_pTimerManager->GetServerTime();
 			g_pObjectManager->m_stTrade.MyCheck = pMyCheck ? pMyCheck->m_bSelected : 0;
-			g_pObjectManager->m_stTrade.Header.Type = 0x383;
+			g_pObjectManager->m_stTrade.Header.ID = pFScene->m_pMyHuman->m_dwID;
+			g_pObjectManager->m_stTrade.Header.Type = MSG_Trade_Opcode;
+			WYD748_DiagnosticsLog(
+				"TRADE_SEND origin=item opponent=%u carry0=%d item0=%d size=%u\r\n",
+				g_pObjectManager->m_stTrade.OpponentID,
+				static_cast<int>(g_pObjectManager->m_stTrade.CarryPos[0]),
+				g_pObjectManager->m_stTrade.Item[0].sIndex,
+				static_cast<unsigned int>(sizeof(g_pObjectManager->m_stTrade)));
 			SendOneMessage((char*)&g_pObjectManager->m_stTrade, sizeof(g_pObjectManager->m_stTrade));
 			return 1;
 		}
@@ -1853,7 +1900,68 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 		return 2;
 	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEMY)
-		return 1;
+	{
+		if (pFScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD ||
+			!pFScene->m_pMyHuman || !pFScene->m_pTradePanel ||
+			!pFScene->m_pTradePanel->IsVisible() ||
+			!g_pObjectManager->m_stTrade.OpponentID ||
+			!g_pApp || !g_pApp->m_pTimerManager)
+			return 0;
+
+		SGridControl* pGridMyItem[15]{};
+		for (int i = 0; i < 15; ++i)
+			pGridMyItem[i] = static_cast<SGridControl*>(
+				pFScene->m_pControlContainer->FindControl(i + TMG_TRADE_MY1));
+
+		for (int i = 0; i < 15; ++i)
+		{
+			if (pGridMyItem[i] != this)
+				continue;
+
+			const int carrySlot = g_pObjectManager->m_stTrade.CarryPos[i];
+			if (carrySlot >= 0 && carrySlot < MAX_VISIBLE_CARRY)
+			{
+				int cellX = 0;
+				int cellY = 0;
+				pFScene->GetCarryCellForSlot(carrySlot, cellX, cellY);
+				auto pCarryGrid = pFScene->GetCarryGridForSlot(carrySlot);
+				auto pCarryItem = pCarryGrid ? pCarryGrid->GetItem(cellX, cellY) : nullptr;
+				if (pCarryItem)
+					pCarryItem->m_GCObj.dwColor = 0xFFFFFFFF;
+			}
+
+			auto pTradeItem = pGridMyItem[i]->PickupItem(0, 0);
+			if (g_pCursor && g_pCursor->m_pAttachedItem == pTradeItem)
+				g_pCursor->m_pAttachedItem = nullptr;
+			SAFE_DELETE(pTradeItem);
+
+			memset(&g_pObjectManager->m_stTrade.Item[i], 0,
+				sizeof(g_pObjectManager->m_stTrade.Item[i]));
+			g_pObjectManager->m_stTrade.CarryPos[i] = -1;
+
+			auto pMyCheck = static_cast<SButton*>(
+				pFScene->m_pControlContainer->FindControl(TMB_TRADE_MYCHECK));
+			auto pOPCheck = static_cast<SButton*>(
+				pFScene->m_pControlContainer->FindControl(TMB_TRADE_OPCHECK));
+			if (pMyCheck)
+				pMyCheck->m_bSelected = 0;
+			if (pOPCheck)
+				pOPCheck->m_bSelected = 0;
+
+			pFScene->m_dwLastCheckTime = g_pApp->m_pTimerManager->GetServerTime();
+			g_pObjectManager->m_stTrade.MyCheck = 0;
+			g_pObjectManager->m_stTrade.Header.ID = pFScene->m_pMyHuman->m_dwID;
+			g_pObjectManager->m_stTrade.Header.Type = MSG_Trade_Opcode;
+			WYD748_DiagnosticsLog(
+				"TRADE_SEND origin=remove opponent=%u slot=%d carry=%d size=%u\r\n",
+				g_pObjectManager->m_stTrade.OpponentID, i, carrySlot,
+				static_cast<unsigned int>(sizeof(g_pObjectManager->m_stTrade)));
+			SendOneMessage(reinterpret_cast<char*>(&g_pObjectManager->m_stTrade),
+				sizeof(g_pObjectManager->m_stTrade));
+			return 1;
+		}
+		return 0;
+	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_ITEMMIX)
 	{
 		auto pItem = GetItem(nCellX, nCellY);

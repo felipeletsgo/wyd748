@@ -65,11 +65,41 @@ Nao fazer exclusao em massa por heuristica. Código e assets manuais são
 presumidos intencionais. Cada corte precisa registrar qual incompatibilidade ou
 caminho substituto o justifica e passar pelo build e pelo fluxo real afetado.
 
+### Regra para UIs do TMProject 7.69+
+
+Para uma função do TMProject 7.69+ ausente no nativo 7.48, pesquisar primeiro
+uma UI compatível já existente no TMProject. Na falta dela, avaliar a adaptação
+de uma UI de composição existente, como Odin (7 slots) ou Composer (6 slots),
+comparando recurso, quantidade e semântica dos slots, callbacks, input,
+ownership, fechamento e contrato com o servidor. Uma UI nova só pode ser
+criada após essa comparação; remover ou desabilitar a função só pode ser a
+última opção documentada quando nenhuma adaptação for tecnicamente segura e a
+função não tiver utilidade no 7.48.
+
 ## Contratos
 
 - Toda decisão não óbvia de contrato, compatibilidade ou ownership deve possuir
   comentário explicando o "por que". Não adicionar comentário a uma edição
   mecânica apenas para satisfazer processo.
+- Todo arquivo criado, convertido, adaptado ou funcionalmente alterado deve
+  possuir comentários didáticos em português sobre sua responsabilidade; suas
+  classes, estruturas e APIs públicas; e os parâmetros, retornos, ownership,
+  nulabilidade e lifecycle que não estiverem claros no tipo.
+- No corpo das funções, comentar fases, invariantes, efeitos colaterais,
+  fallbacks e decisões relevantes. Não narrar linha por linha nem repetir o que
+  nomes e tipos já dizem.
+- Registrar fora do código, na ficha ou documento do lote, a origem conhecida
+  (`7.48`, `TMProject 7.69+` ou local), o modo do delta e a evidência. Não
+  transformar hipótese de procedência em comentário factual.
+- Placeholders e stubs devem declarar sua condição e a lacuna de evidência;
+  não inventar implementação para fazê-los parecer completos.
+- Refatorar no mesmo lote somente quando melhorar compreensão, ownership,
+  lifecycle ou duplicação sem alterar comportamento, ABI, wire, recursos ou
+  ordem de efeitos. Mudança observável deve ser separada e passar pelo gate
+  correspondente.
+- A documentação do legado é incremental por arquivo tocado. Corrigir
+  comentários obsoletos no trecho afetado, mas não promover reformatacão ou
+  renomeação em massa de código alheio.
 - `Score` no servidor continua autoritativo.
 - Estruturas C++ e packets devem possuir `static_assert`/testes de tamanho e
   offsets; nunca depender de `sizeof` implicito sem teste do wire.

@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Debug\\framework.obj",
+            "outputs": [
+                "Debug\\framework.h.obj.dt.module.json",
+                "Debug\\framework.h.obj.dt.d.json",
+                "Debug\\WYDestiny.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

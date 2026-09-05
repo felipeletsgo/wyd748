@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "Debug\\ItemEffect.obj",
+            "outputs": [
+                "Debug\\ItemEffect.h.obj.dt.module.json",
+                "Debug\\ItemEffect.h.obj.dt.d.json",
+                "Debug\\WYDestiny.pch"
+            ],
+            "requires": []
+        }
+    ]
+}
