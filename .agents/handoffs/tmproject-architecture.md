@@ -371,3 +371,17 @@ instalado. SHA-256: `9ECB13AAB6FF8DA45E9B5C98124CC6D6257C507EB623ED1228FC636EBD7
 `git diff --check` PASS; nao CLIENT_TESTED. Permanecem apenas os callers
 legados de MrItemMix que criam visuais em outras rotinas de inicializacao,
 fora do fluxo ClickInvItem.
+
+## Retomada — inicializacao de Carry e Cargo (2026-09-05)
+
+Na inicializacao de `TMFieldScene`, os dois loops que materializam Carry e
+Cargo criavam `SGridControlItem` diretamente e ignoravam a rejeicao da grid.
+Agora cada loop libera o controle quando `AddItem` falha e libera o
+`STRUCT_ITEM` quando a criacao do controle falha; o ramo de pagina invalida
+continua liberando o item como antes. Nao houve alteracao de indices,
+coordenadas, capacidade ou contrato. Delta local MODERNIZACAO_COMPATIVEL.
+
+Release passou pelo `Build-Client.ps1`, 496 checks/asserts PASS e candidato
+instalado. SHA-256: `CA455069E7CF35CE81390087504800FE125E6F17CB3136A7B2DCD81F5F4DBC2D`.
+`git diff --check` PASS; nao CLIENT_TESTED. Os grids de equipamento da mesma
+inicializacao ainda usam insercoes diretas e serao tratados em corte separado.

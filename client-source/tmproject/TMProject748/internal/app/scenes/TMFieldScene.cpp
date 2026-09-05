@@ -4216,9 +4216,15 @@ int TMFieldScene::InitializeScene()
 			int Page = nCarryIndex / 15;
 			if (nCarryIndex / 15 > -1 && Page < 4)
 			{
-				m_pGridInvList[Page]->AddItem(new SGridControlItem(0, pItemCarry, 0.0f, 0.0f),
-					nCarryIndex % 15 % 5,
-					nCarryIndex % 15 / 5);
+				auto pControlItem = new SGridControlItem(0, pItemCarry, 0.0f, 0.0f);
+				if (pControlItem)
+				{
+					if (!m_pGridInvList[Page]->AddItem(pControlItem,
+						nCarryIndex % 15 % 5, nCarryIndex % 15 / 5))
+						SAFE_DELETE(pControlItem);
+				}
+				else
+					SAFE_DELETE(pItemCarry);
 			}
 			else
 				delete pItemCarry;
@@ -4236,9 +4242,15 @@ int TMFieldScene::InitializeScene()
 			int Page = nCargoIndex / 40;
 			if (nCargoIndex / 40 > -1 && Page < 3)
 			{
-				m_pCargoGridList[Page]->AddItem(new SGridControlItem(0, pItemCargo, 0.0f, 0.0f),
-					nCargoIndex % 40 % 5,
-					nCargoIndex % 40 / 5);
+				auto pControlItem = new SGridControlItem(0, pItemCargo, 0.0f, 0.0f);
+				if (pControlItem)
+				{
+					if (!m_pCargoGridList[Page]->AddItem(pControlItem,
+						nCargoIndex % 40 % 5, nCargoIndex % 40 / 5))
+						SAFE_DELETE(pControlItem);
+				}
+				else
+					SAFE_DELETE(pItemCargo);
 			}
 			else
 				delete pItemCargo;
