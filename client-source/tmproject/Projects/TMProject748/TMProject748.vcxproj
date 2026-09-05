@@ -71,9 +71,12 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)internal\game\entities;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\platform\windows;$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)internal\platform\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -92,8 +95,11 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)internal\game\entities;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\platform\windows;$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
     </ClCompile>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)internal\platform\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -105,19 +111,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\CommonFiles\SharedStructs.h" />
-    <ClInclude Include="AES.h" />
-    <ClInclude Include="Base64.h" />
+    <ClInclude Include="internal\wire\crypto\AES.h" />
+    <ClInclude Include="internal\wire\crypto\Base64.h" />
     <ClInclude Include="Basedef.h" />
     <ClInclude Include="ClientDiagnostics.h" />
     <ClInclude Include="WYD748Assets.h" />
-    <ClInclude Include="BlockKeyBoard.h" />
+    <ClInclude Include="internal\game\input\BlockKeyBoard.h" />
     <ClInclude Include="CFrame.h" />
     <ClInclude Include="CMesh.h" />
     <ClInclude Include="CPSock.h" />
     <ClInclude Include="D3DDevice.h" />
     <ClInclude Include="D3DEnumeration.h" />
     <ClInclude Include="D3DSettings.h" />
-    <ClInclude Include="desbase64.h" />
+    <ClInclude Include="internal\wire\crypto\desbase64.h" />
     <ClInclude Include="DirShow.h" />
     <ClInclude Include="dsutil.h" />
     <ClInclude Include="DXUtil.h" />
@@ -131,16 +137,16 @@
     <ClInclude Include="features\macro\MacroFactory.h" />
     <ClInclude Include="MacroLevel.h" />
     <ClInclude Include="features\macro\MacroMsg.h" />
-    <ClInclude Include="md5.h" />
-    <ClInclude Include="MD5Checksum.h" />
+    <ClInclude Include="internal\wire\crypto\md5.h" />
+    <ClInclude Include="internal\wire\crypto\MD5Checksum.h" />
     <ClInclude Include="MeshManager.h" />
     <ClInclude Include="Mission.h" />
     <ClInclude Include="MrItemMix.h" />
     <ClInclude Include="NewApp.h" />
-    <ClInclude Include="NewClientB.h" />
+    <ClInclude Include="internal\app\compat\NewClientB.h" />
     <ClInclude Include="ObjectManager.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Quest.h" />
+    <ClInclude Include="internal\game\quest\Quest.h" />
     <ClInclude Include="RenderDevice.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResourceControl.h" />
@@ -148,19 +154,19 @@
     <ClInclude Include="SControlContainer.h" />
     <ClInclude Include="SGrid.h" />
     <ClInclude Include="singleton.h" />
-    <ClInclude Include="StackWalker.h" />
+    <ClInclude Include="internal\platform\diagnostics\StackWalker.h" />
     <ClInclude Include="Structures.h" />
-    <ClInclude Include="targetver.h" />
+    <ClInclude Include="internal\platform\windows\targetver.h" />
     <ClInclude Include="TextureManager.h" />
     <ClInclude Include="TimerManager.h" />
     <ClInclude Include="TMArrow.h" />
-    <ClInclude Include="TMBike.h" />
+    <ClInclude Include="internal\game\entities\TMBike.h" />
     <ClInclude Include="TMButterFly.h" />
     <ClInclude Include="TMCamera.h" />
     <ClInclude Include="TMCannon.h" />
     <ClInclude Include="scenes\demo\TMDemoScene.h" />
     <ClInclude Include="TMDrop.h" />
-    <ClInclude Include="TMDust.h" />
+    <ClInclude Include="internal\render\effects\environment\TMDust.h" />
     <ClInclude Include="TMEffect.h" />
     <ClInclude Include="TMEffectBillBoard.h" />
     <ClInclude Include="TMEffectBillBoard2.h" />
@@ -199,24 +205,24 @@
     <ClInclude Include="TMObject.h" />
     <ClInclude Include="TMObjectContainer.h" />
     <ClInclude Include="TMPaths.h" />
-    <ClInclude Include="TMProject.h" />
-    <ClInclude Include="TMRain.h" />
+    <ClInclude Include="cmd\client\TMProject.h" />
+    <ClInclude Include="internal\render\effects\weather\TMRain.h" />
     <ClInclude Include="TMScene.h" />
     <ClInclude Include="TMSea.h" />
     <ClInclude Include="TMSelectCharScene.h" />
     <ClInclude Include="TMSelectServerScene.h" />
     <ClInclude Include="TMShade.h" />
     <ClInclude Include="TMShip.h" />
-    <ClInclude Include="TMSkillBash.h" />
-    <ClInclude Include="TMSkillCure.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillBash.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillCure.h" />
     <ClInclude Include="TMSkillDoubleSwing.h" />
     <ClInclude Include="TMSkillExplosion2.h" />
     <ClInclude Include="TMSkillFire.h" />
     <ClInclude Include="TMSkillFlash.h" />
     <ClInclude Include="TMSkillFreezeBlade.h" />
-    <ClInclude Include="TMSkillHaste.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillHaste.h" />
     <ClInclude Include="TMSkillHeal.h" />
-    <ClInclude Include="TMSkillHeavenDust.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillHeavenDust.h" />
     <ClInclude Include="TMSkillHolyTouch.h" />
     <ClInclude Include="TMSkillIceSpear.h" />
     <ClInclude Include="TMSkillJudgement.h" />
@@ -271,7 +277,7 @@
     <ClCompile Include="MrItemMix.cpp" />
     <ClCompile Include="NewApp.cpp" />
     <ClCompile Include="ObjectManager.cpp" />
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="internal\platform\windows\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>

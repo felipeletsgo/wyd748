@@ -33,19 +33,24 @@ executavel sobre `client748/project.exe`.
 
 ## Arquitetura de destino
 
+A arvore acompanha o desenho do emulador Go: executaveis em `cmd/`, codigo nao
+publico em `internal/` e separacao por `game`, `model`, `net`, `proto` e `wire`.
+Dominios exclusivos do client permanecem dentro de `internal/`, sem misturar
+renderizacao ou input aos contratos compartilhados.
+
 ```text
-app/                 bootstrap e composicao da aplicacao
-platform/            Windows, DirectX, entrada, som, rede e adaptadores
-core/                tipos e utilitarios sem dependencia de cenas
-protocol/wire/       layouts binarios e invariantes de ABI
-protocol/dispatch/   roteamento de mensagens
-data/                loaders e modelos de dados
-render/              dispositivo, malhas, texturas e efeitos
-world/               terreno, clima e objetos do mundo
-entities/            humanos, itens, drops e entidades especializadas
-ui/                  controles, grids, HUD e janelas
-scenes/              ciclo de vida e comportamento das cenas
-features/            fluxos verticais como trade, craft, party e guild
+cmd/client/          ponto de entrada do executavel, como cmd/server no Go
+internal/app/        composicao e lifecycle da aplicacao
+internal/data/       loaders e dados materializados
+internal/game/       regras, cenas, entidades e features observaveis
+internal/model/      tipos de dominio sem comportamento de transporte
+internal/net/        sessao e transporte
+internal/proto/      dispatcher e semantica das mensagens
+internal/wire/       layouts, codecs e invariantes de ABI
+internal/platform/   Windows, DirectX, input, som e diagnosticos
+internal/render/     dispositivo, malhas, texturas e efeitos
+internal/ui/         controles, grids, HUD e janelas
+docs/                decisoes e acompanhamento da migracao
 legacy/              adaptadores temporarios explicitamente documentados
 ```
 

@@ -79,19 +79,49 @@
     <Filter Include="Source Files\Features\Macro">
       <UniqueIdentifier>{832f9ad4-4cd6-4be6-9e2d-8d7e8bb70b31}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Cmd">
+      <UniqueIdentifier>{fc72eecf-f50a-4ed1-ad20-c00de1314da2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Cmd\Client">
+      <UniqueIdentifier>{94bb9b1e-d9cc-4789-9be7-b969b3f07333}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Internal">
+      <UniqueIdentifier>{64e702fc-a73a-449c-a83b-15b93e7e6394}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Internal\App">
+      <UniqueIdentifier>{f9d30346-2768-43d3-b250-793a779e888a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Internal\Game">
+      <UniqueIdentifier>{6ed45ccd-22ae-466e-89a5-f6ca94061dbe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Internal\Platform">
+      <UniqueIdentifier>{f5ddb66b-fd56-423a-b2a4-bb384700efc3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Internal\Render">
+      <UniqueIdentifier>{5f3b1098-6f13-4e40-884c-ec84258f7ef8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Internal\Wire">
+      <UniqueIdentifier>{c177a061-51da-4356-9af1-d4e483e030e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Internal">
+      <UniqueIdentifier>{b9ab129a-5c92-4d87-8e43-b23d8947dffa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Internal\Platform">
+      <UniqueIdentifier>{f58e410d-c45d-4128-8745-2ca47fc29b0d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="internal\platform\windows\targetver.h">
+      <Filter>Header Files\Internal\Platform</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TMProject.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="cmd\client\TMProject.h">
+      <Filter>Header Files\Cmd\Client</Filter>
     </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
@@ -162,14 +192,14 @@
     <ClInclude Include="TMSkillHolyTouch.h">
       <Filter>Header Files\Skills</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillHeavenDust.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillHeavenDust.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="TMSkillHeal.h">
       <Filter>Header Files\Skills</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillHaste.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillHaste.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="TMSkillFreezeBlade.h">
       <Filter>Header Files\Skills</Filter>
@@ -186,11 +216,11 @@
     <ClInclude Include="TMSkillDoubleSwing.h">
       <Filter>Header Files\Skills</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillCure.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillCure.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillBash.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillBash.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="TMShip.h">
       <Filter>Header Files\Engine</Filter>
@@ -207,8 +237,8 @@
     <ClInclude Include="TMScene.h">
       <Filter>Header Files\Engine\Scenes</Filter>
     </ClInclude>
-    <ClInclude Include="TMRain.h">
-      <Filter>Header Files\Engine</Filter>
+    <ClInclude Include="internal\render\effects\weather\TMRain.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="TMObject.h">
       <Filter>Header Files\Engine</Filter>
@@ -315,8 +345,8 @@
     <ClInclude Include="TMEffect.h">
       <Filter>Header Files\Effects</Filter>
     </ClInclude>
-    <ClInclude Include="TMDust.h">
-      <Filter>Header Files\Engine</Filter>
+    <ClInclude Include="internal\render\effects\environment\TMDust.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="scenes\demo\TMDemoScene.h">
       <Filter>Header Files\Engine\Scenes</Filter>
@@ -330,8 +360,8 @@
     <ClInclude Include="TMButterFly.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="TMBike.h">
-      <Filter>Header Files\Engine</Filter>
+    <ClInclude Include="internal\game\entities\TMBike.h">
+      <Filter>Header Files\Internal\Game</Filter>
     </ClInclude>
     <ClInclude Include="TMArrow.h">
       <Filter>Header Files\Engine</Filter>
@@ -342,8 +372,8 @@
     <ClInclude Include="TextureManager.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="StackWalker.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="internal\platform\diagnostics\StackWalker.h">
+      <Filter>Header Files\Internal\Platform</Filter>
     </ClInclude>
     <ClInclude Include="SGrid.h">
       <Filter>Header Files\Engine\UI</Filter>
@@ -357,14 +387,14 @@
     <ClInclude Include="RenderDevice.h">
       <Filter>Header Files\Engine\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Quest.h">
-      <Filter>Header Files\Engine</Filter>
+    <ClInclude Include="internal\game\quest\Quest.h">
+      <Filter>Header Files\Internal\Game</Filter>
     </ClInclude>
     <ClInclude Include="ObjectManager.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="NewClientB.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="internal\app\compat\NewClientB.h">
+      <Filter>Header Files\Internal\App</Filter>
     </ClInclude>
     <ClInclude Include="NewApp.h">
       <Filter>Header Files</Filter>
@@ -378,11 +408,11 @@
     <ClInclude Include="MeshManager.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="MD5Checksum.h">
-      <Filter>Header Files\Util</Filter>
+    <ClInclude Include="internal\wire\crypto\MD5Checksum.h">
+      <Filter>Header Files\Internal\Wire</Filter>
     </ClInclude>
-    <ClInclude Include="md5.h">
-      <Filter>Header Files\Util</Filter>
+    <ClInclude Include="internal\wire\crypto\md5.h">
+      <Filter>Header Files\Internal\Wire</Filter>
     </ClInclude>
     <ClInclude Include="JBlur.h">
       <Filter>Header Files\Engine</Filter>
@@ -399,8 +429,8 @@
     <ClInclude Include="DirShow.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
-    <ClInclude Include="desbase64.h">
-      <Filter>Header Files\Util</Filter>
+    <ClInclude Include="internal\wire\crypto\desbase64.h">
+      <Filter>Header Files\Internal\Wire</Filter>
     </ClInclude>
     <ClInclude Include="D3DSettings.h">
       <Filter>Header Files\Engine\Core</Filter>
@@ -408,14 +438,14 @@
     <ClInclude Include="D3DDevice.h">
       <Filter>Header Files\Engine\Core</Filter>
     </ClInclude>
-    <ClInclude Include="BlockKeyBoard.h">
-      <Filter>Header Files\Util</Filter>
+    <ClInclude Include="internal\game\input\BlockKeyBoard.h">
+      <Filter>Header Files\Internal\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Base64.h">
-      <Filter>Header Files\Util</Filter>
+    <ClInclude Include="internal\wire\crypto\Base64.h">
+      <Filter>Header Files\Internal\Wire</Filter>
     </ClInclude>
-    <ClInclude Include="AES.h">
-      <Filter>Header Files\Util</Filter>
+    <ClInclude Include="internal\wire\crypto\AES.h">
+      <Filter>Header Files\Internal\Wire</Filter>
     </ClInclude>
     <ClInclude Include="UIBinary.h">
       <Filter>Header Files\Engine\UI</Filter>
@@ -497,8 +527,8 @@
     <ClCompile Include="TMProject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="internal\platform\windows\pch.cpp">
+      <Filter>Source Files\Internal\Platform</Filter>
     </ClCompile>
     <ClCompile Include="CPSock.cpp">
       <Filter>Source Files</Filter>

@@ -1,4 +1,4 @@
 #pragma once
 
-// Placeholder sem declarações ou consumidores ativos. O nome não autoriza
+// Placeholder sem declaracoes ou consumidores ativos. O nome nao autoriza
 // introduzir um caminho de client/versionamento paralelo ao source-built 7.48.
