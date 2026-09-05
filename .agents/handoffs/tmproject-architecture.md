@@ -339,3 +339,20 @@ PASS, candidato instalado com SHA-256
 `B43CFECCCBD8C5E14D419956BD8E7D7EA7E00325B7EFDA57823229CA524B2603`.
 `git diff --check` PASS. Nao CLIENT_TESTED. Restam callers dinamicos em
 inventario/loja/mixagem, a revisar individualmente.
+
+## Retomada — resultado e necessidade em MrItemMix (2026-09-05)
+
+Em `CItemMix::ResultItemListSet` e `Set_NeedItemList`, os callers alocavam
+`STRUCT_ITEM` e passavam um `SGridControlItem` diretamente para `AddItem`,
+sem tratar grid nula, falha de construcao ou rejeicao da insercao. Foi aplicado
+um helper local em cada fluxo: sucesso transfere ownership para a grid; falha
+libera o controle ou o `STRUCT_ITEM` conforme o ponto de falha. Nenhum wire,
+regra de combinacao ou ordem visual foi alterado. Delta local
+MODERNIZACAO_COMPATIVEL.
+
+O primeiro build encontrou apenas dangling-else causado pelo macro legado
+`SAFE_DELETE`; os dois helpers foram ajustados com blocos explicitos. Release
+passou com 496 checks/asserts e candidato instalado. SHA-256:
+`5ED255E897D8C0DABA6589A68B1E16FD209479C281C776DF00961EF01E0DEF39`.
+`git diff --check` PASS; nao CLIENT_TESTED. Os fluxos de `ClickInvItem` ainda
+possuem varios callers repetidos e ficam para o proximo corte isolado.

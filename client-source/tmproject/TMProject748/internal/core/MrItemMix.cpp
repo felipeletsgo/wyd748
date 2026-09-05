@@ -147,6 +147,22 @@ void CItemMix::TakeItResource(SControlContainer* ControlContainer, unsigned shor
 
 void CItemMix::ResultItemListSet(unsigned int Head, int X, int Y)
 {
+	auto addOwnedItem = [](SGridControl* grid, STRUCT_ITEM* item)
+	{
+		if (!grid)
+		{
+			SAFE_DELETE(item);
+			return;
+		}
+		auto controlItem = new SGridControlItem(0, item, 0.0f, 0.0f);
+		if (controlItem)
+		{
+			if (!grid->AddItem(controlItem, 0, 0))
+				SAFE_DELETE(controlItem);
+		}
+		else
+			SAFE_DELETE(item);
+	};
     m_NPCHead = Head;
     m_dNPCX = X;
     m_dNPCY = Y;
@@ -191,7 +207,7 @@ void CItemMix::ResultItemListSet(unsigned int Head, int X, int Y)
             }
 
             m_pGridResultItem[count]->m_eGridType = TMEGRIDTYPE::GRID_ITEMMIXRESULT;
-            m_pGridResultItem[count++]->AddItem(new SGridControlItem(0, pstItem, 0.0f, 0.0f), 0, 0);
+            addOwnedItem(m_pGridResultItem[count++], pstItem);
         }
     }
 
@@ -203,6 +219,22 @@ void CItemMix::ResultItemListSet(unsigned int Head, int X, int Y)
 
 void CItemMix::Set_NeedItemList(int Index)
 {
+	auto addOwnedItem = [](SGridControl* grid, STRUCT_ITEM* item)
+	{
+		if (!grid)
+		{
+			SAFE_DELETE(item);
+			return;
+		}
+		auto controlItem = new SGridControlItem(0, item, 0.0f, 0.0f);
+		if (controlItem)
+		{
+			if (!grid->AddItem(controlItem, 0, 0))
+				SAFE_DELETE(controlItem);
+		}
+		else
+			SAFE_DELETE(item);
+	};
     ClearNeedGridList();
 
     if (Index < 0 || Index > 13000)
@@ -246,7 +278,7 @@ void CItemMix::Set_NeedItemList(int Index)
 
                         memcpy(pstItem, &stNeed_itemList[index].stGridItem, sizeof(pstItem));
 
-                        m_pGridNeedItem[j]->AddItem(new SGridControlItem(0, pstItem, 0.0f, 0.0f), 0, 0);
+                        addOwnedItem(m_pGridNeedItem[j], pstItem);
                         m_pGridNeedItem[j]->m_eGridType = TMEGRIDTYPE::GRID_ITEMMIXNEED;
                     }
                 }
@@ -258,7 +290,7 @@ void CItemMix::Set_NeedItemList(int Index)
 
                     pstItem->sIndex = index;
 
-                    m_pGridNeedItem[j]->AddItem(new SGridControlItem(0, pstItem, 0.0f, 0.0f), 0, 0);
+                    addOwnedItem(m_pGridNeedItem[j], pstItem);
                     m_pGridNeedItem[j]->m_eGridType = TMEGRIDTYPE::GRID_ITEMMIXNEED;
                 }
             }
