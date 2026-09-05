@@ -534,3 +534,21 @@ fluxo de erro visual e migracao real antes de CLIENT_TESTED.
 Debug/Release Build-Client.ps1 PASS (1242 checks/asserts); Release instalado
 com hash identico ao artefato:
 `EDDA60A71ACD1F0C0A0A2DB62A73CC2D210D12EF896C4BEDB991BCE2E8DDF34B`.
+
+## Endereco limitado na reconexao
+
+BASE_InitializeServerList decodifica todos os 64 bytes de cada entrada sem
+garantir terminador. NewApp::m_szServerIP tem 128 bytes. O handler agora
+procura NUL somente dentro da entrada selecionada e rejeita vazio/ausente
+antes dos efeitos de reconexao. Copia apenas comprimento+NUL, com static_assert
+de capacidade do destino. Nao trunca ou inventa endereco alternativo.
+MODERNIZACAO_COMPATIVEL local; source UTILIZADA, ficha/corpus de migracao
+reutilizados, assets/Go NAO APLICAVEIS (nenhum arquivo ou protocolo alterado).
+
+Debug/Release Build-Client.ps1 PASS, 1242 checks existentes e asserts PASS;
+esses checks nao exercitam o handler nem o loader. Diff --check PASS.
+Release instalado e hash conferido com artefato:
+`37890AC2ACA9B6D56677D9BAF6D994C719E02F87C9610C60DF9D10F7A705682F`.
+Nao CLIENT_TESTED. Proximo: retomar contratos/casos de uso da fase 2; fluxo
+runtime de migracao, erro visual e reconexao permanece pendente, sem emissor
+Go conhecido. Nao tratar o gate de endereco como conclusao desse lifecycle.

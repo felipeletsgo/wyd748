@@ -22973,13 +22973,20 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 		if (group < 0 || group >= MAX_SERVERGROUP ||
 			!ParseMigrationServer(pStd->TID, MAX_SERVERNUMBER, nServer))
 			return 1;
+		const auto& address = g_pServerList[group][nServer];
+		const auto* terminator = static_cast<const char*>(memchr(address, '\0', sizeof(address)));
+		// O loader decodifica a entrada inteira e nao garante NUL. Nao ler
+		// a proxima entrada nem conectar usando um endereco truncado.
+		if (!terminator || terminator == address)
+			return 1;
+		static_assert(sizeof(g_pApp->m_szServerIP) >= sizeof(address), "Migration address destination too small");
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[7], 0);
 		m_pMessagePanel->SetVisible(1, 0);
 
 		g_bMoveServer = 0;
 		g_pObjectManager->m_nServerIndex = nServer;
 		CheckPKNonePK(g_pObjectManager->m_nServerIndex);
-		sprintf(g_pApp->m_szServerIP, "%s", g_pServerList[g_pObjectManager->m_nServerGroupIndex][nServer]);
+		memcpy(g_pApp->m_szServerIP, address, static_cast<size_t>(terminator - address) + 1);
 
 		if (g_pSocketManager->ConnectServer(g_pApp->m_szServerIP, TM_CONNECTION_PORT, 0, 1124))
 		{
