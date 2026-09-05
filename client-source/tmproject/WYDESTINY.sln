@@ -5,7 +5,7 @@ VisualStudioVersion = 17.3.32804.467
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TMProject", "Projects\TMProject\TMProject.vcxproj", "{84C0AB27-945B-438F-9A3F-211885E8FDA1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TMProject748", "Projects\TMProject748\TMProject748.vcxproj", "{34096901-E987-4241-A00A-6A0E448ED3BE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TMProject748", "TMProject748\TMProject748.vcxproj", "{34096901-E987-4241-A00A-6A0E448ED3BE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ItemListConverter", "Tools\ItemListConverter\ItemListConverter.vcxproj", "{68B9F911-C4C6-43F3-B7FB-4BD0C5A57B94}"
 EndProject
