@@ -1351,6 +1351,9 @@ short SGridControl::CheckType(TMEITEMTYPE eType, TMEGRIDTYPE eGridType)
 
 int SGridControl::SetItemOnGrid(STRUCT_ITEM* item, int CellIndexX, int CellIndexY)
 {
+	if (item == nullptr)
+		return false;
+
 	auto setItem = new STRUCT_ITEM();
 
 	if (setItem)
@@ -1361,9 +1364,12 @@ int SGridControl::SetItemOnGrid(STRUCT_ITEM* item, int CellIndexX, int CellIndex
 
 		if (pItem)
 		{
-			AddItem(pItem, CellIndexX, CellIndexY);
-			return true;
+			if (AddItem(pItem, CellIndexX, CellIndexY))
+				return true;
+			SAFE_DELETE(pItem);
+			return false;
 		}
+		SAFE_DELETE(setItem);
 	}
 
 	return false;
