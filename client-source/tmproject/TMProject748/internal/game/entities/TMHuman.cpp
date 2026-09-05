@@ -4330,6 +4330,8 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
                                     releaseReplacedItem(pItem);
                             }
                         }
+                        else
+                            SAFE_DELETE(pstItem);
                     }
                 }
             }
@@ -4363,6 +4365,8 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 
                         if (pItem && !pGrid->AddItem(pItem, CellIndexX, CellIndexY))
                             releaseReplacedItem(pItem);
+                        else if (!pItem)
+                            SAFE_DELETE(pstItem);
                     }
                 }
             }
@@ -4396,6 +4400,8 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 
                     if (pItem && !pGrid->AddItem(pItem, CellIndexX, CellIndexY))
                         releaseReplacedItem(pItem);
+                    else if (!pItem)
+                        SAFE_DELETE(pstItem);
                 }
             }
         }

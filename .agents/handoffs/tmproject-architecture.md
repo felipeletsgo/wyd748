@@ -306,3 +306,20 @@ AGENTS.md e cinco arquivos de skills preservadas fora deste corte.
 Proximo passo: validar barras de skills, rejeicao visual e relogin no candidato;
 seguir a revisao dos callers diretos de AddItem/SetItem que ignoram rejeicao.
 Coordenadas negativas/overflow continuam uma frente separada pendente.
+
+## Retomada — falha de alocacao no SendItem (2026-09-05)
+
+Revisados os tres callers ativos de `SGridControl::AddItem` em
+`TMHuman::OnPacketSendItem` (Equip, Carry e Cargo). Quando a alocacao do
+`SGridControlItem` falhava depois de `STRUCT_ITEM`, faltava liberar o estado
+intermediario. O corte agora usa `SAFE_DELETE(pstItem)` somente nesse caminho;
+falha de AddItem continua usando `releaseReplacedItem`, e sucesso preserva o
+ownership da grid. Delta local MODERNIZACAO_COMPATIVEL, sem mudanca wire,
+ABI, recurso ou ordem do handler.
+
+Build-Client.ps1 Debug e Release PASS e instalaram o candidato. Release:
+`7C336D49F07491BA7AEC3A17E750234C22B68807E6190B52093790FF03102A8B`.
+`git diff --check` PASS. Nao CLIENT_TESTED; falha de alocacao e fluxo visual
+real ainda nao sao exercitados pelos checks puros. Proximo: revisar somente
+os callers restantes de AddItem que alocam visuais dinamicamente, sem alterar
+listas de texto/controlos nem inventar nova politica de ownership.
