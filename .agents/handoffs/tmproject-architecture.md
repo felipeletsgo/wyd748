@@ -201,3 +201,11 @@ sem retorno usado, aguardando ownership dos helpers atuais.
 Nenhum novo patch funcional neste ciclo; ficha `send-item-local-update.md`
 atualizada. Guards de capacidade permanecem STATICALLY VERIFIED pelos builds
 anteriores; teste visual, cursor, grid ausente e relogin ainda pendentes.
+
+Reaberta a descompilacao 0052A737: o ramo nativo Cargo tambem ignora o retorno
+da retirada visual, cria o item somente para sIndex>0 e preserva a copia de
+estado antes da consulta de grid. A source coincide nessa ordem; Cargo ainda
+nao limpa explicitamente o cursor porque `PickupAtItem`/ownership local não
+estão comprovados. Nenhuma alteração funcional neste ciclo. Próximo passo
+continua revisar esse helper no SGrid e testar item/cursor no candidato antes
+de alterar o fluxo.

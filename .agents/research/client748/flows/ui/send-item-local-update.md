@@ -79,6 +79,14 @@ com seu receptor visual; essa decisao nao foi alterada sem prova do ownership
 dos grids atuais. A copia autoritativa do slot ocorre antes da consulta visual,
 preservando o estado mesmo quando a grid nao estiver materializada.
 
+O estudo de `0052A737` confirmou que o nativo tambem nao examina o retorno da
+remoção visual no ramo Cargo. Ele chama o slot de retirada, depois cria o item
+quando `sIndex > 0`; a ausência da grid não desfaz a cópia de estado. Portanto,
+o comportamento atual é uma modernização compatível deliberada, não uma falha
+identificada. O cursor é explicitamente limpo no ramo nativo quando aponta para
+o item removido; a source Carry/Equip já faz isso, enquanto Cargo ainda precisa
+de uma confirmação do contrato de `PickupAtItem` antes de receber mudança.
+
 ## Matriz de delta
 
 | Fronteira | Evidencia | Decisao |
