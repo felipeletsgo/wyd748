@@ -200,5 +200,40 @@ int RunReceivedPacketDispatchTests(int& checks)
             "extensao valida entregue uma vez");
         check(before == frame, "indice assinado e CSV preservados");
     }
+    std::array<char, 81> migration{};
+    migration[0] = 80;
+    migration[4] = 0x2A;
+    migration[5] = 5;
+    migration[6] = 0x34;
+    migration[7] = 0x12;
+    // Dados sinteticos: conta ocupa 16 bytes e ticket ocupa 52, sem NUL.
+    std::memset(migration.data() + 12, 'A', 16);
+    std::memset(migration.data() + 28, 'T', 52);
+    int migrationCalls = 0;
+    MSG_CNFRemoveServer retained{};
+    const auto retainMigration = [&](const PacketView& frame) {
+        ++migrationCalls;
+        check(frame.data == migration.data() && frame.size == 80,
+            "migracao empresta a imagem completa");
+        std::memcpy(&retained, frame.data, sizeof(retained));
+    };
+    for (std::size_t n = 0; n < 80; ++n)
+        check(!received_packet::Dispatch({0x52A, migration.data(), n}, retainMigration),
+            "migracao truncada nao pode alimentar replay");
+    check(!received_packet::Dispatch({0x52A, migration.data(), 81}, retainMigration), "migracao excedente");
+    check(!received_packet::Dispatch({0x52A, nullptr, 80}, retainMigration), "migracao nula");
+    check(!received_packet::Dispatch({0x119, migration.data(), 80}, retainMigration), "Type migracao ocultado");
+    migration[4] = 0x19;
+    check(!received_packet::Dispatch({0x52A, migration.data(), 80}, retainMigration), "Type migracao divergente");
+    migration[4] = 0x2A;
+    migration[0] = 79;
+    check(!received_packet::Dispatch({0x52A, migration.data(), 80}, retainMigration), "Size migracao divergente");
+    migration[0] = 80;
+    check(migrationCalls == 0 && retained.Header.Size == 0, "rejeicao preserva estado do receptor");
+    check(received_packet::Dispatch({0x52A, migration.data(), 80}, retainMigration) && migrationCalls == 1,
+        "migracao valida entregue uma vez");
+    check(retained.Header.ID == 0x1234 && retained.AccountName[15] == 'A' && retained.TID[51] == 'T',
+        "migracao preserva ID e limites dos campos inline");
+    check(std::memcmp(&retained, migration.data(), 80) == 0, "imagem de migracao preservada byte a byte");
     return failures;
 }

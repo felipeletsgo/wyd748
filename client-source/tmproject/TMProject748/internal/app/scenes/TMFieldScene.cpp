@@ -9096,7 +9096,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		return OnPacketSoundEffect(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
 	case 0x116:
 		return OnPacketCNFCharacterLogout(pStd);
-	case 0x52A:
+	case MSG_CNFRemoveServer_Opcode:
 		return OnPacketCNFRemoveServer(reinterpret_cast<MSG_CNFRemoveServer*>(pStd));
 	case 0x10A:
 		// Opcode 0x10A is the normal account-login confirmation here. Casting it

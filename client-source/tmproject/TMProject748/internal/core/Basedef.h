@@ -19,6 +19,7 @@
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
 #include "../wire/IndexedMessageContract.h"
+#include "../wire/ServerMigrationPacket.h"
 
 // Basedef permanece como fachada de compatibilidade. Os tipos abaixo são
 // consumidos por cenas, UI, entidades e transporte; qualquer alteração de
@@ -1021,18 +1022,8 @@ static_assert(offsetof(MSG_BuyToto, Gindex) == 0x18, "WYD 7.48 TOTO match offset
 static_assert(offsetof(MSG_BuyToto, A_Score) == 0x1C, "WYD 7.48 TOTO score A offset mismatch");
 static_assert(offsetof(MSG_BuyToto, B_Score) == 0x20, "WYD 7.48 TOTO score B offset mismatch");
 
-struct MSG_CNFRemoveServer
-{
-	MSG_STANDARD Header;
-	char AccountName[16];
-	char TID[52];
-};
 
-// Channel migration is replayed from a byte-for-byte pending packet, so its
-// 7.48 wire layout must not drift with later TMProject definitions.
-static_assert(sizeof(MSG_CNFRemoveServer) == 0x50, "WYD 7.48 remove-server packet size mismatch");
-static_assert(offsetof(MSG_CNFRemoveServer, AccountName) == 0x0C, "WYD 7.48 remove-server AccountName offset mismatch");
-static_assert(offsetof(MSG_CNFRemoveServer, TID) == 0x1C, "WYD 7.48 remove-server TID offset mismatch");
+
 
 struct MSG_SendItem
 {

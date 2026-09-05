@@ -177,6 +177,9 @@
     <ClInclude Include="internal\wire\SendItemContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\ServerMigrationPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\IndexedMessageContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>

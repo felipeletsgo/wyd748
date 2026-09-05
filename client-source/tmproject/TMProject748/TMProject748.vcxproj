@@ -129,6 +129,7 @@
     <ClInclude Include="internal\wire\CharacterTransferPacket.h" />
     <ClInclude Include="internal\wire\ReceivedPacketDispatch.h" />
     <ClInclude Include="internal\wire\SendItemContract.h" />
+    <ClInclude Include="internal\wire\ServerMigrationPacket.h" />
     <ClInclude Include="internal\wire\IndexedMessageContract.h" />
     <ClInclude Include="internal\wire\ChatMessagePacket.h" />
     <ClInclude Include="internal\wire\LegacySceneMessagePacket.h" />

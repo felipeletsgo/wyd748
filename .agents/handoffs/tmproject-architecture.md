@@ -490,3 +490,26 @@ Nao CLIENT_TESTED. Restam convite de grupo, compra sem gold, indices vazios,
 zero/seis parametros e relogin no jogo. Proximo corte da fase 2: localizar
 contrato fechado para outro opcode; nao presumir todos os envelopes de 108
 bytes equivalentes ao chat.
+
+## Fase 2 — migracao de servidor 0x52A
+
+ServerMigrationPacket.h possui MSG_CNFRemoveServer e asserts 80/12/28;
+Basedef reexporta. Opcode nomeado usado pelo dispatch Field e replay local.
+ReceivedPacketDispatch valida tamanho real/declarado e Type/opcode antes de
+OnPacketCNFRemoveServer copiar a imagem completa. Replay, janela de 15s,
+ID do personagem e reconexao permanecem no handler existente.
+
+MODERNIZACAO_COMPATIVEL local. Ficha CONTRACT
+lifecycle/field-scene-rebuild-after-server-move.md reutilizada; source e
+testes UTILIZADOS, assets NAO APLICAVEIS. Busca atual nao encontrou emissor
+0x52A/RemoveServer em internal/wire ou internal/game; nenhum builder criado.
+O gate nao valida TID, sua terminacao ou indice de servidor usado por sscanf:
+esses limites precisam de corte proprio antes de alegar seguranca do handler.
+
+Debug/Release Build-Client.ps1 PASS, 1224 checks/asserts cada. Fixtures cobrem
+todos os prefixos, excesso, nulo, divergencias, entrega unica e copia integral
+80 bytes (conta 16/ticket 52). Nao executam socket/replay real. XML/caminhos e
+diff --check PASS. Release instalado com hash identico ao artefato:
+`5EF55BE55059D2BAA9A85BA7BCF4D11B7731EC8CD38381FF82DA01F7CA23C714`.
+Nao CLIENT_TESTED. Proximo: investigar parsing limitado de TID e capacidade
+real de g_pServerList, preservando o contrato documentado de migracao.

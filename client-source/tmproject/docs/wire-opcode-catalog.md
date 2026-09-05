@@ -40,6 +40,11 @@ As extensoes coordenadas `0x105/0x106` tambem validam 108 bytes nesta entrada.
 chat, sem duplicar a struct. ID, seletor, indice e CSV continuam no parser da
 cena; nao constituem paridade com mensagens nativas.
 
+`0x52A` (migracao de servidor/canal, 80 bytes) usa ServerMigrationPacket.h.
+A entrada de rede valida o frame antes de a cena copiar a imagem para replay.
+O replay local continua direto no handler, com o estado e a janela existentes;
+esse gate nao valida o conteudo textual do ticket ou o indice de servidor.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

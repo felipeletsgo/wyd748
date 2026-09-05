@@ -1094,7 +1094,7 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 			if (m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 			{
 				auto pFieldScene = static_cast<TMFieldScene*>(this);
-				pFieldScene->OnPacketEvent(0x52A, reinterpret_cast<char*>(&pFieldScene->m_stRemoveServer));
+				pFieldScene->OnPacketEvent(MSG_CNFRemoveServer_Opcode, reinterpret_cast<char*>(&pFieldScene->m_stRemoveServer));
 			}
 
 			// Native 7.48 consumes the pending migration in every scene, preventing
