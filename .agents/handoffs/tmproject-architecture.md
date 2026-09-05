@@ -513,3 +513,24 @@ diff --check PASS. Release instalado com hash identico ao artefato:
 `5EF55BE55059D2BAA9A85BA7BCF4D11B7731EC8CD38381FF82DA01F7CA23C714`.
 Nao CLIENT_TESTED. Proximo: investigar parsing limitado de TID e capacidade
 real de g_pServerList, preservando o contrato documentado de migracao.
+
+## Parsing limitado do ticket de migracao
+
+Source confirmou tabela MAX_SERVERGROUP x MAX_SERVERNUMBER x 64 e sscanf
+sem retorno/limites no handler. Corpus 00484d44 reutilizado confirma leitura
+em +0x1c e indexacao com strides 0x40/0x2c0. Delta local
+MODERNIZACAO_COMPATIVEL: ParseMigrationServer copia no maximo 52 bytes para
+buffer terminado, le prefixo decimal e rejeita conversao vazia, ERANGE,
+negativo ou indice >= capacidade. Mantem sufixo opaco e sintaxe decimal
+legada (espaco/sinal positivo). Saida fica intacta na rejeicao.
+OnPacketCNFRemoveServer valida tambem grupo antes de efeitos/conexao no
+ramo socket fechado. Replay no ramo socket aberto nao muda.
+
+Source, corpus/ficha existente e testes UTILIZADOS; Go/asset NAO APLICAVEIS.
+Sem claim novo de paridade. Testes puros cobrem limites, overflow, prefixo,
+sufixo e ticket sem NUL. Nao exercitam socket, tabela real ou reconexao.
+Ainda pendentes: validar terminacao do endereco carregado de g_pServerList,
+fluxo de erro visual e migracao real antes de CLIENT_TESTED.
+Debug/Release Build-Client.ps1 PASS (1242 checks/asserts); Release instalado
+com hash identico ao artefato:
+`EDDA60A71ACD1F0C0A0A2DB62A73CC2D210D12EF896C4BEDB991BCE2E8DDF34B`.

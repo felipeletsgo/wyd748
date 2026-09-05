@@ -45,6 +45,10 @@ A entrada de rede valida o frame antes de a cena copiar a imagem para replay.
 O replay local continua direto no handler, com o estado e a janela existentes;
 esse gate nao valida o conteudo textual do ticket ou o indice de servidor.
 
+O handler de reconexao valida separadamente o prefixo numerico do TID com
+ParseMigrationServer (leitura limitada a 52 bytes, overflow e capacidade) e
+o grupo local antes de indexar g_pServerList. Sufixo do ticket permanece opaco.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

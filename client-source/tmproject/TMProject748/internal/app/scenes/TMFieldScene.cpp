@@ -22967,13 +22967,16 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 
 	if (!g_pSocketManager->Sock)
 	{
+		// Validar antes de publicar destino ou indexar a tabela local.
+		int nServer = 0;
+		const int group = g_pObjectManager->m_nServerGroupIndex;
+		if (group < 0 || group >= MAX_SERVERGROUP ||
+			!ParseMigrationServer(pStd->TID, MAX_SERVERNUMBER, nServer))
+			return 1;
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[7], 0);
 		m_pMessagePanel->SetVisible(1, 0);
 
 		g_bMoveServer = 0;
-		int nServer = 0;
-
-		sscanf(pStd->TID, "*%d", &nServer);
 		g_pObjectManager->m_nServerIndex = nServer;
 		CheckPKNonePK(g_pObjectManager->m_nServerIndex);
 		sprintf(g_pApp->m_szServerIP, "%s", g_pServerList[g_pObjectManager->m_nServerGroupIndex][nServer]);

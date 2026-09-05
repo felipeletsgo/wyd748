@@ -235,5 +235,28 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(retained.Header.ID == 0x1234 && retained.AccountName[15] == 'A' && retained.TID[51] == 'T',
         "migracao preserva ID e limites dos campos inline");
     check(std::memcmp(&retained, migration.data(), 80) == 0, "imagem de migracao preservada byte a byte");
+    const auto parseTicket = [&](const char* text, bool valid, int expected) {
+        char ticket[52]{};
+        const auto length = std::strlen(text);
+        std::memcpy(ticket, text, length < sizeof(ticket) ? length : sizeof(ticket));
+        int result = 99;
+        check(ParseMigrationServer(ticket, 7, result) == valid, "ticket valida prefixo e capacidade");
+        check(result == (valid ? expected : 99), "ticket invalido preserva saida");
+    };
+    parseTicket("*0", true, 0);
+    parseTicket("*6:ticket", true, 6);
+    parseTicket("* +2resto", true, 2);
+    parseTicket("*7", false, 0);
+    parseTicket("*-1", false, 0);
+    parseTicket("*", false, 0);
+    parseTicket("2", false, 0);
+    parseTicket("*999999999999999999999999999999", false, 0);
+    char fullTicket[52];
+    std::memset(fullTicket, 'x', sizeof(fullTicket));
+    fullTicket[0] = '*'; fullTicket[1] = '3';
+    int parsed = 99;
+    check(ParseMigrationServer(fullTicket, 7, parsed) && parsed == 3,
+        "ticket sem NUL respeita limite fisico e aceita sufixo opaco");
+    check(!ParseMigrationServer(fullTicket, 0, parsed), "capacidade vazia rejeitada");
     return failures;
 }
