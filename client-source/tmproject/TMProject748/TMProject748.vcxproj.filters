@@ -177,6 +177,9 @@
     <ClInclude Include="internal\wire\SendItemContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\ChatMessagePacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\LegacySceneMessagePacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -133,5 +133,38 @@ int RunReceivedPacketDispatchTests(int& checks)
             "mensagem opaca entregue uma vez");
         check(raw == snapshot, "bytes opacos preservados");
     }
+    // Frame Go MessageChat: 108 bytes, ID do remetente e texto em offset 12.
+    std::array<char, 109> chat{};
+    chat[0] = 108;
+    chat[4] = 0x33;
+    chat[5] = 3;
+    chat[6] = 0x34;
+    chat[7] = 0x12;
+    std::memcpy(chat.data() + 12, "Teste", 6);
+    MSG_MessageChat decodedChat{};
+    std::memcpy(&decodedChat, chat.data(), 108);
+    check(decodedChat.Header.ID == 0x1234 && std::strcmp(decodedChat.String, "Teste") == 0,
+        "fixture chat confirma ID e offset do texto");
+    int chatCalls = 0;
+    const auto chatReceiver = [&](const PacketView& view) {
+        ++chatCalls;
+        check(view.data == chat.data() && view.size == 108, "chat preserva buffer emprestado");
+    };
+    for (std::size_t size = 0; size < 108; ++size)
+        check(!received_packet::Dispatch({0x333, chat.data(), size}, chatReceiver), "chat truncado rejeitado");
+    check(!received_packet::Dispatch({0x333, chat.data(), 109}, chatReceiver), "chat excedente rejeitado");
+    check(!received_packet::Dispatch({0x333, nullptr, 108}, chatReceiver), "chat nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, chat.data(), 108}, chatReceiver), "Type chat nao pode ser ocultado");
+    chat[4] = 0x19;
+    check(!received_packet::Dispatch({0x333, chat.data(), 108}, chatReceiver), "opcode chat divergente rejeitado");
+    chat[4] = 0x33;
+    chat[0] = 107;
+    check(!received_packet::Dispatch({0x333, chat.data(), 108}, chatReceiver), "Size chat divergente rejeitado");
+    chat[0] = 108;
+    check(chatCalls == 0, "chat invalido nao chega ao consumidor");
+    const auto chatSnapshot = chat;
+    check(received_packet::Dispatch({0x333, chat.data(), 108}, chatReceiver) && chatCalls == 1,
+        "chat valido entregue uma vez");
+    check(chat == chatSnapshot, "gate nao modifica texto ou header");
     return failures;
 }

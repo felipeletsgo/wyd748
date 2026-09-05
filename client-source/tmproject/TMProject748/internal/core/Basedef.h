@@ -17,6 +17,7 @@
 #include "../wire/CharacterTransferPacket.h"
 #include "../wire/SendItemContract.h"
 #include "../wire/LegacySceneMessagePacket.h"
+#include "../wire/ChatMessagePacket.h"
 
 // Basedef permanece como fachada de compatibilidade. Os tipos abaixo são
 // consumidos por cenas, UI, entidades e transporte; qualquer alteração de
@@ -1085,17 +1086,11 @@ struct MSG_Encode
 	int Parm[42];
 };
 
-constexpr auto MSG_MessageChat_Opcode = 0x333;
 // Coordinated source/server extension. Stock 7.48 does not dispatch these
 // opcodes; they deliberately reuse only the proven 108-byte chat envelope.
 constexpr auto MSG_MessageIndexed_Opcode = 0x105;
 constexpr auto MSG_MessageParameterized_Opcode = 0x106;
-struct MSG_MessageChat
-{
-	MSG_STANDARD Header;
-	// Native 7.48 uses the same 96-byte text body in both directions.
-	char String[96];
-};
+
 
 constexpr auto MSG_UpdateScore_Opcode = 0x336;
 struct MSG_UpdateScore
@@ -1437,8 +1432,6 @@ static_assert(sizeof(MSG_Encode) == 180, "WYD 7.48 MSG_Encode must be 180 bytes"
 static_assert(offsetof(MSG_Encode, Parm) == 12, "WYD 7.48 encode parameters offset changed");
 static_assert(offsetof(MSG_Encode, Parm) + 40 * sizeof(int) == 172, "WYD 7.48 encode byte 40 offset changed");
 static_assert(offsetof(MSG_Encode, Parm) + 41 * sizeof(int) == 176, "WYD 7.48 encode byte 41 offset changed");
-static_assert(sizeof(MSG_MessageChat) == 108, "WYD 7.48 MSG_MessageChat must be 108 bytes");
-static_assert(offsetof(MSG_MessageChat, String) == 12, "WYD 7.48 chat text offset changed");
 // The stock 7.48 dispatcher rejects 0x337 unless it is exactly 36 bytes.  Full
 // score state belongs to 0x336; this packet only projects the incremental WORDs.
 static_assert(sizeof(MSG_UpdateEtc) == 36, "WYD 7.48 MSG_UpdateEtc must be 36 bytes");

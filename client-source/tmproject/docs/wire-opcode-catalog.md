@@ -28,6 +28,13 @@ o comprimento real/declarado e o opcode antes do percurso no ObjectManager.
 Os outros opcodes conservam o fallback anterior. A ficha de transferencia
 registra separadamente os claims nativos e o endurecimento local.
 
+Contratos adicionais na mesma entrada: `0x182` (SendItem, 24 bytes),
+`0x102/0x104` (mensagens opacas, 116/152 bytes) e `0x333` (chat local,
+108 bytes). Chat e mensagens opacas possuem structs/asserts em headers
+proprios de `internal/wire`, reexportados por Basedef. A validacao usa o
+comprimento real da view, Size e Type do header; os callbacks mantem o buffer
+original emprestado. Demais opcodes ainda dependem de seus consumidores.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

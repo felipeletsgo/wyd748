@@ -441,3 +441,27 @@ Proximo: migrar outro contrato fechado para wire; fases 1-7 e seus gates
 runtime permanecem incompletos conforme implementation-plan.md.
 Release instalado com hash identico ao artefato:
 `D2ABA7BA33609FD92FF578F36A9BA5B186FE2671ACCA2D605795F8C706C97971`.
+
+## Fase 2 — chat local 0x333
+
+ChatMessagePacket.h passa a possuir opcode, struct e asserts (108 bytes,
+String em offset 12); Basedef apenas reexporta. ReceivedPacketDispatch valida
+frame real/declarado e ambos os discriminantes antes dos handlers existentes
+TMFieldScene::OnPacketMessageChat e TMHuman::OnPacketMessageChat. Buffer segue
+emprestado e gravavel; nao altera terminacao, texto, roteamento ou baloes.
+0x105/0x106 continuam extensoes separadas, sem novo gate neste corte.
+
+MODERNIZACAO_COMPATIVEL local. Ficha CONTRACT ui/local-chat-message.md
+reutilizada: 0055890A fixa 0x333/108; 0052EAA9 -> 0052D060 e 00481DD6
+decidem os consumidores. Source, evidencia nativa documentada e Go/testes
+UTILIZADOS; assets NAO APLICAVEIS (sem alteracao). Nenhum claim nativo novo.
+
+Debug/Release Build-Client.ps1 PASS, 900 checks/asserts cada. Novos testes
+cobrem fixture ID/texto, todos os prefixos, excesso, nulo, divergencias,
+entrega unica e bytes preservados. Go: go test ./internal/wire -run
+'Chat|Message' -count=1 PASS. PROJECT_PATHS_OK e diff --check PASS.
+Release instalado/artefato com SHA-256 identico:
+`172D9879E633728323B74073ED36174764EF92B229EDD11CF39AD10C43DAB528`.
+Nao CLIENT_TESTED; chat entre dois clientes e fallback de party sem humano
+materializado continuam pendentes. Proximo contrato: avaliar as extensoes
+0x105/0x106 usando sua ficha coordenada, antes de ampliar o gate.
