@@ -71,7 +71,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)internal\game\entities;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\platform\windows;$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)internal\game\entities;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\render\effects\status;$(ProjectDir)internal\platform\windows;$(ProjectDir)internal\platform\diagnostics;$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
@@ -95,7 +95,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)internal\game\entities;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\platform\windows;$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)internal\game\entities;$(ProjectDir)internal\render\effects\environment;$(ProjectDir)internal\render\effects\weather;$(ProjectDir)internal\render\effects\skills;$(ProjectDir)internal\render\effects\status;$(ProjectDir)internal\platform\windows;$(ProjectDir)internal\platform\diagnostics;$(IncludePath);$(SolutionDir)Dependencies\Directx\Include;$(SolutionDir)CommonFiles</AdditionalIncludeDirectories>
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(ProjectDir)internal\platform\windows;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -165,7 +165,7 @@
     <ClInclude Include="TMCamera.h" />
     <ClInclude Include="TMCannon.h" />
     <ClInclude Include="scenes\demo\TMDemoScene.h" />
-    <ClInclude Include="TMDrop.h" />
+    <ClInclude Include="internal\render\effects\weather\TMDrop.h" />
     <ClInclude Include="internal\render\effects\environment\TMDust.h" />
     <ClInclude Include="TMEffect.h" />
     <ClInclude Include="TMEffectBillBoard.h" />
@@ -176,7 +176,7 @@
     <ClInclude Include="TMEffectDust.h" />
     <ClInclude Include="TMEffectFirework.h" />
     <ClInclude Include="TMEffectGold.h" />
-    <ClInclude Include="TMEffectLevelUp.h" />
+    <ClInclude Include="internal\render\effects\status\TMEffectLevelUp.h" />
     <ClInclude Include="TMEffectMesh.h" />
     <ClInclude Include="TMEffectMeshRotate.h" />
     <ClInclude Include="TMEffectParticle.h" />
@@ -200,7 +200,7 @@
     <ClInclude Include="TMItem.h" />
     <ClInclude Include="TMLeaf.h" />
     <ClInclude Include="TMLight.h" />
-    <ClInclude Include="TMLog.h" />
+    <ClInclude Include="internal\platform\diagnostics\TMLog.h" />
     <ClInclude Include="TMMesh.h" />
     <ClInclude Include="TMObject.h" />
     <ClInclude Include="TMObjectContainer.h" />
@@ -218,28 +218,28 @@
     <ClInclude Include="TMSkillDoubleSwing.h" />
     <ClInclude Include="TMSkillExplosion2.h" />
     <ClInclude Include="TMSkillFire.h" />
-    <ClInclude Include="TMSkillFlash.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillFlash.h" />
     <ClInclude Include="TMSkillFreezeBlade.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillHaste.h" />
-    <ClInclude Include="TMSkillHeal.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillHeal.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillHeavenDust.h" />
-    <ClInclude Include="TMSkillHolyTouch.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillHolyTouch.h" />
     <ClInclude Include="TMSkillIceSpear.h" />
     <ClInclude Include="TMSkillJudgement.h" />
     <ClInclude Include="TMSkillLusterFurnish.h" />
     <ClInclude Include="TMSkillMagicArrow.h" />
     <ClInclude Include="TMSkillMagicShield.h" />
     <ClInclude Include="TMSkillMeteorStorm.h" />
-    <ClInclude Include="TMSkillPoison.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillPoison.h" />
     <ClInclude Include="TMSkillSlowSlash.h" />
     <ClInclude Include="TMSkillSnow.h" />
     <ClInclude Include="TMSkillSpChange.h" />
-    <ClInclude Include="TMSkillSpeedUp.h" />
-    <ClInclude Include="TMSkillThunderBolt.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillSpeedUp.h" />
+    <ClInclude Include="internal\render\effects\skills\TMSkillThunderBolt.h" />
     <ClInclude Include="TMSkillTownPortal.h" />
     <ClInclude Include="TMSkinMesh.h" />
     <ClInclude Include="TMSky.h" />
-    <ClInclude Include="TMSnow.h" />
+    <ClInclude Include="internal\render\effects\weather\TMSnow.h" />
     <ClInclude Include="TMSun.h" />
     <ClInclude Include="TMTree.h" />
     <ClInclude Include="TMUtil.h" />

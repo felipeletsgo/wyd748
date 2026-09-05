@@ -153,11 +153,11 @@
     <ClInclude Include="TMVideoWnd.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillThunderBolt.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillThunderBolt.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillSpeedUp.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillSpeedUp.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="TMSkillSpChange.h">
       <Filter>Header Files\Skills</Filter>
@@ -168,8 +168,8 @@
     <ClInclude Include="TMSkillSlowSlash.h">
       <Filter>Header Files\Skills</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillPoison.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillPoison.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="TMSkillMeteorStorm.h">
       <Filter>Header Files\Skills</Filter>
@@ -189,14 +189,14 @@
     <ClInclude Include="TMSkillIceSpear.h">
       <Filter>Header Files\Skills</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillHolyTouch.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillHolyTouch.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="internal\render\effects\skills\TMSkillHeavenDust.h">
       <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillHeal.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillHeal.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="internal\render\effects\skills\TMSkillHaste.h">
       <Filter>Header Files\Internal\Render</Filter>
@@ -204,8 +204,8 @@
     <ClInclude Include="TMSkillFreezeBlade.h">
       <Filter>Header Files\Skills</Filter>
     </ClInclude>
-    <ClInclude Include="TMSkillFlash.h">
-      <Filter>Header Files\Skills</Filter>
+    <ClInclude Include="internal\render\effects\skills\TMSkillFlash.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="TMSkillFire.h">
       <Filter>Header Files\Skills</Filter>
@@ -246,8 +246,8 @@
     <ClInclude Include="TMMesh.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="TMLog.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="internal\platform\diagnostics\TMLog.h">
+      <Filter>Header Files\Internal\Platform</Filter>
     </ClInclude>
     <ClInclude Include="TMLight.h">
       <Filter>Header Files\Engine</Filter>
@@ -315,8 +315,8 @@
     <ClInclude Include="TMEffectMesh.h">
       <Filter>Header Files\Effects</Filter>
     </ClInclude>
-    <ClInclude Include="TMEffectLevelUp.h">
-      <Filter>Header Files\Effects</Filter>
+    <ClInclude Include="internal\render\effects\status\TMEffectLevelUp.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="TMEffectGold.h">
       <Filter>Header Files\Effects</Filter>
@@ -474,8 +474,8 @@
     <ClInclude Include="TMGlobal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TMSnow.h">
-      <Filter>Header Files\Engine</Filter>
+    <ClInclude Include="internal\render\effects\weather\TMSnow.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="TMPaths.h">
       <Filter>Header Files</Filter>
@@ -489,8 +489,8 @@
     <ClInclude Include="TMUtil.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
-    <ClInclude Include="TMDrop.h">
-      <Filter>Header Files\Effects</Filter>
+    <ClInclude Include="internal\render\effects\weather\TMDrop.h">
+      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="ResourceControl.h">
       <Filter>Header Files\Engine\UI</Filter>

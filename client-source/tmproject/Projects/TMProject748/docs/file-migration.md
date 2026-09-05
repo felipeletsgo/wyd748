@@ -28,6 +28,16 @@ mas comportamento, wire, ABI, recursos e lifecycle permanecem inalterados.
 | 17 | 328 | `TMSkillBash.h` | `internal/render/effects/skills/TMSkillBash.h` | Apresentacao visual de Bash; dano e acerto ficam fora da classe. |
 | 18 | 338 | `TMSkillCure.h` | `internal/render/effects/skills/TMSkillCure.h` | Apresentacao visual de Cure; cura continua fora do renderer. |
 | 19 | 338 | `TMSkillHeavenDust.h` | `internal/render/effects/skills/TMSkillHeavenDust.h` | Efeito visual; nome historico do arquivo e classe plural foram preservados. |
+| 20 | 341 | `TMSkillFlash.h` | `internal/render/effects/skills/TMSkillFlash.h` | Apresentacao visual de Flash; nao define regras de alvo. |
+| 21 | 347 | `TMSkillSpeedUp.h` | `internal/render/effects/skills/TMSkillSpeedUp.h` | Apresentacao visual; velocidade continua fora do renderer. |
+| 22 | 353 | `TMSkillHolyTouch.h` | `internal/render/effects/skills/TMSkillHolyTouch.h` | Efeito temporario configurado por posicao e variante. |
+| 23 | 359 | `TMSkillThunderBolt.h` | `internal/render/effects/skills/TMSkillThunderBolt.h` | Apresentacao visual; nao decide acerto nem dano. |
+| 24 | 363 | `TMDrop.h` | `internal/render/effects/weather/TMDrop.h` | Precipitacao localizada com respingos e audio ambiente. |
+| 25 | 379 | `TMEffectLevelUp.h` | `internal/render/effects/status/TMEffectLevelUp.h` | Apresentacao de level up; nao altera nivel ou atributos. |
+| 26 | 384 | `TMSkillHeal.h` | `internal/render/effects/skills/TMSkillHeal.h` | Efeito visual com referencia nao proprietaria ao objeto. |
+| 27 | 385 | `TMLog.h` | `internal/platform/diagnostics/TMLog.h` | API de log dependente de Win32 e handle global. |
+| 28 | 390 | `TMSkillPoison.h` | `internal/render/effects/skills/TMSkillPoison.h` | Particulas de poison; dano periodico fica fora do renderer. |
+| 29 | 405 | `TMSnow.h` | `internal/render/effects/weather/TMSnow.h` | Neve e audio ambiente ao redor da camera/personagem. |
 
 Arquivos placeholder continuam compilaveis e documentados. Eles nao recebem
 APIs inventadas apenas para preencher nomes historicos.
