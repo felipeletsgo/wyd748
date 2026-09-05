@@ -398,3 +398,25 @@ Release passou pelo `Build-Client.ps1`, com 496 checks/asserts PASS e candidato
 instalado. SHA-256: `AF66062D737F6906DEEC0062B327F8EAEC37AED58C7F4600349CD9399408989D`.
 `git diff --check` PASS. Nao CLIENT_TESTED. A fila de ownership continua em
 callers de loja/drop/mixagem fora desta inicializacao.
+
+## Correcao de escopo — populacao do ramo 7.48 (2026-09-05)
+
+InitializeScene seleciona InitializeCompatFieldScene e retorna antecipadamente
+quando o recurso nao possui o controle 66817. Portanto os cortes de inicializacao
+Carry/Cargo/equipamento acima cobrem o ramo do recurso moderno; nao comprovam
+correcao da populacao no ramo 7.48. Nao repetir essa fila como se fosse o fluxo
+ativo observado. A execucao runtime de cada ramo ainda nao foi verificada.
+
+O lambda populateGridItem do ramo 7.48 atende Carry, quinze equipamentos e
+Cargo. Agora destroi gridItem quando AddItem retorna 0; o destructor libera
+itemCopy. Sucesso, coordenadas, ordem e estado autoritativo permanecem iguais.
+MODERNIZACAO_COMPATIVEL local. Source e testes UTILIZADOS; evidencia nativa
+anterior de binding/ownership reutilizada sem novo claim. Wire, assets e Go
+NAO APLICAVEIS ao delta. Nao acrescenta tratamento de excecao de alocacao.
+
+Debug e Release via Build-Client.ps1 PASS, 496 checks/asserts cada; esses checks
+cobrem gate puro, nao o lambda nem render. Release instalado/hasheado:
+`A87D7F1BAF3B353F096FE044C71B3BCB063C90DA0B4DDE648CFCD971F5C1599E`.
+Nao CLIENT_TESTED. Proximo: retomar fase 2 do implementation-plan pelo proximo
+contrato de recepcao com evidencia nativa; nao prolongar revisao de ownership
+por buscas de nomes sem confirmar callers e alcance do ramo.

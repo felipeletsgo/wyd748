@@ -1130,7 +1130,12 @@ void TMFieldScene::InitializeCompatInventory()
 			delete itemCopy;
 			return;
 		}
-		grid->AddItem(gridItem, x, y);
+		// A grid assume ownership somente na insercao aceita; o destructor
+		// libera tambem a copia de STRUCT_ITEM quando a lista rejeita o visual.
+		if (!grid->AddItem(gridItem, x, y))
+		{
+			delete gridItem;
+		}
 	};
 
 	m_pGridInv->Empty();
