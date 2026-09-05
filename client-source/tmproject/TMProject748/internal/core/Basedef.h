@@ -14,6 +14,7 @@
 #include <timeapi.h>
 #include "UiLayout.h"
 #include "../wire/CharacterLoginPacket.h"
+#include "../wire/CharacterTransferPacket.h"
 
 // Basedef permanece como fachada de compatibilidade. Os tipos abaixo são
 // consumidos por cenas, UI, entidades e transporte; qualquer alteração de
@@ -1169,16 +1170,6 @@ struct MSG_NewCharacter
 	int Slot;
 	char MobName[16];
 	int Class;
-};
-
-constexpr auto MSG_ReqTransper_Opcode = 0xFAA;
-struct MSG_ReqTransper
-{
-	MSG_STANDARD Header;
-	int Result;
-	int Slot;
-	char OldName[16];
-	char NewName[16];
 };
 
 constexpr auto MSG_DeleteCharacter_Opcode = 0x211;

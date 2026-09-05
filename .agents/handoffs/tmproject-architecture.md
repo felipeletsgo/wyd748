@@ -135,3 +135,20 @@ Esses checks nao exercitam os guards de UI: teste dinamico ainda pendente.
 Proximo passo: preservar comprimento do frame ate handler selecionado e
 validar 0xFAA antes de ler Result/Slot, sem mudar slots virtuais; estudar
 ObjectManager/TreeNode para manter percurso e eventos locais separados.
+
+## Corte seguinte — gate de frame 0xFAA
+
+Implementado `wire/ReceivedPacketDispatch.h` em ObjectManager::OnPacketView:
+0xFAA exige tamanho real/declarado 52 e opcode coerente antes do callback;
+rejeicao nao executa handler. Outros opcodes e eventos locais preservados.
+`CharacterTransferPacket.h` possui struct/opcode unicos, reexportados por
+Basedef, com asserts de largura/tamanho/offsets. Nenhuma vtable alterada.
+185 checks PASS Debug/Release, incluindo testes do helper vivo com bytes
+conhecidos, truncamento, divergencias, nao mutacao e entrega unica/fallback.
+Release instalado: `A256F702F9487AAD9E38DA2A0DA9EFBC57CB89C532CBC6B556A1ABFABE5DFC54`.
+XML/paths PASS. Nao CLIENT-TESTED; maturidade nativa integral continua LOCATED.
+Push do corte anterior 7536efb1 falhou: GCM wincredman indisponivel e token gh
+invalido. Nao repetir autenticacao sem mudanca desse input; trabalho local segue.
+Proximo contrato: MSG_SendItem interceptado antes da arvore em
+HandleSelectCharacterItem. Conferir tamanho nativo/offsets e DestPos antes de
+ampliar o gate; nao inferir seguranca dos demais payloads pela validacao 0xFAA.

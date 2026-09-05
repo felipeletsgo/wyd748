@@ -1,7 +1,8 @@
 # Catálogo inicial de opcodes
 
-Fonte: `internal/core/Basedef.h`, única fonte atual dos identificadores
-nomeados. Este catálogo é inventário, não autorização para alterar protocolo.
+Fontes: `internal/core/Basedef.h` e headers proprietarios de `internal/wire/`,
+reexportados pela fachada. Este catalogo e inventario, nao autorizacao para
+alterar protocolo.
 
 ## Famílias identificadas
 
@@ -19,11 +20,17 @@ nomeados. Este catálogo é inventário, não autorização para alterar protoco
 
 Entrada de rede: `platform/windows/CPSock.cpp`. O pacote é enquadrado como
 `MSG_STANDARD` e encaminhado ao `ObjectManager`/cena. O próximo passo da Fase
-2 é extrair uma tabela de validação e tradução sem duplicar os structs.
+2 e ampliar a validacao e traducao sem duplicar os structs.
+
+Primeiro contrato de recepcao isolado: `MSG_ReqTransper_Opcode` (`0xFAA`),
+52 bytes, em `CharacterTransferPacket.h`. `ReceivedPacketDispatch.h` valida
+o comprimento real/declarado e o opcode antes do percurso no ObjectManager.
+Os outros opcodes conservam o fallback anterior. A ficha de transferencia
+registra separadamente os claims nativos e o endurecimento local.
 
 ## Regras de migração
 
-- manter o opcode no header legado enquanto houver consumidores;
+- reexportar o opcode pela fachada enquanto houver consumidores legados;
 - validar tamanho antes de reinterpretar o buffer;
 - não inferir semântica apenas pelo nome do opcode;
 - registrar caller, consumidor e fallback para cada entrada migrada;

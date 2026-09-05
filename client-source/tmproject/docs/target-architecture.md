@@ -69,6 +69,17 @@ e seus callbacks `char*` permanecem inalterados. A politica pura `Dispatch`
 preserva ponteiro/opcode/tamanho e entrega uma vez; nao valida payload por opcode.
 Desconexao e eventos locais sem frame continuam usando `OnPacketEvent`.
 
+O corte de recepcao `0xFAA` agora passa por `wire/ReceivedPacketDispatch.h`
+antes da adaptacao legada no ObjectManager. O helper consulta o comprimento
+real da view e copia somente o header para leitura alinhada; exige 52 bytes,
+Size=52 e concordancia do opcode da view com Type. Rejeicao nao chama nenhum
+handler nem altera bytes. Outros opcodes mantem o gate minimo anterior.
+`CharacterTransferPacket.h` e o dono unico da struct antiga, reexportada por
+Basedef, com asserts de tamanho, offsets e largura signed. Nenhum slot virtual,
+ordem do percurso ou layout foi alterado. Esta validacao nao migra os callbacks
+char* nem prova que outros packets sao seguros; o proximo contrato deve ser
+adicionado somente com evidencia e teste proprio.
+
 `internal/application/ports/PacketView.h` define o DTO não proprietário para mensagens
 enquadradas. `CPSock::ReadPacketView` preserva o tamanho validado pelo socket
 e `CPSock::SendPacket` valida o intervalo antes de delegar ao método legado.

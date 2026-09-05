@@ -15,6 +15,7 @@
 
 // Suite isolada de application, compilada sem os includes wire deste runner.
 int RunCharacterLoginUseCaseTests(int& checks);
+int RunReceivedPacketDispatchTests(int& checks);
 
 // Backend sem socket: registra metadados e usa o mesmo guard da producao.
 // Nao retém o buffer; a mutacao simula o preenchimento sincrono do cabecalho.
@@ -228,6 +229,7 @@ int main()
                 "resultado nao mascara falha nem repete chamadas");
         }
     }
+    failures += RunReceivedPacketDispatchTests(checks);
     if (failures == 0) std::printf("ArchitectureTests: %d checks PASS; static assertions PASS\n", checks);
     return failures == 0 ? 0 : 1;
 }

@@ -168,6 +168,12 @@
     <ClInclude Include="internal\wire\CharacterLoginPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\CharacterTransferPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\ReceivedPacketDispatch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\core\Basedef.h">
       <Filter>Header Files</Filter>
     </ClInclude>

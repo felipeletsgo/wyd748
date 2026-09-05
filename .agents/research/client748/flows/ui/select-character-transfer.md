@@ -91,6 +91,14 @@ O corte local rejeita Slot >=4 e trata edit/humano/painel opcional; os emissores
 e a confirmacao por mouse tambem validam o indice antes de acessar arrays.
 O armazenamento do frame ainda deve ser validado antes do callback legado.
 
+No corte seguinte, `ObjectManager::OnPacketView` passa a usar
+`wire/ReceivedPacketDispatch.h` antes de `OnPacketEvent`. A mesma funcao
+exercitada pelos testes exige para 0xFAA tamanho real/declarado 52 e Type
+coerente com metadados. Nao toca estado da cena na rejeicao. O guard de Slot
+continua na cena, depois do callback base; eventos locais continuam separados.
+`CharacterTransferPacket.h` possui a definicao unica reexportada por Basedef,
+preservando int signed e offsets 0/12/16/20/36 com asserts.
+
 ## Matriz de delta
 
 | Claim | Nativo | Source atual | Decisao |
@@ -115,6 +123,9 @@ a limpeza do slot mesmo sem humano. Result 1 continua exibindo mensagem e so
 abre rename quando ha painel. Nao criar controle nem alterar foco valido.
 Essas defesas sao implementacao local, nao alegacao de seguranca nativa.
 Preservar duracoes, mensagens e transicoes existentes ate decidir seus deltas.
+O gate de frame e endurecimento local baseado no pacote de 52 bytes emitido
+em 004A32DD, layout da source e parser 0055890A; nao afirma que este ultimo
+seja chamado pelo nativo. Nao promove o lifecycle completo a CONTRACT.
 Nao tratar transferencia como o fluxo `0x52A` de migracao
 de servidor: possuem entradas e contratos diferentes.
 
@@ -122,7 +133,9 @@ de servidor: possuem entradas e contratos diferentes.
 
 - Resolver slots virtuais de controle e teardown completo.
 - Fechar cancelamento/reentrada; FrameMove nao fornece timeout de transferencia.
-- Conferir gate vivo de tamanho e origem server-side antes de migrar recepcao.
+- Fechar origem server-side e lifecycle para promover paridade integral.
+- Callbacks diretos char* fora de OnPacketView nao adquirem automaticamente
+  a validacao de frame; manter eventos locais separados e revisar novos callers.
 - Executar testes dinamicos do endurecimento de Slot e nulabilidade.
 - Exercitar sucesso, resultados de erro, cancelamento e reentrada no candidato.
 
@@ -141,3 +154,13 @@ Release instalado:
 `08805042EA57594405431136EB00A9528ED16EC8B45C862487508313234186AD`.
 STATICALLY VERIFIED para compilacao/inspecao dos guards; os 118 checks
 existentes nao sao teste automatizado dos novos caminhos de UI.
+
+Gate de frame subsequente: `ReceivedPacketDispatchTests.cpp` testa o mesmo
+helper usado por ObjectManager com bytes conhecidos, armazenamento desalinhado,
+todos os prefixos 0..51, frame nulo/excedente, Size e opcode divergentes,
+entrega unica do frame exato, nao mutacao e fallback de outro opcode.
+185 checks PASS em Debug e Release; asserts de layout PASS. Classificacao
+AUTOMATED TESTED apenas para essa fronteira pura, nao lifecycle/UI/socket.
+Debug instalado: `06F932BFB88371297B517ACEF95E2105D5793FB4A92DB4B896365CF99234FA75`.
+Release instalado: `A256F702F9487AAD9E38DA2A0DA9EFBC57CB89C532CBC6B556A1ABFABE5DFC54`.
+XML/paths do projeto e filtros conferidos; ficha continua LOCATED.

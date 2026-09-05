@@ -3,8 +3,9 @@
 ## Estado atual
 
 Os contratos de mensagens ainda estão declarados principalmente em
-`internal/core/Basedef.h`; `internal/wire/` ainda não possui implementação
-independente. Portanto, a Fase 0 não moveu structs nem alterou includes.
+`internal/core/Basedef.h`. As definicoes de MSG_STANDARD, MSG_CharacterLogin
+e MSG_ReqTransper agora pertencem a headers independentes em `internal/wire/`;
+Basedef os reexporta sem duplicar structs nem alterar os consumidores legados.
 
 O header já contém assertions de tamanho e offsets para os contratos mais
 sensíveis, incluindo `MSG_STANDARDPARM2`, `MSG_ResultGamble`, `STRUCT_ITEM`,
@@ -20,7 +21,8 @@ primeiro bloqueio contra regressões de ABI durante a migração.
 
 ## Próxima ação
 
-Catalogar opcodes e pontos de serialização antes de criar `wire` independente.
-Cada contrato migrado deverá manter a definição legada como referência,
-adicionar assertion equivalente e passar por build antes da remoção de qualquer
-declaração duplicada.
+Continuar catalogando opcodes e pontos de serializacao por contrato.
+O gate de recepcao atual valida especificamente 0xFAA/52 bytes antes dos
+callbacks legados; nao cobre os demais payloads. Cada extracao deve preservar
+uma definicao unica, assertions de layout e testes de entrada truncada,
+valida e fallback, antes de integrar o consumidor.

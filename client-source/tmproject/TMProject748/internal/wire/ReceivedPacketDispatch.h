@@ -1,0 +1,43 @@
+#pragma once
+
+#include "CharacterTransferPacket.h"
+#include "../application/ports/PacketDispatch.h"
+#include <cstring>
+
+// Fronteira incremental entre frame de transporte e callbacks legados.
+// Somente 0xFAA possui validacao especifica aqui; outros opcodes continuam
+// sujeitos aos seus consumidores. Eventos locais nao passam por esta entrada.
+namespace received_packet
+{
+    inline bool CanDispatch(const PacketView& packet)
+    {
+        if (!packet_dispatch::CanDispatch(packet, sizeof(MSG_STANDARD)))
+            return false;
+
+        // A view pode comecar em endereco nao alinhado. Copiar apenas o header
+        // para inspecao; nunca escrever nem copiar o payload dos handlers.
+        MSG_STANDARD header{};
+        std::memcpy(&header, packet.data, sizeof(header));
+        if (header.Type == MSG_ReqTransper_Opcode || packet.opcode == MSG_ReqTransper_Opcode)
+        {
+            // Usar ambos os discriminantes impede que metadados divergentes
+            // contornem o guard: a cena antiga decide pelo Type do buffer.
+            return header.Type == MSG_ReqTransper_Opcode &&
+                packet.opcode == MSG_ReqTransper_Opcode &&
+                header.Size == sizeof(MSG_ReqTransper) &&
+                packet.size == sizeof(MSG_ReqTransper);
+        }
+        return true;
+    }
+
+    // true significa entrega unica, nao sucesso da operacao de personagem.
+    // O receptor empresta o mesmo buffer e comprimento apenas durante a chamada.
+    template <typename Receiver>
+    bool Dispatch(const PacketView& packet, Receiver&& receive)
+    {
+        if (!CanDispatch(packet))
+            return false;
+        receive(packet);
+        return true;
+    }
+}
