@@ -17030,11 +17030,18 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 				auto pOldItem = m_pGridSkillBelt->PickupItem(i % 4, i / 4);
 				if ((dwBit & pMobData->LearnedSkill[0]) == dwBit)
 				{
-					auto pItem = new STRUCT_ITEM;
-					memset(pItem, 0, sizeof(STRUCT_ITEM));
-					pItem->sIndex = i + 5096;
+				auto pItem = new STRUCT_ITEM;
+				memset(pItem, 0, sizeof(STRUCT_ITEM));
+				pItem->sIndex = i + 5096;
 
-					m_pGridSkillBelt->AddItem(new SGridControlItem(0, pItem, 0.0f, 0.0f), i % 4, i / 4);
+				auto pControlItem = new SGridControlItem(0, pItem, 0.0f, 0.0f);
+				if (pControlItem)
+				{
+					if (!m_pGridSkillBelt->AddItem(pControlItem, i % 4, i / 4))
+						SAFE_DELETE(pControlItem);
+				}
+				else
+					SAFE_DELETE(pItem);
 				}
 				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pOldItem)
 					g_pCursor->m_pAttachedItem = 0;
@@ -23314,9 +23321,18 @@ int TMFieldScene::OnPacketCNFGetItem(MSG_CNFGetItem* pMsg)
 		pGrid = GetCarryGridForSlot(pMsg->DestPos);
 		memcpy(&g_pObjectManager->m_stMobData.Carry[pMsg->DestPos], pStructItem, sizeof(STRUCT_ITEM));
 		if (pGrid)
-			pGrid->AddItem(new SGridControlItem(pGrid, pStructItem, 0.0f, 0.0f), cellX, cellY);
+		{
+			auto pControlItem = new SGridControlItem(pGrid, pStructItem, 0.0f, 0.0f);
+			if (pControlItem)
+			{
+				if (!pGrid->AddItem(pControlItem, cellX, cellY))
+					SAFE_DELETE(pControlItem);
+			}
+			else
+				SAFE_DELETE(pStructItem);
+		}
 		else
-			delete pStructItem;
+			SAFE_DELETE(pStructItem);
 	}
 
 	GetSoundAndPlay(45, 0, 0);

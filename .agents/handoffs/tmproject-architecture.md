@@ -323,3 +323,19 @@ Build-Client.ps1 Debug e Release PASS e instalaram o candidato. Release:
 real ainda nao sao exercitados pelos checks puros. Proximo: revisar somente
 os callers restantes de AddItem que alocam visuais dinamicamente, sem alterar
 listas de texto/controlos nem inventar nova politica de ownership.
+
+## Retomada — visuais de skill belt e pickup (2026-09-05)
+
+Dois callers adicionais com alocacao dinamica foram corrigidos em
+`TMFieldScene`: o skill belt agora libera `STRUCT_ITEM` se a criacao do
+controle falhar ou libera o controle se `AddItem` rejeitar; `OnPacketCNFGetItem`
+aplica a mesma politica para a grade de carry. Sucesso continua transferindo o
+ownership para a grid, sem alterar wire, coordenadas ou ordem de efeitos.
+Delta local MODERNIZACAO_COMPATIVEL.
+
+O primeiro build revelou apenas um erro de associacao de `else`, corrigido no
+mesmo ciclo. Release final passou pelo `Build-Client.ps1`, 496 checks e asserts
+PASS, candidato instalado com SHA-256
+`B43CFECCCBD8C5E14D419956BD8E7D7EA7E00325B7EFDA57823229CA524B2603`.
+`git diff --check` PASS. Nao CLIENT_TESTED. Restam callers dinamicos em
+inventario/loja/mixagem, a revisar individualmente.
