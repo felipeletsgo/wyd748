@@ -56,6 +56,18 @@ mas comportamento, wire, ABI, recursos e lifecycle permanecem inalterados.
 | 45 | 549 | `TMCannon.h` | `internal/game/entities/TMCannon.h` | Entidade de canhao; apresenta recuo e disparo sem decidir projeteis ou dano. |
 | 46 | 558 | `TMFlail.cpp` | `internal/game/entities/TMFlail.cpp` | Stub inerte da entidade visual; o cabecalho aguarda sua propria posicao na fila. |
 | 47 | 565 | `TMSkillExplosion2.h` | `internal/render/effects/skills/TMSkillExplosion2.h` | Controlador radial visual; efeitos filhos pertencem ao container da cena. |
+| 48 | 583 | `TMHouse.h` | `internal/render/world/structures/TMHouse.h` | Construcao visual do mapa; camera, terreno, meshes e container permanecem externos. |
+| 49 | 592 | `TMSkillIceSpear.h` | `internal/render/effects/skills/TMSkillIceSpear.h` | Projetil visual; possui o light map e apenas observa o alvo temporariamente. |
+| 50 | 592 | `TMEffectParticle.h` | `internal/render/effects/particles/TMEffectParticle.h` | Emissor generico; transfere os billboards criados ao container da cena. |
+| 51 | 597 | `TMEffectGold.cpp` | `internal/render/effects/pending/TMEffectGold.cpp` | Stub visual inerte e sem consumidores; isolado ate existir contrato seguro para adapta-lo. |
+| 52 | 601 | `TMTree.h` | `internal/render/world/vegetation/TMTree.h` | Vegetacao animada; possui a skin mesh herdada e transfere particulas ao container da cena. |
+| 53 | 604 | `TMSkillFreezeBlade.h` | `internal/render/effects/skills/TMSkillFreezeBlade.h` | Segmento visual de gelo; transfere particulas e continuacoes ao container da cena. |
+| 54 | 633 | `TMVideoWnd.cpp` | `internal/platform/windows/media/TMVideoWnd.cpp` | Adaptador DirectShow inativo; preserva a API sem simular reproducao ou lifecycle COM. |
+| 55 | 637 | `TMFloat.h` | `internal/render/world/water/TMFloat.h` | Objeto visual aquatico; preserva a relacao legada entre billboards retidos e o container global. |
+| 56 | 643 | `TMObjectContainer.h` | `internal/render/world/objects/TMObjectContainer.h` | Agregado visual da regiao; possui filhos e luzes, mas apenas referencia o terreno da cena. |
+| 57 | 706 | `TMVideoWnd.h` | `internal/platform/windows/media/TMVideoWnd.h` | Declaracao do adaptador DirectShow; a implementacao permanece inativa e sem lifecycle COM simulado. |
+| 58 | 819 | `TMFlail.h` | `internal/game/entities/TMFlail.h` | Declaracao da entidade visual; preserva o stub e o contrato historico sem inventar comportamento. |
+| 59 | 988 | `TMEffectGold.h` | `internal/render/effects/pending/TMEffectGold.h` | Declaracao do efeito pendente; mantida isolada junto ao cpp sem consumidores confirmados. |
 
 Arquivos placeholder continuam compilaveis e documentados. Eles nao recebem
 APIs inventadas apenas para preencher nomes historicos.
@@ -63,3 +75,28 @@ APIs inventadas apenas para preencher nomes historicos.
 Durante a migracao incremental, o projeto adiciona os novos diretorios ao
 search path de includes. Isso mantem fontes maiores ainda nao processadas
 compilaveis sem edita-las fora da ordem definida.
+| 60 | 659 | `TMSea.h` | `internal/render/world/water/TMSea.h` | Interface da agua da cena; preserva mesh, picking e lifecycle visual. |
+| 61 | 659 | `TMEffectCharge.h` | `internal/render/effects/core/TMEffectCharge.h` | Efeito visual base de carga; regras de combate e ownership externo permanecem inalterados. |
+| 62 | 667 | `TMUtil.h` | `internal/platform/windows/TMUtil.h` | Funcoes utilitarias legadas dependentes de estruturas e audio Win32. |
+| 63 | 642 | `TMSkillTownPortal.h` | `internal/render/effects/skills/TMSkillTownPortal.h` | Efeito de habilidade de teleporte; preserva a declaracao legada. |
+| 64 | 727 | `TMSkillMagicShield.h` | `internal/render/effects/skills/TMSkillMagicShield.h` | Efeito de habilidade de escudo magico; preserva a declaracao legada. |
+| 65 | 734 | `TMSkillMagicArrow.h` | `internal/render/effects/skills/TMSkillMagicArrow.h` | Efeito de habilidade de flecha magica; preserva a declaracao legada. |
+| 66 | 991 | `TMSkillSnow.h` | `internal/render/effects/skills/TMSkillSnow.h` | Efeito de habilidade de neve; preserva a declaracao legada. |
+| 67 | 1198 | `TMSkillDoubleSwing.h` | `internal/render/effects/skills/TMSkillDoubleSwing.h` | Declaracao de habilidade de combate; preserva contrato visual. |
+| 68 | 1186 | `TMSkillMeteorStorm.h` | `internal/render/effects/skills/TMSkillMeteorStorm.h` | Declaracao de habilidade meteorologica; preserva contrato visual. |
+| 69 | 9065 | `TMSkillDoubleSwing.cpp` | `internal/render/effects/skills/TMSkillDoubleSwing.cpp` | Implementacao movida sem alteracao semantica. |
+| 70 | 23558 | `TMSkillMeteorStorm.cpp` | `internal/render/effects/skills/TMSkillMeteorStorm.cpp` | Implementacao movida sem alteracao semantica. |
+| 71 | 1487 | `TMSkillBash.cpp` | `internal/render/effects/skills/TMSkillBash.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+| 72 | 2672 | `TMSkillCure.cpp` | `internal/render/effects/skills/TMSkillCure.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+| 73 | 3515 | `TMSkillExplosion2.cpp` | `internal/render/effects/skills/TMSkillExplosion2.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+| 74 | 5410 | `TMSkillFire.cpp` | `internal/render/effects/skills/TMSkillFire.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+| 75 | 2521 | `TMSkillFlash.cpp` | `internal/render/effects/skills/TMSkillFlash.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+| 76 | 7808 | `TMSkillFreezeBlade.cpp` | `internal/render/effects/skills/TMSkillFreezeBlade.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+| 77 | 2914 | `TMSkillHaste.cpp` | `internal/render/effects/skills/TMSkillHaste.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+| 78 | 1633 | `TMSkillHeal.cpp` | `internal/render/effects/skills/TMSkillHeal.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+| 79 | 1931 | `TMSkillHeavenDust.cpp` | `internal/render/effects/skills/TMSkillHeavenDust.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+| 80 | 3208 | `TMSkillHolyTouch.cpp` | `internal/render/effects/skills/TMSkillHolyTouch.cpp` | Implementacao de habilidade movida sem alteracao semantica. |
+
+| 81-220 | lote | arquivos restantes do raiz | internal/* | Reorganizacao por dominio sem alteracao semantica; caminhos do projeto atualizados automaticamente. |
+
+| 221-250 | refinamento | misc/world | subdominios render/camera/resources/effects/terrain/sky/objects | Reclassificacao por responsabilidade, sem mudanca semantica. |
