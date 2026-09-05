@@ -1428,6 +1428,77 @@ int TMSelectCharScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, i
 	return 1;
 }
 
+bool TMSelectCharScene::HandleJudgementEffect(char* buf)
+{
+	if (buf == nullptr)
+		return false;
+
+	MSG_STANDARDPARM2* parameters = reinterpret_cast<MSG_STANDARDPARM2*>(buf);
+	const int index = parameters->Parm1;
+	if (index < 0 || index > 3)
+		return true;
+
+	TMVector3 position{};
+	if (index < 2)
+		position = TMVector3(m_vecSelPos.x, 0.0f,
+			(static_cast<float>(m_vecSelPos.y) - 2.8f) + static_cast<float>(index) * 1.4f);
+	else
+		position = TMVector3(m_vecSelPos.x - static_cast<float>(index - 1) * 1.4f,
+			0.0f, m_vecSelPos.y);
+
+	if (m_pEffectContainer)
+	{
+		TMSkillJudgement* effect = new TMSkillJudgement(position, 1, 0.1f);
+		m_pEffectContainer->AddChild(effect);
+	}
+	return true;
+}
+
+void TMSelectCharScene::HandleCharacterLogin(char* buf)
+{
+	MSG_CNFCharacterLogin* login = reinterpret_cast<MSG_CNFCharacterLogin*>(buf);
+	g_pTimerManager->SetServerTime(login->Header.Tick);
+
+	g_pObjectManager->m_dwCharID = login->ClientID;
+	memcpy(&g_pObjectManager->m_stMobData, &login->MOB, sizeof(login->MOB));
+	// O packet 7.48 ja contem o Score canonico; sidecars posteriores
+	// reinterpretariam bytes de campos diferentes.
+	g_pObjectManager->m_nFakeExp = login->Ext1.Data[0];
+	g_pObjectManager->m_stMobData.HomeTownX = login->PosX;
+	g_pObjectManager->m_stMobData.HomeTownY = login->PosY;
+	memcpy(g_pObjectManager->m_cShortSkill,
+		g_pObjectManager->m_stMobData.ShortSkill, 4);
+	memcpy(&g_pObjectManager->m_cShortSkill[4], login->ShortSkill,
+		sizeof(login->ShortSkill));
+
+	for (int skill = 0; skill < 20; ++skill)
+	{
+		if (static_cast<unsigned char>(g_pObjectManager->m_cShortSkill[skill]) < 24)
+			g_pObjectManager->m_cShortSkill[skill] +=
+				24 * g_pObjectManager->m_stMobData.Class;
+	}
+
+	g_nWeather = login->Weather;
+	g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_FIELD_STATE);
+}
+
+void TMSelectCharScene::HandleCharacterCreated(char* buf)
+{
+	MSG_CNFNewCharacter* pNewCharacter = reinterpret_cast<MSG_CNFNewCharacter*>(buf);
+	m_pMessagePanel->SetVisible(0, 1);
+	memcpy(&g_pObjectManager->m_stSelCharData, &pNewCharacter->SelChar, sizeof STRUCT_SELCHAR);
+	ReloadCharList(RELOAD_CHARLIST_TYPE::CREATE_CHARACTER);
+}
+
+void TMSelectCharScene::HandleCharacterDeleted(char* buf)
+{
+	MSG_CNFDeleteCharacter* pDeleteCharacter = reinterpret_cast<MSG_CNFDeleteCharacter*>(buf);
+	m_pMessagePanel->SetVisible(0, 1);
+	memcpy(&g_pObjectManager->m_stSelCharData, &pDeleteCharacter->SelChar, sizeof(pDeleteCharacter->SelChar));
+	OnControlEvent(4616, 0);
+	ReloadCharList(RELOAD_CHARLIST_TYPE::DELETE_CHARACTER);
+}
+
 int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 {
 	if (TMScene::OnPacketEvent(dwCode, buf) == 1)
@@ -1441,26 +1512,7 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	switch (pStd->Type)
 	{
 	case 0x3B4:
-	{
-		MSG_STANDARDPARM2* pParm2 = reinterpret_cast<MSG_STANDARDPARM2*>(pStd);
-		int nIndex = pParm2->Parm1;
-
-		if (nIndex < 0 || nIndex > 3)
-			return 1;
-
-		TMVector3 vec{};
-		if (nIndex < 2)
-			vec = TMVector3(m_vecSelPos.x, 0.0f, (float)(m_vecSelPos.y - 2.8f) + (float)((float)nIndex * 1.4f));
-		else
-			vec = TMVector3(m_vecSelPos.x - (float)((float)(nIndex - 1) * 1.4f), 0.0f, m_vecSelPos.y);
-
-		if (m_pEffectContainer)
-		{
-			TMSkillJudgement* pEffect = new TMSkillJudgement(vec, 1, 0.1f);
-			m_pEffectContainer->AddChild(pEffect);
-		}
-	}
-	return 1;
+		return HandleJudgementEffect(buf) ? 1 : 0;
 	case 0xFDE:
 	{
 		// The Go 7.48 profile never emits AccountLock replies.  Ignore one if a
@@ -1502,14 +1554,7 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	}
 	return 1;
 	case MSG_CNFNewCharacter_Opcode:
-	{
-		m_pMessagePanel->SetVisible(0, 1);
-		MSG_CNFNewCharacter* pNewCharacter = reinterpret_cast<MSG_CNFNewCharacter*>(pStd);
-
-		memcpy(&g_pObjectManager->m_stSelCharData, &pNewCharacter->SelChar, sizeof STRUCT_SELCHAR);
-
-		ReloadCharList(RELOAD_CHARLIST_TYPE::CREATE_CHARACTER);
-	}
+		HandleCharacterCreated(buf);
 	return 1;
 	case 0x11A:
 	{
@@ -1518,13 +1563,7 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	}
 	return 1;
 	case MSG_CNFDeleteCharacter_Opcode:
-	{
-		m_pMessagePanel->SetVisible(0, 1);
-		MSG_CNFDeleteCharacter* pDeleteCharacter = reinterpret_cast<MSG_CNFDeleteCharacter*>(pStd);
-		memcpy(&g_pObjectManager->m_stSelCharData, &pDeleteCharacter->SelChar, sizeof(pDeleteCharacter->SelChar));
-		OnControlEvent(4616, 0);
-		ReloadCharList(RELOAD_CHARLIST_TYPE::DELETE_CHARACTER);
-	}
+		HandleCharacterDeleted(buf);
 	return 1;
 	case 0x11B:
 	{
@@ -1533,29 +1572,7 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	}
 	return 1;
 	case MSG_CNFCharacterLogin_Opcode:
-	{
-		g_pTimerManager->SetServerTime(pStd->Tick);
-		MSG_CNFCharacterLogin* pCharLogin = (MSG_CNFCharacterLogin*)pStd;
-
-		g_pObjectManager->m_dwCharID = pCharLogin->ClientID;
-		memcpy(&g_pObjectManager->m_stMobData, &pCharLogin->MOB, sizeof(pCharLogin->MOB));
-		// CharacterLogin already embeds the complete canonical Score. Reading the
-		// removed 7.59 sidecars would reinterpret unrelated 7.48 bytes as points.
-		g_pObjectManager->m_nFakeExp = pCharLogin->Ext1.Data[0];
-		g_pObjectManager->m_stMobData.HomeTownX = pCharLogin->PosX;
-		g_pObjectManager->m_stMobData.HomeTownY= pCharLogin->PosY;
-		memcpy(g_pObjectManager->m_cShortSkill, g_pObjectManager->m_stMobData.ShortSkill, 4);
-		memcpy(&g_pObjectManager->m_cShortSkill[4], pCharLogin->ShortSkill, sizeof(pCharLogin->ShortSkill));
-
-		for (int k = 0; k < 20; ++k)
-		{
-			if ((unsigned char)g_pObjectManager->m_cShortSkill[k] < 24)
-				g_pObjectManager->m_cShortSkill[k] += 24 * g_pObjectManager->m_stMobData.Class;
-		}
-
-		g_nWeather = pCharLogin->Weather;
-		g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_FIELD_STATE);
-	}
+		HandleCharacterLogin(buf);
 	return 1;
 	case 0x119:
 	{

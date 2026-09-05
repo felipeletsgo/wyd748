@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CPSock.h"
 #include "../network/SendBuffer.h"
+#include "../network/ReceiveBuffer.h"
 #include "PacketSendBoundary.h"
 #include <climits>
 #include <WinSock2.h>
@@ -315,9 +316,15 @@ unsigned int CPSock::SingleConnect(char* HostAddr, int Port, int ip, int WSA)
 
 int CPSock::Receive()
 {
+	if (!Sock || !pRecvBuffer || !receive_buffer::HasValidWindow(
+		nRecvPosition, nRecvPosition, RECV_BUFFER_SIZE) || nRecvPosition >= RECV_BUFFER_SIZE)
+		return 0;
+
 	int Rest = RECV_BUFFER_SIZE - nRecvPosition;
 	int tReceiveSize = recv(Sock, &pRecvBuffer[nRecvPosition], Rest, 0);
-	if (tReceiveSize == -1)
+	// Zero significa fechamento ordenado pelo peer; nao ha bytes novos para
+	// processar e o dispatcher deve seguir o mesmo caminho de desconexao.
+	if (tReceiveSize <= 0)
 		return 0;
 	if (tReceiveSize == Rest)
 		return -1;
@@ -328,6 +335,10 @@ int CPSock::Receive()
 
 char* CPSock::ReadMessage(int* ErrorCode, int* ErrorType)
 {
+	if (!ErrorCode || !ErrorType || !pRecvBuffer || !receive_buffer::HasValidWindow(
+		nProcPosition, nRecvPosition, RECV_BUFFER_SIZE))
+		return nullptr;
+
 	*ErrorCode = 0;
 	if (nProcPosition >= nRecvPosition)
 	{
@@ -639,10 +650,7 @@ int CPSock::SendOneMessageKeyword(char* Msg, int Size, int Keyword)
 
 int CPSock::AddMessage2(char* pMsg, int Size)
 {
-	if (!Sock)
-		return 0;
-
-	if (Size + nSendPosition > SEND_BUFFER_SIZE)
+	if (!Sock || !pMsg || !send_buffer::CanAppendRaw(Size, nSendPosition, SEND_BUFFER_SIZE))
 		return 0;
 
 	memcpy(&pSendBuffer[nSendPosition], pMsg, Size);
@@ -653,6 +661,10 @@ int CPSock::AddMessage2(char* pMsg, int Size)
 
 char* CPSock::ReadMessage2(int* ErrorCode, int* ErrorType)
 {
+	if (!ErrorCode || !ErrorType || !pRecvBuffer || !receive_buffer::HasValidWindow(
+		nProcPosition, nRecvPosition, RECV_BUFFER_SIZE))
+		return nullptr;
+
 	*ErrorCode = 0;
 
 	if (nProcPosition >= nRecvPosition)
@@ -664,7 +676,14 @@ char* CPSock::ReadMessage2(int* ErrorCode, int* ErrorType)
 	{
 		auto pMsg = &pRecvBuffer[nProcPosition];
 
-		nProcPosition += *(WORD*)pMsg;
+		const unsigned short size = *reinterpret_cast<const unsigned short*>(pMsg);
+		if (!receive_buffer::CanReadFrame(size, nRecvPosition - nProcPosition, 12))
+		{
+			*ErrorCode = 2;
+			*ErrorType = size;
+			return nullptr;
+		}
+		nProcPosition += size;
 
 		if (nRecvPosition <= nProcPosition)
 		{
@@ -684,7 +703,8 @@ void CPSock::RefreshRecvBuffer()
 
 	if (left > 0 && left <= RECV_BUFFER_SIZE)
 	{
-		memcpy(pRecvBuffer, &pRecvBuffer[nProcPosition], left);
+		// As regioes se sobrepoem quando ha bytes ja processados.
+		memmove(pRecvBuffer, &pRecvBuffer[nProcPosition], left);
 
 		nProcPosition = 0;
 		nRecvPosition -= left;

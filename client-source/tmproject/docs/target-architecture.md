@@ -61,6 +61,14 @@ Cada etapa deve ser pequena, compilável e reversível. Build valida compilaçã
 
 ## Transporte incremental — fronteira em migracao
 
+Recepcao: `NewApp` entrega `PacketView` a `ObjectManager::OnPacketView`, entrada
+nao virtual que valida o envelope e adapta para o callback virtual legado.
+O buffer de CPSock permanece emprestado, gravavel e valido durante a chamada;
+esta entrada nao aceita armazenamento originalmente const. O percurso das cenas
+e seus callbacks `char*` permanecem inalterados. A politica pura `Dispatch`
+preserva ponteiro/opcode/tamanho e entrega uma vez; nao valida payload por opcode.
+Desconexao e eventos locais sem frame continuam usando `OnPacketEvent`.
+
 `internal/application/ports/PacketView.h` define o DTO não proprietário para mensagens
 enquadradas. `CPSock::ReadPacketView` preserva o tamanho validado pelo socket
 e `CPSock::SendPacket` valida o intervalo antes de delegar ao método legado.

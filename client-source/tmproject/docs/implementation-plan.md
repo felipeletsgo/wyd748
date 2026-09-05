@@ -111,6 +111,46 @@ nao comprova inversao de dependencias nem separacao de responsabilidades.
 - Release SHA-256 `861973D2A67BA63B99FBB018E43425804C4AF52ED30F03389D1047A0075A07F2`.
 - `AddMessage2`, recepcao e teste in-game continuam pendentes.
 
+### Endurecimento do caminho raw — 2026-09-05
+
+- `CanAppendRaw` remove a soma signed do `AddMessage2` e rejeita ponteiro nulo,
+  tamanhos negativos e overflow sem alterar a fila.
+- `RefreshRecvBuffer` usa `memmove`, preservando bytes quando a origem e o
+  destino se sobrepoem.
+- Debug e Release passaram com 102 checks; Release instalado com SHA-256
+  `D406C08758D5234C4497FFFB6D1C9B8676E418BD6D349D7E0BADFE4ADC9258C4`.
+- Ainda faltam handlers de recepcao, smoke test in-game e as fases restantes
+  da arquitetura; este lote nao promove maturidade nativa.
+
+### Guard de recebimento — 2026-09-05
+
+- `Receive` agora valida socket, buffer e faixa de `nRecvPosition` antes de
+  chamar WinSock, evitando escrita fora da fila quando ela esta cheia ou em
+  estado inconsistente.
+- Debug e Release passaram com 102 checks; Release instalado com SHA-256
+  `B00B050BA0105B3833940F5026DE7DF1E278BDE470DE3F0A68D335EDB5DF020A`.
+
+### Desconexao ordenada — 2026-09-05
+
+- `CPSock::Receive` trata `recv == 0` como fechamento do peer e retorna falha
+  para o dispatcher executar o teardown existente; erros negativos continuam
+  no mesmo caminho.
+- Debug e Release passaram com 105 checks; Release instalado com SHA-256
+  `453279ACEFC293BA3B91E6C3C4C2B3DF4ABD03158A61E50AFE220903ACFDFBCD`.
+- TODOs de renderizacao/gameplay permanecem documentados como fora deste lote:
+  sem contrato, teste ou evidência nativa suficiente, não foram alterados.
+
+### Fronteira de despacho — 2026-09-05
+
+- Extraido `application/ports/PacketDispatch.h`; `NewApp` consulta a politica
+  antes de converter a view para os callbacks legados.
+- A politica valida armazenamento e envelope minimo, sem decidir opcode ou
+  alterar o payload. Foram adicionados testes de view completa e curta.
+- Debug/Release passaram com 111 checks; Release instalado com SHA-256
+  `A6E7B2171368323B03571D64527191B0C5DF4217109AC43C7AA56BFA43A05ADF`.
+- Callbacks ainda recebem `char*`; a migracao para payload somente-leitura
+  continua pendente e requer cobertura por fluxo.
+
 ### Lote de inversao do login de personagem — 2026-09-05
 
 - `RequestCharacterLogin` depende apenas de `ICharacterLoginSender`; o encoder
@@ -153,3 +193,54 @@ nao comprova inversao de dependencias nem separacao de responsabilidades.
 5. Atualizar `.vcxproj`, filtros e documentação.
 6. Compilar e executar a validação focada.
 7. Registrar resultado e só então iniciar o próximo ciclo.
+
+### Continuidade: entrada de recepcao no ObjectManager (2026-09-05)
+
+- Modo `MODERNIZACAO_COMPATIVEL`, implementacao local. Sem novo claim nativo,
+  opcode, layout wire ou mudanca no percurso de cenas/objetos.
+- `NewApp` entrega a view a `ObjectManager::OnPacketView`; leitura do relogio
+  e dump permanecem anteriores ao callback e agora usam cabecalho const.
+- A entrada nao virtual preserva a vtable e delega ao `OnPacketEvent` virtual
+  existente. O armazenamento original de CPSock continua emprestado e gravavel;
+  o const_cast necessario ao legado fica no ObjectManager, nao no dispatcher.
+- `packet_dispatch::Dispatch` testa o envelope e entrega uma unica vez, sem
+  copiar ou reter. Rejeicao nao executa callback. Nao valida payload por opcode.
+- Eventos locais/desconexao continuam usando a API anterior. Handlers de cena
+  ainda recebem char*; nao alegar migracao completa nem validacao in-game.
+- Testes puros: 118 checks PASS, incluindo identidade do ponteiro, opcode,
+  tamanho, chamada unica e rejeicao de frame curto/nulo/vazio.
+- Debug compilado e instalado: SHA-256
+  `A395C7FD2777C343BAB4AFC8D4B5930421B8C03BB8F017089A708DD65FA0BC34`.
+  Release compilado e instalado: SHA-256
+  `08A10A1C02DA956A047C4B2274FB3E14A2D220BD6629BA7EB636410F7031280A`.
+  118 checks e asserts PASS nas duas configuracoes; XML do projeto/filtros
+  valido, headers novos registrados uma vez; diff --check PASS.
+  Warnings legados C4018/C4305/C4309 permanecem. Nao CLIENT_TESTED.
+
+### Continuidade: consumo especial da selecao (2026-09-05)
+
+`ObjectManager::HandleSelectCharacterItem` agora concentra o tratamento de
+`MSG_SendItem` que precisa ocorrer antes do percurso da arvore. A ordem, a
+condicao `ESCENE_SELCHAR`, a atualizacao de `m_stItemCargo` e o retorno imediato
+foram preservados; nenhuma validacao nova de payload foi inventada. Debug e
+Release recompilados, com 118 checks PASS e instalacao do candidato. O handler
+geral e os handlers de cena ainda sao legados `char*` e permanecem na fila de
+migracao gradual.
+
+### Continuidade: efeito de julgamento na selecao (2026-09-05)
+
+Em `TMSelectCharScene`, o caso `0x3B4` foi extraido para
+`HandleJudgementEffect`. A geometria, limites de indice, criacao opcional do
+efeito e retorno de consumo foram mantidos; o dispatcher agora fica menor e
+continua apenas roteando o packet. Debug/Release: 118 checks PASS e candidatos
+instalados. Teste in-game permanece pendente.
+
+### Continuidade: confirmacao de login na selecao (2026-09-05)
+
+O caso `MSG_CNFCharacterLogin_Opcode` foi extraido para
+`HandleCharacterLogin`. A atualizacao do timer, copia do MOB, exp, hometown,
+skills, clima e transicao para `TM_FIELD_STATE` permanecem na mesma ordem.
+Debug/Release recompilados com 118 checks PASS; Release instalado. A execucao
+in-game ainda nao foi realizada.
+
+- 2026-09-05: extraídos HandleCharacterCreated/HandleCharacterDeleted de TMSelectCharScene::OnPacketEvent (MODERNIZACAO_COMPATIVEL); ordem, cópias e ReloadCharList preservados. Debug validado (118 checks); Release compilado, instalação bloqueada porque client748/project.exe está aberto.

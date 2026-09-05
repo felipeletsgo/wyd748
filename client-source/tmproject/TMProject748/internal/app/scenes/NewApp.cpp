@@ -8,6 +8,7 @@
 #include "TimerManager.h"
 #include "ObjectManager.h"
 #include "CPSock.h"
+#include "../../application/ports/PacketDispatch.h"
 #include "NewApp.h"
 #include "TMGlobal.h"
 #include <shellapi.h>
@@ -1170,11 +1171,12 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 		{
 			PacketView packet = m_pSocketManager->ReadPacketView(&ErrorCode, &ErrorType);
 
-			if (ErrorCode != 0 || !packet.HasAtLeast(sizeof(MSG_STANDARD)))
+			if (ErrorCode != 0 || !packet_dispatch::CanDispatch(packet, sizeof(MSG_STANDARD)))
 				break;
 
-			MSG_STANDARD* pStd = reinterpret_cast<MSG_STANDARD*>(
-				const_cast<char*>(packet.data));
+			// Relogio e dump apenas leem o envelope. A adaptacao mutavel dos
+			// callbacks fica no ObjectManager, depois destes efeitos historicos.
+			const MSG_STANDARD* pStd = reinterpret_cast<const MSG_STANDARD*>(packet.data);
 
 			unsigned int dwServerTime = m_pTimerManager->GetServerTime();
 			g_dwServerTime = pStd->Tick;
@@ -1202,8 +1204,7 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 				}
 				g_pLastFixTime = dwServerTime;
 			}
-			m_pObjectManager->OnPacketEvent(packet.opcode,
-				const_cast<char*>(packet.data));
+			m_pObjectManager->OnPacketView(packet);
 		}
 	}
 	break;

@@ -1,4 +1,5 @@
 #include "../internal/application/ports/PacketView.h"
+#include "../internal/application/ports/PacketDispatch.h"
 #include "../internal/wire/PacketSendBoundary.h"
 #include "../internal/platform/windows/SocketTransport.h"
 #include "../internal/application/RequestCharacterLogin.h"
@@ -10,6 +11,7 @@
 #include <cstdio>
 #include <limits>
 #include "../internal/platform/network/SendBuffer.h"
+#include "../internal/platform/network/ReceiveBuffer.h"
 
 // Suite isolada de application, compilada sem os includes wire deste runner.
 int RunCharacterLoginUseCaseTests(int& checks);
@@ -169,6 +171,34 @@ int main()
     check(!send_buffer::CanAppendPacket(12, -1, 131072, 12), "fila rejeita indice negativo");
     check(!send_buffer::CanAppendPacket(12, 131060, 131072, 12), "fila preserva limite estrito");
     check(send_buffer::CanAppendPacket(12, 131059, 131072, 12), "fila aceita ultimo intervalo valido");
+    check(send_buffer::CanAppendRaw(0, 131072, 131072), "raw aceita fila cheia vazia");
+    check(receive_buffer::CanReadFrame(12, 12, 12), "recepcao aceita frame minimo");
+    PacketView dispatchable{1, "1234", 4};
+    check(packet_dispatch::CanDispatch(dispatchable, 4), "dispatch aceita view completa");
+    check(!packet_dispatch::CanDispatch(dispatchable, 5), "dispatch rejeita view curta");
+    // A politica entrega o mesmo emprestimo uma unica vez; frames rejeitados
+    // nao chegam ao receptor. O callback pode observar todos os metadados.
+    int dispatchCalls = 0;
+    auto receiver = [&](const PacketView& frame) {
+        ++dispatchCalls;
+        check(frame.data == dispatchable.data && frame.size == dispatchable.size &&
+            frame.opcode == dispatchable.opcode, "dispatch preserva emprestimo e metadados");
+    };
+    check(packet_dispatch::Dispatch(dispatchable, 4, receiver), "dispatch entrega frame completo");
+    check(dispatchCalls == 1, "dispatch nao repete callback");
+    check(!packet_dispatch::Dispatch(dispatchable, 5, receiver), "dispatch nao entrega frame curto");
+    check(!packet_dispatch::Dispatch({1, nullptr, 4}, 4, receiver), "dispatch nao entrega nulo");
+    check(!packet_dispatch::Dispatch({}, 4, receiver), "dispatch nao confunde evento local com frame");
+    check(dispatchCalls == 1, "rejeicoes nao chamam receptor");
+    check(receive_buffer::HasValidWindow(0, 0, 131072), "recepcao aceita janela vazia");
+    check(!receive_buffer::HasValidWindow(4, 3, 131072), "recepcao rejeita cursor invertido");
+    check(!receive_buffer::HasValidWindow(0, 0, 0), "recepcao rejeita capacidade nula");
+    check(!receive_buffer::HasValidWindow(-1, 0, 131072), "recepcao rejeita cursor negativo");
+    check(!receive_buffer::CanReadFrame(11, 12, 12), "recepcao rejeita frame curto");
+    check(!receive_buffer::CanReadFrame(13, 12, 12), "recepcao rejeita frame incompleto");
+    check(send_buffer::CanAppendRaw(4, 131068, 131072), "raw aceita limite exato");
+    check(!send_buffer::CanAppendRaw(5, 131068, 131072), "raw rejeita overflow");
+    check(!send_buffer::CanAppendRaw(INT_MAX, INT_MAX, 131072), "raw rejeita overflow signed");
     char queuedBytes[] = "abcdefgh";
     int queued = 8;
     int sent = 2;

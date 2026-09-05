@@ -144,7 +144,13 @@
     <ClInclude Include="internal\platform\network\SendBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\platform\network\ReceiveBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\application\ports\PacketView.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\ports\PacketDispatch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="internal\application\ports\ICharacterLoginSender.h">

@@ -6,6 +6,12 @@
 // Os buffers sao emprestados; o chamador garante a capacidade real informada.
 namespace send_buffer
 {
+    // Caminho raw aceita exatamente o espaco restante; nao possui cabecalho.
+    inline bool CanAppendRaw(int size, int queued, int capacity)
+    {
+        return size >= 0 && queued >= 0 && queued <= capacity &&
+            size <= capacity - queued;
+    }
 // Mantem o limite estrito da fila legada e o tamanho WORD do enquadramento.
 // A subtracao so ocorre depois de validar os indices, evitando overflow signed.
 inline bool CanAppendPacket(int size, int queued, int capacity, int headerSize)

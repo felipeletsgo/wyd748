@@ -118,7 +118,9 @@
     <ClInclude Include="internal\wire\PacketSendBoundary.h" />
     <ClInclude Include="internal\application\ports\ITransport.h" />
     <ClInclude Include="internal\platform\network\SendBuffer.h" />
+    <ClInclude Include="internal\platform\network\ReceiveBuffer.h" />
     <ClInclude Include="internal\application\ports\PacketView.h" />
+    <ClInclude Include="internal\application\ports\PacketDispatch.h" />
     <ClInclude Include="internal\application\ports\ICharacterLoginSender.h" />
     <ClInclude Include="internal\wire\CharacterLoginSender.h" />
     <ClInclude Include="internal\application\RequestCharacterLogin.h" />

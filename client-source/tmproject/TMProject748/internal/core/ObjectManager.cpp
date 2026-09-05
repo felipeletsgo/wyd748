@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ObjectManager.h"
+#include "../application/ports/PacketDispatch.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 #include "TMFieldScene.h"
@@ -91,6 +92,37 @@ void ObjectManager::Finalize()
 	;
 }
 
+void ObjectManager::OnPacketView(const PacketView& packet)
+{
+	// Rejeita envelope ausente/incompleto antes do percurso legado. Eventos
+	// locais sem frame, como desconexao, continuam entrando por OnPacketEvent.
+	packet_dispatch::Dispatch(packet, sizeof(MSG_STANDARD), [this](const PacketView& frame)
+	{
+		// ReadPacketView empresta o buffer gravavel de CPSock. Nao copiar:
+		// normalizacoes dos handlers precisam atingir esse mesmo armazenamento.
+		OnPacketEvent(frame.opcode, const_cast<char*>(frame.data));
+	});
+}
+
+bool ObjectManager::HandleSelectCharacterItem(char* buf)
+{
+	if (g_pCurrentScene == nullptr ||
+		g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_SELCHAR ||
+		buf == nullptr)
+		return false;
+
+	// O buffer ja foi enquadrado pelo CPSock. A ordem historica e preservada:
+	// MSG_SendItem e consumido aqui e nao percorre os filhos da cena.
+	MSG_SendItem* message = reinterpret_cast<MSG_SendItem*>(buf);
+	if (message->Header.Type != MSG_SendItem_Opcode)
+		return false;
+
+	if (message->DestType == 2)
+		memcpy(&m_stItemCargo[message->DestPos], &message->Item, sizeof(message->Item));
+
+	return true;
+}
+
 void ObjectManager::OnPacketEvent(unsigned int dwCode, char* buf)
 {
 	TreeNode* pCurrentNode = g_pCurrentScene;
@@ -98,17 +130,8 @@ void ObjectManager::OnPacketEvent(unsigned int dwCode, char* buf)
 	
 	if (g_pCurrentScene != nullptr)
 	{
-		if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR && buf != nullptr)
-		{
-			MSG_SendItem* pMsg = (MSG_SendItem*)buf;
-			if (pMsg->Header.Type == MSG_SendItem_Opcode)
-			{
-				if (pMsg->DestType == 2)
-					memcpy(&m_stItemCargo[pMsg->DestPos], &pMsg->Item, sizeof(pMsg->Item));
-
-				return;
-			}
-		}
+		if (HandleSelectCharacterItem(buf))
+			return;
 
 		do
 		{

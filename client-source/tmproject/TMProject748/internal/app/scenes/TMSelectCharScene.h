@@ -40,6 +40,16 @@ public:
 
 private:
 	void ReloadCharList(RELOAD_CHARLIST_TYPE type);
+	// Consome o efeito visual de julgamento sem misturar geometria ao dispatcher.
+	bool HandleJudgementEffect(char* buf);
+	// Aplica a resposta de login e publica a transicao para o campo.
+	void HandleCharacterLogin(char* buf);
+	// Atualiza a lista local depois da resposta de criacao, mantendo a ordem
+	// historica de ocultar o painel, copiar o slot e recarregar os modelos.
+	void HandleCharacterCreated(char* buf);
+	// Atualiza a lista local depois da resposta de exclusao, incluindo o reset
+	// do controle selecionado antes de reconstruir os slots visuais.
+	void HandleCharacterDeleted(char* buf);
 
 public:
 	char keybuf[10];

@@ -2,6 +2,7 @@
 
 #include "Structures.h"
 #include "Basedef.h"
+#include "../application/ports/PacketView.h"
 
 
 class TreeNode;
@@ -37,6 +38,10 @@ public:
 
 	virtual void Finalize();
 	virtual void OnPacketEvent(unsigned int dwCode, char* buf);
+	// Emprestimo sincrono do frame validado pelo transporte. O armazenamento
+	// deve ser gravavel: callbacks legados podem normaliza-lo. Nao reter a view.
+	// Nao virtual para preservar os slots existentes; delega ao virtual legado.
+	void OnPacketView(const PacketView& packet);
 	virtual void OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY);
 	virtual void OnKeyDownEvent(unsigned int nKeyCode);
 	virtual void OnKeyUpEvent(unsigned int nKeyCode);
@@ -58,6 +63,12 @@ public:
 	virtual void SetCurrentScene(TMScene* pScene);
 	virtual TMScene* GetCurrentScene();
 
+private:
+	// Trata o unico packet que atualiza o inventario antes do percurso da arvore.
+	// Retorna true quando a cena de selecao consumiu o evento.
+	bool HandleSelectCharacterItem(char* buf);
+
+	public:
 	void DeleteObject(TreeNode* pNode);
 	void DeleteObject(unsigned int dwID);
 
