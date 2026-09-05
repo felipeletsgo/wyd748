@@ -215,3 +215,13 @@ cursor quando necessário, alinhado ao nativo 0052A737. Debug/Release passaram
 com 232 checks; Release instalado com SHA-256
 `87F0FFCCFAC29E3950979515B864D6F9B77D7F4E930C894128E7DA76EFD323C6`.
 Teste visual/runtime ainda pendente.
+
+Validacao de fechamento do ciclo SendItem: `TMHuman::OnPacketEvent` encaminha
+0x182 para OnPacketSendItem, e a entrada de rede observada e exclusivamente
+NewApp -> ObjectManager::OnPacketView -> OnPacketEvent. Eventos locais mantem
+seus callbacks diretos; nao foi encontrada segunda entrada de rede para esse
+contrato. `go test -count=1 ./...` PASS em todos os pacotes em 2026-09-05;
+`git diff --check` PASS. Mantido Release
+`87F0FFCCFAC29E3950979515B864D6F9B77D7F4E930C894128E7DA76EFD323C6`.
+Proxima prioridade: executar o fluxo real SendItem/cursor/relogin; antes de
+outro corte funcional, escolher um novo contrato de recepcao com ficha nativa.
