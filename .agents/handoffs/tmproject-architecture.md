@@ -385,3 +385,16 @@ Release passou pelo `Build-Client.ps1`, 496 checks/asserts PASS e candidato
 instalado. SHA-256: `CA455069E7CF35CE81390087504800FE125E6F17CB3136A7B2DCD81F5F4DBC2D`.
 `git diff --check` PASS; nao CLIENT_TESTED. Os grids de equipamento da mesma
 inicializacao ainda usam insercoes diretas e serao tratados em corte separado.
+
+## Retomada — ownership dos grids de equipamento (2026-09-05)
+
+As quinze insercoes diretas de equipamento na inicializacao de
+`TMFieldScene` foram concentradas em `WYD748_AddOwnedGridItem`. O helper
+protege grid nula, falha de criacao e rejeicao de `AddItem`, mantendo a grid
+como owner no sucesso. Indices, slots, coordenadas e ordem da inicializacao
+foram preservados; delta local MODERNIZACAO_COMPATIVEL.
+
+Release passou pelo `Build-Client.ps1`, com 496 checks/asserts PASS e candidato
+instalado. SHA-256: `AF66062D737F6906DEEC0062B327F8EAEC37AED58C7F4600349CD9399408989D`.
+`git diff --check` PASS. Nao CLIENT_TESTED. A fila de ownership continua em
+callers de loja/drop/mixagem fora desta inicializacao.

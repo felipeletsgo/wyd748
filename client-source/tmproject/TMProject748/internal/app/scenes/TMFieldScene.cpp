@@ -104,6 +104,23 @@ namespace
 		*value = parsed;
 		return true;
 	}
+
+	void WYD748_AddOwnedGridItem(SGridControl* grid, STRUCT_ITEM* item)
+	{
+		if (!grid)
+		{
+			SAFE_DELETE(item);
+			return;
+		}
+		auto controlItem = new SGridControlItem(nullptr, item, 0.0f, 0.0f);
+		if (controlItem)
+		{
+			if (!grid->AddItem(controlItem, 0, 0))
+				SAFE_DELETE(controlItem);
+		}
+		else
+			SAFE_DELETE(item);
+	}
 }
 
 RECT TMFieldScene::m_rectWarning[7] =
@@ -4092,77 +4109,77 @@ int TMFieldScene::InitializeScene()
 		STRUCT_ITEM* pItemHelm = new STRUCT_ITEM;
 		memcpy(pItemHelm, &pMobData->Equip[1], 8);
 				
-		m_pGridHelm->AddItem(new SGridControlItem(nullptr, pItemHelm, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridHelm, pItemHelm);
 	}
 	if (pMobData->Equip[2].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemCoat = new STRUCT_ITEM;
 		memcpy(pItemCoat, &pMobData->Equip[2], 8);
 
-		m_pGridCoat->AddItem(new SGridControlItem(nullptr, pItemCoat, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridCoat, pItemCoat);
 	}
 	if (pMobData->Equip[3].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemPants = new STRUCT_ITEM;
 		memcpy(pItemPants, &pMobData->Equip[3], 8);
 
-		m_pGridPants->AddItem(new SGridControlItem(nullptr, pItemPants, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridPants, pItemPants);
 	}
 	if (pMobData->Equip[4].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemGloves = new STRUCT_ITEM;
 		memcpy(pItemGloves, &pMobData->Equip[4], 8);
 
-		m_pGridGloves->AddItem(new SGridControlItem(nullptr, pItemGloves, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridGloves, pItemGloves);
 	}
 	if (pMobData->Equip[5].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemBoots = new STRUCT_ITEM;
 		memcpy(pItemBoots, &pMobData->Equip[5], 8);
 
-		m_pGridBoots->AddItem(new SGridControlItem(nullptr, pItemBoots, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridBoots, pItemBoots);
 	}
 	if (pMobData->Equip[7].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemRight = new STRUCT_ITEM;
 		memcpy(pItemRight, &pMobData->Equip[7], 8);
 
-		m_pGridRight->AddItem(new SGridControlItem(nullptr, pItemRight, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridRight, pItemRight);
 	}
 	if (pMobData->Equip[6].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemLeft = new STRUCT_ITEM;
 		memcpy(pItemLeft, &pMobData->Equip[6], 8);
 
-		m_pGridLeft->AddItem(new SGridControlItem(nullptr, pItemLeft, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridLeft, pItemLeft);
 	}
 	if (pMobData->Equip[12].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemGuild = new STRUCT_ITEM;
 		memcpy(pItemGuild, &pMobData->Equip[12], 8);
 
-		m_pGridGuild->AddItem(new SGridControlItem(nullptr, pItemGuild, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridGuild, pItemGuild);
 	}
 	if (pMobData->Equip[13].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemEvent = new STRUCT_ITEM;
 		memcpy(pItemEvent, &pMobData->Equip[13], 8);
 
-		m_pGridEvent->AddItem(new SGridControlItem(nullptr, pItemEvent, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridEvent, pItemEvent);
 	}
 	if (pMobData->Equip[14].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemDRing = new STRUCT_ITEM;
 		memcpy(pItemDRing, &pMobData->Equip[14], 8);
 
-		m_pGridDRing->AddItem(new SGridControlItem(nullptr, pItemDRing, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridDRing, pItemDRing);
 	}
 	if (pMobData->Equip[15].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemMantua = new STRUCT_ITEM;
 		memcpy(pItemMantua, &pMobData->Equip[15], 8);
 
-		m_pGridMantua->AddItem(new SGridControlItem(nullptr, pItemMantua, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridMantua, pItemMantua);
 	}
 	if (pMobData->Equip[16].sIndex > 40)
 	{
@@ -4182,28 +4199,28 @@ int TMFieldScene::InitializeScene()
 		STRUCT_ITEM* pItemRing = new STRUCT_ITEM;
 		memcpy(pItemRing, &pMobData->Equip[8], 8);
 
-		m_pGridRing->AddItem(new SGridControlItem(nullptr, pItemRing, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridRing, pItemRing);
 	}
 	if (pMobData->Equip[9].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemNecklace = new STRUCT_ITEM;
 		memcpy(pItemNecklace, &pMobData->Equip[9], 8);
 
-		m_pGridNecklace->AddItem(new SGridControlItem(nullptr, pItemNecklace, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridNecklace, pItemNecklace);
 	}
 	if (pMobData->Equip[10].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemOrb = new STRUCT_ITEM;
 		memcpy(pItemOrb, &pMobData->Equip[10], 8);
 
-		m_pGridOrb->AddItem(new SGridControlItem(nullptr, pItemOrb, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridOrb, pItemOrb);
 	}
 	if (pMobData->Equip[11].sIndex > 40)
 	{
 		STRUCT_ITEM* pItemCabuncle = new STRUCT_ITEM;
 		memcpy(pItemCabuncle, &pMobData->Equip[11], 8);
 
-		m_pGridCabuncle->AddItem(new SGridControlItem(nullptr, pItemCabuncle, 0.0f, 0.0f), 0, 0);
+	WYD748_AddOwnedGridItem(	m_pGridCabuncle, pItemCabuncle);
 	}
 
 	for (int nCarryIndex = 0; nCarryIndex < 64; ++nCarryIndex)
