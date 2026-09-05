@@ -283,3 +283,26 @@ Debug/Release passaram com 496 checks e instalacao. Release:
 Teste cobre gate/callback, nao render real ou todos os callers. Proximo ponto:
 revisar SetItemOnGrid e callers de AddItemInEmpty para ownership na rejeicao;
 coordenadas negativas/overflow continuam pendentes. Push segue sem credencial.
+
+## Retomada — rejeicao nas duas barras de skills (2026-09-05)
+
+O commit 691f0763 ja fechou SetItemOnGrid. A worktree continha o corte
+seguinte em TMFieldScene::UpdateScoreUI: os dois callers de AddItemInEmpty
+liberam o visual quando o retorno tem x < 0. Revisao da source confirmou
+que o helper retorna {-1,-1} sem transferir ownership na rejeicao; no sucesso
+retorna coordenadas nao negativas e a grid retém o item. Busca scoped confirma
+que estes sao os dois callers dessa API (CanAddItemInEmpty e outra API).
+Delta local MODERNIZACAO_COMPATIVEL; source e testes UTILIZADOS. Evidencia
+nativa anterior reutilizada apenas como contexto de grid; nenhum novo claim
+de paridade. Assets, wire e servidor NAO APLICAVEIS: sem alteracao nesse corte.
+
+Build-Client.ps1 Debug e Release PASS, 496 checks e static assertions PASS
+em cada configuracao; instalacao e hash conferidos pelo script. Release:
+`306DC514287FC47C6AA68A3ABFE71772B4959B9297D8D25E87E78814411F5A0B`.
+git diff --check PASS antes do registro. Os checks exercitam o gate puro,
+nao UpdateScoreUI/render real; nao CLIENT_TESTED. Mudancas preexistentes em
+AGENTS.md e cinco arquivos de skills preservadas fora deste corte.
+
+Proximo passo: validar barras de skills, rejeicao visual e relogin no candidato;
+seguir a revisao dos callers diretos de AddItem/SetItem que ignoram rejeicao.
+Coordenadas negativas/overflow continuam uma frente separada pendente.

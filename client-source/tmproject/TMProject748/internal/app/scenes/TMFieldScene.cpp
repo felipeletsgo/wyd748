@@ -16968,8 +16968,8 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 				pStructItem->sIndex = sIndex;
 
 				auto ipCtrlItem = new SGridControlItem(0, pStructItem, 0.0f, 0.0f);
-				if(ipCtrlItem)
-					m_pSkillSecGrid[i]->AddItemInEmpty(ipCtrlItem);
+				if (ipCtrlItem && m_pSkillSecGrid[i]->AddItemInEmpty(ipCtrlItem).x < 0)
+					SAFE_DELETE(ipCtrlItem);
 			}
 			// Skill bar 2
 			for (int i = 0; i < 12; ++i)
@@ -17004,8 +17004,8 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 				pStructItem->sIndex = sIndex;
 
 				auto ipCtrlItem = new SGridControlItem(0, pStructItem, 0.0f, 0.0f);
-				if (ipCtrlItem)
-					m_pSkillSecGrid2[i]->AddItemInEmpty(ipCtrlItem);
+				if (ipCtrlItem && m_pSkillSecGrid2[i]->AddItemInEmpty(ipCtrlItem).x < 0)
+					SAFE_DELETE(ipCtrlItem);
 			}
 			// Skill bar 1
 			for (int i = 0; i < 8; ++i)
