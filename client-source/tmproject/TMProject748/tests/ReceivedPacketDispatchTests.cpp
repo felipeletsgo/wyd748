@@ -166,5 +166,39 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(received_packet::Dispatch({0x333, chat.data(), 108}, chatReceiver) && chatCalls == 1,
         "chat valido entregue uma vez");
     check(chat == chatSnapshot, "gate nao modifica texto ou header");
+    for (unsigned int opcode : {0x105u, 0x106u})
+    {
+        std::array<char, 109> frame{};
+        frame[0] = 108;
+        frame[4] = static_cast<char>(opcode & 255);
+        frame[5] = 1;
+        // -938 little-endian, mesmo indice do convite de grupo no Go.
+        frame[14] = 0x56;
+        frame[15] = static_cast<char>(0xFC);
+        if (opcode == 0x106) std::memcpy(frame.data() + 16, "Lider", 6);
+        int calls = 0;
+        const auto receiveExtension = [&](const PacketView& view) {
+            ++calls;
+            check(view.data == frame.data() && view.size == 108 && view.opcode == opcode,
+                "extensao preserva frame para parser existente");
+        };
+        for (std::size_t n = 0; n < 108; ++n)
+            check(!received_packet::Dispatch({opcode, frame.data(), n}, receiveExtension),
+                "extensao rejeita todos os prefixos");
+        check(!received_packet::Dispatch({opcode, nullptr, 108}, receiveExtension), "extensao nula");
+        check(!received_packet::Dispatch({opcode, frame.data(), 109}, receiveExtension), "extensao excedente");
+        check(!received_packet::Dispatch({0x119, frame.data(), 108}, receiveExtension), "Type extensao ocultado");
+        frame[4] = 0x19;
+        check(!received_packet::Dispatch({opcode, frame.data(), 108}, receiveExtension), "Type extensao divergente");
+        frame[4] = static_cast<char>(opcode & 255);
+        frame[0] = 107;
+        check(!received_packet::Dispatch({opcode, frame.data(), 108}, receiveExtension), "Size extensao divergente");
+        frame[0] = 108;
+        check(calls == 0, "extensao invalida sem callback");
+        const auto before = frame;
+        check(received_packet::Dispatch({opcode, frame.data(), 108}, receiveExtension) && calls == 1,
+            "extensao valida entregue uma vez");
+        check(before == frame, "indice assinado e CSV preservados");
+    }
     return failures;
 }

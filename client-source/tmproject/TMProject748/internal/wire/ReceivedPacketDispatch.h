@@ -3,12 +3,13 @@
 #include "CharacterTransferPacket.h"
 #include "SendItemContract.h"
 #include "ChatMessagePacket.h"
+#include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "../application/ports/PacketDispatch.h"
 #include <cstring>
 
 // Fronteira incremental entre frame de transporte e callbacks legados.
-// 0xFAA, 0x182, 0x102, 0x104 e 0x333 possuem validacao especifica; outros opcodes continuam
+// ExpectedSize enumera os contratos migrados; outros opcodes continuam
 // sujeitos aos seus consumidores. Eventos locais nao passam por esta entrada.
 namespace received_packet
 {
@@ -22,6 +23,8 @@ namespace received_packet
         case MSG_LegacySceneMessage102_Opcode: return sizeof(MSG_LegacySceneMessage102);
         case MSG_LegacySceneMessage104_Opcode: return sizeof(MSG_LegacySceneMessage104);
         case MSG_MessageChat_Opcode: return sizeof(MSG_MessageChat);
+        case MSG_MessageIndexed_Opcode:
+        case MSG_MessageParameterized_Opcode: return kIndexedMessagePacketSize;
         default: return 0;
         }
     }

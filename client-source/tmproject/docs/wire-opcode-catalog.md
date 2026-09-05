@@ -35,6 +35,11 @@ proprios de `internal/wire`, reexportados por Basedef. A validacao usa o
 comprimento real da view, Size e Type do header; os callbacks mantem o buffer
 original emprestado. Demais opcodes ainda dependem de seus consumidores.
 
+As extensoes coordenadas `0x105/0x106` tambem validam 108 bytes nesta entrada.
+`IndexedMessageContract.h` possui seus opcodes e referencia o envelope de
+chat, sem duplicar a struct. ID, seletor, indice e CSV continuam no parser da
+cena; nao constituem paridade com mensagens nativas.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

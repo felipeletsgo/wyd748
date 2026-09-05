@@ -18,6 +18,7 @@
 #include "../wire/SendItemContract.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
+#include "../wire/IndexedMessageContract.h"
 
 // Basedef permanece como fachada de compatibilidade. Os tipos abaixo são
 // consumidos por cenas, UI, entidades e transporte; qualquer alteração de
@@ -1086,10 +1087,7 @@ struct MSG_Encode
 	int Parm[42];
 };
 
-// Coordinated source/server extension. Stock 7.48 does not dispatch these
-// opcodes; they deliberately reuse only the proven 108-byte chat envelope.
-constexpr auto MSG_MessageIndexed_Opcode = 0x105;
-constexpr auto MSG_MessageParameterized_Opcode = 0x106;
+
 
 
 constexpr auto MSG_UpdateScore_Opcode = 0x336;

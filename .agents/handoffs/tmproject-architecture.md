@@ -465,3 +465,28 @@ Release instalado/artefato com SHA-256 identico:
 Nao CLIENT_TESTED; chat entre dois clientes e fallback de party sem humano
 materializado continuam pendentes. Proximo contrato: avaliar as extensoes
 0x105/0x106 usando sua ficha coordenada, antes de ampliar o gate.
+
+## Fase 2 — avisos coordenados 0x105/0x106
+
+IndexedMessageContract.h possui os opcodes e o comprimento de 108 bytes,
+reutilizando MSG_MessageChat sem nova struct. Basedef reexporta; o gate
+ReceivedPacketDispatch agora rejeita comprimento real/declarado ou Type/opcode
+divergentes antes de TMScene. ID/seletor/indice/CSV continuam no parser existente;
+nao foi introduzida validacao semantica global nem alterada a UI.
+
+Modo MODERNIZACAO_COMPATIVEL de contrato EXTENSAO_COORDENADA existente.
+Ficha ui/indexed-parameterized-message-extension.md reutilizada sem promover
+UNMAPPED: nao existe claim de equivalente nativo. Source, builders Go e testes
+UTILIZADOS; fronteira nativa documentada reutilizada; assets NAO APLICAVEIS
+ao delta. A compilacao nao comprova exibicao dos avisos ou fallback.
+
+Debug/Release Build-Client.ps1 PASS com 1134 checks/asserts cada. Fixtures
+108 bytes com -938/CSV cobrem prefixos, excesso, nulo, discriminantes, entrega
+unica e preservacao de bytes. Go: go test ./internal/wire -run
+'Indexed|Parameterized' -count=1 PASS. PROJECT_PATHS_OK e diff --check PASS.
+Release instalado/artefato conferidos com hash identico:
+`98AE6DB6267F87157E31457FE06928F3C870F6A980707B139790FF6C96260428`.
+Nao CLIENT_TESTED. Restam convite de grupo, compra sem gold, indices vazios,
+zero/seis parametros e relogin no jogo. Proximo corte da fase 2: localizar
+contrato fechado para outro opcode; nao presumir todos os envelopes de 108
+bytes equivalentes ao chat.
