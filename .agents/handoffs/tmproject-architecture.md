@@ -174,3 +174,18 @@ e `git diff --check` PASS. Release candidato atual:
 Não CLIENT-TESTED; nenhum callback legado além dos contratos migrados foi
 alterado. Próximo passo: revisar o handler `MSG_SendItem` na cena e o limite
 de `DestPos` observado no fluxo real antes de migrar outro opcode.
+
+## Corte seguinte — destinos de SendItem no mundo
+
+Consumidor localizado em TMHuman::OnPacketSendItem (nao TMFieldScene).
+Ghidra 0052EAA9 -> 0052A737 confirma filtro de ID e atualizacao local.
+Implementados guards de destino Equip/Carry/Cargo pela capacidade real antes
+das copias/efeitos e guard do characterSlot ao atualizar cache de selecao.
+Sem remover slots extras ou mudar UI valida. Ficha propria agora em
+`flows/ui/send-item-local-update.md`; exports de selecao e campo versionados.
+Debug/Release passaram, 232 checks existentes; Release instalado
+`5D1743014D80B9E34FEBE61CA8A3ADC34327363388A6841DCFA25C5C88A830AE`.
+Nao CLIENT-TESTED; teste runtime dos guards de TMHuman continua pendente.
+Proximo ponto concreto: ramo cargo em OnPacketSendItem ignora retorno de
+PickupAtItem, diferente de Carry/Equip. Seguir ownership/cursor no nativo
+0052A737 e SGrid antes de decidir descarte do item visual.

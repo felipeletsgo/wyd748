@@ -4228,13 +4228,24 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 
     TMFieldScene* pFScene{};
 
+    // O tamanho do frame e validado na entrada do ObjectManager. Aqui a
+    // capacidade dos arrays locais decide os indices antes de qualquer copia
+    // ou efeito visual. Slots adicionais da source continuam preservados.
+    auto pMobData = &g_pObjectManager->m_stMobData;
+    const int destination = pSendItem->DestPos;
+    if ((pSendItem->DestType == 0 &&
+         (destination < 0 || destination >= static_cast<int>(sizeof(pMobData->Equip) / sizeof(pMobData->Equip[0])))) ||
+        (pSendItem->DestType == 1 &&
+         (destination < 0 || destination >= static_cast<int>(sizeof(pMobData->Carry) / sizeof(pMobData->Carry[0])))) ||
+        (pSendItem->DestType == 2 &&
+         (destination < 0 || destination >= static_cast<int>(sizeof(g_pObjectManager->m_stItemCargo) / sizeof(g_pObjectManager->m_stItemCargo[0])))))
+        return 1;
+
     if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
         pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
     if (pFScene)
         pFScene->Bag_View();
-
-    auto pMobData = &g_pObjectManager->m_stMobData;
 
     if (pFScene && g_pCurrentScene->m_pMyHuman == this)
     {
@@ -4248,8 +4259,11 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 
             memcpy(&pMobData->Equip[pSendItem->DestPos], &pSendItem->Item, sizeof(STRUCT_ITEM));
 
-            if (pSendItem->DestPos)
-                memcpy(&g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][pSendItem->DestPos], &pSendItem->Item, sizeof(STRUCT_ITEM));
+            // O cache de selecao e auxiliar: um sentinela de personagem nao
+            // deve impedir a atualizacao autoritativa do equipamento no mundo.
+            const int characterSlot = g_pObjectManager->m_cCharacterSlot;
+            if (pSendItem->DestPos && characterSlot >= 0 && characterSlot < 4)
+                memcpy(&g_pObjectManager->m_stSelCharData.Equip[characterSlot][pSendItem->DestPos], &pSendItem->Item, sizeof(STRUCT_ITEM));
 
             SGridControl* pGridEquip[MAX_EQUIPITEM]{};
 
