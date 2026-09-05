@@ -45,10 +45,13 @@ O ramo Equip atualiza o cache de selecao quando DestPos !=0, antes dos grids.
 O export Ghidra confirma o caller direto 0052EAA9 -> 0052A737; receptores dos
 metodos virtuais de grids e teardown completo ainda precisam ser fechados.
 
-No ramo nativo de cargo, `0052A737` remove o controle visual da célula
-`DestPos % 9, DestPos / 9`, limpa o cursor quando necessário e só cria/adiciona
-um novo item quando `sIndex > 0`. A mesma ordem aparece nos ramos de Carry e
-Equip: retirar o antigo, limpar cursor, criar o novo e inserir na grid.
+No ramo nativo de cargo, `0052A737` chama a retirada na celula
+`DestPos % 9, DestPos / 9`, guarda o retorno em local_94 e so cria/adiciona
+um novo item quando `sIndex > 0`. Nao ha delete explicito de local_94 nesse
+ramo, ao contrario de Carry/Equip. Ao fim do bloco do humano local ha uma
+chamada virtual de cursor +0x98 se o attachment for nao nulo; sua semantica
+nao foi fechada aqui. O registro anterior que igualava esses cleanups estava
+incorreto: liberar o item retirado e uma correcao local, nao paridade provada.
 
 ## Estado e lifecycle
 
@@ -74,18 +77,13 @@ TMHuman::OnPacketSendItem agora rejeita indices negativos ou acima da capacidade
 real de Equip/Carry/Cargo antes de Bag_View/copias. O cache de selecao so e
 escrito com characterSlot em [0,4); ausencia desse cache nao impede atualizar
 equipamento do mundo. Slots extras locais de Equip sao mantidos.
-O ramo Cargo ainda usa `PickupAtItem` sem testar o retorno, como o nativo faz
-com seu receptor visual; essa decisao nao foi alterada sem prova do ownership
-dos grids atuais. A copia autoritativa do slot ocorre antes da consulta visual,
-preservando o estado mesmo quando a grid nao estiver materializada.
-
-O estudo de `0052A737` confirmou que o nativo tambem nao examina o retorno da
-remoção visual no ramo Cargo. Ele chama o slot de retirada, depois cria o item
-quando `sIndex > 0`; a ausência da grid não desfaz a cópia de estado. Portanto,
-o comportamento atual é uma modernização compatível deliberada, não uma falha
-identificada. O cursor é explicitamente limpo no ramo nativo quando aponta para
-o item removido; a source Carry/Equip já faz isso, enquanto Cargo ainda precisa
-de uma confirmação do contrato de `PickupAtItem` antes de receber mudança.
+Cargo captura e libera o retorno de PickupAtItem. A implementacao atual de
+SGrid.cpp remove o ponteiro da lista, ajusta ocupacao/escala e retorna ownership
+ao chamador; nao destroi o item nem limpa aliases de interacao. O destructor
+SGridControlItem libera recursos visuais/item, mas nao limpa os aliases globais.
+O caller Cargo agora zera hover, ultimo attachment, venda e cursor somente
+quando apontam para o item retirado, usando a politica ja existente em Empty.
+A copia de estado continua anterior a consulta visual; grid ausente nao a desfaz.
 
 ## Matriz de delta
 
@@ -107,7 +105,7 @@ Equip[16..17] por ausencia no nativo. Nenhuma mudanca wire, asset ou vtable.
 ## Lacunas
 
 - Exercitar rejeicao e atualizacao de Equip/Carry/Cargo no candidato real.
-- Fechar ownership do item removido por PickupAtItem no cargo e cursor.
+- Validar runtime os aliases de cursor/hover/venda apos substituicao no cargo.
 - Verificar as chamadas de OnPacketEvent fora da entrada size-aware.
 - Preservar e testar relogin, slots reservados e refresh visual.
 
@@ -124,5 +122,10 @@ STATICALLY VERIFIED para o novo corte. Nao CLIENT-TESTED.
 
 Atualizacao: Cargo captura agora o retorno de `PickupAtItem`, limpa o cursor
 quando ele aponta para o item removido e libera o objeto com `SAFE_DELETE`, em
-conformidade com o ownership nativo 0052A737. Release atual:
+correcao local baseada no ownership da source, sem claim de paridade. Release desse corte:
 `87F0FFCCFAC29E3950979515B864D6F9B77D7F4E930C894128E7DA76EFD323C6`.
+
+Complemento de aliases: Debug/Release passaram com os 232 checks existentes;
+eles nao exercitam hover/venda no jogo. Release instalado:
+`29485CB8C6570801C72C3F82D0B9BA944D16B09D74AF40638A2CEC6750353067`.
+STATICALLY VERIFIED; teste in-game pendente.

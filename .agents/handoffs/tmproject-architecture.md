@@ -225,3 +225,18 @@ contrato. `go test -count=1 ./...` PASS em todos os pacotes em 2026-09-05;
 `87F0FFCCFAC29E3950979515B864D6F9B77D7F4E930C894128E7DA76EFD323C6`.
 Proxima prioridade: executar o fluxo real SendItem/cursor/relogin; antes de
 outro corte funcional, escolher um novo contrato de recepcao com ficha nativa.
+
+## Correcao de evidencia e aliases Cargo
+
+Os registros anteriores que atribuiam a liberacao do visual Cargo ao nativo
+estavam incorretos: 0052A737 nao destroi local_94 explicitamente. A chamada
+final do cursor +0x98 ainda exige interpretacao. A liberacao implementada e
+correcao local baseada em PickupAtItem, que remove da lista e devolve ownership.
+Destructor de SGridControlItem nao limpa referencias de interacao. Cargo agora
+limpa tambem m_pLastMouseOverItem/m_pLastAttachedItem/m_pSellItem quando iguais
+ao removido, alem do cursor; politica igual a SGridControl::Empty.
+Debug/Release passaram, 232 checks existentes (nao teste de UI). Release:
+`29485CB8C6570801C72C3F82D0B9BA944D16B09D74AF40638A2CEC6750353067`.
+Proximo: testar confirmacao de venda/hover/cursor apos 0x182 no jogo. Claims
+nativos corrigidos na ficha send-item-local-update; nao repetir a inferencia
+de paridade. Ownership de Carry/Equip pode ter os mesmos aliases pendentes.

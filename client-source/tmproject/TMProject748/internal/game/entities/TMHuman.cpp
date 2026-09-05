@@ -4373,7 +4373,16 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
             // chamador. Liberar o visual antigo evita vazamento e limpar o
             // cursor evita uma referencia pendente ao item confirmado.
             SGridControlItem* pOldGridItem = pGrid->PickupAtItem(CellIndexX, CellIndexY);
-            if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pOldGridItem)
+            // Assim como SGridControl::Empty, invalidar todos os aliases de
+            // interacao antes da destruicao. O destructor nao limpa esses
+            // ponteiros globais; venda/hover podem ocorrer depois deste packet.
+            if (SGridControl::m_pLastMouseOverItem == pOldGridItem)
+                SGridControl::m_pLastMouseOverItem = nullptr;
+            if (SGridControl::m_pLastAttachedItem == pOldGridItem)
+                SGridControl::m_pLastAttachedItem = nullptr;
+            if (SGridControl::m_pSellItem == pOldGridItem)
+                SGridControl::m_pSellItem = nullptr;
+            if (g_pCursor && g_pCursor->m_pAttachedItem == pOldGridItem)
                 g_pCursor->m_pAttachedItem = nullptr;
             SAFE_DELETE(pOldGridItem);
 
