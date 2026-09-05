@@ -57,8 +57,25 @@ SGridControlItem* ActiveCarryItem(SGridControl** grids, int slot)
     const int page = native748 ? 0 : slot / 15;
     const int localSlot = native748 ? slot : slot % 15;
     const int columns = native748 ? 9 : 5;
-    auto* grid = ActiveCarryGrid(grids, page);
+auto* grid = ActiveCarryGrid(grids, page);
     return grid != nullptr ? grid->GetItem(localSlot % columns, localSlot / columns) : nullptr;
+}
+
+void AddOwnedMixItem(SGridControl* grid, STRUCT_ITEM* item)
+{
+    if (!grid)
+    {
+        SAFE_DELETE(item);
+        return;
+    }
+    auto controlItem = new SGridControlItem(nullptr, item, 0.0f, 0.0f);
+    if (controlItem)
+    {
+        if (!grid->AddItem(controlItem, 0, 0))
+            SAFE_DELETE(controlItem);
+    }
+    else
+        SAFE_DELETE(item);
 }
 }
 
@@ -669,7 +686,7 @@ void CItemMix::ClickInvItem(SGridControlItem* pItem, SGridControl** GridInvList,
                         newItem->stEffect[kh].sValue = pItem->m_pItem->stEffect[kh].sValue;
                     }
 
-                    m_pGridNeedItem[i]->AddItem(new SGridControlItem(nullptr, newItem, 0.0f, 0.0f), 0, 0);
+                    AddOwnedMixItem(m_pGridNeedItem[i], newItem);
 
                     for (int j = 0; j < ActiveCarryPageCount(); ++j)
                     {
@@ -727,7 +744,7 @@ void CItemMix::ClickInvItem(SGridControlItem* pItem, SGridControl** GridInvList,
                         newItem->stEffect[kh].sValue = pItem->m_pItem->stEffect[kh].sValue;
                     }
 
-                    m_pGridNeedItem[i]->AddItem(new SGridControlItem(nullptr, newItem, 0.0f, 0.0f), 0, 0);
+                    AddOwnedMixItem(m_pGridNeedItem[i], newItem);
 
                     for (int j = 0; j < ActiveCarryPageCount(); ++j)
                     {
@@ -800,7 +817,7 @@ void CItemMix::ClickInvItem(SGridControlItem* pItem, SGridControl** GridInvList,
                                 newItem->stEffect[kh].sValue = pItem->m_pItem->stEffect[kh].sValue;
                             }
 
-                            m_pGridNeedItem[i]->AddItem(new SGridControlItem(nullptr, newItem, 0.0f, 0.0f), 0, 0);
+                            AddOwnedMixItem(m_pGridNeedItem[i], newItem);
 
                             for (int j = 0; j < ActiveCarryPageCount(); ++j)
                             {
@@ -858,7 +875,7 @@ void CItemMix::ClickInvItem(SGridControlItem* pItem, SGridControl** GridInvList,
                         newItem->stEffect[kh].sValue = pItem->m_pItem->stEffect[kh].sValue;
                     }
 
-                    m_pGridNeedItem[i]->AddItem(new SGridControlItem(nullptr, newItem, 0.0f, 0.0f), 0, 0);
+                    AddOwnedMixItem(m_pGridNeedItem[i], newItem);
 
                     for (int j = 0; j < ActiveCarryPageCount(); ++j)
                     {
@@ -915,7 +932,7 @@ void CItemMix::ClickInvItem(SGridControlItem* pItem, SGridControl** GridInvList,
                 newItem->stEffect[kh].sValue = pItem->m_pItem->stEffect[kh].sValue;
             }
 
-            m_pGridNeedItem[i]->AddItem(new SGridControlItem(nullptr, newItem, 0.0f, 0.0f), 0, 0);
+            AddOwnedMixItem(m_pGridNeedItem[i], newItem);
 
             for (int j = 0; j < ActiveCarryPageCount(); ++j)
             {

@@ -356,3 +356,18 @@ passou com 496 checks/asserts e candidato instalado. SHA-256:
 `5ED255E897D8C0DABA6589A68B1E16FD209479C281C776DF00961EF01E0DEF39`.
 `git diff --check` PASS; nao CLIENT_TESTED. Os fluxos de `ClickInvItem` ainda
 possuem varios callers repetidos e ficam para o proximo corte isolado.
+
+## Retomada — callers repetidos de ClickInvItem (2026-09-05)
+
+Os cinco callers de `ClickInvItem` que criavam `STRUCT_ITEM` e inseriam
+diretamente em `m_pGridNeedItem[i]` foram concentrados em `AddOwnedMixItem`.
+O helper preserva a grid como owner em sucesso e libera corretamente o
+controle ou o item em grid nula, falha de construcao ou rejeicao de `AddItem`.
+Nao houve mudanca na selecao de receita, efeitos ou contrato de inventario;
+delta local MODERNIZACAO_COMPATIVEL.
+
+Release passou pelo `Build-Client.ps1`, 496 checks/asserts PASS e candidato
+instalado. SHA-256: `9ECB13AAB6FF8DA45E9B5C98124CC6D6257C507EB623ED1228FC636EBD7F784D`.
+`git diff --check` PASS; nao CLIENT_TESTED. Permanecem apenas os callers
+legados de MrItemMix que criam visuais em outras rotinas de inicializacao,
+fora do fluxo ClickInvItem.
