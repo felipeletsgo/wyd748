@@ -128,6 +128,8 @@
     <ClInclude Include="internal\wire\CharacterLoginPacket.h" />
     <ClInclude Include="internal\wire\CharacterTransferPacket.h" />
     <ClInclude Include="internal\wire\ReceivedPacketDispatch.h" />
+    <ClInclude Include="internal\wire\SendItemContract.h" />
+    <ClInclude Include="internal\application\ApplyCargoSlot.h" />
     <ClInclude Include="internal\platform\windows\SocketTransport.h" />
     <ClInclude Include="internal\core\BasedefGlobals.h" />
     <ClInclude Include="internal\core\UiLayout.h" />

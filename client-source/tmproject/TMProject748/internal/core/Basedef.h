@@ -15,6 +15,7 @@
 #include "UiLayout.h"
 #include "../wire/CharacterLoginPacket.h"
 #include "../wire/CharacterTransferPacket.h"
+#include "../wire/SendItemContract.h"
 
 // Basedef permanece como fachada de compatibilidade. Os tipos abaixo são
 // consumidos por cenas, UI, entidades e transporte; qualquer alteração de
@@ -1030,7 +1031,6 @@ static_assert(sizeof(MSG_CNFRemoveServer) == 0x50, "WYD 7.48 remove-server packe
 static_assert(offsetof(MSG_CNFRemoveServer, AccountName) == 0x0C, "WYD 7.48 remove-server AccountName offset mismatch");
 static_assert(offsetof(MSG_CNFRemoveServer, TID) == 0x1C, "WYD 7.48 remove-server TID offset mismatch");
 
-constexpr auto MSG_SendItem_Opcode = 0x182;
 struct MSG_SendItem
 {
 	MSG_STANDARD Header;
@@ -1038,6 +1038,10 @@ struct MSG_SendItem
 	short DestPos;
 	STRUCT_ITEM Item;
 };
+static_assert(sizeof(MSG_SendItem) == kSendItemPacketSize, "SendItem envelope changed");
+static_assert(offsetof(MSG_SendItem, DestType) == 12, "SendItem destination type moved");
+static_assert(offsetof(MSG_SendItem, DestPos) == 14, "SendItem destination slot moved");
+static_assert(offsetof(MSG_SendItem, Item) == 16, "SendItem payload moved");
 
 constexpr auto MSG_UpdateEquip_Opcode = 0x36B;
 struct MSG_UpdateEquip

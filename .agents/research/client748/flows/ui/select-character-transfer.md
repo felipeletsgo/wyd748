@@ -164,3 +164,8 @@ AUTOMATED TESTED apenas para essa fronteira pura, nao lifecycle/UI/socket.
 Debug instalado: `06F932BFB88371297B517ACEF95E2105D5793FB4A92DB4B896365CF99234FA75`.
 Release instalado: `A256F702F9487AAD9E38DA2A0DA9EFBC57CB89C532CBC6B556A1ABFABE5DFC54`.
 XML/paths do projeto e filtros conferidos; ficha continua LOCATED.
+
+Validação incremental posterior em `ReceivedPacketDispatchTests.cpp` e
+`CargoSlotTests.cpp`: 232 checks C++ PASS em Debug/Release. `SendItem` tem
+ficha de contrato separada no handoff; esta ficha de transferência não muda
+de maturidade.

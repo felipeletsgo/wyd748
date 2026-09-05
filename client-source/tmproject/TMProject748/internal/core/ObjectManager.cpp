@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ObjectManager.h"
 #include "../wire/ReceivedPacketDispatch.h"
+#include "../application/ApplyCargoSlot.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 #include "TMFieldScene.h"
@@ -94,7 +95,7 @@ void ObjectManager::Finalize()
 
 void ObjectManager::OnPacketView(const PacketView& packet)
 {
-	// Valida o frame e o tamanho de 0xFAA enquanto o comprimento ainda existe.
+	// Valida os contratos de frame migrados enquanto o comprimento ainda existe.
 	// Mantem o percurso legado, inclusive consumo antecipado de MSG_SendItem.
 	// Eventos locais sem frame continuam entrando diretamente por OnPacketEvent.
 	received_packet::Dispatch(packet, [this](const PacketView& frame)
@@ -119,8 +120,10 @@ bool ObjectManager::HandleSelectCharacterItem(char* buf)
 		return false;
 
 	if (message->DestType == 2)
-		memcpy(&m_stItemCargo[message->DestPos], &message->Item, sizeof(message->Item));
+		ApplyCargoSlot(m_stItemCargo, message->DestPos, message->Item);
 
+	// Inclusive destino invalido permanece consumido: nao repassar este pacote
+	// aos filhos da selecao nem permitir uma segunda tentativa de atualizacao.
 	return true;
 }
 

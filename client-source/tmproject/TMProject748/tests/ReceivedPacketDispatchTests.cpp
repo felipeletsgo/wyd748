@@ -73,5 +73,31 @@ int RunReceivedPacketDispatchTests(int& checks)
         check(frame.data == bytes && frame.size == 12 && frame.opcode == 0x119,
             "outro opcode preserva view do percurso legado");
     }) && otherDelivered == 1, "opcode fora deste lote mantem fallback");
+    // Mesmo fixture de 24 bytes do encoder Go: ID=0x1234, cargo[127], item
+    // 0x1234 com seis bytes de efeitos. Nao depende da struct de Basedef.
+    char sendItem[25] = {24, 0, 0, 0, static_cast<char>(0x82), 1, 0x34, 0x12,
+        0, 0, 0, 0, 2, 0, 127, 0, 0x34, 0x12, 1, 2, 3, 4, 5, 6, 0};
+    int itemDelivered = 0;
+    const auto receiveItem = [&](const PacketView& frame) {
+        ++itemDelivered;
+        check(frame.data == sendItem && frame.size == 24 && frame.opcode == 0x182,
+            "SendItem valido conserva frame e entrega unica");
+    };
+    for (std::size_t size = 0; size < 24; ++size)
+        check(!received_packet::Dispatch({0x182, sendItem, size}, receiveItem),
+            "SendItem truncado rejeitado antes da copia");
+    check(!received_packet::Dispatch({0x182, sendItem, 25}, receiveItem),
+        "SendItem excedente rejeitado");
+    check(!received_packet::Dispatch({0xFAA, sendItem, 24}, receiveItem),
+        "contratos conhecidos nao podem trocar metadados");
+    check(!received_packet::Dispatch({0x119, sendItem, 24}, receiveItem),
+        "metadado desconhecido nao contorna Type SendItem");
+    sendItem[0] = 23;
+    check(!received_packet::Dispatch({0x182, sendItem, 24}, receiveItem),
+        "SendItem rejeita Size declarado divergente");
+    sendItem[0] = 24;
+    check(itemDelivered == 0, "SendItem invalido nao chama consumidor");
+    check(received_packet::Dispatch({0x182, sendItem, 24}, receiveItem) && itemDelivered == 1,
+        "SendItem exato entregue sem retry");
     return failures;
 }

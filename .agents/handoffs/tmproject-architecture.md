@@ -152,3 +152,25 @@ invalido. Nao repetir autenticacao sem mudanca desse input; trabalho local segue
 Proximo contrato: MSG_SendItem interceptado antes da arvore em
 HandleSelectCharacterItem. Conferir tamanho nativo/offsets e DestPos antes de
 ampliar o gate; nao inferir seguranca dos demais payloads pela validacao 0xFAA.
+
+## Corte seguinte — contrato SendItem no baú da seleção
+
+Ghidra confirmou `FUN_004B263E` como dispatcher da árvore e o ramo especial
+`0x182`: com cena/estado compatíveis e `DestType==2`, copia exatamente 8 bytes
+do item em `param+0x10` para `cargo+0x2EC + DestPos*8`; gate nativo
+`FUN_0055890A` confirma 0x182/0x18 (24 bytes). O export está em
+`exports/select-character-cargo-update.tsv`, hash nativo mantido.
+
+Implementado `wire/SendItemContract.h` (opcode/tamanho), asserts na struct
+legada, `wire/ReceivedPacketDispatch.h` agora valida também `0x182` antes do
+callback e `application/ApplyCargoSlot.h` limita o índice à capacidade física
+128 sem alterar o limite de uso 120. `HandleSelectCharacterItem` usa a função
+pura; destino inválido é consumido sem escrita nem segundo dispatch. Go mantém
+o mesmo builder/contrato e recebeu teste round-trip com `FinishPacket`/`ReadPacket`.
+Testes C++: 232 checks PASS Debug/Release; Go `go test ./internal/wire`
+selecionado e suíte wire PASS; `go vet ./internal/wire` PASS; PROJECT_PATHS_OK
+e `git diff --check` PASS. Release candidato atual:
+`377E573AD765DCD56EF1A7058A055EF2A27A9CFDB9C0B68EF9A6ED9D08B765F`.
+Não CLIENT-TESTED; nenhum callback legado além dos contratos migrados foi
+alterado. Próximo passo: revisar o handler `MSG_SendItem` na cena e o limite
+de `DestPos` observado no fluxo real antes de migrar outro opcode.

@@ -1,14 +1,26 @@
 #pragma once
 
 #include "CharacterTransferPacket.h"
+#include "SendItemContract.h"
 #include "../application/ports/PacketDispatch.h"
 #include <cstring>
 
 // Fronteira incremental entre frame de transporte e callbacks legados.
-// Somente 0xFAA possui validacao especifica aqui; outros opcodes continuam
+// Somente 0xFAA e 0x182 possuem validacao especifica aqui; outros opcodes continuam
 // sujeitos aos seus consumidores. Eventos locais nao passam por esta entrada.
 namespace received_packet
 {
+    // Zero identifica contrato ainda nao migrado; nunca significa frame vazio.
+    inline std::size_t ExpectedSize(unsigned int opcode)
+    {
+        switch (opcode)
+        {
+        case MSG_ReqTransper_Opcode: return sizeof(MSG_ReqTransper);
+        case MSG_SendItem_Opcode: return kSendItemPacketSize;
+        default: return 0;
+        }
+    }
+
     inline bool CanDispatch(const PacketView& packet)
     {
         if (!packet_dispatch::CanDispatch(packet, sizeof(MSG_STANDARD)))
@@ -18,14 +30,13 @@ namespace received_packet
         // para inspecao; nunca escrever nem copiar o payload dos handlers.
         MSG_STANDARD header{};
         std::memcpy(&header, packet.data, sizeof(header));
-        if (header.Type == MSG_ReqTransper_Opcode || packet.opcode == MSG_ReqTransper_Opcode)
+        const auto expected = ExpectedSize(header.Type);
+        if (expected != 0 || ExpectedSize(packet.opcode) != 0)
         {
             // Usar ambos os discriminantes impede que metadados divergentes
             // contornem o guard: a cena antiga decide pelo Type do buffer.
-            return header.Type == MSG_ReqTransper_Opcode &&
-                packet.opcode == MSG_ReqTransper_Opcode &&
-                header.Size == sizeof(MSG_ReqTransper) &&
-                packet.size == sizeof(MSG_ReqTransper);
+            return packet.opcode == header.Type &&
+                header.Size == expected && packet.size == expected;
         }
         return true;
     }
