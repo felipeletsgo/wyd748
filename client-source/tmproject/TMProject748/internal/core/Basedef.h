@@ -40,6 +40,7 @@
 #include "../wire/KeepalivePingPacket.h"
 #include "../wire/ChangeCityPacket.h"
 #include "../wire/ReqTeleportPacket.h"
+#include "../wire/UseNPCPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
@@ -159,7 +160,6 @@ struct MSG_SendInfoPlay
 constexpr auto MSG_DeleteItem_Opcode = 0x2E4;
 constexpr auto MSG_SplitItem_Opcode = 0x2E5;
 constexpr auto MSG_InviteGuild_Opcode = 0x3D5;
-constexpr auto MSG_Quest_Opcode = 0x28B;
 constexpr auto MSG_AirMove_Start_Opcode = 0xAD9;
 struct MSG_STANDARDPARM2
 {

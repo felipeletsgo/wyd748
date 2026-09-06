@@ -20748,12 +20748,12 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	break;
 	case 13:
 	{
-		MSG_STANDARDPARM2 stParam{};
+		MSG_UseNPC stParam{};
 
-		stParam.Header.Type = MSG_Quest_Opcode;
+		stParam.Header.Type = MSG_UseNPC_Opcode;
 		stParam.Header.ID = m_pMyHuman->m_dwID;
-		stParam.Parm1 = m_pMessageBox->m_dwArg;
-		stParam.Parm2 = 0;
+		stParam.TargetID = m_pMessageBox->m_dwArg;
+		stParam.ClickOk = 0;
 
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 	}
@@ -20764,12 +20764,12 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	case 233:
 	case 58:
 	{
-		MSG_STANDARDPARM2 stParam{};
+		MSG_UseNPC stParam{};
 
-		stParam.Header.Type = MSG_Quest_Opcode;
+		stParam.Header.Type = MSG_UseNPC_Opcode;
 		stParam.Header.ID = m_pMyHuman->m_dwID;
-		stParam.Parm1 = m_pMessageBox->m_dwArg;
-		stParam.Parm2 = 1;
+		stParam.TargetID = m_pMessageBox->m_dwArg;
+		stParam.ClickOk = 1;
 
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 	}
@@ -20828,12 +20828,12 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		break;
 	case 51:
 	{
-		MSG_STANDARDPARM2 stQuest{};
+		MSG_UseNPC stQuest{};
 
-		stQuest.Header.Type = MSG_Quest_Opcode;
+		stQuest.Header.Type = MSG_UseNPC_Opcode;
 		stQuest.Header.ID = m_pMyHuman->m_dwID;
-		stQuest.Parm1 = m_pMessageBox->m_dwArg;
-		stQuest.Parm2 = 0;
+		stQuest.TargetID = m_pMessageBox->m_dwArg;
+		stQuest.ClickOk = 0;
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 		m_dwNPCClickTime = dwServerTime;
 	}
@@ -20916,12 +20916,12 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	case 271:
 	case 88:
 	{
-		MSG_STANDARDPARM2 stQuest{};
+		MSG_UseNPC stQuest{};
 
-		stQuest.Header.Type = MSG_Quest_Opcode;
+		stQuest.Header.Type = MSG_UseNPC_Opcode;
 		stQuest.Header.ID = m_pMyHuman->m_dwID;
-		stQuest.Parm1 = m_pMessageBox->m_dwArg;
-		stQuest.Parm2 = 0;
+		stQuest.TargetID = m_pMessageBox->m_dwArg;
+		stQuest.ClickOk = 0;
 
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 	}
@@ -29822,12 +29822,12 @@ int TMFieldScene::MouseClick_SkillMasterNPC(unsigned int dwServerTime, TMHuman* 
 		m_pMessageBox->m_dwArg = pOver->m_dwID;
 		m_pMessageBox->SetVisible(1);
 
-		MSG_STANDARDPARM2 stQuest{};
+		MSG_UseNPC stQuest{};
 
-		stQuest.Header.Type = MSG_Quest_Opcode;
+		stQuest.Header.Type = MSG_UseNPC_Opcode;
 		stQuest.Header.ID = m_pMyHuman->m_dwID;
-		stQuest.Parm1 = pOver->m_dwID;
-		stQuest.Parm2 = 0;
+		stQuest.TargetID = pOver->m_dwID;
+		stQuest.ClickOk = 0;
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 
 		m_dwNPCClickTime = dwServerTime;
@@ -29969,11 +29969,11 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 		return 1;
 	}
 
-	MSG_STANDARDPARM2 stQuest{};
-	stQuest.Header.Type = MSG_Quest_Opcode;
+	MSG_UseNPC stQuest{};
+	stQuest.Header.Type = MSG_UseNPC_Opcode;
 	stQuest.Header.ID = m_pMyHuman->m_dwID;
-	stQuest.Parm1 = pOver->m_dwID;
-	stQuest.Parm2 = 0;
+	stQuest.TargetID = pOver->m_dwID;
+	stQuest.ClickOk = 0;
 	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 	m_dwNPCClickTime = dwServerTime;
 

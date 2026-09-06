@@ -106,6 +106,11 @@ posição e qualquer regra de cidade continuam autoritativas no servidor.
 reservado em `+12` zerado. O `case 16` da confirmação de portal mantém a gate
 de atributo `0x10`; destino, preço, gold e persistência continuam no servidor.
 
+`0x28B` usa UseNPCPacket.h: intenção C->S de 20 bytes, com `TargetID` em
+`+12` e `ClickOk` em `+16`. Os cliques e confirmações preservam os valores
+`0/1`; o servidor continua validando o NPC e o contexto antes de abrir qualquer
+feature.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

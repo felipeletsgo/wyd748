@@ -10,6 +10,7 @@
 #include "../internal/wire/KeepalivePingPacket.h"
 #include "../internal/wire/ChangeCityPacket.h"
 #include "../internal/wire/ReqTeleportPacket.h"
+#include "../internal/wire/UseNPCPacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -243,6 +244,21 @@ int main()
     check(offsetof(MSG_ReqTeleport, Reserved) == 12 && teleportBytes[13] == 0 &&
         teleportBytes[14] == 0 && teleportBytes[15] == 0,
         "ReqTeleport mantem o payload reservado no offset nativo");
+
+    MSG_UseNPC useNPC{};
+    useNPC.Header.Type = MSG_UseNPC_Opcode;
+    useNPC.Header.ID = 0x1234;
+    useNPC.TargetID = 0x5678;
+    useNPC.ClickOk = 1;
+    const auto* useNPCBytes = reinterpret_cast<const unsigned char*>(&useNPC);
+    check(sizeof(useNPC) == 20 && useNPCBytes[4] == 0x8B &&
+        useNPCBytes[5] == 0x02 && useNPCBytes[12] == 0x78 &&
+        useNPCBytes[13] == 0x56 && useNPCBytes[16] == 1,
+        "UseNPC preserva opcode, tamanho, alvo e confirmacao");
+    check(offsetof(MSG_UseNPC, TargetID) == 12 &&
+        offsetof(MSG_UseNPC, ClickOk) == 16 && useNPCBytes[17] == 0 &&
+        useNPCBytes[18] == 0 && useNPCBytes[19] == 0,
+        "UseNPC mantem os offsets nativos");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.

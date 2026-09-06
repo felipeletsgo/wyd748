@@ -1219,3 +1219,26 @@ passaram com 1934 checks/asserts; Debug instalou
 `B05A69DFE6D87964BFC8DD50B9EBE0879E23ED9339EE6939E8E879852C654415` e Release
 instalou `20E080DC44D40F5620B9A649D77976F29A85BD3357F7A9B459DC4FFBE33192BD`.
 Confirmação real do portal, recusa e relogin continuam sem `CLIENT_TESTED`.
+
+## Fase 2 — interação com NPC 0x28B
+
+`UseNPCPacket.h` agora concentra `MSG_UseNPC_Opcode` e o frame C->S de 20
+bytes, com `TargetID` em `+12` e `ClickOk` em `+16`. `Basedef.h` reexporta o
+tipo; os seis emissores de `TMFieldScene` preservam os valores nativos `0` e
+`1` para clique e confirmação.
+
+O export Ghidra focado `use-npc-flow.tsv` confirma `FUN_004640E5`, os grupos de
+eventos, os writes de `0x28B`, os campos, `FUN_0055F2DD` e o gate
+`FUN_0055890A` com tamanho `0x14`. O WYD-Go já exige 20 bytes e revalida NPC,
+alcance, visibilidade e allowlist.
+
+Fixture C++ cobre opcode, tamanho, offsets e `ClickOk`.
+
+`go test -count=1 ./...`, XML/caminhos e `git diff --check` passaram. O
+validador aceitou a ficha `CONTRACT` e manteve somente o erro preexistente de
+`send-item-local-update.md`. Debug/Release via `Build-Client.ps1 -Rebuild`
+passaram com 1936 checks/asserts; Debug instalou
+`A42850D9DEE871AAF6BED6268D7026EF58815DCE6EFACAED8BE734C36CB529DC` e Release
+instalou `C7406A06EAA5C8CCA2FEC7BC8726DC646E11512957DEE4F431D56F4F2BE01FFD`.
+Clique, confirmacao, recusa, troca de cena e relogin continuam sem
+`CLIENT_TESTED`.

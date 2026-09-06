@@ -18,6 +18,7 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Keepalive de sessão | tick por cena, header, fase e ausência de resposta | `CONTRACT` estreito | `transport/keepalive-ping.md` fecha somente o frame C->S `0x3A0`; timeouts gerais permanecem no fluxo de transporte |
 | Troca de cidade | calculo de vila, frame e atualizacao de HomeTown | `CONTRACT` estreito | `transport/change-city-request.md` fecha somente o frame C->S `0x291`; regras de posicao e cidade permanecem autoritativas no servidor |
 | Pedido de portal | confirmação da célula, frame e resolução server-side | `CONTRACT` estreito | `transport/req-teleport.md` fecha somente o frame C->S `0x290`; rota, cobrança e persistência permanecem autoritativas no servidor |
+| Interação com NPC | clique, confirmação, frame e allowlist server-side | `CONTRACT` estreito | `transport/use-npc-request.md` fecha somente o frame C->S `0x28B`; contexto e regras permanecem autoritativos no servidor |
 | Movimento | intenção, rota, predição local, stop, correção server-side | `UNMAPPED` | — |
 | Combate e skills | seleção, alcance, intenção, confirmação, efeitos, rejeição | `UNMAPPED` | — |
 | Character/Score/equipamento | create/update, score, equip, owner/observer, HUD | `UNMAPPED` | — |
