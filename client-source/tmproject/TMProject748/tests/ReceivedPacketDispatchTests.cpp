@@ -3,6 +3,7 @@
 #include "../internal/wire/TotoPurchasePacket.h"
 #include "../internal/wire/ApplyBonusPacket.h"
 #include "../internal/wire/UseItemPacket.h"
+#include "../internal/wire/PKModePacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -454,5 +455,13 @@ int RunReceivedPacketDispatchTests(int& checks)
         useItem.GridX == 8 && useItem.GridY == 6 && useItem.ItemID == 3377 &&
         useItem.Header.Type == 0x373 && useItem.Header.Size == 36,
         "UseItem preserva origem, celula, item e tamanho");
+    MSG_SetPKMode pk{};
+    pk.Header.Type = MSG_SetPKMode_Opcode;
+    pk.Header.Size = sizeof(pk);
+    pk.Header.ID = 0x1234;
+    pk.Parm = 1;
+    check(sizeof(pk) == 16 && pk.Header.Type == 0x399 && pk.Header.Size == 16 &&
+        pk.Header.ID == 0x1234 && (pk.Parm == 0 || pk.Parm == 1),
+        "PK mode preserva identidade, dominio e tamanho");
     return failures;
 }

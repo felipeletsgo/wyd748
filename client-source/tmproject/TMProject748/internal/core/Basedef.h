@@ -26,6 +26,7 @@
 #include "../wire/TotoPurchasePacket.h"
 #include "../wire/ApplyBonusPacket.h"
 #include "../wire/UseItemPacket.h"
+#include "../wire/PKModePacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -123,12 +124,7 @@ constexpr auto MSG_RequestCapsuleInfo_Opcode = 0x2CD;
 constexpr auto MSG_DelayStart_Opcode = 0x3AE;
 constexpr auto MSG_UseDeclarationOfWar_Opcode = 0xED7;
 constexpr auto MSG_SysQuit_Opcode = 0x3AE;
-constexpr auto MSG_SetPKMode_Opcode = 0x399;
-struct MSG_STANDARDPARM
-{
-	MSG_STANDARD Header;
-	int Parm;
-};
+using MSG_STANDARDPARM = MSG_SetPKMode;
 struct MSG_Exp_MsgPanel
 {
 	MSG_STANDARD Header;

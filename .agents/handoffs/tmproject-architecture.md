@@ -764,3 +764,26 @@ somente catálogo e handoff foram atualizados. Estado permanece o build Release
 anterior, `23973BDDC1417D1A172812F4F8422DEFFE70E053AF9FAA45F356E909D79931B2`.
 Nao CLIENT_TESTED; tecla F, match, cooldown, rejeição e relogin continuam
 pendentes. Proximo corte deve escolher outra ficha que exija código novo.
+
+## Fase 2 — alternância PK 0x399
+
+PKModePacket.h agora possui MSG_SetPKMode e asserts do wire nativo: 16 bytes,
+Parm +12, domínio 0/1. Basedef reexporta e `TMFieldScene::SetPK` continua
+alternando estado, protegendo controles opcionais e enviando o mesmo packet.
+O servidor mantém a aplicação autoritativa em Player.PKMode e os gates de
+ataque, skill e summon; nenhum combate foi alterado neste corte.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire/toggle; EXTENSAO_COORDENADA para o
+gate server-side já existente. Ficha ui/pk-mode-toggle-lifecycle.md reutilizada:
+Ghidra FUN_0044ECAE confirma callers, controle opcional e 0x399/16. Source,
+Go e testes UTILIZADOS; assets NAO APLICAVEIS. Nenhum controle ou exceção de
+guerra novo foi criado.
+
+Debug/Release Build-Client.ps1 PASS, 1558 checks/asserts cada. Fixture C++
+confirma identidade, domínio, opcode e tamanho; `go test ./internal/game
+-run 'PK|SummonRequiresPKMode|Attack.*PK' -count=1` e `go test ./internal/wire
+-count=1` PASS. PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado
+com SHA-256 `9BEC5B083E52865F799E39AFFAE3878D7209C67238B2F6219900D40E657F2DE3`.
+Nao CLIENT_TESTED; toggle, ataques PvP/PvE, summon, desconexao e relogin real
+continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT com codigo
+novo, sem repetir PK ou UseItem.

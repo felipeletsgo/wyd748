@@ -92,6 +92,10 @@ normalizada, destinos zerados, GridX/GridY atuais e ItemID=0. A seleção do
 consumível compatível com Equip[12] e o cooldown pertencem à Field; o wire é
 compartilhado com a poção E e não ganha uma segunda struct.
 
+`0x399` (PK Mode, 16 bytes) usa PKModePacket.h: `Parm` em +12, domínio
+válido `0/1`. O servidor publica `PKInfo` e aplica o estado antes de PvP;
+controle opcional ausente não altera o wire nem interrompe o toggle.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;
