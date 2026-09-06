@@ -12,6 +12,7 @@
 #include "MobKillConfirmPacket.h"
 #include "UpdateEtcPacket.h"
 #include "DelayStartPacket.h"
+#include "BillingNoticePacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "../application/ports/PacketDispatch.h"
@@ -43,6 +44,7 @@ namespace received_packet
         case MSG_CNFMobKill_Opcode: return sizeof(MSG_CNFMobKill);
         case MSG_UpdateEtc_Opcode: return sizeof(MSG_UpdateEtc);
         case MSG_DelayStart_Opcode: return sizeof(MSG_DelayStart);
+        case MSG_BillingNotice_Opcode: return sizeof(MSG_BillingNotice);
         default: return 0;
         }
     }

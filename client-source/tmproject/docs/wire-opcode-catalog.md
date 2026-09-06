@@ -61,6 +61,10 @@ enumera esse opcode, portanto a
 validacao S->C de 16 bytes documenta a resposta coordenada do WYD-Go e preserva
 o callback existente, sem ampliar o claim nativo.
 
+`0x194` usa BillingNoticePacket.h: frame S->C de 16 bytes, com quatro bytes de
+payload opaco. O client marca billing e mostra a mensagem localizada 132; não
+há emissor ou regra de cobrança no WYD-Go.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

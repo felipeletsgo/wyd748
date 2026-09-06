@@ -1122,6 +1122,9 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 
 	if (pStd->Type == MSG_BillingNotice_Opcode)
 	{
+		if (pStd->Size != sizeof(MSG_BillingNotice))
+			return 1;
+
 		g_pObjectManager->m_bBilling = 1;
 		if (m_pMessageBox)
 		{

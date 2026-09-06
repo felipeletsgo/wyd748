@@ -29,6 +29,7 @@
 #include "../wire/UseItemPacket.h"
 #include "../wire/PKModePacket.h"
 #include "../wire/DelayStartPacket.h"
+#include "../wire/BillingNoticePacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
@@ -1004,10 +1005,6 @@ struct MSG_UpdateScore
 	int ReqMp;
 	char LearnedSkill;
 };
-
-// Header-only notification consumed by the base scene. Native 7.48 checks
-// the opcode and does not read a payload.
-constexpr auto MSG_BillingNotice_Opcode = 0x194;
 
 // Server-to-client playtime notification. Its payload is the canonical
 // MSG_STANDARDPARM::Parm value expressed in seconds.

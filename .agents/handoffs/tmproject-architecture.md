@@ -953,3 +953,26 @@ PASS. PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado com SHA-256
 Nao CLIENT_TESTED; System 633..635, portal, resposta, fechamento, falha de save
 e relogin reais continuam pendentes. Proximo corte deve seguir outra ficha
 CONTRACT sem repetir 0x3AE ou contratos anteriores.
+
+## Fase 2 — notificação de billing 0x194
+
+BillingNoticePacket.h agora concentra o contrato S->C de 16 bytes: opcode
+0x194, MSG_STANDARD de 12 bytes e quatro bytes de payload opaco. Basedef
+reexporta; ReceivedPacketDispatch valida frame real/declarado e Type/opcode;
+TMScene::OnPacketEvent rejeita tamanho divergente antes de marcar billing e
+preserva a mensagem localizada 132 para o frame válido.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire e consumo local. A ficha
+ui/billing-notice.md reutiliza `FUN_0055890A` (0x194/16) e `FUN_0049889A`
+(estado billing, MessageBox e payload não lido). WYD-Go e assets são
+NAO APLICAVEIS: não foi criado emissor ou regra de cobrança.
+
+Debug/Release Build-Client.ps1 PASS, 1761 checks/asserts cada. Fixture C++
+cobre truncamento, excesso, nulo, Type/Size divergentes, entrega única,
+payload opaco e preservação do buffer. PROJECT_PATHS_OK e `git diff --check`
+PASS. Release instalado com SHA-256
+`D7A487FD78CB838FA1867584A2C2C67476DAA3FF5927700D3D9CE1DBA28C2841`.
+
+Nao CLIENT_TESTED; billing válido/recusado, MessageBox, troca de cena e
+relogin reais continuam pendentes. Proximo corte deve seguir outra ficha
+CONTRACT sem repetir 0x194, 0x3AE ou contratos anteriores.

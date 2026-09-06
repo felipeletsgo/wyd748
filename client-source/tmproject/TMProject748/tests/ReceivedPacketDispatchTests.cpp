@@ -11,6 +11,7 @@
 #include "../internal/wire/UpdateEtcPacket.h"
 #include "../internal/wire/MessagePanelPacket.h"
 #include "../internal/wire/DelayStartPacket.h"
+#include "../internal/wire/BillingNoticePacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -509,6 +510,45 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(sizeof(sysQuit) == 16 && sysQuit.Header.Type == 0x3AE && sysQuit.Parm == 0,
         "SysQuit compartilha ABI e preserva Parm zero");
     check(delayStart == delayBefore, "gate preserva todos os bytes de DelayStart");
+    std::array<char, 17> billing{};
+    billing[0] = 16;
+    billing[4] = static_cast<char>(0x94);
+    billing[5] = 1;
+    billing[12] = static_cast<char>(0xA5);
+    billing[13] = static_cast<char>(0x5A);
+    const auto billingBefore = billing;
+    int billingCalls = 0;
+    const auto receiveBilling = [&](const PacketView& view) {
+        ++billingCalls;
+        check(view.data == billing.data() && view.size == 16 && view.opcode == 0x194,
+            "BillingNotice preserva frame opaco de 16 bytes");
+    };
+    for (std::size_t n = 0; n < 16; ++n)
+        check(!received_packet::Dispatch({0x194, billing.data(), n}, receiveBilling),
+            "BillingNotice truncado rejeitado");
+    check(!received_packet::Dispatch({0x194, billing.data(), 17}, receiveBilling),
+        "BillingNotice excedente rejeitado");
+    check(!received_packet::Dispatch({0x194, nullptr, 16}, receiveBilling),
+        "BillingNotice nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, billing.data(), 16}, receiveBilling),
+        "Type BillingNotice nao pode ser ocultado");
+    billing[4] = 0x19;
+    check(!received_packet::Dispatch({0x194, billing.data(), 16}, receiveBilling),
+        "Type BillingNotice divergente rejeitado");
+    billing[4] = static_cast<char>(0x94);
+    billing[0] = 15;
+    check(!received_packet::Dispatch({0x194, billing.data(), 16}, receiveBilling),
+        "Size BillingNotice divergente rejeitado");
+    billing[0] = 16;
+    check(billingCalls == 0, "BillingNotice invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({0x194, billing.data(), 16}, receiveBilling) && billingCalls == 1,
+        "BillingNotice valido entregue uma vez");
+    MSG_BillingNotice decodedBilling{};
+    std::memcpy(&decodedBilling, billing.data(), sizeof(decodedBilling));
+    check(decodedBilling.Header.Type == 0x194 && decodedBilling.OpaquePayload[0] == 0xA5 &&
+        decodedBilling.OpaquePayload[1] == 0x5A,
+        "BillingNotice preserva opcode e payload opaco");
+    check(billing == billingBefore, "gate preserva todos os bytes de BillingNotice");
     MSG_BuyToto toto{};
     toto.Header.Type = MSG_BuyToto_Opcode;
     toto.Header.Size = sizeof(toto);
