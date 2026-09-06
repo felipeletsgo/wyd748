@@ -20804,10 +20804,10 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	}
 	case 60:
 	{
-		MSG_STANDARDPARM2 stParam{};
+		MSG_ChallengeConfirm stParam{};
 
 		stParam.Header.ID = g_pObjectManager->m_dwCharID;
-		stParam.Header.Type = 655;
+		stParam.Header.Type = MSG_ChallengeConfirm_Opcode;
 		stParam.Parm1 = m_dwTID;
 		stParam.Parm2 = 0;
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});

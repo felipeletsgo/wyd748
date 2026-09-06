@@ -12,6 +12,7 @@
 #include "../internal/wire/ReqTeleportPacket.h"
 #include "../internal/wire/UseNPCPacket.h"
 #include "../internal/wire/GuildDeprivatePacket.h"
+#include "../internal/wire/ChallengeConfirmPacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -273,6 +274,21 @@ int main()
     check(offsetof(MSG_GuildDeprivate, TargetID) == 12 && guildDeprivateBytes[14] == 0 &&
         guildDeprivateBytes[15] == 0,
         "GuildDeprivate mantem o alvo no offset nativo");
+
+    MSG_ChallengeConfirm challengeConfirm{};
+    challengeConfirm.Header.Type = MSG_ChallengeConfirm_Opcode;
+    challengeConfirm.Header.ID = 0x1234;
+    challengeConfirm.Parm1 = 0x5678;
+    challengeConfirm.Parm2 = 0;
+    const auto* challengeConfirmBytes = reinterpret_cast<const unsigned char*>(&challengeConfirm);
+    check(sizeof(challengeConfirm) == 20 && challengeConfirmBytes[4] == 0x8F &&
+        challengeConfirmBytes[5] == 0x02 && challengeConfirmBytes[12] == 0x78 &&
+        challengeConfirmBytes[13] == 0x56 && challengeConfirm.Parm2 == 0,
+        "ChallengeConfirm preserva opcode, tamanho, Parm1 e Parm2 nativo");
+    check(offsetof(MSG_ChallengeConfirm, Parm1) == 12 &&
+        offsetof(MSG_ChallengeConfirm, Parm2) == 16 && challengeConfirmBytes[17] == 0 &&
+        challengeConfirmBytes[18] == 0 && challengeConfirmBytes[19] == 0,
+        "ChallengeConfirm mantem os offsets nativos");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.

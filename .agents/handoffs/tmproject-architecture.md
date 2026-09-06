@@ -1262,3 +1262,27 @@ passaram com 1938 checks/asserts; Debug instalou
 `1B0E1110AFFFE07170A9D5F5F10694700240C9981F18388F19723EF782E6CC4` e Release
 instalou `AAF0E76E08254C980856BBFDE84EDFEAF6B43FBAA365EB4E065856B403E14CE2`.
 Expuls?o real, rejei??o, troca de cena e relogin continuam sem `CLIENT_TESTED`.
+
+
+## Fase 2 ? confirma??o de disputa de zona 0x28F
+
+`ChallengeConfirmPacket.h` agora concentra `MSG_ChallengeConfirm_Opcode` e o
+frame C->S de 20 bytes, com `Parm1` em `+12` e `Parm2` em `+16`. `Basedef.h`
+reexporta o tipo; o caso `60` de `TMFieldScene::OnMsgBoxEvent` preserva
+`Parm1=m_dwTID` e `Parm2=0`, substituindo somente o literal decimal `655` e a
+fachada `MSG_STANDARDPARM2`.
+
+O export Ghidra focado `challenge-confirm-flow.tsv` confirma o estado nativo
+de confirma??o em `FUN_004662C5`, o buffer de 20 bytes, `Type=0x28F`, os dois
+par?metros, `FUN_0055F2DD` e o gate `FUN_0055890A` com tamanho `0x14`. O
+`0x28E` continua separado e pendente: sua emiss?o nativa completa ainda n?o
+foi localizada, portanto n?o foi alterada.
+
+Fixture C++ cobre opcode, tamanho, offsets e par?metros. `go test -count=1 ./...`,
+XML/caminhos e `git diff --check` passaram. O validador aceitou a ficha
+`CONTRACT` e manteve somente o erro preexistente de
+`send-item-local-update.md`. Debug/Release via `Build-Client.ps1 -Rebuild`
+passaram com 1940 checks/asserts; Debug instalou
+`9261463481EDCBF2946E93440723D2837DF17B362933638D74C5EA1161C95746` e Release
+instalou `0BC80774E9D9887796153B6A0383BC5966A59401253261FE254EFBAD9A2F2102`.
+Confirma??o real e relogin continuam sem `CLIENT_TESTED`.

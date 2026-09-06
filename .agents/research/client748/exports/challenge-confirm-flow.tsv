@@ -1,0 +1,10 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+function	004662c5	FUN_004662c5			unknown		undefined FUN_004662c5(void)
+state	004662c5	FUN_004662c5	004662c5	state=5	branch	challenge confirmation	selected zone challenge mode
+decomp_block	004662c5	FUN_004662c5	state=5		wire	0x28F	memset 20B; ID local; Parm1=state target; Parm2=current selection
+callee	004662c5	FUN_004662C5	00466900	0055f2dd	call	FUN_0055f2dd	throttle and send 20-byte frame
+function	0055890a	FUN_0055890a			unknown		undefined FUN_0055890a(void)
+validator_case	0055890a	FUN_0055890a	0055890a	0x28f	case	0x28f	expected size=0x14
+source_mapping	004662c5	FUN_004662c5			wire	TMFieldScene::OnMsgBoxEvent case 60	Parm1=m_dwTID, Parm2=0

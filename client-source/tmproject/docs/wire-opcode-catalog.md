@@ -115,6 +115,10 @@ feature.
 do membro em `+12`. O caso de confirmação da expulsão preserva o contrato e o
 servidor continua autoritativo para cargo, alvo e persistência.
 
+`0x28F` usa ChallengeConfirmPacket.h: confirmação C->S de 20 bytes, com
+`Parm1` em `+12` e `Parm2` em `+16`. O caso nativo de confirmação preserva
+`Parm1=m_dwTID` e `Parm2=0`; a regra da disputa continua no servidor.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para
