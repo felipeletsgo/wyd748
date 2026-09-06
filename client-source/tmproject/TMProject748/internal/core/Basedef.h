@@ -38,6 +38,7 @@
 #include "../wire/MissingEntityRequestPacket.h"
 #include "../wire/RestartRecallPacket.h"
 #include "../wire/KeepalivePingPacket.h"
+#include "../wire/ChangeCityPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"

@@ -16,6 +16,7 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Visibilidade e recuperação de entidades | referência antes do CreateMob, request, validação espacial e rematerialização | `CONTRACT` estreito | `transport/missing-entity-request.md` fecha somente o request C->S `0x369`; ciclo geral de visibilidade permanece aberto |
 | Morte e renascimento | death state, cooldown, recall, pedido e persistência | `CONTRACT` estreito | `transport/restart-recall-request.md` fecha somente o pedido C->S `0x289`; lifecycle completo permanece aberto |
 | Keepalive de sessão | tick por cena, header, fase e ausência de resposta | `CONTRACT` estreito | `transport/keepalive-ping.md` fecha somente o frame C->S `0x3A0`; timeouts gerais permanecem no fluxo de transporte |
+| Troca de cidade | calculo de vila, frame e atualizacao de HomeTown | `CONTRACT` estreito | `transport/change-city-request.md` fecha somente o frame C->S `0x291`; regras de posicao e cidade permanecem autoritativas no servidor |
 | Movimento | intenção, rota, predição local, stop, correção server-side | `UNMAPPED` | — |
 | Combate e skills | seleção, alcance, intenção, confirmação, efeitos, rejeição | `UNMAPPED` | — |
 | Character/Score/equipamento | create/update, score, equip, owner/observer, HUD | `UNMAPPED` | — |

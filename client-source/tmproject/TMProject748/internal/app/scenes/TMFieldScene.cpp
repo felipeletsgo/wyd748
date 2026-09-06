@@ -9661,12 +9661,12 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 
 				DS_SOUND_MANAGER::m_nMusicIndex = nMusicIndex;
 				
-				MSG_STANDARDPARM dst{};
+				MSG_ChangeCity dst{};
 				dst.Header.ID = g_pObjectManager->m_dwCharID;
-				dst.Header.Type = 0x291;
-				dst.Parm = BASE_GetVillage((int)m_pMyHuman->m_vecPosition.x, (int)m_pMyHuman->m_vecPosition.y);
+				dst.Header.Type = MSG_ChangeCity_Opcode;
+				dst.Village = BASE_GetVillage((int)m_pMyHuman->m_vecPosition.x, (int)m_pMyHuman->m_vecPosition.y);
 
-				if (dst.Parm < 4)
+				if (dst.Village < 4)
 				{
 					SendOneMessage((char*)&dst, 16);
 					g_pObjectManager->m_stSelCharData.HomeTownX[g_pObjectManager->m_cCharacterSlot] = (int)m_pMyHuman->m_vecPosition.x;
@@ -9874,13 +9874,13 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 			int nVillage = BASE_GetVillage((int)m_pMyHuman->m_vecPosition.x, (int)m_pMyHuman->m_vecPosition.y);
 			if (m_nVillage != nVillage)
 			{
-				MSG_STANDARDPARM stParam{};
+				MSG_ChangeCity stParam{};
 				stParam.Header.ID = g_pObjectManager->m_dwCharID;
-				stParam.Header.Type = 0x291;
-				stParam.Parm = BASE_GetVillage((int)m_pMyHuman->m_vecPosition.x, (int)m_pMyHuman->m_vecPosition.y);
+				stParam.Header.Type = MSG_ChangeCity_Opcode;
+				stParam.Village = BASE_GetVillage((int)m_pMyHuman->m_vecPosition.x, (int)m_pMyHuman->m_vecPosition.y);
 				m_nVillage = nVillage;
 
-				if (stParam.Parm < 4)
+				if (stParam.Village < 4)
 				{
 					SendOneMessage((char*)&stParam, 16);
 					g_pObjectManager->m_stSelCharData.HomeTownX[g_pObjectManager->m_cCharacterSlot] = (int)m_pMyHuman->m_vecPosition.x;

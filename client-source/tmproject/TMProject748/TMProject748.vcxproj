@@ -148,6 +148,7 @@
     <ClInclude Include="internal\wire\MissingEntityRequestPacket.h" />
     <ClInclude Include="internal\wire\RestartRecallPacket.h" />
     <ClInclude Include="internal\wire\KeepalivePingPacket.h" />
+    <ClInclude Include="internal\wire\ChangeCityPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkUsePacket.h" />
     <ClInclude Include="internal\wire\GamblePacket.h" />

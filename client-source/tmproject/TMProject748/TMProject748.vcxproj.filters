@@ -234,6 +234,9 @@
     <ClInclude Include="internal\wire\KeepalivePingPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\ChangeCityPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

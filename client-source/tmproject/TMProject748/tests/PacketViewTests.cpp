@@ -8,6 +8,7 @@
 #include "../internal/wire/MissingEntityRequestPacket.h"
 #include "../internal/wire/RestartRecallPacket.h"
 #include "../internal/wire/KeepalivePingPacket.h"
+#include "../internal/wire/ChangeCityPacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -216,6 +217,19 @@ int main()
     selectCharPing.Type = MSG_Ping_Opcode;
     check(selectCharPing.ID == 0 && sizeof(selectCharPing) == 12,
         "Keepalive SelectChar preserva ID zero e header puro");
+
+    MSG_ChangeCity changeCity{};
+    changeCity.Header.Type = MSG_ChangeCity_Opcode;
+    changeCity.Header.ID = 0x1234;
+    changeCity.Village = 3;
+    const auto* changeCityBytes = reinterpret_cast<const unsigned char*>(&changeCity);
+    check(sizeof(changeCity) == 16 && changeCityBytes[4] == 0x91 &&
+        changeCityBytes[5] == 0x02 && changeCityBytes[6] == 0x34 &&
+        changeCityBytes[7] == 0x12 && changeCityBytes[12] == 3,
+        "ChangeCity preserva opcode, tamanho, ID e village");
+    check(offsetof(MSG_ChangeCity, Village) == 12 && changeCityBytes[13] == 0 &&
+        changeCityBytes[14] == 0 && changeCityBytes[15] == 0,
+        "ChangeCity mantem Village DWORD no offset nativo");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.

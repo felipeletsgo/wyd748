@@ -1169,3 +1169,31 @@ PASS. Release instalado com SHA-256
 Nao CLIENT_TESTED; permanência real nas cenas, timeout, disconnect e relogin
 continuam pendentes. Próximo corte deve escolher outra ficha CONTRACT sem repetir
 `0x3A0`.
+
+
+## Fase 2 - pedido de troca de cidade 0x291
+
+`ChangeCityPacket.h` agora concentra `MSG_ChangeCity_Opcode` e o frame C->S de
+16 bytes, com `Village` int32 em `+12`. `Basedef.h` reexporta o tipo; os dois
+emissores de `TMFieldScene` preservam a condicao nativa `Village < 4`, o envio,
+a atualizacao de `HomeTownX/Y` e o marcador de vila.
+
+O export Ghidra focado `change-city-request-flow.tsv` (SHA-256
+`6C48347D35B3F33AF678BD9525090BF99029525FA8FFADB68EA52F4A740D5B18`) confirma
+`FUN_004776C3`, os writes de `0x291` em `0x00478B2B` e `0x00478F7A`, os envios
+`FUN_0055F2DD` em `0x00478B8A`/`0x00478FC7`, o caller do tick e o gate
+`FUN_0055890A` com tamanho `0x10`. O WYD-Go ja exigia 16 bytes e mantem o
+servidor autoritativo; nenhum dispatcher S->C foi adicionado.
+
+Fixture C++ cobre opcode, ID, tamanho, offset e bytes zerados. `go test
+-count=1 ./...`, XML/caminhos e `git diff --check` passaram. O validador aceitou
+a ficha `CONTRACT` e manteve somente o erro preexistente de
+`send-item-local-update.md`, fora deste corte. Debug/Release via
+`Build-Client.ps1 -Rebuild` passaram com 1932 checks/asserts; Debug instalou
+`A079B795B122FF113C94E7974A0F202E4123FAACB6CBBB5767A856898DE33117` e Release
+instalou `1D8C6077CA7B97D568FC998D8AF1F099EBA503C6695AC5F2AA4349060DA4FDA1`.
+O fluxo real de entrada/troca de cidade, troca de cena e relogin permanece sem
+`CLIENT_TESTED`.
+
+Proximo passo apos o gate: escolher outra ficha `CONTRACT` sem repetir `0x291`,
+ou executar os fluxos reais pendentes quando houver dois clients.

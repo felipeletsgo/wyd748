@@ -97,6 +97,11 @@ posição, score e cooldown continuam decididos pelo servidor.
 `MSG_STANDARD`. Field envia o ID local, SelectChar usa zero, e o servidor
 reconhece atividade sem produzir resposta.
 
+`0x291` usa ChangeCityPacket.h: intenção C->S de 16 bytes, com o índice de
+vila em `+12`. Os dois caminhos de `TMFieldScene` preservam a condição nativa
+`Village < 4`, atualizam HomeTown no mesmo fluxo e não enviam resposta; a
+posição e qualquer regra de cidade continuam autoritativas no servidor.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para
