@@ -601,3 +601,27 @@ Nao CLIENT_TESTED; menu System, espera de cinco segundos, persistencia e
 relogin real continuam pendentes. Proximo corte deve seguir a ficha de
 logout para o envio `0x215` ou confirmar outro contrato ja pesquisado, sem
 repetir o gate `0x116`.
+
+## Fase 2 — pedido de logout 0x215
+
+CharacterLogoutRequestPacket.h nomeia o contrato C->S de 12 bytes e opcode
+`0x215`, com static_assert; Basedef reexporta. O timer existente de cinco
+segundos em TMFieldScene::TimeDelay agora usa MSG_CharacterLogout em vez de
+literal, preservando ID local, Size e ordem de envio. O request nao foi
+adicionado ao gate S->C, por direcao e responsabilidade distintas.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire e timer; ficha
+lifecycle/character-logout-selectchar-relogin.md reutilizada: FUN_004776C3
+envia 0x215/12 apos a espera. Source e testes UTILIZADOS; Go e assets
+NAO APLICAVEIS ao client-only gate (builder Go ja existia em opcodes/codec).
+Nenhuma persistencia ou resposta foi inventada.
+
+Debug/Release Build-Client.ps1 PASS, 1402 checks/asserts cada. Teste puro
+confirma ID, opcode e Size do request; o gate de recepcao `0x116` continua
+cobrindo truncamento/divergencia. PROJECT_PATHS_OK e `git diff --check` PASS.
+Release instalado/artefato conferidos; SHA-256:
+`A4AAA41B38C3D7930D996B7AFA21F51278E7BC08F05ACFE57FCCE7DA1C61AD5D`.
+Nao CLIENT_TESTED; timer/menu, persistencia server-side, confirmacao e
+relogin real continuam pendentes. Proximo corte deve seguir a ficha de
+logout para `0x114`/relogin ou outro contrato já pesquisado, sem repetir
+`0x215`/`0x116`.

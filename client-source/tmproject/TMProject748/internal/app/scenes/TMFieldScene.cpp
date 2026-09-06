@@ -14619,9 +14619,9 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 	{
 		if (dwServerTime > m_dwLastLogout + 5000)
 		{
-			MSG_STANDARD stStandard{};
+			MSG_CharacterLogout stStandard{};
 			stStandard.ID = g_pObjectManager->m_dwCharID;
-			stStandard.Type = 0x215;
+			stStandard.Type = MSG_CharacterLogout_Opcode;
 			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stStandard)->Type, reinterpret_cast<char*>(&stStandard), sizeof(stStandard)});
 			m_dwLastLogout = 0;
 			return 1;

@@ -20,6 +20,7 @@
 #include "../wire/ChatMessagePacket.h"
 #include "../wire/WhisperMessagePacket.h"
 #include "../wire/CharacterLogoutConfirmPacket.h"
+#include "../wire/CharacterLogoutRequestPacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 

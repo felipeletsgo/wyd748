@@ -59,6 +59,11 @@ CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para
 SelectChar. O gate de recepcao nao altera essa autoridade nem a transicao.
 
+O pedido C->S `0x215` usa CharacterLogoutRequestPacket.h e o mesmo envelope
+de 12 bytes, mas fica fora de ReceivedPacketDispatch por ser direcao de
+saida. O timer de cinco segundos da FieldScene preenche o ID local e envia o
+request; o servidor decide persistencia e somente entao emite `0x116`.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

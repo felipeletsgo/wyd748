@@ -1,4 +1,5 @@
 #include "../internal/wire/ReceivedPacketDispatch.h"
+#include "../internal/wire/CharacterLogoutRequestPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -323,5 +324,12 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(received_packet::Dispatch({0x116, logout.data(), 12}, receiveLogout) && logoutCalls == 1,
         "logout valido entregue uma vez");
     check(logout == logoutBefore, "gate de logout preserva header e ID");
+    MSG_CharacterLogout request{};
+    request.ID = 0x1234;
+    request.Type = MSG_CharacterLogout_Opcode;
+    request.Size = sizeof(request);
+    check(sizeof(request) == 12 && request.ID == 0x1234 &&
+        request.Type == 0x215 && request.Size == 12,
+        "logout request C-S preserva ID, opcode e tamanho");
     return failures;
 }

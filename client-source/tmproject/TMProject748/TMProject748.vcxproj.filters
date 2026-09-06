@@ -183,6 +183,9 @@
     <ClInclude Include="internal\wire\CharacterLogoutConfirmPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\CharacterLogoutRequestPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\ServerMigrationPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

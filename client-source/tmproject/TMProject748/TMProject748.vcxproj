@@ -131,6 +131,7 @@
     <ClInclude Include="internal\wire\SendItemContract.h" />
     <ClInclude Include="internal\wire\WhisperMessagePacket.h" />
     <ClInclude Include="internal\wire\CharacterLogoutConfirmPacket.h" />
+    <ClInclude Include="internal\wire\CharacterLogoutRequestPacket.h" />
     <ClInclude Include="internal\wire\ServerMigrationPacket.h" />
     <ClInclude Include="internal\wire\IndexedMessageContract.h" />
     <ClInclude Include="internal\wire\ChatMessagePacket.h" />
