@@ -6,6 +6,7 @@
 #include "../internal/wire/CharacterLoginSender.h"
 #include "../internal/wire/PartyAcceptPacket.h"
 #include "../internal/wire/MissingEntityRequestPacket.h"
+#include "../internal/wire/RestartRecallPacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -192,6 +193,15 @@ int main()
         "MissingEntity preserva opcode, tamanho e MobID");
     check(missingEntityBytes[14] == 0 && missingEntityBytes[15] == 0,
         "MissingEntity zera WORD reservado");
+
+    MSG_STANDARD restartRecall{};
+    restartRecall.Type = MSG_Recall_Opcode;
+    restartRecall.ID = 0x1234;
+    const auto* restartRecallBytes = reinterpret_cast<const unsigned char*>(&restartRecall);
+    check(sizeof(restartRecall) == 12 && restartRecallBytes[4] == 0x89 &&
+        restartRecallBytes[5] == 0x02 && restartRecallBytes[6] == 0x34 &&
+        restartRecallBytes[7] == 0x12,
+        "RestartRecall preserva opcode, tamanho e ID");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.

@@ -146,6 +146,7 @@
     <ClInclude Include="internal\wire\PartyAcceptPacket.h" />
     <ClInclude Include="internal\wire\MotionPacket.h" />
     <ClInclude Include="internal\wire\MissingEntityRequestPacket.h" />
+    <ClInclude Include="internal\wire\RestartRecallPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkUsePacket.h" />
     <ClInclude Include="internal\wire\GamblePacket.h" />

@@ -9359,7 +9359,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	{
 		MSG_STANDARD stStandard;
 		stStandard.ID = g_pObjectManager->m_dwCharID;
-		stStandard.Type = 0x289;
+		stStandard.Type = MSG_Recall_Opcode;
 		SendOneMessage((char*)&stStandard, 12);
 		m_dwLastDeadTime = 0;
 	}

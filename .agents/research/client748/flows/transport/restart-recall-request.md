@@ -110,5 +110,8 @@ revalida morte, cooldown, espaço de gameplay e persistência.
 ## Validação
 - Pesquisa: export Ghidra read-only terminou sem `SCRIPT ERROR`, hash esperado e
   registros de função/caller/callee para os dois emissores e o gate.
-- Automação: pendente até a extração do header.
+- Automação: `go test -count=1 ./...` passou; Debug e Release via
+  `Build-Client.ps1` passaram com 1928 checks/asserts. A fixture cobre opcode,
+  tamanho e ID no header. Release instalado com SHA-256
+  `6EEB158C59829A8D65E41F8CE6962B62CBAB084B2AF56B9BAB32B1079D15F35E`.
 - Client real: não executado; não `CLIENT_TESTED`.

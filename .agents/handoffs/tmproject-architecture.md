@@ -1126,3 +1126,25 @@ candidato/Release PASS. Release instalado com SHA-256
 Nao CLIENT_TESTED; perda real de Action/Attack, rematerialização de mob/player,
 troca de cena e relogin continuam pendentes. Próximo corte deve escolher outra
 ficha CONTRACT sem repetir `0x369`.
+
+## Fase 2 — pedido de renascimento/recall 0x289
+
+A ficha transport/restart-recall-request.md fecha o frame C->S de 12 bytes. O
+export Ghidra `restart-recall-flow.tsv` confirma `FUN_00476006` e
+`FUN_004776C3` enviando `MSG_STANDARD` zerado com `Type=0x289`, enquanto
+`FUN_0055890A` exige tamanho 12. O hash 7.48 esperado e as relações de função
+foram conferidos em modo read-only.
+
+RestartRecallPacket.h agora concentra `MSG_Recall_Opcode` e a asserção do
+header; Basedef reexporta e o literal restante do caminho de morte usa o símbolo.
+Timers, flags, lifecycle e autoridade de renascimento não foram alterados. Não
+foi adicionado dispatcher S->C.
+
+`go test -count=1 ./...` PASS. Debug/Release Build-Client.ps1 PASS, 1928
+checks/asserts cada. XML/caminhos, `git diff --check` e hash candidato/Release
+PASS. Release instalado com SHA-256
+`6EEB158C59829A8D65E41F8CE6962B62CBAB084B2AF56B9BAB32B1079D15F35E`.
+
+Nao CLIENT_TESTED; morte, cooldown, recall, troca de cena e relogin reais
+continuam pendentes. Proximo corte deve escolher outra ficha CONTRACT sem
+repetir `0x289`.

@@ -36,6 +36,7 @@
 #include "../wire/PartyAcceptPacket.h"
 #include "../wire/MotionPacket.h"
 #include "../wire/MissingEntityRequestPacket.h"
+#include "../wire/RestartRecallPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
@@ -132,7 +133,6 @@ constexpr auto MAX_SUB_EFFECT_STRING_TABLE = 10;
 
 constexpr auto MAX_ITEM_PRICE_REPLACE = 100;
 
-constexpr auto MSG_Recall_Opcode = 0x289;
 constexpr auto MSG_Ping_Opcode = 0x3A0;
 constexpr auto MSG_RequestCapsuleInfo_Opcode = 0x2CD;
 constexpr auto MSG_UseDeclarationOfWar_Opcode = 0xED7;

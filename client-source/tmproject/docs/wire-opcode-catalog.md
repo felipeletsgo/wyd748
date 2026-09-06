@@ -89,6 +89,10 @@ emotes do jogador com ID autoritativo e mantém efeitos especiais no sentido S->
 short em `+12` e WORD reservado em `+14`. Action e Attack usam o mesmo tipo;
 o servidor limita a resposta à entidade visível, próxima e autorizada.
 
+`0x289` usa RestartRecallPacket.h: pedido C->S de 12 bytes formado somente por
+`MSG_STANDARD`. Os caminhos de morte e recall preservam seus timers; HP,
+posição, score e cooldown continuam decididos pelo servidor.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para
