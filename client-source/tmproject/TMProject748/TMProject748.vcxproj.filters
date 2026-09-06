@@ -219,6 +219,9 @@
     <ClInclude Include="internal\wire\PartyRequestPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\PartyAcceptPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

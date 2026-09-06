@@ -1046,3 +1046,29 @@ PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado com SHA-256
 Nao CLIENT_TESTED; convite válido/recusado, alcance, aceite, troca de cena e
 relogin reais continuam pendentes. Proximo corte Party pode extrair `0x3AB`,
 sem repetir `0x37D/0x37E/0x37F`.
+
+## Fase 2 — aceite Party 0x3AB
+
+PartyAcceptPacket.h agora concentra a intenção C->S de 32 bytes, com LeaderID
+short em +12, LeaderName[16] em +14 e WORD reservado em +30. Basedef reexporta
+o tipo; os dois emissores de TMFieldScene preservam o mesmo fluxo e não foi
+adicionada uma rota ao ReceivedPacketDispatch, pois não há evidência S->C.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire e aceite. A ficha
+ui/party-panel-layout-lifecycle.md reutiliza `FUN_004662C5` como construtor e
+emissor nativo; source, binário/Ghidra 7.48, WYD-Go e testes foram UTILIZADOS.
+Assets não participam do frame e W2PP, Secrets e Micronics permaneceram
+excluídos. O servidor continua revalidando líder, nome, convite e espaço.
+
+Debug/Release Build-Client.ps1 PASS, 1895 checks/asserts cada. A fixture C++
+cobre opcode, tamanho, LeaderID, LeaderName, terminador e WORD reservado sem
+criar um receptor. `go test ./internal/wire -run Party -count=1` e `go test
+./internal/game -run Party -count=1` PASS. PROJECT_XML_AND_PATHS_OK e
+`git diff --check` PASS. Release instalado com SHA-256
+`567F766C6A06E7A64C7AAB226079AEAAD1ABB98068697B0A32889995F8D92166`.
+O validador da pesquisa aceitou esta ficha e manteve somente o erro preexistente
+de `send-item-local-update.md`, fora deste corte.
+
+Nao CLIENT_TESTED; aceite por click e automático, rejeição, convite expirado,
+troca de cena e relogin reais continuam pendentes. Proximo corte deve seguir
+outra ficha CONTRACT sem repetir `0x37D/0x37E/0x37F/0x3AB`.

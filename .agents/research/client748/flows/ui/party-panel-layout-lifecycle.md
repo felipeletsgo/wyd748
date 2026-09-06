@@ -4,7 +4,7 @@ title: Layout e lifecycle do painel Party 7.48
 subsystem: ui-layout-party
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-02
+updated: 2026-09-06
 ---
 
 # Layout e lifecycle do painel Party 7.48
@@ -25,7 +25,7 @@ os controles nativos?
   `1863` e botão inferior `5742`.
 - Source atual: `TMFieldScene::InitializeCompatFieldScene`,
   `PositionCompatPartyPanel`, `SetVisibleParty`, `OnControlEvent` e handlers
-  Party em `client-source/tmproject/Projects/TMProject/TMFieldScene.cpp`.
+  Party em `client-source/tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp`.
 - Servidor: `internal/wire/opcodes.go`, `internal/wire/codec.go` e
   `internal/game/party.go`.
 
@@ -179,8 +179,10 @@ valida o frame antes de `OnPacketAddParty`. O mesmo gate exige 16 bytes para
 valor diferente de zero identifica o membro. `PartyRequestPacket.h` agora fixa
 `0x37F/44`, reutilizando
 `PARTY` em `+12` e posicionando `TargetID` int32 em `+40`; o gate precede
-`OnPacketREQParty` sem alterar a criação do convite. `0x3AB` permanece em
-contrato próprio.
+`OnPacketREQParty` sem alterar a criação do convite. `PartyAcceptPacket.h` fixa
+a intenção C->S `0x3AB/32`, com `LeaderID` short em `+12`, `LeaderName[16]` em
+`+14` e WORD reservado em `+30`; os dois emissores existentes permanecem sem
+mudança semântica. Não há evidência de rota S->C.
 
 ## Mapeamento atual
 
@@ -212,7 +214,7 @@ intenções.
 | packet Party Add | `0x37D/40B` | `PartyAddPacket.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
 | packet Party Remove | `0x37E/16B` | `PartyRemovePacket.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
 | packet Party Request | `0x37F/44B` | `PartyRequestPacket.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
-| confirmação Party | `0x3AB` | preservada | compatível | implementada | corte separado |
+| confirmação Party | `0x3AB/32B`, C->S | `PartyAcceptPacket.h` | compatível | implementada e revalidada | `PARIDADE_NATIVA/CONTRACT` |
 | AutoParty moderno | fora deste claim nativo | opcional e isolado fora do compat | controles posteriores | política server-side existente | preservar como extensão separada |
 
 ## Decisões

@@ -4,6 +4,7 @@
 #include "../internal/platform/windows/SocketTransport.h"
 #include "../internal/application/RequestCharacterLogin.h"
 #include "../internal/wire/CharacterLoginSender.h"
+#include "../internal/wire/PartyAcceptPacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -163,6 +164,22 @@ int main()
     login.result = false;
     check(!RequestCharacterLogin(loginSender, 0), "login propaga falha do transporte");
     check(login.calls == 5, "login nao repete envio apos falha");
+
+    // Fixture independente do dispatcher: 0x3AB existe apenas no sentido C->S.
+    MSG_CNFParty2 partyAccept{};
+    partyAccept.Header.Type = MSG_CNFParty2_Opcode;
+    partyAccept.Header.ID = 0x1234;
+    partyAccept.LeaderID = 0x0234;
+    std::memcpy(partyAccept.LeaderName, "PartyLeader", 11);
+    const auto* partyAcceptBytes = reinterpret_cast<const unsigned char*>(&partyAccept);
+    check(sizeof(partyAccept) == 32 && partyAcceptBytes[4] == 0xAB &&
+        partyAcceptBytes[5] == 0x03, "PartyAccept preserva opcode e frame de 32 bytes");
+    check(partyAcceptBytes[12] == 0x34 && partyAcceptBytes[13] == 0x02 &&
+        std::memcmp(partyAcceptBytes + 14, "PartyLeader", 11) == 0,
+        "PartyAccept preserva lider e nome nos offsets nativos");
+    check(partyAcceptBytes[25] == 0 && partyAcceptBytes[30] == 0 &&
+        partyAcceptBytes[31] == 0, "PartyAccept zera terminador e WORD reservado");
+
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.
     check(send_buffer::CanAppendPacket(12, 0, 131072, 12), "fila aceita cabecalho");

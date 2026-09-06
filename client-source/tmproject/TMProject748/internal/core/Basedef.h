@@ -33,6 +33,7 @@
 #include "../wire/PartyAddPacket.h"
 #include "../wire/PartyRemovePacket.h"
 #include "../wire/PartyRequestPacket.h"
+#include "../wire/PartyAcceptPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
@@ -1341,22 +1342,6 @@ static_assert(offsetof(MSG_STANDARDPARM3, Parm3) == 20, "WYD 7.48 Parm3 offset c
 
 static_assert(sizeof(MSG_CNFCharacterLogin) == kCharacterLoginConfirmPacketSize,
 	"WYD 7.48 character login confirmation must be 2104 bytes");
-
-constexpr auto MSG_CNFParty2_Opcode = 0x3AB;
-struct MSG_CNFParty2
-{
-	MSG_STANDARD Header;
-	short LeaderID;
-	char LeaderName[16];
-	// The 7.48 confirmation is aligned to 32 bytes and the server validates it
-	// exactly, so make the trailing WORD explicit rather than compiler-dependent.
-	short Reserved;
-};
-
-static_assert(sizeof(MSG_CNFParty2) == 32, "WYD 7.48 party confirmation must be 32 bytes");
-static_assert(offsetof(MSG_CNFParty2, LeaderID) == 12, "WYD 7.48 party leader ID offset changed");
-static_assert(offsetof(MSG_CNFParty2, LeaderName) == 14, "WYD 7.48 party leader name offset changed");
-static_assert(offsetof(MSG_CNFParty2, Reserved) == 30, "WYD 7.48 party reserved offset changed");
 
 constexpr auto MSG_ReqBuy_Opcode = 0x398;
 struct MSG_ReqBuy

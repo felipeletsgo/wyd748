@@ -77,6 +77,10 @@ preserva o callback existente e não altera a autoridade Party do servidor.
 líder em `+12` e TargetID int32 em `+40`. O client e o servidor continuam
 revalidando convite, destino, alcance e estado do grupo nos handlers existentes.
 
+`0x3AB` usa PartyAcceptPacket.h: intenção C->S de 32 bytes, `LeaderID` short em
+`+12`, `LeaderName[16]` em `+14` e WORD reservado em `+30`. Os dois emissores
+do client preservam o fluxo existente; não há rota S->C para este opcode.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para
