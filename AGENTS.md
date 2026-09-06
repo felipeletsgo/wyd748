@@ -39,6 +39,23 @@ Antes de qualquer tarefa técnica não trivial:
    inspecionar no Ghidra apenas as fronteiras nativas que ela intercepta;
 8. implementar, validar e registrar o estado real da validação.
 
+### Procedência obrigatória das fontes
+
+Toda frente técnica deve avaliar e registrar as fontes confiáveis disponíveis:
+binário nativo 7.48 e projeto Ghidra, descompilação estudada, assets 7.48,
+source atual do TMProject748, WYD-Go e testes, guias e demais fontes
+documentadas. A ficha deve marcar cada fonte como `UTILIZADA`, `NÃO APLICÁVEL`
+ou `CONTRADITÓRIA`, com justificativa curta. W2PP, Secrets e Micronics estão
+excluídos desta campanha por serem fontes bugadas e não devem orientar,
+validar ou contradizer código e contratos.
+
+Para comportamento, protocolo, ABI, UI, input, render, assets ou lifecycle, o
+estudo da descompilação no Ghidra e o binário nativo 7.48 são obrigatórios antes
+da adaptação. Avaliar todas as fontes não iguala seu peso: a evidência nativa
+7.48 é a fonte primária e prevalece sobre qualquer referência posterior. A
+descompilação estudada no Ghidra orienta a implementação e o executável nativo
+confirma comportamento e identidade.
+
 Se uma skill obrigatória estiver ausente ou ilegível, informar a limitação. Não
 fingir que ela foi consultada nem declarar a tarefa concluída.
 
@@ -73,8 +90,6 @@ alteração atual.
 | Client, packet, ABI, UI, input, render, asset ou lifecycle | `wyd-client748-research` → `wyd-go-feature` | classificar o delta; paridade usa `TRACED`/`CONTRACT`, extensão usa contrato client/server explícito |
 | Paridade ou integração legada de UI, HUD, grid, inventário, equipamento ou mensagens | `wyd-client748-research` → `wyd-go-feature` | `references/ghidra-client748.md` e `references/client-ui-748.md` |
 | Asset visual sob `client748/` | `wyd-go-feature` + `client748/skills/wyd-client-assets/SKILL.md` | `client748/AGENTS.md` |
-| Hook nativo no plugin Micronics | `add-hook` | Usar `build-deploy` se houver build/deploy da DLL |
-| Build/deploy de `FunctionsV02.dll` | `build-deploy` | Seguir a ordem kill/build/copy/start da skill |
 | Histórico, fórmulas ou tooling WYD | `wyd-dev-knowledge` | Somente depois do código atual e da evidência 7.48 exigida |
 | Auditoria ou revisão | `wyd-go-feature` | `references/audit.md` |
 | Continuação entre sessões | `wyd-go-feature` | `references/session-continuity.md` + handoff do escopo |
@@ -87,11 +102,10 @@ oferecida pela sessão. Uma skill genérica não substitui uma mais específica.
 1. código atual do `wyd-go`;
 2. testes atuais;
 3. dados autoritativos em `data/`;
-4. client WYD 7.48 e sua descompilação;
-5. W2PP;
-6. Secrets 7.54;
-7. Micronics e outras referências compatíveis;
-8. base histórica `wyd-dev-knowledge`.
+4. descompilação estudada no Ghidra e binário nativo WYD 7.48;
+5. assets 7.48 e contratos observáveis;
+6. TMProject, guias e demais referências permitidas;
+7. base histórica `wyd-dev-knowledge`.
 
 Relatório, comentário, teste isolado, conversa anterior ou handoff são pistas,
 não prova. Abrir a implementação atual e seguir o fluxo real. Contratos

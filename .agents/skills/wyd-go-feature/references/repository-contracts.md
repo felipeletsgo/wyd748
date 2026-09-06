@@ -127,9 +127,7 @@ Isso inclui, entre outros:
 - movimento;
 - drops;
 - macros;
-- comparação com W2PP;
-- comparação com Secrets 7.54;
-- comparação com Micronics;
+- não usar W2PP, Secrets 7.54 ou Micronics: fontes excluídas e bugadas;
 - outras sources WYD.
 
 **Nenhuma análise técnica desses assuntos deve começar antes da leitura do
@@ -284,9 +282,8 @@ Ao investigar um comportamento, use esta prioridade:
 2. testes atuais do `wyd-go`;
 3. dados autoritativos em `data/`;
 4. client WYD 7.48 / sua descompilação;
-5. W2PP;
-6. Secrets 7.54;
-7. Micronics e outras referências compatíveis.
+5. TMProject e guias do projeto;
+6. contexto histórico restante, sem poder superar a evidência nativa.
 
 Para qualquer tarefa relacionada ao WYD, a leitura de `.agents/skills/wyd-go-feature/SKILL.md` é pré-condição obrigatória, conforme a seção **Uso obrigatório de skills**.
 
@@ -321,8 +318,9 @@ fronteiras alteradas. `EXTENSAO_COORDENADA` documenta e testa o contrato novo
 nos dois lados; consulta Ghidra somente nos pontos de integração ou colisão com
 o legado, sem fabricar um equivalente nativo.
 
-TMProject, W2PP, Secrets e Micronics podem oferecer implementações melhores ou
-mais legíveis. Não substituem a confirmação de um claim nativo. É proibido
+TMProject pode oferecer implementações candidatas ou mais legíveis. W2PP,
+Secrets e Micronics são fontes excluídas. Não substituem a confirmação de um
+claim nativo. É proibido
 ajustar esses caminhos por tentativa visual quando a descompilação permite
 recuperar IDs, lifecycle, offsets, tamanhos ou condições nativas.
 
@@ -772,7 +770,6 @@ recuperar semântica 7.48; qualquer comportamento necessário deve ser refeito e
 
 Nunca assumir que um endereço, ABI ou comportamento está correto porque:
 
-- existe no W2PP;
 - existe em outro client;
 - o endereço parece estar dentro da função correta;
 - o patch compila;

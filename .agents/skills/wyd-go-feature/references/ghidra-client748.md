@@ -60,7 +60,7 @@ use o export para busca rápida em massa.
 4. Mapear estado inicial, mutações, side effects, lifecycle e condições de erro.
 5. Para wire/ABI, registrar tamanho, offsets, signedness, packing e direção
    C→S/S→C. Confirmar com `static_assert` ou teste byte a byte na source.
-6. Comparar com a source atual e TMProject/W2PP. Preservar melhorias manuais e
+6. Comparar com a source atual e TMProject. Preservar melhorias manuais e
    adotar estrutura posterior superior quando ela mantiver a fronteira legada
    ou quando client e servidor definirem deliberadamente um contrato novo.
 7. Portar o comportamento para código legível. Não copiar nomes temporários,

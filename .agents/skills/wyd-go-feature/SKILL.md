@@ -11,6 +11,19 @@ abrir nova raiz ou quando a fila perdeu validade.
 
 ## Escolha do modo
 
+Antes de decidir ou implementar um delta, avalie e registre as fontes confiáveis
+disponíveis: descompilação/Ghidra e binário nativo 7.48, assets 7.48, source
+atual, WYD-Go/testes, TMProject e guias. Marque cada fonte como `UTILIZADA`,
+`NÃO APLICÁVEL` ou `CONTRADITÓRIA`, com justificativa. W2PP, Secrets e
+Micronics estão excluídos: são fontes bugadas e não validam, contradizem ou
+orientam código e contratos.
+Para comportamento, wire, ABI, UI, input, render, assets ou lifecycle, o estudo
+da descompilação e do binário 7.48 é obrigatório antes da adaptação.
+
+A evidência nativa 7.48, especialmente a descompilação estudada no Ghidra,
+prevalece sobre referências posteriores. O TMProject serve como implementação
+candidata e comparação secundária, nunca como prova do comportamento nativo.
+
 - `PARIDADE_NATIVA`: reproduz comportamento legado. Exige ficha `TRACED`, ou
   `CONTRACT` para packet/wire/ABI/struct/offset/loader/recurso.
 - `MODERNIZACAO_COMPATIVEL`: adota estrutura interna superior sem alterar a
@@ -64,11 +77,10 @@ handoff como estado já recuperado e continue do próximo passo executável.
 | Asset sob `client748/` | `client748/AGENTS.md` + `client748/skills/wyd-client-assets/SKILL.md` |
 | Extensão client/server | contrato novo, colisões na integração legada e testes dos dois lados |
 | Auditoria | [references/audit.md](references/audit.md) |
-| Hook/plugin Micronics | `add-hook`; `build-deploy` ao compilar/deployar |
 | Histórico/fórmula | `wyd-dev-knowledge` por último |
 
-Hierarquia para claims legados: código/testes atuais → dados autoritativos →
-Ghidra/binário 7.48 → referências posteriores. Para uma extensão, o contrato
+Hierarquia para claims legados: código/testes atuais → dados do projeto →
+descompilação/Ghidra e binário 7.48 → TMProject e guias. Para uma extensão, o contrato
 versionado e os testes client/server são a fonte primária; o nativo apenas
 delimita a integração.
 

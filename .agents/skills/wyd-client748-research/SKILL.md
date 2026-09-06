@@ -10,6 +10,15 @@ TMProject em uma reconstrução arqueológica. Use-a antes de `wyd-go-feature`
 quando uma mudança tocar comportamento, protocolo, ABI, UI, input, render,
 assets ou lifecycle.
 
+Em cada frente, avalie e registre as fontes confiáveis disponíveis: binário
+nativo 7.48, projeto Ghidra e descompilação estudada, assets 7.48, source atual,
+WYD-Go e testes, TMProject, guias e demais fontes do projeto. Marque cada uma
+como `UTILIZADA`, `NÃO APLICÁVEL` ou `CONTRADITÓRIA`, com justificativa. W2PP,
+Secrets e Micronics estão excluídos: são fontes bugadas, sem força para validar,
+contradizer ou orientar código e contratos. O estudo
+da descompilação no Ghidra e o binário nativo 7.48 são obrigatórios antes de
+adaptar qualquer fronteira listada acima.
+
 ## Classifique antes de pesquisar
 
 | Modo | Objetivo | Gate |
@@ -86,8 +95,9 @@ escopo, documente formato, versionamento/capability quando aplicável,
 IDs/opcodes sem colisão, validação de entrada, rollback e fallback. Depois teste
 client e servidor. Não chame isso de paridade nativa.
 
-TMProject/W2PP/Secrets/Micronics podem fornecer nomes, arquitetura e algoritmos
-candidatos. Não fornecem por semelhança os fatos do executável 7.48.
+TMProject e guias podem fornecer nomes, arquitetura e algoritmos candidatos.
+Não fornecem por semelhança os fatos do executável 7.48; W2PP, Secrets e
+Micronics não fazem parte da pesquisa.
 
 ## Maturidade nativa
 

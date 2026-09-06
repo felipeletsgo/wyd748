@@ -10,7 +10,8 @@ paridade nativa, use as fontes nesta ordem:
 2. assets 7.48 realmente consumidos;
 3. protocolo e comportamento atuais do WYD-Go;
 4. source recompilável atual, tratada como implementação candidata;
-5. TMProject/W2PP/Secrets/Micronics como referências semânticas secundárias.
+5. TMProject e guias como referências semânticas secundárias; W2PP, Secrets e
+   Micronics são excluídos por serem fontes bugadas.
 
 O corpus `.c` exportado permite busca em massa, mas perde informação importante:
 xrefs de dados, chamadas indiretas, tipos, stack, estruturas e parte do call
