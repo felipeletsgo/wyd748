@@ -136,6 +136,7 @@
     <ClInclude Include="internal\wire\ClientIntegrityArrayContract.h" />
     <ClInclude Include="internal\wire\TotoPurchasePacket.h" />
     <ClInclude Include="internal\wire\ApplyBonusPacket.h" />
+    <ClInclude Include="internal\wire\UseItemPacket.h" />
     <ClInclude Include="internal\wire\ServerMigrationPacket.h" />
     <ClInclude Include="internal\wire\IndexedMessageContract.h" />
     <ClInclude Include="internal\wire\ChatMessagePacket.h" />

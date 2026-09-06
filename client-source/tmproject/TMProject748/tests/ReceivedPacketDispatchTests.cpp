@@ -2,6 +2,7 @@
 #include "../internal/wire/CharacterLogoutRequestPacket.h"
 #include "../internal/wire/TotoPurchasePacket.h"
 #include "../internal/wire/ApplyBonusPacket.h"
+#include "../internal/wire/UseItemPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -439,5 +440,19 @@ int RunReceivedPacketDispatchTests(int& checks)
         applyBonus.Detail == 5000 && applyBonus.TargetID == 42 &&
         applyBonus.Header.Type == 0x277 && applyBonus.Header.Size == 20,
         "ApplyBonus preserva tipo, detalhe, mestre e tamanho");
+    MSG_UseItem useItem{};
+    useItem.Header.Type = MSG_UseItem_Opcode;
+    useItem.Header.Size = sizeof(useItem);
+    useItem.SourType = 1;
+    useItem.SourPos = 17;
+    useItem.DestType = 0;
+    useItem.DestPos = 0;
+    useItem.GridX = 8;
+    useItem.GridY = 6;
+    useItem.ItemID = 3377;
+    check(sizeof(useItem) == 36 && useItem.SourType == 1 && useItem.SourPos == 17 &&
+        useItem.GridX == 8 && useItem.GridY == 6 && useItem.ItemID == 3377 &&
+        useItem.Header.Type == 0x373 && useItem.Header.Size == 36,
+        "UseItem preserva origem, celula, item e tamanho");
     return failures;
 }

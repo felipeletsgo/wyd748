@@ -721,3 +721,25 @@ confirma tipo, detalhe, mestre, opcode e tamanho; `go test ./internal/game
 Nao CLIENT_TESTED; abertura da lista, sprites, confirmação, rejeições e
 relogin continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT
 sem repetir TOTO, ApplyBonus ou os envelopes anteriores.
+
+## Fase 2 — atalho de poção especial 0x373
+
+UseItemPacket.h agora possui MSG_UseItem e asserts do wire nativo: 36 bytes,
+SourType +12, SourPos +16, DestType +20, DestPos +24, GridX +28, GridY +30
+e ItemID +32. Basedef reexporta; UsePPotion/OnKeyPPotion continuam com a ordem
+de busca 9x7, exclusao 3378, cooldown, envio e consumo otimista já fechada.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire/atalho e EXTENSAO_COORDENADA para a
+reconciliação autoritativa server-side. Ficha ui/special-potion-shortcut.md
+reutilizada: Ghidra FUN_0044F88F confirma 0x373/36, signedness e ordem; source,
+Go, catálogo e testes UTILIZADOS; assets NAO APLICAVEIS neste corte. Nenhuma
+mutação nova ou mudança no cooldown foi criada.
+
+Debug/Release Build-Client.ps1 PASS, 1557 checks/asserts cada. Fixture C++
+confirma origem, célula, item, opcode e tamanho; `go test ./internal/game
+-run 'TestOnUseItem.*|TestUseItem' -count=1` e `go test ./internal/wire
+-count=1` PASS. PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado
+com SHA-256 `23973BDDC1417D1A172812F4F8422DEFFE70E053AF9FAA45F356E909D79931B2`.
+Nao CLIENT_TESTED; atalho E, cooldown, rejeição, SendItem e relogin real
+continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem repetir
+UseItem ou contratos já extraídos.

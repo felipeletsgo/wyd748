@@ -82,6 +82,11 @@ UID, efeitos e rollback continuam autoridade exclusiva do WYD-Go.
 `Detail` e `TargetID` são intenção de compra; skill, pontos, pré-requisitos,
 custo e persistência são decididos pelo servidor.
 
+`0x373` (UseItem, 36 bytes) usa UseItemPacket.h, com origem em +12/+16,
+destino em +20/+24, célula em +28/+30 e ItemID em +32. O client pode consumir
+visualmente antes da resposta; a reconciliação autoritativa ocorre por
+SendItem no servidor.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

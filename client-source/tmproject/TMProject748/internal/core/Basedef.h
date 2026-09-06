@@ -25,6 +25,7 @@
 #include "../wire/ClientIntegrityArrayContract.h"
 #include "../wire/TotoPurchasePacket.h"
 #include "../wire/ApplyBonusPacket.h"
+#include "../wire/UseItemPacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -921,19 +922,6 @@ struct MSG_CNFAccountLogin
 	char AccountName[16];
 	int SSN1;
 	int SSN2;
-};
-
-constexpr auto MSG_UseItem_Opcode = 0x373;
-struct MSG_UseItem
-{
-	MSG_STANDARD Header;
-	int SourType;
-	int SourPos;
-	int DestType;
-	int DestPos;
-	unsigned short GridX;
-	unsigned short GridY;
-	unsigned short ItemID;
 };
 
 constexpr auto MSG_UseItem2_Opcode = 0x3C9;
