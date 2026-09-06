@@ -331,5 +331,42 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(sizeof(request) == 12 && request.ID == 0x1234 &&
         request.Type == 0x215 && request.Size == 12,
         "logout request C-S preserva ID, opcode e tamanho");
+    std::array<char, 2105> loginConfirm{};
+    loginConfirm[0] = static_cast<char>(2104 & 0xFF);
+    loginConfirm[1] = static_cast<char>((2104 >> 8) & 0xFF);
+    loginConfirm[4] = 0x14;
+    loginConfirm[5] = 1;
+    loginConfirm[6] = 0x34;
+    loginConfirm[7] = 0x12;
+    int loginCalls = 0;
+    const auto receiveLogin = [&](const PacketView& view) {
+        ++loginCalls;
+        check(view.data == loginConfirm.data() && view.size == 2104,
+            "login confirm preserva frame completo");
+    };
+    for (std::size_t n = 0; n < 2104; n += 17)
+        check(!received_packet::Dispatch({0x114, loginConfirm.data(), n}, receiveLogin),
+            "login confirm rejeita prefixos truncados");
+    check(!received_packet::Dispatch({0x114, loginConfirm.data(), 2105}, receiveLogin),
+        "login confirm excedente rejeitado");
+    check(!received_packet::Dispatch({0x114, nullptr, 2104}, receiveLogin),
+        "login confirm nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, loginConfirm.data(), 2104}, receiveLogin),
+        "login confirm Type nao pode ser ocultado");
+    loginConfirm[4] = 0x19;
+    check(!received_packet::Dispatch({0x114, loginConfirm.data(), 2104}, receiveLogin),
+        "login confirm Type divergente rejeitado");
+    loginConfirm[4] = 0x14;
+    loginConfirm[0] = static_cast<char>(2103 & 0xFF);
+    loginConfirm[1] = static_cast<char>((2103 >> 8) & 0xFF);
+    check(!received_packet::Dispatch({0x114, loginConfirm.data(), 2104}, receiveLogin),
+        "login confirm Size divergente rejeitado");
+    loginConfirm[0] = static_cast<char>(2104 & 0xFF);
+    loginConfirm[1] = static_cast<char>((2104 >> 8) & 0xFF);
+    check(loginCalls == 0, "login confirm invalido nao chega ao callback");
+    const auto loginBefore = loginConfirm;
+    check(received_packet::Dispatch({0x114, loginConfirm.data(), 2104}, receiveLogin) && loginCalls == 1,
+        "login confirm valido entregue uma vez");
+    check(loginConfirm == loginBefore, "login confirm preserva bytes do relogin");
     return failures;
 }

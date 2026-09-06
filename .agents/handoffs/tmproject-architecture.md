@@ -625,3 +625,27 @@ Nao CLIENT_TESTED; timer/menu, persistencia server-side, confirmacao e
 relogin real continuam pendentes. Proximo corte deve seguir a ficha de
 logout para `0x114`/relogin ou outro contrato já pesquisado, sem repetir
 `0x215`/`0x116`.
+
+## Fase 2 — confirmacao de relogin 0x114
+
+CharacterLoginConfirmContract.h nomeia `0x114` e fixa 2.104 bytes; Basedef
+reexporta o contrato e agora possui static_assert no struct completo.
+ReceivedPacketDispatch valida tamanho real/declarado e Type/opcode antes de
+TMSelectCharScene::HandleCharacterLogin. O handler continua interpretando
+PosX/PosY, MOB, Slot, ClientID, Weather, ShortSkill, Ext1/Ext2 e mudando para
+Field; o gate nao interpreta nem copia payload.
+
+Modo PARIDADE_NATIVA/CONTRACT para ABI, modernizacao local da fachada. Ficha
+lifecycle/character-logout-selectchar-relogin.md reutilizada: `0x213 ->
+0x114` e estado SelectChar -> Field fechados; source, serializer Go e testes
+UTILIZADOS; assets NAO APLICAVEIS. Nenhuma regra de relogin foi inventada.
+
+Debug/Release Build-Client.ps1 PASS, 1535 checks/asserts cada. Fixtures
+cobrem prefixos truncados, excesso, nulo, Type/opcode/Size divergentes,
+entrega unica e preservacao do frame completo; static_assert confirma 2104.
+PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado/artefato
+conferidos com SHA-256:
+`535AEED067F4C5B68F154685A51039B645315D75B2278F886E8004FD7FC86FA3`.
+Nao CLIENT_TESTED; menu, persistencia server-side e relogin real continuam
+pendentes. Proximo corte deve seguir outra transicao CONTRACT ja pesquisada,
+sem repetir os envelopes de logout/relogin.

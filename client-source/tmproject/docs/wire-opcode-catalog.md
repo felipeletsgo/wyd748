@@ -64,6 +64,11 @@ de 12 bytes, mas fica fora de ReceivedPacketDispatch por ser direcao de
 saida. O timer de cinco segundos da FieldScene preenche o ID local e envia o
 request; o servidor decide persistencia e somente entao emite `0x116`.
 
+`0x114` (confirmacao de CharacterLogin, 2.104 bytes) usa
+CharacterLoginConfirmContract.h. O gate valida somente o envelope; a selecao
+continua dona da interpretacao de Pos/MOB/Slot/ClientID/Weather/ShortSkill e
+sidecars antes de reconstruir a FieldScene.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

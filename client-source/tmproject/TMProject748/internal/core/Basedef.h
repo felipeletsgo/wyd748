@@ -21,6 +21,7 @@
 #include "../wire/WhisperMessagePacket.h"
 #include "../wire/CharacterLogoutConfirmPacket.h"
 #include "../wire/CharacterLogoutRequestPacket.h"
+#include "../wire/CharacterLoginConfirmContract.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -1162,7 +1163,6 @@ struct MSG_CNFDeleteCharacter
 	STRUCT_SELCHAR SelChar;
 };
 
-constexpr auto MSG_CNFCharacterLogin_Opcode = 0x114;
 struct MSG_CNFCharacterLogin
 {
 	MSG_STANDARD Header;
@@ -1463,6 +1463,8 @@ struct PARTY
 	// bytes in both MSG_REQParty and MSG_AddParty.
 	short Reserved;
 };
+static_assert(sizeof(MSG_CNFCharacterLogin) == kCharacterLoginConfirmPacketSize,
+	"WYD 7.48 character login confirmation must be 2104 bytes");
 
 constexpr auto MSG_REQParty_Opcode = 0x37F;
 struct MSG_REQParty
