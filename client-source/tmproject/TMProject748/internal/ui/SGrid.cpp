@@ -4765,7 +4765,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 				pFScene->m_stUseItem.GridX = (int)pMyHuman->m_vecPosition.x;
 				pFScene->m_stUseItem.GridY = (int)pMyHuman->m_vecPosition.y;
 
-				MSG_STANDARDPARM stDelayStart{};
+				MSG_DelayStart stDelayStart{};
 				stDelayStart.Header.ID = pMyHuman->m_dwID;
 				stDelayStart.Header.Type = MSG_DelayStart_Opcode;
 				stDelayStart.Parm = 1;

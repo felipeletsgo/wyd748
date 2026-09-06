@@ -11,6 +11,7 @@
 #include "ClientIntegrityArrayContract.h"
 #include "MobKillConfirmPacket.h"
 #include "UpdateEtcPacket.h"
+#include "DelayStartPacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "../application/ports/PacketDispatch.h"
@@ -41,6 +42,7 @@ namespace received_packet
         case MSG_REQArray_Opcode: return sizeof(MSG_REQArray);
         case MSG_CNFMobKill_Opcode: return sizeof(MSG_CNFMobKill);
         case MSG_UpdateEtc_Opcode: return sizeof(MSG_UpdateEtc);
+        case MSG_DelayStart_Opcode: return sizeof(MSG_DelayStart);
         default: return 0;
         }
     }

@@ -4808,7 +4808,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			else
 				g_dwStartQuitGameTime = dwServerTime;
 
-			MSG_STANDARDPARM stParm{};
+			MSG_SysQuit stParm{};
 			stParm.Header.ID = m_pMyHuman->m_dwID;
 			stParm.Header.Type = MSG_SysQuit_Opcode;
 			stParm.Parm = 0;
@@ -6608,7 +6608,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		g_dwStartQuitGameTime = g_pTimerManager->GetServerTime();
 
-		MSG_STANDARDPARM stParm{};
+		MSG_SysQuit stParm{};
 		stParm.Header.ID = m_pMyHuman->m_dwID;
 		stParm.Header.Type = MSG_SysQuit_Opcode;
 		g_pSocketManager->SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
@@ -6629,7 +6629,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (!m_pServerPanel)
 		{
 			m_dwLastSelServer = g_pTimerManager->GetServerTime();
-			MSG_STANDARDPARM stParm{};
+			MSG_SysQuit stParm{};
 			stParm.Header.ID = m_pMyHuman->m_dwID;
 			stParm.Header.Type = MSG_SysQuit_Opcode;
 			g_pSocketManager->SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
@@ -7243,9 +7243,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	if (idwControlID == 12291)
 	{
 		m_dwLastSelServer = g_pTimerManager->GetServerTime();
-		MSG_STANDARDPARM stParm{};
+		MSG_SysQuit stParm{};
 		stParm.Header.ID = m_pMyHuman->m_dwID;
-		stParm.Header.Type = 0x3AE;
+		stParm.Header.Type = MSG_SysQuit_Opcode;
 		stParm.Parm = 0;
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 		return 1;
@@ -7314,7 +7314,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		}
 		m_dwLastLogout = g_pTimerManager->GetServerTime();
-		MSG_STANDARDPARM stParm{};
+		MSG_SysQuit stParm{};
 		stParm.Header.ID = m_pMyHuman->m_dwID;
 		stParm.Header.Type = MSG_SysQuit_Opcode;
 		stParm.Parm = 0;
@@ -8363,9 +8363,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 				memset((char*)&m_stPotalItem, 0, 0x24u);
 
-				MSG_STANDARDPARM stParm{};
+				MSG_DelayStart stParm{};
 				stParm.Header.ID = m_pMyHuman->m_dwID;
-				stParm.Header.Type = MSG_SysQuit_Opcode;
+				stParm.Header.Type = MSG_DelayStart_Opcode;
 				stParm.Parm = 1;
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
 			}
@@ -8663,12 +8663,12 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 				m_dwLastTeleport = m_dwGetItemTime;
 				m_cLastTeleport = 1;
 
-				MSG_STANDARDPARM stDelayStart{};
+				MSG_DelayStart stDelayStart{};
 
 				stDelayStart.Header.ID = m_pMyHuman->m_dwID;
-				stDelayStart.Header.Type = 942;
+				stDelayStart.Header.Type = MSG_DelayStart_Opcode;
 				stDelayStart.Parm = 1;
-				SendOneMessage((char*)&stDelayStart, sizeof(MSG_STANDARDPARM));
+				SendOneMessage((char*)&stDelayStart, sizeof(stDelayStart));
 
 				m_stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
 				m_stUseItem.Header.Type = MSG_UseItem_Opcode;
@@ -9219,8 +9219,8 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case 0x3D0:
 		return OnPacketRunQuest12Count(reinterpret_cast<MSG_STANDARDPARM2*>(pStd));
 		break;
-	case 0x3AE:
-		return OnPacketDelayQuit((MSG_STANDARDPARM*)pStd);
+	case MSG_SysQuit_Opcode:
+		return OnPacketDelayQuit(reinterpret_cast<MSG_SysQuit*>(pStd));
 		break;
 
 	case 0xA08:
@@ -20558,9 +20558,9 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		m_cLastTown = 1;
 		m_pMyHuman->m_bCNFMobKill = 0;
 
-		MSG_STANDARDPARM stDelayStart{};
+		MSG_DelayStart stDelayStart{};
 		stDelayStart.Header.ID = m_pMyHuman->m_dwID;
-		stDelayStart.Header.Type = 942;
+		stDelayStart.Header.Type = MSG_DelayStart_Opcode;
 		stDelayStart.Parm = 2;
 		SendOneMessage((char*)&stDelayStart, sizeof(stDelayStart));
 	}
@@ -28027,7 +28027,7 @@ int TMFieldScene::OnPacketRunQuest12Count(MSG_STANDARDPARM2* pStd)
 	return 1;
 }
 
-int TMFieldScene::OnPacketDelayQuit(MSG_STANDARDPARM* pStd)
+int TMFieldScene::OnPacketDelayQuit(MSG_SysQuit* pStd)
 {
 	PostMessage(g_pApp->m_hWnd, 16, 0, 0);
 	return 0;

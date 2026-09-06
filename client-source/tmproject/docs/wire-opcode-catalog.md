@@ -54,6 +54,13 @@ nome em offset 12, texto em 28 e cor em 124. ReceivedPacketDispatch valida o
 envelope antes dos handlers existentes; prefixos e filtros continuam nesses
 handlers. O opcode de shout `0xD1D` nao recebe novo gate por essa extracao.
 
+`0x3AE` usa DelayStartPacket.h para o ABI compartilhado de 16 bytes. SysQuit
+nomeia `Parm=0` nos caminhos de System/fechamento; DelayStart conserva os
+valores `1/2` das transicoes de portal/teleporte e retorno. O gate nativo nao
+enumera esse opcode, portanto a
+validacao S->C de 16 bytes documenta a resposta coordenada do WYD-Go e preserva
+o callback existente, sem ampliar o claim nativo.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

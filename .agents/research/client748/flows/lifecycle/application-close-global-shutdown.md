@@ -237,14 +237,23 @@ devolve `wire.SysQuit(id)`, também com 16 bytes. O opcode é sobrecarregado no
 trade ou loja ao recebê-lo. A desconexão real continua sendo determinada pela
 queda do socket.
 
+O envio nativo comprova os 16 bytes e `Parm=0`. `FUN_0055890A` não enumera
+`0x3AE`; o gate exato da resposta S->C pertence ao contrato coordenado entre a
+source atual e o WYD-Go e não é apresentado como validação nativa de framing.
+
 ## Mapeamento atual
 
 ### Source recompilável
 
 `NewApp::WndProc(WM_CLOSE)` preserva o ramo Field, o primeiro envio de
-`MSG_STANDARDPARM`, `Type = 942/0x3AE`, `Parm = 0`, o gate temporal, `Finalize`,
+`MSG_SysQuit`, `Type = 942/0x3AE`, `Parm = 0`, o gate temporal, `Finalize`,
 fechamento do dump, flag terminal, `EnableSysKey`, `DestroyWindow`,
 `PostQuitMessage(0)` e reset do timer.
+
+`DelayStartPacket.h` concentra o ABI compartilhado de 16 bytes e oferece os
+nomes `MSG_SysQuit` (`Parm=0`) e `MSG_DelayStart` (transições `Parm=1/2`) sem
+duplicar a estrutura. `ReceivedPacketDispatch` valida a resposta coordenada antes do
+callback existente da Field, preservando o mesmo buffer emprestado.
 
 `NewApp::Finalize()` libera os três buffers de animação e destrói os mesmos
 owners na mesma ordem essencial. A source usa nomes e `SAFE_DELETE` em vez de
@@ -267,6 +276,7 @@ logout prematuro.
 | ownership | ObjectManager, timer, render, sound, socket, BGM, AVI, input | mesmos owners e ordem essencial | socket determina disconnect | manter |
 | falha parcial | pressupõe Field íntegra | null guards e `SAFE_DELETE` | save falho não gera ack | manter modernização segura |
 | hook global | remove antes de destruir janela | `EnableSysKey` no mesmo ponto | N/A | manter |
+| resposta `0x3AE` | gate nativo não enumera | handler existente, frame de 16 bytes | builder de 16 bytes | extensão coordenada com gate local |
 
 ## Decisões
 
@@ -292,6 +302,10 @@ logout prematuro.
 - Pesquisa estática: callers, receptor virtual, branch Field/não-Field,
   packet, ordem de ownership, hook e estado terminal fechados no projeto
   Ghidra do hash registrado.
-- Comparação: `NewApp.cpp`, wire e handler atuais inspecionados; nenhum delta
-  funcional encontrado e nenhuma edição de código realizada.
+- Comparação: `NewApp.cpp`, Field, grid, wire e handler atuais inspecionados;
+  a extração tipou o contrato compartilhado sem alterar timers ou efeitos.
+- Automação: Debug e Release passaram pelo `Build-Client.ps1` com 1735
+  checks/asserts em cada configuração. Os testes Go focados de SysQuit e os
+  gates XML/caminhos/diff passaram. O candidato Release instalado possui
+  SHA-256 `96646D17ED2F52F7CD4D87F5412BC995253DE14AF2C386B9C24D062590FB1800`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

@@ -10,6 +10,7 @@
 #include "../internal/wire/MobKillConfirmPacket.h"
 #include "../internal/wire/UpdateEtcPacket.h"
 #include "../internal/wire/MessagePanelPacket.h"
+#include "../internal/wire/DelayStartPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -463,6 +464,51 @@ int RunReceivedPacketDispatchTests(int& checks)
     response.Value = -128;
     check(response.Header.Type == 0x2C2 && response.Value == -128 && sizeof(response) == 24,
         "array response preserva opcode, signedness e tamanho");
+    std::array<char, 17> delayStart{};
+    delayStart[0] = 16;
+    delayStart[4] = static_cast<char>(0xAE);
+    delayStart[5] = 0x03;
+    delayStart[6] = 0x34;
+    delayStart[7] = 0x12;
+    delayStart[12] = 1;
+    int delayCalls = 0;
+    const auto receiveDelay = [&](const PacketView& view) {
+        ++delayCalls;
+        check(view.data == delayStart.data() && view.size == 16 && view.opcode == 0x3AE,
+            "DelayStart preserva frame de 16 bytes");
+    };
+    for (std::size_t n = 0; n < 16; ++n)
+        check(!received_packet::Dispatch({0x3AE, delayStart.data(), n}, receiveDelay),
+            "DelayStart truncado rejeitado");
+    check(!received_packet::Dispatch({0x3AE, delayStart.data(), 17}, receiveDelay),
+        "DelayStart excedente rejeitado");
+    check(!received_packet::Dispatch({0x3AE, nullptr, 16}, receiveDelay),
+        "DelayStart nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, delayStart.data(), 16}, receiveDelay),
+        "Type DelayStart nao pode ser ocultado");
+    delayStart[4] = 0x19;
+    check(!received_packet::Dispatch({0x3AE, delayStart.data(), 16}, receiveDelay),
+        "Type DelayStart divergente rejeitado");
+    delayStart[4] = static_cast<char>(0xAE);
+    delayStart[0] = 15;
+    check(!received_packet::Dispatch({0x3AE, delayStart.data(), 16}, receiveDelay),
+        "Size DelayStart divergente rejeitado");
+    delayStart[0] = 16;
+    check(delayCalls == 0, "DelayStart invalido nao chega ao consumidor");
+    const auto delayBefore = delayStart;
+    check(received_packet::Dispatch({0x3AE, delayStart.data(), 16}, receiveDelay) && delayCalls == 1,
+        "DelayStart valido entregue uma vez");
+    MSG_DelayStart decodedDelay{};
+    std::memcpy(&decodedDelay, delayStart.data(), sizeof(decodedDelay));
+    check(decodedDelay.Header.ID == 0x1234 && decodedDelay.Parm == 1,
+        "DelayStart preserva ID e parametro de transicao");
+    MSG_SysQuit sysQuit{};
+    sysQuit.Header.Type = MSG_SysQuit_Opcode;
+    sysQuit.Header.Size = sizeof(sysQuit);
+    sysQuit.Header.ID = 0x1234;
+    check(sizeof(sysQuit) == 16 && sysQuit.Header.Type == 0x3AE && sysQuit.Parm == 0,
+        "SysQuit compartilha ABI e preserva Parm zero");
+    check(delayStart == delayBefore, "gate preserva todos os bytes de DelayStart");
     MSG_BuyToto toto{};
     toto.Header.Type = MSG_BuyToto_Opcode;
     toto.Header.Size = sizeof(toto);

@@ -28,6 +28,7 @@
 #include "../wire/ApplyBonusPacket.h"
 #include "../wire/UseItemPacket.h"
 #include "../wire/PKModePacket.h"
+#include "../wire/DelayStartPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
@@ -127,9 +128,7 @@ constexpr auto MAX_ITEM_PRICE_REPLACE = 100;
 constexpr auto MSG_Recall_Opcode = 0x289;
 constexpr auto MSG_Ping_Opcode = 0x3A0;
 constexpr auto MSG_RequestCapsuleInfo_Opcode = 0x2CD;
-constexpr auto MSG_DelayStart_Opcode = 0x3AE;
 constexpr auto MSG_UseDeclarationOfWar_Opcode = 0xED7;
-constexpr auto MSG_SysQuit_Opcode = 0x3AE;
 using MSG_STANDARDPARM = MSG_SetPKMode;
 struct MSG_Exp_MsgPanel
 {

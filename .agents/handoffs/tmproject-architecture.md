@@ -928,3 +928,28 @@ da ficha LOCATED ui/send-item-local-update.md, fora deste corte.
 Nao CLIENT_TESTED; aviso comum, prefixos, troca de cena, logout e relogin reais
 continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem repetir
 0x101, 0x102/0x104 ou contratos anteriores.
+
+## Fase 2 — intenção sobrecarregada DelayStart/SysQuit 0x3AE
+
+DelayStartPacket.h agora concentra o ABI compartilhado de 16 bytes: opcode
+0x3AE, ID em +6 e Parm int32 em +12. MSG_SysQuit nomeia Parm=0 nos caminhos de
+System/fechamento; MSG_DelayStart preserva Parm=1/2 nas transições locais. Basedef reexporta
+o contrato e deixa de representar esses fluxos pelo alias de PK Mode.
+
+Modo PARIDADE_NATIVA/CONTRACT para os envios documentados nas fichas
+lifecycle/character-logout-selectchar-relogin.md e application-close-global-
+shutdown.md. O gate S->C é EXTENSAO_COORDENADA: FUN_0055890A não enumera 0x3AE,
+enquanto o WYD-Go emite a resposta de 16 bytes consumida pela source. Timers,
+IDs, Parm, PostMessage, persistência e semântica sobrecarregada foram
+preservados; o servidor não transforma 0x3AE em desconexão prematura.
+
+Debug/Release Build-Client.ps1 PASS, 1735 checks/asserts cada. A fixture C++
+cobre truncamento, excesso, nulo, Type/Size divergentes, entrega única, ID,
+Parm 0/1 e preservação do buffer. `go test ./internal/wire -run SysQuit
+-count=1` e `go test ./internal/game -run 'SysQuit|RestartAndSysQuit' -count=1`
+PASS. PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado com SHA-256
+`96646D17ED2F52F7CD4D87F5412BC995253DE14AF2C386B9C24D062590FB1800`.
+
+Nao CLIENT_TESTED; System 633..635, portal, resposta, fechamento, falha de save
+e relogin reais continuam pendentes. Proximo corte deve seguir outra ficha
+CONTRACT sem repetir 0x3AE ou contratos anteriores.

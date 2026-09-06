@@ -55,7 +55,7 @@ entra novamente no mundo?
 ### Função principal
 
 `FUN_004662C5` trata os quatro controles sem traduzi-los para IDs de versões
-posteriores. Os casos `633`, `634` e `635` montam `MSG_STANDARDPARM` zerado,
+posteriores. Os casos `633`, `634` e `635` montam um frame de parâmetro zerado,
 preenchem o ID do personagem, opcode `0x3AE` e `Parm = 0`, enviam os 16 bytes e
 armam, respectivamente, seleção de servidor, logout de personagem ou saída da
 aplicação. O caso `636` somente oculta o painel.
@@ -137,7 +137,7 @@ reconexão TCP e migração entre servidores não fazem parte deste contrato.
 
 ## Wire, ABI e recursos
 
-- System Quit: client -> servidor, opcode `0x3AE`, `MSG_STANDARDPARM` de 16
+- System Quit: client -> servidor, opcode `0x3AE`, `MSG_SysQuit` de 16
   bytes, ID do personagem e `Parm = 0`.
 - Character Logout: client -> servidor, opcode `0x215`, `MSG_STANDARD` de 12
   bytes e ID do personagem.
@@ -153,7 +153,9 @@ reconexão TCP e migração entre servidores não fazem parte deste contrato.
 ### Source recompilável
 
 - `TMFieldScene::OnControlEvent` preserva os IDs nativos, arma os timers,
-  envia `0x3AE` e fecha corretamente o menu sem alcançar handlers modernos.
+  envia `MSG_SysQuit`/`0x3AE` e fecha corretamente o menu sem alcançar handlers
+  modernos. Transições locais usam o mesmo ABI por `MSG_DelayStart`, mantendo
+  `Parm=1/2` conforme o caller.
 - `TMFieldScene::TimeDelay` já implementava os três consumidores de cinco
   segundos e o envio posterior de `0x215`.
 - `TMFieldScene::OnPacketCNFCharacterLogout` já validava o ID, copiava

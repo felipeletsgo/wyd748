@@ -1270,19 +1270,19 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 				&& g_dwStartQuitGameTime == 0)
 			{
 				g_dwStartQuitGameTime = m_pTimerManager->GetServerTime();
-				MSG_STANDARDPARM stDelayStart{};
+				MSG_SysQuit stSysQuit{};
 				// A partially initialized field scene may not have a local human yet;
 				// never turn the normal close request into a null dereference.
-				stDelayStart.Header.ID = g_pCurrentScene->m_pMyHuman
+				stSysQuit.Header.ID = g_pCurrentScene->m_pMyHuman
 					? g_pCurrentScene->m_pMyHuman->m_dwID
 					: g_pObjectManager->m_dwCharID;
-				stDelayStart.Header.Type = 942;
-				stDelayStart.Parm = 0;
+				stSysQuit.Header.Type = MSG_SysQuit_Opcode;
+				stSysQuit.Parm = 0;
 
 				g_pSocketManager->SendPacket({
-					stDelayStart.Header.Type,
-					reinterpret_cast<char*>(&stDelayStart),
-					sizeof(stDelayStart)
+					stSysQuit.Header.Type,
+					reinterpret_cast<char*>(&stSysQuit),
+					sizeof(stSysQuit)
 				});
 				return 0;
 			}

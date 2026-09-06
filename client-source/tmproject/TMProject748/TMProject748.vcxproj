@@ -138,6 +138,7 @@
     <ClInclude Include="internal\wire\ApplyBonusPacket.h" />
     <ClInclude Include="internal\wire\UseItemPacket.h" />
     <ClInclude Include="internal\wire\PKModePacket.h" />
+    <ClInclude Include="internal\wire\DelayStartPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkUsePacket.h" />
     <ClInclude Include="internal\wire\GamblePacket.h" />
