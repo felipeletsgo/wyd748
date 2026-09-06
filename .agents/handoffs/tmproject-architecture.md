@@ -1148,3 +1148,24 @@ PASS. Release instalado com SHA-256
 Nao CLIENT_TESTED; morte, cooldown, recall, troca de cena e relogin reais
 continuam pendentes. Proximo corte deve escolher outra ficha CONTRACT sem
 repetir `0x289`.
+
+## Fase 2 — keepalive periódico 0x3A0
+
+A ficha transport/keepalive-ping.md e o export Ghidra
+`keepalive-ping-flow.tsv` fecham os dois emissores nativos: `FUN_0047E9B6`
+(Field, ID do personagem, intervalo de 250 s) e `FUN_004A2AEF`
+(SelectChar, ID zero, intervalo de 300 s). Ambos zeram `MSG_STANDARD` de 12
+bytes, gravam `Type=0x3A0` e enviam; o gate `FUN_0055890A` confirma o tamanho.
+
+KeepalivePingPacket.h agora concentra o opcode e a asserção do header; Basedef
+reexporta. Os timers, IDs, transporte e ausência de resposta foram preservados.
+Não houve entrada no dispatcher recebido.
+
+`go test -count=1 ./...` PASS. Debug/Release Build-Client.ps1 PASS, 1930
+checks/asserts cada. XML/caminhos, `git diff --check` e hash candidato/Release
+PASS. Release instalado com SHA-256
+`F80936677E75630FE31EF47D799DC3672ACFF1C8F9531C24864B8934A9B67DBA`.
+
+Nao CLIENT_TESTED; permanência real nas cenas, timeout, disconnect e relogin
+continuam pendentes. Próximo corte deve escolher outra ficha CONTRACT sem repetir
+`0x3A0`.

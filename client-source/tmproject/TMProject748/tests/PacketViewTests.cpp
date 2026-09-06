@@ -7,6 +7,7 @@
 #include "../internal/wire/PartyAcceptPacket.h"
 #include "../internal/wire/MissingEntityRequestPacket.h"
 #include "../internal/wire/RestartRecallPacket.h"
+#include "../internal/wire/KeepalivePingPacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -202,6 +203,19 @@ int main()
         restartRecallBytes[5] == 0x02 && restartRecallBytes[6] == 0x34 &&
         restartRecallBytes[7] == 0x12,
         "RestartRecall preserva opcode, tamanho e ID");
+
+    MSG_STANDARD fieldPing{};
+    fieldPing.Type = MSG_Ping_Opcode;
+    fieldPing.ID = 0x1234;
+    const auto* fieldPingBytes = reinterpret_cast<const unsigned char*>(&fieldPing);
+    check(sizeof(fieldPing) == 12 && fieldPingBytes[4] == 0xA0 &&
+        fieldPingBytes[5] == 0x03 && fieldPingBytes[6] == 0x34 &&
+        fieldPingBytes[7] == 0x12,
+        "Keepalive Field preserva opcode, tamanho e ID local");
+    MSG_STANDARD selectCharPing{};
+    selectCharPing.Type = MSG_Ping_Opcode;
+    check(selectCharPing.ID == 0 && sizeof(selectCharPing) == 12,
+        "Keepalive SelectChar preserva ID zero e header puro");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.

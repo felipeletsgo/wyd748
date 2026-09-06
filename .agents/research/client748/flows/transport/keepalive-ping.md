@@ -142,5 +142,8 @@ Teste existente confirma que a fila de saída permanece inalterada.
 
 - Pesquisa: Ghidra read-only terminou sem `SCRIPT ERROR`, com hash esperado e
   funções/callers/callees dos dois emissores, transportes e gate.
-- Automação: pendente até a extração.
+- Automação: `go test -count=1 ./...` passou; Debug e Release via
+  `Build-Client.ps1` passaram com 1930 checks/asserts. Fixtures cobrem Field com
+  ID local e SelectChar com ID zero. Release instalado com SHA-256
+  `F80936677E75630FE31EF47D799DC3672ACFF1C8F9531C24864B8934A9B67DBA`.
 - Client real: não executado; não `CLIENT_TESTED`.

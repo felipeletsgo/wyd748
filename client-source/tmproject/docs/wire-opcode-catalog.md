@@ -93,6 +93,10 @@ o servidor limita a resposta à entidade visível, próxima e autorizada.
 `MSG_STANDARD`. Os caminhos de morte e recall preservam seus timers; HP,
 posição, score e cooldown continuam decididos pelo servidor.
 
+`0x3A0` usa KeepalivePingPacket.h: keepalive C->S de 12 bytes, somente
+`MSG_STANDARD`. Field envia o ID local, SelectChar usa zero, e o servidor
+reconhece atividade sem produzir resposta.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para
