@@ -111,6 +111,10 @@ de atributo `0x10`; destino, preço, gold e persistência continuam no servidor.
 `0/1`; o servidor continua validando o NPC e o contexto antes de abrir qualquer
 feature.
 
+`0x28C` usa GuildDeprivatePacket.h: intenção C->S de 16 bytes, com o `TargetID`
+do membro em `+12`. O caso de confirmação da expulsão preserva o contrato e o
+servidor continua autoritativo para cargo, alvo e persistência.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

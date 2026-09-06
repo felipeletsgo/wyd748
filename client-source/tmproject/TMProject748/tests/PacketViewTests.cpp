@@ -11,6 +11,7 @@
 #include "../internal/wire/ChangeCityPacket.h"
 #include "../internal/wire/ReqTeleportPacket.h"
 #include "../internal/wire/UseNPCPacket.h"
+#include "../internal/wire/GuildDeprivatePacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -259,6 +260,19 @@ int main()
         offsetof(MSG_UseNPC, ClickOk) == 16 && useNPCBytes[17] == 0 &&
         useNPCBytes[18] == 0 && useNPCBytes[19] == 0,
         "UseNPC mantem os offsets nativos");
+
+    MSG_GuildDeprivate guildDeprivate{};
+    guildDeprivate.Header.Type = MSG_GuildDeprivate_Opcode;
+    guildDeprivate.Header.ID = 0x1234;
+    guildDeprivate.TargetID = 0x5678;
+    const auto* guildDeprivateBytes = reinterpret_cast<const unsigned char*>(&guildDeprivate);
+    check(sizeof(guildDeprivate) == 16 && guildDeprivateBytes[4] == 0x8C &&
+        guildDeprivateBytes[5] == 0x02 && guildDeprivateBytes[12] == 0x78 &&
+        guildDeprivateBytes[13] == 0x56,
+        "GuildDeprivate preserva opcode, tamanho e alvo");
+    check(offsetof(MSG_GuildDeprivate, TargetID) == 12 && guildDeprivateBytes[14] == 0 &&
+        guildDeprivateBytes[15] == 0,
+        "GuildDeprivate mantem o alvo no offset nativo");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.

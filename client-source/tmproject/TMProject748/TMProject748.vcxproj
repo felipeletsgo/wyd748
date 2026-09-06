@@ -151,6 +151,7 @@
     <ClInclude Include="internal\wire\ChangeCityPacket.h" />
     <ClInclude Include="internal\wire\ReqTeleportPacket.h" />
     <ClInclude Include="internal\wire\UseNPCPacket.h" />
+    <ClInclude Include="internal\wire\GuildDeprivatePacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkUsePacket.h" />
     <ClInclude Include="internal\wire\GamblePacket.h" />

@@ -20657,10 +20657,10 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	break;
 	case 816:
 	{
-		MSG_STANDARDPARM stGuildDep{};
+		MSG_GuildDeprivate stGuildDep{};
 		stGuildDep.Header.ID = m_pMyHuman->m_dwID;
-		stGuildDep.Header.Type = 652;
-		stGuildDep.Parm = m_pMessageBox->m_dwArg;
+		stGuildDep.Header.Type = MSG_GuildDeprivate_Opcode;
+		stGuildDep.TargetID = m_pMessageBox->m_dwArg;
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stGuildDep)->Type, reinterpret_cast<char*>(&stGuildDep), sizeof(stGuildDep)});
 		m_pPGTPanel->SetVisible(0);
 	}

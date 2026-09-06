@@ -243,6 +243,9 @@
     <ClInclude Include="internal\wire\UseNPCPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\GuildDeprivatePacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

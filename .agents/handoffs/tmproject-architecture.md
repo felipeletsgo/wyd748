@@ -1195,9 +1195,6 @@ instalou `1D8C6077CA7B97D568FC998D8AF1F099EBA503C6695AC5F2AA4349060DA4FDA1`.
 O fluxo real de entrada/troca de cidade, troca de cena e relogin permanece sem
 `CLIENT_TESTED`.
 
-Proximo passo apos o gate: escolher outra ficha `CONTRACT` sem repetir `0x291`,
-ou executar os fluxos reais pendentes quando houver dois clients.
-
 ## Fase 2 — pedido de portal 0x290
 
 `ReqTeleportPacket.h` agora concentra `MSG_ReqTeleport_Opcode` e o frame C->S
@@ -1242,3 +1239,26 @@ passaram com 1936 checks/asserts; Debug instalou
 instalou `C7406A06EAA5C8CCA2FEC7BC8726DC646E11512957DEE4F431D56F4F2BE01FFD`.
 Clique, confirmacao, recusa, troca de cena e relogin continuam sem
 `CLIENT_TESTED`.
+
+
+## Fase 2 — remoção de membro da guild 0x28C
+
+`GuildDeprivatePacket.h` agora concentra `MSG_GuildDeprivate_Opcode` e o frame
+C->S de 16 bytes, com `TargetID` em `+12`. `Basedef.h` reexporta o tipo; o
+caso `816` de `TMFieldScene::OnMsgBoxEvent` preserva o alvo, a caixa e o envio,
+substituindo somente o literal decimal `652` e a fachada `MSG_STANDARDPARM`.
+
+O export Ghidra focado `guild-deprivate-flow.tsv` confirma `FUN_004640E5`, o
+evento `0x330`, os writes de `0x28C`, o alvo, `FUN_0055F2DD` e o gate
+`FUN_0055890A` com tamanho `0x10`. O WYD-Go já exige 16 bytes e mantém cargo,
+alvo e persistência autoritativos.
+
+Fixture C++ cobre opcode, tamanho, offset, alvo e bytes reservados.
+
+`go test -count=1 ./...`, XML/caminhos e `git diff --check` passaram. O
+validador aceitou a ficha `CONTRACT` e manteve somente o erro preexistente de
+`send-item-local-update.md`. Debug/Release via `Build-Client.ps1 -Rebuild`
+passaram com 1938 checks/asserts; Debug instalou
+`1B0E1110AFFFE07170A9D5F5F10694700240C9981F18388F19723EF782E6CC4` e Release
+instalou `AAF0E76E08254C980856BBFDE84EDFEAF6B43FBAA365EB4E065856B403E14CE2`.
+Expuls?o real, rejei??o, troca de cena e relogin continuam sem `CLIENT_TESTED`.
