@@ -24,12 +24,14 @@ Qual frame o client 7.48 envia ao confirmar a seleção de uma disputa de zona?
 
 ## Fluxo nativo 7.48
 
+### Callers
+
 No estado nativo de confirmação (`state=5`), `FUN_004662C5` zera um buffer de
 20 bytes, grava `Type=0x28F`, o ID local, `Parm1` derivado do alvo salvo e
 `Parm2` da seleção atual, e chama `FUN_0055F2DD`. O gate `FUN_0055890A`
 confirma que `0x28F` exige `0x14` bytes.
 
-### Callees e estado
+### Callees
 
 - `FUN_0055F2DD` aplica o throttle e envia o frame.
 - O callback `FUN_004662C5` é o receptor da seleção de controles da FieldScene;

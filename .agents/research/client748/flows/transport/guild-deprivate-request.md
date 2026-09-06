@@ -24,8 +24,14 @@ Qual frame o client 7.48 envia ao confirmar a expulsão de um membro da guild?
 
 ## Fluxo nativo 7.48
 
+### Callers
+
 No evento de confirmação `0x330`, `FUN_004640E5` zera 16 bytes, grava
 `Type=0x28C`, o ID local e o alvo em `+12`, então chama `FUN_0055F2DD`.
+
+### Callees
+
+`FUN_0055F2DD` aplica o throttle e envia o frame.
 `FUN_0055890A` valida o opcode somente com tamanho `0x10`.
 
 ## Estado e lifecycle

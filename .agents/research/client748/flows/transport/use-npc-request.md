@@ -24,12 +24,14 @@ Qual frame o client 7.48 envia ao clicar ou confirmar a interação com um NPC?
 
 ## Fluxo nativo 7.48
 
+### Callers
+
 `FUN_004640E5` possui um branch de clique com evento `0x0D`: zera 20 bytes,
 grava `Type=0x28B`, o ID local, o NPC em `+12` e `ClickOk=0` em `+16`, então
 chama `FUN_0055F2DD`. Os eventos `0x0F`, `0x0A`, `0x6CE`, `0xE9` e `0x3A`
 reutilizam o frame, mas gravam `ClickOk=1` para a confirmação nativa.
 
-### Callees e gate
+### Callees
 
 - `FUN_0055F2DD` aplica o throttle e envia o frame.
 - `FUN_0055890A` contém o caso `0x28B` e rejeita qualquer tamanho diferente de
