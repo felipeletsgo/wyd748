@@ -141,6 +141,7 @@
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h" />
     <ClInclude Include="internal\wire\GamblePacket.h" />
     <ClInclude Include="internal\wire\MobKillConfirmPacket.h" />
+    <ClInclude Include="internal\wire\UpdateEtcPacket.h" />
     <ClInclude Include="internal\wire\ServerMigrationPacket.h" />
     <ClInclude Include="internal\wire\IndexedMessageContract.h" />
     <ClInclude Include="internal\wire\ChatMessagePacket.h" />

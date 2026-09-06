@@ -30,6 +30,7 @@
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/GamblePacket.h"
 #include "../wire/MobKillConfirmPacket.h"
+#include "../wire/UpdateEtcPacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -1015,23 +1016,6 @@ struct MSG_UpdateScore
 	int ReqHp;
 	int ReqMp;
 	char LearnedSkill;
-};
-
-constexpr auto MSG_UpdateEtc_Opcode = 0x337;
-struct MSG_UpdateEtc
-{
-	MSG_STANDARD Header;
-	unsigned int Hold;
-	unsigned int Exp;
-	unsigned int LearnedSkill;
-	// WYD748: 0x337 is the compact 36-byte native packet.  Extended Score data
-	// remains in 0x336; importing the newer full Score here shifts Coin and makes
-	// the stock 7.48 size gate reject every incremental points/gold update.
-	unsigned short StatusPoint;
-	unsigned short MasterPoint;
-	unsigned short SkillPoint;
-	unsigned short Magic;
-	int Coin;
 };
 
 constexpr auto MSG_MessagePanel_Opcode = 0x101;

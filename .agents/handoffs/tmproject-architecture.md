@@ -834,6 +834,29 @@ Nao CLIENT_TESTED; morte PvP, pagamento de Hold, limiar de HP, logout e relogin
 reais continuam pendentes. Proximo corte da mesma ficha pode extrair 0x337,
 sem repetir 0x338 ou contratos anteriores.
 
+## Fase 2 — snapshot compacto UpdateEtc 0x337
+
+UpdateEtcPacket.h agora possui MSG_UpdateEtc, opcode e asserts do wire 7.48:
+36 bytes, Hold +12, EXP +16, LearnedSkill +20, Status/Mastery/Skill/Magic
+WORDs +24/+26/+28/+30 e Coin +32. Basedef reexporta; ReceivedPacketDispatch
+valida o frame antes de TMHuman::OnPacketUpdateEtc. Score completo permanece
+exclusivo de 0x336, e CP/Chaos não foi confundido com Hold.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire/client e adaptação server-authoritative
+para Held EXP já existente. Ficha combat/pvp-death-held-exp-lifecycle.md
+reutilizada; source, Go e testes UTILIZADOS; assets NAO APLICAVEIS. Nenhuma
+regra de progressão, skill ou gold foi criada neste corte.
+
+Debug/Release Build-Client.ps1 PASS, 1589 checks/asserts cada. Fixtures cobrem
+truncamento, excesso, nulo, Size divergente, entrega única e todos os campos
+do snapshot; `go test ./internal/game -run 'HeldExperience|UpdateEtc|SkillMaster'
+-count=1` e `go test ./internal/wire -run 'UpdateEtc' -count=1` PASS.
+PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado com SHA-256
+`117C602B57DA956C0A2B4540091D3D903C05A89F5E697C97740B0C526D4B8E29`.
+Nao CLIENT_TESTED; Hold, pontos, skills, gold, limiar de HP e relogin reais
+continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem repetir
+0x337/0x338 ou os contratos anteriores.
+
 ## Fase 2 — publicação Premium Firework 0x3CA
 
 PremiumFireworkPacket.h agora possui MSG_PremiumFirework e asserts do wire

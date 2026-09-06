@@ -104,6 +104,10 @@ saldo, pool e RNG permanecem autoridade do servidor.
 em +12, vítima +16, killer +18 e EXP uint32 em +20. O gate valida o frame
 antes de a Field aplicar EXP/Hold e morte visual.
 
+`0x337` (UpdateEtc S→C, 36 bytes) usa UpdateEtcPacket.h: Hold +12, EXP +16,
+LearnedSkill +20, pontos WORD em +24..30 e gold +32. Score completo permanece
+em `0x336`; CP/Chaos não ocupa este snapshot compacto.
+
 `0x3CA` (Premium Firework S→C, 36 bytes) usa PremiumFireworkPacket.h:
 reservado em +12 (8 bytes) e bitmap 10x10 LSB-first em +20 (16 bytes). O
 servidor publica somente após validar/persistir o consumo; o efeito visual

@@ -7,6 +7,7 @@
 #include "../internal/wire/PremiumFireworkPacket.h"
 #include "../internal/wire/GamblePacket.h"
 #include "../internal/wire/MobKillConfirmPacket.h"
+#include "../internal/wire/UpdateEtcPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -530,5 +531,47 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(decodedKill.FakeExp == 1234 && decodedKill.KilledMob == 0x1234 &&
         decodedKill.Killer == 0x5678 && decodedKill.Exp == 0x11223344u,
         "mob-kill preserva Hold, IDs e EXP uint32");
+    std::array<char, 37> updateEtc{};
+    updateEtc[0] = 36;
+    updateEtc[4] = 0x37;
+    updateEtc[5] = 3;
+    updateEtc[12] = static_cast<char>(0xD2);
+    updateEtc[13] = 0x04;
+    updateEtc[16] = 0x44;
+    updateEtc[17] = 0x33;
+    updateEtc[18] = 0x22;
+    updateEtc[19] = 0x11;
+    updateEtc[20] = 0x08;
+    updateEtc[24] = 1;
+    updateEtc[26] = 2;
+    updateEtc[28] = 3;
+    updateEtc[30] = 4;
+    updateEtc[32] = 5;
+    int updateEtcCalls = 0;
+    const auto receiveUpdateEtc = [&](const PacketView& view) {
+        ++updateEtcCalls;
+        check(view.data == updateEtc.data() && view.size == 36,
+            "UpdateEtc preserva frame compacto");
+    };
+    for (std::size_t n = 0; n < 36; n += 4)
+        check(!received_packet::Dispatch({0x337, updateEtc.data(), n}, receiveUpdateEtc),
+            "UpdateEtc truncado rejeitado");
+    check(!received_packet::Dispatch({0x337, updateEtc.data(), 37}, receiveUpdateEtc),
+        "UpdateEtc excedente rejeitado");
+    check(!received_packet::Dispatch({0x337, nullptr, 36}, receiveUpdateEtc),
+        "UpdateEtc nulo rejeitado");
+    updateEtc[0] = 35;
+    check(!received_packet::Dispatch({0x337, updateEtc.data(), 36}, receiveUpdateEtc),
+        "UpdateEtc Size divergente rejeitado");
+    updateEtc[0] = 36;
+    check(received_packet::Dispatch({0x337, updateEtc.data(), 36}, receiveUpdateEtc) && updateEtcCalls == 1,
+        "UpdateEtc valido entregue uma vez");
+    MSG_UpdateEtc decodedEtc{};
+    std::memcpy(&decodedEtc, updateEtc.data(), sizeof(decodedEtc));
+    check(decodedEtc.Hold == 1234 && decodedEtc.Exp == 0x11223344u &&
+        decodedEtc.LearnedSkill == 8 && decodedEtc.StatusPoint == 1 &&
+        decodedEtc.MasterPoint == 2 && decodedEtc.SkillPoint == 3 &&
+        decodedEtc.Magic == 4 && decodedEtc.Coin == 5,
+        "UpdateEtc preserva Hold, EXP, skill, pontos e gold");
     return failures;
 }

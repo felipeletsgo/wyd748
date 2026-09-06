@@ -3519,7 +3519,7 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
     case 0x334:
         return OnPacketMessageWhisper(reinterpret_cast<MSG_MessageWhisper*>(buf));
         break;
-    case 0x337:
+    case MSG_UpdateEtc_Opcode:
         return OnPacketUpdateEtc((MSG_STANDARD*)buf);
         break;
     case 0x3AF:
