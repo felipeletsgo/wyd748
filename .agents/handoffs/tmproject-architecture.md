@@ -577,3 +577,27 @@ entrega unica, offsets nome/texto/cor e preservacao do buffer. `go test
 Nao CLIENT_TESTED; filtros de dois clientes, whisper, canal, mail e relogin
 continuam pendentes. Proximo contrato deve ser escolhido por ficha existente;
 nao repetir extracoes ja registradas neste handoff.
+
+## Fase 2 — confirmacao de logout 0x116
+
+CharacterLogoutConfirmPacket.h nomeia o opcode e reexporta MSG_STANDARD com
+assert de 12 bytes. ReceivedPacketDispatch valida frame real/declarado e
+Type/opcode antes de TMFieldScene::OnPacketCNFCharacterLogout; o handler
+continua validando o ID e copiando Score/Equip para o slot antes de mudar
+para SelectChar. Nenhuma regra de logout, persistencia ou relogin foi criada.
+
+Modo PARIDADE_NATIVA/CONTRACT para o envelope, modernizacao local da fachada.
+Ficha lifecycle/character-logout-selectchar-relogin.md reutilizada: Ghidra
+FUN_0055890A fixa 0x116/12 e FUN_00484C8A valida o personagem. Source e
+testes UTILIZADOS; servidor/Go e assets NAO APLICAVEIS neste gate. O envio
+0x3AE/0x215 e a confirmacao 0x114 continuam fora deste corte.
+
+Debug/Release Build-Client.ps1 PASS, 1401 checks/asserts em cada. Fixtures
+cobrem prefixos truncados, excesso, nulo, Type/opcode/Size divergentes,
+entrega unica, preservacao do ID e bytes do header. PROJECT_PATHS_OK e
+`git diff --check` PASS. Release instalado e hash identico ao artefato:
+`D3B40B4231443BD8D001D0294659AD7D381855233378D0731E96635F9390E4EE`.
+Nao CLIENT_TESTED; menu System, espera de cinco segundos, persistencia e
+relogin real continuam pendentes. Proximo corte deve seguir a ficha de
+logout para o envio `0x215` ou confirmar outro contrato ja pesquisado, sem
+repetir o gate `0x116`.

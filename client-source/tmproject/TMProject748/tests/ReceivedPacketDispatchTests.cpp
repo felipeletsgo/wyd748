@@ -289,5 +289,39 @@ int RunReceivedPacketDispatchTests(int& checks)
         std::strcmp(decodedWhisper.String, "--Canal") == 0 && decodedWhisper.Color == 3,
         "fixture whisper confirma offsets nome texto e cor");
     check(whisper == whisperBefore, "whisper preserva bytes antes do handler");
+    std::array<char, 13> logout{};
+    logout[0] = 12;
+    logout[4] = 0x16;
+    logout[5] = 1;
+    logout[6] = 0x34;
+    logout[7] = 0x12;
+    int logoutCalls = 0;
+    const auto receiveLogout = [&](const PacketView& view) {
+        ++logoutCalls;
+        check(view.data == logout.data() && view.size == 12,
+            "logout confirma view de 12 bytes");
+    };
+    for (std::size_t n = 0; n < 12; ++n)
+        check(!received_packet::Dispatch({0x116, logout.data(), n}, receiveLogout),
+            "logout truncado rejeitado");
+    check(!received_packet::Dispatch({0x116, logout.data(), 13}, receiveLogout),
+        "logout excedente rejeitado");
+    check(!received_packet::Dispatch({0x116, nullptr, 12}, receiveLogout),
+        "logout nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, logout.data(), 12}, receiveLogout),
+        "logout Type nao pode ser ocultado");
+    logout[4] = 0x19;
+    check(!received_packet::Dispatch({0x116, logout.data(), 12}, receiveLogout),
+        "logout Type divergente rejeitado");
+    logout[4] = 0x16;
+    logout[0] = 11;
+    check(!received_packet::Dispatch({0x116, logout.data(), 12}, receiveLogout),
+        "logout Size divergente rejeitado");
+    logout[0] = 12;
+    check(logoutCalls == 0, "logout invalido nao chega ao callback");
+    const auto logoutBefore = logout;
+    check(received_packet::Dispatch({0x116, logout.data(), 12}, receiveLogout) && logoutCalls == 1,
+        "logout valido entregue uma vez");
+    check(logout == logoutBefore, "gate de logout preserva header e ID");
     return failures;
 }

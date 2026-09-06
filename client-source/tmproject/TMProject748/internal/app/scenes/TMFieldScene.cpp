@@ -9094,7 +9094,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		return OnPacketCancelSummon(pStd);
 	case 0x3A3:
 		return OnPacketSoundEffect(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
-	case 0x116:
+	case MSG_CNFCharacterLogout_Opcode:
 		return OnPacketCNFCharacterLogout(pStd);
 	case MSG_CNFRemoveServer_Opcode:
 		return OnPacketCNFRemoveServer(reinterpret_cast<MSG_CNFRemoveServer*>(pStd));

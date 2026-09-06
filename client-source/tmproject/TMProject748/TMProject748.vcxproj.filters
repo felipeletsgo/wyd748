@@ -180,6 +180,9 @@
     <ClInclude Include="internal\wire\WhisperMessagePacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\CharacterLogoutConfirmPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\ServerMigrationPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

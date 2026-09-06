@@ -54,6 +54,11 @@ nome em offset 12, texto em 28 e cor em 124. ReceivedPacketDispatch valida o
 envelope antes dos handlers existentes; prefixos e filtros continuam nesses
 handlers. O opcode de shout `0xD1D` nao recebe novo gate por essa extracao.
 
+`0x116` (confirmacao de logout de personagem, 12 bytes) usa
+CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
+o ID do personagem e entao copia Score/Equip antes da transicao para
+SelectChar. O gate de recepcao nao altera essa autoridade nem a transicao.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

@@ -5,6 +5,7 @@
 #include "ServerMigrationPacket.h"
 #include "ChatMessagePacket.h"
 #include "WhisperMessagePacket.h"
+#include "CharacterLogoutConfirmPacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "../application/ports/PacketDispatch.h"
@@ -29,6 +30,7 @@ namespace received_packet
         case MSG_MessageParameterized_Opcode: return kIndexedMessagePacketSize;
         case MSG_CNFRemoveServer_Opcode: return sizeof(MSG_CNFRemoveServer);
         case MSG_MessageWhisper_Opcode: return sizeof(MSG_MessageWhisper);
+        case MSG_CNFCharacterLogout_Opcode: return sizeof(MSG_CNFCharacterLogout);
         default: return 0;
         }
     }
