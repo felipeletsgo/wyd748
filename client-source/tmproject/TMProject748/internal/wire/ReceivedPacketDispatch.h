@@ -4,6 +4,7 @@
 #include "SendItemContract.h"
 #include "ServerMigrationPacket.h"
 #include "ChatMessagePacket.h"
+#include "WhisperMessagePacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "../application/ports/PacketDispatch.h"
@@ -27,6 +28,7 @@ namespace received_packet
         case MSG_MessageIndexed_Opcode:
         case MSG_MessageParameterized_Opcode: return kIndexedMessagePacketSize;
         case MSG_CNFRemoveServer_Opcode: return sizeof(MSG_CNFRemoveServer);
+        case MSG_MessageWhisper_Opcode: return sizeof(MSG_MessageWhisper);
         default: return 0;
         }
     }

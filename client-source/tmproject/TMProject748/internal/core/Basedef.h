@@ -18,6 +18,7 @@
 #include "../wire/SendItemContract.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
+#include "../wire/WhisperMessagePacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -1059,17 +1060,8 @@ struct MSG_UpdateAffect
 constexpr auto MSG_AccountLogin_Opcode = 0x20D;
 
 
-constexpr auto MSG_MessageWhisper_Opcode = 0x334;
 constexpr auto MSG_MessageShout_Opcode = 0xD1D;
-struct MSG_MessageWhisper
-{
-	MSG_STANDARD Header;
-	char MobName[16];
-	// WYD 7.48 uses a 96-byte body and a DWORD color, for 128 bytes total.
-	// The imported 7.69 layout shifted Color and broke both commands and mail.
-	char String[96];
-	int Color;
-};
+
 
 constexpr auto MSG_Encode_Opcode = 0xBFF;
 struct MSG_Encode
@@ -1413,10 +1405,6 @@ static_assert(sizeof(MSG_AutoTrade) == 196, "WYD 7.48 MSG_AutoTrade must be 196 
 static_assert(sizeof(MSG_MOVESTOP) == 36, "WYD 7.48 MSG_MOVESTOP must be 36 bytes");
 static_assert(sizeof(MSG_SendItem) == 24, "WYD 7.48 MSG_SendItem must be 24 bytes");
 static_assert(sizeof(MSG_UpdateEquip) == 60, "WYD 7.48 MSG_UpdateEquip must be 60 bytes");
-static_assert(sizeof(MSG_MessageWhisper) == 128, "WYD 7.48 MSG_MessageWhisper must be 128 bytes");
-static_assert(offsetof(MSG_MessageWhisper, MobName) == 12, "WYD 7.48 whisper name offset changed");
-static_assert(offsetof(MSG_MessageWhisper, String) == 28, "WYD 7.48 whisper text offset changed");
-static_assert(offsetof(MSG_MessageWhisper, Color) == 124, "WYD 7.48 whisper color offset changed");
 static_assert(sizeof(MSG_Encode) == 180, "WYD 7.48 MSG_Encode must be 180 bytes");
 static_assert(offsetof(MSG_Encode, Parm) == 12, "WYD 7.48 encode parameters offset changed");
 static_assert(offsetof(MSG_Encode, Parm) + 40 * sizeof(int) == 172, "WYD 7.48 encode byte 40 offset changed");

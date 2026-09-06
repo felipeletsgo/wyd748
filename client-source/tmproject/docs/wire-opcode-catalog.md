@@ -49,6 +49,11 @@ O handler de reconexao valida separadamente o prefixo numerico do TID com
 ParseMigrationServer (leitura limitada a 52 bytes, overflow e capacidade) e
 o grupo local antes de indexar g_pServerList. Sufixo do ticket permanece opaco.
 
+`0x334` (whisper/canal/mail, 128 bytes) usa WhisperMessagePacket.h, com
+nome em offset 12, texto em 28 e cor em 124. ReceivedPacketDispatch valida o
+envelope antes dos handlers existentes; prefixos e filtros continuam nesses
+handlers. O opcode de shout `0xD1D` nao recebe novo gate por essa extracao.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

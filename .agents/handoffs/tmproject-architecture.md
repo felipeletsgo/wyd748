@@ -552,3 +552,28 @@ Release instalado e hash conferido com artefato:
 Nao CLIENT_TESTED. Proximo: retomar contratos/casos de uso da fase 2; fluxo
 runtime de migracao, erro visual e reconexao permanece pendente, sem emissor
 Go conhecido. Nao tratar o gate de endereco como conclusao desse lifecycle.
+
+## Fase 2 — whisper/canal/mail 0x334
+
+WhisperMessagePacket.h agora possui MSG_MessageWhisper, opcode e asserts do
+contrato 7.48: 128 bytes, MobName em +12, String[96] em +28 e Color em +124.
+Basedef reexporta o header; ReceivedPacketDispatch valida tamanho real,
+Size, Type e opcode antes de TMFieldScene::OnPacketMessageWhisper. Prefixos
+`-`, `--`, `=` e `!`, filtros, party fallback e mail continuam nos handlers;
+nenhuma semantica foi movida para o gate.
+
+Modo MODERNIZACAO_COMPATIVEL, procedencia 7.48 para ABI e source local para
+extracao. Ficha CONTRACT ui/local-chat-message.md e gate nativo 0055890A
+reutilizados; source, teste Go e builders existentes UTILIZADOS. Assets
+NAO APLICAVEIS; shout `0xD1D` permanece fora. Nao foi criado opcode nem
+servidor novo.
+
+Debug/Release Build-Client.ps1 PASS, 1380 checks/asserts em cada. Fixtures
+cobrem prefixos truncados, excesso, nulo, Type/opcode/Size divergentes,
+entrega unica, offsets nome/texto/cor e preservacao do buffer. `go test
+./internal/wire -run MessageWhisper -count=1` PASS. PROJECT_PATHS_OK e
+`git diff --check` PASS. Release instalado e hash identico ao artefato:
+`DDCB0B67EFF3E3E9A4F99D896227A3417CF23AE3B238C0320EC60E496A88DDAA`.
+Nao CLIENT_TESTED; filtros de dois clientes, whisper, canal, mail e relogin
+continuam pendentes. Proximo contrato deve ser escolhido por ficha existente;
+nao repetir extracoes ja registradas neste handoff.

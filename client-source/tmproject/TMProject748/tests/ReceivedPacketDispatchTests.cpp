@@ -258,5 +258,36 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(ParseMigrationServer(fullTicket, 7, parsed) && parsed == 3,
         "ticket sem NUL respeita limite fisico e aceita sufixo opaco");
     check(!ParseMigrationServer(fullTicket, 0, parsed), "capacidade vazia rejeitada");
+    std::array<char, 129> whisper{};
+    whisper[0] = static_cast<char>(128);
+    whisper[4] = 0x34; whisper[5] = 3;
+    std::memcpy(whisper.data() + 12, "Remetente", 10);
+    std::memcpy(whisper.data() + 28, "--Canal", 8);
+    whisper[124] = 3;
+    int whisperCalls = 0;
+    const auto receiveWhisper = [&](const PacketView& view) {
+        ++whisperCalls;
+        check(view.data == whisper.data() && view.size == 128, "whisper preserva view");
+    };
+    for (std::size_t n = 0; n < 128; ++n)
+        check(!received_packet::Dispatch({0x334, whisper.data(), n}, receiveWhisper), "whisper truncado rejeitado");
+    check(!received_packet::Dispatch({0x334, whisper.data(), 129}, receiveWhisper), "whisper excedente");
+    check(!received_packet::Dispatch({0x334, nullptr, 128}, receiveWhisper), "whisper nulo");
+    check(!received_packet::Dispatch({0x119, whisper.data(), 128}, receiveWhisper), "whisper Type ocultado");
+    whisper[4] = 0x19;
+    check(!received_packet::Dispatch({0x334, whisper.data(), 128}, receiveWhisper), "whisper Type divergente");
+    whisper[4] = 0x34; whisper[0] = 127;
+    check(!received_packet::Dispatch({0x334, whisper.data(), 128}, receiveWhisper), "whisper Size divergente");
+    whisper[0] = static_cast<char>(128);
+    check(whisperCalls == 0, "whisper rejeitado sem callback");
+    const auto whisperBefore = whisper;
+    check(received_packet::Dispatch({0x334, whisper.data(), 128}, receiveWhisper) && whisperCalls == 1,
+        "whisper valido entregue uma vez");
+    MSG_MessageWhisper decodedWhisper{};
+    std::memcpy(&decodedWhisper, whisper.data(), 128);
+    check(std::strcmp(decodedWhisper.MobName, "Remetente") == 0 &&
+        std::strcmp(decodedWhisper.String, "--Canal") == 0 && decodedWhisper.Color == 3,
+        "fixture whisper confirma offsets nome texto e cor");
+    check(whisper == whisperBefore, "whisper preserva bytes antes do handler");
     return failures;
 }
