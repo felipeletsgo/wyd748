@@ -195,6 +195,9 @@
     <ClInclude Include="internal\wire\TotoPurchasePacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\ApplyBonusPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\ServerMigrationPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -78,6 +78,10 @@ e offset recebidos e promovendo o byte assinado para int32.
 campos locais e fecha o painel após o envio; preço, loja, item 4147, gold,
 UID, efeitos e rollback continuam autoridade exclusiva do WYD-Go.
 
+`0x277` (ApplyBonus, 20 bytes) usa ApplyBonusPacket.h. `BonusType=2`,
+`Detail` e `TargetID` são intenção de compra; skill, pontos, pré-requisitos,
+custo e persistência são decididos pelo servidor.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

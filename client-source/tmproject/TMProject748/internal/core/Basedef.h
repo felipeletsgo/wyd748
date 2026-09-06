@@ -24,6 +24,7 @@
 #include "../wire/CharacterLoginConfirmContract.h"
 #include "../wire/ClientIntegrityArrayContract.h"
 #include "../wire/TotoPurchasePacket.h"
+#include "../wire/ApplyBonusPacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -1469,15 +1470,6 @@ static_assert(sizeof(MSG_CNFParty2) == 32, "WYD 7.48 party confirmation must be 
 static_assert(offsetof(MSG_CNFParty2, LeaderID) == 12, "WYD 7.48 party leader ID offset changed");
 static_assert(offsetof(MSG_CNFParty2, LeaderName) == 14, "WYD 7.48 party leader name offset changed");
 static_assert(offsetof(MSG_CNFParty2, Reserved) == 30, "WYD 7.48 party reserved offset changed");
-
-constexpr auto MSG_ApplyBonus_Opcode = 0x277;
-struct MSG_ApplyBonus
-{
-	MSG_STANDARD Header;
-	short BonusType;
-	short Detail;
-	unsigned short TargetID;
-};
 
 constexpr auto MSG_ReqBuy_Opcode = 0x398;
 struct MSG_ReqBuy

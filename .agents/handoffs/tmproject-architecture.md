@@ -697,3 +697,27 @@ SHA-256 `9BE18F2D3532E0C652698CBFB1FBE176B2DAF48645F7372E14C17959B34FA967`.
 Nao CLIENT_TESTED; compra valida/invalida, tooltip e relogin continuam
 pendentes. Proximo corte deve seguir outra ficha CONTRACT sem repetir os
 contratos de transporte já extraídos.
+
+## Fase 2 — compra de skill no mestre 0x277
+
+ApplyBonusPacket.h agora possui MSG_ApplyBonus, opcode e asserts do contrato
+7.48: 20 bytes, BonusType +12, Detail +14 e TargetID +16. Basedef reexporta;
+os callers existentes de TMFieldScene continuam enviando o mesmo packet, sem
+alterar confirmação, UI ou ordem de efeitos. O servidor segue autoridade para
+classe, pré-requisitos, pontos, custo, skill e persistência.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire e envio; EXTENSAO_COORDENADA para a
+validação/persistência server-side já existente. Ficha ui/skill-master-
+purchase.md reutilizada: Ghidra FUN_004640E5 confirma 0x277/20 e BonusType 2
+na compra; source, Go, catálogo e testes UTILIZADOS; assets NAO APLICAVEIS
+neste corte. Nenhuma regra otimista foi criada.
+
+Debug/Release Build-Client.ps1 PASS, 1556 checks/asserts cada. Fixture C++
+confirma tipo, detalhe, mestre, opcode e tamanho; `go test ./internal/game
+-run 'TestApplyBonusSkillMasterPacketContract|TestSkillMaster' -count=1` e
+`go test ./internal/wire -count=1` PASS. PROJECT_PATHS_OK e
+`git diff --check` PASS. Release instalado com SHA-256:
+`C0391DA3B28F0B8C218B93248AA8F5EBEAC6A6A1D3118EC2693505B3AF6F3301`.
+Nao CLIENT_TESTED; abertura da lista, sprites, confirmação, rejeições e
+relogin continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT
+sem repetir TOTO, ApplyBonus ou os envelopes anteriores.

@@ -1,6 +1,7 @@
 #include "../internal/wire/ReceivedPacketDispatch.h"
 #include "../internal/wire/CharacterLogoutRequestPacket.h"
 #include "../internal/wire/TotoPurchasePacket.h"
+#include "../internal/wire/ApplyBonusPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -428,5 +429,15 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(sizeof(toto) == 36 && toto.TargetID == 7 && toto.MyCarryPos == 3 &&
         toto.Header.Type == 0x3CE && toto.Header.Size == 36,
         "TOTO preserva layout e campos de intencao C-S");
+    MSG_ApplyBonus applyBonus{};
+    applyBonus.Header.Type = MSG_ApplyBonus_Opcode;
+    applyBonus.Header.Size = sizeof(applyBonus);
+    applyBonus.BonusType = 2;
+    applyBonus.Detail = 5000;
+    applyBonus.TargetID = 42;
+    check(sizeof(applyBonus) == 20 && applyBonus.BonusType == 2 &&
+        applyBonus.Detail == 5000 && applyBonus.TargetID == 42 &&
+        applyBonus.Header.Type == 0x277 && applyBonus.Header.Size == 20,
+        "ApplyBonus preserva tipo, detalhe, mestre e tamanho");
     return failures;
 }
