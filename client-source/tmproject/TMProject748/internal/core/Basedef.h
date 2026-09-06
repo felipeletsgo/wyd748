@@ -22,6 +22,7 @@
 #include "../wire/CharacterLogoutConfirmPacket.h"
 #include "../wire/CharacterLogoutRequestPacket.h"
 #include "../wire/CharacterLoginConfirmContract.h"
+#include "../wire/ClientIntegrityArrayContract.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -115,20 +116,6 @@ constexpr auto MAX_ITEM_PRICE_REPLACE = 100;
 
 constexpr auto MSG_Recall_Opcode = 0x289;
 constexpr auto MSG_Ping_Opcode = 0x3A0;
-constexpr auto MSG_REQArray_Opcode = 0x1C1;
-constexpr auto MSG_CNFArray_Opcode = 0x2C2;
-
-// Contratos de mensagens: estes structs são wire-format e não devem receber
-// métodos, campos auxiliares ou mudanças de alinhamento.
-struct MSG_REQArray
-{
-	MSG_STANDARD Header;
-	INT32 Category;
-	INT32 ByteOffset;
-	INT32 Value;
-};
-
-
 constexpr auto MSG_RequestCapsuleInfo_Opcode = 0x2CD;
 constexpr auto MSG_DelayStart_Opcode = 0x3AE;
 constexpr auto MSG_UseDeclarationOfWar_Opcode = 0xED7;

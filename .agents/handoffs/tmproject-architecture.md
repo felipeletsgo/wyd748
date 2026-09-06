@@ -649,3 +649,28 @@ conferidos com SHA-256:
 Nao CLIENT_TESTED; menu, persistencia server-side e relogin real continuam
 pendentes. Proximo corte deve seguir outra transicao CONTRACT ja pesquisada,
 sem repetir os envelopes de logout/relogin.
+
+## Fase 2 — probe de array de animação 0x1C1/0x2C2
+
+ClientIntegrityArrayContract.h agora possui os opcodes, MSG_REQArray e
+asserts de 24 bytes/offsets 12,16,20; Basedef reexporta. ReceivedPacketDispatch
+valida o request S->C `0x1C1` antes de TMFieldScene::OnPacketREQArray; `0x2C2`
+fica fora do gate de recepcao por ser resposta C->S. O handler preserva campos
+recebidos, aplica clamps locais de categoria/offset, le o byte como signed
+char, promove para int32 e envia a resposta existente com ID do humano.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire/handler; MODERNIZACAO_COMPATIVEL para
+limite bruto numBoneBytes já existente; EXTENSAO_COORDENADA fica no manifesto
+e pending server-side já documentados. Ficha transport/bone-animation-array-
+probe.md reutilizada com Ghidra/gate/loader fechados; source, assets Mesh,
+Go e testes UTILIZADOS. Nao houve novo asset, opcode ou regra de sessão.
+
+Debug/Release Build-Client.ps1 PASS, 1554 checks/asserts cada. Fixtures cobrem
+truncamento, excesso, nulo, Type/opcode/Size divergentes, entrega única,
+offset signed, eco e resposta 0x2C2. Go:
+`go test ./internal/wire -run ClientIntegrity -count=1` PASS. PROJECT_PATHS_OK
+e `git diff --check` PASS. Release instalado/artefato com SHA-256:
+`33D2061D9AFB54A3FD71CACF4DAE80DD037776F86748D1E17A7E0202A033EF3F`.
+Nao CLIENT_TESTED; probe com assets e pending real, timeout, logout/relogin
+continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem
+repetir os gates de logout, relogin ou integridade já registrados.

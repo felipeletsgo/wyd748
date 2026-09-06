@@ -189,6 +189,9 @@
     <ClInclude Include="internal\wire\CharacterLoginConfirmContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\ClientIntegrityArrayContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\ServerMigrationPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

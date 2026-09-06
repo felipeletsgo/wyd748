@@ -368,5 +368,51 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(received_packet::Dispatch({0x114, loginConfirm.data(), 2104}, receiveLogin) && loginCalls == 1,
         "login confirm valido entregue uma vez");
     check(loginConfirm == loginBefore, "login confirm preserva bytes do relogin");
+    std::array<char, 25> arrayProbe{};
+    arrayProbe[0] = 24;
+    arrayProbe[4] = static_cast<char>(0xC1);
+    arrayProbe[5] = 1;
+    arrayProbe[12] = 99;
+    arrayProbe[16] = static_cast<char>(0xFC);
+    arrayProbe[17] = static_cast<char>(0xFF);
+    arrayProbe[18] = static_cast<char>(0xFF);
+    arrayProbe[19] = static_cast<char>(0xFF);
+    int arrayCalls = 0;
+    const auto receiveArray = [&](const PacketView& view) {
+        ++arrayCalls;
+        check(view.data == arrayProbe.data() && view.size == 24,
+            "array probe preserva frame de 24 bytes");
+    };
+    for (std::size_t n = 0; n < 24; n += 3)
+        check(!received_packet::Dispatch({0x1C1, arrayProbe.data(), n}, receiveArray),
+            "array probe truncado rejeitado");
+    check(!received_packet::Dispatch({0x1C1, arrayProbe.data(), 25}, receiveArray),
+        "array probe excedente rejeitado");
+    check(!received_packet::Dispatch({0x1C1, nullptr, 24}, receiveArray),
+        "array probe nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, arrayProbe.data(), 24}, receiveArray),
+        "array probe Type nao pode ser ocultado");
+    arrayProbe[4] = 0x19;
+    check(!received_packet::Dispatch({0x1C1, arrayProbe.data(), 24}, receiveArray),
+        "array probe Type divergente rejeitado");
+    arrayProbe[4] = static_cast<char>(0xC1);
+    arrayProbe[0] = 23;
+    check(!received_packet::Dispatch({0x1C1, arrayProbe.data(), 24}, receiveArray),
+        "array probe Size divergente rejeitado");
+    arrayProbe[0] = 24;
+    check(arrayCalls == 0, "array probe invalido nao chega ao callback");
+    const auto arrayBefore = arrayProbe;
+    check(received_packet::Dispatch({0x1C1, arrayProbe.data(), 24}, receiveArray) && arrayCalls == 1,
+        "array probe valido entregue uma vez");
+    MSG_REQArray decodedArray{};
+    std::memcpy(&decodedArray, arrayProbe.data(), sizeof(decodedArray));
+    check(decodedArray.Category == 99 && decodedArray.ByteOffset == -4,
+        "array probe preserva categoria e offset signed");
+    check(arrayProbe == arrayBefore, "array probe preserva bytes antes do handler");
+    MSG_REQArray response = decodedArray;
+    response.Header.Type = MSG_CNFArray_Opcode;
+    response.Value = -128;
+    check(response.Header.Type == 0x2C2 && response.Value == -128 && sizeof(response) == 24,
+        "array response preserva opcode, signedness e tamanho");
     return failures;
 }

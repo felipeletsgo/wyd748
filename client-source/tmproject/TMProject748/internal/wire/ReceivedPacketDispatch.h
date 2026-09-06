@@ -7,6 +7,7 @@
 #include "WhisperMessagePacket.h"
 #include "CharacterLogoutConfirmPacket.h"
 #include "CharacterLoginConfirmContract.h"
+#include "ClientIntegrityArrayContract.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "../application/ports/PacketDispatch.h"
@@ -33,6 +34,7 @@ namespace received_packet
         case MSG_MessageWhisper_Opcode: return sizeof(MSG_MessageWhisper);
         case MSG_CNFCharacterLogout_Opcode: return sizeof(MSG_CNFCharacterLogout);
         case MSG_CNFCharacterLogin_Opcode: return kCharacterLoginConfirmPacketSize;
+        case MSG_REQArray_Opcode: return sizeof(MSG_REQArray);
         default: return 0;
         }
     }

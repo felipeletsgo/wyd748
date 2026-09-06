@@ -69,6 +69,11 @@ CharacterLoginConfirmContract.h. O gate valida somente o envelope; a selecao
 continua dona da interpretacao de Pos/MOB/Slot/ClientID/Weather/ShortSkill e
 sidecars antes de reconstruir a FieldScene.
 
+O probe de integridade `0x1C1`/`0x2C2` usa ClientIntegrityArrayContract.h:
+24 bytes, Category em +12, ByteOffset em +16 e Value em +20. A recepcao
+valida apenas `0x1C1`; o handler cria a resposta `0x2C2` preservando categoria
+e offset recebidos e promovendo o byte assinado para int32.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;
