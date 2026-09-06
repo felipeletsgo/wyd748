@@ -23,6 +23,7 @@
 #include "../wire/CharacterLogoutRequestPacket.h"
 #include "../wire/CharacterLoginConfirmContract.h"
 #include "../wire/ClientIntegrityArrayContract.h"
+#include "../wire/TotoPurchasePacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -991,29 +992,6 @@ struct MSG_MOVESTOP
 	int LastX;
 	int LastY;
 };
-
-constexpr auto MSG_BuyToto_Opcode = 0x3CE;
-struct MSG_BuyToto
-{
-	MSG_STANDARD Header;
-	unsigned short TargetID;
-	short TargetCarryPos;
-	short MyCarryPos;
-	int Coin;
-	int Gindex;
-	int A_Score;
-	int B_Score;
-};
-static_assert(sizeof(MSG_BuyToto) == 36, "WYD 7.48 MSG_BuyToto must be 36 bytes");
-static_assert(offsetof(MSG_BuyToto, TargetID) == 0x0C, "WYD 7.48 TOTO TargetID offset mismatch");
-static_assert(offsetof(MSG_BuyToto, TargetCarryPos) == 0x0E, "WYD 7.48 TOTO shop slot offset mismatch");
-static_assert(offsetof(MSG_BuyToto, MyCarryPos) == 0x10, "WYD 7.48 TOTO inventory slot offset mismatch");
-static_assert(offsetof(MSG_BuyToto, Coin) == 0x14, "WYD 7.48 TOTO Coin offset mismatch");
-static_assert(offsetof(MSG_BuyToto, Gindex) == 0x18, "WYD 7.48 TOTO match offset mismatch");
-static_assert(offsetof(MSG_BuyToto, A_Score) == 0x1C, "WYD 7.48 TOTO score A offset mismatch");
-static_assert(offsetof(MSG_BuyToto, B_Score) == 0x20, "WYD 7.48 TOTO score B offset mismatch");
-
-
 
 
 struct MSG_SendItem

@@ -1,5 +1,6 @@
 #include "../internal/wire/ReceivedPacketDispatch.h"
 #include "../internal/wire/CharacterLogoutRequestPacket.h"
+#include "../internal/wire/TotoPurchasePacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -414,5 +415,18 @@ int RunReceivedPacketDispatchTests(int& checks)
     response.Value = -128;
     check(response.Header.Type == 0x2C2 && response.Value == -128 && sizeof(response) == 24,
         "array response preserva opcode, signedness e tamanho");
+    MSG_BuyToto toto{};
+    toto.Header.Type = MSG_BuyToto_Opcode;
+    toto.Header.Size = sizeof(toto);
+    toto.TargetID = 7;
+    toto.TargetCarryPos = 14;
+    toto.MyCarryPos = 3;
+    toto.Coin = 0x7FFFFFFF;
+    toto.Gindex = 80;
+    toto.A_Score = 127;
+    toto.B_Score = 0;
+    check(sizeof(toto) == 36 && toto.TargetID == 7 && toto.MyCarryPos == 3 &&
+        toto.Header.Type == 0x3CE && toto.Header.Size == 36,
+        "TOTO preserva layout e campos de intencao C-S");
     return failures;
 }

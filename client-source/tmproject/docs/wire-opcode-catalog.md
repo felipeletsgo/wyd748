@@ -74,6 +74,10 @@ O probe de integridade `0x1C1`/`0x2C2` usa ClientIntegrityArrayContract.h:
 valida apenas `0x1C1`; o handler cria a resposta `0x2C2` preservando categoria
 e offset recebidos e promovendo o byte assinado para int32.
 
+`0x3CE` (compra TOTO, 36 bytes) usa TotoPurchasePacket.h. O client valida
+campos locais e fecha o painel após o envio; preço, loja, item 4147, gold,
+UID, efeitos e rollback continuam autoridade exclusiva do WYD-Go.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

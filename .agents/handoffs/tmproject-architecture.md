@@ -674,3 +674,26 @@ e `git diff --check` PASS. Release instalado/artefato com SHA-256:
 Nao CLIENT_TESTED; probe com assets e pending real, timeout, logout/relogin
 continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem
 repetir os gates de logout, relogin ou integridade já registrados.
+
+## Fase 2 — compra TOTO 0x3CE
+
+TotoPurchasePacket.h agora possui MSG_BuyToto, opcode e asserts do wire nativo:
+36 bytes, TargetID +12, TargetCarryPos +14, MyCarryPos +16, Coin +20,
+Gindex +24, placares +28/+32. Basedef reexporta; TMFieldScene continua
+preenchendo e enviando o mesmo struct no fluxo TotoBuy. Nenhuma validação local,
+fechamento de painel ou campo foi reinterpretado.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire/UI e EXTENSAO_COORDENADA para a
+autoridade server-side já existente. Ficha transport/toto-buy.md reutilizada:
+Ghidra FUN_004727CC confirma 36 bytes e validação textual; source, Go,
+data/itemlist.csv e testes UTILIZADOS; assets visuais NAO APLICAVEIS. `Coin`
+continua intenção ignorada pelo servidor.
+
+Debug/Release Build-Client.ps1 PASS, 1555 checks/asserts cada. Fixture C++
+confirma opcode, Size, signedness e offsets; `go test ./internal/game -run
+'TestBuyToto' -count=1` e `go test ./internal/wire -count=1` PASS.
+PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado/artefato com
+SHA-256 `9BE18F2D3532E0C652698CBFB1FBE176B2DAF48645F7372E14C17959B34FA967`.
+Nao CLIENT_TESTED; compra valida/invalida, tooltip e relogin continuam
+pendentes. Proximo corte deve seguir outra ficha CONTRACT sem repetir os
+contratos de transporte já extraídos.
