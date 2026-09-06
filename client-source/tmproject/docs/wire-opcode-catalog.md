@@ -115,6 +115,11 @@ feature.
 do membro em `+12`. O caso de confirmação da expulsão preserva o contrato e o
 servidor continua autoritativo para cargo, alvo e persistência.
 
+`0xE0E/0xE12` usam GuildRelationPacket.h: intenções C->S de 20 bytes, com a
+guild local em `+12` e a guild alvo em `+16`. Os casos de confirmação preservam
+os valores nativos; guerra, aliança, liderança e persistência continuam no
+servidor.
+
 `0x28F` usa ChallengeConfirmPacket.h: confirmação C->S de 20 bytes, com
 `Parm1` em `+12` e `Parm2` em `+16`. O caso nativo de confirmação preserva
 `Parm1=m_dwTID` e `Parm2=0`; a regra da disputa continua no servidor.

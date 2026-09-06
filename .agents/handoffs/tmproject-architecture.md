@@ -1286,3 +1286,27 @@ passaram com 1940 checks/asserts; Debug instalou
 `9261463481EDCBF2946E93440723D2837DF17B362933638D74C5EA1161C95746` e Release
 instalou `0BC80774E9D9887796153B6A0383BC5966A59401253261FE254EFBAD9A2F2102`.
 Confirma??o real e relogin continuam sem `CLIENT_TESTED`.
+
+
+## Fase 2 — relações entre guilds 0xE0E/0xE12
+
+`GuildRelationPacket.h` concentra os opcodes de guerra e aliança e o payload
+C->S compartilhado de 20 bytes: `GuildID` `uint32` em `+12` e
+`TargetGuildID` em `+16`. Os casos `817/862` de
+`TMFieldScene::OnMsgBoxEvent` deixaram de usar `MSG_STANDARDPARM2` e os
+literais `3598/3602`; os valores, callbacks e fechamento do painel foram
+preservados.
+
+Antes da edição, `git log --all`, o catálogo e as fichas confirmaram que esse
+par ainda não possuía corte próprio. O Ghidra 12.1.3 read-only confirmou em
+`FUN_004640E5` os eventos `0x331/0x35E`, os dois buffers zerados, campos e
+calls de 20 bytes para `FUN_0055F2DD`; `FUN_0055890A` também confirma o gate
+`0xE0E/0x14`. O servidor já revalida liderança, guild e alvo e mantém rollback
+de persistência, sem mudança nesta unidade.
+
+`go test -count=1 ./...`, validador de pesquisa (`CONTRACT=29`, `TRACED=18`,
+`LOCATED=6`, `UNMAPPED=2`), XML/caminhos e `git diff --check` passaram.
+Debug/Release via `Build-Client.ps1 -Rebuild` passaram com 1942 checks/asserts;
+o Release foi instalado em `client748/project.exe` com SHA-256
+`891463810FDDF12E959A6DE0C64DE0A751CF4E6D0F6FBE9EB6DAD1C2C05FDDC7`.
+Guerra, aliança, rejeição e relogin reais continuam sem `CLIENT_TESTED`.

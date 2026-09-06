@@ -87,6 +87,7 @@ Estado atual do mapa:
 | Pedido de portal `0x290` | `CONTRACT` | `flows/transport/req-teleport.md` |
 | Interação com NPC `0x28B` | `CONTRACT` | `flows/transport/use-npc-request.md` |
 | Remoção de membro da guild `0x28C` | `CONTRACT` | `flows/transport/guild-deprivate-request.md` |
+| Guerra e aliança entre guilds `0xE0E/0xE12` | `CONTRACT` | `flows/transport/guild-relations-request.md` |
 | Confirmação de disputa de zona `0x28F` | `CONTRACT` | `flows/transport/challenge-confirm-request.md` |
 | Menu de interação Ctrl+clique direito em jogador | `TRACED` | `flows/ui/player-interaction-menu-lifecycle.md` |
 | Layout e lifecycle do painel Quest | `TRACED` | `flows/ui/quest-panel-layout-lifecycle.md` |

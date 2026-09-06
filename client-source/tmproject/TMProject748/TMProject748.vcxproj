@@ -153,6 +153,7 @@
     <ClInclude Include="internal\wire\UseNPCPacket.h" />
     <ClInclude Include="internal\wire\GuildDeprivatePacket.h" />
     <ClInclude Include="internal\wire\ChallengeConfirmPacket.h" />
+    <ClInclude Include="internal\wire\GuildRelationPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkUsePacket.h" />
     <ClInclude Include="internal\wire\GamblePacket.h" />

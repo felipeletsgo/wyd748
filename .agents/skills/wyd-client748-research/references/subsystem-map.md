@@ -20,6 +20,7 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Pedido de portal | confirmação da célula, frame e resolução server-side | `CONTRACT` estreito | `transport/req-teleport.md` fecha somente o frame C->S `0x290`; rota, cobrança e persistência permanecem autoritativas no servidor |
 | Interação com NPC | clique, confirmação, frame e allowlist server-side | `CONTRACT` estreito | `transport/use-npc-request.md` fecha somente o frame C->S `0x28B`; contexto e regras permanecem autoritativos no servidor |
 | Remoção de membro da guild | confirmação, alvo e autorização server-side | `CONTRACT` estreito | `transport/guild-deprivate-request.md` fecha somente o frame C->S `0x28C`; cargo, alvo e persistência permanecem autoritativos no servidor |
+| Relações entre guilds | confirmação, guild local/alvo e autorização server-side | `CONTRACT` estreito | `transport/guild-relations-request.md` fecha os frames C->S `0xE0E/0xE12`; liderança, guerra, aliança e persistência permanecem autoritativas no servidor |
 | Confirmação de disputa de zona | seleção, frame e resposta server-side | `CONTRACT` estreito | `transport/challenge-confirm-request.md` fecha somente o frame C->S `0x28F`; regra da disputa permanece autoritativa no servidor |
 | Movimento | intenção, rota, predição local, stop, correção server-side | `UNMAPPED` | — |
 | Combate e skills | seleção, alcance, intenção, confirmação, efeitos, rejeição | `UNMAPPED` | — |

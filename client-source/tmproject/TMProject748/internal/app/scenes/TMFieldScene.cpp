@@ -20667,24 +20667,24 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	break;
 	case 817:
 	{
-		MSG_STANDARDPARM2 stParam{};
+		MSG_GuildRelation stParam{};
 
 		stParam.Header.ID = m_pMyHuman->m_dwID;
-		stParam.Header.Type = 3598;
-		stParam.Parm1 = m_pMyHuman->m_usGuild;
-		stParam.Parm2 = m_pMessageBox->m_dwArg;
+		stParam.Header.Type = MSG_GuildWar_Opcode;
+		stParam.GuildID = m_pMyHuman->m_usGuild;
+		stParam.TargetGuildID = m_pMessageBox->m_dwArg;
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 		m_pPGTPanel->SetVisible(0);
 	}
 	break;
 	case 862:
 	{
-		MSG_STANDARDPARM2 stParam{};
+		MSG_GuildRelation stParam{};
 
 		stParam.Header.ID = m_pMyHuman->m_dwID;
-		stParam.Header.Type = 3602;
-		stParam.Parm1 = m_pMyHuman->m_usGuild;
-		stParam.Parm2 = m_pMessageBox->m_dwArg;
+		stParam.Header.Type = MSG_GuildAlly_Opcode;
+		stParam.GuildID = m_pMyHuman->m_usGuild;
+		stParam.TargetGuildID = m_pMessageBox->m_dwArg;
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 		m_pPGTPanel->SetVisible(0);
 	}

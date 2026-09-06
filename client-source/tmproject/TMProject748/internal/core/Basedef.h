@@ -43,6 +43,7 @@
 #include "../wire/UseNPCPacket.h"
 #include "../wire/GuildDeprivatePacket.h"
 #include "../wire/ChallengeConfirmPacket.h"
+#include "../wire/GuildRelationPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"

@@ -13,6 +13,7 @@
 #include "../internal/wire/UseNPCPacket.h"
 #include "../internal/wire/GuildDeprivatePacket.h"
 #include "../internal/wire/ChallengeConfirmPacket.h"
+#include "../internal/wire/GuildRelationPacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -289,6 +290,23 @@ int main()
         offsetof(MSG_ChallengeConfirm, Parm2) == 16 && challengeConfirmBytes[17] == 0 &&
         challengeConfirmBytes[18] == 0 && challengeConfirmBytes[19] == 0,
         "ChallengeConfirm mantem os offsets nativos");
+
+    MSG_GuildRelation guildRelation{};
+    guildRelation.Header.Type = MSG_GuildWar_Opcode;
+    guildRelation.Header.ID = 0x1234;
+    guildRelation.GuildID = 0x5678;
+    guildRelation.TargetGuildID = 0x9ABC;
+    const auto* guildRelationBytes = reinterpret_cast<const unsigned char*>(&guildRelation);
+    check(sizeof(guildRelation) == 20 && guildRelationBytes[4] == 0x0E &&
+        guildRelationBytes[5] == 0x0E && guildRelationBytes[12] == 0x78 &&
+        guildRelationBytes[13] == 0x56 && guildRelationBytes[16] == 0xBC &&
+        guildRelationBytes[17] == 0x9A,
+        "GuildRelation preserva opcode de guerra, tamanho e guilds");
+    guildRelation.Header.Type = MSG_GuildAlly_Opcode;
+    check(guildRelationBytes[4] == 0x12 && guildRelationBytes[5] == 0x0E &&
+        offsetof(MSG_GuildRelation, GuildID) == 12 &&
+        offsetof(MSG_GuildRelation, TargetGuildID) == 16,
+        "GuildRelation preserva opcode de alianca e offsets nativos");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.
