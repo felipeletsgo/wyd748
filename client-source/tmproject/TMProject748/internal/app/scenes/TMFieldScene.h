@@ -218,7 +218,7 @@ public:
 	int OnPacketCNFMobKill(MSG_CNFMobKill* pStd);
 	int OnPacketREQParty(MSG_REQParty* pStd);
 	int OnPacketAddParty(MSG_AddParty* pStd);
-	int OnPacketRemoveParty(MSG_STANDARDPARM* pStd);
+	int OnPacketRemoveParty(MSG_RemoveParty* pStd);
 	int OnPacketSetHpMode(MSG_SetHpMode* pStd);
 	int OnPacketDeposit(MSG_STANDARD* pStd);
 	int OnPacketWithdraw(MSG_STANDARD* pStd);

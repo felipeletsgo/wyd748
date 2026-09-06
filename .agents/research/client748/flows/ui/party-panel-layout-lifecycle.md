@@ -174,8 +174,10 @@ ativos do layout 7.48 são `1857/1863/5742`; os controles modernos
 Para o corte de wire, `FUN_0055890A` aceita `0x37D` somente com 40 bytes. O
 payload é `PARTY` de 28 bytes em `+12`, com `ID` em `+20`, `Name` em `+22` e
 WORD reservado em `+38`. `PartyAddPacket.h` fixa esses offsets e o gate local
-valida o frame antes de `OnPacketAddParty`; os outros opcodes Party permanecem
-em seus contratos próprios.
+valida o frame antes de `OnPacketAddParty`. O mesmo gate exige 16 bytes para
+`0x37E`; `PartyRemovePacket.h` fixa `Parm` em `+12`, onde zero limpa o grupo e
+valor diferente de zero identifica o membro. `0x37F/0x3AB` permanecem em
+contratos próprios.
 
 ## Mapeamento atual
 
@@ -204,8 +206,9 @@ intenções.
 | posição | `x=0`, `y=H-h-165` | reaplicada no bootstrap/open | dependia de root moderno/posição residual | N/A | `PARIDADE_NATIVA` |
 | toggle e fechamento | `FUN_0044DA6F` central | `SetVisibleParty` central | caminhos diretos divergiam | N/A | `PARIDADE_NATIVA` |
 | callbacks da lista | lista `1863` | aceita `1863` e `475138` | somente `475138` | revalida intenções | `PARIDADE_NATIVA` |
-| packet Party Add | `0x37D/40B` | contrato em `Basedef.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
-| demais packets Party | `0x37E/0x37F/0x3AB` | preservados | compatível | implementados | cortes separados |
+| packet Party Add | `0x37D/40B` | `PartyAddPacket.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
+| packet Party Remove | `0x37E/16B` | `PartyRemovePacket.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
+| demais packets Party | `0x37F/0x3AB` | preservados | compatível | implementados | cortes separados |
 | AutoParty moderno | fora deste claim nativo | opcional e isolado fora do compat | controles posteriores | política server-side existente | preservar como extensão separada |
 
 ## Decisões
@@ -232,11 +235,12 @@ intenções.
   cleanup, teardown, shutdown e relogin foram registrados no export focado e
   nesta ficha; `FUN_0055890A` fixa `0x37D/40`.
 - ABI: `PartyAddPacket.h` fixa 40 bytes, `PARTY` em `+12`, ID em `+20`, nome em
-  `+22` e reserved em `+38`; a fixture cobre framing e preservação do buffer.
+  `+22` e reserved em `+38`; `PartyRemovePacket.h` fixa 16 bytes e Parm em
+  `+12`. As fixtures cobrem framing e preservação do buffer.
 - Entrega: `IMPLEMENTED / STATICALLY VERIFIED`; `Build-Client.ps1` concluiu
-  Debug e Release com 1811 checks/asserts, XML/caminhos e `git diff --check`
+  Debug e Release com 1838 checks/asserts, XML/caminhos e `git diff --check`
   aprovados. O candidato Release instalado possui SHA-256
-  `12C509EB7A08AE357F4DD68F6CB113DFC4671FDA4EEADF19916885D1FDDB5161`.
+  `E3F9E1FED09924AC008600EE1F6BB5833035D22DF25A5FA9679BBE41B7FE8DF3`.
 - Automação: `validate_research.py`, a fixture C++ e `git diff --check` passaram
   para o lote.
 - Client real: não executado; `CLIENT-TESTED` não é alegado.

@@ -31,6 +31,7 @@
 #include "../wire/DelayStartPacket.h"
 #include "../wire/BillingNoticePacket.h"
 #include "../wire/PartyAddPacket.h"
+#include "../wire/PartyRemovePacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"

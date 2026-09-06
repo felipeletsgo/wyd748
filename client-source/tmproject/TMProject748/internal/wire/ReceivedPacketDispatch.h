@@ -14,6 +14,7 @@
 #include "DelayStartPacket.h"
 #include "BillingNoticePacket.h"
 #include "PartyAddPacket.h"
+#include "PartyRemovePacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "../application/ports/PacketDispatch.h"
@@ -47,6 +48,7 @@ namespace received_packet
         case MSG_DelayStart_Opcode: return sizeof(MSG_DelayStart);
         case MSG_BillingNotice_Opcode: return sizeof(MSG_BillingNotice);
         case MSG_AddParty_Opcode: return sizeof(MSG_AddParty);
+        case MSG_RemoveParty_Opcode: return sizeof(MSG_RemoveParty);
         default: return 0;
         }
     }

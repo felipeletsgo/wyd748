@@ -13,6 +13,7 @@
 #include "../internal/wire/DelayStartPacket.h"
 #include "../internal/wire/BillingNoticePacket.h"
 #include "../internal/wire/PartyAddPacket.h"
+#include "../internal/wire/PartyRemovePacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -597,6 +598,50 @@ int RunReceivedPacketDispatchTests(int& checks)
         decodedParty.Party.Level == 55 && std::strcmp(decodedParty.Party.Name, "Membro") == 0,
         "PartyAdd preserva ID, nivel e nome do membro");
     check(partyAdd == partyBefore, "gate preserva todos os bytes de PartyAdd");
+    std::array<char, 17> partyRemove{};
+    partyRemove[0] = 16;
+    partyRemove[4] = static_cast<char>(0x7E);
+    partyRemove[5] = 0x03;
+    partyRemove[6] = 0x34;
+    partyRemove[7] = 0x12;
+    partyRemove[12] = 0x78;
+    partyRemove[13] = 0x56;
+    int removeCalls = 0;
+    const auto receivePartyRemove = [&](const PacketView& view) {
+        ++removeCalls;
+        check(view.data == partyRemove.data() && view.size == 16 && view.opcode == 0x37E,
+            "PartyRemove preserva frame de 16 bytes");
+    };
+    for (std::size_t n = 0; n < 16; ++n)
+        check(!received_packet::Dispatch({0x37E, partyRemove.data(), n}, receivePartyRemove),
+            "PartyRemove truncado rejeitado");
+    check(!received_packet::Dispatch({0x37E, partyRemove.data(), 17}, receivePartyRemove),
+        "PartyRemove excedente rejeitado");
+    check(!received_packet::Dispatch({0x37E, nullptr, 16}, receivePartyRemove),
+        "PartyRemove nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, partyRemove.data(), 16}, receivePartyRemove),
+        "Type PartyRemove nao pode ser ocultado");
+    partyRemove[4] = 0x19;
+    check(!received_packet::Dispatch({0x37E, partyRemove.data(), 16}, receivePartyRemove),
+        "Type PartyRemove divergente rejeitado");
+    partyRemove[4] = static_cast<char>(0x7E);
+    partyRemove[0] = 15;
+    check(!received_packet::Dispatch({0x37E, partyRemove.data(), 16}, receivePartyRemove),
+        "Size PartyRemove divergente rejeitado");
+    partyRemove[0] = 16;
+    check(removeCalls == 0, "PartyRemove invalido nao chega ao consumidor");
+    const auto removeBefore = partyRemove;
+    check(received_packet::Dispatch({0x37E, partyRemove.data(), 16}, receivePartyRemove) && removeCalls == 1,
+        "PartyRemove valido entregue uma vez");
+    MSG_RemoveParty decodedRemove{};
+    std::memcpy(&decodedRemove, partyRemove.data(), sizeof(decodedRemove));
+    check(decodedRemove.Header.ID == 0x1234 && decodedRemove.Parm == 0x5678,
+        "PartyRemove preserva remetente e membro removido");
+    MSG_RemoveParty clearParty{};
+    clearParty.Header.Type = MSG_RemoveParty_Opcode;
+    clearParty.Header.Size = sizeof(clearParty);
+    check(clearParty.Parm == 0, "PartyRemove preserva zero como limpeza do grupo");
+    check(partyRemove == removeBefore, "gate preserva todos os bytes de PartyRemove");
     MSG_BuyToto toto{};
     toto.Header.Type = MSG_BuyToto_Opcode;
     toto.Header.Size = sizeof(toto);

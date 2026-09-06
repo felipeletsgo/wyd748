@@ -69,6 +69,10 @@ há emissor ou regra de cobrança no WYD-Go.
 reserved final em `+38`. O gate preserva o callback existente de inclusão no
 painel Party; convite, remoção e confirmação permanecem contratos separados.
 
+`0x37E` usa PartyRemovePacket.h: frame C<->S de 16 bytes e `Parm` em `+12`.
+Zero limpa/dissolve a lista; outro valor identifica o membro removido. O gate
+preserva o callback existente e não altera a autoridade Party do servidor.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

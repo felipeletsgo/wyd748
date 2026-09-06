@@ -8185,8 +8185,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			if (!m_pMyHuman)
 				return 1;
 
-			MSG_STANDARDPARM stParm{};
-			stParm.Header.Type = 0x37E;
+			MSG_RemoveParty stParm{};
+			stParm.Header.Type = MSG_RemoveParty_Opcode;
 			stParm.Header.ID = m_pMyHuman->m_dwID;
 			stParm.Parm = 0;
 
@@ -9138,8 +9138,8 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case 0x37D:
 		return OnPacketAddParty(reinterpret_cast<MSG_AddParty*>(pStd));
 		break;
-	case 0x37E:
-		return OnPacketRemoveParty(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
+	case MSG_RemoveParty_Opcode:
+		return OnPacketRemoveParty(reinterpret_cast<MSG_RemoveParty*>(pStd));
 		break;
 	case 0x292:
 		return OnPacketSetHpMode(reinterpret_cast<MSG_SetHpMode*>(pStd));
@@ -24452,7 +24452,7 @@ int TMFieldScene::OnPacketAddParty(MSG_AddParty* pStd)
 	return 1;
 }
 
-int TMFieldScene::OnPacketRemoveParty(MSG_STANDARDPARM* pStd)
+int TMFieldScene::OnPacketRemoveParty(MSG_RemoveParty* pStd)
 {
 	if (!pStd || !m_pPartyList)
 		return 0;

@@ -1000,3 +1000,26 @@ PASS. Release instalado com SHA-256
 Nao CLIENT_TESTED; convite, inclusão visual, remoção, fechamento, troca de cena
 e relogin reais continuam pendentes. Proximo corte deve seguir outro contrato
 Party separado ou outra ficha CONTRACT sem repetir `0x37D`.
+
+## Fase 2 — remoção de membro Party 0x37E
+
+PartyRemovePacket.h agora concentra o contrato C<->S de 16 bytes, com Parm
+int32 em +12: zero limpa/dissolve o grupo e outro valor identifica o membro.
+Basedef reexporta; o emissor e `TMFieldScene::OnPacketRemoveParty` usam o tipo
+dedicado; ReceivedPacketDispatch valida frame real/declarado e Type/opcode.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire e remoção no painel. A ficha
+ui/party-panel-layout-lifecycle.md reutiliza `FUN_0055890A` (0x37E/16) e
+`FUN_00492E7D -> FUN_00488B52`; source, Go e testes foram UTILIZADOS. Nenhuma
+regra de composição, liderança, minimapa ou lifecycle foi alterada.
+
+Debug/Release Build-Client.ps1 PASS, 1838 checks/asserts cada. Fixture C++
+cobre truncamento, excesso, nulo, Type/Size divergentes, entrega única, Parm
+zero/não zero e preservação do buffer. `go test ./internal/wire -run
+'PartyMemberAndRemove' -count=1` e `go test ./internal/game -run Party -count=1`
+PASS. PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado com SHA-256
+`E3F9E1FED09924AC008600EE1F6BB5833035D22DF25A5FA9679BBE41B7FE8DF3`.
+
+Nao CLIENT_TESTED; saída, expulsão, dissolução, liderança, minimapa, troca de
+cena e relogin reais continuam pendentes. Proximo corte Party pode extrair
+`0x37F` ou `0x3AB`, sem repetir `0x37D/0x37E`.
