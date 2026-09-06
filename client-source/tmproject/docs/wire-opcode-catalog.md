@@ -100,6 +100,10 @@ controle opcional ausente não altera o wire nem interrompe o toggle.
 usam GamblePacket.h. Resultado, prêmio e jackpot são copiados para a UI;
 saldo, pool e RNG permanecem autoridade do servidor.
 
+`0x338` (CNFMobKill S→C, 24 bytes) usa MobKillConfirmPacket.h: Hold/FakeExp
+em +12, vítima +16, killer +18 e EXP uint32 em +20. O gate valida o frame
+antes de a Field aplicar EXP/Hold e morte visual.
+
 `0x3CA` (Premium Firework S→C, 36 bytes) usa PremiumFireworkPacket.h:
 reservado em +12 (8 bytes) e bitmap 10x10 LSB-first em +20 (16 bytes). O
 servidor publica somente após validar/persistir o consumo; o efeito visual

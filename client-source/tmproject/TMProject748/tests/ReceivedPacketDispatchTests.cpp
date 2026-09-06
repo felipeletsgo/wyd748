@@ -6,6 +6,7 @@
 #include "../internal/wire/PKModePacket.h"
 #include "../internal/wire/PremiumFireworkPacket.h"
 #include "../internal/wire/GamblePacket.h"
+#include "../internal/wire/MobKillConfirmPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -491,5 +492,43 @@ int RunReceivedPacketDispatchTests(int& checks)
         sizeof(result) == 36 && result.Header.Type == 0x1BF && result.Prize == -7 &&
         result.Jackpot == 0x89ABCDEFu,
         "Gamble preserva aposta, resultado, premio, jackpot e tamanhos");
+    std::array<char, 25> mobKill{};
+    mobKill[0] = 24;
+    mobKill[4] = 0x38;
+    mobKill[5] = 3;
+    mobKill[12] = static_cast<char>(0xD2);
+    mobKill[13] = 0x04;
+    mobKill[16] = 0x34;
+    mobKill[17] = 0x12;
+    mobKill[18] = 0x78;
+    mobKill[19] = 0x56;
+    mobKill[20] = 0x44;
+    mobKill[21] = 0x33;
+    mobKill[22] = 0x22;
+    mobKill[23] = 0x11;
+    int mobKillCalls = 0;
+    const auto receiveMobKill = [&](const PacketView& view) {
+        ++mobKillCalls;
+        check(view.data == mobKill.data() && view.size == 24,
+            "mob-kill preserva frame de 24 bytes");
+    };
+    for (std::size_t n = 0; n < 24; n += 3)
+        check(!received_packet::Dispatch({0x338, mobKill.data(), n}, receiveMobKill),
+            "mob-kill truncado rejeitado");
+    check(!received_packet::Dispatch({0x338, mobKill.data(), 25}, receiveMobKill),
+        "mob-kill excedente rejeitado");
+    check(!received_packet::Dispatch({0x338, nullptr, 24}, receiveMobKill),
+        "mob-kill nulo rejeitado");
+    mobKill[0] = 23;
+    check(!received_packet::Dispatch({0x338, mobKill.data(), 24}, receiveMobKill),
+        "mob-kill Size divergente rejeitado");
+    mobKill[0] = 24;
+    check(received_packet::Dispatch({0x338, mobKill.data(), 24}, receiveMobKill) && mobKillCalls == 1,
+        "mob-kill valido entregue uma vez");
+    MSG_CNFMobKill decodedKill{};
+    std::memcpy(&decodedKill, mobKill.data(), sizeof(decodedKill));
+    check(decodedKill.FakeExp == 1234 && decodedKill.KilledMob == 0x1234 &&
+        decodedKill.Killer == 0x5678 && decodedKill.Exp == 0x11223344u,
+        "mob-kill preserva Hold, IDs e EXP uint32");
     return failures;
 }

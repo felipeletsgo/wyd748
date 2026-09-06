@@ -9129,7 +9129,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case 0x379:
 		return OnPacketBuy(pStd);
 		break;
-	case 0x338:
+	case MSG_CNFMobKill_Opcode:
 		return OnPacketCNFMobKill(reinterpret_cast<MSG_CNFMobKill*>(pStd));
 		break;
 	case 0x37F:

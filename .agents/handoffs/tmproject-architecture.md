@@ -811,6 +811,29 @@ Nao CLIENT_TESTED; painel, rolagem, rejeição, saldo, jackpot, logout e relogin
 reais continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem
 repetir Gamble, Firework ou PK.
 
+## Fase 2 — confirmação de morte 0x338
+
+MobKillConfirmPacket.h agora possui MSG_CNFMobKill, opcode e asserts do wire
+7.48: 24 bytes, Hold/FakeExp +12, KilledMob +16, Killer +18 e EXP uint32 +20.
+Basedef reexporta; ReceivedPacketDispatch valida o envelope antes de
+TMFieldScene::OnPacketCNFMobKill. A Field continua atualizando apenas a cópia
+visual; dívida, EXP e persistência permanecem no servidor.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire/client e adaptação server-authoritative
+para Held EXP já existente. Ficha combat/pvp-death-held-exp-lifecycle.md
+reutilizada: source, Ghidra/ficha, Go e testes UTILIZADOS; assets NAO
+APLICAVEIS. CP/Chaos permanece separado de Hold e não houve regra nova.
+
+Debug/Release Build-Client.ps1 PASS, 1574 checks/asserts cada. Fixtures cobrem
+truncamento, excesso, nulo, Size divergente, entrega única e offsets/unsigned
+de Hold, IDs e EXP. `go test ./internal/game -run 'HeldExperience|PvP|MobKill'
+-count=1` e `go test ./internal/wire -run 'MobKill|UpdateEtc' -count=1` PASS.
+PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado com SHA-256
+`F6B35960151FEDA38A57B3D19DB03B8B71187EC15D4A7E98D86ED052DB2CDB70`.
+Nao CLIENT_TESTED; morte PvP, pagamento de Hold, limiar de HP, logout e relogin
+reais continuam pendentes. Proximo corte da mesma ficha pode extrair 0x337,
+sem repetir 0x338 ou contratos anteriores.
+
 ## Fase 2 — publicação Premium Firework 0x3CA
 
 PremiumFireworkPacket.h agora possui MSG_PremiumFirework e asserts do wire

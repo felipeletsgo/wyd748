@@ -29,6 +29,7 @@
 #include "../wire/PKModePacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/GamblePacket.h"
+#include "../wire/MobKillConfirmPacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -1441,18 +1442,6 @@ struct MSG_ReqBuy
 	int Price;
 	int Tax;
 	STRUCT_ITEM item;
-};
-
-struct MSG_CNFMobKill
-{
-	MSG_STANDARD Header;
-	int FakeExp;
-	unsigned short KilledMob;
-	unsigned short Killer;
-	// The 7.48 kill confirmation ends with a 32-bit EXP value at byte 20.
-	// A 64-bit field here aligned the structure to 32 bytes and made the source
-	// client read past the canonical 24-byte packet emitted by WYD-Go.
-	unsigned int Exp;
 };
 
 struct MSG_RemoveMob

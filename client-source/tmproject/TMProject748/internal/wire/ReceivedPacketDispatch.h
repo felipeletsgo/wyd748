@@ -8,6 +8,7 @@
 #include "CharacterLogoutConfirmPacket.h"
 #include "CharacterLoginConfirmContract.h"
 #include "ClientIntegrityArrayContract.h"
+#include "MobKillConfirmPacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "../application/ports/PacketDispatch.h"
@@ -35,6 +36,7 @@ namespace received_packet
         case MSG_CNFCharacterLogout_Opcode: return sizeof(MSG_CNFCharacterLogout);
         case MSG_CNFCharacterLogin_Opcode: return kCharacterLoginConfirmPacketSize;
         case MSG_REQArray_Opcode: return sizeof(MSG_REQArray);
+        case MSG_CNFMobKill_Opcode: return sizeof(MSG_CNFMobKill);
         default: return 0;
         }
     }
