@@ -14,6 +14,7 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Dispatcher de cena/campo | socket -> cena atual -> controles -> handler -> side effects | `UNMAPPED` | — |
 | Tick e input do mundo | message loop, FrameMove, mouse/tecla, focus, auto-run | `CONTRACT` estreito | `transport/motion-emote-roundtrip.md` fecha somente input, wire e retorno de emotes `0x36A`; `ui/screenshot-capture.md` cobre Print Screen; tick, auto-run e demais teclas permanecem abertos |
 | Visibilidade e recuperação de entidades | referência antes do CreateMob, request, validação espacial e rematerialização | `CONTRACT` estreito | `transport/missing-entity-request.md` fecha somente o request C->S `0x369`; ciclo geral de visibilidade permanece aberto |
+| Morte e renascimento | death state, cooldown, recall, pedido e persistência | `CONTRACT` estreito | `transport/restart-recall-request.md` fecha somente o pedido C->S `0x289`; lifecycle completo permanece aberto |
 | Movimento | intenção, rota, predição local, stop, correção server-side | `UNMAPPED` | — |
 | Combate e skills | seleção, alcance, intenção, confirmação, efeitos, rejeição | `UNMAPPED` | — |
 | Character/Score/equipamento | create/update, score, equip, owner/observer, HUD | `UNMAPPED` | — |
