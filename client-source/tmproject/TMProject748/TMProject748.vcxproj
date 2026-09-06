@@ -142,6 +142,7 @@
     <ClInclude Include="internal\wire\BillingNoticePacket.h" />
     <ClInclude Include="internal\wire\PartyAddPacket.h" />
     <ClInclude Include="internal\wire\PartyRemovePacket.h" />
+    <ClInclude Include="internal\wire\PartyRequestPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkUsePacket.h" />
     <ClInclude Include="internal\wire\GamblePacket.h" />

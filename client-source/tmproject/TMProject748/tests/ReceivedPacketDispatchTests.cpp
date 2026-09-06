@@ -14,6 +14,7 @@
 #include "../internal/wire/BillingNoticePacket.h"
 #include "../internal/wire/PartyAddPacket.h"
 #include "../internal/wire/PartyRemovePacket.h"
+#include "../internal/wire/PartyRequestPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -642,6 +643,58 @@ int RunReceivedPacketDispatchTests(int& checks)
     clearParty.Header.Size = sizeof(clearParty);
     check(clearParty.Parm == 0, "PartyRemove preserva zero como limpeza do grupo");
     check(partyRemove == removeBefore, "gate preserva todos os bytes de PartyRemove");
+    std::array<char, 45> partyRequest{};
+    partyRequest[0] = 44;
+    partyRequest[4] = static_cast<char>(0x7F);
+    partyRequest[5] = 0x03;
+    partyRequest[6] = 0x34;
+    partyRequest[7] = 0x12;
+    partyRequest[12] = 3;
+    partyRequest[14] = 80;
+    partyRequest[16] = static_cast<char>(0xE8);
+    partyRequest[17] = 0x03;
+    partyRequest[18] = static_cast<char>(0xBC);
+    partyRequest[19] = 0x02;
+    partyRequest[20] = 0x34;
+    partyRequest[21] = 0x12;
+    std::memcpy(partyRequest.data() + 22, "Lider", 6);
+    partyRequest[40] = 0x78;
+    partyRequest[41] = 0x56;
+    int requestCalls = 0;
+    const auto receivePartyRequest = [&](const PacketView& view) {
+        ++requestCalls;
+        check(view.data == partyRequest.data() && view.size == 44 && view.opcode == 0x37F,
+            "PartyRequest preserva frame de 44 bytes");
+    };
+    for (std::size_t n = 0; n < 44; ++n)
+        check(!received_packet::Dispatch({0x37F, partyRequest.data(), n}, receivePartyRequest),
+            "PartyRequest truncado rejeitado");
+    check(!received_packet::Dispatch({0x37F, partyRequest.data(), 45}, receivePartyRequest),
+        "PartyRequest excedente rejeitado");
+    check(!received_packet::Dispatch({0x37F, nullptr, 44}, receivePartyRequest),
+        "PartyRequest nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, partyRequest.data(), 44}, receivePartyRequest),
+        "Type PartyRequest nao pode ser ocultado");
+    partyRequest[4] = 0x19;
+    check(!received_packet::Dispatch({0x37F, partyRequest.data(), 44}, receivePartyRequest),
+        "Type PartyRequest divergente rejeitado");
+    partyRequest[4] = static_cast<char>(0x7F);
+    partyRequest[0] = 43;
+    check(!received_packet::Dispatch({0x37F, partyRequest.data(), 44}, receivePartyRequest),
+        "Size PartyRequest divergente rejeitado");
+    partyRequest[0] = 44;
+    check(requestCalls == 0, "PartyRequest invalido nao chega ao consumidor");
+    const auto requestBefore = partyRequest;
+    check(received_packet::Dispatch({0x37F, partyRequest.data(), 44}, receivePartyRequest) && requestCalls == 1,
+        "PartyRequest valido entregue uma vez");
+    MSG_REQParty decodedRequest{};
+    std::memcpy(&decodedRequest, partyRequest.data(), sizeof(decodedRequest));
+    check(decodedRequest.Header.ID == 0x1234 && decodedRequest.Leader.ID == 0x1234 &&
+        decodedRequest.Leader.Level == 80 && decodedRequest.Leader.MaxHp == 1000 &&
+        decodedRequest.Leader.Hp == 700 && std::strcmp(decodedRequest.Leader.Name, "Lider") == 0 &&
+        decodedRequest.TargetID == 0x5678,
+        "PartyRequest preserva lider, HP e destino");
+    check(partyRequest == requestBefore, "gate preserva todos os bytes de PartyRequest");
     MSG_BuyToto toto{};
     toto.Header.Type = MSG_BuyToto_Opcode;
     toto.Header.Size = sizeof(toto);

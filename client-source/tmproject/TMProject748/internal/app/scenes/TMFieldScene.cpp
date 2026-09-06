@@ -9132,7 +9132,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case MSG_CNFMobKill_Opcode:
 		return OnPacketCNFMobKill(reinterpret_cast<MSG_CNFMobKill*>(pStd));
 		break;
-	case 0x37F:
+	case MSG_REQParty_Opcode:
 		return OnPacketREQParty(reinterpret_cast<MSG_REQParty*>(pStd));
 		break;
 	case 0x37D:

@@ -1023,3 +1023,26 @@ PASS. PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado com SHA-256
 Nao CLIENT_TESTED; saída, expulsão, dissolução, liderança, minimapa, troca de
 cena e relogin reais continuam pendentes. Proximo corte Party pode extrair
 `0x37F` ou `0x3AB`, sem repetir `0x37D/0x37E`.
+
+## Fase 2 — convite Party 0x37F
+
+PartyRequestPacket.h agora concentra o contrato C<->S de 44 bytes, reutiliza
+PARTY em +12 e fixa TargetID int32 em +40. Basedef reexporta; o emissor e
+`TMFieldScene::OnPacketREQParty` preservam o mesmo struct; ReceivedPacketDispatch
+valida frame real/declarado e Type/opcode antes do callback.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire e convite. A ficha
+ui/party-panel-layout-lifecycle.md reutiliza `FUN_0055890A` (0x37F/44) e
+`FUN_00492E7D -> FUN_004883BF`; source, Go e testes foram UTILIZADOS. Nenhuma
+regra de alcance, convite, AutoParty, UI ou autoridade foi movida.
+
+Debug/Release Build-Client.ps1 PASS, 1892 checks/asserts cada. Fixture C++
+cobre truncamento, excesso, nulo, Type/Size divergentes, entrega única, líder,
+HP, nome, destino e preservação do buffer. `go test ./internal/wire -run Party
+-count=1` e `go test ./internal/game -run Party -count=1` PASS.
+PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado com SHA-256
+`65CF0A3A2958238963F5FA0750CA75098BC016AA8E07D6289FE16BC92FABDD37`.
+
+Nao CLIENT_TESTED; convite válido/recusado, alcance, aceite, troca de cena e
+relogin reais continuam pendentes. Proximo corte Party pode extrair `0x3AB`,
+sem repetir `0x37D/0x37E/0x37F`.

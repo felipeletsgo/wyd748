@@ -32,6 +32,7 @@
 #include "../wire/BillingNoticePacket.h"
 #include "../wire/PartyAddPacket.h"
 #include "../wire/PartyRemovePacket.h"
+#include "../wire/PartyRequestPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
@@ -1341,14 +1342,6 @@ static_assert(offsetof(MSG_STANDARDPARM3, Parm3) == 20, "WYD 7.48 Parm3 offset c
 static_assert(sizeof(MSG_CNFCharacterLogin) == kCharacterLoginConfirmPacketSize,
 	"WYD 7.48 character login confirmation must be 2104 bytes");
 
-constexpr auto MSG_REQParty_Opcode = 0x37F;
-struct MSG_REQParty
-{
-	MSG_STANDARD Header;
-	PARTY Leader;
-	int TargetID;
-};
-
 constexpr auto MSG_CNFParty2_Opcode = 0x3AB;
 struct MSG_CNFParty2
 {
@@ -1360,9 +1353,6 @@ struct MSG_CNFParty2
 	short Reserved;
 };
 
-static_assert(sizeof(MSG_REQParty) == 44, "WYD 7.48 party request must be 44 bytes");
-static_assert(offsetof(MSG_REQParty, Leader) == 12, "WYD 7.48 party leader offset changed");
-static_assert(offsetof(MSG_REQParty, TargetID) == 40, "WYD 7.48 party target offset changed");
 static_assert(sizeof(MSG_CNFParty2) == 32, "WYD 7.48 party confirmation must be 32 bytes");
 static_assert(offsetof(MSG_CNFParty2, LeaderID) == 12, "WYD 7.48 party leader ID offset changed");
 static_assert(offsetof(MSG_CNFParty2, LeaderName) == 14, "WYD 7.48 party leader name offset changed");

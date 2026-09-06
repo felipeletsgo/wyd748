@@ -73,6 +73,10 @@ painel Party; convite, remoção e confirmação permanecem contratos separados.
 Zero limpa/dissolve a lista; outro valor identifica o membro removido. O gate
 preserva o callback existente e não altera a autoridade Party do servidor.
 
+`0x37F` usa PartyRequestPacket.h: frame C<->S de 44 bytes, snapshot `PARTY` do
+líder em `+12` e TargetID int32 em `+40`. O client e o servidor continuam
+revalidando convite, destino, alcance e estado do grupo nos handlers existentes.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

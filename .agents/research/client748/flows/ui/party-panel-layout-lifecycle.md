@@ -176,8 +176,11 @@ payload é `PARTY` de 28 bytes em `+12`, com `ID` em `+20`, `Name` em `+22` e
 WORD reservado em `+38`. `PartyAddPacket.h` fixa esses offsets e o gate local
 valida o frame antes de `OnPacketAddParty`. O mesmo gate exige 16 bytes para
 `0x37E`; `PartyRemovePacket.h` fixa `Parm` em `+12`, onde zero limpa o grupo e
-valor diferente de zero identifica o membro. `0x37F/0x3AB` permanecem em
-contratos próprios.
+valor diferente de zero identifica o membro. `PartyRequestPacket.h` agora fixa
+`0x37F/44`, reutilizando
+`PARTY` em `+12` e posicionando `TargetID` int32 em `+40`; o gate precede
+`OnPacketREQParty` sem alterar a criação do convite. `0x3AB` permanece em
+contrato próprio.
 
 ## Mapeamento atual
 
@@ -208,7 +211,8 @@ intenções.
 | callbacks da lista | lista `1863` | aceita `1863` e `475138` | somente `475138` | revalida intenções | `PARIDADE_NATIVA` |
 | packet Party Add | `0x37D/40B` | `PartyAddPacket.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
 | packet Party Remove | `0x37E/16B` | `PartyRemovePacket.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
-| demais packets Party | `0x37F/0x3AB` | preservados | compatível | implementados | cortes separados |
+| packet Party Request | `0x37F/44B` | `PartyRequestPacket.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
+| confirmação Party | `0x3AB` | preservada | compatível | implementada | corte separado |
 | AutoParty moderno | fora deste claim nativo | opcional e isolado fora do compat | controles posteriores | política server-side existente | preservar como extensão separada |
 
 ## Decisões
@@ -236,11 +240,12 @@ intenções.
   nesta ficha; `FUN_0055890A` fixa `0x37D/40`.
 - ABI: `PartyAddPacket.h` fixa 40 bytes, `PARTY` em `+12`, ID em `+20`, nome em
   `+22` e reserved em `+38`; `PartyRemovePacket.h` fixa 16 bytes e Parm em
-  `+12`. As fixtures cobrem framing e preservação do buffer.
+  `+12`; `PartyRequestPacket.h` fixa 44 bytes e TargetID em `+40`. As fixtures
+  cobrem framing e preservação do buffer.
 - Entrega: `IMPLEMENTED / STATICALLY VERIFIED`; `Build-Client.ps1` concluiu
-  Debug e Release com 1838 checks/asserts, XML/caminhos e `git diff --check`
+  Debug e Release com 1892 checks/asserts, XML/caminhos e `git diff --check`
   aprovados. O candidato Release instalado possui SHA-256
-  `E3F9E1FED09924AC008600EE1F6BB5833035D22DF25A5FA9679BBE41B7FE8DF3`.
+  `65CF0A3A2958238963F5FA0750CA75098BC016AA8E07D6289FE16BC92FABDD37`.
 - Automação: `validate_research.py`, a fixture C++ e `git diff --check` passaram
   para o lote.
 - Client real: não executado; `CLIENT-TESTED` não é alegado.
