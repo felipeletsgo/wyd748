@@ -16,6 +16,7 @@
 #include "../wire/CharacterLoginPacket.h"
 #include "../wire/CharacterTransferPacket.h"
 #include "../wire/SendItemContract.h"
+#include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
 #include "../wire/WhisperMessagePacket.h"
@@ -1005,14 +1006,6 @@ struct MSG_UpdateScore
 	char LearnedSkill;
 };
 
-constexpr auto MSG_MessagePanel_Opcode = 0x101;
-struct MSG_MessagePanel
-{
-	MSG_STANDARD Header;
-	// Panels are server-to-client only in the 7.48 flow and use 96 text bytes.
-	char String[96];
-};
-
 // Header-only notification consumed by the base scene. Native 7.48 checks
 // the opcode and does not read a payload.
 constexpr auto MSG_BillingNotice_Opcode = 0x194;
@@ -1313,8 +1306,6 @@ static_assert(offsetof(MSG_Encode, Parm) + 41 * sizeof(int) == 176, "WYD 7.48 en
 // The stock 7.48 dispatcher rejects 0x337 unless it is exactly 36 bytes.  Full
 // score state belongs to 0x336; this packet only projects the incremental WORDs.
 static_assert(sizeof(MSG_UpdateEtc) == 36, "WYD 7.48 MSG_UpdateEtc must be 36 bytes");
-static_assert(sizeof(MSG_MessagePanel) == 108, "WYD 7.48 MSG_MessagePanel must be 108 bytes");
-static_assert(offsetof(MSG_MessagePanel, String) == 12, "WYD 7.48 panel text offset changed");
 static_assert(sizeof(MSG_CharacterLogin) == 36, "WYD 7.48 MSG_CharacterLogin must be 36 bytes");
 static_assert(sizeof(MSG_NewCharacter) == 36, "WYD 7.48 MSG_NewCharacter must be 36 bytes");
 static_assert(sizeof(MSG_DeleteCharacter) == 44, "WYD 7.48 MSG_DeleteCharacter must be 44 bytes");

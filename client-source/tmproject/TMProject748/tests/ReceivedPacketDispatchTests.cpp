@@ -9,6 +9,7 @@
 #include "../internal/wire/GamblePacket.h"
 #include "../internal/wire/MobKillConfirmPacket.h"
 #include "../internal/wire/UpdateEtcPacket.h"
+#include "../internal/wire/MessagePanelPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -109,6 +110,45 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(itemDelivered == 0, "SendItem invalido nao chama consumidor");
     check(received_packet::Dispatch({0x182, sendItem, 24}, receiveItem) && itemDelivered == 1,
         "SendItem exato entregue sem retry");
+    // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
+    std::array<char, 109> messagePanel{};
+    messagePanel[0] = 108;
+    messagePanel[4] = 0x01;
+    messagePanel[5] = 0x01;
+    std::memcpy(messagePanel.data() + 12, "Inventario limpo", 17);
+    int panelCalls = 0;
+    const auto receivePanel = [&](const PacketView& view) {
+        ++panelCalls;
+        check(view.data == messagePanel.data() && view.size == 108 && view.opcode == 0x101,
+            "MessagePanel preserva buffer comprimento e opcode");
+    };
+    for (std::size_t n = 0; n < 108; ++n)
+        check(!received_packet::Dispatch({0x101, messagePanel.data(), n}, receivePanel),
+            "MessagePanel rejeita todos os prefixos truncados");
+    check(!received_packet::Dispatch({0x101, messagePanel.data(), 109}, receivePanel),
+        "MessagePanel excedente rejeitado");
+    check(!received_packet::Dispatch({0x101, nullptr, 108}, receivePanel),
+        "MessagePanel nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, messagePanel.data(), 108}, receivePanel),
+        "Type MessagePanel nao pode ser ocultado");
+    messagePanel[4] = 0x19;
+    check(!received_packet::Dispatch({0x101, messagePanel.data(), 108}, receivePanel),
+        "Type MessagePanel divergente rejeitado");
+    messagePanel[4] = 0x01;
+    messagePanel[0] = 107;
+    check(!received_packet::Dispatch({0x101, messagePanel.data(), 108}, receivePanel),
+        "Size MessagePanel divergente rejeitado");
+    messagePanel[0] = 108;
+    check(panelCalls == 0, "MessagePanel invalido nao chega ao consumidor");
+    const auto panelBefore = messagePanel;
+    check(received_packet::Dispatch({0x101, messagePanel.data(), 108}, receivePanel) && panelCalls == 1,
+        "MessagePanel valido entregue uma vez");
+    MSG_MessagePanel decodedPanel{};
+    std::memcpy(&decodedPanel, messagePanel.data(), sizeof(decodedPanel));
+    check(decodedPanel.Header.ID == 0 && std::strcmp(decodedPanel.String, "Inventario limpo") == 0 &&
+        decodedPanel.String[95] == 0,
+        "MessagePanel preserva ID zero texto e terminador final");
+    check(messagePanel == panelBefore, "gate preserva todos os bytes do MessagePanel");
     // Fixtures independentes das structs: valida comprimento real, declarado
     // e ambos os discriminantes antes de qualquer callback de cena.
     for (unsigned int opcode : {0x102u, 0x104u})

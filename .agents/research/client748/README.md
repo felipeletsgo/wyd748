@@ -62,6 +62,7 @@ Estado atual do mapa:
 | Fechamento da aplicação e shutdown global | `CONTRACT` | `flows/lifecycle/application-close-global-shutdown.md` |
 | Atualização e consumo dos filtros AutoKick `0x2C8` | `TRACED` | `flows/transport/autokick-filter-update.md` |
 | Chat local bidirecional `0x333` | `CONTRACT` | `flows/ui/local-chat-message.md` |
+| Aviso textual da cena `0x101` | `CONTRACT` | `flows/ui/message-panel-text.md` |
 | Avisos indexados/parametrizados `0x105/0x106` | `UNMAPPED` (extensão coordenada) | `flows/ui/indexed-parameterized-message-extension.md` |
 | Atalho F para consumível vinculado ao equipamento | `CONTRACT` | `flows/ui/equipped-item-matched-consumable-shortcut.md` |
 | Atalho E para poção especial | `CONTRACT` | `flows/ui/special-potion-shortcut.md` |

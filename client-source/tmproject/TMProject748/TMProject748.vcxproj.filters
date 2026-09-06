@@ -225,6 +225,9 @@
     <ClInclude Include="internal\wire\IndexedMessageContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\MessagePanelPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\ChatMessagePacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

@@ -902,3 +902,29 @@ PASS. Release instalado com SHA-256
 Nao CLIENT_TESTED; desenho, consumo/rejeição, observers, expiração e relogin
 continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem repetir
 0x3C9/0x3CA ou contratos anteriores.
+
+## Fase 2 — aviso textual MessagePanel 0x101
+
+MessagePanelPacket.h agora concentra MSG_MessagePanel, opcode e asserts do wire
+nativo: 108 bytes, texto de 96 bytes em +12. Basedef reexporta o contrato;
+ReceivedPacketDispatch valida comprimento real/declarado e Type/opcode antes de
+TMScene::OnPacketEvent. O parser de prefixos, o painel e a ordem de efeitos
+existentes nao foram alterados.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire e MODERNIZACAO_COMPATIVEL para o gate
+local. A ficha ui/message-panel-text.md registra FUN_0055890A (0x101/108),
+FUN_0049889A (ID zero e texto em +12), callers, ownership e lifecycle. Source,
+Go e testes foram UTILIZADOS; assets foram NAO APLICAVEIS. Os contratos
+0x102/0x104 e as extensoes 0x105/0x106 permanecem separados.
+
+Debug/Release Build-Client.ps1 PASS, 1708 checks/asserts cada. A fixture C++
+cobre truncamento, excesso, nulo, Type/Size divergentes, entrega unica e
+preservacao do buffer; `go test ./internal/wire -run 'MessagePanel|DaySync'
+-count=1` PASS. PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado
+com SHA-256 `7277CC4AD3ED65493D9375F149CDBD843C6B7A60826FA9360E79E60E2EBC4D25`.
+O validador reconhece a nova ficha como CONTRACT; permanece o erro preexistente
+da ficha LOCATED ui/send-item-local-update.md, fora deste corte.
+
+Nao CLIENT_TESTED; aviso comum, prefixos, troca de cena, logout e relogin reais
+continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem repetir
+0x101, 0x102/0x104 ou contratos anteriores.
