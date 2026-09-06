@@ -278,15 +278,34 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 	}
 }
 
-// onMotion e 0x2BC sao emitidos pelo client 7.48 para efeitos/telemetria que
-// nao alteram estado autoritativo do emulador. Reconhece-los evita falso
-// "sem handler" sem inventar uma semantica que o server ainda nao usa.
+// isPlayerEmoteMotion limita a intencao C->S aos valores produzidos pelo
+// teclado/click do 7.48. Motions de efeito continuam exclusivas do servidor.
+func isPlayerEmoteMotion(motion uint16) bool {
+	return motion == 13 || (motion >= 15 && motion <= 25) || motion == 27
+}
+
+// onMotion devolve a motion com o ID autoritativo para liberar o pending local
+// do emissor e publica-la aos observers. Parm e Direction do client nao podem
+// fabricar firework, level-up, morte ou outro efeito reservado ao servidor.
 func (w *World) onMotion(s *net.Session, pkt []byte) {
 	if len(pkt) != 20 {
 		w.noticeProtocol(s, wire.OpMotion, "tamanho inesperado")
+		return
 	}
+	p := w.players[s]
+	if p == nil || p.Char == nil || !p.InWorld {
+		return
+	}
+	motion := binary.LittleEndian.Uint16(pkt[12:14])
+	parm := binary.LittleEndian.Uint16(pkt[14:16])
+	if parm != 0 || !isPlayerEmoteMotion(motion) {
+		return
+	}
+	w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, motion, 0) })
 }
 
+// 0x2BC e telemetria opaca: reconhecer o tamanho evita falso "sem handler"
+// sem inventar estado autoritativo que o protocolo ainda nao define.
 func (w *World) onClientUnknown2BC(s *net.Session, pkt []byte) {
 	if len(pkt) != 108 {
 		w.noticeProtocol(s, wire.OpClientUnknown2BC, "tamanho inesperado")

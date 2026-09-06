@@ -3483,7 +3483,7 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
     case MSG_PremiumFirework_Opcode:
         return OnPacketPremiumFireWork(reinterpret_cast<MSG_PremiumFirework*>(buf));
         break;
-    case 0x36A:
+    case MSG_Motion_Opcode:
         return OnPacketFireWork(reinterpret_cast<MSG_Motion*>(buf));
         break;
     case 0x165:

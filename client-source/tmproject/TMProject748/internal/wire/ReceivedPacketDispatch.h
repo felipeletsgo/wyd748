@@ -16,6 +16,7 @@
 #include "PartyAddPacket.h"
 #include "PartyRemovePacket.h"
 #include "PartyRequestPacket.h"
+#include "MotionPacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "../application/ports/PacketDispatch.h"
@@ -51,6 +52,7 @@ namespace received_packet
         case MSG_AddParty_Opcode: return sizeof(MSG_AddParty);
         case MSG_RemoveParty_Opcode: return sizeof(MSG_RemoveParty);
         case MSG_REQParty_Opcode: return sizeof(MSG_REQParty);
+        case MSG_Motion_Opcode: return sizeof(MSG_Motion);
         default: return 0;
         }
     }

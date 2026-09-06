@@ -222,6 +222,9 @@
     <ClInclude Include="internal\wire\PartyAcceptPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\MotionPacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

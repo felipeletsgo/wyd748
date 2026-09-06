@@ -193,5 +193,8 @@ nem publica o emote aos observers.
 - Pesquisa: export Ghidra headless read-only finalizou sem `SCRIPT ERROR`, com
   hash do programa esperado, slots exatos e resumos `instruction_search` para
   emissor e receptor.
-- Automação: pendente até a implementação do header e do roundtrip WYD-Go.
+- Automação: `go test -count=1 ./...` passou; Debug e
+  Release via `Build-Client.ps1` passaram com 1925 checks/asserts. O Release foi
+  instalado com SHA-256
+  `DB0BEE35327ED0E6DEBD987BB3F515554D4EF5E7FFF01D212593E5AA1D68DB3E`.
 - Client real: não executado; não `CLIENT_TESTED`.

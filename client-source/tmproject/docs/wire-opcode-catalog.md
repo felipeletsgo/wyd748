@@ -81,6 +81,10 @@ revalidando convite, destino, alcance e estado do grupo nos handlers existentes.
 `+12`, `LeaderName[16]` em `+14` e WORD reservado em `+30`. Os dois emissores
 do client preservam o fluxo existente; não há rota S->C para este opcode.
 
+`0x36A` usa MotionPacket.h: frame C<->S de 20 bytes, `Motion` short em `+12`,
+`Parm` short em `+14` e `Direction` float em `+16`. O servidor reconstrói
+emotes do jogador com ID autoritativo e mantém efeitos especiais no sentido S->C.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

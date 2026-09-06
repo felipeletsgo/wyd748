@@ -34,6 +34,7 @@
 #include "../wire/PartyRemovePacket.h"
 #include "../wire/PartyRequestPacket.h"
 #include "../wire/PartyAcceptPacket.h"
+#include "../wire/MotionPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
@@ -783,14 +784,6 @@ static_assert(offsetof(MSG_Action, Effect) == 20, "WYD 7.48 Effect offset mismat
 static_assert(offsetof(MSG_Action, TargetX) == 24, "WYD 7.48 TargetX offset mismatch");
 static_assert(offsetof(MSG_Action, Route) == 28, "WYD 7.48 Route offset mismatch");
 
-constexpr auto MSG_Motion_Opcode = 0x36A;
-struct MSG_Motion
-{
-	MSG_STANDARD Header;
-	short Motion;
-	short Parm;
-	float Direction;
-};
 struct st_DropListMobSelected
 {
 	char Name[16];

@@ -1072,3 +1072,34 @@ de `send-item-local-update.md`, fora deste corte.
 Nao CLIENT_TESTED; aceite por click e automático, rejeição, convite expirado,
 troca de cena e relogin reais continuam pendentes. Proximo corte deve seguir
 outra ficha CONTRACT sem repetir `0x37D/0x37E/0x37F/0x3AB`.
+
+## Fase 2 — roundtrip Motion/Emote 0x36A
+
+A nova ficha transport/motion-emote-roundtrip.md fecha o contrato nativo C<->S
+de 20 bytes. O export Ghidra read-only confirma `FUN_00455950` e
+`FUN_004625DA` construindo o frame, `FUN_0055890A` exigindo 20 bytes e
+`FUN_0052EAA9 -> FUN_005296E8` consumindo Motion short em +12, Parm short em
++14 e Direction float em +16.
+
+MotionPacket.h agora possui o contrato e Basedef o reexporta. O gate recebido
+valida frame real/declarado e Type/opcode antes de TMHuman; o literal do
+dispatcher foi substituído pelo símbolo sem mudar o callback. A fixture C++
+cobre truncamento, excesso, nulo, Type/Size divergentes, entrega única, campos e
+preservação do buffer.
+
+O WYD-Go deixou de descartar o emote válido: aceita somente Parm=0 e motions
+produzidas pelo input 7.48 (`13`, `15..25`, `27`), ignora ID/Direction do client
+e reconstrói o retorno com ID autoritativo e Direction zero para dono e
+observers visíveis. Motion=100, motion 14 e Parm 1..3 permanecem exclusivos de
+efeitos server-side. Testes cobrem fan-out, isolamento por visão e rejeições.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire e roundtrip, com revalidação
+server-authoritative. `go test -count=1 ./...` PASS.
+Debug/Release Build-Client.ps1 PASS, 1925 checks/asserts cada.
+PROJECT_XML_AND_PATHS_OK, hash candidato/Release e `git diff --check` PASS.
+Release instalado com SHA-256
+`DB0BEE35327ED0E6DEBD987BB3F515554D4EF5E7FFF01D212593E5AA1D68DB3E`.
+
+Nao CLIENT_TESTED; dez teclas, sentar/levantar, observer real, troca de cena e
+relogin continuam pendentes. Proximo corte deve partir de outra ficha CONTRACT
+ou abrir pesquisa focada; não repetir `0x36A`.

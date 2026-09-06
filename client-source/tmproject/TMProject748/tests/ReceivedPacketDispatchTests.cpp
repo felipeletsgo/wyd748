@@ -15,6 +15,7 @@
 #include "../internal/wire/PartyAddPacket.h"
 #include "../internal/wire/PartyRemovePacket.h"
 #include "../internal/wire/PartyRequestPacket.h"
+#include "../internal/wire/MotionPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -552,6 +553,50 @@ int RunReceivedPacketDispatchTests(int& checks)
         decodedBilling.OpaquePayload[1] == 0x5A,
         "BillingNotice preserva opcode e payload opaco");
     check(billing == billingBefore, "gate preserva todos os bytes de BillingNotice");
+    std::array<char, 21> motion{};
+    motion[0] = 20;
+    motion[4] = 0x6A;
+    motion[5] = 0x03;
+    motion[6] = 0x34;
+    motion[7] = 0x12;
+    motion[12] = 100;
+    motion[14] = 5;
+    motion[18] = static_cast<char>(0x80);
+    motion[19] = 0x3F;
+    int motionCalls = 0;
+    const auto receiveMotion = [&](const PacketView& view) {
+        ++motionCalls;
+        check(view.data == motion.data() && view.size == 20 && view.opcode == 0x36A,
+            "Motion preserva frame de 20 bytes");
+    };
+    for (std::size_t n = 0; n < 20; ++n)
+        check(!received_packet::Dispatch({0x36A, motion.data(), n}, receiveMotion),
+            "Motion truncado rejeitado");
+    check(!received_packet::Dispatch({0x36A, motion.data(), 21}, receiveMotion),
+        "Motion excedente rejeitado");
+    check(!received_packet::Dispatch({0x36A, nullptr, 20}, receiveMotion),
+        "Motion nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, motion.data(), 20}, receiveMotion),
+        "Type Motion nao pode ser ocultado");
+    motion[4] = 0x19;
+    check(!received_packet::Dispatch({0x36A, motion.data(), 20}, receiveMotion),
+        "Type Motion divergente rejeitado");
+    motion[4] = 0x6A;
+    motion[0] = 19;
+    check(!received_packet::Dispatch({0x36A, motion.data(), 20}, receiveMotion),
+        "Size Motion divergente rejeitado");
+    motion[0] = 20;
+    check(motionCalls == 0, "Motion invalido nao chega ao consumidor");
+    const auto motionBefore = motion;
+    check(received_packet::Dispatch({0x36A, motion.data(), 20}, receiveMotion) && motionCalls == 1,
+        "Motion valido entregue uma vez");
+    MSG_Motion decodedMotion{};
+    std::memcpy(&decodedMotion, motion.data(), sizeof(decodedMotion));
+    check(decodedMotion.Header.ID == 0x1234 && decodedMotion.Motion == 100 &&
+        decodedMotion.Parm == 5 && decodedMotion.Direction == 1.0f,
+        "Motion preserva ID, motion, parametro e direcao");
+    check(motion == motionBefore, "gate preserva todos os bytes de Motion");
+
     std::array<char, 41> partyAdd{};
     partyAdd[0] = 40;
     partyAdd[4] = static_cast<char>(0x7D);
