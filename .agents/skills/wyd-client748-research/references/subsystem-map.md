@@ -12,7 +12,7 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Seleção de servidor e login | server list, credenciais, resposta, troca de chaves, falhas | `UNMAPPED` | — |
 | Seleção/criação de personagem | lista, create/delete, slot, enter world, teardown | `CONTRACT` estreito | `lifecycle/character-logout-selectchar-relogin.md` cobre logout, retorno à seleção e novo enter world; `ui/select-character-exp-threshold.md` rastreia a apresentação de EXP na seleção; criação/delete permanecem abertos |
 | Dispatcher de cena/campo | socket -> cena atual -> controles -> handler -> side effects | `UNMAPPED` | — |
-| Tick e input do mundo | message loop, FrameMove, mouse/tecla, focus, auto-run | `TRACED` estreito | `ui/screenshot-capture.md` cobre somente Print Screen e o arquivo JPG; tick, mouse, auto-run e demais teclas permanecem abertos |
+| Tick e input do mundo | message loop, FrameMove, mouse/tecla, focus, auto-run | `CONTRACT` estreito | `transport/motion-emote-roundtrip.md` fecha somente input, wire e retorno de emotes `0x36A`; `ui/screenshot-capture.md` cobre Print Screen; tick, auto-run e demais teclas permanecem abertos |
 | Movimento | intenção, rota, predição local, stop, correção server-side | `UNMAPPED` | — |
 | Combate e skills | seleção, alcance, intenção, confirmação, efeitos, rejeição | `UNMAPPED` | — |
 | Character/Score/equipamento | create/update, score, equip, owner/observer, HUD | `UNMAPPED` | — |
