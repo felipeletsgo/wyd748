@@ -139,6 +139,7 @@
     <ClInclude Include="internal\wire\UseItemPacket.h" />
     <ClInclude Include="internal\wire\PKModePacket.h" />
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h" />
+    <ClInclude Include="internal\wire\GamblePacket.h" />
     <ClInclude Include="internal\wire\ServerMigrationPacket.h" />
     <ClInclude Include="internal\wire\IndexedMessageContract.h" />
     <ClInclude Include="internal\wire\ChatMessagePacket.h" />

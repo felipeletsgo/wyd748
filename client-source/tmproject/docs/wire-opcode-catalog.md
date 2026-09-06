@@ -96,6 +96,10 @@ compartilhado com a poção E e não ganha uma segunda struct.
 válido `0/1`. O servidor publica `PKInfo` e aplica o estado antes de PvP;
 controle opcional ausente não altera o wire nem interrompe o toggle.
 
+`0x1BF` (resultado Gamble S→C, 36 bytes) e `0x2BE` (aposta C→S, 20 bytes)
+usam GamblePacket.h. Resultado, prêmio e jackpot são copiados para a UI;
+saldo, pool e RNG permanecem autoridade do servidor.
+
 `0x3CA` (Premium Firework S→C, 36 bytes) usa PremiumFireworkPacket.h:
 reservado em +12 (8 bytes) e bitmap 10x10 LSB-first em +20 (16 bytes). O
 servidor publica somente após validar/persistir o consumo; o efeito visual

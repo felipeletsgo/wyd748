@@ -5,6 +5,7 @@
 #include "../internal/wire/UseItemPacket.h"
 #include "../internal/wire/PKModePacket.h"
 #include "../internal/wire/PremiumFireworkPacket.h"
+#include "../internal/wire/GamblePacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -474,5 +475,21 @@ int RunReceivedPacketDispatchTests(int& checks)
         firework.Header.Size == 36 && firework.Header.ID == 77 &&
         firework.Bitmap[0] == 1 && static_cast<unsigned char>(firework.Bitmap[12]) == 0x80,
         "premium firework preserva ID, reserva, bitmap e tamanho");
+    MSG_DoJackpotBet gamble{};
+    gamble.Header.Type = MSG_DoJackpotBet_Opcode;
+    gamble.Header.Size = sizeof(gamble);
+    gamble.GambleType = 2;
+    gamble.Bet = 100000;
+    MSG_ResultGamble result{};
+    result.Header.Type = MSG_ResultGamble_Opcode;
+    result.Header.Size = sizeof(result);
+    result.Result[0] = 14;
+    result.StopPosition[2] = 9;
+    result.Prize = -7;
+    result.Jackpot = 0x89ABCDEFu;
+    check(sizeof(gamble) == 20 && gamble.Header.Type == 0x2BE && gamble.Bet == 100000 &&
+        sizeof(result) == 36 && result.Header.Type == 0x1BF && result.Prize == -7 &&
+        result.Jackpot == 0x89ABCDEFu,
+        "Gamble preserva aposta, resultado, premio, jackpot e tamanhos");
     return failures;
 }

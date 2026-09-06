@@ -788,6 +788,29 @@ Nao CLIENT_TESTED; toggle, ataques PvP/PvE, summon, desconexao e relogin real
 continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT com codigo
 novo, sem repetir PK ou UseItem.
 
+## Fase 2 — Gamble/Jackpot 0x2BE/0x1BF
+
+GamblePacket.h agora possui MSG_DoJackpotBet e MSG_ResultGamble com asserts
+dos contratos nativos: aposta 20 bytes (tipo +12, valor +16) e resultado 36
+bytes (Result +12, StopPosition +17, Prize +28, Jackpot +32). Basedef
+reexporta; SReelPanel e TMFieldScene continuam donos da animação e apenas
+aplicam resultado validado. Saldo, prêmio, jackpot, pool e RNG continuam no
+servidor autoritativo.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire/UI e EXTENSAO_COORDENADA para a
+transação server-side. Ficha ui/gamble-jackpot.md reutilizada: Ghidra
+FUN_00489882 confirma dispatch e layout; source, Go, assets e testes
+UTILIZADOS. Nenhum resultado otimista ou controle novo foi criado.
+
+Debug/Release Build-Client.ps1 PASS, 1560 checks/asserts cada. Fixture C++
+confirma aposta, resultado, prêmio, jackpot, opcode e tamanhos; `go test
+./internal/game -run Gamble -count=1` e `go test ./internal/wire -run Gamble
+-count=1` PASS. PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado
+com SHA-256 `D3087AE530631F3E09AF0CD120CE935BC74206D97FB822AB51A1085CB5343D1A`.
+Nao CLIENT_TESTED; painel, rolagem, rejeição, saldo, jackpot, logout e relogin
+reais continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem
+repetir Gamble, Firework ou PK.
+
 ## Fase 2 — publicação Premium Firework 0x3CA
 
 PremiumFireworkPacket.h agora possui MSG_PremiumFirework e asserts do wire
