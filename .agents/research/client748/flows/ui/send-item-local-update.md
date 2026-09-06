@@ -18,7 +18,8 @@ precisam de endurecimento antes da copia?
 
 - UTILIZADA: binario nativo com identidade confirmada nos ciclos anteriores e
   projeto Ghidra WYD748Native_20260821, read-only/noanalysis.
-- UTILIZADA: descompilacao 004B263E, 0052EAA9 e 0052A737; exports focados
+- UTILIZADA: descompilacao `FUN_004B263E`, `FUN_0052EAA9` e
+  `FUN_0052A737`; exports focados
   `select-character-cargo-update.tsv` e `field-send-item.tsv`.
 - UTILIZADA: source atual ObjectManager::HandleSelectCharacterItem,
   TMHuman::OnPacketSendItem e arrays em Basedef/ObjectManager.h.
@@ -33,19 +34,20 @@ precisam de endurecimento antes da copia?
 
 ### Callers
 
-004B263E ocupa slot +8 de ObjectManager (005A4604). Na selecao 0x7531,
+`FUN_004B263E` ocupa slot +8 de ObjectManager (`0x005A4604`). Na selecao 0x7531,
 intercepta 0x182 antes da arvore; em outras cenas percorre filhos ativos.
-0052EAA9 filtra ID pelo humano receptor e chama 0052A737 para 0x182.
+`FUN_0052EAA9` filtra ID pelo humano receptor e chama `FUN_0052A737` para 0x182.
 
 ### Callees
 
-004B263E chama 0058F220 para copiar oito bytes ao cargo. 0052A737 compara
+`FUN_004B263E` chama `FUN_0058F220` para copiar oito bytes ao cargo.
+`FUN_0052A737` compara
 o receptor com o humano local antes das copias de equipamento/inventario/cargo.
 O ramo Equip atualiza o cache de selecao quando DestPos !=0, antes dos grids.
 O export Ghidra confirma o caller direto 0052EAA9 -> 0052A737; receptores dos
 metodos virtuais de grids e teardown completo ainda precisam ser fechados.
 
-No ramo nativo de cargo, `0052A737` chama a retirada na celula
+No ramo nativo de cargo, `FUN_0052A737` chama a retirada na celula
 `DestPos % 9, DestPos / 9`, guarda o retorno em local_94 e so cria/adiciona
 um novo item quando `sIndex > 0`. Nao ha delete explicito de local_94 nesse
 ramo, ao contrario de Carry/Equip. Ao fim do bloco do humano local ha uma
