@@ -102,6 +102,10 @@ vila em `+12`. Os dois caminhos de `TMFieldScene` preservam a condição nativa
 `Village < 4`, atualizam HomeTown no mesmo fluxo e não enviam resposta; a
 posição e qualquer regra de cidade continuam autoritativas no servidor.
 
+`0x290` usa ReqTeleportPacket.h: intenção C->S de 16 bytes, com o DWORD
+reservado em `+12` zerado. O `case 16` da confirmação de portal mantém a gate
+de atributo `0x10`; destino, preço, gold e persistência continuam no servidor.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

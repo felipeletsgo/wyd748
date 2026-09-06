@@ -1197,3 +1197,25 @@ O fluxo real de entrada/troca de cidade, troca de cena e relogin permanece sem
 
 Proximo passo apos o gate: escolher outra ficha `CONTRACT` sem repetir `0x291`,
 ou executar os fluxos reais pendentes quando houver dois clients.
+
+## Fase 2 — pedido de portal 0x290
+
+`ReqTeleportPacket.h` agora concentra `MSG_ReqTeleport_Opcode` e o frame C->S
+de 16 bytes, com DWORD reservado zero em `+12`. `Basedef.h` reexporta o tipo;
+`TMFieldScene::OnMsgBoxEvent` preserva o `case 16`, a condição de atributo
+`0x10`, o aviso de erro, o fechamento da caixa e o envio único.
+
+O export Ghidra focado `req-teleport-flow.tsv` confirma `FUN_004640E5`, o
+branch de confirmação, `FUN_00433A60`, o write de `0x290`, reservado zero,
+`FUN_0055F2DD` e o gate `FUN_0055890A` com tamanho `0x10`. O WYD-Go já exige o
+mesmo frame e mantém rota, preço, gold e persistência autoritativos.
+
+Fixture C++ cobre opcode, ID, tamanho, offset e reservado zero.
+
+`go test -count=1 ./...`, XML/caminhos e `git diff --check` passaram. O
+validador aceitou a ficha `CONTRACT` e manteve somente o erro preexistente de
+`send-item-local-update.md`. Debug/Release via `Build-Client.ps1 -Rebuild`
+passaram com 1934 checks/asserts; Debug instalou
+`B05A69DFE6D87964BFC8DD50B9EBE0879E23ED9339EE6939E8E879852C654415` e Release
+instalou `20E080DC44D40F5620B9A649D77976F29A85BD3357F7A9B459DC4FFBE33192BD`.
+Confirmação real do portal, recusa e relogin continuam sem `CLIENT_TESTED`.

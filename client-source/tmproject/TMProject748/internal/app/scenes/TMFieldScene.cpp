@@ -20700,10 +20700,10 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		char bAttr = BASE_GetAttr(nX, nY);
 		if (bAttr & 0x10)
 		{
-			MSG_STANDARDPARM stParam{};
+			MSG_ReqTeleport stParam{};
 			stParam.Header.ID = g_pObjectManager->m_dwCharID;
-			stParam.Header.Type = 656;
-			stParam.Parm = 0;
+			stParam.Header.Type = MSG_ReqTeleport_Opcode;
+			stParam.Reserved = 0;
 			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
 		}
 		else

@@ -9,6 +9,7 @@
 #include "../internal/wire/RestartRecallPacket.h"
 #include "../internal/wire/KeepalivePingPacket.h"
 #include "../internal/wire/ChangeCityPacket.h"
+#include "../internal/wire/ReqTeleportPacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -230,6 +231,18 @@ int main()
     check(offsetof(MSG_ChangeCity, Village) == 12 && changeCityBytes[13] == 0 &&
         changeCityBytes[14] == 0 && changeCityBytes[15] == 0,
         "ChangeCity mantem Village DWORD no offset nativo");
+
+    MSG_ReqTeleport teleport{};
+    teleport.Header.Type = MSG_ReqTeleport_Opcode;
+    teleport.Header.ID = 0x1234;
+    const auto* teleportBytes = reinterpret_cast<const unsigned char*>(&teleport);
+    check(sizeof(teleport) == 16 && teleportBytes[4] == 0x90 &&
+        teleportBytes[5] == 0x02 && teleportBytes[6] == 0x34 &&
+        teleportBytes[7] == 0x12 && teleport.Reserved == 0,
+        "ReqTeleport preserva opcode, tamanho, ID e reservado zero");
+    check(offsetof(MSG_ReqTeleport, Reserved) == 12 && teleportBytes[13] == 0 &&
+        teleportBytes[14] == 0 && teleportBytes[15] == 0,
+        "ReqTeleport mantem o payload reservado no offset nativo");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.

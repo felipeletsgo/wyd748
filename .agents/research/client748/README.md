@@ -84,6 +84,7 @@ Estado atual do mapa:
 | Pedido de renascimento/recall `0x289` | `CONTRACT` | `flows/transport/restart-recall-request.md` |
 | Keepalive periódico `0x3A0` | `CONTRACT` | `flows/transport/keepalive-ping.md` |
 | Pedido de troca de cidade `0x291` | `CONTRACT` | `flows/transport/change-city-request.md` |
+| Pedido de portal `0x290` | `CONTRACT` | `flows/transport/req-teleport.md` |
 | Menu de interação Ctrl+clique direito em jogador | `TRACED` | `flows/ui/player-interaction-menu-lifecycle.md` |
 | Layout e lifecycle do painel Quest | `TRACED` | `flows/ui/quest-panel-layout-lifecycle.md` |
 | Composição lado a lado de Character, Skill e Inventory | `TRACED` | `flows/ui/feature-panel-layout.md` |
