@@ -82,6 +82,7 @@ Estado atual do mapa:
 | Envio e aplicação de motion/emote `0x36A` | `CONTRACT` | `flows/transport/motion-emote-roundtrip.md` |
 | Recuperação de entidade ausente `0x369` | `CONTRACT` | `flows/transport/missing-entity-request.md` |
 | Pedido de renascimento/recall `0x289` | `CONTRACT` | `flows/transport/restart-recall-request.md` |
+| Keepalive periódico `0x3A0` | `CONTRACT` | `flows/transport/keepalive-ping.md` |
 | Menu de interação Ctrl+clique direito em jogador | `TRACED` | `flows/ui/player-interaction-menu-lifecycle.md` |
 | Layout e lifecycle do painel Quest | `TRACED` | `flows/ui/quest-panel-layout-lifecycle.md` |
 | Composição lado a lado de Character, Skill e Inventory | `TRACED` | `flows/ui/feature-panel-layout.md` |
