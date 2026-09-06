@@ -26115,11 +26115,11 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 		{
 			TMVector2 vecAttackerPos{ (float)pAttack->PosX + 0.5f, (float)pAttack->PosY + 0.5f };
 
-			MSG_STANDARDPARM stParm{};
-			stParm.Header.ID = g_pObjectManager->m_dwCharID;
-			stParm.Header.Type = 0x369;
-			stParm.Parm = pAttack->AttackerID;
-			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
+			MSG_REQMobByID stReqMobById{};
+			stReqMobById.Header.ID = g_pObjectManager->m_dwCharID;
+			stReqMobById.Header.Type = MSG_REQMobByID_Opcode;
+			stReqMobById.MobID = static_cast<short>(pAttack->AttackerID);
+			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stReqMobById)->Type, reinterpret_cast<char*>(&stReqMobById), sizeof(stReqMobById)});
 		}
 	}
 

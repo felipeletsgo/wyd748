@@ -85,6 +85,10 @@ do client preservam o fluxo existente; não há rota S->C para este opcode.
 `Parm` short em `+14` e `Direction` float em `+16`. O servidor reconstrói
 emotes do jogador com ID autoritativo e mantém efeitos especiais no sentido S->C.
 
+`0x369` usa MissingEntityRequestPacket.h: intenção C->S de 16 bytes, `MobID`
+short em `+12` e WORD reservado em `+14`. Action e Attack usam o mesmo tipo;
+o servidor limita a resposta à entidade visível, próxima e autorizada.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

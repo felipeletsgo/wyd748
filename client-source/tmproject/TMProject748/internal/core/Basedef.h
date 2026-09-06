@@ -35,6 +35,7 @@
 #include "../wire/PartyRequestPacket.h"
 #include "../wire/PartyAcceptPacket.h"
 #include "../wire/MotionPacket.h"
+#include "../wire/MissingEntityRequestPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
@@ -1117,15 +1118,6 @@ struct MSG_CreateMobTrade
 	char Nick[26];
 	char Desc[24];
 	char Server;
-};
-
-constexpr auto MSG_REQMobByID_Opcode = 0x369;
-struct MSG_REQMobByID
-{
-	MSG_STANDARD Header;
-	short MobID;
-	// The stock request is 16 bytes; this reserved WORD is transmitted as zero.
-	short Reserved;
 };
 
 constexpr auto MSG_SetShortSkill_Opcode = 0x378;

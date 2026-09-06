@@ -5,6 +5,7 @@
 #include "../internal/application/RequestCharacterLogin.h"
 #include "../internal/wire/CharacterLoginSender.h"
 #include "../internal/wire/PartyAcceptPacket.h"
+#include "../internal/wire/MissingEntityRequestPacket.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -179,6 +180,18 @@ int main()
         "PartyAccept preserva lider e nome nos offsets nativos");
     check(partyAcceptBytes[25] == 0 && partyAcceptBytes[30] == 0 &&
         partyAcceptBytes[31] == 0, "PartyAccept zera terminador e WORD reservado");
+
+    MSG_REQMobByID missingEntity{};
+    missingEntity.Header.Type = MSG_REQMobByID_Opcode;
+    missingEntity.Header.ID = 0x1234;
+    missingEntity.MobID = 0x0234;
+    const auto* missingEntityBytes = reinterpret_cast<const unsigned char*>(&missingEntity);
+    check(sizeof(missingEntity) == 16 && missingEntityBytes[4] == 0x69 &&
+        missingEntityBytes[5] == 0x03 && missingEntityBytes[12] == 0x34 &&
+        missingEntityBytes[13] == 0x02,
+        "MissingEntity preserva opcode, tamanho e MobID");
+    check(missingEntityBytes[14] == 0 && missingEntityBytes[15] == 0,
+        "MissingEntity zera WORD reservado");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.

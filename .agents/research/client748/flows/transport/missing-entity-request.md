@@ -174,5 +174,9 @@ reparar perda local, próprio ID e isolamento de instância.
 - Pesquisa: export Ghidra headless read-only terminou sem `SCRIPT ERROR`, com
   SHA-256 esperado e `instruction_search` cobrindo construtor, lookup, offsets
   e envio de `FUN_00482903`; o segundo emissor e o gate foram reabertos.
-- Automação: pendente até a extração do contrato.
+- Automação: `go test -count=1 ./...` passou; Debug e Release via
+  `Build-Client.ps1` passaram com 1927 checks/asserts. A fixture C++ cobre
+  opcode, tamanho, MobID, WORD reservado e os dois discriminantes do header.
+  Release instalado com SHA-256
+  `E6772EA2C4E2A5449AB0B8E9CC46735D12903B66D7CE2680A3F98C88876DCC7`.
 - Client real: não executado; não `CLIENT_TESTED`.

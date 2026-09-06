@@ -1103,3 +1103,26 @@ Release instalado com SHA-256
 Nao CLIENT_TESTED; dez teclas, sentar/levantar, observer real, troca de cena e
 relogin continuam pendentes. Proximo corte deve partir de outra ficha CONTRACT
 ou abrir pesquisa focada; não repetir `0x36A`.
+
+## Fase 2 — recuperação de entidade ausente 0x369
+
+A ficha transport/missing-entity-request.md e o export Ghidra
+`request-mob-by-id-flow.tsv` fecham `FUN_00482903` (Action) e
+`FUN_00489A3E` (Attack): ambos consultam o ObjectManager, zeram um frame e
+enviam `0x369/16`, com MobID WORD em +12 e reservado zero em +14. O gate nativo
+`FUN_0055890A` confirma o tamanho. O export read-only usou o hash 7.48 esperado,
+slots/callers e `instruction_search` sem SCRIPT ERROR.
+
+MissingEntityRequestPacket.h agora é o dono único do contrato; Basedef reexporta
+e os dois emissores usam o tipo dedicado. O dispatcher recebido não foi alterado
+porque `0x369` é somente C->S. O servidor já revalidava tamanho, próprio ID,
+visibilidade, alcance e instância; nenhum bypass foi criado.
+
+`go test -count=1 ./...` PASS. Debug/Release Build-Client.ps1 PASS, 1927
+checks/asserts cada. PROJECT_XML_AND_PATHS_OK, `git diff --check` e hash
+candidato/Release PASS. Release instalado com SHA-256
+`E6772EA2C4E2A5449AB0B8E9CC46735D12903B66D7CE2680A3F98C88876DCC7`.
+
+Nao CLIENT_TESTED; perda real de Action/Attack, rematerialização de mob/player,
+troca de cena e relogin continuam pendentes. Próximo corte deve escolher outra
+ficha CONTRACT sem repetir `0x369`.
