@@ -87,6 +87,11 @@ destino em +20/+24, célula em +28/+30 e ItemID em +32. O client pode consumir
 visualmente antes da resposta; a reconciliação autoritativa ocorre por
 SendItem no servidor.
 
+O atalho F também usa `UseItemPacket.h`/`0x373/36`: SourType=1, posição
+normalizada, destinos zerados, GridX/GridY atuais e ItemID=0. A seleção do
+consumível compatível com Equip[12] e o cooldown pertencem à Field; o wire é
+compartilhado com a poção E e não ganha uma segunda struct.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

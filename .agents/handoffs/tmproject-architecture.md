@@ -743,3 +743,24 @@ com SHA-256 `23973BDDC1417D1A172812F4F8422DEFFE70E053AF9FAA45F356E909D79931B2`.
 Nao CLIENT_TESTED; atalho E, cooldown, rejeição, SendItem e relogin real
 continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem repetir
 UseItem ou contratos já extraídos.
+
+## Fase 2 — atalho F de consumível compatível 0x373
+
+O atalho F não introduz packet novo: reutiliza UseItemPacket.h e o mesmo
+`0x373/36`. A source preserva seleção pela primeira célula 9x7 com ability 38
+igual a 17 e chaves 56/57 compatíveis com Equip[12], cooldown compartilhado,
+posição normalizada/fallback e envio sem remoção otimista. O servidor segue
+autoridade e reconcilia pela resposta normal de item.
+
+Modo PARIDADE_NATIVA/CONTRACT para seleção/wire; ficha
+ui/equipped-item-matched-consumable-shortcut.md reutilizada: Ghidra
+FUN_0044FC4B confirma F/f, controles 0x9C99, abilities, cooldown e 0x373/36.
+Source, contrato UseItem, Go e testes UTILIZADOS; assets NAO APLICAVEIS.
+Nenhuma regra ou packet duplicado foi criado.
+
+Validação documental: `git diff --check` PASS. O build deste corte não foi
+reexecutado, pois não houve alteração de código, ABI, projeto ou artefato;
+somente catálogo e handoff foram atualizados. Estado permanece o build Release
+anterior, `23973BDDC1417D1A172812F4F8422DEFFE70E053AF9FAA45F356E909D79931B2`.
+Nao CLIENT_TESTED; tecla F, match, cooldown, rejeição e relogin continuam
+pendentes. Proximo corte deve escolher outra ficha que exija código novo.
