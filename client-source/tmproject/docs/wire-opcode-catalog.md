@@ -113,6 +113,10 @@ reservado em +12 (8 bytes) e bitmap 10x10 LSB-first em +20 (16 bytes). O
 servidor publica somente após validar/persistir o consumo; o efeito visual
 continua dono da cena e do container de efeitos.
 
+O request `0x3C9` usa PremiumFireworkUsePacket.h: 52 bytes, origem/destino
+equivalentes a UseItem, ItemID em +32 e bitmap em +34. Os dois bytes finais,
+bits fora da grade, item, posição e cooldown são validados pelo servidor.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

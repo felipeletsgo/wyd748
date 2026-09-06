@@ -28,6 +28,7 @@
 #include "../wire/UseItemPacket.h"
 #include "../wire/PKModePacket.h"
 #include "../wire/PremiumFireworkPacket.h"
+#include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
 #include "../wire/MobKillConfirmPacket.h"
 #include "../wire/UpdateEtcPacket.h"
@@ -905,20 +906,6 @@ struct MSG_CNFAccountLogin
 	char AccountName[16];
 	int SSN1;
 	int SSN2;
-};
-
-constexpr auto MSG_UseItem2_Opcode = 0x3C9;
-struct MSG_UseItem2
-{
-	MSG_STANDARD Header;
-	int SourType;
-	int SourPos;
-	int DestType;
-	int DestPos;
-	unsigned short GridX;
-	unsigned short GridY;
-	unsigned short ItemID;
-	char Parm[16];
 };
 
 struct MSG_CAPSULEUSEITEM

@@ -5,6 +5,7 @@
 #include "../internal/wire/UseItemPacket.h"
 #include "../internal/wire/PKModePacket.h"
 #include "../internal/wire/PremiumFireworkPacket.h"
+#include "../internal/wire/PremiumFireworkUsePacket.h"
 #include "../internal/wire/GamblePacket.h"
 #include "../internal/wire/MobKillConfirmPacket.h"
 #include "../internal/wire/UpdateEtcPacket.h"
@@ -477,6 +478,21 @@ int RunReceivedPacketDispatchTests(int& checks)
         firework.Header.Size == 36 && firework.Header.ID == 77 &&
         firework.Bitmap[0] == 1 && static_cast<unsigned char>(firework.Bitmap[12]) == 0x80,
         "premium firework preserva ID, reserva, bitmap e tamanho");
+    MSG_UseItem2 fireworkUse{};
+    fireworkUse.Header.Type = MSG_UseItem2_Opcode;
+    fireworkUse.Header.Size = sizeof(fireworkUse);
+    fireworkUse.SourType = 1;
+    fireworkUse.SourPos = 62;
+    fireworkUse.GridX = 2100;
+    fireworkUse.GridY = 2101;
+    fireworkUse.Parm[0] = 1;
+    fireworkUse.Parm[12] = 0x0F;
+    check(sizeof(fireworkUse) == 52 && fireworkUse.Header.Type == 0x3C9 &&
+        fireworkUse.Header.Size == 52 && fireworkUse.SourType == 1 &&
+        fireworkUse.SourPos == 62 && fireworkUse.GridX == 2100 &&
+        fireworkUse.GridY == 2101 && fireworkUse.Parm[0] == 1 &&
+        fireworkUse.Parm[12] == 0x0F,
+        "premium firework request preserva slot, posicao, bitmap e tamanho");
     MSG_DoJackpotBet gamble{};
     gamble.Header.Type = MSG_DoJackpotBet_Opcode;
     gamble.Header.Size = sizeof(gamble);

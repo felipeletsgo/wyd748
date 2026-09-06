@@ -207,6 +207,9 @@
     <ClInclude Include="internal\wire\PremiumFireworkPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\PremiumFireworkUsePacket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\GamblePacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

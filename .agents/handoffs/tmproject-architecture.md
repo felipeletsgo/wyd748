@@ -879,3 +879,26 @@ com SHA-256 `96C580D06FE8AA9A777A39D72608F43FF9F329CE84D41CC5B54B194BCE7C4229`.
 Nao CLIENT_TESTED; uso do item, observadores, animação, expiração, logout e
 relogin reais continuam pendentes. Proximo corte deve escolher outra ficha
 CONTRACT sem repetir Firework, PK ou UseItem.
+
+## Fase 2 — request Premium Firework 0x3C9
+
+PremiumFireworkUsePacket.h agora possui MSG_UseItem2, opcode e asserts do wire:
+52 bytes, SourType/SourPos +12/+16, DestType/DestPos +20/+24, GridX/GridY
++28/+30, ItemID +32 e bitmap Parm[16] +34. Basedef reexporta; UseFireWork
+continua construindo o mesmo packet e consumindo a UI local na ordem existente.
+A resposta 0x3CA permanece no contrato separado já registrado.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire/client e EXTENSAO_COORDENADA para
+validação, persistência, cooldown e observers server-side. Ficha
+ui/premium-firework-display.md reutilizada; source, assets, Go e testes
+UTILIZADOS. Nenhum campo, efeito ou fallback foi inventado.
+
+Debug/Release Build-Client.ps1 PASS, 1590 checks/asserts cada. Fixture C++
+confirma slot, posição, bitmap, opcode, offsets/padding e tamanho; `go test
+./internal/game -run PremiumFirework -count=1` e `go test ./internal/wire
+-run PremiumFirework -count=1` PASS. PROJECT_PATHS_OK e `git diff --check`
+PASS. Release instalado com SHA-256
+`6AE672FF27B9331577E8D4AD0B88AF1771CE798C4BD703DCCA594F7A571877B5`.
+Nao CLIENT_TESTED; desenho, consumo/rejeição, observers, expiração e relogin
+continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT sem repetir
+0x3C9/0x3CA ou contratos anteriores.
