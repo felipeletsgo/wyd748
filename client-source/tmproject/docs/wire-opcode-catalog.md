@@ -96,6 +96,11 @@ compartilhado com a poção E e não ganha uma segunda struct.
 válido `0/1`. O servidor publica `PKInfo` e aplica o estado antes de PvP;
 controle opcional ausente não altera o wire nem interrompe o toggle.
 
+`0x3CA` (Premium Firework S→C, 36 bytes) usa PremiumFireworkPacket.h:
+reservado em +12 (8 bytes) e bitmap 10x10 LSB-first em +20 (16 bytes). O
+servidor publica somente após validar/persistir o consumo; o efeito visual
+continua dono da cena e do container de efeitos.
+
 ## Regras de migração
 
 - reexportar o opcode pela fachada enquanto houver consumidores legados;

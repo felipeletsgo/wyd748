@@ -4,6 +4,7 @@
 #include "../internal/wire/ApplyBonusPacket.h"
 #include "../internal/wire/UseItemPacket.h"
 #include "../internal/wire/PKModePacket.h"
+#include "../internal/wire/PremiumFireworkPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -463,5 +464,15 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(sizeof(pk) == 16 && pk.Header.Type == 0x399 && pk.Header.Size == 16 &&
         pk.Header.ID == 0x1234 && (pk.Parm == 0 || pk.Parm == 1),
         "PK mode preserva identidade, dominio e tamanho");
+    MSG_PremiumFirework firework{};
+    firework.Header.Type = MSG_PremiumFirework_Opcode;
+    firework.Header.Size = sizeof(firework);
+    firework.Header.ID = 77;
+    firework.Bitmap[0] = 1;
+    firework.Bitmap[12] = static_cast<char>(0x80);
+    check(sizeof(firework) == 36 && firework.Header.Type == 0x3CA &&
+        firework.Header.Size == 36 && firework.Header.ID == 77 &&
+        firework.Bitmap[0] == 1 && static_cast<unsigned char>(firework.Bitmap[12]) == 0x80,
+        "premium firework preserva ID, reserva, bitmap e tamanho");
     return failures;
 }

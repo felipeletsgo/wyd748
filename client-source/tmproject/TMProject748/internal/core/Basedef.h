@@ -27,6 +27,7 @@
 #include "../wire/ApplyBonusPacket.h"
 #include "../wire/UseItemPacket.h"
 #include "../wire/PKModePacket.h"
+#include "../wire/PremiumFireworkPacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
 
@@ -932,14 +933,6 @@ struct MSG_UseItem2
 	unsigned short GridY;
 	unsigned short ItemID;
 	char Parm[16];
-};
-
-constexpr auto MSG_PremiumFirework_Opcode = 0x3CA;
-struct MSG_PremiumFirework
-{
-	MSG_STANDARD Header;
-	char Reserved[8];
-	char Bitmap[16];
 };
 
 struct MSG_CAPSULEUSEITEM

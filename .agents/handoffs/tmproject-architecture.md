@@ -787,3 +787,26 @@ com SHA-256 `9BEC5B083E52865F799E39AFFAE3878D7209C67238B2F6219900D40E657F2DE3`.
 Nao CLIENT_TESTED; toggle, ataques PvP/PvE, summon, desconexao e relogin real
 continuam pendentes. Proximo corte deve seguir outra ficha CONTRACT com codigo
 novo, sem repetir PK ou UseItem.
+
+## Fase 2 — publicação Premium Firework 0x3CA
+
+PremiumFireworkPacket.h agora possui MSG_PremiumFirework e asserts do wire
+nativo: 36 bytes, reservado +12 e bitmap +20. Basedef reexporta; o efeito,
+dispatcher e container existentes não foram reescritos. Os 100 bits válidos,
+LSB-first, continuam responsabilidade do handler/efeito e do servidor que já
+valida/persiste o consumo.
+
+Modo PARIDADE_NATIVA/CONTRACT para publicação/layout; EXTENSAO_COORDENADA para
+consumo, persistência e observers server-side. Ficha ui/premium-firework-
+display.md reutilizada: Ghidra FUN_00529B07/FUN_004D0651 confirma receptor,
+bitmap e lifecycle; source, assets, Go e testes UTILIZADOS. Nenhum recurso ou
+efeito novo foi inventado.
+
+Debug/Release Build-Client.ps1 PASS, 1559 checks/asserts cada. Fixture C++
+confirma ID, reservado, bitmap, opcode e tamanho; `go test ./internal/game
+-run PremiumFirework -count=1` e `go test ./internal/wire -run PremiumFirework
+-count=1` PASS. PROJECT_PATHS_OK e `git diff --check` PASS. Release instalado
+com SHA-256 `96C580D06FE8AA9A777A39D72608F43FF9F329CE84D41CC5B54B194BCE7C4229`.
+Nao CLIENT_TESTED; uso do item, observadores, animação, expiração, logout e
+relogin reais continuam pendentes. Proximo corte deve escolher outra ficha
+CONTRACT sem repetir Firework, PK ou UseItem.
