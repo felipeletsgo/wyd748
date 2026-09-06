@@ -78,7 +78,7 @@ Estado atual do mapa:
 | Posição compartilhada de AutoTrade, Cargo e Inventory | `TRACED` | `flows/ui/auto-trade-inventory-layout.md` |
 | Composição dos seis ItemMix com Inventory | `TRACED` | `flows/ui/native-mix-inventory-layout.md` |
 | Posição inicial e toggle do menu inferior direito | `TRACED` | `flows/ui/system-menu-initial-layout.md` |
-| Layout e lifecycle do painel Party | `TRACED` | `flows/ui/party-panel-layout-lifecycle.md` |
+| Layout e lifecycle do painel Party | `CONTRACT` | `flows/ui/party-panel-layout-lifecycle.md` |
 | Menu de interação Ctrl+clique direito em jogador | `TRACED` | `flows/ui/player-interaction-menu-lifecycle.md` |
 | Layout e lifecycle do painel Quest | `TRACED` | `flows/ui/quest-panel-layout-lifecycle.md` |
 | Composição lado a lado de Character, Skill e Inventory | `TRACED` | `flows/ui/feature-panel-layout.md` |

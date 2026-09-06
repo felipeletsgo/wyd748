@@ -976,3 +976,27 @@ PASS. Release instalado com SHA-256
 Nao CLIENT_TESTED; billing válido/recusado, MessageBox, troca de cena e
 relogin reais continuam pendentes. Proximo corte deve seguir outra ficha
 CONTRACT sem repetir 0x194, 0x3AE ou contratos anteriores.
+
+## Fase 2 — inclusão de membro Party 0x37D
+
+PartyAddPacket.h agora concentra `PARTY` (28 bytes) e `MSG_AddParty` (40 bytes),
+com ID em `+20`, Name em `+22` e reserved em `+38`. Basedef reexporta e
+ReceivedPacketDispatch valida o frame antes de `TMFieldScene::OnPacketAddParty`.
+Convite `0x37F`, remoção `0x37E` e confirmação `0x3AB` continuam fora deste
+corte para não misturar seus callbacks e contratos.
+
+Modo PARIDADE_NATIVA/CONTRACT para wire e inclusão no painel. A ficha
+ui/party-panel-layout-lifecycle.md foi promovida para CONTRACT no escopo do
+`0x37D`; `FUN_00492E7D -> FUN_00488879` permanece o receptor nativo e
+`FUN_0055890A` fixa 40 bytes. Source, assets, Go e testes foram avaliados;
+WYD-Go já era autoridade do snapshot Party.
+
+Debug/Release Build-Client.ps1 PASS, 1811 checks/asserts cada. Fixture C++
+cobre truncamento, excesso, nulo, Type/Size divergentes, entrega única, ID,
+nível, nome e preservação do buffer. PROJECT_PATHS_OK e `git diff --check`
+PASS. Release instalado com SHA-256
+`12C509EB7A08AE357F4DD68F6CB113DFC4671FDA4EEADF19916885D1FDDB5161`.
+
+Nao CLIENT_TESTED; convite, inclusão visual, remoção, fechamento, troca de cena
+e relogin reais continuam pendentes. Proximo corte deve seguir outro contrato
+Party separado ou outra ficha CONTRACT sem repetir `0x37D`.

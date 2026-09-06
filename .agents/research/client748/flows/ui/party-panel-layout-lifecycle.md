@@ -2,7 +2,7 @@
 id: ui-party-panel-layout-lifecycle
 title: Layout e lifecycle do painel Party 7.48
 subsystem: ui-layout-party
-status: TRACED
+status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
 updated: 2026-09-02
 ---
@@ -171,6 +171,12 @@ existem em `internal/wire/opcodes.go` e são tratados pelo servidor. Os IDs
 ativos do layout 7.48 são `1857/1863/5742`; os controles modernos
 `475136/475138/65799` não substituem esses bindings no modo compatível.
 
+Para o corte de wire, `FUN_0055890A` aceita `0x37D` somente com 40 bytes. O
+payload é `PARTY` de 28 bytes em `+12`, com `ID` em `+20`, `Name` em `+22` e
+WORD reservado em `+38`. `PartyAddPacket.h` fixa esses offsets e o gate local
+valida o frame antes de `OnPacketAddParty`; os outros opcodes Party permanecem
+em seus contratos próprios.
+
 ## Mapeamento atual
 
 ### Source recompilável
@@ -198,7 +204,8 @@ intenções.
 | posição | `x=0`, `y=H-h-165` | reaplicada no bootstrap/open | dependia de root moderno/posição residual | N/A | `PARIDADE_NATIVA` |
 | toggle e fechamento | `FUN_0044DA6F` central | `SetVisibleParty` central | caminhos diretos divergiam | N/A | `PARIDADE_NATIVA` |
 | callbacks da lista | lista `1863` | aceita `1863` e `475138` | somente `475138` | revalida intenções | `PARIDADE_NATIVA` |
-| packets Party | `0x37D/0x37E/0x37F/0x3AB` | preservados | compatível | implementado | `PARIDADE_NATIVA` |
+| packet Party Add | `0x37D/40B` | contrato em `Basedef.h` | compatível | implementado | `PARIDADE_NATIVA/CONTRACT` |
+| demais packets Party | `0x37E/0x37F/0x3AB` | preservados | compatível | implementados | cortes separados |
 | AutoParty moderno | fora deste claim nativo | opcional e isolado fora do compat | controles posteriores | política server-side existente | preservar como extensão separada |
 
 ## Decisões
@@ -223,10 +230,13 @@ intenções.
 
 - Pesquisa: callers, callees, dispatcher, vtable, ownership, falha parcial,
   cleanup, teardown, shutdown e relogin foram registrados no export focado e
-  nesta ficha; maturidade `TRACED`.
+  nesta ficha; `FUN_0055890A` fixa `0x37D/40`.
+- ABI: `PartyAddPacket.h` fixa 40 bytes, `PARTY` em `+12`, ID em `+20`, nome em
+  `+22` e reserved em `+38`; a fixture cobre framing e preservação do buffer.
 - Entrega: `IMPLEMENTED / STATICALLY VERIFIED`; `Build-Client.ps1` concluiu
-  `Release|Win32` com zero erros e 13 warnings C4018 preexistentes e instalou
-  `client748/project.exe` com SHA-256
-  `B51D48ACF691B84A6B577DBB07E4981CED6F54DFB2616567C907863A9B9AE6BC`.
-- Automação: `validate_research.py` e `git diff --check` passaram para o lote.
+  Debug e Release com 1811 checks/asserts, XML/caminhos e `git diff --check`
+  aprovados. O candidato Release instalado possui SHA-256
+  `12C509EB7A08AE357F4DD68F6CB113DFC4671FDA4EEADF19916885D1FDDB5161`.
+- Automação: `validate_research.py`, a fixture C++ e `git diff --check` passaram
+  para o lote.
 - Client real: não executado; `CLIENT-TESTED` não é alegado.

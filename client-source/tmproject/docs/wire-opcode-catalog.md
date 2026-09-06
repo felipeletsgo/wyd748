@@ -65,6 +65,10 @@ o callback existente, sem ampliar o claim nativo.
 payload opaco. O client marca billing e mostra a mensagem localizada 132; não
 há emissor ou regra de cobrança no WYD-Go.
 
+`0x37D` usa PartyAddPacket.h: frame S->C de 40 bytes, `PARTY` em `+12` e
+reserved final em `+38`. O gate preserva o callback existente de inclusão no
+painel Party; convite, remoção e confirmação permanecem contratos separados.
+
 `0x116` (confirmacao de logout de personagem, 12 bytes) usa
 CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
 o ID do personagem e entao copia Score/Equip antes da transicao para

@@ -12,6 +12,7 @@
 #include "../internal/wire/MessagePanelPacket.h"
 #include "../internal/wire/DelayStartPacket.h"
 #include "../internal/wire/BillingNoticePacket.h"
+#include "../internal/wire/PartyAddPacket.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -549,6 +550,53 @@ int RunReceivedPacketDispatchTests(int& checks)
         decodedBilling.OpaquePayload[1] == 0x5A,
         "BillingNotice preserva opcode e payload opaco");
     check(billing == billingBefore, "gate preserva todos os bytes de BillingNotice");
+    std::array<char, 41> partyAdd{};
+    partyAdd[0] = 40;
+    partyAdd[4] = static_cast<char>(0x7D);
+    partyAdd[5] = 0x03;
+    partyAdd[6] = 0x34;
+    partyAdd[7] = 0x12;
+    partyAdd[12] = 2;
+    partyAdd[13] = 1;
+    partyAdd[14] = 55;
+    partyAdd[16] = 0x20;
+    partyAdd[18] = 0x10;
+    partyAdd[20] = 0x34;
+    partyAdd[21] = 0x12;
+    std::memcpy(partyAdd.data() + 22, "Membro", 7);
+    int partyCalls = 0;
+    const auto receiveParty = [&](const PacketView& view) {
+        ++partyCalls;
+        check(view.data == partyAdd.data() && view.size == 40 && view.opcode == 0x37D,
+            "PartyAdd preserva frame de 40 bytes");
+    };
+    for (std::size_t n = 0; n < 40; ++n)
+        check(!received_packet::Dispatch({0x37D, partyAdd.data(), n}, receiveParty),
+            "PartyAdd truncado rejeitado");
+    check(!received_packet::Dispatch({0x37D, partyAdd.data(), 41}, receiveParty),
+        "PartyAdd excedente rejeitado");
+    check(!received_packet::Dispatch({0x37D, nullptr, 40}, receiveParty),
+        "PartyAdd nulo rejeitado");
+    check(!received_packet::Dispatch({0x119, partyAdd.data(), 40}, receiveParty),
+        "Type PartyAdd nao pode ser ocultado");
+    partyAdd[4] = 0x19;
+    check(!received_packet::Dispatch({0x37D, partyAdd.data(), 40}, receiveParty),
+        "Type PartyAdd divergente rejeitado");
+    partyAdd[4] = static_cast<char>(0x7D);
+    partyAdd[0] = 39;
+    check(!received_packet::Dispatch({0x37D, partyAdd.data(), 40}, receiveParty),
+        "Size PartyAdd divergente rejeitado");
+    partyAdd[0] = 40;
+    check(partyCalls == 0, "PartyAdd invalido nao chega ao consumidor");
+    const auto partyBefore = partyAdd;
+    check(received_packet::Dispatch({0x37D, partyAdd.data(), 40}, receiveParty) && partyCalls == 1,
+        "PartyAdd valido entregue uma vez");
+    MSG_AddParty decodedParty{};
+    std::memcpy(&decodedParty, partyAdd.data(), sizeof(decodedParty));
+    check(decodedParty.Header.ID == 0x1234 && decodedParty.Party.ID == 0x1234 &&
+        decodedParty.Party.Level == 55 && std::strcmp(decodedParty.Party.Name, "Membro") == 0,
+        "PartyAdd preserva ID, nivel e nome do membro");
+    check(partyAdd == partyBefore, "gate preserva todos os bytes de PartyAdd");
     MSG_BuyToto toto{};
     toto.Header.Type = MSG_BuyToto_Opcode;
     toto.Header.Size = sizeof(toto);

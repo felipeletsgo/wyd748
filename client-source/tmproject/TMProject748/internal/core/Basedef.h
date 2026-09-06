@@ -30,6 +30,7 @@
 #include "../wire/PKModePacket.h"
 #include "../wire/DelayStartPacket.h"
 #include "../wire/BillingNoticePacket.h"
+#include "../wire/PartyAddPacket.h"
 #include "../wire/PremiumFireworkPacket.h"
 #include "../wire/PremiumFireworkUsePacket.h"
 #include "../wire/GamblePacket.h"
@@ -1336,19 +1337,6 @@ static_assert(offsetof(MSG_STANDARDPARM3, Parm1) == 12, "WYD 7.48 Parm1 offset c
 static_assert(offsetof(MSG_STANDARDPARM3, Parm2) == 16, "WYD 7.48 Parm2 offset changed");
 static_assert(offsetof(MSG_STANDARDPARM3, Parm3) == 20, "WYD 7.48 Parm3 offset changed");
 
-struct PARTY
-{
-	char Class;
-	char PartyIndex;
-	short Level;
-	short MaxHp;
-	short Hp;
-	unsigned short ID;
-	char Name[16];
-	// The wire record occupies 28 bytes. The server sends two trailing zero
-	// bytes in both MSG_REQParty and MSG_AddParty.
-	short Reserved;
-};
 static_assert(sizeof(MSG_CNFCharacterLogin) == kCharacterLoginConfirmPacketSize,
 	"WYD 7.48 character login confirmation must be 2104 bytes");
 
@@ -1358,12 +1346,6 @@ struct MSG_REQParty
 	MSG_STANDARD Header;
 	PARTY Leader;
 	int TargetID;
-};
-
-struct MSG_AddParty
-{
-	MSG_STANDARD Header;
-	PARTY Party;
 };
 
 constexpr auto MSG_CNFParty2_Opcode = 0x3AB;
@@ -1377,15 +1359,9 @@ struct MSG_CNFParty2
 	short Reserved;
 };
 
-static_assert(sizeof(PARTY) == 28, "WYD 7.48 party member must be 28 bytes");
-static_assert(offsetof(PARTY, ID) == 8, "WYD 7.48 party member ID offset changed");
-static_assert(offsetof(PARTY, Name) == 10, "WYD 7.48 party member name offset changed");
-static_assert(offsetof(PARTY, Reserved) == 26, "WYD 7.48 party reserved offset changed");
 static_assert(sizeof(MSG_REQParty) == 44, "WYD 7.48 party request must be 44 bytes");
 static_assert(offsetof(MSG_REQParty, Leader) == 12, "WYD 7.48 party leader offset changed");
 static_assert(offsetof(MSG_REQParty, TargetID) == 40, "WYD 7.48 party target offset changed");
-static_assert(sizeof(MSG_AddParty) == 40, "WYD 7.48 party-member packet must be 40 bytes");
-static_assert(offsetof(MSG_AddParty, Party) == 12, "WYD 7.48 party payload offset changed");
 static_assert(sizeof(MSG_CNFParty2) == 32, "WYD 7.48 party confirmation must be 32 bytes");
 static_assert(offsetof(MSG_CNFParty2, LeaderID) == 12, "WYD 7.48 party leader ID offset changed");
 static_assert(offsetof(MSG_CNFParty2, LeaderName) == 14, "WYD 7.48 party leader name offset changed");
