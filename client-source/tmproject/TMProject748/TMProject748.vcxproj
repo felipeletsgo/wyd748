@@ -143,6 +143,7 @@
     <ClInclude Include="internal\wire\CreateMobContract.h" />
     <ClInclude Include="internal\wire\ShopListContract.h" />
     <ClInclude Include="internal\wire\ItemSoldContract.h" />
+    <ClInclude Include="internal\wire\CombineCompleteContract.h" />
     <ClInclude Include="internal\wire\WhisperMessagePacket.h" />
     <ClInclude Include="internal\wire\CharacterLogoutConfirmPacket.h" />
     <ClInclude Include="internal\wire\CharacterLogoutRequestPacket.h" />

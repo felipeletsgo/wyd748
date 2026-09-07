@@ -9173,7 +9173,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case 0x19C:
 		return OnPacketClearMenu(pStd);
 		break;
-	case 0x3A7:
+	case MSG_CombineComplete_Opcode:
 		return OnPacketCombineComplete(pStd);
 		break;
 	case 0x3AC:

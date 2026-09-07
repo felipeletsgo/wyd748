@@ -1944,3 +1944,7 @@ Ficha `flows/ui/shop-list-contract.md` em `CONTRACT`. ArchitectureTests 26785 ch
 ## Contrato 0x39B — anuncio de AutoTrade vendido (2026-09-07)
 
 Ghidra confirma `FUN_00492E7D -> FUN_004854ED`; o clone fica em `Parm1@12`, a posicao em `Parm2@16` e `FUN_0055890A` exige 20B. `ItemSoldContract.h`, asserts e `ReceivedPacketDispatch` agora fecham o envelope antes de `OnPacketItemSold`, preservando a remocao visual e o lifecycle existente. ArchitectureTests 26815 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `4929DED5CAEBCDFE1474E50C7CD775B39B0260965201D9374EE1DDA52C0B5570`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote continua em respostas S->C vivas ainda sem gate.
+
+## Contrato 0x3A7 — conclusao de ItemMix (2026-09-07)
+
+`FUN_00492E7D -> FUN_004890F9` confirma o callback que fecha os roots ItemMix. Como `FUN_0055890A` nao lista `0x3A7`, o envelope StandardParm de 16B foi documentado como MODERNIZACAO_COMPATIVEL do par source/WYD-Go. `CombineCompleteContract.h`, asserts e o gate central impedem que frame parcial feche um painel. ArchitectureTests 26841 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `549FDF4F6A46A8E0C537C4F429E37A71747A4CF58741C3D5BC366026AF09403D`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED.

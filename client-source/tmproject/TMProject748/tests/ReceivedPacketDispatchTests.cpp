@@ -987,6 +987,61 @@ int RunReceivedPacketDispatchTests(int& checks)
         "ItemSold preserva entidade e posicao nos offsets contratados");
     check(itemSold == itemSoldBefore, "gate preserva todos os bytes do ItemSold");
 
+    // CombineComplete fecha somente o painel ItemMix ativo; o resultado em
+    // Parm continua disponivel para mensagens e diagnosticos do fluxo.
+    std::array<char, kCombineCompletePacketSize + 1> combineComplete{};
+    combineComplete[0] = static_cast<char>(kCombineCompletePacketSize);
+    combineComplete[4] = static_cast<char>(MSG_CombineComplete_Opcode & 0xFF);
+    combineComplete[5] = static_cast<char>((MSG_CombineComplete_Opcode >> 8) & 0xFF);
+    combineComplete[6] = 0x34;
+    combineComplete[7] = 0x12;
+    combineComplete[kCombineCompleteResultOffset] = 2;
+    combineComplete[kCombineCompleteResultOffset + 1] = 0;
+    combineComplete[kCombineCompleteResultOffset + 2] = 0;
+    combineComplete[kCombineCompleteResultOffset + 3] = 0;
+    const auto combineCompleteBefore = combineComplete;
+    int combineCompleteCalls = 0;
+    const auto receiveCombineComplete = [&](const PacketView& view) {
+        ++combineCompleteCalls;
+        check(view.data == combineComplete.data() &&
+            view.size == kCombineCompletePacketSize &&
+            view.opcode == MSG_CombineComplete_Opcode,
+            "CombineComplete preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kCombineCompletePacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_CombineComplete_Opcode,
+            combineComplete.data(), n}, receiveCombineComplete),
+            "CombineComplete rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_CombineComplete_Opcode, nullptr,
+        kCombineCompletePacketSize}, receiveCombineComplete),
+        "CombineComplete rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_CombineComplete_Opcode,
+        combineComplete.data(), kCombineCompletePacketSize + 1}, receiveCombineComplete),
+        "CombineComplete rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, combineComplete.data(),
+        kCombineCompletePacketSize}, receiveCombineComplete),
+        "opcode externo nao pode ocultar CombineComplete");
+    combineComplete[4] = static_cast<char>((MSG_CombineComplete_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_CombineComplete_Opcode,
+        combineComplete.data(), kCombineCompletePacketSize}, receiveCombineComplete),
+        "CombineComplete rejeita Header.Type divergente");
+    combineComplete[4] = static_cast<char>(MSG_CombineComplete_Opcode & 0xFF);
+    combineComplete[0] = static_cast<char>(kCombineCompletePacketSize - 1);
+    check(!received_packet::Dispatch({MSG_CombineComplete_Opcode,
+        combineComplete.data(), kCombineCompletePacketSize}, receiveCombineComplete),
+        "CombineComplete rejeita Header.Size divergente");
+    combineComplete[0] = static_cast<char>(kCombineCompletePacketSize);
+    check(combineCompleteCalls == 0, "CombineComplete invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_CombineComplete_Opcode,
+        combineComplete.data(), kCombineCompletePacketSize}, receiveCombineComplete) &&
+        combineCompleteCalls == 1, "CombineComplete valido entregue uma vez");
+    check(static_cast<unsigned char>(combineComplete[6]) == 0x34 &&
+        static_cast<unsigned char>(combineComplete[7]) == 0x12 &&
+        static_cast<unsigned char>(combineComplete[kCombineCompleteResultOffset]) == 2,
+        "CombineComplete preserva receptor e resultado");
+    check(combineComplete == combineCompleteBefore,
+        "gate preserva todos os bytes do CombineComplete");
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

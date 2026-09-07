@@ -30,6 +30,7 @@
 #include "../wire/CreateMobContract.h"
 #include "../wire/ShopListContract.h"
 #include "../wire/ItemSoldContract.h"
+#include "../wire/CombineCompleteContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -206,6 +207,10 @@ static_assert(offsetof(MSG_STANDARDPARM2, Parm1) == kItemSoldEntityOffset,
 	"ItemSold entity offset changed");
 static_assert(offsetof(MSG_STANDARDPARM2, Parm2) == kItemSoldPositionOffset,
 	"ItemSold position offset changed");
+static_assert(sizeof(MSG_STANDARDPARM) == kCombineCompletePacketSize,
+	"CombineComplete standard parameter size changed");
+static_assert(offsetof(MSG_STANDARDPARM, Parm) == kCombineCompleteResultOffset,
+	"CombineComplete result offset changed");
 static_assert(sizeof(MSG_STANDARDPARM2) == 20, "WYD 7.48 gamble request must be 20 bytes");
 
 struct MSG_STANDARDPARM3

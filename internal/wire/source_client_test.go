@@ -152,6 +152,11 @@ func TestCanonicalCharListAndPresentationPackets(t *testing.T) {
 		binary.LittleEndian.Uint32(itemSold[16:20]) != 0x89ABCDEF {
 		t.Fatalf("ItemSold ABI: % X", itemSold)
 	}
+	combine := StandardParm(OpCombineComplete, SceneField, 2)
+	if len(combine) != 16 || ParseHeader(combine).Type != OpCombineComplete ||
+		ParseHeader(combine).ID != SceneField || binary.LittleEndian.Uint32(combine[12:16]) != 2 {
+		t.Fatalf("CombineComplete ABI: % X", combine)
+	}
 	chat := MessageChat(5, "hello")
 	if len(chat) != 108 || string(chat[12:17]) != "hello" {
 		t.Fatalf("MessageChat ABI")
