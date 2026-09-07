@@ -1892,3 +1892,9 @@ Os emissores WYD-Go usam `MSG_STANDARDPARM` de 16 bytes para `OpInstanceTime` (`
 ArchitectureTests cobrem cada prefixo truncado, frame excedente, buffer nulo, opcode externo, Header.Type/Size divergentes, entrega unica, offsets e preservacao integral dos bytes. A ficha permanece `LOCATED`: o gate e uma modernizacao compativel baseada no `MSG_STANDARDPARM` e no contrato WYD-Go; a busca realizada nao atribuiu esses literais ao validador nativo `FUN_0055890A`.
 
 Build Release via `Build-Client.ps1` PASS, ArchitectureTests 24734 checks e asserts estaticos PASS, `git diff --check`, XML dos projetos e `validate_research.py` PASS. Candidato instalado: `BA0C2FD3062D7BF3E25440848C1A3A8038A2300294822781B2DDD936D245F544`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Necklace, Belt e NewSlot permanecem fora deste lote e ja estao cobertos pelos commits `5faf72a6` e `c9b66b7f`.
+
+## Contratos 0x339/0x165 — saldo do Cargo e remocao de entidade (2026-09-07)
+
+O proximo lote vivo fechou dois envelopes S->C emitidos pelo WYD-Go. Ghidra confirma `FUN_00492E7D -> FUN_00485664` para `0x339` e `FUN_0052EAA9 -> FUN_00529BF8` para `0x165`; `FUN_0055890A` exige 16 bytes para ambos. `WorldStateParameterContract.h`, asserts e `ReceivedPacketDispatch` agora protegem tamanho real/declarado, Type/opcode, `Header.ID` e DWORD em `+12`, sem alterar os handlers.
+
+Ficha `flows/transport/world-state-parameter-contracts.md` em `CONTRACT`. ArchitectureTests 24788 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato instalado: `3D12125879994155078D5D0503339880C146F2D09CAE3553EA680FAC47808813`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: selecionar outro packet S->C realmente emitido pelo WYD-Go e ainda ausente de `ExpectedSize`; fluxos de Cargo/remocao seguem pendentes de teste real com dois clients.

@@ -134,6 +134,7 @@
     <ClInclude Include="internal\wire\GroundItemCreateContract.h" />
     <ClInclude Include="internal\wire\GroundItemStateContract.h" />
     <ClInclude Include="internal\wire\InstanceCounterContract.h" />
+    <ClInclude Include="internal\wire\WorldStateParameterContract.h" />
     <ClInclude Include="internal\wire\WhisperMessagePacket.h" />
     <ClInclude Include="internal\wire\CharacterLogoutConfirmPacket.h" />
     <ClInclude Include="internal\wire\CharacterLogoutRequestPacket.h" />

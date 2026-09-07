@@ -21,6 +21,7 @@
 #include "../wire/GroundItemCreateContract.h"
 #include "../wire/GroundItemStateContract.h"
 #include "../wire/InstanceCounterContract.h"
+#include "../wire/WorldStateParameterContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -148,6 +149,10 @@ static_assert(sizeof(MSG_STANDARDPARM) == kInstanceCounterPacketSize,
 	"instance counter packets must preserve the 7.48 standard parameter ABI");
 static_assert(offsetof(MSG_STANDARDPARM, Parm) == kInstanceCounterValueOffset,
 	"instance counter value offset changed");
+static_assert(sizeof(MSG_STANDARDPARM) == kWorldStateParameterPacketSize,
+	"world state parameter packets must preserve the 7.48 ABI");
+static_assert(offsetof(MSG_STANDARDPARM, Parm) == kWorldStateParameterValueOffset,
+	"world state parameter value offset changed");
 constexpr int MAX_SPELL_LIST = 248;
 constexpr int MAX_GUILDZONE = 5;
 
@@ -1366,6 +1371,10 @@ struct MSG_RemoveMob
 	MSG_STANDARD Header;
 	int RemoveType;
 };
+static_assert(sizeof(MSG_RemoveMob) == kWorldStateParameterPacketSize,
+	"WYD 7.48 RemoveMob packet size changed");
+static_assert(offsetof(MSG_RemoveMob, RemoveType) == kWorldStateParameterValueOffset,
+	"WYD 7.48 RemoveMob value offset changed");
 
 struct MSG_SetHpMode
 {

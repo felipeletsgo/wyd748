@@ -3486,7 +3486,7 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
     case MSG_Motion_Opcode:
         return OnPacketFireWork(reinterpret_cast<MSG_Motion*>(buf));
         break;
-    case 0x165:
+    case MSG_RemoveMob_Opcode:
         return OnPacketRemoveMob((MSG_STANDARD*)buf);
         break;
     case 0x182:

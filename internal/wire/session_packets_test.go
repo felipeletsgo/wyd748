@@ -282,6 +282,14 @@ func TestRemoveMobTypeThreeRematerializesDeadPlayer(t *testing.T) {
 	}
 }
 
+func TestUpdateCargoGold748Layout(t *testing.T) {
+	b := UpdateCargoGold(SceneField, 0x89ABCDEF)
+	if len(b) != 16 || ParseHeader(b).Type != OpUpdateCargoGold ||
+		ParseHeader(b).ID != SceneField || binary.LittleEndian.Uint32(b[12:16]) != 0x89ABCDEF {
+		t.Fatalf("UpdateCargoGold 7.48 invalido: % X", b)
+	}
+}
+
 func TestPlayerMove748NormalizesForRemoteClient(t *testing.T) {
 	route := []byte{'6', '3', '6', '6', 0, '9'}
 	b := PlayerMove(7, 2100, 2101, 2104, 2105, 4, route)

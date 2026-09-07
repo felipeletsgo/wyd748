@@ -427,6 +427,69 @@ int RunReceivedPacketDispatchTests(int& checks)
         check(counter == counterBefore, "gate preserva bytes do contador de instancia");
     }
 
+    // RemoveMob e UpdateCargoGold compartilham o envelope de um DWORD, mas o
+    // Header.ID ainda seleciona receptores distintos. Validar os dois evita
+    // que um frame curto alcance tanto a arvore de entidades quanto a Field.
+    for (unsigned int opcode : {MSG_RemoveMob_Opcode, MSG_UpdateCargoGold_Opcode})
+    {
+        std::array<char, kWorldStateParameterPacketSize + 1> worldState{};
+        worldState[0] = static_cast<char>(kWorldStateParameterPacketSize);
+        worldState[4] = static_cast<char>(opcode & 0xFF);
+        worldState[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        worldState[6] = static_cast<char>(0x34);
+        worldState[7] = static_cast<char>(0x12);
+        worldState[kWorldStateParameterValueOffset] = static_cast<char>(0xEF);
+        worldState[kWorldStateParameterValueOffset + 1] = static_cast<char>(0xCD);
+        worldState[kWorldStateParameterValueOffset + 2] = static_cast<char>(0xAB);
+        worldState[kWorldStateParameterValueOffset + 3] = static_cast<char>(0x89);
+        const auto worldStateBefore = worldState;
+        int worldStateCalls = 0;
+        const auto receiveWorldState = [&](const PacketView& view) {
+            ++worldStateCalls;
+            check(view.data == worldState.data() &&
+                view.size == kWorldStateParameterPacketSize && view.opcode == opcode,
+                "estado do mundo preserva frame e opcode");
+        };
+        for (std::size_t n = 0; n < kWorldStateParameterPacketSize; ++n)
+            check(!received_packet::Dispatch({opcode, worldState.data(), n},
+                receiveWorldState), "estado do mundo rejeita todo prefixo truncado");
+        check(!received_packet::Dispatch({opcode, nullptr,
+            kWorldStateParameterPacketSize}, receiveWorldState),
+            "estado do mundo nulo rejeitado");
+        check(!received_packet::Dispatch({opcode, worldState.data(),
+            kWorldStateParameterPacketSize + 1}, receiveWorldState),
+            "estado do mundo excedente rejeitado");
+        check(!received_packet::Dispatch({0x119, worldState.data(),
+            kWorldStateParameterPacketSize}, receiveWorldState),
+            "opcode externo nao pode ocultar estado do mundo");
+        worldState[4] = static_cast<char>((opcode + 1) & 0xFF);
+        worldState[5] = static_cast<char>(((opcode + 1) >> 8) & 0xFF);
+        check(!received_packet::Dispatch({opcode, worldState.data(),
+            kWorldStateParameterPacketSize}, receiveWorldState),
+            "Header.Type divergente rejeitado para estado do mundo");
+        worldState[4] = static_cast<char>(opcode & 0xFF);
+        worldState[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        worldState[0] = static_cast<char>(kWorldStateParameterPacketSize - 1);
+        check(!received_packet::Dispatch({opcode, worldState.data(),
+            kWorldStateParameterPacketSize}, receiveWorldState),
+            "Header.Size divergente rejeitado para estado do mundo");
+        worldState[0] = static_cast<char>(kWorldStateParameterPacketSize);
+        check(worldStateCalls == 0, "estado invalido nao chega ao consumidor");
+        check(received_packet::Dispatch({opcode, worldState.data(),
+            kWorldStateParameterPacketSize}, receiveWorldState) && worldStateCalls == 1,
+            "estado do mundo valido entregue uma vez");
+        check(static_cast<unsigned char>(worldState[6]) == 0x34 &&
+            static_cast<unsigned char>(worldState[7]) == 0x12,
+            "estado do mundo preserva Header.ID");
+        check(static_cast<unsigned char>(worldState[kWorldStateParameterValueOffset]) == 0xEF &&
+            static_cast<unsigned char>(worldState[kWorldStateParameterValueOffset + 1]) == 0xCD &&
+            static_cast<unsigned char>(worldState[kWorldStateParameterValueOffset + 2]) == 0xAB &&
+            static_cast<unsigned char>(worldState[kWorldStateParameterValueOffset + 3]) == 0x89,
+            "estado do mundo preserva DWORD no offset 12");
+        check(worldState == worldStateBefore,
+            "gate preserva todos os bytes do estado do mundo");
+    }
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;
