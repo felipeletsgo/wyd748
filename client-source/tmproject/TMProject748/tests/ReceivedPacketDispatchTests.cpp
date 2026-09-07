@@ -553,6 +553,71 @@ int RunReceivedPacketDispatchTests(int& checks)
     }
     check(hpMp == hpMpBefore, "gate preserva todos os bytes do HP/MP coordenado");
 
+    // O snapshot 0x336 ativo tem 232 bytes. Os marcadores cobrem cada bloco
+    // estrutural sem depender do construtor C++ e distinguem o frame atual do
+    // base 92B e do XSC2 historico 236B.
+    std::array<char, kUpdateScorePacketSize + 5> updateScore{};
+    updateScore[0] = static_cast<char>(kUpdateScorePacketSize);
+    updateScore[4] = static_cast<char>(MSG_UpdateScore_Opcode & 0xFF);
+    updateScore[5] = static_cast<char>((MSG_UpdateScore_Opcode >> 8) & 0xFF);
+    updateScore[6] = 0x34;
+    updateScore[7] = 0x12;
+    updateScore[kUpdateScoreScoreOffset] = 0x11;
+    updateScore[kUpdateScoreAffectOffset] = 0x22;
+    updateScore[kUpdateScoreAffectOffset + (kUpdateScoreAffectCount - 1) * 2] = 0x23;
+    updateScore[kUpdateScoreGuildOffset] = 0x31;
+    updateScore[kUpdateScoreGuildLevelOffset] = 0x32;
+    updateScore[kUpdateScoreReqHpOffset] = 0x41;
+    updateScore[kUpdateScoreReqMpOffset] = 0x42;
+    updateScore[kUpdateScoreLearnedSkillOffset] = 0x51;
+    const auto updateScoreBefore = updateScore;
+    int updateScoreCalls = 0;
+    const auto receiveUpdateScore = [&](const PacketView& view) {
+        ++updateScoreCalls;
+        check(view.data == updateScore.data() && view.size == kUpdateScorePacketSize &&
+            view.opcode == MSG_UpdateScore_Opcode,
+            "UpdateScore coordenado preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kUpdateScorePacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_UpdateScore_Opcode, updateScore.data(), n},
+            receiveUpdateScore), "UpdateScore rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_UpdateScore_Opcode, nullptr,
+        kUpdateScorePacketSize}, receiveUpdateScore), "UpdateScore rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_UpdateScore_Opcode, updateScore.data(),
+        kUpdateScorePacketSize + 1}, receiveUpdateScore), "UpdateScore rejeita frame excedente");
+    check(!received_packet::Dispatch({MSG_UpdateScore_Opcode, updateScore.data(), 236},
+        receiveUpdateScore), "UpdateScore rejeita extensao XSC2 historica");
+    check(!received_packet::Dispatch({0x119, updateScore.data(), kUpdateScorePacketSize},
+        receiveUpdateScore), "opcode externo nao pode ocultar UpdateScore");
+    updateScore[4] = static_cast<char>((MSG_UpdateScore_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_UpdateScore_Opcode, updateScore.data(),
+        kUpdateScorePacketSize}, receiveUpdateScore),
+        "UpdateScore rejeita Header.Type divergente");
+    updateScore[4] = static_cast<char>(MSG_UpdateScore_Opcode & 0xFF);
+    updateScore[0] = static_cast<char>(kUpdateScorePacketSize - 1);
+    check(!received_packet::Dispatch({MSG_UpdateScore_Opcode, updateScore.data(),
+        kUpdateScorePacketSize}, receiveUpdateScore),
+        "UpdateScore rejeita Header.Size divergente");
+    updateScore[0] = static_cast<char>(kUpdateScorePacketSize);
+    check(updateScoreCalls == 0, "UpdateScore invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_UpdateScore_Opcode, updateScore.data(),
+        kUpdateScorePacketSize}, receiveUpdateScore) && updateScoreCalls == 1,
+        "UpdateScore coordenado entregue uma vez");
+    check(static_cast<unsigned char>(updateScore[6]) == 0x34 &&
+        static_cast<unsigned char>(updateScore[7]) == 0x12,
+        "UpdateScore preserva receptor em Header.ID");
+    check(updateScore[kUpdateScoreScoreOffset] == 0x11 &&
+        updateScore[kUpdateScoreAffectOffset] == 0x22 &&
+        updateScore[kUpdateScoreAffectOffset + (kUpdateScoreAffectCount - 1) * 2] == 0x23 &&
+        updateScore[kUpdateScoreGuildOffset] == 0x31 &&
+        updateScore[kUpdateScoreGuildLevelOffset] == 0x32 &&
+        updateScore[kUpdateScoreReqHpOffset] == 0x41 &&
+        updateScore[kUpdateScoreReqMpOffset] == 0x42 &&
+        updateScore[kUpdateScoreLearnedSkillOffset] == 0x51,
+        "UpdateScore preserva limites e campos do payload coordenado");
+    check(updateScore == updateScoreBefore,
+        "gate preserva todos os bytes do UpdateScore coordenado");
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

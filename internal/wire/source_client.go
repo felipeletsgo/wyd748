@@ -130,8 +130,8 @@ func EnterWorld(id, slot uint16, ch model.Char) []byte {
 	return b
 }
 
-// UpdateScore maps the authoritative runtime score to TMProject's
-// 232-byte 0x336 structure. Fields absent from that native structure continue
+// UpdateScore maps the authoritative runtime score to the coordinated
+// 232-byte source-client structure. Fields absent from that structure continue
 // to be synchronized by dedicated packets/extensions rather than trusted back.
 func UpdateScore(id uint16, ch model.Char) []byte {
 	b := Build(OpUpdateScore, id, 232)

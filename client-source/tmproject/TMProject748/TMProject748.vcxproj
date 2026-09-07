@@ -136,6 +136,7 @@
     <ClInclude Include="internal\wire\InstanceCounterContract.h" />
     <ClInclude Include="internal\wire\WorldStateParameterContract.h" />
     <ClInclude Include="internal\wire\HpMpContract.h" />
+    <ClInclude Include="internal\wire\UpdateScoreContract.h" />
     <ClInclude Include="internal\wire\WhisperMessagePacket.h" />
     <ClInclude Include="internal\wire\CharacterLogoutConfirmPacket.h" />
     <ClInclude Include="internal\wire\CharacterLogoutRequestPacket.h" />

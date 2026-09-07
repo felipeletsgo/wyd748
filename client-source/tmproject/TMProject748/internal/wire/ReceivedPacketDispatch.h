@@ -9,6 +9,7 @@
 #include "InstanceCounterContract.h"
 #include "WorldStateParameterContract.h"
 #include "HpMpContract.h"
+#include "UpdateScoreContract.h"
 #include "MessagePanelPacket.h"
 #include "ServerMigrationPacket.h"
 #include "ChatMessagePacket.h"
@@ -51,6 +52,7 @@ namespace received_packet
         case MSG_RemoveMob_Opcode:
         case MSG_UpdateCargoGold_Opcode: return kWorldStateParameterPacketSize;
         case MSG_SetHpMp_Opcode: return kHpMpPacketSize;
+        case MSG_UpdateScore_Opcode: return kUpdateScorePacketSize;
         case MSG_MessagePanel_Opcode: return sizeof(MSG_MessagePanel);
         case MSG_LegacySceneMessage102_Opcode: return sizeof(MSG_LegacySceneMessage102);
         case MSG_LegacySceneMessage104_Opcode: return sizeof(MSG_LegacySceneMessage104);

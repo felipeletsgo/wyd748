@@ -3498,7 +3498,7 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
     case 0x3B9:
         return OnPacketUpdateAffect((MSG_STANDARD*)buf);
         break;
-    case 0x336:
+    case MSG_UpdateScore_Opcode:
         return OnPacketUpdateScore((MSG_STANDARD*)buf);
         break;
     case MSG_SetHpMp_Opcode:

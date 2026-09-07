@@ -23,6 +23,7 @@
 #include "../wire/InstanceCounterContract.h"
 #include "../wire/WorldStateParameterContract.h"
 #include "../wire/HpMpContract.h"
+#include "../wire/UpdateScoreContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -1019,7 +1020,6 @@ struct MSG_Encode
 
 
 
-constexpr auto MSG_UpdateScore_Opcode = 0x336;
 struct MSG_UpdateScore
 {
 	MSG_STANDARD Header;
@@ -1031,6 +1031,24 @@ struct MSG_UpdateScore
 	int ReqMp;
 	char LearnedSkill;
 };
+static_assert(sizeof(MSG_UpdateScore) == kUpdateScorePacketSize,
+	"coordinated source-client UpdateScore packet size changed");
+static_assert(offsetof(MSG_UpdateScore, Score) == kUpdateScoreScoreOffset,
+	"UpdateScore score offset changed");
+static_assert(offsetof(MSG_UpdateScore, Affect) == kUpdateScoreAffectOffset,
+	"UpdateScore affect offset changed");
+static_assert(sizeof(MSG_UpdateScore::Affect) ==
+	kUpdateScoreAffectCount * sizeof(unsigned short), "UpdateScore affect count changed");
+static_assert(offsetof(MSG_UpdateScore, Guild) == kUpdateScoreGuildOffset,
+	"UpdateScore guild offset changed");
+static_assert(offsetof(MSG_UpdateScore, GuildLevel) == kUpdateScoreGuildLevelOffset,
+	"UpdateScore guild level offset changed");
+static_assert(offsetof(MSG_UpdateScore, ReqHp) == kUpdateScoreReqHpOffset,
+	"UpdateScore pending HP cost offset changed");
+static_assert(offsetof(MSG_UpdateScore, ReqMp) == kUpdateScoreReqMpOffset,
+	"UpdateScore pending MP cost offset changed");
+static_assert(offsetof(MSG_UpdateScore, LearnedSkill) == kUpdateScoreLearnedSkillOffset,
+	"UpdateScore avatar skill selector offset changed");
 
 // Server-to-client playtime notification. Its payload is the canonical
 // MSG_STANDARDPARM::Parm value expressed in seconds.

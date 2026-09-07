@@ -28,7 +28,8 @@ func TestUpdateScoreCanonicalLayoutIncludesScoreAndAffects(t *testing.T) {
 		binary.LittleEndian.Uint16(b[216:218]) != 0x0234 ||
 		binary.LittleEndian.Uint16(b[218:220]) != model.GuildRankLeader ||
 		binary.LittleEndian.Uint32(b[220:224]) != 0 ||
-		binary.LittleEndian.Uint32(b[224:228]) != 0 {
+		binary.LittleEndian.Uint32(b[224:228]) != 0 || b[228] != 0 ||
+		b[229] != 0 || b[230] != 0 || b[231] != 0 {
 		t.Fatalf("canonical UpdateScore incorreto: % X", b)
 	}
 }
