@@ -11,6 +11,7 @@
 #include "HpMpContract.h"
 #include "UpdateScoreContract.h"
 #include "CarrySnapshotContract.h"
+#include "UpdateEquipContract.h"
 #include "MessagePanelPacket.h"
 #include "ServerMigrationPacket.h"
 #include "ChatMessagePacket.h"
@@ -55,6 +56,7 @@ namespace received_packet
         case MSG_SetHpMp_Opcode: return kHpMpPacketSize;
         case MSG_UpdateScore_Opcode: return kUpdateScorePacketSize;
         case MSG_UpdateCarry_Opcode: return kCarrySnapshotPacketSize;
+        case MSG_UpdateEquip_Opcode: return kUpdateEquipPacketSize;
         case MSG_MessagePanel_Opcode: return sizeof(MSG_MessagePanel);
         case MSG_LegacySceneMessage102_Opcode: return sizeof(MSG_LegacySceneMessage102);
         case MSG_LegacySceneMessage104_Opcode: return sizeof(MSG_LegacySceneMessage104);

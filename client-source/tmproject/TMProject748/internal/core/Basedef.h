@@ -25,6 +25,7 @@
 #include "../wire/HpMpContract.h"
 #include "../wire/UpdateScoreContract.h"
 #include "../wire/CarrySnapshotContract.h"
+#include "../wire/UpdateEquipContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -986,7 +987,6 @@ static_assert(offsetof(MSG_SendItem, DestType) == 12, "SendItem destination type
 static_assert(offsetof(MSG_SendItem, DestPos) == 14, "SendItem destination slot moved");
 static_assert(offsetof(MSG_SendItem, Item) == 16, "SendItem payload moved");
 
-constexpr auto MSG_UpdateEquip_Opcode = 0x36B;
 struct MSG_UpdateEquip
 {
 	MSG_STANDARD Header;
@@ -995,6 +995,18 @@ struct MSG_UpdateEquip
 	unsigned short sEquip[16];
 	char Equip2[16];
 };
+static_assert(sizeof(MSG_UpdateEquip) == kUpdateEquipPacketSize,
+	"WYD 7.48 UpdateEquip packet size changed");
+static_assert(offsetof(MSG_UpdateEquip, sEquip) == kUpdateEquipVisualOffset,
+	"WYD 7.48 UpdateEquip visual offset changed");
+static_assert(sizeof(MSG_UpdateEquip::sEquip) ==
+	kUpdateEquipSlotCount * kUpdateEquipVisualSize,
+	"WYD 7.48 UpdateEquip visual array changed");
+static_assert(offsetof(MSG_UpdateEquip, Equip2) == kUpdateEquipAncientOffset,
+	"WYD 7.48 UpdateEquip ancient offset changed");
+static_assert(sizeof(MSG_UpdateEquip::Equip2) ==
+	kUpdateEquipSlotCount * kUpdateEquipAncientSize,
+	"WYD 7.48 UpdateEquip ancient array changed");
 
 constexpr auto MSG_UpdateAffect_Opcode = 0x3B9;
 struct MSG_UpdateAffect

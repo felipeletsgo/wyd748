@@ -677,6 +677,65 @@ int RunReceivedPacketDispatchTests(int& checks)
         "UpdateCarry preserva Coin no offset 524");
     check(carry == carryBefore, "gate preserva todos os bytes do UpdateCarry");
 
+    // O visual de equipamento carrega dois arrays paralelos de 16 posicoes.
+    // O gate conserva inclusive as posicoes estruturais que o servidor projeta
+    // como vazias quando nao ha slot correspondente na UI 7.48.
+    std::array<char, kUpdateEquipPacketSize + 1> updateEquip{};
+    updateEquip[0] = static_cast<char>(kUpdateEquipPacketSize);
+    updateEquip[4] = static_cast<char>(MSG_UpdateEquip_Opcode & 0xFF);
+    updateEquip[5] = static_cast<char>((MSG_UpdateEquip_Opcode >> 8) & 0xFF);
+    updateEquip[6] = 0x34;
+    updateEquip[7] = 0x12;
+    updateEquip[kUpdateEquipVisualOffset] = 0x11;
+    updateEquip[kUpdateEquipVisualOffset +
+        (kUpdateEquipSlotCount - 1) * kUpdateEquipVisualSize] = 0x12;
+    updateEquip[kUpdateEquipAncientOffset] = 0x21;
+    updateEquip[kUpdateEquipAncientOffset +
+        (kUpdateEquipSlotCount - 1) * kUpdateEquipAncientSize] = 0x22;
+    const auto updateEquipBefore = updateEquip;
+    int updateEquipCalls = 0;
+    const auto receiveUpdateEquip = [&](const PacketView& view) {
+        ++updateEquipCalls;
+        check(view.data == updateEquip.data() && view.size == kUpdateEquipPacketSize &&
+            view.opcode == MSG_UpdateEquip_Opcode,
+            "UpdateEquip preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kUpdateEquipPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_UpdateEquip_Opcode, updateEquip.data(), n},
+            receiveUpdateEquip), "UpdateEquip rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_UpdateEquip_Opcode, nullptr,
+        kUpdateEquipPacketSize}, receiveUpdateEquip), "UpdateEquip rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_UpdateEquip_Opcode, updateEquip.data(),
+        kUpdateEquipPacketSize + 1}, receiveUpdateEquip), "UpdateEquip rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, updateEquip.data(), kUpdateEquipPacketSize},
+        receiveUpdateEquip), "opcode externo nao pode ocultar UpdateEquip");
+    updateEquip[4] = static_cast<char>((MSG_UpdateEquip_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_UpdateEquip_Opcode, updateEquip.data(),
+        kUpdateEquipPacketSize}, receiveUpdateEquip),
+        "UpdateEquip rejeita Header.Type divergente");
+    updateEquip[4] = static_cast<char>(MSG_UpdateEquip_Opcode & 0xFF);
+    updateEquip[0] = static_cast<char>(kUpdateEquipPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_UpdateEquip_Opcode, updateEquip.data(),
+        kUpdateEquipPacketSize}, receiveUpdateEquip),
+        "UpdateEquip rejeita Header.Size divergente");
+    updateEquip[0] = static_cast<char>(kUpdateEquipPacketSize);
+    check(updateEquipCalls == 0, "UpdateEquip invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_UpdateEquip_Opcode, updateEquip.data(),
+        kUpdateEquipPacketSize}, receiveUpdateEquip) && updateEquipCalls == 1,
+        "UpdateEquip valido entregue uma vez");
+    check(static_cast<unsigned char>(updateEquip[6]) == 0x34 &&
+        static_cast<unsigned char>(updateEquip[7]) == 0x12,
+        "UpdateEquip preserva receptor em Header.ID");
+    check(updateEquip[kUpdateEquipVisualOffset] == 0x11 &&
+        updateEquip[kUpdateEquipVisualOffset +
+            (kUpdateEquipSlotCount - 1) * kUpdateEquipVisualSize] == 0x12 &&
+        updateEquip[kUpdateEquipAncientOffset] == 0x21 &&
+        updateEquip[kUpdateEquipAncientOffset +
+            (kUpdateEquipSlotCount - 1) * kUpdateEquipAncientSize] == 0x22,
+        "UpdateEquip preserva limites dos arrays visual e AnctCode");
+    check(updateEquip == updateEquipBefore,
+        "gate preserva todos os bytes do UpdateEquip");
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

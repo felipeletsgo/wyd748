@@ -539,8 +539,9 @@ func TestMotion748Layout(t *testing.T) {
 func TestSelfEquipCarriesTintAnctCode(t *testing.T) {
 	equip := make([]model.Item, 16)
 	equip[6] = model.Item{Index: 700, Eff: [6]byte{116, 4}}
+	equip[15] = model.Item{Index: 701, Eff: [6]byte{116, 5}}
 	b := SelfEquip(9, equip)
-	if len(b) != 60 || ParseHeader(b).Type != OpUpdateEquip {
+	if len(b) != 60 || ParseHeader(b).Type != OpUpdateEquip || ParseHeader(b).ID != 9 {
 		t.Fatalf("UpdateEquip invalido: len=%d header=%+v", len(b), ParseHeader(b))
 	}
 	if got := binary.LittleEndian.Uint16(b[12+6*2:]); got != model.VisualItemCode(equip[6], false) {
@@ -548,5 +549,11 @@ func TestSelfEquipCarriesTintAnctCode(t *testing.T) {
 	}
 	if got := b[44+6]; got != model.AncientCode(equip[6]) {
 		t.Fatalf("AnctCode[6]=%d, esperado %d", got, model.AncientCode(equip[6]))
+	}
+	if got := binary.LittleEndian.Uint16(b[12+15*2:]); got != model.VisualItemCode(equip[15], false) {
+		t.Fatalf("ItemEff[15]=%d", got)
+	}
+	if got := b[44+15]; got != model.AncientCode(equip[15]) {
+		t.Fatalf("AnctCode[15]=%d, esperado %d", got, model.AncientCode(equip[15]))
 	}
 }

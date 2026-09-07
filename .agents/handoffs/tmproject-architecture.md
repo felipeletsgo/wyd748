@@ -1916,3 +1916,9 @@ A decompilacao diferencia o frame base 92B (`FUN_0052B97D`) da extensao historic
 Ghidra confirma `FUN_0052EAA9 -> FUN_0052E3C8` e `FUN_0055890A` exige 528B: 64 itens de oito bytes em `+12` e Coin em `+524`. A copia logica conserva o slot 63, enquanto a materializacao nativa 9x7 percorre somente 0..62. `CarrySnapshotContract.h`, asserts e o gate central fecham esse envelope antes de `Empty()`/rebuild. O builder Go agora limita slices maiores a `model.MaxCarry`, evitando que o 65o item alcance Coin ou cause panic.
 
 Ficha `flows/ui/carry-snapshot-contract.md` em `CONTRACT`. ArchitectureTests 25614 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `39117672AAA8DD939CFB2B503344932195E4B179F5812AB9D28AE8F2E990FA6D`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: `0x36B`/UpdateEquip ou outro packet S->C emitido pelo WYD-Go e ainda sem gate.
+
+## Contrato 0x36B — snapshot visual de equipamento (2026-09-07)
+
+Ghidra confirma `FUN_0052EAA9 -> FUN_0052B116` e `FUN_0055890A` exige 60B: 16 WORDs visuais em `+12` e 16 AnctCode em `+44`. `UpdateEquipContract.h`, asserts e `ReceivedPacketDispatch` fecham o envelope antes dos efeitos/rebuild do avatar. A projecao server-side que zera slot 9 e exclui 16/17 permanece inalterada; Necklace/Belt/NewSlot nao foram reabertos.
+
+Ficha `flows/ui/update-equip-visual-contract.md` em `CONTRACT`. ArchitectureTests 25685 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `50AF940F6A1FBF8D7E1AE34603A94CAC8DCBB328F09C6FB8D9825CF7443A7655`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: `0x3B9`/UpdateAffect ou outra resposta S->C viva ainda sem gate.
