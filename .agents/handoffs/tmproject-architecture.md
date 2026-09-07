@@ -1527,3 +1527,29 @@ preexistentes permanecem.
 Próximo passo: revisar os caminhos de `OnPacketSwapItem` que removem visuais
 antes da reinserção e ainda ignoram `AddItem`, preservando a distinção entre
 estado autoritativo e apresentação local.
+
+## Correção funcional — reconstrução de lojas e recompra (2026-09-07)
+
+Os rebuilds de `OnPacketShopList`, `OnPacketRMBShopList` e
+`OnPacketUndoSellItem` criavam itens visuais e ignoravam `AddItem`; também
+podiam dereferenciar um `SGridControlItem` nulo. Os loops agora verificam a
+construção, liberam o payload quando a grade rejeita, e só formatam quantidade
+depois da inserção aceita. O sentinel moderno de loja e os 27 itens nativos
+mantêm as mesmas coordenadas e regras de compatibilidade; nenhum packet ou
+cache autoritativo foi alterado.
+
+Modo MODERNIZACAO_COMPATIVEL, ownership local. UTILIZADAS: source atual dos
+três handlers, `SGridControl::AddItem`/destructor e layout já documentado de
+Shop/Skill Apprentice/Repurchase. Ghidra e guia KR não foram usados para
+decidir apenas a liberação de objetos rejeitados; sources 7.54/W2PP/Secrets/
+Micronics não consultadas.
+
+Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
+`git diff --check` PASS. Candidato instalado e conferido:
+717FB694731F35D5A28ABBD93939D6DC9F32F6D898104B6025DDBC076AB1BF8D.
+Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED. Warnings C4018
+legados permanecem.
+
+Próximo passo: revisar as rotinas de montagem de grids de equipamento/loja
+acionadas por respostas de compra e venda, depois validar visualmente Shop,
+Skill Apprentice, recompra e swap no candidato.

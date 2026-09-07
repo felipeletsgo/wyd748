@@ -23836,13 +23836,22 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			}
 
 			auto pItem = new SGridControlItem(0, pItemList, 0.0f, 0.0f);
+			if (!pItem)
+			{
+				delete pItemList;
+				continue;
+			}
 			// Native WYD 7.48 FUN_004875c0 lays merchant entries out in three
 			// bands (rows 0, 3 and 6) across nine columns.  Keep TMProject's
 			// newer 5x8 layout only for its own UI resource.
-			if (m_bCompatFieldScene)
-				m_pGridShop->AddItem(pItem, i % 9, (i / 9) * 3);
-			else
-				m_pGridShop->AddItem(pItem, i % 5, i / 5);
+			const bool added = m_bCompatFieldScene
+				? m_pGridShop->AddItem(pItem, i % 9, (i / 9) * 3) == 1
+				: m_pGridShop->AddItem(pItem, i % 5, i / 5) == 1;
+			if (!added)
+			{
+				SAFE_DELETE(pItem);
+				continue;
+			}
 
 			int nAmount = BASE_GetItemAmount(pItemList);
 			if (pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex < 2390)
@@ -23862,18 +23871,22 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			
 			auto pItem = new SGridControlItem(0, pREQItem, 0.0f, 0.0f);
 
-			pItem->m_GCObj.nTextureIndex = 8;
-
 			if (pItem)
 			{
+				pItem->m_GCObj.nTextureIndex = 8;
 				// Item 4998 is a newer cash-shop sentinel and has no native 7.48
 				// cell.  Keep it outside the legacy grid instead of overlapping a
 				// real merchant entry at a coordinate the 7.48 client never used.
 				if (!m_bCompatFieldScene)
-					m_pGridShop->AddItem(pItem, 4, 7);
+				{
+					if (!m_pGridShop->AddItem(pItem, 4, 7))
+						SAFE_DELETE(pItem);
+				}
 				else
 					delete pItem;
 			}
+			else
+				delete pREQItem;
 		}
 		g_pObjectManager->m_nTax = pShopList->Tax;
 		SetVisibleShop(1);
@@ -23944,8 +23957,13 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			}
 
 			auto pItem = new SGridControlItem(0, dst, 0.0f, 0.0f);
-			if (pItem)
-				m_pGridSkillMaster->AddItem(pItem, k % 9 % 4, k / 9 + (k - k / 9) / 4);
+			if (!pItem)
+			{
+				delete dst;
+				continue;
+			}
+			if (!m_pGridSkillMaster->AddItem(pItem, k % 9 % 4, k / 9 + (k - k / 9) / 4))
+				SAFE_DELETE(pItem);
 		}
 
 		if (!m_pSkillMPanel->IsVisible())
@@ -23984,13 +24002,22 @@ int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)
 			}
 
 			auto pItem = new SGridControlItem(0, pItemList, 0.0f, 0.0f);
+			if (!pItem)
+			{
+				delete pItemList;
+				continue;
+			}
 
 			// The compatibility UI keeps the native 7.48 nine-column merchant
 			// mapping even if a newer server sends the RMB-shop packet family.
-			if (m_bCompatFieldScene)
-				pGrid->AddItem(pItem, i % 9, (i / 9) * 3);
-			else
-				pGrid->AddItem(pItem, i % 5, i / 5);
+			const bool added = m_bCompatFieldScene
+				? pGrid->AddItem(pItem, i % 9, (i / 9) * 3) == 1
+				: pGrid->AddItem(pItem, i % 5, i / 5) == 1;
+			if (!added)
+			{
+				SAFE_DELETE(pItem);
+				continue;
+			}
 			int nAmount = BASE_GetItemAmount(pItemList);
 			if (pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex < 2390)
 				nAmount = 0;
@@ -24006,14 +24033,21 @@ int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)
 		pREQItem->sIndex = 4998;
 
 		auto pItem = new SGridControlItem(0, pREQItem, 0.0f, 0.0f);
-		pItem->m_GCObj.nTextureIndex = 8;
 		// The RMB sentinel belongs to TMProject's newer 5x8 shop only; the
 		// original 7.48 shop has exactly the 27 item cells recovered by Ghidra.
-		if (!m_bCompatFieldScene)
-			pGrid->AddItem(pItem, 4, 7);
+		if (pItem)
+		{
+			pItem->m_GCObj.nTextureIndex = 8;
+			if (!m_bCompatFieldScene)
+			{
+				if (!pGrid->AddItem(pItem, 4, 7))
+					SAFE_DELETE(pItem);
+			}
+			else
+				SAFE_DELETE(pItem);
+		}
 		else
-			delete pItem;
-
+			delete pREQItem;
 		g_pObjectManager->m_nTax = pMsg->Tax;
 		SetVisibleShop(1);
 	}
@@ -24094,7 +24128,13 @@ int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)
 			}
 
 			auto pItem = new SGridControlItem(0, pNewItem, 0.0f, 0.0f);
-			pGridSkillMaster->AddItem(pItem, k % 9 % 4, k / 9 + (k - k / 9) / 4);
+			if (!pItem)
+			{
+				delete pNewItem;
+				continue;
+			}
+			if (!pGridSkillMaster->AddItem(pItem, k % 9 % 4, k / 9 + (k - k / 9) / 4))
+				SAFE_DELETE(pItem);
 		}
 
 		if (!m_pSkillMPanel->IsVisible())
@@ -28075,9 +28115,18 @@ int TMFieldScene::OnPacketUndoSellItem(MSG_RepurchaseItems* pMsg)
 		}
 
 		auto pItem = new SGridControlItem(0, pItemList, 0.0f, 0.0f);
+		if (!pItem)
+		{
+			delete pItemList;
+			continue;
+		}
 		memcpy(&m_stRepurcharse[i], &pMsg->Repurcharse[i], sizeof(pMsg->Repurcharse[i]));
 
-		pGrid->AddItem(pItem, i % 5, i / 5);
+		if (!pGrid->AddItem(pItem, i % 5, i / 5))
+		{
+			SAFE_DELETE(pItem);
+			continue;
+		}
 		int nAmount = BASE_GetItemAmount(pItemList);
 
 		if (pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex < 2390)
@@ -28094,9 +28143,14 @@ int TMFieldScene::OnPacketUndoSellItem(MSG_RepurchaseItems* pMsg)
 	pREQItem->sIndex = 4999;
 
 	auto pItem = new SGridControlItem(0, pREQItem, 0.0f, 0.0f);
-	pItem->m_GCObj.nTextureIndex = 9;
-
-	pGrid->AddItem(pItem, 4, 7);
+	if (pItem)
+	{
+		pItem->m_GCObj.nTextureIndex = 9;
+		if (!pGrid->AddItem(pItem, 4, 7))
+			SAFE_DELETE(pItem);
+	}
+	else
+		delete pREQItem;
 
 
 	SetVisibleShop(1);
