@@ -17584,12 +17584,23 @@ void TMFieldScene::UpdateSkillBelt()
 	}
 
 	auto pSkillBelt2 = m_pGridSkillBelt2;
+	auto releaseReturnedSkill = [](SGridControlItem*& item)
+	{
+		if (g_pCursor && g_pCursor->m_pAttachedItem == item)
+			g_pCursor->m_pAttachedItem = nullptr;
+		SAFE_DELETE(item);
+	};
 	for (int i = 0; i < 10; ++i)
 	{
 		auto pReturnItem2 = pSkillBelt2->PickupItem(i, 0);
 		if ((unsigned char)g_pObjectManager->m_cShortSkill[i] < 248)
 		{
 			auto pStructItem2 = new STRUCT_ITEM;
+			if (!pStructItem2)
+			{
+				releaseReturnedSkill(pReturnItem2);
+				continue;
+			}
 			memset(pStructItem2, 0, sizeof(STRUCT_ITEM));
 
 			pStructItem2->sIndex = (unsigned char)g_pObjectManager->m_cShortSkill[i] < 105 ? (unsigned char)g_pObjectManager->m_cShortSkill[i] + 5000 :
@@ -17597,16 +17608,23 @@ void TMFieldScene::UpdateSkillBelt()
 			
 			auto pSkillItem = new SGridControlItem(0, pStructItem2, 0.0f, 0.0f);
 
-			if (pSkillItem)
-				pSkillBelt2->AddSkillItem(pSkillItem, i, 0);
+			if (!pSkillItem)
+			{
+				delete pStructItem2;
+				releaseReturnedSkill(pReturnItem2);
+				continue;
+			}
+			if (pSkillBelt2->AddSkillItem(pSkillItem, i, 0) != 1)
+			{
+				SAFE_DELETE(pSkillItem);
+				releaseReturnedSkill(pReturnItem2);
+				continue;
+			}
 
 			if (g_pObjectManager->m_cSelectShortSkill == i)
 				pSkillItem->m_GCObj.nTextureSetIndex = 200;
 		}
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pReturnItem2)
-			g_pCursor->m_pAttachedItem = nullptr;
-
-		SAFE_DELETE(pReturnItem2);
+		releaseReturnedSkill(pReturnItem2);
 	}
 
 	auto pSkillBelt3 = m_pGridSkillBelt3;
@@ -17616,6 +17634,11 @@ void TMFieldScene::UpdateSkillBelt()
 		if ((unsigned char)g_pObjectManager->m_cShortSkill[i + 10] < 248)
 		{
 			auto pStructItem3 = new STRUCT_ITEM;
+			if (!pStructItem3)
+			{
+				releaseReturnedSkill(pReturnItem3);
+				continue;
+			}
 			memset(pStructItem3, 0, sizeof(STRUCT_ITEM));
 
 			pStructItem3->sIndex = (unsigned char)g_pObjectManager->m_cShortSkill[i + 10] < 105 ? (unsigned char)g_pObjectManager->m_cShortSkill[i + 10] + 5000 :
@@ -17623,16 +17646,23 @@ void TMFieldScene::UpdateSkillBelt()
 
 			auto pSkillItem = new SGridControlItem(0, pStructItem3, 0.0f, 0.0f);
 
-			if (pSkillItem)
-				pSkillBelt3->AddSkillItem(pSkillItem, i, 0);
+			if (!pSkillItem)
+			{
+				delete pStructItem3;
+				releaseReturnedSkill(pReturnItem3);
+				continue;
+			}
+			if (pSkillBelt3->AddSkillItem(pSkillItem, i, 0) != 1)
+			{
+				SAFE_DELETE(pSkillItem);
+				releaseReturnedSkill(pReturnItem3);
+				continue;
+			}
 
 			if (g_pObjectManager->m_cSelectShortSkill == i + 10)
 				pSkillItem->m_GCObj.nTextureSetIndex = 200;
 		}
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pReturnItem3)
-			g_pCursor->m_pAttachedItem = nullptr;
-
-		SAFE_DELETE(pReturnItem3);
+		releaseReturnedSkill(pReturnItem3);
 	}
 }
 

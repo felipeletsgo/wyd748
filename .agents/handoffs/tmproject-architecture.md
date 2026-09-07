@@ -1602,6 +1602,27 @@ client continua válido com 24253 checks; candidato BDE59A24D94F33E5556C03730B1F
 Estado IMPLEMENTED / AUTOMATED TESTED / STATICALLY VERIFIED; fluxo in-game
 permanece não CLIENT-TESTED.
 
+## Correção funcional — rebuild das duas páginas de skill (2026-09-07)
+
+`UpdateSkillBelt` retirava cada visual antigo e ignorava `AddSkillItem`; em
+falha de alocação/inserção vazava o novo payload e ainda podia dereferenciar
+`pSkillItem` nulo ao aplicar a seleção. As duas páginas agora validam as duas
+alocações, liberam o novo objeto rejeitado e convergem a limpeza do visual
+retirado, incluindo qualquer alias do cursor. O array `ShortSkill` e o packet
+`0x378` não mudam.
+
+Modo MODERNIZACAO_COMPATIVEL de ownership local. UTILIZADAS: source atual,
+documentação da seleção de página e descompilação já estudada do updater
+`FUN_004470B9`. Assets, guia KR e servidor NÃO APLICÁVEIS ao delta; sources
+7.54/W2PP/Secrets/Micronics não consultadas.
+
+Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS e
+`git diff --check` PASS. Candidato instalado e conferido:
+48C35E7C2392647BDCA2999F947AEF321311DC16A315EC62FCDE51655809DE9E.
+Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED. Próximo passo:
+continuar nos callers visuais ainda sem guarda e testar as duas páginas no
+client real.
+
 ## Compatibilidade de slots de equipamento com o emulador 7.48 (2026-09-07)
 
 O contrato informado para o WYD-Go 7.48 não possui equipamento Necklace nem
