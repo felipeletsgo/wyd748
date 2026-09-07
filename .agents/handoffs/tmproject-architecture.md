@@ -1884,3 +1884,11 @@ Build Release PASS, ArchitectureTests 24682 checks/asserts PASS e
 Estado STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo passo: executar Big Cube,
 Uxmal e quest/instance no candidato, confirmando exibir, expirar, sair e relogar;
 depois revisar outro controle runtime pulado pelo retorno compat√≠vel.
+
+## Contratos 0x3A1/0x3B0 ó contadores runtime (2026-09-07)
+
+Os emissores WYD-Go usam `MSG_STANDARDPARM` de 16 bytes para `OpInstanceTime` (`0x3A1`) e `OpInstanceMobs` (`0x3B0`), com o valor em `Parm` no offset 12. `InstanceCounterContract.h` nomeia esses opcodes, tamanho e offset; `Basedef` fixa o alias `MSG_STANDARDPARM` e seus asserts de ABI. O gate central de `ReceivedPacketDispatch` agora exige exatamente 16 bytes e Type/opcode coerentes antes dos handlers `TMFieldScene`.
+
+ArchitectureTests cobrem cada prefixo truncado, frame excedente, buffer nulo, opcode externo, Header.Type/Size divergentes, entrega unica, offsets e preservacao integral dos bytes. A ficha permanece `LOCATED`: o gate e uma modernizacao compativel baseada no `MSG_STANDARDPARM` e no contrato WYD-Go; a busca realizada nao atribuiu esses literais ao validador nativo `FUN_0055890A`.
+
+Build Release via `Build-Client.ps1` PASS, ArchitectureTests 24734 checks e asserts estaticos PASS, `git diff --check`, XML dos projetos e `validate_research.py` PASS. Candidato instalado: `BA0C2FD3062D7BF3E25440848C1A3A8038A2300294822781B2DDD936D245F544`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Necklace, Belt e NewSlot permanecem fora deste lote e ja estao cobertos pelos commits `5faf72a6` e `c9b66b7f`.

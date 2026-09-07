@@ -370,6 +370,63 @@ int RunReceivedPacketDispatchTests(int& checks)
         static_cast<unsigned char>(removeItem[kGroundItemRemoveItemIDOffset + 1]) == 0x27,
         "RemoveItem preserva ID no offset nativo");
     check(removeItem == removeItemBefore, "gate preserva todos os bytes do RemoveItem");
+
+    // Os dois contadores de instancia usam MSG_STANDARDPARM: envelope de 16
+    // bytes, com o valor inteiro no offset 12. O callback recebe o mesmo
+    // buffer, portanto o teste tambem protege contra normalizacao/copia.
+    for (unsigned int opcode : {MSG_InstanceTime_Opcode, MSG_InstanceMobs_Opcode})
+    {
+        std::array<char, kInstanceCounterPacketSize + 1> counter{};
+        counter[0] = static_cast<char>(kInstanceCounterPacketSize);
+        counter[4] = static_cast<char>(opcode & 0xFF);
+        counter[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        counter[kInstanceCounterValueOffset] = static_cast<char>(0x78);
+        counter[kInstanceCounterValueOffset + 1] = static_cast<char>(0x56);
+        counter[kInstanceCounterValueOffset + 2] = static_cast<char>(0x34);
+        counter[kInstanceCounterValueOffset + 3] = static_cast<char>(0x12);
+        const auto counterBefore = counter;
+        int counterCalls = 0;
+        const auto receiveCounter = [&](const PacketView& view) {
+            ++counterCalls;
+            check(view.data == counter.data() && view.size == kInstanceCounterPacketSize &&
+                view.opcode == opcode,
+                "contador de instancia preserva frame e opcode");
+        };
+        for (std::size_t n = 0; n < kInstanceCounterPacketSize; ++n)
+            check(!received_packet::Dispatch({opcode, counter.data(), n}, receiveCounter),
+                "contador de instancia rejeita todo prefixo truncado");
+        check(!received_packet::Dispatch({opcode, nullptr, kInstanceCounterPacketSize},
+            receiveCounter), "contador de instancia nulo rejeitado");
+        check(!received_packet::Dispatch({opcode, counter.data(),
+            kInstanceCounterPacketSize + 1}, receiveCounter),
+            "contador de instancia excedente rejeitado");
+        check(!received_packet::Dispatch({0x119, counter.data(),
+            kInstanceCounterPacketSize}, receiveCounter),
+            "opcode externo nao pode ocultar contador de instancia");
+        counter[4] = static_cast<char>((opcode + 1) & 0xFF);
+        counter[5] = static_cast<char>(((opcode + 1) >> 8) & 0xFF);
+        check(!received_packet::Dispatch({opcode, counter.data(),
+            kInstanceCounterPacketSize}, receiveCounter),
+            "Header.Type divergente rejeitado para contador de instancia");
+        counter[4] = static_cast<char>(opcode & 0xFF);
+        counter[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        counter[0] = static_cast<char>(kInstanceCounterPacketSize - 1);
+        check(!received_packet::Dispatch({opcode, counter.data(),
+            kInstanceCounterPacketSize}, receiveCounter),
+            "Header.Size divergente rejeitado para contador de instancia");
+        counter[0] = static_cast<char>(kInstanceCounterPacketSize);
+        check(counterCalls == 0, "contador invalido nao chega ao consumidor");
+        check(received_packet::Dispatch({opcode, counter.data(),
+            kInstanceCounterPacketSize}, receiveCounter) && counterCalls == 1,
+            "contador valido entregue uma vez");
+        check(static_cast<unsigned char>(counter[kInstanceCounterValueOffset]) == 0x78 &&
+            static_cast<unsigned char>(counter[kInstanceCounterValueOffset + 1]) == 0x56 &&
+            static_cast<unsigned char>(counter[kInstanceCounterValueOffset + 2]) == 0x34 &&
+            static_cast<unsigned char>(counter[kInstanceCounterValueOffset + 3]) == 0x12,
+            "contador preserva valor no offset 12");
+        check(counter == counterBefore, "gate preserva bytes do contador de instancia");
+    }
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

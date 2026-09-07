@@ -9179,10 +9179,10 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case 0x3AC:
 		return OnPacketCastleState(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
 		break;
-	case 0x3A1:
+	case MSG_InstanceTime_Opcode:
 		return OnPacketStartTime(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
 		break;
-	case 0x3B0:
+	case MSG_InstanceMobs_Opcode:
 		return OnPacketRemainCount(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
 		break;
 	case 0x3A8:

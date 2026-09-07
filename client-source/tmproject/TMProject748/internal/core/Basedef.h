@@ -20,6 +20,7 @@
 #include "../wire/DropConfirmationContract.h"
 #include "../wire/GroundItemCreateContract.h"
 #include "../wire/GroundItemStateContract.h"
+#include "../wire/InstanceCounterContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -142,6 +143,11 @@ constexpr int MAX_SERVERNUMBER = (MAX_SERVER + 1); // DB + TMSrvs + BISrv
 constexpr int MAX_ITEMLIST = 6500;
 static_assert(MAX_ITEMLIST == kGroundItemDefinitionCount,
 	"ground-item packet must use the loaded 7.48 ItemList capacity");
+using MSG_STANDARDPARM = MSG_SetPKMode;
+static_assert(sizeof(MSG_STANDARDPARM) == kInstanceCounterPacketSize,
+	"instance counter packets must preserve the 7.48 standard parameter ABI");
+static_assert(offsetof(MSG_STANDARDPARM, Parm) == kInstanceCounterValueOffset,
+	"instance counter value offset changed");
 constexpr int MAX_SPELL_LIST = 248;
 constexpr int MAX_GUILDZONE = 5;
 
@@ -154,7 +160,6 @@ constexpr auto MAX_ITEM_PRICE_REPLACE = 100;
 
 constexpr auto MSG_RequestCapsuleInfo_Opcode = 0x2CD;
 constexpr auto MSG_UseDeclarationOfWar_Opcode = 0xED7;
-using MSG_STANDARDPARM = MSG_SetPKMode;
 struct MSG_Exp_MsgPanel
 {
 	MSG_STANDARD Header;

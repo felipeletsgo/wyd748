@@ -189,6 +189,9 @@
     <ClInclude Include="internal\wire\GroundItemStateContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\InstanceCounterContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\WhisperMessagePacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

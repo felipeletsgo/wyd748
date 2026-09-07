@@ -97,8 +97,11 @@ falha individual de alocacao. O container continua owner dos controles aceitos.
 
 - Pesquisa: dispatch e efeitos dos dois handlers confirmados; criador nativo
   permanece pendente, logo nao ha promocao para `TRACED`.
-- Build Release passou pelo `Build-Client.ps1` com 24682 checks e asserts
-  estaticos. `git diff --check` e o validador de pesquisa passaram. Candidato:
-  `7D1EAD844F74A93B4A514DE4B4B089DFC64F094BE5EE7183DD109CC3A967DF19`.
+- Build Release passou pelo `Build-Client.ps1` com 24734 checks e asserts
+  estaticos. O gate de transporte agora exige 16 bytes, Type/opcode
+  correspondentes e valor em `+12` para `0x3A1`/`0x3B0`; os testes cobrem
+  truncamento, excesso, nulo, divergencias, entrega unica e preservacao de
+  bytes. `git diff --check`, XML dos projetos e o validador de pesquisa
+  passaram. Candidato: `BA0C2FD3062D7BF3E25440848C1A3A8038A2300294822781B2DDD936D245F544`.
 - Estado `STATICALLY VERIFIED`; fluxo real ainda nao executado, portanto nao e
   `CLIENT_TESTED`.

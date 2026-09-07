@@ -6,6 +6,7 @@
 #include "DropConfirmationContract.h"
 #include "GroundItemCreateContract.h"
 #include "GroundItemStateContract.h"
+#include "InstanceCounterContract.h"
 #include "MessagePanelPacket.h"
 #include "ServerMigrationPacket.h"
 #include "ChatMessagePacket.h"
@@ -43,6 +44,8 @@ namespace received_packet
         case MSG_CreateItem_Opcode: return kGroundItemCreatePacketSize;
         case MSG_UpdateItem_Opcode: return kGroundItemUpdatePacketSize;
         case MSG_RemoveItem_Opcode: return kGroundItemRemovePacketSize;
+        case MSG_InstanceTime_Opcode:
+        case MSG_InstanceMobs_Opcode: return kInstanceCounterPacketSize;
         case MSG_MessagePanel_Opcode: return sizeof(MSG_MessagePanel);
         case MSG_LegacySceneMessage102_Opcode: return sizeof(MSG_LegacySceneMessage102);
         case MSG_LegacySceneMessage104_Opcode: return sizeof(MSG_LegacySceneMessage104);
