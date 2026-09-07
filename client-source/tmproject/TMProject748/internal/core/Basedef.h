@@ -24,6 +24,7 @@
 #include "../wire/WorldStateParameterContract.h"
 #include "../wire/HpMpContract.h"
 #include "../wire/UpdateScoreContract.h"
+#include "../wire/CarrySnapshotContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -1486,9 +1487,17 @@ struct MSG_Carry
 	int Coin;
 };
 
-static_assert(sizeof(MSG_Carry) == 528, "WYD 7.48 carry packet must be 528 bytes");
-static_assert(offsetof(MSG_Carry, Carry) == 12, "WYD 7.48 carry payload offset changed");
-static_assert(offsetof(MSG_Carry, Coin) == 524, "WYD 7.48 carry coin offset changed");
+static_assert(sizeof(MSG_Carry) == kCarrySnapshotPacketSize,
+	"WYD 7.48 carry packet size changed");
+static_assert(offsetof(MSG_Carry, Carry) == kCarrySnapshotItemsOffset,
+	"WYD 7.48 carry payload offset changed");
+static_assert(sizeof(MSG_Carry::Carry) ==
+	kCarrySnapshotItemCount * kCarrySnapshotItemSize,
+	"WYD 7.48 carry item array changed");
+static_assert(offsetof(MSG_Carry, Coin) == kCarrySnapshotCoinOffset,
+	"WYD 7.48 carry coin offset changed");
+static_assert(MAX_VISIBLE_CARRY == kCarrySnapshotVisibleItemCount,
+	"WYD 7.48 carry visual capacity changed");
 
 struct MSG_HellBuy
 {

@@ -423,6 +423,22 @@ func TestParameterizedMessageExtensionBoundsAndSanitizesCSV(t *testing.T) {
 	}
 }
 
+func TestUpdateCarry748LayoutAndBounds(t *testing.T) {
+	inv := make([]model.Item, model.MaxCarry+1)
+	inv[0] = model.Item{Index: 100}
+	inv[62] = model.Item{Index: 162}
+	inv[63] = model.Item{Index: 163}
+	inv[64] = model.Item{Index: 0xDEAD}
+	b := UpdateCarry(7, inv, 0x89ABCDEF)
+	if len(b) != 528 || ParseHeader(b).Type != OpUpdateCarry || ParseHeader(b).ID != 7 ||
+		binary.LittleEndian.Uint16(b[12:14]) != 100 ||
+		binary.LittleEndian.Uint16(b[12+62*8:14+62*8]) != 162 ||
+		binary.LittleEndian.Uint16(b[12+63*8:14+63*8]) != 163 ||
+		binary.LittleEndian.Uint32(b[524:528]) != 0x89ABCDEF {
+		t.Fatalf("UpdateCarry 7.48 invalido: len=%d tail=% X", len(b), b[508:])
+	}
+}
+
 func TestMessagePanel748Layout(t *testing.T) {
 	b := MessagePanel("Inventario limpo")
 	if len(b) != 108 || ParseHeader(b).Type != OpMessagePanel || ParseHeader(b).ID != 0 {

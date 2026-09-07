@@ -618,6 +618,65 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(updateScore == updateScoreBefore,
         "gate preserva todos os bytes do UpdateScore coordenado");
 
+    // Snapshot nativo: 64 itens estruturais e Coin final. O slot 63 permanece
+    // no wire, embora a grade do personagem desenhe somente 0..62.
+    std::array<char, kCarrySnapshotPacketSize + 1> carry{};
+    carry[0] = static_cast<char>(kCarrySnapshotPacketSize & 0xFF);
+    carry[1] = static_cast<char>((kCarrySnapshotPacketSize >> 8) & 0xFF);
+    carry[4] = static_cast<char>(MSG_UpdateCarry_Opcode & 0xFF);
+    carry[5] = static_cast<char>((MSG_UpdateCarry_Opcode >> 8) & 0xFF);
+    carry[6] = 0x34;
+    carry[7] = 0x12;
+    carry[kCarrySnapshotItemsOffset] = 0x11;
+    carry[kCarrySnapshotItemsOffset + 62 * kCarrySnapshotItemSize] = 0x22;
+    carry[kCarrySnapshotItemsOffset + 63 * kCarrySnapshotItemSize] = 0x23;
+    carry[kCarrySnapshotCoinOffset] = 0x31;
+    carry[kCarrySnapshotCoinOffset + 1] = 0x32;
+    carry[kCarrySnapshotCoinOffset + 2] = 0x33;
+    carry[kCarrySnapshotCoinOffset + 3] = 0x34;
+    const auto carryBefore = carry;
+    int carryCalls = 0;
+    const auto receiveCarry = [&](const PacketView& view) {
+        ++carryCalls;
+        check(view.data == carry.data() && view.size == kCarrySnapshotPacketSize &&
+            view.opcode == MSG_UpdateCarry_Opcode,
+            "UpdateCarry preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kCarrySnapshotPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_UpdateCarry_Opcode, carry.data(), n},
+            receiveCarry), "UpdateCarry rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_UpdateCarry_Opcode, nullptr,
+        kCarrySnapshotPacketSize}, receiveCarry), "UpdateCarry rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_UpdateCarry_Opcode, carry.data(),
+        kCarrySnapshotPacketSize + 1}, receiveCarry), "UpdateCarry rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, carry.data(), kCarrySnapshotPacketSize},
+        receiveCarry), "opcode externo nao pode ocultar UpdateCarry");
+    carry[4] = static_cast<char>((MSG_UpdateCarry_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_UpdateCarry_Opcode, carry.data(),
+        kCarrySnapshotPacketSize}, receiveCarry), "UpdateCarry rejeita Header.Type divergente");
+    carry[4] = static_cast<char>(MSG_UpdateCarry_Opcode & 0xFF);
+    carry[0] = static_cast<char>((kCarrySnapshotPacketSize - 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_UpdateCarry_Opcode, carry.data(),
+        kCarrySnapshotPacketSize}, receiveCarry), "UpdateCarry rejeita Header.Size divergente");
+    carry[0] = static_cast<char>(kCarrySnapshotPacketSize & 0xFF);
+    check(carryCalls == 0, "UpdateCarry invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_UpdateCarry_Opcode, carry.data(),
+        kCarrySnapshotPacketSize}, receiveCarry) && carryCalls == 1,
+        "UpdateCarry valido entregue uma vez");
+    check(static_cast<unsigned char>(carry[6]) == 0x34 &&
+        static_cast<unsigned char>(carry[7]) == 0x12,
+        "UpdateCarry preserva receptor em Header.ID");
+    check(carry[kCarrySnapshotItemsOffset] == 0x11 &&
+        carry[kCarrySnapshotItemsOffset + 62 * kCarrySnapshotItemSize] == 0x22 &&
+        carry[kCarrySnapshotItemsOffset + 63 * kCarrySnapshotItemSize] == 0x23,
+        "UpdateCarry preserva primeiro, ultimo visivel e slot estrutural");
+    check(carry[kCarrySnapshotCoinOffset] == 0x31 &&
+        carry[kCarrySnapshotCoinOffset + 1] == 0x32 &&
+        carry[kCarrySnapshotCoinOffset + 2] == 0x33 &&
+        carry[kCarrySnapshotCoinOffset + 3] == 0x34,
+        "UpdateCarry preserva Coin no offset 524");
+    check(carry == carryBefore, "gate preserva todos os bytes do UpdateCarry");
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

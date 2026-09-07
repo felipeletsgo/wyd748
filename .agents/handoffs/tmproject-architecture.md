@@ -1910,3 +1910,9 @@ A triagem encontrou tres formatos sob `0x181`. A decompilacao estudada confirma 
 A decompilacao diferencia o frame base 92B (`FUN_0052B97D`) da extensao historica XSC2 236B (`FUN_013C0000`, marcador em `+232`). O par unico TMProject748/WYD-Go usa 232B: `STRUCT_SCORE` 140B em `+12`, 32 affects WORD em `+152`, guild/rank em `+216/+218`, custos em `+220/+224` e seletor em `+228`. Esse formato foi mantido como EXTENSAO_COORDENADA; os dois historicos agora sao rejeitados antes do cast.
 
 `UpdateScoreContract.h`, asserts e `ReceivedPacketDispatch` fecham o envelope sem alterar os efeitos do handler. Ficha `flows/transport/update-score-source-contract.md` em `CONTRACT`. ArchitectureTests 25074 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `86766AA9FBF2EF15F76A7038883F2A945AA2160153D6224F2500269429E605AB`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico deve revisar `0x185`/UpdateCarry ou outra resposta S->C realmente emitida e ainda sem gate.
+
+## Contrato 0x185 — snapshot completo do Carry (2026-09-07)
+
+Ghidra confirma `FUN_0052EAA9 -> FUN_0052E3C8` e `FUN_0055890A` exige 528B: 64 itens de oito bytes em `+12` e Coin em `+524`. A copia logica conserva o slot 63, enquanto a materializacao nativa 9x7 percorre somente 0..62. `CarrySnapshotContract.h`, asserts e o gate central fecham esse envelope antes de `Empty()`/rebuild. O builder Go agora limita slices maiores a `model.MaxCarry`, evitando que o 65o item alcance Coin ou cause panic.
+
+Ficha `flows/ui/carry-snapshot-contract.md` em `CONTRACT`. ArchitectureTests 25614 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `39117672AAA8DD939CFB2B503344932195E4B179F5812AB9D28AE8F2E990FA6D`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: `0x36B`/UpdateEquip ou outro packet S->C emitido pelo WYD-Go e ainda sem gate.

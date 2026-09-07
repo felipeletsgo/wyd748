@@ -201,6 +201,9 @@
     <ClInclude Include="internal\wire\UpdateScoreContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\CarrySnapshotContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\WhisperMessagePacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

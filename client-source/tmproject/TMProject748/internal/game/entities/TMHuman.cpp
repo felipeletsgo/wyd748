@@ -3534,7 +3534,7 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
     case 0x384:
         return OnPacketQuitTrade((MSG_STANDARD*)buf);
         break;
-    case 0x185:
+    case MSG_UpdateCarry_Opcode:
         return OnPacketCarry(reinterpret_cast<MSG_Carry*>(buf));
         break;
     case 0x386:

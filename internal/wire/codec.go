@@ -410,7 +410,13 @@ func SysQuit(id uint16) []byte {
 // INTERATIVO (sem ele o client nao deixa mover/equipar itens).
 func UpdateCarry(id uint16, inv []model.Item, coin uint32) []byte {
 	b := Build(OpUpdateCarry, id, 528)
-	for i := range inv {
+	itemCount := len(inv)
+	// O 65o elemento comecaria exatamente no campo Coin; callers invalidos nao
+	// podem sobrescrever o tail nem provocar slice bounds panic no encoder.
+	if itemCount > model.MaxCarry {
+		itemCount = model.MaxCarry
+	}
+	for i := 0; i < itemCount; i++ {
 		PutItem(b, 12+i*8, inv[i])
 	}
 	putU32(b, 524, coin)
