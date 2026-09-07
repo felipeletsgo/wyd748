@@ -9158,7 +9158,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		return OnPacketUpdateCargoCoin(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
 	case 0x18B:
 		return OnPacketWeather(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
-	case 0x26E:
+	case MSG_CreateItem_Opcode:
 		return OnPacketCreateItem(reinterpret_cast<MSG_CreateItem*>(pStd));
 	case MSG_CNFDropItem_Opcode:
 		return OnPacketCNFDropItem(reinterpret_cast<MSG_CNFDropItem*>(pStd));
@@ -23295,6 +23295,10 @@ int TMFieldScene::OnPacketWeather(MSG_STANDARDPARM* pStd)
 
 int TMFieldScene::OnPacketCreateItem(MSG_CreateItem* pMsg)
 {
+	if (!pMsg || !g_pObjectManager || !m_pGround || !m_pItemContainer ||
+		!IsGroundItemDefinitionIndex(pMsg->Item.sIndex))
+		return 0;
+
 	auto pOldItem = (TMItem*)g_pObjectManager->GetItemByID(pMsg->ItemID);
 	
 	if (BASE_GetItemAbility(&pMsg->Item, 34) > 0)

@@ -1803,3 +1803,30 @@ unico e `git diff --check` PASS. Candidato instalado:
 `595C4722DB4DAD8C2A0EB5A6A0ECA2621A159F85C79822BA6E9B13295B21EE7C`.
 Estado AUTOMATED TESTED; nao CLIENT-TESTED. Proximo passo: testar drops de Carry
 e Cargo no candidato e mapear o proximo handler S->C ainda sem tamanho exato.
+
+## Contrato 0x26E — materializacao de item no chao (2026-09-07)
+
+Ghidra confirma `FUN_00492E7D -> FUN_004856C3`, campos em `+0x0C..+0x1E` e
+`FUN_0055890A` exige `0x26E/0x20`. A source consumia o mesmo layout, mas chegava
+a `g_pItemList[pMsg->Item.sIndex]` sem validar as 6.500 definicoes carregadas.
+
+Criado `GroundItemCreateContract.h`; o gate central agora exige 32 bytes e
+Type/opcode coerentes. `Basedef` fixa todos os offsets e a capacidade do
+ItemList. `OnPacketCreateItem` valida mensagem, owners essenciais da Field e
+`sIndex` em `[1,6500)` antes de consultar habilidade, mesh ou tabela. Frames
+validos preservam gate/cannon/item comum, posicao, rotacao, estado, owner, som e
+insercao no container. O builder Go e os emissores de visibilidade nao mudaram.
+
+Ficha `flows/ui/ground-item-create-contract.md` validada como `CONTRACT`; total
+CONTRACT=32, TRACED=19, LOCATED=7, UNMAPPED=2. Modo PARIDADE_NATIVA no wire e
+MODERNIZACAO_COMPATIVEL no guard de lifecycle/ItemList. UTILIZADAS:
+decompilacao/Ghidra 7.48, source/assets atuais e WYD-Go/testes. Guia KR NAO
+APLICAVEL; sources 7.54/W2PP/Secrets/Micronics nao consultadas.
+
+Build Release PASS, ArchitectureTests 24626 checks/asserts PASS,
+`go test -count=1 ./internal/wire` e `go vet ./internal/wire` PASS, XML/header
+unico e `git diff --check` PASS. Candidato instalado:
+`A2272382F20F09377C0D2F3090612A96B9D82E208A8F380409D1AC175001FBFF`.
+Estado AUTOMATED TESTED; nao CLIENT-TESTED. Proximo passo: testar spawn/update
+de loot e seguir para `0x16F`/`0x374`, os consumidores adjacentes do mesmo
+lifecycle que ainda nao possuem tamanho no gate central.

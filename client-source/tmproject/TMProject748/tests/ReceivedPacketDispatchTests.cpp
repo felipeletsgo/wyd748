@@ -224,6 +224,69 @@ int RunReceivedPacketDispatchTests(int& checks)
         check(IsDropCargoSlot(slot), "CNFDropItem aceita cada slot utilizavel do Cargo");
     check(!IsDropCargoSlot(kDropUsableCargoSlotCount),
         "CNFDropItem rejeita primeiro slot reservado do Cargo");
+    // Mesmo frame produzido por wire.CreateItem para uma aparicao no chao.
+    std::array<char, kGroundItemCreatePacketSize + 1> createItem{};
+    createItem[0] = static_cast<char>(kGroundItemCreatePacketSize);
+    createItem[4] = 0x6E;
+    createItem[5] = 0x02;
+    createItem[kGroundItemCreateGridXOffset] = static_cast<char>(0x98);
+    createItem[kGroundItemCreateGridXOffset + 1] = 0x08;
+    createItem[kGroundItemCreateGridYOffset] = 0x34;
+    createItem[kGroundItemCreateGridYOffset + 1] = 0x08;
+    createItem[kGroundItemCreateItemIDOffset] = 0x10;
+    createItem[kGroundItemCreateItemIDOffset + 1] = 0x27;
+    createItem[kGroundItemCreateItemOffset] = static_cast<char>(0xAB);
+    createItem[kGroundItemCreateItemOffset + 1] = 0x0F;
+    createItem[kGroundItemCreateRotateOffset] = 1;
+    createItem[kGroundItemCreateStateOffset] = 2;
+    createItem[kGroundItemCreateHeightOffset] = 3;
+    createItem[kGroundItemCreateFlagOffset] = 4;
+    createItem[kGroundItemCreateOwnerOffset] = 7;
+    const auto createItemBefore = createItem;
+    int createItemCalls = 0;
+    const auto receiveCreateItem = [&](const PacketView& view) {
+        ++createItemCalls;
+        check(view.data == createItem.data() && view.size == kGroundItemCreatePacketSize &&
+            view.opcode == MSG_CreateItem_Opcode,
+            "CreateItem preserva frame de 32 bytes");
+    };
+    for (std::size_t n = 0; n < kGroundItemCreatePacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_CreateItem_Opcode, createItem.data(), n},
+            receiveCreateItem), "CreateItem truncado rejeitado antes do handler");
+    check(!received_packet::Dispatch({MSG_CreateItem_Opcode, nullptr,
+        kGroundItemCreatePacketSize}, receiveCreateItem), "CreateItem nulo rejeitado");
+    check(!received_packet::Dispatch({MSG_CreateItem_Opcode, createItem.data(),
+        kGroundItemCreatePacketSize + 1}, receiveCreateItem), "CreateItem excedente rejeitado");
+    check(!received_packet::Dispatch({0x119, createItem.data(),
+        kGroundItemCreatePacketSize}, receiveCreateItem), "Type CreateItem nao pode ser ocultado");
+    createItem[0] = static_cast<char>(kGroundItemCreatePacketSize - 1);
+    check(!received_packet::Dispatch({MSG_CreateItem_Opcode, createItem.data(),
+        kGroundItemCreatePacketSize}, receiveCreateItem), "Size CreateItem divergente rejeitado");
+    createItem[0] = static_cast<char>(kGroundItemCreatePacketSize);
+    createItem[4] = 0x19;
+    check(!received_packet::Dispatch({MSG_CreateItem_Opcode, createItem.data(),
+        kGroundItemCreatePacketSize}, receiveCreateItem), "opcode CreateItem divergente rejeitado");
+    createItem[4] = 0x6E;
+    check(createItemCalls == 0, "CreateItem invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_CreateItem_Opcode, createItem.data(),
+        kGroundItemCreatePacketSize}, receiveCreateItem) && createItemCalls == 1,
+        "CreateItem valido entregue uma vez");
+    check(static_cast<unsigned char>(createItem[kGroundItemCreateItemOffset]) == 0xAB &&
+        static_cast<unsigned char>(createItem[kGroundItemCreateItemOffset + 1]) == 0x0F &&
+        createItem[kGroundItemCreateRotateOffset] == 1 &&
+        createItem[kGroundItemCreateStateOffset] == 2 &&
+        createItem[kGroundItemCreateHeightOffset] == 3 &&
+        createItem[kGroundItemCreateFlagOffset] == 4 &&
+        createItem[kGroundItemCreateOwnerOffset] == 7,
+        "CreateItem preserva item, flags e owner nos offsets nativos");
+    check(createItem == createItemBefore, "gate preserva todos os bytes do CreateItem");
+    check(!IsGroundItemDefinitionIndex(-1) && !IsGroundItemDefinitionIndex(0),
+        "CreateItem rejeita indices ausentes");
+    check(IsGroundItemDefinitionIndex(1) &&
+        IsGroundItemDefinitionIndex(kGroundItemDefinitionCount - 1),
+        "CreateItem aceita os limites carregados do ItemList");
+    check(!IsGroundItemDefinitionIndex(kGroundItemDefinitionCount),
+        "CreateItem rejeita indice depois do ItemList");
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

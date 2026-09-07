@@ -18,6 +18,7 @@
 #include "../wire/SendItemContract.h"
 #include "../wire/PickupConfirmationContract.h"
 #include "../wire/DropConfirmationContract.h"
+#include "../wire/GroundItemCreateContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -138,6 +139,8 @@ constexpr int MAX_SERVER = 10; // Max number of game servers that can connect to
 constexpr int MAX_SERVERGROUP = 10;	// Max number of servers that can exist
 constexpr int MAX_SERVERNUMBER = (MAX_SERVER + 1); // DB + TMSrvs + BISrv
 constexpr int MAX_ITEMLIST = 6500;
+static_assert(MAX_ITEMLIST == kGroundItemDefinitionCount,
+	"ground-item packet must use the loaded 7.48 ItemList capacity");
 constexpr int MAX_SPELL_LIST = 248;
 constexpr int MAX_GUILDZONE = 5;
 
@@ -1541,6 +1544,27 @@ struct MSG_CreateItem
 	char Create;
 	unsigned short Owner;
 };
+
+static_assert(sizeof(MSG_CreateItem) == kGroundItemCreatePacketSize,
+	"WYD 7.48 ground-item creation must be 32 bytes");
+static_assert(offsetof(MSG_CreateItem, GridX) == kGroundItemCreateGridXOffset,
+	"WYD 7.48 ground-item X offset changed");
+static_assert(offsetof(MSG_CreateItem, GridY) == kGroundItemCreateGridYOffset,
+	"WYD 7.48 ground-item Y offset changed");
+static_assert(offsetof(MSG_CreateItem, ItemID) == kGroundItemCreateItemIDOffset,
+	"WYD 7.48 ground-item ID offset changed");
+static_assert(offsetof(MSG_CreateItem, Item) == kGroundItemCreateItemOffset,
+	"WYD 7.48 ground-item payload offset changed");
+static_assert(offsetof(MSG_CreateItem, Rotate) == kGroundItemCreateRotateOffset,
+	"WYD 7.48 ground-item rotation offset changed");
+static_assert(offsetof(MSG_CreateItem, State) == kGroundItemCreateStateOffset,
+	"WYD 7.48 ground-item state offset changed");
+static_assert(offsetof(MSG_CreateItem, Height) == kGroundItemCreateHeightOffset,
+	"WYD 7.48 ground-item height offset changed");
+static_assert(offsetof(MSG_CreateItem, Create) == kGroundItemCreateFlagOffset,
+	"WYD 7.48 ground-item create flag offset changed");
+static_assert(offsetof(MSG_CreateItem, Owner) == kGroundItemCreateOwnerOffset,
+	"WYD 7.48 ground-item owner offset changed");
 
 struct MSG_CNFDropItem
 {
