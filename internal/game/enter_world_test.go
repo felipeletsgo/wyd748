@@ -86,6 +86,56 @@ func TestLiveCharacterKeepsHPOnEnter(t *testing.T) {
 	}
 }
 
+func TestEnterWorldMigratesUnsupportedEquipmentToCarry(t *testing.T) {
+	w, p, s := newEnterWorldPlayer(t, 742, 1000)
+	store := p.Account
+	legacy := model.Item{Index: 640, UID: "legacy-necklace"}
+	store.Chars[0].Equip[9] = legacy
+
+	w.onEnterWorld(s, enterWorldPacket(0))
+
+	if !p.InWorld || p.Char.Equip[9].Index != 0 || p.Char.Inv[0] != legacy {
+		t.Fatalf("equip incompatível não migrou para Carry: equip9=%+v inv0=%+v",
+			p.Char.Equip[9], p.Char.Inv[0])
+	}
+	if saves := w.store.(*craftStore).saves; saves != 1 {
+		t.Fatalf("migração persistiu %d vezes, quer 1", saves)
+	}
+}
+
+func TestEnterWorldRollsBackUnsupportedEquipmentMigrationOnSaveFailure(t *testing.T) {
+	w, p, s := newEnterWorldPlayer(t, 742, 1000)
+	legacy := model.Item{Index: 640, UID: "legacy-necklace"}
+	p.Account.Chars[0].Equip[9] = legacy
+	w.store = &craftStore{err: errors.New("disk")}
+
+	w.onEnterWorld(s, enterWorldPacket(0))
+
+	if !p.InWorld || p.Char.Equip[9] != legacy || p.Char.Inv[0].Index != 0 {
+		t.Fatalf("falha de save não restaurou equipamento: equip9=%+v inv0=%+v",
+			p.Char.Equip[9], p.Char.Inv[0])
+	}
+	if bodyMesh(p.Char)[9] != 0 {
+		t.Fatal("item retido após rollback voltou à aparência do client")
+	}
+}
+
+func TestEnterWorldMigratesUnsupportedEquipmentToCargoWhenCarryIsFull(t *testing.T) {
+	w, p, s := newEnterWorldPlayer(t, 742, 1000)
+	legacy := model.Item{Index: 640, UID: "legacy-necklace"}
+	p.Account.Chars[0].Equip[9] = legacy
+	for slot := 0; slot < model.PlayerCarrySlots; slot++ {
+		p.Account.Chars[0].Inv[slot] = model.Item{Index: 400}
+	}
+
+	w.onEnterWorld(s, enterWorldPacket(0))
+
+	if !p.InWorld || p.Char.Equip[9].Index != 0 || p.Account.Cargo[0] != legacy {
+		t.Fatalf("equip incompatível não migrou para Cargo: equip9=%+v cargo0=%+v",
+			p.Char.Equip[9], p.Account.Cargo[0])
+	}
+}
+
 func TestLoadtestAccountUsesConfiguredNoatumSpawn(t *testing.T) {
 	w, p, s := newEnterWorldPlayer(t, 742, 1000)
 	p.Account.Name = "bot0001"

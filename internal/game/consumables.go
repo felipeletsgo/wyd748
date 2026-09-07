@@ -743,7 +743,8 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			// Repliction altera bonus de equipamento; republica score, equipamento
 			// e vitais para eliminar qualquer preview otimista no dono/observadores.
 			w.recalcPlayer(p.Char)
-			s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
+			equip := clientEquipProjection(p.Char)
+			s.Send(wire.SelfEquip(p.ID, equip[:]))
 			s.Send(playerScorePacket(p))
 			w.syncPlayerVitalsToObservers(p)
 			log.Printf("[#%d] ERRO ao salvar repliction: %v", s.ID, err)
@@ -760,7 +761,8 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 
 		if destType == placeEquip {
 			w.recalcPlayer(p.Char)
-			s.Send(wire.SelfEquip(p.ID, p.Char.Equip[:]))
+			equip := clientEquipProjection(p.Char)
+			s.Send(wire.SelfEquip(p.ID, equip[:]))
 			s.Send(playerScorePacket(p))
 			w.syncPlayerVitalsToObservers(p)
 		}

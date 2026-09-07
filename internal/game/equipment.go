@@ -185,7 +185,8 @@ func itemAbility(item model.Item, def model.ItemDef, effect string) int {
 func (w *World) equipmentDamage(ch *model.Char) int {
 	value := 0
 	for slot, item := range ch.Equip {
-		if slot == 6 || slot == 7 || slot == mountSlot || item.Index == 0 {
+		if !clientEquipSlotSupported(byte(slot)) || slot == 6 || slot == 7 ||
+			slot == mountSlot || item.Index == 0 {
 			continue
 		}
 		if def, ok := w.items[item.Index]; ok {
@@ -224,6 +225,9 @@ func (w *World) equipmentDefense(ch *model.Char) int {
 	unique := -1
 	matchingSet := true
 	for slot, item := range ch.Equip {
+		if !clientEquipSlotSupported(byte(slot)) {
+			continue
+		}
 		def, ok := w.items[item.Index]
 		if !ok || item.Index == 0 || slot == mountSlot {
 			if slot >= 1 && slot <= 5 {
@@ -291,7 +295,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	total := func(effect string) int64 {
 		var value int64
 		for slot, item := range ch.Equip {
-			if slot == mountSlot {
+			if !clientEquipSlotSupported(byte(slot)) || slot == mountSlot {
 				continue // every canonical mount contributes through the mount bonus boundary
 			}
 			if def, ok := w.items[item.Index]; ok && item.Index != 0 {
@@ -406,7 +410,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	// somar adornos e todas as pecas inflava artificialmente o alcance.
 	rangeValue := int(base.Range)
 	for slot, item := range ch.Equip {
-		if slot == mountSlot {
+		if !clientEquipSlotSupported(byte(slot)) || slot == mountSlot {
 			continue
 		}
 		if def, ok := w.items[item.Index]; ok && item.Index != 0 {

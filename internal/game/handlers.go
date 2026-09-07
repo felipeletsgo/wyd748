@@ -395,6 +395,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("The character state could not be loaded. Try again."))
 		return
 	}
+	w.migrateUnsupportedEquipment(p)
 	// First equip is the only activation boundary for costumes, premium mounts
 	// and fairies. Existing deadlines are checked before any score or appearance
 	// reaches the client; expired equipment is durably removed here.
@@ -447,7 +448,9 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	log.Printf("[#%d] ENTER-WORLD %s id=%d @(%d,%d)", s.ID, ch.Name, p.ID, ch.X, ch.Y)
 
 	// 1) enter-world (STRUCT_MOB completo)
-	s.Send(wire.EnterWorld(p.ID, uint16(slot), *ch))
+	clientChar := *ch
+	clientChar.Equip = clientEquipProjection(ch)
+	s.Send(wire.EnterWorld(p.ID, uint16(slot), clientChar))
 	// 2) self-CreateMob (spawn=2): materializa o proprio player. Parte da sequencia
 	// COMPROVADA in-game; sem ele o re-enter (2o login do mesmo client) reconstroi o
 	// self com estado velho (HP/MP travados). ActionStop vem depois, senao reseta a pose.
@@ -459,7 +462,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	s.Send(playerAffectsPacket(p))
 	s.Send(wire.UpdateCarry(p.ID, ch.Inv[:], ch.Gold))
 	s.Send(wire.UpdateEtc(p.ID, *ch))
-	s.Send(wire.SelfEquip(p.ID, ch.Equip[:]))
+	s.Send(wire.SelfEquip(p.ID, clientChar.Equip[:]))
 	// The source client consumes the wide 36-byte resource ABI; stock 7.48
 	// must receive the original 20-byte projection for the same live state.
 	s.Send(wire.HpMp(p.ID, wireScoreState(ch)))
@@ -2124,6 +2127,66 @@ func clientEquipSlotSupported(pos byte) bool {
 	return pos < model.MaxEquipSlots && pos != 9
 }
 
+func clientEquipProjection(ch *model.Char) [model.MaxEquipSlots]model.Item {
+	var equip [model.MaxEquipSlots]model.Item
+	if ch == nil {
+		return equip
+	}
+	equip = ch.Equip
+	for slot := range equip {
+		if !clientEquipSlotSupported(byte(slot)) {
+			equip[slot] = model.Item{}
+		}
+	}
+	return equip
+}
+
+// migrateUnsupportedEquipment torna saves antigos utilizáveis sem apagar
+// itens. O slot Necklace é movido primeiro para o Carry visível e depois para
+// o Cargo visível; a gravação falha com rollback completo.
+func (w *World) migrateUnsupportedEquipment(p *Player) {
+	if p == nil || p.Char == nil || p.Account == nil || p.Char.Equip[9].Index == 0 {
+		return
+	}
+	sessionID := int64(0)
+	if p.Session != nil {
+		sessionID = p.Session.ID
+	}
+	item := p.Char.Equip[9]
+	for slot := 0; slot < model.PlayerCarrySlots; slot++ {
+		if p.Char.Inv[slot].Index != 0 {
+			continue
+		}
+		p.Char.Equip[9], p.Char.Inv[slot] = model.Item{}, item
+		if err := w.saveAccount(p.Account); err != nil {
+			p.Char.Equip[9], p.Char.Inv[slot] = item, model.Item{}
+			log.Printf("[#%d] falha ao migrar equipamento incompatível %d para Carry[%d]: %v",
+				sessionID, item.Index, slot, err)
+			return
+		}
+		log.Printf("[#%d] equipamento incompatível %d migrado de Equip[9] para Carry[%d]",
+			sessionID, item.Index, slot)
+		return
+	}
+	for slot := 0; slot < model.PlayerCargoSlots; slot++ {
+		if p.Account.Cargo[slot].Index != 0 {
+			continue
+		}
+		p.Char.Equip[9], p.Account.Cargo[slot] = model.Item{}, item
+		if err := w.saveAccount(p.Account); err != nil {
+			p.Char.Equip[9], p.Account.Cargo[slot] = item, model.Item{}
+			log.Printf("[#%d] falha ao migrar equipamento incompatível %d para Cargo[%d]: %v",
+				sessionID, item.Index, slot, err)
+			return
+		}
+		log.Printf("[#%d] equipamento incompatível %d migrado de Equip[9] para Cargo[%d]",
+			sessionID, item.Index, slot)
+		return
+	}
+	log.Printf("[#%d] equipamento incompatível %d retido em Equip[9]: Carry e Cargo cheios",
+		sessionID, item.Index)
+}
+
 func playerSlotOf(p *Player, typ, pos byte) *model.Item {
 	if p == nil || p.Char == nil {
 		return nil
@@ -2153,7 +2216,7 @@ func bodyAncient(ch *model.Char) []byte {
 	}
 	a := make([]byte, len(ch.Equip))
 	for i, it := range ch.Equip {
-		if !model.IsMount(it.Index) {
+		if clientEquipSlotSupported(byte(i)) && !model.IsMount(it.Index) {
 			a[i] = model.AncientCode(it)
 		}
 	}
@@ -2170,7 +2233,9 @@ func bodyMeshAt(ch *model.Char, now time.Time) []uint16 {
 	}
 	m := make([]uint16, len(ch.Equip))
 	for i, it := range ch.Equip {
-		m[i] = model.VisualItemCode(it, model.IsMount(it.Index))
+		if clientEquipSlotSupported(byte(i)) {
+			m[i] = model.VisualItemCode(it, model.IsMount(it.Index))
+		}
 	}
 	faces := [...]uint16{22, 23, 24, 25, 32}
 	for i := range ch.Affects {

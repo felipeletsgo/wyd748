@@ -24,6 +24,9 @@ func (w *World) equipmentGemBonuses(ch *model.Char) equipmentGemBonus {
 		return bonus
 	}
 	for slot := 1; slot < len(ch.Equip); slot++ {
+		if !clientEquipSlotSupported(byte(slot)) {
+			continue
+		}
 		item := ch.Equip[slot]
 		def, ok := w.items[item.Index]
 		if item.Index == 0 || !ok {

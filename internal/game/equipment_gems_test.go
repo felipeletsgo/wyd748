@@ -46,6 +46,17 @@ func TestAncientGemBonusesBelowPlusTen(t *testing.T) {
 	}
 }
 
+func TestEquipmentGemBonusesIgnoreUnsupportedSlot(t *testing.T) {
+	w := &World{items: map[uint16]model.ItemDef{
+		640: {Index: 640, Grade: 6},
+	}}
+	ch := &model.Char{}
+	ch.Equip[9] = model.Item{Index: 640, Eff: [6]byte{43, 234}}
+	if got := w.equipmentGemBonuses(ch); got != (equipmentGemBonus{}) {
+		t.Fatalf("slot sem UI concedeu bônus de gema: %+v", got)
+	}
+}
+
 func TestGemDamageAbsorptionAndRewardHelpers(t *testing.T) {
 	if got := addFlatDamage(100, 40); got != 140 {
 		t.Fatalf("perfuracao=%d", got)

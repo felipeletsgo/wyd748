@@ -45,6 +45,12 @@ membros da cena tornam-se nulos e não entram na lista de grids populados. A
 troca de cena/relogin recria a árvore e reaplica a mesma política; nenhum
 ponteiro desses controles atravessa o teardown.
 
+No servidor, um item legado encontrado em `Equip[9]` durante enter-world é
+movido para o primeiro Carry visível livre ou, se necessário, para o Cargo
+visível. A conta é persistida antes da publicação dos packets; falha de save
+restaura origem e destino. Sem espaço, o item permanece armazenado, mas o slot
+é excluído de score, gemas e aparência até poder ser migrado em outro login.
+
 ## Wire, ABI e recursos
 
 O array `Equip[16]`, structs e offsets de packets não foram redimensionados.
@@ -52,6 +58,8 @@ Posições 9, 16 e 17 são mantidas apenas como valores de fronteira para não
 deslocar o wire; no modo compatível, `MSG_SwapItem` e `MSG_Sell` que tentem
 endereçá-las são rejeitados antes de acessar um grid nulo. `SendItem` conserva
 o cache recebido, mas não materializa visual para esses slots.
+`EnterWorld`, `SelfEquip`, `CreateMob` e atualizações de aparência projetam a
+posição 9 como vazia para o peer, ainda que um save antigo precise ser retido.
 
 ## Mapeamento atual
 
@@ -68,6 +76,7 @@ de atalho de skills 571, 573 e 586 não são equipamento e permanecem ativas.
 | Belt/NewSlot visual | ponteiros modernos podiam sobreviver | 1048976/1048977 desabilitados | não materializar |
 | Equip wire | array fixo de 16 | inalterado | preservar ABI |
 | pacote para slot ausente | dereferência podia ocorrer em swap/venda | rejeição precoce no modo compatível | proteger lifecycle |
+| save antigo em Equip[9] | item invisível podia conceder bônus | migra para Carry/Cargo ou fica inerte | preservar item sem benefício oculto |
 
 ## Decisões
 

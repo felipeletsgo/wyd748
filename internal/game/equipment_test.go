@@ -258,7 +258,7 @@ func TestRecalcPlayerCombinesBaseAndEquipmentResistances(t *testing.T) {
 	}
 }
 
-func TestRecalcPlayerUsesBaseClassAndItemRegeneration(t *testing.T) {
+func TestRecalcPlayerIgnoresUnsupportedEquipmentSlot(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{
 		1: {
 			Index: 1,
@@ -278,8 +278,12 @@ func TestRecalcPlayerUsesBaseClassAndItemRegeneration(t *testing.T) {
 	ch.Equip[0] = model.Item{Index: 1}
 	ch.Equip[9] = model.Item{Index: 100, Eff: [6]byte{47, 3, 48, 4}}
 	w.recalcPlayer(ch)
-	if effectiveScore(ch).RegenHP != 5 || effectiveScore(ch).RegenMP != 6 {
-		t.Fatalf("regen HP/MP=%d/%d, quer 5/6", effectiveScore(ch).RegenHP, effectiveScore(ch).RegenMP)
+	if effectiveScore(ch).RegenHP != 2 || effectiveScore(ch).RegenMP != 2 {
+		t.Fatalf("slot sem UI alterou regen HP/MP=%d/%d, quer 2/2",
+			effectiveScore(ch).RegenHP, effectiveScore(ch).RegenMP)
+	}
+	if bodyMesh(ch)[9] != 0 || bodyAncient(ch)[9] != 0 || clientEquipProjection(ch)[9].Index != 0 {
+		t.Fatal("slot sem UI vazou para a projeção visual do client")
 	}
 }
 

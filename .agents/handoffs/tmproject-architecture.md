@@ -1666,3 +1666,23 @@ Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS e
 `git diff --check` PASS. Candidato instalado e conferido:
 5A3822AE5EFED12B47EB4E36517D47F8E1760B6D19FE6D5C775BA6D3190AEB0E.
 Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED.
+
+## Migração de equipamento incompatível persistido (2026-09-07)
+
+O servidor agora trata saves antigos com item em `Equip[9]`. No enter-world,
+move o item exato para o primeiro Carry visível livre ou para o Cargo visível,
+persiste e reverte origem/destino se o save falhar. Quando não há espaço, o
+item permanece armazenado sem ser apagado. Em todos os casos, o slot 9 é
+ignorado por dano, defesa, atributos, alcance, regeneração e gemas, e é zerado
+nas projeções `EnterWorld`, `SelfEquip`, `CreateMob` e `UpdateEquip` do player.
+Atualizações Celestial/Repliction reutilizam a mesma projeção.
+
+Modo EXTENSAO_COORDENADA do contrato informado do emulador. UTILIZADAS: código
+WYD-Go, catálogo 7.48 e ficha `equipment-slot-compatibility.md`. Decompilação e
+guia KR continuam registrados como divergentes; nenhuma source 7.54/W2PP/
+Secrets/Micronics foi consultada.
+
+Testes cobrem migração para Carry, fallback Cargo, rollback de persistência,
+rejeição de equip, ausência de bônus/regen/gema e projeção visual vazia.
+`go test -count=1 ./...` PASS e `git diff --check` PASS. Estado IMPLEMENTED /
+AUTOMATED TESTED; validação visual/relogin no client real permanece pendente.
