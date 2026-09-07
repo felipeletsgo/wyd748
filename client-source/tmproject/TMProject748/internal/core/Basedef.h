@@ -19,6 +19,7 @@
 #include "../wire/PickupConfirmationContract.h"
 #include "../wire/DropConfirmationContract.h"
 #include "../wire/GroundItemCreateContract.h"
+#include "../wire/GroundItemStateContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -1455,7 +1456,6 @@ struct MSG_HellBuy
 	int Coin;
 };
 
-constexpr auto MSG_UpdateItem_Opcode = 0x374;
 struct MSG_UpdateItem
 {
 	MSG_STANDARD Header;
@@ -1464,6 +1464,15 @@ struct MSG_UpdateItem
 	char Height;
 	char dummy;
 };
+
+static_assert(sizeof(MSG_UpdateItem) == kGroundItemUpdatePacketSize,
+	"WYD 7.48 ground-item update must be 20 bytes");
+static_assert(offsetof(MSG_UpdateItem, ItemID) == kGroundItemUpdateItemIDOffset,
+	"WYD 7.48 ground-item update ID offset changed");
+static_assert(offsetof(MSG_UpdateItem, State) == kGroundItemUpdateStateOffset,
+	"WYD 7.48 ground-item update state offset changed");
+static_assert(offsetof(MSG_UpdateItem, Height) == kGroundItemUpdateHeightOffset,
+	"WYD 7.48 ground-item update height offset changed");
 
 struct MSG_ReqSummon
 {

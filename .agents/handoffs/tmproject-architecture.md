@@ -1830,3 +1830,30 @@ unico e `git diff --check` PASS. Candidato instalado:
 Estado AUTOMATED TESTED; nao CLIENT-TESTED. Proximo passo: testar spawn/update
 de loot e seguir para `0x16F`/`0x374`, os consumidores adjacentes do mesmo
 lifecycle que ainda nao possuem tamanho no gate central.
+
+## Contratos 0x374/0x16F — estado e remocao do chao (2026-09-07)
+
+Ghidra confirma `FUN_00492E7D -> FUN_004862B6` para `0x374/20` e
+`FUN_00492E7D -> FUN_004863E2` para `0x16F/16`; `FUN_0055890A` fixa ambos os
+tamanhos. O update consome ItemID i32 em `+12`, State i16 em `+16` e Height i8
+em `+18`; remove consome ItemID i32 em `+12`.
+
+Criado `GroundItemStateContract.h`; gate central e asserts cobrem os dois
+frames. Os handlers validam mensagem/ObjectManager antes do acesso. A revisao
+encontrou delta no WYD-Go: `wire.UpdateItem` escrevia State como u32, podendo
+contaminar Height/reserva com bits altos. Agora escreve somente u16; os tres
+callers de portao usam o tipo correto. `wire.RemoveItem` permaneceu inalterado.
+
+Ficha `flows/ui/ground-item-state-contract.md` validada como `CONTRACT`; total
+CONTRACT=33, TRACED=19, LOCATED=7, UNMAPPED=2. Modo PARIDADE_NATIVA no wire e
+MODERNIZACAO_COMPATIVEL nos guards. UTILIZADAS: decompilacao/Ghidra 7.48,
+source atual e WYD-Go/testes. Assets e guia KR NAO APLICAVEIS; sources 7.54,
+W2PP, Secrets e Micronics nao consultadas.
+
+Build Release PASS, ArchitectureTests 24682 checks/asserts PASS,
+`go test -count=1 ./...` e `go vet ./...` PASS, XML/header unico e
+`git diff --check` PASS. Candidato instalado:
+`A04E28EC82F087891A4FCA1BE97BFE0AC6652FDA896764B943485366154D31E9`.
+Estado AUTOMATED TESTED; nao CLIENT-TESTED. Proximo passo: executar no candidato
+spawn/update/remove de loot e portao; na fila estatica, selecionar outro opcode
+S->C emitido pelo WYD-Go que ainda nao esteja em `ExpectedSize`.

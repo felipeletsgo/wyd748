@@ -287,6 +287,89 @@ int RunReceivedPacketDispatchTests(int& checks)
         "CreateItem aceita os limites carregados do ItemList");
     check(!IsGroundItemDefinitionIndex(kGroundItemDefinitionCount),
         "CreateItem rejeita indice depois do ItemList");
+    std::array<char, kGroundItemUpdatePacketSize + 1> updateItem{};
+    updateItem[0] = static_cast<char>(kGroundItemUpdatePacketSize);
+    updateItem[4] = 0x74;
+    updateItem[5] = 0x03;
+    updateItem[kGroundItemUpdateItemIDOffset] = 0x10;
+    updateItem[kGroundItemUpdateItemIDOffset + 1] = 0x27;
+    updateItem[kGroundItemUpdateStateOffset] = 0x34;
+    updateItem[kGroundItemUpdateStateOffset + 1] = 0x12;
+    updateItem[kGroundItemUpdateHeightOffset] = 5;
+    const auto updateItemBefore = updateItem;
+    int updateItemCalls = 0;
+    const auto receiveUpdateItem = [&](const PacketView& view) {
+        ++updateItemCalls;
+        check(view.data == updateItem.data() && view.size == kGroundItemUpdatePacketSize &&
+            view.opcode == MSG_UpdateItem_Opcode,
+            "UpdateItem preserva frame de 20 bytes");
+    };
+    for (std::size_t n = 0; n < kGroundItemUpdatePacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_UpdateItem_Opcode, updateItem.data(), n},
+            receiveUpdateItem), "UpdateItem truncado rejeitado antes do handler");
+    check(!received_packet::Dispatch({MSG_UpdateItem_Opcode, nullptr,
+        kGroundItemUpdatePacketSize}, receiveUpdateItem), "UpdateItem nulo rejeitado");
+    check(!received_packet::Dispatch({MSG_UpdateItem_Opcode, updateItem.data(),
+        kGroundItemUpdatePacketSize + 1}, receiveUpdateItem), "UpdateItem excedente rejeitado");
+    check(!received_packet::Dispatch({0x119, updateItem.data(),
+        kGroundItemUpdatePacketSize}, receiveUpdateItem), "Type UpdateItem nao pode ser ocultado");
+    updateItem[0] = static_cast<char>(kGroundItemUpdatePacketSize - 1);
+    check(!received_packet::Dispatch({MSG_UpdateItem_Opcode, updateItem.data(),
+        kGroundItemUpdatePacketSize}, receiveUpdateItem), "Size UpdateItem divergente rejeitado");
+    updateItem[0] = static_cast<char>(kGroundItemUpdatePacketSize);
+    updateItem[4] = 0x19;
+    check(!received_packet::Dispatch({MSG_UpdateItem_Opcode, updateItem.data(),
+        kGroundItemUpdatePacketSize}, receiveUpdateItem), "opcode UpdateItem divergente rejeitado");
+    updateItem[4] = 0x74;
+    check(updateItemCalls == 0, "UpdateItem invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_UpdateItem_Opcode, updateItem.data(),
+        kGroundItemUpdatePacketSize}, receiveUpdateItem) && updateItemCalls == 1,
+        "UpdateItem valido entregue uma vez");
+    check(static_cast<unsigned char>(updateItem[kGroundItemUpdateStateOffset]) == 0x34 &&
+        static_cast<unsigned char>(updateItem[kGroundItemUpdateStateOffset + 1]) == 0x12 &&
+        updateItem[kGroundItemUpdateHeightOffset] == 5,
+        "UpdateItem preserva state i16 e height i8");
+    check(updateItem == updateItemBefore, "gate preserva todos os bytes do UpdateItem");
+
+    std::array<char, kGroundItemRemovePacketSize + 1> removeItem{};
+    removeItem[0] = static_cast<char>(kGroundItemRemovePacketSize);
+    removeItem[4] = 0x6F;
+    removeItem[5] = 0x01;
+    removeItem[kGroundItemRemoveItemIDOffset] = 0x10;
+    removeItem[kGroundItemRemoveItemIDOffset + 1] = 0x27;
+    const auto removeItemBefore = removeItem;
+    int removeItemCalls = 0;
+    const auto receiveRemoveItem = [&](const PacketView& view) {
+        ++removeItemCalls;
+        check(view.data == removeItem.data() && view.size == kGroundItemRemovePacketSize &&
+            view.opcode == MSG_RemoveItem_Opcode,
+            "RemoveItem preserva frame de 16 bytes");
+    };
+    for (std::size_t n = 0; n < kGroundItemRemovePacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_RemoveItem_Opcode, removeItem.data(), n},
+            receiveRemoveItem), "RemoveItem truncado rejeitado antes do handler");
+    check(!received_packet::Dispatch({MSG_RemoveItem_Opcode, nullptr,
+        kGroundItemRemovePacketSize}, receiveRemoveItem), "RemoveItem nulo rejeitado");
+    check(!received_packet::Dispatch({MSG_RemoveItem_Opcode, removeItem.data(),
+        kGroundItemRemovePacketSize + 1}, receiveRemoveItem), "RemoveItem excedente rejeitado");
+    check(!received_packet::Dispatch({0x119, removeItem.data(),
+        kGroundItemRemovePacketSize}, receiveRemoveItem), "Type RemoveItem nao pode ser ocultado");
+    removeItem[0] = static_cast<char>(kGroundItemRemovePacketSize - 1);
+    check(!received_packet::Dispatch({MSG_RemoveItem_Opcode, removeItem.data(),
+        kGroundItemRemovePacketSize}, receiveRemoveItem), "Size RemoveItem divergente rejeitado");
+    removeItem[0] = static_cast<char>(kGroundItemRemovePacketSize);
+    removeItem[4] = 0x19;
+    check(!received_packet::Dispatch({MSG_RemoveItem_Opcode, removeItem.data(),
+        kGroundItemRemovePacketSize}, receiveRemoveItem), "opcode RemoveItem divergente rejeitado");
+    removeItem[4] = 0x6F;
+    check(removeItemCalls == 0, "RemoveItem invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_RemoveItem_Opcode, removeItem.data(),
+        kGroundItemRemovePacketSize}, receiveRemoveItem) && removeItemCalls == 1,
+        "RemoveItem valido entregue uma vez");
+    check(static_cast<unsigned char>(removeItem[kGroundItemRemoveItemIDOffset]) == 0x10 &&
+        static_cast<unsigned char>(removeItem[kGroundItemRemoveItemIDOffset + 1]) == 0x27,
+        "RemoveItem preserva ID no offset nativo");
+    check(removeItem == removeItemBefore, "gate preserva todos os bytes do RemoveItem");
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

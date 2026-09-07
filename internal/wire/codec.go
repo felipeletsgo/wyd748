@@ -789,13 +789,12 @@ func CreateItem(gridX, gridY, itemID uint16, it model.Item, rotate, state, heigh
 	return b
 }
 
-// UpdateItem monta o 0x374 (20B): troca o ESTADO de um item ja materializado no
-// chao, sem recria-lo. E como o nativo abre um portao -- MSG_UpdateItem tem
-// ItemID@12 e State@16, os dois int (Basedef.h:3015).
-func UpdateItem(itemID uint16, state uint32) []byte {
+// UpdateItem monta o 0x374 (20B): troca o estado de um item ja materializado.
+// O 7.48 consome ItemID i32@12, State i16@16, Height i8@18 e reserva@19.
+func UpdateItem(itemID uint16, state uint16) []byte {
 	b := Build(OpUpdateItem, SceneField, 20)
 	putU32(b, 12, uint32(itemID))
-	putU32(b, 16, state)
+	putU16(b, 16, state)
 	return b
 }
 

@@ -9164,9 +9164,9 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		return OnPacketCNFDropItem(reinterpret_cast<MSG_CNFDropItem*>(pStd));
 	case MSG_CNFGetItem_Opcode:
 		return OnPacketCNFGetItem(reinterpret_cast<MSG_CNFGetItem*>(pStd));
-	case 0x374:
+	case MSG_UpdateItem_Opcode:
 		return OnPacketUpdateItem(reinterpret_cast<MSG_UpdateItem*>(pStd));
-	case 0x16F:
+	case MSG_RemoveItem_Opcode:
 		return OnPacketRemoveItem(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
 	case 0x1D0:
 		g_pObjectManager->m_RMBShopOpen = 1;
@@ -23557,6 +23557,8 @@ int TMFieldScene::OnPacketCNFGetItem(MSG_CNFGetItem* pMsg)
 
 int TMFieldScene::OnPacketUpdateItem(MSG_UpdateItem* pMsg)
 {
+	if (!pMsg || !g_pObjectManager)
+		return 0;
 	auto pItem = (TMGate*)g_pObjectManager->GetItemByID(pMsg->ItemID);
 	if (pItem && BASE_GetItemAbility(&pItem->m_stItem, 34) > 0)
 	{
@@ -23581,6 +23583,8 @@ int TMFieldScene::OnPacketUpdateItem(MSG_UpdateItem* pMsg)
 
 int TMFieldScene::OnPacketRemoveItem(MSG_STANDARDPARM* pStd)
 {
+	if (!pStd || !g_pObjectManager)
+		return 0;
 	m_pMouseOverItem = nullptr;
 	g_pObjectManager->DeleteObject(pStd->Parm);
 	return 1;

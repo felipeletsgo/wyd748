@@ -254,6 +254,15 @@ func TestGroundItemPacketLayouts(t *testing.T) {
 		binary.LittleEndian.Uint32(remove[12:16]) != 10000 {
 		t.Fatalf("RemoveItem invalido: %v", remove)
 	}
+
+	update := UpdateItem(10000, 0x1234)
+	if len(update) != 20 || ParseHeader(update).Type != OpUpdateItem ||
+		ParseHeader(update).ID != SceneField ||
+		binary.LittleEndian.Uint32(update[12:16]) != 10000 ||
+		binary.LittleEndian.Uint16(update[16:18]) != 0x1234 ||
+		update[18] != 0 || update[19] != 0 {
+		t.Fatalf("UpdateItem invalido: %v", update)
+	}
 }
 
 func TestCNFMobKill748Layout(t *testing.T) {

@@ -116,7 +116,7 @@ func (w *World) openGateWithKey(s *net.Session, p *Player, porta *GroundItem, sl
 	// ve-la abrir. Quem chegar depois recebe o estado no proprio CreateItem.
 	for _, outro := range w.nearbyWorldPlayers(porta.X, porta.Y, viewHalfX) {
 		if outro.hasVisible(porta.ID) {
-			outro.Session.Send(wire.UpdateItem(porta.ID, uint32(gateOpen)))
+			outro.Session.Send(wire.UpdateItem(porta.ID, uint16(gateOpen)))
 		}
 	}
 	log.Printf("[#%d] abriu a porta %d (item %d, keyid %d) com a chave %d volatile=%d",
@@ -161,7 +161,7 @@ func (w *World) onUpdateGroundItem(s *net.Session, pkt []byte) {
 		return
 	}
 	if porta.State == gateOpen {
-		s.Send(wire.UpdateItem(porta.ID, uint32(gateOpen)))
+		s.Send(wire.UpdateItem(porta.ID, uint16(gateOpen)))
 		return
 	}
 	gateDef, ok := w.items[porta.Item.Index]
@@ -173,7 +173,7 @@ func (w *World) onUpdateGroundItem(s *net.Session, pkt []byte) {
 	slot := w.gateKeySlot(p, keyID)
 	if slot < 0 {
 		s.Send(wire.MessagePanel("You do not have the required key."))
-		s.Send(wire.UpdateItem(porta.ID, uint32(porta.State)))
+		s.Send(wire.UpdateItem(porta.ID, uint16(porta.State)))
 		return
 	}
 	w.openGateWithKey(s, p, porta, byte(slot), true, 3)
