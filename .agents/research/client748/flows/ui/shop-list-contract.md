@@ -14,7 +14,7 @@ updated: 2026-09-07
 Como o client 7.48 recebe `0x17C`, abre a loja e materializa as 27 celulas sem
 deixar um frame incompleto alcancar ordenacao ou insercao visual?
 
-## Fronteira de evidencia
+## Fronteira de evidência
 
 - `UTILIZADA`: binario nativo 7.48 do hash acima, projeto Ghidra e
   decompilacao de `FUN_00492E7D`, `FUN_004875C0` e `FUN_0055890A`.
@@ -76,7 +76,7 @@ continua sendo a topologia nativa 9x3 por pagina, conforme o tipo de loja.
 | itens | 27 em `+16` | mesmo limite | preservado e limitado | manter |
 | Tax | DWORD em `+232` | mesmo campo | preservado | manter |
 
-## Decisoes
+## Decisões
 
 - Validar 236 bytes antes de limpar ou materializar a loja.
 - Manter o limite de 27 itens e o tail Tax intacto.
@@ -88,7 +88,7 @@ continua sendo a topologia nativa 9x3 por pagina, conforme o tipo de loja.
   `project.exe`.
 - Repetir abertura e relogin para confirmar ausencia de itens fantasmas.
 
-## Validacao
+## Validação
 
 - Pesquisa: caller, consumidor, tamanho, offsets, limite e lifecycle registrados.
 - Automacao: fixture C++ cobre 236 prefixos truncados, excesso, nulo,

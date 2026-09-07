@@ -15,7 +15,7 @@ Quais envelopes de `CreateMob` e `CreateMobTrade` permitem que o WYD-Go
 materialize entidades, score, affects e titulo de AutoTrade no TMProject748 sem
 confundir o formato menor do executavel nativo?
 
-## Fronteira de evidencia
+## Fronteira de evidência
 
 - `UTILIZADA`: executavel nativo 7.48 do hash acima, projeto Ghidra
   `WYD748Native_20260821.gpr` e decompilacao de `FUN_00492E7D`,

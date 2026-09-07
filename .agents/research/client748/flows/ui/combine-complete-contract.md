@@ -27,8 +27,15 @@ incompleto ou misturar os seis roots nativos?
 
 ## Fluxo nativo 7.48
 
+### Callers
+
 `FUN_00492E7D` encaminha `0x3A7` a `FUN_004890F9`, que oculta os cinco roots
-ItemMix comuns. O tamanho do frame nao aparece como literal em
+ItemMix comuns.
+
+### Callees
+
+`FUN_004890F9` executa somente as chamadas de visibilidade dos roots ItemMix;
+nao conserva o frame. O tamanho do frame nao aparece como literal em
 `FUN_0055890A`; o contrato source/WYD-Go usa `MSG_STANDARDPARM` de 16 bytes,
 com resultado DWORD em `+12`, e o gate e classificado como modernizacao
 compativel baseada no consumidor e no encoder.
@@ -60,10 +67,13 @@ continuam compartilhados pelos helpers existentes.
 | envelope | tamanho nao literal no validador | 16B StandardParm | gate e asserts | `MODERNIZACAO_COMPATIVEL` |
 | resultado | DWORD convencional | mesmo builder | preservado | manter |
 
-## Decisões e lacunas
+## Decisões
 
 - Rejeitar frames curtos, longos ou divergentes antes de fechar qualquer root.
 - Preservar o resultado e o fechamento seletivo do painel ativo.
+
+## Lacunas
+
 - Executar os seis artesãos, resultado 0/1/2, Cancel/Esc e relogin no
   `project.exe`; ainda nao e `CLIENT_TESTED`.
 

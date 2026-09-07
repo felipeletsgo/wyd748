@@ -9,6 +9,11 @@ updated: 2026-09-07
 
 # Publicacao de PremiumFirework
 
+## Pergunta
+
+Qual envelope publica o bitmap do PremiumFirework sem permitir que um frame
+parcial seja entregue ao efeito visual?
+
 ## Fronteira de evidência
 
 - `UTILIZADA`: decompilacao nativa 7.48, source `MSG_PremiumFirework` e
@@ -20,11 +25,22 @@ updated: 2026-09-07
 
 ## Fluxo nativo 7.48
 
-`FUN_00492E7D` encaminha `0x3CA` ao consumidor de efeito premium. O validador
-`FUN_0055890A` exige exatamente 36 bytes. O consumidor usa o bitmap em `+20`
-para configurar `TMEffectFireWork`; os oito bytes anteriores sao reservados.
+### Callers
 
-## Wire e lifecycle
+`FUN_00492E7D` encaminha `0x3CA` ao consumidor de efeito premium. O validador
+`FUN_0055890A` exige exatamente 36 bytes.
+
+### Callees
+
+O consumidor usa o bitmap em `+20` para configurar `TMEffectFireWork`; os oito
+bytes anteriores sao reservados e o efeito passa ao container da cena.
+
+## Estado e lifecycle
+
+O gate valida o frame antes de criar o efeito. O packet e emprestado durante o
+callback; o efeito resultante pertence ao container e segue o teardown da cena.
+
+## Wire, ABI e recursos
 
 `0x3CA`, S->C, possui Header 12B, Reserved[8] em `+12` e Bitmap[16] em `+20`.
 O gate central agora valida tamanho real/declarado e Type/opcode antes de criar o
@@ -36,9 +52,19 @@ efeito. O frame nao transfere ownership e o efeito passa ao container da cena.
 builder Go ja limita a publicacao ao array de 16 bytes. A fixture C++ protege
 truncamento, excesso, nulo, divergencias, entrega unica, offsets e preservacao.
 
-## Decisão e lacunas
+## Matriz de delta
+
+| Claim | Nativo 7.48 | Source/WYD-Go | Estado atual | Decisão |
+| --- | --- | --- | --- | --- |
+| envelope | `0x3CA/36B` | mesmo layout | gate e asserts | `PARIDADE_NATIVA` |
+| bitmap | 16 bytes em `+20` | mesmo offset | coberto byte a byte | manter |
+
+## Decisões
 
 - Manter o envelope nativo de 36 bytes e o bitmap em `+20` (`PARIDADE_NATIVA`).
+
+## Lacunas
+
 - Executar desenho, publicacao ao observador, cooldown, fechamento e relogin no
   `project.exe`; ainda nao e `CLIENT_TESTED`.
 

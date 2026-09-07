@@ -26,9 +26,15 @@ sem deslocar os dois parametros ou executar o callback em frame incompleto?
 
 ## Fluxo nativo 7.48
 
+### Callers
+
 `FUN_00492E7D` encaminha `0x39B` a `FUN_004854ED`, que exige o clone em
-`Parm1@12`, a posicao do anuncio em `Parm2@16` e remove o item da grade quando
-o clone coincide com a loja fantasma ativa. `FUN_0055890A` exige 20 bytes.
+`Parm1@12` e a posicao do anuncio em `Parm2@16`. `FUN_0055890A` exige 20 bytes.
+
+### Callees
+
+`FUN_004854ED` usa a grade da loja fantasma ativa para localizar e remover o
+visual quando o clone coincide; nao conserva o packet.
 
 ## Estado e lifecycle
 
@@ -48,14 +54,24 @@ o gate central validam o envelope antes do callback.
 `TMFieldScene` usa a constante no dispatch. `wire.ItemSold` escreve os dois
 DWORDs e usa `SceneField` no Header.ID, enquanto o clone permanece em Parm1.
 
-## Decisões e lacunas
+## Matriz de delta
+
+| Claim | Nativo 7.48 | Source/Go antes | Estado atual | Decisão |
+| --- | --- | --- | --- | --- |
+| envelope | `0x39B/20B` | mesmo layout | gate e asserts | `PARIDADE_NATIVA` |
+| remoção visual | clone e posição selecionam anúncio | handler existente | preservado | manter |
+
+## Decisões
 
 - Preservar o envelope nativo e a ordem de remocao da grade.
 - Rejeitar frames curtos, excedentes ou com Type/Size divergentes.
+
+## Lacunas
+
 - Executar venda de AutoTrade com dois clients, repeticao, fechamento e relogin
   no `project.exe`; ainda nao e `CLIENT_TESTED`.
 
-## Validacao
+## Validação
 
 - Pesquisa: caller, consumidor, offsets, tamanho e lifecycle confirmados.
 - Automacao: fixture C++ e teste Go cobrem entidade/posicao, truncamento,
