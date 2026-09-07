@@ -1857,3 +1857,30 @@ Build Release PASS, ArchitectureTests 24682 checks/asserts PASS,
 Estado AUTOMATED TESTED; nao CLIENT-TESTED. Proximo passo: executar no candidato
 spawn/update/remove de loot e portao; na fila estatica, selecionar outro opcode
 S->C emitido pelo WYD-Go que ainda nao esteja em `ExpectedSize`.
+
+## Correcao funcional — contadores runtime no modo compatível (2026-09-07)
+
+O inicializador 7.48 retornava antes do bloco que cria `m_pRankTimeText`,
+`m_pRemainText` e `m_pQuestRemainTime`. O WYD-Go emite `0x3A1` e `0x3B0` em
+Big Cube, Uxmal e item instances; seus handlers e o FrameMove desreferenciavam
+esses membros nulos. Ghidra confirma `FUN_00492E7D -> FUN_00489192` e
+`FUN_00492E7D -> FUN_00489260`, ambos atualizando textos runtime.
+
+Criado `InitializeRuntimeCounterTexts`, agora chamado pelos inicializadores
+completo e compatível. Ele preserva texto inicial, cores, fontes, coordenadas,
+visibilidade e ownership do container. Handlers `0x3A1`, `0x3B0`, `0x3BB`,
+Quest12, tick, expiração e seleção de música toleram falha parcial de alocacao.
+Wire, opcodes e recursos serializados nao mudaram.
+
+Ficha `flows/ui/instance-runtime-counter-controls.md` validada como `LOCATED`:
+os receptores nativos estao confirmados, mas a alocacao nativa exata ainda nao
+foi localizada. Modo MODERNIZACAO_COMPATIVEL, origem local/source atual.
+UTILIZADAS: decompilacao/Ghidra 7.48, FieldScene2/source atual e emissores
+WYD-Go. Guia KR NAO APLICAVEL; sources 7.54/W2PP/Secrets/Micronics nao usadas.
+
+Build Release PASS, ArchitectureTests 24682 checks/asserts PASS e
+`git diff --check` PASS. Candidato instalado:
+`7D1EAD844F74A93B4A514DE4B4B089DFC64F094BE5EE7183DD109CC3A967DF19`.
+Estado STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo passo: executar Big Cube,
+Uxmal e quest/instance no candidato, confirmando exibir, expirar, sair e relogar;
+depois revisar outro controle runtime pulado pelo retorno compatível.

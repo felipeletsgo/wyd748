@@ -1377,6 +1377,56 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 	return 1;
 }
 
+void TMFieldScene::InitializeRuntimeCounterTexts()
+{
+	if (!m_pControlContainer || !g_pDevice)
+		return;
+
+	m_pRankTimeText = new SText(-2, "00 : 00", 0xFF00FF00,
+		(((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) / 2.0f) - 42.0f,
+		30.0f, 200.0f, 16.0f, 0, 0x77777777, 1, 0);
+	if (m_pRankTimeText)
+	{
+		m_pRankTimeText->m_Font.m_fSize = 2.0f;
+		m_pRankTimeText->SetVisible(0);
+		m_pRankTimeText->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - 50.0f,
+			(3.0f * RenderDevice::m_fHeightRatio) + 55.0f);
+		m_pControlContainer->AddItem(m_pRankTimeText);
+	}
+	m_bRankTimeOn = 0;
+
+	char szTempLeft[128]{};
+	sprintf(szTempLeft, "%s 100", g_pMessageStringTable[230]);
+	m_pRemainText = new SText(-2, szTempLeft, 0xFFFFAA00,
+		((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) - 210.0f,
+		30.0f, 100.0f, 16.0f, 0, 0x77777777, 1, 0);
+	if (m_pRemainText)
+	{
+		m_pRemainText->m_Font.m_fSize = 2.0f;
+		m_pRemainText->SetVisible(0);
+		m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 200.0f,
+			30.0f * RenderDevice::m_fHeightRatio);
+		m_pControlContainer->AddItem(m_pRemainText);
+	}
+
+	m_pQuestRemainTime = new SText(-2, "", 0xDDFFFF33,
+		((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) - 140.0f,
+		5.0f * RenderDevice::m_fHeightRatio, 100.0f, 16.0f,
+		0, 0x77777777, 1, 0);
+	if (m_pQuestRemainTime)
+	{
+		m_pQuestRemainTime->m_Font.m_fSize = 1.0f;
+		m_pQuestRemainTime->SetVisible(1);
+		if (g_pDevice->m_dwScreenWidth < 800)
+			m_pQuestRemainTime->SetPos((float)g_pDevice->m_dwScreenWidth + 35.0f,
+				5.0f * RenderDevice::m_fHeightRatio);
+		else
+			m_pQuestRemainTime->SetPos(276.0f * RenderDevice::m_fWidthRatio,
+				525.0f * RenderDevice::m_fHeightRatio);
+		m_pControlContainer->AddItem(m_pQuestRemainTime);
+	}
+}
+
 int TMFieldScene::InitializeCompatFieldScene()
 {
 	// This compatibility initializer deliberately contains only the objects
@@ -2056,6 +2106,10 @@ int TMFieldScene::InitializeCompatFieldScene()
 	// opcode 0x378, so both runtime belts must exist before queued world packets
 	// are dispatched after this initializer returns.
 	InitializeCompatSkillBelts();
+	// Os contadores sao criados em runtime no caminho completo e nao pertencem
+	// ao FieldScene2.bin. O retorno compatível ocorria antes dessas alocacoes,
+	// embora o WYD-Go envie 0x3A1/0x3B0 durante instancias e quests.
+	InitializeRuntimeCounterTexts();
 	// The full field initializer runs this exact sequence after focusing the local
 	// human.  Without it the compact 7.48 path leaves TMCamera in quarter-view 1,
 	// and native FUN_004aec3d deliberately rejects mouse rotation in that mode.
@@ -2503,87 +2557,7 @@ int TMFieldScene::InitializeScene()
 	if (m_pKingDomFlag)
 		m_pKingDomFlag->SetVisible(0);
 
-	m_pRankTimeText = new SText(-2,
-		"00 : 00",
-		0xFF00FF00,
-		(((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) / 2.0f) - 42.0f,
-		30.0f,
-		200.0f,
-		16.0f,
-		0,
-		0x77777777,
-		1,
-		0);
-
-	if (m_pRankTimeText)
-	{
-		m_pRankTimeText->m_Font.m_fSize = 2.0f;
-		m_pRankTimeText->SetVisible(0);
-		m_bRankTimeOn = 0;
-	}
-
-	char szTempLeft[128]{};
-	sprintf(szTempLeft, "%s 100", g_pMessageStringTable[230]);
-
-	m_pRemainText = new SText(-2,
-		szTempLeft,
-		0xFFFFAA00,
-		((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) - 210.0f,
-		30.0f,
-		100.0f,
-		16.0f,
-		0,
-		0x77777777,
-		1,
-		0);
-
-	if (m_pRemainText)
-	{
-		m_pRemainText->m_Font.m_fSize = 2.0f;
-		m_pRemainText->SetVisible(0);
-	}
-
-	m_pQuestRemainTime = new SText(-2,
-		"",
-		0xDDFFFF33,
-		(float)((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) - 140.0f,
-		5.0f * RenderDevice::m_fHeightRatio,
-		100.0f,
-		16.0f,
-		0,
-		0x77777777,
-		1,
-		0);
-
-	if (m_pQuestRemainTime)
-	{
-		m_pQuestRemainTime->m_Font.m_fSize = 1.0f;
-		m_pQuestRemainTime->SetVisible(1);
-	}
-
-	if (m_pRankTimeText)
-		m_pControlContainer->AddItem(m_pRankTimeText);
-	if (m_pRemainText)
-		m_pControlContainer->AddItem(m_pRemainText);
-	if (m_pQuestRemainTime)
-		m_pControlContainer->AddItem(m_pQuestRemainTime);
-
-	m_pRankTimeText->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - 50.0f,
-		(3.0f * RenderDevice::m_fHeightRatio) + 55.0f);
-
-	m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 200.0f,
-		30.0f * RenderDevice::m_fHeightRatio);
-
-	if (g_pDevice->m_dwScreenWidth < 800)
-	{
-		m_pQuestRemainTime->SetPos((float)g_pDevice->m_dwScreenWidth + 35.0f,
-			5.0f * RenderDevice::m_fHeightRatio);
-	}
-	else
-	{
-		m_pQuestRemainTime->SetPos(276.0f * RenderDevice::m_fWidthRatio,
-			525.0f * RenderDevice::m_fHeightRatio);
-	}
+	InitializeRuntimeCounterTexts();
 
 	m_pMessagePanels = (SPanel*)m_pControlContainer->FindControl(TMM_MESSAGE_PANEL);
 	m_pMoney1 = (SText*)m_pControlContainer->FindControl(65564u);
@@ -9647,12 +9621,13 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	{
 		RenderDevice::m_bDungeon = 0;
 	}
-	if (RenderDevice::m_bDungeon == 4)
+	if (m_pRemainText && RenderDevice::m_bDungeon == 4)
 	{
 		if (dwServerTime - m_dwRemainTime > 900000)
 			m_pRemainText->SetVisible(0);
 	}
-	else if (RenderDevice::m_bDungeon != 5 && dwServerTime - m_dwRemainTime > 6000)
+	else if (m_pRemainText && RenderDevice::m_bDungeon != 5 &&
+		dwServerTime - m_dwRemainTime > 6000)
 	{
 		m_pRemainText->SetVisible(0);
 	}
@@ -9660,7 +9635,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	{
 		UpdateQuestTime();
 	}
-	else if (m_pQuestRemainTime->IsVisible() == 1)
+	else if (m_pQuestRemainTime && m_pQuestRemainTime->IsVisible() == 1)
 	{
 		SetQuestStatus(0);
 	}
@@ -9781,7 +9756,8 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 						m = 1;
 
 					int nMusicIndex = 2 * m + 2;
-					if (RenderDevice::m_bDungeon == 4 && m_pRemainText->m_bVisible == 1)
+					if (RenderDevice::m_bDungeon == 4 && m_pRemainText &&
+						m_pRemainText->m_bVisible == 1)
 						nMusicIndex = 5;
 
 					if (DS_SOUND_MANAGER::m_nMusicIndex != nMusicIndex)
@@ -20583,12 +20559,13 @@ void TMFieldScene::SetQuestStatus(bool bStart)
 	else
 		m_dwQuestStartTime = 0;
 
-	m_pQuestRemainTime->SetVisible(bStart);
+	if (m_pQuestRemainTime)
+		m_pQuestRemainTime->SetVisible(bStart);
 }
 
 void TMFieldScene::UpdateQuestTime()
 {
-	if (m_dwQuestStartTime)
+	if (m_dwQuestStartTime && m_pQuestRemainTime)
 	{
 		int nLeftSecond = 900 - (timeGetTime() - m_dwQuestStartTime) / 1000;
 
@@ -24907,24 +24884,32 @@ int TMFieldScene::OnPacketCastleState(MSG_STANDARDPARM* pStd)
 
 int TMFieldScene::OnPacketStartTime(MSG_STANDARDPARM* pStd)
 {
+	if (!pStd || !g_pTimerManager)
+		return 0;
 	m_nLastTime = pStd->Parm;
 
 	m_dwStartRankTime = g_pTimerManager->GetServerTime();
 
 	char szTimer[128]{};
 	sprintf(szTimer, "%d", m_dwStartRankTime);
-	m_pRankTimeText->SetText(szTimer, 0);
+	if (m_pRankTimeText)
+		m_pRankTimeText->SetText(szTimer, 0);
 	m_bRankTimeOn = 1;
 	return 1;
 }
 
 int TMFieldScene::OnPacketRemainCount(MSG_STANDARDPARM* pStd)
 {
+	if (!pStd || !g_pTimerManager)
+		return 0;
 	char szText[128]{};
 	sprintf(szText, "%s %d", g_pMessageStringTable[230], pStd->Parm);
 	m_dwRemainTime = g_pTimerManager->GetServerTime();
-	m_pRemainText->SetText(szText, 0);
-	m_pRemainText->SetVisible(1);
+	if (m_pRemainText)
+	{
+		m_pRemainText->SetText(szText, 0);
+		m_pRemainText->SetVisible(1);
+	}
 	return 1;
 }
 
@@ -24990,12 +24975,17 @@ int TMFieldScene::OnPacketEnvEffect(MSG_STANDARD* pStd)
 
 int TMFieldScene::OnPacketRemainNPCCount(MSG_STANDARDPARM* pStd)
 {
+	if (!pStd || !g_pTimerManager)
+		return 0;
 	char szText[128]{};
 	sprintf(szText, "%d / %d", pStd->Parm & 0xFF, pStd->Parm >> 16);
 
 	m_dwRemainTime = g_pTimerManager->GetServerTime();
-	m_pRemainText->SetText(szText, 0);
-	m_pRemainText->SetVisible(1);
+	if (m_pRemainText)
+	{
+		m_pRemainText->SetText(szText, 0);
+		m_pRemainText->SetVisible(1);
+	}
 	return 1;
 }
 
@@ -28246,19 +28236,23 @@ int TMFieldScene::OnPacketInforPlay(MSG_SendInfoPlay* pStd)
 
 int TMFieldScene::OnPacketRunQuest12Start(MSG_STANDARDPARM* pStd)
 {
+	if (!pStd || !g_pDevice)
+		return 0;
 	if (pStd->Parm)
 	{
 		m_nQuest12MaxMobs = pStd->Parm;
 
 		char szText[128]{};
 		sprintf(szText, "0 / %d", m_nQuest12MaxMobs);
-		m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 130.0f,
-			30.0f * RenderDevice::m_fHeightRatio);
-
-		m_pRemainText->SetText(szText, 0);
-		m_pRemainText->SetVisible(1);
+		if (m_pRemainText)
+		{
+			m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 130.0f,
+				30.0f * RenderDevice::m_fHeightRatio);
+			m_pRemainText->SetText(szText, 0);
+			m_pRemainText->SetVisible(1);
+		}
 	}
-	else
+	else if (m_pRemainText)
 		m_pRemainText->SetVisible(0);
 
 	return 1;
@@ -28266,13 +28260,17 @@ int TMFieldScene::OnPacketRunQuest12Start(MSG_STANDARDPARM* pStd)
 
 int TMFieldScene::OnPacketRunQuest12Count(MSG_STANDARDPARM2* pStd)
 {
+	if (!pStd || !g_pDevice)
+		return 0;
 	char szText[128]{};
 	sprintf(szText, "%d / %d", pStd->Parm1, pStd->Parm2);
 
-	m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 130.0f,
-		30.0f * RenderDevice::m_fHeightRatio);
-
-	m_pRemainText->SetText(szText, 0);
+	if (m_pRemainText)
+	{
+		m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 130.0f,
+			30.0f * RenderDevice::m_fHeightRatio);
+		m_pRemainText->SetText(szText, 0);
+	}
 	return 1;
 }
 

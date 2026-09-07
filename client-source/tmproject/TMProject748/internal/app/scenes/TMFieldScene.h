@@ -290,9 +290,12 @@ public:
 	void GameAuto();
 
 private:
-	// Builds only the terrain, camera, and player object when the native 7.48
-	// FieldScene2 resource is detected; no fabricated UI controls are used.
+	// Builds the world and binds the native 7.48 FieldScene2 resource without
+	// fabricating serialized control IDs; required runtime controls are explicit.
 	int InitializeCompatFieldScene();
+	// Creates the three runtime text controls shared by the full and 7.48 paths.
+	// The control container owns successful allocations until scene teardown.
+	void InitializeRuntimeCounterTexts();
 	// Projects the authoritative 7.48 MOB into the legacy HUD controls.  The
 	// newer source uses different control IDs, so this adapter must stay on the
 	// resource boundary instead of changing the packet or STRUCT_MOB ABI.
