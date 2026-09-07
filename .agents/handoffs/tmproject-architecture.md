@@ -1475,3 +1475,28 @@ legados permanecem.
 Próximo passo: testar no candidato arrastar para quickslots vazios/ocupados,
 rejeição e uso por Q/W/teclas, depois seguir para outros callers que ignoram
 AddItem. Não repetir correções já publicadas da barra de skills.
+
+## Correção funcional — ownership de visuais recebidos por packet (2026-09-07)
+
+Revisão dos callers restantes encontrou três atualizações de UI que criavam
+`SGridControlItem` e ignoravam rejeição de `AddItem`: AutoTrade em
+`TMFieldScene`, confirmação de compra no Carry e oferta remota de Trade em
+`TMHuman`. Cada caminho agora libera o visual/payload quando a grade rejeita a
+inserção. O estado autoritativo recebido e os packets permanecem inalterados;
+não há alteração de layout, wire ou regra server-side.
+
+Modo MODERNIZACAO_COMPATIVEL, ownership local. UTILIZADAS: source atual,
+`SGridControl::AddItem`/destructor, caminhos de `OnPacketCNFGetItem`, compra,
+AutoTrade e Trade, além da documentação de UI existente. Ghidra e guia KR não
+são necessários para a decisão de liberar um objeto após rejeição; nenhuma
+fonte 7.54/W2PP/Secrets/Micronics foi consultada.
+
+Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
+`git diff --check` PASS. Candidato instalado e conferido:
+320261EB781A2D4FEABE680F14253C929CD6735A9CCD4FFE82B1A7564300C0E7.
+Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED. Warnings C4018
+preexistentes permanecem.
+
+Próximo passo: revisar os caminhos de `OnPacketSwapItem` que removem visuais
+antes da reinserção e ainda ignoram `AddItem`, preservando a distinção entre
+estado autoritativo e apresentação local.

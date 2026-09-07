@@ -23486,7 +23486,12 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 				auto ipNewItem = new SGridControlItem(pGrid, pstItem, 0.0f, 0.0f);
 
 				if (ipNewItem)
-					pGrid->AddItem(ipNewItem, 0, 0);
+				{
+					// A rejeicao nao transfere ownership: o pacote continua sendo
+					// autoritativo, mas o visual temporario deve ser liberado.
+					if (!pGrid->AddItem(ipNewItem, 0, 0))
+						SAFE_DELETE(ipNewItem);
+				}
 				else
 					delete pstItem;
 			}
@@ -24121,7 +24126,8 @@ int TMFieldScene::OnPacketBuy(MSG_STANDARD* pStd)
 
 	// The server chooses MyCarryPos after validating the one-cell 9x7 Carry.
 	// Mirror that exact slot in both the UI control and STRUCT_MOB cache.
-	m_pGridInv->AddItem(pControlItem, pBuy->MyCarryPos % 9, pBuy->MyCarryPos / 9);
+	if (!m_pGridInv->AddItem(pControlItem, pBuy->MyCarryPos % 9, pBuy->MyCarryPos / 9))
+		SAFE_DELETE(pControlItem);
 	memcpy(&g_pObjectManager->m_stMobData.Carry[pBuy->MyCarryPos],
 		pStructItem, sizeof(STRUCT_ITEM));
 	g_pObjectManager->m_stMobData.Coin = pBuy->Coin;

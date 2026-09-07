@@ -5454,7 +5454,10 @@ int TMHuman::OnPacketTrade(MSG_Trade* pStd)
                     memcpy(pstItem, &pStd->Item[i], sizeof(STRUCT_ITEM));
 					auto pGridItem = new SGridControlItem(nullptr, pstItem, 0.0f, 0.0f);
 					if (pGridItem)
-						pGridOp[i]->AddItem(pGridItem, 0, 0);
+					{
+						if (!pGridOp[i]->AddItem(pGridItem, 0, 0))
+							SAFE_DELETE(pGridItem);
+					}
 					else
 						delete pstItem;
                 }
