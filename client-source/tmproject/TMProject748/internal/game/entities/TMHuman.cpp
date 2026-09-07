@@ -5602,7 +5602,11 @@ int TMHuman::OnPacketCarry(MSG_Carry* pStd)
 		pGridItem->m_nHeight = cellHeight;
 		pGridItem->m_GCObj.m_fWidth = cellWidth;
 		pGridItem->m_GCObj.m_fHeight = cellHeight;
-		pScene->m_pGridInv->AddItem(pGridItem, nCarryIndex % 9, nCarryIndex / 9);
+		// A grade só assume ownership após aceitar a célula. O snapshot lógico
+		// continua autoritativo mesmo se a projeção visual ficar sem capacidade.
+		if (pScene->m_pGridInv->AddItem(pGridItem,
+			nCarryIndex % 9, nCarryIndex / 9) != 1)
+			SAFE_DELETE(pGridItem);
 	}
 
 	g_pObjectManager->m_stMobData.Coin = pStd->Coin;

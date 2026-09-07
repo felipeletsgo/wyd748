@@ -1686,3 +1686,19 @@ Testes cobrem migração para Carry, fallback Cargo, rollback de persistência,
 rejeição de equip, ausência de bônus/regen/gema e projeção visual vazia.
 `go test -count=1 ./...` PASS e `git diff --check` PASS. Estado IMPLEMENTED /
 AUTOMATED TESTED; validação visual/relogin no client real permanece pendente.
+
+## Correção funcional — ownership no rebuild de Carry (2026-09-07)
+
+`TMHuman::OnPacketCarry` reconstruía os 63 visuais da grade nativa 9x7 e
+ignorava a rejeição de `AddItem`. Agora libera o `SGridControlItem` e sua cópia
+de `STRUCT_ITEM` quando a grade não assume ownership; o snapshot lógico recebido
+continua intacto. Coordenadas `slot%9,slot/9`, wire e visibilidade não mudam.
+
+Modo MODERNIZACAO_COMPATIVEL. UTILIZADAS: source atual, contrato de ownership
+de `SGridControl` e evidência já estudada de `FUN_0052A737`. Guia KR, assets e
+servidor NÃO APLICÁVEIS; sources 7.54/W2PP/Secrets/Micronics não consultadas.
+
+Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS e
+`git diff --check` PASS. Candidato instalado e conferido:
+BD8AB9A5DF004CEA229300A51B836C96D8941308CACB839EC7645E58D831AE33.
+Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED.
