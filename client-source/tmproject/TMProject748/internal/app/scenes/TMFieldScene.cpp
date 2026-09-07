@@ -121,6 +121,13 @@ namespace
 		else
 			SAFE_DELETE(item);
 	}
+
+	bool WYD748_IsUnsupportedCompatEquipSlot(bool compat, int slot)
+	{
+		// Keep the fixed Equip wire array intact; these positions simply have no
+		// 7.48 visual/equip target in the active emulator UI.
+		return compat && (slot == 9 || slot == 16 || slot == 17);
+	}
 }
 
 RECT TMFieldScene::m_rectWarning[7] =
@@ -1070,11 +1077,35 @@ void TMFieldScene::InitializeCompatInventory()
 	m_pGridGuild = findGrid(TMG_GUILD_GRID);
 	m_pGridEvent = findGrid(TMG_EVENT_GRID);
 	m_pGridRing = findGrid(TMG_RING_GRID);
-	m_pGridNecklace = findGrid(TMG_NECKLACE_GRID);
 	m_pGridOrb = findGrid(TMG_ORB_GRID);
 	m_pGridCabuncle = findGrid(TMG_CABUNCLE_GRID);
 	m_pGridDRing = findGrid(TMG_DRING_GRID);
 	m_pGridMantua = findGrid(TMG_MANTUA_GRID);
+	// O contrato 7.48 do emulador não possui equipamento Necklace nem os
+	// NewSlot usados por versões posteriores. Limpar e ocultar os controles
+	// herdados evita que um item moderno sobreviva no root compartilhado 257.
+	auto disableUnsupportedEquipGrid = [this](unsigned int controlID,
+		SGridControl*& member)
+	{
+		auto existing = member;
+		if (existing)
+		{
+			existing->Empty();
+			existing->m_bSelectEnable = 0;
+			existing->SetVisible(0);
+		}
+		auto grid = static_cast<SGridControl*>(m_pControlContainer->FindControl(controlID));
+		if (grid && grid != existing)
+		{
+			grid->Empty();
+			grid->m_bSelectEnable = 0;
+			grid->SetVisible(0);
+		}
+		member = nullptr;
+	};
+	disableUnsupportedEquipGrid(TMG_NECKLACE_GRID, m_pGridNecklace);
+	disableUnsupportedEquipGrid(1048976u, m_pGridNewSlot1);
+	disableUnsupportedEquipGrid(1048977u, m_pGridNewSlot2);
 	m_pGridShop = findGrid(TMG_SHOP_GRID);
 	m_pCargoGrid = findGrid(TMG_CARGO_GRID);
 	m_pCargoGridList[0] = m_pCargoGrid;
@@ -1150,7 +1181,7 @@ void TMFieldScene::InitializeCompatInventory()
 	const EquipBinding equipment[] = {
 		{ m_pGridHelm, 1 }, { m_pGridCoat, 2 }, { m_pGridPants, 3 },
 		{ m_pGridGloves, 4 }, { m_pGridBoots, 5 }, { m_pGridLeft, 6 },
-		{ m_pGridRight, 7 }, { m_pGridRing, 8 }, { m_pGridNecklace, 9 },
+		{ m_pGridRight, 7 }, { m_pGridRing, 8 },
 		{ m_pGridOrb, 10 }, { m_pGridCabuncle, 11 }, { m_pGridGuild, 12 },
 		{ m_pGridEvent, 13 }, { m_pGridDRing, 14 }, { m_pGridMantua, 15 }
 	};
@@ -15767,9 +15798,22 @@ int TMFieldScene::TryStageNativeMixItem(SGridControl* sourceGrid,
 		return 1;
 
 	auto itemCopy = new STRUCT_ITEM;
+	if (!itemCopy)
+		return 1;
 	memcpy(itemCopy, sourceItem->m_pItem, sizeof(*itemCopy));
 	auto stagedItem = new SGridControlItem(nullptr, itemCopy, 0.0f, 0.0f);
-	targetGrid->AddItem(stagedItem, 0, 0);
+	if (!stagedItem)
+	{
+		delete itemCopy;
+		return 1;
+	}
+	// Só publicar o staging depois que a grade assumir ownership; uma falha
+	// deixa o item original no cursor e o packet local sem mutação parcial.
+	if (targetGrid->AddItem(stagedItem, 0, 0) != 1)
+	{
+		SAFE_DELETE(stagedItem);
+		return 1;
+	}
 	memcpy(&packet->Item[targetSlot], sourceItem->m_pItem, sizeof(packet->Item[targetSlot]));
 	packet->CarryPos[targetSlot] = static_cast<char>(carrySlot);
 	sourceItem->m_GCObj.dwColor = 0xFFFF0000;
@@ -23572,6 +23616,12 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 {
 	MSG_SwapItem* pSwapItem = reinterpret_cast<MSG_SwapItem*>(pStd);
+	if (!pSwapItem ||
+		WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene,
+			pSwapItem->SourType == 0 ? pSwapItem->SourPos : -1) ||
+		WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene,
+			pSwapItem->DestType == 0 ? pSwapItem->DestPos : -1))
+		return 1;
 
 	SGridControl* pSrcGrid = nullptr;
 	SGridControl* pDestGrid = nullptr;
@@ -24242,6 +24292,9 @@ int TMFieldScene::OnPacketBuy(MSG_STANDARD* pStd)
 int TMFieldScene::OnPacketSell(MSG_STANDARD* pStd)
 {
 	auto pSell = reinterpret_cast<MSG_Sell*>(pStd);
+	if (!pSell || WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene,
+		pSell->MyType == 0 ? pSell->MyPos : -1))
+		return 1;
 
 	if (m_pGridHellStore->m_dwMerchantID == pSell->TargetID || 
 		m_pGridShop->m_dwMerchantID == pSell->TargetID || !pSell->TargetID &&

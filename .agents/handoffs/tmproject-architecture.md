@@ -1578,3 +1578,28 @@ legados permanecem.
 Próximo passo: revisar os últimos callers de `AddItem` em respostas de compra,
 doação e listas auxiliares, sem repetir os guards já aplicados, e executar os
 fluxos reais de skill/quickslot/swap quando o candidato puder ser testado.
+
+## Compatibilidade de slots de equipamento com o emulador 7.48 (2026-09-07)
+
+O contrato informado para o WYD-Go 7.48 não possui equipamento Necklace nem
+Belt/NewSlot, e a UI correspondente não deve oferecer destino de equipar.
+`InitializeCompatInventory` agora limpa, desabilita e oculta o controle nativo
+354 e quaisquer controles herdados 1048976/1048977, zera seus membros e não os
+inclui na população de equipamento. As grades de atalho de skills 571/573/586
+permanecem ativas; não são slots de equipamento. O array `Equip[16]` e o wire
+continuam intactos. Swap e venda para as posições 9, 16 e 17 são rejeitados
+antes de acessar um grid ausente; `SendItem` mantém cache lógico sem criar
+visual para essas posições.
+
+Ficha criada em `flows/ui/equipment-slot-compatibility.md`, status LOCATED.
+Ela registra a divergência: o decompilado nativo `FUN_00435B13` e o guia KR
+contêm evidência histórica de Necklace, mas a decisão desta adaptação segue o
+contrato explícito do emulador. Nenhuma fonte 7.54/W2PP/Secrets/Micronics foi
+consultada.
+
+Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
+validador de pesquisa PASS (`CONTRACT=29`, `TRACED=19`, `LOCATED=7`,
+`UNMAPPED=2`) e `git diff --check` PASS. Candidato instalado e conferido:
+BDE59A24D94F33E5556C03730B1F13B27D0C5E1C005F7411FD0E0A174840663C.
+Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED. Ainda falta
+confirmar no executável que não há hitbox/ícone após abrir Character e relogar.
