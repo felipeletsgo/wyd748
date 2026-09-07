@@ -116,6 +116,57 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(itemDelivered == 0, "SendItem invalido nao chama consumidor");
     check(received_packet::Dispatch({0x182, sendItem, 24}, receiveItem) && itemDelivered == 1,
         "SendItem exato entregue sem retry");
+    // Frame do builder Go: destino Carry[62] e STRUCT_ITEM de oito bytes.
+    std::array<char, kPickupConfirmationPacketSize + 1> pickup{};
+    pickup[0] = static_cast<char>(kPickupConfirmationPacketSize);
+    pickup[4] = 0x71;
+    pickup[5] = 0x01;
+    pickup[kPickupConfirmationDestTypeOffset] = 1;
+    pickup[kPickupConfirmationDestPosOffset] = 62;
+    pickup[kPickupConfirmationItemOffset] = 0x34;
+    pickup[kPickupConfirmationItemOffset + 1] = 0x12;
+    for (std::size_t i = 2; i < 8; ++i)
+        pickup[kPickupConfirmationItemOffset + i] = static_cast<char>(i);
+    const auto pickupBefore = pickup;
+    int pickupCalls = 0;
+    const auto receivePickup = [&](const PacketView& view) {
+        ++pickupCalls;
+        check(view.data == pickup.data() && view.size == kPickupConfirmationPacketSize &&
+            view.opcode == MSG_CNFGetItem_Opcode,
+            "CNFGetItem preserva frame de 28 bytes");
+    };
+    for (std::size_t n = 0; n < kPickupConfirmationPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_CNFGetItem_Opcode, pickup.data(), n}, receivePickup),
+            "CNFGetItem truncado rejeitado antes do handler");
+    check(!received_packet::Dispatch({MSG_CNFGetItem_Opcode, nullptr,
+        kPickupConfirmationPacketSize}, receivePickup), "CNFGetItem nulo rejeitado");
+    check(!received_packet::Dispatch({MSG_CNFGetItem_Opcode, pickup.data(),
+        kPickupConfirmationPacketSize + 1}, receivePickup), "CNFGetItem excedente rejeitado");
+    check(!received_packet::Dispatch({0x119, pickup.data(),
+        kPickupConfirmationPacketSize}, receivePickup), "Type CNFGetItem nao pode ser ocultado");
+    pickup[0] = static_cast<char>(kPickupConfirmationPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_CNFGetItem_Opcode, pickup.data(),
+        kPickupConfirmationPacketSize}, receivePickup), "Size CNFGetItem divergente rejeitado");
+    pickup[0] = static_cast<char>(kPickupConfirmationPacketSize);
+    pickup[4] = 0x19;
+    check(!received_packet::Dispatch({MSG_CNFGetItem_Opcode, pickup.data(),
+        kPickupConfirmationPacketSize}, receivePickup), "opcode CNFGetItem divergente rejeitado");
+    pickup[4] = 0x71;
+    check(pickupCalls == 0, "CNFGetItem invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_CNFGetItem_Opcode, pickup.data(),
+        kPickupConfirmationPacketSize}, receivePickup) && pickupCalls == 1,
+        "CNFGetItem valido entregue uma vez");
+    check(pickup[kPickupConfirmationDestTypeOffset] == 1 &&
+        pickup[kPickupConfirmationDestPosOffset] == 62 &&
+        static_cast<unsigned char>(pickup[kPickupConfirmationItemOffset]) == 0x34 &&
+        static_cast<unsigned char>(pickup[kPickupConfirmationItemOffset + 1]) == 0x12,
+        "CNFGetItem preserva destino e item nos offsets nativos");
+    check(pickup == pickupBefore, "gate preserva todos os bytes do CNFGetItem");
+    check(!IsPickupCarrySlot(-1), "CNFGetItem rejeita slot negativo");
+    for (int slot = 0; slot < kPickupVisibleCarrySlotCount; ++slot)
+        check(IsPickupCarrySlot(slot), "CNFGetItem aceita cada slot visivel do Carry 9x7");
+    check(!IsPickupCarrySlot(kPickupVisibleCarrySlotCount),
+        "CNFGetItem rejeita slot estrutural 63 sem celula visual");
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

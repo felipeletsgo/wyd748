@@ -16,6 +16,7 @@
 #include "../wire/CharacterLoginPacket.h"
 #include "../wire/CharacterTransferPacket.h"
 #include "../wire/SendItemContract.h"
+#include "../wire/PickupConfirmationContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -121,6 +122,8 @@ constexpr auto MAX_CARRY = 64;
 // exposes slots 0..62; only structural slot 63 stays outside the legacy UI.
 constexpr auto MAX_VISIBLE_CARRY = MAX_CARRY - 1;
 static_assert(MAX_VISIBLE_CARRY == 63, "WYD 7.48 inventory must expose 63 slots");
+static_assert(MAX_VISIBLE_CARRY == kPickupVisibleCarrySlotCount,
+	"pickup confirmation must use the visible 7.48 Carry capacity");
 constexpr int MAX_STRING = 2000;
 constexpr int MAX_STRING_LENGTH = 128;
 
@@ -1551,6 +1554,15 @@ struct MSG_CNFGetItem
 	int DestPos;
 	STRUCT_ITEM Item;
 };
+
+static_assert(sizeof(MSG_CNFGetItem) == kPickupConfirmationPacketSize,
+	"WYD 7.48 pickup confirmation must be 28 bytes");
+static_assert(offsetof(MSG_CNFGetItem, DestType) == kPickupConfirmationDestTypeOffset,
+	"WYD 7.48 pickup destination type offset changed");
+static_assert(offsetof(MSG_CNFGetItem, DestPos) == kPickupConfirmationDestPosOffset,
+	"WYD 7.48 pickup destination slot offset changed");
+static_assert(offsetof(MSG_CNFGetItem, Item) == kPickupConfirmationItemOffset,
+	"WYD 7.48 pickup item offset changed");
 
 struct MSG_RMBShopList
 {

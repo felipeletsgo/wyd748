@@ -9162,7 +9162,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		return OnPacketCreateItem(reinterpret_cast<MSG_CreateItem*>(pStd));
 	case 0x175:
 		return OnPacketCNFDropItem(reinterpret_cast<MSG_CNFDropItem*>(pStd));
-	case 0x171:
+	case MSG_CNFGetItem_Opcode:
 		return OnPacketCNFGetItem(reinterpret_cast<MSG_CNFGetItem*>(pStd));
 	case 0x374:
 		return OnPacketUpdateItem(reinterpret_cast<MSG_UpdateItem*>(pStd));
@@ -23506,6 +23506,11 @@ int TMFieldScene::OnPacketCNFGetItem(MSG_CNFGetItem* pMsg)
 	}
 	else
 	{
+		if (!IsPickupCarrySlot(pMsg->DestPos))
+		{
+			delete pStructItem;
+			return 0;
+		}
 		// Insert pickup results through the native 9x7 Carry transform in 7.48;
 		// using the 7.59 5-column transform made valid items invisible.
 		int cellX = 0;

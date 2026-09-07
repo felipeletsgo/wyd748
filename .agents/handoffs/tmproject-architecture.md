@@ -1750,3 +1750,30 @@ asserts estaticos PASS, `git diff --check` PASS. Candidato instalado:
 Estado IMPLEMENTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo passo:
 testar cadastro, remocao, lotacao e fechamento da AutoTrade no candidato e
 continuar a auditoria apenas nos callers de grid dos fluxos 7.48 vivos.
+
+## Contrato 0x171 — confirmacao de coleta (2026-09-07)
+
+Encerrada a fila de callers `AddItem` dos handlers 7.48: todas as transferencias
+vivas agora verificam ownership; os retornos ignorados restantes pertencem ao
+inicializador moderno ou as UIs Donate/Drop excluidas. O proximo contrato foi
+`MSG_CNFGetItem`: Ghidra confirma `FUN_00492E7D -> FUN_00486009`, item em
+`+0x14`, destino em `+0x10`, e `FUN_0055890A` exige `0x171/0x1C`.
+
+Criado `PickupConfirmationContract.h` com opcode, tamanho, offsets e 63 slots
+visiveis. `ReceivedPacketDispatch` rejeita frame truncado, excedente ou com
+Size/Type divergente antes do cast. `Basedef` fixa tamanho/offsets por asserts;
+o handler rejeita `DestPos` fora de `0..62` antes de escrever no Carry. O
+builder Go de 28 bytes e a ordem `0x171 -> 0x182` foram preservados.
+
+Ficha `flows/ui/pickup-confirmation-contract.md` validada como `CONTRACT`.
+Modo PARIDADE_NATIVA no wire e MODERNIZACAO_COMPATIVEL no guard do indice.
+UTILIZADAS: decompilacao/Ghidra 7.48, source atual e WYD-Go/testes. Assets e
+guia KR NAO APLICAVEIS; sources 7.54/W2PP/Secrets/Micronics nao consultadas.
+
+Build Release PASS, ArchitectureTests 24356 checks/asserts PASS,
+`go test -count=1 ./internal/wire` e `go vet ./internal/wire` PASS, XML/header
+unico e `git diff --check` PASS. Candidato instalado:
+`5C14838866A943809B70D9D791D9A6FEBDCDC5575ECE83E9E02E981D5207F671`.
+Estado AUTOMATED TESTED; nao CLIENT-TESTED. Proximo passo: testar coleta e
+inventario cheio no candidato e escolher outro handler recebido ainda fora de
+`ReceivedPacketDispatch::ExpectedSize`, exigindo primeiro seu contrato nativo.
