@@ -1476,6 +1476,33 @@ Próximo passo: testar no candidato arrastar para quickslots vazios/ocupados,
 rejeição e uso por Q/W/teclas, depois seguir para outros callers que ignoram
 AddItem. Não repetir correções já publicadas da barra de skills.
 
+## Correção funcional — rollback de ownership no `OnPacketSwapItem` (2026-09-07)
+
+O consumidor de `MSG_SwapItem` removia os dois visuais, chamava `AddItem` em
+seis combinações de equipamento/Carry/Cargo e ignorava uma rejeição. Isso
+deixava payload alocado sem dono e podia deixar o cursor apontando para o
+objeto destruído. Cada combinação agora registra o resultado da inserção;
+quando falha, copia primeiro o item para o cache lógico autoritativo, limpa a
+referência do cursor e libera o visual rejeitado. Quando aceita, a grade
+assume ownership como antes. Nenhum opcode, offset, array de estado ou regra
+server-side foi alterado.
+
+Modo MODERNIZACAO_COMPATIVEL, implementação local de ownership. UTILIZADAS:
+source atual de `OnPacketSwapItem`, `SGridControl::AddItem`, `PickupItem` e
+`SCursor::DetachItem`, além da documentação de grid. A descompilação 7.48 e o
+guia KR não definem a política local de falha de alocação; não foram usados
+como prova adicional. Sources 7.54/W2PP/Secrets/Micronics não consultadas.
+
+Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
+`git diff --check` PASS. Candidato instalado e conferido:
+34DF18D4F2B249A86ADE333FA331D1BB3D81B9220A236F4EEA932760702B8BCC.
+Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED. Warnings C4018
+legados permanecem.
+
+Próximo passo: revisar a atualização de itens de loja/Carry e os caminhos de
+reconstrução de grids que ainda chamam `AddItem` sem conferir rejeição, depois
+executar a validação real de swap no candidato.
+
 ## Correção funcional — ownership de visuais recebidos por packet (2026-09-07)
 
 Revisão dos callers restantes encontrou três atualizações de UI que criavam

@@ -23533,6 +23533,14 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 	SGridControlItem* pDestItem = nullptr;
 
 	SGridControl* pGridSrc[MAX_EQUIPITEM]{};
+	// O packet confirma o estado lógico mesmo quando um visual não cabe na
+	// grade atual. Nessa falha a propriedade continua local até a liberação.
+	auto releaseRejectedVisual = [](SGridControlItem*& item)
+	{
+		if (g_pCursor && g_pCursor->m_pAttachedItem == item)
+			g_pCursor->m_pAttachedItem = nullptr;
+		SAFE_DELETE(item);
+	};
 
 	if (!pSwapItem->SourType)
 	{
@@ -23637,11 +23645,13 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		{
 			if (pDestItem->m_pItem->sIndex > 40)
 			{
-				pSrcGrid->AddItem(pDestItem, 0, 0);
+				const bool visualAdded = pSrcGrid && pSrcGrid->AddItem(pDestItem, 0, 0) == 1;
 				if (pDestItem)
 					memcpy(&g_pObjectManager->m_stMobData.Equip[pSwapItem->SourPos], pDestItem->m_pItem, sizeof(STRUCT_ITEM));				
 				else
 					memset(&g_pObjectManager->m_stMobData.Equip[pSwapItem->SourPos], 0, sizeof(STRUCT_ITEM));
+				if (!visualAdded)
+					releaseRejectedVisual(pDestItem);
 			}
 			else
 			{
@@ -23658,12 +23668,13 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 				int cellX = 0;
 				int cellY = 0;
 				GetCarryCellForSlot(pSwapItem->SourPos, cellX, cellY);
-				if (pSrcGrid)
-					pSrcGrid->AddItem(pDestItem, cellX, cellY);
+				const bool visualAdded = pSrcGrid && pSrcGrid->AddItem(pDestItem, cellX, cellY) == 1;
 				if (pDestItem)
 					memcpy(&g_pObjectManager->m_stMobData.Carry[pSwapItem->SourPos], pDestItem->m_pItem, sizeof(STRUCT_ITEM));
 				else
 					memset(&g_pObjectManager->m_stMobData.Carry[pSwapItem->SourPos], 0, sizeof(STRUCT_ITEM));
+				if (!visualAdded)
+					releaseRejectedVisual(pDestItem);
 			}
 			else
 			{
@@ -23680,12 +23691,13 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 				int cellX = 0;
 				int cellY = 0;
 				GetCargoCellForSlot(pSwapItem->SourPos, cellX, cellY);
-				if (pSrcGrid)
-					pSrcGrid->AddItem(pDestItem, cellX, cellY);
+				const bool visualAdded = pSrcGrid && pSrcGrid->AddItem(pDestItem, cellX, cellY) == 1;
 				if (pDestItem)
 					memcpy(&g_pObjectManager->m_stItemCargo[pSwapItem->SourPos], pDestItem->m_pItem, sizeof(STRUCT_ITEM));
 				else
 					memset(&g_pObjectManager->m_stItemCargo[pSwapItem->SourPos], 0, sizeof(STRUCT_ITEM));
+				if (!visualAdded)
+					releaseRejectedVisual(pDestItem);
 			}
 			else
 			{
@@ -23702,11 +23714,13 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		{
 			if (pSrcItem->m_pItem->sIndex > 40)
 			{
-				pDestGrid->AddItem(pSrcItem, 0, 0);
+				const bool visualAdded = pDestGrid && pDestGrid->AddItem(pSrcItem, 0, 0) == 1;
 				if (pSrcItem)
 					memcpy(&g_pObjectManager->m_stMobData.Equip[pSwapItem->DestPos], pSrcItem->m_pItem, sizeof(STRUCT_ITEM));
 				else
 					memset(&g_pObjectManager->m_stMobData.Equip[pSwapItem->DestPos], 0, sizeof(STRUCT_ITEM));
+				if (!visualAdded)
+					releaseRejectedVisual(pSrcItem);
 			}
 			else
 			{
@@ -23723,12 +23737,13 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 				int cellX = 0;
 				int cellY = 0;
 				GetCarryCellForSlot(pSwapItem->DestPos, cellX, cellY);
-				if (pDestGrid)
-					pDestGrid->AddItem(pSrcItem, cellX, cellY);
+				const bool visualAdded = pDestGrid && pDestGrid->AddItem(pSrcItem, cellX, cellY) == 1;
 				if (pSrcItem)
 					memcpy(&g_pObjectManager->m_stMobData.Carry[pSwapItem->DestPos], pSrcItem->m_pItem, sizeof(STRUCT_ITEM));
 				else
 					memset(&g_pObjectManager->m_stMobData.Carry[pSwapItem->DestPos], 0, sizeof(STRUCT_ITEM));
+				if (!visualAdded)
+					releaseRejectedVisual(pSrcItem);
 			}
 			else
 			{
@@ -23745,12 +23760,13 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 				int cellX = 0;
 				int cellY = 0;
 				GetCargoCellForSlot(pSwapItem->DestPos, cellX, cellY);
-				if (pDestGrid)
-					pDestGrid->AddItem(pSrcItem, cellX, cellY);
+				const bool visualAdded = pDestGrid && pDestGrid->AddItem(pSrcItem, cellX, cellY) == 1;
 				if (pSrcItem)
 					memcpy(&g_pObjectManager->m_stItemCargo[pSwapItem->DestPos], pSrcItem->m_pItem, sizeof(STRUCT_ITEM));
 				else
 					memset(&g_pObjectManager->m_stItemCargo[pSwapItem->DestPos], 0, sizeof(STRUCT_ITEM));
+				if (!visualAdded)
+					releaseRejectedVisual(pSrcItem);
 			}
 			else
 			{
