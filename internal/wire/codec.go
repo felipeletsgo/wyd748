@@ -620,7 +620,9 @@ func CNFGetItem(destType, destPos uint32) []byte {
 	return b
 }
 
-// WarInfo monta o 0x3A8 (24B, payload zerado, ID=SceneField).
+// WarInfo monta a forma completa nativa do 0x3A8: tres DWORDs em 24 bytes,
+// com ID=SceneField. Zero representa ausencia de guerra, cla e guilda aliada;
+// o peer ativo envia sempre o snapshot completo para atualizar os tres estados.
 func WarInfo() []byte {
 	return Build(OpWarInfo, SceneField, 24)
 }

@@ -31,6 +31,7 @@
 #include "../wire/ShopListContract.h"
 #include "../wire/ItemSoldContract.h"
 #include "../wire/CombineCompleteContract.h"
+#include "../wire/WarInfoContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -220,6 +221,14 @@ struct MSG_STANDARDPARM3
 	int Parm2;
 	int Parm3;
 };
+static_assert(sizeof(MSG_STANDARDPARM3) == kWarInfoPacketSize,
+	"WarInfo full snapshot size changed");
+static_assert(offsetof(MSG_STANDARDPARM3, Parm1) == kWarInfoGuildOffset,
+	"WarInfo guild offset changed");
+static_assert(offsetof(MSG_STANDARDPARM3, Parm2) == kWarInfoClanOffset,
+	"WarInfo clan offset changed");
+static_assert(offsetof(MSG_STANDARDPARM3, Parm3) == kWarInfoAllyOffset,
+	"WarInfo ally offset changed");
 
 struct MSG_TowerWar
 {

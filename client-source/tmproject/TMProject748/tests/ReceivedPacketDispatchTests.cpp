@@ -1042,6 +1042,60 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(combineComplete == combineCompleteBefore,
         "gate preserva todos os bytes do CombineComplete");
 
+    // O nativo reconhece formas parciais de 16/20 bytes, mas o unico peer
+    // ativo publica os tres campos juntos. O gate evita misturar estado velho
+    // de cla/alianca com uma guilda de guerra recem-recebida.
+    std::array<char, kWarInfoPacketSize + 1> warInfo{};
+    warInfo[0] = static_cast<char>(kWarInfoPacketSize);
+    warInfo[4] = static_cast<char>(MSG_WarInfo_Opcode & 0xFF);
+    warInfo[5] = static_cast<char>((MSG_WarInfo_Opcode >> 8) & 0xFF);
+    warInfo[6] = 0x30;
+    warInfo[7] = 0x75;
+    warInfo[kWarInfoGuildOffset] = 0x34;
+    warInfo[kWarInfoGuildOffset + 1] = 0x12;
+    warInfo[kWarInfoClanOffset] = 7;
+    warInfo[kWarInfoAllyOffset] = 0x78;
+    warInfo[kWarInfoAllyOffset + 1] = 0x56;
+    const auto warInfoBefore = warInfo;
+    int warInfoCalls = 0;
+    const auto receiveWarInfo = [&](const PacketView& view) {
+        ++warInfoCalls;
+        check(view.data == warInfo.data() && view.size == kWarInfoPacketSize &&
+            view.opcode == MSG_WarInfo_Opcode,
+            "WarInfo preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kWarInfoPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_WarInfo_Opcode, warInfo.data(), n},
+            receiveWarInfo), "WarInfo rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_WarInfo_Opcode, nullptr, kWarInfoPacketSize},
+        receiveWarInfo), "WarInfo rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_WarInfo_Opcode, warInfo.data(),
+        kWarInfoPacketSize + 1}, receiveWarInfo), "WarInfo rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, warInfo.data(), kWarInfoPacketSize},
+        receiveWarInfo), "opcode externo nao pode ocultar WarInfo");
+    warInfo[4] = static_cast<char>((MSG_WarInfo_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_WarInfo_Opcode, warInfo.data(),
+        kWarInfoPacketSize}, receiveWarInfo), "WarInfo rejeita Header.Type divergente");
+    warInfo[4] = static_cast<char>(MSG_WarInfo_Opcode & 0xFF);
+    warInfo[0] = 16;
+    check(!received_packet::Dispatch({MSG_WarInfo_Opcode, warInfo.data(), 16}, receiveWarInfo),
+        "WarInfo rejeita snapshot nativo parcial de um parametro");
+    warInfo[0] = 20;
+    check(!received_packet::Dispatch({MSG_WarInfo_Opcode, warInfo.data(), 20}, receiveWarInfo),
+        "WarInfo rejeita snapshot nativo parcial de dois parametros");
+    warInfo[0] = static_cast<char>(kWarInfoPacketSize);
+    check(warInfoCalls == 0, "WarInfo invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_WarInfo_Opcode, warInfo.data(),
+        kWarInfoPacketSize}, receiveWarInfo) && warInfoCalls == 1,
+        "WarInfo completo entregue uma vez");
+    check(static_cast<unsigned char>(warInfo[6]) == 0x30 &&
+        static_cast<unsigned char>(warInfo[7]) == 0x75 &&
+        static_cast<unsigned char>(warInfo[kWarInfoGuildOffset]) == 0x34 &&
+        warInfo[kWarInfoClanOffset] == 7 &&
+        static_cast<unsigned char>(warInfo[kWarInfoAllyOffset + 1]) == 0x56,
+        "WarInfo preserva receptor, guilda, cla e aliada");
+    check(warInfo == warInfoBefore, "gate preserva todos os bytes do WarInfo");
+
     // PremiumFirework leva oito bytes reservados e o bitmap de 16 bytes em
     // +20; o efeito visual recebe exatamente essa fatia sem copiar o frame.
     std::array<char, sizeof(MSG_PremiumFirework) + 1> premiumFirework{};

@@ -17,6 +17,7 @@
 #include "ShopListContract.h"
 #include "ItemSoldContract.h"
 #include "CombineCompleteContract.h"
+#include "WarInfoContract.h"
 #include "PremiumFireworkPacket.h"
 #include "GamblePacket.h"
 #include "MessagePanelPacket.h"
@@ -70,6 +71,7 @@ namespace received_packet
         case MSG_ShopList_Opcode: return kShopListPacketSize;
         case MSG_ItemSold_Opcode: return kItemSoldPacketSize;
         case MSG_CombineComplete_Opcode: return kCombineCompletePacketSize;
+        case MSG_WarInfo_Opcode: return kWarInfoPacketSize;
         case MSG_PremiumFirework_Opcode: return sizeof(MSG_PremiumFirework);
         case MSG_ResultGamble_Opcode: return sizeof(MSG_ResultGamble);
         case MSG_MessagePanel_Opcode: return sizeof(MSG_MessagePanel);

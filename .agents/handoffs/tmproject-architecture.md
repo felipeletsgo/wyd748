@@ -1956,3 +1956,21 @@ Ghidra e `FUN_0055890A` confirmam `0x3CA/36B`; `TMHuman::OnPacketPremiumFireWork
 ## Contrato 0x1BF — resultado de Gamble (2026-09-07)
 
 Ghidra e `FUN_0055890A` confirmam 36B: Result[5] em `+12`, StopPosition[3] em `+17`, Prize i32 em `+28` e Jackpot u32 em `+32`. `ReceivedPacketDispatch` agora exige esse frame antes de `OnPacketRESULTGAMBLE`; a struct e o builder ja eram corretos. Ficha `flows/ui/gamble-result-contract.md` em `CONTRACT`. ArchitectureTests 26933 checks/asserts PASS, `go test -count=1 ./...`, XML, pesquisa e diff PASS. Candidato: `C2C6B90409D1E23DC7BC70B609D636174AD9D6468F187E2ACC44509CF3A2CA7A`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED.
+
+## Contrato 0x3A8 - snapshot completo de guerra (2026-09-07)
+
+Ghidra confirma `FUN_00492E7D -> FUN_00489300`: o consumidor nativo aceita
+prefixos de 16/20B e a forma completa de 24B, atualizando WarGuild, WarClan e
+AllyGuild em `+12/+16/+20`. `FUN_0055890A` nao lista `0x3A8`. Como o unico peer
+WYD-Go sempre emite o snapshot completo, `WarInfoContract.h`, asserts e o gate
+central agora exigem 24B e rejeitam as formas parciais antes do callback. O
+layout completo permanece PARIDADE_NATIVA; a selecao de uma unica forma e
+MODERNIZACAO_COMPATIVEL.
+
+Ficha `flows/transport/war-info-contract.md` em `CONTRACT`. ArchitectureTests
+26968 checks/asserts PASS, `go test -count=1 ./...`, `go vet ./...`, XML,
+pesquisa e diff PASS. O ajuste minimo das seis fichas anteriores corrigiu apenas
+headings/secoes exigidos pelo validador, sem mudar codigo ou maturidade.
+Candidato: `023340D32C123AEB6AC54E33D605AE7762B92F884E998250BAE1B93A7F95B021`.
+Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote
+estatico: selecionar outra resposta S->C viva ausente de `ExpectedSize`.
