@@ -1948,3 +1948,7 @@ Ghidra confirma `FUN_00492E7D -> FUN_004854ED`; o clone fica em `Parm1@12`, a po
 ## Contrato 0x3A7 — conclusao de ItemMix (2026-09-07)
 
 `FUN_00492E7D -> FUN_004890F9` confirma o callback que fecha os roots ItemMix. Como `FUN_0055890A` nao lista `0x3A7`, o envelope StandardParm de 16B foi documentado como MODERNIZACAO_COMPATIVEL do par source/WYD-Go. `CombineCompleteContract.h`, asserts e o gate central impedem que frame parcial feche um painel. ArchitectureTests 26841 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `549FDF4F6A46A8E0C537C4F429E37A71747A4CF58741C3D5BC366026AF09403D`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED.
+
+## Contrato 0x3CA — publicacao de PremiumFirework (2026-09-07)
+
+Ghidra e `FUN_0055890A` confirmam `0x3CA/36B`; `TMHuman::OnPacketPremiumFireWork` consome o Bitmap em `+20` para criar o efeito. A estrutura existente `MSG_PremiumFirework` ja era correta; apenas `ReceivedPacketDispatch` passou a exigir o tamanho e Type/opcode antes do callback. ArchitectureTests 26887 checks/asserts PASS, `go test -count=1 ./...`, XML, pesquisa e diff PASS. Candidato: `BB904B8E2AC97663F2BC18D38A5A86009A80173EDE93BAD727A570D47AF5A849`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED.

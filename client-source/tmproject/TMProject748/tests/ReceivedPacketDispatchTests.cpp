@@ -1042,6 +1042,56 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(combineComplete == combineCompleteBefore,
         "gate preserva todos os bytes do CombineComplete");
 
+    // PremiumFirework leva oito bytes reservados e o bitmap de 16 bytes em
+    // +20; o efeito visual recebe exatamente essa fatia sem copiar o frame.
+    std::array<char, sizeof(MSG_PremiumFirework) + 1> premiumFirework{};
+    premiumFirework[0] = static_cast<char>(sizeof(MSG_PremiumFirework));
+    premiumFirework[4] = static_cast<char>(MSG_PremiumFirework_Opcode & 0xFF);
+    premiumFirework[5] = static_cast<char>((MSG_PremiumFirework_Opcode >> 8) & 0xFF);
+    premiumFirework[6] = 0x34;
+    premiumFirework[7] = 0x12;
+    premiumFirework[20] = 0x11;
+    premiumFirework[35] = 0x22;
+    const auto premiumBefore = premiumFirework;
+    int premiumCalls = 0;
+    const auto receivePremium = [&](const PacketView& view) {
+        ++premiumCalls;
+        check(view.data == premiumFirework.data() && view.size == sizeof(MSG_PremiumFirework) &&
+            view.opcode == MSG_PremiumFirework_Opcode,
+            "PremiumFirework preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < sizeof(MSG_PremiumFirework); ++n)
+        check(!received_packet::Dispatch({MSG_PremiumFirework_Opcode,
+            premiumFirework.data(), n}, receivePremium),
+            "PremiumFirework rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_PremiumFirework_Opcode, nullptr,
+        sizeof(MSG_PremiumFirework)}, receivePremium),
+        "PremiumFirework rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_PremiumFirework_Opcode,
+        premiumFirework.data(), sizeof(MSG_PremiumFirework) + 1}, receivePremium),
+        "PremiumFirework rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, premiumFirework.data(),
+        sizeof(MSG_PremiumFirework)}, receivePremium),
+        "opcode externo nao pode ocultar PremiumFirework");
+    premiumFirework[4] = static_cast<char>((MSG_PremiumFirework_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_PremiumFirework_Opcode,
+        premiumFirework.data(), sizeof(MSG_PremiumFirework)}, receivePremium),
+        "PremiumFirework rejeita Header.Type divergente");
+    premiumFirework[4] = static_cast<char>(MSG_PremiumFirework_Opcode & 0xFF);
+    premiumFirework[0] = static_cast<char>(sizeof(MSG_PremiumFirework) - 1);
+    check(!received_packet::Dispatch({MSG_PremiumFirework_Opcode,
+        premiumFirework.data(), sizeof(MSG_PremiumFirework)}, receivePremium),
+        "PremiumFirework rejeita Header.Size divergente");
+    premiumFirework[0] = static_cast<char>(sizeof(MSG_PremiumFirework));
+    check(premiumCalls == 0, "PremiumFirework invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_PremiumFirework_Opcode,
+        premiumFirework.data(), sizeof(MSG_PremiumFirework)}, receivePremium) && premiumCalls == 1,
+        "PremiumFirework valido entregue uma vez");
+    check(premiumFirework[20] == 0x11 && premiumFirework[35] == 0x22,
+        "PremiumFirework preserva limites do bitmap em +20");
+    check(premiumFirework == premiumBefore,
+        "gate preserva todos os bytes do PremiumFirework");
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;
