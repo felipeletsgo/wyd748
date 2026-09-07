@@ -197,8 +197,8 @@ func CharacterSelectionUpdate(opcode, id uint16, chars []model.Char) []byte {
 	return b
 }
 
-// SetHpMp publishes the four authoritative uint32 resources directly. There
-// is no WORD prefix and no legacy fallback.
+// SetHpMp publishes the four authoritative uint32 resources in the coordinated
+// 28-byte source-client contract. There is no WORD prefix or legacy fallback.
 func SetHpMp(id uint16, score *model.Score) []byte {
 	if score == nil {
 		score = &model.Score{Version: model.ScoreVersion}

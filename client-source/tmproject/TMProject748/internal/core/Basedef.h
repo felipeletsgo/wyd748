@@ -22,6 +22,7 @@
 #include "../wire/GroundItemStateContract.h"
 #include "../wire/InstanceCounterContract.h"
 #include "../wire/WorldStateParameterContract.h"
+#include "../wire/HpMpContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -1442,6 +1443,16 @@ struct MSG_SetHpMp
 	unsigned int MaxHp;
 	unsigned int MaxMp;
 };
+static_assert(sizeof(MSG_SetHpMp) == kHpMpPacketSize,
+	"coordinated source-client HP/MP packet size changed");
+static_assert(offsetof(MSG_SetHpMp, Hp) == kHpMpCurrentHpOffset,
+	"HP/MP current HP offset changed");
+static_assert(offsetof(MSG_SetHpMp, Mp) == kHpMpCurrentMpOffset,
+	"HP/MP current MP offset changed");
+static_assert(offsetof(MSG_SetHpMp, MaxHp) == kHpMpMaximumHpOffset,
+	"HP/MP maximum HP offset changed");
+static_assert(offsetof(MSG_SetHpMp, MaxMp) == kHpMpMaximumMpOffset,
+	"HP/MP maximum MP offset changed");
 
 struct MSG_SetHpDam
 {

@@ -490,6 +490,69 @@ int RunReceivedPacketDispatchTests(int& checks)
             "gate preserva todos os bytes do estado do mundo");
     }
 
+    // O source client e o WYD-Go usam um unico 0x181 de 28 bytes. Este fixture
+    // fixa a extensao coordenada e impede aceitar silenciosamente os layouts
+    // historicos de 20/36 bytes sob o mesmo opcode.
+    std::array<char, kHpMpPacketSize + 1> hpMp{};
+    hpMp[0] = static_cast<char>(kHpMpPacketSize);
+    hpMp[4] = static_cast<char>(MSG_SetHpMp_Opcode & 0xFF);
+    hpMp[5] = static_cast<char>((MSG_SetHpMp_Opcode >> 8) & 0xFF);
+    hpMp[6] = 0x34;
+    hpMp[7] = 0x12;
+    const std::array<std::size_t, 4> hpMpOffsets{
+        kHpMpCurrentHpOffset, kHpMpCurrentMpOffset,
+        kHpMpMaximumHpOffset, kHpMpMaximumMpOffset
+    };
+    for (std::size_t field = 0; field < hpMpOffsets.size(); ++field)
+    {
+        const auto offset = hpMpOffsets[field];
+        hpMp[offset] = static_cast<char>(0x10 + field);
+        hpMp[offset + 1] = static_cast<char>(0x20 + field);
+        hpMp[offset + 2] = static_cast<char>(0x30 + field);
+        hpMp[offset + 3] = static_cast<char>(0x40 + field);
+    }
+    const auto hpMpBefore = hpMp;
+    int hpMpCalls = 0;
+    const auto receiveHpMp = [&](const PacketView& view) {
+        ++hpMpCalls;
+        check(view.data == hpMp.data() && view.size == kHpMpPacketSize &&
+            view.opcode == MSG_SetHpMp_Opcode,
+            "HP/MP coordenado preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kHpMpPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_SetHpMp_Opcode, hpMp.data(), n},
+            receiveHpMp), "HP/MP coordenado rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_SetHpMp_Opcode, nullptr, kHpMpPacketSize},
+        receiveHpMp), "HP/MP coordenado rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_SetHpMp_Opcode, hpMp.data(),
+        kHpMpPacketSize + 1}, receiveHpMp), "HP/MP coordenado rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, hpMp.data(), kHpMpPacketSize},
+        receiveHpMp), "opcode externo nao pode ocultar HP/MP coordenado");
+    hpMp[4] = static_cast<char>((MSG_SetHpMp_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_SetHpMp_Opcode, hpMp.data(), kHpMpPacketSize},
+        receiveHpMp), "HP/MP coordenado rejeita Header.Type divergente");
+    hpMp[4] = static_cast<char>(MSG_SetHpMp_Opcode & 0xFF);
+    hpMp[0] = static_cast<char>(kHpMpPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_SetHpMp_Opcode, hpMp.data(), kHpMpPacketSize},
+        receiveHpMp), "HP/MP coordenado rejeita Header.Size divergente");
+    hpMp[0] = static_cast<char>(kHpMpPacketSize);
+    check(hpMpCalls == 0, "HP/MP invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_SetHpMp_Opcode, hpMp.data(), kHpMpPacketSize},
+        receiveHpMp) && hpMpCalls == 1, "HP/MP coordenado entregue uma vez");
+    check(static_cast<unsigned char>(hpMp[6]) == 0x34 &&
+        static_cast<unsigned char>(hpMp[7]) == 0x12,
+        "HP/MP coordenado preserva receptor em Header.ID");
+    for (std::size_t field = 0; field < hpMpOffsets.size(); ++field)
+    {
+        const auto offset = hpMpOffsets[field];
+        check(static_cast<unsigned char>(hpMp[offset]) == 0x10 + field &&
+            static_cast<unsigned char>(hpMp[offset + 1]) == 0x20 + field &&
+            static_cast<unsigned char>(hpMp[offset + 2]) == 0x30 + field &&
+            static_cast<unsigned char>(hpMp[offset + 3]) == 0x40 + field,
+            "HP/MP coordenado preserva recurso uint32 no offset contratado");
+    }
+    check(hpMp == hpMpBefore, "gate preserva todos os bytes do HP/MP coordenado");
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

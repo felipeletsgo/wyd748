@@ -3501,7 +3501,7 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
     case 0x336:
         return OnPacketUpdateScore((MSG_STANDARD*)buf);
         break;
-    case 0x181:
+    case MSG_SetHpMp_Opcode:
         return OnPacketSetHpMp(reinterpret_cast<MSG_SetHpMp*>(buf));
         break;
     case 0x18A:
@@ -4885,7 +4885,8 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
     if (g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
         return 1;
 
-    // WYD-Go 7.48+ carries one uint32 resource layout.
+    // The coordinated source-client contract carries one uint32 layout; it is
+    // distinct from the historical 20/36-byte forms of opcode 0x181.
     const unsigned int hp = pStd->Hp;
     const unsigned int mp = pStd->Mp;
     const unsigned int maxHp = pStd->MaxHp;

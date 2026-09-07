@@ -25,7 +25,7 @@ const (
 	OpCNFDeleteCharacter = 0x112 // S->C atualiza a selecao apos exclusao
 	OpCreateMobTrade     = 0x363 // S->C cria clone de auto-loja com titulo (352B)
 	OpCreateMob          = 0x364 // S->C cria mob/player (328B, Score@140)
-	OpSetHpMp            = 0x181 // S->C HP/MP uint32 (28B)
+	OpSetHpMp            = 0x181 // S->C extensao coordenada: HP/MP uint32 (28B)
 	OpUpdateScore        = 0x336 // S->C Score uint32/affects (232B)
 	OpUpdateAffect       = 0x3B9 // S->C 16 affects completos do dono (140B)
 	OpUpdateEtc          = 0x337 // S->C Hold/exp/tres pontos WORD/gold (36B nativos; CP fica no CreateMob)
