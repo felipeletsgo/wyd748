@@ -27,6 +27,7 @@
 #include "../wire/CarrySnapshotContract.h"
 #include "../wire/UpdateEquipContract.h"
 #include "../wire/UpdateAffectContract.h"
+#include "../wire/CreateMobContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -1157,7 +1158,6 @@ struct MSG_MessageLog
 	char String[96];
 };
 
-constexpr auto MSG_CreateMob_Opcode = 0x364;
 struct MSG_CreateMob
 {
 	MSG_STANDARD Header;
@@ -1175,8 +1175,37 @@ struct MSG_CreateMob
 	char Nick[26];
 	char Server;
 };
+static_assert(sizeof(MSG_CreateMob) == kCreateMobPacketSize,
+	"coordinated CreateMob packet size changed");
+static_assert(offsetof(MSG_CreateMob, PosX) == kCreateMobPositionOffset,
+	"CreateMob position offset changed");
+static_assert(offsetof(MSG_CreateMob, MobID) == kCreateMobIdOffset,
+	"CreateMob entity ID offset changed");
+static_assert(offsetof(MSG_CreateMob, MobName) == kCreateMobNameOffset &&
+	sizeof(MSG_CreateMob::MobName) == kCreateMobNameSize,
+	"CreateMob name block changed");
+static_assert(offsetof(MSG_CreateMob, Equip) == kCreateMobEquipOffset &&
+	sizeof(MSG_CreateMob::Equip) == kCreateMobEquipCount * sizeof(unsigned short),
+	"CreateMob equip block changed");
+static_assert(offsetof(MSG_CreateMob, Affect) == kCreateMobAffectOffset &&
+	sizeof(MSG_CreateMob::Affect) == kCreateMobAffectCount * sizeof(unsigned short),
+	"CreateMob affect block changed");
+static_assert(offsetof(MSG_CreateMob, Guild) == kCreateMobGuildOffset &&
+	offsetof(MSG_CreateMob, GuildLevel) == kCreateMobGuildLevelOffset,
+	"CreateMob guild block changed");
+static_assert(offsetof(MSG_CreateMob, Score) == kCreateMobScoreOffset &&
+	sizeof(MSG_CreateMob::Score) == kCreateMobScoreSize,
+	"CreateMob score block changed");
+static_assert(offsetof(MSG_CreateMob, CreateType) == kCreateMobTypeOffset,
+	"CreateMob type offset changed");
+static_assert(offsetof(MSG_CreateMob, Equip2) == kCreateMobAncientOffset,
+	"CreateMob ancient block changed");
+static_assert(offsetof(MSG_CreateMob, Nick) == kCreateMobNickOffset &&
+	sizeof(MSG_CreateMob::Nick) == kCreateMobNickSize,
+	"CreateMob nickname block changed");
+static_assert(offsetof(MSG_CreateMob, Server) == kCreateMobServerOffset,
+	"CreateMob server byte offset changed");
 
-constexpr auto MSG_CreateMobTrade_Opcode = 0x363;
 struct MSG_CreateMobTrade
 {
 	MSG_STANDARD Header;
@@ -1195,6 +1224,13 @@ struct MSG_CreateMobTrade
 	char Desc[24];
 	char Server;
 };
+static_assert(sizeof(MSG_CreateMobTrade) == kCreateMobTradePacketSize,
+	"coordinated CreateMobTrade packet size changed");
+static_assert(offsetof(MSG_CreateMobTrade, Desc) == kCreateMobTradeDescriptionOffset &&
+	sizeof(MSG_CreateMobTrade::Desc) == kCreateMobTradeDescriptionSize,
+	"CreateMobTrade description block changed");
+static_assert(offsetof(MSG_CreateMobTrade, Server) == kCreateMobTradeServerOffset,
+	"CreateMobTrade server byte offset changed");
 
 constexpr auto MSG_SetShortSkill_Opcode = 0x378;
 struct MSG_SetShortSkill

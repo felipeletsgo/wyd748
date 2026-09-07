@@ -160,10 +160,8 @@ func MobScore(id uint16, scoreState *model.Score, affects []model.Affect) []byte
 	return b
 }
 
-// createMob serializes TMProject's 328-byte MSG_CreateMob. The source
-// ABI expands equipment and affect arrays to 18/32 entries and embeds the
-// canonical 140-byte Score, but receives the same authoritative values as
-// the canonical builder.
+// createMob serializes the coordinated 328-byte TMProject748/WYD-Go snapshot.
+// It carries 18 equipment visuals, 32 affect words and the canonical Score.
 func createMob(id uint16, name string, x, y uint16, mesh []uint16, anct []byte, ext *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp *int16) []byte {
 	b := Build(OpCreateMob, SceneField, 328)
 	putU16(b, 12, x)

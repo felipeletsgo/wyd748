@@ -23,8 +23,8 @@ const (
 	OpCNFCharacterLogout = 0x116 // S->C confirma CharacterLogout (MSG_STANDARD)
 	OpDeleteCharacter    = 0x211 // C->S apaga personagem (slot/nome/senha)
 	OpCNFDeleteCharacter = 0x112 // S->C atualiza a selecao apos exclusao
-	OpCreateMobTrade     = 0x363 // S->C cria clone de auto-loja com titulo (352B)
-	OpCreateMob          = 0x364 // S->C cria mob/player (328B, Score@140)
+	OpCreateMobTrade     = 0x363 // S->C extensao coordenada: entidade + titulo (352B)
+	OpCreateMob          = 0x364 // S->C extensao coordenada: entidade/Score@140 (328B)
 	OpSetHpMp            = 0x181 // S->C extensao coordenada: HP/MP uint32 (28B)
 	OpUpdateScore        = 0x336 // S->C extensao coordenada: Score/affects (232B)
 	OpUpdateAffect       = 0x3B9 // S->C 16 affects completos do dono (140B)

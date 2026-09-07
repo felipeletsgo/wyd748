@@ -77,8 +77,24 @@ func TestCanonicalScoreRefreshUsesEmbeddedScore(t *testing.T) {
 
 func TestCanonicalMobPacketsUseScore140(t *testing.T) {
 	score := &model.Score{Version: model.ScoreVersion, Attack: 777, Defense: 333, MaxHP: 12000, CurHP: 11000}
-	create := CreateMobVisual(1001, "Observer", 100, 101, []uint16{22}, []byte{3}, score, nil, 0)
-	if len(create) != 328 || ParseHeader(create).Type != OpCreateMob || binary.LittleEndian.Uint32(create[148:152]) != 777 {
+	mesh := make([]uint16, 18)
+	anct := make([]byte, 18)
+	mesh[0], mesh[17], anct[0], anct[17] = 22, 39, 3, 7
+	create := CreateMobWithGuildRank(1001, "Observer", 100, 101, mesh, anct,
+		score, nil, 2, 0x1234, model.GuildRankLeader, 55)
+	if len(create) != 328 || ParseHeader(create).Type != OpCreateMob || ParseHeader(create).ID != SceneField ||
+		binary.LittleEndian.Uint16(create[12:14]) != 100 ||
+		binary.LittleEndian.Uint16(create[14:16]) != 101 ||
+		binary.LittleEndian.Uint16(create[16:18]) != 1001 ||
+		string(create[18:26]) != "Observer" ||
+		create[30] != CPNameByte(55) ||
+		binary.LittleEndian.Uint16(create[34:36]) != 22 ||
+		binary.LittleEndian.Uint16(create[68:70]) != 39 ||
+		binary.LittleEndian.Uint16(create[134:136]) != 0x0234 ||
+		create[136] != model.GuildRankLeader ||
+		binary.LittleEndian.Uint32(create[148:152]) != 777 ||
+		binary.LittleEndian.Uint16(create[280:282]) != 2 ||
+		create[282] != 3 || create[299] != 7 {
 		t.Fatalf("CreateMob ABI: len=%d", len(create))
 	}
 	refresh := MobScore(1001, score, nil)
@@ -108,7 +124,13 @@ func TestCanonicalCharListAndPresentationPackets(t *testing.T) {
 		t.Fatalf("CharList ABI: len=%d", len(b))
 	}
 	trade := CreateMobTrade(5, "Shop", 102, 103, nil, ch.Score, "Store")
-	if len(trade) != 352 || string(trade[326:331]) != "Store" {
+	if len(trade) != 352 || ParseHeader(trade).Type != OpCreateMobTrade ||
+		ParseHeader(trade).ID != SceneField ||
+		binary.LittleEndian.Uint16(trade[12:14]) != 102 ||
+		binary.LittleEndian.Uint16(trade[14:16]) != 103 ||
+		binary.LittleEndian.Uint16(trade[16:18]) != 5 ||
+		string(trade[18:22]) != "Shop" || string(trade[326:331]) != "Store" ||
+		trade[350] != 0 || trade[351] != 0 {
 		t.Fatalf("CreateMobTrade ABI")
 	}
 	shop := ShopList([]model.Item{{Index: 4011}}, 3, ShopNormal)

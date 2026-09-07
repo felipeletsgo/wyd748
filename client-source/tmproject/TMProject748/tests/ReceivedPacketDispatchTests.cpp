@@ -802,6 +802,86 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(updateAffect == updateAffectBefore,
         "gate preserva todos os bytes do UpdateAffect");
 
+    // CreateMob e CreateMobTrade compartilham o prefixo coordenado de entidade;
+    // o segundo acrescenta 24 bytes de titulo. Cada formato possui tamanho
+    // unico para impedir que o handler leia blocos ausentes ou misturados.
+    for (unsigned int opcode : {MSG_CreateMob_Opcode, MSG_CreateMobTrade_Opcode})
+    {
+        const std::size_t length = opcode == MSG_CreateMob_Opcode
+            ? kCreateMobPacketSize : kCreateMobTradePacketSize;
+        std::array<char, kCreateMobTradePacketSize + 1> createMob{};
+        createMob[0] = static_cast<char>(length & 0xFF);
+        createMob[1] = static_cast<char>((length >> 8) & 0xFF);
+        createMob[4] = static_cast<char>(opcode & 0xFF);
+        createMob[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        createMob[6] = 0x30;
+        createMob[7] = 0x75;
+        createMob[kCreateMobPositionOffset] = 0x11;
+        createMob[kCreateMobIdOffset] = 0x12;
+        createMob[kCreateMobNameOffset] = 0x13;
+        createMob[kCreateMobEquipOffset] = 0x14;
+        createMob[kCreateMobAffectOffset] = 0x15;
+        createMob[kCreateMobGuildOffset] = 0x16;
+        createMob[kCreateMobGuildLevelOffset] = 0x17;
+        createMob[kCreateMobScoreOffset] = 0x18;
+        createMob[kCreateMobTypeOffset] = 0x19;
+        createMob[kCreateMobAncientOffset] = 0x1A;
+        createMob[kCreateMobNickOffset] = 0x1B;
+        if (opcode == MSG_CreateMob_Opcode)
+            createMob[kCreateMobServerOffset] = 0x1C;
+        else
+        {
+            createMob[kCreateMobTradeDescriptionOffset] = 0x1D;
+            createMob[kCreateMobTradeServerOffset] = 0x1E;
+        }
+        const auto createMobBefore = createMob;
+        int createMobCalls = 0;
+        const auto receiveCreateMob = [&](const PacketView& view) {
+            ++createMobCalls;
+            check(view.data == createMob.data() && view.size == length && view.opcode == opcode,
+                "CreateMob coordenado preserva frame e opcode");
+        };
+        for (std::size_t n = 0; n < length; ++n)
+            check(!received_packet::Dispatch({opcode, createMob.data(), n}, receiveCreateMob),
+                "CreateMob coordenado rejeita todo prefixo truncado");
+        check(!received_packet::Dispatch({opcode, nullptr, length}, receiveCreateMob),
+            "CreateMob coordenado rejeita buffer nulo");
+        check(!received_packet::Dispatch({opcode, createMob.data(), length + 1}, receiveCreateMob),
+            "CreateMob coordenado rejeita frame excedente");
+        check(!received_packet::Dispatch({0x119, createMob.data(), length}, receiveCreateMob),
+            "opcode externo nao pode ocultar CreateMob coordenado");
+        createMob[4] = static_cast<char>((opcode + 1) & 0xFF);
+        check(!received_packet::Dispatch({opcode, createMob.data(), length}, receiveCreateMob),
+            "CreateMob coordenado rejeita Header.Type divergente");
+        createMob[4] = static_cast<char>(opcode & 0xFF);
+        createMob[0] = static_cast<char>((length - 1) & 0xFF);
+        check(!received_packet::Dispatch({opcode, createMob.data(), length}, receiveCreateMob),
+            "CreateMob coordenado rejeita Header.Size divergente");
+        createMob[0] = static_cast<char>(length & 0xFF);
+        check(createMobCalls == 0, "CreateMob invalido nao chega ao consumidor");
+        check(received_packet::Dispatch({opcode, createMob.data(), length}, receiveCreateMob) &&
+            createMobCalls == 1, "CreateMob coordenado entregue uma vez");
+        check(createMob[kCreateMobPositionOffset] == 0x11 &&
+            createMob[kCreateMobIdOffset] == 0x12 &&
+            createMob[kCreateMobNameOffset] == 0x13 &&
+            createMob[kCreateMobEquipOffset] == 0x14 &&
+            createMob[kCreateMobAffectOffset] == 0x15 &&
+            createMob[kCreateMobGuildOffset] == 0x16 &&
+            createMob[kCreateMobGuildLevelOffset] == 0x17 &&
+            createMob[kCreateMobScoreOffset] == 0x18 &&
+            createMob[kCreateMobTypeOffset] == 0x19 &&
+            createMob[kCreateMobAncientOffset] == 0x1A &&
+            createMob[kCreateMobNickOffset] == 0x1B,
+            "CreateMob preserva todos os blocos compartilhados");
+        check(opcode == MSG_CreateMob_Opcode
+                ? createMob[kCreateMobServerOffset] == 0x1C
+                : createMob[kCreateMobTradeDescriptionOffset] == 0x1D &&
+                    createMob[kCreateMobTradeServerOffset] == 0x1E,
+            "CreateMob preserva tail normal ou titulo da loja");
+        check(createMob == createMobBefore,
+            "gate preserva todos os bytes do CreateMob coordenado");
+    }
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;
