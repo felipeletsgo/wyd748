@@ -47,5 +47,40 @@ int RunGridInsertionTests(int& checks)
     check(grid_insertion::Execute(small, 0, &items[0], [&] {
         ++retries; return 0;
     }) == 0 && retries == 1, "falha do consumidor propagada sem retry");
+    // Consulta real usada por SGrid: varre todas as posicoes e footprints
+    // de uma grade 9x7, comparando com uma enumeracao independente de celulas.
+    std::array<int, 63> cells{};
+    cells[0] = 1;
+    cells[31] = 1;
+    cells[62] = 1;
+    cells[10] = 2; // O legado bloqueia exatamente 1, nao qualquer nao-zero.
+    const auto original = cells;
+    for (int y = -1; y <= 7; ++y)
+        for (int x = -1; x <= 9; ++x)
+            for (int height = 0; height <= 8; ++height)
+                for (int width = 0; width <= 10; ++width) {
+                    bool expected = x >= 0 && y >= 0 && width > 0 && height > 0 &&
+                        x + width <= 9 && y + height <= 7;
+                    if (expected)
+                        for (int slot = 0; slot < 63; ++slot)
+                            if (slot % 9 >= x && slot % 9 < x + width &&
+                                slot / 9 >= y && slot / 9 < y + height && cells[slot] == 1)
+                                expected = false;
+                    check(grid_occupancy::CanPlace(cells.data(), 9, 7, x, y, width, height) == expected,
+                        "consulta preserva ocupacao e limites em todos os retangulos pequenos");
+                }
+    for (int bad : {INT_MIN, -1, 0, INT_MAX}) {
+        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, 0, 0, bad, 1), "largura invalida rejeitada");
+        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, 0, 0, 1, bad), "altura invalida rejeitada");
+    }
+    for (int bad : {INT_MIN, -1, INT_MAX}) {
+        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, bad, 0, 1, 1), "x invalido rejeitado");
+        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, 0, bad, 1, 1), "y invalido rejeitado");
+    }
+    check(!grid_occupancy::CanPlace(nullptr, 9, 7, 0, 0, 1, 1), "ocupacao nula rejeitada");
+    check(!grid_occupancy::CanPlace(cells.data(), INT_MAX, 2, 0, 0, 1, 1), "produto de dimensoes invalido rejeitado");
+    check(!grid_occupancy::CanPlace(cells.data(), 9, -1, 0, 0, 1, 1), "grade negativa rejeitada");
+    check(!grid_occupancy::CanPlace(cells.data(), 0, 7, 0, 0, 1, 1), "grade vazia rejeitada");
+    check(cells == original, "consulta nao modifica ocupacao");
     return failures;
 }

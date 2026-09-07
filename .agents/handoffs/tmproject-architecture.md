@@ -1310,3 +1310,39 @@ Debug/Release via `Build-Client.ps1 -Rebuild` passaram com 1942 checks/asserts;
 o Release foi instalado em `client748/project.exe` com SHA-256
 `891463810FDDF12E959A6DE0C64DE0A751CF4E6D0F6FBE9EB6DAD1C2C05FDDC7`.
 Guerra, aliança, rejeição e relogin reais continuam sem `CLIENT_TESTED`.
+
+## Correção funcional — limites da consulta de ocupação (2026-09-06)
+
+Source atual confirmou que `CanItAdd` ainda somava dimensões/coordenadas signed
+e aceitava índices negativos antes de ler `m_pbFilled`. `GridInsertion.h`
+agora contém a consulta pura `grid_occupancy::CanPlace`: valida retângulo e
+produto da grade antes do acesso, mantendo exatamente a regra `ocupado == 1`.
+`CanAddItemInEmpty` e `AddItemInEmpty` validam dimensões antes de subtrair nos
+limites dos loops. Inserções diretas e sua política de sobreposição/recorte não
+foram alteradas; não foi inserido `CanItAdd` dentro de `AddItem`.
+
+Modo: `MODERNIZACAO_COMPATIVEL`, endurecimento local de entradas inválidas.
+Fontes UTILIZADAS: source SGrid/constructor (buffer columns*rows), testes C++,
+descompilação estudada `0040e604_FUN_0040e604.c` e
+`0040e6aa_FUN_0040e6aa.c` do corpus Ghidra 20260821; identidade nativa
+reutilizada da ficha `send-item-local-update.md`. A consulta nativa também
+bloqueia somente células iguais a 1; não alegamos que suas entradas inválidas
+eram seguras. Assets, wire e servidor NÃO APLICÁVEIS ao delta: inalterados.
+TMProject posterior/guias NÃO APLICÁVEIS como prova nativa; W2PP, Secrets e
+Micronics excluídos. Nenhuma promoção de maturidade da ficha SendItem.
+
+Testes enumeram retângulos de uma grade 9x7 com ocupação em início/meio/fim,
+comparando com uma enumeração independente; incluem INT_MIN/INT_MAX, dimensões
+zero/negativas, buffer nulo, produto inválido e ausência de mutação.
+`go test -count=1 ./...` passou na retomada. Build Release e gate C++ passaram
+com 11762 checks, inclusive após a guarda complementar de AddItemInEmpty.
+`git diff --check` passou. O build oficial instalou e conferiu
+`client748/project.exe`, SHA-256
+`BAFEB5162EF1C1B0DAAA4443159F898CFD3C7BC51B17F312193ADB9D85701BA6`.
+Estado: `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED`, não
+`CLIENT-TESTED`. Dois warnings C4018 preexistentes em SGrid permanecem.
+
+Lacunas confirmadas: inserções diretas AddItem/AddSkillItem/SetItem ainda exigem
+revisão própria para coordenadas negativas/overflow; teste no cliente real
+permanece pendente. `internal/game/teleports.go:onGuildChallenge` ainda é stub
+de disputa de cidades (0x28E/0x28F), logo o objetivo global não está concluído.

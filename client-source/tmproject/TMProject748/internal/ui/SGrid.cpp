@@ -787,22 +787,10 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 
 int SGridControl::CanItAdd(int* bFilledBuffer, int inCellIndexX, int inCellIndexY, int inCellWidth, int inCellHeight)
 {
-	if (!bFilledBuffer)
-		return 0;
-	if (inCellWidth + inCellIndexX > m_nColumnGridCount)
-		return 0;
-	if (inCellHeight + inCellIndexY > m_nRowGridCount)
-		return 0;
-	for (int nY = 0; nY < inCellHeight; ++nY)
-	{
-		for (int nX = 0; nX < inCellWidth; ++nX)
-		{
-			if (bFilledBuffer[nX + inCellIndexX + m_nColumnGridCount * (nY + inCellIndexY)] == 1)
-				return 0;
-		}
-	}
-
-	return 1;
+	// Endurecimento local de FUN_0040E604: preserva ocupacao == 1 para
+	// retangulos validos e rejeita limites invalidos antes de ler memoria.
+	return grid_occupancy::CanPlace(bFilledBuffer, m_nColumnGridCount,
+		m_nRowGridCount, inCellIndexX, inCellIndexY, inCellWidth, inCellHeight) ? 1 : 0;
 }
 
 int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)
@@ -893,6 +881,11 @@ IVector2 SGridControl::AddItemInEmpty(SGridControlItem* ipNewItem)
 	// Nao ler dimensoes de item nulo nem procurar espaco em lista cheia.
 	if (!grid_insertion::CanAppend(m_pItemList, m_nNumItem, ipNewItem))
 		return vec;
+	// Dimensoes invalidas nao podem causar overflow nos limites da busca.
+	// Nao acrescentar teste de ocupacao: AddItem preserva sua politica legada.
+	if (!grid_occupancy::ContainsRectangle(m_nColumnGridCount,
+		m_nRowGridCount, 0, 0, ipNewItem->m_nCellWidth, ipNewItem->m_nCellHeight))
+		return vec;
 	for (int nY = 0; nY <= m_nRowGridCount - ipNewItem->m_nCellHeight; ++nY)
 	{
 		for (int nX = 0; nX <= m_nColumnGridCount - ipNewItem->m_nCellWidth; ++nX)
@@ -912,6 +905,10 @@ IVector2 SGridControl::AddItemInEmpty(SGridControlItem* ipNewItem)
 IVector2 SGridControl::CanAddItemInEmpty(int nWidth, int nHeight)
 {
 	IVector2 vec{ -1, -1 };
+	// A busca tambem precisa validar antes das subtracoes nos limites do loop.
+	if (!m_pbFilled || !grid_occupancy::ContainsRectangle(m_nColumnGridCount,
+		m_nRowGridCount, 0, 0, nWidth, nHeight))
+		return vec;
 
 	for (int nX = 0; nX <= m_nColumnGridCount - nWidth; ++nX)
 	{
