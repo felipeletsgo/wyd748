@@ -145,6 +145,13 @@ func TestCanonicalCharListAndPresentationPackets(t *testing.T) {
 		binary.LittleEndian.Uint32(boundedShop[232:236]) != 3 {
 		t.Fatalf("ShopList ABI")
 	}
+	itemSold := ItemSold(0x1234, 0x89ABCDEF)
+	if len(itemSold) != 20 || ParseHeader(itemSold).Type != OpItemSold ||
+		ParseHeader(itemSold).ID != SceneField ||
+		binary.LittleEndian.Uint32(itemSold[12:16]) != 0x1234 ||
+		binary.LittleEndian.Uint32(itemSold[16:20]) != 0x89ABCDEF {
+		t.Fatalf("ItemSold ABI: % X", itemSold)
+	}
 	chat := MessageChat(5, "hello")
 	if len(chat) != 108 || string(chat[12:17]) != "hello" {
 		t.Fatalf("MessageChat ABI")

@@ -29,6 +29,7 @@
 #include "../wire/UpdateAffectContract.h"
 #include "../wire/CreateMobContract.h"
 #include "../wire/ShopListContract.h"
+#include "../wire/ItemSoldContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -199,6 +200,12 @@ struct MSG_STANDARDPARM2
 	INT32 Parm1;
 	INT32 Parm2;
 };
+static_assert(sizeof(MSG_STANDARDPARM2) == kItemSoldPacketSize,
+	"ItemSold two-parameter packet size changed");
+static_assert(offsetof(MSG_STANDARDPARM2, Parm1) == kItemSoldEntityOffset,
+	"ItemSold entity offset changed");
+static_assert(offsetof(MSG_STANDARDPARM2, Parm2) == kItemSoldPositionOffset,
+	"ItemSold position offset changed");
 static_assert(sizeof(MSG_STANDARDPARM2) == 20, "WYD 7.48 gamble request must be 20 bytes");
 
 struct MSG_STANDARDPARM3

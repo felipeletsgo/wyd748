@@ -937,6 +937,56 @@ int RunReceivedPacketDispatchTests(int& checks)
         "ShopList preserva imposto no offset 232");
     check(shopList == shopListBefore, "gate preserva todos os bytes do ShopList");
 
+    // A venda em loja fantasma remove um unico anuncio identificado por dois
+    // DWORDs; o handler nao deve receber frames parciais ou deslocados.
+    std::array<char, kItemSoldPacketSize + 1> itemSold{};
+    itemSold[0] = static_cast<char>(kItemSoldPacketSize);
+    itemSold[4] = static_cast<char>(MSG_ItemSold_Opcode & 0xFF);
+    itemSold[5] = static_cast<char>((MSG_ItemSold_Opcode >> 8) & 0xFF);
+    itemSold[6] = 0x34;
+    itemSold[7] = 0x12;
+    itemSold[kItemSoldEntityOffset] = 0x11;
+    itemSold[kItemSoldPositionOffset] = 0x22;
+    itemSold[kItemSoldPositionOffset + 1] = 0x23;
+    itemSold[kItemSoldPositionOffset + 2] = 0x24;
+    itemSold[kItemSoldPositionOffset + 3] = 0x25;
+    const auto itemSoldBefore = itemSold;
+    int itemSoldCalls = 0;
+    const auto receiveItemSold = [&](const PacketView& view) {
+        ++itemSoldCalls;
+        check(view.data == itemSold.data() && view.size == kItemSoldPacketSize &&
+            view.opcode == MSG_ItemSold_Opcode,
+            "ItemSold preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kItemSoldPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_ItemSold_Opcode, itemSold.data(), n},
+            receiveItemSold), "ItemSold rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_ItemSold_Opcode, nullptr, kItemSoldPacketSize},
+        receiveItemSold), "ItemSold rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_ItemSold_Opcode, itemSold.data(),
+        kItemSoldPacketSize + 1}, receiveItemSold), "ItemSold rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, itemSold.data(), kItemSoldPacketSize},
+        receiveItemSold), "opcode externo nao pode ocultar ItemSold");
+    itemSold[4] = static_cast<char>((MSG_ItemSold_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_ItemSold_Opcode, itemSold.data(),
+        kItemSoldPacketSize}, receiveItemSold), "ItemSold rejeita Header.Type divergente");
+    itemSold[4] = static_cast<char>(MSG_ItemSold_Opcode & 0xFF);
+    itemSold[0] = static_cast<char>(kItemSoldPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_ItemSold_Opcode, itemSold.data(),
+        kItemSoldPacketSize}, receiveItemSold), "ItemSold rejeita Header.Size divergente");
+    itemSold[0] = static_cast<char>(kItemSoldPacketSize);
+    check(itemSoldCalls == 0, "ItemSold invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_ItemSold_Opcode, itemSold.data(),
+        kItemSoldPacketSize}, receiveItemSold) && itemSoldCalls == 1,
+        "ItemSold valido entregue uma vez");
+    check(itemSold[kItemSoldEntityOffset] == 0x11 &&
+        itemSold[kItemSoldPositionOffset] == 0x22 &&
+        itemSold[kItemSoldPositionOffset + 1] == 0x23 &&
+        itemSold[kItemSoldPositionOffset + 2] == 0x24 &&
+        itemSold[kItemSoldPositionOffset + 3] == 0x25,
+        "ItemSold preserva entidade e posicao nos offsets contratados");
+    check(itemSold == itemSoldBefore, "gate preserva todos os bytes do ItemSold");
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

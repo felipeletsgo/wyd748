@@ -1940,3 +1940,7 @@ Ficha `flows/transport/create-mob-source-contract.md` em `CONTRACT`. Architectur
 Ghidra confirma `FUN_00492E7D -> FUN_004875C0` e `FUN_0055890A` exige 236B: ShopType em `+12`, 27 `STRUCT_ITEM` em `+16` e Tax em `+232`. `ShopListContract.h`, asserts e `ReceivedPacketDispatch` agora protegem o snapshot antes de ordenar/materializar a loja. O builder Go foi coberto com 28 itens para confirmar que o extra nao sobrescreve Tax.
 
 Ficha `flows/ui/shop-list-contract.md` em `CONTRACT`. ArchitectureTests 26785 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `39B9FC79FE86388E54DB32FB31F0EADAC5E0E81012CE4D3960A705CC708427A7`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: revisar outra resposta S->C viva ainda sem gate, sem reabrir contratos ja publicados.
+
+## Contrato 0x39B — anuncio de AutoTrade vendido (2026-09-07)
+
+Ghidra confirma `FUN_00492E7D -> FUN_004854ED`; o clone fica em `Parm1@12`, a posicao em `Parm2@16` e `FUN_0055890A` exige 20B. `ItemSoldContract.h`, asserts e `ReceivedPacketDispatch` agora fecham o envelope antes de `OnPacketItemSold`, preservando a remocao visual e o lifecycle existente. ArchitectureTests 26815 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `4929DED5CAEBCDFE1474E50C7CD775B39B0260965201D9374EE1DDA52C0B5570`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote continua em respostas S->C vivas ainda sem gate.

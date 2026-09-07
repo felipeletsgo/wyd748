@@ -9126,7 +9126,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		return OnPacketCNFCharacterLogin(reinterpret_cast<MSG_CNFCharacterLogin*>(pStd));
 	case 0x3E8:
 		return OnPacketUndoSellItem(reinterpret_cast<MSG_RepurchaseItems*>(pStd));
-	case 0x39B:
+	case MSG_ItemSold_Opcode:
 		return OnPacketItemSold(reinterpret_cast<MSG_STANDARDPARM2*>(pStd));
 	case MSG_UpdateCargoGold_Opcode:
 		return OnPacketUpdateCargoCoin(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
