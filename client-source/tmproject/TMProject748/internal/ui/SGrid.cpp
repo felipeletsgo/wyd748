@@ -2265,9 +2265,9 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 		if (!IsSkill(g_pCursor->m_pAttachedItem->m_pItem->sIndex))
 			return 1;
 
-		int nSeg = 0;
-		if (m_dwControlID == 65645)
-			nSeg = 10;
+		// A segunda pagina ja esta vinculada pela cena ao controle nativo 586.
+		// O ID posterior 65645 gravava incorretamente os atalhos em 0..9.
+		const int nSeg = this == pScene->m_pGridSkillBelt3 ? 10 : 0;
 
 		auto pItem = PickupItem(nCellX, nCellY);
 		auto pNewItem = new STRUCT_ITEM;
@@ -2520,9 +2520,8 @@ int SGridControl::SellItem2()
 		if (!IsSkill(g_pCursor->m_pAttachedItem->m_pItem->sIndex))
 			return 1;
 
-		int nSeg = 0;
-		if (m_dwControlID == 65645)
-			nSeg = 10;
+		// A confirmacao diferida usa a mesma pagina resolvida pelo drag direto.
+		const int nSeg = this == pFScene->m_pGridSkillBelt3 ? 10 : 0;
 
 		auto pReturnItem = PickupItem(nCellX, nCellY);
 

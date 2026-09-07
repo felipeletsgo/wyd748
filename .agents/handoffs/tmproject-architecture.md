@@ -1386,3 +1386,31 @@ de AddItem/SetItem, começando por quickslots/skill belt em SGrid::SellItem;
 testar arrastar/equipar/retirar e oferta de trade no candidato real.
 Não repetir consulta/escrita pura já coberta. Disputa de cidades e demais
 fluxos in-game continuam pendentes; o objetivo global permanece ativo.
+
+## Correção funcional — drop na segunda página de skills (2026-09-06)
+
+Ao revisar SellItem/SellItem2, foi confirmado que ambos testavam o ID moderno
+65645 para selecionar +10. A árvore ativa vincula a segunda barra ao ID 586,
+portanto um drop nela escrevia nos slots 0..9. Os dois consumidores agora
+comparam a grade com `m_pGridSkillBelt3` da cena. Primeira página, wire, regras
+de skill e servidor permanecem inalterados; sem nova tabela de IDs.
+
+Ficha `ui/skill-belt-page-selection.md` TRACED, limitada à seleção da página;
+export Ghidra read-only `skill-belt-page-flow.tsv`, identidade histórica
+confirmada e execução sem SCRIPT ERROR. O branch `FUN_00416196` testa 0x24A
+e soma 10; seu caller 004209FC e consumidor 004470B9 foram inspecionados.
+Modo MODERNIZACAO_COMPATIVEL de binding local, sem claim de paridade completa.
+
+Build oficial Release PASS, 24253 checks existentes e static assertions PASS;
+estes checks não simulam o drag. `go test -count=1 ./internal/game
+./internal/wire` PASS. Validador: CONTRACT=29, TRACED=19, LOCATED=6,
+UNMAPPED=2. Instalado `client748/project.exe`, SHA-256
+`2FFA834BF2941C80FA19840E397E543F9E275F74E74EFA473E25A5609E94E55A`.
+Estado da correção: IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED.
+
+Próximo passo: concluir rollback/ownership dos callers de drop na barra
+(SellItem/SellItem2 retiram o visual anterior antes de aceitar o substituto),
+depois quickslots. Testar drag em slots 1 e 10 de ambas as páginas, troca por
+Z e pelos botões 587/588, resposta do servidor e persistência após relogin.
+O teste de ID 65645 restante no ramo CUBEBOX calcula um nSeg não utilizado e
+não participa dessa gravação; não foi alterado por limpeza incidental.
