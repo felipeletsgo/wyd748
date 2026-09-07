@@ -24308,24 +24308,27 @@ int TMFieldScene::OnPacketBuy(MSG_STANDARD* pStd)
 	if (!pShopItem || !pShopItem->m_pItem || pShopItem->m_pItem->sIndex <= 0)
 		return 1;
 
-	auto pStructItem = new STRUCT_ITEM;
-	if (!pStructItem)
-		return 1;
-	memcpy(pStructItem, pShopItem->m_pItem, sizeof(STRUCT_ITEM));
+	STRUCT_ITEM boughtItem{};
+	memcpy(&boughtItem, pShopItem->m_pItem, sizeof(STRUCT_ITEM));
 
-	auto pControlItem = new SGridControlItem(m_pGridInv, pStructItem, 0.0f, 0.0f);
-	if (!pControlItem)
+	// O payload alocado pertence ao controle visual. A copia local permanece
+	// valida se a grade rejeitar o controle e o destrutor liberar esse payload.
+	auto pStructItem = new STRUCT_ITEM;
+	if (pStructItem)
 	{
-		delete pStructItem;
-		return 1;
+		memcpy(pStructItem, &boughtItem, sizeof(STRUCT_ITEM));
+		auto pControlItem = new SGridControlItem(m_pGridInv, pStructItem, 0.0f, 0.0f);
+		if (!pControlItem)
+			delete pStructItem;
+		else if (!m_pGridInv->AddItem(pControlItem, pBuy->MyCarryPos % 9,
+			pBuy->MyCarryPos / 9))
+			SAFE_DELETE(pControlItem);
 	}
 
-	// The server chooses MyCarryPos after validating the one-cell 9x7 Carry.
-	// Mirror that exact slot in both the UI control and STRUCT_MOB cache.
-	if (!m_pGridInv->AddItem(pControlItem, pBuy->MyCarryPos % 9, pBuy->MyCarryPos / 9))
-		SAFE_DELETE(pControlItem);
+	// O servidor escolhe MyCarryPos depois de validar o Carry 9x7. O cache
+	// logico deve aceitar essa confirmacao mesmo se a representacao visual falhar.
 	memcpy(&g_pObjectManager->m_stMobData.Carry[pBuy->MyCarryPos],
-		pStructItem, sizeof(STRUCT_ITEM));
+		&boughtItem, sizeof(STRUCT_ITEM));
 	g_pObjectManager->m_stMobData.Coin = pBuy->Coin;
 
 	GetSoundAndPlay(31, 0, 0);

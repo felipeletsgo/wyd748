@@ -1702,3 +1702,28 @@ Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS e
 `git diff --check` PASS. Candidato instalado e conferido:
 BD8AB9A5DF004CEA229300A51B836C96D8941308CACB839EC7645E58D831AE33.
 Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED.
+
+## Correcao funcional — ownership na confirmacao de compra (2026-09-07)
+
+Retomada confirmou no HEAD `16fea430` que `TMFieldScene::OnPacketBuy` ainda
+usava `pStructItem` depois de `SAFE_DELETE(pControlItem)` quando `AddItem`
+rejeitava o visual; o destrutor do controle tambem libera esse payload. O
+handler agora preserva uma copia local do item anunciado, entrega ao controle
+visual uma copia alocada separada e atualiza Carry/Coin pela copia local mesmo
+se a grade ou a alocacao visual falhar. O packet 0x379, os limites, a identidade
+do mercador, a posicao escolhida pelo servidor e a ordem final de som/UI foram
+preservados.
+
+Modo MODERNIZACAO_COMPATIVEL, correcao local de ownership sobre o contrato de
+compra 7.48 ja documentado para FUN_00487b92. UTILIZADA: source atual e ficha
+nativa existente; binario/Ghidra 7.48 reutilizados sem novo claim. Servidor Go,
+assets e guia KR sao NAO APLICAVEIS ao defeito local. Sources 7.54, W2PP,
+Secrets e Micronics nao foram consultadas.
+
+Build Release via `Build-Client.ps1` PASS, ArchitectureTests 24253 checks e
+asserts estaticos PASS, `git diff --check` PASS. Candidato instalado:
+`62C644E26FD905258D10452ED42D9819F6BB91EC10866C1EE6EA595FCD2E9235`.
+Estado IMPLEMENTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo passo:
+exercitar compra com Carry livre e rejeicao visual no candidato, depois seguir
+somente pelos callers de `SGridControl::AddItem` em handlers vivos 7.48 sem
+reabrir Shop, Necklace/Belt, skill pages, quickslots ou swap ja corrigidos.
