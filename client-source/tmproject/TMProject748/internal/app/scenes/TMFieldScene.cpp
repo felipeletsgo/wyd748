@@ -23453,8 +23453,12 @@ int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)
 
 int TMFieldScene::OnPacketCNFGetItem(MSG_CNFGetItem* pMsg)
 {
+	if (!pMsg || !g_pObjectManager)
+		return 0;
 	auto pGrid = m_pGridInv;
 	auto pStructItem = new STRUCT_ITEM;
+	if (!pStructItem)
+		return 0;
 
 	memcpy(pStructItem, &pMsg->Item, sizeof(pMsg->Item));
 	if (BASE_GetItemAbility((STRUCT_ITEM*)pStructItem, 38) == 2)
@@ -23466,14 +23470,24 @@ int TMFieldScene::OnPacketCNFGetItem(MSG_CNFGetItem* pMsg)
 
 		char szMoney[64]{};
 		sprintf(szMoney, "%10d", g_pObjectManager->m_stMobData.Coin);
-		m_pMoney1->m_cComma = 2;
-		m_pMoney1->SetText(szMoney, 0);
-		m_pMoney2->m_cComma = 2;
-		m_pMoney2->SetText(szMoney, 0);
+		if (m_pMoney1)
+		{
+			m_pMoney1->m_cComma = 2;
+			m_pMoney1->SetText(szMoney, 0);
+		}
+		if (m_pMoney2)
+		{
+			m_pMoney2->m_cComma = 2;
+			m_pMoney2->SetText(szMoney, 0);
+		}
 
 		sprintf(szMoney, "%10d", g_pObjectManager->m_stMobData.Coin);
-		m_pMoney3->m_cComma = 2;
-		m_pMoney3->SetText(szMoney, 0);
+		if (m_pMoney3)
+		{
+			m_pMoney3->m_cComma = 2;
+			m_pMoney3->SetText(szMoney, 0);
+		}
+		delete pStructItem;
 	}
 	else
 	{

@@ -1647,3 +1647,22 @@ validador de pesquisa PASS (`CONTRACT=29`, `TRACED=19`, `LOCATED=7`,
 BDE59A24D94F33E5556C03730B1F13B27D0C5E1C005F7411FD0E0A174840663C.
 Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED. Ainda falta
 confirmar no executável que não há hitbox/ícone após abrir Character e relogar.
+
+## Correção funcional — lifecycle de confirmação de pickup (2026-09-07)
+
+`OnPacketCNFGetItem` alocava um `STRUCT_ITEM` antes de distinguir moeda de
+item, não tratava pacote nulo e assumia que os três controles de dinheiro
+existiam. O handler agora valida entrada/alocação, atualiza cada controle de
+forma opcional e libera o temporário no ramo de moeda; o ramo de item continua
+transferindo ownership para a grade somente após `AddItem` aceitar. Pickup,
+posição e wire não foram alterados.
+
+Modo MODERNIZACAO_COMPATIVEL, ownership/lifecycle local. UTILIZADAS: source
+atual, `MSG_CNFGetItem`/`SGridControl::AddItem` e documentação de pickup. Ghidra
+e guia KR não são necessários para a guarda de alocação; sources 7.54/W2PP/
+Secrets/Micronics não consultadas.
+
+Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS e
+`git diff --check` PASS. Candidato instalado e conferido:
+5A3822AE5EFED12B47EB4E36517D47F8E1760B6D19FE6D5C775BA6D3190AEB0E.
+Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED.
