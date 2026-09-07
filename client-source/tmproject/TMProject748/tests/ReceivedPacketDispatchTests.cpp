@@ -1092,6 +1092,70 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(premiumFirework == premiumBefore,
         "gate preserva todos os bytes do PremiumFirework");
 
+    // Resultado do Gamble: cinco simbolos, tres paradas, premio assinado e
+    // jackpot. Os oito bytes reservados entre paradas e premio continuam parte
+    // do ABI de 36 bytes e nao podem ser removidos.
+    std::array<char, sizeof(MSG_ResultGamble) + 1> resultGamble{};
+    resultGamble[0] = static_cast<char>(sizeof(MSG_ResultGamble));
+    resultGamble[4] = static_cast<char>(MSG_ResultGamble_Opcode & 0xFF);
+    resultGamble[5] = static_cast<char>((MSG_ResultGamble_Opcode >> 8) & 0xFF);
+    resultGamble[6] = 0x34;
+    resultGamble[7] = 0x12;
+    resultGamble[12] = 1;
+    resultGamble[16] = 2;
+    resultGamble[17] = 3;
+    resultGamble[19] = 4;
+    resultGamble[28] = static_cast<char>(0xEF);
+    resultGamble[29] = static_cast<char>(0xCD);
+    resultGamble[30] = static_cast<char>(0xAB);
+    resultGamble[31] = static_cast<char>(0x89);
+    resultGamble[32] = 0x11;
+    resultGamble[33] = 0x22;
+    resultGamble[34] = 0x33;
+    resultGamble[35] = 0x44;
+    const auto resultGambleBefore = resultGamble;
+    int resultGambleCalls = 0;
+    const auto receiveResultGamble = [&](const PacketView& view) {
+        ++resultGambleCalls;
+        check(view.data == resultGamble.data() && view.size == sizeof(MSG_ResultGamble) &&
+            view.opcode == MSG_ResultGamble_Opcode,
+            "ResultGamble preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < sizeof(MSG_ResultGamble); ++n)
+        check(!received_packet::Dispatch({MSG_ResultGamble_Opcode,
+            resultGamble.data(), n}, receiveResultGamble),
+            "ResultGamble rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_ResultGamble_Opcode, nullptr,
+        sizeof(MSG_ResultGamble)}, receiveResultGamble),
+        "ResultGamble rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_ResultGamble_Opcode,
+        resultGamble.data(), sizeof(MSG_ResultGamble) + 1}, receiveResultGamble),
+        "ResultGamble rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, resultGamble.data(),
+        sizeof(MSG_ResultGamble)}, receiveResultGamble),
+        "opcode externo nao pode ocultar ResultGamble");
+    resultGamble[4] = static_cast<char>((MSG_ResultGamble_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_ResultGamble_Opcode,
+        resultGamble.data(), sizeof(MSG_ResultGamble)}, receiveResultGamble),
+        "ResultGamble rejeita Header.Type divergente");
+    resultGamble[4] = static_cast<char>(MSG_ResultGamble_Opcode & 0xFF);
+    resultGamble[0] = static_cast<char>(sizeof(MSG_ResultGamble) - 1);
+    check(!received_packet::Dispatch({MSG_ResultGamble_Opcode,
+        resultGamble.data(), sizeof(MSG_ResultGamble)}, receiveResultGamble),
+        "ResultGamble rejeita Header.Size divergente");
+    resultGamble[0] = static_cast<char>(sizeof(MSG_ResultGamble));
+    check(resultGambleCalls == 0, "ResultGamble invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_ResultGamble_Opcode,
+        resultGamble.data(), sizeof(MSG_ResultGamble)}, receiveResultGamble) &&
+        resultGambleCalls == 1, "ResultGamble valido entregue uma vez");
+    check(resultGamble[12] == 1 && resultGamble[16] == 2 &&
+        resultGamble[17] == 3 && resultGamble[19] == 4 &&
+        static_cast<unsigned char>(resultGamble[28]) == 0xEF &&
+        static_cast<unsigned char>(resultGamble[35]) == 0x44,
+        "ResultGamble preserva simbolos, paradas, premio e jackpot");
+    check(resultGamble == resultGambleBefore,
+        "gate preserva todos os bytes do ResultGamble");
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

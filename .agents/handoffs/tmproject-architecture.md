@@ -1952,3 +1952,7 @@ Ghidra confirma `FUN_00492E7D -> FUN_004854ED`; o clone fica em `Parm1@12`, a po
 ## Contrato 0x3CA — publicacao de PremiumFirework (2026-09-07)
 
 Ghidra e `FUN_0055890A` confirmam `0x3CA/36B`; `TMHuman::OnPacketPremiumFireWork` consome o Bitmap em `+20` para criar o efeito. A estrutura existente `MSG_PremiumFirework` ja era correta; apenas `ReceivedPacketDispatch` passou a exigir o tamanho e Type/opcode antes do callback. ArchitectureTests 26887 checks/asserts PASS, `go test -count=1 ./...`, XML, pesquisa e diff PASS. Candidato: `BB904B8E2AC97663F2BC18D38A5A86009A80173EDE93BAD727A570D47AF5A849`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED.
+
+## Contrato 0x1BF — resultado de Gamble (2026-09-07)
+
+Ghidra e `FUN_0055890A` confirmam 36B: Result[5] em `+12`, StopPosition[3] em `+17`, Prize i32 em `+28` e Jackpot u32 em `+32`. `ReceivedPacketDispatch` agora exige esse frame antes de `OnPacketRESULTGAMBLE`; a struct e o builder ja eram corretos. Ficha `flows/ui/gamble-result-contract.md` em `CONTRACT`. ArchitectureTests 26933 checks/asserts PASS, `go test -count=1 ./...`, XML, pesquisa e diff PASS. Candidato: `C2C6B90409D1E23DC7BC70B609D636174AD9D6468F187E2ACC44509CF3A2CA7A`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED.

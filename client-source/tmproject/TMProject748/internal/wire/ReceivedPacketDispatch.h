@@ -18,6 +18,7 @@
 #include "ItemSoldContract.h"
 #include "CombineCompleteContract.h"
 #include "PremiumFireworkPacket.h"
+#include "GamblePacket.h"
 #include "MessagePanelPacket.h"
 #include "ServerMigrationPacket.h"
 #include "ChatMessagePacket.h"
@@ -70,6 +71,7 @@ namespace received_packet
         case MSG_ItemSold_Opcode: return kItemSoldPacketSize;
         case MSG_CombineComplete_Opcode: return kCombineCompletePacketSize;
         case MSG_PremiumFirework_Opcode: return sizeof(MSG_PremiumFirework);
+        case MSG_ResultGamble_Opcode: return sizeof(MSG_ResultGamble);
         case MSG_MessagePanel_Opcode: return sizeof(MSG_MessagePanel);
         case MSG_LegacySceneMessage102_Opcode: return sizeof(MSG_LegacySceneMessage102);
         case MSG_LegacySceneMessage104_Opcode: return sizeof(MSG_LegacySceneMessage104);
