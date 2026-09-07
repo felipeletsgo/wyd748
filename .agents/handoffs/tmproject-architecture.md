@@ -1553,3 +1553,28 @@ legados permanecem.
 Próximo passo: revisar as rotinas de montagem de grids de equipamento/loja
 acionadas por respostas de compra e venda, depois validar visualmente Shop,
 Skill Apprentice, recompra e swap no candidato.
+
+## Correção funcional — rollback de `SetShortSkill` (2026-09-07)
+
+`TMFieldScene::SetShortSkill` ainda retirava o visual existente do belt antes
+de chamar `AddItem` e não tratava falha. O método agora valida índice, belt e
+payload; mantém o antigo em uma variável de rollback, libera corretamente
+alocações parciais e reinsere o antigo quando a nova inserção falha. O estado
+`ShortSkill`, o packet `0x378`, som e cursor só avançam após inserção aceita.
+As duas páginas continuam usando os mesmos índices 0..9 e 10..19.
+
+Modo MODERNIZACAO_COMPATIVEL, implementação local de ownership. UTILIZADAS:
+source atual de `SetShortSkill`, `SGridControl::PickupItem`/`AddItem`,
+`SCursor::DetachItem` e documentação da seleção de página. A descompilação e o
+guia KR são NÃO APLICÁVEIS para essa guarda de falha local; não houve uso de
+TMProject posterior nem de sources 7.54/W2PP/Secrets/Micronics.
+
+Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
+`git diff --check` PASS. Candidato instalado e conferido:
+C172CE1527FDC9188706F5F776C350CA480AA0995ECF5FCD45A71777ADA51DA5.
+Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED. Warnings C4018
+legados permanecem.
+
+Próximo passo: revisar os últimos callers de `AddItem` em respostas de compra,
+doação e listas auxiliares, sem repetir os guards já aplicados, e executar os
+fluxos reais de skill/quickslot/swap quando o candidato puder ser testado.

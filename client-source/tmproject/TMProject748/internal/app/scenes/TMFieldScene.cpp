@@ -17741,19 +17741,47 @@ void TMFieldScene::IncSkillSel()
 
 void TMFieldScene::SetShortSkill(int nIndex, SGridControlItem* pGridItem)
 {
-	if (!pGridItem || IsPassiveSkill(pGridItem->m_pItem->sIndex))
+	if (!pGridItem || !pGridItem->m_pItem || nIndex < 0 || nIndex >= 20 ||
+		IsPassiveSkill(pGridItem->m_pItem->sIndex))
 		return;
+
+	// A falha de alocacao/insercao nao pode apagar o atalho anterior. Como a
+	// grade rejeita sem transferir ownership, o rollback recoloca o visual
+	// antigo antes de devolver o controle ao chamador.
+	auto restoreOld = [](SGridControl* belt, SGridControlItem*& oldItem, int cell)
+	{
+		if (oldItem && (!belt || belt->AddItem(oldItem, cell, 0) != 1))
+			SAFE_DELETE(oldItem);
+	};
 
 	if (nIndex < 10)
 	{
 		auto pBelt2 = m_pGridSkillBelt2;
+		if (!pBelt2)
+			return;
 		auto pReturnItem2 = pBelt2->PickupItem(nIndex, 0);
 
 		auto pNewItem2 = new STRUCT_ITEM;
+		if (!pNewItem2)
+		{
+			restoreOld(pBelt2, pReturnItem2, nIndex);
+			return;
+		}
 		memcpy(pNewItem2, pGridItem->m_pItem, sizeof(STRUCT_ITEM));
 
 		auto pNewGridItem = new SGridControlItem(nullptr, pNewItem2, 0.0f, 0.0f);
-		pBelt2->AddItem(pNewGridItem, nIndex, 0);
+		if (!pNewGridItem)
+		{
+			delete pNewItem2;
+			restoreOld(pBelt2, pReturnItem2, nIndex);
+			return;
+		}
+		if (pBelt2->AddItem(pNewGridItem, nIndex, 0) != 1)
+		{
+			SAFE_DELETE(pNewGridItem);
+			restoreOld(pBelt2, pReturnItem2, nIndex);
+			return;
+		}
 
 		if (g_pObjectManager->m_cSelectShortSkill == nIndex)
 			pNewGridItem->m_GCObj.nTextureSetIndex = 200;
@@ -17765,12 +17793,30 @@ void TMFieldScene::SetShortSkill(int nIndex, SGridControlItem* pGridItem)
 	else
 	{
 		auto pBelt3 = m_pGridSkillBelt3;
+		if (!pBelt3)
+			return;
 		auto pReturnItem3 = pBelt3->PickupItem(nIndex - 10, 0);
 		auto pNewItem3 = new STRUCT_ITEM;
+		if (!pNewItem3)
+		{
+			restoreOld(pBelt3, pReturnItem3, nIndex - 10);
+			return;
+		}
 		memcpy(pNewItem3, pGridItem->m_pItem, sizeof(STRUCT_ITEM));
 
 		auto pNewGridItem = new SGridControlItem(nullptr, pNewItem3, 0.0f, 0.0f);
-		pBelt3->AddItem(pNewGridItem, nIndex - 10, 0);
+		if (!pNewGridItem)
+		{
+			delete pNewItem3;
+			restoreOld(pBelt3, pReturnItem3, nIndex - 10);
+			return;
+		}
+		if (pBelt3->AddItem(pNewGridItem, nIndex - 10, 0) != 1)
+		{
+			SAFE_DELETE(pNewGridItem);
+			restoreOld(pBelt3, pReturnItem3, nIndex - 10);
+			return;
+		}
 
 		if (g_pObjectManager->m_cSelectShortSkill == nIndex)
 			pNewGridItem->m_GCObj.nTextureSetIndex = 200;
