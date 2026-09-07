@@ -1414,3 +1414,36 @@ depois quickslots. Testar drag em slots 1 e 10 de ambas as páginas, troca por
 Z e pelos botões 587/588, resposta do servidor e persistência após relogin.
 O teste de ID 65645 restante no ramo CUBEBOX calcula um nSeg não utilizado e
 não participa dessa gravação; não foi alterado por limpeza incidental.
+
+## Correção funcional — substituição na barra de skills (2026-09-07)
+
+Retomada conferiu HEAD 8bcc7a8f e worktree limpa: o binding da segunda pagina
+ja estava corrigido; nao foi refeito. SellItem/SellItem2 ainda retiravam o
+visual antes de AddItem e ignoravam rejeicao. Agora o helper local insere
+primeiro e retira o primeiro visual anterior atingido somente apos sucesso,
+restabelecendo a ocupacao que PickupItem limpa. O caller desanexa o cursor
+antes de destruir o antigo, inclusive quando o cursor aponta para ele.
+Rejeicao libera somente o novo visual/payload e retorna antes de gravar
+ShortSkill/enviar packet. Slots fora de 0..9, linha diferente de zero e
+cursor/payload ausentes sao rejeitados. Lista cheia rejeita conservando o
+anterior; a barra normal tem dez slots e a lista tem capacidade 128.
+
+Modo MODERNIZACAO_COMPATIVEL, implementacao local de ownership. UTILIZADAS:
+source atual (AddItem/PickupItem/destructor), documentacao da ficha
+skill-belt-page-selection e descompilacao estudada FUN_00416196 do corpus
+20260821: retirada +0xA4, construcao, insercao +0x8C, detach, delete, envio.
+SHA-256 nativo reconferido: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593.
+Nenhum claim de rollback nativo novo. Assets, guia KR e servidor NAO
+APLICAVEIS ao delta de ownership; wire, mecanicas e IDs inalterados.
+Sources 7.54/W2PP/Secrets/Micronics nao consultadas.
+
+Build oficial Release PASS; 24253 checks existentes/static assertions PASS,
+sem alegar que simulam este drop. Candidato instalado e conferido:
+1FD6A310D13DB90DEC0C9B5AC1B7FD6732B33F3A76EE6AB80D88647AC7C3321F.
+Estado IMPLEMENTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Warnings C4018
+preexistentes permanecem. Nenhum consumidor Go mudou neste lote.
+
+Proximo passo: testar substituicao/slot vazio/mesmo slot/rejeicao em ambas as
+paginas e relogin no candidato; seguir para os callers de quickslot em
+SellItem, que ainda apagam o anterior e ignoram AddItem. Nao refazer as
+correcoes de pagina nem de limites da grade. Objetivo global permanece ativo.

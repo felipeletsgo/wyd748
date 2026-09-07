@@ -13,6 +13,36 @@
 
 namespace
 {
+	// Substituicao local da barra: o caller continua dono do novo visual se
+	// AddItem rejeitar. O antigo so sai depois da insercao aceita e sera
+	// destruido pelo caller apos desanexar o cursor, que pode apontar para ele.
+	bool WYD748_ReplaceSkillBeltVisual(SGridControl* grid, SGridControlItem* replacement,
+		int x, int y, SGridControlItem*& previous)
+	{
+		previous = nullptr;
+		if (grid->AddItem(replacement, x, y) != 1)
+			return false;
+		// Buscar como PickupItem, sem o efeito de hover de GetItem e sem
+		// selecionar o substituto recem-anexado ao fim da lista.
+		for (int i = 0; i < grid->m_nNumItem - 1; ++i)
+		{
+			if (grid->m_pItemList[i] && grid->m_pItemList[i]->PtInItem(x, y) == 1)
+			{
+				previous = grid->PickupItem(x, y);
+				break;
+			}
+		}
+		if (previous)
+		{
+			// Pickup limpa a ocupacao compartilhada. A geometria do substituto
+			// acabou de ser aceita por AddItem; restabelecer somente seu footprint.
+			grid_occupancy::FillClipped(grid->m_pbFilled, grid->m_nColumnGridCount,
+				grid->m_nRowGridCount, x, y, replacement->m_nCellWidth,
+				replacement->m_nCellHeight, 1);
+		}
+		return true;
+	}
+
 	bool WYD748_IsValidItemIndex(const short itemIndex)
 	{
 		// ItemList.bin 7.48 contains exactly MAX_ITEMLIST rows.  Rejecting newer
@@ -2262,6 +2292,9 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 	}
 	else if (m_eGridType == TMEGRIDTYPE::GRID_SKILLB)
 	{
+		if (!g_pCursor || !g_pCursor->m_pAttachedItem ||
+			!g_pCursor->m_pAttachedItem->m_pItem || nCellX < 0 || nCellX >= 10 || nCellY != 0)
+			return 1;
 		if (!IsSkill(g_pCursor->m_pAttachedItem->m_pItem->sIndex))
 			return 1;
 
@@ -2269,13 +2302,17 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 		// O ID posterior 65645 gravava incorretamente os atalhos em 0..9.
 		const int nSeg = this == pScene->m_pGridSkillBelt3 ? 10 : 0;
 
-		auto pItem = PickupItem(nCellX, nCellY);
+		SGridControlItem* pItem = nullptr;
 		auto pNewItem = new STRUCT_ITEM;
 
 		memcpy(pNewItem, g_pCursor->m_pAttachedItem->m_pItem, sizeof(STRUCT_ITEM));
 
 		auto pNewControlItem = new SGridControlItem(0, pNewItem, 0.0f, 0.0f);
-		AddItem(pNewControlItem, nCellX, nCellY);
+		if (!WYD748_ReplaceSkillBeltVisual(this, pNewControlItem, nCellX, nCellY, pItem))
+		{
+			SAFE_DELETE(pNewControlItem);
+			return 1;
+		}
 
 		if (g_pObjectManager->m_cSelectShortSkill - nSeg == nCellX)
 			pNewControlItem->m_GCObj.nTextureSetIndex = 200;
@@ -2517,19 +2554,26 @@ int SGridControl::SellItem2()
 	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_SKILLB)
 	{
+		if (!g_pCursor || !g_pCursor->m_pAttachedItem ||
+			!g_pCursor->m_pAttachedItem->m_pItem || nCellX < 0 || nCellX >= 10 || nCellY != 0)
+			return 1;
 		if (!IsSkill(g_pCursor->m_pAttachedItem->m_pItem->sIndex))
 			return 1;
 
 		// A confirmacao diferida usa a mesma pagina resolvida pelo drag direto.
 		const int nSeg = this == pFScene->m_pGridSkillBelt3 ? 10 : 0;
 
-		auto pReturnItem = PickupItem(nCellX, nCellY);
+		SGridControlItem* pReturnItem = nullptr;
 
 		auto pNewItem = new STRUCT_ITEM;
 		memcpy(pNewItem, g_pCursor->m_pAttachedItem->m_pItem, sizeof(STRUCT_ITEM));
 			
 		auto pNewControlItem = new SGridControlItem(0, pNewItem, 0.0, 0.0);
-		AddItem(pNewControlItem, nCellX, nCellY);
+		if (!WYD748_ReplaceSkillBeltVisual(this, pNewControlItem, nCellX, nCellY, pReturnItem))
+		{
+			SAFE_DELETE(pNewControlItem);
+			return 1;
+		}
 
 		if (g_pObjectManager->m_cSelectShortSkill - nSeg == nCellX)
 			pNewControlItem->m_GCObj.nTextureSetIndex = 200;
