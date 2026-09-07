@@ -2105,7 +2105,7 @@ func addToInv(ch *model.Char, it model.Item) int {
 func slotOf(ch *model.Char, typ, pos byte) *model.Item {
 	switch typ {
 	case placeEquip:
-		if int(pos) < len(ch.Equip) {
+		if clientEquipSlotSupported(pos) && int(pos) < len(ch.Equip) {
 			return &ch.Equip[pos]
 		}
 	case placeInv:
@@ -2114,6 +2114,14 @@ func slotOf(ch *model.Char, typ, pos byte) *model.Item {
 		}
 	}
 	return nil
+}
+
+// clientEquipSlotSupported mantém a projeção de equipamento do peer WYD-Go
+// 7.48. O array Equip continua com 16 posições para preservar o wire e dados
+// históricos, mas o slot 9 (Necklace) e os NewSlot/Belt posteriores não são
+// destinos equipáveis no client ativo.
+func clientEquipSlotSupported(pos byte) bool {
+	return pos < model.MaxEquipSlots && pos != 9
 }
 
 func playerSlotOf(p *Player, typ, pos byte) *model.Item {

@@ -62,6 +62,25 @@ func TestInventorySwapAndShortSkillHandlers(t *testing.T) {
 	}
 }
 
+func TestSwapRejectsUnsupportedNecklaceEquipSlot(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.items[640] = model.ItemDef{Index: 640, Pos: 1 << 9}
+	p.Char.Inv[0] = model.Item{Index: 640}
+	p.Char.Equip[9] = model.Item{Index: 200}
+	beforeInv, beforeNecklace := p.Char.Inv[0], p.Char.Equip[9]
+
+	swap := make([]byte, 20)
+	swap[12], swap[13], swap[14], swap[15] = placeInv, 0, placeEquip, 9
+	w.onSwapItem(p.Session, swap)
+	if p.Char.Inv[0] != beforeInv || p.Char.Equip[9] != beforeNecklace {
+		t.Fatalf("slot Necklace incompatível alterou estado: inv=%+v equip9=%+v",
+			p.Char.Inv[0], p.Char.Equip[9])
+	}
+	if p.Session.QueuedPacketsForTest() != 0 {
+		t.Fatalf("swap para slot ausente respondeu com %d packets", p.Session.QueuedPacketsForTest())
+	}
+}
+
 func TestShopOpenBuyAndSellLifecycle(t *testing.T) {
 	w, p, st := handlerTestWorld(t)
 	w.items[400] = model.ItemDef{Index: 400, Price: 1000}

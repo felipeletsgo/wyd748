@@ -513,6 +513,9 @@ func (w *World) recalcPlayer(ch *model.Char) {
 }
 
 func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
+	if !clientEquipSlotSupported(pos) {
+		return false
+	}
 	if item.Index == 0 {
 		return true
 	}

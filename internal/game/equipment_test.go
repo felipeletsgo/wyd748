@@ -72,6 +72,11 @@ func TestCanEquipIsServerAuthoritative(t *testing.T) {
 	if w.canEquip(ch, item, 7) {
 		t.Fatal("cliente conseguiu equipar em slot nao autorizado")
 	}
+	necklace := model.Item{Index: 640}
+	w.items[640] = model.ItemDef{Index: 640, Pos: 1 << 9}
+	if w.canEquip(ch, necklace, 9) {
+		t.Fatal("slot Necklace ausente na UI 7.48 foi aceito")
+	}
 	ch.Class = 1
 	if w.canEquip(ch, item, 6) {
 		t.Fatal("cliente conseguiu ignorar restricao de classe")

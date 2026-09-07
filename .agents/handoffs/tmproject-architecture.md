@@ -1579,6 +1579,29 @@ Próximo passo: revisar os últimos callers de `AddItem` em respostas de compra,
 doação e listas auxiliares, sem repetir os guards já aplicados, e executar os
 fluxos reais de skill/quickslot/swap quando o candidato puder ser testado.
 
+## Contrato server-side de slots sem UI (2026-09-07)
+
+Para impedir que um client forjado contorne a UI, `clientEquipSlotSupported`
+centraliza a projeção do peer WYD-Go: posições 0..15 são mantidas para o wire,
+mas a posição 9 é rejeitada como destino equipável; 16/17 já ficam fora do
+array. `slotOf`, `canEquip`, `destRefineTarget` e `destItemTarget` usam a mesma
+guarda. Assim swap e consumíveis não conseguem equipar/refinar/pintar um
+Necklace ausente, enquanto dados históricos ainda podem permanecer no array
+para compatibilidade de armazenamento e aparência de NPCs.
+
+Modo EXTENSAO_COORDENADA de validação do contrato do emulador, sem mudança de
+opcode ou tamanho de packet. UTILIZADAS: código atual WYD-Go, testes de handler
+e catálogo `data/itemlist.csv`; guia KR/decompilação nativa foram avaliados e
+marcados como divergentes da projeção solicitada. Sources 7.54/W2PP/Secrets/
+Micronics não consultadas.
+
+Teste focado `go test ./internal/game -count=1` PASS e suíte `go test
+-count=1 ./...` PASS. O teste `TestSwapRejectsUnsupportedNecklaceEquipSlot`
+confirma rollback sem packet quando o destino 9 é forjado. Build Release do
+client continua válido com 24253 checks; candidato BDE59A24D94F33E5556C03730B1F13B27D0C5E1C005F7411FD0E0A174840663C.
+Estado IMPLEMENTED / AUTOMATED TESTED / STATICALLY VERIFIED; fluxo in-game
+permanece não CLIENT-TESTED.
+
 ## Compatibilidade de slots de equipamento com o emulador 7.48 (2026-09-07)
 
 O contrato informado para o WYD-Go 7.48 não possui equipamento Necklace nem

@@ -966,7 +966,8 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 // deixa arrastar Ori/Lac sobre o equip -- SGrid:2324). Alvo no inventario/cargo
 // devolve nil, e refineItem responde "equipe o item para refinar".
 func (w *World) destRefineTarget(p *Player, req useItemRequest) (*model.Item, uint32, uint32) {
-	if req.dstType == placeEquip && req.dstPos < 16 {
+	if req.dstType == placeEquip && req.dstPos < model.MaxEquipSlots &&
+		clientEquipSlotSupported(byte(req.dstPos)) {
 		return &p.Char.Equip[req.dstPos], req.dstType, req.dstPos
 	}
 	return nil, 0, 0
@@ -978,7 +979,7 @@ func (w *World) destRefineTarget(p *Player, req useItemRequest) (*model.Item, ui
 func (w *World) destItemTarget(p *Player, req useItemRequest) (*model.Item, uint32, uint32) {
 	switch req.dstType {
 	case placeEquip:
-		if req.dstPos < 16 {
+		if req.dstPos < model.MaxEquipSlots && clientEquipSlotSupported(byte(req.dstPos)) {
 			return &p.Char.Equip[req.dstPos], req.dstType, req.dstPos
 		}
 	case placeInv:
