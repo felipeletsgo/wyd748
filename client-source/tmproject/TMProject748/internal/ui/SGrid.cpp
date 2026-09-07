@@ -798,14 +798,10 @@ int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
 	{
 
-	for (int nY = 0; nY < ipNewItem->m_nCellHeight; ++nY)
-	{
-		for (int nX = 0; nX < ipNewItem->m_nCellWidth; ++nX)
-		{
-			if (nX + inCellIndexX < m_nColumnGridCount && nY + inCellIndexY < m_nRowGridCount)
-				m_pbFilled[nX + inCellIndexX + m_nColumnGridCount * (nY + inCellIndexY)] = 1;
-		}
-	}
+	// Validar antes de qualquer mutacao; manter recorte e sobreposicao legados.
+	if (!grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
+		inCellIndexX, inCellIndexY, ipNewItem->m_nCellWidth, ipNewItem->m_nCellHeight, 1))
+		return 0;
 
 	ipNewItem->SetGridControl(this);
 	ipNewItem->m_nCellIndexX = inCellIndexX;
@@ -824,14 +820,10 @@ int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, in
 	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
 	{
 
-	for (int nY = 0; nY < ipNewItem->m_nCellHeight; ++nY)
-	{
-		for (int nX = 0; nX < ipNewItem->m_nCellWidth; ++nX)
-		{
-			if (nX + inCellIndexX < m_nColumnGridCount && nY + inCellIndexY < m_nRowGridCount)
-				m_pbFilled[nX + inCellIndexX + m_nColumnGridCount * (nY + inCellIndexY)] = 1;
-		}
-	}
+	// Validar antes de qualquer mutacao; manter recorte e sobreposicao legados.
+	if (!grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
+		inCellIndexX, inCellIndexY, ipNewItem->m_nCellWidth, ipNewItem->m_nCellHeight, 1))
+		return 0;
 
 	ipNewItem->SetGridControl(this);
 	ipNewItem->m_nCellIndexX = inCellIndexX;
@@ -854,14 +846,10 @@ int SGridControl::SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
 	{
 
-	for (int nY = 0; nY < ipNewItem->m_nCellHeight; ++nY)
-	{
-		for (int nX = 0; nX < ipNewItem->m_nCellWidth; ++nX)
-		{
-			if (nX + inCellIndexX < m_nColumnGridCount && nY + inCellIndexY < m_nRowGridCount)
-				m_pbFilled[nX + inCellIndexX + m_nColumnGridCount * (nY + inCellIndexY)] = 1;
-		}
-	}
+	// Validar antes de qualquer mutacao; manter recorte e sobreposicao legados.
+	if (!grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
+		inCellIndexX, inCellIndexY, ipNewItem->m_nCellWidth, ipNewItem->m_nCellHeight, 1))
+		return 0;
 
 	ipNewItem->SetGridControl(this);
 	ipNewItem->m_nCellIndexX = inCellIndexX;
@@ -1042,14 +1030,10 @@ SGridControlItem* SGridControl::PickupItem(int inCellIndexX, int inCellIndexY)
 	if (!pItem)
 		return nullptr;
 
-	for (int nY = pItem->m_nCellIndexY; nY < pItem->m_nCellHeight + pItem->m_nCellIndexY; ++nY)
-	{
-		for (int nX = pItem->m_nCellIndexX; nX < pItem->m_nCellWidth + pItem->m_nCellIndexX; ++nX)
-		{
-			if (nX < m_nColumnGridCount && nY < m_nRowGridCount)
-				m_pbFilled[nX + m_nColumnGridCount * nY] = 0;
-		}
-	}
+	// Retirada usa o mesmo recorte da insercao. Mesmo um visual inconsistente
+	// deve poder sair da lista sem acessar memoria fora da ocupacao.
+	grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
+		pItem->m_nCellIndexX, pItem->m_nCellIndexY, pItem->m_nCellWidth, pItem->m_nCellHeight, 0);
 	if (nIndex != -1 && m_nNumItem > nIndex && nIndex >= 0)
 	{
 		for (int j = nIndex + 1; j < m_nNumItem; ++j)
@@ -1083,14 +1067,10 @@ SGridControlItem* SGridControl::PickupAtItem(int inCellIndexX, int inCellIndexY)
 	if (!pItem)
 		return nullptr;
 
-	for (int nY = pItem->m_nCellIndexY; nY < pItem->m_nCellHeight + pItem->m_nCellIndexY; ++nY)
-	{
-		for (int nX = pItem->m_nCellIndexX; nX < pItem->m_nCellWidth + pItem->m_nCellIndexX; ++nX)
-		{
-			if (nX < m_nColumnGridCount && nY < m_nRowGridCount)
-				m_pbFilled[nX + m_nColumnGridCount * nY] = 0;
-		}
-	}
+	// Retirada usa o mesmo recorte da insercao. Mesmo um visual inconsistente
+	// deve poder sair da lista sem acessar memoria fora da ocupacao.
+	grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
+		pItem->m_nCellIndexX, pItem->m_nCellIndexY, pItem->m_nCellWidth, pItem->m_nCellHeight, 0);
 	if (nIndex != -1 && m_nNumItem > nIndex && nIndex >= 0)
 	{
 		for (int j = nIndex + 1; j < m_nNumItem; ++j)
@@ -1655,7 +1635,12 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 						delete pstItem;
 						return 0;
 					}
-					pGridMyItem[i]->AddItem(newItem, 0, 0);
+					// Sem visual aceito, nao publicar oferta nem marcar Carry como usado.
+					if (!pGridMyItem[i]->AddItem(newItem, 0, 0))
+					{
+						delete newItem;
+						return 0;
+					}
 
 					memcpy(&g_pObjectManager->m_stTrade.Item[i], &sourceItem, sizeof(STRUCT_ITEM));
 
@@ -1892,11 +1877,22 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 			}
 
 			auto dst = new STRUCT_ITEM;
+			if (!dst)
+				return 0;
 			memcpy(dst, pItem->m_pItem, sizeof(STRUCT_ITEM));
 
 			auto newItem = new SGridControlItem(nullptr, dst, nX, nY);
-			if (newItem)
-				pGridMyItem[i]->AddItem(newItem, 0, 0);
+			if (!newItem)
+			{
+				delete dst;
+				return 0;
+			}
+			// A composicao so assume o slot depois da transferencia do visual.
+			if (!pGridMyItem[i]->AddItem(newItem, 0, 0))
+			{
+				delete newItem;
+				return 0;
+			}
 
 			memcpy(&g_pObjectManager->m_stCombineItem4.Item[i], pItem->m_pItem, sizeof(STRUCT_ITEM));
 			g_pObjectManager->m_stCombineItem4.CarryPos[i] = SourPos;

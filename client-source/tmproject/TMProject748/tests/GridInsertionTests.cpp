@@ -82,5 +82,49 @@ int RunGridInsertionTests(int& checks)
     check(!grid_occupancy::CanPlace(cells.data(), 9, -1, 0, 0, 1, 1), "grade negativa rejeitada");
     check(!grid_occupancy::CanPlace(cells.data(), 0, 7, 0, 0, 1, 1), "grade vazia rejeitada");
     check(cells == original, "consulta nao modifica ocupacao");
+    // Buffer cercado por sentinelas: cobre recorte de equipamentos, escrita
+    // sobre celula ocupada e retirada simetrica, sem depender do renderer.
+    for (int y = 0; y < 7; ++y)
+        for (int x = 0; x < 9; ++x)
+            for (int height = 1; height <= 9; ++height)
+                for (int width = 1; width <= 11; ++width) {
+                    std::array<int, 65> buffer;
+                    buffer.fill(77);
+                    auto expected = buffer;
+                    for (int slot = 0; slot < 63; ++slot)
+                        if (slot % 9 >= x && slot % 9 < x + width &&
+                            slot / 9 >= y && slot / 9 < y + height)
+                            expected[slot + 1] = 1;
+                    check(grid_occupancy::FillClipped(buffer.data() + 1, 9, 7, x, y, width, height, 1) &&
+                        buffer == expected, "escrita recortada preserva sentinelas e celulas externas");
+                    for (auto& cell : expected)
+                        if (cell == 1) cell = 0;
+                    check(grid_occupancy::FillClipped(buffer.data() + 1, 9, 7, x, y, width, height, 0) &&
+                        buffer == expected, "retirada limpa exatamente o recorte inserido");
+                }
+    const int invalidRects[][4] = {
+        {-1, 0, 1, 1}, {0, -1, 1, 1}, {9, 0, 1, 1}, {0, 7, 1, 1},
+        {INT_MIN, 0, 1, 1}, {INT_MAX, 0, 1, 1}, {0, INT_MIN, 1, 1},
+        {0, INT_MAX, 1, 1}, {0, 0, 0, 1}, {0, 0, 1, 0},
+        {0, 0, -1, 1}, {0, 0, 1, INT_MIN}, {1, 0, INT_MAX, 1}, {0, 1, 1, INT_MAX}
+    };
+    for (const auto& rect : invalidRects) {
+        Item item;
+        int localCount = 0;
+        const auto before = cells;
+        const int result = grid_insertion::Execute(small, localCount, &item, [&] {
+            if (!grid_occupancy::FillClipped(cells.data(), 9, 7,
+                rect[0], rect[1], rect[2], rect[3], 1)) return 0;
+            item.owner = 0;
+            ++localCount;
+            return 1;
+        });
+        check(result == 0 && item.owner == -1 && localCount == 0 && cells == before,
+            "retangulo invalido preserva memoria contador e ownership");
+    }
+    check(!grid_occupancy::FillClipped(nullptr, 9, 7, 0, 0, 1, 1, 1), "escrita nula rejeitada");
+    check(!grid_occupancy::FillClipped(cells.data(), INT_MAX, 2, 0, 0, 1, 1, 1), "produto de escrita invalido");
+    check(grid_occupancy::FillClipped(cells.data(), 9, 7, 0, 0, INT_MAX, INT_MAX, 1),
+        "footprint enorme representavel e recortado sem loop proporcional ao item");
     return failures;
 }

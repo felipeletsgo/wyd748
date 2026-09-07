@@ -60,10 +60,11 @@ public:
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag) override;
     int CanItAdd(int* bFilledBuffer, int inCellIndexX, int inCellIndexY, int inCellWidth, int inCellHeight);
-    int AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
     // Insercoes: 1 transfere ownership para a grid; 0 preserva o item no
-    // caller (nulo/lista cheia ou contador invalido), sem modificar a grid.
-    // Coordenadas e ocupacao seguem o contrato legado, nao CanItAdd implicito.
+    // caller (nulo/lista cheia, contador ou geometria invalida), sem mutacao.
+    // Origem deve estar na grade; footprint positivo pode exceder o receptaculo
+    // e sera recortado. Sobreposicao continua permitida, sem CanItAdd implicito.
+    int AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
     int AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
     int SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
     IVector2 AddItemInEmpty(SGridControlItem* ipNewItem);

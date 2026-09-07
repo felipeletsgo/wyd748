@@ -1346,3 +1346,43 @@ Lacunas confirmadas: inserções diretas AddItem/AddSkillItem/SetItem ainda exig
 revisão própria para coordenadas negativas/overflow; teste no cliente real
 permanece pendente. `internal/game/teleports.go:onGuildChallenge` ainda é stub
 de disputa de cidades (0x28E/0x28F), logo o objetivo global não está concluído.
+
+## Correção funcional — escrita e retirada nas grades (2026-09-06)
+
+`AddItem`, `AddSkillItem` e `SetItem` agora usam `FillClipped` antes de
+modificar binding/lista/contador. Origem negativa/fora da grade, dimensões não
+positivas, buffer nulo e overflow são rejeitados sem transferência de ownership.
+O footprint pode ultrapassar o receptáculo: recorte direito/inferior e
+sobreposição continuam permitidos, preservando equipamento e grids de mix.
+As duas retiradas (`PickupItem` por coordenada e `PickupAtItem`) usam o mesmo
+recorte para limpar ocupação; a remoção da lista e a devolução do item continuam
+mesmo se sua geometria estiver inconsistente. Loops são limitados pela grade,
+não por uma dimensão potencialmente enorme do item.
+
+Modo `MODERNIZACAO_COMPATIVEL`, implementação local. Fontes UTILIZADAS:
+source atual SGrid, GridInsertion e testes; descompilação Ghidra estudada de
+`FUN_0040E6AA`/`FUN_0040E817` (append e recorte) e `FUN_0040E974` (busca),
+com identidade histórica reutilizada do lote anterior. Não há claim novo de
+paridade de entradas inválidas. Assets, wire e WYD-Go NÃO APLICÁVEIS ao delta,
+sem mudança; TMProject posterior/guias NÃO APLICÁVEIS como prova nativa;
+W2PP/Secrets/Micronics excluídos. A ficha SendItem permanece LOCATED.
+
+Build oficial Release passou, instalou e conferiu `client748/project.exe`:
+`27B25D80BCC96FACD81D0B68D70BDC56AFE43FB34656CEB5FCE1DD8FADF24C69`.
+Gate C++: 24253 checks PASS, incluindo escrita/retirada com sentinelas em
+6237 retângulos, overflow, footprint enorme, rejeição sem mutação/ownership.
+Não foi repetida a suíte Go: nenhum consumidor Go mudou desde seu PASS no
+lote anterior. Estado `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED`;
+warnings legados permanecem e não houve teste visual/in-game.
+
+Revisão dos callers em `TradeItem`: oferta de trade e composição Item4 agora
+liberam o visual rejeitado e retornam antes de alterar Item/CarryPos/cor. Falha
+de alocação da composição também libera o payload. O destructor de
+SGridControlItem é dono do payload; não há delete duplicado. Build e checks
+acima incluem essas guardas; sua execução real ainda não foi testada.
+
+Próximo passo: revisar callers restantes que criam visuais e ignoram rejeição
+de AddItem/SetItem, começando por quickslots/skill belt em SGrid::SellItem;
+testar arrastar/equipar/retirar e oferta de trade no candidato real.
+Não repetir consulta/escrita pura já coberta. Disputa de cidades e demais
+fluxos in-game continuam pendentes; o objetivo global permanece ativo.
