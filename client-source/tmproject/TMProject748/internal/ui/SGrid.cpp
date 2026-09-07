@@ -13,10 +13,10 @@
 
 namespace
 {
-	// Substituicao local da barra: o caller continua dono do novo visual se
+	// Substituicao local de uma grade de atalho: o caller continua dono do novo visual se
 	// AddItem rejeitar. O antigo so sai depois da insercao aceita e sera
 	// destruido pelo caller apos desanexar o cursor, que pode apontar para ele.
-	bool WYD748_ReplaceSkillBeltVisual(SGridControl* grid, SGridControlItem* replacement,
+	bool WYD748_ReplaceGridVisual(SGridControl* grid, SGridControlItem* replacement,
 		int x, int y, SGridControlItem*& previous)
 	{
 		previous = nullptr;
@@ -2222,6 +2222,9 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 			 m_eGridType == TMEGRIDTYPE::GRID_QUICKSLOAT4 || 
 			 m_eGridType == TMEGRIDTYPE::GRID_QUICKSLOAT5)
 	{
+		if (!g_pCursor || !g_pCursor->m_pAttachedItem ||
+			!g_pCursor->m_pAttachedItem->m_pItem)
+			return 1;
 		auto pReturnItem = g_pCursor->m_pAttachedItem;
 		int itemcheck = 0;
 		int itemidx = g_pCursor->m_pAttachedItem->m_pItem->sIndex;
@@ -2262,33 +2265,29 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 		if (BASE_GetItemAbility(pReturnItem->m_pItem, 33) >= 1)
 			return 1;
 
-		if (m_nNumItem >= 1)
-		{
-			for (int i = 0; i < m_nNumItem; ++i)
-			{
-				auto pItem = pScene->m_pQuick_Sloat[(int)m_eGridType - (int)TMEGRIDTYPE::GRID_QUICKSLOAT1]->PickupItem(i, 0);
-
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pItem)
-					g_pCursor->m_pAttachedItem = nullptr;
-
-				SAFE_DELETE(pItem);
-			}
-		}
+		auto quickGrid = pScene->m_pQuick_Sloat[
+			(int)m_eGridType - (int)TMEGRIDTYPE::GRID_QUICKSLOAT1];
+		if (!quickGrid)
+			return 1;
 
 		auto pNewItem = new STRUCT_ITEM;
-		if (g_pCursor->m_pAttachedItem)
+		memcpy(pNewItem, pReturnItem->m_pItem, sizeof(STRUCT_ITEM));
+
+		auto pNewControlItem = new SGridControlItem(0, pNewItem, 0.0f, 0.0f);
+		pNewControlItem->m_nWidth = pNewControlItem->m_nWidth * 0.9f;
+		pNewControlItem->m_nHeight = pNewControlItem->m_nHeight * 0.9f;
+		pNewControlItem->m_GCObj.m_fWidth = pNewControlItem->m_GCObj.m_fWidth * 0.9f;
+		pNewControlItem->m_GCObj.m_fHeight = pNewControlItem->m_GCObj.m_fHeight * 0.9f;
+
+		SGridControlItem* pOldItem = nullptr;
+		if (!WYD748_ReplaceGridVisual(quickGrid, pNewControlItem,
+			nCellX, nCellY, pOldItem))
 		{
-			memcpy(pNewItem, g_pCursor->m_pAttachedItem->m_pItem, sizeof(STRUCT_ITEM));
-
-			auto pNewControlItem = new SGridControlItem(0, pNewItem, 0.0f, 0.0f);
-			pNewControlItem->m_nWidth = pNewControlItem->m_nWidth * 0.9f;
-			pNewControlItem->m_nHeight = pNewControlItem->m_nHeight * 0.9f;
-			pNewControlItem->m_GCObj.m_fWidth = pNewControlItem->m_GCObj.m_fWidth * 0.9f;
-			pNewControlItem->m_GCObj.m_fHeight = pNewControlItem->m_GCObj.m_fHeight * 0.9f;
-
-			pScene->m_pQuick_Sloat[(int)m_eGridType - (int)TMEGRIDTYPE::GRID_QUICKSLOAT1]->AddItem(pNewControlItem, nCellX, nCellY);
+			SAFE_DELETE(pNewControlItem);
+			return 1;
 		}
 		g_pCursor->DetachItem();
+		SAFE_DELETE(pOldItem);
 	}
 	else if (m_eGridType == TMEGRIDTYPE::GRID_SKILLB)
 	{
@@ -2308,7 +2307,7 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 		memcpy(pNewItem, g_pCursor->m_pAttachedItem->m_pItem, sizeof(STRUCT_ITEM));
 
 		auto pNewControlItem = new SGridControlItem(0, pNewItem, 0.0f, 0.0f);
-		if (!WYD748_ReplaceSkillBeltVisual(this, pNewControlItem, nCellX, nCellY, pItem))
+		if (!WYD748_ReplaceGridVisual(this, pNewControlItem, nCellX, nCellY, pItem))
 		{
 			SAFE_DELETE(pNewControlItem);
 			return 1;
@@ -2569,7 +2568,7 @@ int SGridControl::SellItem2()
 		memcpy(pNewItem, g_pCursor->m_pAttachedItem->m_pItem, sizeof(STRUCT_ITEM));
 			
 		auto pNewControlItem = new SGridControlItem(0, pNewItem, 0.0, 0.0);
-		if (!WYD748_ReplaceSkillBeltVisual(this, pNewControlItem, nCellX, nCellY, pReturnItem))
+		if (!WYD748_ReplaceGridVisual(this, pNewControlItem, nCellX, nCellY, pReturnItem))
 		{
 			SAFE_DELETE(pNewControlItem);
 			return 1;

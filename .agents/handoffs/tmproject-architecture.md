@@ -1447,3 +1447,31 @@ Proximo passo: testar substituicao/slot vazio/mesmo slot/rejeicao em ambas as
 paginas e relogin no candidato; seguir para os callers de quickslot em
 SellItem, que ainda apagam o anterior e ignoram AddItem. Nao refazer as
 correcoes de pagina nem de limites da grade. Objetivo global permanece ativo.
+
+## Correção funcional — substituição nos quickslots (2026-09-07)
+
+Retomada confirmou que a correção anterior da barra de skills já estava no
+HEAD; este lote não a reimplementa. SellItem para GRID_QUICKSLOAT removia os
+visuais antes de tentar AddItem, iterava sobre uma lista que encolhia e
+ignorava falha de inserção. O fluxo agora valida cursor/payload, resolve o
+quickslot da cena, cria a cópia e usa o mesmo helper de substituição transacional
+da barra: AddItem primeiro; somente após sucesso o visual antigo é retirado,
+o cursor é desanexado e o antigo é destruído. Em rejeição, o novo visual e seu
+payload são liberados e o estado anterior permanece.
+
+Modo MODERNIZACAO_COMPATIVEL, implementação local de ownership. UTILIZADA:
+source atual SGrid/SCursor, incluindo capacidade, PickupItem e destructor;
+documentação criada da adaptação e fluxo de input. Ghidra 7.48 e guia KR são
+NÃO APLICÁVEIS como prova de um quickslot moderno ausente no claim nativo;
+serviço WYD-Go, assets e wire não mudam. Sources 7.54/W2PP/Secrets/Micronics
+não foram consultadas.
+
+Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
+`git diff --check` PASS. Candidato instalado e conferido:
+8CA2AB0FC2EDBCFAB0F0E045BC2E3A5BD3E3423984B67AEE706DB1D5B88085F2.
+Estado IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED. Warnings C4018
+legados permanecem.
+
+Próximo passo: testar no candidato arrastar para quickslots vazios/ocupados,
+rejeição e uso por Q/W/teclas, depois seguir para outros callers que ignoram
+AddItem. Não repetir correções já publicadas da barra de skills.
