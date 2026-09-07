@@ -1934,3 +1934,9 @@ Ficha `flows/ui/update-equip-visual-contract.md` em `CONTRACT`. ArchitectureTest
 Ghidra confirma `FUN_00492E7D -> FUN_004829F2`; o validador nativo registra apenas `0x364/0xB0` para a forma base estudada. O source client/WYD-Go usa extensoes coordenadas de 328B (`CreateMob`) e 352B (`CreateMobTrade`, titulo em `+326`), com 18 equipamentos, 32 affects e Score140. `CreateMobContract.h`, asserts e `ReceivedPacketDispatch` agora diferenciam os dois tamanhos e rejeitam frames curtos/longos antes de criar entidades.
 
 Ficha `flows/transport/create-mob-source-contract.md` em `CONTRACT`. ArchitectureTests 26538 checks/asserts PASS, `go test -count=1 ./...`, XML, headers unicos, pesquisa e diff PASS. Candidato: `EF6F220965F9FC74BB045DD1CA703D04C8E4728FE4BA7BCC78DBE2FCF7215557`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico deve seguir outra resposta S->C viva ainda sem gate, mantendo a separacao entre base nativa e extensao coordenada.
+
+## Contrato 0x17C — lista de loja NPC (2026-09-07)
+
+Ghidra confirma `FUN_00492E7D -> FUN_004875C0` e `FUN_0055890A` exige 236B: ShopType em `+12`, 27 `STRUCT_ITEM` em `+16` e Tax em `+232`. `ShopListContract.h`, asserts e `ReceivedPacketDispatch` agora protegem o snapshot antes de ordenar/materializar a loja. O builder Go foi coberto com 28 itens para confirmar que o extra nao sobrescreve Tax.
+
+Ficha `flows/ui/shop-list-contract.md` em `CONTRACT`. ArchitectureTests 26785 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `39B9FC79FE86388E54DB32FB31F0EADAC5E0E81012CE4D3960A705CC708427A7`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: revisar outra resposta S->C viva ainda sem gate, sem reabrir contratos ja publicados.

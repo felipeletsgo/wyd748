@@ -84,7 +84,7 @@ const (
 	OpPKMode             = 0x399 // C->S ativa/desativa modo PK (Parm@12)
 	OpPKInfo             = 0x166 // S->C publica estado PK (MSG_STANDARDPARM)
 	OpReqShopList        = 0x27B // C->S clicou num mercador tipo 3 (TargetID@12) -> pede loja
-	OpShopList           = 0x17C // S->C lista da loja / abre a janela (236B, 27 slots)
+	OpShopList           = 0x17C // S->C lista da loja / abre a janela (236B, 27 itens)
 	OpBuyItem            = 0x379 // C<->S compra/confirma item da loja (24B)
 	OpSellItem           = 0x37A // C->S vende item pro mercador (TargetID@12, MyType@14, MyPos@16)
 	OpApplyBonus         = 0x277 // C->S stats/mastery/skill (BonusType@12, Detail@14, TargetID@16, 20B)

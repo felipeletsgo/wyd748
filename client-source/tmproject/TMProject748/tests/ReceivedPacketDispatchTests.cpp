@@ -878,9 +878,64 @@ int RunReceivedPacketDispatchTests(int& checks)
                 : createMob[kCreateMobTradeDescriptionOffset] == 0x1D &&
                     createMob[kCreateMobTradeServerOffset] == 0x1E,
             "CreateMob preserva tail normal ou titulo da loja");
-        check(createMob == createMobBefore,
+    check(createMob == createMobBefore,
             "gate preserva todos os bytes do CreateMob coordenado");
     }
+
+    // ShopList nativo possui 27 celulas e o imposto no ultimo DWORD. O limite
+    // deve ser fechado antes de OnPacketShopList ordenar ou materializar itens.
+    std::array<char, kShopListPacketSize + 1> shopList{};
+    shopList[0] = static_cast<char>(kShopListPacketSize);
+    shopList[4] = static_cast<char>(MSG_ShopList_Opcode & 0xFF);
+    shopList[5] = static_cast<char>((MSG_ShopList_Opcode >> 8) & 0xFF);
+    shopList[6] = 0x34;
+    shopList[7] = 0x12;
+    shopList[kShopListTypeOffset] = 0x11;
+    shopList[kShopListItemsOffset] = 0x12;
+    shopList[kShopListItemsOffset + (kShopListItemCount - 1) * kShopListItemSize] = 0x13;
+    shopList[kShopListTaxOffset] = 0x21;
+    shopList[kShopListTaxOffset + 1] = 0x22;
+    shopList[kShopListTaxOffset + 2] = 0x23;
+    shopList[kShopListTaxOffset + 3] = 0x24;
+    const auto shopListBefore = shopList;
+    int shopListCalls = 0;
+    const auto receiveShopList = [&](const PacketView& view) {
+        ++shopListCalls;
+        check(view.data == shopList.data() && view.size == kShopListPacketSize &&
+            view.opcode == MSG_ShopList_Opcode,
+            "ShopList preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kShopListPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_ShopList_Opcode, shopList.data(), n},
+            receiveShopList), "ShopList rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_ShopList_Opcode, nullptr, kShopListPacketSize},
+        receiveShopList), "ShopList rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_ShopList_Opcode, shopList.data(),
+        kShopListPacketSize + 1}, receiveShopList), "ShopList rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, shopList.data(), kShopListPacketSize},
+        receiveShopList), "opcode externo nao pode ocultar ShopList");
+    shopList[4] = static_cast<char>((MSG_ShopList_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_ShopList_Opcode, shopList.data(),
+        kShopListPacketSize}, receiveShopList), "ShopList rejeita Header.Type divergente");
+    shopList[4] = static_cast<char>(MSG_ShopList_Opcode & 0xFF);
+    shopList[0] = static_cast<char>(kShopListPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_ShopList_Opcode, shopList.data(),
+        kShopListPacketSize}, receiveShopList), "ShopList rejeita Header.Size divergente");
+    shopList[0] = static_cast<char>(kShopListPacketSize);
+    check(shopListCalls == 0, "ShopList invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_ShopList_Opcode, shopList.data(),
+        kShopListPacketSize}, receiveShopList) && shopListCalls == 1,
+        "ShopList valido entregue uma vez");
+    check(shopList[kShopListTypeOffset] == 0x11 &&
+        shopList[kShopListItemsOffset] == 0x12 &&
+        shopList[kShopListItemsOffset + (kShopListItemCount - 1) * kShopListItemSize] == 0x13,
+        "ShopList preserva tipo e limites das 27 celulas");
+    check(shopList[kShopListTaxOffset] == 0x21 &&
+        shopList[kShopListTaxOffset + 1] == 0x22 &&
+        shopList[kShopListTaxOffset + 2] == 0x23 &&
+        shopList[kShopListTaxOffset + 3] == 0x24,
+        "ShopList preserva imposto no offset 232");
+    check(shopList == shopListBefore, "gate preserva todos os bytes do ShopList");
 
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};

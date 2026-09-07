@@ -134,7 +134,15 @@ func TestCanonicalCharListAndPresentationPackets(t *testing.T) {
 		t.Fatalf("CreateMobTrade ABI")
 	}
 	shop := ShopList([]model.Item{{Index: 4011}}, 3, ShopNormal)
-	if len(shop) != 236 || binary.LittleEndian.Uint16(shop[16:18]) != 4011 || binary.LittleEndian.Uint32(shop[232:236]) != 3 {
+	tooManyShopItems := make([]model.Item, 28)
+	tooManyShopItems[0] = model.Item{Index: 4011}
+	tooManyShopItems[26] = model.Item{Index: 4026}
+	tooManyShopItems[27] = model.Item{Index: 0xDEAD}
+	boundedShop := ShopList(tooManyShopItems, 3, ShopNormal)
+	if len(shop) != 236 || ParseHeader(shop).Type != OpShopList ||
+		binary.LittleEndian.Uint16(shop[16:18]) != 4011 || binary.LittleEndian.Uint32(shop[232:236]) != 3 ||
+		len(boundedShop) != 236 || binary.LittleEndian.Uint16(boundedShop[16+26*8:18+26*8]) != 4026 ||
+		binary.LittleEndian.Uint32(boundedShop[232:236]) != 3 {
 		t.Fatalf("ShopList ABI")
 	}
 	chat := MessageChat(5, "hello")

@@ -28,6 +28,7 @@
 #include "../wire/UpdateEquipContract.h"
 #include "../wire/UpdateAffectContract.h"
 #include "../wire/CreateMobContract.h"
+#include "../wire/ShopListContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -1240,7 +1241,6 @@ struct MSG_SetShortSkill
 };
 
 
-constexpr auto MSG_ShopList_Opcode = 0x17C;
 struct MSG_ShopList
 {
 	MSG_STANDARD Header;
@@ -1248,6 +1248,15 @@ struct MSG_ShopList
 	STRUCT_ITEM List[27];
 	int Tax;
 };
+static_assert(sizeof(MSG_ShopList) == kShopListPacketSize,
+	"WYD 7.48 ShopList packet size changed");
+static_assert(offsetof(MSG_ShopList, ShopType) == kShopListTypeOffset,
+	"ShopList type offset changed");
+static_assert(offsetof(MSG_ShopList, List) == kShopListItemsOffset &&
+	sizeof(MSG_ShopList::List) == kShopListItemCount * kShopListItemSize,
+	"ShopList item block changed");
+static_assert(offsetof(MSG_ShopList, Tax) == kShopListTaxOffset,
+	"ShopList tax offset changed");
 
 constexpr auto MSG_CloseShop_Opcode = 0x196;
 

@@ -14,6 +14,7 @@
 #include "UpdateEquipContract.h"
 #include "UpdateAffectContract.h"
 #include "CreateMobContract.h"
+#include "ShopListContract.h"
 #include "MessagePanelPacket.h"
 #include "ServerMigrationPacket.h"
 #include "ChatMessagePacket.h"
@@ -62,6 +63,7 @@ namespace received_packet
         case MSG_UpdateAffect_Opcode: return kUpdateAffectPacketSize;
         case MSG_CreateMob_Opcode: return kCreateMobPacketSize;
         case MSG_CreateMobTrade_Opcode: return kCreateMobTradePacketSize;
+        case MSG_ShopList_Opcode: return kShopListPacketSize;
         case MSG_MessagePanel_Opcode: return sizeof(MSG_MessagePanel);
         case MSG_LegacySceneMessage102_Opcode: return sizeof(MSG_LegacySceneMessage102);
         case MSG_LegacySceneMessage104_Opcode: return sizeof(MSG_LegacySceneMessage104);
