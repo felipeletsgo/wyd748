@@ -26,6 +26,7 @@
 #include "../wire/UpdateScoreContract.h"
 #include "../wire/CarrySnapshotContract.h"
 #include "../wire/UpdateEquipContract.h"
+#include "../wire/UpdateAffectContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -330,6 +331,16 @@ struct STRUCT_AFFECT
 	short Value;
 	int Time;
 };
+static_assert(sizeof(STRUCT_AFFECT) == kUpdateAffectEntrySize,
+	"source-client affect entry size changed");
+static_assert(offsetof(STRUCT_AFFECT, Type) == kUpdateAffectTypeOffset,
+	"source-client affect Type offset changed");
+static_assert(offsetof(STRUCT_AFFECT, Level) == kUpdateAffectLevelOffset,
+	"source-client affect Level offset changed");
+static_assert(offsetof(STRUCT_AFFECT, Value) == kUpdateAffectValueOffset,
+	"source-client affect Value offset changed");
+static_assert(offsetof(STRUCT_AFFECT, Time) == kUpdateAffectTimeOffset,
+	"source-client affect Time offset changed");
 
 struct STRUCT_MYBONUSEFFECT
 {
@@ -1008,7 +1019,6 @@ static_assert(sizeof(MSG_UpdateEquip::Equip2) ==
 	kUpdateEquipSlotCount * kUpdateEquipAncientSize,
 	"WYD 7.48 UpdateEquip ancient array changed");
 
-constexpr auto MSG_UpdateAffect_Opcode = 0x3B9;
 struct MSG_UpdateAffect
 {
 	MSG_STANDARD Header;
@@ -1016,6 +1026,13 @@ struct MSG_UpdateAffect
 	// the newer 32-slot tail changes opcode 0x3B9 from 140 to 268 bytes.
 	STRUCT_AFFECT Affect[16];
 };
+static_assert(sizeof(MSG_UpdateAffect) == kUpdateAffectPacketSize,
+	"WYD 7.48 UpdateAffect packet size changed");
+static_assert(offsetof(MSG_UpdateAffect, Affect) == kUpdateAffectArrayOffset,
+	"WYD 7.48 UpdateAffect array offset changed");
+static_assert(sizeof(MSG_UpdateAffect::Affect) ==
+	kUpdateAffectCount * kUpdateAffectEntrySize,
+	"WYD 7.48 UpdateAffect array changed");
 
 constexpr auto MSG_AccountLogin_Opcode = 0x20D;
 

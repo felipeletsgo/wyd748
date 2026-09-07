@@ -736,6 +736,72 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(updateEquip == updateEquipBefore,
         "gate preserva todos os bytes do UpdateEquip");
 
+    // O consumidor 7.48 percorre exatamente 16 affects de oito bytes. Os
+    // marcadores do primeiro e ultimo registro fixam todos os offsets usados
+    // pelo layout coordenado da STRUCT_AFFECT.
+    std::array<char, kUpdateAffectPacketSize + 1> updateAffect{};
+    updateAffect[0] = static_cast<char>(kUpdateAffectPacketSize);
+    updateAffect[4] = static_cast<char>(MSG_UpdateAffect_Opcode & 0xFF);
+    updateAffect[5] = static_cast<char>((MSG_UpdateAffect_Opcode >> 8) & 0xFF);
+    updateAffect[6] = 0x34;
+    updateAffect[7] = 0x12;
+    const auto lastAffect = kUpdateAffectArrayOffset +
+        (kUpdateAffectCount - 1) * kUpdateAffectEntrySize;
+    updateAffect[kUpdateAffectArrayOffset + kUpdateAffectTypeOffset] = 0x11;
+    updateAffect[kUpdateAffectArrayOffset + kUpdateAffectLevelOffset] = 0x12;
+    updateAffect[kUpdateAffectArrayOffset + kUpdateAffectValueOffset] = 0x13;
+    updateAffect[kUpdateAffectArrayOffset + kUpdateAffectTimeOffset] = 0x14;
+    updateAffect[lastAffect + kUpdateAffectTypeOffset] = 0x21;
+    updateAffect[lastAffect + kUpdateAffectLevelOffset] = 0x22;
+    updateAffect[lastAffect + kUpdateAffectValueOffset] = 0x23;
+    updateAffect[lastAffect + kUpdateAffectTimeOffset] = 0x24;
+    const auto updateAffectBefore = updateAffect;
+    int updateAffectCalls = 0;
+    const auto receiveUpdateAffect = [&](const PacketView& view) {
+        ++updateAffectCalls;
+        check(view.data == updateAffect.data() && view.size == kUpdateAffectPacketSize &&
+            view.opcode == MSG_UpdateAffect_Opcode,
+            "UpdateAffect preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kUpdateAffectPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_UpdateAffect_Opcode, updateAffect.data(), n},
+            receiveUpdateAffect), "UpdateAffect rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_UpdateAffect_Opcode, nullptr,
+        kUpdateAffectPacketSize}, receiveUpdateAffect), "UpdateAffect rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_UpdateAffect_Opcode, updateAffect.data(),
+        kUpdateAffectPacketSize + 1}, receiveUpdateAffect),
+        "UpdateAffect rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, updateAffect.data(), kUpdateAffectPacketSize},
+        receiveUpdateAffect), "opcode externo nao pode ocultar UpdateAffect");
+    updateAffect[4] = static_cast<char>((MSG_UpdateAffect_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_UpdateAffect_Opcode, updateAffect.data(),
+        kUpdateAffectPacketSize}, receiveUpdateAffect),
+        "UpdateAffect rejeita Header.Type divergente");
+    updateAffect[4] = static_cast<char>(MSG_UpdateAffect_Opcode & 0xFF);
+    updateAffect[0] = static_cast<char>(kUpdateAffectPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_UpdateAffect_Opcode, updateAffect.data(),
+        kUpdateAffectPacketSize}, receiveUpdateAffect),
+        "UpdateAffect rejeita Header.Size divergente");
+    updateAffect[0] = static_cast<char>(kUpdateAffectPacketSize);
+    check(updateAffectCalls == 0, "UpdateAffect invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_UpdateAffect_Opcode, updateAffect.data(),
+        kUpdateAffectPacketSize}, receiveUpdateAffect) && updateAffectCalls == 1,
+        "UpdateAffect valido entregue uma vez");
+    check(static_cast<unsigned char>(updateAffect[6]) == 0x34 &&
+        static_cast<unsigned char>(updateAffect[7]) == 0x12,
+        "UpdateAffect preserva receptor em Header.ID");
+    check(updateAffect[kUpdateAffectArrayOffset + kUpdateAffectTypeOffset] == 0x11 &&
+        updateAffect[kUpdateAffectArrayOffset + kUpdateAffectLevelOffset] == 0x12 &&
+        updateAffect[kUpdateAffectArrayOffset + kUpdateAffectValueOffset] == 0x13 &&
+        updateAffect[kUpdateAffectArrayOffset + kUpdateAffectTimeOffset] == 0x14 &&
+        updateAffect[lastAffect + kUpdateAffectTypeOffset] == 0x21 &&
+        updateAffect[lastAffect + kUpdateAffectLevelOffset] == 0x22 &&
+        updateAffect[lastAffect + kUpdateAffectValueOffset] == 0x23 &&
+        updateAffect[lastAffect + kUpdateAffectTimeOffset] == 0x24,
+        "UpdateAffect preserva campos do primeiro e ultimo registro");
+    check(updateAffect == updateAffectBefore,
+        "gate preserva todos os bytes do UpdateAffect");
+
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

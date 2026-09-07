@@ -222,7 +222,8 @@ func MobHpMp(id uint16, currentHP, maxHP, currentMP, maxMP uint32) []byte {
 func HpMp(id uint16, score *model.Score) []byte { return SetHpMp(id, score) }
 
 func UpdateAffects(id uint16, ch model.Char) []byte {
-	// Native 7.48 opcode 0x3B9 is Header(12) + 16 affects of eight bytes.
+	// O handler 7.48 prova Header(12) + 16 registros de oito bytes. Level/Value
+	// seguem a STRUCT_AFFECT coordenada com este source client.
 	b := Build(OpUpdateAffect, id, 140)
 	putSourceAffects(b, 12, ch.Affects[:], time.Now())
 	return b

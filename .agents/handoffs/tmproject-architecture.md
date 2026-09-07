@@ -1922,3 +1922,9 @@ Ficha `flows/ui/carry-snapshot-contract.md` em `CONTRACT`. ArchitectureTests 256
 Ghidra confirma `FUN_0052EAA9 -> FUN_0052B116` e `FUN_0055890A` exige 60B: 16 WORDs visuais em `+12` e 16 AnctCode em `+44`. `UpdateEquipContract.h`, asserts e `ReceivedPacketDispatch` fecham o envelope antes dos efeitos/rebuild do avatar. A projecao server-side que zera slot 9 e exclui 16/17 permanece inalterada; Necklace/Belt/NewSlot nao foram reabertos.
 
 Ficha `flows/ui/update-equip-visual-contract.md` em `CONTRACT`. ArchitectureTests 25685 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `50AF940F6A1FBF8D7E1AE34603A94CAC8DCBB328F09C6FB8D9825CF7443A7655`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: `0x3B9`/UpdateAffect ou outra resposta S->C viva ainda sem gate.
+
+## Contrato 0x3B9 — snapshot de affects (2026-09-07)
+
+`FUN_0052EAA9 -> FUN_0052B72A` prova 16 registros de oito bytes, Type em `entry+0`, Time em `entry+4` e limite no byte 139. `FUN_0055890A` nao contem literal `0x3B9`, portanto o gate de 140B foi registrado como MODERNIZACAO_COMPATIVEL baseada no consumidor e no contrato source/WYD-Go. Level u8 e Value i16 em `+1/+2` permanecem EXTENSAO_COORDENADA do par ativo.
+
+`UpdateAffectContract.h`, asserts e `ReceivedPacketDispatch` fecham o envelope. Ficha `flows/transport/update-affect-source-contract.md` em `CONTRACT`. ArchitectureTests 25836 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `557CDB4A9295B0C86C0E7F7531DECBA045FF1E2754E228C53D7AF6EC0FAE90BA`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote deve selecionar outra resposta S->C viva ainda ausente do gate, preservando a distincao entre prova nativa e contrato coordenado.
