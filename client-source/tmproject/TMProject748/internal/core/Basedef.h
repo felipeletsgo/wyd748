@@ -17,6 +17,7 @@
 #include "../wire/CharacterTransferPacket.h"
 #include "../wire/SendItemContract.h"
 #include "../wire/PickupConfirmationContract.h"
+#include "../wire/DropConfirmationContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -124,6 +125,10 @@ constexpr auto MAX_VISIBLE_CARRY = MAX_CARRY - 1;
 static_assert(MAX_VISIBLE_CARRY == 63, "WYD 7.48 inventory must expose 63 slots");
 static_assert(MAX_VISIBLE_CARRY == kPickupVisibleCarrySlotCount,
 	"pickup confirmation must use the visible 7.48 Carry capacity");
+static_assert(MAX_VISIBLE_CARRY == kDropVisibleCarrySlotCount,
+	"drop confirmation must use the visible 7.48 Carry capacity");
+static_assert(kDropUsableCargoSlotCount == 120,
+	"drop confirmation must preserve the usable 7.48 Cargo capacity");
 constexpr int MAX_STRING = 2000;
 constexpr int MAX_STRING_LENGTH = 128;
 
@@ -1546,6 +1551,19 @@ struct MSG_CNFDropItem
 	unsigned short GridX;
 	unsigned short GridY;
 };
+
+static_assert(sizeof(MSG_CNFDropItem) == kDropConfirmationPacketSize,
+	"WYD 7.48 drop confirmation must be 28 bytes");
+static_assert(offsetof(MSG_CNFDropItem, SourType) == kDropConfirmationSourceTypeOffset,
+	"WYD 7.48 drop source type offset changed");
+static_assert(offsetof(MSG_CNFDropItem, SourPos) == kDropConfirmationSourcePosOffset,
+	"WYD 7.48 drop source slot offset changed");
+static_assert(offsetof(MSG_CNFDropItem, Rotate) == kDropConfirmationRotateOffset,
+	"WYD 7.48 drop rotation offset changed");
+static_assert(offsetof(MSG_CNFDropItem, GridX) == kDropConfirmationGridXOffset,
+	"WYD 7.48 drop X offset changed");
+static_assert(offsetof(MSG_CNFDropItem, GridY) == kDropConfirmationGridYOffset,
+	"WYD 7.48 drop Y offset changed");
 
 struct MSG_CNFGetItem
 {

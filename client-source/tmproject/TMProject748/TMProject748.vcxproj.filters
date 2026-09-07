@@ -180,6 +180,9 @@
     <ClInclude Include="internal\wire\PickupConfirmationContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\DropConfirmationContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\WhisperMessagePacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>

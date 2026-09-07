@@ -1777,3 +1777,29 @@ unico e `git diff --check` PASS. Candidato instalado:
 Estado AUTOMATED TESTED; nao CLIENT-TESTED. Proximo passo: testar coleta e
 inventario cheio no candidato e escolher outro handler recebido ainda fora de
 `ReceivedPacketDispatch::ExpectedSize`, exigindo primeiro seu contrato nativo.
+
+## Contrato 0x175 — confirmacao de drop (2026-09-07)
+
+Ghidra confirma `FUN_00492E7D -> FUN_00485D43`, campos em `+0x0C..+0x1A` e
+`FUN_0055890A` exige `0x175/0x1C`. O handler nativo seleciona Equip, Carry ou
+Cargo, mas usa `SourPos` sem bounds; a source repetia essas escritas sem validar.
+
+Criado `DropConfirmationContract.h`; `ReceivedPacketDispatch` agora exige 28
+bytes e Type/opcode coerentes. `Basedef` fixa todos os offsets. Antes da primeira
+consulta/escrita, `OnPacketCNFDropItem` valida Equip `[0,18)`, Carry `[0,63)` e
+Cargo `[0,120)`, rejeita tipos desconhecidos e preserva o bloqueio dos slots
+Necklace/NewSlot no modo compatível. Frames validos mantem retirada visual,
+detach do cursor, familiar, ficha e ordem `0x175 -> 0x182` do servidor.
+
+Ficha `flows/ui/drop-confirmation-contract.md` validada como `CONTRACT`; total
+agora CONTRACT=31, TRACED=19, LOCATED=7, UNMAPPED=2. Modo PARIDADE_NATIVA no
+wire e MODERNIZACAO_COMPATIVEL nos bounds. UTILIZADAS: decompilacao/Ghidra 7.48,
+source atual e WYD-Go/testes. Assets e guia KR NAO APLICAVEIS; sources 7.54,
+W2PP, Secrets e Micronics nao consultadas.
+
+Build Release PASS, ArchitectureTests 24581 checks/asserts PASS,
+`go test -count=1 ./internal/wire` e `go vet ./internal/wire` PASS, XML/header
+unico e `git diff --check` PASS. Candidato instalado:
+`595C4722DB4DAD8C2A0EB5A6A0ECA2621A159F85C79822BA6E9B13295B21EE7C`.
+Estado AUTOMATED TESTED; nao CLIENT-TESTED. Proximo passo: testar drops de Carry
+e Cargo no candidato e mapear o proximo handler S->C ainda sem tamanho exato.

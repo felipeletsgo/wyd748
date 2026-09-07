@@ -167,6 +167,63 @@ int RunReceivedPacketDispatchTests(int& checks)
         check(IsPickupCarrySlot(slot), "CNFGetItem aceita cada slot visivel do Carry 9x7");
     check(!IsPickupCarrySlot(kPickupVisibleCarrySlotCount),
         "CNFGetItem rejeita slot estrutural 63 sem celula visual");
+    // Mesmo frame produzido por wire.CNFDropItem(1, 62, 3, 2200, 2100).
+    std::array<char, kDropConfirmationPacketSize + 1> drop{};
+    drop[0] = static_cast<char>(kDropConfirmationPacketSize);
+    drop[4] = 0x75;
+    drop[5] = 0x01;
+    drop[kDropConfirmationSourceTypeOffset] = 1;
+    drop[kDropConfirmationSourcePosOffset] = 62;
+    drop[kDropConfirmationRotateOffset] = 3;
+    drop[kDropConfirmationGridXOffset] = static_cast<char>(0x98);
+    drop[kDropConfirmationGridXOffset + 1] = 0x08;
+    drop[kDropConfirmationGridYOffset] = 0x34;
+    drop[kDropConfirmationGridYOffset + 1] = 0x08;
+    const auto dropBefore = drop;
+    int dropCalls = 0;
+    const auto receiveDrop = [&](const PacketView& view) {
+        ++dropCalls;
+        check(view.data == drop.data() && view.size == kDropConfirmationPacketSize &&
+            view.opcode == MSG_CNFDropItem_Opcode,
+            "CNFDropItem preserva frame de 28 bytes");
+    };
+    for (std::size_t n = 0; n < kDropConfirmationPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_CNFDropItem_Opcode, drop.data(), n}, receiveDrop),
+            "CNFDropItem truncado rejeitado antes do handler");
+    check(!received_packet::Dispatch({MSG_CNFDropItem_Opcode, nullptr,
+        kDropConfirmationPacketSize}, receiveDrop), "CNFDropItem nulo rejeitado");
+    check(!received_packet::Dispatch({MSG_CNFDropItem_Opcode, drop.data(),
+        kDropConfirmationPacketSize + 1}, receiveDrop), "CNFDropItem excedente rejeitado");
+    check(!received_packet::Dispatch({0x119, drop.data(),
+        kDropConfirmationPacketSize}, receiveDrop), "Type CNFDropItem nao pode ser ocultado");
+    drop[0] = static_cast<char>(kDropConfirmationPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_CNFDropItem_Opcode, drop.data(),
+        kDropConfirmationPacketSize}, receiveDrop), "Size CNFDropItem divergente rejeitado");
+    drop[0] = static_cast<char>(kDropConfirmationPacketSize);
+    drop[4] = 0x19;
+    check(!received_packet::Dispatch({MSG_CNFDropItem_Opcode, drop.data(),
+        kDropConfirmationPacketSize}, receiveDrop), "opcode CNFDropItem divergente rejeitado");
+    drop[4] = 0x75;
+    check(dropCalls == 0, "CNFDropItem invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_CNFDropItem_Opcode, drop.data(),
+        kDropConfirmationPacketSize}, receiveDrop) && dropCalls == 1,
+        "CNFDropItem valido entregue uma vez");
+    check(static_cast<unsigned char>(drop[kDropConfirmationGridXOffset]) == 0x98 &&
+        static_cast<unsigned char>(drop[kDropConfirmationGridXOffset + 1]) == 0x08 &&
+        static_cast<unsigned char>(drop[kDropConfirmationGridYOffset]) == 0x34 &&
+        static_cast<unsigned char>(drop[kDropConfirmationGridYOffset + 1]) == 0x08,
+        "CNFDropItem preserva rotacao e coordenadas nos offsets nativos");
+    check(drop == dropBefore, "gate preserva todos os bytes do CNFDropItem");
+    check(!IsDropCarrySlot(-1), "CNFDropItem rejeita Carry negativo");
+    for (int slot = 0; slot < kDropVisibleCarrySlotCount; ++slot)
+        check(IsDropCarrySlot(slot), "CNFDropItem aceita cada slot visivel do Carry");
+    check(!IsDropCarrySlot(kDropVisibleCarrySlotCount),
+        "CNFDropItem rejeita slot estrutural 63 do Carry");
+    check(!IsDropCargoSlot(-1), "CNFDropItem rejeita Cargo negativo");
+    for (int slot = 0; slot < kDropUsableCargoSlotCount; ++slot)
+        check(IsDropCargoSlot(slot), "CNFDropItem aceita cada slot utilizavel do Cargo");
+    check(!IsDropCargoSlot(kDropUsableCargoSlotCount),
+        "CNFDropItem rejeita primeiro slot reservado do Cargo");
     // Frame Go MessagePanel: ID zero, texto em +12 e NUL final em +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;

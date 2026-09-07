@@ -3,6 +3,7 @@
 #include "CharacterTransferPacket.h"
 #include "SendItemContract.h"
 #include "PickupConfirmationContract.h"
+#include "DropConfirmationContract.h"
 #include "MessagePanelPacket.h"
 #include "ServerMigrationPacket.h"
 #include "ChatMessagePacket.h"
@@ -36,6 +37,7 @@ namespace received_packet
         case MSG_ReqTransper_Opcode: return sizeof(MSG_ReqTransper);
         case MSG_SendItem_Opcode: return kSendItemPacketSize;
         case MSG_CNFGetItem_Opcode: return kPickupConfirmationPacketSize;
+        case MSG_CNFDropItem_Opcode: return kDropConfirmationPacketSize;
         case MSG_MessagePanel_Opcode: return sizeof(MSG_MessagePanel);
         case MSG_LegacySceneMessage102_Opcode: return sizeof(MSG_LegacySceneMessage102);
         case MSG_LegacySceneMessage104_Opcode: return sizeof(MSG_LegacySceneMessage104);

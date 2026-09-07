@@ -9160,7 +9160,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		return OnPacketWeather(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
 	case 0x26E:
 		return OnPacketCreateItem(reinterpret_cast<MSG_CreateItem*>(pStd));
-	case 0x175:
+	case MSG_CNFDropItem_Opcode:
 		return OnPacketCNFDropItem(reinterpret_cast<MSG_CNFDropItem*>(pStd));
 	case MSG_CNFGetItem_Opcode:
 		return OnPacketCNFGetItem(reinterpret_cast<MSG_CNFGetItem*>(pStd));
@@ -23406,6 +23406,19 @@ int TMFieldScene::OnPacketCreateItem(MSG_CreateItem* pMsg)
 
 int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)
 {
+	if (!pMsg || !g_pObjectManager)
+		return 0;
+	if (pMsg->SourType == 0 &&
+		(pMsg->SourPos < 0 || pMsg->SourPos >= MAX_EQUIPITEM ||
+			WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene, pMsg->SourPos)))
+		return 0;
+	if (pMsg->SourType == 1 && !IsDropCarrySlot(pMsg->SourPos))
+		return 0;
+	if (pMsg->SourType == 2 && !IsDropCargoSlot(pMsg->SourPos))
+		return 0;
+	if (pMsg->SourType < 0 || pMsg->SourType > 2)
+		return 0;
+
 	SGridControlItem* pGridItem = nullptr;
 	if (pMsg->SourType == 0)
 	{
