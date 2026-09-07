@@ -5880,18 +5880,33 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 							if (!pCargoItem)
 								return 1;
 
+							STRUCT_ITEM selectedItem{};
+							memcpy(&selectedItem, pCargoItem->m_pItem, sizeof(STRUCT_ITEM));
 							auto pItem = new STRUCT_ITEM;
+							if (!pItem)
+								continue;
+							memcpy(pItem, &selectedItem, sizeof(STRUCT_ITEM));
 
-							memcpy(pItem, pCargoItem->m_pItem, sizeof(STRUCT_ITEM));
-
-							pParent->AddItem(new SGridControlItem(pParent, pItem, 0.0f, 0.0f), 0, 0);
+							// A reserva no Cargo e o anuncio so existem depois que a grade
+							// assume ownership do visual. Em rejeicao, o estado fica intacto.
+							auto pTradeItem = new SGridControlItem(pParent, pItem, 0.0f, 0.0f);
+							if (!pTradeItem)
+							{
+								delete pItem;
+								continue;
+							}
+							if (!pParent->AddItem(pTradeItem, 0, 0))
+							{
+								SAFE_DELETE(pTradeItem);
+								continue;
+							}
 
 							pCargoItem->m_GCObj.dwColor = 0xFFFF0000;
 
 							m_stAutoTrade.CarryPos[j] = m_nLastAutoTradePos;
 							m_stAutoTrade.TradeMoney[j] = static_cast<int>(nInputValue);
 
-							memcpy(&m_stAutoTrade.Item[j], pItem, sizeof(STRUCT_ITEM));
+							memcpy(&m_stAutoTrade.Item[j], &selectedItem, sizeof(STRUCT_ITEM));
 
 							pParent->m_nTradeMoney = static_cast<int>(nInputValue);
 							break;

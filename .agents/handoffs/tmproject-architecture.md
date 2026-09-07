@@ -1727,3 +1727,26 @@ Estado IMPLEMENTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo passo:
 exercitar compra com Carry livre e rejeicao visual no candidato, depois seguir
 somente pelos callers de `SGridControl::AddItem` em handlers vivos 7.48 sem
 reabrir Shop, Necklace/Belt, skill pages, quickslots ou swap ja corrigidos.
+
+## Correcao funcional — insercao transacional na AutoTrade (2026-09-07)
+
+O caller vivo de `SGridControl::AddItem` no `OnControlEvent`, ao confirmar o
+preco de um item da AutoTrade, ignorava rejeicao da grade e ainda marcava o
+Cargo em vermelho e preenchia `CarryPos`, `TradeMoney` e `Item`. O fluxo agora
+preserva uma copia local, valida as duas alocacoes, exige que a grade assuma o
+controle e somente entao publica a reserva e o anuncio. Falha libera o payload
+e o controle e procura o proximo dos doze slots nativos, sem estado parcial.
+
+Modo MODERNIZACAO_COMPATIVEL, correcao local de ownership. UTILIZADAS: source
+atual, contrato de `SGridControl::AddItem` e ficha AutoTrade 7.48 ja estudada
+com `FUN_004662C5`. Binario/Ghidra foram reutilizados sem novo claim. Servidor,
+assets e guia KR sao NAO APLICAVEIS ao defeito local; sources 7.54, W2PP,
+Secrets e Micronics nao foram consultadas. Wire, preco, transformacao do Cargo,
+quantidade de slots e fechamento permaneceram inalterados.
+
+Build Release via `Build-Client.ps1` PASS, ArchitectureTests 24253 checks e
+asserts estaticos PASS, `git diff --check` PASS. Candidato instalado:
+`1841296DAC83AAD3E20B4D7426A1934A10D30C6E523654AB95784E3DAE20AB16`.
+Estado IMPLEMENTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo passo:
+testar cadastro, remocao, lotacao e fechamento da AutoTrade no candidato e
+continuar a auditoria apenas nos callers de grid dos fluxos 7.48 vivos.
