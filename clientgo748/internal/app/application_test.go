@@ -9,6 +9,7 @@ import (
 
 	"wydclient748/internal/assets"
 	"wydclient748/internal/input"
+	"wydclient748/internal/protocol"
 	"wydclient748/internal/scene"
 )
 
@@ -73,6 +74,34 @@ type fakeSession struct {
 	closeErr   error
 	connected  bool
 	closed     bool
+}
+
+type fakeEventSession struct {
+	fakeSession
+	startErr    error
+	startCalls  int
+	sessionData []protocol.SessionEvent
+	drainLimits []int
+}
+
+func (s *fakeEventSession) StartReceiving() error {
+	*s.events = append(*s.events, "session.start")
+	s.startCalls++
+	return s.startErr
+}
+
+func (s *fakeEventSession) DrainEvents(limit int) []protocol.SessionEvent {
+	*s.events = append(*s.events, "session.drain")
+	s.drainLimits = append(s.drainLimits, limit)
+	if limit <= 0 || len(s.sessionData) == 0 {
+		return nil
+	}
+	if limit > len(s.sessionData) {
+		limit = len(s.sessionData)
+	}
+	drained := append([]protocol.SessionEvent(nil), s.sessionData[:limit]...)
+	s.sessionData = s.sessionData[limit:]
+	return drained
 }
 
 func (s *fakeSession) Connect() error {
@@ -369,4 +398,144 @@ func TestApplicationRunsSceneAndTearsItDownBeforeRenderer(t *testing.T) {
 		positions["renderer.close"] < positions["window.close"]) {
 		t.Fatalf("invalid lifecycle order; all events: %v", events)
 	}
+}
+
+func TestApplicationDispatchesSessionEventsOnFrameBeforeSceneUpdate(t *testing.T) {
+	var events []string
+	session := &fakeEventSession{
+		fakeSession: fakeSession{events: &events},
+		sessionData: []protocol.SessionEvent{
+			{Kind: protocol.SessionPacket, Packet: protocol.Packet{Header: protocol.Header{Type: 0x10A}}},
+			{Kind: protocol.SessionPacket, Packet: protocol.Packet{Header: protocol.Header{Type: 0x114}}},
+		},
+	}
+	window := &fakeWindow{events: &events, pollsUntilClose: 2}
+	renderer := &fakeRenderer{events: &events}
+	application, err := New(Options{
+		Title:                 "WYD 7.48",
+		Width:                 800,
+		Height:                600,
+		Session:               session,
+		SessionEventsPerFrame: 1,
+		SessionEventHandler: func(event protocol.SessionEvent) error {
+			events = append(events, "session.handle")
+			return nil
+		},
+		InitialSceneID: "login",
+		InitialScene: func() (scene.Scene, error) {
+			return &applicationScene{id: "login", events: &events}, nil
+		},
+	}, window, renderer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := application.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if session.startCalls != 1 {
+		t.Fatalf("StartReceiving calls=%d, want 1", session.startCalls)
+	}
+	if !reflect.DeepEqual(session.drainLimits, []int{1, 1}) {
+		t.Fatalf("drain limits=%v, want [1 1]", session.drainLimits)
+	}
+	firstHandle := indexOf(events, "session.handle")
+	firstUpdate := indexOf(events, "scene.update")
+	if firstHandle < 0 || firstUpdate < 0 || firstHandle >= firstUpdate {
+		t.Fatalf("session event was not handled before scene update: %v", events)
+	}
+	if len(session.sessionData) != 0 {
+		t.Fatalf("undispatched session events=%+v", session.sessionData)
+	}
+}
+
+func TestApplicationSessionHandlerFailurePropagatesAndClosesBeforeScenes(t *testing.T) {
+	var events []string
+	handlerErr := errors.New("dispatch failed")
+	session := &fakeEventSession{
+		fakeSession: fakeSession{events: &events},
+		sessionData: []protocol.SessionEvent{{Kind: protocol.SessionPacket}},
+	}
+	window := &fakeWindow{events: &events, pollsUntilClose: 2}
+	renderer := &fakeRenderer{events: &events}
+	application, err := New(Options{
+		Title:   "WYD 7.48",
+		Width:   800,
+		Height:  600,
+		Session: session,
+		SessionEventHandler: func(protocol.SessionEvent) error {
+			events = append(events, "session.handle")
+			return handlerErr
+		},
+		InitialSceneID: "login",
+		InitialScene: func() (scene.Scene, error) {
+			return &applicationScene{id: "login", events: &events}, nil
+		},
+	}, window, renderer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = application.Run(context.Background())
+	if !errors.Is(err, handlerErr) {
+		t.Fatalf("Run error=%v, want handler error", err)
+	}
+	closePosition := indexOf(events, "session.close")
+	exitPosition := indexOf(events, "scene.exit")
+	if closePosition < 0 || exitPosition < 0 || closePosition >= exitPosition {
+		t.Fatalf("session receiver was not closed before scenes: %v", events)
+	}
+}
+
+func TestApplicationSessionHandlerRequiresEventSession(t *testing.T) {
+	var events []string
+	_, err := New(Options{
+		Title:               "WYD 7.48",
+		Width:               800,
+		Height:              600,
+		Session:             &fakeSession{events: &events},
+		SessionEventHandler: func(protocol.SessionEvent) error { return nil },
+	}, &fakeWindow{events: &events}, &fakeRenderer{events: &events})
+	if err == nil {
+		t.Fatal("New accepted a session event handler without EventSession")
+	}
+}
+
+func TestApplicationReceiveStartFailureRollsBackOwnedResources(t *testing.T) {
+	var events []string
+	startErr := errors.New("receiver failed")
+	session := &fakeEventSession{
+		fakeSession: fakeSession{events: &events},
+		startErr:    startErr,
+	}
+	window := &fakeWindow{events: &events}
+	renderer := &fakeRenderer{events: &events}
+	application, err := New(Options{
+		Title:               "WYD 7.48",
+		Width:               800,
+		Height:              600,
+		Session:             session,
+		SessionEventHandler: func(protocol.SessionEvent) error { return nil },
+	}, window, renderer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = application.Run(context.Background())
+	if !errors.Is(err, startErr) {
+		t.Fatalf("Run error=%v, want start error", err)
+	}
+	want := []string{
+		"window.open", "renderer.initialize", "session.connect", "session.start",
+		"session.close", "renderer.close", "window.close",
+	}
+	if !reflect.DeepEqual(events, want) {
+		t.Fatalf("events=%v, want %v", events, want)
+	}
+}
+
+func indexOf(events []string, target string) int {
+	for index, event := range events {
+		if event == target {
+			return index
+		}
+	}
+	return -1
 }

@@ -141,20 +141,23 @@ bootstrap -> transporte/login -> cenas -> dispatcher -> mundo
 
 A unidade de transporte está implementada na source Go e possui contrato nativo
 `CONTRACT`: `internal/protocol` cobre handshake, framing, cifra, checksum,
-fragmentação, escrita parcial e fechamento; `internal/app.Application` fecha a
-sessão antes das cenas e do renderer. Os testes automatizados e o build Debug
-passaram, e o smoke test confirmou o bootstrap do executável. A conexão com o
-servidor real, autenticação e relogin continuam pendentes e não são promovidos
-a `CLIENT_TESTED`.
+fragmentação, escrita parcial, recepção assíncrona por fila limitada e
+fechamento. A goroutine do socket não chama gameplay ou UI;
+`internal/app.Application` drena a fila na thread principal antes do update da
+cena e fecha a sessão antes das cenas e do renderer. A conexão com o servidor
+real, autenticação e relogin continuam pendentes e não são promovidos a
+`CLIENT_TESTED`.
 
 O contrato nativo de login está documentado em
 `references/research/flows/login/login-session.md`. `internal/login` agora
 materializa os packets `0x20D`, `0x10A`, `0x213`, `0x114`, `0x215` e `0x116`,
 os agregados de seleção/mundo e a máquina de estados que rejeita truncamento,
 replay, resposta fora de ordem e snapshot reutilizado após logout ou
-desconexão. A unidade está `IMPLEMENTED / AUTOMATED TESTED`; a entrega pelo
-socket, o dispatcher, as cenas e o fluxo contra o servidor real continuam
-pendentes, portanto login ainda não é `CLIENT_TESTED`.
+desconexão. `internal/login.Dispatcher` recebe os eventos na thread principal,
+trata `0x10A`, `0x114` e `0x116`, rejeita packets client→server recebidos e
+deixa opcodes de outros domínios para dispatchers futuros. A unidade está
+`IMPLEMENTED / AUTOMATED TESTED`; controller de envios, cenas e fluxo contra o
+servidor real continuam pendentes, portanto login ainda não é `CLIENT_TESTED`.
 
 As fichas existentes fecham apenas transições estreitas. Movimento completo,
 combate/skills, score/equipamento, inventário geral, render e vários lifecycles

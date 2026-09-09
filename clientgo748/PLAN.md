@@ -20,10 +20,10 @@ Já concluído:
 - testes automatizados e smoke test de janela, resize, fechamento e Alt+F4.
 
 O transporte/framing já foi implementado e integrado ao lifecycle da aplicação,
-mas ainda não foi exercitado contra o servidor real. Os layouts, parsers e a
-máquina de estados de login estão implementados e cobertos por testes
-automatizados; dispatcher, cenas do fluxo real, mundo e UI de gameplay
-continuam pendentes.
+mas ainda não foi exercitado contra o servidor real. Os layouts, parsers, a
+máquina de estados, a fila de eventos do socket e o dispatcher de login estão
+implementados e cobertos por testes automatizados. O controller de envios, as
+cenas do fluxo real, mundo e UI de gameplay continuam pendentes.
 
 ## Ordem de implementação
 
@@ -80,9 +80,11 @@ Implementado nesta unidade:
 
 - `internal/protocol.ClientSession` com handshake, framing, criptografia,
   checksum, fragmentação e escrita parcial;
+- recepção assíncrona em uma fila limitada, sem callbacks ou mutação de estado
+  na goroutine do socket;
 - limites e falhas do parser alinhados ao contrato nativo 7.48;
-- integração opcional da sessão ao `Application`, com fechamento antes das
-  cenas e do renderer;
+- drenagem limitada pela `Application` antes do update da cena, na thread
+  principal, e fechamento da sessão antes das cenas e do renderer;
 - testes de bytes, stream, ownership e ordem de teardown.
 
 Estado: `CONTRACT` nativo e `AUTOMATED TESTED` na implementação Go. A conexão
@@ -104,12 +106,15 @@ Implementado nesta unidade:
   `0x215` e `0x116`;
 - `internal/login.SessionState` com validação de ordem, rollback,
   desconexão, logout e relogin sem reutilizar snapshot;
+- `internal/login.Dispatcher` para `0x10A`, `0x114` e `0x116`, com rejeição de
+  packets na direção errada e composição futura com os domínios de mundo/UI;
 - testes byte a byte de tamanhos, offsets, campos reservados, truncamento,
-  duplicação e respostas fora de ordem.
+  duplicação, respostas fora de ordem, desconexão e relogin.
 
-Estado: `CONTRACT` nativo e `AUTOMATED TESTED` no pacote Go. Ainda faltam a
-entrega dos packets pela sessão à thread principal, o dispatcher, as cenas e a
-execução contra o servidor real.
+Estado: `CONTRACT` nativo e `AUTOMATED TESTED` no pacote Go. A entrega dos
+packets pela sessão à thread principal e o dispatcher estão implementados.
+Ainda faltam o controller de envios, as cenas e a execução contra o servidor
+real.
 
 Aceite restante: um personagem entra no mundo, recebe estado inicial e
 consegue sair e entrar novamente sem crash ou dados antigos no client.
@@ -169,9 +174,8 @@ unidade aprovada deve ser commitada diretamente em `main`, publicada em
 
 ## Próxima ação concreta
 
-Integrar `internal/protocol.ClientSession` à thread principal através de uma
-fila de eventos com ownership explícito. O dispatcher mínimo deve encaminhar
-os seis opcodes já comprovados para `internal/login.SessionState` e solicitar
-as transições Login → CharacterSelect → Loading → World sem permitir que a
-goroutine do socket altere cenas ou UI. Depois, executar o ciclo completo
+Implementar o controller de login responsável pelos envios `0x20D`, `0x213` e
+`0x215`, sem reter senha além da tentativa ativa. Em seguida, criar as cenas
+mínimas Login → CharacterSelect → Loading → World, dirigidas exclusivamente
+pelo estado atualizado na thread principal. Depois, executar o ciclo completo
 contra o WYD-Go e fechar logout/relogin real antes de iniciar o mundo mínimo.

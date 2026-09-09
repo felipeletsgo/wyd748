@@ -181,6 +181,173 @@ func TestClientSessionReceiveDecodesFrame(t *testing.T) {
 	_ = session.Close()
 }
 
+func TestClientSessionReceiveLoopPreservesPacketOrderAndStartsOnce(t *testing.T) {
+	client, peer := net.Pipe()
+	defer peer.Close()
+	session, err := NewConnectedSession(client, SessionOptions{IOTimeout: time.Second, EventBuffer: 8})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer session.Close()
+
+	if err := session.StartReceiving(); err != nil {
+		t.Fatal(err)
+	}
+	session.mu.Lock()
+	firstDone := session.receiveDone
+	session.mu.Unlock()
+	if err := session.StartReceiving(); err != nil {
+		t.Fatalf("second StartReceiving: %v", err)
+	}
+	session.mu.Lock()
+	secondDone := session.receiveDone
+	session.mu.Unlock()
+	if firstDone == nil || firstDone != secondDone {
+		t.Fatal("second StartReceiving replaced the active receive loop")
+	}
+	if _, err := session.Receive(); !errors.Is(err, ErrReceiveLoopRunning) {
+		t.Fatalf("concurrent Receive error = %v, want ErrReceiveLoopRunning", err)
+	}
+
+	frames := make([][]byte, 3)
+	for i, opcode := range []uint16{0x4101, 0x4102, 0x4103} {
+		frames[i], err = Encode(NewPacket(opcode, uint16(i+1), uint32(i+10), []byte{byte(i)}), byte(i+20))
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeDone := make(chan error, 1)
+	go func() {
+		for _, frame := range frames {
+			if _, err := peer.Write(frame); err != nil {
+				writeDone <- err
+				return
+			}
+		}
+		writeDone <- nil
+	}()
+
+	events := waitForSessionEvents(t, session, len(frames))
+	for i, event := range events {
+		if event.Kind != SessionPacket || event.Packet.Header.Type != 0x4101+uint16(i) ||
+			!bytes.Equal(event.Packet.Body, []byte{byte(i)}) {
+			t.Fatalf("event[%d] = %+v body=% X", i, event, event.Packet.Body)
+		}
+	}
+	if err := <-writeDone; err != nil {
+		t.Fatalf("write frames: %v", err)
+	}
+}
+
+func TestClientSessionDrainEventsHonorsLimitAndNeverBlocks(t *testing.T) {
+	session := &ClientSession{events: make(chan SessionEvent, 3)}
+	for _, opcode := range []uint16{1, 2, 3} {
+		session.events <- SessionEvent{Kind: SessionPacket, Packet: Packet{Header: Header{Type: opcode}}}
+	}
+
+	first := session.DrainEvents(2)
+	if len(first) != 2 || first[0].Packet.Header.Type != 1 || first[1].Packet.Header.Type != 2 {
+		t.Fatalf("first drain = %+v", first)
+	}
+	second := session.DrainEvents(2)
+	if len(second) != 1 || second[0].Packet.Header.Type != 3 {
+		t.Fatalf("second drain = %+v", second)
+	}
+	if got := session.DrainEvents(2); len(got) != 0 {
+		t.Fatalf("empty drain returned %+v", got)
+	}
+	if got := session.DrainEvents(0); len(got) != 0 {
+		t.Fatalf("zero-limit drain returned %+v", got)
+	}
+}
+
+func TestClientSessionReportsRemoteDisconnectAfterQueuedPackets(t *testing.T) {
+	client, peer := net.Pipe()
+	session, err := NewConnectedSession(client, SessionOptions{IOTimeout: time.Second, EventBuffer: 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer session.Close()
+	if err := session.StartReceiving(); err != nil {
+		t.Fatal(err)
+	}
+	frame, err := Encode(NewPacket(0x4201, 9, 10, []byte("last")), 31)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		_, _ = peer.Write(frame)
+		_ = peer.Close()
+	}()
+
+	events := waitForSessionEvents(t, session, 2)
+	if events[0].Kind != SessionPacket || events[0].Packet.Header.Type != 0x4201 {
+		t.Fatalf("first event = %+v, want packet", events[0])
+	}
+	if events[1].Kind != SessionDisconnected || events[1].Err == nil {
+		t.Fatalf("second event = %+v, want disconnect with cause", events[1])
+	}
+}
+
+func TestClientSessionCloseUnblocksReceiveLoopWithoutPublishingDisconnect(t *testing.T) {
+	client, peer := net.Pipe()
+	defer peer.Close()
+	session, err := NewConnectedSession(client, SessionOptions{EventBuffer: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := session.StartReceiving(); err != nil {
+		t.Fatal(err)
+	}
+	closed := make(chan error, 1)
+	go func() { closed <- session.Close() }()
+	select {
+	case err := <-closed:
+		if err != nil {
+			t.Fatalf("Close: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Close did not unblock the receive loop")
+	}
+	if got := session.DrainEvents(1); len(got) != 0 {
+		t.Fatalf("explicit Close published events: %+v", got)
+	}
+	if err := session.Close(); err != nil {
+		t.Fatalf("second Close: %v", err)
+	}
+}
+
+func TestClientSessionRejectsInvalidEventBuffers(t *testing.T) {
+	for _, size := range []int{-1, MaxSessionEventBuffer + 1} {
+		client, peer := net.Pipe()
+		session, err := NewConnectedSession(client, SessionOptions{EventBuffer: size})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := session.StartReceiving(); !errors.Is(err, ErrInvalidEventBuffer) {
+			t.Fatalf("EventBuffer=%d error=%v, want ErrInvalidEventBuffer", size, err)
+		}
+		_ = session.Close()
+		_ = peer.Close()
+	}
+}
+
+func waitForSessionEvents(t *testing.T, session *ClientSession, count int) []SessionEvent {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	events := make([]SessionEvent, 0, count)
+	for len(events) < count && time.Now().Before(deadline) {
+		events = append(events, session.DrainEvents(count-len(events))...)
+		if len(events) < count {
+			time.Sleep(time.Millisecond)
+		}
+	}
+	if len(events) != count {
+		t.Fatalf("received %d session events, want %d", len(events), count)
+	}
+	return events
+}
+
 type partialConn struct {
 	written  bytes.Buffer
 	maxWrite int

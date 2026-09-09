@@ -172,11 +172,13 @@ inicial inclui nome, guild/classe, gold/EXP, scores base e atual, 18 equipamento
 ### Source recompilável
 
 `internal/protocol` implementa handshake, framing, checksum, cifra,
-fragmentação, escrita parcial e ownership. `internal/login` é o único owner
-dos layouts acima e não é importado por `protocol`, evitando ciclo e mistura
-entre transporte e gameplay. Seus builders, parsers e `SessionState` cobrem
-autenticação, seleção, entrada, logout, desconexão e relogin em valores
-independentes do buffer recebido.
+fragmentação, escrita parcial e ownership. Sua goroutine leitora transfere
+packets e desconexão por uma fila limitada; `internal/app.Application` drena
+essa fila na thread principal antes de atualizar a cena. `internal/login` é o
+único owner dos layouts acima e não é importado por `protocol`, evitando ciclo
+e mistura entre transporte e gameplay. Seus builders, parsers, `SessionState`
+e `Dispatcher` cobrem autenticação, seleção, entrada, logout, desconexão e
+relogin em valores independentes do buffer recebido.
 
 ### WYD-Go
 
@@ -200,6 +202,8 @@ e publica `wire.EnterWorld` antes dos demais packets de sincronização.
 - Classificar wire e comportamento externo como `PARIDADE_NATIVA`.
 - Classificar parser e máquina de estados Go como
   `MODERNIZACAO_COMPATIVEL`, preservando o contrato externo.
+- Classificar a fila limitada e a drenagem na thread principal como
+  `MODERNIZACAO_COMPATIVEL`; elas não mudam bytes, ordem ou direção do wire.
 - Validar o packet inteiro antes de qualquer mutação observável.
 - Manter `SecretCode` opaco e reproduzi-lo somente no `0x213` da mesma sessão.
 - Não iniciar UI real até os quatro contratos passarem testes byte a byte.
@@ -207,9 +211,10 @@ e publica `wire.EnterWorld` antes dos demais packets de sincronização.
 
 ## Lacunas
 
-- A integração do pacote `login` ao socket, dispatcher e cenas Go ainda deve
-  ser implementada; a goroutine de rede deverá entregar eventos ao owner na
-  thread principal.
+- O controller dos envios `0x20D`, `0x213` e `0x215` ainda deve ser ligado ao
+  transporte e às cenas Go.
+- As cenas Login, CharacterSelect, Loading e World ainda devem reagir às
+  transições já publicadas na thread principal.
 - Falhas de autenticação publicadas por outros opcodes terão contratos próprios
   no dispatcher.
 - O restante da sequência pós-`0x114` pertence ao dispatcher/mundo mínimo.
@@ -220,7 +225,9 @@ e publica `wire.EnterWorld` antes dos demais packets de sincronização.
 
 - Pesquisa: callgraph, opcodes, tamanhos, offsets, signedness do slot e
   lifecycle correlacionados no corpus nativo do hash registrado.
-- Automação: `go test ./internal/login -count=1` e `go test ./... -count=1`
+- Automação: `go test ./internal/login ./internal/protocol ./internal/app
+  -count=1`, `go test -race` nos mesmos pacotes e `go test ./... -count=1`
   cobrem layouts, offsets, campos reservados, agregados, erro sem mutação,
-  ordem de respostas, desconexão, logout e relogin sem snapshot antigo.
+  ordem de respostas, fila limitada, thread principal, desconexão, logout e
+  relogin sem snapshot antigo.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

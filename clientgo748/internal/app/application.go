@@ -45,6 +45,10 @@ type Options struct {
 	// Application owns its lifecycle: it connects before the first scene and
 	// closes it before any scene or renderer resource is torn down.
 	Session protocol.Session
+	// SessionEventHandler é executado na thread principal para cada evento já
+	// recebido. Quando configurado, Session deve implementar EventSession.
+	SessionEventHandler   func(protocol.SessionEvent) error
+	SessionEventsPerFrame int
 }
 
 // Application possui janela e renderer depois que cada estágio conclui.
@@ -58,6 +62,7 @@ type Application struct {
 	rendererOwned bool
 	sourceOwned   bool
 	sessionOwned  bool
+	eventSession  protocol.EventSession
 	sceneManager  *scene.Manager
 	closeOnce     sync.Once
 	closeErr      error
@@ -80,12 +85,27 @@ func New(options Options, window platform.Window, renderer graphics.Renderer) (*
 	if options.LogoSource != nil && options.LogoAssetPath == "" {
 		return nil, fmt.Errorf("clientgo748: logo asset path is required when a source is configured")
 	}
+	var eventSession protocol.EventSession
+	if options.SessionEventHandler != nil {
+		if options.Session == nil {
+			return nil, fmt.Errorf("clientgo748: session is required for a session event handler")
+		}
+		var ok bool
+		eventSession, ok = options.Session.(protocol.EventSession)
+		if !ok {
+			return nil, fmt.Errorf("clientgo748: configured session does not provide events")
+		}
+		if options.SessionEventsPerFrame < 0 {
+			return nil, fmt.Errorf("clientgo748: invalid session events per frame %d", options.SessionEventsPerFrame)
+		}
+	}
 	return &Application{
 		options:      options,
 		window:       window,
 		renderer:     renderer,
 		sourceOwned:  options.LogoSource != nil,
 		sessionOwned: options.Session != nil,
+		eventSession: eventSession,
 	}, nil
 }
 
@@ -107,6 +127,11 @@ func (a *Application) Run(ctx context.Context) (err error) {
 	if a.options.Session != nil {
 		if err := a.options.Session.Connect(); err != nil {
 			return fmt.Errorf("clientgo748: connect session: %w", err)
+		}
+	}
+	if a.eventSession != nil {
+		if err := a.eventSession.StartReceiving(); err != nil {
+			return fmt.Errorf("clientgo748: start session receiver: %w", err)
 		}
 	}
 	if a.options.LogoSource != nil || a.options.LogoPath != "" {
@@ -162,6 +187,9 @@ func (a *Application) Run(ctx context.Context) (err error) {
 		default:
 		}
 		events := a.window.PollEvents()
+		if err := a.dispatchSessionEvents(); err != nil {
+			return err
+		}
 		if a.sceneManager != nil {
 			if err := a.sceneManager.Dispatch(events); err != nil {
 				return err
@@ -185,6 +213,22 @@ func (a *Application) Run(ctx context.Context) (err error) {
 			a.textureRenderer.DrawTexture()
 		}
 		a.renderer.EndFrame()
+	}
+	return nil
+}
+
+func (a *Application) dispatchSessionEvents() error {
+	if a.eventSession == nil {
+		return nil
+	}
+	limit := a.options.SessionEventsPerFrame
+	if limit == 0 {
+		limit = 64
+	}
+	for _, event := range a.eventSession.DrainEvents(limit) {
+		if err := a.options.SessionEventHandler(event); err != nil {
+			return fmt.Errorf("clientgo748: handle session event: %w", err)
+		}
 	}
 	return nil
 }

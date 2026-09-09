@@ -31,9 +31,16 @@ const (
 )
 
 var (
-	ErrBadSize      = errors.New("protocol: invalid frame size")
-	ErrBadChecksum  = errors.New("protocol: invalid frame checksum")
-	ErrNotConnected = errors.New("protocol: session is not connected")
+	ErrBadSize            = errors.New("protocol: invalid frame size")
+	ErrBadChecksum        = errors.New("protocol: invalid frame checksum")
+	ErrNotConnected       = errors.New("protocol: session is not connected")
+	ErrReceiveLoopRunning = errors.New("protocol: receive loop is running")
+	ErrInvalidEventBuffer = errors.New("protocol: invalid session event buffer")
+)
+
+const (
+	DefaultSessionEventBuffer = 128
+	MaxSessionEventBuffer     = 4096
 )
 
 // Header representa os campos já decifrados do _MSG. Os bytes do wire são
@@ -53,6 +60,25 @@ type Packet struct {
 	Header Header
 	Raw    []byte
 	Body   []byte
+}
+
+// SessionEventKind distingue um packet válido do encerramento da conexão.
+// Nenhum callback é executado pela goroutine do socket: o owner deve drenar a
+// fila na thread principal e então atualizar estado, cenas e UI.
+type SessionEventKind uint8
+
+const (
+	SessionPacket SessionEventKind = iota + 1
+	SessionDisconnected
+)
+
+// SessionEvent transfere ownership de Packet para o consumidor. Err só é
+// preenchido para SessionDisconnected e deve ser usado para diagnóstico ou
+// mensagem visível, nunca para preservar estado de uma sessão encerrada.
+type SessionEvent struct {
+	Kind   SessionEventKind
+	Packet Packet
+	Err    error
 }
 
 // Decode transforma um frame completo recebido do socket em um Packet. A
@@ -156,12 +182,21 @@ type Session interface {
 	Close() error
 }
 
+// EventSession adiciona recepção assíncrona ao lifecycle mínimo. DrainEvents
+// nunca bloqueia e deve ser chamado somente pelo owner na thread principal.
+type EventSession interface {
+	Session
+	StartReceiving() error
+	DrainEvents(limit int) []SessionEvent
+}
+
 // SessionOptions controla deadlines e permite injetar um dialer nos testes.
 // Mensagens de gameplay não fazem parte desta camada.
 type SessionOptions struct {
 	Address        string
 	ConnectTimeout time.Duration
 	IOTimeout      time.Duration
+	EventBuffer    int
 	DialContext    func(context.Context, string) (net.Conn, error)
 }
 
@@ -169,10 +204,14 @@ type SessionOptions struct {
 // através de Send/Receive; Close é idempotente e encerra qualquer conexão
 // criada pela própria sessão.
 type ClientSession struct {
-	mu      sync.Mutex
-	conn    net.Conn
-	options SessionOptions
-	closed  bool
+	mu          sync.Mutex
+	conn        net.Conn
+	options     SessionOptions
+	closed      bool
+	events      chan SessionEvent
+	receiving   bool
+	receiveStop chan struct{}
+	receiveDone chan struct{}
 }
 
 func NewSession(address string, options SessionOptions) *ClientSession {
@@ -254,11 +293,123 @@ func (s *ClientSession) Send(plain []byte, key byte) error {
 // Receive lê exatamente um frame. O tamanho é validado antes da alocação para
 // impedir que um peer remoto force uma reserva fora do limite nativo.
 func (s *ClientSession) Receive() (Packet, error) {
-	conn, err := s.connection()
+	conn, err := s.connectionForReceive()
 	if err != nil {
 		return Packet{}, err
 	}
-	if timeout := s.options.IOTimeout; timeout > 0 {
+	return receivePacket(conn, s.options.IOTimeout)
+}
+
+// StartReceiving inicia no máximo uma rotina leitora para a conexão atual. A
+// rotina apenas produz eventos; ela não conhece dispatcher, cenas ou UI.
+func (s *ClientSession) StartReceiving() error {
+	if s == nil {
+		return ErrNotConnected
+	}
+	bufferSize, err := sessionEventBufferSize(s.options.EventBuffer)
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	if s.closed || s.conn == nil {
+		s.mu.Unlock()
+		return ErrNotConnected
+	}
+	if s.receiving {
+		s.mu.Unlock()
+		return nil
+	}
+	if s.events == nil {
+		s.events = make(chan SessionEvent, bufferSize)
+	}
+	conn := s.conn
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	s.receiveStop = stop
+	s.receiveDone = done
+	s.receiving = true
+	timeout := s.options.IOTimeout
+	s.mu.Unlock()
+
+	go s.receiveLoop(conn, timeout, stop, done)
+	return nil
+}
+
+// DrainEvents transfere até limit eventos já disponíveis sem aguardar rede.
+// Um limite não positivo não drena nada, evitando trabalho ilimitado em um
+// único frame.
+func (s *ClientSession) DrainEvents(limit int) []SessionEvent {
+	if s == nil || limit <= 0 {
+		return nil
+	}
+	s.mu.Lock()
+	events := s.events
+	s.mu.Unlock()
+	if events == nil {
+		return nil
+	}
+	drained := make([]SessionEvent, 0, min(limit, len(events)))
+	for len(drained) < limit {
+		select {
+		case event := <-events:
+			drained = append(drained, event)
+		default:
+			return drained
+		}
+	}
+	return drained
+}
+
+func (s *ClientSession) receiveLoop(conn net.Conn, timeout time.Duration, stop, done chan struct{}) {
+	defer func() {
+		_ = conn.Close()
+		s.mu.Lock()
+		if s.receiveDone == done {
+			s.receiving = false
+			s.receiveStop = nil
+			s.receiveDone = nil
+			if s.conn == conn {
+				s.conn = nil
+			}
+		}
+		s.mu.Unlock()
+		close(done)
+	}()
+
+	for {
+		packet, err := receivePacket(conn, timeout)
+		if err != nil {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			_ = s.enqueueEvent(SessionEvent{Kind: SessionDisconnected, Err: err}, stop)
+			return
+		}
+		if !s.enqueueEvent(SessionEvent{Kind: SessionPacket, Packet: packet}, stop) {
+			return
+		}
+	}
+}
+
+func (s *ClientSession) enqueueEvent(event SessionEvent, stop <-chan struct{}) bool {
+	s.mu.Lock()
+	events := s.events
+	s.mu.Unlock()
+	if events == nil {
+		return false
+	}
+	select {
+	case events <- event:
+		return true
+	case <-stop:
+		return false
+	}
+}
+
+func receivePacket(conn net.Conn, timeout time.Duration) (Packet, error) {
+	if timeout > 0 {
 		_ = conn.SetReadDeadline(time.Now().Add(timeout))
 	}
 	var sizeBytes [2]byte
@@ -310,8 +461,34 @@ func (s *ClientSession) connection() (net.Conn, error) {
 	return s.conn, nil
 }
 
+func (s *ClientSession) connectionForReceive() (net.Conn, error) {
+	if s == nil {
+		return nil, ErrNotConnected
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed || s.conn == nil {
+		return nil, ErrNotConnected
+	}
+	if s.receiving {
+		return nil, ErrReceiveLoopRunning
+	}
+	return s.conn, nil
+}
+
+func sessionEventBufferSize(configured int) (int, error) {
+	if configured == 0 {
+		return DefaultSessionEventBuffer, nil
+	}
+	if configured < 0 || configured > MaxSessionEventBuffer {
+		return 0, fmt.Errorf("%w: got %d, range 1..%d", ErrInvalidEventBuffer, configured, MaxSessionEventBuffer)
+	}
+	return configured, nil
+}
+
 // Close pode ser chamado várias vezes e fecha somente o socket que a sessão
-// possui. Não há goroutine de leitura própria nesta primeira fatia.
+// possui. Quando a recepção assíncrona está ativa, o fechamento do socket
+// desbloqueia a leitura e o método aguarda a goroutine terminar.
 func (s *ClientSession) Close() error {
 	if s == nil {
 		return nil
@@ -324,9 +501,18 @@ func (s *ClientSession) Close() error {
 	s.closed = true
 	conn := s.conn
 	s.conn = nil
-	s.mu.Unlock()
-	if conn != nil {
-		return conn.Close()
+	stop := s.receiveStop
+	done := s.receiveDone
+	if stop != nil {
+		close(stop)
 	}
-	return nil
+	s.mu.Unlock()
+	var err error
+	if conn != nil {
+		err = conn.Close()
+	}
+	if done != nil {
+		<-done
+	}
+	return err
 }
