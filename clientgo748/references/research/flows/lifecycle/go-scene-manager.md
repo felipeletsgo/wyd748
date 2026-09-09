@@ -156,7 +156,8 @@ N/A: nenhum estado server-side ou contrato de sessão é alterado.
 
 ## Lacunas
 
-- ligar cenas reais de login, seleção e Field ao manager;
+- ligar factories visuais de login, seleção e Field ao manager (as cenas
+  lógicas já existem em `internal/loginflow`);
 - integrar troca disparada por pacote, logout e relogin após fechar os contratos
   de transporte;
 - executar a troca customizada no `project.exe` para obter `CLIENT_TESTED`.
@@ -169,5 +170,5 @@ N/A: nenhum estado server-side ou contrato de sessão é alterado.
 - `Test-ClientBootstrap.ps1` nos ambientes default e protegido: criação da
   janela, resize, `WM_CLOSE` e `Alt+F4` aprovados.
 - `git diff --check`: aprovado.
-- Execução visual e integração com transporte: pendentes até o manager
-  receber as cenas de login e mundo.
+- Execução visual e integração com transporte: pendentes até as factories
+  visuais receberem o coordenador de login.

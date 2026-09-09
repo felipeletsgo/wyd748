@@ -54,6 +54,9 @@ type Options struct {
 	// recebido. Quando configurado, Session deve implementar EventSession.
 	SessionEventHandler   func(protocol.SessionEvent) error
 	SessionEventsPerFrame int
+	// SceneSynchronizer runs after session and input dispatch, before scene
+	// update, so packets received in one frame resolve to one final scene.
+	SceneSynchronizer func() error
 }
 
 // Application possui janela e renderer depois que cada estágio conclui.
@@ -208,6 +211,11 @@ func (a *Application) Run(ctx context.Context) (err error) {
 		if a.sceneManager != nil {
 			if err := a.sceneManager.Dispatch(events); err != nil {
 				return err
+			}
+			if a.options.SceneSynchronizer != nil {
+				if err := a.options.SceneSynchronizer(); err != nil {
+					return fmt.Errorf("clientgo748: synchronize scene: %w", err)
+				}
 			}
 		}
 		if a.window.ShouldClose() {

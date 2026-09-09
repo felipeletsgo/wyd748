@@ -14,7 +14,10 @@ import (
 	"wydclient748/internal/assets"
 	"wydclient748/internal/config"
 	"wydclient748/internal/graphics/wgl"
+	"wydclient748/internal/login"
+	"wydclient748/internal/loginflow"
 	"wydclient748/internal/platform/win32"
+	"wydclient748/internal/protocol"
 )
 
 func main() {
@@ -27,6 +30,10 @@ func main() {
 func run() error {
 	cfg := config.Default()
 	if err := cfg.Validate(); err != nil {
+		return err
+	}
+	serverAddress, err := config.ServerAddressFromEnv(cfg.ServerAddress)
+	if err != nil {
 		return err
 	}
 	var protectedSource assets.TextureSource
@@ -45,11 +52,43 @@ func run() error {
 		}
 	}
 
+	state := login.NewSessionState()
+	var coordinator *loginflow.Coordinator
 	options := app.Options{
-		Title:    "WYD 7.48",
-		Width:    cfg.WindowWidth,
-		Height:   cfg.WindowHeight,
-		LogoPath: initialLogoPath(),
+		Title:                 "WYD 7.48",
+		Width:                 cfg.WindowWidth,
+		Height:                cfg.WindowHeight,
+		LogoPath:              initialLogoPath(),
+		SceneFactories:        loginflow.SceneFactories(state),
+		SessionEventsPerFrame: 64,
+		SceneSynchronizer: func() error {
+			if coordinator == nil {
+				return nil
+			}
+			return coordinator.Synchronize()
+		},
+	}
+	if serverAddress != "" {
+		session := protocol.NewSession(serverAddress, protocol.SessionOptions{})
+		options.Session = session
+		options.SessionConnected = func() error {
+			if coordinator == nil {
+				return fmt.Errorf("login coordinator is not initialized")
+			}
+			return coordinator.SessionConnected()
+		}
+		options.SessionDisconnected = func() {
+			if coordinator != nil {
+				coordinator.SessionDisconnected()
+			}
+		}
+		options.SessionEventHandler = func(event protocol.SessionEvent) error {
+			if coordinator == nil {
+				return fmt.Errorf("login coordinator is not initialized")
+			}
+			_, err := coordinator.HandleSessionEvent(event)
+			return err
+		}
 	}
 	if protectedEnabled {
 		options.LogoPath = ""
@@ -67,9 +106,27 @@ func run() error {
 		}
 		return err
 	}
+	coordinator, err = loginflow.New(state, sessionSender(options.Session), client, loginflow.Options{})
+	if err != nil {
+		_ = client.Close()
+		return err
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	return client.Run(ctx)
+}
+
+func sessionSender(session protocol.Session) login.Sender {
+	if sender, ok := session.(login.Sender); ok {
+		return sender
+	}
+	return offlineSender{}
+}
+
+type offlineSender struct{}
+
+func (offlineSender) Send([]byte, byte) error {
+	return fmt.Errorf("login: network session is not configured")
 }
 
 func initialLogoPath() string {

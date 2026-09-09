@@ -182,7 +182,11 @@ unidade aprovada deve ser commitada diretamente em `main`, publicada em
 
 ## Próxima ação concreta
 
-Criar as cenas mínimas Login → CharacterSelect → Loading → World, dirigidas
-exclusivamente pelo estado atualizado na thread principal e pelo controller de
-login já implementado. Depois, executar o ciclo completo contra o WYD-Go e
-fechar logout/relogin real antes de iniciar o mundo mínimo.
+As cenas lógicas `Login` → `CharacterSelect` → `Loading` → `World` e o
+`loginflow.Coordinator` foram adicionados. O coordenador dirige as transições
+exclusivamente pelo estado atualizado na thread principal; `Application` chama
+o sincronizador depois dos eventos de sessão/input e antes do update da cena.
+
+Próximo gate: ligar factories visuais e controles de login, então executar o
+ciclo completo contra o WYD-Go e fechar logout/relogin real antes de iniciar o
+mundo mínimo.

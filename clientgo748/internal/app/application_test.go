@@ -557,6 +557,34 @@ func TestApplicationDispatchesSessionEventsOnFrameBeforeSceneUpdate(t *testing.T
 	}
 }
 
+func TestApplicationRunsSceneSynchronizerAfterInputBeforeUpdate(t *testing.T) {
+	var events []string
+	window := &fakeWindow{events: &events, pollsUntilClose: 2}
+	renderer := &fakeRenderer{events: &events}
+	application, err := New(Options{
+		Title: "WYD 7.48", Width: 800, Height: 600,
+		InitialSceneID: "login",
+		InitialScene: func() (scene.Scene, error) {
+			return &applicationScene{id: "login", events: &events}, nil
+		},
+		SceneSynchronizer: func() error {
+			events = append(events, "scene.sync")
+			return nil
+		},
+	}, window, renderer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := application.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	sync := indexOf(events, "scene.sync")
+	update := indexOf(events, "scene.update")
+	if sync < 0 || update < 0 || sync >= update {
+		t.Fatalf("synchronizer did not run before scene update: %v", events)
+	}
+}
+
 func TestApplicationSessionHandlerFailurePropagatesAndClosesBeforeScenes(t *testing.T) {
 	var events []string
 	handlerErr := errors.New("dispatch failed")

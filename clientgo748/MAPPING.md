@@ -192,6 +192,22 @@ de comparação necessário está em `references/tmproject/`.
 estados de entrega separados. Nenhum build verde substitui o teste real do
 client.
 
+## Coordenador de login e cenas lógicas
+
+`internal/loginflow` compõe o `SessionState`, `Controller`, `Dispatcher` e o
+navegador de cenas sem criar um novo opcode ou alterar ABI. As fases
+`Disconnected/Connecting/Authenticating`, `CharacterSelect`, `EnteringWorld` e
+`InWorld/LoggingOut` mapeiam respectivamente para `Login`, `CharacterSelect`,
+`Loading` e `World`. As factories atuais são cenas lógicas sem renderer e
+validam a fase em `Enter` e `Update`; a implementação é
+`MODERNIZACAO_COMPATIVEL` e está `AUTOMATED TESTED`.
+
+`Application.Options.SceneSynchronizer` executa depois do dispatch de sessão e
+input e antes de `scene.Manager.Update`, garantindo que vários packets do mesmo
+frame produzam uma única transição baseada no estado final.
+
+O cliente real ainda não foi executado e o lote não é `CLIENT_TESTED`.
+
 ## Como continuar
 
 1. Escolher a raiz nativa correspondente em
@@ -209,7 +225,7 @@ Os snapshots de auditoria e a implementação vivem neste diretório. O módulo
 `wydclient748` é independente do módulo Go do servidor. Os arquivos sob
 `references/tmproject/` são leitura de comparação, não código ativo.
 
-No fluxo de login, layouts, parsers, estado, dispatcher e controller já estão
-implementados e testados automaticamente. O próximo lote liga esse estado às
-cenas `Login`, `CharacterSelect`, `Loading` e `World`, seguido do teste real de
-login, logout e relogin contra o WYD-Go.
+No fluxo de login, layouts, parsers, estado, dispatcher, controller,
+coordenador e cenas lógicas estão implementados e testados automaticamente. O
+próximo lote liga as factories às telas visuais e executa o teste real de login,
+logout e relogin contra o WYD-Go.

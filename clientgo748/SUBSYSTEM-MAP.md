@@ -8,8 +8,8 @@ arquivo é a entrada curta para quem trabalha no client Go.
 | --- | --- | --- |
 | Bootstrap, janela e device vazio | `CLIENT_TESTED` no executável Go | dados, managers e primeira cena ficam em fichas próprias |
 | Transporte, framing e criptografia | `CONTRACT` nativo; `AUTOMATED TESTED` Go | validar conexão real e iniciar o contrato de login |
-| Login e seleção de personagem | `CONTRACT` nativo; dispatcher e controller `AUTOMATED TESTED` Go | implementar cenas e validar login/logout/relogin real |
-| Cenas e dispatcher | manager, dispatcher e lifecycle de sessão testados | ligar estado → transição de cena sem permitir mutação pela goroutine do socket |
+| Login e seleção de personagem | `CONTRACT` nativo; dispatcher, controller e coordenador `AUTOMATED TESTED` Go | ligar telas e validar login/logout/relogin real |
+| Cenas e dispatcher | manager, cenas lógicas, sincronizador e lifecycle de sessão `AUTOMATED TESTED` | factories visuais e teste real sem permitir mutação pela goroutine do socket |
 | Tick, input e movimento | `CONTRACT` estreito | completar rota, predição, correção e auto-run |
 | Entidades, morte e renascimento | `CONTRACT` estreito | completar visibilidade, death state e rematerialização |
 | Portal, NPC, cidade e requests | `CONTRACT` estreito | manter contratos de intenção; regras ficam no servidor |
