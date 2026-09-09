@@ -45,6 +45,32 @@ func TestServerAddressFromEnvIsOptIn(t *testing.T) {
 	}
 }
 
+func TestServerEntriesFromEnvUsesDefaultWhenUnset(t *testing.T) {
+	t.Setenv("WYD_SERVER_LIST", "")
+	entries, err := ServerEntriesFromEnv("127.0.0.1:8281")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name != "WYD-Go Server" || entries[0].Address != "127.0.0.1:8281" {
+		t.Fatalf("entries=%+v", entries)
+	}
+}
+
+func TestServerEntriesFromEnvParsesAndValidatesMultipleEntries(t *testing.T) {
+	t.Setenv("WYD_SERVER_LIST", "Production|127.0.0.1:8281;Test|localhost:8282")
+	entries, err := ServerEntriesFromEnv("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 || entries[1].Address != "localhost:8282" {
+		t.Fatalf("entries=%+v", entries)
+	}
+	t.Setenv("WYD_SERVER_LIST", "broken")
+	if _, err := ServerEntriesFromEnv(""); err == nil {
+		t.Fatal("malformed server list accepted")
+	}
+}
+
 func TestValidateRejectsUnsupportedProtocol(t *testing.T) {
 	c := Default()
 	c.ProtocolVersion = "7.69"

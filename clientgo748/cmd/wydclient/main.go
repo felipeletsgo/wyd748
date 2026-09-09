@@ -36,6 +36,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	serverEntries, err := config.ServerEntriesFromEnv(displayServerAddress(cfg.ServerAddress, serverAddress))
+	if err != nil {
+		return err
+	}
 	var protectedSource assets.TextureSource
 	protectedSettings, protectedEnabled, err := config.LoadProtectedAssetSettingsFromEnv()
 	if err != nil {
@@ -79,7 +83,7 @@ func run() error {
 		SceneFactories: loginflow.SceneFactoriesWithVisuals(state, loginflow.VisualOptions{
 			ShapeRenderer: renderer,
 			ServerTexture: &serverTexture,
-			Servers:       []loginflow.ServerEntry{{Name: "WYD-Go Server", Address: selectedAddress}},
+			Servers:       toLoginServerEntries(serverEntries),
 			SelectServer: func(entry loginflow.ServerEntry) error {
 				if client == nil {
 					return fmt.Errorf("client application is not initialized")
@@ -163,6 +167,14 @@ func displayServerAddress(defaultAddress, configuredAddress string) string {
 	return defaultAddress
 }
 
+func toLoginServerEntries(entries []config.ServerEntry) []loginflow.ServerEntry {
+	converted := make([]loginflow.ServerEntry, len(entries))
+	for i, entry := range entries {
+		converted[i] = loginflow.ServerEntry{Name: entry.Name, Address: entry.Address}
+	}
+	return converted
+}
+
 func initialLogoPath() string {
 	if executable, err := os.Executable(); err == nil {
 		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "CLIENT OFICIAL 7.48", "UI", "logo1.wyt"))
@@ -175,20 +187,20 @@ func initialLogoPath() string {
 
 func loginTexturePath() string {
 	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "CLIENT OFICIAL 7.48", "UI", "loginbox2.wyt"))
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "UI", "loginbox2.wyt"))
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
 	}
-	return filepath.Join("CLIENT OFICIAL 7.48", "UI", "loginbox2.wyt")
+	return filepath.Join("assets", "current", "UI", "loginbox2.wyt")
 }
 
 func serverSelectionTexturePath() string {
 	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "CLIENT OFICIAL 7.48", "UI", "ServerList2.wyt"))
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "UI", "ServerList2.wyt"))
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
 	}
-	return filepath.Join("CLIENT OFICIAL 7.48", "UI", "ServerList2.wyt")
+	return filepath.Join("assets", "current", "UI", "ServerList2.wyt")
 }

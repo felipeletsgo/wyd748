@@ -143,9 +143,15 @@ em `CONNECT`/Enter; o endpoint é aplicado antes do socket e nunca pode ser
 alterado por uma sessão viva. A tela de login usa `UI/loginbox2.wyt`, e a
 seleção usa `UI/ServerList2.wyt`, ambos assets oficiais 7.48 escolhidos como
 skin moderna; o TMProject foi usado somente como comparação autorizada para a
-composição compatível. Mensagens visíveis permanecem em inglês. Sem override,
-`CONNECT` usa o endpoint padrão `127.0.0.1:8281`; `WYD_SERVER_ADDRESS` permite
-substituí-lo antes de iniciar o processo.
+composição compatível. Mensagens visíveis permanecem em inglês. A seleção é
+sempre a primeira cena e só abre o transporte depois de `CONNECT`/Enter. Sem
+override, `CONNECT` usa o endpoint padrão `127.0.0.1:8281`;
+`WYD_SERVER_ADDRESS` permite substituí-lo antes de iniciar o processo. Para
+uma lista real de servidores, `WYD_SERVER_LIST` aceita entradas no formato
+`Name|host:port;Another Name|host:port`, validadas antes da janela e limitadas
+a 32 itens. A cópia ativa `assets/current` contém somente os assets modernos;
+`loginbox.wyt`, `loginicon.wyt`, `LoginScene.bin` e `SelServerScene.bin`
+permanecem apenas no corpus oficial read-only para referência nativa.
 
 Ainda falta a execução contra o servidor real e a validação manual do
 executável Windows.

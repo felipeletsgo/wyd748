@@ -162,22 +162,23 @@ func (s *serverSelectionScene) Render() error {
 	text, _ := s.renderer.(graphics.TextRenderer)
 	for i, entry := range s.servers {
 		r := serverRect(i)
-		color := graphics.Color{R: .10, G: .13, B: .19, A: .94}
+		color := graphics.Color{R: .78, G: .82, B: .90, A: 1}
 		if i == s.selected {
-			color = graphics.Color{R: .18, G: .40, B: .68, A: .98}
+			color = graphics.Color{R: 1, G: 1, B: 1, A: 1}
 		}
-		s.renderer.DrawRect(r.X, r.Y, r.Width, r.Height, color)
 		if text != nil {
 			name := entry.Name
 			if name == "" {
 				name = entry.Address
 			}
-			text.DrawText(r.X+14, r.Y+12, name, 14, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+			if i == s.selected {
+				name = "> " + name
+			}
+			text.DrawText(r.X+14, r.Y+12, name, 14, color)
 			text.DrawText(r.X+14, r.Y+32, entry.Address, 11, graphics.Color{R: .76, G: .80, B: .88, A: 1})
 		}
 	}
 	r := serverConnectRect()
-	s.renderer.DrawRect(r.X, r.Y, r.Width, r.Height, graphics.Color{R: .12, G: .34, B: .62, A: 1})
 	if text != nil {
 		text.DrawText(r.X+28, r.Y+11, "CONNECT", 13, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		if s.status != "" {

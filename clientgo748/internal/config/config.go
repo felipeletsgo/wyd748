@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Config reúne somente valores necessários para construir a fundação do
@@ -87,4 +88,48 @@ func ServerAddressFromEnv(defaultAddress string) (string, error) {
 		return "", err
 	}
 	return address, nil
+}
+
+// ServerEntry is one endpoint offered by the modern server-selection screen.
+// The client treats the list as presentation/configuration only; the server
+// remains authoritative after the selected endpoint is connected.
+type ServerEntry struct {
+	Name    string
+	Address string
+}
+
+// ServerEntriesFromEnv loads an optional semicolon-separated list using the
+// format "Display Name|host:port;Another Server|host:port". Keeping this
+// outside the executable lets operators publish several channels without
+// rebuilding the client. When unset, the configured default remains the one
+// safe local entry used by development builds.
+func ServerEntriesFromEnv(defaultAddress string) ([]ServerEntry, error) {
+	raw := strings.TrimSpace(os.Getenv("WYD_SERVER_LIST"))
+	if raw == "" {
+		return []ServerEntry{{Name: "WYD-Go Server", Address: defaultAddress}}, nil
+	}
+	parts := strings.Split(raw, ";")
+	if len(parts) > 32 {
+		return nil, errors.New("clientgo748: server list contains more than 32 entries")
+	}
+	entries := make([]ServerEntry, 0, len(parts))
+	for index, part := range parts {
+		fields := strings.SplitN(part, "|", 2)
+		if len(fields) != 2 {
+			return nil, fmt.Errorf("clientgo748: server list entry %d must use name|host:port", index+1)
+		}
+		name := strings.TrimSpace(fields[0])
+		address := strings.TrimSpace(fields[1])
+		if name == "" || len([]rune(name)) > 64 {
+			return nil, fmt.Errorf("clientgo748: server list entry %d has an invalid name", index+1)
+		}
+		if err := ValidateServerAddress(address); err != nil {
+			return nil, fmt.Errorf("clientgo748: server list entry %d: %w", index+1, err)
+		}
+		entries = append(entries, ServerEntry{Name: name, Address: address})
+	}
+	if len(entries) == 0 {
+		return nil, errors.New("clientgo748: server list is empty")
+	}
+	return entries, nil
 }

@@ -139,18 +139,24 @@ Nativo: fichas `login-session.md` e `go-scene-manager.md`.
   renderer.
 - A seleção ignora slots vazios, percorre os quatro slots sem pular ocupados e
   só chama o controller depois de uma confirmação válida.
+- A lista de servidores é fornecida por configuração (`WYD_SERVER_LIST`,
+  `Name|host:port;...`) e cada endpoint é validado antes de ser apresentado;
+  sem a variável, existe uma entrada local segura para desenvolvimento.
 - A seleção de servidor separa destaque da linha e confirmação: clicar numa
   linha apenas muda o índice; `CONNECT` ou Enter inicia a conexão adiada. Sem
   `WYD_SERVER_ADDRESS`, a entrada usa o endpoint padrão `127.0.0.1:8281`; a
   inicialização da janela não abre o socket antes da confirmação.
-- `loginbox.wyt` e `SelServerScene.bin` permanecem no pacote como assets legados
-  não referenciados; a remoção fica pendente até uma auditoria de referências
-  no client nativo e nas ferramentas de conversão.
+- `loginbox.wyt`, `loginicon.wyt`, `LoginScene.bin` e `SelServerScene.bin` não
+  são referenciados pelo client Go ativo. Foram removidos de `assets/current`
+  para reduzir a distribuição; a cópia oficial e as referências Ghidra foram
+  preservadas como corpus read-only, pois o executável nativo ainda carrega a
+  família antiga quando selecionado por sua própria configuração.
 - Não declarar `CLIENT_TESTED` até executar login/logout/relogin no executável.
 
 ## Lacunas
 
-- validar conexão e ciclo completo contra o servidor WYD-Go;
+- validar conexão e ciclo completo contra o servidor WYD-Go, incluindo duas
+  entradas configuradas e retorno à seleção após desconexão;
 - adicionar a fonte/atlas nativo de texto e rastrear recursos visuais no client
   real;
 - substituir os elementos visuais provisórios de seleção, carregamento e mundo
