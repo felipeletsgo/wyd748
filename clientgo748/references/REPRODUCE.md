@@ -44,6 +44,11 @@ localiza a janela pela classe `WYDClientGo748Window` e pelo PID, confirma a
 área cliente inicial, redimensiona a janela e exercita `WM_CLOSE` e Alt+F4.
 Ele não substitui validação visual de cenas ou assets.
 
+Para uma recompilação imediatamente posterior a um `Verify-Fast.ps1` aprovado,
+é possível usar `Build-ClientGo.ps1 -Configuration Debug -SkipTests`; essa opção
+não é um gate independente e não deve ser usada sem o resultado rápido no mesmo
+estado da árvore.
+
 ## Próximo lote recomendado
 
 Começar pelas entradas `DOCUMENTED_FIRST` ligadas ao caminho crítico e fechar

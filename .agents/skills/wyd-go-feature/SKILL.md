@@ -144,6 +144,13 @@ mascarar um acesso nulo.
 | Packet/ABI | asserts/teste byte a byte, validação dos dois lados, rejeição inválida e relogin |
 | Documentação/skill | validador aplicável e `git diff --check`; não recompilar produto não alterado |
 
+Para o pacote `clientgo748`, o gate normal é `Verify-Fast.ps1`. Use
+`Verify-Contract.ps1` somente para protocolo, loaders, assets ou empacotamento,
+e `Verify-Mapping.ps1` somente para corpus, catálogo, fichas ou ferramentas de
+pesquisa. `Build-ClientGo.ps1` gera o executável e atende ao smoke test Windows;
+se o gate rápido já passou no mesmo estado, `-SkipTests` evita repetir a suíte,
+mas nunca substitui essa verificação.
+
 Sempre rodar `git diff --check`. `IMPLEMENTED`, `STATICALLY VERIFIED`,
 `AUTOMATED TESTED` e `CLIENT-TESTED` descrevem camadas distintas. Build verde
 não prova paridade ou fluxo in-game.

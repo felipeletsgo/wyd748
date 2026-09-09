@@ -28,8 +28,20 @@ aceitas.
 ## Gate mínimo
 
 ```powershell
-pwsh -NoProfile -File .\clientgo748\Build-ClientGo.ps1 -Configuration Debug
+pwsh -NoProfile -File .\clientgo748\Verify-Fast.ps1
 git diff --check
 ```
+
+`Build-ClientGo.ps1` é reservado para gerar o executável e para o smoke test
+Windows. Ele executa os testes por padrão; quando o `Verify-Fast.ps1` acabou de
+passar sem mudanças nos inputs, pode ser chamado com `-SkipTests` para não
+repetir a mesma suíte:
+
+```powershell
+pwsh -NoProfile -File .\clientgo748\Build-ClientGo.ps1 -Configuration Debug -SkipTests
+```
+
+`-SkipTests` nunca substitui o gate rápido; só é válido depois de uma execução
+bem-sucedida dele no mesmo estado da árvore.
 
 O executável em `clientgo748/bin/` é artefato local e não deve ser versionado.

@@ -87,7 +87,13 @@ da cadeia de evidência.
 2. API Go e ownership definidos;
 3. parser/estado com testes de entrada válida e inválida;
 4. lifecycle de sucesso, erro, logout e relogin coberto;
-5. `go test ./...` executado dentro de `clientgo748` e `git diff --check`
-   aprovados;
+5. executar o menor gate proporcional: `Verify-Fast.ps1` para código ativo,
+   `Verify-Contract.ps1` para protocolo/assets e `Verify-Mapping.ps1` para
+   evidência/corpus/pesquisa, sempre com `git diff --check`;
 6. validação visual ou client/server somente quando o subsistema realmente
    estiver conectado.
+
+`go test ./...` continua incluído no `Verify-Fast.ps1`, mas não deve ser
+repetido por cada etapa documental. `Build-ClientGo.ps1` só é necessário quando
+o executável ou o smoke test Windows for afetado; após o gate rápido, use
+`-SkipTests` para evitar duplicação.

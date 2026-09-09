@@ -106,6 +106,11 @@ pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1
 pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1 -EnvironmentFile .\bin\protected-test.env
 ```
 
+Se `Verify-Fast.ps1` já passou e nenhum input do client mudou desde então, use
+`Build-ClientGo.ps1 -Configuration Debug -SkipTests` para gerar o executável
+sem repetir a suíte. O smoke test continua obrigatório quando a unidade toca
+bootstrap, janela ou lifecycle de plataforma.
+
 O nível rápido não substitui contrato, Ghidra nem teste manual. O CI executa o
 nível rápido em toda mudança, o nível de contrato quando protocolo/assets são
 afetados e a auditoria completa quando a base de pesquisa muda, além de uma

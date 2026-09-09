@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')]
-    [string]$Configuration = 'Debug'
+    [string]$Configuration = 'Debug',
+    [switch]$SkipTests
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,10 +15,15 @@ New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 
 Push-Location $PSScriptRoot
 try {
-    Write-Host "Testing clientgo748 ($Configuration)..."
-    & go test ./...
-    if ($LASTEXITCODE -ne 0) {
-        throw "clientgo748 tests failed with exit code $LASTEXITCODE"
+    if ($SkipTests) {
+        Write-Host "Skipping clientgo748 tests; run Verify-Fast.ps1 first."
+    }
+    else {
+        Write-Host "Testing clientgo748 ($Configuration)..."
+        & go test ./...
+        if ($LASTEXITCODE -ne 0) {
+            throw "clientgo748 tests failed with exit code $LASTEXITCODE"
+        }
     }
 
     $BuildFlags = @('-trimpath')
