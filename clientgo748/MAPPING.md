@@ -24,7 +24,7 @@ de cada entrada permanece no TSV e não é promovida por compilação ou por
 semelhança com o TMProject.
 
 O mapa operacional de assets é uma camada independente desse censo. O snapshot
-`assets/current` contém **7.370 arquivos** e **347.201.966 bytes**, distribuídos
+`assets/current` contém **7.370 arquivos** e **347.172.280 bytes canônicos**, distribuídos
 nas famílias ANI, BIN, BON, CSV, CUR, DAT, JSON, MSA, MSH, TRN, TXT, WYS e WYT.
 `references/assets/asset-map.tsv` registra contagem e tamanho por família; as
 relações ficam em `asset-dependencies.tsv`. A presença de uma extensão não

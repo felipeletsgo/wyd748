@@ -30,6 +30,22 @@ FAMILIES = {
     ".wyt": ("TEX_WYT", "texture"),
 }
 
+TEXT_SUFFIXES = {".csv", ".json", ".txt"}
+
+
+def canonical_size(path: Path) -> int:
+    """Return a checkout-independent size for text assets.
+
+    Git may materialize text with CRLF on Windows and LF on Linux. The asset
+    census describes package content, so it uses the same canonical LF view as
+    the package manifest while leaving binary formats byte-exact.
+    """
+
+    data = path.read_bytes()
+    if path.suffix.lower() in TEXT_SUFFIXES or path.name.lower() == "itemhelp.dat":
+        return len(data.replace(b"\r\n", b"\n"))
+    return len(data)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -49,7 +65,7 @@ def write_map(root: Path, output: Path) -> int:
     for path in sorted(p for p in root.rglob("*") if p.is_file()):
         suffix = path.suffix.lower()
         count, size = totals.get(suffix, (0, 0))
-        totals[suffix] = (count + 1, size + path.stat().st_size)
+        totals[suffix] = (count + 1, size + canonical_size(path))
 
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8", newline="") as stream:

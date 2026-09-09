@@ -1,9 +1,10 @@
 # Assets do novo client
 
 `current/` é o snapshot dos assets ativos que o novo client Go deverá
-consumir. Ele contém 7.370 arquivos e 347.201.966 bytes, incluindo `Effect`,
+consumir. Ele contém 7.370 arquivos e 347.172.280 bytes canônicos, incluindo `Effect`,
 `Env`, `mesh`, `Shader`, `UI` e as tabelas binárias/JSON relevantes da raiz do
-client atual.
+client atual. O tamanho textual usa LF canônico para não variar entre checkouts
+Windows e Linux; formatos binários permanecem byte-exact.
 
 Este snapshot é separado de `CLIENT OFICIAL 7.48/`:
 

@@ -22,6 +22,14 @@ function Assert-SameText {
 & (Join-Path $clientRoot "tools\Test-Manifest.ps1")
 & (Join-Path $clientRoot "tools\Test-SelfContained.ps1")
 
+& $python.Source -m unittest discover `
+    -s (Join-Path $clientRoot "tools\assets") `
+    -p "test_*.py" `
+    -v
+if ($LASTEXITCODE -ne 0) {
+    throw "Asset tooling tests failed with exit code $LASTEXITCODE"
+}
+
 $temporaryDirectory = Join-Path ([IO.Path]::GetTempPath()) (
     "clientgo748-contract-{0}" -f [Guid]::NewGuid().ToString("N")
 )
