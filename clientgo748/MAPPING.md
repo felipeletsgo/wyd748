@@ -63,6 +63,26 @@ assets oficiais.
 O contrato está documentado em
 `references/research/flows/render-assets/assetc-canonical-format.md`.
 
+## Terceira unidade: pacote protegido de assets
+
+`internal/assets.BuildProtectedPackage` cria um pacote determinístico de
+chunks comprimidos, autenticados com AES-256-GCM e acompanhado de manifesto
+canônico assinado com Ed25519. `OpenProtectedPackage` verifica o manifesto e a
+assinatura antes de descriptografar, limita tamanhos, rejeita paths inseguros e
+nonces repetidos, confere o hash SHA-256 do payload original e só então entrega
+cópias independentes ao chamador.
+
+Esta é uma extensão interna de distribuição (`MODERNIZACAO_COMPATIVEL`): não
+altera opcode, ABI, recurso nativo ou regra server-authoritative. A chave
+privada permanece fora do client; a chave pública valida autenticidade e a
+chave de conteúdo deve vir do fluxo autorizado de sessão. A maturidade nativa
+permanece `UNMAPPED`, pois não existe formato equivalente comprovado no WYD
+7.48. A entrega atual está `IMPLEMENTED / AUTOMATED TESTED`; a integração ao
+renderer ainda está pendente.
+
+O contrato está documentado em
+`references/research/flows/render-assets/protected-asset-package.md`.
+
 ## Ordem de autoridade
 
 1. código/testes atuais do WYD-Go e dados autoritativos;
