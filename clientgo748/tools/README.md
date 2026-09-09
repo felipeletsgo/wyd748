@@ -3,6 +3,12 @@
 Todas as ferramentas necessárias para consultar e validar o mapeamento ficam
 neste diretório.
 
+Os entrypoints de verificação ficam na raiz do pacote:
+
+- `Verify-Fast.ps1`: ciclo curto para código Go ativo;
+- `Verify-Contract.ps1`: protocolo, assets, manifesto e autocontenção;
+- `Verify-Mapping.ps1`: auditoria integral do corpus e da pesquisa.
+
 - `research/query_corpus.py`: busca funções, callers textuais e referências no
   corpus local;
 - `research/triage_catalog.py`: ordena a fila sem promover maturidade;

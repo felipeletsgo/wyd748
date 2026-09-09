@@ -39,7 +39,7 @@ if ($links) {
 $activeFiles = @(
     Get-Item -LiteralPath (Join-Path $clientRoot "go.mod")
     Get-Item -LiteralPath (Join-Path $clientRoot "Build-ClientGo.ps1")
-    Get-Item -LiteralPath (Join-Path $clientRoot "Verify-Mapping.ps1")
+    Get-ChildItem -LiteralPath $clientRoot -File -Filter "Verify-*.ps1"
     Get-ChildItem -LiteralPath (Join-Path $clientRoot "cmd") -File -Recurse
     Get-ChildItem -LiteralPath (Join-Path $clientRoot "internal") -File -Recurse
     Get-ChildItem -LiteralPath (Join-Path $clientRoot "tools") -File -Recurse |

@@ -1,0 +1,44 @@
+name: Client full audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - clientgo748/references/**
+      - "!clientgo748/references/assets/**"
+      - clientgo748/tools/research/**
+      - clientgo748/tools/Test-SelfContained.ps1
+      - clientgo748/Verify-Mapping.ps1
+  pull_request:
+    paths:
+      - clientgo748/references/**
+      - "!clientgo748/references/assets/**"
+      - clientgo748/tools/research/**
+      - clientgo748/tools/Test-SelfContained.ps1
+      - clientgo748/Verify-Mapping.ps1
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-audit:
+    name: Native corpus and research audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run full client audit
+        working-directory: clientgo748
+        run: pwsh -NoProfile -File ./Verify-Mapping.ps1

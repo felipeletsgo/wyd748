@@ -198,7 +198,7 @@ revogação de `KeyID`, verificação de integridade dos assets, empacotamento e
 atualização segura. Medir tempo de carregamento, uso de memória e estabilidade
 em duas instâncias.
 
-## Gate obrigatório de cada unidade
+## Gate proporcional de cada unidade
 
 Antes de editar: `git status`, ficha de pesquisa e matriz de fontes. Para
 fronteiras nativas, o mínimo é `TRACED` para comportamento e `CONTRACT` para
@@ -206,16 +206,18 @@ wire/ABI/asset. A ficha deve marcar binário nativo, Ghidra, assets oficiais,
 WYD-Go, testes e referências secundárias como `UTILIZADA`, `NÃO APLICÁVEL` ou
 `CONTRADITÓRIA`.
 
-Depois de editar:
+Depois de editar, executar o menor gate que cubra a alteração:
 
 ```powershell
-go test ./...
-pwsh -NoProfile -File .\Verify-Mapping.ps1
-pwsh -NoProfile -File .\Build-ClientGo.ps1 -Configuration Debug
-pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1
-git diff --check
-python .\tools\research\validate_research.py --flows .\references\research\flows
+pwsh -NoProfile -File .\Verify-Fast.ps1       # código ativo
+pwsh -NoProfile -File .\Verify-Contract.ps1   # protocolo/assets
+pwsh -NoProfile -File .\Verify-Mapping.ps1    # evidência/pesquisa
 ```
+
+O nível superior inclui os anteriores. Mudança de comportamento observável
+continua sujeita à ficha e ao gate Ghidra; a separação reduz apenas trabalho
+redundante, não reduz evidência. Build e smoke test Windows são executados
+quando a unidade toca bootstrap, plataforma, renderer ou fluxo visual.
 
 Só usar `CLIENT_TESTED` após executar o fluxo real no executável Go. Cada
 unidade aprovada deve ser commitada diretamente em `main`, publicada em

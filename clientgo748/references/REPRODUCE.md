@@ -1,7 +1,20 @@
 # Reprodução do mapeamento
 
 Execute dentro de `clientgo748`. Os resultados são diagnósticos; não altere
-binários históricos.
+binários históricos. O ciclo comum não precisa reconstruir toda a evidência:
+
+```powershell
+# Código ativo: testes, vet, build e whitespace.
+pwsh -NoProfile -File .\Verify-Fast.ps1
+
+# Protocolo/assets: nível rápido + manifesto, pacote e census de assets.
+pwsh -NoProfile -File .\Verify-Contract.ps1
+
+# Evidência/pesquisa: contrato + corpus, catálogo, fichas e tooling.
+pwsh -NoProfile -File .\Verify-Mapping.ps1
+```
+
+Os comandos abaixo são a decomposição reproduzível da auditoria completa:
 
 ```powershell
 python .\tools\research\query_corpus.py --corpus .\references\ghidra\corpus stats --repo .
@@ -20,6 +33,11 @@ O triador só deve ser executado novamente quando o corpus, a fila ou uma nova
 raiz mudarem. O validador de pesquisa só precisa ser executado quando uma ficha
 ou seu schema mudar. O build do client Go não prova paridade visual nem
 `CLIENT_TESTED`.
+
+`MANIFEST.sha256` é um artefato derivado e não decide sozinho o nível do CI:
+qualquer arquivo versionado do pacote pode alterar o manifesto. O nível é
+escolhido pelos arquivos-fonte afetados; contrato e auditoria completa sempre
+validam o manifesto integral.
 
 `Test-ClientBootstrap.ps1` é um gate Windows do executável produzido. Ele
 localiza a janela pela classe `WYDClientGo748Window` e pelo PID, confirma a

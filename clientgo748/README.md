@@ -79,14 +79,34 @@ originais continuam sendo a fonte e não serão sobrescritos pelo conversor.
 
 ## Validação local
 
-Execute dentro deste diretório:
+O ciclo de desenvolvimento possui três níveis. Execute o menor nível que cobre
+a alteração:
 
 ```powershell
+pwsh -NoProfile -File .\Verify-Fast.ps1
+pwsh -NoProfile -File .\Verify-Contract.ps1
 pwsh -NoProfile -File .\Verify-Mapping.ps1
+```
+
+- `Verify-Fast.ps1`: testes Go, `go vet`, build temporário e `git diff --check`
+  quando houver worktree. É o ciclo normal de código ativo.
+- `Verify-Contract.ps1`: inclui o nível rápido, manifesto integral, pacote
+  autocontido e census determinístico de assets. Use para protocolo, loaders,
+  assets e empacotamento.
+- `Verify-Mapping.ps1`: inclui o nível de contrato e audita fingerprint nativo,
+  catálogo de 4.146 funções, corpus, fichas e ferramentas de pesquisa. Use ao
+  alterar evidência, catálogo, fichas ou o próprio pipeline de auditoria.
+
+O smoke test do executável permanece separado porque depende de Windows e de
+uma janela real:
+
+```powershell
 pwsh -NoProfile -File .\Build-ClientGo.ps1 -Configuration Debug
 pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1
 pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1 -EnvironmentFile .\bin\protected-test.env
 ```
 
-`Verify-Mapping.ps1` também confere `MANIFEST.sha256`, portanto detecta arquivo
-ausente, alterado ou não registrado no pacote.
+O nível rápido não substitui contrato, Ghidra nem teste manual. O CI executa o
+nível rápido em toda mudança, o nível de contrato quando protocolo/assets são
+afetados e a auditoria completa quando a base de pesquisa muda, além de uma
+execução semanal e acionamento manual.

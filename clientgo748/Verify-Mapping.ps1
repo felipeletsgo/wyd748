@@ -38,8 +38,7 @@ if ($functionCount -ne 4146) {
     throw "Function catalog mismatch. Expected 4146, found $functionCount"
 }
 
-& (Join-Path $clientRoot "tools\Test-Manifest.ps1")
-& (Join-Path $clientRoot "tools\Test-SelfContained.ps1")
+& (Join-Path $clientRoot "Verify-Contract.ps1")
 
 Invoke-Checked -Program $python.Source -Arguments @(
     (Join-Path $clientRoot "tools\research\query_corpus.py"),
@@ -56,13 +55,11 @@ Invoke-Checked $python.Source @(
     (Join-Path $clientRoot "tools\research\validate_research.py"),
     "--flows", $flows
 )
+Invoke-Checked $python.Source @(
+    "-m", "unittest", "discover",
+    "-s", (Join-Path $clientRoot "tools\research"),
+    "-p", "test_*.py",
+    "-v"
+)
 
-Push-Location $clientRoot
-try {
-    Invoke-Checked "go" @("test", "./...")
-}
-finally {
-    Pop-Location
-}
-
-Write-Host "Mapping package verified: 4,146 functions, native fingerprint, local inputs, research records, and Go tests."
+Write-Host "Full audit passed: contract gate, 4,146 functions, native fingerprint, corpus, research records, and research-tool tests."

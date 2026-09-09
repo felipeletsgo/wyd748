@@ -201,6 +201,29 @@ de comparação necessário está em `references/tmproject/`.
 estados de entrega separados. Nenhum build verde substitui o teste real do
 client.
 
+## Ciclo proporcional de verificação
+
+O tooling desta unidade é uma `MODERNIZACAO_COMPATIVEL`: não altera runtime,
+wire, ABI, asset ou comportamento legado. `Verify-Fast.ps1` cobre o ciclo de
+código ativo; `Verify-Contract.ps1` acrescenta manifesto, autocontenção e
+census determinístico de assets; `Verify-Mapping.ps1` acrescenta fingerprint,
+catálogo, corpus, fichas e testes das ferramentas de pesquisa.
+
+Na medição local deste lote, os níveis levaram aproximadamente 3,5 s, 13,9 s e
+15,3 s, respectivamente. O ganho cotidiano vem de não reler 18.766 registros
+do manifesto nem consultar as 4.146 funções quando apenas código Go comum foi
+alterado. O nível rápido não promove `LOCATED`, `TRACED`, `CONTRACT` ou
+`CLIENT_TESTED`.
+
+Procedência desta mudança de tooling:
+
+- source Go, testes, scripts e workflows atuais: `UTILIZADA`;
+- assets 7.48: `UTILIZADA` somente para comprovar o census do gate de contrato;
+- binário nativo e projeto Ghidra: `NÃO APLICÁVEL`, pois nenhuma fronteira
+  legada foi alterada;
+- TMProject: `NÃO APLICÁVEL`, pois não orienta o pipeline de verificação;
+- W2PP, Secrets e Micronics: excluídos e não utilizados.
+
 ## Coordenador de login e cenas lógicas
 
 `internal/loginflow` compõe o `SessionState`, `Controller`, `Dispatcher` e o

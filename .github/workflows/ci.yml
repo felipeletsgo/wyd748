@@ -55,13 +55,9 @@ jobs:
       - name: Build server
         run: go build -o "$RUNNER_TEMP/tm-check" ./cmd/server
 
-      - name: Verify clientgo748 package
+      - name: Fast clientgo748 verification
         working-directory: clientgo748
-        run: pwsh -NoProfile -File ./Verify-Mapping.ps1
-
-      - name: Build clientgo748
-        working-directory: clientgo748
-        run: go build -o "$RUNNER_TEMP/wydclient" ./cmd/wydclient
+        run: pwsh -NoProfile -File ./Verify-Fast.ps1
 
       - name: Check whitespace
         run: git diff --check
