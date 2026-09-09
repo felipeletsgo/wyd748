@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: Go validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: wydgo
+          POSTGRES_PASSWORD: wydgo
+          POSTGRES_DB: wydgo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wydgo -d wydgo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      WYD_TEST_POSTGRES_URL: postgres://wydgo:wydgo@127.0.0.1:5432/wydgo_test?sslmode=disable
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Test server
+        run: go test -count=1 ./...
+
+      - name: Test store with race detector
+        run: go test -race -count=1 ./internal/store
+
+      - name: Vet server
+        run: go vet ./...
+
+      - name: Build server
+        run: go build -o "$RUNNER_TEMP/tm-check" ./cmd/server
+
+      - name: Verify clientgo748 package
+        working-directory: clientgo748
+        run: pwsh -NoProfile -File ./Verify-Mapping.ps1
+
+      - name: Build clientgo748
+        working-directory: clientgo748
+        run: go build -o "$RUNNER_TEMP/wydclient" ./cmd/wydclient
+
+      - name: Check whitespace
+        run: git diff --check
