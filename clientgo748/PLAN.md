@@ -189,8 +189,14 @@ ordenação determinística, nomes diagnósticos em inglês e exclusão do próp
 personagem. A cena ordena uma cópia e não retém nem altera o estado do
 coordenador.
 
-Ainda pendente: envio de intenção de caminhada, terreno/mesh, renderização
-final de personagens e execução manual contra o servidor.
+Implementado nesta unidade: clique esquerdo na superfície do mundo produz uma
+intenção `0x366` de caminhada. A origem, `ClientID` e fase vêm do snapshot da
+sessão; destino, velocidade e efeito são codificados no contrato de 52 bytes,
+e o pacote é enviado sem alterar posição local. O servidor continua
+autoritativo para rota, colisão e posição resultante.
+
+Ainda pendente: movimento contínuo real, terreno/mesh, renderização final de
+personagens e execução manual contra o servidor.
 
 ### 5a. Pipeline de assets orientado ao produto — em andamento
 

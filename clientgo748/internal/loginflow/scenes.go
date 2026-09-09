@@ -41,6 +41,7 @@ type VisualOptions struct {
 	// WorldEntities returns a defensive snapshot owned by the coordinator.
 	// The scene never retains or mutates the returned slice.
 	WorldEntities func() []world.Entity
+	RequestMove   func(targetX, targetY uint16) error
 }
 
 func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions) map[scene.ID]scene.Factory {
@@ -71,7 +72,7 @@ func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions)
 		},
 		WorldSceneID: func() (scene.Scene, error) {
 			if options.ShapeRenderer != nil {
-				return newWorldScene(state, options.ShapeRenderer, options.WorldEntities)
+				return newWorldScene(state, options.ShapeRenderer, options.WorldEntities, options.RequestMove)
 			}
 			return newStateScene(WorldSceneID, state, login.InWorld, login.LoggingOut)
 		},
@@ -541,18 +542,49 @@ type worldScene struct {
 	state         *login.SessionState
 	renderer      graphics.ShapeRenderer
 	worldEntities func() []world.Entity
+	requestMove   func(uint16, uint16) error
 }
 
-func newWorldScene(state *login.SessionState, renderer graphics.ShapeRenderer, entities func() []world.Entity) (scene.Scene, error) {
+func newWorldScene(state *login.SessionState, renderer graphics.ShapeRenderer, entities func() []world.Entity, requestMove func(uint16, uint16) error) (scene.Scene, error) {
 	if state == nil {
 		return nil, errors.New("loginflow: session state is required")
 	}
-	return &worldScene{state: state, renderer: renderer, worldEntities: entities}, nil
+	return &worldScene{state: state, renderer: renderer, worldEntities: entities, requestMove: requestMove}, nil
 }
-func (s *worldScene) ID() scene.ID                  { return WorldSceneID }
-func (s *worldScene) Enter() error                  { return s.validate() }
-func (s *worldScene) HandleEvent(input.Event) error { return s.validate() }
-func (s *worldScene) Update(time.Duration) error    { return s.validate() }
+func (s *worldScene) ID() scene.ID { return WorldSceneID }
+func (s *worldScene) Enter() error { return s.validate() }
+func (s *worldScene) HandleEvent(event input.Event) error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	if event.Kind == input.KindMouseButtonDown && event.Button == 1 && s.requestMove != nil {
+		if event.X < 0 || event.Y < 72 {
+			return nil
+		}
+		snapshot, ok := s.state.World()
+		if !ok {
+			return errors.New("loginflow: world snapshot is unavailable")
+		}
+		width, height := int32(800), int32(600)
+		if viewport, ok := s.renderer.(graphics.ViewportProvider); ok {
+			if w, h := viewport.ClientViewport(); w > 0 && h > 0 {
+				width, height = w, h
+			}
+		}
+		targetX, targetY := worldTargetForClick(snapshot, event.X, event.Y, width, height)
+		if targetX < 0 || targetX > 65535 || targetY < 0 || targetY > 65535 {
+			return errors.New("loginflow: movement target is outside the world bounds")
+		}
+		return s.requestMove(uint16(targetX), uint16(targetY))
+	}
+	return nil
+}
+
+func worldTargetForClick(snapshot login.WorldSnapshot, x, y, width, height int32) (int32, int32) {
+	return int32(snapshot.PosX) + (x-width/2)/8,
+		int32(snapshot.PosY) + (y-(height+72)/2)/8
+}
+func (s *worldScene) Update(time.Duration) error { return s.validate() }
 func (s *worldScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err

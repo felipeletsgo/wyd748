@@ -134,6 +134,12 @@ func run() error {
 				}
 				return coordinator.WorldEntities()
 			},
+			RequestMove: func(targetX, targetY uint16) error {
+				if coordinator == nil {
+					return fmt.Errorf("login coordinator is not initialized")
+				}
+				return coordinator.Move(targetX, targetY)
+			},
 		}),
 		SessionEventsPerFrame: 64,
 		SceneSynchronizer: func() error {

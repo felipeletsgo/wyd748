@@ -227,6 +227,18 @@ func TestWorldEntityProjectionUsesAuthoritativeSnapshot(t *testing.T) {
 	}
 }
 
+func TestWorldTargetForClickKeepsAuthoritativeOrigin(t *testing.T) {
+	snapshot := login.WorldSnapshot{PosX: 1000, PosY: 2000}
+	x, y := worldTargetForClick(snapshot, 440, 348, 800, 600)
+	if x != 1005 || y != 2001 {
+		t.Fatalf("target=(%d,%d) want (1005,2001)", x, y)
+	}
+	// HUD clicks never reach this conversion in worldScene.HandleEvent.
+	if _, hudY := worldTargetForClick(snapshot, 400, 40, 800, 600); hudY >= 2000 {
+		t.Fatalf("unexpected HUD projection y=%d", hudY)
+	}
+}
+
 func TestServerSelectionRejectsMissingEndpoint(t *testing.T) {
 	state := login.NewSessionState()
 	calls := 0

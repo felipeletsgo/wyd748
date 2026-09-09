@@ -36,6 +36,7 @@ type Coordinator struct {
 	dispatcher      *login.Dispatcher
 	worldState      *world.State
 	worldDispatcher *world.Dispatcher
+	movement        *world.MovementController
 	navigator       Navigator
 	// serverSelected is local bootstrap state. The native 7.48 selector keeps
 	// the transport disconnected while it reveals the login controls; the
@@ -45,6 +46,7 @@ type Coordinator struct {
 
 type Options struct {
 	Controller login.ControllerOptions
+	Movement   world.MovementOptions
 }
 
 func New(state *login.SessionState, sender login.Sender, navigator Navigator, options Options) (*Coordinator, error) {
@@ -67,7 +69,11 @@ func New(state *login.SessionState, sender login.Sender, navigator Navigator, op
 	if err != nil {
 		return nil, fmt.Errorf("loginflow: create world dispatcher: %w", err)
 	}
-	return &Coordinator{state: state, controller: controller, dispatcher: dispatcher, worldState: worldState, worldDispatcher: worldDispatcher, navigator: navigator}, nil
+	movement, err := world.NewMovementController(state, sender, options.Movement)
+	if err != nil {
+		return nil, fmt.Errorf("loginflow: create movement controller: %w", err)
+	}
+	return &Coordinator{state: state, controller: controller, dispatcher: dispatcher, worldState: worldState, worldDispatcher: worldDispatcher, movement: movement, navigator: navigator}, nil
 }
 
 func (c *Coordinator) Authenticate(account string, password []byte, adapter [4]uint32, id uint16) error {
@@ -89,6 +95,15 @@ func (c *Coordinator) Logout() error {
 		return errors.New("loginflow: coordinator is not initialized")
 	}
 	return c.controller.Logout()
+}
+
+// Move envia somente uma intenção; posição, rota e colisão permanecem no
+// servidor e retornam pelos snapshots de mundo.
+func (c *Coordinator) Move(targetX, targetY uint16) error {
+	if c == nil || c.movement == nil {
+		return errors.New("loginflow: movement controller is not initialized")
+	}
+	return c.movement.Move(targetX, targetY)
 }
 
 // SessionConnected starts a fresh transport session. Any stale state must
