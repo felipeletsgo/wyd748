@@ -5,9 +5,12 @@
 Emulador Go server-authoritative para o client WYD 7.48. O client envia
 intenções e apresenta estado; nunca é fonte de verdade.
 
-`client-source/tmproject` produz o único client ativo deste ecossistema 7.48,
-mas não é uma réplica arqueológica do executável nativo. O 7.48 histórico é a
-baseline dos contratos legados; estruturas, funções e assets posteriores ou
+`client-source/tmproject` produz o único client 7.48 atualmente suportado em
+produção neste ecossistema, mas não é uma réplica arqueológica do executável
+nativo. `clientgo748` é a nova fundação/reimplementação em Go em desenvolvimento
+e possui regras, gates e build próprios; não deve ser tratado como a saída ativa
+do TMProject até que a migração seja explicitamente validada. O 7.48 histórico é
+a baseline dos contratos legados; estruturas, funções e assets posteriores ou
 implementados manualmente podem permanecer quando forem superiores e
 compatíveis. Como client e servidor pertencem ao mesmo projeto, extensões
 coordenadas são permitidas quando o contrato novo é explícito e testado nos
@@ -239,10 +242,13 @@ client748/project.exe                            único candidato executável e 
 
 Os scripts e patches em `client748/wyd.exe nativo+patches/` são somente material
 de estudo: nunca executá-los, editá-los nem usá-los para produzir um client.
-Toda alteração ativa deve ocorrer em `client-source/` ou nos assets. Toda
-compilação deve passar por `client-source/tmproject/Build-Client.ps1`; o próprio
-build deve instalar e validar automaticamente a saída recompilada como
-`client748/project.exe`, sem patch binário.
+Para o client 7.48 atualmente suportado, toda alteração ativa deve ocorrer em
+`client-source/` ou nos assets e toda compilação deve passar por
+`client-source/tmproject/Build-Client.ps1`; o próprio build deve instalar e
+validar automaticamente a saída recompilada como `client748/project.exe`, sem
+patch binário. O subtree `clientgo748` é uma exceção deliberada de produto em
+desenvolvimento: suas alterações ficam dentro dele e usam exclusivamente os
+gates e o build definidos em `clientgo748/AGENTS.md`.
 
 Controle herdado sem ID/recurso carregado pode ser legitimamente nulo. Proteger
 acessos e preservar a transição principal. Um controle moderno só deve ser

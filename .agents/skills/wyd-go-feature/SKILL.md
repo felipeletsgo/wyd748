@@ -123,10 +123,13 @@ client-source/tmproject/build/.../WYD.exe         saída transitória
 client748/project.exe                            candidato de validação
 ```
 
-Não executar nem editar patches/binários históricos. Alterações ativas ficam na
-source/assets. Compilar apenas com
-`client-source/tmproject/Build-Client.ps1`, que instala e confere
-`client748/project.exe`.
+Não executar nem editar patches/binários históricos. Para o client 7.48
+atualmente suportado, alterações ativas ficam na source/assets e a compilação
+passa por `client-source/tmproject/Build-Client.ps1`, que instala e confere
+`client748/project.exe`. O subtree `clientgo748` é a reimplementação Go em
+desenvolvimento e segue os gates e o build próprios descritos em
+`clientgo748/AGENTS.md`; não misturar os dois caminhos nem instalar o binário Go
+como `client748/project.exe`.
 
 A source é única, não multi-versão. Uma estrutura 7.69 pode tornar-se o caminho
 ativo se adaptada ao ecossistema; não manter branches paralelos apenas por
