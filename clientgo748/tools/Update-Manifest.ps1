@@ -5,11 +5,21 @@ $ErrorActionPreference = "Stop"
 $clientRoot = Split-Path -Parent $PSScriptRoot
 $manifestPath = Join-Path $clientRoot "MANIFEST.sha256"
 
+function Test-ManifestExcludedPath([string]$relative) {
+    $normalized = $relative.Replace('\', '/')
+    return $normalized -eq "MANIFEST.sha256" -or
+        $normalized -match '^bin/' -or
+        $normalized -match '(^|/)__pycache__(/|$)' -or
+        $normalized -match '\.py[cod]$' -or
+        $normalized -match '\.log$' -or
+        $normalized -match '(^|/)[^/]+\.tmp(?:-[^/]*)?$' -or
+        $normalized -match '~$'
+}
+
 function Get-PackageFiles {
     Get-ChildItem -LiteralPath $clientRoot -File -Recurse | Where-Object {
         $relative = [IO.Path]::GetRelativePath($clientRoot, $_.FullName)
-        $relative -ne "MANIFEST.sha256" -and
-            $relative -notmatch '^bin[\\/]'
+        -not (Test-ManifestExcludedPath $relative)
     }
 }
 

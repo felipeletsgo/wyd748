@@ -11,9 +11,10 @@ neste diretório.
   o corpus, o catálogo Ghidra, as fichas e o snapshot TMProject locais;
 - `research/build_research_queue.py`: reconstrói a fila de pesquisa local;
 - `research/ExportWyd*.java`: exports reproduzíveis para uso no Ghidra;
-- `Update-Manifest.ps1`: recria o manifesto SHA-256 do pacote;
+- `Update-Manifest.ps1`: recria o manifesto SHA-256 do pacote, ignorando
+  artefatos transitórios de execução e build;
 - `Test-Manifest.ps1`: verifica hashes, arquivos ausentes e arquivos não
-  registrados;
+  registrados, aplicando a mesma exclusão de artefatos transitórios;
 - `Test-SelfContained.ps1`: rejeita links de filesystem, inputs essenciais
   ausentes, módulo Go acoplado e caminhos externos nos pontos de entrada ativos.
 
