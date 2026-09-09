@@ -126,6 +126,21 @@ func (s *Session) QueuedPacketsForTest() int {
 	return len(s.out)
 }
 
+// DequeuePacketForTest removes and returns the next encrypted outbound packet.
+// It is intended for contract tests that must validate the packet payload, not
+// only the number of visual updates emitted by a handler.
+func (s *Session) DequeuePacketForTest() ([]byte, bool) {
+	if s == nil || s.out == nil {
+		return nil, false
+	}
+	select {
+	case pkt := <-s.out:
+		return pkt, true
+	default:
+		return nil, false
+	}
+}
+
 // RemoteAddr expoe o endereco remoto (log).
 func (s *Session) RemoteAddr() string {
 	if s == nil || s.conn == nil || s.conn.RemoteAddr() == nil {

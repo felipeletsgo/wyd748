@@ -1,0 +1,19 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+function	004640e5	FUN_004640e5			unknown		undefined FUN_004640e5(void)
+event	004640e5	FUN_004640e5	004640e5	0x0d	branch	NPC click	ClickOk=0 branch
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x2a8]	WRITE	_memset	zero 20-byte request buffer
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x2a8]	WRITE	MOV	Header.Type=0x28B
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x2a6]	WRITE	MOV	Header.ID local character
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x2a0]	WRITE	MOV	TargetID at +12
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x29c]	WRITE	MOV	ClickOk=0 at +16
+event	004640e5	FUN_004640e5	004640e5	0x0f/0x0a/0x6CE/0xE9/0x3A	branch	NPC confirmation	ClickOk=1 branch
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x2c0]	WRITE	_memset	zero 20-byte request buffer
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x2c0]	WRITE	MOV	Header.Type=0x28B
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x2b4]	WRITE	MOV	TargetID at +12
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x2b0]	WRITE	MOV	ClickOk=1 at +16
+callee	004640e5	FUN_004640e5	004640e5	0055f2dd	call	FUN_0055f2dd	throttle and send 20-byte frame
+function	0055890a	FUN_0055890a			unknown		undefined FUN_0055890a(void)
+validator_case	0055890a	FUN_0055890a	0055890a	0x28b	case	0x28b	expected size=0x14
+source_mapping	004640e5	FUN_004640e5			wire	OnMsgBoxEvent/MouseClick	MSG_UseNPC

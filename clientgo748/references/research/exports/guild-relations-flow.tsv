@@ -1,0 +1,20 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+function	004640e5	FUN_004640e5			unknown		undefined FUN_004640e5(void)
+event	004640e5	FUN_004640e5	00464826	0x331	branch	guild war confirmation	message-box event
+instruction	004640e5	FUN_004640e5	00464841	0058f020	call	_memset	zero 20-byte request buffer
+instruction	004640e5	FUN_004640e5	0046485d	Stack[-0x238]	write	MOV	Header.Type=0xE0E
+instruction	004640e5	FUN_004640e5	00464878	Stack[-0x230]	write	MOV	GuildID at +12, zero-extended WORD
+instruction	004640e5	FUN_004640e5	00464890	Stack[-0x22c]	write	MOV	TargetGuildID at +16
+callee	004640e5	FUN_004640e5	0046489f	0055f2dd	call	FUN_0055f2dd	throttle and send 20-byte frame
+event	004640e5	FUN_004640e5	004648d7	0x35e	branch	guild ally confirmation	message-box event
+instruction	004640e5	FUN_004640e5	004648f2	0058f020	call	_memset	zero 20-byte request buffer
+instruction	004640e5	FUN_004640e5	0046490e	Stack[-0x24c]	write	MOV	Header.Type=0xE12
+instruction	004640e5	FUN_004640e5	00464929	Stack[-0x244]	write	MOV	GuildID at +12, zero-extended WORD
+instruction	004640e5	FUN_004640e5	00464941	Stack[-0x240]	write	MOV	TargetGuildID at +16
+callee	004640e5	FUN_004640e5	00464950	0055f2dd	call	FUN_0055f2dd	throttle and send 20-byte frame
+function	0055890a	FUN_0055890a			unknown		undefined FUN_0055890a(void)
+validator_case	0055890a	FUN_0055890a	00558ba6	0xE0E	case	0xE0E	branch to size gate at 0x0055995E
+instruction	0055890a	FUN_0055890a	00559966	00559969	compare	CMP	expected size=0x14
+source_mapping	004640e5	FUN_004640e5			wire	TMFieldScene::OnMsgBoxEvent cases 817/862	GuildID=m_usGuild; TargetGuildID=message-box arg

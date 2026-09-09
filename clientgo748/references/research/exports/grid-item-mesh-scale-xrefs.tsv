@@ -1,0 +1,11 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+pointer_hit	0040e817	FUN_0040e817	005a40b4	0040e817	pointer		.rdata:0040e817
+slot_outgoing	005a40b4		005a40b4	0040e817	DATA	FUN_0040e817	
+pointer_search	0040e817	FUN_0040e817		0040e817	pointer_scan		hits=1
+relative_search	0040e817	FUN_0040e817		0040e817	rel32_scan		hits=0;candidates=24880;instructions=441614;errors=0
+body_data_incoming	0040e817	FUN_0040e817	005a40b4	0040e817	DATA		owner_entry=;source_block=.rdata
+entry_boundary	0040e817	FUN_0040e817	0040e814	0040e817	TERMINATOR	RET 0xc	fallthrough=
+body_search	0040e817	FUN_0040e817		0040e817	body_refs		external_flow_hits=0;external_data_hits=1;switch_table_hits=0;external_other_hits=0;thunk_hits=0;instructions=95;body_min=0040e817;body_max=0040e973;block=.text;execute=true;initialized=true
+raw_relative_search	0040e817	FUN_0040e817		0040e817	raw_rel32_scan		hits=0;candidates=34511;bytes=1859564;executable_blocks=5;errors=0

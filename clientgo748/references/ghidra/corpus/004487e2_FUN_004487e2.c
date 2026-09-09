@@ -1,0 +1,50 @@
+// Ghidra pseudocode; binary: WYD.exe nativo 7.48
+// Entry: 004487e2 | Name: FUN_004487e2
+
+
+void __fastcall FUN_004487e2(int param_1)
+
+{
+  int iVar1;
+  undefined4 *local_3c;
+  int local_34;
+  int aiStack_30 [8];
+  int local_10;
+  int local_c;
+  int *local_8;
+  
+  local_8 = *(int **)(param_1 + 0x2873c);
+  for (local_c = 0; local_c < 7; local_c = local_c + 1) {
+    for (local_34 = 0; local_34 < 9; local_34 = local_34 + 1) {
+      iVar1 = (**(code **)(*local_8 + 0xb4))(local_34,local_c);
+      if ((iVar1 != 0) && (*(int *)(iVar1 + 0x94) == -0x10000)) {
+        *(undefined4 *)(iVar1 + 0x94) = 0xffffffff;
+      }
+    }
+  }
+  _memset((void *)(DAT_013b71e8 + 0xcfc),0,0x54);
+  *(undefined2 *)(DAT_013b71e8 + 0xd02) = *(undefined2 *)(*(int *)(param_1 + 0x4c) + 0x20);
+  *(undefined2 *)(DAT_013b71e8 + 0xd00) = 0x3a6;
+  for (local_10 = 0; local_10 < 8; local_10 = local_10 + 1) {
+    *(undefined1 *)(DAT_013b71e8 + local_10 + 0xd48) = 0xff;
+  }
+  for (local_10 = 0; local_10 < 8; local_10 = local_10 + 1) {
+    local_3c = (undefined4 *)0x0;
+    iVar1 = (**(code **)(**(int **)(param_1 + 0x28) + 0x48))(local_10 + 0x557);
+    aiStack_30[local_10] = iVar1;
+    if (aiStack_30[local_10] != 0) {
+      local_3c = (undefined4 *)(**(code **)(*(int *)aiStack_30[local_10] + 0xa4))(0,0);
+    }
+    if ((*(int *)(DAT_005ccec0 + 0x1e8) != 0) &&
+       (*(undefined4 **)(DAT_005ccec0 + 0x1e8) == local_3c)) {
+      *(undefined4 *)(DAT_005ccec0 + 0x1e8) = 0;
+    }
+    if ((local_3c != (undefined4 *)0x0) && (local_3c != (undefined4 *)0x0)) {
+      (**(code **)*local_3c)(1);
+    }
+  }
+  *(undefined4 *)(*(int *)(param_1 + 0x2873c) + 0x400) = 0;
+  FUN_00447f6f(1);
+  return;
+}
+

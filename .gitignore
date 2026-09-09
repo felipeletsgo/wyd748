@@ -31,6 +31,9 @@ client748/*.pdb
 # Cache de build do Go
 .gocache*/
 
+# Artefatos locais do client Go em preparação
+/clientgo748/bin/
+
 # Dados locais/gerados: contas, hashes e estado de personagem nunca sao source
 data/accounts/*.json
 data/charstate/*.json
@@ -56,6 +59,8 @@ client748/WYD.premacro.exe
 client748/WYDoriginal.exe
 client748/WYD.pre-lindy.exe
 client748/WYD.pre-*.exe
+# Cópia local gerada para inspeção; o candidato versionado é project.exe.
+client748/WYD.exe
 client748/ItemList.pre-*.bin
 
 # Artefatos de conversao/edicao. O runtime usa os equivalentes autoritativos

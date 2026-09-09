@@ -1,0 +1,9 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+address	00452733		00452728		instruction	FUN_00452728	
+body_search	00452733			00452733	body_refs		function=missing
+relative_search	00452733			00452733	rel32_scan		hits=0;candidates=24880;instructions=441614;errors=0
+address	0047e4d6		0047e49d		instruction	FUN_0047e49d	
+body_search	0047e4d6			0047e4d6	body_refs		function=missing
+relative_search	0047e4d6			0047e4d6	rel32_scan		hits=0;candidates=24880;instructions=441614;errors=0

@@ -1,0 +1,10 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+function	004b263e	FUN_004b263e			unknown		undefined FUN_004b263e(void)
+incoming	004b263e	FUN_004b263e	005a4604	004b263e	DATA		
+callee	004b263e	FUN_004b263e	004b263e	0058f220	call	FUN_0058f220	
+reference	004b263e	FUN_004b263e	004b2647	0067cf38	READ	DAT_0067cf38	0x0
+reference	004b263e	FUN_004b263e	004b2660	0067cf38	READ	DAT_0067cf38	0x0
+address	005a4604				data		004b263e
+slot_outgoing	005a4604		005a4604	004b263e	DATA	FUN_004b263e	

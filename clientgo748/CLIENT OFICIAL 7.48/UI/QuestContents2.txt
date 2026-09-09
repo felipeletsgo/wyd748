@@ -1,0 +1,460 @@
+FFFFAA << Chaos Cube - Normal >> 
+FFFFFF 
+FFFFFF There are some interesting news originated from Azran's 
+FFFFFF smith Arnold recently. As a blacksmith, he is selling some 
+FFFFFF sort of entrance scroll, how unfittingly funny. It was 
+FFFFFF rumoured that the scroll would lead you to a puzzle in a 
+FFFFFF camp outside Azran's entrance.I can't believe an honest 
+FFFFFF merchant would do such a business. I am really curious 
+FFFFFF what is this business all about. Could you investigate the 
+FFFFFF matter for me? Do it for friend's sake. Haven't I helped 
+FFFFFF you out lots back then? hehe.
+FFFFFF 
+AAFFFF Let's start with the normal stage.
+FFFFFF  
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Divine Circle >> 
+FFFFFF 
+FFFFFF I heard about the ruckus of reconstructing the divine 
+FFFFFF circle recently.It was believed that after the destruction 
+FFFFFF of the sacred temple, most of the sacred stone has fallen
+FFFFFF into the hands of powerful giant demons. If you come 
+FFFFFF accross magical fragment, simply hand it to alchemist jeffi, 
+FFFFFF along with some fees, he will be able to purify them once 
+FFFFFF again, and restore it's power. You will be able to use 
+FFFFFF these stones to fine tune your inner powers.
+FFFFFF If you are interested in fine tuning your strengths, go 
+FFFFFF ahead and find it.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+AAFFFF 
+AAFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Magic Chamber >>  
+FFFFFF 
+FFFFFF I've been grateful towards you. I hope you can 
+FFFFFF understand. If you would like to remain here, you can
+FFFFFF retrieve the duel letter from your warehouse, then 
+FFFFFF proceed to the altar near the Noatun field and recite the 
+FFFFFF scroll. Seek out the secrets of these chambers, and you 
+FFFFFF may gain alot of wisdom and knowledge in a very short 
+FFFFFF time.
+FFFFFF 
+FFFFFF If you posses the badge of honour, then perhaps you  
+FFFFFF might be able to come accross the Holy Light Stone and
+FFFFFF the spiritual stone in the chamber. 
+AAFFFF Are you ready for this?
+FFFFFF 
+AAFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Monster Trader >>
+FFFFFF 
+FFFFFF Monster trader... I remember meeting one before. Haha, 
+FFFFFF isn't it funny to see a monster selling items? Although it is 
+FFFFFF a monster, does not necessary mean it is evil. Is it not the
+FFFFFF the same with human? These creatures runs really fast, 
+FFFFFF catching up to them to buy their goods is not an easy 
+FFFFFF task. However, if you can halt them, browsing through 
+FFFFFF their goods for sale will not be a problem. Everything 
+FFFFFF depends on your luck, whether you can meet up with 
+FFFFFF them or not.
+FFFFFF  
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Finding Heaven's Track >>
+FFFFFF 
+FFFFFF How does it feel to uncover the secrets of the heaven?
+FFFFFF Collect the 7 dragon sphere onceused by the gods and 
+FFFFFF turn it into the Golden dragon in Armia. It will bestow new 
+FFFFFF powers into your weapon with the powers of these 
+FFFFFF dragon sphere. But you must remember, the attribute 
+FFFFFF granted is based on luck, the result can be ideal or the 
+FFFFFF complete opposite. I wish you godspeed on such events.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Nightmare - Normal >>
+FFFFFF 
+FFFFFF There are some strange happening in the town of Armia, 
+FFFFFF Azran and Erion recently. There are no precise news 
+FFFFFF regarding this occurange, but according to the villagers, 
+FFFFFF anyone within the town might die when they fall asleep.
+FFFFFF Therefore, they refer to this as the nightmare demon, 
+FFFFFF hope you can investigate into this matter... begin it from 
+FFFFFF the town of Erion.
+FFFFFF 
+AAFFFF Please help the residents of Erion.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Chaos Cube - Medium>>
+FFFFFF 
+FFFFFF There are some interesting news originated from Azran's 
+FFFFFF smith arnold recently.As a blacksmith, he is selling some 
+FFFFFF sort of entrance scroll, how unfittingly funny. It was 
+FFFFFF rumoured that the scroll would lead you to a puzzle in a 
+FFFFFF camp outside Azran's entrance. I can't believe an honest 
+FFFFFF merchant would do such a business. I am really curious 
+FFFFFF what is this business all about. Could you investigate the 
+FFFFFF matter for me? Do it for friend's sake.
+FFFFFF 
+AAFFFF Let's start the mistic stage now.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Switch Stone >> 
+FFFFFF 
+FFFFFF Why do you look so liveless? If you don't like your name, 
+FFFFFF then I will tell a way to change what has become reality. 
+FFFFFF You have to first locate the Royal Merchant Rademi, and
+FFFFFF purchase the Master Switch Stone and Rain Stone, but 
+FFFFFF please remember, since it possess the power to rewrite 
+FFFFFF history and give you a new name, it is very expensive.
+FFFFFF Take precaution when you use this item so you don't 
+FFFFFF have to use it ever again.
+FFFFFF 
+AAFFFF Now, it's time for change name.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Water Elemental Zone - Normal >>
+FFFFFF 
+FFFFFF There is this place which is formed by 8 flooded cave, 
+FFFFFF known as water world. If you manage to traverse these 
+FFFFFF cave with the use of water scroll, you will likely to come 
+FFFFFF accross this item called [Magician Tome]. If you are lucky 
+FFFFFF enough, you might summon a guardian faerie by reciting 
+FFFFFF the tome.
+FFFFFF 
+FFFFFF It graded into Normal, mistic and Ancient stages. Each 
+FFFFFF stages contain more powerful creatures... looks like you 
+FFFFFF have the normal stage right now.
+FFFFFF 
+AAFFFF Anyway... Good luck to you!
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Legend of the Chaos Devil - 8 PM >>  
+FFFFFF 
+FFFFFF Hey, are you looking for endless wealth? If you do, then 
+FFFFFF listen to my story. You have probably heard before that 
+FFFFFF there were two great kingdoms on the continent of 
+FFFFFF Hekhaloth? They are constantly recruiting new knights to 
+FFFFFF join their ranks. Thus, some believed that some of these 
+FFFFFF chaos monsters which appear at night have to do with 
+FFFFFF this. If you defeat them, a great deal treasure and glory 
+FFFFFF will discovered. What are you waiting for? Go and find 
+FFFFFF them on this evening!
+FFFFFF 
+AAFFFF Hrmm.. the monsters that appears at 8 P.M seems 
+AAFFFF suitable for you.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << WYD Expedition - Two Towers >>
+FFFFFF 
+FFFFFF Have you heard about the Twin Castle located 
+FFFFFF somewhere to the east of the Land of Freedom? I heard 
+FFFFFF that the area has unique structure, From the centre of 
+FFFFFF the castle, both sides of the castle is exactly the same as
+FFFFFF eachother, and because the castle is separated by 
+FFFFFF something in between, you can only enter the castle 
+FFFFFF through any one of the door. if you get lucky, you might 
+FFFFFF come accross the Zakum lord in the center hall, which may
+FFFFFF possess an item of power that could enhance supporting 
+FFFFFF offensive equipment - Zakum Essence
+FFFFFF 
+AAFFFF Well, lets journey to the area then!!
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Chaos Cube - Ancient >>  
+FFFFFF 
+FFFFFF There are some interesting news originated from Azran's 
+FFFFFF smith arnold recently. As a blacksmith, he is selling some 
+FFFFFF sort of entrance scroll, how unfittingly funny. It was 
+FFFFFF rumoured that the scroll would lead you to a puzzle in a 
+FFFFFF camp outside Azran's entrance. I can't believe an honest 
+FFFFFF merchant would do such a business. I am really curious 
+FFFFFF what is this business all about. Could you investigate the
+FFFFFF matter for me? Do it for friend's sake.
+FFFFFF 
+AAFFFF You have last Akein area, just do your best in last time.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Water Elemental Zone - Mystic >>
+FFFFFF 
+FFFFFF There is a water allymental zone which is formed by 8 
+FFFFFF rooms and if you pass here safely with water scroll, you
+FFFFFF might have "summon of Nesess" You! If you are lucky, 
+FFFFFF you can save Nyadice. It graded into Normal, mistic and 
+FFFFFF Akein and Each stages summon more powerful monsters...
+FFFFFF Looks like you have the medium stage right now.
+FFFFFF 
+AAFFFF Anyway... Good luck to you!
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Nightmare - Mystic >>
+FFFFFF 
+FFFFFF The is some strange happening in the town of Armia, 
+FFFFFF Azran and Erion recently. There are no precise news 
+FFFFFF regarding this occurange, but according to the villagers, 
+FFFFFF anyone within the town might die when they fall asleep.
+FFFFFF hope you can investigate into this.Therefore, they refer
+FFFFFF to this as the nightmare hope you can investigate into this
+FFFFFF matter... now search the town of Armia.
+FFFFFF 
+AAFFFF Please help the residents of Armia.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << HellGate - Gate of Hell >> 
+FFFFFF 
+FFFFFF Have you heard this before? 
+FFFFFF Explorer has recently reported the discovery of the 
+FFFFFF hellgate. Now that this mystery has been unfold, 
+FFFFFF everyone has been discussing about this ever since.
+FFFFFF Well? Think you would be interested to start an 
+FFFFFF adventure there? heard all you need is just to purchase 
+FFFFFF the HellGate scroll to enter that forsaken place.... The 
+FFFFFF rest is up to you to uncover... Oh yah, by the way, I 
+FFFFFF heard there was a beauty being imprisoned deep in the 
+FFFFFF labyrinth too...  
+FFFFFF Get ready and discover the truth yourself!
+FFFFFF 
+AAFFFF Let's start your journey.
+FFFFFF
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Medal of Kingdom >>
+FFFFFF 
+FFFFFF The masters who lived within the kingdom possess some 
+FFFFFF very interesting powers. Help your guild leader locate 
+FFFFFF the kingdom master and give him 10 blue sapphire, in 
+FFFFFF return he will turn the [Guild Emblem] into [Kingdom 
+FFFFFF Emblem], which lets you teleport to your guild member's 
+FFFFFF location. 
+FFFFFF 
+AAFFFF Well, is it not a wonderful item? It makes your life much 
+AAFFFF easier within your guild.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Endless Storm >>  
+FFFFFF 
+FFFFFF Now it is time to proof your courage to the king. The 
+FFFFFF enemy king has focused its military presence to the city of 
+FFFFFF Noatun, the forces within the palace if significantly 
+FFFFFF weaker,it is our golden chance to ambush them now. If 
+FFFFFF you managed to capture the enemy king, a Glory 
+FFFFFF Medallion will be awarded. This medallion is also the key to 
+FFFFFF unlock the mystery in the secret room! Capturing the
+FFFFFF enemy king and then acquire ancient treasure, as if hitting
+FFFFFF two birds with one bullet.
+FFFFFF  
+AAFFFF Now is the time to proof your courage!!!
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Legend of the Chaos Devil - 9 PM >>  
+FFFFFF 
+FFFFFF Hey, are you looking for endless wealth? If you do, then 
+FFFFFF listen to my story. You have probably heard before that 
+FFFFFF there were two great kingdoms on the continent of 
+FFFFFF Hekhaloth? They are constantly recruiting new knights to 
+FFFFFF join their ranks. Thus, some believed that some of these 
+FFFFFF chaos monsters which appear at night have to do with 
+FFFFFF this. If you defeat them, a great deal treasure and glory 
+FFFFFF will discovered. What are you waiting for? Go and find 
+FFFFFF them on this evening!
+FFFFFF 
+AAFFFF Hrmm.. the monsters that appears at 9 P.M seems 
+AAFFFF suitable for you.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Water Elemental Zone - Arcane >>  
+FFFFFF 
+FFFFFF There is this place which is formed by 8 flooded cave, 
+FFFFFF known as water world. If you manage to traverse these 
+FFFFFF cave with the use of water scroll, you will likely to come 
+FFFFFF accross this item called [Magician Tome]. If you are lucky 
+FFFFFF enough, you might summon a guardian faerie by reciting 
+FFFFFF the tome.
+FFFFFF 
+FFFFFF It graded into Normal, mistic and Ancient stages. Each 
+FFFFFF stages contain more powerful creatures... looks like you 
+FFFFFF have the normal stage right now.
+FFFFFF 
+AAFFFF Anyway... Good luck to you!
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << To Find Eternal Life >>
+FFFFFF 
+FFFFFF How long have been together already? I suppose it is long 
+FFFFFF enough for you to know the stories that are passed 
+FFFFFF between most adventurers. Gather up the fallen souls 
+FFFFFF from the great heavenly wars, and you will be rewarded 
+FFFFFF with great powers. Don't hesitate anymore, hurry up and 
+FFFFFF locate the spirit of unicorn and phoenix to form the 
+FFFFFF Immortality Stone. Then show the Immortallity Stone to 
+FFFFFF the kingdom masters, it will give you a new direction to 
+FFFFFF pursue.
+FFFFFF 
+AAFFFF Keep it up~ I believe you can do it!
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << To New Begin >>  
+FFFFFF 
+FFFFFF What a long way we have gone through, I am happy to 
+FFFFFF have your company all this while. Your discovery of the 
+FFFFFF Immortal Stone really amazes me. However, that only 
+FFFFFF marks the beginning. Someone has accidentally  
+FFFFFF discovered the secret of the creators. Legend told that if 
+FFFFFF you are able to acquire the 8 element of prime powers, 
+FFFFFF then show it to the trainers in Armia, they will be able to
+FFFFFF forge it into the ultimate divine power. Along with the  
+FFFFFF Immortal Stone you acquired, show it to your king and he 
+FFFFFF will bestow upon you a new life, new beginning. No 
+FFFFFF matter where or any time, may the blessing of the 
+FFFFFF almighty shine upon you.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Nightmare - Arcane >>  
+FFFFFF 
+FFFFFF The is some strange happening in the town of Armia, 
+FFFFFF Azran and Erion recently. There are no precise news 
+FFFFFF regarding this occurange, but according to the villagers, 
+FFFFFF anyone within the town might die when they fall asleep.
+FFFFFF hope you can investigate into this.Therefore, they refer
+FFFFFF to this as the nightmare hope you can investigate into this
+FFFFFF matter... now search the town of Armia.
+FFFFFF 
+AAFFFF Please help the residents of Azran.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Legend of the Chaos Devil - 10 PM >>  
+FFFFFF 
+FFFFFF Hey, are you looking for endless wealth? If you do, then 
+FFFFFF listen to my story. You have probably heard before that 
+FFFFFF there were two great kingdoms on the continent of 
+FFFFFF Hekhaloth? They are constantly recruiting new knights to 
+FFFFFF join their ranks. Thus, some believed that some of these 
+FFFFFF chaos monsters which appear at night have to do with 
+FFFFFF this. If you defeat them, a great deal treasure and glory 
+FFFFFF will discovered. What are you waiting for? Go and find 
+FFFFFF them on this evening!
+FFFFFF 
+AAFFFF Hrmm.. the monsters that appears at 10 P.M seems  
+AAFFFF suitable for you.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 

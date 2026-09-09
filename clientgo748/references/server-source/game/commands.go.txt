@@ -1,0 +1,594 @@
+package game
+
+import (
+	"bytes"
+	"fmt"
+	"log"
+	"strings"
+	"time"
+
+	"wydgo/internal/model"
+	"wydgo/internal/net"
+	"wydgo/internal/wire"
+)
+
+const commandClearInventory = "/limparinv"
+const magicTrumpet = uint16(3330)
+
+func parseChatText(pkt []byte) (string, bool) {
+	if len(pkt) < 13 || len(pkt) > 108 {
+		return "", false
+	}
+	body := pkt[12:]
+	if end := bytes.IndexByte(body, 0); end >= 0 {
+		body = body[:end]
+	}
+	return strings.TrimSpace(string(body)), true
+}
+
+// O client interpreta "/nome texto" como MSG_MessageWhisper. Assim,
+// "/limparinv" chega com MobName="limparinv" e String vazio, nao como chat.
+func parseWhisperTarget(pkt []byte) (string, bool) {
+	if len(pkt) < 28 {
+		return "", false
+	}
+	target := pkt[12:28]
+	if end := bytes.IndexByte(target, 0); end >= 0 {
+		target = target[:end]
+	}
+	return normalizeWhisperTarget(string(target)), true
+}
+
+func normalizeWhisperTarget(target string) string {
+	target = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(target), "/"))
+	if len(target) >= 2 && target[0] == '"' && target[len(target)-1] == '"' {
+		target = strings.TrimSpace(target[1 : len(target)-1])
+	}
+	return target
+}
+
+func parseWhisperText(pkt []byte) (string, bool) {
+	// O 7.48 usa 0x334 com 128 bytes; o texto termina antes do Color@124.
+	if len(pkt) < 124 {
+		return "", false
+	}
+	body := pkt[28:124]
+	if end := bytes.IndexByte(body, 0); end >= 0 {
+		body = body[:end]
+	}
+	return strings.TrimSpace(string(body)), true
+}
+
+// O 7.48 possui dois caminhos para o mesmo comando visual. Dependendo do foco
+// da caixa de chat, /nick texto pode chegar como p334 separado ou como String
+// de p333. Aceitamos tambem a sintaxe nativa /"nick" texto.
+func parseSlashWhisperCommand(message string) (target, body string, ok bool) {
+	message = strings.TrimSpace(message)
+	if len(message) < 2 || message[0] != '/' {
+		return "", "", false
+	}
+	rest := strings.TrimSpace(message[1:])
+	if rest == "" {
+		return "", "", false
+	}
+	if rest[0] == '"' {
+		end := strings.IndexByte(rest[1:], '"')
+		if end < 0 {
+			return "", "", false
+		}
+		target = strings.TrimSpace(rest[1 : end+1])
+		body = strings.TrimSpace(rest[end+2:])
+	} else {
+		cut := strings.IndexAny(rest, " \t")
+		if cut < 0 {
+			return "", "", false
+		}
+		target = strings.TrimSpace(rest[:cut])
+		body = strings.TrimSpace(rest[cut:])
+	}
+	return target, body, target != "" && body != ""
+}
+
+// clearInventory zera todo o array estrutural, inclusive o indice 63 que nao
+// possui celula na UI 7.48. Retorna quantos itens/pilhas foram removidos.
+func clearInventory(ch *model.Char) int {
+	if ch == nil {
+		return 0
+	}
+	removed := 0
+	for i := range ch.Inv {
+		if ch.Inv[i].Index != 0 {
+			removed++
+		}
+		ch.Inv[i] = model.Item{}
+	}
+	return removed
+}
+
+func (w *World) executeClearInventory(s *net.Session, p *Player) {
+	if p.GhostShop != nil {
+		s.Send(wire.MessagePanel("Close Auto Trade before clearing your inventory."))
+		return
+	}
+	for i := 0; i < model.PlayerCarrySlots; i++ {
+		if _, filled := model.CelestialSealID(p.Char.Inv[i]); filled {
+			s.Send(wire.MessagePanel("Extract or move the filled Spirit's Seal before clearing inventory."))
+			return
+		}
+	}
+	oldInv := p.Char.Inv
+	removed := clearInventory(p.Char)
+	if err := w.saveAccount(p.Account); err != nil {
+		p.Char.Inv = oldInv
+		log.Printf("[#%d] ERRO /limparinv conta=%q: %v", s.ID, p.Account.Name, err)
+		s.Send(wire.MessagePanel("Save failed. The inventory was not changed."))
+		return
+	}
+	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
+	s.Send(wire.MessagePanel("Inventory cleared."))
+	log.Printf("[#%d] /limparinv removeu %d item(ns) da conta %q",
+		s.ID, removed, p.Account.Name)
+}
+
+func (w *World) onMessageChat(s *net.Session, pkt []byte) {
+	p := w.players[s]
+	if p == nil || p.Char == nil || !p.InWorld {
+		return
+	}
+	message, ok := parseChatText(pkt)
+	if !ok || message == "" {
+		return
+	}
+
+	// Comando primeiro: dependendo do foco da caixa de chat, o MESMO comando
+	// chega como 0x333 (aqui) ou como 0x334. Os dois caminhos usam o dispatcher.
+	if name, arg, ok := parseSlashCommand(message); ok {
+		if w.dispatchChatCommand(s, p, name, arg) {
+			return
+		}
+	}
+	if target, body, ok := parseSlashWhisperCommand(message); ok {
+		w.deliverWhisper(s, p, target, body)
+		return
+	}
+	if !w.allowChat(p, "local", w.now()) {
+		return
+	}
+	// Chat local: reenviar como 0x333 COM O ID DO EMISSOR.
+	//
+	// O balao na cabeca vem de TMHuman::OnPacketMessageChat -- um handler da
+	// ENTIDADE, nao da cena: o client acha o humano por Header.ID e chama
+	// SetChatMessage. Mandar 0x334, ou 0x333 com id=0, faz a linha aparecer no
+	// maximo na lista de chat e nunca desenha o balao.
+	// (TMFieldScene::OnPacketMessageChat e so o fallback para quem esta fora da
+	// visao, e por isso exige lista de grupo.)
+	//
+	// O emissor desenha o proprio balao localmente antes de enviar, entao
+	// reenviar para ele duplicaria a linha.
+	observers := 0
+	for _, observer := range w.nearbyWorldPlayers(p.X, p.Y, viewHalfX) {
+		if observer == p || !observer.InWorld || observer.Session == nil ||
+			!w.playersVisibleTogether(p, observer) {
+			continue
+		}
+		// Chat text width is selected by the observer's negotiated client ABI.
+		observer.Session.Send(wire.MessageChat(p.ID, message))
+		observers++
+	}
+	log.Printf("[#%d] CHAT local %q (%d observador(es))", s.ID, p.Char.Name, observers)
+}
+
+func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
+	p := w.players[s]
+	if p == nil || p.Char == nil || !p.InWorld {
+		return
+	}
+	target, okTarget := parseWhisperTarget(pkt)
+	message, okText := parseWhisperText(pkt)
+	if !okTarget || !okText {
+		return
+	}
+	// O comando vem em MobName ("/criar Alfa" chega como target="criar",
+	// message="Alfa"). Precisa rodar ANTES do corte por mensagem vazia: comandos
+	// como /aceitar e /sair chegam sem corpo nenhum.
+	if w.dispatchChatCommand(s, p, target, message) {
+		return
+	}
+	// "/nick" SEM mensagem: o client manda MobName preenchido e String vazia
+	// (TMFieldScene so copia o texto quando ha algo depois do nick). Isso era
+	// descartado; agora vira consulta de informacoes do personagem.
+	if message == "" {
+		w.sendCharacterInfo(s, p, target)
+		return
+	}
+	// Prefixos confirmados no TMFieldScene 7.48. O caractere inicial e parte do
+	// protocolo visual e precisa ser preservado no reenvio: o client usa ele
+	// para escolher a cor e o offset de corte do texto.
+	switch chatChannelOf(message) {
+	case chatChannelParty:
+		if !w.allowChat(p, chatChannelParty, w.now()) {
+			return
+		}
+		w.sendPartyChat(p, strings.TrimSpace(message[1:]))
+	case chatChannelGlobal:
+		if !w.allowChat(p, chatChannelGlobal, w.now()) {
+			return
+		}
+		for _, observer := range w.players {
+			if observer == p || !observer.InWorld || observer.Session == nil {
+				continue // o client do emissor ja inseriu a propria mensagem.
+			}
+			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
+		}
+	case chatChannelCitizenship:
+		if !w.allowChat(p, chatChannelCitizenship, w.now()) || p.Char.Citizenship == 0 {
+			return
+		}
+		for _, observer := range w.players {
+			if observer == p || !observer.InWorld || observer.Session == nil ||
+				observer.Char == nil || observer.Char.Citizenship != p.Char.Citizenship {
+				continue
+			}
+			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
+		}
+	case chatChannelKingdom:
+		if !w.allowChat(p, chatChannelKingdom, w.now()) {
+			return
+		}
+		kingdom := characterKingdom(p.Char)
+		if kingdom == model.KingdomNeutral {
+			return
+		}
+		for _, observer := range w.players {
+			if observer == p || !observer.InWorld || observer.Session == nil ||
+				observer.Char == nil || characterKingdom(observer.Char) != kingdom {
+				continue
+			}
+			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
+		}
+	case chatChannelGuild:
+		if !w.allowChat(p, chatChannelGuild, w.now()) {
+			return
+		}
+		w.sendGuildChat(p, message)
+	default:
+		w.deliverWhisper(s, p, target, message)
+	}
+}
+
+// Canais selecionados por prefixo no 0x334.
+const (
+	chatChannelParty       = "party"
+	chatChannelGlobal      = "global"
+	chatChannelCitizenship = "citizenship"
+	chatChannelKingdom     = "kingdom"
+	chatChannelGuild       = "guild"
+	chatChannelWhisper     = "whisper"
+)
+
+// chatChannelOf classifica a mensagem pelo prefixo digitado.
+//
+// A ORDEM E LOAD-BEARING: '--' (global, decisao deste projeto) precisa ser
+// testado ANTES de '-' (guild), senao todo global cai na rota de guild. O
+// client renderiza os dois pelo mesmo ramo -- e o servidor que os separa.
+func chatChannelOf(message string) string {
+	switch {
+	case strings.HasPrefix(message, "="):
+		return chatChannelParty
+	case strings.HasPrefix(message, "--"):
+		return chatChannelGlobal
+	case strings.HasPrefix(message, "@@"):
+		return chatChannelCitizenship
+	case strings.HasPrefix(message, "@"):
+		return chatChannelKingdom
+	case strings.HasPrefix(message, "-"):
+		return chatChannelGuild
+	default:
+		return chatChannelWhisper
+	}
+}
+
+// parseSlashCommand separa "/nome argumento" aceitando argumento VAZIO. O
+// parseSlashWhisperCommand exige corpo (e um whisper), entao nao serve para
+// comandos como /aceitar e /sair.
+func parseSlashCommand(message string) (name, arg string, ok bool) {
+	message = strings.TrimSpace(message)
+	if len(message) < 2 || message[0] != '/' {
+		return "", "", false
+	}
+	rest := strings.TrimSpace(message[1:])
+	if rest == "" {
+		return "", "", false
+	}
+	if cut := strings.IndexAny(rest, " \t"); cut >= 0 {
+		return rest[:cut], strings.TrimSpace(rest[cut:]), true
+	}
+	return rest, "", true
+}
+
+// dispatchChatCommand e o ponto unico de comandos, chamado pelo 0x333 e pelo
+// 0x334. Devolve true quando consumiu a mensagem. Um comando sempre tem
+// precedencia sobre um nick de mesmo nome, como no TMSrv nativo.
+var chatCommandAliases = map[string]string{
+	"day": "day", "time": "time", "cp": "cp", "chaos": "cp", "fame": "fame",
+	"parry": "parry",
+	"nig":   "nig", "limparinv": "clearinv", "clearinv": "clearinv",
+	"spk": "spk", "kingdom": "kingdom", "reino": "kingdom", "king": "king", "rei": "king",
+	"criar": "create", "create": "create", "convidar": "invite", "invite": "invite",
+	"aceitar": "accept", "accept": "accept", "sair": "leave", "leave": "leave",
+	"expulsar": "expel", "expel": "expel", "criarsub": "createsub", "subcreate": "createsub",
+	"createsub": "createsub",
+}
+
+func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string) bool {
+	command, known := chatCommandAliases[strings.ToLower(strings.TrimSpace(name))]
+	if !known {
+		return false
+	}
+	switch command {
+	case "day":
+		// Sincronismo periodico interno do client. O !# impede texto visivel e
+		// alimenta m_nYear/m_nDays, usados na duracao de affects de calendario.
+		s.Send(wire.DaySync())
+	case "time":
+		// Comando manual: exibe a data/hora do host no painel superior.
+		s.Send(wire.MessagePanel(w.now().Format("15:04:05 | 02-01-2006")))
+	case "cp":
+		// CP e o Chaos/PK Point assinado do personagem (-75..+75). Ele nao e
+		// o Hold de EXP do 0x337 e por isso nunca deve ser formatado como XP.
+		s.Send(wire.MessagePanel(chaosPointMessage(p.Char.CP)))
+	case "fame":
+		// Fame e um contador por personagem (charstate), separado de CP,
+		// EXP Hold e Special Points. A consulta nunca altera nem persiste estado.
+		s.Send(wire.MessagePanel(fameMessage(p)))
+	case "parry":
+		w.sendParryMatchup(s, p, arg)
+	case "nig":
+		// O client envia este comando internamente ao usar os ingressos do
+		// Nightmare (SGrid.cpp): ele espera !!HHMMSS para atualizar o relogio
+		// local da instancia. Nao e um nickname; trata-lo como consulta /nig
+		// produzia o falso "nig is not online.".
+		s.Send(wire.MessagePanel(nightmareTimeMessage(w.now())))
+	case "clearinv":
+		w.executeClearInventory(s, p)
+	case "spk":
+		w.executeShout(s, p, arg)
+	case "kingdom":
+		w.kingdomCommandTeleport(s, p, false)
+	case "king":
+		w.kingdomCommandTeleport(s, p, true)
+	case "create":
+		w.guildCommandCreate(s, p, arg)
+	case "invite":
+		w.guildCommandInvite(s, p, arg)
+	case "accept":
+		w.guildCommandAccept(s, p, arg)
+	case "leave":
+		w.guildCommandLeave(s, p, arg)
+	case "expel":
+		w.guildCommandExpel(s, p, arg)
+	case "createsub":
+		w.guildCommandSubLeader(s, p, arg)
+	default:
+		return false
+	}
+	return true
+}
+
+func nightmareTimeMessage(now time.Time) string {
+	return "!!" + now.Format("150405")
+}
+
+func chaosPointMessage(cp int16) string {
+	return fmt.Sprintf("Chaos Point: %d (range -75..+75)", model.ClampCP(int(cp)))
+}
+
+func fameMessage(p *Player) string {
+	return fmt.Sprintf("Fame: %d", counterBalance(p, fameCounter))
+}
+
+func (w *World) sendParryMatchup(s *net.Session, p *Player, targetName string) {
+	if s == nil || p == nil || p.Char == nil {
+		return
+	}
+	targetName = strings.TrimSpace(targetName)
+	if targetName == "" {
+		s.Send(wire.MessagePanel("Usage: /parry <player>"))
+		return
+	}
+	target := w.playerByCharacterName(targetName)
+	if target == nil || target.Char == nil || !target.InWorld {
+		s.Send(wire.MessagePanel("That player is not online."))
+		return
+	}
+	accuracy := playerVersusPlayerAccuracy(p.Char, target.Char)
+	evasion := combatEvasionPercent(playerDex(p.Char), playerEvasionBonusPoints(p.Char),
+		playerAccuracyBonusPoints(target.Char),
+		playerHasConcentration(target.Char))
+	s.Send(wire.MessagePanel(fmt.Sprintf("[Accuracy: %d%% | Evasion: %d%%] against %s",
+		accuracy, evasion, target.Char.Name)))
+}
+
+// sendCharacterInfo responde ao "/nick" sem mensagem com um resumo do
+// personagem. As linhas vao pelo canal de whisper para ficarem na lista de
+// chat, em vez do painel flutuante, que some.
+//
+// So funciona para quem esta CONECTADO: nao existe indice personagem->conta,
+// entao consultar alguem offline exigiria varrer todos os JSONs de conta.
+func (w *World) sendCharacterInfo(s *net.Session, p *Player, target string) {
+	if target == "" {
+		return
+	}
+	found := w.playerByCharacterName(target)
+	if found == nil || found.Char == nil {
+		s.Send(wire.MessagePanel(fmt.Sprintf("%s is not online.", target)))
+		return
+	}
+	ch := found.Char
+	// Tudo numa UNICA mensagem de aviso (0x101). O 0x324 nativo do W2PP (janela
+	// de inspecionar) foi testado in-game e o client 7.48 nao abre nada -- e
+	// adicao tardia do 759. Varias linhas tambem nao servem: o painel de aviso
+	// mostra uma de cada vez e as anteriores somem.
+	s.Send(wire.MessagePanel(w.characterInfoLine(ch)))
+	log.Printf("[#%d] INFO %q consultou %q", s.ID, p.Char.Name, ch.Name)
+}
+
+// displayLevel converte o nivel interno (base zero) no numero que o jogador ve.
+// O ConsultaInfoPlayer nativo faz o mesmo +1.
+func displayLevel(ch *model.Char) uint32 {
+	if ch == nil || ch.Score == nil {
+		return 1
+	}
+	return ch.Score.Level + 1
+}
+
+// characterInfoLine monta o resumo em UMA linha, no formato que cabe no painel
+// de aviso. Fica separado do envio para ser testavel sem sessao de rede.
+func (w *World) characterInfoLine(ch *model.Char) string {
+	parts := []string{fmt.Sprintf("%s  Lv.%d", ch.Name, displayLevel(ch))}
+
+	if guild, member := w.guildOf(ch); guild != nil {
+		role := "Member"
+		switch {
+		case member.Rank == model.GuildRankLeader:
+			role = "Leader"
+		case model.IsSubLeader(member.Rank):
+			role = "Sub-leader"
+		}
+		guildPart := fmt.Sprintf("Guild: %s (%s)", guild.Name, role)
+		if ally := w.guilds.FindByID(guild.Ally); ally != nil {
+			guildPart += fmt.Sprintf(" aliada de %s", ally.Name)
+		}
+		parts = append(parts, guildPart)
+	} else {
+		parts = append(parts, "sem guild")
+	}
+
+	// A cidadania e concedida pelo NPC Kibita; enquanto o sistema nao existir,
+	// characterCitizenship devolve vazio e a parte simplesmente nao aparece.
+	if citizenship := characterCitizenship(ch); citizenship != "" {
+		parts = append(parts, "Cidadania: "+citizenship)
+	}
+	if kingdom := characterKingdom(ch); kingdom != model.KingdomNeutral {
+		parts = append(parts, "Reino: "+model.KingdomName(kingdom))
+	}
+	return strings.Join(parts, " | ")
+}
+
+// characterCitizenship descreve a cidadania. O valor guardado e o NUMERO DO
+// CANAL (cidadania 1 = canal 1), como no nativo.
+func characterCitizenship(ch *model.Char) string {
+	if ch == nil || ch.Citizenship == 0 {
+		return ""
+	}
+	return fmt.Sprintf("Canal %d", ch.Citizenship)
+}
+
+func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string) {
+	if s == nil || p == nil || p.Char == nil || target == "" || message == "" {
+		return
+	}
+	if !w.allowChat(p, chatChannelWhisper, w.now()) {
+		return
+	}
+	recipient := w.playerByCharacterName(target)
+	if recipient == nil {
+		s.Send(wire.MessagePanel("That player is not online."))
+		log.Printf("[#%d] WHISPER %q -> %q: desconectado", s.ID, p.Char.Name, target)
+		return
+	}
+	if strings.HasPrefix(message, "!") {
+		// O '!' nao e um texto decorativo: o handler 0x334 do client grava a
+		// mensagem no painel H. A carta de morte usa exatamente esse mesmo canal.
+		recipient.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 0))
+		log.Printf("[#%d] CARTA %q -> %q", s.ID, p.Char.Name, recipient.Char.Name)
+		return
+	}
+	// Replica o TMSrv/W2PP: /nick mensagem chega como 0x334, o servidor troca
+	// MobName pelo remetente, preserva String sem prefixos e usa o ID dele.
+	recipient.Session.Send(wire.MessageWhisper(p.ID, p.Char.Name, message, 0))
+	log.Printf("[#%d] WHISPER %q -> %q", s.ID, p.Char.Name, recipient.Char.Name)
+}
+
+// playerByCharacterName acha o jogador ONLINE pelo nome do personagem.
+//
+// O Arch herda o nome do Mortal, entao existem homonimos -- mas a busca nao
+// precisa de desempate, e isso se apoia em dois invariantes:
+//
+//  1. homonimos so nascem da ascensao, logo estao sempre na MESMA conta (a
+//     criacao normal exige nome globalmente unico);
+//  2. uma conta nao entra duas vezes ao mesmo tempo (claimAccountSession).
+//
+// Juntos, garantem no maximo UM homonimo online. Se algum dos dois cair, esta
+// busca passa a ser ambigua em silencio --
+// TestAccountSessionIsExclusiveCaseInsensitive guarda o segundo.
+func (w *World) playerByCharacterName(name string) *Player {
+	key := strings.ToLower(strings.TrimSpace(name))
+	if key == "" {
+		return nil
+	}
+	if indexed := w.playersByName[key]; indexed != nil {
+		if indexed.InWorld && indexed.Char != nil && strings.EqualFold(indexed.Char.Name, name) {
+			return indexed
+		}
+		delete(w.playersByName, key)
+	}
+	// Repara fixtures/imports antigos que ainda nao passaram pelo indexador.
+	for _, p := range w.players {
+		if p.InWorld && p.Char != nil && strings.EqualFold(p.Char.Name, name) {
+			if w.playersByName == nil {
+				w.playersByName = make(map[string]*Player)
+			}
+			w.playersByName[key] = p
+			return p
+		}
+	}
+	return nil
+}
+
+func (w *World) sendPartyChat(sender *Player, message string) {
+	if sender == nil || sender.Char == nil || sender.Party == nil || message == "" {
+		return
+	}
+	for _, member := range sender.Party.Members {
+		if member == nil || !member.InWorld || member.Char == nil || member == sender {
+			continue // o TMFieldScene ja insere o texto localmente antes do envio.
+		}
+		member.Session.Send(wire.MessageWhisper(0, sender.Char.Name, "="+message, 1))
+	}
+}
+
+// executeShout consome uma unidade de Shout (item 3330) do inventario antes
+// de anunciar. A persistencia vem antes do broadcast: se o disco falhar, nem
+// o item nem a mensagem sao confirmados, evitando anuncio gratuito por erro.
+func (w *World) executeShout(s *net.Session, p *Player, message string) {
+	if message == "" {
+		s.Send(wire.MessagePanel("Usage: /spk message"))
+		return
+	}
+	if len(message) > 120 {
+		message = message[:120]
+	}
+	slot := -1
+	for i := 0; i < model.PlayerCarrySlots; i++ {
+		if p.Char.Inv[i].Index == magicTrumpet {
+			slot = i
+			break
+		}
+	}
+	if slot < 0 {
+		s.Send(wire.MessagePanel("You need a Shout to announce."))
+		return
+	}
+	previous := p.Char.Inv[slot]
+	p.Char.Inv[slot] = model.Item{}
+	if err := w.saveAccount(p.Account); err != nil {
+		p.Char.Inv[slot] = previous
+		log.Printf("[#%d] ERRO /spk conta=%q: %v", s.ID, p.Account.Name, err)
+		s.Send(wire.MessagePanel("Failed to consume the Shout. No announcement was sent."))
+		return
+	}
+	s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
+	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", message, 7) })
+	log.Printf("[#%d] /spk %q", s.ID, message)
+}

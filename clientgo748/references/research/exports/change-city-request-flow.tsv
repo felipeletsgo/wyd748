@@ -1,0 +1,17 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+function	004776c3	FUN_004776c3			unknown		undefined FUN_004776c3(void)
+caller	004776c3	FUN_004776c3	004776c3	0047e49d	call	FUN_0047e49d	Field tick wrapper
+instruction	004776c3	FUN_004776c3	00478b2b	00478b34	FALL_THROUGH	MOV	Header.Type=0x291; first city-change branch
+instruction	004776c3	FUN_004776c3	00478b24	Stack[-0xda]	WRITE	MOV	Header.ID from DAT_013b71e8+0xc5c
+instruction	004776c3	FUN_004776c3	00478b8a	0055f2dd	UNCONDITIONAL_CALL	FUN_0055f2dd	frame size=0x10; first city-change branch
+instruction	004776c3	FUN_004776c3	00478f7a	00478f83	FALL_THROUGH	MOV	Header.Type=0x291; village-change branch
+instruction	004776c3	FUN_004776c3	00478f73	Stack[-0xfe]	WRITE	MOV	Header.ID from DAT_013b71e8+0xc5c
+instruction	004776c3	FUN_004776c3	00478fc7	0055f2dd	UNCONDITIONAL_CALL	FUN_0055f2dd	frame size=0x10; village-change branch
+function	0055f2dd	FUN_0055f2dd			unknown		undefined FUN_0055f2dd(void)
+callee	004776c3	FUN_004776c3	004776c3	0055f2dd	call	FUN_0055f2dd	throttle and send
+function	0055890a	FUN_0055890a			unknown		undefined FUN_0055890a(void)
+validator_case	0055890a	FUN_0055890a	0055890a	0x291	case	0x291	expected size=0x10 (decomp line 177)
+source_instruction	004776c3	FUN_004776c3	00478b2b		wire	0x291	zeroed 16-byte buffer, village at +12
+source_instruction	004776c3	FUN_004776c3	00478f7a		wire	0x291	zeroed 16-byte buffer, village at +12

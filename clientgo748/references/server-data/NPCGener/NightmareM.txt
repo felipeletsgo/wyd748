@@ -1,0 +1,172 @@
+// Pesadelo M (Armia)
+// ********************************************
+#	[5010]
+	MinuteGenerate:	1
+	MaxNumMob:	10
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NM
+	Follower:	Orc_NM
+	RouteType:	2
+	Formation:	0
+	StartX:		1162
+	StartY:		1702
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1162
+	Segment1Y:	1702
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1162
+	Segment2Y:	1702
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1162
+	DestY:		1702
+	DestRange:	2
+	DestWait:	8
+
+
+// Pesadelo M (Armia)
+// ********************************************
+#	[5011]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NM
+	Follower:	Orc_NM
+	RouteType:	2
+	Formation:	0
+	StartX:		1110
+	StartY:		288
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1110
+	Segment1Y:	288
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1110
+	Segment2Y:	288
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1110
+	DestY:		288
+	DestRange:	2
+	DestWait:	8
+
+
+// Pesadelo M (Armia)
+// ********************************************
+#	[5012]
+	MinuteGenerate:	-1
+	MaxNumMob:	30
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NM
+	Follower:	Orc_NM
+	RouteType:	2
+	Formation:	0
+	StartX:		1092
+	StartY:		309
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1092
+	Segment1Y:	309
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1092
+	Segment2Y:	309
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1092
+	DestY:		309
+	DestRange:	2
+	DestWait:	8
+
+
+// Pesadelo M (Armia)
+// ********************************************
+#	[5013]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NM
+	Follower:	Orc_NM
+	RouteType:	2
+	Formation:	0
+	StartX:		3912
+	StartY:		3669
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	3912
+	Segment1Y:	3912
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	3912
+	Segment2Y:	3912
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		3912
+	DestY:		3912
+	DestRange:	2
+	DestWait:	8
+
+
+// Pesadelo M (Armia)
+// ********************************************
+#	[5014]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NM
+	Follower:	Orc_NM
+	RouteType:	2
+	Formation:	0
+	StartX:		1057
+	StartY:		328
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1057
+	Segment1Y:	328
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1057
+	Segment2Y:	328
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1057
+	DestY:		328
+	DestRange:	2
+	DestWait:	8
+
+
+// Pesadelo M (Armia) - BOSS
+// ********************************************
+#	[5015]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		Orc_NM
+	Follower:	Orc_NM
+	RouteType:	2
+	Formation:	0
+	StartX:		1085
+	StartY:		303
+	StartRange:	1
+	StartWait:	9
+	Segment1X:	1085
+	Segment1Y:	303
+	Segment1Range:	1
+	Segment1Wait:	7
+	Segment2X:	1085
+	Segment2Y:	303
+	Segment2Range:	1
+	Segment2Wait:	8
+	DestX:		1085
+	DestY:		303
+	DestRange:	1
+	DestWait:	8

@@ -1,0 +1,12 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+function	004640e5	FUN_004640e5			unknown		undefined FUN_004640e5(void)
+event	004640e5	FUN_004640e5	004640e5	0x330	branch	guild deprivate confirmation	message-box event
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x228]	WRITE	_memset	zero 16-byte request buffer
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x228]	WRITE	MOV	Header.Type=0x28C
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x21c]	WRITE	MOV	TargetID at +12
+callee	004640e5	FUN_004640e5	004640e5	0055f2dd	call	FUN_0055f2dd	throttle and send 16-byte frame
+function	0055890a	FUN_0055890a			unknown		undefined FUN_0055890a(void)
+validator_case	0055890a	FUN_0055890a	0055890a	0x28c	case	0x28c	expected size=0x10
+source_mapping	004640e5	FUN_004640e5			wire	TMFieldScene::OnMsgBoxEvent case 816	MSG_GuildDeprivate

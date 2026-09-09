@@ -1,0 +1,68 @@
+# WYD Client Go 7.48
+
+Este diretório contém a preparação e o mapeamento autocontido do novo client
+escrito em Go para o ecossistema WYD 7.48. A fundação compilável está em
+`cmd/` e `internal/`; a documentação, o censo nativo, a descompilação
+exportada, as fichas e os contratos necessários ficam em
+[`MAPPING.md`](MAPPING.md) e `references/`.
+
+O `TMProject748` continua sendo o client ativo e a referência executável
+durante a migração, mas uma cópia read-only da source usada para comparação já
+está em `references/tmproject/`. O novo client Go não depende dela.
+
+## Regra de reimplementação
+
+O TMProject é usado somente como referência de organização de subsistemas,
+dependências e nomes históricos. Nenhum código C++ dele deve ser copiado,
+traduzido mecanicamente ou tratado como implementação confiável. Os bugs,
+ownership implícito, estado global e lifecycle do TMProject não são contratos
+do client Go.
+
+Para cada componente novo, a ordem é:
+
+1. confirmar a fronteira observável no código/testes atuais, nos assets 7.48 e
+   na descompilação/binário nativo quando a fronteira for legada;
+2. definir uma API Go pequena, tipada e testável;
+3. implementar validação de entrada, ownership explícito, erros e teardown;
+4. comparar o resultado com o contrato, e não com a forma do código C++;
+5. manter o comportamento problemático como hipótese até haver evidência.
+
+O design Go deve melhorar, quando compatível, o tratamento de nulabilidade,
+limites de buffers, concorrência, cancelamento, lifecycle de recursos,
+telemetria e testes. Uma melhoria interna não pode alterar opcode, packing,
+asset, timing ou efeito observável sem um contrato coordenado e uma validação
+específica.
+
+## Escopo desta unidade
+
+- separar protocolo, assets, renderer e plataforma;
+- usar o TMProject apenas como mapa estrutural, nunca como fonte de código;
+- manter o servidor autoritativo;
+- não alterar opcodes, layouts ou assets nesta etapa;
+- preparar o ponto de entrada sem introduzir uma dependência gráfica;
+- registrar a futura cadeia de conversão e proteção de assets.
+
+## Fontes e classificação
+
+Esta unidade é uma `MODERNIZACAO_COMPATIVEL` interna: ainda não altera a
+fronteira observável do client. O código atual do WYD-Go e a organização do
+TMProject foram utilizados como referência estrutural. A descompilação e o
+binário nativo 7.48 permanecem obrigatórios antes de implementar qualquer
+fluxo observável, wire, UI, input, renderização ou loader legado.
+
+W2PP, Secrets e Micronics não são fontes desta unidade.
+
+## Próximas unidades
+
+O plano de cobertura e as lacunas reais estão em [`MAPPING.md`](MAPPING.md).
+As próximas unidades devem seguir a fila em
+`references/catalog/research-queue.tsv`, fechando uma transição nativa por vez.
+
+1. leitor normalizado dos dados autoritativos de protocolo;
+2. `assetc` em Go para transformar os assets 7.48 em um formato versionado;
+3. manifesto assinado e pacote criptografado;
+4. janela/contexto gráfico e teste visual mínimo;
+5. login, seleção de personagem e entrada no mundo.
+
+Cada unidade deve compilar e ser validada antes da seguinte. Os arquivos
+originais continuam sendo a fonte e não serão sobrescritos pelo conversor.

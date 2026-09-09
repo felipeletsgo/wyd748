@@ -1,0 +1,15 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+function	004640e5	FUN_004640e5			unknown		undefined FUN_004640e5(void)
+event	004640e5	FUN_004640e5	004640e5	0x10	branch	message-box event	portal confirmation branch
+callee	004640e5	FUN_004640e5	004640e5	00433a60	call	FUN_00433a60	attribute lookup at current position
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x26c]	WRITE	_memset	zero 16-byte request buffer
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x26a]	WRITE	MOV	Header.ID from DAT_013b71e8+0xc5c
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x268]	WRITE	MOV	Header.Type=0x290
+instruction	004640e5	FUN_004640e5	004640e5	Stack[-0x260]	WRITE	MOV	reserved DWORD at +12 = 0
+callee	004640e5	FUN_004640e5	004640e5	0055f2dd	call	FUN_0055f2dd	throttle and send 16-byte frame
+branch	004640e5	FUN_004640e5	004640e5	00433a60	condition	attribute bit 0x10	without portal attribute shows error and sends nothing
+function	0055890a	FUN_0055890a			unknown		undefined FUN_0055890a(void)
+validator_case	0055890a	FUN_0055890a	0055890a	0x290	case	0x290	expected size=0x10
+source_mapping	004640e5	FUN_004640e5			wire	case 16	TMFieldScene::OnMsgBoxEvent
