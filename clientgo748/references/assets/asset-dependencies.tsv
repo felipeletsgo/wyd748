@@ -1,0 +1,2 @@
+source	target	relation	evidence	status
+UI/logo1.wyt	TEX_WYT	materializes texture	references/research/flows/render-assets/initial-server-logo-texture.md	CONFIRMED

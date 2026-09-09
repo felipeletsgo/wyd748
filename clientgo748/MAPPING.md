@@ -23,8 +23,17 @@ mas não declara que 4.146 funções foram semanticamente rastreadas. A maturida
 de cada entrada permanece no TSV e não é promovida por compilação ou por
 semelhança com o TMProject.
 
+O mapa operacional de assets é uma camada independente desse censo. O snapshot
+`assets/current` contém **7.370 arquivos** e **347.201.966 bytes**, distribuídos
+nas famílias ANI, BIN, BON, CSV, CUR, DAT, JSON, MSA, MSH, TRN, TXT, WYS e WYT.
+`references/assets/asset-map.tsv` registra contagem e tamanho por família; as
+relações ficam em `asset-dependencies.tsv`. A presença de uma extensão não
+promove seu estado nem cria dependência implícita. No momento, somente WYT tem
+um caminho Go testado, e somente `UI/logo1.wyt` possui relação de materialização
+confirmada.
+
 O validador das fichas reproduz, no snapshot atual, `CLIENT_TESTED=1`,
-`CONTRACT=46`, `TRACED=19`, `LOCATED=8` e `UNMAPPED=2`. Esses números são das
+`CONTRACT=51`, `TRACED=19`, `LOCATED=9` e `UNMAPPED=4`. Esses números são das
 fichas de transição e não devem ser somados aos estados por função do censo.
 
 ## Primeira unidade executável do client Go

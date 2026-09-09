@@ -1,0 +1,15 @@
+id	family	role	file_count	bytes	depends_on	used_by	status	go_target	evidence
+UNKNOWN_NOEXT	(none)	unknown	1	32	—	—	UNKNOWN	—	pending native loader trace
+ANIM_ANI	ANI	animation	801	38821256	—	—	UNKNOWN	—	pending native loader trace
+TABLE_BIN	BIN	auxiliary table	77	4831895	—	—	UNKNOWN	—	pending native loader trace
+SKEL_BON	BON	skeleton	82	15975530	—	—	UNKNOWN	—	pending native loader trace
+TABLE_CSV	CSV	auxiliary table	2	11673	—	—	UNKNOWN	—	pending native loader trace
+CURSOR_CUR	CUR	cursor	1	326	—	—	UNKNOWN	—	pending native loader trace
+TABLE_DAT	DAT	auxiliary table	108	6979413	—	—	UNKNOWN	—	pending native loader trace
+UNKNOWN_JSON	JSON	unknown	2	385656	—	—	UNKNOWN	—	pending native loader trace
+EFFECT_MSA	MSA	effect definition	1698	40665004	—	—	UNKNOWN	—	pending native loader trace
+MESH_MSH	MSH	geometry	1566	45066590	—	—	UNKNOWN	—	pending native loader trace
+TERRAIN_TRN	TRN	terrain	97	4768520	—	—	UNKNOWN	—	pending native loader trace
+TABLE_TXT	TXT	auxiliary table	36	355099	—	—	UNKNOWN	—	pending native loader trace
+EFFECT_WYS	WYS	effect resource	2678	143932998	—	—	UNKNOWN	—	pending native loader trace
+TEX_WYT	WYT	texture	221	45407974	—	—	TESTED	internal/assets	references/research/flows/render-assets/initial-server-logo-texture.md

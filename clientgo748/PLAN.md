@@ -19,6 +19,13 @@ Já concluído:
 - bootstrap com upload de textura e teardown na mesma thread;
 - testes automatizados e smoke test de janela, resize, fechamento e Alt+F4.
 
+Também foi adotada uma camada operacional de assets, separada do catálogo de
+funções nativas. O census determinístico encontrou 7.370 arquivos em
+`assets/current` (incluindo as duas tabelas JSON), agrupados por família em
+`references/assets/asset-map.tsv`. Relações ainda não comprovadas permanecem
+`UNKNOWN` em `asset-dependencies.tsv`; a única relação confirmada é a
+materialização de `UI/logo1.wyt` documentada na ficha de textura.
+
 O transporte/framing já foi implementado e integrado ao lifecycle da aplicação,
 mas ainda não foi exercitado contra o servidor real. Os layouts, parsers, a
 máquina de estados, a fila de eventos do socket, o dispatcher e o controller de
@@ -26,6 +33,11 @@ login estão implementados e cobertos por testes automatizados. As cenas do
 fluxo real, mundo e UI de gameplay continuam pendentes.
 
 ## Ordem de implementação
+
+O trabalho passa a ser organizado em fatias verticais e três trilhas que podem
+avançar em paralelo: protocolo/login, pipeline de assets e renderer. A
+prioridade de produto é fechar uma cadeia visual pequena com dados reais, sem
+bloquear a contraparte de comunicação já existente no emulador.
 
 ### 1. Assets protegidos no runtime — concluída
 
@@ -135,6 +147,35 @@ fonte de verdade; o client apenas interpola/apresenta o estado recebido.
 
 Aceite: spawn, atualização, movimento, desconexão e limpeza de entidades com
 testes de sequência e uma execução manual no client Go.
+
+### 5a. Pipeline de assets orientado ao produto — em andamento
+
+Depois de WYT, fechar incrementalmente uma cadeia representativa de
+personagem, sem converter todo o pacote de uma vez:
+
+```text
+seletor de personagem -> MSH -> material/textura -> WYT
+                     -> BON -> ANI -> pose
+```
+
+Cada formato deve passar por parser com limites, modelo canônico, ferramenta de
+inspeção/exportação diagnóstica e golden test antes de ser ligado ao renderer.
+As dependências devem ser promovidas somente quando houver evidência nativa,
+de recurso ou de runtime; extensões desconhecidas continuam explicitamente
+pendentes. O renderer recebe `Texture`, `Mesh`, `Skeleton`, `Animation` e
+`Terrain`, nunca caminhos ou bytes de formatos proprietários.
+
+Milestones visuais:
+
+1. WYT decodificado e exportável para imagem de diagnóstico (concluído para o
+   logo).
+2. Um MSH validado e exportado para geometria de diagnóstico.
+3. Um personagem estático e depois animado usando MSH/BON/ANI/WYT.
+4. Um trecho de terreno TRN com câmera e primitivas de depuração.
+
+O empacotamento protegido continua separado desta trilha e só deve receber
+formatos estabilizados; durante o desenvolvimento, o `assetc` e o cache local
+podem trabalhar com `assets/current`.
 
 ### 6. UI e gameplay por fatias
 
