@@ -1,9 +1,11 @@
 # Plano de início do client WYD 7.48 em Go
 
-Este plano inicia o client novo sem reutilizar código executável do TMProject.
-O TMProject pode indicar nomes e organização, mas contratos legados devem ser
-confirmados no binário nativo 7.48 e na descompilação estudada antes da
-implementação.
+Este plano inicia o client novo em Go sem reutilizar código executável do
+TMProject. Para o fluxo de login, seleção de personagem e entrada no mundo, a
+compatibilidade do TMProject com o 7.48 foi autorizada como referência
+secundária de composição e comportamento visual. Contratos legados e
+fronteiras de ABI continuam confirmados pelo binário nativo 7.48 e pela
+descompilação estudada antes da implementação.
 
 ## Estado de partida
 
@@ -135,10 +137,12 @@ Implementado nesta unidade:
 Estado: `CONTRACT` nativo e `AUTOMATED TESTED` no pacote Go. A entrega dos
 packets pela sessão à thread principal, o dispatcher e o controller de envios
 estão implementados. As factories visuais agora ligam cenas de login, seleção
-de personagem, carregamento e mundo. A seleção usa somente slots ocupados,
-navegação por teclado/clique, confirmação única e mensagens em inglês; o
-desenho usa somente a extensão opcional de primitivas do renderer. Ainda falta
-a execução contra o servidor real e a validação manual do executável Windows.
+de personagem, carregamento e mundo. A tela de login usa o asset oficial
+`CLIENT OFICIAL 7.48/UI/loginbox.wyt`, com texto dinâmico editável sobre a
+arte; o TMProject foi usado somente como comparação autorizada para essa
+composição compatível. A seleção usa somente slots ocupados, navegação por
+teclado/clique, confirmação única e mensagens em inglês. Ainda falta a
+execução contra o servidor real e a validação manual do executável Windows.
 
 Aceite restante: um personagem entra no mundo, recebe estado inicial e
 consegue sair e entrar novamente sem crash ou dados antigos no client.
@@ -235,5 +239,7 @@ exclusivamente pelo estado atualizado na thread principal; `Application` chama
 o sincronizador depois dos eventos de sessão/input e antes do update da cena.
 
 Próximo gate: executar o ciclo completo contra o WYD-Go, incluindo logout e
-relogin real, antes de iniciar o mundo mínimo. A camada de texto/fontes e os
-assets de personagem permanecem uma etapa visual posterior.
+relogin real, antes de iniciar o mundo mínimo. A fonte/atlas nativo de texto e
+os assets de personagem permanecem uma etapa visual posterior; seleção,
+loading e mundo ainda usam composição provisória até cada binding de asset ser
+confirmado.

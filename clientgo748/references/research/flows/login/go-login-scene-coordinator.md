@@ -29,8 +29,8 @@ lifecycle nativo. Este lote adapta somente a composição interna em Go.
 | Binário nativo 7.48 / Ghidra | UTILIZADA | fichas `login-session.md` e lifecycle fornecem contratos e invariantes |
 | Source Go e testes | UTILIZADA | `internal/login`, `internal/loginflow`, `internal/app`, `internal/scene` |
 | WYD-Go | UTILIZADA | contrato de sessão e transporte existente; nenhum código alterado |
-| Assets 7.48 | NÃO APLICÁVEL | cenas usam apenas primitivas de depuração; nenhum asset visual novo foi ligado |
-| TMProject | UTILIZADA secundariamente | comparação estrutural, sem cópia de código ou ABI |
+| Assets 7.48 | UTILIZADA | `UI/loginbox.wyt` oficial fornece painel, campos e estados do botão da tela de login |
+| TMProject | UTILIZADA secundariamente e autorizada | login, personagem e entrada no mundo são compatíveis com 7.48; usado somente para comparação de composição, sem cópia de código, ABI ou ownership |
 | Guias | NÃO APLICÁVEL | não definem este contrato |
 | W2PP, Secrets, Micronics | EXCLUÍDA | fontes bugadas, proibidas pela campanha |
 
@@ -70,7 +70,9 @@ agenda no máximo uma transição no `scene.Manager`.
 | `EnteringWorld` | `Loading` |
 | `InWorld`, `LoggingOut` | `World` |
 
-As cenas lógicas não possuem socket, renderer ou recursos externos. `Enter` e
+As cenas lógicas não possuem socket nem ownership de renderer; a cena de login
+recebe explicitamente uma textura oficial imutável e a apresenta pelo backend.
+`Enter` e
 `Update` validam novamente a fase aceita, detectando dessincronização antes de
 renderizar. Desconexão limpa o estado; logout permanece em `World` enquanto a
 confirmação não chega. Não há wire/ABI novo.
@@ -111,14 +113,14 @@ contratos existentes de `internal/login`.
 ## Mapeamento atual
 
 Source: `internal/loginflow/coordinator.go`, `scenes.go`, `internal/ui` e
-`internal/app/application.go`. Nativo: fichas `login-session.md` e
-`go-scene-manager.md`.
+`internal/app/application.go`. Asset: `CLIENT OFICIAL 7.48/UI/loginbox.wyt`.
+Nativo: fichas `login-session.md` e `go-scene-manager.md`.
 
 ## Matriz de delta
 
 | Claim | Nativo 7.48 | Source Go | TMProject | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
-| fase dirige tela | ObjectManager troca objetos | Coordinator mapeia fases para IDs | comparação estrutural | contrato de sessão | modernizar internamente |
+| fase dirige tela | ObjectManager troca objetos | Coordinator mapeia fases para IDs | fluxo compatível de login/personagem/mundo, usado como comparação | contrato de sessão | modernizar internamente |
 | consumidor de packets | dispatch central | Dispatcher único | comparação secundária | server-authoritative | manter |
 | troca e cleanup | FUN_004B3500/FUN_004B37C9/FUN_0055D066 | Manager com transição pendente | não é prova nativa | N/A | manter invariantes |
 
@@ -126,9 +128,11 @@ Source: `internal/loginflow/coordinator.go`, `scenes.go`, `internal/ui` e
 
 - Classificação: `MODERNIZACAO_COMPATIVEL`.
 - Implementar cenas lógicas sem copiar código, ABI ou ownership do TMProject.
-- As cenas visuais de seleção, carregamento e mundo são uma modernização
-  interna compatível: consomem somente snapshots já aceitos e não alteram
-  packets, fases ou ownership do renderer.
+- A cena visual de login é uma modernização compatível baseada no asset oficial
+  7.48; o TMProject auxilia somente na composição compatível do fluxo. As cenas
+  de seleção, carregamento e mundo continuam esqueletos visuais e consomem
+  somente snapshots já aceitos, sem alterar packets, fases ou ownership do
+  renderer.
 - A seleção ignora slots vazios, percorre os quatro slots sem pular ocupados e
   só chama o controller depois de uma confirmação válida.
 - Não declarar `CLIENT_TESTED` até executar login/logout/relogin no executável.
@@ -136,9 +140,10 @@ Source: `internal/loginflow/coordinator.go`, `scenes.go`, `internal/ui` e
 ## Lacunas
 
 - validar conexão e ciclo completo contra o servidor WYD-Go;
-- adicionar fonte de texto/fontes e rastrear recursos visuais no client real;
-- substituir os retângulos de depuração por assets protegidos depois que o
-  contrato de recursos estiver fechado;
+- adicionar a fonte/atlas nativo de texto e rastrear recursos visuais no client
+  real;
+- substituir os elementos visuais provisórios de seleção, carregamento e mundo
+  por assets protegidos depois que o contrato de recursos estiver fechado;
 - validar reconexão e logout/relogin no executável Windows.
 
 ## Validação
