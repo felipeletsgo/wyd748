@@ -46,7 +46,8 @@ específica.
 - usar o TMProject apenas como mapa estrutural, nunca como fonte de código;
 - manter o servidor autoritativo;
 - não alterar opcodes, layouts ou assets nesta etapa;
-- preparar o ponto de entrada sem introduzir uma dependência gráfica;
+- executar uma janela Win32 e um contexto OpenGL/WGL sem CGO;
+- manter criação, frames e teardown na mesma thread do sistema;
 - registrar a futura cadeia de conversão e proteção de assets.
 
 Os assets ativos da preparação estão em `assets/current/`; o client oficial
@@ -68,11 +69,12 @@ O plano de cobertura e as lacunas reais estão em [`MAPPING.md`](MAPPING.md).
 As próximas unidades devem seguir a fila em
 `references/catalog/research-queue.tsv`, fechando uma transição nativa por vez.
 
-1. leitor normalizado dos dados autoritativos de protocolo;
-2. `assetc` em Go para transformar os assets 7.48 em um formato versionado;
-3. manifesto assinado e pacote criptografado;
-4. janela/contexto gráfico e teste visual mínimo;
-5. login, seleção de personagem e entrada no mundo.
+1. fechar o smoke test real de janela, resize e encerramento;
+2. rastrear no client nativo o loader da primeira textura oficial;
+3. criar `assetc` em Go para transformar esse asset em formato versionado;
+4. renderizar o primeiro asset e fechar seu lifecycle gráfico;
+5. adicionar manifesto assinado e pacote criptografado;
+6. implementar transporte, login, seleção de personagem e entrada no mundo.
 
 Cada unidade deve compilar e ser validada antes da seguinte. Os arquivos
 originais continuam sendo a fonte e não serão sobrescritos pelo conversor.
@@ -84,6 +86,7 @@ Execute dentro deste diretório:
 ```powershell
 pwsh -NoProfile -File .\Verify-Mapping.ps1
 pwsh -NoProfile -File .\Build-ClientGo.ps1 -Configuration Debug
+pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1
 ```
 
 `Verify-Mapping.ps1` também confere `MANIFEST.sha256`, portanto detecta arquivo

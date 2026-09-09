@@ -23,9 +23,9 @@ mas não declara que 4.146 funções foram semanticamente rastreadas. A maturida
 de cada entrada permanece no TSV e não é promovida por compilação ou por
 semelhança com o TMProject.
 
-O validador das fichas reproduz, no snapshot atual, `CONTRACT=46`, `TRACED=19`,
-`LOCATED=8` e `UNMAPPED=2`. Esses números são das fichas de transição e não
-devem ser somados aos estados por função do censo.
+O validador das fichas reproduz, no snapshot atual, `CLIENT_TESTED=1`,
+`CONTRACT=46`, `TRACED=19`, `LOCATED=8` e `UNMAPPED=2`. Esses números são das
+fichas de transição e não devem ser somados aos estados por função do censo.
 
 ## Ordem de autoridade
 

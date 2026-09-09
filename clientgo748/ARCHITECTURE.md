@@ -46,15 +46,18 @@ offsets de arquivos históricos diretamente.
 
 ### `internal/graphics`
 
-Expõe uma interface pequena de renderer. O backend OpenGL/purego será adicionado
-após o contrato de janela, assets e perda/restauração de recursos estar
-fechado. A API não deve vazar ponteiros de uma biblioteca gráfica para o
-restante do client.
+Expõe uma interface pequena de renderer. O backend inicial OpenGL/WGL em Go
+puro já cria o contexto, acompanha o tamanho da área cliente, limpa e apresenta
+o backbuffer. Texturas, device recovery e demais recursos só entram depois de
+seus contratos próprios. A API não deve vazar handles ou ponteiros gráficos
+para o restante do client.
 
 ### `internal/platform`
 
 Encapsula janela, mensagens, input, relógio e caminhos do sistema operacional.
-O restante do client não deve depender diretamente de Win32 ou de um toolkit.
+A primeira unidade Win32 já possui a janela e seu message loop; input e relógio
+permanecem unidades futuras. O restante do client não depende diretamente de
+Win32 ou de um toolkit.
 
 ## Lifecycle obrigatório
 

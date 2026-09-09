@@ -12,6 +12,7 @@ go test ./...
 pwsh -NoProfile -File .\tools\Test-SelfContained.ps1
 pwsh -NoProfile -File .\tools\Test-Manifest.ps1
 pwsh -NoProfile -File .\Build-ClientGo.ps1 -Configuration Debug
+pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1
 git diff --check
 ```
 
@@ -19,6 +20,11 @@ O triador só deve ser executado novamente quando o corpus, a fila ou uma nova
 raiz mudarem. O validador de pesquisa só precisa ser executado quando uma ficha
 ou seu schema mudar. O build do client Go não prova paridade visual nem
 `CLIENT_TESTED`.
+
+`Test-ClientBootstrap.ps1` é um gate Windows do executável produzido. Ele
+localiza a janela pela classe `WYDClientGo748Window` e pelo PID, confirma a
+área cliente inicial, redimensiona a janela e exercita `WM_CLOSE` e Alt+F4.
+Ele não substitui validação visual de cenas ou assets.
 
 ## Próximo lote recomendado
 

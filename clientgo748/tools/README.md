@@ -18,6 +18,8 @@ neste diretório.
   registrados, aplicando a mesma exclusão de artefatos transitórios;
 - `Test-SelfContained.ps1`: rejeita links de filesystem, inputs essenciais
   ausentes, módulo Go acoplado e caminhos externos nos pontos de entrada ativos.
+- `Test-ClientBootstrap.ps1`: executa o binário Windows, encontra sua janela
+  pela classe e pelo PID e valida tamanho, resize, `WM_CLOSE` e Alt+F4.
 
 Execute os scripts dentro de `clientgo748`, conforme
 `references/REPRODUCE.md`. As ferramentas Python recebem caminhos locais do

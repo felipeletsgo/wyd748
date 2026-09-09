@@ -6,7 +6,7 @@ arquivo é a entrada curta para quem trabalha no client Go.
 
 | Frente | Estado do conhecimento | Próximo gate |
 | --- | --- | --- |
-| Bootstrap, configuração e device | `UNMAPPED` | rastrear WinMain, managers, primeira cena e falha de boot |
+| Bootstrap, janela e device vazio | `CLIENT_TESTED` no executável Go | dados, managers e primeira cena ficam em fichas próprias |
 | Transporte, framing e criptografia | `CONTRACT` estreito | fechar decrypt/checksum e teardown além dos fluxos já fichados |
 | Login e seleção de personagem | `CONTRACT` estreito | rastrear credenciais, resposta, create/delete e enter-world |
 | Cenas e dispatcher | `UNMAPPED` | resolver socket → cena → controles → handler |
@@ -19,7 +19,7 @@ arquivo é a entrada curta para quem trabalha no client Go.
 | Inventário, cargo, shop e trade | `UNMAPPED` | rastrear grid, drag, rollback, callbacks e fechamento |
 | Party, guild e sistemas especiais | `UNMAPPED` | completar sincronização e cancelamento |
 | UI, input e lifecycle | `LOCATED` | provar materialização, foco, destroy e relogin |
-| Render e assets | `UNMAPPED` | fechar loaders, escala, device reset e fallback |
+| Render e assets | contexto WGL implementado; loaders `UNMAPPED` | fechar primeira textura, escala, device reset e fallback |
 | Shutdown e reconexão | `CONTRACT` estreito | cobrir troca explícita de conta e falhas parciais |
 
 `UNMAPPED` é uma lacuna de pesquisa, não uma autorização para copiar o
