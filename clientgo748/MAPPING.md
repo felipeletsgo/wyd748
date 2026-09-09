@@ -46,6 +46,23 @@ o asset oficial; o smoke test real cobre janela, resize, `WM_CLOSE` e Alt+F4.
 Isso não declara ainda uma validação visual manual do logo nem paridade de
 outras cenas.
 
+## Segunda unidade: formato canônico e `assetc`
+
+`cmd/assetc` converte uma textura WYT por execução sem modificar o arquivo de
+origem. `internal/assets.EncodeTexture` e `DecodeTexture` usam o formato
+`WYDASSET`, versão `1`, com cabeçalho fixo, metadados da textura, payload RGBA8
+compacto e SHA-256 do payload. A decodificação verifica magic, versão, tipo,
+dimensões, tamanho, campos reservados e integridade antes de devolver uma
+cópia própria.
+
+Essa unidade ainda não é o pacote de distribuição: assinatura, criptografia,
+compressão e manifesto de arquivos serão adicionados separadamente. O arquivo
+canônico é uma representação intermediária determinística e não substitui os
+assets oficiais.
+
+O contrato está documentado em
+`references/research/flows/render-assets/assetc-canonical-format.md`.
+
 ## Ordem de autoridade
 
 1. código/testes atuais do WYD-Go e dados autoritativos;

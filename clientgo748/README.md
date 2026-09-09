@@ -69,9 +69,10 @@ O plano de cobertura e as lacunas reais estão em [`MAPPING.md`](MAPPING.md).
 As próximas unidades devem seguir a fila em
 `references/catalog/research-queue.tsv`, fechando uma transição nativa por vez.
 
-1. criar `assetc` em Go para transformar os assets decodificados em formato
-   versionado;
-2. adicionar manifesto assinado e pacote criptografado;
+1. adicionar manifesto assinado e pacote criptografado ao formato canônico já
+   produzido por `assetc`;
+2. integrar o carregamento canônico ao renderer sem aceitar dados não
+   autenticados;
 3. rastrear e implementar transporte, login, seleção de personagem e entrada
    no mundo.
 
