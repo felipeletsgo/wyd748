@@ -21,12 +21,15 @@ type Terrain struct {
 	Cells          []TerrainCell
 }
 
-// TerrainCell owns a copy of the native record. Keeping bytes opaque is
-// intentional: texture, height and attribute meanings are not interchangeable
-// and must not be guessed from a later client implementation.
+// TerrainCell possui uma cópia do registro nativo. O loader nativo confirma
+// que o byte zero é uma amostra de altura assinada; os bytes restantes ficam
+// opacos até que sua semântica 7.48 seja rastreada separadamente.
 type TerrainCell struct {
 	X, Y uint16
-	Raw  [12]byte
+	// Height é o primeiro byte assinado consumido pelo gerador da malha nativa
+	// (FUN_00533dd7/FUN_00534ebe). Ele ainda não é um valor de colisão.
+	Height int8
+	Raw    [12]byte
 }
 
 const (
@@ -36,7 +39,7 @@ const (
 )
 
 var (
-	ErrInvalidTerrain = errors.New("assets: invalid TRN terrain")
+	ErrInvalidTerrain  = errors.New("assets: invalid TRN terrain")
 	ErrTerrainTooLarge = errors.New("assets: TRN terrain exceeds limits")
 )
 
@@ -70,6 +73,7 @@ func ParseTerrain(data []byte) (Terrain, error) {
 		copy(cells[i].Raw[:], data[offset:offset+terrainCellSize])
 		cells[i].X = uint16(i % columns)
 		cells[i].Y = uint16(i / columns)
+		cells[i].Height = int8(cells[i].Raw[0])
 	}
 	return Terrain{
 		Name: string(data[1 : 1+nameLen]), HeaderWidth: data[1+nameLen],

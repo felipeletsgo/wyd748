@@ -230,10 +230,14 @@ Milestones visuais:
 Progresso desta unidade: `internal/assets.ParseTerrain` valida o framing
 observado em `Env/Character.trn` (nome, dois bytes de cabeçalho e 4.096
 registros de 12 bytes, formando uma superfície 64x64), com limites de
-memória, ownership independente e testes de entradas inválidas. Os 12 bytes
-de cada célula continuam opacos; altura, textura e colisão não são inferidos
-antes da confirmação no loader nativo. O parser ainda não alimenta colisão,
-movimento ou renderização de gameplay.
+memória, ownership independente e testes de entradas inválidas. A
+descompilação nativa confirma o primeiro byte como altura assinada; o parser
+expõe esse campo e preserva os outros 11 bytes em bruto. Textura, demais
+atributos e colisão ainda não foram promovidos. O parser ainda não alimenta
+colisão, movimento ou renderização de gameplay.
+
+O contrato e a matriz de fontes estão em
+`references/research/flows/render-assets/terrain-trn-loader.md`.
 
 O empacotamento protegido continua separado desta trilha e só deve receber
 formatos estabilizados; durante o desenvolvimento, o `assetc` e o cache local

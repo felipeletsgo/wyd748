@@ -42,6 +42,9 @@ func TestParseOfficialCharacterTerrain(t *testing.T) {
 	if word, ok := cell.TerrainRecordWord(0); !ok || word != uint16(cell.Raw[0])|uint16(cell.Raw[1])<<8 {
 		t.Fatalf("record word = %04x, ok=%v", word, ok)
 	}
+	if cell.Height != int8(cell.Raw[0]) {
+		t.Fatalf("height = %d, raw[0] = %d", cell.Height, int8(cell.Raw[0]))
+	}
 }
 
 func TestParseTerrainOwnsCellBytes(t *testing.T) {
@@ -55,6 +58,20 @@ func TestParseTerrainOwnsCellBytes(t *testing.T) {
 	cell, _ := terrain.Cell(0, 0)
 	if cell.Raw[0] != 0 {
 		t.Fatalf("cell aliases input: %x", cell.Raw[0])
+	}
+}
+
+func TestParseTerrainPreservesSignedNativeHeight(t *testing.T) {
+	data := []byte{1, 'X', 1, 1}
+	data = append(data, make([]byte, terrainCellSize)...)
+	data[4] = 0x80
+	terrain, err := ParseTerrain(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cell, ok := terrain.Cell(0, 0)
+	if !ok || cell.Height != -128 {
+		t.Fatalf("height = %d, ok=%v; want -128", cell.Height, ok)
 	}
 }
 
