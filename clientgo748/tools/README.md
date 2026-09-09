@@ -12,7 +12,8 @@ neste diretório.
 - `research/build_research_queue.py`: reconstrói a fila de pesquisa local;
 - `research/ExportWyd*.java`: exports reproduzíveis para uso no Ghidra;
 - `Update-Manifest.ps1`: recria o manifesto SHA-256 do pacote, ignorando
-  artefatos transitórios de execução e build;
+  artefatos transitórios de execução e build e normalizando apenas quebras de
+  linha de arquivos textuais;
 - `Test-Manifest.ps1`: verifica hashes, arquivos ausentes e arquivos não
   registrados, aplicando a mesma exclusão de artefatos transitórios;
 - `Test-SelfContained.ps1`: rejeita links de filesystem, inputs essenciais

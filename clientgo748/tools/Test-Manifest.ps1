@@ -4,17 +4,7 @@ param()
 $ErrorActionPreference = "Stop"
 $clientRoot = Split-Path -Parent $PSScriptRoot
 $manifestPath = Join-Path $clientRoot "MANIFEST.sha256"
-
-function Test-ManifestExcludedPath([string]$relative) {
-    $normalized = $relative.Replace('\', '/')
-    return $normalized -eq "MANIFEST.sha256" -or
-        $normalized -match '^bin/' -or
-        $normalized -match '(^|/)__pycache__(/|$)' -or
-        $normalized -match '\.py[cod]$' -or
-        $normalized -match '\.log$' -or
-        $normalized -match '(^|/)[^/]+\.tmp(?:-[^/]*)?$' -or
-        $normalized -match '~$'
-}
+. (Join-Path $PSScriptRoot "Manifest-Policy.ps1")
 
 if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
     throw "Package manifest is missing: $manifestPath"
@@ -51,8 +41,8 @@ foreach ($line in [IO.File]::ReadAllLines($manifestPath)) {
 
 foreach ($record in $expected.GetEnumerator()) {
     $fullPath = Join-Path $clientRoot $record.Key
-    $actual = (Get-FileHash -LiteralPath $fullPath -Algorithm SHA256).Hash
-    if ($actual -ne $record.Value) {
+    $actual = Get-ManifestDigest $fullPath $record.Key
+    if ($actual -ne $record.Value.ToLowerInvariant()) {
         throw "Manifest hash mismatch: $($record.Key)"
     }
 }
