@@ -167,8 +167,18 @@ Adicionar dispatcher de pacotes, relógio/tick, mapa, entidades e movimento
 mínimos necessários para observar o personagem. O servidor continua sendo a
 fonte de verdade; o client apenas interpola/apresenta o estado recebido.
 
+Implementado nesta etapa: a cena `world` agora materializa uma superfície
+diagnóstica a partir do snapshot `0x114`, com posição autoritativa, grade de
+referência, marcador do personagem e HUD em inglês. A cena consulta o
+viewport real e não cria coordenadas ou entidades locais. Isso fecha a primeira
+observação visual do personagem sem fingir que o pipeline de terreno está
+pronto.
+
 Aceite: spawn, atualização, movimento, desconexão e limpeza de entidades com
 testes de sequência e uma execução manual no client Go.
+
+Ainda pendente: dispatcher de atualizações de entidades/movimento, envio de
+intenção de caminhada, terreno/mesh e execução manual contra o servidor.
 
 ### 5a. Pipeline de assets orientado ao produto — em andamento
 

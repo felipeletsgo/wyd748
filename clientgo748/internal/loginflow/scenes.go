@@ -551,8 +551,37 @@ func (s *worldScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err
 	}
-	if s.renderer != nil {
-		s.renderer.DrawRect(20, 20, 180, 48, graphics.Color{R: .08, G: .12, B: .18, A: .9})
+	if s.renderer == nil {
+		return nil
+	}
+	snapshot, _ := s.state.World()
+	width, height := int32(800), int32(600)
+	if viewport, ok := s.renderer.(graphics.ViewportProvider); ok {
+		if w, h := viewport.ClientViewport(); w > 0 && h > 0 {
+			width, height = w, h
+		}
+	}
+	// This is a diagnostic world surface until the terrain/mesh pipeline is
+	// connected. Coordinates remain authoritative: the player marker is always
+	// centered while the grid exposes the received map position and movement
+	// updates without inventing client-side world state.
+	s.renderer.DrawRect(0, 0, width, height, graphics.Color{R: .035, G: .055, B: .075, A: 1})
+	for x := int32(0); x < width; x += 64 {
+		s.renderer.DrawRect(x, 72, 1, height-72, graphics.Color{R: .10, G: .14, B: .18, A: 1})
+	}
+	for y := int32(72); y < height; y += 64 {
+		s.renderer.DrawRect(0, y, width, 1, graphics.Color{R: .10, G: .14, B: .18, A: 1})
+	}
+	playerX, playerY := width/2-8, (height+72)/2-8
+	s.renderer.DrawRect(playerX, playerY, 16, 16, graphics.Color{R: .25, G: .75, B: .95, A: 1})
+	if text, ok := s.renderer.(graphics.TextRenderer); ok {
+		text.DrawText(16, 16, "WORLD", 14, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		text.DrawText(16, 38, fmt.Sprintf("Position: %d, %d", snapshot.PosX, snapshot.PosY), 11, graphics.Color{R: .78, G: .84, B: .90, A: 1})
+		name := snapshot.Mob.Name
+		if name == "" {
+			name = "Character"
+		}
+		text.DrawText(playerX-24, playerY-20, name, 10, graphics.Color{R: .75, G: .90, B: 1, A: 1})
 	}
 	return nil
 }
