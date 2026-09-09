@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$BinaryPath = (Join-Path (Split-Path -Parent $PSScriptRoot) "bin\wydclient.exe")
+    [string]$BinaryPath = (Join-Path (Split-Path -Parent $PSScriptRoot) "bin\wydclient.exe"),
+    [string]$EnvironmentFile
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,6 +12,27 @@ if (-not $IsWindows) {
 }
 if (-not (Test-Path -LiteralPath $BinaryPath -PathType Leaf)) {
     throw "The WYD client executable was not found: $BinaryPath"
+}
+
+# Um arquivo opcional NAME=VALUE torna reproduzível o bootstrap com assets
+# protegidos sem gravar chaves no script. Start-Process recebe somente este
+# ambiente adicional e não altera permanentemente o ambiente do chamador.
+$clientEnvironment = @{}
+if ($EnvironmentFile) {
+    if (-not (Test-Path -LiteralPath $EnvironmentFile -PathType Leaf)) {
+        throw "The client environment file was not found: $EnvironmentFile"
+    }
+    foreach ($line in Get-Content -LiteralPath $EnvironmentFile) {
+        $trimmed = $line.Trim()
+        if (-not $trimmed -or $trimmed.StartsWith("#")) {
+            continue
+        }
+        $parts = $trimmed -split "=", 2
+        if ($parts.Count -ne 2 -or -not $parts[0]) {
+            throw "Invalid NAME=VALUE entry in the client environment file."
+        }
+        $clientEnvironment[$parts[0]] = $parts[1]
+    }
 }
 
 # O helper mantém todo o acesso Win32 do teste em um ponto pequeno. A busca
@@ -109,7 +131,14 @@ public static class ClientGo748SmokeNative
 '@
 
 function Start-SmokeClient {
-    $process = Start-Process -FilePath $BinaryPath -PassThru
+    $startOptions = @{
+        FilePath = $BinaryPath
+        PassThru = $true
+    }
+    if ($clientEnvironment.Count -gt 0) {
+        $startOptions.Environment = $clientEnvironment
+    }
+    $process = Start-Process @startOptions
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
     do {
         if ($process.HasExited) {
@@ -205,4 +234,5 @@ finally {
     }
 }
 
-Write-Host "Client bootstrap verified: class, 800x600 startup, resize, WM_CLOSE, and Alt+F4."
+$mode = if ($clientEnvironment.Count -gt 0) { "configured environment" } else { "default environment" }
+Write-Host "Client bootstrap verified with ${mode}: class, 800x600 startup, resize, WM_CLOSE, and Alt+F4."

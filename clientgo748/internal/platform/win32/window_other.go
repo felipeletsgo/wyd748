@@ -6,6 +6,8 @@ package win32
 
 import "errors"
 
+import "wydclient748/internal/input"
+
 // ErrUnsupported informa que a implementação concreta exige Windows.
 var ErrUnsupported = errors.New("clientgo748: the Win32 window requires Windows")
 
@@ -22,7 +24,7 @@ func (*Window) Open(string, int, int) error { return ErrUnsupported }
 func (*Window) Handle() uintptr { return 0 }
 
 // PollEvents não possui fila Win32 fora do Windows.
-func (*Window) PollEvents() {}
+func (*Window) PollEvents() []input.Event { return nil }
 
 // ShouldClose mantém o stub terminal.
 func (*Window) ShouldClose() bool { return true }

@@ -14,15 +14,17 @@ Já concluído:
 - parser seguro de WYT e textura RGBA8 própria;
 - formato canônico `WYDASSET` e conversor offline;
 - pacote protegido com manifesto, zlib, AES-256-GCM e assinatura Ed25519;
+- cache runtime protegido ligado ao renderer, com ferramenta offline de
+  empacotamento e configuração sem chave privada no client;
 - bootstrap com upload de textura e teardown na mesma thread;
 - testes automatizados e smoke test de janela, resize, fechamento e Alt+F4.
 
-Ainda não concluído: cache runtime, transporte, login, cenas do mundo, UI de
-gameplay e validação manual do executável Go.
+Ainda não concluído: conclusão da validação do lifecycle de cenas, transporte,
+login, cenas do mundo e UI de gameplay.
 
 ## Ordem de implementação
 
-### 1. Assets protegidos no runtime — próxima unidade
+### 1. Assets protegidos no runtime — concluída
 
 Criar uma API pequena `AssetSource`/`AssetCache` que receba bytes de pacote,
 valide assinatura e conteúdo através de `OpenProtectedPackage`, entregue uma
@@ -40,13 +42,25 @@ Entregas:
 - testes de cache, cópia/ownership, falha e limpeza.
 
 Aceite: o executável Go renderiza o logo a partir do pacote protegido e fecha
-sem vazamento; o fluxo inválido não cria textura OpenGL.
+sem vazamento; o fluxo inválido não cria textura OpenGL. Os testes, o smoke
+test protegido e a conferência visual passaram.
 
-### 2. Lifecycle e cenas mínimas
+### 2. Lifecycle e cenas mínimas — implementação concluída, smoke pendente
 
 Separar `Application`, `SceneManager`, input/eventos e recursos por cena. Fechar
 explicitamente textura, cache, renderer e janela; preparar recriação de contexto
 e logout/relogin sem estado global pendurado.
+
+Implementado nesta unidade:
+
+- `internal/scene.Manager` com `Start`, transição agendada, falha parcial,
+  `Exit`/`Close` ordenados e fechamento idempotente;
+- `internal/input.Event` independente de Win32;
+- tradução de resize, foco, teclado, mouse e fechamento na janela Win32;
+- integração do manager ao loop da `Application`, mantendo o renderer como
+  owner do contexto;
+- ficha de contrato em
+  `references/research/flows/lifecycle/go-scene-manager.md`.
 
 Aceite: bootstrap → cena inicial → fechamento e bootstrap → logout/relogin em
 testes determinísticos, incluindo falhas parciais.
@@ -125,7 +139,6 @@ unidade aprovada deve ser commitada diretamente em `main`, publicada em
 
 ## Próxima ação concreta
 
-Implementar a unidade 1: `OpenProtectedPackage` → `AssetCache` →
-`assets.Texture` → `TextureRenderer`, começando por um fixture de
-desenvolvimento reproduzível e sem alterar os assets oficiais. Em seguida,
-executar os gates acima e somente então avançar para lifecycle/cenas.
+Executar o smoke test do executável Go com a cena inicial e fechar a unidade 2
+em `main`. Depois iniciar a pesquisa de transporte/login; nenhum opcode deve ser
+adicionado antes da ficha `CONTRACT` correspondente.

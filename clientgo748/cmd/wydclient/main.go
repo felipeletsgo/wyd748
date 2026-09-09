@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"wydclient748/internal/app"
+	"wydclient748/internal/assets"
 	"wydclient748/internal/config"
 	"wydclient748/internal/graphics/wgl"
 	"wydclient748/internal/platform/win32"
@@ -28,18 +29,42 @@ func run() error {
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
+	var protectedSource assets.TextureSource
+	protectedSettings, protectedEnabled, err := config.LoadProtectedAssetSettingsFromEnv()
+	if err != nil {
+		return fmt.Errorf("load protected asset settings: %w", err)
+	}
+	if protectedEnabled {
+		packageData, err := os.ReadFile(protectedSettings.PackagePath)
+		if err != nil {
+			return fmt.Errorf("read protected asset package: %w", err)
+		}
+		protectedSource, err = assets.NewProtectedAssetCache(packageData, protectedSettings.ContentKey, protectedSettings.PublicKey)
+		if err != nil {
+			return fmt.Errorf("open protected asset package: %w", err)
+		}
+	}
 
+	options := app.Options{
+		Title:    "WYD 7.48",
+		Width:    cfg.WindowWidth,
+		Height:   cfg.WindowHeight,
+		LogoPath: initialLogoPath(),
+	}
+	if protectedEnabled {
+		options.LogoPath = ""
+		options.LogoSource = protectedSource
+		options.LogoAssetPath = protectedSettings.LogoPath
+	}
 	client, err := app.New(
-		app.Options{
-			Title:    "WYD 7.48",
-			Width:    cfg.WindowWidth,
-			Height:   cfg.WindowHeight,
-			LogoPath: initialLogoPath(),
-		},
+		options,
 		win32.New(),
 		wgl.New(),
 	)
 	if err != nil {
+		if protectedSource != nil {
+			_ = protectedSource.Close()
+		}
 		return err
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

@@ -1,6 +1,5 @@
-// Command assetc converte um asset oficial para o formato interno do client.
-// Esta primeira versão processa uma textura WYT por execução; o pacote e a
-// assinatura de distribuição serão adicionados em uma unidade posterior.
+// Command assetc converte um asset oficial para o formato canônico interno do client.
+// O empacotamento autenticado é feito separadamente por assetpack.
 package main
 
 import (

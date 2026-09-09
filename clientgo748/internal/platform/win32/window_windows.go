@@ -15,6 +15,8 @@ import (
 
 	"github.com/ebitengine/purego"
 	"golang.org/x/sys/windows"
+
+	"wydclient748/internal/input"
 )
 
 const (
@@ -27,6 +29,16 @@ const (
 	wmDestroy          = uint32(0x0002)
 	wmQuit             = uint32(0x0012)
 	wmEraseBackground  = uint32(0x0014)
+	wmSize             = uint32(0x0005)
+	wmSetFocus         = uint32(0x0007)
+	wmKillFocus        = uint32(0x0008)
+	wmKeyDown          = uint32(0x0100)
+	wmKeyUp            = uint32(0x0101)
+	wmMouseMove        = uint32(0x0200)
+	wmLButtonDown      = uint32(0x0201)
+	wmLButtonUp        = uint32(0x0202)
+	wmRButtonDown      = uint32(0x0204)
+	wmRButtonUp        = uint32(0x0205)
 	idcArrow           = uintptr(32512)
 )
 
@@ -96,8 +108,10 @@ var (
 // Window possui exatamente um HWND. O zero value é válido e Close é seguro
 // mesmo quando Open falhou antes de transferir ownership.
 type Window struct {
-	handle atomic.Uintptr
-	closed atomic.Bool
+	handle   atomic.Uintptr
+	closed   atomic.Bool
+	eventsMu sync.Mutex
+	events   []input.Event
 }
 
 // New cria um owner ainda sem recursos externos.
@@ -166,11 +180,11 @@ func (w *Window) Open(title string, width, height int) error {
 func (w *Window) Handle() uintptr { return w.handle.Load() }
 
 // PollEvents consome todas as mensagens disponíveis sem bloquear o frame.
-func (w *Window) PollEvents() {
+func (w *Window) PollEvents() []input.Event {
 	a, err := loadAPI()
 	if err != nil {
 		w.closed.Store(true)
-		return
+		return nil
 	}
 	var msg message
 	for a.peekMessage(&msg, 0, 0, 0, pmRemove) != 0 {
@@ -181,6 +195,11 @@ func (w *Window) PollEvents() {
 		a.translateMessage(&msg)
 		a.dispatchMessage(&msg)
 	}
+	w.eventsMu.Lock()
+	events := append([]input.Event(nil), w.events...)
+	w.events = w.events[:0]
+	w.eventsMu.Unlock()
+	return events
 }
 
 // ShouldClose informa se WM_CLOSE/WM_DESTROY/WM_QUIT encerrou a janela.
@@ -195,6 +214,9 @@ func (w *Window) Close() error {
 	}
 	windowsByHandle.Delete(hwnd)
 	w.closed.Store(true)
+	w.eventsMu.Lock()
+	w.events = nil
+	w.eventsMu.Unlock()
 	a, err := loadAPI()
 	if err != nil {
 		return err
@@ -284,7 +306,63 @@ func windowProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 		// O pedido apenas encerra o loop. O orquestrador desmonta primeiro o
 		// renderer e só então chama Close para destruir a janela.
 		if value, ok := windowsByHandle.Load(hwnd); ok {
-			value.(*Window).closed.Store(true)
+			w := value.(*Window)
+			w.closed.Store(true)
+			w.pushEvent(input.Event{Kind: input.KindWindowClose})
+		}
+		return 0
+	case wmSize:
+		if value, ok := windowsByHandle.Load(hwnd); ok {
+			value.(*Window).pushEvent(input.Event{
+				Kind:   input.KindWindowResize,
+				Width:  int32(uint16(lParam)),
+				Height: int32(uint16(lParam >> 16)),
+			})
+		}
+		return 0
+	case wmKeyDown, wmKeyUp:
+		if value, ok := windowsByHandle.Load(hwnd); ok {
+			kind := input.KindKeyDown
+			if msg == wmKeyUp {
+				kind = input.KindKeyUp
+			}
+			value.(*Window).pushEvent(input.Event{Kind: kind, Key: uint32(wParam)})
+		}
+		return 0
+	case wmMouseMove:
+		if value, ok := windowsByHandle.Load(hwnd); ok {
+			value.(*Window).pushEvent(input.Event{
+				Kind: input.KindMouseMove,
+				X:    int32(int16(uint16(lParam))),
+				Y:    int32(int16(uint16(lParam >> 16))),
+			})
+		}
+		return 0
+	case wmLButtonDown, wmLButtonUp, wmRButtonDown, wmRButtonUp:
+		if value, ok := windowsByHandle.Load(hwnd); ok {
+			kind := input.KindMouseButtonDown
+			if msg == wmLButtonUp || msg == wmRButtonUp {
+				kind = input.KindMouseButtonUp
+			}
+			button := uint8(1)
+			if msg == wmRButtonDown || msg == wmRButtonUp {
+				button = 2
+			}
+			value.(*Window).pushEvent(input.Event{
+				Kind:   kind,
+				Button: button,
+				X:      int32(int16(uint16(lParam))),
+				Y:      int32(int16(uint16(lParam >> 16))),
+			})
+		}
+		return 0
+	case wmSetFocus, wmKillFocus:
+		if value, ok := windowsByHandle.Load(hwnd); ok {
+			kind := input.KindFocusGained
+			if msg == wmKillFocus {
+				kind = input.KindFocusLost
+			}
+			value.(*Window).pushEvent(input.Event{Kind: kind})
 		}
 		return 0
 	case wmDestroy:
@@ -298,6 +376,12 @@ func windowProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 	default:
 		return a.defWindowProc(hwnd, msg, wParam, lParam)
 	}
+}
+
+func (w *Window) pushEvent(event input.Event) {
+	w.eventsMu.Lock()
+	w.events = append(w.events, event)
+	w.eventsMu.Unlock()
 }
 
 func lastError(action string) error {

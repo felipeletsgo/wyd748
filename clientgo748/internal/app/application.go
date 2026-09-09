@@ -9,10 +9,13 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"time"
 
 	"wydclient748/internal/assets"
 	"wydclient748/internal/graphics"
+	"wydclient748/internal/input"
 	"wydclient748/internal/platform"
+	"wydclient748/internal/scene"
 )
 
 // Options contém somente a fronteira observável do primeiro bootstrap.
@@ -23,6 +26,20 @@ type Options struct {
 	// LogoPath is optional for headless lifecycle tests. When set, the first
 	// scene loads this official texture before entering the frame loop.
 	LogoPath string
+	// LogoSource is an optional authenticated source for the first texture.
+	// Application takes ownership and closes it even when a later bootstrap
+	// stage fails. LogoAssetPath is a manifest path, not a filesystem path.
+	LogoSource    assets.TextureSource
+	LogoAssetPath string
+	// InitialScene permite registrar uma cena de teste ou uma tela futura sem
+	// acoplar Application ao conteúdo de gameplay. Quando omitido, o logo
+	// carregado vira a cena estática inicial.
+	InitialScene   scene.Factory
+	InitialSceneID scene.ID
+	// SceneFactories contém todas as cenas que podem ser solicitadas durante o
+	// processo. O mapa é copiado pelo Manager; o chamador continua dono apenas
+	// das factories, não das instâncias criadas.
+	SceneFactories map[scene.ID]scene.Factory
 }
 
 // Application possui janela e renderer depois que cada estágio conclui.
@@ -34,6 +51,8 @@ type Application struct {
 
 	windowOwned   bool
 	rendererOwned bool
+	sourceOwned   bool
+	sceneManager  *scene.Manager
 	closeOnce     sync.Once
 	closeErr      error
 }
@@ -52,7 +71,15 @@ func New(options Options, window platform.Window, renderer graphics.Renderer) (*
 	if renderer == nil {
 		return nil, fmt.Errorf("clientgo748: renderer dependency is required")
 	}
-	return &Application{options: options, window: window, renderer: renderer}, nil
+	if options.LogoSource != nil && options.LogoAssetPath == "" {
+		return nil, fmt.Errorf("clientgo748: logo asset path is required when a source is configured")
+	}
+	return &Application{
+		options:     options,
+		window:      window,
+		renderer:    renderer,
+		sourceOwned: options.LogoSource != nil,
+	}, nil
 }
 
 // Run mantém criação, frames e destruição na mesma thread do sistema, requisito
@@ -70,33 +97,79 @@ func (a *Application) Run(ctx context.Context) (err error) {
 		return fmt.Errorf("clientgo748: initialize renderer: %w", err)
 	}
 	a.rendererOwned = true
-	if a.options.LogoPath != "" {
+	if a.options.LogoSource != nil || a.options.LogoPath != "" {
 		textureRenderer, ok := a.renderer.(graphics.TextureRenderer)
 		if !ok {
 			return fmt.Errorf("clientgo748: renderer does not support the initial texture scene")
 		}
-		texture, err := assets.LoadWYTFile(a.options.LogoPath)
-		if err != nil {
-			return fmt.Errorf("clientgo748: load initial logo: %w", err)
+		var texture assets.Texture
+		if a.options.LogoSource != nil {
+			texture, err = a.options.LogoSource.LoadTexture(a.options.LogoAssetPath)
+			if err != nil {
+				return fmt.Errorf("clientgo748: load protected initial logo: %w", err)
+			}
+		} else {
+			texture, err = assets.LoadWYTFile(a.options.LogoPath)
+			if err != nil {
+				return fmt.Errorf("clientgo748: load initial logo: %w", err)
+			}
 		}
 		if err := textureRenderer.UploadTexture(texture); err != nil {
 			return fmt.Errorf("clientgo748: upload initial logo: %w", err)
 		}
 		a.textureRenderer = textureRenderer
 	}
+	if a.options.InitialScene != nil || a.textureRenderer != nil || len(a.options.SceneFactories) > 0 {
+		initialID := a.options.InitialSceneID
+		if initialID == "" {
+			initialID = scene.ID("initial")
+		}
+		factories := make(map[scene.ID]scene.Factory, len(a.options.SceneFactories)+1)
+		for id, factory := range a.options.SceneFactories {
+			factories[id] = factory
+		}
+		if a.options.InitialScene != nil {
+			factories[initialID] = a.options.InitialScene
+		} else if a.textureRenderer != nil {
+			textureRenderer := a.textureRenderer
+			factories[initialID] = func() (scene.Scene, error) {
+				return &textureScene{id: initialID, renderer: textureRenderer}, nil
+			}
+		}
+		a.sceneManager = scene.New(factories)
+		if err := a.sceneManager.Start(initialID); err != nil {
+			return fmt.Errorf("clientgo748: start initial scene: %w", err)
+		}
+	}
 
+	lastFrame := time.Now()
 	for !a.window.ShouldClose() {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
 		}
-		a.window.PollEvents()
+		events := a.window.PollEvents()
+		if a.sceneManager != nil {
+			if err := a.sceneManager.Dispatch(events); err != nil {
+				return err
+			}
+		}
 		if a.window.ShouldClose() {
 			break
 		}
+		now := time.Now()
+		delta := now.Sub(lastFrame)
+		lastFrame = now
 		a.renderer.BeginFrame()
-		if a.textureRenderer != nil {
+		if a.sceneManager != nil {
+			if err := a.sceneManager.Update(delta); err != nil {
+				return err
+			}
+			if err := a.sceneManager.Render(); err != nil {
+				return err
+			}
+		} else if a.textureRenderer != nil {
 			a.textureRenderer.DrawTexture()
 		}
 		a.renderer.EndFrame()
@@ -104,15 +177,46 @@ func (a *Application) Run(ctx context.Context) (err error) {
 	return nil
 }
 
+// RequestScene agenda uma troca de cena para o próximo frame. Deve ser
+// chamado no mesmo thread que executa Run; a API não cria uma segunda fila
+// concorrente nem transfere ownership ao chamador.
+func (a *Application) RequestScene(id scene.ID) error {
+	if a.sceneManager == nil {
+		return fmt.Errorf("clientgo748: scene manager is not initialized")
+	}
+	return a.sceneManager.Request(id)
+}
+
+// CurrentScene expõe apenas o identificador da cena, nunca a instância ou
+// seus recursos.
+func (a *Application) CurrentScene() (scene.ID, bool) {
+	if a.sceneManager == nil {
+		return "", false
+	}
+	return a.sceneManager.Current()
+}
+
 // Close libera somente recursos cuja inicialização transferiu ownership. A
 // ordem é renderer antes de janela, e chamadas repetidas retornam o mesmo erro.
 func (a *Application) Close() error {
 	a.closeOnce.Do(func() {
 		var errs []error
+		if a.sceneManager != nil {
+			if err := a.sceneManager.Close(); err != nil {
+				errs = append(errs, fmt.Errorf("clientgo748: close scene manager: %w", err))
+			}
+			a.sceneManager = nil
+		}
 		if a.rendererOwned {
 			a.rendererOwned = false
 			if err := a.renderer.Close(); err != nil {
 				errs = append(errs, fmt.Errorf("clientgo748: close renderer: %w", err))
+			}
+		}
+		if a.sourceOwned {
+			a.sourceOwned = false
+			if err := a.options.LogoSource.Close(); err != nil {
+				errs = append(errs, fmt.Errorf("clientgo748: close asset source: %w", err))
 			}
 		}
 		if a.windowOwned {
@@ -125,3 +229,19 @@ func (a *Application) Close() error {
 	})
 	return a.closeErr
 }
+
+// textureScene mantém o primeiro recurso visual dentro do mesmo lifecycle das
+// demais cenas. O renderer continua pertencendo à Application; a cena apenas
+// solicita o desenho durante Render e não o fecha.
+type textureScene struct {
+	id       scene.ID
+	renderer graphics.TextureRenderer
+}
+
+func (s *textureScene) ID() scene.ID                  { return s.id }
+func (s *textureScene) Enter() error                  { return nil }
+func (s *textureScene) HandleEvent(input.Event) error { return nil }
+func (s *textureScene) Update(time.Duration) error    { return nil }
+func (s *textureScene) Render() error                 { s.renderer.DrawTexture(); return nil }
+func (s *textureScene) Exit() error                   { return nil }
+func (s *textureScene) Close() error                  { return nil }

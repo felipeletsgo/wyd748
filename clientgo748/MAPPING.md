@@ -77,11 +77,25 @@ altera opcode, ABI, recurso nativo ou regra server-authoritative. A chave
 privada permanece fora do client; a chave pública valida autenticidade e a
 chave de conteúdo deve vir do fluxo autorizado de sessão. A maturidade nativa
 permanece `UNMAPPED`, pois não existe formato equivalente comprovado no WYD
-7.48. A entrega atual está `IMPLEMENTED / AUTOMATED TESTED`; a integração ao
-renderer ainda está pendente.
+7.48. A entrega está `IMPLEMENTED / CLIENT TESTED`: o `ProtectedAssetCache`
+alimenta a primeira textura do renderer, fecha no teardown e foi exercitado no
+executável com um pacote protegido materializado a partir do logo oficial.
 
 O contrato está documentado em
 `references/research/flows/render-assets/protected-asset-package.md`.
+
+## Lifecycle de cenas do client Go
+
+`internal/scene.Manager` agora controla a cena ativa, transições na fronteira
+de frame, falhas parciais e teardown idempotente. `internal/input.Event` remove
+a dependência de cenas em mensagens Win32, e `Application` mantém o renderer e
+a janela como owners externos às cenas. Essa é uma `MODERNIZACAO_COMPATIVEL`
+interna; não promove a ficha nativa ampla de cenas, que continua `LOCATED`.
+
+A unidade está `IMPLEMENTED / AUTOMATED TESTED`, com build Windows aprovado.
+O smoke test do executável ainda é o gate para marcar o bootstrap integrado
+como `CLIENT_TESTED`. A evidência e a matriz de fontes estão em
+`references/research/flows/lifecycle/go-scene-manager.md`.
 
 ## Ordem de autoridade
 
@@ -159,13 +173,16 @@ client.
 
 ## Como continuar
 
-1. Escolher a próxima raiz em `references/catalog/research-queue.tsv`.
-2. Partir da função/feature viva da source, localizar a candidata nativa e
+1. Executar o smoke test da unidade de lifecycle/cenas e registrar o resultado.
+2. Escolher a raiz nativa correspondente em
+   `references/catalog/research-queue.tsv` e fechar seu fluxo observável antes
+   de adaptar comportamento legado.
+3. Partir da função/feature viva da source, localizar a candidata nativa e
    abrir callers, callees, vtables, callbacks e teardown no Ghidra.
-3. Atualizar uma ficha em `references/research/flows/` com a matriz de fontes,
+4. Atualizar uma ficha em `references/research/flows/` com a matriz de fontes,
    decisão (`portar`, `manter`, `modernizar`, `estender` etc.) e lacunas.
-4. Só então implementar a unidade Go e validar parser, lifecycle e contrato.
-5. Executar os comandos reproduzíveis de `references/REPRODUCE.md` e manter o
+5. Só então implementar a unidade Go e validar parser, lifecycle e contrato.
+6. Executar os comandos reproduzíveis de `references/REPRODUCE.md` e manter o
    manifesto atualizado após cada unidade.
 
 Os snapshots de auditoria e a implementação vivem neste diretório. O módulo

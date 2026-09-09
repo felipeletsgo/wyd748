@@ -3,12 +3,14 @@
 // sem contaminar protocolo, assets ou domínio do jogo.
 package platform
 
+import "wydclient748/internal/input"
+
 // Window representa a janela do client sem expor o toolkit gráfico escolhido.
 // O handle só será válido entre Open e Close na implementação concreta.
 type Window interface {
 	Open(title string, width, height int) error
 	Handle() uintptr
-	PollEvents()
+	PollEvents() []input.Event
 	ShouldClose() bool
 	Close() error
 }

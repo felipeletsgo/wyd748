@@ -69,11 +69,10 @@ O plano de cobertura e as lacunas reais estão em [`MAPPING.md`](MAPPING.md).
 As próximas unidades devem seguir a fila em
 `references/catalog/research-queue.tsv`, fechando uma transição nativa por vez.
 
-1. integrar o carregamento protegido ao renderer sem aceitar dados não
-   autenticados;
-2. fechar o lifecycle e o cache runtime dos recursos;
-3. rastrear e implementar transporte, login, seleção de personagem e entrada
-   no mundo.
+1. validar no executável o `SceneManager`, input/eventos e recursos por cena;
+2. fechar o lifecycle de criação, troca, falha parcial e teardown;
+3. só depois rastrear e implementar transporte, login, seleção de personagem
+   e entrada no mundo.
 
 Cada unidade deve compilar e ser validada antes da seguinte. Os arquivos
 originais continuam sendo a fonte e não serão sobrescritos pelo conversor.
@@ -86,6 +85,7 @@ Execute dentro deste diretório:
 pwsh -NoProfile -File .\Verify-Mapping.ps1
 pwsh -NoProfile -File .\Build-ClientGo.ps1 -Configuration Debug
 pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1
+pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1 -EnvironmentFile .\bin\protected-test.env
 ```
 
 `Verify-Mapping.ps1` também confere `MANIFEST.sha256`, portanto detecta arquivo

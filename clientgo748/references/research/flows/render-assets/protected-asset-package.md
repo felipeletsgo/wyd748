@@ -11,8 +11,10 @@ updated: 2026-09-09
 
 > Native maturity: `UNMAPPED`. `WYDPKG01` is a new local distribution format
 > with no equivalent native 7.48 function or resource contract. Delivery status
-> for this unit is `IMPLEMENTED / AUTOMATED TESTED`; renderer integration is
-> still pending.
+> for this unit is `IMPLEMENTED / AUTOMATED TESTED`; protected package to
+> renderer integration is implemented and the executable bootstrap was run
+> with a materialized protected package. The protected and development paths
+> rendered the same official logo in the real executable.
 
 ## Pergunta
 
@@ -27,8 +29,8 @@ renderer, mantendo a chave privada fora do client?
   nativo alegado.
 - Assets oficiais: entrada dos conversores canônicos; permanecem somente
   leitura.
-- Source atual: `internal/assets/canonical.go`, `internal/assets/package.go` e
-  `internal/assets/package_test.go`.
+- Source atual: `internal/assets/canonical.go`, `internal/assets/package.go`,
+  `internal/assets/cache.go` e os testes correspondentes.
 - WYD-Go/servidor: não aplicável ao formato local; a chave de conteúdo será
   integrada ao contrato de sessão em unidade posterior.
 - TMProject: comparação estrutural secundária, sem autoridade sobre este
@@ -46,9 +48,8 @@ offline/runtime interna ao novo client.
 
 ### Callers
 
-Não aplicável ao nativo. No client Go, a ferramenta de empacotamento será o
-caller offline e o futuro `AssetCache` será o caller runtime de
-`OpenProtectedPackage`.
+Não aplicável ao nativo. No client Go, `cmd/assetpack` é o caller offline e
+`NewProtectedAssetCache` é o caller runtime de `OpenProtectedPackage`.
 
 ### Função principal
 
@@ -78,7 +79,8 @@ qualquer payload ao chamador.
 | construir | inputs válidos, chave de conteúdo e signer offline | `BuildProtectedPackage` | bytes completos em memória | cópia/sort dos inputs | rejeita limite, identidade, path ou nonce |
 | verificar | bytes recebidos e chave pública | `OpenProtectedPackage` | manifesto validado | nenhuma mutação externa | rejeita magic, versão, assinatura ou canonicalização |
 | liberar asset | assinatura e AEAD válidos | `OpenProtectedPackage` | `ProtectedPackage` | cria cópia do payload | rejeita chunk, zlib, tamanho ou SHA inválido |
-| consumir | pacote aberto | `Assets` | cópias independentes | nenhuma mutação do pacote | `nil` para receiver nulo |
+| consumir | pacote aberto | `Assets`/`LoadTexture` | cópias independentes | nenhuma mutação do pacote | asset ausente, tipo incorreto ou cache fechado |
+| encerrar | cache em uso | `ProtectedAssetCache.Close` | cache fechado | zera/libera buffers | operação idempotente |
 
 ### Vtables, vptrs e receptores
 
@@ -97,9 +99,9 @@ abertura inteira. Não existe estado parcialmente liberado.
 
 ### Cleanup e teardown
 
-O pacote é uma estrutura em memória; o caller runtime será responsável por
-descartar o `ProtectedPackage` e as texturas derivadas antes do teardown do
-renderer.
+`ProtectedAssetCache` é o owner runtime dos payloads autenticados. A
+`Application` fecha o cache depois do renderer e antes da janela; a textura é
+decodificada em uma cópia e o renderer assume sua própria cópia gráfica.
 
 ### Shutdown/logout/relogin
 
@@ -131,15 +133,18 @@ validados antes de alocações derivadas.
 
 ### Source recompilável
 
-`internal/assets/package.go` contém o builder/leitor. `package_test.go` cobre
-round-trip de múltiplos assets, assinatura e manifesto adulterados, chave de
-conteúdo incorreta, path traversal, nonce repetido, truncamento e cópia
-independente.
+`internal/assets/package.go` contém o builder/leitor, `cache.go` contém a
+fronteira `TextureSource`/`ProtectedAssetCache` e `cmd/assetpack` materializa
+uma textura WYT sem gravar a chave privada. Os testes cobrem round-trip de
+múltiplos assets, assinatura e manifesto adulterados, chave de conteúdo
+incorreta, path traversal, nonce repetido, truncamento, cópia independente,
+asset ausente, tipo incorreto, fechamento e integração da `Application`.
 
 ### WYD-Go
 
 Não aplicável nesta unidade: nenhum estado de personagem, regra de jogo ou
-packet server-authoritative é alterado.
+packet server-authoritative é alterado. A chave de conteúdo continua sendo
+configuração local temporária até a unidade de sessão.
 
 ## Matriz de delta
 
@@ -162,16 +167,21 @@ packet server-authoritative é alterado.
 
 ## Lacunas
 
-- integrar `OpenProtectedPackage` ao `AssetCache`;
 - vincular a chave de conteúdo à sessão autenticada;
 - definir rotação/revogação de `KeyID`;
-- testar abertura/fechamento do renderer com falha de pacote;
-- validar o fluxo visual real no executável Go.
 
 ## Validação
 
-- Automação: `go test ./...` aprovado, incluindo todos os casos de integridade
-  listados nesta ficha.
+- Automação: testes focados aprovados para pacote, cache e `Application`,
+  incluindo todos os casos de integridade listados nesta ficha.
+- Executável: `cmd/assetpack` materializou `bin/protected-logo.wydpkg` a partir
+  de `CLIENT OFICIAL 7.48/UI/logo1.wyt`; `tools/Test-ClientBootstrap.ps1` foi
+  executado nos modos default e protegido por `-EnvironmentFile`, com
+  `WYD_ASSET_PACKAGE`, `WYD_ASSET_CONTENT_KEY_HEX`,
+  `WYD_ASSET_PUBLIC_KEY_HEX` e `WYD_ASSET_LOGO_PATH=UI/logo1.wydasset`. Ambos
+  passaram por criação da janela, resize, `WM_CLOSE` e `Alt+F4`.
+- Visual: capturas do client area dos dois caminhos foram inspecionadas e
+  exibiram o mesmo logo oficial, com dimensões e enquadramento equivalentes.
 - Pesquisa: a unidade foi marcada `UNMAPPED` porque o formato é novo e não há
   função nativa equivalente comprovada.
-- Client real: não aplicável ainda; o pacote ainda não foi ligado ao renderer.
+- Client real: `CLIENT TESTED` para o bootstrap e render do logo protegido.
