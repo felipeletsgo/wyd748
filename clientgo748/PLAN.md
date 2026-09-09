@@ -20,8 +20,10 @@ Já concluído:
 - testes automatizados e smoke test de janela, resize, fechamento e Alt+F4.
 
 O transporte/framing já foi implementado e integrado ao lifecycle da aplicação,
-mas ainda não foi exercitado contra o servidor real. Login, cenas do mundo e UI
-de gameplay continuam pendentes.
+mas ainda não foi exercitado contra o servidor real. Os layouts, parsers e a
+máquina de estados de login estão implementados e cobertos por testes
+automatizados; dispatcher, cenas do fluxo real, mundo e UI de gameplay
+continuam pendentes.
 
 ## Ordem de implementação
 
@@ -96,8 +98,21 @@ Implementar uma fatia vertical estreita: tela de login → lista de personagens
 → seleção → carregamento da cena do mundo. Cada transição terá ficha própria
 com callers/callees, estados, erros, ownership e rollback.
 
-Aceite: um personagem entra no mundo, recebe estado inicial e consegue sair e
-entrar novamente sem crash ou dados antigos no client.
+Implementado nesta unidade:
+
+- layouts tipados e parsers dos packets `0x20D`, `0x10A`, `0x213`, `0x114`,
+  `0x215` e `0x116`;
+- `internal/login.SessionState` com validação de ordem, rollback,
+  desconexão, logout e relogin sem reutilizar snapshot;
+- testes byte a byte de tamanhos, offsets, campos reservados, truncamento,
+  duplicação e respostas fora de ordem.
+
+Estado: `CONTRACT` nativo e `AUTOMATED TESTED` no pacote Go. Ainda faltam a
+entrega dos packets pela sessão à thread principal, o dispatcher, as cenas e a
+execução contra o servidor real.
+
+Aceite restante: um personagem entra no mundo, recebe estado inicial e
+consegue sair e entrar novamente sem crash ou dados antigos no client.
 
 ### 5. Mundo mínimo observável
 
@@ -145,7 +160,7 @@ pwsh -NoProfile -File .\Verify-Mapping.ps1
 pwsh -NoProfile -File .\Build-ClientGo.ps1 -Configuration Debug
 pwsh -NoProfile -File .\tools\Test-ClientBootstrap.ps1
 git diff --check
-python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
+python .\tools\research\validate_research.py --flows .\references\research\flows
 ```
 
 Só usar `CLIENT_TESTED` após executar o fluxo real no executável Go. Cada
@@ -154,9 +169,9 @@ unidade aprovada deve ser commitada diretamente em `main`, publicada em
 
 ## Próxima ação concreta
 
-Fechar a documentação e os gates da unidade de transporte, depois iniciar a
-ficha nativa específica do login. A primeira raiz será o envio de autenticação
-`0x20D`, seguido pelas respostas `0x10A` e `0x114` e pela seleção `0x213`.
-Reutilizar fichas nativas existentes somente onde o contrato já estiver
-`CONTRACT`; nenhum opcode, layout ou offset novo será adicionado antes de ser
-rastreado no binário 7.48/Ghidra e comparado com o servidor.
+Integrar `internal/protocol.ClientSession` à thread principal através de uma
+fila de eventos com ownership explícito. O dispatcher mínimo deve encaminhar
+os seis opcodes já comprovados para `internal/login.SessionState` e solicitar
+as transições Login → CharacterSelect → Loading → World sem permitir que a
+goroutine do socket altere cenas ou UI. Depois, executar o ciclo completo
+contra o WYD-Go e fechar logout/relogin real antes de iniciar o mundo mínimo.
