@@ -9,12 +9,13 @@ import (
 	"wydclient748/internal/login"
 	"wydclient748/internal/protocol"
 	"wydclient748/internal/scene"
+	"wydclient748/internal/world"
 )
 
 // Scene IDs are stable logical names; their visual implementation is supplied
 // by the application.
 const (
-	ServerSelectionSceneID  scene.ID = "server-selection"
+	ServerSelectionSceneID scene.ID = "server-selection"
 	LoginSceneID           scene.ID = "login"
 	CharacterSelectSceneID scene.ID = "character-select"
 	LoadingSceneID         scene.ID = "loading"
@@ -30,10 +31,12 @@ type Navigator interface {
 // Coordinator is the sole composition point for login packets and scene
 // synchronization. Controller emits requests; Dispatcher consumes packets.
 type Coordinator struct {
-	state      *login.SessionState
-	controller *login.Controller
-	dispatcher *login.Dispatcher
-	navigator  Navigator
+	state           *login.SessionState
+	controller      *login.Controller
+	dispatcher      *login.Dispatcher
+	worldState      *world.State
+	worldDispatcher *world.Dispatcher
+	navigator       Navigator
 	// serverSelected is local bootstrap state. The native 7.48 selector keeps
 	// the transport disconnected while it reveals the login controls; the
 	// connection starts only after the account form is submitted.
@@ -59,7 +62,12 @@ func New(state *login.SessionState, sender login.Sender, navigator Navigator, op
 	if err != nil {
 		return nil, fmt.Errorf("loginflow: create dispatcher: %w", err)
 	}
-	return &Coordinator{state: state, controller: controller, dispatcher: dispatcher, navigator: navigator}, nil
+	worldState := world.NewState()
+	worldDispatcher, err := world.NewDispatcher(worldState)
+	if err != nil {
+		return nil, fmt.Errorf("loginflow: create world dispatcher: %w", err)
+	}
+	return &Coordinator{state: state, controller: controller, dispatcher: dispatcher, worldState: worldState, worldDispatcher: worldDispatcher, navigator: navigator}, nil
 }
 
 func (c *Coordinator) Authenticate(account string, password []byte, adapter [4]uint32, id uint16) error {
@@ -111,6 +119,7 @@ func (c *Coordinator) SessionDisconnected() {
 		return
 	}
 	c.state.Disconnect()
+	c.worldState.Reset()
 	c.serverSelected = false
 }
 
@@ -118,7 +127,25 @@ func (c *Coordinator) HandleSessionEvent(event protocol.SessionEvent) (bool, err
 	if c == nil || c.dispatcher == nil {
 		return false, errors.New("loginflow: coordinator is not initialized")
 	}
-	return c.dispatcher.HandleSessionEvent(event)
+	if event.Kind == protocol.SessionDisconnected {
+		c.worldState.Reset()
+		return c.dispatcher.HandleSessionEvent(event)
+	}
+	if handled, err := c.dispatcher.HandleSessionEvent(event); handled || err != nil {
+		return handled, err
+	}
+	if event.Kind == protocol.SessionPacket {
+		return c.worldDispatcher.HandlePacket(event.Packet)
+	}
+	return false, nil
+}
+
+// WorldEntities devolve cópias do snapshot atual para a cena/renderizador.
+func (c *Coordinator) WorldEntities() []world.Entity {
+	if c == nil || c.worldState == nil {
+		return nil
+	}
+	return c.worldState.Snapshot()
 }
 
 // Synchronize requests at most one transition and uses the final state seen

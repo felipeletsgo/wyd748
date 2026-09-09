@@ -1,12 +1,14 @@
 package loginflow
 
 import (
+	"encoding/binary"
 	"errors"
 	"testing"
 
 	"wydclient748/internal/login"
 	"wydclient748/internal/protocol"
 	"wydclient748/internal/scene"
+	"wydclient748/internal/world"
 )
 
 type fakeSender struct{}
@@ -121,5 +123,28 @@ func TestCoordinatorReportsNavigatorFailure(t *testing.T) {
 	}
 	if err := coordinator.Synchronize(); err == nil {
 		t.Fatal("Synchronize succeeded despite navigator failure")
+	}
+}
+
+func TestCoordinatorRoutesWorldPacketsOutsideLoginState(t *testing.T) {
+	state := login.NewSessionState()
+	navigator := &fakeNavigator{current: WorldSceneID}
+	coordinator, err := New(state, fakeSender{}, navigator, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw := make([]byte, world.CreateMobPacketSize)
+	binary.LittleEndian.PutUint16(raw[0:2], uint16(len(raw)))
+	binary.LittleEndian.PutUint16(raw[4:6], world.OpcodeCreateMob)
+	binary.LittleEndian.PutUint16(raw[6:8], 42)
+	binary.LittleEndian.PutUint16(raw[16:18], 42)
+	event := protocol.SessionEvent{Kind: protocol.SessionPacket, Packet: protocol.Packet{Header: protocol.Header{Size: uint16(len(raw)), Type: world.OpcodeCreateMob, ID: 42}, Raw: raw, Body: raw[protocol.HeaderSize:]}}
+	handled, err := coordinator.HandleSessionEvent(event)
+	if err != nil || !handled {
+		t.Fatalf("handled=%v err=%v", handled, err)
+	}
+	entities := coordinator.WorldEntities()
+	if len(entities) != 1 || entities[0].ID != 42 {
+		t.Fatalf("entities=%+v", entities)
 	}
 }

@@ -177,8 +177,14 @@ pronto.
 Aceite: spawn, atualização, movimento, desconexão e limpeza de entidades com
 testes de sequência e uma execução manual no client Go.
 
-Ainda pendente: dispatcher de atualizações de entidades/movimento, envio de
-intenção de caminhada, terreno/mesh e execução manual contra o servidor.
+Implementado nesta unidade: dispatcher isolado para `0x364`/`0x363`,
+`0x336`, `0x366`/`0x367`/`0x368` e `0x165`. Os envelopes coordenados são
+validados antes da mutação; entidades, score, ação, título de trade e remoção
+ficam em estado próprio e são limpos no disconnect/relogin. A integração com o
+`loginflow.Coordinator` mantém o login separado do estado de gameplay.
+
+Ainda pendente: envio de intenção de caminhada, terreno/mesh, desenho das
+entidades e execução manual contra o servidor.
 
 ### 5a. Pipeline de assets orientado ao produto — em andamento
 
