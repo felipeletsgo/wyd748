@@ -30,7 +30,7 @@ callees e slots adjacentes.
 
 ## Autoridade e limites
 
-- A referência nativa é `client748/wyd.exe nativo+patches/WYD.exe`.
+- A referência nativa local é `references/ghidra/input/WYD.exe`.
 - `functions.tsv` e `ghidra-functions.tsv` censam as mesmas 4.146 entradas.
 - Export e correlação aceleram descoberta; xrefs indiretos, vtables, callbacks
   e lifecycle que sustentam um claim são confirmados no projeto Ghidra.
@@ -46,7 +46,7 @@ callees e slots adjacentes.
 2. Quando necessário, executar:
 
    ```powershell
-   python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
+   python .\tools\research\triage_catalog.py --input .\references\catalog\functions.tsv --binary .\references\ghidra\input\WYD.exe --format summary
    ```
 
 3. Escolher uma raiz ou lote pequeno ligado a uma entrada observável. Para
@@ -76,9 +76,9 @@ Registrar somente o delta novo: raiz/lote, motivo, binário/corpus identificados
 candidatos descartados ou confirmados e próximo símbolo/comando. Não duplicar
 contagens e hashes estáveis em cada sessão.
 
-Use a ficha em `.agents/research/client748/flows/` para claims nativos. Uma
+Use a ficha em `references/research/flows/` para claims nativos. Uma
 feature deliberadamente nova deve ser documentada como extensão coordenada,
 sem fabricar equivalente ou maturidade nativa.
 
-Leia [references/catalog-strategy.md](references/catalog-strategy.md) ao mudar o
+Leia [catalog-strategy.md](catalog-strategy.md) ao mudar o
 schema, ranking ou critério de cobertura; não é leitura de toda retomada.

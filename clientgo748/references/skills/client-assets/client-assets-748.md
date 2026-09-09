@@ -16,19 +16,19 @@
 Aplicar estes fatos ao client 7.48 deste repositório. Revalidar quando o
 executável ou os clients-fonte forem substituídos.
 
-Separar os artefatos: `wyd.exe nativo+patches/WYDoriginal.exe` é o stock
-histórico imutável; `wyd.exe nativo+patches/WYD.exe` é a referência Ghidra;
-`project.exe` é o único candidato ativo, recompilado da source. Nunca executar
-os scripts históricos nem usar seus offsets ou bytes como mecanismo de build.
+Separar os artefatos: `CLIENT OFICIAL 7.48/WYD.exe` é o stock histórico
+imutável; `references/ghidra/input/WYD.exe` é a referência Ghidra;
+`bin/wydclient.exe` é o candidato ativo, compilado do código Go. Nunca usar
+offsets ou bytes históricos como mecanismo de build.
 
 Fontes locais usadas nesta investigação:
 
 ```text
-client748/wyd.exe nativo+patches/WYD.exe
-CLIENTS/WYD
-CLIENTS/wyd-test
-client748/wyd.exe nativo+patches/Costumes-KR.json
-client748/wyd.exe nativo+patches/Mounts-KR.json
+references/ghidra/input/WYD.exe
+CLIENT OFICIAL 7.48/
+assets/current/
+references/server-data/
+references/legacy-tools-data/
 ```
 
 Na auditoria de 13/08/2026, `CLIENTS/wyd-test` era subconjunto exato dos assets
@@ -288,11 +288,10 @@ skeleton/índice.
 5. Traduzir a tabela de textura campo a campo.
 6. Materializar item e nome nos dados autoritativos.
 7. Distribuir lojas em blocos de no máximo 27.
-8. Adaptar selector, renderer e lifecycle diretamente em `client-source/`, com
+8. Adaptar selector, renderer e lifecycle diretamente no código Go, com
    a semântica 7.48 comprovada no Ghidra e sem endereços absolutos.
-9. Compilar a source com `client-source/tmproject/Build-Client.ps1` e confirmar a
-   instalação e o hash automáticos de `client748/project.exe`. Os binários
-   históricos não são reconstruídos.
+9. Compilar com `Build-ClientGo.ps1` e registrar o hash de
+   `bin/wydclient.exe`. Os binários históricos não são reconstruídos.
 
 Não associar item sem case visual a uma mesh “parecida”. Não considerar um
 arquivo ausente resolvido apenas porque outra versão possui nome semelhante.
@@ -325,7 +324,7 @@ Validação estática mínima:
 - selector/renderer da source coincide com o manifesto;
 - partes 0..5 preservam a anatomia esperada;
 - ItemList e lojas cobrem exatamente os itens disponíveis;
-- o hash de `client748/project.exe` e os hashes dos assets ativos correspondem
+- o hash de `bin/wydclient.exe` e os hashes dos assets ativos correspondem
   ao build validado;
 - a validação estática não altera assets nem executáveis.
 

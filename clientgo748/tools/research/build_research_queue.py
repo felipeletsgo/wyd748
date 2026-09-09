@@ -15,6 +15,7 @@ from pathlib import Path
 
 from inventory_corpus import discover_corpus
 
+CLIENT_ROOT = Path(__file__).resolve().parents[2]
 
 HINTS: tuple[tuple[str, int, tuple[str, ...]], ...] = (
     (
@@ -162,17 +163,17 @@ def assign(row: dict[str, str], text: str) -> tuple[int, list[str], str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", type=Path, default=Path.cwd())
+    parser.add_argument("--repo", type=Path, default=CLIENT_ROOT)
     parser.add_argument(
         "--inventory",
         type=Path,
-        default=Path(".agents/research/client748/inventory/functions.tsv"),
+        default=Path("references/catalog/functions.tsv"),
     )
     parser.add_argument("--corpus")
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path(".agents/research/client748/inventory/research-queue.tsv"),
+        default=Path("references/catalog/research-queue.tsv"),
     )
     args = parser.parse_args()
     repo = args.repo.resolve()

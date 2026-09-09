@@ -84,6 +84,7 @@ da cadeia de evidência.
 2. API Go e ownership definidos;
 3. parser/estado com testes de entrada válida e inválida;
 4. lifecycle de sucesso, erro, logout e relogin coberto;
-5. `go test ./clientgo748/...` e `git diff --check` aprovados;
+5. `go test ./...` executado dentro de `clientgo748` e `git diff --check`
+   aprovados;
 6. validação visual ou client/server somente quando o subsistema realmente
    estiver conectado.

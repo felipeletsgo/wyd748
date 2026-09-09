@@ -2,13 +2,14 @@
 
 | Fonte | Estado | Papel neste pacote |
 | --- | --- | --- |
-| `WYD.exe` nativo 7.48 + projeto Ghidra | `UTILIZADA` | autoridade para comportamento, UI, wire, ABI, lifecycle e assets materializados |
+| `references/ghidra/input/WYD.exe` + `references/ghidra/project/` | `UTILIZADA` | autoridade para comportamento, UI, wire, ABI, lifecycle e assets materializados |
 | `WYDoriginal.exe` stock | `UTILIZADA` | comparação histórica e confirmação de identidade |
 | assets oficiais 7.48 | `UTILIZADA` | recursos, listas, IDs e loaders observáveis |
 | source atual do WYD-Go | `UTILIZADA` | contratos server-authoritative, testes e integração |
 | descompilação exportada | `UTILIZADA` | busca rápida; xrefs críticos devem ser confirmados no Ghidra |
 | TMProject748 | `UTILIZADA` como comparação | organização e algoritmos candidatos; nenhum código é caminho ativo do client Go |
 | guias e `DOCS` | `UTILIZADA` como contexto | regras de jogo e referências humanas, sem promover claim nativo |
+| dados históricos permitidos de `Tools` | `UTILIZADA` como contexto | tabelas preservadas em `references/legacy-tools-data/`; executáveis e patchers foram excluídos |
 | W2PP | `CONTRADITÓRIA/EXCLUÍDA` | fonte bugada; não valida nem orienta |
 | Secrets | `CONTRADITÓRIA/EXCLUÍDA` | fonte bugada; não valida nem orienta |
 | Micronics | `CONTRADITÓRIA/EXCLUÍDA` | source bugada; não valida nem orienta |

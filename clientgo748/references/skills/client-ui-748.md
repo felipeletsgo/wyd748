@@ -8,22 +8,21 @@ Ghidra nem transforma relato visual em contrato.
 
 Ordem de decisão para UI:
 
-1. lifecycle, IDs e cálculos do binário histórico
-   `client748/wyd.exe nativo+patches/WYD.exe` no Ghidra;
+1. lifecycle, IDs e cálculos de `references/ghidra/input/WYD.exe` no Ghidra;
 2. recursos efetivamente carregados pelo 7.48;
 3. screenshot do client original para composição visual;
-4. log runtime do `project.exe` para confirmar materialização e posição;
+4. log runtime do executável sob validação para confirmar materialização e posição;
 5. TMProject 7.59 apenas como referência de implementação.
 
-Referências visuais ficam em `client748/screenshot/`. A imagem
-`Capture0084.jpg` é a âncora atual para HUD e inventário. O log
-`client748/client-debug.log` é diagnóstico volátil: confirmar que pertence ao
+Referências visuais preservadas ficam nos snapshots locais indicados por
+`../LOCAL_PATHS.md`. Logs são diagnósticos voláteis: confirmar que pertencem ao
 hash do executável em teste antes de promover seus valores.
 
 ## Evidência nativa confirmada
 
 Exportações Ghidra citadas abaixo são descobertas pelo procedimento de
-`ghidra-client748.md` e ficam fora do Git.
+`ghidra-client748.md` e ficam em `references/research/exports/` e
+`references/ghidra/corpus/`.
 
 | Função 7.48 | Contrato recuperado |
 | --- | --- |
@@ -371,8 +370,7 @@ não são `CLIENT-TESTED` apenas por estarem documentados:
 ## Validação mínima
 
 1. Confirmar hashes dos executáveis.
-2. Compilar e confirmar que o build instalou `client748/project.exe`
-   automaticamente.
+2. Compilar com `Build-ClientGo.ps1` e confirmar `bin/wydclient.exe`.
 3. Registrar hash do candidato e limpar/rotacionar log diagnóstico.
 4. Executar o fluxo real em resolução de referência.
 5. Capturar screenshot comparável ao original.

@@ -7,28 +7,33 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $OutputDirectory = Join-Path $PSScriptRoot 'bin'
 $OutputPath = Join-Path $OutputDirectory 'wydclient.exe'
 
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 
-Write-Host "Testing clientgo748 ($Configuration)..."
-go test ./clientgo748/...
-if ($LASTEXITCODE -ne 0) {
-    throw "clientgo748 tests failed with exit code $LASTEXITCODE"
-}
+Push-Location $PSScriptRoot
+try {
+    Write-Host "Testing clientgo748 ($Configuration)..."
+    & go test ./...
+    if ($LASTEXITCODE -ne 0) {
+        throw "clientgo748 tests failed with exit code $LASTEXITCODE"
+    }
 
-$BuildFlags = @('-trimpath')
-if ($Configuration -eq 'Release') {
-    $BuildFlags += '-ldflags'
-    $BuildFlags += '-s -w'
-}
+    $BuildFlags = @('-trimpath')
+    if ($Configuration -eq 'Release') {
+        $BuildFlags += '-ldflags'
+        $BuildFlags += '-s -w'
+    }
 
-Write-Host "Building $OutputPath..."
-& go build @BuildFlags -o $OutputPath ./clientgo748/cmd/wydclient
-if ($LASTEXITCODE -ne 0) {
-    throw "clientgo748 build failed with exit code $LASTEXITCODE"
+    Write-Host "Building $OutputPath..."
+    & go build @BuildFlags -o $OutputPath ./cmd/wydclient
+    if ($LASTEXITCODE -ne 0) {
+        throw "clientgo748 build failed with exit code $LASTEXITCODE"
+    }
+}
+finally {
+    Pop-Location
 }
 
 Write-Host "Built $OutputPath"

@@ -68,7 +68,8 @@ pelo endereço hexadecimal, mantendo a fila reproduzível entre sessões.
    para modernização ou extensão coordenada, preservar o claim nativo separado
    e validar o contrato externo ou o novo contrato client/server.
 6. **Validação** — testes estáticos/automatizados e, quando alegado,
-   `CLIENT_TESTED` no `client748/project.exe` com hash registrado.
+   `CLIENT_TESTED` no executável correspondente à implementação, com hash
+   registrado. Validação antiga do TMProject não testa o client Go.
 
 Uma função pode continuar `LOCATED` mesmo estando presente no catálogo. Isso
 bloqueia claims dependentes de paridade, não uma extensão deliberadamente nova.

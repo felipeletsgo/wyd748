@@ -8,8 +8,9 @@ description: Investigar, importar, corrigir e validar assets visuais no client W
 ## Autoridade e rastreabilidade
 
 Resolver conflitos nesta ordem: consumidor/source atual → comportamento e
-Ghidra 7.48 → manifests/testes atuais → bytes dos clients-fonte → W2PP/KR →
-referências mais novas. Nome semelhante, índice próximo ou screenshot não prova
+Ghidra 7.48 → manifests/testes atuais → bytes dos clients-fonte permitidos →
+referências mais novas. W2PP, Secrets e Micronics estão excluídos. Nome
+semelhante, índice próximo ou screenshot não prova
 compatibilidade.
 
 Para cada asset importado ou corrigido, registrar:
@@ -25,7 +26,7 @@ consumer conhecido prova identidade do arquivo, não que o client o carregará.
 
 ## Fluxo obrigatório
 
-1. Ler `AGENTS.md` da raiz e `client748/AGENTS.md`.
+1. Ler `AGENTS.md` da raiz de `clientgo748` e o guia de pesquisa nativa.
 2. Classificar o defeito antes de editar:
    - item não selecionado pelo renderer;
    - tipo/skin corporal incorreto;
@@ -33,26 +34,23 @@ consumer conhecido prova identidade do arquivo, não que o client o carregará.
    - textura WYS ausente/não registrada/alpha incorreto;
    - skeleton, animação ou `ValidIndex` ausente;
    - selector/renderer da source ainda não adaptado ao contrato 7.48.
-3. Inventariar os dois clients fornecidos (`CLIENTS/WYD` e
-   `CLIENTS/wyd-test`) e provar qual contém cada dependência. Não presumir que o
-   client Test completa o atual.
-4. Confirmar o caminho vivo no executável alvo 7.48. Usar W2PP/KR somente para
-   semântica de nomes e algoritmos; nunca transplantar endereço, stack frame ou
-   layout.
+3. Inventariar `assets/current/`, `CLIENT OFICIAL 7.48/` e as fontes permitidas
+   já preservadas em `references/`; provar qual contém cada dependência.
+4. Confirmar o caminho vivo no executável alvo 7.48. Referências posteriores
+   servem apenas para semântica de nomes e algoritmos; nunca transplantar
+   endereço, stack frame ou layout.
 5. Atualizar primeiro o manifesto correspondente. Marcar um item como
    disponível somente quando selector, mesh, textura e dependências auxiliares
    estiverem comprovados.
 6. Escolher a fronteira ativa antes de implementar:
-   - comportamento, selector ou renderer: código C++ 7.48 em `client-source/`,
+   - comportamento, selector ou renderer: código Go em `cmd/` ou `internal/`,
      comprovado no Ghidra e sem offsets absolutos do binário histórico;
-   - meshes, texturas, tabelas e catálogos: assets do `client748/`, com
+   - meshes, texturas, tabelas e catálogos: `assets/current/`, com
      transformação reproduzível e formato comprovado pelo loader 7.48;
-   - `client748/wyd.exe nativo+patches/`: evidência histórica read-only. Nunca
-     executar, editar, restaurar ou usar seus scripts como etapa de validação.
-7. Compilar a source com `client-source/tmproject/Build-Client.ps1`, que deve
-   instalar e conferir automaticamente o resultado como `project.exe`.
-   Alterações em assets devem ser consumidas por esse candidato sem reconstruir,
-   aplicar ou verificar qualquer cadeia binária legada.
+   - `references/ghidra/input/WYD.exe` e `CLIENT OFICIAL 7.48/WYD.exe`:
+     evidência histórica read-only. Nunca editar ou usar como produto.
+7. Compilar com `Build-ClientGo.ps1`. Alterações em assets devem ser consumidas
+   pelo client Go sem modificar a baseline histórica.
 8. Executar os testes estáticos e registrar separadamente a validação in-game.
 
 ## Condições de parada
@@ -63,22 +61,23 @@ plausíveis sem discriminador, ou quando o selector/loader 7.48 ainda não tiver
 sido identificado. Marcar como `INCOMPLETO` e listar a prova ausente; não usar
 fallback visual aproximado para esconder mesh, textura, BON ou ANI faltante.
 
-Se a correção depender de comportamento C++, retornar ao gate Ghidra de
+Se a correção depender de comportamento do client, retornar ao gate Ghidra de
 `wyd-go-feature` antes da edição. Se depender de layout/controle da UI, esta
 skill deixa de ser suficiente e `client-ui-748.md` passa a governar o fluxo.
 
 ## Fonte de verdade
 
 - Seleção/renderização: executável e comportamento do client 7.48.
-- O `WYD.exe` histórico é somente referência Ghidra; `project.exe` é o único
-  candidato ativo. Hashes e offsets históricos nunca viram mecanismo de build.
-- Catálogos em `wyd.exe nativo+patches/` documentam a importação antiga e podem
-  orientar estudo, mas dados ativos devem existir nos assets ou em `data/`.
-- Itens/efeitos: `data/itemlist.csv`; nomes: `data/Itemname.csv`.
-- Assets: arquivos existentes nos clients fornecidos; ausência real não pode
+- `references/ghidra/input/WYD.exe` é somente referência Ghidra;
+  `bin/wydclient.exe` é o candidato ativo. Hashes e offsets históricos nunca
+  viram mecanismo de build.
+- Catálogos históricos podem orientar estudo, mas dados ativos devem existir
+  em `assets/current/` ou nos snapshots de `references/server-data/`.
+- Itens, efeitos e nomes: snapshots em `references/server-data/`.
+- Assets: arquivos existentes nas fontes locais permitidas; ausência real não pode
   ser preenchida por aproximação de nome.
 - Contrato detalhado: ler
-  `references/client-assets-748.md` antes de alterar renderer, tabela de
+  `client-assets-748.md` antes de alterar renderer, tabela de
   textura, costume ou montaria.
 
 ## Regras de implementação
@@ -115,11 +114,9 @@ Não delegar ao worker a escolha especulativa de mesh, skin, alpha ou ABI.
 
 ## Validação
 
-Executar `client-source/tmproject/Test-Client748Assets.ps1` para os formatos
-ativos e compilar com `client-source/tmproject/Build-Client.ps1`; o build deve
-instalar, conferir e informar o novo hash de `client748/project.exe`.
-Nenhum script sob `wyd.exe nativo+patches/` constitui gate válido. Depois
-executar os gates do repositório. No client, testar owner e observer,
+Executar os testes dos loaders Go implementados e compilar com
+`Build-ClientGo.ps1`; registrar o hash de `bin/wydclient.exe`. Depois executar
+os gates do pacote. No client, testar owner e observer,
 corpos masculino/feminino, equipar/desequipar, movimento, ataque, transformação
 BM e relogin. Somente essa última etapa permite declarar `CLIENT-TESTED`.
 

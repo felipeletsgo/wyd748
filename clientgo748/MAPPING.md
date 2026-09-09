@@ -11,7 +11,7 @@ implementar cada unidade sem depender de caminhos externos.
 O corpus nativo contém **4.146 funções**. O inventário local correlaciona:
 
 - 4.146 entradas no censo (`references/catalog/functions.tsv`);
-- 331 funções citadas pelas pesquisas existentes;
+- 350 funções citadas pelas pesquisas existentes;
 - 143 entradas `LOCATED`, 37 com evidência estática adicional e 5 com
   evidência de paridade/fluxo;
 - 76 arquivos de fluxo (75 fichas + 1 template) em
@@ -75,18 +75,18 @@ TMProject.
 
 ## Procedência e fingerprint
 
-O binário analisado é `client748/wyd.exe nativo+patches/WYD.exe`:
+O binário analisado está autocontido em `references/ghidra/input/WYD.exe`:
 
 ```text
 SHA-256 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
 Tamanho 2,060,288 bytes
 ```
 
-O executável stock histórico é `WYDoriginal.exe`, SHA-256
+O executável stock histórico é `CLIENT OFICIAL 7.48/WYD.exe`, SHA-256
 `B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C`.
-`client748/project.exe` é somente o candidato de validação da source ativa e
-seu hash muda a cada build. A cópia observada neste snapshot tem SHA-256
-`5082EA8CAA9CC649974F54A24A1FF8061D0BA0C27035A532DD989E9CA3E19155`.
+O antigo `client748/project.exe` era somente o candidato de validação da source
+TMProject ativa; ele não é dependência nem executável do client Go. O snapshot
+de comparação necessário está em `references/tmproject/`.
 
 ## Estados e claims
 
@@ -111,7 +111,6 @@ client.
 4. Só então implementar a unidade Go e validar parser, lifecycle e contrato.
 5. Executar os comandos reproduzíveis de `references/REPRODUCE.md`.
 
-O snapshot externo continua preservado para auditoria, mas a implementação do
-client Go deve depender apenas deste diretório e das APIs do módulo raiz. Os
-arquivos sob `references/tmproject/` são leitura de comparação, não código
-ativo.
+Os snapshots de auditoria e a implementação vivem neste diretório. O módulo
+`wydclient748` é independente do módulo Go do servidor. Os arquivos sob
+`references/tmproject/` são leitura de comparação, não código ativo.

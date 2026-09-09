@@ -4,12 +4,16 @@ Este índice evita depender de documentação espalhada fora de `clientgo748`.
 Os arquivos externos originais foram preservados; as cópias abaixo são o
 snapshot usado para a pesquisa deste client.
 
+Os caminhos originais preservados em fichas e snapshots são traduzidos em
+[`LOCAL_PATHS.md`](LOCAL_PATHS.md); nenhum deles é uma dependência operacional.
+
 ## Evidência nativa
 
 - `../DECOMP/` contém o export de descompilação/disassembly já colocado no
   projeto.
 - `../CLIENT OFICIAL 7.48/` contém os recursos e o executável stock oficial.
-- O binário Ghidra de referência e seus fingerprints são registrados em
+- `ghidra/input/WYD.exe` é o binário analisado, e `ghidra/project/` contém o
+  projeto Ghidra completo. Seus fingerprints são registrados em
   [`../MAPPING.md`](../MAPPING.md) e em `skills/ghidra-client748.md`.
 
 ## Catálogo e callgraph
@@ -37,9 +41,19 @@ snapshot usado para a pesquisa deste client.
   `.go.txt` de propósito: são snapshot de consulta e nunca pacotes compiláveis
   do client.
 - `server-data/`: tabelas de skills, itens e NPCs relevantes.
+- `legacy-tools-data/`: tabelas históricas úteis copiadas sem executáveis,
+  DLLs, compactados ou patchers.
+- `project-rules/`: snapshot das regras que governaram a consolidação.
+
+## Assets ativos
+
+- `../assets/current/`: cópia autocontida dos assets usados pela preparação do
+  client Go.
+- `../assets/README.md`: escopo, exclusões e regra de futura conversão.
 
 ## Método
 
 As regras de maturidade, procedência, Ghidra, UI, assets e auditoria estão em
-`skills/`. Os arquivos foram incluídos para que a próxima frente possa ser
-reproduzida dentro do projeto sem consultar um caminho oculto.
+`skills/`. As ferramentas executáveis ficam em `../tools/`. Os arquivos foram
+incluídos para que a próxima frente possa ser reproduzida dentro do projeto
+sem consultar um caminho oculto.

@@ -6,6 +6,13 @@ escrito em Go para o ecossistema WYD 7.48. A fundação compilável está em
 exportada, as fichas e os contratos necessários ficam em
 [`MAPPING.md`](MAPPING.md) e `references/`.
 
+O diretório possui seu próprio `go.mod`, ferramentas, corpus, projeto Ghidra,
+fontes de consulta, dados e assets. Ele pode ser copiado para outro local e
+validado sem o módulo Go da raiz nem arquivos em `.agents/`.
+Registros históricos podem mencionar seus caminhos de origem; a equivalência
+interna completa está documentada em
+[`references/LOCAL_PATHS.md`](references/LOCAL_PATHS.md).
+
 O `TMProject748` continua sendo o client ativo e a referência executável
 durante a migração, mas uma cópia read-only da source usada para comparação já
 está em `references/tmproject/`. O novo client Go não depende dela.
@@ -42,6 +49,9 @@ específica.
 - preparar o ponto de entrada sem introduzir uma dependência gráfica;
 - registrar a futura cadeia de conversão e proteção de assets.
 
+Os assets ativos da preparação estão em `assets/current/`; o client oficial
+intacto permanece em `CLIENT OFICIAL 7.48/` como evidência somente leitura.
+
 ## Fontes e classificação
 
 Esta unidade é uma `MODERNIZACAO_COMPATIVEL` interna: ainda não altera a
@@ -66,3 +76,15 @@ As próximas unidades devem seguir a fila em
 
 Cada unidade deve compilar e ser validada antes da seguinte. Os arquivos
 originais continuam sendo a fonte e não serão sobrescritos pelo conversor.
+
+## Validação local
+
+Execute dentro deste diretório:
+
+```powershell
+pwsh -NoProfile -File .\Verify-Mapping.ps1
+pwsh -NoProfile -File .\Build-ClientGo.ps1 -Configuration Debug
+```
+
+`Verify-Mapping.ps1` também confere `MANIFEST.sha256`, portanto detecta arquivo
+ausente, alterado ou não registrado no pacote.

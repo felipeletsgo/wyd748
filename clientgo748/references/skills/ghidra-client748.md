@@ -1,7 +1,7 @@
 # Ghidra — client nativo WYD 7.48
 
 Esta referência governa claims de paridade e mudanças que interceptam uma
-fronteira legada em `client-source/tmproject`. O objetivo é reproduzir o que
+fronteira legada do client. O objetivo é reproduzir o que
 precisa permanecer 7.48 sem impedir modernizações internas ou extensões
 coordenadas client/server.
 
@@ -10,9 +10,10 @@ coordenadas client/server.
 Os executáveis têm papéis distintos:
 
 ```text
-client748/wyd.exe nativo+patches/WYDoriginal.exe  stock histórico imutável
-client748/wyd.exe nativo+patches/WYD.exe          referência histórica Ghidra
-client748/project.exe                            único candidato executável e de validação
+CLIENT OFICIAL 7.48/WYD.exe                       stock histórico imutável
+references/ghidra/input/WYD.exe                   referência histórica Ghidra
+references/ghidra/project/WYD748Native_20260821.gpr projeto Ghidra local
+bin/wydclient.exe                                 produto do novo client Go
 ```
 
 Hashes confirmados no snapshot de 23/08/2026:
@@ -20,26 +21,20 @@ Hashes confirmados no snapshot de 23/08/2026:
 ```text
 WYDoriginal.exe  B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 WYD.exe          8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-project.exe      variável por build; registrar o hash em cada validação
+wydclient.exe    variável por build; registrar o hash em cada validação
 ```
 
-Os scripts e patches em `client748/wyd.exe nativo+patches/` são somente material
-histórico. Não executá-los nem editá-los. O build de `client-source/tmproject`
-deve ser copiado/renomeado diretamente para `client748/project.exe`, sem patch;
-toda alteração ativa pertence à source ou aos assets.
+O snapshot TMProject e os binários históricos são somente material de
+comparação. Não editá-los nem tratá-los como produto; toda alteração ativa
+pertence ao código Go ou a `assets/`.
 
-Os artefatos Ghidra ficam fora do Git e devem ser descobertos no perfil do
-usuário, sem gravar caminho absoluto da máquina no código:
+Os artefatos Ghidra necessários estão dentro do pacote:
 
-```powershell
-$ghidraProject = Get-ChildItem "$env:USERPROFILE\Tools\GhidraProjects" `
-    -Filter 'WYD748Native_*.gpr' | Sort-Object LastWriteTime -Descending | `
-    Select-Object -First 1
-
-$decompRoot = Get-ChildItem "$env:USERPROFILE\Tools\GhidraAnalysis" `
-    -Directory | Sort-Object Name -Descending | ForEach-Object {
-        Join-Path $_.FullName 'decompiled'
-    } | Where-Object { Test-Path $_ } | Select-Object -First 1
+```text
+references/ghidra/input/WYD.exe
+references/ghidra/project/WYD748Native_20260821.gpr
+references/ghidra/project/WYD748Native_20260821.rep/
+references/ghidra/corpus/
 ```
 
 O export atual contém `functions.tsv` e um `.c` por função. Use o projeto Ghidra
@@ -49,7 +44,7 @@ use o export para busca rápida em massa.
 ## Procedimento obrigatório
 
 1. Conferir o fingerprint registrado de
-   `client748/wyd.exe nativo+patches/WYD.exe`. Reutilizar o SHA-256 confirmado se
+   `references/ghidra/input/WYD.exe`. Reutilizar o SHA-256 confirmado se
    caminho, tamanho e mtime não mudaram; recalculá-lo quando esses inputs
    mudarem ou o registro for insuficiente. Se divergir, não reutilizar endereços
    silenciosamente: reanalisar o novo binário.
@@ -67,9 +62,9 @@ use o export para busca rápida em massa.
    endereços virtuais ou pseudocódigo desestruturado como arquitetura final.
 8. Inserir comentário apenas junto a decisões não óbvias de contrato,
    compatibilidade ou ownership.
-9. Compilar com `client-source/tmproject/Build-Client.ps1`, confirmar a
-   instalação e o hash automáticos de `client748/project.exe` e executar o fluxo
-   real afetado.
+9. Compilar com `Build-ClientGo.ps1`, registrar o hash de
+   `bin/wydclient.exe` e executar o fluxo real afetado quando a unidade já
+   estiver integrada ao client Go.
 
 ## Evidência mínima por área
 

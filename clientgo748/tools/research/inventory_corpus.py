@@ -19,13 +19,12 @@ from pathlib import Path
 FUNCTION_RE = re.compile(r"FUN_([0-9A-Fa-f]{8})")
 HEX_ENTRY_RE = re.compile(r"^[0-9A-Fa-f]{8}$")
 TRACKED_SUFFIXES = {".md", ".cpp", ".h", ".go"}
-GHIDRA_CATALOG_RELATIVE = Path(
-    ".agents/research/client748/inventory/ghidra-functions.tsv"
-)
+CLIENT_ROOT = Path(__file__).resolve().parents[2]
+GHIDRA_CATALOG_RELATIVE = Path("references/catalog/ghidra-functions.tsv")
 
 
 def discover_corpus(explicit: str | None) -> Path:
-    candidates: list[Path] = []
+    candidates: list[Path] = [CLIENT_ROOT / "references" / "ghidra" / "corpus"]
     if explicit:
         candidates.append(Path(explicit))
     env = os.environ.get("WYD748_GHIDRA_CORPUS")
@@ -135,7 +134,7 @@ def extract_documented_entries(repo: Path, relative_files: list[str]) -> set[str
 
 
 def extract_flow_entries(repo: Path) -> set[str]:
-    root = repo / ".agents" / "research" / "client748" / "flows"
+    root = repo / "references" / "research" / "flows"
     entries: set[str] = set()
     if not root.is_dir():
         return entries
@@ -202,7 +201,7 @@ def resolve_documented_entries(
 
 def source_reference_counts(repo: Path) -> Counter[str]:
     counts: Counter[str] = Counter()
-    source_root = repo / "client-source"
+    source_root = repo / "references" / "tmproject" / "TMProject748"
     if not source_root.is_dir():
         return counts
     for path in source_root.rglob("*"):
@@ -406,7 +405,7 @@ def write_summary(
         "",
         f"- Corpus: `{corpus}`",
         f"- Inventário TSV: `{inventory_path}`",
-        "- Binário de referência: `client748/wyd.exe nativo+patches/WYD.exe`",
+        "- Binário de referência: `references/ghidra/input/WYD.exe`",
         "- A confirmação de hash permanece obrigatória antes de usar endereços.",
         "",
         "## Contagem",
@@ -474,17 +473,17 @@ def write_summary(
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--repo", type=Path, default=Path.cwd())
+    parser.add_argument("--repo", type=Path, default=CLIENT_ROOT)
     parser.add_argument("--corpus")
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path(".agents/research/client748/inventory/functions.tsv"),
+        default=Path("references/catalog/functions.tsv"),
     )
     parser.add_argument(
         "--summary-output",
         type=Path,
-        default=Path(".agents/research/client748/inventory/README.md"),
+        default=Path("references/research/inventory/README.md"),
     )
     args = parser.parse_args()
     repo = args.repo.resolve()
@@ -507,7 +506,7 @@ def main() -> int:
     texts = read_function_texts(corpus, index)
     callees, callers = build_call_graph(index, texts)
     parity_raw = extract_documented_entries(
-        repo, [".agents/handoffs/client748-parity.md"]
+        repo, ["references/handoffs/client748-parity.md"]
     )
     flow_raw = extract_flow_entries(repo)
     parity_entries, parity_internal, parity_unresolved = resolve_documented_entries(

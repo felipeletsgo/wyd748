@@ -7,14 +7,20 @@ neste diretório.
   corpus local;
 - `research/triage_catalog.py`: ordena a fila sem promover maturidade;
 - `research/validate_research.py`: valida as fichas locais;
+- `research/inventory_corpus.py`: reconstrói o censo combinado usando somente
+  o corpus, o catálogo Ghidra, as fichas e o snapshot TMProject locais;
+- `research/build_research_queue.py`: reconstrói a fila de pesquisa local;
 - `research/ExportWyd*.java`: exports reproduzíveis para uso no Ghidra;
 - `Update-Manifest.ps1`: recria o manifesto SHA-256 do pacote;
 - `Test-Manifest.ps1`: verifica hashes, arquivos ausentes e arquivos não
-  registrados.
+  registrados;
+- `Test-SelfContained.ps1`: rejeita links de filesystem, inputs essenciais
+  ausentes, módulo Go acoplado e caminhos externos nos pontos de entrada ativos.
 
-Execute os scripts a partir da raiz `wyd-go`, conforme
-`references/REPRODUCE.md`. As ferramentas Python descobrem o corpus e as
-fichas dentro de `clientgo748`; elas não dependem mais de `.agents/`.
+Execute os scripts dentro de `clientgo748`, conforme
+`references/REPRODUCE.md`. As ferramentas Python recebem caminhos locais do
+corpus, catálogo e fichas; elas não dependem de `.agents/` nem da raiz
+`wyd-go`.
 
 Os exports Java exigem uma instalação compatível do Ghidra apenas quando for
 necessário atualizar evidência. Consultar o corpus, validar fichas, compilar o

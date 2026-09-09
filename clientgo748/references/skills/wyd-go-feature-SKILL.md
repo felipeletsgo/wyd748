@@ -72,9 +72,9 @@ handoff como estado já recuperado e continue do próximo passo executável.
 | Escopo | Evidência/referência |
 | --- | --- |
 | Servidor Go, regra ou persistência | código, testes, `data/` e `AGENTS.md` scoped |
-| Paridade client ou fronteira legada | ficha nativa + [references/ghidra-client748.md](references/ghidra-client748.md) |
-| UI, input, grid, inventário ou render | anterior + [references/client-ui-748.md](references/client-ui-748.md) |
-| Asset sob `client748/` | `client748/AGENTS.md` + `client748/skills/wyd-client-assets/SKILL.md` |
+| Paridade client ou fronteira legada | ficha nativa + [ghidra-client748.md](ghidra-client748.md) |
+| UI, input, grid, inventário ou render | anterior + [client-ui-748.md](client-ui-748.md) |
+| Asset do client Go | `AGENTS.md` + `references/skills/client-assets/SKILL.md` |
 | Extensão client/server | contrato novo, colisões na integração legada e testes dos dois lados |
 | Auditoria | [references/audit.md](references/audit.md) |
 | Histórico/fórmula | `wyd-dev-knowledge` por último |
@@ -114,19 +114,18 @@ legada necessária ainda não resolvida.
 
 ## Client source
 
-Artefatos:
+Artefatos locais:
 
 ```text
-client748/wyd.exe nativo+patches/WYDoriginal.exe  stock histórico imutável
-client748/wyd.exe nativo+patches/WYD.exe          referência Ghidra
-client-source/tmproject/build/.../WYD.exe         saída transitória
-client748/project.exe                            candidato de validação
+CLIENT OFICIAL 7.48/WYD.exe                      stock histórico imutável
+references/ghidra/input/WYD.exe                  referência Ghidra
+references/tmproject/TMProject748/                comparação source read-only
+bin/wydclient.exe                                produto local do client Go
 ```
 
-Não executar nem editar patches/binários históricos. Alterações ativas ficam na
-source/assets. Compilar apenas com
-`client-source/tmproject/Build-Client.ps1`, que instala e confere
-`client748/project.exe`.
+Não editar binários históricos nem compilar o snapshot TMProject como produto.
+Alterações ativas ficam em `cmd/`, `internal/` e `assets/`. Compilar com
+`Build-ClientGo.ps1`, que testa o módulo e produz `bin/wydclient.exe`.
 
 A source é única, não multi-versão. Uma estrutura 7.69 pode tornar-se o caminho
 ativo se adaptada ao ecossistema; não manter branches paralelos apenas por
@@ -150,10 +149,10 @@ não prova paridade ou fluxo in-game.
 
 ## Continuidade e referências
 
-Use [references/session-continuity.md](references/session-continuity.md) para
+Use os handoffs locais em `references/handoffs/` para
 retomada e mantenha um único handoff curto por escopo. Atualize-o apenas quando
 houver descoberta, mudança, validação, bloqueio ou novo ponto de retomada.
 
-Leia `references/emulator-contracts.md` somente na seção do domínio afetado e
-`references/repository-contracts.md` somente pelo heading localizado com `rg`.
+Leia `emulator-contracts.md` somente na seção do domínio afetado e
+`repository-contracts.md` somente pelo heading localizado com `rg`.
 O `AGENTS.md` da raiz prevalece em conflito.

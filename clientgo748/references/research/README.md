@@ -2,17 +2,15 @@
 
 Este diretório é a memória técnica reproduzível do programa de paridade do
 client 7.48. O objetivo é recuperar o fluxo real do executável nativo e
-compará-lo com `client-source/tmproject` e o WYD-Go antes de qualquer edição
+compará-lo com `references/tmproject/TMProject748/` e os snapshots locais do
+WYD-Go antes de qualquer edição
 comportamental. A conversa, um comentário da source ou o TMProject 7.69+ podem
 orientar a busca, mas não são contrato.
 
 ## Como retomar
 
-1. Ler `AGENTS.md`, o `AGENTS.md` da subtree afetada e
-   `.agents/skills/wyd-client748-research/SKILL.md`.
-2. Ler apenas o handoff do programa em
-   `.agents/handoffs/client748-research-program.md` e, se o escopo for a
-   paridade visual/funcional, também `.agents/handoffs/client748-parity.md`.
+1. Ler `AGENTS.md` e `references/skills/wyd-client748-research-SKILL.md`.
+2. Ler apenas o handoff aplicável em `references/handoffs/`.
 3. Comparar os fatos do handoff com `git status --short`, os arquivos atuais e
    os hashes; hashes de `project.exe`, logs, dumps e linhas são voláteis.
 4. Ler o guia Ghidra e a referência de UI somente quando o domínio exigir.
@@ -22,12 +20,12 @@ orientar a busca, mas não são contrato.
 O hash canônico da referência Ghidra usada no estado atual é:
 
 ```text
-client748/wyd.exe nativo+patches/WYD.exe
+references/ghidra/input/WYD.exe
 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
 ```
 
-O candidato source mais recente fica registrado no handoff do programa.
-Recalcular antes de usar: `client748/project.exe` muda a cada build.
+O antigo candidato TMProject fica registrado nos handoffs apenas como evidência.
+O executável ativo desta árvore é `bin/wydclient.exe`, gerado pelo client Go.
 
 ## Organização e maturidade
 
@@ -42,10 +40,10 @@ Recalcular antes de usar: `client748/project.exe` muda a cada build.
   exports exploratórios da rodada de lifecycle, com a pergunta de cada recorte,
   interpretação atual e lacuna seguinte. É índice de evidência, não ficha, e
   portanto não altera sozinho a maturidade de `scene-transition.md`.
-- `.agents/skills/wyd-client748-research/references/evidence-record.md`:
+- `references/skills/evidence-record.md`:
   schema, citações e estados `UNMAPPED`/`LOCATED`/`TRACED`/`CONTRACT`/
   `CLIENT_TESTED`.
-- `.agents/handoffs/`: estado operacional curto, próximo comando e riscos; um
+- `references/handoffs/`: estado operacional curto, próximo comando e riscos; um
   handoff nunca substitui a evidência na ficha nem o projeto Ghidra.
 
 Estado atual do mapa:
@@ -103,30 +101,29 @@ Estado atual do mapa:
 
 `LOCATED` permite investigação e documentação, não edição comportamental.
 `TRACED` exige callers/callees e estado/erros fechados; `CONTRACT` acrescenta
-wire/ABI/recursos testáveis; `CLIENT_TESTED` exige o fluxo real no
-`client748/project.exe`.
+wire/ABI/recursos testáveis; `CLIENT_TESTED` exige o fluxo real no executável
+ao qual a ficha se refere. Um teste antigo no TMProject não testa o client Go.
 
 ## Limites do corpus
 
-O corpus textual auxiliar está em
-`%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled` e corresponde ao
-projeto `%USERPROFILE%\Tools\GhidraProjects\WYD748Native_20260821.gpr`.
+O corpus textual auxiliar está em `references/ghidra/corpus/` e corresponde ao
+projeto `references/ghidra/project/WYD748Native_20260821.gpr`.
 Ele possui 4.146 funções e atualmente indexa 108 referências nativas citadas no
 repositório;
 `FUN_00452733` e `FUN_0047E4D6` não aparecem no índice. Essa ausência textual
 nunca prova ausência no binário: resolver diretamente no projeto Ghidra, com
 xrefs e chamadas indiretas, antes de concluir.
 
-Comandos úteis a partir da raiz do repositório:
+Comandos úteis a partir da raiz de `clientgo748`:
 
 ```powershell
-python .agents/skills/wyd-client748-research/scripts/query_corpus.py stats --repo .
-python .agents/skills/wyd-client748-research/scripts/query_corpus.py flow 0055890a
-python .agents/skills/wyd-client748-research/scripts/query_corpus.py search "FieldScene2.bin"
-python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
+python .\tools\research\query_corpus.py --corpus .\references\ghidra\corpus stats --repo .
+python .\tools\research\query_corpus.py --corpus .\references\ghidra\corpus flow 0055890a
+python .\tools\research\query_corpus.py --corpus .\references\ghidra\corpus search "FieldScene2.bin"
+python .\tools\research\validate_research.py --flows .\references\research\flows
 ```
 
-Não armazenar binários, export completo do Ghidra, varredura ampla de xrefs,
-dumps, credenciais ou pseudocódigo em massa neste diretório. Binários e scripts
-em `client748/wyd.exe nativo+patches/` são somente evidência histórica; o único
-candidato executável é `client748/project.exe`, produzido pelo build da source.
+O binário, o projeto Ghidra, o corpus e os exports necessários já estão neste
+pacote. Não adicionar credenciais, dumps transitórios ou fontes excluídas.
+Caminhos antigos preservados nas fichas são traduzidos por
+`references/LOCAL_PATHS.md`.

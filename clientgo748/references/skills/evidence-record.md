@@ -1,6 +1,6 @@
 # Contrato das fichas de evidência
 
-As fichas vivem em `.agents/research/client748/flows/<subsistema>/<fluxo>.md` e
+As fichas vivem em `references/research/flows/<subsistema>/<fluxo>.md` e
 usam o template versionado naquele diretório.
 
 ## Front matter obrigatório

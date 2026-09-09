@@ -26,7 +26,7 @@ type Config struct {
 func Default() Config {
 	return Config{
 		ProtocolVersion: "7.48",
-		AssetRoot:       "client748",
+		AssetRoot:       "assets/current",
 		WindowWidth:     800,
 		WindowHeight:    600,
 		SecureAssets:    false,

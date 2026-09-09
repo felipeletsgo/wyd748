@@ -26,6 +26,7 @@ REQUIRED_FIELDS = {
     "ghidra_is_thunk",
 }
 REFERENCE_SHA256 = "8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593"
+CLIENT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def integer(row: dict[str, str], field: str) -> int:
@@ -215,7 +216,7 @@ def json_report(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo", type=Path, default=Path("."))
+    parser.add_argument("--repo", type=Path, default=CLIENT_ROOT)
     parser.add_argument("--input", type=Path, help="TSV de funções; por padrão usa o inventário do repo")
     parser.add_argument(
         "--binary",
@@ -233,8 +234,8 @@ def main() -> int:
     parser.add_argument("--expected-functions", type=int, default=4146)
     args = parser.parse_args()
 
-    input_path = args.input or args.repo / ".agents" / "research" / "client748" / "inventory" / "functions.tsv"
-    binary_path = args.binary or args.repo / "client748" / "wyd.exe nativo+patches" / "WYD.exe"
+    input_path = args.input or args.repo / "references" / "catalog" / "functions.tsv"
+    binary_path = args.binary or args.repo / "references" / "ghidra" / "input" / "WYD.exe"
     try:
         verify_binary(binary_path, args.expected_sha256)
         rows = load_rows(input_path, args.expected_functions)

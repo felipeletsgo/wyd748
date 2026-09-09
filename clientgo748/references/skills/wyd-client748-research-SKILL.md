@@ -76,7 +76,7 @@ marca `N/A` com justificativa.
 
 Detalhes dos modos `pointers`, `relatives`, `bodyrefs`, `rawrelatives`,
 `virtualslot`, headless e fingerprints ficam em
-[references/research-method.md](references/research-method.md). Leia essa
+[research-method.md](research-method.md). Leia essa
 referência ao executar ou interpretar essas operações, não em toda retomada.
 
 ## Modernização e extensão
@@ -133,13 +133,13 @@ sem contrato suficiente permanece explicitamente pendente.
 Ferramentas usuais:
 
 ```powershell
-python .agents/skills/wyd-client748-research/scripts/query_corpus.py stats --repo .
-python .agents/skills/wyd-client748-research/scripts/query_corpus.py flow 0055890a
-python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
+python .\tools\research\query_corpus.py --corpus .\references\ghidra\corpus stats --repo .
+python .\tools\research\query_corpus.py --corpus .\references\ghidra\corpus flow 0055890a
+python .\tools\research\validate_research.py --flows .\references\research\flows
 ```
 
-Leia [references/evidence-record.md](references/evidence-record.md) ao criar ou
+Leia [evidence-record.md](evidence-record.md) ao criar ou
 promover ficha e somente a linha relevante de
-[references/subsystem-map.md](references/subsystem-map.md) ao abrir nova frente.
+[subsystem-map.md](subsystem-map.md) ao abrir nova frente.
 Para seleção de modelo, preferir `gpt-5.6-sol`/`xhigh` apenas quando o ambiente
 confirmar que essa opção está disponível.

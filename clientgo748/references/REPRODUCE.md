@@ -1,14 +1,17 @@
 # Reprodução do mapeamento
 
-Execute na raiz do repositório (`wyd-go`). Os resultados são diagnósticos; não
-altere binários históricos.
+Execute dentro de `clientgo748`. Os resultados são diagnósticos; não altere
+binários históricos.
 
 ```powershell
-python .agents/skills/wyd-client748-research/scripts/query_corpus.py stats --repo .
-python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
-python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo .
-go test ./clientgo748/...
-pwsh -NoProfile -File .\clientgo748\Build-ClientGo.ps1 -Configuration Debug
+python .\tools\research\query_corpus.py --corpus .\references\ghidra\corpus stats --repo .
+python .\tools\research\triage_catalog.py --input .\references\catalog\functions.tsv --binary .\references\ghidra\input\WYD.exe --format summary
+python .\tools\research\validate_research.py --flows .\references\research\flows
+python -m unittest discover -s .\tools\research -p "test_*.py" -v
+go test ./...
+pwsh -NoProfile -File .\tools\Test-SelfContained.ps1
+pwsh -NoProfile -File .\tools\Test-Manifest.ps1
+pwsh -NoProfile -File .\Build-ClientGo.ps1 -Configuration Debug
 git diff --check
 ```
 

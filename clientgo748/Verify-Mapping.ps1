@@ -3,7 +3,6 @@ param()
 
 $ErrorActionPreference = "Stop"
 $clientRoot = $PSScriptRoot
-$repoRoot = Split-Path -Parent $clientRoot
 $python = Get-Command python -ErrorAction Stop
 $expectedNativeHash = "8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593"
 
@@ -40,6 +39,7 @@ if ($functionCount -ne 4146) {
 }
 
 & (Join-Path $clientRoot "tools\Test-Manifest.ps1")
+& (Join-Path $clientRoot "tools\Test-SelfContained.ps1")
 
 Invoke-Checked -Program $python.Source -Arguments @(
     (Join-Path $clientRoot "tools\research\query_corpus.py"),
@@ -57,12 +57,12 @@ Invoke-Checked $python.Source @(
     "--flows", $flows
 )
 
-Push-Location $repoRoot
+Push-Location $clientRoot
 try {
-    Invoke-Checked "go" @("test", "./clientgo748/...")
+    Invoke-Checked "go" @("test", "./...")
 }
 finally {
     Pop-Location
 }
 
-Write-Host "Mapping package verified: 4,146 functions, native fingerprint, research records, and Go tests."
+Write-Host "Mapping package verified: 4,146 functions, native fingerprint, local inputs, research records, and Go tests."

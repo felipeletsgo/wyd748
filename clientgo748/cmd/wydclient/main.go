@@ -8,8 +8,8 @@ package main
 import (
 	"fmt"
 
-	"wydgo/clientgo748/internal/config"
-	"wydgo/clientgo748/internal/lifecycle"
+	"wydclient748/internal/config"
+	"wydclient748/internal/lifecycle"
 )
 
 func main() {

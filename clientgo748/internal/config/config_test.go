@@ -3,8 +3,12 @@ package config
 import "testing"
 
 func TestDefaultIsValid(t *testing.T) {
-	if err := Default().Validate(); err != nil {
+	c := Default()
+	if err := c.Validate(); err != nil {
 		t.Fatalf("default config must validate: %v", err)
+	}
+	if c.AssetRoot != "assets/current" {
+		t.Fatalf("default assets must remain inside clientgo748: %q", c.AssetRoot)
 	}
 }
 
