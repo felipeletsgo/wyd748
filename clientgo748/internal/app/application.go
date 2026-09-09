@@ -253,8 +253,10 @@ func (a *Application) RequestClose() error {
 	return nil
 }
 
-// ConnectSession establishes the configured transport exactly once. A server
-// selection scene calls it after the player confirms an endpoint.
+// ConnectSession establishes the configured transport exactly once. The login
+// scene calls it after the player has selected an endpoint and submitted the
+// account form; selecting a row or confirming the server panel alone never
+// opens the socket.
 func (a *Application) ConnectSession() error {
 	if a == nil || a.options.Session == nil {
 		return fmt.Errorf("clientgo748: session is not configured")

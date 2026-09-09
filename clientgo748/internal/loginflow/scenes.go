@@ -559,17 +559,33 @@ func loginLayoutFor(renderer graphics.ShapeRenderer) loginLayout {
 			width, height = w, h
 		}
 	}
-	rootX := (width - loginDesignWidth) / 2
-	rootY := (height - loginDesignHeight) / 2
-	panel := ui.Rect{X: rootX + 272, Y: rootY + 172, Width: loginTextureWidth, Height: loginTextureHeight}
+	// TMSelectServerScene::InitializeScene centers the login panel directly in
+	// the client viewport. Keep this in viewport pixels instead of translating
+	// through an 800x600 design root; the native controls and their hitboxes then
+	// remain aligned at 800x600, 1024x768, 1280x960 and larger windows.
+	panel := ui.Rect{
+		X: (width - loginTextureWidth) / 2,
+		Y: (height - loginTextureHeight) / 2,
+		Width: loginTextureWidth,
+		Height: loginTextureHeight,
+	}
 	// logo1/logo2 are the two halves of the official WYD FC mark. They are
 	// deliberately kept as separate layers because each WYT contains alpha.
-	logoX := rootX + (loginDesignWidth-loginLogoWidth*2)/2
-	logoY := rootY + 28
+	// The native scene anchors them to the viewport, not to the login panel:
+	// screenWidth/2-256 and screenWidth/2. Its 7.48 layout also scales the
+	// ten-pixel top margin with the viewport height and adds 20/40 pixels in
+	// 1024/1280-wide modes.
+	logoY := (height * 10) / loginDesignHeight
+	switch width {
+	case 1024:
+		logoY += 20
+	case 1280:
+		logoY += 40
+	}
 	return loginLayout{
 		panel:        panel,
-		logoLeft:     ui.Rect{X: logoX, Y: logoY, Width: loginLogoWidth, Height: loginLogoHeight},
-		logoRight:    ui.Rect{X: logoX + loginLogoWidth, Y: logoY, Width: loginLogoWidth, Height: loginLogoHeight},
+		logoLeft:     ui.Rect{X: width/2 - loginLogoWidth, Y: logoY, Width: loginLogoWidth, Height: loginLogoHeight},
+		logoRight:    ui.Rect{X: width / 2, Y: logoY, Width: loginLogoWidth, Height: loginLogoHeight},
 		account:      ui.Rect{X: panel.X + 72, Y: panel.Y + 30, Width: 118, Height: 28},
 		password:     ui.Rect{X: panel.X + 72, Y: panel.Y + 57, Width: 118, Height: 28},
 		submit:       ui.Rect{X: panel.X + 68, Y: panel.Y + 84, Width: 74, Height: 29},

@@ -30,7 +30,7 @@ lifecycle nativo. Este lote adapta somente a composição interna em Go.
 | Source Go e testes | UTILIZADA | `internal/login`, `internal/loginflow`, `internal/app`, `internal/scene` |
 | WYD-Go | UTILIZADA | contrato de sessão e transporte existente; nenhum código alterado |
 | Assets 7.48 | UTILIZADA | `UI/loginbox2.wyt` e `UI/ServerList2.wyt` oficiais fornecem as skins modernas do login e da seleção; `SelServerScene2.bin` é a composição nativa da cena |
-| TMProject | UTILIZADA secundariamente e autorizada | login, personagem e entrada no mundo são compatíveis com 7.48; usado somente para comparação de composição, sem cópia de código, ABI ou ownership |
+| TMProject | UTILIZADA secundariamente e autorizada | `TMSelectServerScene::InitializeScene` foi consultado para a sequência servidor -> login e para a composição viewport do painel/logos; usado somente para comparação de semântica, sem cópia de código, ABI ou ownership |
 | Guias | NÃO APLICÁVEL | não definem este contrato |
 | W2PP, Secrets, Micronics | EXCLUÍDA | fontes bugadas, proibidas pela campanha |
 
@@ -56,8 +56,15 @@ Conexão, packets de login e desconexão são entregues à thread principal.
 
 ### Matriz de transições
 
-`Application` conecta a sessão e chama `Coordinator.SessionConnected`, que move
-`SessionState` para `Connecting`. O `Controller` é o único emissor de
+Na cena de seleção, confirmar `CONNECT` apenas grava o endpoint e a prova local
+`serverSelected`; a sessão continua `Disconnected` enquanto a cena de login é
+revelada. Isso reproduz a ordem observada em
+`TMSelectServerScene::HandleEvent`: `B_SERVER_SEL_OK` oculta a lista e mostra o
+painel, enquanto somente `B_LOGIN_OK`, depois de validar o formulário, chama
+`ConnectServer` e envia `MSG_AccountLogin` (`0x20D`). Na implementação Go,
+`Authenticate` chama `Application.ConnectSession` nesse mesmo ponto; a
+conexão então chama `Coordinator.SessionConnected`, que move `SessionState` para
+`Connecting`. O `Controller` é o único emissor de
 intenções; o `Dispatcher` é o único consumidor dos packets recebidos. Depois de
 `PollEvents`, a aplicação drena e entrega os eventos ao coordenador, despacha o
 input e chama `Synchronize`. A sincronização observa a fase final do frame e
@@ -65,7 +72,8 @@ agenda no máximo uma transição no `scene.Manager`.
 
 | Fase | Cena lógica |
 | --- | --- |
-| `Disconnected` | `ServerSelection` |
+| `Disconnected`, sem servidor confirmado | `ServerSelection` |
+| `Disconnected`, servidor confirmado | `Login` |
 | `Connecting`, `Authenticating` | `Login` |
 | `CharacterSelect` | `CharacterSelect` |
 | `EnteringWorld` | `Loading` |
@@ -73,8 +81,10 @@ agenda no máximo uma transição no `scene.Manager`.
 
 As cenas lógicas não possuem socket nem ownership de renderer; as cenas de
 seleção e login recebem explicitamente texturas oficiais imutáveis e as
-apresentam pelo backend. A seleção só chama o callback de conexão após uma
-confirmação explícita; o callback aplica o endpoint antes de `Connect`.
+apresentam pelo backend. A seleção chama apenas o callback de confirmação do
+endpoint; o callback de autenticação aplica a conexão depois que o formulário
+foi submetido. `serverSelected` é limpo na desconexão, impedindo que um estado
+antigo pule novamente a tela de seleção.
 `Enter` e
 `Update` validam novamente a fase aceita, detectando dessincronização antes de
 renderizar. Desconexão limpa o estado; logout permanece em `World` enquanto a
@@ -125,6 +135,7 @@ Nativo: fichas `login-session.md` e `go-scene-manager.md`.
 | Claim | Nativo 7.48 | Source Go | TMProject | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
 | fase dirige tela | ObjectManager troca objetos | Coordinator mapeia fases para IDs | fluxo compatível de login/personagem/mundo, usado como comparação | contrato de sessão | modernizar internamente |
+| composição da tela de login | painel centralizado na viewport; logos ancorados em `screenWidth/2` com ajustes nativos de altura | painel e logos renderizados por `loginLayoutFor` | `TMSelectServerScene::InitializeScene` fornece a geometria candidata compatível | assets oficiais 7.48 | modernizar internamente preservando a composição observável |
 | consumidor de packets | dispatch central | Dispatcher único | comparação secundária | server-authoritative | manter |
 | troca e cleanup | FUN_004B3500/FUN_004B37C9/FUN_0055D066 | Manager com transição pendente | não é prova nativa | N/A | manter invariantes |
 
@@ -143,7 +154,8 @@ Nativo: fichas `login-session.md` e `go-scene-manager.md`.
   `Name|host:port;...`) e cada endpoint é validado antes de ser apresentado;
   sem a variável, existe uma entrada local segura para desenvolvimento.
 - A seleção de servidor separa destaque da linha e confirmação: clicar numa
-  linha apenas muda o índice; `CONNECT` ou Enter inicia a conexão adiada. Sem
+  linha apenas muda o índice; `CONNECT` ou Enter confirma o endpoint e revela a
+  tela de login. A conexão permanece adiada até o envio das credenciais. Sem
   `WYD_SERVER_ADDRESS`, a entrada usa o endpoint padrão `127.0.0.1:8281`; a
   inicialização da janela não abre o socket antes da confirmação.
 - `loginbox.wyt`, `loginicon.wyt`, `LoginScene.bin` e `SelServerScene.bin` não

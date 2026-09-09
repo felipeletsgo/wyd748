@@ -34,6 +34,10 @@ type Coordinator struct {
 	controller *login.Controller
 	dispatcher *login.Dispatcher
 	navigator  Navigator
+	// serverSelected is local bootstrap state. The native 7.48 selector keeps
+	// the transport disconnected while it reveals the login controls; the
+	// connection starts only after the account form is submitted.
+	serverSelected bool
 }
 
 type Options struct {
@@ -88,11 +92,26 @@ func (c *Coordinator) SessionConnected() error {
 	return c.state.BeginConnect()
 }
 
+// ServerSelected records the endpoint confirmation without opening the
+// transport. This mirrors TMSelectServerScene: B_SERVER_SEL_OK changes the
+// visible UI, while B_LOGIN_OK performs the actual socket connect.
+func (c *Coordinator) ServerSelected() error {
+	if c == nil || c.state == nil {
+		return errors.New("loginflow: coordinator is not initialized")
+	}
+	if c.state.Phase() != login.Disconnected {
+		return fmt.Errorf("loginflow: server selection requires Disconnected, got %s", c.state.Phase())
+	}
+	c.serverSelected = true
+	return nil
+}
+
 func (c *Coordinator) SessionDisconnected() {
 	if c == nil || c.state == nil {
 		return
 	}
 	c.state.Disconnect()
+	c.serverSelected = false
 }
 
 func (c *Coordinator) HandleSessionEvent(event protocol.SessionEvent) (bool, error) {
@@ -108,7 +127,7 @@ func (c *Coordinator) Synchronize() error {
 	if c == nil || c.state == nil || c.navigator == nil {
 		return errors.New("loginflow: coordinator is not initialized")
 	}
-	want := sceneForPhase(c.state.Phase())
+	want := sceneForPhase(c.state.Phase(), c.serverSelected)
 	if want == "" {
 		return nil
 	}
@@ -122,10 +141,13 @@ func (c *Coordinator) Synchronize() error {
 	return nil
 }
 
-func sceneForPhase(phase login.Phase) scene.ID {
+func sceneForPhase(phase login.Phase, serverSelected bool) scene.ID {
 	switch phase {
 	case login.Disconnected, login.Connecting, login.Authenticating:
 		if phase == login.Disconnected {
+			if serverSelected {
+				return LoginSceneID
+			}
 			return ServerSelectionSceneID
 		}
 		return LoginSceneID

@@ -36,9 +36,33 @@ func TestCoordinatorMapsAllPhases(t *testing.T) {
 		login.LoggingOut: WorldSceneID,
 	}
 	for phase, expected := range want {
-		if got := sceneForPhase(phase); got != expected {
+		if got := sceneForPhase(phase, false); got != expected {
 			t.Errorf("phase %s maps to %q, want %q", phase, got, expected)
 		}
+	}
+	if got := sceneForPhase(login.Disconnected, true); got != LoginSceneID {
+		t.Errorf("selected disconnected phase maps to %q, want %q", got, LoginSceneID)
+	}
+}
+
+func TestCoordinatorServerSelectionDefersTransportUntilAuthentication(t *testing.T) {
+	state := login.NewSessionState()
+	navigator := &fakeNavigator{current: ServerSelectionSceneID}
+	coordinator, err := New(state, fakeSender{}, navigator, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := coordinator.ServerSelected(); err != nil {
+		t.Fatal(err)
+	}
+	if state.Phase() != login.Disconnected {
+		t.Fatalf("phase=%s, want Disconnected", state.Phase())
+	}
+	if err := coordinator.Synchronize(); err != nil {
+		t.Fatal(err)
+	}
+	if len(navigator.requests) != 1 || navigator.requests[0] != LoginSceneID {
+		t.Fatalf("requests=%v, want login transition", navigator.requests)
 	}
 }
 

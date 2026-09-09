@@ -102,7 +102,10 @@ func run() error {
 				if err := session.SetAddress(entry.Address); err != nil {
 					return err
 				}
-				return client.ConnectSession()
+				if coordinator == nil {
+					return fmt.Errorf("login coordinator is not initialized")
+				}
+				return coordinator.ServerSelected()
 			},
 			LoginTexture:   &loginTexture,
 			LoginLogoLeft:  &loginLogoLeft,
@@ -110,6 +113,11 @@ func run() error {
 			Authenticate: func(account string, password []byte) error {
 				if coordinator == nil {
 					return fmt.Errorf("login coordinator is not initialized")
+				}
+				// TMSelectServerScene connects only from B_LOGIN_OK, after the
+				// endpoint has been selected and the account form is validated.
+				if err := client.ConnectSession(); err != nil {
+					return err
 				}
 				return coordinator.Authenticate(account, password, [4]uint32{}, 0)
 			},
