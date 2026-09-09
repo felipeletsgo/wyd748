@@ -137,6 +137,29 @@ func TestClientSessionConnectSendsHandshakeOnce(t *testing.T) {
 	}
 }
 
+func TestClientSessionSetAddressOnlyBeforeConnect(t *testing.T) {
+	session := NewSession("127.0.0.1:1", SessionOptions{})
+	if err := session.SetAddress("127.0.0.1:8281"); err != nil {
+		t.Fatal(err)
+	}
+	if err := session.SetAddress(""); err == nil {
+		t.Fatal("empty endpoint accepted")
+	}
+	// A connected session cannot be redirected by a scene. Use a pipe dialer
+	// so the test never depends on a live server.
+	client, peer := net.Pipe()
+	defer peer.Close()
+	session = NewSession("pipe", SessionOptions{DialContext: func(context.Context, string) (net.Conn, error) { return client, nil }})
+	go func() { _, _ = io.Copy(io.Discard, peer) }()
+	if err := session.Connect(); err != nil {
+		t.Fatal(err)
+	}
+	if err := session.SetAddress("127.0.0.1:8281"); err == nil {
+		t.Fatal("connected session accepted endpoint change")
+	}
+	_ = session.Close()
+}
+
 func TestClientSessionSendHandlesPartialWrites(t *testing.T) {
 	conn := &partialConn{maxWrite: 3}
 	session, err := NewConnectedSession(conn, SessionOptions{})

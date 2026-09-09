@@ -25,6 +25,9 @@ func SceneFactories(state *login.SessionState) map[scene.ID]scene.Factory {
 // transferring renderer or transport ownership into a scene.
 type VisualOptions struct {
 	ShapeRenderer   graphics.ShapeRenderer
+	ServerTexture   *assets.Texture
+	Servers         []ServerEntry
+	SelectServer    func(ServerEntry) error
 	LoginTexture    *assets.Texture
 	Authenticate    func(account string, password []byte) error
 	SelectCharacter func(slot int32) error
@@ -32,6 +35,12 @@ type VisualOptions struct {
 
 func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions) map[scene.ID]scene.Factory {
 	return map[scene.ID]scene.Factory{
+		ServerSelectionSceneID: func() (scene.Scene, error) {
+			if options.ShapeRenderer != nil || options.SelectServer != nil {
+				return newServerSelectionScene(state, options)
+			}
+			return newStateScene(ServerSelectionSceneID, state, login.Disconnected)
+		},
 		LoginSceneID: func() (scene.Scene, error) {
 			if options.ShapeRenderer != nil || options.Authenticate != nil {
 				return newLoginScene(state, options)
@@ -58,6 +67,169 @@ func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions)
 		},
 	}
 }
+
+// ServerEntry is the endpoint presented by the bootstrap selector.
+type ServerEntry struct {
+	Name    string
+	Address string
+}
+
+type serverSelectionScene struct {
+	state        *login.SessionState
+	renderer     graphics.ShapeRenderer
+	texture      *assets.Texture
+	textureDraw  graphics.TextureRenderer
+	placement    graphics.TexturePlacementRenderer
+	servers      []ServerEntry
+	selectServer func(ServerEntry) error
+	selected     int
+	status       string
+}
+
+func newServerSelectionScene(state *login.SessionState, options VisualOptions) (scene.Scene, error) {
+	if state == nil {
+		return nil, errors.New("loginflow: session state is required")
+	}
+	servers := append([]ServerEntry(nil), options.Servers...)
+	if len(servers) == 0 {
+		servers = []ServerEntry{{Name: "Local Server", Address: "127.0.0.1:8281"}}
+	}
+	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
+	placement, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
+	return &serverSelectionScene{state: state, renderer: options.ShapeRenderer, texture: options.ServerTexture,
+		textureDraw: textureRenderer, placement: placement, servers: servers,
+		selectServer: options.SelectServer, selected: 0}, nil
+}
+
+func (s *serverSelectionScene) ID() scene.ID { return ServerSelectionSceneID }
+func (s *serverSelectionScene) Enter() error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	s.selected, s.status = 0, ""
+	if s.texture != nil && s.textureDraw != nil {
+		if err := s.textureDraw.UploadTexture(*s.texture); err != nil {
+			return fmt.Errorf("loginflow: upload server selection UI: %w", err)
+		}
+	}
+	return nil
+}
+func (s *serverSelectionScene) HandleEvent(event input.Event) error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	if event.Kind == input.KindMouseButtonDown && event.Button == 1 {
+		for i := range s.servers {
+			if serverRect(i).Contains(event.X, event.Y) {
+				// A row selects an endpoint; only the explicit CONNECT control
+				// (or Enter) opens the transport.
+				s.selected = i
+				return nil
+			}
+		}
+		if serverConnectRect().Contains(event.X, event.Y) {
+			return s.submit()
+		}
+	}
+	if event.Kind == input.KindKeyDown {
+		switch event.Key {
+		case 0x25, 0x26:
+			s.move(-1)
+		case 0x27, 0x28:
+			s.move(1)
+		case 0x0D:
+			return s.submit()
+		}
+	}
+	return nil
+}
+func (s *serverSelectionScene) Update(time.Duration) error { return s.validate() }
+func (s *serverSelectionScene) Render() error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	if s.texture != nil {
+		switch {
+		case s.placement != nil && s.textureDraw != nil:
+			s.placement.DrawTextureAt(272, 172, 256, 256)
+		case s.textureDraw != nil:
+			s.textureDraw.DrawTexture()
+		}
+	}
+	if s.renderer == nil {
+		return nil
+	}
+	text, _ := s.renderer.(graphics.TextRenderer)
+	for i, entry := range s.servers {
+		r := serverRect(i)
+		color := graphics.Color{R: .10, G: .13, B: .19, A: .94}
+		if i == s.selected {
+			color = graphics.Color{R: .18, G: .40, B: .68, A: .98}
+		}
+		s.renderer.DrawRect(r.X, r.Y, r.Width, r.Height, color)
+		if text != nil {
+			name := entry.Name
+			if name == "" {
+				name = entry.Address
+			}
+			text.DrawText(r.X+14, r.Y+12, name, 14, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+			text.DrawText(r.X+14, r.Y+32, entry.Address, 11, graphics.Color{R: .76, G: .80, B: .88, A: 1})
+		}
+	}
+	r := serverConnectRect()
+	s.renderer.DrawRect(r.X, r.Y, r.Width, r.Height, graphics.Color{R: .12, G: .34, B: .62, A: 1})
+	if text != nil {
+		text.DrawText(r.X+28, r.Y+11, "CONNECT", 13, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		if s.status != "" {
+			text.DrawText(250, 500, s.status, 12, graphics.Color{R: .72, G: .76, B: .84, A: 1})
+		}
+	}
+	return nil
+}
+func (s *serverSelectionScene) Exit() error  { return nil }
+func (s *serverSelectionScene) Close() error { return nil }
+func (s *serverSelectionScene) validate() error {
+	if s == nil || s.state == nil {
+		return errors.New("loginflow: server-selection scene is unavailable")
+	}
+	if s.state.Phase() != login.Disconnected {
+		return fmt.Errorf("loginflow: server-selection scene does not accept phase %s", s.state.Phase())
+	}
+	if len(s.servers) == 0 {
+		return errors.New("loginflow: server list is empty")
+	}
+	return nil
+}
+func (s *serverSelectionScene) move(delta int) {
+	if len(s.servers) == 0 || delta == 0 {
+		return
+	}
+	s.selected = (s.selected + delta) % len(s.servers)
+	if s.selected < 0 {
+		s.selected += len(s.servers)
+	}
+}
+func (s *serverSelectionScene) submit() error {
+	if s.selectServer == nil {
+		s.status = "Server selection is unavailable."
+		return errors.New("loginflow: server selection callback is unavailable")
+	}
+	entry := s.servers[s.selected]
+	if entry.Address == "" {
+		s.status = "Selected server has no endpoint."
+		return errors.New("loginflow: selected server has no endpoint")
+	}
+	if err := s.selectServer(entry); err != nil {
+		s.status = "Unable to connect to the selected server."
+		// A reachable-window transport failure is recoverable UI state. Keep the
+		// selector alive so the player can retry instead of terminating the client.
+		return nil
+	}
+	s.status = "Connecting..."
+	return nil
+}
+func serverRect(i int) ui.Rect   { return ui.Rect{X: 250, Y: 230 + int32(i)*58, Width: 300, Height: 48} }
+func serverConnectRect() ui.Rect { return ui.Rect{X: 330, Y: 430, Width: 140, Height: 38} }
 
 type characterSelectScene struct {
 	state           *login.SessionState

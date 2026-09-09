@@ -14,6 +14,7 @@ function Test-ManifestExcludedPath([string]$relative) {
     $normalized = $relative.Replace('\', '/')
     return $normalized -eq "MANIFEST.sha256" -or
         $normalized -match '^bin/' -or
+        $normalized -eq 'CLIENT OFICIAL 7.48/wydclient.exe' -or
         $normalized -match '(^|/)__pycache__(/|$)' -or
         $normalized -match '\.py[cod]$' -or
         $normalized -match '\.log$' -or

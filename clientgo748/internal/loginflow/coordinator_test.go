@@ -30,7 +30,7 @@ func (n *fakeNavigator) RequestScene(id scene.ID) error {
 
 func TestCoordinatorMapsAllPhases(t *testing.T) {
 	want := map[login.Phase]scene.ID{
-		login.Disconnected: LoginSceneID, login.Connecting: LoginSceneID,
+		login.Disconnected: ServerSelectionSceneID, login.Connecting: LoginSceneID,
 		login.Authenticating: LoginSceneID, login.CharacterSelect: CharacterSelectSceneID,
 		login.EnteringWorld: LoadingSceneID, login.InWorld: WorldSceneID,
 		login.LoggingOut: WorldSceneID,
@@ -44,7 +44,7 @@ func TestCoordinatorMapsAllPhases(t *testing.T) {
 
 func TestCoordinatorSynchronizesOnlyWhenSceneDiffers(t *testing.T) {
 	state := login.NewSessionState()
-	navigator := &fakeNavigator{current: LoginSceneID}
+	navigator := &fakeNavigator{current: ServerSelectionSceneID}
 	coordinator, err := New(state, fakeSender{}, navigator, Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -61,8 +61,8 @@ func TestCoordinatorSynchronizesOnlyWhenSceneDiffers(t *testing.T) {
 	if err := coordinator.Synchronize(); err != nil {
 		t.Fatal(err)
 	}
-	if len(navigator.requests) != 0 {
-		t.Fatalf("requests=%v, want none after connecting", navigator.requests)
+	if len(navigator.requests) != 1 || navigator.requests[0] != LoginSceneID {
+		t.Fatalf("requests=%v, want login after connecting", navigator.requests)
 	}
 }
 

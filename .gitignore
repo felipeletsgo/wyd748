@@ -33,6 +33,9 @@ client748/*.pdb
 
 # Artefatos locais do client Go em preparação
 /clientgo748/bin/
+# Cópia local ocasional do build junto ao corpus oficial. O executável ativo
+# continua sendo clientgo748/bin/wydclient.exe; a baseline versionada é WYD.exe.
+/clientgo748/CLIENT OFICIAL 7.48/wydclient.exe
 
 # Dados locais/gerados: contas, hashes e estado de personagem nunca sao source
 data/accounts/*.json

@@ -122,7 +122,7 @@ func (f *LoginForm) submit() error {
 }
 
 // Render draws only dynamic values and status. Labels, field chrome and the
-// Login button are supplied by the official loginbox.wyt artwork; no
+// Login button are supplied by the official loginbox2.wyt artwork; no
 // synthetic rectangle or duplicate label is used as a user-facing control.
 func (f *LoginForm) Render(renderer graphics.ShapeRenderer) {
 	if f == nil || renderer == nil {

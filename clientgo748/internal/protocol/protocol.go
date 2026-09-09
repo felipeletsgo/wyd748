@@ -219,6 +219,24 @@ func NewSession(address string, options SessionOptions) *ClientSession {
 	return &ClientSession{options: options}
 }
 
+// SetAddress selects the endpoint before Connect. It is intentionally rejected
+// after a connection so a live session can never be redirected by the UI.
+func (s *ClientSession) SetAddress(address string) error {
+	if s == nil {
+		return ErrNotConnected
+	}
+	if address == "" {
+		return fmt.Errorf("protocol: session address is required")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed || s.conn != nil {
+		return fmt.Errorf("protocol: session address cannot change after connect")
+	}
+	s.options.Address = address
+	return nil
+}
+
 func NewConnectedSession(conn net.Conn, options SessionOptions) (*ClientSession, error) {
 	if conn == nil {
 		return nil, fmt.Errorf("protocol: nil connection")

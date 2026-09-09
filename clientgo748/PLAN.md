@@ -136,13 +136,19 @@ Implementado nesta unidade:
 
 Estado: `CONTRACT` nativo e `AUTOMATED TESTED` no pacote Go. A entrega dos
 packets pela sessão à thread principal, o dispatcher e o controller de envios
-estão implementados. As factories visuais agora ligam cenas de login, seleção
-de personagem, carregamento e mundo. A tela de login usa o asset oficial
-`CLIENT OFICIAL 7.48/UI/loginbox.wyt`, com texto dinâmico editável sobre a
-arte; o TMProject foi usado somente como comparação autorizada para essa
-composição compatível. A seleção usa somente slots ocupados, navegação por
-teclado/clique, confirmação única e mensagens em inglês. Ainda falta a
-execução contra o servidor real e a validação manual do executável Windows.
+estão implementados. As factories visuais agora ligam a sequência
+`ServerSelection -> Login -> CharacterSelect -> Loading -> World`. A tela de
+servidor seleciona uma entrada com mouse/setas e só abre a sessão ao confirmar
+em `CONNECT`/Enter; o endpoint é aplicado antes do socket e nunca pode ser
+alterado por uma sessão viva. A tela de login usa `UI/loginbox2.wyt`, e a
+seleção usa `UI/ServerList2.wyt`, ambos assets oficiais 7.48 escolhidos como
+skin moderna; o TMProject foi usado somente como comparação autorizada para a
+composição compatível. Mensagens visíveis permanecem em inglês. Sem override,
+`CONNECT` usa o endpoint padrão `127.0.0.1:8281`; `WYD_SERVER_ADDRESS` permite
+substituí-lo antes de iniciar o processo.
+
+Ainda falta a execução contra o servidor real e a validação manual do
+executável Windows.
 
 Aceite restante: um personagem entra no mundo, recebe estado inicial e
 consegue sair e entrar novamente sem crash ou dados antigos no client.

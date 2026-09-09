@@ -14,6 +14,7 @@ import (
 // Scene IDs are stable logical names; their visual implementation is supplied
 // by the application.
 const (
+	ServerSelectionSceneID  scene.ID = "server-selection"
 	LoginSceneID           scene.ID = "login"
 	CharacterSelectSceneID scene.ID = "character-select"
 	LoadingSceneID         scene.ID = "loading"
@@ -124,6 +125,9 @@ func (c *Coordinator) Synchronize() error {
 func sceneForPhase(phase login.Phase) scene.ID {
 	switch phase {
 	case login.Disconnected, login.Connecting, login.Authenticating:
+		if phase == login.Disconnected {
+			return ServerSelectionSceneID
+		}
 		return LoginSceneID
 	case login.CharacterSelect:
 		return CharacterSelectSceneID

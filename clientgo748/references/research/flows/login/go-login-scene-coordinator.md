@@ -29,7 +29,7 @@ lifecycle nativo. Este lote adapta somente a composição interna em Go.
 | Binário nativo 7.48 / Ghidra | UTILIZADA | fichas `login-session.md` e lifecycle fornecem contratos e invariantes |
 | Source Go e testes | UTILIZADA | `internal/login`, `internal/loginflow`, `internal/app`, `internal/scene` |
 | WYD-Go | UTILIZADA | contrato de sessão e transporte existente; nenhum código alterado |
-| Assets 7.48 | UTILIZADA | `UI/loginbox.wyt` oficial fornece painel, campos e estados do botão da tela de login |
+| Assets 7.48 | UTILIZADA | `UI/loginbox2.wyt` e `UI/ServerList2.wyt` oficiais fornecem as skins modernas do login e da seleção; `SelServerScene2.bin` é a composição nativa da cena |
 | TMProject | UTILIZADA secundariamente e autorizada | login, personagem e entrada no mundo são compatíveis com 7.48; usado somente para comparação de composição, sem cópia de código, ABI ou ownership |
 | Guias | NÃO APLICÁVEL | não definem este contrato |
 | W2PP, Secrets, Micronics | EXCLUÍDA | fontes bugadas, proibidas pela campanha |
@@ -65,13 +65,16 @@ agenda no máximo uma transição no `scene.Manager`.
 
 | Fase | Cena lógica |
 | --- | --- |
-| `Disconnected`, `Connecting`, `Authenticating` | `Login` |
+| `Disconnected` | `ServerSelection` |
+| `Connecting`, `Authenticating` | `Login` |
 | `CharacterSelect` | `CharacterSelect` |
 | `EnteringWorld` | `Loading` |
 | `InWorld`, `LoggingOut` | `World` |
 
-As cenas lógicas não possuem socket nem ownership de renderer; a cena de login
-recebe explicitamente uma textura oficial imutável e a apresenta pelo backend.
+As cenas lógicas não possuem socket nem ownership de renderer; as cenas de
+seleção e login recebem explicitamente texturas oficiais imutáveis e as
+apresentam pelo backend. A seleção só chama o callback de conexão após uma
+confirmação explícita; o callback aplica o endpoint antes de `Connect`.
 `Enter` e
 `Update` validam novamente a fase aceita, detectando dessincronização antes de
 renderizar. Desconexão limpa o estado; logout permanece em `World` enquanto a
@@ -113,7 +116,8 @@ contratos existentes de `internal/login`.
 ## Mapeamento atual
 
 Source: `internal/loginflow/coordinator.go`, `scenes.go`, `internal/ui` e
-`internal/app/application.go`. Asset: `CLIENT OFICIAL 7.48/UI/loginbox.wyt`.
+`internal/app/application.go`. Assets: `CLIENT OFICIAL 7.48/UI/loginbox2.wyt`
+e `CLIENT OFICIAL 7.48/UI/ServerList2.wyt`.
 Nativo: fichas `login-session.md` e `go-scene-manager.md`.
 
 ## Matriz de delta
@@ -135,6 +139,13 @@ Nativo: fichas `login-session.md` e `go-scene-manager.md`.
   renderer.
 - A seleção ignora slots vazios, percorre os quatro slots sem pular ocupados e
   só chama o controller depois de uma confirmação válida.
+- A seleção de servidor separa destaque da linha e confirmação: clicar numa
+  linha apenas muda o índice; `CONNECT` ou Enter inicia a conexão adiada. Sem
+  `WYD_SERVER_ADDRESS`, a entrada usa o endpoint padrão `127.0.0.1:8281`; a
+  inicialização da janela não abre o socket antes da confirmação.
+- `loginbox.wyt` e `SelServerScene.bin` permanecem no pacote como assets legados
+  não referenciados; a remoção fica pendente até uma auditoria de referências
+  no client nativo e nas ferramentas de conversão.
 - Não declarar `CLIENT_TESTED` até executar login/logout/relogin no executável.
 
 ## Lacunas

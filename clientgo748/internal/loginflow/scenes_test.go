@@ -56,6 +56,86 @@ func TestVisualLoginFactoryUsesControlsAndSubmitCallback(t *testing.T) {
 	_ = s.Close()
 }
 
+func TestServerSelectionSelectsRowBeforeConnecting(t *testing.T) {
+	state := login.NewSessionState()
+	calls := 0
+	var selected ServerEntry
+	factories := SceneFactoriesWithVisuals(state, VisualOptions{
+		Servers:      []ServerEntry{{Name: "Alpha", Address: "127.0.0.1:8281"}},
+		SelectServer: func(entry ServerEntry) error { calls++; selected = entry; return nil },
+	})
+	s, err := factories[ServerSelectionSceneID]()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Enter(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.HandleEvent(input.Event{Kind: input.KindMouseButtonDown, Button: 1, X: 260, Y: 240}); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 0 {
+		t.Fatalf("row click connected immediately: calls=%d", calls)
+	}
+	if err := s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x0D}); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 || selected.Address != "127.0.0.1:8281" {
+		t.Fatalf("selection=%+v calls=%d", selected, calls)
+	}
+	_ = s.Close()
+}
+
+func TestServerSelectionRejectsMissingEndpoint(t *testing.T) {
+	state := login.NewSessionState()
+	calls := 0
+	factories := SceneFactoriesWithVisuals(state, VisualOptions{
+		Servers:      []ServerEntry{{Name: "Offline", Address: ""}},
+		SelectServer: func(ServerEntry) error { calls++; return nil },
+	})
+	s, err := factories[ServerSelectionSceneID]()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Enter(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x0D}); err == nil {
+		t.Fatal("missing endpoint accepted")
+	}
+	if calls != 0 {
+		t.Fatalf("callback calls=%d want 0", calls)
+	}
+	_ = s.Close()
+}
+
+func TestServerSelectionKeepsSceneAliveWhenConnectionFails(t *testing.T) {
+	state := login.NewSessionState()
+	calls := 0
+	factories := SceneFactoriesWithVisuals(state, VisualOptions{
+		Servers: []ServerEntry{{Name: "Alpha", Address: "127.0.0.1:8281"}},
+		SelectServer: func(ServerEntry) error {
+			calls++
+			return errors.New("server unavailable")
+		},
+	})
+	s, err := factories[ServerSelectionSceneID]()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Enter(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x0D}); err != nil {
+		t.Fatalf("recoverable connection failure escaped scene: %v", err)
+	}
+	selector := s.(*serverSelectionScene)
+	if calls != 1 || selector.status != "Unable to connect to the selected server." {
+		t.Fatalf("calls=%d status=%q", calls, selector.status)
+	}
+	_ = s.Close()
+}
+
 func TestCharacterSceneRejectsIncompatiblePhase(t *testing.T) {
 	state := login.NewSessionState()
 	factory := SceneFactories(state)[CharacterSelectSceneID]

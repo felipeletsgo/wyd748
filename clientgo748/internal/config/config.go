@@ -19,10 +19,8 @@ import (
 type Config struct {
 	ProtocolVersion string
 	AssetRoot       string
-	// ServerAddress is the default WYD-Go endpoint. The executable only
-	// creates a network session when WYD_SERVER_ADDRESS is explicitly set;
-	// keeping the default here makes the target visible and testable without
-	// making offline bootstrap depend on a running server.
+	// ServerAddress is the default endpoint shown by the server-selection
+	// scene. The transport remains closed until the player confirms CONNECT.
 	ServerAddress string
 	WindowWidth   int
 	WindowHeight  int
@@ -62,8 +60,7 @@ func (c Config) Validate() error {
 }
 
 // ValidateServerAddress checks the host:port boundary before the transport
-// is created. An empty address is valid for the offline bootstrap used by
-// asset and window smoke tests.
+// is created. An empty address is valid while callers use a configured default.
 func ValidateServerAddress(address string) error {
 	if address == "" {
 		return nil
@@ -79,9 +76,8 @@ func ValidateServerAddress(address string) error {
 	return nil
 }
 
-// ServerAddressFromEnv enables the real session only when the caller opts in
-// through the process environment. Empty or whitespace-only values preserve
-// the offline mode; malformed values fail before a window or socket is made.
+// ServerAddressFromEnv returns an optional endpoint override. An empty value
+// keeps the configured default; malformed values fail before window creation.
 func ServerAddressFromEnv(defaultAddress string) (string, error) {
 	address := os.Getenv("WYD_SERVER_ADDRESS")
 	if address == "" {

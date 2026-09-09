@@ -252,6 +252,26 @@ func TestApplicationBeginsAndClearsLoginStateAroundConnectedSession(t *testing.T
 	}
 }
 
+func TestApplicationDefersSessionConnectUntilExplicitCall(t *testing.T) {
+	var events []string
+	session := &fakeSession{events: &events}
+	application, err := New(Options{
+		Title: "WYD 7.48", Width: 800, Height: 600,
+		Session: session, DeferSessionConnect: true,
+	}, &fakeWindow{events: &events, pollsUntilClose: 1}, &fakeRenderer{events: &events})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := application.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, event := range events {
+		if event == "session.connect" {
+			t.Fatalf("deferred session connected during Run: %v", events)
+		}
+	}
+}
+
 func TestApplicationConnectionFailureDoesNotPublishConnectedState(t *testing.T) {
 	var events []string
 	connectErr := errors.New("connect failed")

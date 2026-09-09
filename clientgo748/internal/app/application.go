@@ -42,9 +42,11 @@ type Options struct {
 	// das factories, não das instâncias criadas.
 	SceneFactories map[scene.ID]scene.Factory
 	// Session is optional during the graphical bootstrap. When configured,
-	// Application owns its lifecycle: it connects before the first scene and
-	// closes it before any scene or renderer resource is torn down.
-	Session protocol.Session
+	// Application owns its lifecycle and closes it before any scene or renderer
+	// resource is torn down. DeferSessionConnect lets a bootstrap scene choose
+	// the endpoint before opening the transport.
+	Session             protocol.Session
+	DeferSessionConnect bool
 	// SessionConnected executa na thread principal imediatamente depois de o
 	// handshake concluir. SessionDisconnected executa depois de Close sempre
 	// que a conexão chegou a ficar ativa, inclusive em falha parcial posterior.
@@ -136,20 +138,9 @@ func (a *Application) Run(ctx context.Context) (err error) {
 		return fmt.Errorf("clientgo748: initialize renderer: %w", err)
 	}
 	a.rendererOwned = true
-	if a.options.Session != nil {
-		if err := a.options.Session.Connect(); err != nil {
-			return fmt.Errorf("clientgo748: connect session: %w", err)
-		}
-		a.sessionActive = true
-		if a.options.SessionConnected != nil {
-			if err := a.options.SessionConnected(); err != nil {
-				return fmt.Errorf("clientgo748: initialize connected session state: %w", err)
-			}
-		}
-	}
-	if a.eventSession != nil {
-		if err := a.eventSession.StartReceiving(); err != nil {
-			return fmt.Errorf("clientgo748: start session receiver: %w", err)
+	if a.options.Session != nil && !a.options.DeferSessionConnect {
+		if err := a.ConnectSession(); err != nil {
+			return err
 		}
 	}
 	if a.options.LogoSource != nil || a.options.LogoPath != "" {
@@ -236,6 +227,38 @@ func (a *Application) Run(ctx context.Context) (err error) {
 			a.textureRenderer.DrawTexture()
 		}
 		a.renderer.EndFrame()
+	}
+	return nil
+}
+
+// ConnectSession establishes the configured transport exactly once. A server
+// selection scene calls it after the player confirms an endpoint.
+func (a *Application) ConnectSession() error {
+	if a == nil || a.options.Session == nil {
+		return fmt.Errorf("clientgo748: session is not configured")
+	}
+	if a.sessionActive {
+		return nil
+	}
+	if err := a.options.Session.Connect(); err != nil {
+		return fmt.Errorf("clientgo748: connect session: %w", err)
+	}
+	a.sessionActive = true
+	if a.options.SessionConnected != nil {
+		if err := a.options.SessionConnected(); err != nil {
+			// Keep ownership and the active marker until Application.Close. The
+			// deferred teardown then closes the transport exactly once and runs
+			// SessionDisconnected, including when the callback partially changed
+			// login state before returning an error.
+			return fmt.Errorf("clientgo748: initialize connected session state: %w", err)
+		}
+	}
+	if a.eventSession != nil {
+		if err := a.eventSession.StartReceiving(); err != nil {
+			// As above, defer cleanup to Close so the owned session is not
+			// closed twice and lifecycle callbacks remain balanced.
+			return fmt.Errorf("clientgo748: start session receiver: %w", err)
+		}
 	}
 	return nil
 }

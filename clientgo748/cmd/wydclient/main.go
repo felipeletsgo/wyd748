@@ -59,17 +59,37 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load official login UI: %w", err)
 	}
+	serverTexture, err := assets.LoadWYTFile(serverSelectionTexturePath())
+	if err != nil {
+		return fmt.Errorf("load official server selection UI: %w", err)
+	}
+	var client *app.Application
+	selectedAddress := displayServerAddress(cfg.ServerAddress, serverAddress)
+	session := protocol.NewSession(selectedAddress, protocol.SessionOptions{})
 	options := app.Options{
-		Title:  "WYD 7.48",
-		Width:  cfg.WindowWidth,
-		Height: cfg.WindowHeight,
-		// The login scene owns loginbox.wyt and presents it at native 256x256
+		Title:               "WYD 7.48",
+		Width:               cfg.WindowWidth,
+		Height:              cfg.WindowHeight,
+		InitialSceneID:      loginflow.ServerSelectionSceneID,
+		DeferSessionConnect: true,
+		// The login scene owns loginbox2.wyt and presents it at native 256x256
 		// size. Avoid uploading logo1 first because the current texture API
 		// intentionally owns one active texture at a time.
 		LogoPath: "",
 		SceneFactories: loginflow.SceneFactoriesWithVisuals(state, loginflow.VisualOptions{
 			ShapeRenderer: renderer,
-			LoginTexture:  &loginTexture,
+			ServerTexture: &serverTexture,
+			Servers:       []loginflow.ServerEntry{{Name: "WYD-Go Server", Address: selectedAddress}},
+			SelectServer: func(entry loginflow.ServerEntry) error {
+				if client == nil {
+					return fmt.Errorf("client application is not initialized")
+				}
+				if err := session.SetAddress(entry.Address); err != nil {
+					return err
+				}
+				return client.ConnectSession()
+			},
+			LoginTexture: &loginTexture,
 			Authenticate: func(account string, password []byte) error {
 				if coordinator == nil {
 					return fmt.Errorf("login coordinator is not initialized")
@@ -90,35 +110,32 @@ func run() error {
 			}
 			return coordinator.Synchronize()
 		},
-	}
-	if serverAddress != "" {
-		session := protocol.NewSession(serverAddress, protocol.SessionOptions{})
-		options.Session = session
-		options.SessionConnected = func() error {
+		Session: session,
+		SessionConnected: func() error {
 			if coordinator == nil {
 				return fmt.Errorf("login coordinator is not initialized")
 			}
 			return coordinator.SessionConnected()
-		}
-		options.SessionDisconnected = func() {
+		},
+		SessionDisconnected: func() {
 			if coordinator != nil {
 				coordinator.SessionDisconnected()
 			}
-		}
-		options.SessionEventHandler = func(event protocol.SessionEvent) error {
+		},
+		SessionEventHandler: func(event protocol.SessionEvent) error {
 			if coordinator == nil {
 				return fmt.Errorf("login coordinator is not initialized")
 			}
 			_, err := coordinator.HandleSessionEvent(event)
 			return err
-		}
+		},
 	}
 	if protectedEnabled {
 		options.LogoPath = ""
 		options.LogoSource = protectedSource
 		options.LogoAssetPath = protectedSettings.LogoPath
 	}
-	client, err := app.New(
+	client, err = app.New(
 		options,
 		win32.New(),
 		renderer,
@@ -129,7 +146,7 @@ func run() error {
 		}
 		return err
 	}
-	coordinator, err = loginflow.New(state, sessionSender(options.Session), client, loginflow.Options{})
+	coordinator, err = loginflow.New(state, session, client, loginflow.Options{})
 	if err != nil {
 		_ = client.Close()
 		return err
@@ -139,17 +156,11 @@ func run() error {
 	return client.Run(ctx)
 }
 
-func sessionSender(session protocol.Session) login.Sender {
-	if sender, ok := session.(login.Sender); ok {
-		return sender
+func displayServerAddress(defaultAddress, configuredAddress string) string {
+	if configuredAddress != "" {
+		return configuredAddress
 	}
-	return offlineSender{}
-}
-
-type offlineSender struct{}
-
-func (offlineSender) Send([]byte, byte) error {
-	return fmt.Errorf("login: network session is not configured")
+	return defaultAddress
 }
 
 func initialLogoPath() string {
@@ -164,10 +175,20 @@ func initialLogoPath() string {
 
 func loginTexturePath() string {
 	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "CLIENT OFICIAL 7.48", "UI", "loginbox.wyt"))
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "CLIENT OFICIAL 7.48", "UI", "loginbox2.wyt"))
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
 	}
-	return filepath.Join("CLIENT OFICIAL 7.48", "UI", "loginbox.wyt")
+	return filepath.Join("CLIENT OFICIAL 7.48", "UI", "loginbox2.wyt")
+}
+
+func serverSelectionTexturePath() string {
+	if executable, err := os.Executable(); err == nil {
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "CLIENT OFICIAL 7.48", "UI", "ServerList2.wyt"))
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return filepath.Join("CLIENT OFICIAL 7.48", "UI", "ServerList2.wyt")
 }
