@@ -10,6 +10,7 @@ import (
 	"wydclient748/internal/input"
 	"wydclient748/internal/login"
 	"wydclient748/internal/protocol"
+	"wydclient748/internal/world"
 )
 
 func TestSceneFactoriesValidatePhaseOnEnterAndUpdate(t *testing.T) {
@@ -192,6 +193,39 @@ func (p viewportProbe) EndFrame()                                           {}
 func (p viewportProbe) Close() error                                        { return nil }
 func (p viewportProbe) DrawRect(int32, int32, int32, int32, graphics.Color) {}
 func (p viewportProbe) ClientViewport() (int32, int32)                      { return p.width, p.height }
+
+type worldRenderProbe struct {
+	viewportProbe
+	rects []struct{ x, y, w, h int32 }
+	texts []string
+}
+
+func (r *worldRenderProbe) DrawRect(x, y, w, h int32, _ graphics.Color) {
+	r.rects = append(r.rects, struct{ x, y, w, h int32 }{x, y, w, h})
+}
+func (r *worldRenderProbe) DrawText(_ int32, _ int32, value string, _ int32, _ graphics.Color) {
+	r.texts = append(r.texts, value)
+}
+
+func TestWorldEntityProjectionUsesAuthoritativeSnapshot(t *testing.T) {
+	renderer := &worldRenderProbe{viewportProbe: viewportProbe{width: 800, height: 600}}
+	player := login.WorldSnapshot{ClientID: 7, PosX: 100, PosY: 100}
+	entities := []world.Entity{
+		{ID: 9, PosX: 101, PosY: 100, Name: "Goblin"},
+		{ID: 7, PosX: 100, PosY: 100, Name: "Player"},
+		{ID: 8, PosX: 99, PosY: 100, Name: "Orc"},
+	}
+	drawWorldEntities(renderer, entities, player, 800, 600)
+	if len(renderer.rects) != 2 || len(renderer.texts) != 2 {
+		t.Fatalf("projection rects=%d texts=%d, want 2/2", len(renderer.rects), len(renderer.texts))
+	}
+	if renderer.texts[0] != "Orc" || renderer.texts[1] != "Goblin" {
+		t.Fatalf("entity order=%v, want deterministic ID order", renderer.texts)
+	}
+	if entities[0].ID != 9 {
+		t.Fatalf("caller snapshot was mutated: first id=%d", entities[0].ID)
+	}
+}
 
 func TestServerSelectionRejectsMissingEndpoint(t *testing.T) {
 	state := login.NewSessionState()

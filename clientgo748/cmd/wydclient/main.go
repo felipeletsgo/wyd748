@@ -18,6 +18,7 @@ import (
 	"wydclient748/internal/loginflow"
 	"wydclient748/internal/platform/win32"
 	"wydclient748/internal/protocol"
+	"wydclient748/internal/world"
 )
 
 func main() {
@@ -126,6 +127,12 @@ func run() error {
 					return fmt.Errorf("login coordinator is not initialized")
 				}
 				return coordinator.SelectCharacter(slot, 0, 0)
+			},
+			WorldEntities: func() []world.Entity {
+				if coordinator == nil {
+					return nil
+				}
+				return coordinator.WorldEntities()
 			},
 		}),
 		SessionEventsPerFrame: 64,

@@ -183,8 +183,14 @@ validados antes da mutação; entidades, score, ação, título de trade e remo�
 ficam em estado próprio e são limpos no disconnect/relogin. A integração com o
 `loginflow.Coordinator` mantém o login separado do estado de gameplay.
 
-Ainda pendente: envio de intenção de caminhada, terreno/mesh, desenho das
-entidades e execução manual contra o servidor.
+Implementado nesta unidade: `worldScene` recebe uma fonte de snapshots do
+coordenador e desenha entidades autoritativas relativas ao personagem, com
+ordenação determinística, nomes diagnósticos em inglês e exclusão do próprio
+personagem. A cena ordena uma cópia e não retém nem altera o estado do
+coordenador.
+
+Ainda pendente: envio de intenção de caminhada, terreno/mesh, renderização
+final de personagens e execução manual contra o servidor.
 
 ### 5a. Pipeline de assets orientado ao produto — em andamento
 

@@ -3,6 +3,7 @@ package loginflow
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"wydclient748/internal/assets"
@@ -11,6 +12,7 @@ import (
 	"wydclient748/internal/login"
 	"wydclient748/internal/scene"
 	"wydclient748/internal/ui"
+	"wydclient748/internal/world"
 )
 
 var errNoCharacterSelected = errors.New("loginflow: no character selected")
@@ -36,6 +38,9 @@ type VisualOptions struct {
 	LoginLogoRight  *assets.Texture
 	Authenticate    func(account string, password []byte) error
 	SelectCharacter func(slot int32) error
+	// WorldEntities returns a defensive snapshot owned by the coordinator.
+	// The scene never retains or mutates the returned slice.
+	WorldEntities func() []world.Entity
 }
 
 func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions) map[scene.ID]scene.Factory {
@@ -66,7 +71,7 @@ func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions)
 		},
 		WorldSceneID: func() (scene.Scene, error) {
 			if options.ShapeRenderer != nil {
-				return newWorldScene(state, options.ShapeRenderer)
+				return newWorldScene(state, options.ShapeRenderer, options.WorldEntities)
 			}
 			return newStateScene(WorldSceneID, state, login.InWorld, login.LoggingOut)
 		},
@@ -533,15 +538,16 @@ func (s *loadingScene) validate() error {
 }
 
 type worldScene struct {
-	state    *login.SessionState
-	renderer graphics.ShapeRenderer
+	state         *login.SessionState
+	renderer      graphics.ShapeRenderer
+	worldEntities func() []world.Entity
 }
 
-func newWorldScene(state *login.SessionState, renderer graphics.ShapeRenderer) (scene.Scene, error) {
+func newWorldScene(state *login.SessionState, renderer graphics.ShapeRenderer, entities func() []world.Entity) (scene.Scene, error) {
 	if state == nil {
 		return nil, errors.New("loginflow: session state is required")
 	}
-	return &worldScene{state: state, renderer: renderer}, nil
+	return &worldScene{state: state, renderer: renderer, worldEntities: entities}, nil
 }
 func (s *worldScene) ID() scene.ID                  { return WorldSceneID }
 func (s *worldScene) Enter() error                  { return s.validate() }
@@ -574,6 +580,10 @@ func (s *worldScene) Render() error {
 	}
 	playerX, playerY := width/2-8, (height+72)/2-8
 	s.renderer.DrawRect(playerX, playerY, 16, 16, graphics.Color{R: .25, G: .75, B: .95, A: 1})
+	if s.worldEntities != nil {
+		entities := s.worldEntities()
+		drawWorldEntities(s.renderer, entities, snapshot, width, height)
+	}
 	if text, ok := s.renderer.(graphics.TextRenderer); ok {
 		text.DrawText(16, 16, "WORLD", 14, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		text.DrawText(16, 38, fmt.Sprintf("Position: %d, %d", snapshot.PosX, snapshot.PosY), 11, graphics.Color{R: .78, G: .84, B: .90, A: 1})
@@ -584,6 +594,38 @@ func (s *worldScene) Render() error {
 		text.DrawText(playerX-24, playerY-20, name, 10, graphics.Color{R: .75, G: .90, B: 1, A: 1})
 	}
 	return nil
+}
+
+// drawWorldEntities only projects an immutable server snapshot onto the
+// diagnostic surface. It deliberately does not interpolate, create or remove
+// entities; those decisions remain in world.State and the server.
+func drawWorldEntities(renderer graphics.ShapeRenderer, entities []world.Entity, player login.WorldSnapshot, width, height int32) {
+	if renderer == nil || len(entities) == 0 {
+		return
+	}
+	ordered := append([]world.Entity(nil), entities...)
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].ID < ordered[j].ID })
+	text, hasText := renderer.(graphics.TextRenderer)
+	for _, entity := range ordered {
+		if entity.ID == player.ClientID {
+			continue
+		}
+		dx := int32(entity.PosX) - int32(player.PosX)
+		dy := int32(entity.PosY) - int32(player.PosY)
+		x := width/2 + dx*8 - 6
+		y := (height+72)/2 + dy*8 - 6
+		if x < -12 || y < 60 || x > width+12 || y > height+12 {
+			continue
+		}
+		renderer.DrawRect(x, y, 12, 12, graphics.Color{R: .92, G: .42, B: .24, A: 1})
+		if hasText {
+			name := entity.Name
+			if name == "" {
+				name = "Mob"
+			}
+			text.DrawText(x-12, y-16, name, 9, graphics.Color{R: 1, G: .78, B: .68, A: 1})
+		}
+	}
 }
 func (s *worldScene) Exit() error  { return nil }
 func (s *worldScene) Close() error { return nil }
