@@ -155,8 +155,12 @@ sem o canal selecionado. A cópia ativa `assets/current` contém somente os asse
 `loginbox.wyt`, `loginicon.wyt`, `LoginScene.bin` e `SelServerScene.bin`
 permanecem apenas no corpus oficial read-only para referência nativa.
 
-Ainda falta a execução contra o servidor real e a validação manual do
-executável Windows.
+O servidor WYD-Go foi iniciado em `127.0.0.1:8281` com PostgreSQL local e
+carregou o catálogo autoritativo, incluindo 36 teleportes, 104 skills e 355
+volatiles. O executável Go também iniciou e permaneceu responsivo nesse
+ambiente. A sessão disponível não possui automação de janelas nativas, portanto
+o clique em `CONNECT`, o login, a seleção de personagem e o relogin ainda não
+foram observados; essa lacuna não é promovida a `CLIENT_TESTED`.
 
 Aceite restante: um personagem entra no mundo, recebe estado inicial e
 consegue sair e entrar novamente sem crash ou dados antigos no client.
@@ -281,7 +285,7 @@ exclusivamente pelo estado atualizado na thread principal; `Application` chama
 o sincronizador depois dos eventos de sessão/input e antes do update da cena.
 
 Próximo gate: executar o ciclo completo contra o WYD-Go, incluindo logout e
-relogin real, antes de iniciar o mundo mínimo. A fonte/atlas nativo de texto e
-os assets de personagem permanecem uma etapa visual posterior; seleção,
-loading e mundo ainda usam composição provisória até cada binding de asset ser
-confirmado.
+relogin real, em uma sessão com controle de janela nativa. A fonte/atlas nativo
+de texto e os assets de personagem permanecem uma etapa visual posterior;
+seleção, loading e mundo ainda usam composição provisória até cada binding de
+asset ser confirmado.
