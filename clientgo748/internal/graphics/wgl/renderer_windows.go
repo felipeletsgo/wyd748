@@ -7,12 +7,15 @@ package wgl
 import (
 	"errors"
 	"fmt"
+	"runtime"
 	"structs"
 	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
 	"golang.org/x/sys/windows"
+
+	"wydclient748/internal/assets"
 )
 
 const (
@@ -23,6 +26,16 @@ const (
 	pfdMainPlane     = int8(0)
 	glColorBufferBit = uint32(0x00004000)
 	glDepthBufferBit = uint32(0x00000100)
+	glTexture2D      = uint32(0x0DE1)
+	glRGBA           = uint32(0x1908)
+	glUnsignedByte   = uint32(0x1401)
+	glTextureMin     = uint32(0x2801)
+	glTextureMag     = uint32(0x2800)
+	glLinear         = int32(0x2601)
+	glBlend          = uint32(0x0BE2)
+	glSrcAlpha       = uint32(0x0302)
+	glOneMinusSrcA   = uint32(0x0303)
+	glQuads          = uint32(0x0007)
 )
 
 type rect struct {
@@ -73,6 +86,18 @@ type api struct {
 	clearColor        func(float32, float32, float32, float32)
 	clear             func(uint32)
 	viewport          func(int32, int32, int32, int32)
+	genTextures       func(int32, *uint32)
+	deleteTextures    func(int32, *uint32)
+	bindTexture       func(uint32, uint32)
+	texParameteri     func(uint32, uint32, int32)
+	texImage2D        func(uint32, int32, int32, int32, int32, int32, uint32, uint32, unsafe.Pointer)
+	enable            func(uint32)
+	disable           func(uint32)
+	blendFunc         func(uint32, uint32)
+	begin             func(uint32)
+	end               func()
+	texCoord2f        func(float32, float32)
+	vertex2f          func(float32, float32)
 }
 
 var (
@@ -83,10 +108,13 @@ var (
 
 // Renderer possui um HDC e um HGLRC enquanto initialized for verdadeiro.
 type Renderer struct {
-	windowHandle uintptr
-	dc           uintptr
-	context      uintptr
-	initialized  bool
+	windowHandle  uintptr
+	dc            uintptr
+	context       uintptr
+	initialized   bool
+	texture       uint32
+	textureWidth  int32
+	textureHeight int32
 }
 
 // New cria um renderer ainda sem recursos externos.
@@ -183,6 +211,75 @@ func (r *Renderer) EndFrame() {
 	}
 }
 
+// UploadTexture owns a copy of the decoded pixel data inside the OpenGL
+// texture. The caller may release the Texture immediately after this call.
+func (r *Renderer) UploadTexture(texture assets.Texture) error {
+	if !r.initialized {
+		return errors.New("clientgo748: renderer is not initialized")
+	}
+	if texture.Width == 0 || texture.Height == 0 {
+		return errors.New("clientgo748: texture dimensions must be non-zero")
+	}
+	want := uint64(texture.Width) * uint64(texture.Height) * 4
+	if uint64(len(texture.Pixels)) != want {
+		return fmt.Errorf("clientgo748: texture pixel length is %d, want %d", len(texture.Pixels), want)
+	}
+	a := sharedAPI
+	var id uint32
+	a.genTextures(1, &id)
+	if id == 0 {
+		return errors.New("clientgo748: OpenGL did not create a texture")
+	}
+	a.bindTexture(glTexture2D, id)
+	a.texParameteri(glTexture2D, glTextureMin, glLinear)
+	a.texParameteri(glTexture2D, glTextureMag, glLinear)
+	a.texImage2D(
+		glTexture2D,
+		0,
+		int32(glRGBA),
+		int32(texture.Width),
+		int32(texture.Height),
+		0,
+		glRGBA,
+		glUnsignedByte,
+		unsafe.Pointer(&texture.Pixels[0]),
+	)
+	runtime.KeepAlive(texture.Pixels)
+	if r.texture != 0 {
+		a.deleteTextures(1, &r.texture)
+	}
+	r.texture = id
+	r.textureWidth = int32(texture.Width)
+	r.textureHeight = int32(texture.Height)
+	return nil
+}
+
+// DrawTexture draws the initial texture as a full-window quad. Later scenes
+// will replace this presentation step with their own scene graph.
+func (r *Renderer) DrawTexture() {
+	if !r.initialized || r.texture == 0 {
+		return
+	}
+	a := sharedAPI
+	a.enable(glTexture2D)
+	a.enable(glBlend)
+	a.blendFunc(glSrcAlpha, glOneMinusSrcA)
+	a.bindTexture(glTexture2D, r.texture)
+	a.begin(glQuads)
+	// The decoded buffer is top-left origin; invert T so the logo is upright.
+	a.texCoord2f(0, 1)
+	a.vertex2f(-1, -1)
+	a.texCoord2f(1, 1)
+	a.vertex2f(1, -1)
+	a.texCoord2f(1, 0)
+	a.vertex2f(1, 1)
+	a.texCoord2f(0, 0)
+	a.vertex2f(-1, 1)
+	a.end()
+	a.disable(glBlend)
+	a.disable(glTexture2D)
+}
+
 // Close desfaz o contexto corrente, destrói o HGLRC e libera o DC, sempre
 // tentando todos os passos. Chamadas posteriores não repetem o teardown.
 func (r *Renderer) Close() error {
@@ -191,10 +288,15 @@ func (r *Renderer) Close() error {
 	}
 	a := sharedAPI
 	windowHandle, dc, context := r.windowHandle, r.dc, r.context
-	r.windowHandle, r.dc, r.context = 0, 0, 0
+	texture := r.texture
+	r.windowHandle, r.dc, r.context, r.texture = 0, 0, 0, 0
+	r.textureWidth, r.textureHeight = 0, 0
 	r.initialized = false
 
 	var errs []error
+	if texture != 0 {
+		a.deleteTextures(1, &texture)
+	}
 	if a.makeCurrent(0, 0) == 0 {
 		errs = append(errs, lastError("release the current OpenGL context"))
 	}
@@ -236,6 +338,18 @@ func loadAPI() (*api, error) {
 		purego.RegisterLibFunc(&a.clearColor, opengl32.Handle(), "glClearColor")
 		purego.RegisterLibFunc(&a.clear, opengl32.Handle(), "glClear")
 		purego.RegisterLibFunc(&a.viewport, opengl32.Handle(), "glViewport")
+		purego.RegisterLibFunc(&a.genTextures, opengl32.Handle(), "glGenTextures")
+		purego.RegisterLibFunc(&a.deleteTextures, opengl32.Handle(), "glDeleteTextures")
+		purego.RegisterLibFunc(&a.bindTexture, opengl32.Handle(), "glBindTexture")
+		purego.RegisterLibFunc(&a.texParameteri, opengl32.Handle(), "glTexParameteri")
+		purego.RegisterLibFunc(&a.texImage2D, opengl32.Handle(), "glTexImage2D")
+		purego.RegisterLibFunc(&a.enable, opengl32.Handle(), "glEnable")
+		purego.RegisterLibFunc(&a.disable, opengl32.Handle(), "glDisable")
+		purego.RegisterLibFunc(&a.blendFunc, opengl32.Handle(), "glBlendFunc")
+		purego.RegisterLibFunc(&a.begin, opengl32.Handle(), "glBegin")
+		purego.RegisterLibFunc(&a.end, opengl32.Handle(), "glEnd")
+		purego.RegisterLibFunc(&a.texCoord2f, opengl32.Handle(), "glTexCoord2f")
+		purego.RegisterLibFunc(&a.vertex2f, opengl32.Handle(), "glVertex2f")
 		sharedAPI = a
 	})
 	return sharedAPI, apiErr

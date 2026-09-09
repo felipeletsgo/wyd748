@@ -27,6 +27,25 @@ O validador das fichas reproduz, no snapshot atual, `CLIENT_TESTED=1`,
 `CONTRACT=46`, `TRACED=19`, `LOCATED=8` e `UNMAPPED=2`. Esses números são das
 fichas de transição e não devem ser somados aos estados por função do censo.
 
+## Primeira unidade executável do client Go
+
+A primeira fatia vertical foi fechada no fluxo de render/assets:
+
+```text
+WT10 oficial -> parser TGA seguro -> RGBA8 próprio -> OpenGL/WGL -> logo -> teardown
+```
+
+O contrato está documentado em
+`references/research/flows/render-assets/initial-server-logo-texture.md`.
+`internal/assets.ParseWYT` cobre os três formatos observados no corpus oficial
+(16, 24 e 32 bpp), normaliza a origem da imagem e rejeita assinatura inválida,
+truncamento, rodadas não suportadas, dimensões inseguras e trailers inválidos.
+O bootstrap Windows carrega `logo1.wyt`, faz o upload para OpenGL e destrói a
+textura antes do contexto. Os testes automatizados cobrem pixels sintéticos e
+o asset oficial; o smoke test real cobre janela, resize, `WM_CLOSE` e Alt+F4.
+Isso não declara ainda uma validação visual manual do logo nem paridade de
+outras cenas.
+
 ## Ordem de autoridade
 
 1. código/testes atuais do WYD-Go e dados autoritativos;
@@ -109,7 +128,8 @@ client.
 3. Atualizar uma ficha em `references/research/flows/` com a matriz de fontes,
    decisão (`portar`, `manter`, `modernizar`, `estender` etc.) e lacunas.
 4. Só então implementar a unidade Go e validar parser, lifecycle e contrato.
-5. Executar os comandos reproduzíveis de `references/REPRODUCE.md`.
+5. Executar os comandos reproduzíveis de `references/REPRODUCE.md` e manter o
+   manifesto atualizado após cada unidade.
 
 Os snapshots de auditoria e a implementação vivem neste diretório. O módulo
 `wydclient748` é independente do módulo Go do servidor. Os arquivos sob

@@ -69,12 +69,11 @@ O plano de cobertura e as lacunas reais estão em [`MAPPING.md`](MAPPING.md).
 As próximas unidades devem seguir a fila em
 `references/catalog/research-queue.tsv`, fechando uma transição nativa por vez.
 
-1. fechar o smoke test real de janela, resize e encerramento;
-2. rastrear no client nativo o loader da primeira textura oficial;
-3. criar `assetc` em Go para transformar esse asset em formato versionado;
-4. renderizar o primeiro asset e fechar seu lifecycle gráfico;
-5. adicionar manifesto assinado e pacote criptografado;
-6. implementar transporte, login, seleção de personagem e entrada no mundo.
+1. criar `assetc` em Go para transformar os assets decodificados em formato
+   versionado;
+2. adicionar manifesto assinado e pacote criptografado;
+3. rastrear e implementar transporte, login, seleção de personagem e entrada
+   no mundo.
 
 Cada unidade deve compilar e ser validada antes da seguinte. Os arquivos
 originais continuam sendo a fonte e não serão sobrescritos pelo conversor.

@@ -1,6 +1,6 @@
 // Command wydclient compõe o primeiro processo gráfico real do client Go 7.48.
-// A janela e o contexto já são concretos; scene, rede e assets permanecem fora
-// até que seus contratos nativos sejam rastreados e implementados.
+// A janela, o contexto e a primeira cena de textura já são concretos; rede e
+// cenas de gameplay serão adicionadas somente após seus contratos nativos.
 package main
 
 import (
@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"wydclient748/internal/app"
 	"wydclient748/internal/config"
@@ -29,7 +30,12 @@ func run() error {
 	}
 
 	client, err := app.New(
-		app.Options{Title: "WYD 7.48", Width: cfg.WindowWidth, Height: cfg.WindowHeight},
+		app.Options{
+			Title:    "WYD 7.48",
+			Width:    cfg.WindowWidth,
+			Height:   cfg.WindowHeight,
+			LogoPath: initialLogoPath(),
+		},
 		win32.New(),
 		wgl.New(),
 	)
@@ -39,4 +45,14 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	return client.Run(ctx)
+}
+
+func initialLogoPath() string {
+	if executable, err := os.Executable(); err == nil {
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "CLIENT OFICIAL 7.48", "UI", "logo1.wyt"))
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return filepath.Join("CLIENT OFICIAL 7.48", "UI", "logo1.wyt")
 }

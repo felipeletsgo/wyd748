@@ -5,7 +5,11 @@
 // separados para que nenhum formato histórico vaze para esta fronteira.
 package graphics
 
-import "errors"
+import (
+	"errors"
+
+	"wydclient748/internal/assets"
+)
 
 // ErrNotImplemented marca operações de render ainda não oferecidas por um
 // backend. Retornar um erro explícito é preferível a simular uma cena ou
@@ -20,4 +24,13 @@ type Renderer interface {
 	BeginFrame()
 	EndFrame()
 	Close() error
+}
+
+// TextureRenderer is the optional first-scene extension of Renderer. Keeping
+// it separate preserves the small lifecycle interface for headless tests and
+// for future backends that do not use OpenGL.
+type TextureRenderer interface {
+	Renderer
+	UploadTexture(assets.Texture) error
+	DrawTexture()
 }

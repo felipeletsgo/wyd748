@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sync"
 
+	"wydclient748/internal/assets"
 	"wydclient748/internal/graphics"
 	"wydclient748/internal/platform"
 )
@@ -19,13 +20,17 @@ type Options struct {
 	Title  string
 	Width  int
 	Height int
+	// LogoPath is optional for headless lifecycle tests. When set, the first
+	// scene loads this official texture before entering the frame loop.
+	LogoPath string
 }
 
 // Application possui janela e renderer depois que cada estágio conclui.
 type Application struct {
-	options  Options
-	window   platform.Window
-	renderer graphics.Renderer
+	options         Options
+	window          platform.Window
+	renderer        graphics.Renderer
+	textureRenderer graphics.TextureRenderer
 
 	windowOwned   bool
 	rendererOwned bool
@@ -65,6 +70,20 @@ func (a *Application) Run(ctx context.Context) (err error) {
 		return fmt.Errorf("clientgo748: initialize renderer: %w", err)
 	}
 	a.rendererOwned = true
+	if a.options.LogoPath != "" {
+		textureRenderer, ok := a.renderer.(graphics.TextureRenderer)
+		if !ok {
+			return fmt.Errorf("clientgo748: renderer does not support the initial texture scene")
+		}
+		texture, err := assets.LoadWYTFile(a.options.LogoPath)
+		if err != nil {
+			return fmt.Errorf("clientgo748: load initial logo: %w", err)
+		}
+		if err := textureRenderer.UploadTexture(texture); err != nil {
+			return fmt.Errorf("clientgo748: upload initial logo: %w", err)
+		}
+		a.textureRenderer = textureRenderer
+	}
 
 	for !a.window.ShouldClose() {
 		select {
@@ -77,6 +96,9 @@ func (a *Application) Run(ctx context.Context) (err error) {
 			break
 		}
 		a.renderer.BeginFrame()
+		if a.textureRenderer != nil {
+			a.textureRenderer.DrawTexture()
+		}
 		a.renderer.EndFrame()
 	}
 	return nil
