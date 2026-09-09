@@ -21,9 +21,9 @@ Já concluído:
 
 O transporte/framing já foi implementado e integrado ao lifecycle da aplicação,
 mas ainda não foi exercitado contra o servidor real. Os layouts, parsers, a
-máquina de estados, a fila de eventos do socket e o dispatcher de login estão
-implementados e cobertos por testes automatizados. O controller de envios, as
-cenas do fluxo real, mundo e UI de gameplay continuam pendentes.
+máquina de estados, a fila de eventos do socket, o dispatcher e o controller de
+login estão implementados e cobertos por testes automatizados. As cenas do
+fluxo real, mundo e UI de gameplay continuam pendentes.
 
 ## Ordem de implementação
 
@@ -108,13 +108,21 @@ Implementado nesta unidade:
   desconexão, logout e relogin sem reutilizar snapshot;
 - `internal/login.Dispatcher` para `0x10A`, `0x114` e `0x116`, com rejeição de
   packets na direção errada e composição futura com os domínios de mundo/UI;
+- `internal/login.Controller` para os envios `0x20D`, `0x213` e `0x215`, com
+  `Tick` e `KeyWord` injetáveis, envio único e rollback quando o transporte não
+  aceita o packet;
+- geração padrão de `KeyWord` por `crypto/rand`, preservando o campo de um byte
+  do wire nativo sem reproduzir a dependência histórica de `_rand()`;
+- limpeza da senha fornecida e dos packets temporários em sucesso, rejeição e
+  falha de envio;
+- callbacks de conexão/desconexão no lifecycle da aplicação, publicados
+  somente depois do handshake e limpos depois do fechamento da sessão;
 - testes byte a byte de tamanhos, offsets, campos reservados, truncamento,
-  duplicação, respostas fora de ordem, desconexão e relogin.
+  duplicação, respostas fora de ordem, falhas de envio, desconexão e relogin.
 
 Estado: `CONTRACT` nativo e `AUTOMATED TESTED` no pacote Go. A entrega dos
-packets pela sessão à thread principal e o dispatcher estão implementados.
-Ainda faltam o controller de envios, as cenas e a execução contra o servidor
-real.
+packets pela sessão à thread principal, o dispatcher e o controller de envios
+estão implementados. Ainda faltam as cenas e a execução contra o servidor real.
 
 Aceite restante: um personagem entra no mundo, recebe estado inicial e
 consegue sair e entrar novamente sem crash ou dados antigos no client.
@@ -174,8 +182,7 @@ unidade aprovada deve ser commitada diretamente em `main`, publicada em
 
 ## Próxima ação concreta
 
-Implementar o controller de login responsável pelos envios `0x20D`, `0x213` e
-`0x215`, sem reter senha além da tentativa ativa. Em seguida, criar as cenas
-mínimas Login → CharacterSelect → Loading → World, dirigidas exclusivamente
-pelo estado atualizado na thread principal. Depois, executar o ciclo completo
-contra o WYD-Go e fechar logout/relogin real antes de iniciar o mundo mínimo.
+Criar as cenas mínimas Login → CharacterSelect → Loading → World, dirigidas
+exclusivamente pelo estado atualizado na thread principal e pelo controller de
+login já implementado. Depois, executar o ciclo completo contra o WYD-Go e
+fechar logout/relogin real antes de iniciar o mundo mínimo.

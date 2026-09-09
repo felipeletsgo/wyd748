@@ -96,6 +96,17 @@ func (s *SessionState) BeginAuthentication(request AccountLoginRequest) ([]byte,
 	return packet, nil
 }
 
+// CancelAuthentication desfaz somente uma tentativa que não chegou ao
+// servidor. Uma resposta inválida mantém Authenticating para que a política de
+// erro da sessão decida entre nova resposta e desconexão.
+func (s *SessionState) CancelAuthentication() error {
+	if s == nil || s.phase != Authenticating {
+		return stateError(s, Authenticating)
+	}
+	s.phase = Connecting
+	return nil
+}
+
 // AcceptCharacterList interpreta em temporário e só então substitui a lista.
 func (s *SessionState) AcceptCharacterList(packet protocol.Packet) error {
 	if s == nil || s.phase != Authenticating {

@@ -45,6 +45,11 @@ type Options struct {
 	// Application owns its lifecycle: it connects before the first scene and
 	// closes it before any scene or renderer resource is torn down.
 	Session protocol.Session
+	// SessionConnected executa na thread principal imediatamente depois de o
+	// handshake concluir. SessionDisconnected executa depois de Close sempre
+	// que a conexão chegou a ficar ativa, inclusive em falha parcial posterior.
+	SessionConnected    func() error
+	SessionDisconnected func()
 	// SessionEventHandler é executado na thread principal para cada evento já
 	// recebido. Quando configurado, Session deve implementar EventSession.
 	SessionEventHandler   func(protocol.SessionEvent) error
@@ -62,6 +67,7 @@ type Application struct {
 	rendererOwned bool
 	sourceOwned   bool
 	sessionOwned  bool
+	sessionActive bool
 	eventSession  protocol.EventSession
 	sceneManager  *scene.Manager
 	closeOnce     sync.Once
@@ -84,6 +90,9 @@ func New(options Options, window platform.Window, renderer graphics.Renderer) (*
 	}
 	if options.LogoSource != nil && options.LogoAssetPath == "" {
 		return nil, fmt.Errorf("clientgo748: logo asset path is required when a source is configured")
+	}
+	if (options.SessionConnected != nil || options.SessionDisconnected != nil) && options.Session == nil {
+		return nil, fmt.Errorf("clientgo748: session is required for session lifecycle callbacks")
 	}
 	var eventSession protocol.EventSession
 	if options.SessionEventHandler != nil {
@@ -127,6 +136,12 @@ func (a *Application) Run(ctx context.Context) (err error) {
 	if a.options.Session != nil {
 		if err := a.options.Session.Connect(); err != nil {
 			return fmt.Errorf("clientgo748: connect session: %w", err)
+		}
+		a.sessionActive = true
+		if a.options.SessionConnected != nil {
+			if err := a.options.SessionConnected(); err != nil {
+				return fmt.Errorf("clientgo748: initialize connected session state: %w", err)
+			}
 		}
 	}
 	if a.eventSession != nil {
@@ -262,6 +277,12 @@ func (a *Application) Close() error {
 			a.sessionOwned = false
 			if err := a.options.Session.Close(); err != nil {
 				errs = append(errs, fmt.Errorf("clientgo748: close session: %w", err))
+			}
+		}
+		if a.sessionActive {
+			a.sessionActive = false
+			if a.options.SessionDisconnected != nil {
+				a.options.SessionDisconnected()
 			}
 		}
 		if a.sceneManager != nil {

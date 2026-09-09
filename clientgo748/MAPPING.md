@@ -208,3 +208,8 @@ client.
 Os snapshots de auditoria e a implementação vivem neste diretório. O módulo
 `wydclient748` é independente do módulo Go do servidor. Os arquivos sob
 `references/tmproject/` são leitura de comparação, não código ativo.
+
+No fluxo de login, layouts, parsers, estado, dispatcher e controller já estão
+implementados e testados automaticamente. O próximo lote liga esse estado às
+cenas `Login`, `CharacterSelect`, `Loading` e `World`, seguido do teste real de
+login, logout e relogin contra o WYD-Go.

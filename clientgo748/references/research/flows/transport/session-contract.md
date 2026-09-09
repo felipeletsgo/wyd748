@@ -118,8 +118,10 @@ estado da sessão.
 ### Cleanup e teardown
 
 O fechamento deve ser idempotente, fechar o socket, interromper leituras
-pendentes e liberar a fila. A sessão Go não inicia uma goroutine de leitura
-própria nesta unidade; o owner do dispatcher decide quando chamar `Receive`.
+pendentes e liberar a fila. A sessão Go inicia uma única goroutine de leitura,
+que publica packets e desconexão numa fila limitada. A thread principal drena
+essa fila antes do update da cena; a goroutine do socket não chama gameplay nem
+muta estado de login diretamente.
 
 ### Shutdown
 
@@ -161,8 +163,9 @@ dispatcher e cena serão conectados em fichas posteriores.
 - `clientgo748/internal/protocol/protocol_test.go` cobre round-trip, fingerprint,
   fragmentação, checksum, tamanho, handshake, escrita parcial e leitura.
 - `clientgo748/internal/app/application.go` conecta a sessão opcional ao
-  lifecycle da aplicação; `application_test.go` verifica `Connect`, `Close` e
-  a ordem de fechamento da sessão antes do renderer.
+  lifecycle da aplicação; `application_test.go` verifica `Connect`, os
+  callbacks de estado conectado/desconectado, falhas parciais, `Close` e a
+  ordem de fechamento da sessão antes do renderer.
 
 ### WYD-Go
 

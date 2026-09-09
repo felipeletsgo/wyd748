@@ -9,6 +9,7 @@ import (
 
 	"wydclient748/internal/assets"
 	"wydclient748/internal/input"
+	"wydclient748/internal/login"
 	"wydclient748/internal/protocol"
 	"wydclient748/internal/scene"
 )
@@ -212,6 +213,114 @@ func TestApplicationOwnsSessionAndClosesItBeforeSceneResources(t *testing.T) {
 	}
 	if !reflect.DeepEqual(events, want) {
 		t.Fatalf("events = %v, want %v", events, want)
+	}
+}
+
+func TestApplicationBeginsAndClearsLoginStateAroundConnectedSession(t *testing.T) {
+	var events []string
+	state := login.NewSessionState()
+	session := &fakeSession{events: &events}
+	application, err := New(Options{
+		Title:   "WYD 7.48",
+		Width:   800,
+		Height:  600,
+		Session: session,
+		SessionConnected: func() error {
+			events = append(events, "session.connected")
+			return state.BeginConnect()
+		},
+		SessionDisconnected: func() {
+			events = append(events, "session.disconnected")
+			state.Disconnect()
+		},
+	}, &fakeWindow{events: &events, pollsUntilClose: 1}, &fakeRenderer{events: &events})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := application.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if state.Phase() != login.Disconnected {
+		t.Fatalf("final login phase=%s want Disconnected", state.Phase())
+	}
+	want := []string{
+		"window.open", "renderer.initialize", "session.connect", "session.connected",
+		"window.poll", "session.close", "session.disconnected", "renderer.close", "window.close",
+	}
+	if !reflect.DeepEqual(events, want) {
+		t.Fatalf("events=%v want %v", events, want)
+	}
+}
+
+func TestApplicationConnectionFailureDoesNotPublishConnectedState(t *testing.T) {
+	var events []string
+	connectErr := errors.New("connect failed")
+	connectedCalls := 0
+	disconnectedCalls := 0
+	application, err := New(Options{
+		Title:   "WYD 7.48",
+		Width:   800,
+		Height:  600,
+		Session: &fakeSession{events: &events, connectErr: connectErr},
+		SessionConnected: func() error {
+			connectedCalls++
+			return nil
+		},
+		SessionDisconnected: func() {
+			disconnectedCalls++
+		},
+	}, &fakeWindow{events: &events}, &fakeRenderer{events: &events})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = application.Run(context.Background())
+	if !errors.Is(err, connectErr) {
+		t.Fatalf("Run error=%v want connect failure", err)
+	}
+	if connectedCalls != 0 || disconnectedCalls != 0 {
+		t.Fatalf("lifecycle calls connected=%d disconnected=%d want zero", connectedCalls, disconnectedCalls)
+	}
+}
+
+func TestApplicationReceiveFailureClearsPublishedLoginState(t *testing.T) {
+	var events []string
+	state := login.NewSessionState()
+	startErr := errors.New("receiver failed")
+	session := &fakeEventSession{
+		fakeSession: fakeSession{events: &events},
+		startErr:    startErr,
+	}
+	application, err := New(Options{
+		Title:               "WYD 7.48",
+		Width:               800,
+		Height:              600,
+		Session:             session,
+		SessionEventHandler: func(protocol.SessionEvent) error { return nil },
+		SessionConnected:    state.BeginConnect,
+		SessionDisconnected: state.Disconnect,
+	}, &fakeWindow{events: &events}, &fakeRenderer{events: &events})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = application.Run(context.Background())
+	if !errors.Is(err, startErr) {
+		t.Fatalf("Run error=%v want receiver failure", err)
+	}
+	if state.Phase() != login.Disconnected {
+		t.Fatalf("phase=%s want Disconnected after receiver failure", state.Phase())
+	}
+}
+
+func TestApplicationSessionLifecycleCallbacksRequireSession(t *testing.T) {
+	var events []string
+	_, err := New(Options{
+		Title:            "WYD 7.48",
+		Width:            800,
+		Height:           600,
+		SessionConnected: func() error { return nil },
+	}, &fakeWindow{events: &events}, &fakeRenderer{events: &events})
+	if err == nil {
+		t.Fatal("New accepted lifecycle callbacks without a session")
 	}
 }
 

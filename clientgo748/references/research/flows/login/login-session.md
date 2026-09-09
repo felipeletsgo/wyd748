@@ -118,7 +118,9 @@ O transporte possui os bytes recebidos até produzir um `protocol.Packet`, que
 possui sua cópia decifrada. O pacote `login` interpreta primeiro em valores
 temporários e só transfere o agregado completo para o estado da sessão depois
 da validação. Senha e packet de autenticação não ficam armazenados no estado de
-seleção. A cena de mundo recebe uma cópia do snapshot aceito.
+seleção. O controller apaga a senha fornecida e o packet temporário em todos os
+caminhos depois que `Send` retorna. A cena de mundo recebe uma cópia do snapshot
+aceito.
 
 ### Falha parcial
 
@@ -176,9 +178,16 @@ fragmentação, escrita parcial e ownership. Sua goroutine leitora transfere
 packets e desconexão por uma fila limitada; `internal/app.Application` drena
 essa fila na thread principal antes de atualizar a cena. `internal/login` é o
 único owner dos layouts acima e não é importado por `protocol`, evitando ciclo
-e mistura entre transporte e gameplay. Seus builders, parsers, `SessionState`
-e `Dispatcher` cobrem autenticação, seleção, entrada, logout, desconexão e
-relogin em valores independentes do buffer recebido.
+e mistura entre transporte e gameplay. Seus builders, parsers, `SessionState`,
+`Dispatcher` e `Controller` cobrem autenticação, seleção, entrada, logout,
+desconexão, rollback de envio e relogin em valores independentes do buffer
+recebido.
+
+O `KeyWord` preserva o campo nativo de um byte. No fluxo histórico,
+`FUN_00424DFE` usa o byte baixo de `_rand()` quando recebe zero; no client Go o
+valor padrão vem de `crypto/rand`, com fonte injetável nos testes. Esta é uma
+`MODERNIZACAO_COMPATIVEL`: não altera tamanho, posição, cifra nem interpretação
+do servidor e evita compartilhar estado pseudoaleatório global.
 
 ### WYD-Go
 
@@ -211,8 +220,8 @@ e publica `wire.EnterWorld` antes dos demais packets de sincronização.
 
 ## Lacunas
 
-- O controller dos envios `0x20D`, `0x213` e `0x215` ainda deve ser ligado ao
-  transporte e às cenas Go.
+- O controller dos envios `0x20D`, `0x213` e `0x215` ainda deve ser ligado às
+  cenas Go; sua fronteira de transporte já está implementada e testada.
 - As cenas Login, CharacterSelect, Loading e World ainda devem reagir às
   transições já publicadas na thread principal.
 - Falhas de autenticação publicadas por outros opcodes terão contratos próprios
