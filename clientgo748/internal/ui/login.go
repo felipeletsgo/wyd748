@@ -125,6 +125,13 @@ func (f *LoginForm) submit() error {
 // Login button are supplied by the official loginbox2.wyt artwork; no
 // synthetic rectangle or duplicate label is used as a user-facing control.
 func (f *LoginForm) Render(renderer graphics.ShapeRenderer) {
+	f.RenderAt(renderer, 356, 245, 356, 281, 300, 390)
+}
+
+// RenderAt draws the dynamic values at coordinates belonging to the official
+// panel. Keeping coordinates supplied by the scene prevents text from
+// drifting away from the artwork when the viewport is centered or resized.
+func (f *LoginForm) RenderAt(renderer graphics.ShapeRenderer, accountX, accountY, passwordX, passwordY, statusX, statusY int32) {
 	if f == nil || renderer == nil {
 		return
 	}
@@ -139,19 +146,19 @@ func (f *LoginForm) Render(renderer graphics.ShapeRenderer) {
 		account = "ENTER ACCOUNT"
 		muted = graphics.Color{R: 0.58, G: 0.62, B: 0.70, A: 1}
 	}
-	text.DrawText(356, 245, account, 12, valueOrMuted(f.Account, value, muted))
+	text.DrawText(accountX, accountY, account, 12, valueOrMuted(f.Account, value, muted))
 	password := ""
 	for range f.Password {
 		password += "*"
 	}
 	if password == "" {
 		password = "ENTER PASSWORD"
-		text.DrawText(356, 281, password, 12, muted)
+		text.DrawText(passwordX, passwordY, password, 12, muted)
 	} else {
-		text.DrawText(356, 281, password, 12, value)
+		text.DrawText(passwordX, passwordY, password, 12, value)
 	}
 	if f.Status != "" {
-		text.DrawText(300, 390, f.Status, 12, muted)
+		text.DrawText(statusX, statusY, f.Status, 12, muted)
 	}
 }
 

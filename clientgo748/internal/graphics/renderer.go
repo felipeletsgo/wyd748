@@ -44,6 +44,23 @@ type TexturePlacementRenderer interface {
 	DrawTextureAt(x, y, width, height int32)
 }
 
+// LayeredTextureRenderer mantém texturas auxiliares residentes no backend.
+// Isso permite compor a tela nativa (fundo, logo e painel) sem substituir a
+// textura ativa a cada desenho. A cena continua dona apenas dos dados de
+// entrada; o renderer assume a cópia gráfica até Close.
+type LayeredTextureRenderer interface {
+	TexturePlacementRenderer
+	UploadTextureLayer(name string, texture assets.Texture) error
+	DrawTextureLayer(name string, x, y, width, height int32)
+}
+
+// ViewportProvider exposes the current client-area size in logical pixels.
+// Scenes use it to keep native 7.48 compositions and their hitboxes anchored
+// to the same root when the window is resized or displayed with DPI scaling.
+type ViewportProvider interface {
+	ClientViewport() (width, height int32)
+}
+
 // ShapeRenderer is an optional primitive surface used by the first UI scenes.
 // Coordinates are client-area pixels with a top-left origin.
 type ShapeRenderer interface {

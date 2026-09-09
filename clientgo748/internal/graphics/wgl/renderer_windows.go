@@ -117,8 +117,15 @@ type Renderer struct {
 	texture        uint32
 	textureWidth   int32
 	textureHeight  int32
+	layers         map[string]textureLayer
 	viewportWidth  int32
 	viewportHeight int32
+}
+
+type textureLayer struct {
+	id            uint32
+	textureWidth  int32
+	textureHeight int32
 }
 
 // New cria um renderer ainda sem recursos externos.
@@ -208,6 +215,16 @@ func (r *Renderer) BeginFrame() {
 	a.clear(glColorBufferBit | glDepthBufferBit)
 }
 
+// ClientViewport returns the last client-area dimensions established by
+// BeginFrame. A zero value is returned before the first frame; callers should
+// then use their documented design-resolution fallback.
+func (r *Renderer) ClientViewport() (int32, int32) {
+	if r == nil {
+		return 0, 0
+	}
+	return r.viewportWidth, r.viewportHeight
+}
+
 // EndFrame apresenta o backbuffer. A interface será promovida para retornar
 // erro quando o loop possuir política explícita de recuperação do device.
 func (r *Renderer) EndFrame() {
@@ -259,6 +276,55 @@ func (r *Renderer) UploadTexture(texture assets.Texture) error {
 	return nil
 }
 
+// UploadTextureLayer materializa uma textura auxiliar com ownership do
+// renderer. Camadas nomeadas não interferem na textura ativa usada pelas
+// cenas legadas.
+func (r *Renderer) UploadTextureLayer(name string, texture assets.Texture) error {
+	if !r.initialized {
+		return errors.New("clientgo748: renderer is not initialized")
+	}
+	if name == "" {
+		return errors.New("clientgo748: texture layer name is required")
+	}
+	if texture.Width == 0 || texture.Height == 0 {
+		return errors.New("clientgo748: texture dimensions must be non-zero")
+	}
+	want := uint64(texture.Width) * uint64(texture.Height) * 4
+	if uint64(len(texture.Pixels)) != want {
+		return fmt.Errorf("clientgo748: texture pixel length is %d, want %d", len(texture.Pixels), want)
+	}
+	a := sharedAPI
+	var id uint32
+	a.genTextures(1, &id)
+	if id == 0 {
+		return errors.New("clientgo748: OpenGL did not create a texture layer")
+	}
+	a.bindTexture(glTexture2D, id)
+	a.texParameteri(glTexture2D, glTextureMin, glLinear)
+	a.texParameteri(glTexture2D, glTextureMag, glLinear)
+	a.texImage2D(glTexture2D, 0, int32(glRGBA), int32(texture.Width), int32(texture.Height), 0, glRGBA, glUnsignedByte, unsafe.Pointer(&texture.Pixels[0]))
+	runtime.KeepAlive(texture.Pixels)
+	if r.layers == nil {
+		r.layers = make(map[string]textureLayer)
+	}
+	if previous, ok := r.layers[name]; ok && previous.id != 0 {
+		a.deleteTextures(1, &previous.id)
+	}
+	r.layers[name] = textureLayer{id: id, textureWidth: int32(texture.Width), textureHeight: int32(texture.Height)}
+	return nil
+}
+
+func (r *Renderer) DrawTextureLayer(name string, x, y, width, height int32) {
+	if !r.initialized || r.layers == nil {
+		return
+	}
+	layer, ok := r.layers[name]
+	if !ok || layer.id == 0 || width <= 0 || height <= 0 || r.viewportWidth <= 0 || r.viewportHeight <= 0 {
+		return
+	}
+	r.drawTextureID(layer.id, x, y, width, height)
+}
+
 // DrawTexture draws the initial texture as a full-window quad. Later scenes
 // will replace this presentation step with their own scene graph.
 func (r *Renderer) DrawTexture() {
@@ -270,6 +336,13 @@ func (r *Renderer) DrawTextureAt(x, y, width, height int32) {
 	if !r.initialized || r.texture == 0 || width <= 0 || height <= 0 || r.viewportWidth <= 0 || r.viewportHeight <= 0 {
 		return
 	}
+	r.drawTextureID(r.texture, x, y, width, height)
+}
+
+func (r *Renderer) drawTextureID(texture uint32, x, y, width, height int32) {
+	if texture == 0 || width <= 0 || height <= 0 || r.viewportWidth <= 0 || r.viewportHeight <= 0 {
+		return
+	}
 	a := sharedAPI
 	left := float32(x)/float32(r.viewportWidth)*2 - 1
 	right := float32(x+width)/float32(r.viewportWidth)*2 - 1
@@ -278,7 +351,7 @@ func (r *Renderer) DrawTextureAt(x, y, width, height int32) {
 	a.enable(glTexture2D)
 	a.enable(glBlend)
 	a.blendFunc(glSrcAlpha, glOneMinusSrcA)
-	a.bindTexture(glTexture2D, r.texture)
+	a.bindTexture(glTexture2D, texture)
 	a.begin(glQuads)
 	a.texCoord2f(0, 1)
 	a.vertex2f(left, bottom)
@@ -412,7 +485,9 @@ func (r *Renderer) Close() error {
 	a := sharedAPI
 	windowHandle, dc, context := r.windowHandle, r.dc, r.context
 	texture := r.texture
+	layers := r.layers
 	r.windowHandle, r.dc, r.context, r.texture = 0, 0, 0, 0
+	r.layers = nil
 	r.textureWidth, r.textureHeight = 0, 0
 	r.viewportWidth, r.viewportHeight = 0, 0
 	r.initialized = false
@@ -420,6 +495,11 @@ func (r *Renderer) Close() error {
 	var errs []error
 	if texture != 0 {
 		a.deleteTextures(1, &texture)
+	}
+	for _, layer := range layers {
+		if layer.id != 0 {
+			a.deleteTextures(1, &layer.id)
+		}
 	}
 	if a.makeCurrent(0, 0) == 0 {
 		errs = append(errs, lastError("release the current OpenGL context"))

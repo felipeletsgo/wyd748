@@ -5,6 +5,7 @@ package wgl
 
 import (
 	"errors"
+	"wydclient748/internal/assets"
 	"wydclient748/internal/graphics"
 )
 
@@ -26,8 +27,14 @@ func (*Renderer) BeginFrame() {}
 // EndFrame não possui backbuffer no stub.
 func (*Renderer) EndFrame() {}
 
+// ClientViewport keeps the optional renderer contract available to portable
+// tests without pretending that a non-Windows backend owns a real viewport.
+func (*Renderer) ClientViewport() (int32, int32) { return 0, 0 }
+
 func (*Renderer) DrawRect(int32, int32, int32, int32, graphics.Color)  {}
 func (*Renderer) DrawTextureAt(int32, int32, int32, int32)             {}
+func (*Renderer) UploadTextureLayer(string, assets.Texture) error     { return ErrUnsupported }
+func (*Renderer) DrawTextureLayer(string, int32, int32, int32, int32) {}
 func (*Renderer) DrawText(int32, int32, string, int32, graphics.Color) {}
 
 // Close é idempotente sem recursos.

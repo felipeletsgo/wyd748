@@ -63,6 +63,14 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load official login UI: %w", err)
 	}
+	loginLogoLeft, err := assets.LoadWYTFile(loginLogoLeftPath())
+	if err != nil {
+		return fmt.Errorf("load official left login logo: %w", err)
+	}
+	loginLogoRight, err := assets.LoadWYTFile(loginLogoRightPath())
+	if err != nil {
+		return fmt.Errorf("load official right login logo: %w", err)
+	}
 	serverTexture, err := assets.LoadWYTFile(serverSelectionTexturePath())
 	if err != nil {
 		return fmt.Errorf("load official server selection UI: %w", err)
@@ -76,14 +84,17 @@ func run() error {
 		Height:              cfg.WindowHeight,
 		InitialSceneID:      loginflow.ServerSelectionSceneID,
 		DeferSessionConnect: true,
-		// The login scene owns loginbox2.wyt and presents it at native 256x256
-		// size. Avoid uploading logo1 first because the current texture API
-		// intentionally owns one active texture at a time.
-		LogoPath: "",
+		LogoPath:            "",
 		SceneFactories: loginflow.SceneFactoriesWithVisuals(state, loginflow.VisualOptions{
 			ShapeRenderer: renderer,
 			ServerTexture: &serverTexture,
 			Servers:       toLoginServerEntries(serverEntries),
+			RequestClose: func() error {
+				if client == nil {
+					return fmt.Errorf("client application is not initialized")
+				}
+				return client.RequestClose()
+			},
 			SelectServer: func(entry loginflow.ServerEntry) error {
 				if client == nil {
 					return fmt.Errorf("client application is not initialized")
@@ -93,7 +104,9 @@ func run() error {
 				}
 				return client.ConnectSession()
 			},
-			LoginTexture: &loginTexture,
+			LoginTexture:   &loginTexture,
+			LoginLogoLeft:  &loginLogoLeft,
+			LoginLogoRight: &loginLogoRight,
 			Authenticate: func(account string, password []byte) error {
 				if coordinator == nil {
 					return fmt.Errorf("login coordinator is not initialized")
@@ -203,4 +216,22 @@ func serverSelectionTexturePath() string {
 		}
 	}
 	return filepath.Join("assets", "current", "UI", "ServerList2.wyt")
+}
+
+func loginLogoLeftPath() string {
+	return loginAssetPath("logo1.wyt")
+}
+
+func loginLogoRightPath() string {
+	return loginAssetPath("logo2.wyt")
+}
+
+func loginAssetPath(name string) string {
+	if executable, err := os.Executable(); err == nil {
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "UI", name))
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return filepath.Join("assets", "current", "UI", name)
 }

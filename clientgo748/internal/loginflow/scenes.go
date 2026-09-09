@@ -24,11 +24,16 @@ func SceneFactories(state *login.SessionState) map[scene.ID]scene.Factory {
 // VisualOptions supplies optional drawing and login submission without
 // transferring renderer or transport ownership into a scene.
 type VisualOptions struct {
-	ShapeRenderer   graphics.ShapeRenderer
-	ServerTexture   *assets.Texture
-	Servers         []ServerEntry
-	SelectServer    func(ServerEntry) error
+	ShapeRenderer graphics.ShapeRenderer
+	ServerTexture *assets.Texture
+	Servers       []ServerEntry
+	SelectServer  func(ServerEntry) error
+	// RequestClose asks the application to close after the current input
+	// dispatch. The scene never destroys the window or renderer directly.
+	RequestClose    func() error
 	LoginTexture    *assets.Texture
+	LoginLogoLeft   *assets.Texture
+	LoginLogoRight  *assets.Texture
 	Authenticate    func(account string, password []byte) error
 	SelectCharacter func(slot int32) error
 }
@@ -36,7 +41,7 @@ type VisualOptions struct {
 func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions) map[scene.ID]scene.Factory {
 	return map[scene.ID]scene.Factory{
 		ServerSelectionSceneID: func() (scene.Scene, error) {
-			if options.ShapeRenderer != nil || options.SelectServer != nil {
+			if options.ShapeRenderer != nil || options.SelectServer != nil || options.RequestClose != nil {
 				return newServerSelectionScene(state, options)
 			}
 			return newStateScene(ServerSelectionSceneID, state, login.Disconnected)
@@ -82,6 +87,7 @@ type serverSelectionScene struct {
 	placement    graphics.TexturePlacementRenderer
 	servers      []ServerEntry
 	selectServer func(ServerEntry) error
+	requestClose func() error
 	selected     int
 	status       string
 }
@@ -98,7 +104,7 @@ func newServerSelectionScene(state *login.SessionState, options VisualOptions) (
 	placement, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
 	return &serverSelectionScene{state: state, renderer: options.ShapeRenderer, texture: options.ServerTexture,
 		textureDraw: textureRenderer, placement: placement, servers: servers,
-		selectServer: options.SelectServer, selected: 0}, nil
+		selectServer: options.SelectServer, requestClose: options.RequestClose, selected: 0}, nil
 }
 
 func (s *serverSelectionScene) ID() scene.ID { return ServerSelectionSceneID }
@@ -119,16 +125,20 @@ func (s *serverSelectionScene) HandleEvent(event input.Event) error {
 		return err
 	}
 	if event.Kind == input.KindMouseButtonDown && event.Button == 1 {
+		layout := serverSelectionLayoutFor(s.renderer, len(s.servers))
 		for i := range s.servers {
-			if serverRect(i).Contains(event.X, event.Y) {
+			if layout.serverRow(i).Contains(event.X, event.Y) {
 				// A row selects an endpoint; only the explicit CONNECT control
 				// (or Enter) opens the transport.
 				s.selected = i
 				return nil
 			}
 		}
-		if serverConnectRect().Contains(event.X, event.Y) {
+		if layout.connect.Contains(event.X, event.Y) {
 			return s.submit()
+		}
+		if layout.close.Contains(event.X, event.Y) {
+			return s.closeRequested()
 		}
 	}
 	if event.Kind == input.KindKeyDown {
@@ -148,10 +158,11 @@ func (s *serverSelectionScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err
 	}
+	layout := serverSelectionLayoutFor(s.renderer, len(s.servers))
 	if s.texture != nil {
 		switch {
 		case s.placement != nil && s.textureDraw != nil:
-			s.placement.DrawTextureAt(272, 172, 256, 256)
+			s.placement.DrawTextureAt(layout.texture.X, layout.texture.Y, layout.texture.Width, layout.texture.Height)
 		case s.textureDraw != nil:
 			s.textureDraw.DrawTexture()
 		}
@@ -161,7 +172,7 @@ func (s *serverSelectionScene) Render() error {
 	}
 	text, _ := s.renderer.(graphics.TextRenderer)
 	for i, entry := range s.servers {
-		r := serverRect(i)
+		r := layout.serverRow(i)
 		color := graphics.Color{R: .78, G: .82, B: .90, A: 1}
 		if i == s.selected {
 			color = graphics.Color{R: 1, G: 1, B: 1, A: 1}
@@ -171,18 +182,20 @@ func (s *serverSelectionScene) Render() error {
 			if name == "" {
 				name = entry.Address
 			}
-			if i == s.selected {
-				name = "> " + name
-			}
-			text.DrawText(r.X+14, r.Y+12, name, 14, color)
-			text.DrawText(r.X+14, r.Y+32, entry.Address, 11, graphics.Color{R: .76, G: .80, B: .88, A: 1})
+			text.DrawText(r.X, r.Y+6, name, 12, color)
 		}
 	}
-	r := serverConnectRect()
 	if text != nil {
-		text.DrawText(r.X+28, r.Y+11, "CONNECT", 13, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		text.DrawText(layout.serverTitle.X, layout.serverTitle.Y, "SERVER", 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		text.DrawText(layout.channelTitle.X, layout.channelTitle.Y, "CHANNEL", 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		// The endpoint is an internal transport value, not the channel label.
+		// The native selector shows this state as "No Server." until a channel
+		// list is returned by the selected server.
+		text.DrawText(layout.channel.X, layout.channel.Y, "No Server.", 10, graphics.Color{R: .88, G: .90, B: .94, A: 1})
+		text.DrawText(layout.connect.X+7, layout.connect.Y+6, "CONNECT", 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		text.DrawText(layout.close.X+17, layout.close.Y+6, "CLOSE", 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		if s.status != "" {
-			text.DrawText(250, 500, s.status, 12, graphics.Color{R: .72, G: .76, B: .84, A: 1})
+			text.DrawText(layout.status.X, layout.status.Y, s.status, 10, graphics.Color{R: .72, G: .76, B: .84, A: 1})
 		}
 	}
 	return nil
@@ -229,8 +242,69 @@ func (s *serverSelectionScene) submit() error {
 	s.status = "Connecting..."
 	return nil
 }
-func serverRect(i int) ui.Rect   { return ui.Rect{X: 250, Y: 230 + int32(i)*58, Width: 300, Height: 48} }
-func serverConnectRect() ui.Rect { return ui.Rect{X: 330, Y: 430, Width: 140, Height: 38} }
+
+func (s *serverSelectionScene) closeRequested() error {
+	if s.requestClose == nil {
+		s.status = "Close is unavailable."
+		return errors.New("loginflow: close callback is unavailable")
+	}
+	if err := s.requestClose(); err != nil {
+		s.status = "Unable to close the client."
+		return err
+	}
+	return nil
+}
+
+// serverSelectionLayout mirrors the native 7.48 root (0x120E): the root is
+// centered once, then the official 256x256 skin and all dynamic controls are
+// positioned relative to it. This prevents DPI/window-size changes from
+// separating visual rows, text and hitboxes.
+type serverSelectionLayout struct {
+	root         ui.Rect
+	texture      ui.Rect
+	serverTitle  serverPoint
+	channelTitle serverPoint
+	channel      serverPoint
+	connect      ui.Rect
+	close        ui.Rect
+	status       serverPoint
+}
+
+type serverPoint struct{ X, Y int32 }
+
+const (
+	serverRootWidth  int32 = 313
+	serverRootHeight int32 = 256
+	serverSkinSize   int32 = 256
+)
+
+func serverSelectionLayoutFor(renderer graphics.ShapeRenderer, count int) serverSelectionLayout {
+	width, height := int32(800), int32(600)
+	if provider, ok := renderer.(graphics.ViewportProvider); ok {
+		if candidateWidth, candidateHeight := provider.ClientViewport(); candidateWidth > 0 && candidateHeight > 0 {
+			width, height = candidateWidth, candidateHeight
+		}
+	}
+	root := ui.Rect{X: (width - serverRootWidth) / 2, Y: (height - serverRootHeight) / 2, Width: serverRootWidth, Height: serverRootHeight}
+	texture := ui.Rect{X: root.X + (serverRootWidth-serverSkinSize)/2, Y: root.Y, Width: serverSkinSize, Height: serverSkinSize}
+	return serverSelectionLayout{
+		root:         root,
+		texture:      texture,
+		serverTitle:  serverPoint{X: texture.X + 30, Y: root.Y + 12},
+		channelTitle: serverPoint{X: texture.X + 158, Y: root.Y + 12},
+		channel:      serverPoint{X: texture.X + 157, Y: root.Y + 54},
+		connect:      ui.Rect{X: texture.X + 16, Y: root.Y + 218, Width: 66, Height: 24},
+		close:        ui.Rect{X: texture.X + 99, Y: root.Y + 218, Width: 66, Height: 24},
+		status:       serverPoint{X: root.X, Y: root.Y + serverRootHeight + 10},
+	}
+}
+
+func (l serverSelectionLayout) serverRow(index int) ui.Rect {
+	if index < 0 {
+		index = 0
+	}
+	return ui.Rect{X: l.texture.X + 18, Y: l.root.Y + 47 + int32(index)*27, Width: 112, Height: 23}
+}
 
 type characterSelectScene struct {
 	state           *login.SessionState
@@ -456,16 +530,54 @@ type loginScene struct {
 	form              *ui.LoginForm
 	renderer          graphics.ShapeRenderer
 	loginTexture      *assets.Texture
+	loginLogoLeft     *assets.Texture
+	loginLogoRight    *assets.Texture
 	textureRenderer   graphics.TextureRenderer
 	placementRenderer graphics.TexturePlacementRenderer
+	layers            graphics.LayeredTextureRenderer
 }
 
 const (
-	loginTextureX      int32 = 272
-	loginTextureY      int32 = 172
+	loginDesignWidth   int32 = 800
+	loginDesignHeight  int32 = 600
 	loginTextureWidth  int32 = 256
 	loginTextureHeight int32 = 256
+	loginLogoWidth     int32 = 256
+	loginLogoHeight    int32 = 256
 )
+
+type loginLayout struct {
+	panel, logoLeft, logoRight        ui.Rect
+	account, password, submit         ui.Rect
+	accountText, passwordText, status serverPoint
+}
+
+func loginLayoutFor(renderer graphics.ShapeRenderer) loginLayout {
+	width, height := loginDesignWidth, loginDesignHeight
+	if provider, ok := renderer.(graphics.ViewportProvider); ok {
+		if w, h := provider.ClientViewport(); w > 0 && h > 0 {
+			width, height = w, h
+		}
+	}
+	rootX := (width - loginDesignWidth) / 2
+	rootY := (height - loginDesignHeight) / 2
+	panel := ui.Rect{X: rootX + 272, Y: rootY + 172, Width: loginTextureWidth, Height: loginTextureHeight}
+	// logo1/logo2 are the two halves of the official WYD FC mark. They are
+	// deliberately kept as separate layers because each WYT contains alpha.
+	logoX := rootX + (loginDesignWidth-loginLogoWidth*2)/2
+	logoY := rootY + 28
+	return loginLayout{
+		panel:        panel,
+		logoLeft:     ui.Rect{X: logoX, Y: logoY, Width: loginLogoWidth, Height: loginLogoHeight},
+		logoRight:    ui.Rect{X: logoX + loginLogoWidth, Y: logoY, Width: loginLogoWidth, Height: loginLogoHeight},
+		account:      ui.Rect{X: panel.X + 72, Y: panel.Y + 30, Width: 118, Height: 28},
+		password:     ui.Rect{X: panel.X + 72, Y: panel.Y + 57, Width: 118, Height: 28},
+		submit:       ui.Rect{X: panel.X + 68, Y: panel.Y + 84, Width: 74, Height: 29},
+		accountText:  serverPoint{X: panel.X + 82, Y: panel.Y + 38},
+		passwordText: serverPoint{X: panel.X + 82, Y: panel.Y + 64},
+		status:       serverPoint{X: panel.X, Y: panel.Y + 270},
+	}
+}
 
 func newLoginScene(state *login.SessionState, options VisualOptions) (scene.Scene, error) {
 	if state == nil {
@@ -473,7 +585,8 @@ func newLoginScene(state *login.SessionState, options VisualOptions) (scene.Scen
 	}
 	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
 	placementRenderer, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
-	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), loginTexture: options.LoginTexture, textureRenderer: textureRenderer, placementRenderer: placementRenderer}, nil
+	layers, _ := options.ShapeRenderer.(graphics.LayeredTextureRenderer)
+	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), loginTexture: options.LoginTexture, loginLogoLeft: options.LoginLogoLeft, loginLogoRight: options.LoginLogoRight, textureRenderer: textureRenderer, placementRenderer: placementRenderer, layers: layers}, nil
 }
 
 func (s *loginScene) ID() scene.ID { return LoginSceneID }
@@ -484,6 +597,18 @@ func (s *loginScene) Enter() error {
 	if s.loginTexture != nil && s.textureRenderer != nil {
 		if err := s.textureRenderer.UploadTexture(*s.loginTexture); err != nil {
 			return fmt.Errorf("loginflow: upload login UI: %w", err)
+		}
+	}
+	if s.layers != nil {
+		if s.loginLogoLeft != nil {
+			if err := s.layers.UploadTextureLayer("login-logo-left", *s.loginLogoLeft); err != nil {
+				return fmt.Errorf("loginflow: upload left login logo: %w", err)
+			}
+		}
+		if s.loginLogoRight != nil {
+			if err := s.layers.UploadTextureLayer("login-logo-right", *s.loginLogoRight); err != nil {
+				return fmt.Errorf("loginflow: upload right login logo: %w", err)
+			}
 		}
 	}
 	return nil
@@ -499,17 +624,23 @@ func (s *loginScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err
 	}
+	layout := loginLayoutFor(s.renderer)
+	s.form.AccountRect, s.form.PasswordRect, s.form.ButtonRect = layout.account, layout.password, layout.submit
+	if s.layers != nil {
+		s.layers.DrawTextureLayer("login-logo-left", layout.logoLeft.X, layout.logoLeft.Y, layout.logoLeft.Width, layout.logoLeft.Height)
+		s.layers.DrawTextureLayer("login-logo-right", layout.logoRight.X, layout.logoRight.Y, layout.logoRight.Width, layout.logoRight.Height)
+	}
 	if s.loginTexture != nil {
 		switch {
 		case s.placementRenderer != nil && s.textureRenderer != nil:
-			s.placementRenderer.DrawTextureAt(loginTextureX, loginTextureY, loginTextureWidth, loginTextureHeight)
+			s.placementRenderer.DrawTextureAt(layout.panel.X, layout.panel.Y, layout.panel.Width, layout.panel.Height)
 		case s.textureRenderer != nil:
 			// A backend without placement support still presents the native
 			// artwork; it owns the fallback composition policy.
 			s.textureRenderer.DrawTexture()
 		}
 	}
-	s.form.Render(s.renderer)
+	s.form.RenderAt(s.renderer, layout.accountText.X, layout.accountText.Y, layout.passwordText.X, layout.passwordText.Y, layout.status.X, layout.status.Y)
 	return nil
 }
 func (s *loginScene) Exit() error  { clear(s.form.Password); s.form.Password = nil; return nil }

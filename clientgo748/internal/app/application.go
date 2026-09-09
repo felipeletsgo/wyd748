@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"wydclient748/internal/assets"
@@ -74,6 +75,7 @@ type Application struct {
 	sessionOwned  bool
 	sessionActive bool
 	eventSession  protocol.EventSession
+	closeRequested atomic.Bool
 	sceneManager  *scene.Manager
 	closeOnce     sync.Once
 	closeErr      error
@@ -203,6 +205,15 @@ func (a *Application) Run(ctx context.Context) (err error) {
 			if err := a.sceneManager.Dispatch(events); err != nil {
 				return err
 			}
+			if a.closeRequested.Load() {
+				// The scene only records the request during dispatch. Window
+				// destruction stays at the application boundary, after all input
+				// callbacks have returned.
+				if err := a.window.Close(); err != nil {
+					return fmt.Errorf("clientgo748: close window after scene request: %w", err)
+				}
+				break
+			}
 			if a.options.SceneSynchronizer != nil {
 				if err := a.options.SceneSynchronizer(); err != nil {
 					return fmt.Errorf("clientgo748: synchronize scene: %w", err)
@@ -228,6 +239,17 @@ func (a *Application) Run(ctx context.Context) (err error) {
 		}
 		a.renderer.EndFrame()
 	}
+	return nil
+}
+
+// RequestClose schedules a safe application shutdown from a scene callback.
+// It is intentionally separate from Close: the latter tears down resources
+// immediately and is reserved for the outer lifecycle owner.
+func (a *Application) RequestClose() error {
+	if a == nil {
+		return errors.New("clientgo748: application is unavailable")
+	}
+	a.closeRequested.Store(true)
 	return nil
 }
 
