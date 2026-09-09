@@ -15,6 +15,7 @@ const (
 	KindMouseMove
 	KindFocusGained
 	KindFocusLost
+	KindText
 )
 
 // Event é uma cópia de dados; não contém ponteiros para estruturas da
@@ -27,4 +28,5 @@ type Event struct {
 	Y      int32
 	Width  int32
 	Height int32
+	Rune   rune
 }

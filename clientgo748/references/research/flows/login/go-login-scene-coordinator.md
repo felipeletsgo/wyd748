@@ -130,9 +130,9 @@ Source: `internal/loginflow/coordinator.go`, `scenes.go` e
 
 ## Lacunas
 
-- ligar factories visuais e controles de login;
 - validar conexão e ciclo completo contra o servidor WYD-Go;
-- rastrear recursos visuais e reconexão no client real.
+- adicionar fonte de texto/fontes e rastrear recursos visuais no client real;
+- validar reconexão e logout/relogin no executável Windows.
 
 ## Validação
 
@@ -145,5 +145,7 @@ Source: `internal/loginflow/coordinator.go`, `scenes.go` e
 
 - `AUTOMATED TESTED`: `go test -count=1 ./...` e teste de ordem do frame.
 - `AUTOMATED TESTED`: `go test -race` nos pacotes protocol/app/login/loginflow.
+- `AUTOMATED TESTED`: controles da cena de login (foco, edição, validação,
+  envio único, rollback de erro e limpeza da senha) em `internal/ui`.
 - `CLIENT_TESTED`: pendente; o executável real ainda não percorreu login,
   seleção, mundo, logout e relogin.

@@ -16,6 +16,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"wydclient748/internal/assets"
+	"wydclient748/internal/graphics"
 )
 
 const (
@@ -98,6 +99,7 @@ type api struct {
 	end               func()
 	texCoord2f        func(float32, float32)
 	vertex2f          func(float32, float32)
+	color4f           func(float32, float32, float32, float32)
 }
 
 var (
@@ -108,13 +110,15 @@ var (
 
 // Renderer possui um HDC e um HGLRC enquanto initialized for verdadeiro.
 type Renderer struct {
-	windowHandle  uintptr
-	dc            uintptr
-	context       uintptr
-	initialized   bool
-	texture       uint32
-	textureWidth  int32
-	textureHeight int32
+	windowHandle   uintptr
+	dc             uintptr
+	context        uintptr
+	initialized    bool
+	texture        uint32
+	textureWidth   int32
+	textureHeight  int32
+	viewportWidth  int32
+	viewportHeight int32
 }
 
 // New cria um renderer ainda sem recursos externos.
@@ -199,6 +203,7 @@ func (r *Renderer) BeginFrame() {
 		}
 	}
 	a.viewport(0, 0, width, height)
+	r.viewportWidth, r.viewportHeight = width, height
 	a.clearColor(0.025, 0.045, 0.085, 1.0)
 	a.clear(glColorBufferBit | glDepthBufferBit)
 }
@@ -280,6 +285,36 @@ func (r *Renderer) DrawTexture() {
 	a.disable(glTexture2D)
 }
 
+// DrawRect draws a solid UI rectangle in pixel coordinates. It intentionally
+// stays a tiny immediate-mode primitive until the text/font pipeline is
+// introduced; scenes can still provide complete, testable hit-tested controls.
+func (r *Renderer) DrawRect(x, y, width, height int32, color graphics.Color) {
+	if !r.initialized || width <= 0 || height <= 0 {
+		return
+	}
+	a := sharedAPI
+	w, h := r.viewportWidth, r.viewportHeight
+	if w <= 0 || h <= 0 {
+		return
+	}
+	left := float32(x)/float32(w)*2 - 1
+	right := float32(x+width)/float32(w)*2 - 1
+	top := 1 - float32(y)/float32(h)*2
+	bottom := 1 - float32(y+height)/float32(h)*2
+	a.disable(glTexture2D)
+	a.enable(glBlend)
+	a.blendFunc(glSrcAlpha, glOneMinusSrcA)
+	a.color4f(color.R, color.G, color.B, color.A)
+	a.begin(glQuads)
+	a.vertex2f(left, bottom)
+	a.vertex2f(right, bottom)
+	a.vertex2f(right, top)
+	a.vertex2f(left, top)
+	a.end()
+	a.color4f(1, 1, 1, 1)
+	a.disable(glBlend)
+}
+
 // Close desfaz o contexto corrente, destrói o HGLRC e libera o DC, sempre
 // tentando todos os passos. Chamadas posteriores não repetem o teardown.
 func (r *Renderer) Close() error {
@@ -291,6 +326,7 @@ func (r *Renderer) Close() error {
 	texture := r.texture
 	r.windowHandle, r.dc, r.context, r.texture = 0, 0, 0, 0
 	r.textureWidth, r.textureHeight = 0, 0
+	r.viewportWidth, r.viewportHeight = 0, 0
 	r.initialized = false
 
 	var errs []error
@@ -350,6 +386,7 @@ func loadAPI() (*api, error) {
 		purego.RegisterLibFunc(&a.end, opengl32.Handle(), "glEnd")
 		purego.RegisterLibFunc(&a.texCoord2f, opengl32.Handle(), "glTexCoord2f")
 		purego.RegisterLibFunc(&a.vertex2f, opengl32.Handle(), "glVertex2f")
+		purego.RegisterLibFunc(&a.color4f, opengl32.Handle(), "glColor4f")
 		sharedAPI = a
 	})
 	return sharedAPI, apiErr

@@ -54,12 +54,21 @@ func run() error {
 
 	state := login.NewSessionState()
 	var coordinator *loginflow.Coordinator
+	renderer := wgl.New()
 	options := app.Options{
-		Title:                 "WYD 7.48",
-		Width:                 cfg.WindowWidth,
-		Height:                cfg.WindowHeight,
-		LogoPath:              initialLogoPath(),
-		SceneFactories:        loginflow.SceneFactories(state),
+		Title:    "WYD 7.48",
+		Width:    cfg.WindowWidth,
+		Height:   cfg.WindowHeight,
+		LogoPath: initialLogoPath(),
+		SceneFactories: loginflow.SceneFactoriesWithVisuals(state, loginflow.VisualOptions{
+			ShapeRenderer: renderer,
+			Authenticate: func(account string, password []byte) error {
+				if coordinator == nil {
+					return fmt.Errorf("login coordinator is not initialized")
+				}
+				return coordinator.Authenticate(account, password, [4]uint32{}, 0)
+			},
+		}),
 		SessionEventsPerFrame: 64,
 		SceneSynchronizer: func() error {
 			if coordinator == nil {
@@ -98,7 +107,7 @@ func run() error {
 	client, err := app.New(
 		options,
 		win32.New(),
-		wgl.New(),
+		renderer,
 	)
 	if err != nil {
 		if protectedSource != nil {

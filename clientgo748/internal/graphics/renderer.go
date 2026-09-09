@@ -34,3 +34,13 @@ type TextureRenderer interface {
 	UploadTexture(assets.Texture) error
 	DrawTexture()
 }
+
+// ShapeRenderer is an optional primitive surface used by the first UI scenes.
+// Coordinates are client-area pixels with a top-left origin.
+type ShapeRenderer interface {
+	Renderer
+	DrawRect(x, y, width, height int32, color Color)
+}
+
+// Color is an RGBA color in the [0,1] range.
+type Color struct{ R, G, B, A float32 }

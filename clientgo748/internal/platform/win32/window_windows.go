@@ -34,6 +34,7 @@ const (
 	wmKillFocus        = uint32(0x0008)
 	wmKeyDown          = uint32(0x0100)
 	wmKeyUp            = uint32(0x0101)
+	wmChar             = uint32(0x0102)
 	wmMouseMove        = uint32(0x0200)
 	wmLButtonDown      = uint32(0x0201)
 	wmLButtonUp        = uint32(0x0202)
@@ -327,6 +328,11 @@ func windowProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 				kind = input.KindKeyUp
 			}
 			value.(*Window).pushEvent(input.Event{Kind: kind, Key: uint32(wParam)})
+		}
+		return 0
+	case wmChar:
+		if value, ok := windowsByHandle.Load(hwnd); ok && wParam <= 0xFFFF {
+			value.(*Window).pushEvent(input.Event{Kind: input.KindText, Rune: rune(wParam)})
 		}
 		return 0
 	case wmMouseMove:
