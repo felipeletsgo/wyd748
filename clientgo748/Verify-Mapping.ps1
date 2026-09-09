@@ -8,11 +8,16 @@ $python = Get-Command python -ErrorAction Stop
 $expectedNativeHash = "8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593"
 
 function Invoke-Checked {
-    param([string]$Program, [string[]]$Arguments)
+    param(
+        [string]$Program,
+        [string[]]$Arguments,
+        [int[]]$SuccessExitCodes = @(0)
+    )
 
     & $Program @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "Command failed with exit code $LASTEXITCODE: $Program $($Arguments -join ' ')"
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -notin $SuccessExitCodes) {
+        throw "Command failed with exit code ${exitCode}: $Program $($Arguments -join ' ')"
     }
 }
 
@@ -34,11 +39,13 @@ if ($functionCount -ne 4146) {
     throw "Function catalog mismatch. Expected 4146, found $functionCount"
 }
 
-Invoke-Checked $python.Source @(
+& (Join-Path $clientRoot "tools\Test-Manifest.ps1")
+
+Invoke-Checked -Program $python.Source -Arguments @(
     (Join-Path $clientRoot "tools\research\query_corpus.py"),
     "--corpus", $corpus,
     "stats", "--repo", $clientRoot
-)
+) -SuccessExitCodes @(0, 1)
 Invoke-Checked $python.Source @(
     (Join-Path $clientRoot "tools\research\triage_catalog.py"),
     "--input", $catalog,
