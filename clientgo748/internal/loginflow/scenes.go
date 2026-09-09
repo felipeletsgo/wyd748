@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"wydclient748/internal/assets"
 	"wydclient748/internal/graphics"
 	"wydclient748/internal/input"
 	"wydclient748/internal/login"
@@ -24,6 +25,7 @@ func SceneFactories(state *login.SessionState) map[scene.ID]scene.Factory {
 // transferring renderer or transport ownership into a scene.
 type VisualOptions struct {
 	ShapeRenderer   graphics.ShapeRenderer
+	LoginTexture    *assets.Texture
 	Authenticate    func(account string, password []byte) error
 	SelectCharacter func(slot int32) error
 }
@@ -277,20 +279,42 @@ func (s *worldScene) validate() error {
 }
 
 type loginScene struct {
-	state    *login.SessionState
-	form     *ui.LoginForm
-	renderer graphics.ShapeRenderer
+	state             *login.SessionState
+	form              *ui.LoginForm
+	renderer          graphics.ShapeRenderer
+	loginTexture      *assets.Texture
+	textureRenderer   graphics.TextureRenderer
+	placementRenderer graphics.TexturePlacementRenderer
 }
+
+const (
+	loginTextureX      int32 = 272
+	loginTextureY      int32 = 172
+	loginTextureWidth  int32 = 256
+	loginTextureHeight int32 = 256
+)
 
 func newLoginScene(state *login.SessionState, options VisualOptions) (scene.Scene, error) {
 	if state == nil {
 		return nil, errors.New("loginflow: session state is required")
 	}
-	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate)}, nil
+	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
+	placementRenderer, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
+	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), loginTexture: options.LoginTexture, textureRenderer: textureRenderer, placementRenderer: placementRenderer}, nil
 }
 
 func (s *loginScene) ID() scene.ID { return LoginSceneID }
-func (s *loginScene) Enter() error { return s.validate() }
+func (s *loginScene) Enter() error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	if s.loginTexture != nil && s.textureRenderer != nil {
+		if err := s.textureRenderer.UploadTexture(*s.loginTexture); err != nil {
+			return fmt.Errorf("loginflow: upload login UI: %w", err)
+		}
+	}
+	return nil
+}
 func (s *loginScene) HandleEvent(event input.Event) error {
 	if err := s.validate(); err != nil {
 		return err
@@ -301,6 +325,16 @@ func (s *loginScene) Update(time.Duration) error { return s.validate() }
 func (s *loginScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err
+	}
+	if s.loginTexture != nil {
+		switch {
+		case s.placementRenderer != nil && s.textureRenderer != nil:
+			s.placementRenderer.DrawTextureAt(loginTextureX, loginTextureY, loginTextureWidth, loginTextureHeight)
+		case s.textureRenderer != nil:
+			// A backend without placement support still presents the native
+			// artwork; it owns the fallback composition policy.
+			s.textureRenderer.DrawTexture()
+		}
 	}
 	s.form.Render(s.renderer)
 	return nil

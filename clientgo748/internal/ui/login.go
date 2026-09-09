@@ -37,9 +37,12 @@ type LoginForm struct {
 func NewLoginForm(submit func(string, []byte) error) *LoginForm {
 	return &LoginForm{
 		Focus: 0, Submit: submit,
-		AccountRect:  Rect{X: 300, Y: 240, Width: 240, Height: 34},
-		PasswordRect: Rect{X: 300, Y: 290, Width: 240, Height: 34},
-		ButtonRect:   Rect{X: 350, Y: 350, Width: 140, Height: 38},
+		// The artwork's editable strips are centered at x=350..458. The
+		// slightly wider input hitboxes retain keyboard/mouse compatibility
+		// with the previous logical form while still enclosing those strips.
+		AccountRect:  Rect{X: 300, Y: 230, Width: 220, Height: 40},
+		PasswordRect: Rect{X: 300, Y: 270, Width: 220, Height: 40},
+		ButtonRect:   Rect{X: 332, Y: 326, Width: 134, Height: 31},
 	}
 }
 
@@ -118,22 +121,43 @@ func (f *LoginForm) submit() error {
 	return nil
 }
 
-// Render draws the form's structure when the backend supports primitives.
-// Text remains a separate font milestone; Status is still exposed for a real
-// text renderer and for deterministic tests.
+// Render draws only dynamic values and status. Labels, field chrome and the
+// Login button are supplied by the official loginbox.wyt artwork; no
+// synthetic rectangle or duplicate label is used as a user-facing control.
 func (f *LoginForm) Render(renderer graphics.ShapeRenderer) {
 	if f == nil || renderer == nil {
 		return
 	}
-	renderer.DrawRect(260, 170, 320, 260, graphics.Color{R: .06, G: .08, B: .14, A: .96})
-	renderer.DrawRect(f.AccountRect.X, f.AccountRect.Y, f.AccountRect.Width, f.AccountRect.Height, fieldColor(f.Focus == 0))
-	renderer.DrawRect(f.PasswordRect.X, f.PasswordRect.Y, f.PasswordRect.Width, f.PasswordRect.Height, fieldColor(f.Focus == 1))
-	renderer.DrawRect(f.ButtonRect.X, f.ButtonRect.Y, f.ButtonRect.Width, f.ButtonRect.Height, graphics.Color{R: .12, G: .34, B: .62, A: 1})
+	text, ok := renderer.(graphics.TextRenderer)
+	if !ok {
+		return
+	}
+	value := graphics.Color{R: 1, G: 1, B: 1, A: 1}
+	muted := graphics.Color{R: 0.72, G: 0.76, B: 0.84, A: 1}
+	account := f.Account
+	if account == "" {
+		account = "ENTER ACCOUNT"
+		muted = graphics.Color{R: 0.58, G: 0.62, B: 0.70, A: 1}
+	}
+	text.DrawText(356, 245, account, 12, valueOrMuted(f.Account, value, muted))
+	password := ""
+	for range f.Password {
+		password += "*"
+	}
+	if password == "" {
+		password = "ENTER PASSWORD"
+		text.DrawText(356, 281, password, 12, muted)
+	} else {
+		text.DrawText(356, 281, password, 12, value)
+	}
+	if f.Status != "" {
+		text.DrawText(300, 390, f.Status, 12, muted)
+	}
 }
 
-func fieldColor(focused bool) graphics.Color {
-	if focused {
-		return graphics.Color{R: .25, G: .48, B: .78, A: 1}
+func valueOrMuted(value string, normal, muted graphics.Color) graphics.Color {
+	if value == "" {
+		return muted
 	}
-	return graphics.Color{R: .16, G: .18, B: .24, A: 1}
+	return normal
 }

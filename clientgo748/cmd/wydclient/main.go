@@ -55,13 +55,21 @@ func run() error {
 	state := login.NewSessionState()
 	var coordinator *loginflow.Coordinator
 	renderer := wgl.New()
+	loginTexture, err := assets.LoadWYTFile(loginTexturePath())
+	if err != nil {
+		return fmt.Errorf("load official login UI: %w", err)
+	}
 	options := app.Options{
-		Title:    "WYD 7.48",
-		Width:    cfg.WindowWidth,
-		Height:   cfg.WindowHeight,
-		LogoPath: initialLogoPath(),
+		Title:  "WYD 7.48",
+		Width:  cfg.WindowWidth,
+		Height: cfg.WindowHeight,
+		// The login scene owns loginbox.wyt and presents it at native 256x256
+		// size. Avoid uploading logo1 first because the current texture API
+		// intentionally owns one active texture at a time.
+		LogoPath: "",
 		SceneFactories: loginflow.SceneFactoriesWithVisuals(state, loginflow.VisualOptions{
 			ShapeRenderer: renderer,
+			LoginTexture:  &loginTexture,
 			Authenticate: func(account string, password []byte) error {
 				if coordinator == nil {
 					return fmt.Errorf("login coordinator is not initialized")
@@ -152,4 +160,14 @@ func initialLogoPath() string {
 		}
 	}
 	return filepath.Join("CLIENT OFICIAL 7.48", "UI", "logo1.wyt")
+}
+
+func loginTexturePath() string {
+	if executable, err := os.Executable(); err == nil {
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "CLIENT OFICIAL 7.48", "UI", "loginbox.wyt"))
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return filepath.Join("CLIENT OFICIAL 7.48", "UI", "loginbox.wyt")
 }

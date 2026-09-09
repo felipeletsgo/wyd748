@@ -35,11 +35,27 @@ type TextureRenderer interface {
 	DrawTexture()
 }
 
+// TexturePlacementRenderer is an optional extension for backends that can
+// place the currently uploaded texture in client-area pixels. Keeping this
+// capability separate preserves compatibility with headless/fake
+// TextureRenderer implementations used by tests and future backends.
+type TexturePlacementRenderer interface {
+	TextureRenderer
+	DrawTextureAt(x, y, width, height int32)
+}
+
 // ShapeRenderer is an optional primitive surface used by the first UI scenes.
 // Coordinates are client-area pixels with a top-left origin.
 type ShapeRenderer interface {
 	Renderer
 	DrawRect(x, y, width, height int32, color Color)
+}
+
+// TextRenderer is an optional text surface for interactive scenes. Coordinates
+// use the same top-left client-area pixels as ShapeRenderer.
+type TextRenderer interface {
+	ShapeRenderer
+	DrawText(x, y int32, text string, size int32, color Color)
 }
 
 // Color is an RGBA color in the [0,1] range.

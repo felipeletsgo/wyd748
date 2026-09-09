@@ -26,7 +26,9 @@ func (*Renderer) BeginFrame() {}
 // EndFrame não possui backbuffer no stub.
 func (*Renderer) EndFrame() {}
 
-func (*Renderer) DrawRect(int32, int32, int32, int32, graphics.Color) {}
+func (*Renderer) DrawRect(int32, int32, int32, int32, graphics.Color)  {}
+func (*Renderer) DrawTextureAt(int32, int32, int32, int32)             {}
+func (*Renderer) DrawText(int32, int32, string, int32, graphics.Color) {}
 
 // Close é idempotente sem recursos.
 func (*Renderer) Close() error { return nil }

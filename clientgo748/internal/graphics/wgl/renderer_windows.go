@@ -262,24 +262,32 @@ func (r *Renderer) UploadTexture(texture assets.Texture) error {
 // DrawTexture draws the initial texture as a full-window quad. Later scenes
 // will replace this presentation step with their own scene graph.
 func (r *Renderer) DrawTexture() {
-	if !r.initialized || r.texture == 0 {
+	r.DrawTextureAt(0, 0, r.viewportWidth, r.viewportHeight)
+}
+
+// DrawTextureAt presents the uploaded official texture in client pixels.
+func (r *Renderer) DrawTextureAt(x, y, width, height int32) {
+	if !r.initialized || r.texture == 0 || width <= 0 || height <= 0 || r.viewportWidth <= 0 || r.viewportHeight <= 0 {
 		return
 	}
 	a := sharedAPI
+	left := float32(x)/float32(r.viewportWidth)*2 - 1
+	right := float32(x+width)/float32(r.viewportWidth)*2 - 1
+	top := 1 - float32(y)/float32(r.viewportHeight)*2
+	bottom := 1 - float32(y+height)/float32(r.viewportHeight)*2
 	a.enable(glTexture2D)
 	a.enable(glBlend)
 	a.blendFunc(glSrcAlpha, glOneMinusSrcA)
 	a.bindTexture(glTexture2D, r.texture)
 	a.begin(glQuads)
-	// The decoded buffer is top-left origin; invert T so the logo is upright.
 	a.texCoord2f(0, 1)
-	a.vertex2f(-1, -1)
+	a.vertex2f(left, bottom)
 	a.texCoord2f(1, 1)
-	a.vertex2f(1, -1)
+	a.vertex2f(right, bottom)
 	a.texCoord2f(1, 0)
-	a.vertex2f(1, 1)
+	a.vertex2f(right, top)
 	a.texCoord2f(0, 0)
-	a.vertex2f(-1, 1)
+	a.vertex2f(left, top)
 	a.end()
 	a.disable(glBlend)
 	a.disable(glTexture2D)
@@ -313,6 +321,86 @@ func (r *Renderer) DrawRect(x, y, width, height int32, color graphics.Color) {
 	a.end()
 	a.color4f(1, 1, 1, 1)
 	a.disable(glBlend)
+}
+
+// DrawText renders a deterministic local bitmap font. It is a presentation
+// modernization only; the native 7.48 UI assets remain the source for panels
+// and controls, while this fallback supplies editable text until the original
+// font atlas is decoded.
+func (r *Renderer) DrawText(x, y int32, text string, size int32, color graphics.Color) {
+	if !r.initialized || text == "" || size <= 0 || r.viewportWidth <= 0 || r.viewportHeight <= 0 {
+		return
+	}
+	scale := size / 8
+	if scale < 1 {
+		scale = 1
+	}
+	a := sharedAPI
+	a.disable(glTexture2D)
+	a.enable(glBlend)
+	a.blendFunc(glSrcAlpha, glOneMinusSrcA)
+	a.color4f(color.R, color.G, color.B, color.A)
+	pen, lineY := x, y
+	for _, ch := range text {
+		if ch == '\n' {
+			lineY += 8 * scale
+			pen = x
+			continue
+		}
+		glyph, ok := bitmapGlyph(ch)
+		if !ok {
+			glyph = bitmapFont['?']
+		}
+		a.begin(glQuads)
+		for row, bits := range glyph {
+			for col := 0; col < 5; col++ {
+				if bits&(1<<uint(4-col)) == 0 {
+					continue
+				}
+				pixelQuad(a, pen+int32(col)*scale, lineY+int32(row)*scale, scale, r.viewportWidth, r.viewportHeight)
+			}
+		}
+		a.end()
+		pen += 6 * scale
+	}
+	a.color4f(1, 1, 1, 1)
+	a.disable(glBlend)
+}
+
+func pixelQuad(a *api, x, y, size, w, h int32) {
+	left := float32(x)/float32(w)*2 - 1
+	right := float32(x+size)/float32(w)*2 - 1
+	top := 1 - float32(y)/float32(h)*2
+	bottom := 1 - float32(y+size)/float32(h)*2
+	a.vertex2f(left, bottom)
+	a.vertex2f(right, bottom)
+	a.vertex2f(right, top)
+	a.vertex2f(left, top)
+}
+
+var bitmapFont = map[rune][7]uint8{
+	' ': {0, 0, 0, 0, 0, 0, 0}, '?': {14, 17, 1, 2, 4, 0, 4},
+	'A': {14, 17, 17, 31, 17, 17, 17}, 'B': {30, 17, 17, 30, 17, 17, 30}, 'C': {14, 17, 16, 16, 16, 17, 14},
+	'D': {30, 17, 17, 17, 17, 17, 30}, 'E': {31, 16, 16, 30, 16, 16, 31}, 'F': {31, 16, 16, 30, 16, 16, 16},
+	'G': {14, 17, 16, 23, 17, 17, 14}, 'H': {17, 17, 17, 31, 17, 17, 17}, 'I': {31, 4, 4, 4, 4, 4, 31},
+	'J': {7, 2, 2, 2, 18, 18, 12}, 'K': {17, 18, 20, 24, 20, 18, 17}, 'L': {16, 16, 16, 16, 16, 16, 31},
+	'M': {17, 27, 21, 21, 17, 17, 17}, 'N': {17, 25, 21, 19, 17, 17, 17}, 'O': {14, 17, 17, 17, 17, 17, 14},
+	'P': {30, 17, 17, 30, 16, 16, 16}, 'Q': {14, 17, 17, 17, 21, 18, 13}, 'R': {30, 17, 17, 30, 20, 18, 17},
+	'S': {15, 16, 16, 14, 1, 1, 30}, 'T': {31, 4, 4, 4, 4, 4, 4}, 'U': {17, 17, 17, 17, 17, 17, 14},
+	'V': {17, 17, 17, 17, 17, 10, 4}, 'W': {17, 17, 17, 21, 21, 21, 10}, 'X': {17, 17, 10, 4, 10, 17, 17},
+	'Y': {17, 17, 10, 4, 4, 4, 4}, 'Z': {31, 1, 2, 4, 8, 16, 31}, '0': {14, 17, 19, 21, 25, 17, 14},
+	'1': {4, 12, 4, 4, 4, 4, 14}, '2': {14, 17, 1, 2, 4, 8, 31}, '3': {30, 1, 1, 14, 1, 1, 30},
+	'4': {2, 6, 10, 18, 31, 2, 2}, '5': {31, 16, 16, 30, 1, 1, 30}, '6': {14, 16, 16, 30, 17, 17, 14},
+	'7': {31, 1, 2, 4, 8, 8, 8}, '8': {14, 17, 17, 14, 17, 17, 14}, '9': {14, 17, 17, 15, 1, 1, 14},
+	'.': {0, 0, 0, 0, 0, 0, 4}, '-': {0, 0, 0, 31, 0, 0, 0},
+}
+
+func bitmapGlyph(ch rune) ([7]uint8, bool) {
+	if ch >= 'a' && ch <= 'z' {
+		ch -= 'a' - 'A'
+	}
+	g, ok := bitmapFont[ch]
+	return g, ok
 }
 
 // Close desfaz o contexto corrente, destrói o HGLRC e libera o DC, sempre
