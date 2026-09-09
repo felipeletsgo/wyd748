@@ -7,8 +7,8 @@ arquivo é a entrada curta para quem trabalha no client Go.
 | Frente | Estado do conhecimento | Próximo gate |
 | --- | --- | --- |
 | Bootstrap, janela e device vazio | `CLIENT_TESTED` no executável Go | dados, managers e primeira cena ficam em fichas próprias |
-| Transporte, framing e criptografia | `CONTRACT` estreito | fechar decrypt/checksum e teardown além dos fluxos já fichados |
-| Login e seleção de personagem | `CONTRACT` estreito | rastrear credenciais, resposta, create/delete e enter-world |
+| Transporte, framing e criptografia | `CONTRACT` nativo; `AUTOMATED TESTED` Go | validar conexão real e iniciar o contrato de login |
+| Login e seleção de personagem | `CONTRACT` server-side; fluxo nativo pendente | rastrear `0x20D`, `0x10A`, `0x213`, `0x114`, credenciais, erros e relogin |
 | Cenas e dispatcher | `UNMAPPED` | resolver socket → cena → controles → handler |
 | Tick, input e movimento | `CONTRACT` estreito | completar rota, predição, correção e auto-run |
 | Entidades, morte e renascimento | `CONTRACT` estreito | completar visibilidade, death state e rematerialização |

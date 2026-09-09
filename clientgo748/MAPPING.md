@@ -139,6 +139,14 @@ bootstrap -> transporte/login -> cenas -> dispatcher -> mundo
           -> logout/relogin -> shutdown/reconexão
 ```
 
+A unidade de transporte está implementada na source Go e possui contrato nativo
+`CONTRACT`: `internal/protocol` cobre handshake, framing, cifra, checksum,
+fragmentação, escrita parcial e fechamento; `internal/app.Application` fecha a
+sessão antes das cenas e do renderer. Os testes automatizados e o build Debug
+passaram, e o smoke test confirmou o bootstrap do executável. A conexão com o
+servidor real, autenticação e relogin continuam pendentes e não são promovidos
+a `CLIENT_TESTED`.
+
 As fichas existentes fecham apenas transições estreitas. Movimento completo,
 combate/skills, score/equipamento, inventário geral, render e vários lifecycles
 continuam como frentes de pesquisa, mesmo quando há código candidato no

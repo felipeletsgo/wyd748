@@ -15,6 +15,7 @@ import (
 	"wydclient748/internal/graphics"
 	"wydclient748/internal/input"
 	"wydclient748/internal/platform"
+	"wydclient748/internal/protocol"
 	"wydclient748/internal/scene"
 )
 
@@ -40,6 +41,10 @@ type Options struct {
 	// processo. O mapa é copiado pelo Manager; o chamador continua dono apenas
 	// das factories, não das instâncias criadas.
 	SceneFactories map[scene.ID]scene.Factory
+	// Session is optional during the graphical bootstrap. When configured,
+	// Application owns its lifecycle: it connects before the first scene and
+	// closes it before any scene or renderer resource is torn down.
+	Session protocol.Session
 }
 
 // Application possui janela e renderer depois que cada estágio conclui.
@@ -52,6 +57,7 @@ type Application struct {
 	windowOwned   bool
 	rendererOwned bool
 	sourceOwned   bool
+	sessionOwned  bool
 	sceneManager  *scene.Manager
 	closeOnce     sync.Once
 	closeErr      error
@@ -75,10 +81,11 @@ func New(options Options, window platform.Window, renderer graphics.Renderer) (*
 		return nil, fmt.Errorf("clientgo748: logo asset path is required when a source is configured")
 	}
 	return &Application{
-		options:     options,
-		window:      window,
-		renderer:    renderer,
-		sourceOwned: options.LogoSource != nil,
+		options:      options,
+		window:       window,
+		renderer:     renderer,
+		sourceOwned:  options.LogoSource != nil,
+		sessionOwned: options.Session != nil,
 	}, nil
 }
 
@@ -97,6 +104,11 @@ func (a *Application) Run(ctx context.Context) (err error) {
 		return fmt.Errorf("clientgo748: initialize renderer: %w", err)
 	}
 	a.rendererOwned = true
+	if a.options.Session != nil {
+		if err := a.options.Session.Connect(); err != nil {
+			return fmt.Errorf("clientgo748: connect session: %w", err)
+		}
+	}
 	if a.options.LogoSource != nil || a.options.LogoPath != "" {
 		textureRenderer, ok := a.renderer.(graphics.TextureRenderer)
 		if !ok {
@@ -197,10 +209,17 @@ func (a *Application) CurrentScene() (scene.ID, bool) {
 }
 
 // Close libera somente recursos cuja inicialização transferiu ownership. A
-// ordem é renderer antes de janela, e chamadas repetidas retornam o mesmo erro.
+// sessão é encerrada antes das cenas e do renderer; chamadas repetidas
+// retornam o mesmo erro.
 func (a *Application) Close() error {
 	a.closeOnce.Do(func() {
 		var errs []error
+		if a.sessionOwned {
+			a.sessionOwned = false
+			if err := a.options.Session.Close(); err != nil {
+				errs = append(errs, fmt.Errorf("clientgo748: close session: %w", err))
+			}
+		}
 		if a.sceneManager != nil {
 			if err := a.sceneManager.Close(); err != nil {
 				errs = append(errs, fmt.Errorf("clientgo748: close scene manager: %w", err))

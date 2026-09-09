@@ -67,6 +67,29 @@ type fakeTextureSource struct {
 	closed  bool
 }
 
+type fakeSession struct {
+	events     *[]string
+	connectErr error
+	closeErr   error
+	connected  bool
+	closed     bool
+}
+
+func (s *fakeSession) Connect() error {
+	*s.events = append(*s.events, "session.connect")
+	if s.connectErr != nil {
+		return s.connectErr
+	}
+	s.connected = true
+	return nil
+}
+
+func (s *fakeSession) Close() error {
+	*s.events = append(*s.events, "session.close")
+	s.closed = true
+	return s.closeErr
+}
+
 func (s *fakeTextureSource) LoadTexture(path string) (assets.Texture, error) {
 	if path != s.path {
 		return assets.Texture{}, errors.New("unexpected asset path")
@@ -126,6 +149,40 @@ func TestRunOwnsAndClosesResourcesInReverseOrder(t *testing.T) {
 	}
 	if !reflect.DeepEqual(events, want) {
 		t.Fatalf("second Close repeated teardown: %v", events)
+	}
+}
+
+func TestApplicationOwnsSessionAndClosesItBeforeSceneResources(t *testing.T) {
+	var events []string
+	session := &fakeSession{events: &events}
+	window := &fakeWindow{events: &events, pollsUntilClose: 1}
+	renderer := &fakeRenderer{events: &events}
+	application, err := New(Options{
+		Title:   "WYD 7.48",
+		Width:   800,
+		Height:  600,
+		Session: session,
+	}, window, renderer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := application.Run(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if !session.connected || !session.closed {
+		t.Fatalf("session lifecycle connected=%v closed=%v, want both true", session.connected, session.closed)
+	}
+	want := []string{
+		"window.open",
+		"renderer.initialize",
+		"session.connect",
+		"window.poll",
+		"session.close",
+		"renderer.close",
+		"window.close",
+	}
+	if !reflect.DeepEqual(events, want) {
+		t.Fatalf("events = %v, want %v", events, want)
 	}
 }
 

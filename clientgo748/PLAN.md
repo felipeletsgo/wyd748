@@ -19,7 +19,9 @@ Já concluído:
 - bootstrap com upload de textura e teardown na mesma thread;
 - testes automatizados e smoke test de janela, resize, fechamento e Alt+F4.
 
-Ainda não concluído: transporte, login, cenas do mundo e UI de gameplay.
+O transporte/framing já foi implementado e integrado ao lifecycle da aplicação,
+mas ainda não foi exercitado contra o servidor real. Login, cenas do mundo e UI
+de gameplay continuam pendentes.
 
 ## Ordem de implementação
 
@@ -72,8 +74,21 @@ criptografia, sequência, timeout, erros e teardown do nativo 7.48 e comparar
 com os contratos server-authoritative atuais. Implementar transporte tipado,
 cancelável e testável; manter mensagens visíveis em inglês.
 
-Aceite: conexão local, handshake, autenticação e encerramento reproduzidos com
-testes de bytes e integração com o servidor, sem inventar layout ou opcode.
+Implementado nesta unidade:
+
+- `internal/protocol.ClientSession` com handshake, framing, criptografia,
+  checksum, fragmentação e escrita parcial;
+- limites e falhas do parser alinhados ao contrato nativo 7.48;
+- integração opcional da sessão ao `Application`, com fechamento antes das
+  cenas e do renderer;
+- testes de bytes, stream, ownership e ordem de teardown.
+
+Estado: `CONTRACT` nativo e `AUTOMATED TESTED` na implementação Go. A conexão
+contra o servidor real e o fluxo de login permanecem no próximo gate.
+
+Aceite restante: conexão local, handshake, autenticação e encerramento
+reproduzidos com testes de bytes e integração com o servidor, sem inventar
+layout ou opcode.
 
 ### 4. Login, seleção de personagem e entrada no mundo
 
@@ -139,7 +154,9 @@ unidade aprovada deve ser commitada diretamente em `main`, publicada em
 
 ## Próxima ação concreta
 
-Iniciar a pesquisa de transporte/login. Reutilizar as fichas nativas existentes
-somente onde o contrato já estiver `CONTRACT`, fechar framing, criptografia,
-sequência, timeout e teardown no Ghidra e só então adicionar o primeiro pacote
-tipado; nenhum opcode deve ser inventado antes da ficha correspondente.
+Fechar a documentação e os gates da unidade de transporte, depois iniciar a
+ficha nativa específica do login. A primeira raiz será o envio de autenticação
+`0x20D`, seguido pelas respostas `0x10A` e `0x114` e pela seleção `0x213`.
+Reutilizar fichas nativas existentes somente onde o contrato já estiver
+`CONTRACT`; nenhum opcode, layout ou offset novo será adicionado antes de ser
+rastreado no binário 7.48/Ghidra e comparado com o servidor.
