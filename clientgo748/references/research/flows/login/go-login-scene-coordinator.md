@@ -146,6 +146,8 @@ Source: `internal/loginflow/coordinator.go`, `scenes.go`, `internal/ui` e
 - `go test -count=1 ./...`: aprovado.
 - `go test -race -count=1 ./internal/protocol ./internal/app ./internal/login ./internal/loginflow`: aprovado.
 - Build Debug do executável Go: aprovado.
+- Smoke de bootstrap Windows (janela, resize, `WM_CLOSE` e `Alt+F4`): aprovado;
+  o fluxo autenticado ainda não foi exercitado.
 - Client real: pendente.
 
 ## Estado de validação
