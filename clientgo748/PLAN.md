@@ -19,8 +19,7 @@ Já concluído:
 - bootstrap com upload de textura e teardown na mesma thread;
 - testes automatizados e smoke test de janela, resize, fechamento e Alt+F4.
 
-Ainda não concluído: conclusão da validação do lifecycle de cenas, transporte,
-login, cenas do mundo e UI de gameplay.
+Ainda não concluído: transporte, login, cenas do mundo e UI de gameplay.
 
 ## Ordem de implementação
 
@@ -45,7 +44,7 @@ Aceite: o executável Go renderiza o logo a partir do pacote protegido e fecha
 sem vazamento; o fluxo inválido não cria textura OpenGL. Os testes, o smoke
 test protegido e a conferência visual passaram.
 
-### 2. Lifecycle e cenas mínimas — implementação concluída, smoke pendente
+### 2. Lifecycle e cenas mínimas — concluída
 
 Separar `Application`, `SceneManager`, input/eventos e recursos por cena. Fechar
 explicitamente textura, cache, renderer e janela; preparar recriação de contexto
@@ -62,8 +61,9 @@ Implementado nesta unidade:
 - ficha de contrato em
   `references/research/flows/lifecycle/go-scene-manager.md`.
 
-Aceite: bootstrap → cena inicial → fechamento e bootstrap → logout/relogin em
-testes determinísticos, incluindo falhas parciais.
+Aceite: bootstrap → cena inicial → fechamento em testes determinísticos,
+incluindo falhas parciais. O bootstrap integrado foi executado nos ambientes
+default e protegido; logout/relogin real permanece dependente do transporte.
 
 ### 3. Transporte e sessão
 
@@ -139,6 +139,7 @@ unidade aprovada deve ser commitada diretamente em `main`, publicada em
 
 ## Próxima ação concreta
 
-Executar o smoke test do executável Go com a cena inicial e fechar a unidade 2
-em `main`. Depois iniciar a pesquisa de transporte/login; nenhum opcode deve ser
-adicionado antes da ficha `CONTRACT` correspondente.
+Iniciar a pesquisa de transporte/login. Reutilizar as fichas nativas existentes
+somente onde o contrato já estiver `CONTRACT`, fechar framing, criptografia,
+sequência, timeout e teardown no Ghidra e só então adicionar o primeiro pacote
+tipado; nenhum opcode deve ser inventado antes da ficha correspondente.
