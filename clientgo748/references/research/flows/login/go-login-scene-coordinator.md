@@ -29,7 +29,7 @@ lifecycle nativo. Este lote adapta somente a composição interna em Go.
 | Binário nativo 7.48 / Ghidra | UTILIZADA | fichas `login-session.md` e lifecycle fornecem contratos e invariantes |
 | Source Go e testes | UTILIZADA | `internal/login`, `internal/loginflow`, `internal/app`, `internal/scene` |
 | WYD-Go | UTILIZADA | contrato de sessão e transporte existente; nenhum código alterado |
-| Assets 7.48 | NÃO APLICÁVEL | lote sem renderização |
+| Assets 7.48 | NÃO APLICÁVEL | cenas usam apenas primitivas de depuração; nenhum asset visual novo foi ligado |
 | TMProject | UTILIZADA secundariamente | comparação estrutural, sem cópia de código ou ABI |
 | Guias | NÃO APLICÁVEL | não definem este contrato |
 | W2PP, Secrets, Micronics | EXCLUÍDA | fontes bugadas, proibidas pela campanha |
@@ -110,7 +110,7 @@ contratos existentes de `internal/login`.
 
 ## Mapeamento atual
 
-Source: `internal/loginflow/coordinator.go`, `scenes.go` e
+Source: `internal/loginflow/coordinator.go`, `scenes.go`, `internal/ui` e
 `internal/app/application.go`. Nativo: fichas `login-session.md` e
 `go-scene-manager.md`.
 
@@ -126,12 +126,19 @@ Source: `internal/loginflow/coordinator.go`, `scenes.go` e
 
 - Classificação: `MODERNIZACAO_COMPATIVEL`.
 - Implementar cenas lógicas sem copiar código, ABI ou ownership do TMProject.
+- As cenas visuais de seleção, carregamento e mundo são uma modernização
+  interna compatível: consomem somente snapshots já aceitos e não alteram
+  packets, fases ou ownership do renderer.
+- A seleção ignora slots vazios, percorre os quatro slots sem pular ocupados e
+  só chama o controller depois de uma confirmação válida.
 - Não declarar `CLIENT_TESTED` até executar login/logout/relogin no executável.
 
 ## Lacunas
 
 - validar conexão e ciclo completo contra o servidor WYD-Go;
 - adicionar fonte de texto/fontes e rastrear recursos visuais no client real;
+- substituir os retângulos de depuração por assets protegidos depois que o
+  contrato de recursos estiver fechado;
 - validar reconexão e logout/relogin no executável Windows.
 
 ## Validação

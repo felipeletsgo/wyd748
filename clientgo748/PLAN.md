@@ -134,11 +134,11 @@ Implementado nesta unidade:
 
 Estado: `CONTRACT` nativo e `AUTOMATED TESTED` no pacote Go. A entrega dos
 packets pela sessão à thread principal, o dispatcher e o controller de envios
-estão implementados. As factories visuais agora ligam uma cena de login com
-controles de conta/senha, foco, edição, Enter/botão, mensagens em inglês e
-limpeza segura da senha; o desenho usa somente a extensão opcional de
-primitivas do renderer. Ainda falta a execução contra o servidor real e a
-validação manual do executável Windows.
+estão implementados. As factories visuais agora ligam cenas de login, seleção
+de personagem, carregamento e mundo. A seleção usa somente slots ocupados,
+navegação por teclado/clique, confirmação única e mensagens em inglês; o
+desenho usa somente a extensão opcional de primitivas do renderer. Ainda falta
+a execução contra o servidor real e a validação manual do executável Windows.
 
 Aceite restante: um personagem entra no mundo, recebe estado inicial e
 consegue sair e entrar novamente sem crash ou dados antigos no client.
@@ -234,6 +234,6 @@ As cenas lógicas `Login` → `CharacterSelect` → `Loading` → `World` e o
 exclusivamente pelo estado atualizado na thread principal; `Application` chama
 o sincronizador depois dos eventos de sessão/input e antes do update da cena.
 
-Próximo gate: ligar factories visuais e controles de login, então executar o
-ciclo completo contra o WYD-Go e fechar logout/relogin real antes de iniciar o
-mundo mínimo.
+Próximo gate: executar o ciclo completo contra o WYD-Go, incluindo logout e
+relogin real, antes de iniciar o mundo mínimo. A camada de texto/fontes e os
+assets de personagem permanecem uma etapa visual posterior.

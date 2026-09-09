@@ -68,6 +68,12 @@ func run() error {
 				}
 				return coordinator.Authenticate(account, password, [4]uint32{}, 0)
 			},
+			SelectCharacter: func(slot int32) error {
+				if coordinator == nil {
+					return fmt.Errorf("login coordinator is not initialized")
+				}
+				return coordinator.SelectCharacter(slot, 0, 0)
+			},
 		}),
 		SessionEventsPerFrame: 64,
 		SceneSynchronizer: func() error {
