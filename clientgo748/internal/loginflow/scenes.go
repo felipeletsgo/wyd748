@@ -76,6 +76,7 @@ func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions)
 // ServerEntry is the endpoint presented by the bootstrap selector.
 type ServerEntry struct {
 	Name    string
+	Channel string
 	Address string
 }
 
@@ -98,7 +99,12 @@ func newServerSelectionScene(state *login.SessionState, options VisualOptions) (
 	}
 	servers := append([]ServerEntry(nil), options.Servers...)
 	if len(servers) == 0 {
-		servers = []ServerEntry{{Name: "Local Server", Address: "127.0.0.1:8281"}}
+		servers = []ServerEntry{{Name: "Local Server", Channel: "Channel 1", Address: "127.0.0.1:8281"}}
+	}
+	for i := range servers {
+		if servers[i].Channel == "" {
+			servers[i].Channel = "Channel 1"
+		}
 	}
 	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
 	placement, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
@@ -188,10 +194,11 @@ func (s *serverSelectionScene) Render() error {
 	if text != nil {
 		text.DrawText(layout.serverTitle.X, layout.serverTitle.Y, "SERVER", 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		text.DrawText(layout.channelTitle.X, layout.channelTitle.Y, "CHANNEL", 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
-		// The endpoint is an internal transport value, not the channel label.
-		// The native selector shows this state as "No Server." until a channel
-		// list is returned by the selected server.
-		text.DrawText(layout.channel.X, layout.channel.Y, "No Server.", 10, graphics.Color{R: .88, G: .90, B: .94, A: 1})
+		channel := s.servers[s.selected].Channel
+		if channel == "" {
+			channel = "Channel 1"
+		}
+		text.DrawText(layout.channel.X, layout.channel.Y, channel, 10, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		text.DrawText(layout.connect.X+7, layout.connect.Y+6, "CONNECT", 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		text.DrawText(layout.close.X+17, layout.close.Y+6, "CLOSE", 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		if s.status != "" {
@@ -564,9 +571,9 @@ func loginLayoutFor(renderer graphics.ShapeRenderer) loginLayout {
 	// through an 800x600 design root; the native controls and their hitboxes then
 	// remain aligned at 800x600, 1024x768, 1280x960 and larger windows.
 	panel := ui.Rect{
-		X: (width - loginTextureWidth) / 2,
-		Y: (height - loginTextureHeight) / 2,
-		Width: loginTextureWidth,
+		X:      (width - loginTextureWidth) / 2,
+		Y:      (height - loginTextureHeight) / 2,
+		Width:  loginTextureWidth,
 		Height: loginTextureHeight,
 	}
 	// logo1/logo2 are the two halves of the official WYD FC mark. They are

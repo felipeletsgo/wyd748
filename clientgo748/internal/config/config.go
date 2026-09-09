@@ -95,18 +95,21 @@ func ServerAddressFromEnv(defaultAddress string) (string, error) {
 // remains authoritative after the selected endpoint is connected.
 type ServerEntry struct {
 	Name    string
+	Channel string
 	Address string
 }
 
 // ServerEntriesFromEnv loads an optional semicolon-separated list using the
-// format "Display Name|host:port;Another Server|host:port". Keeping this
+// format "Group|host:port;Another Group|host:port" or
+// "Group|Channel|host:port". The two-field form remains compatible and uses
+// "Channel 1" as its single channel. Keeping this
 // outside the executable lets operators publish several channels without
 // rebuilding the client. When unset, the configured default remains the one
 // safe local entry used by development builds.
 func ServerEntriesFromEnv(defaultAddress string) ([]ServerEntry, error) {
 	raw := strings.TrimSpace(os.Getenv("WYD_SERVER_LIST"))
 	if raw == "" {
-		return []ServerEntry{{Name: "WYD-Go Server", Address: defaultAddress}}, nil
+		return []ServerEntry{{Name: "WYD-Go Server", Channel: "Channel 1", Address: defaultAddress}}, nil
 	}
 	parts := strings.Split(raw, ";")
 	if len(parts) > 32 {
@@ -114,19 +117,28 @@ func ServerEntriesFromEnv(defaultAddress string) ([]ServerEntry, error) {
 	}
 	entries := make([]ServerEntry, 0, len(parts))
 	for index, part := range parts {
-		fields := strings.SplitN(part, "|", 2)
-		if len(fields) != 2 {
-			return nil, fmt.Errorf("clientgo748: server list entry %d must use name|host:port", index+1)
+		fields := strings.Split(part, "|")
+		if len(fields) != 2 && len(fields) != 3 {
+			return nil, fmt.Errorf("clientgo748: server list entry %d must use group|host:port or group|channel|host:port", index+1)
 		}
 		name := strings.TrimSpace(fields[0])
-		address := strings.TrimSpace(fields[1])
+		channel := "Channel 1"
+		addressField := fields[1]
+		if len(fields) == 3 {
+			channel = strings.TrimSpace(fields[1])
+			addressField = fields[2]
+		}
 		if name == "" || len([]rune(name)) > 64 {
 			return nil, fmt.Errorf("clientgo748: server list entry %d has an invalid name", index+1)
 		}
+		if channel == "" || len([]rune(channel)) > 64 {
+			return nil, fmt.Errorf("clientgo748: server list entry %d has an invalid channel", index+1)
+		}
+		address := strings.TrimSpace(addressField)
 		if err := ValidateServerAddress(address); err != nil {
 			return nil, fmt.Errorf("clientgo748: server list entry %d: %w", index+1, err)
 		}
-		entries = append(entries, ServerEntry{Name: name, Address: address})
+		entries = append(entries, ServerEntry{Name: name, Channel: channel, Address: address})
 	}
 	if len(entries) == 0 {
 		return nil, errors.New("clientgo748: server list is empty")

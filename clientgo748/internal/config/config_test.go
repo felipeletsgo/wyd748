@@ -51,18 +51,18 @@ func TestServerEntriesFromEnvUsesDefaultWhenUnset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 1 || entries[0].Name != "WYD-Go Server" || entries[0].Address != "127.0.0.1:8281" {
+	if len(entries) != 1 || entries[0].Name != "WYD-Go Server" || entries[0].Channel != "Channel 1" || entries[0].Address != "127.0.0.1:8281" {
 		t.Fatalf("entries=%+v", entries)
 	}
 }
 
 func TestServerEntriesFromEnvParsesAndValidatesMultipleEntries(t *testing.T) {
-	t.Setenv("WYD_SERVER_LIST", "Production|127.0.0.1:8281;Test|localhost:8282")
+	t.Setenv("WYD_SERVER_LIST", "Production|Main|127.0.0.1:8281;Test|localhost:8282")
 	entries, err := ServerEntriesFromEnv("")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 || entries[1].Address != "localhost:8282" {
+	if len(entries) != 2 || entries[0].Channel != "Main" || entries[1].Channel != "Channel 1" || entries[1].Address != "localhost:8282" {
 		t.Fatalf("entries=%+v", entries)
 	}
 	t.Setenv("WYD_SERVER_LIST", "broken")

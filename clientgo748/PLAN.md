@@ -148,8 +148,10 @@ sempre a primeira cena e só abre o transporte depois de `CONNECT`/Enter. Sem
 override, `CONNECT` usa o endpoint padrão `127.0.0.1:8281`;
 `WYD_SERVER_ADDRESS` permite substituí-lo antes de iniciar o processo. Para
 uma lista real de servidores, `WYD_SERVER_LIST` aceita entradas no formato
-`Name|host:port;Another Name|host:port`, validadas antes da janela e limitadas
-a 32 itens. A cópia ativa `assets/current` contém somente os assets modernos;
+`Group|host:port;Another Group|host:port` ou
+`Group|Channel|host:port`, validadas antes da janela e limitadas a 32 itens.
+O formato legado de dois campos usa `Channel 1` e o painel direito nunca fica
+sem o canal selecionado. A cópia ativa `assets/current` contém somente os assets modernos;
 `loginbox.wyt`, `loginicon.wyt`, `LoginScene.bin` e `SelServerScene.bin`
 permanecem apenas no corpus oficial read-only para referência nativa.
 

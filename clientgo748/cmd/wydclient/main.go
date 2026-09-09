@@ -191,7 +191,7 @@ func displayServerAddress(defaultAddress, configuredAddress string) string {
 func toLoginServerEntries(entries []config.ServerEntry) []loginflow.ServerEntry {
 	converted := make([]loginflow.ServerEntry, len(entries))
 	for i, entry := range entries {
-		converted[i] = loginflow.ServerEntry{Name: entry.Name, Address: entry.Address}
+		converted[i] = loginflow.ServerEntry{Name: entry.Name, Channel: entry.Channel, Address: entry.Address}
 	}
 	return converted
 }

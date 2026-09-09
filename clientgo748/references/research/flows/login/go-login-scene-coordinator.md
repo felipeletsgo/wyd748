@@ -150,9 +150,11 @@ Nativo: fichas `login-session.md` e `go-scene-manager.md`.
   renderer.
 - A seleção ignora slots vazios, percorre os quatro slots sem pular ocupados e
   só chama o controller depois de uma confirmação válida.
-- A lista de servidores é fornecida por configuração (`WYD_SERVER_LIST`,
-  `Name|host:port;...`) e cada endpoint é validado antes de ser apresentado;
-  sem a variável, existe uma entrada local segura para desenvolvimento.
+- A lista de grupos/canais é fornecida por configuração (`WYD_SERVER_LIST`,
+  `Group|host:port;...` ou `Group|Channel|host:port`) e cada endpoint é
+  validado antes de ser apresentado. A forma de dois campos permanece
+  compatível e expõe um único `Channel 1`; a cena sempre apresenta o canal
+  selecionado no painel direito, em vez de um placeholder `No Server.`.
 - A seleção de servidor separa destaque da linha e confirmação: clicar numa
   linha apenas muda o índice; `CONNECT` ou Enter confirma o endpoint e revela a
   tela de login. A conexão permanece adiada até o envio das credenciais. Sem
