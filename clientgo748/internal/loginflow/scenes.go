@@ -86,31 +86,46 @@ type serverSelectionScene struct {
 	texture      *assets.Texture
 	textureDraw  graphics.TextureRenderer
 	placement    graphics.TexturePlacementRenderer
-	servers      []ServerEntry
+	groups       []serverGroup
 	selectServer func(ServerEntry) error
 	requestClose func() error
 	selected     int
+	channel      int
 	status       string
+}
+
+type serverGroup struct {
+	name     string
+	channels []ServerEntry
 }
 
 func newServerSelectionScene(state *login.SessionState, options VisualOptions) (scene.Scene, error) {
 	if state == nil {
 		return nil, errors.New("loginflow: session state is required")
 	}
-	servers := append([]ServerEntry(nil), options.Servers...)
-	if len(servers) == 0 {
-		servers = []ServerEntry{{Name: "Local Server", Channel: "Channel 1", Address: "127.0.0.1:8281"}}
+	entries := append([]ServerEntry(nil), options.Servers...)
+	if len(entries) == 0 {
+		entries = []ServerEntry{{Name: "Local Server", Channel: "Channel 1", Address: "127.0.0.1:8281"}}
 	}
-	for i := range servers {
-		if servers[i].Channel == "" {
-			servers[i].Channel = "Channel 1"
+	groups := make([]serverGroup, 0, len(entries))
+	groupIndex := make(map[string]int, len(entries))
+	for _, entry := range entries {
+		if entry.Channel == "" {
+			entry.Channel = "Channel 1"
 		}
+		index, ok := groupIndex[entry.Name]
+		if !ok {
+			index = len(groups)
+			groupIndex[entry.Name] = index
+			groups = append(groups, serverGroup{name: entry.Name})
+		}
+		groups[index].channels = append(groups[index].channels, entry)
 	}
 	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
 	placement, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
 	return &serverSelectionScene{state: state, renderer: options.ShapeRenderer, texture: options.ServerTexture,
-		textureDraw: textureRenderer, placement: placement, servers: servers,
-		selectServer: options.SelectServer, requestClose: options.RequestClose, selected: 0}, nil
+		textureDraw: textureRenderer, placement: placement, groups: groups,
+		selectServer: options.SelectServer, requestClose: options.RequestClose, selected: 0, channel: 0}, nil
 }
 
 func (s *serverSelectionScene) ID() scene.ID { return ServerSelectionSceneID }
@@ -118,7 +133,7 @@ func (s *serverSelectionScene) Enter() error {
 	if err := s.validate(); err != nil {
 		return err
 	}
-	s.selected, s.status = 0, ""
+	s.selected, s.channel, s.status = 0, 0, ""
 	if s.texture != nil && s.textureDraw != nil {
 		if err := s.textureDraw.UploadTexture(*s.texture); err != nil {
 			return fmt.Errorf("loginflow: upload server selection UI: %w", err)
@@ -131,13 +146,20 @@ func (s *serverSelectionScene) HandleEvent(event input.Event) error {
 		return err
 	}
 	if event.Kind == input.KindMouseButtonDown && event.Button == 1 {
-		layout := serverSelectionLayoutFor(s.renderer, len(s.servers))
-		for i := range s.servers {
+		layout := serverSelectionLayoutFor(s.renderer, len(s.groups))
+		for i := range s.groups {
 			if layout.serverRow(i).Contains(event.X, event.Y) {
-				// A row selects an endpoint; only the explicit CONNECT control
-				// (or Enter) opens the transport.
 				s.selected = i
+				s.channel = 0
 				return nil
+			}
+		}
+		if s.selected >= 0 && s.selected < len(s.groups) {
+			for i := range s.groups[s.selected].channels {
+				if layout.channelRow(i).Contains(event.X, event.Y) {
+					s.channel = i
+					return nil
+				}
 			}
 		}
 		if layout.connect.Contains(event.X, event.Y) {
@@ -164,7 +186,7 @@ func (s *serverSelectionScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err
 	}
-	layout := serverSelectionLayoutFor(s.renderer, len(s.servers))
+	layout := serverSelectionLayoutFor(s.renderer, len(s.groups))
 	if s.texture != nil {
 		switch {
 		case s.placement != nil && s.textureDraw != nil:
@@ -177,28 +199,30 @@ func (s *serverSelectionScene) Render() error {
 		return nil
 	}
 	text, _ := s.renderer.(graphics.TextRenderer)
-	for i, entry := range s.servers {
+	for i, group := range s.groups {
 		r := layout.serverRow(i)
 		color := graphics.Color{R: .78, G: .82, B: .90, A: 1}
 		if i == s.selected {
 			color = graphics.Color{R: 1, G: 1, B: 1, A: 1}
 		}
 		if text != nil {
-			name := entry.Name
-			if name == "" {
-				name = entry.Address
-			}
+			name := group.name
 			text.DrawText(r.X, r.Y+6, name, 12, color)
 		}
 	}
 	if text != nil {
 		text.DrawText(layout.serverTitle.X, layout.serverTitle.Y, "SERVER", 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		text.DrawText(layout.channelTitle.X, layout.channelTitle.Y, "CHANNEL", 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
-		channel := s.servers[s.selected].Channel
-		if channel == "" {
-			channel = "Channel 1"
+		if s.selected >= 0 && s.selected < len(s.groups) {
+			for i, entry := range s.groups[s.selected].channels {
+				r := layout.channelRow(i)
+				color := graphics.Color{R: .78, G: .82, B: .90, A: 1}
+				if i == s.channel {
+					color = graphics.Color{R: 1, G: 1, B: 1, A: 1}
+				}
+				text.DrawText(r.X, r.Y+6, entry.Channel, 10, color)
+			}
 		}
-		text.DrawText(layout.channel.X, layout.channel.Y, channel, 10, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		text.DrawText(layout.connect.X+7, layout.connect.Y+6, "CONNECT", 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		text.DrawText(layout.close.X+17, layout.close.Y+6, "CLOSE", 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		if s.status != "" {
@@ -216,26 +240,36 @@ func (s *serverSelectionScene) validate() error {
 	if s.state.Phase() != login.Disconnected {
 		return fmt.Errorf("loginflow: server-selection scene does not accept phase %s", s.state.Phase())
 	}
-	if len(s.servers) == 0 {
+	if len(s.groups) == 0 {
 		return errors.New("loginflow: server list is empty")
+	}
+	for i, group := range s.groups {
+		if len(group.channels) == 0 {
+			return fmt.Errorf("loginflow: server group %d has no channels", i)
+		}
 	}
 	return nil
 }
 func (s *serverSelectionScene) move(delta int) {
-	if len(s.servers) == 0 || delta == 0 {
+	if len(s.groups) == 0 || delta == 0 {
 		return
 	}
-	s.selected = (s.selected + delta) % len(s.servers)
+	s.selected = (s.selected + delta) % len(s.groups)
 	if s.selected < 0 {
-		s.selected += len(s.servers)
+		s.selected += len(s.groups)
 	}
+	s.channel = 0
 }
 func (s *serverSelectionScene) submit() error {
 	if s.selectServer == nil {
 		s.status = "Server selection is unavailable."
 		return errors.New("loginflow: server selection callback is unavailable")
 	}
-	entry := s.servers[s.selected]
+	if s.selected < 0 || s.selected >= len(s.groups) || s.channel < 0 || s.channel >= len(s.groups[s.selected].channels) {
+		s.status = "Select a channel."
+		return errors.New("loginflow: no channel selected")
+	}
+	entry := s.groups[s.selected].channels[s.channel]
 	if entry.Address == "" {
 		s.status = "Selected server has no endpoint."
 		return errors.New("loginflow: selected server has no endpoint")
@@ -311,6 +345,13 @@ func (l serverSelectionLayout) serverRow(index int) ui.Rect {
 		index = 0
 	}
 	return ui.Rect{X: l.texture.X + 18, Y: l.root.Y + 47 + int32(index)*27, Width: 112, Height: 23}
+}
+
+func (l serverSelectionLayout) channelRow(index int) ui.Rect {
+	if index < 0 {
+		index = 0
+	}
+	return ui.Rect{X: l.texture.X + 143, Y: l.root.Y + 47 + int32(index)*27, Width: 96, Height: 23}
 }
 
 type characterSelectScene struct {

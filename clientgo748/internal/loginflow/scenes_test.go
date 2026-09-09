@@ -89,6 +89,41 @@ func TestServerSelectionSelectsRowBeforeConnecting(t *testing.T) {
 	_ = s.Close()
 }
 
+func TestServerSelectionGroupsChannelsAndSubmitsSelectedEndpoint(t *testing.T) {
+	state := login.NewSessionState()
+	var selected ServerEntry
+	factories := SceneFactoriesWithVisuals(state, VisualOptions{
+		Servers: []ServerEntry{
+			{Name: "Production", Channel: "Main", Address: "127.0.0.1:8281"},
+			{Name: "Production", Channel: "Channel 2", Address: "127.0.0.1:8282"},
+		},
+		SelectServer: func(entry ServerEntry) error { selected = entry; return nil },
+	})
+	s, err := factories[ServerSelectionSceneID]()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Enter(); err != nil {
+		t.Fatal(err)
+	}
+	selector := s.(*serverSelectionScene)
+	if len(selector.groups) != 1 || len(selector.groups[0].channels) != 2 {
+		t.Fatalf("groups=%+v", selector.groups)
+	}
+	layout := serverSelectionLayoutFor(nil, 1)
+	row := layout.channelRow(1)
+	if err := s.HandleEvent(input.Event{Kind: input.KindMouseButtonDown, Button: 1, X: row.X + 1, Y: row.Y + 1}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x0D}); err != nil {
+		t.Fatal(err)
+	}
+	if selected.Channel != "Channel 2" || selected.Address != "127.0.0.1:8282" {
+		t.Fatalf("selected=%+v", selected)
+	}
+	_ = s.Close()
+}
+
 func TestServerSelectionLayoutCentersNativeRootAndSkin(t *testing.T) {
 	for _, test := range []struct {
 		width, height int32
