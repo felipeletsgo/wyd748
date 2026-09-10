@@ -465,7 +465,10 @@ func (s *characterSelectScene) Render() error {
 		if text, ok := s.renderer.(graphics.TextRenderer); ok {
 			name := "EMPTY SLOT"
 			if list.Characters[i].Occupied() {
-				name = list.Characters[i].Name
+				character := list.Characters[i]
+				name = character.Name
+				text.DrawText(r.X+10, r.Y+34, fmt.Sprintf("Level %d", character.Score.Level), 9, graphics.Color{R: .85, G: .85, B: .85, A: 1})
+				text.DrawText(r.X+10, r.Y+50, fmt.Sprintf("Gold %d", character.Coin), 9, graphics.Color{R: .85, G: .85, B: .85, A: 1})
 			}
 			text.DrawText(r.X+10, r.Y+12, name, 12, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		}
