@@ -45,3 +45,5 @@ is unavailable.` porque não existe contrato de criação de conta no transporte
 Go. Nenhum opcode foi inventado; a transição modal nativa `0x1202` continua
 registrada apenas como evidência de compatibilidade. Testes focados de
 `loginflow` e `ui` passaram.
+O teste de layout também cobre o clique real nos controles Close/New Account e
+confirma que o callback de encerramento é chamado uma vez.

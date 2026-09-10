@@ -83,6 +83,32 @@ func TestLoginInputLayoutBeforeRenderAndAfterResize(t *testing.T) {
 	}
 }
 
+func TestLoginCloseAndNewAccountCallbacks(t *testing.T) {
+	requested := 0
+	scene, err := newLoginScene(login.NewSessionState(), VisualOptions{
+		LoginControls: loginAssetControls(t),
+		RequestClose:  func() error { requested++; return nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := scene.(*loginScene)
+	layout := loginLayoutFor(nil)
+	layout.applyNativeControls(s.loginControls)
+	if err := s.HandleEvent(input.Event{Kind: input.KindMouseButtonDown, Button: 1, X: layout.close.X + 1, Y: layout.close.Y + 1}); err != nil {
+		t.Fatal(err)
+	}
+	if requested != 1 {
+		t.Fatalf("close callback calls=%d want 1", requested)
+	}
+	if err := s.HandleEvent(input.Event{Kind: input.KindMouseButtonDown, Button: 1, X: layout.newAccount.X + 1, Y: layout.newAccount.Y + 1}); err != nil {
+		t.Fatal(err)
+	}
+	if s.form.Status != "Account creation is unavailable." {
+		t.Fatalf("new account status=%q", s.form.Status)
+	}
+}
+
 func TestLoginControlsRejectMalformedAsset(t *testing.T) {
 	for _, test := range []struct {
 		name   string
