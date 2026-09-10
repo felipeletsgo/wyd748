@@ -47,3 +47,10 @@ registrada apenas como evidência de compatibilidade. Testes focados de
 `loginflow` e `ui` passaram.
 O teste de layout também cobre o clique real nos controles Close/New Account e
 confirma que o callback de encerramento é chamado uma vez.
+
+Build/runtime 2026-09-10: `Build-ClientGo.ps1 -Configuration Release
+-SkipTests` concluiu; o executável permaneceu ativo por 3 segundos no smoke
+test e foi encerrado pelo harness. SHA-256 atual de `bin/wydclient.exe`:
+`011532D3BB725F7ED0E5AF75A0147D3213F168A39B1B1C845DD3EAD98CE320EA`.
+Isso confirma inicialização, mas não promove o fluxo para `CLIENT_TESTED`, pois
+não houve interação visual automatizada com servidor/login.
