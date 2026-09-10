@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -76,16 +77,9 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load official server selection UI: %w", err)
 	}
-	var characterTerrain *assets.Terrain
-	terrainBytes, err := os.ReadFile(characterTerrainPath())
-	if err == nil {
-		parsedTerrain, parseErr := assets.ParseTerrain(terrainBytes)
-		if parseErr != nil {
-			return fmt.Errorf("parse official character terrain: %w", parseErr)
-		}
-		characterTerrain = &parsedTerrain
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("load official character terrain: %w", err)
+	characterTerrain, err := loadOptionalTerrain(characterTerrainPath())
+	if err != nil {
+		return err
 	}
 	var client *app.Application
 	selectedAddress := displayServerAddress(cfg.ServerAddress, serverAddress)
@@ -259,6 +253,24 @@ func characterTerrainPath() string {
 		}
 	}
 	return filepath.Join("assets", "current", "Env", "Character.trn")
+}
+
+// loadOptionalTerrain keeps the diagnostic TRN independent from bootstrap.
+// A missing file disables only the visual aid; a present but malformed file is
+// reported so corrupted assets cannot be silently accepted.
+func loadOptionalTerrain(path string) (*assets.Terrain, error) {
+	terrainBytes, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load official character terrain: %w", err)
+	}
+	parsedTerrain, err := assets.ParseTerrain(terrainBytes)
+	if err != nil {
+		return nil, fmt.Errorf("parse official character terrain: %w", err)
+	}
+	return &parsedTerrain, nil
 }
 
 func loginLogoLeftPath() string {
