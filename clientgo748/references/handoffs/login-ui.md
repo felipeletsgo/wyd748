@@ -61,3 +61,9 @@ de desconexão repetida, retorno à seleção e reconexão. `Verify-Fast.ps1` pa
 o commit `5cb44801` foi publicado em `origin/main`. A captura visual permanece
 pendente: o helper Windows retornou `SetIsBorderRequired (0x80004002)` antes de
 capturar a janela.
+
+Incremento 2026-09-10: a cena de carregamento agora exibe `LOADING WORLD` e
+`Please wait...` acima da barra de progresso, mantendo a geometria existente e
+sem introduzir protocolo ou assets fictícios. `go test ./internal/loginflow
+-count=1` e `git diff --check` passaram. A alteração ainda não foi validada
+visualmente no executável devido à limitação do helper de captura.

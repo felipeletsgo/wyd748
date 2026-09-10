@@ -561,6 +561,10 @@ func (s *loadingScene) Render() error {
 	}
 	if s.renderer != nil {
 		s.renderer.DrawRect(290, 290, 220, 18, graphics.Color{R: .12, G: .34, B: .62, A: 1})
+		if text, ok := s.renderer.(graphics.TextRenderer); ok {
+			text.DrawText(337, 260, "LOADING WORLD", 12, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+			text.DrawText(326, 318, "Please wait...", 9, graphics.Color{R: .82, G: .82, B: .82, A: 1})
+		}
 	}
 	return nil
 }
