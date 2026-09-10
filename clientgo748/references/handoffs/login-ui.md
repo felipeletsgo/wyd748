@@ -14,6 +14,11 @@ fechamento do botão nativo; títulos e linhas de canais foram alinhados à mét
 documentada do recurso (offset vertical de 5 px, coluna de canais deslocada 8 px
 e largura de 140 px). Teste de fechamento por Escape e Verify-Fast passaram.
 
+Validação de runtime 2026-09-10: `bin/wydclient.exe` iniciou pelo menos até a
+janela/processo permanecer ativo por 3 segundos e foi encerrado limpidamente.
+Não houve captura visual automatizada nesta sessão; portanto o fluxo continua
+sem estado `CLIENT_TESTED`.
+
 Próximo passo: rastrear os callbacks 4609/4611/4610 em
 `references/ghidra/corpus/004ac985_FUN_004ac985.c` e no handler da cena;
 comparar `TMSelectServerScene.cpp` para nomes/semântica secundários. Implementar
