@@ -9,9 +9,15 @@ dos controles consumidos e cópia própria. Testes focados de assets/loginflow
 passaram. A ficha `flows/login/login-screen-materialization.md` mantém LOCATED
 para o lifecycle; o incremento não prova paridade visual.
 
+Incremento adicional 2026-09-10: Escape no seletor agora usa o mesmo callback de
+fechamento do botão nativo; títulos e linhas de canais foram alinhados à métrica
+documentada do recurso (offset vertical de 5 px, coluna de canais deslocada 8 px
+e largura de 140 px). Teste de fechamento por Escape e Verify-Fast passaram.
+
 Próximo passo: rastrear os callbacks 4609/4611/4610 em
 `references/ghidra/corpus/004ac985_FUN_004ac985.c` e no handler da cena;
 comparar `TMSelectServerScene.cpp` para nomes/semântica secundários. Implementar
 Close/New Account sem inventar endpoint. Depois corrigir captions Connect/Close
 e padding de canais na seleção usando geometria comum e métricas da fonte.
-Executar e comparar a tela recompilada; ainda faltam callbacks e validação real.
+Executar e comparar a tela recompilada; ainda faltam callbacks de Connect/New
+Account e validação real de mouse/teclado no executável.

@@ -182,6 +182,8 @@ func (s *serverSelectionScene) HandleEvent(event input.Event) error {
 	}
 	if event.Kind == input.KindKeyDown {
 		switch event.Key {
+		case 0x1B: // VK_ESCAPE: native selector closes the launcher window.
+			return s.closeRequested()
 		case 0x25, 0x26:
 			s.move(-1)
 		case 0x27, 0x28:
@@ -342,9 +344,9 @@ func serverSelectionLayoutFor(renderer graphics.ShapeRenderer, count int) server
 	return serverSelectionLayout{
 		root:         root,
 		texture:      texture,
-		serverTitle:  serverPoint{X: texture.X + 30, Y: root.Y + 12},
-		channelTitle: serverPoint{X: texture.X + 158, Y: root.Y + 12},
-		channel:      serverPoint{X: texture.X + 157, Y: root.Y + 54},
+		serverTitle:  serverPoint{X: texture.X + 30, Y: root.Y + 17},
+		channelTitle: serverPoint{X: texture.X + 166, Y: root.Y + 17},
+		channel:      serverPoint{X: texture.X + 165, Y: root.Y + 59},
 		connect:      ui.Rect{X: texture.X + 16, Y: root.Y + 218, Width: 66, Height: 24},
 		close:        ui.Rect{X: texture.X + 99, Y: root.Y + 218, Width: 66, Height: 24},
 		status:       serverPoint{X: root.X, Y: root.Y + serverRootHeight + 10},
@@ -355,14 +357,14 @@ func (l serverSelectionLayout) serverRow(index int) ui.Rect {
 	if index < 0 {
 		index = 0
 	}
-	return ui.Rect{X: l.texture.X + 18, Y: l.root.Y + 47 + int32(index)*27, Width: 112, Height: 23}
+	return ui.Rect{X: l.texture.X + 18, Y: l.root.Y + 52 + int32(index)*27, Width: 112, Height: 23}
 }
 
 func (l serverSelectionLayout) channelRow(index int) ui.Rect {
 	if index < 0 {
 		index = 0
 	}
-	return ui.Rect{X: l.texture.X + 143, Y: l.root.Y + 47 + int32(index)*27, Width: 96, Height: 23}
+	return ui.Rect{X: l.texture.X + 151, Y: l.root.Y + 52 + int32(index)*27, Width: 140, Height: 23}
 }
 
 type characterSelectScene struct {

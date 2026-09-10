@@ -299,6 +299,20 @@ func TestServerSelectionKeepsSceneAliveWhenConnectionFails(t *testing.T) {
 	_ = s.Close()
 }
 
+func TestServerSelectionEscapeRequestsClose(t *testing.T) {
+	state := login.NewSessionState()
+	requested := 0
+	factories := SceneFactoriesWithVisuals(state, VisualOptions{
+		Servers: []ServerEntry{{Name: "Alpha", Address: "127.0.0.1:8281"}},
+		RequestClose: func() error { requested++; return nil },
+	})
+	s, err := factories[ServerSelectionSceneID]()
+	if err != nil { t.Fatal(err) }
+	if err := s.Enter(); err != nil { t.Fatal(err) }
+	if err := s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x1B}); err != nil { t.Fatal(err) }
+	if requested != 1 { t.Fatalf("close requests=%d want 1", requested) }
+}
+
 func TestCharacterSceneRejectsIncompatiblePhase(t *testing.T) {
 	state := login.NewSessionState()
 	factory := SceneFactories(state)[CharacterSelectSceneID]
