@@ -663,6 +663,12 @@ func (s *worldScene) Render() error {
 	if text, ok := s.renderer.(graphics.TextRenderer); ok {
 		text.DrawText(16, 16, "WORLD", 14, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		text.DrawText(16, 38, fmt.Sprintf("Position: %d, %d", snapshot.PosX, snapshot.PosY), 11, graphics.Color{R: .78, G: .84, B: .90, A: 1})
+		text.DrawText(16, 56, "Click to move", 9, graphics.Color{R: .68, G: .76, B: .84, A: 1})
+		entityCount := 0
+		if s.worldEntities != nil {
+			entityCount = len(s.worldEntities())
+		}
+		text.DrawText(width-150, 16, fmt.Sprintf("Entities: %d", entityCount), 10, graphics.Color{R: .78, G: .84, B: .90, A: 1})
 		name := snapshot.Mob.Name
 		if name == "" {
 			name = "Character"
