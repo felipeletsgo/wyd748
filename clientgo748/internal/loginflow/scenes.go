@@ -103,6 +103,7 @@ type serverSelectionScene struct {
 	selected     int
 	channel      int
 	status       string
+	uiStrings    map[int32]string
 }
 
 type serverGroup struct {
@@ -136,7 +137,8 @@ func newServerSelectionScene(state *login.SessionState, options VisualOptions) (
 	placement, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
 	return &serverSelectionScene{state: state, renderer: options.ShapeRenderer, texture: options.ServerTexture,
 		textureDraw: textureRenderer, placement: placement, groups: groups,
-		selectServer: options.SelectServer, requestClose: options.RequestClose, selected: 0, channel: 0}, nil
+		selectServer: options.SelectServer, requestClose: options.RequestClose, selected: 0, channel: 0,
+		uiStrings: options.UIStrings}, nil
 }
 
 func (s *serverSelectionScene) ID() scene.ID { return ServerSelectionSceneID }
@@ -224,8 +226,24 @@ func (s *serverSelectionScene) Render() error {
 		}
 	}
 	if text != nil {
-		text.DrawText(layout.serverTitle.X, layout.serverTitle.Y, "SERVER", 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
-		text.DrawText(layout.channelTitle.X, layout.channelTitle.Y, "CHANNEL", 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		serverCaption, channelCaption := "SERVER", "CHANNEL"
+		connectCaption, closeCaption := "CONNECT", "CLOSE"
+		if s.uiStrings != nil {
+			if value := s.uiStrings[3]; value != "" {
+				serverCaption = value
+			}
+			if value := s.uiStrings[4]; value != "" {
+				channelCaption = value
+			}
+			if value := s.uiStrings[1]; value != "" {
+				connectCaption = value
+			}
+			if value := s.uiStrings[6]; value != "" {
+				closeCaption = value
+			}
+		}
+		text.DrawText(layout.serverTitle.X, layout.serverTitle.Y, serverCaption, 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		text.DrawText(layout.channelTitle.X, layout.channelTitle.Y, channelCaption, 11, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		if s.selected >= 0 && s.selected < len(s.groups) {
 			for i, entry := range s.groups[s.selected].channels {
 				r := layout.channelRow(i)
@@ -236,8 +254,8 @@ func (s *serverSelectionScene) Render() error {
 				text.DrawText(r.X, r.Y+6, entry.Channel, 10, color)
 			}
 		}
-		text.DrawText(layout.connect.X+7, layout.connect.Y+6, "CONNECT", 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
-		text.DrawText(layout.close.X+17, layout.close.Y+6, "CLOSE", 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		text.DrawText(layout.connect.X+7, layout.connect.Y+6, connectCaption, 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		text.DrawText(layout.close.X+17, layout.close.Y+6, closeCaption, 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		if s.status != "" {
 			text.DrawText(layout.status.X, layout.status.Y, s.status, 10, graphics.Color{R: .72, G: .76, B: .84, A: 1})
 		}
