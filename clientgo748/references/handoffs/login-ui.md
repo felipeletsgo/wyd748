@@ -67,3 +67,9 @@ Incremento 2026-09-10: a cena de carregamento agora exibe `LOADING WORLD` e
 sem introduzir protocolo ou assets fictícios. `go test ./internal/loginflow
 -count=1` e `git diff --check` passaram. A alteração ainda não foi validada
 visualmente no executável devido à limitação do helper de captura.
+
+Validação adicional 2026-09-10: `go test ./... -count=1` passou em todos os
+pacotes; `Build-ClientGo.ps1 -Configuration Release -SkipTests` também concluiu
+e gerou `bin/wydclient.exe`. O HUD da cena World foi publicado no commit
+`a29c2fcd`; a execução continua sem classificação `CLIENT_TESTED` por falta de
+interação visual automatizada funcional.
