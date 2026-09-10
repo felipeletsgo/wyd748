@@ -19,6 +19,12 @@ janela/processo permanecer ativo por 3 segundos e foi encerrado limpidamente.
 Não houve captura visual automatizada nesta sessão; portanto o fluxo continua
 sem estado `CLIENT_TESTED`.
 
+Evidência adicional: `0049889a_FUN_0049889a.c` confirma que a ação nativa de
+New Account abre a transição modal `0x1202`; `004ac985_FUN_004ac985.c` valida
+esse estado e encaminha o diálogo. O client Go ainda não possui endpoint nem
+contrato de criação de conta, então o botão permanece deliberadamente sem ação
+até existir uma extensão coordenada documentada.
+
 Próximo passo: rastrear os callbacks 4609/4611/4610 em
 `references/ghidra/corpus/004ac985_FUN_004ac985.c` e no handler da cena;
 comparar `TMSelectServerScene.cpp` para nomes/semântica secundários. Implementar
