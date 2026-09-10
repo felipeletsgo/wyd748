@@ -54,3 +54,10 @@ test e foi encerrado pelo harness. SHA-256 atual de `bin/wydclient.exe`:
 `011532D3BB725F7ED0E5AF75A0147D3213F168A39B1B1C845DD3EAD98CE320EA`.
 Isso confirma inicialização, mas não promove o fluxo para `CLIENT_TESTED`, pois
 não houve interação visual automatizada com servidor/login.
+
+Incremento 2026-09-10: `HandleSessionEvent(SessionDisconnected)` agora limpa a
+seleção do servidor e o snapshot do mundo também para eventos de rede, com teste
+de desconexão repetida, retorno à seleção e reconexão. `Verify-Fast.ps1` passou e
+o commit `5cb44801` foi publicado em `origin/main`. A captura visual permanece
+pendente: o helper Windows retornou `SetIsBorderRequired (0x80004002)` antes de
+capturar a janela.
