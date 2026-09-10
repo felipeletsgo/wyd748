@@ -19,6 +19,10 @@ janela/processo permanecer ativo por 3 segundos e foi encerrado limpidamente.
 Não houve captura visual automatizada nesta sessão; portanto o fluxo continua
 sem estado `CLIENT_TESTED`.
 
+Build Release 2026-09-10: `Build-ClientGo.ps1 -Configuration Release
+-SkipTests` concluído; SHA-256 de `bin/wydclient.exe`:
+`459E4AF8C879C98FD76BD2E85A80D5CF3392C28FA8A2377B8F804EE90BA1FA6D`.
+
 Evidência adicional: `0049889a_FUN_0049889a.c` confirma que a ação nativa de
 New Account abre a transição modal `0x1202`; `004ac985_FUN_004ac985.c` valida
 esse estado e encaminha o diálogo. O client Go ainda não possui endpoint nem
