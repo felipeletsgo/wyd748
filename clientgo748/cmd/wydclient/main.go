@@ -76,6 +76,17 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load official server selection UI: %w", err)
 	}
+	var characterTerrain *assets.Terrain
+	terrainBytes, err := os.ReadFile(characterTerrainPath())
+	if err == nil {
+		parsedTerrain, parseErr := assets.ParseTerrain(terrainBytes)
+		if parseErr != nil {
+			return fmt.Errorf("parse official character terrain: %w", parseErr)
+		}
+		characterTerrain = &parsedTerrain
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("load official character terrain: %w", err)
+	}
 	var client *app.Application
 	selectedAddress := displayServerAddress(cfg.ServerAddress, serverAddress)
 	session := protocol.NewSession(selectedAddress, protocol.SessionOptions{})
@@ -140,6 +151,7 @@ func run() error {
 				}
 				return coordinator.Move(targetX, targetY)
 			},
+			Terrain: characterTerrain,
 		}),
 		SessionEventsPerFrame: 64,
 		SceneSynchronizer: func() error {
@@ -237,6 +249,16 @@ func serverSelectionTexturePath() string {
 		}
 	}
 	return filepath.Join("assets", "current", "UI", "ServerList2.wyt")
+}
+
+func characterTerrainPath() string {
+	if executable, err := os.Executable(); err == nil {
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "Env", "Character.trn"))
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return filepath.Join("assets", "current", "Env", "Character.trn")
 }
 
 func loginLogoLeftPath() string {

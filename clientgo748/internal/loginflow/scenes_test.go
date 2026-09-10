@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"wydclient748/internal/assets"
 	"wydclient748/internal/graphics"
 	"wydclient748/internal/input"
 	"wydclient748/internal/login"
@@ -224,6 +225,15 @@ func TestWorldEntityProjectionUsesAuthoritativeSnapshot(t *testing.T) {
 	}
 	if entities[0].ID != 9 {
 		t.Fatalf("caller snapshot was mutated: first id=%d", entities[0].ID)
+	}
+}
+
+func TestTerrainDiagnosticUsesConfirmedHeightOnly(t *testing.T) {
+	renderer := &worldRenderProbe{viewportProbe: viewportProbe{width: 800, height: 600}}
+	terrain := &assets.Terrain{Columns: 1, Rows: 1, Cells: []assets.TerrainCell{{Height: -128, Raw: [12]byte{0x80, 0xff}}}}
+	drawTerrainDiagnostic(renderer, terrain, 10, 20, 4)
+	if len(renderer.rects) != 1 || renderer.rects[0].x != 10 || renderer.rects[0].y != 20 {
+		t.Fatalf("terrain projection = %#v", renderer.rects)
 	}
 }
 

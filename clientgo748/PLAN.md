@@ -239,6 +239,12 @@ colisão, movimento ou renderização de gameplay.
 O contrato e a matriz de fontes estão em
 `references/research/flows/render-assets/terrain-trn-loader.md`.
 
+O `worldScene` agora aceita o TRN validado e projeta a altura confirmada em
+uma superfície diagnóstica opcional. Essa projeção é somente visual: não cria
+colisão, não altera a origem autoritativa do personagem e não replaneja o
+movimento local. A ausência do arquivo mantém o diagnóstico desativado sem
+impedir o bootstrap das cenas de login.
+
 O empacotamento protegido continua separado desta trilha e só deve receber
 formatos estabilizados; durante o desenvolvimento, o `assetc` e o cache local
 podem trabalhar com `assets/current`.

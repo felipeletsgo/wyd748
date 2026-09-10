@@ -42,6 +42,9 @@ type VisualOptions struct {
 	// The scene never retains or mutates the returned slice.
 	WorldEntities func() []world.Entity
 	RequestMove   func(targetX, targetY uint16) error
+	// Terrain is an optional, read-only diagnostic surface. It does not alter
+	// authoritative movement or collision decisions.
+	Terrain *assets.Terrain
 }
 
 func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions) map[scene.ID]scene.Factory {
@@ -72,7 +75,7 @@ func SceneFactoriesWithVisuals(state *login.SessionState, options VisualOptions)
 		},
 		WorldSceneID: func() (scene.Scene, error) {
 			if options.ShapeRenderer != nil {
-				return newWorldScene(state, options.ShapeRenderer, options.WorldEntities, options.RequestMove)
+				return newWorldScene(state, options.ShapeRenderer, options.WorldEntities, options.RequestMove, options.Terrain)
 			}
 			return newStateScene(WorldSceneID, state, login.InWorld, login.LoggingOut)
 		},
@@ -543,13 +546,14 @@ type worldScene struct {
 	renderer      graphics.ShapeRenderer
 	worldEntities func() []world.Entity
 	requestMove   func(uint16, uint16) error
+	terrain       *assets.Terrain
 }
 
-func newWorldScene(state *login.SessionState, renderer graphics.ShapeRenderer, entities func() []world.Entity, requestMove func(uint16, uint16) error) (scene.Scene, error) {
+func newWorldScene(state *login.SessionState, renderer graphics.ShapeRenderer, entities func() []world.Entity, requestMove func(uint16, uint16) error, terrain *assets.Terrain) (scene.Scene, error) {
 	if state == nil {
 		return nil, errors.New("loginflow: session state is required")
 	}
-	return &worldScene{state: state, renderer: renderer, worldEntities: entities, requestMove: requestMove}, nil
+	return &worldScene{state: state, renderer: renderer, worldEntities: entities, requestMove: requestMove, terrain: terrain}, nil
 }
 func (s *worldScene) ID() scene.ID { return WorldSceneID }
 func (s *worldScene) Enter() error { return s.validate() }
@@ -604,6 +608,7 @@ func (s *worldScene) Render() error {
 	// centered while the grid exposes the received map position and movement
 	// updates without inventing client-side world state.
 	s.renderer.DrawRect(0, 0, width, height, graphics.Color{R: .035, G: .055, B: .075, A: 1})
+	drawTerrainDiagnostic(s.renderer, s.terrain, 8, 80, 8)
 	for x := int32(0); x < width; x += 64 {
 		s.renderer.DrawRect(x, 72, 1, height-72, graphics.Color{R: .10, G: .14, B: .18, A: 1})
 	}
@@ -626,6 +631,27 @@ func (s *worldScene) Render() error {
 		text.DrawText(playerX-24, playerY-20, name, 10, graphics.Color{R: .75, G: .90, B: 1, A: 1})
 	}
 	return nil
+}
+
+// drawTerrainDiagnostic projects only the confirmed signed height field. The
+// result is a visual inspection aid, not a client-side map or collision mesh.
+func drawTerrainDiagnostic(renderer graphics.ShapeRenderer, terrain *assets.Terrain, originX, originY, cellSize int32) {
+	if renderer == nil || terrain == nil || terrain.Columns == 0 || terrain.Rows == 0 || cellSize <= 0 {
+		return
+	}
+	for y := 0; y < terrain.Rows; y++ {
+		for x := 0; x < terrain.Columns; x++ {
+			cell, ok := terrain.Cell(x, y)
+			if !ok {
+				continue
+			}
+			// Map signed height deterministically to a restrained blue/green
+			// ramp. No gameplay meaning is assigned to this color.
+			value := float32(int(cell.Height)+128) / 255
+			renderer.DrawRect(originX+int32(x)*cellSize, originY+int32(y)*cellSize, cellSize, cellSize,
+				graphics.Color{R: .08 + value*.18, G: .16 + value*.42, B: .24 + value*.58, A: 1})
+		}
+	}
 }
 
 // drawWorldEntities only projects an immutable server snapshot onto the

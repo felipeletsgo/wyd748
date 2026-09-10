@@ -32,8 +32,9 @@ promove seu estado nem cria dependência implícita. WYT possui um caminho Go
 testado para textura e TRN possui agora um parser de framing testado em
 `Env/Character.trn`; somente `UI/logo1.wyt` possui relação de materialização
 confirmada. O primeiro byte de cada célula TRN possui semântica nativa
-confirmada como altura assinada; textura, demais atributos e colisão permanecem
-pendentes de evidência nativa.
+confirmada como altura assinada e já alimenta uma superfície diagnóstica
+opcional do mundo; textura, demais atributos e colisão permanecem pendentes de
+evidência nativa.
 
 O validador das fichas reproduz, no snapshot atual, `CLIENT_TESTED=1`,
 `CONTRACT=51`, `TRACED=19`, `LOCATED=9` e `UNMAPPED=4`. Esses números são das
