@@ -65,6 +65,13 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("load official login UI: %w", err)
 	}
+	// UITextureSetList entry 162 (login_box2) selects the 215x153 region at
+	// the origin of loginbox2.wyt; the remaining atlas area is not part of the
+	// native panel and must never be presented.
+	loginTexture, err = loginTexture.Crop(0, 0, 215, 153)
+	if err != nil {
+		return fmt.Errorf("select official login UI region: %w", err)
+	}
 	loginLogoLeft, err := assets.LoadWYTFile(loginLogoLeftPath())
 	if err != nil {
 		return fmt.Errorf("load official left login logo: %w", err)
@@ -76,6 +83,20 @@ func run() error {
 	serverTexture, err := assets.LoadWYTFile(serverSelectionTexturePath())
 	if err != nil {
 		return fmt.Errorf("load official server selection UI: %w", err)
+	}
+	// Materialize the same resource selected by native FUN_004A8F14 before
+	// creating scenes. This validates the active indexed RC contract and keeps
+	// login bindings tied to resource IDs rather than guessed coordinates.
+	serverSceneData, err := os.ReadFile(loginAssetPath("SelServerScene2.bin"))
+	if err != nil {
+		return fmt.Errorf("load official server/login scene: %w", err)
+	}
+	serverControls, err := assets.ParseScene(serverSceneData)
+	if err != nil {
+		return fmt.Errorf("parse official server/login scene: %w", err)
+	}
+	if len(serverControls) != 22 {
+		return fmt.Errorf("official server/login scene: got %d controls, want 22", len(serverControls))
 	}
 	characterTerrain, err := loadOptionalTerrain(characterTerrainPath())
 	if err != nil {
@@ -114,6 +135,7 @@ func run() error {
 				return coordinator.ServerSelected()
 			},
 			LoginTexture:   &loginTexture,
+			LoginControls:  serverControls,
 			LoginLogoLeft:  &loginLogoLeft,
 			LoginLogoRight: &loginLogoRight,
 			Authenticate: func(account string, password []byte) error {

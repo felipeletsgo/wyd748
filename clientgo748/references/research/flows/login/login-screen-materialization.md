@@ -167,6 +167,44 @@ deve manter esses pontos encapsulados até que a evidência seja fechada.
 
 ## Lacunas
 
+### Evidência nova: framing do asset local (2026-09-10)
+
+Teste reproduzível: `python -m unittest discover -s tools/assets -p
+test_login_rc_evidence.py -v`, executado com sucesso a partir deste pacote.
+`assets/current/UI/LoginScene2.bin` fecha em 1140 bytes com oito registros:
+text 769 em 0, panel 4608 em 180, edits 5121/5122 em 220/408,
+buttons 4609/4610/4611 em 596/764/932 e panel 305 em 1100.
+Os payloads observados são panel=36, text=176, edit=184 e button=164 bytes.
+O DWORD em 220 é o tipo EDIT (13), não `nPickable` nem padding.
+A hipótese anterior de padding adicional está **REJECTED**.
+
+Procedência: asset local UTILIZADA; TMProject copiado CONTRADITÓRIA para este
+arquivo (`WalkRCRecords` exige panel=40 mesmo no modo inline); export Ghidra
+UTILIZADA e CONTRADITÓRIA como prova direta desse formato: `FUN_00494FA4`
+serializa panel=0x28, button=0x28 e text=0x34, com captions indexadas.
+Essa função é um caminho de recurso textual/serialização; não deve ser chamada
+de prova do leitor binário inline. Go/testes UTILIZADA somente como auditoria
+offline. Servidor e guias NÃO APLICÁVEL ao framing local; identidade do binário
+permanece a registrada acima, sem nova execução ou claim de validação runtime.
+
+Decisão: manter a ficha LOCATED e não conectar um parser presumido ao renderer.
+Investigação subsequente: `FUN_004974ec` é o leitor binário, com leituras
+panel/button=0x28, text=0x34 e edit=0xb8. `FUN_004A8F14` seleciona
+`UI/SelServerScene2.txt` no branch moderno e resolve nele também os IDs de
+login 0x1200..0x1203. O TMProject atual confirma `LoadRC` desse recurso.
+O asset `SelServerScene2.bin` fecha em 1352 bytes/22 controles com esse formato;
+contém painel 4608, edits 5121/5122, botões 4609/4611/4610 e textos
+5632/5633/5634. Logo, LoginScene2 não é o recurso ativo desse branch.
+
+`internal/assets/scene.go` implementa a decodificação isolada indexada em Go,
+sem copiar objetos/ownership C++. Testes focados passaram: 22 registros,
+IDs de login, truncamento, cópia independente e rejeição do arquivo inline.
+Modo PARIDADE_NATIVA restrito ao framing observado, sem claim de lifecycle
+ou paridade visual. Ainda não conectado ao renderer. Próximo passo: resolver
+strings/texturas e geometria final aplicada em runtime em SelServerScene2,
+então substituir os controles hardcoded da cena Go.
+Este teste não comprova captions, geometria final, callbacks ou paridade visual.
+
 1. localizar todos os callers/callees que ligam `FUN_0055BC0A`,
    `FUN_00494FA4` e a cena de login;
 2. confirmar painel, campos, botão e IDs no recurso efetivamente carregado;

@@ -34,6 +34,7 @@ type VisualOptions struct {
 	// dispatch. The scene never destroys the window or renderer directly.
 	RequestClose    func() error
 	LoginTexture    *assets.Texture
+	LoginControls   []assets.SceneControl
 	LoginLogoLeft   *assets.Texture
 	LoginLogoRight  *assets.Texture
 	Authenticate    func(account string, password []byte) error
@@ -709,6 +710,7 @@ type loginScene struct {
 	loginTexture      *assets.Texture
 	loginLogoLeft     *assets.Texture
 	loginLogoRight    *assets.Texture
+	loginControls     []assets.SceneControl
 	textureRenderer   graphics.TextureRenderer
 	placementRenderer graphics.TexturePlacementRenderer
 	layers            graphics.LayeredTextureRenderer
@@ -717,8 +719,8 @@ type loginScene struct {
 const (
 	loginDesignWidth   int32 = 800
 	loginDesignHeight  int32 = 600
-	loginTextureWidth  int32 = 256
-	loginTextureHeight int32 = 256
+	loginTextureWidth  int32 = 215
+	loginTextureHeight int32 = 153
 	loginLogoWidth     int32 = 256
 	loginLogoHeight    int32 = 256
 )
@@ -727,6 +729,21 @@ type loginLayout struct {
 	panel, logoLeft, logoRight        ui.Rect
 	account, password, submit         ui.Rect
 	accountText, passwordText, status serverPoint
+}
+
+func (l *loginLayout) applyNativeControls(controls []assets.SceneControl) {
+	panel, ok := assets.FindControl(controls, 4608); if !ok || len(panel.Words) < 7 { return }
+	// The native panel record supplies the authoritative artwork dimensions;
+	// retain viewport centering while avoiding the obsolete hardcoded crop.
+	if panel.Words[5] > 0 && panel.Words[6] > 0 {
+		l.panel.Width, l.panel.Height = panel.Words[5], panel.Words[6]
+		l.panel.X = (l.panel.X*2 + loginTextureWidth - l.panel.Width) / 2
+		l.panel.Y = (l.panel.Y*2 + loginTextureHeight - l.panel.Height) / 2
+	}
+	for id, dst := range map[int32]*ui.Rect{5121: &l.account, 5122: &l.password, 4609: &l.submit} {
+		c, found := assets.FindControl(controls, id); if !found || len(c.Words) < 7 { continue }
+		*dst = ui.Rect{X: l.panel.X + c.Words[3], Y: l.panel.Y + c.Words[4], Width: c.Words[5], Height: c.Words[6]}
+	}
 }
 
 func loginLayoutFor(renderer graphics.ShapeRenderer) loginLayout {
@@ -779,7 +796,7 @@ func newLoginScene(state *login.SessionState, options VisualOptions) (scene.Scen
 	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
 	placementRenderer, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
 	layers, _ := options.ShapeRenderer.(graphics.LayeredTextureRenderer)
-	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), loginTexture: options.LoginTexture, loginLogoLeft: options.LoginLogoLeft, loginLogoRight: options.LoginLogoRight, textureRenderer: textureRenderer, placementRenderer: placementRenderer, layers: layers}, nil
+	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), loginTexture: options.LoginTexture, loginLogoLeft: options.LoginLogoLeft, loginLogoRight: options.LoginLogoRight, loginControls: append([]assets.SceneControl(nil), options.LoginControls...), textureRenderer: textureRenderer, placementRenderer: placementRenderer, layers: layers}, nil
 }
 
 func (s *loginScene) ID() scene.ID { return LoginSceneID }
@@ -818,6 +835,7 @@ func (s *loginScene) Render() error {
 		return err
 	}
 	layout := loginLayoutFor(s.renderer)
+	layout.applyNativeControls(s.loginControls)
 	s.form.AccountRect, s.form.PasswordRect, s.form.ButtonRect = layout.account, layout.password, layout.submit
 	if s.layers != nil {
 		s.layers.DrawTextureLayer("login-logo-left", layout.logoLeft.X, layout.logoLeft.Y, layout.logoLeft.Width, layout.logoLeft.Height)
