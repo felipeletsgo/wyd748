@@ -98,6 +98,14 @@ func run() error {
 	if len(serverControls) != 22 {
 		return fmt.Errorf("official server/login scene: got %d controls, want 22", len(serverControls))
 	}
+	stringData, err := os.ReadFile(loginAssetPath("UIString.txt"))
+	if err != nil {
+		return fmt.Errorf("load UI captions: %w", err)
+	}
+	uiStrings, err := assets.ParseUIStrings(stringData)
+	if err != nil {
+		return err
+	}
 	characterTerrain, err := loadOptionalTerrain(characterTerrainPath())
 	if err != nil {
 		return err
@@ -136,6 +144,7 @@ func run() error {
 			},
 			LoginTexture:   &loginTexture,
 			LoginControls:  serverControls,
+			UIStrings:      uiStrings,
 			LoginLogoLeft:  &loginLogoLeft,
 			LoginLogoRight: &loginLogoRight,
 			Authenticate: func(account string, password []byte) error {

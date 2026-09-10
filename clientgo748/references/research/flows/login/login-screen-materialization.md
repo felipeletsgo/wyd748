@@ -215,6 +215,42 @@ Este teste não comprova captions, geometria final, callbacks ou paridade visual
 
 ## Validação
 
+### Incremento Go: captions e geometria compartilhada (2026-09-10)
+
+Modo do incremento interno: `MODERNIZACAO_COMPATIVEL`; não promove o lifecycle
+nativo desta ficha, que continua `LOCATED`. A implementação Go anterior já
+consumia o recurso indexado, apesar da nota anterior dizer que estava isolado.
+
+Evidência nova: `FUN_004974ec` lê botão em 0x28 bytes, usa o último DWORD
+(`local_12c`) como índice na tabela `DAT_00e38540 + index*0x40` e passa a caption
+para `FUN_00402f01`. Texto usa 0x34 bytes, último DWORD `local_158`, e passa a
+caption para `FUN_00401d03`. Ambos resolvem o parent por ID e vinculam o filho.
+Os índices 5/6/7/8/9 de `assets/current/UI/UIString.txt` contêm Login, Close,
+New_Account, Account e Password. Os controles 5632/5633/5634 e 4609/4611/4610
+do recurso ativo referenciam esses índices. Isso explica as legendas ausentes:
+o renderer Go desenhava somente a textura, que não contém esses textos.
+
+O novo parser textual é Go local, com rejeição de índices inválidos/duplicados;
+não reproduz o armazenamento global ou o loader C++ byte a byte. A cena guarda
+valores próprios e centra as captions usando a fonte bitmap Go 5x7 (avanço 6).
+Essa fonte e seu alinhamento não são declarados paridade tipográfica nativa.
+Os textos editáveis e hitboxes agora usam a mesma geometria antes do input e
+no Render. Os controles consumidos são validados quanto a tipo, parent,
+dimensões, duplicação e limites; a cena copia os DWORDs em vez de compartilhá-los
+com o chamador. O painel real mede **215x153**, não 210x153.
+
+Fontes do incremento: asset 7.48, corpus Ghidra, código Go/testes UTILIZADA;
+identidade nativa reutilizada da ficha, sem nova execução histórica; TMProject
+UTILIZADA somente como contexto já registrado, sem código copiado; servidor e
+guias NÃO APLICÁVEL ao desenho local de captions. Fontes excluídas não usadas.
+
+Testes focados: asset real, todas as seis captions, cópia própria, primeiro
+input antes do Render, resize, parent/tipo/tamanho/duplicação inválidos e
+coordenadas com overflow. Ainda pendentes: callbacks Close/New Account,
+alinhamento da seleção de servidor, erros/foco/teardown completos e validação
+visual/runtime. O teste de desenho registra chamadas ao renderer, não pixels
+do executável; não constitui `CLIENT_TESTED`.
+
 - Evidência estática: `LOCATED`; callers e recursos ainda incompletos.
 - Source Go: controller, dispatcher, estado e coordinator cobertos por testes
   automatizados na unidade anterior.

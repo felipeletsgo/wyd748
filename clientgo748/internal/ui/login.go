@@ -121,9 +121,8 @@ func (f *LoginForm) submit() error {
 	return nil
 }
 
-// Render draws only dynamic values and status. Labels, field chrome and the
-// Login button are supplied by the official loginbox2.wyt artwork; no
-// synthetic rectangle or duplicate label is used as a user-facing control.
+// Render desenha valores e status. A textura contém apenas a moldura;
+// a cena resolve labels e captions separadamente na tabela UIString.
 func (f *LoginForm) Render(renderer graphics.ShapeRenderer) {
 	f.RenderAt(renderer, 356, 245, 356, 281, 300, 390)
 }

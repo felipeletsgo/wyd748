@@ -35,6 +35,7 @@ type VisualOptions struct {
 	RequestClose    func() error
 	LoginTexture    *assets.Texture
 	LoginControls   []assets.SceneControl
+	UIStrings       map[int32]string
 	LoginLogoLeft   *assets.Texture
 	LoginLogoRight  *assets.Texture
 	Authenticate    func(account string, password []byte) error
@@ -711,6 +712,7 @@ type loginScene struct {
 	loginLogoLeft     *assets.Texture
 	loginLogoRight    *assets.Texture
 	loginControls     []assets.SceneControl
+	captions          []loginCaption
 	textureRenderer   graphics.TextureRenderer
 	placementRenderer graphics.TexturePlacementRenderer
 	layers            graphics.LayeredTextureRenderer
@@ -732,7 +734,10 @@ type loginLayout struct {
 }
 
 func (l *loginLayout) applyNativeControls(controls []assets.SceneControl) {
-	panel, ok := assets.FindControl(controls, 4608); if !ok || len(panel.Words) < 7 { return }
+	panel, ok := assets.FindControl(controls, 4608)
+	if !ok || len(panel.Words) < 7 {
+		return
+	}
 	// The native panel record supplies the authoritative artwork dimensions;
 	// retain viewport centering while avoiding the obsolete hardcoded crop.
 	if panel.Words[5] > 0 && panel.Words[6] > 0 {
@@ -741,9 +746,16 @@ func (l *loginLayout) applyNativeControls(controls []assets.SceneControl) {
 		l.panel.Y = (l.panel.Y*2 + loginTextureHeight - l.panel.Height) / 2
 	}
 	for id, dst := range map[int32]*ui.Rect{5121: &l.account, 5122: &l.password, 4609: &l.submit} {
-		c, found := assets.FindControl(controls, id); if !found || len(c.Words) < 7 { continue }
+		c, found := assets.FindControl(controls, id)
+		if !found || len(c.Words) < 7 {
+			continue
+		}
 		*dst = ui.Rect{X: l.panel.X + c.Words[3], Y: l.panel.Y + c.Words[4], Width: c.Words[5], Height: c.Words[6]}
 	}
+	// Modernização local: texto e input compartilham a geometria já carregada.
+	// DrawText usa a origem superior esquerda, não uma baseline tipográfica.
+	l.accountText = serverPoint{X: l.account.X, Y: l.account.Y + (l.account.Height-7)/2}
+	l.passwordText = serverPoint{X: l.password.X, Y: l.password.Y + (l.password.Height-7)/2}
 }
 
 func loginLayoutFor(renderer graphics.ShapeRenderer) loginLayout {
@@ -793,10 +805,90 @@ func newLoginScene(state *login.SessionState, options VisualOptions) (scene.Scen
 	if state == nil {
 		return nil, errors.New("loginflow: session state is required")
 	}
+	controls, err := copyLoginControls(options.LoginControls)
+	if err != nil {
+		return nil, err
+	}
+	captions, err := loginCaptions(controls, options.UIStrings)
+	if err != nil {
+		return nil, err
+	}
 	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
 	placementRenderer, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
 	layers, _ := options.ShapeRenderer.(graphics.LayeredTextureRenderer)
-	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), loginTexture: options.LoginTexture, loginLogoLeft: options.LoginLogoLeft, loginLogoRight: options.LoginLogoRight, loginControls: append([]assets.SceneControl(nil), options.LoginControls...), textureRenderer: textureRenderer, placementRenderer: placementRenderer, layers: layers}, nil
+	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), loginTexture: options.LoginTexture, loginLogoLeft: options.LoginLogoLeft, loginLogoRight: options.LoginLogoRight, loginControls: controls, captions: captions, textureRenderer: textureRenderer, placementRenderer: placementRenderer, layers: layers}, nil
+}
+
+// loginCaption guarda somente valores próprios e coordenadas relativas ao root.
+type loginCaption struct {
+	rect ui.Rect
+	text string
+}
+
+// loginCaptions resolve os índices do recurso: button DWORD 9 e text DWORD 12
+// (FUN_004974ec). O alinhamento com fonte bitmap é local, não paridade de fonte.
+func loginCaptions(controls []assets.SceneControl, table map[int32]string) ([]loginCaption, error) {
+	if table == nil {
+		return nil, nil
+	} // Permite testes lógicos sem renderer/assets.
+	var captions []loginCaption
+	for _, id := range []int32{5632, 5633, 5634, 4609, 4611, 4610} {
+		c, ok := assets.FindControl(controls, id)
+		kind, count := int32(12), 13
+		if id < 5000 {
+			kind, count = 2, 10
+		}
+		if !ok || c.Kind != kind || len(c.Words) != count || c.Words[1] != 4608 || c.Words[3] < 0 || c.Words[4] < 0 || c.Words[5] <= 0 || c.Words[6] <= 0 || int64(c.Words[3])+int64(c.Words[5]) > int64(loginTextureWidth) || int64(c.Words[4])+int64(c.Words[6]) > int64(loginTextureHeight) {
+			return nil, fmt.Errorf("loginflow: invalid caption control %d", id)
+		}
+		caption, ok := table[c.Words[count-1]]
+		if !ok || caption == "" {
+			return nil, fmt.Errorf("loginflow: missing caption for %d", id)
+		}
+		captions = append(captions, loginCaption{rect: ui.Rect{X: c.Words[3], Y: c.Words[4], Width: c.Words[5], Height: c.Words[6]}, text: caption})
+	}
+	return captions, nil
+}
+
+// copyLoginControls protege o contrato já consumido pela cena. Recurso presente
+// e inválido é erro, não autorização para misturar controles de dois layouts.
+// A cópia profunda pertence à cena; mutar as opções depois não altera hitboxes.
+func copyLoginControls(controls []assets.SceneControl) ([]assets.SceneControl, error) {
+	if len(controls) == 0 {
+		return nil, nil // Cenas sem assets continuam disponíveis para testes headless.
+	}
+	want := map[int32]struct{ kind, words, parent int32 }{
+		4608: {1, 10, 0}, 5121: {13, 46, 4608},
+		5122: {13, 46, 4608}, 4609: {2, 10, 4608},
+	}
+	seen := make(map[int32]bool, len(controls))
+	owned := make([]assets.SceneControl, len(controls))
+	for i, c := range controls {
+		id, ok := c.ID()
+		if !ok || seen[id] {
+			return nil, fmt.Errorf("loginflow: missing or duplicate control ID %d", id)
+		}
+		seen[id] = true
+		if expected, required := want[id]; required {
+			if c.Kind != expected.kind || len(c.Words) != int(expected.words) || c.Words[1] != expected.parent || c.Words[5] <= 0 || c.Words[6] <= 0 {
+				return nil, fmt.Errorf("loginflow: invalid login control %d", id)
+			}
+			if id == 4608 {
+				if c.Words[5] != loginTextureWidth || c.Words[6] != loginTextureHeight {
+					return nil, errors.New("loginflow: login panel does not match texture crop")
+				}
+			} else if c.Words[3] < 0 || c.Words[4] < 0 || int64(c.Words[3])+int64(c.Words[5]) > int64(loginTextureWidth) || int64(c.Words[4])+int64(c.Words[6]) > int64(loginTextureHeight) {
+				return nil, fmt.Errorf("loginflow: control %d exceeds login panel", id)
+			}
+		}
+		owned[i] = assets.SceneControl{Kind: c.Kind, Words: append([]int32(nil), c.Words...)}
+	}
+	for id := range want {
+		if !seen[id] {
+			return nil, fmt.Errorf("loginflow: required login control %d is missing", id)
+		}
+	}
+	return owned, nil
 }
 
 func (s *loginScene) ID() scene.ID { return LoginSceneID }
@@ -827,16 +919,25 @@ func (s *loginScene) HandleEvent(event input.Event) error {
 	if err := s.validate(); err != nil {
 		return err
 	}
+	s.syncLayout()
 	return s.form.HandleEvent(event)
 }
+
+// syncLayout atualiza hitboxes antes do input, inclusive antes do primeiro
+// Render e após resize. Não guarda coordenadas de um viewport anterior.
+func (s *loginScene) syncLayout() loginLayout {
+	layout := loginLayoutFor(s.renderer)
+	layout.applyNativeControls(s.loginControls)
+	s.form.AccountRect, s.form.PasswordRect, s.form.ButtonRect = layout.account, layout.password, layout.submit
+	return layout
+}
+
 func (s *loginScene) Update(time.Duration) error { return s.validate() }
 func (s *loginScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err
 	}
-	layout := loginLayoutFor(s.renderer)
-	layout.applyNativeControls(s.loginControls)
-	s.form.AccountRect, s.form.PasswordRect, s.form.ButtonRect = layout.account, layout.password, layout.submit
+	layout := s.syncLayout()
 	if s.layers != nil {
 		s.layers.DrawTextureLayer("login-logo-left", layout.logoLeft.X, layout.logoLeft.Y, layout.logoLeft.Width, layout.logoLeft.Height)
 		s.layers.DrawTextureLayer("login-logo-right", layout.logoRight.X, layout.logoRight.Y, layout.logoRight.Width, layout.logoRight.Height)
@@ -852,6 +953,15 @@ func (s *loginScene) Render() error {
 		}
 	}
 	s.form.RenderAt(s.renderer, layout.accountText.X, layout.accountText.Y, layout.passwordText.X, layout.passwordText.Y, layout.status.X, layout.status.Y)
+	if text, ok := s.renderer.(graphics.TextRenderer); ok {
+		for _, caption := range s.captions {
+			r := caption.rect
+			// Fonte bitmap 5x7, avanço 6: centrar a tinta, não a baseline.
+			x := layout.panel.X + r.X + (r.Width-(int32(len([]rune(caption.text)))*6-1))/2
+			y := layout.panel.Y + r.Y + (r.Height-7)/2
+			text.DrawText(x, y, caption.text, 12, graphics.Color{R: 1, G: 1, B: 1, A: 1})
+		}
+	}
 	return nil
 }
 func (s *loginScene) Exit() error  { clear(s.form.Password); s.form.Password = nil; return nil }
