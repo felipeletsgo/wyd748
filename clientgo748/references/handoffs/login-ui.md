@@ -36,3 +36,12 @@ Close/New Account sem inventar endpoint. Depois corrigir captions Connect/Close
 e padding de canais na seleção usando geometria comum e métricas da fonte.
 Executar e comparar a tela recompilada; ainda faltam callbacks de Connect/New
 Account e validação real de mouse/teclado no executável.
+
+Incremento 2026-09-10: o callback 4611 (Close) agora encaminha para
+`VisualOptions.RequestClose`, com fallback explícito em inglês quando o
+aplicativo não fornece o callback. O callback 4610 (New Account) é reconhecido
+pela geometria nativa, mas permanece protegido com a mensagem `Account creation
+is unavailable.` porque não existe contrato de criação de conta no transporte
+Go. Nenhum opcode foi inventado; a transição modal nativa `0x1202` continua
+registrada apenas como evidência de compatibilidade. Testes focados de
+`loginflow` e `ui` passaram.

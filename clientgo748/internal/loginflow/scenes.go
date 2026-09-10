@@ -736,6 +736,7 @@ type loginScene struct {
 	textureRenderer   graphics.TextureRenderer
 	placementRenderer graphics.TexturePlacementRenderer
 	layers            graphics.LayeredTextureRenderer
+	requestClose      func() error
 }
 
 const (
@@ -750,6 +751,7 @@ const (
 type loginLayout struct {
 	panel, logoLeft, logoRight        ui.Rect
 	account, password, submit         ui.Rect
+	close, newAccount                 ui.Rect
 	accountText, passwordText, status serverPoint
 }
 
@@ -765,7 +767,7 @@ func (l *loginLayout) applyNativeControls(controls []assets.SceneControl) {
 		l.panel.X = (l.panel.X*2 + loginTextureWidth - l.panel.Width) / 2
 		l.panel.Y = (l.panel.Y*2 + loginTextureHeight - l.panel.Height) / 2
 	}
-	for id, dst := range map[int32]*ui.Rect{5121: &l.account, 5122: &l.password, 4609: &l.submit} {
+	for id, dst := range map[int32]*ui.Rect{5121: &l.account, 5122: &l.password, 4609: &l.submit, 4611: &l.close, 4610: &l.newAccount} {
 		c, found := assets.FindControl(controls, id)
 		if !found || len(c.Words) < 7 {
 			continue
@@ -808,7 +810,7 @@ func loginLayoutFor(renderer graphics.ShapeRenderer) loginLayout {
 	case 1280:
 		logoY += 40
 	}
-	return loginLayout{
+	l := loginLayout{
 		panel:        panel,
 		logoLeft:     ui.Rect{X: width/2 - loginLogoWidth, Y: logoY, Width: loginLogoWidth, Height: loginLogoHeight},
 		logoRight:    ui.Rect{X: width / 2, Y: logoY, Width: loginLogoWidth, Height: loginLogoHeight},
@@ -819,6 +821,7 @@ func loginLayoutFor(renderer graphics.ShapeRenderer) loginLayout {
 		passwordText: serverPoint{X: panel.X + 82, Y: panel.Y + 64},
 		status:       serverPoint{X: panel.X, Y: panel.Y + 270},
 	}
+	return l
 }
 
 func newLoginScene(state *login.SessionState, options VisualOptions) (scene.Scene, error) {
@@ -836,7 +839,7 @@ func newLoginScene(state *login.SessionState, options VisualOptions) (scene.Scen
 	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
 	placementRenderer, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
 	layers, _ := options.ShapeRenderer.(graphics.LayeredTextureRenderer)
-	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), loginTexture: options.LoginTexture, loginLogoLeft: options.LoginLogoLeft, loginLogoRight: options.LoginLogoRight, loginControls: controls, captions: captions, textureRenderer: textureRenderer, placementRenderer: placementRenderer, layers: layers}, nil
+	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), requestClose: options.RequestClose, loginTexture: options.LoginTexture, loginLogoLeft: options.LoginLogoLeft, loginLogoRight: options.LoginLogoRight, loginControls: controls, captions: captions, textureRenderer: textureRenderer, placementRenderer: placementRenderer, layers: layers}, nil
 }
 
 // loginCaption guarda somente valores próprios e coordenadas relativas ao root.
@@ -940,6 +943,24 @@ func (s *loginScene) HandleEvent(event input.Event) error {
 		return err
 	}
 	s.syncLayout()
+	if event.Kind == input.KindMouseButtonDown && event.Button == 1 {
+		layout := loginLayoutFor(s.renderer)
+		layout.applyNativeControls(s.loginControls)
+		if layout.close.Contains(event.X, event.Y) {
+			if s.requestClose == nil {
+				s.form.Status = "Close is unavailable."
+				return nil
+			}
+			return s.requestClose()
+		}
+		if layout.newAccount.Contains(event.X, event.Y) {
+			// The native client opens modal 0x1202 here. No account-creation
+			// contract exists in the Go transport yet, so fail safely instead
+			// of inventing a packet or silently changing server state.
+			s.form.Status = "Account creation is unavailable."
+			return nil
+		}
+	}
 	return s.form.HandleEvent(event)
 }
 
