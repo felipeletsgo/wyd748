@@ -50,6 +50,23 @@ type Texture struct {
 	Pixels     []byte
 }
 
+// Crop returns an independent texture containing the requested pixel region.
+// UI WYT files can be atlases; callers must select the region described by the
+// official UITextureSetList before presenting it as a standalone panel.
+func (t Texture) Crop(x, y, width, height uint16) (Texture, error) {
+	if width == 0 || height == 0 || x >= t.Width || y >= t.Height ||
+		x+width > t.Width || y+height > t.Height {
+		return Texture{}, fmt.Errorf("clientgo748: texture crop %dx%d+%d+%d outside %dx%d", width, height, x, y, t.Width, t.Height)
+	}
+	pixels := make([]byte, int(width)*int(height)*4)
+	for row := uint16(0); row < height; row++ {
+		src := (int(y)+int(row))*int(t.Width)*4 + int(x)*4
+		dst := int(row) * int(width) * 4
+		copy(pixels[dst:dst+int(width)*4], t.Pixels[src:src+int(width)*4])
+	}
+	return Texture{Width: width, Height: height, SourceBits: t.SourceBits, Pixels: pixels}, nil
+}
+
 const (
 	wytPrefixSize  = 4
 	tgaHeaderSize  = 18

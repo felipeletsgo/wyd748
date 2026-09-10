@@ -92,6 +92,25 @@ func TestParseWYTRejectsMalformedInput(t *testing.T) {
 	}
 }
 
+func TestTextureCropCopiesRegion(t *testing.T) {
+	texture := Texture{Width: 3, Height: 2, SourceBits: 32, Pixels: make([]byte, 3*2*4)}
+	for i := range texture.Pixels {
+		texture.Pixels[i] = byte(i)
+	}
+	cropped, err := texture.Crop(1, 0, 2, 2)
+	if err != nil {
+		t.Fatalf("Crop() error = %v", err)
+	}
+	if cropped.Width != 2 || cropped.Height != 2 {
+		t.Fatalf("Crop() dimensions = %dx%d, want 2x2", cropped.Width, cropped.Height)
+	}
+	want := append([]byte{}, texture.Pixels[4:12]...)
+	want = append(want, texture.Pixels[16:24]...)
+	if string(cropped.Pixels) != string(want) {
+		t.Fatalf("Crop() pixels = %v, want %v", cropped.Pixels, want)
+	}
+}
+
 func testWYT(width, height uint16, bits, descriptor uint8, payload []byte) []byte {
 	data := make([]byte, wytPrefixSize+tgaHeaderSize+len(payload)+wytTrailerSize)
 	copy(data, []byte("WT10"))
