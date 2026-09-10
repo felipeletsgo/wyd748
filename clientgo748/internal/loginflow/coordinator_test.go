@@ -114,6 +114,51 @@ func TestCoordinatorDelegatesConnectionAndDisconnect(t *testing.T) {
 	}
 }
 
+// A desconexão de rede deve limpar a seleção sem depender do fechamento da
+// aplicação; repetir o evento não pode impedir a próxima tentativa de login.
+func TestCoordinatorNetworkDisconnectRequiresServerReselection(t *testing.T) {
+	state := login.NewSessionState()
+	navigator := &fakeNavigator{current: LoginSceneID}
+	c, err := New(state, fakeSender{}, navigator, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.ServerSelected(); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.SessionConnected(); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		handled, err := c.HandleSessionEvent(protocol.SessionEvent{Kind: protocol.SessionDisconnected})
+		if err != nil || !handled {
+			t.Fatalf("disconnect %d: handled=%v err=%v", i, handled, err)
+		}
+		if state.Phase() != login.Disconnected || c.serverSelected {
+			t.Fatalf("disconnect %d: phase=%s selected=%v", i, state.Phase(), c.serverSelected)
+		}
+	}
+	if err := c.Synchronize(); err != nil {
+		t.Fatal(err)
+	}
+	if len(navigator.requests) != 1 || navigator.requests[0] != ServerSelectionSceneID {
+		t.Fatalf("requests=%v, want server selection", navigator.requests)
+	}
+	navigator.current = ServerSelectionSceneID
+	if err := c.ServerSelected(); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Synchronize(); err != nil {
+		t.Fatal(err)
+	}
+	if len(navigator.requests) != 2 || navigator.requests[1] != LoginSceneID {
+		t.Fatalf("requests=%v, want login after reselection", navigator.requests)
+	}
+	if err := c.SessionConnected(); err != nil {
+		t.Fatalf("reconnect: %v", err)
+	}
+}
+
 func TestCoordinatorReportsNavigatorFailure(t *testing.T) {
 	state := login.NewSessionState()
 	navigator := &fakeNavigator{current: CharacterSelectSceneID, err: errors.New("transition unavailable")}

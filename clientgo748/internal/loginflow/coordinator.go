@@ -144,6 +144,9 @@ func (c *Coordinator) HandleSessionEvent(event protocol.SessionEvent) (bool, err
 	}
 	if event.Kind == protocol.SessionDisconnected {
 		c.worldState.Reset()
+		// O contrato local exige nova seleção após desconexão, inclusive
+		// quando o evento chega pela rede sem o callback de Close da aplicação.
+		c.serverSelected = false
 		return c.dispatcher.HandleSessionEvent(event)
 	}
 	if handled, err := c.dispatcher.HandleSessionEvent(event); handled || err != nil {
