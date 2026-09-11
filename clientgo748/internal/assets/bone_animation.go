@@ -223,12 +223,60 @@ func LoadBoneAnimationSet(assetRoot string) (BoneAnimationSet, error) {
 	return set, nil
 }
 
+func resolveAssetPathCaseInsensitive(assetRoot, relativePath string) (string, error) {
+	normalized := filepath.FromSlash(strings.ReplaceAll(relativePath, "\\", "/"))
+	candidate := filepath.Join(assetRoot, normalized)
+	if _, err := os.Stat(candidate); err == nil {
+		return candidate, nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", err
+	}
+
+	current := assetRoot
+	for _, component := range strings.Split(filepath.Clean(normalized), string(filepath.Separator)) {
+		if component == "" || component == "." {
+			continue
+		}
+
+		exact := filepath.Join(current, component)
+		if _, err := os.Stat(exact); err == nil {
+			current = exact
+			continue
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return "", err
+		}
+
+		entries, err := os.ReadDir(current)
+		if err != nil {
+			return "", err
+		}
+
+		matched := ""
+		for _, entry := range entries {
+			if strings.EqualFold(entry.Name(), component) {
+				matched = entry.Name()
+				break
+			}
+		}
+		if matched == "" {
+			return "", &os.PathError{Op: "resolve", Path: candidate, Err: os.ErrNotExist}
+		}
+		current = filepath.Join(current, matched)
+	}
+
+	return current, nil
+}
+
 func loadBoneAnimationEntry(assetRoot string, entry BoneAnimationCatalogEntry, valid *[MaxValidAnimationList]int32) (*BoneAnimation, error) {
-	base := filepath.Join(assetRoot, filepath.FromSlash(strings.ReplaceAll(entry.BaseName, "\\", "/")))
-	boneData, err := os.ReadFile(base + ".bon")
+	bonePath, err := resolveAssetPathCaseInsensitive(assetRoot, entry.BaseName+".bon")
 	if err != nil {
 		return nil, fmt.Errorf("read BON: %w", err)
 	}
+	boneData, err := os.ReadFile(bonePath)
+	if err != nil {
+		return nil, fmt.Errorf("read BON: %w", err)
+	}
+	base := strings.TrimSuffix(bonePath, filepath.Ext(bonePath))
 	result := &BoneAnimation{
 		Name:               entry.BaseName,
 		Parts:              entry.Parts,

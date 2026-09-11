@@ -81,6 +81,28 @@ func TestLoadBoneAnimationEntryOfficialAssets(t *testing.T) {
 	}
 }
 
+func TestLoadBoneAnimationEntryResolvesCatalogCase(t *testing.T) {
+	root := t.TempDir()
+	meshDir := filepath.Join(root, "mesh")
+	if err := os.MkdirAll(meshDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	bonePath := filepath.Join(meshDir, "BL01.bon")
+	if err := os.WriteFile(bonePath, make([]byte, 8), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	entry := BoneAnimationCatalogEntry{Index: 44, Parts: 4, BaseName: `mesh\bl01`}
+	var valid [MaxValidAnimationList]int32
+	animation, err := loadBoneAnimationEntry(root, entry, &valid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(animation.Bone.Raw) != 8 {
+		t.Fatalf("unexpected BON size: got=%d want=8", len(animation.Bone.Raw))
+	}
+}
+
 func TestLoadBoneAnimationSetOfficialAssets(t *testing.T) {
 	root := filepath.Join("..", "..", "assets", "current")
 	set, err := LoadBoneAnimationSet(root)
