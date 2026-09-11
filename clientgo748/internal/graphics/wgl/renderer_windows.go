@@ -328,10 +328,9 @@ func (r *Renderer) DrawTextureLayer(name string, x, y, width, height int32) {
 	r.drawTextureID(layer.id, x, y, width, height)
 }
 
-// DrawMesh draws the first proven MSH subset as an object-space triangle
-// list. Camera/projection, materials, texture coordinates and skinning are
-// intentionally not inferred here; callers must not treat this as final
-// character rendering.
+// DrawMesh desenha provisoriamente a posição-base da geometria MSH. O decoder
+// já entrega normal, UV, pesos e índices de paleta; a aplicação das matrizes de
+// skinning permanece uma etapa separada antes do render final de personagens.
 func (r *Renderer) DrawMesh(mesh assets.Mesh) error {
 	geometry, err := graphics.ExtractMeshGeometry(mesh)
 	if err != nil {
@@ -350,7 +349,7 @@ func (r *Renderer) DrawMesh(mesh assets.Mesh) error {
 	a.color4f(1, 1, 1, 1)
 	a.begin(glTriangles)
 	for _, index := range geometry.Indices {
-		position := geometry.Positions[index]
+		position := geometry.Vertices[index].Position
 		a.vertex3f(position.X, position.Y, position.Z)
 	}
 	a.end()
