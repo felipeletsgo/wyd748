@@ -90,8 +90,13 @@ func ExtractMeshGeometry(mesh assets.Mesh) (MeshGeometry, error) {
 			weightSum := float32(0)
 			for j := 0; j < explicitWeightCount; j++ {
 				weight := meshFloat32(mesh.Vertices, attributeOff+j*4)
-				if !finiteFloat32(weight) || weight < 0 || weight > 1 {
+				if !finiteFloat32(weight) || weight < -meshWeightEpsilon || weight > 1+meshWeightEpsilon {
 					return MeshGeometry{}, fmt.Errorf("%w: vertex %d has invalid blend weight %g", ErrInvalidMeshGeometry, i, weight)
+				}
+				if weight < 0 {
+					weight = 0
+				} else if weight > 1 {
+					weight = 1
 				}
 				vertex.BlendWeights[j] = weight
 				weightSum += weight

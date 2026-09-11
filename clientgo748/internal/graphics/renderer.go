@@ -55,11 +55,19 @@ type LayeredTextureRenderer interface {
 }
 
 // MeshRenderer is the optional first 3D mesh surface. The backend receives the
-// canonical decoded Mesh, while renderer-facing validation narrows it to the
-// native-confirmed XYZ + uint16 triangle geometry before issuing draw calls.
+// canonical decoded Mesh, while renderer-facing validation converts it to
+// typed vertex attributes before issuing draw calls.
 type MeshRenderer interface {
 	Renderer
 	DrawMesh(assets.Mesh) error
+}
+
+// SkinnedMeshRenderer recebe uma palette de skinning já resolvida pelo estado
+// de animação. Isso mantém BON/ANI, hierarquia e seleção de clip fora do backend
+// OpenGL e permite trocar a implementação gráfica sem alterar os parsers.
+type SkinnedMeshRenderer interface {
+	MeshRenderer
+	DrawSkinnedMesh(assets.Mesh, []assets.MeshMatrix) error
 }
 
 // ViewportProvider exposes the current client-area size in logical pixels.

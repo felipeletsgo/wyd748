@@ -328,14 +328,31 @@ func (r *Renderer) DrawTextureLayer(name string, x, y, width, height int32) {
 	r.drawTextureID(layer.id, x, y, width, height)
 }
 
-// DrawMesh desenha provisoriamente a posição-base da geometria MSH. O decoder
-// já entrega normal, UV, pesos e índices de paleta; a aplicação das matrizes de
-// skinning permanece uma etapa separada antes do render final de personagens.
+// DrawMesh desenha a geometria MSH na pose-base. Assets skinned animados usam
+// DrawSkinnedMesh para aplicar a palette antes de chegar ao OpenGL.
 func (r *Renderer) DrawMesh(mesh assets.Mesh) error {
 	geometry, err := graphics.ExtractMeshGeometry(mesh)
 	if err != nil {
 		return err
 	}
+	return r.drawMeshGeometry(geometry)
+}
+
+// DrawSkinnedMesh aplica CPU skinning usando a palette resolvida pelo estado
+// de animação. O backend não conhece BON, ANI, clips ou hierarquia de frames.
+func (r *Renderer) DrawSkinnedMesh(mesh assets.Mesh, palette []assets.MeshMatrix) error {
+	geometry, err := graphics.ExtractMeshGeometry(mesh)
+	if err != nil {
+		return err
+	}
+	geometry, err = graphics.SkinMeshGeometry(geometry, palette)
+	if err != nil {
+		return err
+	}
+	return r.drawMeshGeometry(geometry)
+}
+
+func (r *Renderer) drawMeshGeometry(geometry graphics.MeshGeometry) error {
 	if !r.initialized {
 		return errors.New("clientgo748: renderer is not initialized")
 	}
