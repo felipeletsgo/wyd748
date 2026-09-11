@@ -70,6 +70,16 @@ type SkinnedMeshRenderer interface {
 	DrawSkinnedMesh(assets.Mesh, []assets.MeshMatrix) error
 }
 
+// Scene3DRenderer is the optional camera-aware mesh surface used by scenes.
+// Model/view/projection math remains backend-independent; concrete renderers
+// only consume the projected geometry. The legacy DrawMesh methods stay
+// available for diagnostics and existing callers.
+type Scene3DRenderer interface {
+	SkinnedMeshRenderer
+	DrawMeshScene(assets.Mesh, SceneTransform, Camera) error
+	DrawSkinnedMeshScene(assets.Mesh, []assets.MeshMatrix, SceneTransform, Camera) error
+}
+
 // ViewportProvider exposes the current client-area size in logical pixels.
 // Scenes use it to keep native 7.48 compositions and their hitboxes anchored
 // to the same root when the window is resized or displayed with DPI scaling.

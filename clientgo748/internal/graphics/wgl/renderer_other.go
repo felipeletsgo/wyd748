@@ -38,6 +38,12 @@ func (*Renderer) DrawTextureLayer(string, int32, int32, int32, int32)    {}
 func (*Renderer) DrawText(int32, int32, string, int32, graphics.Color)   {}
 func (*Renderer) DrawMesh(assets.Mesh) error                             { return ErrUnsupported }
 func (*Renderer) DrawSkinnedMesh(assets.Mesh, []assets.MeshMatrix) error { return ErrUnsupported }
+func (*Renderer) DrawMeshScene(assets.Mesh, graphics.SceneTransform, graphics.Camera) error {
+	return ErrUnsupported
+}
+func (*Renderer) DrawSkinnedMeshScene(assets.Mesh, []assets.MeshMatrix, graphics.SceneTransform, graphics.Camera) error {
+	return ErrUnsupported
+}
 
 // Close é idempotente sem recursos.
 func (*Renderer) Close() error { return nil }

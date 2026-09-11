@@ -352,6 +352,37 @@ func (r *Renderer) DrawSkinnedMesh(mesh assets.Mesh, palette []assets.MeshMatrix
 	return r.drawMeshGeometry(geometry)
 }
 
+func (r *Renderer) DrawMeshScene(mesh assets.Mesh, transform graphics.SceneTransform, camera graphics.Camera) error {
+	geometry, err := graphics.ExtractMeshGeometry(mesh)
+	if err != nil {
+		return err
+	}
+	return r.drawSceneGeometry(geometry, transform, camera)
+}
+
+func (r *Renderer) DrawSkinnedMeshScene(mesh assets.Mesh, palette []assets.MeshMatrix, transform graphics.SceneTransform, camera graphics.Camera) error {
+	geometry, err := graphics.ExtractMeshGeometry(mesh)
+	if err != nil {
+		return err
+	}
+	geometry, err = graphics.SkinMeshGeometry(geometry, palette)
+	if err != nil {
+		return err
+	}
+	return r.drawSceneGeometry(geometry, transform, camera)
+}
+
+func (r *Renderer) drawSceneGeometry(geometry graphics.MeshGeometry, transform graphics.SceneTransform, camera graphics.Camera) error {
+	if r.viewportWidth <= 0 || r.viewportHeight <= 0 {
+		return errors.New("clientgo748: renderer viewport is unavailable")
+	}
+	projected, err := graphics.ProjectMeshGeometry(geometry, transform, camera, float32(r.viewportWidth)/float32(r.viewportHeight))
+	if err != nil {
+		return err
+	}
+	return r.drawMeshGeometry(projected)
+}
+
 func (r *Renderer) drawMeshGeometry(geometry graphics.MeshGeometry) error {
 	if !r.initialized {
 		return errors.New("clientgo748: renderer is not initialized")
