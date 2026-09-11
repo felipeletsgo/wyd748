@@ -193,3 +193,71 @@ func TestCoordinatorRoutesWorldPacketsOutsideLoginState(t *testing.T) {
 		t.Fatalf("entities=%+v", entities)
 	}
 }
+
+// O cache de entidades pertence à entrada no mundo, não à conexão da conta.
+func TestCoordinatorLogoutClearsEntitiesOnlyAfterValidConfirmation(t *testing.T) {
+	state := login.NewSessionState()
+	c, err := New(state, fakeSender{}, &fakeNavigator{current: WorldSceneID}, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := state.BeginConnect(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := state.BeginAuthentication(login.AccountLoginRequest{Account: "account", Password: []byte("password")}); err != nil {
+		t.Fatal(err)
+	}
+	list := emptyCharacterListPacket()
+	copy(list.Raw[48:64], "Hero")
+	if err := state.AcceptCharacterList(list); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := state.BeginCharacterLogin(0, 0, 0, 0); err != nil {
+		t.Fatal(err)
+	}
+	packet := func(op uint16, size int, id uint16) protocol.Packet {
+		raw := protocol.NewPacket(op, id, 0, make([]byte, size-protocol.HeaderSize))
+		binary.LittleEndian.PutUint16(raw[:2], uint16(size))
+		return protocol.Packet{Header: protocol.Header{Size: uint16(size), Type: op, ID: id}, Raw: raw, Body: raw[protocol.HeaderSize:]}
+	}
+	if err := state.AcceptEnterWorld(packet(login.OpcodeEnterWorld, login.EnterWorldPacketSize, 0)); err != nil {
+		t.Fatal(err)
+	}
+	mob := packet(world.OpcodeCreateMob, world.CreateMobPacketSize, 42)
+	binary.LittleEndian.PutUint16(mob.Raw[16:18], 42)
+	if _, err := c.HandleSessionEvent(protocol.SessionEvent{Kind: protocol.SessionPacket, Packet: mob}); err != nil {
+		t.Fatal(err)
+	}
+	if len(c.WorldEntities()) != 1 {
+		t.Fatal("missing entity before logout")
+	}
+	if _, err := state.BeginCharacterLogout(0); err != nil {
+		t.Fatal(err)
+	}
+	invalid := packet(login.OpcodeCharacterLogoutConfirmed, login.CharacterLogoutConfirmedPacketSize, 1)
+	if _, err := c.HandleSessionEvent(protocol.SessionEvent{Kind: protocol.SessionPacket, Packet: invalid}); err == nil {
+		t.Fatal("accepted wrong character ID")
+	}
+	if len(c.WorldEntities()) != 1 {
+		t.Fatal("rejected confirmation cleared entities")
+	}
+	valid := packet(login.OpcodeCharacterLogoutConfirmed, login.CharacterLogoutConfirmedPacketSize, 0)
+	if _, err := c.HandleSessionEvent(protocol.SessionEvent{Kind: protocol.SessionPacket, Packet: valid}); err != nil {
+		t.Fatal(err)
+	}
+	if len(c.WorldEntities()) != 0 {
+		t.Fatal("entities survived confirmed logout")
+	}
+	if state.Phase() != login.CharacterSelect {
+		t.Fatal("logout did not return to character selection")
+	}
+	if _, err := state.BeginCharacterLogin(0, 0, 0, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := state.AcceptEnterWorld(packet(login.OpcodeEnterWorld, login.EnterWorldPacketSize, 0)); err != nil {
+		t.Fatal(err)
+	}
+	if len(c.WorldEntities()) != 0 {
+		t.Fatal("relogin inherited old entities")
+	}
+}

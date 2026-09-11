@@ -150,6 +150,12 @@ func (c *Coordinator) HandleSessionEvent(event protocol.SessionEvent) (bool, err
 		return c.dispatcher.HandleSessionEvent(event)
 	}
 	if handled, err := c.dispatcher.HandleSessionEvent(event); handled || err != nil {
+		// A confirmação 0x116 encerra somente o runtime do personagem. O
+		// dispatcher valida fase e ClientID antes de aceitar a transição; por
+		// isso o cache do mundo só pode ser descartado depois desse sucesso.
+		if handled && err == nil && event.Kind == protocol.SessionPacket && event.Packet.Header.Type == login.OpcodeCharacterLogoutConfirmed {
+			c.worldState.Reset()
+		}
 		return handled, err
 	}
 	if event.Kind == protocol.SessionPacket {

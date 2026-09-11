@@ -73,3 +73,13 @@ pacotes; `Build-ClientGo.ps1 -Configuration Release -SkipTests` também concluiu
 e gerou `bin/wydclient.exe`. O HUD da cena World foi publicado no commit
 `a29c2fcd`; a execução continua sem classificação `CLIENT_TESTED` por falta de
 interação visual automatizada funcional.
+
+Incremento 2026-09-10: o `loginflow.Coordinator` agora descarta o cache de
+entidades somente depois de uma confirmação válida `0x116` de logout. Uma
+confirmação com `ClientID` divergente preserva o mundo atual; após a confirmação
+válida, a fase retorna a `CharacterSelect` e um novo `0x213 -> 0x114` inicia com
+cache vazio. O teste focado de logout/relogin e `Verify-Fast.ps1` passaram. O
+build Release subsequente gerou `bin/wydclient.exe` com SHA-256
+`B620E267B2395256D7EBA4BA7EE398C9E65C0DA0ECCB6B8D63368884E1B4DE22`.
+Isso promove esta fronteira para `AUTOMATED TESTED`; a validação manual do ciclo
+completo contra o WYD-Go ainda é necessária para `CLIENT_TESTED`.
