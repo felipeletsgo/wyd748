@@ -2,6 +2,7 @@
 
 Atualizado em: AAAA-MM-DD
 Estado geral: `IMPLEMENTED | STATICALLY VERIFIED | AUTOMATED TESTED | CLIENT-TESTED | BLOCKED`
+HEAD observado: `<commit>`
 
 ## Objetivo e limites
 
@@ -26,6 +27,8 @@ item | estado de validação | evidência
 ## Worktree e arquivos ativos
 
 - Arquivo — mudança deste escopo ou mudança alheia preservada.
+- Se a próxima sessão encontrar `HEAD`/worktree diferentes, a árvore atual
+  prevalece; atualizar estas premissas em vez de reconstruir o estado descrito.
 
 ## Última validação
 

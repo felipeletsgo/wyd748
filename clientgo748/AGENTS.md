@@ -25,6 +25,20 @@ aceitas.
 - escrever mensagens visíveis ao usuário em inglês;
 - adicionar teste focado antes de declarar uma fronteira implementada.
 
+## Ciclo incremental
+
+Para continuidade ou implementação em lote no `clientgo748`, usar por padrão:
+
+```text
+status + HEAD + diff scoped -> patch pequeno -> teste focado -> próximo patch
+```
+
+O handoff é contexto transitório; a árvore atual prevalece. Não repetir busca
+global, releitura de referência ou reconstrução de diff antigo quando `HEAD` e
+a worktree já determinam o estado real. Executar `Verify-Fast.ps1`, gates
+contratuais e build completo somente no fechamento proporcional do lote ou
+quando a alteração atual exigir explicitamente esse gate.
+
 ## Gate mínimo
 
 ```powershell

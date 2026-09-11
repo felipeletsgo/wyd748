@@ -62,8 +62,13 @@ confirma comportamento e identidade.
 Se uma skill obrigatória estiver ausente ou ilegível, informar a limitação. Não
 fingir que ela foi consultada nem declarar a tarefa concluída.
 
-Em continuação, não reiniciar a investigação. Handoff, `git status`, diff
-scoped e fingerprints dos inputs bastam para retomar o próximo passo. Não
+Em continuação, não reiniciar a investigação. Handoff, `git status`, `HEAD`,
+diff scoped e fingerprints dos inputs bastam para retomar o próximo passo. O
+estado atual da árvore sempre prevalece sobre o handoff: se o handoff descreve
+arquivos sujos ou trabalho ainda não incorporado, mas `HEAD`/worktree mostram
+que ele já foi commitado, publicado, revertido ou substituído, descartar a
+premissa stale e continuar a partir da árvore atual. Não reconstruir um diff
+antigo apenas para fazer o handoff voltar a coincidir com a realidade. Não
 reler referência já lida, recalcular hash imutável, rerodar triagem global ou
 revalidar artefato não alterado na mesma sessão. Repetir uma verificação apenas
 quando seu input mudou, a evidência registrada é insuficiente ou ela é gate da
@@ -73,13 +78,18 @@ alteração atual.
 
 - Compactação é um reset de contexto, não um pedido para reiniciar a tarefa.
   Usar o handoff e avançar diretamente para o próximo comando executável.
-- Em uma retomada, fazer no máximo uma checagem curta de `status + diff scoped`.
+- Em uma retomada, fazer no máximo uma checagem curta de
+  `status + HEAD + diff scoped`.
   Não usar `list_threads`, `read_thread` ou busca ampla para recuperar a mesma
   sessão quando o handoff e a árvore já identificam o escopo.
 - Depois da checagem inicial, o próximo passo deve ser `apply_patch`, teste
   focado ou uma pergunta de bloqueio. Duas rodadas consecutivas sem patch,
   teste ou evidência nova encerram a tentativa; relatar o bloqueio em vez de
   repetir a inspeção.
+- Para implementação incremental, o ciclo padrão é
+  `patch pequeno -> teste focado -> próximo patch`. Suíte ampla, build completo,
+  validação contratual e publicação ficam para o gate proporcional do lote,
+  salvo quando o próprio patch altera o gate ou exige evidência integrada.
 - Mensagem de progresso não conta como avanço. Cada ciclo deve produzir uma
   alteração, uma validação nova ou uma causa de bloqueio verificável.
 - Uma interrupção encerra o ciclo atual. Só retomar após nova solicitação

@@ -29,19 +29,24 @@ Não duplicar o mesmo contrato em todas as camadas:
 2. Inspecionar `.agents/skills` e abrir integralmente as skills aplicáveis.
 3. Se a solicitação continuar um escopo existente, abrir apenas o handoff
    correspondente.
-4. Rodar `git status --short` antes de qualquer edição.
-5. Verificar fatos baratos e sujeitos a drift: existência de arquivos, hashes,
+4. Rodar `git status --short` e identificar o `HEAD` atual antes de qualquer
+   edição.
+5. Confrontar o handoff com a árvore uma única vez. `HEAD`, worktree e arquivos
+   atuais prevalecem sobre anotações transitórias; se o handoff disser que um
+   diff ainda está pendente e o commit atual já o contém, marcar essa premissa
+   como stale e não reconstruir o estado antigo.
+6. Verificar fatos baratos e sujeitos a drift: existência de arquivos, hashes,
    branch, último build, processos e linhas atuais do código.
-6. Carregar referências técnicas somente quando roteadas pela skill.
-7. Corrigir no handoff qualquer informação stale detectada.
+7. Carregar referências técnicas somente quando roteadas pela skill.
+8. Corrigir no handoff qualquer informação stale detectada.
 
 Não reler toda a referência histórica, todo o chat ou todo o repositório para
 “recuperar contexto”. Começar pelo ponto de retomada e ampliar somente quando a
 evidência exigir.
 
-A revisão inicial termina assim que `status + diff scoped + fingerprints dos
-inputs` confirmarem o ponto de retomada. Depois disso, executar o próximo passo;
-não iniciar uma segunda auditoria preventiva da mesma evidência.
+A revisão inicial termina assim que `status + HEAD + diff scoped + fingerprints
+dos inputs` confirmarem o ponto de retomada. Depois disso, executar o próximo
+passo; não iniciar uma segunda auditoria preventiva da mesma evidência.
 
 ## Guarda contra looping
 
@@ -52,9 +57,11 @@ válidos.
 
 Uma retomada deve seguir este limite:
 
-1. uma única checagem curta de `git status` e diff scoped;
+1. uma única checagem curta de `git status`, `HEAD` e diff scoped;
 2. o próximo comando é um patch, teste focado ou diagnóstico específico;
-3. se duas chamadas não trouxerem alteração, teste ou evidência nova, parar e
+3. em implementação, repetir `patch pequeno -> teste focado -> próximo patch`;
+   deixar suíte ampla/build integral para o gate proporcional do lote;
+4. se duas chamadas não trouxerem alteração, teste ou evidência nova, parar e
    informar o bloqueio verificável.
 
 Não contar mensagens de progresso como avanço. Após uma interrupção, o ciclo

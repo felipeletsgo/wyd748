@@ -39,26 +39,33 @@ quando compatível, prefira a tecnicamente superior como único caminho ativo.
 
 ## Fast path
 
-1. Em continuação, leia o handoff do escopo, confira `git status` e diff scoped
-   e retome do próximo símbolo/comando.
+1. Em continuação, leia o handoff do escopo e confronte-o uma vez com
+   `git status --short`, `HEAD` e diff scoped. A árvore atual é autoritativa;
+   quando ela mostrar que uma premissa do handoff já foi incorporada, revertida
+   ou substituída, descarte apenas a premissa stale e retome do estado atual.
 2. Reutilize hash, triagem, ficha, exports e validações quando seus inputs não
    mudaram. Não releia referência nem rerode ferramenta por ritual.
 3. Localize o fluxo vivo com `rg`, começando pela source atual e seus testes.
 4. Carregue somente a referência da fronteira alterada.
-5. Implemente e documente o lote no mesmo ciclo; valide somente os consumidores
-   afetados e use a suíte ampla no gate de integração.
+5. Trabalhe em ciclos `patch pequeno -> teste focado -> próximo patch`.
+   Documente o lote no mesmo ciclo; valide somente os consumidores afetados e
+   use a suíte ampla no gate de integração.
 
 ## Anti-loop de continuidade
 
 Compactação automática não cria uma nova investigação. Trate o resumo e o
 handoff como estado já recuperado e continue do próximo passo executável.
 
-- Faça no máximo uma checagem curta de `git status` e diff scoped por retomada.
+- Faça no máximo uma checagem curta de `git status`, `HEAD` e diff scoped por
+  retomada. Nunca tente recriar um estado antigo só porque o handoff ainda o
+  descreve.
 - Não liste chats, releia a conversa ou reabra a tarefa original para confirmar
   um handoff que já aponta o arquivo e o símbolo seguintes.
 - Limite cada comando ao trecho necessário e evite saídas repetidas; uma saída
   já registrada com os mesmos inputs é reutilizável.
-- Após a checagem inicial, execute logo um patch ou um teste focado. Se duas
+- Após a checagem inicial, execute logo um patch ou um teste focado. Cada patch
+  deve ser pequeno o bastante para ter uma validação focada clara; avance para
+  a próxima unidade somente após essa validação. Se duas
   chamadas consecutivas não produzirem patch, teste ou evidência nova, pare e
   registre o bloqueio.
 - Não declare a mesma intenção de “retomar” mais de uma vez. Mensagens de
