@@ -56,7 +56,7 @@ func LoadMSHFile(path string) (Mesh, error) {
 	return m, nil
 }
 
-// ParseMSH decodifica o framing usado pelo loader candidato do TMProject:
+// ParseMSH decodifica o framing confirmado no loader nativo 7.48:
 // oito uint32, paleta de matrizes, nomes de ossos, vértices e índices 16-bit.
 // O parser valida todas as contagens e exige que não sobrem bytes silenciosos.
 func ParseMSH(data []byte) (Mesh, error) {
@@ -68,7 +68,12 @@ func ParseMSH(data []byte) (Mesh, error) {
 		h[i] = binary.LittleEndian.Uint32(data[i*4:])
 	}
 	parent, id, fvf, stride, influence, palette, vertices, indices := h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7]
-	if stride == 0 || stride > maxMeshVertexStride || vertices > maxMeshVertices || indices > maxMeshIndices || palette > maxMeshPalette {
+	// FUN_004c097c percorre XYZ nos offsets 0, 4 e 8 de cada registro de
+	// vértice. Um stride menor que 12 não satisfaz esse contrato mínimo.
+	if stride < 12 {
+		return Mesh{}, fmt.Errorf("%w: vertex stride %d is smaller than XYZ", ErrInvalidMSH, stride)
+	}
+	if stride > maxMeshVertexStride || vertices > maxMeshVertices || indices > maxMeshIndices || palette > maxMeshPalette {
 		return Mesh{}, ErrMeshTooLarge
 	}
 	if indices%3 != 0 {

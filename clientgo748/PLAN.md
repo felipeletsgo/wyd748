@@ -223,7 +223,8 @@ Milestones visuais:
 
 1. WYT decodificado e exportável para imagem de diagnóstico (concluído para o
    logo).
-2. Um MSH validado e exportado para geometria de diagnóstico.
+2. Um MSH validado e exportado para geometria de diagnóstico (`AUTOMATED_TESTED`;
+   renderer WGL já aceita XYZ + índices, ainda sem câmera/material).
 3. Um personagem estático e depois animado usando MSH/BON/ANI/WYT.
 4. Um trecho de terreno TRN com câmera e primitivas de depuração.
 
@@ -238,6 +239,23 @@ colisão, movimento ou renderização de gameplay.
 
 O contrato e a matriz de fontes estão em
 `references/research/flows/render-assets/terrain-trn-loader.md`.
+
+O loader MSH nativo foi rastreado em `FUN_004c097c`: oito DWORDs, matrizes de
+64 bytes por entrada de paleta, IDs de 4 bytes, vértices de `stride*count` e
+índices `uint16`. O client Go agora extrai somente o prefixo XYZ comprovado,
+valida índices antes do draw e oferece `MeshRenderer` opcional no WGL. Esta
+etapa ainda não define câmera, material, UV, skinning, BON/ANI nem aparência de
+personagem e, portanto, não é `CLIENT_TESTED`.
+
+BON/ANI agora possui parser e loader próprios em Go. Nesta família de assets,
+a tradução/interpretação do formato pode seguir diretamente o parser do
+TMProject748, cuja compatibilidade com 7.48 já foi validada no projeto; não é
+necessário repetir engenharia reversa byte a byte do parser. A fronteira nativa
+continua sendo usada para lifecycle, integração e contratos externos. O loader
+preserva o BON bruto, lê `BoneAni4.txt`/`ValidIndex.bin`, acumula as matrizes ANI
+e tolera ANI ausente como o TMProject. O catálogo oficial inteiro passa nos
+testes automatizados. Pose, lookup de motion, quaternion e skinning continuam
+pendentes e não são `CLIENT_TESTED`.
 
 O `worldScene` agora aceita o TRN validado e projeta a altura confirmada em
 uma superfície diagnóstica opcional. Essa projeção é somente visual: não cria

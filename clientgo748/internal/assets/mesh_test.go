@@ -26,11 +26,16 @@ func TestParseMSHOfficialAsset(t *testing.T) {
 }
 
 func TestParseMSHRejectsMalformedInput(t *testing.T) {
-	valid := make([]byte, 32)
-	binary.LittleEndian.PutUint32(valid[12:], 4)
-	binary.LittleEndian.PutUint32(valid[24:], 1)
-	if _, err := ParseMSH(valid); err == nil {
+	truncated := make([]byte, 32)
+	binary.LittleEndian.PutUint32(truncated[12:], 12)
+	binary.LittleEndian.PutUint32(truncated[24:], 1)
+	if _, err := ParseMSH(truncated); err == nil {
 		t.Fatal("expected truncated mesh")
+	}
+	badStride := make([]byte, 32)
+	binary.LittleEndian.PutUint32(badStride[12:], 8)
+	if _, err := ParseMSH(badStride); err == nil {
+		t.Fatal("expected invalid vertex stride")
 	}
 	if _, err := ParseMSH([]byte("bad")); err != ErrTruncatedMSH {
 		t.Fatalf("unexpected short error: %v", err)

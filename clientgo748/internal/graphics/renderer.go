@@ -54,6 +54,14 @@ type LayeredTextureRenderer interface {
 	DrawTextureLayer(name string, x, y, width, height int32)
 }
 
+// MeshRenderer is the optional first 3D mesh surface. The backend receives the
+// canonical decoded Mesh, while renderer-facing validation narrows it to the
+// native-confirmed XYZ + uint16 triangle geometry before issuing draw calls.
+type MeshRenderer interface {
+	Renderer
+	DrawMesh(assets.Mesh) error
+}
+
 // ViewportProvider exposes the current client-area size in logical pixels.
 // Scenes use it to keep native 7.48 compositions and their hitboxes anchored
 // to the same root when the window is resized or displayed with DPI scaling.

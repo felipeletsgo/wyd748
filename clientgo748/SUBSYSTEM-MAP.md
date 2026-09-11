@@ -19,7 +19,7 @@ arquivo é a entrada curta para quem trabalha no client Go.
 | Inventário, cargo, shop e trade | `UNMAPPED` | rastrear grid, drag, rollback, callbacks e fechamento |
 | Party, guild e sistemas especiais | `UNMAPPED` | completar sincronização e cancelamento |
 | UI, input e lifecycle | `LOCATED` | provar materialização, foco, destroy e relogin |
-| Render e assets | contexto WGL implementado; loaders `UNMAPPED` | fechar primeira textura, escala, device reset e fallback |
+| Render e assets | WYT `CLIENT_TESTED`; MSH `CONTRACT`/geometria `AUTOMATED_TESTED`; BON/ANI parser/catalog `AUTOMATED_TESTED` | ligar câmera/material/textura e integrar pose/skinning/animation playback; validar no client antes de `CLIENT_TESTED` |
 | Shutdown e reconexão | `CONTRACT` estreito | cobrir troca explícita de conta e falhas parciais |
 
 `UNMAPPED` é uma lacuna de pesquisa, não uma autorização para copiar o

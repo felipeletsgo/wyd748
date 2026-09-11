@@ -33,9 +33,10 @@ func (*Renderer) ClientViewport() (int32, int32) { return 0, 0 }
 
 func (*Renderer) DrawRect(int32, int32, int32, int32, graphics.Color)  {}
 func (*Renderer) DrawTextureAt(int32, int32, int32, int32)             {}
-func (*Renderer) UploadTextureLayer(string, assets.Texture) error     { return ErrUnsupported }
-func (*Renderer) DrawTextureLayer(string, int32, int32, int32, int32) {}
+func (*Renderer) UploadTextureLayer(string, assets.Texture) error      { return ErrUnsupported }
+func (*Renderer) DrawTextureLayer(string, int32, int32, int32, int32)  {}
 func (*Renderer) DrawText(int32, int32, string, int32, graphics.Color) {}
+func (*Renderer) DrawMesh(assets.Mesh) error                           { return ErrUnsupported }
 
 // Close é idempotente sem recursos.
 func (*Renderer) Close() error { return nil }

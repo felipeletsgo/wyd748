@@ -14,6 +14,8 @@ funções nativas catalogadas. `Research` é a evidência nativa/Ghidra;
 | Lista de personagens | CONTRACT | CONTRACT | IMPLEMENTED | AUTOMATED_TESTED | PENDENTE |
 | Entrada no mundo | CONTRACT | CONTRACT | PENDENTE | PENDENTE | PENDENTE |
 | Mundo diagnóstico | PENDENTE | PENDENTE | PENDENTE | PENDENTE | PENDENTE |
+| MSH estático (XYZ + índices) | CONTRACT | CONTRACT | IMPLEMENTED | AUTOMATED_TESTED | PENDENTE |
+| BON/ANI (catálogo + matrizes) | CONTRACT parcial | CONTRACT asset | IMPLEMENTED | AUTOMATED_TESTED | PENDENTE |
 | Movimento | CONTRACT estreito | PENDENTE | PENDENTE | PENDENTE | PENDENTE |
 | Combate e skills | UNMAPPED | PENDENTE | PENDENTE | PENDENTE | PENDENTE |
 | Inventário e itens | UNMAPPED | PENDENTE | PENDENTE | PENDENTE | PENDENTE |

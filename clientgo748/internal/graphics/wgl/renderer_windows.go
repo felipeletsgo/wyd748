@@ -37,6 +37,8 @@ const (
 	glSrcAlpha       = uint32(0x0302)
 	glOneMinusSrcA   = uint32(0x0303)
 	glQuads          = uint32(0x0007)
+	glTriangles      = uint32(0x0004)
+	glDepthTest      = uint32(0x0B71)
 )
 
 type rect struct {
@@ -99,6 +101,7 @@ type api struct {
 	end               func()
 	texCoord2f        func(float32, float32)
 	vertex2f          func(float32, float32)
+	vertex3f          func(float32, float32, float32)
 	color4f           func(float32, float32, float32, float32)
 }
 
@@ -323,6 +326,36 @@ func (r *Renderer) DrawTextureLayer(name string, x, y, width, height int32) {
 		return
 	}
 	r.drawTextureID(layer.id, x, y, width, height)
+}
+
+// DrawMesh draws the first proven MSH subset as an object-space triangle
+// list. Camera/projection, materials, texture coordinates and skinning are
+// intentionally not inferred here; callers must not treat this as final
+// character rendering.
+func (r *Renderer) DrawMesh(mesh assets.Mesh) error {
+	geometry, err := graphics.ExtractMeshGeometry(mesh)
+	if err != nil {
+		return err
+	}
+	if !r.initialized {
+		return errors.New("clientgo748: renderer is not initialized")
+	}
+	if len(geometry.Indices) == 0 {
+		return nil
+	}
+	a := sharedAPI
+	a.disable(glTexture2D)
+	a.disable(glBlend)
+	a.enable(glDepthTest)
+	a.color4f(1, 1, 1, 1)
+	a.begin(glTriangles)
+	for _, index := range geometry.Indices {
+		position := geometry.Positions[index]
+		a.vertex3f(position.X, position.Y, position.Z)
+	}
+	a.end()
+	a.disable(glDepthTest)
+	return nil
 }
 
 // DrawTexture draws the initial texture as a full-window quad. Later scenes
@@ -554,6 +587,7 @@ func loadAPI() (*api, error) {
 		purego.RegisterLibFunc(&a.end, opengl32.Handle(), "glEnd")
 		purego.RegisterLibFunc(&a.texCoord2f, opengl32.Handle(), "glTexCoord2f")
 		purego.RegisterLibFunc(&a.vertex2f, opengl32.Handle(), "glVertex2f")
+		purego.RegisterLibFunc(&a.vertex3f, opengl32.Handle(), "glVertex3f")
 		purego.RegisterLibFunc(&a.color4f, opengl32.Handle(), "glColor4f")
 		sharedAPI = a
 	})
