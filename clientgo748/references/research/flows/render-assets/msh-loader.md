@@ -127,10 +127,11 @@ gráficos, calcula bounds XYZ e publica os ponteiros/contagens no cache.
 ## Lacunas
 
 O framing, tamanhos das regiões, XYZ, índices e teardown estão fechados nesta
-fronteira. Ainda não há claim nativo para a semântica completa dos campos 0, 1,
-2 e 4, nem para normals, UV, material/textura, palette skinning, BON/ANI, pose,
-câmera ou aparência final. Esses itens exigem fichas próprias antes de serem
-promovidos ao renderer de personagem.
+fronteira. A interpretação dos layouts de vértice usada pelo Go segue o parser
+do TMProject748 já validado com assets 7.48 e possui validação automatizada
+própria; isso não promove um novo claim nativo desta ficha. Material/textura,
+câmera, integração do personagem e aparência final ainda exigem suas fronteiras
+específicas antes de `CLIENT_TESTED`.
 
 ## Procedência
 
@@ -139,8 +140,9 @@ promovidos ao renderer de personagem.
   `UTILIZADA`; confirma nomes e disponibilidade, não o framing binário.
 - Source/testes atuais do `clientgo748`: `UTILIZADA`; `ParseMSH` e o golden
   asset foram conferidos contra o framing nativo.
-- TMProject: `UTILIZADA` somente como comparação secundária de nomenclatura;
-  não fundamenta offsets ou tamanhos desta ficha.
+- TMProject748: `UTILIZADA` como referência direta da interpretação dos layouts
+  de vértice/pesos/índices de palette já exercitada com 7.48; continua não sendo
+  usado para inventar offsets, framing ou lifecycle nativos desta ficha.
 - Guias: `NÃO APLICÁVEL` para o framing não comprovado.
 - W2PP, Secrets e Micronics: `NÃO APLICÁVEL`/excluídas.
 
@@ -160,8 +162,9 @@ Não há alteração na source nativa nesta unidade.
 ### WYD-Go
 
 O parser seguro preserva o framing nativo, mas usa ownership Go. A fronteira
-gráfica extrai apenas XYZ e índices após validar stride, tamanho dos buffers e
-faixa de índices; atributos ainda não provados permanecem no blob do asset.
+gráfica decodifica os cinco layouts observados no catálogo atual, incluindo
+posição, normal, UV, pesos e índices de palette, após validar FVF, stride,
+influências, tamanho dos buffers, pesos e faixa de índices.
 
 ## Matriz de delta
 
@@ -170,15 +173,17 @@ faixa de índices; atributos ainda não provados permanecem no blob do asset.
 | inicialização do manager | confirmado | não aplicável | comparação secundária | não portada | manter pendente |
 | tabela `MeshList.txt` | confirmado | não aplicável | comparação secundária | não portada | manter pendente |
 | framing `.msh` | `FUN_004c097c` confirmado | parser ativo | comparação secundária | parser seguro com golden asset | `PARIDADE_NATIVA` de framing + ownership Go |
-| geometria mínima | XYZ em 0/4/8 + índices `uint16` | extração canônica | comparação secundária | renderer WGL aceita triângulos object-space | implementar sem inferir material/pose |
+| geometria/layout | XYZ + índices confirmados | extração canônica | interpretação dos cinco layouts validada no 7.48 | atributos tipados e validações próprias | `MODERNIZACAO_COMPATIVEL` sobre framing comprovado |
+| palette/skinning | fora do claim desta ficha | não aplicável | `LinkBones`/`UpdateFrames`/`CMesh` usados como semântica | hierarchy + CPU skinning testados | implementar sem promover claim nativo novo |
 | teardown | cache libera objeto + 2 blocos auxiliares | GC + recursos gráficos próprios | comparação secundária | sem ponteiros nativos | `MODERNIZACAO_COMPATIVEL` |
 
 ## Decisão
 
-`promover somente a geometria comprovada`: manter `ParseMSH` como parser
-canônico, rejeitar stride menor que 12 e validar novamente buffers/índices na
-fronteira do renderer. O WGL pode emitir apenas a lista de triângulos XYZ em
-object space; câmera, material, textura, skinning e animação permanecem
+Manter `ParseMSH` como parser canônico do framing e usar a interpretação dos
+layouts do TMProject748 já validada com 7.48 para a visão tipada do renderer.
+Combinações FVF/stride/influência não observadas continuam rejeitadas. O WGL
+preserva o caminho estático e possui caminho de CPU skinning; câmera,
+material/textura, integração de personagem e aparência final permanecem
 pendentes.
 
 ## Decisões

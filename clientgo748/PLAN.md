@@ -242,10 +242,14 @@ O contrato e a matriz de fontes estão em
 
 O loader MSH nativo foi rastreado em `FUN_004c097c`: oito DWORDs, matrizes de
 64 bytes por entrada de paleta, IDs de 4 bytes, vértices de `stride*count` e
-índices `uint16`. O client Go agora extrai somente o prefixo XYZ comprovado,
-valida índices antes do draw e oferece `MeshRenderer` opcional no WGL. Esta
-etapa ainda não define câmera, material, UV, skinning, BON/ANI nem aparência de
-personagem e, portanto, não é `CLIENT_TESTED`.
+índices `uint16`. Para a interpretação interna dos registros de vértice, a
+semântica dos parsers do TMProject748 é aceita como referência direta nesta
+campanha porque esses parsers já foram exercitados com 7.48. O decoder Go cobre
+os cinco layouts presentes no catálogo atual, incluindo posição, normal, UV,
+pesos e índices de paleta, e rejeita combinações FVF/stride/influência não
+observadas. O WGL mantém o caminho estático e também oferece CPU skinning. Esta
+etapa ainda não define câmera, material/textura nem aparência final e, portanto,
+não é `CLIENT_TESTED`.
 
 BON/ANI agora possui parser e loader próprios em Go. Nesta família de assets,
 a tradução/interpretação do formato pode seguir diretamente o parser do
@@ -254,8 +258,13 @@ necessário repetir engenharia reversa byte a byte do parser. A fronteira nativa
 continua sendo usada para lifecycle, integração e contratos externos. O loader
 preserva o BON bruto, lê `BoneAni4.txt`/`ValidIndex.bin`, acumula as matrizes ANI
 e tolera ANI ausente como o TMProject. O catálogo oficial inteiro passa nos
-testes automatizados. Pose, lookup de motion, quaternion e skinning continuam
-pendentes e não são `CLIENT_TESTED`.
+testes automatizados. A hierarquia BON, resolução da palette, CPU skinning e o
+playback ANI básico também estão implementados e testados: intervalo padrão de
+30 ms, quatro substeps por tick, wrap dentro do clip e interpolação linear por
+componente nos substeps intermediários. A transição especial entre animações,
+incluindo quaternion/slerp de ch01/ch02, lookup de motion e integração no
+renderer de personagem continuam pendentes; nada desta cadeia é
+`CLIENT_TESTED` ainda.
 
 O `worldScene` agora aceita o TRN validado e projeta a altura confirmada em
 uma superfície diagnóstica opcional. Essa projeção é somente visual: não cria
