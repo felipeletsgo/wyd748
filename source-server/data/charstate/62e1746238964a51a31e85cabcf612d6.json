@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "affects": [
+    {
+      "type": 51,
+      "clientType": 51,
+      "expiresUnix": 1785279997
+    },
+    {
+      "type": 4,
+      "clientType": 4,
+      "value": 10,
+      "expiresUnix": 1787276730
+    },
+    {
+      "type": 35,
+      "clientType": 35,
+      "value": 10,
+      "expiresUnix": 1787284012
+    },
+    {
+      "type": 30,
+      "clientType": 30,
+      "expiresUnix": 1787618332
+    },
+    {
+      "type": 39,
+      "clientType": 39,
+      "expiresUnix": 1785040727
+    }
+  ]
+}

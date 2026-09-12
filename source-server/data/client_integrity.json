@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "timeoutSeconds": 10,
+  "probes": [
+    {
+      "category": 0,
+      "byteOffset": 340,
+      "expectedValue": 45,
+      "asset": "Mesh/ch01.bon",
+      "size": 376,
+      "sha256": "7A348D6B582CD188CAA638D1857E5ED660971B5D04005E7436940D8726C2221F"
+    }
+  ]
+}

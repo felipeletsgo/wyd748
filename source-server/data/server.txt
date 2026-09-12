@@ -1,0 +1,108 @@
+# WYD-Go - configuracao operacional
+#
+# O IP publico NAO e definido aqui. O servidor escuta em todas as interfaces e
+# o client deve apontar para o IP publico do VPS no seu serverlist.
+listen_address=0.0.0.0:8281
+
+# Persistencia autoritativa. A URL fica somente no ambiente; nunca versione
+# credenciais neste arquivo. Para desenvolvimento local, defina:
+#   $env:WYD_DATABASE_URL='postgres://wydgo:<senha>@127.0.0.1:5432/wydgo?sslmode=disable'
+database_driver=postgres
+database_url_env=WYD_DATABASE_URL
+database_max_conns=8
+
+# Protecoes operacionais de rede/autenticacao. O loadtest usa overrides
+# proprios porque centenas de bots compartilham o mesmo IP local.
+session_queue_capacity=256
+world_command_queue_capacity=1024
+auth_hash_concurrency=4
+# Producao: no maximo 400 sockets no canal e 4 conexoes simultaneas por origem.
+# O limite autenticado repete a barreira depois do login; uma mesma conta
+# continua sujeita ao bloqueio de login duplicado.
+max_connections=400
+max_connections_per_ip=4
+max_authenticated_clients_per_ip=4
+handshake_timeout_seconds=5
+session_idle_timeout_seconds=600
+frame_read_timeout_seconds=10
+inbound_packets_per_second=256
+inbound_bytes_per_second=524288
+auth_attempts_per_minute_ip=30
+auth_attempts_per_minute_account=10
+chat_local_per_10_seconds=8
+chat_whisper_per_10_seconds=8
+chat_global_per_10_seconds=2
+critical_persistence_timeout_ms=500
+channel_id=1
+# Regras CIDR locais de allow/deny/limit. O login nunca consulta API externa.
+network_admission=data/network_admission.json
+client_integrity=data/client_integrity.json
+
+# Log do gerador: quiet, summary ou verbose
+npcgener_log=summary
+# Diagnosticos quentes de combate/loot: summary evita uma escrita por hit.
+# Use verbose somente durante uma reproducao curta; quiet desliga tambem o resumo.
+gameplay_log=summary
+
+# Diretorio dos bosses (um .lua por encontro). Bosses NAO vem do NPCGener:
+# posicao e respawn sao do proprio arquivo. Veja data/boss/README.md.
+boss=data/boss
+
+# Diagnostico: metricas em /debug/vars e profiling em /debug/pprof.
+# Comentado = desligado (padrao). O host TEM de ser loopback: esses endpoints
+# expoem estado interno e permitem disparar profiling. Um endereco publico
+# derruba o boot de proposito. Para acessar de fora, use tunel SSH:
+#   ssh -L 6060:127.0.0.1:6060 usuario@servidor
+# debug_address=127.0.0.1:6060
+
+# Balanceamento global
+# exp_rate usa porcentagem: 100=normal, 200=dobro, 50=metade.
+# O piso e aplicado primeiro; depois entram rate e bonus de party.
+# exp_rate=0 desativa o ganho de EXP.
+exp_rate=100
+exp_minimum=10000
+party_exp_bonus=2
+
+# Compositor (Anct). A composicao exige EXATAMENTE 4 materiais, todos do set D
+# (item level 4) ou E (item level 5) e todos refinados +7, +8 ou +9.
+# A chance de sucesso em % e compositor_base mais o bonus de cada material,
+# escolhido pelo refino dele. Com os valores abaixo o teto e 10+8*4=42.
+#   4 materiais +7 = 22   4 materiais +8 = 30   4 materiais +9 = 42
+compositor_base=10
+compositor_refine_7=3
+compositor_refine_8=5
+compositor_refine_9=8
+
+# Objetos permanentes do mundo (portoes, portas, canhoes, torres). Vao para o
+# mapa no boot, nao expiram e nao podem ser recolhidos.
+init_items=data/init_items.csv
+
+# Dados autoritativos
+npcs=data/npcs
+npcgener=data/NPCGener.txt
+teleports=data/teleports.ini
+# Usado apenas quando database_driver=json.
+accounts=data/accounts
+# Registro de guilds. Precisa ficar FORA do diretorio de contas: la dentro os
+# varredores de conta tentariam parsea-lo como uma conta.
+guilds=data/guilds.json
+# Guilds.txt no formato nativo, para DISTRIBUIR aos clients: o WYD.exe 7.48 le
+# "./Guilds.txt" da propria pasta e sem ele nenhum nome de guild aparece (nao
+# existe pacote de nome de guild no 7.48). Copie o arquivo gerado para a pasta
+# do client. Formato: <grupo> <canal> <indice> <nome>.
+guilds_txt=data/Guilds.txt
+# Quests. NPC ausente daqui nunca vira quest (allowlist).
+quests=data/quests.json
+items=data/itemlist.csv
+itemnames=data/Itemname.csv
+itemeffects=data/ItemEffect.h
+skills=data/SkillData.csv
+droprates=data/droprate.json
+volatiles=data/volatiles.json
+instances=data/instances.json
+repliction=data/repliction.json
+mounts=data/mounts.json
+character_templates=data/character_templates.json
+
+heightmap=data/maps/HeightMap.dat
+attributemap=data/maps/AttributeMap.dat

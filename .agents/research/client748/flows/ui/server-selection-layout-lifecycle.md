@@ -4,7 +4,7 @@ title: Posicionamento e lifecycle da selecao de servidor 7.48
 subsystem: ui-layout
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-02
+updated: 2026-09-12
 ---
 
 # Posicionamento e lifecycle da selecao de servidor 7.48
@@ -81,6 +81,64 @@ Os tres cabecalhos e os backgrounds de linhas/canais sao filhos do root. Uma
 unica mudanca na posicao do root desloca desenho, textos, listas e hitboxes em
 conjunto; nao ha justificativa para corrigir filhos individualmente.
 
+### Altura dos humanos da demonstracao
+
+`CONFIRMED`: o slot `+0x20` da vtable `0x005A4544` resolve para
+`FUN_004AAEDC`. No `FrameMove` da cena, a funcao percorre ate `0x32` ponteiros
+de humanos em `scene+0x26F0C` e, quando o ponteiro existe, grava
+`0xC0800000` (`-4.0f`) em `human+0x228` antes da atualizacao visual. Portanto a
+altura desejada dos humanos do backdrop da selecao de servidor e `-4.0f`; nao
+e uma amostragem do terreno.
+
+O TMProject748 e evidencia secundaria consistente: seu
+`TMSelectServerScene::FrameMove` atribui `m_fWantHeight = -4.0f` aos mesmos
+humanos e `TMHuman::GetMyHeight` devolve esse alvo diretamente para os tipos
+ordinarios. A adaptacao no `clientgo748` mantem o X/Z e yaw provenientes do
+registro `demo4.bin` e aplica somente o Y nativo da cena.
+
+O render skinned tambem possui um contrato de culling distinto do restante da
+cena. No nativo 7.48, `FUN_004C3EEC` e sua continuacao decompilada em
+`FUN_004C51FD` colocam `D3DRS_CULLMODE` (`0x16`) em `1` imediatamente antes do
+draw e restauram `3` depois dele. O TMProject748 confirma a semantica em
+`CMesh::RenderMesh`: usa `D3DCULL_NONE` no `DrawIndexedPrimitive` da malha
+skinned e restaura `D3DCULL_CCW`. Portanto o `clientgo748` deve desabilitar
+culling somente no caminho skinned, preservando o estado de terreno e objetos
+estaticos.
+
+### Textura-base do céu no estado Server/Login
+
+`CONFIRMED`: `FUN_00547890` constroi o `TMSky` nativo e `FUN_00547E8A` executa
+seu render. A transformacao observada usa a posicao X/Z da camera, altura
+`-5.0f + 1.0f`, yaw de demonstracao `pi/2`, pitch `-90` graus e escala
+`(0.5, 0.25, 0.5)`. Essa parte ja e reproduzida pelo `LoginBackdrop`.
+
+O delta visual que deixava o ceu como um borrao azul estava na selecao da
+textura. A logica de weather em `FUN_005484D1` mostra que o estado `1` usado na
+tela Server/Login troca a textura-base do common mesh do ceu para o indice
+`68`. Nesse estado o segundo stage nao participa da composicao; portanto a
+textura serializada dentro de `mesh\\sky001.msa` nao e a textura-base efetiva
+do frame.
+
+O asset oficial confirma o contrato: `Effect\\EffectTextureList.bin` possui
+512 registros de `0x108` bytes e o slot `68` resolve para
+`mesh\\sky02.wys`, alpha `N`. O TMProject748 e evidencia secundaria consistente:
+`TMSelectServerScene` chama `SetWeatherState(1)` e `TMSky::SetWeatherState`
+atribui `nState + 67` ao indice de textura-base para estados menores que 10.
+
+No `clientgo748`, o loader do backdrop agora le `EffectTextureList.bin`, resolve
+explicitamente o slot nativo `68` e carrega `sky02.wys`. O backend recebe uma
+chave interna reservada para esse recurso em vez de reutilizar `68` como chave
+de cache, porque o mesmo renderer tambem armazena indices independentes de
+`MeshTextureList.bin`; assim um objeto estatico no slot 68 nao pode sobrescrever
+o ceu entre frames. Testes automatizados verificam tanto o parser da tabela de
+efeitos quanto que a textura enviada pelo loader do ceu e byte a byte a textura
+do slot 68.
+
+Procedencia desta unidade: binario/descompilacao Ghidra 7.48 `UTILIZADA` como
+fonte primaria; assets oficiais 7.48 `UTILIZADA`; source/testes atuais do
+`clientgo748` `UTILIZADA`; TMProject748 `UTILIZADA` somente como confirmacao
+secundaria; W2PP, Secrets e Micronics `NAO APLICAVEL` por exclusao da campanha.
+
 ### Saídas e erros
 
 Falha de `FUN_00541065` faz o initializer registrar erro, mostrar
@@ -156,6 +214,8 @@ WYD-Go nao participa deste layout local e nao requer funcao correspondente.
 | Claim | Nativo 7.48 | Source anterior | Source adaptada | Decisao |
 | --- | --- | --- | --- | --- |
 | root Server/Channel | centro exato em X/Y | centro em X/Y seguido de `y += 75` | centro exato em X/Y | remover apenas o offset extra |
+| altura dos humanos demo | `FUN_004AAEDC` grava `-4.0f` em `human+0x228` | `m_fWantHeight = -4.0f` | `loginDemoHeight = -4.0f` | portar o alvo vertical da cena |
+| culling dos humanos demo | draw skinned usa `D3DRS_CULLMODE=1` e restaura `3` | `CMesh::RenderMesh` usa `D3DCULL_NONE` e restaura `D3DCULL_CCW` | culling desabilitado apenas em `DrawSkinnedMeshScene` | portar estado skinned sem alterar terreno/objetos |
 | filhos e hitboxes | filhos do root | filhos do root | preservados | nao deslocar individualmente |
 | titulos e largura | `+5`, `+8/+5`, largura 140 | ja equivalentes | preservados | sem alteracao |
 | logos por resolucao | branches 1024/1280/1600 | ja equivalentes | preservados | sem alteracao |

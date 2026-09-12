@@ -1,0 +1,82 @@
+FFFFFF  
+FFFFFF Shortcut Key
+FFFFAA
+FFFFAA F1-F10 or 1-10
+AAFFAA Choose skill from quick skill slots.
+FFFFAA
+FFFFAA Shift+1-10 or Shift+F1-F10
+AAFFAA To assign skill in quick skill slots. 
+FFFFAA
+FFFFAA -
+AAFFAA To control skills in Auto Attack Mode.
+AAFFAA You can use skill combos from 2 to 10 skills.
+FFFFAA
+FFFFAA Q
+AAFFAA Use Health Potion
+FFFFAA
+FFFFAA W
+AAFFAA Use Mana Potion
+FFFFAA
+FFFFAA E
+AAFFAA Use Kapa Potion
+FFFFAA
+FFFFAA V
+AAFFAA Feed your mount
+FFFFAA
+FFFFAA F11
+AAFFAA Use Recall Scroll 
+FFFFAA
+FFFFAA Ctrl
+AAFFAA To see loot
+FFFFAA
+FFFFAA Print Scrn SysRq
+AAFFAA For screen shots, Save screen shots to WYD folder. 
+FFFFAA
+FFFFAA C
+AAFFAA Open Character Screen
+FFFFAA
+FFFFAA I
+AAFFAA Open Inventory
+FFFFAA
+FFFFAA S
+AAFFAA Open Skill
+FFFFAA
+FFFFAA P or D
+AAFFAA Open Party Screen
+FFFFAA
+FFFFAA M or A
+AAFFAA Open Minimap
+FFFFAA
+FFFFAA R
+AAFFAA Toggle Mount Run/Walk
+FFFFAA
+FFFFAA ~
+AAFFAA Toggle PK Mode ON/OFF
+FFFFAA
+FFFFAA T
+AAFFAA Toggle Auto Attack ON/OFF
+FFFFAA
+FFFFAA N
+AAFFAA Toggle Character Name ON/OFF
+FFFFAA
+FFFFAA Tab
+AAFFAA Change Camera
+FFFFAA
+FFFFAA Enter
+AAFFAA Chatting Input Status
+FFFFAA
+FFFFAA +
+AAFFAA Adjust the size of the chatting windows(4step)
+FFFFAA
+FFFFAA PageUp or PageDown
+AAFFAA Move chatting contents scroll
+FFFFAA
+FFFFAA Arrow Up or Arrow Down
+AAFFAA Scroll through previous chat
+FFFFAA
+FFFFAA F
+AAFFAA Open Guild Board
+FFFFAA
+FFFFAA H
+AAFFAA Open HELP
+FFFFFF  

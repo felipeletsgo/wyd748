@@ -1,0 +1,1464 @@
+{
+  "source": "WYD KR current/test native SetMountCostume cases 11..56 and 62",
+  "baseItem": 342,
+  "baseName": "Shire_Horse",
+  "items": [
+    {
+      "item": 4190,
+      "name": "KR_Back_Ho",
+      "type": 29,
+      "scale": 1.25,
+      "mesh": [
+        5,
+        5,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4191,
+      "name": "KR_Death_Shadow_Red",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        8,
+        8,
+        0
+      ],
+      "skin": [
+        1,
+        1,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4192,
+      "name": "KR_Death_Shadow_Black",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        8,
+        8,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        12,
+        12,
+        12
+      ],
+      "special": 0
+    },
+    {
+      "item": 4193,
+      "name": "KR_Poison_Spider",
+      "type": 48,
+      "scale": 0.8,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4194,
+      "name": "KR_Kongkongi",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4195,
+      "name": "KR_Kongkongi_Blue",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        1,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4196,
+      "name": "KR_Kingdom_Mount_Red",
+      "type": 31,
+      "scale": 0.9,
+      "mesh": [
+        14,
+        14,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4197,
+      "name": "KR_Kingdom_Mount_Blue",
+      "type": 31,
+      "scale": 0.9,
+      "mesh": [
+        14,
+        14,
+        0
+      ],
+      "skin": [
+        1,
+        1,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4198,
+      "name": "KR_Wooden_Horse",
+      "type": 50,
+      "scale": 1,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4199,
+      "name": "KR_Kongkongi_Gold",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        1,
+        1,
+        0
+      ],
+      "skin": [
+        1,
+        1,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4200,
+      "name": "KR_Cat",
+      "type": 51,
+      "scale": 1,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4201,
+      "name": "KR_Spider",
+      "type": 59,
+      "scale": 1,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4202,
+      "name": "KR_Deer",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        11,
+        11,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        12,
+        12,
+        12
+      ],
+      "special": 0
+    },
+    {
+      "item": 4203,
+      "name": "KR_Red_Dragon",
+      "type": 39,
+      "scale": 1,
+      "mesh": [
+        1,
+        1,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        12,
+        12,
+        12
+      ],
+      "special": 0
+    },
+    {
+      "item": 4204,
+      "name": "KR_Blue_Dragon",
+      "type": 39,
+      "scale": 1,
+      "mesh": [
+        2,
+        2,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        12,
+        12,
+        12
+      ],
+      "special": 0
+    },
+    {
+      "item": 4205,
+      "name": "KR_Red_Rudolph",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        12,
+        12,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        12,
+        12,
+        12
+      ],
+      "special": 0
+    },
+    {
+      "item": 4206,
+      "name": "KR_Blue_Rudolph",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        13,
+        13,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4207,
+      "name": "KR_New_Year_Cat",
+      "type": 29,
+      "scale": 1,
+      "mesh": [
+        6,
+        6,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4208,
+      "name": "KR_Golden_Gargoyle",
+      "type": 40,
+      "scale": 1,
+      "mesh": [
+        46,
+        46,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        8,
+        8,
+        8
+      ],
+      "special": 0
+    },
+    {
+      "item": 4209,
+      "name": "KR_Rock_Gargoyle",
+      "type": 40,
+      "scale": 1,
+      "mesh": [
+        46,
+        46,
+        0
+      ],
+      "skin": [
+        1,
+        1,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4210,
+      "name": "KR_Ladybug",
+      "type": 48,
+      "scale": 0.8,
+      "mesh": [
+        1,
+        1,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4211,
+      "name": "KR_Arvak",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        14,
+        14,
+        0
+      ],
+      "skin": [
+        2,
+        0,
+        0
+      ],
+      "sanc": [
+        10,
+        10,
+        10
+      ],
+      "special": 0,
+      "available": false,
+      "unavailableReason": "missing authentic KR dependency mesh\\hs010117.wys"
+    },
+    {
+      "item": 4212,
+      "name": "KR_Pogball",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        3,
+        3,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4213,
+      "name": "KR_Pumpkin_Bat",
+      "type": 20,
+      "scale": 0.5,
+      "mesh": [
+        48,
+        48,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4214,
+      "name": "KR_Dark_Gargoyle",
+      "type": 40,
+      "scale": 1,
+      "mesh": [
+        46,
+        46,
+        46
+      ],
+      "skin": [
+        3,
+        3,
+        0
+      ],
+      "sanc": [
+        6,
+        6,
+        6
+      ],
+      "special": 0
+    },
+    {
+      "item": 4215,
+      "name": "KR_Dark_Cat",
+      "type": 51,
+      "scale": 1,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        1,
+        1,
+        1
+      ],
+      "sanc": [
+        6,
+        6,
+        6
+      ],
+      "special": 0
+    },
+    {
+      "item": 4216,
+      "name": "KR_Fire_Pogball",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        4,
+        4,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        12,
+        12,
+        12
+      ],
+      "special": 0
+    },
+    {
+      "item": 4217,
+      "name": "KR_Dark_Dragon",
+      "type": 39,
+      "scale": 1,
+      "mesh": [
+        3,
+        3,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        12,
+        12,
+        12
+      ],
+      "special": 0
+    },
+    {
+      "item": 4218,
+      "name": "KR_Xmas_Wooden_Horse",
+      "type": 50,
+      "scale": 1,
+      "mesh": [
+        1,
+        1,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4219,
+      "name": "KR_New_Year_Cow",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        18,
+        18,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        10,
+        10,
+        10
+      ],
+      "special": 0
+    },
+    {
+      "item": 4220,
+      "name": "KR_Carnival_Mount",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        19,
+        19,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4221,
+      "name": "KR_CB_Kongkongi",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        5,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4222,
+      "name": "KR_Maximus",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        20,
+        20,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4223,
+      "name": "KR_Magma_Spider",
+      "type": 59,
+      "scale": 1,
+      "mesh": [
+        1,
+        1,
+        1
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        7,
+        7,
+        7
+      ],
+      "special": 0
+    },
+    {
+      "item": 4224,
+      "name": "KR_Marine_Kongkongi",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        6,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4225,
+      "name": "KR_Royal_Arena_Mount",
+      "type": 31,
+      "scale": 0.9,
+      "mesh": [
+        21,
+        21,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        10,
+        10,
+        10
+      ],
+      "special": 0
+    },
+    {
+      "item": 4226,
+      "name": "KR_Noname_Mount",
+      "type": 40,
+      "scale": 0.9,
+      "mesh": [
+        48,
+        48,
+        48
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        9,
+        9,
+        9
+      ],
+      "special": 0
+    },
+    {
+      "item": 4227,
+      "name": "KR_Loki",
+      "type": 31,
+      "scale": 1,
+      "mesh": [
+        17,
+        17,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        15,
+        15,
+        15
+      ],
+      "special": 0
+    },
+    {
+      "item": 4228,
+      "name": "KR_Snow_Kongkongi",
+      "type": 49,
+      "scale": 0.8,
+      "mesh": [
+        7,
+        7,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4229,
+      "name": "KR_Rudolph_Kongkongi",
+      "type": 49,
+      "scale": 0.8,
+      "mesh": [
+        8,
+        8,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4230,
+      "name": "KR_2022_Tiger",
+      "type": 29,
+      "scale": 1.25,
+      "mesh": [
+        10,
+        10,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        13,
+        13,
+        13
+      ],
+      "special": 0
+    },
+    {
+      "item": 4231,
+      "name": "KR_Flower_Rabbit",
+      "type": 49,
+      "scale": 0.6,
+      "mesh": [
+        9,
+        9,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        12,
+        12,
+        12
+      ],
+      "special": 0
+    },
+    {
+      "item": 4232,
+      "name": "KR_Egg_Chick",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        10,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4233,
+      "name": "KR_Barbarian_Horse",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        10,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4234,
+      "name": "KR_Barbarian_Boar",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        0,
+        0,
+        0
+      ],
+      "skin": [
+        10,
+        0,
+        0
+      ],
+      "sanc": [
+        0,
+        0,
+        0
+      ],
+      "special": 0
+    },
+    {
+      "item": 4235,
+      "name": "KR_Blazing_Rabbit",
+      "type": 49,
+      "scale": 0.6,
+      "mesh": [
+        11,
+        11,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        9,
+        9,
+        9
+      ],
+      "special": 0,
+      "available": false,
+      "unavailableReason": "missing authentic KR dependencies mesh\\KK010112.msh and mesh\\KK010112.wys"
+    },
+    {
+      "item": 4241,
+      "name": "KR_Bahamut_Pogball",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [
+        17,
+        17,
+        0
+      ],
+      "skin": [
+        0,
+        0,
+        0
+      ],
+      "sanc": [
+        12,
+        12,
+        12
+      ],
+      "special": 0
+    },
+    {
+      "item": 6000,
+      "sourceItem": 2962,
+      "name": "KR_BearBear",
+      "type": 30,
+      "scale": 1,
+      "mesh": [0, 0, 0],
+      "skin": [0, 0, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6001,
+      "sourceItem": 2963,
+      "name": "KR_Jackal_I",
+      "type": 31,
+      "scale": 1,
+      "mesh": [0, 0, 4],
+      "skin": [1, 1, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6002,
+      "sourceItem": 2964,
+      "name": "KR_Jackal_II",
+      "type": 31,
+      "scale": 1,
+      "mesh": [0, 0, 5],
+      "skin": [1, 1, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6003,
+      "sourceItem": 3975,
+      "name": "KR_Immortal_Courser",
+      "type": 49,
+      "scale": 0.6,
+      "mesh": [25, 25, 0],
+      "skin": [0, 0, 0],
+      "sanc": [13, 13, 13],
+      "special": 0,
+      "available": false,
+      "unavailableReason": "missing authentic KR dependencies mesh\\KK010126.msh and mesh\\KK010126.wys in both supplied clients"
+    },
+    {
+      "item": 6004,
+      "sourceItem": 3976,
+      "name": "KR_Fimbulvetr_Messenger",
+      "type": 25,
+      "scale": 1,
+      "mesh": [3, 3, 0],
+      "skin": [0, 0, 0],
+      "sanc": [12, 12, 12],
+      "special": 0
+    },
+    {
+      "item": 6005,
+      "sourceItem": 3977,
+      "name": "KR_Heidrun",
+      "type": 31,
+      "scale": 1,
+      "mesh": [50, 50, 0],
+      "skin": [0, 0, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6006,
+      "sourceItem": 3978,
+      "name": "KR_20th_Horse",
+      "type": 49,
+      "scale": 0.6,
+      "mesh": [9, 9, 0],
+      "skin": [0, 0, 0],
+      "sanc": [12, 12, 12],
+      "special": 0
+    },
+    {
+      "item": 6007,
+      "sourceItem": 3979,
+      "name": "KR_Loki_Premium",
+      "type": 49,
+      "scale": 0.7,
+      "mesh": [0, 0, 0],
+      "skin": [10, 0, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6008,
+      "sourceItem": 3993,
+      "name": "KR_Dragon_Red",
+      "type": 38,
+      "scale": 1,
+      "mesh": [4, 4, 0],
+      "skin": [0, 0, 0],
+      "sanc": [8, 8, 8],
+      "special": 0
+    },
+    {
+      "item": 6009,
+      "sourceItem": 3994,
+      "name": "KR_Dragon_Blue",
+      "type": 29,
+      "scale": 1,
+      "mesh": [0, 0, 0],
+      "skin": [0, 0, 0],
+      "sanc": [0, 0, 0],
+      "special": 0
+    },
+    {
+      "item": 6010,
+      "sourceItem": 3995,
+      "name": "KR_Spider_Premium",
+      "type": 38,
+      "scale": 1,
+      "mesh": [1, 1, 0],
+      "skin": [0, 0, 0],
+      "sanc": [8, 8, 8],
+      "special": 0
+    },
+    {
+      "item": 6011,
+      "sourceItem": 3996,
+      "name": "KR_Iceland_Wolf",
+      "type": 38,
+      "scale": 1,
+      "mesh": [2, 2, 0],
+      "skin": [0, 0, 0],
+      "sanc": [8, 8, 8],
+      "special": 0
+    },
+    {
+      "item": 6012,
+      "sourceItem": 3997,
+      "name": "KR_Dragon_Lich",
+      "type": 49,
+      "scale": 0.8,
+      "mesh": [7, 7, 0],
+      "skin": [0, 0, 0],
+      "sanc": [13, 13, 13],
+      "special": 0
+    },
+    {
+      "item": 6013,
+      "sourceItem": 3998,
+      "name": "KR_Blood_Spider",
+      "type": 49,
+      "scale": 0.8,
+      "mesh": [8, 8, 0],
+      "skin": [0, 0, 0],
+      "sanc": [13, 13, 13],
+      "special": 0
+    },
+    {
+      "item": 6014,
+      "sourceItem": 3999,
+      "name": "KR_Deer_Premium",
+      "type": 29,
+      "scale": 1.25,
+      "mesh": [10, 10, 0],
+      "skin": [0, 0, 0],
+      "sanc": [13, 13, 13],
+      "special": 0
+    }
+  ],
+  "textures": [
+    {
+      "name": "mesh\\bd020147.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\bd020148.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\bd020149.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\bd020150.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\bd020301.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\be010106.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\be010107.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\be010111.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\CP010101.wys",
+      "alpha": 65
+    },
+    {
+      "name": "mesh\\CP010102.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\CP010201.wys",
+      "alpha": 65
+    },
+    {
+      "name": "mesh\\CP010202.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\ct010101.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\ct010102.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\ct010201.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\ct010202.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\dr010149.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\dr020102.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\dr020103.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\dr020104.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\dr020301.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\hs010109.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010110.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010112.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010113.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010114.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010115.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010116.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010117.wys",
+      "alpha": 67,
+      "available": false,
+      "unavailableReason": "registered by the KR client but absent from both supplied KR snapshots"
+    },
+    {
+      "name": "mesh\\hs010118.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010119.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010121.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010122.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010101.wys",
+      "alpha": 65
+    },
+    {
+      "name": "mesh\\KK010102.wys",
+      "alpha": 65
+    },
+    {
+      "name": "mesh\\KK010103.wys",
+      "alpha": 65
+    },
+    {
+      "name": "mesh\\KK010104.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010105.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010106.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010107.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010108.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010109.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010110.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010111.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010112.wys",
+      "alpha": 67,
+      "available": false,
+      "unavailableReason": "registered by the KR client but absent from both supplied KR snapshots"
+    },
+    {
+      "name": "mesh\\KK010118.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\mc010101.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\mc010102.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\mo020101.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\mo020102.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\tw010101.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\hs010102.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\hs010305.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\hs010306.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\bo010104.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\hs010151.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\tg010105.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\be010101.wys",
+      "alpha": 78
+    },
+    {
+      "name": "mesh\\tg010102.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\tg010103.wys",
+      "alpha": 67
+    },
+    {
+      "name": "mesh\\KK010126.wys",
+      "alpha": 78,
+      "available": false,
+      "unavailableReason": "registered by the KR client but absent from both supplied KR snapshots"
+    }
+  ]
+}

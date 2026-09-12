@@ -1,0 +1,60 @@
+FFFFFF [Armia]        Gremlin King             2370 2106
+FFFFFF [Armia]        Half Orc      	       2508 2101
+FFFFFF [Armia]        Half Orc                 2526 2009
+FFFFFF [Armia]        Hunter Troll             2529 1882
+FFFFFF [Azran]        Orc Shaman               2126 1600
+FFFFFF [Azran]        Taurus King              2005 1617
+FFFFFF [Azran]        Bloody Cyclops           2241 1474
+FFFFFF [Azran]        Elder Cyclops            1858 1721
+FFFFFF [Azran]        Brutal Cyclops           2250 1316
+FFFFFF [Azran]        Brutal Cyclops           1989 1755
+FFFFFF [Dungeon1]     Troll Zombie             290 3799
+FFFFFF [Dungeon1]     Skeleton Knight          724 3781
+FFFFFF [Dungeon1]     Skel Soldier             481 4062
+FFFFFF [Dungeon2]     Stone Golem              876 4058
+FFFFFF [Dungeon2]     Fire Golem               855 3922
+FFFFFF [Dungeon2]     Fire Golem               808 3876
+FFFFFF [Dungeon3]     Fire Golem               959 3813
+FFFFFF [Dungeon3]     Fire Golem               926 3750
+FFFFFF [Dungeon3]     Dark Knight              1096 3730
+FFFFFF [Dungeon3]     Bone Dragon              1132 3800
+FFFFFF [Hellgate1]    Water Elemental          1242 4035
+FFFFFF [Hellgate1]    Water Elemental          1264 4017
+FFFFFF [Hellgate1]    Water Elemental          1333 3994
+FFFFFF [Hellgate1]    Dark Elf Knight          1358 4041
+FFFFFF [Hellgate1]    Dark Elf Knight          1462 4033
+FFFFFF [Hellgate2]    Und Troll Lord           1326 3788
+FFFFFF [Hellgate2]    Demi Gorgon              1493 3777
+FFFFFF [Hellgate2]    Moloch                   1437 3741
+FFFFFF [Hellgate2]    Moloch                   1389 3740
+FFFFFF [Hellgate2]    Moloch                   1422 3810
+FFFFFF [Desert]       Giant Sand Worm          1376 1722
+FFFFFF [Desert]       Giant Sand Worm          1426 1686
+FFFFFF [Desert]       Asteroth Knight          1381 1861
+FFFFFF [Desert]       Asteroth Knight          1326 1896
+FFFFFF [Desert]       Taron Assasin            1510 1723
+FFFFFF [Desert]       Taron                    1543 1726
+FFFFFF [Desert]       Taron                    1580 1758
+FFFFFF [Desert]       Taron                    1182 1714
+FFFFFF [Desert]       Hell Spider              1634 1727
+FFFFFF [Desert]       Hell Spider              1237 1764
+FFFFFF [Capra]        Gold Widower             2367 4024
+FFFFFF [Capra]        Horizon Cropper          2236 4044
+FFFFFF [Capra]        Horizon Cropper          2236 3993
+FFFFFF [Capra]        Horizon Cropper          2209 3989
+FFFFFF [Capra]        Horizon Cropper          2453 4067
+FFFFFF [Capra]        Horizon Cropper          2485 4043
+FFFFFF [Capra]        Cruel Ape        	       2534 3897
+FFFFFF [Capra]        Cruel Ape        	       2489 3919
+FFFFFF [Capra]        Lich Vatama              2269 3910
+FFFFFF [Capra]        Lich Crunt               2202 3866
+FFFFFF [Ice Field]    Riflaim Bear             3664 3024
+FFFFFF [Ice Field]    Frost Troll              3582 3007
+FFFFFF [Ice Field]    Ancient Ent              3514 3008
+FFFFFF [Ice Field]    Amon                     3818 2977
+FFFFFF [Ice Field]    Amon Warrior             3517 2889
+FFFFFF [Ice Field]    Amon Chief               3745 2977
+FFFFFF [Ice Field]    Kalintz Man              3639 2877
+FFFFFF [Ice Field]    Kalintz Town             3650 2727
+FFFFFF [Ice Field]    Cursed Town              3660 2773
+FFFFFF [Ice Field]    Valkyrie Rosen           3746 2879

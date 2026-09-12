@@ -1,0 +1,169 @@
+// Pesadelo N (Erion)
+// ********************************************
+#	[3001]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NN
+	Follower:	Orc_NN
+	RouteType:	2
+	Formation:	0
+	StartX:		1305
+	StartY:		355
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1305
+	Segment1Y:	355
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1305
+	Segment2Y:	355
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1305
+	DestY:		355
+	DestRange:	2
+	DestWait:	8
+
+// Pesadelo N (Erion)
+// ********************************************
+#	[3002]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NN
+	Follower:	Orc_NN
+	RouteType:	2
+	Formation:	0
+	StartX:		1317
+	StartY:		346
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1317
+	Segment1Y:	346
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1317
+	Segment2Y:	346
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1317
+	DestY:		346
+	DestRange:	2
+	DestWait:	8
+
+// Pesadelo N (Erion)
+// ********************************************
+#	[3003]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NN
+	Follower:	Orc_NN
+	RouteType:	2
+	Formation:	0
+	StartX:		1301
+	StartY:		336
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1301
+	Segment1Y:	336
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1301
+	Segment2Y:	336
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1301
+	DestY:		336
+	DestRange:	2
+	DestWait:	8
+
+// Pesadelo N (Erion)
+// ********************************************
+#	[3004]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NN
+	Follower:	Orc_NN
+	RouteType:	2
+	Formation:	0
+	StartX:		1310
+	StartY:		325
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1310
+	Segment1Y:	325
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1310
+	Segment2Y:	325
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1310
+	DestY:		325
+	DestRange:	2
+	DestWait:	8
+
+
+// Pesadelo N (Erion)
+// ********************************************
+#	[3005]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Orc_NN
+	Follower:	Orc_NN
+	RouteType:	2
+	Formation:	0
+	StartX:		1309
+	StartY:		310
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1309
+	Segment1Y:	310
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1309
+	Segment2Y:	310
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1309
+	DestY:		310
+	DestRange:	2
+	DestWait:	8
+
+
+// Pesadelo N (Erion) - BOSS
+// ********************************************
+#	[3006]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		Orc_NN
+	Follower:	Orc_NN
+	RouteType:	2
+	Formation:	0
+	StartX:		1309
+	StartY:		310
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1309
+	Segment1Y:	310
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1309
+	Segment2Y:	310
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1309
+	DestY:		310
+	DestRange:	2
+	DestWait:	8

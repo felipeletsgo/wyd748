@@ -1,0 +1,34 @@
+# Configuracao temporaria para o teste de carga. Nao usar em producao.
+listen_address=0.0.0.0:8281
+database_driver=postgres
+database_url_env=WYD_LOADTEST_DATABASE_URL
+database_max_conns=32
+session_queue_capacity=4096
+world_command_queue_capacity=8192
+auth_hash_concurrency=32
+max_connections=1200
+max_connections_per_ip=1200
+max_authenticated_clients_per_ip=1200
+handshake_timeout_seconds=5
+session_idle_timeout_seconds=600
+frame_read_timeout_seconds=10
+inbound_packets_per_second=256
+inbound_bytes_per_second=524288
+auth_attempts_per_minute_ip=1000
+auth_attempts_per_minute_account=10
+chat_local_per_10_seconds=8
+chat_whisper_per_10_seconds=8
+chat_global_per_10_seconds=2
+critical_persistence_timeout_ms=1000
+channel_id=1
+network_admission=data/network_admission.json
+client_integrity=data/client_integrity.json
+debug_address=127.0.0.1:6060
+npcgener_log=summary
+heightmap=data/maps/HeightMap.dat
+attributemap=data/maps/AttributeMap.dat
+
+# Taurons de Noatum (NPCGener 3223/3224). Somente contas bot recebem este
+# nascimento; jogadores reais continuam em 2100,2100.
+loadtest_spawn=1162,1700
+loadtest_account_prefix=bot

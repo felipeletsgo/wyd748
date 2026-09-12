@@ -1,0 +1,3381 @@
+410
+FFFFFFFF Used to save a location
+FFFFFFFF Use this in town to return
+FFFFFFFF to the saved spot
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > hotkey:_f11                
+FFFFFFFF 
+411
+FFFFFFFF Used to save a location
+FFFFFFFF Use this in town to return
+FFFFFFFF to the saved spot
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > hotkey:_f11                
+FFFFFFFF 
+412
+FFFF00FF [Alchemy]                    
+FFFFFFFF 
+FFFFFFFF Used to upgrade equipment and
+FFFFFFFF items to level 6
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+413
+FFFF00FF [Alchemy]                
+FFFFFFFF 
+FFFFFFFF Used to upgrade equipment
+FFFFFFFF and items to level 9     
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+419
+FFFF00FF [Composition Material]      
+FFFFFFFF 
+FFFFFFFF Used to combine Fate of Sky 
+FFFFFFFF Dragon.                     
+FFFFFFFF 
+FFFFFFFF Collect 10 pieces and give  
+FFFFFFFF to Jeffry in Azran with a   
+FFFFFFFF fee of 1000000 coins.       
+FFFFFFFF 
+420
+FFFF00FF [Composition Material]     
+FFFFFFFF 
+FFFFFFFF Used to combine fate of    
+FFFFFFFF Dragon god.                
+FFFFFFFF 
+FFFFFFFF Collect 10 pieces and give 
+FFFFFFFF to Jeffry in Azran with    
+FFFFFFFF a fee of 1000000 coins     
+FFFFFFFF  
+421
+FFFF00FF Quest Item                   
+FFFFFFFF 
+FFFFFFFF Available in 7 pieces.       
+FFFFFFFF (from 1 ~ 7 ) Collect all    
+FFFFFFFF 7 and hand in to the Armia   
+FFFFFFFF Golden Dragon to complete    
+FFFFFFFF the quest.The dragon will    
+FFFFFFFF randomly enchant your weapon.
+FFFFFFFF 
+422
+FFFF00FF Quest Item                   
+FFFFFFFF 
+FFFFFFFF Available in 7 pieces.       
+FFFFFFFF (from 1 ~ 7 ) Collect all    
+FFFFFFFF 7 and hand in to the Armia   
+FFFFFFFF Golden Dragon to complete    
+FFFFFFFF the quest.The dragon will    
+FFFFFFFF randomly enchant your weapon.
+FFFFFFFF 
+423
+FFFF00FF Quest Item                   
+FFFFFFFF 
+FFFFFFFF Available in 7 pieces.       
+FFFFFFFF (from 1 ~ 7 ) Collect all    
+FFFFFFFF 7 and hand in to the Armia   
+FFFFFFFF Golden Dragon to complete    
+FFFFFFFF the quest.The dragon will    
+FFFFFFFF randomly enchant your weapon.
+FFFFFFFF 
+424
+FFFF00FF Quest Item                   
+FFFFFFFF 
+FFFFFFFF Available in 7 pieces.       
+FFFFFFFF (from 1 ~ 7 ) Collect all    
+FFFFFFFF 7 and hand in to the Armia   
+FFFFFFFF Golden Dragon to complete    
+FFFFFFFF the quest.The dragon will    
+FFFFFFFF randomly enchant your weapon.
+FFFFFFFF 
+425
+FFFF00FF Quest Item                   
+FFFFFFFF 
+FFFFFFFF Available in 7 pieces.       
+FFFFFFFF (from 1 ~ 7 ) Collect all    
+FFFFFFFF 7 and hand in to the Armia   
+FFFFFFFF Golden Dragon to complete    
+FFFFFFFF the quest.The dragon will    
+FFFFFFFF randomly enchant your weapon.
+FFFFFFFF 
+426
+FFFF00FF Quest Item                   
+FFFFFFFF 
+FFFFFFFF Available in 7 pieces.       
+FFFFFFFF (from 1 ~ 7 ) Collect all    
+FFFFFFFF 7 and hand in to the Armia   
+FFFFFFFF Golden Dragon to complete    
+FFFFFFFF the quest.The dragon will    
+FFFFFFFF randomly enchant your weapon.
+FFFFFFFF 
+427
+FFFF00FF Quest Item                   
+FFFFFFFF 
+FFFFFFFF Available in 7 pieces.       
+FFFFFFFF (from 1 ~ 7 ) Collect all    
+FFFFFFFF 7 and hand in to the Armia   
+FFFFFFFF Golden Dragon to complete    
+FFFFFFFF the quest.The dragon will    
+FFFFFFFF randomly enchant your weapon.
+FFFFFFFF 
+447
+FFFF00FF Quest Item                  
+FFFFFFFF 
+FFFFFFFF Pay 1000000 gold and        
+FFFFFFFF Purifying Stones to         
+FFFFFFFF Alchemist Jeff in Azran to  
+FFFFFFFF exchange for a Exorcising   
+FFFFFFFF stone                       
+FFFFFFFF 
+FFFFFFFF 
+448
+FFFF00FF Quest Item                     
+FFFFFFFF 
+FFFFFFFF Reset skill points used in     
+FFFFFFFF the Divine, White magic,       
+FFFFFFFF Elemental and Survival Mastery.
+FFFFFFFF Restore 50 skill points        
+FFFF0000 > Use with the Shaman in Azran 
+FFFF0000 > only can be used once    
+FFFF0000   per character.                            
+449
+FFFF00FF Quest Item                    
+FFFFFFFF 
+FFFFFFFF Reset skill points used       
+FFFFFFFF in the Trans,Black Magic,     
+FFFFFFFF Summoning And trading Mastery.
+FFFFFFFF Restore 50 skill points       
+FFFF0000 > Use with the Shaman in Azran
+FFFF0000 > only can be used once   
+FFFF0000   per character.                        
+450
+FFFF00FF Quest Item                    
+FFFFFFFF 
+FFFFFFFF Reset skill points used in the
+FFFFFFFF mystic blade,special magic,   
+FFFFFFFF Nature and capture mastery.   
+FFFFFFFF Restore 50 skill points       
+FFFF0000 > Use with the Shaman in Azran
+FFFF0000 > only can be used once   
+FFFFFFFF   per character.                          
+575
+FFFF00FF [Mineral stones]                
+FFFFFFFF 
+FFFFFFFF Use to upgrade Marduk set,Elven 
+FFFFFFFF set,Eagle set and Phoenix set   
+FFFFFFFF to LEGENDARY quality.           
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Only usable on certain armors
+FFFFFFFF 
+576
+FFFF00FF [Mineral stones]                
+FFFFFFFF 
+FFFFFFFF Use to upgrade Marduk set,Elven 
+FFFFFFFF set,Eagle set，Phoenix set,     
+FFFFFFFF Dragoon set,Feather set,Heroic  
+FFFFFFFF set,and moonlight set to        
+FFFFFFFF LEGENDARY quality.              
+FFFFFFFF
+FFFF0000 > Only usable on certain armors
+577
+FFFF00FF [Mineral stones]                
+FFFFFFFF 
+FFFFFFFF Use to upgrade Dryad set,       
+FFFFFFFF Imperial set,Valiant set and    
+FFFFFFFF Aurora set to LEGENDARY quality 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > only usable on certain armors 
+FFFFFFFF 
+578
+FFFF00FF [Mineral stones]                 
+FFFFFFFF 
+FFFFFFFF use to upgrade Apollo set,Myseria
+FFFFFFFF set,Divine Set and Seraphic set  
+FFFFFFFF to LEGENDARY quality             
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Only usable on certain armors  
+FFFFFFFF 
+646
+FFFFFFFF During_the_period_of_usage,
+FFFFFFFF you'll_get_around_+500_of_damage_increase.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 ∝ Increased_damage_does_not_applied
+FFFF0000 during_PK_among_users_but_only
+FFFF0000 gives_damage_to_monsters.
+FFFF0000 ∝ It_is_available_from_level_255_onwards.
+FFFFFFFF 
+647
+FFFFFFFF During_the_period_of_usage,
+FFFFFFFF you'll_get_around_+1000_of_damage_increase.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 ∝ Increased_damage_does_not_applied
+FFFF0000 during_PK_among_users_but_only
+FFFF0000 gives_damage_to_monsters.
+FFFF0000 ∝ It_is_available_from_level_255_onwards.
+FFFFFFFF 
+692
+FFFF00FF Quest Item                        
+FFFFFFFF 
+FFFFFFFF Pay 5million plus a purifying stone  
+FFFFFFFF to the Alchemist in Azran. He will
+FFFFFFFF make you an Exorcising stone ( H )   
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+693
+FFFF00FF Quest Item                     
+FFFFFFFF 
+FFFFFFFF Reset skill points used in the 
+FFFFFFFF Divine,White magic,Elemental   
+FFFFFFFF and Survival Mastery.          
+FFFFFFFF Restore 100 skill points       
+FFFFFFFF 
+FFFF0000 > use at the Shaman in Azran   
+FFFFFFFF 
+694
+FFFF00FF Quest Item                     
+FFFFFFFF 
+FFFFFFFF Reset skill points used in     
+FFFFFFFF the Trans,Black magic,Summoning
+FFFFFFFF and Trading Mastery.           
+FFFFFFFF Restore 100 skill points.      
+FFFFFFFF 
+FFFF0000 > use at the Shaman in Azran   
+FFFFFFFF 
+695
+FFFF00FF Quest Item                       
+FFFFFFFF 
+FFFFFFFF Reset skill points used in the   
+FFFFFFFF Mystic Blade,Special Magic,Nature
+FFFFFFFF and Capture Mastery.             
+FFFFFFFF Restore 100 skill points.        
+FFFFFFFF 
+FFFF0000 > use at the Shaman in Azran     
+FFFFFFFF 
+697
+FFFF00FF Special Item            
+FFFFFFFF 
+FFFFFFFF Used to complete various
+FFFFFFFF quests.                 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+699
+FFFFFFFF Able to teleport to the    
+FFFFFFFF saved location.        
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > cannot be used when there
+FFFF0000   is no saved location.
+FFFF0000 > right click to use           
+FFFFFFFF 
+700
+FFFFFFFF When used to save a       
+FFFFFFFF location, it will disappear.
+FFFFFFFF By using teleporting scrolls, 
+FFFFFFFF you can teleport to the       
+FFFFFFFF saved location. However if
+FFFFFFFF a new location is saved, 
+FFFFFFFF the previous location will  
+FFFFFFFF be deleted.                                    
+FFFFFFFF 
+751
+FFFF00FF Quest Item                    
+FFFFFFFF 
+FFFFFFFF used to enter the twin castle 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest:Attack the twin castle
+FFFFFFFF 
+752
+FFFF00FF Quest item                     
+FFFFFFFF 
+FFFFFFFF First key to twin castle       
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > unable to use in other quests
+FFFFFFFF 
+753
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Increase attack when equipped
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Twin Castle        
+FFFFFFFF 
+754
+FFFF00FF Quest Item                      
+FFFFFFFF 
+FFFFFFFF Twin castle 2nd gate's key      
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > only for the twin castle quest
+FFFFFFFF 
+755
+FFFF00FF Quest                           
+FFFFFFFF 
+FFFFFFFF twin castle 3rd gate's key      
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > only for the twin castle quest
+FFFFFFFF 
+756
+FFFF00FF Quest Item                      
+FFFFFFFF 
+FFFFFFFF twin castle final gate's key    
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > only for the twin castle quest
+FFFFFFFF 
+769
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Protect the owner from death
+FFFFFFFF when equipped               
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summon the spirits
+FFFFFFFF 
+774
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF  
+FFFFFFFF  
+FFFFFFFF  
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000  
+FFFFFFFF 
+775
+FFFF00FF  
+FFFFFFFF 
+FFFFFFFF  
+FFFFFFFF  
+FFFFFFFF  
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000  
+FFFFFFFF 
+776
+FFFFFFFF Teleport the caster to the 
+FFFFFFFFsaved spot.            
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > cannot be used when there
+FFFF0000   is no saved spot     
+FFFF0000 > right click to use           
+FFFFFFFF 
+777
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter water world    
+FFFFFFFF dungeon ( Medium ) level 1  
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summon the Spirits
+FFFFFFFF 
+778
+FFFF00FF Special                     
+FFFFFFFF 
+FFFFFFFF Use to enter water world    
+FFFFFFFF dungeon ( Medium ) level 2  
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summon the Spirits
+FFFFFFFF 
+779
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter water world    
+FFFFFFFF dungeon ( Medium ) level 3  
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summon the Spirits
+FFFFFFFF 
+780
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Use to enter water world   
+FFFFFFFF dungeon ( Medium ) level 4 
+FFFFFFFF area with party members.   
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summoning spirits
+FFFFFFFF 
+781
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter water world    
+FFFFFFFF dungeon ( Medium ) level 5  
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summon the Spirits
+FFFFFFFF 
+782
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter water world    
+FFFFFFFF dungeon ( Medium ) level 6  
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summon the Spirits
+FFFFFFFF 
+783
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter water world    
+FFFFFFFF dungeon ( Medium ) level 7  
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summon the Spirits
+FFFFFFFF 
+784
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter water world    
+FFFFFFFF dungeon ( Medium ) level 8  
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summon the Spirits
+FFFFFFFF 
+785
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter water world    
+FFFFFFFF dungeon ( Medium ) final    
+FFFFFFFF with party members.         
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : Summon the Spirits
+FFFFFFFF
+1721
+FFFF00FF Composition Material        
+FFFFFFFF 
+FFFFFFFF Required Materials to create
+FFFFFFFF Ice Fairy.                  
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1722
+FFFF00FF Composition Material        
+FFFFFFFF 
+FFFFFFFF Required Materials to create
+FFFFFFFF Ice Fairy.                  
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1723
+FFFF00FF Composition Material        
+FFFFFFFF 
+FFFFFFFF Required Materials to create
+FFFFFFFF Ice Fairy.                  
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1724
+FFFF00FF Composition Material        
+FFFFFFFF 
+FFFFFFFF Required Materials to create
+FFFFFFFF Ice Fairy.                  
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1725
+FFFF00FF Composition Material        
+FFFFFFFF 
+FFFFFFFF Required Materials to create
+FFFFFFFF Ice Fairy.                  
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1726
+FFFF00FF Special Item              
+FFFFFFFF 
+FFFFFFFF Increase attack power when
+FFFFFFFF equipped.                 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1731
+FFFF00FF Special Item                        
+FFFFFFFF 
+FFFFFFFF Used to enter Magic Chamber.(Arcane)
+FFFFFFFF Able to enter with party members.   
+FFFFFFFF When party leader uses the scroll,  
+FFFFFFFF party members will be summoned      
+FFFFFFFF into the chamber.                                   
+FFFF0000 > Quest : Magic chamber             
+FFFFFFFF 
+1732
+FFFF00FF Special Item ( Quest )           
+FFFFFFFF 
+FFFFFFFF Used to enter Magic chamber's    
+FFFFFFFF final stage
+FFFF0000 > obtain when opposite kingdom's 
+FFFF0000   king is defeated               
+FFFF0000 > mission : badge of honour,     
+FFFF0000   magic chamber                  
+FFFF0000 > equip on jewelery slot         
+1772
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF use to enter stage 25          
+FFFFFFFF ( Cube quest )                 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Can be used at Azran entrance
+FFFFFFFF 
+2441
+FFFF00FF Composition Jewels                 
+FFFFFFFF 
+FFFFFFFF When used in composition with item,
+FFFFFFFF will enchant item with 'increased  
+FFFFFFFF item drop' attribute.              
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+2442
+FFFF00FF Composition Jewels                 
+FFFFFFFF 
+FFFFFFFF When used in composition with item,
+FFFFFFFF Will enchant item with 'piercing   
+FFFFFFFF attack' attribute.                 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+2443
+FFFF00FF Composition Jewels                 
+FFFFFFFF 
+FFFFFFFF When used in composition with item,
+FFFFFFFF will enchant item with 'bonus      
+FFFFFFFF experience' attribute.             
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+2444
+FFFF00FF Composition of Jewels              
+FFFFFFFF 
+FFFFFFFF When used in composition with item,
+FFFFFFFF will enchant item with 'absorb     
+FFFFFFFF damage' attribute.                 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF            
+3170
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Ticket to enter the demon and
+FFFFFFFF god mission.                 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > place : Azran Arena        
+FFFF0000 > using time : 10 : 00 PM    
+FFFFFFFF 
+3171
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Used to enter Magic Chamber 
+FFFFFFFF (Mystic). Able to enter with
+FFFFFFFF party members.When party    
+FFFFFFFF leader uses the scroll,     
+FFFFFFFF party members will be       
+FFFFFFFF summoned into the chamber.  
+FFFF0000 > mission : magic chamber   
+3172
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Used to enter Magic Chamber 
+FFFFFFFF (Normal). Able to enter with
+FFFFFFFF party members.When party    
+FFFFFFFF leader uses the scroll,     
+FFFFFFFF party members will be       
+FFFFFFFF summoned into the chamber.  
+FFFF0000 > mission : magic chamber    
+3173
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Allow entrance to Water     
+FFFFFFFF world dungeon (normal)      
+FFFFFFFF level 1 area with party     
+FFFFFFFF members.                    
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3174
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (normal) level 2    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3175
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (normal) level 3    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3176
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (normal) level 4    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3177
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (normal) level 5    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3178
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (normal) level 6    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3179
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (normal) level 7    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3180
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (normal) level 8    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3181
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (normal) final      
+FFFFFFFF level with party members.   
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3182
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (Arcane) level 1    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3183
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (Arcane) level 2    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3184
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (Arcane) level 3    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3185
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (Arcane) level 4    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3186
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (Arcane) level 5    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3187
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (Arcane) level 6    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3188
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (Arcane) level 7    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3189
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (Arcane) level 8    
+FFFFFFFF area with party members.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3190
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Use to enter Water world    
+FFFFFFFF dungeon (Arcane) final      
+FFFFFFFF level with party members.   
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Quest : SUmmon the spirits
+FFFFFFFF 
+3310
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Slightly increase attack   
+FFFFFFFF power of the character.    
+FFFFFFFF 
+FFFF0000 > Hotkey: E                
+FFFF0000 > Effect: Slightly increase
+FFFF0000   attk power & moving speed
+FFFF0000 > Duration : 30 minutes    
+3311
+FFFF00FF Special Item              
+FFFFFFFF 
+FFFFFFFF Increase attack power of  
+FFFFFFFF the character.            
+FFFFFFFF 
+FFFF0000 > Hotkey : E              
+FFFF0000 > Effect : Increase attack
+FFFF0000   power.                  
+FFFF0000 > Duration : 1 hour       
+3312
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Greatly increase attack    
+FFFFFFFF power of the character.    
+FFFFFFFF 
+FFFF0000 > Hotkey : E               
+FFFF0000 > Effect : Greatly increase
+FFFF0000   attack power             
+FFFF0000 > Duration : 1 hour        
+3313
+FFFF00FF Special Item        
+FFFFFFFF 
+FFFFFFFF increase character's
+FFFFFFFF maximum HP and MP.  
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Effect : max hp / 
+FFFF0000   mp + 10%          
+FFFF0000 > Duration : 1 hour 
+3314
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Fill the character's hunger
+FFFFFFFF bar for a long time        
+FFFFFFFF 
+FFFF0000 > effect : attack power    
+FFFF0000   and defense + 10 %       
+FFFF0000 > duration : 4 hours,      
+FFFF0000   maximum 20 hours         
+3315
+FFFF00FF Special Item        
+FFFFFFFF 
+FFFFFFFF Increase the mount's
+FFFFFFFF LP by 1.            
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Maximum LP is 60  
+FFFFFFFF 
+3319
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Slightly increase           
+FFFFFFFF character's attack power.   
+FFFFFFFF 
+FFFF0000 > Hotkey:E                  
+FFFF0000 > Effect: slightly increase 
+FFFF0000   attk power & moving speed.
+FFFF0000 > Duration : 20 hours       
+3320
+FFFF00FF Special Item              
+FFFFFFFF 
+FFFFFFFF Increase character's      
+FFFFFFFF attack power.             
+FFFFFFFF 
+FFFF0000 > Hotkey:E                
+FFFF0000 > Effect : increase attack
+FFFF0000   power.                  
+FFFF0000 > Duration : 20 hours     
+3321
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Greatly increase           
+FFFFFFFF character's attack power.  
+FFFFFFFF 
+FFFF0000 > Hotkey : E               
+FFFF0000 > Effect : Greatly increase
+FFFF0000   attack power.            
+FFFF0000 > Duration : 20 hours      
+3322
+FFFF00FF Special Item          
+FFFFFFFF 
+FFFFFFFF Restore 500 hp        
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > hotkey : O          
+FFFF0000 > effect : heal 500 hp
+FFFFFFFF 
+3323
+FFFF00FF Special Item             
+FFFFFFFF 
+FFFFFFFF Restore 500 mp           
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > hotkey : W             
+FFFF0000 > effect : restore 500 mp
+FFFFFFFF 
+3324
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Enter Nightmare quest       
+FFFFFFFF with party members (Normal).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Location : Erion          
+FFFFFFFF 
+3325
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Enter Nightmare quest       
+FFFFFFFF with party members (Mystic).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Location : Armia          
+FFFFFFFF 
+3326
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Enter Nightmare quests      
+FFFFFFFF with party members (Arcane).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Location :Azran           
+FFFFFFFF 
+3327
+FFFF00FF Composition Item              
+FFFFFFFF 
+FFFFFFFF Collect 3 pieces of tickets   
+FFFFFFFF and talk to the Alchemist Jeff
+FFFFFFFF in Azran.Pay him 1 million    
+FFFFFFFF gold to create a full ticket. 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3328
+FFFF00FF Special Item          
+FFFFFFFF 
+FFFFFFFF Used to enter HellGate
+FFFFFFFF (Individual).         
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3329
+FFFF00FF Special Item          
+FFFFFFFF 
+FFFFFFFF Used to enter HellGate
+FFFFFFFF (Party).              
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF
+FFFFFFFF 
+3330
+FFFF00FF [Premium_Items]
+FFFFFFFF 
+FFFFFFFF When_you_type_in_commands
+FFFFFFFF /[settings_for_each country][chatting_contents]_at
+FFFFFFFF chatting_window_while_holding_item_in_inventory,
+FFFFFFFF chatting_contents_will_show_up_at_every_channel.
+FFFFFFFF 
+FFFFFFFF
+FFFFFFFF 
+3331
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF > Use to enter the Destiny 
+FFFFFFFF   Themepark. When you have 
+FFFFFFFF   enough time from Emblem. 
+FFFF0000 > You can find the Emblem  
+FFFF0000   from Merchant Nell.      
+FFFF0000 > Use /KT command to check.
+FFFF0000 > Right click to use       
+3332
+FFFF00FF Special Item             
+FFFFFFFF 
+FFFFFFFF Transforms self into a   
+FFFFFFFF wild boar.               
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Please dismount,unequip
+FFFF0000   your pet before use    
+FFFF0000 > Duration : 900 seconds 
+3333
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Transforms self into a wolf
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Please dismount,unequip  
+FFFF0000   your pet before use      
+FFFF0000 > Duration : 900 seconds   
+FFFFFFFF 
+3334
+FFFF00FF Special Item             
+FFFFFFFF 
+FFFFFFFF Transforms self into a   
+FFFFFFFF fire gargoyle.           
+FFFFFFFF 
+FFFF0000 > please dismount,unequip
+FFFF0000   your pet before use.   
+FFFF0000 > duration : 900 seconds 
+FFFFFFFF 
+3335
+FFFF00FF Special Item              
+FFFFFFFF 
+FFFFFFFF Restore to original form  
+FFFFFFFF after using transformation
+FFFFFFFF scrolls.                  
+FFFFFFFF 
+FFFF0000 > not usable if the user  
+FFFF0000   is not transformed      
+FFFFFFFF 
+3336
+FFFF00FF Special Item         
+FFFFFFFF 
+FFFFFFFF Restore 100 points to
+FFFFFFFF str,dex,con and int. 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 
+FFFF0000 
+FFFFFFFF 
+3343
+FFFF00FF Special Item           
+FFFFFFFF 
+FFFFFFFF return chaos points    
+FFFFFFFF (less than 51) to      
+FFFFFFFF Neutral (0)            
+FFFF0000 > Only usable for chaos
+FFFF0000   point below 51
+FFFF0000 > Right click to use   
+FFFFFFFF 
+3344
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Transform wyrmling,dire bear,
+FFFFFFFF sabretooth tiger into matured
+FFFFFFFF form.                        
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > only usable on beasts      
+FFFF0000   listed above.              
+3345
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Transform horse,stallion,    
+FFFFFFFF swift horse into matured form
+FFFFFFFF 
+FFFF0000 > Only usable on beasts      
+FFFF0000   listed above.              
+FFFF0000 > Usable on both black       
+FFFF0000   and white horses           
+3346
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Transform Gelding and Warhorse
+FFFFFFFF into matured form.            
+FFFFFFFF 
+FFFF0000 > Only usable on beasts       
+FFFF0000   listed above.               
+FFFF0000 > Usable on both black and    
+FFFFFFFF   white horses.               
+3347
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Transform Fenrir,Dragon and   
+FFFFFFFF Dire Fenrir into matured form.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > only usable on beasts       
+FFFF0000   listed above.               
+FFFFFFFF 
+3348
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Transform  Pure Unicorn,     
+FFFFFFFF Tainted Unicorn Umbra Unicorn
+FFFFFFFF into matured form.           
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > only usable on beasts      
+FFFF0000   listed above.              
+3349
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Transform Griffin,Hippogriff,
+FFFFFFFF Blood Gryphon into           
+FFFFFFFF matured form.                
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > only usable on beasts      
+FFFF0000   listed above.              
+3350
+FFFF00FF Special Item             
+FFFFFFFF 
+FFFFFFFF Transform Kirin and Red  
+FFFFFFFF Dragon into Matured form.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > only usable on beasts  
+FFFF0000   listed above.          
+3351
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Increase Sabertooth Tiger,   
+FFFFFFFF Dire Bear, Wyrmling Life     
+FFFFFFFF Point randomly (from 1 ~ 3)  
+FFFF0000 > Maximum LP (LIFE POINT) you
+FFFF0000   can increase is 60.        
+FFFF0000 > Only usable on beasts      
+FFFF0000   listed above.              
+3352
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Increase horse,stallion,    
+FFFFFFFF swift horse Life Point      
+FFFFFFFF randomly (from 1 ~ 3)       
+FFFF0000 > Maximum LP (LIFE POINT)   
+FFFF0000   you can increase is 60    
+FFFF0000 > Only usable on black and  
+FFFF0000   white mounts listed above.
+3353
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Increase Gelding and warhorse
+FFFFFFFF Life Point randomly          
+FFFFFFFF (from 1 ~ 3).                
+FFFF0000 > Maximum LP (LIFE POINT)    
+FFFF0000   you can increase is 60.    
+FFFF0000 > Only usable on mounts      
+FFFF0000   listed above.              
+3354
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Increase fenrir,dire fenrir
+FFFFFFFF and dragon Life Point      
+FFFFFFFF randomly (from 1 ~ 3).     
+FFFF0000 > Maximum LP (LIFE POINT)  
+FFFF0000   you can increase is 60.  
+FFFF0000 > Only usable on mounts    
+FFFF0000   listed above.            
+3355
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Increase Pure, Tainted      
+FFFFFFFF and Umbra unicorn Life      
+FFFFFFFF Point randomly (from 1 ~ 3).
+FFFF0000 > Maximum LP (LIFE POINT)   
+FFFF0000   you can increase is 60    
+FFFF0000 > Only usable on mounts     
+FFFF0000   listed above.             
+3356
+FFFF00FF Special Item               
+FFFFFFFF Increase hippogrif,griffin,
+FFFFFFFF Blood Gryphon Life Point   
+FFFFFFFF randomly (from 1 ~ 3).     
+FFFFFFFF 
+FFFF0000 > Maximum LP (LIFE POINT)  
+FFFF0000   you can increase is 60.  
+FFFF0000 > Only usable on mounts    
+FFFFFFFF   listed above.            
+3357
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF Increase Red dragon and        
+FFFFFFFF Kirin LP randomly (from 1 ~ 3).
+FFFFFFFF 
+FFFF0000 > Maximum LP (LIFE POINT)      
+FFFF0000   you can increase is 60.      
+FFFF0000 > Only usable on mounts        
+FFFFFFFF   listed above.                
+3358
+FFFF00FF Special Item           
+FFFFFFFF 
+FFFFFFFF Fill the hunger bar    
+FFFFFFFF for a long time.       
+FFFFFFFF 
+FFFF0000 > Effect : attack power
+FFFF0000   and defense + 10%.   
+FFFF0000 > Duration : 7 days    
+FFFFFFFF 
+3359
+FFFF00FF Special Item           
+FFFFFFFF 
+FFFFFFFF Fill the hunger bar    
+FFFFFFFF for a long time.       
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Effect : attack power
+FFFF0000   and defense + 5 %    
+FFFF0000 > duration : 15 days   
+3360
+FFFF00FF Special Item           
+FFFFFFFF 
+FFFFFFFF Fill the hunger bar    
+FFFFFFFF for a long time.       
+FFFFFFFF 
+FFFF0000 > Effect : attack power
+FFFF0000   and defense + 5 %    
+FFFF0000 > Duration : 30 days   
+FFFFFFFF 
+3361
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Greatly increase character's
+FFFFFFFF attack power.               
+FFFFFFFF 
+FFFF0000 > Hotkey : E                
+FFFF0000 > Effect : greatly increase 
+FFFF0000   attack power.             
+FFFF0000 > Duration : 7 days         
+3362
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Greatly increase character's
+FFFFFFFF attack power.               
+FFFFFFFF 
+FFFF0000 > Hotkey : E                
+FFFF0000 > Effect : greatly increase 
+FFFF0000   attack power              
+FFFF0000 > Duration : 15 days        
+3363
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Greatly increase character's
+FFFFFFFF attack power.               
+FFFFFFFF 
+FFFF0000 > Hotkey : E                
+FFFF0000 > Effect : greatly increase 
+FFFF0000   attack power              
+FFFF0000 > Duration : 30 days        
+3364
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Greater potion that increases 
+FFFFFFFF max HP/MP for a long duration.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Effect : Max hp / mp + 10 % 
+FFFF0000 > Duration : 7 days           
+FFFFFFFF 
+3365
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Greater potion that increases 
+FFFFFFFF max HP/MP for a long duration.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Effect : max hp / mp + 10 % 
+FFFF0000 > Duration : 15 days          
+FFFFFFFF 
+3366
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Greater potion that increases 
+FFFFFFFF max HP/MP for a long duration.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Effect : max hp / mp + 10 % 
+FFFF0000 > Duration : 30 days          
+FFFFFFFF 
+3367
+FFFF00FF Special Item                    
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Maximum upgrade level is      
+FFFF0000   level 6.                      
+3390
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Use to enter nightmare quests
+FFFFFFFF individual (Normal).         
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Location : Erion           
+FFFFFFFF 
+3391
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Use to enter nightmare quests
+FFFFFFFF individual (Medium).         
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Location : Armia           
+FFFFFFFF 
+3392
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Use to enter nightmare quests
+FFFFFFFF individual (Arcane).         
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Location : Azran           
+FFFFFFFF 
+3393
+FFFF00FF Special Item         
+FFFFFFFF 
+FFFFFFFF Used to exchange for 
+FFFFFFFF special items/points.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 
+FFFF0000 
+FFFFFFFF 
+3394
+FFFF00FF Special Item         
+FFFFFFFF 
+FFFFFFFF Used to exchange for 
+FFFFFFFF special items/points.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 
+FFFF0000 
+FFFFFFFF 
+3395
+FFFF00FF Special Item         
+FFFFFFFF 
+FFFFFFFF Used to exchange for 
+FFFFFFFF special items/points.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 
+FFFF0000 
+FFFFFFFF 
+3396
+FFFF00FF Special Item        
+FFFFFFFF 
+FFFFFFFF Used to exchange for
+FFFFFFFF special items/points
+FFFFFFFF (5000).             
+FFFFFFFF 
+FFFF0000 
+FFFF0000 
+FFFFFFFF 
+3397
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Bottle with magical blue   
+FFFFFFFF dye liquid                 
+FFFFFFFF 
+FFFF0000 [upgrade hint]             
+FFFF0000 > 1.Equip on equipment slot
+FFFF0000 > 2.Transmute by using fate
+FFFF0000     of dragon god          
+3398
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Bottle with magical red dye
+FFFFFFFF liquid.                    
+FFFFFFFF 
+FFFF0000 [upgrade hint]             
+FFFF0000 > 1.Equip on equipment slot
+FFFF0000 > 2.Transmute by using fate
+FFFF0000     of dragon god.         
+3399
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Bottle with magical green  
+FFFFFFFF dye liquid.                
+FFFFFFFF 
+FFFF0000 [upgrade hint]             
+FFFF0000 > 1.Equip on equipment slot
+FFFF0000 > 2.Transmute by using fate
+FFFF0000     of dragon god.         
+3400
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Bottle with magical silver 
+FFFFFFFF dye liquid.                
+FFFFFFFF 
+FFFF0000 [upgrade hint]             
+FFFF0000 > 1.Equip on equipment slot
+FFFF0000 > 2.Transmute by using fate
+FFFF0000     of dragon god          
+3401
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Bottle with magical black  
+FFFFFFFF dye liquid.                
+FFFFFFFF 
+FFFF0000 [upgrade hint]             
+FFFF0000 > 1.Equip on equipment slot
+FFFF0000 > 2.Transmute by using fate
+FFFF0000     of dragon god.         
+3402
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Bottle with magical purple 
+FFFFFFFF dye liquid                 
+FFFFFFFF 
+FFFF0000 [upgrade hint]             
+FFFF0000 > 1.Equip on equipment slot
+FFFF0000 > 2.Transmute by using fate
+FFFF0000     of dragon god.         
+3403
+FFFF00FF Special Item                 
+FFFFFFFF 
+FFFFFFFF Bottle with magical brown dye
+FFFFFFFF liquid.                      
+FFFFFFFF 
+FFFF0000 [upgrade hint]               
+FFFF0000 > 1.Equip on equipment slot  
+FFFF0000 > 2.Transmute by using fate  
+FFFF0000     of dragon god.           
+3404
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Bottle with magical deep red
+FFFFFFFF dye liquid                  
+FFFFFFFF 
+FFFF0000 [upgrade hint]              
+FFFF0000 > 1.Equip on equipment slot 
+FFFF0000 > 2.Transmute by using fate 
+FFFF0000     of dragon god.          
+3405
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Bottle with magical yellow 
+FFFFFFFF dye liquid.                
+FFFFFFFF 
+FFFF0000 [upgrade hint]             
+FFFF0000 > 1.Equip on equipment slot
+FFFF0000 > 2.Transmute by using fate
+FFFF0000     of dragon god.         
+3406
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Bottle with magical light  
+FFFFFFFF blue dye liquid.           
+FFFFFFFF 
+FFFF0000 [upgrade hint]             
+FFFF0000 > 1.Equip on equipment slot
+FFFF0000 > 2.Transmute by using fate
+FFFF0000     of dragon god.         
+3407
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment 
+FFFFFFFF blue.                 
+FFFFFFFF 
+FFFF0000 
+FFFF0000 > Only applicable to armor.
+FFFFFFFF 
+FFFFFFFF 
+3408
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment 
+FFFFFFFF red.                                            
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Only applicable to armor.
+FFFF0000    
+FFFFFFFF 
+3409
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment 
+FFFFFFFF green.                                       
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Only applicable to armor.
+FFFF0000   
+FFFFFFFF 
+3410
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment 
+FFFFFFFF silver.                                      
+FFFFFFFF 
+FFFF0000 
+FFFF0000 > Only applicable to armor.
+FFFF0000   
+FFFFFFFF 
+3411
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment 
+FFFFFFFF black.                                         
+FFFFFFFF 
+FFFF0000 
+FFFF0000 > Only applicable to armor.
+FFFF0000   
+FFFFFFFF 
+3412
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment 
+FFFFFFFF purple.                                      
+FFFFFFFF 
+FFFF0000 
+FFFF0000 > Only applicable to armor.
+FFFF0000   
+FFFFFFFF 
+3413
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment 
+FFFFFFFF brown.                                         
+FFFFFFFF 
+FFFF0000 
+FFFF0000 > Only applicable to armor.
+FFFF0000   
+FFFFFFFF 
+3414
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment 
+FFFFFFFF deep red.                                   
+FFFFFFFF 
+FFFF0000 
+FFFF0000 > Only applicable to armor.
+FFFF0000
+FFFFFFFF 
+3415
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment
+FFFFFFFF yellow.                                      
+FFFFFFFF 
+FFFF0000 
+FFFF0000 > Only applicable to armor.
+FFFF0000   
+FFFFFFFF 
+3416
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Colour your equipment 
+FFFFFFFF light blue.                              
+FFFFFFFF 
+FFFF0000 
+FFFF0000 > Only applicable to armor.
+FFFFFFFF 
+FFFFFFFF 
+3417
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Return the original colour 
+FFFFFFFF to your equipment.         
+FFFFFFFF 
+FFFF0000 
+FFFF0000 > Only applicable to armor.
+FFFFFFFF 
+FFFFFFFF 
+3418
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Scroll that transforms user
+FFFFFFFF into Wild Boar.            
+FFFFFFFF 
+FFFF0000 > Not usable when riding on
+FFFF0000   mounts,or when have      
+FFFF0000   pets/eggs equipped.      
+FFFF0000 > Duration : 1 hour        
+3419
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Scroll that transforms user
+FFFFFFFF into Wolf.                 
+FFFFFFFF 
+FFFF0000 > Not usable when riding on
+FFFF0000   mounts,or when have      
+FFFF0000   pets/eggs equipped.      
+FFFF0000 > Duration : 1 hour        
+3420
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Scroll that transforms user
+FFFFFFFF into Fire Demon.           
+FFFFFFFF 
+FFFF0000 > Not usable when riding on
+FFFF0000   mounts,or when have      
+FFFF0000   pets/eggs equipped.      
+FFFF0000 > Duration : 1 hour        
+3421
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Scroll that transforms user
+FFFFFFFF into Imp.                  
+FFFFFFFF 
+FFFF0000 > Not usable when riding on
+FFFF0000   mounts,or when have      
+FFFF0000   pets/eggs equipped.      
+FFFF0000 > Duration : 1 hour        
+3422
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Scroll that transforms user
+FFFFFFFF into Orc Archer.           
+FFFFFFFF 
+FFFF0000 > Not usable when riding on
+FFFF0000   mounts,or when have      
+FFFF0000   pets/eggs equipped.      
+FFFF0000 > Duration : 1 hour        
+3423
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Scroll that transforms user
+FFFFFFFF into Giant demon.          
+FFFFFFFF 
+FFFF0000 > Not usable when riding on
+FFFF0000   mounts,or when have      
+FFFF0000   pets/eggs equipped.      
+FFFF0000 > Duration : 1 hour        
+3424
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Scroll that transforms user
+FFFFFFFF into Carbunkle.            
+FFFFFFFF 
+FFFF0000 > Not usable when riding on
+FFFF0000   mounts,or when have      
+FFFF0000   pets/eggs equipped.      
+FFFF0000 > Duration : 1 hour        
+3425
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Scroll that transforms user
+FFFFFFFF into Death Claw.           
+FFFFFFFF 
+FFFF0000 > Not usable when riding on
+FFFF0000   mounts,or when have      
+FFFF0000   pets/eggs equipped.      
+FFFF0000 > Duration : 1 hour        
+3431
+FFF00FFF Special Item               
+FFFFFFFF 
+FFFFFFFF An elixir that restore high
+FFFFFFFF amount of HP and MP        
+FFFFFFFF at the same time.          
+FFFFFFFF
+FFFF0000 > Hotkey : Q               
+FFFF0000 > Effect : Restore 1000 HP 
+FFFF0000   and 1000 MP.             
+3442
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF The Item that you can draw
+FFFFFFFF any shapes directly and use them
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Right click to use  
+FFFFFFFF 
+FFFFFFFF 
+3445
+FFFFFFFF Numbers of Fate of Sky Dragon in
+FFFFFFFF the inventory can be compound 
+FFFFFFFF into 1 pack of Oriharucon. 
+FFFFFFFF Maximum 10 pieces of Fate of Sky
+FFFFFFFF Dragon can be compound per round.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Right click to use  
+FFFFFFFF
+3446
+FFFFFFFF Numbers of Fate of God Dragon in
+FFFFFFFF the inventory can be compound 
+FFFFFFFF into 1 pack of Locktorium. 
+FFFFFFFF Maximum 10 pieces of Fate of God
+FFFFFFFF Dragon can be compound per round.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Right click to use  
+FFFFFFFF
+3447
+FFFFFFFF Number of used Fate of Sky Dragon
+FFFFFFFF will be created in the inventory.
+FFFFFFFF Created Fate of Sky Dragon needs
+FFFFFFFF Book or Alchemy to re-compound.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF 
+FFFF0000 > Right click to use  
+FFFFFFFF
+3448
+FFFFFFFF Number of used Fate of God Dragon
+FFFFFFFF will be created in the inventory.
+FFFFFFFF Created Fate of God Dragon needs
+FFFFFFFF Book or Alchemy to re-compound.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF 
+FFFF0000 > Right click to use  
+FFFFFFFF
+3451
+FFFFFFFF Item allows to change into Silver
+FFFFFFFF Fairy by clicking right button 
+FFFFFFFF while wearing Red Fairy.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3452
+FFFFFFFF Item allows to change into Gold
+FFFFFFFF Fairy by clicking right button 
+FFFFFFFF while wearing Red Fairy.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3453
+FFFFFFFF It's can resurrection directly 
+FFFFFFFF when you click the right with setup 
+FFFFFFFF dead mount, don't need the mount 
+FFFFFFFF Master.
+FFFFFFFF 
+FFFF0000 ∝ Cost of resurrection and the 
+FFFF0000 decrement of life is same with that 
+FFFF0000 is resurrection of mount Master.
+FFFFFFFF 
+3454
+FFFF00FF Special Item   
+FFFFFFFF 
+FFFFFFFF It's can resurrection directly 
+FFFFFFFF when you click the right with setup 
+FFFFFFFF dead mount, don't need the mount 
+FFFFFFFF Master.
+FFFFFFFF 
+FFFF0000 ∝ Cost of resurrection and the 
+FFFF0000 decrement of life is same with that
+FFFF0000 is resurrection of mount Master.
+3900
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Equip on the equipment slot   
+FFFFFFFF Increase experiences obtained 
+FFFFFFFF by 16 %                        
+FFFFFFFF 
+FFFF0000 > if the item is not equipped,
+FFFF0000   time will not be reduced.   
+FFFFFFFF 
+3901
+FFFF00FF Special Item                    
+FFFFFFFF 
+FFFFFFFF equip on the equipment slot     
+FFFFFFFF Increase item drop rates by 32%.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > if the item is not equipped,  
+FFFF0000   time will not be reduced.     
+FFFFFFFF 
+3902
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Equip on the equipment slot   
+FFFFFFFF Increase experiences obtained 
+FFFFFFFF by 16 % Increase item drop     
+FFFFFFFF rates by 32%.
+FFFF0000 > if the item is not equipped,
+FFFF0000   time will not be reduced.   
+FFFFFFFF 
+3903
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Equip on the equipment slot   
+FFFFFFFF increase experiences obtained 
+FFFFFFFF by 32 %.                       
+FFFFFFFF 
+FFFF0000 > if the item is not equipped,
+FFFF0000   time will not be reduced.   
+FFFFFFFF 
+3904
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Equip on the equipment slot   
+FFFFFFFF increase item drop rates      
+FFFFFFFF by 32%.                       
+FFFFFFFF 
+FFFF0000 > if the item is not equipped,
+FFFF0000   time will not be reduced.   
+FFFFFFFF 
+3905
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Equip on the equipment slot   
+FFFFFFFF Increase experiences obtained 
+FFFFFFFF by 16% Increase item drop      
+FFFFFFFF rates by 32%.                 
+FFFF0000 > if the item is not equipped,
+FFFF0000   time will not be reduced.   
+FFFFFFFF 
+3906
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Equip on the equipment slot   
+FFFFFFFF Increase experiences obtained 
+FFFFFFFF by 16%.                        
+FFFFFFFF 
+FFFF0000 > if the item is not equipped,
+FFFF0000   time will not be reduced.   
+FFFFFFFF 
+3907
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Equip on the equipment slot   
+FFFFFFFF increase item drop rates      
+FFFFFFFF by 32%.                       
+FFFFFFFF 
+FFFF0000 > if the item is not equipped,
+FFFF0000   time will not be reduced.   
+FFFFFFFF 
+3908
+FFFF00FF Special Item                  
+FFFFFFFF 
+FFFFFFFF Equip on the equipment slot   
+FFFFFFFF Increase experiences obtained 
+FFFFFFFF by 16%. Increase item drop     
+FFFFFFFF rates by 32%.                 
+FFFF0000 > if the item is not equipped,
+FFFF0000   time will not be reduced.   
+FFFFFFFF 
+3909
+FFFF00FF Special Item                    
+FFFFFFFF 
+FFFFFFFF Used to enter hidden valley map 
+FFFFFFFF (24 hours duration )            
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Right click to activate scroll
+FFFF0000 > Memorizing jewel can be used  
+FFFF0000 > Remaining time:/kt            
+3910
+FFFF00FF Special Item                    
+FFFFFFFF 
+FFFFFFFF Used to enter hidden valley map 
+FFFFFFFF (7days)                         
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Right click to activate scroll
+FFFF0000 > Memorizing jewel can be used  
+FFFF0000 > Remaining time:/kt            
+3914
+FFFF00FF Special Item
+FFFFFFFF 
+FFFFFFFF Attached to equipment slot and when
+FFFFFFFF attached, experience gaining amount
+FFFFFFFF is increased 16%, item drop rate 
+FFFFFFFF is increased 32%
+FFFF0000 í Possessing item is possible to be
+FFFF0000  sold by pressing Shift + right part
+FFFF0000  of Mouse.
+3915
+FFFF00FF Special Item
+FFFFFFFF 
+FFFFFFFF Attached to equipment slot and when
+FFFFFFFF attached, experience gaining amount
+FFFFFFFF is increased 18%, item drop rate 
+FFFFFFFF is increased 50%
+FFFF0000 í Possessing item is possible to be
+FFFF0000  sold by pressing Shift + right part
+FFFF0000  of Mouse.
+3980
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF An immortal mount that was once
+FFFFFFFF owned by the god.              
+FFFFFFFF 
+FFFF0000 > Cannot be traded / upgraded  
+FFFF0000 > Can only be used for 3 days  
+FFFF0000   after equipped.              
+FFFF0000 > Will disappear when expired. 
+3981
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF An immortal mount that was once
+FFFFFFFF owned by the god.              
+FFFFFFFF 
+FFFF0000 > Cannot be traded / upgraded  
+FFFF0000 > Can only be used for 3 days  
+FFFF0000   after equipped.              
+FFFF0000 > Will disappear when expired. 
+3982
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF An immortal mount that was once
+FFFFFFFF owned by the god.              
+FFFFFFFF 
+FFFF0000 > Cannot be traded / upgraded  
+FFFF0000 > Can only be used for 3 days  
+FFFF0000   after equipped.              
+FFFF0000 > Will disappear when expired. 
+3983
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF An immortal mount that was once
+FFFFFFFF owned by the god.              
+FFFFFFFF 
+FFFF0000 > Cannot be traded / upgraded  
+FFFF0000 > Can only be used for 15 days 
+FFFF0000   after equipped.              
+FFFF0000 > Will disappear when expired. 
+3984
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF An immortal mount that was once
+FFFFFFFF owned by the god.              
+FFFFFFFF 
+FFFF0000 > Cannot be traded / upgraded  
+FFFF0000 > Can only be used for 15 days 
+FFFF0000   after equipped.              
+FFFF0000 > Will disappear when expired. 
+3985
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF An immortal mount that was once
+FFFFFFFF owned by the god.              
+FFFFFFFF 
+FFFF0000 > Cannot be traded / upgraded  
+FFFF0000 > Can only be used for 15 days 
+FFFF0000   after equipped.              
+FFFF0000 > Will disappear when expired. 
+3986
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF An immortal mount that was once
+FFFFFFFF owned by the god.              
+FFFFFFFF 
+FFFF0000 > Cannot be traded / upgraded  
+FFFF0000 > Can only be used for 30 days 
+FFFF0000   after equipped.              
+FFFF0000 > Will disappear when expired. 
+3987
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF An immortal mount that was once
+FFFFFFFF owned by the god.              
+FFFFFFFF 
+FFFF0000 > Cannot be traded / upgraded  
+FFFF0000 > Can only be used for 30 days 
+FFFF0000   after equipped.              
+FFFF0000 > Will disappear when expired. 
+3988
+FFFF00FF Special Item                   
+FFFFFFFF 
+FFFFFFFF An immortal mount that was once
+FFFFFFFF owned by the god.              
+FFFFFFFF 
+FFFF0000 > Cannot be traded / upgraded  
+FFFF0000 > Can only be used for 30 days 
+FFFF0000   after equipped.              
+FFFF0000 > Will disappear when expired. 
+4000
+FFFF00FF Special Item               
+FFFFFFFF 
+FFFFFFFF Use to enter Stage 25 Cube 
+FFFFFFFF quest (Mystic).            
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Can be used at Azran's   
+FFFF0000   entrance.                
+4001
+FFFF00FF Special Item              
+FFFFFFFF 
+FFFFFFFF Use to enter stage 25 Cube
+FFFFFFFF Quest (Arcane).           
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Can be used at Azran's  
+FFFF0000   entrance.               
+4010
+FFFFFFFF 
+FFFFFFFF Can be used to exchange for
+FFFFFFFF 100,000,000 gold coins.    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > right click to use:      
+FFFF0000 100,000,000 game cash will 
+FFFF0000 be added to the inventory  
+FFFF0000 when used.                 
+4011
+FFFFFFFF 
+FFFFFFFF Can be used to exchange for 
+FFFFFFFF 1,000,000,000 gold.         
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > right click to use        
+FFFF0000 1,000,000,000 game cash will
+FFFF0000 be added to the inventory   
+FFFF0000 when used.                  
+4013
+FFFF00FF [奖励物品]                  
+FFFFFFFF 
+FFFFFFFF 在克普拉地宫的BOSS身上      
+FFFFFFFF 收集15个后根据排名获得奖励。
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > 只能在活动期间使用        
+FFFF0000 > 时间:4月_19日~            
+FFFF0000 > 详细请看网站              
+4014
+FFFF00FF [奖励物品]                    
+FFFFFFFF 
+FFFFFFFF 购买产品包时可能获得。        
+FFFFFFFF 收集一定数量后可以兑换活动物品
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > 活动物品_参考网站           
+FFFF0000 > 详细内容参考网站            
+FFFFFFFF 
+4016
+FFFF00FF [奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > 只能使用在防具        
+FFFF0000 > 不能使用在+4以奖励物品
+FFFF0000 > 提炼失败时，物品会销毁
+FFFFFFFF 
+4017
+FFFF00FF [奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > 只能使用在防具        
+FFFF0000 > 不能使用在+4以奖励物品
+FFFF0000 > 提炼失败时，物品会销毁
+FFFFFFFF 
+4018
+FFFF00FF [奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > 只能使用在防具        
+FFFF0000 > 不能使用在+4以奖励物品
+FFFF0000 > 提炼失败时，物品会销毁
+FFFFFFFF 
+4019
+FFFF00FF [奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > 只能使用在防具        
+FFFF0000 > 不能使用在+4以奖励物品
+FFFF0000 > 提炼失败时，物品会销毁
+FFFFFFFF 
+4020
+FFFF00FF [奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性    
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > 只能使用在防具        
+FFFF0000 > 不能使用在+4以奖励物品
+FFFF0000 > 提炼失败时，物品会销毁
+FFFFFFFF 
+4021
+FFFF00FF [网吧奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性        
+FFFFFFFF 
+FFFFFFFF
+FFFF0000 > 网吧奖励物品，减少少失败率
+FFFF0000 > 只能使用在防具            
+FFFF0000 > 不能使用在+4以奖励物品    
+FFFF0000 > 提炼失败时，物品会销毁    
+4022
+FFFF00FF [网吧奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性        
+FFFFFFFF 
+FFFFFFFF
+FFFF0000 > 网吧奖励物品，减少少失败率
+FFFF0000 > 只能使用在防具            
+FFFF0000 > 不能使用在+4以奖励物品    
+FFFF0000 > 提炼失败时，物品会销毁    
+4023
+FFFF00FF [网吧奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性        
+FFFFFFFF 
+FFFFFFFF
+FFFF0000 > 网吧奖励物品，减少少失败率
+FFFF0000 > 只能使用在防具            
+FFFF0000 > 不能使用在+4以奖励物品    
+FFFF0000 > 提炼失败时，物品会销毁    
+4024
+FFFF00FF [网吧奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性        
+FFFFFFFF 
+FFFFFFFF
+FFFF0000 > 网吧奖励物品，减少少失败率
+FFFF0000 > 只能使用在防具            
+FFFF0000 > 不能使用在+4以奖励物品    
+FFFF0000 > 提炼失败时，物品会销毁    
+4025
+FFFF00FF [网吧奖励物品]              
+FFFFFFFF 
+FFFFFFFF 可以随机奖励物品属性        
+FFFFFFFF 
+FFFFFFFF
+FFFF0000 > 网吧奖励物品，减少少失败率
+FFFF0000 > 只能使用在防具            
+FFFF0000 > 不能使用在+4以奖励物品    
+FFFF0000 > 提炼失败时，物品会销毁    
+4105
+FFFF00FF Event Item              
+FFFFFFFF                         
+FFFFFFFF Happy Chinese New Year!  
+FFFFFFFF   
+FFFFFFFF Right click on the item  
+FFFFFFFF to receive a bonus!      
+FFFFFFFF                        OR
+FFFF0000 Keep it to redeem special
+FFFF0000 gifts!                   
+4106
+FFFF00FF Special Item                                        
+FFFFFFFF 
+FFFFFFFF Only usable for transcendent classes with level 355.
+FFFFFFFF Permanently increase your Maximum MP by 80           
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > 100 Million EXP will be deducted after usage        
+FFFF0000 > Can not be traded or used again                   
+FFFFFFFF  
+4107
+FFFF00FF Special Item                                        
+FFFFFFFF 
+FFFFFFFF Only usable for transcendent classes with level 355.
+FFFFFFFF Permanently increase you AC by 30                   
+FFFFFFFF 
+FFFFFFFF
+FFFF0000 > 100 Million EXP will be deducted after usage        
+FFFF0000 > Can not be traded or used again                   
+FFFFFFFF 
+4108
+FFFF00FF Special Item                                        
+FFFFFFFF 
+FFFFFFFF Only usable for transcendent classes with level 355.
+FFFFFFFF Permanently increase your Maximum HP by 80          
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > 100 Million EXP will be deducted after usage        
+FFFF0000 > Can not be traded or used again                   
+FFFFFFFF 
+4109
+FFFF00FF Special Item                                        
+FFFFFFFF 
+FFFFFFFF Only usable for transcendent classes with level 355.
+FFFFFFFF Permanently increase your Maximum HP60, MP60, AC20  
+FFFFFFFF
+FFFFFFFF 
+FFFF0000 > 100 Million EXP will be deducted after usage        
+FFFF0000 > Can not be traded or used again                   
+FFFFFFFF 
+4111
+FFFF00FF Computer Cafe reward      
+FFFFFFFF 
+FFFFFFFF 只能在网吧使用            
+FFFFFFFF 普通活动区域邀请书        
+FFFFFFFF
+FFFF0000 > 除网吧以外的舱所不能使用
+FFFF0000 > 网吧外的地方自动删除    
+FFFFFFFF
+FFFFFFFF
+4112
+FFFF00FF Computer Cafe reward      
+FFFFFFFF 
+FFFFFFFF 只能在网吧使用            
+FFFFFFFF 中级活动区域邀请书        
+FFFFFFFF
+FFFF0000 > 除网吧以外的舱所不能使用
+FFFF0000 > 网吧外的地方自动删除    
+FFFFFFFF
+FFFFFFFF
+4113
+FFFF00FF computer Cafe reward      
+FFFFFFFF 
+FFFFFFFF 只能在网吧使用            
+FFFFFFFF 高级活动区域邀请书        
+FFFFFFFF
+FFFF0000 > 除网吧以外的舱所不能使用
+FFFF0000 > 网吧外的地方自动删除    
+FFFFFFFF
+FFFFFFFF
+4114
+FFFF00FF Computer Cafe reward  
+FFFFFFFF 
+FFFFFFFF 只能在网吧使用        
+FFFFFFFF 可以参加奖牌活动      
+FFFFFFFF
+FFFF0000 > 右击可以使用        
+FFFF0000 > 使用后可累积奖牌点数
+FFFFFFFF
+FFFFFFFF
+4115
+FFFF00FF Computer Cafe reward  
+FFFFFFFF 
+FFFFFFFF 只能在网吧使用        
+FFFFFFFF 可以参加奖牌活动      
+FFFFFFFF
+FFFF0000 > 右击可以使用        
+FFFF0000 > 使用后可累积奖牌点数
+FFFFFFFF
+FFFFFFFF
+4116
+FFFF00FF Computer Cafe reward                       
+FFFFFFFF 
+FFFFFFFF 只used to exchange for special items/points
+FFFFFFFF 可以参加奖牌活动                           
+FFFFFFFF
+FFFF0000 > 右击可以使用                             
+FFFF0000 > 使用后可累积奖牌点数                     
+FFFFFFFF
+FFFFFFFF
+4117
+FFFF00FF [Quest_item]
+FFFFFFFF 
+FFFFFFFF Found_in_[Spirit_Guardian]_Quest
+FFFFFFFF Awards_Experience
+FFFFFFFF
+FFFFFFFF
+FFFF0000 -Right click to use
+FFFF0000 -Level_40_to_115_only
+FFFF0000 -Transcended_Characters_are_prohibited
+4118
+FFFF00FF [Quest_item]
+FFFFFFFF 
+FFFFFFFF Found_in_[Sacred_Garden]_Quest
+FFFFFFFF Awards_Experience
+FFFFFFFF
+FFFFFFFF
+FFFF0000 -Right click to use
+FFFF0000 -Level_116_to_190_only
+FFFF0000 -Transcended_Characters_are_prohibited
+4119
+FFFF00FF [Quest_item]
+FFFFFFFF 
+FFFFFFFF Found_in_[Return_of_the
+FFFFFFFF Dark_Knight]_Quest
+FFFFFFFF Awards_Experience
+FFFFFFFF
+FFFF0000 -Right click to use
+FFFF0000 -Level_191_to_265_only
+FFFF0000 -Transcended_Characters_are_prohibited
+4120
+FFFF00FF [Quest_item]
+FFFFFFFF 
+FFFFFFFF Found_in_[Eye_of_Medusa]
+FFFFFFFF Quest
+FFFFFFFF Award_Experience
+FFFFFFFF
+FFFF0000 -Right click to use
+FFFF0000 -Level_266_to_320_only
+FFFF0000 -Transcended_Characters_are_prohibited
+4121
+FFFF00FF [Quest_item]
+FFFFFFFF 
+FFFFFFFF Found_in_[An_Unfortunate_
+FFFFFFFF Event]_Quest
+FFFFFFFF Award_Experience
+FFFFFFFF
+FFFF0000 -Right click to use
+FFFF0000 -Level_321_to_350_only
+FFFF0000 -Transcended_Characters_are_prohibited
+4122
+FFFF00FF [Quest_item]
+FFFFFFFF Found_in_[Gargoyle_Tooth]
+FFFFFFFF Quest.Upgrades_your_equipment
+FFFFFFFF to_grade_+4.
+FFFFFFFF 
+FFFF0000 -Right click to use
+FFFF0000 -Level_201_to_205_only
+FFFF0000 -Transcended_Characters_are_prohibited
+FFFF0000 -Can_only_be_used_once
+4123
+FFFF00FF [Quest_item]
+FFFFFFFF 
+FFFFFFFF Found_in_[Divine_Silverspear]
+FFFFFFFF quest
+FFFFFFFF 
+FFFFFFFF
+FFFF0000 -Level_70_to_75_only
+FFFF0000 -Transcended_Characters_are_prohibited
+FFFFFFFF 
+4124
+FFFF00FF [Quest_item]
+FFFFFFFF
+FFFFFFFF Found_in_[Divine_Silverspear]
+FFFFFFFF quest
+FFFFFFFF 
+FFFF0000 -Right click to use
+FFFF0000 -Level_70_to_75_only
+FFFF0000 -Transcended_Characters_are_prohibited
+FFFF0000 -Can_only_be_used_once
+4125
+FFFF00FF [Quest_item]
+FFFFFFFF 
+FFFFFFFF Found_in_[Balance_of_Power]
+FFFFFFFF quest
+FFFFFFFF 
+FFFFFFFF
+FFFF0000 -Level_120_to_125_only
+FFFF0000 -Transcended_Characters_are_prohibited
+FFFFFFFF 
+4126
+FFFF00FF [Quest_item]
+FFFFFFFF 
+FFFFFFFF Found_in_[Balance_of_Power]
+FFFFFFFF quest
+FFFFFFFF 
+FFFF0000 -Right click to use
+FFFF0000 -Level_120_to_125_only
+FFFF0000 -Transcended_Characters_are_prohibited
+FFFF0000 -Can_only_be_used_once
+4127
+FFFF00FF [Dispel_the_Seal]
+FFFFFFFF 
+FFFFFFFF Dispel_the_seal_for_lvl_355_characters
+FFFFFFFF 
+FFFFFFFF Usable_on_normal_lvl_355_character
+FFFFFFFF Usable_on_transcended_lvl_355_characters
+FFFFFFFF 
+FFFF0000 -Required:_Level_355
+FFFFFFFF 
+4152
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Setup opposite to Guild Medal, 
+FFFFFFFF then change to extrorse by dress of and
+FFFFFFFF Vilkyrie.
+FFFFFFFF ∝ Impossibility of Trade, Auto Trade
+FFFF0000 and Drop 
+FFFF0000 ∝ Limit of 30 days
+FFFF0000 ∝ Out of existence after period time
+4153
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Setup opposite to Guild Medal, and 
+FFFFFFFF then change to extrorse by dress of 
+FFFFFFFF Skeleton.
+FFFFFFFF ∝ Impossibility of Trade, Auto Trade
+FFFF0000 and Drop
+FFFF0000 ∝ Limit of 30 days 
+FFFF0000 ∝ Out of existence after period time
+5000
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Attack enemies within 3 meters
+CC9900FF with holy blade.              
+FFFFFFFF
+5001
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Slow the movement and attack     
+CC9900FF speed of enemies within 5 meters.
+CC9900FF 
+FFFFFFFF
+5002
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Lowering enemies resistance  
+CC9900FF to elemental within 3 meters.
+FFFFFFFF
+5003
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF When used on a target that   
+CC9900FF is being attacked by monster,
+CC9900FF this will draw the monsters  
+CC9900FF to attack the caster.        
+5004
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal a massive damaging blow
+CC9900FF to an enemy                 
+5005
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase regeneration of HP.  
+CC9900FF Regenerate hp every 8 seconds.
+FFFFFFFF 
+5006
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Pull the enemy/opponent towards
+CC9900FF character. May fail 
+CC9900FF depends on the skill mastery.   
+5008
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal strong physical attack
+CC9900FF to an opponent.            
+FFFFFFFF
+5009
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase attacking speed
+CC9900FF for a fixed duration.   
+FFFFFFFF
+5010
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal strong physical attack
+CC9900FF to an opponent.            
+FFFFFFFF
+5011
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF
+CC9900FF Decrease health point while 
+CC9900FF increasing attacking power  
+CC9900FF for a duration.             
+5012
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Damages an enemy and splash 
+CC9900FF damages the opponents behind
+CC9900FF the targeted opponent.      
+5013
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase CON and HP value
+CC9900FF of the caster.           
+FFFFFFFF
+5014
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Passive skill,provides extra  
+CC9900FF damage when attacking a target
+CC9900FF 
+5016
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Attack a single opponent and 
+CC9900FF does splash damage to nearby 
+CC9900FF enemies.         
+5017
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Slash the opponents 3 meters 
+CC9900FF infront of the character     
+CC9900FF with fire elemental damage   
+5018
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Attack the opponent's vital    
+CC9900FF spots to inflict brutal damage.
+FFFFFFFF
+5019
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal ice elemental damage     
+CC9900FF to an opponent may deal       
+CC9900FF chilling effect to the target 
+CC9900FF (slow the target's movement   
+CC9900FF and attacking speed).         
+5020
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal physical damage to an
+CC9900FF opponent and additional   
+CC9900FF damage over time.         
+FFFFFFFF
+5021
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal poisonous damage to an    
+CC9900FF opponent and poison the target.
+CC9900FF 
+FFFFFFFF
+5022
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal massive fire damage 
+CC9900FF to an opponent.          
+CC9900FF 
+5024
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Launch a magic arrow towards
+CC9900FF an opponent.                
+FFFFFFFF
+5025
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Cure various abnormal status.
+CC9900FF 
+FFFFFFFF
+5026
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Blind targets and opponent
+CC9900FF 3 meters around the       
+CC9900FF caster, blind duration is 
+CC9900FF 4 seconds.                
+FFFFFFFF
+5027
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Restore a target's Health
+CC9900FF Point                    
+CC9900FF If there is no target,   
+CC9900FF the spell will be casted 
+CC9900FF upon ownself.            
+5028
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Launch a holy sphere magic
+CC9900FF to attack a target        
+CC9900FF and cause Area damage (1  
+CC9900FF meter radius)             
+FFFFFFFF
+5029
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Greater heal spells that
+CC9900FF restores HP to party    
+CC9900FF member and ownself.     
+FFFFFFFF
+5030
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Burns own Health points  
+CC9900FF and deal holy Area of    
+CC9900FF effect damage to multiple
+CC9900FF opponent 5 meters within 
+CC9900FF the caster.              
+5032
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Cast a fire damage magic
+CC9900FF on an opponent.         
+FFFFFFFF
+5033
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Cast a lightning damage
+CC9900FF magic on an opponent.  
+FFFFFFFF
+5034
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Cast an ice damage magic      
+CC9900FF on an opponent. May cause     
+CC9900FF chilling effect to the target.
+CC9900FF (decrease movement and        
+CC9900FF attacking speed)              
+5035
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon meteorites to damage
+CC9900FF the enemies 5 meters within
+CC9900FF the caster                 
+FFFFFFFF
+5036
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal strong ice elemental    
+CC9900FF damage to an opponent        
+CC9900FF May slow the target's        
+CC9900FF movement and attacking speed.
+FFFFFFFF 
+5037
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF When this spell is activated,
+CC9900FF the caster will randomly     
+CC9900FF cast Thordain on enemies     
+CC9900FF around him every 8 seconds.  
+CC9900FF 
+5038
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon a magic bird to deal
+CC9900FF massive fire damage to     
+CC9900FF an opponent                
+FFFFFFFF
+5040
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal poison magic damage to
+CC9900FF an enemy and poison        
+CC9900FF the target.                
+FFFFFFFF
+5041
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase movement speed of
+CC9900FF ownself and party members 
+CC9900FF by 1.                     
+FFFFFFFF
+5042
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Teleports party members
+CC9900FF into own location      
+CC9900FF via party window.      
+5043
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase defense rating     
+CC9900FF of caster and party members.
+FFFFFFFF
+5044
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase attack power of 
+CC9900FF caster and party members 
+CC9900FF by 5 points in a duration
+CC9900FF of 36 seconds.           
+FFFFFFFF
+5045
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase all skill masteries
+CC9900FF for caster or party members.
+CC9900FF (does not apply to weapon   
+CC9900FF masteries)                  
+5046
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Convert Mana Point ( mp )
+CC9900FF into Health Point ( HP ) 
+FFFFFFFF
+5048
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon Salamander to deal  
+CC9900FF fire damage to an opponent.
+FFFFFFFF
+5049
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Confuse the target and may   
+CC9900FF cause it to attack its own   
+CC9900FF comrades. The skill may fail.
+5050
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal non elemental magic
+CC9900FF damage to an opponent.  
+FFFFFFFF
+5051
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Decrease attack power of    
+CC9900FF the opponents ( the target  
+CC9900FF and opponent within 3 meters
+CC9900FF radius)                     
+FFFFFFFF
+5052
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Unleash nature's wrath     
+CC9900FF onto the opponent. Dealing 
+CC9900FF non elemental magic damage.
+FFFFFFFF 
+FFFFFFFF
+5053
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Enhance the defense value   
+CC9900FF of the caster in a duration.
+FFFFFFFF
+5054
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF When the spell is activated,  
+CC9900FF opponents 3 meters within the 
+CC9900FF caster will take non elemental
+CC9900FF damage every 8 seconds.       
+FFFFFFFF 
+5056
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon a condor to assist    
+CC9900FF the caster. Only 1 condor can
+CC9900FF be active at once.           
+5057
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon a wild boar to assist
+CC9900FF the caster. Only 1 wild boar
+CC9900FF can be active at once.      
+5058
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon a dire wolf to assist
+CC9900FF the caster. Only 1 dire wolf
+CC9900FF can be active at once.      
+5059
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon a dire bear to assist
+CC9900FF the caster. Only 1 dire bear
+CC9900FF can be active at once.      
+5060
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon a dire tiger to assist
+CC9900FF the caster. Only 1 dire tiger
+CC9900FF can be active at once.       
+5061
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon a giant gorilla to assist
+CC9900FF the caster. Only 1 giant gorilla
+CC9900FF can be active at once.          
+5062
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Summon a Dark Dragon to assist
+CC9900FF the caster. Only 1 dark dragon
+CC9900FF can be active at once.        
+5064
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF The beastmaster transforms
+CC9900FF himself into a werewolf.  
+FFFFFFFF
+5065
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase the power of            
+CC9900FF beastmaster in his werewolf form.
+FFFFFFFF
+5066
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF The beastmaster transforms
+FFFFFFFF himself into a werebear.  
+FFFFFFFF
+5067
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase the power of       
+CC9900FF beastmaster in his werebear.
+CC9900FF form                        
+FFFFFFFF
+5068
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF The beastmaster transforms   
+CC9900FF himself into a Hell Raven.   
+CC9900FF Hell raven is range attacker.
+5069
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Passively increase the power 
+CC9900FF of beastmaster in his        
+CC9900FF HellRaven form.              
+5070
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF The beastmaster transforms
+CC9900FF himself into a Hell Saint.
+FFFFFFFF
+5072
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Unleashes a spinning attack
+CC9900FF against a single opponent. 
+FFFFFFFF
+5073
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Creates an illusion of the 
+CC9900FF character to confuse the   
+CC9900FF opponent, while teleporting
+CC9900FF to another designated spot 
+CC9900FF at the same time.          
+5074
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Imbues own weapon with     
+CC9900FF frost power.Chance to slow 
+CC9900FF their moving speed by 2 and
+CC9900FF reduce attack speed by 20% 
+CC9900FF while attacking enemies.   
+5075
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Become invisible to other
+CC9900FF players ( increase HP/MP 
+CC9900FF regeneration while in    
+CC9900FF stealth form ).          
+5076
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Create a protective shield
+CC9900FF that protect caster from  
+CC9900FF freeze and poison effect. 
+CC9900FF Additionally, it also     
+CC9900FF increases avoidance.      
+5077
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Decrease caster's defense
+CC9900FF to boost attack power.   
+FFFFFFFF
+5078
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF A piercing attack that   
+CC9900FF damages opponent 1 meters
+CC9900FF behind the skill target. 
+FFFFFFFF
+5080
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Unleash a heavy strike
+CC9900FF upon an opponent      
+FFFFFFFF
+5081
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Item selling price to
+CC9900FF the shop is increased
+CC9900FF by 5% (base)         
+5082
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Increase your damage
+CC9900FF when using bows and 
+CC9900FF claws.              
+5083
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF When purchasing item from   
+CC9900FF shops, price will be lowered
+CC9900FF by 6% ( base ).             
+5084
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Transform items in the    
+CC9900FF inventory into money.     
+CC9900FF The transformation rate is
+CC9900FF same as selling items to  
+CC9900FF the shop.                 
+5085
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Allow access to storage 
+CC9900FF anywhere.                              
+FFFFFFFF
+5086
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Spending money to temporarily
+CC9900FF increase your defense rating.
+FFFFFFFF
+5088
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Deal physical damage to an  
+CC9900FF opponent at lightning speed.
+FFFFFFFF
+5089
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Improve own evasion for a
+CC9900FF duration of time.        
+FFFFFFFF
+5090
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Absorbs the energy when an      
+CC9900FF opponent is defeated and        
+CC9900FF converts it into Health Points. 
+5091
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Improve the item dropping
+CC9900FF rate from monster for a  
+CC9900FF period of time.                            
+5092
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF When using melee weapons,
+CC9900FF your character's attack  
+CC9900FF range is increased by 1. 
+5093
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF An extra attack will follow
+CC9900FF your normal attacks upon a 
+CC9900FF certain activation chance. 
+5094
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Fire an ethereal arrow     
+CC9900FF that splits into multiple  
+CC9900FF arrows and hits multiple   
+CC9900FF opponents at the same time.
+5097
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Gives the caster ability   
+CC9900FF to use the cannon of Castle
+CC9900FF during war time.           
+CC9900FF 
+5098
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Merge soul with the nature.
+CC9900FF Give the ability to summon 
+CC9900FF thorn roots to block attack
+CC9900FF from other players.        
+5099
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Link with god's holy power    
+CC9900FF , to bestow the caster a      
+CC9900FF chance to reincarnate (restore
+CC9900FF lost XP ,and 1/4 HP) when     
+CC9900FF the caster perish in battle.  
+5100
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Curse the target,disable    
+CC9900FF the target from the nature  
+CC9900FF and disable the effect of   
+CC9900FF potion.(from both HP and MP)
+CC9900FF 
+5101
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Channel the divine power       
+CC9900FF into body to exceed limitation,
+CC9900FF create aura from weapon to     
+CC9900FF allow longer distance effect   
+CC9900FF when attacking.     
+5102
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Following the mastered 8th Skill, your
+CC9900FF stat point will largely increase during
+CC9900FF mentioned period of time.
+5134
+FFFFFFFF Item allow to enter in to quest zone.
+FFFFFFFF While possess in the inventory and
+FFFFFFFF click NPC ‘UKSMAL’ you can register
+FFFFFFFF to enter the quest.  1 party requires
+FFFFFFFF 1 item and it will be consumed after
+FFFFFFFF registering quest.
+FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+5136
+FFFFFFFF Master type of cape which is exclusive
+FFFFFFFF of changing class, can be refined by
+FFFFFFFF power of Magic.
+FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5137
+FFFFFFFF It’s can use for Nightmare territory for 
+FFFFFFFF best part of 4 hours, as Nightmare Medical
+FFFFFFFF Book is private item when you click the right.
+FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF ∝ The time of required to 20 hours until next
+FFFFFFFF reusable
+FFFFFFFF  
+5334
+FFFFFFFF Stone created by composition
+FFFFFFFF of Runeword under true name.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5335
+FFFFFFFF Stone created by composition
+FFFFFFFF of Runeword under true name.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5336
+FFFFFFFF Stone created by composition
+FFFFFFFF of Runeword under true name.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5337
+FFFFFFFF Stone created by composition
+FFFFFFFF of Runeword under true name.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5338
+FFFFFFFF Item to create character who is preparing 
+FFFFFFFF to change class. When Item is placed in the
+FFFFFFFF inventory and used on the character that
+FFFFFFFF is preparing to transform in to GOD 
+FFFFFFFF character, he'll crate a more 
+FFFFFFFF powerful character.
+FFFFFFFF 
+FFFF0000 > Right click to use
+FFFFFFFF

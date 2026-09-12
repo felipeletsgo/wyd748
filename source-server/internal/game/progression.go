@@ -1,0 +1,411 @@
+package game
+
+import "wydgo/internal/model"
+
+// g_pNextLevel completa do Basedef.cpp/W2PP. Os valores sao EXP acumulada:
+// level N ocupa [table[N], table[N+1]). Sao 401 marcos, do level 0 ao 400.
+// Arch/Celestial usam g_pNextLevel_2 e entram como uma progressao separada.
+var mortalNextLevel = [...]uint32{
+	0, 500, 1124, 1826, 2610, 3480, 4440, 5494, 6646, 7900,
+	9260, 10893, 12817, 15050, 17610, 20515, 23783, 27432, 31480, 35945,
+	40845, 46251, 52187, 58677, 65745, 73415, 81711, 90657, 100277, 110595,
+	121635, 133647, 146671, 160747, 175915, 192215, 209687, 228371, 248307, 269535,
+	292095, 316151, 341751, 368943, 397775, 428295, 460551, 494591, 530463, 568215,
+	607895, 649715, 693731, 739999, 788575, 839515, 892875, 948711, 1007079, 1068035,
+	1131635, 1198670, 1269230, 1343405, 1421285, 1502960, 1588520, 1678055, 1771655, 1869410,
+	1971410, 2078255, 2190055, 2306920, 2428960, 2556285, 2689005, 2827230, 2971070, 3120635,
+	3276035, 3438521, 3608249, 3785375, 3970055, 4162445, 4362701, 4570979, 4787435, 5012225,
+	5245505, 5488163, 5740379, 6002333, 6274205, 6556175, 6848423, 7151129, 7464473, 7788635,
+	8123795, 8460174, 8797774, 9136597, 9476645, 9817920, 10160424, 10504159, 10849127, 11195330,
+	11542770, 11892311, 12243959, 12597720, 12953600, 13311605, 13671741, 14034014, 14398430, 14764995,
+	15133715, 15508850, 15890450, 16278565, 16673245, 17074540, 17482500, 17897175, 18318615, 18746870,
+	19181990, 19625811, 20078403, 20539836, 21010180, 21489505, 21977881, 22475378, 22982066, 23498015,
+	24023295, 24559110, 25105558, 25662737, 26230745, 26809680, 27399640, 28000723, 28613027, 29236650,
+	29871690, 30517485, 31174125, 31841700, 32520300, 33210015, 33910935, 34623150, 35346750, 36081825,
+	36828465, 37587867, 38360139, 39145389, 39943725, 40755255, 41580087, 42418329, 43270089, 44135475,
+	45014595, 45904870, 46806370, 47719165, 48643325, 49578920, 50526020, 51484695, 52455015, 53437050,
+	54430870, 55439542, 56463162, 57501826, 58555630, 59624670, 60709042, 61808842, 62924166, 64055110,
+	65201770, 66366010, 67547930, 68747630, 69965210, 71200770, 72454410, 73726230, 75016330, 76324810,
+	77651770, 78985354, 80325578, 81672458, 83026010, 84386250, 85753194, 87126858, 88507258, 89894410,
+	91288330, 92693002, 94108458, 95534730, 96971850, 98419850, 99878762, 101348618, 102829450, 104321290,
+	105824170, 107352234, 108905674, 110484682, 112089450, 113720170, 115377034, 117060234, 118769962, 120506410,
+	122269770, 124065890, 125895058, 127757562, 129653690, 131583730, 133547970, 135546698, 137580202, 139648770,
+	141752690, 143928178, 146176386, 148498466, 150895570, 153368850, 155919458, 158548546, 161257266, 164046770,
+	166918210, 169956978, 173167682, 176554930, 180123330, 205345890, 209100050, 212902550, 216753470, 220652890,
+	224600890, 228597550, 232642950, 236737170, 240880290, 245072390, 249313550, 253603850, 257943370, 262332190,
+	266770390, 271258050, 275795250, 280382070, 285018590, 289904810, 295042730, 300434350, 306081670, 311986690,
+	318151410, 324577830, 331267950, 338223770, 345447290, 354039310, 364049830, 375528850, 388526370, 403092390,
+	419276910, 437129930, 456701450, 476272970, 495844490, 515416010, 534987530, 554559050, 574130570, 593702090,
+	613273610, 632845130, 652416650, 671988170, 691559690, 711131210, 730702730, 750274250, 769845770, 789417290,
+	808988810, 828560330, 848131850, 867703370, 887274890, 906846410, 926417930, 945989450, 965560970, 985132490,
+	1004704010, 1024275530, 1043847050, 1063418570, 1082990090, 1102561610, 1122133130, 1141704650, 1161276170, 1180847690,
+	1200419210, 1222705731, 1244995262, 1267288477, 1289622601, 1311966887, 1334333102, 1356724650, 1379151914, 1401651370,
+	1424151231, 1448674779, 1473220997, 1497782544, 1522364697, 1546957043, 1571581919, 1596243411, 1620925875, 1645647464,
+	1670373305, 1710373305, 1770373305, 1870373305, 2000000000, 2039000000, 2078000000, 2117000000, 2156000000, 2195000000,
+	2234000000, 2273000000, 2312000000, 2351000000, 2390000000, 2429000000, 2468000000, 2507000000, 2546000000, 2585000000,
+	2624000000, 2663000000, 2702000000, 2741000000, 2780000000, 2819000000, 2858000000, 2897000000, 2936000000, 3000000000,
+	3043000000, 3086000000, 3129000000, 3172000000, 3215000000, 3258000000, 3301000000, 3344000000, 3387000000, 3430000000,
+	3473000000, 3516000000, 3559000000, 3602000000, 3645000000, 3688000000, 3731000000, 3774000000, 3817000000, 4000000000,
+	4100000000,
+}
+
+// O protocolo armazena level em base zero: 0 aparece como nivel 1 no client e
+// 399 aparece como nivel 400. O marco [400] e o teto de EXP do nivel 400, nao
+// um nivel interno adicional.
+const maxMortalLevel uint32 = 399
+
+const maxCelestialLevel uint32 = 199
+
+var celestialNextLevel = func() [201]uint32 {
+	var table [201]uint32
+	for level := range table {
+		table[level] = uint32(level) * 20_000_000
+	}
+	return table
+}()
+
+func progressionTable(ch *model.Char) []uint32 {
+	if isCelestialEvolution(ch) {
+		return celestialNextLevel[:]
+	}
+	return mortalNextLevel[:]
+}
+
+func progressionMaxLevel(ch *model.Char) uint32 {
+	if isCelestialEvolution(ch) {
+		return maxCelestialLevel
+	}
+	return maxMortalLevel
+}
+
+func syncProgression(ch *model.Char) {
+	ensureScore(ch)
+	table := progressionTable(ch)
+	maxLevel := progressionMaxLevel(ch)
+	level := int(ch.Score.Level)
+	if level >= 0 && level <= int(maxLevel) {
+		ch.NextExp = table[level+1]
+	} else if level > int(maxLevel) {
+		ch.NextExp = table[len(table)-1]
+	}
+	syncStatusPoints(ch)
+	syncMasteryPoints(ch)
+	syncSkillPoints(ch)
+}
+
+// Travas de nivel do Arch, em nivel INTERNO. O nativo compara `>= 354` no
+// ganho de EXP (GetFunc.cpp:1565) e `== 354` no level-up (CMob.cpp:2079).
+// Exibidos, sao os niveis 355 e 370.
+const (
+	archLockLevel355 = uint32(354)
+	archLockLevel370 = uint32(369)
+)
+
+// archExperienceLocked diz se o Arch bateu numa trava ainda nao destravada na
+// Lindy. Enquanto travado ele NAO recebe EXP -- nao e um teto que ignora o
+// excedente, o ganho e barrado por inteiro.
+func archExperienceLocked(ch *model.Char) bool {
+	if ch == nil || ch.Score == nil || !isArch(ch) {
+		return false
+	}
+	level := ch.Score.Level
+	if level >= archLockLevel370 && !ch.ArchLevel370 {
+		return true
+	}
+	return level >= archLockLevel355 && !ch.ArchLevel355
+}
+
+// As flags 40/90 existem na 7.54, mas o Secrets esqueceu de consulta-las no
+// ganho de EXP. O W2PP corrige essa lacuna; mantemos a mecanica pretendida para
+// que as composicoes/destraves tenham efeito real. A Sub nao possui essas duas
+// travas.
+func celestialExperienceLocked(ch *model.Char) bool {
+	if ch == nil || ch.Score == nil || !advancedEvolution(ch, "celestial") {
+		return false
+	}
+	if ch.Score.Level >= 89 && !ch.CelestialLevel90Unlocked {
+		return true
+	}
+	return ch.Score.Level >= 39 && !ch.CelestialLevel40Unlocked
+}
+
+func canReceiveMortalExperience(ch *model.Char) bool {
+	if ch == nil || ch.Score == nil {
+		return false
+	}
+	if archExperienceLocked(ch) || celestialExperienceLocked(ch) {
+		return false
+	}
+	table := progressionTable(ch)
+	return ch.Score.Level <= progressionMaxLevel(ch) &&
+		ch.Exp < table[len(table)-1]
+}
+
+// progressionExperienceCap impede que uma recompensa grande atravesse uma
+// trava em um unico grant. Consultar a flag apenas antes do ganho permite, por
+// exemplo, saltar do Celestial 39 direto para 91 com uma caixa de EXP.
+func progressionExperienceCap(ch *model.Char) uint32 {
+	table := progressionTable(ch)
+	cap := table[len(table)-1]
+	if isArch(ch) {
+		if !ch.ArchLevel355 {
+			return minU32(cap, table[archLockLevel355])
+		}
+		if !ch.ArchLevel370 {
+			return minU32(cap, table[archLockLevel370])
+		}
+	}
+	if advancedEvolution(ch, "celestial") {
+		if !ch.CelestialLevel40Unlocked {
+			return minU32(cap, table[39])
+		}
+		if !ch.CelestialLevel90Unlocked {
+			return minU32(cap, table[89])
+		}
+	}
+	return cap
+}
+
+// Esta e a linha Arch da tabela expbase do W2PP. O divisor e armazenado em
+// centesimos: 200 concede 50%, 12000 concede 1/120. Ela cobre
+// as faixas exibidas 256-280, 281-300, 301-320, 321-340, 341-350, 351-360,
+// 361-370, 371-380, 381-390, 391-395, 396-398 e 399-400.
+var w2ppArchEXPDivisors = [...]uint32{200, 400, 800, 1200, 1600, 2000, 2400, 2800, 7600, 9000, 10000, 12000}
+
+// w2ppHighLevelEXPDivisor seleciona a mesma coluna de expbase usada por
+// GetExpApply. level e o nivel exibido (o W2PP incrementa o nivel interno antes
+// destas comparacoes).
+func w2ppHighLevelEXPDivisor(level uint32, divisors [12]uint32) uint32 {
+	switch {
+	case level > 398:
+		return divisors[11]
+	case level > 395:
+		return divisors[10]
+	case level > 390:
+		return divisors[9]
+	case level > 380:
+		return divisors[8]
+	case level > 370:
+		return divisors[7]
+	case level > 360:
+		return divisors[6]
+	case level > 350:
+		return divisors[5]
+	case level > 340:
+		return divisors[4]
+	case level > 320:
+		return divisors[3]
+	case level > 300:
+		return divisors[2]
+	case level > 280:
+		return divisors[1]
+	default:
+		return divisors[0]
+	}
+}
+
+func w2ppCelestialEXPDivisor(level uint32) uint32 {
+	switch {
+	case level > 398:
+		return 18000
+	case level > 395:
+		return 17000
+	case level > 390:
+		return 16000
+	case level > 385:
+		return 15000
+	case level > 380:
+		return 14000
+	case level > 375:
+		return 13000
+	case level > 370:
+		return 12000
+	case level > 365:
+		return 11000
+	case level > 360:
+		return 10000
+	case level > 355:
+		return 9500
+	case level > 350:
+		return 9300
+	case level > 340:
+		return 9100
+	case level > 320:
+		return 9000
+	case level > 300:
+		return 8900
+	case level > 280:
+		return 8800
+	case level > 255:
+		return 8500
+	case level > 230:
+		return 8000
+	case level > 210:
+		return 7500
+	case level > 190:
+		return 7000
+	case level > 150:
+		return 6500
+	case level > 100:
+		return 6000
+	case level > 80:
+		return 5500
+	case level > 40:
+		return 5000
+	default:
+		return 4000
+	}
+}
+
+// combatExperienceByEvolution porta as curvas Arch/Celestial de GetExpApply do
+// W2PP. A reducao vale somente para EXP de combate; Mortal e recompensas fixas
+// de quest/item continuam integrais. O calculo usa uint64 para nao estourar
+// reward*100.
+func combatExperienceByEvolution(ch *model.Char, reward uint32) uint32 {
+	if ch == nil || ch.Score == nil || reward == 0 {
+		return reward
+	}
+	level := ch.Score.Level + 1 // nivel exibido usado pelo W2PP
+	divisor := uint32(100)
+	switch {
+	case isCelestialEvolution(ch):
+		divisor = w2ppCelestialEXPDivisor(level)
+	case isArch(ch):
+		if level > 255 {
+			divisor = w2ppHighLevelEXPDivisor(level, w2ppArchEXPDivisors)
+		} else if level >= 5 {
+			divisor += level / 5
+		}
+	}
+	return uint32(uint64(reward) * 100 / uint64(divisor))
+}
+
+// currentExperienceInterval devolve o tamanho do nivel interno atual. As
+// tabelas guardam EXP acumulada, portanto o intervalo e a diferenca entre os
+// dois marcos adjacentes, inclusive no ultimo nivel valido.
+func currentExperienceInterval(ch *model.Char) uint32 {
+	if ch == nil || ch.Score == nil {
+		return 0
+	}
+	table := progressionTable(ch)
+	level := int(ch.Score.Level)
+	if level < 0 || level+1 >= len(table) {
+		return 0
+	}
+	return table[level+1] - table[level]
+}
+
+func heldExperienceDeathDivisor(level uint32) uint32 {
+	switch {
+	case level >= 250:
+		return 100
+	case level >= 200:
+		return 85
+	case level >= 150:
+		return 70
+	case level >= 100:
+		return 55
+	case level >= 90:
+		return 50
+	case level >= 80:
+		return 45
+	case level >= 70:
+		return 40
+	case level >= 60:
+		return 35
+	case level >= 50:
+		return 30
+	case level >= 40:
+		return 25
+	case level >= 30:
+		return 22
+	default:
+		return 20
+	}
+}
+
+func heldExperienceLimit(ch *model.Char) uint32 {
+	return currentExperienceInterval(ch) / 10
+}
+
+func heldExperienceDeathDebt(ch *model.Char) uint32 {
+	if ch == nil || ch.Score == nil {
+		return 0
+	}
+	debt := currentExperienceInterval(ch) / heldExperienceDeathDivisor(ch.Score.Level)
+	return minU32(ch.Exp, debt)
+}
+
+func saturatingAddU32(left, right uint32) uint32 {
+	result := left + right
+	if result < left {
+		return ^uint32(0)
+	}
+	return result
+}
+
+// addHeldExperienceDeathDebt acrescenta a penalidade sem permitir que Hold
+// ultrapasse 10% do intervalo do nivel atual.
+func addHeldExperienceDeathDebt(ch *model.Char) {
+	if ch == nil {
+		return
+	}
+	limit := heldExperienceLimit(ch)
+	ch.Hold = minU32(limit, saturatingAddU32(ch.Hold, heldExperienceDeathDebt(ch)))
+}
+
+// heldExperiencePenaltyActive representa o limiar nativo que reduz apenas o
+// MaxHP efetivo quando a divida alcanca 80% do limite do nivel.
+func heldExperiencePenaltyActive(ch *model.Char) bool {
+	if ch == nil {
+		return false
+	}
+	limit := heldExperienceLimit(ch)
+	return limit > 0 && uint64(ch.Hold)*5 >= uint64(limit)*4
+}
+
+// grantCombatExp paga Hold primeiro. Recompensas de quest/item continuam
+// chamando grantExp diretamente e, portanto, nunca amortizam esta divida.
+func grantCombatExp(ch *model.Char, reward uint32) (int, uint32) {
+	if ch == nil || reward == 0 {
+		return 0, 0
+	}
+	paid := minU32(ch.Hold, reward)
+	ch.Hold -= paid
+	reward -= paid
+	if reward == 0 {
+		return 0, 0
+	}
+	return grantExp(ch, reward)
+}
+
+// grantExp adiciona EXP ate o ultimo marco da evolucao e processa level-ups. Os
+// retornos informam niveis ganhos e a EXP realmente aplicada.
+func grantExp(ch *model.Char, reward uint32) (int, uint32) {
+	ensureScore(ch)
+	table := progressionTable(ch)
+	maxLevel := progressionMaxLevel(ch)
+	maximum := progressionExperienceCap(ch)
+	if !canReceiveMortalExperience(ch) || reward == 0 {
+		syncProgression(ch)
+		return 0, 0
+	}
+	applied := minU32(reward, maximum-ch.Exp)
+	ch.Exp += applied
+
+	gained := 0
+	for {
+		level := int(ch.Score.Level)
+		if ch.Score.Level >= maxLevel ||
+			level+1 >= len(table) ||
+			ch.Exp < table[level+1] {
+			break
+		}
+		ch.Score.Level++
+		gained++
+	}
+	syncProgression(ch)
+	ch.RuntimeScore = nil
+	applyScore(ch)
+	return gained, applied
+}

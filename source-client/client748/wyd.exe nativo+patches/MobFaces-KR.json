@@ -1,0 +1,37 @@
+{
+  "items": [
+    { "sourceItem": 70,   "targetItem": 70,   "name": "Scorpion",    "class": 70, "skinType": 53, "mesh": 0,  "texture": 0, "range": 7, "prefix": "sp02" },
+    { "sourceItem": 71,   "targetItem": 71,   "name": "Murmy",       "class": 71, "skinType": 54, "mesh": 0,  "texture": 0, "range": 7, "prefix": "mm01" },
+    { "sourceItem": 72,   "targetItem": 72,   "name": "DeathWorm",   "class": 72, "skinType": 55, "mesh": 0,  "texture": 0, "range": 4, "prefix": "dw01" },
+    { "sourceItem": 73,   "targetItem": 73,   "name": "Anubis",      "class": 73, "skinType": 56, "mesh": 0,  "texture": 0, "range": 7, "prefix": "an01" },
+    { "sourceItem": 74,   "targetItem": 74,   "name": "AnubisElite", "class": 74, "skinType": 57, "mesh": 0,  "texture": 0, "range": 7, "prefix": "an02" },
+    { "sourceItem": 75,   "targetItem": 75,   "name": "AnubisGuard", "class": 56, "skinType": 41, "mesh": 2,  "texture": 0, "range": 2, "prefix": "gg01" },
+    { "sourceItem": 199,  "targetItem": 199,  "name": "Dragon",      "class": 16, "skinType": 20, "mesh": 0,  "texture": 8, "range": 6, "prefix": "dr01" },
+    { "sourceItem": 346,  "targetItem": 346,  "name": "Helriohdon",  "class": 35, "skinType": 29, "mesh": 4,  "texture": 0, "range": 2, "prefix": "be01" },
+    { "sourceItem": 347,  "targetItem": 347,  "name": "BerialGuard", "class": 67, "skinType": 46, "mesh": 0,  "texture": 0, "range": 7, "prefix": "LK01" },
+    { "sourceItem": 348,  "targetItem": 348,  "name": "tteok",       "class": 68, "skinType": 47, "mesh": 0,  "texture": 0, "range": 4, "prefix": "DD01" },
+    { "sourceItem": 399,  "targetItem": 399,  "name": "LegendBerial","class": 66, "skinType": 45, "mesh": 0,  "texture": 0, "range": 7, "prefix": "LB01" },
+    { "sourceItem": 6392, "targetItem": 4082, "name": "BahamutQ_R",  "class": 62, "skinType": 5,  "mesh": 3,  "texture": 0, "range": 3, "prefix": "sq01" },
+    { "sourceItem": 6393, "targetItem": 4083, "name": "BahamutQ_B",  "class": 62, "skinType": 5,  "mesh": 3,  "texture": 0, "range": 3, "prefix": "sq01" },
+    { "sourceItem": 6396, "targetItem": 4084, "name": "LavaGolem",   "class": 32, "skinType": 7,  "mesh": 3,  "texture": 0, "range": 2, "prefix": "mo01" },
+    { "sourceItem": 6397, "targetItem": 4085, "name": "LavaGrub",    "class": 49, "skinType": 36, "mesh": 1,  "texture": 0, "range": 2, "prefix": "gb01" },
+    { "sourceItem": 6398, "targetItem": 4086, "name": "Bahamut",     "class": 62, "skinType": 5,  "mesh": 3,  "texture": 0, "range": 3, "prefix": "sq01" },
+    { "sourceItem": 6399, "targetItem": 4087, "name": "CB_Trant",    "class": 46, "skinType": 11, "mesh": 0,  "texture": 2, "range": 2, "prefix": "et01" },
+    { "sourceItem": 6400, "targetItem": 4088, "name": "Sand_Lich",   "class": 57, "skinType": 12, "mesh": 0,  "texture": 2, "range": 4, "prefix": "rc01" },
+    { "sourceItem": 6401, "targetItem": 4089, "name": "Ice_Lich",    "class": 57, "skinType": 12, "mesh": 0,  "texture": 3, "range": 4, "prefix": "rc01" }
+  ],
+  "textures": [
+    { "name": "mesh\\LB010101.wys", "alpha": 67 }, { "name": "mesh\\LB010201.wys", "alpha": 67 }, { "name": "mesh\\LB010301.wys", "alpha": 67 },
+    { "name": "mesh\\LK010101.wys", "alpha": 67 }, { "name": "mesh\\LK010201.wys", "alpha": 67 }, { "name": "mesh\\LK010301.wys", "alpha": 67 },
+    { "name": "mesh\\DD010101.wys", "alpha": 65 },
+    { "name": "mesh\\sp020101.wys", "alpha": 67 }, { "name": "mesh\\sp020201.wys", "alpha": 67 }, { "name": "mesh\\sp020301.wys", "alpha": 67 },
+    { "name": "mesh\\mm010101.wys", "alpha": 65 }, { "name": "mesh\\mm010201.wys", "alpha": 65 }, { "name": "mesh\\mm010301.wys", "alpha": 65 },
+    { "name": "mesh\\dw010101.wys", "alpha": 67 }, { "name": "mesh\\dw010201.wys", "alpha": 67 },
+    { "name": "mesh\\an010101.wys", "alpha": 67 }, { "name": "mesh\\an010201.wys", "alpha": 67 }, { "name": "mesh\\an010301.wys", "alpha": 67 }, { "name": "mesh\\an010401.wys", "alpha": 67 },
+    { "name": "mesh\\an020101.wys", "alpha": 67 }, { "name": "mesh\\an020201.wys", "alpha": 67 }, { "name": "mesh\\an020301.wys", "alpha": 67 }, { "name": "mesh\\an020401.wys", "alpha": 67 }, { "name": "mesh\\an020501.wys", "alpha": 67 },
+    { "name": "mesh\\gg010103.wys", "alpha": 67 },
+    { "name": "mesh\\sq010104.wys", "alpha": 67 }, { "name": "mesh\\sq010204.wys", "alpha": 67 },
+    { "name": "mesh\\et010103.wys", "alpha": 65 },
+    { "name": "mesh\\rc010103.wys", "alpha": 78 }, { "name": "mesh\\rc010104.wys", "alpha": 78 }
+  ]
+}

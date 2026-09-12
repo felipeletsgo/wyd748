@@ -1,0 +1,13 @@
+001 FFFFFF LV 1     Training Camp
+040 FFFFFF LV 40   Spirit Guardian
+040 FFFFFF LV 40   Conquering Orc Castle 
+060 FFFFFF LV 60   Defending Mistic Land
+070 FFFFFF LV 70   Bless of the God
+080 FFFFFF LV 101   Path to Knighthood
+100 FFFFFF LV 116 God's Garden
+101 FFFFFF LV 120 Balance of Power
+120 FFFFFF LV 191 Return of the Dark Knight
+150 FFFFFF LV 201 Gargoyle's Molar Tooth
+200 FFFFFF LV 221 Knight of the Kingdom
+201 FFFFFF LV 266 Immortality of Hydra
+221 FFFFFF LV 321 Begin of Unhappiness

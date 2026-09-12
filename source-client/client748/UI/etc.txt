@@ -1,0 +1,58 @@
+FFFFFF Assign Quick Key for skills
+AAFFAA Open Skills Window(S), drag all the usual used skills to ¡°skills shortcut bar¡±
+AAFFAA Or Stop yous mouse cursor on the skill icon and press ¡°Shift ! ~ 0¡±
+AAFFAA Or ¡°Shift + F1 ~ F10¡± button,To quickly assign the skills to the shortcut bar
+FFFFFF Auto Attack Button
+AAFFAA Press ¡°T to activate Auto Attack
+AAFFAA When Auto Attack is activated, Press ¡°-¡± to adjust the times of using skills
+AAFFAA Give attentions on the red bar above the skill bar, Try to use mouse1 to click check on it
+FFFFFF Change skill Shortcut button
+AAFFAA Use ¡°Z¡± button to switch from different skill bar
+FFFFFF Auto Run Function
+AAFFAA Press :] can see the direction and auto moce towards it
+AAFFAA Directions of movement can be control by Mouse Scroll
+AAFFAA 
+AAFFAA 
+FFFFFF Auto Merchant
+AAFFAA 
+AAFFAA 
+AAFFAA 
+FFFFFF Trade
+AAFFAA 
+AAFFAA Enter amount of golds
+AAFFAA 
+FFFFFF Skill
+33FFFF Learn Skills
+AAFFAA Skills can be learned from all the Skill apprentice around town armia 
+AAFFAA Skill points will be lose upon learning skills,there's some skills that require certain levels and skills mastery
+33FFFF Use skills
+AAFFAA 
+AAFFAA 
+AAFFAA Or ¡°Shift + F1 ~ F10¡± button
+FFFFFF Party
+33FFFF Request Party
+33FFFF Press Ctrl + Mouse1 on players and select Party
+AAFFAA 
+33FFFF Acept Party
+AAFFAA 
+FFFFFF Item Upgrade
+33FFFF Refine
+AAFFAA Drag the Refined items needed (xxxx,xxxx) To the Equipments weared
+AAFFAA If Refine success, the status of the Equipment will increase
+FFFFFF Guild
+33FFFF Build Guild
+AAFFAA 
+AAFFAA 
+AAFFAA 
+33FFFF Set Sub Guild
+AAFFAA 
+AAFFAA 
+33FFFF Join Guild
+AAFFAA 
+AAFFAA 
+33FFFF Declare Guild war
+AAFFAA 
+AAFFAA 
+33FFFF Apply Alied
+AAFFAA 
+AAFFAA 
