@@ -11,10 +11,12 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"wydclient748/internal/app"
 	"wydclient748/internal/assets"
 	"wydclient748/internal/config"
+	"wydclient748/internal/diagnostics"
 	"wydclient748/internal/graphics"
 	"wydclient748/internal/graphics/wgl"
 	"wydclient748/internal/login"
@@ -31,7 +33,16 @@ func main() {
 	}
 }
 
-func run() error {
+func run() (result error) {
+	// Cada execução recebe diretório próprio ao lado do executável.
+	executable, _ := os.Executable()
+	diagnostic := diagnostics.Open(filepath.Join(filepath.Dir(executable), "logs", fmt.Sprintf("%s-%d", time.Now().Format("20060102-150405.000000000"), os.Getpid())))
+	defer diagnostic.Close()
+	defer func() { diagnostic.Event("client_exit", diagnostics.F("error", result)) }()
+	diagnostic.Event("client_start")
+	if err := diagnostic.InitError(); err != nil {
+		fmt.Fprintln(os.Stderr, "Diagnostics unavailable:", err)
+	}
 	cfg := config.Default()
 	if err := cfg.Validate(); err != nil {
 		return err
@@ -127,6 +138,7 @@ func run() error {
 		return fmt.Errorf("load character BoneAnimation set: %w", err)
 	}
 	characterVisuals := &loginflow.CharacterSelectVisualAssets{
+		Diagnostics:    diagnostic,
 		AssetRoot:      characterAssetRoot,
 		ItemList:       &itemList,
 		BoneAnimations: &boneAnimations,
@@ -142,7 +154,8 @@ func run() error {
 	}
 	var client *app.Application
 	selectedAddress := displayServerAddress(cfg.ServerAddress, serverAddress)
-	session := protocol.NewSession(selectedAddress, protocol.SessionOptions{})
+	session := protocol.NewSession(selectedAddress, protocol.SessionOptions{Diagnostics: diagnostic})
+	var observedScene string
 	options := app.Options{
 		Title:               "WYD 7.48",
 		Width:               cfg.WindowWidth,
@@ -162,6 +175,7 @@ func run() error {
 				return client.RequestClose()
 			},
 			SelectServer: func(entry loginflow.ServerEntry) error {
+				diagnostic.Event("server_selected", diagnostics.F("address", entry.Address))
 				if client == nil {
 					return fmt.Errorf("client application is not initialized")
 				}
@@ -171,7 +185,9 @@ func run() error {
 				if coordinator == nil {
 					return fmt.Errorf("login coordinator is not initialized")
 				}
-				return coordinator.ServerSelected()
+				err := coordinator.ServerSelected()
+				diagnostic.Event("server_selection_end", diagnostics.F("error", err))
+				return err
 			},
 			LoginTexture:     &loginTexture,
 			LoginControls:    serverControls,
@@ -180,6 +196,7 @@ func run() error {
 			LoginLogoRight:   &loginLogoRight,
 			CharacterVisuals: characterVisuals,
 			Authenticate: func(account string, password []byte) error {
+				diagnostic.Event("auth_begin", diagnostics.F("account_len", len(account)), diagnostics.F("phase", state.Phase()))
 				if coordinator == nil {
 					return fmt.Errorf("login coordinator is not initialized")
 				}
@@ -188,7 +205,9 @@ func run() error {
 				if err := client.ConnectSession(); err != nil {
 					return err
 				}
-				return coordinator.Authenticate(account, password, [4]uint32{}, 0)
+				err := coordinator.Authenticate(account, password, [4]uint32{}, 0)
+				diagnostic.Event("auth_end", diagnostics.F("phase", state.Phase()), diagnostics.F("error", err))
+				return err
 			},
 			SelectCharacter: func(slot int32) error {
 				if coordinator == nil {
@@ -215,16 +234,27 @@ func run() error {
 			if coordinator == nil {
 				return nil
 			}
-			return coordinator.Synchronize()
+			if current, ok := client.CurrentScene(); ok && string(current) != observedScene {
+				observedScene = string(current)
+				diagnostic.Event("scene_current", diagnostics.F("scene", current), diagnostics.F("phase", state.Phase()))
+			}
+			err := coordinator.Synchronize()
+			if err != nil {
+				diagnostic.Event("scene_error", diagnostics.F("error", err))
+			}
+			return err
 		},
 		Session: session,
 		SessionConnected: func() error {
 			if coordinator == nil {
 				return fmt.Errorf("login coordinator is not initialized")
 			}
-			return coordinator.SessionConnected()
+			err := coordinator.SessionConnected()
+			diagnostic.Event("session_connected", diagnostics.F("phase", state.Phase()), diagnostics.F("error", err))
+			return err
 		},
 		SessionDisconnected: func() {
+			diagnostic.Event("session_disconnected")
 			if coordinator != nil {
 				coordinator.SessionDisconnected()
 			}
@@ -233,7 +263,9 @@ func run() error {
 			if coordinator == nil {
 				return fmt.Errorf("login coordinator is not initialized")
 			}
-			_, err := coordinator.HandleSessionEvent(event)
+			before := state.Phase()
+			handled, err := coordinator.HandleSessionEvent(event)
+			diagnostic.Event("packet_dispatch", diagnostics.F("kind", event.Kind), diagnostics.F("opcode", fmt.Sprintf("%04X", event.Packet.Header.Type)), diagnostics.F("handled", handled), diagnostics.F("before", before), diagnostics.F("after", state.Phase()), diagnostics.F("error", err), diagnostics.F("socket_error", event.Err))
 			return err
 		},
 	}

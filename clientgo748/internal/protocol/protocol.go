@@ -14,6 +14,8 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"wydclient748/internal/diagnostics"
 )
 
 // Version identifica a família de protocolo esperada pelo client.
@@ -193,6 +195,8 @@ type EventSession interface {
 // SessionOptions controla deadlines e permite injetar um dialer nos testes.
 // Mensagens de gameplay não fazem parte desta camada.
 type SessionOptions struct {
+	// Diagnostics é opcional; registra somente cabeçalhos, nunca credenciais.
+	Diagnostics    *diagnostics.Recorder
 	Address        string
 	ConnectTimeout time.Duration
 	IOTimeout      time.Duration
@@ -245,10 +249,12 @@ func NewConnectedSession(conn net.Conn, options SessionOptions) (*ClientSession,
 }
 
 // Connect abre o TCP quando necessário e envia o InitCode exatamente uma vez.
-func (s *ClientSession) Connect() error {
+func (s *ClientSession) Connect() (result error) {
 	if s == nil {
 		return ErrNotConnected
 	}
+	s.options.Diagnostics.Event("connect_begin")
+	defer func() { s.options.Diagnostics.Event("connect_end", diagnostics.F("error", result)) }()
 	s.mu.Lock()
 	if s.closed {
 		s.mu.Unlock()
@@ -302,7 +308,13 @@ func (s *ClientSession) Send(plain []byte, key byte) error {
 	if err != nil {
 		return err
 	}
+	if s != nil {
+		s.recordFrame("tx", frame)
+	}
 	if err := s.writeAll(frame); err != nil {
+		if s != nil {
+			s.options.Diagnostics.Event("send_error", diagnostics.F("error", err))
+		}
 		return fmt.Errorf("protocol: send frame: %w", err)
 	}
 	return nil
@@ -315,7 +327,7 @@ func (s *ClientSession) Receive() (Packet, error) {
 	if err != nil {
 		return Packet{}, err
 	}
-	return receivePacket(conn, s.options.IOTimeout)
+	return receivePacket(conn, s.options.IOTimeout, func(frame []byte) { s.recordFrame("rx", frame) })
 }
 
 // StartReceiving inicia no máximo uma rotina leitora para a conexão atual. A
@@ -395,8 +407,9 @@ func (s *ClientSession) receiveLoop(conn net.Conn, timeout time.Duration, stop, 
 	}()
 
 	for {
-		packet, err := receivePacket(conn, timeout)
+		packet, err := receivePacket(conn, timeout, func(frame []byte) { s.recordFrame("rx", frame) })
 		if err != nil {
+			s.options.Diagnostics.Event("receive_error", diagnostics.F("error", err))
 			select {
 			case <-stop:
 				return
@@ -426,7 +439,7 @@ func (s *ClientSession) enqueueEvent(event SessionEvent, stop <-chan struct{}) b
 	}
 }
 
-func receivePacket(conn net.Conn, timeout time.Duration) (Packet, error) {
+func receivePacket(conn net.Conn, timeout time.Duration, observers ...func([]byte)) (Packet, error) {
 	if timeout > 0 {
 		_ = conn.SetReadDeadline(time.Now().Add(timeout))
 	}
@@ -443,7 +456,27 @@ func receivePacket(conn net.Conn, timeout time.Duration) (Packet, error) {
 	if _, err := io.ReadFull(conn, frame[2:]); err != nil {
 		return Packet{}, err
 	}
+	for _, observe := range observers {
+		observe(frame)
+	}
 	return Decode(frame)
+}
+
+// recordFrame captura o cabeçalho lógico em arquivo .bin. O corpo é omitido
+// inclusive no RX: a lista de personagens contém SecretCode. Um frame inválido
+// fornece somente tamanho/erro; os bytes originais nunca são modificados.
+func (s *ClientSession) recordFrame(direction string, frame []byte) {
+	r := s.options.Diagnostics
+	if !r.Enabled() {
+		return
+	}
+	packet, err := Decode(frame)
+	if err != nil {
+		r.Event("frame_invalid", diagnostics.F("direction", direction), diagnostics.F("size", len(frame)), diagnostics.F("error", err))
+		return
+	}
+	name := r.DumpFrame(direction, packet.Header.Type, packet.Raw[:HeaderSize])
+	r.Event("packet_header", diagnostics.F("direction", direction), diagnostics.F("opcode", fmt.Sprintf("%04X", packet.Header.Type)), diagnostics.F("size", len(frame)), diagnostics.F("id", packet.Header.ID), diagnostics.F("dump", name), diagnostics.F("payload", "omitted"))
 }
 
 func (s *ClientSession) writeAll(data []byte) error {

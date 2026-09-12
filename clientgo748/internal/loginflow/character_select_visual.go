@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"wydclient748/internal/assets"
+	"wydclient748/internal/diagnostics"
 	"wydclient748/internal/graphics"
 	"wydclient748/internal/login"
 	"wydclient748/internal/ui"
@@ -28,6 +29,8 @@ const (
 // à apresentação da seleção. O cache de meshes e os Skeletons permanecem
 // pertencendo à cena, evitando estado gráfico compartilhado entre entradas.
 type CharacterSelectVisualAssets struct {
+	// Diagnostics pertence ao processo; a cena não fecha o gravador.
+	Diagnostics    *diagnostics.Recorder
 	AssetRoot      string
 	ItemList       *assets.ItemList
 	BoneAnimations *assets.BoneAnimationSet
@@ -35,12 +38,14 @@ type CharacterSelectVisualAssets struct {
 }
 
 type characterSelectModel struct {
-	visual    characterVisual
-	animation *assets.BoneAnimation
-	clipIndex int
-	skeleton  *graphics.Skeleton
-	meshes    []assets.Mesh
-	transform graphics.SceneTransform
+	diagnostics *diagnostics.Recorder
+	drawLogged  bool
+	visual      characterVisual
+	animation   *assets.BoneAnimation
+	clipIndex   int
+	skeleton    *graphics.Skeleton
+	meshes      []assets.Mesh
+	transform   graphics.SceneTransform
 }
 
 func copyCharacterSelectControls(controls []assets.SceneControl) ([]assets.SceneControl, error) {
@@ -162,9 +167,22 @@ func characterMeshPath(assetRoot, meshName string) string {
 	return filepath.Join(assetRoot, normalized)
 }
 
-func buildCharacterSelectModels(list login.CharacterList, visualAssets *CharacterSelectVisualAssets) ([login.SelectionCharacterCount]*characterSelectModel, error) {
+func buildCharacterSelectModels(list login.CharacterList, visualAssets *CharacterSelectVisualAssets) (result [login.SelectionCharacterCount]*characterSelectModel, resultErr error) {
 	var models [login.SelectionCharacterCount]*characterSelectModel
+	if visualAssets != nil {
+		occupied := 0
+		for _, character := range list.Characters {
+			if character.Occupied() {
+				occupied++
+			}
+		}
+		visualAssets.Diagnostics.Event("character_list_build", diagnostics.F("occupied", occupied))
+		defer func() { visualAssets.Diagnostics.Event("character_build_end", diagnostics.F("error", resultErr)) }()
+	}
 	if visualAssets == nil || visualAssets.ItemList == nil || visualAssets.BoneAnimations == nil || visualAssets.AssetRoot == "" {
+		if visualAssets != nil {
+			visualAssets.Diagnostics.Event("character_assets_unavailable")
+		}
 		return models, nil
 	}
 	battleMaster := characterBattleMasterFromList(list)
@@ -204,13 +222,15 @@ func buildCharacterSelectModels(list login.CharacterList, visualAssets *Characte
 			meshes = append(meshes, mesh)
 		}
 		models[slot] = &characterSelectModel{
-			visual:    visual,
-			animation: animation,
-			clipIndex: clipIndex,
-			skeleton:  skeleton,
-			meshes:    meshes,
-			transform: characterSelectTransform(slot),
+			diagnostics: visualAssets.Diagnostics,
+			visual:      visual,
+			animation:   animation,
+			clipIndex:   clipIndex,
+			skeleton:    skeleton,
+			meshes:      meshes,
+			transform:   characterSelectTransform(slot),
 		}
+		visualAssets.Diagnostics.Event("character_model_built", diagnostics.F("slot", slot), diagnostics.F("skin", skin), diagnostics.F("mesh_count", len(meshes)), diagnostics.F("clip", clipIndex))
 	}
 	return models, nil
 }
@@ -243,6 +263,10 @@ func drawCharacterSelectModels(renderer graphics.Scene3DRenderer, models [login.
 			if err := renderer.DrawSkinnedMeshScene(mesh, palette, model.transform, camera); err != nil {
 				return fmt.Errorf("loginflow: draw character slot %d: %w", slot, err)
 			}
+		}
+		if !model.drawLogged {
+			model.diagnostics.Event("character_draw_ok", diagnostics.F("slot", slot), diagnostics.F("mesh_count", len(model.meshes)))
+			model.drawLogged = true
 		}
 	}
 	return nil
