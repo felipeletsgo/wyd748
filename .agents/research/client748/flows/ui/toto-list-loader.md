@@ -17,13 +17,13 @@ inválido, linhas incompletas e reconstrução da Field?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; exports
   `00558290_FUN_00558290.c`, `0054fc81_FUN_0054fc81.c`,
   `00435b13_FUN_00435b13.c`, `00472651_FUN_00472651.c`,
   `00418828_FUN_00418828.c` e `0054f0f2_FUN_0054f0f2.c`.
-- Asset: `client748/UI/TOTOGame.csv`, header declarado `64` e 64 registros.
+- Asset: `tmproject/client748/UI/TOTOGame.csv`, header declarado `64` e 64 registros.
 - Source: `Basedef.cpp/.h` e caller em `TMFieldScene.cpp`.
 - Servidor: não participa deste loader; compra/aposta está fechada separadamente
   em `../transport/toto-buy.md`.
@@ -197,6 +197,6 @@ servidor revalida partida `1..80` sem confiar no conteúdo textual deste asset.
   nenhum campo acima de 31 bytes; `validate_research.py` e `git diff --check`
   passaram.
 - Build: a modernização integra o candidato final do lote TOTO; o build
-  Release/Win32 passou e instalou `client748/project.exe` SHA-256
+  Release/Win32 passou e instalou `tmproject/client748/project.exe` SHA-256
   `E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

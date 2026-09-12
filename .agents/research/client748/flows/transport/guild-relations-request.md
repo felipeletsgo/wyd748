@@ -15,7 +15,7 @@ Quais frames o client 7.48 envia ao confirmar guerra ou aliança entre guilds?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do frontmatter.
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export headless read-only
   completo em `%TEMP%/guild-relations-flow-full.tsv` e recorte versionado em
   `exports/guild-relations-flow.tsv`.
@@ -96,7 +96,7 @@ aliança, rejeição e rollback em testes.
 ## Lacunas
 
 - Guerra e aliança reais, rejeições, atualização dos dois clientes, troca de
-  cena e relogin ainda não foram executados no `client748/project.exe`; não é
+  cena e relogin ainda não foram executados no `tmproject/client748/project.exe`; não é
   `CLIENT_TESTED`.
 
 ## Validação

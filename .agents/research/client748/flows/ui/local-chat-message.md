@@ -17,7 +17,7 @@ o humano materializado e quem possui as linhas adicionadas ao chat?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter; referência histórica somente leitura.
 - Projeto Ghidra: `C:\Users\felipe\Tools\GhidraProjects\WYD748Native_20260821`,
   programa `/WYD.exe`, Ghidra 12.1.3, aberto read-only.
@@ -27,7 +27,7 @@ o humano materializado e quem possui as linhas adicionadas ao chat?
   `FUN_0052EAA9`, `FUN_0052D060`, `FUN_00481DD6`, `FUN_00407203`,
   `FUN_00408D33` e `FUN_0055F2DD` no corpus decompilado de 2026-08-21.
 - Source atual: `Basedef.h`, `TMFieldScene.cpp`, `TMHuman.cpp`,
-  `WYD748Compat.cpp` e o transporte em `client-source/tmproject`.
+  `WYD748Compat.cpp` e o transporte em `tmproject`.
 - Servidor atual: builder em `internal/wire/source_client.go`, gate em
   `internal/game/security.go` e dispatcher de chat do WYD-Go.
 - Assets: nenhum asset é carregado ou alterado por esta transição.
@@ -241,7 +241,7 @@ o próximo teste com dois clients.
 
 Estado da adaptação em 2026-09-03: `IMPLEMENTED / STATICALLY VERIFIED /
 AUTOMATED TESTED`. O build Release Win32 passou com zero erros e instalou
-`client748/project.exe` com SHA-256
+`tmproject/client748/project.exe` com SHA-256
 `BA85D6CB23D88E3C56DE7A996D0A782E0888CE8819CAE23448A16334510D2277`.
 Ainda falta executar no jogo abertura do campo, filtros, envio, recepção,
 whisper, mail, fechamento e troca de cena/relogin; portanto não é
@@ -306,7 +306,7 @@ reteste separado de `=`, `-`, `--`, whisper e mail.
 - Executar chat curto, texto de 95+ bytes, party com membro fora da tela,
   remetente materializado, os quatro filtros nativos, logout durante chat e
   relogin no
-  `client748/project.exe` recompilado.
+  `tmproject/client748/project.exe` recompilado.
 - Receber mail `!`, confirmar o indicador `875`, abrir a quarta aba, conferir
   remetente/horário/texto, fechar por `866` e `Esc` e repetir após relogin.
 - Capturar C->S e S->C em runtime para confirmar a integração completa com o
@@ -324,7 +324,7 @@ reteste separado de `=`, `-`, `--`, whisper e mail.
   gameplay space.
 - Suíte completa: `go test -count=1 ./...` passou.
 - Build: `Build-Client.ps1` passou com zero erros e 31 warnings preexistentes;
-  instalou `client748/project.exe` com SHA-256
+  instalou `tmproject/client748/project.exe` com SHA-256
   `E0B3D433B8C0CAD7E9AD015101A4BA0214E6E3D6D38E9EACFF264109234598C5`.
 - Higiene: `git diff --check` passou; não restou referência ativa que trate
   `0x333`/`MSG_MessageChat` como frame de 140 bytes.
@@ -378,7 +378,7 @@ as mudanças afetam somente a linha criada para a UI:
 Classificação: `MODERNIZACAO_COMPATIVEL`. Não houve alteração de packet,
 layout, ownership ou teardown. O build oficial
 `Build-Client.ps1 -Configuration Release` terminou com zero erros e instalou
-`client748/project.exe` com SHA-256
+`tmproject/client748/project.exe` com SHA-256
 `2B6E9635F9B10A2BA1E0231D2FDCFA0120DA5A3A5753BDFF51A5C51EAD163A0F`.
 `go test -count=1 ./internal/game ./internal/wire` e `git diff --check`
 passaram. O teste visual com dois clients ainda é necessário antes de elevar
@@ -399,7 +399,7 @@ recebido aplica a mesma regra já usada pelo emissor, sem alterar o wire,
 filtros, cores, ownership ou lifecycle.
 
 O build oficial foi repetido após este ajuste, terminou com zero erros e
-instalou `client748/project.exe` com SHA-256
+instalou `tmproject/client748/project.exe` com SHA-256
 `2B6E9635F9B10A2BA1E0231D2FDCFA0120DA5A3A5753BDFF51A5C51EAD163A0F`.
 O novo candidato ainda precisa do teste real entre dois clients, principalmente
 com mensagens acima do limite e todos os prefixos de canal.

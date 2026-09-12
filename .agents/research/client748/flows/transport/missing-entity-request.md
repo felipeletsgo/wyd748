@@ -17,14 +17,14 @@ virar uma consulta global do mapa?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export focado
   `exports/request-mob-by-id-flow.tsv`, SHA-256
   `77EC34161BBB36E3F28B1B25C3FBF09EE2DAC8A0996AD24C7525F3943FD68B9F`.
 - Assets: `NÃO APLICÁVEL`; o request não contém recurso ou UI.
 - Source atual: `TMFieldScene.cpp` e `Basedef.h` em
-  `client-source/tmproject/TMProject748/`.
+  `tmproject/TMProject748/`.
 - Servidor: `internal/game/character_session.go`, `internal/game/security.go`,
   `internal/game/session_drops_test.go` e `internal/wire/opcodes.go`.
 - TMProject posterior e guias: `NÃO APLICÁVEL`; o ABI foi decidido pelo

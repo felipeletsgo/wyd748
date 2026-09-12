@@ -16,7 +16,7 @@ locais devem permanecer quando o aviso chega à cena?
 
 ## Fronteira de evidência
 
-- `UTILIZADA` — executável histórico `client748/wyd.exe nativo+patches/WYD.exe`,
+- `UTILIZADA` — executável histórico `references/client748/WYD.exe`,
   identificado pelo hash nativo registrado nesta ficha.
 - `UTILIZADA` — Ghidra `FUN_0055890A @ 0x0055890A` (tamanho) e
   `FUN_0049889A @ 0x0049889A` (branch do opcode e efeitos).
@@ -135,7 +135,7 @@ tráfego de billing sem uma feature coordenada.
 
 ## Lacunas
 
-- Executar um frame válido e um frame recusado no `client748/project.exe` com
+- Executar um frame válido e um frame recusado no `tmproject/client748/project.exe` com
   MessageBox materializado.
 - Confirmar em runtime o indicador billing após troca de cena e relogin.
 

@@ -17,14 +17,14 @@ esse estado para impedir PvP quando o modo esta desligado?
 
 ## Fronteira de evidência
 
-- Executavel: `client748/wyd.exe nativo+patches/WYD.exe`, com o SHA-256 do
+- Executavel: `references/client748/WYD.exe`, com o SHA-256 do
   frontmatter.
 - Projeto Ghidra: `WYD748Native_20260821.gpr`.
 - Raiz nativa: `FUN_0044ECAE`, correspondente a `TMFieldScene::SetPK`.
 - Callers diretos: `FUN_004523FA`, `FUN_004541F3` e `FUN_004662C5`.
 - Callee de transporte: `FUN_0055F2DD`.
 - Source atual: `TMFieldScene::SetPK` em
-  `client-source/tmproject/Projects/TMProject/TMFieldScene.cpp`.
+  `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp`.
 - Servidor atual: `internal/game/teleports.go`, `handlers.go`,
   `skill_pvp.go`, `skill_summons.go` e `character_session.go`.
 - Referencia funcional secundaria: `DOCS/GUIA/GUIAS_JOGABILIDADE.md`.
@@ -202,7 +202,7 @@ geral para ignorar o toggle.
 
 ## Lacunas
 
-- Executar o fluxo no `client748/project.exe`: `K` sem crash, PvP bloqueado
+- Executar o fluxo no `tmproject/client748/project.exe`: `K` sem crash, PvP bloqueado
   quando desligado, liberado quando ligado e PvE preservado.
 - Confirmar em runtime o reset para desligado depois de logout/relogin.
 - Kingdom, Castle e Guild War permanecem fora deste contrato ate possuirem
@@ -219,7 +219,7 @@ geral para ignorar o toggle.
   bloqueio/liberacao de ataque fisico, skill e summon, nao consumo de
   relogio/MP/cooldown/Hide na rejeicao e preservacao de PvE.
 - Client source: `Build-Client.ps1` aprovado em `Release|Win32`, com zero erros
-  e 13 warnings `C4018`; candidato instalado em `client748/project.exe`,
+  e 13 warnings `C4018`; candidato instalado em `tmproject/client748/project.exe`,
   SHA-256 `6884415003707C8C8A0EE1BDF02BE296D70F65D268E4995C3E701D3B73F7457C`.
 - Client real: pendente confirmar `K` sem crash, bloqueio desligado, permissao
   ligada, PvE desligado e reset depois de logout/relogin. Ate isso, nao alegar

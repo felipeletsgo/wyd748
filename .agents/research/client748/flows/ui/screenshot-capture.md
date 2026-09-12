@@ -16,7 +16,7 @@ a captura final na pasta `ScreenShot`?
 
 ## Fronteira de evidência
 
-- Executável: `client748/wyd.exe nativo+patches/WYD.exe`, identificado pelo
+- Executável: `references/client748/WYD.exe`, identificado pelo
   SHA-256 do frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr` e
   `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled`.
@@ -24,7 +24,7 @@ a captura final na pasta `ScreenShot`?
   `00427aa8_FUN_00427aa8.c`.
 - Caller: `FUN_0055DAB8`, dispatcher de mensagens da aplicação.
 - Source atual: `NewApp.cpp` e `D3DDevice.cpp` em
-  `client-source/tmproject/Projects/TMProject/`.
+  `tmproject/TMProject748/`.
 - Referência oficial recuperada pelo scraping:
   `https://www.wyd2.co.kr/guide/firstguide02_05.asp`, sintetizada em
   `DOCS/GUIA/GUIAS_JOGABILIDADE.md`.
@@ -179,8 +179,8 @@ ou enviado ao servidor.
 - Guia oficial: resultado JPG confirmado na síntese versionada do scraping.
 - Validador documental: exit 0; nove fichas válidas (`CONTRACT=4`,
   `LOCATED=3`, `TRACED=2`).
-- Build oficial: `client-source/tmproject/Build-Client.ps1` concluiu com zero
-  warnings e zero erros e instalou o candidato em `client748/project.exe`.
+- Build oficial: `tmproject/Build-Client.ps1` concluiu com zero
+  warnings e zero erros e instalou o candidato em `tmproject/client748/project.exe`.
 - SHA-256 do candidato compilado:
   `221AB0DB498D7193A64F884A32F2A7A0086A5CEBE352F3EEED918CE6F7FC4D09`.
 - Estado máximo alegado: `STATICALLY VERIFIED`; o build não promove a ficha a

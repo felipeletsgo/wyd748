@@ -17,14 +17,14 @@ client fabrique efeitos reservados?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export focado
   `exports/motion-emote-flow.tsv`, SHA-256
   `75038059083E12532ED4D83B573C3F5D2DFA9C3CE3706FB073CA29D1F99015CD`.
 - Assets: `NÃO APLICÁVEL`; este corte não altera animações, sons ou efeitos.
 - Source atual: `TMFieldScene.cpp`, `TMHuman.cpp` e `Basedef.h` em
-  `client-source/tmproject/TMProject748/`.
+  `tmproject/TMProject748/`.
 - Servidor: `internal/game/character_session.go`, `internal/game/visibility.go`,
   `internal/game/security.go`, `internal/wire/codec.go` e seus testes.
 - TMProject posterior e guias: `NÃO APLICÁVEL`; o contrato foi decidido pelo

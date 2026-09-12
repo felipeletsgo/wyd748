@@ -243,7 +243,7 @@ referência de compatibilidade 7.59, não prova nativa 7.48.
 
 ## Lacunas
 
-- Confirmar no `client748/project.exe` a abertura, aposta válida, rejeições,
+- Confirmar no `tmproject/client748/project.exe` a abertura, aposta válida, rejeições,
   rolagem, fechamento, jackpot, overflow, logout durante animação e relogin.
 - A distribuição exata de símbolos de `FUN_004D9100` no servidor 7.59 não é
   prova do 7.48; a implementação Go deve explicitar e testar sua distribuição.
@@ -256,7 +256,7 @@ referência de compatibilidade 7.59, não prova nativa 7.48.
 - Entrega: `IMPLEMENTED / STATICALLY VERIFIED`; client e servidor possuem um
   único contrato ativo, sem patch binário.
 - Build: `Build-Client.ps1` passou com 0 erros e 21 warnings existentes e
-  instalou `client748/project.exe`, SHA-256
+  instalou `tmproject/client748/project.exe`, SHA-256
   `3EDB581805265E8CB23ED81B44483EF59F9CDB48A170178D5B7E272F1C364774`.
 - Automação: `go test -count=1 ./internal/game ./internal/wire`,
   `go test -count=1 ./...`, `validate_research.py` e `git diff --check`

@@ -33,7 +33,7 @@ Essas limitações foram documentadas, não corrigidas neste lote de comentário
 ## Validação e retomada
 
 `git diff --check` passou. Nenhum build novo é exigido para comentários pela
-skill `wyd-go-feature`. O resultado final do último build iniciado na conversa
+skill `wydgo748-feature`. O resultado final do último build iniciado na conversa
 anterior não foi recuperado; não apresentar ausência de processo como sucesso.
 
 ## Inventário completo da API legada

@@ -17,12 +17,12 @@ a lado depois do carregamento do recurso?
 
 ## Fronteira de evidência
 
-- Executável: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 acima.
+- Executável: `references/client748/WYD.exe`, SHA-256 acima.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr` e
   `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled`.
 - Inicializador nativo: `FUN_00435b13`, export auxiliar
   `00435b13_FUN_00435b13.c`.
-- Recurso ativo: `client748/UI/FieldScene2.bin`.
+- Recurso ativo: `tmproject/client748/UI/FieldScene2.bin`.
 - Source adaptada: `TMFieldScene::InitializeCompatFieldScene` e
   `TMFieldScene::PositionCompatFeaturePanels`.
 - Capturas fornecidas em 2026-09-01: o candidato TMProject abriu as três
@@ -186,7 +186,7 @@ logout/relogin, inclusive em resolução superior.
 - `IMPLEMENTED`: a composição foi adicionada à source ativa.
 - `STATICALLY VERIFIED`: o validador de pesquisa e `git diff --check` passaram;
   o build `Release|Win32` v145 terminou com zero erros e 21 warnings
-  preexistentes. O pipeline instalou `client748/project.exe` com SHA-256
+  preexistentes. O pipeline instalou `tmproject/client748/project.exe` com SHA-256
   `CD92A005EBDAB0DF21D9BF5B1CB1C1FC593F048BB9011802B67D2F71539BF40B`.
 - Não é `CLIENT-TESTED`: build não comprova apresentação ou interação.
 

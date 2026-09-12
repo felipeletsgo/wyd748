@@ -17,7 +17,7 @@ emissores para payloads que o nativo não interpreta?
 
 ## Fronteira de evidência
 
-- Executável: `client748/wyd.exe nativo+patches/WYD.exe`, referência histórica
+- Executável: `references/client748/WYD.exe`, referência histórica
   somente leitura identificada pelo SHA-256 do frontmatter.
 - Handler nativo: `FUN_0049889A @ 0x0049889A`, reconstruído no corpus
   `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled`.
@@ -174,7 +174,7 @@ inventar payload nem ativar tráfego sem efeito funcional.
   desconhecida e desnecessária para o comportamento observado deste client.
 - Capturar `0x102/0x104` reais permitiria confirmar origem e frequência, mas
   não é requisito para o contrato de consumo já fechado.
-- Executar frames canônicos e malformados no `client748/project.exe` antes de
+- Executar frames canônicos e malformados no `tmproject/client748/project.exe` antes de
   qualquer claim `CLIENT_TESTED`.
 
 ## Validação
@@ -185,7 +185,7 @@ inventar payload nem ativar tráfego sem efeito funcional.
 - Pesquisa automatizada: `validate_research.py --repo .` passou com
   `CONTRACT=14`, `TRACED=6`, `LOCATED=4` e `UNMAPPED=2`.
 - Build: `Build-Client.ps1` passou em `Release|Win32` com zero erros e 31
-  warnings preexistentes; instalou `client748/project.exe` com SHA-256
+  warnings preexistentes; instalou `tmproject/client748/project.exe` com SHA-256
   `06598F434D36BC52CEDBEA63B8C2248DC8072B8857D4A08B0B92568A886940CB`.
 - Higiene: `git diff --check` passou e não restou número mágico de opcode
   `0x102/0x104` no handler da cena.

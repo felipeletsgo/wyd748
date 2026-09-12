@@ -17,14 +17,14 @@ widgets herdados da topologia 7.59+?
 
 ## Fronteira de evidência
 
-- Executável: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 acima.
+- Executável: `references/client748/WYD.exe`, SHA-256 acima.
 - Projeto Ghidra: `WYD748Native_20260821.gpr`.
 - Corpus auxiliar:
   `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled`.
 - Exports auxiliares: `.agents/research/client748/exports/ui-focus-ime.tsv`.
 - Source atual: `EventTranslator.cpp`, `NewApp.cpp`, `TMScene.cpp`,
   `TMFieldScene.cpp` e `SControlContainer.cpp` em
-  `client-source/tmproject/Projects/TMProject/`.
+  `tmproject/TMProject748/`.
 - Servidor: não há regra de gameplay neste fluxo; intenções originadas em
   controles continuam sujeitas à autoridade do WYD-Go.
 
@@ -272,7 +272,7 @@ ser usado como autoridade de gameplay.
 
 ## Lacunas
 
-- testar no `client748/project.exe` composição real, troca de foco,
+- testar no `tmproject/client748/project.exe` composição real, troca de foco,
   abrir/mudar/fechar candidatos e ausência de contexto;
 - testar troca de cena, logout e relogin durante/após composição;
 - confirmar visualmente clipping da página agregada em resoluções suportadas.
@@ -284,7 +284,7 @@ ser usado como autoridade de gameplay.
   construção, foco e teardown conferidos no projeto/corpus do hash registrado.
 - Adaptação: implementada na source em 2026-09-01. O build oficial Release
   Win32 v145 passou com zero erros e dois warnings C4305/C4309 preexistentes,
-  instalando `client748/project.exe` com SHA-256
+  instalando `tmproject/client748/project.exe` com SHA-256
   `1DF5956AC134BCAEB5C072E84B77EF9BBDFF6EDE30DAC8ACBE8616375CED6082`.
 - Estado de entrega: `STATICALLY VERIFIED`; o build não promove a ficha a
   `CLIENT_TESTED`.

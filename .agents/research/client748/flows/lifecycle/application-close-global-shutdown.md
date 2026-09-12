@@ -17,7 +17,7 @@ globais antes de destruir a janela e encerrar o message loop?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto Ghidra: `WYD748Native_20260821.gpr`; fluxo focado em
   `FUN_0055B18F`, `FUN_0055B26F`, `FUN_0055BC0A`, `FUN_0055D066`,
@@ -28,7 +28,7 @@ globais antes de destruir a janela e encerrar o message loop?
   `%TEMP%\codex-wyd748-lifecycle-149205b7`; todos registram o hash nativo e
   nenhum contém `SCRIPT ERROR`.
 - Source recompilável: `NewApp.cpp` e contratos de packet em
-  `client-source/tmproject/Projects/TMProject/`.
+  `tmproject/TMProject748/`.
 - Servidor: `internal/game/handlers.go`, `internal/wire/codec.go`,
   `internal/wire/opcodes.go` e o gate de tamanho em `internal/game/security.go`.
 
@@ -286,7 +286,7 @@ logout prematuro.
   justifique alteração funcional nesta unidade.
 - Não copiar offsets, vtables ou globals nativos para o TMProject.
 - Não promover para `CLIENT_TESTED` sem fechar a aplicação real a partir de
-  Field e de uma cena não-Field no `client748/project.exe` hasheado.
+  Field e de uma cena não-Field no `tmproject/client748/project.exe` hasheado.
 
 ## Lacunas
 

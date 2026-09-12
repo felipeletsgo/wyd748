@@ -17,13 +17,13 @@ personagens de segunda classe?
 
 ## Fronteira de evidência
 
-- Executável: `client748/wyd.exe nativo+patches/WYD.exe`, com o SHA-256 do
+- Executável: `references/client748/WYD.exe`, com o SHA-256 do
   frontmatter.
 - Projeto Ghidra: `WYD748Native_20260821.gpr`.
 - Decompilação auxiliar:
   `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled\004a4582_FUN_004a4582.c`.
 - Source atual:
-  `client-source/tmproject/Projects/TMProject/TMSelectCharScene.cpp` e as
+  `tmproject/TMProject748/internal/app/scenes/TMSelectCharScene.cpp` e as
   tabelas em `Basedef.h`.
 - Escopo: mutação textual local dos controles `1314` e `1315`; não há packet,
   ABI, loader, persistência ou regra server-side neste fluxo.
@@ -170,7 +170,7 @@ a tela apenas apresenta o agregado recebido e já armazenado para seleção.
 
 ## Lacunas
 
-- Executar no `client748/project.exe` a seleção de um personagem comum e um
+- Executar no `tmproject/client748/project.exe` a seleção de um personagem comum e um
   personagem de segunda classe.
 - Confirmar visualmente que `1314` contém a EXP atual e `1315` o limiar
   absoluto correto para cada tabela.
@@ -185,6 +185,6 @@ a tela apenas apresenta o agregado recebido e já armazenado para seleção.
 - Automação: `validate_research.py --repo .` aprovado com `CONTRACT=4`,
   `LOCATED=3` e `TRACED=1`.
 - Client source: `Build-Client.ps1` aprovado com zero erros e zero avisos;
-  candidato instalado em `client748/project.exe`, SHA-256
+  candidato instalado em `tmproject/client748/project.exe`, SHA-256
   `51AFF48D55D475E510A083CE8B469776E657BDBEA61E200BFA81FAD26E3C76CE`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

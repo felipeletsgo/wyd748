@@ -74,8 +74,8 @@ ainda pode desenhar HP/MP altos quase zerados. Próxima investigação:
 1. breakpoint na escrita do sidecar wide;
 2. confirmar todos os produtores de CurHP/MaxHP/CurMP/MaxMP;
 3. identificar a rotina da barra e sua escala;
-4. adaptar a rotina correspondente em `client-source/` com teste focado;
-5. compilar, confirmar a instalação automática de `client748/project.exe` e
+4. adaptar a rotina correspondente em `tmproject/` com teste focado;
+5. compilar, confirmar a instalação automática de `tmproject/client748/project.exe` e
    validar a barra in-game.
 
 Não alterar o servidor para compensar um erro exclusivamente visual.
@@ -113,7 +113,7 @@ importados. Ainda falta:
    equipar, desequipar, relogar e transformações do BeastMaster;
 2. obter de uma distribuição KR completa os arquivos ausentes que bloqueiam
    outros 96 itens catalogados historicamente em
-   `client748/wyd.exe nativo+patches/Costumes-KR.json`; promover cada entrada
+   `references/client748/Costumes-KR.json`; promover cada entrada
    comprovada para os assets/dados ativos antes de habilitá-la. O client KR Test
    fornecido é subconjunto do KR atual e não completa essas dependências;
 3. validar sob carga o prazo absoluto server-side já compartilhado por fadas,

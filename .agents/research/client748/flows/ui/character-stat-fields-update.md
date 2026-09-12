@@ -17,13 +17,13 @@ de Score/equipamento e depois de logout/relogin?
 
 ## Fronteira de evidência
 
-- Executavel: `client748/wyd.exe nativo+patches/WYD.exe`, com o SHA-256 do
+- Executavel: `references/client748/WYD.exe`, com o SHA-256 do
   frontmatter.
 - Projeto Ghidra: `WYD748Native_20260821.gpr`.
 - Raizes nativas: `FUN_00435B13` (construcao/binding da FieldScene) e
   `FUN_004431E4` (projecao do estado nos controles).
 - Source atual:
-  `client-source/tmproject/Projects/TMProject/TMFieldScene.cpp` e
+  `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp` e
   `ResourceControl.h`.
 - Servidor atual: `internal/wire/codec.go`,
   `internal/wire/session_packets_test.go` e o pacote de entrada no mundo.
@@ -197,7 +197,7 @@ independentes.
 
 ## Lacunas
 
-- Abrir Character no `client748/project.exe` e confirmar Att Speed em `1110`.
+- Abrir Character no `tmproject/client748/project.exe` e confirmar Att Speed em `1110`.
 - Confirmar que Kingdom e HOLD permanecem ocultos para personagem sem reino e
   Hold zero, inclusive apos atualizacao de Score/equipamento.
 - Confirmar C.POINT nos dois valores do formato nativo.
@@ -213,7 +213,7 @@ independentes.
   persistido; testes impedem vazamento de CP/Chaos e cobrem seu lifecycle.
 - Client source: `IMPLEMENTED / STATICALLY VERIFIED`; `Build-Client.ps1`
   concluiu `Release|Win32` com zero erros e 13 warnings C4018 e
-  instalou `client748/project.exe` com SHA-256
+  instalou `tmproject/client748/project.exe` com SHA-256
   `ADFA0B99C17F96367F05E6718E61512039AB50CA54CBDDB104333EF663210795`.
 - Automação: `go test -count=1 ./...`, `validate_research.py` e
   `git diff --check` passaram para o lote.

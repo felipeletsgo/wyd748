@@ -17,7 +17,7 @@ no TMProject atual?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter; referência histórica somente leitura.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; xrefs focados de
   `FUN_00492E7D`, `FUN_004929FE`, `FUN_0047E8E2`, `FUN_0047E9B6`,
@@ -25,7 +25,7 @@ no TMProject atual?
   deleting destructor `FUN_00493BC0`.
 - Assets: N/A; o fluxo não carrega recurso visual.
 - Source atual: `TMFieldScene.cpp`, `TMFieldScene.h` e `Basedef.h` em
-  `client-source/tmproject/Projects/TMProject/`.
+  `tmproject/TMProject748/`.
 - Servidor: busca completa pelos opcodes/dispatchers atuais do WYD-Go; não há
   produtor de `0x2C8`.
 

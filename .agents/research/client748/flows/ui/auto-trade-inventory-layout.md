@@ -22,7 +22,7 @@ coordenada residual quando ela é reaberta pelo toggle normal?
   `WYD748Native_20260821.gpr`.
 - Corpus auxiliar: `0044ae38_FUN_0044ae38.c` e
   `00447691_FUN_00447691.c`.
-- Recurso: `client748/UI/FieldScene2.bin`, roots AutoTrade, Cargo e Inventory
+- Recurso: `tmproject/client748/UI/FieldScene2.bin`, roots AutoTrade, Cargo e Inventory
   `257`.
 - Source: `TMFieldScene::PositionCompatFeaturePanels()`,
   `TMFieldScene::SetVisibleInventory()` e

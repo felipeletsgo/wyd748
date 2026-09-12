@@ -18,7 +18,7 @@ de texto a source recompilavel deve preservar antes de entregar o frame a
 ## Fronteira de evidência
 
 - `UTILIZADA` — executavel historico
-  `client748/wyd.exe nativo+patches/WYD.exe`, identificado pelo SHA-256 do
+  `references/client748/WYD.exe`, identificado pelo SHA-256 do
   frontmatter e mantido somente como referencia.
 - `UTILIZADA` — projeto/corpus Ghidra canonico, em especial o gate
   `FUN_0055890A @ 0x0055890A` e o receptor
@@ -159,7 +159,7 @@ com um prefixo consumido pelo parser existente da cena.
 
 ## Lacunas
 
-- Exercitar no `client748/project.exe` aviso comum, os prefixos usados pela
+- Exercitar no `tmproject/client748/project.exe` aviso comum, os prefixos usados pela
   source, troca de cena e logout/relogin antes de qualquer claim
   `CLIENT_TESTED`.
 - Confirmar visualmente duracao, truncamento e apresentacao com um servidor

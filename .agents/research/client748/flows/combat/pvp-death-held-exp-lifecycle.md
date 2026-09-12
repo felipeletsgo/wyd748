@@ -17,7 +17,7 @@ confundir com CP/Chaos?
 
 ## Fronteira de evidência
 
-- Executavel/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executavel/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; o consumo visual de
   Hold/FakeExp e seus controles esta fechado em
@@ -209,7 +209,7 @@ fica vermelho a partir de 80%, o mesmo limiar da penalidade de MaxHP.
   persistencia, rollback e frames wire. `go test -count=1 ./...`,
   `validate_research.py` e `git diff --check` passaram.
 - Client source: `Build-Client.ps1` concluiu `Release|Win32` com zero erros e
-  13 warnings C4018 e instalou `client748/project.exe` com SHA-256
+  13 warnings C4018 e instalou `tmproject/client748/project.exe` com SHA-256
   `ADFA0B99C17F96367F05E6718E61512039AB50CA54CBDDB104333EF663210795`.
 - Client real: nao executado; estado maximo `IMPLEMENTED / STATICALLY VERIFIED`,
   sem claim `CLIENT_TESTED`.

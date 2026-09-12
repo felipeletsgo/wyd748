@@ -198,7 +198,7 @@ compra; os demais erros continuam no painel textual legado.
 
 ## Lacunas
 
-- Executar no `client748/project.exe` um convite de grupo e uma compra em loja
+- Executar no `tmproject/client748/project.exe` um convite de grupo e uma compra em loja
   fantasma sem gold, confirmando os textos localizados e o nome do líder.
 - Executar também fallback por índice vazio/inválido e `0x106` com zero/seis
   parâmetros.
@@ -216,6 +216,6 @@ compra; os demais erros continuam no painel textual legado.
 - Validador: `validate_research.py --repo .` passou com esta ficha mantida em
   `UNMAPPED`, por ser extensão sem transição nativa correspondente.
 - Build: `Build-Client.ps1` passou em `Release|Win32` com toolset v145, zero
-  erros e 31 warnings preexistentes; instalou `client748/project.exe` com
+  erros e 31 warnings preexistentes; instalou `tmproject/client748/project.exe` com
   SHA-256 `9E225456063C5DC77917C007FDCA9ECD05DDC9312FD25D9AB28FE55F334B5BF4`.
 - Client real: não executado; nenhuma alegação `CLIENT_TESTED` é feita.

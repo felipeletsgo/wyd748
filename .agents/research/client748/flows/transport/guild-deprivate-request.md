@@ -15,7 +15,7 @@ Qual frame o client 7.48 envia ao confirmar a expulsão de um membro da guild?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do frontmatter.
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export focado `exports/guild-deprivate-flow.tsv`.
 - Assets: `NÃO APLICÁVEL`; o contrato é um envelope de 16 bytes.
 - Source atual: `TMFieldScene.cpp`, `Basedef.h` e `internal/wire/GuildDeprivatePacket.h`.
@@ -80,7 +80,7 @@ genérica `MSG_STANDARDPARM` sem mudar alvo, caixa ou callback. O WYD-Go já exi
 ## Lacunas
 
 - Expulsão real, rejeição por cargo, publicação, troca de cena e relogin ainda
-  não foram executados no `client748/project.exe`; não é `CLIENT_TESTED`.
+  não foram executados no `tmproject/client748/project.exe`; não é `CLIENT_TESTED`.
 
 ## Validação
 

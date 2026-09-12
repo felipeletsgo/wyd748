@@ -17,14 +17,14 @@ autoritativo quando o servidor rejeita a intenção?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; exports focados
   `0044f88f_FUN_0044f88f.c`, `00452661_FUN_00452661.c`,
   `00453c59_FUN_00453c59.c`, `004541f3_FUN_004541f3.c` e
   `004662c5_FUN_004662c5.c`.
 - Source: `TMFieldScene::UsePPotion`, `OnKeyPPotion`, `OnCharEvent` e o ABI de
-  `MSG_UseItem` em `client-source/tmproject/Projects/TMProject/`.
+  `MSG_UseItem` em `tmproject/TMProject748/`.
 - Servidor: `internal/game/consumables.go` e o teste de rejeição/cooldown em
   `internal/game/consumables_handler_test.go`.
 - Assets: nenhum asset novo; os controles `0x417` e `0x9C98` apenas fornecem
@@ -213,7 +213,7 @@ que uma rejeição enfileira exatamente uma ressincronização do slot.
 
 ## Lacunas
 
-- Executar `E/e`, `0x417` e `0x9C98` no `client748/project.exe` com unidade,
+- Executar `E/e`, `0x417` e `0x9C98` no `tmproject/client748/project.exe` com unidade,
   pilha, item 3378 e cooldown.
 - Capturar o packet e a confirmação/rejeição em sessão real.
 - Confirmar visualmente a reconstrução da pilha após rejeição. Essas lacunas
@@ -227,6 +227,6 @@ que uma rejeição enfileira exatamente uma ressincronização do slot.
 - Automação: teste focado de cooldown, `go test -count=1 ./...`,
   `validate_research.py` e `git diff --check` passaram.
 - Build: `Build-Client.ps1` passou em Release/Win32 com 13 warnings já
-  existentes e zero erros. O `client748/project.exe` instalado tem SHA-256
+  existentes e zero erros. O `tmproject/client748/project.exe` instalado tem SHA-256
   `813DB51D963D14728A3D3ECB014759DAB77ADBDECA10D3AF4C9D80355039CB2A`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

@@ -17,7 +17,7 @@ aplicada?
 
 ## Fronteira de evidência
 
-- Executável: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 acima.
+- Executável: `references/client748/WYD.exe`, SHA-256 acima.
 - Projeto: `WYD748Native_20260821`; corpus `GhidraAnalysis/20260821/decompiled`.
 - Nativo localizado: `FUN_0055890A @ 0x0055890A`.
 - Exports focados:

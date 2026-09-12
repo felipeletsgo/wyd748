@@ -27,7 +27,7 @@ autoritativos?
   `1894/0x766`, catálogo de itens e atlas de skills `199` para UI2 ou `1` para
   o layout legado.
 - Source: `Basedef.h`, `SGrid.cpp`, `TMFieldScene.cpp` e
-  `WYD748Compat.cpp` em `client-source/tmproject/Projects/TMProject/`.
+  `WYD748Compat.cpp` em `tmproject/TMProject748/`.
 - Server: `internal/game/skills.go`, dispatcher em `internal/game/world.go`,
   catálogo de NPC/item/skill e testes em `internal/game`.
 
@@ -235,7 +235,7 @@ os três estados; falha de save restaura tudo.
 
 ## Lacunas
 
-- executar no `client748/project.exe`: abrir cada mestre, conferir ícones,
+- executar no `tmproject/client748/project.exe`: abrir cada mestre, conferir ícones,
   confirmar e cancelar, validar rejeições e observar os snapshots de sucesso;
 - validar fechamento por X e Esc e reabertura sem item/mestre stale;
 - validar logout/relogin depois de sucesso e durante uma confirmação aberta;
@@ -252,7 +252,7 @@ os três estados; falha de save restaura tudo.
   `Build-Client.ps1`, o validador de fichas e `git diff --check` passaram.
   O build Release Win32 v145 terminou com zero erros e 15 warnings C4018
   preexistentes fora das linhas alteradas.
-- Artefato: o build oficial instalou `client748/project.exe` com SHA-256
+- Artefato: o build oficial instalou `tmproject/client748/project.exe` com SHA-256
   `85FC6B2541784C4AF83A275B5614FD74B8990A303A6618AEC21DFBB02FE602D2`.
 - Follow-up visual em 2026-09-01: `SGridControlItem` passou a aplicar as caixas
   UI2 nativas `23/32`, e `SetVisibleSkillMaster` passou a reproduzir a

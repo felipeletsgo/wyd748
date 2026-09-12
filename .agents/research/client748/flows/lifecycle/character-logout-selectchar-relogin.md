@@ -17,7 +17,7 @@ entra novamente no mundo?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; raízes focadas de logout
   e relogin inspecionadas diretamente no projeto, sem usar a source moderna
@@ -25,7 +25,7 @@ entra novamente no mundo?
 - Assets: `FieldScene2.bin`, apenas para os IDs nativos `633..636`; nenhum
   recurso visual foi criado ou alterado.
 - Source atual: `TMFieldScene.cpp` e `ObjectManager.cpp` em
-  `client-source/tmproject/Projects/TMProject/`.
+  `tmproject/TMProject748/`.
 - Servidor: `internal/game/character_session.go`, dispatcher e contratos em
   `internal/wire/`.
 
@@ -192,7 +192,7 @@ confirmação quando a persistência atômica falha.
 
 ## Lacunas
 
-- Executar no `client748/project.exe` os quatro controles, a volta à seleção e
+- Executar no `tmproject/client748/project.exe` os quatro controles, a volta à seleção e
   o relogin do mesmo e de outro slot.
 - Validar em runtime falha de save, rejeição de login e queda de conexão entre
   `0x215` e `0x116`.
@@ -209,7 +209,7 @@ confirmação quando a persistência atômica falha.
   `LOCATED` e 4.083 `UNMAPPED`.
 - Servidor: `go test ./internal/game ./internal/wire` aprovado.
 - Client source: `Build-Client.ps1` aprovado com 31 warnings preexistentes e
-  zero erros; candidato instalado em `client748/project.exe`, SHA-256
+  zero erros; candidato instalado em `tmproject/client748/project.exe`, SHA-256
   `746A2913FA62DD56892319BD136CD15810A4B74092AD75F354E60C6B3FFC5BBD`.
 - Higiene: `git diff --check` aprovado; somente avisos informativos de LF/CRLF
   do Git no Windows.

@@ -8,7 +8,7 @@ Este relatório cobre todas as entradas presentes em `functions.tsv`. Ele identi
 
 - Corpus: `C:\Users\felipe\Tools\GhidraAnalysis\20260821\decompiled`
 - Inventário TSV: `C:\Users\felipe\Documents\CLAUDE\SERVER 7.54\wyd-go\.agents\research\client748\inventory\functions.tsv`
-- Binário de referência: `client748/wyd.exe nativo+patches/WYD.exe`
+- Binário de referência: `references/client748/WYD.exe`
 - A confirmação de hash permanece obrigatória antes de usar endereços.
 
 ## Contagem

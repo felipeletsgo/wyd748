@@ -17,7 +17,7 @@ login e relogin?
 
 ## Fronteira de evidência
 
-- Executavel: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 acima.
+- Executavel: `references/client748/WYD.exe`, SHA-256 acima.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr` e
   `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled`.
 - Inicializador nativo: `FUN_004A8F14`, cena do estado `7`.
@@ -26,7 +26,7 @@ login e relogin?
 - Source ativa: `TMSelectServerScene::InitializeScene` e
   `TMSelectServerScene::InitializeUI`.
 - Recurso: `UI\SelServerScene2.txt`, materializado por
-  `client748/UI/SelServerScene2.bin`.
+  `tmproject/client748/UI/SelServerScene2.bin`.
 - Captura fornecida em 2026-09-02: o conjunto Server/Channel aparecia
   deslocado para baixo em relacao ao client original.
 
@@ -242,7 +242,7 @@ incluindo retorno do login e logout/relogin.
   nativo.
 - Automacao: `validate_research.py` e `git diff --check` passaram; o build
   oficial `Release|Win32` v145 terminou com zero erros e zero warnings e
-  instalou `client748/project.exe` com SHA-256
+  instalou `tmproject/client748/project.exe` com SHA-256
   `6E6AF9A88CC81729E866277F2B81618E9FA9A0B07C26C54D9C552CE719A380BC`.
 - Client real: ainda nao e `CLIENT_TESTED`.
 

@@ -8,7 +8,7 @@ Estado geral: `STATICALLY VERIFIED`
 Transformar a descompilação do client nativo WYD 7.48 em conhecimento
 reproduzível para claims de paridade e fronteiras legadas, sem bloquear
 modernizações internas ou extensões coordenadas do WYD-Go e de
-`client-source/tmproject`. O programa separa fatos do 7.48, estrutura posterior
+`tmproject`. O programa separa fatos do 7.48, estrutura posterior
 compatível e contratos novos deliberadamente implementados nos dois lados.
 
 Este handoff cobre a infraestrutura de pesquisa, as fichas do programa e os
@@ -31,7 +31,7 @@ catálogo -> callgraph -> fluxo observável -> adaptação -> validação
 
 `wyd-client748-catalog` mantém o censo das 4.146 funções e entrega uma fila
 reproduzível. `wyd-client748-research` fecha claims nativos no projeto Ghidra.
-`wyd-go-feature` classifica cada delta como `PARIDADE_NATIVA`,
+`wydgo748-feature` classifica cada delta como `PARIDADE_NATIVA`,
 `MODERNIZACAO_COMPATIVEL` ou `EXTENSAO_COORDENADA`: paridade depende da ficha
 `TRACED`/`CONTRACT`; modernização prova somente as fronteiras preservadas;
 extensão especifica e testa o contrato client/server novo sem fabricar um
@@ -46,8 +46,8 @@ presumidos intencionais; ausência no nativo 7.48 não autoriza remoção.
 ## Fontes e artefatos
 
 ```text
-client748/wyd.exe nativo+patches/WYD.exe | referência histórica Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                    | candidato source volátil    | DB88DCC9D3CE085F383CD8B357EDEF6E5FB0C439DA91A8F075ADC5302C6385E7
+references/client748/WYD.exe | referência histórica Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
+tmproject/client748/project.exe                    | candidato source volátil    | DB88DCC9D3CE085F383CD8B357EDEF6E5FB0C439DA91A8F075ADC5302C6385E7
 %USERPROFILE%\Tools\GhidraProjects\WYD748Native_20260821.gpr | projeto Ghidra | descobrir no perfil
 %USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled       | corpus auxiliar | 4.146 funções
 ```
@@ -59,7 +59,7 @@ tipos, stack ou lifecycle no projeto Ghidra.
 
 ## Evidência confirmada
 
-- `wyd-client748-research` é o gate anterior a `wyd-go-feature` para client,
+- `wyd-client748-research` é o gate anterior a `wydgo748-feature` para client,
   protocolo, wire/ABI, UI, input, render, assets e lifecycle. A skill foi
   validada em 2026-08-28 pelo `quick_validate.py` do `skill-creator`.
 - `wyd-client748-catalog` é a trilha anterior de censo e priorização. O
@@ -69,7 +69,7 @@ tipos, stack ou lifecycle no projeto Ghidra.
 - O triador foi corrigido e validado nos formatos `summary`, `json` e `tsv`.
   Com `--top 5`, o JSON mantém `functions=4146` e informa
   `selected_functions=5`; o TSV completo produz 4.147 linhas com cabeçalho.
-- `wyd-client748-research` e `wyd-go-feature` separam estados de pesquisa
+- `wyd-client748-research` e `wydgo748-feature` separam estados de pesquisa
   (`UNMAPPED`/`LOCATED`/`TRACED`/`CONTRACT`) de entrega
   (`IMPLEMENTED`/`CLIENT_TESTED`). O catálogo é usado ao abrir raiz sem fila
   válida ou quando seus inputs mudam. As três skills passaram no
@@ -330,9 +330,9 @@ tipos, stack ou lifecycle no projeto Ghidra.
   Para uma fronteira legada, IDs, recursos, packets, offsets, endereços, layouts,
   loaders e lifecycle continuam sendo claims a provar no 7.48. Para extensão
   coordenada, esses elementos são projetados e testados nos consumidores atuais.
-- Toda alteração ativa do client pertence a `client-source/` ou aos assets. O
-  build oficial é `client-source/tmproject/Build-Client.ps1`, e
-  `client748/project.exe` é o único candidato executável e de validação.
+- Toda alteração ativa do client pertence a `tmproject/` ou aos assets. O
+  build oficial é `tmproject/Build-Client.ps1`, e
+  `tmproject/client748/project.exe` é o único candidato executável e de validação.
 
 ## Estado atual
 
@@ -356,7 +356,7 @@ loader/seleção TOTO                      | STATICALLY VERIFIED | loader zero-b
 compra TOTO 0x3CE                       | AUTOMATED TESTED     | ficha CONTRACT; server autoritativo e rollback testados
 Gamble/Jackpot 0x2BE/0x1BF             | AUTOMATED TESTED     | ficha CONTRACT; timeout de rejeição e server autoritativo implementados
 código ativo do client                    | IMPLEMENTED         | inclui NewApp/TMGlobal; servidor preservado
-client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
+tmproject/client748/project.exe no fluxo real      | NÃO TESTADO          | proibido declarar CLIENT-TESTED
 ```
 
 ### Delta de 2026-08-31 — EXP na seleção de personagem
@@ -387,7 +387,7 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
   `MODERNIZACAO_COMPATIVEL` e substitui somente o BMP temporário/conversão.
 - Não há mudança server-side, packet, ABI, layout ou estado persistente.
 - O build oficial concluiu com zero warnings e zero erros e instalou
-  `client748/project.exe` com SHA-256
+  `tmproject/client748/project.exe` com SHA-256
   `221AB0DB498D7193A64F884A32F2A7A0086A5CEBE352F3EEED918CE6F7FC4D09`.
 - O estado máximo é `STATICALLY VERIFIED`. O teste real de duas capturas,
   abertura dos JPGs e falha de escrita permanece pendente; não alegar
@@ -399,9 +399,9 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
   política `gpt-5.6-sol/xhigh` quando disponível e proteção do trabalho manual.
 - `.agents/skills/wyd-client748-catalog/` — skill, estratégia, metadados e
   triador determinístico do corpus.
-- `client-source/AGENTS.md` — source de implementação única, escolha da
+- `AGENTS.md` — source de implementação única, escolha da
   estrutura superior compatível e gates distintos para paridade e extensão.
-- `.agents/skills/wyd-go-feature/SKILL.md` — implementa paridade, modernização
+- `.agents/skills/wydgo748-feature/SKILL.md` — implementa paridade, modernização
   compatível ou extensão coordenada sem promover hipótese nativa.
 - `.agents/skills/wyd-client748-research/` — nova skill, referências, metadados
   e ferramentas reproduzíveis, incluindo export e correlação diferencial de
@@ -420,7 +420,7 @@ client748/project.exe no fluxo real      | NÃO TESTADO          | proibido decl
   Ghidra e não pertencem ao commit.
 - `.agents/handoffs/client748-research-program.md` — estado operacional deste
   programa.
-- `client-source/tmproject/Projects/TMProject/NewApp.cpp`, `TMGlobal.cpp` e
+- `tmproject/TMProject748/internal/app/scenes/NewApp.cpp`, `TMGlobal.cpp` e
   `TMGlobal.h` — remoção do `g_LoginSocket` e do callback `WM_USER + 1`
   inalcançáveis; `g_pSocketManager`/`WM_USER + 100` permanecem ativos.
 - `.agents/handoffs/client748-parity.md` — escopo anterior preservado e não
@@ -447,7 +447,7 @@ resultado: exit 0; lote TOTO focado
 go test -count=1 ./...
 resultado: exit 0; suíte completa após o lote TOTO
 
-client-source/tmproject/Build-Client.ps1
+tmproject/Build-Client.ps1
 resultado mais recente: exit 0; 23 warnings preexistentes e zero erros; candidato
 instalado com SHA-256
 E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94
@@ -518,7 +518,7 @@ python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.
 resultado: exit 0; Skill is valid!
 
 python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-client748-catalog
-python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wyd-go-feature
+python %USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wydgo748-feature
 resultado: exit 0; ambas as skills adicionais são válidas
 
 python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
@@ -630,7 +630,7 @@ ocorrências.
   `flows/ui/cc-auto-combat-state-sync.md` e está `TRACED`; entrada, caller,
   mutação, controles, ownership e teardown foram registrados.
 - `Build-Client.ps1` passou com zero erros e 21 warnings preexistentes; o
-  `client748/project.exe` instalado tem SHA-256
+  `tmproject/client748/project.exe` instalado tem SHA-256
   `CE4F2775B382200601EAF59ABA4271D4EDC271C2A072EE29915AFB1B0E525F94`.
 - Não houve execução real dos controles; não alegar `CLIENT_TESTED`.
 
@@ -666,7 +666,7 @@ ocorrências.
   redução visual antecipada pelo client. O teste focado, a suíte Go completa,
   `validate_research.py` e `git diff --check` passaram.
 - `Build-Client.ps1` passou com 13 warnings já existentes e zero erros; o
-  `client748/project.exe` instalado tem SHA-256
+  `tmproject/client748/project.exe` instalado tem SHA-256
   `813DB51D963D14728A3D3ECB014759DAB77ADBDECA10D3AF4C9D80355039CB2A`.
 - Não houve execução real do atalho; não alegar `CLIENT_TESTED`.
 
@@ -680,7 +680,7 @@ ocorrências.
   registra os callers adicionais `FUN_004541F3` e `FUN_004662C5`, falhas sem
   mutação e lifecycle completo desta ação síncrona.
 - `validate_research.py` e `git diff --check` passaram. `Build-Client.ps1`
-  passou com 13 warnings preexistentes e zero erros; `client748/project.exe`
+  passou com 13 warnings preexistentes e zero erros; `tmproject/client748/project.exe`
   tem SHA-256
   `A9C2233C26957ED2415A796AB55034DBC2A6A0B600A38570F35F0CCD8846FF24`.
 - Não houve execução real do atalho; não alegar `CLIENT_TESTED`.
@@ -702,7 +702,7 @@ ocorrências.
 - O asset atual passou na verificação estrutural com header 64, 64 registros,
   índices 1..64 e nenhum campo acima do limite. `validate_research.py` e
   `git diff --check` passaram.
-- `Build-Client.ps1` passou e instalou `client748/project.exe` com SHA-256
+- `Build-Client.ps1` passou e instalou `tmproject/client748/project.exe` com SHA-256
   `CC317B6FB3EE4723DD0348AA32431ABA45D87AF7329936D5F15E3D0D8A06AFA3`.
 - Não houve execução real da Field; não alegar `CLIENT_TESTED`. Compra/aposta
   permanece fora deste lote.
@@ -724,7 +724,7 @@ ocorrências.
   correlação source única. `TotoBuy` e `0x3CE` foram fechados depois na ficha
   `flows/transport/toto-buy.md`, sem promover esta ficha além de `TRACED`.
 - `validate_research.py` e `git diff --check` passaram. `Build-Client.ps1`
-  passou com 13 warnings preexistentes e zero erros; o `client748/project.exe`
+  passou com 13 warnings preexistentes e zero erros; o `tmproject/client748/project.exe`
   instalado tem SHA-256
   `90D7B460A2D6B0E1072A8BA992A4911535E789ECEB10DC80CE756D6ED41F01F9`.
 - Não houve execução real do painel; não alegar `CLIENT_TESTED`.
@@ -771,7 +771,7 @@ ocorrências.
   inventário e pools. Os testes vivem em `internal/game/gamble_test.go` e
   `internal/wire/gamble_test.go`.
 - `Build-Client.ps1` passou com 21 warnings existentes e zero erros. O
-  `client748/project.exe` instalado tem SHA-256
+  `tmproject/client748/project.exe` instalado tem SHA-256
   `DB88DCC9D3CE085F383CD8B357EDEF6E5FB0C439DA91A8F075ADC5302C6385E7`.
 - `go test -count=1 ./internal/game ./internal/wire`, `go test -count=1 ./...`,
   `validate_research.py` (16 fichas válidas) e `git diff --check` passaram.
@@ -793,7 +793,7 @@ ocorrências.
   `validate_research.py` (`CONTRACT=11`, `TRACED=6`, `LOCATED=4`,
   `UNMAPPED=1`) e `git diff --check` passaram.
 - `Build-Client.ps1` passou com 31 warnings preexistentes e zero erros. O
-  `client748/project.exe` instalado tem SHA-256
+  `tmproject/client748/project.exe` instalado tem SHA-256
   `E0B3D433B8C0CAD7E9AD015101A4BA0214E6E3D6D38E9EACFF264109234598C5`.
 - Não houve execução real de chat curto, truncamento, party fora da tela,
   logout ou relogin; não alegar `CLIENT_TESTED`.
@@ -812,7 +812,7 @@ ocorrências.
   preserva o consumo silencioso sem inventar semântica ou emissor no servidor.
 - `validate_research.py` passou com `CONTRACT=14`, `TRACED=6`, `LOCATED=4` e
   `UNMAPPED=2`; `git diff --check` passou. `Build-Client.ps1` terminou com 31
-  warnings preexistentes e zero erros e instalou `client748/project.exe` com
+  warnings preexistentes e zero erros e instalou `tmproject/client748/project.exe` com
   SHA-256 `06598F434D36BC52CEDBEA63B8C2248DC8072B8857D4A08B0B92568A886940CB`.
 - Não houve execução real de frames válidos/malformados; não alegar
   `CLIENT_TESTED`.
@@ -859,4 +859,4 @@ ocorrências.
 - Código e assets manuais são preservados até incompatibilidade concreta ou
   caminho substituto validado justificar sua alteração.
 - `CLIENT-TESTED` aparece somente depois do fluxo real no hash registrado de
-  `client748/project.exe`.
+  `tmproject/client748/project.exe`.

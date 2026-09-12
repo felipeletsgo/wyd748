@@ -183,6 +183,6 @@ inventário, skill, alvo ou movimento.
 - Automação: `validate_research.py` e `git diff --check` aprovados depois das
   guardas adicionais.
 - Build: `Build-Client.ps1` aprovado em Release/Win32 com zero erros e 13
-  warnings C4018 preexistentes; candidato instalado em `client748/project.exe`,
+  warnings C4018 preexistentes; candidato instalado em `tmproject/client748/project.exe`,
   SHA-256 `87431F0B066FD782CE1231F1E76C1905671E8C0D2C23E9CA75EDD4DC351F9979`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

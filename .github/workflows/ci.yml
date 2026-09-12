@@ -14,6 +14,9 @@ jobs:
     name: Go validation
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: wydgo748
 
     services:
       postgres:
@@ -40,7 +43,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version-file: wydgo748/go.mod
+          cache-dependency-path: wydgo748/go.sum
           cache: true
 
       - name: Test server
@@ -54,10 +58,6 @@ jobs:
 
       - name: Build server
         run: go build -o "$RUNNER_TEMP/tm-check" ./cmd/server
-
-      - name: Fast clientgo748 verification
-        working-directory: clientgo748
-        run: pwsh -NoProfile -File ./Verify-Fast.ps1
 
       - name: Check whitespace
         run: git diff --check

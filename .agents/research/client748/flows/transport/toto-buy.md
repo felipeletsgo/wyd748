@@ -182,7 +182,7 @@ somente `MessagePanel`.
 
 ## Lacunas
 
-- Executar no `client748/project.exe` a abertura, seleção, compra válida,
+- Executar no `tmproject/client748/project.exe` a abertura, seleção, compra válida,
   placar inválido, gold insuficiente, destino ocupado e fechamento.
 - Confirmar em jogo o tooltip do bilhete e o mesmo UID/efeitos após relogin.
 - Até esses cenários, o estado máximo é `STATICALLY VERIFIED`/
@@ -193,7 +193,7 @@ somente `MessagePanel`.
 - Pesquisa: entrada, caller, callees, wire, signedness, fechamento, ausência de
   pending state, teardown, shutdown e relogin foram fechados no hash nativo.
 - Client: `Build-Client.ps1` passou em Release/Win32 com 23 warnings existentes
-  e zero erros; instalou `client748/project.exe` SHA-256
+  e zero erros; instalou `tmproject/client748/project.exe` SHA-256
   `E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94`.
 - Servidor: testes focados cobrem sucesso, preço autoritativo, UID/efeitos,
   persist-before-publish, rejeições sem mutação e rollback de save.

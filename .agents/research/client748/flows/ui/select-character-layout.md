@@ -17,7 +17,7 @@ para compor esse painel?
 
 ## Fronteira de evidência
 
-- Executavel: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 acima.
+- Executavel: `references/client748/WYD.exe`, SHA-256 acima.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr` e
   `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled`.
 - Inicializacao da cena: `FUN_0049F0E7`.
@@ -173,7 +173,7 @@ apresentação, hitboxes e reconstrução da cena.
 - `IMPLEMENTED`: a formula foi adaptada na source ativa.
 - `STATICALLY VERIFIED`: o validador de pesquisa e `git diff --check` passaram;
   o build `Release|Win32` v145 terminou com zero erros e zero warnings. O
-  pipeline instalou `client748/project.exe` com SHA-256
+  pipeline instalou `tmproject/client748/project.exe` com SHA-256
   `C6184EBD938BC6120539958D049C1538DD3A27A0972108B635531A23E3C19254`.
 - Ainda nao e `CLIENT-TESTED`: o fluxo precisa ser executado no candidato
   recompilado.

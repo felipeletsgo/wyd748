@@ -17,7 +17,7 @@ foco obsoletos?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; exports
   `00472651_FUN_00472651.c`, `00472966_FUN_00472966.c`,
@@ -214,7 +214,7 @@ autoritativo descrito na ficha separada `../transport/toto-buy.md`.
 
 ## Lacunas
 
-- Executar no `client748/project.exe`: abrir com item 4147, testar partida 1,
+- Executar no `tmproject/client748/project.exe`: abrir com item 4147, testar partida 1,
   partida 80, limite carregado, zero e acima do limite, e confirmar
   textos/limpeza e a conversão `N -> N-1`.
 - Confirmar Tab, Enter, botão fechar e os dois caminhos de Esc em jogo.
@@ -230,7 +230,7 @@ autoritativo descrito na ficha separada `../transport/toto-buy.md`.
 - Automação: `validate_research.py` e `git diff --check` passaram.
 - Build: `Build-Client.ps1` passou em Release/Win32 com 23 warnings
   preexistentes de signed/unsigned e zero erros; instalou o candidato em
-  `client748/project.exe`.
+  `tmproject/client748/project.exe`.
 - SHA-256 do candidato compilado:
   `E7C6307886B29C7D727F7D8558B81B439953D58A08877FA58B1D8F793F129F94`.
 - Estado máximo alegado: `STATICALLY VERIFIED`; build não testa a interação.

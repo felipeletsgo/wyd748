@@ -17,7 +17,7 @@ os controles nativos?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256
+- Executável/hash: `references/client748/WYD.exe`, SHA-256
   `8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593`.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export focado
   `exports/party-panel-layout-lifecycle-flow.tsv`.
@@ -25,7 +25,7 @@ os controles nativos?
   `1863` e botão inferior `5742`.
 - Source atual: `TMFieldScene::InitializeCompatFieldScene`,
   `PositionCompatPartyPanel`, `SetVisibleParty`, `OnControlEvent` e handlers
-  Party em `client-source/tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp`.
+  Party em `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp`.
 - Servidor: `internal/wire/opcodes.go`, `internal/wire/codec.go` e
   `internal/game/party.go`.
 

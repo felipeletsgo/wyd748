@@ -1,75 +1,37 @@
-# Binarios de build (gerados por `go build`)
-/tm.exe
-/tm
-/account-api.exe
-/account-api
-/account-create.exe
-/account-create
-/account_creator.exe
-/server.exe
-/tmp/
-/.tmp/
-*.tmp
-*.tmp-*
-client748/.tmp-*
-/tm-check*
-/tm-review*
+# Saídas de build; assets e evidências versionadas não são descartáveis.
+/tmproject/build/
+/wydgo748/bin/
+/wydgo748/*.exe
+/wydgo748/cmd/server/*.exe
+/tmproject/client748/*.pdb
+/tmproject/client748/client-crash-*.dmp
+/tmproject/client748/screenshot/
+/tmproject/client748/WYD.exe
+/tmproject/client748/WYD.pre-*.exe
+/tmproject/client748/ItemList.pre-*.bin
+/tmproject/client748/SkillData.csv
+/tmproject/client748/serverlist - Copy.bin
+/wydgo748/data/SkillData.bin
+/wydgo748/data/accounts/*.json
+/wydgo748/data/charstate/*.json
 
-# Diagnosticos e simbolos locais do client recompilavel. O executavel de teste
-# e versionado, mas dumps/PDBs/objetos sao regenerados pela source e inflam o
-# historico sem fazer parte da distribuicao.
-client748/client-crash-*.dmp
-client748/*.pdb
-/dia_lookup.obj
-/dump_context.obj
-/resolve-pdb.obj
-/client-source/v769ClientRelease/
-
-# Metadados locais dos agentes Codex/Claude; nao fazem parte do runtime.
+# Estado local, temporários e caches.
 /.codex/
-
-# Cache de build do Go
+/.tmp/
+/tmp/
 .gocache*/
-
-# Artefatos locais do client Go em preparação
-/clientgo748/bin/
-# Cópia local ocasional do build junto ao corpus oficial. O executável ativo
-# continua sendo clientgo748/bin/wydclient.exe; a baseline versionada é WYD.exe.
-/clientgo748/CLIENT OFICIAL 7.48/wydclient.exe
-
-# Dados locais/gerados: contas, hashes e estado de personagem nunca sao source
-data/accounts/*.json
-data/charstate/*.json
-
-# Artefatos de IDE/OS comuns
 .vs/
 __pycache__/
 *.py[cod]
+*.obj
+*.pdb
+*.pch
+*.tlog
+*.ilk
+*.idb
+*.VC.db
+*.VC.opendb
 *.log
+*.tmp
+*.tmp-*
 *~
-
-# Capturas de tela geradas ao jogar (nao fazem parte da distribuicao do client)
-client748/screenshot/
-
-# Documentacao do projeto e instrucoes de desenvolvimento sao parte da fonte
-# publicada e devem acompanhar cada versao do emulador.
-
-# Nomes legados que nao podem reaparecer na raiz ativa de client748/. A cadeia
-# binaria preservada pertence exclusivamente a `wyd.exe nativo+patches/` como
-# material historico read-only; o unico candidato executavel e project.exe.
-client748/WYD.patched-wide.exe
-client748/WYD.premacro.exe
-client748/WYDoriginal.exe
-client748/WYD.pre-lindy.exe
-client748/WYD.pre-*.exe
-# Cópia local gerada para inspeção; o candidato versionado é project.exe.
-client748/WYD.exe
-client748/ItemList.pre-*.bin
-
-# Artefatos de conversao/edicao. O runtime usa os equivalentes autoritativos
-# versionados em data/SkillData.csv e client748/SkillData.bin.
-/data/SkillData.bin
-/client748/SkillData.csv
-/client748/serverlist - Copy.bin
-/CLIENTS/WYD/WYD.log
-/CLIENTS/WYD/ScreenShot/

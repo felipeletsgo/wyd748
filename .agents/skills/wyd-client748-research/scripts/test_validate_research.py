@@ -51,7 +51,7 @@ N/A: esta transição não encerra o processo e converge ao teardown do manager.
 N/A: o fluxo termina antes do login; a justificativa limita este contrato.
 """
     client_real = (
-        "executado no client748/project.exe, hash registrado no cenário"
+        "executado no tmproject/client748/project.exe, hash registrado no cenário"
         if status == "CLIENT_TESTED"
         else "não executado"
     )

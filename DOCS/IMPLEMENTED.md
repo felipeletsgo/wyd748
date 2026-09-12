@@ -32,7 +32,7 @@ internal/store/      PostgreSQL e JSON de desenvolvimento
 internal/account/    autenticação e criação de conta
 internal/game/       sistemas de gameplay coordenados pelo World
 data/                conteúdo e configuração server-side
-client748/           assets ativos e project.exe recompilado
+tmproject/client748/           assets ativos e project.exe recompilado
 ```
 
 ## Conta, autenticação e admissão
@@ -369,9 +369,9 @@ git diff --check
 
 ## Client 7.48
 
-O único candidato ativo é `client748/project.exe`, produzido pela source em
-`client-source/tmproject`. A cadeia PowerShell e os executáveis em
-`client748/wyd.exe nativo+patches/` são somente histórico para estudo/Ghidra e
+O único candidato ativo é `tmproject/client748/project.exe`, produzido pela source em
+`tmproject`. A cadeia PowerShell e os executáveis em
+`references/client748/` são somente histórico para estudo/Ghidra e
 não podem ser executados nem usados como gate.
 
 Hash SHA-256 do candidato source verificado em 25/08/2026:

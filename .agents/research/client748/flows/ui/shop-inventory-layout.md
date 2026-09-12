@@ -24,7 +24,7 @@ posição deixada por AutoTrade faz as janelas aparecerem deslocadas?
 - Callers diretos de abertura/fechamento: `FUN_00410A91`, `FUN_0044A745`,
   `FUN_0044A9E9`, `FUN_0044DF53`, `FUN_00472966`, `FUN_0047FCD7`,
   `FUN_004875C0`, `FUN_00488FFF` e `FUN_00529BF8`.
-- Recurso: `client748/UI/FieldScene2.bin`, roots `1793` e `257`.
+- Recurso: `tmproject/client748/UI/FieldScene2.bin`, roots `1793` e `257`.
 - Source: `TMFieldScene::PositionCompatShopPanels()` e
   `TMFieldScene::SetVisibleShop()`.
 - Capturas fornecidas em 2026-09-02: loja e inventário deslocados no candidato;
@@ -153,6 +153,6 @@ resoluções-alvo.
 - `validate_research.py --repo .` e `git diff --check` passaram em 2026-09-02;
   este último emitiu somente avisos LF/CRLF da worktree existente.
 - `Build-Client.ps1` passou em `Release|Win32` v145 com zero erros e 21
-  warnings preexistentes. Output e `client748/project.exe` têm SHA-256
+  warnings preexistentes. Output e `tmproject/client748/project.exe` têm SHA-256
   `AD624D96A9F6DE7024D383594E9778586B20A113A9683150D9EDB1584CECCFEC`.
 - Não é `CLIENT-TESTED`: ainda falta aprovação visual do candidato deste lote.

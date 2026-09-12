@@ -2,7 +2,7 @@
 
 Este diretório é a memória técnica reproduzível do programa de paridade do
 client 7.48. O objetivo é recuperar o fluxo real do executável nativo e
-compará-lo com `client-source/tmproject` e o WYD-Go antes de qualquer edição
+compará-lo com `tmproject` e o WYD-Go antes de qualquer edição
 comportamental. A conversa, um comentário da source ou o TMProject 7.69+ podem
 orientar a busca, mas não são contrato.
 
@@ -22,12 +22,12 @@ orientar a busca, mas não são contrato.
 O hash canônico da referência Ghidra usada no estado atual é:
 
 ```text
-client748/wyd.exe nativo+patches/WYD.exe
+references/client748/WYD.exe
 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
 ```
 
 O candidato source mais recente fica registrado no handoff do programa.
-Recalcular antes de usar: `client748/project.exe` muda a cada build.
+Recalcular antes de usar: `tmproject/client748/project.exe` muda a cada build.
 
 ## Organização e maturidade
 
@@ -104,7 +104,7 @@ Estado atual do mapa:
 `LOCATED` permite investigação e documentação, não edição comportamental.
 `TRACED` exige callers/callees e estado/erros fechados; `CONTRACT` acrescenta
 wire/ABI/recursos testáveis; `CLIENT_TESTED` exige o fluxo real no
-`client748/project.exe`.
+`tmproject/client748/project.exe`.
 
 ## Limites do corpus
 
@@ -128,5 +128,5 @@ python .agents/skills/wyd-client748-research/scripts/validate_research.py --repo
 
 Não armazenar binários, export completo do Ghidra, varredura ampla de xrefs,
 dumps, credenciais ou pseudocódigo em massa neste diretório. Binários e scripts
-em `client748/wyd.exe nativo+patches/` são somente evidência histórica; o único
-candidato executável é `client748/project.exe`, produzido pelo build da source.
+em `references/client748/` são somente evidência histórica; o único
+candidato executável é `tmproject/client748/project.exe`, produzido pelo build da source.

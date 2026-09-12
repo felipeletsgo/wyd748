@@ -210,7 +210,7 @@ qualquer `0x2C2` identificável rejeitado pelo framing, fase ou contrato.
 
 ## Lacunas
 
-- Executar no `client748/project.exe` a entrada no mundo com manifesto ativo,
+- Executar no `tmproject/client748/project.exe` a entrada no mundo com manifesto ativo,
   confirmar permanência da sessão no sucesso e fechamento em um probe
   deliberadamente divergente.
 - Repetir depois de logout/relogin e com timeout antes de alegar
@@ -222,7 +222,7 @@ qualquer `0x2C2` identificável rejeitado pelo framing, fase ou contrato.
   ownership, teardown, shutdown e relogin foram fechados no hash nativo.
 - Build: `Build-Client.ps1` passou em Release/Win32 com toolset v145, zero
   erros e 31 warnings preexistentes; o output foi instalado e conferido em
-  `client748/project.exe`, SHA-256
+  `tmproject/client748/project.exe`, SHA-256
   `DA9F578E6AEF2A6F2ED923E893F412717F7966AC861A21F3A17D939EDF70EE3F`.
 - Automação documental: `validate_research.py --repo .` reconheceu esta ficha
   como `CONTRACT` e `git diff --check` passou sem erro de whitespace.

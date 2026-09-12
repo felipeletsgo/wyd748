@@ -17,7 +17,7 @@ libera o objeto durante expiração, troca de cena, logout e shutdown?
 
 ## Fronteira de evidência
 
-- Executável: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 acima.
+- Executável: `references/client748/WYD.exe`, SHA-256 acima.
 - Projeto Ghidra: `WYD748Native_20260821.gpr`.
 - Corpus auxiliar:
   `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled`.
@@ -32,7 +32,7 @@ libera o objeto durante expiração, troca de cena, logout e shutdown?
 O packet, seu receptor, a construção do efeito, seu container proprietário e
 o ciclo completo até a remoção foram correlacionados. O layout wire possui
 asserts no client e teste byte-level no servidor; por isso a ficha está em
-`CONTRACT`. Ainda não há execução do fluxo no `client748/project.exe`.
+`CONTRACT`. Ainda não há execução do fluxo no `tmproject/client748/project.exe`.
 
 ## Fluxo nativo 7.48
 

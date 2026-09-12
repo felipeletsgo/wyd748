@@ -35,9 +35,9 @@ Cite evidência com endereço/símbolo e arquivo atual, por exemplo:
 
 ```text
 Native: WYD.exe sha256=... FUN_0055890A @ 0x0055890A
-Source: client-source/.../CPSock.cpp :: CPSock::ReadMessage
+Source: tmproject/.../CPSock.cpp :: CPSock::ReadMessage
 Server: internal/game/security.go :: inboundPacketSizeAllowed
-Asset: client748/UI/FieldScene2.bin :: root 257
+Asset: tmproject/client748/UI/FieldScene2.bin :: root 257
 ```
 
 Não cole pseudocódigo extenso. Registre a interpretação, os branches relevantes

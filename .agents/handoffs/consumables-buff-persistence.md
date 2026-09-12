@@ -49,7 +49,7 @@ fluxo real no client | pendente | ainda nao executado em jogo
 - `internal/model/charstate.go`, `model.go` — origem UID e deadline persistidos.
 - `internal/store/charstate_test.go`, `postgres_test.go` — contrato PostgreSQL coberto.
 - `data/npcs/ShopTest.json`, `ShopTest2.json` e `internal/data/test_shop_coverage_test.go` — remocao das pilhas artificiais e regressao.
-- `.agents/handoffs/client748-parity.md`, `client-source/tmproject/Projects/TMProject/TMFieldScene.cpp` e `client748/project.exe` — mudancas alheias preservadas e nao editadas neste escopo.
+- `.agents/handoffs/client748-parity.md`, `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp` e `tmproject/client748/project.exe` — mudancas alheias preservadas e nao editadas neste escopo.
 
 ## Ultima validacao
 
@@ -61,7 +61,7 @@ comando: go test ./internal/data -run 'TestOneShotConsumablesDoNotLeaveTestShops
 resultado: passou integralmente em 2026-08-26
 
 comando: go test ./... -count=1
-resultado: pacotes do escopo passaram; internal/data falhou apenas porque client748/Mounts-KR.json e client748/Costumes-KR.json nao existem na worktree
+resultado: pacotes do escopo passaram; internal/data falhou apenas porque tmproject/client748/Mounts-KR.json e tmproject/client748/Costumes-KR.json nao existem na worktree
 ```
 
 ## Pendencias e riscos

@@ -17,7 +17,7 @@ tecla, abas, listas, memo, `Esc` e relogin operem sobre a mesma janela?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256
+- Executável/hash: `references/client748/WYD.exe`, SHA-256
   `8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593`.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; pseudocódigo de
   `FUN_00441823`, `FUN_004662C5`, `FUN_0049E50F`, `FUN_00453C59`,
@@ -28,7 +28,7 @@ tecla, abas, listas, memo, `Esc` e relogin operem sobre a mesma janela?
 - Source atual: `TMFieldScene::InitializeCompatFieldScene`,
   `PositionCompatQuestPanel`, `SetQuestPanelVisible`, `SelectQuestTab`,
   `OnControlEvent`, `OnKeyQuestLog`, `OnESC` e `AirMove_ShowUI` em
-  `client-source/tmproject/Projects/TMProject/TMFieldScene.cpp`.
+  `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp`.
 
 ## Fluxo nativo 7.48
 
@@ -226,7 +226,7 @@ Quest locais; o servidor continua autoritativo sobre gameplay e progresso.
   e os guards foram inspecionados na source. `Build-Client.ps1` concluiu
   `Release|Win32` com zero erros e 13 warnings C4018 preexistentes, sem o
   warning C4805 da comparação de visibilidade, e instalou
-  `client748/project.exe` com SHA-256
+  `tmproject/client748/project.exe` com SHA-256
   `B51D48ACF691B84A6B577DBB07E4981CED6F54DFB2616567C907863A9B9AE6BC`.
 - Automação: `validate_research.py` e `git diff --check` passaram para o lote.
 - Client real: não executado; `CLIENT-TESTED` não é alegado.

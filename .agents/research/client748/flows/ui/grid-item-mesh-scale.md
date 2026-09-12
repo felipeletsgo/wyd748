@@ -24,8 +24,8 @@ diagonal do AABB e a exceção específica para `egg001..egg014` estavam erradas
 - Xrefs: `exports/grid-item-mesh-scale-xrefs.tsv`,
   `exports/grid-item-mesh-scale-vtable-callers.tsv` e
   `exports/grid-item-mesh-scale-vtable-window.tsv`.
-- Source: `client-source/tmproject/Projects/TMProject/SGrid.cpp`.
-- Recursos: `client748/ItemList.bin`, texturas de item e atlas UI2 `199`.
+- Source: `tmproject/TMProject748/internal/ui/SGrid.cpp`.
+- Recursos: `tmproject/client748/ItemList.bin`, texturas de item e atlas UI2 `199`.
 
 Os offsets nativos abaixo descrevem somente o executável identificado pelo
 hash; a adaptação recompilável usa membros tipados da source atual.
@@ -168,6 +168,6 @@ pequenos, altos e largos, em `800x600`, `1024x768` e `1280x960`.
 - `validate_research.py --repo .` e `git diff --check` passaram em 2026-09-02;
   este último emitiu somente avisos LF/CRLF da worktree existente.
 - `Build-Client.ps1` passou em `Release|Win32` v145 com zero erros e 21
-  warnings preexistentes. Output e `client748/project.exe` têm SHA-256
+  warnings preexistentes. Output e `tmproject/client748/project.exe` têm SHA-256
   `AD624D96A9F6DE7024D383594E9778586B20A113A9683150D9EDB1584CECCFEC`.
 - Não é `CLIENT-TESTED`: nenhuma captura do candidato deste lote foi aprovada.

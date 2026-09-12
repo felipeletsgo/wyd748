@@ -17,14 +17,14 @@ reutilizar um ticket obsoleto?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; exports focados
   `field-scene-rebuild-server-move-focused.tsv` e
   `objectmanager-slots-14-20-traversals-focused.tsv`.
 - Assets: N/A; a transição não seleciona recurso visual novo.
 - Source atual: `Basedef.h`, `TMScene.cpp`, `TMFieldScene.cpp` e
-  `ObjectManager.cpp` em `client-source/tmproject/Projects/TMProject/`.
+  `ObjectManager.cpp` em `tmproject/TMProject748/`.
 - Servidor: a busca no WYD-Go não localizou implementação de `0x52A` ou
   `RemoveServer`; esta ficha não projeta nem autoriza um packet server-side
   novo.
@@ -180,7 +180,7 @@ server-side observável e testável.
 
 ## Lacunas
 
-- Executar migração real entre canais/servidores no `client748/project.exe` e
+- Executar migração real entre canais/servidores no `tmproject/client748/project.exe` e
   registrar servidor de origem/destino, timestamps e hash do candidato.
 - Correlacionar a origem server-side de `0x52A` antes de qualquer alteração do
   protocolo Go.

@@ -15,7 +15,7 @@ Qual frame o client 7.48 envia ao confirmar a seleção de uma disputa de zona?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do frontmatter.
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export focado `exports/challenge-confirm-flow.tsv`.
 - Assets: `NÃO APLICÁVEL`; o contrato é um envelope de 20 bytes.
 - Source atual: `TMFieldScene.cpp`, `Basedef.h` e `internal/wire/ChallengeConfirmPacket.h`.
@@ -84,7 +84,7 @@ habilitado.
 ## Lacunas
 
 - Confirmação real, resposta de disputa, troca de cena e relogin ainda não foram
-  executados no `client748/project.exe`; não é `CLIENT_TESTED`.
+  executados no `tmproject/client748/project.exe`; não é `CLIENT_TESTED`.
 
 ## Validação
 

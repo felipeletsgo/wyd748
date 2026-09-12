@@ -185,6 +185,6 @@ AutoTrade, fechar por botão e ESC e repetir após logout/relogin em `800x600`,
   source.
 - `STATICALLY VERIFIED`: `validate_research.py` e `git diff --check` passaram;
   `Build-Client.ps1` concluiu `Release|Win32` com zero erros e 21 warnings e
-  instalou `client748/project.exe` com SHA-256
+  instalou `tmproject/client748/project.exe` com SHA-256
   `D01DF6971578BA828AF674772C52A506AD0D654B23910185F63892177EE577AD`.
 - Não é `CLIENT-TESTED`: falta execução real do candidato.

@@ -16,7 +16,7 @@ permite o envio?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYDoriginal.exe`, SHA-256
+- Executável/hash: `references/client748/WYDoriginal.exe`, SHA-256
   do frontmatter; o executável stock é a referência primária.
 - Projeto/corpus Ghidra: `WYD748Stock_20260908`; export focado
   `C:\Users\felipe\Tools\GhidraAnalysis\20260908-stock-teleport\stock-candidate.tsv`.
@@ -112,7 +112,7 @@ nenhum destino fornecido pelo client é aceito.
 ## Lacunas
 
 - Confirmação real do portal, recusa fora do atributo, cobrança, troca de cena
-  e relogin ainda não foram executados no `client748/project.exe`; não é
+  e relogin ainda não foram executados no `tmproject/client748/project.exe`; não é
   `CLIENT_TESTED`.
 
 ## Validação

@@ -16,7 +16,7 @@ condições locais permitem que a informação de vila seja enviada ao servidor?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export focado
   `exports/change-city-request-flow.tsv`, SHA-256
@@ -116,7 +116,7 @@ do client porque o contrato é somente C->S.
 ## Lacunas
 
 - Entrada real em cidade, troca de vila, disconnect, troca de cena e relogin
-  ainda não foram executados no `client748/project.exe`; a ficha não é
+  ainda não foram executados no `tmproject/client748/project.exe`; a ficha não é
   `CLIENT_TESTED`.
 
 ## Validação

@@ -5,9 +5,9 @@ Estado geral: `STATICALLY VERIFIED`
 
 ## Objetivo e limites
 
-Tornar `client-source/tmproject` compatível apenas com o WYD 7.48, portando para
+Tornar `tmproject` compatível apenas com o WYD 7.48, portando para
 source os comportamentos comprovados pela referência histórica. Os scripts e
-binários em `client748/wyd.exe nativo+patches/` são somente material de estudo e
+binários em `references/client748/` são somente material de estudo e
 não participam mais do build nem da instalação. O escopo atual concentra HUD compacto, render contextual de itens,
 input/câmera e lifecycle de fechamento; paridade completa da UI ainda não foi
 testada.
@@ -15,9 +15,9 @@ testada.
 ## Fontes e artefatos
 
 ```text
-client748/wyd.exe nativo+patches/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
-client748/wyd.exe nativo+patches/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client748/project.exe                            | candidato source | BA85D6CB23D88E3C56DE7A996D0A782E0888CE8819CAE23448A16334510D2277
+references/client748/WYDoriginal.exe | stock histórico | B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
+references/client748/WYD.exe         | referência Ghidra | 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
+tmproject/client748/project.exe                            | candidato source | BA85D6CB23D88E3C56DE7A996D0A782E0888CE8819CAE23448A16334510D2277
 ```
 
 Os hashes históricos permanecem os fingerprints imutáveis registrados; o
@@ -32,10 +32,10 @@ C4018 preexistentes; o warning C4805 introduzido no helper Quest foi eliminado;
 
 - A política documental foi auditada em 2026-08-25: instruções e skills ativas
   não chamam scripts nem manifestos da cadeia histórica.
-  `client748/project.exe` é o único executável aceito para validação; a pasta
+  `tmproject/client748/project.exe` é o único executável aceito para validação; a pasta
   histórica permanece somente evidência estática.
 - `Build-Client.ps1` instala automaticamente todo build bem-sucedido em
-  `client748/project.exe` e compara o SHA-256 do output transitório com o
+  `tmproject/client748/project.exe` e compara o SHA-256 do output transitório com o
   candidato instalado. Divergência de hash ou ausência de `client748` falha o
   build. `Run-Client748.ps1` executa exclusivamente esse candidato instalado;
   não existe etapa manual de cópia nem fallback para `build/.../WYD.exe`.
@@ -84,9 +84,9 @@ C4018 preexistentes; o warning C4805 introduzido no helper Quest foi eliminado;
 - `FUN_004aec3d` e `EventTranslator`: rotação requer `QuarterView == 0`; com
   `[CAMERAROTATE] 1`, o 7.48 usa arraste do botão do meio ou Alt+botão direito.
   Com `[CAMERAVIEW] 0`, o sentido vem de `viewchange` e a magnitude do wheel.
-- `client748/client-debug.log`: os seis controles existem sob parent 5716 nas
+- `tmproject/client748/client-debug.log`: os seis controles existem sob parent 5716 nas
   posições registradas em `references/client-ui-748.md`.
-- `client748/screenshot/Capture0084.jpg`: referência original de HUD e grid.
+- `tmproject/client748/screenshot/Capture0084.jpg`: referência original de HUD e grid.
 - O 7.48 materializa todos os ItemMix 1–6. A correlação confirmada é:
   Compositor/1/`0x3A6`, Aylin/2/`0x3B5`, Agatha/3/`0x3BA`,
   Tiny/4/`0x3C0`, Lindy e Odin/5/`0x2C3` e `0x2D2`, e
@@ -95,14 +95,14 @@ C4018 preexistentes; o warning C4805 introduzido no helper Quest foi eliminado;
 - Os controles 65857/65861+/81923/86019 são deriva da source mais nova; não são
   painéis ItemMix 7.48 disponíveis para novos sistemas.
 - O candidato `B424BE8D...` caiu ao entrar no mundo. O dump
-  `client748/client-crash-20260824-213257.dmp` registra AV de escrita em
+  `tmproject/client748/client-crash-20260824-213257.dmp` registra AV de escrita em
   `0x0066C5B3`; removendo ASLR, `0x004BC5B3` resolve pelo PDB para
   `TMFieldScene::SetEquipGridState`, na escrita em `m_pGridNewSlot1 + 0x404`.
   O ponteiro é nulo porque os NewSlot 16/17 são controles posteriores ausentes
   do FieldScene2 7.48. O caller novo era o reset interativo de ItemMix durante
   `InitializeCompatFieldScene`.
 - O candidato `2CAEA7C5...` passou da inicialização anterior, mas caiu ao receber
-  um notice `!`. O dump `client748/client-crash-20260824-220158.dmp` registra AV
+  um notice `!`. O dump `tmproject/client748/client-crash-20260824-220158.dmp` registra AV
   em VA carregado `0x0064BD66`; removendo ASLR, `0x0046BD66` resolve para
   `SListBox::AddItem` (`SControl.cpp:2400`) com `this == nullptr`. O caller
   `0x004C8551` é o ramo `!` de `TMFieldScene::OnPacketMessageWhisper`, que usa
@@ -119,7 +119,7 @@ C4018 preexistentes; o warning C4805 introduzido no helper Quest foi eliminado;
   próxima e chama imediatamente `FUN_00520216` para construir a rota. A source
   agora chama `GetRoute` no mesmo ramo, em vez de apenas guardar `m_vecMyNext`.
 - O candidato `D510CBA8...` caiu após clicar na Kibita. O dump
-  `client748/client-crash-20260824-225343.dmp` registra leitura inválida em RVA
+  `tmproject/client748/client-crash-20260824-225343.dmp` registra leitura inválida em RVA
   `0xAB409` (`TMFieldScene::OnPacketEvent`) ao tratar o opcode `0x333`. A
   instrução lia `m_pPartyList + 0x218` com `m_pPartyList == nullptr`.
   `FUN_00481dd6`, handler nativo 7.48 alcançado pelo dispatcher
@@ -133,7 +133,7 @@ C4018 preexistentes; o warning C4805 introduzido no helper Quest foi eliminado;
   legitimamente não existe no 7.48. `FUN_00406bd7` confirma que o handler
   nativo não consulta esse controle; o caminho moderno e os IDs 90129–90136
   foram removidos e o listener de backspace vazio agora é protegido.
-- O dump `client748/client-crash-20260825-151016.dmp` registra leitura nula em
+- O dump `tmproject/client748/client-crash-20260825-151016.dmp` registra leitura nula em
   RVA `0xCC643`, resolvida pelo PDB para `TMFieldScene.cpp:23080` ao abrir o NPC
   Skill Apprentice. O bootstrap 7.48 não ligava `m_pSkillMSec1`; a árvore real
   `FieldScene2.bin` e `FUN_00435b13` confirmam root 1889, child 1890, grade 1894
@@ -151,7 +151,7 @@ C4018 preexistentes; o warning C4805 introduzido no helper Quest foi eliminado;
   `g_pItemGrid`. A tentativa de recuperar uma segunda tabela de footprints para
   render foi removida; escala e mesh voltaram ao fluxo nativo comum.
 - O catálogo ativo usa 6500 registros XOR `0x5A` de 140 bytes e 12 pares de
-  efeitos a partir de `0x50`. `client748/ItemList.bin` é o asset canônico 1×1:
+  efeitos a partir de `0x50`. `tmproject/client748/ItemList.bin` é o asset canônico 1×1:
   os 1.980 pares de efeito 33 (`EF_GRID`) têm valor zero e todo o restante do
   arquivo foi preservado. SHA-256 `112C6CFA...AE8627E3`, stamp `8F268603`.
   `CopyLegacyItem` apenas carrega os efeitos; não existe normalização runtime.
@@ -280,34 +280,34 @@ novo binário antes do teste real.
 
 ## Worktree e arquivos ativos
 
-- `client-source/tmproject/Projects/TMProject/SGrid.cpp` — grid ordinário usa
+- `tmproject/TMProject748/internal/ui/SGrid.cpp` — grid ordinário usa
   `BASE_GetMeshIndex` para itens com mesh e o renderer 2D nativo para entradas
   com `nIndexMesh < 0`, incluindo os livros de skill no atlas 199/1. Sprites
   usam a origem da célula; meshes mantêm a centralização. Inventário, Cargo,
   loja, trade/mix e drag usam a fórmula nativa compartilhada por `MaxZ`, sem
   exceção por família; equipamento preserva escala `1.0`. As caixas lógicas
   `23/24/32` acompanham o ratio do viewport e sincronizam item e `GeomControl`.
-- `client-source/tmproject/Projects/TMProject/TMMesh.cpp` — sentinelas nativas
+- `tmproject/TMProject748/internal/render/mesh/TMMesh.cpp` — sentinelas nativas
   `FLT_MIN`/`FLT_MAX` para AABB e pivô estáveis.
-- `client-source/tmproject/Projects/TMProject/WYD748Assets.cpp` — o adapter do
+- `tmproject/TMProject748/internal/core/WYD748Assets.cpp` — o adapter do
   catálogo 7.48 preserva todos os efeitos exatamente como estão no asset; a
   normalização runtime de `EF_GRID` foi removida. O mesmo adapter traduz o
   painel nativo 626 para o prompt semântico 65885 usado pelo AutoTrade.
-- `client-source/tmproject/Update-Client748ItemList.ps1` — ferramenta ativa e
+- `tmproject/Update-Client748ItemList.ps1` — ferramenta ativa e
   reproduzível que gera/verifica o catálogo canônico a partir da referência e
   permite mudanças somente nos bytes de valor de `EF_GRID`.
-- `client748/ItemList.bin` — asset canônico 1×1, SHA-256
+- `tmproject/client748/ItemList.bin` — asset canônico 1×1, SHA-256
   `112C6CFA...AE8627E3`; todos os 1.980 `EF_GRID` têm valor zero.
-- `client748/wyd.exe nativo+patches/` — material histórico somente para estudo;
+- `references/client748/` — material histórico somente para estudo;
   não editar nem executar os scripts desse diretório.
-- `client-source/tmproject/Projects/TMProject/TMFieldScene.cpp` — HUD 7.48,
+- `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp` — HUD 7.48,
   seis ItemMix nativos, controles Help/affect/Skill Apprentice 7.48, linha de
   buffs no FieldScene2 clássico, autoaproximação de ataque e resposta nativa
   ao request de array de animação `0x1C1`.
-- `client-source/tmproject/Projects/TMProject/Basedef.h` e
+- `tmproject/TMProject748/internal/core/Basedef.h` e
   `WYD748Compat.cpp` — contrato Win32 de 24 bytes de `MSG_REQArray`, opcodes
   `0x1C1/0x2C2` e asserts dos offsets `0x0C`, `0x10` e `0x14`.
-- `client-source/tmproject/Projects/TMProject/MeshManager.h/.cpp` — conserva o
+- `tmproject/TMProject748/internal/render/mesh/MeshManager.h/.cpp` — conserva o
   tamanho bruto exato dos buffers `.bon` sem alterar os offsets herdados de
   `stBoneAni`.
 - `.agents/research/client748/flows/transport/bone-animation-array-probe.md` —
@@ -316,23 +316,23 @@ novo binário antes do teste real.
 - `internal/wire/client_integrity.go`, `internal/game/client_integrity.go` e
   `data/client_integrity.json` — contrato de 24 bytes, manifesto server-side,
   seleção, pending, timeout, fail-closed e cleanup de sessão.
-- `client-source/tmproject/Projects/TMProject/TMHuman.cpp` — efeitos nativos
+- `tmproject/TMProject748/internal/game/entities/TMHuman.cpp` — efeitos nativos
   Lighten, Magic Shield e Skill Amp restaurados conforme `FUN_00506f9d`.
-- `client-source/tmproject/Projects/TMProject/EventTranslator.cpp` — wheel e
+- `tmproject/TMProject748/internal/core/EventTranslator.cpp` — wheel e
   sentido do zoom 7.48; composição `GCS_COMPSTR` e página agregada de
   candidatos IME com validação integral do bloco `CANDIDATELIST`.
-- `client-source/tmproject/Projects/TMProject/NewApp.cpp` — dispatch nativo de
+- `tmproject/TMProject748/internal/app/scenes/NewApp.cpp` — dispatch nativo de
   `WM_IME_COMPOSITION`, `WM_IME_ENDCOMPOSITION` e `WM_IME_NOTIFY`, protegendo
   cena e controles opcionais.
-- `client-source/tmproject/Projects/TMProject/SControl.cpp` — cursor preserva o
+- `tmproject/TMProject748/internal/ui/SControl.cpp` — cursor preserva o
   `GeomControl`, `SMessagePanel` usa recursos translúcidos, o input de texto
   não consulta seletores de chat exclusivos da 7.59 e `SEditableText` recebe
   composição IME somente com foco.
-- `client-source/tmproject/Projects/TMProject/SControlContainer.cpp` — foco,
+- `tmproject/TMProject748/internal/ui/SControlContainer.cpp` — foco,
   pick e modais são desligados antes da destruição da árvore de controles.
-- `client-source/tmproject/Projects/TMProject/TMScene.cpp` — painel compartilhado
+- `tmproject/TMProject748/internal/app/scenes/TMScene.cpp` — painel compartilhado
   de login/notice/saída com altura nativa de 24 pixels.
-- `client-source/AGENTS.md` e `references/client-ui-748.md` — gates de regressão
+- `AGENTS.md` e `references/client-ui-748.md` — gates de regressão
   para grid, transformação de UI e lifecycle de painéis.
 - `internal/game/handlers.go` — resolução autoritativa do banqueiro para Cargo.
 - `internal/game/coverage_more_test.go` — cobertura de bind, fallback, distância,
@@ -353,7 +353,7 @@ verificado em 2026-08-26:
   tipos visuais da source: as 17 divergências herdadas foram removidas; EXP
   agora traduz `Type 39` para textura `85`, dentro do atlas clássico 0..127
 - build oficial Release Win32 v145 passou com 31 warnings preexistentes e zero
-  erros; output e `client748/project.exe` são idênticos com SHA-256
+  erros; output e `tmproject/client748/project.exe` são idênticos com SHA-256
   `C3108E5A3806539BD3C95E63ABFF92F436745B2CD83A0EE188F04AAFF4065001`
 - `git diff --check` passou, restando somente avisos LF/CRLF; a correção dos
   ícones está `STATICALLY VERIFIED` até o teste visual no client real
@@ -364,7 +364,7 @@ verificado em 2026-08-26:
 - o alias 313 -> 65794 agora é consumido no primeiro switch compatível de
   `TMFieldScene::OnControlEvent`, antes dos handlers genéricos intermediários
 - build oficial Release Win32 v145 passou com 13 warnings preexistentes e zero
-  erros; output e `client748/project.exe` são idênticos com SHA-256
+  erros; output e `tmproject/client748/project.exe` são idênticos com SHA-256
   `0A5AD9303F8435AE4A1DB45C0528B7C9B13971A88ED3F6F52008404154F1D71D`
 - `Test-Client748Assets.ps1` e
   `go test -count=1 ./internal/game ./internal/wire` passaram
@@ -377,7 +377,7 @@ verificado em 2026-08-26:
   botão de dinheiro, na confirmação da loja, no bloqueio de movimento e ao
   ocultar Cargo depois da publicação
 - build oficial Release Win32 v145 passou com 13 warnings preexistentes e zero
-  erros; output e `client748/project.exe` são idênticos com SHA-256
+  erros; output e `tmproject/client748/project.exe` são idênticos com SHA-256
   `9290A75860833401AF2C7A539DDEF532F3414EC1283ABB6FF89E464A6D3E7C1D`
 - `Test-Client748Assets.ps1` passou com 6.500 itens, 3.584 texturas, 104 skills
   e 18 shaders; `git diff --check` passou, restando só avisos LF/CRLF
@@ -393,7 +393,7 @@ verificado em 2026-08-26:
   voltou ao contrato nativo (`508`, `509`, `522`, `526..537`, `747` e
   `3200..3299`), permitindo novamente o item `4905`
 - build oficial Release Win32 v145 passou com 15 warnings preexistentes e zero
-  erros; output e `client748/project.exe` =
+  erros; output e `tmproject/client748/project.exe` =
   `A63DD267B9149B06F3CCFA0086893A45CADB5DB8EDEA0BE2814C3BF068922ABA`
 - `Test-Client748Assets.ps1` passou com 6.500 itens, 3.584 texturas, 104 skills
   e 18 shaders; `git diff --check` passou, restando só avisos LF/CRLF
@@ -405,13 +405,13 @@ verificado em 2026-08-26:
   `FUN_0040e6aa`, da vtable e dos dispatches indiretos refutou essa exceção e a
   contenção pela diagonal do AABB
 - build Release Win32 v145 passou com duas advertências preexistentes e zero
-  erros; output e `client748/project.exe` = `30DA37B9...92044`
+  erros; output e `tmproject/client748/project.exe` = `30DA37B9...92044`
 - `Test-Client748Assets.ps1` passou com perfil 7.48, 6.500 itens, 3.584 texturas,
   104 skills e 18 shaders; `git diff --check` encontrou apenas avisos LF/CRLF
 - `FUN_004110f5` reaberta para o clique de AutoTrade: grid type 10, painel 626,
   edit 627, caption 630 e botão 667 confirmados contra callers da source
 - alias `626 -> 65885` compilado em Release Win32 v145 com zero warnings e zero
-  erros; output e `client748/project.exe` = `35DA2FB6...FB176`
+  erros; output e `tmproject/client748/project.exe` = `35DA2FB6...FB176`
 - `Test-Client748Assets.ps1` passou após o rebuild e `git diff --check` não
   encontrou erros, somente avisos de conversão LF/CRLF da worktree existente
 - dois dumps reais mapeados por ASLR/PDB até `SEditableText::OnCharEvent` e a
@@ -428,7 +428,7 @@ verificado em 2026-08-26:
   refutada pelo trace nativo por `MaxZ`
 - build Release Win32 v145 com 21 advertências preexistentes e zero erros depois
   da correção assimétrica dos anchors de grid/equipamento
-- hashes do output e `client748/project.exe` = `5A4AEC0A...E48F6`, idênticos
+- hashes do output e `tmproject/client748/project.exe` = `5A4AEC0A...E48F6`, idênticos
   após instalação e verificação automáticas sem patch binário
 - a busca final não encontrou instrução ativa de cópia manual; `git diff
   --check` passou, restando somente avisos de conversão LF/CRLF
@@ -465,7 +465,7 @@ verificado em 2026-08-26:
   `0x5A`, stamp `8F268603`, 1.980 `EF_GRID` zerados e somente 1.721 bytes de
   valor diferentes da referência preservada
 - `ItemList.bin` ativo = `112C6CFA...AE8627E3`; referência anterior =
-  `2C9323E0...A18F0DC5`; `client748/mesh/ItemList.bin` permaneceu intacto
+  `2C9323E0...A18F0DC5`; `tmproject/client748/mesh/ItemList.bin` permaneceu intacto
 - `Test-Client748Assets.ps1` passou com o catálogo canônico 1×1; nenhum script
   do diretório histórico foi executado
 - `MSG_UseItem` agora republica o slot fonte em recusas e rollbacks diretos de
@@ -475,7 +475,7 @@ verificado em 2026-08-26:
 - `go test ./internal/game -run 'TestOnUseItem'`, `go test ./internal/game`,
   `go test ./internal/wire ./internal/game` e `go vet ./...` passaram após o
   resync. `go test ./...` ficou bloqueado somente pela ausência local de
-  `client748/Mounts-KR.json` e `client748/Costumes-KR.json`; `internal/game`
+  `tmproject/client748/Mounts-KR.json` e `tmproject/client748/Costumes-KR.json`; `internal/game`
   permaneceu verde nessa execução.
 - Ghidra 7.48 reconfirmou que `FUN_00492e7d` despacha `0x363/0x364` para
   `FUN_004829f2`; no spawn de loja, a descrição de 24 bytes no offset wire 326
@@ -487,7 +487,7 @@ verificado em 2026-08-26:
   ficaram protegidos por `static_assert`; a cópia termina o buffer sem usar o
   `sprintf` inseguro do handler legado.
 - build oficial Release Win32 v145 passou e instalou output idêntico ao
-  `client748/project.exe`, SHA-256
+  `tmproject/client748/project.exe`, SHA-256
   `1AA86EE3CC292C0BD0FF429F83145D874867A13C7CF258649CAC66084BD2B17B`.
 - `go test -count=1 ./internal/wire`, `Test-Client748Assets.ps1` (6.500 itens,
   3.584 texturas, 104 skills e 18 shaders) e `git diff --check` passaram; este
@@ -503,7 +503,7 @@ Repetir build, instalação e hash se o código mudar.
 - Ghidra 7.48 (`FUN_004f7ea6`, `FUN_004ff400` e `FUN_00504a80`) confirmou o
   contrato nativo: texture set `446`, posição inicial `(-10, 635)`, dimensões
   `143x50`, cor `0x77777777`, `IMAGE_STRETCH` e seleção desabilitada.
-- `client748/UI/UITextureSetList.txt` confirma que o set `446` é
+- `tmproject/client748/UI/UITextureSetList.txt` confirma que o set `446` é
   `NewUI_AutoTrade_BG`, com um item `143x50`. O índice anterior `512` estava
   fora do intervalo válido `0..511` e por isso não produzia imagem.
 - As duas criações de `m_pAutoTradePanel` em `TMHuman.cpp` agora usam o asset e
@@ -511,7 +511,7 @@ Repetir build, instalação e hash se o código mudar.
   construtor e `CreateControl()` inserem o texto antes do painel; assim o painel
   permanece como fundo e o título fica visível após recriação dos controles.
 - `Build-Client.ps1` passou com 0 erros e 4 warnings C4018 preexistentes,
-  instalou output idêntico em `client748/project.exe`, SHA-256
+  instalou output idêntico em `tmproject/client748/project.exe`, SHA-256
   `24451257F36DEAE9A103C0578E9E6B0204D55003B3B39F6AA9F71A32321173FC`.
 - `Test-Client748Assets.ps1` passou com 6.500 itens, 3.584 texturas, 104 skills
   e 18 shaders; `git diff --check` não encontrou erro de whitespace. A placa
@@ -525,7 +525,7 @@ Repetir build, instalação e hash se o código mudar.
   janela limpam e ocultam os labels para impedir preço residual.
 - A compilação completa Release Win32 v145 passou com 17 warnings C4018
   preexistentes e zero erros. Depois de fechar o client que bloqueava a cópia,
-  `Build-Client.ps1` instalou output idêntico em `client748/project.exe`,
+  `Build-Client.ps1` instalou output idêntico em `tmproject/client748/project.exe`,
   SHA-256 `73CABC41CD7573E90A8CB42D8003572728E7E42921C06244132B1B575BB4A5CE`.
 - `Test-Client748Assets.ps1` passou com 6.500 itens, 3.584 texturas, 104 skills
   e 18 shaders; `git diff --check` passou, restando apenas avisos LF/CRLF. Esta
@@ -547,15 +547,15 @@ Repetir build, instalação e hash se o código mudar.
 - Testes focados das compras, `go test -count=1 ./internal/game
   ./internal/wire` e `go vet ./...` passaram. `go test -count=1 ./...` só
   falhou em dois testes paralelos de `internal/data` porque
-  `client748/Mounts-KR.json` e `client748/Costumes-KR.json` não existem.
+  `tmproject/client748/Mounts-KR.json` e `tmproject/client748/Costumes-KR.json` não existem.
 - O build oficial Release Win32 v145 passou; após fechar o `project.exe` que
-  bloqueava a cópia, instalou output idêntico em `client748/project.exe`,
+  bloqueava a cópia, instalou output idêntico em `tmproject/client748/project.exe`,
   SHA-256 `93DA0B486941CF8B381068F1D87BE3320EECA830EAB8EE9E637B4E86AEDB684A`.
   `Test-Client748Assets.ps1` e `git diff --check` passaram. UI está
   `STATICALLY VERIFIED`; compra do servidor está `AUTOMATED TESTED`.
 - Após cobrir a segunda rota de labels e o dispatch do clique esquerdo, o build
   oficial Release Win32 v145 passou com 0 erros e 6 warnings preexistentes. O
-  output foi instalado em `client748/project.exe`, SHA-256
+  output foi instalado em `tmproject/client748/project.exe`, SHA-256
   `E077183BA1E2110005B8E5190EAA188BBF48FF7893C92D66BC9BFA0941F3B4F9`.
   `go test -count=1 ./internal/game ./internal/wire`, `go vet ./...`,
   `Test-Client748Assets.ps1` e `git diff --check` passaram. Este fluxo segue
@@ -567,7 +567,7 @@ Repetir build, instalação e hash se o código mudar.
   e oculta imediatamente o título/painel no `RemoveType 0`, e `FrameMove` não
   reexibe overlays de atores em `DelayDelete` ou já deletados.
 - O build Release Win32 v145 passou e instalou o novo candidato em
-  `client748/project.exe`, SHA-256
+  `tmproject/client748/project.exe`, SHA-256
   `4BC9C8EC95DEBF66D751F5F29C4B8F2401133E5C4FAC66C708ADCA46A67E1472`.
   `Test-Client748Assets.ps1`, `go test -count=1 ./internal/game
   ./internal/wire`, `go vet ./...` e `git diff --check` passaram. As duas
@@ -583,7 +583,7 @@ Repetir build, instalação e hash se o código mudar.
   e mantém a ordem nativa texto/painel também após recriar os controles. O
   construtor principal já usava essa ordem e foi documentado junto ao código.
 - O build oficial Release Win32 v145 passou com 0 erros e 6 warnings
-  preexistentes. `build/Release/WYD.exe` e `client748/project.exe` são idênticos,
+  preexistentes. `build/Release/WYD.exe` e `tmproject/client748/project.exe` são idênticos,
   SHA-256 `7BA846DAE559464491739B104903CE4E843BC57C8AED57EF00E368D5F7E27171`.
   `Test-Client748Assets.ps1`, `go test -count=1 ./internal/game
   ./internal/wire`, `go vet ./...` e `git diff --check` passaram. O ajuste está
@@ -602,7 +602,7 @@ Repetir build, instalação e hash se o código mudar.
   separado pelo gap nativo escalado de aproximadamente `24.4`; as dimensões dos
   painéis já estão escaladas e não são multiplicadas novamente.
 - O build oficial Release Win32 v145 passou com zero erros e instalou o output
-  em `client748/project.exe`, SHA-256
+  em `tmproject/client748/project.exe`, SHA-256
   `7D203FE6A1B8DB99BF320BC3D2DA020435BB83E537C052EC374A57F09A2BB71D`.
   `Test-Client748Assets.ps1`, `go test -count=1 ./internal/game
   ./internal/wire`, `go vet ./...` e `git diff --check` passaram. A correção
@@ -623,7 +623,7 @@ Repetir build, instalação e hash se o código mudar.
   ocultações legítimas por ator removido, profundidade, sombra e fora da tela
   permanecem intactas.
 - O build oficial Release Win32 v145 foi repetido após o encerramento do client
-  e instalou output idêntico em `client748/project.exe`, SHA-256
+  e instalou output idêntico em `tmproject/client748/project.exe`, SHA-256
   `CAF93919F4B1CBC9CE8EED10B4BFE56E860FF78978F20A31473EDDF35F79B8C4`.
   `Test-Client748Assets.ps1`, `go vet ./...`, `gofmt -l` e
   `git diff --check` passaram. `internal/game`, `internal/wire` e
@@ -635,7 +635,7 @@ Repetir build, instalação e hash se o código mudar.
 ## Crash ao abrir o NPC de habilidades em 2026-08-27
 
 - O fluxo real de abrir o NPC de habilidades falhou no client e gerou
-  `client748/client-crash-20260827-140525.dmp`, com 62.464.379 bytes e horário
+  `tmproject/client748/client-crash-20260827-140525.dmp`, com 62.464.379 bytes e horário
   local 2026-08-27 14:05:25. O dump não integra o Git.
 - O dump/PDB resolve a falha para `TMFieldScene::SetVisibleSkillMaster`, no
   acesso `m_pHellgateStore->SetVisible(0)`: `m_pHellgateStore == nullptr`. O
@@ -647,7 +647,7 @@ Repetir build, instalação e hash se o código mudar.
   painéis concorrentes opcionais e preserva posição, som e o fechamento por
   X/Esc. Nenhum widget 7.59 foi fabricado.
 - `Build-Client.ps1` passou com 13 warnings C4018 preexistentes e zero erros,
-  instalando output idêntico em `client748/project.exe`, SHA-256
+  instalando output idêntico em `tmproject/client748/project.exe`, SHA-256
   `F8251714775601720307940598522E6D2924E5C61DAB300728F949FE0C8A380B`.
   `Test-Client748Assets.ps1` passou com 6.500 itens, 3.584 texturas, 104 skills
   e 18 shaders; `git diff --check` não encontrou erro de whitespace.
@@ -677,7 +677,7 @@ Repetir build, instalação e hash se o código mudar.
 - `go test -count=1 ./...`, `go vet ./...`, o validador de pesquisa,
   `git diff --check` e `Build-Client.ps1` passaram. O build Win32 terminou com
   zero erros e 15 warnings C4018 preexistentes, instalando
-  `client748/project.exe` com SHA-256
+  `tmproject/client748/project.exe` com SHA-256
   `85FC6B2541784C4AF83A275B5614FD74B8990A303A6618AEC21DFBB02FE602D2`.
 - Estado máximo: `CONTRACT`. O fluxo real de abrir, renderizar, cancelar,
   confirmar, rejeitar, fechar, reabrir e relogar ainda não foi executado.
@@ -703,7 +703,7 @@ Repetir build, instalação e hash se o código mudar.
   posteriores ausentes do recurso 7.48.
 - `validate_research.py`, `git diff --check` e o build oficial Release Win32
   v145 passaram. O build terminou com zero erros e dois warnings C4305/C4309
-  preexistentes, instalando `client748/project.exe` com SHA-256
+  preexistentes, instalando `tmproject/client748/project.exe` com SHA-256
   `1DF5956AC134BCAEB5C072E84B77EF9BBDFF6EDE30DAC8ACBE8616375CED6082`.
 - Estado: `TRACED` e `STATICALLY VERIFIED`; composição, candidatos, foco,
   troca de cena e relogin ainda não foram executados no client real.
@@ -730,7 +730,7 @@ Repetir build, instalação e hash se o código mudar.
   Os testes Go cobrem wire byte-level, consumo, persistência, rollback,
   validações, cooldown, dono/observers e exclusão de outsiders.
 - `Build-Client.ps1` passou em Release Win32 v145 com zero erros e instalou
-  `client748/project.exe` com SHA-256
+  `tmproject/client748/project.exe` com SHA-256
   `76B3E66EAC6E17EB615B80B7CAE7F900BA8D836CC89A8874BDD3C9D59A088ECF`.
 - Estado: `IMPLEMENTED`, `STATICALLY VERIFIED` e `AUTOMATED TESTED`. O fluxo
   ainda não foi executado no client real e não é `CLIENT-TESTED`.
@@ -804,7 +804,7 @@ Repetir build, instalação e hash se o código mudar.
   fantasma usa `MessageIndexed(-845)`; outros erros preservam o painel legado.
 - `go test -count=1 ./internal/wire ./internal/game`, o validador de pesquisa e
   `Build-Client.ps1` passaram. O build `Release|Win32` v145 terminou com zero
-  erros e 31 warnings preexistentes, instalando `client748/project.exe` com
+  erros e 31 warnings preexistentes, instalando `tmproject/client748/project.exe` com
   SHA-256
   `9E225456063C5DC77917C007FDCA9ECD05DDC9312FD25D9AB28FE55F334B5BF4`.
 - Estado: `IMPLEMENTED`, `AUTOMATED TESTED` no wire/gameplay e
@@ -838,7 +838,7 @@ Repetir build, instalação e hash se o código mudar.
   teste visual. Gerar novo print em 1280x960 com o candidato recompilado antes
   de promover qualquer parte deste ajuste para `CLIENT-TESTED`.
 - `Build-Client.ps1` passou em `Release|Win32` v145 com zero erros e 31 warnings
-  preexistentes. O candidato foi instalado em `client748/project.exe` com
+  preexistentes. O candidato foi instalado em `tmproject/client748/project.exe` com
   SHA-256 `66F17B2CE195035122CBAC8C07C5907E5CAF88B4102CE82E22DE005835824FB0`.
 
 ## Composição lado a lado de Character, Skill e Inventory em 2026-09-01
@@ -861,7 +861,7 @@ Repetir build, instalação e hash se o código mudar.
   `.agents/research/client748/flows/ui/feature-panel-layout.md`.
 - Classificação: `PARIDADE_NATIVA`. O validador de pesquisa, `git diff --check`
   e o build `Release|Win32` v145 passaram; foram zero erros e 21 warnings
-  preexistentes. O pipeline instalou `client748/project.exe` com SHA-256
+  preexistentes. O pipeline instalou `tmproject/client748/project.exe` com SHA-256
   `CD92A005EBDAB0DF21D9BF5B1CB1C1FC593F048BB9011802B67D2F71539BF40B`.
   Estado: `STATICALLY VERIFIED`; promover para `CLIENT-TESTED` somente após
   teste visual, reabertura e relogin.
@@ -1266,7 +1266,7 @@ Registrar o resultado nas duas fichas antes de promover para `CLIENT_TESTED`.
   `875` abre a quarta aba e o handler protege a chegada antecipada quando a
   lista ainda não existe. Nenhum controle posterior foi fabricado.
 - `go test ./internal/game ./internal/wire` passou; `Build-Client.ps1
-  -Configuration Release` passou com zero erros e instalou `client748/project.exe`
+  -Configuration Release` passou com zero erros e instalou `tmproject/client748/project.exe`
   com SHA-256 `BA85D6CB23D88E3C56DE7A996D0A782E0888CE8819CAE23448A16334510D2277`.
 - O teste com dois clients revelou outra causa independente: `onMessageChat`
   exigia o cache transitório `observer.Visible` e descartava a mensagem para um
@@ -1299,7 +1299,7 @@ Registrar o resultado nas duas fichas antes de promover para `CLIENT_TESTED`.
 ### Correção visual do chat — 2026-09-04
 
 - O build oficial de Release foi concluído com zero erros e instalou
-  `client748/project.exe`; SHA-256:
+  `tmproject/client748/project.exe`; SHA-256:
   `2B6E9635F9B10A2BA1E0231D2FDCFA0120DA5A3A5753BDFF51A5C51EAD163A0F`.
 - Em mensagens curtas, `OnPacketMessageWhisper` passou a inserir a linha
   normalizada `szMsg` com `dwColor`, preservando remetente/cor e ocultando os
@@ -1351,7 +1351,7 @@ Registrar o resultado nas duas fichas antes de promover para `CLIENT_TESTED`.
   não entrega `WM_RBUTTONUP + MK_CONTROL` ao `SControlContainer` antes de
   tentar abrir o PGT oculto; quando o menu já está visível, a UI modal mantém
   prioridade. Build Release|Win32 passou (0 erros, 13 warnings preexistentes)
-  e instalou `client748/project.exe`, SHA-256
+  e instalou `tmproject/client748/project.exe`, SHA-256
   `FA90D368E8EDE5F9D9E986263F13FAA0163A10DE8190C7B54C210AC59245B9C8`.
   Estado: `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED BUILD`; falta apenas
   o teste real com dois clients para `CLIENT-TESTED`.

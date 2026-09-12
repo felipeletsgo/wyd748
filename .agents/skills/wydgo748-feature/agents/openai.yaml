@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD-Go 7.48 Feature"
+  short_description: "Implementar server autoritativo e contratos client/server"
+  default_prompt: "Use $wydgo748-feature; valide primeiro o contrato e a autoridade do servidor. Para fronteiras legadas do client, use a pesquisa nativa 7.48 antes da adaptação; mantenha alterações do client em tmproject e nunca sobrescreva a evidência histórica."

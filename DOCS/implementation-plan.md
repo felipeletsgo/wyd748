@@ -60,10 +60,10 @@ Adicionar documentação de ownership/lifecycle, eliminar fachadas sem consumido
 
 ### Entrada de build e estado da entrega
 
-Usar `./client-source/tmproject/Build-Client.ps1 -Configuration Release`
+Usar `./tmproject/Build-Client.ps1 -Configuration Release`
 (ou `Debug`; `-Rebuild` para recompilacao completa). O script local descobre
 MSBuild via Visual Studio/PATH, compila a solucao x86 e instala
-`client748/project.exe`. Divergencia SHA-256, falha de MSBuild ou copia
+`tmproject/client748/project.exe`. Divergencia SHA-256, falha de MSBuild ou copia
 interrompem a entrega. Nao encerra o jogo automaticamente.
 
 Baseline anterior de 2026-09-05: Release e copia verificados com SHA-256
@@ -243,4 +243,4 @@ skills, clima e transicao para `TM_FIELD_STATE` permanecem na mesma ordem.
 Debug/Release recompilados com 118 checks PASS; Release instalado. A execucao
 in-game ainda nao foi realizada.
 
-- 2026-09-05: extraídos HandleCharacterCreated/HandleCharacterDeleted de TMSelectCharScene::OnPacketEvent (MODERNIZACAO_COMPATIVEL); ordem, cópias e ReloadCharList preservados. Debug validado (118 checks); Release compilado, instalação bloqueada porque client748/project.exe está aberto.
+- 2026-09-05: extraídos HandleCharacterCreated/HandleCharacterDeleted de TMSelectCharScene::OnPacketEvent (MODERNIZACAO_COMPATIVEL); ordem, cópias e ReloadCharList preservados. Debug validado (118 checks); Release compilado, instalação bloqueada porque tmproject/client748/project.exe está aberto.

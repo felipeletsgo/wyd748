@@ -16,7 +16,7 @@ validados antes de atualizar o Carry e sua grade visual?
 
 ## Fronteira de evidência
 
-- `UTILIZADA` — executavel historico `client748/wyd.exe nativo+patches/WYD.exe`
+- `UTILIZADA` — executavel historico `references/client748/WYD.exe`
   identificado pelo hash do frontmatter e projeto Ghidra
   `WYD748Native_20260821.gpr`.
 - `UTILIZADA` — descompilacao estudada de `FUN_00492E7D`, `FUN_00486009` e

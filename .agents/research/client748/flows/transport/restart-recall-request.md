@@ -16,14 +16,14 @@ transições o mesmo opcode é usado pelo recall periódico?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export focado
   `exports/restart-recall-flow.tsv`, SHA-256
   `BC97BBAD136A733A391F9E1732D26AC1EBEBE95A2EA2045D29AC896DDBFAA6CF`.
 - Assets: `NÃO APLICÁVEL`; o frame só contém header.
 - Source atual: `TMFieldScene.cpp` e `Basedef.h` em
-  `client-source/tmproject/TMProject748/`.
+  `tmproject/TMProject748/`.
 - Servidor: `internal/game/world.go`, `internal/game/handlers.go`,
   `internal/game/security.go` e testes de morte/restart.
 - TMProject posterior e guias: `NÃO APLICÁVEL`; W2PP, Secrets e Micronics

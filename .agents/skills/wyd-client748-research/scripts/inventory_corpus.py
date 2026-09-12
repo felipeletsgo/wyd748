@@ -406,7 +406,7 @@ def write_summary(
         "",
         f"- Corpus: `{corpus}`",
         f"- Inventário TSV: `{inventory_path}`",
-        "- Binário de referência: `client748/wyd.exe nativo+patches/WYD.exe`",
+        "- Binário de referência: `references/client748/WYD.exe`",
         "- A confirmação de hash permanece obrigatória antes de usar endereços.",
         "",
         "## Contagem",

@@ -201,7 +201,7 @@ Antes de promover uma ficha nativa:
 4. garantir que gaps e claims não confirmados não foram usados na decisão;
 5. registrar testes reproduzíveis e estado real da validação.
 
-`CLIENT_TESTED` exige execução do fluxo no `client748/project.exe`; build ou
+`CLIENT_TESTED` exige execução do fluxo no `tmproject/client748/project.exe`; build ou
 startup isolado não bastam.
 
 Para fichas de lifecycle em `TRACED`, `CONTRACT` ou `CLIENT_TESTED`, o validador

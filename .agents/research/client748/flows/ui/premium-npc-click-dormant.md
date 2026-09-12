@@ -126,6 +126,6 @@ Não afetado; nenhum handler foi criado.
   Premium permanece não localizado.
 - Automação: `validate_research.py` e `git diff --check` aprovados; build
   Release/Win32 aprovado com zero erros e 13 warnings C4018 preexistentes.
-- Candidato: `client748/project.exe`, SHA-256
+- Candidato: `tmproject/client748/project.exe`, SHA-256
   `87431F0B066FD782CE1231F1E76C1905671E8C0D2C23E9CA75EDD4DC351F9979`.
 - Client real: não executado; nenhum claim `CLIENT_TESTED`.

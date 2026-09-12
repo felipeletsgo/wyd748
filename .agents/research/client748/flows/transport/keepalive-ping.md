@@ -16,7 +16,7 @@ e o servidor precisa responder?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export focado
   `exports/keepalive-ping-flow.tsv`, SHA-256

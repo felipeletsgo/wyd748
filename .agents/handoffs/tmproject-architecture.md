@@ -2,7 +2,7 @@
 
 ## Estado em 2026-09-05
 
-Objetivo: executar `client-source/tmproject/docs/implementation-plan.md` sem
+Objetivo: executar `DOCS/implementation-plan.md` sem
 alterar wire/ABI/lifecycle. Modo do lote: MODERNIZACAO_COMPATIVEL, origem local.
 Worktree contem numerosas alteracoes anteriores e exclusoes do usuario;
 preserva-las. Nenhum commit/push realizado neste lote.
@@ -45,7 +45,7 @@ com 118 checks PASS; Release instalado com SHA-256
 Validacao atual: Build-Client.ps1 Debug e Release passaram com 118 checks e
 asserts em cada configuracao, incluindo entrega unica e rejeicoes do dispatcher.
 Debug SHA-256: A395C7FD2777C343BAB4AFC8D4B5930421B8C03BB8F017089A708DD65FA0BC34.
-Release instalado em `client748/project.exe`, SHA-256
+Release instalado em `tmproject/client748/project.exe`, SHA-256
 `08A10A1C02DA956A047C4B2274FB3E14A2D220BD6629BA7EB636410F7031280A`.
 XML de projeto/filtros e registro unico dos headers novos PASS; diff --check PASS.
 Instalacoes passaram sem encerrar processos. Nenhum build ficou executando.
@@ -79,7 +79,7 @@ wire/ABI/vtable.
 
 Debug compilou e instalou com 118 checks PASS, SHA-256
 `ECFAC55A2E0BDC16E3E218489082B819D2289DBAD13CC0BCD7D7DF4924F96BA4`.
-Release compilou com 118 checks PASS, mas a copia para `client748/project.exe`
+Release compilou com 118 checks PASS, mas a copia para `tmproject/client748/project.exe`
 foi bloqueada pelo Windows porque o arquivo esta aberto; nao foi encerrado
 nenhum processo. `git diff --check` deve ser executado apos liberar o arquivo.
 
@@ -92,7 +92,7 @@ pendente e o objetivo global permanece incompleto.
 `TMSelectCharScene::ShowCharacterOperationMessage` consolidou a exibicao das
 mensagens dos casos `0x11A`, `0x11B` e `0x119`, preservando indices 19, 20 e 21,
 duracao 2000 e visibilidade do painel. Nenhum contrato wire/ABI foi alterado.
-Release recompilado e instalado em `client748/project.exe`, com 118 checks e
+Release recompilado e instalado em `tmproject/client748/project.exe`, com 118 checks e
 asserts de arquitetura PASS; `git diff --check` PASS. SHA-256 atual:
 `C4C65B1992ACBFC99CC39059869AA38E1849D2426AC06DC76E390FA20C8D13C7`.
 Teste in-game e compatibilidade total continuam pendentes.
@@ -1307,7 +1307,7 @@ de persistência, sem mudança nesta unidade.
 `go test -count=1 ./...`, validador de pesquisa (`CONTRACT=29`, `TRACED=18`,
 `LOCATED=6`, `UNMAPPED=2`), XML/caminhos e `git diff --check` passaram.
 Debug/Release via `Build-Client.ps1 -Rebuild` passaram com 1942 checks/asserts;
-o Release foi instalado em `client748/project.exe` com SHA-256
+o Release foi instalado em `tmproject/client748/project.exe` com SHA-256
 `891463810FDDF12E959A6DE0C64DE0A751CF4E6D0F6FBE9EB6DAD1C2C05FDDC7`.
 Guerra, aliança, rejeição e relogin reais continuam sem `CLIENT_TESTED`.
 
@@ -1337,7 +1337,7 @@ zero/negativas, buffer nulo, produto inválido e ausência de mutação.
 `go test -count=1 ./...` passou na retomada. Build Release e gate C++ passaram
 com 11762 checks, inclusive após a guarda complementar de AddItemInEmpty.
 `git diff --check` passou. O build oficial instalou e conferiu
-`client748/project.exe`, SHA-256
+`tmproject/client748/project.exe`, SHA-256
 `BAFEB5162EF1C1B0DAAA4443159F898CFD3C7BC51B17F312193ADB9D85701BA6`.
 Estado: `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED TESTED`, não
 `CLIENT-TESTED`. Dois warnings C4018 preexistentes em SGrid permanecem.
@@ -1367,7 +1367,7 @@ paridade de entradas inválidas. Assets, wire e WYD-Go NÃO APLICÁVEIS ao delta
 sem mudança; TMProject posterior/guias NÃO APLICÁVEIS como prova nativa;
 W2PP/Secrets/Micronics excluídos. A ficha SendItem permanece LOCATED.
 
-Build oficial Release passou, instalou e conferiu `client748/project.exe`:
+Build oficial Release passou, instalou e conferiu `tmproject/client748/project.exe`:
 `27B25D80BCC96FACD81D0B68D70BDC56AFE43FB34656CEB5FCE1DD8FADF24C69`.
 Gate C++: 24253 checks PASS, incluindo escrita/retirada com sentinelas em
 6237 retângulos, overflow, footprint enorme, rejeição sem mutação/ownership.
@@ -1404,7 +1404,7 @@ Modo MODERNIZACAO_COMPATIVEL de binding local, sem claim de paridade completa.
 Build oficial Release PASS, 24253 checks existentes e static assertions PASS;
 estes checks não simulam o drag. `go test -count=1 ./internal/game
 ./internal/wire` PASS. Validador: CONTRACT=29, TRACED=19, LOCATED=6,
-UNMAPPED=2. Instalado `client748/project.exe`, SHA-256
+UNMAPPED=2. Instalado `tmproject/client748/project.exe`, SHA-256
 `2FFA834BF2941C80FA19840E397E543F9E275F74E74EFA473E25A5609E94E55A`.
 Estado da correção: IMPLEMENTED / STATICALLY VERIFIED; não CLIENT-TESTED.
 
@@ -1885,7 +1885,7 @@ Estado STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo passo: executar Big Cube,
 Uxmal e quest/instance no candidato, confirmando exibir, expirar, sair e relogar;
 depois revisar outro controle runtime pulado pelo retorno compatível.
 
-## Contratos 0x3A1/0x3B0 � contadores runtime (2026-09-07)
+## Contratos 0x3A1/0x3B0 � contadores runtime (2026-09-07)
 
 Os emissores WYD-Go usam `MSG_STANDARDPARM` de 16 bytes para `OpInstanceTime` (`0x3A1`) e `OpInstanceMobs` (`0x3B0`), com o valor em `Parm` no offset 12. `InstanceCounterContract.h` nomeia esses opcodes, tamanho e offset; `Basedef` fixa o alias `MSG_STANDARDPARM` e seus asserts de ABI. O gate central de `ReceivedPacketDispatch` agora exige exatamente 16 bytes e Type/opcode coerentes antes dos handlers `TMFieldScene`.
 
@@ -1893,67 +1893,67 @@ ArchitectureTests cobrem cada prefixo truncado, frame excedente, buffer nulo, op
 
 Build Release via `Build-Client.ps1` PASS, ArchitectureTests 24734 checks e asserts estaticos PASS, `git diff --check`, XML dos projetos e `validate_research.py` PASS. Candidato instalado: `BA0C2FD3062D7BF3E25440848C1A3A8038A2300294822781B2DDD936D245F544`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Necklace, Belt e NewSlot permanecem fora deste lote e ja estao cobertos pelos commits `5faf72a6` e `c9b66b7f`.
 
-## Contratos 0x339/0x165 � saldo do Cargo e remocao de entidade (2026-09-07)
+## Contratos 0x339/0x165 � saldo do Cargo e remocao de entidade (2026-09-07)
 
 O proximo lote vivo fechou dois envelopes S->C emitidos pelo WYD-Go. Ghidra confirma `FUN_00492E7D -> FUN_00485664` para `0x339` e `FUN_0052EAA9 -> FUN_00529BF8` para `0x165`; `FUN_0055890A` exige 16 bytes para ambos. `WorldStateParameterContract.h`, asserts e `ReceivedPacketDispatch` agora protegem tamanho real/declarado, Type/opcode, `Header.ID` e DWORD em `+12`, sem alterar os handlers.
 
 Ficha `flows/transport/world-state-parameter-contracts.md` em `CONTRACT`. ArchitectureTests 24788 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato instalado: `3D12125879994155078D5D0503339880C146F2D09CAE3553EA680FAC47808813`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: selecionar outro packet S->C realmente emitido pelo WYD-Go e ainda ausente de `ExpectedSize`; fluxos de Cargo/remocao seguem pendentes de teste real com dois clients.
 
-## Contrato 0x181 � HP/MP do source client (2026-09-07)
+## Contrato 0x181 � HP/MP do source client (2026-09-07)
 
 A triagem encontrou tres formatos sob `0x181`. A decompilacao estudada confirma o base 20B (`FUN_0052C5EB`, quatro WORD) e a extensao historica 36B (`FUN_013C0800`, quatro DWORD em `+20..+32`). O par unico TMProject748/WYD-Go ja usa 28B com CurHP/CurMP/MaxHP/MaxMP u32 em `+12..+24`; esse formato foi mantido e documentado como EXTENSAO_COORDENADA, sem alegar paridade nativa nem reintroduzir paths multiversao.
 
 `HpMpContract.h`, asserts e `ReceivedPacketDispatch` agora exigem exatamente 28B antes de `TMHuman::OnPacketSetHpMp`. Ficha `flows/transport/hp-mp-source-contract.md` em `CONTRACT`. ArchitectureTests 24830 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `6482779E56D623E672C5CB2328F280B525EDA19EEB0512CAB51A7EBDB4BF0341`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote deve continuar em outro packet S->C emitido pelo WYD-Go e ainda sem `ExpectedSize`.
 
-## Contrato 0x336 � UpdateScore do source client (2026-09-07)
+## Contrato 0x336 � UpdateScore do source client (2026-09-07)
 
 A decompilacao diferencia o frame base 92B (`FUN_0052B97D`) da extensao historica XSC2 236B (`FUN_013C0000`, marcador em `+232`). O par unico TMProject748/WYD-Go usa 232B: `STRUCT_SCORE` 140B em `+12`, 32 affects WORD em `+152`, guild/rank em `+216/+218`, custos em `+220/+224` e seletor em `+228`. Esse formato foi mantido como EXTENSAO_COORDENADA; os dois historicos agora sao rejeitados antes do cast.
 
 `UpdateScoreContract.h`, asserts e `ReceivedPacketDispatch` fecham o envelope sem alterar os efeitos do handler. Ficha `flows/transport/update-score-source-contract.md` em `CONTRACT`. ArchitectureTests 25074 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `86766AA9FBF2EF15F76A7038883F2A945AA2160153D6224F2500269429E605AB`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico deve revisar `0x185`/UpdateCarry ou outra resposta S->C realmente emitida e ainda sem gate.
 
-## Contrato 0x185 � snapshot completo do Carry (2026-09-07)
+## Contrato 0x185 � snapshot completo do Carry (2026-09-07)
 
 Ghidra confirma `FUN_0052EAA9 -> FUN_0052E3C8` e `FUN_0055890A` exige 528B: 64 itens de oito bytes em `+12` e Coin em `+524`. A copia logica conserva o slot 63, enquanto a materializacao nativa 9x7 percorre somente 0..62. `CarrySnapshotContract.h`, asserts e o gate central fecham esse envelope antes de `Empty()`/rebuild. O builder Go agora limita slices maiores a `model.MaxCarry`, evitando que o 65o item alcance Coin ou cause panic.
 
 Ficha `flows/ui/carry-snapshot-contract.md` em `CONTRACT`. ArchitectureTests 25614 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `39117672AAA8DD939CFB2B503344932195E4B179F5812AB9D28AE8F2E990FA6D`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: `0x36B`/UpdateEquip ou outro packet S->C emitido pelo WYD-Go e ainda sem gate.
 
-## Contrato 0x36B � snapshot visual de equipamento (2026-09-07)
+## Contrato 0x36B � snapshot visual de equipamento (2026-09-07)
 
 Ghidra confirma `FUN_0052EAA9 -> FUN_0052B116` e `FUN_0055890A` exige 60B: 16 WORDs visuais em `+12` e 16 AnctCode em `+44`. `UpdateEquipContract.h`, asserts e `ReceivedPacketDispatch` fecham o envelope antes dos efeitos/rebuild do avatar. A projecao server-side que zera slot 9 e exclui 16/17 permanece inalterada; Necklace/Belt/NewSlot nao foram reabertos.
 
 Ficha `flows/ui/update-equip-visual-contract.md` em `CONTRACT`. ArchitectureTests 25685 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `50AF940F6A1FBF8D7E1AE34603A94CAC8DCBB328F09C6FB8D9825CF7443A7655`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: `0x3B9`/UpdateAffect ou outra resposta S->C viva ainda sem gate.
 
-## Contrato 0x3B9 � snapshot de affects (2026-09-07)
+## Contrato 0x3B9 � snapshot de affects (2026-09-07)
 
 `FUN_0052EAA9 -> FUN_0052B72A` prova 16 registros de oito bytes, Type em `entry+0`, Time em `entry+4` e limite no byte 139. `FUN_0055890A` nao contem literal `0x3B9`, portanto o gate de 140B foi registrado como MODERNIZACAO_COMPATIVEL baseada no consumidor e no contrato source/WYD-Go. Level u8 e Value i16 em `+1/+2` permanecem EXTENSAO_COORDENADA do par ativo.
 
 `UpdateAffectContract.h`, asserts e `ReceivedPacketDispatch` fecham o envelope. Ficha `flows/transport/update-affect-source-contract.md` em `CONTRACT`. ArchitectureTests 25836 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `557CDB4A9295B0C86C0E7F7531DECBA045FF1E2754E228C53D7AF6EC0FAE90BA`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote deve selecionar outra resposta S->C viva ainda ausente do gate, preservando a distincao entre prova nativa e contrato coordenado.
 
-## Contratos 0x364/0x363 � materializacao coordenada de entidades (2026-09-07)
+## Contratos 0x364/0x363 � materializacao coordenada de entidades (2026-09-07)
 
 Ghidra confirma `FUN_00492E7D -> FUN_004829F2`; o validador nativo registra apenas `0x364/0xB0` para a forma base estudada. O source client/WYD-Go usa extensoes coordenadas de 328B (`CreateMob`) e 352B (`CreateMobTrade`, titulo em `+326`), com 18 equipamentos, 32 affects e Score140. `CreateMobContract.h`, asserts e `ReceivedPacketDispatch` agora diferenciam os dois tamanhos e rejeitam frames curtos/longos antes de criar entidades.
 
 Ficha `flows/transport/create-mob-source-contract.md` em `CONTRACT`. ArchitectureTests 26538 checks/asserts PASS, `go test -count=1 ./...`, XML, headers unicos, pesquisa e diff PASS. Candidato: `EF6F220965F9FC74BB045DD1CA703D04C8E4728FE4BA7BCC78DBE2FCF7215557`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico deve seguir outra resposta S->C viva ainda sem gate, mantendo a separacao entre base nativa e extensao coordenada.
 
-## Contrato 0x17C � lista de loja NPC (2026-09-07)
+## Contrato 0x17C � lista de loja NPC (2026-09-07)
 
 Ghidra confirma `FUN_00492E7D -> FUN_004875C0` e `FUN_0055890A` exige 236B: ShopType em `+12`, 27 `STRUCT_ITEM` em `+16` e Tax em `+232`. `ShopListContract.h`, asserts e `ReceivedPacketDispatch` agora protegem o snapshot antes de ordenar/materializar a loja. O builder Go foi coberto com 28 itens para confirmar que o extra nao sobrescreve Tax.
 
 Ficha `flows/ui/shop-list-contract.md` em `CONTRACT`. ArchitectureTests 26785 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `39B9FC79FE86388E54DB32FB31F0EADAC5E0E81012CE4D3960A705CC708427A7`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote estatico: revisar outra resposta S->C viva ainda sem gate, sem reabrir contratos ja publicados.
 
-## Contrato 0x39B � anuncio de AutoTrade vendido (2026-09-07)
+## Contrato 0x39B � anuncio de AutoTrade vendido (2026-09-07)
 
 Ghidra confirma `FUN_00492E7D -> FUN_004854ED`; o clone fica em `Parm1@12`, a posicao em `Parm2@16` e `FUN_0055890A` exige 20B. `ItemSoldContract.h`, asserts e `ReceivedPacketDispatch` agora fecham o envelope antes de `OnPacketItemSold`, preservando a remocao visual e o lifecycle existente. ArchitectureTests 26815 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `4929DED5CAEBCDFE1474E50C7CD775B39B0260965201D9374EE1DDA52C0B5570`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote continua em respostas S->C vivas ainda sem gate.
 
-## Contrato 0x3A7 � conclusao de ItemMix (2026-09-07)
+## Contrato 0x3A7 � conclusao de ItemMix (2026-09-07)
 
 `FUN_00492E7D -> FUN_004890F9` confirma o callback que fecha os roots ItemMix. Como `FUN_0055890A` nao lista `0x3A7`, o envelope StandardParm de 16B foi documentado como MODERNIZACAO_COMPATIVEL do par source/WYD-Go. `CombineCompleteContract.h`, asserts e o gate central impedem que frame parcial feche um painel. ArchitectureTests 26841 checks/asserts PASS, `go test -count=1 ./...`, XML, header unico, pesquisa e diff PASS. Candidato: `549FDF4F6A46A8E0C537C4F429E37A71747A4CF58741C3D5BC366026AF09403D`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED.
 
-## Contrato 0x3CA � publicacao de PremiumFirework (2026-09-07)
+## Contrato 0x3CA � publicacao de PremiumFirework (2026-09-07)
 
 Ghidra e `FUN_0055890A` confirmam `0x3CA/36B`; `TMHuman::OnPacketPremiumFireWork` consome o Bitmap em `+20` para criar o efeito. A estrutura existente `MSG_PremiumFirework` ja era correta; apenas `ReceivedPacketDispatch` passou a exigir o tamanho e Type/opcode antes do callback. ArchitectureTests 26887 checks/asserts PASS, `go test -count=1 ./...`, XML, pesquisa e diff PASS. Candidato: `BB904B8E2AC97663F2BC18D38A5A86009A80173EDE93BAD727A570D47AF5A849`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED.
 
-## Contrato 0x1BF � resultado de Gamble (2026-09-07)
+## Contrato 0x1BF � resultado de Gamble (2026-09-07)
 
 Ghidra e `FUN_0055890A` confirmam 36B: Result[5] em `+12`, StopPosition[3] em `+17`, Prize i32 em `+28` e Jackpot u32 em `+32`. `ReceivedPacketDispatch` agora exige esse frame antes de `OnPacketRESULTGAMBLE`; a struct e o builder ja eram corretos. Ficha `flows/ui/gamble-result-contract.md` em `CONTRACT`. ArchitectureTests 26933 checks/asserts PASS, `go test -count=1 ./...`, XML, pesquisa e diff PASS. Candidato: `C2C6B90409D1E23DC7BC70B609D636174AD9D6468F187E2ACC44509CF3A2CA7A`. Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED.
 

@@ -18,7 +18,7 @@ cena anterior para destruição? Quais partes da implementação do TMProject
 
 ## Fronteira de evidência
 
-- Executável: `client748/wyd.exe nativo+patches/WYD.exe`.
+- Executável: `references/client748/WYD.exe`.
 - SHA-256: `8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593`.
 - Projeto Ghidra: `WYD748Native_20260821.gpr`; corpus auxiliar com 4.146
   funções em `GhidraAnalysis/20260821/decompiled`.
@@ -31,7 +31,7 @@ cena anterior para destruição? Quais partes da implementação do TMProject
   exports TSV gerados em `%TEMP%\codex-wyd748-lifecycle-149205b7`, separa o
   que foi interpretado do que ainda é somente pista e preserva a pergunta de
   cada export sem versionar aproximadamente 34,87 MiB de recortes regeneráveis.
-- Source recompilável consultada: `client-source/tmproject/Projects/TMProject/`
+- Source recompilável consultada: `tmproject/TMProject748/`
   (`ObjectManager`, `TMScene`, `TreeNode` e `NewApp`).
 - Servidor: não há regra server-side direta para troca de cena local; qualquer
   intenção posterior continua sujeita à autoridade do WYD-Go.
@@ -704,14 +704,14 @@ foi inferido a partir do TMProject.
 
 O equivalente semântico atual está em:
 
-- `client-source/tmproject/Projects/TMProject/ObjectManager.cpp:701-764`:
+- `tmproject/TMProject748/internal/core/ObjectManager.cpp:701-764`:
   `SetCurrentState` converte `TM_FIELD2_STATE` para `TM_FIELD_STATE`, cria
   `TMFieldScene`, `TMSelectCharScene`, `TMSelectServerScene` ou `TMDemoScene`,
   inicializa, anexa ao root e reporta falhas.
-- `client-source/tmproject/Projects/TMProject/ObjectManager.cpp:766-783`:
+- `tmproject/TMProject748/internal/core/ObjectManager.cpp:766-783`:
   `SetCurrentScene` troca a cena global, marca a anterior, copia o estado do
   painel de mensagens e chama `DeleteObject`.
-- `client-source/tmproject/Projects/TMProject/ObjectManager.cpp:924-963`:
+- `tmproject/TMProject748/internal/core/ObjectManager.cpp:924-963`:
   `CleanUp` percorre a árvore, consome `m_cDeleted` e libera
   `m_pPreviousScene`.
 - `TMScene.cpp` e `TreeNode.cpp`: constroem containers/filhos e mantêm a lista
@@ -811,5 +811,5 @@ inventário, observers e persistência continuam sendo validados no servidor.
   `Basedef.h`, `ObjectManager.cpp`, `TMFieldScene.cpp` e `TMScene.cpp`; a
   classificação máxima antes do fluxo real permanece `STATICALLY VERIFIED`.
 - Client real: não executado; não há build, startup, screenshot, dump ou fluxo
-  real em `client748/project.exe`. Portanto, nenhuma alegação `CLIENT_TESTED` é
+  real em `tmproject/client748/project.exe`. Portanto, nenhuma alegação `CLIENT_TESTED` é
   permitida.

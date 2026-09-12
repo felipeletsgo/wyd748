@@ -17,7 +17,7 @@ consumir estado autoritativo localmente?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; exports focados
   `0044fc4b_FUN_0044fc4b.c`, `004525a1_FUN_004525a1.c`,
@@ -26,7 +26,7 @@ consumir estado autoritativo localmente?
 - Assets: nenhum asset é lido ou alterado por esta transição; o controle
   `0x9C99` é uma segunda entrada observável para a mesma ação.
 - Source atual: `TMFieldScene::OnCharEvent`, `OnKeyAuto` e o layout
-  `MSG_UseItem` em `client-source/tmproject/Projects/TMProject/`.
+  `MSG_UseItem` em `tmproject/TMProject748/`.
 - Servidor: handler autoritativo de `MSG_UseItem` no WYD-Go; esta ficha limita
   o claim ao contrato publicado pelo client.
 
@@ -206,7 +206,7 @@ exige reconstrução artificial de item pelo atalho.
 ## Lacunas
 
 - Executar `F/f`, o controle `0x9C99` e o comando textual no
-  `client748/project.exe` com combinação válida, inválida e cooldown ativo.
+  `tmproject/client748/project.exe` com combinação válida, inválida e cooldown ativo.
 - Capturar o packet e a resposta autoritativa em uma sessão real.
 - Confirmar visualmente que uma recusa do servidor mantém Carry e equipamento
   sincronizados. Essas lacunas bloqueiam somente `CLIENT_TESTED`.
@@ -219,7 +219,7 @@ exige reconstrução artificial de item pelo atalho.
 - Automação: `validate_research.py --repo .` aprovado com `CONTRACT=5`,
   `LOCATED=3` e `TRACED=2`.
 - Client source: `Build-Client.ps1` aprovado com 13 warnings preexistentes e
-  zero erros; candidato instalado em `client748/project.exe`, SHA-256
+  zero erros; candidato instalado em `tmproject/client748/project.exe`, SHA-256
   `A9C2233C26957ED2415A796AB55034DBC2A6A0B600A38570F35F0CCD8846FF24`.
 - Higiene: `git diff --check` aprovado; somente avisos informativos de
   LF/CRLF do Git no Windows.

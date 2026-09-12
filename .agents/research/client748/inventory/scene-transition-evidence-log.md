@@ -6,7 +6,7 @@ que uma retomada comece na última lacuna, não numa releitura ampla.
 
 ## Proveniência e regra de uso
 
-- Executável: `client748/wyd.exe nativo+patches/WYD.exe`.
+- Executável: `references/client748/WYD.exe`.
 - SHA-256: `8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593`.
 - Projeto: `WYD748Native_20260821.gpr`, Ghidra 12.1.3, consultas read-only com
   `ExportWydFlow.java`.

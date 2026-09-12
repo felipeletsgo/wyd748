@@ -17,7 +17,7 @@ deve sobreviver ao login inicial, à migração e ao retorno à seleção?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256 do
+- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
   frontmatter.
 - Projeto Ghidra: `WYD748Native_20260821.gpr`; xrefs e fluxo focados em
   `FUN_00423D7A`, `FUN_00423F37`, `FUN_004245DB`, `FUN_00484D44`,
@@ -25,7 +25,7 @@ deve sobreviver ao login inicial, à migração e ao retorno à seleção?
 - Assets: N/A; a transição não carrega recurso visual.
 - Source atual: `CPSock.cpp`, `NewApp.cpp`, `TMGlobal.cpp`, `TMGlobal.h`,
   `TMScene.cpp`, `TMSelectServerScene.cpp`, `TMFieldScene.cpp`, `Basedef.h` e
-  `WYD748Compat.cpp` em `client-source/tmproject/Projects/TMProject/`.
+  `WYD748Compat.cpp` em `tmproject/TMProject748/`.
 - Servidor: o contrato TCP existente recebe o login `0x20D`; nenhuma fronteira
   server-side exige um segundo socket ou uma segunda mensagem Win32.
 

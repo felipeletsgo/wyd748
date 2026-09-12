@@ -19,7 +19,7 @@ esquerda não corresponde ao client nativo?
 
 - Native: `WYD.exe` do hash do frontmatter, `FUN_00435B13` e handler de clique
   `FUN_004662C5` no projeto `WYD748Native_20260821.gpr`.
-- Recurso: `client748/UI/FieldScene2.bin`, root `292/0x124` e botão
+- Recurso: `tmproject/client748/UI/FieldScene2.bin`, root `292/0x124` e botão
   `5744/0x1670`.
 - Source: `TMFieldScene::InitializeCompatFieldScene()` e case `5744` do
   dispatcher de clique.
@@ -139,6 +139,6 @@ por logout/relogin em `800x600`, `1024x768` e `1280x960`.
 - `validate_research.py --repo .` e `git diff --check` passaram em 2026-09-02;
   este último emitiu somente avisos LF/CRLF da worktree existente.
 - `Build-Client.ps1` passou em `Release|Win32` v145 com zero erros e 21
-  warnings preexistentes. Output e `client748/project.exe` têm SHA-256
+  warnings preexistentes. Output e `tmproject/client748/project.exe` têm SHA-256
   `AD624D96A9F6DE7024D383594E9778586B20A113A9683150D9EDB1584CECCFEC`.
 - Não é `CLIENT-TESTED`: ainda falta aprovação visual do candidato deste lote.

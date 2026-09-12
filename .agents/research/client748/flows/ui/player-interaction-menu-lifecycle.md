@@ -17,14 +17,14 @@ menu sem depender dos controles 7.59+?
 
 ## Fronteira de evidência
 
-- Executável/hash: `client748/wyd.exe nativo+patches/WYD.exe`, SHA-256
+- Executável/hash: `references/client748/WYD.exe`, SHA-256
   `8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593`.
 - Recurso nativo: `FieldScene2.bin`, root do menu `640`, texto `645` e
   controles filhos `620..645`, `816..817`, `862..863` e `912..915`.
 - Source atual:
   `TMFieldScene::InitializeCompatFieldScene`, `OnMouseEventCompat`,
   `PGTVisible` e `OnControlEvent` em
-  `client-source/tmproject/Projects/TMProject/TMFieldScene.cpp`.
+  `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp`.
 - Escopo: paridade nativa de input/UI; não altera wire, ABI ou autoridade do
   servidor.
 
@@ -225,7 +225,7 @@ na validação server-authoritative já existentes.
   servidor ou IDs de recurso.
 - Build oficial `Build-Client.ps1`: Release|Win32 concluído com 0 erros e 13
   warnings C4018 preexistentes. O executável instalado
-  `client748/project.exe` recebeu SHA-256
+  `tmproject/client748/project.exe` recebeu SHA-256
   `FA90D368E8EDE5F9D9E986263F13FAA0163A10DE8190C7B54C210AC59245B9C8`.
 - Estado: `IMPLEMENTED / STATICALLY VERIFIED / AUTOMATED BUILD`; permanece
   sem `CLIENT-TESTED` até a confirmação no jogo com dois clients e os quatro

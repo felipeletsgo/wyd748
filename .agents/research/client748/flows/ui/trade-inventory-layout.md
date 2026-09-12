@@ -24,7 +24,7 @@ contaminar as próximas janelas?
   `FUN_004484F3`, `FUN_0044AE38`, `FUN_0044C15C`, `FUN_0044C53F`,
   `FUN_0044DF53`, `FUN_004640E5`, `FUN_0047FCD7`, `FUN_0052DC5D`,
   `FUN_0052E2F6` e `FUN_0052E3C8`.
-- Recurso: `client748/UI/FieldScene2.bin`, roots `576` e `257`.
+- Recurso: `tmproject/client748/UI/FieldScene2.bin`, roots `576` e `257`.
 - Source: `TMFieldScene::PositionCompatTradePanels()` e
   `TMFieldScene::SetVisibleTrade()`.
 - Capturas fornecidas em 2026-09-02 mostram várias janelas herdando a mesma

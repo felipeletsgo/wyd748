@@ -12,8 +12,8 @@ MoveStop. O teste real no client ainda nao foi executado neste estado.
 ## Fontes e artefatos
 
 ```text
-client748/wyd.exe nativo+patches/WYD.exe | referencia nativa Ghidra | SHA-256 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-client-source/tmproject/Projects/TMProject/Basedef.cpp | BASE_GetSpeed 7.48 | limite 1..7 verificado
+references/client748/WYD.exe | referencia nativa Ghidra | SHA-256 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
+tmproject/TMProject748/internal/core/Basedef.cpp | BASE_GetSpeed 7.48 | limite 1..7 verificado
 internal/game/security.go | validacao e reconciliacao server-side | worktree 2026-08-26
 internal/game/player_movement.go | relogio autoritativo | worktree 2026-08-26
 ```
@@ -64,7 +64,7 @@ comando: go vet ./...
 resultado: PASS
 
 comando: go test ./...
-resultado: pacotes de movimento PASS; suite global bloqueada somente pela ausencia alheia de client748/Mounts-KR.json e client748/Costumes-KR.json em internal/data
+resultado: pacotes de movimento PASS; suite global bloqueada somente pela ausencia alheia de tmproject/client748/Mounts-KR.json e tmproject/client748/Costumes-KR.json em internal/data
 
 comando: git diff --check -- arquivos deste escopo
 resultado: PASS
