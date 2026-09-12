@@ -1,6 +1,7 @@
 package login
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -45,6 +46,18 @@ func (d *Dispatcher) HandlePacket(packet protocol.Packet) (bool, error) {
 		return false, errors.New("login: dispatcher is not initialized")
 	}
 	switch packet.Header.Type {
+	case 0x101:
+		// FUN_0055890A/FUN_0049889A: 108 bytes, ID zero, texto em
+		// +12 com os dois últimos bytes terminados pelo receptor nativo.
+		if packet.Header.Size != 108 || len(packet.Raw) != 108 || len(packet.Body) != 96 || packet.Header.ID != 0 {
+			return true, protocol.ErrBadSize
+		}
+		text := packet.Body[:94]
+		if end := bytes.IndexByte(text, 0); end >= 0 {
+			text = text[:end]
+		}
+		d.state.ServerMessage = string(text)
+		return true, nil
 	case OpcodeCharacterList:
 		return true, d.state.AcceptCharacterList(packet)
 	case OpcodeEnterWorld:

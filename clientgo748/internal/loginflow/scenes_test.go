@@ -59,6 +59,29 @@ func TestVisualLoginFactoryUsesControlsAndSubmitCallback(t *testing.T) {
 	_ = s.Close()
 }
 
+func TestLoginSceneKeepsSubmissionErrorsLocal(t *testing.T) {
+	factories := SceneFactoriesWithVisuals(login.NewSessionState(), VisualOptions{Authenticate: func(string, []byte) error { return errors.New("offline") }})
+	s, err := factories[LoginSceneID]()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Enter(); err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if err := s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x0D}); err != nil {
+		t.Fatalf("empty form terminated scene: %v", err)
+	}
+	_ = s.HandleEvent(input.Event{Kind: input.KindText, Rune: 'a'})
+	_ = s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x09})
+	_ = s.HandleEvent(input.Event{Kind: input.KindText, Rune: 'b'})
+	for i := 0; i < 3; i++ {
+		if err := s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x0D}); err != nil {
+			t.Fatalf("retry %d terminated scene: %v", i, err)
+		}
+	}
+}
+
 func TestServerSelectionSelectsRowBeforeConnecting(t *testing.T) {
 	state := login.NewSessionState()
 	calls := 0
@@ -303,14 +326,22 @@ func TestServerSelectionEscapeRequestsClose(t *testing.T) {
 	state := login.NewSessionState()
 	requested := 0
 	factories := SceneFactoriesWithVisuals(state, VisualOptions{
-		Servers: []ServerEntry{{Name: "Alpha", Address: "127.0.0.1:8281"}},
+		Servers:      []ServerEntry{{Name: "Alpha", Address: "127.0.0.1:8281"}},
 		RequestClose: func() error { requested++; return nil },
 	})
 	s, err := factories[ServerSelectionSceneID]()
-	if err != nil { t.Fatal(err) }
-	if err := s.Enter(); err != nil { t.Fatal(err) }
-	if err := s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x1B}); err != nil { t.Fatal(err) }
-	if requested != 1 { t.Fatalf("close requests=%d want 1", requested) }
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Enter(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.HandleEvent(input.Event{Kind: input.KindKeyDown, Key: 0x1B}); err != nil {
+		t.Fatal(err)
+	}
+	if requested != 1 {
+		t.Fatalf("close requests=%d want 1", requested)
+	}
 }
 
 func TestCharacterSceneRejectsIncompatiblePhase(t *testing.T) {

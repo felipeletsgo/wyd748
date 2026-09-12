@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/pprof"
 	"strings"
 	"time"
 
@@ -36,12 +37,25 @@ func main() {
 func run() (result error) {
 	// Cada execução recebe diretório próprio ao lado do executável.
 	executable, _ := os.Executable()
-	diagnostic := diagnostics.Open(filepath.Join(filepath.Dir(executable), "logs", fmt.Sprintf("%s-%d", time.Now().Format("20060102-150405.000000000"), os.Getpid())))
+	logDirectory := filepath.Join(filepath.Dir(executable), "logs", fmt.Sprintf("%s-%d", time.Now().Format("20060102-150405.000000000"), os.Getpid()))
+	diagnostic := diagnostics.Open(logDirectory)
 	defer diagnostic.Close()
 	defer func() { diagnostic.Event("client_exit", diagnostics.F("error", result)) }()
 	diagnostic.Event("client_start")
 	if err := diagnostic.InitError(); err != nil {
 		fmt.Fprintln(os.Stderr, "Diagnostics unavailable:", err)
+	}
+	// Perfil local opcional: stacks/amostras, nunca o corpo de packets ou credenciais.
+	if os.Getenv("WYD_CLIENT_CPU_PROFILE") == "1" {
+		profile, err := os.Create(filepath.Join(logDirectory, "cpu.pprof"))
+		if err != nil {
+			return fmt.Errorf("create CPU profile: %w", err)
+		}
+		if err := pprof.StartCPUProfile(profile); err != nil {
+			_ = profile.Close()
+			return err
+		}
+		defer func() { pprof.StopCPUProfile(); _ = profile.Close() }()
 	}
 	cfg := config.Default()
 	if err := cfg.Validate(); err != nil {
@@ -157,6 +171,9 @@ func run() (result error) {
 	session := protocol.NewSession(selectedAddress, protocol.SessionOptions{Diagnostics: diagnostic})
 	var observedScene string
 	options := app.Options{
+		FrameStats: func(frames int, elapsed, renderTotal, renderMax time.Duration) {
+			diagnostic.Event("frame_stats", diagnostics.F("fps", float64(frames)/elapsed.Seconds()), diagnostics.F("render_mean_ms", float64(renderTotal)/float64(time.Millisecond)/float64(frames)), diagnostics.F("render_max_ms", float64(renderMax)/float64(time.Millisecond)))
+		},
 		Title:               "WYD 7.48",
 		Width:               cfg.WindowWidth,
 		Height:              cfg.WindowHeight,
@@ -203,6 +220,7 @@ func run() (result error) {
 				// TMSelectServerScene connects only from B_LOGIN_OK, after the
 				// endpoint has been selected and the account form is validated.
 				if err := client.ConnectSession(); err != nil {
+					diagnostic.Event("auth_connect_error", diagnostics.F("error", err))
 					return err
 				}
 				err := coordinator.Authenticate(account, password, [4]uint32{}, 0)
@@ -265,6 +283,9 @@ func run() (result error) {
 			}
 			before := state.Phase()
 			handled, err := coordinator.HandleSessionEvent(event)
+			if err == nil && handled && event.Kind == protocol.SessionPacket && event.Packet.Header.Type == 0x101 {
+				diagnostic.Event("server_message", diagnostics.F("text", state.ServerMessage))
+			}
 			diagnostic.Event("packet_dispatch", diagnostics.F("kind", event.Kind), diagnostics.F("opcode", fmt.Sprintf("%04X", event.Packet.Header.Type)), diagnostics.F("handled", handled), diagnostics.F("before", before), diagnostics.F("after", state.Phase()), diagnostics.F("error", err), diagnostics.F("socket_error", event.Err))
 			return err
 		},

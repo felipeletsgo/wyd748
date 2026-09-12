@@ -59,6 +59,9 @@ type SessionState struct {
 	pendingSlot int32
 	world       WorldSnapshot
 	hasWorld    bool
+	// ServerMessage é apresentação local; sobrevive ao EOF para explicar a
+	// rejeição e é descartada quando o usuário inicia outra conexão.
+	ServerMessage string
 }
 
 func NewSessionState() *SessionState {
@@ -79,6 +82,7 @@ func (s *SessionState) BeginConnect() error {
 		return stateError(s, Disconnected)
 	}
 	s.phase = Connecting
+	s.ServerMessage = ""
 	return nil
 }
 
@@ -224,7 +228,7 @@ func (s *SessionState) Disconnect() {
 	if s == nil {
 		return
 	}
-	*s = SessionState{phase: Disconnected, pendingSlot: -1}
+	*s = SessionState{phase: Disconnected, pendingSlot: -1, ServerMessage: s.ServerMessage}
 }
 
 // CharacterList devolve uma cópia; o chamador nunca recebe a prova opaca por

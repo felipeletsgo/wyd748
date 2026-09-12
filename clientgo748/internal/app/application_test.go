@@ -331,6 +331,40 @@ func TestApplicationReceiveFailureClearsPublishedLoginState(t *testing.T) {
 	}
 }
 
+func TestApplicationReconnectsAfterRemoteDisconnect(t *testing.T) {
+	var events []string
+	state := login.NewSessionState()
+	session := &fakeEventSession{fakeSession: fakeSession{events: &events}}
+	a, err := New(Options{
+		Title: "test", Width: 800, Height: 600, Session: session,
+		SessionConnected: state.BeginConnect,
+		SessionEventHandler: func(event protocol.SessionEvent) error {
+			if event.Kind == protocol.SessionDisconnected {
+				state.Disconnect()
+			}
+			return nil
+		},
+	}, &fakeWindow{events: &events}, &fakeRenderer{events: &events})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for attempt := 0; attempt < 3; attempt++ {
+		if err := a.ConnectSession(); err != nil {
+			t.Fatal(err)
+		}
+		if state.Phase() != login.Connecting {
+			t.Fatalf("attempt %d: phase=%s", attempt, state.Phase())
+		}
+		session.sessionData = []protocol.SessionEvent{{Kind: protocol.SessionDisconnected}}
+		if err := a.dispatchSessionEvents(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if session.startCalls != 3 {
+		t.Fatalf("receiver starts=%d want 3", session.startCalls)
+	}
+}
+
 func TestApplicationSessionLifecycleCallbacksRequireSession(t *testing.T) {
 	var events []string
 	_, err := New(Options{

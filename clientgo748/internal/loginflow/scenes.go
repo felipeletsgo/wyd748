@@ -274,6 +274,8 @@ func (s *serverSelectionScene) Render() error {
 		text.DrawText(layout.close.X+17, layout.close.Y+6, closeCaption, 9, graphics.Color{R: 1, G: 1, B: 1, A: 1})
 		if s.status != "" {
 			text.DrawText(layout.status.X, layout.status.Y, s.status, 10, graphics.Color{R: .72, G: .76, B: .84, A: 1})
+		} else if s.state.ServerMessage != "" {
+			text.DrawText(layout.status.X, layout.status.Y, s.state.ServerMessage, 10, graphics.Color{R: 1, G: .8, B: .6, A: 1})
 		}
 	}
 	return nil
@@ -1027,7 +1029,12 @@ func (s *loginScene) HandleEvent(event input.Event) error {
 			return nil
 		}
 	}
-	return s.form.HandleEvent(event)
+	// Falhas do formulário/conexão já possuem status visível e permitem
+	// nova tentativa. Não convertê-las em encerramento do loop da aplicação.
+	if err := s.form.HandleEvent(event); err != nil && s.form.Status == "" {
+		return err
+	}
+	return nil
 }
 
 // syncLayout atualiza hitboxes antes do input, inclusive antes do primeiro
@@ -1071,6 +1078,9 @@ func (s *loginScene) Render() error {
 			// artwork; it owns the fallback composition policy.
 			s.textureRenderer.DrawTexture()
 		}
+	}
+	if s.state.ServerMessage != "" {
+		s.form.Status = s.state.ServerMessage
 	}
 	s.form.RenderAt(s.renderer, layout.accountText.X, layout.accountText.Y, layout.passwordText.X, layout.passwordText.Y, layout.status.X, layout.status.Y)
 	if text, ok := s.renderer.(graphics.TextRenderer); ok {

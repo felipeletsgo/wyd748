@@ -96,8 +96,9 @@ func projectMeshGeometry(geometry MeshGeometry, transform SceneTransform, camera
 		Vertices: make([]MeshVertex, len(geometry.Vertices)),
 	}
 	visible := make([]bool, len(geometry.Vertices))
+	prepared := prepareSceneTransform(transform)
 	for i, vertex := range geometry.Vertices {
-		world := applySceneTransform(vertex.Position, transform)
+		world := prepared.apply(vertex.Position)
 		viewDelta := sub3(world, camera.Position)
 		viewX := dot3(viewDelta, right)
 		viewY := dot3(viewDelta, up)
@@ -141,18 +142,29 @@ func projectMeshGeometry(geometry MeshGeometry, transform SceneTransform, camera
 }
 
 func applySceneTransform(p Position3, t SceneTransform) Position3 {
-	x, y, z := p.X*t.Scale, p.Y*t.Scale, p.Z*t.Scale
+	return prepareSceneTransform(t).apply(p)
+}
+
+// A rotação pertence ao objeto: não recalcular seis funções trigonométricas
+// para cada vértice do mesmo draw. A ordem das operações permanece idêntica.
+type preparedSceneTransform struct {
+	t                      SceneTransform
+	cy, sy, cp, sp, cr, sr float32
+}
+
+func prepareSceneTransform(t SceneTransform) preparedSceneTransform {
 	yaw := float64(t.Yaw) * math.Pi / 180
 	pitch := float64(t.Pitch) * math.Pi / 180
 	roll := float64(t.Roll) * math.Pi / 180
+	return preparedSceneTransform{t, float32(math.Cos(yaw)), float32(math.Sin(yaw)), float32(math.Cos(pitch)), float32(math.Sin(pitch)), float32(math.Cos(roll)), float32(math.Sin(roll))}
+}
 
-	cy, sy := float32(math.Cos(yaw)), float32(math.Sin(yaw))
-	x, z = cy*x+sy*z, -sy*x+cy*z
-	cp, sp := float32(math.Cos(pitch)), float32(math.Sin(pitch))
-	y, z = cp*y-sp*z, sp*y+cp*z
-	cr, sr := float32(math.Cos(roll)), float32(math.Sin(roll))
-	x, y = cr*x-sr*y, sr*x+cr*y
-	return Position3{X: x + t.Position.X, Y: y + t.Position.Y, Z: z + t.Position.Z}
+func (r preparedSceneTransform) apply(p Position3) Position3 {
+	x, y, z := p.X*r.t.Scale, p.Y*r.t.Scale, p.Z*r.t.Scale
+	x, z = r.cy*x+r.sy*z, -r.sy*x+r.cy*z
+	y, z = r.cp*y-r.sp*z, r.sp*y+r.cp*z
+	x, y = r.cr*x-r.sr*y, r.sr*x+r.cr*y
+	return Position3{X: x + r.t.Position.X, Y: y + r.t.Position.Y, Z: z + r.t.Position.Z}
 }
 
 func sub3(a, b Position3) Position3 { return Position3{X: a.X - b.X, Y: a.Y - b.Y, Z: a.Z - b.Z} }

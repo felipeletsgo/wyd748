@@ -60,6 +60,8 @@ type Options struct {
 	// SceneSynchronizer runs after session and input dispatch, before scene
 	// update, so packets received in one frame resolve to one final scene.
 	SceneSynchronizer func() error
+	// FrameStats recebe uma amostra agregada a cada dois segundos, sem I/O por frame.
+	FrameStats func(frames int, elapsed, renderTotal, renderMax time.Duration)
 }
 
 // Application possui janela e renderer depois que cada estágio conclui.
@@ -69,16 +71,16 @@ type Application struct {
 	renderer        graphics.Renderer
 	textureRenderer graphics.TextureRenderer
 
-	windowOwned   bool
-	rendererOwned bool
-	sourceOwned   bool
-	sessionOwned  bool
-	sessionActive bool
-	eventSession  protocol.EventSession
+	windowOwned    bool
+	rendererOwned  bool
+	sourceOwned    bool
+	sessionOwned   bool
+	sessionActive  bool
+	eventSession   protocol.EventSession
 	closeRequested atomic.Bool
-	sceneManager  *scene.Manager
-	closeOnce     sync.Once
-	closeErr      error
+	sceneManager   *scene.Manager
+	closeOnce      sync.Once
+	closeErr       error
 }
 
 // New valida dependências antes que qualquer recurso externo seja criado.
@@ -191,6 +193,9 @@ func (a *Application) Run(ctx context.Context) (err error) {
 	}
 
 	lastFrame := time.Now()
+	statsStart := lastFrame
+	var frames int
+	var renderTotal, renderMax time.Duration
 	for !a.window.ShouldClose() {
 		select {
 		case <-ctx.Done():
@@ -238,6 +243,20 @@ func (a *Application) Run(ctx context.Context) (err error) {
 			a.textureRenderer.DrawTexture()
 		}
 		a.renderer.EndFrame()
+		if a.options.FrameStats != nil {
+			end := time.Now()
+			renderTime := end.Sub(now)
+			frames++
+			renderTotal += renderTime
+			if renderTime > renderMax {
+				renderMax = renderTime
+			}
+			if elapsed := end.Sub(statsStart); elapsed >= 2*time.Second {
+				a.options.FrameStats(frames, elapsed, renderTotal, renderMax)
+				statsStart = time.Now()
+				frames, renderTotal, renderMax = 0, 0, 0
+			}
+		}
 	}
 	return nil
 }
@@ -296,6 +315,11 @@ func (a *Application) dispatchSessionEvents() error {
 		limit = 64
 	}
 	for _, event := range a.eventSession.DrainEvents(limit) {
+		// EOF encerra a conexão, não o owner da sessão. Liberar o marcador
+		// antes do dispatch permite que o próximo login abra um socket novo.
+		if event.Kind == protocol.SessionDisconnected {
+			a.sessionActive = false
+		}
 		if err := a.options.SessionEventHandler(event); err != nil {
 			return fmt.Errorf("clientgo748: handle session event: %w", err)
 		}

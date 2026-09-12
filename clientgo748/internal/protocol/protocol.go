@@ -382,6 +382,16 @@ func (s *ClientSession) DrainEvents(limit int) []SessionEvent {
 	for len(drained) < limit {
 		select {
 		case event := <-events:
+			if event.Kind == SessionDisconnected {
+				// A publicação do EOF precede o defer do leitor. Aguarde seu
+				// teardown para não reconectar sobre conn/receiving antigos.
+				s.mu.Lock()
+				done := s.receiveDone
+				s.mu.Unlock()
+				if done != nil {
+					<-done
+				}
+			}
 			drained = append(drained, event)
 		default:
 			return drained

@@ -1,11 +1,61 @@
 package login
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
 	"wydclient748/internal/protocol"
 )
+
+func TestServerMessageBoundedAndPreservedAfterDisconnect(t *testing.T) {
+	state := NewSessionState()
+	dispatcher, _ := NewDispatcher(state)
+	packet := protocol.Packet{Header: protocol.Header{Type: 0x101, Size: 108}, Raw: make([]byte, 108), Body: bytes.Repeat([]byte{'X'}, 96)}
+	assertHandledPacket(t, dispatcher, packet)
+	if len(state.ServerMessage) != 94 {
+		t.Fatalf("message length=%d", len(state.ServerMessage))
+	}
+	copy(packet.Body, []byte("Wrong account or password.\x00"))
+	assertHandledPacket(t, dispatcher, packet)
+	state.Disconnect()
+	if state.ServerMessage != "Wrong account or password." {
+		t.Fatalf("message=%q", state.ServerMessage)
+	}
+	if err := state.BeginConnect(); err != nil {
+		t.Fatal(err)
+	}
+	if state.ServerMessage != "" {
+		t.Fatal("old message survived new connection")
+	}
+}
+
+func TestServerMessageRejectsInvalidEnvelope(t *testing.T) {
+	for _, invalid := range []string{"size", "raw", "body", "id"} {
+		t.Run(invalid, func(t *testing.T) {
+			state := NewSessionState()
+			state.ServerMessage = "previous"
+			dispatcher, _ := NewDispatcher(state)
+			packet := protocol.Packet{Header: protocol.Header{Type: 0x101, Size: 108}, Raw: make([]byte, 108), Body: make([]byte, 96)}
+			switch invalid {
+			case "size":
+				packet.Header.Size--
+			case "raw":
+				packet.Raw = packet.Raw[:107]
+			case "body":
+				packet.Body = packet.Body[:95]
+			case "id":
+				packet.Header.ID = 1
+			}
+			if handled, err := dispatcher.HandlePacket(packet); !handled || !errors.Is(err, protocol.ErrBadSize) {
+				t.Fatalf("handled=%v err=%v", handled, err)
+			}
+			if state.ServerMessage != "previous" {
+				t.Fatal("invalid packet changed message")
+			}
+		})
+	}
+}
 
 func TestDispatcherCompletesLoginLogoutAndReloginTransitions(t *testing.T) {
 	state := authenticatedState(t)

@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [string]$BinaryPath = (Join-Path (Split-Path -Parent $PSScriptRoot) "bin\Client Limpo\wydclient.exe"),
-    [string]$EnvironmentFile
+    [string]$EnvironmentFile,
+    [ValidateRange(0, 30)]
+    [int]$RenderSeconds = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -134,6 +136,7 @@ function Start-SmokeClient {
     $startOptions = @{
         FilePath = $BinaryPath
         PassThru = $true
+		WindowStyle = 'Hidden'
     }
     if ($clientEnvironment.Count -gt 0) {
         $startOptions.Environment = $clientEnvironment
@@ -191,6 +194,12 @@ $first = $null
 try {
     $first = Start-SmokeClient
     Assert-ClientSize $first.Window 800 600 "startup"
+    if ($RenderSeconds -gt 0) {
+        Start-Sleep -Seconds $RenderSeconds
+        if ($first.Process.HasExited) {
+            throw "The WYD client exited during the render sample."
+        }
+    }
     if (-not [ClientGo748SmokeNative]::ResizeClient($first.Window, 960, 720)) {
         throw "Could not resize the WYD client window."
     }

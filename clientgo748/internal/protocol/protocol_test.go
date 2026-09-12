@@ -312,6 +312,44 @@ func TestClientSessionReportsRemoteDisconnectAfterQueuedPackets(t *testing.T) {
 	}
 }
 
+func TestClientSessionReconnectsAfterDrainedEOF(t *testing.T) {
+	handshakes := make(chan []byte, 3)
+	session := NewSession("test", SessionOptions{IOTimeout: time.Second, DialContext: func(context.Context, string) (net.Conn, error) {
+		client, peer := net.Pipe()
+		go func() {
+			defer peer.Close()
+			var handshake [4]byte
+			_, _ = io.ReadFull(peer, handshake[:])
+			handshakes <- handshake[:]
+		}()
+		return client, nil
+	}})
+	defer session.Close()
+	for attempt := 0; attempt < 3; attempt++ {
+		if err := session.SetAddress("test"); err != nil {
+			t.Fatal(err)
+		}
+		if err := session.Connect(); err != nil {
+			t.Fatal(err)
+		}
+		if err := session.StartReceiving(); err != nil {
+			t.Fatal(err)
+		}
+		events := waitForSessionEvents(t, session, 1)
+		if events[0].Kind != SessionDisconnected {
+			t.Fatalf("event=%+v", events[0])
+		}
+		select {
+		case handshake := <-handshakes:
+			if !bytes.Equal(handshake, []byte{0x11, 0xf3, 0x11, 0x1f}) {
+				t.Fatalf("handshake=%x", handshake)
+			}
+		case <-time.After(time.Second):
+			t.Fatal("missing reconnect handshake")
+		}
+	}
+}
+
 func TestClientSessionCloseUnblocksReceiveLoopWithoutPublishingDisconnect(t *testing.T) {
 	client, peer := net.Pipe()
 	defer peer.Close()

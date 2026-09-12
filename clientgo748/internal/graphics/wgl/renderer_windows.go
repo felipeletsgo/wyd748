@@ -86,36 +86,41 @@ type pixelFormatDescriptor struct {
 }
 
 type api struct {
-	getDC             func(uintptr) uintptr
-	releaseDC         func(uintptr, uintptr) int32
-	getClientRect     func(uintptr, *rect) int32
-	choosePixelFormat func(uintptr, *pixelFormatDescriptor) int32
-	setPixelFormat    func(uintptr, int32, *pixelFormatDescriptor) int32
-	swapBuffers       func(uintptr) int32
-	createContext     func(uintptr) uintptr
-	makeCurrent       func(uintptr, uintptr) int32
-	deleteContext     func(uintptr) int32
-	getProcAddress    func(*byte) uintptr
-	clearColor        func(float32, float32, float32, float32)
-	clear             func(uint32)
-	viewport          func(int32, int32, int32, int32)
-	genTextures       func(int32, *uint32)
-	deleteTextures    func(int32, *uint32)
-	bindTexture       func(uint32, uint32)
-	texParameteri     func(uint32, uint32, int32)
-	texImage2D        func(uint32, int32, int32, int32, int32, int32, uint32, uint32, unsafe.Pointer)
-	texEnvi           func(uint32, uint32, int32)
-	enable            func(uint32)
-	disable           func(uint32)
-	cullFace          func(uint32)
-	frontFace         func(uint32)
-	blendFunc         func(uint32, uint32)
-	begin             func(uint32)
-	end               func()
-	texCoord2f        func(float32, float32)
-	vertex2f          func(float32, float32)
-	vertex3f          func(float32, float32, float32)
-	color4f           func(float32, float32, float32, float32)
+	getDC              func(uintptr) uintptr
+	releaseDC          func(uintptr, uintptr) int32
+	getClientRect      func(uintptr, *rect) int32
+	choosePixelFormat  func(uintptr, *pixelFormatDescriptor) int32
+	setPixelFormat     func(uintptr, int32, *pixelFormatDescriptor) int32
+	swapBuffers        func(uintptr) int32
+	createContext      func(uintptr) uintptr
+	makeCurrent        func(uintptr, uintptr) int32
+	deleteContext      func(uintptr) int32
+	getProcAddress     func(*byte) uintptr
+	clearColor         func(float32, float32, float32, float32)
+	clear              func(uint32)
+	viewport           func(int32, int32, int32, int32)
+	genTextures        func(int32, *uint32)
+	deleteTextures     func(int32, *uint32)
+	bindTexture        func(uint32, uint32)
+	texParameteri      func(uint32, uint32, int32)
+	texImage2D         func(uint32, int32, int32, int32, int32, int32, uint32, uint32, unsafe.Pointer)
+	texEnvi            func(uint32, uint32, int32)
+	enable             func(uint32)
+	disable            func(uint32)
+	cullFace           func(uint32)
+	frontFace          func(uint32)
+	blendFunc          func(uint32, uint32)
+	begin              func(uint32)
+	end                func()
+	texCoord2f         func(float32, float32)
+	vertex2f           func(float32, float32)
+	vertex3f           func(float32, float32, float32)
+	color4f            func(float32, float32, float32, float32)
+	enableClientState  func(uint32)
+	disableClientState func(uint32)
+	vertexPointer      func(int32, uint32, int32, unsafe.Pointer)
+	texCoordPointer    func(int32, uint32, int32, unsafe.Pointer)
+	drawElements       func(uint32, int32, uint32, unsafe.Pointer)
 }
 
 var (
@@ -126,20 +131,21 @@ var (
 
 // Renderer possui um HDC e um HGLRC enquanto initialized for verdadeiro.
 type Renderer struct {
-	windowHandle    uintptr
-	dc              uintptr
-	context         uintptr
-	initialized     bool
-	texture         uint32
-	textureWidth    int32
-	textureHeight   int32
-	layers          map[string]textureLayer
-	terrainTextures map[uint16]uint32
-	modelTextures   map[uint16]uint32
-	activeTexture   func(uint32)
-	multiTexCoord2f func(uint32, float32, float32)
-	viewportWidth   int32
-	viewportHeight  int32
+	windowHandle        uintptr
+	dc                  uintptr
+	context             uintptr
+	initialized         bool
+	texture             uint32
+	textureWidth        int32
+	textureHeight       int32
+	layers              map[string]textureLayer
+	terrainTextures     map[uint16]uint32
+	modelTextures       map[uint16]uint32
+	activeTexture       func(uint32)
+	multiTexCoord2f     func(uint32, float32, float32)
+	clientActiveTexture func(uint32)
+	viewportWidth       int32
+	viewportHeight      int32
 }
 
 type textureLayer struct {
@@ -208,6 +214,11 @@ func (r *Renderer) Initialize(windowHandle uintptr) error {
 	if err != nil {
 		return err
 	}
+	clientTexturePtr, _ := firstGLProc(a, "glClientActiveTexture", "glClientActiveTextureARB")
+	if clientTexturePtr == 0 {
+		return errors.New("clientgo748: OpenGL client texture arrays are unavailable")
+	}
+	purego.RegisterFunc(&r.clientActiveTexture, clientTexturePtr)
 	activeTexture(glTexture0)
 
 	r.windowHandle = windowHandle
@@ -553,14 +564,9 @@ func (r *Renderer) drawMeshGeometry(geometry graphics.MeshGeometry) error {
 	a.disable(glBlend)
 	a.enable(glDepthTest)
 	a.color4f(1, 1, 1, 1)
-	a.begin(glTriangles)
-	for _, index := range geometry.Indices {
-		position := geometry.Vertices[index].Position
-		a.vertex3f(position.X, position.Y, position.Z)
-	}
-	a.end()
+	err := r.drawIndexedGeometry(geometry, 0)
 	a.disable(glDepthTest)
-	return nil
+	return err
 }
 
 func (r *Renderer) drawTexturedMeshGeometry(geometry graphics.MeshGeometry, texture uint32) error {
@@ -579,28 +585,10 @@ func (r *Renderer) drawTexturedMeshGeometry(geometry graphics.MeshGeometry, text
 	a.enable(glDepthTest)
 	a.bindTexture(glTexture2D, texture)
 	a.color4f(1, 1, 1, 1)
-	a.begin(glTriangles)
-	for _, index := range geometry.Indices {
-		if int(index) >= len(geometry.Vertices) {
-			a.end()
-			a.disable(glDepthTest)
-			a.disable(glTexture2D)
-			return fmt.Errorf("clientgo748: terrain vertex index %d outside vertex count %d", index, len(geometry.Vertices))
-		}
-		vertex := geometry.Vertices[index]
-		if !vertex.HasTexCoord {
-			a.end()
-			a.disable(glDepthTest)
-			a.disable(glTexture2D)
-			return errors.New("clientgo748: terrain vertex has no texture coordinate")
-		}
-		a.texCoord2f(vertex.TexCoord.U, vertex.TexCoord.V)
-		a.vertex3f(vertex.Position.X, vertex.Position.Y, vertex.Position.Z)
-	}
-	a.end()
+	err := r.drawIndexedGeometry(geometry, 1)
 	a.disable(glDepthTest)
 	a.disable(glTexture2D)
-	return nil
+	return err
 }
 
 func (r *Renderer) drawTerrainMeshGeometry(geometry graphics.MeshGeometry, primaryTexture, secondaryTexture uint32) error {
@@ -628,28 +616,52 @@ func (r *Renderer) drawTerrainMeshGeometry(geometry graphics.MeshGeometry, prima
 	a.disable(glBlend)
 	a.enable(glDepthTest)
 	a.color4f(1, 1, 1, 1)
-	a.begin(glTriangles)
-	for _, index := range geometry.Indices {
-		if int(index) >= len(geometry.Vertices) {
-			a.end()
-			r.resetTerrainTextureUnits()
-			a.disable(glDepthTest)
-			return fmt.Errorf("clientgo748: terrain vertex index %d outside vertex count %d", index, len(geometry.Vertices))
-		}
-		vertex := geometry.Vertices[index]
-		if !vertex.HasTexCoord || !vertex.HasSecondaryTexCoord {
-			a.end()
-			r.resetTerrainTextureUnits()
-			a.disable(glDepthTest)
-			return errors.New("clientgo748: terrain vertex is missing a texture coordinate set")
-		}
-		r.multiTexCoord2f(glTexture0, vertex.TexCoord.U, vertex.TexCoord.V)
-		r.multiTexCoord2f(glTexture1, vertex.SecondaryTexCoord.U, vertex.SecondaryTexCoord.V)
-		a.vertex3f(vertex.Position.X, vertex.Position.Y, vertex.Position.Z)
-	}
-	a.end()
+	err := r.drawIndexedGeometry(geometry, 2)
 	r.resetTerrainTextureUnits()
 	a.disable(glDepthTest)
+	return err
+}
+
+// drawIndexedGeometry empresta arrays sem ponteiros Go ao OpenGL somente
+// durante DrawElements. O layout é calculado da struct local, nunca da ABI
+// 7.48. Uma chamada desenha toda a malha, evitando FFI por vértice/UV.
+func (r *Renderer) drawIndexedGeometry(g graphics.MeshGeometry, stages int) error {
+	if len(g.Indices) == 0 {
+		return nil
+	}
+	for _, index := range g.Indices {
+		if int(index) >= len(g.Vertices) {
+			return errors.New("clientgo748: invalid draw index")
+		}
+		v := g.Vertices[index]
+		if stages > 0 && !v.HasTexCoord || stages > 1 && !v.HasSecondaryTexCoord {
+			return errors.New("clientgo748: missing draw texture coordinates")
+		}
+	}
+	const vertexArray, textureArray, glFloat, glUnsignedShort = uint32(0x8074), uint32(0x8078), uint32(0x1406), uint32(0x1403)
+	a := sharedAPI
+	stride := int32(unsafe.Sizeof(g.Vertices[0]))
+	a.enableClientState(vertexArray)
+	a.vertexPointer(3, glFloat, stride, unsafe.Pointer(&g.Vertices[0].Position))
+	for stage := 0; stage < stages; stage++ {
+		r.clientActiveTexture(glTexture0 + uint32(stage))
+		a.enableClientState(textureArray)
+		uv := &g.Vertices[0].TexCoord
+		if stage == 1 {
+			uv = &g.Vertices[0].SecondaryTexCoord
+		}
+		a.texCoordPointer(2, glFloat, stride, unsafe.Pointer(uv))
+	}
+	a.drawElements(glTriangles, int32(len(g.Indices)), glUnsignedShort, unsafe.Pointer(&g.Indices[0]))
+	for stage := 0; stage < stages; stage++ {
+		r.clientActiveTexture(glTexture0 + uint32(stage))
+		a.disableClientState(textureArray)
+		a.texCoordPointer(2, glFloat, 0, nil)
+	}
+	r.clientActiveTexture(glTexture0)
+	a.disableClientState(vertexArray)
+	a.vertexPointer(3, glFloat, 0, nil)
+	runtime.KeepAlive(g)
 	return nil
 }
 
@@ -914,6 +926,11 @@ func loadAPI() (*api, error) {
 		purego.RegisterLibFunc(&a.vertex2f, opengl32.Handle(), "glVertex2f")
 		purego.RegisterLibFunc(&a.vertex3f, opengl32.Handle(), "glVertex3f")
 		purego.RegisterLibFunc(&a.color4f, opengl32.Handle(), "glColor4f")
+		purego.RegisterLibFunc(&a.enableClientState, opengl32.Handle(), "glEnableClientState")
+		purego.RegisterLibFunc(&a.disableClientState, opengl32.Handle(), "glDisableClientState")
+		purego.RegisterLibFunc(&a.vertexPointer, opengl32.Handle(), "glVertexPointer")
+		purego.RegisterLibFunc(&a.texCoordPointer, opengl32.Handle(), "glTexCoordPointer")
+		purego.RegisterLibFunc(&a.drawElements, opengl32.Handle(), "glDrawElements")
 		sharedAPI = a
 	})
 	return sharedAPI, apiErr
