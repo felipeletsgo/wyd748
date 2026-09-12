@@ -6,7 +6,7 @@ Este documento registra o inventário da árvore `internal/` após a migração
 arquitetural. O mapeamento é estrutural: ele não transforma nomes de arquivos
 em prova de paridade nativa nem altera contratos de wire, ABI ou lifecycle.
 
-Inventário atual: 244 arquivos de código (`111 .cpp` e `133 .h`),
+Snapshot da migração de `tmproject/TMProject748/internal/`: 244 arquivos de código (`111 .cpp` e `133 .h`),
 aproximadamente 118.342 linhas.
 
 | Domínio | Arquivos | Responsabilidade |

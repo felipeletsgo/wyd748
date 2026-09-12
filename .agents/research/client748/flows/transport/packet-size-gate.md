@@ -180,7 +180,7 @@ enviados ao client. A equivalência completa por opcode ainda não foi comparada
 - xrefs/caller real de `FUN_0055890A`;
 - direção e fase exatas (antes/depois de decrypt/dispatch);
 - comportamento do caller quando a função retorna não zero;
-- comparação completa da tabela nativa com client-source e `internal/wire`;
+- comparação completa da tabela nativa com client TMProject e `internal/wire`;
 - origem de chamadas indiretas, thunks ou regiões ainda não analisadas.
 - possível alcançabilidade por destino derivado ou mecanismo construído em
   runtime que os scans estáticos atuais não materializam.

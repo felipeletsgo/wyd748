@@ -1,10 +1,11 @@
-# WYD-Go — Documentação Completa do Emulador (7.48)
+# WYD-Go — histórico técnico do emulador
 
-> **Objetivo deste documento:** conter TODA a informação necessária pra reconstruir o
-> servidor WYD 7.48 do zero, mesmo que todo o resto se perca. É a referência-mãe:
-> protocolo byte-a-byte, criptografia, arquitetura, fórmulas, formatos de dados e os
-> "gotchas" ganhos a duras penas (cada um custou horas de debug). Complementa o
-> `../CLAUDE.md` (guia rápido) e o `../../plan.md` (arquitetura).
+Este registro reúne decisões de etapas anteriores. Não é especificação do
+wire atual nem guia de fontes: contém layouts superados e procedência de
+sources hoje excluídas. Não usar essas menções para orientar novas adaptações.
+Consulte [Score atual](SCORE.md), [Build e integração](build-and-integration.md)
+e as regras únicas em [AGENTS.md](../AGENTS.md). Caminhos Go são relativos a
+`wydgo748/`; alegações de validação abaixo pertencem às rodadas registradas.
 
 Índice:
 1. [Visão geral e decisões](#1-visão-geral-e-decisões)
@@ -43,11 +44,11 @@ features (pedido explícito do felipe).
 ## 2. Build, run e rede
 
 ```bash
-cd wyd-go
-go build -o tmsrv.exe ./cmd/server   # Go 1.26, módulo "wydgo"
+cd wydgo748
+go build -o bin/tmsrv.exe ./cmd/server   # módulo "wydgo"
 go vet ./...                          # sempre antes de dar por pronto
 go test ./...                         # regressões de wire, game, dados e contas
-./tmsrv.exe                            # lê data/server.txt
+./bin/tmsrv.exe                        # lê data/server.txt
 ```
 
 - **Configuração operacional:** `data/server.txt` define endereço de escuta e
@@ -65,14 +66,14 @@ go test ./...                         # regressões de wire, game, dados e conta
 - **Precedência:** uma flag de linha de comando sobrescreve o valor lido do TXT.
   As flags disponíveis são `-addr`, `-npcs`, `-gener`, `-accounts`, `-items`,
   `-itemnames`, `-skills`, `-droprates`, `-volatiles`, `-characters`,
-  `-heightmap` e `-attributemap`. Os dois mapas usam por padrão os arquivos do
-  `Server Star Micronics/TMSRV/run`, relativos à raiz de `wyd-go`.
+  `-heightmap` e `-attributemap`. Os mapas são resolvidos pela configuração
+  atual do servidor; não dependem de checkouts de projetos descontinuados.
 - **IP público:** não deve ser colocado em `listen_address`. No VPS, o servidor
   continua escutando em `0.0.0.0:8281`; o IP público ou domínio é configurado no
   `serverlist` do client. Isso também funciona quando o provedor usa NAT.
 - No Ubuntu, copie `HeightMap.dat` e `AttributeMap.dat` para `data/maps/`, altere
   as duas linhas correspondentes no TXT e execute o binário a partir da raiz de
-  `wyd-go`, para que os caminhos relativos sejam resolvidos corretamente.
+  `wydgo748`, para que os caminhos relativos sejam resolvidos corretamente.
 - Há testes automatizados, mas o teste final continua sendo conectar o client 7.48 real.
   O método de investigação: logar um pacote cru (opcode + bytes) no
   `default` do dispatch, fazer a ação no client, ver o opcode, e ler o handler
@@ -993,9 +994,8 @@ Pacote desconhecido é apenas registrado; não altera o estado até que seu layo
 seja comprovado no client ou nas fontes de referência.
 
 1. **Descubra o opcode e o layout.** Rode, aja no client, veja `sem handler: Type=0x...`
-   no log. Confirme o layout no SOURCE do client
-   (`SERVER W2PP/SOURCE GAME/Projects/TMProject/Basedef.h` struct `MSG_*` +
-   `TMFieldScene.cpp`/`TMHuman.cpp` `OnPacket*`) ou numa captura do Micronics.
+   no log. Confirme o contrato nas sources atuais do TMProject e do servidor;
+   fronteiras legadas exigem a evidência nativa 7.48 indicada no AGENTS.md.
 2. **Opcode** em `wire/opcodes.go`.
 3. **Builder** (se S→C) em `wire/codec.go`, recebendo tipos de `model`.
 4. **Handler** `on<Nome>(s, pkt)` em `game/handlers.go`.
@@ -1006,24 +1006,11 @@ seja comprovado no client ou nas fontes de referência.
 
 ## 12. Onde vive a verdade (fontes de referência)
 
-- **`SERVER W2PP/SOURCE GAME/Projects/TMProject/`** — **SOURCE do CLIENT** (759, mesma
-  lógica do 7.48). A **autoridade do lado-client**: o que o client manda, quais campos/
-  pré-condições exige, como reage. `Basedef.h` (structs `MSG_*` + opcodes), `TMFieldScene.cpp`
-  / `TMHuman.cpp` (`OnPacket*`, click handler ~14200-14730, cor do nome ~6020). Resolveu
-  ShopType, merchant nibble, affect, cor do nome, death packet.
-- **`SERVER W2PP/SOURCE SERVER/Code/`** — server 759 full-source. Fórmulas/lógica:
-  `Basedef.cpp` (BASE_GetDamage:1553, BASE_GetCurrentScore, dano físico:4997, mágico:7695),
-  `TMSrv/SendFunc.cpp` (SendShopList, SendRemoveMob), `TMSrv/GetFunc.cpp` (GetCreateMob →
-  MobName[12]=chaos:1826), parser do itemlist (`BASE_ReadItemListFile`).
-- **`SOURCE(secrets) para referência/`** — plugin 7.54 + `Descompilação/`. `BuyItem.cpp:23`
-  (Npc->Inventory[sellSlot]), `UseNpc.cpp` (tipos de merchant).
-- **`Server Star Micronics/TMSRV/run/send_dump.txt`** — captura dos bytes 7.48 REAIS que o
-  servidor Micronics manda (ground truth de layout). `itemlist.csv`, `NPCGener.txt`.
-- **Memórias** (auto-memory): `project_wyd_go_rewrite`, `project_wyd_go_shop`,
-  `project_wyd_go_combat`, `project_w2pp_748_protocol`.
-- Regra de ouro ao usar as fontes: **porte ALGORITMOS/FÓRMULAS, nunca offsets/structs**
-  (versões diferentes). O client 759-source dá a LÓGICA; os offsets 7.48 vêm da captura
-  ou de probe in-game.
+A lista antiga de projetos externos foi removida. A política de fontes está
+somente no [AGENTS.md](../AGENTS.md). Binário nativo e Ghidra 7.48 fundamentam
+claims nativos; código e testes atuais documentam o contrato coordenado ativo.
+Menções de procedência no restante deste histórico não restabelecem sources
+excluídas como evidência confiável.
 
 ---
 
@@ -1045,10 +1032,8 @@ usa `0x20F`, confirma em `0x110` e recusa em `0x11A`; nomes aceitam somente
 letras ASCII (`A-Z`/`a-z`), possuem de 4 a 13 caracteres e são únicos entre
 todas as contas sem diferenciar maiúsculas de minúsculas.
 
-**Próximo:** validar visualmente a matriz das 96 skills e o fluxo completo de
-trade no client 7.48; depois implementar crafting/quests. Grid espacial, Lua,
-SQL e multi-canal entram somente quando a carga ou a regra justificar. Ver
-`../../plan.md`.
+O próximo passo desta etapa histórica foi substituído pelas frentes registradas
+no [roadmap](ROADMAP.md). Não reabrir itens sem conferir a implementação atual.
 
 ---
 
@@ -1062,8 +1047,8 @@ iterações, salt aleatório de 16 bytes e chave de 32 bytes. O JSON aceita some
 A API é um processo separado e cria apenas contas vazias:
 
 ```powershell
-go build -o account-api.exe ./cmd/account-api
-.\account-api.exe
+go build -o bin/account-api.exe ./cmd/account-api
+.\bin\account-api.exe
 ```
 
 Para administração local, não é necessário iniciar a API. O criador interativo
@@ -1071,8 +1056,8 @@ usa as mesmas validações e o mesmo hash da API, mas grava a conta diretamente
 em `data/accounts`:
 
 ```powershell
-go build -o account-create.exe ./cmd/account-create
-.\account-create.exe
+go build -o bin/account-create.exe ./cmd/account-create
+.\bin\account-create.exe
 ```
 
 Execute o programa a partir da raiz de `wyd-go`. A senha não aparece no console

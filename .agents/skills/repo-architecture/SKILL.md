@@ -18,24 +18,32 @@ skills.
 - `.agents/research/` e `.agents/handoffs/`: evidência e continuidade.
 
 Não criar `AGENTS.md`, `CLAUDE.md`, README de projeto, script de pesquisa,
-dump, log ou temporário dentro das sources. Não reintroduzir os nomes
-`source-client`, `source-server` ou `clientgo748` como raízes ativas.
+dump, log ou temporário dentro das sources. Manter somente as duas raízes
+ativas descritas acima. Evidência binária fica em `references/client748/`.
 
 ## Procedimento seguro
 
-1. Conferir status, `HEAD` e a árvore atual; tratar o worktree como fonte de
-   verdade e preservar alterações alheias.
-2. Inventariar referências e links antes de mover ou remover arquivos.
+1. Usar a entrada única e os gates do `AGENTS.md`; não repetir a inspeção ao
+   entrar nesta skill. Delimitar arquivos e consumidores da alteração.
+2. Antes de mover ou remover, buscar referências aos alvos com `rg`. Inventário
+   global só para reorganização global, não para editar um parágrafo.
 3. Mover documentação para uma única categoria em `DOCS/` e corrigir links.
    Manter evidência técnica em `.agents/`, sem duplicar relatórios.
 4. Remover somente duplicados, regras obsoletas e artefatos gerados com
    caminhos exatos confirmados. Não apagar source, assets ou evidência nativa
    por conveniência.
-5. Atualizar o mapa central e validar layout, links relevantes, `git diff
-   --check` e testes afetados.
+5. No fechamento do lote, executar `tools/repository/Test-RepositoryLayout.ps1`.
+   Usar `-UpdateMap` somente se caminhos, entradas ou categorias do inventário
+   mudarem; essa chamada já valida o resultado, sem uma segunda execução.
+   Completar com `git diff --check` e os validadores dos recursos alterados.
 
 ## Skills
 
 Cada skill ativa tem um único `SKILL.md` curto e específico. Não copiar regras
 globais para todas as skills. Referências e scripts devem ter um propósito
 claro, caminhos atuais e testes reproduzíveis.
+
+Ao criar/revisar skills, usar `skill-creator` oferecida pela sessão. Validar
+frontmatter e revisar cenários de acionamento, reaproveitamento de evidência e
+bloqueio; um YAML válido não demonstra que o workflow evita loops. Não acionar
+skills de gameplay apenas porque a documentação menciona client ou servidor.

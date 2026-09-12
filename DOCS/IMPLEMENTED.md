@@ -2,9 +2,11 @@
 
 Atualizado em 16/08/2026. HEAD de referência: `6f16278`.
 
-Este é o documento canônico do que existe no servidor. Regras ainda não
-implementadas ficam exclusivamente em `DOCS/ROADMAP.md`. O código e os arquivos de
-`data/` continuam sendo a autoridade quando houver divergência documental.
+Este é um registro de entregas da revisão indicada, não uma auditoria do HEAD
+atual. Menções a sources descontinuadas preservam apenas a procedência
+histórica. O código, testes e dados atuais de `wydgo748/` prevalecem; os comandos
+Go abaixo são executados nesse módulo. Pendências registradas estão em
+[ROADMAP.md](ROADMAP.md) e precisam ser revalidadas antes de implementação.
 
 ## Contratos arquiteturais
 
@@ -363,7 +365,7 @@ Validação padrão:
 ```powershell
 go test -count=1 ./...
 go vet ./...
-go build -o tmp/tm-check.exe ./cmd/server
+go build -o bin/tm-check.exe ./cmd/server
 git diff --check
 ```
 
@@ -427,16 +429,9 @@ nomes maiores que os 12 bytes do protocolo.
 
 ## Fontes de referência
 
-Prioridade para comportamento nativo:
-
-1. implementação viva e testes do WYD-Go;
-2. assets e dados autoritativos atuais;
-3. Ghidra do client 7.48 histórico;
-4. W2PP 7.59 para algoritmos;
-5. Secrets 7.54 e Micronics como referências secundárias.
-
-Portar semântica e fórmulas; nunca copiar structs, offsets ou endereços de outra
-versão.
+A política atual de fontes está no [AGENTS.md](../AGENTS.md). Menções a sources
+descontinuadas neste registro descrevem procedência histórica, não recomendação
+de consulta nem evidência válida para novas adaptações.
 
 ## Limitações conhecidas
 

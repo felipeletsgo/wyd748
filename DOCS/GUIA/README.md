@@ -59,12 +59,10 @@ Guias de Cash/Premium. São periféricos ao core do emulador e foram catalogados
 
 ## Uso para o WYD-Go
 
-Estas páginas devem ser tratadas como **referência de comportamento observado/documentado**, não como substituto das fontes de implementação. Para mecânica nativa, a prioridade do projeto continua:
-
-1. implementação atual;
-2. W2PP;
-3. Secrets 7.54;
-4. Micronics/client 7.48.
+Estas páginas são referências secundárias de comportamento documentado e
+podem descrever versões posteriores. Não substituem a evidência nativa 7.48,
+os contratos explícitos nem os testes do client e servidor atuais. A política
+única de fontes está no [AGENTS.md](../../AGENTS.md).
 
 O site oficial é especialmente útil para:
 

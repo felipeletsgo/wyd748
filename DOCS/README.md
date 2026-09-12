@@ -10,6 +10,12 @@ O inventário por assunto e por localização está em
 [`documentation-map.md`](documentation-map.md). Ele distingue documentação
 do produto, evidência de pesquisa e registros históricos de continuidade.
 
+Comece por [Build e integração](build-and-integration.md),
+[Score e contrato atual](SCORE.md) e [revisão da organização](organization-review.md).
+`EMULATOR.md`, `IMPLEMENTATION_STATUS.md`, `IMPLEMENTED.md` e `ROADMAP.md`
+contêm registros de rodadas anteriores: não substituem código, testes e fichas
+atuais, nem comprovam que uma feature continua concluída ou pendente.
+
 ## Organização
 
 - Documentação de arquitetura, status, protocolo, client e servidor fica em

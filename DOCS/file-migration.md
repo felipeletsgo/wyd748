@@ -2,7 +2,7 @@
 
 Este registro acompanha a reorganizacao do `TMProject748` do menor fonte para o
 maior. O tamanho e o caminho original referem-se ao clone antes da movimentacao;
-a copia permanente para consulta continua em `../TMProject`.
+as revisoes anteriores continuam recuperaveis pelo historico Git.
 
 O modo do lote e `MODERNIZACAO_COMPATIVEL`: caminho e documentacao podem mudar,
 mas comportamento, wire, ABI, recursos e lifecycle permanecem inalterados.

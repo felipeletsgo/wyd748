@@ -1,5 +1,7 @@
 # Handoff: paridade visual e funcional do client 7.48
 
+> Registro histórico de continuidade. Comandos, scripts e resultados abaixo pertencem às rodadas registradas; não indicam disponibilidade nem validação no HEAD atual. Para operação atual, consulte `DOCS/build-and-integration.md` a partir da raiz.
+
 Atualizado em: 2026-09-03
 Estado geral: `STATICALLY VERIFIED`
 
@@ -293,9 +295,9 @@ novo binário antes do teste real.
   catálogo 7.48 preserva todos os efeitos exatamente como estão no asset; a
   normalização runtime de `EF_GRID` foi removida. O mesmo adapter traduz o
   painel nativo 626 para o prompt semântico 65885 usado pelo AutoTrade.
-- `tmproject/Update-Client748ItemList.ps1` — ferramenta ativa e
-  reproduzível que gera/verifica o catálogo canônico a partir da referência e
-  permite mudanças somente nos bytes de valor de `EF_GRID`.
+- A rodada usou uma ferramenta de geração/verificação de ItemList hoje ausente
+  da árvore. O registro não constitui um comando operacional atual; a evidência
+  registrada abaixo deve ser preservada e confrontada com o asset atual.
 - `tmproject/client748/ItemList.bin` — asset canônico 1×1, SHA-256
   `112C6CFA...AE8627E3`; todos os 1.980 `EF_GRID` têm valor zero.
 - `references/client748/` — material histórico somente para estudo;

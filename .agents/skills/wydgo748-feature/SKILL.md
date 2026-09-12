@@ -1,6 +1,6 @@
 ---
 name: wydgo748-feature
-description: Implementar features do servidor WYD-Go 7.48 autoritativo e, quando necessário, o contrato coordenado com o client TMProject.
+description: Implementar ou revisar comportamento do servidor WYD-Go 7.48 e contratos integrados com o client TMProject; não acionar para documentação ou organização sem mudança funcional.
 ---
 
 # Feature do WYD-Go 7.48
@@ -23,11 +23,12 @@ cegas para o 7.48.
 
 ## Procedimento
 
-1. Verifique `git status --short`, `HEAD`, diff scoped e o contrato/documento
-   atual; preserve mudanças alheias.
+1. Reutilize a entrada única do `AGENTS.md` e o contrato atual. Uma mudança
+   interna do servidor sem fronteira legada não precisa de pesquisa do client.
 2. Localize o fluxo vivo com `rg` e siga a intenção desde o packet até o
    estado, persistência e resposta. Defina rejeições, replay/idempotência,
-   concorrência e falha parcial antes de ligar a UI.
+   concorrência e falha parcial relevantes ao fluxo antes de ligar a UI; não
+   auditar domínios que a alteração não alcança.
 3. Para extensão coordenada, documente formato, versão/capability, opcode/IDs,
    validação, fallback e compatibilidade nos dois lados.
 4. Faça um patch pequeno, rode o teste focado, depois avance para o próximo
@@ -35,21 +36,27 @@ cegas para o 7.48.
 
 ## Validação
 
-No servidor:
+Aplicar a matriz do `AGENTS.md`. Dentro de `wydgo748/`, selecionar o pacote e
+os testes que exercitam a alteração (`go test ./internal/game -run <Teste>`,
+por exemplo; substituir pelo alvo real). O filtro deve executar testes, não
+apenas retornar sucesso sem casos. Incluir casos de rejeição e consumidores
+afetados; reservar suíte ampla/vet para o lote com impacto transversal.
 
-```powershell
-Push-Location .\wydgo748
-go test -count=1 ./...
-Pop-Location
-```
-
-Quando houver source client alterada, valide também o build de
-`tmproject/Build-Client.ps1` e o fluxo real no client. Relate separadamente
-`STATICALLY VERIFIED`, `AUTOMATED TESTED` e `CLIENT-TESTED`.
+Se alterar os dois projetos, testar ambos. Um teste server-side não valida o
+parser/UI do client. Compilar o alvo C++ afetado e registrar execução real
+pendente quando não disponível; nunca instalar o candidato como efeito oculto
+de uma checagem. Os estados de validação são os definidos no `AGENTS.md`.
 
 Alterações ativas do client são source/assets. O conteúdo de
 `references/client748/` é evidência histórica e não deve
 ser sobrescrito.
 
-Leia as referências em `references/` somente quando o escopo exigir contrato,
-UI, Ghidra, auditoria ou continuidade.
+## Referências por assunto
+
+- Contratos do servidor: [emulator-contracts.md](references/emulator-contracts.md).
+- Contratos transversais: buscar o subsistema em
+  [repository-contracts.md](references/repository-contracts.md) e ler a seção pertinente.
+- UI legada: [client-ui-748.md](references/client-ui-748.md).
+- Acesso à evidência nativa: [ghidra-client748.md](references/ghidra-client748.md).
+- Auditoria solicitada: [audit.md](references/audit.md).
+- Retomada: [session-continuity.md](references/session-continuity.md).

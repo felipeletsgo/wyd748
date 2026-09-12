@@ -8,9 +8,10 @@ description: Auditar e adaptar assets do client 7.48 mantendo identidade, caminh
 Use esta skill para assets, recursos visuais, UI, sons ou arquivos de runtime
 sob `tmproject/client748/`.
 
-- Primeiro classifique o delta e, para uma fronteira legada, use
-  `wyd-client748-research` para provar recurso, ID, binding, input, ownership,
-  fechamento e teardown.
+- Delimite o asset, loader e consumidores. Para uma fronteira legada alterada,
+  use `wyd-client748-research`, reutilizando prova vigente de recurso/ID e,
+  quando for UI, binding, input, ownership, fechamento e teardown. Trocar uma
+  textura com formato/ID preservados não exige rastrear novamente toda a UI.
 - Preserve nomes, formatos e arquivos existentes. A ausência no nativo 7.48
   não autoriza remover um asset manualmente criado; demonstrar incompatibilidade
   no runtime, contrato ou build.
@@ -24,6 +25,8 @@ sob `tmproject/client748/`.
 - Builds, conversões e inspeções devem usar diretórios temporários ignorados e
   removíveis; não deixar scripts, logs ou artefatos gerados espalhados.
 
-Valide o build do client e, quando houver contrato novo, testes do servidor e
-do client. Declare separadamente validação estática, automatizada e no client
-real.
+Valide formato, referências e carregamento do conjunto alterado, incluindo
+fallback quando aplicável. Use a matriz do `AGENTS.md`: asset sem dependência
+de compilação não exige rebuild; contrato coordenado exige testes dos dois
+lados. A confirmação visual/sonora exige o fluxo real no client e não pode
+ser substituída por hash ou build. Não revarra todo o acervo por um asset.

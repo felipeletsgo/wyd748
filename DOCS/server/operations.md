@@ -1,8 +1,11 @@
-# WYD-Go
+# Operação do servidor WYD-Go 7.48
+
+Server commands in this guide run from `wydgo748/` unless stated otherwise.
+Client build commands run from the repository root. System descriptions are
+maintained implementation notes, not proof of end-to-end client validation.
 
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 ![Go](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)
-![Status](https://img.shields.io/badge/status-playable-brightgreen.svg)
 
 *This document uses ASD-STE100 Simplified Technical English.*
 
@@ -26,8 +29,8 @@ addresses.
 
 ## Status
 
-You can play the game from start to end with the source-built 7.48 client. The server
-connects these functions through the native protocol:
+The server has implementations for the following flows. Integrated validation
+with the current source-built client is tracked separately in the research records:
 
 - account creation and character creation;
 - login and world entry;
@@ -38,19 +41,19 @@ The server processes more than 80 packet types.
 
 ## Documentation
 
-This README is the public tutorial for the GitHub project. It explains how to
+This guide explains how to
 prepare, build, configure, start, and use the server, and it gives an overview
 of every available system.
 
-The technical documentation has two canonical files:
+The central index is [DOCS/README.md](../README.md). Server status is tracked in:
 
-- [`DOCS/IMPLEMENTED.md`](DOCS/IMPLEMENTED.md) describes the architecture and
+- [`IMPLEMENTED.md`](../IMPLEMENTED.md) describes the architecture and
   every system that exists in the current server;
-- [`DOCS/ROADMAP.md`](DOCS/ROADMAP.md) is the only roadmap and contains only work that
+- [`ROADMAP.md`](../ROADMAP.md) is the roadmap and contains work that
   is not complete.
 
 The active client workflow is documented in
-[`DOCS/build-and-integration.md`](DOCS/build-and-integration.md). Historical executables,
+[`build-and-integration.md`](../build-and-integration.md). Historical executables,
 patchers, and their notes stay read-only under
 `references/client748/` and are not part of the build.
 
@@ -75,10 +78,9 @@ The server has these systems. The server has authority on each system.
 - **Characters** — Each account can make four characters in four classes. The
   server checks each name. It gives the start layout, items, statistics, and
   spawn position from data files.
-- **Extended statistics** — An extension carries 32-bit HP, MP, STR, INT, DEX,
-  CON, attack, magic attack, and defense. It keeps the fixed 7.48 packet
-  prefixes. The gameplay uses only this extended score. The legacy score is a
-  wire projection.
+- **Statistics** — The server owns the canonical score. The coordinated
+  client/server contract carries 35 uint32 fields (140 bytes) directly in
+  `STRUCT_SCORE`, with no legacy sidecar. See [Score](../SCORE.md).
 - **World** — The server uses the native height map and attribute map for
   collision. Mob AI sleeps by area. Mobs patrol routes and follow a target. The
   view window is 65 by 65 tiles. The server creates a pet, a summon, or a mob
@@ -272,9 +274,9 @@ Trade. The chat commands accept two languages: `/create` and `/criar`,
 Build the three programs. Do these commands:
 
 ```powershell
-go build -o tm.exe ./cmd/server
-go build -o account-api.exe ./cmd/account-api
-go build -o account-create.exe ./cmd/account-create
+go build -o bin/tm.exe ./cmd/server
+go build -o bin/account-api.exe ./cmd/account-api
+go build -o bin/account-create.exe ./cmd/account-create
 ```
 
 ## Prepare PostgreSQL
@@ -311,7 +313,7 @@ for a real server. First build the file (refer to [Build the software](#build-th
 Then do this command:
 
 ```powershell
-./tm.exe
+./bin/tm.exe
 ```
 
 Use `go run` only for development. This command builds the code again at each
@@ -324,7 +326,7 @@ go run ./cmd/server
 The server reads the configuration from `data/server.txt`. A command-line flag
 replaces a data-file value. Examples: `-addr`, `-npcs`, and `-items`. The
 `-accounts` flag applies only to the explicit JSON development adapter. To see
-all the flags, do `./tm.exe -h`.
+all the flags, do `./bin/tm.exe -h`.
 
 Operational limits also live there: TCP connections globally/per IP, InitCode,
 idle and partial-frame timeouts, inbound packet/byte rates, login and chat
@@ -355,20 +357,20 @@ You make an account with one of two tools:
 - Use `account-create`, the local command-line tool:
 
   ```powershell
-  ./account-create.exe
+  ./bin/account-create.exe
   ```
 
   You can preset only the username. The tool always reads the password from the
   terminal:
 
   ```powershell
-  ./account-create.exe -username felipe
+  ./bin/account-create.exe -username felipe
   ```
 
 - Or start the HTTP API on loopback:
 
   ```powershell
-  ./account-api.exe -addr 127.0.0.1:8080
+  ./bin/account-api.exe -addr 127.0.0.1:8080
   ```
 
   Create an account:
@@ -390,12 +392,10 @@ The executables and PowerShell patchers under
 `references/client748/` are read-only historical material for
 Ghidra and must never be executed, edited, or used as a validation gate.
 
-Validate the active assets and build the source with:
+From the repository root, build the source with:
 
 ```powershell
-cd tmproject
-.\Test-Client748Assets.ps1 -AssetRoot ..\..\client748
-.\Build-Client.ps1 -Configuration Release
+pwsh -NoProfile -File tmproject/Build-Client.ps1 -Configuration Release
 ```
 
 Every successful build automatically installs `tmproject/client748/project.exe`, verifies
@@ -430,7 +430,7 @@ Do these commands:
 ```powershell
 go test ./...
 go vet ./...
-go build -o tm.exe ./cmd/server
+go build -o bin/tm.exe ./cmd/server
 ```
 
 For the final Linux/CI validation, also run:
@@ -527,7 +527,7 @@ them.
 
 ## Roadmap
 
-[`DOCS/ROADMAP.md`](DOCS/ROADMAP.md) is the only project roadmap. The next recommended
+[`DOCS/ROADMAP.md`](../ROADMAP.md) is the only project roadmap. The next recommended
 implementation is the transactional economy ledger. The later phases cover
 in-game validation, the remaining retail quests, the native Big Cube table,
 client HP/MP and guild-mark work, public-server operations, and the war systems.
@@ -555,7 +555,7 @@ file, open an issue. We will remove it quickly.
 ## License
 
 This project uses the **GNU General Public License v3.0**. Refer to
-[LICENSE](LICENSE).
+[LICENSE](../../LICENSE).
 
 You can use, study, change, and distribute this code under the GPLv3. A
 distributed derivative must keep the same license. It must also keep its source

@@ -1,155 +1,55 @@
 # Continuidade eficiente entre sessões
 
-Este protocolo reduz contexto repetido sem transformar anotações antigas em
-fonte de verdade. O código, os testes, os dados, o binário 7.48 e o Ghidra
-continuam autoritativos conforme o escopo.
+Use na retomada de trabalho incompleto. Entrada única, limites de repetição e
+gates de validação estão no [AGENTS.md](../../../../AGENTS.md); esta referência
+detalha apenas como manter evidência e próximo passo reutilizáveis.
 
-## Estrutura
+## Retomar o ponto atual
 
-```text
-AGENTS.md                         invariantes globais e roteamento curto
-<subtree>/AGENTS.md               regras específicas do diretório
-.agents/skills/<skill>/SKILL.md   workflow e índice de referências
-.agents/skills/*/references/      contratos estáveis carregados por assunto
-.agents/handoffs/<escopo>.md      estado operacional e retomada
-```
+Abrir somente o handoff do escopo, se existir, e confrontá-lo com a checagem
+inicial da árvore. Se `HEAD`/diff mostrarem trabalho incorporado, revertido ou
+substituído, descartar a premissa antiga. Não reconstruir o diff histórico.
+Sem handoff, usar o arquivo/contrato da tarefa; não criar um apenas para começar.
 
-Não duplicar o mesmo contrato em todas as camadas:
+O próximo passo vem do estado atual: patch, teste focado ou consulta que resolve
+uma lacuna identificada. Não recuperar toda a conversa nem listar tarefas quando
+o escopo já estiver claro. Não repetir a entrada ao trocar de skill.
 
-- regra universal fica no `AGENTS.md` mais alto aplicável;
-- workflow fica na skill;
-- evidência técnica extensa fica em referência;
-- estado transitório fica no handoff;
-- decisão executável fica no código/teste/dado, não na documentação.
+## Reutilizar resultados
 
-## Início de uma nova sessão
+Registrar o vínculo entre evidência e inputs quando ele for necessário para
+decidir se o resultado continua válido. Não calcular todos os hashes por padrão.
 
-1. Ler o `AGENTS.md` da raiz e os scoped dos arquivos que provavelmente serão
-   tocados.
-2. Inspecionar `.agents/skills` e abrir integralmente as skills aplicáveis.
-3. Se a solicitação continuar um escopo existente, abrir apenas o handoff
-   correspondente.
-4. Rodar `git status --short` e identificar o `HEAD` atual antes de qualquer
-   edição.
-5. Confrontar o handoff com a árvore uma única vez. `HEAD`, worktree e arquivos
-   atuais prevalecem sobre anotações transitórias; se o handoff disser que um
-   diff ainda está pendente e o commit atual já o contém, marcar essa premissa
-   como stale e não reconstruir o estado antigo.
-6. Verificar fatos baratos e sujeitos a drift: existência de arquivos, hashes,
-   branch, último build, processos e linhas atuais do código.
-7. Carregar referências técnicas somente quando roteadas pela skill.
-8. Corrigir no handoff qualquer informação stale detectada.
-
-Não reler toda a referência histórica, todo o chat ou todo o repositório para
-“recuperar contexto”. Começar pelo ponto de retomada e ampliar somente quando a
-evidência exigir.
-
-A revisão inicial termina assim que `status + HEAD + diff scoped + fingerprints
-dos inputs` confirmarem o ponto de retomada. Depois disso, executar o próximo
-passo; não iniciar uma segunda auditoria preventiva da mesma evidência.
-
-## Guarda contra looping
-
-Compactação ou interrupção não invalida automaticamente o handoff. É proibido
-reiniciar a recuperação por reflexo: não listar tarefas, reler o chat ou repetir
-triagem global quando o handoff, a worktree e o próximo símbolo continuam
-válidos.
-
-Uma retomada deve seguir este limite:
-
-1. uma única checagem curta de `git status`, `HEAD` e diff scoped;
-2. o próximo comando é um patch, teste focado ou diagnóstico específico;
-3. em implementação, repetir `patch pequeno -> teste focado -> próximo patch`;
-   deixar suíte ampla/build integral para o gate proporcional do lote;
-4. se duas chamadas não trouxerem alteração, teste ou evidência nova, parar e
-   informar o bloqueio verificável.
-
-Não contar mensagens de progresso como avanço. Após uma interrupção, o ciclo
-termina; somente uma nova solicitação explícita autoriza uma retomada. Essa
-retomada não deve repetir o plano, o handoff ou as inspeções já concluídas.
-
-## Cache e invalidação
-
-Registre no handoff o input que torna um resultado reutilizável:
-
-| Resultado | Repetir quando |
+| Evidência | Gatilho para reverificar |
 | --- | --- |
-| SHA-256 do nativo | caminho, tamanho ou mtime mudarem, ou faltar fingerprint confiável |
-| triagem/censo | catálogo, corpus, script ou objetivo da raiz mudar |
-| export/fingerprint Ghidra | binário/projeto/script ou funções solicitadas mudarem |
-| leitura de referência | arquivo mudar ou surgir uma decisão não coberta |
-| `validate_research.py` | ficha, template, schema ou validador mudar |
-| build client | source, asset ou input de build mudar |
-| testes Go | código/dado/contrato consumido pelo teste mudar; suíte ampla no gate de integração |
+| Identidade do nativo | Arquivo substituído, metadados divergentes ou identidade registrada insuficiente; nesse caso confirmar hash antes de reutilizar endereços. |
+| Censo/triagem | Corpus, catálogo ou triador alterado; uma nova raiz pode ser localizada por seed sem refazer o censo. |
+| Export Ghidra | Novo binário/projeto/script ou pergunta não coberta pelo export válido. |
+| Leitura de referência | Conteúdo alterado, indisponível no contexto ou decisão ainda não coberta. |
+| Ficha validada | Ficha, template, schema ou validador alterado. |
+| Teste/build | Código, dados, dependências, toolchain ou ambiente relevante alterado; incluir consumidores e gate integrado do lote. |
+| Fluxo no client | Executável, assets, contrato server ou cenário relevante alterado; identificar o candidato efetivamente executado. |
 
-Resultado com inputs idênticos é evidência reutilizável, não trabalho pendente.
-Não duplicar comandos só para gerar um timestamp mais novo.
+Logs, PIDs e números de linha são voláteis: consultar somente se necessários à
+próxima ação. Evidência ausente ou teste ignorado continua pendente. Resultado
+anterior reusado deve ser identificado como anterior, não como nova execução.
 
-## Conteúdo obrigatório de um handoff
+## Handoff mínimo
 
-- objetivo exato e limites do escopo;
-- artefatos canônicos e hashes relevantes;
-- evidência confirmada com data e origem;
-- arquivos alterados e observação sobre ownership da worktree;
-- último comando executado e resultado verificável;
-- estado por item usando a taxonomia de validação;
-- falhas conhecidas, hipóteses explicitamente não confirmadas e riscos;
-- próximo passo executável, com comando ou arquivo de entrada quando útil;
-- critérios de aceite ainda pendentes.
+Usar o [template](../../../handoffs/TEMPLATE.md) quando uma entrega incompleta
+precisar de continuidade. Atualizar o registro do escopo, sem criar um por patch:
 
-Handoff deve ser curto, factual e regravável. Não incluir raciocínio privado,
-transcrição de conversa, screenshots embutidos, dumps completos, logs extensos
-ou cópias de código. Referenciar o caminho e a linha/âncora em vez de duplicar.
+- objetivo e limites;
+- `HEAD` observado e arquivos ativos, distinguindo mudanças alheias;
+- decisão/evidência confirmada e seu caminho canônico;
+- última validação: comando, resultado, inputs/ambiente relevantes;
+- lacunas e critérios de aceite pendentes;
+- próximo passo executável e condição de bloqueio, se existir.
 
-## Quando atualizar
+Atualizar no fechamento do lote ou antes de parar com trabalho incompleto,
+quando houver mudança material nesses itens. Não registrar atividade sem
+mudança de conhecimento. Links substituem dumps, código copiado e transcrições.
 
-Atualizar o handoff quando ocorrer qualquer um destes eventos:
-
-- nova função Ghidra, hash ou contrato confirmado;
-- mudança material de código/dado/asset;
-- build, teste ou execução real altera o estado de validação;
-- crash produz nova causa ou minidump;
-- abordagem é abandonada ou uma hipótese é refutada;
-- sessão termina com trabalho incompleto e ponto claro de retomada.
-
-Não atualizar apenas para registrar atividade sem mudança de conhecimento.
-
-## Verificação contra drift
-
-Uma sessão nova deve tratar como volátil:
-
-- hash de `project.exe` quando houver novo build;
-- conteúdo de logs e dumps;
-- PID/processo em execução;
-- resultado de build/teste anterior quando input, toolchain, ambiente ou gate
-  de integração tiver mudado;
-- lista de mudanças da worktree;
-- line numbers de arquivos em edição.
-
-Reverificar somente o item cujo gatilho mudou. Para artefato histórico
-imutável, conferir primeiro caminho/tamanho/mtime e o hash registrado;
-recalcular somente pelos gatilhos da tabela acima.
-
-## Concorrência e múltiplas sessões
-
-- Cada handoff deve ter um único escopo claro.
-- Registrar arquivos ativos para reduzir edição concorrente acidental.
-- Não assumir que mudança não reconhecida pertence a esta sessão.
-- Antes de editar arquivo listado por outro escopo, inspecionar o diff e
-  preservar ambos os trabalhos; pedir direção somente se houver conflito real.
-- Não usar handoff como lock. O `git diff` atual sempre prevalece.
-
-## Fechamento da sessão
-
-Antes de parar trabalho incompleto:
-
-1. rodar validações proporcionais ao que mudou;
-2. registrar somente resultados realmente observados;
-3. atualizar estado e próximo passo no handoff;
-4. deixar hipóteses e itens não testados explicitamente marcados;
-5. garantir que nenhum segredo, caminho pessoal desnecessário ou transcript foi
-   gravado.
-
-Use `.agents/handoffs/TEMPLATE.md` para um novo escopo. Remover um handoff só
-quando o trabalho estiver concluído e o conhecimento estável já estiver no
-código, teste ou referência apropriada.
+Handoff não é lock nem prova superior à implementação. Preservar trabalho
+concorrente; pedir direção somente diante de conflito real. Remover o registro
+apenas quando concluído e seu conhecimento durável já estiver no local canônico.

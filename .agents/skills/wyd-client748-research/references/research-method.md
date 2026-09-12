@@ -47,7 +47,12 @@ Evite títulos baseados em arquivo (`TMFieldScene.cpp`) ou feature ampla
 
 ## Coleta nativa
 
-Para cada entrada:
+Reutilizar fichas/exports que já sustentem a decisão com identidade válida.
+As consultas abaixo são instrumentos para lacunas concretas, não uma checklist
+de todos os modos de exportação em toda pesquisa. Registrar a pergunta e parar
+a coleta quando a transição atingir o gate necessário à adaptação.
+
+Para cada entrada ainda não comprovada:
 
 1. registrar endereço, nome atual, assinatura inferida e calling convention;
 2. registrar callers diretos, xrefs indiretos relevantes e motivo de entrada;
@@ -56,8 +61,9 @@ Para cada entrada:
 4. identificar globals lidos/escritos e ownership dos ponteiros;
 5. descrever precondições, branches de sucesso, rejeição, teardown e retry;
 6. registrar constantes, strings, IDs, opcodes e layouts somente com contexto;
-7. reexportar função incompleta com timeout maior antes de inferir o bloco
-   ausente.
+7. se o export estiver incompleto por timeout, tentar reexportação focada com
+   timeout maior; persistindo a falha, inspecionar a função no projeto ou
+   registrar a lacuna. Nunca inferir o bloco ausente nem repetir o mesmo timeout.
 
 Ao usar `ExportWydFlow.java`, passe somente as funções, bases de vtable e slots
 que respondem à pergunta da ficha. A janela de dados mostra contexto estrutural,
@@ -193,8 +199,11 @@ Use estas classes:
 
 Antes de promover uma ficha nativa:
 
-1. executar `validate_research.py`;
-2. reabrir pelo menos a entrada, um caller e um callee relevante;
+1. executar `validate_research.py` no lote de fichas alteradas, antes de aceitar
+   a promoção; uma execução final pode cobrir várias fichas;
+2. conferir se entrada, callers e callees relevantes já têm evidência Ghidra
+   suficiente para o claim; reabrir somente ligações ainda não comprovadas ou
+   invalidadas, sem repetir inspeções completas feitas nesta sessão;
 3. conferir que o fingerprint registrado ainda corresponde; recalcular o hash
    somente se caminho, tamanho ou mtime mudaram, ou se o registro não for
    suficiente para identificar o binário;

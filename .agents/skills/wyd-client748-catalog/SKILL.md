@@ -1,13 +1,14 @@
 ---
 name: wyd-client748-catalog
-description: Catalogar o corpus nativo WYD 7.48 e escolher raízes de callgraph para investigação do client.
+description: Atualizar o censo nativo WYD 7.48 ou localizar/priorizar raízes de investigação ainda sem seed; não repetir catálogo para continuar fluxo já localizado.
 ---
 
 # Catálogo do client 7.48
 
-Use esta skill antes de uma investigação de paridade nativa. Ela mantém o
-censo e prioriza raízes; não transforma uma linha de `functions.tsv` em função
-compreendida e não substitui `wyd-client748-research`.
+Use esta skill quando faltar uma raiz ou quando a tarefa mudar o censo/ranking.
+Com seed/ficha válida, seguir diretamente para `wyd-client748-research`.
+O censo prioriza raízes; uma linha de `functions.tsv` não representa uma função
+compreendida. Catalogação não é pré-requisito repetido de cada adaptação.
 
 ## Regras
 
@@ -26,7 +27,8 @@ compreendida e não substitui `wyd-client748-research`.
 
 ## Procedimento
 
-1. Verifique `git status --short`, `HEAD`, o handoff do escopo e os fingerprints.
+1. Reutilize a entrada única do `AGENTS.md`. Consulte o seed/censo existente;
+   valide identidade apenas se a evidência necessária estiver ausente ou mudou.
 2. Só execute o triador quando o corpus/catalogo mudou ou quando não existir
    fila válida para a nova raiz:
 
@@ -37,7 +39,8 @@ compreendida e não substitui `wyd-client748-research`.
 3. Escolha um lote pequeno ligado a uma entrada observável; priorize
    `bootstrap -> login -> cenas -> dispatcher -> mundo -> logout/relogin`.
 4. Registre raiz, motivo, candidatos, evidência e próximo símbolo em
-   `.agents/research/`. Entregue transições completas à skill de pesquisa.
+   `.agents/research/`. Ao localizar a raiz, entregue os candidatos e lacunas
+   à pesquisa; não espere compreender todo o callgraph para encerrar catalogação.
 
 ## Estados
 

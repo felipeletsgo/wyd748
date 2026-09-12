@@ -194,7 +194,8 @@ func TestMontariasKRUsamContratoPremium748(t *testing.T) {
 		BaseItem uint16      `json:"baseItem"`
 		Items    []mountItem `json:"items"`
 	}
-	raw, err := os.ReadFile(filepath.Join("..", "..", "client748", "Mounts-KR.json"))
+	// O manifesto pertence ao runtime do client, irmao do modulo Go.
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "tmproject", "client748", "Mounts-KR.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,7 +268,7 @@ func TestTrajesKRCompletosMantemContrato748(t *testing.T) {
 	var manifest struct {
 		Items []costumeItem `json:"items"`
 	}
-	raw, err := os.ReadFile(filepath.Join("..", "..", "client748", "Costumes-KR.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "tmproject", "client748", "Costumes-KR.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

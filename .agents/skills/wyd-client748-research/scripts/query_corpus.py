@@ -99,7 +99,7 @@ def command_search(corpus: Path, term: str, limit: int) -> int:
 def command_stats(corpus: Path, repo: Path) -> int:
     index = load_index(corpus)
     referenced: dict[str, dict[Path, list[int]]] = {}
-    roots = [repo / ".agents", repo / "client-source", repo / "internal"]
+    roots = [repo / ".agents", repo / "tmproject" / "TMProject748", repo / "wydgo748" / "internal"]
     for root in roots:
         if not root.exists():
             continue

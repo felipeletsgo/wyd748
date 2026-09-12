@@ -37,14 +37,16 @@ O build recompilavel pode ler diretamente a arvore `tmproject/client748/` por me
 
 `ItemList.bin`, `ValidIndex.bin`, `object.bin`, `serverlist.bin` e
 `AttributeMap.dat` ja correspondem aos tamanhos consumidos pelo codigo ou
-possuem apenas checksum adicional ignorado pelo loader. Execute
-`Test-Client748Assets.ps1` antes do client para impedir leitura silenciosa de
-um formato desconhecido.
+possuem apenas checksum adicional ignorado pelo loader. As verificações de
+assets devem seguir os loaders e a skill `wyd-client748-assets`; o antigo
+validador separado de assets não está disponível nesta árvore. O build atual
+está descrito em [Build e integração](../build-and-integration.md).
 
 Os shaders nao existiam no client 7.48 original porque aquele executavel
 embutia outro caminho de renderizacao. Eles fazem parte da dependencia de
-runtime do client recompilavel e seus hashes sao validados antes do boot para
-manter o bytecode alinhado as declaracoes de vertices do TMProject.
+runtime do client recompilavel. Sua compatibilidade com as declaracoes de
+vertices deve ser validada junto ao renderer; esta reorganizacao nao executou
+validacao visual nem um gate automatico de hashes dos shaders.
 
 O inicializador de render targets do TMProject tambem foi corrigido para usar
 `D3DPOOL_DEFAULT`, combinacao exigida pelo DirectX 9 quando a textura possui
@@ -55,71 +57,39 @@ vazamento antes da primeira cena.
 ## Contratos
 
 1. `model.Score` continua sendo a unica autoridade de atributos.
-2. `STRUCT_SCORE` de 48 bytes e uma projecao do servidor para o client.
+2. `STRUCT_SCORE` tem 140 bytes: 35 campos uint32 no contrato coordenado atual.
 3. Campos de score recebidos do client nunca alimentam gameplay.
-4. A extensao `XSC2` permanece enquanto houver atributos que nao cabem no
-   `STRUCT_SCORE`: ataque magico, accuracy, evasion, parry, resistencias,
-   pontos, regeneracao e outros campos wide.
+4. Os atributos adicionais integram o score diretamente; não há sidecar ativo.
 5. Cada packet sera migrado com tamanho e offsets testados nos dois lados.
 6. `tmproject/client748/project.exe` é o único candidato executável; o binário histórico
    7.48 serve apenas como referência Ghidra read-only.
 
 ### Regra de comparacao entre versoes
 
-O TMProject original e uma referencia mais nova (7.59/7.69, conforme o
-subprojeto) e pode conter correcoes de comportamento, dados mais completos e
-estruturas internas superiores. Isso nao autoriza copiar offsets, tamanhos de
-struct ou opcodes diretamente para o 7.48. Para cada diferenca, a portabilidade
-segue esta ordem:
+O TMProject 7.69 pode fornecer arquitetura e algoritmos candidatos. Para
+fronteiras legadas, a evidência primária continua sendo o nativo 7.48/Ghidra.
+As classificações e os gates estão no [AGENTS.md](../../AGENTS.md).
 
-1. confirmar a semantica no codigo mais novo;
-2. localizar o campo equivalente no ABI que o client 7.48 realmente consome;
-3. adaptar a representacao, mantendo os tamanhos e offsets do 7.48;
-4. proteger a conversao com teste byte-a-byte e, quando possivel, corpus de
-   pacote real.
+Uma modernização compatível preserva o contrato comprovado. Uma extensão
+coordenada pode alterar o contrato quando ambas as pontas forem adaptadas e
+testadas explicitamente. Nenhuma das duas deve ser apresentada como paridade
+nativa. Assets posteriores exigem validação de formatos, recursos, loaders e
+fluxo observável; sua ausência no nativo não justifica remoção automática.
 
-Quando uma tabela mais nova for mais completa, ela pode ser usada como fonte
-de dados somente se houver uma traducao segura para o formato 7.48. Por
-exemplo, um `SkillData.bin` moderno pode fornecer definicoes adicionais, mas o
-loader deve projetar cada registro para o layout 7.48 que o executavel conhece;
-nao se deve enviar o registro moderno ou aumentar uma struct nativa embutida no
-client. Se a traducao nao for comprovadamente consumivel pelo 7.48, a entrada
-fica no formato legado e a feature nao e habilitada por suposicao.
+## Layout ativo do score
 
-Em resumo: a versao mais nova fornece o comportamento e os dados candidatos; o
-ABI 7.48 continua sendo a fronteira de compatibilidade. Cada adapter deve
-explicar no codigo qual lado e a fonte e qual lado e a representacao final.
-
-## Layout inicial do score
-
-| Offset | Tamanho | Campo |
-| ---: | ---: | --- |
-| 0 | 2 | Level |
-| 2 | 2 | padding |
-| 4 | 4 | Defense/Ac |
-| 8 | 4 | Attack/Damage |
-| 12 | 1 | Merchant/Reserved |
-| 13 | 1 | AttackRun |
-| 14 | 2 | padding |
-| 16 | 4 | MaxHP |
-| 20 | 4 | MaxMP |
-| 24 | 4 | CurHP |
-| 28 | 4 | CurMP |
-| 32 | 2 | STR |
-| 34 | 2 | INT |
-| 36 | 2 | DEX |
-| 38 | 2 | CON |
-| 40 | 8 | Mastery[4] |
-
-O tamanho e os offsets sao protegidos por `static_assert` no client e por
-testes byte-a-byte em `internal/wire`.
+O [contrato canônico](../SCORE.md) substitui o layout histórico de 48 bytes.
+O tamanho atual é protegido por `static_assert` em
+`tmproject/TMProject748/internal/core/WYD748Compat.cpp` e pelo encoder e testes
+em `wydgo748/internal/wire/score.go` e `score_test.go`. Mudanças precisam cobrir
+também todos os packets que embutem o score.
 
 ## Ordem de adaptacao
 
 1. Confirmar o fluxo nativo e o SHA da referência histórica no Ghidra 7.48.
 2. Localizar callers, callees, structs e assets correspondentes na source viva.
 3. Adaptar um grupo pequeno de packets ou uma janela por vez, removendo o
-   caminho exclusivo da versão upstream quando o contrato 7.48 estiver coberto.
+   caminho incompatível somente quando houver evidência e contrato substituto.
 4. Proteger wire/ABI com `static_assert` e testes byte-a-byte.
 5. Validar assets, compilar e confirmar que o build instalou e conferiu
    automaticamente `tmproject/client748/project.exe`.
@@ -127,5 +97,5 @@ testes byte-a-byte em `internal/wire`.
 
 Nao alterar varios packets estruturais de uma vez: `STRUCT_SCORE` esta embutido
 em estruturas maiores, portanto cada mudanca deve possuir corpus e teste do
-packet final. Nunca criar seleção de variante 7.48/7.59 na autenticação ou em
+packet final. Nunca criar seleção de variante de protocolo na autenticação ou em
 outro ponto; esta source tem apenas o contrato 7.48.

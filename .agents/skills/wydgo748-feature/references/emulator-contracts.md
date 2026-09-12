@@ -1,4 +1,8 @@
-# Contratos confirmados do emulador WYD-Go
+# Referência técnica do emulador WYD-Go
+
+Caminhos Go são relativos a `wydgo748/`. Esta referência resume invariantes;
+valores e layouts específicos devem ser conferidos na implementação e nos
+testes atuais. As regras de trabalho vivem somente no `AGENTS.md` da raiz.
 
 ## Indice
 
@@ -15,7 +19,7 @@
 - `model`: estado puro; `wire`: bytes; `net`: transporte; `store`: persistencia; `data`: loaders; `game`: coordenacao.
 - Uma goroutine de `World` altera gameplay. Sessoes apenas entregam comandos e enviam pela propria fila.
 - Separar features por responsabilidade. Handlers decodificam e roteiam; servicos de dominio validam e mutam.
-- `Score` e autoritativo; o score WORD legado nasce apenas na borda do protocolo.
+- `Score` e autoritativo; o contrato coordenado atual transmite 35 campos uint32 (140 bytes).
 
 ## Fronteiras de protocolo 7.48
 
@@ -41,13 +45,13 @@
 
 ## NPCs, lojas e crafting
 
-- Merchant fica no nibble baixo do score enviado. `Merchant != 0` identifica funcao de NPC e nunca combate.
+- `Merchant` ocupa um campo uint32 do score enviado. A interpretacao de funcao de NPC deve acompanhar o consumidor atual do client.
 - Skill master usa ShopType 3; loja comum usa ShopType 1. O client usa 24 skills uteis nos 27 slots da grade.
 - Algumas janelas de craft abrem inteiramente no client e nao enviam `0x28B`. Quando o opcode de composicao chegar, resolver o artesao esperado, visivel e proximo; nao depender somente de `Player.CraftNPC`.
 - Substituir contexto antigo de outro artesao pelo esperado no grid local.
 - Seletor client-side: Aylin head 55 e Agatha head 56 abrem em qualquer regiao; Tiny head 68 e fallback global; Ehre head 68 exige chunk `(19,15)` para o modo correto; Lindy head 67 exige `(13,13)`; Compositor head 54 exige `(19,13)`; Odin head 67 + Merchant 8 exige `(25,13)`.
 - Enviar mensagem textual e depois `0x3A7`: `0` invalida, `1` sucesso, `2` falha.
-- Textos adotados: `Combinacao incorreta.`, `Processamento concluido.`, `Falha na composicao.`
+- Textos ao jogador devem seguir o idioma e as mensagens do contrato atual, com resultado consistente nas duas pontas.
 - Fluxo transacional: validar snapshot/receita, copiar estado, mutar, persistir, sincronizar itens/score, enviar mensagem/resultado. Restaurar todos os campos em erro.
 
 ## IA, movimento e mundo
@@ -63,7 +67,7 @@
 
 ## Personagem, skills e combate
 
-- Recalcular `ExtendedRuntime` depois de equipar, remover, dropar, refinar, buffar ou alterar stat.
+- Recalcular o score runtime depois de equipar, remover, dropar, refinar, buffar ou alterar stat.
 - Dano, HP/MP e stats wide permanecem `uint32`; projecoes legadas nunca voltam ao calculo.
 - Skill valida aprendizado, mastery, mana, cooldown, alvo, alcance e tipo antes de mutar mana.
 - Affect usa lifecycle central: aplicar/substituir, recalcular, publicar, tickar, expirar e persistir quando necessario.
@@ -82,16 +86,21 @@
 
 ## Validacao operacional
 
-Executar na raiz `wyd-go`:
+Aplicar a matriz de validacao do [AGENTS.md](../../../../AGENTS.md). Para fechar
+um lote transversal do servidor, os comandos de integracao sao (a partir da raiz):
 
 ```powershell
-$env:GOCACHE = Join-Path (Get-Location) '.gocache'
+Push-Location wydgo748
 go test ./...
 go vet ./...
-go build -o tm-check.exe ./cmd/server
+go build -o bin/tm-check.exe ./cmd/server
+Pop-Location
 git diff --check
 ```
 
-Remover `.gocache` e `tm-check.exe` depois. Nao apagar artefatos do usuario ou limpar mudancas alheias.
+O diretorio `wydgo748/bin/` e ignorado pelo Git e concentra os builds do servidor.
 
-Quando uma acao nao fizer nada, registrar opcode, tamanho e campos essenciais, reproduzir uma vez e comparar os handlers do client e W2PP. Logs devem explicar recusas sem despejar structs nem gerar flood por tick.
+Quando uma acao nao fizer nada, registrar opcode, tamanho e campos essenciais,
+reproduzir uma vez e comparar os handlers atuais do TMProject e do servidor.
+Fronteiras nativas exigem a evidencia 7.48 indicada no AGENTS.md. Logs devem
+explicar recusas sem despejar structs nem gerar flood por tick.

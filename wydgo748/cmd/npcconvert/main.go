@@ -221,9 +221,12 @@ func safeFileName(name string) string {
 }
 
 func main() {
-	in := flag.String("in", "../Server Star Micronics/TMSRV/run/npc", "pasta de arquivos de mob binarios do Micronics")
-	out := flag.String("out", "data/npcs-micronics", "pasta de saida dos JSON")
+	in := flag.String("in", "", "pasta de entrada dos mobs binarios 7.54 (obrigatoria)")
+	out := flag.String("out", "", "pasta de saida dos JSON (obrigatoria; use diretorio de trabalho isolado)")
 	flag.Parse()
+	if strings.TrimSpace(*in) == "" || strings.TrimSpace(*out) == "" {
+		log.Fatal("informe -in e -out explicitamente; nao ha pastas de projetos externos predefinidas")
+	}
 
 	entries, err := os.ReadDir(*in)
 	if err != nil {

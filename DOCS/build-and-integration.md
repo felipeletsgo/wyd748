@@ -19,6 +19,11 @@ Consulte [operação](server/operations.md) para configuração e inicializaçã
 Testes PostgreSQL usam `WYD_TEST_POSTGRES_URL`; sem essa configuração, os
 testes condicionais não comprovam integração com o banco.
 
+O conversor histórico `cmd/npcconvert` não participa do runtime. Quando seu
+formato de entrada for necessário, exige `-in` e `-out` explícitos; não busca
+projetos externos nem grava em dados ativos por padrão. Resultados de conversão
+devem ser revisados antes de qualquer incorporação em `data/`.
+
 ## Client
 
 Requisitos: Windows, Visual Studio com C++ x86 e toolset v145, SDK Windows.

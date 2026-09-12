@@ -1,12 +1,13 @@
 ---
 name: wyd-client748-research
-description: Rastrear transições observáveis do client nativo WYD 7.48 antes de adaptar comportamento, protocolo, UI, input, render, assets ou lifecycle.
+description: Resolver evidência de comportamento ou contrato legado do client WYD 7.48 para adaptação/paridade, reutilizando fichas válidas; não acionar para servidor interno ou manutenção documental.
 ---
 
 # Pesquisa do client 7.48
 
-Use esta skill para qualquer fronteira legada do client ou para validar a
-integração de uma extensão coordenada. O fluxo obrigatório é:
+Use esta skill para a fronteira legada afetada ou interceptada por uma extensão.
+Não exigir equivalente nativo para um contrato novo. O pipeline de paridade é
+uma cadeia de evidências reutilizáveis, não uma sequência de comandos a repetir:
 
 ```text
 catálogo -> callgraph -> fluxo observável -> adaptação -> validação
@@ -34,6 +35,13 @@ são excluídos e não podem orientar, validar ou contradizer a decisão.
 
 ## O que rastrear
 
+Para abrir uma frente, leia [research-method.md](references/research-method.md).
+Para escrever ou atualizar uma ficha, use
+[evidence-record.md](references/evidence-record.md). Ao escolher fronteiras,
+consulte [subsystem-map.md](references/subsystem-map.md) somente se ainda não
+houver fluxo/raiz definido. Acione catálogo apenas quando faltar seed ou o
+censo for o objeto da tarefa.
+
 Uma ficha descreve uma transição: entrada/evento, raiz nativa, callers/callees,
 estado e mutações, erros, wire/ABI/recursos, source/server, decisão e
 validação. Confirme no Ghidra chamadas indiretas, vtables, callbacks,
@@ -46,10 +54,16 @@ fechamento e teardown. Ausência de caller textual não prova código morto.
 
 ## Continuação e saída
 
-Leia apenas esta skill, `AGENTS.md`, o handoff e as referências necessárias ao
-escopo. Confira status, diff scoped e fingerprints; reutilize evidência estável.
+Reutilize a entrada única e a política de invalidação do `AGENTS.md`. Com ficha
+suficiente e inputs válidos, avance para a adaptação sem nova exportação/Ghidra.
+Se faltar prova, formule uma pergunta sobre a transição e escolha a consulta
+que pode resolvê-la. Ao fechar o gate, implementar o delta liberado; não abrir
+pesquisa de vizinhos sem dependência demonstrada. Lacuna real bloqueia somente
+a edição dependente, e deve apontar a evidência ou acesso que falta.
 Registre a ficha em `.agents/research/` e a decisão durável em `DOCS/` sem
-duplicar conteúdo. Use `validate_research.py` quando fichas ou schema mudarem.
+duplicar conteúdo. Use `validate_research.py` uma vez por lote de fichas/schema
+alterados, antes de aceitar a promoção. Mudança só nas instruções desta skill
+não invalida as fichas nem exige reprocessar o corpus.
 
 `STATICALLY VERIFIED`, `AUTOMATED TESTED` e `CLIENT-TESTED` são estados
 distintos. Build ou teste estático nunca promove uma frente a `CLIENT_TESTED`.

@@ -34,7 +34,8 @@ linha somente quando a ficha correspondente passar pelo validador.
 | Render e assets | loaders, meshes, texturas, escala, pipeline, device reset | `UNMAPPED` | — |
 | Shutdown e reconexão | socket close, cena teardown, globals, retry, exit | `CONTRACT` por fluxos estreitos | `lifecycle/application-close-global-shutdown.md` cobre teardown terminal; `transport/socket-disconnect-return-selectserver.md` cobre disconnect e novo login; `field-scene-rebuild-after-server-move.md` cobre migração e `character-logout-selectchar-relogin.md` cobre logout na mesma sessão; troca explícita de conta permanece aberta |
 
-Os documentos `WYD748_PORT.md`, `WYD748_UI_WINDOWS.md` e comentários atuais da
-source são índices legados. Migre conhecimento estável deles para fichas por
+Os documentos [port-748.md](../../../../DOCS/client/port-748.md),
+[ui-windows.md](../../../../DOCS/client/ui-windows.md) e comentários atuais da
+source são índices de busca. Migre conhecimento estável deles para fichas por
 transição conforme cada subsistema for rastreado; não marque a linha como
 `TRACED` apenas porque há funções citadas nesses documentos.

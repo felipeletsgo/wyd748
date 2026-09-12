@@ -1,8 +1,10 @@
-# Estado de implementação — WYD-Go 7.48
+# Histórico de implementação — WYD-Go 7.48
 
-Atualizado em 18/07/2026. Este documento registra as features implementadas no
-emulador Go e os detalhes de protocolo validados contra W2PP, Secrets 7.54 e o
-cliente 7.48.
+Snapshot de 18/07/2026, mantido por rastreabilidade. Não descreve o contrato
+atual: tipos, layouts e validações abaixo podem ter sido substituídos. Fontes
+descontinuadas citadas são procedência histórica, não evidência aceita. Consulte
+[Score atual](SCORE.md), [Build e integração](build-and-integration.md) e
+[AGENTS.md](../AGENTS.md). Comandos Go usam `wydgo748/` como diretório de trabalho.
 
 ## Personagem e progressão
 
@@ -381,9 +383,9 @@ de LearnedSkill falsa, e escrever NextExp em @28 gera SkillPts negativos.
 cd wyd-go
 go test ./...
 go vet ./...
-go build -o tm.exe ./cmd/server
-go build -o account-api.exe ./cmd/account-api
-go build -o account-create.exe ./cmd/account-create
+go build -o bin/tm.exe ./cmd/server
+go build -o bin/account-api.exe ./cmd/account-api
+go build -o bin/account-create.exe ./cmd/account-create
 ```
 # Score v2
 

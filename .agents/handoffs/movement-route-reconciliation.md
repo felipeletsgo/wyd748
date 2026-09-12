@@ -1,5 +1,7 @@
 # Handoff: reconciliacao de movimento 0x366 e 0x2CB
 
+> Registro histórico de continuidade. Comandos, scripts e resultados abaixo pertencem às rodadas registradas; não indicam disponibilidade nem validação no HEAD atual. Para operação atual, consulte `DOCS/build-and-integration.md` a partir da raiz.
+
 Atualizado em: 2026-08-26
 Estado geral: `AUTOMATED TESTED`
 

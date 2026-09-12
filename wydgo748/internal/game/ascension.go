@@ -10,9 +10,9 @@ import (
 	"wydgo/internal/wire"
 )
 
-// ascension.go -- a cadeia Mortal -> Arch, portada de
-// SERVER W2PP/SOURCE SERVER/Code/TMSrv/_MSG_Quest.cpp (cases COMP_SEPHI,
-// BLACKORACLE e KING) e DBSrv/CFileDB.cpp (_MSG_DBCreateArchCharacter).
+// ascension.go -- a cadeia Mortal -> Arch. A implementacao foi importada
+// historicamente de uma source hoje excluida; essa procedencia nao comprova
+// paridade nativa 7.48. Contratos atuais devem ser conferidos com os testes.
 //
 // Sao tres etapas encadeadas, cada uma num NPC diferente:
 //

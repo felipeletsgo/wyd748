@@ -2,6 +2,11 @@
 
 ## Decisão
 
+Esta é uma proposta incremental, não o retrato de uma migração concluída.
+O mapa atual está em [architecture-map.md](architecture-map.md). No client,
+domínio significa apresentação, predição e reconciliação; fórmulas locais não
+substituem validação nem estado autoritativo do servidor `wydgo748/`.
+
 O projeto deve evoluir para uma arquitetura em camadas, com dependências apontando para dentro. A compatibilidade legada fica nas bordas; regras de jogo e contratos não devem depender de DirectX, Win32 ou controles visuais.
 
 ```text

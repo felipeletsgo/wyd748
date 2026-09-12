@@ -1,8 +1,13 @@
 # Auditoria do WYD-Go
 
-Use este roteiro para revisão, diagnóstico, compatibilidade client/servidor e
-remoção de código morto. Relatório anterior, comentário e teste isolado são
-índices de busca, não evidência.
+Use quando a tarefa pedir auditoria/diagnóstico ou quando um risco concreto
+exigir revisão adicional. Não executar uma auditoria global como etapa de toda
+feature. Delimitar a invariável e seguir apenas representações/entradas que a
+alcançam; ampliar se surgir evidência de impacto transversal.
+
+Revisão e diagnóstico são somente leitura, salvo pedido de correção. Relatório
+anterior e comentário são índices de busca; evidência técnica já comprovada
+pode ser reutilizada conforme o [AGENTS.md](../../../../AGENTS.md).
 
 ## 1. Fixar a invariável
 
@@ -31,7 +36,7 @@ TMProject representa o contrato nativo.
 
 ## 3. Enumerar entradas e escritores
 
-Incluir:
+Entre as entradas que alcançam a invariável, considerar:
 
 - login/relogin e carregamento inicial;
 - packet de ação e handlers alternativos;
@@ -70,7 +75,9 @@ Procurar retorno antecipado entre mutação, persistência e publicação.
 ## 6. Revisar testes e evidência
 
 Abrir o teste e confirmar que ele atravessa o caminho real. Um teste pode passar
-enquanto mocka justamente a fronteira defeituosa. Exigir testes focados para:
+enquanto mocka justamente a fronteira defeituosa. Avaliar cobertura dos casos
+abaixo quando aplicáveis à invariável; em auditoria somente leitura, registrar
+testes ausentes como lacunas, sem implementar correções por iniciativa própria:
 
 - sucesso e rejeição;
 - repetição/idempotência;
@@ -94,11 +101,10 @@ Não usar o nível mais alto para inferir os anteriores em áreas diferentes.
 
 ## 7. Código morto e duplicação
 
-Executar quando houver mudança Go relevante:
-
-```powershell
-go run golang.org/x/tools/cmd/deadcode@latest -test ./...
-```
+Análise global de código morto é opcional e restrita à tarefa de remoção ou
+suspeita concreta de duplicação inalcançável. Começar por callers e registros
+do símbolo. Se precisar de ferramenta, reutilizar versão instalada/fixada e
+registrá-la; não baixar `@latest` automaticamente em cada revisão.
 
 Antes de remover:
 
@@ -122,7 +128,7 @@ transações duplicadas; procurar grants, saves e rollbacks copiados.
 
 Antes de alterar esta lista, conferir se o complemento já foi implementado.
 
-## Perguntas obrigatórias
+## Perguntas conforme a invariável
 
 - O client envia valor que deveria ser derivado?
 - Existe mais de um escritor do mesmo estado?

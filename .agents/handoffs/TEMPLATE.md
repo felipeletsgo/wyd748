@@ -35,6 +35,8 @@ item | estado de validação | evidência
 ```text
 comando:
 resultado:
+inputs/ambiente cobertos:
+repetir somente se:
 ```
 
 ## Pendências e riscos
@@ -44,3 +46,5 @@ resultado:
 ## Próximo passo executável
 
 Indicar a primeira ação concreta da próxima sessão.
+Se houver bloqueio, indicar a evidência/acesso que falta e quais partes
+independentes ainda podem avançar; não repetir uma busca já esgotada.

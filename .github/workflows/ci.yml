@@ -10,6 +10,21 @@ permissions:
   contents: read
 
 jobs:
+  repository:
+    name: Repository and research validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Validate documentation layout and links
+        shell: pwsh
+        run: ./tools/repository/Test-RepositoryLayout.ps1
+      - name: Test research tooling
+        run: python3 -m unittest discover -s .agents/skills/wyd-client748-research/scripts -p 'test_*.py'
+      - name: Validate research records
+        run: python3 .agents/skills/wyd-client748-research/scripts/validate_research.py
+
   go:
     name: Go validation
     runs-on: ubuntu-latest

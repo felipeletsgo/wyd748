@@ -368,11 +368,10 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	if !ok {
 		return
 	}
-	// A receita do alvo 7.54 (SOURCE(secrets)/pJanelas.cpp e Micronics) usa
-	// dois pacotes 3448 com EF_AMOUNT=10. O W2PP mais novo trocou esses dois
-	// pacotes por pilhas de 413, mas aceitar essa variante aqui faria o client
-	// 7.48 misturar a receita de outra versao e produzir "Silver Brick
-	// required". Mantenha a receita V754 autoritativa neste servidor.
+	// O contrato implementado usa dois pacotes 3448 com EF_AMOUNT=10.
+	// Nao aceitar pilhas de 413 como variante: a receita deve permanecer
+	// coordenada com o client. A origem historica em outra versao nao e
+	// evidencia de paridade nativa 7.48.
 	if !lindyMaterialStack(req.Items[0]) || !lindyMaterialStack(req.Items[1]) ||
 		req.Items[2].Index != 4127 {
 		w.sendCombineResult(p, 0)

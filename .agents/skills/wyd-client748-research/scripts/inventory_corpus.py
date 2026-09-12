@@ -202,7 +202,7 @@ def resolve_documented_entries(
 
 def source_reference_counts(repo: Path) -> Counter[str]:
     counts: Counter[str] = Counter()
-    source_root = repo / "client-source"
+    source_root = repo / "tmproject" / "TMProject748"
     if not source_root.is_dir():
         return counts
     for path in source_root.rglob("*"):

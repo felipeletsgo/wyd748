@@ -1,5 +1,7 @@
 # Continuidade: arquitetura TMProject748
 
+> Registro histórico de continuidade. Comandos, scripts e resultados abaixo pertencem às rodadas registradas; não indicam disponibilidade nem validação no HEAD atual. Para operação atual, consulte `DOCS/build-and-integration.md` a partir da raiz.
+
 ## Estado em 2026-09-05
 
 Objetivo: executar `DOCS/implementation-plan.md` sem

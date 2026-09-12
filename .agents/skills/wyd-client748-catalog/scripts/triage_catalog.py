@@ -234,7 +234,7 @@ def main() -> int:
     args = parser.parse_args()
 
     input_path = args.input or args.repo / ".agents" / "research" / "client748" / "inventory" / "functions.tsv"
-    binary_path = args.binary or args.repo / "client748" / "wyd.exe nativo+patches" / "WYD.exe"
+    binary_path = args.binary or args.repo / "references" / "client748" / "WYD.exe"
     try:
         verify_binary(binary_path, args.expected_sha256)
         rows = load_rows(input_path, args.expected_functions)

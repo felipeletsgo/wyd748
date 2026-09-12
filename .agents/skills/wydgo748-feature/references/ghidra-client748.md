@@ -20,7 +20,7 @@ Hashes confirmados no snapshot de 23/08/2026:
 ```text
 WYDoriginal.exe  B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
 WYD.exe          8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-project.exe      variável por build; registrar o hash em cada validação
+project.exe      variável por build; vincular o hash do candidato às validações
 ```
 
 Os scripts e patches em `references/client748/` são somente material
@@ -46,7 +46,12 @@ O export atual contém `functions.tsv` e um `.c` por função. Use o projeto Ghi
 quando xrefs, tipos, stack, calling convention ou call graph forem necessários;
 use o export para busca rápida em massa.
 
-## Procedimento obrigatório
+## Procedimento para evidência nova ou invalidada
+
+Primeiro consultar a ficha existente. Evidência suficiente e com identidade
+válida permite avançar sem repetir busca/exportação. Aplicar os passos abaixo
+somente à lacuna nativa afetada; os gates de execução e validação estão no
+[AGENTS.md](../../../../AGENTS.md).
 
 1. Conferir o fingerprint registrado de
    `references/client748/WYD.exe`. Reutilizar o SHA-256 confirmado se
@@ -67,9 +72,10 @@ use o export para busca rápida em massa.
    endereços virtuais ou pseudocódigo desestruturado como arquitetura final.
 8. Inserir comentário apenas junto a decisões não óbvias de contrato,
    compatibilidade ou ownership.
-9. Compilar com `tmproject/Build-Client.ps1`, confirmar a
-   instalação e o hash automáticos de `tmproject/client748/project.exe` e executar o fluxo
-   real afetado.
+9. Validar conforme o delta: pesquisa documental termina com a ficha validada;
+   adaptação de source exige testes/build afetados. Para o teste real, instalar
+   o candidato com `tmproject/Build-Client.ps1`, identificar o hash resultante e
+   executar o fluxo. Não instalar binário como efeito de uma consulta Ghidra.
 
 ## Evidência mínima por área
 
@@ -166,8 +172,9 @@ principal e tornar todos os paths auxiliares tolerantes a nulo.
   ainda divergir.
 - Não aceitar packet moderno no servidor só para mascarar um construtor errado
   no client recompilado.
-- Não promover uma adaptação antes do `project.exe` passar pelo fluxo in-game
-  afetado; o binário histórico permanece somente referência e nunca fallback.
+- Não promover uma adaptação a `CLIENT-TESTED` antes do `project.exe` passar pelo
+  fluxo in-game afetado; `IMPLEMENTED` e validação estática/automatizada são
+  estados intermediários legítimos. O histórico nunca é fallback do produto.
 - Não executar nem editar o patcher binário legado; ele é evidência histórica.
 
 ## Saída esperada da investigação

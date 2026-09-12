@@ -2,19 +2,11 @@
 
 Atualizado em 12/08/2026. Base da rodada atual: `a401489`.
 
-Este é o único arquivo de planejamento do projeto. O estado já entregue está em
-`DOCS/IMPLEMENTED.md`. Planos históricos foram removidos para que uma tarefa
-concluída não volte a aparecer como pendente.
+Este é um snapshot de planejamento da revisão acima, não uma auditoria do
+estado atual. Revalidar pendências na source antes de abrir trabalho. O histórico
+de entregas está em `DOCS/IMPLEMENTED.md`.
 
-## Regras permanentes
-
-- Não inventar mecânica sem evidência no 7.48/7.54.
-- Prioridade de pesquisa: implementação atual → W2PP → Secrets → Micronics/client.
-- Portar comportamento, nunca layout/offset de outra versão.
-- Manter o servidor autoritativo e o `World` como único escritor.
-- Toda operação econômica segue `validar → mutar snapshot → persistir → publicar`.
-- Conteúdo e coordenadas ficam em `data/`; invariantes permanecem em Go.
-- Guild War, Kingdom War e Castle War ficam por último.
+As regras e a política de fontes vivem somente no [AGENTS.md](../AGENTS.md).
 
 ## Próximo passo recomendado — ledger econômico
 
