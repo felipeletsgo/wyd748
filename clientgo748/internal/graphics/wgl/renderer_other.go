@@ -47,6 +47,10 @@ func (*Renderer) DrawSkinnedMeshScene(assets.Mesh, []assets.MeshMatrix, graphics
 func (*Renderer) DrawSceneGeometry(graphics.MeshGeometry, graphics.SceneTransform, graphics.Camera) error {
 	return ErrUnsupported
 }
+func (*Renderer) UploadTerrainTexture(uint16, assets.Texture) error { return ErrUnsupported }
+func (*Renderer) DrawTerrainGeometry(uint16, uint16, graphics.MeshGeometry, graphics.SceneTransform, graphics.Camera) error {
+	return ErrUnsupported
+}
 
 // Close é idempotente sem recursos.
 func (*Renderer) Close() error { return nil }

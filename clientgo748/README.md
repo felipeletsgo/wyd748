@@ -52,6 +52,9 @@ específica.
 
 Os assets ativos da preparação estão em `assets/current/`; o client oficial
 intacto permanece em `CLIENT OFICIAL 7.48/` como evidência somente leitura.
+O runtime gerado é autocontido em `bin/Client Limpo/`: o executável fica em
+`bin/Client Limpo/wydclient.exe` e o build copia `assets/current/` para
+`bin/Client Limpo/assets/current/`, que é a primeira raiz consultada em runtime.
 
 ## Fontes e classificação
 

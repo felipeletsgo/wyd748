@@ -63,3 +63,32 @@ func TestProjectVisibleMeshGeometryDropsTrianglesBehindNearPlane(t *testing.T) {
 		t.Fatalf("visible indices=%v want [0 1 2]", projected.Indices)
 	}
 }
+
+func TestProjectVisibleMeshGeometryPreservesTerrainTextureCoordinates(t *testing.T) {
+	wantPrimary := TexCoord2{U: .25, V: .75}
+	wantSecondary := TexCoord2{U: .5, V: .25}
+	geometry := MeshGeometry{
+		Vertices: []MeshVertex{
+			{
+				Position:             Position3{X: -1, Z: 2},
+				TexCoord:             wantPrimary,
+				SecondaryTexCoord:    wantSecondary,
+				HasTexCoord:          true,
+				HasSecondaryTexCoord: true,
+			},
+			{Position: Position3{X: 1, Z: 2}},
+			{Position: Position3{Y: 1, Z: 2}},
+		},
+		Indices: []uint16{0, 1, 2},
+	}
+	projected, err := ProjectVisibleMeshGeometry(geometry, SceneTransform{Scale: 1}, Camera{
+		Target: Position3{Z: 1}, FOVDegrees: 60, Near: .1, Far: 100,
+	}, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := projected.Vertices[0]
+	if got.TexCoord != wantPrimary || got.SecondaryTexCoord != wantSecondary || !got.HasTexCoord || !got.HasSecondaryTexCoord {
+		t.Fatalf("projected texture coordinates changed: %+v", got)
+	}
+}

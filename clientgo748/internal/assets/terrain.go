@@ -8,9 +8,8 @@ import (
 )
 
 // Terrain is the bounded, ownership-safe representation of one native 7.48
-// TRN resource. The cell payload remains opaque until its field semantics are
-// confirmed in the native loader; callers can still inspect and render a
-// deterministic diagnostic surface without inventing height or collision.
+// TRN resource. Proven visual fields are promoted while the original 12-byte
+// record remains available for provenance and future research.
 type Terrain struct {
 	Name           string
 	HeaderWidth    uint8
@@ -21,16 +20,29 @@ type Terrain struct {
 	Cells          []TerrainCell
 }
 
-// TerrainCell possui uma cópia do registro nativo. O loader nativo confirma
-// que o byte zero é uma amostra de altura assinada; os bytes restantes ficam
-// opacos até que sua semântica 7.48 seja rastreada separadamente.
+// TerrainCell possui uma cópia do registro nativo. FUN_00535298 confirms bytes
+// 1..4 as the two material indices and their UV selectors used by rendering.
 type TerrainCell struct {
 	X, Y uint16
 	// Height é o primeiro byte assinado consumido pelo gerador da malha nativa
 	// (FUN_00533dd7/FUN_00534ebe). Ele ainda não é um valor de colisão.
 	Height int8
-	Raw    [12]byte
+	// PrimaryMaterialIndex is Raw[1]. Native rendering resolves texture slot
+	// PrimaryMaterialIndex+10 through FUN_004ba2cf.
+	PrimaryMaterialIndex uint8
+	// PrimaryUVSelector is Raw[2], indexing the 8 native primary UV layouts.
+	PrimaryUVSelector uint8
+	// SecondaryMaterialIndex is Raw[3]. For environment categories 0, 3 and 4,
+	// native rendering resolves texture slot SecondaryMaterialIndex+0x100.
+	SecondaryMaterialIndex uint8
+	// SecondaryUVSelector is Raw[4], indexing the 32 native secondary UV layouts.
+	SecondaryUVSelector uint8
+	Raw                 [12]byte
 }
+
+func (c TerrainCell) PrimaryTextureSlot() uint16 { return uint16(c.PrimaryMaterialIndex) + 10 }
+
+func (c TerrainCell) SecondaryTextureSlot() uint16 { return uint16(c.SecondaryMaterialIndex) + 0x100 }
 
 const (
 	terrainHeaderMin = 8
@@ -74,6 +86,10 @@ func ParseTerrain(data []byte) (Terrain, error) {
 		cells[i].X = uint16(i % columns)
 		cells[i].Y = uint16(i / columns)
 		cells[i].Height = int8(cells[i].Raw[0])
+		cells[i].PrimaryMaterialIndex = cells[i].Raw[1]
+		cells[i].PrimaryUVSelector = cells[i].Raw[2]
+		cells[i].SecondaryMaterialIndex = cells[i].Raw[3]
+		cells[i].SecondaryUVSelector = cells[i].Raw[4]
 	}
 	return Terrain{
 		Name: string(data[1 : 1+nameLen]), HeaderWidth: data[1+nameLen],

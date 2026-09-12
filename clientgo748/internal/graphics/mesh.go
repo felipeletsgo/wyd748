@@ -36,13 +36,15 @@ type TexCoord2 struct {
 // HasTexCoord distingue a única forma estática atual (FVF 18), que possui
 // posição+normal sem UV, das formas skinned texturizadas.
 type MeshVertex struct {
-	Position       Position3
-	Normal         Position3
-	TexCoord       TexCoord2
-	BlendWeights   [4]float32
-	PaletteIndices [4]uint8
-	InfluenceCount uint8
-	HasTexCoord    bool
+	Position             Position3
+	Normal               Position3
+	TexCoord             TexCoord2
+	SecondaryTexCoord    TexCoord2
+	BlendWeights         [4]float32
+	PaletteIndices       [4]uint8
+	InfluenceCount       uint8
+	HasTexCoord          bool
+	HasSecondaryTexCoord bool
 }
 
 // MeshGeometry contém os vértices MSH já interpretados e os índices de

@@ -33,6 +33,11 @@ const (
 	glTextureMin     = uint32(0x2801)
 	glTextureMag     = uint32(0x2800)
 	glLinear         = int32(0x2601)
+	glTexture0       = uint32(0x84C0)
+	glTexture1       = uint32(0x84C1)
+	glTextureEnv     = uint32(0x2300)
+	glTextureEnvMode = uint32(0x2200)
+	glModulate       = int32(0x2100)
 	glBlend          = uint32(0x0BE2)
 	glSrcAlpha       = uint32(0x0302)
 	glOneMinusSrcA   = uint32(0x0303)
@@ -86,6 +91,7 @@ type api struct {
 	createContext     func(uintptr) uintptr
 	makeCurrent       func(uintptr, uintptr) int32
 	deleteContext     func(uintptr) int32
+	getProcAddress    func(*byte) uintptr
 	clearColor        func(float32, float32, float32, float32)
 	clear             func(uint32)
 	viewport          func(int32, int32, int32, int32)
@@ -94,6 +100,7 @@ type api struct {
 	bindTexture       func(uint32, uint32)
 	texParameteri     func(uint32, uint32, int32)
 	texImage2D        func(uint32, int32, int32, int32, int32, int32, uint32, uint32, unsafe.Pointer)
+	texEnvi           func(uint32, uint32, int32)
 	enable            func(uint32)
 	disable           func(uint32)
 	blendFunc         func(uint32, uint32)
@@ -113,16 +120,19 @@ var (
 
 // Renderer possui um HDC e um HGLRC enquanto initialized for verdadeiro.
 type Renderer struct {
-	windowHandle   uintptr
-	dc             uintptr
-	context        uintptr
-	initialized    bool
-	texture        uint32
-	textureWidth   int32
-	textureHeight  int32
-	layers         map[string]textureLayer
-	viewportWidth  int32
-	viewportHeight int32
+	windowHandle    uintptr
+	dc              uintptr
+	context         uintptr
+	initialized     bool
+	texture         uint32
+	textureWidth    int32
+	textureHeight   int32
+	layers          map[string]textureLayer
+	terrainTextures map[uint16]uint32
+	activeTexture   func(uint32)
+	multiTexCoord2f func(uint32, float32, float32)
+	viewportWidth   int32
+	viewportHeight  int32
 }
 
 type textureLayer struct {
@@ -187,10 +197,17 @@ func (r *Renderer) Initialize(windowHandle uintptr) error {
 	if a.makeCurrent(dc, context) == 0 {
 		return lastError("activate the OpenGL rendering context")
 	}
+	activeTexture, multiTexCoord2f, err := loadMultitextureAPI(a)
+	if err != nil {
+		return err
+	}
+	activeTexture(glTexture0)
 
 	r.windowHandle = windowHandle
 	r.dc = dc
 	r.context = context
+	r.activeTexture = activeTexture
+	r.multiTexCoord2f = multiTexCoord2f
 	r.initialized = true
 	success = true
 	return nil
@@ -317,6 +334,40 @@ func (r *Renderer) UploadTextureLayer(name string, texture assets.Texture) error
 	return nil
 }
 
+// UploadTerrainTexture materializes one native EnvTextureList3 stage-0 slot.
+// Terrain textures are owned independently from the active UI texture/layers.
+func (r *Renderer) UploadTerrainTexture(slot uint16, texture assets.Texture) error {
+	if !r.initialized {
+		return errors.New("clientgo748: renderer is not initialized")
+	}
+	if texture.Width == 0 || texture.Height == 0 {
+		return errors.New("clientgo748: terrain texture dimensions must be non-zero")
+	}
+	want := uint64(texture.Width) * uint64(texture.Height) * 4
+	if uint64(len(texture.Pixels)) != want {
+		return fmt.Errorf("clientgo748: terrain texture pixel length is %d, want %d", len(texture.Pixels), want)
+	}
+	a := sharedAPI
+	var id uint32
+	a.genTextures(1, &id)
+	if id == 0 {
+		return errors.New("clientgo748: OpenGL did not create a terrain texture")
+	}
+	a.bindTexture(glTexture2D, id)
+	a.texParameteri(glTexture2D, glTextureMin, glLinear)
+	a.texParameteri(glTexture2D, glTextureMag, glLinear)
+	a.texImage2D(glTexture2D, 0, int32(glRGBA), int32(texture.Width), int32(texture.Height), 0, glRGBA, glUnsignedByte, unsafe.Pointer(&texture.Pixels[0]))
+	runtime.KeepAlive(texture.Pixels)
+	if r.terrainTextures == nil {
+		r.terrainTextures = make(map[uint16]uint32)
+	}
+	if previous := r.terrainTextures[slot]; previous != 0 {
+		a.deleteTextures(1, &previous)
+	}
+	r.terrainTextures[slot] = id
+	return nil
+}
+
 func (r *Renderer) DrawTextureLayer(name string, x, y, width, height int32) {
 	if !r.initialized || r.layers == nil {
 		return
@@ -385,6 +436,27 @@ func (r *Renderer) DrawSceneGeometry(geometry graphics.MeshGeometry, transform g
 	return r.drawMeshGeometry(projected)
 }
 
+// DrawTerrainGeometry renders the native login terrain pair: stage 0 supplies
+// the primary texture and stage 1 modulates it with the secondary texture.
+func (r *Renderer) DrawTerrainGeometry(primarySlot, secondarySlot uint16, geometry graphics.MeshGeometry, transform graphics.SceneTransform, camera graphics.Camera) error {
+	if r.viewportWidth <= 0 || r.viewportHeight <= 0 {
+		return errors.New("clientgo748: renderer viewport is unavailable")
+	}
+	primaryTexture := r.terrainTextures[primarySlot]
+	if primaryTexture == 0 {
+		return fmt.Errorf("clientgo748: terrain texture slot %d is not uploaded", primarySlot)
+	}
+	secondaryTexture := r.terrainTextures[secondarySlot]
+	if secondaryTexture == 0 {
+		return fmt.Errorf("clientgo748: terrain texture slot %d is not uploaded", secondarySlot)
+	}
+	projected, err := graphics.ProjectVisibleMeshGeometry(geometry, transform, camera, float32(r.viewportWidth)/float32(r.viewportHeight))
+	if err != nil {
+		return err
+	}
+	return r.drawTerrainMeshGeometry(projected, primaryTexture, secondaryTexture)
+}
+
 func (r *Renderer) drawSceneGeometry(geometry graphics.MeshGeometry, transform graphics.SceneTransform, camera graphics.Camera) error {
 	if r.viewportWidth <= 0 || r.viewportHeight <= 0 {
 		return errors.New("clientgo748: renderer viewport is unavailable")
@@ -416,6 +488,108 @@ func (r *Renderer) drawMeshGeometry(geometry graphics.MeshGeometry) error {
 	a.end()
 	a.disable(glDepthTest)
 	return nil
+}
+
+func (r *Renderer) drawTexturedMeshGeometry(geometry graphics.MeshGeometry, texture uint32) error {
+	if !r.initialized {
+		return errors.New("clientgo748: renderer is not initialized")
+	}
+	if texture == 0 {
+		return errors.New("clientgo748: textured geometry requires a texture")
+	}
+	if len(geometry.Indices) == 0 {
+		return nil
+	}
+	a := sharedAPI
+	a.enable(glTexture2D)
+	a.disable(glBlend)
+	a.enable(glDepthTest)
+	a.bindTexture(glTexture2D, texture)
+	a.color4f(1, 1, 1, 1)
+	a.begin(glTriangles)
+	for _, index := range geometry.Indices {
+		if int(index) >= len(geometry.Vertices) {
+			a.end()
+			a.disable(glDepthTest)
+			a.disable(glTexture2D)
+			return fmt.Errorf("clientgo748: terrain vertex index %d outside vertex count %d", index, len(geometry.Vertices))
+		}
+		vertex := geometry.Vertices[index]
+		if !vertex.HasTexCoord {
+			a.end()
+			a.disable(glDepthTest)
+			a.disable(glTexture2D)
+			return errors.New("clientgo748: terrain vertex has no texture coordinate")
+		}
+		a.texCoord2f(vertex.TexCoord.U, vertex.TexCoord.V)
+		a.vertex3f(vertex.Position.X, vertex.Position.Y, vertex.Position.Z)
+	}
+	a.end()
+	a.disable(glDepthTest)
+	a.disable(glTexture2D)
+	return nil
+}
+
+func (r *Renderer) drawTerrainMeshGeometry(geometry graphics.MeshGeometry, primaryTexture, secondaryTexture uint32) error {
+	if !r.initialized {
+		return errors.New("clientgo748: renderer is not initialized")
+	}
+	if primaryTexture == 0 || secondaryTexture == 0 {
+		return errors.New("clientgo748: terrain geometry requires both texture stages")
+	}
+	if r.activeTexture == nil || r.multiTexCoord2f == nil {
+		return errors.New("clientgo748: OpenGL multitexture is unavailable")
+	}
+	if len(geometry.Indices) == 0 {
+		return nil
+	}
+	a := sharedAPI
+	r.activeTexture(glTexture0)
+	a.enable(glTexture2D)
+	a.bindTexture(glTexture2D, primaryTexture)
+	a.texEnvi(glTextureEnv, glTextureEnvMode, glModulate)
+	r.activeTexture(glTexture1)
+	a.enable(glTexture2D)
+	a.bindTexture(glTexture2D, secondaryTexture)
+	a.texEnvi(glTextureEnv, glTextureEnvMode, glModulate)
+	a.disable(glBlend)
+	a.enable(glDepthTest)
+	a.color4f(1, 1, 1, 1)
+	a.begin(glTriangles)
+	for _, index := range geometry.Indices {
+		if int(index) >= len(geometry.Vertices) {
+			a.end()
+			r.resetTerrainTextureUnits()
+			a.disable(glDepthTest)
+			return fmt.Errorf("clientgo748: terrain vertex index %d outside vertex count %d", index, len(geometry.Vertices))
+		}
+		vertex := geometry.Vertices[index]
+		if !vertex.HasTexCoord || !vertex.HasSecondaryTexCoord {
+			a.end()
+			r.resetTerrainTextureUnits()
+			a.disable(glDepthTest)
+			return errors.New("clientgo748: terrain vertex is missing a texture coordinate set")
+		}
+		r.multiTexCoord2f(glTexture0, vertex.TexCoord.U, vertex.TexCoord.V)
+		r.multiTexCoord2f(glTexture1, vertex.SecondaryTexCoord.U, vertex.SecondaryTexCoord.V)
+		a.vertex3f(vertex.Position.X, vertex.Position.Y, vertex.Position.Z)
+	}
+	a.end()
+	r.resetTerrainTextureUnits()
+	a.disable(glDepthTest)
+	return nil
+}
+
+func (r *Renderer) resetTerrainTextureUnits() {
+	if r.activeTexture == nil {
+		return
+	}
+	a := sharedAPI
+	r.activeTexture(glTexture1)
+	a.disable(glTexture2D)
+	a.bindTexture(glTexture2D, 0)
+	r.activeTexture(glTexture0)
+	a.disable(glTexture2D)
 }
 
 // DrawTexture draws the initial texture as a full-window quad. Later scenes
@@ -579,8 +753,10 @@ func (r *Renderer) Close() error {
 	windowHandle, dc, context := r.windowHandle, r.dc, r.context
 	texture := r.texture
 	layers := r.layers
+	terrainTextures := r.terrainTextures
 	r.windowHandle, r.dc, r.context, r.texture = 0, 0, 0, 0
 	r.layers = nil
+	r.terrainTextures = nil
 	r.textureWidth, r.textureHeight = 0, 0
 	r.viewportWidth, r.viewportHeight = 0, 0
 	r.initialized = false
@@ -592,6 +768,11 @@ func (r *Renderer) Close() error {
 	for _, layer := range layers {
 		if layer.id != 0 {
 			a.deleteTextures(1, &layer.id)
+		}
+	}
+	for _, terrainTexture := range terrainTextures {
+		if terrainTexture != 0 {
+			a.deleteTextures(1, &terrainTexture)
 		}
 	}
 	if a.makeCurrent(0, 0) == 0 {
@@ -632,6 +813,7 @@ func loadAPI() (*api, error) {
 		purego.RegisterLibFunc(&a.createContext, opengl32.Handle(), "wglCreateContext")
 		purego.RegisterLibFunc(&a.makeCurrent, opengl32.Handle(), "wglMakeCurrent")
 		purego.RegisterLibFunc(&a.deleteContext, opengl32.Handle(), "wglDeleteContext")
+		purego.RegisterLibFunc(&a.getProcAddress, opengl32.Handle(), "wglGetProcAddress")
 		purego.RegisterLibFunc(&a.clearColor, opengl32.Handle(), "glClearColor")
 		purego.RegisterLibFunc(&a.clear, opengl32.Handle(), "glClear")
 		purego.RegisterLibFunc(&a.viewport, opengl32.Handle(), "glViewport")
@@ -640,6 +822,7 @@ func loadAPI() (*api, error) {
 		purego.RegisterLibFunc(&a.bindTexture, opengl32.Handle(), "glBindTexture")
 		purego.RegisterLibFunc(&a.texParameteri, opengl32.Handle(), "glTexParameteri")
 		purego.RegisterLibFunc(&a.texImage2D, opengl32.Handle(), "glTexImage2D")
+		purego.RegisterLibFunc(&a.texEnvi, opengl32.Handle(), "glTexEnvi")
 		purego.RegisterLibFunc(&a.enable, opengl32.Handle(), "glEnable")
 		purego.RegisterLibFunc(&a.disable, opengl32.Handle(), "glDisable")
 		purego.RegisterLibFunc(&a.blendFunc, opengl32.Handle(), "glBlendFunc")
@@ -652,6 +835,39 @@ func loadAPI() (*api, error) {
 		sharedAPI = a
 	})
 	return sharedAPI, apiErr
+}
+
+func loadMultitextureAPI(a *api) (func(uint32), func(uint32, float32, float32), error) {
+	activePtr, activeName := firstGLProc(a, "glActiveTexture", "glActiveTextureARB")
+	if activePtr == 0 {
+		return nil, nil, errors.New("clientgo748: OpenGL multitexture entry point glActiveTexture is unavailable")
+	}
+	multiPtr, multiName := firstGLProc(a, "glMultiTexCoord2f", "glMultiTexCoord2fARB")
+	if multiPtr == 0 {
+		return nil, nil, errors.New("clientgo748: OpenGL multitexture entry point glMultiTexCoord2f is unavailable")
+	}
+	var activeTexture func(uint32)
+	var multiTexCoord2f func(uint32, float32, float32)
+	purego.RegisterFunc(&activeTexture, activePtr)
+	purego.RegisterFunc(&multiTexCoord2f, multiPtr)
+	if activeTexture == nil || multiTexCoord2f == nil {
+		return nil, nil, fmt.Errorf("clientgo748: could not register OpenGL multitexture entry points %s/%s", activeName, multiName)
+	}
+	return activeTexture, multiTexCoord2f, nil
+}
+
+func firstGLProc(a *api, names ...string) (uintptr, string) {
+	for _, name := range names {
+		namePtr, err := windows.BytePtrFromString(name)
+		if err != nil {
+			continue
+		}
+		ptr := a.getProcAddress(namePtr)
+		if ptr > 3 && ptr != ^uintptr(0) {
+			return ptr, name
+		}
+	}
+	return 0, ""
 }
 
 func lastError(action string) error {

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 
 	"wydclient748/internal/app"
 	"wydclient748/internal/assets"
@@ -277,53 +278,23 @@ func toLoginServerEntries(entries []config.ServerEntry) []loginflow.ServerEntry 
 }
 
 func initialLogoPath() string {
-	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "CLIENT OFICIAL 7.48", "UI", "logo1.wyt"))
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-	}
-	return filepath.Join("CLIENT OFICIAL 7.48", "UI", "logo1.wyt")
+	return runtimeAssetPath("UI", "logo1.wyt")
 }
 
 func loginTexturePath() string {
-	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "UI", "loginbox2.wyt"))
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-	}
-	return filepath.Join("assets", "current", "UI", "loginbox2.wyt")
+	return runtimeAssetPath("UI", "loginbox2.wyt")
 }
 
 func serverSelectionTexturePath() string {
-	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "UI", "ServerList2.wyt"))
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-	}
-	return filepath.Join("assets", "current", "UI", "ServerList2.wyt")
+	return runtimeAssetPath("UI", "ServerList2.wyt")
 }
 
 func characterTerrainPath() string {
-	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "Env", "Character.trn"))
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-	}
-	return filepath.Join("assets", "current", "Env", "Character.trn")
+	return runtimeAssetPath("Env", "Character.trn")
 }
 
 func loginBackdropTerrainPath() string {
-	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "Env", "Field0813.trn"))
-		if _, err := os.Stat(candidate); err == nil {
-			return candidate
-		}
-	}
-	return filepath.Join("assets", "current", "Env", "Field0813.trn")
+	return runtimeAssetPath("Env", "Field0813.trn")
 }
 
 func loadLoginBackdrop(terrainPath, cameraPath string) (*loginflow.LoginBackdrop, error) {
@@ -343,7 +314,57 @@ func loadLoginBackdrop(terrainPath, cameraPath string) (*loginflow.LoginBackdrop
 	if err != nil {
 		return nil, fmt.Errorf("build official login backdrop: %w", err)
 	}
+	textures, err := loadLoginBackdropTextures(backdrop, terrainPath)
+	if err != nil {
+		return nil, err
+	}
+	if err := backdrop.SetTerrainTextures(textures); err != nil {
+		return nil, fmt.Errorf("bind official login backdrop textures: %w", err)
+	}
 	return backdrop, nil
+}
+
+func loadLoginBackdropTextures(backdrop *loginflow.LoginBackdrop, terrainPath string) (map[uint16]assets.Texture, error) {
+	envDir := filepath.Dir(terrainPath)
+	list, err := assets.LoadEnvTextureListFile(filepath.Join(envDir, "EnvTextureList3.bin"))
+	if err != nil {
+		return nil, fmt.Errorf("load official environment texture list: %w", err)
+	}
+	assetRoot := filepath.Dir(envDir)
+	textures := make(map[uint16]assets.Texture, len(backdrop.MaterialSlots()))
+	for _, slot := range backdrop.MaterialSlots() {
+		nativePath, ok := list.Path(slot)
+		if !ok {
+			return nil, fmt.Errorf("official environment texture list has no path for slot %d", slot)
+		}
+		texturePath, err := resolveNativeAssetPath(assetRoot, nativePath)
+		if err != nil {
+			return nil, fmt.Errorf("resolve environment texture slot %d: %w", slot, err)
+		}
+		texture, err := assets.LoadWYSFile(texturePath)
+		if err != nil {
+			return nil, fmt.Errorf("load environment texture slot %d: %w", slot, err)
+		}
+		textures[slot] = texture
+	}
+	return textures, nil
+}
+
+func resolveNativeAssetPath(assetRoot, nativePath string) (string, error) {
+	if assetRoot == "" || nativePath == "" {
+		return "", fmt.Errorf("empty asset root or native path")
+	}
+	relative := filepath.Clean(filepath.FromSlash(strings.ReplaceAll(nativePath, `\`, "/")))
+	if filepath.IsAbs(relative) || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path %q escapes the runtime asset root", nativePath)
+	}
+	root := filepath.Clean(assetRoot)
+	candidate := filepath.Join(root, relative)
+	rel, err := filepath.Rel(root, candidate)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path %q escapes the runtime asset root", nativePath)
+	}
+	return candidate, nil
 }
 
 // loadOptionalTerrain keeps the diagnostic TRN independent from bootstrap.
@@ -373,11 +394,17 @@ func loginLogoRightPath() string {
 }
 
 func loginAssetPath(name string) string {
+	return runtimeAssetPath("UI", name)
+}
+
+func runtimeAssetPath(parts ...string) string {
+	relativeParts := append([]string{"assets", "current"}, parts...)
+	relativePath := filepath.Join(relativeParts...)
 	if executable, err := os.Executable(); err == nil {
-		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "UI", name))
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), relativePath))
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
 	}
-	return filepath.Join("assets", "current", "UI", name)
+	return relativePath
 }

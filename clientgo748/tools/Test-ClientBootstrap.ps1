@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$BinaryPath = (Join-Path (Split-Path -Parent $PSScriptRoot) "bin\wydclient.exe"),
+    [string]$BinaryPath = (Join-Path (Split-Path -Parent $PSScriptRoot) "bin\Client Limpo\wydclient.exe"),
     [string]$EnvironmentFile
 )
 

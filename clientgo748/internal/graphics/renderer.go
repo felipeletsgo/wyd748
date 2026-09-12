@@ -89,6 +89,15 @@ type SceneGeometryRenderer interface {
 	DrawSceneGeometry(MeshGeometry, SceneTransform, Camera) error
 }
 
+// TerrainMaterialRenderer is the optional native-terrain extension. Material
+// slots are the resolved EnvTextureList3 indices used by the 7.48 renderer;
+// callers keep proprietary asset decoding outside the graphics backend.
+type TerrainMaterialRenderer interface {
+	Renderer
+	UploadTerrainTexture(slot uint16, texture assets.Texture) error
+	DrawTerrainGeometry(primarySlot, secondarySlot uint16, geometry MeshGeometry, transform SceneTransform, camera Camera) error
+}
+
 // ViewportProvider exposes the current client-area size in logical pixels.
 // Scenes use it to keep native 7.48 compositions and their hitboxes anchored
 // to the same root when the window is resized or displayed with DPI scaling.

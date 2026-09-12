@@ -10,7 +10,11 @@ import (
 
 func TestLoadLoginBackdropBuildsTerrainAndCameraPair(t *testing.T) {
 	dir := t.TempDir()
-	terrainPath := filepath.Join(dir, "Field0813.trn")
+	envDir := filepath.Join(dir, "Env")
+	if err := os.MkdirAll(envDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	terrainPath := filepath.Join(envDir, "Field0813.trn")
 	cameraPath := filepath.Join(dir, "DemoCamAction4.bin")
 
 	terrainData := make([]byte, 1+5+2+4*12)
@@ -18,7 +22,17 @@ func TestLoadLoginBackdropBuildsTerrainAndCameraPair(t *testing.T) {
 	copy(terrainData[1:6], "field")
 	terrainData[6], terrainData[7] = 8, 13
 	terrainData[8], terrainData[20], terrainData[32], terrainData[44] = 0, 1, 2, 3
+	terrainData[9] = 28
 	if err := os.WriteFile(terrainPath, terrainData, 0600); err != nil {
+		t.Fatal(err)
+	}
+	textureList := make([]byte, 512*0x108)
+	copy(textureList[38*0x108:], []byte(`Env\Tile01010.wys`))
+	copy(textureList[256*0x108:], []byte(`Env\Tile01010.wys`))
+	if err := os.WriteFile(filepath.Join(envDir, "EnvTextureList3.bin"), textureList, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(envDir, "Tile01010.wys"), testLoginWYS(), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -44,6 +58,34 @@ func TestLoadLoginBackdropBuildsTerrainAndCameraPair(t *testing.T) {
 	}
 }
 
+func TestResolveNativeAssetPathNormalizesWindowsSeparatorsAndRejectsEscape(t *testing.T) {
+	root := t.TempDir()
+	want := filepath.Join(root, "Env", "Tile01010.wys")
+	got, err := resolveNativeAssetPath(root, `Env\Tile01010.wys`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("resolved path=%q want %q", got, want)
+	}
+	if _, err := resolveNativeAssetPath(root, `..\outside.wys`); err == nil {
+		t.Fatal("path traversal was accepted")
+	}
+}
+
+func testLoginWYS() []byte {
+	data := make([]byte, 1+128+8)
+	copy(data[:5], []byte("WS10 "))
+	dds := data[1:]
+	binary.LittleEndian.PutUint32(dds[4:8], 124)
+	binary.LittleEndian.PutUint32(dds[12:16], 4)
+	binary.LittleEndian.PutUint32(dds[16:20], 4)
+	binary.LittleEndian.PutUint32(dds[76:80], 32)
+	binary.LittleEndian.PutUint32(dds[80:84], 4)
+	dds[0x54] = '2'
+	return data
+}
+
 func TestLoadOptionalTerrainMissingIsNonFatal(t *testing.T) {
 	terrain, err := loadOptionalTerrain(filepath.Join(t.TempDir(), "missing.trn"))
 	if err != nil {
@@ -61,5 +103,35 @@ func TestLoadOptionalTerrainRejectsMalformedPresentFile(t *testing.T) {
 	}
 	if _, err := loadOptionalTerrain(path); err == nil {
 		t.Fatal("malformed diagnostic terrain was accepted")
+	}
+}
+
+func TestRuntimeAssetPathPrefersAssetsBesideExecutable(t *testing.T) {
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	name := "runtime-path-test.wyt"
+	want := filepath.Join(filepath.Dir(executable), "assets", "current", "UI", name)
+	if err := os.MkdirAll(filepath.Dir(want), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(want, []byte("test"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Remove(want) })
+
+	if got := runtimeAssetPath("UI", name); got != want {
+		t.Fatalf("runtimeAssetPath() = %q, want executable-local asset %q", got, want)
+	}
+}
+
+func TestRuntimeAssetPathFallsBackToRelativePackagePath(t *testing.T) {
+	name := "missing-runtime-path-test.wyt"
+	want := filepath.Join("assets", "current", "UI", name)
+
+	if got := runtimeAssetPath("UI", name); got != want {
+		t.Fatalf("runtimeAssetPath() = %q, want relative fallback %q", got, want)
 	}
 }
