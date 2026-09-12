@@ -22,8 +22,9 @@ nativo consome e como esses campos chegam às texturas/UVs usadas pelo terreno?
   primary/secondary UV selectors, `EnvTextureList3.bin` slot mapping and the
   WYS wrapper used by the active login terrain path, including the proven
   stage-1 `MODULATE` combine and texture-coordinate set 1. The Go/WGL path now
-  implements that two-stage contract, but this does not claim `CLIENT_TESTED`
-  status before real-client visual validation.
+  implements that two-stage contract. Real-client Server and Login scenes now
+  render the native terrain/materials, but this does not claim `CLIENT_TESTED`
+  until the full Server -> Login -> Character Select path is exercised.
 
 ## Fluxo nativo 7.48
 
@@ -88,7 +89,7 @@ produzem a grade materializada.
 | carregar TRN | caminho e framing válidos | `FUN_00533DD7` | grade 64x64 | células materializadas | rejeita framing/checksum |
 | construir malha | grade carregada | `FUN_00534EBE` | altura consumida | leitura assinada de `Raw[0]` | bytes não promovidos permanecem crus |
 | selecionar material primário | célula válida | `FUN_00535298` | stage 0 preparado | slot `Raw[1]+10`; UV selector `Raw[2]` | selector fora da tabela não possui contrato Go válido |
-| selecionar material secundário | categoria 0/3/4 | `FUN_00535298` | stage 1 modula o resultado anterior | slot `Raw[3]+0x100`; UV selector `Raw[4]`; `D3DTSS_COLOROP=MODULATE`; `D3DTSS_TEXCOORDINDEX=1` | WGL usa multitextura real; validação visual ainda pendente |
+| selecionar material secundário | categoria 0/3/4 | `FUN_00535298` | stage 1 modula o resultado anterior | slot `Raw[3]+0x100`; UV selector `Raw[4]`; `D3DTSS_COLOROP=MODULATE`; `D3DTSS_TEXCOORDINDEX=1` | WGL usa multitextura real; Server/Login confirmados no client real; Character Select pendente |
 | resolver filename por slot | `EnvTextureList3.bin` válido | `FUN_004b9ce5` | filename do slot disponível | 512 x `0x108` | framing inválido rejeitado no Go |
 | decodificar WYS | wrapper válido | `FUN_004b9d99` | DDS reconstruído | `'2'` -> DXT1; outro branch nativo -> DXT3 | implementação ativa suporta DXT1 confirmado |
 
@@ -228,7 +229,8 @@ state are proven: native stage 1 uses `COLOROP=MODULATE`, takes texture
 coordinates from set 1 (`TEXCOORDINDEX=1`) and is reset with
 `COLOROP=DISABLE`. That contract is now represented in the Go geometry and WGL
 backend. Remaining gaps in this unit are semantic fields outside `Raw[0..4]`,
-collision/gameplay linkage and real-client visual validation.
+collision/gameplay linkage and completion of the real-client visual path through
+Character Select.
 
 ## Validação
 
@@ -237,7 +239,10 @@ collision/gameplay linkage and real-client visual validation.
 - Automação desta unidade: focused Go tests pass for assets, graphics,
   loginflow and `cmd/wydclient`; Windows WGL compiles, including the native
   multitexture entry-point path. `Verify-Fast.ps1`, `Verify-Contract.ps1`,
-  build/package smoke and manifest regeneration remain release gates after the
-  current tree is finalized.
-- Client real: login terrain with native textures is not yet `CLIENT_TESTED`;
-  Server -> Login -> Character Select visual validation remains pending.
+  build/package smoke, bootstrap smoke and manifest regeneration all passed for
+  this tree before the runtime visual check.
+- Client real: the native terrain/materials render in Server Selection and the
+  local Server -> Login transition was exercised successfully in the built
+  `bin/Client Limpo/wydclient.exe`. The unit remains `CONTRACT`, not
+  `CLIENT_TESTED`, because Login -> Character Select still requires an
+  authenticated server session and remains pending.

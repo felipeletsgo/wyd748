@@ -41,6 +41,10 @@ const (
 	glBlend          = uint32(0x0BE2)
 	glSrcAlpha       = uint32(0x0302)
 	glOneMinusSrcA   = uint32(0x0303)
+	glCullFace       = uint32(0x0B44)
+	glBack           = uint32(0x0405)
+	glCW             = uint32(0x0900)
+	glCCW            = uint32(0x0901)
 	glQuads          = uint32(0x0007)
 	glTriangles      = uint32(0x0004)
 	glDepthTest      = uint32(0x0B71)
@@ -103,6 +107,8 @@ type api struct {
 	texEnvi           func(uint32, uint32, int32)
 	enable            func(uint32)
 	disable           func(uint32)
+	cullFace          func(uint32)
+	frontFace         func(uint32)
 	blendFunc         func(uint32, uint32)
 	begin             func(uint32)
 	end               func()
@@ -129,6 +135,7 @@ type Renderer struct {
 	textureHeight   int32
 	layers          map[string]textureLayer
 	terrainTextures map[uint16]uint32
+	modelTextures   map[uint16]uint32
 	activeTexture   func(uint32)
 	multiTexCoord2f func(uint32, float32, float32)
 	viewportWidth   int32
@@ -368,6 +375,41 @@ func (r *Renderer) UploadTerrainTexture(slot uint16, texture assets.Texture) err
 	return nil
 }
 
+// UploadModelTexture materializes one native MeshTextureList slot for static
+// world geometry. Model textures have independent ownership from terrain/UI
+// resources and remain resident until renderer teardown.
+func (r *Renderer) UploadModelTexture(slot uint16, texture assets.Texture) error {
+	if !r.initialized {
+		return errors.New("clientgo748: renderer is not initialized")
+	}
+	if texture.Width == 0 || texture.Height == 0 {
+		return errors.New("clientgo748: model texture dimensions must be non-zero")
+	}
+	want := uint64(texture.Width) * uint64(texture.Height) * 4
+	if uint64(len(texture.Pixels)) != want {
+		return fmt.Errorf("clientgo748: model texture pixel length is %d, want %d", len(texture.Pixels), want)
+	}
+	a := sharedAPI
+	var id uint32
+	a.genTextures(1, &id)
+	if id == 0 {
+		return errors.New("clientgo748: OpenGL did not create a model texture")
+	}
+	a.bindTexture(glTexture2D, id)
+	a.texParameteri(glTexture2D, glTextureMin, glLinear)
+	a.texParameteri(glTexture2D, glTextureMag, glLinear)
+	a.texImage2D(glTexture2D, 0, int32(glRGBA), int32(texture.Width), int32(texture.Height), 0, glRGBA, glUnsignedByte, unsafe.Pointer(&texture.Pixels[0]))
+	runtime.KeepAlive(texture.Pixels)
+	if r.modelTextures == nil {
+		r.modelTextures = make(map[uint16]uint32)
+	}
+	if previous := r.modelTextures[slot]; previous != 0 {
+		a.deleteTextures(1, &previous)
+	}
+	r.modelTextures[slot] = id
+	return nil
+}
+
 func (r *Renderer) DrawTextureLayer(name string, x, y, width, height int32) {
 	if !r.initialized || r.layers == nil {
 		return
@@ -433,7 +475,7 @@ func (r *Renderer) DrawSceneGeometry(geometry graphics.MeshGeometry, transform g
 	if err != nil {
 		return err
 	}
-	return r.drawMeshGeometry(projected)
+	return r.drawNative3D(func() error { return r.drawMeshGeometry(projected) })
 }
 
 // DrawTerrainGeometry renders the native login terrain pair: stage 0 supplies
@@ -454,7 +496,23 @@ func (r *Renderer) DrawTerrainGeometry(primarySlot, secondarySlot uint16, geomet
 	if err != nil {
 		return err
 	}
-	return r.drawTerrainMeshGeometry(projected, primaryTexture, secondaryTexture)
+	return r.drawNative3D(func() error { return r.drawTerrainMeshGeometry(projected, primaryTexture, secondaryTexture) })
+}
+
+// DrawModelGeometry renders one material slice of an MSA-backed static object.
+func (r *Renderer) DrawModelGeometry(slot uint16, geometry graphics.MeshGeometry, transform graphics.SceneTransform, camera graphics.Camera) error {
+	if r.viewportWidth <= 0 || r.viewportHeight <= 0 {
+		return errors.New("clientgo748: renderer viewport is unavailable")
+	}
+	texture := r.modelTextures[slot]
+	if texture == 0 {
+		return fmt.Errorf("clientgo748: model texture slot %d is not uploaded", slot)
+	}
+	projected, err := graphics.ProjectVisibleMeshGeometry(geometry, transform, camera, float32(r.viewportWidth)/float32(r.viewportHeight))
+	if err != nil {
+		return err
+	}
+	return r.drawNative3D(func() error { return r.drawTexturedMeshGeometry(projected, texture) })
 }
 
 func (r *Renderer) drawSceneGeometry(geometry graphics.MeshGeometry, transform graphics.SceneTransform, camera graphics.Camera) error {
@@ -465,7 +523,22 @@ func (r *Renderer) drawSceneGeometry(geometry graphics.MeshGeometry, transform g
 	if err != nil {
 		return err
 	}
-	return r.drawMeshGeometry(projected)
+	return r.drawNative3D(func() error { return r.drawMeshGeometry(projected) })
+}
+
+// drawNative3D mirrors the native/TMProject D3D9 state block used by world
+// rendering. D3DCULL_CCW keeps clockwise faces; the CPU projection above is
+// left-handed and preserves that winding in OpenGL NDC.
+func (r *Renderer) drawNative3D(draw func() error) error {
+	a := sharedAPI
+	a.enable(glCullFace)
+	a.cullFace(glBack)
+	a.frontFace(glCW)
+	defer func() {
+		a.frontFace(glCCW)
+		a.disable(glCullFace)
+	}()
+	return draw()
 }
 
 func (r *Renderer) drawMeshGeometry(geometry graphics.MeshGeometry) error {
@@ -754,9 +827,11 @@ func (r *Renderer) Close() error {
 	texture := r.texture
 	layers := r.layers
 	terrainTextures := r.terrainTextures
+	modelTextures := r.modelTextures
 	r.windowHandle, r.dc, r.context, r.texture = 0, 0, 0, 0
 	r.layers = nil
 	r.terrainTextures = nil
+	r.modelTextures = nil
 	r.textureWidth, r.textureHeight = 0, 0
 	r.viewportWidth, r.viewportHeight = 0, 0
 	r.initialized = false
@@ -773,6 +848,11 @@ func (r *Renderer) Close() error {
 	for _, terrainTexture := range terrainTextures {
 		if terrainTexture != 0 {
 			a.deleteTextures(1, &terrainTexture)
+		}
+	}
+	for _, modelTexture := range modelTextures {
+		if modelTexture != 0 {
+			a.deleteTextures(1, &modelTexture)
 		}
 	}
 	if a.makeCurrent(0, 0) == 0 {
@@ -825,6 +905,8 @@ func loadAPI() (*api, error) {
 		purego.RegisterLibFunc(&a.texEnvi, opengl32.Handle(), "glTexEnvi")
 		purego.RegisterLibFunc(&a.enable, opengl32.Handle(), "glEnable")
 		purego.RegisterLibFunc(&a.disable, opengl32.Handle(), "glDisable")
+		purego.RegisterLibFunc(&a.cullFace, opengl32.Handle(), "glCullFace")
+		purego.RegisterLibFunc(&a.frontFace, opengl32.Handle(), "glFrontFace")
 		purego.RegisterLibFunc(&a.blendFunc, opengl32.Handle(), "glBlendFunc")
 		purego.RegisterLibFunc(&a.begin, opengl32.Handle(), "glBegin")
 		purego.RegisterLibFunc(&a.end, opengl32.Handle(), "glEnd")

@@ -125,6 +125,54 @@ func TestExtractMeshGeometryDecodesCurrentMeshCatalog(t *testing.T) {
 	}
 }
 
+func TestExtractMSAGeometryDecodesOfficialStaticMesh(t *testing.T) {
+	mesh, err := assets.LoadMSAFile(filepath.Join("..", "..", "assets", "current", "mesh", "kswa08.msa"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	geometry, err := ExtractMSAGeometry(mesh)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(geometry.Vertices) != int(mesh.VertexCount) || len(geometry.Indices) != len(mesh.Indices) {
+		t.Fatalf("geometry counts = %d/%d, want %d/%d", len(geometry.Vertices), len(geometry.Indices), mesh.VertexCount, len(mesh.Indices))
+	}
+	v := geometry.Vertices[0]
+	if !v.HasTexCoord || !v.HasSecondaryTexCoord || v.TexCoord != v.SecondaryTexCoord {
+		t.Fatalf("native duplicated UV contract was not preserved: %+v", v)
+	}
+}
+
+func TestExtractMSAMaterialGeometrySlicesNativeFaceRangeWithoutRebasing(t *testing.T) {
+	mesh := assets.MSAMesh{
+		VertexCount: 4,
+		Indices:     []uint16{0, 1, 2, 2, 1, 3},
+		Attributes: []assets.MSAAttributeRange{{
+			FaceStart: 1,
+			FaceCount: 1,
+			VertexStart: 1,
+			VertexCount: 3,
+		}},
+	}
+	geometry := MeshGeometry{
+		Vertices: make([]MeshVertex, 4),
+		Indices:  append([]uint16(nil), mesh.Indices...),
+	}
+	material, err := ExtractMSAMaterialGeometry(mesh, geometry, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []uint16{2, 1, 3}
+	if len(material.Vertices) != 4 || len(material.Indices) != len(want) {
+		t.Fatalf("material geometry counts=%d/%d", len(material.Vertices), len(material.Indices))
+	}
+	for i := range want {
+		if material.Indices[i] != want[i] {
+			t.Fatalf("material index %d=%d want %d", i, material.Indices[i], want[i])
+		}
+	}
+}
+
 func TestExtractMeshGeometryClampsTinyNegativeImplicitWeight(t *testing.T) {
 	vertices := make([]byte, 40)
 	putFloat32(vertices[12:], 1.000001)

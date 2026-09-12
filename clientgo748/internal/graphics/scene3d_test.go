@@ -92,3 +92,27 @@ func TestProjectVisibleMeshGeometryPreservesTerrainTextureCoordinates(t *testing
 		t.Fatalf("projected texture coordinates changed: %+v", got)
 	}
 }
+
+func TestProjectVisibleMeshGeometryNativeFrontFaceIsClockwise(t *testing.T) {
+	geometry := MeshGeometry{
+		Vertices: []MeshVertex{
+			{Position: Position3{X: -1, Y: -1, Z: 2}},
+			{Position: Position3{Y: 1, Z: 2}},
+			{Position: Position3{X: 1, Y: -1, Z: 2}},
+		},
+		Indices: []uint16{0, 1, 2},
+	}
+	projected, err := ProjectVisibleMeshGeometry(geometry, SceneTransform{Scale: 1}, Camera{
+		Target: Position3{Z: 1}, FOVDegrees: 60, Near: .1, Far: 100,
+	}, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := projected.Vertices[0].Position
+	b := projected.Vertices[1].Position
+	c := projected.Vertices[2].Position
+	signedArea := (b.X-a.X)*(c.Y-a.Y) - (b.Y-a.Y)*(c.X-a.X)
+	if signedArea >= 0 {
+		t.Fatalf("native front-facing triangle projected with signed area %g, want clockwise (< 0)", signedArea)
+	}
+}

@@ -35,6 +35,15 @@ func TestLoadLoginBackdropBuildsTerrainAndCameraPair(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(envDir, "Tile01010.wys"), testLoginWYS(), 0600); err != nil {
 		t.Fatal(err)
 	}
+	// The login bootstrap now always consumes the native Field0813 object
+	// stream. Keep this fixture focused on terrain/camera by using one object
+	// type handled by a specialized native branch rather than the ordinary MSA
+	// path exercised by the static-object tests.
+	fieldObject := make([]byte, 28)
+	binary.LittleEndian.PutUint32(fieldObject[0:4], 2)
+	if err := os.WriteFile(filepath.Join(envDir, "Field0813.dat"), fieldObject, 0600); err != nil {
+		t.Fatal(err)
+	}
 
 	cameraData := make([]byte, 4+28)
 	binary.LittleEndian.PutUint32(cameraData[:4], 1)
@@ -70,6 +79,14 @@ func TestResolveNativeAssetPathNormalizesWindowsSeparatorsAndRejectsEscape(t *te
 	}
 	if _, err := resolveNativeAssetPath(root, `..\outside.wys`); err == nil {
 		t.Fatal("path traversal was accepted")
+	}
+}
+
+func TestLoginStaticObjectNullTypesDoNotUseOrdinaryMSAPath(t *testing.T) {
+	for _, objectType := range []uint32{657, 658} {
+		if isOrdinaryLoginStaticObjectType(objectType) {
+			t.Fatalf("object type %d entered ordinary MSA path; native 7.48 marks it as a null object", objectType)
+		}
 	}
 }
 

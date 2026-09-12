@@ -115,6 +115,37 @@ func TestLoginBackdropMaterialSlotsAndTextureValidation(t *testing.T) {
 	}
 }
 
+func TestNewLoginStaticObjectUsesNativeSectorOffsetAngleAndPitch(t *testing.T) {
+	material := LoginStaticMaterial{
+		TextureSlot: 194,
+		Geometry: graphics.MeshGeometry{
+			Vertices: []graphics.MeshVertex{{}, {}, {}},
+			Indices:  []uint16{0, 1, 2},
+		},
+	}
+	object, err := NewLoginStaticObject(assets.FieldObjectRecord{
+		ObjectType: 1570,
+		PositionX:  10.5,
+		PositionY:  20.5,
+		Height:     3.5,
+		Angle:      float32(math.Pi / 2),
+	}, assets.Terrain{HeaderWidth: 8, HeaderHeight: 13}, []LoginStaticMaterial{material})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantPosition := graphics.Position3{X: 8*128 + 10.5, Y: 3.5, Z: 13*128 + 20.5}
+	if object.Transform.Position != wantPosition {
+		t.Fatalf("static position=%+v want %+v", object.Transform.Position, wantPosition)
+	}
+	if math.Abs(float64(object.Transform.Yaw-90)) > 1e-4 || object.Transform.Pitch != -90 || object.Transform.Roll != 0 || object.Transform.Scale != 1 {
+		t.Fatalf("static transform=%+v", object.Transform)
+	}
+	if len(object.Materials) != 1 || object.Materials[0].TextureSlot != 194 {
+		t.Fatalf("static materials=%+v", object.Materials)
+	}
+}
+
 func TestLoginBackdropTerrainRendererUploadsEachSlotOnceAndDrawsMaterialPairs(t *testing.T) {
 	backdrop, err := NewLoginBackdrop(assets.Terrain{
 		Columns: 3, Rows: 2,

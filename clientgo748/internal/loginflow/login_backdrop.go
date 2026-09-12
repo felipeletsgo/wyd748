@@ -21,12 +21,15 @@ const (
 // LoginBackdrop owns the visual terrain and camera timeline shared by the
 // Server and Login scenes. Scene transitions must not reset elapsed time.
 type LoginBackdrop struct {
-	materials []loginTerrainMaterial
-	textures  map[uint16]assets.Texture
-	uploaded  map[uint16]bool
-	transform graphics.SceneTransform
-	action    assets.CameraAction
-	elapsed   time.Duration
+	materials       []loginTerrainMaterial
+	textures        map[uint16]assets.Texture
+	uploaded        map[uint16]bool
+	staticObjects   []LoginStaticObject
+	modelTextures   map[uint16]assets.Texture
+	modelUploaded   map[uint16]bool
+	transform       graphics.SceneTransform
+	action          assets.CameraAction
+	elapsed         time.Duration
 }
 
 type loginTerrainMaterial struct {
@@ -38,6 +41,16 @@ type loginTerrainMaterial struct {
 type loginTerrainMaterialKey struct {
 	primarySlot   uint16
 	secondarySlot uint16
+}
+
+type LoginStaticMaterial struct {
+	TextureSlot uint16
+	Geometry    graphics.MeshGeometry
+}
+
+type LoginStaticObject struct {
+	Materials []LoginStaticMaterial
+	Transform graphics.SceneTransform
 }
 
 func NewLoginBackdrop(terrain assets.Terrain, action assets.CameraAction) (*LoginBackdrop, error) {
@@ -98,6 +111,69 @@ func (b *LoginBackdrop) SetTerrainTextures(textures map[uint16]assets.Texture) e
 		b.textures[slot] = texture
 	}
 	b.uploaded = make(map[uint16]bool, len(textures))
+	return nil
+}
+
+// NewLoginStaticObject applies the native field-object placement contract to a
+// materialized MSA object. Field0813 uses the same 128-unit sector origin as
+// its paired TRN. The DAT angle is radians; SceneTransform consumes degrees.
+func NewLoginStaticObject(record assets.FieldObjectRecord, terrain assets.Terrain, materials []LoginStaticMaterial) (LoginStaticObject, error) {
+	if len(materials) == 0 {
+		return LoginStaticObject{}, fmt.Errorf("%w: static object type %d has no materials", ErrInvalidLoginBackdrop, record.ObjectType)
+	}
+	for i, material := range materials {
+		if len(material.Geometry.Vertices) == 0 || len(material.Geometry.Indices) == 0 {
+			return LoginStaticObject{}, fmt.Errorf("%w: static object type %d material %d has empty geometry", ErrInvalidLoginBackdrop, record.ObjectType, i)
+		}
+	}
+	return LoginStaticObject{
+		Materials: append([]LoginStaticMaterial(nil), materials...),
+		Transform: graphics.SceneTransform{
+			Position: graphics.Position3{
+				X: float32(terrain.HeaderWidth)*loginTerrainSectorSize + record.PositionX,
+				Y: record.Height,
+				Z: float32(terrain.HeaderHeight)*loginTerrainSectorSize + record.PositionY,
+			},
+			Yaw:   record.Angle * float32(180/math.Pi),
+			Pitch: -90,
+			Scale: 1,
+		},
+	}, nil
+}
+
+// SetStaticObjects binds the decoded model textures required by the ordinary
+// Field0813 MSA objects. GPU texture ownership remains with the renderer.
+func (b *LoginBackdrop) SetStaticObjects(objects []LoginStaticObject, textures map[uint16]assets.Texture) error {
+	if b == nil {
+		return ErrInvalidLoginBackdrop
+	}
+	needed := make(map[uint16]bool)
+	for objectIndex, object := range objects {
+		if len(object.Materials) == 0 {
+			return fmt.Errorf("%w: static object %d has no materials", ErrInvalidLoginBackdrop, objectIndex)
+		}
+		for materialIndex, material := range object.Materials {
+			if len(material.Geometry.Vertices) == 0 || len(material.Geometry.Indices) == 0 {
+				return fmt.Errorf("%w: static object %d material %d has empty geometry", ErrInvalidLoginBackdrop, objectIndex, materialIndex)
+			}
+			needed[material.TextureSlot] = true
+		}
+	}
+	for slot := range needed {
+		texture, ok := textures[slot]
+		if !ok {
+			return fmt.Errorf("%w: missing model texture slot %d", ErrInvalidLoginBackdrop, slot)
+		}
+		if texture.Width == 0 || texture.Height == 0 || len(texture.Pixels) == 0 {
+			return fmt.Errorf("%w: empty model texture slot %d", ErrInvalidLoginBackdrop, slot)
+		}
+	}
+	b.staticObjects = append([]LoginStaticObject(nil), objects...)
+	b.modelTextures = make(map[uint16]assets.Texture, len(textures))
+	for slot, texture := range textures {
+		b.modelTextures[slot] = texture
+	}
+	b.modelUploaded = make(map[uint16]bool, len(textures))
 	return nil
 }
 
@@ -239,15 +315,36 @@ func (b *LoginBackdrop) Render(renderer graphics.Renderer) error {
 				return err
 			}
 		}
+	} else {
+		sceneRenderer, ok := renderer.(graphics.SceneGeometryRenderer)
+		if !ok {
+			return graphics.ErrNotImplemented
+		}
+		for _, material := range b.materials {
+			if err := sceneRenderer.DrawSceneGeometry(material.geometry, b.transform, camera); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(b.staticObjects) == 0 {
 		return nil
 	}
-	sceneRenderer, ok := renderer.(graphics.SceneGeometryRenderer)
+	modelRenderer, ok := renderer.(graphics.ModelMaterialRenderer)
 	if !ok {
 		return graphics.ErrNotImplemented
 	}
-	for _, material := range b.materials {
-		if err := sceneRenderer.DrawSceneGeometry(material.geometry, b.transform, camera); err != nil {
-			return err
+	for _, object := range b.staticObjects {
+		for _, material := range object.Materials {
+			if !b.modelUploaded[material.TextureSlot] {
+				if err := modelRenderer.UploadModelTexture(material.TextureSlot, b.modelTextures[material.TextureSlot]); err != nil {
+					return err
+				}
+				b.modelUploaded[material.TextureSlot] = true
+			}
+			if err := modelRenderer.DrawModelGeometry(material.TextureSlot, material.Geometry, object.Transform, camera); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

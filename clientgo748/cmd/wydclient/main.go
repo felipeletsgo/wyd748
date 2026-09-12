@@ -15,6 +15,7 @@ import (
 	"wydclient748/internal/app"
 	"wydclient748/internal/assets"
 	"wydclient748/internal/config"
+	"wydclient748/internal/graphics"
 	"wydclient748/internal/graphics/wgl"
 	"wydclient748/internal/login"
 	"wydclient748/internal/loginflow"
@@ -321,7 +322,145 @@ func loadLoginBackdrop(terrainPath, cameraPath string) (*loginflow.LoginBackdrop
 	if err := backdrop.SetTerrainTextures(textures); err != nil {
 		return nil, fmt.Errorf("bind official login backdrop textures: %w", err)
 	}
+	if err := loadLoginBackdropStaticObjects(backdrop, terrain, terrainPath); err != nil {
+		return nil, err
+	}
 	return backdrop, nil
+}
+
+func loadLoginBackdropStaticObjects(backdrop *loginflow.LoginBackdrop, terrain assets.Terrain, terrainPath string) error {
+	ext := filepath.Ext(terrainPath)
+	datPath := strings.TrimSuffix(terrainPath, ext) + ".dat"
+	records, err := assets.LoadFieldObjectDATFile(datPath)
+	if err != nil {
+		return fmt.Errorf("load official login field objects: %w", err)
+	}
+
+	hasOrdinary := false
+	for _, record := range records {
+		if isOrdinaryLoginStaticObjectType(record.ObjectType) {
+			hasOrdinary = true
+			break
+		}
+	}
+	if !hasOrdinary {
+		if err := backdrop.SetStaticObjects(nil, nil); err != nil {
+			return fmt.Errorf("bind official login static objects: %w", err)
+		}
+		return nil
+	}
+
+	assetRoot := filepath.Dir(filepath.Dir(terrainPath))
+	meshDir := filepath.Join(assetRoot, "mesh")
+	meshList, err := assets.LoadMeshListFile(filepath.Join(meshDir, "MeshList.txt"))
+	if err != nil {
+		return fmt.Errorf("load official static mesh list: %w", err)
+	}
+	textureList, err := assets.LoadModelTextureListFile(filepath.Join(meshDir, "MeshTextureList.bin"))
+	if err != nil {
+		return fmt.Errorf("load official model texture list: %w", err)
+	}
+
+	type cachedMSA struct {
+		mesh     assets.MSAMesh
+		geometry graphics.MeshGeometry
+	}
+	meshCache := make(map[string]cachedMSA)
+	textures := make(map[uint16]assets.Texture)
+	objects := make([]loginflow.LoginStaticObject, 0, len(records))
+	for _, record := range records {
+		if !isOrdinaryLoginStaticObjectType(record.ObjectType) {
+			continue
+		}
+		nativeMeshPath, ok := meshList.Resolve(record.ObjectType)
+		if !ok {
+			return fmt.Errorf("official MeshList has no static object type %d", record.ObjectType)
+		}
+		meshPath, err := resolveNativeAssetPath(assetRoot, nativeMeshPath)
+		if err != nil {
+			return fmt.Errorf("resolve static object type %d mesh: %w", record.ObjectType, err)
+		}
+		cached, ok := meshCache[meshPath]
+		if !ok {
+			mesh, err := assets.LoadMSAFile(meshPath)
+			if err != nil {
+				return fmt.Errorf("load static object type %d mesh: %w", record.ObjectType, err)
+			}
+			geometry, err := graphics.ExtractMSAGeometry(mesh)
+			if err != nil {
+				return fmt.Errorf("decode static object type %d geometry: %w", record.ObjectType, err)
+			}
+			cached = cachedMSA{mesh: mesh, geometry: geometry}
+			meshCache[meshPath] = cached
+		}
+		if len(cached.mesh.Attributes) != len(cached.mesh.TextureNames) {
+			return fmt.Errorf("static object type %d has %d material ranges but %d texture names", record.ObjectType, len(cached.mesh.Attributes), len(cached.mesh.TextureNames))
+		}
+
+		materials := make([]loginflow.LoginStaticMaterial, 0, len(cached.mesh.Attributes))
+		for attributeIndex, attribute := range cached.mesh.Attributes {
+			if attribute.FaceCount == 0 {
+				continue
+			}
+			slotIndex, textureRecord, ok := textureList.ResolveMSATexture(cached.mesh.TextureNames[attributeIndex])
+			if !ok {
+				return fmt.Errorf("static object type %d material %d texture %q is absent from MeshTextureList", record.ObjectType, attributeIndex, cached.mesh.TextureNames[attributeIndex])
+			}
+			if slotIndex < 0 || slotIndex > int(^uint16(0)) {
+				return fmt.Errorf("static object type %d material %d texture slot %d exceeds renderer range", record.ObjectType, attributeIndex, slotIndex)
+			}
+			slot := uint16(slotIndex)
+			materialGeometry, err := graphics.ExtractMSAMaterialGeometry(cached.mesh, cached.geometry, attributeIndex)
+			if err != nil {
+				return fmt.Errorf("slice static object type %d material %d: %w", record.ObjectType, attributeIndex, err)
+			}
+			materials = append(materials, loginflow.LoginStaticMaterial{TextureSlot: slot, Geometry: materialGeometry})
+
+			if _, loaded := textures[slot]; !loaded {
+				texturePath, err := resolveNativeAssetPath(assetRoot, textureRecord.Path)
+				if err != nil {
+					return fmt.Errorf("resolve model texture slot %d: %w", slot, err)
+				}
+				texture, err := assets.LoadWYSFile(texturePath)
+				if err != nil {
+					return fmt.Errorf("load model texture slot %d: %w", slot, err)
+				}
+				textures[slot] = texture
+			}
+		}
+		if len(materials) == 0 {
+			continue
+		}
+		object, err := loginflow.NewLoginStaticObject(record, terrain, materials)
+		if err != nil {
+			return fmt.Errorf("build static object type %d: %w", record.ObjectType, err)
+		}
+		objects = append(objects, object)
+	}
+	if err := backdrop.SetStaticObjects(objects, textures); err != nil {
+		return fmt.Errorf("bind official login static objects: %w", err)
+	}
+	return nil
+}
+
+func isOrdinaryLoginStaticObjectType(objectType uint32) bool {
+	if objectType >= 311 && objectType <= 322 ||
+		objectType >= 331 && objectType <= 342 ||
+		objectType >= 351 && objectType <= 378 ||
+		objectType >= 487 && objectType <= 489 ||
+		objectType >= 501 && objectType <= 599 ||
+		objectType >= 251 && objectType <= 254 {
+		return false
+	}
+	switch objectType {
+	case 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 121, 343, 344,
+		195, 273, 274, 292, 474, 490, 607, 610, 614, 657, 658, 697, 699,
+		1520, 1526, 1535, 1665, 1695, 1696, 1711, 1739, 1750,
+		1855, 1993, 2005:
+		return false
+	default:
+		return true
+	}
 }
 
 func loadLoginBackdropTextures(backdrop *loginflow.LoginBackdrop, terrainPath string) (map[uint16]assets.Texture, error) {

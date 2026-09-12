@@ -98,6 +98,15 @@ type TerrainMaterialRenderer interface {
 	DrawTerrainGeometry(primarySlot, secondarySlot uint16, geometry MeshGeometry, transform SceneTransform, camera Camera) error
 }
 
+// ModelMaterialRenderer is the static-world counterpart of
+// TerrainMaterialRenderer. Slots are native MeshTextureList indices so the
+// scene can cache one decoded/uploaded WYS per 7.48 model texture.
+type ModelMaterialRenderer interface {
+	Renderer
+	UploadModelTexture(slot uint16, texture assets.Texture) error
+	DrawModelGeometry(slot uint16, geometry MeshGeometry, transform SceneTransform, camera Camera) error
+}
+
 // ViewportProvider exposes the current client-area size in logical pixels.
 // Scenes use it to keep native 7.48 compositions and their hitboxes anchored
 // to the same root when the window is resized or displayed with DPI scaling.

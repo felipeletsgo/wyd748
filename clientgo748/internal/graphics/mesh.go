@@ -55,6 +55,100 @@ type MeshGeometry struct {
 	Indices  []uint16
 }
 
+// ExtractMSAGeometry materializes the two static-mesh FVF layouts used by the
+// native 7.48 TMMesh loader. FUN_004bc7c7/TMMesh::LoadMsa preserves 0x142 and
+// expands 0x112 into runtime 0x212 by appending a duplicated UV set.
+func ExtractMSAGeometry(mesh assets.MSAMesh) (MeshGeometry, error) {
+	if uint64(mesh.VertexStride)*uint64(mesh.VertexCount) != uint64(len(mesh.Vertices)) {
+		return MeshGeometry{}, fmt.Errorf("%w: MSA vertex buffer has %d bytes, expected %d", ErrInvalidMeshGeometry, len(mesh.Vertices), uint64(mesh.VertexStride)*uint64(mesh.VertexCount))
+	}
+	if len(mesh.Indices)%3 != 0 {
+		return MeshGeometry{}, fmt.Errorf("%w: MSA index count %d is not a triangle list", ErrInvalidMeshGeometry, len(mesh.Indices))
+	}
+
+	vertices := make([]MeshVertex, mesh.VertexCount)
+	stride := int(mesh.VertexStride)
+	for i := range vertices {
+		off := i * stride
+		vertex := MeshVertex{HasTexCoord: true}
+		switch {
+		case mesh.FVF == 0x212 && mesh.VertexStride == 40:
+			vertex.Position = Position3{
+				X: meshFloat32(mesh.Vertices, off),
+				Y: meshFloat32(mesh.Vertices, off+4),
+				Z: meshFloat32(mesh.Vertices, off+8),
+			}
+			vertex.Normal = Position3{
+				X: meshFloat32(mesh.Vertices, off+12),
+				Y: meshFloat32(mesh.Vertices, off+16),
+				Z: meshFloat32(mesh.Vertices, off+20),
+			}
+			vertex.TexCoord = TexCoord2{
+				U: meshFloat32(mesh.Vertices, off+24),
+				V: meshFloat32(mesh.Vertices, off+28),
+			}
+			vertex.SecondaryTexCoord = TexCoord2{
+				U: meshFloat32(mesh.Vertices, off+32),
+				V: meshFloat32(mesh.Vertices, off+36),
+			}
+			vertex.HasSecondaryTexCoord = true
+		case mesh.FVF == 0x142 && mesh.VertexStride == 24:
+			vertex.Position = Position3{
+				X: meshFloat32(mesh.Vertices, off),
+				Y: meshFloat32(mesh.Vertices, off+4),
+				Z: meshFloat32(mesh.Vertices, off+8),
+			}
+			// 0x142 is XYZ + DIFFUSE + TEX1. Current OpenGL static-object
+			// rendering does not consume the serialized diffuse color, and the
+			// layout has no normal field.
+			vertex.Normal = Position3{Y: 1}
+			vertex.TexCoord = TexCoord2{
+				U: meshFloat32(mesh.Vertices, off+16),
+				V: meshFloat32(mesh.Vertices, off+20),
+			}
+		default:
+			return MeshGeometry{}, fmt.Errorf("%w: unsupported MSA FVF/stride %#x/%d", ErrInvalidMeshGeometry, mesh.FVF, mesh.VertexStride)
+		}
+		if !finitePosition(vertex.Position) || !finitePosition(vertex.Normal) ||
+			!finiteFloat32(vertex.TexCoord.U) || !finiteFloat32(vertex.TexCoord.V) ||
+			(vertex.HasSecondaryTexCoord && (!finiteFloat32(vertex.SecondaryTexCoord.U) || !finiteFloat32(vertex.SecondaryTexCoord.V))) {
+			return MeshGeometry{}, fmt.Errorf("%w: MSA vertex %d contains non-finite attributes", ErrInvalidMeshGeometry, i)
+		}
+		vertices[i] = vertex
+	}
+
+	indices := append([]uint16(nil), mesh.Indices...)
+	for _, index := range indices {
+		if uint32(index) >= mesh.VertexCount {
+			return MeshGeometry{}, fmt.Errorf("%w: MSA vertex index %d outside vertex count %d", ErrInvalidMeshGeometry, index, mesh.VertexCount)
+		}
+	}
+	return MeshGeometry{Vertices: vertices, Indices: indices}, nil
+}
+
+// ExtractMSAMaterialGeometry keeps the mesh vertex space intact and narrows
+// only the triangle list to one native MSA attribute/material range. MSA
+// indices are global to the mesh, so rebasing the attribute VertexStart would
+// corrupt valid files.
+func ExtractMSAMaterialGeometry(mesh assets.MSAMesh, geometry MeshGeometry, attributeIndex int) (MeshGeometry, error) {
+	if attributeIndex < 0 || attributeIndex >= len(mesh.Attributes) {
+		return MeshGeometry{}, fmt.Errorf("%w: MSA attribute index %d outside %d attributes", ErrInvalidMeshGeometry, attributeIndex, len(mesh.Attributes))
+	}
+	if len(geometry.Vertices) != int(mesh.VertexCount) || len(geometry.Indices) != len(mesh.Indices) {
+		return MeshGeometry{}, fmt.Errorf("%w: MSA material source geometry does not match mesh", ErrInvalidMeshGeometry)
+	}
+	attribute := mesh.Attributes[attributeIndex]
+	start := uint64(attribute.FaceStart) * 3
+	end := start + uint64(attribute.FaceCount)*3
+	if end > uint64(len(geometry.Indices)) {
+		return MeshGeometry{}, fmt.Errorf("%w: MSA attribute %d face range exceeds index buffer", ErrInvalidMeshGeometry, attributeIndex)
+	}
+	return MeshGeometry{
+		Vertices: append([]MeshVertex(nil), geometry.Vertices...),
+		Indices:  append([]uint16(nil), geometry.Indices[int(start):int(end)]...),
+	}, nil
+}
+
 // ExtractMeshGeometry interpreta somente os cinco layouts materializados no
 // catálogo 7.48 atual. Os quatro layouts skinned reutilizam a interpretação FVF
 // do TMProject validada pelo usuário; combinações desconhecidas falham em vez de

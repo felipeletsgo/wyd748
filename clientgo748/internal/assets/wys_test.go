@@ -36,6 +36,24 @@ func TestLoadOfficialTile01010WYS(t *testing.T) {
 	}
 }
 
+func TestLoadOfficialKsob15WYSDXT3(t *testing.T) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	path := filepath.Join(filepath.Dir(filename), "..", "..", "assets", "current", "mesh", "ksob15.wys")
+	texture, err := LoadWYSFile(path)
+	if err != nil {
+		t.Fatalf("LoadWYSFile() error = %v", err)
+	}
+	if texture.Width != 128 || texture.Height != 128 || texture.SourceBits != 32 {
+		t.Fatalf("official DXT3 WYS metadata = %dx%d %dbpp", texture.Width, texture.Height, texture.SourceBits)
+	}
+	if len(texture.Pixels) != 128*128*4 {
+		t.Fatalf("official DXT3 WYS pixel length = %d", len(texture.Pixels))
+	}
+}
+
 func TestParseWYSDXT1Block(t *testing.T) {
 	// DXT1 endpoints are red and green. Every selector in the first row is
 	// exercised so endpoint and interpolation ordering remain regression-safe.
@@ -58,6 +76,30 @@ func TestParseWYSDXT1Block(t *testing.T) {
 	}
 }
 
+func TestParseWYSDXT3Block(t *testing.T) {
+	block := make([]byte, 16)
+	// Alpha explicito crescente nos quatro primeiros pixels: 0, 5, 10 e 15.
+	binary.LittleEndian.PutUint64(block[0:8], 0xfa50)
+	binary.LittleEndian.PutUint16(block[8:10], 0xf800)
+	binary.LittleEndian.PutUint16(block[10:12], 0x07e0)
+	binary.LittleEndian.PutUint32(block[12:16], 0xe4)
+	data := testWYS(4, 4, block)
+	data[85] = '7'
+	texture, err := ParseWYS(data)
+	if err != nil {
+		t.Fatalf("ParseWYS() error = %v", err)
+	}
+	want := []byte{
+		0xff, 0x00, 0x00, 0x00,
+		0x00, 0xff, 0x00, 0x55,
+		0xaa, 0x55, 0x00, 0xaa,
+		0x55, 0xaa, 0x00, 0xff,
+	}
+	if string(texture.Pixels[:16]) != string(want) {
+		t.Fatalf("first decoded DXT3 row = %x, want %x", texture.Pixels[:16], want)
+	}
+}
+
 func TestParseWYSRejectsMalformedInput(t *testing.T) {
 	valid := testWYS(4, 4, make([]byte, 8))
 	tests := []struct {
@@ -68,7 +110,7 @@ func TestParseWYSRejectsMalformedInput(t *testing.T) {
 		{name: "short", data: []byte("WS10"), want: ErrTruncatedWYS},
 		{name: "signature", data: append([]byte("NOPE"), valid[4:]...), want: ErrInvalidWYS},
 		{name: "truncated payload", data: valid[:len(valid)-1], want: ErrTruncatedWYS},
-		{name: "unsupported discriminator", data: func() []byte { d := append([]byte(nil), valid...); d[85] = '3'; return d }(), want: ErrUnsupportedWYS},
+		{name: "truncated DXT3 payload", data: func() []byte { d := append([]byte(nil), valid...); d[85] = '7'; return d }(), want: ErrTruncatedWYS},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

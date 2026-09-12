@@ -51,6 +51,10 @@ func (*Renderer) UploadTerrainTexture(uint16, assets.Texture) error { return Err
 func (*Renderer) DrawTerrainGeometry(uint16, uint16, graphics.MeshGeometry, graphics.SceneTransform, graphics.Camera) error {
 	return ErrUnsupported
 }
+func (*Renderer) UploadModelTexture(uint16, assets.Texture) error { return ErrUnsupported }
+func (*Renderer) DrawModelGeometry(uint16, graphics.MeshGeometry, graphics.SceneTransform, graphics.Camera) error {
+	return ErrUnsupported
+}
 
 // Close é idempotente sem recursos.
 func (*Renderer) Close() error { return nil }
