@@ -54,6 +54,18 @@ func (c Camera) normalized() (Camera, error) {
 // ProjectMeshGeometry applies object rotation/scale/translation and a look-at
 // perspective camera. Geometry attributes other than Position are preserved.
 func ProjectMeshGeometry(geometry MeshGeometry, transform SceneTransform, camera Camera, aspect float32) (MeshGeometry, error) {
+	return projectMeshGeometry(geometry, transform, camera, aspect, false)
+}
+
+// ProjectVisibleMeshGeometry projects triangle-list geometry while discarding
+// triangles that cross or fall behind the near plane. Existing scene meshes
+// keep the strict ProjectMeshGeometry behavior; broad terrain surfaces use this
+// tolerant path because they naturally surround the active camera.
+func ProjectVisibleMeshGeometry(geometry MeshGeometry, transform SceneTransform, camera Camera, aspect float32) (MeshGeometry, error) {
+	return projectMeshGeometry(geometry, transform, camera, aspect, true)
+}
+
+func projectMeshGeometry(geometry MeshGeometry, transform SceneTransform, camera Camera, aspect float32, discardBehindNear bool) (MeshGeometry, error) {
 	if !finiteFloat32(aspect) || aspect <= 0 {
 		return MeshGeometry{}, fmt.Errorf("%w: invalid aspect ratio %g", ErrInvalidScene3D, aspect)
 	}
@@ -82,8 +94,8 @@ func ProjectMeshGeometry(geometry MeshGeometry, transform SceneTransform, camera
 
 	projected := MeshGeometry{
 		Vertices: make([]MeshVertex, len(geometry.Vertices)),
-		Indices:  append([]uint16(nil), geometry.Indices...),
 	}
+	visible := make([]bool, len(geometry.Vertices))
 	for i, vertex := range geometry.Vertices {
 		world := applySceneTransform(vertex.Position, transform)
 		viewDelta := sub3(world, camera.Position)
@@ -91,8 +103,12 @@ func ProjectMeshGeometry(geometry MeshGeometry, transform SceneTransform, camera
 		viewY := dot3(viewDelta, up)
 		viewZ := dot3(viewDelta, forward)
 		if viewZ <= camera.Near {
+			if discardBehindNear {
+				continue
+			}
 			return MeshGeometry{}, fmt.Errorf("%w: vertex %d is behind the near plane", ErrInvalidScene3D, i)
 		}
+		visible[i] = true
 		ndcZ := ((viewZ-camera.Near)/(camera.Far-camera.Near))*2 - 1
 		if ndcZ > 1 {
 			ndcZ = 1
@@ -103,6 +119,23 @@ func ProjectMeshGeometry(geometry MeshGeometry, transform SceneTransform, camera
 			Z: ndcZ,
 		}
 		projected.Vertices[i] = vertex
+	}
+	if !discardBehindNear {
+		projected.Indices = append([]uint16(nil), geometry.Indices...)
+		return projected, nil
+	}
+	if len(geometry.Indices)%3 != 0 {
+		return MeshGeometry{}, fmt.Errorf("%w: triangle index count %d is not divisible by 3", ErrInvalidScene3D, len(geometry.Indices))
+	}
+	projected.Indices = make([]uint16, 0, len(geometry.Indices))
+	for i := 0; i < len(geometry.Indices); i += 3 {
+		a, b, c := geometry.Indices[i], geometry.Indices[i+1], geometry.Indices[i+2]
+		if int(a) >= len(visible) || int(b) >= len(visible) || int(c) >= len(visible) {
+			return MeshGeometry{}, fmt.Errorf("%w: triangle index outside vertex count", ErrInvalidScene3D)
+		}
+		if visible[a] && visible[b] && visible[c] {
+			projected.Indices = append(projected.Indices, a, b, c)
+		}
 	}
 	return projected, nil
 }

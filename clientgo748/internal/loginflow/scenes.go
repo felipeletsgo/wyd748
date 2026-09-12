@@ -27,19 +27,21 @@ func SceneFactories(state *login.SessionState) map[scene.ID]scene.Factory {
 // transferring renderer or transport ownership into a scene.
 type VisualOptions struct {
 	ShapeRenderer graphics.ShapeRenderer
+	LoginBackdrop *LoginBackdrop
 	ServerTexture *assets.Texture
 	Servers       []ServerEntry
 	SelectServer  func(ServerEntry) error
 	// RequestClose asks the application to close after the current input
 	// dispatch. The scene never destroys the window or renderer directly.
-	RequestClose    func() error
-	LoginTexture    *assets.Texture
-	LoginControls   []assets.SceneControl
-	UIStrings       map[int32]string
-	LoginLogoLeft   *assets.Texture
-	LoginLogoRight  *assets.Texture
-	Authenticate    func(account string, password []byte) error
-	SelectCharacter func(slot int32) error
+	RequestClose     func() error
+	LoginTexture     *assets.Texture
+	LoginControls    []assets.SceneControl
+	UIStrings        map[int32]string
+	LoginLogoLeft    *assets.Texture
+	LoginLogoRight   *assets.Texture
+	Authenticate     func(account string, password []byte) error
+	CharacterVisuals *CharacterSelectVisualAssets
+	SelectCharacter  func(slot int32) error
 	// WorldEntities returns a defensive snapshot owned by the coordinator.
 	// The scene never retains or mutates the returned slice.
 	WorldEntities func() []world.Entity
@@ -94,6 +96,7 @@ type ServerEntry struct {
 type serverSelectionScene struct {
 	state        *login.SessionState
 	renderer     graphics.ShapeRenderer
+	backdrop     *LoginBackdrop
 	texture      *assets.Texture
 	textureDraw  graphics.TextureRenderer
 	placement    graphics.TexturePlacementRenderer
@@ -135,7 +138,7 @@ func newServerSelectionScene(state *login.SessionState, options VisualOptions) (
 	}
 	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
 	placement, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
-	return &serverSelectionScene{state: state, renderer: options.ShapeRenderer, texture: options.ServerTexture,
+	return &serverSelectionScene{state: state, renderer: options.ShapeRenderer, backdrop: options.LoginBackdrop, texture: options.ServerTexture,
 		textureDraw: textureRenderer, placement: placement, groups: groups,
 		selectServer: options.SelectServer, requestClose: options.RequestClose, selected: 0, channel: 0,
 		uiStrings: options.UIStrings}, nil
@@ -196,10 +199,23 @@ func (s *serverSelectionScene) HandleEvent(event input.Event) error {
 	}
 	return nil
 }
-func (s *serverSelectionScene) Update(time.Duration) error { return s.validate() }
+func (s *serverSelectionScene) Update(dt time.Duration) error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	if s.backdrop != nil {
+		return s.backdrop.Advance(dt)
+	}
+	return nil
+}
 func (s *serverSelectionScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err
+	}
+	if s.backdrop != nil {
+		if err := s.backdrop.Render(s.renderer); err != nil {
+			return fmt.Errorf("loginflow: render server backdrop: %w", err)
+		}
 	}
 	layout := serverSelectionLayoutFor(s.renderer, len(s.groups))
 	if s.texture != nil {
@@ -388,6 +404,12 @@ func (l serverSelectionLayout) channelRow(index int) ui.Rect {
 type characterSelectScene struct {
 	state           *login.SessionState
 	renderer        graphics.ShapeRenderer
+	sceneRenderer   graphics.Scene3DRenderer
+	visualAssets    *CharacterSelectVisualAssets
+	controls        []assets.SceneControl
+	uiStrings       map[int32]string
+	models          [login.SelectionCharacterCount]*characterSelectModel
+	elapsed         time.Duration
 	selectCharacter func(int32) error
 	selected        int
 	status          string
@@ -397,7 +419,25 @@ func newCharacterSelectScene(state *login.SessionState, options VisualOptions) (
 	if state == nil {
 		return nil, errors.New("loginflow: session state is required")
 	}
-	return &characterSelectScene{state: state, renderer: options.ShapeRenderer, selectCharacter: options.SelectCharacter, selected: -1}, nil
+	var controls []assets.SceneControl
+	var err error
+	if options.CharacterVisuals != nil {
+		controls, err = copyCharacterSelectControls(options.CharacterVisuals.Controls)
+		if err != nil {
+			return nil, err
+		}
+	}
+	sceneRenderer, _ := options.ShapeRenderer.(graphics.Scene3DRenderer)
+	return &characterSelectScene{
+		state:           state,
+		renderer:        options.ShapeRenderer,
+		sceneRenderer:   sceneRenderer,
+		visualAssets:    options.CharacterVisuals,
+		controls:        controls,
+		uiStrings:       copyCharacterSelectStrings(options.UIStrings),
+		selectCharacter: options.SelectCharacter,
+		selected:        -1,
+	}, nil
 }
 func (s *characterSelectScene) ID() scene.ID { return CharacterSelectSceneID }
 func (s *characterSelectScene) Enter() error {
@@ -406,6 +446,7 @@ func (s *characterSelectScene) Enter() error {
 	}
 	s.selected = -1
 	s.status = ""
+	s.elapsed = 0
 	list, _ := s.state.CharacterList()
 	for i := range list.Characters {
 		if list.Characters[i].Occupied() {
@@ -413,6 +454,11 @@ func (s *characterSelectScene) Enter() error {
 			break
 		}
 	}
+	models, err := buildCharacterSelectModels(list, s.visualAssets)
+	if err != nil {
+		return err
+	}
+	s.models = models
 	return nil
 }
 func (s *characterSelectScene) HandleEvent(event input.Event) error {
@@ -427,7 +473,13 @@ func (s *characterSelectScene) HandleEvent(event input.Event) error {
 				return nil
 			}
 		}
-		if selectRect().Contains(event.X, event.Y) {
+		selectRect := selectRect()
+		if len(s.controls) != 0 {
+			if official, ok := characterSelectControlRect(s.controls, characterSelectEnterID, characterSelectRootFor(s.renderer)); ok {
+				selectRect = official
+			}
+		}
+		if selectRect.Contains(event.X, event.Y) {
 			return s.submit()
 		}
 	}
@@ -443,7 +495,15 @@ func (s *characterSelectScene) HandleEvent(event input.Event) error {
 	}
 	return nil
 }
-func (s *characterSelectScene) Update(time.Duration) error { return s.validate() }
+func (s *characterSelectScene) Update(delta time.Duration) error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	if delta > 0 {
+		s.elapsed += delta
+	}
+	return nil
+}
 func (s *characterSelectScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err
@@ -451,33 +511,15 @@ func (s *characterSelectScene) Render() error {
 	if s.renderer == nil {
 		return nil
 	}
+	if err := drawCharacterSelectModels(s.sceneRenderer, s.models, s.elapsed); err != nil {
+		return err
+	}
 	list, _ := s.state.CharacterList()
-	for i := 0; i < login.SelectionCharacterCount; i++ {
-		color := graphics.Color{R: .12, G: .13, B: .18, A: 1}
-		if list.Characters[i].Occupied() {
-			color = graphics.Color{R: .18, G: .24, B: .34, A: 1}
-		}
-		if i == s.selected {
-			color = graphics.Color{R: .25, G: .48, B: .78, A: 1}
-		}
-		r := cardRect(i)
-		s.renderer.DrawRect(r.X, r.Y, r.Width, r.Height, color)
-		if text, ok := s.renderer.(graphics.TextRenderer); ok {
-			name := "EMPTY SLOT"
-			if list.Characters[i].Occupied() {
-				character := list.Characters[i]
-				name = character.Name
-				text.DrawText(r.X+10, r.Y+34, fmt.Sprintf("Level %d", character.Score.Level), 9, graphics.Color{R: .85, G: .85, B: .85, A: 1})
-				text.DrawText(r.X+10, r.Y+50, fmt.Sprintf("Gold %d", character.Coin), 9, graphics.Color{R: .85, G: .85, B: .85, A: 1})
-			}
-			text.DrawText(r.X+10, r.Y+12, name, 12, graphics.Color{R: 1, G: 1, B: 1, A: 1})
-		}
+	var itemList *assets.ItemList
+	if s.visualAssets != nil {
+		itemList = s.visualAssets.ItemList
 	}
-	r := selectRect()
-	s.renderer.DrawRect(r.X, r.Y, r.Width, r.Height, graphics.Color{R: .12, G: .34, B: .62, A: 1})
-	if text, ok := s.renderer.(graphics.TextRenderer); ok {
-		text.DrawText(r.X+39, r.Y+14, "SELECT", 12, graphics.Color{R: 1, G: 1, B: 1, A: 1})
-	}
+	drawCharacterSelectUI(s.renderer, s.controls, s.uiStrings, itemList, list, s.selected, s.status)
 	return nil
 }
 func (s *characterSelectScene) Exit() error  { return nil }
@@ -751,6 +793,7 @@ type loginScene struct {
 	state             *login.SessionState
 	form              *ui.LoginForm
 	renderer          graphics.ShapeRenderer
+	backdrop          *LoginBackdrop
 	loginTexture      *assets.Texture
 	loginLogoLeft     *assets.Texture
 	loginLogoRight    *assets.Texture
@@ -862,7 +905,7 @@ func newLoginScene(state *login.SessionState, options VisualOptions) (scene.Scen
 	textureRenderer, _ := options.ShapeRenderer.(graphics.TextureRenderer)
 	placementRenderer, _ := options.ShapeRenderer.(graphics.TexturePlacementRenderer)
 	layers, _ := options.ShapeRenderer.(graphics.LayeredTextureRenderer)
-	return &loginScene{state: state, renderer: options.ShapeRenderer, form: ui.NewLoginForm(options.Authenticate), requestClose: options.RequestClose, loginTexture: options.LoginTexture, loginLogoLeft: options.LoginLogoLeft, loginLogoRight: options.LoginLogoRight, loginControls: controls, captions: captions, textureRenderer: textureRenderer, placementRenderer: placementRenderer, layers: layers}, nil
+	return &loginScene{state: state, renderer: options.ShapeRenderer, backdrop: options.LoginBackdrop, form: ui.NewLoginForm(options.Authenticate), requestClose: options.RequestClose, loginTexture: options.LoginTexture, loginLogoLeft: options.LoginLogoLeft, loginLogoRight: options.LoginLogoRight, loginControls: controls, captions: captions, textureRenderer: textureRenderer, placementRenderer: placementRenderer, layers: layers}, nil
 }
 
 // loginCaption guarda somente valores próprios e coordenadas relativas ao root.
@@ -996,10 +1039,23 @@ func (s *loginScene) syncLayout() loginLayout {
 	return layout
 }
 
-func (s *loginScene) Update(time.Duration) error { return s.validate() }
+func (s *loginScene) Update(dt time.Duration) error {
+	if err := s.validate(); err != nil {
+		return err
+	}
+	if s.backdrop != nil {
+		return s.backdrop.Advance(dt)
+	}
+	return nil
+}
 func (s *loginScene) Render() error {
 	if err := s.validate(); err != nil {
 		return err
+	}
+	if s.backdrop != nil {
+		if err := s.backdrop.Render(s.renderer); err != nil {
+			return fmt.Errorf("loginflow: render login backdrop: %w", err)
+		}
 	}
 	layout := s.syncLayout()
 	if s.layers != nil {

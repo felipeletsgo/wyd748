@@ -44,6 +44,9 @@ func (*Renderer) DrawMeshScene(assets.Mesh, graphics.SceneTransform, graphics.Ca
 func (*Renderer) DrawSkinnedMeshScene(assets.Mesh, []assets.MeshMatrix, graphics.SceneTransform, graphics.Camera) error {
 	return ErrUnsupported
 }
+func (*Renderer) DrawSceneGeometry(graphics.MeshGeometry, graphics.SceneTransform, graphics.Camera) error {
+	return ErrUnsupported
+}
 
 // Close é idempotente sem recursos.
 func (*Renderer) Close() error { return nil }

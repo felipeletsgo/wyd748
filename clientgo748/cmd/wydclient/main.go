@@ -106,6 +106,34 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	characterScenePath := loginAssetPath("SelCharScene2.bin")
+	characterSceneData, err := os.ReadFile(characterScenePath)
+	if err != nil {
+		return fmt.Errorf("load official character selection scene: %w", err)
+	}
+	characterControls, err := assets.ParseScene(characterSceneData)
+	if err != nil {
+		return fmt.Errorf("parse official character selection scene: %w", err)
+	}
+	characterAssetRoot := filepath.Dir(filepath.Dir(characterScenePath))
+	itemList, err := assets.LoadItemListFile(filepath.Join(characterAssetRoot, "ItemList.bin"))
+	if err != nil {
+		return fmt.Errorf("load character ItemList: %w", err)
+	}
+	boneAnimations, err := assets.LoadBoneAnimationSet(characterAssetRoot)
+	if err != nil {
+		return fmt.Errorf("load character BoneAnimation set: %w", err)
+	}
+	characterVisuals := &loginflow.CharacterSelectVisualAssets{
+		AssetRoot:      characterAssetRoot,
+		ItemList:       &itemList,
+		BoneAnimations: &boneAnimations,
+		Controls:       characterControls,
+	}
+	loginBackdrop, err := loadLoginBackdrop(loginBackdropTerrainPath(), loginAssetPath("DemoCamAction4.bin"))
+	if err != nil {
+		return err
+	}
 	characterTerrain, err := loadOptionalTerrain(characterTerrainPath())
 	if err != nil {
 		return err
@@ -122,6 +150,7 @@ func run() error {
 		LogoPath:            "",
 		SceneFactories: loginflow.SceneFactoriesWithVisuals(state, loginflow.VisualOptions{
 			ShapeRenderer: renderer,
+			LoginBackdrop: loginBackdrop,
 			ServerTexture: &serverTexture,
 			Servers:       toLoginServerEntries(serverEntries),
 			RequestClose: func() error {
@@ -142,11 +171,12 @@ func run() error {
 				}
 				return coordinator.ServerSelected()
 			},
-			LoginTexture:   &loginTexture,
-			LoginControls:  serverControls,
-			UIStrings:      uiStrings,
-			LoginLogoLeft:  &loginLogoLeft,
-			LoginLogoRight: &loginLogoRight,
+			LoginTexture:     &loginTexture,
+			LoginControls:    serverControls,
+			UIStrings:        uiStrings,
+			LoginLogoLeft:    &loginLogoLeft,
+			LoginLogoRight:   &loginLogoRight,
+			CharacterVisuals: characterVisuals,
 			Authenticate: func(account string, password []byte) error {
 				if coordinator == nil {
 					return fmt.Errorf("login coordinator is not initialized")
@@ -284,6 +314,36 @@ func characterTerrainPath() string {
 		}
 	}
 	return filepath.Join("assets", "current", "Env", "Character.trn")
+}
+
+func loginBackdropTerrainPath() string {
+	if executable, err := os.Executable(); err == nil {
+		candidate := filepath.Clean(filepath.Join(filepath.Dir(executable), "..", "assets", "current", "Env", "Field0813.trn"))
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return filepath.Join("assets", "current", "Env", "Field0813.trn")
+}
+
+func loadLoginBackdrop(terrainPath, cameraPath string) (*loginflow.LoginBackdrop, error) {
+	terrainBytes, err := os.ReadFile(terrainPath)
+	if err != nil {
+		return nil, fmt.Errorf("load official login backdrop terrain: %w", err)
+	}
+	terrain, err := assets.ParseTerrain(terrainBytes)
+	if err != nil {
+		return nil, fmt.Errorf("parse official login backdrop terrain: %w", err)
+	}
+	action, err := assets.LoadCameraActionFile(cameraPath)
+	if err != nil {
+		return nil, fmt.Errorf("load official login camera action: %w", err)
+	}
+	backdrop, err := loginflow.NewLoginBackdrop(terrain, action)
+	if err != nil {
+		return nil, fmt.Errorf("build official login backdrop: %w", err)
+	}
+	return backdrop, nil
 }
 
 // loadOptionalTerrain keeps the diagnostic TRN independent from bootstrap.

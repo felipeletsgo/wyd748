@@ -42,3 +42,24 @@ func TestProjectMeshGeometryRejectsNearPlane(t *testing.T) {
 		t.Fatal("expected near-plane rejection")
 	}
 }
+
+func TestProjectVisibleMeshGeometryDropsTrianglesBehindNearPlane(t *testing.T) {
+	geometry := MeshGeometry{
+		Vertices: []MeshVertex{
+			{Position: Position3{X: -1, Z: 2}},
+			{Position: Position3{X: 1, Z: 2}},
+			{Position: Position3{Y: 1, Z: 2}},
+			{Position: Position3{Z: -.1}},
+		},
+		Indices: []uint16{0, 1, 2, 0, 2, 3},
+	}
+	projected, err := ProjectVisibleMeshGeometry(geometry, SceneTransform{Scale: 1}, Camera{
+		Target: Position3{Z: 1}, FOVDegrees: 60, Near: .1, Far: 100,
+	}, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(projected.Indices) != 3 || projected.Indices[0] != 0 || projected.Indices[1] != 1 || projected.Indices[2] != 2 {
+		t.Fatalf("visible indices=%v want [0 1 2]", projected.Indices)
+	}
+}

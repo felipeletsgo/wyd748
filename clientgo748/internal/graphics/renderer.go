@@ -80,6 +80,15 @@ type Scene3DRenderer interface {
 	DrawSkinnedMeshScene(assets.Mesh, []assets.MeshMatrix, SceneTransform, Camera) error
 }
 
+// SceneGeometryRenderer is the optional camera-aware surface for geometry that
+// is already decoded by the owning subsystem. It keeps format-specific terrain
+// parsing outside the backend while reusing the same scene projection path as
+// regular MSH assets.
+type SceneGeometryRenderer interface {
+	Renderer
+	DrawSceneGeometry(MeshGeometry, SceneTransform, Camera) error
+}
+
 // ViewportProvider exposes the current client-area size in logical pixels.
 // Scenes use it to keep native 7.48 compositions and their hitboxes anchored
 // to the same root when the window is resized or displayed with DPI scaling.

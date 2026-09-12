@@ -372,6 +372,19 @@ func (r *Renderer) DrawSkinnedMeshScene(mesh assets.Mesh, palette []assets.MeshM
 	return r.drawSceneGeometry(geometry, transform, camera)
 }
 
+// DrawSceneGeometry projects caller-owned decoded geometry through the same
+// camera-aware path used by MSH scene rendering.
+func (r *Renderer) DrawSceneGeometry(geometry graphics.MeshGeometry, transform graphics.SceneTransform, camera graphics.Camera) error {
+	if r.viewportWidth <= 0 || r.viewportHeight <= 0 {
+		return errors.New("clientgo748: renderer viewport is unavailable")
+	}
+	projected, err := graphics.ProjectVisibleMeshGeometry(geometry, transform, camera, float32(r.viewportWidth)/float32(r.viewportHeight))
+	if err != nil {
+		return err
+	}
+	return r.drawMeshGeometry(projected)
+}
+
 func (r *Renderer) drawSceneGeometry(geometry graphics.MeshGeometry, transform graphics.SceneTransform, camera graphics.Camera) error {
 	if r.viewportWidth <= 0 || r.viewportHeight <= 0 {
 		return errors.New("clientgo748: renderer viewport is unavailable")
