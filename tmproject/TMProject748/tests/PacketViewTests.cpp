@@ -1,4 +1,6 @@
 #include "../internal/application/ports/PacketView.h"
+#include "../internal/application/FieldInteractionPolicy.h"
+#include "../internal/application/NativeVolatileRoutes.h"
 #include "../internal/application/ports/PacketDispatch.h"
 #include "../internal/wire/PacketSendBoundary.h"
 #include "../internal/platform/windows/SocketTransport.h"
@@ -309,6 +311,41 @@ int main()
         offsetof(MSG_GuildRelation, GuildID) == 12 &&
         offsetof(MSG_GuildRelation, TargetGuildID) == 16,
         "GuildRelation preserva opcode de alianca e offsets nativos");
+
+    for (char key : {'Q', 'q', 'W', 'w', 'E', 'e', 'R', 'r', 'T', 't'})
+        check(field_interaction::QuickSlotIndex(true, key) == -1,
+            "native HUD never dereferences modern quick slots");
+    check(field_interaction::QuickSlotIndex(false, 'q') == 0 &&
+        field_interaction::QuickSlotIndex(false, 'T') == 4 &&
+        field_interaction::QuickSlotIndex(false, '-') == -1,
+        "modern quick slots preserve key mapping");
+    check(!field_interaction::ShouldCloseOnDelayAck(0),
+        "recall/logout/server-select/unsolicited ack does not close client");
+    check(field_interaction::ShouldCloseOnDelayAck(1) &&
+        field_interaction::ShouldCloseOnDelayAck(UINT_MAX),
+        "pending local quit accepts delay ack");
+    for (const auto& entry : native_volatile::CodeRoutes)
+        for (int code = entry.first; code <= entry.last; ++code)
+            check(native_volatile::Resolve(code, -1) == entry.route, "volatile code route");
+    for (const auto& entry : native_volatile::ItemRoutes)
+        for (int item = entry.first; item <= entry.last; ++item)
+            check(native_volatile::Resolve(-1, item) == entry.route, "volatile item override");
+    check(native_volatile::Resolve(19, 3442) == native_volatile::Route::CustomFirework,
+        "custom firework must not send ordinary UseItem");
+    check(native_volatile::Resolve(0, 4003) == native_volatile::Route::Direct,
+        "catalogued box overrides non-direct volatile zero");
+    check(native_volatile::Resolve(206, 3455) == native_volatile::Route::Interaction,
+        "sealed item is not an extraction capsule");
+    check(native_volatile::Resolve(-1, -1) == native_volatile::Route::Unknown &&
+        native_volatile::Resolve(999, 999) == native_volatile::Route::Unknown,
+        "unknown items preserve the legacy fallback");
+    for (auto route : {native_volatile::Route::Direct, native_volatile::Route::Confirm,
+        native_volatile::Route::Capsule})
+        check(native_volatile::AllowsRightClick(route), "direct/modal right click route");
+    for (auto route : {native_volatile::Route::Unknown, native_volatile::Route::Target,
+        native_volatile::Route::Interaction, native_volatile::Route::Recall,
+        native_volatile::Route::Portal, native_volatile::Route::CustomFirework})
+        check(!native_volatile::AllowsRightClick(route), "specialized route is not direct consumption");
 
     failures += RunCharacterLoginUseCaseTests(checks);
     // Limites da fila sem soma signed e sem depender de um socket real.

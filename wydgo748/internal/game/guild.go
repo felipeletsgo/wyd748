@@ -33,7 +33,13 @@ func (w *World) saveGuildState(accounts ...*model.Account) error {
 	if !ok {
 		return fmt.Errorf("store atual nao suporta persistencia de guild")
 	}
-	return gs.SaveGameState(w.guilds, accountPersistenceSnapshots(accounts...)...)
+	warsBefore := w.guilds.Wars.Clone()
+	w.pruneGuildWarReferences()
+	err := gs.SaveGameState(w.guilds, accountPersistenceSnapshots(accounts...)...)
+	if err != nil {
+		w.guilds.Wars = warsBefore
+	}
+	return err
 }
 
 // Erros de autorizacao. Ficam separados da mensagem enviada ao client para que

@@ -16,6 +16,21 @@ func writeServerConfig(t *testing.T, contents string) string {
 	return path
 }
 
+func TestGuildWarServerConfiguration(t *testing.T) {
+	c, err := LoadServerConfig(writeServerConfig(t, "guild_wars_enabled=false\nguild_wars_timezone=UTC\ntower_war_hour=18\ncity_war_hour=19\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.GuildWars.Enabled || c.GuildWars.Timezone != "UTC" || c.GuildWars.TowerHour != 18 || c.GuildWars.CityHour != 19 {
+		t.Fatal("war config ignored")
+	}
+	for _, input := range []string{"tower_war_hour=24", "city_war_hour=-1", "guild_wars_timezone=Invalid/Zone", "guild_wars_enabled=maybe"} {
+		if _, err := LoadServerConfig(writeServerConfig(t, input)); err == nil {
+			t.Errorf("accepted %s", input)
+		}
+	}
+}
+
 func TestLoadServerConfigOverridesDefaults(t *testing.T) {
 	path := writeServerConfig(t, `
 # comentario

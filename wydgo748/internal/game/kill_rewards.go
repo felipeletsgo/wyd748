@@ -78,6 +78,10 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 	if p == nil || p.Char == nil || m == nil || m.Dead || m.Def == nil {
 		return nil
 	}
+	if m.GuildWarTower {
+		w.captureWarTower(p, m, appliedDamage)
+		return nil // isolated guild transaction: no ordinary EXP, loot or quest progress
+	}
 	baseReward := scaledMobExperience(m.Def.ExpReward, w.gameplay)
 	shares := w.partyExpShares(p, baseReward, w.gameplay.PartyEXPBonusPercent)
 	plan := &killRewardPlan{

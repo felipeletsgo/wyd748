@@ -820,7 +820,8 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		s.ID, opcode, m.Def.Name, m.ID, clickOk, chebyshev(p.X, p.Y, m.X, m.Y), len(pkt))
 	// Toda interacao abre exatamente um contexto autoritativo. Cargo nao pode
 	// reutilizar um banqueiro antigo depois que o jogador clicou em outro NPC.
-	p.ShopNPC, p.CraftNPC, p.CargoNPC = 0, 0, 0
+	p.ShopNPC, p.ShopTax, p.CraftNPC, p.CargoNPC = 0, 0, 0, 0
+	clearCityWarContext(p)
 
 	// Roteamento por ALLOWLIST, nesta ordem:
 	//   1. tipos com handler proprio (loja, mestre, cargo);
@@ -855,11 +856,24 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	if w.handleCarbMasterNPC(s, p, m) {
 		return
 	}
+	if city, isCollector := cityCollectorCity(m); isCollector {
+		owner := uint16(0)
+		if w.guilds != nil {
+			owner = w.guilds.Wars.Cities.Territories[city].Owner
+		}
+		setCityWarContext(p, m.ID, city, owner, w.now())
+		log.Printf("[#%d] coletor de imposto aberto: %q cidade=%s", s.ID, m.Def.Name, cityWarZones[city].name)
+		return
+	}
 	if shopType, isShop := shopTypeForMerchant(m.Def.Score.Merchant); isShop {
 		p.ShopNPC = m.ID // lembra a loja aberta pro buy (server-authoritative)
 		display := shopDisplayList(m.Def.Vende, shopType)
 		// TMProject renders 27 shop entries; stock 7.48 keeps its 64-entry ABI.
-		s.Send(wire.ShopList(display, 0, shopType))
+		_, tax, taxed := w.cityShopTax(m)
+		if taxed {
+			p.ShopTax = tax
+		}
+		s.Send(wire.ShopList(display, p.ShopTax, shopType))
 		if dropped := countShopItems(m.Def.Vende) - countShopItems(display); dropped > 0 {
 			log.Printf("[#%d] loja %q: %d item(ns) alem do limite de %d do client",
 				s.ID, m.Def.Name, dropped, clientShopSlots)
@@ -987,39 +1001,39 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("That item is unavailable on this server."))
 		return
 	}
-	price := def.Price
-	if p.Char.Gold < price {
-		log.Printf("[#%d] gold insuficiente: item %d custa %d, tem %d", s.ID, it.Index, price, p.Char.Gold)
+	basePrice := uint64(def.Price)
+	totalPrice, treasury, city, _ := w.cityPriceForNPC(m, basePrice)
+	if totalPrice > uint64(maxCharacterGold) || uint64(p.Char.Gold) < totalPrice {
+		log.Printf("[#%d] gold insuficiente: item %d custa %d (base=%d), tem %d", s.ID, it.Index, totalPrice, basePrice, p.Char.Gold)
 		// O client 7.48 nao sintetiza esse erro: ele exibe o painel 0x101
 		// enviado pelo servidor, portanto toda rejeicao esperada precisa responder.
 		s.Send(wire.MessagePanel("You do not have enough gold."))
 		return
 	}
-	dst := addToInv(p.Char, it)
-	if dst < 0 {
-		log.Printf("[#%d] inventario cheio, compra abortada", s.ID)
-		// Mantem a compra server-authoritative e informa o motivo sem alterar gold.
-		s.Send(wire.MessagePanel("Your inventory is full."))
-		return
-	}
-	oldGold := p.Char.Gold
-	p.Char.Gold -= price
-	// Persist-before-confirm: a compra move gold+item juntos; grava antes de
-	// confirmar e reverte os dois se o disco falhar (disciplina do codebase).
-	if err := w.saveAccount(p.Account); err != nil {
-		p.Char.Inv[dst] = model.Item{}
-		p.Char.Gold = oldGold
+	dst, err := w.commitShopPurchase(p, it, totalPrice, city, treasury)
+	if err != nil {
+		if errors.Is(err, errShopInventoryFull) {
+			log.Printf("[#%d] inventario cheio, compra abortada", s.ID)
+			s.Send(wire.MessagePanel("Your inventory is full."))
+			return
+		}
 		log.Printf("[#%d] ERRO ao salvar compra item=%d: %v", s.ID, it.Index, err)
 		// Depois do rollback o client precisa receber um resultado terminal; sem
 		// este painel a interface 7.48 aparenta ter ignorado o botao de compra.
 		s.Send(wire.MessagePanel("The purchase could not be completed."))
 		return
 	}
+	if dst < 0 {
+		log.Printf("[#%d] inventario cheio, compra abortada", s.ID)
+		// Mantem a compra server-authoritative e informa o motivo sem alterar gold.
+		s.Send(wire.MessagePanel("Your inventory is full."))
+		return
+	}
 	// FUN_00487b92 copia o item da grade de loja para MyCarryPos e atualiza Coin
 	// diretamente desta confirmacao. SendItem+UpdateEtc nao materializa a compra
 	// no lifecycle nativo da janela de merchant.
 	s.Send(wire.BuyItem(p.ID, p.ShopNPC, sellSlot, uint16(dst), p.Char.Gold))
-	log.Printf("[#%d] comprou item %d por %d gold -> inv[%d] (gold restante=%d)", s.ID, it.Index, price, dst, p.Char.Gold)
+	log.Printf("[#%d] comprou item %d por %d gold (base=%d) -> inv[%d] (gold restante=%d)", s.ID, it.Index, totalPrice, basePrice, dst, p.Char.Gold)
 }
 
 // onBuyToto: 0x3CE. O wire e o fluxo da janela pertencem ao client 7.48; a
@@ -1081,8 +1095,9 @@ func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("TOTO tickets are unavailable on this server."))
 		return
 	}
-	price := def.Price
-	if p.Char.Gold < price {
+	basePrice := uint64(def.Price)
+	totalPrice, treasury, city, _ := w.cityPriceForNPC(m, basePrice)
+	if totalPrice > uint64(maxCharacterGold) || uint64(p.Char.Gold) < totalPrice {
 		s.Send(wire.MessagePanel("You do not have enough gold."))
 		return
 	}
@@ -1096,12 +1111,7 @@ func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("The TOTO ticket could not be created."))
 		return
 	}
-	oldGold := p.Char.Gold
-	p.Char.Inv[dst] = ticket
-	p.Char.Gold -= price
-	if err := w.saveAccount(p.Account); err != nil {
-		p.Char.Inv[dst] = model.Item{}
-		p.Char.Gold = oldGold
+	if err := w.commitTicketPurchase(p, ticket, int(dst), totalPrice, city, treasury); err != nil {
 		log.Printf("[#%d] ERRO ao salvar bilhete TOTO partida=%d: %v", s.ID, match, err)
 		s.Send(wire.MessagePanel("The TOTO purchase could not be completed."))
 		return
@@ -1111,8 +1121,8 @@ func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 	// nativos necessarios para materializar o bilhete e o novo saldo.
 	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	log.Printf("[#%d] comprou TOTO partida=%d placar=%d-%d por %d gold -> inv[%d]",
-		s.ID, match, scoreA, scoreB, price, dst)
+	log.Printf("[#%d] comprou TOTO partida=%d placar=%d-%d por %d gold (base=%d) -> inv[%d]",
+		s.ID, match, scoreA, scoreB, totalPrice, basePrice, dst)
 }
 
 // onSellItem: 0x37A. Vende um item do inventario pro mercador aberto por
@@ -1158,18 +1168,26 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	}
 	sold := src.Index
 	def, exists := w.items[sold]
-	price := uint32(0)
+	basePrice := uint64(0)
 	if exists {
-		price = def.Price / 4 // padrao WYD: vende por 25% do preco de compra
+		basePrice = uint64(def.Price) / 4 // padrao WYD: vende por 25% do preco de compra
+	}
+	city, taxRate, taxed := w.cityShopTax(m)
+	netPrice := basePrice
+	treasury := uint64(0)
+	if taxed {
+		tax := basePrice * uint64(taxRate) / 100
+		netPrice -= tax
+		treasury = tax / 4
 	}
 	// Teto de gold: a venda credita gold e nao pode ultrapassar 2 bilhoes, como
 	// toda entrada de gold no servidor. Sem isto era o unico credito sem teto.
-	if p.Char.Gold > maxCharacterGold || price > maxCharacterGold-p.Char.Gold {
+	if uint64(p.Char.Gold) > uint64(maxCharacterGold) || netPrice > uint64(maxCharacterGold)-uint64(p.Char.Gold) {
 		s.Send(wire.MessagePanel("You cannot carry any more gold."))
 		s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // item intacto
 		return
 	}
-	oldItem, oldGold, oldRebuy := *src, p.Char.Gold, p.Rebuy
+	oldItem := *src
 	// O item vendido entra na lixeira somente depois de ter uma identidade
 	// server-side. Saves antigos sem UID sao migrados no proprio movimento.
 	if oldItem.UID == "" {
@@ -1181,19 +1199,14 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 			return
 		}
 	}
-	*src = model.Item{} // esvazia o slot
-	p.Char.Gold += price
-	p.addRebuy(oldItem, price)
-	// Persist-before-confirm: reverte item+gold se o disco falhar.
-	if err := w.saveAccount(p.Account); err != nil {
-		*src, p.Char.Gold, p.Rebuy = oldItem, oldGold, oldRebuy
+	if err := w.commitShopSale(p, src, oldItem, netPrice, city, treasury); err != nil {
 		log.Printf("[#%d] ERRO ao salvar venda item=%d: %v", s.ID, sold, err)
 		return
 	}
 	s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // slot agora vazio
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))            // atualiza gold
 	w.sendRebuyList(p)
-	log.Printf("[#%d] vendeu item %d por %d gold (gold=%d)", s.ID, sold, price, p.Char.Gold)
+	log.Printf("[#%d] vendeu item %d por %d gold (base=%d; city=%d; gold=%d)", s.ID, sold, netPrice, basePrice, city, p.Char.Gold)
 }
 
 // onMove: 0x366. PosX/Y@12 e Route[24] descrevem uma intencao de caminhada;

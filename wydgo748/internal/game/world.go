@@ -98,9 +98,16 @@ type Player struct {
 	X, Y                uint16 // posicao atual (rastreada dos pacotes de movimento 0x366)
 	// NPC cuja loja esta aberta. O buy do 7.48 vem com TargetID=0, portanto o
 	// servidor usa este ID autoritativo em vez de confiar no pacote.
-	ShopNPC             uint16
-	CraftNPC            uint16
-	CargoNPC            uint16
+	ShopNPC  uint16
+	ShopTax  uint32
+	CraftNPC uint16
+	CargoNPC uint16
+	// Contexto efemero do coletor de imposto/guerra. A confirmacao 0x28F so
+	// pode reutilizar o NPC que o jogador realmente abriu por poucos segundos.
+	CityWarNPC          uint16
+	CityWarCity         int
+	CityWarGuild        uint16
+	CityWarUntil        time.Time
 	LastCraft           time.Time
 	DeadAt              time.Time
 	LastPotion          time.Time
@@ -189,6 +196,7 @@ type Party struct {
 
 // Mob = NPC/monstro vivo no mundo (instancia de uma NPCDef).
 type Mob struct {
+	GuildWarTower    bool
 	ID               uint16
 	Def              *model.NPCDef
 	X, Y             uint16
@@ -436,7 +444,16 @@ type World struct {
 	clientIntegrity       model.ClientIntegrityFile
 	// guilds e o registro canonico carregado do guilds.json. Char.GuildID e
 	// apenas uma copia desnormalizada reparada no login.
-	guilds *model.GuildRegistry
+	guilds         *model.GuildRegistry
+	warConfig      model.GuildWarConfig
+	warLocation    *time.Location
+	warNextTick    time.Time
+	warInitialized bool
+	cityWarRunning bool
+	cityFighters   map[*Player]cityFighter
+	cityWarScores  [4]map[uint16]uint64 // frozen at deadline across persistence retries
+	warNotices     []string
+	warNoticeNext  time.Time
 	// questsByNPC e a allowlist de quest: NPC ausente daqui nunca vira quest.
 	questFile   model.QuestFile
 	initItems   []model.InitItem
@@ -591,6 +608,12 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	}
 	for _, option := range options {
 		option(w)
+	}
+	if w.warConfig.Enabled {
+		if err := w.warConfig.Validate(); err != nil {
+			return nil, fmt.Errorf("guild wars: %w", err)
+		}
+		w.warLocation, _ = time.LoadLocation(w.warConfig.Timezone)
 	}
 	if err := w.operational.Validate(); err != nil {
 		return nil, fmt.Errorf("configuracao operacional: %w", err)
@@ -1661,6 +1684,7 @@ func (w *World) tick() {
 	// A posicao server-side caminha pelo mesmo plano visual, mas somente os
 	// passos cujo tempo venceu se tornam autoridade para IA e interacoes.
 	w.advanceAllPlayerMovement(now)
+	w.tickGuildWars(now)
 	// O grid ja reduziu a lista aos mobs com jogador proximo. Uma vez acordado,
 	// o mob percebe alvo a cada 1 s. Perseguicao e patrulha so iniciam um novo
 	// trecho a cada 2 s, evitando emendar animacoes na velocidade maxima. O

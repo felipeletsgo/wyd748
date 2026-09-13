@@ -906,6 +906,13 @@ func (w *World) tickPlayerAffects(now time.Time) {
 					expired = true
 					continue
 				}
+				if a.Type == 20 {
+					if allowed, handled := w.guildWarPvP(owner, p); handled && !allowed {
+						*a = model.Affect{}
+						expired = true
+						continue
+					}
+				}
 			}
 			if a.Type == 17 && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
 				oldHP := playerCurHP(p.Char)

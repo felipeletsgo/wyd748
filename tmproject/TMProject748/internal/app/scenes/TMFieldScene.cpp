@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TMFieldScene.h"
+#include "../../application/FieldInteractionPolicy.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "dsutil.h"
@@ -2237,6 +2238,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 	// opcode 0x378, so both runtime belts must exist before queued world packets
 	// are dispatched after this initializer returns.
 	InitializeCompatSkillBelts();
+	InitializeFireWorkControls();
 	UpdateCompatLearnedSkillUI();
 	// Os contadores sao criados em runtime no caminho completo e nao pertencem
 	// ao FieldScene2.bin. O retorno compatível ocorria antes dessas alocacoes,
@@ -4844,34 +4846,7 @@ int TMFieldScene::InitializeScene()
 	m_pAlphaNative->SetPos((float)(m_pEditChat->m_nWidth + m_pChatPanel->m_nWidth) - 40.0f,
 		(float)(m_pChatPanel->m_nPosY + m_pEditChat->m_nPosY) - 2.0f);
 
-	m_pFireWorkPanel = (SPanel*)m_pControlContainer->FindControl(8705);
-
-	if (m_pFireWorkPanel)
-	{
-		for (int jj = 0; jj < 100; ++jj)
-		{
-			m_pFireWorkButton[jj] = new SButton(375,
-				(float)(25 * (jj % 10)) + 3.0f,
-				(float)(25 * (jj / 10)) + 3.0f,
-				24.0f,
-				24.0f,
-				0x77777777u,
-				1,
-				(char*)"");
-
-			m_pFireWorkButton[jj]->SetControlID(jj + 8706);
-			m_pFireWorkButton[jj]->SetEventListener(m_pControlContainer ? m_pControlContainer : nullptr);
-
-			m_pFireWorkPanel->AddChild(m_pFireWorkButton[jj]);
-		}
-
-		m_pFireWorkPanel->m_bModal = 1;
-		m_pControlContainer->m_pModalControl[5] = m_pFireWorkPanel;
-		m_pFireWorkPanel->SetVisible(0);
-
-		m_pFireWorkPanel->SetPos((float)(g_pDevice->m_dwScreenWidth) - (m_pFireWorkPanel->m_nWidth / 2.0f),
-			(float)(g_pDevice->m_dwScreenHeight) - (m_pFireWorkPanel->m_nHeight / 2.0f));
-	}
+	InitializeFireWorkControls();
 
 	m_pTotoPanel = (SPanel*)m_pControlContainer->FindControl(8961);
 
@@ -5887,12 +5862,26 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == B_IG_OK)
 	{
-		auto pInputText = static_cast<SEditableText*>(m_pControlContainer->FindControl(E_INPUT_GOLD));
+		auto pInputText = static_cast<SEditableText*>(m_pControlContainer->FindControl(
+			m_bCompatFieldScene ? 627 : E_INPUT_GOLD));
 		// FieldScene2.bin dispatches the native edit through the compatibility ID
 		// translator.  Treat a missing control as an incomplete resource instead of
 		// dereferencing it while processing the modal confirmation.
 		if (!pInputText)
 			return 1;
+
+		// A capsule name is not currency (including the valid name "all...").
+		// Keep the prompt and its text on rejection instead of consuming the modal.
+		if (m_nCoinMsgType == 6)
+		{
+			if (SendCapsuleItem())
+			{
+				m_pInputGoldPanel->SetVisible(0);
+				pInputText->SetText((char*)"");
+				m_pControlContainer->SetFocusedControl(g_nKeyType == 1 ? m_pEditChat : nullptr);
+			}
+			return 1;
+		}
 
 		char* inputText = pInputText->GetText();
 
@@ -6162,9 +6151,6 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				}
 			}
 			break;
-			case 6:
-				SendCapsuleItem();
-				break;
 			case 7:
 			{
 				MSG_STANDARDPARM stPacket{};
@@ -18541,17 +18527,16 @@ void TMFieldScene::SetAutoSkillNum(int nCount)
 
 	m_nAutoSkillNum = nCount;
 
-	if (m_bCompatFieldScene && m_pAutoSkillPanel)
+	if (m_bCompatFieldScene && m_pAutoSkillPanel && m_pGridSkillBelt2 &&
+		m_pGridSkillBelt2->m_nColumnGridCount > 0)
 	{
-		float slotWidth = 0.0f;
-		if (m_pGridSkillBelt2 && m_pGridSkillBelt2->m_nColumnGridCount > 0)
-			slotWidth = m_pGridSkillBelt2->m_nWidth /
-				static_cast<float>(m_pGridSkillBelt2->m_nColumnGridCount);
-		if (slotWidth <= 0.0f)
-			slotWidth = 24.0f * RenderDevice::m_fWidthRatio;
-
+		const float slotWidth = m_pGridSkillBelt2->m_nWidth /
+			static_cast<float>(m_pGridSkillBelt2->m_nColumnGridCount);
 		const float width = slotWidth * static_cast<float>(m_nAutoSkillNum);
-		const float rightEdge = m_pAutoSkillPanel->m_nPosX + m_pAutoSkillPanel->m_nWidth;
+		// Controls 575 and 573/586 share parent 5745 and scaled local coordinates.
+		// The serialized bar is wider than the belt; anchor to the actual slots,
+		// not that placeholder width (which extends beyond the C.C button).
+		const float rightEdge = m_pGridSkillBelt2->m_nPosX + m_pGridSkillBelt2->m_nWidth;
 		m_pAutoSkillPanel->SetPos(rightEdge - width, m_pAutoSkillPanel->m_nPosY);
 		m_pAutoSkillPanel->SetSize(width, 4.0f * RenderDevice::m_fHeightRatio);
 	}
@@ -20159,35 +20144,14 @@ void TMFieldScene::UseTicket(int nCellX, int nCellY)
 
 char TMFieldScene::UseQuickSloat(char key)
 {
-	SGridControlItem* pItemFind = nullptr;
-	SGridControl* pGridSloat = nullptr;
-	if (key == 'Q' || key == 'q')
-	{
-		pItemFind = m_pQuick_Sloat[0]->GetAtItem(0, 0);
-		pGridSloat = m_pQuick_Sloat[0];
-	}
-	else if (key == 'W' || key == 'w')
-	{
-		pItemFind = m_pQuick_Sloat[1]->GetAtItem(0, 0);
-		pGridSloat = m_pQuick_Sloat[1];
-	}
-	else if (key == 'E' || key == 'e')
-	{
-		pItemFind = m_pQuick_Sloat[2]->GetAtItem(0, 0);
-		pGridSloat = m_pQuick_Sloat[2];
-	}
-	else if (key == 'R' || key == 'r')
-	{
-		pItemFind = m_pQuick_Sloat[3]->GetAtItem(0, 0);
-		pGridSloat = m_pQuick_Sloat[3];
-	}
-	else if(key == 'T' || key == 't')
-	{
-		pItemFind = m_pQuick_Sloat[4]->GetAtItem(0, 0);
-		pGridSloat = m_pQuick_Sloat[4];
-	}
-
-	if (!pItemFind)
+	const int slot = field_interaction::QuickSlotIndex(m_bCompatFieldScene != 0, key);
+	if (slot < 0)
+		return 0;
+	SGridControl* pGridSloat = m_pQuick_Sloat[slot];
+	if (!pGridSloat)
+		return 0;
+	SGridControlItem* pItemFind = pGridSloat->GetAtItem(0, 0);
+	if (!pItemFind || !pItemFind->m_pItem)
 		return 0;
 
 	SGridControlItem* pItem = nullptr;
@@ -20297,6 +20261,30 @@ char TMFieldScene::UseQuickSloat(char key)
 	return 1;
 }
 
+void TMFieldScene::InitializeFireWorkControls()
+{
+	if (!m_pControlContainer || m_pFireWorkPanel)
+		return;
+	m_pFireWorkPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(8705));
+	if (!m_pFireWorkPanel)
+		return;
+
+	// FUN_00435b13 creates these 100 children; they are not stored in the RC.
+	for (int i = 0; i < 100; ++i)
+	{
+		m_pFireWorkButton[i] = new SButton(375, 25.0f * (i % 10) + 3.0f,
+			25.0f * (i / 10) + 3.0f, 24.0f, 24.0f, 0x77777777u, 1, (char*)"");
+		m_pFireWorkButton[i]->SetControlID(8706 + i);
+		m_pFireWorkButton[i]->SetEventListener(m_pControlContainer);
+		m_pFireWorkPanel->AddChild(m_pFireWorkButton[i]);
+	}
+	m_pFireWorkPanel->m_bModal = 1;
+	m_pControlContainer->m_pModalControl[5] = m_pFireWorkPanel;
+	m_pFireWorkPanel->SetVisible(0);
+	m_pFireWorkPanel->SetPos((g_pDevice->m_dwScreenWidth - m_pFireWorkPanel->m_nWidth) / 2.0f,
+		(g_pDevice->m_dwScreenHeight - m_pFireWorkPanel->m_nHeight) / 2.0f);
+}
+
 void TMFieldScene::UpdateFireWorkButton(int nIndex)
 {
 	if (nIndex >= 0 && nIndex <= 99 && m_pFireWorkPanel)
@@ -20323,7 +20311,7 @@ void TMFieldScene::ClearFireWork()
 
 void TMFieldScene::UseFireWork()
 {
-	if (!m_pFireWorkPanel)
+	if (!m_pFireWorkPanel || !m_pMyHuman)
 		return;
 
 	if (m_nFireWorkCellX < 0 || m_nFireWorkCellY < 0)
@@ -20338,7 +20326,7 @@ void TMFieldScene::UseFireWork()
 		return;
 
 	auto pItem = m_pGridInv->GetItem(m_nFireWorkCellX, m_nFireWorkCellY);
-	if (!pItem)
+	if (!pItem || !pItem->m_pItem || !pItem->m_pGridControl || pItem->m_pItem->sIndex != 3442)
 		return;
 
 	int nItemSIndex = pItem->m_pItem->sIndex;
@@ -20653,7 +20641,7 @@ void TMFieldScene::VisibleInputGuildName()
 
 void TMFieldScene::VisibleInputCharName(SGridControlItem* pItem, int nCellX, int nCellY)
 {
-	if (pItem == nullptr || m_pGridInv == nullptr)
+	if (!pItem || !pItem->m_pItem || !pItem->m_pGridControl || !m_pGridInv || !m_pInputGoldPanel)
 		return;
 
 	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
@@ -20676,8 +20664,8 @@ void TMFieldScene::VisibleInputCharName(SGridControlItem* pItem, int nCellX, int
 		m_stCapsuleItem.GridX = nCellX;
 		m_stCapsuleItem.GridY = nCellY;
 
-		auto pText = static_cast<SText*>(m_pControlContainer->FindControl(T_INPUT_GOLD));
-		auto pEdit = static_cast<SEditableText*>(m_pControlContainer->FindControl(E_INPUT_GOLD));
+		auto pText = static_cast<SText*>(m_pControlContainer->FindControl(m_bCompatFieldScene ? 630 : T_INPUT_GOLD));
+		auto pEdit = static_cast<SEditableText*>(m_pControlContainer->FindControl(m_bCompatFieldScene ? 627 : E_INPUT_GOLD));
 
 		if (pText && pEdit)
 		{
@@ -20698,7 +20686,7 @@ void TMFieldScene::VisibleInputCharName(SGridControlItem* pItem, int nCellX, int
 
 void TMFieldScene::UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, int nCellX, int nCellY)
 {
-	if (pItem == nullptr || m_pGridInv == nullptr)
+	if (!pItem || !pItem->m_pItem || !pItem->m_pGridControl || !m_pGridInv || !m_pMyHuman)
 		return;
 
 	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
@@ -20709,7 +20697,7 @@ void TMFieldScene::UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, 
 
 		if (SourPos == -1)
 			SourPos = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
-		// FUN_0045061f sends one row-major Carry index; slot 63 is not exposed.
+		// FUN_00465f85 sends one row-major Carry index; slot 63 is not exposed.
 		if (SourPos < 0 || SourPos >= MAX_CARRY - 1)
 			return;
 
@@ -20786,29 +20774,40 @@ void TMFieldScene::UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, 
 	}
 }
 
-void TMFieldScene::SendCapsuleItem()
+bool TMFieldScene::SendCapsuleItem()
 {
+	if (!m_pControlContainer || !m_pGridInv || !m_pMyHuman || !m_pInputGoldPanel)
+		return false;
 	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
-	auto pEditID = (SEditableText*)m_pControlContainer->FindControl(65889);
+	if (m_dwUseItemTime && dwServerTime - m_dwUseItemTime < 200)
+		return false;
+	auto pEditID = static_cast<SEditableText*>(m_pControlContainer->FindControl(m_bCompatFieldScene ? 627 : E_INPUT_GOLD));
+	if (!pEditID || m_stCapsuleItem.SourPos < 0 || m_stCapsuleItem.SourPos >= MAX_CARRY - 1)
+		return false;
+	auto pItem = m_pGridInv->GetItem(m_stCapsuleItem.GridX, m_stCapsuleItem.GridY);
+	if (!pItem || !pItem->m_pItem || pItem->m_pItem->sIndex != 3443 ||
+		pItem->m_pItem->stEffect[0].cEffect != 59 ||
+		pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY != m_stCapsuleItem.SourPos)
+		return false;
 
 	int len = strlen(pEditID->GetText());
-	if (len >= 4)
+	if (len < 4)
 	{
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[15], 2000);
 		m_pMessagePanel->SetVisible(1, 1);
-		return;
+		return false;
 	}
 	if (len > 12)
 	{
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[16], 2000);
 		m_pMessagePanel->SetVisible(1, 1);
-		return;
+		return false;
 	}
 	if (!BASE_CheckValidString(pEditID->GetText()))
 	{
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[17], 2000);
 		m_pMessagePanel->SetVisible(1, 1);
-		return;
+		return false;
 	}
 
 	char* szName = BASE_TransCurse(pEditID->GetText());
@@ -20819,7 +20818,7 @@ void TMFieldScene::SendCapsuleItem()
 		{
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[17], 2000);
 			m_pMessagePanel->SetVisible(1, 1);
-			return;
+			return false;
 		}
 	}
 
@@ -20830,7 +20829,7 @@ void TMFieldScene::SendCapsuleItem()
 	m_stCapsuleItem.GridX = (int)vec.x;
 	m_stCapsuleItem.GridY = (int)vec.y;
 
-	sprintf(m_stCapsuleItem.NewMobname, pEditID->GetText());
+	sprintf_s(m_stCapsuleItem.NewMobname, "%s", pEditID->GetText());
 	SendOneMessage((char*)&m_stCapsuleItem, sizeof(m_stCapsuleItem));
 
 	m_dwUseItemTime = dwServerTime;
@@ -20844,6 +20843,8 @@ void TMFieldScene::SendCapsuleItem()
 
 	UpdateScoreUI(0);
 	memset(&g_pObjectManager->m_stMobData.Carry[m_stCapsuleItem.SourPos], 0, sizeof(STRUCT_ITEM));
+	m_stCapsuleItem.SourPos = -1;
+	return true;
 }
 
 void TMFieldScene::SetQuestStatus(bool bStart)
@@ -25102,6 +25103,9 @@ int TMFieldScene::OnPacketWithdraw(MSG_STANDARD* pStd)
 
 int TMFieldScene::OnPacketReqChallange(MSG_STANDARD* pStd)
 {
+	if (pStd == nullptr || m_pMessageBox == nullptr)
+		return 0;
+
 	if (!m_pMessageBox->IsVisible())
 	{
 		m_pMessageBox->SetMessage(g_pMessageStringTable[407], 60, 0);
@@ -28604,7 +28608,8 @@ int TMFieldScene::OnPacketRunQuest12Count(MSG_STANDARDPARM2* pStd)
 
 int TMFieldScene::OnPacketDelayQuit(MSG_SysQuit* pStd)
 {
-	PostMessage(g_pApp->m_hWnd, 16, 0, 0);
+	if (pStd && field_interaction::ShouldCloseOnDelayAck(g_dwStartQuitGameTime))
+		PostMessage(g_pApp->m_hWnd, WM_CLOSE, 0, 0);
 	return 0;
 }
 

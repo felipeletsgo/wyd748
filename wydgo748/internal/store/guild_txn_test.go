@@ -6,9 +6,38 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"wydgo/internal/model"
 )
+
+func TestGuildWarFameAndCompletionPersistTogether(t *testing.T) {
+	s, _, _ := newTestStore(t)
+	r := sampleGuild()
+	r.Guilds[0].Fame = 100
+	r.Wars.Tower = model.TowerWarState{Day: "2026-09-14", EndsAt: time.Date(2026, 9, 15, 0, 35, 0, 0, time.UTC), Owner: 1, Started: true, Finished: true, Notices: 15}
+	if err := s.SaveGameState(r); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.LoadGuilds()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Guilds[0].Fame != 100 || got.Wars.Tower != r.Wars.Tower {
+		t.Fatal("fame/completion split on reload")
+	}
+	got.Wars.Cities.Territories[0].Owner = 1
+	if err := s.SaveGameState(got); err != nil {
+		t.Fatal(err)
+	}
+	again, err := s.LoadGuilds()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Guilds[0].Fame != 100 || !again.Wars.Tower.Finished || again.Wars.Cities.Territories[0].Owner != 1 {
+		t.Fatal("state lost")
+	}
+}
 
 // newTestStore monta um store com dir de contas e guilds.json irmao, que e o
 // layout real (guilds.json NAO pode viver dentro do dir de contas, senao

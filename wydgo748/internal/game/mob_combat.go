@@ -29,7 +29,7 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		if shardCount > 1 && int(m.ID)%shardCount != shard {
 			continue
 		}
-		if m.Dead || !m.Def.IsMonster() || m.SummonerID != 0 {
+		if m.Dead || !m.Def.IsMonster() || m.SummonerID != 0 || m.GuildWarTower {
 			continue
 		}
 		// Movimento, morte e desconexao atualizam o grid por evento. Esta checagem
@@ -105,6 +105,9 @@ func (w *World) tickActiveMobActions(now time.Time) {
 				m.TargetID = 0
 				delete(w.activeMobs, m.ID)
 			}
+			continue
+		}
+		if m.GuildWarTower {
 			continue
 		}
 		if now.Before(m.NextMove) || now.Before(m.NextAttack) {

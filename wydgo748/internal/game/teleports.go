@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"log"
+	"time"
 
 	"wydgo/internal/model"
 	"wydgo/internal/net"
@@ -61,6 +62,12 @@ func (w *World) resolvePlayerTeleportDestination(p *Player, x, y uint16) (uint16
 func (w *World) publishPlayerTeleport(p *Player) {
 	if p == nil || p.Char == nil || !p.InWorld {
 		return
+	}
+	// A teleport forfeits this session's place; summon enrolls only after its
+	// own successful teleport. Returning by another route cannot restore it.
+	if _, fighting := w.cityFighters[p]; fighting {
+		delete(w.cityFighters, p)
+		p.Session.Send(wire.WarInfo())
 	}
 	w.refreshPlayerVisibility(p)
 	w.sendToPlayerView(p, func() []byte {
@@ -132,15 +139,99 @@ func (w *World) onPKMode(s *net.Session, pkt []byte) {
 	log.Printf("[#%d] PK mode=%t", s.ID, enabled)
 }
 
-// 0x28E/0x28F pertencem ao sistema de disputa de cidades/guildas do TMSrv.
-// Reconhecer explicitamente evita tratar o pacote como desconhecido enquanto
-// esse estado de guerra ainda nao existe no emulador.
 func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || len(pkt) < 16 {
+	if p == nil || p.Char == nil || !p.InWorld {
 		return
 	}
-	target := binary.LittleEndian.Uint32(pkt[12:16])
-	s.Send(wire.MessagePanel("City sieges are not enabled yet."))
-	log.Printf("[#%d] desafio de guild ignorado com seguranca target=%d", s.ID, target)
+	fail := func(message string) {
+		s.Send(wire.MessagePanel(message))
+	}
+	if len(pkt) != 16 && len(pkt) != 20 {
+		fail("Invalid city-war request.")
+		return
+	}
+	opcode := uint16(wire.OpChallenge)
+	if len(pkt) == 20 {
+		opcode = wire.OpChallengeConfirm
+	}
+	header := wire.ParseHeader(pkt)
+	if header.Type == wire.OpChallenge || header.Type == wire.OpChallengeConfirm {
+		opcode = header.Type
+	}
+	if (opcode == wire.OpChallenge && len(pkt) != 16) || (opcode == wire.OpChallengeConfirm && len(pkt) != 20) {
+		fail("Invalid city-war request size.")
+		return
+	}
+
+	targetRaw := binary.LittleEndian.Uint32(pkt[12:16])
+	if targetRaw > uint32(^uint16(0)) {
+		fail("Invalid city-war NPC.")
+		return
+	}
+	npcID := uint16(targetRaw)
+	m, err := w.resolveNPCInteraction(p, npcID)
+	if err != nil {
+		fail(npcInteractionMessage(err))
+		return
+	}
+	city, ok := cityCollectorCity(m)
+	if !ok {
+		fail("That character is not a city-war collector.")
+		return
+	}
+
+	now := w.now()
+	if opcode == wire.OpChallenge {
+		if w.guilds == nil {
+			fail("Guild registry unavailable.")
+			return
+		}
+		w.tickGuildWars(now)
+		local := w.cityWarLocal(now)
+		territory := w.guilds.Wars.Cities.Territories[city]
+		guild, member := w.guildOf(p.Char)
+		if local.Weekday() != time.Saturday && guild != nil && member != nil && member.Rank == model.GuildRankLeader && territory.Owner == guild.ID {
+			if err := w.withdrawCityTreasury(p, city); err != nil {
+				fail(err.Error())
+				return
+			}
+			clearCityWarContext(p)
+			return
+		}
+		if local.Weekday() != time.Saturday || w.guilds.Wars.Cities.Phase != "registration" {
+			fail("City-war registration is open on Saturday only.")
+			return
+		}
+		setCityWarContext(p, npcID, city, territory.Owner, now)
+		s.Send(wire.GuildChallengePrompt())
+		return
+	}
+
+	option := binary.LittleEndian.Uint32(pkt[16:20])
+	if option != 0 {
+		fail("Invalid city-war confirmation.")
+		return
+	}
+	if p.CityWarNPC != npcID || p.CityWarCity != city || p.CityWarUntil.IsZero() || !now.Before(p.CityWarUntil) {
+		clearCityWarContext(p)
+		fail("The city-war request expired. Speak to the collector again.")
+		return
+	}
+	if w.guilds == nil {
+		clearCityWarContext(p)
+		fail("Guild registry unavailable.")
+		return
+	}
+	if p.CityWarGuild != w.guilds.Wars.Cities.Territories[city].Owner {
+		clearCityWarContext(p)
+		fail("The city-war target changed. Speak to the collector again.")
+		return
+	}
+	clearCityWarContext(p) // one-shot confirmation, even when registration fails
+	if err := w.registerCityWar(p, city); err != nil {
+		fail(err.Error())
+		return
+	}
+	s.Send(wire.MessagePanel("Application saved. Fee: 100 guild fame. The highest fame bid challenges the city."))
 }

@@ -87,8 +87,10 @@ func resetCharacterRuntime(p *Player) {
 
 	// Contexto de NPC/janela aberta.
 	p.ShopNPC = 0
+	p.ShopTax = 0
 	p.CraftNPC = 0
 	p.CargoNPC = 0
+	clearCityWarContext(p)
 	p.BrowsingGhostShopID = 0
 	p.GhostShop = nil
 	p.Trade = nil

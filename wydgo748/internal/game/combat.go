@@ -13,6 +13,9 @@ const (
 )
 
 func (w *World) canInitiatePvP(attacker, target *Player) bool {
+	if allowed, handled := w.guildWarPvP(attacker, target); handled {
+		return allowed
+	}
 	// Excecoes futuras (Kingdom, Castle ou Guild War) devem ser autorizadas
 	// explicitamente aqui, sem enfraquecer o PK Mode do combate comum.
 	return attacker != nil && target != nil && attacker.PKMode

@@ -63,6 +63,8 @@ type Guild struct {
 	// Ally e a guild aliada (0 = nenhuma). O nativo guarda UMA aliada por
 	// guild, e o client reflete isso num unico m_usAllyGuild.
 	Ally uint16 `json:"ally,omitempty"`
+	// Fame belongs to the guild, never to a character's SpecialCoins.
+	Fame uint32 `json:"fame,omitempty"`
 	// WarTarget e a guild contra a qual esta guild declarou guerra. A
 	// declaracao pode ser unilateral ate a outra guild declarar de volta.
 	WarTarget uint16    `json:"warTarget,omitempty"`
@@ -71,8 +73,9 @@ type Guild struct {
 
 // GuildRegistry e o conteudo do guilds.json.
 type GuildRegistry struct {
-	Version int     `json:"version"`
-	Guilds  []Guild `json:"guilds"`
+	Version int           `json:"version"`
+	Guilds  []Guild       `json:"guilds"`
+	Wars    GuildWarState `json:"wars,omitempty"`
 }
 
 // GuildRegistryVersion e a unica versao aceita pelo loader, seguindo o mesmo
@@ -263,7 +266,7 @@ func (r *GuildRegistry) Validate() error {
 			}
 		}
 	}
-	return nil
+	return r.Wars.Validate(r)
 }
 
 // FindByID e FindByName servem tanto ao runtime quanto a validacao de comandos.

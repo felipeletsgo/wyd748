@@ -144,6 +144,37 @@ int RunReceivedPacketDispatchTests(int& checks)
         check(frame.data == bytes && frame.size == 12 && frame.opcode == 0x119,
             "outro opcode preserva view do percurso legado");
     }) && otherDelivered == 1, "opcode fora deste lote mantem fallback");
+
+    // O prompt nativo da guerra de cidades e somente o MSG_STANDARD (0x18D).
+    std::array<char, sizeof(MSG_STANDARD) + 1> challengePrompt{};
+    challengePrompt[0] = static_cast<char>(sizeof(MSG_STANDARD));
+    challengePrompt[4] = static_cast<char>(MSG_ReqChallenge_Opcode & 0xFF);
+    challengePrompt[5] = static_cast<char>((MSG_ReqChallenge_Opcode >> 8) & 0xFF);
+    int challengePromptCalls = 0;
+    const auto receiveChallengePrompt = [&](const PacketView& frame) {
+        ++challengePromptCalls;
+        check(frame.data == challengePrompt.data() && frame.size == sizeof(MSG_STANDARD) &&
+            frame.opcode == MSG_ReqChallenge_Opcode,
+            "prompt de disputa preserva o frame nativo de 12 bytes");
+    };
+    for (std::size_t n = 0; n < sizeof(MSG_STANDARD); ++n)
+        check(!received_packet::Dispatch({MSG_ReqChallenge_Opcode, challengePrompt.data(), n},
+            receiveChallengePrompt), "prompt de disputa truncado rejeitado");
+    check(!received_packet::Dispatch({MSG_ReqChallenge_Opcode, challengePrompt.data(),
+        sizeof(MSG_STANDARD) + 1}, receiveChallengePrompt),
+        "prompt de disputa excedente rejeitado");
+    check(!received_packet::Dispatch({0x119, challengePrompt.data(), sizeof(MSG_STANDARD)},
+        receiveChallengePrompt), "prompt de disputa nao aceita opcode divergente");
+    challengePrompt[0] = static_cast<char>(sizeof(MSG_STANDARD) - 1);
+    check(!received_packet::Dispatch({MSG_ReqChallenge_Opcode, challengePrompt.data(),
+        sizeof(MSG_STANDARD)}, receiveChallengePrompt),
+        "prompt de disputa rejeita Size divergente");
+    challengePrompt[0] = static_cast<char>(sizeof(MSG_STANDARD));
+    check(challengePromptCalls == 0, "prompt de disputa invalido nao chama consumidor");
+    check(received_packet::Dispatch({MSG_ReqChallenge_Opcode, challengePrompt.data(),
+        sizeof(MSG_STANDARD)}, receiveChallengePrompt) && challengePromptCalls == 1,
+        "prompt de disputa exato entregue uma vez");
+
     // Mesmo fixture canonico consumido pelo teste Go. Nao depende da struct de Basedef.
     auto sendItem = LoadHexFixture("testdata/protocol/send_item_0x182_24.hex");
     check(sendItem.size() == 24, "fixture SendItem compartilhado possui 24 bytes");

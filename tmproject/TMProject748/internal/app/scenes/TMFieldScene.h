@@ -133,6 +133,7 @@ public:
 	void SetRunMode();
 	void UseTicket(int nCellX, int nCellY);
 	char UseQuickSloat(char key);
+	void InitializeFireWorkControls();
 	void UpdateFireWorkButton(int nIndex);
 	void ClearFireWork();
 	void UseFireWork();
@@ -146,7 +147,7 @@ public:
 	void VisibleInputGuildName();
 	void VisibleInputCharName(SGridControlItem* pItem, int nCellX, int nCellY);
 	void UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, int nCellX, int nCellY);
-	void SendCapsuleItem();
+	bool SendCapsuleItem();
 	void SetQuestStatus(bool bStart);
 	void UpdateQuestTime();
 	void SetButtonTextXY(SButton* pButton);

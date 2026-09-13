@@ -208,10 +208,15 @@ server-side.
 
 ### Guild War
 
-- desafio `0x28E/0x28F` e confirmação `0xE0E`;
-- agenda, taxa, participantes, placar, vitória e persistência;
-- torres, zonas e regras de desconexão/reentrada;
-- auditoria econômica e anti-packet replay.
+Atualizado em 13/09/2026: núcleo da torre de segunda a sexta, cidades no
+domingo e fama de guilda implementados e testados automaticamente. Inclui
+avisos, inscrição por comando, taxa, convocação, placar, domínio, premiação da
+torre e recuperação transacional. Detalhes e gates em
+[Guerras de guilda](guild-wars.md).
+
+Pendentes: janela nativa de inscrição por NPC (`0x28E/0x28F`, prompt ainda
+sem evidência suficiente), tributação/coletor e validação multiplayer real.
+Não confundir esse fluxo com confirmação de relações de guilda `0xE0E`.
 
 ### Kingdom War
 

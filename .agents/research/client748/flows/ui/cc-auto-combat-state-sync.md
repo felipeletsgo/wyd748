@@ -4,7 +4,7 @@ title: Sincronização dos controles e do estado do C.C
 subsystem: ui-gameplay
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-12
+updated: 2026-09-13
 ---
 
 # Sincronização dos controles e do estado do C.C
@@ -119,8 +119,11 @@ O runtime ativo carrega `config.txt` com `CLASSIC=1`, que projeta `UIVer=1`.
 Por isso, o construtor genérico `SGridControlItem` escolhia o atlas antigo
 (conjunto `1`) para sprites de skills aprendidas, deixando os ícones sem a
 coloração esperada. A correção mantém o comportamento clássico para
-inventário/equipamento e força somente os itens aprendidos do painel compatível
-para o atlas colorido `199` (`UI\NewAmul.wyt`). O atlas selecionado da barra
+inventário/equipamento e usa o atlas colorido `199` (`UI\NewAmul.wyt`) para
+os itens aprendidos do painel compatível e os sprites das grades `GRID_SKILLB`.
+`SGridControlItem::SetGridControl` converte o atlas `1` em `199` ao inserir um
+atalho, cobrindo reconstrução pelo servidor, drag, confirmação e rollback.
+Outros atlas, inclusive a seleção `200`, permanecem intactos. O atlas selecionado da barra
 continua sendo controlado pelo fluxo existente, incluindo o conjunto `200`
 quando o slot está selecionado.
 
@@ -131,7 +134,7 @@ O fluxo nativo também foi fechado para a barra de seleção de auto-skill:
 - `-/_` percorre a quantidade de skills de `1` a `10` por
   `FUN_00452210`/`FUN_00447469`; a source compatível agora usa a mesma faixa.
 - O initializer vincula o controle nativo `575`, deixa-o oculto até o
-  auto-ataque ser ligado e redimensiona sua largura ancorada à direita,
+  auto-ataque ser ligado e redimensiona sua largura ancorada à direita da grade,
   preservando o `Y` e a altura nativa de `4` unidades lógicas.
 
 Esse é um `MODERNIZACAO_COMPATIVEL`: os IDs, teclas e geometria seguem a
@@ -215,6 +218,59 @@ inventário, skill, alvo ou movimento.
 - Build: `Build-Client.ps1 -Configuration Release -NoDeploy` aprovado em
   Release/Win32 com zero erros; os testes de arquitetura registraram `35278`
   checks PASS. O build emitiu 13 warnings C4018 já existentes em
-  `TMFieldScene.cpp`. Artefato não foi instalado nesta etapa: [WYD.exe](../../../../tmproject/build/TMProject748/Release/WYD.exe),
+  `TMFieldScene.cpp`. Artefato daquela etapa: `tmproject/build/TMProject748/Release/WYD.exe`,
   SHA-256 `CD8DB8950E57073216E9F171E03720E12EC88DEC62400BF2F3579838BBBE39B1`.
+- Instalação local: `Build-Client.ps1 -Configuration Release` concluído sobre
+  `HEAD 77e2628e`, com 35278 checks PASS e build incremental aprovado.
+  `tmproject/client748/project.exe` substituído pelo candidato Release;
+  o script confirmou igualdade SHA-256 entre artefato e runtime:
+  `09F12F0CF8EFC8957EBB721F5D7C9F42DBA696767E811DFA6FF48B0E4BECD4DD`.
+  Próximo gate: abrir a janela de skills, conferir cores, alternar `T`,
+  percorrer `-` até 10 e voltar a 1, testar a rotação em combate e relogin.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.
+
+### Crash ao apertar T / 2026-09-13
+
+- `client-crash-20260912-234954.dmp`, inspecionado com CDB x86 e o PDB
+  correspondente ao candidato anterior: `C0000005`, leitura de `0x1E8`,
+  `SGridControl::GetAtItem+8 -> TMFieldScene::UseQuickSloat+0x62 -> OnCharEvent`.
+  O argumento era `t`; o grid moderno de quick-slot estava nulo. O dump foi
+  preservado no runtime, sem copiá-lo para a source ou substituir a evidência.
+- `MODERNIZACAO_COMPATIVEL`: `UseQuickSloat` não acessa os cinco widgets modernos
+  na Field nativa e valida grid/item no modo moderno. O dispatch nativo já
+  comprovado continua até `OnKeyAutoTarget`, sem consumir o T como quick-slot.
+  As guardas anteriores de `SetAutoTarget` continuam necessárias, mas não
+  alcançavam esse crash anterior no call stack.
+- `AUTOMATED TESTED`: dez combinações Q/W/E/R/T maiúsculas/minúsculas na Field
+  nativa, mapeamento moderno e tecla desconhecida. Release construído e instalado
+  junto ao lote de volatiles, 35439 checks aprovados, SHA-256
+  `71CD0587610CFF8EEEBA2D13CC03A15099C70BBE5B17C0ED545EB12897DAE3EA`.
+- `CLIENT-TESTED`: pendente; repetir T, `-`, combate e relogin neste candidato.
+
+### Ícones dos atalhos e alinhamento da barra / 2026-09-13
+
+- A imagem enviada pelo usuário confirma que T já exibe a barra, mas ela passa
+  da borda dos slots; os atalhos ainda usam os sprites antigos. A correção
+  anterior do atlas cobria apenas a janela de skills.
+- Reutilizada a evidência nativa de `FUN_00447469` (posição e largura da barra),
+  `FUN_004470B9` (reconstrução dos atalhos) e a ficha
+  `skill-belt-page-selection.md` (inserção/ownership nas duas páginas).
+- O recurso materializado em `client-debug.log` mostra `575`, `573` e `586`
+  sob o mesmo pai `5745`. Na escala 1,28, a barra serializada tem X=0 e W=448;
+  a grade tem X=25,6 e W=307,2. Usar a borda 448 preservava um excesso de
+  115,2 pixels. Agora `SetAutoSkillNum` calcula a borda X+W da própria grade;
+  mantém Y, altura e crescimento para a esquerda, sem acumular deslocamentos.
+- `MODERNIZACAO_COMPATIVEL`: atlas coerente em todas as inserções `GRID_SKILLB`
+  e geometria derivada dos controles materializados. Os conjuntos `199/200`
+  estão em `UI/UITextureSetList.txt`, usando texturas `131/132`. Não houve
+  alteração de asset, packet, autoridade, ownership ou teardown.
+- `STATICALLY VERIFIED`: inserções `AddItem`, `AddSkillItem` e `SetItem` passam
+  por `SetGridControl`; a seleção continua usando `200`. Cálculo de geometria
+  conferido para 1..10 slots em escalas 1, 1,28, 1,6 e 2,4: borda constante,
+  largura limitada à grade e início coincidente com a grade em dez slots.
+- `AUTOMATED TESTED`: `Build-Client.ps1 -Configuration Release` aprovado,
+  35439 checks de arquitetura PASS; warnings C4018 preexistentes. Executável
+  instalado em `tmproject/client748/project.exe`, SHA-256
+  `9502CEC318B617D3A0F9F7DECCA353108B58254A4EECA81DF79B91099F4F3C67`.
+- `CLIENT_TESTED` pendente para este candidato: conferir cores ao entrar,
+  arrastar skills, trocar página e seleção; T e `-` em 1..10 slots; relogin.

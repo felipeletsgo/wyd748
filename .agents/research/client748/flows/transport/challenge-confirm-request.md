@@ -4,7 +4,7 @@ title: Confirmação de disputa de zona 0x28F
 subsystem: transport-session
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-06
+updated: 2026-09-13
 ---
 
 # Confirmação de disputa de zona 0x28F
@@ -63,8 +63,10 @@ Direção C->S, opcode `0x28F`, exatamente 20 bytes:
 `TMFieldScene::OnMsgBoxEvent` caso `60` agora usa `MSG_ChallengeConfirm` e
 `MSG_ChallengeConfirm_Opcode`, substituindo o literal decimal `655` e a
 fachada `MSG_STANDARDPARM2` sem alterar `m_dwTID` ou `Parm2=0`. O servidor já
-exige 20 bytes e mantém resposta segura para o sistema de disputa ainda não
-habilitado.
+exige 20 bytes e mantém esse caminho sem cobrança. Em 13/09/2026, a guerra
+de cidades passou a aceitar inscrição autoritativa por `/citywar 1..4`;
+este handler somente orienta o comando. Isso não promove a janela nativa a
+implementada: falta evidência do prompt `0x18D` e contexto seguro de confirmação.
 
 ## Matriz de delta
 

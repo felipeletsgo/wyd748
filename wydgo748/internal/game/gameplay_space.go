@@ -26,6 +26,9 @@ func (w *World) hostileMob(m *Mob) bool {
 // monster is targetable only by a member of that exact runtime. NPCs and
 // player summons are intentionally excluded from this predicate.
 func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
+	if !w.towerTargetAllowed(p, m) {
+		return false
+	}
 	if p == nil || !w.hostileMob(m) {
 		return false
 	}
@@ -133,6 +136,9 @@ func (w *World) resolveMobAffectSource(target *Mob, affect *model.Affect) (*Play
 	}
 	if uid := strings.TrimSpace(affect.OwnerCharacterUID); uid != "" {
 		owner := w.playerByCharacterUID(uid)
+		if !w.towerTargetAllowed(owner, target) {
+			return nil, nil, false
+		}
 		if !validPlayerMobParticipant(owner) || w.gameplaySpaceForPlayer(owner) != mobGameplaySpace(target) {
 			return nil, nil, false
 		}
@@ -142,9 +148,15 @@ func (w *World) resolveMobAffectSource(target *Mob, affect *model.Affect) (*Play
 		return owner, nil, true
 	}
 	if affect.OwnerID == 0 {
+		if target.GuildWarTower {
+			return nil, nil, false
+		}
 		return nil, nil, true
 	}
 	owner := w.mobByID(affect.OwnerID)
+	if target.GuildWarTower {
+		return nil, nil, false
+	}
 	if owner == nil || owner.Dead || owner.HP == 0 ||
 		mobGameplaySpace(owner) != mobGameplaySpace(target) {
 		return nil, nil, false

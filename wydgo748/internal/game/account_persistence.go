@@ -2,15 +2,10 @@ package game
 
 import "wydgo/internal/model"
 
-// accountPersistenceSnapshot projects the live account into the durable
-// representation. Session position is deliberately not persisted: every
-// character re-enters at the fixed spawn, while Player.X/Y and Char.X/Y remain
-// coherent for the whole lifetime of the active session.
-//
-// The copy is deep for every mutable reference currently present in Account.
-// Persistence adapters must never mutate the actor-owned aggregate merely to
-// fit the on-disk/database representation.
-func accountPersistenceSnapshot(account *model.Account) *model.Account {
+// accountStateSnapshot makes a deep copy of the live account without changing
+// session-derived fields. It is used by cross-aggregate transactions that
+// must restore the exact in-memory state after a persistence failure.
+func accountStateSnapshot(account *model.Account) *model.Account {
 	if account == nil {
 		return nil
 	}
@@ -25,8 +20,43 @@ func accountPersistenceSnapshot(account *model.Account) *model.Account {
 		snapshot.CelestialCapsules[i].Character = cloneCharacterState(
 			&account.CelestialCapsules[i].Character)
 	}
-	pinAccountEntryPositions(&snapshot)
 	return &snapshot
+}
+
+// restoreAccountState restores a prior live-account snapshot without aliasing
+// its mutable character slices into the active session.
+func restoreAccountState(account, snapshot *model.Account) {
+	if account == nil || snapshot == nil {
+		return
+	}
+	*account = *snapshot
+	account.Chars = make([]model.Char, len(snapshot.Chars))
+	for i := range snapshot.Chars {
+		account.Chars[i] = cloneCharacterState(&snapshot.Chars[i])
+	}
+	account.CelestialCapsules = make([]model.CelestialCapsule, len(snapshot.CelestialCapsules))
+	for i := range snapshot.CelestialCapsules {
+		account.CelestialCapsules[i] = snapshot.CelestialCapsules[i]
+		account.CelestialCapsules[i].Character = cloneCharacterState(
+			&snapshot.CelestialCapsules[i].Character)
+	}
+}
+
+// accountPersistenceSnapshot projects the live account into the durable
+// representation. Session position is deliberately not persisted: every
+// character re-enters at the fixed spawn, while Player.X/Y and Char.X/Y remain
+// coherent for the whole lifetime of the active session.
+//
+// The copy is deep for every mutable reference currently present in Account.
+// Persistence adapters must never mutate the actor-owned aggregate merely to
+// fit the on-disk/database representation.
+func accountPersistenceSnapshot(account *model.Account) *model.Account {
+	snapshot := accountStateSnapshot(account)
+	if snapshot == nil {
+		return nil
+	}
+	pinAccountEntryPositions(snapshot)
+	return snapshot
 }
 
 func accountPersistenceSnapshots(accounts ...*model.Account) []*model.Account {

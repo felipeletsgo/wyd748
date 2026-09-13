@@ -4,7 +4,7 @@ title: Application close and global shutdown
 subsystem: lifecycle
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-08-31
+updated: 2026-09-13
 ---
 
 # Application close and global shutdown
@@ -276,14 +276,18 @@ logout prematuro.
 | ownership | ObjectManager, timer, render, sound, socket, BGM, AVI, input | mesmos owners e ordem essencial | socket determina disconnect | manter |
 | falha parcial | pressupõe Field íntegra | null guards e `SAFE_DELETE` | save falho não gera ack | manter modernização segura |
 | hook global | remove antes de destruir janela | `EnableSysKey` no mesmo ponto | N/A | manter |
-| resposta `0x3AE` | gate nativo não enumera | handler existente, frame de 16 bytes | builder de 16 bytes | extensão coordenada com gate local |
+| resposta `0x3AE` | gate nativo não enumera | frame de 16 bytes; fecha somente com saída local pendente | mesmo ack atende Recall e saída | preservar ack coordenado, exigir `g_dwStartQuitGameTime != 0` |
 
 ## Decisões
 
 - Evidência: `CONFIRMED` para a transição descrita e `CONTRACT` para o wire.
 - Classificação de adaptação: `MODERNIZACAO_COMPATIVEL`.
-- Ação: `manter` a source e o servidor atuais; não existe delta comprovado que
-  justifique alteração funcional nesta unidade.
+- Revisão de 2026-09-13: corrigir `OnPacketDelayQuit`, que postava `WM_CLOSE`
+  para qualquer ack. O Scroll inicia `MSG_DelayStart/0x3AE` antes do `0x373`;
+  `onSysQuit` responde sem encerrar a sessão. O ack não prova intenção de sair.
+  `FieldInteractionPolicy::ShouldCloseOnDelayAck` agora exige o timer local de
+  saída. Recall, seleção e logout mantêm seus próprios timers, sem fechar a
+  aplicação. Servidor, wire e timeout de saída permanecem inalterados.
 - Não copiar offsets, vtables ou globals nativos para o TMProject.
 - Não promover para `CLIENT_TESTED` sem fechar a aplicação real a partir de
   Field e de uma cena não-Field no `tmproject/client748/project.exe` hasheado.
@@ -309,3 +313,14 @@ logout prematuro.
   gates XML/caminhos/diff passaram. O candidato Release instalado possui
   SHA-256 `96646D17ED2F52F7CD4D87F5412BC995253DE14AF2C386B9C24D062590FB1800`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.
+
+### Regressão Scroll / 2026-09-13
+
+- `AUTOMATED TESTED`: política de ack sem saída, saída pendente e valor máximo
+  do timer em `PacketViewTests.cpp`; pacotes Go `internal/game`, `internal/data`
+  e `internal/wire` aprovados. O teste não substitui o ciclo visual de Recall.
+- Release construído e instalado com 35439 checks C++ aprovados; SHA-256
+  `71CD0587610CFF8EEEBA2D13CC03A15099C70BBE5B17C0ED545EB12897DAE3EA`.
+- Gate manual: usar Scroll de retorno, esperar teleporte; repetir com warp salvo,
+  seleção de personagem, logout e saída verdadeira. Não houve teste in-game
+  deste candidato. Dumps anteriores foram preservados.

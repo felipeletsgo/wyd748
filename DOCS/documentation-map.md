@@ -5,7 +5,7 @@ Caminhos foram normalizados para a arquitetura atual. Fichas e handoffs
 preservam o estado histórico da validação; não são prova de conclusão atual.
 Assets e dumps binários não são documentos. O acervo nativo está em `references/client748/`.
 
-Documentos Markdown: 135.
+Documentos Markdown: 137.
 
 | Documento | Tipo |
 | --- | --- |
@@ -91,6 +91,7 @@ Documentos Markdown: 135.
 | [.agents/research/client748/flows/ui/toto-selection-close.md](<../.agents/research/client748/flows/ui/toto-selection-close.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/trade-inventory-layout.md](<../.agents/research/client748/flows/ui/trade-inventory-layout.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/update-equip-visual-contract.md](<../.agents/research/client748/flows/ui/update-equip-visual-contract.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/ui/volatile-item-use-routing.md](<../.agents/research/client748/flows/ui/volatile-item-use-routing.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/inventory/light-source-batch-01.md](<../.agents/research/client748/inventory/light-source-batch-01.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/inventory/light-source-batch-02.md](<../.agents/research/client748/inventory/light-source-batch-02.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/inventory/README.md](<../.agents/research/client748/inventory/README.md>) | Evidencia de pesquisa |
@@ -129,6 +130,7 @@ Documentos Markdown: 135.
 | [DOCS/GUIA/MAPA_DE_URLS.md](<GUIA/MAPA_DE_URLS.md>) | Documentacao do produto |
 | [DOCS/GUIA/QUESTS_EVENTOS.md](<GUIA/QUESTS_EVENTOS.md>) | Documentacao do produto |
 | [DOCS/GUIA/README.md](<GUIA/README.md>) | Documentacao do produto |
+| [DOCS/guild-wars.md](<guild-wars.md>) | Documentacao do produto |
 | [DOCS/IMPLEMENTATION_STATUS.md](<IMPLEMENTATION_STATUS.md>) | Documentacao do produto |
 | [DOCS/implementation-plan.md](<implementation-plan.md>) | Documentacao do produto |
 | [DOCS/IMPLEMENTED.md](<IMPLEMENTED.md>) | Documentacao do produto |
@@ -147,6 +149,7 @@ Documentos Markdown: 135.
 
 ## Catálogos estruturados de pesquisa
 
+- [.agents/research/client748/exports/auto-skill-belt-controls-flow.tsv](<../.agents/research/client748/exports/auto-skill-belt-controls-flow.tsv>)
 - [.agents/research/client748/exports/challenge-confirm-flow.tsv](<../.agents/research/client748/exports/challenge-confirm-flow.tsv>)
 - [.agents/research/client748/exports/change-city-request-flow.tsv](<../.agents/research/client748/exports/change-city-request-flow.tsv>)
 - [.agents/research/client748/exports/field-scene-rebuild-server-move-focused.tsv](<../.agents/research/client748/exports/field-scene-rebuild-server-move-focused.tsv>)

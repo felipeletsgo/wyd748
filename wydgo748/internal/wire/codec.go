@@ -54,6 +54,13 @@ func MessagePanel(message string) []byte {
 	return b
 }
 
+// GuildChallengePrompt is the native 7.48 header-only request used to open
+// the city-war confirmation dialog. The client supplies no fee or city in
+// this packet; those values remain server-owned and are checked on 0x28F.
+func GuildChallengePrompt() []byte {
+	return Build(OpReqChallenge, SceneField, HeaderSize)
+}
+
 // DaySync responde ao pedido periodico MobName="day" do client 7.48. O prefixo
 // !# e consumido por TMScene e nao aparece como aviso: "11" vira m_nYear e
 // "  2" vira m_nDays. O valor fixo reproduz o TMSrv 7.54 capturado e o WYD 7.48.
@@ -625,6 +632,13 @@ func CNFGetItem(destType, destPos uint32) []byte {
 // o peer ativo envia sempre o snapshot completo para atualizar os tres estados.
 func WarInfo() []byte {
 	return Build(OpWarInfo, SceneField, 24)
+}
+
+// GuildWarInfo uses the already verified complete native 0x3A8 envelope.
+func GuildWarInfo(enemy uint16) []byte {
+	pkt := WarInfo()
+	binary.LittleEndian.PutUint32(pkt[12:16], uint32(enemy))
+	return pkt
 }
 
 // RemoveMob monta o 0x165 (16B): remove/mata o mob de ID=id. RemoveType@12:

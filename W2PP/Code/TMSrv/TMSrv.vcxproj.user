@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ShowAllFiles>false</ShowAllFiles>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LocalDebuggerCommand>E:\WYD DESENVOLVIMENTO\WYD-2\Versões Base\Projeto 7.79 - 2025\Nova pasta\RELEASE SERVER\TMSrv\run\\TMSrv.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>E:\WYD DESENVOLVIMENTO\WYD-2\Versões Base\Projeto 7.79 - 2025\Nova pasta\RELEASE SERVER\TMSrv\run\</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+</Project>

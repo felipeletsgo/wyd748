@@ -37,6 +37,7 @@
 #include "MotionPacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
+#include "GuildChallengePromptPacket.h"
 #include "../application/ports/PacketDispatch.h"
 #include <cstring>
 
@@ -93,6 +94,7 @@ namespace received_packet
         case MSG_RemoveParty_Opcode: return sizeof(MSG_RemoveParty);
         case MSG_REQParty_Opcode: return sizeof(MSG_REQParty);
         case MSG_Motion_Opcode: return sizeof(MSG_Motion);
+        case MSG_ReqChallenge_Opcode: return sizeof(MSG_STANDARD);
         default: return 0;
         }
     }

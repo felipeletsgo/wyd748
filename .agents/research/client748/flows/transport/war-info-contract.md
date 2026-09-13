@@ -4,7 +4,7 @@ title: Snapshot de guerra recebido ao entrar no mundo
 subsystem: transport
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-07
+updated: 2026-09-13
 ---
 
 # Snapshot de guerra recebido ao entrar no mundo
@@ -123,7 +123,9 @@ Direcao S->C, opcode `0x3A8`, header de 12 bytes. A forma completa tem 24 bytes:
 O nativo aceita tambem os prefixos de 16B e 20B no proprio consumidor.
 `FUN_0055890A` nao possui literal/case para `0x3A8`; portanto nao se atribui a
 ele um tamanho unico para este opcode. O WYD-Go usa `Header.ID=SceneField
-(0x7530)` e payload zerado, que representa ausencia de guerra/cla/alianca.
+(0x7530)` e snapshot completo; no enter-world/reset o payload e zerado.
+Na guerra de cidades, `Parm1` identifica a guilda adversaria e os outros
+parametros permanecem zerados, sem alteracao do envelope.
 
 ## Mapeamento atual
 
@@ -140,13 +142,20 @@ para tamanho e offsets.
 zerados. O enter-world envia esse snapshot depois de materializar o proprio
 personagem e antes de score, affects, Carry, equipamento e HP/MP.
 
+Em 13/09/2026, `wire.GuildWarInfo(enemy)` reutiliza esse envelope e grava a
+guilda adversaria em `+12` no inicio do combate de cidades. Teleporte, morte,
+remocao da participacao, cancelamento e resultado publicam `WarInfo()` para
+limpar o estado. Esta emissao reutiliza a semantica nativa acima; nao altera
+ABI nem requer novo consumidor C++. O teste Go cobre adversaria nao zero e
+reset; o fixture C++ existente cobre parametros nao zero e gates de tamanho.
+
 ## Matriz de delta
 
 | Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
 | layout completo | 24B e campos em `+12/+16/+20` confirmados | mesma struct | procedencia exata nao alegada | builder 24B | manter como `PARIDADE_NATIVA` |
 | formas parciais | 16B/20B aceitas pelo handler | handler ainda as descreve | N/A | nunca emitidas | rejeitar no gate como `MODERNIZACAO_COMPATIVEL` |
-| mutacao de estado | prefixo recebido sobrescreve campos correspondentes | comportamento equivalente | N/A | payload completo zerado | manter consumidor |
+| mutacao de estado | prefixo recebido sobrescreve campos correspondentes | comportamento equivalente | N/A | snapshot completo, adversaria ou reset | manter consumidor |
 | validacao central | `FUN_0055890A` nao lista `0x3A8` | gate incremental por opcode | N/A | tamanho unico conhecido | exigir 24B exatos |
 
 ## Decisões

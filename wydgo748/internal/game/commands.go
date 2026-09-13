@@ -310,6 +310,7 @@ func parseSlashCommand(message string) (name, arg string, ok bool) {
 // 0x334. Devolve true quando consumiu a mensagem. Um comando sempre tem
 // precedencia sobre um nick de mesmo nome, como no TMSrv nativo.
 var chatCommandAliases = map[string]string{
+	"guildfame": "guildfame", "famaguild": "guildfame", "citywar": "citywar", "tower": "tower",
 	"day": "day", "time": "time", "cp": "cp", "chaos": "cp", "fame": "fame",
 	"parry": "parry",
 	"nig":   "nig", "limparinv": "clearinv", "clearinv": "clearinv",
@@ -326,6 +327,8 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		return false
 	}
 	switch command {
+	case "guildfame", "citywar", "tower":
+		w.guildWarCommand(p, command, arg)
 	case "day":
 		// Sincronismo periodico interno do client. O !# impede texto visivel e
 		// alimenta m_nYear/m_nDays, usados na duracao de affects de calendario.

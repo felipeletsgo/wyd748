@@ -48,6 +48,7 @@ func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill m
 	if area == 0 {
 		secondary := w.playerByID(req.SecondaryTargetID)
 		if secondary != nil && secondary != primary && secondary != caster && secondary.InWorld &&
+			w.canInitiatePvP(caster, secondary) &&
 			secondary.Char != nil && playerCurHP(secondary.Char) > 0 &&
 			!sameSupportGroup(caster, secondary) && w.playersShareGameplaySpace(caster, secondary) &&
 			chebyshev(caster.X, caster.Y, secondary.X, secondary.Y) <= maxInt(1, skill.Range) &&
@@ -74,6 +75,7 @@ func (w *World) skillPlayerTargets(caster *Player, req skillCastRequest, skill m
 			break
 		}
 		if candidate == caster || candidate == primary || !candidate.InWorld || candidate.Char == nil ||
+			!w.canInitiatePvP(caster, candidate) ||
 			playerCurHP(candidate.Char) == 0 || sameSupportGroup(caster, candidate) ||
 			!w.playersShareGameplaySpace(caster, candidate) {
 			continue

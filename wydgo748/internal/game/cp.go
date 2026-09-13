@@ -92,6 +92,15 @@ func (w *World) applyPvPKills(killer *Player, victims ...*Player) {
 		if victim == nil || victim == killer || victim.Char == nil {
 			continue
 		}
+		// Death has already set HP=0, so authorization cannot be re-evaluated
+		// with the living-target predicate here. War areas never charge CP/EXP.
+		if _, handled := w.guildWarPvP(killer, victim); handled {
+			if _, fighting := w.cityFighters[victim]; fighting && victim.Session != nil {
+				victim.Session.Send(wire.WarInfo())
+			}
+			delete(w.cityFighters, victim)
+			continue
+		}
 		if _, duplicate := snapshots[victim]; duplicate {
 			continue
 		}

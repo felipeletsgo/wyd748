@@ -77,6 +77,7 @@ type ServerConfig struct {
 	LoadtestSpawn         model.CharacterSpawn
 	LoadtestAccountPrefix string
 	Gameplay              model.GameplayConfig
+	GuildWars             model.GuildWarConfig
 }
 
 func DefaultServerConfig() ServerConfig {
@@ -133,6 +134,7 @@ func DefaultServerConfig() ServerConfig {
 		DebugAddress:                 "", // diagnostico desligado por padrao
 		LoadtestAccountPrefix:        "",
 		Gameplay:                     model.DefaultGameplayConfig(),
+		GuildWars:                    model.DefaultGuildWarConfig(),
 	}
 }
 
@@ -173,6 +175,10 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		}
 	}
 	setters := map[string]func(string) error{
+		"guild_wars_enabled":               func(v string) error { b, err := strconv.ParseBool(v); cfg.GuildWars.Enabled = b; return err },
+		"guild_wars_timezone":              func(v string) error { cfg.GuildWars.Timezone = v; return nil },
+		"tower_war_hour":                   setUint32(&cfg.GuildWars.TowerHour),
+		"city_war_hour":                    setUint32(&cfg.GuildWars.CityHour),
 		"listen_address":                   func(v string) error { cfg.ListenAddress = v; return nil },
 		"database_driver":                  func(v string) error { cfg.DatabaseDriver = strings.ToLower(v); return nil },
 		"database_url":                     func(v string) error { cfg.DatabaseURL = v; return nil },
@@ -366,6 +372,9 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	}
 	if err := cfg.Gameplay.Validate(); err != nil {
 		return ServerConfig{}, fmt.Errorf("%s: gameplay: %w", path, err)
+	}
+	if err := cfg.GuildWars.Validate(); err != nil {
+		return ServerConfig{}, fmt.Errorf("%s: guild wars: %w", path, err)
 	}
 	return cfg, nil
 }

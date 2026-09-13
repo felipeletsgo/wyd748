@@ -273,6 +273,7 @@ func main() {
 		game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithGameplayLog(cfg.GameplayLog),
 		game.WithTeleports(teleports), game.WithGameplayConfig(cfg.Gameplay),
+		game.WithGuildWars(cfg.GuildWars),
 		game.WithNetworkAdmission(networkAdmission),
 		game.WithClientIntegrity(clientIntegrity),
 		game.WithOperationalConfig(game.OperationalConfig{

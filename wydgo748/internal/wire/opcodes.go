@@ -80,6 +80,7 @@ const (
 	OpGuildWar           = 0xE0E // C->S declara/cancela guerra (Guild@12, Enemy@16)
 	OpChallenge          = 0x28E // C->S interacao/desafio de zona de guild (Parm@12)
 	OpChallengeConfirm   = 0x28F // C->S confirma desafio de zona (Parm1/Parm2)
+	OpReqChallenge       = 0x18D // S->C abre o dialogo nativo de inscricao (MSG_STANDARD)
 	OpReqTeleport        = 0x290 // C->S solicita portal na coordenada atual (16B)
 	OpPKMode             = 0x399 // C->S ativa/desativa modo PK (Parm@12)
 	OpPKInfo             = 0x166 // S->C publica estado PK (MSG_STANDARDPARM)

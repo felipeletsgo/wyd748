@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "SGrid.h"
 #include "GridInsertion.h"
+#include "../application/NativeVolatileRoutes.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
 #include "TMMesh.h"
@@ -2378,7 +2379,7 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 	short sDestPos = CheckPos(m_eItemType);
 	if (pItem)
 	{
-		if (nVolatile == 5 && sDestType == 1)//new
+		if (!pScene->m_bCompatFieldScene && nVolatile == 5 && sDestType == 1)
 		{
 			nVolatile = 190;
 		}
@@ -4851,11 +4852,14 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 		}
 		if (nItemSIndex == 3442)
 		{
+			if (!pFScene->m_pFireWorkPanel)
+				return;
 			if (!pFScene->m_dwUseItemTime || dwServerTime - pFScene->m_dwUseItemTime >= 200)
 			{
 				pFScene->m_pFireWorkPanel->SetVisible(1);
 				for (int i = 0; i < 100; ++i)
-					pFScene->m_pFireWorkButton[i]->Update();
+					if (pFScene->m_pFireWorkButton[i])
+						pFScene->m_pFireWorkButton[i]->Update();
 
 				pFScene->m_nFireWorkCellX = nCellX;
 				pFScene->m_nFireWorkCellY = nCellY;
@@ -4903,7 +4907,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 			{
 				if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 				{
-					if (pFScene->m_pGridDRing->m_pItemList[0])
+					if (pFScene->m_pGridDRing && pFScene->m_pGridDRing->m_pItemList[0])
 					{
 						pFScene->m_pMessagePanel->SetMessage(g_pMessageStringTable[285], 3000);
 						pFScene->m_pMessagePanel->SetVisible(1, 1);
@@ -5233,6 +5237,13 @@ char SGridControl::automove(int nCellX, int nCellY)
 
 int SGridControl::Check_ItemRightClick(int nType, int nItemSIndex)
 {
+	if (g_pCurrentScene && g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD &&
+		static_cast<TMFieldScene*>(g_pCurrentScene)->m_bCompatFieldScene)
+	{
+		const auto route = native_volatile::Resolve(nType, nItemSIndex);
+		if (route != native_volatile::Route::Unknown)
+			return native_volatile::AllowsRightClick(route) ? 1 : 0;
+	}
 	switch (nType)
 	{
 	case 1:
@@ -5615,6 +5626,13 @@ SGridControl* SGridControlItem::GetGridControl()
 void SGridControlItem::SetGridControl(SGridControl* pGridControl)
 {
 	m_pGridControl = pGridControl;
+	// Every shortcut insertion (server refresh, drag and rollback) passes here.
+	// Keep the colored skill atlas consistent with selection, which uses 199/200,
+	// even when CLASSIC selects atlas 1 in the generic item constructor.
+	if (pGridControl && pGridControl->m_eGridType == TMEGRIDTYPE::GRID_SKILLB &&
+		m_GCObj.eRenderType == RENDERCTRLTYPE::RENDER_IMAGE_STRETCH &&
+		m_GCObj.nTextureSetIndex == 1)
+		m_GCObj.nTextureSetIndex = 199;
 }
 
 STRUCT_ITEM* SGridControlItem::GetItem()
