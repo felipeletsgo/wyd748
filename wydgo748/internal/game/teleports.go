@@ -144,6 +144,11 @@ func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 	if p == nil || p.Char == nil || !p.InWorld {
 		return
 	}
+	// Consume the previous interaction before any rejection, including malformed
+	// packets. Only a new, validated request below may establish another context.
+	contextNPC, contextCity := p.CityWarNPC, p.CityWarCity
+	contextOwner, contextUntil := p.CityWarGuild, p.CityWarUntil
+	clearCityWarContext(p)
 	fail := func(message string) {
 		s.Send(wire.MessagePanel(message))
 	}
@@ -196,7 +201,6 @@ func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 				fail(err.Error())
 				return
 			}
-			clearCityWarContext(p)
 			return
 		}
 		if local.Weekday() != time.Saturday || w.guilds.Wars.Cities.Phase != "registration" {
@@ -213,22 +217,18 @@ func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 		fail("Invalid city-war confirmation.")
 		return
 	}
-	if p.CityWarNPC != npcID || p.CityWarCity != city || p.CityWarUntil.IsZero() || !now.Before(p.CityWarUntil) {
-		clearCityWarContext(p)
+	if contextNPC != npcID || contextCity != city || contextUntil.IsZero() || !now.Before(contextUntil) {
 		fail("The city-war request expired. Speak to the collector again.")
 		return
 	}
 	if w.guilds == nil {
-		clearCityWarContext(p)
 		fail("Guild registry unavailable.")
 		return
 	}
-	if p.CityWarGuild != w.guilds.Wars.Cities.Territories[city].Owner {
-		clearCityWarContext(p)
+	if contextOwner != w.guilds.Wars.Cities.Territories[city].Owner {
 		fail("The city-war target changed. Speak to the collector again.")
 		return
 	}
-	clearCityWarContext(p) // one-shot confirmation, even when registration fails
 	if err := w.registerCityWar(p, city); err != nil {
 		fail(err.Error())
 		return

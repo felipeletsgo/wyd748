@@ -27,6 +27,7 @@ func TestGuildWarFameAndCompletionPersistTogether(t *testing.T) {
 		t.Fatal("fame/completion split on reload")
 	}
 	got.Wars.Cities.Territories[0].Owner = 1
+	got.Wars.Cities.Territories[0].Treasury = 5_500_000_000
 	if err := s.SaveGameState(got); err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +35,7 @@ func TestGuildWarFameAndCompletionPersistTogether(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if again.Guilds[0].Fame != 100 || !again.Wars.Tower.Finished || again.Wars.Cities.Territories[0].Owner != 1 {
+	if again.Guilds[0].Fame != 100 || !again.Wars.Tower.Finished || again.Wars.Cities.Territories[0] != got.Wars.Cities.Territories[0] {
 		t.Fatal("state lost")
 	}
 }
