@@ -375,7 +375,7 @@ func offensiveSkillAreaRadius(ch *model.Char, skill model.SkillDef) int {
 	case 6:
 		return 3
 	case 5:
-		// W2PP client: Special[3]/75, capped at 3, plus a base radius of 3.
+		// WYD 7.48 client: Special[3]/75, capped at 3, plus a base radius of 3.
 		return 3 + clampInt(int(playerMastery(ch, 3))/75, 0, 3)
 	default:
 		return 0
@@ -410,7 +410,7 @@ func skillAreaContains(casterX, casterY, primaryX, primaryY, candidateX, candida
 	if skill.TargetType != 5 {
 		return chebyshev(primaryX, primaryY, candidateX, candidateY) <= radius
 	}
-	// TargetType 5 is the W2PP directional 90-degree cone. Use integer vector
+	// TargetType 5 is the WYD 7.48 directional 90-degree cone. Use integer vector
 	// math so target selection is deterministic on every platform.
 	ax, ay := int(primaryX)-int(casterX), int(primaryY)-int(casterY)
 	bx, by := int(candidateX)-int(casterX), int(candidateY)-int(casterY)

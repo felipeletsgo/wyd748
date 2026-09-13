@@ -113,7 +113,7 @@ func itemSanc(item model.Item) int {
 // tintItem aplica uma cor (tintura) ao slot de sanc do item: troca o CODIGO do
 // par EF_SANC (43) ou de uma cor anterior (116-125) para `color`, preservando o
 // VALOR (o nivel de refino nao muda; itemSanc ja le 116-125). E o inverso do
-// pRemoveTintura do Micronics, que converte 116-125 de volta para 43. Retorna
+// pRemoveTintura do WYD 7.48, que converte 116-125 de volta para 43. Retorna
 // false quando o item nao tem slot de sanc (nao esta refinado): so ha o que
 // pintar num item com brilho de refino.
 func tintItem(item *model.Item, color int) bool {
@@ -129,7 +129,7 @@ func tintItem(item *model.Item, color int) bool {
 	return false
 }
 
-// untintItem porta o pRemoveTintura do Micronics: converte o codigo de cor
+// untintItem porta o pRemoveTintura do WYD 7.48: converte o codigo de cor
 // (116-125) do slot de sanc de volta para EF_SANC (43), removendo a tintura sem
 // tocar no nivel de refino. Retorna false quando o item nao esta pintado.
 func untintItem(item *model.Item) bool {
@@ -539,7 +539,7 @@ func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
 			return false
 		}
 	}
-	// BASE_CanEquip (W2PP) zera Level/STR/INT/DEX/CON para evolucoes
+	// BASE_CanEquip (WYD 7.48) zera Level/STR/INT/DEX/CON para evolucoes
 	// superiores. No Arch a classe do Sephiroth continua governando skills,
 	// mas nao os requisitos de equipamento; armas tambem ignoram a classe.
 	if advanced {
@@ -558,7 +558,7 @@ func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
 //
 // O Arch guarda em Equip[0] o rosto calculado por `MortalFace + 5 + Sephiroth`.
 // O algarismo das dezenas permanece sendo a classe do corpo Mortal (TK/FM/BM/HT)
-// e reproduz o `extra->MortalFace / 10` usado por BASE_CanEquip no W2PP.
+// e reproduz o `extra->MortalFace / 10` usado por BASE_CanEquip no WYD 7.48.
 // Char.Class, por outro lado, e a classe do Sephiroth e governa as habilidades.
 func equipmentBodyClass(ch *model.Char) (byte, bool) {
 	if ch == nil {

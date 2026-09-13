@@ -67,7 +67,7 @@ tmproject/client748/           assets ativos e project.exe recompilado
 - Arch nasce com os bônus nativos de 168 skill points e 112 mastery points;
   somente Mortal precisa cumprir o requisito de nível ao comprar skill. Arch,
   Celestial e SubCelestial ainda validam classe, pontos, mastery, cadeia e gold.
-- Celestial/Sub usam o orçamento W2PP de 1600 pontos iniciais mais a curva
+- Celestial/Sub usam o orçamento WYD 7.48 de 1600 pontos iniciais mais a curva
   normal de 3/4 pontos por nível; mastery permanece em 855 por forma.
 - Equipamentos são recalculados server-side ao equipar, remover, trocar ou
   descartar.
@@ -145,13 +145,13 @@ tmproject/client748/           assets ativos e project.exe recompilado
 - Morte multi-alvo usa uma transação de recompensa; falha restaura personagens,
   mob e instância sem publicar prêmio parcial.
 - Ações físicas possuem intervalo fixo de 400 ms. Attack Speed acima de 100%
-  alimenta a progressão W2PP de Double Hit; em 200% todo ataque que acerta é
+  alimenta a progressão WYD 7.48 de Double Hit; em 200% todo ataque que acerta é
   Double. Critical é independente, pode coexistir, e os bits nativos fazem o
   client desenhar Double/Critical/MISS sem confiar em resultado C→S.
 - Uma intenção física com alvo morto, ausente, fora de range ou sem LoS não
   consome o cooldown do próximo alvo válido. Skills continuam usando o `Delay`
   autoritativo e um piso curto independente contra busy-loop.
-- Skills ofensivas usam os raios W2PP por `TargetType` (1, 2, 3 ou cone 3–6),
+- Skills ofensivas usam os raios WYD 7.48 por `TargetType` (1, 2, 3 ou cone 3–6),
   limitam o resultado a 13 entidades, ordenam alvos por distância/ID e preservam
   skills nativas de dois alvos, multihit, summons e casos especiais.
 - Skill single-target wide usa `0x39D/60` com `DMGX`, contador e dano uint32;
@@ -278,7 +278,7 @@ tmproject/client748/           assets ativos e project.exe recompilado
 - Travas internas 354/369, quatro juras, Soul e Cythera estão implementadas.
 - Celestial/SubCelestial possuem criação, troca de forma, EXP, pontos
   compartilhados, reduções, travas e progressão separada.
-- A EXP de combate usa a curva W2PP por receptor: Arch perde EXP
+- A EXP de combate usa a curva WYD 7.48 por receptor: Arch perde EXP
   progressivamente até receber `1/120` no fim da evolução; Celestial e
   SubCelestial começam em `1/40` e recebem divisores progressivos conforme o
   nível. Mortal permanece sem essa redução avançada neste servidor.
@@ -286,7 +286,7 @@ tmproject/client748/           assets ativos e project.exe recompilado
   os quatro slots (`0x110`) depois do commit, para o client reconstruir corpo,
   score e skills. A criação Celestial também gera anúncio global em inglês;
   nenhum dos dois efeitos é publicado quando a persistência falha.
-- O score de evolução segue o ramo normal do W2PP: Celestial/SubCelestial usam
+- O score de evolução segue o ramo normal do WYD 7.48: Celestial/SubCelestial usam
   `ATK 488`, DEF `954/984/1004` conforme os cristais, atributos naturais da
   classe, bônus flat de HP/MP por classe/cristais, `+399` apenas no ataque e
   crescimento não-Mortal de HP/MP e defesa.

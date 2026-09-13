@@ -25,7 +25,7 @@ autoritativos nem reintroduzir Necklace/Belt ausentes da UI do emulador?
 - `UTILIZADA`: WYD-Go `wire.SelfEquip`, `VisualEquip`, `bodyMesh`,
   `bodyAncient`, `clientEquipProjection`, emissores e testes.
 - `NAO APLICAVEL`: o guia KR nao define o wire; nenhum asset novo participa.
-  Sources 7.54, W2PP, Secrets e Micronics nao foram consultadas.
+  Sources 7.54, fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

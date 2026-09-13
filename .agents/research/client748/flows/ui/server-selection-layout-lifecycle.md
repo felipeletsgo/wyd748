@@ -131,7 +131,7 @@ consumo no fluxo vivo do TMProject antes de afirmar implementacao ou teste.
 Procedencia desta unidade: binario/descompilacao Ghidra 7.48 `UTILIZADA` como
 fonte primaria; assets oficiais 7.48 `UTILIZADA`; TMProject748 `UTILIZADA`
 somente como confirmacao
-secundaria; W2PP, Secrets e Micronics `NAO APLICAVEL` por exclusao da campanha.
+secundaria; fontes legadas externas `NAO APLICAVEL` por exclusao da campanha.
 
 ### Saídas e erros
 

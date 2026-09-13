@@ -117,7 +117,7 @@ func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
 		return
 	}
 
-	// Refinação Abençoada purificada, conforme Secrets 7.54.
+	// Refinação Abençoada purificada, conforme WYD 7.48.
 	if req.Items[0].Index == 697 && req.Items[1].Index == 697 && req.Items[2].Index == 3338 &&
 		req.Items[3].Index == 0 && req.Items[4].Index == 0 && req.Items[5].Index == 0 &&
 		req.Items[6].Index == 0 && req.Items[7].Index == 0 && itemSanc(req.Items[2]) < 9 &&

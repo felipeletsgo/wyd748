@@ -101,10 +101,10 @@ Não afetado; nenhum handler foi criado.
 
 ## Matriz de delta
 
-| Claim | Nativo 7.48 | Source atual | TMProject/W2PP | WYD-Go | Decisão |
+| Claim | Nativo 7.48 | Source atual | TMProject/referência posterior | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
 | cabeça 57 é merchant | `FUN_00516105` confirma | caller trata como NPC | compatível | N/A | manter classificação |
-| ação Premium | não localizada | stub vazio | W2PP também vazio | ausente | não implementar por inferência |
+| ação Premium | não localizada | stub vazio | referência posterior também vazia | ausente | não implementar por inferência |
 | clique consumido | proteção provável | confirmado na source | preservado | N/A | manter |
 
 ## Decisões

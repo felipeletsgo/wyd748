@@ -41,9 +41,14 @@ Modernização interna com contrato preservado não exige nova pesquisa nativa.
 Extensão coordenada exige contrato novo e estudo das fronteiras legadas que
 intercepta, não um equivalente nativo para a novidade. Mudança interna do
 servidor, documentação ou build sem alteração dessas fronteiras não aciona Ghidra.
-O TMProject 7.69 é referência secundária de arquitetura e algoritmos. W2PP,
-Secrets e Micronics são fontes excluídas desta campanha e não podem orientar,
-validar ou contradizer uma decisão.
+O TMProject 7.69 é referência secundária de arquitetura e algoritmos. Projetos
+legados externos não são autoridade de paridade por si só. Dados, fórmulas ou
+comportamentos que tenham origem histórica nesses projetos podem ser
+classificados como `PARIDADE_NATIVA` quando já houver validação independente e
+registrada no client/runtime real 7.48 ou em testes reproduzíveis que exercitem
+o contrato 7.48. Nesse caso, a evidência de paridade é a validação 7.48, não a
+origem histórica. Não reabrir Ghidra para um comportamento idêntico já validado
+se os inputs e o contrato não mudaram.
 
 O catálogo usa os estados `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT`,
 `IMPLEMENTED` e `CLIENT_TESTED`. Uma função catalogada não está compreendida

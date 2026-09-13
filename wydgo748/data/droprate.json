@@ -1,5 +1,5 @@
 {
-  "_comentario": "Taxa de drop POR SLOT do carry do monstro (mecanica nativa: rand()%rate==0 dropa; rate menor = mais comum). Portada do g_pDropRate[64] do W2PP (Basedef.cpp:287). Slots 8-10 sao forcados a 4 e o slot 11 a drop GARANTIDO pelo codigo, igual ao nativo.",
+  "_comentario": "PARIDADE_NATIVA 7.48: taxa de drop POR SLOT do carry do monstro (rand()%rate==0 dropa; rate menor = mais comum). A tabela g_pDropRate[64] e os slots especiais foram validados no comportamento 7.48.",
   "rates": [
     900, 900, 900, 900, 900, 900, 900, 900,
     4, 4, 4, 4,

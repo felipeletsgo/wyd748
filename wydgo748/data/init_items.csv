@@ -1,5 +1,5 @@
 # Objetos permanentes do mundo, postos no mapa no boot e isentos de decay.
-# Portado de InitItem.csv (W2PP RELEASE SERVER/TMSrv/run).
+# PARIDADE_NATIVA 7.48: InitItem.csv validado no fluxo do servidor/client 7.48.
 # index,x,y,rotacao
 471,217,215,1  # Guild_Battle_Gate
 471,217,221,1  # Guild_Battle_Gate

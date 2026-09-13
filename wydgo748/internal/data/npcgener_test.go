@@ -49,7 +49,7 @@ DestAction: voltar
 }
 
 // TestLoadNPCGenerRealWorldQuirks cobre as tolerancias necessarias para carregar
-// NPCGener.txt editados a mao (como o do Micronics): linhas fora do vocabulario
+// NPCGener.txt editados a mao (como o do WYD 7.48): linhas fora do vocabulario
 // (ex.: comentario malformado com uma barra so) sao ignoradas, e MaxGroup abaixo
 // de MinGroup e normalizado em vez de abortar o boot -- comportamento do nativo.
 func TestLoadNPCGenerRealWorldQuirks(t *testing.T) {
@@ -125,22 +125,22 @@ func TestLoadNPCGenerDisabledSection(t *testing.T) {
 	}
 }
 
-func TestMicronicsNPCDatasetMatchesNPCGener(t *testing.T) {
+func TestNative748NPCDatasetMatchesNPCGener(t *testing.T) {
 	npcs, err := LoadNPCs("../../data/npcs")
 	if err != nil {
 		t.Fatalf("carregar NPCs convertidos: %v", err)
 	}
-	// Piso, nao igualdade: a base convertida do Micronics tem 476 NPCs e
+	// Piso, nao igualdade: a base convertida do WYD 7.48 tem 476 NPCs e
 	// adicionar um novo (ex.: GremlinBIG) e legitimo. O guarda existe para
 	// pegar perda em massa -- pasta errada, conversao quebrada --, nao para
 	// travar o dataset.
-	const micronicsBaseNPCs = 476
-	if len(npcs) < micronicsBaseNPCs {
-		t.Fatalf("NPCs convertidos=%d, esperado ao menos %d", len(npcs), micronicsBaseNPCs)
+	const native748BaseNPCs = 476
+	if len(npcs) < native748BaseNPCs {
+		t.Fatalf("NPCs convertidos=%d, esperado ao menos %d", len(npcs), native748BaseNPCs)
 	}
 	geners, err := LoadNPCGener("../../data/NPCGener.txt")
 	if err != nil {
-		t.Fatalf("carregar NPCGener Micronics: %v", err)
+		t.Fatalf("carregar NPCGener WYD 7.48: %v", err)
 	}
 
 	templates := make(map[string]bool, len(npcs)*2)

@@ -22,7 +22,7 @@ deixar um frame incompleto alcancar ordenacao ou insercao visual?
   `ReceivedPacketDispatch`.
 - `UTILIZADA`: WYD-Go `wire.ShopList`, handlers de requisicao/compra e testes.
 - `NAO APLICAVEL`: guia KR e assets nao definem o envelope. Sources 7.54,
-  W2PP, Secrets e Micronics nao foram consultadas.
+  fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

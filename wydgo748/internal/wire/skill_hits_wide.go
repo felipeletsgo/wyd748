@@ -1,10 +1,10 @@
 package wire
 
 // SkillHits preserva o prefixo nativo 7.48 e acrescenta os danos reais
-// que o client-source ja sabe consumir. Isso evita enviar um segundo 0x39D por
+// que o TMProject748 client ja sabe consumir. Isso evita enviar um segundo 0x39D por
 // alvo apenas para o floating damage.
 //
-// Layouts lidos pelo client-source 7.48+:
+// Layouts lidos pelo TMProject748 client:
 //
 //	0x39D skill: DMGX@48, count@52, dano uint32 @56 (60 bytes total)
 //	0x39E: DMGX@52, count@56, danos @60+i*4

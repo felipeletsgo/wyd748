@@ -17,7 +17,7 @@ const (
 	ghostShopIDBase   = 25000
 	maxShopTitleBytes = 21 // o client 7.48 termina CreateMobTrade.Desc em @21
 
-	// Limites CityLimit da Armia na BASE_GetVillage da W2PP.
+	// Limites CityLimit da Armia na BASE_GetVillage do WYD 7.48.
 	armiaMinX = 2052
 	armiaMaxX = 2171
 	armiaMinY = 2052
@@ -192,7 +192,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
 		return
 	}
-	// A W2PP usa uma segunda publicacao como liga/desliga da loja fantasma.
+	// O WYD 7.48 usa uma segunda publicacao como liga/desliga da loja fantasma.
 	if p.GhostShop != nil {
 		w.closeGhostShop(p, "fechada pelo jogador")
 		s.Send(wire.CloseTrade(p.ID))
@@ -255,7 +255,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	p.ShopNPC = 0
 	w.registerGhostShop(shop)
 	// O client coloca o proprio personagem em modo de auto-loja assim que envia
-	// o 0x397. A ordem e importante: a W2PP executa RemoveTrade2 (0x384) ANTES
+	// o 0x397. A ordem e importante: o WYD 7.48 executa RemoveTrade2 (0x384) ANTES
 	// de criar o clone. Publicar o 0x363 primeiro fazia o 0x384 subsequente
 	// apagar o titulo do clone e deixava o estado comercial no corpo real.
 	for _, packet := range ghostShopOwnerResetPackets(p) {

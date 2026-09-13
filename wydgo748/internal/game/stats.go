@@ -37,7 +37,7 @@ func celestialBaseDefense(crystals byte) uint32 {
 	}
 }
 
-// celestialHPMPBonus porta o bloco ClassMaster >= CELESTIAL do W2PP normal
+// celestialHPMPBonus porta o bloco ClassMaster >= CELESTIAL do WYD 7.48 normal
 // (isHardCore=0). O bonus e inicial/flat; crescimento por nivel usa a mesma
 // coluna nao-Mortal do Arch, sem fabricar 399 niveis de HP/MP.
 func celestialHPMPBonus(class int, crystals byte) (int64, int64) {
@@ -193,7 +193,7 @@ func skillPointBudget(ch *model.Char) int {
 		return 0
 	}
 	if isCelestialEvolution(ch) {
-		// BASE_GetBonusSkillPoint do W2PP: Celestial/Sub recebe uma base de
+		// BASE_GetBonusSkillPoint do WYD 7.48: Celestial/Sub recebe uma base de
 		// 1600 e preserva a curva 3/4 pontos por nivel.
 		return 1600 + mortalSkillPointBudget(int(ch.Score.Level)) + int(ch.SkillPointBonus)
 	}

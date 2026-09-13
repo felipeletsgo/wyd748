@@ -425,7 +425,7 @@ func (w *World) sendCharacterInfo(s *net.Session, p *Player, target string) {
 		return
 	}
 	ch := found.Char
-	// Tudo numa UNICA mensagem de aviso (0x101). O 0x324 nativo do W2PP (janela
+	// Tudo numa UNICA mensagem de aviso (0x101). O 0x324 nativo do WYD 7.48 (janela
 	// de inspecionar) foi testado in-game e o client 7.48 nao abre nada -- e
 	// adicao tardia do 759. Varias linhas tambem nao servem: o painel de aviso
 	// mostra uma de cada vez e as anteriores somem.
@@ -504,7 +504,7 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 		log.Printf("[#%d] CARTA %q -> %q", s.ID, p.Char.Name, recipient.Char.Name)
 		return
 	}
-	// Replica o TMSrv/W2PP: /nick mensagem chega como 0x334, o servidor troca
+	// Replica o TMSrv/WYD 7.48: /nick mensagem chega como 0x334, o servidor troca
 	// MobName pelo remetente, preserva String sem prefixos e usa o ID dele.
 	recipient.Session.Send(wire.MessageWhisper(p.ID, p.Char.Name, message, 0))
 	log.Printf("[#%d] WHISPER %q -> %q", s.ID, p.Char.Name, recipient.Char.Name)

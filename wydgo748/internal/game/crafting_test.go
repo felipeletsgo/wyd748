@@ -370,7 +370,7 @@ func agathaScenario() (arch, donor, catalyst model.Item, defs map[uint16]model.I
 
 // TestCombineAgathaChanceMatchesPortedFormula prova a correcao do bug: antes,
 // chance := 100+grade*5+1 (sempre >=106, clamped a 100) fazia a Agatha NUNCA
-// falhar. A formula real (GetMatchCombineAgatha, W2PP GetFunc.cpp:564-628) e
+// falhar. A formula real (GetMatchCombineAgatha, WYD 7.48 GetFunc.cpp:564-628) e
 // agathaBaseChance(20) + grade*5 + bonus-de-nivel = 20+25+1 = 46% neste
 // cenario (grade 5, nivel 4) -- precisa produzir os DOIS desfechos.
 func TestCombineAgathaChanceMatchesPortedFormula(t *testing.T) {

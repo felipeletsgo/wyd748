@@ -8,7 +8,7 @@ import (
 const (
 	// CelestialSealItem e o Spirit's Seal nativo (EF_VOLATILE 206).
 	CelestialSealItem uint16 = 3443
-	// CelestialSealEffect identifica um selo preenchido. O W2PP grava o ID em
+	// CelestialSealEffect identifica um selo preenchido. O WYD 7.48 grava o ID em
 	// EF_VALUE do primeiro e do segundo efeito, em ordem big-endian de bytes.
 	CelestialSealEffect byte = 59
 )

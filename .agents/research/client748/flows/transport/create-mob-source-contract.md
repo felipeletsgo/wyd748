@@ -26,7 +26,7 @@ confundir o formato menor do executavel nativo?
   `CreateMobWithGuildRank`, `CreateMobTrade`, emissores de visibilidade/login e
   testes.
 - `NAO APLICAVEL`: assets e guia KR nao definem os envelopes. Sources 7.54,
-  W2PP, Secrets e Micronics nao foram consultadas.
+  fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

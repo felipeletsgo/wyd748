@@ -261,7 +261,7 @@ const accountAutoSaveSliceInterval = accountAutoSaveInterval / accountAutoSaveBu
 // entrar no mundo; o CP em si permanece persistido no personagem.
 const chaosRecoveryInterval = 450 * time.Second
 
-// questZoneResetInterval porta o reset de area de quest do W2PP: la e um
+// questZoneResetInterval porta o reset de area de quest do WYD 7.48: la e um
 // SecCounter%1200 com TIMER_SEC=500ms, ou seja 10 minutos reais.
 const questZoneResetInterval = 10 * time.Minute
 const npcGenerSummaryInterval = time.Minute
@@ -442,7 +442,7 @@ type World struct {
 	initItems   []model.InitItem
 	questsByNPC map[string]*model.QuestDef
 	// questZones sao retangulos que expulsam todo jogador para a cidade a cada
-	// ciclo de reset (mecanismo ClearArea do W2PP). nextQuestZoneReset e o
+	// ciclo de reset (mecanismo ClearArea do WYD 7.48). nextQuestZoneReset e o
 	// deadline do proximo reset -- baseado em relogio, nao no contador de tick,
 	// para dar 10 minutos reais mesmo se algum tick atrasar.
 	questZones         []model.QuestZone
@@ -679,7 +679,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 			continue
 		}
 		// Salas ativadas por item nao podem compartilhar a populacao permanente
-		// do NPCGener. O arquivo Micronics contem os mesmos geradores Water com
+		// do NPCGener. O arquivo WYD 7.48 contem os mesmos geradores Water com
 		// MinuteGenerate=-1 (spawn unico no boot); mantê-los criaria monstros
 		// antes do ticket e duplicaria a sala quando a instancia fosse aberta.
 		// A reserva nasce da configuracao autoritativa do item, sem depender do
@@ -1708,7 +1708,7 @@ func (w *World) tick() {
 	w.flushGameplayLog(now, false)
 }
 
-// tickQuestZoneReset porta o ClearArea do W2PP: a cada ciclo (10 min), todo
+// tickQuestZoneReset porta o ClearArea do WYD 7.48: a cada ciclo (10 min), todo
 // jogador dentro de uma zona de quest e recolhido para a cidade. E global por
 // deadline, nao per-player -- reproduz o comportamento nativo (o jogador nao
 // "ganha" 10 min cheios; o relogio do servidor e que decide).
@@ -1927,7 +1927,7 @@ func (w *World) handle(cmd command) {
 	case wire.OpPing:
 		w.onPing(cmd.s, cmd.pkt)
 	case wire.OpUpdateScore:
-		// O client nativo pode emitir 0x336, mas W2PP/Secrets o descartam.
+		// O client nativo pode emitir 0x336, mas WYD 7.48 o descartam.
 		// Score e affects permanecem exclusivamente autoritativos no servidor.
 	case wire.OpSysQuit:
 		w.onSysQuit(cmd.s)

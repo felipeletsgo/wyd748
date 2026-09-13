@@ -29,7 +29,7 @@ de texto a source recompilavel deve preservar antes de entregar o frame a
   testes de `MessagePanel`/`DaySync`.
 - `NAO APLICAVEL` — assets: este corte nao altera recurso, geometria, fonte ou
   binding do painel existente.
-- `NAO APLICAVEL` — W2PP, Secrets e Micronics: fontes excluidas desta campanha.
+- `NAO APLICAVEL` — fontes legadas externas: fontes excluidas desta campanha.
 
 ## Fluxo nativo 7.48
 

@@ -12,7 +12,7 @@ import (
 	"wydgo/internal/model"
 )
 
-// LoadTeleports le o formato Teleports.ini usado pelo Micronics:
+// LoadTeleports le o formato Teleports.ini usado pelo WYD 7.48:
 // SourceX,SourceY,DestX,DestY,Price,Name.
 func LoadTeleports(path string) ([]model.Teleport, error) {
 	f, err := os.Open(path)

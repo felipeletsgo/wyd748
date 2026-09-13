@@ -14,7 +14,7 @@ import (
 
 const (
 	kingdomJoinMinLevel = uint32(219) // nivel 220 exibido no client
-	kingdomKnightLevel  = uint32(255) // nivel 256 exibido no client/W2PP
+	kingdomKnightLevel  = uint32(255) // nivel 256 exibido no client/WYD 7.48
 	kingdomLeaveCost    = uint32(16)
 	kingdomWarpCooldown = 5 * time.Second
 )
@@ -77,7 +77,7 @@ func kingdomUsesEmblem(ch *model.Char) bool {
 	return ch != nil && !isCelestial(ch) && ch.Equip[13].Index == model.KingdomEmblem
 }
 
-// kingdomCapeForJoin porta a progressao do case KING da W2PP sem duplicar o
+// kingdomCapeForJoin porta a progressao do case KING do WYD 7.48 sem duplicar o
 // reino no personagem. O primeiro clique cria/converte a capa 220; a capa
 // basica 545/546 pode voltar ao mesmo rei no nivel 256 para virar 543/544.
 // Elite/Hero preservam seu tier neutro e Celestial sempre recebe Master.
@@ -151,7 +151,7 @@ func sapphireCount(ch *model.Char) uint32 {
 
 // consumeSapphires usa primeiro safiras avulsas e depois pacotes de dez. Como
 // o pacote nativo e indivisivel, a ultima unidade pode pagar o restante menor
-// que dez, exatamente como o loop do case KING/KINGDOM do W2PP.
+// que dez, exatamente como o loop do case KING/KINGDOM do WYD 7.48.
 func consumeSapphires(ch *model.Char, amount uint32) bool {
 	if sapphireCount(ch) < amount {
 		return false

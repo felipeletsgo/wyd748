@@ -9,7 +9,7 @@ import (
 )
 
 // LoadDropRates le a tabela de taxa de drop POR SLOT (data/droprate.json), portada
-// do g_pDropRate[64] do W2PP. Semantica nativa: na morte do mob, cada slot ocupado
+// do g_pDropRate[64] do WYD 7.48. Semantica nativa: na morte do mob, cada slot ocupado
 // rola rand()%rate==0 (rate menor = drop mais comum; <=0 = drop garantido).
 func LoadDropRates(path string) ([model.MaxCarry]int, error) {
 	var rates [model.MaxCarry]int

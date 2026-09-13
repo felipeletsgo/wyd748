@@ -1,5 +1,5 @@
 {
-  "_comment": "Transcricao de SetItemBonus2 e g_pBonusValue2..5 da W2PP. Cada entrada e [effect1,value1,effect2,value2]. O item A-E define apenas o EF_ITEMLEVEL exigido e o teto de refino; o pool depende da posicao da armadura.",
+  "_comment": "PARIDADE_NATIVA 7.48: tabela validada de SetItemBonus2/g_pBonusValue2..5. Cada entrada e [effect1,value1,effect2,value2]. O item A-E define apenas o EF_ITEMLEVEL exigido e o teto de refino; o pool depende da posicao da armadura.",
   "items": {
     "4016": {"itemLevel": 1, "maxSanc": 6},
     "4017": {"itemLevel": 2, "maxSanc": 6},

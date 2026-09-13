@@ -26,7 +26,7 @@ transições o mesmo opcode é usado pelo recall periódico?
   `tmproject/TMProject748/`.
 - Servidor: `internal/game/world.go`, `internal/game/handlers.go`,
   `internal/game/security.go` e testes de morte/restart.
-- TMProject posterior e guias: `NÃO APLICÁVEL`; W2PP, Secrets e Micronics
+- TMProject posterior e guias: `NÃO APLICÁVEL`; fontes legadas externas
   permaneceram excluídos.
 
 ## Fluxo nativo 7.48

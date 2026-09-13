@@ -24,8 +24,7 @@ estudada contem dois layouts historicos diferentes?
   `ReceivedPacketDispatch`.
 - `UTILIZADA`: WYD-Go `wire.SetHpMp`, `MobHpMp`, `HpMp`, testes e emissores de
   combate, affects, visibilidade, equipamento e AutoTrade.
-- `NAO APLICAVEL`: assets e guia KR nao definem este ABI. Sources 7.54, W2PP,
-  Secrets e Micronics nao foram consultadas.
+- `NAO APLICAVEL`: assets e guia KR nao definem este ABI. Sources 7.54, fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

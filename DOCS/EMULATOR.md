@@ -299,7 +299,7 @@ de **8 segundos**, arredondadas para cima no wire.
 
 **0x337 UpdateEtc (36B, ID=mobID):** Held EXP@12, exp@16, LearnedSkill@20,
 statusPts@24, masterPts@26, skillPts@28, Magic@30, gold@32. É o `p754_SendEtc`
-confirmado pelo dump real do Micronics. CP/Chaos não ocupa Hold e `NextExp`
+confirmado pelo dump real do WYD 7.48. CP/Chaos não ocupa Hold e `NextExp`
 não pertence a este pacote.
 
 **0x185 UpdateCarry (528B, ID=mobID):** Item[64]@12, Coin@524. O array deve
@@ -379,11 +379,11 @@ Na `CharList`, cada seleção também leva Gold em `sel+712` e Exp em `sel+728`.
 Cada um custou horas. **Leia antes de mexer no wire.**
 
 1. **CreateMob Status@100, NÃO @76.** O client 7.48 lê o Score do mob em @100 (layout
-   Secrets p754, com Affect[16]@66). Prova: escrever Mastery `FF 07` @100 apareceu como
-   "Level 2048" in-game. **Os mobs do Micronics 7.54 ficam "vivos por acidente"**: o
+   WYD 7.48 p754, com Affect[16]@66). Prova: escrever Mastery `FF 07` @100 apareceu como
+   "Level 2048" in-game. **Os mobs do WYD 7.48 ficam "vivos por acidente"**: o
    nativo escreve o score em @76 e deixa lixo 0xCC em @100+ → curHP@112 = 0xCCCC ≠ 0 →
    barra cheia. Zeros limpos em @112 = HP 0 = todo mob renderiza MORTO. **Confie no
-   SOURCE do client, não na captura do Micronics, pra semântica do CreateMob.**
+   SOURCE do client, não na captura do WYD 7.48, pra semântica do CreateMob.**
 
 2. **O 0x336 possui exatamente 16 affects compactos.** Cada WORD em @42..73 usa
    o byte baixo como tempo (unidades de 8 s) e o byte alto como tipo visual.
@@ -398,7 +398,7 @@ Cada um custou horas. **Leia antes de mexer no wire.**
    self-CreateMob @30) = branco. Constante `NormalNameChaos`.
 
 4. **Merchant: nibble baixo = tipo, nibble alto = direção.** O client reconhece a UI do
-   NPC por `m_stScore.Reserved & 0xF` (= o byte Merchant). Mapa (do client W2PP,
+   NPC por `m_stScore.Reserved & 0xF` (= o byte Merchant). Mapa (do client WYD 7.48,
    customizado/sobreposto): **0=comum, 1=composição, 2=cargo/baú, 3=LOJA de gold**,
    4/8-15=quest, 6-8=aposta, 7=airmove, 15=agressivo. Confiáveis: **0, 2, 3**.
 
@@ -474,14 +474,14 @@ wide com o HP atual; `CompatibilityScore()` é chamado somente no wire;
 4=luva, 5=bota, 6=arma (mão dir.), 7=escudo (mão esq.), 8-13=acessórios,
 14=montaria e 15=capa. Esse é o único layout aceito pelo loader.
 
-**Base Micronics:** `cmd/npcconvert` lê o `STRUCT_MOB` 7.54 de 756 bytes e gera
+**Base de NPC validada no WYD 7.48:** `cmd/npcconvert` lê o `STRUCT_MOB` de 756 bytes e gera
 `data/npcs/*.json`. `Status@64`, `Equip@92`, `Inventory@220` e
 `Resist@752` são os offsets autoritativos. Os três pares de efeito são preservados
 em Equip, Carry e Vende; os buracos dos 64 slots continuam posicionais. Índices
 fora das 6.500 entradas do ItemList são removidos. Gold acima de 100.000 e EXP
 acima de 10.000.000 são tratados como memória residual; recompensas dentro desses
 tetos são mantidas. O conjunto atual possui 476 templates e todos os nomes usados
-pelo `NPCGener-micronics.txt`.
+pelo `NPCGener.txt` autoritativo.
 
 **`data/itemlist.csv`** (convertido do client 7.48, mas autoritativo no servidor): colunas por
 vírgula, 0-based: `0=Index 1=Name 2=Mesh.Texture 3=Req 4=unique` **`5=Price`**
@@ -517,7 +517,7 @@ três segmentos e Dest. `_` no nome vira espaço e seguidor vazio reutiliza o
 líder. O gerador mantém a população no World; entrar ou relogar apenas sincroniza
 a região e nunca recria os mobs.
 
-`teleports.ini` usa o formato Micronics
+`teleports.ini` usa o formato WYD 7.48
 `SourceX,SourceY,DestX,DestY,Price,Name`. O `0x290` não carrega destino: o
 servidor encontra o portal no quadrado 4×4 da posição atual, cobra o gold,
 escolhe uma célula livre/andável no destino, persiste e sincroniza as duas
@@ -579,7 +579,7 @@ vagas de `authSlots`, autentica em goroutine e devolve `loginResult` pelo canal 
 comandos. Se as vagas estiverem ocupadas, responde “Servidor de login ocupado”.
 Toda mutação de sessão/conta continua ocorrendo somente no World.
 
-### Combate (dano portado do W2PP `Basedef.cpp`)
+### Combate (fórmulas validadas contra o WYD 7.48)
 
 Regra: dano FÍSICO cresce com FORÇA e DESTREZA; MÁGICO com INTELIGÊNCIA. (`internal/game/combat.go`.)
 
@@ -646,7 +646,7 @@ buffs/debuffs/ticks; `skill_passives.go`, `skill_summons.go` e `skill_pvp.go`
 isolam passivas, invocacoes e PvP. Esta fragmentacao evita colocar toda a regra
 das quatro classes em um unico handler.
 
-A W2PP e a referencia funcional. Foram portados `SetAffect`, `SetTick`,
+O contrato validado no WYD 7.48 e a referencia funcional. Foram adaptados `SetAffect`, `SetTick`,
 `BASE_GetCurrentScore`, `GenerateSummon`, `pSummonBonus` e `pTransBonus`, sempre
 adaptados aos modelos Go e ao wire 7.48. O teste de cobertura carrega o catalogo
 real e exige um caminho server-side para cada indice `0..95`.
@@ -741,7 +741,7 @@ autoritativo por `0x339` e limite de 2 bilhões.
 
 ### Loja Fantasma
 
-A Loja Fantasma porta o desenho encontrado na WebCheats/W2PP sem prender o
+A Loja Fantasma usa o desenho validado para o contrato WYD 7.48 sem prender o
 personagem: ao publicar `0x397`, o servidor cria um clone estacionário com
 `ID = 25000 + OwnerID`. A loja recebe um tile livre próximo ao ponto de abertura
 e permanece nessa coordenada enquanto o dono pode andar, combater, trocar e
@@ -749,7 +749,7 @@ viajar normalmente.
 
 No movimento `0x366` do client 7.48, `PosX/Y@12` é a origem do segmento e
 `TargetX/Y@24` é o destino atual. A posição server-side da abertura usa o
-destino, como `pMob.TargetX/Y` na W2PP. Depois de aceitar `0x397`, o servidor
+destino, como `pMob.TargetX/Y` no WYD 7.48. Depois de aceitar `0x397`, o servidor
 envia `0x384` e rematerializa o avatar normal **antes** de publicar o clone
 `0x363`; essa ordem remove o modo comercial local do dono sem apagar o título
 do clone.
@@ -767,12 +767,12 @@ inventário, equipamentos e trade do personagem continuam totalmente livres.
 Na compra `0x398`, distância ao clone, item, posição, preço, Tax, saldo, espaço
 e limite de 2 bilhões são revalidados contra o estado server-side. O item sai
 do Cargo do vendedor e entra no inventário do comprador; o pagamento vai para
-`Account.CargoGold`, como na W2PP. As duas contas são persistidas por
+`Account.CargoGold`, como no WYD 7.48. As duas contas são persistidas por
 `SaveAccounts` antes de qualquer confirmação ao client. `0x39B ItemSold`
 remove o anúncio vendido da janela; estoque vazio fecha o clone.
 
 Uma nova publicação `0x397` enquanto a loja já existe funciona como desligar,
-seguindo a W2PP. `0x384` apenas fecha a janela local, portanto um comprador que
+seguindo o WYD 7.48. `0x384` apenas fecha a janela local, portanto um comprador que
 também possua loja não encerra acidentalmente o próprio clone. A loja é removida
 quando o dono sai do personagem ou desconecta; persistência offline poderá ser
 adicionada como um subsistema separado.
@@ -949,7 +949,7 @@ internal/
     commands.go        comandos do jogador e avisos fora do chat
     consumables.go     execução autoritativa de volatiles
     drops.go           roll de item por slot, gold por level e fallback para o chão
-    combat.go          fórmulas de dano (portadas do W2PP)
+    combat.go          fórmulas de dano validadas para o WYD 7.48
     mob_combat.go      FSM, aggro, perseguição e ataque de mobs/summons
     movement.go        movimento, colisão e publicação interpolada
     equipment.go       requisitos e efeitos autoritativos de equipamentos

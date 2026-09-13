@@ -7,7 +7,7 @@ func leaderMember(character string) GuildMember {
 }
 
 func TestValidateGuildName(t *testing.T) {
-	// O teto de 12 vem do GUILDNAME_LENGTH do W2PP; "Os Guardas" cabe, espaco
+	// O teto de 12 vem do GUILDNAME_LENGTH do WYD 7.48; "Os Guardas" cabe, espaco
 	// interno e permitido.
 	valid := []string{"Alfa", "Guild123", "Os Guardas", "A", "123456789012"}
 	for _, name := range valid {

@@ -6,7 +6,7 @@ import (
 	"wydgo/internal/model"
 )
 
-// affectDoubleExp e o affect do bau de experiencia (Type 39 no W2PP): enquanto
+// affectDoubleExp e o affect do bau de experiencia (Type 39 no WYD 7.48): enquanto
 // ativo, dobra a EXP recebida. Nao altera atributos, entao nao entra no
 // applyExtendedAffectStats; e consultado apenas no pipeline de EXP.
 const affectDoubleExp = 39
@@ -56,7 +56,7 @@ func expWithDoubleBuffAt(ch *model.Char, reward uint32, now time.Time) uint32 {
 
 // mobKillExperienceForReceiver aplica os bonus de itens do MATADOR a uma
 // parcela de EXP de combate e depois respeita as quedas da evolucao de quem a
-// recebe. Esse e o contrato nativo observado em MobKilled.cpp do W2PP:
+// recebe. Esse e o contrato nativo observado em MobKilled.cpp do WYD 7.48:
 // pMob[conn].ExpBonus e reutilizado dentro do loop de todos os membros.
 //
 // GetExpApply reduz primeiro a recompensa conforme evolucao/nivel do receptor;

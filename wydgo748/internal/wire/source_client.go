@@ -131,7 +131,7 @@ func EnterWorld(id, slot uint16, ch model.Char) []byte {
 }
 
 // UpdateScore maps the authoritative runtime score to the coordinated
-// 232-byte source-client structure. Fields absent from that structure continue
+// 232-byte TMProject748 client structure. Fields absent from that structure continue
 // to be synchronized by dedicated packets/extensions rather than trusted back.
 func UpdateScore(id uint16, ch model.Char) []byte {
 	b := Build(OpUpdateScore, id, 232)
@@ -196,7 +196,7 @@ func CharacterSelectionUpdate(opcode, id uint16, chars []model.Char) []byte {
 }
 
 // SetHpMp publishes the four authoritative uint32 resources in the coordinated
-// 28-byte source-client contract. There is no WORD prefix or legacy fallback.
+// 28-byte coordinated client/server contract. There is no WORD prefix or legacy fallback.
 func SetHpMp(id uint16, score *model.Score) []byte {
 	if score == nil {
 		score = &model.Score{Version: model.ScoreVersion}

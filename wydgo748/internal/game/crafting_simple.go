@@ -13,8 +13,8 @@ import (
 
 const aylinGoldCost = 50_000_000
 
-// agathaBaseChance porta g_pAgathaBase (Basedef.cpp:156 na fonte W2PP, default
-// 20, configuravel em arquivo texto no W2PP -- aqui fixo, como os demais
+// agathaBaseChance porta g_pAgathaBase (Basedef.cpp:156 na fonte WYD 7.48, default
+// 20, configuravel em arquivo texto no WYD 7.48 -- aqui fixo, como os demais
 // custos de craft do arquivo). A chance real e base + grade*5 + bonus de
 // nivel (GetMatchCombineAgatha, GetFunc.cpp:564-628), tipicamente 30-50%,
 // nunca garantida.
@@ -160,10 +160,10 @@ const compositorMaterials = 4
 // dos quatro materiais precisa ser equipavel, do set D (item level 4) ou E (5),
 // e refinado dentro de +7..+9 -- o bonus vem do refino.
 //
-// O Grade do item NAO entra na conta. A W2PP tem duas rotinas concorrentes: a
+// O Grade do item NAO entra na conta. O WYD 7.48 tem duas rotinas concorrentes: a
 // tabela por (nivel, grade, refino) de GetMatchCombine, que e o que o binario
 // executa, e g_pAnctChance[3] indexado por refino (Basedef.cpp:158), lido do
-// CompRate.txt. A segunda e a que vale aqui -- na W2PP ela esta morta duas
+// CompRate.txt. A segunda e a que vale aqui -- no WYD 7.48 ela esta morta duas
 // vezes (nenhuma funcao consulta o array, e o parser so faz _strupr na primeira
 // coluna, entao "Item_+7" nunca casa com "ITEM_+7"). Os valores sao os do
 // servidor, em data/server.txt, nao os do array de la.
@@ -386,7 +386,7 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 		}
 	}
 	// A receita existe exclusivamente para um Arch parado em uma das duas
-	// travas. O handler W2PP retorna antes de consumir para qualquer outra
+	// travas. O handler WYD 7.48 retorna antes de consumir para qualquer outra
 	// evolucao, nivel ou trava ja liberada.
 	trava, destrava := lindyLevelUnlock(p.Char)
 	if !destrava {

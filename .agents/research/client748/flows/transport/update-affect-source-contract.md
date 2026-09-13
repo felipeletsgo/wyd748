@@ -23,8 +23,7 @@ oito bytes sao provadas pelo consumidor 7.48 ou definidas pelo par source/WYD-Go
   `TMHuman::OnPacketUpdateAffect` e `ReceivedPacketDispatch`.
 - `UTILIZADA`: WYD-Go `wire.UpdateAffects`, `putSourceAffects`, projecao dos
   tipos visuais e testes byte a byte.
-- `NAO APLICAVEL`: assets e guia KR nao definem este wire. Sources 7.54, W2PP,
-  Secrets e Micronics nao foram consultadas.
+- `NAO APLICAVEL`: assets e guia KR nao definem este wire. Sources 7.54, fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

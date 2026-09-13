@@ -20,7 +20,7 @@ Qual frame o client 7.48 envia ao confirmar a expulsão de um membro da guild?
 - Assets: `NÃO APLICÁVEL`; o contrato é um envelope de 16 bytes.
 - Source atual: `TMFieldScene.cpp`, `Basedef.h` e `internal/wire/GuildDeprivatePacket.h`.
 - Servidor: `internal/game/guild.go`, `security.go`, `world.go` e testes de guild.
-- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; W2PP, Secrets e Micronics foram excluídos da decisão.
+- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; fontes legadas externas foram excluídos da decisão.
 
 ## Fluxo nativo 7.48
 

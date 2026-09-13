@@ -6,7 +6,7 @@ import (
 	"wydgo/internal/model"
 )
 
-// ClientScoreSize is the exact 7.48+ source-client STRUCT_SCORE size.
+// ClientScoreSize is the exact TMProject748 client STRUCT_SCORE size.
 // The layout is intentionally simple: 35 little-endian uint32 words shared
 // with model.Score and the C++ STRUCT_SCORE declaration.
 const ClientScoreSize = 35 * 4

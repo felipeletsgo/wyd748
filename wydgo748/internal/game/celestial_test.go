@@ -97,7 +97,7 @@ func TestCelestialSkillAndMasteryBudgets(t *testing.T) {
 	}
 }
 
-func TestCelestialClassHPMPGrowthUsesW2PPNonMortalColumns(t *testing.T) {
+func TestCelestialClassHPMPGrowthUsesNative748NonMortalColumns(t *testing.T) {
 	w := &World{}
 	for class := byte(0); class < 4; class++ {
 		ch := &model.Char{
@@ -118,7 +118,7 @@ func TestCelestialClassHPMPGrowthUsesW2PPNonMortalColumns(t *testing.T) {
 	}
 }
 
-func TestEvolutionInitialCombatBasesMatchNormalW2PP(t *testing.T) {
+func TestEvolutionInitialCombatBasesMatchNative748(t *testing.T) {
 	w := &World{}
 	main := &model.Char{Class: 0, Evolution: "celestial", Score: newCelestialScore(0, nil)}
 	w.recalcPlayer(main)
@@ -147,7 +147,7 @@ func TestEvolutionInitialCombatBasesMatchNormalW2PP(t *testing.T) {
 	}
 }
 
-func TestCelestialCrystalBasesMatchNormalW2PPBranch(t *testing.T) {
+func TestCelestialCrystalBasesMatchNative748Branch(t *testing.T) {
 	wants := []struct {
 		crystals byte
 		defense  uint32
@@ -171,7 +171,7 @@ func TestCelestialCrystalBasesMatchNormalW2PPBranch(t *testing.T) {
 	}
 }
 
-func TestArchGrowthAndInitialPointBudgetsMatchW2PP(t *testing.T) {
+func TestArchGrowthAndInitialPointBudgetsMatchNative748(t *testing.T) {
 	w := &World{}
 	for class := byte(0); class < 4; class++ {
 		natural := baseClassStats[class]
@@ -231,7 +231,7 @@ func TestCelestialProgressionLocksAndExperienceCurve(t *testing.T) {
 	}
 }
 
-func TestCelestialCombatExperienceUsesW2PPDivisors(t *testing.T) {
+func TestCelestialCombatExperienceUsesNative748Divisors(t *testing.T) {
 	tests := []struct {
 		level uint32
 		want  uint32
@@ -254,7 +254,7 @@ func TestCelestialCombatExperienceUsesW2PPDivisors(t *testing.T) {
 	}
 }
 
-func TestArchCombatExperienceUsesW2PPDivisors(t *testing.T) {
+func TestArchCombatExperienceUsesNative748Divisors(t *testing.T) {
 	tests := []struct {
 		level uint32
 		want  uint32
@@ -333,7 +333,7 @@ func newCelestialWorld(t *testing.T, level uint32) (*World, *Player, *craftStore
 	p.Char.Class = 2
 	p.Char.Evolution = archEvolution
 	p.Char.ArchMortalLevel = maxMortalLevel
-	p.Char.ArchCrystals = 0 // nao e requisito no Secrets 7.54
+	p.Char.ArchCrystals = 0 // nao e requisito no WYD 7.48
 	p.Char.Score = testScore(model.Score{
 		Level: level, Str: 500, Int: 600, Dex: 700, Con: 800,
 		MaxHP: 5000, CurHP: 4000, MaxMP: 3000, CurMP: 2000,

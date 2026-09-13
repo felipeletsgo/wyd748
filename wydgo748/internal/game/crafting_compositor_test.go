@@ -227,7 +227,7 @@ func TestCompositorRejectsInvalidMaterial(t *testing.T) {
 }
 
 // TestCompositorUsesServerConfig: a config precisa chegar ao calculo. E
-// exatamente o que falha na W2PP -- la o CompRate.txt e lido para um array que
+// exatamente o que falha no WYD 7.48 -- la o CompRate.txt e lido para um array que
 // nenhuma funcao consulta, entao ajustar o arquivo nao muda nada no jogo.
 func TestCompositorUsesServerConfig(t *testing.T) {
 	w := compositorTestWorld()

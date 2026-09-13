@@ -33,7 +33,7 @@ func rebuyEntriesForWire(entries [maxRebuyEntries]RebuyEntry) [10]wire.Repurchas
 }
 
 // addRebuy insere o item no primeiro espaco livre; quando a lixeira esta cheia
-// a entrada mais antiga sai, exatamente como GetRecycleBin do W2PP.
+// a entrada mais antiga sai, exatamente como GetRecycleBin do WYD 7.48.
 func (p *Player) addRebuy(item model.Item, price uint32) {
 	if p == nil || item.Index == 0 {
 		return

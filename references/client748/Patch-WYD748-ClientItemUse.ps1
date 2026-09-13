@@ -9,7 +9,7 @@ $ErrorActionPreference = 'Stop'
 # Client compatibility metadata (not a gameplay rule).
 #
 # The 7.48 right-click gate only recognises the old volatile allow-list.  It
-# does not contain W2PP's explicit item-ID exception for Warrior's Seal
+# does not contain the later reference's explicit item-ID exception for Warrior's Seal
 # (item 4146), so a correctly encoded volatile 199 is rejected before the
 # native 0x373 UseItem packet is built.  The server remains authoritative and
 # still resolves item 4146 to volatile 199.  This patch changes only the

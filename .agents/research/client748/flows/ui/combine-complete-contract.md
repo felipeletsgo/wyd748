@@ -22,8 +22,7 @@ incompleto ou misturar os seis roots nativos?
   `SetVisibleNativeMix` e `ReceivedPacketDispatch`.
 - `UTILIZADA`: WYD-Go `wire.StandardParm(OpCombineComplete,...)`,
   `sendCombineResult` e testes.
-- `NAO APLICAVEL`: assets e guia KR nao definem envelope. Sources 7.54, W2PP,
-  Secrets e Micronics nao foram consultadas.
+- `NAO APLICAVEL`: assets e guia KR nao definem envelope. Sources 7.54, fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

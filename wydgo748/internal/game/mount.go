@@ -10,7 +10,7 @@ import (
 	"wydgo/internal/wire"
 )
 
-// Subsistema de montaria fiel ao W2PP. O estado (HP/level/longevidade/comida)
+// Subsistema de montaria fiel ao WYD 7.48. O estado (HP/level/longevidade/comida)
 // vive nos slots de efeito do item (ver model/mount.go). Este arquivo concentra
 // a logica de dominio: bonus de atributo, evolucao de estagio e casamento
 // item->montaria dos consumiveis. O wiring de pacote fica em consumables.go.
@@ -30,7 +30,7 @@ func equippedMount(ch *model.Char) (*model.Item, int) {
 }
 
 // mountStageThreshold devolve o level em que uma CRIA evolui para o proximo
-// estagio (sIndex+=30). Porta os limites do handler de amago do W2PP: crias
+// estagio (sIndex+=30). Porta os limites do handler de amago do WYD 7.48: crias
 // 2330-2335 evoluem em 25/35/45/55/65/75; as demais (2336+) em 100.
 func mountStageThreshold(sIndex uint16) int {
 	if !model.IsMountBaby(sIndex) {
@@ -104,7 +104,7 @@ func advanceMountStage(mount *model.Item, longevityBonus int, intn func(int) int
 	mount.Index += model.MountTypeCount
 	mount.SetMountLongev(mount.MountLongev() + intn(longevityBonus) + 1)
 	mount.SetMountLevel(0)
-	mount.SetMountFood(mount.MountFood()) // preserva comida; W2PP zera o flag stEffect[2].cValue
+	mount.SetMountFood(mount.MountFood()) // preserva comida; WYD 7.48 zera o flag stEffect[2].cValue
 	mount.Eff[5] = 0
 }
 
@@ -250,7 +250,7 @@ func setEggDelay(egg *model.Item, v int) bool {
 			return true
 		}
 	}
-	// Secrets/RegenMob e W2PP decrementam diretamente stEffect[2].cValue;
+	// O fluxo nativo 7.48 decrementa diretamente stEffect[2].cValue;
 	// mantenha EF_INCUDELAY no terceiro par mesmo havendo lacuna no segundo.
 	if egg.Eff[4] == 0 {
 		egg.Eff[4] = eggIncubationDelayEffect
@@ -302,7 +302,7 @@ func (w *World) startEggIncubationClock(p *Player, egg *model.Item, now time.Tim
 // tickEquippedEggIncubation debita somente horas completas, online e com o
 // mesmo ovo no slot 14. O valor inteiro e persistido no item; a fracao da hora
 // fica em Player e se perde ao desequipar/deslogar, exatamente como nos guias
-// e no contador de sessao do W2PP.
+// e no contador de sessao do WYD 7.48.
 func (w *World) tickEquippedEggIncubation(p *Player, now time.Time) {
 	if p == nil || p.Char == nil {
 		return
@@ -443,7 +443,7 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 		s.ID, vol, egg.Index, eggProgress(*egg), threshold, eggDelay(*egg), hatched, roll.Roll, roll.Chance)
 }
 
-// accelerateHatch (Vol 196) porta o item 3438 do W2PP: usado sobre o ovo
+// accelerateHatch (Vol 196) porta o item 3438 do WYD 7.48: usado sobre o ovo
 // equipado, transforma-o imediatamente em cria. O consumo e a transformacao
 // sao confirmados no mesmo save.
 func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, invSlot byte,
@@ -481,7 +481,7 @@ func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, inv
 
 // --- Cria como pet que segue o dono ---
 //
-// No W2PP a CRIA (2330-2358) e evocada como um mob que acompanha o dono (a
+// No WYD 7.48 a CRIA (2330-2358) e evocada como um mob que acompanha o dono (a
 // adulta voce monta). O pet tem o rosto 315+tipo (face 315-344), reusa a infra
 // de evocacao (SummonerID) e o tick de evocacao ja o faz seguir; aqui ele e
 // PASSIVO (nunca ataca). Ver Server.cpp MountProcess/LinkMountHp.
@@ -667,7 +667,7 @@ func mountInvulnActiveAt(ch *model.Char, now time.Time) bool {
 }
 
 // loseMountLongevity tira 0..3 pontos de longevidade (na morte da montaria,
-// comida zerada ou morte do cavaleiro). Fiel ao W2PP (rand%4). A 0 a montaria
+// comida zerada ou morte do cavaleiro). Fiel ao WYD 7.48 (rand%4). A 0 a montaria
 // morre de vez e precisa reviver no mestre de montaria.
 func loseMountLongevity(mount *model.Item, intn func(int) int) {
 	mount.SetMountLongev(mount.MountLongev() - intn(4))
@@ -720,7 +720,7 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 }
 
 // mountRiderDied tira longevidade da montaria quando o cavaleiro morre (fiel ao
-// W2PP: morte do dono custa 0..3 de longevidade a montaria).
+// WYD 7.48: morte do dono custa 0..3 de longevidade a montaria).
 func (w *World) mountRiderDied(target *Player) {
 	if target == nil || target.Char == nil {
 		return
@@ -751,7 +751,7 @@ func mountSuccessRate(level int) int {
 }
 
 // applyMountItem trata os consumiveis de montaria (rule.MountAction). Fiel ao
-// W2PP: cada um valida o casamento item->montaria, muta o estado no item e
+// WYD 7.48: cada um valida o casamento item->montaria, muta o estado no item e
 // persiste antes de confirmar ao client.
 func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invSlot byte,
 	rule model.VolatileRule, code int, req useItemRequest) {
@@ -926,7 +926,7 @@ func (w *World) initFreshMount(mount *model.Item) bool {
 
 // mountFeed porta o handler da racao (Vol 15): HP += 5000 (teto 30000) e comida
 // += 2 (teto 100). Em montaria MORTA (HP 0) com longevidade, a racao REVIVE com
-// 100 HP + 5 de comida (valores do mestre de montaria do W2PP) -- atalho ao NPC
+// 100 HP + 5 de comida (valores do mestre de montaria do WYD 7.48) -- atalho ao NPC
 // de revive, que ainda nao existe.
 func mountFeed(mount *model.Item, feedIndex uint16) (bool, string) {
 	if !feedMatchesMount(feedIndex, mount.Index) {
@@ -973,7 +973,7 @@ func mountLongevityRecover(mount *model.Item) (bool, string) {
 }
 
 // mountLongevityRestore porta o item 3315 do client 7.48. O itemhelp.dat e o
-// handler do Secrets concordam que ele restaura LP (longevidade), nao HP nem
+// handler do WYD 7.48 concordam que ele restaura LP (longevidade), nao HP nem
 // invulnerabilidade. Montaria com LP zero permanece irrecuperavel e o teto e 60.
 func mountLongevityRestore(mount *model.Item, amount int) (bool, string) {
 	if mount == nil || !model.IsMountAdult(mount.Index) {
@@ -994,7 +994,7 @@ func mountLongevityRestore(mount *model.Item, amount int) (bool, string) {
 	return true, "The mount recovered 1 life point."
 }
 
-// mountSetLevel porta os itens 3316/3317 confirmados no Secrets: o primeiro
+// mountSetLevel porta os itens 3316/3317 confirmados no WYD 7.48: o primeiro
 // leva uma montaria adulta abaixo de 100 ao level 100; o segundo aceita apenas
 // level 100..119 e a leva ao 120. Ambos exigem pelo menos 3 LP.
 func mountSetLevel(mount *model.Item, minLevel, targetLevel int) (bool, string) {

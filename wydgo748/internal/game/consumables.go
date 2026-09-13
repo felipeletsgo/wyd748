@@ -782,7 +782,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	case "mount":
 		// Consumiveis de montaria (amago 16, racao 15, LP/catalisadores 90-92,
 		// longevidade 93, crescimento 94, choco 196). rule.MountAction escolhe o efeito; a logica
-		// fiel ao W2PP fica em mount.go.
+		// fiel ao WYD 7.48 fica em mount.go.
 		w.applyMountItem(p, s, item, slot, rule, code, req)
 
 	case "generic":
@@ -862,7 +862,7 @@ func refineChance(sanc int) int {
 	return clampInt(celestialRate[sanc], 0, 100)
 }
 
-// refineSet porta o Molar do Gargula (Micronics MolarGargula): refino FIXO no
+// refineSet porta o Molar do Gargula (WYD 7.48 MolarGargula): refino FIXO no
 // set de armadura equipado (slots 1-5), sem rolagem. Sobe cada peca ate o teto
 // (RefineMax=6), nunca rebaixa, e so consome se ALGO mudou. Persiste antes de
 // confirmar, como o refino Ori/Lac.
@@ -992,7 +992,7 @@ func (w *World) destItemTarget(p *Player, req useItemRequest) (*model.Item, uint
 	return nil, 0, 0
 }
 
-// refineItem porta o handler de refino Ori/Lac do W2PP. Regras server-side:
+// refineItem porta o handler de refino Ori/Lac do WYD 7.48. Regras server-side:
 // so equipamento, recusa consumivel/EF_NOSANC, respeita o teto por tipo de po,
 // consome a poeira em sucesso E falha, e PERSISTE antes de confirmar ao client
 // (refino e o vetor classico de dupe/refino infinito).

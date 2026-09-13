@@ -24,8 +24,7 @@ decompilacao nao correspondem ao `STRUCT_SCORE` atual?
   `TMHuman::OnPacketUpdateScore` e `ReceivedPacketDispatch`.
 - `UTILIZADA`: WYD-Go `wire.UpdateScore`, `MobScore`, `EncodeClientScore`,
   emissores de progressao/equipamento/combate e testes byte a byte.
-- `NAO APLICAVEL`: assets e guia KR nao definem este ABI. Sources 7.54, W2PP,
-  Secrets e Micronics nao foram consultadas.
+- `NAO APLICAVEL`: assets e guia KR nao definem este ABI. Sources 7.54, fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

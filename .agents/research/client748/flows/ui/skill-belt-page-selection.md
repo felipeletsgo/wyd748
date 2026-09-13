@@ -24,8 +24,7 @@ Escopo estreito: escolha do deslocamento 0 ou 10, sem alterar wire ou skills.
   grids 573/586 sob root 5745; grid 571 sob root 1905. O log comprova IDs,
   nao valida o executavel desta alteracao.
 - UTILIZADA: WYD-Go onSetShortSkill/filterShortSkills e wire.SetShortSkill.
-- NAO APLICAVEL: TMProject posterior/guias como prova nativa. W2PP, Secrets
-  e Micronics excluidos. Nenhum asset ou campo de protocolo novo.
+- NAO APLICAVEL: TMProject posterior/guias como prova nativa. fontes legadas externas excluidos. Nenhum asset ou campo de protocolo novo.
 
 ## Fluxo nativo 7.48
 

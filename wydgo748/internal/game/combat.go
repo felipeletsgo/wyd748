@@ -39,7 +39,7 @@ func applyCouragePvEDamageAt(ch *model.Char, damage int, magical bool, now time.
 	return damage + bonus
 }
 
-// combat.go -- calculo de dano PORTADO do W2PP (SOURCE SERVER/Code/Basedef.cpp), a
+// combat.go -- calculo de dano PORTADO do WYD 7.48 (SOURCE SERVER/Code/Basedef.cpp), a
 // fonte com a formula correta. Regra: dano FISICO cresce com FORCA e DESTREZA; dano
 // MAGICO cresce com INTELIGENCIA. So portamos algoritmos (nunca offsets/structs).
 
@@ -109,7 +109,7 @@ func attackSpeedPercent(ch *model.Char) int {
 	if ch == nil {
 		return 50
 	}
-	// W2PP encodes attack speed as the high AttackRun nibble. Five represents
+	// WYD 7.48 encodes attack speed as the high AttackRun nibble. Five represents
 	// 100%; every following point adds 10%, reaching 200% at the native cap 15.
 	return clampInt((int(effectiveScore(ch).AttackRun>>4)+5)*10, 50, 200)
 }
@@ -136,7 +136,7 @@ func (r physicalHitResult) visualFlags() byte {
 	return flags
 }
 
-// rollPhysicalHitFlags ports W2PP BASE_GetDoubleCritical. Double Hit follows
+// rollPhysicalHitFlags ports WYD 7.48 BASE_GetDoubleCritical. Double Hit follows
 // the server-owned 1,024-step progression derived from the high AttackRun
 // nibble; Critical is an independent 0..254 roll. Both bits may be set by the
 // same action, and the client-supplied Progress field is never authoritative.

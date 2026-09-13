@@ -136,7 +136,7 @@ func TestMobKillKeepsReceiverSpecificCelestialReduction(t *testing.T) {
 	w, killer, member := experiencePartyKillWorld(t)
 	equipCombatExperienceBonuses(t, w, killer)
 	member.Char.Evolution = "celestial"
-	member.Char.Score.Level = 159 // nivel exibido 160: divisor W2PP 65.
+	member.Char.Score.Level = 159 // nivel exibido 160: divisor WYD 7.48 65.
 
 	const partyReward = uint32(10_400)
 	killerReward := w.mobKillExperienceForReceiver(killer.Char, killer.Char, partyReward)
@@ -150,7 +150,7 @@ func TestMobKillKeepsReceiverSpecificArchReduction(t *testing.T) {
 	w, killer, member := experiencePartyKillWorld(t)
 	equipCombatExperienceBonuses(t, w, killer)
 	member.Char.Evolution = "arch"
-	member.Char.Score.Level = 300 // nivel exibido 301: divisor W2PP 8.
+	member.Char.Score.Level = 300 // nivel exibido 301: divisor WYD 7.48 8.
 
 	const partyReward = uint32(10_400)
 	killerReward := w.mobKillExperienceForReceiver(killer.Char, killer.Char, partyReward)

@@ -22,7 +22,7 @@ sem deslocar os dois parametros ou executar o callback em frame incompleto?
   AutoTrade e `ReceivedPacketDispatch`.
 - `UTILIZADA`: WYD-Go `wire.ItemSold`, `publishGhostShopItemSold` e testes.
 - `NAO APLICAVEL`: assets e guia KR nao definem o envelope. Sources 7.54,
-  W2PP, Secrets e Micronics nao foram consultadas.
+  fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

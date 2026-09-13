@@ -31,7 +31,7 @@ handler de selecao, incluindo erro, renomeacao e remocao do personagem local?
   bytes. Panel 1568 (offset 2556), botoes 628/629 (2600/2644), edit 1569
   (2744), todos filhos de 1568; botao 4613 (144), filho de 5654.
 - NAO APLICAVEL: TMProject posterior e guias como prova nativa; a procedencia
-  dos deltas atuais ainda precisa de comparacao. W2PP/Secrets/Micronics excluidos.
+  dos deltas atuais ainda precisa de comparacao. fontes legadas externas excluidos.
 
 ## Fluxo nativo 7.48
 

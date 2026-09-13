@@ -24,7 +24,7 @@ presenca com `0x16F`, e quais bytes o WYD-Go deve emitir?
 - `UTILIZADA`: WYD-Go `wire.UpdateItem` e `wire.RemoveItem`, testes e fluxo de
   portoes e visibilidade.
 - `NAO APLICAVEL`: assets e guia KR nao definem os envelopes. Sources 7.54,
-  W2PP, Secrets e Micronics nao foram consultadas.
+  fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

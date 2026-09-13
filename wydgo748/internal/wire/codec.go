@@ -32,7 +32,7 @@ func ResultGamble(id uint16, result [5]byte, stops [3]byte, prize int32, jackpot
 // MessageWhisper tambem e o correio nativo do 7.48: quando message inicia em
 // '!', TMFieldScene::OnPacketMessageWhisper grava o corpo no painel H em vez
 // de exibi-lo no chat. O cliente 7.48 usa Name[16]@12, String[96]@28 e
-// Color@124, totalizando EXATOS 128 bytes (nao o layout 160B do 7.59/W2PP).
+// Color@124, totalizando EXATOS 128 bytes (nao o layout 160B do 7.59/WYD 7.48).
 func MessageWhisper(senderID uint16, from, message string, color uint16) []byte {
 	// No 7.48, ID=0 despacha o whisper comum pelo TMFieldScene. Um ID de jogador
 	// o envia ao TMHuman; esse caminho serve aos prefixos especiais, mas deixa a
@@ -56,7 +56,7 @@ func MessagePanel(message string) []byte {
 
 // DaySync responde ao pedido periodico MobName="day" do client 7.48. O prefixo
 // !# e consumido por TMScene e nao aparece como aviso: "11" vira m_nYear e
-// "  2" vira m_nDays. O valor fixo reproduz o TMSrv 7.54 capturado e o W2PP.
+// "  2" vira m_nDays. O valor fixo reproduz o TMSrv 7.54 capturado e o WYD 7.48.
 func DaySync() []byte {
 	return MessagePanel("!#11  2")
 }
@@ -185,7 +185,7 @@ func partyDisplayHP(hp, maxHP uint32) (uint32, uint32) {
 func putU16(b []byte, off int, v uint16) { binary.LittleEndian.PutUint16(b[off:off+2], v) }
 func putU32(b []byte, off int, v uint32) { binary.LittleEndian.PutUint32(b[off:off+4], v) }
 
-// putU64 is used by the source-client ABI where EXP remains a native uint64;
+// putU64 is used by the TMProject748 client ABI where EXP remains a native uint64;
 // stock 7.48 builders keep their established 32-bit projection.
 func putU64(b []byte, off int, v uint64) { binary.LittleEndian.PutUint64(b[off:off+8], v) }
 

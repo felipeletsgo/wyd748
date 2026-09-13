@@ -78,7 +78,7 @@ func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 }
 
 // partyRequestTarget aceita o layout exato do TMSrv 7.54 (44B, DWORD@40) e o
-// layout mais novo usado pelas sources 7.59/W2PP (48B, WORD@44). O servidor
+// layout mais novo usado pelas sources 7.59/WYD 7.48 (48B, WORD@44). O servidor
 // continua validando existencia, alcance e estado do alvo depois desta leitura.
 func partyRequestTarget(pkt []byte) (uint16, bool) {
 	if len(pkt) >= 48 {

@@ -28,8 +28,7 @@ client fabrique efeitos reservados?
 - Servidor: `internal/game/character_session.go`, `internal/game/visibility.go`,
   `internal/game/security.go`, `internal/wire/codec.go` e seus testes.
 - TMProject posterior e guias: `NÃO APLICÁVEL`; o contrato foi decidido pelo
-  binário/Ghidra 7.48, pela source ativa e pelo WYD-Go. W2PP, Secrets e
-  Micronics permaneceram excluídos.
+  binário/Ghidra 7.48, pela source ativa e pelo WYD-Go. fontes legadas externas permaneceram excluídos.
 
 ## Fluxo nativo 7.48
 

@@ -331,8 +331,8 @@ Set-Bytes $data $poseHookOffset $poseHook
 # matriz entregue ao cavaleiro permanece invalida, produzindo os personagens
 # suspensos, invertidos ou separados vistos nos mounts KR. As transformacoes
 # abaixo seguem o WYD.exe KR que acompanha os assets. Ele inverte tambem o
-# terceiro eixo nos tipos 48..51, detalhe ausente na source W2PP publicada. No
-# type50, o binario usa row2 no segundo eixo; a source W2PP publicada indica
+# terceiro eixo nos tipos 48..51, detalhe ausente na referencia posterior publicada. No
+# type50, o binario usa row2 no segundo eixo; a referencia posterior publicada indica
 # row3, que injeta translacao na orientacao e faz o cavaleiro desaparecer. O
 # tipo 59 ainda aplica a rotacao Z de 3.351032 radianos do binario KR.
 # O port usa somente layouts confirmados do 7.48:
@@ -438,7 +438,7 @@ Set-Bytes $data $frameMatrixHookOffset $frameMatrixHook
 
 # TMSkinMesh::Render do 7.48 aplica a rotacao legada a todos os skeletons:
 # yaw-90, pitch-90, roll. Os skeletons modernos 48..51 foram criados com o
-# sistema de eixos posterior e, no client KR/W2PP, entram no ramo:
+# sistema de eixos posterior e, no client KR/referencia posterior, entram no ramo:
 # yaw+90, pitch, roll. Sem essa selecao a matriz de assento pode estar correta,
 # mas a montaria inteira permanece tombada 90 graus em direcao ao chao.
 # O adapter altera somente 48..51; tipos nativos e o tipo 59 preservam

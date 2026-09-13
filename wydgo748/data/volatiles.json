@@ -98,7 +98,7 @@
       "action": "mount",
       "mountAction": "feed",
       "consume": true,
-      "description": "Racao (2420+/3367+): +5000 HP (teto 30000) e +2 comida (teto 100) na montaria equipada. Casa por familia de tipo (fiel ao W2PP Vol 15)."
+      "description": "Racao (2420+/3367+): +5000 HP (teto 30000) e +2 comida (teto 100) na montaria equipada. Casa por familia de tipo (fiel ao WYD 7.48 Vol 15)."
     },
     "16": {
       "action": "mount",
@@ -854,7 +854,7 @@
       "counters": {
         "honor": 50
       },
-      "description": "Coin Wyden: +50 de honra, conforme W2PP."
+      "description": "Coin Wyden: +50 de honra, conforme WYD 7.48."
     },
     "3394": {
       "action": "grant_counter",
@@ -1268,7 +1268,7 @@
     "3455": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Extraction of Magical Power nao e consumivel diretamente no W2PP; permanece material do fluxo nativo de extracao."
+      "description": "Extraction of Magical Power nao e consumivel diretamente no WYD 7.48; permanece material do fluxo nativo de extracao."
     },
     "3909": {
       "action": "timed_access",

@@ -44,7 +44,7 @@ Não aplicável à extensão Mission. O dispatcher da source possui o case
 
 ### Função principal
 
-`CMission::DoCombine()` é um stub vazio na source atual e na referência W2PP.
+`CMission::DoCombine()` é um stub vazio na source atual e na referência posterior.
 Nenhum construtor de packet Mission foi implementado.
 
 ### Callees

@@ -162,7 +162,7 @@ func clampCapsuleStat(value uint32) uint16 {
 	return uint16(value)
 }
 
-// useCelestialCapsule implementa o trecho de _MSG_UseItem.cpp que o W2PP
+// useCelestialCapsule implementa o trecho de _MSG_UseItem.cpp que o WYD 7.48
 // reserva ao Spirit's Seal vazio. O personagem sai do mundo apenas depois da
 // transacao confirmar: em falha, item, ficha e charstate permanecem intactos.
 func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item, slot byte) {
@@ -376,7 +376,7 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 	created.X, created.Y = w.charSpawn.X, w.charSpawn.Y
 	created.RuntimeScore = nil
 	created.Affects = [16]model.Affect{}
-	// W2PP keeps only the face and cape (Equip[0] and Equip[15]) from the
+	// WYD 7.48 keeps only the face and cape (Equip[0] and Equip[15]) from the
 	// capsule. All carry is cleared before the new character is committed.
 	face, cape := created.Equip[0], created.Equip[model.CapeSlot]
 	created.Equip = [16]model.Item{}

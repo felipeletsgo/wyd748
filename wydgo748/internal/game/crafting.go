@@ -14,7 +14,7 @@ const (
 	combinePacketSize = 84
 	combineSlots      = 8
 	tinyGoldCost      = 100_000_000
-	// RELEASE SERVER/Common/Settings/CompRate.txt do W2PP usa 100. O default
+	// RELEASE SERVER/Common/Settings/CompRate.txt do WYD 7.48 usa 100. O default
 	// compilado era 20, mas sempre era sobrescrito pelo arquivo no boot.
 	tinyBaseChance = 100
 )
@@ -157,7 +157,7 @@ func (w *World) sendCombineResult(p *Player, result uint32) {
 
 func (w *World) sendCombineResultMessage(p *Player, result uint32, message string) {
 	if p != nil && p.Session != nil {
-		// Fluxo nativo W2PP/Micronics: a mensagem textual e enviada antes do
+		// Fluxo nativo WYD 7.48: a mensagem textual e enviada antes do
 		// MSG_CombineComplete (0x3A7). O sinal sozinho atualiza/fecha a janela.
 		// Quando existe roll percentual, a mensagem precisa usar exatamente a
 		// decisao persistida, nunca uma segunda rolagem para exibicao.

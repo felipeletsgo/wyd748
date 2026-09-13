@@ -33,7 +33,7 @@ func isSafeClientAssetPath(asset string) bool {
 	return cleaned != "." && cleaned != ".." && !strings.HasPrefix(cleaned, "../")
 }
 
-// ClientIntegrityProbe describes one byte in a source-client asset. It is an
+// ClientIntegrityProbe describes one byte in a TMProject748 client asset. It is an
 // operational compatibility check, not a cryptographic anti-cheat primitive.
 type ClientIntegrityProbe struct {
 	Category      int32  `json:"category"`

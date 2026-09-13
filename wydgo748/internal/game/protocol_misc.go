@@ -11,7 +11,7 @@ import (
 const playerChallengeTTL = 30 * time.Second
 
 // onPing trata o keepalive 0x3A0. O pacote nao pede data/hora e nao possui
-// resposta: W2PP e Secrets apenas atualizam LastReceiveTime na camada de socket
+// resposta: o client/runtime 7.48 apenas atualiza LastReceiveTime na camada de socket
 // e retornam. Recebe-lo pelo game loop ja comprova atividade da sessao.
 func (w *World) onPing(_ *net.Session, _ []byte) {}
 

@@ -17,7 +17,7 @@ type plannedDrop struct {
 	sourceSlot   int
 }
 
-// drops.go -- drop de loot na morte do mob, PORTADO do MobKilled.cpp do W2PP
+// drops.go -- drop de loot na morte do mob, PORTADO do MobKilled.cpp do WYD 7.48
 // ("Drop comum" + "Drop Gold"). Mecanica nativa: a chance depende do SLOT em que o
 // item esta no carry do monstro (tabela w.dropRates, ajustada por banda de level).
 // Diferenca pedida pelo felipe: o item dropado vai DIRETO pro inventario do killer;

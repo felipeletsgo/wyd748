@@ -58,7 +58,7 @@ func TestConvertNormalizesSkillMasterPages(t *testing.T) {
 	for branch, source := range []int{0, 27, 54} {
 		for i := 0; i < 8; i++ {
 			if branch == 2 && i == 7 {
-				continue // simula o Evilator ausente no binario Micronics
+				continue // simula o Evilator ausente no binario WYD 7.48
 			}
 			putU16(b, offCarry+(source+i)*8, uint16(5000+branch*8+i))
 		}

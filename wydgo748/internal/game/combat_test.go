@@ -29,7 +29,7 @@ func TestCombatAccuracyStartsAtOneHundredAndFallsWithDefenderEvasion(t *testing.
 	}
 }
 
-func TestPhysicalFlagsUseW2PPDoubleProgressionAndIndependentCritical(t *testing.T) {
+func TestPhysicalFlagsUseNative748DoubleProgressionAndIndependentCritical(t *testing.T) {
 	ch := &model.Char{Score: testScore(model.Score{AttackRun: 0xF0, Critical: 255})}
 	progress := uint16(0)
 	double, critical := rollPhysicalHitFlags(ch, &progress, func(int) int { return 254 })

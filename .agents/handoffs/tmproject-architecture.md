@@ -1059,7 +1059,7 @@ adicionada uma rota ao ReceivedPacketDispatch, pois não há evidência S->C.
 Modo PARIDADE_NATIVA/CONTRACT para wire e aceite. A ficha
 ui/party-panel-layout-lifecycle.md reutiliza `FUN_004662C5` como construtor e
 emissor nativo; source, binário/Ghidra 7.48, WYD-Go e testes foram UTILIZADOS.
-Assets não participam do frame e W2PP, Secrets e Micronics permaneceram
+Assets não participam do frame e fontes legadas externas permaneceram
 excluídos. O servidor continua revalidando líder, nome, convite e espaço.
 
 Debug/Release Build-Client.ps1 PASS, 1895 checks/asserts cada. A fixture C++
@@ -1330,8 +1330,7 @@ descompilação estudada `0040e604_FUN_0040e604.c` e
 reutilizada da ficha `send-item-local-update.md`. A consulta nativa também
 bloqueia somente células iguais a 1; não alegamos que suas entradas inválidas
 eram seguras. Assets, wire e servidor NÃO APLICÁVEIS ao delta: inalterados.
-TMProject posterior/guias NÃO APLICÁVEIS como prova nativa; W2PP, Secrets e
-Micronics excluídos. Nenhuma promoção de maturidade da ficha SendItem.
+TMProject posterior/guias NÃO APLICÁVEIS como prova nativa; fontes legadas externas excluídos. Nenhuma promoção de maturidade da ficha SendItem.
 
 Testes enumeram retângulos de uma grade 9x7 com ocupação em início/meio/fim,
 comparando com uma enumeração independente; incluem INT_MIN/INT_MAX, dimensões
@@ -1367,7 +1366,7 @@ source atual SGrid, GridInsertion e testes; descompilação Ghidra estudada de
 com identidade histórica reutilizada do lote anterior. Não há claim novo de
 paridade de entradas inválidas. Assets, wire e WYD-Go NÃO APLICÁVEIS ao delta,
 sem mudança; TMProject posterior/guias NÃO APLICÁVEIS como prova nativa;
-W2PP/Secrets/Micronics excluídos. A ficha SendItem permanece LOCATED.
+fontes legadas externas excluídos. A ficha SendItem permanece LOCATED.
 
 Build oficial Release passou, instalou e conferiu `tmproject/client748/project.exe`:
 `27B25D80BCC96FACD81D0B68D70BDC56AFE43FB34656CEB5FCE1DD8FADF24C69`.
@@ -1437,7 +1436,7 @@ skill-belt-page-selection e descompilacao estudada FUN_00416196 do corpus
 SHA-256 nativo reconferido: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593.
 Nenhum claim de rollback nativo novo. Assets, guia KR e servidor NAO
 APLICAVEIS ao delta de ownership; wire, mecanicas e IDs inalterados.
-Sources 7.54/W2PP/Secrets/Micronics nao consultadas.
+Sources 7.54/fontes legadas externas nao consultadas.
 
 Build oficial Release PASS; 24253 checks existentes/static assertions PASS,
 sem alegar que simulam este drop. Candidato instalado e conferido:
@@ -1465,7 +1464,7 @@ Modo MODERNIZACAO_COMPATIVEL, implementação local de ownership. UTILIZADA:
 source atual SGrid/SCursor, incluindo capacidade, PickupItem e destructor;
 documentação criada da adaptação e fluxo de input. Ghidra 7.48 e guia KR são
 NÃO APLICÁVEIS como prova de um quickslot moderno ausente no claim nativo;
-serviço WYD-Go, assets e wire não mudam. Sources 7.54/W2PP/Secrets/Micronics
+serviço WYD-Go, assets e wire não mudam. Sources 7.54/fontes legadas externas
 não foram consultadas.
 
 Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
@@ -1493,7 +1492,7 @@ Modo MODERNIZACAO_COMPATIVEL, implementação local de ownership. UTILIZADAS:
 source atual de `OnPacketSwapItem`, `SGridControl::AddItem`, `PickupItem` e
 `SCursor::DetachItem`, além da documentação de grid. A descompilação 7.48 e o
 guia KR não definem a política local de falha de alocação; não foram usados
-como prova adicional. Sources 7.54/W2PP/Secrets/Micronics não consultadas.
+como prova adicional. Sources 7.54/fontes legadas externas não consultadas.
 
 Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
 `git diff --check` PASS. Candidato instalado e conferido:
@@ -1518,7 +1517,7 @@ Modo MODERNIZACAO_COMPATIVEL, ownership local. UTILIZADAS: source atual,
 `SGridControl::AddItem`/destructor, caminhos de `OnPacketCNFGetItem`, compra,
 AutoTrade e Trade, além da documentação de UI existente. Ghidra e guia KR não
 são necessários para a decisão de liberar um objeto após rejeição; nenhuma
-fonte 7.54/W2PP/Secrets/Micronics foi consultada.
+fonte 7.54/fontes legadas externas foi consultada.
 
 Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
 `git diff --check` PASS. Candidato instalado e conferido:
@@ -1543,8 +1542,7 @@ cache autoritativo foi alterado.
 Modo MODERNIZACAO_COMPATIVEL, ownership local. UTILIZADAS: source atual dos
 três handlers, `SGridControl::AddItem`/destructor e layout já documentado de
 Shop/Skill Apprentice/Repurchase. Ghidra e guia KR não foram usados para
-decidir apenas a liberação de objetos rejeitados; sources 7.54/W2PP/Secrets/
-Micronics não consultadas.
+decidir apenas a liberação de objetos rejeitados; sources 7.54/fontes legadas externas não consultadas.
 
 Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
 `git diff --check` PASS. Candidato instalado e conferido:
@@ -1569,7 +1567,7 @@ Modo MODERNIZACAO_COMPATIVEL, implementação local de ownership. UTILIZADAS:
 source atual de `SetShortSkill`, `SGridControl::PickupItem`/`AddItem`,
 `SCursor::DetachItem` e documentação da seleção de página. A descompilação e o
 guia KR são NÃO APLICÁVEIS para essa guarda de falha local; não houve uso de
-TMProject posterior nem de sources 7.54/W2PP/Secrets/Micronics.
+TMProject posterior nem de sources 7.54/fontes legadas externas.
 
 Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
 `git diff --check` PASS. Candidato instalado e conferido:
@@ -1594,8 +1592,7 @@ para compatibilidade de armazenamento e aparência de NPCs.
 Modo EXTENSAO_COORDENADA de validação do contrato do emulador, sem mudança de
 opcode ou tamanho de packet. UTILIZADAS: código atual WYD-Go, testes de handler
 e catálogo `data/itemlist.csv`; guia KR/decompilação nativa foram avaliados e
-marcados como divergentes da projeção solicitada. Sources 7.54/W2PP/Secrets/
-Micronics não consultadas.
+marcados como divergentes da projeção solicitada. Sources 7.54/fontes legadas externas não consultadas.
 
 Teste focado `go test ./internal/game -count=1` PASS e suíte `go test
 -count=1 ./...` PASS. O teste `TestSwapRejectsUnsupportedNecklaceEquipSlot`
@@ -1616,7 +1613,7 @@ retirado, incluindo qualquer alias do cursor. O array `ShortSkill` e o packet
 Modo MODERNIZACAO_COMPATIVEL de ownership local. UTILIZADAS: source atual,
 documentação da seleção de página e descompilação já estudada do updater
 `FUN_004470B9`. Assets, guia KR e servidor NÃO APLICÁVEIS ao delta; sources
-7.54/W2PP/Secrets/Micronics não consultadas.
+7.54/fontes legadas externas não consultadas.
 
 Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS e
 `git diff --check` PASS. Candidato instalado e conferido:
@@ -1640,7 +1637,7 @@ visual para essas posições.
 Ficha criada em `flows/ui/equipment-slot-compatibility.md`, status LOCATED.
 Ela registra a divergência: o decompilado nativo `FUN_00435B13` e o guia KR
 contêm evidência histórica de Necklace, mas a decisão desta adaptação segue o
-contrato explícito do emulador. Nenhuma fonte 7.54/W2PP/Secrets/Micronics foi
+contrato explícito do emulador. Nenhuma fonte 7.54/fontes legadas externas foi
 consultada.
 
 Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS,
@@ -1661,8 +1658,7 @@ posição e wire não foram alterados.
 
 Modo MODERNIZACAO_COMPATIVEL, ownership/lifecycle local. UTILIZADAS: source
 atual, `MSG_CNFGetItem`/`SGridControl::AddItem` e documentação de pickup. Ghidra
-e guia KR não são necessários para a guarda de alocação; sources 7.54/W2PP/
-Secrets/Micronics não consultadas.
+e guia KR não são necessários para a guarda de alocação; sources 7.54/fontes legadas externas não consultadas.
 
 Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS e
 `git diff --check` PASS. Candidato instalado e conferido:
@@ -1681,8 +1677,7 @@ Atualizações Celestial/Repliction reutilizam a mesma projeção.
 
 Modo EXTENSAO_COORDENADA do contrato informado do emulador. UTILIZADAS: código
 WYD-Go, catálogo 7.48 e ficha `equipment-slot-compatibility.md`. Decompilação e
-guia KR continuam registrados como divergentes; nenhuma source 7.54/W2PP/
-Secrets/Micronics foi consultada.
+guia KR continuam registrados como divergentes; nenhuma source 7.54/fontes legadas externas foi consultada.
 
 Testes cobrem migração para Carry, fallback Cargo, rollback de persistência,
 rejeição de equip, ausência de bônus/regen/gema e projeção visual vazia.
@@ -1698,7 +1693,7 @@ continua intacto. Coordenadas `slot%9,slot/9`, wire e visibilidade não mudam.
 
 Modo MODERNIZACAO_COMPATIVEL. UTILIZADAS: source atual, contrato de ownership
 de `SGridControl` e evidência já estudada de `FUN_0052A737`. Guia KR, assets e
-servidor NÃO APLICÁVEIS; sources 7.54/W2PP/Secrets/Micronics não consultadas.
+servidor NÃO APLICÁVEIS; sources 7.54/fontes legadas externas não consultadas.
 
 Build Release PASS, ArchitectureTests 24253 checks/static assertions PASS e
 `git diff --check` PASS. Candidato instalado e conferido:
@@ -1719,8 +1714,7 @@ preservados.
 Modo MODERNIZACAO_COMPATIVEL, correcao local de ownership sobre o contrato de
 compra 7.48 ja documentado para FUN_00487b92. UTILIZADA: source atual e ficha
 nativa existente; binario/Ghidra 7.48 reutilizados sem novo claim. Servidor Go,
-assets e guia KR sao NAO APLICAVEIS ao defeito local. Sources 7.54, W2PP,
-Secrets e Micronics nao foram consultadas.
+assets e guia KR sao NAO APLICAVEIS ao defeito local. Sources 7.54, fontes legadas externas nao foram consultadas.
 
 Build Release via `Build-Client.ps1` PASS, ArchitectureTests 24253 checks e
 asserts estaticos PASS, `git diff --check` PASS. Candidato instalado:
@@ -1742,8 +1736,7 @@ e o controle e procura o proximo dos doze slots nativos, sem estado parcial.
 Modo MODERNIZACAO_COMPATIVEL, correcao local de ownership. UTILIZADAS: source
 atual, contrato de `SGridControl::AddItem` e ficha AutoTrade 7.48 ja estudada
 com `FUN_004662C5`. Binario/Ghidra foram reutilizados sem novo claim. Servidor,
-assets e guia KR sao NAO APLICAVEIS ao defeito local; sources 7.54, W2PP,
-Secrets e Micronics nao foram consultadas. Wire, preco, transformacao do Cargo,
+assets e guia KR sao NAO APLICAVEIS ao defeito local; sources 7.54, fontes legadas externas nao foram consultadas. Wire, preco, transformacao do Cargo,
 quantidade de slots e fechamento permaneceram inalterados.
 
 Build Release via `Build-Client.ps1` PASS, ArchitectureTests 24253 checks e
@@ -1770,7 +1763,7 @@ builder Go de 28 bytes e a ordem `0x171 -> 0x182` foram preservados.
 Ficha `flows/ui/pickup-confirmation-contract.md` validada como `CONTRACT`.
 Modo PARIDADE_NATIVA no wire e MODERNIZACAO_COMPATIVEL no guard do indice.
 UTILIZADAS: decompilacao/Ghidra 7.48, source atual e WYD-Go/testes. Assets e
-guia KR NAO APLICAVEIS; sources 7.54/W2PP/Secrets/Micronics nao consultadas.
+guia KR NAO APLICAVEIS; sources 7.54/fontes legadas externas nao consultadas.
 
 Build Release PASS, ArchitectureTests 24356 checks/asserts PASS,
 `go test -count=1 ./internal/wire` e `go vet ./internal/wire` PASS, XML/header
@@ -1797,7 +1790,7 @@ Ficha `flows/ui/drop-confirmation-contract.md` validada como `CONTRACT`; total
 agora CONTRACT=31, TRACED=19, LOCATED=7, UNMAPPED=2. Modo PARIDADE_NATIVA no
 wire e MODERNIZACAO_COMPATIVEL nos bounds. UTILIZADAS: decompilacao/Ghidra 7.48,
 source atual e WYD-Go/testes. Assets e guia KR NAO APLICAVEIS; sources 7.54,
-W2PP, Secrets e Micronics nao consultadas.
+fontes legadas externas nao consultadas.
 
 Build Release PASS, ArchitectureTests 24581 checks/asserts PASS,
 `go test -count=1 ./internal/wire` e `go vet ./internal/wire` PASS, XML/header
@@ -1823,7 +1816,7 @@ Ficha `flows/ui/ground-item-create-contract.md` validada como `CONTRACT`; total
 CONTRACT=32, TRACED=19, LOCATED=7, UNMAPPED=2. Modo PARIDADE_NATIVA no wire e
 MODERNIZACAO_COMPATIVEL no guard de lifecycle/ItemList. UTILIZADAS:
 decompilacao/Ghidra 7.48, source/assets atuais e WYD-Go/testes. Guia KR NAO
-APLICAVEL; sources 7.54/W2PP/Secrets/Micronics nao consultadas.
+APLICAVEL; sources 7.54/fontes legadas externas nao consultadas.
 
 Build Release PASS, ArchitectureTests 24626 checks/asserts PASS,
 `go test -count=1 ./internal/wire` e `go vet ./internal/wire` PASS, XML/header
@@ -1850,7 +1843,7 @@ Ficha `flows/ui/ground-item-state-contract.md` validada como `CONTRACT`; total
 CONTRACT=33, TRACED=19, LOCATED=7, UNMAPPED=2. Modo PARIDADE_NATIVA no wire e
 MODERNIZACAO_COMPATIVEL nos guards. UTILIZADAS: decompilacao/Ghidra 7.48,
 source atual e WYD-Go/testes. Assets e guia KR NAO APLICAVEIS; sources 7.54,
-W2PP, Secrets e Micronics nao consultadas.
+fontes legadas externas nao consultadas.
 
 Build Release PASS, ArchitectureTests 24682 checks/asserts PASS,
 `go test -count=1 ./...` e `go vet ./...` PASS, XML/header unico e
@@ -1878,7 +1871,7 @@ Ficha `flows/ui/instance-runtime-counter-controls.md` validada como `LOCATED`:
 os receptores nativos estao confirmados, mas a alocacao nativa exata ainda nao
 foi localizada. Modo MODERNIZACAO_COMPATIVEL, origem local/source atual.
 UTILIZADAS: decompilacao/Ghidra 7.48, FieldScene2/source atual e emissores
-WYD-Go. Guia KR NAO APLICAVEL; sources 7.54/W2PP/Secrets/Micronics nao usadas.
+WYD-Go. Guia KR NAO APLICAVEL; sources 7.54/fontes legadas externas nao usadas.
 
 Build Release PASS, ArchitectureTests 24682 checks/asserts PASS e
 `git diff --check` PASS. Candidato instalado:

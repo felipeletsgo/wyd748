@@ -38,7 +38,7 @@ const (
 	sefirotGoldCost       = 30_000_000
 	eternalStoneSapphires = 10
 
-	// archMinLevel e o nivel INTERNO exigido pelo rei. A fonte W2PP usa 380,
+	// archMinLevel e o nivel INTERNO exigido pelo rei. A fonte WYD 7.48 usa 380,
 	// mas os tutoriais da comunidade divergem (355, 370, 300) porque cada
 	// servidor calibra o proprio portao; 370 e a regra escolhida para o nosso
 	// -- e casa com "when a mortal reaches level 370-400 it can be reborn".

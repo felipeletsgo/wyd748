@@ -26,7 +26,7 @@ locais devem permanecer quando o aviso chega à cena?
   criado builder ou regra de billing no servidor.
 - `NAO APLICAVEL` — assets: o aviso reutiliza o MessageBox e a linha 132 já
   carregados; nenhum recurso foi alterado.
-- `NAO APLICAVEL` — W2PP, Secrets e Micronics são fontes excluídas.
+- `NAO APLICAVEL` — fontes legadas externas são fontes excluídas.
 
 ## Fluxo nativo 7.48
 

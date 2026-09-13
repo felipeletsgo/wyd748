@@ -20,7 +20,7 @@ Qual frame o client 7.48 envia ao clicar ou confirmar a interação com um NPC?
 - Assets: `NÃO APLICÁVEL`; o contrato é um envelope de 20 bytes.
 - Source atual: `TMFieldScene.cpp`, `Basedef.h` e `internal/wire/UseNPCPacket.h`.
 - Servidor: `internal/game/handlers.go`, `security.go`, `world.go` e testes de interação com NPC.
-- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; W2PP, Secrets e Micronics foram excluídos da decisão.
+- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; fontes legadas externas foram excluídos da decisão.
 
 ## Fluxo nativo 7.48
 

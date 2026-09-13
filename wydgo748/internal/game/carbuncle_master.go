@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	// O W2PP aceita somente Mortal com nivel interno abaixo de 116 (nivel 116
+	// O WYD 7.48 aceita somente Mortal com nivel interno abaixo de 116 (nivel 116
 	// exibido) e chama SetAffect com potencia 600. Duracao, tipo e valor continuam
 	// vindo do SkillData.csv autoritativo.
 	carbMasterLevelLimit = uint32(116)
@@ -19,7 +19,7 @@ const (
 
 var carbMasterSkills = [...]int{41, 43, 44, 45}
 
-// isCarbMasterNPC reconhece somente a familia convertida do Micronics. Os JSONs
+// isCarbMasterNPC reconhece somente a familia convertida do WYD 7.48. Os JSONs
 // antigos possuem levels/merchants inconsistentes, portanto o nome canonico e a
 // identidade estavel desta funcao; os dados foram normalizados separadamente.
 func isCarbMasterNPC(def *model.NPCDef) bool {

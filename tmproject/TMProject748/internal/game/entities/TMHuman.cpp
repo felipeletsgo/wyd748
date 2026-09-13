@@ -4885,7 +4885,7 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
     if (g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
         return 1;
 
-    // The coordinated source-client contract carries one uint32 layout; it is
+    // The coordinated client/server contract carries one uint32 layout; it is
     // distinct from the historical 20/36-byte forms of opcode 0x181.
     const unsigned int hp = pStd->Hp;
     const unsigned int mp = pStd->Mp;

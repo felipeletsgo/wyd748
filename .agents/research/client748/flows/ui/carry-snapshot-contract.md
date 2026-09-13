@@ -24,7 +24,7 @@ o array estrutural de 64 itens quando somente 63 slots possuem celula visual?
 - `UTILIZADA`: WYD-Go `wire.UpdateCarry`, `model.MaxCarry`, emissores de
   login, comandos, compra, trade, AutoTrade, quest e composicoes, e testes.
 - `NAO APLICAVEL`: o guia KR nao define o wire; nenhum asset novo e necessario.
-  Sources 7.54, W2PP, Secrets e Micronics nao foram consultadas.
+  Sources 7.54, fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

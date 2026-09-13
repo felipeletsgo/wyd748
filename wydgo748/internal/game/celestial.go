@@ -78,7 +78,7 @@ func newCelestialScore(class byte, previous *model.Score) *model.Score {
 	natural := baseClassStats[class]
 	score := &model.Score{
 		Version: model.ScoreVersion,
-		// Ramo normal (isHardCore=0) da Pedra Ideal no W2PP.
+		// Ramo normal (isHardCore=0) da Pedra Ideal no WYD 7.48.
 		Attack: 488, Defense: 954,
 		MaxHP: uint32(baseClassHPMP[class][0]),
 		MaxMP: uint32(baseClassHPMP[class][1]),
@@ -177,7 +177,7 @@ func (w *World) syncCelestialPlayer(p *Player) {
 	w.updatePartyMember(p)
 }
 
-// craftIdealStoneAtKing porta o primeiro ramo de KingDom do Secrets 7.54.
+// craftIdealStoneAtKing porta o primeiro ramo de KingDom do WYD 7.48.
 // A Pedra Ideal nao nasce no Odin: o rei consome as quatro Pedras Secretas do
 // inventario, a Imortalidade/Eternal equipada e o Sephirot equipado. Arch usa
 // a primeira Ideal para virar Celestial; Celestial usa outra para criar a Sub.

@@ -114,7 +114,7 @@ static_assert(sizeof(MSG_UpdateItem) == 20, "7.48 item-update request must remai
 static_assert(sizeof(MSG_SetShortSkill) == 32, "7.48 short-skill request must remain 32 bytes");
 static_assert(sizeof(MSG_ReqBuy) == 36, "7.48 auto-trade purchase request must remain 36 bytes");
 
-// The source-client response family embeds the canonical 140-byte Score.
+// The TMProject748 response family embeds the canonical 140-byte Score.
 // These values are mirrored byte-for-byte by internal/wire/source_client.go.
 static_assert(sizeof(STRUCT_SELCHAR) == 1272, "source STRUCT_SELCHAR ABI changed");
 static_assert(sizeof(STRUCT_MOB) == 1224, "source STRUCT_MOB ABI changed");

@@ -146,7 +146,7 @@ const (
 )
 
 // Score e a unica representacao de atributos de personagens e mobs e o
-// contrato binario compartilhado com o client-source 7.48+. Todos os
+// contrato binario compartilhado com o TMProject748 client. Todos os
 // campos sao uint32; nao existe score legado, sidecar ou projecao paralela.
 //
 // Os calculos intermediarios do game usam int64 e os resultados persistidos
@@ -338,7 +338,7 @@ type Char struct {
 	Class byte   `json:"class"`
 	X     uint16 `json:"x"`
 	Y     uint16 `json:"y"`
-	// Score e persistido diretamente e compartilhado com o client-source.
+	// Score e persistido diretamente e compartilhado com o TMProject748 client.
 	Score *Score `json:"score"`
 	// RuntimeScore contem a copia efetiva depois de buffs/debuffs. Score
 	// permanece a base persistida; essa copia nao define outro formato de score; separar os dois impede que cada recálculo
@@ -404,7 +404,7 @@ type Char struct {
 	// permanece nos campos normais para todo combate/protocolo continuar usando
 	// uma unica fonte autoritativa.
 	AlternateCelestial *CelestialForm `json:"alternateCelestial,omitempty"`
-	// Habilidades da evolucao; separadas dos 24 bits Mortais como na W2PP.
+	// Habilidades da evolucao; separadas dos 24 bits Mortais como no WYD 7.48.
 	SecondaryLearnedSkill uint32     `json:"secondaryLearnedSkill,omitempty"`
 	ShortSkill            [20]byte   `json:"shortSkill,omitempty"`
 	Affects               [16]Affect `json:"affects,omitempty"`
@@ -1017,7 +1017,7 @@ type NPCDef struct {
 	Score *Score `json:"score"`
 	// Carry = o inventario de DROP do monstro (mecanica nativa do WYD): a POSICAO
 	// no array e o slot (0..63) e define a chance via a tabela de drop rates
-	// (data/droprate.json, portada do g_pDropRate[64] do W2PP). Na morte, cada slot
+	// (data/droprate.json, portada do g_pDropRate[64] do WYD 7.48). Na morte, cada slot
 	// ocupado rola rand()%rate==0; o item dropado vai DIRETO pro inventario do killer.
 	Carry []Item `json:"carry,omitempty"`
 	// Gold = o "Coin" do mob nativo; na morte rola o drop de gold (formula do

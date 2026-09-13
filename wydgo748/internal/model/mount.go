@@ -1,6 +1,6 @@
 package model
 
-// Sistema de montaria fiel ao WYD/W2PP. O estado de cada montaria vive nos 3
+// Sistema de montaria fiel ao WYD/WYD 7.48. O estado de cada montaria vive nos 3
 // slots de efeito do proprio item (Equip[14]), exatamente como o nativo:
 //
 //	Eff[0..1] (uint16 LE) = HP da montaria      (stEffect[0].sValue, ate ~30000)
@@ -11,7 +11,7 @@ package model
 //
 // O sIndex codifica tipo+estagio: ovo 2300-2329, cria 2330-2358, adulta
 // 2360-2388. Tipo = (sIndex-base)%30; adulta = cria+30. As faixas batem 1:1 com
-// o nosso itemlist (mesmo client 7.48 do Micronics).
+// o nosso itemlist (mesmo client 7.48 do WYD 7.48).
 const (
 	MountEggBase   = 2300 // primeiro ovo (Pig's_Egg)
 	MountBabyBase  = 2330 // primeira cria (Pig's_Baby)
@@ -26,7 +26,7 @@ const (
 )
 
 // MountStats sao os atributos base de um tipo de montaria (g_pMountBonus do
-// W2PP): [AttackAdd, MagicAdd, Evasion, Resistence, Speed, RiderDamagePct].
+// WYD 7.48): [AttackAdd, MagicAdd, Evasion, Resistence, Speed, RiderDamagePct].
 // Dano e magia escalam com o level da montaria; evasao/resist/velocidade sao
 // flat. RiderDamagePct e a parcela do dano que permanece no cavaleiro quando
 // a montaria absorve dano.

@@ -28,7 +28,7 @@ precisam de endurecimento antes da copia?
 - NAO APLICAVEL neste endurecimento: assets/recursos nao mudam e nenhum novo
   controle e criado. Ownership completo de grids continua pendente.
 - NAO APLICAVEL: TMProject posterior/guia como prova de offsets nativos.
-  W2PP, Secrets e Micronics excluidos.
+  fontes legadas externas excluidos.
 
 ## Fluxo nativo 7.48
 

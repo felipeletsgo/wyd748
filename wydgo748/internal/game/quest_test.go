@@ -55,7 +55,7 @@ func TestIndexQuestsRecusaNPCReservado(t *testing.T) {
 }
 
 func TestIndexQuestsAceitaNPCDeQuest(t *testing.T) {
-	// merchant 43 = 0x2B -> nibble 11, que e o tipo de quest da base Micronics.
+	// merchant 43 = 0x2B -> nibble 11, que e o tipo de quest da base WYD 7.48.
 	file := model.QuestFile{Version: model.QuestFileVersion,
 		Quests: []model.QuestDef{simpleQuest(1, "Gravedigger")}}
 	index, err := indexQuests(file, []model.NPCDef{questNPC("Gravedigger", 43)})
@@ -420,7 +420,7 @@ func TestResolveNPCInteractionValidaAlcanceEVisibilidade(t *testing.T) {
 //
 // O client 7.48 percorre `for (i = 0; i < 27; ++i)` no OnPacketShopList e monta
 // a grade com (i%5, i/5). Item alem da 27a posicao do PACOTE nunca e desenhado.
-// Como os NPCs do Micronics espalham o estoque pelas 64 posicoes originais, sem
+// Como os NPCs do WYD 7.48 espalham o estoque pelas 64 posicoes originais, sem
 // compactar a maior parte da loja fica invisivel.
 
 func shopItems(indexes ...uint16) []model.Item {

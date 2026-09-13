@@ -24,8 +24,7 @@ podem ser aplicados sem ultrapassar Equip, Carry ou Cargo?
 - `UTILIZADA` — WYD-Go `wire.CNFDropItem`, teste byte a byte e fluxo
   autoritativo `onDropItem`.
 - `NAO APLICAVEL` — assets: nenhuma grade ou imagem nova e carregada.
-- `NAO APLICAVEL` — guia KR nao define o wire. Sources 7.54, W2PP, Secrets e
-  Micronics nao foram consultadas.
+- `NAO APLICAVEL` — guia KR nao define o wire. Sources 7.54, fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Extends BASE_DefineSkinMeshType in the exact 7.48 executable ABI. W2PP/KR
+# Extends BASE_DefineSkinMeshType in the exact 7.48 executable ABI. KR/later reference
 # supplies only the semantic class->skin mapping; no foreign address, frame or
 # structure offset is transplanted.
 

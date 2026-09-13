@@ -19,13 +19,19 @@ Avalie e registre por frente o binário nativo 7.48, o projeto/descompilação
 Ghidra, assets 7.48, source atual do TMProject, `wydgo748/`, testes e demais
 referências. Marque cada fonte como `UTILIZADA`, `NÃO APLICÁVEL` ou
 `CONTRADITÓRIA`, com justificativa. O binário e o Ghidra prevalecem; TMProject
-7.69, guias e histórico são referências secundárias. W2PP, Secrets e Micronics
-são excluídos e não podem orientar, validar ou contradizer a decisão.
+7.69, guias e histórico são referências secundárias. Projetos legados externos
+podem explicar a origem histórica de um dado, mas não são autoridade de
+paridade. Se o mesmo comportamento/dado já tiver validação independente e
+registrada no runtime/client 7.48 ou em teste reproduzível do contrato 7.48,
+reutilize essa evidência como `PARIDADE_NATIVA` sem reabrir a investigação.
 
 ## Classificação e gates
 
-- `PARIDADE_NATIVA`: reproduz comportamento legado; exige ficha `TRACED` e,
-  para wire/ABI/loader/recurso, `CONTRACT` antes da adaptação.
+- `PARIDADE_NATIVA`: reproduz comportamento legado. Para uma fronteira ainda
+  não validada, exige ficha `TRACED` e, para wire/ABI/loader/recurso,
+  `CONTRACT` antes da adaptação. Evidência 7.48 já registrada e ainda válida
+  pode ser reutilizada diretamente, inclusive para dados e testes já exercidos
+  no runtime real, sem repetir Ghidra ou exportações.
 - `MODERNIZACAO_COMPATIVEL`: muda a implementação interna preservando o
   contrato; reutiliza a ficha comprovada e restringe a prova às fronteiras
   afetadas.

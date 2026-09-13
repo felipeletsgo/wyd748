@@ -20,7 +20,7 @@ frame parcial alcance a animacao e o estado pendente da aposta?
   `FUN_0055890A` e a struct `MSG_ResultGamble` ja existente.
 - `UTILIZADA`: source `OnPacketRESULTGAMBLE`, builder WYD-Go e testes.
 - `NAO APLICAVEL`: guia KR e assets nao definem este envelope. Sources 7.54,
-  W2PP, Secrets e Micronics nao foram consultadas.
+  fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

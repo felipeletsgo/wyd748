@@ -23,8 +23,7 @@ Quais frames o client 7.48 envia ao confirmar guerra ou aliança entre guilds?
 - Source atual: `TMFieldScene.cpp`, `Basedef.h` e `internal/wire/GuildRelationPacket.h`.
 - Servidor: `internal/game/guild.go`, `security.go`, `world.go`,
   `guild_war_test.go` e `guild_flow_test.go`.
-- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; W2PP, Secrets e
-  Micronics foram excluídos da decisão.
+- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; fontes legadas externas foram excluídos da decisão.
 
 ## Fluxo nativo 7.48
 

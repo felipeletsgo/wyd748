@@ -47,7 +47,7 @@ party_exp_bonus = 3
 }
 
 // TestLoadServerConfigParsesCompositorKeys: as quatro chaves precisam chegar ao
-// GameplayConfig. Na W2PP o equivalente (CompRate.txt) e lido para um array que
+// GameplayConfig. No WYD 7.48 o equivalente (CompRate.txt) e lido para um array que
 // nenhuma funcao consulta, e o parser so normaliza a primeira coluna -- ajustar
 // o arquivo la nao muda nada no jogo. Aqui isso tem que valer.
 func TestLoadServerConfigParsesCompositorKeys(t *testing.T) {

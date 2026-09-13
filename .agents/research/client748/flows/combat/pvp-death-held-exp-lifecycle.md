@@ -27,7 +27,7 @@ confundir com CP/Chaos?
   `internal/game/progression.go`, `internal/game/kill_rewards.go`,
   `internal/game/visibility.go`, `internal/game/equipment.go`,
   `internal/wire/codec.go` e `internal/wire/source_client.go`.
-- Referencia server-side complementar: curvas W2PP/7.5x para divisores de
+- Referencia server-side complementar: curvas referências 7.5x para divisores de
   morte e amortizacao. Elas nao substituem o contrato wire recuperado do 7.48.
 
 ## Fluxo nativo 7.48

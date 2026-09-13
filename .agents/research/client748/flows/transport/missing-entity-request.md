@@ -28,7 +28,7 @@ virar uma consulta global do mapa?
 - Servidor: `internal/game/character_session.go`, `internal/game/security.go`,
   `internal/game/session_drops_test.go` e `internal/wire/opcodes.go`.
 - TMProject posterior e guias: `NÃO APLICÁVEL`; o ABI foi decidido pelo
-  binário/Ghidra 7.48 e pelo ecossistema atual. W2PP, Secrets e Micronics
+  binário/Ghidra 7.48 e pelo ecossistema atual. fontes legadas externas
   permaneceram excluídos.
 
 ## Fluxo nativo 7.48

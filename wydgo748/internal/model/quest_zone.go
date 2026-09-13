@@ -8,7 +8,7 @@ const QuestZoneFileVersion = 1
 
 // QuestZone e um retangulo do mundo (inclusive nas bordas) que sofre reset
 // periodico: todo jogador dentro dele e recolhido para a cidade a cada ciclo.
-// Porta o mecanismo ClearArea do W2PP (as areas de quest de nivel expulsam o
+// Porta o mecanismo ClearArea do WYD 7.48 (as areas de quest de nivel expulsam o
 // jogador apos ~10 minutos, revivendo-o se estiver morto).
 type QuestZone struct {
 	Name string `json:"name"`

@@ -24,7 +24,7 @@ e o servidor precisa responder?
 - Assets: `NÃO APLICÁVEL`; o fluxo não usa UI ou recurso.
 - Source atual: `TMFieldScene.cpp`, `TMSelectCharScene.cpp` e `Basedef.h`.
 - Servidor: `internal/game/protocol_misc.go`, `security.go`, `world.go` e testes.
-- TMProject posterior/guias: `NÃO APLICÁVEL`; W2PP, Secrets e Micronics foram
+- TMProject posterior/guias: `NÃO APLICÁVEL`; fontes legadas externas foram
   excluídos da decisão.
 
 ## Fluxo nativo 7.48

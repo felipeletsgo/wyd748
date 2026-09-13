@@ -35,7 +35,7 @@ const clientShopSlots = 27
 
 // shopDisplayList devolve a lista de venda como o client vai enxerga-la.
 //
-// Os NPCs convertidos do Micronics espalham o estoque pelas 64 posicoes do
+// Os NPCs convertidos do WYD 7.48 espalham o estoque pelas 64 posicoes do
 // Inventory original, com buracos: o Aki, por exemplo, tem itens em 1..7, em
 // 27..31 e em 33..35. Como o client so le as 27 primeiras entradas, tudo que
 // estiver depois some da loja. Compactar resolve, preservando a ordem.
@@ -74,7 +74,7 @@ func shopDisplayList(vende []model.Item, shopType uint32) []model.Item {
 //
 // Isso revela o layout nativo da loja: BLOCOS DE 9 espacados de 27 (0..8,
 // 27..35, 54..62) -- a mesma estrutura dos 27 slots do mestre de skill, e
-// exatamente onde os NPCs do Micronics guardam o estoque. Os indices 0..8
+// exatamente onde os NPCs do WYD 7.48 guardam o estoque. Os indices 0..8
 // mapeiam para si mesmos, o que fazia as primeiras compras funcionarem e
 // mascarava o problema.
 //
@@ -89,7 +89,7 @@ func shopSlotFromClient(sourPos uint16) (int, bool) {
 	return pos + 9*block, true
 }
 
-// countShopItems conta apenas as posicoes ocupadas: a lista crua do Micronics
+// countShopItems conta apenas as posicoes ocupadas: a lista crua do WYD 7.48
 // tem buracos, entao len() nao diz quantos itens a loja realmente oferece.
 func countShopItems(vende []model.Item) int {
 	count := 0
@@ -361,7 +361,7 @@ func (w *World) onCreateCharacter(s *net.Session, pkt []byte) {
 }
 
 // onEnterWorld: 0x213. Materializa o char no mundo e dispara a sequencia de login
-// na ordem exata do Micronics (sem ela os campos do client ficam nao-inicializados).
+// na ordem exata do WYD 7.48 (sem ela os campos do client ficam nao-inicializados).
 func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Account == nil || len(pkt) != characterLoginPacketSize {
@@ -459,7 +459,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	// self com estado velho (HP/MP travados). ActionStop vem depois, senao reseta a pose.
 	s.Send(wire.CreateMobWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
 		bodyAncient(ch), wireScoreState(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP))
-	// 3) sequencia de login (ordem Micronics): 3A8 -> 336 -> 185 -> 337 -> 36B -> 181 -> 366
+	// 3) sequencia de login (ordem WYD 7.48): 3A8 -> 336 -> 185 -> 337 -> 36B -> 181 -> 366
 	s.Send(wire.WarInfo())
 	s.Send(playerScorePacket(p))
 	s.Send(playerAffectsPacket(p))

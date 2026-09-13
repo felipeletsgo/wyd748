@@ -11,7 +11,7 @@ import (
 )
 
 // LoadRepliction carrega a transcricao autoritativa de SetItemBonus2 e das
-// tabelas g_pBonusValue2..5 do W2PP. O formato compacto de cada bonus e
+// tabelas g_pBonusValue2..5 do WYD 7.48. O formato compacto de cada bonus e
 // [effect1,value1,effect2,value2].
 func LoadRepliction(path string, items map[uint16]model.ItemDef) (model.ReplictionCatalog, error) {
 	var raw struct {

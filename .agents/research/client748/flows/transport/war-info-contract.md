@@ -25,7 +25,7 @@ preservar os tres estados consumidos por selecao de alvo, PvP e render do mapa?
   WYD-Go.
 - NAO APLICAVEL: assets 7.48; o fluxo nao materializa controles nem recursos.
 - NAO APLICAVEL: guia WYD KR scraped; nao define o envelope deste packet.
-- NAO CONSULTADAS: sources 7.54, W2PP, Secrets e Micronics.
+- NAO CONSULTADAS: sources 7.54, fontes legadas externas.
 
 ## Fluxo nativo 7.48
 

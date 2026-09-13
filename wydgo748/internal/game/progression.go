@@ -2,7 +2,7 @@ package game
 
 import "wydgo/internal/model"
 
-// g_pNextLevel completa do Basedef.cpp/W2PP. Os valores sao EXP acumulada:
+// g_pNextLevel completa do Basedef.cpp/WYD 7.48. Os valores sao EXP acumulada:
 // level N ocupa [table[N], table[N+1]). Sao 401 marcos, do level 0 ao 400.
 // Arch/Celestial usam g_pNextLevel_2 e entram como uma progressao separada.
 var mortalNextLevel = [...]uint32{
@@ -115,10 +115,9 @@ func archExperienceLocked(ch *model.Char) bool {
 	return level >= archLockLevel355 && !ch.ArchLevel355
 }
 
-// As flags 40/90 existem na 7.54, mas o Secrets esqueceu de consulta-las no
-// ganho de EXP. O W2PP corrige essa lacuna; mantemos a mecanica pretendida para
-// que as composicoes/destraves tenham efeito real. A Sub nao possui essas duas
-// travas.
+// As travas 40/90 fazem parte do contrato de progressao validado no runtime 7.48.
+// O ganho de EXP deve respeita-las para que composicoes/destraves tenham efeito
+// real. A Sub nao possui essas duas travas.
 func celestialExperienceLocked(ch *model.Char) bool {
 	if ch == nil || ch.Score == nil || !advancedEvolution(ch, "celestial") {
 		return false
@@ -166,16 +165,16 @@ func progressionExperienceCap(ch *model.Char) uint32 {
 	return cap
 }
 
-// Esta e a linha Arch da tabela expbase do W2PP. O divisor e armazenado em
+// Esta e a linha Arch da tabela expbase do WYD 7.48. O divisor e armazenado em
 // centesimos: 200 concede 50%, 12000 concede 1/120. Ela cobre
 // as faixas exibidas 256-280, 281-300, 301-320, 321-340, 341-350, 351-360,
 // 361-370, 371-380, 381-390, 391-395, 396-398 e 399-400.
-var w2ppArchEXPDivisors = [...]uint32{200, 400, 800, 1200, 1600, 2000, 2400, 2800, 7600, 9000, 10000, 12000}
+var native748ArchEXPDivisors = [...]uint32{200, 400, 800, 1200, 1600, 2000, 2400, 2800, 7600, 9000, 10000, 12000}
 
-// w2ppHighLevelEXPDivisor seleciona a mesma coluna de expbase usada por
-// GetExpApply. level e o nivel exibido (o W2PP incrementa o nivel interno antes
+// native748HighLevelEXPDivisor seleciona a coluna de expbase validada no 7.48.
+// GetExpApply. level e o nivel exibido (o WYD 7.48 incrementa o nivel interno antes
 // destas comparacoes).
-func w2ppHighLevelEXPDivisor(level uint32, divisors [12]uint32) uint32 {
+func native748HighLevelEXPDivisor(level uint32, divisors [12]uint32) uint32 {
 	switch {
 	case level > 398:
 		return divisors[11]
@@ -204,7 +203,7 @@ func w2ppHighLevelEXPDivisor(level uint32, divisors [12]uint32) uint32 {
 	}
 }
 
-func w2ppCelestialEXPDivisor(level uint32) uint32 {
+func native748CelestialEXPDivisor(level uint32) uint32 {
 	switch {
 	case level > 398:
 		return 18000
@@ -258,21 +257,21 @@ func w2ppCelestialEXPDivisor(level uint32) uint32 {
 }
 
 // combatExperienceByEvolution porta as curvas Arch/Celestial de GetExpApply do
-// W2PP. A reducao vale somente para EXP de combate; Mortal e recompensas fixas
+// WYD 7.48. A reducao vale somente para EXP de combate; Mortal e recompensas fixas
 // de quest/item continuam integrais. O calculo usa uint64 para nao estourar
 // reward*100.
 func combatExperienceByEvolution(ch *model.Char, reward uint32) uint32 {
 	if ch == nil || ch.Score == nil || reward == 0 {
 		return reward
 	}
-	level := ch.Score.Level + 1 // nivel exibido usado pelo W2PP
+	level := ch.Score.Level + 1 // nivel exibido usado pelo WYD 7.48
 	divisor := uint32(100)
 	switch {
 	case isCelestialEvolution(ch):
-		divisor = w2ppCelestialEXPDivisor(level)
+		divisor = native748CelestialEXPDivisor(level)
 	case isArch(ch):
 		if level > 255 {
-			divisor = w2ppHighLevelEXPDivisor(level, w2ppArchEXPDivisors)
+			divisor = native748HighLevelEXPDivisor(level, native748ArchEXPDivisors)
 		} else if level >= 5 {
 			divisor += level / 5
 		}

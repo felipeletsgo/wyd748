@@ -1,6 +1,6 @@
 package model
 
-// Cidadania, portada do W2PP (CMob.cpp:1526 e SendFunc.cpp:3126).
+// Cidadania, portada do WYD 7.48 (CMob.cpp:1526 e SendFunc.cpp:3126).
 //
 // O valor de Citizenship e o NUMERO DO CANAL (no nativo, ServerIndex+1), nao um
 // booleano: "Cidadania 2" significa cidadao do canal 2. Isso importa porque o

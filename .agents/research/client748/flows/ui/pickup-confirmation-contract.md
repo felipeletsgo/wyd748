@@ -28,8 +28,7 @@ validados antes de atualizar o Carry e sua grade visual?
   autoritativo de coleta em `internal/game/handlers.go`.
 - `NAO APLICAVEL` — assets: o fluxo usa a grade Carry 9x7 ja materializada e
   nao cria ou altera recurso.
-- `NAO APLICAVEL` — guia KR nao especifica este wire. Sources 7.54, W2PP,
-  Secrets e Micronics nao foram consultadas.
+- `NAO APLICAVEL` — guia KR nao especifica este wire. Sources 7.54, fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

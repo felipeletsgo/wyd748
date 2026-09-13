@@ -61,7 +61,7 @@ func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 	}
 	raw, hasSanc := sancRaw(*target)
 	specialRefine := hasSanc && raw >= 230 && raw <= 253
-	// O W2PP permite a familia de armas Ancient (Grade 5..8) mesmo abaixo
+	// O WYD 7.48 permite a familia de armas Ancient (Grade 5..8) mesmo abaixo
 	// de +10: nesse caso somente o Index da variante muda e o refino comum e
 	// preservado. Armaduras exigem o intervalo especial +10..+15.
 	if armor && !specialRefine {

@@ -21,7 +21,7 @@ const (
 )
 
 // tickMobCombat porta o fluxo StandingByProcessor -> SetBattle ->
-// BattleProcessor do W2PP. Como activeMobs ja contem somente monstros acordados
+// BattleProcessor do WYD 7.48. Como activeMobs ja contem somente monstros acordados
 // por proximidade, aquisicao e perseguicao rodam a cada 1 segundo.
 // O World roda em uma unica goroutine, portanto alvo, HP e posicao mudam juntos.
 func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovement bool) {

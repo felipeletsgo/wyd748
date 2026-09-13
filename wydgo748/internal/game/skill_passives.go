@@ -6,7 +6,7 @@ func learnedLocal(ch *model.Char, local int) bool {
 	return ch != nil && local >= 0 && local < 24 && ch.LearnedSkill&(uint32(1)<<local) != 0
 }
 
-// applyPassiveSkills concentra efeitos permanentes que a W2PP aplica durante
+// applyPassiveSkills concentra efeitos permanentes que o WYD 7.48 aplica durante
 // BASE_GetCurrentScore/BASE_GetMobAbility. Eles nunca dependem de pacote do
 // client e sao reconstruidos do zero em todo recalc.
 func (w *World) applyPassiveSkills(ch *model.Char) {

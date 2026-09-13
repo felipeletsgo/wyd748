@@ -89,7 +89,7 @@ func TestSkillsComeFromAuthoritativeSkillData(t *testing.T) {
 	for index, expected := range want {
 		skill := catalog.Skills[index]
 		if skill.AffectType != expected[0] || skill.AffectValue != expected[1] || skill.AffectTime != expected[2] {
-			t.Fatalf("skill %d divergiu do SkillData W2PP: %+v", index, skill)
+			t.Fatalf("skill %d divergiu do SkillData WYD 7.48: %+v", index, skill)
 		}
 	}
 	if aura := catalog.Skills[5]; aura.TickType != 17 || aura.TickValue != 75 {
@@ -97,7 +97,7 @@ func TestSkillsComeFromAuthoritativeSkillData(t *testing.T) {
 	}
 }
 
-func TestW2PPSpecialSkillIndices(t *testing.T) {
+func TestNative748SpecialSkillIndices(t *testing.T) {
 	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)

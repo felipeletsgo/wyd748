@@ -84,7 +84,7 @@ func TestSetAffectRejectsWeakerOrShorterReplacement(t *testing.T) {
 	}
 }
 
-func TestBMTransformationUsesW2PPInterpolation(t *testing.T) {
+func TestBMTransformationUsesNative748Interpolation(t *testing.T) {
 	now := time.Now()
 	ch := &model.Char{Class: 2, LearnedSkill: 1 << (65 - 48), Score: testScore(model.Score{
 		Attack: 100, Defense: 100, MaxHP: 1000, AttackRun: 0x11,

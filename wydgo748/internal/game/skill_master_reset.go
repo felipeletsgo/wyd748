@@ -60,7 +60,7 @@ func resetDistributedAttributes(ch *model.Char) (uint32, bool) {
 	return recovered, true
 }
 
-// handleAbilityResetMasterNPC porta o MESTREHAB do W2PP para o estado
+// handleAbilityResetMasterNPC porta o MESTREHAB do WYD 7.48 para o estado
 // Score autoritativo. Return Of Ability tem prioridade; sem ele, o
 // custo é 30 Safiras (avulsas e/ou pacotes de dez).
 func (w *World) handleAbilityResetMasterNPC(s *net.Session, p *Player, m *Mob, clickOk int32) bool {

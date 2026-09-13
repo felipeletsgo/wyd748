@@ -8,17 +8,17 @@ import (
 )
 
 const (
-	// MaxGuilds espelha o MAX_GUILD=4096 do W2PP. O indice 0 significa "sem
+	// MaxGuilds espelha o MAX_GUILD=4096 do WYD 7.48. O indice 0 significa "sem
 	// guild", entao os IDs validos vao de 1 a 4095 e cabem no WORD que o
 	// protocolo reserva para guild.
 	MaxGuilds  = 4096
 	MinGuildID = 1
 	MaxGuildID = MaxGuilds - 1
 
-	// GuildNameMaxLen espelha o GUILDNAME_LENGTH=12 do W2PP.
+	// GuildNameMaxLen espelha o GUILDNAME_LENGTH=12 do WYD 7.48.
 	GuildNameMaxLen = 12
 
-	// Ranks na escala nativa (GuildLevel do W2PP). O client e o DoDeprivate
+	// Ranks na escala nativa (GuildLevel do WYD 7.48). O client e o DoDeprivate
 	// nativo comparam ranks numericamente, entao a escala precisa ser a mesma:
 	// 9 = mestre, 6/7/8 = os tres slots de sub-lider, 0 = membro comum.
 	GuildRankMember   = 0

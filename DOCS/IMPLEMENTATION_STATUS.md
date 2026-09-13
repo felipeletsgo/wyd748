@@ -1,8 +1,10 @@
 # Histórico de implementação — WYD-Go 7.48
 
 Snapshot de 18/07/2026, mantido por rastreabilidade. Não descreve o contrato
-atual: tipos, layouts e validações abaixo podem ter sido substituídos. Fontes
-descontinuadas citadas são procedência histórica, não evidência aceita. Consulte
+atual: tipos, layouts e validações abaixo podem ter sido substituídos. Dados e
+comportamentos já exercidos com o client/runtime 7.48 podem ser classificados
+como `PARIDADE_NATIVA`; a evidência é a validação 7.48 registrada, não a origem
+histórica do dado. Consulte
 [Score atual](SCORE.md), [Build e integração](build-and-integration.md) e
 [AGENTS.md](../AGENTS.md). Comandos Go usam `wydgo748/` como diretório de trabalho.
 
@@ -11,20 +13,20 @@ descontinuadas citadas são procedência histórica, não evidência aceita. Con
 - `Score` v2 é a única fonte autoritativa dos atributos. `Char.Extended`
   guarda a base persistida e `ExtendedRuntime` é recomposto com equipamentos,
   passivas e affects. O `STRUCT_SCORE` de 28 bytes é apenas uma projeção de wire.
-- Os atributos naturais por classe são os de `BaseSIDCHM` do W2PP:
+- Os atributos naturais por classe são os de `BaseSIDCHM` do WYD 7.48:
   TK `(8,4,7,6)`, FM `(5,8,5,5)`, BM `(6,6,9,5)` e HT `(8,9,13,6)`.
 - HP/MP Mortal seguem `BASE_GetHpMp`: base da classe, apenas CON/INT acima do
   atributo natural e progressão por nível. HP/nível é `[3,1,1,2]` e MP/nível
   `[1,3,2,1]` para TK/FM/BM/HT.
 - Pontos de atributo começam em `level × 5`, com os thresholds adicionais de
-  254, 299 e 354 da W2PP. O servidor normaliza qualquer saldo que ultrapasse o
+  254, 299 e 354 do WYD 7.48. O servidor normaliza qualquer saldo que ultrapasse o
   orçamento sem reduzir um atributo abaixo da base natural.
 - Pontos de mastery: `level × 2 − mastery já aplicada`.
 - Pontos de skill Mortal: `level × 3`, mais um por nível acima de 199, menos
   `SkillData.SkillPoint` de cada skill aprendida. O custo vem do CSV do servidor.
 - Mastery respeita o limite por nível e os tetos 200/255/320 conforme a oitava
   skill Mortal e as skills secundárias aprendidas.
-- EXP Mortal usa os 401 marcos cumulativos de `g_pNextLevel` do W2PP. O nível
+- EXP Mortal usa os 401 marcos cumulativos de `g_pNextLevel` do WYD 7.48. O nível
   interno é base zero: `0` aparece como nível 1 e `399` como nível 400. O marco
   400 (`4.100.000.000`) é o teto de EXP, não um nível interno adicional.
 - Cada NPC define `expReward` no JSON. Antes do ganho, o servidor aplica
@@ -86,7 +88,7 @@ descontinuadas citadas são procedência histórica, não evidência aceita. Con
 
 - `itemlist.csv`, `Itemname.csv` e `SkillData.csv`, convertidos do client 7.48,
   são carregados integralmente durante o boot.
-- A base Micronics foi convertida em 476 templates sob `data/npcs`.
+- A base WYD 7.48 foi convertida em 476 templates sob `data/npcs`.
   A conversão preserva efeitos de equipamento/drop/loja, mastery e campos
   auxiliares do `STRUCT_MOB`; quatro índices corrompidos acima de 6.500 foram
   removidos e recompensas Gold/EXP recebem saneamento seletivo.
@@ -191,7 +193,7 @@ descontinuadas citadas são procedência histórica, não evidência aceita. Con
 - TK e Foema incluem controles sem dano artificial, curas individual/grupo,
   desintoxicacao, Flash, teleporte, ressurreicao, Cancelamento e os efeitos
   elementais/AoE.
-- BM possui as oito invocacoes da W2PP (`BaseSummon` + `pSummonBonus`). Summons
+- BM possui as oito invocacoes do WYD 7.48 (`BaseSummon` + `pSummonBonus`). Summons
   escalam com INT, CON e maestria, aparecem apenas na area de interesse, seguem
   o dono e atacam monstros. As cinco transformacoes usam `pTransBonus`, exibem
   o corpo correto e restauram o visual ao expirar.
@@ -232,7 +234,7 @@ descontinuadas citadas são procedência histórica, não evidência aceita. Con
 | `0x36A/0x2BC` | Reconhecidos como pacotes informativos do client 7.48; tamanho anômalo recebe log limitado a uma vez por minuto. |
 | `0x101 MessagePanel` | Aviso flutuante no topo da tela usado para confirmação e erro de comandos. |
 
-O `p613_SendEtc` do Secrets não é o layout final deste client. O servidor usa o
+O `p613_SendEtc` do WYD 7.48 não é o layout final deste client. O servidor usa o
 `p754_SendEtc` de 36 bytes: misturar Status/Mastery em @20 também cria uma máscara
 de LearnedSkill falsa, e escrever NextExp em @28 gera SkillPts negativos.
 
@@ -260,7 +262,7 @@ de LearnedSkill falsa, e escrever NextExp em @28 gera SkillPts negativos.
   `CreateMob → SetHpMp → ActionStop` antes do movimento. Isso impede o jogador
   revivido de permanecer morto ou congelado na margem da área visível.
 - NPCGener, colisão de mobs e respawn de grupos.
-- Portais Micronics server-side via `data/teleports.ini` e `0x290`, com cobrança,
+- Portais WYD 7.48 server-side via `data/teleports.ini` e `0x290`, com cobrança,
   terreno, colisão, persistência e atualização regional.
 - Merchant funcional preservado do `STRUCT_MOB@17`: lojas nativas Merchant 1,
   mestres Merchant 19 e grade de skills compactada em 27 slots.
@@ -373,7 +375,7 @@ de LearnedSkill falsa, e escrever NextExp em @28 gera SkillPts negativos.
   de guild funciona por roteamento server-side e não prova que o client leu o
   `@98`/`@74`. A verificação é comparar nome/alvo entre membros da mesma guild
   e de guilds diferentes; o mark depende de download de imagem, que é
-  customização do W2PP e provavelmente não existe no 7.48 stock.
+  customização do WYD 7.48 e provavelmente não existe no 7.48 stock.
 - Arch/Celestial usam `g_pNextLevel_2` e regras de evolução/quest próprias; não
   fazem parte da progressão Mortal atual.
 

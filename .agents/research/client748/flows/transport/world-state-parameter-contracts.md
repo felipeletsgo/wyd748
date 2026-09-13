@@ -26,7 +26,7 @@ os handlers vivos usados pelo WYD-Go?
 - `UTILIZADA`: WYD-Go `wire.UpdateCargoGold`, `wire.RemoveMob`, seus emissores
   em Cargo, AutoTrade, visibilidade, morte e encerramento de sessao, e testes.
 - `NAO APLICAVEL`: assets e guia KR nao definem estes envelopes. Sources 7.54,
-  W2PP, Secrets e Micronics nao foram consultadas.
+  fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

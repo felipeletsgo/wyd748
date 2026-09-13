@@ -674,7 +674,7 @@ func (s *JSONStore) saveGameState(state *model.InstanceStateSnapshot,
 }
 
 // exportGuildsTxt regrava o arquivo inteiro no formato nativo. E sempre uma
-// reescrita completa (nao um append como no W2PP): assim dissolver ou renomear
+// reescrita completa (nao um append como no WYD 7.48): assim dissolver ou renomear
 // guild se reflete no arquivo, em vez de deixar linha orfa acumulando.
 func (s *JSONStore) exportGuildsTxt(guilds *model.GuildRegistry) error {
 	if s.guildsTxtPath == "" {

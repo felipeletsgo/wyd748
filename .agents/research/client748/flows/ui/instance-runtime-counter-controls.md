@@ -26,7 +26,7 @@ packets de tempo e objetivos enviados pelo WYD-Go?
   Cube, Big Cube, Nightmare, Hell Gate e salas Water).
 - `NAO APLICAVEL`: os textos sao objetos runtime e nao exigem novo asset.
 - `NAO APLICAVEL`: guia KR nao define os controles internos. Sources 7.54,
-  W2PP, Secrets e Micronics nao foram consultadas.
+  fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

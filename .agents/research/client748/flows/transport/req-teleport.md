@@ -26,8 +26,7 @@ permite o envio?
 - Servidor: `internal/game/teleports.go`, `security.go`, `world.go` e testes
   de teleporte.
 - TMProject posterior/guias: `UTILIZADA` somente como implementação candidata
-  secundária; não define endereço, ABI ou comportamento nativo. W2PP, Secrets
-  e Micronics foram excluídos da decisão.
+  secundária; não define endereço, ABI ou comportamento nativo. fontes legadas externas foram excluídos da decisão.
 
 ## Fluxo nativo 7.48
 
@@ -145,7 +144,7 @@ unchanged.
 Evidence provenance: native 7.48/Ghidra remains primary for the FieldScene
 control lifecycle; resource IDs and the current source establish the local
 control contract.  TMProject is used only as a secondary semantic comparison.
-W2PP, Secrets and Micronics are excluded.
+legacy external sources are excluded.
 
 Validation status: static/source correction complete; client build and manual
 Confirm/Cancel plus destination execution remain pending, so this is not yet

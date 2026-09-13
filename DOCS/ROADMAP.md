@@ -240,7 +240,7 @@ Não introduzir ECS, goroutine por mob, microservices ou mutex por subsistema.
 
 - uso direto do item 3455 sem handler nativo confirmado;
 - opcodes de versões posteriores ausentes no client 7.48;
-- crafting W2PP cujo NPC/item não existe no catálogo 7.48;
+- crafting WYD 7.48 cujo NPC/item não existe no catálogo 7.48;
 - tabela inventada do Big Cube;
 - confiança em MAC/HWID enviado pelo client;
 - fallback automático PostgreSQL → JSON;

@@ -252,6 +252,26 @@ func TestShutdownReturnsFalseWhenFinalPersistenceFails(t *testing.T) {
 	}
 }
 
+func TestShutdownUsesOneOverallTimeoutBudget(t *testing.T) {
+	w, _ := newShutdownWorld()
+	w.commands = make(chan command)
+
+	const timeout = 200 * time.Millisecond
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		<-w.commands // aceita o comando, mas nao executa a persistencia final
+	}()
+
+	started := time.Now()
+	if w.Shutdown(timeout) {
+		t.Fatal("shutdown sem persistencia final nao deveria concluir com sucesso")
+	}
+	elapsed := time.Since(started)
+	if elapsed > 275*time.Millisecond {
+		t.Fatalf("shutdown excedeu o budget global: elapsed=%v timeout=%v", elapsed, timeout)
+	}
+}
+
 func TestLoginRefusedWhileShuttingDown(t *testing.T) {
 	w, _ := newShutdownWorld()
 	w.shuttingDown = true

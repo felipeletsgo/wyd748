@@ -116,10 +116,10 @@ motivou este arquivo.
 
 ## Limitação: o C.C. do 7.48 é um macro improvisado
 
-O macro nativo do 7.48 é bem mais pobre que o **C.C. do client W2PP**, que tem
-um subsistema completo (`ThreadMacro`, em `MacroPerga.cpp` + `TMFieldScene`):
+O macro nativo do 7.48 é bem mais pobre que a **implementação moderna de referência**, que tem
+um subsistema completo (`ThreadMacro` + `TMFieldScene`):
 
-| | 7.48 (nosso) | W2PP |
+| | 7.48 (nosso) | implementação moderna |
 | --- | --- | --- |
 | poção | limiar **fixo** em 50% | `r_AutoMacroHP`/`MP` configurável, passos de 10% |
 | posição | sempre livre | `r_AutoMacroMove` + `r_AutoMacroX/Y` (fixa ou livre) |
@@ -253,14 +253,14 @@ aranhas. Assets, `BoneAni4`, `ValidIndex` e animações dessas
 famílias já coincidiam byte a byte com o KR; o contrato ausente era o cálculo
 da matriz, não a textura ou a malha. O binário KR inverte os três eixos nos
 ramos modernos. No tipo `50`, ele também usa `row2` no segundo eixo, enquanto a
-source W2PP publicada indica `row3`; portar essa linha literalmente injeta a
+uma implementação moderna estudada indica `row3`; portar essa linha literalmente injeta a
 translação na orientação e faz o cavaleiro do Wooden Horse desaparecer.
-Por isso, a source W2PP não deve ser usada isoladamente para regenerar esse
+Por isso, uma referência posterior não deve ser usada isoladamente para regenerar esse
 adapter.
 O nono adapter corrige a orientação global da própria montaria em
 `TMSkinMesh::Render`. O 7.48 só possuía o ramo legado
 `yaw-90°/pitch-90°`; os skeletons KR `48..51` agora usam seletivamente o ramo
-moderno comprovado no client KR/W2PP (`yaw+90°/pitch original`). O tipo `59` e
+moderno comprovado no client KR e na integração atual (`yaw+90°/pitch original`). O tipo `59` e
 todas as montarias nativas permanecem no cálculo original. Essa correção é
 independente da matriz de assento: a anterior posiciona o cavaleiro, enquanto
 esta impede que o corpo da montaria fique apontado verticalmente para o chão.
@@ -296,7 +296,7 @@ clients KR fornecidos. `Patch-WYD748-KRMobItems.ps1` traduz os registros para
 o `ItemList.bin` de 140 bytes do 7.48, enquanto
 `Patch-WYD748-KRMobAssets.ps1` instala meshes, texturas, skeletons, animações,
 sons e índices. `Patch-WYD748-KRMobs.ps1` amplia somente o selector visual
-`BASE_DefineSkinMeshType` para as classes 66..74 confirmadas pela source W2PP.
+`BASE_DefineSkinMeshType` para as classes 66..74 catalogadas pela integração atual.
 
 Os IDs modernos acima de 4095 foram remapeados para IDs livres abaixo desse
 limite, pois o `CreateMob` compacto do 7.48 transporta somente 12 bits da face.

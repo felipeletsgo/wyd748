@@ -7,7 +7,7 @@ import (
 	"wydgo/internal/wire"
 )
 
-// O grid nativo W2PP usa meia janela 16. Este emulador amplia para 32 para que
+// O grid nativo WYD 7.48 usa meia janela 16. Este emulador amplia para 32 para que
 // PvP e mapas de guerra conservem entidades ate o limite visual da camera. A
 // janela continua local (65x65), sem transmitir o mundo inteiro ao client.
 const viewHalfX = 32

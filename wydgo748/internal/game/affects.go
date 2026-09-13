@@ -118,7 +118,7 @@ func activePlayerAffectAt(ch *model.Char, affectType byte, now time.Time) *model
 }
 
 // accumulateAffect SOMA tempo a um affect existente (ou cria um novo), com teto.
-// Porta o padrao do frango assado e do bau de EXP do W2PP, que fazem
+// Porta o padrao do frango assado e do bau de EXP do WYD 7.48, que fazem
 // Affect.Time += X ate um limite e recusam "usar mais" quando ja no teto. addUnits
 // e maxUnits sao blocos de 8 s. Retorna false (sem consumir) quando ja saturado.
 func accumulateAffect(ch *model.Char, affectType byte, value, level, addUnits, maxUnits int) bool {
@@ -296,7 +296,7 @@ func cleansePlayer(ch *model.Char) bool {
 	return changed
 }
 
-// applySupportSkill porta o caminho nao-agressivo de _MSG_Attack da W2PP.
+// applySupportSkill porta o caminho nao-agressivo de _MSG_Attack do WYD 7.48.
 // O client escolhe/mostra o alvo, mas o servidor valida grupo, alcance e valores.
 type supportSkillResult struct {
 	player  *Player
@@ -309,7 +309,7 @@ func foemaHealAmount(skillIndex, mastery, instanceValue int) int {
 	if skillIndex == 27 {
 		heal = mastery*2 + instanceValue
 	}
-	// Personagens deste emulador ainda sao Mortais. A W2PP/7.59 aplica 140%
+	// Personagens deste emulador ainda sao Mortais. O WYD 7.48 aplica 140%
 	// e limita Cura/Recuperar a 548 HP nessa classe de personagem.
 	return minInt(548, heal*14/10)
 }
@@ -340,7 +340,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 				target.DeadAt = time.Time{}
 				applied = true
 			}
-		case 99: // Ressurreicao Sephira: somente autocast do morto (Secrets 7.54).
+		case 99: // Ressurreicao Sephira: somente autocast do morto (WYD 7.48).
 			if target == p && playerCurHP(target.Char) == 0 {
 				chance := clampInt((int(playerLevel(target.Char))+1)/5, 0, 100)
 				if w.intn(100) < chance {
@@ -662,7 +662,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			e.ResistHoly = uint32(maxInt(0, int(e.ResistHoly)-a.Value))
 			e.ResistThunder = uint32(maxInt(0, int(e.ResistThunder)-a.Value))
 		case 4: // Buff de dano (Kappa/Competente/Mental, comidas, Coragem...).
-			// O W2PP (Basedef.cpp:3900) da um bonus fixo; o felipe optou por
+			// O WYD 7.48 (Basedef.cpp:3900) da um bonus fixo; o felipe optou por
 			// ESCALAR por tier. Value = % de bonus aplicado a ataque fisico e
 			// magico, configurado por item/codigo em volatiles.json.
 			e.Attack = mul(e.Attack, 100+a.Value)
@@ -694,7 +694,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			for j := range e.Mastery {
 				e.Mastery[j] = minU32(maxScoreValue, e.Mastery[j]+value)
 			}
-		case 16: // Transformacoes BM; pTransBonus da W2PP
+		case 16: // Transformacoes BM; pTransBonus do WYD 7.48
 			type transformBonus struct {
 				minDamage, maxDamage, minDefense, maxDefense int
 				minHP, maxHP, run, attackSpeed               int
@@ -763,7 +763,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		case 26:
 			e.Evasion = add(e.Evasion, int64(a.Level+a.Value*10))
 		case 29: // Limite da Alma Celestial/SubCelestial.
-			// O Secrets calcula os percentuais sobre o bStatus cru, nao sobre
+			// O WYD 7.48 calcula os percentuais sobre o bStatus cru, nao sobre
 			// equipamentos nem sobre o resultado de outro buff. SoulInfo e
 			// compartilhado pelas duas formas; o affect em si e por forma.
 			bonuses := [...][4]int{
@@ -1009,7 +1009,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 			}
 		} else {
 			w.sendToMobViewProtocol(m, func(observer *Player) []byte {
-				// Area effects must not collapse source-client resources to WORDs.
+				// Area effects must not collapse TMProject748 client resources to WORDs.
 				return wire.MobHpMp(m.ID, m.HP, m.Def.Score.MaxHP,
 					m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 			})
@@ -1021,7 +1021,7 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 func tickAreaVisual(skillIndex int) (int, byte) {
 	if skillIndex == 37 {
 		// A Lightning Storm 7.59 e um tick que reproduz visualmente Thunderbolt
-		// (skill 33), exatamente como o ProcessAffect Type 22 da W2PP.
+		// (skill 33), exatamente como o ProcessAffect Type 22 do WYD 7.48.
 		return 33, 254
 	}
 	return skillIndex, 254

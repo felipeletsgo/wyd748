@@ -30,7 +30,7 @@ type kingdomCapeFamily struct {
 	Neutral   uint16
 }
 
-// Ordem confirmada em KingDomCape[2][5] e CapeBroker[5] da 7.54 Secrets.
+// Ordem confirmada em KingDomCape[2][5] e CapeBroker[5] da 7.54 WYD 7.48.
 var kingdomCapeFamilies = [...]kingdomCapeFamily{
 	{Hekalotia: 545, Akelonia: 546, Neutral: 548},
 	{Hekalotia: 543, Akelonia: 544, Neutral: 549},
@@ -94,7 +94,7 @@ func KingdomCapeAtTier(tier KingdomCapeTier, kingdom byte) (uint16, bool) {
 
 // KingdomCape converte a capa neutra para o equivalente do reino. A capa
 // vazia e a Wanderer entram pela medalha basica; tiers superiores preservam a
-// categoria, como no case KING do W2PP.
+// categoria, como no case KING do WYD 7.48.
 func KingdomCape(index uint16, kingdom byte) (uint16, bool) {
 	if index == 0 {
 		return KingdomCapeAtTier(CapeTierBasic, kingdom)
@@ -112,7 +112,7 @@ func NeutralCape(index uint16) (uint16, bool) {
 	if ok && KingdomFromCape(index) != KingdomNeutral {
 		return KingdomCapeAtTier(tier, KingdomNeutral)
 	}
-	// Estas capas especiais Celestiais usam o broker Master na W2PP.
+	// Estas capas especiais Celestiais usam o broker Master no WYD 7.48.
 	if index == 1767 || index == 1770 {
 		return KingdomCapeAtTier(CapeTierMaster, KingdomNeutral)
 	}

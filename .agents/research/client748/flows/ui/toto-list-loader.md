@@ -161,7 +161,7 @@ servidor revalida partida `1..80` sem confiar no conteúdo textual deste asset.
 
 ## Matriz de delta
 
-| Claim | Nativo 7.48 | Source atual | TMProject/W2PP | WYD-Go | Decisão |
+| Claim | Nativo 7.48 | Source atual | TMProject/referência posterior | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
 | entrada | initializer da Field | caller já vivo | mesmo caller | N/A | manter |
 | armazenamento | 80 x 96; índices 1..78 em slots homônimos | 80 slots zero-based para partidas 1..80 | struct presente, loader stub | N/A | modernizar compatível |

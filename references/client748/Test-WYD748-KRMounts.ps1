@@ -108,7 +108,7 @@ foreach($signature in @(
     '8DB3680000008DBA84000000',
     '8DB3580000008DBA94000000'
 )){if(-not$frameMatrixHex.Contains($signature)){throw "adapter CFrame nao contem assinatura KR $signature"}}
-# O type50 usa row2 no segundo eixo, conforme o executavel KR. A source W2PP
+# O type50 usa row2 no segundo eixo, conforme o executavel KR. A source later reference
 # publicada aponta row3; esse erro injeta translacao na orientacao e remove o
 # cavaleiro do Wooden Horse. Há quatro usos corretos de row2 -> OutMatrix.row1:
 # types 48, 49, 50 e 51.
@@ -116,7 +116,7 @@ $row2ToOutRow1='8DB3680000008DBA84000000'
 if(([regex]::Matches($frameMatrixHex,$row2ToOutRow1)).Count-ne4){throw 'adapter CFrame nao preservou os quatro ramos row2 -> OutMatrix.row1'}
 if($frameMatrixHex.Contains('8DB3780000008DBA84000000')){throw 'adapter CFrame ainda usa row3 incorretamente no assento type50'}
 # O executavel KR inverte o terceiro eixo de todos os skeletons 48..51. A
-# source W2PP publicada omite esse sinal; conferir apenas os offsets deixava o
+# referencia posterior publicada omite esse sinal; conferir apenas os offsets deixava o
 # teste verde enquanto o cavaleiro permanecia suspenso/invertido.
 foreach($signature in @('81B29400000000000080','81B29800000000000080','81B29C00000000000080','81B2A000000000000080')){
     $count=([regex]::Matches($frameMatrixHex,$signature)).Count

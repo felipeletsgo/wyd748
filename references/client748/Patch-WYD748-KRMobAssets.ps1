@@ -105,7 +105,7 @@ foreach ($name in $specificFiles) {
     if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { Copy-Item -LiteralPath $source -Destination $target }
 }
 
-# W2PP maps LB/LK parts 1+2 to texture 01 and part 3 to texture 02. The 7.48
+# The later reference maps LB/LK parts 1+2 to texture 01 and part 3 to texture 02. The 7.48
 # renderer resolves one pathname per part, so materialize the same mapping.
 Copy-Item -LiteralPath (Join-Path $sourceMesh 'LB010101.wys') -Destination (Join-Path $targetMesh 'LB010201.wys') -Force
 Copy-Item -LiteralPath (Join-Path $sourceMesh 'LB010201.wys') -Destination (Join-Path $targetMesh 'LB010301.wys') -Force

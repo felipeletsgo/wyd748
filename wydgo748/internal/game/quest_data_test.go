@@ -173,14 +173,14 @@ func TestQuestsComplementaresConfirmadasNaSource(t *testing.T) {
 		royal.Requires.MinLevel != 199 || royal.Requires.MaxLevel != 253 ||
 		royal.Rewards.Teleport == nil || royal.Rewards.Teleport.X != 1740 ||
 		royal.Rewards.Teleport.Y != 1725 {
-		t.Fatalf("QUEST_CAPAREAL divergiu do W2PP: %+v", royal)
+		t.Fatalf("QUEST_CAPAREAL divergiu do WYD 7.48: %+v", royal)
 	}
 	ameria := byNPC["Priest_Ameria"]
 	if !ameria.Repeatable || !ameria.Requires.MortalOnly ||
 		ameria.Requires.MinLevel != 119 || ameria.Requires.MaxLevel != 123 ||
 		len(ameria.Consumes) != 1 || ameria.Consumes[0].Index != 4125 ||
 		len(ameria.Rewards.Items) != 1 || ameria.Rewards.Items[0].Index != 4126 {
-		t.Fatalf("AMELIA/Priest Ameria divergiu do W2PP: %+v", ameria)
+		t.Fatalf("AMELIA/Priest Ameria divergiu do WYD 7.48: %+v", ameria)
 	}
 }
 
@@ -193,7 +193,7 @@ func TestQuestsComplementaresConfirmadasNaSource(t *testing.T) {
 // so encolhe.
 //
 // Esta vazia. O 4125 (Balance's_Piece) esteve aqui por engano meu: eu havia
-// procurado o item no MobDropList do W2PP pelo nome sem o acento de
+// procurado o item no MobDropList do WYD 7.48 pelo nome sem o acento de
 // "Equilibrio" e concluido que nao existia fonte. Ele dropa do InionTrollChief,
 // nos slots 9 e 10, exatamente como o 4123 dropa do NainTrollChief.
 var lacunasDeFonte = map[uint16]string{}

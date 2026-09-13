@@ -28,7 +28,7 @@ ficha é a projeção visual e o despacho de posições sem controle materializa
   não autoriza expor esses controles no contrato do emulador solicitado.
 - CONTRADITÓRIA como mecânica histórica, sem força para substituir o contrato
   do emulador: guia KR scraped menciona Necklace em regras de selamento.
-- NÃO APLICÁVEIS: sources 7.54, W2PP, Secrets e Micronics; não foram consultadas.
+- NÃO APLICÁVEIS: sources 7.54, fontes legadas externas; não foram consultadas.
 
 ## Fluxo nativo 7.48
 

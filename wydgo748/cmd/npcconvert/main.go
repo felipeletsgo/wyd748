@@ -1,8 +1,8 @@
 // Comando npcconvert -- converte os arquivos de mob binarios do TMSrv 7.54
-// (STRUCT_MOB de 756 bytes, um por arquivo na pasta npc/ do Micronics) para o
+// (STRUCT_MOB de 756 bytes, um por arquivo na pasta npc/ do WYD 7.48) para o
 // formato JSON de NPCDef do wyd-go.
 //
-// Layout do STRUCT_MOB 7.54 (Secrets/BaseStruct.h, truncado em 756B no arquivo):
+// Layout do STRUCT_MOB 7.54 (WYD 7.48/BaseStruct.h, truncado em 756B no arquivo):
 //
 //	Name[16]@0, Merchant@17, ClassInfo@20, Gold@24, Exp@28, LastPos@32,
 //	bStatus@36, Status@64 (a fonte autoritativa: ReadMob faz BaseScore=Status),
@@ -69,7 +69,7 @@ func inventoryTrim(b []byte) ([]model.Item, int) {
 		case it.Index == 0:
 			it = model.Item{}
 		case int(it.Index) >= model.ItemListSize:
-			// Quatro arquivos da distribuicao Micronics possuem palavras
+			// Quatro arquivos da distribuicao WYD 7.48 possuem palavras
 			// residuais (11k..23k) no meio do Inventory. Nao sao item IDs.
 			it = model.Item{}
 			invalid++
@@ -184,7 +184,7 @@ func convert(name string, b []byte) (model.NPCDef, conversionReport) {
 	return def, report
 }
 
-// Os mestres Micronics guardam os tres ramos nas paginas 0, 27 e 54 do
+// Os mestres WYD 7.48 guardam os tres ramos nas paginas 0, 27 e 54 do
 // Inventory[64]. O client 7.48, porem, abre uma unica grade de 27 posicoes:
 // 8 skills + separador, repetido tres vezes.
 func skillShopInventory(inv []model.Item) []model.Item {
@@ -198,7 +198,7 @@ func skillShopInventory(inv []model.Item) []model.Item {
 			if source+i < len(inv) {
 				out[branch*9+i] = inv[source+i]
 			}
-			// Cada classe possui exatamente 24 livros. A distribuicao Micronics
+			// Cada classe possui exatamente 24 livros. A distribuicao WYD 7.48
 			// omite o Evilator (5071) do Mestre_Archi; complete lacunas dos 24
 			// slots utilizaveis sem tocar nos separadores 8/17/26.
 			if out[branch*9+i].Index == 0 && classStart != 0 {

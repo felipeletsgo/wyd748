@@ -115,7 +115,7 @@ type QuestDef struct {
 	// item de quem ainda tem entradas.
 	//
 	// Existe como campo proprio porque o item nao e consumivel: nem o nosso
-	// itemlist nem o do W2PP dao EF_VOLATILE ao selo 4127, entao "usar o item"
+	// itemlist nem o do WYD 7.48 dao EF_VOLATILE ao selo 4127, entao "usar o item"
 	// nao e um caminho valido -- quem o gasta e o NPC.
 	Recharge *QuestRecharge `json:"recharge,omitempty"`
 	// ConsumeCounters GASTA contadores nomeados. Paralelo ao Consumes de itens,

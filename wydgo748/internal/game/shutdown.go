@@ -28,9 +28,11 @@ type flushStore interface {
 // incompleto.
 func (w *World) Shutdown(timeout time.Duration) bool {
 	done := make(chan error, 1)
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 	select {
 	case w.commands <- command{queuedAt: time.Now(), shutdown: done}:
-	case <-time.After(timeout):
+	case <-timer.C:
 		log.Print("desligamento: game loop nao aceitou o comando (fila cheia)")
 		return false
 	}
@@ -41,7 +43,7 @@ func (w *World) Shutdown(timeout time.Duration) bool {
 			return false
 		}
 		return true
-	case <-time.After(timeout):
+	case <-timer.C:
 		log.Print("desligamento: tempo esgotado durante a persistencia final")
 		return false
 	}

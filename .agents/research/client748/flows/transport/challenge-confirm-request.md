@@ -20,7 +20,7 @@ Qual frame o client 7.48 envia ao confirmar a seleção de uma disputa de zona?
 - Assets: `NÃO APLICÁVEL`; o contrato é um envelope de 20 bytes.
 - Source atual: `TMFieldScene.cpp`, `Basedef.h` e `internal/wire/ChallengeConfirmPacket.h`.
 - Servidor: `internal/game/teleports.go`, `security.go`, `world.go` e testes de disputa.
-- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; W2PP, Secrets e Micronics foram excluídos da decisão.
+- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; fontes legadas externas foram excluídos da decisão.
 
 ## Fluxo nativo 7.48
 

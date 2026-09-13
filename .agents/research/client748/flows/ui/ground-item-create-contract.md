@@ -25,8 +25,7 @@ podem ser usados com seguranca pelo renderer do client 7.48?
   visibilidade de itens/objetos do mapa.
 - `UTILIZADA` — `ItemList.bin` ativo possui o contrato local de 6.500 entradas,
   protegido por `MAX_ITEMLIST`.
-- `NAO APLICAVEL` — guia KR nao documenta este wire. Sources 7.54, W2PP,
-  Secrets e Micronics nao foram consultadas.
+- `NAO APLICAVEL` — guia KR nao documenta este wire. Sources 7.54, fontes legadas externas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 

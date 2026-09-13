@@ -182,12 +182,12 @@ The server has these systems. The server has authority on each system.
   complete package atomically. Item-derived kill EXP bonuses (Coral, active
   fairy and Experience Box) come from the killer and are shared with every
   eligible party member, while receiver-specific evolution reductions remain
-  authoritative. Combat EXP follows the W2PP receiver curve: Arch is reduced
+  authoritative. Combat EXP follows the WYD 7.48 receiver curve: Arch is reduced
   progressively by level, while Celestial/SubCelestial starts at `1/40` and
   becomes progressively slower; Mortal keeps the normal server reward. All
   124 codes are explicitly classified. The
   3443 Spirit's Seal flow is implemented atomically with 0x2CD/0x3CC query and
-  extraction. Item 3455 remains no-direct-use because W2PP does not accept it
+  extraction. Item 3455 remains no-direct-use because WYD 7.48 does not accept it
   in PutoutSeal.
 - **Character counters** — A character has named counters, such as the Kefra
   entrance ticket and the fame points. They live in a per-character sidecar
@@ -222,7 +222,7 @@ The server has these systems. The server has authority on each system.
   refreshes all four slots after persistence, ensuring the 7.48 client reloads
   the evolved body, score, and skills. A Celestial creation is announced to
   every online player in English.
-  Their combat score follows the normal W2PP evolution branch: Arch has its own
+  Their combat score follows the normal WYD 7.48 evolution branch: Arch has its own
   HP/MP and defense progression, while Celestial/SubCelestial receive the
   crystal-dependent defense and class HP/MP package, with the 399-level base
   applied only to physical attack.

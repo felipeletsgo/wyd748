@@ -67,7 +67,7 @@ func LoadNPCGener(path string) ([]model.NPCGener, error) {
 		}
 		if g.MaxGroup < g.MinGroup {
 			// Quirk comum em NPCGener editados a mao (8 casos no arquivo do
-			// Micronics): teto abaixo do piso. O TMSrv nativo nao rejeita o
+			// WYD 7.48): teto abaixo do piso. O TMSrv nativo nao rejeita o
 			// arquivo por isso; normalizamos para grupo de tamanho fixo
 			// (MaxGroup = MinGroup) em vez de abortar o boot.
 			g.MaxGroup = g.MinGroup

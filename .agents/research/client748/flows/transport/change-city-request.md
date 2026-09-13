@@ -26,8 +26,7 @@ condições locais permitem que a informação de vila seja enviada ao servidor?
   `internal/wire/ChangeCityPacket.h`.
 - Servidor: `internal/wire/opcodes.go`, `internal/game/security.go`,
   `internal/game/handlers.go`, `world.go` e testes de movimento.
-- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; W2PP, Secrets e
-  Micronics foram excluídos da decisão.
+- TMProject posterior/guias: `NÃO APLICÁVEL` para o ABI; fontes legadas externas foram excluídos da decisão.
 
 ## Fluxo nativo 7.48
 

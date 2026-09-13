@@ -355,15 +355,15 @@ struct STRUCT_AFFECT
 	int Time;
 };
 static_assert(sizeof(STRUCT_AFFECT) == kUpdateAffectEntrySize,
-	"source-client affect entry size changed");
+	"TMProject748 affect entry size changed");
 static_assert(offsetof(STRUCT_AFFECT, Type) == kUpdateAffectTypeOffset,
-	"source-client affect Type offset changed");
+	"TMProject748 affect Type offset changed");
 static_assert(offsetof(STRUCT_AFFECT, Level) == kUpdateAffectLevelOffset,
-	"source-client affect Level offset changed");
+	"TMProject748 affect Level offset changed");
 static_assert(offsetof(STRUCT_AFFECT, Value) == kUpdateAffectValueOffset,
-	"source-client affect Value offset changed");
+	"TMProject748 affect Value offset changed");
 static_assert(offsetof(STRUCT_AFFECT, Time) == kUpdateAffectTimeOffset,
-	"source-client affect Time offset changed");
+	"TMProject748 affect Time offset changed");
 
 struct STRUCT_MYBONUSEFFECT
 {
@@ -1085,7 +1085,7 @@ struct MSG_UpdateScore
 	char LearnedSkill;
 };
 static_assert(sizeof(MSG_UpdateScore) == kUpdateScorePacketSize,
-	"coordinated source-client UpdateScore packet size changed");
+	"coordinated client/server UpdateScore packet size changed");
 static_assert(offsetof(MSG_UpdateScore, Score) == kUpdateScoreScoreOffset,
 	"UpdateScore score offset changed");
 static_assert(offsetof(MSG_UpdateScore, Affect) == kUpdateScoreAffectOffset,
@@ -1558,7 +1558,7 @@ struct MSG_SetHpMp
 	unsigned int MaxMp;
 };
 static_assert(sizeof(MSG_SetHpMp) == kHpMpPacketSize,
-	"coordinated source-client HP/MP packet size changed");
+	"coordinated client/server HP/MP packet size changed");
 static_assert(offsetof(MSG_SetHpMp, Hp) == kHpMpCurrentHpOffset,
 	"HP/MP current HP offset changed");
 static_assert(offsetof(MSG_SetHpMp, Mp) == kHpMpCurrentMpOffset,
