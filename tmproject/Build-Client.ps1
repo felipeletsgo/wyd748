@@ -10,12 +10,15 @@ Seleciona Debug ou Release; ambos usam o mapeamento x86 da solucao.
 Recompila todos os objetos em vez de usar o build incremental.
 .PARAMETER MSBuildPath
 Caminho opcional para MSBuild.exe; por padrao usa a instalacao do Visual Studio.
+.PARAMETER NoDeploy
+Compila e valida sem copiar o artefato para client748/project.exe. Usado pelo CI.
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Release',
     [switch]$Rebuild,
+    [switch]$NoDeploy,
     [string]$MSBuildPath
 )
 
@@ -43,11 +46,9 @@ if (-not $MSBuildPath) {
 if (-not $MSBuildPath -or -not (Test-Path -LiteralPath $MSBuildPath -PathType Leaf)) {
     throw 'MSBuild nao encontrado. Informe -MSBuildPath com a instalacao existente.'
 }
-if (-not (Test-Path -LiteralPath (Split-Path $candidate -Parent) -PathType Container)) {
-    throw 'Diretorio client748 ausente; instalacao do candidato cancelada.'
-}
-
 $buildTarget = if ($Rebuild) { 'Rebuild' } else { 'Build' }
+# A tabela compilada deve corresponder ao manifesto e aos assets catalogados.
+& (Join-Path $PSScriptRoot '..\tools\client-assets\Export-CostumeTable.ps1') -Check
 # O gate puro roda antes do client e da copia; falha de teste preserva o candidato.
 $testProject = Join-Path $PSScriptRoot 'TMProject748\tests\ArchitectureTests.vcxproj'
 & $MSBuildPath $testProject "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=Win32' /m /nologo /v:minimal
@@ -60,6 +61,20 @@ if ($LASTEXITCODE -ne 0) { throw 'Testes de arquitetura falharam; candidato nao 
 & $MSBuildPath $solution "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=x86' /m /nologo /v:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild falhou com codigo $LASTEXITCODE; candidato nao atualizado." }
 if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) { throw "Artefato ausente: $artifact" }
+
+if ($NoDeploy) {
+    [pscustomobject]@{
+        Configuration = $Configuration
+        Artifact = $artifact
+        SHA256 = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash
+        Validation = 'BUILD_VERIFIED; deploy e teste in-game pendentes'
+    }
+    return
+}
+
+if (-not (Test-Path -LiteralPath (Split-Path $candidate -Parent) -PathType Container)) {
+    throw 'Diretorio client748 ausente; instalacao do candidato cancelada.'
+}
 
 # Copia sincrona: arquivo em uso causa falha, nunca encerramento forcado do jogo.
 $sourceHash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash

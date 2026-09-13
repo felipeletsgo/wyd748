@@ -58,19 +58,22 @@ estado server-side, relogin e comportamento após falha de persistência.
 
 ## Fase 2 — correções do client 7.48
 
-### HP/MP wide
+### HP/MP — projeção das barras e textos
 
-O servidor e o pacote extended usam os valores corretos, mas a barra do client
-ainda pode desenhar HP/MP altos quase zerados. Próxima investigação:
+Revalidado em 12/09/2026: o contrato ativo é `0x181` de 28 bytes, com quatro
+`uint32`, sem sidecar. O handler atualizava os máximos no score, mas as barras
+conservavam o máximo anterior. A source agora aplica máximo antes do atual e
+liga os textos compatíveis ao mesmo handler, preservando o contrato do servidor.
 
-1. breakpoint na escrita do sidecar wide;
-2. confirmar todos os produtores de CurHP/MaxHP/CurMP/MaxMP;
-3. identificar a rotina da barra e sua escala;
-4. adaptar a rotina correspondente em `tmproject/` com teste focado;
-5. compilar, confirmar a instalação automática de `tmproject/client748/project.exe` e
-   validar a barra in-game.
+Release e 35.278 verificações automatizadas passaram; o teste Go do envelope
+também passou. O candidato foi gerado com `-NoDeploy`, sem substituir o client
+instalado. Evidência e hash na
+[ficha do contrato HP/MP](../.agents/research/client748/flows/transport/hp-mp-source-contract.md).
 
-Não alterar o servidor para compensar um erro exclusivamente visual.
+Ainda falta validar in-game mudança de máximos por equipamento/buffs, dano,
+cura, regeneração, morte/retorno e valores altos, incluindo owner/observador,
+textos e relogin. Este lote não valida todos os produtores nem as barras de
+grupo/guild battle. Não alterar o servidor para compensar um erro visual.
 
 ### Macro de combate 7.48
 
@@ -99,7 +102,9 @@ Ainda falta executar e registrar a matriz in-game:
 ### Assets
 
 Os 135 trajes com dependências completas nos clients KR fornecidos já foram
-importados. Ainda falta:
+importados. Em 12/09/2026, o usuário confirmou os trajes funcionais no jogo;
+o escopo e o executável testado estão em [port-748](client/port-748.md).
+A confirmação não cobre explicitamente toda a matriz abaixo. Ainda falta:
 
 1. validar a coleção in-game por corpo, para owner e observador, incluindo
    equipar, desequipar, relogar e transformações do BeastMaster;

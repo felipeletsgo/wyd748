@@ -4,7 +4,7 @@ title: Contrato coordenado de HP e MP do source client
 subsystem: transport
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-07
+updated: 2026-09-12
 ---
 
 # Contrato coordenado de HP e MP
@@ -24,7 +24,10 @@ estudada contem dois layouts historicos diferentes?
   `ReceivedPacketDispatch`.
 - `UTILIZADA`: WYD-Go `wire.SetHpMp`, `MobHpMp`, `HpMp`, testes e emissores de
   combate, affects, visibilidade, equipamento e AutoTrade.
-- `NAO APLICAVEL`: assets e guia KR nao definem este ABI. Sources 7.54, fontes legadas externas nao foram consultadas.
+- `UTILIZADA`: bindings atuais de `ResourceControl.h`, `UpdateCompatScoreUI`
+  e implementacao de `SProgressBar` para a projecao visual; nenhum asset alterado.
+- `NAO APLICAVEL`: assets adicionais e guia KR nao definem este ABI. Fontes
+  legadas externas excluidas nao foram consultadas.
 
 ## Fluxo nativo 7.48
 
@@ -79,6 +82,18 @@ antes da travessia de entidades; `TMHuman` usa o mesmo nome no dispatch. O
 builder Go escreve os quatro `uint32` nos offsets contratados e ja possui teste
 byte a byte.
 
+Em 2026-09-12, a source mostrou que `OnPacketSetHpMp` atualizava os maxima no
+score, mas enviava apenas os atuais as quatro barras de entidade/HUD.
+`SProgressBar::SetCurrentProgress` limita o atual ao maximo armazenado; portanto,
+um aumento de maximo podia truncar a projecao no valor antigo. O helper
+`resource_ui::Project` agora aplica primeiro o maximo resolvido e depois o atual.
+Maximo zero no pacote continua significando preservar o maximo do score.
+
+`UpdateCompatScoreUI` tambem passa a ligar os quatro textos ja pertencentes ao
+recurso aos ponteiros opcionais usados pelo handler. O layout compativel conserva
+celulas numericas separadas; o moderno conserva o prefixo `/` no texto do maximo.
+Nao ha nova alocacao, ownership, callback ou alteracao de lifecycle.
+
 ## Matriz de delta
 
 | Claim | Decompilacao 7.48 | Source/WYD-Go antes | Estado atual | Decisao |
@@ -94,6 +109,10 @@ byte a byte.
 - Declarar sua procedencia como extensao coordenada, sem atribui-la ao nativo.
 - Rejeitar comprimentos historicos em vez de manter caminhos multiversao.
 - Preservar a semantica e o lifecycle existentes do handler para frames validos.
+- Classificar a correcao visual de 2026-09-12 como `MODERNIZACAO_COMPATIVEL`
+  sobre a extensao coordenada existente, sem novo claim de paridade nativa.
+  Preservar o dominio de score ate 2.000.000.000 documentado em `DOCS/SCORE.md`,
+  o pacote de 28 bytes e os calculos autoritativos do servidor.
 
 ## Lacunas
 
@@ -115,3 +134,18 @@ byte a byte.
   `6482779E56D623E672C5CB2328F280B525EDA19EEB0512CAB51A7EBDB4BF0341`.
 - Estado `AUTOMATED TESTED` / `STATICALLY VERIFIED`; o fluxo ainda nao e
   `CLIENT_TESTED`.
+
+### Correcao de projecao em 2026-09-12
+
+- `ResourceBarProjectionTests.cpp`: 39 checks novos, incluindo ordem
+  maximo/atual, aumento/reducao, zero, morte/retorno, valores acima de 65535,
+  limite de 2.000.000.000, controles opcionais e formatos de texto. O double
+  de barra reproduz o clamp relevante; nao substitui executar o handler no jogo.
+- `Build-Client.ps1 -Configuration Release -NoDeploy`: aprovado, 35.278 checks
+  e asserts estaticos aprovados.
+- `go test ./internal/wire -run '^TestCanonicalHpMpUsesOnlyUint32Resources$' -count=1`:
+  aprovado; nenhuma alteracao no servidor.
+- Candidato `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `C3E93F7370919740EB2C3EE827959AE6664C23204C4C34F70AFBB43BAC7FACB1`.
+  Nao instalado neste lote. Estado `BUILD_VERIFIED` / `AUTOMATED_TESTED`;
+  mudanca de maxima, dano/cura e textos ainda exigem validacao visual.

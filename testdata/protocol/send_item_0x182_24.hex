@@ -1,0 +1,5 @@
+# WYD 7.48 plaintext MSG_SendItem (0x182), 24 bytes.
+# ID=0x1234, DestType=2, DestPos=127, item=0x1234, effects=01..06.
+18 00 00 00 82 01 34 12
+00 00 00 00 02 00 7f 00
+34 12 01 02 03 04 05 06

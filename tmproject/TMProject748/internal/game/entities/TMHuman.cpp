@@ -12,6 +12,8 @@
 #include "TMButterFly.h"
 #include "TMShade.h"
 #include "TMHuman.h"
+#include "../../render/mesh/CostumeSelection.h"
+#include "../../ui/ResourceBarProjection.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
 #include "TMEffectSWSwing.h"
@@ -445,8 +447,17 @@ int TMHuman::InitObject()
         }
     }
 
-    int nCos = 0;
-    if (m_sCostume >= 4150 && m_sCostume < 4200 || m_sCostume >= 4300 && m_sCostume <= 4420 && m_nClass != 29)
+    int nCos = costume748::Select(m_sCostume, m_nSkinMeshType);
+    if (nCos)
+    {
+        // Validated collection: preserve the body/skeleton and native face look.
+        // The renderer replaces only the six explicitly catalogued parts.
+        memset(&m_stColorInfo.Sanc0, 0, 6);
+        memset(&m_stColorInfo.Legend0, 0, 6);
+        memset(&m_stSancInfo.Sanc0, 0, 6);
+        memset(&m_stSancInfo.Legend0, 0, 6);
+    }
+    else if (m_sCostume >= 4150 && m_sCostume < 4200 || m_sCostume >= 4300 && m_sCostume <= 4420 && m_nClass != 29)
     {
         m_stLookInfo.CoatMesh = g_pItemList[m_sCostume].nIndexMesh;
         m_stLookInfo.PantsMesh = m_stLookInfo.CoatMesh;
@@ -805,6 +816,7 @@ int TMHuman::InitObject()
         && m_nClass != 4
         && m_nClass != 8
         && nCos
+        && !costume748::FindRenderer(nCos)
         && nCos != 100)
     {
         bExpand = 1;
@@ -4910,25 +4922,23 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
     if (m_stScore.CurMP >= m_stScore.MaxMP)
         m_stScore.CurMP = m_stScore.MaxMP;
 
-    m_pProgressBar->SetCurrentProgress(m_stScore.CurHP);
+    resource_ui::Project(m_pProgressBar, m_stScore.CurHP, m_stScore.MaxHP);
     SetGuildBattleHPBar(m_stScore.CurHP);
 
-    m_pProgressBar1->SetCurrentProgress(m_stScore.CurMP);
+    resource_ui::Project(m_pProgressBar1, m_stScore.CurMP, m_stScore.MaxMP);
     SetGuildBattleMPBar(m_stScore.CurMP);
 
     SetGuildBattleLifeCount();
 
     if (pFScene->m_pMyHuman == this && !pFScene->m_bAirMove)
     {
-        // The field scene consumes the same resolved maxima regardless of
-        // whether they came from the compatibility prefix or the wide tail.
+        // Zero maxima mean retain the entity maxima; render that resolved
+        // snapshot rather than keeping the progress bars' previous scale.
         pFScene->m_nReqHP = maxHp;
         pFScene->m_nReqMP = maxMp;
         memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &m_stScore, sizeof(m_stScore));
-        if (pFScene->m_pHPBar)
-            pFScene->m_pHPBar->SetCurrentProgress(m_stScore.CurHP);
-        if (pFScene->m_pMPBar)
-            pFScene->m_pMPBar->SetCurrentProgress(m_stScore.CurMP);
+        resource_ui::Project(pFScene->m_pHPBar, m_stScore.CurHP, m_stScore.MaxHP);
+        resource_ui::Project(pFScene->m_pMPBar, m_stScore.CurMP, m_stScore.MaxMP);
 
         if (m_pMountHPBar && pFScene->m_pMHPBar && pFScene->m_pMHPBarT)
             pFScene->m_pMHPBar->SetCurrentProgress(m_pMountHPBar->GetCurrentProgress());
@@ -4944,7 +4954,7 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         if (pFScene->m_pMaxHPText)
         {
             char szHP[32]{};
-            sprintf(szHP, "/ %d", m_stScore.MaxHP);
+            sprintf(szHP, resource_ui::MaximumTextFormat(pFScene->m_bCompatFieldScene), m_stScore.MaxHP);
             if (pFScene->m_pMaxHPText)
                 pFScene->m_pMaxHPText->SetText(szHP, 0);
         }
@@ -4958,7 +4968,7 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         if (pFScene->m_pMaxMPText)
         {
             char szMP[32]{};
-            sprintf(szMP, "/ %d", m_stScore.MaxMP);
+            sprintf(szMP, resource_ui::MaximumTextFormat(pFScene->m_bCompatFieldScene), m_stScore.MaxMP);
             if (pFScene->m_pMaxMPText)
                 pFScene->m_pMaxMPText->SetText(szMP, 0);
         }

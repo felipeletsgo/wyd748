@@ -749,6 +749,11 @@ void TMFieldScene::UpdateCompatScoreUI()
 	m_pMPBar = static_cast<SProgressBar*>(m_pControlContainer->FindControl(TMP_MP_PROGRESS));
 	m_pCHP = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CURRENT_HP));
 	m_pCMP = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CURRENT_MP));
+	// 0x181 shares these resource-owned texts with the initial score projector.
+	m_pCurrentHPText = m_pCHP;
+	m_pCurrentMPText = m_pCMP;
+	m_pMaxHPText = static_cast<SText*>(m_pControlContainer->FindControl(TMT_MAX_HP));
+	m_pMaxMPText = static_cast<SText*>(m_pControlContainer->FindControl(TMT_MAX_MP));
 	m_pMainCharName = static_cast<SText*>(m_pControlContainer->FindControl(TMT_MAIN_INFO2_NAME));
 	m_pMainInfo2_Name = m_pMainCharName;
 	m_pMainInfo2_Lv = static_cast<SText*>(m_pControlContainer->FindControl(TMT_MAIN_INFO2_LEVEL));
@@ -1121,6 +1126,12 @@ void TMFieldScene::UpdateCompatLearnedSkillUI()
 				learnedMask, i, controlID, itemIndex);
 			continue;
 		}
+		// The 7.48 config selects the classic UI (UIVer=1), whose generic item
+		// constructor points learned skills at the legacy Amulet atlas (set 1).
+		// FieldScene2's native learned-skill surface uses the color atlas instead;
+		// keep this override local so inventory and equipment retain their native
+		// classic presentation.
+		pControlItem->m_GCObj.nTextureSetIndex = 199;
 
 		const IVector2 inserted = pGrid->AddItemInEmpty(pControlItem);
 		WYD748_DiagnosticsLog(
@@ -1350,6 +1361,13 @@ void TMFieldScene::InitializeCompatSkillBelts()
 	m_pGridSkillBelt = static_cast<SGridControl*>(m_pControlContainer->FindControl(TMG_SKILL_BELT));
 	m_pGridSkillBelt2 = static_cast<SGridControl*>(m_pControlContainer->FindControl(TMG_SKILL_BELT2));
 	m_pGridSkillBelt3 = static_cast<SGridControl*>(m_pControlContainer->FindControl(TMG_SKILL_BELT3));
+	// FUN_00435b13 stores control 575 as the native auto-skill selection bar.
+	// The serialized control is visible by default, so hide it until T enables
+	// auto-attack and let SetAutoSkillNum apply the initial native geometry.
+	m_pAutoSkillPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_SKILL_SEL));
+	if (m_pAutoSkillPanel)
+		m_pAutoSkillPanel->SetVisible(0);
+	SetAutoSkillNum(m_nAutoSkillNum);
 	// FUN_00435b13 also owns the page selectors 587/588. Binding their native
 	// instances keeps keyboard Z and mouse clicks on the same 7.48 state path.
 	m_pShortSkillTglBtn1 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SHORTSKILL_TGL1));
@@ -18516,7 +18534,27 @@ void TMFieldScene::SetAutoOption(int nIndex, char* szString)
 
 void TMFieldScene::SetAutoSkillNum(int nCount)
 {
+	if (nCount < 1)
+		nCount = 1;
+	else if (nCount > 10)
+		nCount = 10;
+
 	m_nAutoSkillNum = nCount;
+
+	if (m_bCompatFieldScene && m_pAutoSkillPanel)
+	{
+		float slotWidth = 0.0f;
+		if (m_pGridSkillBelt2 && m_pGridSkillBelt2->m_nColumnGridCount > 0)
+			slotWidth = m_pGridSkillBelt2->m_nWidth /
+				static_cast<float>(m_pGridSkillBelt2->m_nColumnGridCount);
+		if (slotWidth <= 0.0f)
+			slotWidth = 24.0f * RenderDevice::m_fWidthRatio;
+
+		const float width = slotWidth * static_cast<float>(m_nAutoSkillNum);
+		const float rightEdge = m_pAutoSkillPanel->m_nPosX + m_pAutoSkillPanel->m_nWidth;
+		m_pAutoSkillPanel->SetPos(rightEdge - width, m_pAutoSkillPanel->m_nPosY);
+		m_pAutoSkillPanel->SetSize(width, 4.0f * RenderDevice::m_fHeightRatio);
+	}
 
 	if (m_pAutoSkillPanel)
 	{
@@ -21560,7 +21598,7 @@ int TMFieldScene::OnKeyName(char iCharCode, int lParam)
 
 int TMFieldScene::OnKeyAutoTarget(char iCharCode, int lParam)
 {
-	if (iCharCode != 'Y' && iCharCode != 'y')
+	if (iCharCode != 'T' && iCharCode != 't')
 		return 0;
 
 	SetAutoTarget();

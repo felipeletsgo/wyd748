@@ -591,6 +591,15 @@
     <ClInclude Include="internal\render\resources\TextureManager.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
+    <ClInclude Include="internal\render\mesh\CostumeSelection.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\ResourceBarProjection.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\render\mesh\CostumeTable.generated.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
     <ClInclude Include="internal\platform\diagnostics\StackWalker.h">
       <Filter>Header Files\Internal\Platform</Filter>
     </ClInclude>

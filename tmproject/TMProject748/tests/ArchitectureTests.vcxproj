@@ -36,6 +36,8 @@
     <ClCompile Include="ReceivedPacketDispatchTests.cpp" />
     <ClCompile Include="CargoSlotTests.cpp" />
     <ClCompile Include="GridInsertionTests.cpp" />
+    <ClCompile Include="CostumeSelectionTests.cpp" />
+    <ClCompile Include="ResourceBarProjectionTests.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

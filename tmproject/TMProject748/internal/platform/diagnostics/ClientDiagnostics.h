@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 class SControlContainer;
 
 // Instala o diagnóstico opcional usado durante a adaptação do client 7.48. O
@@ -11,6 +13,10 @@ void WYD748_InstallDiagnostics();
 // TMLog porque o handler de exceção pode executar enquanto TMLog já está sendo
 // desmontado. format segue printf; os argumentos não são retidos.
 void WYD748_DiagnosticsLog(const char* format, ...);
+
+// Registra somente metadados de rede quando WYD748_TRACE_PACKETS estiver
+// habilitado no ambiente. Nunca persiste payloads ou buffers do pacote.
+void WYD748_DiagnosticsPacket(const char* direction, unsigned int opcode, std::size_t size);
 
 // Exporta a árvore de controles carregada para correlacionar IDs legados da
 // FieldScene2 com os controles semânticos do código importado. container é uma

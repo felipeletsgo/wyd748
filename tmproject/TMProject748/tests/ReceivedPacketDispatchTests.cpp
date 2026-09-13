@@ -19,6 +19,60 @@
 #include <array>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <windows.h>
+
+namespace {
+std::filesystem::path FindFixture(const char* relativePath)
+{
+    wchar_t executable[MAX_PATH]{};
+    const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
+    if (length == 0 || length == MAX_PATH)
+        return {};
+    auto current = std::filesystem::path(executable).parent_path();
+    for (int depth = 0; depth < 8 && !current.empty(); ++depth) {
+        const auto candidate = current / relativePath;
+        if (std::filesystem::is_regular_file(candidate))
+            return candidate;
+        current = current.parent_path();
+    }
+    return {};
+}
+
+std::vector<char> LoadHexFixture(const char* relativePath)
+{
+    const auto path = FindFixture(relativePath);
+    if (path.empty())
+        return {};
+    std::ifstream input(path);
+    if (!input)
+        return {};
+    std::vector<char> bytes;
+    std::string line;
+    while (std::getline(input, line)) {
+        if (const auto comment = line.find('#'); comment != std::string::npos)
+            line.erase(comment);
+        std::istringstream tokens(line);
+        std::string token;
+        while (tokens >> token) {
+            try {
+                const auto value = std::stoul(token, nullptr, 16);
+                if (value > 0xFF)
+                    return {};
+                bytes.push_back(static_cast<char>(value));
+            }
+            catch (...) {
+                return {};
+            }
+        }
+    }
+    return bytes;
+}
+}
 
 // Exercita a mesma fronteira chamada pelo ObjectManager, sem UI/socket/DirectX.
 // Bytes conhecidos independem do construtor C++ para conferir o contrato wire.
@@ -90,31 +144,33 @@ int RunReceivedPacketDispatchTests(int& checks)
         check(frame.data == bytes && frame.size == 12 && frame.opcode == 0x119,
             "outro opcode preserva view do percurso legado");
     }) && otherDelivered == 1, "opcode fora deste lote mantem fallback");
-    // Mesmo fixture de 24 bytes do encoder Go: ID=0x1234, cargo[127], item
-    // 0x1234 com seis bytes de efeitos. Nao depende da struct de Basedef.
-    char sendItem[25] = {24, 0, 0, 0, static_cast<char>(0x82), 1, 0x34, 0x12,
-        0, 0, 0, 0, 2, 0, 127, 0, 0x34, 0x12, 1, 2, 3, 4, 5, 6, 0};
+    // Mesmo fixture canonico consumido pelo teste Go. Nao depende da struct de Basedef.
+    auto sendItem = LoadHexFixture("testdata/protocol/send_item_0x182_24.hex");
+    check(sendItem.size() == 24, "fixture SendItem compartilhado possui 24 bytes");
+    if (sendItem.size() != 24)
+        return failures;
+    sendItem.push_back(0); // sentinela para testar frame excedente sem leitura fora do buffer.
     int itemDelivered = 0;
     const auto receiveItem = [&](const PacketView& frame) {
         ++itemDelivered;
-        check(frame.data == sendItem && frame.size == 24 && frame.opcode == 0x182,
+        check(frame.data == sendItem.data() && frame.size == 24 && frame.opcode == 0x182,
             "SendItem valido conserva frame e entrega unica");
     };
     for (std::size_t size = 0; size < 24; ++size)
-        check(!received_packet::Dispatch({0x182, sendItem, size}, receiveItem),
+        check(!received_packet::Dispatch({0x182, sendItem.data(), size}, receiveItem),
             "SendItem truncado rejeitado antes da copia");
-    check(!received_packet::Dispatch({0x182, sendItem, 25}, receiveItem),
+    check(!received_packet::Dispatch({0x182, sendItem.data(), 25}, receiveItem),
         "SendItem excedente rejeitado");
-    check(!received_packet::Dispatch({0xFAA, sendItem, 24}, receiveItem),
+    check(!received_packet::Dispatch({0xFAA, sendItem.data(), 24}, receiveItem),
         "contratos conhecidos nao podem trocar metadados");
-    check(!received_packet::Dispatch({0x119, sendItem, 24}, receiveItem),
+    check(!received_packet::Dispatch({0x119, sendItem.data(), 24}, receiveItem),
         "metadado desconhecido nao contorna Type SendItem");
     sendItem[0] = 23;
-    check(!received_packet::Dispatch({0x182, sendItem, 24}, receiveItem),
+    check(!received_packet::Dispatch({0x182, sendItem.data(), 24}, receiveItem),
         "SendItem rejeita Size declarado divergente");
     sendItem[0] = 24;
     check(itemDelivered == 0, "SendItem invalido nao chama consumidor");
-    check(received_packet::Dispatch({0x182, sendItem, 24}, receiveItem) && itemDelivered == 1,
+    check(received_packet::Dispatch({0x182, sendItem.data(), 24}, receiveItem) && itemDelivered == 1,
         "SendItem exato entregue sem retry");
     // Frame do builder Go: destino Carry[62] e STRUCT_ITEM de oito bytes.
     std::array<char, kPickupConfirmationPacketSize + 1> pickup{};

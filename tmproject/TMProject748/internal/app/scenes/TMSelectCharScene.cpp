@@ -87,8 +87,8 @@ int TMSelectCharScene::InitializeScene()
 
 	g_pObjectManager->m_pCamera->SetViewMode(0);
 
-	sprintf_s(szMapPath, "env\\character.trn");
-	sprintf_s(szDataPath, "env\\character.dat");
+	sprintf_s(szMapPath, "Env\\Character.trn");
+	sprintf_s(szDataPath, "Env\\Character.dat");
 
 	g_HeightPosX = 2048;
 	g_HeightPosY = 2048;

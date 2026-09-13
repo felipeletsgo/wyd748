@@ -25,6 +25,14 @@ atuais, nem comprovam que uma feature continua concluída ou pendente.
 - Skills operacionais ficam em `.agents/skills/`.
 - `tmproject/` e `wydgo748/` são reservados para source, assets e dados
   necessários à execução/build. Não colocar documentação ou temporários ali.
+- `testdata/protocol/` contém fixtures canônicos compartilhados entre client e
+  server; não duplicar o mesmo frame dentro das duas sources.
+- `tools/client-assets/Audit-ClientAssets.ps1` compara manifests e literais
+  estáticos do TMProject com os assets materializados em `tmproject/client748/`.
+  Dependências marcadas explicitamente como indisponíveis nos manifests são
+  dívida conhecida e permanecem diagnósticas; `-FailOnMissing` falha somente
+  para referências obrigatórias ausentes, faltas da source ainda não
+  classificadas ou divergências de casing.
 
 ## Princípios do produto
 

@@ -13,6 +13,21 @@
 namespace
 {
     constexpr char kDiagnosticsFile[] = "client-debug.log";
+    constexpr char kPacketTraceEnvironment[] = "WYD748_TRACE_PACKETS";
+
+    bool IsPacketTraceEnabled()
+    {
+        char value[8]{};
+        const DWORD length = GetEnvironmentVariableA(
+            kPacketTraceEnvironment, value, static_cast<DWORD>(sizeof(value)));
+        if (length == 0 || length >= sizeof(value))
+            return false;
+
+        return _stricmp(value, "1") == 0 ||
+            _stricmp(value, "true") == 0 ||
+            _stricmp(value, "yes") == 0 ||
+            _stricmp(value, "on") == 0;
+    }
 
     void BuildModuleSiblingPath(const char* fileName, char (&path)[MAX_PATH])
     {
@@ -289,6 +304,15 @@ void WYD748_DiagnosticsLog(const char* format, ...)
     vsprintf_s(line, format, args);
     va_end(args);
     AppendLine(line);
+}
+
+void WYD748_DiagnosticsPacket(const char* direction, unsigned int opcode, std::size_t size)
+{
+    if (!IsPacketTraceEnabled())
+        return;
+
+    WYD748_DiagnosticsLog("NET %s opcode=0x%04X size=%zu\r\n",
+        direction ? direction : "?", opcode, size);
 }
 
 void WYD748_DumpControlTree(SControlContainer* container, const char* reason)

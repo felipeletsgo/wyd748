@@ -269,30 +269,30 @@ int TMSelectServerScene::InitializeScene()
 
 	 
 
-	sprintf_s(szMapPath, "env\\Character.trn");
-	sprintf_s(szDataPath, "env\\Character.dat");
+	sprintf_s(szMapPath, "Env\\Character.trn");
+	sprintf_s(szDataPath, "Env\\Character.dat");
 	m_nDemoType = 2;//3 para castelo
 	if (m_nDemoType)
 	{ 
 		switch (m_nDemoType)
 		{
 		case 1:
-			sprintf_s(szMapPath, "env\\Character.trn");
-			sprintf_s(szDataPath, "env\\Character.dat");
+			sprintf_s(szMapPath, "Env\\Character.trn");
+			sprintf_s(szDataPath, "Env\\Character.dat");
 
 			g_HeightPosX = 2048;
 			g_HeightPosY = 2048;
 			break; 
 		case 2:
-			sprintf_s(szMapPath, "env\\Field1616.trn");
-			sprintf_s(szDataPath, "env\\Field1616.dat");
+			sprintf_s(szMapPath, "Env\\Field1616.trn");
+			sprintf_s(szDataPath, "Env\\Field1616.dat");
 
 			g_HeightPosX = 896;
 			g_HeightPosY = 1536;
 			break;
 		case 3:
-			sprintf_s(szMapPath, "env\\Field2922.trn");
-			sprintf_s(szDataPath, "env\\Field2922.dat");
+			sprintf_s(szMapPath, "Env\\Field2922.trn");
+			sprintf_s(szDataPath, "Env\\Field2922.dat");
 
 			g_HeightPosX = 3584;
 			g_HeightPosY = 2684;
@@ -301,13 +301,13 @@ int TMSelectServerScene::InitializeScene()
 	}
 	else
 	{
-		sprintf_s(szMapPath, "env\\Field1616.trn");
-		sprintf_s(szDataPath, "env\\Field1616.dat");
+		sprintf_s(szMapPath, "Env\\Field1616.trn");
+		sprintf_s(szDataPath, "Env\\Field1616.dat");
 
 		g_HeightPosX = 896;
 		g_HeightPosY = 1536;
-		/*sprintf_s(szMapPath, "env\\Field2723.trn");
-		sprintf_s(szDataPath, "env\\Field2723.dat");
+		/*sprintf_s(szMapPath, "Env\\Field2723.trn");
+		sprintf_s(szDataPath, "Env\\Field2723.dat");
 		g_HeightPosX = 3328;
 		g_HeightPosY = 2816;*/
 	}

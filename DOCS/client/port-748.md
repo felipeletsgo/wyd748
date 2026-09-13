@@ -38,9 +38,17 @@ O build recompilavel pode ler diretamente a arvore `tmproject/client748/` por me
 `ItemList.bin`, `ValidIndex.bin`, `object.bin`, `serverlist.bin` e
 `AttributeMap.dat` ja correspondem aos tamanhos consumidos pelo codigo ou
 possuem apenas checksum adicional ignorado pelo loader. As verificações de
-assets devem seguir os loaders e a skill `wyd-client748-assets`; o antigo
-validador separado de assets não está disponível nesta árvore. O build atual
+assets devem seguir os loaders, a skill `wyd-client748-assets` e o auditor
+`tools/client-assets/Audit-ClientAssets.ps1`, que separa dívida declarada de
+faltas ainda não classificadas e divergências de casing. O build atual
 está descrito em [Build e integração](../build-and-integration.md).
+
+Uma referência literal ausente na source não prova, isoladamente, um asset
+7.48 faltante. Em especial, `TMSkinMesh::SetCostume` ainda contém caminhos da
+source posterior e caminhos que se sobrepõem à coleção KR catalogada. O bucket
+`SourceMissingUnclassified` é diagnóstico para priorizar investigação; não se
+deve fabricar assets, remover `case`s ou promover esse bucket a gate de paridade
+sem confirmar o fluxo ativo e a procedência do recurso.
 
 Os shaders nao existiam no client 7.48 original porque aquele executavel
 embutia outro caminho de renderizacao. Eles fazem parte da dependencia de
@@ -53,6 +61,53 @@ O inicializador de render targets do TMProject tambem foi corrigido para usar
 `D3DUSAGE_RENDERTARGET`. O codigo importado usava `D3DPOOL_MANAGED` e ainda
 alocava a textura de origem duas vezes, causando falha de inicializacao e
 vazamento antes da primeira cena.
+
+## Trajes catalogados: seleção e carregamento
+
+O fluxo `Equip[13] -> TMHuman::InitObject -> TMSkinMesh::RestoreDeviceObjects`
+agora usa o ID completo do traje e a tabela de `Costumes-KR.json`. Dos 135
+itens disponíveis, 130 selecionam os 129 renderers catalogados; os cinco
+trajes-base delegam ao renderer existente. Os trajes importados não passam
+pelo switch posterior de `SetCostume`. Itens fora da coleção mantêm o caminho
+existente, sem remoção presumida por ausência no catálogo.
+
+A seleção preserva o skeleton atual, inclusive suas variantes, e aplica a
+escolha por paridade do skeleton para King e TopRanker. Uma marca interna
+isola os renderers importados dos tipos usados por NPCs; ela não vai para o
+protocolo. As seis partes são resolvidas por índice, sem cursor compartilhado:
+parte zero vazia preserva a face nativa, demais partes vazias são omitidas e
+partes fora da tabela, como armas, preservam o caminho original. Não há novo
+parser JSON em runtime nem alteração de score, bônus ou autoridade do servidor.
+
+Classificação: `MODERNIZACAO_COMPATIVEL` na source, reutilizando dados já
+validados como `PARIDADE_NATIVA`. Procedência desta frente:
+
+- Binário nativo/Ghidra e descompilação estudada: `UTILIZADA` por meio da
+  evidência registrada em [Trajes KR](native-reference-patches.md), incluindo
+  seleção, marca interna e preservação de skeleton/face; sem nova análise ou
+  execução de patch histórico.
+- Assets 7.48: `UTILIZADA`; manifesto, 774 partes e dependências conferidos.
+- TMProject atual: `UTILIZADA` para integrar seleção e carregamento; o
+  mapeamento hardcoded posterior é `CONTRADITÓRIA` para os trajes importados
+  cujo tipo/caminho diverge do manifesto, não para todo o renderer.
+- WYD-Go e testes: `UTILIZADA`; projeção atual de equipamento e consumo do
+  slot 13 inspecionados, testes focados adicionados no client. Sem alteração
+  de wire; não foi executada uma nova suíte do servidor neste lote.
+- Guias adicionais: `NÃO APLICÁVEL`; nenhum contrato novo foi introduzido.
+
+`tools/client-assets/Export-CostumeTable.ps1` emite a tabela C++ para revisão;
+`-Check` compara o header compilado com o manifesto e verifica os arquivos
+referenciados. Esse gate roda uma vez por invocação de `Build-Client.ps1`,
+antes dos testes e de qualquer instalação do candidato.
+
+Validação do lote: Release, tabela e dependências conferidas, 35.239
+verificações automatizadas aprovadas. O candidato foi instalado com SHA-256
+`9021B1FAAB444CBE85EE7141368C14890969A51499829848DE360752BC5B5E3F`.
+Em 2026-09-12, o usuário confirmou que os trajes estão funcionais no jogo:
+`CLIENT_TESTED` para o fluxo exercido, além de `BUILD_VERIFIED` e
+`AUTOMATED_TESTED`. A confirmação não discrimina todos os itens/corpos,
+observador remoto, logout/relogin ou transformações; não implica cobertura
+exaustiva dessa matriz.
 
 ## Contratos
 

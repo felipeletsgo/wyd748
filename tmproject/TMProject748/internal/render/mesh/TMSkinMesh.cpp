@@ -3,6 +3,7 @@
 #include "TMObject.h"
 #include "TMEffectSWSwing.h"
 #include "TMSkinMesh.h"
+#include "CostumeSelection.h"
 #include "MeshManager.h"
 #include "TMGlobal.h"
 #include "TMEffectBillBoard.h"
@@ -157,6 +158,7 @@ HRESULT TMSkinMesh::RestoreDeviceObjects()
 
 	unsigned short* look = (unsigned short*)& m_Look;
 	unsigned char* sanc = (unsigned char*)& m_Sanc;
+	const auto* costumeRenderer = costume748::FindRenderer(m_nCosType);
 
 	for (unsigned int i = 0; i < MeshManager::m_BoneAnimationList[m_nBoneAniIndex].numParts; ++i)
 	{
@@ -284,11 +286,20 @@ HRESULT TMSkinMesh::RestoreDeviceObjects()
 			sprintf(szTexture, "mesh\\ch020117.wyt");
 		}
 
-		if (m_nCosType != 0 && m_nCosType != 100)
+		const costume748::Part* costumePart = nullptr;
+		const auto costumeAction = costume748::ResolvePart(costumeRenderer, i, costumePart);
+		if (costumeAction == costume748::PartAction::Skip)
+			continue;
+		if (costumeAction == costume748::PartAction::Replace)
+		{
+			strcpy_s(szTexture, costumePart->texture);
+			strcpy_s(szName, costumePart->mesh);
+		}
+		else if (!costumeRenderer && m_nCosType != 0 && m_nCosType != 100)
 			SetCostume(m_nCosType, szTexture, szName);
 
 
-		if ((int)* look < 90 || !i || look[2 * i])
+		if (costumeAction == costume748::PartAction::Replace || (int)* look < 90 || !i || look[2 * i])
 		{
 			CMesh* tmpMesh = new CMesh(this);
 

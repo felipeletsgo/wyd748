@@ -4,7 +4,7 @@ title: Sincronização dos controles e do estado do C.C
 subsystem: ui-gameplay
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-08-31
+updated: 2026-09-12
 ---
 
 # Sincronização dos controles e do estado do C.C
@@ -22,8 +22,9 @@ posterior em uma alegação de paridade nativa?
 - Source atual: `TMFieldScene::GameAuto`, `OnControlEvent`, `NewCCMode` e os
   initializers da Field em `TMFieldScene.cpp`.
 - Recursos: IDs modernos `B_CCMODE_*`, controles antigos
-  `B_CCATTACK`/`B_CCPOTION`/`B_CCMOVE` e seletores nativos `318`/`319`; o
-  layout compatível é carregado de `FieldScene2`.
+  `B_CCATTACK`/`B_CCPOTION`/`B_CCMOVE`, seletores nativos `318`/`319`, barra
+  nativa `575` e grades de skills `573`/`586`; o layout compatível é carregado
+  de `FieldScene2`.
 - Servidor: nenhuma regra de combate, packet ou estado autoritativo foi
   alterado por este lote.
 - Executável nativo: o hash do frontmatter identifica a baseline. Esta ficha
@@ -112,6 +113,32 @@ canônica para o layout compatível:
 Essa escolha ainda requer inspeção visual no client. O handler moderno
 anterior possuía uma ordem divergente e não é usado como evidência nativa.
 
+## Correção compatível de skills e auto-ataque mágico
+
+O runtime ativo carrega `config.txt` com `CLASSIC=1`, que projeta `UIVer=1`.
+Por isso, o construtor genérico `SGridControlItem` escolhia o atlas antigo
+(conjunto `1`) para sprites de skills aprendidas, deixando os ícones sem a
+coloração esperada. A correção mantém o comportamento clássico para
+inventário/equipamento e força somente os itens aprendidos do painel compatível
+para o atlas colorido `199` (`UI\NewAmul.wyt`). O atlas selecionado da barra
+continua sendo controlado pelo fluxo existente, incluindo o conjunto `200`
+quando o slot está selecionado.
+
+O fluxo nativo também foi fechado para a barra de seleção de auto-skill:
+
+- `T/t` alterna o auto-ataque por `FUN_0044EECF`, usando o controle `312` e o
+  estado da Field em `scene + 0x26EB4`.
+- `-/_` percorre a quantidade de skills de `1` a `10` por
+  `FUN_00452210`/`FUN_00447469`; a source compatível agora usa a mesma faixa.
+- O initializer vincula o controle nativo `575`, deixa-o oculto até o
+  auto-ataque ser ligado e redimensiona sua largura ancorada à direita,
+  preservando o `Y` e a altura nativa de `4` unidades lógicas.
+
+Esse é um `MODERNIZACAO_COMPATIVEL`: os IDs, teclas e geometria seguem a
+fronteira nativa 7.48, mas o override do atlas existe apenas para tornar o
+painel compatível funcional sob o modo clássico atual. Não há mudança de wire,
+ABI, servidor ou autoridade de combate.
+
 ### WYD-Go
 
 O servidor não recebe um novo modo, opcode ou layout. Cada intenção produzida
@@ -182,7 +209,12 @@ inventário, skill, alvo ou movimento.
   comparados; nenhuma alegação de topologia nativa foi promovida.
 - Automação: `validate_research.py` e `git diff --check` aprovados depois das
   guardas adicionais.
-- Build: `Build-Client.ps1` aprovado em Release/Win32 com zero erros e 13
-  warnings C4018 preexistentes; candidato instalado em `tmproject/client748/project.exe`,
-  SHA-256 `87431F0B066FD782CE1231F1E76C1905671E8C0D2C23E9CA75EDD4DC351F9979`.
+- Implementação: `IMPLEMENTED / STATICALLY VERIFIED`; a source corrige o atlas
+  dos ícones aprendidos, vincula/oculta o controle `575`, usa `T/t` para
+  alternar e redimensiona a barra em `1..10` slots.
+- Build: `Build-Client.ps1 -Configuration Release -NoDeploy` aprovado em
+  Release/Win32 com zero erros; os testes de arquitetura registraram `35278`
+  checks PASS. O build emitiu 13 warnings C4018 já existentes em
+  `TMFieldScene.cpp`. Artefato não foi instalado nesta etapa: [WYD.exe](../../../../tmproject/build/TMProject748/Release/WYD.exe),
+  SHA-256 `CD8DB8950E57073216E9F171E03720E12EC88DEC62400BF2F3579838BBBE39B1`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

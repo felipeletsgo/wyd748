@@ -20,6 +20,9 @@ jobs:
       - name: Validate documentation layout and links
         shell: pwsh
         run: ./tools/repository/Test-RepositoryLayout.ps1
+      - name: Audit client asset references
+        shell: pwsh
+        run: ./tools/client-assets/Audit-ClientAssets.ps1
       - name: Test research tooling
         run: python3 -m unittest discover -s .agents/skills/wyd-client748-research/scripts -p 'test_*.py'
       - name: Validate research records
@@ -76,3 +79,15 @@ jobs:
 
       - name: Check whitespace
         run: git diff --check
+
+  client:
+    name: TMProject748 Windows validation
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build and test client
+        shell: pwsh
+        run: ./tmproject/Build-Client.ps1 -Configuration Release -Rebuild -NoDeploy

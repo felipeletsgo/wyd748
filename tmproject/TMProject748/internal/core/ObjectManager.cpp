@@ -2,6 +2,7 @@
 #include "ObjectManager.h"
 #include "../wire/ReceivedPacketDispatch.h"
 #include "../application/ApplyCargoSlot.h"
+#include "../platform/diagnostics/ClientDiagnostics.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 #include "TMFieldScene.h"
@@ -727,6 +728,9 @@ void ObjectManager::RenderTargetObject(float fHeight)
 
 void ObjectManager::SetCurrentState(TM_GAME_STATE ieNewState)
 {
+	const TM_GAME_STATE previousState = m_eCurrentState;
+	const bool forcedFieldReload = ieNewState == TM_GAME_STATE::TM_FIELD2_STATE;
+
 	if (ieNewState == TM_GAME_STATE::TM_FIELD2_STATE)
 	{
 		// Native 7.48 maps the synthetic state 9 to field state 0 before scene
@@ -740,6 +744,13 @@ void ObjectManager::SetCurrentState(TM_GAME_STATE ieNewState)
 
 		m_eCurrentState = ieNewState;
 	}
+
+	WYD748_DiagnosticsLog(
+		"STATE transition previous=%d requested=%d effective=%d forced=%d\r\n",
+		static_cast<int>(previousState),
+		static_cast<int>(ieNewState),
+		static_cast<int>(m_eCurrentState),
+		forcedFieldReload ? 1 : 0);
 
 	m_pCamera->InitCamera();
 	TMScene* pScene = nullptr;
@@ -796,6 +807,12 @@ void ObjectManager::SetCurrentScene(TMScene* pScene)
 {
 	m_pPreviousScene = g_pCurrentScene;
 	g_pCurrentScene = pScene;
+
+	WYD748_DiagnosticsLog(
+		"SCENE transition previous=%d current=%d state=%d\r\n",
+		m_pPreviousScene ? static_cast<int>(m_pPreviousScene->GetSceneType()) : -1,
+		g_pCurrentScene ? static_cast<int>(g_pCurrentScene->GetSceneType()) : -1,
+		static_cast<int>(m_eCurrentState));
 
 	if (m_pPreviousScene != nullptr)
 	{

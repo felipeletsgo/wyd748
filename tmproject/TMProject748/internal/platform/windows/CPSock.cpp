@@ -2,6 +2,7 @@
 #include "CPSock.h"
 #include "../network/SendBuffer.h"
 #include "../network/ReceiveBuffer.h"
+#include "../diagnostics/ClientDiagnostics.h"
 #include "PacketSendBoundary.h"
 #include <climits>
 #include <WinSock2.h>
@@ -619,8 +620,11 @@ int CPSock::SendPacket(const MutablePacketView& packet)
     // Validar antes de AddMessage consumir a chave ou escrever o cabecalho.
     // O buffer pertence ao emissor e precisa ser gravavel: a codificacao
     // legada atualiza o cabecalho nele, sem reter seu ponteiro apos a chamada.
-    return SendValidatedPacket(packet, sizeof(MSG_STANDARD),
+    const int result = SendValidatedPacket(packet, sizeof(MSG_STANDARD),
         [this](char* data, int size) { return SendOneMessage(data, size) != 0; });
+    if (result != 0)
+        WYD748_DiagnosticsPacket("TX", packet.opcode, packet.size);
+    return result;
 }
 
 PacketView CPSock::ReadPacketView(int* ErrorCode, int* ErrorType)
@@ -630,7 +634,9 @@ PacketView CPSock::ReadPacketView(int* ErrorCode, int* ErrorType)
 		return {};
 
 	const auto* standard = reinterpret_cast<const MSG_STANDARD*>(message);
-	return { standard->Type, message, static_cast<std::size_t>(standard->Size) };
+	PacketView packet{ standard->Type, message, static_cast<std::size_t>(standard->Size) };
+	WYD748_DiagnosticsPacket("RX", packet.opcode, packet.size);
+	return packet;
 }
 
 int CPSock::SendOneMessage(char* Msg, int Size)
