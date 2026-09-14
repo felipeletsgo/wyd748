@@ -21,6 +21,7 @@ func physicalAttackPacket(tick uint32, targetID, targetX, targetY uint16) []byte
 
 func TestRestartRevivesAfterNativeDelayAndSysQuitPersists(t *testing.T) {
 	w, p, st := handlerTestWorld(t)
+	p.Char.Score.Merchant = uint32(1 << playerHomeCityShift) // Azran.
 	setPlayerCurHP(p.Char, 0)
 	p.DeadAt = time.Now().Add(-5 * time.Second)
 	p.X, p.Y = 2200, 2200
@@ -30,7 +31,7 @@ func TestRestartRevivesAfterNativeDelayAndSysQuitPersists(t *testing.T) {
 	if playerCurHP(p.Char) == 0 || p.DeadAt.IsZero() == false {
 		t.Fatal("restart nao reviveu/limpou deadline de morte")
 	}
-	if chebyshev(p.X, p.Y, recallX, recallY) > 8 || st.saves != 1 {
+	if chebyshev(p.X, p.Y, cityWarZones[1].exitX, cityWarZones[1].exitY) > 8 || st.saves != 1 {
 		t.Fatalf("restart nao chamou recall seguro: pos=(%d,%d) saves=%d", p.X, p.Y, st.saves)
 	}
 

@@ -244,16 +244,15 @@ func TestCityTaxBuySellAndTOTOArithmetic(t *testing.T) {
 	})
 }
 
-func TestCityTaxPersistenceFailureRollsBackPlayerRebuyAndTreasury(t *testing.T) {
+func TestCityTaxPersistenceFailureRollsBackPlayerAndTreasury(t *testing.T) {
 	w, st, p, shop := cityEconomyFixture(t, model.ItemDef{Index: 400, Price: 1000})
 	p.Char.Gold = 1000
 	p.Char.Inv[0] = model.Item{Index: 400, UID: "11111111111141118111111111110400"}
-	beforeRebuy := p.Rebuy
 	st.err = errors.New("postgres unavailable")
 	sell := make([]byte, 20)
 	sell[14], sell[16] = placeInv, 0
 	w.onSellItem(p.Session, sell)
-	if p.Char.Inv[0].Index != 400 || p.Char.Gold != 1000 || p.Rebuy != beforeRebuy || w.guilds.Wars.Cities.Territories[0].Treasury != 0 {
+	if p.Char.Inv[0].Index != 400 || p.Char.Gold != 1000 || w.guilds.Wars.Cities.Territories[0].Treasury != 0 {
 		t.Fatalf("failed taxed sale did not roll back atomically: item=%d gold=%d treasury=%d", p.Char.Inv[0].Index, p.Char.Gold, w.guilds.Wars.Cities.Territories[0].Treasury)
 	}
 	if p.ShopNPC != shop.ID {
@@ -274,7 +273,7 @@ func TestCityTaxPurchaseFailureAndRetry(t *testing.T) {
 			}
 			w, st, p, shop := cityEconomyFixture(t, model.ItemDef{Index: index, Price: 3000})
 			p.Char.Gold = 10000
-			beforeInv, beforeRebuy := p.Char.Inv, p.Rebuy
+			beforeInv := p.Char.Inv
 			buy := func() {
 				if ticket {
 					w.onBuyToto(p.Session, totoBuyPacket(shop.ID, 0, 0, 1, 7, 2, 3))
@@ -286,7 +285,7 @@ func TestCityTaxPurchaseFailureAndRetry(t *testing.T) {
 			}
 			st.err = errors.New("tax commit unavailable")
 			buy()
-			if st.gameSaves != 1 || p.Char.Gold != 10000 || p.Char.Inv != beforeInv || p.Rebuy != beforeRebuy || w.guilds.Wars.Cities.Territories[0].Treasury != 0 {
+			if st.gameSaves != 1 || p.Char.Gold != 10000 || p.Char.Inv != beforeInv || w.guilds.Wars.Cities.Territories[0].Treasury != 0 {
 				t.Fatal("failed taxed purchase did not restore the player and treasury")
 			}
 			st.err = nil
@@ -385,13 +384,12 @@ func TestCityTreasuryPersistenceFailureAndRetry(t *testing.T) {
 			w.guilds.Wars.Cities.Territories[0].Owner = 1
 			w.guilds.Wars.Cities.Territories[0].Treasury = amount
 			beforeGold, beforeInv := p.Char.Gold, p.Char.Inv
-			beforeRebuy := p.Rebuy
 			drainPlayerPackets(p)
 			st.err = errors.New("treasury commit unavailable")
 			if err := w.withdrawCityTreasury(p, 0); err == nil {
 				t.Fatal("failed treasury commit reported success")
 			}
-			if p.Char.Gold != beforeGold || p.Char.Inv != beforeInv || p.Rebuy != beforeRebuy || w.guilds.Wars.Cities.Territories[0].Treasury != amount {
+			if p.Char.Gold != beforeGold || p.Char.Inv != beforeInv || w.guilds.Wars.Cities.Territories[0].Treasury != amount {
 				t.Fatal("failed withdrawal did not restore the player and treasury")
 			}
 			if p.Char != &p.Account.Chars[p.CharSlot] {

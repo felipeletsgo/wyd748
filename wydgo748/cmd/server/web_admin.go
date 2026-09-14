@@ -94,6 +94,8 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source) (func(), error)
 	events, _ := source.(control.GlobalDropSource)
 	quiz, _ := source.(control.QuizSource)
 	bosses, _ := source.(control.BossesSource)
+	kick, _ := source.(control.KickSource)
+	teleport, _ := source.(control.TeleportSource)
 	handler, err := webadmin.New(webadmin.Config{
 		Origin: origin, DevHTTP: true, AdminAccessPIN: cfg.AdminAccessPIN,
 		Staff: staff, Accounts: db, Control: localAdminControl{source: source, started: time.Now()},
@@ -101,6 +103,8 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source) (func(), error)
 		GlobalDrop: events,
 		Quiz:       quiz,
 		Bosses:     bosses,
+		Kick:       kick,
+		Teleport:   teleport,
 		Audit:      slog.New(slog.NewJSONHandler(os.Stderr, nil)),
 	})
 	if err != nil {

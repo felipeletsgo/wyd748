@@ -1,6 +1,7 @@
 # WYD-Go 7.48 — estado implementado
 
-Atualizado em 16/08/2026. HEAD de referência: `6f16278`.
+Atualizado em 14/09/2026. HEAD de referência: `912a951`, acrescido das mudanças
+locais ainda não commitadas descritas abaixo.
 
 Este é um registro de entregas da revisão indicada, não uma auditoria do HEAD
 atual. Menções a sources descontinuadas preservam apenas a procedência
@@ -33,9 +34,61 @@ internal/data/       loaders dos arquivos autoritativos
 internal/store/      PostgreSQL e JSON de desenvolvimento
 internal/account/    autenticação e criação de conta
 internal/game/       sistemas de gameplay coordenados pelo World
+internal/webadmin/   painel administrativo, autenticação staff e comandos tipados
 data/                conteúdo e configuração server-side
 tmproject/client748/           assets ativos e project.exe recompilado
 ```
+
+## Painel administrativo e eventos operacionais
+
+- Teleporte administrativo para Armia, Azran, Erion e Nippleheim: botão
+  **Teleportar**, cidade, motivo, confirmação e coordenadas finais no recibo.
+  Capability `moderation.player.teleport`; comando tipado na fila do World,
+  alvo preso a UID/conta/sessão/epoch e replay sem repetir o teleporte.
+  Recusa mortos, troca, loja fantasma, instâncias e arenas/participantes de
+  guerra; valida terreno/célula livre e salva antes de publicar. Em falha,
+  restaura posição. Sucesso descarta a caminhada anterior e contexto de NPC.
+  Não libera coordenadas arbitrárias nem muda wire/client. Testes automatizados
+  de contrato, HTTP, lifecycle, rollback e DOM; aceitação com jogador real e
+  PostgreSQL permanece pendente. Detalhes em
+  [WYD-WEB-PLATAFORM.md](WYD-WEB-PLATAFORM.md).
+
+- O `cmd/server` inicia o painel `/admin` no mesmo processo do `tm.exe` quando
+  `web_admin_enabled=true`; não é necessário manter um segundo launcher/API para
+  o uso local diário.
+- O exemplo local escuta apenas em `127.0.0.1:8082`, serve o frontend compilado
+  de `web/portal/dist` e usa `data/staff.json` para capabilities de staff.
+- O login administrativo usa a senha normal da conta mais o PIN numérico
+  temporário `admin_access_pin` de `data/server.txt`. TOTP/2FA está desativado
+  nesta fase e continua sendo endurecimento necessário antes de exposição
+  pública do painel.
+- Sessão staff, revogação, CSRF, auditoria e capabilities protegem os endpoints.
+  Snapshots e mutações de gameplay entram pela fila do `World`; HTTP não recebe
+  ponteiros para estado mutável.
+- Drop global: `GET/POST /api/v1/staff/events/global-drop`, capability
+  `game.event.global-drop`, item configurável, chance de 1–100% e encerramento
+  opcional por duração e/ou quantidade máxima de drops.
+- Quiz: `GET/POST /api/v1/staff/events/quiz`, capability `game.event.quiz`, uma
+  questão por minuto, janela de resposta de 10 segundos, quatro alternativas,
+  duração do evento e item/quantidade de recompensa configuráveis. As questões
+  usam multiplicação/divisão curta (por exemplo, dois algarismos por um
+  algarismo).
+- O quiz é server-authoritative: cada rodada/participante recebe desafio e token
+  próprios; somente a primeira resposta válida dentro do prazo pode premiar.
+  Replay, token de outra sessão, resposta expirada ou abertura local da UI via
+  WPE não concede recompensa.
+- Bosses: `GET/POST /api/v1/staff/bosses`, capability `game.boss.summon`, lista
+  os bosses configurados e permite materializar novamente um boss morto por
+  comando autoritativo com identificação de operação/epoch/revisão.
+- A Control API HTTP separada permanece read-only. As mutações acima existem no
+  handler administrativo integrado e são comandos tipados do `World`.
+- Kick administrativo: `POST /api/v1/staff/players/{uid}/kick`, capability
+  `moderation.player.kick`, motivo e confirmação na UI. Vincula UID/conta/sessão
+  ao processo observado no overview e revalida autorização na execução. Usa
+  `onDisconnect` para save e limpeza normais; não bane nem bloqueia novo login.
+  Replay usa o mesmo recibo sem atingir um relogin; falha no save retorna
+  `disconnected_persistence_failed`. Testes Go/HTTP/race e sete testes DOM
+  passaram; operação real via navegador/client e PostgreSQL permanece pendente.
 
 ## Conta, autenticação e admissão
 
@@ -58,8 +111,9 @@ tmproject/client748/           assets ativos e project.exe recompilado
 ## Personagem e progressão
 
 - Templates das quatro classes ficam em `data/character_templates.json`.
-- Entrada e reentrada normal usam `(2100,2100)`; última posição não é usada como
-  spawn de login.
+- Entrada e reentrada normal usam o spawn da cidade vinculada persistida em
+  `Score.Merchant[7:6]`; personagens legados com esses bits zerados usam Armia.
+  A última posição continua não sendo usada como spawn de login.
 - Nível interno é base zero: `0` aparece como nível 1 e `399` como nível 400.
 - EXP Mortal usa a tabela cumulativa nativa, piso/rate configuráveis e bônus de
   party integral.
@@ -165,6 +219,9 @@ tmproject/client748/           assets ativos e project.exe recompilado
 - Carry possui 64 posições estruturais e 63 visíveis; o slot 63 é inacessível.
 - Cargo possui 128 posições estruturais e 120 utilizáveis pelo jogador.
 - Cada item ocupa uma célula no Carry e no Cargo do `project.exe` recompilado.
+- A transferência de gold entre inventário e Cargo usa os IDs de controles do
+  layout 7.48 (`TMT_INPUT_GOLD`/`TME_INPUT_GOLD` e equivalentes compatíveis),
+  corrigindo o fluxo que não aceitava a operação na interface adaptada.
 - Compra, venda, split, delete, swap, equip, drop e pickup revalidam container,
   slot, item e UID autoritativos.
 - Itens de loja preservam efeitos base do `itemlist.csv`, incluindo pilhas.
@@ -184,7 +241,9 @@ tmproject/client748/           assets ativos e project.exe recompilado
   jogando.
 - Trade entre jogadores é transacional, preserva UIDs, gold e cápsulas
   Celestial e recusa store sem commit multi-account.
-- Recompra mantém dez entradas autoritativas com preço recalculado.
+- Venda para NPC é definitiva. O servidor não mantém lista de recompra, não
+  envia a janela `0x3E8` após a venda e não aceita o antigo caminho de compra de
+  item vendido. A loja continua exibindo o estoque configurado do NPC.
 - Os sete compositores tipo 8 estão implementados: Tiny, Lindy, Compositor,
   Agatha, Aylin, Ehre e Alquimista Odin.
 - Receitas validam os oito itens enviados contra snapshots do servidor, cobram
@@ -385,6 +444,19 @@ Hash SHA-256 do candidato source verificado em 25/08/2026:
 O hash é volátil e deve ser recalculado após cada build. Toda funcionalidade
 historicamente obtida por patch só conta como implementada depois de adaptada
 na source 7.48 e validada no `project.exe`.
+
+As correções recentes da source incluem:
+
+- UI moderna do quiz redimensionada e posicionada no topo central da janela;
+- minimapa compatível alinhado aos eixos e com borda/posicionamento corrigidos;
+- mapa completo e minimapa exibem `X: <valor> Y: <valor>` centralizado abaixo
+  da respectiva área;
+- compatibilidade dos controles de transferência de gold do Cargo descrita na
+  seção de economia.
+
+Essas alterações foram incorporadas à source e ao candidato recompilado. O
+registro não promove automaticamente o conjunto a `CLIENT_TESTED`: o gate exige
+execução manual final de cada fluxo no client construído.
 
 Foram importados 135 trajes completos, com classificação
 corporal 5 (TK/BM), 10 (FM/HT) ou 15 (dinâmica), 129 renderers, 176 registros

@@ -110,7 +110,6 @@ func resetCharacterRuntime(p *Player) {
 	p.GuildInviteFrom = 0
 	p.GuildInviteUntil = time.Time{}
 	p.NextGuildInvite = time.Time{}
-	p.Rebuy = [maxRebuyEntries]RebuyEntry{}
 
 	// Combate.
 	p.CombatTargetID = 0

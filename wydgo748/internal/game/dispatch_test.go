@@ -50,7 +50,6 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		{wire.OpPKMode, 16},
 		{wire.OpGuildDeprivate, 16},
 		{wire.OpInviteGuild, 20},
-		{wire.OpRebuy, repurchasePacketSize},
 		{wire.OpGuildAlly, 20},
 		{wire.OpGuildWar, 20},
 		{wire.OpChallenge, 16},
@@ -81,7 +80,7 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 	for _, tc := range tests {
 		tc := tc
 		t.Run(fmt.Sprintf("opcode_0x%X", tc.opcode), func(t *testing.T) {
-			if tc.opcode != 0xFFFF && tc.opcode != wire.OpRebuy {
+			if tc.opcode != 0xFFFF {
 				if size, exact := exactInboundPacketSize(tc.opcode); !exact || size != tc.size {
 					t.Fatalf("handler sem framing exato: size=%d exact=%v, esperado=%d",
 						size, exact, tc.size)

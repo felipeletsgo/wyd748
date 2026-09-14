@@ -37,6 +37,8 @@ type Config struct {
 	GlobalDrop     control.GlobalDropSource
 	Quiz           control.QuizSource
 	Bosses         control.BossesSource
+	Kick           control.KickSource
+	Teleport       control.TeleportSource
 	Persistent     PersistentReader
 	Ready          func(context.Context) error
 	Audit          *slog.Logger
@@ -114,6 +116,8 @@ func New(cfg Config) (*Handler, error) {
 	h.mux.HandleFunc("POST /api/v1/staff/events/quiz", h.quiz)
 	h.mux.HandleFunc("GET /api/v1/staff/bosses", h.bosses)
 	h.mux.HandleFunc("POST /api/v1/staff/bosses", h.bosses)
+	h.mux.HandleFunc("POST /api/v1/staff/players/{uid}/kick", h.kick)
+	h.mux.HandleFunc("POST /api/v1/staff/players/{uid}/teleport", h.teleport)
 	h.mux.HandleFunc("GET /api/v1/staff/players/{uid}/persistent", h.persistentPlayer)
 	h.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"status": "ok"}) })
 	h.mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {

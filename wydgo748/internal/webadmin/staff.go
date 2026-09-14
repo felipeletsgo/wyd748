@@ -58,11 +58,11 @@ func ReadStaff(path string) (map[string]Staff, error) {
 		if name != strings.ToLower(name) || len(name) < 1 || len(name) > 12 || strings.IndexFunc(name, func(r rune) bool { return !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9') }) >= 0 {
 			return nil, errors.New("invalid canonical staff account")
 		}
-		if len(staff.Capabilities) == 0 || len(staff.Capabilities) > 5 {
+		if len(staff.Capabilities) == 0 || len(staff.Capabilities) > 7 {
 			return nil, errors.New("invalid capabilities")
 		}
 		for _, cap := range staff.Capabilities {
-			if cap != StatusCapability && cap != PlayersCapability && cap != control.GlobalDropCapability && cap != control.QuizCapability && cap != control.BossesCapability {
+			if cap != StatusCapability && cap != PlayersCapability && cap != control.GlobalDropCapability && cap != control.QuizCapability && cap != control.BossesCapability && cap != control.KickCapability && cap != control.TeleportCapability {
 				return nil, errors.New("unsupported capability")
 			}
 		}

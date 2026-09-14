@@ -1839,7 +1839,11 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pPositionText->SetVisible(0);
 		if (m_pMiniMapPanel)
 		{
-			m_pMiniMapPanel->GetGeomControl()->fAngle = -0.78539819f;
+			// The native 7.48 control stores -45 degrees, but the current source
+			// renderer applies that angle directly to the stretched map texture.
+			// Keep the compat minimap axis-aligned; the direction arrow rotates
+			// independently in FrameMove.
+			m_pMiniMapPanel->GetGeomControl()->fAngle = 0.0f;
 			m_pMiniMapPanel->m_bSelectEnable = 0;
 			m_pMiniMapPanel->m_GCPanel.dwColor = 0x80FFFFFF;
 			m_pMiniMapPanel->SetVisible(0);
@@ -4615,7 +4619,7 @@ int TMFieldScene::InitializeScene()
 	SButton* pMiniMapBtn = (SButton*)m_pControlContainer->FindControl(296);
 	if (m_pMiniMapPanel)
 	{
-		m_pMiniMapPanel->GetGeomControl()->fAngle = -0.78539819f;
+		m_pMiniMapPanel->GetGeomControl()->fAngle = m_bCompatFieldScene ? 0.0f : -0.78539819f;
 		m_pMiniMapPanel->m_bSelectEnable = 0;
 
 		if (m_pMiniMapDir)
@@ -5728,13 +5732,26 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		m_pEditChat->SetText((char*)"");
 		return 0;
 	}
+	if (m_bCompatFieldScene)
+	{
+		// FieldScene2.bin (7.48) uses the original resource IDs. Route only the
+		// Cargo/inventory gold controls into the existing modern handlers.
+		if (idwControlID == TMB_MONEY)
+			idwControlID = B_MONEY;
+		else if (idwControlID == TMB_CARGO_MONEY)
+			idwControlID = B_CARGO_MONEY;
+		else if (idwControlID == TMB_IG_OK)
+			idwControlID = B_IG_OK;
+	}
 	if (idwControlID == B_MONEY)
 	{
 		if (m_pMyHuman->m_cDie == 1)
 			return 1;
 
-		auto pText = static_cast<SText*>(m_pControlContainer->FindControl(T_INPUT_GOLD));
-		auto pEdit = m_pControlContainer->FindControl(E_INPUT_GOLD);
+		auto pText = static_cast<SText*>(m_pControlContainer->FindControl(
+			m_bCompatFieldScene ? TMT_INPUT_GOLD : T_INPUT_GOLD));
+		auto pEdit = m_pControlContainer->FindControl(
+			m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD);
 		if (!pText || !pEdit || !m_pInputGoldPanel)
 			return 1;
 
@@ -5781,8 +5798,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		if (!m_pAutoTrade || m_pAutoTrade->IsVisible() != 1)
 		{
-			auto pText = static_cast<SText*>(m_pControlContainer->FindControl(T_INPUT_GOLD));
-			auto pEdit = m_pControlContainer->FindControl(E_INPUT_GOLD);
+			auto pText = static_cast<SText*>(m_pControlContainer->FindControl(
+				m_bCompatFieldScene ? TMT_INPUT_GOLD : T_INPUT_GOLD));
+			auto pEdit = m_pControlContainer->FindControl(
+				m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD);
 
 			if (pText && pEdit && m_pCargoPanel && m_pCargoPanel->IsVisible() == 1)
 			{
@@ -5799,7 +5818,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	if (idwControlID == B_IG_OK)
 	{
 		auto pInputText = static_cast<SEditableText*>(m_pControlContainer->FindControl(
-			m_bCompatFieldScene ? 627 : E_INPUT_GOLD));
+			m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD));
 		// FieldScene2.bin dispatches the native edit through the compatibility ID
 		// translator.  Treat a missing control as an incomplete resource instead of
 		// dereferencing it while processing the modal confirmation.
@@ -10236,7 +10255,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		if (m_pPositionText->IsVisible() == 1)
 		{
 			char szPos[64]{};
-			sprintf(szPos, "X: %4d  Y: %4d", (int)m_pMyHuman->m_vecPosition.x, (int)m_pMyHuman->m_vecPosition.y);
+			sprintf(szPos, "X: %d Y: %d", (int)m_pMyHuman->m_vecPosition.x, (int)m_pMyHuman->m_vecPosition.y);
 			m_pPositionText->SetText(szPos, 0);
 
 			char szServer[64]{};
@@ -16383,11 +16402,18 @@ void TMFieldScene::SetVisibleMiniMap()
 				m_pMiniMapPanel->SetSize(400.0f, 400.0f);
 				if (pMiniMapBorder)
 				{
-					pMiniMapBorder->SetPos(196.0f, 36.0f);
+					pMiniMapBorder->SetPos(-4.0f, -4.0f);
 					pMiniMapBorder->SetSize(408.0f, 408.0f);
+					pMiniMapBorder->SetVisible(1);
 				}
 				if (m_pMiniMapDir)
 					m_pMiniMapDir->SetPos(196.0f, 184.0f);
+				if (m_pPositionText)
+				{
+					m_pPositionText->SetPos(0.0f, 408.0f);
+					m_pPositionText->SetSize(400.0f, 20.0f);
+					m_pPositionText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
+				}
 			}
 		}
 		else
@@ -16401,12 +16427,18 @@ void TMFieldScene::SetVisibleMiniMap()
 			m_pMiniMapPanel->SetVisible(1);
 			if (pMiniMapBorder)
 			{
-				pMiniMapBorder->SetPos(rightEdge - 165.0f, 0.0f);
+				pMiniMapBorder->SetPos(-4.0f, -4.0f);
 				pMiniMapBorder->SetSize(168.0f, 168.0f);
 				pMiniMapBorder->SetVisible(1);
 			}
 			if (m_pMiniMapDir)
 				m_pMiniMapDir->SetPos(76.0f, 64.0f);
+			if (m_pPositionText)
+			{
+				m_pPositionText->SetPos(0.0f, 168.0f);
+				m_pPositionText->SetSize(160.0f, 20.0f);
+				m_pPositionText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
+			}
 		}
 
 		const bool isVisible = m_pMiniMapPanel->m_bVisible != 0;

@@ -42,10 +42,11 @@ func addZonePlayer(w *World, id uint16, x, y uint16, hp uint32) *Player {
 	return p
 }
 
-// nearRecall usa Chebyshev pois o recall pode empurrar 1 tile quando dois
-// jogadores caem no mesmo ponto de reentrada.
+// nearRecall usa Chebyshev pois o recall pode empurrar alguns tiles quando dois
+// jogadores caem no mesmo ponto da cidade vinculada. Os fixtures antigos usam
+// hometown 0, portanto Armia continua sendo o fallback compativel.
 func nearRecall(p *Player) bool {
-	return chebyshev(p.X, p.Y, recallX, recallY) <= 8
+	return chebyshev(p.X, p.Y, cityWarZones[0].exitX, cityWarZones[0].exitY) <= 8
 }
 
 func TestQuestZoneResetRecallsInsideRevivesDeadLeavesOutside(t *testing.T) {

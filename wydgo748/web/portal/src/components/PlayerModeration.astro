@@ -1,0 +1,14 @@
+<section id="moderation" class="panel events-panel" aria-labelledby="moderation-title">
+  <div class="panel-heading"><h2 id="moderation-title">Moderação · desconectar jogador</h2><span class="tag">KICK</span></div>
+  <div class="event-body">
+  <p class="muted">Selecione “Desconectar” na lista de jogadores. A ação encerra a sessão selecionada, mas não impede um novo login.</p>
+  <p id="kick-target">Nenhum jogador selecionado.</p>
+  <form id="kick-form">
+    <label for="kick-reason">Motivo obrigatório</label>
+    <input id="kick-reason" minlength="3" maxlength="200" required placeholder="Descreva o motivo da desconexão" disabled />
+    <button id="kick-submit" class="button primary" type="submit" disabled>Confirmar desconexão</button>
+    <button id="kick-retry" class="button subtle" type="button" hidden>Consultar / repetir a mesma operação</button>
+  </form>
+  <p id="kick-message" class="form-message" role="status" aria-live="polite"></p>
+  </div>
+</section>

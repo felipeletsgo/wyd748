@@ -623,12 +623,13 @@ antes de um único commit da conta, evitando uma escrita de disco por mob.
 `mob_combat.go`: aggro em 8 tiles, perseguição com colisão, leash de 30 tiles,
 ataque adjacente via `0x39D` e dano autoritativo. No golpe letal, `0x181` atualiza
 a barra e `0x338` chama `TMHuman::Die()`; HP zero bloqueia movimento/ataque. O
-pedido `0x289` restaura até 200 HP e faz recall para Armia.
+pedido `0x289` restaura até 200 HP e faz recall para a cidade vinculada ao
+personagem em `Score.Merchant[7:6]` (bits zerados continuam significando Armia).
 
 ### Morte, recall e reentrada na visibilidade
 
-O recall procura um tile livre ao redor da coordenada de Armia, evitando dois
-jogadores no mesmo ponto. Ao reviver, cada observador que ainda conserva o ID
+O recall procura um tile livre ao redor do spawn da cidade vinculada, evitando
+dois jogadores no mesmo ponto. Ao reviver, cada observador que ainda conserva o ID
 morto recebe `0x165 RemoveMob` com `RemoveType=3`; o servidor limpa os dois mapas
 de visibilidade e recalcula as janelas antiga e nova.
 

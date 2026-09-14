@@ -86,6 +86,33 @@ func TestLiveCharacterKeepsHPOnEnter(t *testing.T) {
 	}
 }
 
+func TestEnterWorldUsesPersistedHomeCity(t *testing.T) {
+	w, p, s := newEnterWorldPlayer(t, 742, 1000)
+	p.Account.Chars[0].Score.Merchant = uint32(2 << playerHomeCityShift) // Erion.
+
+	w.onEnterWorld(s, enterWorldPacket(0))
+
+	if !p.InWorld {
+		t.Fatal("o personagem deveria ter entrado no mundo")
+	}
+	if p.X != cityWarZones[2].exitX || p.Y != cityWarZones[2].exitY ||
+		p.Char.X != p.X || p.Char.Y != p.Y {
+		t.Fatalf("login ignorou hometown de Erion: player=(%d,%d) char=(%d,%d)",
+			p.X, p.Y, p.Char.X, p.Char.Y)
+	}
+}
+
+func TestLegacyHomeCityBitsDefaultToArmia(t *testing.T) {
+	w, p, s := newEnterWorldPlayer(t, 742, 1000)
+	p.Account.Chars[0].Score.Merchant = 0x1F // somente os seis bits baixos.
+
+	w.onEnterWorld(s, enterWorldPacket(0))
+
+	if p.X != cityWarZones[0].exitX || p.Y != cityWarZones[0].exitY {
+		t.Fatalf("personagem legado nao caiu em Armia: (%d,%d)", p.X, p.Y)
+	}
+}
+
 func TestEnterWorldKeepsLearnedSkillCostsDeducted(t *testing.T) {
 	for _, tc := range []struct {
 		name  string

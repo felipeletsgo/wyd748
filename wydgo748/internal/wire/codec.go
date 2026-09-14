@@ -232,31 +232,6 @@ func CloseTrade(id uint16) []byte {
 	return Build(OpCloseTrade, id, 12)
 }
 
-// RepurchaseEntry e a estrutura que o client 7.48 desenha na janela de
-// recompra: Order@0, STRUCT_ITEM@4 e Price@12. O servidor nao envia UID;
-// esse campo permanece exclusivamente no estado autoritativo.
-type RepurchaseEntry struct {
-	Order uint32
-	Item  model.Item
-	Price uint32
-}
-
-// RepurchaseList monta MSG_RepurchaseItems do client 7.48 (176 bytes):
-// target@12 seguido por dez entradas de 16 bytes. O mesmo opcode e usado para
-// o pedido e para a resposta; os campos do pedido sao ignorados depois de
-// validar Header.ID e o contexto de loja.
-func RepurchaseList(id uint16, target uint32, entries [10]RepurchaseEntry) []byte {
-	b := Build(OpRebuy, id, 176)
-	putU32(b, 12, target)
-	for i, entry := range entries {
-		off := 16 + i*16
-		putU32(b, off, entry.Order)
-		PutItem(b, off+4, entry.Item)
-		putU32(b, off+12, entry.Price)
-	}
-	return b
-}
-
 func CNFTradeCheck(id uint16) []byte {
 	return Build(OpCNFTradeCheck, id, 12)
 }

@@ -2,6 +2,8 @@ import type { components } from '../lib/api.generated';
 import { setupGlobalDrop } from './global-drop';
 import { setupQuiz } from './quiz';
 import { setupBosses } from './bosses';
+import { setupPlayerModeration } from './player-moderation';
+import { setupPlayerTeleport } from './player-teleport';
 
 type Session = components['schemas']['Session'];
 type Overview = components['schemas']['Overview'];
@@ -30,7 +32,8 @@ const messages: Record<string, string> = {
   invalid_csrf: 'A sessão de acesso expirou. Tente entrar novamente.',
   authentication_required: 'Sua sessão expirou. Entre novamente.',
   staff_revoked: 'A autorização desta conta mudou. Entre novamente ou fale com o responsável.',
-  capability_required: 'Sua conta não tem as duas permissões de leitura exigidas por este painel.',
+  capability_required: 'Sua conta não tem a permissão exigida para esta operação.',
+  moderation_unavailable: 'Moderação exige o painel integrado ao tm.exe atualizado. A Web API separada continua somente leitura.',
   rate_limited: 'Limite de consultas atingido. Aguarde um minuto e tente novamente.',
   control_busy: 'O servidor está atendendo outra consulta. Aguarde um instante e tente novamente.',
   invalid_query: 'Busca inválida. Use até 48 caracteres Unicode.',
@@ -62,6 +65,8 @@ async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> 
 const globalDropPanel = setupGlobalDrop(api, explain);
 const quizPanel = setupQuiz(api, explain);
 const bossesPanel = setupBosses(api, explain);
+const moderationPanel = setupPlayerModeration(api, explain);
+const teleportPanel = setupPlayerTeleport(api, explain);
 function showSession() {
   const authenticated = session?.authenticated ?? false;
   el('login').hidden = authenticated;
@@ -76,6 +81,8 @@ function resetSnapshot() {
   globalDropPanel.reset();
   quizPanel.reset();
   bossesPanel.reset();
+  moderationPanel.reset();
+  teleportPanel.reset();
   snapshot = undefined; offset = 0; search = '';
   closeInspector();
   el<HTMLInputElement>('search').value = '';
@@ -177,6 +184,10 @@ function render(data: Overview) {
     const action = document.createElement('td');
     const inspect = document.createElement('button'); inspect.type = 'button'; inspect.className = 'button subtle inspector-open'; inspect.textContent = 'Detalhes';
     inspect.setAttribute('aria-controls','player-inspector'); inspect.addEventListener('click',() => showInspector(player,data.asOf)); action.append(inspect); row.append(action);
+    const kick = document.createElement('button'); kick.type = 'button'; kick.className = 'button subtle'; kick.textContent = 'Desconectar';
+    kick.setAttribute('aria-controls','moderation'); kick.addEventListener('click',() => moderationPanel.select(player,data.moderationEpoch)); action.append(kick);
+    const teleport = document.createElement('button'); teleport.type = 'button'; teleport.className = 'button subtle'; teleport.textContent = 'Teleportar';
+    teleport.setAttribute('aria-controls','player-teleport'); teleport.addEventListener('click',() => teleportPanel.select(player,data.moderationEpoch)); action.append(teleport);
     return row;
   });
   if (rows.length) el('player-rows').replaceChildren(...rows);

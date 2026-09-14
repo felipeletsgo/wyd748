@@ -3,17 +3,18 @@
 ## Estado e decisões desta revisão — 14/09/2026
 
 Plano arquitetural em implementação. Base inspecionada:
-`4b1a12c1994e235ecdf923f145c7538add022f2e` em `main`, com o lote web/admin
-e os eventos administrativos ainda no worktree. As telas, endpoints, tabelas e tipos apresentados
+`912a9512942af9e9c96400f361f3bbd4eb929e24` em `main`, acrescida das correções
+locais de Cargo/gold, mapa/minimapa e remoção server-side da recompra descritas
+nos registros de implementação. As telas, endpoints, tabelas e tipos apresentados
 abaixo continuam propostas quando não estiverem acompanhados de evidência de
 implementação. A lista completa é o backlog do produto; a ordem de execução e
 os gates estão nas seções 161–162.
 
-### Incremento atual: drop global, quiz e bosses
+### Incremento atual: drop global, quiz, bosses, kick e teleporte para cidades
 
 O painel embarcado no `tm.exe` agora possui comandos de eventos e summon de
-bosses, além das consultas existentes. Este incremento altera a prioridade
-read-only anterior; teleporte, kick, ban e disparo administrativo de guerras
+bosses, desconexão administrativa e teleporte para cidades, além das consultas existentes. Este incremento altera a prioridade
+read-only anterior; teleporte por coordenadas livres, ban e disparo administrativo de guerras
 ainda estão pendentes. O restante do documento descreve o produto-alvo, não uma
 lista de funções já disponíveis.
 
@@ -89,11 +90,93 @@ o servidor em execução não foram substituídos/reiniciados. Candidatos em
 atualizar servidor e cliente juntos numa parada planejada. O frontend está
 compilado no `web/portal/dist` usado pelo painel embarcado.
 
+### Moderação: desconectar jogador — 14/09/2026
+
+**MODERNIZACAO_COMPATIVEL v1.** Implementado `POST
+/api/v1/staff/players/{uid}/kick` no painel integrado, com capability
+`moderation.player.kick`. O body inclui versão, `operationId`, motivo (3–200
+caracteres sem controles), UID, conta canônica, `expectedSessionId` e `epoch`
+obtido de `moderationEpoch` no overview. UID da rota e do body devem coincidir.
+Não altera o wire do client e não aplica banimento: o jogador pode reconectar.
+
+- O `World` revalida autorização, contexto, processo, personagem, conta e sessão
+  antes de fechar o socket e executar `onDisconnect`. O fluxo normal salva
+  conta/charstate e limpa presença, grupo, trocas, summons e reserva da conta.
+- Sessão antiga/offline ou epoch antigo retorna `stale_target`, sem escolher
+  automaticamente a nova conexão. Recibos são vinculados a ator/body e não são
+  descartados durante o processo (máximo 1024); replay recupera o resultado,
+  conflito rejeita, e saturação não executa. Não há ledger durável neste lote.
+- Falha no save não impede a desconexão física: retorna explicitamente
+  `disconnected_persistence_failed` e registra o erro. Não promete rollback da
+  conexão nem salvamento bem-sucedido. Recibo e motivo aparecem na auditoria.
+- UI: em Jogadores online, clicar **Desconectar**, preencher motivo e confirmar.
+  Em falha HTTP, **Consultar / repetir a mesma operação** mantém alvo, body e ID;
+  não permite trocar o alvo pendente. Não recarregar a página com resultado
+  incerto. Atualizar a lista após a confirmação. Resultados tardios após logout
+  não alteram a UI de uma nova sessão administrativa.
+- `felipetr` recebeu a nova capability em `data/staff.json`; fazer novo login
+  administrativo após a mudança. Web API separada retorna
+  `moderation_unavailable`; a Control API HTTP continua somente leitura.
+
+**Validação deste lote:** `go test -count=1 ./...`, `go vet ./...`, testes
+focados de kick/overview/bosses com `-race`, geração OpenAPI, Astro check/build e
+sete testes de estado DOM em
+[`Test-PlayerModeration.mjs`](../tools/web-admin/Test-PlayerModeration.mjs).
+Inclui rejeições, fila cheia, cancelamento, revogação/expiração, replay após
+relogin, callback duplo de desconexão e falha simulada de persistência.
+`STATICALLY VERIFIED` / `AUTOMATED TESTED`; **não CLIENT_TESTED**.
+Faltam operação pelo navegador com jogador real e save em PostgreSQL real.
+Build candidato: `wydgo748/bin/tm-webadmin.exe`. Nenhum servidor em execução foi
+encerrado; `tm.exe` e `project.exe` não foram substituídos neste lote.
+
+### Moderação: teleporte para cidades — 14/09/2026
+
+**MODERNIZACAO_COMPATIVEL v1.** O painel integrado implementa `POST
+/api/v1/staff/players/{uid}/teleport`, com capability
+`moderation.player.teleport` (incluída para `felipetr`; exige novo login).
+Selecionar **Teleportar** na lista online, escolher a cidade, preencher motivo
+e confirmar. O servidor resolve os destinos a partir dos pontos públicos já
+usados pelas saídas de guerras: Armia (2086, 2093), Azran (2494, 1707),
+Erion (2453, 2000) e Nippleheim (3652, 3122).
+
+- Body v1 com UID, conta canônica, sessão observada, `moderationEpoch`,
+  `operationId`, motivo e `destination` (`armia`, `azran`, `erion` ou
+  `nippleheim`). **Não aceita coordenadas livres nem acesso a instâncias.**
+- Revalida sessão staff/CSRF/capability e alvo no World; rejeita morto, troca,
+  loja fantasma, persistência bloqueada, membership de instância (incluindo
+  saída em andamento), arenas de torre/cidades ou participante de guerra.
+- Reutiliza `teleportPlayer`: terreno transitável, busca de célula livre
+  em raio 3, limite da cidade e recusa se todas estiverem ocupadas. Salva antes
+  de publicar; falha restaura a posição e retorna `persistence_failed`.
+  Sucesso limpa a rota anterior de caminhada e contextos de NPC; não altera
+  ouro, itens ou o protocolo do client.
+- Recibo retorna coordenadas finais em `x/y` somente no sucesso; a UI mostra
+  essas coordenadas. Recibos por ator/body, até 1024 operações de teleporte por
+  processo, sem descarte. Retry idêntico recupera o resultado original, sem
+  teleportar novamente mesmo que o jogador já tenha caminhado ou reconectado.
+  Após reinício, o epoch antigo é recusado.
+- Em resultado HTTP incerto, **Consultar / repetir a mesma operação** conserva
+  alvo, cidade e ID. Não recarregar a página. Respostas tardias após logout são
+  descartadas. A API separada continua incapaz de executar a mutação.
+
+**Validação:** testes Go de contrato, World e HTTP, incluindo rollback simulado,
+destino cheio, cancelamento/fila, revogação, expiração, replay e caminhada
+anterior; testes de estado DOM em
+[`Test-PlayerTeleport.mjs`](../tools/web-admin/Test-PlayerTeleport.mjs).
+Gates de integração: suíte Go, vet, race focado, geração OpenAPI e Astro
+check/build. `STATICALLY VERIFIED` / `AUTOMATED TESTED`; **não CLIENT_TESTED**.
+Falta validar pelo navegador com jogador e PostgreSQL reais.
+O candidato fica em `wydgo748/bin/tm-webadmin.exe`; nenhum servidor é
+reiniciado e `tm.exe`/`project.exe` não são substituídos por este lote.
+
+Próximo lote: banimento administrativo com persistência e revogação no login.
+Coordenadas livres e disparo de guerras seguem pendentes, com contratos próprios.
+
 ### Base existente e lacunas
 
 | Área | Evidência no repositório | Consequência para o plano |
 | --- | --- | --- |
-| Autoridade de gameplay | [`World`](../wydgo748/internal/game/world.go) processa comandos e ticks em uma goroutine; consultas administrativas read-only entram pela mesma fila via [`control.go`](../wydgo748/internal/game/control.go) | Preservar o `World` como autoridade; mutações administrativas ainda exigem comandos tipados, rejeições, lifecycle e auditoria próprios |
+| Autoridade de gameplay | [`World`](../wydgo748/internal/game/world.go) processa comandos e ticks em uma goroutine; snapshots administrativos e os comandos de drop global, quiz e summon de boss entram pela fila autoritativa | Preservar o `World` como autoridade; cada nova mutação administrativa ainda exige comando tipado, rejeições, lifecycle e auditoria próprios |
 | Cadastro e credenciais | [`account`](../wydgo748/internal/account/service.go), [`validação`](../wydgo748/internal/account/validation.go) e [`hash`](../wydgo748/internal/account/password.go) | Reutilizar criação, autenticação e PBKDF2; sessão web, recuperação e alteração de senha são trabalho novo |
 | HTTP de contas | [`accountapi`](../wydgo748/internal/accountapi/handler.go) oferece cadastro e health/readiness | Preservar `POST /v1/accounts` durante a migração; não assumir login HTTP existente |
 | Persistência | [`PostgresStore`](../wydgo748/internal/store/postgres.go) e [`schema`](../wydgo748/internal/store/postgres_schema.sql) mantêm conta em JSONB, identidades de personagens e instâncias de item | Separar acesso web de snapshots de gameplay; `NewPostgresStore` aplica DDL e inicia worker, portanto não é a conexão pronta para um usuário web restrito |
@@ -4369,8 +4452,9 @@ Não criar todas as tabelas/módulos na fundação. A passagem de fase depende
 dos gates abaixo, sem datas estimadas antes de medir o primeiro lote.
 
 A execução começou pela fatia administrativa da fase 3 porque é a prioridade
-operacional atual. O canal privado, snapshots read-only, staff com MFA,
-capabilities, auditoria e shell `/admin` já estão implementados; validação
+operacional atual. O canal privado, snapshots read-only, autenticação staff,
+capabilities, auditoria, shell `/admin` e as primeiras mutações autoritativas
+de gameplay já estão implementados; validação
 manual completa no browser/deployment permanece como gate pendente. As fases
 0–2 continuam relevantes para site público, conta do jogador e projeções.
 
@@ -4379,9 +4463,9 @@ manual completa no browser/deployment permanece como gate pendente. As fases
 | 0 — contratos e implantação | Layout da seção 135; OpenAPI mínimo; modelo de sessão; acesso restrito a contas; migrations; upstream HTTPS; Pages proxy; isolamento de previews | Homologação alcança o Go com autenticação de origem, GRANTs reais funcionam sem DDL no HTTP, health/readiness e rollback testados |
 | 1 — MVP público e conta | Home, regras, download, news/changelog em Git; cadastro compatível; login/logout; overview e lista privada de personagens persistidos; revogação de sessões | Fluxo no browser completo, credenciais compatíveis com jogo, rejeição de acesso entre contas, CSRF/cache/limites testados; timestamps honestos |
 | 2 — catálogo e projeções | Exportador começando por itens/skills; rankings/perfis/agenda somente após seus projetores; expansão progressiva para drops/quests/crafting | Export determinístico, IDs/links válidos, campos públicos aprovados, fonte/versionamento/atraso visíveis e reconstrução demonstrada |
-| 3 — Control API somente leitura | Canal privado, consultas tipadas de status/jogador, orçamento de fila, DTOs imutáveis; staff com MFA/capabilities e auditoria | Sem ponteiros do World fora do loop; negação de serviço/ator indevido, saturação, timeout e desconexão sem bloquear ticks; browser validado |
+| 3 — fundação administrativa e Control API | Canal privado read-only para snapshots; `/admin` com sessão staff, capabilities, auditoria e comandos tipados enfileirados no World. Drop global, quiz e summon de boss são o primeiro lote mutável | Sem ponteiros do World fora do loop; autorização revalidada antes da mutação; negação de serviço/ator indevido, saturação, timeout e desconexão sem bloquear ticks; browser validado |
 | 4 — identidade e moderação | Troca/recuperação de senha com contrato da seção 72; kick/message/broadcast; ban/mute com enforcement no jogo | Autosave/login concorrentes e restart preservam credencial/punição; autorização revalidada; resultado/auditoria recuperáveis |
-| 5 — guild e operações de gameplay | Primeiro guild read-only; depois liderança/filiação offline, teleport, eventos/bosses e maintenance; suporte/notificações podem avançar como domínio web | Atomicidade entre contas/guilda, revalidação de cargo e estado, rejeições/lifecycle por comando; fluxo no client quando afetado |
+| 5 — guild e demais operações de gameplay | Primeiro guild read-only; depois liderança/filiação offline, teleport, moderação, disparo de guerras e maintenance. Eventos adicionais e controles avançados de boss entram aqui quando exigirem novos contratos | Atomicidade entre contas/guilda, revalidação de cargo e estado, rejeições/lifecycle por comando; fluxo no client quando afetado |
 | 6 — rastreabilidade e recompensas | Ledger/proveniência para os novos efeitos, registro de operações, auditoria durável e Reward Inbox/claim | Rollback, clique duplo, concorrência, inventário cheio e crash após commit sem duplicar/perder entrega; PostgreSQL real |
 | 7 — pagamentos | Depende da fase 6; provedor em sandbox, webhook, reconciliação, direito à recompensa e estorno | Assinatura, valor/moeda, duplicação, ordem invertida, retry e recuperação cobertos; operação conciliável antes do checkout real |
 | 8 — marketplace | Depende da fase 6; migração de custódia, escrow, compra/cancelamento/taxas/entrega; pagamentos não são dependência se usar só moeda do jogo | Conservação de itens/moeda, único comprador, conflitos com login/trade/autosave e reinício cobertos; sem escrita direta pela web |
@@ -4395,7 +4479,7 @@ auditoria; não são atalhos para implementar rewards.
 
 ## Primeiro lote concreto
 
-Concluído na fundação administrativa read-only:
+Concluído na fundação administrativa e no primeiro lote mutável:
 
 1. `cmd/web-api` com health/readiness, sessão staff, senha da conta + PIN
    administrativo temporário configurado no servidor, CSRF, revogação,
@@ -4411,6 +4495,13 @@ Concluído na fundação administrativa read-only:
 4. Testes automatizados de auth, contrato, timeout/rejeições, static serving,
    headers, Host/método, projeção persistente, diagnósticos operacionais e
    resolução dos assets compilados.
+5. `GET/POST /api/v1/staff/events/global-drop`,
+   `GET/POST /api/v1/staff/events/quiz` e `GET/POST /api/v1/staff/bosses`, com
+   as capabilities `game.event.global-drop`, `game.event.quiz` e
+   `game.boss.summon`. Os efeitos são enfileirados no `World`, não escritos
+   diretamente pelo HTTP. O quiz usa desafio server-issued com token por
+   participante/rodada e prazo de 10 segundos, impedindo que replay de WPE ou
+   abertura local da janela gere recompensa por si só.
 
 ### Execução local pelo tm.exe
 
@@ -4453,9 +4544,11 @@ o endereço aparece no console. Entre com `felipetr`, a senha normal da conta e
 o `admin_access_pin` já configurado. O PIN estático não é TOTP/2FA.
 
 O painel integrado aceita apenas IP literal de loopback, mantém as capabilities,
-CSRF, sessões e auditoria do handler existente, e consulta o `World` pela mesma
-fila read-only. Não precisa de `WYD_CONTROL_TOKEN` nem da porta 8081. A Control
-API e `cmd/web-api` separados continuam disponíveis para implantação separada.
+CSRF, sessões e auditoria do handler existente. Snapshots e comandos passam pela
+fila do `World`; somente os endpoints explicitamente tipados de drop global,
+quiz e summon de boss podem mutar gameplay neste lote. Não precisa de
+`WYD_CONTROL_TOKEN` nem da porta 8081. A Control API HTTP separada permanece
+read-only, e `cmd/web-api` continua disponível para implantação separada.
 
 Para PostgreSQL, usa um pool separado em modo de leitura, sem migrations nem
 worker de escrita. Prefere `WYD_WEB_DATABASE_URL`; se ausente, usa a URL efetiva
@@ -4475,7 +4568,8 @@ seu dono, adaptador de consulta/cancelamento e start/stop HTTP; integração opt
 `TestStartWebAdminPostgres` com banco real em leitura (`WYD_WEB_TEST_DATABASE_URL`),
 assets de teste, health/readiness, sessão e rejeição de overview anônimo.
 Isso não substitui o teste manual do login e do estado live no browser com o
-`tm.exe` atualizado. Mutações continuam fora deste lote.
+`tm.exe` atualizado. Drop global, quiz e summon de boss já formam o primeiro
+lote mutável; os demais comandos continuam sujeitos aos gates das fases abaixo.
 
 ---
 
@@ -4488,7 +4582,8 @@ MVP = fases 0 e 1 concluídas:
 - Conta: cadastro, login/logout, resumo, lista privada de personagens com
   `asOf`, consulta/revogação de sessões.
 - Operação: health/readiness, logs estruturados, limites e procedimento de
-  implantação/rollback; ainda sem painel de mutação do jogo.
+  implantação/rollback. O painel administrativo mutável já existe como trilha
+  operacional paralela, mas não é dependência do MVP público das fases 0 e 1.
 
 Critérios de aceite: usuário cadastra uma conta compatível com o client,
 autentica no portal, vê somente seus personagens, encerra/revoga a sessão e
@@ -4496,10 +4591,10 @@ recebe erro recuperável quando um serviço está indisponível. Backend nunca
 expõe payload bruto de conta; frontend não promete estado live.
 
 Database ampla, rankings, guild management, progression advisor, suporte
-integrado, mutações administrativas, troca/recuperação de senha, rewards,
+integrado, demais mutações administrativas, troca/recuperação de senha, rewards,
 pagamentos, market e comandos de guerras continuam no backlog por fase. A
-fundação Control API/admin read-only existe, mas novas funções só aparecem ao
-cumprir o gate correspondente.
+fundação Control API/admin e o primeiro lote tipado de mutações existem; novas
+funções só aparecem ao cumprir o gate correspondente.
 
 ---
 

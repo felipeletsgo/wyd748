@@ -48,7 +48,7 @@ func (w *World) handleControl(req *controlRequest) {
 	if req.ctx.Err() != nil {
 		return
 	}
-	result := control.Overview{Version: 1, AsOf: time.Now().UTC(), State: "running",
+	result := control.Overview{Version: 1, ModerationEpoch: w.moderationEpoch(), AsOf: time.Now().UTC(), State: "running",
 		Authenticated: len(w.players), Mobs: len(w.mobsByID), QueueDepth: w.commandQueueDepth(),
 		TickMicros: metricTickDurationMicros.Value(), LagMicros: metricLoopLagMicros.Value(),
 		Players: make([]control.Player, 0), Offset: req.query.Offset}

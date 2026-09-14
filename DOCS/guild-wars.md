@@ -123,13 +123,13 @@ portões nessas arenas, portanto não se inventou um objeto visual.
   O resultado da referência não concede automaticamente fama, gold ou itens;
   não foram inventados esses pagamentos.
 - A economia da cidade aplica **10% de imposto** nas compras comuns/TOTO e nas
-  vendas a NPCs dentro de uma cidade controlada. Recompra (`rebuy`) mantém seu
-  cálculo próprio e não recebe esse imposto. Um quarto do valor do imposto é
-  creditado no tesouro da cidade. Compra comum, TOTO e venda passam pelo mesmo
-  commit econômico autoritativo. Se o crédito ultrapassar o teto de
+  vendas a NPCs dentro de uma cidade controlada. Venda a NPC é definitiva; não
+  existe fluxo de recompra. Um quarto do valor do imposto é creditado no
+  tesouro da cidade. Compra comum, TOTO e venda passam pelo mesmo commit
+  econômico autoritativo. Se o crédito ultrapassar o teto de
   `200.000.000.000`, a transação inteira é recusada sem perda de gold/item.
-- Mutação do jogador, rebuy, registro de guildas/guerras e tesouro formam uma
-  unidade transacional lógica; falha de persistência restaura todos os estados
+- Mutação do jogador, registro de guildas/guerras e tesouro formam uma unidade
+  transacional lógica; falha de persistência restaura todos os estados
   alterados, evitando gold/item ou tesouro parcialmente aplicados.
 - O líder da guilda proprietária pode retirar o tesouro. Saldo menor que
   `1.000.000.000` sai como gold direto, respeitando o teto do personagem. A

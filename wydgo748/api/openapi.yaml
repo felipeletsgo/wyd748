@@ -3,6 +3,52 @@ info:
   title: WYD administrative API (local-first)
   version: 0.2.0
 paths:
+  /api/v1/staff/players/{uid}/teleport:
+    post:
+      summary: Teleport the selected live session to a public city (moderation.player.teleport); embedded World only
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+        - name: uid
+          in: path
+          required: true
+          schema: { type: string }
+          description: Must equal the UID in the command body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeleportCommand' }
+      responses:
+        '200':
+          description: Domain receipt; retry uncertain outcomes with the identical body. No arbitrary coordinates; rejected in instances, war arenas, trade or ghost shop. Persistence failure rolls back before publication.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeleportResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/players/{uid}/kick:
+    post:
+      summary: Disconnect the selected live session (moderation.player.kick); embedded World only
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+        - name: uid
+          in: path
+          required: true
+          schema: { type: string }
+          description: Must equal the UID in the command body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KickCommand' }
+      responses:
+        '200':
+          description: Domain receipt; retry uncertain outcomes with the identical body. Does not ban. Persistence failure is reported separately.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KickResult' }
+        default: { $ref: '#/components/responses/Error' }
   /api/v1/staff/events/global-drop:
     get:
       summary: Inspect process-local global drop event (game.event.global-drop capability)
@@ -202,6 +248,49 @@ components:
             properties:
               error: { type: string }
   schemas:
+    TeleportCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, epoch, uid, account, expectedSessionId, reason, destination]
+      description: Bind UID, canonical account and sessionId from an Overview to its moderationEpoch. Receipts are actor/body-bound and retained up to 1024 per process without eviction. Session authorization is rechecked by World before execution.
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        epoch: { type: string, pattern: '^[a-f0-9]{32}$' }
+        uid: { type: string, minLength: 1, maxLength: 128 }
+        account: { type: string, pattern: '^[a-z0-9]{1,12}$' }
+        expectedSessionId: { type: integer, minimum: 1, maximum: 9007199254740991 }
+        reason: { type: string, minLength: 3, maxLength: 200, description: Nonblank reason without control characters }
+        destination: { type: string, enum: [armia, azran, erion, nippleheim] }
+    TeleportResult:
+      type: object
+      required: [operationId, code, replayed, x, y]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, persistence_failed, player_busy, restricted_area, destination_unavailable, stale_target, invalid_command, capability_required, server_maintenance, operation_conflict, operation_capacity] }
+        replayed: { type: boolean }
+        x: { type: integer, minimum: 0, maximum: 4095, description: Final coordinate only when code is ok; otherwise zero }
+        y: { type: integer, minimum: 0, maximum: 4095, description: Final coordinate only when code is ok; otherwise zero }
+    KickCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, epoch, uid, account, expectedSessionId, reason]
+      description: Bind UID, canonical account and sessionId from an Overview to its moderationEpoch. Receipts are actor/body-bound and retained up to 1024 per process without eviction. Session authorization is rechecked by World before execution.
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        epoch: { type: string, pattern: '^[a-f0-9]{32}$' }
+        uid: { type: string, minLength: 1, maxLength: 128 }
+        account: { type: string, pattern: '^[a-z0-9]{1,12}$' }
+        expectedSessionId: { type: integer, minimum: 1, maximum: 9007199254740991 }
+        reason: { type: string, minLength: 3, maxLength: 200, description: Nonblank reason without control characters }
+    KickResult:
+      type: object
+      required: [operationId, code, replayed]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, disconnected_persistence_failed, stale_target, invalid_command, capability_required, server_maintenance, operation_conflict, operation_capacity] }
+        replayed: { type: boolean }
     GlobalDropCommand:
       type: object
       additionalProperties: false
@@ -399,6 +488,7 @@ components:
       type: object
       required: [version, asOf, state, uptimeSeconds, online, authenticated, mobs, queueDepth, tickMicros, lagMicros, diagnostics, players, matched, offset, hasMore]
       properties:
+        moderationEpoch: { type: string, description: Process-local moderation epoch; absent or empty on older read-only servers }
         version: { type: integer, const: 1 }
         asOf: { type: string, format: date-time }
         state: { type: string, enum: [running, maintenance] }

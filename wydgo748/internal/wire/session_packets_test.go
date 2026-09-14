@@ -206,19 +206,6 @@ func TestSkillShopListLayout(t *testing.T) {
 	}
 }
 
-func TestRepurchaseList748Layout(t *testing.T) {
-	var entries [10]RepurchaseEntry
-	entries[0] = RepurchaseEntry{Order: 7, Item: model.Item{Index: 400, Eff: [6]byte{61, 3}}, Price: 1200}
-	b := RepurchaseList(9, 1100, entries)
-	if len(b) != 176 || ParseHeader(b).Type != OpRebuy || ParseHeader(b).ID != 9 ||
-		binary.LittleEndian.Uint32(b[12:16]) != 1100 ||
-		binary.LittleEndian.Uint32(b[16:20]) != 7 ||
-		binary.LittleEndian.Uint16(b[20:22]) != 400 || b[22] != 61 || b[23] != 3 ||
-		binary.LittleEndian.Uint32(b[28:32]) != 1200 {
-		t.Fatalf("MSG_RepurchaseItems 7.48 invalido: % X", b[:40])
-	}
-}
-
 func TestGroundItemPacketLayouts(t *testing.T) {
 	it := model.Item{Index: 4011, Eff: [6]byte{43, 9, 2, 20}}
 	drop := CNFDropItem(1, 12, 3, 2200, 2100)

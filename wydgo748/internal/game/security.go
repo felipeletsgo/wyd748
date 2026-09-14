@@ -160,11 +160,8 @@ func (w *World) relaxLearnedSkillIngressThrottle(s *net.Session, pkt []byte, opc
 // knownInboundOpcode e a allowlist canonica da borda C->S. Um opcode sem
 // parser/semantica confirmados nao chega ao dispatcher, nao cria uma label de
 // metrica arbitraria e nao pode transformar log sincrono em amplificador de
-// CPU/I/O. Rebuy e AttackOne possuem mais de um tamanho observado/confirmado.
+// CPU/I/O. AttackOne possui mais de um tamanho observado/confirmado.
 func knownInboundOpcode(opcode uint16) bool {
-	if opcode == wire.OpRebuy {
-		return true
-	}
 	_, exact := exactInboundPacketSize(opcode)
 	return exact
 }
@@ -177,10 +174,6 @@ func knownInboundOpcode(opcode uint16) bool {
 func inboundPacketSizeAllowed(opcode uint16, size int) (bool, string) {
 	if opcode == wire.OpAttackOne {
 		return size == 48 || size == attackOneObservedExtendedSize, "48 ou 96"
-	}
-	if opcode == wire.OpRebuy {
-		return size == wire.HeaderSize || size == repurchasePacketSize,
-			fmt.Sprintf("%d ou %d", wire.HeaderSize, repurchasePacketSize)
 	}
 	expected, exact := exactInboundPacketSize(opcode)
 	if !exact {
@@ -288,10 +281,6 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 16, true
 	case wire.OpInviteGuild:
 		return 20, true
-	case wire.OpRebuy:
-		// A solicitacao pode ser somente o header ou o MSG completo. O helper
-		// inboundPacketSizeAllowed limita explicitamente as duas formas.
-		return 0, false
 	case wire.OpGuildAlly, wire.OpGuildWar:
 		return 20, true
 	case wire.OpChallenge:

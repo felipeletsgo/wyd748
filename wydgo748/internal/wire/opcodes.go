@@ -75,7 +75,6 @@ const (
 	OpUseNPC             = 0x28B // C->S clicou num NPC generico (npcid@12, 20B)
 	OpGuildDeprivate     = 0x28C // C->S expulsa membro da guild (MSG_STANDARDPARM: client id do alvo@12)
 	OpInviteGuild        = 0x3D5 // C->S recruta jogador (GuildTarget@12, InviteType@16)
-	OpRebuy              = 0x3E8 // C<->S abre/atualiza a lista de recompra
 	OpGuildAlly          = 0xE12 // C->S alianca entre guilds (Guild@12, Ally@16) -- so o mestre
 	OpGuildWar           = 0xE0E // C->S declara/cancela guerra (Guild@12, Enemy@16)
 	OpChallenge          = 0x28E // C->S interacao/desafio de zona de guild (Parm@12)

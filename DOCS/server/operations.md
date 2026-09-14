@@ -35,7 +35,9 @@ with the current source-built client is tracked separately in the research recor
 - account creation and character creation;
 - login and world entry;
 - progression, combat, and loot;
-- data storage.
+- data storage;
+- an embedded local `/admin` panel with staff authentication, audit, global
+  drop, quiz, and boss summon controls.
 
 The server processes more than 80 packet types.
 
@@ -138,9 +140,9 @@ The server has these systems. The server has authority on each system.
 - **NPCs and economy** — The server reads NPCGener. It controls regional
   visibility, shops, skill masters, server-side prices, and drops. Each player
   has 63 usable inventory slots and 120 Cargo slots. The server does player
-  trade and prevents item duplication in the data storage. Selling to a normal
-  merchant also fills the native ten-entry `0x3E8` repurchase window; the
-  server keeps item UIDs and recalculates the repurchase price from `itemlist`.
+  trade and prevents item duplication in the data storage. A sale to a normal
+  merchant is final. The server does not maintain or send a repurchase list,
+  and the shop continues to show the configured NPC stock after a sale.
   The attribute Skill Master consumes 30 Sapphires or Return Of Ability and
   atomically returns up to 100 distributed points from each attribute.
 - **Crafting** — The server has server-side recipes and native success and
@@ -327,6 +329,68 @@ The server reads the configuration from `data/server.txt`. A command-line flag
 replaces a data-file value. Examples: `-addr`, `-npcs`, and `-items`. The
 `-accounts` flag applies only to the explicit JSON development adapter. To see
 all the flags, do `./bin/tm.exe -h`.
+
+The same `tm.exe` process can start the local administrative panel. The local
+example uses these values in `data/server.txt`:
+
+```ini
+web_admin_enabled=true
+web_admin_address=127.0.0.1:8082
+web_admin_staff=data/staff.json
+web_admin_static=web/portal/dist
+admin_access_pin=123456
+```
+
+Open `http://127.0.0.1:8082/admin/` after the server starts. Sign in with the
+normal game-account password plus the administrative PIN. The PIN is a
+temporary second secret, not TOTP/2FA. Keep this panel on loopback while this
+temporary authentication mode is in use.
+
+The embedded panel has staff sessions, CSRF protection, audit records, and
+capability checks. Its current gameplay controls are:
+
+- global drop: item ID, 1–100% rate, optional maximum drop count, and optional
+  duration;
+- quiz: one four-choice math question per minute, 10-second answer window,
+  configurable event duration, reward item ID, and reward quantity;
+- boss summon: inspect configured bosses and summon a boss that is currently
+  dead;
+- player kick: select **Desconectar** in the online-player list, enter a reason,
+  and confirm. Requires `moderation.player.kick` (included for `felipetr`).
+  Changed staff permissions require signing in again. This disconnects the
+  selected session without banning; the account may log in again.
+- player teleport: select **Teleportar**, choose Armia, Azran, Erion or
+  Nippleheim, enter a reason, and confirm. Requires
+  `moderation.player.teleport` (included for `felipetr`; sign in again).
+  No arbitrary coordinates. Dead players, trade, ghost shops, poisoned
+  persistence, instances and war arenas/participants are rejected.
+
+Teleport uses the same target identity/epoch safeguards as kick, with a
+separate 1024-receipt capacity. The server resolves a walkable free tile within
+three cells of the city's existing exit point, persists before publishing, and
+reports final X/Y. A failed save restores the old position and returns
+`persistence_failed`. On success, the previous walking route and NPC contexts
+are cleared. An identical retry retrieves the original receipt without moving
+the player again. Use **Consultar / repetir a mesma operação** after an uncertain
+HTTP result; do not reload the page. The standalone web API cannot teleport.
+Automated tests do not replace a browser/real-player/PostgreSQL acceptance run.
+The candidate is built at `wydgo748/bin/tm-webadmin.exe`; running `tm.exe` is
+not replaced or restarted automatically.
+
+Kick binds the selected UID/account/session to the overview's `moderationEpoch`.
+Stale sessions are rejected rather than retargeted after relogin. For an uncertain
+HTTP result, use **Consultar / repetir a mesma operação** without reloading the
+page: the identical command retrieves its receipt instead of kicking again.
+Refresh the player list after confirmation. `disconnected_persistence_failed`
+means the socket was closed but saving failed; inspect server logs. Receipts are
+process-local, bounded to 1024 kick operations, and never evicted within an epoch.
+The standalone web API cannot execute this operation. This increment passed
+automated tests, not a real-player/browser/PostgreSQL acceptance run.
+
+These mutations are queued into the authoritative `World`. The separate Control
+API remains read-only. The quiz uses a server-issued per-round/per-player token,
+validates its time window, and accepts only the first valid answer. Replaying a
+packet or only forcing the quiz UI to appear does not grant a reward.
 
 Operational limits also live there: TCP connections globally/per IP, InitCode,
 idle and partial-frame timeouts, inbound packet/byte rates, login and chat

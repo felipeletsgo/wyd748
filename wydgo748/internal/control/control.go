@@ -48,21 +48,22 @@ type Player struct {
 }
 
 type Overview struct {
-	Version       int         `json:"version"`
-	AsOf          time.Time   `json:"asOf"`
-	State         string      `json:"state"`
-	UptimeSeconds int64       `json:"uptimeSeconds"`
-	Online        int         `json:"online"`
-	Authenticated int         `json:"authenticated"`
-	Mobs          int         `json:"mobs"`
-	QueueDepth    int         `json:"queueDepth"`
-	TickMicros    int64       `json:"tickMicros"`
-	LagMicros     int64       `json:"lagMicros"`
-	Diagnostics   Diagnostics `json:"diagnostics"`
-	Players       []Player    `json:"players"`
-	Matched       int         `json:"matched"`
-	Offset        int         `json:"offset"`
-	HasMore       bool        `json:"hasMore"`
+	ModerationEpoch string      `json:"moderationEpoch"`
+	Version         int         `json:"version"`
+	AsOf            time.Time   `json:"asOf"`
+	State           string      `json:"state"`
+	UptimeSeconds   int64       `json:"uptimeSeconds"`
+	Online          int         `json:"online"`
+	Authenticated   int         `json:"authenticated"`
+	Mobs            int         `json:"mobs"`
+	QueueDepth      int         `json:"queueDepth"`
+	TickMicros      int64       `json:"tickMicros"`
+	LagMicros       int64       `json:"lagMicros"`
+	Diagnostics     Diagnostics `json:"diagnostics"`
+	Players         []Player    `json:"players"`
+	Matched         int         `json:"matched"`
+	Offset          int         `json:"offset"`
+	HasMore         bool        `json:"hasMore"`
 }
 
 type Diagnostics struct {

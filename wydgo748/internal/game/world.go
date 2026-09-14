@@ -19,6 +19,8 @@ import (
 
 // command = um pacote recebido de uma sessao (pkt nil = desconexao).
 type command struct {
+	kick       *kickRequest
+	teleport   *teleportRequest
 	bosses     *bossesRequest
 	globalDrop *globalDropRequest
 	quiz       *quizRequest
@@ -64,8 +66,9 @@ func pinAccountEntryPositions(account *model.Account) {
 }
 
 // saveAccount e a unica fronteira de persistencia do mundo. Posicao atual e
-// estado de sessao: todos os saves gravam somente o ponto fixo de reentrada,
-// projetado numa copia para nunca alterar Char.X/Y da sessao viva.
+// estado de sessao: os saves mantem Char.X/Y num ponto neutro legado, projetado
+// numa copia para nunca alterar a sessao viva. A cidade real de reentrada vem
+// dos bits de hometown persistidos em Score.Merchant.
 func (w *World) saveAccount(account *model.Account) error {
 	return w.store.SaveAccount(accountPersistenceSnapshot(account))
 }
@@ -142,9 +145,6 @@ type Player struct {
 	// Cooldown do recrutamento nativo (0x3D5). E efemero e zerado ao trocar
 	// de personagem; nunca e aceito como parte do estado vindo do client.
 	NextGuildInvite time.Time
-	// Rebuy e uma lixeira efemera da sessao. O nativo a limpa ao carregar outro
-	// personagem; os itens mantem o UID enquanto aguardam recompra.
-	Rebuy [maxRebuyEntries]RebuyEntry
 	// Alvos autoritativos usados pelas evocacoes: primeiro quem o dono atacou;
 	// na ausencia dele, quem atacou o dono.
 	CombatTargetID uint16
@@ -369,6 +369,11 @@ func WithMounts(catalog model.MountCatalog) WorldOption {
 // World e o dono do estado do jogo.
 type World struct {
 	bossesPending      atomic.Bool
+	kickPending        atomic.Bool
+	kickEpoch          string
+	kickReceipts       map[string]kickReceipt
+	teleportPending    atomic.Bool
+	teleportReceipts   map[string]teleportReceipt
 	bossesEpoch        string
 	bossesReceipts     map[string]bossesReceipt
 	globalDropPending  atomic.Bool
@@ -1597,6 +1602,12 @@ func commandLabel(cmd command) string {
 	if cmd.bosses != nil {
 		return "control.bosses"
 	}
+	if cmd.kick != nil {
+		return "control.kick"
+	}
+	if cmd.teleport != nil {
+		return "control.teleport"
+	}
 	if cmd.quiz != nil {
 		return "control.quiz"
 	}
@@ -1855,6 +1866,14 @@ func (w *World) broadcast(build func() []byte) {
 
 // handle despacha um comando pelo Type do header.
 func (w *World) handle(cmd command) {
+	if cmd.kick != nil {
+		w.handleKick(cmd.kick)
+		return
+	}
+	if cmd.teleport != nil {
+		w.handleTeleport(cmd.teleport)
+		return
+	}
 	if cmd.bosses != nil {
 		w.handleBosses(cmd.bosses)
 		return
@@ -1985,8 +2004,6 @@ func (w *World) handle(cmd command) {
 		w.onGuildDeprivate(cmd.s, cmd.pkt)
 	case wire.OpInviteGuild:
 		w.onInviteGuild(cmd.s, cmd.pkt)
-	case wire.OpRebuy:
-		w.onRebuyRequest(cmd.s, cmd.pkt)
 	case wire.OpGuildAlly:
 		w.onGuildAlly(cmd.s, cmd.pkt)
 	case wire.OpGuildWar:

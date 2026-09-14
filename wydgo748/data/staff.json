@@ -5,7 +5,9 @@
       "moderation.player.search",
       "game.event.global-drop",
       "game.event.quiz",
-      "game.boss.summon"
+      "game.boss.summon",
+      "moderation.player.kick",
+      "moderation.player.teleport"
     ]
   }
 }

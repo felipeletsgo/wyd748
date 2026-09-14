@@ -102,9 +102,9 @@ func (w *World) cityWarLocal(now time.Time) time.Time {
 }
 
 // guildEconomyCommit commits a player-account mutation and the city treasury
-// in the existing SaveGameState transaction. The live account, rebuy bin and
-// guild registry are restored together if either the change or persistence
-// fails, preventing gold/item duplication and phantom tax revenue.
+// in the existing SaveGameState transaction. The live account and guild
+// registry are restored together if either the change or persistence fails,
+// preventing gold/item duplication and phantom tax revenue.
 func (w *World) guildEconomyCommit(p *Player, change func() error) error {
 	if w == nil || w.guilds == nil || p == nil || p.Account == nil || p.Char == nil || change == nil {
 		return fmt.Errorf("guild economy transaction unavailable")
@@ -112,12 +112,10 @@ func (w *World) guildEconomyCommit(p *Player, change func() error) error {
 	accountBefore := accountStateSnapshot(p.Account)
 	guildsBefore := w.snapshotGuilds()
 	warsBefore := w.guilds.Wars.Clone()
-	rebuyBefore := p.Rebuy
 	restore := func() {
 		w.restoreGuilds(guildsBefore)
 		w.guilds.Wars = warsBefore
 		restoreAccountState(p.Account, accountBefore)
-		p.Rebuy = rebuyBefore
 		if p.CharSlot >= 0 && p.CharSlot < len(p.Account.Chars) {
 			p.Char = &p.Account.Chars[p.CharSlot]
 		}
@@ -210,15 +208,14 @@ func (w *World) commitTicketPurchase(p *Player, ticket model.Item, dst int, tota
 	return nil
 }
 
-func (w *World) commitShopSale(p *Player, src *model.Item, item model.Item, net uint64, city int, treasury uint64) error {
+func (w *World) commitShopSale(p *Player, src *model.Item, net uint64, city int, treasury uint64) error {
 	if p == nil || p.Char == nil || src == nil || net > uint64(maxCharacterGold) || uint64(p.Char.Gold) > uint64(maxCharacterGold)-net {
 		return fmt.Errorf("invalid shop sale")
 	}
-	oldItem, oldGold, oldRebuy := *src, p.Char.Gold, p.Rebuy
+	oldItem, oldGold := *src, p.Char.Gold
 	apply := func() error {
 		*src = model.Item{}
 		p.Char.Gold += uint32(net)
-		p.addRebuy(item, uint32(net))
 		return w.creditCityTreasury(city, treasury)
 	}
 	if treasury != 0 {
@@ -228,7 +225,7 @@ func (w *World) commitShopSale(p *Player, src *model.Item, item model.Item, net 
 		return err
 	}
 	if err := w.saveAccount(p.Account); err != nil {
-		*src, p.Char.Gold, p.Rebuy = oldItem, oldGold, oldRebuy
+		*src, p.Char.Gold = oldItem, oldGold
 		return err
 	}
 	return nil

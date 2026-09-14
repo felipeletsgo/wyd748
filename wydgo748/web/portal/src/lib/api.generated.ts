@@ -4,6 +4,100 @@
  */
 
 export interface paths {
+    "/api/v1/staff/players/{uid}/teleport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Teleport the selected live session to a public city (moderation.player.teleport); embedded World only */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path: {
+                    /** @description Must equal the UID in the command body */
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TeleportCommand"];
+                };
+            };
+            responses: {
+                /** @description Domain receipt; retry uncertain outcomes with the identical body. No arbitrary coordinates; rejected in instances, war arenas, trade or ghost shop. Persistence failure rolls back before publication. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TeleportResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/players/{uid}/kick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disconnect the selected live session (moderation.player.kick); embedded World only */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path: {
+                    /** @description Must equal the UID in the command body */
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KickCommand"];
+                };
+            };
+            responses: {
+                /** @description Domain receipt; retry uncertain outcomes with the identical body. Does not ban. Persistence failure is reported separately. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["KickResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/events/global-drop": {
         parameters: {
             query?: never;
@@ -414,6 +508,48 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Bind UID, canonical account and sessionId from an Overview to its moderationEpoch. Receipts are actor/body-bound and retained up to 1024 per process without eviction. Session authorization is rechecked by World before execution. */
+        TeleportCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            epoch: string;
+            uid: string;
+            account: string;
+            expectedSessionId: number;
+            /** @description Nonblank reason without control characters */
+            reason: string;
+            /** @enum {string} */
+            destination: "armia" | "azran" | "erion" | "nippleheim";
+        };
+        TeleportResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "persistence_failed" | "player_busy" | "restricted_area" | "destination_unavailable" | "stale_target" | "invalid_command" | "capability_required" | "server_maintenance" | "operation_conflict" | "operation_capacity";
+            replayed: boolean;
+            /** @description Final coordinate only when code is ok; otherwise zero */
+            x: number;
+            /** @description Final coordinate only when code is ok; otherwise zero */
+            y: number;
+        };
+        /** @description Bind UID, canonical account and sessionId from an Overview to its moderationEpoch. Receipts are actor/body-bound and retained up to 1024 per process without eviction. Session authorization is rechecked by World before execution. */
+        KickCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            epoch: string;
+            uid: string;
+            account: string;
+            expectedSessionId: number;
+            /** @description Nonblank reason without control characters */
+            reason: string;
+        };
+        KickResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "disconnected_persistence_failed" | "stale_target" | "invalid_command" | "capability_required" | "server_maintenance" | "operation_conflict" | "operation_capacity";
+            replayed: boolean;
+        };
         /** @description Start requires itemId > 0, ratePercent 1..100 and at least one positive limit. Both limits stop at the first reached. Stop requires an event ID and zero numeric settings. Operation IDs are bound to actor and exact payload, retained up to 1024 commands per process plus one final stop; epoch prevents replay across restarts. */
         GlobalDropCommand: {
             /** @constant */
@@ -616,6 +752,8 @@ export interface components {
             cp: number;
         };
         Overview: {
+            /** @description Process-local moderation epoch; absent or empty on older read-only servers */
+            moderationEpoch?: string;
             /** @constant */
             version: 1;
             /** Format: date-time */

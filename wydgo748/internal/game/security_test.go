@@ -97,9 +97,6 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 	if size, exact := exactInboundPacketSize(0xFFFF); exact || size != 0 {
 		t.Fatalf("opcode desconhecido ganhou framing: size=%d exact=%v", size, exact)
 	}
-	if size, exact := exactInboundPacketSize(wire.OpRebuy); exact || size != 0 {
-		t.Fatalf("recompra deveria aceitar os dois tamanhos: size=%d exact=%v", size, exact)
-	}
 }
 
 func TestConfirmedEconomicPacketsRejectAppendedPayload(t *testing.T) {
@@ -121,18 +118,15 @@ func TestConfirmedEconomicPacketsRejectAppendedPayload(t *testing.T) {
 	}
 }
 
-func TestRebuyInboundSizeAllowsClient748RequestForms(t *testing.T) {
-	p, _ := networkedTestPlayer(1, "Rebuy", 2100, 2100)
-	w := worldWithNetworkedPlayers(p)
-	for _, size := range []int{wire.HeaderSize, repurchasePacketSize} {
-		packet := inboundPacket(wire.OpRebuy, size)
-		binary.LittleEndian.PutUint16(packet[6:8], p.ID)
-		if !w.validateInboundCommand(p.Session, packet) {
-			t.Fatalf("recompra size=%d foi recusada", size)
-		}
+func TestRemovedRebuyOpcodeIsRejected(t *testing.T) {
+	const removedRebuyOpcode = 0x3E8
+	if knownInboundOpcode(removedRebuyOpcode) {
+		t.Fatal("opcode de recompra removido continua na allowlist C->S")
 	}
-	if w.validateInboundCommand(p.Session, inboundPacket(wire.OpRebuy, repurchasePacketSize-1)) {
-		t.Fatal("recompra truncada foi aceita")
+	p, _ := networkedTestPlayer(1, "NoRebuy", 2100, 2100)
+	w := worldWithNetworkedPlayers(p)
+	if w.validateInboundCommand(p.Session, inboundPacket(removedRebuyOpcode, wire.HeaderSize)) {
+		t.Fatal("opcode de recompra removido foi aceito pelo servidor")
 	}
 }
 

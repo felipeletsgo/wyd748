@@ -112,9 +112,16 @@ func TestShopOpenBuyAndSellLifecycle(t *testing.T) {
 
 	sell := make([]byte, 20)
 	sell[14], sell[16] = placeInv, 0
+	packetsBeforeSale := p.Session.QueuedPacketsForTest()
 	w.onSellItem(p.Session, sell)
 	if p.Char.Inv[0].Index != 0 || p.Char.Gold != 4250 || st.saves != 2 {
 		t.Fatalf("venda incorreta: item=%d gold=%d saves=%d", p.Char.Inv[0].Index, p.Char.Gold, st.saves)
+	}
+	// A venda normal atualiza apenas o slot vendido e o gold. A lista 0x3E8 de
+	// recompra so pode ser enviada quando o jogador pedir explicitamente essa UI;
+	// caso contrario ela substitui a grade configurada do mercador no client 7.48.
+	if got := p.Session.QueuedPacketsForTest(); got != packetsBeforeSale+2 {
+		t.Fatalf("venda normal enfileirou %d packets novos, esperado 2 sem lista de recompra", got-packetsBeforeSale)
 	}
 }
 
@@ -224,7 +231,7 @@ func TestDropAndPickupValidation(t *testing.T) {
 }
 
 func TestMovementStopAndChangeCityHandlers(t *testing.T) {
-	w, p, _ := handlerTestWorld(t)
+	w, p, st := handlerTestWorld(t)
 	clock := newFakeClock(time.Unix(100, 0))
 	w.clock = clock
 
@@ -257,11 +264,41 @@ func TestMovementStopAndChangeCityHandlers(t *testing.T) {
 		t.Fatalf("move stop incorreto: (%d,%d) published=%v", p.X, p.Y, p.MovePublished)
 	}
 
+	// O pacote tenta declarar Armia, mas o servidor deve vincular Azran pela
+	// posicao autoritativa e preservar os seis bits baixos de Merchant.
+	p.X, p.Y = cityWarZones[1].exitX, cityWarZones[1].exitY
+	p.Char.X, p.Char.Y = p.X, p.Y
+	p.Char.Score.Merchant = 0xC5
+	p.Char.RuntimeScore.Merchant = 0xC5
+	w.updatePlayerSpatial(p)
 	changeCity := make([]byte, 16)
-	binary.LittleEndian.PutUint32(changeCity[12:16], 4)
+	binary.LittleEndian.PutUint32(changeCity[12:16], 0)
 	w.onChangeCity(p.Session, changeCity)
-	if p.Char.X != p.X || p.Char.Y != p.Y {
-		t.Fatal("ChangeCity nao registrou a posicao corrente")
+	if got := p.Char.Score.Merchant; got != 0x45 {
+		t.Fatalf("ChangeCity nao vinculou Azran pelos bits de Merchant: %#x", got)
+	}
+	if p.Char.RuntimeScore.Merchant != 0x45 || st.saves != 1 {
+		t.Fatalf("ChangeCity nao sincronizou/persistiu hometown: runtime=%#x saves=%d",
+			p.Char.RuntimeScore.Merchant, st.saves)
+	}
+}
+
+func TestChangeCityRollsBackMerchantWhenSaveFails(t *testing.T) {
+	w, p, st := handlerTestWorld(t)
+	p.X, p.Y = cityWarZones[2].exitX, cityWarZones[2].exitY
+	p.Char.X, p.Char.Y = p.X, p.Y
+	p.Char.Score.Merchant = 0x07
+	p.Char.RuntimeScore.Merchant = 0x07
+	w.updatePlayerSpatial(p)
+	st.err = errors.New("disk")
+
+	pkt := make([]byte, 16)
+	binary.LittleEndian.PutUint32(pkt[12:16], 2)
+	w.onChangeCity(p.Session, pkt)
+
+	if p.Char.Score.Merchant != 0x07 || p.Char.RuntimeScore.Merchant != 0x07 || st.saves != 1 {
+		t.Fatalf("falha de save nao restaurou hometown: base=%#x runtime=%#x saves=%d",
+			p.Char.Score.Merchant, p.Char.RuntimeScore.Merchant, st.saves)
 	}
 }
 

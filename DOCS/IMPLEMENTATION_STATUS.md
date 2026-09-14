@@ -64,7 +64,8 @@ histórica do dado. Consulte
   combate player→mob. O hit visual continua sendo o `0x39D` 7.48.
 - Em HP zero, `0x338 CNFMobKill` chama `TMHuman::Die()` no cliente sem remover o
   jogador. Depois, o cliente pode solicitar `0x289 Restart`; após os quatro
-  segundos nativos, o servidor restaura até 200 HP e executa recall para Armia.
+  segundos nativos, o servidor restaura até 200 HP e executa recall para a
+  cidade vinculada em `Score.Merchant[7:6]`.
 
 ## NPCGener, IA e colisão
 
@@ -220,7 +221,7 @@ histórica do dado. Consulte
 | `0x39D AttackOne` | Target/Damage no layout pós-`PacketProtocolV754`, em @44/@46. |
 | `0x366 Action` | Movimento de mobs com Speed@16 e Effect@20. |
 | `0x165 RemoveMob` | RemoveType 0 ao sair da visão, 1 após `CNFMobKill` para morte normal e 3 para excluir imediatamente a representação morta antes de recriar um jogador revivido. |
-| `0x289 Restart` | Pedido do cliente após morrer; restaura HP e retorna o personagem para Armia. |
+| `0x289 Restart` | Pedido do cliente após morrer; restaura HP e retorna o personagem para a cidade vinculada em `Score.Merchant[7:6]`. |
 | `0x270/0x272` | GetItem 28B e DropItem 32B; campos i32 de tipo/posição são validados antes da conversão. |
 | `0x171/0x175` | Confirmações nativas de pegar/jogar item, combinadas com `0x182` autoritativo. |
 | `0x373 UseItem` | 36 bytes; valida origem/destino DWORD e usa `itemlist.csv` + `volatiles.json` para poções, barras de gold e teleportes server-side. |
@@ -255,8 +256,8 @@ de LearnedSkill falsa, e escrever NextExp em @28 gera SkillPts negativos.
   recebe o erro nativo `0x11C AlreadyPlaying`; a reserva é removida no disconnect.
 - Atributos, mastery e pontos de skill calculados pelo nível.
 - Movimento do jogador, patrulha, aggro, perseguição e ataque de mobs.
-- Recall após a morte com colisão: se o ponto de Armia estiver ocupado, escolhe
-  um tile livre ao redor e recalcula a visibilidade da região antiga e da nova.
+- Recall após a morte com colisão: usa o spawn da cidade vinculada ao personagem,
+  escolhe um tile livre ao redor e recalcula a visibilidade da região antiga e da nova.
 - Reentrada pós-morte corrigida no client 7.48: observadores descartam a entidade
   morta com `RemoveType=3`; ao cruzar novamente a borda, recebem
   `CreateMob → SetHpMp → ActionStop` antes do movimento. Isso impede o jogador

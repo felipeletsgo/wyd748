@@ -43,9 +43,10 @@ func restoreAccountState(account, snapshot *model.Account) {
 }
 
 // accountPersistenceSnapshot projects the live account into the durable
-// representation. Session position is deliberately not persisted: every
-// character re-enters at the fixed spawn, while Player.X/Y and Char.X/Y remain
-// coherent for the whole lifetime of the active session.
+// representation. Session position is deliberately not persisted: Char.X/Y is
+// normalized to the neutral legacy entry point, while the actual login/recall
+// city is selected from the hometown bits in Score.Merchant. Player.X/Y and
+// Char.X/Y remain coherent for the whole lifetime of the active session.
 //
 // The copy is deep for every mutable reference currently present in Account.
 // Persistence adapters must never mutate the actor-owned aggregate merely to

@@ -113,7 +113,6 @@ var inboundCommandMetricLabels = map[uint16]string{
 	wire.OpREQMobByID:              "0x369",
 	wire.OpGuildDeprivate:          "0x28C",
 	wire.OpInviteGuild:             "0x3D5",
-	wire.OpRebuy:                   "0x3E8",
 	wire.OpGuildAlly:               "0xE12",
 	wire.OpGuildWar:                "0xE0E",
 	wire.OpChallenge:               "0x28E",

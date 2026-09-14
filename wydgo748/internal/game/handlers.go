@@ -376,7 +376,8 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	p.CharSlot = slot
 	p.Char = &p.Account.Chars[slot]
 	ch := p.Char
-	entryX, entryY := playerEntryX, playerEntryY
+	_, entryX, entryY := playerHomeCitySpawn(ch)
+	entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 8, p)
 	if isLoadtestAccountName(p.Account.Name, w.loadtestAccountPrefix) {
 		entryX, entryY = w.loadtestSpawn.X, w.loadtestSpawn.Y
 		// Bots continuam na area Tauron, mas nao ocupam todos a mesma celula:
@@ -929,22 +930,9 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 		return
 	}
 	w.cancelTrade(p, "compra em loja")
-	// A grade 7.48 envia o MerchantID exibido.  Recompra e a excecao nativa:
-	// nela TargetID e o proprio ClientID e segue pelo fluxo separado abaixo.
+	// A grade 7.48 envia o MerchantID exibido.
 	targetID := binary.LittleEndian.Uint16(pkt[12:14])
 	sellSlot := binary.LittleEndian.Uint16(pkt[14:16]) // TargetCarryPos@14
-	if targetID == p.ID {
-		if p.ShopNPC == 0 {
-			s.Send(wire.MessagePanel("Open a merchant before buying back an item."))
-			return
-		}
-		if _, err := w.resolveNPCInteraction(p, p.ShopNPC); err != nil {
-			s.Send(wire.MessagePanel("The merchant is no longer available."))
-			return
-		}
-		w.onRebuyPurchase(s, p, pkt, sellSlot)
-		return
-	}
 	if p.ShopNPC == 0 {
 		log.Printf("[#%d] buy sem loja aberta", s.ID)
 		s.Send(wire.MessagePanel("Open a merchant before buying an item."))
@@ -1187,25 +1175,12 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 		s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // item intacto
 		return
 	}
-	oldItem := *src
-	// O item vendido entra na lixeira somente depois de ter uma identidade
-	// server-side. Saves antigos sem UID sao migrados no proprio movimento.
-	if oldItem.UID == "" {
-		var err error
-		oldItem, err = materializeItem(oldItem)
-		if err != nil {
-			s.Send(wire.SendItem(p.ID, myType, myPos, *src))
-			log.Printf("[#%d] venda rejeitada: UID do item %d nao pode ser materializado: %v", s.ID, sold, err)
-			return
-		}
-	}
-	if err := w.commitShopSale(p, src, oldItem, netPrice, city, treasury); err != nil {
+	if err := w.commitShopSale(p, src, netPrice, city, treasury); err != nil {
 		log.Printf("[#%d] ERRO ao salvar venda item=%d: %v", s.ID, sold, err)
 		return
 	}
 	s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // slot agora vazio
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))            // atualiza gold
-	w.sendRebuyList(p)
 	log.Printf("[#%d] vendeu item %d por %d gold (base=%d; city=%d; gold=%d)", s.ID, sold, netPrice, basePrice, city, p.Char.Gold)
 }
 
@@ -1337,9 +1312,42 @@ func (w *World) onMoveStop(s *net.Session, pkt []byte) {
 	w.refreshPlayerVisibility(p)
 }
 
-// recallX/recallY sao o ponto seguro de Armia usado pelo renascimento e pelo
-// reset de area de quest.
-const recallX, recallY = uint16(2112), uint16(2088)
+const (
+	playerHomeCityMask  = uint32(0xC0)
+	playerHomeCityShift = 6
+)
+
+// playerHomeCity preserva o contrato legado: os dois bits altos do byte
+// Merchant guardam a cidade vinculada do personagem. Personagens antigos, com
+// esses bits zerados, continuam vinculados a Armia (cidade 0).
+func playerHomeCity(ch *model.Char) int {
+	if ch == nil || ch.Score == nil {
+		return 0
+	}
+	city := int((ch.Score.Merchant & playerHomeCityMask) >> playerHomeCityShift)
+	if city < 0 || city >= len(cityWarZones) {
+		return 0
+	}
+	return city
+}
+
+func playerHomeCitySpawn(ch *model.Char) (int, uint16, uint16) {
+	city := playerHomeCity(ch)
+	zone := cityWarZones[city]
+	return city, zone.exitX, zone.exitY
+}
+
+// bindableCityAt reproduz BASE_GetVillage para as quatro cidades que o client
+// 7.48 pode selecionar pelo ChangeCity (Village < 4). A posicao do servidor e
+// a fonte da verdade; o Village recebido no pacote nao escolhe a cidade.
+func bindableCityAt(x, y uint16) (int, bool) {
+	for city := range cityWarZones {
+		if cityWarZones[city].city.contains(x, y) {
+			return city, true
+		}
+	}
+	return 0, false
+}
 
 // recallPlayer recolhe o jogador para a cidade. E o servico UNICO do
 // renascimento (onRestart) e do reset de area de quest, para nao divergirem.
@@ -1376,7 +1384,8 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 		setPlayerCurHP(p.Char, hp)
 		p.DeadAt = time.Time{}
 	}
-	p.X, p.Y = w.findFreePlayerPosition(recallX, recallY, 8, p)
+	city, spawnX, spawnY := playerHomeCitySpawn(p.Char)
+	p.X, p.Y = w.findFreePlayerPosition(spawnX, spawnY, 8, p)
 	p.Char.X, p.Char.Y = p.X, p.Y
 	clearPublishedPlayerMove(p)
 	// A posicao segura persiste; falha de disco nao aborta o recall (a posicao
@@ -1392,7 +1401,8 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 	w.syncPlayerVitals(p)
 	w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
 	w.updatePartyMember(p)
-	log.Printf("[#%d] recall (%s) -> Armia @(%d,%d) revivido=%v", p.ID, reason, p.X, p.Y, dead)
+	log.Printf("[#%d] recall (%s) -> %s[%d] @(%d,%d) revivido=%v",
+		p.ID, reason, cityWarZones[city].name, city, p.X, p.Y, dead)
 	return true
 }
 
@@ -1443,19 +1453,48 @@ func filterShortSkills(ch *model.Char) {
 	}
 }
 
-// ChangeCity informa o village em @12. No modelo atual basta registrar a posicao
-// autoritativa como ponto persistido; regras de reino/cidade entram depois.
+// ChangeCity informa o village em @12, mas o TMSrv legado nao confia nesse
+// valor: deriva a cidade da posicao atual e grava o hometown em Merchant[7:6].
+// Isso impede que um pacote forjado escolha remotamente outra cidade.
 func (w *World) onChangeCity(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || len(pkt) < 16 {
+	if p == nil || p.Char == nil || p.Char.Score == nil || p.Account == nil || !p.InWorld || len(pkt) != 16 {
 		return
 	}
-	village := binary.LittleEndian.Uint32(pkt[12:16])
-	if village > 4 {
+	reportedVillage := binary.LittleEndian.Uint32(pkt[12:16])
+	city, ok := bindableCityAt(p.X, p.Y)
+	if !ok {
+		log.Printf("[#%d] ChangeCity ignorado fora de cidade @(%d,%d) village=%d",
+			s.ID, p.X, p.Y, reportedVillage)
 		return
 	}
-	p.Char.X, p.Char.Y = p.X, p.Y
-	log.Printf("[#%d] ChangeCity village=%d home=(%d,%d)", s.ID, village, p.X, p.Y)
+
+	previousMerchant := p.Char.Score.Merchant
+	previousRuntimeMerchant := uint32(0)
+	if p.Char.RuntimeScore != nil {
+		previousRuntimeMerchant = p.Char.RuntimeScore.Merchant
+	}
+	merchant := (previousMerchant & 0x3F) | uint32(city<<playerHomeCityShift)
+	p.Char.Score.Merchant = merchant
+	if p.Char.RuntimeScore != nil {
+		p.Char.RuntimeScore.Merchant = merchant
+	}
+	if err := w.saveAccount(p.Account); err != nil {
+		p.Char.Score.Merchant = previousMerchant
+		if p.Char.RuntimeScore != nil {
+			p.Char.RuntimeScore.Merchant = previousRuntimeMerchant
+		}
+		log.Printf("[#%d] ChangeCity falhou ao persistir %s[%d]: %v",
+			s.ID, cityWarZones[city].name, city, err)
+		return
+	}
+	if reportedVillage != uint32(city) {
+		log.Printf("[#%d] ChangeCity village reportado=%d divergente; usando posicao autoritativa %s[%d] @(%d,%d)",
+			s.ID, reportedVillage, cityWarZones[city].name, city, p.X, p.Y)
+		return
+	}
+	log.Printf("[#%d] ChangeCity -> %s[%d] @(%d,%d)",
+		s.ID, cityWarZones[city].name, city, p.X, p.Y)
 }
 
 // onSysQuit trata o 0x3AE. ATENCAO: no client 7.48 esse opcode e SOBRECARREGADO

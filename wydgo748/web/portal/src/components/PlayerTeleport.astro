@@ -1,0 +1,19 @@
+<section id="player-teleport" class="panel events-panel" aria-labelledby="teleport-title">
+  <div class="panel-heading"><h2 id="teleport-title">Moderação · teleportar jogador</h2><span class="tag">TELEPORTE</span></div>
+  <div class="event-body">
+    <p class="muted">Selecione “Teleportar” na lista de jogadores. Destinos públicos; indisponível em instâncias, arenas de guerra, troca ou loja fantasma.</p>
+    <p id="teleport-target">Nenhum jogador selecionado.</p>
+    <form id="teleport-form">
+      <label for="teleport-destination">Cidade de destino</label>
+      <select id="teleport-destination" required disabled>
+        <option value="armia">Armia</option><option value="azran">Azran</option>
+        <option value="erion">Erion</option><option value="nippleheim">Nippleheim</option>
+      </select>
+      <label for="teleport-reason">Motivo obrigatório</label>
+      <input id="teleport-reason" minlength="3" maxlength="200" required placeholder="Descreva o motivo do teleporte" disabled />
+      <button id="teleport-submit" class="button primary" type="submit" disabled>Confirmar teleporte</button>
+      <button id="teleport-retry" class="button subtle" type="button" hidden>Consultar / repetir a mesma operação</button>
+    </form>
+    <p id="teleport-message" class="form-message" role="status" aria-live="polite"></p>
+  </div>
+</section>
