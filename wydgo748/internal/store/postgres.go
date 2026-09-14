@@ -139,6 +139,37 @@ type PostgresStore struct {
 	operationTimeout time.Duration
 }
 
+// PersistentPlayerSnapshot is the narrow read model exposed to the staff web
+// process. It intentionally contains no password hash, inventory or cargo.
+type PersistentPlayerSnapshot struct {
+	Account       string
+	UID           string
+	Name          string
+	Class         byte
+	Level         uint32
+	Evolution     string
+	HP            uint32
+	MaxHP         uint32
+	MP            uint32
+	MaxMP         uint32
+	Attack        uint32
+	MagicAttack   uint32
+	Defense       uint32
+	Str           uint32
+	Int           uint32
+	Dex           uint32
+	Con           uint32
+	StatusPoints  uint32
+	MasteryPoints uint32
+	SkillPoints   uint32
+	X             uint16
+	Y             uint16
+	Gold          uint32
+	Exp           uint32
+	Hold          uint32
+	CP            int16
+}
+
 // Ping expoe somente a verificacao leve necessaria ao readiness HTTP. O caller
 // controla integralmente deadline/cancelamento pelo context recebido.
 func (s *PostgresStore) Ping(ctx context.Context) error {
@@ -1116,6 +1147,89 @@ func (s *PostgresStore) LoadAccount(name string) (*model.Account, error) {
 		return nil, fmt.Errorf("store: conta %q invalida: %w", name, err)
 	}
 	return &acc, nil
+}
+
+const postgresPersistentPlayerQuery = `
+SELECT
+    COALESCE(picked.account_name, ''),
+    picked.character->>'uid',
+    picked.character->>'name',
+    COALESCE((picked.character->>'class')::bigint, 0),
+    COALESCE((picked.character->'score'->>'level')::bigint, 0),
+    COALESCE(picked.character->>'evolution', ''),
+    COALESCE((picked.character->'score'->>'curHP')::bigint, 0),
+    COALESCE((picked.character->'score'->>'maxHP')::bigint, 0),
+    COALESCE((picked.character->'score'->>'curMP')::bigint, 0),
+    COALESCE((picked.character->'score'->>'maxMP')::bigint, 0),
+    COALESCE((picked.character->'score'->>'attack')::bigint, 0),
+    COALESCE((picked.character->'score'->>'magicAttack')::bigint, 0),
+    COALESCE((picked.character->'score'->>'defense')::bigint, 0),
+    COALESCE((picked.character->'score'->>'str')::bigint, 0),
+    COALESCE((picked.character->'score'->>'int')::bigint, 0),
+    COALESCE((picked.character->'score'->>'dex')::bigint, 0),
+    COALESCE((picked.character->'score'->>'con')::bigint, 0),
+    COALESCE((picked.character->'score'->>'statusPoints')::bigint, 0),
+    COALESCE((picked.character->'score'->>'masteryPoints')::bigint, 0),
+    COALESCE((picked.character->'score'->>'skillPoints')::bigint, 0),
+    COALESCE((picked.character->>'x')::bigint, 0),
+    COALESCE((picked.character->>'y')::bigint, 0),
+    COALESCE((picked.character->>'gold')::bigint, 0),
+    COALESCE((picked.character->>'exp')::bigint, 0),
+    COALESCE((picked.character->>'hold')::bigint, 0),
+    COALESCE((picked.character->>'cp')::bigint, 0)
+FROM (
+    SELECT
+        a.payload->>'name' AS account_name,
+        a.payload->'chars'->c.slot AS character
+    FROM characters c
+    JOIN accounts a ON a.name_key = c.account_key
+    WHERE c.account_key=$1 AND c.character_uid=$2
+) AS picked
+WHERE picked.character->>'uid'=$3
+  AND COALESCE(picked.character->>'name', '') <> ''
+  AND picked.character->'score' IS NOT NULL
+LIMIT 1`
+
+// ReadPersistentPlayer reads only the fields required by the read-only staff
+// console. PostgreSQL projects the matching character before any data reaches
+// the web process, so account credentials and item payloads are not decoded.
+func (s *PostgresStore) ReadPersistentPlayer(ctx context.Context, accountName, uid string) (PersistentPlayerSnapshot, error) {
+	if ctx == nil {
+		return PersistentPlayerSnapshot{}, errors.New("store: contexto ausente")
+	}
+	accountName = strings.TrimSpace(accountName)
+	if accountName == "" || len(accountName) > 12 {
+		return PersistentPlayerSnapshot{}, errors.New("store: conta invalida")
+	}
+	normalizedUID, err := model.NormalizeCharacterUID(uid)
+	if err != nil || normalizedUID == "" {
+		return PersistentPlayerSnapshot{}, errors.New("store: UID de personagem invalido")
+	}
+	if s == nil || s.pool == nil {
+		return PersistentPlayerSnapshot{}, errors.New("store: PostgreSQL fechado")
+	}
+	timeout := s.operationTimeout
+	if timeout <= 0 {
+		timeout = postgresOperationTimeout
+	}
+	queryCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	var out PersistentPlayerSnapshot
+	err = s.pool.QueryRow(queryCtx, postgresPersistentPlayerQuery,
+		strings.ToLower(accountName), currentUID(normalizedUID), normalizedUID).Scan(
+		&out.Account, &out.UID, &out.Name, &out.Class, &out.Level, &out.Evolution,
+		&out.HP, &out.MaxHP, &out.MP, &out.MaxMP, &out.Attack, &out.MagicAttack,
+		&out.Defense, &out.Str, &out.Int, &out.Dex, &out.Con, &out.StatusPoints,
+		&out.MasteryPoints, &out.SkillPoints, &out.X, &out.Y, &out.Gold, &out.Exp,
+		&out.Hold, &out.CP)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return PersistentPlayerSnapshot{}, fmt.Errorf("%w: personagem %q da conta %q", os.ErrNotExist, normalizedUID, accountName)
+	}
+	if err != nil {
+		return PersistentPlayerSnapshot{}, err
+	}
+	return out, nil
 }
 
 func (s *PostgresStore) saveSnapshots(snapshots []*accountSnapshot) error {

@@ -1,0 +1,91 @@
+---
+import '../../styles/admin.css';
+import GlobalDrop from '../../components/GlobalDrop.astro';
+import Quiz from '../../components/Quiz.astro';
+---
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#111716" />
+    <title>WYD · Painel administrativo</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Ir ao conteúdo</a>
+    <div class="shell">
+      <aside class="sidebar" aria-label="Navegação administrativa">
+        <a class="brand" href="/admin/" aria-label="WYD administração"><span class="brand-mark">W</span><span>WYD<span class="brand-sub">ADMINISTRAÇÃO / 7.48</span></span></a>
+        <span class="nav-label">CENTRAL DE CONTROLE</span>
+        <nav>
+          <a class="nav-link active" href="#overview"><span aria-hidden="true">◈</span> Visão geral</a>
+          <a class="nav-link" href="#players"><span aria-hidden="true">♙</span> Jogadores online</a>
+          <a class="nav-link" href="#events"><span aria-hidden="true">✦</span> Eventos</a>
+          <a class="nav-link" href="#quiz"><span aria-hidden="true">?</span> Quiz de matemática</a>
+          <a class="nav-link" href="#security"><span aria-hidden="true">◇</span> Segurança da sessão</a>
+        </nav>
+        <div class="sidebar-foot"><span class="readonly-dot"></span> ACESSO POR PERMISSÃO<p>Consultar o mundo.<br />Administrar eventos.</p><span class="build-label">CONTROL PANEL · v0.2</span></div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar"><span>OPERAÇÕES <span class="separator">/</span> <strong>Painel administrativo</strong></span><span class="access-badge" id="access-badge">Acesso restrito</span></header>
+        <main id="main">
+          <noscript><p class="notice">Ative JavaScript para autenticar e consultar o servidor. Nenhum dado administrativo está incluído nesta página estática.</p></noscript>
+          <section id="login" class="login-grid" aria-labelledby="login-title">
+            <div class="login-intro"><span class="eyebrow">WYD / OPERAÇÕES</span><h1 id="login-title">O seu mundo,<br /><em>sob supervisão.</em></h1><p>Acompanhe o servidor, encontre jogadores e configure os eventos do mundo.</p><div class="intro-rule"></div><span class="section-number">01 — ACESSO DA EQUIPE</span><p class="small">Conta autorizada, senha do jogo e PIN administrativo configurado no servidor. Consultas e comandos são identificados no registro de acesso.</p></div>
+            <form id="login-form" class="login-card">
+              <span class="eyebrow">ÁREA RESTRITA</span><h2>Entrar no painel</h2><p class="muted">Identifique-se para iniciar uma sessão segura.</p>
+              <label for="username">Conta do jogo</label><input id="username" name="username" autocomplete="username" maxlength="12" pattern="[a-zA-Z0-9]{1,12}" required placeholder="Sua conta autorizada" />
+              <label for="password">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="12" required placeholder="Senha da conta" />
+              <label for="adminPin">PIN administrativo <span>6–12 dígitos</span></label><input id="adminPin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6,12}" minlength="6" maxlength="12" required placeholder="000000" />
+              <p id="login-message" class="form-message" role="status" aria-live="polite">Preparando acesso…</p>
+              <button id="login-submit" class="button primary" disabled>Entrar no painel <span aria-hidden="true">↗</span></button>
+              <p class="login-foot">Sem acesso? Solicite autorização ao responsável pelo servidor. Este painel não cria contas de equipe.</p>
+            </form>
+          </section>
+          <div id="dashboard" hidden>
+            <GlobalDrop />
+            <Quiz />
+            <section id="overview" aria-labelledby="overview-title">
+              <div class="page-heading"><div><span class="eyebrow">CENTRAL DE OPERAÇÕES</span><h1 id="overview-title">Visão geral<span class="title-dot">.</span></h1><p class="muted">Uma leitura do mundo, no momento em que você precisa.</p></div><button id="refresh" class="button primary"><span aria-hidden="true">↻</span> Atualizar dados</button></div>
+              <div id="snapshot-banner" class="snapshot-banner" role="status" aria-live="polite"><span class="snapshot-icon" aria-hidden="true">◷</span><div><strong id="snapshot-state">Aguardando consulta</strong><span id="snapshot-detail">Use Atualizar dados. Não há atualização automática.</span></div><span id="snapshot-time" class="mono">—</span></div>
+              <div class="metrics">
+                <article class="metric"><div><span>JOGADORES ONLINE</span><span aria-hidden="true">♙</span></div><strong id="metric-online">—</strong><p>Personagens presentes no mundo</p></article>
+                <article class="metric"><div><span>CONTAS AUTENTICADAS</span><span aria-hidden="true">⌁</span></div><strong id="metric-auth">—</strong><p>Inclui seleção de personagem</p></article>
+                <article class="metric"><div><span>ENTIDADES DO MUNDO</span><span aria-hidden="true">◇</span></div><strong id="metric-mobs">—</strong><p>Mobs registrados no servidor</p></article>
+                <article class="metric"><div><span>FILA DE COMANDOS</span><span aria-hidden="true">≋</span></div><strong id="metric-queue">—</strong><p>Comandos aguardando o loop</p></article>
+              </div>
+              <div class="detail-grid"><article class="panel"><div class="panel-heading"><h2>Estado do mundo</h2><span class="tag">WORLD SNAPSHOT</span></div><dl class="world-details"><div><dt>Estado informado</dt><dd id="world-state">Não consultado</dd></div><div><dt>Uptime da Control API</dt><dd id="world-uptime">—</dd></div><div><dt>Duração do último tick</dt><dd id="world-tick">—</dd></div><div><dt>Atraso do loop</dt><dd id="world-lag">—</dd></div></dl></article><article class="panel"><div class="panel-heading"><h2>Diagnóstico operacional</h2><span class="tag">PROCESS</span></div><dl class="world-details"><div><dt>Leitura do processo</dt><dd id="diagnostics-asof">—</dd></div><div><dt>Fila PostgreSQL</dt><dd id="postgres-queue">—</dd></div><div><dt>Falhas de persistência</dt><dd id="persistence-failures">—</dd></div><div><dt>Panics contidos</dt><dd id="world-panics">—</dd></div></dl></article></div><div class="detail-grid"><article id="security" class="panel security-panel"><span class="eyebrow">SEGURANÇA POR PADRÃO</span><h2>Eventos sob controle.</h2><p>Consulte jogadores e controle drop global e quiz com permissões específicas e operações auditadas. Outros comandos de moderação ainda não estão habilitados neste painel.</p><div class="session-row"><span>Sessão de <strong id="session-account">—</strong><small id="session-expiry">—</small></span><button id="logout" class="button subtle">Sair ↗</button></div></article></div>
+            </section>
+            <section id="players" class="panel players-panel" aria-labelledby="players-title">
+              <div class="players-heading"><div><span class="eyebrow">PRESENÇA NO MUNDO</span><h2 id="players-title">Jogadores online <span id="player-count" class="count">—</span></h2></div><form id="search-form" class="search-form"><label class="sr-only" for="search">Buscar por personagem, conta ou UID</label><input id="search" maxlength="48" placeholder="Personagem, conta ou UID" /><button class="button subtle" type="submit">Buscar</button></form></div>
+              <article id="player-inspector" class="player-inspector" hidden aria-labelledby="inspector-name">
+                <div class="inspector-heading"><div><span class="eyebrow">PLAYER INSPECTOR</span><h3 id="inspector-name">—</h3><span id="inspector-account" class="inspector-account">—</span></div><button id="inspector-close" class="button subtle" type="button" aria-label="Fechar detalhes do jogador">Fechar ×</button></div>
+                <div class="inspector-source-heading"><strong>LIVE STATE · WORLD</strong><span>snapshot de <span id="inspector-asof" class="mono">—</span></span></div>
+                <div class="inspector-grid">
+                  <dl><dt>UID</dt><dd id="inspector-uid">—</dd></dl><dl><dt>Sessão</dt><dd id="inspector-session">—</dd></dl><dl><dt>Classe / nível</dt><dd id="inspector-class-level">—</dd></dl><dl><dt>HP efetivo</dt><dd id="inspector-hp">—</dd></dl>
+                  <dl><dt>MP efetivo</dt><dd id="inspector-mp">—</dd></dl><dl><dt>Guild</dt><dd id="inspector-guild">—</dd></dl><dl><dt>Grupo</dt><dd id="inspector-party">—</dd></dl><dl><dt>Posição runtime</dt><dd id="inspector-position">—</dd></dl>
+                </div>
+                <section class="persistent-state" aria-labelledby="persistent-title">
+                  <div class="inspector-source-heading"><strong id="persistent-title">PERSISTENT STATE · POSTGRESQL</strong><span id="persistent-state">Aguardando consulta</span></div>
+                  <div class="inspector-grid persistent-grid">
+                    <dl><dt>Classe / nível</dt><dd id="persistent-class-level">—</dd></dl><dl><dt>Evolução</dt><dd id="persistent-evolution">—</dd></dl><dl><dt>HP persistido</dt><dd id="persistent-hp">—</dd></dl><dl><dt>MP persistido</dt><dd id="persistent-mp">—</dd></dl>
+                    <dl><dt>Ataque físico / mágico</dt><dd id="persistent-attack">—</dd></dl><dl><dt>Defesa</dt><dd id="persistent-defense">—</dd></dl><dl><dt>STR / INT / DEX / CON</dt><dd id="persistent-attributes">—</dd></dl><dl><dt>Status / mastery / skill</dt><dd id="persistent-points">—</dd></dl>
+                    <dl><dt>Posição persistida</dt><dd id="persistent-position">—</dd></dl><dl><dt>Gold</dt><dd id="persistent-gold">—</dd></dl><dl><dt>EXP / hold</dt><dd id="persistent-exp">—</dd></dl><dl><dt>Chaos / PK</dt><dd id="persistent-cp">—</dd></dl>
+                  </div>
+                  <footer>Leitura independente de <span id="persistent-asof" class="mono">—</span></footer>
+                </section>
+                <footer class="inspector-note">Somente leitura · valores LIVE e PERSISTENT podem divergir até o próximo save.</footer>
+              </article>
+              <div class="table-scroll"><table><thead><tr><th>PERSONAGEM</th><th>CONTA</th><th>CLASSE / ID</th><th>NÍVEL</th><th>POSIÇÃO</th><th>DETALHES</th></tr></thead><tbody id="player-rows"><tr><td colspan="6" class="empty"><span>◈</span>Nenhuma consulta realizada.<small>Atualize os dados para consultar os jogadores presentes.</small></td></tr></tbody></table></div>
+              <footer class="table-footer"><span id="page-info">Até 50 jogadores por consulta · Ordenados por UID</span><div><button id="previous" class="button pager" disabled aria-label="Página anterior">←</button><button id="next" class="button pager" disabled aria-label="Próxima página">→</button></div></footer>
+            </section>
+            <footer class="page-footer"><span>WYD · ADMINISTRAÇÃO</span><span>Dados obtidos pela fila autoritativa do servidor.</span></footer>
+          </div>
+        </main>
+      </div>
+    </div>
+    <script src="../../scripts/admin.ts"></script>
+  </body>
+</html>

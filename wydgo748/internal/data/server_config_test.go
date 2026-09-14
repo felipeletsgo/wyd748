@@ -61,6 +61,41 @@ party_exp_bonus = 3
 	}
 }
 
+func TestLoadServerConfigWebAdmin(t *testing.T) {
+	defaults := DefaultServerConfig()
+	if defaults.WebAdminEnabled || defaults.WebAdminAddress != "127.0.0.1:8082" || defaults.WebAdminStaffPath != "data/staff.json" || defaults.WebAdminStaticPath != "web/portal/dist" {
+		t.Fatal("unsafe or unexpected web admin defaults")
+	}
+	cfg, err := LoadServerConfig(writeServerConfig(t, "web_admin_enabled=true\nweb_admin_address=[::1]:9002\nweb_admin_staff=custom/staff.json\nweb_admin_static=custom/dist\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.WebAdminEnabled || cfg.WebAdminAddress != "[::1]:9002" || cfg.WebAdminStaffPath != "custom/staff.json" || cfg.WebAdminStaticPath != "custom/dist" {
+		t.Fatal("web admin overrides ignored")
+	}
+	if _, err := LoadServerConfig(writeServerConfig(t, "web_admin_enabled=maybe\n")); err == nil {
+		t.Fatal("invalid boolean accepted")
+	}
+}
+
+func TestLoadServerConfigParsesAdminAccessPIN(t *testing.T) {
+	cfg, err := LoadServerConfig(writeServerConfig(t, "admin_access_pin=001234\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AdminAccessPIN != "001234" {
+		t.Fatalf("AdminAccessPIN=%q, quer preservar zeros a esquerda", cfg.AdminAccessPIN)
+	}
+	if DefaultServerConfig().AdminAccessPIN != "" {
+		t.Fatal("PIN administrativo nao deve ter valor padrao")
+	}
+	for _, value := range []string{"12345", "1234567890123", "12a456", "123 456"} {
+		if _, err := LoadServerConfig(writeServerConfig(t, "admin_access_pin="+value+"\n")); err == nil {
+			t.Fatalf("PIN administrativo invalido aceito: %q", value)
+		}
+	}
+}
+
 // TestLoadServerConfigParsesCompositorKeys: as quatro chaves precisam chegar ao
 // GameplayConfig. No WYD 7.48 o equivalente (CompRate.txt) e lido para um array que
 // nenhuma funcao consulta, e o parser so normaliza a primeira coluna -- ajustar

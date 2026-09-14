@@ -1,0 +1,353 @@
+openapi: 3.1.0
+info:
+  title: WYD administrative API (local-first)
+  version: 0.2.0
+paths:
+  /api/v1/staff/events/global-drop:
+    get:
+      summary: Inspect process-local global drop event (game.event.global-drop capability)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Authoritative World snapshot; event is not resumed after restart
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GlobalDropStatus' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Start or stop global drop through embedded World queue; staff session rechecked at execution
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GlobalDropCommand' }
+      responses:
+        '200':
+          description: Domain receipt (code ok means success); retry uncertain outcomes with the identical body and operationId
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GlobalDropResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/events/quiz:
+    get:
+      summary: Inspect process-local quiz event (game.event.quiz capability)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Authoritative World snapshot; event is not resumed after restart
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuizStatus' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Start or stop quiz through embedded World queue; staff session rechecked at execution
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/QuizCommand' }
+      responses:
+        '200':
+          description: Domain receipt (code ok means success); retry uncertain outcomes with the identical body and operationId
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuizResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/auth/session:
+    get:
+      summary: Get session and CSRF token; create an anonymous session if absent
+      responses:
+        '200':
+          description: Current session; never a bearer credential
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/auth/login:
+    post:
+      summary: Rotate session after game password, staff allowlist and configured administrative PIN verification
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [username, password, adminPin]
+              properties:
+                username: { type: string, minLength: 1, maxLength: 12 }
+                password: { type: string, minLength: 1, maxLength: 12, writeOnly: true }
+                adminPin: { type: string, pattern: '^[0-9]{6,12}$', writeOnly: true }
+      responses:
+        '200':
+          description: Authenticated session
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/auth/logout:
+    post:
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      responses:
+        '200':
+          description: Session invalidated, cookie expired
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, const: signed_out }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/overview:
+    get:
+      summary: One fresh World snapshot; requires both read capabilities
+      security: [{ staffSession: [] }]
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string, maxLength: 48 }
+          description: Case-insensitive name, account or UID substring; maximum 48 Unicode characters
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, maximum: 10000, default: 0 }
+      responses:
+        '200':
+          description: Snapshot sorted by UID, maximum 50 players; pages are not a stable cursor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Overview' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/players/{uid}/persistent:
+    get:
+      summary: Read one persisted character projection from PostgreSQL
+      security: [{ staffSession: [] }]
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 64 }
+          description: Canonical persistent character UID from the live snapshot
+        - in: query
+          name: account
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 12 }
+          description: Account owning the character in the live snapshot
+      responses:
+        '200':
+          description: Independent PostgreSQL read; asOf is not the World snapshot timestamp
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersistentPlayer' }
+        default: { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    staffSession:
+      type: apiKey
+      in: cookie
+      name: __Host-wyd_session
+      description: HttpOnly Secure SameSite=Lax. Local dev uses wyd_local_session without Secure.
+  parameters:
+    CSRF:
+      in: header
+      name: X-CSRF-Token
+      required: true
+      schema: { type: string }
+      description: Token from session endpoint. POST also requires exact Origin and session cookie.
+  responses:
+    Error:
+      description: Rejected request (400/401/403/415), rate limit (429 with Retry-After), or unavailable dependency (503)
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error: { type: string }
+  schemas:
+    GlobalDropCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, epoch, expectedEventId, action, reason, itemId, ratePercent, maxDrops, durationSeconds]
+      description: Start requires itemId > 0, ratePercent 1..100 and at least one positive limit. Both limits stop at the first reached. Stop requires an event ID and zero numeric settings. Operation IDs are bound to actor and exact payload, retained up to 1024 commands per process plus one final stop; epoch prevents replay across restarts.
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        epoch: { type: string, minLength: 32, maxLength: 32 }
+        expectedEventId: { type: string, maxLength: 64 }
+        action: { type: string, enum: [start, stop] }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+        itemId: { type: integer, minimum: 0, maximum: 65535 }
+        ratePercent: { type: integer, minimum: 0, maximum: 100 }
+        maxDrops: { type: integer, minimum: 0, maximum: 10000000 }
+        durationSeconds: { type: integer, minimum: 0, maximum: 604800 }
+    GlobalDropStatus:
+      type: object
+      required: [version, epoch, asOf, eventId, active, itemId, itemName, ratePercent, maxDrops, dropped, startedAt, endsAt, endedBy, actor]
+      properties:
+        version: { type: integer, const: 1 }
+        epoch: { type: string }
+        asOf: { type: string, format: date-time }
+        eventId: { type: string }
+        active: { type: boolean }
+        itemId: { type: integer }
+        itemName: { type: string }
+        ratePercent: { type: integer }
+        maxDrops: { type: integer }
+        dropped: { type: integer }
+        startedAt: { type: [string, 'null'], format: date-time }
+        endsAt: { type: [string, 'null'], format: date-time }
+        endedBy: { type: string, enum: ['', time, quantity, manual] }
+        actor: { type: string }
+    GlobalDropResult:
+      type: object
+      required: [operationId, code, replayed, status]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, invalid_command, capability_required, server_maintenance, stale_event, operation_conflict, operation_capacity, event_active, event_inactive, unknown_item, event_id_unavailable] }
+        replayed: { type: boolean }
+        status: { $ref: '#/components/schemas/GlobalDropStatus' }
+    QuizCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, epoch, expectedEventId, action, reason, itemId, rewardQuantity, durationSeconds]
+      description: Start requires itemId > 0, quantity 1..60 and duration 60..86400 in whole minutes. First round is immediate, then every minute; answers expire after 10 seconds. Stop requires an event ID and zero settings. Retry uncertain outcomes with the identical body; bounded process-local receipts, epoch and event ID prevent replay and stale writes.
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        epoch: { type: string, minLength: 32, maxLength: 32 }
+        expectedEventId: { type: string, maxLength: 64 }
+        action: { type: string, enum: [start, stop] }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+        itemId: { type: integer, minimum: 0, maximum: 65535 }
+        rewardQuantity: { type: integer, minimum: 0, maximum: 60 }
+        durationSeconds: { type: integer, minimum: 0, maximum: 86400, multipleOf: 60 }
+    QuizStatus:
+      type: object
+      required: [version, epoch, asOf, eventId, active, itemId, itemName, rewardQuantity, rounds, correct, rewarded, deliveryFailures, startedAt, endsAt, nextRoundAt, roundClosesAt, endedBy, actor]
+      properties:
+        version: { type: integer, const: 1 }
+        epoch: { type: string }
+        asOf: { type: string, format: date-time }
+        eventId: { type: string }
+        active: { type: boolean }
+        itemId: { type: integer }
+        itemName: { type: string }
+        rewardQuantity: { type: integer }
+        rounds: { type: integer }
+        correct: { type: integer }
+        rewarded: { type: integer }
+        deliveryFailures: { type: integer }
+        startedAt: { type: [string, 'null'], format: date-time }
+        endsAt: { type: [string, 'null'], format: date-time }
+        nextRoundAt: { type: [string, 'null'], format: date-time }
+        roundClosesAt: { type: [string, 'null'], format: date-time }
+        endedBy: { type: string, enum: ['', time, manual] }
+        actor: { type: string }
+    QuizResult:
+      type: object
+      required: [operationId, code, replayed, status]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, invalid_command, capability_required, server_maintenance, stale_event, operation_conflict, operation_capacity, event_active, event_inactive, unknown_item, event_id_unavailable] }
+        replayed: { type: boolean }
+        status: { $ref: '#/components/schemas/QuizStatus' }
+    Session:
+      type: object
+      required: [authenticated, account, csrf, expiresAt]
+      properties:
+        authenticated: { type: boolean }
+        account: { type: string }
+        csrf: { type: string }
+        expiresAt: { type: string, format: date-time }
+    Player:
+      type: object
+      required: [uid, name, account, class, level, hp, maxHp, mp, maxMp, guildId, guildRank, sessionId, partySize, x, y]
+      properties:
+        uid: { type: string }
+        name: { type: string }
+        account: { type: string }
+        class: { type: integer, minimum: 0, maximum: 255 }
+        level: { type: integer, minimum: 0, maximum: 4294967295 }
+        hp: { type: integer, minimum: 0, maximum: 4294967295, description: Effective live HP from RuntimeScore when present, otherwise base Score }
+        maxHp: { type: integer, minimum: 0, maximum: 4294967295, description: Effective live maximum HP }
+        mp: { type: integer, minimum: 0, maximum: 4294967295, description: Effective live MP from RuntimeScore when present, otherwise base Score }
+        maxMp: { type: integer, minimum: 0, maximum: 4294967295, description: Effective live maximum MP }
+        guildId: { type: integer, minimum: 0, maximum: 65535 }
+        guildRank: { type: integer, minimum: 0, maximum: 255 }
+        sessionId: { type: integer, format: int64, minimum: 0 }
+        partySize: { type: integer, minimum: 0 }
+        x: { type: integer, minimum: 0, maximum: 65535 }
+        y: { type: integer, minimum: 0, maximum: 65535 }
+    PersistentPlayer:
+      type: object
+      required: [version, asOf, account, uid, name, class, level, evolution, hp, maxHp, mp, maxMp, attack, magicAttack, defense, str, int, dex, con, statusPoints, masteryPoints, skillPoints, x, y, gold, exp, hold, cp]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time, description: Timestamp of this PostgreSQL read, independent from the live World snapshot }
+        account: { type: string }
+        uid: { type: string }
+        name: { type: string }
+        class: { type: integer, minimum: 0, maximum: 255 }
+        level: { type: integer, minimum: 0, maximum: 4294967295 }
+        evolution: { type: string }
+        hp: { type: integer, minimum: 0, maximum: 4294967295, description: Persisted Score.curHP; not effective live HP }
+        maxHp: { type: integer, minimum: 0, maximum: 4294967295 }
+        mp: { type: integer, minimum: 0, maximum: 4294967295, description: Persisted Score.curMP; not effective live MP }
+        maxMp: { type: integer, minimum: 0, maximum: 4294967295 }
+        attack: { type: integer, minimum: 0, maximum: 4294967295 }
+        magicAttack: { type: integer, minimum: 0, maximum: 4294967295 }
+        defense: { type: integer, minimum: 0, maximum: 4294967295 }
+        str: { type: integer, minimum: 0, maximum: 4294967295 }
+        int: { type: integer, minimum: 0, maximum: 4294967295 }
+        dex: { type: integer, minimum: 0, maximum: 4294967295 }
+        con: { type: integer, minimum: 0, maximum: 4294967295 }
+        statusPoints: { type: integer, minimum: 0, maximum: 4294967295 }
+        masteryPoints: { type: integer, minimum: 0, maximum: 4294967295 }
+        skillPoints: { type: integer, minimum: 0, maximum: 4294967295 }
+        x: { type: integer, minimum: 0, maximum: 65535, description: Persisted character coordinate }
+        y: { type: integer, minimum: 0, maximum: 65535, description: Persisted character coordinate }
+        gold: { type: integer, minimum: 0, maximum: 4294967295 }
+        exp: { type: integer, minimum: 0, maximum: 4294967295 }
+        hold: { type: integer, minimum: 0, maximum: 4294967295 }
+        cp: { type: integer, minimum: -75, maximum: 75 }
+    Overview:
+      type: object
+      required: [version, asOf, state, uptimeSeconds, online, authenticated, mobs, queueDepth, tickMicros, lagMicros, diagnostics, players, matched, offset, hasMore]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        state: { type: string, enum: [running, maintenance] }
+        uptimeSeconds: { type: integer, minimum: 0 }
+        online: { type: integer, minimum: 0 }
+        authenticated: { type: integer, minimum: 0 }
+        mobs: { type: integer, minimum: 0 }
+        queueDepth: { type: integer, minimum: 0 }
+        tickMicros: { type: integer, minimum: 0 }
+        lagMicros: { type: integer, minimum: 0 }
+        diagnostics: { $ref: '#/components/schemas/Diagnostics' }
+        players:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/Player' }
+        matched: { type: integer, minimum: 0 }
+        offset: { type: integer, minimum: 0 }
+        hasMore: { type: boolean }
+    Diagnostics:
+      type: object
+      required: [version, asOf, postgresQueueDepth, persistenceFailures, panics]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time, description: Timestamp of process diagnostics, independent from the World snapshot }
+        postgresQueueDepth: { type: integer, format: int64, minimum: 0 }
+        persistenceFailures: { type: integer, format: int64, minimum: 0 }
+        panics: { type: integer, format: int64, minimum: 0 }

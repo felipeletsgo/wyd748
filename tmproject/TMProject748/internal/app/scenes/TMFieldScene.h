@@ -2,6 +2,7 @@
 
 #include "Basedef.h"
 #include "TMScene.h"
+#include "../../wire/QuizEventPacket.h"
 #include "TMHuman.h"
 #include "MrItemMix.h"
 #include "Mission.h"
@@ -134,6 +135,8 @@ public:
 	void UseTicket(int nCellX, int nCellY);
 	char UseQuickSloat(char key);
 	void InitializeFireWorkControls();
+	void InitializeQuizEventControls();
+	int OnPacketQuizEvent(MSG_STANDARD* packet);
 	void UpdateFireWorkButton(int nIndex);
 	void ClearFireWork();
 	void UseFireWork();
@@ -779,6 +782,7 @@ public:
 	SText* m_pQuizText[4];
 	unsigned int m_dwQuizStart;
 	SPanel* m_pQuizBG;
+	quiz_event::State m_quizEvent{};
 	SText* m_pQuizQuestion;
 	SButton* m_pQuizButton[4];
 	SPanel* m_pRPSGamePanel;

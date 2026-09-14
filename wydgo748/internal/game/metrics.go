@@ -68,6 +68,7 @@ var inboundCommandMetricLabels = map[uint16]string{
 	wire.OpCharacterLogin:          "0x213",
 	wire.OpCharacterLogout:         "0x215",
 	wire.OpClientIntegrityResponse: "0x2C2",
+	wire.OpQuizAnswer:              "0x7F11",
 	wire.OpSwapItem:                "0x376",
 	wire.OpDeposit:                 "0x388",
 	wire.OpWithdraw:                "0x387",

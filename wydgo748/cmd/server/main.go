@@ -8,6 +8,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	stdnet "net"
 	stdhttp "net/http"
 	"os"
 	"os/signal"
@@ -19,6 +20,7 @@ import (
 	// estiver configurado, e a configuracao exige loopback.
 	_ "net/http/pprof"
 
+	"wydgo/internal/control"
 	"wydgo/internal/data"
 	"wydgo/internal/game"
 	"wydgo/internal/net"
@@ -106,7 +108,21 @@ func main() {
 	attributeMapPath := flag.String("attributemap", cfg.AttributeMapPath, "AttributeMap.dat nativo do mapa")
 	debugAddr := flag.String("debug_address", cfg.DebugAddress,
 		"endereco loopback do diagnostico (expvar/pprof); vazio desliga")
+	controlAddr := flag.String("control-address", "", "Control API somente loopback; vazio desliga")
 	flag.Parse()
+	// Bind before loading the World: a bad private listener must fail at boot.
+	var controlListener stdnet.Listener
+	controlToken := os.Getenv("WYD_CONTROL_TOKEN")
+	if *controlAddr != "" {
+		if err := control.LoopbackAddress(*controlAddr); err != nil || len(controlToken) < 32 {
+			log.Fatal("control-address exige loopback literal e WYD_CONTROL_TOKEN com pelo menos 32 caracteres")
+		}
+		controlListener, err = stdnet.Listen("tcp", *controlAddr)
+		if err != nil {
+			log.Fatal("nao foi possivel abrir o listener privado de controle")
+		}
+		defer controlListener.Close()
+	}
 	// A flag sobrescreve o arquivo, entao repete a checagem de loopback: sem
 	// isso, -debug_address 0.0.0.0:6060 exporia pprof publicamente.
 	if *debugAddr != "" {
@@ -301,6 +317,25 @@ func main() {
 		log.Fatalf("criar mundo: %v", err)
 	}
 	go world.Run()
+	stopWebAdmin, webErr := startWebAdmin(cfg, world)
+	if webErr != nil {
+		log.Printf("painel administrativo nao iniciou: %v; servidor do jogo continua ativo", webErr)
+		stopWebAdmin = func() {}
+	}
+	defer stopWebAdmin()
+	if controlListener != nil {
+		handler, err := control.NewHandler(world, controlToken)
+		if err != nil {
+			log.Fatal("configuracao invalida da Control API")
+		}
+		controlServer := &stdhttp.Server{Handler: handler, ReadHeaderTimeout: 2 * time.Second, ReadTimeout: 3 * time.Second, WriteTimeout: 4 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 8192}
+		go func() {
+			log.Printf("Control API privada em %s (somente leitura)", *controlAddr)
+			if err := controlServer.Serve(controlListener); err != nil && err != stdhttp.ErrServerClosed {
+				log.Print("Control API indisponivel")
+			}
+		}()
+	}
 
 	if *debugAddr != "" {
 		go serveDebug(*debugAddr)
@@ -314,6 +349,7 @@ func main() {
 	go func() {
 		sig := <-signals
 		log.Printf("sinal %v recebido: persistindo estado antes de sair", sig)
+		stopWebAdmin()
 		if world.Shutdown(shutdownTimeout) {
 			log.Print("desligamento concluido")
 			os.Exit(0)

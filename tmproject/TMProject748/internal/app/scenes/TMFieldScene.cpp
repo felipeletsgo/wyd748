@@ -2239,6 +2239,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 	// are dispatched after this initializer returns.
 	InitializeCompatSkillBelts();
 	InitializeFireWorkControls();
+	InitializeQuizEventControls();
 	UpdateCompatLearnedSkillUI();
 	// Os contadores sao criados em runtime no caminho completo e nao pertencem
 	// ao FieldScene2.bin. O retorno compatível ocorria antes dessas alocacoes,
@@ -7418,12 +7419,11 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID >= 897 && idwControlID <= 900)
 	{
-		m_pQuizBG->SetVisible(0);
-		MSG_STANDARDPARM stParm{};
-		stParm.Header.ID = g_pObjectManager->m_dwCharID;
-		stParm.Header.Type = 0x2C7;
-		stParm.Parm = idwControlID - 897;
-		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
+		if (m_pQuizBG) m_pQuizBG->SetVisible(0);
+		quiz_event::Answer answer{};
+		if (g_pObjectManager && m_quizEvent.Respond(static_cast<unsigned short>(g_pObjectManager->m_dwCharID),
+			idwControlID - 897, GetTickCount(), answer))
+			SendPacket({answer.Header.Type, reinterpret_cast<char*>(&answer), sizeof(answer)});
 		return 1;
 	}
 	if (idwControlID >= 8706 && idwControlID <= 8806)
@@ -9438,6 +9438,8 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		break;
 	case 0x1C6:
 		return OnPacketRandomQuiz(reinterpret_cast<MSG_RandomQuiz*>(pStd));
+	case quiz_event::ChallengeOpcode:
+		return OnPacketQuizEvent(pStd);
 		break;
 	case 0x2C8:
 		return OnPacketAutoKick(pStd);
@@ -14855,6 +14857,11 @@ void TMFieldScene::DropItem(unsigned int dwServerTime)
 
 int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 {
+	if (m_quizEvent.Expired(GetTickCount()))
+	{
+		m_quizEvent.Active = false;
+		if (m_pQuizBG) m_pQuizBG->SetVisible(0);
+	}
 	if (g_dwStartQuitGameTime)
 	{
 		if (dwServerTime > g_dwStartQuitGameTime + 5000)
@@ -27849,8 +27856,55 @@ int TMFieldScene::OnPacketNuke(MSG_STANDARD* pStd)
 	return 1;
 }
 
+void TMFieldScene::InitializeQuizEventControls()
+{
+	if (!m_pControlContainer || !g_pDevice || m_pQuizBG) return;
+	// Native 7.48 runtime group 896, children 897..900 (00435b13).
+	// Extension uses the same owned controls, with local child coordinates.
+	m_pQuizBG = new SPanel(-9, (float)g_pDevice->m_dwScreenWidth * 0.5f - 262.5f,
+		100.0f, 525.0f, 88.0f, 0x44FFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+	m_pQuizBG->SetControlID(896);
+	m_pQuizBG->m_bSelectEnable = 0;
+	m_pControlContainer->AddItem(m_pQuizBG);
+	m_pQuizQuestion = new SText(-2, "", 0xFFFFFFFF, 10.0f, 4.0f, 510.0f, 16.0f, 0, 0x77777777, 1, 0);
+	m_pQuizBG->AddChild(m_pQuizQuestion);
+	for (int i = 0; i < 4; ++i)
+	{
+		m_pQuizButton[i] = new SButton(-2, 5.0f + 130.0f * i, 28.0f, 125.0f, 20.0f, 0x77777777, 1, (char*)"");
+		m_pQuizButton[i]->SetControlID(897 + i);
+		m_pQuizButton[i]->SetEventListener(m_pControlContainer);
+		m_pQuizBG->AddChild(m_pQuizButton[i]);
+	}
+	m_pQuizBG->SetVisible(0);
+}
+
+int TMFieldScene::OnPacketQuizEvent(MSG_STANDARD* packet)
+{
+	quiz_event::Challenge challenge{};
+	if (!packet || !g_pObjectManager || !m_pQuizBG ||
+		packet->ID != g_pObjectManager->m_dwCharID ||
+		!quiz_event::Parse(packet, packet->Size, challenge) ||
+		!m_quizEvent.Apply(challenge, GetTickCount())) return 0;
+	if (m_quizEvent.Active)
+	{
+		char question[128]{};
+		sprintf_s(question, "%s  (10 segundos)", challenge.Question);
+		m_pQuizQuestion->SetText(question, 0);
+		for (int i = 0; i < 4; ++i)
+		{
+			char value[16]{};
+			sprintf_s(value, "%d", challenge.Answers[i]);
+			m_pQuizButton[i]->SetText(value);
+		}
+	}
+	m_pQuizBG->SetVisible(m_quizEvent.Active ? 1 : 0);
+	return 1;
+}
+
 int TMFieldScene::OnPacketRandomQuiz(MSG_RandomQuiz* pStd)
 {
+	// Unversioned legacy challenges must not replace an active secure round.
+	if (m_bCompatFieldScene || m_quizEvent.Active || !pStd || pStd->Header.Size != sizeof(MSG_RandomQuiz)) return 0;
 	pStd->Question[127] = 0;
 	pStd->Answer[0][31] = 0;
 	pStd->Answer[1][31] = 0;

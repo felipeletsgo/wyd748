@@ -8,6 +8,7 @@ import (
 	"log"
 	"runtime/debug"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"wydgo/internal/model"
@@ -18,10 +19,14 @@ import (
 
 // command = um pacote recebido de uma sessao (pkt nil = desconexao).
 type command struct {
-	s        *net.Session
-	pkt      []byte
-	login    *loginResult
-	queuedAt time.Time
+	bosses     *bossesRequest
+	globalDrop *globalDropRequest
+	quiz       *quizRequest
+	control    *controlRequest
+	s          *net.Session
+	pkt        []byte
+	login      *loginResult
+	queuedAt   time.Time
 	// shutdown, quando presente, pede o desligamento controlado. E um comando
 	// como qualquer outro justamente para rodar NA goroutine do World: assim o
 	// drain final enxerga o estado consistente, sem concorrer com um handler.
@@ -363,7 +368,19 @@ func WithMounts(catalog model.MountCatalog) WorldOption {
 
 // World e o dono do estado do jogo.
 type World struct {
-	commands chan command
+	bossesPending      atomic.Bool
+	bossesEpoch        string
+	bossesReceipts     map[string]bossesReceipt
+	globalDropPending  atomic.Bool
+	globalDropEpoch    string
+	globalDrop         *globalDropState
+	globalDropReceipts map[string]globalDropReceipt
+	quizPending        atomic.Bool
+	quizEpoch          string
+	quiz               *quizState
+	quizReceipts       map[string]quizReceipt
+	controlPending     atomic.Bool
+	commands           chan command
 	// pendingCommands guarda o restante de um lote quando o tick vence o
 	// orcamento. O World continua sendo o unico escritor desta fila.
 	pendingCommands          []command
@@ -1577,6 +1594,18 @@ execute:
 // truncado nao pode derrubar o game loop justamente na funcao que existe para
 // conte-lo.
 func commandLabel(cmd command) string {
+	if cmd.bosses != nil {
+		return "control.bosses"
+	}
+	if cmd.quiz != nil {
+		return "control.quiz"
+	}
+	if cmd.globalDrop != nil {
+		return "control.global-drop"
+	}
+	if cmd.control != nil {
+		return "control.read"
+	}
 	if cmd.pkt == nil {
 		return "login" // comando interno (resultado de autenticacao)
 	}
@@ -1684,6 +1713,7 @@ func (w *World) tick() {
 	// A posicao server-side caminha pelo mesmo plano visual, mas somente os
 	// passos cujo tempo venceu se tornam autoridade para IA e interacoes.
 	w.advanceAllPlayerMovement(now)
+	w.tickGlobalDrop(now)
 	w.tickGuildWars(now)
 	// O grid ja reduziu a lista aos mobs com jogador proximo. Uma vez acordado,
 	// o mob percebe alvo a cada 1 s. Perseguicao e patrulha so iniciam um novo
@@ -1714,6 +1744,7 @@ func (w *World) tick() {
 	w.tickItemInstances(now)
 	w.tickTrades(now)
 	w.tickClientIntegrity(now)
+	w.tickQuiz(now)
 	if !now.Before(w.nextQuestZoneReset) {
 		w.tickQuestZoneReset(now)
 		w.nextQuestZoneReset = now.Add(questZoneResetInterval)
@@ -1824,6 +1855,22 @@ func (w *World) broadcast(build func() []byte) {
 
 // handle despacha um comando pelo Type do header.
 func (w *World) handle(cmd command) {
+	if cmd.bosses != nil {
+		w.handleBosses(cmd.bosses)
+		return
+	}
+	if cmd.quiz != nil {
+		w.handleQuiz(cmd.quiz)
+		return
+	}
+	if cmd.globalDrop != nil {
+		w.handleGlobalDrop(cmd.globalDrop)
+		return
+	}
+	if cmd.control != nil {
+		w.handleControl(cmd.control)
+		return
+	}
 	if cmd.shutdown != nil {
 		w.runShutdown(cmd.shutdown)
 		return
@@ -1866,6 +1913,8 @@ func (w *World) handle(cmd command) {
 		w.onCharacterLogout(cmd.s, cmd.pkt)
 	case wire.OpClientIntegrityResponse:
 		w.onClientIntegrityResponse(cmd.s, cmd.pkt)
+	case wire.OpQuizAnswer:
+		w.onQuizAnswer(cmd.s, cmd.pkt)
 	case wire.OpDeleteCharacter:
 		w.onDeleteCharacter(cmd.s, cmd.pkt)
 	case wire.OpSwapItem:

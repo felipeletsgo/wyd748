@@ -14,6 +14,8 @@ Comece por [Build e integração](build-and-integration.md),
 [Score e contrato atual](SCORE.md) e [revisão da organização](organization-review.md).
 O calendário, recompensas, comandos e pendências das guerras estão em
 [Guerras de guilda](guild-wars.md).
+O [plano da plataforma web](WYD-WEB-PLATAFORM.md) separa a base existente,
+o MVP proposto e as fases futuras; não é um registro de features implementadas.
 `EMULATOR.md`, `IMPLEMENTATION_STATUS.md`, `IMPLEMENTED.md` e `ROADMAP.md`
 contêm registros de rodadas anteriores: não substituem código, testes e fichas
 atuais, nem comprovam que uma feature continua concluída ou pendente.

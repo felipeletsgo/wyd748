@@ -8,6 +8,7 @@ import (
 )
 
 type plannedDrop struct {
+	globalDrop   *globalDropReservation
 	player       *Player
 	inventoryPos int
 	item         model.Item
@@ -140,7 +141,12 @@ func (w *World) planMobDrops(p *Player, m *Mob) []plannedDrop {
 
 func (w *World) publishPlannedDrops(drops []plannedDrop) {
 	for _, drop := range drops {
+		// Inventory rewards are already durable, even if the socket has gone.
+		if drop.inventoryPos >= 0 {
+			w.settleGlobalDrop(drop.globalDrop, true)
+		}
 		if drop.player == nil || drop.player.Session == nil {
+			w.settleGlobalDrop(drop.globalDrop, false)
 			continue
 		}
 		if drop.inventoryPos >= 0 {
@@ -151,7 +157,8 @@ func (w *World) publishPlannedDrops(drops []plannedDrop) {
 				drop.inventoryPos, drop.source)
 			continue
 		}
-		w.createGroundDropForInstance(drop.x, drop.y, drop.item, true, drop.instanceID)
+		created := w.createGroundDropForInstance(drop.x, drop.y, drop.item, true, drop.instanceID)
+		w.settleGlobalDrop(drop.globalDrop, created != nil)
 		w.gameplayLogf("drop", "[#%d] DROP slot=%d item=%d -> CHAO (inventario cheio)",
 			drop.player.Session.ID, drop.sourceSlot, drop.item.Index)
 	}

@@ -5,7 +5,7 @@ Caminhos foram normalizados para a arquitetura atual. Fichas e handoffs
 preservam o estado histórico da validação; não são prova de conclusão atual.
 Assets e dumps binários não são documentos. O acervo nativo está em `references/client748/`.
 
-Documentos Markdown: 137.
+Documentos Markdown: 139.
 
 | Documento | Tipo |
 | --- | --- |
@@ -75,6 +75,7 @@ Documentos Markdown: 137.
 | [.agents/research/client748/flows/ui/premium-firework-response-contract.md](<../.agents/research/client748/flows/ui/premium-firework-response-contract.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/premium-npc-click-dormant.md](<../.agents/research/client748/flows/ui/premium-npc-click-dormant.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/quest-panel-layout-lifecycle.md](<../.agents/research/client748/flows/ui/quest-panel-layout-lifecycle.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/ui/quiz-choice-event.md](<../.agents/research/client748/flows/ui/quiz-choice-event.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/screenshot-capture.md](<../.agents/research/client748/flows/ui/screenshot-capture.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/select-character-exp-threshold.md](<../.agents/research/client748/flows/ui/select-character-exp-threshold.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/select-character-layout.md](<../.agents/research/client748/flows/ui/select-character-layout.md>) | Evidencia de pesquisa |
@@ -145,6 +146,7 @@ Documentos Markdown: 137.
 | [DOCS/server/operations.md](<server/operations.md>) | Documentacao do produto |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Documentacao do produto |
 | [DOCS/wire-opcode-catalog.md](<wire-opcode-catalog.md>) | Documentacao do produto |
+| [DOCS/WYD-WEB-PLATAFORM.md](<WYD-WEB-PLATAFORM.md>) | Documentacao do produto |
 | [README.md](<../README.md>) | Documentacao do produto |
 
 ## Catálogos estruturados de pesquisa
@@ -152,6 +154,7 @@ Documentos Markdown: 137.
 - [.agents/research/client748/exports/auto-skill-belt-controls-flow.tsv](<../.agents/research/client748/exports/auto-skill-belt-controls-flow.tsv>)
 - [.agents/research/client748/exports/challenge-confirm-flow.tsv](<../.agents/research/client748/exports/challenge-confirm-flow.tsv>)
 - [.agents/research/client748/exports/change-city-request-flow.tsv](<../.agents/research/client748/exports/change-city-request-flow.tsv>)
+- [.agents/research/client748/exports/city-war-prompt-flow.tsv](<../.agents/research/client748/exports/city-war-prompt-flow.tsv>)
 - [.agents/research/client748/exports/field-scene-rebuild-server-move-focused.tsv](<../.agents/research/client748/exports/field-scene-rebuild-server-move-focused.tsv>)
 - [.agents/research/client748/exports/field-send-item.tsv](<../.agents/research/client748/exports/field-send-item.tsv>)
 - [.agents/research/client748/exports/grid-item-mesh-scale-vtable-callers.tsv](<../.agents/research/client748/exports/grid-item-mesh-scale-vtable-callers.tsv>)
@@ -172,6 +175,7 @@ Documentos Markdown: 137.
 - [.agents/research/client748/exports/packet-size-gate-flow.tsv](<../.agents/research/client748/exports/packet-size-gate-flow.tsv>)
 - [.agents/research/client748/exports/packet-size-gate-pointer-search.tsv](<../.agents/research/client748/exports/packet-size-gate-pointer-search.tsv>)
 - [.agents/research/client748/exports/party-panel-layout-lifecycle-flow.tsv](<../.agents/research/client748/exports/party-panel-layout-lifecycle-flow.tsv>)
+- [.agents/research/client748/exports/quiz-choice-boundary.tsv](<../.agents/research/client748/exports/quiz-choice-boundary.tsv>)
 - [.agents/research/client748/exports/req-teleport-flow.tsv](<../.agents/research/client748/exports/req-teleport-flow.tsv>)
 - [.agents/research/client748/exports/request-mob-by-id-flow.tsv](<../.agents/research/client748/exports/request-mob-by-id-flow.tsv>)
 - [.agents/research/client748/exports/restart-recall-flow.tsv](<../.agents/research/client748/exports/restart-recall-flow.tsv>)

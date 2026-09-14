@@ -16,6 +16,10 @@
 /wydgo748/data/charstate/*.json
 
 # Estado local, temporários e caches.
+/wydgo748/web/portal/node_modules/
+/wydgo748/web/portal/dist/
+/wydgo748/web/portal/.astro/
+/wydgo748/web/portal/.env*
 /.codex/
 /.tmp/
 /tmp/

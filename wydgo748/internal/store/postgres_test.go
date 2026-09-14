@@ -76,6 +76,20 @@ func TestPostgresSchemaContainsAuthoritativeItemConstraints(t *testing.T) {
 	}
 }
 
+func TestPostgresPersistentPlayerQueryIsNarrow(t *testing.T) {
+	query := strings.ToLower(postgresPersistentPlayerQuery)
+	for _, forbidden := range []string{"select payload", "passwordhash", "'cargo'", "'inv'", "'equip'"} {
+		if strings.Contains(query, forbidden) {
+			t.Fatalf("persistent player query materializa campo proibido %q", forbidden)
+		}
+	}
+	for _, required := range []string{"character_uid=$2", "->>'uid'", "->'score'->>'level'", "->>'gold'"} {
+		if !strings.Contains(query, strings.ToLower(required)) {
+			t.Fatalf("persistent player query perdeu projecao %q", required)
+		}
+	}
+}
+
 func TestPostgresCharStatePayloadPreservesBuffSourceAndAbsoluteDeadline(t *testing.T) {
 	const characterUID = "aaaaaaaaaaaa4aaa8aaaaaaaaaaaaaaa"
 	const itemUID = "11111111111141118111111111104140"

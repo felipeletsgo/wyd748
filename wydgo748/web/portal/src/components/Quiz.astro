@@ -1,0 +1,23 @@
+<section id="quiz" class="panel global-drop-panel" aria-labelledby="quiz-title">
+  <div class="panel-heading"><div><span class="eyebrow">OPERAÇÕES DO SERVIDOR</span><h2 id="quiz-title">Quiz de matemática</h2></div><button id="quiz-refresh" class="button subtle" type="button">Consultar quiz</button></div>
+  <div class="event-body">
+    <p class="muted">Multiplicação ou divisão exata de dois algarismos por um, com quatro alternativas. Primeira pergunta ao iniciar, depois uma por minuto. Cada jogador tem 10 segundos e uma única tentativa por rodada.</p>
+    <dl class="event-status"><div><dt>Estado</dt><dd id="quiz-state">Aguardando consulta</dd></div><div><dt>Recompensa por acerto</dt><dd id="quiz-item">—</dd></div><div><dt>Resultados acumulados</dt><dd id="quiz-count">—</dd></div><div><dt>Encerramento</dt><dd id="quiz-end">—</dd></div><div><dt>Próxima pergunta</dt><dd id="quiz-next">—</dd></div></dl>
+    <p id="quiz-asof" class="muted">Sem atualização automática.</p>
+    <form id="quiz-form">
+      <fieldset id="quiz-settings" disabled>
+        <legend>Configurar novo quiz</legend>
+        <div class="event-fields">
+          <label>ID do item de recompensa<input id="quiz-item-id" type="number" min="1" max="65535" step="1" required placeholder="Ex.: 401" /></label>
+          <label>Unidades por acerto<input id="quiz-quantity" type="number" min="1" max="60" step="1" value="1" required /></label>
+          <label>Duração (minutos)<input id="quiz-minutes" type="number" min="1" max="1440" step="1" value="60" required /></label>
+        </div>
+        <p class="muted">Cada unidade ocupa um espaço no inventário. Se faltar espaço, a recompensa inteira não é entregue e a falha fica no contador acima. Não há entrega no chão nem resgate posterior.</p>
+      </fieldset>
+      <label for="quiz-reason">Motivo da operação</label><input id="quiz-reason" minlength="3" maxlength="200" required placeholder="Ex.: quiz da comunidade" />
+      <div class="event-actions"><button id="quiz-start" class="button primary" type="submit" disabled>Iniciar quiz</button><button id="quiz-stop" class="button subtle" type="button" disabled>Encerrar quiz</button><button id="quiz-retry" class="button subtle" type="button" hidden>Consultar resultado / repetir solicitação</button></div>
+    </form>
+    <p id="quiz-message" class="form-message" role="status" aria-live="polite"></p>
+    <p class="muted">Requer o client TMProject atualizado com o protocolo de quiz v1. Participam personagens online quando a pergunta é enviada; quem entrar depois aguarda a próxima. Reiniciar o servidor encerra o evento. O servidor rejeita respostas fora da rodada, repetidas ou atrasadas; isso não substitui proteção contra bots que resolvam contas legítimas.</p>
+  </div>
+</section>

@@ -2087,5 +2087,47 @@ int RunReceivedPacketDispatchTests(int& checks)
         decodedEtc.MasterPoint == 2 && decodedEtc.SkillPoint == 3 &&
         decodedEtc.Magic == 4 && decodedEtc.Coin == 5,
         "UpdateEtc preserva Hold, EXP, skill, pontos e gold");
+    quiz_event::Challenge quiz{};
+    quiz.Header.Size = sizeof(quiz); quiz.Header.Type = quiz_event::ChallengeOpcode; quiz.Header.ID = 7;
+    quiz.Version = 1; quiz.Kind = 1; quiz.Token[0] = 0xA5; quiz.TimeoutMs = 10000;
+    std::memcpy(quiz.Question, "88 x 4 = ?", 11);
+    quiz.Answers[0] = 351; quiz.Answers[1] = 352; quiz.Answers[2] = 353; quiz.Answers[3] = 359;
+    quiz_event::Challenge parsedQuiz{};
+    check(quiz_event::Parse(&quiz, sizeof(quiz), parsedQuiz) && parsedQuiz.Answers[1] == 352,
+        "Quiz v1 parses Go-compatible layout");
+    for (std::size_t n = 0; n < sizeof(quiz); ++n)
+        check(!quiz_event::Parse(&quiz, n, parsedQuiz), "Quiz rejects truncation");
+    check(!quiz_event::Parse(&quiz, sizeof(quiz) + 1, parsedQuiz), "Quiz rejects tail");
+    quiz.Version = 2;
+    check(!quiz_event::Parse(&quiz, sizeof(quiz), parsedQuiz), "Quiz rejects version");
+    quiz.Version = 1; quiz.Answers[2] = 352;
+    check(!quiz_event::Parse(&quiz, sizeof(quiz), parsedQuiz), "Quiz rejects duplicate choices");
+    quiz.Answers[2] = 353;
+    auto invalidQuiz = quiz; std::memset(invalidQuiz.Question, 'x', sizeof(invalidQuiz.Question));
+    check(!quiz_event::Parse(&invalidQuiz, sizeof(invalidQuiz), parsedQuiz), "Quiz requires terminated text");
+    int quizDispatches = 0;
+    auto receiveQuiz = [&](const PacketView&) { ++quizDispatches; };
+    check(received_packet::Dispatch({quiz_event::ChallengeOpcode, reinterpret_cast<char*>(&quiz), sizeof(quiz)}, receiveQuiz),
+        "Quiz dispatch accepts exact frame");
+    check(!received_packet::Dispatch({quiz_event::ChallengeOpcode, reinterpret_cast<char*>(&quiz), sizeof(quiz)-1}, receiveQuiz)
+        && quizDispatches == 1, "Quiz dispatch rejects short frame before scene");
+    quiz_event::State quizState{};
+    quiz_event::Answer quizAnswer{};
+    check(!quizState.Respond(7, 1, 0, quizAnswer), "Quiz cannot answer without show");
+    check(quizState.Apply(quiz, 100) && !quizState.Apply(quiz, 9000), "Quiz show replay cannot extend timer");
+    check(!quizState.Expired(10099) && quizState.Expired(10100), "Quiz exact ten-second deadline");
+    check(quizState.Respond(7, 1, 10099, quizAnswer) && quizAnswer.Header.Size == 36 &&
+        quizAnswer.Header.Type == 0x7F11 && quizAnswer.Header.ID == 7 && quizAnswer.Version == 1 &&
+        quizAnswer.Choice == 1 && quizAnswer.Token[0] == 0xA5 && quizAnswer.Reserved == 0,
+        "Quiz answer contains only chosen index and token");
+    check(!quizState.Respond(7, 1, 10099, quizAnswer) && !quizState.Apply(quiz, 10100), "Quiz response is single-use");
+    quiz.Token[1] = 1;
+    check(quizState.Apply(quiz, 0xFFFFFF00u) && !quizState.Expired(0x00000020u), "Quiz timer survives DWORD wrap");
+    check(!quizState.Respond(7, 1, 0xFFFFFF00u + 10000u, quizAnswer), "Quiz rejects late answer");
+    quiz.Token[1] = 2; quizState.Apply(quiz, 0);
+    auto closeQuiz = quiz; closeQuiz.Kind = 0; closeQuiz.Token[1] = 1;
+    check(!quizState.Apply(closeQuiz, 1) && quizState.Active, "Old close cannot close new round");
+    closeQuiz.Token = quiz.Token;
+    check(quizState.Apply(closeQuiz, 1) && !quizState.Active, "Matching close dismisses quiz");
     return failures;
 }

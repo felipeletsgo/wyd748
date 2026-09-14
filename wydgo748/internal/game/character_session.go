@@ -20,6 +20,11 @@ func (w *World) removePlayerFromWorld(p *Player, reason string) {
 		return
 	}
 	w.detachPlayerFromItemInstances(p.ID, w.now())
+	// A round invitation belongs to this character lifecycle, not the TCP
+	// connection: relogging into the same slot cannot revive an old token.
+	if w.quiz != nil {
+		delete(w.quiz.participants, p.Session)
+	}
 	w.unregisterPlayerSpatial(p)
 	w.unindexPlayerCharacter(p)
 	delete(w.playersByID, p.ID)

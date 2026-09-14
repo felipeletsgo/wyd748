@@ -11,6 +11,17 @@ database_driver=postgres
 database_url_env=WYD_DATABASE_URL
 database_max_conns=8
 
+# PIN adicional exigido somente pelo painel administrativo web. Configure um
+# valor local de 6 a 12 digitos e nao versione o PIN usado em producao.
+admin_access_pin=123456
+
+# Painel local iniciado pelo proprio tm.exe; logs permanecem neste console.
+# Use false para desligar. HTTP permitido somente em IP literal de loopback.
+web_admin_enabled=true
+web_admin_address=127.0.0.1:8082
+web_admin_staff=data/staff.json
+web_admin_static=web/portal/dist
+
 # Protecoes operacionais de rede/autenticacao. O loadtest usa overrides
 # proprios porque centenas de bots compartilham o mesmo IP local.
 session_queue_capacity=256

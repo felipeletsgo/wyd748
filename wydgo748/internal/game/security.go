@@ -189,11 +189,13 @@ func inboundPacketSizeAllowed(opcode uint16, size int) (bool, string) {
 	return size == expected, fmt.Sprintf("%d", expected)
 }
 
-// exactInboundPacketSize contem somente layouts confirmados no client 7.48.
+// exactInboundPacketSize contem layouts 7.48 e extensoes coordenadas versionadas.
 // Restringir tambem opcodes ignorados impede usar uma cauda arbitraria como
 // canal de packet smuggling ou para explorar um parser futuro.
 func exactInboundPacketSize(opcode uint16) (int, bool) {
 	switch opcode {
+	case wire.OpQuizAnswer:
+		return wire.QuizAnswerSize, true
 	case wire.OpConnectAccount:
 		return 116, true
 	case wire.OpCreateCharacter:

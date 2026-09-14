@@ -35,6 +35,7 @@
 #include "PartyRemovePacket.h"
 #include "PartyRequestPacket.h"
 #include "MotionPacket.h"
+#include "QuizEventPacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "GuildChallengePromptPacket.h"
@@ -51,6 +52,7 @@ namespace received_packet
     {
         switch (opcode)
         {
+        case quiz_event::ChallengeOpcode: return sizeof(quiz_event::Challenge);
         case MSG_ReqTransper_Opcode: return sizeof(MSG_ReqTransper);
         case MSG_SendItem_Opcode: return kSendItemPacketSize;
         case MSG_CNFGetItem_Opcode: return kPickupConfirmationPacketSize;

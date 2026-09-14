@@ -2,6 +2,7 @@ package data
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	stdnet "net"
 	"os"
@@ -15,6 +16,11 @@ import (
 // balanceamento. Dados especificos continuam em NPCGener, SkillData, NPCs etc.
 type ServerConfig struct {
 	ListenAddress                string
+	AdminAccessPIN               string
+	WebAdminEnabled              bool
+	WebAdminAddress              string
+	WebAdminStaffPath            string
+	WebAdminStaticPath           string
 	DatabaseDriver               string
 	DatabaseURL                  string
 	DatabaseURLEnv               string
@@ -83,6 +89,9 @@ type ServerConfig struct {
 func DefaultServerConfig() ServerConfig {
 	return ServerConfig{
 		ListenAddress:                "0.0.0.0:8281",
+		WebAdminAddress:              "127.0.0.1:8082",
+		WebAdminStaffPath:            "data/staff.json",
+		WebAdminStaticPath:           "web/portal/dist",
 		DatabaseDriver:               "postgres",
 		DatabaseURLEnv:               "WYD_DATABASE_URL",
 		DatabaseMaxConns:             8,
@@ -175,6 +184,17 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		}
 	}
 	setters := map[string]func(string) error{
+		"web_admin_enabled": func(v string) error { b, err := strconv.ParseBool(v); cfg.WebAdminEnabled = b; return err },
+		"web_admin_address": func(v string) error { cfg.WebAdminAddress = v; return nil },
+		"web_admin_staff":   func(v string) error { cfg.WebAdminStaffPath = v; return nil },
+		"web_admin_static":  func(v string) error { cfg.WebAdminStaticPath = v; return nil },
+		"admin_access_pin": func(v string) error {
+			if err := ValidateAdminAccessPIN(v); err != nil {
+				return err
+			}
+			cfg.AdminAccessPIN = v
+			return nil
+		},
 		"guild_wars_enabled":               func(v string) error { b, err := strconv.ParseBool(v); cfg.GuildWars.Enabled = b; return err },
 		"guild_wars_timezone":              func(v string) error { cfg.GuildWars.Timezone = v; return nil },
 		"tower_war_hour":                   setUint32(&cfg.GuildWars.TowerHour),
@@ -377,6 +397,18 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		return ServerConfig{}, fmt.Errorf("%s: guild wars: %w", path, err)
 	}
 	return cfg, nil
+}
+
+func ValidateAdminAccessPIN(pin string) error {
+	if len(pin) < 6 || len(pin) > 12 {
+		return errors.New("esperado PIN numerico com 6 a 12 digitos")
+	}
+	for i := 0; i < len(pin); i++ {
+		if pin[i] < '0' || pin[i] > '9' {
+			return errors.New("esperado PIN numerico com 6 a 12 digitos")
+		}
+	}
+	return nil
 }
 
 // ValidateDebugAddress exige loopback. /debug/vars e /debug/pprof expoem estado

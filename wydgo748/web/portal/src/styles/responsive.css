@@ -1,0 +1,2 @@
+/* Shared browser defaults; layout breakpoints live after base rules in admin.css. */
+html{scroll-padding-top:24px}input[type=password]{letter-spacing:1px}

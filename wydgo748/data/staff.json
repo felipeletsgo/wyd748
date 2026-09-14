@@ -1,0 +1,11 @@
+{
+  "felipetr": {
+    "capabilities": [
+      "server.status",
+      "moderation.player.search",
+      "game.event.global-drop",
+      "game.event.quiz",
+      "game.boss.summon"
+    ]
+  }
+}

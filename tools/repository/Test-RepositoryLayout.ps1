@@ -23,6 +23,9 @@ foreach ($directory in @('clientgo748', 'client-source', 'source-client', 'sourc
 }
 foreach ($directory in @('tmproject', 'wydgo748', 'references', 'tools', '.github')) {
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $repoRoot $directory) -Recurse -File -Filter '*.md') {
+        # Installed frontend dependencies/builds are generated, not authored source.
+        $relativeSource = [IO.Path]::GetRelativePath($repoRoot, $file.FullName).Replace('\', '/')
+        if ($relativeSource -match '^wydgo748/web/portal/(node_modules|dist|\.astro)/') { continue }
         $issues.Add("Documentacao fora do local canonico: $($file.FullName)")
     }
 }

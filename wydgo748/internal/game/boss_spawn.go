@@ -20,8 +20,9 @@ import (
 
 // bossSpawnState acompanha um boss configurado ao longo do tempo.
 type bossSpawnState struct {
-	config  model.BossConfig
-	profile *BossProfile
+	revision uint64 // Increments on spawn/death; rejects stale administrative intents.
+	config   model.BossConfig
+	profile  *BossProfile
 	// def e o NPCDef proprio deste boss: uma COPIA do NPC base com os
 	// atributos sobrescritos. Copia, e nao referencia, senao alterar o boss
 	// alteraria todos os mobs comuns daquele NPC.
@@ -148,6 +149,7 @@ func (w *World) spawnBoss(state *bossSpawnState) error {
 	}
 	w.publishRegisteredMobSpawn(mob)
 	state.mobID = mob.ID
+	state.revision++
 	state.respawnAt = time.Time{}
 
 	w.announceBoss(x, y, state.config.SpawnMessage)
@@ -262,6 +264,7 @@ func (w *World) finishBossMobKilled(m *Mob, publishAreaReward bool) *bossSpawnSt
 			continue
 		}
 		state.mobID = 0
+		state.revision++
 		w.announceBoss(m.X, m.Y, state.config.DeathMessage)
 		if publishAreaReward {
 			w.spawnBossAreaReward(m, state.config.AreaReward)

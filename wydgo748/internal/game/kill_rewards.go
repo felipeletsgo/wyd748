@@ -150,6 +150,7 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 		}
 	}
 	plan.drops = append(plan.drops, w.planMobDrops(p, m)...)
+	plan.drops = append(plan.drops, w.planGlobalDrop(p, m)...)
 	plan.gold = w.rollMobGold(p, m)
 	plan.bossState = w.bossSpawnStateForMob(m.ID)
 	if plan.bossState != nil {
@@ -216,6 +217,11 @@ func (w *World) commitKillRewardBatch(p *Player, plans []*killRewardPlan,
 	accounts = killPlanAccounts(plans, accounts)
 	if err := w.saveAccountsAtomic(accounts...); err != nil {
 		for i := len(plans) - 1; i >= 0; i-- {
+			if plans[i] != nil {
+				for _, drop := range plans[i].drops {
+					w.settleGlobalDrop(drop.globalDrop, false)
+				}
+			}
 			plans[i].rollback()
 		}
 		for _, plan := range plans {
