@@ -59,6 +59,34 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/QuizResult' }
         default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/bosses:
+    get:
+      summary: Inspect configured boss lifecycle (game.boss.summon capability)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Authoritative World snapshot of configured bosses
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BossesStatus' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Summon a configured dead boss through the embedded World queue; staff session rechecked at execution
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BossesCommand' }
+      responses:
+        '200':
+          description: Domain receipt; retry uncertain outcomes with the identical body and operationId
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BossesResult' }
+        default: { $ref: '#/components/responses/Error' }
   /api/v1/auth/session:
     get:
       summary: Get session and CSRF token; create an anonymous session if absent
@@ -261,6 +289,53 @@ components:
         code: { type: string, enum: [ok, invalid_command, capability_required, server_maintenance, stale_event, operation_conflict, operation_capacity, event_active, event_inactive, unknown_item, event_id_unavailable] }
         replayed: { type: boolean }
         status: { $ref: '#/components/schemas/QuizStatus' }
+    BossesCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, epoch, bossId, expectedRevision, action, reason]
+      description: Summon requires a configured dead boss and the revision from the latest snapshot. Epoch rejects requests from an older server process; revision rejects a boss whose lifecycle advanced; operationId makes an uncertain retry idempotent for the current process.
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        epoch: { type: string, minLength: 32, maxLength: 32 }
+        bossId: { type: string, minLength: 1, maxLength: 128 }
+        expectedRevision: { type: integer, minimum: 1, maximum: 9007199254740991 }
+        action: { type: string, const: summon }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    BossStatus:
+      type: object
+      required: [id, name, revision, alive, mobId, hp, maxHp, x, y, spawnX, spawnY, respawnAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        revision: { type: integer, minimum: 1, maximum: 9007199254740991 }
+        alive: { type: boolean }
+        mobId: { type: integer, minimum: 0, maximum: 65535 }
+        hp: { type: integer, minimum: 0, maximum: 4294967295 }
+        maxHp: { type: integer, minimum: 0, maximum: 4294967295 }
+        x: { type: integer, minimum: 0, maximum: 65535 }
+        y: { type: integer, minimum: 0, maximum: 65535 }
+        spawnX: { type: integer, minimum: 0, maximum: 65535 }
+        spawnY: { type: integer, minimum: 0, maximum: 65535 }
+        respawnAt: { type: [string, 'null'], format: date-time }
+    BossesStatus:
+      type: object
+      required: [version, epoch, asOf, bosses]
+      properties:
+        version: { type: integer, const: 1 }
+        epoch: { type: string, minLength: 32, maxLength: 32 }
+        asOf: { type: string, format: date-time }
+        bosses:
+          type: array
+          items: { $ref: '#/components/schemas/BossStatus' }
+    BossesResult:
+      type: object
+      required: [operationId, code, replayed, status]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, invalid_command, capability_required, server_maintenance, stale_boss, operation_conflict, operation_capacity, unknown_boss, boss_alive, spawn_failed] }
+        replayed: { type: boolean }
+        status: { $ref: '#/components/schemas/BossesStatus' }
     Session:
       type: object
       required: [authenticated, account, csrf, expiresAt]

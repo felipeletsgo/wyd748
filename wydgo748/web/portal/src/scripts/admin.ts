@@ -1,6 +1,7 @@
 import type { components } from '../lib/api.generated';
 import { setupGlobalDrop } from './global-drop';
 import { setupQuiz } from './quiz';
+import { setupBosses } from './bosses';
 
 type Session = components['schemas']['Session'];
 type Overview = components['schemas']['Overview'];
@@ -60,6 +61,7 @@ async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> 
 }
 const globalDropPanel = setupGlobalDrop(api, explain);
 const quizPanel = setupQuiz(api, explain);
+const bossesPanel = setupBosses(api, explain);
 function showSession() {
   const authenticated = session?.authenticated ?? false;
   el('login').hidden = authenticated;
@@ -73,6 +75,7 @@ function showSession() {
 function resetSnapshot() {
   globalDropPanel.reset();
   quizPanel.reset();
+  bossesPanel.reset();
   snapshot = undefined; offset = 0; search = '';
   closeInspector();
   el<HTMLInputElement>('search').value = '';
@@ -89,7 +92,7 @@ async function init() {
   try {
     session = await api<Session>('/auth/session');
     showSession(); text('login-message','');
-    if (session.authenticated) { void query(); void globalDropPanel.refresh(); void quizPanel.refresh(); }
+    if (session.authenticated) { void query(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); }
   } catch (error) {
     session = undefined; showSession(); text('login-message',explain(error));
   } finally {
@@ -215,7 +218,7 @@ el<HTMLFormElement>('login-form').addEventListener('submit', async event => {
     if (!session) session = await api<Session>('/auth/session');
     session = await api<Session>('/auth/login','POST',{username:el<HTMLInputElement>('username').value,password:el<HTMLInputElement>('password').value,adminPin:el<HTMLInputElement>('adminPin').value});
     resetSnapshot(); showSession(); el<HTMLButtonElement>('refresh').focus();
-    void query(); void globalDropPanel.refresh(); void quizPanel.refresh();
+    void query(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh();
   } catch (error) {
     text('login-message',explain(error)); if (error instanceof APIError && error.code === 'invalid_csrf') session = undefined;
   } finally {
@@ -230,7 +233,7 @@ el('logout').addEventListener('click',async () => {
     else {text('snapshot-state','Não foi possível encerrar a sessão');text('snapshot-detail',explain(error));el('snapshot-banner').classList.add('error');}
   } finally {button.disabled = false;}
 });
-el('refresh').addEventListener('click',() => { void query(0); void globalDropPanel.refresh(); void quizPanel.refresh(); });
+el('refresh').addEventListener('click',() => { void query(0); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); });
 el<HTMLFormElement>('search-form').addEventListener('submit',event => {event.preventDefault();void query(0,el<HTMLInputElement>('search').value.trim());});
 el('previous').addEventListener('click',() => void query(Math.max(0,offset-50)));
 el('next').addEventListener('click',() => void query(offset+50));

@@ -3,19 +3,19 @@
 ## Estado e decisões desta revisão — 14/09/2026
 
 Plano arquitetural em implementação. Base inspecionada:
-`a3d05d87e195b5c76f3cb923902ac859c3e2fb46` em `main`, com o lote web/admin
+`4b1a12c1994e235ecdf923f145c7538add022f2e` em `main`, com o lote web/admin
 e os eventos administrativos ainda no worktree. As telas, endpoints, tabelas e tipos apresentados
 abaixo continuam propostas quando não estiverem acompanhados de evidência de
 implementação. A lista completa é o backlog do produto; a ordem de execução e
 os gates estão nas seções 161–162.
 
-### Incremento atual: drop global e quiz
+### Incremento atual: drop global, quiz e bosses
 
-O painel embarcado no `tm.exe` agora possui comandos de eventos, além das
-consultas existentes. Este incremento altera a prioridade read-only anterior;
-summon de boss, teleporte, kick, ban e disparo administrativo de guerras ainda
-estão pendentes. O restante do documento descreve o produto-alvo, não uma lista
-de funções já disponíveis.
+O painel embarcado no `tm.exe` agora possui comandos de eventos e summon de
+bosses, além das consultas existentes. Este incremento altera a prioridade
+read-only anterior; teleporte, kick, ban e disparo administrativo de guerras
+ainda estão pendentes. O restante do documento descreve o produto-alvo, não uma
+lista de funções já disponíveis.
 
 - **Drop global — MODERNIZACAO_COMPATIVEL:** ID de item, rate inteira de 1 a
   100%, limite de entregas e/ou duração. Se ambos forem definidos, encerra no
@@ -29,6 +29,15 @@ de funções já disponíveis.
   10 segundos; o client fecha por timer e o servidor rejeita respostas vencidas.
   Duração de 1–1440 minutos; recompensa configurável por ID e 1–60 unidades por
   acerto. O item deve existir no catálogo carregado.
+- **Boss summon — MODERNIZACAO_COMPATIVEL v1:** consulta todos os bosses
+  configurados no lifecycle existente do servidor e permite invocar manualmente
+  somente um boss morto. O comando carrega `epoch`, `bossId`, `expectedRevision`,
+  `operationId` e motivo. `epoch` invalida requisições de outra execução do
+  servidor; a revisão por boss impede duplicação se spawn, morte ou respawn
+  avançarem o lifecycle; `operationId`, vinculado ao ator e ao mesmo body, permite
+  repetir uma resposta HTTP incerta sem executar outro summon. O World revalida
+  a capability imediatamente antes da mutação e chama o mesmo `spawnBoss` usado
+  pelo fluxo normal, sem criar um caminho paralelo de gameplay.
 - Participam personagens presentes no mundo ao emitir a pergunta. Entrada ou
   relogin durante a rodada espera a seguinte. Encerrar pelo painel fecha a
   pergunta ativa. Reiniciar o servidor encerra ambos os eventos, sem retomada.
@@ -43,13 +52,15 @@ matemática, consultar estado, preencher configuração e motivo, e confirmar
 Iniciar. Consultar evento atualiza contadores e horários; Encerrar interrompe.
 Em timeout HTTP, repetir com o botão próprio conserva o ID da operação e não
 inicia outro evento. Não recarregar a página enquanto o resultado for incerto.
-`felipetr` recebeu as capabilities `game.event.global-drop` e `game.event.quiz`
-em `data/staff.json`; alterações de permissões invalidam sessões antigas e
-exigem novo login.
+`felipetr` recebeu as capabilities `game.event.global-drop`, `game.event.quiz` e
+`game.boss.summon` em `data/staff.json`; alterações de permissões invalidam
+sessões antigas e exigem novo login.
 
-**Fronteira administrativa:** GET/POST `/api/v1/staff/events/global-drop` e
-`/api/v1/staff/events/quiz`, sessão staff, CSRF, limites, body estrito e
-revalidação da sessão/permissão no momento de executar na fila do World.
+**Fronteira administrativa:** GET/POST `/api/v1/staff/events/global-drop`,
+`/api/v1/staff/events/quiz` e `/api/v1/staff/bosses`, sessão staff, CSRF,
+limites, body estrito e revalidação da sessão/permissão no momento de executar
+na fila do World. O snapshot de bosses expõe `id`, nome, revisão, estado vivo,
+Mob ID, HP/max HP, posição atual, posição de spawn e `respawnAt`.
 Control API HTTP permanece read-only; o web-api separado não tem a fonte de
 comandos e retorna indisponibilidade para eventos. Recibos administrativos são
 locais ao processo, limitados a 1024 (mais o encerramento final), vinculados ao
@@ -66,8 +77,9 @@ O caminho legado `0x2C7` não concede prêmio. Forjar abertura local de uma jane
 não cria participação no servidor. Bots capazes de resolver perguntas legítimas
 e múltiplas contas não são eliminados por esse mecanismo.
 
-**Validação:** suíte Go completa e vet passaram; testes focados de eventos com
-race passaram; OpenAPI gerado, Astro check e build passaram. O cliente C++ foi
+**Validação:** suíte Go completa e vet passaram; testes focados de eventos com race e
+testes focados de bosses passaram; OpenAPI gerado, Astro check e build passaram.
+O cliente C++ foi
 compilado com `Build-Client.ps1 -NoDeploy`, incluindo 35.621 verificações de
 arquitetura/contrato. `STATICALLY VERIFIED` e `AUTOMATED TESTED`; **não é
 CLIENT_TESTED**. Pendentes: janela real, quatro cliques, timeout, logout/relogin
@@ -86,7 +98,7 @@ compilado no `web/portal/dist` usado pelo painel embarcado.
 | HTTP de contas | [`accountapi`](../wydgo748/internal/accountapi/handler.go) oferece cadastro e health/readiness | Preservar `POST /v1/accounts` durante a migração; não assumir login HTTP existente |
 | Persistência | [`PostgresStore`](../wydgo748/internal/store/postgres.go) e [`schema`](../wydgo748/internal/store/postgres_schema.sql) mantêm conta em JSONB, identidades de personagens e instâncias de item | Separar acesso web de snapshots de gameplay; `NewPostgresStore` aplica DDL e inicia worker, portanto não é a conexão pronta para um usuário web restrito |
 | Guerras | [`guild_wars.go`](../wydgo748/internal/game/guild_wars.go) e [estado documentado](guild-wars.md) | Torre e cidades têm implementação e testes registrados, com gate no client pendente; RvR/reinos e castelo têm escopo separado |
-| Portal | [`cmd/web-api`](../wydgo748/cmd/web-api/main.go), [`internal/webadmin`](../wydgo748/internal/webadmin), [`api/openapi.yaml`](../wydgo748/api/openapi.yaml) e [`web/portal`](../wydgo748/web/portal) implementam a fundação administrativa read-only | O painel administrativo básico existe localmente; site público, painel do jogador, exportador e mutações administrativas seguem por fases |
+| Portal | [`cmd/web-api`](../wydgo748/cmd/web-api/main.go), [`internal/webadmin`](../wydgo748/internal/webadmin), [`api/openapi.yaml`](../wydgo748/api/openapi.yaml) e [`web/portal`](../wydgo748/web/portal) implementam a fundação administrativa, eventos e summon de bosses | O painel administrativo básico e as primeiras mutações autoritativas existem localmente; site público, painel do jogador, exportador e demais comandos administrativos seguem por fases |
 
 O lote administrativo possui testes automatizados de contrato, auth,
 Control API e servidor estático, além de build do frontend. A extensão de quiz
@@ -96,9 +108,10 @@ altera o client de jogo; os gates e limitações atuais estão registrados acima
 
 1. Preservar as duas sources: Go e frontend do portal ficam sob `wydgo748/`,
    conforme a seção 135. Documentação permanece em `DOCS/`.
-2. A prioridade atual é tornar o painel administrativo operacional. Drop global
-   e quiz iniciam as mutações autoritativas; moderação, bosses e guerras são os
-   próximos lotes. Site público e painel do jogador permanecem posteriores.
+2. A prioridade atual é tornar o painel administrativo operacional. Drop global,
+   quiz e summon de bosses iniciam as mutações autoritativas; moderação,
+   teleporte e guerras são os próximos lotes. Site público e painel do jogador
+   permanecem posteriores.
 3. Astro permanece estático inicialmente. Notícias/guias publicados em Git
    exigem build; CMS sem rebuild fica para uma fase com renderização definida.
 4. Navegador usa `/api/*` no mesmo origin; a Function usa um destino HTTPS fixo.
@@ -2887,7 +2900,16 @@ Spawn if absent
 Despawn
 ```
 
-Encontros de boss já fazem parte do estado atual do projeto.
+Estado implementado neste incremento: `GET/POST /api/v1/staff/bosses` lista os
+bosses configurados e permite `summon` de um boss morto com a capability
+`game.boss.summon`. O estado retornado inclui HP, posição, spawn, respawn e
+revisão do lifecycle. `epoch + expectedRevision + operationId` protegem contra
+requisições antigas, corrida com o lifecycle e retry de resultado incerto. A
+operação é enfileirada no World e reutiliza o spawn normal do boss.
+
+`Enable`, `Disable` e `Despawn`, assim como fase, shield, adds e players nearby,
+continuam sendo backlog desta seção e não devem ser interpretados como já
+disponíveis no painel atual.
 
 ---
 
@@ -3752,7 +3774,7 @@ POST /api/v1/staff/events/{id}/start
 POST /api/v1/staff/events/{id}/finish
 
 GET  /api/v1/staff/bosses
-POST /api/v1/staff/bosses/{id}/spawn
+POST /api/v1/staff/bosses
 
 GET  /api/v1/staff/audit
 ```

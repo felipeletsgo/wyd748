@@ -2618,72 +2618,7 @@ int TMFieldScene::InitializeScene()
 	}
 	g_pDevice->m_nHeightShift = 0;
 
-	m_pQuizBG = new SPanel(-9, BASE_ScreenResize(275.0f) / 2.0f, 100.0f, 525.0f, 54.0f, 0x44FFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-	if (m_pQuizBG)
-	{
-		m_pQuizBG->SetControlID(896);
-		m_pQuizBG->m_bSelectEnable = 0;
-		m_pControlContainer->AddItem(m_pQuizBG);
-
-		float fScale = (float)g_pDevice->m_dwScreenHeight * 0.016f;
-		m_pQuizBG->SetPos((float)g_pDevice->m_dwScreenWidth * 0.5f - m_pQuizBG->m_nWidth * 0.5f, fScale);
-	}
-
-	m_pQuizQuestion = new SText(-2, "Question", 0xFFFFFFFF, 5.0f, 104.0f, 510.0f, 16.0f, 0, 0x77777777, 1, 0);
-	if (m_pQuizQuestion)
-		m_pQuizBG->AddChild(m_pQuizQuestion);
-
-	m_pQuizButton[0] = new SButton(-2, 5.0f, 128.0f, 125.0f, 20.0f, 0x77777777, 1, (char*)"Answer1");
-
-	if (m_pQuizButton[0])
-	{
-		m_pQuizButton[0]->SetControlID(897);
-		if (m_pControlContainer)
-			m_pQuizButton[0]->SetEventListener(m_pControlContainer);
-		else
-			m_pQuizButton[0]->SetEventListener(nullptr);
-
-		m_pQuizBG->AddChild(m_pQuizButton[0]);
-	}
-
-	m_pQuizButton[1] = new SButton(-2, 135.0f, 128.0f, 125.0f, 20.0f, 0x77777777, 1, (char*)"Answer2");
-	if (m_pQuizButton[1])
-	{
-		m_pQuizButton[1]->SetControlID(898);
-		if (m_pControlContainer)
-			m_pQuizButton[1]->SetEventListener(m_pControlContainer);
-		else
-			m_pQuizButton[1]->SetEventListener(nullptr);
-
-		m_pQuizBG->AddChild(m_pQuizButton[1]);
-	}
-
-	m_pQuizButton[2] = new SButton(-2, 265.0f, 128.0f, 125.0f, 20.0f, 0x77777777, 1, (char*)"Answer3");
-	if (m_pQuizButton[2])
-	{
-		m_pQuizButton[2]->SetControlID(899);
-		if (m_pControlContainer)
-			m_pQuizButton[2]->SetEventListener(m_pControlContainer);
-		else
-			m_pQuizButton[2]->SetEventListener(nullptr);
-
-		m_pQuizBG->AddChild(m_pQuizButton[2]);
-	}
-
-	m_pQuizButton[3] = new SButton(-2, 395.0f, 128.0f, 125.f, 20.0f, 0x77777777, 1, (char*)"Answer4");
-	if (m_pQuizButton[3])
-	{
-		m_pQuizButton[3]->SetControlID(900);
-		if (m_pControlContainer)
-			m_pQuizButton[3]->SetEventListener(m_pControlContainer);
-		else
-			m_pQuizButton[3]->SetEventListener(nullptr);
-
-		m_pQuizBG->AddChild(m_pQuizButton[3]);
-	}
-
-	if (m_pQuizBG)
-		m_pQuizBG->SetVisible(0);
+	InitializeQuizEventControls();
 
 	m_pChatList = (SListBox*)m_pControlContainer->FindControl(65667);
 
@@ -27859,22 +27794,43 @@ int TMFieldScene::OnPacketNuke(MSG_STANDARD* pStd)
 void TMFieldScene::InitializeQuizEventControls()
 {
 	if (!m_pControlContainer || !g_pDevice || m_pQuizBG) return;
-	// Native 7.48 runtime group 896, children 897..900 (00435b13).
-	// Extension uses the same owned controls, with local child coordinates.
-	m_pQuizBG = new SPanel(-9, (float)g_pDevice->m_dwScreenWidth * 0.5f - 262.5f,
-		100.0f, 525.0f, 88.0f, 0x44FFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+	// Keep the 7.48 runtime control IDs (896..900), but render the extension with
+	// the native NewUI message-box atlas used by SMessageBox (sets 164/165).
+	// Coordinates below are logical 800x600 values; SControl scales them once.
+	m_pQuizBG = new SPanel(164, 0.0f, 0.0f, 360.0f, 82.0f,
+		0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
 	m_pQuizBG->SetControlID(896);
 	m_pQuizBG->m_bSelectEnable = 0;
 	m_pControlContainer->AddItem(m_pQuizBG);
-	m_pQuizQuestion = new SText(-2, "", 0xFFFFFFFF, 10.0f, 4.0f, 510.0f, 16.0f, 0, 0x77777777, 1, 0);
+
+	const float topMargin = 16.0f * RenderDevice::m_fHeightRatio;
+	m_pQuizBG->SetPos(
+		(static_cast<float>(g_pDevice->m_dwScreenWidth) - m_pQuizBG->m_nWidth) * 0.5f,
+		topMargin);
+
+	m_pQuizQuestion = new SText(-1, "", 0xFFFFFFFF, 10.0f, 12.0f, 340.0f, 18.0f,
+		0, 0x77777777, SText::TEXT_TYPE_SHADOW, SText::TEXT_ALIGN_CENTER);
 	m_pQuizBG->AddChild(m_pQuizQuestion);
+
+	SPanel* buttonSkins[4]{};
 	for (int i = 0; i < 4; ++i)
 	{
-		m_pQuizButton[i] = new SButton(-2, 5.0f + 130.0f * i, 28.0f, 125.0f, 20.0f, 0x77777777, 1, (char*)"");
+		const float buttonX = 10.0f + 86.0f * i;
+		buttonSkins[i] = new SPanel(165, buttonX, 48.0f, 78.0f, 23.0f,
+			0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+		buttonSkins[i]->m_bSelectEnable = 0;
+
+		m_pQuizButton[i] = new SButton(-2, buttonX, 49.0f, 78.0f, 21.0f,
+			0, 1, (char*)"");
 		m_pQuizButton[i]->SetControlID(897 + i);
 		m_pQuizButton[i]->SetEventListener(m_pControlContainer);
 		m_pQuizBG->AddChild(m_pQuizButton[i]);
 	}
+	// Children render in reverse insertion order. Add the skins after the text
+	// buttons so they are drawn underneath them, matching SMessageBox NewUI.
+	for (int i = 0; i < 4; ++i)
+		m_pQuizBG->AddChild(buttonSkins[i]);
+
 	m_pQuizBG->SetVisible(0);
 }
 

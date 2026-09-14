@@ -134,6 +134,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/bosses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect configured boss lifecycle (game.boss.summon capability) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Authoritative World snapshot of configured bosses */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BossesStatus"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Summon a configured dead boss through the embedded World queue; staff session rechecked at execution */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BossesCommand"];
+                };
+            };
+            responses: {
+                /** @description Domain receipt; retry uncertain outcomes with the identical body and operationId */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BossesResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/session": {
         parameters: {
             query?: never;
@@ -439,6 +504,48 @@ export interface components {
             code: "ok" | "invalid_command" | "capability_required" | "server_maintenance" | "stale_event" | "operation_conflict" | "operation_capacity" | "event_active" | "event_inactive" | "unknown_item" | "event_id_unavailable";
             replayed: boolean;
             status: components["schemas"]["QuizStatus"];
+        };
+        /** @description Summon requires a configured dead boss and the revision from the latest snapshot. Epoch rejects requests from an older server process; revision rejects a boss whose lifecycle advanced; operationId makes an uncertain retry idempotent for the current process. */
+        BossesCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            epoch: string;
+            bossId: string;
+            expectedRevision: number;
+            /** @constant */
+            action: "summon";
+            reason: string;
+        };
+        BossStatus: {
+            id: string;
+            name: string;
+            revision: number;
+            alive: boolean;
+            mobId: number;
+            hp: number;
+            maxHp: number;
+            x: number;
+            y: number;
+            spawnX: number;
+            spawnY: number;
+            /** Format: date-time */
+            respawnAt: string | null;
+        };
+        BossesStatus: {
+            /** @constant */
+            version: 1;
+            epoch: string;
+            /** Format: date-time */
+            asOf: string;
+            bosses: components["schemas"]["BossStatus"][];
+        };
+        BossesResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "invalid_command" | "capability_required" | "server_maintenance" | "stale_boss" | "operation_conflict" | "operation_capacity" | "unknown_boss" | "boss_alive" | "spawn_failed";
+            replayed: boolean;
+            status: components["schemas"]["BossesStatus"];
         };
         Session: {
             authenticated: boolean;

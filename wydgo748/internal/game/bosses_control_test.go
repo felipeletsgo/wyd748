@@ -161,8 +161,11 @@ func TestBossesSpawnFailureKeepsSchedule(t *testing.T) {
 	state := w.bossSpawns[0]
 	deadline := state.respawnAt
 	// Exhaust the allocator without introducing live mobs into the world list.
-	for id := uint16(firstMobID); id <= lastMobID; id++ {
+	for id := uint16(firstMobID); ; id++ {
 		w.mobsByID[id] = &Mob{ID: id}
+		if id == ^uint16(0) {
+			break
+		}
 	}
 	if r := executeBosses(w, c, true); r.Code != "spawn_failed" || state.mobID != 0 || !state.respawnAt.Equal(deadline) || state.revision != c.ExpectedRevision {
 		t.Fatal(r)
