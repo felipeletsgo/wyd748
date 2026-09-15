@@ -76,6 +76,8 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		{wire.OpCombineAylin, combinePacketSize},
 		{wire.OpCombineEhre, combinePacketSize},
 		{wire.OpCombineOdin, combinePacketSize},
+		{wire.OpCombineExtracao, 20},
+		{wire.OpCombineAlquimia, combinePacketSize},
 	}
 	for _, tc := range tests {
 		tc := tc

@@ -130,6 +130,8 @@ var inboundCommandMetricLabels = map[uint16]string{
 	wire.OpCombineAylin:            "0x3B5",
 	wire.OpCombineEhre:             "0x2D3",
 	wire.OpCombineOdin:             "0x2D2",
+	wire.OpCombineExtracao:         "0x2D4",
+	wire.OpCombineAlquimia:         "0x2E1",
 }
 
 var metricDurationBucketLimits = [...]time.Duration{

@@ -77,6 +77,19 @@ func playerVersusPlayerAccuracy(attacker, defender *model.Char) int {
 		playerHasConcentration(attacker))
 }
 
+// offensiveSkillPvPAccuracy adapta a excecao do W2PP para Explosion Bash
+// (22): depois de calcular o parry normal, usa apenas 30% dele. O ID 79 do
+// W2PP nao se aplica: no catalogo 7.48 e um buff. A regra e expressa sobre a
+// chance de erro derivada da regra autoritativa de accuracy/evasion.
+func offensiveSkillPvPAccuracy(attacker, defender *model.Char, skillIndex int) int {
+	accuracy := playerVersusPlayerAccuracy(attacker, defender)
+	if skillIndex != 22 {
+		return accuracy
+	}
+	miss := 100 - accuracy
+	return clampInt(100-miss*30/100, 0, 100)
+}
+
 func playerVersusMobAccuracy(attacker *model.Char, defender *model.NPCDef) int {
 	if attacker == nil || defender == nil {
 		return 0

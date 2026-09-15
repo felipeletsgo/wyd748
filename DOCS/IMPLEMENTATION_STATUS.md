@@ -205,9 +205,12 @@ histórica do dado. Consulte
 - Buffs de todas as classes usam a mesma regra de renovacao: somente abaixo de
   10 segundos e com a skill ainda equipada. Debuffs de mobs alteram defesa,
   ataque, velocidade e resistencias no calculo real.
-- `Extracao` e `Alquimia` abrem seus fluxos de composicao; a cobranca inicial de
-  Alquimia (`10 x level`) ja e server-side. As receitas/packets de composicao
-  pertencem ao subsistema de crafting, separado do executor de combate.
+- `Extracao` (`0x2D4`, 20 bytes) e `Alquimia` (`0x2E1`, 84 bytes) possuem
+  handlers autoritativos em `crafting_skills.go`, separados do combate, com
+  validacao de aprendizado/inventario, receitas, falha e rollback de save.
+  As dez receitas de Alquimia possuem testes. O custo `10 x level` pertence
+  ao Escudo Dourado (85), nao a Alquimia (84). Validacao in-game pendente;
+  detalhes e proveniencia em `w2pp-go-gap-analysis.md`.
 
 ## Pacotes relevantes corrigidos
 
@@ -362,10 +365,10 @@ de LearnedSkill falsa, e escrever NextExp em @28 gera SkillPts negativos.
 
 ## Limitações atuais
 
-- As receitas server-side dos packets de composição de `Extração` e `Alquimia`
-  ainda pertencem ao próximo marco de crafting. Os sete NPCs de composição
-  (tipo 8: Agatha, Alquimista_Odin, Aylin, Compositor, Ehre, Lindy, Tiny) já
-  estão identificados na base e correspondem 1:1 aos `_MSG_CombineItem*`.
+- Os handlers de `Extração` e `Alquimia` passaram em testes automatizados,
+  mas o fluxo UI → servidor → resultado ainda exige validação in-game.
+  A classificação das 104 entradas de skill também não comprova todos os
+  efeitos/passivas nem a aparência visual de cada habilidade.
 - O fechamento explícito de loja (`0x196`) não possui handler dedicado; abrir
   outra interação ou sair do alcance limpa o contexto pelo fluxo atual. Não há
   evidência de que o client 7.48 envie esse opcode: ele aparece no client 759,

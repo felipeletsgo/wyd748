@@ -76,6 +76,7 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 		wire.OpMotion:                  20,
 		wire.OpClientUnknown2BC:        108,
 		wire.OpPlayerChallenge:         20,
+		wire.OpCombineExtracao:         20,
 		wire.OpAttackOne:               48,
 		wire.OpAttackTwo:               52,
 		wire.OpAttackMulti:             96,
@@ -86,6 +87,7 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 		wire.OpCombineAylin:            combinePacketSize,
 		wire.OpCombineEhre:             combinePacketSize,
 		wire.OpCombineOdin:             combinePacketSize,
+		wire.OpCombineAlquimia:         combinePacketSize,
 	}
 	for opcode, expected := range tests {
 		got, exact := exactInboundPacketSize(opcode)
@@ -104,7 +106,7 @@ func TestConfirmedEconomicPacketsRejectAppendedPayload(t *testing.T) {
 		wire.OpDeleteCharacter, wire.OpMessageWhisper, wire.OpUsePremiumFirework,
 		wire.OpCombineTiny, wire.OpCombineLindy, wire.OpCombineCompositor,
 		wire.OpCombineAgatha, wire.OpCombineAylin, wire.OpCombineEhre,
-		wire.OpCombineOdin,
+		wire.OpCombineOdin, wire.OpCombineExtracao, wire.OpCombineAlquimia,
 	}
 	for _, opcode := range opcodes {
 		t.Run(fmt.Sprintf("0x%X", opcode), func(t *testing.T) {

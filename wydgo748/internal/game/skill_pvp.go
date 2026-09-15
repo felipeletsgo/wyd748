@@ -151,6 +151,27 @@ func removePlayerAffectTypes(ch *model.Char, types ...byte) bool {
 	return changed
 }
 
+func applyEtherealFlamesPlayer(target, caster *model.Char, intn func(int) int) {
+	if target == nil || caster == nil || intn == nil {
+		return
+	}
+	baseSpecial := 0
+	if caster.Score != nil {
+		baseSpecial = int(caster.Score.Mastery[1])
+	}
+	chance := (baseSpecial + 1) / 7
+	if intn(100) > chance {
+		mp := playerCurMP(target)
+		burn := ((mp + 1) / 100) * uint32(10+intn(90))
+		if burn > mp {
+			burn = mp
+		}
+		setPlayerCurMP(target, mp-burn)
+		return
+	}
+	removePlayerAffectTypes(target, 14, 16, 18, 19, 32)
+}
+
 func (w *World) breakHideOnAttack(p *Player) {
 	if p == nil || p.Char == nil || !removePlayerAffectTypes(p.Char, 28) {
 		return
@@ -184,7 +205,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 	killedPlayers := make([]*Player, 0, len(targets))
 	hitCount := skillHitCount(skill)
 	for _, target := range targets {
-		if !combatRollHits(playerVersusPlayerAccuracy(caster.Char, target.Char), w.intn) {
+		if !combatRollHits(offensiveSkillPvPAccuracy(caster.Char, target.Char, skill.Index), w.intn) {
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID, Miss: true,
 				MaxHP: playerMaxHP(target.Char)})
 			continue
@@ -195,7 +216,8 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		}
 		blocked := hasActiveAffectAt(target.Char, 19, now) // Imunidade bloqueia affects agressivos.
 		if directDamage {
-			damageValue := w.skillFinalDamage(baseDamage, playerDefense(target.Char), skillDamageMastery(caster.Char))
+			damageValue := skillPvPFinalDamageWithRNG(baseDamage, playerDefense(target.Char),
+				skillDamageMastery(caster.Char), w.intn)
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, playerElementalResists(target.Char), false)
 			perHit := uint32(clampInt(damageValue, 1, int(maxScoreValue)))
 			perHit = addFlatDamage(perHit, w.equipmentGemBonuses(caster.Char).forceDamage)
@@ -228,9 +250,8 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		if !blocked && skill.TickType > 0 {
 			setOwnedAffectForPlayerAt(target.Char, caster, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime, now)
 		}
-		if skill.Index == 49 { // Chamas Etereas: queima mana e dissipa buffs defensivos.
-			setPlayerCurMP(target.Char, 0)
-			removePlayerAffectTypes(target.Char, 14, 16, 18, 19, 32)
+		if skill.Index == 49 { // Chamas Etereas: W2PP alterna entre mana burn e dispel.
+			applyEtherealFlamesPlayer(target.Char, caster.Char, w.intn)
 		}
 		if skill.Index == 6 { // Furia Divina puxa o jogador.
 			target.X, target.Y = w.findFreeGameplayPosition(caster, target, caster.X, caster.Y, 2)
@@ -274,4 +295,12 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		}
 	}
 	log.Printf("[#%d] executou PvP skill=%d %q alvos=%d", caster.Session.ID, skill.Index, skill.Name, len(targets))
+}
+
+// skillPvPFinalDamageWithRNG segue o bloco PvP do W2PP: skills ofensivas usam
+// o dobro do AC do jogador alvo. A excecao ofensiva 79 do W2PP nao pertence
+// ao catalogo 7.48, onde esse ID aplica um buff.
+func skillPvPFinalDamageWithRNG(baseDamage, defense, mastery int, intn func(int) int) int {
+	defense *= 2
+	return skillFinalDamageWithRNG(baseDamage, defense, mastery, intn)
 }

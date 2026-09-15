@@ -478,7 +478,7 @@ func TestSkillAttackPvPBreaksHideAndPreservesOverkillState(t *testing.T) {
 	}
 }
 
-func TestBMSummonCastReplacesCreatureFamily(t *testing.T) {
+func TestBMSummonCastUsesW2PPFamilyAndLimitRules(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.Char.Class = 2
 	p.Char.Score.Int = 1000
@@ -489,8 +489,8 @@ func TestBMSummonCastReplacesCreatureFamily(t *testing.T) {
 	if !w.castSummon(p, model.SkillDef{Index: 56, InstanceValue: 1}, 255) {
 		t.Fatal("Condor nao foi invocado")
 	}
-	if len(w.summons) != summonTemplates[0].maxSummons {
-		t.Fatalf("quantidade de Condor=%d, quer %d", len(w.summons), summonTemplates[0].maxSummons)
+	if want := summonCount(1, 255); len(w.summons) != want {
+		t.Fatalf("quantidade de Condor=%d, quer %d", len(w.summons), want)
 	}
 	for _, summon := range w.summons {
 		if summon.SummonerID != p.ID || summon.SummonKind != summonKindBM ||
@@ -499,20 +499,69 @@ func TestBMSummonCastReplacesCreatureFamily(t *testing.T) {
 		}
 	}
 
-	if !w.castSummon(p, model.SkillDef{Index: 57, InstanceValue: 2}, 0) {
-		t.Fatal("Javali nao substituiu a familia anterior")
+	if w.castSummon(p, model.SkillDef{Index: 56, InstanceValue: 1}, 255) {
+		t.Fatal("recaste no limite de Condor deveria falhar")
 	}
-	live := 0
+	if w.castSummon(p, model.SkillDef{Index: 57, InstanceValue: 2}, 30) {
+		t.Fatal("Javali deveria ser rejeitado enquanto houver Condor no grupo")
+	}
+	liveCondor := 0
 	for _, summon := range w.summons {
 		if !summon.Dead {
-			live++
-			if summon.Def.Equip.Rosto.Index != summonTemplates[1].face {
-				t.Fatalf("familia obsoleta permaneceu viva: face=%d", summon.Def.Equip.Rosto.Index)
+			if summon.Def.Equip.Rosto.Index != summonTemplates[0].face {
+				t.Fatalf("familia de Condor foi substituida: face=%d", summon.Def.Equip.Rosto.Index)
 			}
+			liveCondor++
 		}
 	}
-	if live != 1 {
-		t.Fatalf("Javali mastery zero deveria deixar uma evocacao viva: %d", live)
+	if want := summonCount(1, 255); liveCondor != want {
+		t.Fatalf("Condors vivos=%d, quer %d", liveCondor, want)
+	}
+}
+
+func TestBMSummonFailedRecastRestoresMana(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	p.Char.Class = 2
+	p.Char.LearnedSkill = 1 << 8 // skill global 56
+	p.Char.Score.MaxMP, p.Char.Score.CurMP = 2_000, 2_000
+	p.Char.Score.Mastery[2] = 30
+	applyScore(p.Char)
+	w.skills = map[int]model.SkillDef{
+		56: {Index: 56, Name: "Condor", InstanceType: 11, InstanceValue: 1,
+			ManaSpent: 100, MaxTarget: 1, Delay: 1},
+	}
+
+	w.onSkillAttack(p, skillCastRequest{Skill: 56, Motion: 5})
+	if len(w.summons) != 1 {
+		t.Fatalf("primeiro cast criou %d Condors, quer 1", len(w.summons))
+	}
+	mpAfterFirst := playerCurMP(p.Char)
+	if mpAfterFirst >= 2_000 {
+		t.Fatalf("primeiro cast nao consumiu MP: %d", mpAfterFirst)
+	}
+
+	p.SkillReady[56] = time.Time{}
+	w.onSkillAttack(p, skillCastRequest{Skill: 56, Motion: 5})
+	if got := playerCurMP(p.Char); got != mpAfterFirst {
+		t.Fatalf("recaste falho nao restaurou MP: got=%d want=%d", got, mpAfterFirst)
+	}
+}
+
+func TestBMSummonPartialAllocationStillConsumesMana(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	p.Char.Class = 2
+	p.Char.LearnedSkill = 1 << 8
+	p.Char.Score.MaxMP, p.Char.Score.CurMP = 2_000, 2_000
+	p.Char.Score.Mastery[2] = 60 // dois Condors, mas somente um ID livre
+	applyScore(p.Char)
+	w.skills = map[int]model.SkillDef{56: {Index: 56, InstanceType: 11,
+		InstanceValue: 1, ManaSpent: 100, MaxTarget: 1, Delay: 1}}
+	for id := int(firstMobID); id < int(^uint16(0)); id++ {
+		w.mobsByID[uint16(id)] = &Mob{ID: uint16(id)}
+	}
+	w.onSkillAttack(p, skillCastRequest{Skill: 56, Motion: 5})
+	if len(w.summons) != 1 || playerCurMP(p.Char) >= 2_000 {
+		t.Fatalf("evocacao parcial gratuita: summons=%d mp=%d", len(w.summons), playerCurMP(p.Char))
 	}
 }
 

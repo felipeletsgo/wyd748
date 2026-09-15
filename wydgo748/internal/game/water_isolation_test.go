@@ -220,11 +220,42 @@ func TestExistingSummonRebindsWhenOwnerEntersPrivateRuntime(t *testing.T) {
 		"water-a": privateTestInstance("water-a", owner.ID),
 	}
 	w.rebuildPlayerInstanceIndex()
-	if !w.castSummon(owner, model.SkillDef{InstanceValue: 1}, 0) {
-		t.Fatal("recaste do summon existente falhou")
+	if w.castSummon(owner, model.SkillDef{InstanceValue: 1}, 0) {
+		t.Fatal("recaste com limite zero deveria retornar falha como GenerateSummon")
 	}
 	if existing.InstanceID != "water-a" {
 		t.Fatalf("summon existente manteve runtime antigo: %q", existing.InstanceID)
+	}
+}
+
+func TestBMSummonRecastCannotMovePartyMembersSummon(t *testing.T) {
+	for _, separateRuntime := range []bool{false, true} {
+		owner, _ := networkedTestPlayer(1, "Owner", 2200, 2200)
+		other, _ := networkedTestPlayer(2, "Other", 2203, 2200)
+		party := &Party{Members: []*Player{owner, other}}
+		owner.Party, other.Party = party, party
+		w := testSpatialWorld(nil, owner, other)
+		if separateRuntime {
+			w.itemInstances = map[string]*ItemInstance{
+				"water-a": privateTestInstance("water-a", owner.ID),
+				"water-b": privateTestInstance("water-b", other.ID),
+			}
+			w.rebuildPlayerInstanceIndex()
+		}
+		if !w.castSummon(other, model.SkillDef{InstanceValue: 1}, 30) {
+			t.Fatal("invocacao inicial falhou")
+		}
+		var existing *Mob
+		for _, m := range w.summons {
+			existing = m
+		}
+		x, y, space := existing.X, existing.Y, existing.InstanceID
+		if !w.castSummon(owner, model.SkillDef{InstanceValue: 1}, 30) {
+			t.Fatal("invocacao de outro dono consumiu o limite do caster")
+		}
+		if existing.X != x || existing.Y != y || existing.InstanceID != space || existing.SummonerID != other.ID {
+			t.Fatalf("invocacao alheia foi movida: runtime separado=%t", separateRuntime)
+		}
 	}
 }
 

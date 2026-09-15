@@ -13,18 +13,18 @@ func TestCleansePlayerRemovesOnlyNegativeAffects(t *testing.T) {
 	for i, typ := range []byte{1, 3, 5, 7, 10, 12, 20, 22, 4, 17} {
 		ch.Affects[i] = model.Affect{Type: typ, ExpiresAt: now}
 	}
-	if !cleansePlayer(ch) {
+	if !cleansePlayer(ch, false) {
 		t.Fatal("cleanse nao informou alteracao")
 	}
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 7; i++ {
 		if ch.Affects[i].Type != 0 {
 			t.Fatalf("debuff no slot %d sobreviveu: %d", i, ch.Affects[i].Type)
 		}
 	}
-	if ch.Affects[8].Type != 4 || ch.Affects[9].Type != 17 {
+	if ch.Affects[7].Type != 22 || ch.Affects[8].Type != 4 || ch.Affects[9].Type != 17 {
 		t.Fatal("cleanse removeu buffs positivos")
 	}
-	if cleansePlayer(&model.Char{}) {
+	if cleansePlayer(&model.Char{}, false) {
 		t.Fatal("cleanse vazio informou alteracao")
 	}
 }
@@ -65,6 +65,52 @@ func TestMobSkillEffectsChangeEffectiveCombatStats(t *testing.T) {
 	}
 	if got := effectiveMobAttackRun(mob) & 0x0f; got != 2 {
 		t.Fatalf("movimento efetivo=%d, quer 2", got)
+	}
+}
+
+func TestDesintoxicarUsesCastersLearnedSkill(t *testing.T) {
+	for _, learned := range []bool{false, true} {
+		caster, _ := networkedTestPlayer(1, "Foema", 2200, 2200)
+		target, _ := networkedTestPlayer(2, "Target", 2201, 2200)
+		party := &Party{Members: []*Player{caster, target}}
+		caster.Party, target.Party = party, party
+		caster.Char.LearnedSkill = 0
+		target.Char.LearnedSkill = 1 << 7 // nao deve autorizar o caster
+		if learned {
+			caster.Char.LearnedSkill = 1 << 7
+			target.Char.LearnedSkill = 0
+		}
+		target.Char.Affects[0] = model.Affect{Type: 32, ExpiresAt: time.Now().Add(time.Minute)}
+		w := testSpatialWorld(nil, caster, target)
+		w.applySupportSkill(caster, skillCastRequest{TargetID: target.ID}, model.SkillDef{Index: 25}, 100)
+		if got := target.Char.Affects[0].Type == 0; got != learned {
+			t.Fatalf("learned=%t removed=%t", learned, got)
+		}
+	}
+}
+
+func TestSamaritanoTransfersOnlyHostileAggroInSameRuntime(t *testing.T) {
+	caster, _ := networkedTestPlayer(1, "TK", 2200, 2200)
+	target, _ := networkedTestPlayer(2, "Target", 2201, 2200)
+	party := &Party{Members: []*Player{caster, target}}
+	caster.Party, target.Party = party, party
+	w := testSpatialWorld(nil, caster, target)
+	monsters := []*Mob{
+		{ID: 1400, TargetID: target.ID, Def: testNPCDef(model.Score{MaxHP: 100}), HP: 100},
+		{ID: 1401, TargetID: target.ID, Def: testNPCDef(model.Score{MaxHP: 100}), HP: 100, InstanceID: "another"},
+		{ID: 1402, TargetID: target.ID, Def: testNPCDef(model.Score{MaxHP: 100}), HP: 100, SummonerID: target.ID},
+		{ID: 1403, TargetID: 3, Def: testNPCDef(model.Score{MaxHP: 100}), HP: 100},
+	}
+	for _, m := range monsters {
+		m.X, m.Y = 2202, 2200
+		w.activeMobs[m.ID] = m
+	}
+	got := w.applySupportSkill(caster, skillCastRequest{TargetID: target.ID}, model.SkillDef{Index: 3, InstanceType: 10}, 100)
+	if len(got) != 1 || monsters[0].TargetID != caster.ID {
+		t.Fatal("Samaritano nao protegeu o alvo")
+	}
+	if monsters[1].TargetID != target.ID || monsters[2].TargetID != target.ID || monsters[3].TargetID != 3 {
+		t.Fatal("Samaritano alterou alvo fora do escopo")
 	}
 }
 

@@ -2,16 +2,16 @@ package game
 
 import (
 	"testing"
+	"time"
 
 	"wydgo/internal/data"
 	"wydgo/internal/model"
 	"wydgo/internal/net"
 )
 
-// skillHasServerExecution is a catalog assertion helper, not gameplay. Keeping
-// it in tests prevents a data reorganization from silently creating no-op
-// skills without shipping a second execution table in the server binary.
-func skillHasServerExecution(skill model.SkillDef) bool {
+// skillHasServerRoute triages catalog entries, not their functional correctness.
+// A passive flag or an affect number alone does not prove gameplay coverage.
+func skillHasServerRoute(skill model.SkillDef) bool {
 	if skill.Index >= 97 && skill.Index <= 102 {
 		return true
 	}
@@ -32,17 +32,23 @@ func skillHasServerExecution(skill model.SkillDef) bool {
 	}
 }
 
-func TestAllFourClassSkillsHaveServerExecution(t *testing.T) {
+func TestAllSkillCatalogEntriesHaveClassifiedRoute(t *testing.T) {
 	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for index := 0; index < 96; index++ {
+	for index := 0; index < model.SkillListSize; index++ {
 		skill, ok := catalog.Skills[index]
 		if !ok {
 			t.Fatalf("skill %d ausente", index)
 		}
-		if !skillHasServerExecution(skill) {
+		if index == 103 {
+			if skillHasServerRoute(skill) {
+				t.Error("slot reservado 103 recebeu rota de skill")
+			}
+			continue
+		}
+		if !skillHasServerRoute(skill) {
 			t.Errorf("skill %d %q sem caminho server-side", index, skill.Name)
 		}
 	}
@@ -54,11 +60,64 @@ func TestSkillFinalDamageDoesNotClampWideAttackToWord(t *testing.T) {
 	}
 }
 
+func TestHunter79And86Use748CatalogBuffs(t *testing.T) {
+	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, index := range []int{79, 86} {
+		w, p, _ := handlerTestWorld(t)
+		w.skills = catalog.Skills
+		p.Char.Class = 3
+		p.Char.LearnedSkill = 1 << (index - 72)
+		p.Char.Score.MaxMP, p.Char.Score.CurMP = 5_000, 5_000
+		p.Char.Score.Mastery = [4]uint32{0, 100, 100, 100}
+		applyScore(p.Char)
+		w.recalcPlayer(p.Char)
+		skill := w.skills[index]
+		if skill.Aggressive != 0 || skill.InstanceType != 0 || skill.AffectType == 0 {
+			t.Fatalf("ID %d deixou de ser buff 7.48: %+v", index, skill)
+		}
+		hp := playerCurHP(p.Char)
+		mp := playerCurMP(p.Char)
+		w.onSkillAttack(p, skillCastRequest{Skill: index, Motion: 5})
+		if !hasActiveAffectAt(p.Char, byte(skill.AffectType), w.now()) || playerCurHP(p.Char) != hp {
+			t.Fatalf("ID %d: hp %d -> %d, affects=%+v", index, hp, playerCurHP(p.Char), p.Char.Affects)
+		}
+		if playerCurMP(p.Char) >= mp || p.SkillReady[index].IsZero() {
+			t.Fatalf("ID %d nao aplicou MP/cooldown", index)
+		}
+	}
+}
+
 func TestPvPWideHitPreservesCalculatedOverkill(t *testing.T) {
 	target := &Player{ID: 2, InWorld: true, X: 11, Y: 10,
 		Char: &model.Char{Score: testScore(model.Score{CurHP: 100, MaxHP: 100})}}
 	if got := skillFinalDamage(250_000, playerDefense(target.Char), 0); got <= int(playerCurHP(target.Char)) {
 		t.Fatalf("pre-condicao: dano=%d hp=%d", got, playerCurHP(target.Char))
+	}
+}
+
+func TestOffensiveSkillPvPAccuracyReducesParryFor22(t *testing.T) {
+	attacker := &model.Char{Score: testScore(model.Score{})}
+	defender := &model.Char{Score: testScore(model.Score{Dex: 2_000})}
+	if got := playerVersusPlayerAccuracy(attacker, defender); got != 60 {
+		t.Fatalf("accuracy base=%d, quer 60", got)
+	}
+	for _, skillIndex := range []int{22} {
+		if got := offensiveSkillPvPAccuracy(attacker, defender, skillIndex); got != 88 {
+			t.Fatalf("skill %d accuracy=%d, quer 88", skillIndex, got)
+		}
+	}
+	if got := offensiveSkillPvPAccuracy(attacker, defender, 78); got != 60 {
+		t.Fatalf("skill comum accuracy=%d, quer 60", got)
+	}
+}
+
+func TestSkillPvPUsesDoubleDefense(t *testing.T) {
+	zero := func(int) int { return 0 }
+	if got := skillPvPFinalDamageWithRNG(1_000, 100, 0, zero); got != 810 {
+		t.Fatalf("skill PvP comum=%d, quer 810", got)
 	}
 }
 
@@ -326,25 +385,24 @@ func TestTKCriticalArmorAndHTCoinArmorUseDistinctClientTypes(t *testing.T) {
 	}
 }
 
-func TestSummonCountScalesToPerCreatureLimitAt255(t *testing.T) {
-	limits := []int{7, 6, 6, 5, 5, 4, 3, 2}
-	for value, limit := range limits {
-		instanceValue := value + 1
-		if got := summonCount(instanceValue, 0); got != 1 {
-			t.Fatalf("summon value=%d mastery=0: got=%d want=1", instanceValue, got)
-		}
-		if got := summonCount(instanceValue, 255); got != limit {
-			t.Fatalf("summon value=%d mastery=255: got=%d want=%d", instanceValue, got, limit)
-		}
-		if got := summonCount(instanceValue, 999); got != limit {
-			t.Fatalf("summon value=%d mastery acima de 255: got=%d want=%d", instanceValue, got, limit)
-		}
+func TestSummonCountUsesW2PPMasteryDivisors(t *testing.T) {
+	tests := []struct {
+		instanceValue int
+		mastery       int
+		want          int
+	}{
+		{1, 0, 0}, {1, 29, 0}, {1, 30, 1}, {1, 255, 8},
+		{2, 60, 2},
+		{3, 39, 0}, {3, 40, 1}, {5, 255, 6},
+		{6, 79, 0}, {6, 80, 1}, {7, 255, 3},
+		{8, 0, 1}, {8, 999, 1},
+		{9, 255, 0},
 	}
-	if got := summonCount(1, 128); got != 4 {
-		t.Fatalf("Condor mastery=128: got=%d want=4", got)
-	}
-	if got := summonCount(8, 128); got != 1 {
-		t.Fatalf("Succubus mastery=128: got=%d want=1", got)
+	for _, tt := range tests {
+		if got := summonCount(tt.instanceValue, tt.mastery); got != tt.want {
+			t.Fatalf("summon value=%d mastery=%d: got=%d want=%d",
+				tt.instanceValue, tt.mastery, got, tt.want)
+		}
 	}
 }
 
@@ -365,6 +423,34 @@ func TestSkillPlayerTargetsRejectsPartyAndUsesSelectedEnemy(t *testing.T) {
 	}
 	if got := w.skillPlayerTargets(caster, skillCastRequest{TargetID: member.ID}, skill); len(got) != 0 {
 		t.Fatalf("membro do grupo virou alvo PvP: %+v", got)
+	}
+}
+
+func TestSpeedAndMagicWeaponTargetCountUsesW2PPMasteryCap(t *testing.T) {
+	players := make([]*Player, 6)
+	for i := range players {
+		players[i] = &Player{ID: uint16(i + 1), InWorld: true, X: uint16(10 + i), Y: 10,
+			Char: &model.Char{Class: 1, Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
+	}
+	party := &Party{Members: players}
+	for _, p := range players {
+		p.Party = party
+	}
+	w := testSpatialWorld(nil, players...)
+	caster := players[0]
+
+	for _, index := range []int{41, 44} {
+		skill := model.SkillDef{Index: index, Range: 10, MaxTarget: 13, Party: 1}
+		caster.Char.Score.Mastery[3] = 0
+		applyScore(caster.Char)
+		if got := w.supportTargets(caster, skillCastRequest{}, skill); len(got) != 2 {
+			t.Fatalf("skill %d mastery=0 alvos=%d, quer 2", index, len(got))
+		}
+		caster.Char.Score.Mastery[3] = 75
+		applyScore(caster.Char)
+		if got := w.supportTargets(caster, skillCastRequest{}, skill); len(got) != 5 {
+			t.Fatalf("skill %d mastery=75 alvos=%d, quer 5", index, len(got))
+		}
 	}
 }
 
@@ -435,6 +521,71 @@ func TestSkillVisualLevelNeverSuppressesClientEffect(t *testing.T) {
 func TestExplosionBashAddsAllCurrentMana(t *testing.T) {
 	if got := explosionBashBaseDamage(90, 120, 750); got != 960 {
 		t.Fatalf("dano Explosion Bash=%d, quer 960", got)
+	}
+}
+
+func TestEtherealFlamesBurnsManaOrDispelsLikeW2PP(t *testing.T) {
+	caster := &model.Char{Score: testScore(model.Score{})}
+	caster.Score.Mastery[1] = 69 // chance = (69 + 1) / 7 = 10
+
+	t.Run("mana burn", func(t *testing.T) {
+		target := &model.Char{Score: testScore(model.Score{MaxMP: 1000, CurMP: 1000})}
+		rolls := []int{50, 40} // falha no dispel; burn = 10 * (10 + 40) = 500
+		applyEtherealFlamesPlayer(target, caster, func(int) int {
+			roll := rolls[0]
+			rolls = rolls[1:]
+			return roll
+		})
+		if got := playerCurMP(target); got != 500 {
+			t.Fatalf("MP apos Chamas Etereas=%d, quer 500", got)
+		}
+	})
+
+	t.Run("dispel", func(t *testing.T) {
+		target := &model.Char{Score: testScore(model.Score{MaxMP: 1000, CurMP: 1000})}
+		for i, affectType := range []byte{14, 16, 18, 19, 32} {
+			target.Affects[i] = model.Affect{Type: affectType, Value: 1}
+		}
+		applyEtherealFlamesPlayer(target, caster, func(int) int { return 10 })
+		if got := playerCurMP(target); got != 1000 {
+			t.Fatalf("dispel alterou MP: %d", got)
+		}
+		for _, affectType := range []byte{14, 16, 18, 19, 32} {
+			if hasActiveAffect(target, affectType) {
+				t.Fatalf("affect %d permaneceu apos dispel", affectType)
+			}
+		}
+	})
+}
+
+func TestSoulLimitUsesW2PPCooldownAndAffectDuration(t *testing.T) {
+	if got := skillCooldownDuration(model.SkillDef{Index: 102, Delay: 1200}); got != time.Second {
+		t.Fatalf("cooldown Limite da Alma=%s, quer 1s", got)
+	}
+	if got := skillCooldownDuration(model.SkillDef{Index: 101, Delay: 7}); got != 7*time.Second {
+		t.Fatalf("cooldown skill comum=%s, quer 7s", got)
+	}
+
+	tests := []struct {
+		name      string
+		evolution string
+		level     uint32
+		want      int
+	}{
+		{name: "mortal", level: 1, want: 200},
+		{name: "arch", evolution: archEvolution, level: 400, want: 100},
+		{name: "celestial abaixo 39", evolution: "celestial", level: 30, want: 164},
+		{name: "celestial normal", evolution: "celestial", level: 100, want: 200},
+		{name: "celestial 199", evolution: "celestial", level: 199, want: 400},
+		{name: "subcelestial", evolution: "subcelestial", level: 250, want: 400},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ch := &model.Char{Evolution: test.evolution, Score: testScore(model.Score{Level: test.level})}
+			if got := soulLimitAffectTime(ch); got != test.want {
+				t.Fatalf("duracao=%d, quer %d", got, test.want)
+			}
+		})
 	}
 }
 

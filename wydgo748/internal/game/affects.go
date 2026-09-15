@@ -244,6 +244,16 @@ func sameSupportGroup(caster, target *Player) bool {
 	return caster == target || caster != nil && target != nil && caster.Party != nil && caster.Party == target.Party
 }
 
+func supportSkillTargetLimit(ch *model.Char, skill model.SkillDef) int {
+	limit := maxInt(1, skill.MaxTarget)
+	if skill.Index != 41 && skill.Index != 44 {
+		return limit
+	}
+	branch := ((skill.Index % 24) / 8) + 1
+	limit = int(playerMastery(ch, branch))/25 + 2
+	return clampInt(limit, 2, 13)
+}
+
 func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.SkillDef) []*Player {
 	if p == nil || p.Char == nil {
 		return nil
@@ -259,9 +269,13 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 			return nil
 		}
 	}
-	if skill.Party != 0 && skill.MaxTarget > 1 && p.Party != nil {
+	limit := supportSkillTargetLimit(p.Char, skill)
+	if skill.Party != 0 && limit > 1 && p.Party != nil {
 		result := make([]*Player, 0, len(p.Party.Members))
 		for _, member := range p.Party.Members {
+			if len(result) >= limit {
+				break
+			}
 			if member != nil && member.InWorld && member.Char != nil &&
 				w.playersShareGameplaySpace(p, member) &&
 				chebyshev(p.X, p.Y, member.X, member.Y) <= maxInt(6, skill.Range) {
@@ -284,13 +298,20 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 	return nil
 }
 
-func cleansePlayer(ch *model.Char) bool {
+func cleansePlayer(ch *model.Char, cureSoul bool) bool {
 	changed := false
 	for i := range ch.Affects {
 		switch ch.Affects[i].Type {
-		case 1, 3, 5, 7, 10, 12, 20, 22:
+		case 1, 3, 5, 7, 10, 12, 20:
 			ch.Affects[i] = model.Affect{}
 			changed = true
+		case 32:
+			// W2PP InstanceType 8: a oitava skill de magia branca do
+			// caster permite remover este affect; o aprendizado do alvo nao.
+			if cureSoul {
+				ch.Affects[i] = model.Affect{}
+				changed = true
+			}
 		}
 	}
 	return changed
@@ -314,6 +335,28 @@ func foemaHealAmount(skillIndex, mastery, instanceValue int) int {
 	return minInt(548, heal*14/10)
 }
 
+func soulLimitAffectTime(ch *model.Char) int {
+	if ch == nil {
+		return 100
+	}
+	switch strings.ToLower(strings.TrimSpace(ch.Evolution)) {
+	case "": // Mortal
+		return 200
+	case archEvolution:
+		// No W2PP o Delay base permanece 100 para Arch.
+		return 100
+	default:
+		level := int(playerLevel(ch))
+		if level < 39 {
+			return 200 - (39-level)*4
+		}
+		if level >= 199 {
+			return 400
+		}
+		return 200
+	}
+}
+
 func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.SkillDef, mastery int) []supportSkillResult {
 	now := w.now()
 	targets := w.supportTargets(p, req, skill)
@@ -327,7 +370,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 		applied := false
 		switch skill.Index {
 		case 25: // Desintoxicar
-			applied = cleansePlayer(target.Char)
+			applied = cleansePlayer(target.Char, p.Char.LearnedSkill&(1<<7) != 0)
 		case 27, 29: // Cura / Recuperar
 			heal := foemaHealAmount(skill.Index, mastery, skill.InstanceValue)
 			restorePlayerHP(target.Char, uint32(heal))
@@ -377,13 +420,17 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 		default:
 			affectType, value, ok := skillAffect(skill)
 			if ok {
+				duration := skill.AffectTime
+				if skill.Index == 102 {
+					duration = soulLimitAffectTime(p.Char)
+				}
 				// SkillData.csv preserva o identificador cru 50 da Armadura Critica,
 				// mas a regra autoritativa usa affect 31 e o executavel 7.48 exige o
 				// visual 24. Normalize antes de persistir para não perder os stats.
 				if skill.Index == 15 {
 					affectType = 31
 				}
-				applied = setAffectAt(target.Char, affectType, value, mastery, skill.AffectTime, now)
+				applied = setAffectAt(target.Char, affectType, value, mastery, duration, now)
 				if applied && skill.Index == 15 { // Critical Armor TK usa o visual 24 no 7.48.
 					for i := range target.Char.Affects {
 						if target.Char.Affects[i].Type == affectType {
@@ -391,6 +438,14 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 							break
 						}
 					}
+				}
+			}
+		}
+		if skill.Index == 3 { // Samaritano: transfere o aggro do protegido ao caster.
+			for _, m := range w.activeMobs {
+				if m != nil && !m.Dead && m.TargetID == target.ID && w.playerCanInteractWithMob(p, m) {
+					m.TargetID = p.ID
+					applied = true
 				}
 			}
 		}

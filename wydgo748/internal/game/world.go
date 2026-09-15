@@ -2050,6 +2050,10 @@ func (w *World) handle(cmd command) {
 		w.onCombineEhre(cmd.s, cmd.pkt)
 	case wire.OpCombineOdin:
 		w.onCombineOdin(cmd.s, cmd.pkt)
+	case wire.OpCombineExtracao:
+		w.onCombineExtracao(cmd.s, cmd.pkt)
+	case wire.OpCombineAlquimia:
+		w.onCombineAlquimia(cmd.s, cmd.pkt)
 	default:
 		// A allowlist de validateInboundCommand torna este ramo inalcançavel
 		// para pacotes de rede. Mantemos fail-closed para comandos construidos

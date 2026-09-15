@@ -35,8 +35,9 @@ A comparação não sustenta a hipótese de que o WYD-Go esteja simplesmente
 W2PP foi redistribuída no Go entre `game`, `data`, `store`, `wire`, `control` e
 `webadmin`, ou foi substituída por uma arquitetura autoritativa mais explícita.
 
-As lacunas confirmadas de maior interesse nesta rodada são os fluxos de
-composição **Alquimia** e **Extração**. Eventos específicos como **Arena Real**,
+Os fluxos de composição **Alquimia** e **Extração**, inicialmente ausentes,
+foram implementados e testados em 2026-09-15; falta validar a interação no
+client. Eventos específicos como **Arena Real**,
 **Coliseu N/M/A** e **Castle Zakum** também não têm a mesma máquina de estados no
 Go, porém sua necessidade e origem 7.48 ainda devem ser comprovadas antes de
 serem promovidas a requisito de paridade.
@@ -100,23 +101,67 @@ sair/reentrar e morrer/renascer com o novo servidor instalado.
 
 ## Crafting e composição
 
-O Go já possui sete fluxos de composição despachados e validados: Tiny,
-Compositor, Agatha, Aylin, Lindy, Ehre e Odin. O caminho atual aplica validação
+O Go possui os sete compositores Tiny, Compositor, Agatha, Aylin, Lindy, Ehre
+e Odin, além dos handlers de skill Extração e Alquimia. O caminho atual aplica validação
 de snapshot/slots, rollback e persistência antes de publicar o resultado.
 
 | Fluxo | W2PP | WYD-Go | Estado | Prioridade / decisão |
 | --- | --- | --- | --- | --- |
-| Alquimia | `W2PP/Code/TMSrv/_MSG_CombineItemAlquimia.cpp` | há preparação/custo inicial documentado, mas a receita/packet completo permanece pendente | `AUSENTE_NO_GO` | **Alta** se fizer parte do escopo do servidor. Fechar contrato nativo antes de implementar. |
-| Extração | `W2PP/Code/TMSrv/_MSG_CombineItemExtracao.cpp` | não há o mesmo fluxo de composição; o subsistema de extração Celestial é outro recurso | `AUSENTE_NO_GO` | **Alta** se exigida pelo projeto. Não confundir com Celestial extraction. |
+| Alquimia | `W2PP/Code/TMSrv/_MSG_CombineItemAlquimia.cpp` e `GetMatchCombineAlquimia` | `onCombineAlquimia`: `0x2E1`/84 bytes, dez receitas, aprendizado, snapshot, refinação, consumo e rollback testados | `GO_ONLY/MODERNIZADO` | Implementado; interação in-game pendente. Sem custo de gold: `10 x level` pertence à skill 85. |
+| Extração | `W2PP/Code/TMSrv/_MSG_CombineItemExtracao.cpp` | `onCombineExtracao`: `0x2D4`/20 bytes, equipamento, catalisador 1774, transformação e rollback testados | `GO_ONLY/MODERNIZADO` | Implementado; interação in-game pendente. Não confundir com extração Celestial. |
 | Dedekinto | `_MSG_CombineItemDedekinto.cpp` | sem peer direto estabelecido | `W2PP_CUSTOM` / `NAO_VERIFICADO` | Não portar até comprovar a origem 7.48; envolve evolução/reset, taxas e transformações de IDs. |
 | Shany | `_MSG_CombineItemShany.cpp` | sem peer direto estabelecido | `W2PP_CUSTOM` / `NAO_VERIFICADO` | Fluxo aleatório/configurável; tratar como opcional até evidência nativa. |
 | Compositor genérico | `NewCompositor.cpp` | o Go possui compositor 7.48 específico, não o engine arbitrário DB/config-driven | `W2PP_CUSTOM` | Não é substituto obrigatório do compositor atual. |
 | Jephi | `NewJephi.cpp` | nenhum peer direto estabelecido | `W2PP_CUSTOM` | Trocas/crafting específicos (peças, gold, pós, soul etc.); avaliar como feature independente. |
 
-`DOCS/IMPLEMENTATION_STATUS.md` ainda registra as receitas server-side de
-Extração/Alquimia como trabalho futuro. Esse ponto continua coerente com o
-código atual. Outros trechos históricos do mesmo documento, entretanto, estão
-desatualizados para guerras de guilda; ver seção própria abaixo.
+### Revisão das skills — 2026-09-15
+
+Modo: `MODERNIZACAO_COMPATIVEL`. A consulta ao W2PP foi solicitada pelo usuário;
+é referência semântica, não prova de paridade nativa. Os handlers Go atendem os
+packets já emitidos pelo client atual (`TMFieldScene.cpp`, confirmação de
+Extração; `MrItemMix.cpp`, Alquimia), sem mudar opcode/layout. O contrato de
+crafting não foi promovido a `PARIDADE_NATIVA` nem a `CLIENT_TESTED`.
+
+- `crafting_skills.go`: exige Hunter com skill aprendida, vivo, em mundo e sem
+  bloqueio de persistência/loja; valida os 63 slots utilizáveis, snapshot e
+  repetição. Alquimia cobre as dez receitas e requisitos +9; Extração usa
+  maestria corrente e preserva os adicionais permitidos. Save precede sucesso
+  publicado; falha restaura inventário e bloqueia nova mutação da conta.
+- A receita zero de Alquimia usa sucesso/validade separados: o W2PP confunde
+  esse índice com receita inválida. Não foram copiados o RNG reiniciado por
+  pedido nem o retorno sem save do ramo de quantidade bônus.
+- `affects.go`: Desintoxicar preserva regeneração positiva e usa aprendizado
+  do conjurador para remover o efeito 32; Samaritano redireciona aggro hostil
+  apenas no mesmo espaço de jogo. Limites de alvos e Limite da Alma têm
+  testes específicos; o cooldown server-side de 102 é de um segundo, mas
+  isso não comprova o comportamento da barra/cooldown no client.
+- `skill_summons.go`: contagem por maestria, conflito de família e devolução
+  de MP na rejeição; summons pertencem somente ao dono e não ocupam party.
+  Criação parcial por esgotamento de IDs não devolve MP após criar criaturas.
+- PvP: defesa dobrada no cálculo comum de skill, Ethereal com escolha entre
+  queima de MP e dispel, e parry de Exterminar cobertos por testes. Propostas
+  ofensivas para 79/86 foram descartadas: o catálogo 7.48 as define como buffs
+  (`Affect` 37/31), agora exercitados pela rota real de cast.
+- `TestAllSkillCatalogEntriesHaveClassifiedRoute` é triagem das entradas
+  0..103 (103 reservada), não prova funcional de todas as passivas/affects.
+
+Validação desta revisão: `go test -count=1 ./...`, `go vet ./...`,
+`go build -o bin/server-skills-check.exe ./cmd/server` e testes focados com
+`-race` de crafting, summons, Samaritano e Desintoxicar passaram. A variável
+`WYD_TEST_POSTGRES_URL` estava configurada na suíte; os novos testes de rollback
+dos handlers usam store de teste, não uma execução de crafting pelo jogo.
+O candidato não foi instalado e nenhum servidor foi reiniciado.
+
+No client, foi revisado o commit `92e16ad7` e reexecutado
+`.agents/research/client748/skill-visual-audit.ps1`: 104 entradas, 89 ativas e
+86.400 projeções de animação, sem falhas nos checks cobertos. Não houve nova
+edição C++/asset nesta revisão, nem novo build C++. A evidência de build anterior
+e as lacunas permanecem em
+`../.agents/research/client748/flows/combat/skill-visual-dispatch.md`.
+Ainda faltam inspeção dinâmica de partículas/poses (incluindo montaria),
+efeitos criados fora do dispatcher, revisão semântica restante das passivas
+e testes in-game de combate/crafting. `STATICALLY VERIFIED` e `AUTOMATED TESTED`
+aplicam-se apenas aos checks descritos; não declarar todas as skills corretas.
 
 ## Eventos e instâncias
 
@@ -218,8 +263,8 @@ eliminados para aproximar artificialmente os projetos:
 
 | Prioridade | Lacuna | Estado | Próximo gate correto |
 | --- | --- | --- | --- |
-| Alta | Alquimia | `AUSENTE_NO_GO` | Fechar packet, receitas, custos, falhas e persistência com evidência nativa 7.48. |
-| Alta | Extração (crafting W2PP) | `AUSENTE_NO_GO` | Distinguir formalmente do sistema Celestial e validar contrato nativo antes do patch. |
+| Alta | Alquimia | `GO_ONLY/MODERNIZADO` | Validar UI, receitas, falha e resultado persistido in-game com o candidato. |
+| Alta | Extração (crafting W2PP) | `GO_ONLY/MODERNIZADO` | Validar seleção, catalisador, sucesso/falha e resultado persistido in-game. |
 | Média/opcional | Arena Real | `AUSENTE_NO_GO` + `NAO_VERIFICADO` | Confirmar se pertence ao produto e ao alvo 7.48; então modelar scheduler/estado. |
 | Média/opcional | Coliseu N/M/A | `AUSENTE_NO_GO` + `NAO_VERIFICADO` | Confirmar regras e proveniência; reutilizar engine de instâncias somente depois disso. |
 | Média/opcional | Castle Zakum | `AUSENTE_NO_GO` + `NAO_VERIFICADO` | Confirmar requisito/proveniência antes de montar o evento sobre gates/party/timers existentes. |
@@ -270,7 +315,7 @@ feita por domínio e handlers menores.
 | `_MSG_CombineItem` | `onCombineCompositor` | `DIFERENTE` | Mesmo domínio, regras/configuração diferentes. |
 | `_MSG_CombineItemTiny`, `_MSG_CombineItemLindy`, `_MSG_CombineItemAgatha`, `_MSG_CombineItemAilyn`, `_MSG_CombineItemEhre`, `_MSG_CombineItemOdin` | compositores Go | `DIFERENTE` | Fluxos equivalentes modernizados. |
 | `_MSG_CombineDedekinto`, `_MSG_CombineDedekinto2`, `_MSG_CombineItemShany` | sem fluxo específico | `NAO_VERIFICADO` | Necessita validar se é produto alvo ou customização. |
-| `_MSG_CombineItemAlquimia`, `_MSG_CombineItemExtracao` | sem fluxo específico | `AUSENTE_NO_GO` | Lacunas confirmadas desta auditoria. |
+| `_MSG_CombineItemAlquimia`, `_MSG_CombineItemExtracao` | `onCombineAlquimia`, `onCombineExtracao` | `GO_ONLY/MODERNIZADO` | Handlers e testes implementados; validação in-game pendente. |
 | `_MSG_Quest` | quest/progressão Go | `DIFERENTE` | Comparação deve ser feita por branch. |
 | `_MSG_AnswerQuiz` | quiz autoritativo | `GO_ONLY/MODERNIZADO` | Go adiciona proteção contra replay/forgery. |
 | `_MSG_InviteGuild`, `_MSG_GuildAlly`, `_MSG_War` | guild handlers | `DIFERENTE` | Guerra de guild possui implementação moderna. |

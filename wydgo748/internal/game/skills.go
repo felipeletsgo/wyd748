@@ -193,6 +193,13 @@ func explosionBashBaseDamage(baseDamage, intelligence, currentMP int) int {
 	return baseDamage + intelligence + currentMP
 }
 
+func skillCooldownDuration(skill model.SkillDef) time.Duration {
+	if skill.Index == 102 { // Limite da Alma: W2PP força skilldelay=1 antes de converter para ms.
+		return time.Second
+	}
+	return time.Duration(skill.Delay) * time.Second
+}
+
 // O TK possui duas familias magicas (Confianca e Espada Magica) e uma
 // familia fisica (Trans). A divisao deve usar o indice local da classe.
 func tkTransformationSkill(skillIndex int) bool {
@@ -554,7 +561,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	}
 	// SkillData.Delay e expresso em segundos tanto pelo client quanto no TMSrv.
 	// Multiplicar por 250 ms permitia quatro casts no periodo de um.
-	delay := time.Duration(skill.Delay) * time.Second
+	delay := skillCooldownDuration(skill)
 	p.SkillReady[skillIndex] = now.Add(delay)
 	if motion == 0 {
 		motion = 5
@@ -569,6 +576,12 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 
 	if skill.Aggressive == 0 {
 		affected := w.applySupportSkill(p, req, skill, mastery)
+		if skillIndex >= 56 && skillIndex <= 63 && len(affected) == 0 {
+			// GenerateSummon devolve 0 quando a evocacao falha (familia em
+			// conflito, limite ja atingido, party/mob slot indisponivel). O
+			// TMSrv restaura o MP cobrado antes de retornar o resultado.
+			restorePlayerMP(p.Char, uint32(mana))
+		}
 		primary := p
 		wireTargets := []wire.SkillTarget{{ID: p.ID}}
 		if len(affected) > 0 {

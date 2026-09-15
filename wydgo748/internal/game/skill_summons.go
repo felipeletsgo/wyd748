@@ -31,15 +31,19 @@ var summonTemplates = [...]summonTemplate{
 }
 
 func summonCount(instanceValue, mastery int) int {
-	idx := instanceValue - 1
-	if idx < 0 || idx >= len(summonTemplates) {
+	mastery = maxInt(0, mastery)
+	switch instanceValue {
+	case 1, 2:
+		return mastery / 30
+	case 3, 4, 5:
+		return mastery / 40
+	case 6, 7:
+		return mastery / 80
+	case 8:
+		return 1
+	default:
 		return 0
 	}
-	mastery = clampInt(mastery, 0, 255)
-	limit := summonTemplates[idx].maxSummons
-	// Toda evocacao comeca com uma criatura. Os pontos 0..255 distribuem
-	// linearmente as vagas restantes; mastery 255 atinge exatamente o limite.
-	return 1 + mastery*(limit-1)/255
 }
 
 // removePlayerSummons despawna TODAS as evocacoes de um dono. Obrigatorio quando
@@ -162,33 +166,43 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 	if owner == nil || idx < 0 || idx >= len(summonTemplates) {
 		return false
 	}
+	// GenerateSummon valida a existencia de um slot de mob antes de qualquer
+	// outra regra, inclusive quando Num == 0.
+	if w.allocMobID() == 0 {
+		return false
+	}
 	template := summonTemplates[idx]
 	space := w.playerRuntimeInstanceID(owner.ID)
-	wanted := summonCount(skill.InstanceValue, mastery)
+	// Jogadores da party nao ocupam vagas de evocacao no contrato Go.
+	wanted := minInt(summonCount(skill.InstanceValue, mastery), maxPartyMembers-1)
 	current := 0
-	obsolete := make([]*Mob, 0)
 	for _, m := range w.summons {
-		if m.SummonerID != owner.ID || m.Dead || m.SummonKind == summonKindContract || m.SummonKind == summonKindMount {
+		if m == nil || m.SummonerID != owner.ID || m.Dead || m.SummonKind == summonKindContract || m.SummonKind == summonKindMount {
+			continue
+		}
+		if m.Def == nil {
 			continue
 		}
 		if m.Def.Equip.Rosto.Index != template.face {
-			for _, viewer := range w.players {
-				w.hideMob(viewer, m, 0)
-			}
-			m.Dead = true
-			obsolete = append(obsolete, m)
-			continue
+			// Preserva a rejeicao de outra familia do W2PP, mas o contrato Go
+			// mantem evocacoes fora da party e pertencentes somente ao dono.
+			return false
 		}
 		w.rebindSummonGameplaySpace(m, space)
 		oldX, oldY := m.X, m.Y
 		m.X, m.Y = w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
 		w.publishMobMove(m, oldX, oldY, uint32(m.Def.Score.AttackRun&0x0f))
 		current++
+		if current >= wanted {
+			return false
+		}
 	}
-	for _, m := range obsolete {
-		w.removeMobInstance(m)
+	// GenerateSummon retorna sucesso quando Num == 0 e nao encontrou conflito.
+	// Isso preserva o consumo de MP da source mesmo sem materializar criatura.
+	if wanted == 0 {
+		return true
 	}
-	created := 0
+	spawned := 0
 	for current < wanted {
 		x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
 		base := playerInt(owner.Char) + playerCon(owner.Char)
@@ -214,7 +228,9 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		mobID := w.allocMobID()
 		if mobID == 0 {
 			log.Printf("[#%d] invocacao %q interrompida: faixa de IDs de mob esgotada", owner.Session.ID, template.name)
-			break
+			// Uma criacao parcial ja produziu entidades autoritativas. Nao
+			// devolver MP e permitir evocacoes gratuitas por falha posterior.
+			return spawned > 0
 		}
 		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
 			InstanceID: space,
@@ -222,10 +238,10 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		w.appendMobInstance(m)
 		w.publishMobSpawn(m)
 		current++
-		created++
+		spawned++
 	}
 	log.Printf("[#%d] invocou %q quantidade=%d/%d", owner.Session.ID, template.name, current, wanted)
-	return created > 0 || current > 0
+	return true
 }
 
 type summonCombatTarget struct {

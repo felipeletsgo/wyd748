@@ -301,9 +301,11 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 96, true
 	case wire.OpPlayerChallenge:
 		return 20, true
+	case wire.OpCombineExtracao:
+		return 20, true
 	case wire.OpCombineTiny, wire.OpCombineLindy, wire.OpCombineCompositor,
 		wire.OpCombineAgatha, wire.OpCombineAylin, wire.OpCombineEhre,
-		wire.OpCombineOdin:
+		wire.OpCombineOdin, wire.OpCombineAlquimia:
 		return combinePacketSize, true
 	default:
 		return 0, false

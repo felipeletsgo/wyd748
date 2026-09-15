@@ -107,6 +107,8 @@ const (
 	OpCombineLindy       = 0x2C3 // C->S composicao Lindy
 	OpCombineOdin        = 0x2D2 // C->S composicao Alquimista Odin
 	OpCombineEhre        = 0x2D3 // C->S composicao Ehre
+	OpCombineExtracao    = 0x2D4 // C->S skill Extração (Parm2=slot do inventario)
+	OpCombineAlquimia    = 0x2E1 // C->S skill Alquimia (MSG_CombineItem)
 	OpCombineCompositor  = 0x3A6 // C->S compositor de item extremo/joia
 	OpCombineAylin       = 0x3B5 // C->S compositor +10
 	OpCombineAgatha      = 0x3BA // C->S transferencia Mortal -> Arch
