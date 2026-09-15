@@ -42,6 +42,7 @@ struct stPunchEvent
     unsigned int dwTime;
     int nDamage;
     TMVector2 vecFrom;
+    short SkillIndex;
 };
 
 class TMHuman;
@@ -119,7 +120,7 @@ public:
     void MoveGet(TMItem* pTarget);
     void Attack(ECHAR_MOTION eMotion, TMVector2 vecTarget, char cSkillIndex);
     void Attack(ECHAR_MOTION eMotion, TMHuman* pTarget, short cSkillIndex);
-    void Punched(int nDamage, TMVector2 vecFrom);
+    void Punched(int nDamage, TMVector2 vecFrom, short sSkillIndex = -1);
     void Punched(int nDamage, TMHuman* pFrom);
     void Fire(TMObject* pTarget, int nSkill);
     void Die();

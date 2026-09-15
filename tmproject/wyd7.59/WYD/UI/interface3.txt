@@ -1,0 +1,12 @@
+FFFFFF Alterar tamanho da janela de chat
+FFFFFF Usar scroll da janela de Chat
+FFFFFF Ver as mensagens inseridas até o momento
+FFFFFF Abrir Fórum da Guilda
+FFFFFF Alterar Quick Skill Slot
+FFFFFF Auto Corre liga/desliga
+FFFFFF Histórico de Quest liga/desliga
+FFFFFF Estado de inserção do Chat
+FFFFFF Guilda liga/desliga
+FFFFFF 
+
+

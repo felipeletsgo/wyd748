@@ -42,8 +42,8 @@ int TMSkillBash::FrameMove(unsigned int dwServerTime)
         TMVector3 vec
         {
             (((float)(rand() % 3) - (fProgress * 10.0f)) * 0.2f) + m_vecPosition.x,
-            (((float)(rand() % 3) - (fProgress * 10.0f)) * 0.2f) + m_vecPosition.z,
-            0.0f
+            m_vecPosition.y,
+            (((float)(rand() % 3) - (fProgress * 10.0f)) * 0.2f) + m_vecPosition.z
         };
 
         auto pSkillSpeedUp = new TMSkillSpeedUp(vec, 1);

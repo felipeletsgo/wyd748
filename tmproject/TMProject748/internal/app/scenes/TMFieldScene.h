@@ -46,6 +46,9 @@ public:
 	void MouseMove(int nX, int nY);
 	int SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget);
 	int AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget);
+	int GetSkillDelay(int skillIndex) const;
+	bool IsSkillCoolingDown(int skillIndex, unsigned int now) const;
+	void UpdateSkillCooldownUI(unsigned int now);
 	int MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime);
 	int CheckMerchant(TMHuman* pOver);
 	int MouseLButtonDown(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime);
@@ -297,6 +300,7 @@ private:
 	// Builds the world and binds the native 7.48 FieldScene2 resource without
 	// fabricating serialized control IDs; required runtime controls are explicit.
 	int InitializeCompatFieldScene();
+	void InitializeCompatCCControls();
 	// Creates the three runtime text controls shared by the full and 7.48 paths.
 	// The control container owns successful allocations until scene teardown.
 	void InitializeRuntimeCounterTexts();

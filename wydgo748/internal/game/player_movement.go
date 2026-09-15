@@ -148,6 +148,9 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		}
 		p.X, p.Y = nextX, nextY
 		p.MoveAuthorityStep++
+		// Bind only tiles actually reached, including a city crossed before
+		// the route ends or is stopped. Repeated steps in that city are no-ops.
+		w.bindPlayerHomeCity(p)
 	}
 	p.MoveAuthorityX, p.MoveAuthorityY = p.X, p.Y
 	p.Char.X, p.Char.Y = p.X, p.Y

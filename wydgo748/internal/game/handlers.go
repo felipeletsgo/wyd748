@@ -1349,6 +1349,59 @@ func bindableCityAt(x, y uint16) (int, bool) {
 	return 0, false
 }
 
+// MODERNIZACAO_COMPATIVEL: keep the existing Merchant hometown bits, but bind
+// from confirmed server position rather than relying on a one-shot UI notice.
+// W2PP's ChangeCity uses TargetX/Y; Go must wait for authoritative movement.
+// Teleports use this same commit so their position and city roll back together.
+func stagePlayerHomeCity(p *Player) {
+	if p.Char.Score == nil {
+		return
+	}
+	if city, ok := bindableCityAt(p.X, p.Y); ok {
+		merchant := (p.Char.Score.Merchant &^ playerHomeCityMask) | uint32(city<<playerHomeCityShift)
+		p.Char.Score.Merchant = merchant
+		if p.Char.RuntimeScore != nil {
+			p.Char.RuntimeScore.Merchant = merchant
+		}
+	}
+}
+
+// The caller owns position rollback; this commit restores both Merchant fields
+// on failure. Quest teleports stage the same change in their wider transaction.
+func (w *World) savePlayerLocation(p *Player) error {
+	if p.Char.Score == nil {
+		return w.saveAccount(p.Account)
+	}
+	previousMerchant := p.Char.Score.Merchant
+	previousRuntimeMerchant := uint32(0)
+	if p.Char.RuntimeScore != nil {
+		previousRuntimeMerchant = p.Char.RuntimeScore.Merchant
+	}
+	stagePlayerHomeCity(p)
+	if err := w.saveAccount(p.Account); err != nil {
+		p.Char.Score.Merchant = previousMerchant
+		if p.Char.RuntimeScore != nil {
+			p.Char.RuntimeScore.Merchant = previousRuntimeMerchant
+		}
+		return err
+	}
+	return nil
+}
+
+func (w *World) bindPlayerHomeCity(p *Player) {
+	if p == nil || !p.InWorld || p.Char == nil || p.Char.Score == nil || p.Account == nil {
+		return
+	}
+	city, ok := bindableCityAt(p.X, p.Y)
+	if !ok || playerHomeCity(p.Char) == city {
+		return
+	}
+	if err := w.savePlayerLocation(p); err != nil {
+		log.Printf("[#%d] ChangeCity falhou ao persistir %s[%d]: %v",
+			p.Session.ID, cityWarZones[city].name, city, err)
+	}
+}
+
 // recallPlayer recolhe o jogador para a cidade. E o servico UNICO do
 // renascimento (onRestart) e do reset de area de quest, para nao divergirem.
 //
@@ -1469,23 +1522,8 @@ func (w *World) onChangeCity(s *net.Session, pkt []byte) {
 		return
 	}
 
-	previousMerchant := p.Char.Score.Merchant
-	previousRuntimeMerchant := uint32(0)
-	if p.Char.RuntimeScore != nil {
-		previousRuntimeMerchant = p.Char.RuntimeScore.Merchant
-	}
-	merchant := (previousMerchant & 0x3F) | uint32(city<<playerHomeCityShift)
-	p.Char.Score.Merchant = merchant
-	if p.Char.RuntimeScore != nil {
-		p.Char.RuntimeScore.Merchant = merchant
-	}
-	if err := w.saveAccount(p.Account); err != nil {
-		p.Char.Score.Merchant = previousMerchant
-		if p.Char.RuntimeScore != nil {
-			p.Char.RuntimeScore.Merchant = previousRuntimeMerchant
-		}
-		log.Printf("[#%d] ChangeCity falhou ao persistir %s[%d]: %v",
-			s.ID, cityWarZones[city].name, city, err)
+	w.bindPlayerHomeCity(p)
+	if playerHomeCity(p.Char) != city {
 		return
 	}
 	if reportedVillage != uint32(city) {

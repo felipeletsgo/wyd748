@@ -3,6 +3,7 @@
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "WYD748Assets.h"
+#include "../../application/CCModePolicy.h"
 
 int TextureManager::DYNAMIC_TEXTURE_WIDTH = 256;
 int TextureManager::DYNAMIC_TEXTURE_HEIGHT = 256;
@@ -230,6 +231,12 @@ int TextureManager::InitUITextureList()
 		return 0;
 	}
 
+	// Isolated 7.59 CC atlas; slot 511 is empty in the shipped 7.48 table.
+	if (m_stUITextureList[cc_mode::TextureSlot].szFileName[0] == '\0')
+	{
+		strcpy_s(m_stUITextureList[cc_mode::TextureSlot].szFileName, "UI\\CC759.wyt");
+		m_stUITextureList[cc_mode::TextureSlot].cAlpha = 'A';
+	}
 	return 1;
 }
 
@@ -477,6 +484,20 @@ int TextureManager::InitUITextureSetList()
 	}
 
 	fclose(fp);
+	// 7.59 UITextureSetList: 455/456/458..465 and 525, atlas NUI/main.wyt.
+	// Reserve new sets so the native 318/319 buttons retain their original art.
+	const int ccX[] = {212, 92, 62, 122, 122, 152, 32, 2, 242, 110};
+	for (int i = 0; i < _countof(ccX); ++i)
+	{
+		auto& set = m_UITextureSetList[cc_mode::FirstTextureSet + i];
+		if (set.pTextureCoord)
+			continue;
+		set.nCount = 4;
+		set.pTextureCoord = new ControlTextureCoord[4];
+		for (int state = 0; state < 4; ++state)
+			set.pTextureCoord[state] = {cc_mode::TextureSlot, ccX[i], i == 9 ? 23 : 98,
+				i == 9 ? 30 : 29, i == 9 ? 30 : 29, 0, 0};
+	}
 	return 1;
 }
 

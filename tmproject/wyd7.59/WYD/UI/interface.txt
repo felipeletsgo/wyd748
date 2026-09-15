@@ -1,0 +1,98 @@
+FFFFFF  
+FFFFFF Como manusear
+FFFFAA
+FFFFAA Usar Skill
+AAFFAA Abre janela de skill(S) escolha a skill que queira usar no lado
+AAFFAA µdireito inferior da tela e registre no "Slot rápido de skill". Use tecla 1 - 10
+AAFFAA ou F1 a F10 + o botão direito do mouse.
+FFFFFF  
+FFFFFF Auto Ataque
+FFFFAA
+FFFFAA Acionar Auto-ataque
+AAFFAA Apertar no botão "auto-ataque" ou teclar a tecla "T" para ligar/desligar auto-ataque.
+AAFFAA Ataca automaticamente um alvo selecionado até que outra ordem seja comandada
+AAFFAA ÀDurante o ataque - O botão direito do mouse usa skill
+AAFFAA e botão esquerdo faz ataques comuns. Pode definir quantidade de skill com "-”
+FFFFFF  
+FFFFFF Tecla de atalho
+FFFFAA
+FFFFAA F1 - F10 ou 1 a 10
+AAFFAA Usa a Skill do Slot de Skill rápida
+FFFFAA
+FFFFAA Shift + 1 - 10 ou Shift + F1 - F10
+AAFFAA Registra a skill no Slot de Skill rápida
+FFFFAA
+FFFFAA -
+AAFFAA Controla a quant. de skill no auto ataque
+AAFFAA É possível ter de 2 a 10
+FFFFAA
+FFFFAA Q
+AAFFAA Usa poção de energia (vida)
+FFFFAA
+FFFFAA W
+AAFFAA Usa poção de mana
+FFFFAA
+FFFFAA E
+AAFFAA Usa poção kappa
+FFFFAA
+FFFFAA V
+AAFFAA Dá comida para Montaria
+FFFFAA
+FFFFAA F11
+AAFFAA Usa pergaminho de volta
+FFFFAA
+FFFFAA Ctrl
+AAFFAA ver nome dos itens que caíram no chão
+FFFFAA
+FFFFAA Print Scrn SysRq
+AAFFAA Tira screenshot, é guardado na pasta do WYD.
+FFFFAA
+FFFFAA C
+AAFFAA Abrir a janela de personagem
+FFFFAA
+FFFFAA I
+AAFFAA Abrir inventário
+FFFFAA
+FFFFAA S
+AAFFAA Abrir janela de skill
+FFFFAA
+FFFFAA P ou D
+AAFFAA Abrir a janela de grupo
+FFFFAA
+FFFFAA M ou A
+AAFFAA Abrir minimapa
+FFFFAA
+FFFFAA R
+AAFFAA Modo de correr da Montaria
+FFFFAA
+FFFFAA ~
+AAFFAA Modo PvP liga/desliga
+FFFFAA
+FFFFAA T
+AAFFAA Auto ataque liga/desliga
+FFFFAA
+FFFFAA N
+AAFFAA Exibe nome dos personagens liga/desliga
+FFFFAA
+FFFFAA Tab
+AAFFAA Muda a visualização
+FFFFAA
+FFFFAA Enter
+AAFFAA Usar chat
+FFFFAA
+FFFFAA +
+AAFFAA Controla o tamanho da janela de chat
+FFFFAA
+FFFFAA PageUp ou PageDown
+AAFFAA Controla a barra de scroll do Chat
+FFFFAA
+FFFFAA Setas cima ou baixo
+AAFFAA Ver as mensagens já escritas no Chat.
+FFFFAA
+FFFFAA F
+AAFFAA Abrir o Fórum do Guilda
+FFFFAA
+FFFFAA H
+AAFFAA Abrir janela de ajuda
+FFFFFF  
+

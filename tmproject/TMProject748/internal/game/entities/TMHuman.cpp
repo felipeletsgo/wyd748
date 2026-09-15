@@ -2057,7 +2057,7 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
 
     if (m_stPunchEvent.dwTime && dwServerTime > m_stPunchEvent.dwTime + 200)
     {
-        Punched(m_stPunchEvent.nDamage, m_stPunchEvent.vecFrom);
+        Punched(m_stPunchEvent.nDamage, m_stPunchEvent.vecFrom, m_stPunchEvent.SkillIndex);
         memset(&m_stPunchEvent, 0, sizeof(m_stPunchEvent));
         m_stPunchEvent.dwTime = 0;
     }
@@ -8985,19 +8985,11 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
     if (m_stEffectEvent.dwTime && dwServerTime > m_stEffectEvent.dwTime)
     {      
         float fWantAngle = atan2f(m_stEffectEvent.vecTo.x - m_vecPosition.x, m_stEffectEvent.vecTo.z - m_vecPosition.y) + D3DXToRadian(90);
-        if (!m_stEffectEvent.pTarget || !g_pCurrentScene->m_pMyHuman)
-        {
-            m_stEffectEvent.sEffectIndex = 0;
-        }
-        else
-        {
-            int nDistance = BASE_GetDistance((int)g_pCurrentScene->m_pMyHuman->m_vecPosition.x, (int)g_pCurrentScene->m_pMyHuman->m_vecPosition.y,
-                (int)m_stEffectEvent.pTarget->m_vecPosition.x, (int)m_stEffectEvent.pTarget->m_vecPosition.y);
-            if (nDistance > 20)
-                m_stEffectEvent.sEffectIndex = 0;
-        }
+        // Native 7.48 also dispatches ground casts (pTarget == nullptr).
+        // Keep their skill ID: vecTo carries the destination without an actor.
 
-        if (m_stEffectEvent.sEffectIndex < 248)
+        // Remote actors' effects must not change the local player's skill timers.
+        if (this == pScene->m_pMyHuman && m_stEffectEvent.sEffectIndex >= 0 && m_stEffectEvent.sEffectIndex < 248)
         {
             if (!pScene->m_dwSkillLastTime[m_stEffectEvent.sEffectIndex] || pScene->m_dwSkillLastTime[m_stEffectEvent.sEffectIndex] >= m_stEffectEvent.dwTime)
                 pScene->m_dwSkillLastTime[m_stEffectEvent.sEffectIndex] = dwServerTime;
@@ -9011,21 +9003,16 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
             TMVector3 vecStart{ m_vecPosition.x, m_fHeight + 1.0f, m_vecPosition.y };
             TMVector3 vecDest{ m_stEffectEvent.vecTo.x, m_stEffectEvent.vecTo.y, m_stEffectEvent.vecTo.z };
 
-            if (m_stEffectEvent.sEffectIndex == 16)
+            if (m_stEffectEvent.sEffectIndex == 2)
             {
-                if (m_vecPosition.x == m_stEffectEvent.pTarget->m_vecPosition.x && m_vecPosition.y == m_stEffectEvent.pTarget->m_vecPosition.y)
-                {
-                    auto pSlow = new TMSkillSlowSlash(vecStart, vecStart, 0, m_stEffectEvent.pTarget);
-                    g_pCurrentScene->m_pEffectContainer->AddChild(pSlow);
-                }
+                auto pSlow = new TMSkillSlowSlash(vecStart, vecStart, 0, m_stEffectEvent.pTarget);
+                g_pCurrentScene->m_pEffectContainer->AddChild(pSlow);
             }
             else if (m_stEffectEvent.sEffectIndex == 3)
             {
-                auto vecTarget = vecDest;
-                vecTarget.y = (float)pScene->GroundGetMask(TMVector2{ vecDest.x, vecDest.z }) * 0.1f;
-
-                auto pHaste = new TMSkillHaste(vecTarget, 3);
-                g_pCurrentScene->m_pEffectContainer->AddChild(pHaste);
+                if (m_stEffectEvent.pTarget && m_stEffectEvent.pTarget->m_pRescue)
+                    m_stEffectEvent.pTarget->m_pRescue->StartVisible(dwServerTime);
+                GetSoundAndPlay(158, 0, 0);
             }
             else if (m_stEffectEvent.sEffectIndex == 13)
             {
@@ -9102,7 +9089,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
 
                 g_pCurrentScene->m_pEffectContainer->AddChild(pCrArmor);
             }
-            else if (m_stEffectEvent.sEffectIndex == 2 || m_stEffectEvent.sEffectIndex == 12 || m_stEffectEvent.sEffectIndex == 28)
+            else if (m_stEffectEvent.sEffectIndex == 16 || m_stEffectEvent.sEffectIndex == 12 || m_stEffectEvent.sEffectIndex == 28)
             {
                 vecDest.y += 1.0f;
                 int nLevel = 0;
@@ -9192,7 +9179,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
             }
             else if (m_stEffectEvent.sEffectIndex == 22)
             {
-                TMVector3 vec{ vecDest.x, vecDest.z, vecDest.y + 1.0f };
+                TMVector3 vec{ vecDest.x, vecDest.y + 1.0f, vecDest.z };
                 auto pBash = new TMSkillBash(vec, 1);
                 g_pCurrentScene->m_pEffectContainer->AddChild(pBash);
             }
@@ -9380,7 +9367,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                 auto pPoison = new TMSkillPoison(vecDest, dwColor, 10, 1, 0);
                 g_pCurrentScene->m_pEffectContainer->AddChild(pPoison);
             }     
-            else if (m_stEffectEvent.sEffectIndex == 41 || m_stEffectEvent.sEffectIndex == 43 || m_stEffectEvent.sEffectIndex == 54)
+            else if (m_stEffectEvent.sEffectIndex == 41 || m_stEffectEvent.sEffectIndex == 43 || m_stEffectEvent.sEffectIndex == 90 || m_stEffectEvent.sEffectIndex == 54)
             {            
                 auto vec = vecDest;
                 vec.y = (float)pScene->GroundGetMask(TMVector2(vecDest.x, vecDest.z)) * 0.1f;
@@ -9388,6 +9375,8 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                 int nType = 0;
                 if (m_stEffectEvent.sEffectIndex == 43)
                     nType = 1;
+                if (m_stEffectEvent.sEffectIndex == 90)
+                    nType = 2;
                 if (m_stEffectEvent.sEffectIndex == 54)
                     nType = 3;
 
@@ -9396,7 +9385,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
             }
             else if (m_stEffectEvent.sEffectIndex == 42)
             {
-                auto pPortal = new TMSkillTownPortal({ vecStart.x, vecStart.z, vecStart.y - 1.0f }, 0);
+                auto pPortal = new TMSkillTownPortal({ vecStart.x, vecStart.y - 1.0f, vecStart.z }, 0);
                 g_pCurrentScene->m_pEffectContainer->AddChild(pPortal);
             }
             else if (m_stEffectEvent.sEffectIndex == 44)
@@ -9603,7 +9592,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                     GetSoundAndPlay(11 * nType + 160, 0, 0);
                 }
             }
-            else if (m_stEffectEvent.sEffectIndex == 75)
+            else if (m_stEffectEvent.sEffectIndex == 74)
             {
                 for (int i = 0; i < 5; i++)
                 {
@@ -9677,7 +9666,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                     g_pCurrentScene->m_pEffectContainer->AddChild(pBill2);
                 }
             }
-            else if (m_stEffectEvent.sEffectIndex == 81)
+            else if (m_stEffectEvent.sEffectIndex == 79)
             {
                 for (int i = 0; i < 6; i++)
                 {
@@ -9697,7 +9686,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                     g_pCurrentScene->m_pEffectContainer->AddChild(pSoul);
                 }
             }
-            else if (m_stEffectEvent.sEffectIndex == 85)
+            else if (m_stEffectEvent.sEffectIndex == 86)
             {
                 auto pLevelUp = new TMEffectLevelUp({ m_vecPosition.x, m_fHeight, m_vecPosition.y }, 1);
                 g_pCurrentScene->m_pEffectContainer->AddChild(pLevelUp);
@@ -9758,7 +9747,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                     GetSoundAndPlay(160, 0, 0);
                 }
             }
-            else if (m_stEffectEvent.sEffectIndex == 89)
+            else if (m_stEffectEvent.sEffectIndex == 89 && m_pSkinMesh)
             {
                 for (int i = 0; i < 5; i++)
                 {
@@ -9806,11 +9795,11 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                     g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
                 }
             }
-            else if (m_stEffectEvent.sEffectIndex == 90)
+            else if (m_stEffectEvent.sEffectIndex == 91)
             {
                 GetSoundAndPlay(169, 0, 0);
             }
-            else if (m_stEffectEvent.sEffectIndex == 79)
+            else if (m_stEffectEvent.sEffectIndex == 95)
             {
                 vecDest.y += 1.2f;
                 auto vecTempDest = vecDest;
@@ -9880,7 +9869,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                 }
             }
             else if (m_stEffectEvent.sEffectIndex >= 151 && m_stEffectEvent.sEffectIndex <= 153 ||
-                m_stEffectEvent.sEffectIndex == 104 || m_stEffectEvent.sEffectIndex == 105 || m_stEffectEvent.sEffectIndex == 90)
+                m_stEffectEvent.sEffectIndex == 104 || m_stEffectEvent.sEffectIndex == 105)
             {
                 vecStart.y = ((float)(TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) * 0.69999999f) + m_fHeight;
                 if (m_nSkinMeshType == 8)
@@ -9923,7 +9912,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
             }
         }
         if ((m_stEffectEvent.sEffectIndex < 151 || m_stEffectEvent.sEffectIndex > 153) && 
-            m_stEffectEvent.sEffectIndex != 104 && m_stEffectEvent.sEffectIndex != 105 && m_stEffectEvent.sEffectIndex != 90 || 
+            m_stEffectEvent.sEffectIndex != 104 && m_stEffectEvent.sEffectIndex != 105 ||
             !m_bDoubleAttack || m_nDoubleCount >= 2)
         {
             memset(&m_stEffectEvent, 0, sizeof(m_stEffectEvent));
@@ -11526,9 +11515,9 @@ void TMHuman::Attack(ECHAR_MOTION eMotion, TMVector2 vecTarget, char cSkillIndex
         for (int i = 0; i < 4; ++i)
         {
             if (m_nSkinMeshType == 1)
-                m_eMotionBuffer[i] = (ECHAR_MOTION)(g_pSpell[cSkillIndex].Act2[i + m_cMount ? 3 : 0] - 1);
+                m_eMotionBuffer[i] = (ECHAR_MOTION)(g_pSpell[cSkillIndex].Act2[i + (m_cMount == 1 ? 3 : 0)] - 1);
             else
-                m_eMotionBuffer[i] = (ECHAR_MOTION)(g_pSpell[cSkillIndex].Act1[i + m_cMount ? 3 : 0] - 1);
+                m_eMotionBuffer[i] = (ECHAR_MOTION)(g_pSpell[cSkillIndex].Act1[i + (m_cMount == 1 ? 3 : 0)] - 1);
         }
 
         m_eMotionBuffer[3] = ECHAR_MOTION::ECMOTION_NONE;
@@ -11620,7 +11609,7 @@ void TMHuman::Attack(ECHAR_MOTION eMotion, TMHuman* pTarget, short cSkillIndex)
     }
 }
 
-void TMHuman::Punched(int nDamage, TMVector2 vecFrom)
+void TMHuman::Punched(int nDamage, TMVector2 vecFrom, short sSkillIndex)
 {
     if (m_dwDelayDel)
         return;
@@ -11663,7 +11652,8 @@ void TMHuman::Punched(int nDamage, TMVector2 vecFrom)
             {
                 float fSize = (float)(TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) + 1.01f;
 
-                auto pDamageEffect = new TMEffectBillBoard(119,
+                int nDamageTexture = (sSkillIndex >= 0 && sSkillIndex < 248) ? 120 : 119;
+                auto pDamageEffect = new TMEffectBillBoard(nDamageTexture,
                     500,
                     1.5f * fSize,
                     1.5f * fSize,
@@ -15813,7 +15803,7 @@ int TMHuman::MAutoAttack(TMHuman* pTarget, int mode)
         stAttack.TargetX = (int)pTargetHuman->m_vecPosition.x;
         stAttack.TargetY = (int)pTargetHuman->m_vecPosition.y;
         
-        int nSize = sizeof(MSG_Attack);
+        int nSize = sizeof(MSG_AttackOne);
         if (pMobData->Class == 3 && pMobData->LearnedSkill[0] & 0x200000)
         {
             stAttack.Header.Type = MSG_Attack_Two_Opcode;

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TMFont3.h"
 #include "TMGlobal.h"
+#include "../../application/DamageNumberPolicy.h"
 
 TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, float fSize, unsigned int dwDelay, short sDir, unsigned int dwLifeTime, int bViewHalf, int nType)
 	: TreeNode(0),
@@ -11,7 +12,7 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 	m_fScale = 0.69999999f;
 	m_fVisualProgress = 0.0;
 	m_nStrLen = 0;
-	m_nTextureSetIndex = -1;
+	m_nTextureSetIndex = damage_number::TextureSet(nType);
 	m_nType = nType;
 	m_bViewHalf = bViewHalf;
 	m_vecPosition.x = nStartX;
@@ -30,30 +31,22 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 	{
 	case 1: //exp
 		m_fScale = 0.60000002f;
-		m_nTextureSetIndex = 137;
 		break;
 	case 2: //cura
-		m_nTextureSetIndex = 138;
 		break;
 	case 3: //atk vfisico
-		m_nTextureSetIndex = 139;
 		break;
 	case 4: //veneno
-		m_nTextureSetIndex = 140;
 		break;
 	case 5: //critico
-		m_nTextureSetIndex = 141;
 		m_fScale = 1.1f;
 		break;
 	case 6: //critico max
-		m_nTextureSetIndex = 141;
 		m_fScale = 0.80000001f;
 		break;
 	case 7: // atk mg
-		m_nTextureSetIndex = 143;
 		break;
 	case 8: //critico mg
-		m_nTextureSetIndex = 144;
 		m_fScale = 1.1f;
 		break;
 	}

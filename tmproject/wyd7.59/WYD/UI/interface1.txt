@@ -1,0 +1,10 @@
+FFFFFF Selecionar Skill do Slot de Skill rápida
+FFFFFF Registrar Skill no Slot de Skill rápida
+FFFFFF Quantidade de Skill`s no modo auto ataque
+FFFFFF Usar poção de energia (vida)
+FFFFFF Usar poção de mana
+FFFFFF Usar poção de Kappa
+FFFFFF Dar comida para a Montaria
+FFFFFF Usar pergaminho de recall
+FFFFFF Ver nome dos itens no chão
+FFFFFF Tirar Screenshot e armazenar na pasta.

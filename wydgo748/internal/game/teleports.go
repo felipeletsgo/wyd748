@@ -40,7 +40,7 @@ func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
 	oldX, oldY := p.X, p.Y
 	p.X, p.Y = x, y
 	p.Char.X, p.Char.Y = x, y
-	if err := w.saveAccount(p.Account); err != nil {
+	if err := w.savePlayerLocation(p); err != nil {
 		p.X, p.Y = oldX, oldY
 		p.Char.X, p.Char.Y = oldX, oldY
 		log.Printf("[#%d] salvar teleporte: %v", p.Session.ID, err)

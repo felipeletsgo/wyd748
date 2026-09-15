@@ -4530,16 +4530,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 			(g_pSpell[cSkillIndex].AffectType > 0 || g_pSpell[cSkillIndex].TickType > 0) &&
 			g_pSpell[cSkillIndex].Passive != 1)
 		{
-			int Delay = g_pSpell[cSkillIndex].Delay;
-			if (pFScene->m_nMySanc >= 9 && Delay >= 2)
-				--Delay;
-			if (pMyHuman->m_DilpunchJewel == 1)
-				--Delay;
-
-			if (Delay < 1)
-				Delay = 1;
-
-			if (dwServerTime < pFScene->m_dwSkillLastTime[cSkillIndex] + 1000 * Delay ||
+			if (pFScene->IsSkillCoolingDown(cSkillIndex, dwServerTime) ||
 				dwServerTime < pFScene->m_dwSkillLastTime[cSkillIndex] + 1000 ||
 				dwServerTime < pFScene->m_dwOldAttackTime + 1000)
 				return;

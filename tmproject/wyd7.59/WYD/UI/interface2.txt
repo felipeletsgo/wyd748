@@ -1,0 +1,10 @@
+FFFFFF Abrir janela de personagem
+FFFFFF Abrir janela de inventário
+FFFFFF Abrir janela de Skill
+FFFFFF Abrir janela de grupo
+FFFFFF Abrir janela de mini-mapa
+FFFFFF Liga o modo Correr da montaria
+FFFFFF Modo PvP liga/desliga (use o atalho K para PvP)
+FFFFFF Auto ataque liga/desliga
+FFFFFF Exibe nome dos personagens liga/desliga
+FFFFFF Muda visualização

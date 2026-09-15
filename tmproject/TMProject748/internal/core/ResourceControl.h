@@ -1948,6 +1948,10 @@ constexpr auto T_CCMODE_HPSTE = 66823;
 constexpr auto T_CCMODE_MOUNTSTE = 66824;
 constexpr auto B_CCMODE_JEWEL = 66825;
 constexpr auto T_CCMODE_JEWEL = 66826;
+// Local 7.48 CC presentation; do not alias the newer jewel controls.
+constexpr auto T_CCMODE_COMPAT_MODE = 66828;
+constexpr auto T_CCMODE_COMPAT_MOVE = 66829;
+constexpr auto B_CCMODE_COMPAT_CLOSE = 66830;
 constexpr auto P_INV_GRID1 = 67072;
 constexpr auto P_INV_GRID2 = 67073;
 constexpr auto P_INV_GRID3 = 67074;

@@ -5,7 +5,7 @@ Caminhos foram normalizados para a arquitetura atual. Fichas e handoffs
 preservam o estado histórico da validação; não são prova de conclusão atual.
 Assets e dumps binários não são documentos. O acervo nativo está em `references/client748/`.
 
-Documentos Markdown: 139.
+Documentos Markdown: 140.
 
 | Documento | Tipo |
 | --- | --- |
@@ -145,6 +145,7 @@ Documentos Markdown: 139.
 | [DOCS/server/boss-data.md](<server/boss-data.md>) | Documentacao do produto |
 | [DOCS/server/operations.md](<server/operations.md>) | Documentacao do produto |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Documentacao do produto |
+| [DOCS/w2pp-go-gap-analysis.md](<w2pp-go-gap-analysis.md>) | Documentacao do produto |
 | [DOCS/wire-opcode-catalog.md](<wire-opcode-catalog.md>) | Documentacao do produto |
 | [DOCS/WYD-WEB-PLATAFORM.md](<WYD-WEB-PLATAFORM.md>) | Documentacao do produto |
 | [README.md](<../README.md>) | Documentacao do produto |

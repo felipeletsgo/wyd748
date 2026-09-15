@@ -16,7 +16,7 @@ TMSkillMagicShield::TMSkillMagicShield(TMObject* pParent, int nType)
 	m_pOwner = pParent;
 
 	if (m_pOwner)
-		m_vecPosition = { m_pOwner->m_vecPosition.x, m_pOwner->m_fHeight, m_vecPosition.y };
+		m_vecPosition = { m_pOwner->m_vecPosition.x, m_pOwner->m_fHeight, m_pOwner->m_vecPosition.y };
 	else
 		m_vecPosition = TMVector3{};
 

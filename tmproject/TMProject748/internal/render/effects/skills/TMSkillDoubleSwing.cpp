@@ -6,6 +6,7 @@
 #include "TMShade.h"
 #include "TMGlobal.h"
 #include "TMMesh.h"
+#include "../../mesh/EffectVertexColor.h"
 #include "TMObject.h"
 #include "TMSkillFire.h"
 
@@ -164,7 +165,8 @@ int TMSkillDoubleSwing::Render()
     if (m_nLevel != 3)
         pMesh->Render(m_vecPosition.x, m_vecPosition.y, m_vecPosition.z, m_fAngle, m_fAngle2, D3DXToRadian(90), 0, 0);
 
-    m_pLightMap->RenderUnder();
+    if (m_pLightMap)
+        m_pLightMap->RenderUnder();
     g_pDevice->SetRenderState(D3DRS_CULLMODE, 3u);
     g_pDevice->SetRenderState(D3DRS_LIGHTING, 1u);
     g_pDevice->SetRenderState(D3DRS_SRCBLEND, 2u);
@@ -190,31 +192,32 @@ int TMSkillDoubleSwing::FrameMove(unsigned int dwServerTime)
 {
     dwServerTime = g_pTimerManager->GetServerTime();
 
+    // Lifetime must advance even when the mesh failed to load or is offscreen.
+    m_fProgress = (float)(dwServerTime - m_dwStartTime) / (float)m_dwLifeTime;
+    if (m_fProgress >= 1.0f || (m_nLevel == 4 && m_fProgress > 0.5f))
+    {
+        g_pObjectManager->DeleteObject(this);
+        return 1;
+    }
+
     auto pMesh = g_pMeshManager->GetCommonMesh(m_nMeshIndex, 1, 180000);
     if (!pMesh)
         return 0;
     if (!IsVisible())
         return 0;
-    D3DVERTEXBUFFER_DESC vDesc;
-    pMesh->m_pVB->GetDesc(&vDesc);
-    RDLVERTEX* pVertex;
-    pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-    int nCount = vDesc.Size / sizeof(RDLVERTEX);
     unsigned int dwCol = 0xFFAAAAAA;
     if (m_nLevel == 1)
         dwCol = 0xFFFF0000;
     if (m_nLevel == 4)
         dwCol = 0xFFDD4400;
 
-    for (int i = 0; i < nCount; ++i)
-        pVertex[i].diffuse = dwCol;
-
-    pMesh->m_pVB->Unlock();
+    if (!effect_vertex_color::TrySetDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(
+        pMesh->m_pVB, pMesh->m_sizeVertex,
+        D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1, dwCol))
+        return 0;
     pMesh->m_nTextureIndex[0] = 91;
     IsVisible();
 
-    m_fProgress = (float)(dwServerTime - m_dwStartTime) / (float)m_dwLifeTime;
     if (m_fProgress > 0.5f && m_pOwner)
         m_pOwner = 0;
     if (m_pOwner)
@@ -229,15 +232,6 @@ int TMSkillDoubleSwing::FrameMove(unsigned int dwServerTime)
     if (m_nLevel == 2)
         m_fAngle2 = ((float)(dwServerTime % 1000) * D3DXToRadian(360)) / 1000.0f;
 
-    // TODO: check why here not return
-    if (m_nLevel == 4 && m_fProgress > 0.5f)
-        g_pObjectManager->DeleteObject(this);
-    if (m_fProgress >= 1.0f)
-    {
-        g_pObjectManager->DeleteObject(this);
-        return 1;
-    }
-
     if (m_nLevel == 4)
         m_vecPosition = (m_vecStartPos * (1.0f - m_fProgress)) + ((m_vecTargetPos + (vecDPos * 2.0f)) * m_fProgress);
     else
@@ -245,12 +239,16 @@ int TMSkillDoubleSwing::FrameMove(unsigned int dwServerTime)
 
     if (m_nLevel == 2 || m_nLevel == 3)
     {
-        m_pCenterLight->m_vecPosition = m_vecPosition;
-        m_pCenterLight2->m_vecPosition = m_vecPosition;
-        m_pCenterFlare->m_vecPosition = m_vecPosition;
+        if (m_pCenterLight)
+            m_pCenterLight->m_vecPosition = m_vecPosition;
+        if (m_pCenterLight2)
+            m_pCenterLight2->m_vecPosition = m_vecPosition;
+        if (m_pCenterFlare)
+            m_pCenterFlare->m_vecPosition = m_vecPosition;
     }
 
-    m_pLightMap->SetPosition({ m_vecPosition.x, m_vecPosition.z });
+    if (m_pLightMap)
+        m_pLightMap->SetPosition({ m_vecPosition.x, m_vecPosition.z });
     if (m_nLevel != 3 && dwServerTime - m_dwOldTime > 100)
     {
         int nRand = rand() % 5;

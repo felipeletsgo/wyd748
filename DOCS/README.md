@@ -14,6 +14,10 @@ Comece por [Build e integração](build-and-integration.md),
 [Score e contrato atual](SCORE.md) e [revisão da organização](organization-review.md).
 O calendário, recompensas, comandos e pendências das guerras estão em
 [Guerras de guilda](guild-wars.md).
+As diferenças funcionais e arquiteturais encontradas na auditoria estática do
+W2PP contra o servidor atual estão em
+[Auditoria W2PP x WYD-Go](w2pp-go-gap-analysis.md); o W2PP é tratado ali como
+referência comparativa, não como autoridade de paridade 7.48.
 O [plano da plataforma web](WYD-WEB-PLATAFORM.md) separa a base existente,
 o MVP proposto e as fases futuras; não é um registro de features implementadas.
 `EMULATOR.md`, `IMPLEMENTATION_STATUS.md`, `IMPLEMENTED.md` e `ROADMAP.md`

@@ -178,6 +178,31 @@ func TestValidateInboundCommandRejectsAttackWithAppendedPayload(t *testing.T) {
 	}
 }
 
+func TestCCAttackFramingPreservesConfirmedLayouts(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		opcode uint16
+		size   int
+		accept bool
+	}{
+		{"ported-multi-with-stop-opcode", wire.OpActionStop, 96, false},
+		{"legacy-single-extended-still-accepted", wire.OpAttackOne, 96, true},
+		{"single", wire.OpAttackOne, 48, true},
+		{"double", wire.OpAttackTwo, 52, true},
+		{"multi", wire.OpAttackMulti, 96, true},
+		{"movement-stop-unchanged", wire.OpActionStop, 52, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p, _ := networkedTestPlayer(1, "CCFraming", 2100, 2100)
+			w := worldWithNetworkedPlayers(p)
+			got := w.validateInboundCommand(p.Session, inboundPacket(tc.opcode, tc.size))
+			if got != tc.accept {
+				t.Fatalf("opcode 0x%X size %d: accepted=%v, want %v", tc.opcode, tc.size, got, tc.accept)
+			}
+		})
+	}
+}
+
 func TestValidateInboundCommandRejectsGuildControlPayloadSmuggling(t *testing.T) {
 	for _, opcode := range []uint16{
 		wire.OpGuildDeprivate, wire.OpGuildAlly, wire.OpGuildWar,

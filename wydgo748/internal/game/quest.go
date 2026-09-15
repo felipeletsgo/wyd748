@@ -363,6 +363,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	if teleportX != 0 && teleportY != 0 {
 		p.X, p.Y = teleportX, teleportY
 		p.Char.X, p.Char.Y = teleportX, teleportY
+		stagePlayerHomeCity(p)
 	}
 
 	// PostgreSQL confirma conta + charstate em uma unica transacao. Isso inclui

@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "TMFieldScene.h"
 #include "../../application/FieldInteractionPolicy.h"
+#include "../../application/CCModePolicy.h"
+#include "../../application/SkillCooldownPolicy.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "dsutil.h"
@@ -1746,6 +1748,18 @@ int TMFieldScene::InitializeCompatFieldScene()
 		LoadMsgLevel(m_pLevelQuest, "UI\\QuestMessage.txt", 100);
 		m_pNativeCCPhysicalBtn = static_cast<SButton*>(m_pControlContainer->FindControl(318));
 		m_pNativeCCMagicBtn = static_cast<SButton*>(m_pControlContainer->FindControl(319));
+		if (m_pNativeCCPhysicalBtn)
+		{
+			m_pNativeCCPhysicalBtn->SetVisible(0);
+			m_pNativeCCPhysicalBtn->SetEnable(0);
+			m_pNativeCCPhysicalBtn = nullptr;
+		}
+		if (m_pNativeCCMagicBtn)
+		{
+			m_pNativeCCMagicBtn->SetVisible(0);
+			m_pNativeCCMagicBtn->SetEnable(0);
+			m_pNativeCCMagicBtn = nullptr;
+		}
 		m_pServerPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12288));
 		m_pPartyPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1857));
 		m_pPartyList = static_cast<SListBox*>(m_pControlContainer->FindControl(1863));
@@ -2242,6 +2256,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 	// opcode 0x378, so both runtime belts must exist before queued world packets
 	// are dispatched after this initializer returns.
 	InitializeCompatSkillBelts();
+	InitializeCompatCCControls();
 	InitializeFireWorkControls();
 	InitializeQuizEventControls();
 	UpdateCompatLearnedSkillUI();
@@ -2256,6 +2271,131 @@ int TMFieldScene::InitializeCompatFieldScene()
 	SetCameraView();
 	UpdateCompatScoreUI();
 	return 1;
+}
+
+void TMFieldScene::InitializeCompatCCControls()
+{
+	if (!m_pControlContainer || m_pccmode)
+		return;
+
+	// Recreate only the CC subtree from 7.59 FieldScene2, after ABI detection.
+	// SControl scales logical coordinates once; the container owns every child.
+	// Compact layout: about half the previous area, without scaling the font.
+	m_pccmode = new SPanel(164, 0.0f, 0.0f, 180.0f, 64.0f,
+		0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+	m_pccmode->SetControlID(T_CCMODE_DLG);
+	m_pControlContainer->AddItem(m_pccmode);
+
+	auto addText = [this](unsigned int id, const char* text, float x, float y, float width)
+	{
+		auto label = new SText(-1, text, 0xFFFFFFFF, x, y, width, 16.0f,
+			0, 0xFF333333, SText::TEXT_TYPE_SHADOW, SText::TEXT_ALIGN_CENTER);
+		label->SetControlID(id);
+		label->m_bSelectEnable = 0;
+		m_pccmode->AddChild(label);
+		return label;
+	};
+	addText(0, "Controle de Combate", 4.0f, 2.0f, 150.0f);
+	m_pCCModeHpSte = addText(T_CCMODE_HPSTE, "", 46.0f, 46.0f, 44.0f);
+	m_pCCModeMountSte = addText(T_CCMODE_MOUNTSTE, "", 90.0f, 46.0f, 44.0f);
+	addText(T_CCMODE_COMPAT_MODE, "", 2.0f, 46.0f, 44.0f);
+	addText(T_CCMODE_COMPAT_MOVE, "", 134.0f, 46.0f, 44.0f);
+
+	auto addButton = [this](unsigned int id, int texture, float x, const char* tooltip)
+	{
+		char caption[128]{};
+		strcpy_s(caption, tooltip);
+		auto button = new SButton(texture, x, 20.0f, 26.0f, 26.0f,
+			0xFFFFFFFF, 1, caption);
+		button->SetControlID(id);
+		button->SetEventListener(m_pControlContainer);
+		m_pccmode->AddChild(button);
+		return button;
+	};
+	m_pMGameAutoBtn = addButton(B_CCMODE_DLG_MODE, 550, 11.0f, "Combate");
+	m_pCCPotionBtn = addButton(B_CCMODE_DLG_HP, 554, 55.0f, "Pocao HP/MP: clique para ajustar o percentual");
+	m_pCCFeedBtn = addButton(B_CCMODE_DLG_MOUNT, 555, 99.0f, "Racao: clique para ajustar ou desligar");
+	m_pSetType = addButton(P_CCMODE_DLG_PONT, 556, 143.0f, "Movimento");
+	char closeText[] = "X";
+	auto close = new SButton(-2, 160.0f, 2.0f, 16.0f, 16.0f, 0xFFFFFFFF, 1, closeText);
+	close->SetControlID(B_CCMODE_COMPAT_CLOSE);
+	close->SetEventListener(m_pControlContainer);
+	m_pccmode->AddChild(close);
+
+	char caption[] = "C.C. - configurar combate automatico";
+	m_pCC_Btn = new SButton(559, 0.0f, 0.0f, 30.0f, 30.0f, 0xFFFFFFFF, 1, caption);
+	m_pCC_Btn->SetControlID(B_CCMODE_SYSTEM);
+	m_pCC_Btn->SetEventListener(m_pControlContainer);
+	m_pControlContainer->AddItem(m_pCC_Btn);
+
+	// The native EXP segments are children of the bottom HUD, so their stored
+	// positions are relative to that hierarchy. Resolve their rendered bounds
+	// and anchor C.C. immediately above the actual EXP strip instead of using a
+	// resolution-dependent screen-height offset.
+	for (int index = 0; index < 10; ++index)
+	{
+		if (!m_pExpProgress[index])
+			m_pExpProgress[index] = static_cast<SProgressBar*>(
+				m_pControlContainer->FindControl(P_EXP_PROGRESS1 + index));
+	}
+
+	auto getRootPos = [this](SControl* control)
+	{
+		TMVector2 pos(control->m_nPosX, control->m_nPosY);
+		for (TreeNode* parent = control->m_pTop;
+			parent && parent != m_pControlContainer;
+			parent = parent->m_pTop)
+		{
+			// Resource-control parents between a leaf and SControlContainer are
+			// SControl nodes; FrameMove2 adds these same offsets while rendering.
+			auto parentControl = static_cast<SControl*>(parent);
+			pos.x += parentControl->m_nPosX;
+			pos.y += parentControl->m_nPosY;
+		}
+		return pos;
+	};
+
+	bool hasExpBounds = false;
+	float expLeft = 0.0f;
+	float expRight = 0.0f;
+	float expTop = 0.0f;
+	for (auto progress : m_pExpProgress)
+	{
+		if (!progress)
+			continue;
+
+		const TMVector2 pos = getRootPos(progress);
+		const float right = pos.x + progress->m_nWidth;
+		if (!hasExpBounds)
+		{
+			expLeft = pos.x;
+			expRight = right;
+			expTop = pos.y;
+			hasExpBounds = true;
+		}
+		else
+		{
+			if (pos.x < expLeft) expLeft = pos.x;
+			if (right > expRight) expRight = right;
+			if (pos.y < expTop) expTop = pos.y;
+		}
+	}
+
+	if (hasExpBounds)
+	{
+		const float gap = 3.0f * RenderDevice::m_fHeightRatio;
+		m_pCC_Btn->SetPos(
+			((expLeft + expRight) - m_pCC_Btn->m_nWidth) * 0.5f,
+			expTop - m_pCC_Btn->m_nHeight - gap);
+	}
+	else
+	{
+		// Defensive fallback for malformed/custom resources lacking EXP controls.
+		m_pCC_Btn->SetPos((g_pDevice->m_dwScreenWidth - m_pCC_Btn->m_nWidth) * 0.5f,
+			g_pDevice->m_dwScreenHeight - 96.0f * RenderDevice::m_fHeightRatio);
+	}
+	m_pccmode->SetVisible(0);
+	NewCCMode(false, true);
 }
 
 void TMFieldScene::PositionCompatFeaturePanels()
@@ -4520,13 +4660,6 @@ int TMFieldScene::InitializeScene()
 			OnKeyShortSkill(ie + 49, 0);
 	}
 
-	if (m_pMyHuman->Is2stClass() == 2 && g_pObjectManager->m_stMobData.CurrentScore.Level >= 79)
-		g_pSpell[102].Delay = 1000;
-
-
-  if(g_pItemList[pMobData->Equip[4].sIndex].nPos == 16)
-	  g_pSpell[40].Delay = 1;
-
 	if (!m_pObjectContainerList[0]->Load(szDataPath))
 	{
 		LOG_WRITELOG("DataFile Not Found\r\n");
@@ -4924,6 +5057,39 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		// from entering unrelated 7.59 handlers and dereferencing absent windows.
 		switch (idwControlID)
 		{
+		case B_CCMODE_SYSTEM:
+		case B_CCMODE_COMPAT_CLOSE:
+			if (m_pccmode)
+			{
+				if (!m_pccmode->IsVisible() && m_pCC_Btn)
+				{
+					// Both controls share root coordinates, already scaled by SControl.
+					// Re-anchor on every opening, with no gap above the launcher.
+					m_pccmode->SetPos(
+						m_pCC_Btn->m_nPosX + (m_pCC_Btn->m_nWidth - m_pccmode->m_nWidth) * 0.5f,
+						m_pCC_Btn->m_nPosY - m_pccmode->m_nHeight);
+				}
+				m_pccmode->SetVisible(!m_pccmode->IsVisible());
+				if (m_pCC_Btn)
+					m_pCC_Btn->SetSelected(m_pccmode->IsVisible());
+			}
+			return 1;
+		case B_CCMODE_DLG_HP:
+			g_GameAuto_hpValue = cc_mode::NextThreshold(g_GameAuto_hpValue);
+			NewCCMode();
+			return 1;
+		case B_CCMODE_DLG_MOUNT:
+			g_GameAuto_mountValue = cc_mode::NextThreshold(g_GameAuto_mountValue);
+			NewCCMode();
+			return 1;
+		case B_CCMODE_DLG_MODE:
+			g_GameAuto = (g_GameAuto + 1) % 4;
+			NewCCMode(true, true);
+			return 1;
+		case P_CCMODE_DLG_PONT:
+			m_AutoPostionUse = (m_AutoPostionUse + 1) % 3;
+			NewCCMode(true, true);
+			return 1;
 		case 318: // native physical C.C selector
 			return ToggleNativeCCMode(1);
 		case 319: // native magic C.C selector
@@ -8230,20 +8396,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		else if (pPartyItem && pPartyList->m_bRButton == 1)
 		{
 			int skillId = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
-			int delay = g_pSpell[skillId].Delay;
-			if (m_nMySanc >= 9 && delay >= 2)
-				--delay;
-
-			if (g_pItemList[g_pObjectManager->m_stMobData.Equip[4].sIndex].nPos == 16)
-				g_pSpell[40].Delay = 1;
-
-			if (m_pMyHuman->m_DilpunchJewel == 1)
-				--delay;
-
-			if (delay < 1)
-				delay = 1;
-
-			if (dwServerTime < m_dwSkillLastTime[skillId] + 1000 * delay)
+			if (IsSkillCoolingDown(skillId, dwServerTime))
 				return 1;
 
 			int Special = m_pMyHuman->m_stScore.Level;
@@ -9599,6 +9752,62 @@ int TMFieldScene::UpdateTeleportPrompt()
 	return 0;
 }
 
+int TMFieldScene::GetSkillDelay(int skillIndex) const
+{
+	if (skillIndex < 0 || skillIndex >= 248)
+		return 1;
+	// Keep source-HUD exceptions local; never mutate the shared skill catalog.
+	if (!m_bCompatFieldScene && m_pMyHuman && g_pObjectManager)
+	{
+		if (skillIndex == 102 && m_pMyHuman->Is2stClass() == 2 &&
+			g_pObjectManager->m_stMobData.CurrentScore.Level >= 79)
+			return 1000;
+		if (skillIndex == 40 &&
+			g_pItemList[g_pObjectManager->m_stMobData.Equip[4].sIndex].nPos == 16)
+			return 1;
+	}
+	return skill_cooldown::DelaySeconds(g_pSpell[skillIndex].Delay,
+		m_bCompatFieldScene != 0, m_nMySanc,
+		m_pMyHuman && m_pMyHuman->m_DilpunchJewel == 1);
+}
+
+bool TMFieldScene::IsSkillCoolingDown(int skillIndex, unsigned int now) const
+{
+	if (skillIndex < 0 || skillIndex >= 248)
+		return true;
+	return skill_cooldown::Active(now, m_dwSkillLastTime[skillIndex], GetSkillDelay(skillIndex));
+}
+
+void TMFieldScene::UpdateSkillCooldownUI(unsigned int now)
+{
+	if (!g_pObjectManager)
+		return;
+	for (int slot = 0; slot < 20; ++slot)
+	{
+		auto grid = slot < 10 ? m_pGridSkillBelt2 : m_pGridSkillBelt3;
+		SGridControlItem* item = nullptr;
+		// GetItem(x, y) changes hover state; a timer tick must not change selection.
+		if (grid)
+			for (int i = 0; i < grid->m_nNumItem; ++i)
+				if (grid->m_pItemList[i] && grid->m_pItemList[i]->PtAtItem(slot % 10, 0))
+				{
+					item = grid->m_pItemList[i];
+					break;
+				}
+		if (!item)
+			continue;
+		item->m_fTimer = 1.0f;
+		int skill = static_cast<unsigned char>(g_pObjectManager->m_cShortSkill[slot]);
+		if (skill >= 105)
+			skill += 95;
+		if (skill >= 248 || !item->m_pItem)
+			continue;
+		const int icon = skill < 200 ? skill + 5000 : skill + 5200;
+		if (item->m_pItem->sIndex == icon)
+			item->m_fTimer = skill_cooldown::Progress(now, m_dwSkillLastTime[skill], GetSkillDelay(skill));
+	}
+}
+
 int TMFieldScene::FrameMove(unsigned int dwServerTime)
 {
 	// The compatibility scene has no source-tree HUD graph.  The base scene
@@ -9625,7 +9834,12 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		// before this call left every 0x3B9 duration entry permanently invisible,
 		// even though InitializeCompatFieldScene created the native 7.48 icons.
 		Affect_Main(dwServerTime);
-		UpdateTeleportPrompt();
+		if (UpdateTeleportPrompt() == 1)
+			return 1;
+		// The 7.48 HUD has its own lifecycle, but CC still needs the existing
+		// item/skill/attack scheduler after transition gates, once per frame.
+		GameAuto();
+		UpdateSkillCooldownUI(dwServerTime);
 		return 1;
 	}
 
@@ -10881,62 +11095,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		}
 	}
 
-	auto pGridSkillBelt2 = m_pGridSkillBelt2;
-	auto pGridSkillBelt3 = m_pGridSkillBelt3;
-	int nSkill2 = -1;
-	int nSkill3 = -1;
-
-	for (size_t nShort = 0; nShort < 20; ++nShort)
-	{
-		char cSkillIndex = g_pObjectManager->m_cShortSkill[nShort];
-		if ((unsigned char)cSkillIndex >= 105)
-			cSkillIndex += 95;
-
-		unsigned int dwSub = dwServerTime - m_dwSkillLastTime[(unsigned char)cSkillIndex];
-		if (nShort >= 10)
-			++nSkill3;
-		else
-			++nSkill2;
-
-		if (dwSub)
-		{
-			float fTime = 0.0f;
-			int Delay = g_pSpell[(unsigned char)cSkillIndex].Delay;
-			if (m_nMySanc >= 9 && Delay >= 2)
-				--Delay;
-			if (m_pMyHuman->m_DilpunchJewel == 1)
-				--Delay;
-
-			if (g_pItemList[g_pObjectManager->m_stMobData.Equip[4].sIndex].nPos == 16)
-				g_pSpell[40].Delay = 1;
-
-			if (Delay < 1)
-				Delay = 1;
-
-			if (m_pMyHuman->Is2stClass() == 2 && cSkillIndex == 102	&& g_pObjectManager->m_stMobData.CurrentScore.Level >= 79)
-				Delay = 1000;
-
-
-			if (Delay > 0)
-				fTime = (float)dwSub / ((float)Delay * 1000.0f);
-			else
-				fTime = (float)dwSub / 1000.0f;
-
-			if (fTime > 0.0f && fTime < 1.0f)
-			{
-				auto pItem2 = pGridSkillBelt2->GetItem(nSkill2, 0);
-				if (nShort >= 10)
-					pItem2 = pGridSkillBelt3->GetItem(nSkill3, 0);
-				
-				if (pItem2)
-				{
-					int idx = (unsigned char)cSkillIndex < 200 ? (unsigned char)cSkillIndex + 5000 : (unsigned char)cSkillIndex + 5200;
-					if (pItem2->m_pItem->sIndex == idx)
-						pItem2->m_fTimer = fTime;
-				}
-			}
-		}
-	}
+	UpdateSkillCooldownUI(dwServerTime);
 	if (dwServerTime - m_dwChatTime > 10000)
 	{
 		char szMsg[128]{};
@@ -11428,7 +11587,7 @@ void TMFieldScene::MouseMove(int nX, int nY)
 
 int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)
 {
-	if (m_pPotalPanel->m_bVisible == 1)
+	if (m_pPotalPanel && m_pPotalPanel->m_bVisible == 1)
 		return 0;
 	if (g_pEventTranslator->m_bAlt == 1)
 		return 0;
@@ -11573,21 +11732,9 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 		}
 	}
 
-	int Delay = g_pSpell[(unsigned char)cSkillIndex].Delay;
-	if (m_nMySanc >= 9 && Delay >= 2)
-		--Delay;
-	if (m_pMyHuman->m_DilpunchJewel == 1)
-		--Delay;
-
-	if (g_pItemList[g_pObjectManager->m_stMobData.Equip[4].sIndex].nPos == 16)
-		g_pSpell[40].Delay = 1;
-
-	if (Delay < 1)
-		Delay = 1;
-
 	if (pOver && pOver->m_nClass == 66 && pOver->m_cShadow == 1 && !m_pMyHuman->m_JewelGlasses)
 		return 0;
-	if (dwServerTime < m_dwSkillLastTime[(unsigned char)cSkillIndex] + 1000 * Delay)
+	if (IsSkillCoolingDown((unsigned char)cSkillIndex, dwServerTime))
 		return 0;
 
 	if ((int)m_pMyHuman->m_vecPosition.x >= 2362 && (int)m_pMyHuman->m_vecPosition.x <= 2370 && 
@@ -13004,9 +13151,11 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 
 int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)
 {
+	if (!pTarget)
+		return 0;
 	if (m_pMyHuman->m_cHide == 1)
 		return 0;
-	if (m_pPotalPanel->m_bVisible == 1)
+	if (m_pPotalPanel && m_pPotalPanel->m_bVisible == 1)
 		return 0;
 	if (g_pEventTranslator->m_bAlt == 1)
 		return 0;
@@ -13061,22 +13210,9 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 	if (!IsValidClassSkill((unsigned char)cSkillIndex))
 		return 0;
 
-	int Delay = g_pSpell[(unsigned char)cSkillIndex].Delay;
-	if (m_nMySanc >= 9 && Delay >= 2)
-		--Delay;
-
-	if (g_pItemList[g_pObjectManager->m_stMobData.Equip[4].sIndex].nPos == 16)
-		g_pSpell[40].Delay = 1;
-
-	if (m_pMyHuman->m_DilpunchJewel == 1)
-		--Delay;
-
-	if (Delay < 1)
-		Delay = 1;
-
 	if (dwServerTime < m_dwOldAttackTime + 1000)
 		return 0;
-	if (dwServerTime < m_dwSkillLastTime[(unsigned char)cSkillIndex] + 1000 * Delay)
+	if (IsSkillCoolingDown((unsigned char)cSkillIndex, dwServerTime))
 		return 0;
 
 	int TarType = g_pSpell[(unsigned __int8)cSkillIndex].TargetType;
@@ -13113,7 +13249,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 		}
 
 		MSG_Attack stAttack{};
-		stAttack.Header.Type = 871;
+		stAttack.Header.Type = MSG_Attack_Multi_Opcode;
 		stAttack.Header.ID = m_pMyHuman->m_dwID;
 		stAttack.AttackerID = m_pMyHuman->m_dwID;
 		stAttack.PosX = (int)m_pMyHuman->m_vecPosition.x;
@@ -18274,6 +18410,13 @@ void TMFieldScene::SetSkillColor(TMHuman* pAttacker, char cSkillIndex)
 
 void TMFieldScene::OnESC()
 {
+	if (m_bCompatFieldScene && m_pccmode && m_pccmode->IsVisible())
+	{
+		m_pccmode->SetVisible(0);
+		if (m_pCC_Btn)
+			m_pCC_Btn->SetSelected(0);
+		return;
+	}
 	if (m_bCompatFieldScene)
 	{
 		if (m_pControlContainer && m_pControlContainer->m_pFocusControl)
@@ -27247,6 +27390,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				{
 					pTargetHuman->m_stPunchEvent.nDamage = pAttack->Dam[i].Damage / nDamageRate;
 					pTargetHuman->m_stPunchEvent.vecFrom = vecAttackerPos;
+					pTargetHuman->m_stPunchEvent.SkillIndex = pAttack->SkillIndex;
 					pTargetHuman->m_stPunchEvent.dwTime = 0 + dwDelayTable[6 * nClass + nMotion] + g_pTimerManager->GetServerTime();
 				}
 			}
@@ -30002,16 +30146,25 @@ void TMFieldScene::GameAuto()
 	if (!g_GameAuto)
 		return;
 
-	if (g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_FIELD)
+	if (!g_pCurrentScene || g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_FIELD)
 	{
 		g_GameAuto = 0;
+		return;
+	}
+
+	// CC settings survive scene reconstruction; world dependencies may not yet
+	// exist on the first frame (or may already be gone during teardown).
+	if (g_pCurrentScene != this || !m_pMyHuman || !m_pHumanContainer || !m_pGround ||
+		!g_pObjectManager || !g_pTimerManager || !g_pEventTranslator)
+	{
+		m_pAutoTarget = nullptr;
 		return;
 	}
 
 	if (m_pMyHuman->m_cHide == 1)
 		return;
 
-	unsigned int dwServerTime = g_pApp->m_pTimerManager->GetServerTime();
+	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
 	if (m_dwAttackDelay)
 	{
 		if (dwServerTime - m_dwAttackDelay > 2000)
@@ -30086,7 +30239,8 @@ void TMFieldScene::GameAuto()
 		break;
 	}
 
-	int nMountMaxHp = g_nMountHPTable[nMountMaxHPIndex];
+	int nMountMaxHp = nMountMaxHPIndex >= 0 && nMountMaxHPIndex < _countof(g_nMountHPTable)
+		? g_nMountHPTable[nMountMaxHPIndex] : 0;
 	int CheckMountHp = 0;
 
 	if (g_GameAuto_mountValue)
@@ -30099,7 +30253,10 @@ void TMFieldScene::GameAuto()
 
 	if (!(dwServerTime % 3))
 	{
-		if (nMountHP > 0 && nMountHP < CheckMountHp && FeedMount())
+		if (m_bCompatFieldScene && cc_mode::ShouldFeed(nMountHP, nMountMaxHp, nMountFeed, g_GameAuto_mountValue) && FeedMount())
+			return;
+
+		if (!m_bCompatFieldScene && nMountHP > 0 && nMountHP < CheckMountHp && FeedMount())
 			return;
 
 		if (CharHp < CharMaxHp && UseHPotion())
@@ -30108,7 +30265,7 @@ void TMFieldScene::GameAuto()
 		if (m_AutoHpMp != 3 && CharMp < CharMaxMp && UseMPotion())
 			return;
 
-		if (nMountFeed > 0 && nMountFeed < 6 && FeedMount())
+		if (!m_bCompatFieldScene && nMountFeed > 0 && nMountFeed < 6 && FeedMount())
 			return;
 	}
 
@@ -30164,8 +30321,11 @@ void TMFieldScene::GameAuto()
 
 				if (DelayTime + m_dwSkillLastTime[idxSkill] <= dwServerTime)
 				{
+					const char selectedSkill = g_pObjectManager->m_cSelectShortSkill;
 					g_pObjectManager->m_cSelectShortSkill = i;
-					if (SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0) == 1)
+					const int used = SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0);
+					g_pObjectManager->m_cSelectShortSkill = selectedSkill;
+					if (used == 1)
 						return;
 				}
 			}
@@ -30174,8 +30334,10 @@ void TMFieldScene::GameAuto()
 		if ((idxSkill == 56 || idxSkill == 57 || idxSkill == 58 || idxSkill == 59 || idxSkill == 60 || idxSkill == 61 || idxSkill == 62 || idxSkill == 63) &&
 			m_dwSkillLastTime[idxSkill] + 80000 <= dwServerTime)
 		{
+			const char selectedSkill = g_pObjectManager->m_cSelectShortSkill;
 			g_pObjectManager->m_cSelectShortSkill = i;
 			SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0);
+			g_pObjectManager->m_cSelectShortSkill = selectedSkill;
 			return;
 		}
 	}
@@ -30622,7 +30784,7 @@ int TMFieldScene::ToggleNativeCCMode(int mode)
 		return 0;
 
 	g_GameAuto = g_GameAuto == mode ? 0 : mode;
-	NewCCMode(true);
+	NewCCMode(true, m_bCompatFieldScene && g_GameAuto != 0);
 	return 1;
 }
 
@@ -30641,7 +30803,9 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 		g_GameAuto_hpValue = 90;
 	g_GameAuto_hpValue -= g_GameAuto_hpValue % 10;
 
-	if (g_GameAuto_mountValue < 30)
+	if (m_bCompatFieldScene)
+		g_GameAuto_mountValue = cc_mode::NormalizeThreshold(g_GameAuto_mountValue);
+	else if (g_GameAuto_mountValue < 30)
 		g_GameAuto_mountValue = 30;
 	else if (g_GameAuto_mountValue > 90)
 		g_GameAuto_mountValue = 90;
@@ -30679,6 +30843,29 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 		m_pNativeCCPhysicalBtn->SetSelected(g_GameAuto == 1);
 	if (m_pNativeCCMagicBtn)
 		m_pNativeCCMagicBtn->SetSelected(g_GameAuto == 2);
+
+	if (m_bCompatFieldScene && m_pccmode)
+	{
+		const char* modes[] = {"Desligado", "Fisico", "Magico", "Suporte"};
+		const char* positions[] = {"Livre", "Ciclico", "Fixo"};
+		const int positionTextures[] = {556, 557, 558};
+		SetButtonState(m_pMGameAutoBtn, 550 + g_GameAuto, const_cast<char*>(modes[g_GameAuto]));
+		SetButtonState(m_pSetType, positionTextures[m_AutoPostionUse], const_cast<char*>(positions[m_AutoPostionUse]));
+		if (auto modeText = static_cast<SText*>(m_pControlContainer->FindControl(T_CCMODE_COMPAT_MODE)))
+			modeText->SetText(const_cast<char*>(g_GameAuto == 0 ? "Desl." : modes[g_GameAuto]), 0);
+		if (auto moveText = static_cast<SText*>(m_pControlContainer->FindControl(T_CCMODE_COMPAT_MOVE)))
+			moveText->SetText(const_cast<char*>(positions[m_AutoPostionUse]), 0);
+		char threshold[16]{};
+		sprintf_s(threshold, "%d%%", g_GameAuto_hpValue);
+		m_pCCModeHpSte->SetText(threshold, 0);
+		sprintf_s(threshold, "%d%%", g_GameAuto_mountValue);
+		m_pCCModeMountSte->SetText(threshold, 0);
+		if (m_pCCPotionBtn)
+			m_pCCPotionBtn->SetSelected(g_GameAuto_hpValue != 0);
+		if (m_pCCFeedBtn)
+			m_pCCFeedBtn->SetSelected(g_GameAuto_mountValue != 0);
+		return;
+	}
 
 	SButton* pLegacyMode = !m_bCompatFieldScene && m_pControlContainer
 		? static_cast<SButton*>(m_pControlContainer->FindControl(B_CCATTACK))
