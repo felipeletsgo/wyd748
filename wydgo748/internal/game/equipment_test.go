@@ -32,19 +32,75 @@ func TestItemMetadataIsNeverRefined(t *testing.T) {
 	}
 }
 
-func TestDualWieldPassiveAddsClassPercentage(t *testing.T) {
+func TestDualWieldPassivesUseFullSecondaryWeapon(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{
 		100: {Index: 100, Unique: 7, StaticEffects: []model.StaticEffect{{Name: "EF_DAMAGE", Value: 100}}},
 		101: {Index: 101, Unique: 7, StaticEffects: []model.StaticEffect{{Name: "EF_DAMAGE", Value: 80}}},
 	}}
 	ch := &model.Char{Class: 0, LearnedSkill: 1 << 9}
 	ch.Equip[6], ch.Equip[7] = model.Item{Index: 100}, model.Item{Index: 101}
-	if got := w.equipmentDamage(ch); got != 152 { // 100 + 65% de 80
-		t.Fatalf("dual wield TK=%d, esperado 152", got)
+	if got := w.equipmentDamage(ch); got != 180 {
+		t.Fatalf("dual wield TK=%d, esperado 180", got)
 	}
-	ch.Class, ch.LearnedSkill = 3, 1<<11
-	if got := w.equipmentDamage(ch); got != 148 { // 100 + 60% de 80
-		t.Fatalf("dual wield HT=%d, esperado 148", got)
+	ch.Class, ch.LearnedSkill = 3, 1<<10
+	if got := w.equipmentDamage(ch); got != 180 {
+		t.Fatalf("dual wield HT=%d, esperado 180", got)
+	}
+	ch.LearnedSkill = 1 << 11
+	if got := w.equipmentDamage(ch); got != 140 {
+		t.Fatalf("bit 11 da HT ativou Pericia indevidamente: %d", got)
+	}
+}
+
+func TestHuntressPassivesUseCorrectSkillBits(t *testing.T) {
+	w := &World{}
+	ch := &model.Char{Class: 3, Score: testScore(model.Score{
+		Attack: 100, Dex: 150, Critical: 2, Range: 1, Mastery: [4]uint32{0, 0, 0, 99},
+	})}
+	ch.RuntimeScore = testScore(*ch.Score)
+	ch.LearnedSkill = 1 << (90 - 72)
+	w.applyPassiveSkills(ch)
+	if got := effectiveScore(ch).Critical; got != 14 { // 2 + (99+1)/10 + 150/75
+		t.Fatalf("Visao de Cacadora critical=%d, esperado 14", got)
+	}
+	if got := effectiveScore(ch).Attack; got != 100 {
+		t.Fatalf("Pericia de Cacador alterou attack diretamente: %d", got)
+	}
+
+	ch.RuntimeScore = testScore(*ch.Score)
+	ch.LearnedSkill = 1 << (91 - 72)
+	w.applyPassiveSkills(ch)
+	if got := effectiveScore(ch).Critical; got != 2 {
+		t.Fatalf("Olhos de Aguia recebeu bonus de Visao indevidamente: %d", got)
+	}
+
+	ch.RuntimeScore = testScore(*ch.Score)
+	ch.LearnedSkill = 1 << (92 - 72)
+	w.applyPassiveSkills(ch)
+	if got := effectiveScore(ch).Range; got != 2 {
+		t.Fatalf("Toxina de Serpente range=%d, esperado 2", got)
+	}
+}
+
+func TestBeastMasterShieldPassiveUsesShieldAC(t *testing.T) {
+	w := &World{items: map[uint16]model.ItemDef{
+		100: {Index: 100, Pos: 128, StaticEffects: []model.StaticEffect{{Name: "EF_AC", Value: 69}}},
+		101: {Index: 101, Pos: 64, StaticEffects: []model.StaticEffect{{Name: "EF_AC", Value: 69}}},
+	}}
+	ch := &model.Char{Class: 2, Score: testScore(model.Score{Defense: 200})}
+	ch.RuntimeScore = testScore(*ch.Score)
+	ch.LearnedSkill = 1 << (67 - 48)
+	ch.Equip[7] = model.Item{Index: 100}
+	w.applyPassiveSkills(ch)
+	if got := effectiveScore(ch).Defense; got != 210 {
+		t.Fatalf("Escudo do Tormento defense=%d, esperado 210", got)
+	}
+
+	ch.RuntimeScore = testScore(*ch.Score)
+	ch.Equip[7] = model.Item{Index: 101}
+	w.applyPassiveSkills(ch)
+	if got := effectiveScore(ch).Defense; got != 200 {
+		t.Fatalf("Escudo do Tormento ativou sem escudo: %d", got)
 	}
 }
 
@@ -161,6 +217,17 @@ func TestPhysicalAttackRangeUsesOnlyMainWeaponRange(t *testing.T) {
 	ch.Equip[6] = model.Item{}
 	if got := w.physicalAttackRange(ch); got != attackRange {
 		t.Fatalf("ataque sem arma de alcance=%d, quer %d", got, attackRange)
+	}
+
+	// Forca Espectral (101 / LearnedSkill bit 29) soma um tile ao alcance
+	// calculado, inclusive no ataque melee sem EF_RANGE.
+	ch.LearnedSkill = 1 << 29
+	if got := w.physicalAttackRange(ch); got != attackRange+1 {
+		t.Fatalf("melee com Forca Espectral=%d, quer %d", got, attackRange+1)
+	}
+	ch.Equip[6] = model.Item{Index: 816}
+	if got := w.physicalAttackRange(ch); got != 11 {
+		t.Fatalf("arco com Forca Espectral=%d, quer 11", got)
 	}
 }
 

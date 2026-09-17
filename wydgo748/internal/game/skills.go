@@ -194,7 +194,7 @@ func explosionBashBaseDamage(baseDamage, intelligence, currentMP int) int {
 }
 
 func skillCooldownDuration(skill model.SkillDef) time.Duration {
-	if skill.Index == 102 { // Limite da Alma: W2PP força skilldelay=1 antes de converter para ms.
+	if skill.Index == 47 || skill.Index == 102 { // Cancelamento/Limite da Alma: W2PP força skilldelay=1.
 		return time.Second
 	}
 	return time.Duration(skill.Delay) * time.Second
@@ -516,6 +516,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	mastery := int(playerMastery(p.Char, kind))
 	var targets []*Mob
 	var playerTargets []*Player
+	var supportTargets []*Player
 	if skill.Aggressive != 0 {
 		if skillIndex == 98 {
 			if !w.canCastThornWall(p, req, skill) {
@@ -529,6 +530,14 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			if len(targets) == 0 && len(playerTargets) == 0 {
 				return
 			}
+		}
+	}
+	if skill.Aggressive == 0 {
+		// Validate the intent before spending MP or starting cooldown, just as
+		// offensive skills do. Reuse this list when applying the support skill.
+		supportTargets = w.supportTargets(p, req, skill)
+		if len(supportTargets) == 0 {
+			return
 		}
 	}
 	if skillIndex == 97 && (w.groundCannonAt(p.X, p.Y) == nil || len(targets) == 0 ||
@@ -575,7 +584,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	}
 
 	if skill.Aggressive == 0 {
-		affected := w.applySupportSkill(p, req, skill, mastery)
+		affected := w.applySupportSkillToTargets(p, supportTargets, skill, mastery)
 		if skillIndex >= 56 && skillIndex <= 63 && len(affected) == 0 {
 			// GenerateSummon devolve 0 quando a evocacao falha (familia em
 			// conflito, limite ja atingido, party/mob slot indisponivel). O

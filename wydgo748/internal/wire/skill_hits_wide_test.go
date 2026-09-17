@@ -103,3 +103,38 @@ func TestAttackHitExtendedCarriesNativeDoubleCriticalAndMiss(t *testing.T) {
 		t.Fatalf("miss wide damage=%d want=0", got)
 	}
 }
+
+func TestAttackHitWideFlankCarriesNativeSlotAndWideDamage(t *testing.T) {
+	pkt := AttackHitWideFlankResult(1, 1001, 10, 10, 11, 11,
+		123_456, 500_000, 0, 100, 1, 45_678)
+	if len(pkt) != 68 {
+		t.Fatalf("size=%d want=68", len(pkt))
+	}
+	if got := binary.LittleEndian.Uint16(pkt[4:6]); got != OpAttackTwo {
+		t.Fatalf("opcode=%04X want=%04X", got, OpAttackTwo)
+	}
+	if got := binary.LittleEndian.Uint16(pkt[14:16]); got != 1 {
+		t.Fatalf("NumberOfTarget=%d want=1", got)
+	}
+	if pkt[31]&4 == 0 || pkt[31]&1 == 0 {
+		t.Fatalf("DoubleCritical=%d want double+flank bits", pkt[31])
+	}
+	if got := binary.LittleEndian.Uint16(pkt[48:50]); got != 0 {
+		t.Fatalf("Dam[1].TargetID=%d want=0", got)
+	}
+	if got := int16(binary.LittleEndian.Uint16(pkt[50:52])); got != 32767 {
+		t.Fatalf("legacy flank=%d want saturated 32767", got)
+	}
+	if got := binary.LittleEndian.Uint32(pkt[52:56]); got != 0x58474D44 {
+		t.Fatalf("signature=%08X want DMGX", got)
+	}
+	if got := binary.LittleEndian.Uint32(pkt[56:60]); got != 2 {
+		t.Fatalf("count=%d want=2", got)
+	}
+	if got := binary.LittleEndian.Uint32(pkt[60:64]); got != 123_456 {
+		t.Fatalf("real total=%d want=123456", got)
+	}
+	if got := binary.LittleEndian.Uint32(pkt[64:68]); got != 45_678 {
+		t.Fatalf("real flank=%d want=45678", got)
+	}
+}

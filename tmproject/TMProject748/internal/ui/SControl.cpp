@@ -1618,6 +1618,10 @@ SProgressBar::SProgressBar(int inTextureSetIndex, int inCurrent, int inMax, floa
 {
 	m_nCurrent = inCurrent;
 	m_nMax = inMax;
+	m_InitHeight = 0.0f;
+	m_InitStartY = 0.0f;
+	m_InitWidth = 0.0f;
+	m_InitStartX = 0.0f;
 	m_GCProgress = GeomControl(RENDERCTRLTYPE::RENDER_IMAGE_STRETCH, inTextureSetIndex, inX, inY, 0.0f, inHeight, 0, idwProgressColor);
 	m_GCPanel.eRenderType = RENDERCTRLTYPE::RENDER_IMAGE_STRETCH;
 	m_GCPanel.nTextureIndex = 1;
@@ -1719,13 +1723,11 @@ void SProgressBar::Update()
 
 void SProgressBar::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag)
 {
-	float fWidthRatio = (float)g_pDevice->m_dwScreenWidth / WYD748_UI_BASE_WIDTH;
-	float fHeightRatio = (float)g_pDevice->m_dwScreenHeight / WYD748_UI_BASE_HEIGHT;
-
 	SPanel::FrameMove2(pDrawList, ivParentPos, inParentLayer, nFlag);
 
 	if (m_dwStyle == 1)
 	{
+		m_GCProgress.bClip = 0;
 		m_GCProgress.nPosX = (float)(ivParentPos.x + m_nPosX) + 2.0f;
 		m_GCProgress.nPosY = (float)(ivParentPos.y + m_nPosY) + 2.0f;
 		m_GCProgress.nWidth = m_nProgressWidth;
@@ -1734,13 +1736,17 @@ void SProgressBar::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 	}
 	else if (m_dwStyle == 2)
 	{
-		int nTextureSetIndex = m_GCProgress.nTextureSetIndex;
-		if (nTextureSetIndex < -2)
-			nTextureSetIndex = -m_GCProgress.nTextureSetIndex;
+		float fProgress = m_nWidth > 0.0f ? m_nProgressWidth / m_nWidth : 0.0f;
+		if (fProgress < 0.0f)
+			fProgress = 0.0f;
+		else if (fProgress > 1.0f)
+			fProgress = 1.0f;
 
-		auto pUISet = g_pTextureManager->GetUITextureSet(nTextureSetIndex);
-		if (pUISet != nullptr)
-			pUISet->pTextureCoord[m_GCProgress.nTextureIndex].nWidth = (int)(m_nProgressWidth / fWidthRatio);
+		m_GCProgress.bClip = m_InitWidth > 0.0f && m_InitHeight > 0.0f;
+		m_GCProgress.fLeft = 0.0f;
+		m_GCProgress.fTop = 0.0f;
+		m_GCProgress.fRight = m_InitWidth * fProgress;
+		m_GCProgress.fBottom = m_InitHeight;
 
 		m_GCProgress.nPosX = (float)(ivParentPos.x + m_nPosX) + 2.0f;
 		m_GCProgress.nPosY = (float)(ivParentPos.y + m_nPosY) + 2.0f;
@@ -1750,16 +1756,17 @@ void SProgressBar::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 	}
 	else
 	{
-		int nIndex = m_GCProgress.nTextureSetIndex;
-		if (nIndex < -2)
-			nIndex = -m_GCProgress.nTextureSetIndex;
+		float fProgress = m_nHeight > 0.0f ? m_nProgressHeight / m_nHeight : 0.0f;
+		if (fProgress < 0.0f)
+			fProgress = 0.0f;
+		else if (fProgress > 1.0f)
+			fProgress = 1.0f;
 
-		auto pUISet = g_pTextureManager->GetUITextureSet(nIndex);
-		if (pUISet != nullptr)
-		{
-			pUISet->pTextureCoord[m_GCProgress.nTextureIndex].nHeight = (int)(m_nProgressHeight / fHeightRatio);
-			pUISet->pTextureCoord[m_GCProgress.nTextureIndex].nStartY = (int)(((m_nHeight - m_nProgressHeight) / fHeightRatio) + m_InitStartY);
-		}
+		m_GCProgress.bClip = m_InitWidth > 0.0f && m_InitHeight > 0.0f;
+		m_GCProgress.fLeft = 0.0f;
+		m_GCProgress.fTop = m_InitHeight * (1.0f - fProgress);
+		m_GCProgress.fRight = m_InitWidth;
+		m_GCProgress.fBottom = m_InitHeight;
 
 		m_GCProgress.nPosX = ivParentPos.x + m_nPosX;
 		m_GCProgress.nPosY = ((ivParentPos.y + m_nPosY) + m_nHeight) - m_nProgressHeight;

@@ -5224,6 +5224,9 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
     }
     else if (pMsg->String[0] == '=')
     {
+        if (pScene->m_pChatParty && !pScene->m_pChatParty->m_bSelected)
+            bDrawText = 0;
+
         if (pScene->m_pPartyList->m_nNumItem > 1)
         {
             dwColor = 0xFFFF99FF;
@@ -5273,6 +5276,13 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 
         if (pScene->m_pHelpMemo)
             pScene->m_pHelpMemo->SetVisible(1);
+    }
+    else
+    {
+        if (pScene->m_pChatWhisper && !pScene->m_pChatWhisper->m_bSelected)
+            bDrawText = 0;
+
+        sprintf_s(szMsg, "[%s]> %s", pMsg->MobName, pMsg->String);
     }
 
     if (!bDrawText)

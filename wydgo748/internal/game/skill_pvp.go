@@ -221,10 +221,11 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, playerElementalResists(target.Char), false)
 			perHit := uint32(clampInt(damageValue, 1, int(maxScoreValue)))
 			perHit = addFlatDamage(perHit, w.equipmentGemBonuses(caster.Char).forceDamage)
-			perHit = absorbFlatDamage(perHit, w.equipmentGemBonuses(target.Char).absorbDamage)
+			perHit = absorbFlatDamage(perHit, w.playerFlatDamageAbsorb(target.Char))
 			for hit := 0; hit < hitCount && playerCurHP(target.Char) > 0; hit++ {
 				// Montaria adulta viva absorve 25% de cada golpe no proprio HP.
 				riderHit := uint32(w.absorbMountDamage(target, int(perHit)))
+				riderHit = absorbManaControlDamageAt(target.Char, riderHit, now)
 				applied := riderHit
 				if applied > playerCurHP(target.Char) {
 					applied = playerCurHP(target.Char)

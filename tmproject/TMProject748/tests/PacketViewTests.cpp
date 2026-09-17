@@ -32,6 +32,7 @@ int RunCargoSlotTests(int& checks);
 int RunGridInsertionTests(int& checks);
 int RunCostumeSelectionTests(int& checks);
 int RunResourceBarProjectionTests(int& checks);
+int RunObservedAffectProjectionTests(int& checks);
 int RunCCModePolicyTests(int& checks);
 int RunEffectVertexColorTests(int& checks);
 
@@ -422,6 +423,7 @@ int main()
     failures += RunGridInsertionTests(checks);
     failures += RunCostumeSelectionTests(checks);
     failures += RunResourceBarProjectionTests(checks);
+    failures += RunObservedAffectProjectionTests(checks);
     failures += RunCCModePolicyTests(checks);
     failures += RunEffectVertexColorTests(checks);
     if (failures == 0) std::printf("ArchitectureTests: %d checks PASS; static assertions PASS\n", checks);

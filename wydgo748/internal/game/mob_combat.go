@@ -218,7 +218,6 @@ func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
 		return
 	}
 	damage := hit.Damage
-	damage = absorbFlatDamage(damage, w.equipmentGemBonuses(target.Char).absorbDamage)
 	// FlagLocal=0 faz o 7.48 aplicar o dano e exibir o numero flutuante. Dano
 	// zero conserva a animacao de ataque e representa MISS no cliente.
 	w.applyMobDamageToPlayer(m, target, damage, now, func(applied uint32) []byte {
@@ -233,8 +232,10 @@ func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
 func (w *World) applyMobDamageToPlayer(m *Mob, target *Player, damage uint32,
 	now time.Time, build func(applied uint32) []byte) {
 	target.LastAttackerID = m.ID
+	damage = absorbFlatDamage(damage, w.playerFlatDamageAbsorb(target.Char))
 	// Montaria adulta viva absorve 25% do dano no proprio HP.
 	damage = uint32(w.absorbMountDamage(target, int(damage)))
+	damage = absorbManaControlDamageAt(target.Char, damage, now)
 	currentHP := playerCurHP(target.Char)
 	lethal := damage >= currentHP
 	if lethal {

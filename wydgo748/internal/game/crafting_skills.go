@@ -132,8 +132,15 @@ func (w *World) onCombineExtracao(s *net.Session, pkt []byte) {
 
 func alquimiaRecipe(req combineRequest) (int, bool) {
 	for _, item := range req.Items {
-		if item.Index == blockedCombineItem || item.Eff[0] == effectAmount && item.Eff[1] > 1 {
+		if item.Index == blockedCombineItem {
 			return 0, false
+		}
+		// EF_AMOUNT pode ocupar qualquer um dos tres pares da instancia.
+		// Nao consumir um pack inteiro como se fosse um ingrediente avulso.
+		for effect := 0; effect < len(item.Eff); effect += 2 {
+			if item.Eff[effect] == effectAmount && item.Eff[effect+1] > 1 {
+				return 0, false
+			}
 		}
 	}
 	idx := func(i int) uint16 { return req.Items[i].Index }

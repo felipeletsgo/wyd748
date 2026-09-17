@@ -287,6 +287,7 @@ public:
 	void ClearInventorySelectedItem();
 
 	int Affect_Main(unsigned int dwServerTime);
+	void UpdateCompatObservedAffects();
 	int StrByteCheck(char* szString);
 	unsigned int GetLascDescParamId();
 	void SetVisibleMixPanel(int bShow);

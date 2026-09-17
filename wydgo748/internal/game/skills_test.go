@@ -427,9 +427,9 @@ func TestSkillPlayerTargetsRejectsPartyAndUsesSelectedEnemy(t *testing.T) {
 }
 
 func TestSpeedAndMagicWeaponTargetCountUsesW2PPMasteryCap(t *testing.T) {
-	players := make([]*Player, 6)
+	players := make([]*Player, 15)
 	for i := range players {
-		players[i] = &Player{ID: uint16(i + 1), InWorld: true, X: uint16(10 + i), Y: 10,
+		players[i] = &Player{ID: uint16(i + 1), InWorld: true, X: uint16(10 + i%5), Y: uint16(10 + i/5),
 			Char: &model.Char{Class: 1, Score: testScore(model.Score{MaxHP: 100, CurHP: 100})}}
 	}
 	party := &Party{Members: players}
@@ -441,16 +441,43 @@ func TestSpeedAndMagicWeaponTargetCountUsesW2PPMasteryCap(t *testing.T) {
 
 	for _, index := range []int{41, 44} {
 		skill := model.SkillDef{Index: index, Range: 10, MaxTarget: 13, Party: 1}
-		caster.Char.Score.Mastery[3] = 0
-		applyScore(caster.Char)
-		if got := w.supportTargets(caster, skillCastRequest{}, skill); len(got) != 2 {
-			t.Fatalf("skill %d mastery=0 alvos=%d, quer 2", index, len(got))
+		for _, tc := range []struct{ mastery, targets uint32 }{
+			{0, 2}, {24, 2}, {25, 3}, {75, 5}, {274, 12}, {275, 13}, {320, 13},
+		} {
+			caster.Char.Score.Mastery[3] = tc.mastery
+			applyScore(caster.Char)
+			if got := w.supportTargets(caster, skillCastRequest{}, skill); len(got) != int(tc.targets) {
+				t.Fatalf("skill %d mastery=%d alvos=%d, quer %d", index, tc.mastery, len(got), tc.targets)
+			}
 		}
-		caster.Char.Score.Mastery[3] = 75
-		applyScore(caster.Char)
-		if got := w.supportTargets(caster, skillCastRequest{}, skill); len(got) != 5 {
-			t.Fatalf("skill %d mastery=75 alvos=%d, quer 5", index, len(got))
+	}
+}
+
+func TestPartyBuffDeadMemberDoesNotConsumeTargetLimit(t *testing.T) {
+	for _, skill := range foemaBuffTestSkills() {
+		if skill.Party == 0 {
+			continue
 		}
+		t.Run(skill.Name, func(t *testing.T) {
+			caster, _ := networkedTestPlayer(1, "Caster", 2100, 2100)
+			dead, _ := networkedTestPlayer(2, "Dead", 2101, 2100)
+			alive, _ := networkedTestPlayer(3, "Alive", 2102, 2100)
+			party := &Party{Members: []*Player{caster, dead, alive}}
+			for _, member := range party.Members {
+				member.Party = party
+			}
+			setPlayerCurHP(dead.Char, 0)
+			w := worldWithNetworkedPlayers(party.Members...)
+			got := w.applySupportSkill(caster, skillCastRequest{}, skill, 0)
+			if len(got) != 2 || got[0].player != caster || got[1].player != alive {
+				t.Fatalf("buff must reach caster and living member, got %+v", got)
+			}
+			for _, affect := range dead.Char.Affects {
+				if affect.Type != 0 {
+					t.Fatal("dead member received a buff")
+				}
+			}
+		})
 	}
 }
 
@@ -559,6 +586,9 @@ func TestEtherealFlamesBurnsManaOrDispelsLikeW2PP(t *testing.T) {
 }
 
 func TestSoulLimitUsesW2PPCooldownAndAffectDuration(t *testing.T) {
+	if got := skillCooldownDuration(model.SkillDef{Index: 47, Delay: 1200}); got != time.Second {
+		t.Fatalf("cooldown Cancelamento=%s, quer 1s", got)
+	}
 	if got := skillCooldownDuration(model.SkillDef{Index: 102, Delay: 1200}); got != time.Second {
 		t.Fatalf("cooldown Limite da Alma=%s, quer 1s", got)
 	}
@@ -567,25 +597,63 @@ func TestSoulLimitUsesW2PPCooldownAndAffectDuration(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		evolution string
-		level     uint32
-		want      int
+		name       string
+		evolution  string
+		level      uint32
+		multiplier int
+		wantUnits  int
 	}{
-		{name: "mortal", level: 1, want: 200},
-		{name: "arch", evolution: archEvolution, level: 400, want: 100},
-		{name: "celestial abaixo 39", evolution: "celestial", level: 30, want: 164},
-		{name: "celestial normal", evolution: "celestial", level: 100, want: 200},
-		{name: "celestial 199", evolution: "celestial", level: 199, want: 400},
-		{name: "subcelestial", evolution: "subcelestial", level: 250, want: 400},
+		{name: "mortal", level: 1, multiplier: 200, wantUnits: 2},
+		{name: "arch", evolution: archEvolution, level: 400, multiplier: 100, wantUnits: 1},
+		{name: "celestial abaixo 39", evolution: "celestial", level: 30, multiplier: 164, wantUnits: 1},
+		{name: "celestial normal", evolution: "celestial", level: 100, multiplier: 200, wantUnits: 2},
+		{name: "celestial 199", evolution: "celestial", level: 199, multiplier: 400, wantUnits: 4},
+		{name: "subcelestial", evolution: "subcelestial", level: 250, multiplier: 400, wantUnits: 4},
 	}
+	skill := model.SkillDef{Index: 102, AffectType: 29, AffectTime: 0}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ch := &model.Char{Evolution: test.evolution, Score: testScore(model.Score{Level: test.level})}
-			if got := soulLimitAffectTime(ch); got != test.want {
-				t.Fatalf("duracao=%d, quer %d", got, test.want)
+			if got := soulLimitDelayMultiplier(ch); got != test.multiplier {
+				t.Fatalf("multiplicador=%d, quer %d", got, test.multiplier)
+			}
+			if got := soulLimitAffectTime(skill, ch); got != test.wantUnits {
+				t.Fatalf("duracao=%d unidade(s), quer %d", got, test.wantUnits)
 			}
 		})
+	}
+}
+
+func TestSoulLimitUsesFixedSlot15AndOverwritesIt(t *testing.T) {
+	now := time.Date(2026, 9, 15, 12, 0, 0, 0, time.UTC)
+	clock := newFakeClock(now)
+	ch := &model.Char{
+		Evolution: "celestial",
+		SoulInfo:  1,
+		Score:     testScore(model.Score{Level: 100, Str: 100, MaxHP: 100, CurHP: 100}),
+	}
+	ch.Affects[0] = model.Affect{Type: 29, ClientType: 29, Value: 77, Level: 777, ExpiresAt: now.Add(time.Hour)}
+	ch.Affects[15] = model.Affect{Type: 18, ClientType: 18, Value: 99, Level: 999, ExpiresAt: now.Add(time.Hour)}
+	p := &Player{ID: 7, Char: ch, Session: &net.Session{ID: 7}}
+	w := &World{clock: clock}
+	skill := model.SkillDef{Index: 102, AffectType: 29, AffectValue: 0, AffectTime: 0, MaxTarget: 1}
+
+	results := w.applySupportSkill(p, skillCastRequest{}, skill, 25)
+	if len(results) != 1 || results[0].player != p {
+		t.Fatalf("Limite da Alma nao aplicou no caster: %+v", results)
+	}
+	got := ch.Affects[15]
+	if got.Type != 29 || got.ClientType != 29 || got.Value != 0 || got.Level != 25 {
+		t.Fatalf("slot 15 incorreto: %+v", got)
+	}
+	if want := now.Add(16 * time.Second); !got.ExpiresAt.Equal(want) {
+		t.Fatalf("expiracao=%s, quer %s", got.ExpiresAt, want)
+	}
+	if want := now.Add(8 * time.Second); !got.NextTick.Equal(want) {
+		t.Fatalf("next tick=%s, quer %s", got.NextTick, want)
+	}
+	if got0 := ch.Affects[0]; got0.Value != 77 || got0.Level != 777 {
+		t.Fatalf("slot generico existente foi alterado: %+v", got0)
 	}
 }
 

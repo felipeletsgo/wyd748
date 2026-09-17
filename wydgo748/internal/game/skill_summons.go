@@ -383,6 +383,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 		}
 		damage := hit.Damage
 		damage = uint32(w.absorbMountDamage(target.user, int(damage)))
+		damage = absorbManaControlDamageAt(target.user.Char, damage, now)
 		w.cancelTrade(target.user, "personagem foi atacado")
 		currentHP := playerCurHP(target.user.Char)
 		if damage >= currentHP {

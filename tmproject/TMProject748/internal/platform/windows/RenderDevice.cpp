@@ -2866,13 +2866,36 @@ void RenderDevice::RenderGeomRectImage(GeomControl* ipControl)
 
 			if (ipControl->bClip == 1)
 			{
+				const float fTextureWidth = (float)pUISet->pTextureCoord[ipControl->nTextureIndex].nWidth;
+				const float fTextureHeight = (float)pUISet->pTextureCoord[ipControl->nTextureIndex].nHeight;
+				float fLeft = ipControl->fLeft;
+				float fTop = ipControl->fTop;
+				float fRight = ipControl->fRight;
+				float fBottom = ipControl->fBottom;
+
+				if (fLeft < 0.0f)
+					fLeft = 0.0f;
+				if (fTop < 0.0f)
+					fTop = 0.0f;
+				if (fRight > fTextureWidth)
+					fRight = fTextureWidth;
+				if (fBottom > fTextureHeight)
+					fBottom = fTextureHeight;
+
+				const float fClipWidth = fRight - fLeft;
+				const float fClipHeight = fBottom - fTop;
+				if (fClipWidth <= 0.0f || fClipHeight <= 0.0f)
+					return;
+
+				fScaleX = ipControl->nWidth / fClipWidth;
+				fScaleY = ipControl->nHeight / fClipHeight;
 				RenderRectRot(
-					(float)pUISet->pTextureCoord[ipControl->nTextureIndex].nStartX,
-					(float)pUISet->pTextureCoord[ipControl->nTextureIndex].nStartY + ipControl->fTop,
-					(float)pUISet->pTextureCoord[ipControl->nTextureIndex].nWidth,
-					ipControl->fBottom - ipControl->fTop,
+					(float)pUISet->pTextureCoord[ipControl->nTextureIndex].nStartX + fLeft,
+					(float)pUISet->pTextureCoord[ipControl->nTextureIndex].nStartY + fTop,
+					fClipWidth,
+					fClipHeight,
 					(float)pUISet->pTextureCoord[ipControl->nTextureIndex].nDestX + ipControl->nPosX,
-					(float)((float)pUISet->pTextureCoord[ipControl->nTextureIndex].nDestY + ipControl->nPosY) + ipControl->fTop,
+					(float)pUISet->pTextureCoord[ipControl->nTextureIndex].nDestY + ipControl->nPosY,
 					ipControl->nWidth / 2.0f,
 					ipControl->nHeight / 2.0f,
 					ipControl->fAngle,

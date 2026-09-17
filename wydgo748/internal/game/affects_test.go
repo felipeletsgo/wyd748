@@ -8,6 +8,21 @@ import (
 	"wydgo/internal/net"
 )
 
+// Values from the runtime SkillData.csv. Mana Control's formula is audited
+// separately; this fixture only supplies its cast and affect metadata.
+func foemaBuffTestSkills() []model.SkillDef {
+	return []model.SkillDef{
+		{Index: 41, Name: "Velocidade", ManaSpent: 52, Delay: 5, Range: 0,
+			MaxTarget: 13, Party: 1, AffectType: 2, AffectValue: 1, AffectTime: 600},
+		{Index: 43, Name: "Escudo Magico", ManaSpent: 52, Delay: 6, Range: 2,
+			MaxTarget: 1, AffectType: 11, AffectValue: 15, AffectTime: 600},
+		{Index: 44, Name: "Arma Magica", ManaSpent: 78, Delay: 5, Range: 0,
+			MaxTarget: 13, Party: 1, AffectType: 9, AffectValue: 5, AffectTime: 600},
+		{Index: 46, Name: "Controle de Mana", ManaSpent: 130, Delay: 0, Range: 0,
+			MaxTarget: 1, AffectType: 18, AffectValue: 100, AffectTime: 600},
+	}
+}
+
 func TestSkillAffectUsesSkillDataWithoutIndexOverride(t *testing.T) {
 	kind, value, ok := skillAffect(model.SkillDef{Index: 3, AffectType: 99, AffectValue: 321})
 	if !ok || kind != 99 || value != 321 {
@@ -58,6 +73,42 @@ func TestSetAffectRefreshesSameType(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatalf("affect duplicado: %d", count)
+	}
+}
+
+func TestAthenaMasteryCapAndLifecycle(t *testing.T) {
+	now := time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC)
+	clock := newFakeClock(now)
+	w := &World{clock: clock}
+	ch := &model.Char{Class: 1, Score: testScore(model.Score{
+		Level: 399, MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
+		Mastery: [4]uint32{300, 319, 320, 100},
+	})}
+	w.recalcPlayer(ch)
+	baseMastery := ch.Score.Mastery
+	before := ch.RuntimeScore.Mastery
+	p := &Player{ID: 1, InWorld: true, Char: ch, Session: &net.Session{ID: 1}}
+	result := w.applySupportSkill(p, skillCastRequest{}, model.SkillDef{
+		Index: 45, Name: "Toque da Athena", AffectType: 15,
+		AffectValue: 7, AffectTime: 10,
+	}, 320) // bonus 32 + 7; nunca ultrapassa o teto autoritativo de 320.
+	if len(result) != 1 {
+		t.Fatal("Athena nao foi aplicada")
+	}
+	want := [4]uint32{320, 320, 320, 139}
+	for recalc := 0; recalc < 3; recalc++ {
+		if got := ch.RuntimeScore.Mastery; got != want {
+			t.Fatalf("recalc %d: mastery=%v, want %v", recalc, got, want)
+		}
+		if ch.Score.Mastery != baseMastery {
+			t.Fatal("Athena alterou as especializacoes base")
+		}
+		w.recalcPlayer(ch)
+	}
+	clock.Advance(ch.Affects[0].ExpiresAt.Sub(now))
+	w.recalcPlayer(ch)
+	if got := ch.RuntimeScore.Mastery; got != before {
+		t.Fatalf("Athena expirada deixou bonus: mastery=%v, want %v", got, before)
 	}
 }
 

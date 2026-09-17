@@ -123,6 +123,7 @@ func doubleHitChance(ch *model.Char) int {
 
 type physicalHitResult struct {
 	Damage   uint32
+	Flank    uint32
 	Hit      bool
 	Double   bool
 	Critical bool
@@ -136,7 +137,53 @@ func (r physicalHitResult) visualFlags() byte {
 	if r.Critical {
 		flags |= 2
 	}
+	if r.Flank > 0 {
+		flags |= 4
+	}
 	return flags
+}
+
+const huntressAirBladeBit uint32 = 0x200000
+
+// applyHuntressAirBlade ports the Huntress Lâmina Aérea passive from the
+// physical MSG_AttackTwo path. The native order is important: the passive
+// bonus is added before Double Hit, so a double action repeats the bonus too.
+func applyHuntressAirBlade(hit physicalHitResult, ch *model.Char, targetDefense int,
+	eligible bool, intn func(int) int) physicalHitResult {
+	if !eligible || !hit.Hit || ch == nil || ch.Class != 3 ||
+		ch.LearnedSkill&huntressAirBladeBit == 0 || intn == nil {
+		return hit
+	}
+	if intn(4) != 0 { // native 25% proc
+		return hit
+	}
+	score := effectiveScore(ch)
+	if score == nil {
+		return hit
+	}
+	source := uint64(score.Mastery[3]) + uint64(score.Str)
+	if source > uint64(maxScoreValue) {
+		source = uint64(maxScoreValue)
+	}
+	bonus := hitDamageWithRNG(int(source), targetDefense, 0, intn)
+	if bonus > 0 {
+		bonus /= 2
+	}
+	if bonus < 60 {
+		bonus = 60
+	}
+	bonus = clampInt(bonus, 0, int(maxScoreValue))
+	hit.Flank = uint32(bonus)
+	repeats := uint64(1)
+	if hit.Double {
+		repeats = 2
+	}
+	total := uint64(hit.Damage) + uint64(hit.Flank)*repeats
+	if total > uint64(maxScoreValue) {
+		total = uint64(maxScoreValue)
+	}
+	hit.Damage = uint32(total)
+	return hit
 }
 
 // rollPhysicalHitFlags ports WYD 7.48 BASE_GetDoubleCritical. Double Hit follows
@@ -170,13 +217,35 @@ func playerPhysicalHitMobAt(atk *Player, m *Mob, intn func(int) int, now time.Ti
 	ch := atk.Char
 	double, critical := rollPhysicalHitFlags(ch, &atk.AttackProgress, intn)
 	if m == nil || m.Def == nil || !combatRollHits(playerVersusMobAccuracy(ch, m.Def), intn) {
-		return physicalHitResult{}
+		return physicalHitResult{Double: double, Critical: critical}
 	}
 	attack := playerAttack(ch)
 	if critical {
 		attack = (intn(2) + 15) * attack / 10
 	}
 	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), int(playerMastery(ch, 0)), intn)
+	if double {
+		dam *= 2
+	}
+	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxScoreValue))),
+		Hit: true, Double: double, Critical: critical}
+}
+
+// playerPhysicalFollowupHitMobAt resolves an additional physical target from
+// the same native attack action. MSG_AttackTwo rolls Double/Critical only for
+// Dam[0]; later Dam slots reuse those flags but still run their own miss/parry
+// check and defense calculation.
+func playerPhysicalFollowupHitMobAt(atk *Player, m *Mob, double, critical bool,
+	intn func(int) int, now time.Time) physicalHitResult {
+	if atk == nil || atk.Char == nil || m == nil || m.Def == nil ||
+		!combatRollHits(playerVersusMobAccuracy(atk.Char, m.Def), intn) {
+		return physicalHitResult{}
+	}
+	attack := playerAttack(atk.Char)
+	if critical {
+		attack = (intn(2) + 15) * attack / 10
+	}
+	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), int(playerMastery(atk.Char, 0)), intn)
 	if double {
 		dam *= 2
 	}
@@ -204,6 +273,24 @@ func playerPhysicalHitPlayerWithRNG(atk, target *Player, intn func(int) int) phy
 	}
 	double, critical := rollPhysicalHitFlags(atk.Char, &atk.AttackProgress, intn)
 	if !combatRollHits(playerVersusPlayerAccuracy(atk.Char, target.Char), intn) {
+		return physicalHitResult{Double: double, Critical: critical}
+	}
+	attack := playerAttack(atk.Char)
+	if critical {
+		attack = (intn(2) + 13) * attack / 10
+	}
+	dam := hitDamageWithRNG(attack, playerDefense(target.Char), int(playerMastery(atk.Char, 0)), intn)
+	if double {
+		dam *= 2
+	}
+	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxScoreValue))),
+		Hit: true, Double: double, Critical: critical}
+}
+
+func playerPhysicalFollowupHitPlayerWithRNG(atk, target *Player, double, critical bool,
+	intn func(int) int) physicalHitResult {
+	if atk == nil || atk.Char == nil || target == nil || target.Char == nil ||
+		!combatRollHits(playerVersusPlayerAccuracy(atk.Char, target.Char), intn) {
 		return physicalHitResult{}
 	}
 	attack := playerAttack(atk.Char)

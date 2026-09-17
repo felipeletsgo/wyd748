@@ -38,6 +38,7 @@
     <ClCompile Include="GridInsertionTests.cpp" />
     <ClCompile Include="CostumeSelectionTests.cpp" />
     <ClCompile Include="ResourceBarProjectionTests.cpp" />
+    <ClCompile Include="ObservedAffectProjectionTests.cpp" />
     <ClCompile Include="CCModePolicyTests.cpp" />
     <ClCompile Include="EffectVertexColorTests.cpp" />
   </ItemGroup>

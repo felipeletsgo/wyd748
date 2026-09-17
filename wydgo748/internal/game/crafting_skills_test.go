@@ -262,16 +262,25 @@ func TestCombineAlquimiaAllW2PPRecipes(t *testing.T) {
 }
 
 func TestCombineAlquimiaRejectsPackedIngredient(t *testing.T) {
-	w, p, st, items, pos := alquimiaScenario(t)
-	items[1].Eff = [6]byte{effectAmount, 2}
-	p.Char.Inv = [model.MaxCarry]model.Item{}
-	placeItems(p.Char, items, pos)
-	before := p.Char.Inv
+	for _, effects := range [][6]byte{
+		{effectAmount, 2},
+		{0, 0, effectAmount, 2},
+		{0, 0, 0, 0, effectAmount, 2},
+		{effectAmount, 1, effectAmount, 2},
+	} {
+		t.Run(fmt.Sprint(effects), func(t *testing.T) {
+			w, p, st, items, pos := alquimiaScenario(t)
+			items[1].Eff = effects
+			p.Char.Inv = [model.MaxCarry]model.Item{}
+			placeItems(p.Char, items, pos)
+			before := p.Char.Inv
 
-	w.onCombineAlquimia(p.Session, buildCombinePacket(items, pos))
+			w.onCombineAlquimia(p.Session, buildCombinePacket(items, pos))
 
-	if st.saves != 0 || p.Char.Inv != before {
-		t.Fatalf("Alquimia aceitou item em pack: saves=%d invMudou=%t", st.saves, p.Char.Inv != before)
+			if st.saves != 0 || p.Char.Inv != before {
+				t.Fatalf("Alquimia aceitou item em pack: saves=%d invMudou=%t", st.saves, p.Char.Inv != before)
+			}
+		})
 	}
 }
 

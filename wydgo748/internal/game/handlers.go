@@ -1160,6 +1160,7 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	if exists {
 		basePrice = uint64(def.Price) / 4 // padrao WYD: vende por 25% do preco de compra
 	}
+	basePrice = passiveMerchantSalePrice(p.Char, sold, basePrice)
 	city, taxRate, taxed := w.cityShopTax(m)
 	netPrice := basePrice
 	treasury := uint64(0)
@@ -1563,21 +1564,21 @@ const attackRange = 3
 // os dois tiles de base e a margem nativa de tres. Um arco EF_RANGE=5 atinge
 // ate 10 tiles; ataque sem arma de alcance permanece melee (3).
 func (w *World) physicalAttackRange(ch *model.Char) int {
+	extra := 0
+	if specialSkillLearned(ch, 101) {
+		extra = 1
+	}
 	if ch == nil || len(ch.Equip) <= 6 {
-		return attackRange
+		return attackRange + extra
 	}
 	weapon := ch.Equip[6]
 	def, ok := w.items[weapon.Index]
 	if !ok || weapon.Index == 0 {
-		return attackRange
+		return attackRange + extra
 	}
 	weaponRange := itemAbility(weapon, def, "EF_RANGE")
 	if weaponRange <= 0 {
-		return attackRange
-	}
-	extra := 0
-	if specialSkillLearned(ch, 101) {
-		extra = 1
+		return attackRange + extra
 	}
 	return minInt(23, 2+weaponRange+3+extra)
 }
@@ -1742,6 +1743,9 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	}
 	// O alvo vem em @44 no layout compacto 7.48. Dano, posicao do atacante e
 	// demais valores enviados pelo client nunca sao aceitos como autoridade.
+	attackTwo := len(pkt) == 52 && wire.ParseHeader(pkt).Type == wire.OpAttackTwo
+	airBladeEligible := attackTwo
+	ironSpearEligible := attackTwo && p.Char.Class == 3 && p.Char.LearnedSkill&0x40 != 0
 	maxRange := w.physicalAttackRange(p.Char)
 	m := w.mobByID(req.TargetID)
 	if m == nil {
@@ -1766,19 +1770,33 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 
 		hit := playerPhysicalHitPlayerWithRNG(p, target, w.intn)
 		if !hit.Hit {
+			secondary := ironSpearSecondaryResult{}
+			if ironSpearEligible {
+				secondary = w.applyHuntressIronSpearSecondary(p, req, target.ID, target.X, target.Y,
+					hit.Double, hit.Critical, now)
+			}
 			w.sendToPlayerView(target, func() []byte {
+				if secondary.ok {
+					return spectralPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, target.X, target.Y,
+						p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), []wire.SkillTarget{
+							{ID: target.ID, Miss: true, MaxHP: playerMaxHP(target.Char)}, secondary.target,
+						}))
+				}
 				return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, target.ID,
 					p.X, p.Y, target.X, target.Y, 0, playerMaxHP(target.Char), p.Char.Exp,
 					playerCombatMP(p.Char), 0, true))
 			})
+			w.finalizeIronSpearSecondary(p, secondary)
 			log.Printf("[#%d] errou ataque PvP em %q", s.ID, target.Char.Name)
 			return
 		}
+		hit = applyHuntressAirBlade(hit, p.Char, playerDefense(target.Char), airBladeEligible, w.intn)
 		calculated := hit.Damage
 		calculated = addFlatDamage(calculated, w.equipmentGemBonuses(p.Char).forceDamage)
-		calculated = absorbFlatDamage(calculated, w.equipmentGemBonuses(target.Char).absorbDamage)
+		calculated = absorbFlatDamage(calculated, w.playerFlatDamageAbsorb(target.Char))
 		// Montaria adulta viva do alvo absorve 25% do dano no proprio HP.
 		calculated = uint32(w.absorbMountDamage(target, int(calculated)))
+		calculated = absorbManaControlDamageAt(target.Char, calculated, now)
 		applied := minU32(calculated, playerCurHP(target.Char))
 		setPlayerCurHP(target.Char, playerCurHP(target.Char)-applied)
 		lethal := playerCurHP(target.Char) == 0
@@ -1789,15 +1807,31 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			w.receiveDeathLetter(target, p.Char.Name, "jogador")
 			w.applyPvPKills(p, target)
 		}
+		secondary := ironSpearSecondaryResult{}
+		if ironSpearEligible && hit.Flank == 0 {
+			secondary = w.applyHuntressIronSpearSecondary(p, req, target.ID, target.X, target.Y,
+				hit.Double, hit.Critical, now)
+		}
 
 		// O numero flutuante recebe o dano calculado integral, inclusive
 		// overkill. A vida autoritativa continua reduzida somente pelo HP real.
 		w.sendToPlayerView(target, func() []byte {
+			if secondary.ok {
+				return spectralPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, target.X, target.Y,
+					p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), []wire.SkillTarget{
+						{ID: target.ID, Damage: calculated, MaxHP: playerMaxHP(target.Char)}, secondary.target,
+					}))
+			}
+			if hit.Flank > 0 {
+				return spectralPacket(p.Char, wire.AttackHitWideFlankResult(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
+					calculated, playerMaxHP(target.Char), p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), hit.Flank))
+			}
 			return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
 				calculated, playerMaxHP(target.Char), p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
 		})
 		w.syncPlayerVitals(target)
 		w.updatePartyMember(target)
+		w.finalizeIronSpearSecondary(p, secondary)
 		if lethal {
 			w.publishPlayerDeath(target, p.ID)
 		}
@@ -1822,14 +1856,27 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	m.TargetID = p.ID
 	hit := playerPhysicalHitMobAt(p, m, w.intn, now)
 	if !hit.Hit {
+		secondary := ironSpearSecondaryResult{}
+		if ironSpearEligible {
+			secondary = w.applyHuntressIronSpearSecondary(p, req, m.ID, m.X, m.Y,
+				hit.Double, hit.Critical, now)
+		}
 		w.sendToMobView(m, func() []byte {
+			if secondary.ok {
+				return spectralPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, m.X, m.Y,
+					p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), []wire.SkillTarget{
+						{ID: m.ID, Miss: true, MaxHP: m.Def.Score.MaxHP}, secondary.target,
+					}))
+			}
 			return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
 				0, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), 0, true))
 		})
+		w.finalizeIronSpearSecondary(p, secondary)
 		log.Printf("[#%d] errou ataque no mob id=%d %q (accuracy=%d%%)", s.ID, m.ID, m.Def.Name,
 			playerVersusMobAccuracy(p.Char, m.Def))
 		return
 	}
+	hit = applyHuntressAirBlade(hit, p.Char, effectiveMobDefenseAt(m, now), airBladeEligible, w.intn)
 	dmg := hit.Damage
 	dmg = uint32(applyCouragePvEDamageAt(p.Char, int(dmg), false, now))
 	dmg = addFlatDamage(dmg, w.equipmentGemBonuses(p.Char).forceDamage)
@@ -1844,6 +1891,11 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	}
 	// Gancho do subsistema de boss: para mob comum e so uma consulta de mapa.
 	w.notifyMobDamaged(m, oldHP, p.ID, dmg)
+	secondary := ironSpearSecondaryResult{}
+	if ironSpearEligible && hit.Flank == 0 {
+		secondary = w.applyHuntressIronSpearSecondary(p, req, m.ID, m.X, m.Y,
+			hit.Double, hit.Critical, now)
+	}
 	// O 0x181 atualiza a barra, mas somente o resultado 0x39D produz animacao e
 	// o numero flutuante do dano no client 7.48.
 	// Instance mobs share the map coordinates with the public world, but their
@@ -1851,9 +1903,20 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// Sending this through broadcast leaked combat packets to outsiders (and
 	// let a client observe an encounter it could not target).
 	w.sendToMobView(m, func() []byte {
+		if secondary.ok {
+			return spectralPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, m.X, m.Y,
+				p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), []wire.SkillTarget{
+					{ID: m.ID, Damage: dmg, MaxHP: m.Def.Score.MaxHP}, secondary.target,
+				}))
+		}
+		if hit.Flank > 0 {
+			return spectralPacket(p.Char, wire.AttackHitWideFlankResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
+				dmg, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), hit.Flank))
+		}
 		return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
 			dmg, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
 	})
+	w.finalizeIronSpearSecondary(p, secondary)
 	if m.HP == 0 {
 		w.killMobState(p, m, dmg, minU32(dmg, oldHP))
 	} else {
@@ -1866,6 +1929,129 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		})
 		w.gameplayLogf("attack", "[#%d] atacou mob id=%d %q dmg=%d hp=%d/%d",
 			s.ID, m.ID, m.Def.Name, dmg, m.HP, m.Def.Score.MaxHP)
+	}
+}
+
+type ironSpearSecondaryResult struct {
+	target   wire.SkillTarget
+	player   *Player
+	mob      *Mob
+	oldMobHP uint32
+	damage   uint32
+	lethal   bool
+	ok       bool
+}
+
+func ironSpearBehindTile(attackerX, attackerY, primaryX, primaryY, x, y uint16) bool {
+	dx, dy := 0, 0
+	if primaryX > attackerX {
+		dx = 1
+	} else if primaryX < attackerX {
+		dx = -1
+	}
+	if primaryY > attackerY {
+		dy = 1
+	} else if primaryY < attackerY {
+		dy = -1
+	}
+	return int(x) == int(primaryX)+dx && int(y) == int(primaryY)+dy
+}
+
+// applyHuntressIronSpearSecondary implements Lança de Ferro (skill 78). The
+// client only nominates the entity occupying the tile immediately behind the
+// primary target; the server revalidates that geometry and recalculates damage.
+func (w *World) applyHuntressIronSpearSecondary(attacker *Player, req skillCastRequest,
+	primaryID, primaryX, primaryY uint16, double, critical bool, now time.Time) ironSpearSecondaryResult {
+	id := req.SecondaryTargetID
+	if attacker == nil || attacker.Char == nil || id == 0 || id == attacker.ID || id == primaryID {
+		return ironSpearSecondaryResult{}
+	}
+
+	if m := w.mobByID(id); m != nil {
+		if m.Dead || m.HP == 0 || !w.playerCanInteractWithMob(attacker, m) ||
+			!ironSpearBehindTile(attacker.X, attacker.Y, primaryX, primaryY, m.X, m.Y) ||
+			!w.combatLineOfSight(attacker.X, attacker.Y, m.X, m.Y) {
+			return ironSpearSecondaryResult{}
+		}
+		m.TargetID = attacker.ID
+		hit := playerPhysicalFollowupHitMobAt(attacker, m, double, critical, w.intn, now)
+		result := ironSpearSecondaryResult{
+			target: wire.SkillTarget{ID: m.ID, MaxHP: m.Def.Score.MaxHP}, mob: m, oldMobHP: m.HP, ok: true,
+		}
+		if !hit.Hit {
+			result.target.Miss = true
+			return result
+		}
+		dmg := uint32(applyCouragePvEDamageAt(attacker.Char, int(hit.Damage), false, now))
+		dmg = addFlatDamage(dmg, w.equipmentGemBonuses(attacker.Char).forceDamage)
+		dmg = w.bossMitigateDamage(m, dmg)
+		result.damage, result.target.Damage = dmg, dmg
+		if dmg >= m.HP {
+			m.HP = 0
+		} else {
+			m.HP -= dmg
+		}
+		result.lethal = m.HP == 0
+		return result
+	}
+
+	target := w.playerByID(id)
+	if target == nil || target == attacker || !target.InWorld || target.Char == nil ||
+		playerCurHP(target.Char) == 0 || sameSupportGroup(attacker, target) ||
+		!w.canInitiatePvP(attacker, target) || !w.playersShareGameplaySpace(attacker, target) ||
+		!ironSpearBehindTile(attacker.X, attacker.Y, primaryX, primaryY, target.X, target.Y) ||
+		!w.combatLineOfSight(attacker.X, attacker.Y, target.X, target.Y) {
+		return ironSpearSecondaryResult{}
+	}
+	target.LastAttackerID = attacker.ID
+	w.cancelTrade(target, "personagem foi atacado")
+	hit := playerPhysicalFollowupHitPlayerWithRNG(attacker, target, double, critical, w.intn)
+	result := ironSpearSecondaryResult{
+		target: wire.SkillTarget{ID: target.ID, MaxHP: playerMaxHP(target.Char)}, player: target, ok: true,
+	}
+	if !hit.Hit {
+		result.target.Miss = true
+		return result
+	}
+	dmg := addFlatDamage(hit.Damage, w.equipmentGemBonuses(attacker.Char).forceDamage)
+	dmg = absorbFlatDamage(dmg, w.playerFlatDamageAbsorb(target.Char))
+	dmg = uint32(w.absorbMountDamage(target, int(dmg)))
+	dmg = absorbManaControlDamageAt(target.Char, dmg, now)
+	result.damage, result.target.Damage = dmg, dmg
+	applied := minU32(dmg, playerCurHP(target.Char))
+	setPlayerCurHP(target.Char, playerCurHP(target.Char)-applied)
+	result.lethal = playerCurHP(target.Char) == 0
+	return result
+}
+
+func (w *World) finalizeIronSpearSecondary(attacker *Player, result ironSpearSecondaryResult) {
+	if !result.ok || result.target.Miss {
+		return
+	}
+	if result.mob != nil {
+		w.notifyMobDamaged(result.mob, result.oldMobHP, attacker.ID, result.damage)
+		if result.lethal {
+			w.killMobState(attacker, result.mob, result.damage, minU32(result.damage, result.oldMobHP))
+			return
+		}
+		w.sendToMobViewProtocol(result.mob, func(observer *Player) []byte {
+			return wire.MobHpMp(result.mob.ID, result.mob.HP, result.mob.Def.Score.MaxHP,
+				result.mob.Def.Score.MaxMP, result.mob.Def.Score.MaxMP)
+		})
+		return
+	}
+	if result.player == nil {
+		return
+	}
+	w.syncPlayerVitals(result.player)
+	w.updatePartyMember(result.player)
+	if result.lethal {
+		w.cancelTrade(result.player, "personagem morreu")
+		w.mountRiderDied(result.player)
+		result.player.DeadAt = w.now()
+		w.receiveDeathLetter(result.player, attacker.Char.Name, "jogador")
+		w.applyPvPKills(attacker, result.player)
+		w.publishPlayerDeath(result.player, attacker.ID)
 	}
 }
 

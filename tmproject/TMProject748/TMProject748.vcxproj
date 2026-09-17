@@ -232,6 +232,7 @@
     <ClInclude Include="internal\render\resources\TextureManager.h" />
     <ClInclude Include="internal\render\mesh\CostumeSelection.h" />
     <ClInclude Include="internal\ui\ResourceBarProjection.h" />
+    <ClInclude Include="internal\ui\ObservedAffectProjection.h" />
     <ClInclude Include="internal\render\mesh\CostumeTable.generated.h" />
     <ClInclude Include="internal\platform\windows\TimerManager.h" />
     <ClInclude Include="internal\game\entities\TMArrow.h" />

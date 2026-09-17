@@ -2820,12 +2820,15 @@ void SGridControl::SwapItem(int nCellX, int nCellY, int nCellVWidth, int nCellVH
 
 int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 {
-	if (g_pCursor->GetStyle() != ECursorStyle::TMC_CURSOR_HAND)
+	const auto eCursorStyle = g_pCursor->GetStyle();
+	const bool bSkillBeltCrossHair =
+		m_eGridType == TMEGRIDTYPE::GRID_SKILLB && eCursorStyle == ECursorStyle::TMC_CURSOR_CROSS_HAIR;
+	if (eCursorStyle != ECursorStyle::TMC_CURSOR_HAND && !bSkillBeltCrossHair)
 	{
 		// A stale enable color must not remain visible after the cursor releases
 		// its item or changes mode outside the native pickup flow.
 		m_dwEnableColor = 0;
-		if (g_pCursor->GetStyle() == ECursorStyle::TMC_CURSOR_PICKUP && g_pCursor->m_pAttachedItem)
+		if (eCursorStyle == ECursorStyle::TMC_CURSOR_PICKUP && g_pCursor->m_pAttachedItem)
 		{
 			auto pDescPanel = g_pCurrentScene->m_pDescPanel;
 			if (pDescPanel)

@@ -4,7 +4,7 @@ title: Layout e lifecycle do painel Party 7.48
 subsystem: ui-layout-party
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-06
+updated: 2026-09-17
 ---
 
 # Layout e lifecycle do painel Party 7.48
@@ -251,3 +251,31 @@ intenções.
 - Automação: `validate_research.py`, a fixture C++ e `git diff --check` passaram
   para o lote.
 - Client real: não executado; `CLIENT-TESTED` não é alegado.
+
+## Ícones de affects observados — 2026-09-17
+
+Delta `MODERNIZACAO_COMPATIVEL`: apresentação nova solicitada, sem alegação
+de que os ícones de alvo/grupo existiam no painel nativo. Preserva o wire e
+os controles/lifecycle estudados acima. Reutiliza os contratos registrados em
+`../transport/update-score-source-contract.md` e
+`../transport/update-affect-source-contract.md`; não mistura os 32 words públicos
+com os 16 registros privados do dono.
+
+- `TMFieldScene::UpdateCompatObservedAffects` projeta os affects públicos do
+  alvo sob o mouse abaixo de sua própria barra de HP. No grupo, usa cada item
+  da janela visível da lista e resolve sua entidade pelo ID, sem cache remoto.
+- Por decisão expressa do usuário, os ícones do grupo existem apenas enquanto
+  o membro pertence à visão local. Ausência da entidade, RemoveMob (inclusive
+  antes de DelayDelete), morte ou remoção apagam a projeção; reentrada usa o
+  snapshot atual. Não há alteração nem fanout novo no servidor Go.
+- Painéis informativos pertencem ao container da cena e não consomem clicks.
+  Ícones compactam slots vazios; grupo usa até duas linhas de 16, limitadas à
+  altura do item; alvo quebra linhas pela largura da barra. Tipos desconhecidos,
+  duração zero e texturas sem mapeamento não são desenhados.
+- `ObservedAffectProjection.h` e `ObservedAffectProjectionTests.cpp` cobrem
+  tipos/slots extremos, limpeza, limite de 32, layout, controles ausentes e
+  transições de visibilidade/remoção/reentrada. Gate de build e resultado final
+  registrados no handoff `skills-buffs-passives.md`.
+- Pendente: dois jogadores e mob no client real, expiração/cancelamento,
+  saída/reentrada da visão, scroll/toggle da lista, mudança de resolução e
+  troca de cena/relogin. Não elevar a `CLIENT_TESTED` com testes isolados.

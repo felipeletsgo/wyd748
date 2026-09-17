@@ -89,6 +89,27 @@ func TestDesintoxicarUsesCastersLearnedSkill(t *testing.T) {
 	}
 }
 
+func TestCancelamentoRemovesOnlyFirstImmunityAffect(t *testing.T) {
+	caster, _ := networkedTestPlayer(1, "Foema", 2200, 2200)
+	target, _ := networkedTestPlayer(2, "Target", 2201, 2200)
+	w := testSpatialWorld(nil, caster, target)
+	target.Char.Affects[0] = model.Affect{Type: 19, Value: 10, ExpiresAt: time.Now().Add(time.Minute)}
+	target.Char.Affects[1] = model.Affect{Type: 19, Value: 20, ExpiresAt: time.Now().Add(time.Minute)}
+
+	got := w.applySupportSkill(caster, skillCastRequest{TargetID: target.ID}, model.SkillDef{
+		Index: 47, Range: 6, MaxTarget: 1,
+	}, 100)
+	if len(got) != 1 || got[0].player != target {
+		t.Fatalf("Cancelamento nao aplicou no alvo: %+v", got)
+	}
+	if target.Char.Affects[0].Type != 0 {
+		t.Fatalf("primeira Imunidade permaneceu: %+v", target.Char.Affects[0])
+	}
+	if target.Char.Affects[1].Type != 19 {
+		t.Fatalf("Cancelamento removeu mais de um Affect 19: %+v", target.Char.Affects[1])
+	}
+}
+
 func TestSamaritanoTransfersOnlyHostileAggroInSameRuntime(t *testing.T) {
 	caster, _ := networkedTestPlayer(1, "TK", 2200, 2200)
 	target, _ := networkedTestPlayer(2, "Target", 2201, 2200)

@@ -703,7 +703,7 @@ nos arquivos `skill_*.go`.
 | 13 / 14 / 15 | Assalto (ATK%, DEF−10%) / Possuído (CON+HP) / mastery total |
 | 16 | transformação BM com interpolação por mastery e bônus das passivas |
 | 17 / 20 | cura periódica / veneno, pulso de 8 s |
-| 18 / 21 | SaveMana / Meditação (ATK por DEF) |
+| 18 / 21 | Controle de Mana (90% MP / 10% HP) / Meditação (ATK por DEF) |
 | 22 / 23 | ticks de área, até 6 alvos em raio 4 a cada 8 s |
 | 24 / 25 / 26 | Samaritano / proteção elemental / evasão |
 | 28 / 30 / 31 | invisibilidade / precisão +2000 / Critical Armor |
@@ -711,6 +711,17 @@ nos arquivos `skill_*.go`.
 
 Imunidade usa tipo 19 na validação de aplicação; o client 7.48 exige o remapeamento
 visual 31→24 para Critical Armor. Ao atacar, invisibilidade é removida e publicada.
+
+Controle de Mana (skill 46, affect 18) usa a regra solicitada para este servidor,
+não uma afirmação de paridade nativa/W2PP: após as mitigações existentes e a
+montaria, cada golpe consome `min(MP atual, floor(dano × 90 / 100))` MP, na razão
+1:1. O restante atinge HP no mesmo golpe, inclusive a parcela sem cobertura por
+falta de MP; com MP zero, todo o dano vai ao HP. A divisão vale para PvP físico
+e mágico (por golpe), mobs/bosses, invocações e veneno, preservando o limite
+não letal do veneno. Não altera HP máximo, não cura e não reduz custo de magia
+via SaveMana; sacrifícios próprios de HP continuam fora da absorção. O buff
+permanece ativo sem MP e volta a absorver após recuperação de mana, até expirar
+ou ser removido. HP/MP são publicados pelo contrato existente de `SetHpMp`.
 
 #### Layout da resposta de ataque/skill
 

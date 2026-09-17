@@ -592,6 +592,50 @@ func AttackHitWideResult(attackerID, targetID, attackerX, attackerY, targetX, ta
 	return extended
 }
 
+// AttackHitWideFlankResult serializes the native Huntress Lâmina Aérea shape:
+// MSG_AttackTwo, one real target in Dam[0], bonus-only Dam[1] with TargetID=0,
+// and DoubleCritical bit 2. The DMGX tail preserves both uint32 values because
+// STRUCT_DAM.Damage is a signed short in the 7.48 client.
+func AttackHitWideFlankResult(attackerID, targetID, attackerX, attackerY, targetX, targetY uint16,
+	damage, targetMaxHP, currentExp, currentMP uint32, doubleCritical byte, flank uint32) []byte {
+	if flank == 0 {
+		return AttackHitWideResult(attackerID, targetID, attackerX, attackerY, targetX, targetY,
+			damage, targetMaxHP, currentExp, currentMP, doubleCritical&^4, false)
+	}
+	base := AttackHit(attackerID, targetID, attackerX, attackerY, targetX, targetY,
+		damage, targetMaxHP, currentExp, currentMP)
+	native := make([]byte, 52)
+	copy(native, base)
+	putU16(native, 0, uint16(len(native)))
+	putU16(native, 4, OpAttackTwo)
+	native[31] = doubleCritical | 4
+	putU16(native, 48, 0)
+	putU16(native, 50, wireDamage(SkillTarget{Damage: flank}))
+
+	extended := make([]byte, 68)
+	copy(extended, native)
+	putU16(extended, 0, uint16(len(extended)))
+	putU32(extended, 52, 0x58474D44) // "DMGX"
+	putU32(extended, 56, 2)
+	putU32(extended, 60, damage)
+	putU32(extended, 64, flank)
+	return extended
+}
+
+// AttackHitsWideTwoResult serializes a real two-target physical MSG_AttackTwo.
+// It reuses the same native layout/DMGX contract as multi-target skills, but
+// keeps SkillIndex=-1 and the physical motion so OnPacketAttack renders one
+// attack action with two authoritative damage slots.
+func AttackHitsWideTwoResult(attackerID, attackerX, attackerY, targetX, targetY uint16,
+	currentExp, currentMP uint32, doubleCritical byte, targets []SkillTarget) []byte {
+	b := SkillHits(attackerID, attackerX, attackerY, targetX, targetY,
+		currentExp, currentMP, -1, 5, 0, 2, targets)
+	if len(b) > 31 {
+		b[31] = doubleCritical
+	}
+	return b
+}
+
 // CNFGetItem monta o 0x171 (28B): confirma pegar item do chao.
 // O TMSrv nativo envia ID=SceneField, DestType@12, DestPos@16 e Item@20 zerado;
 // o slot real chega logo depois pelo 0x182 SendItem.

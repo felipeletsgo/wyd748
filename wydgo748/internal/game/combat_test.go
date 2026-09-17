@@ -48,6 +48,40 @@ func TestPhysicalFlagsUseNative748DoubleProgressionAndIndependentCritical(t *tes
 	}
 }
 
+func TestHuntressAirBladeRequiresAttackTwoAndLearnedPassive(t *testing.T) {
+	ch := &model.Char{Class: 3, Score: testScore(model.Score{Str: 1000, Mastery: [4]uint32{0, 0, 0, 500}})}
+	hit := physicalHitResult{Damage: 1000, Hit: true}
+	procRNG := func(int) int { return 0 }
+	if got := applyHuntressAirBlade(hit, ch, 0, true, procRNG); got.Flank != 0 || got.Damage != hit.Damage {
+		t.Fatalf("unlearned Lâmina Aérea changed hit: %+v", got)
+	}
+	ch.LearnedSkill = huntressAirBladeBit
+	if got := applyHuntressAirBlade(hit, ch, 0, false, procRNG); got.Flank != 0 || got.Damage != hit.Damage {
+		t.Fatalf("non-0x39E physical hit triggered Lâmina Aérea: %+v", got)
+	}
+	noProc := applyHuntressAirBlade(hit, ch, 0, true, func(int) int { return 1 })
+	if noProc.Flank != 0 || noProc.Damage != hit.Damage {
+		t.Fatalf("failed 25%% roll changed hit: %+v", noProc)
+	}
+}
+
+func TestHuntressAirBladeAddsBonusBeforeDoubleHit(t *testing.T) {
+	ch := &model.Char{
+		Class:        3,
+		LearnedSkill: huntressAirBladeBit,
+		Score:        testScore(model.Score{Str: 1000, Mastery: [4]uint32{0, 0, 0, 500}}),
+	}
+	rng := func(int) int { return 0 }
+	single := applyHuntressAirBlade(physicalHitResult{Damage: 1000, Hit: true}, ch, 0, true, rng)
+	if single.Flank != 742 || single.Damage != 1742 || single.visualFlags()&4 == 0 {
+		t.Fatalf("single Lâmina Aérea=%+v want flank=742 damage=1742 bit4", single)
+	}
+	double := applyHuntressAirBlade(physicalHitResult{Damage: 1000, Hit: true, Double: true}, ch, 0, true, rng)
+	if double.Flank != 742 || double.Damage != 2484 {
+		t.Fatalf("double Lâmina Aérea=%+v want (basePreDouble+742)*2=2484", double)
+	}
+}
+
 func TestDoubleHitCountsFullServerProgression(t *testing.T) {
 	// The native table reserves cursor zero as 512, so its nominal 50% band
 	// contains 499 doubles in one complete 1,024-action cycle. At 200% every

@@ -208,12 +208,12 @@ func (w *World) equipmentDamage(ch *model.Char) int {
 		if ldef.Unique == rdef.Unique {
 			multi = 50
 		}
-		// BASE_GetMobAbility: as passivas aumentam o aproveitamento da arma
-		// secundaria; nao substituem o multiplicador inteiro por 100%.
+		// BASE_GetMobAbility: Pericia do Cacador (HT bit 10) e Mestre das
+		// Armas (TK bit 9) usam 100% do dano da arma secundaria.
 		if ch.Class == 0 && ch.LearnedSkill&(1<<9) != 0 {
-			multi += 15
-		} else if ch.Class == 3 && ch.LearnedSkill&(1<<11) != 0 {
-			multi += 10
+			multi = 100
+		} else if ch.Class == 3 && ch.LearnedSkill&(1<<10) != 0 {
+			multi = 100
 		}
 		return value + maxInt(ldam, rdam) + minInt(ldam, rdam)*multi/100
 	}

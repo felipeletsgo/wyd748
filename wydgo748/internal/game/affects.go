@@ -117,6 +117,24 @@ func activePlayerAffectAt(ch *model.Char, affectType byte, now time.Time) *model
 	return nil
 }
 
+// absorbManaControlDamageAt implements the requested server rule for affect 18:
+// 90% of incoming damage consumes MP at 1:1, and the rest reaches HP. Missing
+// mana spills into HP in the same hit, without a reserve or a free reduction.
+// Call after other mitigations, once per resolved hit, before applying HP/death.
+// Integer remainders go to HP; use uint64 so wide damage cannot overflow.
+func absorbManaControlDamageAt(ch *model.Char, damage uint32, now time.Time) uint32 {
+	if damage == 0 || ch == nil || playerCurHP(ch) == 0 ||
+		activePlayerAffectAt(ch, 18, now) == nil {
+		return damage
+	}
+	const manaPercent = 90
+	absorbed := minU32(playerCurMP(ch), uint32(uint64(damage)*manaPercent/100))
+	if absorbed > 0 {
+		spendPlayerMP(ch, absorbed)
+	}
+	return damage - absorbed
+}
+
 // accumulateAffect SOMA tempo a um affect existente (ou cria um novo), com teto.
 // Porta o padrao do frango assado e do bau de EXP do WYD 7.48, que fazem
 // Affect.Time += X ate um limite e recusam "usar mais" quando ja no teto. addUnits
@@ -258,11 +276,13 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 	if p == nil || p.Char == nil {
 		return nil
 	}
+	revive := skill.Index == 31 || skill.Index == 99
 	// An explicit target is an intent, not a hint. Never silently turn a stale,
 	// out-of-range or cross-runtime target into a self cast.
 	if req.TargetID != 0 && req.TargetID != p.ID {
 		target := w.playerByID(req.TargetID)
 		if target == nil || !target.InWorld || target.Char == nil ||
+			(!revive && playerCurHP(target.Char) == 0) ||
 			!w.playersShareGameplaySpace(p, target) ||
 			(!sameSupportGroup(p, target) && skill.Index != 47) ||
 			chebyshev(p.X, p.Y, target.X, target.Y) > maxInt(6, skill.Range) {
@@ -277,6 +297,7 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 				break
 			}
 			if member != nil && member.InWorld && member.Char != nil &&
+				(revive || playerCurHP(member.Char) > 0) &&
 				w.playersShareGameplaySpace(p, member) &&
 				chebyshev(p.X, p.Y, member.X, member.Y) <= maxInt(6, skill.Range) {
 				result = append(result, member)
@@ -288,11 +309,12 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 	}
 	if target := w.playerByID(req.TargetID); target != nil && target.InWorld &&
 		target.Char != nil && w.playersShareGameplaySpace(p, target) &&
+		(revive || playerCurHP(target.Char) > 0) &&
 		(sameSupportGroup(p, target) || skill.Index == 47) &&
 		chebyshev(p.X, p.Y, target.X, target.Y) <= maxInt(6, skill.Range) {
 		return []*Player{target}
 	}
-	if req.TargetID == 0 || req.TargetID == p.ID {
+	if (req.TargetID == 0 || req.TargetID == p.ID) && (revive || playerCurHP(p.Char) > 0) {
 		return []*Player{p}
 	}
 	return nil
@@ -335,7 +357,7 @@ func foemaHealAmount(skillIndex, mastery, instanceValue int) int {
 	return minInt(548, heal*14/10)
 }
 
-func soulLimitAffectTime(ch *model.Char) int {
+func soulLimitDelayMultiplier(ch *model.Char) int {
 	if ch == nil {
 		return 100
 	}
@@ -357,9 +379,35 @@ func soulLimitAffectTime(ch *model.Char) int {
 	}
 }
 
+func soulLimitAffectTime(skill model.SkillDef, ch *model.Char) int {
+	duration := (skill.AffectTime + 1) * soulLimitDelayMultiplier(ch) / 100
+	if duration < 0 {
+		return 0
+	}
+	return duration
+}
+
+func setSoulLimitAffectAt(ch *model.Char, affectType byte, value, level, durationUnits int, now time.Time) bool {
+	if ch == nil || affectType == 0 {
+		return false
+	}
+	if durationUnits < 0 {
+		durationUnits = 0
+	}
+	expires := now.Add(time.Duration(durationUnits*8) * time.Second)
+	ch.Affects[15] = model.Affect{
+		Type: affectType, ClientType: affectType, Value: value, Level: level,
+		ExpiresAt: expires, NextTick: now.Add(8 * time.Second),
+	}
+	return true
+}
+
 func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.SkillDef, mastery int) []supportSkillResult {
+	return w.applySupportSkillToTargets(p, w.supportTargets(p, req, skill), skill, mastery)
+}
+
+func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill model.SkillDef, mastery int) []supportSkillResult {
 	now := w.now()
-	targets := w.supportTargets(p, req, skill)
 	changed := make([]supportSkillResult, 0, len(targets))
 	for _, target := range targets {
 		if playerCurHP(target.Char) == 0 && skill.Index != 31 && skill.Index != 99 {
@@ -413,6 +461,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 				if target.Char.Affects[i].Type == 19 {
 					target.Char.Affects[i] = model.Affect{}
 					applied = true
+					break
 				}
 			}
 		case 56, 57, 58, 59, 60, 61, 62, 63:
@@ -422,7 +471,7 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 			if ok {
 				duration := skill.AffectTime
 				if skill.Index == 102 {
-					duration = soulLimitAffectTime(p.Char)
+					duration = soulLimitAffectTime(skill, p.Char)
 				}
 				// SkillData.csv preserva o identificador cru 50 da Armadura Critica,
 				// mas a regra autoritativa usa affect 31 e o executavel 7.48 exige o
@@ -430,7 +479,11 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 				if skill.Index == 15 {
 					affectType = 31
 				}
-				applied = setAffectAt(target.Char, affectType, value, mastery, duration, now)
+				if skill.Index == 102 {
+					applied = setSoulLimitAffectAt(target.Char, affectType, value, mastery, duration, now)
+				} else {
+					applied = setAffectAt(target.Char, affectType, value, mastery, duration, now)
+				}
 				if applied && skill.Index == 15 { // Critical Armor TK usa o visual 24 no 7.48.
 					for i := range target.Char.Affects {
 						if target.Char.Affects[i].Type == affectType {
@@ -747,7 +800,8 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		case 15: // Toque de Athena
 			value := uint32(maxInt(0, a.Level/10+a.Value))
 			for j := range e.Mastery {
-				e.Mastery[j] = minU32(maxScoreValue, e.Mastery[j]+value)
+				// Mesmo teto das especializacoes no recalc e no W2PP Type 15.
+				e.Mastery[j] = uint32(minInt(320, int(e.Mastery[j])+int(value)))
 			}
 		case 16: // Transformacoes BM; pTransBonus do WYD 7.48
 			type transformBonus struct {
@@ -801,8 +855,6 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 				attackSpeed := minInt(15, int(e.AttackRun>>4)+(b.attackSpeed+attackSpeedAdd)/10)
 				e.AttackRun = uint32(attackSpeed<<4 | run)
 			}
-		case 18: // Controle de Mana
-			e.SaveMana = uint32(minInt(99, int(e.SaveMana)+a.Level/10+a.Value))
 		case 21:
 			e.Defense = add(e.Defense, int64(-(a.Level/3 + 10)))
 			e.Attack = mul(e.Attack, 100+a.Level/10+a.Value)
@@ -992,6 +1044,7 @@ func (w *World) tickPlayerAffects(now time.Time) {
 				currentHP := playerCurHP(p.Char)
 				damage := uint32(clampInt(a.Level/2+a.Value, 1, maxInt(1, int(currentHP)-1)))
 				if currentHP > 1 {
+					damage = absorbManaControlDamageAt(p.Char, damage, now)
 					setPlayerCurHP(p.Char, currentHP-damage)
 					hpChanged = true
 					if owner != nil {

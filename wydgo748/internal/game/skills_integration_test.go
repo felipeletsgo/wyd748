@@ -397,6 +397,151 @@ func TestSkillAttackSupportHealsAndRejectsCooldown(t *testing.T) {
 	}
 }
 
+func TestFoemaBuffInvalidTargetDoesNotConsumeResources(t *testing.T) {
+	for _, skill := range foemaBuffTestSkills() {
+		t.Run(skill.Name, func(t *testing.T) {
+			for _, invalid := range []string{"stale", "foreign party", "out of range", "offline", "dead"} {
+				t.Run(invalid, func(t *testing.T) {
+					caster, _ := networkedTestPlayer(1, "Caster", 2100, 2100)
+					target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
+					caster.Char.Class = 1
+					caster.Char.LearnedSkill = 1 << (skill.Index - 24)
+					party := &Party{Members: []*Player{caster, target}}
+					caster.Party, target.Party = party, party
+					w := worldWithNetworkedPlayers(caster, target)
+					w.skills = map[int]model.SkillDef{skill.Index: skill}
+					req := skillCastRequest{Skill: skill.Index, TargetID: target.ID}
+					switch invalid {
+					case "stale":
+						req.TargetID = 999
+					case "foreign party":
+						target.Party = nil
+					case "out of range":
+						target.X += 50
+					case "offline":
+						target.InWorld = false
+					case "dead":
+						setPlayerCurHP(target.Char, 0)
+					}
+					mpBefore := playerCurMP(caster.Char)
+					w.onSkillAttack(caster, req)
+					if got := playerCurMP(caster.Char); got != mpBefore {
+						t.Errorf("invalid target consumed mana: %d -> %d", mpBefore, got)
+					}
+					if _, ok := caster.SkillReady[skill.Index]; ok {
+						t.Error("invalid target started cooldown")
+					}
+					for _, p := range []*Player{caster, target} {
+						for _, affect := range p.Char.Affects {
+							if affect.Type != 0 {
+								t.Errorf("invalid cast applied affect to %s: %+v", p.Char.Name, affect)
+							}
+						}
+						if got := p.Session.QueuedPacketsForTest(); got != 0 {
+							t.Errorf("invalid cast published %d packets to %s", got, p.Char.Name)
+						}
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestFoemaStatBuffCastRecastAndExpiration(t *testing.T) {
+	for _, skill := range foemaBuffTestSkills() {
+		if skill.Index == 46 {
+			continue // The mana-shield contract is not covered by these stat formulas.
+		}
+		t.Run(skill.Name, func(t *testing.T) {
+			w, p, _ := handlerTestWorld(t)
+			clock := newFakeClock(time.Date(2026, 9, 16, 12, 0, 0, 0, time.UTC))
+			w.clock = clock
+			stateStore := &charStateMemoryStore{}
+			w.store = stateStore
+			p.Char.Class = 1
+			p.Char.LearnedSkill = 1 << (skill.Index - 24)
+			p.Char.Score.Mastery[3] = 41 // Exercises integer truncation in 43/44.
+			p.Char.Score.AttackRun = 0x34
+			w.recalcPlayer(p.Char)
+			before := *effectiveScore(p.Char)
+			base := p.Char.Score
+			mastery := int(playerMastery(p.Char, 3))
+			w.skills = map[int]model.SkillDef{skill.Index: skill}
+			req := skillCastRequest{Skill: skill.Index, TargetID: p.ID}
+			manaCost := uint32(skill.ManaSpent * (100 + mastery/2) / 100)
+			w.onSkillAttack(p, req)
+			if got := playerCurMP(p.Char); got != before.CurMP-manaCost {
+				t.Fatalf("cast MP=%d, want %d", got, before.CurMP-manaCost)
+			}
+			checkStats := func(active bool) {
+				t.Helper()
+				wantAttack, wantDefense, wantSpeed := before.Attack, before.Defense, before.AttackRun
+				if active {
+					switch skill.Index {
+					case 41:
+						wantSpeed = before.AttackRun&0xF0 | minU32(15, (before.AttackRun&0x0F)+1)
+					case 43:
+						wantDefense += uint32(mastery/3 + 15)
+					case 44:
+						wantAttack += uint32((mastery*5/20 + 5) * 3 / 2)
+					}
+				}
+				got := effectiveScore(p.Char)
+				if got.Attack != wantAttack || got.Defense != wantDefense || got.AttackRun != wantSpeed {
+					t.Fatalf("active=%v stats attack/defense/speed=%d/%d/%x, want %d/%d/%x",
+						active, got.Attack, got.Defense, got.AttackRun, wantAttack, wantDefense, wantSpeed)
+				}
+				if skill.Index == 41 && movementTilesPerSecond(p) != float64(clampInt(int(wantSpeed&0xF), 1, 7)) {
+					t.Fatal("movement authority did not use the effective buff speed")
+				}
+				if p.Char.Score.Attack != base.Attack || p.Char.Score.Defense != base.Defense ||
+					p.Char.Score.AttackRun != base.AttackRun || p.Char.Score.Mastery != base.Mastery {
+					t.Fatal("buff modified base stats")
+				}
+			}
+			checkStats(true)
+			oldAffects, oldMP := p.Char.Affects, playerCurMP(p.Char)
+			w.onSkillAttack(p, req)
+			if playerCurMP(p.Char) != oldMP || p.Char.Affects != oldAffects {
+				t.Fatal("recast during cooldown mutated MP or affects")
+			}
+			clock.Advance(time.Duration(skill.Delay) * time.Second)
+			w.onSkillAttack(p, req)
+			if playerCurMP(p.Char) != oldMP-manaCost ||
+				!p.Char.Affects[0].ExpiresAt.After(oldAffects[0].ExpiresAt) {
+				t.Fatal("valid recast did not charge MP and extend the buff")
+			}
+			for i := 0; i < 3; i++ {
+				w.recalcPlayer(p.Char)
+				checkStats(true)
+			}
+			count := 0
+			for _, affect := range p.Char.Affects {
+				if affect.Type == byte(skill.AffectType) {
+					count++
+				}
+			}
+			if count != 1 {
+				t.Fatalf("recast left %d copies of affect %d", count, skill.AffectType)
+			}
+			clock.Advance(oldAffects[0].ExpiresAt.Sub(w.now()))
+			w.tickPlayerAffects(w.now())
+			checkStats(true) // The original expiry must not remove a refreshed buff.
+			clock.Advance(p.Char.Affects[0].ExpiresAt.Sub(w.now()))
+			w.tickPlayerAffects(w.now())
+			checkStats(false)
+			if p.Char.Affects[0].Type != 0 || stateStore.asyncSaves == 0 || stateStore.state == nil {
+				t.Fatal("expiration did not remove and persist the buff")
+			}
+			for _, affect := range stateStore.state.Affects {
+				if affect.Type == byte(skill.AffectType) {
+					t.Fatal("expired buff remained in persisted state")
+				}
+			}
+		})
+	}
+}
+
 func TestSupportBuffManualRecastIsNotBlockedByAutomaticWindow(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	p.Char.Class = 0

@@ -3,6 +3,7 @@
 #include "../../application/FieldInteractionPolicy.h"
 #include "../../application/CCModePolicy.h"
 #include "../../application/SkillCooldownPolicy.h"
+#include "../../ui/ObservedAffectProjection.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "dsutil.h"
@@ -71,6 +72,14 @@
 // private scene state and could change lifecycle ordering.
 namespace
 {
+	// Informational overlays must not consume clicks meant for the world/UI.
+	class ObservedAffectPanel final : public SPanel
+	{
+	public:
+		ObservedAffectPanel() : SPanel(200, 0, 0, 16, 16, 0xFFFFFFFFu, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH) {}
+		int OnMouseEvent(unsigned int, unsigned int, int, int) override { return 0; }
+	};
+
 	void WYD748_ResetTradeOffer(MSG_Trade& trade, unsigned short opponentID)
 	{
 		memset(&trade, 0, sizeof(trade));
@@ -1824,8 +1833,8 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pChatParty_C = static_cast<SButton*>(m_pControlContainer->FindControl(5702));
 		m_pChatWhisper_C = static_cast<SButton*>(m_pControlContainer->FindControl(5703));
 		m_pChatGuild_C = static_cast<SButton*>(m_pControlContainer->FindControl(5704));
-		// The primary buttons are the receive gates.  The paired *_C controls
-		// render the opposite (off) state, as in the native initializer.
+		// The primary buttons are the receive gates. The native 7.48 scene keeps
+		// each paired *_C control selected in the same state as its primary.
 		if (m_pChatGeneral)
 			m_pChatGeneral->m_bSelected = 1;
 		if (m_pChatParty)
@@ -1835,13 +1844,13 @@ int TMFieldScene::InitializeCompatFieldScene()
 		if (m_pChatGuild)
 			m_pChatGuild->m_bSelected = 1;
 		if (m_pChatGeneral_C)
-			m_pChatGeneral_C->m_bSelected = 0;
+			m_pChatGeneral_C->m_bSelected = 1;
 		if (m_pChatParty_C)
-			m_pChatParty_C->m_bSelected = 0;
+			m_pChatParty_C->m_bSelected = 1;
 		if (m_pChatWhisper_C)
-			m_pChatWhisper_C->m_bSelected = 0;
+			m_pChatWhisper_C->m_bSelected = 1;
 		if (m_pChatGuild_C)
-			m_pChatGuild_C->m_bSelected = 0;
+			m_pChatGuild_C->m_bSelected = 1;
 		// FUN_00435b13 always binds the classic minimap controls, even when
 		// [CLASSIC] selects UI version 1. IDs 5714/5715/6136/6137 belong only to
 		// the UI2 branch and intentionally remain null in this 7.48 resource.
@@ -4983,7 +4992,11 @@ int TMFieldScene::InitializeScene()
 		for (int ih = 16; ih < 32; ++ih)
 			m_pAffectIcon[ih] = nullptr;
 		for (int ih = 0; ih < 32; ++ih)
-			m_pTargetAffectIcon[ih] = nullptr;
+		{
+			m_pTargetAffectIcon[ih] = new ObservedAffectPanel();
+			m_pTargetAffectIcon[ih]->SetVisible(0);
+			m_pControlContainer->AddItem(m_pTargetAffectIcon[ih]);
+		}
 	}
 	m_pAffectDescList[0] = (SText*)m_pControlContainer->FindControl(773);
 	m_pAffectDescList[1] = (SText*)m_pControlContainer->FindControl(774);
@@ -5001,7 +5014,16 @@ int TMFieldScene::InitializeScene()
 	for (int j = 0; j < 13; ++j)
 	{
 		for (int ii = 0; ii < 32; ++ii)
-			m_pPartyAffectIcon[j][ii] = (SPanel*)m_pControlContainer->FindControl(32 * j + ii + 475152);
+		{
+			if (m_bCompatFieldScene)
+			{
+				m_pPartyAffectIcon[j][ii] = new ObservedAffectPanel();
+				m_pPartyAffectIcon[j][ii]->SetVisible(0);
+				m_pControlContainer->AddItem(m_pPartyAffectIcon[j][ii]);
+			}
+			else
+				m_pPartyAffectIcon[j][ii] = (SPanel*)m_pControlContainer->FindControl(32 * j + ii + 475152);
+		}
 	}
 
 	m_pPartyAffectText = (SText*)m_pControlContainer->FindControl(7602193);
@@ -6785,12 +6807,30 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		}
 		if (pPrimary)
 		{
-			pPrimary->m_bSelected = pPrimary->m_bSelected == 0;
-			if (pState)
-				pState->m_bSelected = pPrimary->m_bSelected == 0;
-			pPrimary->Update();
-			if (pState)
-				pState->Update();
+			const char cEnabled = pPrimary->m_bSelected == 0;
+			switch (idwControlID)
+			{
+			case TMB_CHAT_WHISPER:
+			case TMB_CHAT_WHISPER_T:
+				SetWhisper(cEnabled);
+				break;
+			case TMB_CHAT_PARTY:
+			case TMB_CHAT_PARTY_T:
+				SetPartyChat(cEnabled);
+				break;
+			case TMB_CHAT_GUILD:
+			case TMB_CHAT_GUILD_T:
+				SetGuildChat(cEnabled);
+				break;
+			default:
+				pPrimary->m_bSelected = cEnabled;
+				if (pState)
+					pState->m_bSelected = cEnabled;
+				pPrimary->Update();
+				if (pState)
+					pState->Update();
+				break;
+			}
 		}
 		return 0;
 	}
@@ -19163,36 +19203,55 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 void TMFieldScene::SetWhisper(char cOn)
 {
 	m_cWhisper = cOn;
-
-	m_pChatWhisper->m_bSelected = m_pChatWhisper->m_bSelected == 0;
-	m_pChatWhisper_C->m_bSelected = m_pChatWhisper->m_bSelected == 0;
-
-	m_pChatWhisper->Update();
-	m_pChatWhisper_C->Update();
+	if (m_pChatWhisper)
+	{
+		m_pChatWhisper->m_bSelected = cOn != 0;
+		m_pChatWhisper->Update();
+	}
+	if (m_pChatWhisper_C)
+	{
+		m_pChatWhisper_C->m_bSelected = m_bCompatFieldScene ? cOn != 0 : cOn == 0;
+		m_pChatWhisper_C->Update();
+	}
 }
 
 void TMFieldScene::SetPartyChat(char cOn)
 {
-	m_pChatParty->m_bSelected = m_pChatParty->m_bSelected == 0;
-	m_pChatParty_C->m_bSelected = m_pChatParty->m_bSelected == 0;
-
-	m_pChatParty->Update();
-	m_pChatParty_C->Update();
+	m_cPartyChat = cOn;
+	if (m_pChatParty)
+	{
+		m_pChatParty->m_bSelected = cOn != 0;
+		m_pChatParty->Update();
+	}
+	if (m_pChatParty_C)
+	{
+		m_pChatParty_C->m_bSelected = m_bCompatFieldScene ? cOn != 0 : cOn == 0;
+		m_pChatParty_C->Update();
+	}
 }
 
 void TMFieldScene::SetGuildChat(char cOn)
 {
-	m_pChatGuild->m_bSelected = m_pChatGuild->m_bSelected == 0;
-	m_pChatGuild_C->m_bSelected = m_pChatGuild->m_bSelected == 0;
-
-	m_pChatGuild->Update();
-	m_pChatGuild_C->Update();
+	m_cGuildChat = cOn;
+	if (m_pChatGuild)
+	{
+		m_pChatGuild->m_bSelected = cOn != 0;
+		m_pChatGuild->Update();
+	}
+	if (m_pChatGuild_C)
+	{
+		m_pChatGuild_C->m_bSelected = m_bCompatFieldScene ? cOn != 0 : cOn == 0;
+		m_pChatGuild_C->Update();
+	}
 }
 
 void TMFieldScene::SetKingDomChat(char cOn)
 {
-	m_pKingDomGuild->m_bSelected = m_pKingDomGuild->m_bSelected == 0;
-	m_pKingDomGuild->Update();
+	if (m_pKingDomGuild)
+	{
+		m_pKingDomGuild->m_bSelected = cOn != 0;
+		m_pKingDomGuild->Update();
+	}
 }
 
 void TMFieldScene::SendReqBuy(unsigned int dwControlID)
@@ -21651,6 +21710,8 @@ int TMFieldScene::OnKeyPlus(char iCharCode, int lParam)
 		// so touching those newer pointers makes the native '+' shortcut unsafe.
 		pChatList->SetSize(300.0f, static_cast<float>(140 * m_nChatListSize + 112));
 		pChatList->m_nVisibleCount = 10 * m_nChatListSize + 8;
+		if (auto pChatPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_CHAT_PANEL)))
+			pChatList->SetPos(pChatList->m_nPosX, pChatPanel->m_nPosY - pChatList->m_nHeight - 4.0f);
 		if (m_nChatListSize == 3)
 			pChatList->SetVisible(0);
 		else if (!pChatList->m_bVisible)
@@ -22524,6 +22585,9 @@ int TMFieldScene::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 	}
 	else if (pMsg->String[0] == '=')
 	{
+		if (m_pChatParty && !m_pChatParty->m_bSelected)
+			bDrawText = false;
+
 		if (m_pPartyList->m_nNumItem > 1)
 		{
 			dwColor = 0xFFFF99FF;
@@ -22534,9 +22598,6 @@ int TMFieldScene::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 	}
 	else if (pMsg->String[0] == '@')
 	{
-		if (m_pChatParty && !m_pChatParty->m_bSelected)
-			bDrawText = false;
-
 		if (pMsg->String[1] == '@')
 		{
 			dwColor = 0xF0F60AFF;
@@ -22572,6 +22633,13 @@ int TMFieldScene::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 			m_pHelpMemo->SetVisible(1);
 
 		return 1;
+	}
+	else
+	{
+		if (m_pChatWhisper && !m_pChatWhisper->m_bSelected)
+			bDrawText = false;
+
+		sprintf(szMsg, "[%s]> %s", pMsg->MobName, pMsg->String);
 	}
 
 	if (!bDrawText)
@@ -27033,7 +27101,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 							{
 								int nFlank = 0;
 								if (pAttack->DoubleCritical & 4)
-									nFlank = pAttack->Dam[1].Damage;
+									nFlank = GetWYD748AttackVisualDamage(pAttack, 1);
 
 								// The HP mutation above deliberately used the projected WORD; only
 								// the floating number consumes the optional uint32 WYD-Go tail.
@@ -27055,7 +27123,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 									{
 										sprintf(szStr, "%d", nValue);
 									}
-									else if (pAttack->Dam[1].Damage > 0)
+									else if (nFlank > 0)
 									{
 										sprintf(szStr, "%d + %d", nValue, nFlank);
 									}
@@ -29585,8 +29653,59 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 	return 1;
 }
 
+void TMFieldScene::UpdateCompatObservedAffects()
+{
+	// Reproject every frame, including empty/hidden states. Never borrow the
+	// render-mesh m_TargetAffect cache, which can still describe the previous mob.
+	TMHuman* target = m_pMouseOverHuman;
+	SProgressBar* bar = target ? target->m_pTitleProgressBar : nullptr;
+	const auto* targetWords = bar && bar->IsVisible() ? observed_affect_ui::InViewAffects(target) : nullptr;
+	const float targetSize = 18.0f * RenderDevice::m_fHeightRatio;
+	const int targetColumns = bar ? max(1, static_cast<int>(bar->m_nWidth / (targetSize + 1.0f))) : 1;
+	observed_affect_ui::Project(m_pTargetAffectIcon, targetWords,
+		g_AffectSkillType, 41, bar ? bar->m_nPosX : 0.0f,
+		bar ? bar->m_nPosY + bar->m_nHeight + 2.0f : 0.0f, targetSize, targetColumns);
+
+	const bool showParty = m_pPartyPanel && m_pPartyPanel->IsVisible()
+		&& m_pPartyList && m_pPartyList->IsVisible() && m_pPartyList->m_nVisibleCount > 0;
+	float listX = 0.0f, listY = 0.0f;
+	if (showParty)
+	{
+		// Include all resource-tree parents; list coordinates are not screen coordinates.
+		for (auto* control = static_cast<SControl*>(m_pPartyList); control;
+			control = static_cast<SControl*>(control->m_pTop))
+		{
+			listX += control->m_nPosX;
+			listY += control->m_nPosY;
+		}
+	}
+	const float rowHeight = showParty ? m_pPartyList->m_nHeight / m_pPartyList->m_nVisibleCount : 0.0f;
+	// Two rows of sixteen fit all 32 wire slots without invading the next member.
+	const float partySize = min(14.0f * RenderDevice::m_fHeightRatio, max(1.0f, rowHeight / 2.0f - 1.0f));
+	for (int row = 0; row < 13; ++row)
+	{
+		const unsigned short* words = nullptr;
+		if (showParty && row < m_pPartyList->m_nVisibleCount)
+		{
+			const int index = m_pPartyList->m_nStartItemIndex + row;
+			if (index >= 0 && index < m_pPartyList->m_nNumItem)
+			{
+				auto* item = static_cast<SListBoxPartyItem*>(m_pPartyList->m_pItemList[index]);
+				// Never retain a party snapshot after its entity leaves the view.
+				auto* human = item ? g_pObjectManager->GetHumanByID(item->m_dwCharID) : nullptr;
+				words = observed_affect_ui::InViewAffects(human);
+			}
+		}
+		observed_affect_ui::Project(m_pPartyAffectIcon[row], words, g_AffectSkillType, 41,
+			listX + (showParty ? m_pPartyList->m_nWidth : 0.0f) + 3.0f,
+			listY + static_cast<float>(row) * rowHeight, partySize, 16);
+	}
+}
+
 int TMFieldScene::Affect_Main(unsigned int dwServerTime)
 {
+	if (m_bCompatFieldScene)
+		UpdateCompatObservedAffects();
 	if (!m_pMyHuman || !m_pMiniPanel)
 		return 0;
 
