@@ -279,3 +279,16 @@ com os 16 registros privados do dono.
 - Pendente: dois jogadores e mob no client real, expiração/cancelamento,
   saída/reentrada da visão, scroll/toggle da lista, mudança de resolução e
   troca de cena/relogin. Não elevar a `CLIENT_TESTED` com testes isolados.
+
+### Correção da inicialização — 2026-09-19
+
+As imagens do usuário reprovaram o candidato anterior: os ícones não apareciam.
+`InitializeScene` retorna imediatamente após `InitializeCompatFieldScene`;
+a criação dos painéis estava depois desse retorno, no bloco da UI moderna.
+Movida a criação dos 32 painéis de alvo e 13x32 de grupo para o inicializador
+compat efetivamente executado, junto aos ícones próprios. O container mantém
+o ownership e os painéis começam ocultos. Removida a alocação inalcançável.
+`TMHuman` agora centraliza a barra pela largura final escalada, substituindo
+a borda esquerda fixa em 55% da tela. Wire e regra de visão local preservados.
+Testes da fábrica/slots e centralização em quatro resoluções passam; resultado
+do build/deploy fica no handoff existente. Validação visual continua pendente.

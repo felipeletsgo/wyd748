@@ -6,6 +6,29 @@
 namespace observed_affect_ui {
 constexpr int kCapacity = 32;
 
+inline float CenteredBarX(float screenWidth, float scaledBarWidth)
+{
+    return (screenWidth - scaledBarWidth) * 0.5f;
+}
+
+// Call from the active scene initializer; the compat path returns before the
+// modern resource bindings. The factory transfers ownership to the scene tree.
+template <typename Panel, std::size_t PartyRows, typename Factory>
+void InitializePanels(Panel* (&target)[kCapacity],
+    Panel* (&party)[PartyRows][kCapacity], Factory create)
+{
+    for (auto& panel : target) {
+        panel = create();
+        panel->SetVisible(0);
+    }
+    for (auto& row : party) {
+        for (auto& panel : row) {
+            panel = create();
+            panel->SetVisible(0);
+        }
+    }
+}
+
 template <typename Human>
 const std::uint16_t* InViewAffects(const Human* human)
 {

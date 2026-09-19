@@ -23,6 +23,29 @@ int RunObservedAffectProjectionTests(int& checks)
         ++checks;
         if (!condition) { ++failures; std::printf("FAIL observed affects: %s\n", name); }
     };
+    Panel owned[32 * 14];
+    Panel* target[32]{};
+    Panel* party[13][32]{};
+    int created = 0;
+    observed_affect_ui::InitializePanels(target, party, [&]() {
+        Panel* panel = &owned[created++];
+        panel->SetVisible(1);
+        return panel;
+    });
+    check(created == 32 * 14, "compat initialization creates all target and party panels");
+    for (int i = 0; i < 32; ++i) {
+        check(target[i] == &owned[i] && !target[i]->visible, "target bound and initially hidden");
+        for (int row = 0; row < 13; ++row)
+            check(party[row][i] == &owned[32 * (row + 1) + i] && !party[row][i]->visible,
+                "party slot bound to its own initially hidden control");
+    }
+    const float screenWidths[] = {800.0f, 1024.0f, 1280.0f, 1920.0f};
+    for (float screenWidth : screenWidths) {
+        const float scaledWidth = 250.0f * screenWidth / 800.0f;
+        const float left = observed_affect_ui::CenteredBarX(screenWidth, scaledWidth);
+        check(left + scaledWidth * 0.5f == screenWidth * 0.5f,
+            "target bar centered using its already-scaled width");
+    }
     Panel storage[32];
     Panel* panels[32];
     for (int i = 0; i < 32; ++i) panels[i] = &storage[i];

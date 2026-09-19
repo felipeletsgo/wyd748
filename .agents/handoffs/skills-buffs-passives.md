@@ -1,6 +1,6 @@
 # Skills: buffs e passivas, revisão individual
 
-Atualizado: 2026-09-17. HEAD observado: `34ad1c22fc809f87f8db773f6cba0f0ddc80e076`.
+Atualizado: 2026-09-18. HEAD observado: `9bdaefdf659e48d152e5e300cdea555632f3760b`.
 Estado: lote servidor `AUTOMATED TESTED`; auditoria global **incompleta**.
 
 ## Escopo e autoridade
@@ -67,8 +67,8 @@ de implementação. Efeitos ofensivos/debuffs e curas continuam fora deste lote.
 | 14 | Noção de Combate | Anterior: hook de combate; falta fechar evidência individual |
 | 15 | Armadura Crítica | Anterior: affect 50 normalizado para 31, visual 24; bônus aprendido separado |
 | 41 | Velocidade | AUTOMATED TESTED: affect 2, velocidade consumida pelo movimento, grupo/limite, custo, cooldown, recast e expiração; visual pendente |
-| 43 | Escudo Mágico | AUTOMATED TESTED: fórmula base affect 11 e lifecycle; interação do aprendizado de 43 com 44 ainda pendente |
-| 44 | Arma Mágica | AUTOMATED TESTED: fórmula base affect 9 e lifecycle/grupo; W2PP triplica se Foema bit 19, ainda não portado nem validado no 7.48 |
+| 43 | Escudo Mágico | AUTOMATED TESTED: fórmula base affect 11 e lifecycle; comparação nativa encontrou bônus adicional por bit 23, ainda não adaptado; ver divergência abaixo |
+| 44 | Arma Mágica | AUTOMATED TESTED: fórmula base affect 9 e lifecycle/grupo; interação W2PP bit 19 contradiz rotina nativa (bit 20, outro cálculo); não portar o triplo |
 | 45 | Toque da Athena | Corrigido/testado neste lote: teto, base, repetição, expiração |
 | 46 | Controle de Mana | AUTOMATED TESTED: regra expressa do usuário 90% MP / 10% HP, sem reserva; insuficiência transborda para HP no mesmo golpe; removido SaveMana indevido; teste in-game pendente |
 | 47 | Cancelamento | Anterior: remove só primeira imunidade, cooldown 1s; teste passou |
@@ -280,7 +280,9 @@ sem commit/push e sem remoções. Demais alterações anteriores preservadas.
 
 ## Próximo passo da auditoria individual (se retomada)
 
-Fechar a interação **43 → 44**; não repetir os testes/inventário de 41 ou a
+Fechar a composição do score de **43/44 e aprendizado 47** segundo a
+divergência registrada abaixo; não tratar a hipótese W2PP **43 → 44** como
+regra confirmada. Não repetir os testes/inventário de 41 ou a
 regra escolhida de 46 sem mudança. Validar 46 no jogo após instalar/reiniciar
 o candidato autorizado; os testes acima não comprovam apresentação visual.
 Continuam abertas também a animação montada HOLY, duas armas 9/82 e skill 91.
@@ -322,7 +324,67 @@ git diff --check PASS
 Release gerado em `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
 `718690934994DE6A8BE1E87AC8635CA556EC1E38427E772D5095840E97135FC6`.
 Warnings anteriores de signedness permanecem fora do trecho alterado.
-`STATICALLY VERIFIED` e `AUTOMATED TESTED`, sem sobrescrever
-`client748/project.exe`. Validação in-game e instalação pendentes;
-não declarar todos os buffs de Foema corretos. Permanece aberta a interação
-43 → 44 descrita acima. Nenhum novo teste Go necessário neste lote sem delta Go.
+`STATICALLY VERIFIED` e `AUTOMATED TESTED` nesse build sem deploy.
+Nenhum novo teste Go necessário neste lote sem delta Go.
+
+Continuação em 2026-09-18: alterações anteriores já presentes no commit
+`9bdaefdf` (`skills fix`); worktree inicialmente limpo. Executado
+`pwsh -NoProfile -ExecutionPolicy Bypass -File .\tmproject\Build-Client.ps1`
+com sucesso: 40775 checks, validação de assets e deploy. O candidato foi
+instalado em `tmproject/client748/project.exe`; hash conferido, igual ao
+Release acima. O executável anterior tinha SHA-256
+`8C80A35A6A2B486C112F321D54201A1339C31025EC5716797270CCDE4ACAC146`.
+Nenhum processo `project`/`WYD` foi encontrado antes da instalação.
+O mapeamento `g_AffectSkillType` também foi conferido: todos os tipos públicos
+1..40 aceitos pelo projetor possuem textura positiva, incluindo o último.
+Estado **BUILD_AND_DEPLOY_VERIFIED**, ainda não **CLIENT-TESTED**: falta conferir
+hover, remoção/retorno à visão e alinhamento da lista de grupo dentro do jogo.
+Sem reinício do servidor, commit/push ou remoções nesta continuação.
+
+### Ícones ausentes e barra deslocada — correção em 2026-09-19
+
+As imagens do usuário reprovaram o resultado visual do candidato anterior.
+Causa confirmada: a alocação dos painéis de alvo/grupo estava no trecho moderno
+de `InitializeScene`, após o retorno do caminho `InitializeCompatFieldScene`.
+Movida para a inicialização compat ativa, usando `InitializePanels`; removida
+a alocação inalcançável. `TMHuman.cpp` centraliza a barra pela largura escalada.
+Alterados também `ObservedAffectProjection.h`, seus testes e a ficha Party.
+Nenhum arquivo removido, nenhuma alteração Go, sem commit/push.
+
+`Build-Client.ps1` PASS: 41228 checks e assertions, assets e Release compilados,
+candidato instalado em `tmproject/client748/project.exe`, SHA-256 conferido:
+`C05B7776558C1CA2EA5D37428E0AB0321C220FAE69CC128731A7A77225CB0531`.
+`validate_research.py` e `git diff --check` PASS. Testes cobrem a fábrica,
+slots/visibilidade e centro em 800/1024/1280/1920; alcance do inicializador
+conferido na source. `STATICALLY VERIFIED / AUTOMATED TESTED / BUILD_AND_DEPLOY_VERIFIED`.
+Ainda falta teste visual deste novo candidato: Gremlin com debuff, FelipeTr
+com buffs no hover e grupo, saída/reentrada na visão e relogin.
+Não declarar `CLIENT_TESTED` com base nos testes isolados.
+
+### Divergência Foema 43/44 — comparação de 2026-09-18
+
+Consulta focada reutilizando o corpus e o grafo `passive-score-flow.tsv`;
+nenhuma nova exportação nem mudança de fórmula no Go:
+
+- W2PP `Code/Basedef.cpp:3994`: affect 9 adiciona
+  `(Level*5/20+Value)*3/2`, soma 5 ao multiplicador de dano e, para Foema
+  com bit 19 (`0x80000`), triplica o adicional e soma mais 10 ao multiplicador.
+- Nativo `0054fdb9_FUN_0054fdb9.c:434-446`: affect 9 adiciona
+  `Level/3+15`, soma 5 ao multiplicador e, para classe 1 com bit 20
+  (`0x100000`), multiplica o adicional por 5 e usa incremento percentual 20
+  (27 com bit 23, `0x800000`). A aplicação percentual ocorre ao final,
+  linhas 963-964; não é equivalente a multiplicar apenas o adicional.
+- Nativo, linhas 460-467: affect 11 adiciona `Level/3+Value`, com mais
+  100 para classe 1 com bit 23. Go preserva apenas a fórmula base testada.
+- O único teste de `0x80000` nessa rotina nativa pertence à transformação
+  do urso (affect 16), não ao affect 9. O catálogo atual marca 47 como
+  passiva, nome `Cancelamento`; não inferir semântica pelo nome.
+
+Autoridade: nativo/Ghidra **UTILIZADA** para a divergência estática; W2PP
+**CONTRADITÓRIA** nesta interação; catálogo/Go **UTILIZADA** para o estado
+atual; TMProject moderno **NÃO APLICÁVEL** à escolha desta fórmula. Não foi
+comprovada execução dessa rotina de score no client nem equivalência completa
+da composição autoritativa Go. Portanto não promover a paridade, não copiar
+isoladamente os multiplicadores e não declarar todos os buffs Foema corretos.
+Próxima lacuna concreta: fechar o aprendizado/entrada de 47 e a ordem de
+composição do ataque final, antes de adaptar e testar 43/44 em conjunto.

@@ -14,6 +14,7 @@
 #include "TMHuman.h"
 #include "../../render/mesh/CostumeSelection.h"
 #include "../../ui/ResourceBarProjection.h"
+#include "../../ui/ObservedAffectProjection.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
 #include "TMEffectSWSwing.h"
@@ -341,7 +342,8 @@ TMHuman::TMHuman(TMScene* pParentScene)
 
         float nYp = 30.0f * RenderDevice::m_fHeightRatio;
         m_pTitleProgressBar = new SProgressBar(-1, 20, 0, 0.0f, nYp, 250.0f, 16.0f, 0xFF800000, 0x40333333u, 1);
-        m_pTitleProgressBar->m_nPosX = (float)g_pDevice->m_dwScreenWidth * 0.55000001f;
+        m_pTitleProgressBar->m_nPosX = observed_affect_ui::CenteredBarX(
+            static_cast<float>(g_pDevice->m_dwScreenWidth), m_pTitleProgressBar->m_nWidth);
         m_pTitleProgressBar->SetVisible(0);
 
         g_pCurrentScene->m_pControlContainer->AddItem(m_pTitleProgressBar);

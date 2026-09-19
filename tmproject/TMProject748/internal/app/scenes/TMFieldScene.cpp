@@ -1813,6 +1813,14 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pAffectDesc = static_cast<SText*>(m_pControlContainer->FindControl(12834));
 		if (m_pAffectDesc)
 			m_pAffectDesc->SetVisible(0);
+		// InitializeScene returns immediately after this compat initializer.
+		// Target/party icons must be created here, not in the modern HUD branch.
+		observed_affect_ui::InitializePanels(m_pTargetAffectIcon, m_pPartyAffectIcon,
+			[this]() -> SPanel* {
+				auto* panel = new ObservedAffectPanel();
+				m_pControlContainer->AddItem(panel);
+				return panel;
+			});
 		// FUN_00435b13 binds the only 7.48 chat list (5377), its edit (5123)
 		// and the edit panel (5739).  The imported source split system and normal
 		// messages into two newer lists, so both logical aliases must target the
@@ -4991,12 +4999,6 @@ int TMFieldScene::InitializeScene()
 		// after construction, leaving Affect_Main with nothing it could display.
 		for (int ih = 16; ih < 32; ++ih)
 			m_pAffectIcon[ih] = nullptr;
-		for (int ih = 0; ih < 32; ++ih)
-		{
-			m_pTargetAffectIcon[ih] = new ObservedAffectPanel();
-			m_pTargetAffectIcon[ih]->SetVisible(0);
-			m_pControlContainer->AddItem(m_pTargetAffectIcon[ih]);
-		}
 	}
 	m_pAffectDescList[0] = (SText*)m_pControlContainer->FindControl(773);
 	m_pAffectDescList[1] = (SText*)m_pControlContainer->FindControl(774);
@@ -5015,13 +5017,7 @@ int TMFieldScene::InitializeScene()
 	{
 		for (int ii = 0; ii < 32; ++ii)
 		{
-			if (m_bCompatFieldScene)
-			{
-				m_pPartyAffectIcon[j][ii] = new ObservedAffectPanel();
-				m_pPartyAffectIcon[j][ii]->SetVisible(0);
-				m_pControlContainer->AddItem(m_pPartyAffectIcon[j][ii]);
-			}
-			else
+			if (!m_bCompatFieldScene)
 				m_pPartyAffectIcon[j][ii] = (SPanel*)m_pControlContainer->FindControl(32 * j + ii + 475152);
 		}
 	}
