@@ -5,7 +5,7 @@ Caminhos foram normalizados para a arquitetura atual. Fichas e handoffs
 preservam o estado histórico da validação; não são prova de conclusão atual.
 Assets e dumps binários não são documentos. O acervo nativo está em `references/client748/`.
 
-Documentos Markdown: 140.
+Documentos Markdown: 142.
 
 | Documento | Tipo |
 | --- | --- |
@@ -13,9 +13,11 @@ Documentos Markdown: 140.
 | [.agents/handoffs/client748-research-program.md](<../.agents/handoffs/client748-research-program.md>) | Continuidade historica |
 | [.agents/handoffs/consumables-buff-persistence.md](<../.agents/handoffs/consumables-buff-persistence.md>) | Continuidade historica |
 | [.agents/handoffs/movement-route-reconciliation.md](<../.agents/handoffs/movement-route-reconciliation.md>) | Continuidade historica |
+| [.agents/handoffs/skills-buffs-passives.md](<../.agents/handoffs/skills-buffs-passives.md>) | Continuidade historica |
 | [.agents/handoffs/TEMPLATE.md](<../.agents/handoffs/TEMPLATE.md>) | Continuidade historica |
 | [.agents/handoffs/tmproject-architecture.md](<../.agents/handoffs/tmproject-architecture.md>) | Continuidade historica |
 | [.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md](<../.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/combat/skill-visual-dispatch.md](<../.agents/research/client748/flows/combat/skill-visual-dispatch.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/lifecycle/application-close-global-shutdown.md](<../.agents/research/client748/flows/lifecycle/application-close-global-shutdown.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/lifecycle/character-logout-selectchar-relogin.md](<../.agents/research/client748/flows/lifecycle/character-logout-selectchar-relogin.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md](<../.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md>) | Evidencia de pesquisa |
@@ -176,6 +178,7 @@ Documentos Markdown: 140.
 - [.agents/research/client748/exports/packet-size-gate-flow.tsv](<../.agents/research/client748/exports/packet-size-gate-flow.tsv>)
 - [.agents/research/client748/exports/packet-size-gate-pointer-search.tsv](<../.agents/research/client748/exports/packet-size-gate-pointer-search.tsv>)
 - [.agents/research/client748/exports/party-panel-layout-lifecycle-flow.tsv](<../.agents/research/client748/exports/party-panel-layout-lifecycle-flow.tsv>)
+- [.agents/research/client748/exports/passive-score-flow.tsv](<../.agents/research/client748/exports/passive-score-flow.tsv>)
 - [.agents/research/client748/exports/quiz-choice-boundary.tsv](<../.agents/research/client748/exports/quiz-choice-boundary.tsv>)
 - [.agents/research/client748/exports/req-teleport-flow.tsv](<../.agents/research/client748/exports/req-teleport-flow.tsv>)
 - [.agents/research/client748/exports/request-mob-by-id-flow.tsv](<../.agents/research/client748/exports/request-mob-by-id-flow.tsv>)

@@ -2390,7 +2390,7 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 	if ((((nVolatile >= 4 && nVolatile <= 6 || nVolatile == 9 || nVolatile == 15 || nVolatile == 16 || nVolatile >= 180 && nVolatile <= 183 ||
 		nVolatile >= 235 && nVolatile <= 238 || nVolatile >= 239 && nVolatile <= 240 || nVolatile >= 90 && nVolatile < 95 || nVolatile == 179 ||
 		nVolatile == 186 || nVolatile == 196) &&
-		!sDestType || nVolatile == 190 && sDestType == 1 && m_dwEnableColor == 0x330000FF) &&
+		!sDestType || nVolatile == 190 && !sDestType && m_dwEnableColor == 0x330000FF) &&
 		!nDestVolatile || nVolatile == 241 && sDestType == 1 && nDestVolatile == 16 ||
 		(nVolatile == 4 || nVolatile == 5) && sDestType == 1 && m_dwEnableColor == 0x3300FF00 ||
 		g_pCursor->m_pAttachedItem->m_pItem->sIndex == 3465 || (nVolatile == 4 || nVolatile == 5) &&
@@ -2488,7 +2488,7 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 				memset(&g_pObjectManager->m_stItemCargo[sSrcPos], 0, sizeof(STRUCT_ITEM));
 		}
 	}
-	else if (nVolatile == 190 && sDestType == 1 && m_dwEnableColor != 0x330000FF && pItem)
+	else if (nVolatile == 190 && !sDestType && m_dwEnableColor != 0x330000FF && pItem)
 	{
 		g_pCurrentScene->m_pMessagePanel->SetMessage(g_pMessageStringTable[303], 3000);
 		g_pCurrentScene->m_pMessagePanel->SetVisible(1, 1);
@@ -2637,7 +2637,7 @@ int SGridControl::SellItem2()
 		|| nVolatile == 186
 		|| nVolatile == 196)
 		&& !sDestType
-		|| nVolatile == 190 && sDestType == 1 && m_dwEnableColor == 0x330000FF)
+		|| nVolatile == 190 && !sDestType && m_dwEnableColor == 0x330000FF)
 		&& !nDestVolatile
 		&& pItem)
 	{
@@ -2704,7 +2704,7 @@ int SGridControl::SellItem2()
 				memset(&g_pObjectManager->m_stItemCargo[sSrcPos], 0, sizeof(STRUCT_ITEM));
 		}
 	}
-	else if (nVolatile == 190 && sDestType == 1 && m_dwEnableColor != 0x330000FF && pItem)
+	else if (nVolatile == 190 && !sDestType && m_dwEnableColor != 0x330000FF && pItem)
 	{
 		pFScene->m_pMessagePanel->SetMessage(g_pMessageStringTable[303], 3000);
 		pFScene->m_pMessagePanel->SetVisible(1, 1);
@@ -2948,7 +2948,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 						m_dwEnableColor = 0x3300FF00;
 					}
 				}
-				else if (nSrcVolatile == 190 && pItem && m_eGridType == TMEGRIDTYPE::GRID_DEFAULT)
+				else if (nSrcVolatile == 190 && pItem && !nCheckType)
 				{
 					m_dwEnableColor = 0x33FF0000;
 
@@ -5464,6 +5464,7 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 			// source-side equivalent is BASE_GetMeshIndex; using nIndexMesh raw
 			// produced generic spheres/rocks in the active client.
 			m_GCObj.n3DObjIndex = BASE_GetMeshIndex(pItem->sIndex);
+			m_GCObj.nTextureSetIndex = itemDef.nIndexTexture;
 		}
 		m_GCText.strString[0] = 0;
 		m_GCText.pFont = &m_Font;
@@ -5519,6 +5520,12 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 		}
 		if (sMultiTexture > 12)
 			sMultiTexture = 12;
+
+		// Native FUN_0040d13e stores the refinement texture in the 3D control's
+		// nTextureIndex. RenderForUI consumes that field for refinement and dye
+		// overlays; sSanc alone only preserves the source-side label state.
+		if (itemDef.nIndexMesh >= 0)
+			m_GCObj.nTextureIndex = sMultiTexture;
 
 		if ((g_pItemList[pItem->sIndex].nUnique == 51 || m_GCObj.sLegend) && m_GCObj.sLegend <= 4 && sMultiTexture > 9)
 			m_GCObj.sLegend = (unsigned char)BASE_GetItemTenColor(pItem) + 4;

@@ -407,7 +407,7 @@ int TMMesh::RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColo
 				g_pDevice->SetTextureStageState(1, D3DTEXTURESTAGESTATETYPE::D3DTSS_COLOROP, 11);
 		}
 	}
-	else if (sLegend > 116 && sLegend <= 125)
+	else if (sLegend >= 116 && sLegend <= 125)
 	{
 		int texSum = 153;
 		if (sLegend == 116)

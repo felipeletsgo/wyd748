@@ -25165,11 +25165,9 @@ int TMFieldScene::OnPacketAddParty(MSG_AddParty* pStd)
 		pNode->m_bParty = 1;
 		pNode->SetInMiniMap(0xAAFFFF00);
 	}
-	if (m_pPartyPanel && !m_pPartyPanel->IsVisible())
-	{
-		if (pStd->Party.ID > 0 && pStd->Party.ID < 1000)
-			SetVisibleParty();
-	}
+	// Roster refreshes can arrive repeatedly while the party remains active.
+	// Preserve the visibility chosen by the player instead of reopening the
+	// panel for every MSG_AddParty update.
 
 	return 1;
 }
