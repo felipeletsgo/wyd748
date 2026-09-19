@@ -1,12 +1,64 @@
 package game
 
 import (
+	"encoding/binary"
 	"errors"
 	"testing"
 	"time"
 
 	"wydgo/internal/model"
 )
+
+func TestReportedBuffsSurviveLogoutAndDisconnect(t *testing.T) {
+	for _, disconnect := range []bool{false, true} {
+		name := "logout"
+		if disconnect {
+			name = "disconnect"
+		}
+		t.Run(name, func(t *testing.T) {
+			p, _ := networkedTestPlayer(1, "BuffRelog", 2100, 2100)
+			w := worldWithNetworkedPlayers(p)
+			st := &atomicCharStateMemoryStore{}
+			w.store = st
+			w.ghostShops = make(map[uint16]*GhostShop)
+			// Speed, damage, defense and the actual XP chest type.
+			types := []uint8{2, 9, 11, 39}
+			for i, typ := range types {
+				p.Char.Affects[i] = model.Affect{Type: typ, Value: 20,
+					ExpiresAt: time.Now().Add(time.Hour)}
+			}
+			p.Char.Affects[3].SourceItemUID = "11111111111141118111111111110414"
+			p.Char.Affects[3].SourceItemIndex = 4140
+			if disconnect {
+				w.onDisconnect(p.Session)
+			} else {
+				w.onCharacterLogout(p.Session, make([]byte, 12))
+			}
+			if st.atomicSaves != 1 || st.state == nil || len(st.state.Affects) != len(types) {
+				t.Fatalf("buff snapshot lost: saves=%d state=%+v", st.atomicSaves, st.state)
+			}
+			fresh, _ := networkedTestPlayer(1, "BuffRelog", 2100, 2100)
+			if err := w.loadCharStateInto(fresh); err != nil {
+				t.Fatal(err)
+			}
+			packet := playerAffectsPacket(fresh)
+			if len(packet) != 140 {
+				t.Fatalf("affect packet size=%d", len(packet))
+			}
+			for i, typ := range types {
+				if a := activePlayerAffect(fresh.Char, typ); a == nil || a.Value != 20 {
+					t.Fatalf("affect %d not restored: %+v", typ, fresh.Char.Affects)
+				}
+				if packet[12+i*8] != typ || binary.LittleEndian.Uint32(packet[16+i*8:]) == 0 {
+					t.Fatalf("affect %d absent from client snapshot", typ)
+				}
+			}
+			if fresh.Char.Affects[3].SourceItemIndex != 4140 || fresh.Char.Affects[3].SourceItemUID == "" {
+				t.Fatal("XP chest provenance lost")
+			}
+		})
+	}
+}
 
 type charStateMemoryStore struct {
 	craftStore

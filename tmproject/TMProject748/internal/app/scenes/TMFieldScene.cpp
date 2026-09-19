@@ -1390,6 +1390,17 @@ void TMFieldScene::InitializeCompatSkillBelts()
 		m_pGridSkillBelt2->m_eGridType = TMEGRIDTYPE::GRID_SKILLB;
 	if (m_pGridSkillBelt3)
 		m_pGridSkillBelt3->m_eGridType = TMEGRIDTYPE::GRID_SKILLB;
+	// The resource starts with both overlapping pages visible. The full scene
+	// hides page two later, but compatibility returns before that initializer.
+	// Only the selected page may draw or update the shared hover description.
+	if (m_pGridSkillBelt2)
+		m_pGridSkillBelt2->SetVisible(!m_bSkillBeltSwitch);
+	if (m_pGridSkillBelt3)
+		m_pGridSkillBelt3->SetVisible(m_bSkillBeltSwitch != 0);
+	if (m_pShortSkillTglBtn1)
+		m_pShortSkillTglBtn1->SetSelected(!m_bSkillBeltSwitch);
+	if (m_pShortSkillTglBtn2)
+		m_pShortSkillTglBtn2->SetSelected(m_bSkillBeltSwitch != 0);
 
 	WYD748_DiagnosticsLog("compat native skill grids bound learned=%p belt2=%p belt3=%p\r\n",
 		m_pGridSkillBelt, m_pGridSkillBelt2, m_pGridSkillBelt3);
@@ -9855,6 +9866,9 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		if (!g_pTimerManager)
 			return 0;
 		dwServerTime = g_pTimerManager->GetServerTime();
+		// Consume the last completed entity hover pass before the base scene
+		// clears m_pMouseOverHuman and submits controls for this frame.
+		UpdateCompatObservedAffects();
 		TMScene::FrameMove(dwServerTime);
 		UpdateGambleRequestTimeout();
 		// Native field lifecycle advances the five-second quit/logout/server-change
@@ -29676,8 +29690,8 @@ void TMFieldScene::UpdateCompatObservedAffects()
 		}
 	}
 	const float rowHeight = showParty ? m_pPartyList->m_nHeight / m_pPartyList->m_nVisibleCount : 0.0f;
-	// Two rows of sixteen fit all 32 wire slots without invading the next member.
-	const float partySize = min(14.0f * RenderDevice::m_fHeightRatio, max(1.0f, rowHeight / 2.0f - 1.0f));
+	// One readable row aligned with the member name, using the row's full height.
+	const float partySize = min(18.0f * RenderDevice::m_fHeightRatio, max(1.0f, rowHeight - 2.0f));
 	for (int row = 0; row < 13; ++row)
 	{
 		const unsigned short* words = nullptr;
@@ -29694,14 +29708,12 @@ void TMFieldScene::UpdateCompatObservedAffects()
 		}
 		observed_affect_ui::Project(m_pPartyAffectIcon[row], words, g_AffectSkillType, 41,
 			listX + (showParty ? m_pPartyList->m_nWidth : 0.0f) + 3.0f,
-			listY + static_cast<float>(row) * rowHeight, partySize, 16);
+			listY + static_cast<float>(row) * rowHeight, partySize, 32);
 	}
 }
 
 int TMFieldScene::Affect_Main(unsigned int dwServerTime)
 {
-	if (m_bCompatFieldScene)
-		UpdateCompatObservedAffects();
 	if (!m_pMyHuman || !m_pMiniPanel)
 		return 0;
 
@@ -29750,7 +29762,7 @@ int TMFieldScene::Affect_Main(unsigned int dwServerTime)
 			pIcon->m_GCPanel.nTextureIndex = g_AffectSkillType[affectType];
 			pIcon->m_GCPanel.nLayer = 29;
 			pIcon->SetPos(pNativeAffectAnchor->m_nPosX + pNativeAffectAnchor->m_nWidth
-				+ 3.0f + static_cast<float>(visibleCount * 23), 5.0f);
+				+ 3.0f + static_cast<float>(visibleCount) * (pIcon->m_nWidth + 3.0f), 5.0f);
 			++visibleCount;
 
 			if (pIcon->m_bOver == 1 && m_pAffectDesc)

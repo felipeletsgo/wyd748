@@ -269,8 +269,8 @@ com os 16 registros privados do dono.
   antes de DelayDelete), morte ou remoção apagam a projeção; reentrada usa o
   snapshot atual. Não há alteração nem fanout novo no servidor Go.
 - Painéis informativos pertencem ao container da cena e não consomem clicks.
-  Ícones compactam slots vazios; grupo usa até duas linhas de 16, limitadas à
-  altura do item; alvo quebra linhas pela largura da barra. Tipos desconhecidos,
+  Ícones compactam slots vazios; grupo usa uma linha de até 32, com tamanho
+  limitado à altura do item; alvo quebra linhas pela largura da barra. Tipos desconhecidos,
   duração zero e texturas sem mapeamento não são desenhados.
 - `ObservedAffectProjection.h` e `ObservedAffectProjectionTests.cpp` cobrem
   tipos/slots extremos, limpeza, limite de 32, layout, controles ausentes e

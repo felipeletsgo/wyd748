@@ -88,8 +88,14 @@ int RunObservedAffectProjectionTests(int& checks)
     for (int i = 0; i < 32; ++i) words[i] = 0x0101;
     check(project(words) == 32, "full snapshot is not truncated");
     check(storage[15].x == 265 && storage[16].x == 100 && storage[16].y == 71,
-        "party wraps after sixteen without invading next row");
-    check(storage[31].y + storage[31].height <= 82, "all slots fit a 22 pixel party row");
+        "compact layout wraps after sixteen");
+    check(storage[31].y + storage[31].height <= 82, "compact layout fits two rows");
+    check(observed_affect_ui::Project(panels, words, textures, 41, 100, 60, 18, 32) == 32,
+        "readable party layout retains all affects");
+    check(storage[31].x == 689 && storage[31].y == 60 && storage[31].height == 18,
+        "party uses full-height icons in one row");
+    check(storage[0].x + storage[0].width < storage[1].x,
+        "party icons have a gap");
     check(project(words, 12) == 32 && storage[12].x == 100 && storage[12].y == 71,
         "target wraps to the HP bar width");
     check(project(nullptr) == 0, "no hover, hidden group or member out of view clears projection");

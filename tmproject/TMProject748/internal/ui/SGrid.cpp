@@ -2992,6 +2992,8 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 
 	auto pItem = GetItem(nCellX, nCellY);
 	auto pDescPanel = pFScene->m_pDescPanel;
+	if (!pDescPanel || !pFScene->m_pParamText[11])
+		return 2;
 	pDescPanel->SetAlwaysOnTop(0);
 	pDescPanel->SetVisible(0);
 

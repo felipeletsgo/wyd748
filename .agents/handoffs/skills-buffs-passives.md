@@ -388,3 +388,43 @@ da composição autoritativa Go. Portanto não promover a paridade, não copiar
 isoladamente os multiplicadores e não declarar todos os buffs Foema corretos.
 Próxima lacuna concreta: fechar o aprendizado/entrada de 47 e a ordem de
 composição do ataque final, antes de adaptar e testar 43/44 em conjunto.
+
+### Novo retorno visual — 2026-09-19
+
+Prioridade atual do usuário: tamanho dos ícones de grupo, affects do alvo,
+tooltip de skills, sobreposição dos próprios buffs e perda no relogin.
+Não retomar a auditoria Foema acima antes de fechar esse retorno.
+
+Correções `MODERNIZACAO_COMPATIVEL`, sem alteração wire:
+
+- `TMFieldScene.cpp`: atualizar affects observados antes de `TMScene::FrameMove`,
+  que limpa `m_pMouseOverHuman` e submete os controles. A chamada anterior em
+  `Affect_Main` sempre encontrava o hover limpo no caminho compat.
+- Grupo: uma linha com ícones até 18 unidades escaladas, limitada à altura do
+  membro. Próprios buffs: passo horizontal usa largura real mais 3 pixels,
+  não 23 pixels fixos sobre ícones já escalados.
+- Inicializar exclusivamente a página selecionada da barra. O recurso deixa
+  573 e 586 visíveis na mesma posição; a ocultação moderna era inalcançável no
+  bootstrap compat. Ambas recebiam hover e escreviam a descrição compartilhada.
+  `SGrid.cpp` também protege os bindings antes de acessá-los. Texto reutiliza
+  o mesmo caminho de compra, sem tabela alternativa.
+
+`charstate_test.go`: regressão dos tipos reais 2/9/11/39 para logout e
+desconexão, salvamento atômico, recarga, origem do baú e snapshot 0x3B9/140.
+PASS. Isso usa armazenamento em memória: não comprova PostgreSQL/runtime do
+usuário. Nenhuma falha funcional de salvamento foi reproduzida; nenhum código
+Go de produção foi alterado. Duração continua absoluta (tempo offline conta).
+Ext1 não inicializa os buffs privados no client, mas a sequência real envia
+0x3B9 após criação do próprio personagem; não foi aplicada hipótese especulativa.
+
+Gates: `Build-Client.ps1` PASS, 41231 checks; candidato instalado SHA256
+`EC584FA7D3051926B315AD2A978C3D1633772952F062F97E186E2EE4CF37984B`.
+`go test ./internal/game -run 'Test(CharState|ApplyCharState|ReportedBuffs|CharacterLogout)' -count=1`
+PASS. `git diff --check` PASS. Compilação mantém avisos C4018 preexistentes.
+`STATICALLY VERIFIED / AUTOMATED TESTED / BUILD_AND_DEPLOY_VERIFIED`, não
+`CLIENT_TESTED`. Nenhum arquivo removido. Executável gerado excluído do commit.
+
+Pendências: testar hover de Gremlin/FelipeTr, páginas 1/2 e descrição comparada
+ao treinador, grupo dentro/fora da visão e relogin rápido com os quatro buffs.
+Se a perda persistir, correlacionar estado salvo e 0x3B9 recebido no ambiente
+real antes de alterar a persistência. O relato de perda ainda não está resolvido.
