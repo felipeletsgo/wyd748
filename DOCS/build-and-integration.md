@@ -25,8 +25,10 @@ O `Dockerfile` da raiz é a entrada de deployment do monorepo. Ele compila
 o servidor de `wydgo748/`, gera o painel Astro a partir do `package-lock.json`
 e instala somente o executável, os dados e o painel compilado necessários ao
 runtime. O `.dockerignore` impede que o client, caches e builds locais entrem no
-contexto. O serviço continua exigindo `WYD_DATABASE_URL` e deve publicar a porta
-TCP `8281`.
+contexto. O serviço usa `WYD_DATABASE_URL` quando definida e aceita a variável
+convencional `DATABASE_URL` do PostgreSQL gerenciado como fallback. Uma variável
+customizada por `database_url_env` continua estrita. O serviço deve publicar a
+porta TCP `8281`.
 
 O conversor histórico `cmd/npcconvert` não participa do runtime. Quando seu
 formato de entrada for necessário, exige `-in` e `-out` explícitos; não busca

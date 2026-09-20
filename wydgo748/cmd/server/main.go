@@ -69,6 +69,24 @@ func configPathFromArgs(args []string) string {
 	return defaultPath
 }
 
+// configuredDatabaseURL preserves the explicit server configuration while
+// accepting the conventional variable exposed by managed PostgreSQL services.
+// A custom database_url_env never falls through to DATABASE_URL.
+func configuredDatabaseURL(cfg data.ServerConfig) string {
+	if cfg.DatabaseURL != "" {
+		return cfg.DatabaseURL
+	}
+	if cfg.DatabaseURLEnv != "" {
+		if databaseURL := os.Getenv(cfg.DatabaseURLEnv); databaseURL != "" {
+			return databaseURL
+		}
+	}
+	if cfg.DatabaseURLEnv == "WYD_DATABASE_URL" {
+		return os.Getenv("DATABASE_URL")
+	}
+	return ""
+}
+
 func main() {
 	configPath := configPathFromArgs(os.Args[1:])
 	cfg, err := data.LoadServerConfig(configPath)
@@ -261,11 +279,11 @@ func main() {
 	var postgresStore *store.PostgresStore
 	switch cfg.DatabaseDriver {
 	case "postgres":
-		databaseURL := cfg.DatabaseURL
+		databaseURL := configuredDatabaseURL(cfg)
 		if databaseURL == "" {
-			databaseURL = os.Getenv(cfg.DatabaseURLEnv)
-		}
-		if databaseURL == "" {
+			if cfg.DatabaseURLEnv == "WYD_DATABASE_URL" {
+				log.Fatal("PostgreSQL configurado, mas WYD_DATABASE_URL e DATABASE_URL estao vazias")
+			}
 			log.Fatalf("PostgreSQL configurado, mas %s esta vazia", cfg.DatabaseURLEnv)
 		}
 		postgresStore, err = store.NewPostgresStore(context.Background(), store.PostgresConfig{
