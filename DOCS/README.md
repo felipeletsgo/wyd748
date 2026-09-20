@@ -10,19 +10,36 @@ O inventário por assunto e por localização está em
 [`documentation-map.md`](documentation-map.md). Ele distingue documentação
 do produto, evidência de pesquisa e registros históricos de continuidade.
 
-Comece por [Build e integração](build-and-integration.md),
-[Score e contrato atual](SCORE.md) e [revisão da organização](organization-review.md).
+## Por onde começar
+
+| Objetivo | Documento de entrada |
+| --- | --- |
+| Ligar o servidor pela primeira vez | [README da raiz](../README.md#início-rápido-no-windows) |
+| Operar banco, contas, painel, rede e backup | [Operação do servidor](server/operations.md) |
+| Compilar e validar servidor e client | [Build e integração](build-and-integration.md) |
+| Entender o contrato de atributos | [Score](SCORE.md) |
+| Consultar o que existe hoje | [Estado implementado](IMPLEMENTED.md) |
+| Consultar pendências e critérios de aceite | [Roadmap](ROADMAP.md) |
+| Adaptar o client 7.48 | [Port do client](client/port-748.md) |
+| Consultar protocolos conhecidos | [Catálogo de opcodes](wire-opcode-catalog.md) |
+| Manter a organização documental | [Revisão da organização](organization-review.md) |
+
 O calendário, recompensas, comandos e pendências das guerras estão em
-[Guerras de guilda](guild-wars.md).
+[Guerras de guilda](guild-wars.md). O plano do painel e da plataforma está em
+[WYD Web Platform](WYD-WEB-PLATAFORM.md); as instruções executáveis do painel
+integrado permanecem em [Operação do servidor](server/operations.md), para que
+o plano de produto não vire um segundo tutorial concorrente.
+
 As diferenças funcionais e arquiteturais encontradas na auditoria estática do
 W2PP contra o servidor atual estão em
 [Auditoria W2PP x WYD-Go](w2pp-go-gap-analysis.md); o W2PP é tratado ali como
 referência comparativa, não como autoridade de paridade 7.48.
-O [plano da plataforma web](WYD-WEB-PLATAFORM.md) separa a base existente,
-o MVP proposto e as fases futuras; não é um registro de features implementadas.
+
 `EMULATOR.md`, `IMPLEMENTATION_STATUS.md`, `IMPLEMENTED.md` e `ROADMAP.md`
-contêm registros de rodadas anteriores: não substituem código, testes e fichas
-atuais, nem comprovam que uma feature continua concluída ou pendente.
+têm papéis diferentes: `EMULATOR.md` e `IMPLEMENTATION_STATUS.md` preservam
+histórico técnico; `IMPLEMENTED.md` resume a implementação atual; `ROADMAP.md`
+registra trabalho pendente. Nenhum deles substitui código, testes e fichas de
+evidência, nem transforma build automatizado em validação no client.
 
 ## Organização
 

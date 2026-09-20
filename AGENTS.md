@@ -12,6 +12,10 @@ ficam arquivadas como documentação, mas não são instruções ativas.
 - `wydgo748/` é o servidor Go e seu `go.mod` é a raiz do módulo. O servidor é
   autoritativo; o client envia intenções, recebe estado validado e nunca é a
   fonte da verdade do jogo.
+- O servidor é compilado e executado como processo nativo a partir de
+  `wydgo748/`. Docker, Railway e manifests de deployment externo não fazem
+  parte da arquitetura do produto e só podem ser introduzidos por solicitação
+  explícita do usuário.
 - `DOCS/` contém a documentação durável do projeto. A entrada e o inventário
   estão em [`DOCS/README.md`](DOCS/README.md) e
   [`DOCS/documentation-map.md`](DOCS/documentation-map.md).

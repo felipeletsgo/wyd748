@@ -386,12 +386,14 @@ de LearnedSkill falsa, e escrever NextExp em @28 gera SkillPts negativos.
 ## Verificação local
 
 ```powershell
-cd wyd-go
+Push-Location wydgo748
+New-Item -ItemType Directory -Force bin | Out-Null
 go test ./...
 go vet ./...
 go build -o bin/tm.exe ./cmd/server
 go build -o bin/account-api.exe ./cmd/account-api
 go build -o bin/account-create.exe ./cmd/account-create
+Pop-Location
 ```
 # Score v2
 

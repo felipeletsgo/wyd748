@@ -374,7 +374,7 @@ tmproject/client748/           assets ativos e project.exe recompilado
 
 ## Persistência
 
-- PostgreSQL usa schema v3, migrations no boot e transações `SERIALIZABLE`.
+- PostgreSQL usa schema v4, migrations no boot e transações `SERIALIZABLE`.
 - Conta, nickname, CharacterUID, ItemUID, charstate, guild relacionada e estado
   de instância possuem operações atômicas quando participam da mesma feature.
 - Autosave roda a cada três segundos com snapshots imutáveis, dirty tracking de
@@ -413,8 +413,9 @@ tmproject/client748/           assets ativos e project.exe recompilado
 - O loadbot separa posição prevista da última correção recebida do servidor.
 - Testes cobrem modelo, loaders, wire, rede, store e transições de gameplay,
   incluindo rollback, persistência, runtime isolation e segurança adversarial.
-- `.github/workflows/ci.yml` executa testes, vet, build e `git diff --check` em
-  cada push no `main` e em pull requests, sem job PostgreSQL nesta fase.
+- `.github/workflows/ci.yml` executa testes Go com PostgreSQL, race no store,
+  vet, build, validação do repositório e build/teste Windows do client em cada
+  push no `main` e em pull requests.
 - `internal/game/testdata/packets` iniciou o corpus plaintext 7.48 com uma rota
   real; cada nova captura deve provar se está antes ou depois de qualquer bridge
   de protocolo antes de virar fixture canônica.
@@ -422,9 +423,12 @@ tmproject/client748/           assets ativos e project.exe recompilado
 Validação padrão:
 
 ```powershell
+Push-Location wydgo748
+New-Item -ItemType Directory -Force bin | Out-Null
 go test -count=1 ./...
 go vet ./...
 go build -o bin/tm-check.exe ./cmd/server
+Pop-Location
 git diff --check
 ```
 

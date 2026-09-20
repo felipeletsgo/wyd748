@@ -39,7 +39,10 @@ func adminDatabaseURL(cfg data.ServerConfig) string {
 		return url
 	}
 	// Local-only convenience: a separate read-only store, not the game's writer.
-	return configuredDatabaseURL(cfg)
+	if cfg.DatabaseURL != "" {
+		return cfg.DatabaseURL
+	}
+	return os.Getenv(cfg.DatabaseURLEnv)
 }
 
 // Failure disables only the panel. Never stop or replace the game process.

@@ -5,30 +5,51 @@ são resolvidos a partir de `wydgo748/`.
 
 ## Servidor
 
-Requisito: versão Go indicada em `wydgo748/go.mod`.
+Requisitos:
+
+- Go na versão exata ou compatível indicada em `wydgo748/go.mod`;
+- Node.js `22.12` ou superior para gerar o painel Astro;
+- PostgreSQL para o boot e para os testes de integração que usam banco.
+
+O painel está habilitado no `data/server.txt` versionado, mas o diretório
+`web/portal/dist/` é gerado e ignorado pelo Git. Em um clone novo, gere o painel
+antes do primeiro boot ou desabilite `web_admin_enabled`.
 
 ```powershell
+pwsh -NoProfile -File tools/web-admin/Start-WYDAdmin.ps1 -NoBrowser
+
 Push-Location wydgo748
+New-Item -ItemType Directory -Force bin | Out-Null
 go test -count=1 ./...
 go vet ./...
 go build -o bin/tm.exe ./cmd/server
+go build -o bin/account-create.exe ./cmd/account-create
+go build -o bin/account-api.exe ./cmd/account-api
 Pop-Location
 ```
 
-Consulte [operação](server/operations.md) para configuração e inicialização.
+| Saída | Uso |
+| --- | --- |
+| `wydgo748/bin/tm.exe` | servidor do jogo e painel administrativo integrado |
+| `wydgo748/bin/account-create.exe` | cadastro local interativo |
+| `wydgo748/bin/account-api.exe` | API de cadastro separada; publicar somente por proxy HTTPS |
+| `wydgo748/web/portal/dist/` | assets compilados do painel integrado |
+
+Inicie `tm.exe` com o diretório atual em `wydgo748/`; iniciar pela raiz faz os
+caminhos relativos `data/...` apontarem para o local errado. Consulte
+[operação](server/operations.md) para banco, configuração, conta, portas,
+encerramento e backup.
+
 Testes PostgreSQL usam `WYD_TEST_POSTGRES_URL`; sem essa configuração, os
 testes condicionais não comprovam integração com o banco.
 
-### Railway
+## CI e execução
 
-O `Dockerfile` da raiz é a entrada de deployment do monorepo. Ele compila
-o servidor de `wydgo748/`, gera o painel Astro a partir do `package-lock.json`
-e instala somente o executável, os dados e o painel compilado necessários ao
-runtime. O `.dockerignore` impede que o client, caches e builds locais entrem no
-contexto. O serviço usa `WYD_DATABASE_URL` quando definida e aceita a variável
-convencional `DATABASE_URL` do PostgreSQL gerenciado como fallback. Uma variável
-customizada por `database_url_env` continua estrita. O serviço deve publicar a
-porta TCP `8281`.
+O workflow versionado valida o layout do repositório, pesquisa, assets, servidor
+Go com PostgreSQL e client C++ no Windows. Ele não publica nem configura um
+servidor externo. O runtime suportado é o processo nativo `bin/tm.exe`, iniciado
+a partir de `wydgo748/`; o repositório não possui arquitetura de container ou
+integração com provedor de deployment.
 
 O conversor histórico `cmd/npcconvert` não participa do runtime. Quando seu
 formato de entrada for necessário, exige `-in` e `-out` explícitos; não busca
@@ -65,11 +86,13 @@ atual. O estado de cada frente fica nas fichas de
 ## Organização
 
 ```powershell
-pwsh -NoProfile -File tools/repository/Test-RepositoryLayout.ps1 -UpdateMap
 pwsh -NoProfile -File tools/repository/Test-RepositoryLayout.ps1
 ```
 
-O primeiro comando atualiza o inventário; o segundo confere sua atualidade,
-links Markdown locais, regras únicas e documentação fora das sources.
+O comando confere inventário, links Markdown locais, regras únicas e
+documentação fora das sources. Use `-UpdateMap` somente quando documentos forem
+adicionados, removidos ou movidos; alterações apenas de conteúdo não exigem
+regenerar o mapa.
+
 O acervo `references/client748/` é evidência; seus patchers são históricos,
 não ferramentas do desenvolvimento ativo.

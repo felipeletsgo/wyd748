@@ -80,54 +80,6 @@ jobs:
       - name: Check whitespace
         run: git diff --check
 
-  container:
-    name: Railway container validation
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: wydgo
-          POSTGRES_PASSWORD: wydgo
-          POSTGRES_DB: wydgo_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U wydgo -d wydgo_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Build deployment image
-        run: docker build --tag wyd748-railway-check .
-
-      - name: Smoke test deployment image
-        env:
-          DATABASE_URL: postgres://wydgo:wydgo@127.0.0.1:5432/wydgo_test?sslmode=disable
-        run: |
-          container_id="$(docker run --detach --network host --env DATABASE_URL="$DATABASE_URL" wyd748-railway-check)"
-          cleanup() {
-            docker logs "$container_id" || true
-            docker stop --time 25 "$container_id" >/dev/null || true
-          }
-          trap cleanup EXIT
-          for attempt in {1..30}; do
-            if ! docker inspect --format '{{.State.Running}}' "$container_id" | grep -qx true; then
-              echo "Deployment container exited during startup"
-              exit 1
-            fi
-            if docker logs "$container_id" 2>&1 | grep -q 'WYD-Go TMSrv escutando'; then
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Deployment container did not become ready"
-          exit 1
-
   client:
     name: TMProject748 Windows validation
     runs-on: windows-2025-vs2026

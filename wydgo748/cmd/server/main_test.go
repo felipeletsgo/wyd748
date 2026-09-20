@@ -1,10 +1,6 @@
 package main
 
-import (
-	"testing"
-
-	"wydgo/internal/data"
-)
+import "testing"
 
 func TestConfigPathFromArgs(t *testing.T) {
 	tests := []struct {
@@ -32,32 +28,5 @@ func TestConfigPathFromArgs(t *testing.T) {
 func TestGeneratorExtraDisabledByDefault(t *testing.T) {
 	if defaultGeneratorExtraPath != "" {
 		t.Fatalf("gener-extra default=%q; fixtures de teste devem exigir opt-in", defaultGeneratorExtraPath)
-	}
-}
-
-func TestConfiguredDatabaseURLPrecedenceAndRailwayFallback(t *testing.T) {
-	cfg := data.DefaultServerConfig()
-	t.Setenv("WYD_DATABASE_URL", "wyd-environment")
-	t.Setenv("DATABASE_URL", "railway-environment")
-
-	if got := configuredDatabaseURL(cfg); got != "wyd-environment" {
-		t.Fatalf("WYD_DATABASE_URL=%q, quer precedencia sobre DATABASE_URL", got)
-	}
-
-	t.Setenv("WYD_DATABASE_URL", "")
-	if got := configuredDatabaseURL(cfg); got != "railway-environment" {
-		t.Fatalf("fallback DATABASE_URL=%q, quer railway-environment", got)
-	}
-
-	cfg.DatabaseURL = "configured"
-	if got := configuredDatabaseURL(cfg); got != "configured" {
-		t.Fatalf("database_url explicita=%q, quer configured", got)
-	}
-
-	cfg.DatabaseURL = ""
-	cfg.DatabaseURLEnv = "CUSTOM_DATABASE_URL"
-	t.Setenv("CUSTOM_DATABASE_URL", "")
-	if got := configuredDatabaseURL(cfg); got != "" {
-		t.Fatalf("env customizada vazia nao deve usar fallback Railway: %q", got)
 	}
 }

@@ -266,16 +266,25 @@ Trade. The chat commands accept two languages: `/create` and `/criar`,
 
 ## Requirements
 
-- You must have Go 1.26 or a later version.
+- For the first local start, follow the executable tutorial in the
+  [repository README](../../README.md#início-rápido-no-windows). This section
+  is the detailed operational reference.
+- You must have the Go version declared in `wydgo748/go.mod` (currently
+  Go 1.26.5).
+- You must have Node.js 22.12 or later to build the integrated admin panel.
 - You must have Windows to run the client in `tmproject/client748/`.
-- You must have PostgreSQL for the production server.
+- You must have PostgreSQL 16 or later for the authoritative server.
 - The server uses `gopher-lua` (MIT) and `pgx` (MIT). `go build` downloads them.
 
 ## Build the software
 
-Build the three programs. Do these commands:
+The versioned configuration enables the integrated admin panel. Its `dist/`
+directory is generated and is not in Git, so build it once after a clone and
+after each frontend change. From `wydgo748/`, do these commands:
 
 ```powershell
+pwsh -NoProfile -File ..\tools\web-admin\Start-WYDAdmin.ps1 -NoBrowser
+New-Item -ItemType Directory -Force bin | Out-Null
 go build -o bin/tm.exe ./cmd/server
 go build -o bin/account-api.exe ./cmd/account-api
 go build -o bin/account-create.exe ./cmd/account-create
@@ -300,15 +309,21 @@ CREATE DATABASE wydgo OWNER wydgo;
 ```
 
 Keep PostgreSQL on the local interface. Do not publish port 5432. The game
-server installs and validates schema v3 at boot.
+server installs and validates schema v4 at boot. The Windows setup is documented
+in the [repository README](../../README.md#1-pré-requisitos).
 
 ## Start the server
 
-Set the database URL before you start a production server:
+Set the database URL in the same shell that starts the server:
 
 ```powershell
 $env:WYD_DATABASE_URL="postgres://wydgo:password@127.0.0.1:5432/wydgo?sslmode=disable"
 ```
+
+The game server reads the variable named by `database_url_env`; its default is
+`WYD_DATABASE_URL`. The standalone `account-create` and `account-api` tools use
+the same default and accept a different name through their `-database-url-env`
+flag.
 
 Run the compiled `tm.exe` file. This is the fast method and the correct method
 for a real server. First build the file (refer to [Build the software](#build-the-software)).
@@ -330,7 +345,9 @@ replaces a data-file value. Examples: `-addr`, `-npcs`, and `-items`. The
 `-accounts` flag applies only to the explicit JSON development adapter. To see
 all the flags, do `./bin/tm.exe -h`.
 
-The same `tm.exe` process can start the local administrative panel. The local
+The same `tm.exe` process can start the local administrative panel. If its
+assets were not built, the game listener continues but the console reports that
+the panel did not start. The local
 example uses these values in `data/server.txt`:
 
 ```ini
@@ -374,8 +391,7 @@ are cleared. An identical retry retrieves the original receipt without moving
 the player again. Use **Consultar / repetir a mesma operação** after an uncertain
 HTTP result; do not reload the page. The standalone web API cannot teleport.
 Automated tests do not replace a browser/real-player/PostgreSQL acceptance run.
-The candidate is built at `wydgo748/bin/tm-webadmin.exe`; running `tm.exe` is
-not replaced or restarted automatically.
+Building the frontend does not replace or restart `tm.exe` automatically.
 
 Kick binds the selected UID/account/session to the overview's `moderationEpoch`.
 Stale sessions are rejected rather than retargeted after relogin. For an uncertain
@@ -413,8 +429,9 @@ The server flushes all pending account transactions before it stops. Send
 SIGTERM or press Ctrl+C. The database schema is installed automatically at
 boot. Keep port 5432 private and use `pg_dump` for backups.
 
-Start the server from the `wyd-go/` directory. Then the server finds the
-`data/...` paths.
+Start the server from the `wydgo748/` directory. Then the server finds the
+`data/...` paths. Starting it from the repository root without path overrides
+causes required data files to be resolved from the wrong directory.
 
 You make an account with one of two tools:
 
@@ -423,6 +440,9 @@ You make an account with one of two tools:
   ```powershell
   ./bin/account-create.exe
   ```
+
+  Define `WYD_DATABASE_URL` in this terminal too. The environment inherited by
+  the running game server is not copied to a second PowerShell window.
 
   You can preset only the username. The tool always reads the password from the
   terminal:
@@ -448,6 +468,29 @@ You make an account with one of two tools:
 
   `/healthz` reports process health and `/readyz` verifies the database. Publish
   this API only through an HTTPS reverse proxy that replaces forwarded headers.
+
+## Stop, backup, and restore
+
+Press Ctrl+C on Windows or send SIGTERM on Linux. The server stops accepting new
+work, flushes pending account transactions, stops the integrated HTTP panel,
+and then exits. A forced process kill does not provide that guarantee.
+
+Create backups with PostgreSQL tools, not by copying live database files. For
+example:
+
+```powershell
+pg_dump --format=custom --file wydgo.backup $env:WYD_DATABASE_URL
+```
+
+Restore into a new, empty database before replacing production data, and test
+that the restored database boots with the same server build:
+
+```powershell
+pg_restore --clean --if-exists --no-owner --dbname $env:WYD_DATABASE_URL wydgo.backup
+```
+
+Keep at least one backup outside the server host. Do not use a production
+database for load tests or schema experiments.
 
 ## Build and verify the client
 
