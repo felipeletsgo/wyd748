@@ -1,24 +1,48 @@
 entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct_callers_count	ghidra_direct_callees_count	ghidra_incoming_flow_refs	source_cpp_h_references
 00401152	FUN_00401152	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	14	1	14	0
-00401BDC	FUN_00401bdc	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	0	1	0
+00401304	FUN_00401304	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	5	0
+0040137C	FUN_0040137c	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	3	0
+004013C2	FUN_004013c2	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	4	0
+00401BDC	FUN_00401bdc	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	0	1	0
 00402F01	FUN_00402f01	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	6	10	20	0
 004032E8	FUN_004032e8	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	4	0	0
-00403924	FUN_00403924	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	5	2	0
-00403EB8	FUN_00403eb8	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	8	2	0
-00406BD7	FUN_00406bd7	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	0	3	0	0
+00403924	FUN_00403924	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	5	2	1
+00403DF2	FUN_00403df2	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	35	0	177	0
+00403EB8	FUN_00403eb8	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	8	2	1
+0040656C	FUN_0040656c	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	3	0	0
+00406BD7	FUN_00406bd7	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	3	0	1
+00406F5E	FUN_00406f5e	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	2	0	0
+00407203	FUN_00407203	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED	FLOW_SHEET	32	1	59	1
+00408D33	FUN_00408d33	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	32	1	61	0
+004091AB	FUN_004091ab	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	15	0	21	0
+00409563	FUN_00409563	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	6	0	0
+0040981B	FUN_0040981b	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	5	0	5	0
+0040A189	FUN_0040a189	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	8	4	0
+0040A8C2	FUN_0040a8c2	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+0040A8DE	FUN_0040a8de	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	0	4	0
+0040A9CC	FUN_0040a9cc	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	2	1	0
+0040AC07	FUN_0040ac07	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	2	0
+0040ACD2	FUN_0040acd2	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	9	0	0
+0040B67A	FUN_0040b67a	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	1	0
 0040B980	FUN_0040b980	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
+0040BD00	FUN_0040bd00	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
 0040C030	FUN_0040c030	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	0	0	0
 0040C0F0	FUN_0040c0f0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	60	0	209	0
 0040C2CD	FUN_0040c2cd	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	6	2	0
 0040C544	FUN_0040c544	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	3	0	0
 0040CDA4	FUN_0040cda4	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	0	0	0
-0040CEA0	FUN_0040cea0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	2	2	2	0
-0040D13E	FUN_0040d13e	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	14	12	49	0
-0040DD00	FUN_0040dd00	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	0	3	0	0
-0040E817	FUN_0040e817	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	0	1	0	0
-0040FC3E	FUN_0040fc3e	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	0	3	0	0
-004110F5	FUN_004110f5	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	12	1	0
-004209FC	FUN_004209fc	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	0	15	0	0
+0040CEA0	FUN_0040cea0	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	2	2	1
+0040D13E	FUN_0040d13e	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	14	12	49	4
+0040DD00	FUN_0040dd00	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	3	0	2
+0040E6AA	FUN_0040e6aa	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	1	0	0
+0040E817	FUN_0040e817	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	1	0	1
+0040FC3E	FUN_0040fc3e	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	3	0	2
+00410A91	FUN_00410a91	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	12	1	0
+004110F5	FUN_004110f5	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	12	1	2
+00416196	FUN_00416196	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	17	1	0
+00418828	FUN_00418828	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE;RENDER_ASSET_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra | pista textual: d3d	LOCATED	FLOW_SHEET	1	28	1	1
+0041EF0F	FUN_0041ef0f	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	23	1	0
+004209FC	FUN_004209fc	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	15	0	0
 00421B8F	FUN_00421b8f	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	27	16	38	0
 00423B20	FUN_00423b20	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	6	0	16	0
 00423B25	FUN_00423b25	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	3	2	3	0
@@ -30,7 +54,7 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00423DD8	FUN_00423dd8	0	DOCUMENTED_FIRST;TRANSPORT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: wsa	LOCATED	FLOW_SHEET	1	1	1	0
 00423F37	FUN_00423f37	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;TRANSPORT_TEXT_HINT;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | pista textual: socket, send(, wsa | pista textual: messagebox | pista textual: initialize	LOCATED	FLOW_SHEET	2	12	2	0
 004245DB	FUN_004245db	0	DOCUMENTED_FIRST;TRANSPORT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: socket, recv(	LOCATED	FLOW_SHEET	1	1	1	0
-00424C2C	FUN_00424c2c	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+00424C2C	FUN_00424c2c	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED	FLOW_SHEET	1	1	1	2
 00424DFE	FUN_00424dfe	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	4	2	0
 00425200	FUN_00425200	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
 00425266	FUN_00425266	0	DOCUMENTED_FIRST;TRANSPORT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: socket, send(, wsa	LOCATED	FLOW_SHEET	4	5	4	0
@@ -46,53 +70,127 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00432181	FUN_00432181	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: messagebox	LOCATED	FLOW_SHEET	0	27	0	0
 00432959	FUN_00432959	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	7	0	0
 00433961	FUN_00433961	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
+004339D8	FUN_004339d8	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	1	0	0
 00433A10	FUN_00433a10	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
+00433A60	FUN_00433a60	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	4	0	5	0
 004343A4	FUN_004343a4	0	DOCUMENTED_FIRST;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: scene	LOCATED	FLOW_SHEET	1	9	1	0
 004358DA	FUN_004358da	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	8	1	0
-00435B13	FUN_00435b13	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: scene	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	62	0	0
-004431D9	FUN_004431d9	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	3	0	4	0
-004431E4	FUN_004431e4	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	36	36	38	0
-00447594	FUN_00447594	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	10	0	10	0
-004484F3	FUN_004484f3	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	15	7	20	0
-0044AE38	FUN_0044ae38	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	24	9	34	0
-0044C15C	FUN_0044c15c	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	6	1	0
-0044C53F	FUN_0044c53f	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	12	7	13	0
-0044DF53	FUN_0044df53	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	10	2	0
-0044F88F	FUN_0044f88f	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	11	2	0
-0044FC4B	FUN_0044fc4b	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	6	2	0
+00435B13	FUN_00435b13	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: scene	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	62	0	37
+00441823	FUN_00441823	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	13	1	3
+00442FF7	FUN_00442ff7	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	4	2	5	0
+004431D9	FUN_004431d9	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	3	0	4	0
+004431E4	FUN_004431e4	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	36	36	38	8
+004470B9	FUN_004470b9	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED	FLOW_SHEET	5	3	5	1
+00447469	FUN_00447469	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	0	2	0
+00447594	FUN_00447594	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	10	0	10	2
+00447691	FUN_00447691	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	15	15	38	0
+00447C73	FUN_00447c73	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	12	9	13	0
+00447F6F	FUN_00447f6f	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED	FLOW_SHEET	18	0	32	1
+004481C5	FUN_004481c5	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	9	7	10	1
+004484F3	FUN_004484f3	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	15	7	20	0
+004487E2	FUN_004487e2	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	2	4	0
+004489C5	FUN_004489c5	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	2	4	0
+00448C38	FUN_00448c38	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	2	4	0
+00448E0B	FUN_00448e0b	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	2	4	0
+00448FDE	FUN_00448fde	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	2	4	0
+004491B1	FUN_004491b1	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	2	4	0
+00449384	FUN_00449384	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	10	3	0
+00449632	FUN_00449632	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	10	2	0
+004498E0	FUN_004498e0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	10	2	0
+00449B8E	FUN_00449b8e	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	10	2	0
+00449E3C	FUN_00449e3c	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	2	10	4	0
+0044A0FB	FUN_0044a0fb	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	10	1	0
+0044A3A9	FUN_0044a3a9	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	10	2	0
+0044A745	FUN_0044a745	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	7	10	9	0
+0044A9E9	FUN_0044a9e9	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	11	4	0
+0044AE38	FUN_0044ae38	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	24	9	34	4
+0044B890	FUN_0044b890	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	13	9	17	0
+0044C15C	FUN_0044c15c	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	6	1	1
+0044C53F	FUN_0044c53f	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	12	7	13	0
+0044DA6F	FUN_0044da6f	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	6	4	8	0
+0044DF53	FUN_0044df53	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	10	2	4
+0044ECA3	FUN_0044eca3	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	3	0	3	0
+0044ECAE	FUN_0044ecae	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	3	3	3	0
+0044EECF	FUN_0044eecf	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	3	0	3	0
+0044F88F	FUN_0044f88f	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED	FLOW_SHEET	2	11	2	1
+0044FC4B	FUN_0044fc4b	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED	FLOW_SHEET	2	6	2	2
+00452210	FUN_00452210	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	1	2	0
+004523FA	FUN_004523fa	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
 004525A1	FUN_004525a1	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	1	2	0
 00452661	FUN_00452661	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	1	2	0
-00452728	FUN_00452728	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	0	2	0
-004528C5	FUN_004528c5	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	5	8	16	0
+004528C5	FUN_004528c5	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	5	8	16	2
+004539BC	FUN_004539bc	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	1	0
+00453B35	FUN_00453b35	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	1	2	0
 00453C59	FUN_00453c59	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	33	0	0
 004541F3	FUN_004541f3	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	25	0	0
-00454763	FUN_00454763	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	0	20	0	0
-0045EE28	FUN_0045ee28	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	16	1	0
-004656AF	FUN_004656af	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	0	1	0
-004662C5	FUN_004662c5	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	91	0	0
-004770AD	FUN_004770ad	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	2	1	0
-004776C3	FUN_004776c3	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	57	0	0
-0047E49D	FUN_0047e49d	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	7	1	0
-00481DD6	FUN_00481dd6	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	4	1	0
-004829F2	FUN_004829f2	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	35	1	0
+00454763	FUN_00454763	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	20	0	0
+00455950	FUN_00455950	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	2	11	0
+00455B5B	FUN_00455b5b	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	2	1	0
+00455C38	FUN_00455c38	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	3	1	0
+0045EE28	FUN_0045ee28	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	16	1	0
+004625DA	FUN_004625da	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	25	0	0
+004640E5	FUN_004640e5	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	26	1	0
+004656AF	FUN_004656af	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	0	1	2
+004658A7	FUN_004658a7	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+00465B05	FUN_00465b05	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	9	1	0
+00465F85	FUN_00465f85	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED	FLOW_SHEET	2	10	2	1
+004662C5	FUN_004662c5	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	91	0	7
+00472651	FUN_00472651	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	2	2	0
+004727CC	FUN_004727cc	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	5	1	0
+00472966	FUN_00472966	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	2	2	0
+00476006	FUN_00476006	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	13	1	0
+004770AD	FUN_004770ad	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	2	1	1
+004776C3	FUN_004776c3	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	57	0	2
+0047E49D	FUN_0047e49d	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED	FLOW_SHEET	1	7	1	1
+0047E8E2	FUN_0047e8e2	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	2	1	0
+0047E9B6	FUN_0047e9b6	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | pista textual: window | pista textual: logout	LOCATED	FLOW_SHEET	1	17	1	0
+0047FCD7	FUN_0047fcd7	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	3	23	4	0
+00480A83	FUN_00480a83	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	4	9	4	0
+00481DD6	FUN_00481dd6	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	4	1	1
+00481FF3	FUN_00481ff3	0	DOCUMENTED_FIRST;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: ime	LOCATED	FLOW_SHEET	1	5	1	0
+00482903	FUN_00482903	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	2	1	0
+004829F2	FUN_004829f2	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	35	1	1
 00484C8A	FUN_00484c8a	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
 00484D44	FUN_00484d44	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	13	1	0
 0048529B	FUN_0048529b	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
-00486424	FUN_00486424	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	5	1	0
-004875C0	FUN_004875c0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	9	1	0
+004854ED	FUN_004854ed	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	2	1	0
+00485664	FUN_00485664	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+004856C3	FUN_004856c3	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	14	1	0
+00485D43	FUN_00485d43	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	5	1	0
+00486009	FUN_00486009	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	8	1	0
+004862B6	FUN_004862b6	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	5	1	0
+004863E2	FUN_004863e2	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	1	0
+00486424	FUN_00486424	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	5	1	0
+004875C0	FUN_004875c0	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	9	1	1
+004883BF	FUN_004883bf	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	12	1	0
+00488879	FUN_00488879	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	8	1	0
+00488B52	FUN_00488b52	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	3	1	0
+00488FFF	FUN_00488fff	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+004890F9	FUN_004890f9	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	5	1	0
+00489192	FUN_00489192	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	2	1	0
+00489260	FUN_00489260	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+00489300	FUN_00489300	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	1	0
+00489882	FUN_00489882	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	4	1	0
+00489A3E	FUN_00489a3e	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;UI_INPUT_TEXT_HINT;RENDER_ASSET_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | pista textual: control | pista textual: d3d	LOCATED	FLOW_SHEET	1	59	1	0
+004927DD	FUN_004927dd	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	1	1	0
+004929FE	FUN_004929fe	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
 00492E7D	FUN_00492e7d	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	56	0	0
 00493BC0	FUN_00493bc0	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
+00493C10	FUN_00493c10	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	5	0	11	0
 00493CF0	FUN_00493cf0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	3	2	12	0
-00493E70	FUN_00493e70	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	4	10	4	0
+00493E70	FUN_00493e70	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED	FLOW_SHEET	4	10	4	1
 00494C00	FUN_00494c00	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	13	2	13	0
 00494DCF	FUN_00494dcf	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	32	0	56	0
 004974EC	FUN_004974ec	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: control | pista textual: create, scene	LOCATED	FLOW_SHEET	0	17	0	0
-0049889A	FUN_0049889a	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | pista textual: ime	LOCATED	FLOW_SHEET	4	21	4	0
+0049889A	FUN_0049889a	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra | pista textual: ime	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	4	21	4	1
 0049AB73	FUN_0049ab73	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	3	1	3	0
 0049AD57	FUN_0049ad57	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	0	0	0
+0049E50F	FUN_0049e50f	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	3	12	12	0
 0049EE30	FUN_0049ee30	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	4	1	0
 0049F053	FUN_0049f053	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
-0049F0E7	FUN_0049f0e7	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: messagebox | pista textual: scene	LOCATED	FLOW_SHEET	0	38	0	0
+0049F0E7	FUN_0049f0e7	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: messagebox | pista textual: scene	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	38	0	0
+004A24B4	FUN_004a24b4	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	4	1	10	0
+004A250F	FUN_004a250f	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	1	0	0
 004A2AEF	FUN_004a2aef	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	5	0	0
 004A2F7A	FUN_004a2f7a	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	6	0	0
 004A32DD	FUN_004a32dd	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	17	0	0
@@ -101,22 +199,28 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004A8910	FUN_004a8910	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
 004A8CCF	FUN_004a8ccf	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	5	1	0
 004A8E29	FUN_004a8e29	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	4	1	0
-004A8F14	FUN_004a8f14	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime, messagebox | pista textual: scene	LOCATED	FLOW_SHEET	0	39	0	0
+004A8F14	FUN_004a8f14	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime, messagebox | pista textual: scene	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	39	0	1
 004AAD84	FUN_004aad84	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
 004AAEDC	FUN_004aaedc	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	9	0	0
-004AC985	FUN_004ac985	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	27	0	0
+004AC985	FUN_004ac985	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	27	0	2
+004AE3D6	FUN_004ae3d6	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	4	0	0
 004AE5C0	FUN_004ae5c0	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
 004AE862	FUN_004ae862	0	DOCUMENTED_FIRST;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: create	LOCATED	FLOW_SHEET	1	2	1	0
-004AEC3D	FUN_004aec3d	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	7	1	0
+004AEC3D	FUN_004aec3d	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	7	1	2
 004AF484	FUN_004af484	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	2	0
 004AF4CC	FUN_004af4cc	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	2	0
 004AF514	FUN_004af514	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	1	0
-004AF545	FUN_004af545	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	1	0
-004AF550	FUN_004af550	0	DOCUMENTED_FIRST;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: release	LOCATED	FLOW_SHEET	1	3	1	0
-004AF5F6	FUN_004af5f6	0	DOCUMENTED_FIRST;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: release, free(	LOCATED	FLOW_SHEET	1	8	3	0
+004AF545	FUN_004af545	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	0	1	1
+004AF550	FUN_004af550	0	DOCUMENTED_FIRST;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: release	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	3	1	0
+004AF5EB	FUN_004af5eb	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	0	1	1
+004AF5F6	FUN_004af5f6	0	DOCUMENTED_FIRST;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: release, free(	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	8	3	0
+004AF854	FUN_004af854	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+004AF910	FUN_004af910	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	0	1	1
 004AFAC0	FUN_004afac0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
 004AFBA0	FUN_004afba0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
 004AFFF7	FUN_004afff7	0	DOCUMENTED_FIRST;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: ime	LOCATED	FLOW_SHEET	1	1	1	0
+004B00E4	FUN_004b00e4	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;RENDER_ASSET_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: mesh	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	12	0	0
+004B14FD	FUN_004b14fd	0	DOCUMENTED_FIRST;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: ime	LOCATED	FLOW_SHEET	49	2	84	0
 004B16C0	FUN_004b16c0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	0	2	0
 004B1EA9	FUN_004b1ea9	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	9	1	0
 004B2155	FUN_004b2155	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	0	1	0
@@ -139,16 +243,57 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004BAE89	FUN_004bae89	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	0	0	0
 004BAE9F	FUN_004bae9f	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	0	0	0
 004BAEB0	FUN_004baeb0	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
-004BAF10	FUN_004baf10	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	3	4	3	0
-004F7EA6	FUN_004f7ea6	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	6	13	8	0
+004BAF10	FUN_004baf10	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	3	4	3	1
+004C3EEC	FUN_004c3eec	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime	LOCATED	FLOW_SHEET	0	12	0	0
+004C51FD	FUN_004c51fd	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	10	1	0
+004D01B0	FUN_004d01b0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	3	9	3	0
+004D04B3	FUN_004d04b3	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	7	1	0
+004D0651	FUN_004d0651	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	4	1	0
+004D0A4D	FUN_004d0a4d	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	13	0	0
+004D12E4	FUN_004d12e4	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	7	0	0
+004D90DD	FUN_004d90dd	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	1	0	0
+004E0990	FUN_004e0990	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	2	1	0
+004E0AF7	FUN_004e0af7	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	4	0	0
+004E4A10	FUN_004e4a10	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	9	3	0
+004E88A0	FUN_004e88a0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	4	5	0
+004E8A95	FUN_004e8a95	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	0	5	0
+004ECD90	FUN_004ecd90	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	5	5	0
+004EE730	FUN_004ee730	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	5	5	9	0
+004F0C50	FUN_004f0c50	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	2	2	0
+004F1960	FUN_004f1960	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	2	2	0
+004F3A9B	FUN_004f3a9b	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	4	2	4	0
+004F7EA6	FUN_004f7ea6	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	6	13	8	2
+004FA8A1	FUN_004fa8a1	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	11	1	15	0
+004FAF92	FUN_004faf92	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW;RENDER_ASSET_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: d3d	LOCATED	FLOW_SHEET	0	3	0	0
+004FF388	FUN_004ff388	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	7	0	12	0
 004FF400	FUN_004ff400	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	0	5	0	0
-00504A80	FUN_00504a80	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	11	1	0
-00506F9D	FUN_00506f9d	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;RENDER_ASSET_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | pista textual: d3d	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	49	1	0
-0051A939	FUN_0051a939	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	2	12	2	0
-00520216	FUN_00520216	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	7	10	9	0
-0052B72A	FUN_0052b72a	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	5	1	0
-0052D2C8	FUN_0052d2c8	0	DOCUMENTED_FIRST;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: ime	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	6	1	0
+00504A80	FUN_00504a80	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	11	1	5
+00506F9D	FUN_00506f9d	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE;RENDER_ASSET_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra | pista textual: d3d	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	49	1	3
+00516105	FUN_00516105	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	8	0	12	0
+0051A939	FUN_0051a939	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	2	12	2	1
+0051DBA4	FUN_0051dba4	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	20	4	52	0
+00520216	FUN_00520216	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	7	10	9	1
+00521D53	FUN_00521d53	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	6	1	0
+00522126	FUN_00522126	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	5	1	0
+00523533	FUN_00523533	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	4	0
+005296E8	FUN_005296e8	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	9	1	0
+00529B07	FUN_00529b07	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	5	1	0
+00529BF8	FUN_00529bf8	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	19	1	1
+0052A737	FUN_0052a737	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	12	1	8
+0052B116	FUN_0052b116	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	19	1	0
+0052B72A	FUN_0052b72a	0	DOCUMENTED_FIRST;SOURCE_BRIDGE	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	5	1	2
+0052B97D	FUN_0052b97d	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	22	1	0
+0052C5EB	FUN_0052c5eb	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	6	1	0
+0052D060	FUN_0052d060	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	6	1	0
+0052D2C8	FUN_0052d2c8	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | pista textual: ime	STATICALLY_EVIDENCED	PARITY_STATIC_EVIDENCE	1	6	1	1
+0052DC5D	FUN_0052dc5d	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	9	1	0
+0052E2F6	FUN_0052e2f6	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	4	1	0
+0052E3C8	FUN_0052e3c8	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	8	1	0
+0052EAA9	FUN_0052eaa9	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;TRANSPORT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: msg_	LOCATED	FLOW_SHEET	0	24	0	0
 00541065	FUN_00541065	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;TRANSPORT_TEXT_HINT;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | pista textual: checksum | pista textual: messagebox	LOCATED	FLOW_SHEET	6	40	6	0
+00547890	FUN_00547890	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	4	7	4	0
+00547E8A	FUN_00547e8a	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	8	0	0
+005484D1	FUN_005484d1	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	7	0	0
 0054A9E0	FUN_0054a9e0	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	17	0	23	0
 0054AA45	FUN_0054aa45	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	34	0	34	0
 0054AC09	FUN_0054ac09	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	122	0	573	0
@@ -156,7 +301,13 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0054CD07	FUN_0054cd07	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	67	1	200	0
 0054E93B	FUN_0054e93b	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	14	0	16	0
 0054E9AB	FUN_0054e9ab	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	12	0	12	0
-0055890A	FUN_0055890a	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
+0054F0F2	FUN_0054f0f2	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	7	1	0
+0054F946	FUN_0054f946	0	DOCUMENTED_FIRST;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: messagebox	LOCATED	FLOW_SHEET	1	5	1	0
+0054FC81	FUN_0054fc81	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	7	2	9	0
+00552F42	FUN_00552f42	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	3	0	6	0
+005554CC	FUN_005554cc	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	4	0	4	0
+00558290	FUN_00558290	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	3	6	3	0
+0055890A	FUN_0055890a	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	0	2	0	2
 0055B18F	FUN_0055b18f	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	5	1	0
 0055B26F	FUN_0055b26f	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
 0055BC0A	FUN_0055bc0a	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: window, messagebox, focus | pista textual: create, initialize	LOCATED	FLOW_SHEET	0	35	0	0
@@ -164,12 +315,12 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0055D066	FUN_0055d066	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: delete	LOCATED	FLOW_SHEET	0	6	0	0
 0055D345	FUN_0055d345	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: window, messagebox | pista textual: destroy	LOCATED	FLOW_SHEET	0	15	0	0
 0055D6E6	FUN_0055d6e6	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	5	0	0
-0055DAB8	FUN_0055dab8	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE;TRANSPORT_TEXT_HINT;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra | pista textual: wsa | pista textual: ime, window, focus | pista textual: create, destroy, delete	LOCATED	FLOW_SHEET	1	38	1	0
+0055DAB8	FUN_0055dab8	0	DOCUMENTED_FIRST;SOURCE_BRIDGE;HIGH_FANOUT_DISPATCH_CANDIDATE;TRANSPORT_TEXT_HINT;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | referência FUN_ direta na source client | alto fan-out direto reconhecido pelo Ghidra | pista textual: wsa | pista textual: ime, window, focus | pista textual: create, destroy, delete	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	1	38	1	1
 0055EDF7	FUN_0055edf7	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	0	0	0
 0055EE1E	FUN_0055ee1e	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	0	0	0
 0055EE45	FUN_0055ee45	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	0	0	0
 0055EE59	FUN_0055ee59	0	DOCUMENTED_FIRST;UI_INPUT_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: window, focus	LOCATED	FLOW_SHEET	6	9	8	0
-0055F2DD	FUN_0055f2dd	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	59	2	152	0
+0055F2DD	FUN_0055f2dd	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED_OR_STATIC_EVIDENCE	PARITY_AND_FLOW	59	2	152	0
 0055F3E0	FUN_0055f3e0	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	2	0	0
 0055F410	FUN_0055f410	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	2	2	0
 0055F440	FUN_0055f440	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	2	1	0
@@ -177,14 +328,44 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0055FA89	FUN_0055fa89	0	DOCUMENTED_FIRST;NO_DIRECT_CALLER_REVIEW	já citado em handoff/ficha; fechar a evidência existente | sem caller direto reconhecido; revisar callback/vtable/import	LOCATED	FLOW_SHEET	0	1	0	0
 0055FBB9	FUN_0055fbb9	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	2	2	0
 0055FE5B	FUN_0055fe5b	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+00579195	FUN_00579195	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	1	14	1	0
 0058EA3A	FUN_0058ea3a	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1144	1	1201	0
 0058F078	FUN_0058f078	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	167	2	757	0
+0058F220	FUN_0058f220	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	104	0	292	0
 0058F75F	FUN_0058f75f	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	15	5	22	0
 0058FB07	FUN_0058fb07	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	13	1	15	0
+005909D2	FUN_005909d2	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	31	2	62	0
+00591258	FUN_00591258	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	2	1	3	0
 00594029	FUN_00594029	0	DOCUMENTED_FIRST;HIGH_FANOUT_DISPATCH_CANDIDATE	já citado em handoff/ficha; fechar a evidência existente | alto fan-out direto reconhecido pelo Ghidra	LOCATED	FLOW_SHEET	5	13	5	0
 0059569E	FUN_0059569e	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
 0059DFE0	FUN_0059dfe0	0	DOCUMENTED_FIRST;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	já citado em handoff/ficha; fechar a evidência existente | pista textual: window | pista textual: free(	LOCATED	FLOW_SHEET	5	2	5	0
-00418828	FUN_00418828	2	HIGH_FANOUT_DISPATCH_CANDIDATE;RENDER_ASSET_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | pista textual: d3d	UNMAPPED	CORPUS_ONLY	1	28	1	0
+0059E5FE	FUN_0059e5fe	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	4	8	6	0
+013C0000	FUN_013c0000	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+013C0800	FUN_013c0800	0	DOCUMENTED_FIRST	já citado em handoff/ficha; fechar a evidência existente	LOCATED	FLOW_SHEET	1	1	1	0
+004015DD	FUN_004015dd	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	0	1	1
+00401BF5	FUN_00401bf5	1	SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW	referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	1
+00407281	FUN_00407281	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	3	1	3	1
+0040E604	FUN_0040e604	1	SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW	referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	1
+00424642	FUN_00424642	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	0	1	1
+0042E8A1	FUN_0042e8a1	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	6	1	1
+00430C46	FUN_00430c46	1	SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW	referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	4	0	1
+0044CA65	FUN_0044ca65	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	2	2	4	2
+0044EFFC	FUN_0044effc	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	2	11	2	2
+0044F46B	FUN_0044f46b	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	2	11	2	1
+004502A7	FUN_004502a7	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	10	1	1
+0045061F	FUN_0045061f	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	11	1	1
+00452271	FUN_00452271	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	3	2	3	1
+00452691	FUN_00452691	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	2	0	2	1
+004526EE	FUN_004526ee	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	2	0	2	1
+00452728	FUN_00452728	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	2	0	2	1
+00453B65	FUN_00453b65	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	1	1	1
+00463AA8	FUN_00463aa8	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	2	1	1
+0047EF1D	FUN_0047ef1d	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	7	1	1
+00487B92	FUN_00487b92	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	11	1	1
+00489023	FUN_00489023	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	2	1	2
+004BBCB5	FUN_004bbcb5	1	SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime	UNMAPPED	CORPUS_ONLY	0	8	0	1
+00524BBB	FUN_00524bbb	1	SOURCE_BRIDGE;NO_DIRECT_CALLER_REVIEW	referência FUN_ direta na source client | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	1
+0052D93D	FUN_0052d93d	1	SOURCE_BRIDGE	referência FUN_ direta na source client	UNMAPPED	CORPUS_ONLY	1	7	1	2
 00423E09	FUN_00423e09	2	NO_DIRECT_CALLER_REVIEW;TRANSPORT_TEXT_HINT;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: socket, wsa | pista textual: messagebox | pista textual: initialize	UNMAPPED	CORPUS_ONLY	0	8	0	0
 00424146	FUN_00424146	2	NO_DIRECT_CALLER_REVIEW;TRANSPORT_TEXT_HINT;LIFECYCLE_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: socket, send(, wsa | pista textual: initialize	UNMAPPED	CORPUS_ONLY	0	11	0	0
 00424337	FUN_00424337	2	NO_DIRECT_CALLER_REVIEW;TRANSPORT_TEXT_HINT;UI_INPUT_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: socket, wsa | pista textual: messagebox	UNMAPPED	CORPUS_ONLY	0	10	0	0
@@ -217,9 +398,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00433EF1	FUN_00433ef1	2	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime	UNMAPPED	CORPUS_ONLY	0	12	0	0
 00465E42	FUN_00465e42	2	UI_INPUT_TEXT_HINT	pista textual: ime	UNMAPPED	CORPUS_ONLY	2	1	3	0
 00465E9A	FUN_00465e9a	2	UI_INPUT_TEXT_HINT	pista textual: ime	UNMAPPED	CORPUS_ONLY	1	3	1	0
-0047E9B6	FUN_0047e9b6	2	HIGH_FANOUT_DISPATCH_CANDIDATE;UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | pista textual: window | pista textual: logout	UNMAPPED	CORPUS_ONLY	1	17	1	0
-00481FF3	FUN_00481ff3	2	UI_INPUT_TEXT_HINT	pista textual: ime	UNMAPPED	CORPUS_ONLY	1	5	1	0
-00489A3E	FUN_00489a3e	2	HIGH_FANOUT_DISPATCH_CANDIDATE;UI_INPUT_TEXT_HINT;RENDER_ASSET_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | pista textual: control | pista textual: d3d	UNMAPPED	CORPUS_ONLY	1	59	1	0
 00494DF1	FUN_00494df1	2	NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: focus	UNMAPPED	CORPUS_ONLY	0	1	0	0
 00494FA4	FUN_00494fa4	2	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;LIFECYCLE_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: create, scene	UNMAPPED	CORPUS_ONLY	0	18	0	0
 004A89A0	FUN_004a89a0	2	LIFECYCLE_TEXT_HINT	pista textual: delete	UNMAPPED	CORPUS_ONLY	2	5	2	0
@@ -232,8 +410,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004AEB8D	FUN_004aeb8d	2	NO_DIRECT_CALLER_REVIEW;LIFECYCLE_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: release	UNMAPPED	CORPUS_ONLY	0	3	0	0
 004AFBC6	FUN_004afbc6	2	RENDER_ASSET_TEXT_HINT;LIFECYCLE_TEXT_HINT	pista textual: mesh | pista textual: initialize	UNMAPPED	CORPUS_ONLY	1	6	1	0
 004AFCA2	FUN_004afca2	2	TRANSPORT_TEXT_HINT;UI_INPUT_TEXT_HINT	pista textual: checksum | pista textual: messagebox	UNMAPPED	CORPUS_ONLY	1	5	1	0
-004B00E4	FUN_004b00e4	2	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;RENDER_ASSET_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: mesh	UNMAPPED	CORPUS_ONLY	0	12	0	0
-004B14FD	FUN_004b14fd	2	UI_INPUT_TEXT_HINT	pista textual: ime	UNMAPPED	CORPUS_ONLY	49	2	84	0
 004B3962	FUN_004b3962	2	UI_INPUT_TEXT_HINT	pista textual: messagebox	UNMAPPED	CORPUS_ONLY	2	3	2	0
 004B3F12	FUN_004b3f12	2	LIFECYCLE_TEXT_HINT	pista textual: initialize	UNMAPPED	CORPUS_ONLY	2	6	2	0
 004B4692	FUN_004b4692	2	UI_INPUT_TEXT_HINT	pista textual: control	UNMAPPED	CORPUS_ONLY	1	0	1	0
@@ -256,26 +432,21 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004BA2CF	FUN_004ba2cf	2	UI_INPUT_TEXT_HINT	pista textual: ime	UNMAPPED	CORPUS_ONLY	1	2	5	0
 004BA9FC	FUN_004ba9fc	2	NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime	UNMAPPED	CORPUS_ONLY	0	1	0	0
 004BAEE0	FUN_004baee0	2	UI_INPUT_TEXT_HINT	pista textual: ime	UNMAPPED	CORPUS_ONLY	1	1	1	0
-004BBCB5	FUN_004bbcb5	2	NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime	UNMAPPED	CORPUS_ONLY	0	8	0	0
 004BC7C7	FUN_004bc7c7	2	RENDER_ASSET_TEXT_HINT	pista textual: mesh	UNMAPPED	CORPUS_ONLY	1	11	1	0
 004BE7B1	FUN_004be7b1	2	RENDER_ASSET_TEXT_HINT	pista textual: mesh	UNMAPPED	CORPUS_ONLY	18	5	23	0
 004BEAD1	FUN_004bead1	2	RENDER_ASSET_TEXT_HINT	pista textual: mesh	UNMAPPED	CORPUS_ONLY	3	4	5	0
 004BF8C5	FUN_004bf8c5	2	RENDER_ASSET_TEXT_HINT	pista textual: mesh	UNMAPPED	CORPUS_ONLY	1	3	1	0
-004C3EEC	FUN_004c3eec	2	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime	UNMAPPED	CORPUS_ONLY	0	12	0	0
 004D3D20	FUN_004d3d20	2	RENDER_ASSET_TEXT_HINT	pista textual: d3d	UNMAPPED	CORPUS_ONLY	3	7	3	0
-004FAF92	FUN_004faf92	2	NO_DIRECT_CALLER_REVIEW;RENDER_ASSET_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: d3d	UNMAPPED	CORPUS_ONLY	0	3	0	0
 004FB22E	FUN_004fb22e	2	RENDER_ASSET_TEXT_HINT	pista textual: d3d	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004FB34A	FUN_004fb34a	2	HIGH_FANOUT_DISPATCH_CANDIDATE;RENDER_ASSET_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | pista textual: d3d	UNMAPPED	CORPUS_ONLY	1	19	1	0
 0051253C	FUN_0051253c	2	RENDER_ASSET_TEXT_HINT	pista textual: d3d	UNMAPPED	CORPUS_ONLY	1	9	1	0
 00512922	FUN_00512922	2	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: ime	UNMAPPED	CORPUS_ONLY	0	41	0	0
 0051BB41	FUN_0051bb41	2	RENDER_ASSET_TEXT_HINT	pista textual: mesh	UNMAPPED	CORPUS_ONLY	9	6	12	0
-0052EAA9	FUN_0052eaa9	2	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW;TRANSPORT_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import | pista textual: msg_	UNMAPPED	CORPUS_ONLY	0	24	0	0
 00532390	FUN_00532390	2	HIGH_FANOUT_DISPATCH_CANDIDATE;UI_INPUT_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | pista textual: messagebox	UNMAPPED	CORPUS_ONLY	6	13	6	0
 00533DD7	FUN_00533dd7	2	HIGH_FANOUT_DISPATCH_CANDIDATE;TRANSPORT_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | pista textual: checksum	UNMAPPED	CORPUS_ONLY	6	12	6	0
 00545963	FUN_00545963	2	NO_DIRECT_CALLER_REVIEW;LIFECYCLE_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: create	UNMAPPED	CORPUS_ONLY	0	3	0	0
 0054F692	FUN_0054f692	2	NO_DIRECT_CALLER_REVIEW;TRANSPORT_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: checksum	UNMAPPED	CORPUS_ONLY	0	6	0	0
 0054F7B6	FUN_0054f7b6	2	TRANSPORT_TEXT_HINT;UI_INPUT_TEXT_HINT	pista textual: checksum | pista textual: messagebox	UNMAPPED	CORPUS_ONLY	1	7	2	0
-0054F946	FUN_0054f946	2	UI_INPUT_TEXT_HINT	pista textual: messagebox	UNMAPPED	CORPUS_ONLY	1	5	1	0
 0054FA27	FUN_0054fa27	2	UI_INPUT_TEXT_HINT	pista textual: messagebox	UNMAPPED	CORPUS_ONLY	1	8	1	0
 0055474F	FUN_0055474f	2	NO_DIRECT_CALLER_REVIEW;UI_INPUT_TEXT_HINT	sem caller direto reconhecido; revisar callback/vtable/import | pista textual: messagebox	UNMAPPED	CORPUS_ONLY	0	5	0	0
 005547E4	FUN_005547e4	2	HIGH_FANOUT_DISPATCH_CANDIDATE;UI_INPUT_TEXT_HINT	alto fan-out direto reconhecido pelo Ghidra | pista textual: messagebox	UNMAPPED	CORPUS_ONLY	1	13	2	0
@@ -403,28 +574,16 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0059E150	FUN_0059e150	2	UI_INPUT_TEXT_HINT;LIFECYCLE_TEXT_HINT	pista textual: window | pista textual: create, release, free(	UNMAPPED	CORPUS_ONLY	3	7	3	0
 0059E7D5	~exception	2	LIFECYCLE_TEXT_HINT	pista textual: release	UNMAPPED	CORPUS_ONLY	9	1	9	0
 0059E83D	__CxxThrowException@8	2	LIFECYCLE_TEXT_HINT	pista textual: release	UNMAPPED	CORPUS_ONLY	5	1	5	0
-00410A91	FUN_00410a91	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	12	1	0
-00416196	FUN_00416196	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	17	1	0
-0041EF0F	FUN_0041ef0f	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	23	1	0
 00432D52	FUN_00432d52	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	16	1	0
-00441823	FUN_00441823	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	13	1	0
-00447691	FUN_00447691	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	15	15	38	0
 00456589	FUN_00456589	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	20	1	0
 004595EC	FUN_004595ec	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	4	27	7	0
 0046087B	FUN_0046087b	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	12	1	0
-004625DA	FUN_004625da	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	25	0	0
-004640E5	FUN_004640e5	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	26	1	0
 00470E36	FUN_00470e36	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	12	1	0
 004729D4	FUN_004729d4	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	4	16	9	0
 004735BA	FUN_004735ba	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	3	18	3	0
 0047591F	FUN_0047591f	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	15	1	0
-00476006	FUN_00476006	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	13	1	0
-0047FCD7	FUN_0047fcd7	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	3	23	4	0
-004856C3	FUN_004856c3	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	14	1	0
-004883BF	FUN_004883bf	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	12	1	0
 00499F0E	FUN_00499f0e	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	19	1	0
 0049ADD2	FUN_0049add2	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	2	20	5	0
-0049E50F	FUN_0049e50f	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	3	12	12	0
 0049E77B	FUN_0049e77b	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	3	13	16	0
 004AB9F7	FUN_004ab9f7	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	15	1	0
 004B5F0A	FUN_004b5f0a	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	13	1	0
@@ -433,7 +592,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004C80D7	FUN_004c80d7	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	17	0	0
 004C985A	FUN_004c985a	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	16	0	0
 004CF90D	FUN_004cf90d	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	12	0	0
-004D0A4D	FUN_004d0a4d	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	13	0	0
 004D2509	FUN_004d2509	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	14	1	0
 004D4DE0	FUN_004d4de0	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	16	12	22	0
 004D619E	FUN_004d619e	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	18	0	0
@@ -458,10 +616,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00522D56	FUN_00522d56	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	13	1	0
 0052355C	FUN_0052355c	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	4	13	6	0
 005284A0	FUN_005284a0	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	20	1	0
-00529BF8	FUN_00529bf8	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	19	1	0
-0052A737	FUN_0052a737	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	12	1	0
-0052B116	FUN_0052b116	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	19	1	0
-0052B97D	FUN_0052b97d	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	22	1	0
 00535298	FUN_00535298	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	17	0	0
 0053BF5F	FUN_0053bf5f	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	14	0	0
 0053EC3B	FUN_0053ec3b	3	HIGH_FANOUT_DISPATCH_CANDIDATE;NO_DIRECT_CALLER_REVIEW	alto fan-out direto reconhecido pelo Ghidra | sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	14	0	0
@@ -472,11 +626,9 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0056A815	FUN_0056a815	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	3	12	3	0
 0056FD19	FUN_0056fd19	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	39	2	0
 00573551	FUN_00573551	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	13	1	0
-00579195	FUN_00579195	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	1	14	1	0
 00599173	FUN_00599173	3	HIGH_FANOUT_DISPATCH_CANDIDATE	alto fan-out direto reconhecido pelo Ghidra	UNMAPPED	CORPUS_ONLY	2	17	3	0
 00401459	FUN_00401459	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 004015C4	FUN_004015c4	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
-00401BF5	FUN_00401bf5	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 00402135	FUN_00402135	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 00402679	FUN_00402679	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 00403279	FUN_00403279	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
@@ -505,14 +657,12 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00406471	FUN_00406471	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 004064DE	FUN_004064de	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 0040655A	FUN_0040655a	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
-0040656C	FUN_0040656c	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	0
 00406986	FUN_00406986	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	0
 00406A2D	FUN_00406a2d	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 00406A40	FUN_00406a40	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 00406AE4	FUN_00406ae4	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 00406BB8	FUN_00406bb8	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 00406EC8	FUN_00406ec8	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
-00406F5E	FUN_00406f5e	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 00406FAD	FUN_00406fad	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	4	0	0
 0040707D	FUN_0040707d	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	0
 004071ED	FUN_004071ed	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
@@ -522,7 +672,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0040827E	FUN_0040827e	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 00408587	FUN_00408587	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 004092E3	FUN_004092e3	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
-00409563	FUN_00409563	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	6	0	0
 004097A3	FUN_004097a3	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 00409872	FUN_00409872	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	4	0	0
 00409B3D	FUN_00409b3d	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
@@ -537,7 +686,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0040A0EE	FUN_0040a0ee	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 0040A102	FUN_0040a102	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 0040A147	FUN_0040a147	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
-0040ACD2	FUN_0040acd2	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	9	0	0
 0040B9B0	FUN_0040b9b0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 0040B9E0	FUN_0040b9e0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 0040BA10	FUN_0040ba10	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
@@ -555,7 +703,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0040BC70	FUN_0040bc70	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 0040BCA0	FUN_0040bca0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 0040BCD0	FUN_0040bcd0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
-0040BD00	FUN_0040bd00	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 0040BFA0	FUN_0040bfa0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 0040BFC0	FUN_0040bfc0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 0040BFD0	FUN_0040bfd0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
@@ -584,8 +731,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0040DEBB	FUN_0040debb	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 0040DED4	FUN_0040ded4	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 0040E5EA	FUN_0040e5ea	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
-0040E604	FUN_0040e604	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
-0040E6AA	FUN_0040e6aa	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 0040E974	FUN_0040e974	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 0040EA37	FUN_0040ea37	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 0040EDE0	FUN_0040ede0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	7	0	0
@@ -651,7 +796,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0042DEA5	FUN_0042dea5	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	0
 00430AEF	FUN_00430aef	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 00430C26	FUN_00430c26	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
-00430C46	FUN_00430c46	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	4	0	0
 00430EE0	FUN_00430ee0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 004311FE	FUN_004311fe	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 00431214	FUN_00431214	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
@@ -659,7 +803,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00431CD0	FUN_00431cd0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 00433993	FUN_00433993	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 004339C6	FUN_004339c6	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
-004339D8	FUN_004339d8	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 00433ABC	FUN_00433abc	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 00433B14	FUN_00433b14	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 00433D61	FUN_00433d61	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	10	0	0
@@ -675,10 +818,8 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0049ACDD	FUN_0049acdd	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 0049AD10	FUN_0049ad10	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 0049EE00	FUN_0049ee00	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
-004A250F	FUN_004a250f	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 004A3253	FUN_004a3253	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	4	0	0
 004AC7C2	FUN_004ac7c2	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
-004AE3D6	FUN_004ae3d6	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	4	0	0
 004AEBD1	FUN_004aebd1	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 004AEC07	FUN_004aec07	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 004AFA90	FUN_004afa90	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
@@ -750,7 +891,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004CF120	FUN_004cf120	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 004CF53C	FUN_004cf53c	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	4	0	0
 004D0120	FUN_004d0120	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
-004D12E4	FUN_004d12e4	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	7	0	0
 004D1840	FUN_004d1840	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 004D2170	FUN_004d2170	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 004D2200	FUN_004d2200	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
@@ -776,7 +916,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004D8BBE	FUN_004d8bbe	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	9	0	0
 004D8EC0	FUN_004d8ec0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 004D908D	FUN_004d908d	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
-004D90DD	FUN_004d90dd	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 004D93D4	FUN_004d93d4	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	0
 004D97A0	FUN_004d97a0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 004D9B96	FUN_004d9b96	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
@@ -799,7 +938,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004E0566	FUN_004e0566	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	0
 004E0924	FUN_004e0924	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 004E0960	FUN_004e0960	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
-004E0AF7	FUN_004e0af7	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	4	0	0
 004E0CD0	FUN_004e0cd0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 004E11D3	FUN_004e11d3	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
 004E1260	FUN_004e1260	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
@@ -896,7 +1034,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0052142D	FUN_0052142d	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	10	0	0
 00524A51	FUN_00524a51	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 00524B16	FUN_00524b16	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
-00524BBB	FUN_00524bbb	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	0
 0052EE94	FUN_0052ee94	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	10	1	0
 0052FAB0	FUN_0052fab0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 0052FCE6	FUN_0052fce6	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
@@ -976,8 +1113,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 005477AA	FUN_005477aa	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	0
 00547860	FUN_00547860	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 00547E7F	FUN_00547e7f	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	0	0	0
-00547E8A	FUN_00547e8a	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	8	0	0
-005484D1	FUN_005484d1	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	7	0	0
 00549CF0	FUN_00549cf0	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	2	0	0
 00549D20	FUN_00549d20	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	1	0	0
 00549FC8	FUN_00549fc8	4	NO_DIRECT_CALLER_REVIEW	sem caller direto reconhecido; revisar callback/vtable/import	UNMAPPED	CORPUS_ONLY	0	3	0	0
@@ -2476,15 +2611,11 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00401275	FUN_00401275	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
 004012C6	FUN_004012c6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	9	0	25	0
 004012E5	FUN_004012e5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	2	0
-00401304	FUN_00401304	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	5	0
 00401367	FUN_00401367	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-0040137C	FUN_0040137c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	3	0
 004013AD	FUN_004013ad	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-004013C2	FUN_004013c2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	4	0
 004013F3	FUN_004013f3	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00401466	FUN_00401466	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	21	2	64	0
 0040151A	FUN_0040151a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	24	2	24	0
-004015DD	FUN_004015dd	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00401637	FUN_00401637	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	6	1	6	0
 00401726	FUN_00401726	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	3	0
 00401AC0	FUN_00401ac0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	2	3	0
@@ -2498,7 +2629,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0040319C	FUN_0040319c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00403853	FUN_00403853	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00403D07	FUN_00403d07	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00403DF2	FUN_00403df2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	35	0	177	0
 00404BEA	FUN_00404bea	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00405065	FUN_00405065	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	6	4	10	0
 004052E3	FUN_004052e3	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
@@ -2509,9 +2639,7 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004062A7	FUN_004062a7	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004067E9	FUN_004067e9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	5	3	0
 0040696A	FUN_0040696a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00407203	FUN_00407203	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	32	1	59	0
 00407265	FUN_00407265	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	10	1	10	0
-00407281	FUN_00407281	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	1	3	0
 004072F2	FUN_004072f2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	4	4	0
 004075E6	FUN_004075e6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004077CE	FUN_004077ce	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	11	2	0
@@ -2524,23 +2652,14 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004087C4	FUN_004087c4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	7	2	0
 00408B8F	FUN_00408b8f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 00408BED	FUN_00408bed	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	3	2	0
-00408D33	FUN_00408d33	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	32	1	61	0
 00408F1F	FUN_00408f1f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00409046	FUN_00409046	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	6	0	9	0
 00409078	FUN_00409078	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
-004091AB	FUN_004091ab	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	15	0	21	0
 0040927A	FUN_0040927a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
-0040981B	FUN_0040981b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	5	0	5	0
 00409AB6	FUN_00409ab6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	2	0
 00409B21	FUN_00409b21	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00409CBC	FUN_00409cbc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 00409D7F	FUN_00409d7f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-0040A189	FUN_0040a189	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	8	4	0
-0040A8C2	FUN_0040a8c2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-0040A8DE	FUN_0040a8de	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	4	0
-0040A9CC	FUN_0040a9cc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-0040AC07	FUN_0040ac07	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	2	0
-0040B67A	FUN_0040b67a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 0040BAD0	FUN_0040bad0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	0	4	0
 0040BD30	FUN_0040bd30	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	33	0	66	0
 0040BD60	FUN_0040bd60	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	2	0
@@ -2580,7 +2699,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00422FDD	~COleResizeBar	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 00423B00	FUN_00423b00	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	51	1	183	0
 00423D3F	FUN_00423d3f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00424642	FUN_00424642	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00425910	FUN_00425910	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00425A3F	FUN_00425a3f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	1	4	0
 00426022	FUN_00426022	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
@@ -2638,7 +2756,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0042C140	FUN_0042c140	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	3	0
 0042C160	FUN_0042c160	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
 0042C4C0	FUN_0042c4c0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-0042E8A1	FUN_0042e8a1	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	1	0
 0042EEEA	FUN_0042eeea	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	1	0
 0042FAE6	FUN_0042fae6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	2	0
 0042FBB1	FUN_0042fbb1	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	2	0
@@ -2670,63 +2787,28 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00431FAF	FUN_00431faf	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	8	1	0
 0043387D	FUN_0043387d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 00433A40	FUN_00433a40	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00433A60	FUN_00433a60	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	0	5	0
 00433BAE	FUN_00433bae	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	1	0
 00434228	FUN_00434228	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	3	0
 00434315	FUN_00434315	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	9	0
 00442DD0	FUN_00442dd0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	11	11	0
-00442FF7	FUN_00442ff7	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	2	5	0
 00446F91	FUN_00446f91	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-004470B9	FUN_004470b9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	5	3	5	0
-00447469	FUN_00447469	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
-00447C73	FUN_00447c73	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	12	9	13	0
 00447F47	FUN_00447f47	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	1	4	0
-00447F6F	FUN_00447f6f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	18	0	32	0
-004481C5	FUN_004481c5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	9	7	10	0
-004487E2	FUN_004487e2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	4	0
-004489C5	FUN_004489c5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	4	0
-00448C38	FUN_00448c38	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	4	0
-00448E0B	FUN_00448e0b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	4	0
-00448FDE	FUN_00448fde	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	4	0
-004491B1	FUN_004491b1	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	4	0
-00449384	FUN_00449384	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	10	3	0
-00449632	FUN_00449632	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	10	2	0
-004498E0	FUN_004498e0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	10	2	0
-00449B8E	FUN_00449b8e	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	10	2	0
-00449E3C	FUN_00449e3c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	10	4	0
-0044A0FB	FUN_0044a0fb	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	10	1	0
-0044A3A9	FUN_0044a3a9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	10	2	0
-0044A745	FUN_0044a745	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	7	10	9	0
-0044A9E9	FUN_0044a9e9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	11	4	0
-0044B890	FUN_0044b890	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	13	9	17	0
 0044C947	FUN_0044c947	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 0044C9D6	FUN_0044c9d6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-0044CA65	FUN_0044ca65	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	4	0
-0044DA6F	FUN_0044da6f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	6	4	8	0
 0044DC1F	FUN_0044dc1f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	5	0
 0044E494	FUN_0044e494	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	8	22	0
 0044E896	FUN_0044e896	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 0044E937	FUN_0044e937	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	2	0
-0044ECA3	FUN_0044eca3	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	3	0
-0044ECAE	FUN_0044ecae	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	3	3	0
 0044ED63	FUN_0044ed63	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
 0044EDBC	FUN_0044edbc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	2	0
 0044EE1F	FUN_0044ee1f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	2	0
 0044EE77	FUN_0044ee77	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	2	0
-0044EECF	FUN_0044eecf	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	3	0
 0044EF69	FUN_0044ef69	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-0044EFFC	FUN_0044effc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	11	2	0
-0044F46B	FUN_0044f46b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	11	2	0
 0044FF33	FUN_0044ff33	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-004502A7	FUN_004502a7	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	10	1	0
-0045061F	FUN_0045061f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	11	1	0
 00450962	FUN_00450962	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	1	3	0
 00450976	FUN_00450976	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004509EB	FUN_004509eb	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 004509FA	FUN_004509fa	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	4	11	0
-00452210	FUN_00452210	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	2	0
-00452271	FUN_00452271	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	2	3	0
-004523FA	FUN_004523fa	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 0045243C	FUN_0045243c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	2	0
 0045246C	FUN_0045246c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	2	0
 004524AB	FUN_004524ab	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	3	4	0
@@ -2734,8 +2816,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004525D1	FUN_004525d1	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	1	3	0
 00452601	FUN_00452601	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	1	3	0
 00452631	FUN_00452631	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	1	3	0
-00452691	FUN_00452691	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
-004526EE	FUN_004526ee	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
 00452737	FUN_00452737	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	3	0
 0045288B	FUN_0045288b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
 0045379F	FUN_0045379f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	2	0
@@ -2743,12 +2823,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00453829	FUN_00453829	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	3	0
 004538C6	FUN_004538c6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	2	0
 0045398C	FUN_0045398c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	2	0
-004539BC	FUN_004539bc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-00453B35	FUN_00453b35	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	2	0
-00453B65	FUN_00453b65	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00455950	FUN_00455950	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	11	0
-00455B5B	FUN_00455b5b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-00455C38	FUN_00455c38	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 00455D02	FUN_00455d02	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	7	1	0
 00455EA7	FUN_00455ea7	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	5	13	0
 004560BE	FUN_004560be	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
@@ -2762,18 +2836,11 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00463832	FUN_00463832	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00463899	FUN_00463899	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 004639E6	FUN_004639e6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-00463AA8	FUN_00463aa8	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 00464004	FUN_00464004	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 004657AB	FUN_004657ab	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-004658A7	FUN_004658a7	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00465B05	FUN_00465b05	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	9	1	0
-00465F85	FUN_00465f85	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	10	2	0
 00470D43	FUN_00470d43	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00470DCB	FUN_00470dcb	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00471267	FUN_00471267	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-00472651	FUN_00472651	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	2	0
-004727CC	FUN_004727cc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
-00472966	FUN_00472966	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	2	0
 0047461C	FUN_0047461c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
 00474802	FUN_00474802	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	2	0
 00474896	FUN_00474896	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	8	2	0
@@ -2787,11 +2854,8 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0047E26A	FUN_0047e26a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 0047E2B3	FUN_0047e2b3	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 0047E3FD	FUN_0047e3fd	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-0047E8E2	FUN_0047e8e2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-0047EF1D	FUN_0047ef1d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	7	1	0
 0047F7DA	FUN_0047f7da	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	7	2	0
 0047FA1D	FUN_0047fa1d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	10	2	0
-00480A83	FUN_00480a83	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	9	4	0
 00480C25	FUN_00480c25	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	1	3	0
 00480C5D	FUN_00480c5d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 0048150A	FUN_0048150a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	10	3	0
@@ -2801,43 +2865,24 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004825FC	FUN_004825fc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	1	0
 00482885	FUN_00482885	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004828D8	FUN_004828d8	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-00482903	FUN_00482903	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 0048297F	FUN_0048297f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 004851BC	FUN_004851bc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-004854ED	FUN_004854ed	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-00485664	FUN_00485664	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 0048569A	FUN_0048569a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00485D43	FUN_00485d43	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
-00486009	FUN_00486009	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	8	1	0
-004862B6	FUN_004862b6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
-004863E2	FUN_004863e2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00486808	FUN_00486808	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	1	0
-00487B92	FUN_00487b92	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	11	1	0
 00487E23	FUN_00487e23	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	1	0
 00488267	FUN_00488267	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
-00488879	FUN_00488879	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	8	1	0
-00488B52	FUN_00488b52	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 00488DD6	FUN_00488dd6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 00488EA9	FUN_00488ea9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00488F09	FUN_00488f09	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00488F69	FUN_00488f69	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-00488FFF	FUN_00488fff	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00489023	FUN_00489023	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 004890D5	FUN_004890d5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-004890F9	FUN_004890f9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
 00489145	FUN_00489145	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-00489192	FUN_00489192	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-00489260	FUN_00489260	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00489300	FUN_00489300	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00489407	FUN_00489407	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00489470	FUN_00489470	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	1	0
 00489618	FUN_00489618	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	1	0
 004897BA	FUN_004897ba	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00489882	FUN_00489882	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	1	0
-004927DD	FUN_004927dd	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00492892	FUN_00492892	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 004928A4	FUN_004928a4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-004929FE	FUN_004929fe	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00492AA4	FUN_00492aa4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00492AD6	FUN_00492ad6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00492BD6	FUN_00492bd6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
@@ -2847,7 +2892,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00493A9D	FUN_00493a9d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	15	0
 00493AA1	FUN_00493aa1	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	2	0
 00493BF0	FUN_00493bf0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	25	1	79	0
-00493C10	FUN_00493c10	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	5	0	11	0
 00493C30	FUN_00493c30	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	18	1	30	0
 00493C60	FUN_00493c60	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	9	1	10	0
 00493CB0	FUN_00493cb0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	5	0
@@ -2880,7 +2924,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0049EC64	FUN_0049ec64	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	5	0
 0049ED58	FUN_0049ed58	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	12	4	14	0
 004A218C	FUN_004a218c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	4	4	0
-004A24B4	FUN_004a24b4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	1	10	0
 004A8940	FUN_004a8940	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	0	8	0
 004A8A90	FUN_004a8a90	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	2	0
 004A8AFF	FUN_004a8aff	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
@@ -2894,9 +2937,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004AE716	FUN_004ae716	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 004AE744	FUN_004ae744	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004AE945	FUN_004ae945	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-004AF5EB	FUN_004af5eb	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-004AF854	FUN_004af854	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-004AF910	FUN_004af910	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 004AF91B	FUN_004af91b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004AFA01	FUN_004afa01	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 004AFA19	FUN_004afa19	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
@@ -3043,7 +3083,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004C37B0	FUN_004c37b0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 004C37C4	FUN_004c37c4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	1	0
 004C3A1B	FUN_004c3a1b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	1	0
-004C51FD	FUN_004c51fd	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	10	1	0
 004C5AE0	FUN_004c5ae0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	2	4	0
 004C5B10	FUN_004c5b10	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	2	3	0
 004C5B40	FUN_004c5b40	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	6	1	13	0
@@ -3081,10 +3120,7 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004CF150	FUN_004cf150	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	9	7	0
 004CF520	FUN_004cf520	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004D0150	FUN_004d0150	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	10	4	14	0
-004D01B0	FUN_004d01b0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	9	3	0
 004D0497	FUN_004d0497	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-004D04B3	FUN_004d04b3	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	7	1	0
-004D0651	FUN_004d0651	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	1	0
 004D1870	PAGE_INFO	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004D18B0	FUN_004d18b0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004D1940	FUN_004d1940	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	3	0
@@ -3122,7 +3158,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004DE60D	FUN_004de60d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004DF250	FUN_004df250	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	29	3	58	0
 004DF604	FUN_004df604	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-004E0990	FUN_004e0990	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 004E0A2D	FUN_004e0a2d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	1	0
 004E11B7	FUN_004e11b7	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004E1A1E	FUN_004e1a1e	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
@@ -3134,7 +3169,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004E3AC1	FUN_004e3ac1	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004E3BA0	FUN_004e3ba0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	5	11	9	0
 004E3E76	FUN_004e3e76	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-004E4A10	FUN_004e4a10	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	9	3	0
 004E4E3C	FUN_004e4e3c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004E4F20	FUN_004e4f20	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	10	1	0
 004E51D4	FUN_004e51d4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
@@ -3147,13 +3181,10 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004E74B5	FUN_004e74b5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004E7610	FUN_004e7610	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	11	4	0
 004E7ADC	FUN_004e7adc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	10	1	0
-004E88A0	FUN_004e88a0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	5	0
 004E89CD	FUN_004e89cd	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004E89E9	FUN_004e89e9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-004E8A95	FUN_004e8a95	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	5	0
 004EC9A0	FUN_004ec9a0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	9	6	0
 004ECCB2	FUN_004eccb2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-004ECD90	FUN_004ecd90	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	5	5	0
 004ECEB8	FUN_004eceb8	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004ED2A0	FUN_004ed2a0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	7	2	0
 004ED7CE	FUN_004ed7ce	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
@@ -3161,7 +3192,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004EE0B6	FUN_004ee0b6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004EE190	FUN_004ee190	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	11	3	0
 004EE652	FUN_004ee652	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-004EE730	FUN_004ee730	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	5	5	9	0
 004EE85F	FUN_004ee85f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004EE8CB	FUN_004ee8cb	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	3	0
 004EEF50	FUN_004eef50	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	5	3	0
@@ -3170,14 +3200,11 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004EF8C4	FUN_004ef8c4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004EF8E0	FUN_004ef8e0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
 004EFB89	FUN_004efb89	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	6	0
-004F0C50	FUN_004f0c50	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	2	0
 004F0CE5	FUN_004f0ce5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004F1530	FUN_004f1530	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	4	0
 004F1582	FUN_004f1582	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-004F1960	FUN_004f1960	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	2	0
 004F19BA	FUN_004f19ba	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004F37DA	FUN_004f37da	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-004F3A9B	FUN_004f3a9b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	2	4	0
 004F3B81	FUN_004f3b81	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	5	1	5	0
 004F59B4	FUN_004f59b4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 004F6CDE	FUN_004f6cde	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
@@ -3190,7 +3217,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004F9A46	FUN_004f9a46	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
 004F9B6F	FUN_004f9b6f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	6	0
 004FA508	FUN_004fa508	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
-004FA8A1	FUN_004fa8a1	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	11	1	15	0
 004FA8E3	FUN_004fa8e3	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 004FAA02	FUN_004faa02	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 004FAAF4	FUN_004faaf4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	0	4	0
@@ -3199,7 +3225,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 004FAF13	FUN_004faf13	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	9	3	12	0
 004FF365	FUN_004ff365	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	7	0	7	0
 004FF37B	FUN_004ff37b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	5	0	6	0
-004FF388	FUN_004ff388	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	7	0	12	0
 004FF3D0	FUN_004ff3d0	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 004FFB1C	FUN_004ffb1c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00500E75	FUN_00500e75	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	2	0
@@ -3212,19 +3237,14 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00510FD3	FUN_00510fd3	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	7	1	0
 0051148A	FUN_0051148a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	9	1	0
 00511EC4	FUN_00511ec4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	9	1	0
-00516105	FUN_00516105	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	8	0	12	0
 0051A56C	FUN_0051a56c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	8	2	0
 0051BB1A	FUN_0051bb1a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	79	0
 0051D270	FUN_0051d270	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	3	0
 0051D8BF	FUN_0051d8bf	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	2	0
-0051DBA4	FUN_0051dba4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	20	4	52	0
 00520FA4	FUN_00520fa4	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	6	2	0
 005211BE	FUN_005211be	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	3	5	0
 00521A90	FUN_00521a90	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	8	1	0
-00521D53	FUN_00521d53	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	1	0
-00522126	FUN_00522126	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
 0052236F	FUN_0052236f	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
-00523533	FUN_00523533	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	4	0
 00523B60	FUN_00523b60	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	11	1	0
 00524324	FUN_00524324	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	4	0
 0052433D	FUN_0052433d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	3	4	0
@@ -3241,16 +3261,8 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00527BAF	FUN_00527baf	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 00527DD9	FUN_00527dd9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	8	1	0
 00528325	FUN_00528325	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-005296E8	FUN_005296e8	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	9	1	0
-00529B07	FUN_00529b07	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
-0052C5EB	FUN_0052c5eb	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	1	0
 0052CBAA	FUN_0052cbaa	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	10	1	0
-0052D060	FUN_0052d060	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	6	1	0
-0052D93D	FUN_0052d93d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	7	1	0
 0052DC00	FUN_0052dc00	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-0052DC5D	FUN_0052dc5d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	9	1	0
-0052E2F6	FUN_0052e2f6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	1	0
-0052E3C8	FUN_0052e3c8	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	8	1	0
 0052E684	FUN_0052e684	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 0052E6C6	FUN_0052e6c6	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 0052E722	FUN_0052e722	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
@@ -3309,7 +3321,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 00547240	FUN_00547240	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	2	0
 00547290	FUN_00547290	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 00547361	FUN_00547361	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-00547890	FUN_00547890	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	7	4	0
 00547DFC	FUN_00547dfc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 00549BBF	FUN_00549bbf	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	8	1	22	0
 00549D60	FUN_00549d60	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
@@ -3342,23 +3353,19 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0054EB20	FUN_0054eb20	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	7	2	38	0
 0054EDE8	FUN_0054ede8	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 0054EEE7	FUN_0054eee7	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	3	0
-0054F0F2	FUN_0054f0f2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	7	1	0
 0054F18B	FUN_0054f18b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	0	4	0
 0054F25A	FUN_0054f25a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 0054F2D9	FUN_0054f2d9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	3	0
 0054F3D9	FUN_0054f3d9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	0	5	0
 0054F5B5	FUN_0054f5b5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	5	1	0
-0054FC81	FUN_0054fc81	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	7	2	9	0
 00552B9A	FUN_00552b9a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	2	0
 00552D38	FUN_00552d38	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 00552E21	FUN_00552e21	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	4	0
-00552F42	FUN_00552f42	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	6	0
 00552FDF	FUN_00552fdf	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	3	0
 00553016	FUN_00553016	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	1	6	0
 00553464	FUN_00553464	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	3	2	0
 00553930	FUN_00553930	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 005551AF	FUN_005551af	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-005554CC	FUN_005554cc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	0	4	0
 00555790	FUN_00555790	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	6	0	9	0
 00555911	FUN_00555911	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	3	0
 00555AD8	FUN_00555ad8	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	6	1	10	0
@@ -3369,7 +3376,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0055784D	FUN_0055784d	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 00557A41	FUN_00557a41	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	8	5	10	0
 00557AFF	FUN_00557aff	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	0	5	0
-00558290	FUN_00558290	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	6	3	0
 0055888E	FUN_0055888e	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 005588B2	FUN_005588b2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	0	3	0
 00559EF5	FUN_00559ef5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	7	0	15	0
@@ -3801,7 +3807,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0058EE20	FUN_0058ee20	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	54	0	95	0
 0058EE30	FUN_0058ee30	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	18	0	62	0
 0058F1F0	__ftol	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	206	0	1400	0
-0058F220	FUN_0058f220	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	104	0	292	0
 0058F62C	FUN_0058f62c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	65	3	91	0
 0058F6A9	FUN_0058f6a9	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	8	5	45	0
 0058F6E5	FUN_0058f6e5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
@@ -3831,7 +3836,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 005904E5	FUN_005904e5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	4	1	0
 005905EF	FUN_005905ef	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
 00590962	FUN_00590962	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-005909D2	FUN_005909d2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	31	2	62	0
 00590A06	FUN_00590a06	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	23	3	30	0
 00590A68	FUN_00590a68	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	12	3	56	0
 00590A95	FUN_00590a95	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	2	2	0
@@ -3847,7 +3851,6 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 005910CF	FUN_005910cf	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	4	0
 0059115A	FUN_0059115a	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	1	7	0
 00591165	FUN_00591165	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	2	1	0
-00591258	FUN_00591258	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	1	3	0
 00591280	FUN_00591280	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	2	0
 005912AD	FUN_005912ad	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	1	5	0
 005912D5	FUN_005912d5	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
@@ -4091,14 +4094,11 @@ entry	symbol	priority	queues	reason	research_status	evidence_class	ghidra_direct
 0059E4CC	FUN_0059e4cc	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	3	6	3	0
 0059E59C	FUN_0059e59c	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 0059E5F8	RtlUnwind	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	2	0	2	0
-0059E5FE	FUN_0059e5fe	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	4	8	6	0
 0059E74E	FUN_0059e74e	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 0059E78B	FUN_0059e78b	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 0059E7F8	FUN_0059e7f8	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	3	1	0
 005A2FC2	FUN_005a2fc2	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	3	0
-013C0000	FUN_013c0000	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 013C0207	FUN_013c0207	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
-013C0800	FUN_013c0800	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0
 013C0900	FUN_013c0900	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 013C0A00	FUN_013c0a00	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	0	1	0
 013C0B00	FUN_013c0b00	5	CORPUS_REMAINDER	sem prioridade estrutural ou pista textual automática	UNMAPPED	CORPUS_ONLY	1	1	1	0

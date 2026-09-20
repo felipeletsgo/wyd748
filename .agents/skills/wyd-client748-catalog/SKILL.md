@@ -42,6 +42,16 @@ compreendida. Catalogação não é pré-requisito repetido de cada adaptação.
    `.agents/research/`. Ao localizar a raiz, entregue os candidatos e lacunas
    à pesquisa; não espere compreender todo o callgraph para encerrar catalogação.
 
+### Inventário reproduzível da source
+
+Quando a tarefa exigir cobertura do código do TMProject748, instale as
+dependências fixadas em `scripts/requirements-source-inventory.txt` num ambiente
+isolado e execute `scripts/source_inventory.py --repo <raiz> --write`. Use
+`--check --fail-on-parse-errors` no gate para detectar inventários
+desatualizados ou erros de parser restantes. Os TSVs gerados
+registram somente fatos de arquivo, projeto, linha e símbolo; nunca grave neles
+decisões humanas de compatibilidade ou promova estado de pesquisa.
+
 ## Estados
 
 Use somente `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT`, `IMPLEMENTED` ou

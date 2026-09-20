@@ -4,7 +4,7 @@ title: Application close and global shutdown
 subsystem: lifecycle
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-13
+updated: 2026-09-20
 ---
 
 # Application close and global shutdown
@@ -181,7 +181,9 @@ A ordem completa está registrada na tabela de callees acima: ObjectManager,
 TimerManager, RenderDevice, SoundManager, SocketManager, BGMManager, AviPlayer
 e EventTranslator, seguidos pelo bitmap e pela janela auxiliar opcional. Cada
 owner é zerado ao ser destruído, e a source conserva essa relação por nomes em
-vez de copiar offsets nativos.
+vez de copiar offsets nativos. A source também possui o adaptador inerte
+`JBlur`, ausente no nativo; por ser criado por `NewApp::InitDevice`, ele é
+inicializado nulo no construtor e destruído antes do RenderDevice.
 
 ### Falha parcial
 
@@ -257,7 +259,9 @@ callback existente da Field, preservando o mesmo buffer emprestado.
 
 `NewApp::Finalize()` libera os três buffers de animação e destrói os mesmos
 owners na mesma ordem essencial. A source usa nomes e `SAFE_DELETE` em vez de
-copiar offsets do objeto nativo.
+copiar offsets do objeto nativo. O `JBlur` exclusivo da source também é
+liberado antes do RenderDevice, preservando a dependência correta caso seu stub
+venha a possuir recursos D3D.
 
 ### WYD-Go
 
@@ -274,6 +278,7 @@ logout prematuro.
 | Field close | envia uma vez e aguarda 3.000 unidades | mesmo fluxo e guardas de owners | aceita 16 bytes | manter |
 | fora de Field | teardown imediato | mesmo fluxo | N/A | manter |
 | ownership | ObjectManager, timer, render, sound, socket, BGM, AVI, input | mesmos owners e ordem essencial | socket determina disconnect | manter |
+| owner `JBlur` | ausente | adaptador inerte criado no bootstrap; ponteiro inicializado e destruído antes do render | N/A | completar lifecycle local |
 | falha parcial | pressupõe Field íntegra | null guards e `SAFE_DELETE` | save falho não gera ack | manter modernização segura |
 | hook global | remove antes de destruir janela | `EnableSysKey` no mesmo ponto | N/A | manter |
 | resposta `0x3AE` | gate nativo não enumera | frame de 16 bytes; fecha somente com saída local pendente | mesmo ack atende Recall e saída | preservar ack coordenado, exigir `g_dwStartQuitGameTime != 0` |
@@ -289,6 +294,8 @@ logout prematuro.
   saída. Recall, seleção e logout mantêm seus próprios timers, sem fechar a
   aplicação. Servidor, wire e timeout de saída permanecem inalterados.
 - Não copiar offsets, vtables ou globals nativos para o TMProject.
+- Manter o cleanup do `JBlur` como `MODERNIZACAO_COMPATIVEL`; ele fecha um
+  owner exclusivo da source e não é apresentado como paridade nativa.
 - Não promover para `CLIENT_TESTED` sem fechar a aplicação real a partir de
   Field e de uma cena não-Field no `tmproject/client748/project.exe` hasheado.
 
@@ -324,3 +331,20 @@ logout prematuro.
 - Gate manual: usar Scroll de retorno, esperar teleporte; repetir com warp salvo,
   seleção de personagem, logout e saída verdadeira. Não houve teste in-game
   deste candidato. Dumps anteriores foram preservados.
+
+### Ownership local / 2026-09-20
+
+- `STATICALLY VERIFIED`: `m_pBlur` é criado exclusivamente por
+  `NewApp::InitDevice`; o construtor agora o inicia nulo e `Finalize` o destrói
+  antes do RenderDevice. O adaptador continua inerte e não altera renderização.
+- `AUTOMATED TESTED`: `Release|Win32` e `Debug|Win32` compilaram com
+  `-NoDeploy`; 41.231 checks de arquitetura passaram em cada configuração. Os
+  testes dos inventários, o gate de staleness e o validador das fichas também
+  passaram.
+- `CLIENT-TESTED` parcial: os candidatos Debug e Release abriram fora de Field,
+  receberam `WM_CLOSE` e encerraram normalmente com código `0`, exercitando
+  `Finalize`. O Release testado possui SHA-256
+  `7AD94AD37F576A56F17680214DE9727F95FC0D3212CA41B48894440033A42F1A`; o
+  `project.exe` instalado foi preservado. O fechamento real dentro de Field e
+  a resposta do servidor continuam pendentes e não são promovidos por esse
+  smoke test.

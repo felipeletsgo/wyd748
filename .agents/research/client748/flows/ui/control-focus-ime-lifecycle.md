@@ -4,7 +4,7 @@ title: Construção de cena, foco de controle e composição IME 7.48
 subsystem: ui-lifecycle
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-01
+updated: 2026-09-20
 ---
 
 # Construção de cena, foco de controle e composição IME 7.48
@@ -219,9 +219,16 @@ opcional até que seu ID e sua criação sejam confirmados no recurso 7.48.
 
 ### Source recompilável
 
+- `NewApp.cpp` preserva o `lParam` completo de `WM_CHAR` ao encaminhar o
+  evento, como no dispatcher nativo, em vez de truncar metadados de repeticao,
+  scan code e estado anterior para um byte.
 - `NewApp.cpp` encaminha `WM_IME_COMPOSITION` sem truncar `lParam`, trata
   abrir/mudar/fechar candidatos e encerra a composição com guardas de cena e
   controles opcionais.
+- A apresentacao adicional de idioma/IME importada pela source foi preservada,
+  mas agora trata cena, container e controles visuais como opcionais. O evento
+  de BGM `WM_USER + 101` tambem conserva a guarda de manager observada no
+  dispatcher nativo.
 - `EventTranslator.cpp` lê `GCS_COMPSTR`, propaga a composição e materializa a
   página agregada no primeiro dos dez controles candidatos mantidos pela
   source. Os nove controles restantes ficam ocultos.
@@ -246,7 +253,7 @@ ser usado como autoridade de gameplay.
 
 | Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
-| Entrada de teclado e IME | dispatcher e funções `FUN_004AF4xx`/`FUN_004AF5xx` | `NewApp`/`EventTranslator` | truncava `lParam` e ignorava notify | não aplicável | restaurar dispatch nativo |
+| Entrada de teclado e IME | dispatcher e funções `FUN_004AF4xx`/`FUN_004AF5xx` | `NewApp`/`EventTranslator` | truncava `lParam` de `WM_CHAR` e ignorava notify | não aplicável | restaurar dispatch nativo |
 | Root de candidatos | um controle com página agregada | dez controles já materializados | estrutura posterior compatível | não aplicável | usar `[0]` e ocultar `[1..9]` |
 | Foco/composição | virtual até `FUN_00406F5E` | container/`SEditableText` | receptor era no-op | não aplicável | copiar composição apenas com foco |
 | Árvore | parent/siblings/primeiro filho em `+0x04..+0x10` | `TMScene`/container | sem autoridade sobre layout 7.48 | não aplicável | não portar offsets cegamente |
@@ -282,10 +289,11 @@ ser usado como autoridade de gameplay.
 - Pesquisa: dispatcher `FUN_0055DAB8`, handlers `FUN_004AF545`,
   `FUN_004AF550`, `FUN_004AF5EB`, `FUN_004AF5F6`, receptor `FUN_00406F5E`,
   construção, foco e teardown conferidos no projeto/corpus do hash registrado.
-- Adaptação: implementada na source em 2026-09-01. O build oficial Release
-  Win32 v145 passou com zero erros e dois warnings C4305/C4309 preexistentes,
-  instalando `tmproject/client748/project.exe` com SHA-256
-  `1DF5956AC134BCAEB5C072E84B77EF9BBDFF6EDE30DAC8ACBE8616375CED6082`.
+- Adaptação: implementada na source e endurecida em 2026-09-20. O build
+  `Release|Win32` v145 sem deploy passou, incluindo `ArchitectureTests` com
+  `41231` checks. O candidato tem SHA-256
+  `1FE6D0877AB0B68716636B9F9DF4B9EDCFD3F591E98B37F0AF4D4A6531D598F5`;
+  o `tmproject/client748/project.exe` preservado nao foi substituido.
 - Estado de entrega: `STATICALLY VERIFIED`; o build não promove a ficha a
   `CLIENT_TESTED`.
 - Client real: não executado. Nenhuma alegação `CLIENT_TESTED` é permitida para

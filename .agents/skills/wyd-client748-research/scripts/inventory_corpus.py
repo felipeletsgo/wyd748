@@ -16,12 +16,76 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 
-FUNCTION_RE = re.compile(r"FUN_([0-9A-Fa-f]{8})")
+FUNCTION_RE = re.compile(
+    r"(?<![A-Za-z0-9_])FUN_([0-9A-Fa-f]{8})(?![A-Za-z0-9_])"
+)
 HEX_ENTRY_RE = re.compile(r"^[0-9A-Fa-f]{8}$")
 TRACKED_SUFFIXES = {".md", ".cpp", ".h", ".go"}
 GHIDRA_CATALOG_RELATIVE = Path(
     ".agents/research/client748/inventory/ghidra-functions.tsv"
 )
+
+
+def source_inventory_summary(inventory_dir: Path) -> list[str]:
+    """Render the source-inventory section from its generated TSV facts."""
+
+    files_path = inventory_dir / "source-files.tsv"
+    symbols_path = inventory_dir / "source-symbols.tsv"
+    if not files_path.is_file() or not symbols_path.is_file():
+        return []
+
+    with files_path.open(encoding="utf-8-sig", newline="") as handle:
+        files = list(csv.DictReader(handle, delimiter="\t"))
+    with symbols_path.open(encoding="utf-8-sig", newline="") as handle:
+        symbols = list(csv.DictReader(handle, delimiter="\t"))
+
+    ownership = Counter(row.get("ownership", "") for row in files)
+    kinds = Counter(row.get("kind", "") for row in symbols)
+    unlisted = [row for row in files if row.get("project_roles") == "unlisted"]
+    integer_sum = lambda key: sum(integer_field(row, key) for row in files)
+    lines = [
+        "## Inventário reproduzível da source",
+        "",
+        "- Arquivos: `source-files.tsv`",
+        "- Símbolos: `source-symbols.tsv`",
+        "- Escopo: `tmproject/TMProject748`, incluindo headers, testes e a fronteira `Dependencies/`",
+        f"- Arquivos encontrados: **{len(files)}** (**{ownership['PRODUCT']}** produto, **{ownership['TEST']}** testes, **{ownership['GENERATED']}** gerado e **{ownership['THIRD_PARTY']}** terceiros)",
+        f"- Linhas físicas classificadas: **{integer_sum('lines')}**",
+        f"- Símbolos indexados: **{len(symbols)}** (**{kinds['function']}** definições, **{kinds['declaration']}** declarações, **{kinds['lambda']}** lambdas e **{kinds['macro']}** macros funcionais)",
+        f"- Participação no projeto: **{sum(row.get('main_release_win32') == 'compile' for row in files)}** compilações e **{sum(row.get('main_release_win32') == 'include' for row in files)}** headers em `Release|Win32`, além de **{sum(row.get('test_release_win32') == 'compile' for row in files)}** compilações no projeto de testes",
+        f"- Arquivos não listados em projeto: **{len(unlisted)}**, dos quais **{sum(row.get('ownership') == 'PRODUCT' for row in unlisted)}** pertencem ao produto; os outros **{sum(row.get('ownership') == 'THIRD_PARTY' for row in unlisted)}** são a fronteira de dependências",
+        f"- Erros brutos do grammar: **{integer_sum('raw_parse_errors')}**; normalizações legadas com offsets preservados: **{integer_sum('parser_normalizations')}**; erros restantes: **{integer_sum('parse_errors')}**",
+        "",
+        "O gerador fica em `.agents/skills/wyd-client748-catalog/scripts/source_inventory.py`. O gate reproduzível é `--check --fail-on-parse-errors`; as dependências Python estão fixadas no arquivo `requirements-source-inventory.txt`. As normalizações existem somente na visão entregue ao parser e não alteram a source, hashes, assinaturas ou offsets registrados. Os TSVs são fatos estruturais e não atribuem paridade, alcance, suporte ou estado de pesquisa.",
+        "",
+    ]
+    entrypoint_roles = {
+        "wWinMain": "entrada do processo Win32",
+        "WndProc": "callback da janela principal",
+        "Guildmark_Download": "entrada da thread de guildmark",
+    }
+    entrypoints = [
+        row for row in symbols if row.get("symbol") in entrypoint_roles
+    ]
+    if entrypoints:
+        lines.extend(
+            [
+                "### Sementes iniciais de entrada",
+                "",
+                "Estas são fronteiras operacionais iniciais, não uma afirmação de cobertura completa do callgraph:",
+                "",
+                "| Papel | Símbolo | Tipo | Local | `source_id` |",
+                "| --- | --- | --- | --- | --- |",
+            ]
+        )
+        for row in entrypoints:
+            lines.append(
+                f"| {entrypoint_roles[row['symbol']]} | `{row['symbol']}` | "
+                f"`{row['kind']}` | `{row['path']}:{row['start_line']}` | "
+                f"`{row['source_id']}` |"
+            )
+        lines.append("")
+    return lines
 
 
 def discover_corpus(explicit: str | None) -> Path:
@@ -213,6 +277,27 @@ def source_reference_counts(repo: Path) -> Counter[str]:
     return counts
 
 
+def resolve_source_reference_counts(
+    source_refs: Counter[str],
+    index: dict[str, dict[str, str]],
+    ghidra_catalog: dict[str, dict[str, str]],
+) -> tuple[Counter[str], dict[str, set[str]], set[str]]:
+    """Map source FUN_* mentions to catalog entries without fabricating roots."""
+
+    _, internal, unresolved = resolve_documented_entries(
+        set(source_refs), index, ghidra_catalog
+    )
+    resolved: Counter[str] = Counter()
+    for address, count in source_refs.items():
+        if address in index:
+            resolved[address] += count
+            continue
+        owners = internal.get(address, set())
+        if len(owners) == 1:
+            resolved[next(iter(owners))] += count
+    return resolved, internal, unresolved
+
+
 def build_call_graph(
     index: dict[str, dict[str, str]], texts: dict[str, str]
 ) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
@@ -323,7 +408,7 @@ def write_inventory(
                     "textual_callers": ";".join(f"FUN_{item}" for item in entry_callers),
                     "textual_callees_count": len(entry_callees),
                     "textual_callees": ";".join(f"FUN_{item}" for item in entry_callees),
-                    "source_cpp_h_references": source_refs.get(f"FUN_{entry}", 0),
+                    "source_cpp_h_references": source_refs.get(entry, 0),
                     "callgraph_basis": (
                         "ghidra-direct-plus-exported-decompile-text"
                         if ghidra_catalog
@@ -375,6 +460,9 @@ def write_summary(
     parity_entries: set[str],
     flow_entries: set[str],
     source_refs: Counter[str],
+    resolved_source_refs: Counter[str],
+    source_internal: dict[str, set[str]],
+    source_unresolved: set[str],
     ghidra_catalog: dict[str, dict[str, str]],
     ghidra_metadata: dict[str, str],
     documented_internal: dict[str, set[str]],
@@ -393,10 +481,24 @@ def write_summary(
     ghidra_no_incoming_flow = sum(
         1 for row in ghidra_catalog.values() if integer_field(row, "incoming_flow_refs") == 0
     )
+    source_section = source_inventory_summary(inventory_path.parent)
     lines = [
-        "# Inventário completo das funções nativas WYD 7.48",
+        (
+            "# Inventários do client WYD 7.48"
+            if source_section
+            else "# Inventário completo das funções nativas WYD 7.48"
+        ),
         "",
-        "Estado: `INVENTORY_GENERATED`",
+        (
+            "Estado nativo: `INVENTORY_GENERATED`"
+            if source_section
+            else "Estado: `INVENTORY_GENERATED`"
+        ),
+    ]
+    if source_section:
+        lines.extend(["", "Estado da source: `SOURCE_INVENTORY_GENERATED`"])
+    lines.extend(
+        [
         "",
         "Este relatório cobre todas as entradas presentes em `functions.tsv`. "
         "Ele identifica o material disponível e cria uma fila de pesquisa; "
@@ -409,6 +511,11 @@ def write_summary(
         "- Binário de referência: `references/client748/WYD.exe`",
         "- A confirmação de hash permanece obrigatória antes de usar endereços.",
         "",
+        ]
+    )
+    lines.extend(source_section)
+    lines.extend(
+        [
         "## Contagem",
         "",
         f"- Funções no índice Ghidra: **{len(index)}**",
@@ -418,7 +525,11 @@ def write_summary(
         f"- Documentadas e presentes no índice: **{len(present_documented)}**",
         f"- Referências documentadas resolvidas como endereço interno: **{len(documented_internal)}**",
         f"- Referências documentadas ainda não resolvidas: **{len(unresolved)}**",
-        f"- Funções com referência direta na source C++/H: **{sum(1 for value in source_refs.values() if value)}**",
+        f"- Endereços `FUN_*` distintos citados na source C++/H: **{len(source_refs)}**",
+        f"- Funções do catálogo ligadas à source C++/H: **{len(resolved_source_refs)}**",
+        f"- Ocorrências `FUN_*` na source C++/H: **{sum(source_refs.values())}**",
+        f"- Referências da source resolvidas como endereço interno: **{len(source_internal)}**",
+        f"- Referências da source ainda não resolvidas: **{len(source_unresolved)}**",
         f"- Funções no catálogo estrutural Ghidra: **{len(ghidra_catalog)}**",
         f"- Linhas com callgraph direto Ghidra: **{ghidra_direct_callgraph_rows}**",
         f"- Funções sem xref FLOW de entrada no catálogo: **{ghidra_no_incoming_flow}**",
@@ -458,10 +569,21 @@ def write_summary(
         "side effects, erros, teardown/relogin quando aplicável, equivalente "
         "na source e validação proporcional. Packet/ABI exige `CONTRACT`; "
         "execução no candidato exige `CLIENT_TESTED`.",
-    ]
+        ]
+    )
     if unresolved:
         lines.extend(["", "Referências ainda ausentes do índice textual:", ""])
         lines.extend(f"- `FUN_{entry}`" for entry in unresolved)
+    if source_unresolved:
+        lines.extend(["", "Referências da source ainda ausentes do índice textual:", ""])
+        lines.extend(f"- `FUN_{entry}`" for entry in sorted(source_unresolved))
+    if source_internal:
+        lines.extend(["", "Referências da source resolvidas dentro do corpo de uma função:", ""])
+        for address, owners in sorted(source_internal.items()):
+            lines.append(
+                f"- `FUN_{address}` -> "
+                + ", ".join(f"`FUN_{owner}`" for owner in sorted(owners))
+            )
     if documented_internal:
         lines.extend(["", "Referências resolvidas dentro do corpo de uma função:", ""])
         for address, owners in sorted(documented_internal.items()):
@@ -523,6 +645,9 @@ def main() -> int:
         documented_internal[address].update(owners)
     unresolved_references = parity_unresolved | flow_unresolved
     source_refs = source_reference_counts(repo)
+    resolved_source_refs, source_internal, source_unresolved = (
+        resolve_source_reference_counts(source_refs, index, ghidra_catalog)
+    )
     counts = write_inventory(
         (repo / args.output).resolve(),
         corpus,
@@ -532,7 +657,7 @@ def main() -> int:
         callers,
         parity_entries,
         flow_entries,
-        source_refs,
+        resolved_source_refs,
         ghidra_catalog,
     )
     write_summary(
@@ -544,6 +669,9 @@ def main() -> int:
         parity_entries,
         flow_entries,
         source_refs,
+        resolved_source_refs,
+        source_internal,
+        source_unresolved,
         ghidra_catalog,
         ghidra_metadata,
         documented_internal,

@@ -20,6 +20,8 @@
 #include "resource.h"
 #include "TMHuman.h"
 #include "TMFieldScene.h"
+#include "TMSelectCharScene.h"
+#include "SControl.h"
 #include "SControlContainer.h"
 #include "WYD748Assets.h"
 #include "ClientDiagnostics.h"
@@ -40,6 +42,7 @@ NewApp::NewApp()
 	m_pTimerManager = 0;
 	m_pObjectManager = 0;
 	m_pSocketManager = 0;
+	m_pBlur = 0;
 	g_pApp = this;
 	ShellExecute(0, "open", ChangeUpdate_Path, 0, 0, 1);
 	BASE_InitModuleDir();
@@ -585,6 +588,7 @@ HRESULT NewApp::Finalize()
 	
 	SAFE_DELETE(g_pObjectManager);
 	SAFE_DELETE(m_pTimerManager);
+	SAFE_DELETE(m_pBlur);
 	SAFE_DELETE(m_pRenderDevice);
 	SAFE_DELETE(m_pSoundManager);
 	SAFE_DELETE(m_pSocketManager);
@@ -602,7 +606,7 @@ DWORD NewApp::Run()
 {
 	HACCEL hAccel = LoadAccelerators(0, MAKEINTRESOURCE(IDC_TMPROJECT));
 
-	MSG msg;
+	MSG msg = {};
 	PeekMessage(&msg, 0, 0, 0, 0);
 	while (msg.message != WM_QUIT)
 	{
@@ -612,7 +616,13 @@ DWORD NewApp::Run()
 		else
 			bGotMsg = PeekMessage(&msg, 0, 0, 0, PM_REMOVE);
 
-		if (bGotMsg == 1)
+		if (bGotMsg < 0)
+		{
+			LOG_WRITELOG("GetMessage Failed\r\n");
+			break;
+		}
+
+		if (bGotMsg > 0)
 		{
 			if (!hAccel || !m_hWnd || TranslateAccelerator(m_hWnd, hAccel, &msg) == 0)
 			{
@@ -705,6 +715,38 @@ HRESULT NewApp::RenderScene()
 	m_pRenderDevice->SetViewVector(pCamera->m_cameraPos, vecLookAt);
 	m_pRenderDevice->SetRenderStateBlock(1);
 	m_pObjectManager->RenderObject();
+
+	TMScene* pCurrentScene = m_pObjectManager->GetCurrentScene();
+	if (pCurrentScene && pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR && g_UIVer != 2)
+	{
+		SControl* pCreateWindow = pCurrentScene->m_pControlContainer
+			? pCurrentScene->m_pControlContainer->FindControl(1542u)
+			: nullptr;
+		constexpr float kPreviewWidth = 200.0f;
+		constexpr float kPreviewHeight = 150.0f;
+		constexpr float kPreviewBottomMargin = 5.0f;
+
+		if (pCreateWindow && pCreateWindow->IsVisible() == 1 &&
+			pCreateWindow->m_nPosY + kPreviewHeight * RenderDevice::m_fHeightRatio +
+				kPreviewBottomMargin < static_cast<float>(m_dwScreenHeight))
+		{
+			m_pRenderDevice->Unlock(0);
+			m_pRenderDevice->SetViewPort(
+				static_cast<int>(pCreateWindow->m_nPosX) + 2,
+				static_cast<int>(pCreateWindow->m_nPosY) + 2,
+				static_cast<int>(kPreviewWidth * RenderDevice::m_fWidthRatio),
+				static_cast<int>(kPreviewHeight * RenderDevice::m_fHeightRatio));
+			m_pObjectManager->RenderTargetObject(
+				static_cast<TMSelectCharScene*>(pCurrentScene)->m_fFocusHeight);
+			m_pRenderDevice->Lock(0);
+		}
+	}
+
+	// The native 7.48 client renders controls in a fresh full-screen scene after
+	// the optional character-preview viewport.
+	m_pRenderDevice->Unlock(0);
+	m_pRenderDevice->SetViewPort(0, 0, m_dwScreenWidth, m_dwScreenHeight);
+	m_pRenderDevice->Lock(0);
 	m_pRenderDevice->SetRenderStateBlock(3);
 	m_pObjectManager->RenderControl();
 	m_pRenderDevice->Unlock(1);
@@ -879,48 +921,54 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	{
 		char szDesc[256]{};
 		GetKeyboardLayoutName(szDesc);
+		TMScene* pCurrentScene = g_pCurrentScene;
 
 		if (!strncmp(szDesc, "0000", 4))
 		{
-			if (g_pCurrentScene != nullptr)
-			{
-				static_cast<TMFieldScene*>(g_pCurrentScene)->m_pAlphaNative->SetText((char*)"EN", 0);
-				static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTextIMEDesc->SetVisible(0);
-			}
+			if (pCurrentScene != nullptr && pCurrentScene->m_pAlphaNative != nullptr)
+				pCurrentScene->m_pAlphaNative->SetText((char*)"EN", 0);
+			if (pCurrentScene != nullptr && pCurrentScene->m_pTextIMEDesc != nullptr)
+				pCurrentScene->m_pTextIMEDesc->SetVisible(0);
 		}
-		else if (m_pEventTranslator != nullptr)
+		else if (m_pEventTranslator != nullptr && pCurrentScene != nullptr &&
+			pCurrentScene->m_pControlContainer != nullptr)
 		{
-			if (g_pCurrentScene->m_pControlContainer->m_pFocusControl != nullptr &&
-				g_pCurrentScene->m_pControlContainer->m_pFocusControl->m_eCtrlType == CONTROL_TYPE::CTRL_TYPE_EDITABLETEXT)
+			if (pCurrentScene->m_pControlContainer->m_pFocusControl != nullptr &&
+				pCurrentScene->m_pControlContainer->m_pFocusControl->m_eCtrlType == CONTROL_TYPE::CTRL_TYPE_EDITABLETEXT)
 			{
 				m_pEventTranslator->SetIMENative();
 				int bNative = m_pEventTranslator->IsNative();
 
-				if (g_pCurrentScene != nullptr)
+				if (bNative != 0)
 				{
-					if (bNative != 0)
-					{
-						static_cast<TMFieldScene*>(g_pCurrentScene)->m_pAlphaNative->SetText((char*)"Ch", 0);
-						HKL hkl = GetKeyboardLayout(0);
+					if (pCurrentScene->m_pAlphaNative != nullptr)
+						pCurrentScene->m_pAlphaNative->SetText((char*)"Ch", 0);
 
+					if (pCurrentScene->m_pTextIMEDesc != nullptr)
+					{
+						HKL hkl = GetKeyboardLayout(0);
 						char dst[256]{};
 						ImmGetDescription(hkl, dst, 256);
-
-						static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTextIMEDesc->SetText(dst, 0);
-						static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTextIMEDesc->SetSize((float)(strlen(dst) * 8), 16.0f);
-						static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTextIMEDesc->SetVisible(1);
-					}
-					else
-					{
-						static_cast<TMFieldScene*>(g_pCurrentScene)->m_pAlphaNative->SetText((char*)"EN", 0);
-						static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTextIMEDesc->SetVisible(0);
+						pCurrentScene->m_pTextIMEDesc->SetText(dst, 0);
+						pCurrentScene->m_pTextIMEDesc->SetSize((float)(strlen(dst) * 8), 16.0f);
+						pCurrentScene->m_pTextIMEDesc->SetVisible(1);
 					}
 				}
-
-				if (!strcmp(static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTextIMEDesc->GetText(), "Î"))
-					SendMessage(hWnd, 0x281, 0, -1073741809);
 				else
-					SendMessage(hWnd, 0x281u, 0, -1);
+				{
+					if (pCurrentScene->m_pAlphaNative != nullptr)
+						pCurrentScene->m_pAlphaNative->SetText((char*)"EN", 0);
+					if (pCurrentScene->m_pTextIMEDesc != nullptr)
+						pCurrentScene->m_pTextIMEDesc->SetVisible(0);
+				}
+
+				if (pCurrentScene->m_pTextIMEDesc != nullptr)
+				{
+					if (!strcmp(pCurrentScene->m_pTextIMEDesc->GetText(), "Î"))
+						SendMessage(hWnd, 0x281, 0, -1073741809);
+					else
+						SendMessage(hWnd, 0x281u, 0, -1);
+				}
 			}
 		}
 	}
@@ -993,7 +1041,7 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	case WM_CHAR:
 	{
 		if (m_pEventTranslator != nullptr && !m_pEventTranslator->m_bCtrl)
-			m_pEventTranslator->OnChar(static_cast<char>(wParam), static_cast<char>(lParam));
+			m_pEventTranslator->OnChar(static_cast<char>(wParam), static_cast<int>(lParam));
 	}
 	break;
 	case WM_SYSKEYDOWN:
@@ -1210,7 +1258,8 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	break;
 	case WM_USER + 101:
 	{
-		m_pBGMManager->OnEvent();
+		if (m_pBGMManager != nullptr)
+			m_pBGMManager->OnEvent();
 	}
 	break;
 	case WM_CREATE:
@@ -1230,7 +1279,7 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	break;
 	case WM_ACTIVATE:
 	{
-		if (g_pCurrentScene != nullptr)
+		if (g_pCurrentScene != nullptr && g_pCurrentScene->m_pTextIMEDesc != nullptr)
 		{
 			if (strcmp(g_pCurrentScene->m_pTextIMEDesc->GetText(), "Î"))
 				SendMessageA(hWnd, 0x281, 0, -1073741809);
@@ -1350,7 +1399,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// third-party initialization may replace the process-wide top-level filter.
 	WYD748_InstallDiagnostics();
 #if !defined(_DEBUG)
-	if (FindWindow(0, ClassName))
+	// The native 7.48 gate identifies the existing top-level window by title.
+	// ClassName is only the registered Win32 class and is not the window title.
+	if (FindWindowA(nullptr, GameWindow_Title))
 		return 0;
 #endif
 

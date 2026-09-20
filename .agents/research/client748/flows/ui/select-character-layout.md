@@ -4,7 +4,7 @@ title: Posicionamento do painel de selecao de personagem 7.48
 subsystem: ui-layout
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-01
+updated: 2026-09-20
 ---
 
 # Posicionamento do painel de selecao de personagem 7.48
@@ -22,6 +22,7 @@ para compor esse painel?
   `%USERPROFILE%\Tools\GhidraAnalysis\20260821\decompiled`.
 - Inicializacao da cena: `FUN_0049F0E7`.
 - Transicao select/create: `FUN_004A250F`.
+- Composicao do frame e preview 3D: `FUN_0055D6E6`.
 - Vtable da cena: `0x005A44B4`; slot `+0x68` em `0x005A451C` aponta para
   `FUN_004A250F`.
 - Controle afetado: ID `0x502`/`1282`, `TMP_SELECT_CHARWIN` na source.
@@ -94,6 +95,23 @@ ultrapassar o viewport.
 O branch nao responsivo usa literais `(218,547)`, mas nao representa o fluxo
 observado com `SelCharScene2` em `1280x960`.
 
+### Preview 3D do personagem em criacao
+
+`FUN_0055D6E6`, slot `+0x14` da aplicacao, compoe o frame. Depois de renderizar
+os objetos da cena, o client nativo abre um viewport adicional somente quando
+a cena corrente e `ESCENE_SELCHAR`, `g_UIVer != 2`, o controle `0x606` esta
+visivel e sua area cabe na altura da tela. O viewport começa em
+`(controle.x + 2, controle.y + 2)`, mede `200 * WidthRatio` por
+`150 * HeightRatio` e recebe `RenderTargetObject` com o foco armazenado em
+`TMSelectCharScene::m_fFocusHeight`. Em seguida o client reabre a cena com o
+viewport completo antes de desenhar os controles.
+
+A identidade do parametro foi fechada pelo fluxo nativo que seleciona uma das
+alturas `1.8`, `1.6`, `0.8` e `0.6`, grava em `scene + 0x26EF8` e pelo uso desse
+mesmo membro como argumento do slot `ObjectManager + 0x50`. A source possui a
+mesma tabela em `TMSelectCharScene` e esse slot corresponde a
+`RenderTargetObject(float)`.
+
 ## Causa do delta
 
 A source usava:
@@ -142,6 +160,11 @@ ja escaladas de `pSelChar` para aplicar `W*0.75-PW*0.5` e
 `H*0.5-PH*0.5`. Os botoes Create/Delete/Esc e o fallback inferior esquerdo nao
 foram alterados.
 
+`NewApp::RenderScene` tambem reproduz o ramo nativo do preview 3D de `0x606` e
+restaura o viewport completo antes da UI. O `SetRenderStateBlock(3)` preexistente
+foi preservado: ele nao aparece nessa funcao nativa, mas sua remocao nao e
+necessaria para restaurar o ramo comprovadamente ausente.
+
 WYD-Go nao participa deste layout local e nao requer mudanca correspondente.
 
 ## Matriz de delta
@@ -152,11 +175,13 @@ WYD-Go nao participa deste layout local e nao requer mudanca correspondente.
 | visibilidade | oculta `0x502` após posicionar no branch responsivo | ocultava depois de posicionar | preservada | não alterar |
 | create/return | mesmo slot alterna controles e câmera | mesmo método alterna controles e câmera | preservado | alterar somente coordenada |
 | ownership/teardown | container da cena; sem alocação no layout | container da cena | preservado | não criar estado novo |
+| preview 3D de `0x606` | viewport `200x150` escalado, foco por classe e restauração full-screen | ramo ausente | ramo nativo restaurado; state block atual preservado | portar somente o ramo ausente |
 
 ## Decisões
 
 - Manter a baseline global `800x600` e o recurso `SelCharScene2`.
 - Portar apenas a fórmula nativa do branch responsivo.
+- Restaurar o preview 3D do branch legado sem alterar o fluxo responsivo.
 - Usar `m_nWidth` e `m_nHeight` sem nova escala.
 - Não alterar botões, câmeras, visibilidade, servidor, wire ou ABI.
 
@@ -172,9 +197,15 @@ apresentação, hitboxes e reconstrução da cena.
   correlacionados.
 - `IMPLEMENTED`: a formula foi adaptada na source ativa.
 - `STATICALLY VERIFIED`: o validador de pesquisa e `git diff --check` passaram;
-  o build `Release|Win32` v145 terminou com zero erros e zero warnings. O
-  pipeline instalou `tmproject/client748/project.exe` com SHA-256
-  `C6184EBD938BC6120539958D049C1538DD3A27A0972108B635531A23E3C19254`.
+  o build `Release|Win32` v145 terminou sem erro. O candidato sem deploy tem
+  SHA-256 `1FE6D0877AB0B68716636B9F9DF4B9EDCFD3F591E98B37F0AF4D4A6531D598F5`.
+- `AUTOMATED TESTED`: `ArchitectureTests` passou com `41231` checks e as
+  assercoes estaticas passaram.
+- `SMOKE`: uma copia temporaria do candidato foi iniciada a partir de
+  `tmproject/client748`, carregou sem os falsos erros de `ItemList.bin` e
+  `SkillData.bin` e encerrou com codigo `0`. O executavel temporario foi
+  removido e `project.exe` permaneceu intacto. Esse smoke nao alcancou nem
+  validou visualmente a selecao de personagem.
 - Ainda nao e `CLIENT-TESTED`: o fluxo precisa ser executado no candidato
   recompilado.
 
