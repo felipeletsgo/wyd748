@@ -19,6 +19,15 @@ Consulte [operação](server/operations.md) para configuração e inicializaçã
 Testes PostgreSQL usam `WYD_TEST_POSTGRES_URL`; sem essa configuração, os
 testes condicionais não comprovam integração com o banco.
 
+### Railway
+
+O `Dockerfile` da raiz é a entrada de deployment do monorepo. Ele compila
+o servidor de `wydgo748/`, gera o painel Astro a partir do `package-lock.json`
+e instala somente o executável, os dados e o painel compilado necessários ao
+runtime. O `.dockerignore` impede que o client, caches e builds locais entrem no
+contexto. O serviço continua exigindo `WYD_DATABASE_URL` e deve publicar a porta
+TCP `8281`.
+
 O conversor histórico `cmd/npcconvert` não participa do runtime. Quando seu
 formato de entrada for necessário, exige `-in` e `-out` explícitos; não busca
 projetos externos nem grava em dados ativos por padrão. Resultados de conversão
