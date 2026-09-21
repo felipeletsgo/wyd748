@@ -420,6 +420,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a client-compatible player account; requires the configured administrative PIN
+         * @description Available from the panel embedded in tm.exe. It creates no staff authorization and no character.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccountCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Account created with an empty character list */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountCreateResponse"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/overview": {
         parameters: {
             query?: never;
@@ -448,6 +495,52 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["Overview"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search the persistent account directory with character summaries and optional live presence
+         * @description Requires moderation.player.search. The PostgreSQL projection excludes password hashes, raw account payloads, inventory and cargo.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Case-insensitive account or character-name prefix */
+                    search?: string;
+                    /** @description Opaque account key returned as nextCursor; omit on the first page */
+                    cursor?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Keyset-paginated persistent accounts; online is meaningful only when presenceAvailable is true */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountDirectory"];
                     };
                 };
                 default: components["responses"]["Error"];
@@ -508,6 +601,49 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccountCreateRequest: {
+            username: string;
+            password: string;
+            passwordConfirmation: string;
+            adminPin: string;
+        };
+        AccountCreateResponse: {
+            /** @constant */
+            version: 1;
+            /** @constant */
+            status: "created";
+            username: string;
+        };
+        AccountDirectory: {
+            /** @constant */
+            version: 1;
+            /**
+             * Format: date-time
+             * @description Timestamp of the PostgreSQL read
+             */
+            asOf: string;
+            /** @description Whether online flags were resolved by the authoritative World loop */
+            presenceAvailable: boolean;
+            accounts: components["schemas"]["AccountSummary"][];
+            nextCursor: string;
+        };
+        AccountSummary: {
+            username: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            online: boolean;
+            characters: components["schemas"]["AccountCharacterSummary"][];
+        };
+        AccountCharacterSummary: {
+            uid: string;
+            slot: number;
+            name: string;
+            class: number;
+            level: number;
+            evolution: string;
+        };
         /** @description Bind UID, canonical account and sessionId from an Overview to its moderationEpoch. Receipts are actor/body-bound and retained up to 1024 per process without eviction. Session authorization is rechecked by World before execution. */
         TeleportCommand: {
             /** @constant */

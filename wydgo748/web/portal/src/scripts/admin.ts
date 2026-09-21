@@ -6,6 +6,9 @@ import { setupPlayerModeration } from './player-moderation';
 import { setupPlayerTeleport } from './player-teleport';
 
 type Session = components['schemas']['Session'];
+type AccountCreateResponse = components['schemas']['AccountCreateResponse'];
+type AccountDirectory = components['schemas']['AccountDirectory'];
+type AccountSummary = components['schemas']['AccountSummary'];
 type Overview = components['schemas']['Overview'];
 type Player = components['schemas']['Player'];
 type PersistentPlayer = components['schemas']['PersistentPlayer'];
@@ -23,20 +26,31 @@ let offset = 0;
 let search = '';
 let inspectedUID: string | undefined;
 let persistentRequest = 0;
+let directorySnapshot: AccountDirectory | undefined;
+let directorySearch = '';
+let directoryCursor = '';
+let directoryHistory: string[] = [];
+let directoryBusy = false;
 
 class APIError extends Error {
   constructor(public status: number, public code: string) { super(code); }
 }
 const messages: Record<string, string> = {
   invalid_credentials: 'Conta, senha ou PIN administrativo inválido, ou acesso não autorizado.',
+  invalid_admin_pin: 'PIN administrativo inválido.',
+  username_unavailable: 'Esse nome de conta já está em uso.',
+  validation_error: 'Revise o nome, a senha e a confirmação conforme as regras do client 7.48.',
+  registration_unavailable: 'A criação de contas está disponível somente no painel integrado ao tm.exe.',
+  registration_busy: 'Há outros cadastros em processamento. Aguarde um instante e tente novamente.',
+  registration_failed: 'Não foi possível gravar a conta no PostgreSQL. Tente novamente.',
   invalid_csrf: 'A sessão de acesso expirou. Tente entrar novamente.',
   authentication_required: 'Sua sessão expirou. Entre novamente.',
   staff_revoked: 'A autorização desta conta mudou. Entre novamente ou fale com o responsável.',
   capability_required: 'Sua conta não tem a permissão exigida para esta operação.',
   moderation_unavailable: 'Moderação exige o painel integrado ao tm.exe atualizado. A Web API separada continua somente leitura.',
-  rate_limited: 'Limite de consultas atingido. Aguarde um minuto e tente novamente.',
+  rate_limited: 'Limite de tentativas atingido. Aguarde um minuto e tente novamente.',
   control_busy: 'O servidor está atendendo outra consulta. Aguarde um instante e tente novamente.',
-  invalid_query: 'Busca inválida. Use até 48 caracteres Unicode.',
+  invalid_query: 'Busca inválida. Revise o texto e os limites informados.',
   invalid_target: 'O jogador selecionado não possui uma identidade persistente válida.',
   persistent_not_found: 'O estado persistido desse personagem não foi encontrado.',
   persistent_unavailable: 'Não foi possível ler o estado persistido no PostgreSQL.',
@@ -93,17 +107,19 @@ function resetSnapshot() {
   el('snapshot-banner').classList.remove('error');
   emptyRows('Nenhuma consulta realizada.');
   updatePagination();
+  resetDirectory();
 }
 async function init() {
   el<HTMLButtonElement>('login-submit').disabled = true;
   try {
     session = await api<Session>('/auth/session');
     showSession(); text('login-message','');
-    if (session.authenticated) { void query(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); }
+    if (session.authenticated) { void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); }
   } catch (error) {
     session = undefined; showSession(); text('login-message',explain(error));
   } finally {
     el<HTMLButtonElement>('login-submit').disabled = false;
+    el<HTMLButtonElement>('account-create-submit').disabled = false;
   }
 }
 function emptyRows(message: string) {
@@ -203,6 +219,81 @@ function updatePagination() {
   el<HTMLButtonElement>('next').disabled = busy || !snapshot?.hasMore;
   text('page-info',snapshot ? `${snapshot.players.length ? offset + 1 : 0}–${offset + snapshot.players.length} de ${snapshot.matched} · Cada página é uma nova consulta` : 'Até 50 jogadores por consulta · Ordenados por UID');
 }
+function emptyDirectory(message: string) {
+  const cell = document.createElement('td'); cell.colSpan = 4; cell.className = 'empty'; cell.textContent = message;
+  const row = document.createElement('tr'); row.append(cell); el('account-directory-rows').replaceChildren(row);
+}
+function resetDirectory() {
+  directorySnapshot = undefined;
+  directorySearch = '';
+  directoryCursor = '';
+  directoryHistory = [];
+  directoryBusy = false;
+  el<HTMLInputElement>('account-directory-search').value = '';
+  text('account-directory-status','Aguardando consulta.');
+  text('account-directory-page','Até 20 contas por consulta · Ordenadas por conta');
+  emptyDirectory('Nenhuma consulta realizada.');
+  updateDirectoryPagination();
+}
+function updateDirectoryPagination() {
+  el<HTMLButtonElement>('account-directory-previous').disabled = directoryBusy || directoryHistory.length === 0;
+  el<HTMLButtonElement>('account-directory-next').disabled = directoryBusy || !directorySnapshot?.nextCursor;
+}
+function characterSummary(account: AccountSummary) {
+  const cell = document.createElement('td');
+  if (!account.characters.length) {
+    cell.textContent = 'Nenhum personagem';
+    cell.className = 'account-characters-empty';
+    return cell;
+  }
+  const list = document.createElement('div'); list.className = 'account-characters';
+  for (const character of account.characters) {
+    const item = document.createElement('div'); item.className = 'account-character';
+    const name = document.createElement('strong'); name.textContent = character.name;
+    const details = document.createElement('small');
+    details.textContent = `slot ${character.slot + 1} · classe ${character.class} · nível ${character.level} · ${character.evolution || 'mortal'}`;
+    item.append(name,details); list.append(item);
+  }
+  cell.append(list);
+  return cell;
+}
+function renderDirectory(data: AccountDirectory) {
+  const rows = data.accounts.map(account => {
+    const row = document.createElement('tr');
+    const username = document.createElement('td'); username.textContent = account.username;
+    const created = document.createElement('small'); created.textContent = `Criada em ${date(account.createdAt)}`; username.append(created);
+    const presence = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = `presence-badge ${data.presenceAvailable ? (account.online ? 'online' : 'offline') : 'unknown'}`;
+    badge.textContent = data.presenceAvailable ? (account.online ? 'Online' : 'Offline') : 'Indisponível'; presence.append(badge);
+    const updated = document.createElement('td'); updated.textContent = date(account.updatedAt);
+    row.append(username,presence,characterSummary(account),updated);
+    return row;
+  });
+  if (rows.length) el('account-directory-rows').replaceChildren(...rows);
+  else emptyDirectory('Nenhuma conta encontrada para esta busca.');
+  text('account-directory-status', data.presenceAvailable
+    ? `Leitura persistente de ${date(data.asOf)}. A presença foi confirmada pelo servidor.`
+    : `Leitura persistente de ${date(data.asOf)}. A presença online não pôde ser confirmada.`);
+  text('account-directory-page', `${data.accounts.length} conta${data.accounts.length === 1 ? '' : 's'} nesta página · Paginação por cursor`);
+  updateDirectoryPagination();
+}
+async function loadDirectory(nextCursor = directoryCursor, nextSearch = directorySearch, history = directoryHistory) {
+  if (directoryBusy) return;
+  directoryBusy = true; updateDirectoryPagination(); text('account-directory-status','Consultando contas no PostgreSQL…');
+  try {
+    const params = new URLSearchParams({search: nextSearch,cursor: nextCursor,limit: '20'});
+    const value = await api<AccountDirectory>(`/staff/accounts?${params}`);
+    if (value.version !== 1 || !value.asOf || !Array.isArray(value.accounts) || value.accounts.length > 20) throw new APIError(200,'invalid_snapshot');
+    directorySnapshot = value; directorySearch = nextSearch; directoryCursor = nextCursor; directoryHistory = history; renderDirectory(value);
+  } catch (error) {
+    if (error instanceof APIError && (error.status === 401 || error.code === 'staff_revoked')) {
+      session = undefined; resetSnapshot(); showSession(); text('login-message',explain(error));
+    } else {
+      text('account-directory-status',explain(error));
+    }
+  } finally { directoryBusy = false; updateDirectoryPagination(); }
+}
 async function query(nextOffset = 0, nextSearch = search) {
   if (busy) return;
   busy = true; el<HTMLButtonElement>('refresh').disabled = true; updatePagination();
@@ -222,6 +313,46 @@ async function query(nextOffset = 0, nextSearch = search) {
     }
   } finally { busy = false; el<HTMLButtonElement>('refresh').disabled = false; updatePagination(); }
 }
+el<HTMLFormElement>('account-create-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = el<HTMLButtonElement>('account-create-submit');
+  const username = el<HTMLInputElement>('new-account-username');
+  const password = el<HTMLInputElement>('new-account-password');
+  const confirmation = el<HTMLInputElement>('new-account-confirmation');
+  const pin = el<HTMLInputElement>('new-account-pin');
+  if (password.value !== confirmation.value) {
+    confirmation.setCustomValidity('As senhas não coincidem.');
+    confirmation.reportValidity();
+    return;
+  }
+  confirmation.setCustomValidity('');
+  button.disabled = true;
+  text('account-create-message','Criando a conta com segurança…');
+  try {
+    if (!session) session = await api<Session>('/auth/session');
+    const result = await api<AccountCreateResponse>('/accounts','POST',{
+      username:username.value,
+      password:password.value,
+      passwordConfirmation:confirmation.value,
+      adminPin:pin.value,
+    });
+    el<HTMLInputElement>('username').value = result.username;
+    el<HTMLFormElement>('account-create-form').reset();
+    text('account-create-message',`Conta ${result.username} criada. Ela já pode entrar no jogo.`);
+    if (session?.authenticated) void loadDirectory('',directorySearch,[]);
+  } catch (error) {
+    text('account-create-message',explain(error));
+    if (error instanceof APIError && error.code === 'invalid_csrf') session = undefined;
+  } finally {
+    password.value = '';
+    confirmation.value = '';
+    pin.value = '';
+    button.disabled = false;
+  }
+});
+el<HTMLInputElement>('new-account-confirmation').addEventListener('input',event => {
+  (event.currentTarget as HTMLInputElement).setCustomValidity('');
+});
 el<HTMLFormElement>('login-form').addEventListener('submit', async event => {
   event.preventDefault(); const button = el<HTMLButtonElement>('login-submit'); button.disabled = true;
   text('login-message','Verificando credenciais…');
@@ -229,7 +360,7 @@ el<HTMLFormElement>('login-form').addEventListener('submit', async event => {
     if (!session) session = await api<Session>('/auth/session');
     session = await api<Session>('/auth/login','POST',{username:el<HTMLInputElement>('username').value,password:el<HTMLInputElement>('password').value,adminPin:el<HTMLInputElement>('adminPin').value});
     resetSnapshot(); showSession(); el<HTMLButtonElement>('refresh').focus();
-    void query(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh();
+    void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh();
   } catch (error) {
     text('login-message',explain(error)); if (error instanceof APIError && error.code === 'invalid_csrf') session = undefined;
   } finally {
@@ -244,11 +375,25 @@ el('logout').addEventListener('click',async () => {
     else {text('snapshot-state','Não foi possível encerrar a sessão');text('snapshot-detail',explain(error));el('snapshot-banner').classList.add('error');}
   } finally {button.disabled = false;}
 });
-el('refresh').addEventListener('click',() => { void query(0); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); });
+el('refresh').addEventListener('click',() => { void query(0); void loadDirectory(directoryCursor); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); });
 el<HTMLFormElement>('search-form').addEventListener('submit',event => {event.preventDefault();void query(0,el<HTMLInputElement>('search').value.trim());});
 el('previous').addEventListener('click',() => void query(Math.max(0,offset-50)));
 el('next').addEventListener('click',() => void query(offset+50));
 el('inspector-close').addEventListener('click',closeInspector);
+el<HTMLFormElement>('account-directory-form').addEventListener('submit',event => {
+  event.preventDefault();
+  void loadDirectory('',el<HTMLInputElement>('account-directory-search').value.trim().toLowerCase(),[]);
+});
+el('account-directory-previous').addEventListener('click',() => {
+  if (!directoryHistory.length) return;
+  const history = directoryHistory.slice(0,-1);
+  void loadDirectory(directoryHistory[directoryHistory.length-1] ?? '',directorySearch,history);
+});
+el('account-directory-next').addEventListener('click',() => {
+  const next = directorySnapshot?.nextCursor;
+  if (!next) return;
+  void loadDirectory(next,directorySearch,[...directoryHistory,directoryCursor]);
+});
 document.querySelectorAll<HTMLAnchorElement>('.nav-link').forEach(link => link.addEventListener('click',() => {
   document.querySelectorAll('.nav-link').forEach(item => item.classList.remove('active'));link.classList.add('active');
 }));

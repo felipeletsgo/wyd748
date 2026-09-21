@@ -5,7 +5,7 @@ Caminhos foram normalizados para a arquitetura atual. Fichas e handoffs
 preservam o estado histórico da validação; não são prova de conclusão atual.
 Assets e dumps binários não são documentos. O acervo nativo está em `references/client748/`.
 
-Documentos Markdown: 142.
+Documentos Markdown: 144.
 
 | Documento | Tipo |
 | --- | --- |
@@ -18,6 +18,7 @@ Documentos Markdown: 142.
 | [.agents/handoffs/tmproject-architecture.md](<../.agents/handoffs/tmproject-architecture.md>) | Continuidade historica |
 | [.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md](<../.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/combat/skill-visual-dispatch.md](<../.agents/research/client748/flows/combat/skill-visual-dispatch.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/lifecycle/application-bootstrap-message-loop.md](<../.agents/research/client748/flows/lifecycle/application-bootstrap-message-loop.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/lifecycle/application-close-global-shutdown.md](<../.agents/research/client748/flows/lifecycle/application-close-global-shutdown.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/lifecycle/character-logout-selectchar-relogin.md](<../.agents/research/client748/flows/lifecycle/character-logout-selectchar-relogin.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md](<../.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md>) | Evidencia de pesquisa |
@@ -148,6 +149,7 @@ Documentos Markdown: 142.
 | [DOCS/server/operations.md](<server/operations.md>) | Documentacao do produto |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Documentacao do produto |
 | [DOCS/w2pp-go-gap-analysis.md](<w2pp-go-gap-analysis.md>) | Documentacao do produto |
+| [DOCS/windows-development-environment.md](<windows-development-environment.md>) | Documentacao do produto |
 | [DOCS/wire-opcode-catalog.md](<wire-opcode-catalog.md>) | Documentacao do produto |
 | [DOCS/WYD-WEB-PLATAFORM.md](<WYD-WEB-PLATAFORM.md>) | Documentacao do produto |
 | [README.md](<../README.md>) | Documentacao do produto |
@@ -204,3 +206,5 @@ Documentos Markdown: 142.
 - [.agents/research/client748/inventory/functions.tsv](<../.agents/research/client748/inventory/functions.tsv>)
 - [.agents/research/client748/inventory/ghidra-functions.tsv](<../.agents/research/client748/inventory/ghidra-functions.tsv>)
 - [.agents/research/client748/inventory/research-queue.tsv](<../.agents/research/client748/inventory/research-queue.tsv>)
+- [.agents/research/client748/inventory/source-files.tsv](<../.agents/research/client748/inventory/source-files.tsv>)
+- [.agents/research/client748/inventory/source-symbols.tsv](<../.agents/research/client748/inventory/source-symbols.tsv>)

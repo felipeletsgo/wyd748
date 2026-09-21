@@ -58,6 +58,18 @@ tmproject/client748/           assets ativos e project.exe recompilado
   o uso local diário.
 - O exemplo local escuta apenas em `127.0.0.1:8082`, serve o frontend compilado
   de `web/portal/dist` e usa `data/staff.json` para capabilities de staff.
+- A seção **Criar conta** cadastra uma conta comum diretamente no PostgreSQL
+  autoritativo, reutilizando validação e PBKDF2 do jogo. Exige sessão de mesma
+  origem, CSRF e PIN administrativo, possui limites por origem/usuário/global e
+  audita o resultado sem senha ou PIN. Não concede autorização de staff. O
+  endpoint existe somente no painel integrado; a Web API separada continua
+  read-only.
+- A seção **Contas e personagens** consulta `GET /api/v1/staff/accounts` com
+  `moderation.player.search`, busca ASCII por prefixo e paginação por cursor.
+  A projeção PostgreSQL exclui hash de senha, payload bruto, inventário e cargo;
+  mostra apenas timestamps e resumos dos personagens. A presença de todas as
+  contas da página vem de uma única leitura autoritativa do `World` e é marcada
+  como indisponível quando não puder ser confirmada.
 - O login administrativo usa a senha normal da conta mais o PIN numérico
   temporário `admin_access_pin` de `data/server.txt`. TOTP/2FA está desativado
   nesta fase e continua sendo endurecimento necessário antes de exposição
@@ -92,7 +104,7 @@ tmproject/client748/           assets ativos e project.exe recompilado
 
 ## Conta, autenticação e admissão
 
-- Cadastro por CLI e API HTTP.
+- Cadastro pelo painel integrado, CLI e Account API HTTP separada.
 - Senhas PBKDF2-HMAC-SHA256 versionadas; texto puro é rejeitado.
 - Login e criação de personagem usam layouts nativos do client.
 - Até quatro personagens por conta.

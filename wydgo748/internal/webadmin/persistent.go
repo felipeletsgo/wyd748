@@ -14,6 +14,7 @@ import (
 var (
 	ErrInvalidPersistentTarget  = errors.New("webadmin: invalid persistent player target")
 	ErrPersistentPlayerNotFound = errors.New("webadmin: persistent player not found")
+	ErrInvalidAccountDirectory  = errors.New("webadmin: invalid account directory query")
 )
 
 // PersistentPlayer is an immutable projection of the character state read from
@@ -50,12 +51,39 @@ type PersistentPlayer struct {
 	CP            int16     `json:"cp"`
 }
 
+type AccountDirectory struct {
+	Version           int              `json:"version"`
+	AsOf              time.Time        `json:"asOf"`
+	PresenceAvailable bool             `json:"presenceAvailable"`
+	Accounts          []AccountSummary `json:"accounts"`
+	NextCursor        string           `json:"nextCursor"`
+}
+
+type AccountSummary struct {
+	Username   string                    `json:"username"`
+	CreatedAt  time.Time                 `json:"createdAt"`
+	UpdatedAt  time.Time                 `json:"updatedAt"`
+	Online     bool                      `json:"online"`
+	Characters []AccountCharacterSummary `json:"characters"`
+}
+
+type AccountCharacterSummary struct {
+	UID       string `json:"uid"`
+	Slot      int    `json:"slot"`
+	Name      string `json:"name"`
+	Class     byte   `json:"class"`
+	Level     uint32 `json:"level"`
+	Evolution string `json:"evolution"`
+}
+
 type PersistentReader interface {
 	Player(context.Context, string, string) (PersistentPlayer, error)
+	Accounts(context.Context, string, string, int) (AccountDirectory, error)
 }
 
 type persistentStore interface {
 	ReadPersistentPlayer(context.Context, string, string) (store.PersistentPlayerSnapshot, error)
+	ReadAccountDirectory(context.Context, string, string, int) (store.AccountDirectoryPageSnapshot, error)
 }
 
 type accountPersistentReader struct {
@@ -108,4 +136,57 @@ func (r *accountPersistentReader) Player(ctx context.Context, accountName, uid s
 		X: character.X, Y: character.Y, Gold: character.Gold, Exp: character.Exp,
 		Hold: character.Hold, CP: character.CP,
 	}, nil
+}
+
+func (r *accountPersistentReader) Accounts(ctx context.Context, search, cursor string, limit int) (AccountDirectory, error) {
+	if r == nil || r.store == nil || ctx == nil {
+		return AccountDirectory{}, ErrInvalidAccountDirectory
+	}
+	search = strings.ToLower(strings.TrimSpace(search))
+	cursor = strings.ToLower(strings.TrimSpace(cursor))
+	if !validAccountDirectoryKey(search) || !validAccountDirectoryKey(cursor) || limit < 1 || limit > 50 {
+		return AccountDirectory{}, ErrInvalidAccountDirectory
+	}
+	if err := ctx.Err(); err != nil {
+		return AccountDirectory{}, err
+	}
+	page, err := r.store.ReadAccountDirectory(ctx, search, cursor, limit)
+	if err != nil {
+		return AccountDirectory{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return AccountDirectory{}, err
+	}
+	result := AccountDirectory{
+		Version: 1, AsOf: r.now().UTC(), NextCursor: page.NextCursor,
+		Accounts: make([]AccountSummary, 0, len(page.Accounts)),
+	}
+	for _, account := range page.Accounts {
+		entry := AccountSummary{
+			Username: account.Name, CreatedAt: account.CreatedAt, UpdatedAt: account.UpdatedAt,
+			Characters: make([]AccountCharacterSummary, 0, len(account.Characters)),
+		}
+		for _, character := range account.Characters {
+			entry.Characters = append(entry.Characters, AccountCharacterSummary{
+				UID: character.UID, Slot: character.Slot, Name: character.Name,
+				Class: character.Class, Level: character.Level, Evolution: character.Evolution,
+			})
+		}
+		result.Accounts = append(result.Accounts, entry)
+	}
+	return result, nil
+}
+
+func validAccountDirectoryKey(value string) bool {
+	if len(value) > 12 {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		if value[i] < 'a' || value[i] > 'z' {
+			if value[i] < '0' || value[i] > '9' {
+				return false
+			}
+		}
+	}
+	return true
 }

@@ -170,6 +170,30 @@ type PersistentPlayerSnapshot struct {
 	CP            int16
 }
 
+// AccountDirectorySnapshot is the narrow account projection used by the
+// administrative directory. Credentials and item payloads never leave SQL.
+type AccountDirectorySnapshot struct {
+	Key        string
+	Name       string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Characters []AccountDirectoryCharacterSnapshot
+}
+
+type AccountDirectoryCharacterSnapshot struct {
+	UID       string
+	Slot      int
+	Name      string
+	Class     byte
+	Level     uint32
+	Evolution string
+}
+
+type AccountDirectoryPageSnapshot struct {
+	Accounts   []AccountDirectorySnapshot
+	NextCursor string
+}
+
 // Ping expoe somente a verificacao leve necessaria ao readiness HTTP. O caller
 // controla integralmente deadline/cancelamento pelo context recebido.
 func (s *PostgresStore) Ping(ctx context.Context) error {
@@ -1190,6 +1214,44 @@ WHERE picked.character->>'uid'=$3
   AND picked.character->'score' IS NOT NULL
 LIMIT 1`
 
+const postgresAccountDirectoryQuery = `
+WITH account_page AS (
+    SELECT
+        a.name_key,
+        COALESCE(NULLIF(a.payload->>'name', ''), a.name_key) AS account_name,
+        a.created_at,
+        a.updated_at
+    FROM accounts a
+    WHERE a.name_key > $1
+      AND (
+          $2 = ''
+          OR a.name_key LIKE $2 || '%'
+          OR EXISTS (
+              SELECT 1
+              FROM character_names n
+              WHERE n.account_key = a.name_key
+                AND n.name_key LIKE $2 || '%'
+          )
+      )
+    ORDER BY a.name_key
+    LIMIT $3
+)
+SELECT
+    page.name_key,
+    page.account_name,
+    page.created_at,
+    page.updated_at,
+    c.slot,
+    COALESCE(REPLACE(c.character_uid::text, '-', ''), ''),
+    COALESCE(NULLIF(a.payload->'chars'->c.slot->>'name', ''), c.name_key, ''),
+    COALESCE((a.payload->'chars'->c.slot->>'class')::bigint, 0),
+    COALESCE((a.payload->'chars'->c.slot->'score'->>'level')::bigint, 0),
+    COALESCE(NULLIF(a.payload->'chars'->c.slot->>'evolution', ''), c.evolution, '')
+FROM account_page page
+JOIN accounts a ON a.name_key = page.name_key
+LEFT JOIN characters c ON c.account_key = page.name_key
+ORDER BY page.name_key, c.slot`
+
 // ReadPersistentPlayer reads only the fields required by the read-only staff
 // console. PostgreSQL projects the matching character before any data reaches
 // the web process, so account credentials and item payloads are not decoded.
@@ -1230,6 +1292,92 @@ func (s *PostgresStore) ReadPersistentPlayer(ctx context.Context, accountName, u
 		return PersistentPlayerSnapshot{}, err
 	}
 	return out, nil
+}
+
+// ReadAccountDirectory returns at most limit accounts plus a keyset cursor.
+// The query projects only display metadata and character summaries; it never
+// materializes the account JSON, password hash, inventory or cargo in Go.
+func (s *PostgresStore) ReadAccountDirectory(ctx context.Context, search, cursor string, limit int) (AccountDirectoryPageSnapshot, error) {
+	if ctx == nil {
+		return AccountDirectoryPageSnapshot{}, errors.New("store: contexto ausente")
+	}
+	search = strings.ToLower(strings.TrimSpace(search))
+	cursor = strings.ToLower(strings.TrimSpace(cursor))
+	if !validDirectoryKey(search, true) || !validDirectoryKey(cursor, true) || limit < 1 || limit > 50 {
+		return AccountDirectoryPageSnapshot{}, errors.New("store: consulta de contas invalida")
+	}
+	if s == nil || s.pool == nil {
+		return AccountDirectoryPageSnapshot{}, errors.New("store: PostgreSQL fechado")
+	}
+	timeout := s.operationTimeout
+	if timeout <= 0 {
+		timeout = postgresOperationTimeout
+	}
+	queryCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	rows, err := s.pool.Query(queryCtx, postgresAccountDirectoryQuery, cursor, search, limit+1)
+	if err != nil {
+		return AccountDirectoryPageSnapshot{}, err
+	}
+	defer rows.Close()
+
+	page := AccountDirectoryPageSnapshot{Accounts: make([]AccountDirectorySnapshot, 0, limit+1)}
+	byKey := make(map[string]int, limit+1)
+	for rows.Next() {
+		var key, name, uid, characterName, evolution string
+		var createdAt, updatedAt time.Time
+		var slot pgtype.Int2
+		var classValue, levelValue int64
+		if err := rows.Scan(&key, &name, &createdAt, &updatedAt, &slot, &uid,
+			&characterName, &classValue, &levelValue, &evolution); err != nil {
+			return AccountDirectoryPageSnapshot{}, err
+		}
+		index, exists := byKey[key]
+		if !exists {
+			index = len(page.Accounts)
+			byKey[key] = index
+			page.Accounts = append(page.Accounts, AccountDirectorySnapshot{
+				Key: key, Name: name, CreatedAt: createdAt, UpdatedAt: updatedAt,
+				Characters: make([]AccountDirectoryCharacterSnapshot, 0, 4),
+			})
+		}
+		if !slot.Valid {
+			continue
+		}
+		if classValue < 0 || classValue > 255 || levelValue < 0 || levelValue > int64(^uint32(0)) {
+			return AccountDirectoryPageSnapshot{}, errors.New("store: resumo de personagem fora do intervalo")
+		}
+		page.Accounts[index].Characters = append(page.Accounts[index].Characters, AccountDirectoryCharacterSnapshot{
+			UID: uid, Slot: int(slot.Int16), Name: characterName, Class: byte(classValue),
+			Level: uint32(levelValue), Evolution: evolution,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return AccountDirectoryPageSnapshot{}, err
+	}
+	if len(page.Accounts) > limit {
+		page.Accounts = page.Accounts[:limit]
+		page.NextCursor = page.Accounts[len(page.Accounts)-1].Key
+	}
+	return page, nil
+}
+
+func validDirectoryKey(value string, allowEmpty bool) bool {
+	if value == "" {
+		return allowEmpty
+	}
+	if len(value) > 12 {
+		return false
+	}
+	for i := 0; i < len(value); i++ {
+		if value[i] < 'a' || value[i] > 'z' {
+			if value[i] < '0' || value[i] > '9' {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (s *PostgresStore) saveSnapshots(snapshots []*accountSnapshot) error {

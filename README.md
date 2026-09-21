@@ -97,7 +97,12 @@ Push-Location .\wydgo748
 
 ### 4. Crie uma conta
 
-Em outro PowerShell, a partir da raiz do repositório:
+No painel integrado, abra `http://127.0.0.1:8082/admin/#accounts`, informe o
+usuário, a senha e o `admin_access_pin`. O cadastro cria uma conta comum, sem
+permissões administrativas.
+
+Como alternativa local, use o utilitário em outro PowerShell, a partir da raiz
+do repositório:
 
 ```powershell
 $env:WYD_DATABASE_URL = 'postgres://wydgo:wydgo-local@127.0.0.1:5432/wydgo?sslmode=disable'
@@ -122,10 +127,11 @@ Para recompilar e instalar o client no runtime local:
 pwsh -NoProfile -File .\tmproject\Build-Client.ps1 -Configuration Release
 ```
 
-O script instala o resultado em `tmproject/client748/project.exe`. A configuração
-do endpoint fica no `serverlist.bin` do runtime; não edite esse binário como
-texto. O repositório ainda não oferece um editor para esse formato: use um
-`serverlist.bin` compatível já gerado para o endpoint de destino.
+O script instala o resultado em `tmproject/client748/project.exe`. Gere a
+configuração do endpoint com o `serverlist editor.exe` externo e salve a saída
+como `tmproject/client748/serverlist.bin`; não edite esse binário como texto e
+não é necessário preservar uma cópia antiga. O procedimento completo está no
+[guia de preparação do Windows](DOCS/windows-development-environment.md).
 
 ## Solução rápida de problemas
 
@@ -147,6 +153,7 @@ em [Operação do servidor](DOCS/server/operations.md). Builds e gates estão em
 ## Documentação
 
 - [Índice por tarefa](DOCS/README.md)
+- [Reinstalação e ambiente Windows](DOCS/windows-development-environment.md)
 - [Inventário completo](DOCS/documentation-map.md)
 - [Estado implementado](DOCS/IMPLEMENTED.md)
 - [Pendências e critérios de aceite](DOCS/ROADMAP.md)

@@ -16,6 +16,12 @@ type controlRequest struct {
 	reply chan control.Overview
 }
 
+type accountPresenceRequest struct {
+	ctx      context.Context
+	accounts []string
+	reply    chan map[string]bool
+}
+
 // Overview admits at most ONE outstanding read, even if its caller times out.
 // Only handleControl, on the World goroutine, may inspect mutable game state.
 func (w *World) Overview(ctx context.Context, q control.Query) (control.Overview, error) {
@@ -40,6 +46,56 @@ func (w *World) Overview(ctx context.Context, q control.Query) (control.Overview
 		return result, nil
 	case <-ctx.Done():
 		return control.Overview{}, ctx.Err()
+	}
+}
+
+// AccountPresence resolves up to one directory page against the authoritative
+// World state in a single queued read. It shares the overview admission gate.
+func (w *World) AccountPresence(ctx context.Context, accounts []string) (map[string]bool, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if len(accounts) > 50 {
+		return nil, control.ErrBusy
+	}
+	requested := make([]string, 0, len(accounts))
+	seen := make(map[string]struct{}, len(accounts))
+	for _, accountName := range accounts {
+		name := strings.ToLower(strings.TrimSpace(accountName))
+		if name == "" || len(name) > 12 {
+			return nil, control.ErrBusy
+		}
+		for i := 0; i < len(name); i++ {
+			if name[i] < 'a' || name[i] > 'z' {
+				if name[i] < '0' || name[i] > '9' {
+					return nil, control.ErrBusy
+				}
+			}
+		}
+		if _, exists := seen[name]; exists {
+			continue
+		}
+		seen[name] = struct{}{}
+		requested = append(requested, name)
+	}
+	if len(requested) == 0 {
+		return map[string]bool{}, nil
+	}
+	if !w.controlPending.CompareAndSwap(false, true) {
+		return nil, control.ErrBusy
+	}
+	req := &accountPresenceRequest{ctx: ctx, accounts: requested, reply: make(chan map[string]bool, 1)}
+	select {
+	case w.commands <- command{accountPresence: req, queuedAt: time.Now()}:
+	default:
+		w.controlPending.Store(false)
+		return nil, control.ErrBusy
+	}
+	select {
+	case result := <-req.reply:
+		return result, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
 }
 
@@ -93,5 +149,26 @@ func (w *World) handleControl(req *controlRequest) {
 	result.HasMore = end < result.Matched
 	result.Players = result.Players[start:end]
 	// Buffered reply remains non-blocking after a disconnected/timed-out caller.
+	req.reply <- result
+}
+
+func (w *World) handleAccountPresence(req *accountPresenceRequest) {
+	defer w.controlPending.Store(false)
+	if req.ctx.Err() != nil {
+		return
+	}
+	result := make(map[string]bool, len(req.accounts))
+	for _, accountName := range req.accounts {
+		result[accountName] = false
+	}
+	for _, player := range w.players {
+		if player == nil || !player.InWorld || player.Account == nil {
+			continue
+		}
+		accountName := strings.ToLower(player.Account.Name)
+		if _, requested := result[accountName]; requested {
+			result[accountName] = true
+		}
+	}
 	req.reply <- result
 }

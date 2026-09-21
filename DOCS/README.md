@@ -14,6 +14,7 @@ do produto, evidência de pesquisa e registros históricos de continuidade.
 
 | Objetivo | Documento de entrada |
 | --- | --- |
+| Reinstalar e preparar o ambiente Windows | [Ambiente Windows](windows-development-environment.md) |
 | Ligar o servidor pela primeira vez | [README da raiz](../README.md#início-rápido-no-windows) |
 | Operar banco, contas, painel, rede e backup | [Operação do servidor](server/operations.md) |
 | Compilar e validar servidor e client | [Build e integração](build-and-integration.md) |

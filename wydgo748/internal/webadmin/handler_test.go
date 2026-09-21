@@ -42,11 +42,30 @@ func (c *testControl) Overview(_ context.Context, actor string, q control.Query)
 	return control.Overview{Version: 1, AsOf: time.Now().UTC(), State: "running", Online: 2, Authenticated: 3, Mobs: 128, Players: []control.Player{{UID: "fixture-1", Name: "Sentinela", Account: "fixture", Level: 120, Class: 1, X: 2100, Y: 2100}}, Matched: 1, Offset: q.Offset}, c.err
 }
 
+func (c *testControl) AccountPresence(_ context.Context, actor string, accounts []string) (map[string]bool, error) {
+	c.actor = actor
+	result := make(map[string]bool, len(accounts))
+	for _, accountName := range accounts {
+		result[strings.ToLower(accountName)] = strings.EqualFold(accountName, "fixture")
+	}
+	return result, c.err
+}
+
 type testPersistent struct {
-	account string
-	uid     string
-	value   PersistentPlayer
-	err     error
+	account      string
+	uid          string
+	value        PersistentPlayer
+	err          error
+	directory    AccountDirectory
+	directoryErr error
+	search       string
+	cursor       string
+	limit        int
+}
+
+func (p *testPersistent) Accounts(_ context.Context, search, cursor string, limit int) (AccountDirectory, error) {
+	p.search, p.cursor, p.limit = search, cursor, limit
+	return p.directory, p.directoryErr
 }
 
 func (p *testPersistent) Player(_ context.Context, accountName, uid string) (PersistentPlayer, error) {
@@ -93,13 +112,73 @@ func newTestHandler(t *testing.T) (*Handler, map[string]Staff, *testControl, *by
 	}
 	entries := map[string]Staff{"operator": {Capabilities: []string{StatusCapability, PlayersCapability}}}
 	c := &testControl{}
-	p := &testPersistent{value: PersistentPlayer{Version: 1, AsOf: time.Now().UTC(), Account: "fixture", UID: "fixture-1", Name: "Sentinela", Level: 120}}
+	now := time.Now().UTC()
+	p := &testPersistent{
+		value: PersistentPlayer{Version: 1, AsOf: now, Account: "fixture", UID: "fixture-1", Name: "Sentinela", Level: 120},
+		directory: AccountDirectory{Version: 1, AsOf: now, Accounts: []AccountSummary{{
+			Username: "fixture", CreatedAt: now.Add(-time.Hour), UpdatedAt: now,
+			Characters: []AccountCharacterSummary{{UID: "fixture-1", Slot: 0, Name: "Sentinela", Class: 1, Level: 120}},
+		}}},
+	}
 	logs := &bytes.Buffer{}
-	h, err := New(Config{Origin: "https://admin.test", AdminAccessPIN: testAdminPIN, Accounts: testAccounts{hash}, Staff: func() (map[string]Staff, error) { return entries, nil }, Control: c, Persistent: p, Audit: slog.New(slog.NewJSONHandler(logs, nil))})
+	h, err := New(Config{Origin: "https://admin.test", AdminAccessPIN: testAdminPIN, Accounts: testAccounts{hash}, Registration: newTestRegistration(), Staff: func() (map[string]Staff, error) { return entries, nil }, Control: c, Persistent: p, Audit: slog.New(slog.NewJSONHandler(logs, nil))})
 	if err != nil {
 		t.Fatal(err)
 	}
 	return h, entries, c, logs
+}
+
+func TestAccountDirectoryEndpoint(t *testing.T) {
+	h, entries, controlSource, logs := newTestHandler(t)
+	p := h.cfg.Persistent.(*testPersistent)
+	cookie, _, _ := loginTest(t, h)
+	w := request(h, "GET", "/api/v1/staff/accounts?search=FIX&limit=10", "", cookie, "")
+	if w.Code != 200 || p.search != "fix" || p.cursor != "" || p.limit != 10 || controlSource.actor != "operator" {
+		t.Fatalf("account directory: %d %s", w.Code, w.Body.String())
+	}
+	var got AccountDirectory
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Version != 1 || !got.PresenceAvailable || len(got.Accounts) != 1 || !got.Accounts[0].Online || got.Accounts[0].Username != "fixture" {
+		t.Fatalf("unexpected directory: %+v", got)
+	}
+	if strings.Contains(strings.ToLower(w.Body.String()), "password") || !strings.Contains(logs.String(), `"action":"account_directory"`) {
+		t.Fatal("directory exposed credentials or was not audited")
+	}
+	for _, path := range []string{
+		"/api/v1/staff/accounts?search=inv%C3%A1lido",
+		"/api/v1/staff/accounts?limit=51",
+		"/api/v1/staff/accounts?search=a&search=b",
+		"/api/v1/staff/accounts?unknown=value",
+	} {
+		w = request(h, "GET", path, "", cookie, "")
+		if w.Code != 400 || !strings.Contains(w.Body.String(), "invalid_query") {
+			t.Fatalf("invalid directory query accepted: %s: %d %s", path, w.Code, w.Body.String())
+		}
+	}
+	entries["operator"] = Staff{Capabilities: []string{StatusCapability}}
+	w = request(h, "GET", "/api/v1/staff/accounts", "", cookie, "")
+	if w.Code != 403 {
+		t.Fatalf("directory without capability: %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestAccountDirectorySurvivesUnavailablePresence(t *testing.T) {
+	h, _, controlSource, _ := newTestHandler(t)
+	cookie, _, _ := loginTest(t, h)
+	controlSource.err = fmt.Errorf("world busy")
+	w := request(h, "GET", "/api/v1/staff/accounts", "", cookie, "")
+	if w.Code != 200 {
+		t.Fatalf("account directory: %d %s", w.Code, w.Body.String())
+	}
+	var got AccountDirectory
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.PresenceAvailable || len(got.Accounts) != 1 || got.Accounts[0].Online {
+		t.Fatalf("unexpected directory without presence: %+v", got)
+	}
 }
 
 func TestPersistentPlayerEndpoint(t *testing.T) {

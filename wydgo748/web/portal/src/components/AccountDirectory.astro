@@ -1,0 +1,27 @@
+<section id="account-directory" class="panel account-directory" aria-labelledby="account-directory-title">
+  <div class="players-heading">
+    <div>
+      <span class="eyebrow">CADASTRO PERSISTENTE</span>
+      <h2 id="account-directory-title">Contas e personagens</h2>
+    </div>
+    <form id="account-directory-form" class="search-form">
+      <label class="sr-only" for="account-directory-search">Buscar conta ou personagem</label>
+      <input id="account-directory-search" maxlength="12" pattern="[a-zA-Z0-9]{0,12}" placeholder="Conta ou personagem" />
+      <button class="button subtle" type="submit">Buscar</button>
+    </form>
+  </div>
+  <p id="account-directory-status" class="account-directory-status" role="status" aria-live="polite">Aguardando consulta.</p>
+  <div class="table-scroll">
+    <table class="account-directory-table">
+      <thead><tr><th>CONTA</th><th>PRESENÇA</th><th>PERSONAGENS</th><th>ATUALIZADA</th></tr></thead>
+      <tbody id="account-directory-rows"><tr><td colspan="4" class="empty">Nenhuma consulta realizada.</td></tr></tbody>
+    </table>
+  </div>
+  <footer class="table-footer">
+    <span id="account-directory-page">Até 20 contas por consulta · Ordenadas por conta</span>
+    <div>
+      <button id="account-directory-previous" class="button pager" type="button" disabled aria-label="Página anterior de contas">←</button>
+      <button id="account-directory-next" class="button pager" type="button" disabled aria-label="Próxima página de contas">→</button>
+    </div>
+  </footer>
+</section>

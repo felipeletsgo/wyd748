@@ -317,7 +317,7 @@ func main() {
 		log.Fatalf("criar mundo: %v", err)
 	}
 	go world.Run()
-	stopWebAdmin, webErr := startWebAdmin(cfg, world)
+	stopWebAdmin, webErr := startWebAdmin(cfg, world, postgresStore)
 	if webErr != nil {
 		log.Printf("painel administrativo nao iniciou: %v; servidor do jogo continua ativo", webErr)
 		stopWebAdmin = func() {}

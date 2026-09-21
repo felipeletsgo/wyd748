@@ -19,16 +19,17 @@ import (
 
 // command = um pacote recebido de uma sessao (pkt nil = desconexao).
 type command struct {
-	kick       *kickRequest
-	teleport   *teleportRequest
-	bosses     *bossesRequest
-	globalDrop *globalDropRequest
-	quiz       *quizRequest
-	control    *controlRequest
-	s          *net.Session
-	pkt        []byte
-	login      *loginResult
-	queuedAt   time.Time
+	kick            *kickRequest
+	teleport        *teleportRequest
+	bosses          *bossesRequest
+	globalDrop      *globalDropRequest
+	quiz            *quizRequest
+	control         *controlRequest
+	accountPresence *accountPresenceRequest
+	s               *net.Session
+	pkt             []byte
+	login           *loginResult
+	queuedAt        time.Time
 	// shutdown, quando presente, pede o desligamento controlado. E um comando
 	// como qualquer outro justamente para rodar NA goroutine do World: assim o
 	// drain final enxerga o estado consistente, sem concorrer com um handler.
@@ -1888,6 +1889,10 @@ func (w *World) handle(cmd command) {
 	}
 	if cmd.control != nil {
 		w.handleControl(cmd.control)
+		return
+	}
+	if cmd.accountPresence != nil {
+		w.handleAccountPresence(cmd.accountPresence)
 		return
 	}
 	if cmd.shutdown != nil {

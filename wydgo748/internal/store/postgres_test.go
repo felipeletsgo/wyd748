@@ -90,6 +90,57 @@ func TestPostgresPersistentPlayerQueryIsNarrow(t *testing.T) {
 	}
 }
 
+func TestPostgresAccountDirectoryQueryIsNarrowAndKeysetPaginated(t *testing.T) {
+	query := strings.ToLower(postgresAccountDirectoryQuery)
+	for _, forbidden := range []string{"select payload", "passwordhash", "'cargo'", "'inv'", "'equip'"} {
+		if strings.Contains(query, forbidden) {
+			t.Fatalf("account directory query materializa campo proibido %q", forbidden)
+		}
+	}
+	for _, required := range []string{"a.name_key > $1", "like $2 || '%'", "limit $3", "character_names", "created_at", "updated_at", "->'score'->>'level'"} {
+		if !strings.Contains(query, strings.ToLower(required)) {
+			t.Fatalf("account directory query perdeu contrato %q", required)
+		}
+	}
+}
+
+func TestPostgresAccountDirectoryIntegration(t *testing.T) {
+	url := os.Getenv("WYD_TEST_POSTGRES_URL")
+	if url == "" {
+		t.Skip("WYD_TEST_POSTGRES_URL nao configurada")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	st, err := NewPostgresReadOnlyStore(ctx, PostgresConfig{URL: url, MaxConns: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	page, err := st.ReadAccountDirectory(ctx, "", "", 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Accounts) > 20 {
+		t.Fatalf("directory returned %d accounts", len(page.Accounts))
+	}
+	previous := ""
+	for _, account := range page.Accounts {
+		if account.Key == "" || account.Key <= previous || len(account.Characters) > 4 {
+			t.Fatalf("invalid account directory row: %+v", account)
+		}
+		previous = account.Key
+		for _, character := range account.Characters {
+			if character.Slot < 0 || character.Slot > 3 {
+				t.Fatalf("invalid character directory row: %+v", character)
+			}
+		}
+	}
+	if page.NextCursor != "" && page.NextCursor != previous {
+		t.Fatalf("invalid next cursor %q after %q", page.NextCursor, previous)
+	}
+}
+
 func TestPostgresCharStatePayloadPreservesBuffSourceAndAbsoluteDeadline(t *testing.T) {
 	const characterUID = "aaaaaaaaaaaa4aaa8aaaaaaaaaaaaaaa"
 	const itemUID = "11111111111141118111111111104140"

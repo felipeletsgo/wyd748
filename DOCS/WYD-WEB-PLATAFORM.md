@@ -1,6 +1,6 @@
 # WYD Web Platform
 
-## Estado e decisões desta revisão — 14/09/2026
+## Estado e decisões desta revisão — 20/09/2026
 
 Plano arquitetural em implementação. Base inspecionada:
 `912a9512942af9e9c96400f361f3bbd4eb929e24` em `main`, acrescida das correções
@@ -9,6 +9,30 @@ nos registros de implementação. As telas, endpoints, tabelas e tipos apresenta
 abaixo continuam propostas quando não estiverem acompanhados de evidência de
 implementação. A lista completa é o backlog do produto; a ordem de execução e
 os gates estão nas seções 161–162.
+
+### Diretório administrativo de contas — 20/09/2026
+
+**MODERNIZACAO_COMPATIVEL v1.** O painel integrado oferece `GET
+/api/v1/staff/accounts`, protegido por sessão staff e pela capability
+`moderation.player.search`. A tela busca por prefixo de conta ou personagem,
+pagina até 50 contas por cursor e exibe criação, última atualização e resumo dos
+quatro slots de personagem (UID, slot, nome, classe, nível e evolução).
+
+- A consulta PostgreSQL usa uma projeção estreita: não carrega nem devolve hash
+  de senha, payload bruto da conta, inventário ou cargo.
+- A presença online é resolvida em uma única leitura enfileirada no `World` para
+  todas as contas da página. Se essa fonte não estiver disponível, a API marca
+  `presenceAvailable=false`; não inventa estado offline.
+- Busca e cursor aceitam apenas chaves ASCII alfanuméricas de até 12 caracteres;
+  limite máximo de 50, body ausente, query estrita e limite de 30 consultas por
+  minuto por ator.
+- O frontend usa paginação keyset, DOM criado com `textContent` e informa
+  separadamente o timestamp persistente e a disponibilidade da presença live.
+
+Testes focados de store, projeção, handler e leitura autoritativa do World,
+geração OpenAPI, Astro check e build passaram. `STATICALLY VERIFIED` e
+`AUTOMATED TESTED`; **não CLIENT_TESTED**. A validação visual no navegador com
+PostgreSQL e servidor reais permanece pendente.
 
 ### Incremento atual: drop global, quiz, bosses, kick e teleporte para cidades
 
@@ -179,7 +203,7 @@ Coordenadas livres e disparo de guerras seguem pendentes, com contratos próprio
 | Autoridade de gameplay | [`World`](../wydgo748/internal/game/world.go) processa comandos e ticks em uma goroutine; snapshots administrativos e os comandos de drop global, quiz e summon de boss entram pela fila autoritativa | Preservar o `World` como autoridade; cada nova mutação administrativa ainda exige comando tipado, rejeições, lifecycle e auditoria próprios |
 | Cadastro e credenciais | [`account`](../wydgo748/internal/account/service.go), [`validação`](../wydgo748/internal/account/validation.go) e [`hash`](../wydgo748/internal/account/password.go) | Reutilizar criação, autenticação e PBKDF2; sessão web, recuperação e alteração de senha são trabalho novo |
 | HTTP de contas | [`accountapi`](../wydgo748/internal/accountapi/handler.go) oferece cadastro e health/readiness | Preservar `POST /v1/accounts` durante a migração; não assumir login HTTP existente |
-| Persistência | [`PostgresStore`](../wydgo748/internal/store/postgres.go) e [`schema`](../wydgo748/internal/store/postgres_schema.sql) mantêm conta em JSONB, identidades de personagens e instâncias de item | Separar acesso web de snapshots de gameplay; `NewPostgresStore` aplica DDL e inicia worker, portanto não é a conexão pronta para um usuário web restrito |
+| Persistência | [`PostgresStore`](../wydgo748/internal/store/postgres.go) e [`schema`](../wydgo748/internal/store/postgres_schema.sql) mantêm conta em JSONB, identidades de personagens e instâncias de item; o diretório administrativo usa projeção SQL estreita | Separar acesso web de snapshots de gameplay; novas leituras devem preservar projeções mínimas e não expor payload ou credenciais |
 | Guerras | [`guild_wars.go`](../wydgo748/internal/game/guild_wars.go) e [estado documentado](guild-wars.md) | Torre e cidades têm implementação e testes registrados, com gate no client pendente; RvR/reinos e castelo têm escopo separado |
 | Portal | [`cmd/web-api`](../wydgo748/cmd/web-api/main.go), [`internal/webadmin`](../wydgo748/internal/webadmin), [`api/openapi.yaml`](../wydgo748/api/openapi.yaml) e [`web/portal`](../wydgo748/web/portal) implementam a fundação administrativa, eventos e summon de bosses | O painel administrativo básico e as primeiras mutações autoritativas existem localmente; site público, painel do jogador, exportador e demais comandos administrativos seguem por fases |
 
@@ -192,9 +216,9 @@ altera o client de jogo; os gates e limitações atuais estão registrados acima
 1. Preservar as duas sources: Go e frontend do portal ficam sob `wydgo748/`,
    conforme a seção 135. Documentação permanece em `DOCS/`.
 2. A prioridade atual é tornar o painel administrativo operacional. Drop global,
-   quiz e summon de bosses iniciam as mutações autoritativas; moderação,
-   teleporte e guerras são os próximos lotes. Site público e painel do jogador
-   permanecem posteriores.
+   quiz, summon de bosses, kick, teleporte para cidades e diretório de contas já
+   possuem contratos implementados. Banimento e disparo de guerras são os
+   próximos lotes. Site público e painel do jogador permanecem posteriores.
 3. Astro permanece estático inicialmente. Notícias/guias publicados em Git
    exigem build; CMS sem rebuild fica para uma fase com renderização definida.
 4. Navegador usa `/api/*` no mesmo origin; a Function usa um destino HTTPS fixo.

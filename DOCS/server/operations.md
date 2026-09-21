@@ -366,6 +366,13 @@ temporary authentication mode is in use.
 The embedded panel has staff sessions, CSRF protection, audit records, and
 capability checks. Its current gameplay controls are:
 
+- player account creation: open **Criar conta**, enter the new credentials and
+  confirm with the administrative PIN. Usernames are 4–12 ASCII letters or
+  digits; passwords are 4–12 visible characters without spaces. The account is
+  created without characters and receives no staff permission. This flow is
+  available in the panel embedded in `tm.exe`; the standalone web API remains
+  read-only;
+
 - global drop: item ID, 1–100% rate, optional maximum drop count, and optional
   duration;
 - quiz: one four-choice math question per minute, 10-second answer window,
@@ -433,7 +440,14 @@ Start the server from the `wydgo748/` directory. Then the server finds the
 `data/...` paths. Starting it from the repository root without path overrides
 causes required data files to be resolved from the wrong directory.
 
-You make an account with one of two tools:
+You can make an account directly in the integrated panel. Open
+`http://127.0.0.1:8082/admin/#accounts`, fill in the new credentials, and enter
+the `admin_access_pin`. The endpoint requires the same-origin session and CSRF
+token, applies per-origin, per-username, and global rate limits, and writes an
+audit record without the password or PIN. It creates a player account only;
+staff authorization remains controlled by `data/staff.json`.
+
+For recovery or automation, you can also use one of two standalone tools:
 
 - Use `account-create`, the local command-line tool:
 

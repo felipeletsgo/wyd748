@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"wydgo/internal/account"
 	"wydgo/internal/control"
 	"wydgo/internal/data"
 	"wydgo/internal/store"
@@ -34,6 +35,14 @@ func (c localAdminControl) Overview(ctx context.Context, _ string, q control.Que
 	return control.WithProcessDiagnostics(result, c.started), nil
 }
 
+func (c localAdminControl) AccountPresence(ctx context.Context, _ string, accounts []string) (map[string]bool, error) {
+	source, ok := c.source.(control.AccountPresenceSource)
+	if !ok {
+		return nil, errors.New("account presence unavailable")
+	}
+	return source.AccountPresence(ctx, accounts)
+}
+
 func adminDatabaseURL(cfg data.ServerConfig) string {
 	if url := os.Getenv("WYD_WEB_DATABASE_URL"); url != "" {
 		return url
@@ -46,7 +55,7 @@ func adminDatabaseURL(cfg data.ServerConfig) string {
 }
 
 // Failure disables only the panel. Never stop or replace the game process.
-func startWebAdmin(cfg data.ServerConfig, source control.Source) (func(), error) {
+func startWebAdmin(cfg data.ServerConfig, source control.Source, registration account.RegistrationStore) (func(), error) {
 	if !cfg.WebAdminEnabled {
 		return func() {}, nil
 	}
@@ -98,7 +107,7 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source) (func(), error)
 	teleport, _ := source.(control.TeleportSource)
 	handler, err := webadmin.New(webadmin.Config{
 		Origin: origin, DevHTTP: true, AdminAccessPIN: cfg.AdminAccessPIN,
-		Staff: staff, Accounts: db, Control: localAdminControl{source: source, started: time.Now()},
+		Staff: staff, Accounts: db, Registration: registration, Control: localAdminControl{source: source, started: time.Now()},
 		Persistent: webadmin.NewAccountPersistentReader(db), Ready: db.Ping,
 		GlobalDrop: events,
 		Quiz:       quiz,

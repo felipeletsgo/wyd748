@@ -78,6 +78,13 @@ type Source interface {
 	Overview(context.Context, Query) (Overview, error)
 }
 
+// AccountPresenceSource is an optional embedded-control capability. It checks
+// a bounded set of persisted account names in one World command, avoiding a
+// full or paginated player snapshot for the administrative directory.
+type AccountPresenceSource interface {
+	AccountPresence(context.Context, []string) (map[string]bool, error)
+}
+
 // LoopbackAddress rejects wildcards, DNS names, and port zero outside tests.
 func LoopbackAddress(address string) error {
 	host, port, err := net.SplitHostPort(address)

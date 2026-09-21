@@ -125,3 +125,32 @@ func TestControlSearchLengthUsesUnicodeCharacters(t *testing.T) {
 		t.Fatalf("49 Unicode characters: %v", err)
 	}
 }
+
+func TestAccountPresenceUsesOneAuthoritativeWorldRead(t *testing.T) {
+	onlineSession := &wydnet.Session{ID: 1}
+	selectingSession := &wydnet.Session{ID: 2}
+	w := &World{
+		commands: make(chan command, 1),
+		players: map[*wydnet.Session]*Player{
+			onlineSession:    {InWorld: true, Account: &model.Account{Name: "Fixture"}},
+			selectingSession: {InWorld: false, Account: &model.Account{Name: "Selecting"}},
+		},
+	}
+	done := make(chan struct{})
+	go func() { defer close(done); w.safeHandle(<-w.commands) }()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	got, err := w.AccountPresence(ctx, []string{"fixture", "offline", "FIXTURE"})
+	<-done
+	if err != nil || len(got) != 2 || !got["fixture"] || got["offline"] {
+		t.Fatalf("presence=%v err=%v", got, err)
+	}
+	if _, err := w.AccountPresence(context.Background(), []string{"invalid account"}); err != control.ErrBusy {
+		t.Fatalf("invalid presence query: %v", err)
+	}
+	w.controlPending.Store(true)
+	if _, err := w.AccountPresence(context.Background(), []string{"fixture"}); err != control.ErrBusy {
+		t.Fatalf("concurrent presence query: %v", err)
+	}
+	w.controlPending.Store(false)
+}

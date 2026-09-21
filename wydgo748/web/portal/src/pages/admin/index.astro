@@ -5,6 +5,8 @@ import '../../styles/admin.css';
 import GlobalDrop from '../../components/GlobalDrop.astro';
 import Quiz from '../../components/Quiz.astro';
 import Bosses from '../../components/Bosses.astro';
+import AccountCreate from '../../components/AccountCreate.astro';
+import AccountDirectory from '../../components/AccountDirectory.astro';
 ---
 <!doctype html>
 <html lang="pt-BR">
@@ -25,12 +27,14 @@ import Bosses from '../../components/Bosses.astro';
         <nav>
           <a class="nav-link active" href="#overview"><span aria-hidden="true">◈</span> Visão geral</a>
           <a class="nav-link" href="#players"><span aria-hidden="true">♙</span> Jogadores online</a>
+          <a class="nav-link" href="#account-directory"><span aria-hidden="true">≡</span> Contas</a>
+          <a class="nav-link" href="#accounts"><span aria-hidden="true">⊕</span> Criar conta</a>
           <a class="nav-link" href="#events"><span aria-hidden="true">✦</span> Eventos</a>
           <a class="nav-link" href="#quiz"><span aria-hidden="true">?</span> Quiz de matemática</a>
           <a class="nav-link" href="#bosses"><span aria-hidden="true">♜</span> Bosses</a>
           <a class="nav-link" href="#security"><span aria-hidden="true">◇</span> Segurança da sessão</a>
         </nav>
-        <div class="sidebar-foot"><span class="readonly-dot"></span> ACESSO POR PERMISSÃO<p>Consultar o mundo.<br />Administrar eventos.</p><span class="build-label">CONTROL PANEL · v0.2</span></div>
+        <div class="sidebar-foot"><span class="readonly-dot"></span> ACESSO POR PERMISSÃO<p>Consultar o mundo.<br />Administrar eventos e contas.</p><span class="build-label">CONTROL PANEL · v0.4</span></div>
       </aside>
       <div class="workspace">
         <header class="topbar"><span>OPERAÇÕES <span class="separator">/</span> <strong>Painel administrativo</strong></span><span class="access-badge" id="access-badge">Acesso restrito</span></header>
@@ -45,7 +49,7 @@ import Bosses from '../../components/Bosses.astro';
               <label for="adminPin">PIN administrativo <span>6–12 dígitos</span></label><input id="adminPin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6,12}" minlength="6" maxlength="12" required placeholder="000000" />
               <p id="login-message" class="form-message" role="status" aria-live="polite">Preparando acesso…</p>
               <button id="login-submit" class="button primary" disabled>Entrar no painel <span aria-hidden="true">↗</span></button>
-              <p class="login-foot">Sem acesso? Solicite autorização ao responsável pelo servidor. Este painel não cria contas de equipe.</p>
+              <p class="login-foot">Sem acesso de equipe? Solicite autorização ao responsável. Contas comuns de jogador podem ser criadas na seção abaixo.</p>
             </form>
           </section>
           <div id="dashboard" hidden>
@@ -63,6 +67,7 @@ import Bosses from '../../components/Bosses.astro';
               </div>
               <div class="detail-grid"><article class="panel"><div class="panel-heading"><h2>Estado do mundo</h2><span class="tag">WORLD SNAPSHOT</span></div><dl class="world-details"><div><dt>Estado informado</dt><dd id="world-state">Não consultado</dd></div><div><dt>Uptime da Control API</dt><dd id="world-uptime">—</dd></div><div><dt>Duração do último tick</dt><dd id="world-tick">—</dd></div><div><dt>Atraso do loop</dt><dd id="world-lag">—</dd></div></dl></article><article class="panel"><div class="panel-heading"><h2>Diagnóstico operacional</h2><span class="tag">PROCESS</span></div><dl class="world-details"><div><dt>Leitura do processo</dt><dd id="diagnostics-asof">—</dd></div><div><dt>Fila PostgreSQL</dt><dd id="postgres-queue">—</dd></div><div><dt>Falhas de persistência</dt><dd id="persistence-failures">—</dd></div><div><dt>Panics contidos</dt><dd id="world-panics">—</dd></div></dl></article></div><div class="detail-grid"><article id="security" class="panel security-panel"><span class="eyebrow">SEGURANÇA POR PADRÃO</span><h2>Operações sob controle.</h2><p>Consulte jogadores, desconecte sessões, teleporte jogadores para cidades e controle drop global, quiz e summon de bosses com permissões específicas e operações auditadas. Banimento e disparo de guerras ainda não estão habilitados neste painel.</p><div class="session-row"><span>Sessão de <strong id="session-account">—</strong><small id="session-expiry">—</small></span><button id="logout" class="button subtle">Sair ↗</button></div></article></div>
             </section>
+            <AccountDirectory />
             <section id="players" class="panel players-panel" aria-labelledby="players-title">
               <div class="players-heading"><div><span class="eyebrow">PRESENÇA NO MUNDO</span><h2 id="players-title">Jogadores online <span id="player-count" class="count">—</span></h2></div><form id="search-form" class="search-form"><label class="sr-only" for="search">Buscar por personagem, conta ou UID</label><input id="search" maxlength="48" placeholder="Personagem, conta ou UID" /><button class="button subtle" type="submit">Buscar</button></form></div>
               <article id="player-inspector" class="player-inspector" hidden aria-labelledby="inspector-name">
@@ -90,6 +95,7 @@ import Bosses from '../../components/Bosses.astro';
             <PlayerTeleport />
             <footer class="page-footer"><span>WYD · ADMINISTRAÇÃO</span><span>Dados obtidos pela fila autoritativa do servidor.</span></footer>
           </div>
+          <AccountCreate />
         </main>
       </div>
     </div>

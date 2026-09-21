@@ -1,2 +1,0 @@
-- Alterar MSG Whisper para string
-- Verificar memcpy da source

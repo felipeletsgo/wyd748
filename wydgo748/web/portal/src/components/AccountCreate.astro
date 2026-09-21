@@ -1,0 +1,30 @@
+<section id="accounts" class="panel account-create" aria-labelledby="account-create-title">
+  <div class="account-create-copy">
+    <span class="eyebrow">CONTAS DE JOGADOR</span>
+    <h2 id="account-create-title">Criar uma conta compatível com o client 7.48</h2>
+    <p>O cadastro grava somente a conta e o hash da senha. Personagens são criados depois, dentro do jogo.</p>
+    <ul>
+      <li>Conta: 4–12 letras ou números</li>
+      <li>Senha: 4–12 caracteres, sem espaços</li>
+      <li>O PIN administrativo autoriza cada cadastro</li>
+    </ul>
+  </div>
+  <form id="account-create-form" class="account-create-form">
+    <label for="new-account-username">Nova conta</label>
+    <input id="new-account-username" name="username" autocomplete="username" minlength="4" maxlength="12" pattern="[a-zA-Z0-9]{4,12}" required placeholder="4 a 12 letras ou números" />
+    <div class="account-create-passwords">
+      <div>
+        <label for="new-account-password">Senha</label>
+        <input id="new-account-password" name="password" type="password" autocomplete="new-password" minlength="4" maxlength="12" pattern="[^\s]{4,12}" required placeholder="Senha do jogo" />
+      </div>
+      <div>
+        <label for="new-account-confirmation">Confirmar senha</label>
+        <input id="new-account-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="4" maxlength="12" pattern="[^\s]{4,12}" required placeholder="Repita a senha" />
+      </div>
+    </div>
+    <label for="new-account-pin">PIN administrativo <span>6–12 dígitos</span></label>
+    <input id="new-account-pin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6,12}" minlength="6" maxlength="12" required placeholder="000000" />
+    <p id="account-create-message" class="form-message" role="status" aria-live="polite">A conta poderá entrar no jogo assim que for criada.</p>
+    <button id="account-create-submit" class="button primary" disabled>Criar conta <span aria-hidden="true">↗</span></button>
+  </form>
+</section>

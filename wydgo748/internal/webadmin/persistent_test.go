@@ -12,8 +12,16 @@ import (
 )
 
 type persistentAccounts struct {
-	player store.PersistentPlayerSnapshot
-	err    error
+	player    store.PersistentPlayerSnapshot
+	directory store.AccountDirectoryPageSnapshot
+	err       error
+}
+
+func (s persistentAccounts) ReadAccountDirectory(context.Context, string, string, int) (store.AccountDirectoryPageSnapshot, error) {
+	if s.err != nil {
+		return store.AccountDirectoryPageSnapshot{}, s.err
+	}
+	return s.directory, nil
 }
 
 func (s persistentAccounts) ReadPersistentPlayer(context.Context, string, string) (store.PersistentPlayerSnapshot, error) {
@@ -71,5 +79,34 @@ func TestAccountPersistentReaderRejectsInvalidAndMissingTargets(t *testing.T) {
 	reader = NewAccountPersistentReader(persistentAccounts{err: os.ErrNotExist})
 	if _, err := reader.Player(context.Background(), "fixture", uid); !errors.Is(err, ErrPersistentPlayerNotFound) {
 		t.Fatalf("missing account: %v", err)
+	}
+}
+
+func TestAccountPersistentReaderProjectsDirectory(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	reader := NewAccountPersistentReader(persistentAccounts{directory: store.AccountDirectoryPageSnapshot{
+		NextCursor: "fixture",
+		Accounts: []store.AccountDirectorySnapshot{{
+			Key: "fixture", Name: "Fixture", CreatedAt: now.Add(-time.Hour), UpdatedAt: now,
+			Characters: []store.AccountDirectoryCharacterSnapshot{{UID: "abcd", Slot: 1, Name: "Sentinela", Class: 2, Level: 120, Evolution: "arch"}},
+		}},
+	}}).(*accountPersistentReader)
+	reader.now = func() time.Time { return now }
+	got, err := reader.Accounts(context.Background(), "FIX", "", 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Version != 1 || got.AsOf != now || got.NextCursor != "fixture" || len(got.Accounts) != 1 {
+		t.Fatalf("directory projection mismatch: %+v", got)
+	}
+	account := got.Accounts[0]
+	if account.Username != "Fixture" || len(account.Characters) != 1 || account.Characters[0].Name != "Sentinela" || account.Characters[0].Level != 120 {
+		t.Fatalf("account projection mismatch: %+v", account)
+	}
+	if _, err := reader.Accounts(context.Background(), "inválido", "", 20); !errors.Is(err, ErrInvalidAccountDirectory) {
+		t.Fatalf("invalid directory search: %v", err)
+	}
+	if _, err := reader.Accounts(context.Background(), "", "", 51); !errors.Is(err, ErrInvalidAccountDirectory) {
+		t.Fatalf("invalid directory limit: %v", err)
 	}
 }

@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -27,12 +28,17 @@ type Control interface {
 	Overview(context.Context, string, control.Query) (control.Overview, error)
 }
 
+type AccountPresenceControl interface {
+	AccountPresence(context.Context, string, []string) (map[string]bool, error)
+}
+
 type Config struct {
 	Origin         string
 	DevHTTP        bool
 	AdminAccessPIN string
 	Staff          func() (map[string]Staff, error)
 	Accounts       account.AuthStore
+	Registration   account.RegistrationStore
 	Control        Control
 	GlobalDrop     control.GlobalDropSource
 	Quiz           control.QuizSource
@@ -109,7 +115,9 @@ func New(cfg Config) (*Handler, error) {
 	h.mux.HandleFunc("GET /api/v1/auth/session", h.sessionInfo)
 	h.mux.HandleFunc("POST /api/v1/auth/login", h.login)
 	h.mux.HandleFunc("POST /api/v1/auth/logout", h.logout)
+	h.mux.HandleFunc("POST /api/v1/accounts", h.createAccount)
 	h.mux.HandleFunc("GET /api/v1/staff/overview", h.overview)
+	h.mux.HandleFunc("GET /api/v1/staff/accounts", h.accountDirectory)
 	h.mux.HandleFunc("GET /api/v1/staff/events/global-drop", h.globalDrop)
 	h.mux.HandleFunc("POST /api/v1/staff/events/global-drop", h.globalDrop)
 	h.mux.HandleFunc("GET /api/v1/staff/events/quiz", h.quiz)
@@ -606,6 +614,82 @@ func (h *Handler) persistentPlayer(w http.ResponseWriter, r *http.Request) {
 	h.audit(r, "persistent_player", s.Actor, "succeeded", "target_account", accounts[0], "target_uid", r.PathValue("uid"))
 	writeJSON(w, 200, result)
 }
+
+func (h *Handler) accountDirectory(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.authorized(w, r)
+	if !ok {
+		return
+	}
+	entries, err := h.cfg.Staff()
+	staff := entries[s.Actor]
+	if err != nil {
+		writeError(w, 503, "staff_unavailable")
+		return
+	}
+	if staff.fingerprint() != s.StaffFingerprint || !staff.permits(PlayersCapability) {
+		h.audit(r, "account_directory", s.Actor, "forbidden")
+		writeError(w, 403, "capability_required")
+		return
+	}
+	values := r.URL.Query()
+	for key := range values {
+		if key != "search" && key != "cursor" && key != "limit" {
+			writeError(w, 400, "invalid_query")
+			return
+		}
+	}
+	if len(values["search"]) > 1 || len(values["cursor"]) > 1 || len(values["limit"]) > 1 {
+		writeError(w, 400, "invalid_query")
+		return
+	}
+	search := strings.ToLower(strings.TrimSpace(values.Get("search")))
+	cursor := strings.ToLower(strings.TrimSpace(values.Get("cursor")))
+	limit := 20
+	if raw := values.Get("limit"); raw != "" {
+		limit, err = strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, 400, "invalid_query")
+			return
+		}
+	}
+	if !validAccountDirectoryKey(search) || !validAccountDirectoryKey(cursor) || limit < 1 || limit > 50 {
+		writeError(w, 400, "invalid_query")
+		return
+	}
+	if !h.allow("account_directory:"+s.Actor, 30) {
+		w.Header().Set("Retry-After", "60")
+		writeError(w, 429, "rate_limited")
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+	defer cancel()
+	result, err := h.cfg.Persistent.Accounts(ctx, search, cursor, limit)
+	if errors.Is(err, ErrInvalidAccountDirectory) {
+		writeError(w, 400, "invalid_query")
+		return
+	}
+	if err != nil {
+		h.audit(r, "account_directory", s.Actor, "unavailable")
+		writeError(w, 503, "persistent_unavailable")
+		return
+	}
+	if presenceControl, available := h.cfg.Control.(AccountPresenceControl); available {
+		accounts := make([]string, 0, len(result.Accounts))
+		for _, entry := range result.Accounts {
+			accounts = append(accounts, entry.Username)
+		}
+		presence, presenceErr := presenceControl.AccountPresence(ctx, s.Actor, accounts)
+		if presenceErr == nil {
+			result.PresenceAvailable = true
+			for i := range result.Accounts {
+				result.Accounts[i].Online = presence[strings.ToLower(result.Accounts[i].Username)]
+			}
+		}
+	}
+	h.audit(r, "account_directory", s.Actor, "succeeded", "search", search, "count", len(result.Accounts), "presence_available", result.PresenceAvailable)
+	writeJSON(w, 200, result)
+}
+
 func (h *Handler) audit(r *http.Request, action, actor, result string, attrs ...any) {
 	base := []any{
 		"action", action,
