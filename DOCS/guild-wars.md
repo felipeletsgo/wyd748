@@ -1,163 +1,164 @@
-# Guerras de guilda: torre, cidades e fama
+# Guild wars: tower, cities, and guild fame
 
-Atualizado em 13/09/2026. Implementação do servidor: `MODERNIZACAO_COMPATIVEL`.
-Estado: `STATICALLY VERIFIED / AUTOMATED TESTED`; não é `CLIENT_TESTED`.
+The server implementation is classified as `MODERNIZACAO_COMPATIVEL`. The
+calendar and contest rules were compared with the user-specified W2PP
+reference (`CWarTower`, timers, and city results), but that provenance does
+not establish native 7.48 parity. The active client/server pair uses existing
+packet envelopes; no opcode, reward item, or client-supplied economic value
+was introduced. The native NPC confirmation flow was verified separately
+against the 7.48 client. The server remains authoritative.
 
-As regras de calendário e disputa foram comparadas com a referência externa
-W2PP solicitada pelo usuário (`CWarTower`, timer e resultado de cidades).
-Essa procedência não prova paridade nativa 7.48. Os envelopes utilizados já
-existem no par ativo; não foi introduzido opcode, item de recompensa ou valor
-econômico informado pelo client. O fluxo nativo de confirmação via NPC foi
-fechado separadamente contra o client 7.48 e o servidor mantém a autoridade.
+Status: statically verified and covered by automated tests; not
+`CLIENT_TESTED`. The real-client integration gate remains open.
 
-## Calendário padrão
+## Default schedule
 
-Horário local explícito: `America/Sao_Paulo`, independente do fuso do Windows.
+The configured timezone is explicitly `America/Sao_Paulo`, independent of
+the Windows system timezone.
 
-| Evento | Momento | Ação/aviso |
+| Event | Time | Action |
 | --- | --- | --- |
-| Torre, segunda a sexta | 21:00 e 21:04 | Avisos de 5 minutos e 1 minuto antes do combate |
-| Torre | 21:05 | Criação da torre, limpeza da arena e anúncio de início |
-| Cada captura | Durante o combate | Nome do personagem/guilda, nova defensora, torre com HP cheio e saída dos participantes |
-| Torre | 21:30 e 21:34 | Avisos de 5 minutos e 1 minuto para o encerramento |
-| Torre | 21:35 | Última dona recebe 100 de fama; anúncio, remoção da torre e saída da arena |
-| Cidades | Sábado, até 00:00 de domingo | Inscrições; anúncios de abertura e fechamento |
-| Cidades, domingo | 19:55 e 19:59 | Avisos de 5 minutos e 1 minuto antes do evento |
-| Cidades | 20:00 | Anúncio de início do evento e etapas |
-| Cidades | 20:03 | Convocação para as quatro arenas e preparação protegida |
-| Cidades | 20:05 | Aviso de 1 minuto antes do combate |
-| Cidades | 20:06 | Liberação do combate por 15 minutos |
-| Cidades | 20:16 e 20:20 | Avisos de 5 minutos e 1 minuto para o encerramento |
-| Cidades | 20:21 | Resultado das quatro cidades, domínio/defesas persistidos e saída das arenas |
+| Tower, Monday to Friday | 21:00 and 21:04 | Five-minute and one-minute warnings |
+| Tower | 21:05 | Create the tower, clear the arena, announce the start |
+| Each capture | During combat | Announce the character/guild and new defender; restore tower HP and remove participants |
+| Tower | 21:30 and 21:34 | Five-minute and one-minute closing warnings |
+| Tower | 21:35 | Award 100 guild fame to the final owner, announce the result, remove the tower, and clear the arena |
+| Cities | Saturday until Sunday 00:00 | Registration, with opening and closing announcements |
+| Cities, Sunday | 19:55 and 19:59 | Five-minute and one-minute warnings |
+| Cities | 20:00 | Announce the event and its stages |
+| Cities | 20:03 | Summon players to four arenas and begin protected preparation |
+| Cities | 20:05 | One-minute combat warning |
+| Cities | 20:06 | Enable combat for 15 minutes |
+| Cities | 20:16 and 20:20 | Five-minute and one-minute closing warnings |
+| Cities | 20:21 | Resolve all four cities, persist ownership and defense counts, and clear the arenas |
 
-O servidor precisa estar em execução para publicar avisos. Não envia uma fila
-de contagens antigas após reinício: só a janela ainda pertinente. Os textos
-de contagem representam essa janela, não um relógio sincronizado no client.
+The server must be running to publish warnings. After a restart, it publishes
+only warnings still relevant to the current window; it does not replay old
+countdowns or provide a clock synchronized with the client.
 
-Os anúncios são registrados no log e no chat. O painel nativo aceita 95 bytes
-de texto e substitui seu aviso após cerca de quatro segundos. Por isso, os
-textos são divididos e apresentados com intervalo de cinco segundos, em fila
-limitada a 64 partes. O histórico do chat recebe todas as partes imediatamente;
-um pico pode descartar somente apresentações excedentes no painel. A fila é
-volátil: não há garantia de reentrega de um anúncio após queda do processo.
-Os resultados econômicos não dependem dessa fila.
+Announcements appear in the log and chat. The native announcement panel holds
+95 text bytes and replaces a notice after about four seconds. Messages are
+split into parts shown five seconds apart, with a volatile queue limited to
+64 parts. Chat history receives all parts immediately; a burst can drop only
+excess panel presentations. A process crash does not guarantee redelivery.
+Economic results do not depend on this queue.
 
-## Torre
+## Tower war
 
-- `/tower`: personagem vivo, de guilda, no espaço público de Erion, durante
-  o combate. Destino de entrada `(2450,1855)`.
-- Arena: `(2445,1850)..(2546,1920)`. Torre dedicada próxima a `(2495,1885)`.
-  Estas posições foram verificadas no terreno instalado, mas não são uma
-  alegação de posição exata do binário nativo.
-- Usa o template instalado `Torre` (visual/HP/defesa), sem merchant, IA,
-  experiência, drop ou progresso de quest. Não reutiliza o gerador 1075 da
-  referência: esse índice identifica outro monstro nos dados ativos.
-- Somente uma guilda diferente da dona pode causar dano à torre. Dano
-  periódico também revalida autor, guilda, arena e horário.
-- A captura grava a dona antes de anunciar; falha restaura HP e preserva a
-  dona anterior. A torre recupera HP/affects após captura e todos saem para Erion.
-- Recompensa: **100 de fama para a última guilda dona**, uma única vez por
-  rodada. Sem dona, não há recompensa. Nenhum gold/item é criado.
-- Reinício recupera dona e prazo; se ainda ativa, recria a torre com HP cheio.
-  Se o prazo já venceu, conclui a premiação pendente sem duplicá-la.
+- `/tower` admits a living guild member in Erion's public space during
+  combat. Entry is at `(2450,1855)`.
+- The arena spans `(2445,1850)..(2546,1920)`, with the dedicated tower near
+  `(2495,1885)`. These positions were checked against the installed terrain;
+  they are not claimed as exact native-binary positions.
+- The installed `Torre` template supplies its appearance, HP, and defense.
+  The tower has no merchant behavior, AI, experience, drops, or quest progress.
+  Reference generator 1075 is not reused because it names a different monster
+  in the active data.
+- Only a guild other than the current owner can damage the tower. Periodic
+  damage rechecks the attacker, guild, arena, and schedule.
+- Capturing persists ownership before announcing it. A failure restores HP
+  and the previous owner. The tower regains HP and affects after capture, and
+  participants return to Erion.
+- The final owner receives **100 guild fame once per round**. No owner means
+  no reward; no gold or item is created.
+- Restart recovery restores the owner and deadline. It recreates a still-active
+  tower at full HP or completes a pending expired-round reward without
+  duplication.
 
-## Cidades e inscrições
+## City registration and combat
 
-`/citywar` mostra no chat as quatro cidades, IDs de dona/desafiante, lance e
-defesas. `/citywar 1`, `2`, `3` ou `4` inscreve respectivamente Armia, Azran,
-Erion ou Nippleheim. Não usar esse comando numérico para mera consulta.
+`/citywar` reports all four cities, owner/challenger IDs, bids, and defense
+counts in chat. `/citywar 1`, `2`, `3`, or `4` registers for Armia, Azran,
+Erion, or Nippleheim respectively. A numbered command is not a read-only
+query.
 
-Inscrição exige líder canônico da guilda, vivo, cidadão do canal, presente
-na cidade disputada, no sábado. A guilda precisa de pelo menos 100 de fama.
-Seu lance é a fama **antes** da cobrança; vence o maior lance, mantendo a
-primeira inscrição em empate. A taxa de 100 também é cobrada de lances que
-não se tornam o maior. Repetir o pedido não cobra novamente.
+Registration requires a living canonical guild leader who belongs to the
+channel and is in the contested city on Saturday. The guild needs at least
+100 fame. Its bid is its fame **before** the charge; the highest bid wins,
+with the first registration winning a tie. The 100-fame charge also applies
+to losing bids. Repeating a request does not charge again. Each guild may
+register once per week; a guild that already owns a city cannot challenge
+another.
 
-Adaptações explícitas: uma inscrição por guilda/semana; guildas que já possuem
-cidade não podem desafiar outra. O fluxo nativo de inscrição por coletor é
-`0x28E` (C->S, 16 bytes) -> `0x18D` (S->C, `MSG_STANDARD` exato de 12 bytes)
--> `0x28F` (C->S, 20 bytes). Ao receber `0x28E`, o servidor valida NPC visível,
-distância, cidade e dona atual, grava contexto efêmero com NPC/cidade, guilda
-dona e TTL de 30 segundos, e só então abre a seleção nativa. O clique válido
-em coletor (`onUseNPC`) também prepara esse contexto. `0x28F` consome-o uma
-única vez; replay, expiração, troca de dona ou interação com outro NPC invalidam
-a confirmação antes de qualquer cobrança ou registro.
-Opção inválida e coletor inexistente, incompatível ou fora de alcance também
-consomem o pedido anterior: é necessário interagir novamente. A guilda e a
-liderança do solicitante são resolvidas no registro canônico na confirmação,
-não confiadas ao contexto nem ao packet.
+The native collector flow is `0x28E` (client to server, 16 bytes) -> `0x18D`
+(server to client, exact 12-byte `MSG_STANDARD`) -> `0x28F` (client to server,
+20 bytes). On `0x28E`, the server validates collector visibility, range,
+city, and current owner; it stores a 30-second context for the NPC, city,
+and owner guild before opening native selection. A valid collector
+click (`onUseNPC`) can also prepare this context. `0x28F` consumes it once.
+Replay, expiry, owner change, or interaction with another NPC invalidates
+confirmation before charging or registering. An invalid option or an absent,
+incompatible, or out-of-range collector also consumes the old request; the
+player must interact again. Guild and leadership are re-resolved from the
+canonical record at confirmation, not trusted from the packet or context.
 
-Coletores comprovados nos dados ativos: Balmus -> Armia (`Merchant=6`,
-`Level=0`, posição `2107,2144`), Kara -> Azran (`Level=1`, `2538,1714`) e
-Empis -> Erion (`Level=2`, `2466,1986`). Não existe coletor de Nippleheim nos
-dados atuais; não foi inventado um NPC para essa cidade. O comando `/citywar`
-continua disponível como caminho administrativo/jogável equivalente às mesmas
-validações autoritativas.
+Collectors proven in the active data are Balmus -> Armia (`Merchant=6`,
+`Level=0`, `2107,2144`), Kara -> Azran (`Level=1`, `2538,1714`), and Empis ->
+Erion (`Level=2`, `2466,1986`). No Nippleheim collector exists in the current
+data; none was fabricated. `/citywar` remains an equivalent administrative
+and playable route subject to the same authoritative validation.
 
-A convocação seleciona até 26 personagens vivos de cada guilda participante,
-presentes no espaço público da cidade, sem Loja Fantasma. O desempate de
-seleção usa nome em ordem alfabética. Erion permite somente mortais. Não há
-convocação para cidade sem desafiante. Trades são cancelados ao convocar.
+Each participating guild may summon up to 26 living characters from the
+city's public space who are not using Ghost Shop. Alphabetical character
+name breaks selection ties. Erion permits only mortal characters. Cities
+without challengers summon nobody. Summoning cancels trades.
 
-Durante a preparação, o servidor impede cruzar o centro da arena e bloqueia
-PvP. Durante o combate, só participantes adversários da mesma arena podem
-atacar. Teleporte, morte, desconexão, saída da arena ou troca de guilda removem
-a participação; relogar não concede nova vaga. Não há penalidade comum de
-CP/experiência por morte nessas guerras. Dano direto, AoE e dano periódico
-usam a autorização da guerra.
+Preparation prevents crossing the arena center and blocks PvP. During
+combat, only opposing participants in the same arena may attack. Teleport,
+death, disconnect, leaving the arena, or changing guild removes
+participation; relogging does not grant another slot. Ordinary CP/experience
+death penalties do not apply. Direct, area, and periodic damage all use war
+authorization.
 
-O servidor publica a guilda adversária por `WarInfo 0x3A8/24B` no início do
-combate e limpa o snapshot na saída, morte e encerramento, reutilizando o
-[contrato nativo já estudado](../.agents/research/client748/flows/transport/war-info-contract.md).
-As barreiras de preparação são server-side: os dados ativos não contêm
-portões nessas arenas, portanto não se inventou um objeto visual.
+The server publishes the opposing guild through `WarInfo 0x3A8/24B` at
+combat start and clears the snapshot on exit, death, and completion, reusing
+the [native contract](../.agents/research/client748/flows/transport/war-info-contract.md).
+Preparation barriers are server-side: the installed data has no gates in
+these arenas, so no visual object was invented.
 
-## Resultado, fama e persistência
+## Results, economy, and persistence
 
-- Pontos da cidade: soma dos níveis dos sobreviventes válidos, com acréscimo
-  de 399 por não mortal. Empate preserva a dona; ataque precisa superar defesa.
-- Conquista troca a dona e zera defesas; defesa bem-sucedida aumenta o contador
-  até quatro. Sem desafiante, o domínio é conservado. Cidade sem dona e sem
-  ataque pontuando permanece sem dona.
-- Prêmio da cidade implementado: **domínio persistente e contador de defesas**.
-  O resultado da referência não concede automaticamente fama, gold ou itens;
-  não foram inventados esses pagamentos.
-- A economia da cidade aplica **10% de imposto** nas compras comuns/TOTO e nas
-  vendas a NPCs dentro de uma cidade controlada. Venda a NPC é definitiva; não
-  existe fluxo de recompra. Um quarto do valor do imposto é creditado no
-  tesouro da cidade. Compra comum, TOTO e venda passam pelo mesmo commit
-  econômico autoritativo. Se o crédito ultrapassar o teto de
-  `200.000.000.000`, a transação inteira é recusada sem perda de gold/item.
-- Mutação do jogador, registro de guildas/guerras e tesouro formam uma unidade
-  transacional lógica; falha de persistência restaura todos os estados
-  alterados, evitando gold/item ou tesouro parcialmente aplicados.
-- O líder da guilda proprietária pode retirar o tesouro. Saldo menor que
-  `1.000.000.000` sai como gold direto, respeitando o teto do personagem. A
-  partir de `1.000.000.000`, a retirada usa cheques de item `4011`, cada um
-  valendo `1.000.000.000`; inventário limitado permite retirada parcial sem
-  perder o restante do tesouro.
-- `/guildfame` ou `/famaguild` consulta a fama. Registros antigos começam em
-  zero; a torre fornece a fonte inicial. Soma rejeita overflow; inscrição
-  rejeita saldo insuficiente.
-- Fama, resultado, inscrições e marcadores de conclusão pertencem à mesma
-  transação do registro de guildas, em JSON ou PostgreSQL. Não há dupla soma
-  ou dupla subtração como nos caminhos redundantes da referência.
-- Falha de gravação desfaz a mutação; nunca anuncia prêmio antes do commit.
-  No encerramento da cidade, os pontos ficam congelados durante as tentativas
-  de persistência, para saídas tardias não alterarem o resultado.
-- Reinício durante preparação/combate cancela a rodada de cidades, devolve
-  100 por inscrição paga (inclusive lances perdedores) e preserva as donas.
-  Uma convocação perdida até o horário de combate também cancela: não inicia
-  uma rodada reduzida com quem reconectou primeiro.
-- Dissolução limpa referências da guilda em torres/cidades/inscrições dentro
-  da transação existente, evitando atribuir domínio a um ID reutilizado.
-- O estado usa o registro único já existente: não executar múltiplos Worlds
-  independentes disputando o mesmo registro. Coordenação multisservidor não
-  foi acrescentada neste lote.
+- City points are the sum of valid survivors' levels, plus 399 for each
+  non-mortal. A tie preserves the owner; an attack must exceed the defense.
+- Conquest changes the owner and clears its defense count. A successful
+  defense increments the count up to four. Without a challenger, ownership
+  remains unchanged; an unowned city with no scoring attack stays unowned.
+- The city reward is **persisted ownership and defense count**. The reference
+  result does not automatically award fame, gold, or items, so no such payout
+  was introduced.
+- A controlled city applies a **10% tax** to ordinary/TOTO purchases and
+  NPC sales. NPC sales are final; there is no buyback. One quarter of the tax
+  goes to the city treasury. All these transactions use the same
+  authoritative economic commit. If credit would exceed `200.000.000.000`,
+  the full transaction is rejected without losing gold or items.
+- Player mutation, guild/war records, and treasury changes form one logical
+  transaction. A persistence failure rolls back all affected state.
+- The owning guild's leader can withdraw treasury funds. Below
+  `1.000.000.000`, withdrawal gives gold directly, within the character cap.
+  From `1.000.000.000`, it gives item `4011` checks worth `1.000.000.000`
+  each. Limited inventory permits a partial withdrawal without losing the
+  remainder.
+- `/guildfame` and the established `/famaguild` alias query guild fame.
+  Older records start at zero; tower war supplies the initial fame source.
+  Addition rejects overflow, and registration rejects insufficient funds.
+- Fame, results, registrations, and completion markers share the guild-record
+  transaction in JSON or PostgreSQL. They are not applied twice through the
+  reference's redundant paths.
+- Failed persistence undoes mutation; rewards are never announced before
+  commit. City points freeze during closing persistence attempts so late
+  departures cannot change the result.
+- A restart during preparation or combat cancels the city round, refunds
+  100 fame for each paid registration (including losing bids), and preserves
+  owners. Failure to summon before combat also cancels the round; it does not
+  start a smaller round with whichever players reconnect first.
+- Guild dissolution removes its tower, city, and registration references in
+  the existing transaction so a reused guild ID cannot inherit ownership.
+- Use the existing single guild record. Running independent `World` instances
+  against it is unsupported; multi-server coordination was not added.
 
-## Configuração e arquivos
+## Configuration and implementation
 
-Chaves opcionais no arquivo de configuração do servidor:
+Optional server configuration keys:
 
 ```ini
 guild_wars_enabled=true
@@ -166,67 +167,24 @@ tower_war_hour=21
 city_war_hour=20
 ```
 
-Horas aceitas: 0..23. Os offsets da tabela permanecem iguais. A configuração
-é lida no startup, sem mudança do relógio da máquina. Desabilitar a feature
-desliga agenda, inscrições e gates de combate/movimento das guerras; não
-remove domínios existentes nem desliga tributação/coleta desses domínios.
-Reativá-la aplica as regras de recuperação acima.
+Hours are 0..23. Existing table offsets are unchanged. Configuration is
+read at startup without changing the machine clock. Disabling guild wars
+turns off scheduling, registration, and war combat/movement gates; it does
+not remove existing ownership or disable its taxation and collection.
+Re-enabling uses the recovery rules above.
 
-Implementação principal: `wydgo748/internal/game/guild_wars.go`;
-modelo: `wydgo748/internal/model/guild_wars.go`; testes:
-`guild_scheduled_wars_test.go`, `guild_wars_test.go`, testes de persistência,
-configuração, `WarInfo` e `guild_city_contract_test.go`. Integrações em combate,
-movimento, teleporte, guildas, economia e tick reaproveitam o World
-autoritativo, sem goroutines novas.
+The main implementation is `wydgo748/internal/game/guild_wars.go`, with
+models in `wydgo748/internal/model/guild_wars.go`. Relevant tests include
+`guild_scheduled_wars_test.go`, `guild_wars_test.go`, persistence and
+configuration tests, `WarInfo`, and `guild_city_contract_test.go`. Combat,
+movement, teleport, guild, economy, and tick integration reuse the
+authoritative `World` without new goroutines.
 
-## Validação e limites da entrega
+## Remaining validation
 
-Validações acumuladas nesta conversa:
-
-- `go test -count=1 ./internal/game`, `go test -count=1 ./...` e `go vet ./...`;
-- testes focados do contrato nativo de coletor `0x28E -> 0x18D -> 0x28F`,
-  incluindo replay, TTL, troca de dona, troca de NPC e coletores inválidos;
-- testes focados de imposto em compra/venda/TOTO, rollback de persistência,
-  limite de gold, inventário cheio e retirada parcial por cheque;
-- testes focados de calendário/avisos, captura, recompensa única, inscrição,
-  rollback, cancelamento/reembolso, empate, limite de convocação, gates,
-  ausência de penalidade comum e posições no terreno instalado;
-- round-trip JSON e PostgreSQL real de fama/resultado, incluindo falha de
-  exportação derivada sem desfazer o commit autoritativo;
-- testes focados com `go test -race` em game/model/store, incluindo
-  calendário, avisos, inscrição, fama e persistência PostgreSQL;
-- `ArchitectureTests` Release/Win32: 35.457 checks e asserts estáticos;
-- build Release/x86 do TMProject concluído com `Build-Client.ps1 -NoDeploy`;
-  o `tmproject/client748/project.exe` instalado não foi sobrescrito;
-- build Go em `wydgo748/bin/guild-war-server.exe`, sem reiniciar o servidor.
-
-Na revisão de fechamento, foi reproduzido e corrigido o contexto que permanecia
-ativo após rejeições antecipadas no handler de confirmação. O teste falhou nos
-sete casos antes da correção e passou depois, incluindo nova tentativa somente
-após um novo pedido. Foram acrescentadas provas de rollback/retry de compra e
-TOTO, teto do tesouro, autoridade da coleta, retirada em gold/cheques sem
-duplicação e persistência JSON/PostgreSQL de tesouro acima de 32 bits.
-
-Gates executados no fechamento:
-
-- `go test -count=1 ./internal/game ./internal/store ./internal/model ./internal/wire`;
-- `go test -race -count=1 -v ./internal/game ./internal/store -run 'TestCityWarRejectedConfirmation|TestCityTaxPurchaseFailure|TestCityTreasuryPersistenceFailure|TestGuildWarFameAndCompletion|TestPostgresGuildExportFailure'`;
-  o teste PostgreSQL executou de fato no banco local de testes, sem skip;
-- `go vet ./internal/game ./internal/store` e
-  `go build -o bin/guild-war-server.exe ./cmd/server`;
-- `git diff --check`.
-
-O C++ não foi alterado nesta revisão; o gate anterior não foi repetido.
-
-Gate ainda pendente, portanto **não declarar a mecânica inteira finalizada**:
-
-1. Teste no `project.exe` com guildas adversárias: avisos/cores, seleção de
-   alvo, chegada/barreiras, morte, skills/DoT, derrubadas sucessivas, resultado,
-   fama, inscrição por coletor, tributação/coleta, relogin e reinício. Build e
-   simulação de relógio não substituem esse gate.
-
-RvR/Akelonia-Hekalotia e castelo de Noatum continuam fora deste lote, não são
-pendências de implementação das guerras de torre/cidades aqui descritas.
-
-Nenhum arquivo foi removido por esta implementação. Não houve instalação de
-executável do client, alteração do W2PP, commit/push ou reinício do runtime.
+Run the built 7.48 client with opposing guilds to verify warnings and
+colors, targeting, arrival and barriers, death, skills and periodic damage,
+successive captures, results, fame, collector registration, taxation and
+collection, relogin, and restart. A build or simulated clock does not replace
+this gate. RvR/Akelonia-Hekalotia and Noatum Castle are outside the tower/city
+war scope described here.

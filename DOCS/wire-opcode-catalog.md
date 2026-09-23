@@ -1,269 +1,293 @@
-# Catálogo de opcodes e contratos
+# Opcode and contract catalog
 
-Fontes: `internal/core/Basedef.h` e headers proprietarios de `internal/wire/`,
-reexportados pela fachada. Este catalogo e inventario, nao autorizacao para
-alterar protocolo.
+Sources: `internal/core/Basedef.h` and the dedicated `internal/wire/` headers
+re-exported through the facade. This catalog is an inventory, not
+authorization to change the protocol.
 
-## Famílias identificadas
+## Identified families
 
-| Família | Exemplos |
-|---|---|
-| bootstrap/login | `MSG_CNFAccountLogin_Opcode`, `MSG_CNFCharacterLogin` |
-| movimento | `MSG_Action_Opcode`, `MSG_Action_Stop_Opcode`, `MSG_Motion_Opcode`, `MSG_AirMove_Start_Opcode` |
-| inventário | `MSG_DeleteItem_Opcode`, `MSG_SplitItem_Opcode`, `MSG_UseItem_Opcode`, `MSG_UpdateEquip` |
-| trade/banco | `MSG_Trade_Opcode`, `MSG_CloseTrade_Opcode`, `MSG_Withdraw_Opcode`, `MSG_Deposit_Opcode` |
-| combinação | `MSG_CombineItem_Opcode`, `MSG_CombineItemAylin_Opcode`, `MSG_CombineItemAgatha_Opcode`, `MSG_CombineItemTiny_Opcode` |
-| quest/missão | `MSG_Quest_Opcode`, `MSG_Mission` |
-| eventos | `MSG_Ping_Opcode`, `MSG_DelayStart_Opcode`, `MSG_SysQuit_Opcode` |
+| Family | Examples |
+| --- | --- |
+| Bootstrap/login | `MSG_CNFAccountLogin_Opcode`, `MSG_CNFCharacterLogin` |
+| Movement | `MSG_Action_Opcode`, `MSG_Action_Stop_Opcode`, `MSG_Motion_Opcode`, `MSG_AirMove_Start_Opcode` |
+| Inventory | `MSG_DeleteItem_Opcode`, `MSG_SplitItem_Opcode`, `MSG_UseItem_Opcode`, `MSG_UpdateEquip` |
+| Trade/bank | `MSG_Trade_Opcode`, `MSG_CloseTrade_Opcode`, `MSG_Withdraw_Opcode`, `MSG_Deposit_Opcode` |
+| Combination | `MSG_CombineItem_Opcode`, `MSG_CombineItemAylin_Opcode`, `MSG_CombineItemAgatha_Opcode`, `MSG_CombineItemTiny_Opcode` |
+| Quest/mission | `MSG_Quest_Opcode`, `MSG_Mission` |
+| Events | `MSG_Ping_Opcode`, `MSG_DelayStart_Opcode`, `MSG_SysQuit_Opcode` |
 
-## Dispatch atual
+## Current dispatch
 
-Entrada de rede: `platform/windows/CPSock.cpp`. O pacote é enquadrado como
-`MSG_STANDARD` e encaminhado ao `ObjectManager`/cena. O gate global
-`ReceivedPacketDispatch.h` valida tamanho real, tamanho declarado e opcode
-dos contratos já extraídos antes dos callbacks legados; a lista atual de
-opcodes cobertos está em `ExpectedSize`, não neste resumo.
+Network entry point: `platform/windows/CPSock.cpp`. Packets are framed as
+`MSG_STANDARD` and forwarded to the `ObjectManager`/scene. The global
+`ReceivedPacketDispatch.h` gate checks actual size, declared size, and opcode
+for extracted contracts before legacy callbacks. `ExpectedSize`, rather
+than this summary, lists the opcodes currently covered.
 
-Primeiro contrato de recepcao isolado: `MSG_ReqTransper_Opcode` (`0xFAA`),
-52 bytes, em `CharacterTransferPacket.h`. `ReceivedPacketDispatch.h` valida
-o comprimento real/declarado e o opcode antes do percurso no ObjectManager.
-Os opcodes sem tamanho registrado conservam o fallback anterior. A ficha de transferencia
-registra separadamente os claims nativos e o endurecimento local.
-O WYD-Go aceita `0xFAA` apenas na selecao, com 52 bytes exatos, e responde
-`Result=4` (erro generico do client) sem alterar conta/slot. Isto encerra a
-espera do client, mas nao implementa a transferencia para o Integrated server.
+The first isolated receive contract was `MSG_ReqTransper_Opcode` (`0xFAA`),
+52 bytes, in `CharacterTransferPacket.h`. `ReceivedPacketDispatch.h` checks
+actual/declared length and opcode before traversal in `ObjectManager`.
+Unregistered opcodes retain the previous fallback. The transfer evidence
+record distinguishes native claims from local hardening. WYD-Go accepts
+`0xFAA` only during selection, at exactly 52 bytes, and replies with
+`Result=4` (the client's generic error) without changing the account or
+slot. This ends the client's wait but does not implement transfer to the
+Integrated server.
 
-Exemplos de contratos adicionais na mesma entrada: `0x182` (SendItem, 24 bytes), `0x101`
-(MessagePanel, 108 bytes), `0x102/0x104` (mensagens opacas, 116/152 bytes) e
-`0x333` (chat local, 108 bytes). Esses contratos possuem structs/asserts em
-headers proprios de `internal/wire`, reexportados por Basedef. A validacao usa
-o comprimento real da view, Size e Type do header; os callbacks mantem o
-buffer original emprestado. Demais opcodes ainda dependem de seus consumidores.
+Other contracts at this entry point include `0x182` (SendItem, 24 bytes),
+`0x101` (MessagePanel, 108 bytes), `0x102/0x104` (opaque messages, 116/152
+bytes), and `0x333` (local chat, 108 bytes). Dedicated `internal/wire`
+headers hold their structs and assertions and are re-exported by Basedef.
+Validation uses the view's actual length and the header's Size and Type;
+callbacks retain the original borrowed buffer. Other opcodes still depend
+on their consumers.
 
-As extensoes coordenadas `0x105/0x106` tambem validam 108 bytes nesta entrada.
-`IndexedMessageContract.h` possui seus opcodes e referencia o envelope de
-chat, sem duplicar a struct. ID, seletor, indice e CSV continuam no parser da
-cena; nao constituem paridade com mensagens nativas.
+The coordinated extensions `0x105/0x106` also require 108 bytes here.
+`IndexedMessageContract.h` declares their opcodes and refers to the chat
+envelope without duplicating the struct. ID, selector, index, and CSV remain
+in the scene parser; these extensions are not native-message parity.
 
-`0x52A` (migracao de servidor/canal, 80 bytes) usa ServerMigrationPacket.h.
-A entrada de rede valida o frame antes de a cena copiar a imagem para replay.
-O replay local continua direto no handler, com o estado e a janela existentes;
-esse gate nao valida o conteudo textual do ticket ou o indice de servidor.
+`0x52A` (server/channel migration, 80 bytes) uses
+`ServerMigrationPacket.h`. The network entry point validates the frame
+before the scene copies its image for replay. Local replay remains direct
+in the handler with its existing state and window; this gate does not
+validate ticket text or the server index. The reconnection handler separately
+validates the TID's numeric prefix with `ParseMigrationServer` (bounded to
+52 bytes, with overflow and capacity checks) and the local group before
+indexing `g_pServerList`. The ticket suffix remains opaque.
 
-O handler de reconexao valida separadamente o prefixo numerico do TID com
-ParseMigrationServer (leitura limitada a 52 bytes, overflow e capacidade) e
-o grupo local antes de indexar g_pServerList. Sufixo do ticket permanece opaco.
+`0x334` (whisper/channel/mail, 128 bytes) uses
+`WhisperMessagePacket.h`, with the name at offset 12, text at 28, and color
+at 124. `ReceivedPacketDispatch` validates the envelope before the existing
+handlers; prefixes and filters remain in those handlers. Extracting this
+contract does not add a gate for shout opcode `0xD1D`.
 
-`0x334` (whisper/canal/mail, 128 bytes) usa WhisperMessagePacket.h, com
-nome em offset 12, texto em 28 e cor em 124. ReceivedPacketDispatch valida o
-envelope antes dos handlers existentes; prefixos e filtros continuam nesses
-handlers. O opcode de shout `0xD1D` nao recebe novo gate por essa extracao.
+`0x3AE` uses `DelayStartPacket.h` for the shared 16-byte ABI. SysQuit names
+`Parm=0` in the System/close paths; DelayStart retains values `1/2` for
+portal/teleport transitions and return. The native gate does not enumerate
+this opcode, so the 16-byte server-to-client validation documents the
+coordinated WYD-Go response and preserves the existing callback without
+expanding the native claim.
 
-`0x3AE` usa DelayStartPacket.h para o ABI compartilhado de 16 bytes. SysQuit
-nomeia `Parm=0` nos caminhos de System/fechamento; DelayStart conserva os
-valores `1/2` das transicoes de portal/teleporte e retorno. O gate nativo nao
-enumera esse opcode, portanto a
-validacao S->C de 16 bytes documenta a resposta coordenada do WYD-Go e preserva
-o callback existente, sem ampliar o claim nativo.
+`0x194` uses `BillingNoticePacket.h`: a 16-byte server-to-client frame with
+four opaque payload bytes. The client marks billing and displays localized
+message 132; WYD-Go has no emitter or charging rule for it.
 
-`0x194` usa BillingNoticePacket.h: frame S->C de 16 bytes, com quatro bytes de
-payload opaco. O client marca billing e mostra a mensagem localizada 132; não
-há emissor ou regra de cobrança no WYD-Go.
+`0x37D` uses `PartyAddPacket.h`: a 40-byte server-to-client frame with `PARTY`
+at `+12` and a final reserved field at `+38`. The gate preserves the existing
+Party-panel insertion callback; invitation, removal, and confirmation are
+separate contracts.
 
-`0x37D` usa PartyAddPacket.h: frame S->C de 40 bytes, `PARTY` em `+12` e
-reserved final em `+38`. O gate preserva o callback existente de inclusão no
-painel Party; convite, remoção e confirmação permanecem contratos separados.
+`0x37E` uses `PartyRemovePacket.h`: a 16-byte bidirectional frame with `Parm`
+at `+12`. Zero clears/dissolves the list; another value identifies the
+removed member. The gate preserves the callback without changing server
+authority over the party.
 
-`0x37E` usa PartyRemovePacket.h: frame C<->S de 16 bytes e `Parm` em `+12`.
-Zero limpa/dissolve a lista; outro valor identifica o membro removido. O gate
-preserva o callback existente e não altera a autoridade Party do servidor.
+`0x37F` uses `PartyRequestPacket.h`: a 44-byte bidirectional frame with the
+leader's `PARTY` snapshot at `+12` and int32 TargetID at `+40`. Existing
+client and server handlers continue to revalidate invitation, destination,
+range, and party state.
 
-`0x37F` usa PartyRequestPacket.h: frame C<->S de 44 bytes, snapshot `PARTY` do
-líder em `+12` e TargetID int32 em `+40`. O client e o servidor continuam
-revalidando convite, destino, alcance e estado do grupo nos handlers existentes.
+`0x3AB` uses `PartyAcceptPacket.h`: a 32-byte client-to-server intention,
+with short `LeaderID` at `+12`, `LeaderName[16]` at `+14`, and a reserved WORD
+at `+30`. Both client senders preserve the existing flow; there is no
+server-to-client route for this opcode.
 
-`0x3AB` usa PartyAcceptPacket.h: intenção C->S de 32 bytes, `LeaderID` short em
-`+12`, `LeaderName[16]` em `+14` e WORD reservado em `+30`. Os dois emissores
-do client preservam o fluxo existente; não há rota S->C para este opcode.
+`0x36A` uses `MotionPacket.h`: a 20-byte bidirectional frame with short
+`Motion` at `+12`, short `Parm` at `+14`, and float `Direction` at `+16`.
+The server reconstructs player emotes using the authoritative ID and keeps
+special effects in the server-to-client direction.
 
-`0x36A` usa MotionPacket.h: frame C<->S de 20 bytes, `Motion` short em `+12`,
-`Parm` short em `+14` e `Direction` float em `+16`. O servidor reconstrói
-emotes do jogador com ID autoritativo e mantém efeitos especiais no sentido S->C.
+`0x369` uses `MissingEntityRequestPacket.h`: a 16-byte client-to-server
+intention with short `MobID` at `+12` and a reserved WORD at `+14`. Action
+and Attack use the same type; the server limits responses to visible,
+nearby, authorized entities.
 
-`0x369` usa MissingEntityRequestPacket.h: intenção C->S de 16 bytes, `MobID`
-short em `+12` e WORD reservado em `+14`. Action e Attack usam o mesmo tipo;
-o servidor limita a resposta à entidade visível, próxima e autorizada.
+`0x289` uses `RestartRecallPacket.h`: a 12-byte client-to-server request
+consisting only of `MSG_STANDARD`. Death and recall retain their timers;
+the server still decides HP, position, score, and cooldown.
 
-`0x289` usa RestartRecallPacket.h: pedido C->S de 12 bytes formado somente por
-`MSG_STANDARD`. Os caminhos de morte e recall preservam seus timers; HP,
-posição, score e cooldown continuam decididos pelo servidor.
+`0x3A0` uses `KeepalivePingPacket.h`: a 12-byte client-to-server keepalive
+consisting only of `MSG_STANDARD`. Field sends the local ID, SelectChar uses
+zero, and the server records activity without replying.
 
-`0x3A0` usa KeepalivePingPacket.h: keepalive C->S de 12 bytes, somente
-`MSG_STANDARD`. Field envia o ID local, SelectChar usa zero, e o servidor
-reconhece atividade sem produzir resposta.
+`0x291` uses `ChangeCityPacket.h`: a 16-byte client-to-server intention with
+the village index at `+12`. Both `TMFieldScene` paths retain the native
+`Village < 4` condition, update HomeTown in the same flow, and send no
+reply; position and city rules remain authoritative on the server.
 
-`0x291` usa ChangeCityPacket.h: intenção C->S de 16 bytes, com o índice de
-vila em `+12`. Os dois caminhos de `TMFieldScene` preservam a condição nativa
-`Village < 4`, atualizam HomeTown no mesmo fluxo e não enviam resposta; a
-posição e qualquer regra de cidade continuam autoritativas no servidor.
+`0x290` uses `ReqTeleportPacket.h`: a 16-byte client-to-server intention with
+the reserved DWORD at `+12` set to zero. `case 16` of portal confirmation
+retains the `0x10` attribute gate; the server still decides destination,
+price, gold, and persistence.
 
-`0x290` usa ReqTeleportPacket.h: intenção C->S de 16 bytes, com o DWORD
-reservado em `+12` zerado. O `case 16` da confirmação de portal mantém a gate
-de atributo `0x10`; destino, preço, gold e persistência continuam no servidor.
+`0xAD9` uses `AirMoveContract.h` and `MSG_STANDARDPARM2`: a 20-byte
+client-to-server intention with the character's `Header.ID`, route `0..4`
+in `Parm1/+12`, and start mode `1` or end mode `2` in `Parm2/+16`. It carries
+neither NPC ID nor destination. The server validates the visible NPC and
+origin chunk, stores the flight, and publishes only the native route's final
+point after the corresponding end. See
+[the air-move contract](../.agents/research/client748/flows/transport/airmove-contract.md).
 
-`0xAD9` usa AirMoveContract.h e `MSG_STANDARDPARM2`: intenção C->S de 20
-bytes, `Header.ID` do personagem, rota `0..4` em `Parm1/+12` e modo de início
-`1` ou fim `2` em `Parm2/+16`. Não transporta NPC ID ou destino. O servidor
-valida o NPC visível e o chunk de origem, guarda o voo e publica somente o
-ponto final da rota nativa após o fim correspondente. Ver
-`../.agents/research/client748/flows/transport/airmove-contract.md`.
+`0x28B` uses `UseNPCPacket.h`: a 20-byte client-to-server intention with
+`TargetID` at `+12` and `ClickOk` at `+16`. Clicks and confirmations retain
+values `0/1`; the server still validates the NPC and context before opening
+any feature.
 
-`0x28B` usa UseNPCPacket.h: intenção C->S de 20 bytes, com `TargetID` em
-`+12` e `ClickOk` em `+16`. Os cliques e confirmações preservam os valores
-`0/1`; o servidor continua validando o NPC e o contexto antes de abrir qualquer
-feature.
+`0x28C` uses `GuildDeprivatePacket.h`: a 16-byte client-to-server intention
+with the member's `TargetID` at `+12`. The expulsion confirmation case keeps
+the contract; the server remains authoritative for rank, target, and
+persistence.
 
-`0x28C` usa GuildDeprivatePacket.h: intenção C->S de 16 bytes, com o `TargetID`
-do membro em `+12`. O caso de confirmação da expulsão preserva o contrato e o
-servidor continua autoritativo para cargo, alvo e persistência.
+`0xE0E/0xE12` use `GuildRelationPacket.h`: 20-byte client-to-server
+intentions with the local guild at `+12` and target guild at `+16`.
+Confirmation cases retain native values; war, alliance, leadership, and
+persistence remain server-authoritative.
 
-`0xE0E/0xE12` usam GuildRelationPacket.h: intenções C->S de 20 bytes, com a
-guild local em `+12` e a guild alvo em `+16`. Os casos de confirmação preservam
-os valores nativos; guerra, aliança, liderança e persistência continuam no
-servidor.
+`0xED7/0xED8` use `ServerWarLetterContract.h`: 16-byte client-to-server
+intentions with the integer target channel in `Parm/+12`. In the native
+client, items 4030/4031 first open the modal in modes 9/10; the packet is
+sent only after confirmation. WYD-Go has no handler or authoritative
+cross-instance coordination yet, so the client restores the contract
+without claiming server support for inter-channel war.
 
-`0xED7/0xED8` usam `ServerWarLetterContract.h`: intenções C->S de 16 bytes,
-com o canal alvo inteiro em `Parm/+12`. No client nativo, os itens 4030/4031
-abrem primeiro o modal nos modos 9/10; o packet só é enviado após confirmação.
-O WYD-Go ainda não possui handler nem coordenação autoritativa entre instâncias,
-portanto o client restaura o contrato sem alegar suporte server-side à guerra
-entre canais.
+`0x28F` uses `ChallengeConfirmPacket.h`: a 20-byte client-to-server
+confirmation with `Parm1` at `+12` and `Parm2` at `+16`. Native confirmation
+retains `Parm1=m_dwTID` and `Parm2=0`; the server still decides contest rules.
 
-`0x28F` usa ChallengeConfirmPacket.h: confirmação C->S de 20 bytes, com
-`Parm1` em `+12` e `Parm2` em `+16`. O caso nativo de confirmação preserva
-`Parm1=m_dwTID` e `Parm2=0`; a regra da disputa continua no servidor.
+`0x116` (character logout confirmation, 12 bytes) uses
+`CharacterLogoutConfirmPacket.h`. The contract is header-only; the scene
+validates the character ID and then copies Score/Equip before transitioning
+to SelectChar. The receive gate does not change that authority or transition.
 
-`0x116` (confirmacao de logout de personagem, 12 bytes) usa
-CharacterLogoutConfirmPacket.h. O contrato e somente o header; a cena valida
-o ID do personagem e entao copia Score/Equip antes da transicao para
-SelectChar. O gate de recepcao nao altera essa autoridade nem a transicao.
+Client-to-server request `0x215` uses `CharacterLogoutRequestPacket.h` and
+the same 12-byte envelope, but it lies outside `ReceivedPacketDispatch`
+because it is outbound. The FieldScene five-second timer fills in the local
+ID and sends the request; the server decides persistence before emitting
+`0x116`.
 
-O pedido C->S `0x215` usa CharacterLogoutRequestPacket.h e o mesmo envelope
-de 12 bytes, mas fica fora de ReceivedPacketDispatch por ser direcao de
-saida. O timer de cinco segundos da FieldScene preenche o ID local e envia o
-request; o servidor decide persistencia e somente entao emite `0x116`.
+`0x114` (CharacterLogin confirmation, 2,104 bytes) uses
+`CharacterLoginConfirmContract.h`. The gate validates only the envelope;
+selection still interprets Pos/MOB/Slot/ClientID/Weather/ShortSkill and
+sidecars before rebuilding FieldScene.
 
-`0x114` (confirmacao de CharacterLogin, 2.104 bytes) usa
-CharacterLoginConfirmContract.h. O gate valida somente o envelope; a selecao
-continua dona da interpretacao de Pos/MOB/Slot/ClientID/Weather/ShortSkill e
-sidecars antes de reconstruir a FieldScene.
+Integrity probe `0x1C1`/`0x2C2` uses `ClientIntegrityArrayContract.h`:
+24 bytes, Category at `+12`, ByteOffset at `+16`, and Value at `+20`.
+Reception validates only `0x1C1`; the handler builds a `0x2C2` response,
+preserving the received category and offset and promoting the signed byte
+to int32.
 
-O probe de integridade `0x1C1`/`0x2C2` usa ClientIntegrityArrayContract.h:
-24 bytes, Category em +12, ByteOffset em +16 e Value em +20. A recepcao
-valida apenas `0x1C1`; o handler cria a resposta `0x2C2` preservando categoria
-e offset recebidos e promovendo o byte assinado para int32.
+`0x3CE` (TOTO purchase, 36 bytes) uses `TotoPurchasePacket.h`. The client
+validates local fields and closes the panel after sending; price, shop,
+item 4147, gold, UID, effects, and rollback are exclusively WYD-Go's
+responsibility.
 
-`0x3CE` (compra TOTO, 36 bytes) usa TotoPurchasePacket.h. O client valida
-campos locais e fecha o painel após o envio; preço, loja, item 4147, gold,
-UID, efeitos e rollback continuam autoridade exclusiva do WYD-Go.
+`0x277` (ApplyBonus, 20 bytes) uses `ApplyBonusPacket.h`. `BonusType=2`,
+`Detail`, and `TargetID` express purchase intent; the server decides skill,
+points, prerequisites, cost, and persistence.
 
-`0x277` (ApplyBonus, 20 bytes) usa ApplyBonusPacket.h. `BonusType=2`,
-`Detail` e `TargetID` são intenção de compra; skill, pontos, pré-requisitos,
-custo e persistência são decididos pelo servidor.
+`0x373` (UseItem, 36 bytes) uses `UseItemPacket.h`, with source at
+`+12/+16`, destination at `+20/+24`, cell at `+28/+30`, and ItemID at `+32`.
+The client may consume the item visually before the response; the server
+reconciles authoritative state through SendItem.
 
-`0x373` (UseItem, 36 bytes) usa UseItemPacket.h, com origem em +12/+16,
-destino em +20/+24, célula em +28/+30 e ItemID em +32. O client pode consumir
-visualmente antes da resposta; a reconciliação autoritativa ocorre por
-SendItem no servidor.
+The F hotkey also uses `UseItemPacket.h`/`0x373/36`: SourType=1, normalized
+position, zeroed destinations, current GridX/GridY, and ItemID=0. Selecting
+the consumable compatible with Equip[12] and enforcing cooldown belong to
+Field. This shares the wire format with the E potion; it does not get a
+second struct.
 
-O atalho F também usa `UseItemPacket.h`/`0x373/36`: SourType=1, posição
-normalizada, destinos zerados, GridX/GridY atuais e ItemID=0. A seleção do
-consumível compatível com Equip[12] e o cooldown pertencem à Field; o wire é
-compartilhado com a poção E e não ganha uma segunda struct.
+`0x399` (PK Mode, 16 bytes) uses `PKModePacket.h`: `Parm` at `+12`, valid
+domain `0/1`. The server applies the state before PvP and confirms it via
+`MessagePanel` (`0x101`); the 7.48 client does not dispatch a `0x166`
+response. Absence of an optional control does not change the wire format or
+interrupt the toggle.
 
-`0x399` (PK Mode, 16 bytes) usa PKModePacket.h: `Parm` em +12, domínio
-válido `0/1`. O servidor aplica o estado antes de PvP e confirma por
-`MessagePanel` (`0x101`); o client 7.48 não despacha um retorno `0x166`.
-Controle opcional ausente não altera o wire nem interrompe o toggle.
+`0x378` (SetShortSkill, bidirectional, 32 bytes) uses
+`ShortSkillSnapshotContract.h`: twenty shortcuts occupy `[12:32]`. The
+client sends the entire array; the server removes unlearned skills and
+returns the authoritative snapshot. Before `memcpy` and rebuilding both
+pages, the receive gate requires actual/declared sizes and both opcodes.
 
-`0x378` (SetShortSkill C<->S, 32 bytes) usa
-`ShortSkillSnapshotContract.h`: os vinte atalhos ocupam `[12:32]`. O client
-envia o array integral; o servidor remove skills não aprendidas e devolve o
-snapshot autoritativo. O gate de recepção exige tamanho real/declarado e os
-dois opcodes antes do `memcpy` e do rebuild das duas páginas.
+`0x366/0x367/0x368` share `ActionFrameContract.h` and a 52-byte envelope:
+PosXY at `+12`, Speed at `+16`, Effect at `+20`, TargetXY at `+24`, and
+Route[24] at `+28`. The receive gate requires the complete frame before
+`TMHuman` chooses movement, stop, or Illusion; semantics and authority
+remain with WYD-Go.
 
-`0x366/0x367/0x368` compartilham `ActionFrameContract.h` e um envelope de 52
-bytes: PosXY em +12, Speed em +16, Effect em +20, TargetXY em +24 e Route[24]
-em +28. O gate de recepcao exige o frame integral antes de `TMHuman` escolher
-movimento, parada ou Illusion; semantica e autoridade permanecem no WYD-Go.
+`0x39D/0x39E/0x36C` use `AttackFrameContract.h`: native prefixes of
+48/52/96 bytes for one, two, and thirteen targets, with the damage list at
+`+44`. The active pair also accepts coordinated wide-damage extensions:
+physical `0x39D/52`, `0x39D/60`, `0x39E/64|68`, and `0x36C/108..156` in
+steps of four with `DMGX`. The gate requires actual size, `Header.Size`,
+and the opcode's allowed size set to match before `OnPacketAttack`;
+calculation and publication remain authoritative in WYD-Go.
 
-`0x39D/0x39E/0x36C` usam `AttackFrameContract.h`: prefixos nativos de
-48/52/96 bytes para um, dois e treze alvos e lista de dano em +44. O par ativo
-também aceita as extensões coordenadas de dano amplo: `0x39D/52` físico,
-`0x39D/60`, `0x39E/64|68` e `0x36C/108..156` em passo 4 com `DMGX`. O gate
-exige que tamanho real, `Header.Size` e o conjunto permitido para o opcode
-coincidam antes de `OnPacketAttack`; cálculo e publicação seguem autoritativos
-no WYD-Go.
+`0x376/20` and `0x379/24` use `InventoryTransactionContract.h`. SwapItem
+carries source/destination at `+12..+15` and TargetID at `+16`; Buy carries
+the merchant at `+12`, sparse shop cell at `+14`, Carry at `+16`, and Coin at
+`+20`. Beyond envelope validation, the client applies the same domains as
+WYD-Go: Equip `0..15` except 9, Carry `0..62`, Cargo `0..119`, and shop cells
+`0..8`, `27..35`, or `54..62`. A successful swap is completed by `0x376`;
+`0x182` resynchronizes cells after rejection. A successful purchase is
+confirmed by `0x379` itself.
 
-`0x376/20` e `0x379/24` usam `InventoryTransactionContract.h`. SwapItem
-carrega origem/destino em +12..+15 e TargetID em +16; Buy carrega mercador em
-+12, célula esparsa da loja em +14, Carry em +16 e Coin em +20. Além do gate
-de envelope, o client exige os mesmos domínios do WYD-Go: Equip `0..15` exceto
-9, Carry `0..62`, Cargo `0..119` e células de loja `0..8`, `27..35` ou
-`54..62`. Sucesso de swap é concluído por `0x376`; `0x182` ressincroniza
-células em rejeições. Compra bem-sucedida é confirmada pelo próprio `0x379`.
+`0x387/0x388` (Cargo gold withdrawal/deposit, bidirectional, 16 bytes) use
+`CargoGoldTransferContract.h`: the `uint32` amount occupies `+12`. The gate
+requires the full envelope before `OnPacketWithdraw`/`OnPacketDeposit` casts.
+WYD-Go validates and persists the transfer, returns the same opcode/amount,
+then reconciles balances with authoritative `0x339` and `0x337` frames.
 
-`0x387/0x388` (saque/depósito de gold do Cargo, C<->S, 16 bytes) usam
-`CargoGoldTransferContract.h`: a quantidade `uint32` ocupa `+12`. O gate exige
-o envelope completo antes dos casts de `OnPacketWithdraw`/`OnPacketDeposit`.
-O WYD-Go valida e persiste a transferência, devolve o mesmo opcode/quantidade
-e em seguida reconcilia os saldos com `0x339` e `0x337` autoritativos.
+`0x39F` (PlayerChallenge, bidirectional, 20 bytes) uses
+`PlayerChallengeContract.h`: the other player occupies `Parm1/+12`, and
+the mode occupies `Parm2/+16`. The same envelope carries initial intent
+(`0..3`), the invitation sent to the target, and acceptance (`4`). The
+gate requires the full frame before `TMHuman::OnPacketReqRanking`; WYD-Go
+remains authoritative for lifecycle, range, expiration, and one-time use.
 
-`0x39F` (PlayerChallenge C<->S, 20 bytes) usa
-`PlayerChallengeContract.h`: o outro jogador ocupa `Parm1/+12` e o modo ocupa
-`Parm2/+16`. O mesmo envelope carrega a intenção inicial (`0..3`), o convite
-publicado ao alvo e a aceitação (`4`). O gate exige o frame integral antes de
-`TMHuman::OnPacketReqRanking`; lifecycle, alcance, expiração e consumo único
-continuam autoritativos no WYD-Go.
+`0x397` (AutoTrade, bidirectional, 196 bytes) uses `AutoTradeContract.h`:
+description at `+12`, twelve items at `+36`, positions at `+132`, prices at
+`+144`, fee at `+192`, and target at `+194`. The gate requires the exact
+envelope before Field terminates the description, copies the snapshot, and
+materializes offers. Validation and persistence remain with WYD-Go.
 
-`0x397` (AutoTrade C<->S, 196 bytes) usa `AutoTradeContract.h`: descrição em
-+12, doze itens em +36, posições em +132, preços em +144, taxa em +192 e alvo
-em +194. O gate exige o envelope exato antes de a Field terminar a descrição,
-copiar o snapshot e materializar as ofertas; validação e persistência continuam
-autoritativas no WYD-Go.
+`0x2CD` (16-byte client-to-server query) and `0xDC3` (52-byte
+server-to-client CapsuleInfo) form the Celestial Capsule round trip.
+`CapsuleInfoContract.h` fixes CIndex at `+12`, class/level at `+16/+18`,
+attributes at `+20..+26`, two masteries at `+28`, nine skills at `+32`, and
+quest at `+50`. The old 7.69 facade had four masteries and 56 bytes; the
+ABI and gate now match WYD-Go's 7.48 builder, which checks account and seal
+ownership before replying.
 
-`0x2CD` (consulta C->S, 16 bytes) e `0xDC3` (CapsuleInfo S->C, 52 bytes)
-formam o roundtrip da Cápsula Celestial. `CapsuleInfoContract.h` fixa `CIndex`
-em +12, classe/nível em +16/+18, atributos em +20..+26, duas masteries em +28,
-nove skills em +32 e quest em +50. A antiga fachada herdada do 7.69 tinha
-quatro masteries e 56 bytes; agora o ABI e o gate coincidem com o builder 7.48
-do WYD-Go, que valida conta e ownership do selo antes da resposta.
+`0x1BF` (Gamble result, 36 bytes, server to client) and `0x2BE` (wager,
+20 bytes, client to server) use `GamblePacket.h`. Result, prize, and jackpot
+are copied to the UI; balance, pool, and RNG remain server-authoritative.
 
-`0x1BF` (resultado Gamble S→C, 36 bytes) e `0x2BE` (aposta C→S, 20 bytes)
-usam GamblePacket.h. Resultado, prêmio e jackpot são copiados para a UI;
-saldo, pool e RNG permanecem autoridade do servidor.
+`0x338` (CNFMobKill, 24 bytes, server to client) uses
+`MobKillConfirmPacket.h`: Hold/FakeExp at `+12`, victim at `+16`, killer at
+`+18`, and uint32 EXP at `+20`. The gate validates the frame before Field
+applies EXP/Hold and visual death.
 
-`0x338` (CNFMobKill S→C, 24 bytes) usa MobKillConfirmPacket.h: Hold/FakeExp
-em +12, vítima +16, killer +18 e EXP uint32 em +20. O gate valida o frame
-antes de a Field aplicar EXP/Hold e morte visual.
+`0x337` (UpdateEtc, 36 bytes, server to client) uses
+`UpdateEtcPacket.h`: Hold at `+12`, EXP at `+16`, LearnedSkill at `+20`,
+WORD points at `+24..30`, and gold at `+32`. The full Score remains in
+`0x336`; CP/Chaos does not occupy this compact snapshot.
 
-`0x337` (UpdateEtc S→C, 36 bytes) usa UpdateEtcPacket.h: Hold +12, EXP +16,
-LearnedSkill +20, pontos WORD em +24..30 e gold +32. Score completo permanece
-em `0x336`; CP/Chaos não ocupa este snapshot compacto.
+`0x3CA` (Premium Firework, 36 bytes, server to client) uses
+`PremiumFireworkPacket.h`: eight reserved bytes at `+12` and a 10x10
+LSB-first bitmap occupying 16 bytes at `+20`. The server publishes only
+after validating and persisting consumption; the scene and effect container
+own the visual effect.
 
-`0x3CA` (Premium Firework S→C, 36 bytes) usa PremiumFireworkPacket.h:
-reservado em +12 (8 bytes) e bitmap 10x10 LSB-first em +20 (16 bytes). O
-servidor publica somente após validar/persistir o consumo; o efeito visual
-continua dono da cena e do container de efeitos.
+Request `0x3C9` uses `PremiumFireworkUsePacket.h`: 52 bytes,
+source/destination equivalent to UseItem, ItemID at `+32`, and bitmap at
+`+34`. The server validates the final two bytes, bits outside the grid,
+item, position, and cooldown.
 
-O request `0x3C9` usa PremiumFireworkUsePacket.h: 52 bytes, origem/destino
-equivalentes a UseItem, ItemID em +32 e bitmap em +34. Os dois bytes finais,
-bits fora da grade, item, posição e cooldown são validados pelo servidor.
+## Migration rules
 
-## Regras de migração
-
-- reexportar o opcode pela fachada enquanto houver consumidores legados;
-- validar tamanho antes de reinterpretar o buffer;
-- não inferir semântica apenas pelo nome do opcode;
-- registrar caller, consumidor e fallback para cada entrada migrada;
-- adicionar teste de pacote truncado antes de mover o handler.
+- Re-export an opcode through the facade while legacy consumers remain.
+- Validate size before reinterpreting a buffer.
+- Do not infer semantics from the opcode name alone.
+- Record the caller, consumer, and fallback for each migrated entry.
+- Add a truncated-packet test before moving a handler.

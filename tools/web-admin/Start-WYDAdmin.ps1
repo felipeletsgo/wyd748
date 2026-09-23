@@ -3,7 +3,7 @@ param(
     [switch]$NoBrowser
 )
 
-# Prepara/abre o painel integrado. Nao inicia, reinicia ou encerra o servidor.
+# Prepare/open the integrated panel. Do not start, restart, or stop the server.
 $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $serverRoot = Join-Path $repoRoot "wydgo748"
@@ -16,10 +16,10 @@ if (-not $SkipBuild) {
     try {
         if (-not (Test-Path -LiteralPath "node_modules" -PathType Container)) {
             & $npm.Source ci
-            if ($LASTEXITCODE -ne 0) { throw "Falha ao instalar dependencias do painel." }
+            if ($LASTEXITCODE -ne 0) { throw "Failed to install panel dependencies." }
         }
         & $npm.Source run build
-        if ($LASTEXITCODE -ne 0) { throw "Falha ao compilar o painel." }
+        if ($LASTEXITCODE -ne 0) { throw "Failed to build the panel." }
     }
     finally { Pop-Location }
 }
@@ -32,7 +32,7 @@ foreach ($line in Get-Content -LiteralPath $configFile) {
     if ($parts.Count -eq 2) { $settings[$parts[0].Trim()] = $parts[1].Trim().Trim('"') }
 }
 if ($settings["web_admin_enabled"] -notin @("true", "1")) {
-    throw "Habilite web_admin_enabled=true em $configFile e abra o tm.exe atualizado."
+    throw "Enable web_admin_enabled=true in $configFile and start the updated tm.exe."
 }
 $address = $settings["web_admin_address"]
 if ([string]::IsNullOrWhiteSpace($address)) { $address = "127.0.0.1:8082" }
@@ -41,22 +41,22 @@ try {
     $ip = [System.Net.IPAddress]::Parse($uri.DnsSafeHost)
     if (-not [System.Net.IPAddress]::IsLoopback($ip) -or $uri.Port -lt 1 -or
         $uri.Port -gt 65535 -or $uri.AbsolutePath -ne "/" -or $uri.UserInfo -ne "" -or
-        $uri.Query -ne "" -or $uri.Fragment -ne "") { throw "endereco nao local" }
+        $uri.Query -ne "" -or $uri.Fragment -ne "") { throw "non-local address" }
 }
-catch { throw "web_admin_address invalido: use IP literal de loopback e porta, como 127.0.0.1:8082." }
+catch { throw "Invalid web_admin_address: use a loopback IP address and port, such as 127.0.0.1:8082." }
 
 $panelUrl = "http://$address/admin/"
 try {
     $response = Invoke-WebRequest -Uri "http://$address/healthz" -UseBasicParsing -TimeoutSec 3
-    if ($response.StatusCode -ne 200) { throw "healthcheck falhou" }
+    if ($response.StatusCode -ne 200) { throw "Health check failed" }
 }
 catch {
-    Write-Host "Abra o tm.exe atualizado na pasta $serverRoot."
-    Write-Host "O painel sera iniciado automaticamente em $panelUrl"
-    Write-Host "Se o servidor ja estiver aberto, consulte seu console; um executavel antigo precisa ser atualizado e reiniciado por voce."
+    Write-Host "Start the updated tm.exe in $serverRoot."
+    Write-Host "The panel will be available automatically at $panelUrl"
+    Write-Host "If the server is already running, check its console; update and restart an older executable yourself."
     return
 }
-Write-Host "Painel disponivel: $panelUrl"
-Write-Host "Use a conta felipetr, a senha normal da conta e o PIN de data/server.txt."
-Write-Host "Servidor e logs permanecem na janela do tm.exe."
+Write-Host "Panel available at: $panelUrl"
+Write-Host "Use the felipetr account, its usual password, and the PIN from data/server.txt."
+Write-Host "Server output and logs remain in the tm.exe window."
 if (-not $NoBrowser) { Start-Process $panelUrl }

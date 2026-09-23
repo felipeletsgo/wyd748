@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-Audita referencias estaticas de assets do TMProject748 contra client748.
+Audit static TMProject748 asset references against client748.
 .DESCRIPTION
-Le os manifests JSON e literais estaticos de paths nas sources C++ sem alterar
-assets. Dependencias declaradas como ausentes em Costumes-KR.json sao separadas
-de faltas ainda nao classificadas. Por padrao reporta a divida existente;
--FailOnMissing transforma faltas nao classificadas ou divergencias de casing em
-erro para uso futuro como gate.
+Read JSON manifests and static path literals in C++ sources without changing
+assets. Dependencies declared unavailable in Costumes-KR.json are separate
+from unclassified missing references. By default, report existing debt;
+-FailOnMissing treats unclassified missing references or casing mismatches as
+errors for a future validation gate.
 #>
 [CmdletBinding()]
 param(
@@ -24,10 +24,10 @@ $assetPattern = '(?i)\.(?:msh|wys|msa|wyt|trn|ani|bon)$'
 $sourceLiteralPattern = '(?i)"(?<path>(?:mesh|effect|env|ui)[/\\][^"\r\n%]+\.(?:msh|wys|msa|wyt|trn|ani|bon))"'
 
 if (-not (Test-Path -LiteralPath $assetRoot -PathType Container)) {
-    throw "Asset root ausente: $assetRoot"
+    throw "Asset root missing: $assetRoot"
 }
 if (-not (Test-Path -LiteralPath $sourceRoot -PathType Container)) {
-    throw "Source root ausente: $sourceRoot"
+    throw "Source root missing: $sourceRoot"
 }
 
 function Normalize-AssetPath([string]$Path) {
@@ -48,7 +48,7 @@ $declaredUnavailable = [Collections.Generic.List[object]]::new()
 $costumeManifestName = 'Costumes-KR.json'
 $costumeManifestPath = Join-Path $assetRoot $costumeManifestName
 if (-not (Test-Path -LiteralPath $costumeManifestPath -PathType Leaf)) {
-    throw "Manifest ausente: $costumeManifestName"
+    throw "Manifest missing: $costumeManifestName"
 }
 $costumeManifest = [IO.File]::ReadAllText($costumeManifestPath) | ConvertFrom-Json
 foreach ($item in @($costumeManifest.items)) {
@@ -67,7 +67,7 @@ foreach ($item in @($costumeManifest.items)) {
 $mountManifestName = 'Mounts-KR.json'
 $mountManifestPath = Join-Path $assetRoot $mountManifestName
 if (-not (Test-Path -LiteralPath $mountManifestPath -PathType Leaf)) {
-    throw "Manifest ausente: $mountManifestName"
+    throw "Manifest missing: $mountManifestName"
 }
 $mountManifest = [IO.File]::ReadAllText($mountManifestPath) | ConvertFrom-Json
 foreach ($texture in @($mountManifest.textures)) {

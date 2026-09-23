@@ -62,6 +62,14 @@ a partial translation as completion.
 - The official quest and event technical summary is now in English. Historical
   values, item names, the `/qst` command, and source URLs were preserved; this
   translation does not establish native 7.48 gameplay parity.
+- The guild-war guide now describes the current schedule, collector contract,
+  economy, and remaining real-client gate in English. Session-specific build
+  and test history was removed from that guide; no gameplay contract changed.
+- The opcode and wire-contract catalog is now in English. Opcode values,
+  packet sizes, offsets, and contract identifiers were preserved; this
+  translation does not add protocol coverage or client validation.
+- The web-admin starter and client-asset audit scripts now use English help,
+  comments, and diagnostics. Their switches, paths, and behavior are unchanged.
 - Ghost-shop and player-trade errors shown to players, diagnostics, and adjacent
   source comments and tests are in English. Focused automated tests cover title
   validation, trade-item rejection, purchase errors, and the existing flows.
