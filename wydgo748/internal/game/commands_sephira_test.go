@@ -43,22 +43,22 @@ func TestChatHandlersRouteLocalWhisperAndChannels(t *testing.T) {
 	beforeThird := third.Session.QueuedPacketsForTest()
 	w.onMessageChat(sender.Session, chatPacket("hello local"))
 	if recipient.Session.QueuedPacketsForTest() != beforeRecipient+1 {
-		t.Fatal("chat local dependeu incorretamente do cache Visible")
+		t.Fatal("local chat incorrectly depended on the Visible cache")
 	}
 	if third.Session.QueuedPacketsForTest() != beforeThird {
-		t.Fatal("chat local vazou para outro gameplay space")
+		t.Fatal("local chat leaked into another gameplay space")
 	}
 
 	beforeRecipient = recipient.Session.QueuedPacketsForTest()
 	w.onMessageChat(sender.Session, chatPacket(`/Recipient private`))
 	if recipient.Session.QueuedPacketsForTest() != beforeRecipient+1 {
-		t.Fatal("whisper digitado no chat comum nao foi roteado")
+		t.Fatal("whisper typed in normal chat was not routed")
 	}
 
 	beforeRecipient = recipient.Session.QueuedPacketsForTest()
 	w.onMessageWhisper(sender.Session, whisperPacket("Recipient", "direct"))
 	if recipient.Session.QueuedPacketsForTest() != beforeRecipient+1 {
-		t.Fatal("whisper 0x334 nao chegou ao destinatario")
+		t.Fatal("0x334 whisper did not reach its recipient")
 	}
 
 	party := &Party{Members: []*Player{sender, recipient}}
@@ -66,7 +66,7 @@ func TestChatHandlersRouteLocalWhisperAndChannels(t *testing.T) {
 	beforeRecipient = recipient.Session.QueuedPacketsForTest()
 	w.onMessageWhisper(sender.Session, whisperPacket("", "=party"))
 	if recipient.Session.QueuedPacketsForTest() != beforeRecipient+1 {
-		t.Fatal("chat de party nao chegou ao membro")
+		t.Fatal("party chat did not reach the member")
 	}
 
 	beforeRecipient = recipient.Session.QueuedPacketsForTest()
@@ -74,7 +74,7 @@ func TestChatHandlersRouteLocalWhisperAndChannels(t *testing.T) {
 	w.onMessageWhisper(sender.Session, whisperPacket("", "--global"))
 	if recipient.Session.QueuedPacketsForTest() != beforeRecipient+1 ||
 		third.Session.QueuedPacketsForTest() != beforeThird+1 {
-		t.Fatal("chat global nao foi difundido")
+		t.Fatal("global chat was not broadcast")
 	}
 }
 
@@ -92,7 +92,7 @@ func TestChatHandlersRouteCitizenshipAndKingdomChannels(t *testing.T) {
 	w.onMessageWhisper(sender.Session, whisperPacket("", "@@citizen"))
 	if citizen.Session.QueuedPacketsForTest() != beforeCitizen+1 ||
 		outsider.Session.QueuedPacketsForTest() != beforeOutsider {
-		t.Fatal("chat de cidadania nao respeitou o canal do personagem")
+		t.Fatal("citizenship chat ignored the character's channel")
 	}
 
 	// Kingdom is derived from the cape in the same way as the live server.
@@ -104,7 +104,7 @@ func TestChatHandlersRouteCitizenshipAndKingdomChannels(t *testing.T) {
 	w.onMessageWhisper(sender.Session, whisperPacket("", "@kingdom"))
 	if citizen.Session.QueuedPacketsForTest() != beforeCitizen+1 ||
 		outsider.Session.QueuedPacketsForTest() != beforeOutsider {
-		t.Fatal("chat de reino nao respeitou o reino do personagem")
+		t.Fatal("kingdom chat ignored the character's kingdom")
 	}
 }
 
@@ -118,7 +118,7 @@ func TestChatCommandsClearInventoryAndShout(t *testing.T) {
 
 	w.onMessageChat(sender.Session, chatPacket("/limparinv"))
 	if sender.Char.Inv[0].Index != 0 || st.saves != 1 {
-		t.Fatalf("/limparinv nao foi despachado: item=%d saves=%d", sender.Char.Inv[0].Index, st.saves)
+		t.Fatalf("/limparinv was not dispatched: item=%d saves=%d", sender.Char.Inv[0].Index, st.saves)
 	}
 
 	sender.Char.Inv[1] = model.Item{Index: magicTrumpet}
@@ -126,14 +126,14 @@ func TestChatCommandsClearInventoryAndShout(t *testing.T) {
 	w.onMessageChat(sender.Session, chatPacket("/spk server announcement"))
 	if sender.Char.Inv[1].Index != 0 || st.saves != 2 ||
 		recipient.Session.QueuedPacketsForTest() != beforeRecipient+1 {
-		t.Fatalf("/spk incorreto: item=%d saves=%d recipient=%d/%d",
+		t.Fatalf("/spk failed: item=%d saves=%d recipient=%d/%d",
 			sender.Char.Inv[1].Index, st.saves, recipient.Session.QueuedPacketsForTest(), beforeRecipient)
 	}
 
 	beforeSender := sender.Session.QueuedPacketsForTest()
 	w.onMessageChat(sender.Session, chatPacket("/spk no item"))
 	if sender.Session.QueuedPacketsForTest() != beforeSender+1 {
-		t.Fatal("/spk sem item nao informou o jogador")
+		t.Fatal("/spk did not notify the player when the item was missing")
 	}
 }
 
@@ -145,13 +145,13 @@ func TestWhisperHandlerReportsOfflineAndCharacterInfo(t *testing.T) {
 	before := sender.Session.QueuedPacketsForTest()
 	w.onMessageWhisper(sender.Session, whisperPacket("Offline", "hello"))
 	if sender.Session.QueuedPacketsForTest() != before+1 {
-		t.Fatal("whisper offline nao retornou aviso")
+		t.Fatal("offline whisper did not return a notice")
 	}
 
 	before = sender.Session.QueuedPacketsForTest()
 	w.onMessageWhisper(sender.Session, whisperPacket("Recipient", ""))
 	if sender.Session.QueuedPacketsForTest() != before+1 {
-		t.Fatal("/nick sem texto nao retornou informacoes")
+		t.Fatal("/nick without text did not return character information")
 	}
 }
 
@@ -163,7 +163,7 @@ func TestWhisperDayRequestReturnsHiddenCalendarSync(t *testing.T) {
 	w.onMessageWhisper(sender.Session, whisperPacket("day", ""))
 
 	if got := sender.Session.QueuedPacketsForTest(); got != before+1 {
-		t.Fatalf("day nao gerou sincronismo: fila %d -> %d", before, got)
+		t.Fatalf("day did not produce sync: queue %d -> %d", before, got)
 	}
 }
 
@@ -175,15 +175,15 @@ func TestServerSwitchRequestReportsUnavailableWithoutMigration(t *testing.T) {
 	for _, channel := range []string{"1", "0", "not-a-channel"} {
 		w.onMessageWhisper(sender.Session, whisperPacket("srv", channel))
 		if sender.Session.QueuedPacketsForTest() != 1 {
-			t.Fatalf("pedido srv %q nao recebeu uma unica rejeicao", channel)
+			t.Fatalf("srv request %q did not receive exactly one rejection", channel)
 		}
 		pkt, ok := sender.Session.DequeuePacketForTest()
 		if !ok || !wire.Decrypt(pkt) || wire.ParseHeader(pkt).Type != wire.OpMessagePanel ||
-			!bytes.Contains(pkt[12:107], []byte("Troca de canal indisponivel")) {
-			t.Fatalf("pedido srv %q nao retornou aviso de indisponibilidade", channel)
+			!bytes.Contains(pkt[12:107], []byte("Channel switching is unavailable")) {
+			t.Fatalf("srv request %q did not return an unavailable notice", channel)
 		}
 		if sender.X != oldX || sender.Y != oldY || !sender.InWorld || w.players[sender.Session] != sender {
-			t.Fatalf("pedido srv %q alterou estado sem migracao", channel)
+			t.Fatalf("srv request %q changed state without migration", channel)
 		}
 	}
 }
@@ -197,10 +197,10 @@ func TestSephiraCannonAndThornWallLifecycle(t *testing.T) {
 	}
 	w.ghostShops = make(map[uint16]*GhostShop)
 	if cannon := w.groundCannonAt(2100, 2100); cannon == nil || cannon.ID != 15001 {
-		t.Fatalf("canhao nativo nao encontrado: %+v", cannon)
+		t.Fatalf("native cannon not found: %+v", cannon)
 	}
 	if w.groundCannonAt(2101, 2100) != nil {
-		t.Fatal("canhao encontrado em coordenada incorreta")
+		t.Fatal("cannon found at the wrong coordinates")
 	}
 
 	vine := model.NPCDef{
@@ -214,13 +214,13 @@ func TestSephiraCannonAndThornWallLifecycle(t *testing.T) {
 	skill := model.SkillDef{Index: 98, Range: 6}
 	req := skillCastRequest{TargetX: 2102, TargetY: 2100}
 	if !w.canCastThornWall(p, req, skill) {
-		t.Fatal("posicao livre e em alcance foi recusada")
+		t.Fatal("free position within range was rejected")
 	}
 	if !w.castThornWall(p, req, skill, 40, 1) {
-		t.Fatal("Vinha nao foi evocada")
+		t.Fatal("Thorn Wall vine was not summoned")
 	}
 	if len(w.sephiraObjects) != 1 || len(w.mobsByID) != 1 {
-		t.Fatalf("Vinha nao foi registrada: sephira=%d mobs=%d", len(w.sephiraObjects), len(w.mobsByID))
+		t.Fatalf("Thorn Wall vine was not registered: sephira=%d mobs=%d", len(w.sephiraObjects), len(w.mobsByID))
 	}
 
 	var wall *Mob
@@ -228,15 +228,15 @@ func TestSephiraCannonAndThornWallLifecycle(t *testing.T) {
 		wall = mob
 	}
 	if wall.HP != 500 || wall.Def.Score.CurHP != 500 || wall.SummonerID != p.ID {
-		t.Fatalf("estado da Vinha incorreto: %+v", wall)
+		t.Fatalf("Thorn Wall vine has incorrect state: %+v", wall)
 	}
 	if w.canCastThornWall(p, req, skill) {
-		t.Fatal("segunda Vinha aceitou coordenada ocupada")
+		t.Fatal("second Thorn Wall vine accepted an occupied coordinate")
 	}
 
 	w.tickSephiraObjects(time.Now().Add(thornWallLifetime + time.Second))
 	if len(w.sephiraObjects) != 0 || len(w.mobsByID) != 0 || !wall.Dead {
-		t.Fatalf("Vinha expirada permaneceu: sephira=%d mobs=%d dead=%v",
+		t.Fatalf("expired Thorn Wall vine remained: sephira=%d mobs=%d dead=%v",
 			len(w.sephiraObjects), len(w.mobsByID), wall.Dead)
 	}
 }
@@ -247,9 +247,9 @@ func TestThornWallRejectsInvalidConfiguration(t *testing.T) {
 	w.ghostShops = make(map[uint16]*GhostShop)
 	skill := model.SkillDef{Index: 98, Range: 2}
 	if w.canCastThornWall(p, skillCastRequest{TargetX: 2110, TargetY: 2100}, skill) {
-		t.Fatal("Vinha fora de alcance foi aceita")
+		t.Fatal("out-of-range Thorn Wall vine was accepted")
 	}
 	if w.castThornWall(p, skillCastRequest{TargetX: 2101, TargetY: 2100}, skill, 0, 0) {
-		t.Fatal("Vinha sem template foi criada")
+		t.Fatal("Thorn Wall vine was created without a template")
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,7 +24,7 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 		w.Enqueue(session, packet)
 		queued := <-w.commands
 		if queued.s != session || len(queued.pkt) != len(packet) {
-			t.Fatal("Enqueue perdeu sessao/pacote")
+			t.Fatal("Enqueue lost a session or packet")
 		}
 	})
 
@@ -39,33 +40,33 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 		pkt := make([]byte, 20)
 		binary.LittleEndian.PutUint32(pkt[16:20], uint32(banker.ID))
 		if !w.validCargoAccess(p, pkt) {
-			t.Fatal("banker visivel informado pelo MSG_SwapItem foi recusado")
+			t.Fatal("visible banker identified by MSG_SwapItem was rejected")
 		}
 		if p.CargoNPC != banker.ID {
-			t.Fatal("MSG_SwapItem valido nao vinculou o contexto Cargo nativo")
+			t.Fatal("valid MSG_SwapItem did not bind the native Cargo context")
 		}
 		banker.X = p.X + npcInteractionRange + 1
 		w.moveMobSpatial(banker, 102, 100)
 		if w.validCargoAccess(p, pkt) {
-			t.Fatal("cargo usou o alcance visual em vez da fronteira NPC")
+			t.Fatal("cargo used visual range instead of the NPC boundary")
 		}
 		banker.X = 102
 		w.moveMobSpatial(banker, p.X+npcInteractionRange+1, p.Y)
 		binary.LittleEndian.PutUint32(pkt[16:20], 0x1_0000)
 		if w.validCargoAccess(p, pkt) || w.validCargoAccess(nil, pkt) ||
 			w.validCargoAccess(p, pkt[:19]) {
-			t.Fatal("cargo aceitou id DWORD, jogador nil ou pacote truncado")
+			t.Fatal("cargo accepted a DWORD ID, nil player, or truncated packet")
 		}
 
 		binary.LittleEndian.PutUint32(pkt[16:20], uint32(banker.ID))
 		p.CargoNPC = 0
 		if !w.nearCargoNPC(p) || p.CargoNPC != banker.ID {
-			t.Fatal("operacao Cargo sem TargetID nao resolveu o banker visivel mais proximo")
+			t.Fatal("Cargo operation without TargetID did not resolve the nearest visible banker")
 		}
 		p.hide(banker.ID)
 		p.CargoNPC = 0
 		if w.nearCargoNPC(p) || p.CargoNPC != 0 {
-			t.Fatal("cargo aceitou banker que nao foi materializado para o client")
+			t.Fatal("cargo accepted a banker not materialized for the client")
 		}
 	})
 
@@ -101,7 +102,7 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 		before := p.Session.QueuedPacketsForTest()
 		w.onQuestInteraction(p.Session, p, mob, quest, 1)
 		if p.Session.QueuedPacketsForTest() <= before {
-			t.Fatal("quest bloqueada nao informou a validacao")
+			t.Fatal("blocked quest did not report validation failure")
 		}
 	})
 
@@ -113,11 +114,11 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 		w.moveSummonToward(summon, 110, 100, 1, now)
 		movedX := summon.X
 		if movedX <= 100 || summon.NextMove.IsZero() {
-			t.Fatalf("summon nao moveu: x=%d next=%v", summon.X, summon.NextMove)
+			t.Fatalf("summon did not move: x=%d next=%v", summon.X, summon.NextMove)
 		}
 		w.moveSummonToward(summon, 110, 100, 1, now)
 		if summon.X != movedX {
-			t.Fatal("summon ignorou o cooldown de movimento")
+			t.Fatal("summon ignored movement cooldown")
 		}
 	})
 
@@ -131,7 +132,7 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 		p.SpecialCoins = map[string]uint32{"fame": 1}
 		if !w.commitCombineWithPlayerState(p, oldInv, oldEquip, oldGold,
 			map[int]struct{}{0: {}}, nil, 1) || st.atomicSaves != 1 {
-			t.Fatal("craft atomico valido nao foi confirmado")
+			t.Fatal("valid atomic craft was not confirmed")
 		}
 
 		oldInv, oldEquip, oldGold = p.Char.Inv, p.Char.Equip, p.Char.Gold
@@ -139,7 +140,7 @@ func TestPreviouslyUncoveredAuthoritativeEntryPoints(t *testing.T) {
 		st.atomicErr = errors.New("database unavailable")
 		if w.commitCombineWithPlayerState(p, oldInv, oldEquip, oldGold,
 			map[int]struct{}{0: {}}, nil, 1) || p.Char.Inv[0].Index != 777 {
-			t.Fatal("falha do craft atomico nao restaurou o inventario")
+			t.Fatal("atomic craft failure did not restore inventory")
 		}
 	})
 }
@@ -180,19 +181,19 @@ func TestSummonCombatCoversAttackFollowPassiveAndImmobileKinds(t *testing.T) {
 	w.tickSummonCombat(now)
 	if target.HP != 500 || attacker.TargetID != target.ID ||
 		attacker.NextAttack.IsZero() {
-		t.Fatalf("ataque da evocacao: hp=%d target=%d next=%v",
+		t.Fatalf("summon attack: hp=%d target=%d next=%v",
 			target.HP, attacker.TargetID, attacker.NextAttack)
 	}
-	// Remove a ordem: evocacao comum e cria passam a apenas acompanhar.
+	// Remove the order: ordinary summons and pets should only follow.
 	owner.CombatTargetID = 0
 	oldFollowerX, oldPetX, oldWallX := follower.X, pet.X, wall.X
 	w.tickSummonCombat(now.Add(3 * time.Second))
 	if follower.X == oldFollowerX || pet.X == oldPetX {
-		t.Fatalf("seguidores nao acompanharam: normal=%d/%d pet=%d/%d",
+		t.Fatalf("followers did not keep up: normal=%d/%d pet=%d/%d",
 			oldFollowerX, follower.X, oldPetX, pet.X)
 	}
 	if wall.X != oldWallX {
-		t.Fatal("Thorn Wall se moveu")
+		t.Fatal("Thorn Wall moved")
 	}
 }
 
@@ -240,10 +241,10 @@ func TestPartyInviteAcceptAndLeaveLifecycle(t *testing.T) {
 	binary.LittleEndian.PutUint32(request[40:44], uint32(member.ID))
 	w.onPartyRequest(leaderSession, request)
 	if member.InviteFrom != leader.ID || member.InviteUntil.IsZero() {
-		t.Fatalf("convite nao registrado: from=%d until=%v", member.InviteFrom, member.InviteUntil)
+		t.Fatalf("invite not registered: from=%d until=%v", member.InviteFrom, member.InviteUntil)
 	}
 	if memberSession.QueuedPacketsForTest() != 2 {
-		t.Fatalf("convite enviou %d pacotes", memberSession.QueuedPacketsForTest())
+		t.Fatalf("invite sent %d packets", memberSession.QueuedPacketsForTest())
 	}
 
 	accept := make([]byte, 30)
@@ -252,13 +253,13 @@ func TestPartyInviteAcceptAndLeaveLifecycle(t *testing.T) {
 	w.onPartyAccept(memberSession, accept)
 	if leader.Party == nil || member.Party != leader.Party || len(leader.Party.Members) != 2 ||
 		leader.Party.leader() != leader {
-		t.Fatalf("party nao foi formada: leader=%+v memberParty=%p", leader.Party, member.Party)
+		t.Fatalf("party was not formed: leader=%+v memberParty=%p", leader.Party, member.Party)
 	}
 
-	remove := make([]byte, 16) // target zero = o proprio membro sai
+	remove := make([]byte, 16) // Target zero means the member leaves.
 	w.onPartyRemove(memberSession, remove)
 	if leader.Party != nil || member.Party != nil {
-		t.Fatalf("party de dois nao foi dissolvida: leader=%p member=%p", leader.Party, member.Party)
+		t.Fatalf("two-member party was not dissolved: leader=%p member=%p", leader.Party, member.Party)
 	}
 }
 
@@ -275,7 +276,7 @@ func TestPartyRejectsExpiredInviteAndNonLeaderRemoval(t *testing.T) {
 	copy(accept[14:30], leader.Char.Name)
 	w.onPartyAccept(memberSession, accept)
 	if member.Party != nil || member.InviteFrom != 0 {
-		t.Fatal("convite expirado foi aceito ou nao foi limpo")
+		t.Fatal("expired invite was accepted or not cleared")
 	}
 
 	party := &Party{Members: []*Player{leader, member, other}}
@@ -284,10 +285,10 @@ func TestPartyRejectsExpiredInviteAndNonLeaderRemoval(t *testing.T) {
 	binary.LittleEndian.PutUint32(remove[12:16], uint32(other.ID))
 	w.onPartyRemove(memberSession, remove)
 	if other.Party != party {
-		t.Fatal("membro comum expulsou outro membro")
+		t.Fatal("ordinary member expelled another member")
 	}
 	if memberSession.QueuedPacketsForTest() == 0 || otherSession.QueuedPacketsForTest() != 0 {
-		t.Fatal("recusa de expulsao nao foi enviada somente ao solicitante")
+		t.Fatal("expulsion rejection was not sent only to the requester")
 	}
 }
 
@@ -301,34 +302,38 @@ func TestWhisperMailPartyChatAndCharacterInfo(t *testing.T) {
 	w.deliverWhisper(senderSession, sender, "Recipient", "hello")
 	w.deliverWhisper(senderSession, sender, "Recipient", "!mail")
 	if recipientSession.QueuedPacketsForTest() != 2 {
-		t.Fatalf("whisper+carta enviaram %d pacotes", recipientSession.QueuedPacketsForTest())
+		t.Fatalf("whisper+letter sent %d packets", recipientSession.QueuedPacketsForTest())
 	}
 	w.deliverWhisper(senderSession, sender, "Offline", "hello")
 	if senderSession.QueuedPacketsForTest() != 1 {
-		t.Fatalf("offline nao gerou aviso: %d", senderSession.QueuedPacketsForTest())
+		t.Fatalf("offline lookup did not produce a notice: %d", senderSession.QueuedPacketsForTest())
 	}
 
 	party := &Party{Members: []*Player{sender, recipient}}
 	sender.Party, recipient.Party = party, party
 	w.sendPartyChat(sender, "party")
 	if recipientSession.QueuedPacketsForTest() != 3 {
-		t.Fatalf("chat party nao chegou: %d", recipientSession.QueuedPacketsForTest())
+		t.Fatalf("party chat did not arrive: %d", recipientSession.QueuedPacketsForTest())
 	}
 	if got := w.playerByCharacterName("recipient"); got != recipient {
-		t.Fatalf("lookup por nome=%p, quer %p", got, recipient)
+		t.Fatalf("name lookup=%p, want %p", got, recipient)
 	}
 
 	recipient.Char.Citizenship = 2
 	w.sendCharacterInfo(senderSession, sender, "Recipient")
 	if senderSession.QueuedPacketsForTest() != 2 {
-		t.Fatalf("consulta de personagem nao respondeu: %d", senderSession.QueuedPacketsForTest())
+		t.Fatalf("character lookup did not respond: %d", senderSession.QueuedPacketsForTest())
 	}
-	if displayLevel(recipient.Char) != 11 || characterCitizenship(recipient.Char) != "Canal 2" {
-		t.Fatalf("info incorreta: level=%d citizenship=%q",
+	if displayLevel(recipient.Char) != 11 || characterCitizenship(recipient.Char) != "Channel 2" {
+		t.Fatalf("incorrect info: level=%d citizenship=%q",
 			displayLevel(recipient.Char), characterCitizenship(recipient.Char))
 	}
+	if info := w.characterInfoLine(recipient.Char); !strings.Contains(info, "No guild") ||
+		!strings.Contains(info, "Citizenship: Channel 2") {
+		t.Fatalf("character information is not in English: %q", info)
+	}
 	if displayLevel(nil) != 1 || characterCitizenship(nil) != "" {
-		t.Fatal("fallback de info nil incorreto")
+		t.Fatal("incorrect nil-info fallback")
 	}
 }
 
@@ -341,24 +346,24 @@ func TestNPCInteractionResolutionAndMessages(t *testing.T) {
 		t.Fatalf("player nil: %v", err)
 	}
 	if _, err := w.resolveNPCInteraction(p, 9999); err != errNPCNotFound {
-		t.Fatalf("npc ausente: %v", err)
+		t.Fatalf("missing NPC: %v", err)
 	}
 	if _, err := w.resolveNPCInteraction(p, npc.ID); err != errNPCNotVisible {
-		t.Fatalf("npc invisivel: %v", err)
+		t.Fatalf("invisible NPC: %v", err)
 	}
 	p.Visible[npc.ID] = struct{}{}
 	if got, err := w.resolveNPCInteraction(p, npc.ID); err != nil || got != npc {
-		t.Fatalf("npc valido: got=%p err=%v", got, err)
+		t.Fatalf("valid NPC: got=%p err=%v", got, err)
 	}
 	p.X = 200
 	if _, err := w.resolveNPCInteraction(p, npc.ID); err == nil {
-		t.Fatal("npc distante foi aceito")
+		t.Fatal("distant NPC was accepted")
 	} else if npcInteractionMessage(err) != "Move closer to interact." {
-		t.Fatalf("mensagem distancia=%q", npcInteractionMessage(err))
+		t.Fatalf("distance message=%q", npcInteractionMessage(err))
 	}
 	if npcInteractionMessage(errNPCNotVisible) != "That character is not visible." ||
 		npcInteractionMessage(errNPCNotFound) != "That character is not available." {
-		t.Fatal("mensagens de interacao incorretas")
+		t.Fatal("incorrect interaction messages")
 	}
 }
 
@@ -373,7 +378,7 @@ func TestTeleportPKAndGuildChallengeHandlers(t *testing.T) {
 	p.Char.Gold = 500
 	w.onReqTeleport(session, make([]byte, 16))
 	if p.X != 2200 || p.Y != 2201 || p.Char.Gold != 400 || st.saves != 1 {
-		t.Fatalf("teleporte: pos=(%d,%d) gold=%d saves=%d", p.X, p.Y, p.Char.Gold, st.saves)
+		t.Fatalf("teleport: pos=(%d,%d) gold=%d saves=%d", p.X, p.Y, p.Char.Gold, st.saves)
 	}
 
 	pk := make([]byte, 16)
@@ -381,24 +386,24 @@ func TestTeleportPKAndGuildChallengeHandlers(t *testing.T) {
 	beforePKPackets := session.QueuedPacketsForTest()
 	w.onPKMode(session, pk)
 	if !p.PKMode {
-		t.Fatal("PK mode nao foi ativado")
+		t.Fatal("PK mode was not enabled")
 	}
 	if got := session.QueuedPacketsForTest(); got != beforePKPackets+1 {
-		t.Fatalf("PK mode ativo publicou pacote sem consumidor 7.48: got=%d want=%d", got, beforePKPackets+1)
+		t.Fatalf("active PK mode published a packet without a 7.48 consumer: got=%d want=%d", got, beforePKPackets+1)
 	}
 	binary.LittleEndian.PutUint32(pk[12:16], 0)
 	beforePKPackets = session.QueuedPacketsForTest()
 	w.onPKMode(session, pk)
 	if p.PKMode {
-		t.Fatal("PK mode nao foi desativado")
+		t.Fatal("PK mode was not disabled")
 	}
 	if got := session.QueuedPacketsForTest(); got != beforePKPackets+1 {
-		t.Fatalf("PK mode inativo publicou pacote sem consumidor 7.48: got=%d want=%d", got, beforePKPackets+1)
+		t.Fatalf("inactive PK mode published a packet without a 7.48 consumer: got=%d want=%d", got, beforePKPackets+1)
 	}
 	binary.LittleEndian.PutUint32(pk[12:16], 2)
 	w.onPKMode(session, pk)
 	if p.PKMode {
-		t.Fatal("PK mode aceitou valor fora do contrato 0/1")
+		t.Fatal("PK mode accepted a value outside the 0/1 contract")
 	}
 
 	challenge := make([]byte, 16)
@@ -406,7 +411,7 @@ func TestTeleportPKAndGuildChallengeHandlers(t *testing.T) {
 	before := session.QueuedPacketsForTest()
 	w.onGuildChallenge(session, challenge)
 	if session.QueuedPacketsForTest() != before+1 {
-		t.Fatal("desafio de guild nao retornou aviso seguro")
+		t.Fatal("guild challenge did not return a safe notice")
 	}
 }
 
@@ -439,19 +444,19 @@ func TestCombatPathsUseAuthoritativeExtendedStats(t *testing.T) {
 	}
 	zero := func(int) int { return 0 }
 	if damage := playerHitsMobAt(attacker, mob, zero, time.Now()); damage == 0 {
-		t.Fatal("ataque autoritativo contra mob deu zero")
+		t.Fatal("authoritative attack against a mob returned zero")
 	}
 	if damage := playerHitsPlayerWithRNG(attacker, target, zero); damage == 0 {
-		t.Fatal("ataque autoritativo PvP deu zero")
+		t.Fatal("authoritative PvP attack returned zero")
 	}
 	if damage := mobHitsPlayerAt(mob, target.Char, zero, time.Now()); damage == 0 {
-		t.Fatal("ataque autoritativo do mob deu zero")
+		t.Fatal("authoritative mob attack returned zero")
 	}
 	if playerHitsMob(nil, mob) != 0 || playerHitsPlayer(nil, target) != 0 || mobHitsPlayer(nil, target.Char) != 0 {
-		t.Fatal("combate nil deveria retornar zero")
+		t.Fatal("nil combat should return zero")
 	}
 	if playerSkillPoints(attacker.Char) != 9 || playerAttackRun(attacker.Char) != 4 {
-		t.Fatal("accessors Score retornaram valor errado")
+		t.Fatal("Score accessors returned incorrect values")
 	}
 }
 
@@ -475,41 +480,41 @@ func TestMobCombatAppliesDamageAndLethalState(t *testing.T) {
 		return make([]byte, 12)
 	})
 	if playerCurHP(target.Char) != 900 || target.LastAttackerID != mob.ID {
-		t.Fatalf("dano nao letal: hp=%d attacker=%d", playerCurHP(target.Char), target.LastAttackerID)
+		t.Fatalf("nonlethal damage: hp=%d attacker=%d", playerCurHP(target.Char), target.LastAttackerID)
 	}
 	w.applyMobDamageToPlayer(mob, target, 5000, now.Add(time.Second), func(applied uint32) []byte {
 		return make([]byte, 12)
 	})
 	if playerCurHP(target.Char) != 0 || target.DeadAt.IsZero() || mob.TargetID != 0 {
-		t.Fatalf("morte nao aplicada: hp=%d dead=%v target=%d",
+		t.Fatalf("death was not applied: hp=%d dead=%v target=%d",
 			playerCurHP(target.Char), target.DeadAt, mob.TargetID)
 	}
 	if session.QueuedPacketsForTest() == 0 {
-		t.Fatal("combate nao publicou pacotes")
+		t.Fatal("combat did not publish packets")
 	}
 }
 
 func TestAdvancedCraftHelpersAndDeterministicRecipes(t *testing.T) {
 	if advancedEvolution(nil, "celestial") {
-		t.Fatal("evolution nil aceita")
+		t.Fatal("nil evolution was accepted")
 	}
 	ch := &model.Char{Evolution: "Celestial"}
 	if !advancedEvolution(ch, "mortal", "celestial") || advancedEvolution(ch, "arch") {
-		t.Fatal("advancedEvolution nao ignorou caixa/lista")
+		t.Fatal("advancedEvolution did not ignore storage/list")
 	}
 	var req combineRequest
 	req.Items[0].Index, req.Items[1].Index = 1, 2
 	if !exactRecipe(req, []uint16{1, 2}) || exactRecipe(req, []uint16{1}) {
-		t.Fatal("exactRecipe incorreta")
+		t.Fatal("incorrect exactRecipe")
 	}
 	for _, index := range []uint16{540, 551, 595, 663, 1738} {
 		if !odinTargetBlocked(index) {
-			t.Errorf("alvo Odin %d deveria estar bloqueado", index)
+			t.Errorf("Odin target %d should be blocked", index)
 		}
 	}
 	if odinTargetBlocked(500) || odinRefineBonus(11) != 5 || odinRefineBonus(14) != 1 ||
 		odinRefineBonus(10) != 0 {
-		t.Fatal("helpers Odin incorretos")
+		t.Fatal("incorrect Odin helpers")
 	}
 
 	ehreWorld, ehrePlayer, ehreSession, ehreStore := newCraftWorld(t, "Ehre", nil, 0)
@@ -545,29 +550,29 @@ func TestAdvancedCraftHelpersAndDeterministicRecipes(t *testing.T) {
 
 func TestMountUtilityAndLifecycleBranches(t *testing.T) {
 	if mountSuccessRate(-10) != 100 || mountSuccessRate(999) != 20 {
-		t.Fatal("mountSuccessRate nao limitou faixa")
+		t.Fatal("mountSuccessRate did not clamp the range")
 	}
 	for index, category := range map[uint16]int{
 		2333: 0, 2336: 1, 2339: 2, 2346: 3, 2351: 4, 2354: 5, 2349: 6, 2300: -1,
 	} {
 		if got := growthCategory(index); got != category {
-			t.Errorf("growthCategory(%d)=%d, quer %d", index, got, category)
+			t.Errorf("growthCategory(%d)=%d, want %d", index, got, category)
 		}
 	}
 
 	mount := model.Item{Index: 2333}
 	mount.SetMountLongev(59)
-	//lint:ignore SA1019 o codigo nativo usa o gerador global; a semente torna este teste deterministico
+	//lint:ignore SA1019 native code uses the global generator; the seed makes this test deterministic
 	rand.Seed(1)
 	if ok, _ := mountLongevityRecover(&mount); !ok || mount.MountLongev() < 59 || mount.MountLongev() > 60 {
-		t.Fatalf("longevidade nao recuperada: %d", mount.MountLongev())
+		t.Fatalf("longevity was not restored: %d", mount.MountLongev())
 	}
 	mount.SetMountLongev(60)
 	if ok, _ := mountLongevityRecover(&mount); ok {
-		t.Fatal("longevidade maxima foi recuperada")
+		t.Fatal("maximum longevity was restored")
 	}
 	if ok, _ := mountGrowth(&mount, 3344); !ok || mount.Index != 2363 {
-		t.Fatalf("growth nao evoluiu: ok=%v index=%d", ok, mount.Index)
+		t.Fatalf("growth did not evolve: ok=%v index=%d", ok, mount.Index)
 	}
 
 	p, session := networkedTestPlayer(1, "Rider", 100, 100)
@@ -581,18 +586,18 @@ func TestMountUtilityAndLifecycleBranches(t *testing.T) {
 	req := useItemRequest{dstType: placeEquip, dstPos: mountSlot}
 	w.accelerateHatch(p, session, &p.Char.Inv[1], 1, req)
 	if !model.IsMountBaby(p.Char.Equip[mountSlot].Index) || p.Char.Inv[1].Index != 0 {
-		t.Fatal("acelerador nao transformou o ovo equipado")
+		t.Fatal("accelerator did not transform the equipped egg")
 	}
 
-	// O consumo e a transformacao do ovo sao atomicos do ponto de vista do
-	// jogador: se o store falhar, ambos os slots voltam ao snapshot original.
+	// Consuming and transforming the egg are atomic from the player's perspective.
+	// If storage fails, both player slots return to the original snapshot.
 	p.Char.Equip[mountSlot] = egg
 	p.Char.Inv[1] = accelerator
 	oldEgg, oldAccelerator := p.Char.Equip[mountSlot], p.Char.Inv[1]
-	w.store = &craftStore{err: errors.New("disco cheio")}
+	w.store = &craftStore{err: errors.New("disk full")}
 	w.accelerateHatch(p, session, &p.Char.Inv[1], 1, req)
 	if p.Char.Equip[mountSlot] != oldEgg || p.Char.Inv[1] != oldAccelerator {
-		t.Fatalf("falha do acelerador alterou estado: ovo=%+v/%+v acelerador=%+v/%+v",
+		t.Fatalf("accelerator failure changed state: egg=%+v/%+v accelerator=%+v/%+v",
 			p.Char.Equip[mountSlot], oldEgg, p.Char.Inv[1], oldAccelerator)
 	}
 
@@ -601,12 +606,12 @@ func TestMountUtilityAndLifecycleBranches(t *testing.T) {
 	adult.SetMountLongev(20)
 	p.Char.Equip[mountSlot] = adult
 	before := p.Char.Equip[mountSlot].MountLongev()
-	//lint:ignore SA1019 o codigo nativo usa o gerador global; a semente torna este teste deterministico
+	//lint:ignore SA1019 native code uses the global generator; the seed makes this test deterministic
 	rand.Seed(2)
 	w.mountRiderDied(p)
 	after := p.Char.Equip[mountSlot].MountLongev()
 	if after > before || after < before-3 {
-		t.Fatalf("custo de morte da montaria=%d -> %d", before, after)
+		t.Fatalf("mount death cost=%d -> %d", before, after)
 	}
 }
 
@@ -615,10 +620,10 @@ func TestSkillPVPAffectHelpers(t *testing.T) {
 		ResistFire: 1, ResistIce: 2, ResistHoly: 3, ResistThunder: 4,
 	})}
 	if hasActiveAffect(nil, 1) {
-		t.Fatal("affect ativo em char nil")
+		t.Fatal("affect remained active on a nil character")
 	}
 	if !setOwnedAffect(ch, 7, 28, 10, 20, 10) || !hasActiveAffect(ch, 28) {
-		t.Fatal("affect com owner nao foi aplicado")
+		t.Fatal("affect with owner was not applied")
 	}
 	foundOwner := false
 	for _, affect := range ch.Affects {
@@ -627,15 +632,15 @@ func TestSkillPVPAffectHelpers(t *testing.T) {
 		}
 	}
 	if !foundOwner {
-		t.Fatal("OwnerID do affect nao persistiu")
+		t.Fatal("affect OwnerID was not persisted")
 	}
 	resists := playerElementalResists(ch)
 	if resists.Fire != 1 || resists.Ice != 2 || resists.Sacred != 3 || resists.Thunder != 4 {
-		t.Fatalf("resistencias=%+v", resists)
+		t.Fatalf("resistances=%+v", resists)
 	}
 	if !removePlayerAffectTypes(ch, 28) || hasActiveAffect(ch, 28) ||
 		removePlayerAffectTypes(ch, 99) {
-		t.Fatal("remocao de affects incorreta")
+		t.Fatal("incorrect affect removal")
 	}
 }
 
@@ -649,7 +654,7 @@ func TestBossEventStringCoversAllKnownAndUnknownValues(t *testing.T) {
 	}
 	for event, expected := range want {
 		if got := event.String(); got != expected {
-			t.Errorf("event %d=%q, quer %q", event, got, expected)
+			t.Errorf("event %d=%q, want %q", event, got, expected)
 		}
 	}
 }

@@ -75,6 +75,10 @@ a partial translation as completion.
   validation, trade-item rejection, purchase errors, and the existing flows.
   Packet layouts and game-state logic are unchanged; no client visual validation
   is implied.
+- Chat-command channel-switch rejection and character-information labels shown
+  to players are in English, as are the adjacent server diagnostics, comments,
+  and test descriptions. Existing command aliases, packet layouts, and state
+  transitions are unchanged; in-client visual validation remains pending.
 - The cargo-slot, character-login use-case, and grid-insertion test descriptions,
   plus the adjacent cargo and login application comments, are in English.
   Release architecture tests pass; this prose-only batch changes no client
