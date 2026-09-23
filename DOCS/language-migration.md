@@ -10,7 +10,8 @@ a partial translation as completion.
 - Root repository rules and all active skill entry points.
 - The emulator and cross-cutting contract references in the server feature
   skill are in English. The latter no longer permits Portuguese logs or
-  comments; both now follow the repository-wide rule.
+  comments; both now follow the repository-wide rule. Its session-continuity
+  reference is also in English.
 - Root README and documentation README.
 - Generated documentation inventory labels and layout-validator messages.
 - `tmproject/Build-Client.ps1` help, diagnostics, and validation status.
