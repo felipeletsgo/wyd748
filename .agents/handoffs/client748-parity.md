@@ -2236,3 +2236,18 @@ Registrar o resultado nas duas fichas antes de promover para `CLIENT_TESTED`.
   specific CI `-Rebuild` command still needs to run in CI. `STATICALLY
   VERIFIED / AUTOMATED TESTED`, not `CLIENT-TESTED`; no attempt was made to
   open or capture the client on this machine.
+
+### Character preview ItemList bounds — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL`: `ReloadCharList` now projects the 16 equipment
+  IDs to the 6,500-entry ItemList before preview mesh, skin, and grade
+  lookups. The cape skin previously used the raw slot-15 ID while its grade
+  and other equipment used modulo 6,500; negative IDs could also produce a
+  negative modulo index. Valid IDs keep the existing projection, and the
+  packet, equipment cache, server state, and assets are unchanged.
+- The source-contract regression check covers the projection before the
+  first lookup, including the cape, and rejects direct preview lookups from
+  packet IDs. `Build-Client.ps1 -Configuration Release -NoDeploy` passed:
+  51,874 architecture checks and Release|Win32 compilation. This is
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, not `CLIENT-TESTED`. No attempt
+  was made to open or capture the client UI.

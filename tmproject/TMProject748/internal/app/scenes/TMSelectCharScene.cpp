@@ -2064,10 +2064,20 @@ void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)
 		g_pObjectManager->DeleteObject(m_pHuman[i]);
 		m_pHuman[i] = nullptr;
 
-		int sIndex = pSelChar->Equip[i][0].sIndex % 6500;
+		const int faceItemId = pSelChar->Equip[i][0].sIndex;
+		int sIndex = faceItemId >= 0 ? faceItemId % MAX_ITEMLIST : 0;
 
 		if (sIndex == 22 || sIndex == 23 || sIndex == 24 || sIndex == 25 || sIndex == 32)
 			pSelChar->Equip[i][0].sIndex = g_nBattleMaster;
+
+		// ItemList.bin has MAX_ITEMLIST entries. Keep composite item IDs in the
+		// packet, but use a bounded projection after the face override.
+		int itemListIndices[16]{};
+		for (int slot = 0; slot < 16; ++slot)
+		{
+			const int itemId = pSelChar->Equip[i][slot].sIndex;
+			itemListIndices[slot] = itemId >= 0 ? itemId % MAX_ITEMLIST : 0;
+		}
 
 		m_pHuman[i] = new TMHuman(this);
 		m_pHuman[i]->m_nCurrentKill = 0;
@@ -2077,28 +2087,28 @@ void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)
 
 		memcpy(&m_pHuman[i]->m_stScore, &pSelChar->Score[i], sizeof(STRUCT_SCORE));
 
-		m_pHuman[i]->m_stLookInfo.FaceMesh = g_pItemList[pSelChar->Equip[i][0].sIndex % 6500].nIndexMesh;
-		m_pHuman[i]->m_stLookInfo.FaceSkin = g_pItemList[pSelChar->Equip[i][0].sIndex % 6500].nIndexTexture;
+		m_pHuman[i]->m_stLookInfo.FaceMesh = g_pItemList[itemListIndices[0]].nIndexMesh;
+		m_pHuman[i]->m_stLookInfo.FaceSkin = g_pItemList[itemListIndices[0]].nIndexTexture;
 
-		if (pSelChar->Equip[i][1].sIndex % 6500 < 3500 ||
-			pSelChar->Equip[i][1].sIndex % 6500 > 3502 && pSelChar->Equip[i][1].sIndex % 6500 != 3507)
+		if (itemListIndices[1] < 3500 ||
+			itemListIndices[1] > 3502 && itemListIndices[1] != 3507)
 		{
-			m_pHuman[i]->m_stLookInfo.HelmMesh = g_pItemList[pSelChar->Equip[i][1].sIndex % 6500].nIndexMesh;
-			m_pHuman[i]->m_stLookInfo.HelmSkin = g_pItemList[pSelChar->Equip[i][1].sIndex % 6500].nIndexTexture;
+			m_pHuman[i]->m_stLookInfo.HelmMesh = g_pItemList[itemListIndices[1]].nIndexMesh;
+			m_pHuman[i]->m_stLookInfo.HelmSkin = g_pItemList[itemListIndices[1]].nIndexTexture;
 		}
 
-		m_pHuman[i]->m_stLookInfo.CoatMesh = g_pItemList[pSelChar->Equip[i][2].sIndex % 6500].nIndexMesh;
-		m_pHuman[i]->m_stLookInfo.CoatSkin = g_pItemList[pSelChar->Equip[i][2].sIndex % 6500].nIndexTexture;
-		m_pHuman[i]->m_stLookInfo.PantsMesh = g_pItemList[pSelChar->Equip[i][3].sIndex % 6500].nIndexMesh;
-		m_pHuman[i]->m_stLookInfo.PantsSkin = g_pItemList[pSelChar->Equip[i][3].sIndex % 6500].nIndexTexture;
-		m_pHuman[i]->m_stLookInfo.GlovesMesh = g_pItemList[pSelChar->Equip[i][4].sIndex % 6500].nIndexMesh;
-		m_pHuman[i]->m_stLookInfo.GlovesSkin = g_pItemList[pSelChar->Equip[i][4].sIndex % 6500].nIndexTexture;
-		m_pHuman[i]->m_stLookInfo.BootsMesh = g_pItemList[pSelChar->Equip[i][5].sIndex % 6500].nIndexMesh;
-		m_pHuman[i]->m_stLookInfo.BootsSkin = g_pItemList[pSelChar->Equip[i][5].sIndex % 6500].nIndexTexture;
-		m_pHuman[i]->m_stLookInfo.LeftMesh = g_pItemList[pSelChar->Equip[i][6].sIndex % 6500].nIndexMesh;
-		m_pHuman[i]->m_stLookInfo.LeftSkin = g_pItemList[pSelChar->Equip[i][6].sIndex % 6500].nIndexTexture;
-		m_pHuman[i]->m_stLookInfo.RightMesh = g_pItemList[pSelChar->Equip[i][7].sIndex % 6500].nIndexMesh;
-		m_pHuman[i]->m_stLookInfo.RightSkin = g_pItemList[pSelChar->Equip[i][7].sIndex % 6500].nIndexTexture;
+		m_pHuman[i]->m_stLookInfo.CoatMesh = g_pItemList[itemListIndices[2]].nIndexMesh;
+		m_pHuman[i]->m_stLookInfo.CoatSkin = g_pItemList[itemListIndices[2]].nIndexTexture;
+		m_pHuman[i]->m_stLookInfo.PantsMesh = g_pItemList[itemListIndices[3]].nIndexMesh;
+		m_pHuman[i]->m_stLookInfo.PantsSkin = g_pItemList[itemListIndices[3]].nIndexTexture;
+		m_pHuman[i]->m_stLookInfo.GlovesMesh = g_pItemList[itemListIndices[4]].nIndexMesh;
+		m_pHuman[i]->m_stLookInfo.GlovesSkin = g_pItemList[itemListIndices[4]].nIndexTexture;
+		m_pHuman[i]->m_stLookInfo.BootsMesh = g_pItemList[itemListIndices[5]].nIndexMesh;
+		m_pHuman[i]->m_stLookInfo.BootsSkin = g_pItemList[itemListIndices[5]].nIndexTexture;
+		m_pHuman[i]->m_stLookInfo.LeftMesh = g_pItemList[itemListIndices[6]].nIndexMesh;
+		m_pHuman[i]->m_stLookInfo.LeftSkin = g_pItemList[itemListIndices[6]].nIndexTexture;
+		m_pHuman[i]->m_stLookInfo.RightMesh = g_pItemList[itemListIndices[7]].nIndexMesh;
+		m_pHuman[i]->m_stLookInfo.RightSkin = g_pItemList[itemListIndices[7]].nIndexTexture;
 		// WYD 7.48 assigns slot 13 to the costume.  TMProject 7.59 used slot 12
 		// plus a familiar in 13; preserving that newer mapping makes a 7.48
 		// costume disappear and can construct an unrelated familiar instead.
@@ -2120,7 +2130,7 @@ void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)
 			m_pHuman[i]->m_stLookInfo.PantsMesh, m_pHuman[i]->m_stLookInfo.PantsSkin,
 			m_pHuman[i]->m_stLookInfo.GlovesMesh, m_pHuman[i]->m_stLookInfo.GlovesSkin,
 			m_pHuman[i]->m_stLookInfo.BootsMesh, m_pHuman[i]->m_stLookInfo.BootsSkin);
-		m_pHuman[i]->m_wMantuaSkin = g_pItemList[pSelChar->Equip[i][15].sIndex].nIndexTexture;
+		m_pHuman[i]->m_wMantuaSkin = g_pItemList[itemListIndices[15]].nIndexTexture;
 
 		m_pHuman[i]->m_wMantuaSkin = m_pHuman[i]->SetCitizenMantle(m_pHuman[i]->m_wMantuaSkin);
 
@@ -2141,15 +2151,15 @@ void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)
 		m_pHuman[i]->m_stSancInfo.Sanc7 = BASE_GetItemSanc(&pSelChar->Equip[i][6]);//??
 		m_pHuman[i]->m_stSancInfo.Sanc6 = BASE_GetItemSanc(&pSelChar->Equip[i][7]);//??
 		m_pHuman[i]->m_ucMantuaSanc = BASE_GetItemSanc(&pSelChar->Equip[i][15]);
-		m_pHuman[i]->m_stSancInfo.Legend0 = static_cast<unsigned char>(g_pItemList[pSelChar->Equip[i][0].sIndex % 6500].nGrade);
-		m_pHuman[i]->m_stSancInfo.Legend1 = static_cast<unsigned char>(g_pItemList[pSelChar->Equip[i][1].sIndex % 6500].nGrade);
-		m_pHuman[i]->m_stSancInfo.Legend2 = static_cast<unsigned char>(g_pItemList[pSelChar->Equip[i][2].sIndex % 6500].nGrade);
-		m_pHuman[i]->m_stSancInfo.Legend3 = static_cast<unsigned char>(g_pItemList[pSelChar->Equip[i][3].sIndex % 6500].nGrade);
-		m_pHuman[i]->m_stSancInfo.Legend4 = static_cast<unsigned char>(g_pItemList[pSelChar->Equip[i][4].sIndex % 6500].nGrade);
-		m_pHuman[i]->m_stSancInfo.Legend5 = static_cast<unsigned char>(g_pItemList[pSelChar->Equip[i][5].sIndex % 6500].nGrade);
-		m_pHuman[i]->m_stSancInfo.Legend7 = static_cast<unsigned char>(g_pItemList[pSelChar->Equip[i][6].sIndex % 6500].nGrade);
-		m_pHuman[i]->m_stSancInfo.Legend6 = static_cast<unsigned char>(g_pItemList[pSelChar->Equip[i][7].sIndex % 6500].nGrade);
-		m_pHuman[i]->m_ucMantuaLegend = static_cast<char>(g_pItemList[pSelChar->Equip[i][15].sIndex % 6500].nGrade);
+		m_pHuman[i]->m_stSancInfo.Legend0 = static_cast<unsigned char>(g_pItemList[itemListIndices[0]].nGrade);
+		m_pHuman[i]->m_stSancInfo.Legend1 = static_cast<unsigned char>(g_pItemList[itemListIndices[1]].nGrade);
+		m_pHuman[i]->m_stSancInfo.Legend2 = static_cast<unsigned char>(g_pItemList[itemListIndices[2]].nGrade);
+		m_pHuman[i]->m_stSancInfo.Legend3 = static_cast<unsigned char>(g_pItemList[itemListIndices[3]].nGrade);
+		m_pHuman[i]->m_stSancInfo.Legend4 = static_cast<unsigned char>(g_pItemList[itemListIndices[4]].nGrade);
+		m_pHuman[i]->m_stSancInfo.Legend5 = static_cast<unsigned char>(g_pItemList[itemListIndices[5]].nGrade);
+		m_pHuman[i]->m_stSancInfo.Legend7 = static_cast<unsigned char>(g_pItemList[itemListIndices[6]].nGrade);
+		m_pHuman[i]->m_stSancInfo.Legend6 = static_cast<unsigned char>(g_pItemList[itemListIndices[7]].nGrade);
+		m_pHuman[i]->m_ucMantuaLegend = static_cast<char>(g_pItemList[itemListIndices[15]].nGrade);
 
 		m_pHuman[i]->m_stColorInfo.Sanc0 = BASE_GetItemColorEffect(pSelChar->Equip[i]);
 		m_pHuman[i]->m_stColorInfo.Sanc1 = BASE_GetItemColorEffect(&pSelChar->Equip[i][1]);

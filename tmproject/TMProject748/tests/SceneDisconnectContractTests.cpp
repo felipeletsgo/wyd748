@@ -131,6 +131,22 @@ int RunSceneDisconnectContractTests(int& checks)
         maskBody.find("m_pMaskData[y][128 * nBaseY") == std::string::npos,
         "object masks reject invalid indices and stay within the 128-by-128 terrain");
     const auto selectCharacter = LoadSource("TMProject748/internal/app/scenes/TMSelectCharScene.cpp");
+    const auto reloadCharacters = selectCharacter.find("void TMSelectCharScene::ReloadCharList(");
+    const auto previewFaceOverride = selectCharacter.find(
+        "pSelChar->Equip[i][0].sIndex = g_nBattleMaster;", reloadCharacters);
+    const auto previewIndexGuard = selectCharacter.find(
+        "itemListIndices[slot] = itemId >= 0 ? itemId % MAX_ITEMLIST : 0;", reloadCharacters);
+    const auto previewFaceLookup = selectCharacter.find(
+        "g_pItemList[itemListIndices[0]]", reloadCharacters);
+    const auto previewCapeLookup = selectCharacter.find(
+        "m_wMantuaSkin = g_pItemList[itemListIndices[15]]", reloadCharacters);
+    check(reloadCharacters != std::string::npos && previewFaceOverride != std::string::npos &&
+        previewIndexGuard != std::string::npos &&
+        previewFaceLookup != std::string::npos && previewCapeLookup != std::string::npos &&
+        previewFaceOverride < previewIndexGuard && previewIndexGuard < previewFaceLookup &&
+        previewFaceLookup < previewCapeLookup &&
+        selectCharacter.find("g_pItemList[pSelChar->Equip[i]", reloadCharacters) == std::string::npos,
+        "character preview bounds face, equipment, and cape ItemList lookups");
     const auto characterTerrain = selectCharacter.find("if (!m_pGroundList[0]->LoadTileMap(szMapPath))");
     const auto characterMiniMap = selectCharacter.find("m_pGround->SetMiniMapData();", characterTerrain);
     check(characterTerrain != std::string::npos && characterMiniMap != std::string::npos &&
