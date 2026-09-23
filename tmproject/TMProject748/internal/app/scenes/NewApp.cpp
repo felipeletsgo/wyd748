@@ -330,7 +330,6 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 
 	BASE_InitializeAttribute();
 
-	ReadItemicon();
 	ReadItemName();
 	ReadUIString();
 	BASE_ReadItemPrice();
@@ -1192,8 +1191,8 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 			if (ErrorCode != 0 || !packet_dispatch::CanDispatch(packet, sizeof(MSG_STANDARD)))
 				break;
 
-			// Relogio e dump apenas leem o envelope. A adaptacao mutavel dos
-			// callbacks fica no ObjectManager, depois destes efeitos historicos.
+			// The clock and dump only read the envelope. ObjectManager handles
+			// mutable callback adaptation after these historical effects.
 			const MSG_STANDARD* pStd = reinterpret_cast<const MSG_STANDARD*>(packet.data);
 
 			unsigned int dwServerTime = m_pTimerManager->GetServerTime();

@@ -16,7 +16,6 @@ constexpr const char* MusicConfig_Path = "Music.txt";
 constexpr const char* MixHelp_Path = "Mixhelp.dat";
 constexpr const char* FontConfig_Path = "font.txt";
 constexpr const char* ItemPrice_Path = "ItemPrice.bin";
-constexpr const char* ItemIcon_Path = "./itemicon.bin";
 constexpr const char* ItemName_Path = "Itemname.bin";
 constexpr const char* SkillData_Path = "SkillData.bin";
 

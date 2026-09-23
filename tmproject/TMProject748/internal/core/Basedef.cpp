@@ -25,7 +25,6 @@ char g_pMessageStringTable[MAX_STRING][MAX_STRING_LENGTH];
 STRUCT_ITEMLIST g_pItemList[MAX_ITEMLIST];
 STRUCT_SPELL g_pSpell[MAX_SPELL_LIST];
 STRUCT_INITITEM g_pInitItem[100];
-int g_itemicon[6500];
 STRUCT_TOTOLIST g_pTOTOList[80];
 int g_nTOTOListCount;
 
@@ -1097,19 +1096,6 @@ int BASE_GetSpeed(STRUCT_SCORE* score)
         Run = 7;
 
     return Run;
-}
-
-int ReadItemicon()
-{
-    FILE* fpBin = nullptr;
-    fopen_s(&fpBin, ItemIcon_Path, "rb");
-    if (fpBin)
-    {
-        fread(g_itemicon, sizeof(g_itemicon), 1u, fpBin);
-        fclose(fpBin);
-    }
-
-    return 1;
 }
 
 void ReadItemName()

@@ -1,8 +1,8 @@
 #pragma once
 
-// Declarações das tabelas e handles definidos em Basedef.cpp.
-// Este fragmento é incluído ao final de Basedef.h, depois dos tipos legados;
-// não deve ser incluído isoladamente porque seus tipos pertencem à fachada.
+// Tables and handles defined in Basedef.cpp.
+// Included at the end of Basedef.h after the legacy types; do not include
+// this fragment alone because its types belong to the compatibility facade.
 extern char g_pAffectTable[MAX_EFFECT_STRING_TABLE][24];
 extern char g_pAffectSubTable[MAX_SUB_EFFECT_STRING_TABLE][24];
 extern int g_pHitRate[1024];
@@ -17,6 +17,5 @@ extern STRUCT_ITEMLIST g_pItemList[MAX_ITEMLIST];
 extern STRUCT_GUILDZONE g_pGuildZone[MAX_GUILDZONE];
 extern STRUCT_SPELL g_pSpell[MAX_SPELL_LIST];
 extern STRUCT_INITITEM g_pInitItem[100];
-extern int g_itemicon[6500];
 extern STRUCT_TOTOLIST g_pTOTOList[80];
 extern int g_nTOTOListCount;

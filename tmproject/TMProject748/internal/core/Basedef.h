@@ -82,9 +82,9 @@
 #include "../wire/ServerMigrationPacket.h"
 #include "../wire/ServerWarLetterContract.h"
 
-// Basedef permanece como fachada de compatibilidade. Os tipos abaixo são
-// consumidos por cenas, UI, entidades e transporte; qualquer alteração de
-// ordem, tamanho ou signedness deve ser acompanhada pelos static_asserts.
+// Basedef remains the compatibility facade. Scenes, UI, entities, and transport
+// consume the types below; static assertions must accompany changes to their
+// order, size, or signedness.
 
 
 #define Snow                    0xFFFFFAFA
@@ -143,7 +143,7 @@
 #define Green					0xFF00FF00
 #define Yellow					0xFFFFFF00
 
-// Limites de inventário e tabelas compartilhados pelo client e pelo servidor.
+// Inventory limits and tables shared by the client and server.
 #define MAX_EQUIPITEM 18
 constexpr int MAX_CARGO = 128;
 constexpr auto MAX_CARRY = 64;
@@ -278,7 +278,7 @@ struct		stWaterScrollMacro
 
 // Canonical WYD 7.48+ score shared byte-for-byte with model.Score.
 // Every field is one unsigned 32-bit word; no legacy aliases are retained.
-// Estado de jogo: estruturas materializadas a partir dos dados 7.48.
+// Game state structures materialized from 7.48 data.
 struct STRUCT_SCORE
 {
 	unsigned int Version;
@@ -1648,13 +1648,13 @@ struct MSG_DAILYREWARDINFO
 {
 	MSG_STANDARD Header;
 
-	// Todas as premiações
+	// All rewards.
 	STRUCT_ITEM Item[7][4];
 
-	// Quais dias ele recebeu
+	// Days already claimed.
 	bool Received[7];
 
-	// Dia que está
+	// Current day.
 	int Day;
 };
 
@@ -3340,7 +3340,6 @@ void BASE_ChangeOrAddEffectValue(STRUCT_ITEM* item, int effect, int value);
 void BASE_RemoveEffect(STRUCT_ITEM* item, int effect);
 
 /* Read Functions */
-int ReadItemicon();
 void ReadItemName();
 void ReadUIString();
 char ReadNameFiltraDataBase();

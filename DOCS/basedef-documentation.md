@@ -28,6 +28,10 @@ headings do not count as API coverage. The header has not been fully split;
   through a bounded, atomic loader. It preserves native 7.48 effect indexes
   and leaves a table untouched when its asset is missing or malformed. The
   shipped 7.48 runtime has `EffectString.txt` but no `EffectSubString.txt`.
+- The source-only `ReadItemicon` startup read and its unused `g_itemicon` table
+  were removed as `MODERNIZACAO_COMPATIVEL`: the 7.48 runtime has no
+  `itemicon.bin`, and no active source consumer reads the table. `ReadItemName`
+  and `ReadUIString` still run at startup. This is not a native parity claim.
 - `strfmt` returns shared static storage.
 
 The other limitations are documented, not fixed by the effect-name loader.
@@ -42,7 +46,7 @@ rejection. A successful build does not establish in-client visual validation.
 
 The remaining functions were reviewed and grouped by contract:
 
-- Loading/configuration: `BASE_ReadItemPrice`, `BASE_ReadTOTOList`, `BASE_InitializeServerList`, `BASE_GetLanguage`, `ReadItemicon`, `ReadItemName`, `ReadUIString`, `ReadNameFiltraDataBase`, `ReadChatFiltraDataBase`, `EnableSysKey`, `DisableSysKey`, `CheckOS`.
+- Loading/configuration: `BASE_ReadItemPrice`, `BASE_ReadTOTOList`, `BASE_InitializeServerList`, `BASE_GetLanguage`, `ReadItemName`, `ReadUIString`, `ReadNameFiltraDataBase`, `ReadChatFiltraDataBase`, `EnableSysKey`, `DisableSysKey`, `CheckOS`.
 - Text/validation: `BASE_UnderBarToSpace`, `BASE_GetHttpRequest`, `BASE_CheckValidString`, `BASE_CheckChatValid`, `CheckGuildName`, `IsClearString`, `IsClearString2`.
 - Tables/localization: `BASE_GetWeekNumber`, `BASE_GetVillage`, `BASE_GetSubGuild`, `BASE_GetAttribute`, `BASE_GetAttr`, `BASE_IsInLowZone`, `BASE_GetColorCount`.
 - Items/equipment: `BASE_GetItemSanc`, `BASE_GetItemAbility`, `BASE_GetStaticItemAbility`, `BASE_GetBonusItemAbilityNosanc`, `BASE_GetBonusItemAbility`, `BASE_GetItemAbilityNosanc`, `BASE_GetItemAmount`, `BASE_SetItemAmount`, `BASE_CanCarry`, `BASE_CanTrade`, `BASE_ClearItem`, `BASE_SortTradeItem`, `BASE_CanCargo`, `BASE_CanEquip`, `BASE_CanEquip_RecvRes`, `BASE_GetItemColorEffect`, `BASE_GetMeshIndex`.

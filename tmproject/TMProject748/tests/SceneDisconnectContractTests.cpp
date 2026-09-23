@@ -979,6 +979,14 @@ int RunSceneDisconnectContractTests(int& checks)
             "invalid item-name destinations and dimensions are rejected");
     }
 
+    const auto startupSource = LoadSource("TMProject748/internal/app/scenes/NewApp.cpp");
+    const auto basedefSource = LoadSource("TMProject748/internal/core/Basedef.cpp");
+    check(startupSource.find("ReadItemName();") != std::string::npos &&
+        startupSource.find("ReadUIString();") != std::string::npos &&
+        startupSource.find("ReadItemicon(") == std::string::npos &&
+        basedefSource.find("g_itemicon") == std::string::npos,
+        "7.48 startup keeps required item labels without the unused item-icon table");
+
     const auto ccModeScene = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
     check(ccModeScene.find("{\"Off\", \"Physical\", \"Magic\", \"Support\"}") != std::string::npos &&
         ccModeScene.find("{\"Free\", \"Cycle\", \"Fixed\"}") != std::string::npos,
