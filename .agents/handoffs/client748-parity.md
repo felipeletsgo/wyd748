@@ -2220,3 +2220,19 @@ Registrar o resultado nas duas fichas antes de promover para `CLIENT_TESTED`.
   Validador das fichas e `git diff --check` scoped PASS.
   `STATICALLY VERIFIED / AUTOMATED TESTED`; `CLIENT-TESTED` segue vedado
   nesta máquina.
+
+### Windows checkout CI gate — 2026-09-23
+
+- CI's `Release -Rebuild -NoDeploy` stopped at two
+  `SceneDisconnectContractTests` checks (confirmed swap and split dialog).
+  Both searched for literal `\n` in source read as binary; a Windows checkout
+  may convert it to CRLF. The client already had the required guards and
+  ordering. `LoadSource` now normalizes line endings, with an explicit CRLF
+  regression check. No runtime, wire, server, or asset change
+  (`MODERNIZACAO_COMPATIVEL` test-only change).
+- Local gate: Release|Win32 `ArchitectureTests` passed 51,870 checks. The
+  integrated `Build-Client.ps1 -Configuration Release -NoDeploy` passed before
+  adding the final test assertion (the client itself did not change). The
+  specific CI `-Rebuild` command still needs to run in CI. `STATICALLY
+  VERIFIED / AUTOMATED TESTED`, not `CLIENT-TESTED`; no attempt was made to
+  open or capture the client on this machine.

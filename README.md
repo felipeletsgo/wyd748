@@ -1,39 +1,40 @@
-# WYD 7.48 — client e servidor
+# WYD 7.48 — client and server
 
-Monorepo do WYD-Go 7.48: servidor autoritativo em Go e client C++ adaptado
-para o runtime 7.48. O projeto ainda exige validação em jogo para fluxos que
-estão marcados como pendentes; um build aprovado não equivale a teste no client.
+WYD-Go 7.48 monorepo: an authoritative Go server and a C++ client adapted for
+the 7.48 runtime. Some flows still require in-game validation; a successful
+build is not equivalent to testing them in the client.
 
-| Local | Conteúdo |
+| Location | Contents |
 | --- | --- |
-| `wydgo748/` | Servidor Go, configuração e dados autoritativos |
-| `tmproject/TMProject748/` | Source C++ e testes do client |
-| `tmproject/client748/` | Runtime e assets do client 7.48 |
-| `DOCS/` | Documentação de arquitetura, operação e contratos |
-| `references/client748/` | Evidência histórica somente leitura |
+| `wydgo748/` | Go server, configuration, and authoritative data |
+| `tmproject/TMProject748/` | C++ client source and tests |
+| `tmproject/client748/` | 7.48 client runtime and assets |
+| `DOCS/` | Architecture, operations, and contract documentation |
+| `references/client748/` | Read-only historical evidence |
 
-## Início rápido no Windows
+## Quick start on Windows
 
-Este procedimento inicia PostgreSQL, compila o painel e o servidor, cria uma
-conta e deixa o game server escutando na porta TCP `8281`.
+This procedure starts PostgreSQL, builds the web panel and server, creates an
+account, and leaves the game server listening on TCP port `8281`.
 
-### 1. Pré-requisitos
+### 1. Prerequisites
 
 - PowerShell 7;
-- Go na versão indicada em [`wydgo748/go.mod`](wydgo748/go.mod) (`1.26.5` atualmente);
-- Node.js `22.12` ou superior, com `npm`;
-- PostgreSQL 16 ou superior, com `psql` disponível no terminal.
+- the Go version specified in [`wydgo748/go.mod`](wydgo748/go.mod) (currently `1.26.5`);
+- Node.js `22.12` or later, with `npm`;
+- PostgreSQL 16 or later, with `psql` available in the terminal.
 
-Clone o repositório e abra o PowerShell na raiz dele. Confirme que o serviço do
-PostgreSQL está ativo; no Windows, o nome inclui a versão instalada:
+Clone the repository and open PowerShell at its root. Confirm that the
+PostgreSQL service is running; on Windows, its name includes the installed
+version:
 
 ```powershell
 Get-Service -Name 'postgresql*'
 ```
 
-Se estiver parado, inicie-o em um PowerShell administrativo com
-`Get-Service -Name 'postgresql*' | Start-Service`. Crie um usuário e um banco
-exclusivos pelo SQL Shell (`psql`):
+If it is stopped, start it from an administrative PowerShell session with
+`Get-Service -Name 'postgresql*' | Start-Service`. Create a dedicated role and
+database in the SQL Shell (`psql`):
 
 ```powershell
 psql -U postgres -d postgres
@@ -45,13 +46,14 @@ CREATE DATABASE wydgo OWNER wydgo;
 \q
 ```
 
-Se eles já existirem, não repita os comandos. Use uma senha diferente em
-produção e mantenha a porta `5432` acessível somente na rede privada/local.
+Do not repeat these commands if the role and database already exist. Use a
+different password in production, and expose port `5432` only to the private
+or local network.
 
-### 2. Configure o banco e compile
+### 2. Configure the database and build
 
-A variável deve ser definida no mesmo terminal que iniciará o servidor. O
-schema PostgreSQL é instalado e validado automaticamente no primeiro boot.
+Set the environment variable in the same terminal that will start the server.
+The PostgreSQL schema is installed and validated automatically on first boot.
 
 ```powershell
 $env:WYD_DATABASE_URL = 'postgres://wydgo:wydgo-local@127.0.0.1:5432/wydgo?sslmode=disable'
@@ -65,29 +67,29 @@ go build -o .\bin\account-create.exe .\cmd\account-create
 Pop-Location
 ```
 
-O script do painel só prepara os arquivos web; ele não inicia nem encerra o
-servidor. Para trabalhar sem o painel, defina `web_admin_enabled=false` em
-[`wydgo748/data/server.txt`](wydgo748/data/server.txt) e pule esse script.
+The web-panel script only prepares web files; it does not start or stop the
+server. To work without the panel, set `web_admin_enabled=false` in
+[`wydgo748/data/server.txt`](wydgo748/data/server.txt) and skip that script.
 
-### 3. Inicie o servidor
+### 3. Start the server
 
-Execute sempre a partir de `wydgo748/`, pois `data/server.txt` usa caminhos
-relativos a essa pasta.
+Always run it from `wydgo748/` because `data/server.txt` uses paths relative
+to that directory.
 
 ```powershell
 Push-Location .\wydgo748
 .\bin\tm.exe
 ```
 
-O boot correto informa PostgreSQL autoritativo e termina com o listener do jogo
-em `0.0.0.0:8281`. Com o painel habilitado, acesse
-`http://127.0.0.1:8082/admin/`. Troque o `admin_access_pin` de exemplo antes de
-usar o painel fora de um ambiente local. A conta administrativa também precisa
-estar autorizada em `wydgo748/data/staff.json`.
+A successful boot reports authoritative PostgreSQL and finishes with the game
+listener at `0.0.0.0:8281`. If the panel is enabled, open
+`http://127.0.0.1:8082/admin/`. Change the example `admin_access_pin` before
+using the panel outside a local environment. The administrative account must
+also be authorized in `wydgo748/data/staff.json`.
 
-Não feche o processo à força. Use `Ctrl+C` para o servidor drenar persistência e
-encerrar. Para os próximos boots, confirme que o serviço PostgreSQL está ativo
-e execute o servidor novamente:
+Do not forcibly terminate the process. Use `Ctrl+C` so the server can drain
+persistence and shut down. For subsequent starts, confirm PostgreSQL is
+running and start the server again:
 
 ```powershell
 Get-Service -Name 'postgresql*' | Start-Service
@@ -95,14 +97,14 @@ Push-Location .\wydgo748
 .\bin\tm.exe
 ```
 
-### 4. Crie uma conta
+### 4. Create an account
 
-No painel integrado, abra `http://127.0.0.1:8082/admin/#accounts`, informe o
-usuário, a senha e o `admin_access_pin`. O cadastro cria uma conta comum, sem
-permissões administrativas.
+In the integrated panel, open `http://127.0.0.1:8082/admin/#accounts` and
+enter the username, password, and `admin_access_pin`. Registration creates a
+regular account without administrative permissions.
 
-Como alternativa local, use o utilitário em outro PowerShell, a partir da raiz
-do repositório:
+Alternatively, run the local utility in another PowerShell session from the
+repository root:
 
 ```powershell
 $env:WYD_DATABASE_URL = 'postgres://wydgo:wydgo-local@127.0.0.1:5432/wydgo?sslmode=disable'
@@ -111,55 +113,56 @@ Push-Location .\wydgo748
 Pop-Location
 ```
 
-O utilitário solicita usuário e senha no terminal. A senha não deve ser passada
-na linha de comando.
+The utility prompts for a username and password. Do not pass the password on
+the command line.
 
-### 5. Conecte o client
+### 5. Connect the client
 
-O client deve apontar para o IP ou domínio do host do servidor e para a porta
-TCP `8281`. Em teste local, use `127.0.0.1`; em outro computador, libere somente
-`8281/TCP` no firewall e use o endereço alcançável desse host. O endpoint do
-PostgreSQL e as portas administrativas devem continuar privados.
+Point the client to the server host's IP address or domain and TCP port `8281`.
+For local testing, use `127.0.0.1`; from another computer, allow only
+`8281/TCP` through the firewall and use the reachable host address. Keep the
+PostgreSQL endpoint and administrative ports private.
 
-Para recompilar e instalar o client no runtime local:
+To rebuild and install the client into the local runtime:
 
 ```powershell
 pwsh -NoProfile -File .\tmproject\Build-Client.ps1 -Configuration Release
 ```
 
-O script instala o resultado em `tmproject/client748/project.exe`. Gere a
-configuração do endpoint com o `serverlist editor.exe` externo e salve a saída
-como `tmproject/client748/serverlist.bin`; não edite esse binário como texto e
-não é necessário preservar uma cópia antiga. O procedimento completo está no
-[guia de preparação do Windows](DOCS/windows-development-environment.md).
+The script installs the result as `tmproject/client748/project.exe`. Generate
+the endpoint configuration with the external `serverlist editor.exe` and save
+its output as `tmproject/client748/serverlist.bin`; do not edit that binary as
+text. You do not need to preserve an old copy. See the
+[Windows setup guide](DOCS/windows-development-environment.md) for the full
+procedure.
 
-## Solução rápida de problemas
+## Quick troubleshooting
 
-- `PostgreSQL configurado, mas WYD_DATABASE_URL esta vazia`: defina a variável
-  no mesmo processo/terminal que inicia o servidor.
-- `connection refused` em `5432`: inicie o PostgreSQL e confira host, porta,
-  usuário e banco na URL.
-- o jogo não conecta: confirme que o servidor anunciou `0.0.0.0:8281`, que o
-  client usa o endereço correto e que `8281/TCP` está liberada.
-- o painel não iniciou: gere `wydgo748/web/portal/dist` com
-  `tools/web-admin/Start-WYDAdmin.ps1` ou desabilite o painel na configuração.
-- caminhos `data/...` não encontrados: o processo foi iniciado fora de
+- PostgreSQL is configured but `WYD_DATABASE_URL` is empty: set the variable
+  in the same process or terminal that starts the server.
+- `connection refused` on `5432`: start PostgreSQL and check the host, port,
+  username, and database in the URL.
+- The game does not connect: confirm that the server announced
+  `0.0.0.0:8281`, the client uses the correct address, and `8281/TCP` is open.
+- The panel did not start: generate `wydgo748/web/portal/dist` with
+  `tools/web-admin/Start-WYDAdmin.ps1` or disable the panel in the configuration.
+- `data/...` paths cannot be found: the process was started outside
   `wydgo748/`.
 
-O guia completo de banco, conta, painel, segurança, backup e encerramento está
-em [Operação do servidor](DOCS/server/operations.md). Builds e gates estão em
-[Build e integração](DOCS/build-and-integration.md).
+The [server operations guide](DOCS/server/operations.md) covers the database,
+accounts, panel, security, backup, and shutdown. Build and validation gates
+are documented in [Build and integration](DOCS/build-and-integration.md).
 
-## Documentação
+## Documentation
 
-- [Índice por tarefa](DOCS/README.md)
-- [Ambiente Windows](DOCS/windows-development-environment.md)
-- [Inventário completo](DOCS/documentation-map.md)
-- [Estado do servidor](DOCS/server/operations.md)
-- [Pendências da adaptação 7.48](.agents/handoffs/client748-parity.md)
-- [Regras do repositório](AGENTS.md)
+- [Task-based index](DOCS/README.md)
+- [Windows environment](DOCS/windows-development-environment.md)
+- [Complete documentation map](DOCS/documentation-map.md)
+- [Server operations](DOCS/server/operations.md)
+- [Open 7.48 adaptation work](.agents/handoffs/client748-parity.md)
+- [Repository rules](AGENTS.md)
 
-O servidor valida intenções e mantém a verdade do jogo. Arquitetura posterior
-só é aproveitada quando compatível com o contrato 7.48 ou por extensão explícita
-e testada nos dois projetos. Evidência nativa e testes devem sustentar cada
-afirmação de paridade.
+The server validates intentions and remains the authority for game state.
+Later architecture is reused only when compatible with the 7.48 contract or
+through an explicit extension tested on both sides. Native evidence and tests
+must support every parity claim.

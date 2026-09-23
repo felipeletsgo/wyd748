@@ -1,32 +1,33 @@
 ---
 name: wyd-client748-assets
-description: Auditar e adaptar assets do client 7.48 mantendo identidade, caminhos, dependências e compatibilidade com o server.
+description: Audit and adapt 7.48 client assets while preserving identity, paths, dependencies, and server compatibility.
 ---
 
-# Assets do client 7.48
+# 7.48 client assets
 
-Use esta skill para assets, recursos visuais, UI, sons ou arquivos de runtime
-sob `tmproject/client748/`.
+Use this skill for assets, visual resources, UI, audio, or runtime files under
+`tmproject/client748/`.
 
-- Delimite o asset, loader e consumidores. Para uma fronteira legada alterada,
-  use `wyd-client748-research`, reutilizando prova vigente de recurso/ID e,
-  quando for UI, binding, input, ownership, fechamento e teardown. Trocar uma
-  textura com formato/ID preservados não exige rastrear novamente toda a UI.
-- Preserve nomes, formatos e arquivos existentes. A ausência no nativo 7.48
-  não autoriza remover um asset manualmente criado; demonstrar incompatibilidade
-  no runtime, contrato ou build.
-- Diferencie assets efetivamente usados pelo build dos assets históricos ou de
-  referência. Registre origem, hash quando a identidade importar e destino
-  materializado em `DOCS/` ou `.agents/research/`, nunca em um dump na source.
-- `references/client748/` é somente evidência histórica;
-  não substituir seus binários por um resultado de adaptação.
-- Quando o asset participa de uma extensão coordenada, documente o ID,
-  versionamento/capability, fallback e o efeito esperado no `wydgo748/`.
-- Builds, conversões e inspeções devem usar diretórios temporários ignorados e
-  removíveis; não deixar scripts, logs ou artefatos gerados espalhados.
+- Identify the asset, loader, and consumers. For a changed legacy boundary,
+  use `wyd-client748-research`, reusing valid evidence about resource/ID and,
+  for UI, binding, input, ownership, closing, and teardown. Replacing a
+  texture while preserving format and ID does not require retracing the UI.
+- Preserve existing names, formats, and files. Absence from native 7.48 does
+  not authorize removal of a manually created asset; demonstrate runtime,
+  contract, or build incompatibility first.
+- Distinguish assets actually used by the build from historical/reference
+  assets. Record origin, hash when identity matters, and materialized
+  destination in `DOCS/` or `.agents/research/`, never a source-tree dump.
+- `references/client748/` is historical evidence only; do not replace its
+  binaries with adaptation output.
+- When an asset participates in a coordinated extension, document its ID,
+  version/capability, fallback, and expected effect in `wydgo748/`.
+- Use ignored, removable temporary directories for builds, conversion, and
+  inspection. Do not scatter scripts, logs, or generated artifacts.
 
-Valide formato, referências e carregamento do conjunto alterado, incluindo
-fallback quando aplicável. Use a matriz do `AGENTS.md`: asset sem dependência
-de compilação não exige rebuild; contrato coordenado exige testes dos dois
-lados. A confirmação visual/sonora exige o fluxo real no client e não pode
-ser substituída por hash ou build. Não revarra todo o acervo por um asset.
+Validate format, references, and loading of changed resources, including
+applicable fallback. Follow the `AGENTS.md` matrix: an asset without a
+compilation dependency needs no rebuild; a coordinated contract requires
+tests on both sides. Visual/audio confirmation requires the real client flow;
+a hash or build cannot substitute for it. Do not rescan the entire archive for
+one asset.

@@ -1,49 +1,50 @@
 ---
 name: repo-architecture
-description: Organizar a arquitetura, documentação, regras e skills do repositório WYD-Go sem misturar arquivos nas sources.
+description: Organize the WYD-Go repository architecture, documentation, rules, and skills without scattering files into source trees.
 ---
 
-# Arquitetura do repositório
+# Repository architecture
 
-Use esta skill quando a tarefa for estrutural, documental ou de manutenção das
-skills.
+Use this skill for structural, documentation, or skill-maintenance tasks.
 
-## Layout canônico
+## Canonical layout
 
-- `tmproject/`: somente client C++ 7.48 adaptado, runtime e assets necessários;
-- `wydgo748/`: somente servidor Go autoritativo e seus dados/testes;
-- `DOCS/`: documentação durável, com índice em `README.md` e inventário em
+- `tmproject/`: only the adapted 7.48 C++ client, runtime, and required assets;
+- `wydgo748/`: only the authoritative Go server and its data/tests;
+- `DOCS/`: durable documentation, indexed by `README.md` and
   `documentation-map.md`;
-- `.agents/skills/`: skills ativas;
-- `.agents/research/` e `.agents/handoffs/`: evidência e continuidade.
+- `.agents/skills/`: active skills;
+- `.agents/research/` and `.agents/handoffs/`: evidence and continuity records.
 
-Não criar `AGENTS.md`, `CLAUDE.md`, README de projeto, script de pesquisa,
-dump, log ou temporário dentro das sources. Manter somente as duas raízes
-ativas descritas acima. Evidência binária fica em `references/client748/`.
+Do not create `AGENTS.md`, `CLAUDE.md`, a project README, research script,
+dump, log, or temporary file inside the source trees. Keep only the two active
+source roots above. Binary evidence belongs in `references/client748/`.
+Follow the repository-wide English-only language rule in `AGENTS.md`.
 
-## Procedimento seguro
+## Safe procedure
 
-1. Usar a entrada única e os gates do `AGENTS.md`; não repetir a inspeção ao
-   entrar nesta skill. Delimitar arquivos e consumidores da alteração.
-2. Antes de mover ou remover, buscar referências aos alvos com `rg`. Inventário
-   global só para reorganização global, não para editar um parágrafo.
-3. Mover documentação para uma única categoria em `DOCS/` e corrigir links.
-   Manter evidência técnica em `.agents/`, sem duplicar relatórios.
-4. Remover somente duplicados, regras obsoletas e artefatos gerados com
-   caminhos exatos confirmados. Não apagar source, assets ou evidência nativa
-   por conveniência.
-5. No fechamento do lote, executar `tools/repository/Test-RepositoryLayout.ps1`.
-   Usar `-UpdateMap` somente se caminhos, entradas ou categorias do inventário
-   mudarem; essa chamada já valida o resultado, sem uma segunda execução.
-   Completar com `git diff --check` e os validadores dos recursos alterados.
+1. Use the one-time entry and validation gates in `AGENTS.md`; do not repeat
+   inspection when entering this skill. Identify the affected files and users.
+2. Before moving or removing files, search for references with `rg`. Use a
+   global inventory only for global reorganization, not a paragraph edit.
+3. Move documentation into one `DOCS/` category and fix links. Keep technical
+   evidence in `.agents/`, without duplicate reports.
+4. Remove only verified duplicates, obsolete rules, and generated artifacts,
+   after confirming exact paths. Do not delete source, assets, or native
+   evidence for convenience.
+5. At batch close, run `tools/repository/Test-RepositoryLayout.ps1`. Use
+   `-UpdateMap` only when inventory paths, entries, or categories change; that
+   invocation already validates the result. Also run `git diff --check` and
+   validators for changed resources.
 
 ## Skills
 
-Cada skill ativa tem um único `SKILL.md` curto e específico. Não copiar regras
-globais para todas as skills. Referências e scripts devem ter um propósito
-claro, caminhos atuais e testes reproduzíveis.
+Each active skill has one short, specific `SKILL.md`. Avoid duplicating global
+rules in every skill. References and scripts need a clear purpose, current
+paths, and reproducible tests.
 
-Ao criar/revisar skills, usar `skill-creator` oferecida pela sessão. Validar
-frontmatter e revisar cenários de acionamento, reaproveitamento de evidência e
-bloqueio; um YAML válido não demonstra que o workflow evita loops. Não acionar
-skills de gameplay apenas porque a documentação menciona client ou servidor.
+When creating or revising skills, use the session's `skill-creator` skill.
+Validate frontmatter and review triggering, evidence reuse, and blocking
+scenarios. Valid YAML alone does not prove that the workflow avoids loops. Do
+not invoke gameplay skills merely because documentation mentions a client or
+server.

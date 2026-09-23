@@ -1,155 +1,159 @@
-# WYD-Go — regras únicas do repositório
+# WYD-Go — repository rules
 
-Este é o único arquivo de regras do repositório. Não criar outro `AGENTS.md`,
-`CLAUDE.md` ou arquivo equivalente dentro de uma source. Regras históricas
-ficam arquivadas como documentação, mas não são instruções ativas.
+This is the repository's only active rule file. Do not create another
+`AGENTS.md`, `CLAUDE.md`, or equivalent inside a source tree. Archived rules
+are documentation, not active instructions.
 
-## Arquitetura ativa
+## Project language
 
-- `tmproject/` é o client C++: `TMProject748/` contém a source baseada no
-  TMProject 7.69 e `tmproject/client748/` contém runtime e assets do
-  client 7.48.
-- `wydgo748/` é o servidor Go e seu `go.mod` é a raiz do módulo. O servidor é
-  autoritativo; o client envia intenções, recebe estado validado e nunca é a
-  fonte da verdade do jogo.
-- O servidor é compilado e executado como processo nativo a partir de
-  `wydgo748/`. Docker, Railway e manifests de deployment externo não fazem
-  parte da arquitetura do produto e só podem ser introduzidos por solicitação
-  explícita do usuário.
-- `DOCS/` contém a documentação durável do projeto. A entrada e o inventário
-  estão em [`DOCS/README.md`](DOCS/README.md) e
+English is the sole language of this global WYD project. All human-readable
+repository content must be in English, including client UI, messages,
+diagnostics, comments, documentation, rules, skills, tests, scripts, and
+release material. Translate existing Portuguese text when touching it and
+track the remaining migration. Do not change protocol bytes, resource IDs,
+persisted values, or established identifiers just to translate prose. Never
+claim a partial translation is complete.
+
+## Active architecture
+
+- `tmproject/` is the C++ client. `TMProject748/` contains source based on
+  TMProject 7.69; `tmproject/client748/` contains the 7.48 runtime and assets.
+- `wydgo748/` is the authoritative Go server, with `go.mod` as its module root.
+  The client sends intentions and receives validated state; it is never the
+  source of truth for game state.
+- Build and run the server as a native process from `wydgo748/`. Docker,
+  Railway, and external deployment manifests are outside the product
+  architecture unless explicitly requested.
+- `DOCS/` holds durable documentation. Entry point and inventory:
+  [`DOCS/README.md`](DOCS/README.md) and
   [`DOCS/documentation-map.md`](DOCS/documentation-map.md).
-- `.agents/skills/` contém somente skills de trabalho. `.agents/research/` e
-  `.agents/handoffs/` contêm evidências e registros de continuidade, não
-  runtime nem documentação espalhada nas sources.
-- `references/client748/` preserva binários e ferramentas históricos como
-  evidência somente leitura. `tools/repository/` concentra validadores do layout.
+- `.agents/skills/` holds working skills. `.agents/research/` and
+  `.agents/handoffs/` hold evidence and continuity records, not runtime.
+- `references/client748/` preserves historical binaries and tools as read-only
+  evidence. `tools/repository/` holds layout validators.
 
-O contrato client/server deve ser explícito, versionado e testável nos dois
-lados. A existência de arquitetura mais completa no TMProject 7.69 não prova
-que um endereço, layout, asset, opcode ou comportamento pertence ao 7.48.
+The client/server contract must be explicit, versioned, and testable on both
+sides. TMProject 7.69 does not prove that an address, layout, asset, opcode,
+or behavior belongs to 7.48.
 
-## Regra de versão e evidência
+## Version and evidence
 
-Cada delta funcional deve ser classificado uma vez como um destes modos;
-documentação, organização e tooling sem mudança de contrato não exigem ficha nativa:
+Classify each functional delta once. Documentation, organization, and tooling
+without a contract change need no native evidence record:
 
-- `PARIDADE_NATIVA`: comportamento comprovado do client nativo 7.48;
-- `MODERNIZACAO_COMPATIVEL`: melhoria interna que preserva o contrato 7.48;
-- `EXTENSAO_COORDENADA`: contrato novo implementado no client e no servidor.
+- `PARIDADE_NATIVA`: behavior proven in the native 7.48 client;
+- `MODERNIZACAO_COMPATIVEL`: internal improvement preserving the 7.48 contract;
+- `EXTENSAO_COORDENADA`: new contract implemented in client and server.
 
-Para adaptar uma fronteira legada do client ou afirmar paridade, usar evidência
-do binário nativo 7.48 e do Ghidra antes da edição. Reutilizar fichas comprovadas
-quando cobrirem o contrato e os inputs atuais; investigar apenas a lacuna.
-Modernização interna com contrato preservado não exige nova pesquisa nativa.
-Extensão coordenada exige contrato novo e estudo das fronteiras legadas que
-intercepta, não um equivalente nativo para a novidade. Mudança interna do
-servidor, documentação ou build sem alteração dessas fronteiras não aciona Ghidra.
-O TMProject 7.69 é referência secundária de arquitetura e algoritmos. Projetos
-legados externos não são autoridade de paridade por si só. Dados, fórmulas ou
-comportamentos que tenham origem histórica nesses projetos podem ser
-classificados como `PARIDADE_NATIVA` quando já houver validação independente e
-registrada no client/runtime real 7.48 ou em testes reproduzíveis que exercitem
-o contrato 7.48. Nesse caso, a evidência de paridade é a validação 7.48, não a
-origem histórica. Não reabrir Ghidra para um comportamento idêntico já validado
-se os inputs e o contrato não mudaram.
+Before adapting a legacy client boundary or claiming parity, use evidence from
+the native 7.48 binary and Ghidra. Reuse proven records when they cover the
+current contract and inputs; investigate only the gap. Contract-preserving
+internal modernization does not require new native research. A coordinated
+extension requires a new contract and study of the legacy boundaries it
+crosses, not a native equivalent for the new feature. Internal server,
+documentation, and build changes that do not change those boundaries do not
+trigger Ghidra work. TMProject 7.69 is a secondary architecture/algorithm
+reference. External legacy projects are not parity authority on their own.
+Historically sourced data, formulas, or behaviors may count as
+`PARIDADE_NATIVA` only after independent, recorded validation in the real 7.48
+client/runtime or reproducible tests exercising the 7.48 contract. That 7.48
+validation, not historical origin, is the evidence. Do not reopen Ghidra for
+identical behavior already validated with unchanged inputs and contract.
 
-O catálogo usa os estados `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT`,
-`IMPLEMENTED` e `CLIENT_TESTED`. Uma função catalogada não está compreendida
-por isso. `CLIENT_TESTED` exige execução real do fluxo no client construído;
-build, teste estático ou teste isolado não substituem essa validação.
+The catalog states are `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT`,
+`IMPLEMENTED`, and `CLIENT_TESTED`. A cataloged function is not necessarily
+understood. `CLIENT_TESTED` requires actual execution in the built client;
+builds, static checks, and isolated tests do not substitute for it.
 
-## Regras de implementação
+## Implementation
 
-1. Antes de uma tarefa técnica não trivial, ler a skill aplicável em
-   `.agents/skills/`, verificar este arquivo, `git status --short` e `HEAD`, e
-   preservar mudanças alheias.
-2. Para uma fronteira legada do client, seguir
-   `catálogo -> callgraph -> fluxo observável -> adaptação -> validação`.
-   Não portar pseudocódigo do 7.69 às cegas.
-3. Para features que atravessam os dois projetos, definir o packet/estado,
-   validação autoritativa, falhas e lifecycle antes de conectar UI ou efeitos.
-4. Alterações ativas do client são feitas em source e assets. Binários
-   históricos em `references/client748/` são somente
-   evidência; não usar patches binários como implementação.
-5. Fazer ciclos pequenos: patch focado, teste focado, próximo patch. Não
-   refatorar código não necessário para a tarefa.
-6. Não apagar ou substituir código/asset existente apenas porque não existe no
-   nativo 7.48; demonstrar incompatibilidade no wire, ABI, recurso, lifecycle
-   ou fluxo real antes de remover.
+1. Before nontrivial technical work, read the applicable `.agents/skills/`
+   skill, check this file, `git status --short`, and `HEAD`, and preserve
+   other people's changes.
+2. For a legacy client boundary, follow
+   `catalog -> call graph -> observable flow -> adaptation -> validation`.
+   Do not blindly port 7.69 pseudocode.
+3. For cross-project features, define packet/state, authoritative validation,
+   failures, and lifecycle before connecting UI or effects.
+4. Implement active client changes in source and assets. Historical binaries
+   in `references/client748/` are evidence only, never implementation patches.
+5. Use small cycles: focused patch, focused test, next patch. Do not refactor
+   unrelated code.
+6. Do not delete or replace existing code/assets merely because native 7.48
+   lacks them. First demonstrate incompatibility in wire, ABI, resource,
+   lifecycle, or actual flow.
 
-## Execução sem loops
+## Avoid repeated work
 
-- Fazer uma única entrada por tarefa: regras/skills aplicáveis, `status + HEAD
-  + diff scoped` e handoff apenas quando for continuação. Reutilizar leituras
-  já feitas nesta sessão; carregar referências somente pela decisão atual.
-- Depois da entrada, avançar com patch, teste focado ou diagnóstico de uma
-  lacuna concreta. Não reiniciar inventário, pesquisa ou auditoria a cada patch,
-  troca de skill ou compactação. A árvore atual prevalece sobre o handoff.
-- Reutilizar evidência com inputs, dependências, ambiente relevante e cobertura
-  conhecidos e ainda válidos. Repetir apenas a parte invalidada por mudança,
-  resultado insuficiente ou gate de integração. Hash de corpus imutável não é
-  ritual de retomada; falha anterior nunca equivale a aprovação.
-- Uma investigação deve fechar a transição necessária à tarefa, não o corpus
-  inteiro. Ao atingir o gate dessa fronteira, implementar o lote liberado.
-  Manter lacunas independentes registradas sem bloquear trabalho seguro.
-- Duas tentativas consecutivas sobre a mesma dúvida sem evidência nova exigem
-  mudar a hipótese/método com motivo concreto ou relatar o bloqueio. Não repetir
-  comando falho sem corrigir input/ambiente ou identificar causa transitória.
-  Pesquisa que produz evidência nova continua; não confundir duração com loop.
-- Atualizar o registro existente quando mudar decisão, validação ou próximo
-  passo. Não criar relatório/handoff por patch nem copiar logs para a source.
+- Enter each task once: applicable rules/skills, status + HEAD + scoped diff,
+  and handoff only for a continuation. Reuse reads from this session; load
+  references only for the current decision.
+- After entry, advance with a patch, focused test, or concrete diagnosis. Do
+  not restart inventories, research, or audits after every patch, skill switch,
+  or context compaction. The current tree overrides a handoff.
+- Reuse evidence with known, still-valid inputs, dependencies, environment,
+  and coverage. Repeat only what a change, insufficient result, or integration
+  gate invalidates. Rehashing an immutable corpus is not a resume ritual;
+  a previous failure is never approval.
+- Research should close the transition needed for the task, not the entire
+  corpus. Implement the cleared batch; record independent gaps without
+  blocking safe work.
+- After two attempts on the same question without new evidence, change
+  hypothesis/method for a concrete reason or report the blockage. Do not
+  repeat a failed command without fixing input/environment or identifying a
+  transient cause. New evidence is progress; duration alone is not a loop.
+- Update an existing record when a decision, validation result, or next step
+  changes. Do not create a handoff per patch or copy logs into source.
 
-## Organização de arquivos
+## File organization
 
-- Nenhum `.md`, script de pesquisa, dump, log, binário gerado ou arquivo
-  temporário deve ser criado dentro de `tmproject/` ou `wydgo748/` sem ser
-  parte necessária do produto. Documentação vai para `DOCS/`; evidência de
-  agente vai para `.agents/research/` ou `.agents/handoffs/`.
-- Manter somente as duas sources ativas: `tmproject/` e `wydgo748/`.
-- Builds e artefatos locais devem ficar em diretórios ignorados (`build/`,
-  `bin/`, `obj/` ou equivalentes já previstos no `.gitignore`). Não comitar
-  executáveis gerados.
-- Ao mover documentação, corrigir links e registrar a mudança no mapa central.
-  Não duplicar o mesmo documento em dois lugares.
+- Do not create `.md`, research scripts, dumps, logs, generated binaries, or
+  temporary files inside `tmproject/` or `wydgo748/` unless the product needs
+  them. Documentation belongs in `DOCS/`; agent evidence in `.agents/research/`
+  or `.agents/handoffs/`.
+- Keep only two active source roots: `tmproject/` and `wydgo748/`.
+- Keep builds and local artifacts in ignored directories (`build/`, `bin/`,
+  `obj/`, or existing equivalents). Do not commit generated executables.
+- When moving documentation, fix links and update the central map. Do not
+  duplicate a document.
 
-## Skills por escopo
+## Skills by scope
 
-| Escopo | Skill |
+| Scope | Skill |
 | --- | --- |
-| Organização, documentação, regras e skills | `repo-architecture` |
-| Servidor e features integradas | `wydgo748-feature` |
-| Contratos e comportamento legado do client | `wyd-client748-research`; adicionar `wydgo748-feature` se afetar servidor/contrato integrado |
-| Censo nativo e seleção de raízes | `wyd-client748-catalog` |
-| Assets e recursos do runtime | `wyd-client748-assets` |
+| Organization, documentation, rules, skills | `repo-architecture` |
+| Server and integrated features | `wydgo748-feature` |
+| Legacy client contracts and behavior | `wyd-client748-research`; add `wydgo748-feature` for server/integrated contracts |
+| Native census and root selection | `wyd-client748-catalog` |
+| Runtime assets and resources | `wyd-client748-assets` |
 
-As skills detalham procedimentos; este arquivo concentra as regras globais.
+Skills detail procedures; this file holds global rules.
 
-## Validação proporcional
+## Proportional validation
 
-Escolher o gate pelo risco e pelos consumidores alterados, não pela quantidade
-de arquivos. Teste focado acompanha cada patch lógico; validação integrada roda
-no fechamento do lote afetado, sem repetir resultado ainda válido. Falha,
-dependência compartilhada ou cobertura insuficiente justifica ampliar o gate.
+Choose gates by risk and affected consumers, not file count. Pair each logical
+patch with a focused test. Run integration validation once per affected batch
+without repeating still-valid results. Failure, shared dependencies, or weak
+coverage justify a broader gate.
 
-| Alteração | Gate necessário |
+| Change | Required gate |
 | --- | --- |
-| Apenas documentação/regras/skills | Links/layout uma vez no lote; validar skills alteradas; `git diff --check`. Sem Go, C++, Ghidra ou runtime. |
-| Script ou build/CI | Testar o caminho alterado e uma falha relevante; build do produto somente se sua produção/resolução de dependências mudou. |
-| Servidor interno | Testes do pacote/fluxo alterado; incluir consumidores. Suíte Go completa e vet no lote transversal ou de integração, não a cada patch. |
-| Source C++ | Teste focado aplicável e compilação incremental do alvo afetado; build integrado no lote que altera o executável/projetos. Rebuild limpo só se necessário para dependências/configuração. |
-| Wire/ABI ou feature coordenada | Contrato e testes dos dois lados, incluindo rejeições/tamanhos/falhas; builds afetados e fluxo integrado para declarar funcionamento ponta a ponta. |
-| Persistência/economia/concorrência | Testar também rejeição, rollback, repetição e concorrência aplicáveis; usar banco/race quando esse caminho depender deles. |
-| Apenas assets | Identidade/formato/IDs e loader dos recursos alterados; fluxo visual no client. Recompilar somente se houver geração, empacotamento ou dependência de build afetada. |
+| Documentation/rules/skills only | Check links/layout once per batch, validate changed skills, and run `git diff --check`. No Go, C++, Ghidra, or runtime. |
+| Script or build/CI | Test the changed path and a relevant failure. Build the product only when its output/dependency resolution changed. |
+| Internal server | Test changed package/flow and consumers. Full Go suite and vet for cross-cutting/integration batches, not every patch. |
+| C++ source | Focused test and incremental affected-target build; integrated build for an executable/project batch. Clean rebuild only for dependency/configuration needs. |
+| Wire/ABI or coordinated feature | Contracts and tests on both sides, including rejections, sizes, and failures; affected builds and an integrated flow before claiming end-to-end functionality. |
+| Persistence/economy/concurrency | Also test applicable rejection, rollback, repetition, and concurrency; use database/race validation when the path needs them. |
+| Assets only | Validate identity, format, IDs, and resource loader; visual client flow. Rebuild only when generation, packaging, or build dependencies changed. |
 
-Testes ignorados por fixture/serviço ausente não comprovam o caminho. Registrar
-o gate pendente; não promover a entrega a validada nem repetir a suíte esperando
-que o pré-requisito apareça. Auditoria ampla e publicação não são etapas
-automáticas de uma edição comum.
+Skipped tests caused by missing fixtures/services do not prove a path. Record
+the pending gate; do not promote validation or rerun the suite hoping the
+prerequisite appears. Broad audits and publication are not automatic after
+ordinary edits.
 
-### Comandos de integração
+### Integration commands
 
-Do root do repositório:
+From the repository root:
 
 ```powershell
 Push-Location .\wydgo748
@@ -157,23 +161,21 @@ go test -count=1 ./...
 Pop-Location
 ```
 
-Para construir e instalar o candidato no runtime local (sobrescreve
-`tmproject/client748/project.exe`; usar somente quando a tarefa incluir essa
-validação, não como simples checagem documental):
+To build and install a candidate in the local runtime (overwrites
+`tmproject/client748/project.exe`; only when the task includes that validation,
+not for documentation checks):
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tmproject\Build-Client.ps1
 ```
 
-O script deve produzir/verificar `tmproject/client748/project.exe` sem alterar
-as evidências históricas. A validação deve declarar separadamente
-`STATICALLY VERIFIED`, `AUTOMATED TESTED` e `CLIENT-TESTED`; nunca elevar o
-estado apenas porque houve build.
+The script must produce/verify `tmproject/client748/project.exe` without
+altering historical evidence. Report `STATICALLY VERIFIED`, `AUTOMATED TESTED`,
+and `CLIENT-TESTED` separately; a build alone never promotes a state.
 
-## Git e entrega
+## Git and delivery
 
-Esta campanha trabalha diretamente em `main`; não criar branch, worktree ou PR
-para dividir o mapeamento. Não executar `git reset --hard`, `git checkout --`
-ou remoção ampla. Antes de uma exclusão, resolver os caminhos exatos e
-preservar o que for evidência. Ao concluir, reportar arquivos alterados,
-arquivos removidos, comandos executados e qualquer gate ainda não validado.
+Work directly on `main`; do not create a branch, worktree, or PR to split the
+mapping. Do not run `git reset --hard`, `git checkout --`, or broad deletion.
+Before deleting anything, resolve exact paths and preserve evidence. At
+completion, report changed and removed files, commands run, and pending gates.

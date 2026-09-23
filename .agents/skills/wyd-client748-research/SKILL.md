@@ -1,75 +1,76 @@
 ---
 name: wyd-client748-research
-description: Resolver evidência de comportamento ou contrato legado do client WYD 7.48 para adaptação/paridade, reutilizando fichas válidas; não acionar para servidor interno ou manutenção documental.
+description: Resolve evidence for legacy WYD 7.48 client behavior or contracts during adaptation/parity work; reuse valid records and skip for internal server or documentation maintenance.
 ---
 
-# Pesquisa do client 7.48
+# 7.48 client research
 
-Use esta skill para a fronteira legada afetada ou interceptada por uma extensão.
-Não exigir equivalente nativo para um contrato novo. O pipeline de paridade é
-uma cadeia de evidências reutilizáveis, não uma sequência de comandos a repetir:
+Use this skill for an affected legacy boundary or one crossed by an extension.
+Do not demand a native equivalent for a new contract. The parity pipeline is
+a reusable evidence chain, not a command sequence to repeat:
 
 ```text
-catálogo -> callgraph -> fluxo observável -> adaptação -> validação
+catalog -> call graph -> observable flow -> adaptation -> validation
 ```
 
-## Autoridade
+## Authority
 
-Avalie e registre por frente o binário nativo 7.48, o projeto/descompilação
-Ghidra, assets 7.48, source atual do TMProject, `wydgo748/`, testes e demais
-referências. Marque cada fonte como `UTILIZADA`, `NÃO APLICÁVEL` ou
-`CONTRADITÓRIA`, com justificativa. O binário e o Ghidra prevalecem; TMProject
-7.69, guias e histórico são referências secundárias. Projetos legados externos
-podem explicar a origem histórica de um dado, mas não são autoridade de
-paridade. Se o mesmo comportamento/dado já tiver validação independente e
-registrada no runtime/client 7.48 ou em teste reproduzível do contrato 7.48,
-reutilize essa evidência como `PARIDADE_NATIVA` sem reabrir a investigação.
+For each front, assess and record the native 7.48 binary, Ghidra
+project/decompilation, 7.48 assets, current TMProject source, `wydgo748/`,
+tests, and other references. Mark each source `USED`, `NOT APPLICABLE`,
+or `CONTRADICTORY`, with a reason. The native binary and Ghidra take
+precedence; TMProject 7.69, guides, and history are secondary. External
+legacy projects may explain a datum's origin but do not establish parity.
+If the same behavior/data has independent, recorded validation in the 7.48
+runtime/client or a reproducible 7.48 contract test, reuse that evidence as
+`PARIDADE_NATIVA` without reopening research.
 
-## Classificação e gates
+## Classification and gates
 
-- `PARIDADE_NATIVA`: reproduz comportamento legado. Para uma fronteira ainda
-  não validada, exige ficha `TRACED` e, para wire/ABI/loader/recurso,
-  `CONTRACT` antes da adaptação. Evidência 7.48 já registrada e ainda válida
-  pode ser reutilizada diretamente, inclusive para dados e testes já exercidos
-  no runtime real, sem repetir Ghidra ou exportações.
-- `MODERNIZACAO_COMPATIVEL`: muda a implementação interna preservando o
-  contrato; reutiliza a ficha comprovada e restringe a prova às fronteiras
-  afetadas.
-- `EXTENSAO_COORDENADA`: adiciona contrato ausente no nativo; exige formato,
-  versão/capability quando necessário, IDs/opcodes sem colisão, validação,
-  rollback/fallback e testes dos dois projetos. Não é paridade.
+- `PARIDADE_NATIVA`: reproduces legacy behavior. A not-yet-validated
+  boundary needs a `TRACED` record, and wire/ABI/loader/resource changes
+  need `CONTRACT` before adaptation. Still-valid recorded 7.48 evidence,
+  including data and tests already exercised in the real runtime, may be
+  reused without repeating Ghidra or exports.
+- `MODERNIZACAO_COMPATIVEL`: changes internals while preserving the
+  contract; reuse a proven record and limit proof to affected boundaries.
+- `EXTENSAO_COORDENADA`: adds a non-native contract; requires format,
+  version/capability when needed, collision-free IDs/opcodes, validation,
+  rollback/fallback, and tests in both projects. It is not parity.
 
-## O que rastrear
+## What to trace
 
-Para abrir uma frente, leia [research-method.md](references/research-method.md).
-Para escrever ou atualizar uma ficha, use
-[evidence-record.md](references/evidence-record.md). Ao escolher fronteiras,
-consulte [subsystem-map.md](references/subsystem-map.md) somente se ainda não
-houver fluxo/raiz definido. Acione catálogo apenas quando faltar seed ou o
-censo for o objeto da tarefa.
+When opening a new front, read [research-method.md](references/research-method.md).
+When writing or updating an evidence record, read
+[evidence-record.md](references/evidence-record.md). Consult
+[subsystem-map.md](references/subsystem-map.md) for boundary selection only
+if no flow/root is defined. Use the catalog skill only when a seed is missing
+or the census itself is the task.
 
-Uma ficha descreve uma transição: entrada/evento, raiz nativa, callers/callees,
-estado e mutações, erros, wire/ABI/recursos, source/server, decisão e
-validação. Confirme no Ghidra chamadas indiretas, vtables, callbacks,
-ownership, falha parcial, cleanup e teardown. Em lifecycle, resolva também
-shutdown e logout/relogin ou marque `N/A` com justificativa.
+A record describes one transition: entry/event, native root, callers/callees,
+state and mutations, errors, wire/ABI/resources, source/server, decision, and
+validation. Confirm indirect calls, vtables, callbacks, ownership, partial
+failure, cleanup, and teardown in Ghidra. For lifecycle, resolve shutdown and
+logout/relogin too, or mark them N/A with a reason.
 
-Para packets, registre direção, opcode, tamanho, offsets, packing e signedness.
-Para UI/assets, registre recurso materializado, binding, input, ownership,
-fechamento e teardown. Ausência de caller textual não prova código morto.
+For packets, record direction, opcode, size, offsets, packing, and signedness.
+For UI/assets, record materialized resource, binding, input, ownership,
+closing, and teardown. Lack of a textual caller does not prove dead code.
 
-## Continuação e saída
+## Continuation and exit
 
-Reutilize a entrada única e a política de invalidação do `AGENTS.md`. Com ficha
-suficiente e inputs válidos, avance para a adaptação sem nova exportação/Ghidra.
-Se faltar prova, formule uma pergunta sobre a transição e escolha a consulta
-que pode resolvê-la. Ao fechar o gate, implementar o delta liberado; não abrir
-pesquisa de vizinhos sem dependência demonstrada. Lacuna real bloqueia somente
-a edição dependente, e deve apontar a evidência ou acesso que falta.
-Registre a ficha em `.agents/research/` e a decisão durável em `DOCS/` sem
-duplicar conteúdo. Use `validate_research.py` uma vez por lote de fichas/schema
-alterados, antes de aceitar a promoção. Mudança só nas instruções desta skill
-não invalida as fichas nem exige reprocessar o corpus.
+Reuse the `AGENTS.md` one-time entry and invalidation policy. With sufficient
+evidence and unchanged inputs, proceed to adaptation without a new
+export/Ghidra run. If evidence is missing, ask a specific transition question
+and choose a query that can answer it. Once the gate closes, implement the
+cleared delta; do not research neighboring areas without a demonstrated
+dependency. A real gap blocks only its dependent edit and must name the
+missing evidence or access. Record evidence in `.agents/research/` and a
+durable decision in `DOCS/` without duplication. Run `validate_research.py`
+once per changed batch of records/schema before accepting promotion. Changes
+only to this skill's instructions do not invalidate records or require
+reprocessing the corpus.
 
-`STATICALLY VERIFIED`, `AUTOMATED TESTED` e `CLIENT-TESTED` são estados
-distintos. Build ou teste estático nunca promove uma frente a `CLIENT_TESTED`.
+`STATICALLY VERIFIED`, `AUTOMATED TESTED`, and `CLIENT-TESTED` are
+distinct states. A build or static test never promotes a front to
+`CLIENT_TESTED`.

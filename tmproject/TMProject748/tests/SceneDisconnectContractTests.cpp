@@ -33,6 +33,12 @@ std::filesystem::path FindSource(const char* relativePath)
     return {};
 }
 
+std::string NormalizeLineEndings(std::string source)
+{
+    source.erase(std::remove(source.begin(), source.end(), '\r'), source.end());
+    return source;
+}
+
 std::string LoadSource(const char* relativePath)
 {
     const auto path = FindSource(relativePath);
@@ -40,7 +46,10 @@ std::string LoadSource(const char* relativePath)
         return {};
 
     std::ifstream input(path, std::ios::binary);
-    return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+    // Git checkouts on Windows may use CRLF even when the committed source is
+    // LF. Keep these source-contract checks independent of checkout policy.
+    return NormalizeLineEndings({std::istreambuf_iterator<char>(input),
+        std::istreambuf_iterator<char>()});
 }
 }
 
@@ -57,6 +66,8 @@ int RunSceneDisconnectContractTests(int& checks)
             std::fprintf(stderr, "FAIL scene disconnect: %s\n", name);
         }
     };
+    check(NormalizeLineEndings("case 12:\r\n\t\t\t{\r\n") == "case 12:\n\t\t\t{\n",
+        "source contract normalizes CRLF checkout line endings");
 
     const std::string source = LoadSource(
         "TMProject748/internal/app/scenes/TMSelectServerScene.cpp");

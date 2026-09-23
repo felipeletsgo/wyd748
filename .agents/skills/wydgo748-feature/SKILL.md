@@ -1,62 +1,64 @@
 ---
 name: wydgo748-feature
-description: Implementar ou revisar comportamento do servidor WYD-Go 7.48 e contratos integrados com o client TMProject; não acionar para documentação ou organização sem mudança funcional.
+description: Implement or review WYD-Go 7.48 server behavior and integrated TMProject client contracts; skip for documentation or organization without functional changes.
 ---
 
-# Feature do WYD-Go 7.48
+# WYD-Go 7.48 feature
 
-Use esta skill para mudanças no servidor Go ou em uma feature que precise
-conversar entre `wydgo748/` e `tmproject/`.
+Use this skill for Go server changes or a feature connecting `wydgo748/`
+and `tmproject/`.
 
-## Modelo de autoridade
+## Authority model
 
-O client envia intenções e apresenta estado. O servidor valida identidade,
-permissões, regras, recursos, cooldowns, colisões e transições; persiste o
-estado autoritativo e envia snapshots/deltas. Nunca aceitar do client uma
-posição, item, dano, skill ou saldo como verdade sem validação server-side.
+The client sends intentions and displays state. The server validates identity,
+permissions, rules, resources, cooldowns, collisions, and transitions;
+persists authoritative state; and sends snapshots/deltas. Never accept a
+client-provided position, item, damage, skill, or balance as truth without
+server-side validation.
 
-Antes de editar, classifique o delta como `PARIDADE_NATIVA`,
-`MODERNIZACAO_COMPATIVEL` ou `EXTENSAO_COORDENADA`. Se tocar comportamento,
-packet, ABI, UI, input, render, asset ou lifecycle legado, use
-`wyd-client748-research` antes desta skill. Não portar o TMProject 7.69 às
-cegas para o 7.48.
+Before editing, classify the delta as `PARIDADE_NATIVA`,
+`MODERNIZACAO_COMPATIVEL`, or `EXTENSAO_COORDENADA`. If it touches legacy
+behavior, packet, ABI, UI, input, rendering, asset, or lifecycle, use
+`wyd-client748-research` before this skill. Do not blindly port TMProject
+7.69 to 7.48.
 
-## Procedimento
+## Procedure
 
-1. Reutilize a entrada única do `AGENTS.md` e o contrato atual. Uma mudança
-   interna do servidor sem fronteira legada não precisa de pesquisa do client.
-2. Localize o fluxo vivo com `rg` e siga a intenção desde o packet até o
-   estado, persistência e resposta. Defina rejeições, replay/idempotência,
-   concorrência e falha parcial relevantes ao fluxo antes de ligar a UI; não
-   auditar domínios que a alteração não alcança.
-3. Para extensão coordenada, documente formato, versão/capability, opcode/IDs,
-   validação, fallback e compatibilidade nos dois lados.
-4. Faça um patch pequeno, rode o teste focado, depois avance para o próximo
-   patch. Não refatore código sem relação.
+1. Reuse the one-time `AGENTS.md` entry and current contract. An internal
+   server change that does not cross a legacy boundary needs no client
+   research.
+2. Locate the live flow with `rg` and follow the intention from packet
+   through state, persistence, and response. Define relevant rejection,
+   replay/idempotence, concurrency, and partial failure before connecting UI;
+   do not audit domains the change cannot reach.
+3. For a coordinated extension, document format, version/capability,
+   opcode/IDs, validation, fallback, and compatibility on both sides.
+4. Make a small patch, run a focused test, then continue. Do not refactor
+   unrelated code.
 
-## Validação
+## Validation
 
-Aplicar a matriz do `AGENTS.md`. Dentro de `wydgo748/`, selecionar o pacote e
-os testes que exercitam a alteração (`go test ./internal/game -run <Teste>`,
-por exemplo; substituir pelo alvo real). O filtro deve executar testes, não
-apenas retornar sucesso sem casos. Incluir casos de rejeição e consumidores
-afetados; reservar suíte ampla/vet para o lote com impacto transversal.
+Apply the `AGENTS.md` matrix. In `wydgo748/`, select the package and tests
+exercising the change (`go test ./internal/game -run <TestName>`, for
+example; replace with the real target). The filter must run tests, not just
+return success with zero cases. Include rejection cases and affected
+consumers; reserve full suite/vet for a cross-cutting batch.
 
-Se alterar os dois projetos, testar ambos. Um teste server-side não valida o
-parser/UI do client. Compilar o alvo C++ afetado e registrar execução real
-pendente quando não disponível; nunca instalar o candidato como efeito oculto
-de uma checagem. Os estados de validação são os definidos no `AGENTS.md`.
+If both projects change, test both. A server-side test does not validate the
+client parser/UI. Build the affected C++ target and record real execution as
+pending when unavailable; never install a candidate as a hidden side effect
+of a check. Validation states are defined in `AGENTS.md`.
 
-Alterações ativas do client são source/assets. O conteúdo de
-`references/client748/` é evidência histórica e não deve
-ser sobrescrito.
+Active client changes belong in source/assets. `references/client748/`
+contains historical evidence and must not be overwritten.
 
-## Referências por assunto
+## References by topic
 
-- Contratos do servidor: [emulator-contracts.md](references/emulator-contracts.md).
-- Contratos transversais: buscar o subsistema em
-  [repository-contracts.md](references/repository-contracts.md) e ler a seção pertinente.
-- UI legada: [client-ui-748.md](references/client-ui-748.md).
-- Acesso à evidência nativa: [ghidra-client748.md](references/ghidra-client748.md).
-- Auditoria solicitada: [audit.md](references/audit.md).
-- Retomada: [session-continuity.md](references/session-continuity.md).
+- Server contracts: [emulator-contracts.md](references/emulator-contracts.md).
+- Cross-project contracts: find the subsystem in
+  [repository-contracts.md](references/repository-contracts.md) and read the
+  relevant section.
+- Legacy UI: [client-ui-748.md](references/client-ui-748.md).
+- Native evidence access: [ghidra-client748.md](references/ghidra-client748.md).
+- Requested audits: [audit.md](references/audit.md).
+- Continuation: [session-continuity.md](references/session-continuity.md).
