@@ -3,8 +3,8 @@
 #include <climits>
 #include <cstdio>
 
-// A mesma fronteira de SGrid envolve um consumidor observavel: rejeicao nao
-// pode tocar lista, ocupacao, binding ou lifetime. Nao simula render DirectX.
+// The same SGrid boundary has an observable consumer: rejection must not
+// alter the list, occupancy, binding, or lifetime. DirectX rendering is not simulated.
 int RunGridInsertionTests(int& checks)
 {
     int failures = 0;
@@ -25,35 +25,35 @@ int RunGridInsertionTests(int& checks)
             return 1;
         });
     };
-    check(append(nullptr) == 0 && calls == 0, "nulo nao executa callback");
+    check(append(nullptr) == 0 && calls == 0, "null item does not invoke the callback");
     for (int i = 0; i < 128; ++i)
         check(append(&items[i]) == 1 && list[i] == &items[i] && items[i].owner == i,
-            "cada slot valido recebe ownership uma vez");
+            "each valid slot receives ownership once");
     check(append(&items[128]) == 0 && count == 128 && calls == 128 &&
         occupied == 128 && items[128].owner == -1,
-        "lista cheia preserva ocupacao contador e ownership do caller");
+        "full list preserves occupancy, count, and caller ownership");
     for (int i = 0; i < 128; ++i)
-        check(list[i] == &items[i], "rejeicao conserva todos os slots");
+        check(list[i] == &items[i], "rejection preserves every slot");
     for (int bad : {INT_MIN, -1, 129, INT_MAX}) {
         count = bad;
         check(append(&items[128]) == 0 && count == bad && calls == 128,
-            "contador invalido nao executa mutacao");
+            "invalid count does not mutate state");
     }
     Item* small[2]{};
     check(grid_insertion::CanAppend(small, 1, &items[0]) &&
         !grid_insertion::CanAppend(small, 2, &items[0]),
-        "capacidade vem do tipo do array, nao constante 128");
+        "capacity comes from the array type, not a fixed 128");
     int retries = 0;
     check(grid_insertion::Execute(small, 0, &items[0], [&] {
         ++retries; return 0;
-    }) == 0 && retries == 1, "falha do consumidor propagada sem retry");
-    // Consulta real usada por SGrid: varre todas as posicoes e footprints
-    // de uma grade 9x7, comparando com uma enumeracao independente de celulas.
+    }) == 0 && retries == 1, "consumer failure propagates without retry");
+    // Exercise the actual SGrid query across all positions and footprints
+    // in a 9x7 grid against an independent cell enumeration.
     std::array<int, 63> cells{};
     cells[0] = 1;
     cells[31] = 1;
     cells[62] = 1;
-    cells[10] = 2; // O legado bloqueia exatamente 1, nao qualquer nao-zero.
+    cells[10] = 2; // Legacy behavior blocks exactly 1, not every nonzero value.
     const auto original = cells;
     for (int y = -1; y <= 7; ++y)
         for (int x = -1; x <= 9; ++x)
@@ -67,23 +67,23 @@ int RunGridInsertionTests(int& checks)
                                 slot / 9 >= y && slot / 9 < y + height && cells[slot] == 1)
                                 expected = false;
                     check(grid_occupancy::CanPlace(cells.data(), 9, 7, x, y, width, height) == expected,
-                        "consulta preserva ocupacao e limites em todos os retangulos pequenos");
+                        "query preserves occupancy and bounds for all small rectangles");
                 }
     for (int bad : {INT_MIN, -1, 0, INT_MAX}) {
-        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, 0, 0, bad, 1), "largura invalida rejeitada");
-        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, 0, 0, 1, bad), "altura invalida rejeitada");
+        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, 0, 0, bad, 1), "invalid width rejected");
+        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, 0, 0, 1, bad), "invalid height rejected");
     }
     for (int bad : {INT_MIN, -1, INT_MAX}) {
-        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, bad, 0, 1, 1), "x invalido rejeitado");
-        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, 0, bad, 1, 1), "y invalido rejeitado");
+        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, bad, 0, 1, 1), "invalid x rejected");
+        check(!grid_occupancy::CanPlace(cells.data(), 9, 7, 0, bad, 1, 1), "invalid y rejected");
     }
-    check(!grid_occupancy::CanPlace(nullptr, 9, 7, 0, 0, 1, 1), "ocupacao nula rejeitada");
-    check(!grid_occupancy::CanPlace(cells.data(), INT_MAX, 2, 0, 0, 1, 1), "produto de dimensoes invalido rejeitado");
-    check(!grid_occupancy::CanPlace(cells.data(), 9, -1, 0, 0, 1, 1), "grade negativa rejeitada");
-    check(!grid_occupancy::CanPlace(cells.data(), 0, 7, 0, 0, 1, 1), "grade vazia rejeitada");
-    check(cells == original, "consulta nao modifica ocupacao");
-    // Buffer cercado por sentinelas: cobre recorte de equipamentos, escrita
-    // sobre celula ocupada e retirada simetrica, sem depender do renderer.
+    check(!grid_occupancy::CanPlace(nullptr, 9, 7, 0, 0, 1, 1), "null occupancy rejected");
+    check(!grid_occupancy::CanPlace(cells.data(), INT_MAX, 2, 0, 0, 1, 1), "invalid dimension product rejected");
+    check(!grid_occupancy::CanPlace(cells.data(), 9, -1, 0, 0, 1, 1), "negative grid dimension rejected");
+    check(!grid_occupancy::CanPlace(cells.data(), 0, 7, 0, 0, 1, 1), "empty grid rejected");
+    check(cells == original, "query does not modify occupancy");
+    // Sentinel-guarded buffer: cover equipment clipping, writes to occupied
+    // cells, and symmetric removal without relying on the renderer.
     for (int y = 0; y < 7; ++y)
         for (int x = 0; x < 9; ++x)
             for (int height = 1; height <= 9; ++height)
@@ -96,11 +96,11 @@ int RunGridInsertionTests(int& checks)
                             slot / 9 >= y && slot / 9 < y + height)
                             expected[slot + 1] = 1;
                     check(grid_occupancy::FillClipped(buffer.data() + 1, 9, 7, x, y, width, height, 1) &&
-                        buffer == expected, "escrita recortada preserva sentinelas e celulas externas");
+                        buffer == expected, "clipped write preserves sentinels and outside cells");
                     for (auto& cell : expected)
                         if (cell == 1) cell = 0;
                     check(grid_occupancy::FillClipped(buffer.data() + 1, 9, 7, x, y, width, height, 0) &&
-                        buffer == expected, "retirada limpa exatamente o recorte inserido");
+                        buffer == expected, "removal clears exactly the inserted region");
                 }
     const int invalidRects[][4] = {
         {-1, 0, 1, 1}, {0, -1, 1, 1}, {9, 0, 1, 1}, {0, 7, 1, 1},
@@ -120,11 +120,11 @@ int RunGridInsertionTests(int& checks)
             return 1;
         });
         check(result == 0 && item.owner == -1 && localCount == 0 && cells == before,
-            "retangulo invalido preserva memoria contador e ownership");
+            "invalid rectangle preserves memory, count, and ownership");
     }
-    check(!grid_occupancy::FillClipped(nullptr, 9, 7, 0, 0, 1, 1, 1), "escrita nula rejeitada");
-    check(!grid_occupancy::FillClipped(cells.data(), INT_MAX, 2, 0, 0, 1, 1, 1), "produto de escrita invalido");
+    check(!grid_occupancy::FillClipped(nullptr, 9, 7, 0, 0, 1, 1, 1), "null write rejected");
+    check(!grid_occupancy::FillClipped(cells.data(), INT_MAX, 2, 0, 0, 1, 1, 1), "invalid write dimension product");
     check(grid_occupancy::FillClipped(cells.data(), 9, 7, 0, 0, INT_MAX, INT_MAX, 1),
-        "footprint enorme representavel e recortado sem loop proporcional ao item");
+        "huge representable footprint is clipped without item-sized iteration");
     return failures;
 }

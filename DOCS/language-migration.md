@@ -57,6 +57,10 @@ a partial translation as completion.
   validation, trade-item rejection, purchase errors, and the existing flows.
   Packet layouts and game-state logic are unchanged; no client visual validation
   is implied.
+- The cargo-slot, character-login use-case, and grid-insertion test descriptions,
+  plus the adjacent cargo and login application comments, are in English.
+  Release architecture tests pass; this prose-only batch changes no client
+  behavior or packet contract.
 
 ## Remaining work
 
@@ -64,6 +68,9 @@ a partial translation as completion.
    `tmproject/TMProject748/` and `tmproject/client748/`. Translate prose without
    changing resource IDs, binary formats, or protocol payloads. Validate
    affected UI flows in the actual 7.48 client when client testing is possible.
+   `tmproject/client748/SkillData.csv` is a local, Git-ignored audit input,
+   not the runtime skill loader input; its labels are not evidence for skill
+   semantics or in-client language. Keep numeric IDs and parameters intact.
 2. Audit remaining server-facing and administrator-facing messages in
    `wydgo748/`, then update corresponding tests and API documentation together.
 3. Translate active guides in `DOCS/`, including their headings, examples, and

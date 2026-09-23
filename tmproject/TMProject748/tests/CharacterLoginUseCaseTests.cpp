@@ -5,15 +5,15 @@
 
 namespace
 {
-// Duble sem wire: aceita qualquer indice, para que uma regressao na validacao
-// do caso de uso nao seja escondida pela defesa adicional do encoder.
+// Wire-free test double: accept any index so the encoder's additional guard
+// cannot hide a regression in use-case validation.
 struct RecordingLoginSender final : ICharacterLoginSender
 {
     int calls = 0;
     int lastSlot = -1;
     bool result = true;
 
-    // Registra a intencao recebida e devolve o resultado local configurado.
+    // Record the received intent and return the configured local result.
     bool SendCharacterLogin(int slot) override
     {
         ++calls;
@@ -23,8 +23,8 @@ struct RecordingLoginSender final : ICharacterLoginSender
 };
 }
 
-// Unidade separada: compila application sem importar wire, socket ou Basedef.
-// Acrescenta checks ao runner comum; permanece ativa com NDEBUG em Release.
+// Separate unit: compile the application without wire, socket, or Basedef.
+// Add checks to the shared runner; they remain active with NDEBUG in Release.
 int RunCharacterLoginUseCaseTests(int& checks)
 {
     int failures = 0;
@@ -37,16 +37,16 @@ int RunCharacterLoginUseCaseTests(int& checks)
     };
     RecordingLoginSender sender;
     for (int slot = 0; slot < 4; ++slot) {
-        check(RequestCharacterLogin(sender, slot), "intencao valida aceita");
+        check(RequestCharacterLogin(sender, slot), "valid login intent accepted");
         check(sender.calls == slot + 1 && sender.lastSlot == slot,
-            "porta semantica recebe slot uma vez");
+            "semantic port receives the slot once");
     }
     for (int slot : {INT_MIN, -1, 4, INT_MAX}) {
-        check(!RequestCharacterLogin(sender, slot), "intencao invalida rejeitada");
+        check(!RequestCharacterLogin(sender, slot), "invalid login intent rejected");
     }
-    check(sender.calls == 4, "caso de uso bloqueia invalidos antes do encoder");
+    check(sender.calls == 4, "use case blocks invalid slots before the encoder");
     sender.result = false;
-    check(!RequestCharacterLogin(sender, 2), "falha semantica propagada");
-    check(sender.calls == 5 && sender.lastSlot == 2, "falha semantica sem retry");
+    check(!RequestCharacterLogin(sender, 2), "semantic failure propagated");
+    check(sender.calls == 5 && sender.lastSlot == 2, "semantic failure does not retry");
     return failures;
 }
