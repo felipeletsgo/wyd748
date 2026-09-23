@@ -15,18 +15,18 @@ import (
 const (
 	maxGhostShopItems = 12
 	ghostShopIDBase   = 25000
-	maxShopTitleBytes = 21 // o client 7.48 termina CreateMobTrade.Desc em @21
+	maxShopTitleBytes = 21 // The 7.48 client terminates CreateMobTrade.Desc at @21.
 
-	// Limites CityLimit da Armia na BASE_GetVillage do WYD 7.48.
+	// Armia CityLimit bounds in WYD 7.48 BASE_GetVillage.
 	armiaMinX = 2052
 	armiaMaxX = 2171
 	armiaMinY = 2052
 	armiaMaxY = 2163
 )
 
-// GhostShop e um clone estacionario independente do jogador real. Os itens
-// continuam no Cargo da conta, mas os slots anunciados ficam bloqueados e cada
-// compra confere novamente o snapshot antes da transacao.
+// GhostShop is a stationary clone independent of the real player. Items remain
+// in the account's Cargo, but listed slots are locked and every purchase
+// rechecks the snapshot before the transaction.
 type GhostShop struct {
 	ID       uint16
 	OwnerID  uint16
@@ -74,15 +74,15 @@ func parseShopTitle(raw []byte) (string, error) {
 	}
 	raw = bytes.TrimSpace(raw)
 	if len(raw) == 0 {
-		return "", errors.New("informe um titulo para a loja")
+		return "", errors.New("enter a shop title")
 	}
 	if len(raw) > maxShopTitleBytes {
-		return "", fmt.Errorf("titulo excede %d caracteres", maxShopTitleBytes)
+		return "", fmt.Errorf("title exceeds %d bytes", maxShopTitleBytes)
 	}
 	for _, c := range raw {
-		// O client antigo usa o titulo como format string em alguns builds.
+		// Some legacy client builds use the title as a format string.
 		if c == '%' || c < 0x20 || c == 0x7f {
-			return "", errors.New("titulo contem caractere invalido")
+			return "", errors.New("title contains an invalid character")
 		}
 	}
 	return string(raw), nil
@@ -92,13 +92,13 @@ func parseAutoTradeRequest(pkt []byte, acc *model.Account, playerID uint16) (aut
 	var req autoTradeRequest
 	req.CarryPos = emptyGhostShopPositions()
 	if acc == nil {
-		return req, errors.New("conta indisponivel")
+		return req, errors.New("account unavailable")
 	}
 	if len(pkt) != 196 {
-		return req, fmt.Errorf("tamanho %d, esperado 196", len(pkt))
+		return req, fmt.Errorf("packet size %d, expected 196", len(pkt))
 	}
 	if binary.LittleEndian.Uint16(pkt[194:196]) != playerID {
-		return req, errors.New("TargetID divergente")
+		return req, errors.New("TargetID mismatch")
 	}
 	title, err := parseShopTitle(pkt[12:36])
 	if err != nil {
@@ -113,26 +113,26 @@ func parseAutoTradeRequest(pkt []byte, acc *model.Account, playerID uint16) (aut
 		signedPrice := int32(binary.LittleEndian.Uint32(pkt[144+i*4 : 148+i*4]))
 		if packetItem.Index == 0 {
 			if signedPrice != 0 {
-				return req, fmt.Errorf("preco sem item no anuncio %d", i)
+				return req, fmt.Errorf("price without an item in listing %d", i)
 			}
 			continue
 		}
 		if signedPrice <= 0 || uint32(signedPrice) > maxCharacterGold {
-			return req, fmt.Errorf("preco invalido no anuncio %d", i)
+			return req, fmt.Errorf("invalid price in listing %d", i)
 		}
 		pos := int(pkt[132+i])
 		if pos < 0 || pos >= model.PlayerCargoSlots {
-			return req, fmt.Errorf("slot de Cargo %d invalido", pos)
+			return req, fmt.Errorf("invalid Cargo slot %d", pos)
 		}
 		if _, duplicate := used[pos]; duplicate {
-			return req, fmt.Errorf("slot de Cargo %d duplicado", pos)
+			return req, fmt.Errorf("duplicate Cargo slot %d", pos)
 		}
 		used[pos] = struct{}{}
 		if acc.Cargo[pos].Index == 0 || !acc.Cargo[pos].WireEqual(packetItem) {
-			return req, fmt.Errorf("item do slot %d diverge do Cargo", pos)
+			return req, fmt.Errorf("item in slot %d differs from Cargo", pos)
 		}
 		if _, filled := model.CelestialSealID(acc.Cargo[pos]); filled {
-			return req, errors.New("selo espiritual preenchido nao pode ser anunciado")
+			return req, errors.New("a filled Spirit's Seal cannot be listed")
 		}
 		req.Items[i] = acc.Cargo[pos]
 		req.CarryPos[i] = int8(pos)
@@ -140,7 +140,7 @@ func parseAutoTradeRequest(pkt []byte, acc *model.Account, playerID uint16) (aut
 		itemCount++
 	}
 	if itemCount == 0 {
-		return req, errors.New("adicione ao menos um item")
+		return req, errors.New("add at least one item")
 	}
 	return req, nil
 }
@@ -148,11 +148,11 @@ func parseAutoTradeRequest(pkt []byte, acc *model.Account, playerID uint16) (aut
 func parseReqBuyAutoTrade(pkt []byte) (reqBuyAutoTrade, error) {
 	var req reqBuyAutoTrade
 	if len(pkt) != 36 {
-		return req, fmt.Errorf("tamanho %d, esperado 36", len(pkt))
+		return req, fmt.Errorf("packet size %d, expected 36", len(pkt))
 	}
 	pos := int32(binary.LittleEndian.Uint32(pkt[12:16]))
 	if pos < 0 || pos >= maxGhostShopItems {
-		return req, fmt.Errorf("anuncio %d invalido", pos)
+		return req, fmt.Errorf("invalid listing %d", pos)
 	}
 	req.Pos = int(pos)
 	req.TargetID = binary.LittleEndian.Uint16(pkt[16:18])
@@ -162,18 +162,17 @@ func parseReqBuyAutoTrade(pkt []byte) (reqBuyAutoTrade, error) {
 	return req, nil
 }
 
-// ghostShopFaceNPC e o mob cujo rosto o clone da loja veste. O nome resolve
-// pelo catalogo em vez de um indice cravado, para o dia em que o rosto do
-// Carbunkle mudar no data/npcs.
+// ghostShopFaceNPC names the mob whose face the shop clone uses. Resolve it
+// through the catalog instead of hardcoding an index, so NPC data may change.
 const ghostShopFaceNPC = "Carbunkle"
 
-// applyGhostShopLook da ao clone a aparencia da loja: rosto de Carbunkle e
-// NENHUMA peca de equipamento.
+// applyGhostShopLook gives the clone its shop appearance: the Carbunkle face
+// and NO equipment pieces.
 //
-// Zerar os outros quinze slots nao e detalhe -- e o que evita o problema em vez
-// de remediar. Mesh de monstro no rosto conflita com armadura/calca/luva/bota
-// humanas, e o clone sairia deformado. Sem as pecas, ele e so o Carbunkle. De
-// quebra, o dono deixa de expor o proprio equipamento enquanto vende.
+// Clearing the other fifteen slots prevents a monster-face mesh from
+// conflicting with human armor, pants, gloves, and boots. Without those
+// pieces, the clone is simply a Carbunkle, and the owner's own equipment is
+// not exposed while selling.
 func (w *World) applyGhostShopLook(shop *GhostShop) {
 	shop.Mesh = [16]uint16{}
 	if def := w.npcDefByName(ghostShopFaceNPC); def != nil {
@@ -182,9 +181,9 @@ func (w *World) applyGhostShopLook(shop *GhostShop) {
 			return
 		}
 	}
-	// Catalogo sem o NPC: o clone fica sem rosto, mas a loja continua de pe.
-	// Melhor que herdar o corpo do dono e voltar ao visual antigo em silencio.
-	log.Printf("LOJA FANTASMA: NPC %q ausente do catalogo; clone sem rosto", ghostShopFaceNPC)
+	// If the NPC is missing, keep the shop open with a faceless clone rather
+	// than silently inheriting the owner's body and old appearance.
+	log.Printf("GHOST SHOP: NPC %q missing from catalog; clone has no face", ghostShopFaceNPC)
 }
 
 func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
@@ -192,9 +191,9 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
 		return
 	}
-	// O WYD 7.48 usa uma segunda publicacao como liga/desliga da loja fantasma.
+	// WYD 7.48 uses a second listing request to toggle the ghost shop off.
 	if p.GhostShop != nil {
-		w.closeGhostShop(p, "fechada pelo jogador")
+		w.closeGhostShop(p, "closed by player")
 		s.Send(wire.CloseTrade(p.ID))
 		s.Send(wire.MessagePanel("Auto Trade closed."))
 		return
@@ -210,7 +209,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	}
 	req, err := parseAutoTradeRequest(pkt, p.Account, p.ID)
 	if err != nil {
-		log.Printf("[#%d] LOJA FANTASMA rejeitada: %v", s.ID, err)
+		log.Printf("[#%d] GHOST SHOP rejected: %v", s.ID, err)
 		s.Send(wire.CloseTrade(p.ID))
 		s.Send(wire.MessagePanel("Could not open the shop: " + err.Error()))
 		return
@@ -254,24 +253,24 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	p.GhostShop = shop
 	p.ShopNPC = 0
 	w.registerGhostShop(shop)
-	// O client coloca o proprio personagem em modo de auto-loja assim que envia
-	// o 0x397. A ordem e importante: o WYD 7.48 executa RemoveTrade2 (0x384) ANTES
-	// de criar o clone. Publicar o 0x363 primeiro fazia o 0x384 subsequente
-	// apagar o titulo do clone e deixava o estado comercial no corpo real.
+	// The client puts its own character in auto-shop mode when it sends 0x397.
+	// Order matters: WYD 7.48 must execute RemoveTrade2 (0x384) BEFORE creating
+	// the clone. Sending 0x363 first let the later 0x384 erase the clone's title
+	// while leaving trade appearance on the real character.
 	for _, packet := range ghostShopOwnerResetPackets(p) {
 		s.Send(packet)
 	}
 	w.publishGhostShopSpawn(shop)
 	s.Send(wire.MessagePanel("Auto Trade opened in Armia. You are free to play."))
-	log.Printf("[#%d] LOJA FANTASMA aberta id=%d owner=%s @(%d,%d) itens=%d",
+	log.Printf("[#%d] GHOST SHOP opened id=%d owner=%s @(%d,%d) items=%d",
 		s.ID, shop.ID, p.Char.Name, shop.X, shop.Y, shopItemCount(shop))
 }
 
-// ghostShopOwnerResetPackets desfaz no client o modo comercial aplicado
-// localmente ao avatar que enviou 0x397. CloseTrade e a operacao nativa que
-// limpa esse estado; UpdateEquip e SetHpMp reforcam o avatar autoritativo sem
-// enviar coordenadas nem reiniciar seu movimento. O CreateMobTrade com titulo
-// sera enviado separadamente, apenas para o ID virtual da loja.
+// ghostShopOwnerResetPackets reverses the trade mode applied locally by the
+// client to the avatar that sent 0x397. CloseTrade clears that state;
+// UpdateEquip and SetHpMp reinforce the authoritative avatar without sending
+// coordinates or restarting movement. CreateMobTrade with the title is sent
+// separately for the virtual shop ID only.
 func ghostShopOwnerResetPackets(p *Player) [][]byte {
 	if p == nil || p.Char == nil {
 		return nil
@@ -298,9 +297,9 @@ func (w *World) onReqTradeList(s *net.Session, pkt []byte) {
 		return
 	}
 	buyer.BrowsingGhostShopID = shop.ID
-	// O client deve manter a janela vinculada ao clone que foi clicado. Enviar
-	// OwnerID aqui faz o 7.48 aplicar o estado visual/comercial ao personagem
-	// real quando o proprio dono consulta a loja fantasma.
+	// Keep the client window bound to the clicked clone. Sending OwnerID here
+	// makes 7.48 apply the shop appearance to the real character when the owner
+	// browses their own ghost shop.
 	s.Send(ghostShopTradeListPacket(shop))
 }
 
@@ -318,11 +317,11 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 	}
 	req, err := parseReqBuyAutoTrade(pkt)
 	if err != nil {
-		log.Printf("[#%d] compra LOJA FANTASMA rejeitada: %v", s.ID, err)
+		log.Printf("[#%d] GHOST SHOP purchase rejected: %v", s.ID, err)
 		return
 	}
-	// TargetID e o ID virtual anunciado ao client (25000 + owner), nunca o ID
-	// do personagem real. A traducao para o dono acontece somente no servidor.
+	// TargetID is the virtual ID advertised to the client (25000 + owner),
+	// never the real character ID. Only the server maps it back to the owner.
 	shop := w.ghostShops[req.TargetID]
 	if shop == nil || buyer.BrowsingGhostShopID != shop.ID {
 		return
@@ -337,7 +336,7 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 	}
 	if req.Tax != uint32(shop.Tax) || req.Price != shop.Prices[req.Pos] ||
 		!req.Item.WireEqual(shop.Items[req.Pos]) || req.Item.Index == 0 {
-		log.Printf("[#%d] compra LOJA FANTASMA divergiu do anuncio owner=%d pos=%d", s.ID, seller.ID, req.Pos)
+		log.Printf("[#%d] GHOST SHOP purchase differs from listing owner=%d pos=%d", s.ID, seller.ID, req.Pos)
 		return
 	}
 	buyerInv, sellerCargo, buyerGold, sellerCargoGold, buyerSlot, err :=
@@ -358,7 +357,7 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 	if err := w.saveTradeAccounts(buyer.Account, seller.Account); err != nil {
 		buyer.Char.Inv, seller.Account.Cargo = oldBuyerInv, oldSellerCargo
 		buyer.Char.Gold, seller.Account.CargoGold = oldBuyerGold, oldSellerCargoGold
-		log.Printf("LOJA FANTASMA salvar contas %q/%q: %v", buyer.Account.Name, seller.Account.Name, err)
+		log.Printf("GHOST SHOP save accounts %q/%q: %v", buyer.Account.Name, seller.Account.Name, err)
 		s.Send(wire.MessagePanel("Save failed. The purchase was not applied."))
 		return
 	}
@@ -376,10 +375,10 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 	// rejected or rolled-back purchase must never display a false success.
 	buyer.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d purchased for %d gold.", item.Index, price)))
 	seller.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d sold for %d gold.", item.Index, price)))
-	log.Printf("[#%d] LOJA FANTASMA compra owner=%s buyer=%s item=%d price=%d inv[%d]",
+	log.Printf("[#%d] GHOST SHOP purchase owner=%s buyer=%s item=%d price=%d inv[%d]",
 		s.ID, seller.Char.Name, buyer.Char.Name, item.Index, price, buyerSlot)
 	if shopItemCount(shop) == 0 {
-		w.closeGhostShop(seller, "estoque esgotado")
+		w.closeGhostShop(seller, "stock sold out")
 		seller.Session.Send(wire.MessagePanel("Auto Trade closed: stock sold out."))
 	}
 }
@@ -389,20 +388,20 @@ func buildGhostShopPurchase(buyer *model.Char, seller *model.Account, shop *Ghos
 	buyerGold, sellerCargoGold uint32, buyerSlot int, err error,
 ) {
 	if buyer == nil || seller == nil {
-		err = clientError("Conta indisponivel.")
+		err = clientError("Account unavailable.")
 		return
 	}
 	buyerInv, sellerCargo = buyer.Inv, seller.Cargo
 	buyerGold, sellerCargoGold = buyer.Gold, seller.CargoGold
 	buyerSlot = -1
 	if shop == nil || pos < 0 || pos >= maxGhostShopItems || shop.Items[pos].Index == 0 {
-		err = clientError("Este item nao esta mais a venda.")
+		err = clientError("This item is no longer for sale.")
 		return
 	}
 	storageSlot := int(shop.CarryPos[pos])
 	if storageSlot < 0 || storageSlot >= model.PlayerCargoSlots ||
 		sellerCargo[storageSlot] != shop.Items[pos] {
-		err = clientError("O item anunciado foi alterado. Compra cancelada.")
+		err = clientError("The listed item changed. Purchase canceled.")
 		return
 	}
 	price := shop.Prices[pos]
@@ -411,7 +410,7 @@ func buildGhostShopPurchase(buyer *model.Char, seller *model.Account, shop *Ghos
 		return
 	}
 	if sellerCargoGold > maxCharacterGold || price > maxCharacterGold-sellerCargoGold {
-		err = clientError("O Cargo do vendedor atingiu o limite de gold.")
+		err = clientError("The seller's Cargo has reached its gold limit.")
 		return
 	}
 	for i := 0; i < model.PlayerCarrySlots; i++ {
@@ -468,7 +467,7 @@ func (w *World) closeGhostShop(owner *Player, reason string) {
 		}
 	}
 	w.publishGhostShopRemove(shop)
-	log.Printf("LOJA FANTASMA fechada id=%d owner=%d: %s", shop.ID, owner.ID, reason)
+	log.Printf("GHOST SHOP closed id=%d owner=%d: %s", shop.ID, owner.ID, reason)
 }
 
 func shopItemCount(shop *GhostShop) int {

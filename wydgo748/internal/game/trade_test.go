@@ -29,7 +29,7 @@ func TestParseTradeRequestUsesAuthoritativeInventory(t *testing.T) {
 		t.Fatal(err)
 	}
 	if req.OpponentID != 2 || req.Gold != 300 || req.CarryPos[0] != 7 || req.Items[0] != ch.Inv[7] {
-		t.Fatalf("oferta incorreta: %+v", req)
+		t.Fatalf("incorrect offer: %+v", req)
 	}
 }
 
@@ -46,10 +46,10 @@ func TestParseTradeRequestIgnoresResidualPositionsForEmptyItems(t *testing.T) {
 		t.Fatal(err)
 	}
 	if req.Items != [maxTradeItems]model.Item{} {
-		t.Fatalf("convite vazio produziu itens: %+v", req.Items)
+		t.Fatalf("empty invitation produced items: %+v", req.Items)
 	}
 	if req.CarryPos != emptyTradePositions() {
-		t.Fatalf("posicoes residuais nao foram canonicalizadas: %+v", req.CarryPos)
+		t.Fatalf("residual positions were not canonicalized: %+v", req.CarryPos)
 	}
 }
 
@@ -59,7 +59,7 @@ func TestParseTradeRequestRejectsEffectsWithoutItem(t *testing.T) {
 	pkt[14] = 1
 
 	if _, err := parseTradeRequest(pkt, ch); err == nil {
-		t.Fatal("efeito sem item foi aceito")
+		t.Fatal("effect without an item was accepted")
 	}
 }
 
@@ -70,18 +70,18 @@ func TestParseTradeRequestRejectsTamperingAndDuplicatePosition(t *testing.T) {
 	tampered := tradePacket(2, ch, 7)
 	binary.LittleEndian.PutUint16(tampered[12:14], 4012)
 	if _, err := parseTradeRequest(tampered, ch); err == nil {
-		t.Fatal("item adulterado foi aceito")
+		t.Fatal("tampered item was accepted")
 	}
 
 	duplicate := tradePacket(2, ch, 7, 7)
 	if _, err := parseTradeRequest(duplicate, ch); err == nil {
-		t.Fatal("posicao duplicada foi aceita")
+		t.Fatal("duplicate position was accepted")
 	}
 
 	tooMuchGold := tradePacket(2, ch)
 	binary.LittleEndian.PutUint32(tooMuchGold[148:152], 501)
 	if _, err := parseTradeRequest(tooMuchGold, ch); err == nil {
-		t.Fatal("gold acima do saldo foi aceito")
+		t.Fatal("gold offer above the balance was accepted")
 	}
 }
 
@@ -97,7 +97,7 @@ func TestBuildTradeInventoryRemovesOfferThenReceivesItems(t *testing.T) {
 
 	got, ok := buildTradeInventory(ch, outgoing, incoming)
 	if !ok || got[0].Index != 200 || got[1].Index != 101 || got[2].Index != 201 {
-		t.Fatalf("inventario final incorreto: ok=%v slots=%d,%d,%d", ok, got[0].Index, got[1].Index, got[2].Index)
+		t.Fatalf("incorrect final inventory: ok=%v slots=%d,%d,%d", ok, got[0].Index, got[1].Index, got[2].Index)
 	}
 }
 
@@ -109,26 +109,26 @@ func TestBuildTradeInventoryRejectsFullDestinationAndChangedOffer(t *testing.T) 
 	emptyOffer := &TradeState{CarryPos: emptyTradePositions()}
 	incoming := &TradeState{CarryPos: emptyTradePositions(), Items: [maxTradeItems]model.Item{{Index: 999}}}
 	if _, ok := buildTradeInventory(ch, emptyOffer, incoming); ok {
-		t.Fatal("trade sem espaco foi aceito")
+		t.Fatal("trade without space was accepted")
 	}
 
 	outgoing := &TradeState{CarryPos: emptyTradePositions()}
 	outgoing.CarryPos[0] = 0
 	outgoing.Items[0] = model.Item{Index: 777}
 	if _, ok := buildTradeInventory(ch, outgoing, emptyOffer); ok {
-		t.Fatal("snapshot de item alterado foi aceito")
+		t.Fatal("changed item snapshot was accepted")
 	}
 }
 
 func TestTradeGoldCapsAtTwoBillion(t *testing.T) {
 	if got, ok := tradeGold(1000, 300, 500); !ok || got != 1200 {
-		t.Fatalf("gold final=%d ok=%v", got, ok)
+		t.Fatalf("final gold=%d ok=%v", got, ok)
 	}
 	if _, ok := tradeGold(100, 101, 0); ok {
-		t.Fatal("oferta acima do saldo foi aceita")
+		t.Fatal("offer above the balance was accepted")
 	}
 	if _, ok := tradeGold(maxCharacterGold, 0, 1); ok {
-		t.Fatal("overflow de gold foi aceito")
+		t.Fatal("gold overflow was accepted")
 	}
 }
 
@@ -140,7 +140,7 @@ func TestUpdateTradeOfferUncheckInvalidatesBothConfirmations(t *testing.T) {
 		t.Fatal(err)
 	}
 	if state.Checked || opponent.Checked {
-		t.Fatalf("checks nao foram invalidados: meu=%v oponente=%v", state.Checked, opponent.Checked)
+		t.Fatalf("confirmations were not invalidated: mine=%v opponent=%v", state.Checked, opponent.Checked)
 	}
 }
 
@@ -149,7 +149,7 @@ func TestUpdateTradeOfferCannotChangeAndConfirmTogether(t *testing.T) {
 	opponent := &TradeState{CarryPos: emptyTradePositions()}
 	req := tradeRequest{CarryPos: emptyTradePositions(), Checked: true, Gold: 1}
 	if err := updateTradeOffer(state, opponent, req); err == nil {
-		t.Fatal("mudanca e confirmacao no mesmo pacote foram aceitas")
+		t.Fatal("change and confirmation in the same packet were accepted")
 	}
 }
 
@@ -161,10 +161,14 @@ func TestValidateTradableItemsUsesServerCatalog(t *testing.T) {
 	var items [maxTradeItems]model.Item
 	items[0] = model.Item{Index: 100}
 	if err := w.validateTradableItems(items); err != nil {
-		t.Fatalf("item negociavel rejeitado: %v", err)
+		t.Fatalf("tradable item was rejected: %v", err)
 	}
 	items[0] = model.Item{Index: 101}
-	if err := w.validateTradableItems(items); err == nil {
-		t.Fatal("EF_NOTRADE foi aceito")
+	if err := w.validateTradableItems(items); err == nil || err.Error() != "This item cannot be traded." {
+		t.Fatalf("expected English non-tradable item message, got %v", err)
+	}
+	items[0] = model.Item{Index: 102}
+	if err := w.validateTradableItems(items); err == nil || err.Error() != "An unknown item cannot be traded." {
+		t.Fatalf("expected English unknown item message, got %v", err)
 	}
 }

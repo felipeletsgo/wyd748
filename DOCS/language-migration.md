@@ -52,6 +52,11 @@ a partial translation as completion.
   index and URL map are now in English. Existing source URLs, document paths,
   NPC and skill-data identifiers, and boss example filenames remain unchanged.
   These are documentation-only changes.
+- Ghost-shop and player-trade errors shown to players, diagnostics, and adjacent
+  source comments and tests are in English. Focused automated tests cover title
+  validation, trade-item rejection, purchase errors, and the existing flows.
+  Packet layouts and game-state logic are unchanged; no client visual validation
+  is implied.
 
 ## Remaining work
 

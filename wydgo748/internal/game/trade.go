@@ -18,8 +18,8 @@ const (
 	tradeActiveTTL = 5 * time.Minute
 )
 
-// TradeState existe somente em RAM. Os itens continuam no inventario ate os
-// dois jogadores confirmarem; CarryPos + Items formam um snapshot anti-dupe.
+// TradeState exists only in RAM. Items remain in inventory until both players
+// confirm; CarryPos + Items form an anti-duplication snapshot.
 type TradeState struct {
 	OpponentID uint16
 	Items      [maxTradeItems]model.Item
@@ -49,19 +49,19 @@ func parseTradeRequest(pkt []byte, ch *model.Char) (tradeRequest, error) {
 	var req tradeRequest
 	req.CarryPos = emptyTradePositions()
 	if len(pkt) != 156 {
-		return req, fmt.Errorf("tamanho %d, esperado 156", len(pkt))
+		return req, fmt.Errorf("packet size %d, expected 156", len(pkt))
 	}
 	req.OpponentID = binary.LittleEndian.Uint16(pkt[154:156])
 	if req.OpponentID == 0 {
-		return req, fmt.Errorf("oponente vazio")
+		return req, fmt.Errorf("missing opponent")
 	}
 	signedGold := int32(binary.LittleEndian.Uint32(pkt[148:152]))
 	if signedGold < 0 || uint32(signedGold) > maxCharacterGold || uint32(signedGold) > ch.Gold {
-		return req, fmt.Errorf("gold invalido %d", signedGold)
+		return req, fmt.Errorf("invalid gold amount %d", signedGold)
 	}
 	req.Gold = uint32(signedGold)
 	if pkt[152] > 1 {
-		return req, fmt.Errorf("confirmacao invalida %d", pkt[152])
+		return req, fmt.Errorf("invalid confirmation value %d", pkt[152])
 	}
 	req.Checked = pkt[152] == 1
 
@@ -69,26 +69,26 @@ func parseTradeRequest(pkt []byte, ch *model.Char) (tradeRequest, error) {
 	for i := 0; i < maxTradeItems; i++ {
 		rawPos := pkt[132+i]
 		packetItem := decodeTradeItem(pkt[12+i*8 : 20+i*8])
-		// Convites legados podem deixar CarryPos zerado mesmo quando o slot
-		// correspondente nao possui item. O conteudo wire vazio e autoritativo
-		// para essa decisao; uma posicao residual nao transforma o slot em oferta.
+		// Legacy invitations may leave CarryPos at zero even when the matching
+		// slot has no item. Empty wire content decides this; a leftover position
+		// does not turn the slot into an offer.
 		if packetItem.Index == 0 && packetItem.Eff == [6]byte{} {
 			continue
 		}
 		if rawPos == 0xFF {
-			return req, fmt.Errorf("item sem posicao no slot %d", i)
+			return req, fmt.Errorf("item without a position in slot %d", i)
 		}
 		pos := int(rawPos)
 		if pos < 0 || pos >= model.PlayerCarrySlots {
-			return req, fmt.Errorf("posicao de inventario %d invalida", pos)
+			return req, fmt.Errorf("invalid inventory position %d", pos)
 		}
 		if _, duplicate := used[pos]; duplicate {
-			return req, fmt.Errorf("posicao de inventario %d duplicada", pos)
+			return req, fmt.Errorf("duplicate inventory position %d", pos)
 		}
 		used[pos] = struct{}{}
 		item := ch.Inv[pos]
 		if item.Index == 0 || !item.WireEqual(packetItem) {
-			return req, fmt.Errorf("item do slot %d diverge do inventario", pos)
+			return req, fmt.Errorf("item in slot %d differs from inventory", pos)
 		}
 		req.CarryPos[i] = int8(pos)
 		req.Items[i] = item
@@ -110,7 +110,7 @@ func tradeOfferEqual(state *TradeState, req tradeRequest) bool {
 func updateTradeOffer(state, opponent *TradeState, req tradeRequest) error {
 	changed := !tradeOfferEqual(state, req)
 	if req.Checked && changed {
-		return errors.New("oferta alterada durante confirmacao")
+		return errors.New("offer changed during confirmation")
 	}
 	wasChecked := state.Checked
 	state.Items = req.Items
@@ -141,19 +141,19 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 	p.BrowsingGhostShopID = 0
 	req, err := parseTradeRequest(pkt, p.Char)
 	if err != nil {
-		log.Printf("[#%d] TRADE pacote rejeitado: %v", s.ID, err)
-		w.cancelTrade(p, "pacote invalido")
+		log.Printf("[#%d] TRADE packet rejected: %v", s.ID, err)
+		w.cancelTrade(p, "invalid packet")
 		return
 	}
 	opponent := w.playerByID(req.OpponentID)
 	if !w.tradeRequestValid(p, opponent) {
 		s.Send(wire.MessagePanel("Player unavailable or out of range."))
-		w.cancelTrade(p, "oponente indisponivel")
+		w.cancelTrade(p, "opponent unavailable")
 		return
 	}
 
 	if p.Trade == nil {
-		// Aceite: o outro jogador possui um convite pendente apontando para p.
+		// Acceptance: the other player has a pending invitation to p.
 		if opponent.Trade != nil && opponent.Trade.OpponentID == p.ID {
 			p.ShopNPC, opponent.ShopNPC = 0, 0
 			p.Trade = &TradeState{
@@ -163,7 +163,7 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 			}
 			opponent.Trade.ExpiresAt = p.Trade.ExpiresAt
 			opponent.Session.Send(wire.Trade(opponent.ID, p.Trade.Items, p.Trade.CarryPos, 0, false, p.ID))
-			log.Printf("[#%d] TRADE aceito: %s(%d) <-> %s(%d)", s.ID,
+			log.Printf("[#%d] TRADE accepted: %s(%d) <-> %s(%d)", s.ID,
 				p.Char.Name, p.ID, opponent.Char.Name, opponent.ID)
 			return
 		}
@@ -171,9 +171,9 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 			s.Send(wire.MessagePanel("That player is already trading."))
 			return
 		}
-		// Convite inicial nunca aceita itens/gold/check embutidos.
+		// An initial invitation cannot include items, gold, or confirmation.
 		if req.Gold != 0 || req.Checked || req.Items != [maxTradeItems]model.Item{} {
-			log.Printf("[#%d] TRADE convite com oferta embutida rejeitado", s.ID)
+			log.Printf("[#%d] TRADE invitation with embedded offer rejected", s.ID)
 			return
 		}
 		p.Trade = &TradeState{
@@ -183,28 +183,28 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 		}
 		p.ShopNPC = 0
 		opponent.Session.Send(wire.Trade(opponent.ID, p.Trade.Items, p.Trade.CarryPos, 0, false, p.ID))
-		log.Printf("[#%d] TRADE convite: %s(%d) -> %s(%d)", s.ID,
+		log.Printf("[#%d] TRADE invitation: %s(%d) -> %s(%d)", s.ID,
 			p.Char.Name, p.ID, opponent.Char.Name, opponent.ID)
 		return
 	}
 
 	if p.Trade.OpponentID != opponent.ID || opponent.Trade == nil || opponent.Trade.OpponentID != p.ID {
-		w.cancelTrade(p, "sessao inconsistente")
+		w.cancelTrade(p, "inconsistent session")
 		return
 	}
 	if err := w.validateTradableItems(req.Items); err != nil {
 		s.Send(wire.MessagePanel(err.Error()))
-		w.cancelTrade(p, "item nao negociavel")
+		w.cancelTrade(p, "item cannot be traded")
 		return
 	}
 	if err := w.validateTradeCapsules(p.Account, req.Items); err != nil {
 		s.Send(wire.MessagePanel(err.Error()))
-		w.cancelTrade(p, "capsula Celestial invalida")
+		w.cancelTrade(p, "invalid Celestial capsule")
 		return
 	}
 
 	if err := updateTradeOffer(p.Trade, opponent.Trade, req); err != nil {
-		w.cancelTrade(p, "oferta alterada durante confirmacao")
+		w.cancelTrade(p, "offer changed during confirmation")
 		return
 	}
 	p.Trade.ExpiresAt = w.now().Add(tradeActiveTTL)
@@ -240,18 +240,18 @@ func (w *World) validateTradableItems(items [maxTradeItems]model.Item) error {
 func (w *World) validateTradableItem(item model.Item) error {
 	def, ok := w.items[item.Index]
 	if !ok {
-		return clientError("Item inexistente nao pode ser negociado.")
+		return clientError("An unknown item cannot be traded.")
 	}
 	if itemAbility(item, def, "EF_NOTRADE") != 0 {
-		return clientError("Esse item nao pode ser negociado.")
+		return clientError("This item cannot be traded.")
 	}
 	return nil
 }
 
-// validateTradeCapsules garante que um selo preenchido oferecido no trade
-// ainda pertence ao mesmo agregado autoritativo da conta. O client transporta
-// somente o STRUCT_ITEM; o snapshot Celestial e transferido pelo servidor no
-// commit atomico das duas contas.
+// validateTradeCapsules ensures that a filled seal offered in trade still
+// belongs to the authoritative account aggregate. The client carries only
+// STRUCT_ITEM; the server transfers the Celestial snapshot when both accounts
+// commit atomically.
 func (w *World) validateTradeCapsules(account *model.Account, items [maxTradeItems]model.Item) error {
 	seen := make(map[string]struct{})
 	for _, item := range items {
@@ -327,13 +327,13 @@ func (w *World) commitTrade(a, b *Player) {
 	if err := w.validateTradeCapsules(a.Account, a.Trade.Items); err != nil {
 		a.Session.Send(wire.MessagePanel(err.Error()))
 		b.Session.Send(wire.MessagePanel("The other player's Spirit's Seal is invalid."))
-		w.cancelTrade(a, "capsula Celestial invalida na validacao final")
+		w.cancelTrade(a, "invalid Celestial capsule at final validation")
 		return
 	}
 	if err := w.validateTradeCapsules(b.Account, b.Trade.Items); err != nil {
 		b.Session.Send(wire.MessagePanel(err.Error()))
 		a.Session.Send(wire.MessagePanel("The other player's Spirit's Seal is invalid."))
-		w.cancelTrade(a, "capsula Celestial invalida na validacao final")
+		w.cancelTrade(a, "invalid Celestial capsule at final validation")
 		return
 	}
 	aInv, aOK := buildTradeInventory(a.Char, a.Trade, b.Trade)
@@ -343,7 +343,7 @@ func (w *World) commitTrade(a, b *Player) {
 	if !aOK || !bOK || !aGoldOK || !bGoldOK {
 		a.Session.Send(wire.MessagePanel("No space, invalid gold, or the offer changed."))
 		b.Session.Send(wire.MessagePanel("No space, invalid gold, or the offer changed."))
-		w.cancelTrade(a, "validacao final falhou")
+		w.cancelTrade(a, "final validation failed")
 		return
 	}
 
@@ -358,10 +358,10 @@ func (w *World) commitTrade(a, b *Player) {
 		a.Char.Gold, b.Char.Gold = oldAGold, oldBGold
 		a.Account.CelestialCapsules = oldACapsules
 		b.Account.CelestialCapsules = oldBCapsules
-		log.Printf("TRADE transferir capsulas %q/%q: %v", a.Account.Name, b.Account.Name, err)
+		log.Printf("TRADE transfer capsules %q/%q: %v", a.Account.Name, b.Account.Name, err)
 		a.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
 		b.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
-		w.cancelTrade(a, "falha ao transferir capsula Celestial")
+		w.cancelTrade(a, "Celestial capsule transfer failed")
 		return
 	}
 	if err := w.transferTradeCapsules(b, a, b.Trade.Items); err != nil {
@@ -369,10 +369,10 @@ func (w *World) commitTrade(a, b *Player) {
 		a.Char.Gold, b.Char.Gold = oldAGold, oldBGold
 		a.Account.CelestialCapsules = oldACapsules
 		b.Account.CelestialCapsules = oldBCapsules
-		log.Printf("TRADE transferir capsulas %q/%q: %v", b.Account.Name, a.Account.Name, err)
+		log.Printf("TRADE transfer capsules %q/%q: %v", b.Account.Name, a.Account.Name, err)
 		a.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
 		b.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
-		w.cancelTrade(a, "falha ao transferir capsula Celestial")
+		w.cancelTrade(a, "Celestial capsule transfer failed")
 		return
 	}
 	if err := w.saveTradeAccounts(a.Account, b.Account); err != nil {
@@ -380,10 +380,10 @@ func (w *World) commitTrade(a, b *Player) {
 		a.Char.Gold, b.Char.Gold = oldAGold, oldBGold
 		a.Account.CelestialCapsules = oldACapsules
 		b.Account.CelestialCapsules = oldBCapsules
-		log.Printf("TRADE salvar contas %q/%q: %v", a.Account.Name, b.Account.Name, err)
+		log.Printf("TRADE save accounts %q/%q: %v", a.Account.Name, b.Account.Name, err)
 		a.Session.Send(wire.MessagePanel("Save failed. The trade was not applied."))
 		b.Session.Send(wire.MessagePanel("Save failed. The trade was not applied."))
-		w.cancelTrade(a, "falha de persistencia")
+		w.cancelTrade(a, "persistence failed")
 		return
 	}
 
@@ -393,16 +393,16 @@ func (w *World) commitTrade(a, b *Player) {
 	b.Session.Send(wire.UpdateCarry(b.ID, b.Char.Inv[:], b.Char.Gold))
 	a.Session.Send(wire.CloseTrade(a.ID))
 	b.Session.Send(wire.CloseTrade(b.ID))
-	log.Printf("TRADE concluido: %s(%d gold) <-> %s(%d gold)",
+	log.Printf("TRADE completed: %s(%d gold) <-> %s(%d gold)",
 		a.Char.Name, aOfferGold, b.Char.Name, bOfferGold)
 }
 
-// transferTradeCapsules move os snapshots correspondentes aos selos oferecidos
-// para a conta que recebeu os itens. IDs de capsula sao locais a conta; em
-// colisao, o ID e remapeado e o STRUCT_ITEM recebido e regravado antes do save.
+// transferTradeCapsules moves snapshots for offered seals to the account that
+// receives the items. Capsule IDs are local to each account; on collision,
+// the ID is remapped and the received STRUCT_ITEM is updated before saving.
 func (w *World) transferTradeCapsules(sender, recipient *Player, offered [maxTradeItems]model.Item) error {
 	if sender == nil || recipient == nil || sender.Account == nil || recipient.Account == nil || recipient.Char == nil {
-		return errors.New("jogador ausente")
+		return errors.New("player unavailable")
 	}
 	for _, offeredItem := range offered {
 		oldID, filled := model.CelestialSealID(offeredItem)
@@ -412,7 +412,7 @@ func (w *World) transferTradeCapsules(sender, recipient *Player, offered [maxTra
 
 		capsule, capsuleIndex := w.capsuleByID(sender.Account, oldID)
 		if capsule == nil || capsule.ItemUID != offeredItem.UID {
-			return fmt.Errorf("capsula %d nao pertence ao selo %q", oldID, offeredItem.UID)
+			return fmt.Errorf("capsule %d does not belong to seal %q", oldID, offeredItem.UID)
 		}
 		moved := *capsule
 		sender.Account.CelestialCapsules = append(sender.Account.CelestialCapsules[:capsuleIndex],
@@ -420,19 +420,19 @@ func (w *World) transferTradeCapsules(sender, recipient *Player, offered [maxTra
 
 		for _, existing := range recipient.Account.CelestialCapsules {
 			if existing.ItemUID == moved.ItemUID || existing.SourceUID == moved.SourceUID {
-				return fmt.Errorf("capsula %d colide com identidade existente", oldID)
+				return fmt.Errorf("capsule %d conflicts with an existing identity", oldID)
 			}
 		}
 		for i := range recipient.Account.Chars {
 			if recipient.Account.Chars[i].UID == moved.SourceUID {
-				return fmt.Errorf("personagem encapsulado %q ja esta ativo no destino", moved.SourceUID)
+				return fmt.Errorf("sealed character %q is already active in the destination", moved.SourceUID)
 			}
 		}
 
 		if existing, _ := w.capsuleByID(recipient.Account, moved.ID); existing != nil {
 			newID, ok := nextCelestialCapsuleID(recipient.Account)
 			if !ok {
-				return errors.New("conta de destino sem identificador de capsula livre")
+				return errors.New("destination account has no free capsule ID")
 			}
 			moved.ID = newID
 		}
@@ -445,7 +445,7 @@ func (w *World) transferTradeCapsules(sender, recipient *Player, offered [maxTra
 			}
 			id, ok := model.CelestialSealID(*item)
 			if !ok || id != oldID || received {
-				return fmt.Errorf("selo recebido %q inconsistente", moved.ItemUID)
+				return fmt.Errorf("received seal %q is inconsistent", moved.ItemUID)
 			}
 			item.Eff[0] = model.CelestialSealEffect
 			item.Eff[1] = byte(moved.ID >> 8)
@@ -454,7 +454,7 @@ func (w *World) transferTradeCapsules(sender, recipient *Player, offered [maxTra
 			received = true
 		}
 		if !received {
-			return fmt.Errorf("selo recebido %q nao encontrado no Carry", moved.ItemUID)
+			return fmt.Errorf("received seal %q not found in Carry", moved.ItemUID)
 		}
 		recipient.Account.CelestialCapsules = append(recipient.Account.CelestialCapsules, moved)
 	}
@@ -471,7 +471,7 @@ func (w *World) saveTradeAccounts(accounts ...*model.Account) error {
 		return batch.SaveAccounts(snapshots...)
 	}
 	if len(snapshots) > 1 {
-		return errors.New("store sem transacao multi-account; trade recusado")
+		return errors.New("store lacks multi-account transactions; trade rejected")
 	}
 	for _, account := range snapshots {
 		if err := w.store.SaveAccount(account); err != nil {
@@ -484,7 +484,7 @@ func (w *World) saveTradeAccounts(accounts ...*model.Account) error {
 func (w *World) onCloseTrade(s *net.Session) {
 	if p := w.players[s]; p != nil {
 		p.BrowsingGhostShopID = 0
-		w.cancelTrade(p, "cancelado pelo jogador")
+		w.cancelTrade(p, "canceled by player")
 	}
 }
 
@@ -504,13 +504,13 @@ func (w *World) cancelTrade(p *Player, reason string) {
 			opponent.Session.Send(wire.CloseTrade(opponent.ID))
 		}
 	}
-	log.Printf("TRADE cancelado para player=%d: %s", p.ID, reason)
+	log.Printf("TRADE canceled for player=%d: %s", p.ID, reason)
 }
 
 func (w *World) tickTrades(now time.Time) {
 	for _, p := range w.players {
 		if p.Trade != nil && !p.Trade.ExpiresAt.IsZero() && !now.Before(p.Trade.ExpiresAt) {
-			w.cancelTrade(p, "tempo esgotado")
+			w.cancelTrade(p, "timed out")
 		}
 	}
 }

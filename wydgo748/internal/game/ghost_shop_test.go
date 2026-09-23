@@ -21,15 +21,31 @@ func autoTradePacket(playerID uint16, acc *model.Account, title string, slots ..
 	return wire.AutoTrade(title, items, positions, prices, 0, playerID)
 }
 
+func TestParseShopTitleUsesEnglishValidationMessages(t *testing.T) {
+	for _, test := range []struct {
+		title string
+		want  string
+	}{
+		{"", "enter a shop title"},
+		{"1234567890123456789012", "title exceeds 21 bytes"},
+		{"%s", "title contains an invalid character"},
+	} {
+		_, err := parseShopTitle([]byte(test.title))
+		if err == nil || err.Error() != test.want {
+			t.Errorf("title %q: got %v, want %q", test.title, err, test.want)
+		}
+	}
+}
+
 func TestArmiaCityLimits(t *testing.T) {
 	for _, point := range [][2]uint16{{armiaMinX, armiaMinY}, {armiaMaxX, armiaMaxY}, {2112, 2088}} {
 		if !inArmiaCity(point[0], point[1]) {
-			t.Fatalf("coordenada de Armia rejeitada: %v", point)
+			t.Fatalf("Armia coordinate rejected: %v", point)
 		}
 	}
 	for _, point := range [][2]uint16{{armiaMinX - 1, armiaMinY}, {armiaMaxX + 1, armiaMaxY}, {2200, 2100}} {
 		if inArmiaCity(point[0], point[1]) {
-			t.Fatalf("coordenada externa aceita: %v", point)
+			t.Fatalf("outside coordinate accepted: %v", point)
 		}
 	}
 }
@@ -37,14 +53,14 @@ func TestArmiaCityLimits(t *testing.T) {
 func TestParseAutoTradeUsesAuthoritativeCargo(t *testing.T) {
 	acc := &model.Account{}
 	acc.Cargo[7] = model.Item{Index: 4011, Eff: [6]byte{43, 9}}
-	pkt := autoTradePacket(3, acc, "Loja Felipe", 7)
+	pkt := autoTradePacket(3, acc, "Felipe's Shop", 7)
 	req, err := parseAutoTradeRequest(pkt, acc, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if req.Title != "Loja Felipe" || req.Items[0] != acc.Cargo[7] ||
+	if req.Title != "Felipe's Shop" || req.Items[0] != acc.Cargo[7] ||
 		req.CarryPos[0] != 7 || req.Prices[0] != 1000 {
-		t.Fatalf("anuncio incorreto: %+v", req)
+		t.Fatalf("incorrect listing: %+v", req)
 	}
 }
 
@@ -52,18 +68,18 @@ func TestParseAutoTradeRejectsTamperingDuplicateAndFormatString(t *testing.T) {
 	acc := &model.Account{}
 	acc.Cargo[7] = model.Item{Index: 4011}
 
-	tampered := autoTradePacket(3, acc, "Loja", 7)
+	tampered := autoTradePacket(3, acc, "Shop", 7)
 	binary.LittleEndian.PutUint16(tampered[36:38], 4012)
 	if _, err := parseAutoTradeRequest(tampered, acc, 3); err == nil {
-		t.Fatal("item adulterado foi aceito")
+		t.Fatal("tampered item was accepted")
 	}
-	duplicate := autoTradePacket(3, acc, "Loja", 7, 7)
+	duplicate := autoTradePacket(3, acc, "Shop", 7, 7)
 	if _, err := parseAutoTradeRequest(duplicate, acc, 3); err == nil {
-		t.Fatal("slot duplicado foi aceito")
+		t.Fatal("duplicate slot was accepted")
 	}
 	badTitle := autoTradePacket(3, acc, "%s%s%s", 7)
 	if _, err := parseAutoTradeRequest(badTitle, acc, 3); err == nil {
-		t.Fatal("format string no titulo foi aceita")
+		t.Fatal("format string in title was accepted")
 	}
 }
 
@@ -80,7 +96,7 @@ func TestParseReqBuyAutoTrade748Layout(t *testing.T) {
 	}
 	if req.Pos != 4 || req.TargetID != 9 || req.Price != 123456 ||
 		req.Item != (model.Item{Index: 4011, Eff: [6]byte{43, 9}}) {
-		t.Fatalf("ReqBuy incorreto: %+v", req)
+		t.Fatalf("incorrect ReqBuy: %+v", req)
 	}
 }
 
@@ -89,7 +105,7 @@ func TestGhostShopLocksOnlyAdvertisedCargoSlots(t *testing.T) {
 	p.GhostShop.Items[0] = model.Item{Index: 4011}
 	p.GhostShop.CarryPos[0] = 7
 	if !p.ghostShopLocksCargoSlot(7) || p.ghostShopLocksCargoSlot(8) {
-		t.Fatal("bloqueio seletivo dos anuncios incorreto")
+		t.Fatal("selective locking of listed slots is incorrect")
 	}
 }
 
@@ -109,11 +125,11 @@ func TestBuildGhostShopPurchaseIsAtomicAndServerAuthoritative(t *testing.T) {
 	}
 	if slot != 0 || buyerInv[0] != item || sellerCargo[7].Index != 0 ||
 		buyerGold != 4000 || sellerCargoGold != 1100 {
-		t.Fatalf("resultado incorreto slot=%d buyerGold=%d sellerCargoGold=%d", slot, buyerGold, sellerCargoGold)
+		t.Fatalf("incorrect result slot=%d buyerGold=%d sellerCargoGold=%d", slot, buyerGold, sellerCargoGold)
 	}
-	// A funcao prepara cópias: antes do commit/persistencia, o estado real nao muda.
+	// The function prepares copies: real state is unchanged before commit and persistence.
 	if buyer.Inv[0].Index != 0 || seller.Cargo[7] != item || buyer.Gold != 5000 || seller.CargoGold != 100 {
-		t.Fatal("estado foi alterado antes do commit")
+		t.Fatal("state changed before commit")
 	}
 }
 
@@ -125,21 +141,21 @@ func TestBuildGhostShopPurchaseRejectsChangedItemFullInventoryAndGoldOverflow(t 
 	shop := &GhostShop{Items: [maxGhostShopItems]model.Item{item},
 		CarryPos: emptyGhostShopPositions(), Prices: [maxGhostShopItems]uint32{1000}}
 	shop.CarryPos[0] = 7
-	if _, _, _, _, _, err := buildGhostShopPurchase(buyer, seller, shop, 0); err == nil {
-		t.Fatal("snapshot alterado foi aceito")
+	if _, _, _, _, _, err := buildGhostShopPurchase(buyer, seller, shop, 0); err == nil || err.Error() != "The listed item changed. Purchase canceled." {
+		t.Fatalf("expected English changed-item message, got %v", err)
 	}
 
 	seller.Cargo[7] = item
 	for i := 0; i < model.PlayerCarrySlots; i++ {
 		buyer.Inv[i] = model.Item{Index: uint16(100 + i)}
 	}
-	if _, _, _, _, _, err := buildGhostShopPurchase(buyer, seller, shop, 0); err == nil {
-		t.Fatal("inventario cheio foi aceito")
+	if _, _, _, _, _, err := buildGhostShopPurchase(buyer, seller, shop, 0); err == nil || err.Error() != "Inventory is full." {
+		t.Fatalf("expected English full-inventory message, got %v", err)
 	}
 	buyer.Inv = [64]model.Item{}
 	seller.CargoGold = maxCharacterGold
-	if _, _, _, _, _, err := buildGhostShopPurchase(buyer, seller, shop, 0); err == nil {
-		t.Fatal("overflow de gold do vendedor foi aceito")
+	if _, _, _, _, _, err := buildGhostShopPurchase(buyer, seller, shop, 0); err == nil || err.Error() != "The seller's Cargo has reached its gold limit." {
+		t.Fatalf("expected English seller-gold message, got %v", err)
 	}
 }
 
@@ -156,18 +172,18 @@ func TestGhostShopResetsOwnerBeforePublishingClone(t *testing.T) {
 	p := &Player{ID: 7, X: 2135, Y: 2099, Char: ch}
 	packets := ghostShopOwnerResetPackets(p)
 	if len(packets) != 3 {
-		t.Fatalf("reset gerou %d pacotes, esperado 3", len(packets))
+		t.Fatalf("reset produced %d packets, expected 3", len(packets))
 	}
 	wantTypes := []uint16{wire.OpCloseTrade, wire.OpUpdateEquip, wire.OpSetHpMp}
 	for i, want := range wantTypes {
 		if got := wire.ParseHeader(packets[i]).Type; got != want {
-			t.Fatalf("pacote %d Type=0x%X, esperado 0x%X", i, got, want)
+			t.Fatalf("packet %d Type=0x%X, expected 0x%X", i, got, want)
 		}
 	}
 	for i, packet := range packets {
 		typeID := wire.ParseHeader(packet).Type
 		if typeID == wire.OpCreateMob || typeID == wire.OpAction {
-			t.Fatalf("reset pacote %d reinicia entidade/movimento: Type=0x%X", i, typeID)
+			t.Fatalf("reset packet %d recreates entity/movement: Type=0x%X", i, typeID)
 		}
 	}
 }
@@ -176,7 +192,7 @@ func TestGhostShopTradeListKeepsVirtualCloneIdentity(t *testing.T) {
 	shop := &GhostShop{
 		ID:      25007,
 		OwnerID: 7,
-		Title:   "Loja Fantasma",
+		Title:   "Ghost Shop",
 	}
 	shop.Items[0] = model.Item{Index: 4011}
 	shop.CarryPos[0] = 3
@@ -184,24 +200,23 @@ func TestGhostShopTradeListKeepsVirtualCloneIdentity(t *testing.T) {
 
 	pkt := ghostShopTradeListPacket(shop)
 	if got := wire.ParseHeader(pkt).Type; got != wire.OpAutoTrade {
-		t.Fatalf("Type=0x%X, esperado 0x%X", got, wire.OpAutoTrade)
+		t.Fatalf("Type=0x%X, expected 0x%X", got, wire.OpAutoTrade)
 	}
 	if got := binary.LittleEndian.Uint16(pkt[194:196]); got != shop.ID {
-		t.Fatalf("TargetID=%d, esperado clone %d (owner real=%d)", got, shop.ID, shop.OwnerID)
+		t.Fatalf("TargetID=%d, expected clone %d (real owner=%d)", got, shop.ID, shop.OwnerID)
 	}
 }
 
-// TestClonePerdeOCorpoDoDono: o clone da loja veste o rosto do Carbunkle e
-// NENHUMA peca. Herdar o corpo do dono causava dois problemas -- mesh de
-// monstro no rosto conflita com peca humana, e o dono expunha o proprio
-// equipamento enquanto vendia.
-func TestClonePerdeOCorpoDoDono(t *testing.T) {
+// TestCloneDoesNotInheritOwnerBody checks that the shop clone uses Carbunkle's
+// face and no other equipment. Inheriting the owner's body caused the monster
+// face mesh to conflict with human parts and exposed the owner's equipment.
+func TestCloneDoesNotInheritOwnerBody(t *testing.T) {
 	w := &World{npcs: []model.NPCDef{{
 		Name:  "Carbunkle",
 		Equip: model.Equip{Rosto: model.Item{Index: 230}, Armadura: model.Item{Index: 999}},
 	}}}
 	shop := &GhostShop{}
-	// Suja todos os slots como se tivessem vindo do dono.
+	// Populate every slot as if it came from the owner.
 	for i := range shop.Mesh {
 		shop.Mesh[i] = uint16(500 + i)
 	}
@@ -209,19 +224,19 @@ func TestClonePerdeOCorpoDoDono(t *testing.T) {
 	w.applyGhostShopLook(shop)
 
 	if shop.Mesh[0] != 230 {
-		t.Errorf("rosto=%d, quer 230 (Carbunkle)", shop.Mesh[0])
+		t.Errorf("face=%d, want 230 (Carbunkle)", shop.Mesh[0])
 	}
 	for i := 1; i < len(shop.Mesh); i++ {
 		if shop.Mesh[i] != 0 {
-			t.Errorf("slot %d ficou com %d; o clone nao pode vestir peca nenhuma",
+			t.Errorf("slot %d contains %d; the clone must not wear other equipment",
 				i, shop.Mesh[i])
 		}
 	}
 }
 
-// TestCloneSemCatalogoNaoHerdaODono: se o NPC sumir do data/npcs, o clone fica
-// sem rosto -- mas nao pode voltar a copiar o dono em silencio.
-func TestCloneSemCatalogoNaoHerdaODono(t *testing.T) {
+// TestCloneWithoutCatalogDoesNotInheritOwner checks that a missing NPC leaves
+// the clone without a face instead of silently copying the owner.
+func TestCloneWithoutCatalogDoesNotInheritOwner(t *testing.T) {
 	w := &World{}
 	shop := &GhostShop{}
 	for i := range shop.Mesh {
@@ -231,22 +246,22 @@ func TestCloneSemCatalogoNaoHerdaODono(t *testing.T) {
 	w.applyGhostShopLook(shop)
 
 	if shop.Mesh != ([16]uint16{}) {
-		t.Errorf("clone manteve aparencia do dono sem o catalogo: %v", shop.Mesh)
+		t.Errorf("clone kept the owner's appearance without the catalog: %v", shop.Mesh)
 	}
 }
 
-// TestTrocaDeEquipamentoNaoMandaVitalsDuplicado: o wrapper wide do client copia
-// a cauda uint32 para o sidecar e DEPOIS chama o handler nativo, sempre. Cada
-// pacote de vitals custa um redesenho; 0x336 e 0x181 em sequencia ao mesmo
-// jogador custavam dois, e a barra piscava.
+// TestObserverVitalsAreNotSentToOwner checks that the client's wide wrapper
+// copies the uint32 tail to the sidecar and then always calls the native
+// handler. Each vitals packet causes a redraw; sending 0x336 and 0x181 in
+// sequence to the same player made the bar flicker.
 //
-// O dono recebe so o 0x336 (que ja leva HP/MP). Quem observa continua
-// recebendo o 0x181, porque para ele o 0x336 privado nunca chegou.
-func TestVitalsDeObservadorNaoVaoParaODono(t *testing.T) {
+// The owner receives only 0x336, which already carries HP/MP. Observers still
+// receive 0x181 because they never receive the owner's private 0x336 packet.
+func TestObserverVitalsAreNotSentToOwner(t *testing.T) {
 	w := newZoneTestWorld()
 	w.players = map[*net.Session]*Player{}
 
-	novo := func(id uint16, x uint16) (*Player, *net.Session) {
+	newPlayer := func(id uint16, x uint16) (*Player, *net.Session) {
 		s := net.NewTestSession(int64(id), 64)
 		acc := &model.Account{Name: "c", Chars: []model.Char{{Name: "n",
 			Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}}}}
@@ -256,16 +271,16 @@ func TestVitalsDeObservadorNaoVaoParaODono(t *testing.T) {
 		w.updatePlayerSpatial(p)
 		return p, s
 	}
-	dono, sessaoDono := novo(1, 2100)
-	observador, sessaoObs := novo(2, 2101)
-	observador.show(dono.ID)
+	owner, ownerSession := newPlayer(1, 2100)
+	observer, observerSession := newPlayer(2, 2101)
+	observer.show(owner.ID)
 
-	w.syncPlayerVitalsToObservers(dono)
+	w.syncPlayerVitalsToObservers(owner)
 
-	if sessaoDono.QueuedPacketsForTest() != 0 {
-		t.Error("o dono recebeu o 0x181 redundante; e ele que faz a barra piscar")
+	if ownerSession.QueuedPacketsForTest() != 0 {
+		t.Error("owner received redundant 0x181, which causes the bar to flicker")
 	}
-	if sessaoObs.QueuedPacketsForTest() == 0 {
-		t.Error("o observador ficou sem a atualizacao de vitals")
+	if observerSession.QueuedPacketsForTest() == 0 {
+		t.Error("observer did not receive the vitals update")
 	}
 }

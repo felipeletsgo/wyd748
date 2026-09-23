@@ -1,8 +1,8 @@
 package game
 
-// clientFacingError distingue mensagens prontas para a UI de erros internos.
-// Erros Go comuns seguem o estilo minusculo e sem pontuacao; estes preservam a
-// capitalizacao/traducao que o jogador deve receber em MessagePanel.
+// clientFacingError distinguishes UI-ready messages from internal errors.
+// Ordinary Go errors are lowercase and unpunctuated; these preserve the
+// capitalization and wording that players should see in MessagePanel.
 type clientFacingError string
 
 func (e clientFacingError) Error() string { return string(e) }
