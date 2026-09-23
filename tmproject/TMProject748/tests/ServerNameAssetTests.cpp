@@ -72,9 +72,9 @@ int RunServerNameAssetTests(int& checks)
         }
     };
 
-    char shortLabel[128] = "Canal-1";
+    char shortLabel[128] = "Channel-1";
     check(AppendFullChannelLabel(shortLabel, sizeof(shortLabel)) &&
-        std::strcmp(shortLabel, "Canal-1       FULL") == 0,
+        std::strcmp(shortLabel, "Channel-1     FULL") == 0,
         "full channel marker pads short names to column 14");
     char exactLabel[19] = "12345678901234";
     check(AppendFullChannelLabel(exactLabel, sizeof(exactLabel)) &&
@@ -84,9 +84,9 @@ int RunServerNameAssetTests(int& checks)
     check(AppendFullChannelLabel(longLabel, sizeof(longLabel)) &&
         std::strcmp(longLabel, "12345678901234FULL") == 0,
         "full channel marker truncates after column 14");
-    char smallLabel[18] = "Canal-1";
+    char smallLabel[18] = "Channel-1";
     check(!AppendFullChannelLabel(smallLabel, sizeof(smallLabel)) &&
-        std::strcmp(smallLabel, "Canal-1") == 0,
+        std::strcmp(smallLabel, "Channel-1") == 0,
         "undersized label remains unchanged");
     char unterminatedLabel[19];
     std::memset(unterminatedLabel, 'x', sizeof(unterminatedLabel));
@@ -103,11 +103,13 @@ int RunServerNameAssetTests(int& checks)
     int orders[11]{};
     const auto path = asset.string();
     check(WYD748_LoadServerNameList(path.c_str(), names, 11, orders, 11),
-        "real 7.48 sn.bin loads");
+        "localized 7.48 sn.bin loads");
     check(std::strcmp(names[0], "__VPS") == 0 && orders[0] == 1,
         "first group keeps VPS name and order");
-    check(std::strcmp(names[1], "Canal") == 0 && orders[1] == 2,
-        "second group keeps Canal name and order");
+    check(std::strcmp(names[1], "Channel") == 0 && orders[1] == 2,
+        "second group has the English Channel name and unchanged order");
+    check(std::strcmp(names[2], "Featured") == 0 && orders[2] == 0,
+        "third group has the English Featured name and unchanged order");
     check(orders[7] == 3 && names[7][0] == '\0',
         "unnamed ordered group is preserved");
     check(!WYD748_LoadServerNameList(nullptr, names, 11, orders, 11),
@@ -119,7 +121,7 @@ int RunServerNameAssetTests(int& checks)
 
     std::ifstream input(asset, std::ios::binary);
     std::vector<char> bytes{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
-    check(bytes.size() == 143, "real 7.48 file has the fixed 143-byte layout");
+    check(bytes.size() == 143, "localized 7.48 file keeps the fixed 143-byte layout");
     if (bytes.size() == 143) {
         const auto fixture = ExecutablePath().parent_path() / "sn-invalid-test.bin";
         const auto writeFixture = [&](const std::vector<char>& contents) {

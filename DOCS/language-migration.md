@@ -15,6 +15,9 @@ a partial translation as completion.
   moderation, teleportation, status messages, and English date/number formatting.
 - The in-source 7.48 client CC-mode control labels, the item position,
   and the selected server endpoint diagnostic.
+- The runtime `tmproject/client748/sn.bin` group labels: `Channel` and
+  `Featured` replace the Portuguese and Korean labels while retaining all
+  eleven fixed-width slots, group orders, and the 143-byte file layout.
 
 ## Remaining work
 
