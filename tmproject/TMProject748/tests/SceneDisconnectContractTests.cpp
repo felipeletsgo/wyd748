@@ -273,6 +273,19 @@ int RunSceneDisconnectContractTests(int& checks)
     check(fieldSource.find("g_pObjectManager->m_stMobData.Equip[4].sIndex < MAX_ITEMLIST") != std::string::npos &&
         fieldSource.find("capeIndex > 0 && capeIndex < MAX_ITEMLIST") != std::string::npos,
         "equipment-derived skill delay and cape text bound ItemList indexes");
+    const auto storeStart = fieldSource.find("void TMFieldScene::UpdateNewStore(int idwControlID)");
+    const auto storeEnd = fieldSource.find("int TMFieldScene::OnPacketNewCashRev(", storeStart);
+    const auto storeBody = storeStart != std::string::npos && storeEnd != std::string::npos
+        ? fieldSource.substr(storeStart, storeEnd - storeStart) : std::string{};
+    const auto purchaseLoop = storeBody.find("for (const int buttonControlId : Buttons)");
+    const auto purchaseGridGuard = storeBody.find("if (!GridSlot)", purchaseLoop);
+    const auto purchaseItemGuard = storeBody.find("Item->m_pItem->sIndex < MAX_ITEMLIST", purchaseLoop);
+    const auto purchaseName = storeBody.find("g_pItemList[Item->m_pItem->sIndex].Name", purchaseLoop);
+    check(purchaseLoop != std::string::npos && purchaseGridGuard != std::string::npos &&
+        purchaseItemGuard != std::string::npos && purchaseName != std::string::npos &&
+        purchaseGridGuard < purchaseItemGuard && purchaseItemGuard < purchaseName &&
+        storeBody.find("sizeof(Buttons)") == std::string::npos,
+        "donation-store purchase walks only its buttons and checks item bounds before naming it");
     const auto weaponDamageStart = fieldSource.find("int TMFieldScene::GetWeaponDamage()");
     const auto weaponDamageEnd = fieldSource.find("void TMFieldScene::SetMyHumanMagic()", weaponDamageStart);
     const auto weaponDamageBody = weaponDamageStart != std::string::npos &&

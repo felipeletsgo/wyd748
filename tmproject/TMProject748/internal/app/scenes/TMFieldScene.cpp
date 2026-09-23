@@ -28494,35 +28494,29 @@ void TMFieldScene::UpdateNewStore(int idwControlID)
 		3000059
 	};
 
-	for (int i = 0; i < sizeof(Buttons); i++)
+	for (const int buttonControlId : Buttons)
 	{
 		/* Handle */
-		if (Buttons[i] == idwControlID)
+		if (buttonControlId == idwControlID)
 		{
 			int ButtonIndex = ((idwControlID - 3000015) / 4) + 1;
 			int GridIndex = idwControlID - 3;
 			auto GridSlot = (SGridControl*)m_pControlContainer->FindControl(GridIndex);
-
-			ControlLojaDonateInfor.Slot = ButtonIndex;
+			if (!GridSlot)
+				break;
 
 			auto Item = GridSlot->GetItem(0, 0);
-
-			if (Item != NULL)
+			if (Item && Item->m_pItem && Item->m_pItem->sIndex > 0 &&
+				Item->m_pItem->sIndex < MAX_ITEMLIST)
 			{
-				char msg[102] = { 0, };
-				char msg2[102] = { 0, };
-
-				/*sprintf_s(msg, 102, "Would you like to buy item %s?", g_pItemList[Item->m_pItem->sIndex].Name);
-				sprintf_s(msg2, 102, "The cash amount will be deducted.");
-
-			    m_pMessageBox->SetMessage(msg, 0x301, msg2);
-				m_pMessageBox->SetVisible(1);*/
-
-
 				auto panelbuy = (SGridControl*)m_pControlContainer->FindControl(3000080);
-				panelbuy->m_bVisible = true;
-
 				auto labelbuyitem = (SText*)m_pControlContainer->FindControl(3000083);
+				if (!panelbuy || !labelbuyitem)
+					break;
+
+				ControlLojaDonateInfor.Slot = ButtonIndex;
+				char msg[102] = { 0, };
+				panelbuy->m_bVisible = true;
 
 				sprintf_s(msg, 102, "Buy item %s", g_pItemList[Item->m_pItem->sIndex].Name);
 				labelbuyitem->SetText(msg, 0);
