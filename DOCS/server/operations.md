@@ -47,12 +47,10 @@ This guide explains how to
 prepare, build, configure, start, and use the server, and it gives an overview
 of every available system.
 
-The central index is [DOCS/README.md](../README.md). Server status is tracked in:
-
-- [`IMPLEMENTED.md`](../IMPLEMENTED.md) describes the architecture and
-  every system that exists in the current server;
-- [`ROADMAP.md`](../ROADMAP.md) is the roadmap and contains work that
-  is not complete.
+The central index is [DOCS/README.md](../README.md). The source and tests in
+`wydgo748/` establish current server behavior. Client 7.48 parity and remaining
+validation gates are tracked in the
+[parity handoff](../../.agents/handoffs/client748-parity.md).
 
 The active client workflow is documented in
 [`build-and-integration.md`](../build-and-integration.md). Historical executables,
@@ -368,7 +366,7 @@ capability checks. Its current gameplay controls are:
 
 - player account creation: open **Criar conta**, enter the new credentials and
   confirm with the administrative PIN. Usernames are 4–12 ASCII letters or
-  digits; passwords are 4–12 visible characters without spaces. The account is
+  digits; passwords are 4–10 visible characters without spaces. The account is
   created without characters and receives no staff permission. This flow is
   available in the panel embedded in `tm.exe`; the standalone web API remains
   read-only;
@@ -648,11 +646,10 @@ them.
 
 ## Roadmap
 
-[`DOCS/ROADMAP.md`](../ROADMAP.md) is the only project roadmap. The next recommended
-implementation is the transactional economy ledger. The later phases cover
-in-game validation, the remaining retail quests, the native Big Cube table,
-client HP/MP and guild-mark work, public-server operations, and the war systems.
-Guild War, Kingdom War, and Castle War stay as the final gameplay phase.
+Do not treat an old implementation plan as a current roadmap. Recheck remaining
+work against source and tests before prioritizing it. The client 7.48 parity
+work and unvalidated gates are recorded in the
+[parity handoff](../../.agents/handoffs/client748-parity.md).
 
 ## Disclaimer
 

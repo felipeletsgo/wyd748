@@ -158,6 +158,13 @@ Nenhum handler `0x52A`/`RemoveServer` foi localizado. A decisão é preservar o
 contrato nativo no client e não inventar protocolo no Go sem uma transição
 server-side observável e testável.
 
+O painel Field envia `0x334` com `MobName="srv"` e o índice de canal em
+`String` após cinco segundos. O `World` monocanal agora reconhece essa intenção
+reservada e responde com aviso `0x101` de indisponibilidade; não gera `0x52A`,
+não desconecta nem altera o personagem. Antes, o pedido seguia como whisper
+para o suposto personagem `srv` e retornava uma mensagem enganosa de offline.
+Este fallback é `MODERNIZACAO_COMPATIVEL` server-side, não é migração funcional.
+
 ## Matriz de delta
 
 | Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
@@ -184,6 +191,8 @@ server-side observável e testável.
   registrar servidor de origem/destino, timestamps e hash do candidato.
 - Correlacionar a origem server-side de `0x52A` antes de qualquer alteração do
   protocolo Go.
+- Definir coordenador de canais, persistência/ticket de transferência e rejeições
+  antes de habilitar o `srv` como migração; o fallback atual é apenas explícito.
 - Logout explícito, relogin integral e shutdown global estão fora deste
   contrato e continuam na frente geral de lifecycle.
 

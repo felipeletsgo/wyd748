@@ -105,6 +105,11 @@ type Player struct {
 	// mundo entra em manutencao e descarta a RAM, preservando o ultimo commit.
 	PersistencePoisoned bool
 	X, Y                uint16 // posicao atual (rastreada dos pacotes de movimento 0x366)
+	AirMoveActive       bool
+	AirMoveRoute        int
+	AirMoveStartedAt    time.Time
+	AirMoveSourceX      uint16
+	AirMoveSourceY      uint16
 	// NPC cuja loja esta aberta. O buy do 7.48 vem com TargetID=0, portanto o
 	// servidor usa este ID autoritativo em vez de confiar no pacote.
 	ShopNPC  uint16
@@ -1926,6 +1931,23 @@ func (w *World) handle(cmd command) {
 		w.advancePlayerMovement(p, w.now())
 	}
 	h := wire.ParseHeader(cmd.pkt)
+	if p := w.players[cmd.s]; p != nil && p.AirMoveActive {
+		if p.Char == nil || playerCurHP(p.Char) == 0 {
+			// Morte encerra a viagem antes de qualquer gate de gameplay.
+			// O client ainda pode emitir o fim da animacao depois do dano.
+			clearAirMove(p)
+		}
+	}
+	if p := w.players[cmd.s]; p != nil && p.AirMoveActive {
+		// O voo e visual ate a confirmacao 0xAD9/mode=2. Nenhuma outra
+		// intencao pode mover ou mutar o personagem durante esse intervalo.
+		switch h.Type {
+		case wire.OpAirMove, wire.OpPing, wire.OpSysQuit, wire.OpCharacterLogout,
+			wire.OpClientIntegrityResponse:
+		default:
+			return
+		}
+	}
 	switch int(h.Type) {
 	case wire.OpConnectAccount:
 		w.onLogin(cmd.s, cmd.pkt)
@@ -1941,6 +1963,8 @@ func (w *World) handle(cmd command) {
 		w.onQuizAnswer(cmd.s, cmd.pkt)
 	case wire.OpDeleteCharacter:
 		w.onDeleteCharacter(cmd.s, cmd.pkt)
+	case wire.OpCharacterTransfer:
+		w.onCharacterTransferUnavailable(cmd.s, cmd.pkt)
 	case wire.OpSwapItem:
 		w.onSwapItem(cmd.s, cmd.pkt)
 	case wire.OpDeposit:
@@ -2003,6 +2027,8 @@ func (w *World) handle(cmd command) {
 		w.onChangeCity(cmd.s, cmd.pkt)
 	case wire.OpReqTeleport:
 		w.onReqTeleport(cmd.s, cmd.pkt)
+	case wire.OpAirMove:
+		w.onAirMove(cmd.s, cmd.pkt)
 	case wire.OpPKMode:
 		w.onPKMode(cmd.s, cmd.pkt)
 	case wire.OpGuildDeprivate:

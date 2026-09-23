@@ -327,7 +327,7 @@ inventário, skill, alvo ou movimento.
   `sizeof(MSG_AttackOne)` (48) com One, mantendo Two em 52. A forma estendida
   One/96 já era aceita pelo servidor e não é apresentada como causa do DC.
 - Classificação desse delta wire: `PARIDADE_NATIVA`, reutilizando os contratos
-  registrados em `DOCS/IMPLEMENTATION_STATUS.md`, `DOCS/protocol/packet-fixtures.md`
+  registrados em `DOCS/protocol/packet-fixtures.md`
   e os asserts de `Basedef.h`: One `0x39D/48`, Two `0x39E/52`, Multi
   `0x36C/96`, ActionStop `0x367/52`. Nenhuma regra de segurança foi relaxada.
 - Cooldown: `MODERNIZACAO_COMPATIVEL`. O servidor usa `SkillData.Delay` em

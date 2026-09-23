@@ -95,7 +95,8 @@ func TestCreateAccountRejectsInvalidRequests(t *testing.T) {
 	}{
 		{"missing csrf", `{"username":"player2","password":"SafePass9!","passwordConfirmation":"SafePass9!","adminPin":"001234"}`, "", 403, "invalid_csrf"},
 		{"invalid pin", `{"username":"player2","password":"SafePass9!","passwordConfirmation":"SafePass9!","adminPin":"999999"}`, session.CSRF, 401, "invalid_admin_pin"},
-		{"password mismatch", `{"username":"player2","password":"SafePass9!","passwordConfirmation":"OtherPass9!","adminPin":"001234"}`, session.CSRF, 422, "validation_error"},
+		{"password mismatch", `{"username":"player2","password":"SafePass9!","passwordConfirmation":"OtherPas9!","adminPin":"001234"}`, session.CSRF, 422, "validation_error"},
+		{"password above native limit", `{"username":"toolongpass","password":"12345678901","passwordConfirmation":"12345678901","adminPin":"001234"}`, session.CSRF, 422, "validation_error"},
 		{"unknown field", `{"username":"player2","password":"SafePass9!","passwordConfirmation":"SafePass9!","adminPin":"001234","role":"admin"}`, session.CSRF, 400, "invalid_request"},
 	}
 	for _, test := range tests {
@@ -105,6 +106,13 @@ func TestCreateAccountRejectsInvalidRequests(t *testing.T) {
 				t.Fatalf("got %d %s, want %d %s", w.Code, w.Body.String(), test.want, test.code)
 			}
 		})
+	}
+	registration := h.cfg.Registration.(*testRegistration)
+	registration.mu.Lock()
+	_, created := registration.accounts["toolongpass"]
+	registration.mu.Unlock()
+	if created {
+		t.Fatal("account with password above the native limit was created")
 	}
 }
 
@@ -121,7 +129,7 @@ func TestCreateAccountReportsUnavailableWriter(t *testing.T) {
 func TestCreateAccountRateLimitsRepeatedUsername(t *testing.T) {
 	h, _, _, _ := newTestHandler(t)
 	cookieBox, session := anonymousSession(t, h)
-	body := `{"username":"player2","password":"SafePass9!","passwordConfirmation":"OtherPass9!","adminPin":"001234"}`
+	body := `{"username":"player2","password":"SafePass9!","passwordConfirmation":"OtherPas9!","adminPin":"001234"}`
 	for attempt := 1; attempt <= 3; attempt++ {
 		w := request(h, "POST", "/api/v1/accounts", body, cookieBox, session.CSRF)
 		if w.Code != http.StatusUnprocessableEntity {

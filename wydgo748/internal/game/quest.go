@@ -35,6 +35,7 @@ const (
 	npcKindCargo              = "cargo"
 	npcKindCraft              = "compositor"
 	npcKindAbilityResetMaster = "mestre de atributos"
+	npcKindAirMove            = "transporte aereo"
 )
 
 // reservedNPCKind devolve o handler dedicado do NPC, se houver. Centraliza o
@@ -52,6 +53,9 @@ func reservedNPCKind(def *model.NPCDef) (string, bool) {
 	}
 	if def.Score.Merchant&0xF == cargoMerchantType {
 		return npcKindCargo, true
+	}
+	if isAirMoveNPC(def) {
+		return npcKindAirMove, true
 	}
 	if isMountMasterNPC(def) {
 		return npcKindMountMaster, true

@@ -30,8 +30,19 @@
 #include "../wire/CreateMobContract.h"
 #include "../wire/ShopListContract.h"
 #include "../wire/ItemSoldContract.h"
+#include "../wire/PlayerChallengeContract.h"
 #include "../wire/CombineCompleteContract.h"
+#include "../wire/TradeSessionContract.h"
+#include "../wire/TradeCheckConfirmationContract.h"
 #include "../wire/WarInfoContract.h"
+#include "../wire/ShortSkillSnapshotContract.h"
+#include "../wire/ActionFrameContract.h"
+#include "../wire/AttackFrameContract.h"
+#include "../wire/AirMoveContract.h"
+#include "../wire/InventoryTransactionContract.h"
+#include "../wire/CargoGoldTransferContract.h"
+#include "../wire/AutoTradeContract.h"
+#include "../wire/CapsuleInfoContract.h"
 #include "../wire/MessagePanelPacket.h"
 #include "../wire/LegacySceneMessagePacket.h"
 #include "../wire/ChatMessagePacket.h"
@@ -39,6 +50,7 @@
 #include "../wire/CharacterLogoutConfirmPacket.h"
 #include "../wire/CharacterLogoutRequestPacket.h"
 #include "../wire/CharacterLoginConfirmContract.h"
+#include "../wire/LoginPacketContract.h"
 #include "../wire/ClientIntegrityArrayContract.h"
 #include "../wire/TotoPurchasePacket.h"
 #include "../wire/ApplyBonusPacket.h"
@@ -68,6 +80,7 @@
 #include "../wire/UpdateEtcPacket.h"
 #include "../wire/IndexedMessageContract.h"
 #include "../wire/ServerMigrationPacket.h"
+#include "../wire/ServerWarLetterContract.h"
 
 // Basedef permanece como fachada de compatibilidade. Os tipos abaixo são
 // consumidos por cenas, UI, entidades e transporte; qualquer alteração de
@@ -164,6 +177,14 @@ static_assert(sizeof(MSG_STANDARDPARM) == kWorldStateParameterPacketSize,
 	"world state parameter packets must preserve the 7.48 ABI");
 static_assert(offsetof(MSG_STANDARDPARM, Parm) == kWorldStateParameterValueOffset,
 	"world state parameter value offset changed");
+static_assert(sizeof(MSG_STANDARDPARM) == kCargoGoldTransferPacketSize,
+	"cargo gold transfer packets must preserve the 7.48 ABI");
+static_assert(offsetof(MSG_STANDARDPARM, Parm) == kCargoGoldTransferAmountOffset,
+	"cargo gold transfer amount offset changed");
+static_assert(sizeof(MSG_STANDARDPARM) == kServerWarLetterPacketSize,
+	"server-war letter packets must preserve the 7.48 ABI");
+static_assert(offsetof(MSG_STANDARDPARM, Parm) == kServerWarTargetChannelOffset,
+	"server-war target channel offset changed");
 constexpr int MAX_SPELL_LIST = 248;
 constexpr int MAX_GUILDZONE = 5;
 
@@ -175,7 +196,6 @@ constexpr auto MAX_SUB_EFFECT_STRING_TABLE = 10;
 constexpr auto MAX_ITEM_PRICE_REPLACE = 100;
 
 constexpr auto MSG_RequestCapsuleInfo_Opcode = 0x2CD;
-constexpr auto MSG_UseDeclarationOfWar_Opcode = 0xED7;
 struct MSG_Exp_MsgPanel
 {
 	MSG_STANDARD Header;
@@ -196,19 +216,27 @@ struct MSG_SendInfoPlay
 constexpr auto MSG_DeleteItem_Opcode = 0x2E4;
 constexpr auto MSG_SplitItem_Opcode = 0x2E5;
 constexpr auto MSG_InviteGuild_Opcode = 0x3D5;
-constexpr auto MSG_AirMove_Start_Opcode = 0xAD9;
 struct MSG_STANDARDPARM2
 {
 	MSG_STANDARD Header;
 	INT32 Parm1;
 	INT32 Parm2;
 };
+static_assert(sizeof(MSG_STANDARDPARM2) == kAirMovePacketSize, "WYD 7.48 AirMove packet must be 20 bytes");
+static_assert(offsetof(MSG_STANDARDPARM2, Parm1) == kAirMoveRouteOffset, "WYD 7.48 AirMove route offset changed");
+static_assert(offsetof(MSG_STANDARDPARM2, Parm2) == kAirMoveModeOffset, "WYD 7.48 AirMove mode offset changed");
 static_assert(sizeof(MSG_STANDARDPARM2) == kItemSoldPacketSize,
 	"ItemSold two-parameter packet size changed");
 static_assert(offsetof(MSG_STANDARDPARM2, Parm1) == kItemSoldEntityOffset,
 	"ItemSold entity offset changed");
 static_assert(offsetof(MSG_STANDARDPARM2, Parm2) == kItemSoldPositionOffset,
 	"ItemSold position offset changed");
+static_assert(sizeof(MSG_STANDARDPARM2) == kPlayerChallengePacketSize,
+	"PlayerChallenge two-parameter packet size changed");
+static_assert(offsetof(MSG_STANDARDPARM2, Parm1) == kPlayerChallengePlayerIdOffset,
+	"PlayerChallenge player ID offset changed");
+static_assert(offsetof(MSG_STANDARDPARM2, Parm2) == kPlayerChallengeModeOffset,
+	"PlayerChallenge mode offset changed");
 static_assert(sizeof(MSG_STANDARDPARM) == kCombineCompletePacketSize,
 	"CombineComplete standard parameter size changed");
 static_assert(offsetof(MSG_STANDARDPARM, Parm) == kCombineCompleteResultOffset,
@@ -821,12 +849,6 @@ struct STRUCT_AUTOKICK
 	char route[4][128];
 };
 
-// WYD 7.48 assigns 0x366 to movement and 0x367 to stop. The imported newer
-// source had these values shifted into the multi-attack family.
-constexpr auto MSG_Action_Opcode = 0x366;
-constexpr auto MSG_Action2_Opcode = 0x368;
-constexpr auto MSG_Action_Stop_Opcode = 0x367;
-
 struct MSG_Action
 {
 	MSG_STANDARD Header;
@@ -844,12 +866,20 @@ struct MSG_Action
 // Ghidra FUN_00524bbb builds the 7.48 movement frame with these exact offsets.
 // Compile-time checks prevent a future struct edit or packing change from
 // silently recreating the malformed destination/route packets seen in-game.
-static_assert(sizeof(MSG_Action) == 52, "WYD 7.48 MSG_Action must be 52 bytes");
-static_assert(offsetof(MSG_Action, PosX) == 12, "WYD 7.48 PosX offset mismatch");
-static_assert(offsetof(MSG_Action, Speed) == 16, "WYD 7.48 Speed offset mismatch");
-static_assert(offsetof(MSG_Action, Effect) == 20, "WYD 7.48 Effect offset mismatch");
-static_assert(offsetof(MSG_Action, TargetX) == 24, "WYD 7.48 TargetX offset mismatch");
-static_assert(offsetof(MSG_Action, Route) == 28, "WYD 7.48 Route offset mismatch");
+static_assert(sizeof(MSG_Action) == kActionPacketSize,
+	"WYD 7.48 MSG_Action must be 52 bytes");
+static_assert(offsetof(MSG_Action, PosX) == kActionPositionOffset,
+	"WYD 7.48 PosX offset mismatch");
+static_assert(offsetof(MSG_Action, Speed) == kActionSpeedOffset,
+	"WYD 7.48 Speed offset mismatch");
+static_assert(offsetof(MSG_Action, Effect) == kActionEffectOffset,
+	"WYD 7.48 Effect offset mismatch");
+static_assert(offsetof(MSG_Action, TargetX) == kActionTargetOffset,
+	"WYD 7.48 TargetX offset mismatch");
+static_assert(offsetof(MSG_Action, Route) == kActionRouteOffset,
+	"WYD 7.48 Route offset mismatch");
+static_assert(sizeof(MSG_Action::Route) == kActionRouteSize,
+	"WYD 7.48 Route size mismatch");
 
 struct st_DropListMobSelected
 {
@@ -911,12 +941,11 @@ struct MSG_CAPSULEINFO
 	short sInt;
 	short sDex;
 	short sCon;
-	short Mastery[4];
+	short Mastery[kCapsuleInfoMasteryCount];
 	short skill[9];
 	short Quest;
 };
 
-constexpr auto MSG_Trade_Opcode = 0x383;
 struct MSG_Trade
 {
 	MSG_STANDARD Header;
@@ -926,11 +955,6 @@ struct MSG_Trade
 	char MyCheck;
 	unsigned short OpponentID;
 };
-
-constexpr auto MSG_CloseTrade_Opcode = 0x384;
-
-constexpr auto MSG_Withdraw_Opcode = 0x387;
-constexpr auto MSG_Deposit_Opcode = 0x388;
 
 constexpr auto MSG_CombineItem_Opcode = 0x3A6;
 // Stock WYD 7.48 assigns one 84-byte combine request to each native artisan
@@ -960,7 +984,6 @@ struct MSG_Mission
 	char CarryPos[8];
 };
 
-constexpr auto MSG_CNFAccountLogin_Opcode = 0x10A;
 struct MSG_CNFAccountLogin
 {
 	MSG_STANDARD Header;
@@ -986,7 +1009,6 @@ struct MSG_CAPSULEUSEITEM
 	char NewMobname[16];
 };
 
-constexpr auto MSG_AutoTrade_Opcode = 0x397;
 struct MSG_AutoTrade
 {
 	MSG_STANDARD Header;
@@ -1135,14 +1157,12 @@ struct MSG_DeleteCharacter
 	char Password[12];
 };
 
-constexpr auto MSG_CNFNewCharacter_Opcode = 0x110;
 struct MSG_CNFNewCharacter
 {
 	MSG_STANDARD Header;
 	STRUCT_SELCHAR SelChar;
 };
 
-constexpr auto MSG_CNFDeleteCharacter_Opcode = 0x112;
 struct MSG_CNFDeleteCharacter
 {
 	MSG_STANDARD Header;
@@ -1255,7 +1275,6 @@ static_assert(offsetof(MSG_CreateMobTrade, Desc) == kCreateMobTradeDescriptionOf
 static_assert(offsetof(MSG_CreateMobTrade, Server) == kCreateMobTradeServerOffset,
 	"CreateMobTrade server byte offset changed");
 
-constexpr auto MSG_SetShortSkill_Opcode = 0x378;
 struct MSG_SetShortSkill
 {
 	MSG_STANDARD Header;
@@ -1282,7 +1301,6 @@ static_assert(offsetof(MSG_ShopList, Tax) == kShopListTaxOffset,
 
 constexpr auto MSG_CloseShop_Opcode = 0x196;
 
-constexpr auto MSG_SwapItem_Opcode = 0x376;
 struct MSG_SwapItem
 {
 	MSG_STANDARD Header;
@@ -1314,7 +1332,6 @@ struct MSG_REQShopList
 	short ClickOK;
 };
 
-constexpr auto MSG_Buy_Opcode = 0x379;
 struct MSG_Buy
 {
 	MSG_STANDARD Header;
@@ -1332,11 +1349,6 @@ struct MSG_Sell
 	short MyType;
 	short MyPos;
 };
-
-// 0x36C is the canonical 7.48 multi-target attack; 0x367 belongs to Stop.
-constexpr auto MSG_Attack_Multi_Opcode = 0x36C;
-constexpr auto MSG_Attack_One_Opcode = 0x39D;
-constexpr auto MSG_Attack_Two_Opcode = 0x39E;
 
 struct MSG_Attack
 {
@@ -1415,15 +1427,38 @@ struct MSG_AttackOne
 // family at once prevents a newer TMProject member/alignment from silently
 // breaking movement, inventory, NPC, shop, stat, chat, or combat handlers.
 static_assert(sizeof(MSG_Motion) == 20, "WYD 7.48 MSG_Motion must be 20 bytes");
-static_assert(sizeof(MSG_Trade) == 156, "WYD 7.48 MSG_Trade must be 156 bytes");
-static_assert(offsetof(MSG_Trade, Item) == 12, "WYD 7.48 MSG_Trade Item offset must be 12");
-static_assert(offsetof(MSG_Trade, CarryPos) == 132, "WYD 7.48 MSG_Trade CarryPos offset must be 132");
-static_assert(offsetof(MSG_Trade, TradeMoney) == 148, "WYD 7.48 MSG_Trade TradeMoney offset must be 148");
-static_assert(offsetof(MSG_Trade, MyCheck) == 152, "WYD 7.48 MSG_Trade MyCheck offset must be 152");
-static_assert(offsetof(MSG_Trade, OpponentID) == 154, "WYD 7.48 MSG_Trade OpponentID offset must be 154");
+static_assert(sizeof(MSG_Trade) == kTradePacketSize, "WYD 7.48 MSG_Trade must be 156 bytes");
+static_assert(offsetof(MSG_Trade, Item) == kTradeItemsOffset, "WYD 7.48 MSG_Trade Item offset must be 12");
+static_assert(offsetof(MSG_Trade, CarryPos) == kTradeCarryPositionsOffset, "WYD 7.48 MSG_Trade CarryPos offset must be 132");
+static_assert(offsetof(MSG_Trade, TradeMoney) == kTradeMoneyOffset, "WYD 7.48 MSG_Trade TradeMoney offset must be 148");
+static_assert(offsetof(MSG_Trade, MyCheck) == kTradeCheckOffset, "WYD 7.48 MSG_Trade MyCheck offset must be 152");
+static_assert(offsetof(MSG_Trade, OpponentID) == kTradeOpponentIdOffset, "WYD 7.48 MSG_Trade OpponentID offset must be 154");
 static_assert(sizeof(MSG_CombineItem) == 84, "WYD 7.48 MSG_CombineItem must be 84 bytes");
 static_assert(sizeof(MSG_UseItem) == 36, "WYD 7.48 MSG_UseItem must be 36 bytes");
-static_assert(sizeof(MSG_AutoTrade) == 196, "WYD 7.48 MSG_AutoTrade must be 196 bytes");
+static_assert(sizeof(MSG_AutoTrade) == kAutoTradePacketSize, "WYD 7.48 MSG_AutoTrade must be 196 bytes");
+static_assert(offsetof(MSG_AutoTrade, Desc) == kAutoTradeDescriptionOffset, "WYD 7.48 AutoTrade Desc offset must be 12");
+static_assert(sizeof(((MSG_AutoTrade*)nullptr)->Desc) == kAutoTradeDescriptionSize, "WYD 7.48 AutoTrade Desc must be 24 bytes");
+static_assert(offsetof(MSG_AutoTrade, Item) == kAutoTradeItemsOffset, "WYD 7.48 AutoTrade Item offset must be 36");
+static_assert(sizeof(STRUCT_ITEM) == kAutoTradeItemSize, "WYD 7.48 AutoTrade item must be 8 bytes");
+static_assert(sizeof(((MSG_AutoTrade*)nullptr)->Item) / sizeof(STRUCT_ITEM) == kAutoTradeItemCount, "WYD 7.48 AutoTrade must carry 12 items");
+static_assert(offsetof(MSG_AutoTrade, CarryPos) == kAutoTradeCarryPositionsOffset, "WYD 7.48 AutoTrade CarryPos offset must be 132");
+static_assert(offsetof(MSG_AutoTrade, TradeMoney) == kAutoTradePricesOffset, "WYD 7.48 AutoTrade prices offset must be 144");
+static_assert(sizeof(((MSG_AutoTrade*)nullptr)->TradeMoney[0]) == kAutoTradePriceSize, "WYD 7.48 AutoTrade price must be 4 bytes");
+static_assert(offsetof(MSG_AutoTrade, Tax) == kAutoTradeTaxOffset, "WYD 7.48 AutoTrade Tax offset must be 192");
+static_assert(offsetof(MSG_AutoTrade, TargetID) == kAutoTradeTargetIdOffset, "WYD 7.48 AutoTrade TargetID offset must be 194");
+static_assert(sizeof(MSG_CAPSULEINFO) == kCapsuleInfoPacketSize, "WYD 7.48 MSG_CAPSULEINFO must be 52 bytes");
+static_assert(offsetof(MSG_CAPSULEINFO, CIndex) == kCapsuleInfoIndexOffset, "WYD 7.48 CapsuleInfo CIndex offset must be 12");
+static_assert(offsetof(MSG_CAPSULEINFO, Class) == kCapsuleInfoClassOffset, "WYD 7.48 CapsuleInfo Class offset must be 16");
+static_assert(offsetof(MSG_CAPSULEINFO, Level) == kCapsuleInfoLevelOffset, "WYD 7.48 CapsuleInfo Level offset must be 18");
+static_assert(offsetof(MSG_CAPSULEINFO, sStr) == kCapsuleInfoStrengthOffset, "WYD 7.48 CapsuleInfo strength offset must be 20");
+static_assert(offsetof(MSG_CAPSULEINFO, sInt) == kCapsuleInfoIntelligenceOffset, "WYD 7.48 CapsuleInfo intelligence offset must be 22");
+static_assert(offsetof(MSG_CAPSULEINFO, sDex) == kCapsuleInfoDexterityOffset, "WYD 7.48 CapsuleInfo dexterity offset must be 24");
+static_assert(offsetof(MSG_CAPSULEINFO, sCon) == kCapsuleInfoConstitutionOffset, "WYD 7.48 CapsuleInfo constitution offset must be 26");
+static_assert(offsetof(MSG_CAPSULEINFO, Mastery) == kCapsuleInfoMasteryOffset, "WYD 7.48 CapsuleInfo mastery offset must be 28");
+static_assert(sizeof(((MSG_CAPSULEINFO*)nullptr)->Mastery) / sizeof(short) == kCapsuleInfoMasteryCount, "WYD 7.48 CapsuleInfo must carry two mastery values");
+static_assert(offsetof(MSG_CAPSULEINFO, skill) == kCapsuleInfoSkillOffset, "WYD 7.48 CapsuleInfo skill offset must be 32");
+static_assert(sizeof(((MSG_CAPSULEINFO*)nullptr)->skill) / sizeof(short) == kCapsuleInfoSkillCount, "WYD 7.48 CapsuleInfo must carry nine skills");
+static_assert(offsetof(MSG_CAPSULEINFO, Quest) == kCapsuleInfoQuestOffset, "WYD 7.48 CapsuleInfo Quest offset must be 50");
 static_assert(sizeof(MSG_MOVESTOP) == 36, "WYD 7.48 MSG_MOVESTOP must be 36 bytes");
 static_assert(sizeof(MSG_SendItem) == 24, "WYD 7.48 MSG_SendItem must be 24 bytes");
 static_assert(sizeof(MSG_UpdateEquip) == 60, "WYD 7.48 MSG_UpdateEquip must be 60 bytes");
@@ -1440,17 +1475,84 @@ static_assert(sizeof(MSG_DeleteCharacter) == 44, "WYD 7.48 MSG_DeleteCharacter m
 static_assert(sizeof(MSG_MessageLog) == 108, "WYD 7.48 MSG_MessageLog must be 108 bytes");
 static_assert(offsetof(MSG_MessageLog, String) == 12, "WYD 7.48 diagnostic text offset changed");
 static_assert(sizeof(MSG_REQMobByID) == 16, "WYD 7.48 MSG_REQMobByID must be 16 bytes");
-static_assert(sizeof(MSG_SetShortSkill) == 32, "WYD 7.48 MSG_SetShortSkill must be 32 bytes");
+static_assert(sizeof(MSG_SetShortSkill) == kShortSkillSnapshotPacketSize,
+	"WYD 7.48 MSG_SetShortSkill size changed");
+static_assert(offsetof(MSG_SetShortSkill, Skill) == kShortSkillSnapshotSkillsOffset,
+	"WYD 7.48 MSG_SetShortSkill payload offset changed");
+static_assert(sizeof(MSG_SetShortSkill::Skill) == kShortSkillSnapshotSkillCount,
+	"WYD 7.48 MSG_SetShortSkill payload length changed");
 static_assert(sizeof(MSG_ShopList) == 236, "WYD 7.48 MSG_ShopList must be 236 bytes");
-static_assert(sizeof(MSG_SwapItem) == 20, "WYD 7.48 MSG_SwapItem must be 20 bytes");
+static_assert(sizeof(MSG_SwapItem) == kSwapItemPacketSize,
+	"WYD 7.48 MSG_SwapItem size changed");
+static_assert(offsetof(MSG_SwapItem, SourType) == kSwapItemSourceTypeOffset,
+	"WYD 7.48 MSG_SwapItem SourType offset changed");
+static_assert(offsetof(MSG_SwapItem, SourPos) == kSwapItemSourcePositionOffset,
+	"WYD 7.48 MSG_SwapItem SourPos offset changed");
+static_assert(offsetof(MSG_SwapItem, DestType) == kSwapItemDestinationTypeOffset,
+	"WYD 7.48 MSG_SwapItem DestType offset changed");
+static_assert(offsetof(MSG_SwapItem, DestPos) == kSwapItemDestinationPositionOffset,
+	"WYD 7.48 MSG_SwapItem DestPos offset changed");
+static_assert(offsetof(MSG_SwapItem, TargetID) == kSwapItemTargetIdOffset,
+	"WYD 7.48 MSG_SwapItem TargetID offset changed");
+static_assert(offsetof(MSG_SwapItem, Reserved) == kSwapItemReservedOffset,
+	"WYD 7.48 MSG_SwapItem Reserved offset changed");
 static_assert(sizeof(MSG_REQShopList) == 16, "WYD 7.48 MSG_REQShopList must be 16 bytes");
-static_assert(sizeof(MSG_Buy) == 24, "WYD 7.48 MSG_Buy must be 24 bytes");
+static_assert(sizeof(MSG_Buy) == kBuyPacketSize,
+	"WYD 7.48 MSG_Buy size changed");
+static_assert(offsetof(MSG_Buy, TargetID) == kBuyTargetIdOffset,
+	"WYD 7.48 MSG_Buy TargetID offset changed");
+static_assert(offsetof(MSG_Buy, TargetCarryPos) == kBuyShopPositionOffset,
+	"WYD 7.48 MSG_Buy TargetCarryPos offset changed");
+static_assert(offsetof(MSG_Buy, MyCarryPos) == kBuyCarryPositionOffset,
+	"WYD 7.48 MSG_Buy MyCarryPos offset changed");
+static_assert(offsetof(MSG_Buy, Coin) == kBuyCoinOffset,
+	"WYD 7.48 MSG_Buy Coin offset changed");
 static_assert(sizeof(MSG_Sell) == 20, "WYD 7.48 MSG_Sell must be 20 bytes");
-static_assert(sizeof(MSG_Attack) == 96, "WYD 7.48 MSG_Attack must be 96 bytes");
-static_assert(sizeof(MSG_AttackTwo) == 52, "WYD 7.48 MSG_AttackTwo must be 52 bytes");
-static_assert(sizeof(MSG_AttackOne) == 48, "WYD 7.48 MSG_AttackOne must be 48 bytes");
-static_assert(offsetof(MSG_Attack, SkillIndex) == 24, "WYD 7.48 attack SkillIndex offset mismatch");
-static_assert(offsetof(MSG_Attack, Dam) == 44, "WYD 7.48 attack target list offset mismatch");
+static_assert(sizeof(MSG_Attack) == kAttackMultiBasePacketSize,
+	"WYD 7.48 MSG_Attack size changed");
+static_assert(sizeof(MSG_AttackTwo) == kAttackTwoBasePacketSize,
+	"WYD 7.48 MSG_AttackTwo size changed");
+static_assert(sizeof(MSG_AttackOne) == kAttackOneBasePacketSize,
+	"WYD 7.48 MSG_AttackOne size changed");
+static_assert(offsetof(MSG_Attack, AttackerID) == kAttackAttackerIdOffset,
+	"WYD 7.48 attack AttackerID offset changed");
+static_assert(offsetof(MSG_Attack, Progress) == kAttackProgressOffset,
+	"WYD 7.48 attack Progress offset changed");
+static_assert(offsetof(MSG_Attack, PosX) == kAttackPositionOffset,
+	"WYD 7.48 attack position offset changed");
+static_assert(offsetof(MSG_Attack, TargetX) == kAttackTargetPositionOffset,
+	"WYD 7.48 attack target position offset changed");
+static_assert(offsetof(MSG_Attack, SkillIndex) == kAttackSkillIndexOffset,
+	"WYD 7.48 attack SkillIndex offset changed");
+static_assert(offsetof(MSG_Attack, CurrentMp) == kAttackCurrentMpOffset,
+	"WYD 7.48 attack CurrentMp offset changed");
+static_assert(offsetof(MSG_Attack, Motion) == kAttackMotionOffset,
+	"WYD 7.48 attack Motion offset changed");
+static_assert(offsetof(MSG_Attack, SkillParm) == kAttackSkillParameterOffset,
+	"WYD 7.48 attack SkillParm offset changed");
+static_assert(offsetof(MSG_Attack, FlagLocal) == kAttackLocalFlagOffset,
+	"WYD 7.48 attack FlagLocal offset changed");
+static_assert(offsetof(MSG_Attack, DoubleCritical) == kAttackDoubleCriticalOffset,
+	"WYD 7.48 attack DoubleCritical offset changed");
+static_assert(offsetof(MSG_Attack, CurrentExp) == kAttackCurrentExpOffset,
+	"WYD 7.48 attack CurrentExp offset changed");
+static_assert(offsetof(MSG_Attack, ReqMp) == kAttackRequiredMpOffset,
+	"WYD 7.48 attack ReqMp offset changed");
+static_assert(offsetof(MSG_Attack, Rsv) == kAttackReservedOffset,
+	"WYD 7.48 attack Rsv offset changed");
+static_assert(offsetof(MSG_Attack, FakeExp) == kAttackFakeExpOffset,
+	"WYD 7.48 attack FakeExp offset changed");
+static_assert(offsetof(MSG_Attack, Dam) == kAttackDamagesOffset,
+	"WYD 7.48 attack target list offset changed");
+static_assert(sizeof(MSG_AttackOne::Dam) /
+	sizeof(MSG_AttackOne::Dam[0]) == kAttackOneTargetCapacity,
+	"WYD 7.48 single-target attack capacity changed");
+static_assert(sizeof(MSG_AttackTwo::Dam) /
+	sizeof(MSG_AttackTwo::Dam[0]) == kAttackTwoTargetCapacity,
+	"WYD 7.48 two-target attack capacity changed");
+static_assert(sizeof(MSG_Attack::Dam) /
+	sizeof(MSG_Attack::Dam[0]) == kAttackMultiTargetCapacity,
+	"WYD 7.48 multi-target attack capacity changed");
 static_assert(sizeof(MSG_STANDARD) == 12, "WYD 7.48 standard header must be 12 bytes");
 static_assert(offsetof(MSG_STANDARD, Size) == 0, "WYD 7.48 header Size offset changed");
 static_assert(offsetof(MSG_STANDARD, KeyWord) == 2, "WYD 7.48 header KeyWord offset changed");
@@ -1470,6 +1572,12 @@ static_assert(offsetof(MSG_STANDARDPARM3, Parm3) == 20, "WYD 7.48 Parm3 offset c
 
 static_assert(sizeof(MSG_CNFCharacterLogin) == kCharacterLoginConfirmPacketSize,
 	"WYD 7.48 character login confirmation must be 2104 bytes");
+static_assert(sizeof(MSG_CNFAccountLogin) == kAccountLoginConfirmPacketSize,
+	"WYD 7.48 account login confirmation must be 2360 bytes");
+static_assert(sizeof(MSG_CNFNewCharacter) == kCharacterSelectionUpdatePacketSize,
+	"WYD 7.48 create-character confirmation must be 1288 bytes");
+static_assert(sizeof(MSG_CNFDeleteCharacter) == kCharacterSelectionUpdatePacketSize,
+	"WYD 7.48 delete-character confirmation must be 1288 bytes");
 
 constexpr auto MSG_ReqBuy_Opcode = 0x398;
 struct MSG_ReqBuy

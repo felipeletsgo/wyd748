@@ -53,7 +53,7 @@ func Create(st RegistrationStore, username, password, confirmation string) (*mod
 		return nil, &ValidationError{Field: "username", Message: "use de 4 a 12 letras ou numeros"}
 	}
 	if !ValidPassword(password) {
-		return nil, &ValidationError{Field: "password", Message: "use de 4 a 12 caracteres ASCII sem espacos"}
+		return nil, &ValidationError{Field: "password", Message: "use de 4 a 10 caracteres ASCII sem espacos"}
 	}
 	if password != confirmation {
 		return nil, &ValidationError{Field: "passwordConfirmation", Message: "as senhas nao coincidem"}

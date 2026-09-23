@@ -24,6 +24,7 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 		wire.OpConnectAccount:          116,
 		wire.OpCreateCharacter:         36,
 		wire.OpDeleteCharacter:         44,
+		wire.OpCharacterTransfer:       52,
 		wire.OpCharacterLogin:          characterLoginPacketSize,
 		wire.OpCharacterLogout:         12,
 		wire.OpClientIntegrityResponse: wire.ClientIntegrityPacketSize,
@@ -57,6 +58,7 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 		wire.OpMessageWhisper:          128,
 		wire.OpChangeCity:              16,
 		wire.OpReqTeleport:             16,
+		wire.OpAirMove:                 20,
 		wire.OpPKMode:                  16,
 		wire.OpMoveStop:                36,
 		wire.OpUpdateScore:             wire.HeaderSize,
@@ -907,6 +909,7 @@ func TestShopOperationsRevalidateRangeAndRejectEquipmentSale(t *testing.T) {
 	p.ShopNPC = shop.ID
 	p.Char.Equip[0] = model.Item{Index: 400}
 	sell := make([]byte, 20)
+	binary.LittleEndian.PutUint16(sell[12:14], shop.ID)
 	sell[14], sell[16] = placeEquip, 0
 	w.onSellItem(p.Session, sell)
 	if p.Char.Equip[0].Index != 400 || p.Char.Gold != 5000 {

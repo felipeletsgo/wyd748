@@ -23,6 +23,7 @@ const (
 	OpCNFCharacterLogout = 0x116 // S->C confirma CharacterLogout (MSG_STANDARD)
 	OpDeleteCharacter    = 0x211 // C->S apaga personagem (slot/nome/senha)
 	OpCNFDeleteCharacter = 0x112 // S->C atualiza a selecao apos exclusao
+	OpCharacterTransfer  = 0xFAA // C<->S transferencia/rename na selecao (52B)
 	OpCreateMobTrade     = 0x363 // S->C extensao coordenada: entidade + titulo (352B)
 	OpCreateMob          = 0x364 // S->C extensao coordenada: entidade/Score@140 (328B)
 	OpSetHpMp            = 0x181 // S->C extensao coordenada: HP/MP uint32 (28B)
@@ -81,8 +82,8 @@ const (
 	OpChallengeConfirm   = 0x28F // C->S confirma desafio de zona (Parm1/Parm2)
 	OpReqChallenge       = 0x18D // S->C abre o dialogo nativo de inscricao (MSG_STANDARD)
 	OpReqTeleport        = 0x290 // C->S solicita portal na coordenada atual (16B)
+	OpAirMove            = 0xAD9 // C->S AirMove nativo: rota@12, modo@16 (20B)
 	OpPKMode             = 0x399 // C->S ativa/desativa modo PK (Parm@12)
-	OpPKInfo             = 0x166 // S->C publica estado PK (MSG_STANDARDPARM)
 	OpReqShopList        = 0x27B // C->S clicou num mercador tipo 3 (TargetID@12) -> pede loja
 	OpShopList           = 0x17C // S->C lista da loja / abre a janela (236B, 27 itens)
 	OpBuyItem            = 0x379 // C<->S compra/confirma item da loja (24B)

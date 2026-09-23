@@ -86,8 +86,8 @@ func PremiumFirework(id uint16, pattern [16]byte) []byte {
 	return b
 }
 
-// StandardParm monta o layout WYD de 16 bytes usado por PKInfo e diversos
-// sinais de confirmacao: header seguido de um DWORD em @12.
+// StandardParm monta o layout WYD de 16 bytes usado por diversos sinais de
+// confirmacao: header seguido de um DWORD em @12.
 func StandardParm(opcode, id uint16, parm uint32) []byte {
 	b := Build(opcode, id, 16)
 	putU32(b, 12, parm)

@@ -606,7 +606,7 @@ int TMObject::IsInView()
 
 int TMObject::RegisterMask(TMGround* pGround, float fX, float fY)
 {
-	if (!pGround)
+	if (!pGround || m_nMaskIndex < 0 || m_nMaskIndex >= MAX_OBJECT_MASK)
 		return 0;
 
 	char cTempMask[16][16];
@@ -637,15 +637,17 @@ int TMObject::RegisterMask(TMGround* pGround, float fX, float fY)
 	{
 		for (int i = 0; i < 16; ++i)
 		{
-			if (i + nBaseX >= 0 && i + nBaseX <= 128 && y + nBaseY >= 0 && y + nBaseY <= 128 && cTempMask[y][i])
+			const int maskX = i + nBaseX;
+			const int maskY = y + nBaseY;
+			if (maskX >= 0 && maskX < 128 && maskY >= 0 && maskY < 128 && cTempMask[y][i])
 			{
 				int nTemp = (int)((m_fHeight / 0.1f) + (float)(3 * cTempMask[y][i]));
 				if (m_fHeight > 0.0f)
 					++nTemp;
 				if (nTemp > 127)
 					nTemp = 127;
-				if ((char)nTemp > pGround->m_pMaskData[y][128 * nBaseY + i + nBaseX])
-					pGround->m_pMaskData[y][128 * nBaseY + i + nBaseX] = nTemp;
+				if ((char)nTemp > pGround->m_pMaskData[maskY][maskX])
+					pGround->m_pMaskData[maskY][maskX] = nTemp;
 			}
 		}
 	}

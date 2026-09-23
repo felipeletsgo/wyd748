@@ -88,6 +88,10 @@ func resetCharacterRuntime(p *Player) {
 	p.CharSlot = -1
 	p.ID = 0
 	p.X, p.Y = 0, 0
+	p.AirMoveActive = false
+	p.AirMoveRoute = 0
+	p.AirMoveStartedAt = time.Time{}
+	p.AirMoveSourceX, p.AirMoveSourceY = 0, 0
 	p.Visible = nil
 
 	// Contexto de NPC/janela aberta.
@@ -176,6 +180,22 @@ func (w *World) onCharacterLogout(s *net.Session, pkt []byte) {
 	w.flushInstanceStateIfDirty()
 	s.Send(wire.CNFCharacterLogout(charID))
 	log.Printf("[#%d] CHARACTER-LOGOUT %q -> selecao", s.ID, name)
+}
+
+// onCharacterTransferUnavailable fecha a espera do client 7.48 sem alterar
+// conta, nomes ou slots. O destino "Integrated server" ainda nao possui
+// coordenador/persistencia neste World; sucesso local seria perda de dados.
+func (w *World) onCharacterTransferUnavailable(s *net.Session, pkt []byte) {
+	p := w.players[s]
+	if p == nil || p.Account == nil || p.InWorld || len(pkt) != 52 ||
+		binary.LittleEndian.Uint32(pkt[12:16]) != 0 {
+		return
+	}
+	slot := int32(binary.LittleEndian.Uint32(pkt[16:20]))
+	if slot < 0 || slot >= 4 {
+		return
+	}
+	s.Send(wire.CharacterTransferUnavailable(slot))
 }
 
 // onDeleteCharacter valida a senha de novo porque 0x211 e uma operacao

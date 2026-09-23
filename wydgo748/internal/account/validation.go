@@ -31,17 +31,18 @@ func usernameCharactersValid(username string) bool {
 	return true
 }
 
-// O client 7.48 envia Password[12]. Somente ASCII visivel, exceto espaco,
-// evita truncamento/mudanca de encoding entre site e client.
+// O client 7.48 envia Password[12], mas rejeita mais de dez caracteres antes
+// de conectar. Somente ASCII visivel, exceto espaco, evita truncamento ou
+// mudanca de encoding entre site, client e pacote.
 func ValidPassword(password string) bool {
-	if len(password) < 4 || len(password) > 12 {
+	if len(password) < 4 || len(password) > 10 {
 		return false
 	}
 	return passwordCharactersValid(password)
 }
 
 func validWirePassword(password string) bool {
-	return len(password) >= 1 && len(password) <= 12 && passwordCharactersValid(password)
+	return len(password) >= 1 && len(password) <= 10 && passwordCharactersValid(password)
 }
 
 func passwordCharactersValid(password string) bool {

@@ -4,7 +4,7 @@ title: Alternancia e aplicacao autoritativa do PK Mode
 subsystem: ui-input-wire-combat
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-02
+updated: 2026-09-21
 ---
 
 # Alternancia e aplicacao autoritativa do PK Mode
@@ -23,6 +23,8 @@ esse estado para impedir PvP quando o modo esta desligado?
 - Raiz nativa: `FUN_0044ECAE`, correspondente a `TMFieldScene::SetPK`.
 - Callers diretos: `FUN_004523FA`, `FUN_004541F3` e `FUN_004662C5`.
 - Callee de transporte: `FUN_0055F2DD`.
+- Dispatchers nativos conferidos para a resposta: `FUN_00492E7D`
+  (Field), `FUN_0049889A` (Scene base) e `FUN_0052EAA9` (Human).
 - Source atual: `TMFieldScene::SetPK` em
   `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp`.
 - Servidor atual: `internal/game/teleports.go`, `handlers.go`,
@@ -65,6 +67,18 @@ recompilavel, tanto esse ponteiro opcional quanto o controle legado `306` sao
 protegidos. A ausencia visual nao interrompe a alternancia nem o envio de
 `0x399`; isso elimina o crash observado ao pressionar `K`.
 
+### Resposta do servidor
+
+O executavel nativo nao compara nem despacha o opcode `0x166` nos dispatchers
+de Field, Scene base ou Human. A varredura do disassembly completo encontra
+`0x166` apenas como ID imediato na inicializacao de UI em `0043D8C4` e como
+offset de estruturas; nao existe comparacao de opcode. A source recompilavel
+tambem nao possui consumidor para `0x166`.
+
+Portanto, publicar um `MSG_STANDARDPARM 0x166` nao sincroniza o toggle: o estado
+visual ja e alternado localmente por `SetPK`. O retorno observavel e o
+`MessagePanel 0x101`, enquanto a autoridade de combate permanece no servidor.
+
 ## Aplicacao autoritativa
 
 Receber e publicar `Player.PKMode` nao basta: o servidor precisa consultar o
@@ -89,8 +103,8 @@ estado desses eventos existir; nao fazem fallback silencioso para PvP comum.
 | Evento/estado | Precondicao | Funcao/call | Resultado | Efeitos recusados |
 | --- | --- | --- | --- | --- |
 | tecla/comando/clique | FieldScene ativa | callers -> `FUN_0044ECAE` | estado local alternado e `0x399` enviado | controle opcional ausente nao causa crash |
-| `0x399 = 1` valido | personagem no mundo | `World.onPKMode` | `Player.PKMode=true`, `0x166` publicado | trade atual e cancelado |
-| `0x399 = 0` valido | personagem no mundo | `World.onPKMode` | `Player.PKMode=false`, `0x166` publicado | novos ataques PvP sao bloqueados |
+| `0x399 = 1` valido | personagem no mundo | `World.onPKMode` | `Player.PKMode=true`, aviso `0x101` | trade atual e cancelado |
+| `0x399 = 0` valido | personagem no mundo | `World.onPKMode` | `Player.PKMode=false`, aviso `0x101` | novos ataques PvP sao bloqueados |
 | ataque fisico PvP desligado | alvo jogador valido | `World.onAttack` | sem dano | relogio, trade, Hide e alvo nao mudam |
 | skill PvP desligada | alvo jogador valido | `World.skillPlayerTargets` | nenhum alvo jogador | MP, cooldown, Hide e HP nao mudam |
 | summon contra jogador desligado | ordem do dono | `World.summonTarget` | alvo recusado | summon nao persegue nem ataca jogador |
@@ -150,10 +164,11 @@ O buffer e zerado antes do preenchimento e enviado por `FUN_0055F2DD`:
 | identidade | header legado, copiado do personagem local |
 | estado | `uint32` little-endian no offset `+12`, somente `0` ou `1` |
 
-O WYD-Go valida tamanho e dominio, grava `Player.PKMode`, publica `PKInfo`
-`0x166` e devolve uma mensagem de estado. Valores acima de `1` sao rejeitados
-como violacao de contrato. O controle nativo e o root `0x132`/`306`; o controle
-moderno `65786` permanece opcional e nao altera o wire quando ausente.
+O WYD-Go valida tamanho e dominio, grava `Player.PKMode` e devolve uma mensagem
+de estado por `0x101`. Valores acima de `1` sao rejeitados como violacao de
+contrato. Nao publica `0x166`, porque o client 7.48 nao possui consumidor para
+esse opcode. O controle nativo e o root `0x132`/`306`; o controle moderno
+`65786` permanece opcional e nao altera o wire quando ausente.
 
 ## Mapeamento atual
 
@@ -166,7 +181,7 @@ moderno `65786` permanece opcional e nao altera o wire quando ausente.
 
 ### WYD-Go
 
-- `World.onPKMode` valida e publica o estado recebido.
+- `World.onPKMode` valida e aplica o estado recebido, confirmando por `0x101`.
 - `World.canInitiatePvP` centraliza a autorizacao server-authoritative.
 - `World.onAttack`, `World.skillPlayerTargets` e `World.summonTarget` consultam
   o gate antes dos efeitos consumiveis, sem bloquear PvE.
@@ -186,6 +201,7 @@ geral para ignorar o toggle.
 | --- | --- | --- | --- | --- |
 | alternancia | `FUN_0044ECAE`, estado `0/1` | preservada | validava e armazenava | manter paridade |
 | wire | C->S `0x399`, 16 bytes, estado `+12` | preservado | contrato ja validado | manter contrato |
+| retorno PK | nenhum dispatcher consome `0x166` | nenhum consumidor | publicava `0x166` para a view | remover pacote sem consumidor; manter aviso `0x101` |
 | controle | legado `306`; moderno nao exigido | ambos opcionais/protegidos | n/a | impedir crash sem inventar asset |
 | ataque fisico PvP | depende do modo | intencao enviada | ignorava `PKMode` | aplicar gate autoritativo |
 | skill PvP | depende do modo | intencao enviada | ignorava `PKMode` | aplicar antes de custo/efeitos |
@@ -196,6 +212,7 @@ geral para ignorar o toggle.
 
 - Classificar o lote como `PARIDADE_NATIVA`.
 - Manter o client como emissor de intencao e o WYD-Go como autoridade.
+- Nao publicar `0x166`; ele nao integra o contrato observavel do client 7.48.
 - Usar uma unica regra central nos tres caminhos de iniciacao PvP.
 - Nao implementar Kingdom/Castle/Guild War sem estado e contrato proprios.
 - Nao usar Hold como transporte de Chaos/C.Point.
@@ -212,6 +229,10 @@ geral para ignorar o toggle.
 
 - Ghidra: raiz, tres callers, callee de transporte, controle legado e layout
   completo do `0x399` confirmados.
+- Disassembly do mesmo binario: os dispatchers Field, Scene base e Human e a
+  busca global de imediatos nao apresentam tratamento de opcode `0x166`.
+- Servidor: teste de `World.onPKMode` exige exatamente um retorno `0x101` por
+  transicao valida e falha se um segundo pacote sem consumidor for publicado.
 - Pesquisa: `validate_research.py --repo .` aprovado; ficha reconhecida como
   `CONTRACT` e censo atual em `CONTRACT=15`, `TRACED=18`, `LOCATED=4` e
   `UNMAPPED=2`.

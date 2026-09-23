@@ -46,6 +46,8 @@ func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
 		log.Printf("[#%d] salvar teleporte: %v", p.Session.ID, err)
 		return false
 	}
+	clearAirMove(p)
+	clearPublishedPlayerMove(p)
 	w.publishPlayerTeleport(p)
 	return true
 }
@@ -109,8 +111,9 @@ func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 		s.ID, portal.Name, oldX, oldY, p.X, p.Y, portal.Price)
 }
 
-// onPKMode preserva o estado solicitado pelo 0x399 e publica o PKInfo 0x166.
-// O servidor continua autoritativo: somente 0/1 e aceito.
+// onPKMode preserva o estado solicitado pelo 0x399. O servidor continua
+// autoritativo: somente 0/1 e aceito. O client 7.48 nao despacha um retorno
+// PKInfo 0x166; a confirmacao observavel usa apenas MessagePanel 0x101.
 func (w *World) onPKMode(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || !p.InWorld || len(pkt) != 16 {
@@ -126,15 +129,10 @@ func (w *World) onPKMode(s *net.Session, pkt []byte) {
 	if enabled {
 		w.cancelTrade(p, "modo PK ativado")
 	}
-	state := uint32(0)
 	message := "PK mode disabled."
 	if enabled {
-		state = 1
 		message = "PK mode enabled."
 	}
-	w.sendToPlayerView(p, func() []byte {
-		return wire.StandardParm(wire.OpPKInfo, p.ID, state)
-	})
 	s.Send(wire.MessagePanel(message))
 	log.Printf("[#%d] PK mode=%t", s.ID, enabled)
 }

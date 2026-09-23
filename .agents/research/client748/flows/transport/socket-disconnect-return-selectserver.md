@@ -4,7 +4,7 @@ title: TCP disconnect, scene notification and return to server selection
 subsystem: transport
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-08-31
+updated: 2026-09-22
 ---
 
 # TCP disconnect, scene notification and return to server selection
@@ -178,6 +178,10 @@ documentado em `../lifecycle/field-scene-rebuild-after-server-move.md`.
   de packets e notificação nula.
 - `TMScene::OnPacketEvent(nullptr)` preserva replay de migração, mensagem de
   disconnect e retorno à seleção.
+- O override de `TMSelectServerScene` retornava antes de chamar o handler base
+  quando `buf == nullptr`. Assim, um `FD_CLOSE` ocorrido nessa própria cena
+  era silenciosamente consumido. O override agora chama a base primeiro e só
+  acessa `MSG_STANDARD` depois de excluir o payload nulo.
 - Antes deste delta, `g_LoginSocket` era apenas declarado, definido, alocado e
   consultado por um branch `WM_USER + 1`; não possuía `WSAInitialize`, connect,
   send, consumidor ou destruction path. Esse caminho não podia receber um
@@ -198,7 +202,7 @@ sessão, persistência nem reconexão server-side.
 | --- | --- | --- | --- | --- | --- |
 | ownership TCP | um owner em `app+0xFC` | owner ativo + global morto | redundância herdada | uma sessão por conexão | remover redundância |
 | callback | somente `0x464` | ativo em `WM_USER+100`; morto em `+1` | branch posterior sem produtor | N/A | manter apenas `0x464` |
-| disconnect | `FD_CLOSE` notifica cena | caminho ativo equivalente | bloco duplicado | socket close encerra sessão | manter ativo |
+| disconnect | `FD_CLOSE` notifica cena | handler base restaurado antes do acesso ao payload | override antes omitia o callback na seleção | socket close encerra sessão | restaurar paridade |
 | login/migração | mesmo socket, `0x20D/0x74` | `g_pSocketManager` nos dois fluxos | estrutura ativa compatível | login 7.48 existente | modernizar sem mudar fronteira |
 | teardown | um destructor | somente owner ativo é destruído | `g_LoginSocket` sem cleanup | sessão fecha com TCP | remover objeto morto |
 
@@ -206,6 +210,9 @@ sessão, persistência nem reconexão server-side.
 
 - Classificar o delta como `MODERNIZACAO_COMPATIVEL`: remover declaração,
   definição, alocação e branch `WM_USER + 1` de `g_LoginSocket`.
+- Classificar a correção do override de `TMSelectServerScene` como
+  `PARIDADE_NATIVA`: ela restaura a entrega nula já comprovada no fluxo nativo,
+  sem mudar callback, wire ou estado autoritativo.
 - Preservar integralmente `g_pSocketManager`, `WM_USER + 100`, callback 1124,
   handshake, filas, login, migração, disconnect, retorno à seleção e shutdown.
 - Não alterar o servidor nem criar abstração multi-socket para imitar código
@@ -228,9 +235,11 @@ sessão, persistência nem reconexão server-side.
   resolvidos no projeto Ghidra do hash registrado; a ausência de `0x401` foi
   conferida no WndProc, e os caminhos de login/migração convergem no mesmo
   SocketManager.
-- Automação: `validate_research.py` passou com `CONTRACT=4` e `LOCATED=3`;
-  `Build-Client.ps1` terminou com zero erros e instalou o candidato de SHA-256
-  `484580A681FB12226660084DAFBB1DACB93665C4F06C4A0853AEFFD13660069D`;
-  `rg` confirmou a ausência de `g_LoginSocket` e do case exato
-  `WM_USER + 1`; `git diff --check` passou.
+- Automação: o teste de contrato da cena fixa que a chamada base precede o
+  retorno nulo e qualquer cast do payload. `Build-Client.ps1` passou 51.705
+  checks no lote original. O build integrado posterior de credenciais passou
+  51.711 checks e instalou o candidato atual de SHA-256
+  `24B8A2B08E93BFF1F6B9AA9F72DF9C0283B751F12DAB44535AB3BA25A5EF77C3`.
+  A validação também confirmou a ausência de `g_LoginSocket` e do case exato
+  `WM_USER + 1`.
 - Client real: não executado; `CLIENT_TESTED` não é alegado.

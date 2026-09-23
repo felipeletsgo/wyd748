@@ -4,7 +4,7 @@
 
 ## Estado em 2026-09-05
 
-Objetivo: executar `DOCS/implementation-plan.md` sem
+Objetivo da rodada: executar o plano arquitetural então vigente sem
 alterar wire/ABI/lifecycle. Modo do lote: MODERNIZACAO_COMPATIVEL, origem local.
 Worktree contem numerosas alteracoes anteriores e exclusoes do usuario;
 preserva-las. Nenhum commit/push realizado neste lote.
@@ -440,7 +440,8 @@ Debug/Release Build-Client.ps1 PASS, 782 checks/asserts cada. Fixtures independe
 entrega unica, identidade do buffer e bytes preservados. PROJECT_PATHS_OK e
 diff --check PASS. Teste do consumo real no jogo continua pendente.
 Proximo: migrar outro contrato fechado para wire; fases 1-7 e seus gates
-runtime permanecem incompletos conforme implementation-plan.md.
+runtime permaneciam incompletos naquele plano (removido da documentação ativa;
+recuperável no histórico Git).
 Release instalado com hash identico ao artefato:
 `D2ABA7BA33609FD92FF578F36A9BA5B186FE2671ACCA2D605795F8C706C97971`.
 
@@ -1969,3 +1970,367 @@ headings/secoes exigidos pelo validador, sem mudar codigo ou maturidade.
 Candidato: `023340D32C123AEB6AC54E33D605AE7762B92F884E998250BAE1B93A7F95B021`.
 Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo lote
 estatico: selecionar outra resposta S->C viva ausente de `ExpectedSize`.
+
+## Contrato 0x386 - confirmacao visual do primeiro check de trade (2026-09-21)
+
+O consumidor recompilavel `TMHuman::OnPacketCNFCheck` usa somente a chegada do
+evento para selecionar `TMB_TRADE_MYCHECK`; o WYD-Go ja emite `0x386` como
+header-only de 12B. `TradeCheckConfirmationContract.h`, o dispatcher e os
+testes agora rejeitam nulo, truncamento, excesso e divergencias de Size/Type
+antes do callback, preservando `Header.ID` e a imutabilidade do frame.
+
+Ficha `flows/transport/trade-check-confirmation-contract.md` em `UNMAPPED`: o
+contrato do par ativo e `MODERNIZACAO_COMPATIVEL`, sem promover equivalencia
+nativa porque o case Ghidra ainda nao foi isolado. ArchitectureTests 41253
+checks/asserts PASS, `go test -count=1 ./...`, `go vet ./...`, XML, layout,
+links, pesquisa e diff PASS. Candidato:
+`953F896D5C9334AD25B49B5D5FF82BC0116BB7B6A1FB51178997EB971423FCCB`.
+Estado AUTOMATED TESTED / STATICALLY VERIFIED; nao CLIENT-TESTED. Proximo gate
+do fluxo: trade real com dois clients, incluindo primeiro/segundo check,
+cancelamento, disconnect e logout/relogin.
+
+## Contrato 0x383/0x384 - oferta e fechamento de trade (2026-09-21)
+
+O cruzamento do emissor WYD-Go com `TMHuman::OnPacketEvent` encontrou uma
+fronteira viva ainda fora de `ExpectedSize`: `0x383` era convertido para
+`MSG_Trade*` e lido ate `OpponentID@154`, e `0x384` era entregue como header,
+sem validar o tamanho real/declarado nem os dois discriminantes. O layout dos
+dois lados ja coincide; a inconsistencia era a ausencia do gate antes do cast.
+
+`TradeSessionContract.h`, os asserts de `MSG_Trade`, as constantes no handler e
+o dispatcher agora fixam `0x383/156B` e `0x384/12B`. ArchitectureTests cobrem
+nulo, todos os prefixos truncados, excesso, Size/Type divergentes, entrega
+unica, offsets consumidos e imutabilidade, com 41.441 checks/asserts PASS no
+gate focado. Ficha `flows/transport/trade-session-envelope.md` em `UNMAPPED`:
+`MODERNIZACAO_COMPATIVEL` do par ativo, sem claim de paridade wire nativa ate
+isolar os cases Ghidra. `go test -count=1 ./...`, `go vet ./...`, XML,
+pesquisa, layout/links e diff passaram. O build completo repetiu os 41.441
+checks/asserts e instalou o candidato
+`3E50847668AAE39DDFC09C1068ACBBD02FB62AB2C47B508FD6265D529BE453D4`.
+Estado AUTOMATED TESTED / STATICALLY VERIFIED; o fluxo segue nao CLIENT-TESTED.
+
+## Correcao do retorno PK 0x166 sem consumidor (2026-09-21)
+
+O cruzamento de `World.onPKMode` com a source e o executavel nativo 7.48
+encontrou uma publicacao S->C sem consumidor: depois do `0x399`, o WYD-Go
+enviava `PKInfo 0x166` para toda a view. Os dispatchers nativos de Field, Scene
+base e Human nao reconhecem esse opcode; a busca no disassembly completo nao
+encontrou comparacao de opcode, e a source recompilavel tambem nao o despacha.
+
+O servidor continua validando `0/1`, armazenando `Player.PKMode`, cancelando
+trade ao ativar e aplicando o gate autoritativo de PvP, mas agora confirma a
+transicao apenas pelo `MessagePanel 0x101` que o client realmente consome. A
+constante `OpPKInfo` foi removida e o teste exige exatamente uma resposta por
+toggle, impedindo a reintroducao do broadcast sem consumidor. Ficha
+`flows/ui/pk-mode-toggle-lifecycle.md` atualizada, mantendo `CONTRACT` e
+classificacao `PARIDADE_NATIVA`.
+
+Teste focado, `go test -count=1 ./...`, `go vet ./...`, pesquisa, layout/links
+e `git diff --check` passaram. Nao houve mudanca C++ neste corte, portanto o
+build do cliente nao foi repetido; o candidato instalado do lote de trade
+permanece o mesmo. O fluxo real de PK continua pendente e nao e CLIENT-TESTED.
+
+## Contrato 0x378 - snapshot autoritativo da barra de skills (2026-09-21)
+
+O cruzamento dos emissores vivos do WYD-Go com o dispatcher da Field encontrou
+`0x378` fora de `ReceivedPacketDispatch::ExpectedSize`. O handler convertia o
+buffer para `MSG_SetShortSkill` e copiava imediatamente vinte bytes de `+12`,
+permitindo leitura alem de um frame truncado e rebuild com estado corrompido.
+
+`ShortSkillSnapshotContract.h`, os asserts de ABI e o gate central agora fixam
+`0x378/32`, payload em `+12` e contagem 20 antes do callback. O wire e a
+autoridade nao mudaram: o client envia a intencao integral, o WYD-Go filtra
+skills nao aprendidas e devolve o snapshot autoritativo. Classificacao
+`MODERNIZACAO_COMPATIVEL`, reutilizando a evidencia nativa do emissor
+`0x378/32`; a equivalencia de um gate S->C nativo nao foi alegada.
+
+Ficha `flows/transport/short-skill-snapshot-contract.md` em `CONTRACT`. Os
+testes C++ cobrem nulo, todos os prefixos, excesso, Size/Type divergentes,
+entrega unica, payload e imutabilidade. O fluxo real nas duas paginas,
+compra/reset de skill e logout/relogin permanece pendente e nao e
+`CLIENT_TESTED`.
+
+O validador de pesquisa, o layout/links, o XML dos projetos e
+`git diff --check` passaram. O build Release executou 41.503 checks/asserts,
+instalou `tmproject/client748/project.exe` e verificou o SHA-256
+`F1C2833899CEC0DBF7EDE9157AFBF36F03D05DB03F38FE4F7FABFF2DAC6CAA92`.
+Estado `STATICALLY VERIFIED` / `AUTOMATED TESTED`; a validacao in-game segue
+pendente.
+
+## Contrato 0x366/0x367/0x368 - envelope compartilhado de Action (2026-09-21)
+
+O cruzamento dos builders ativos do WYD-Go com `TMHuman::OnPacketEvent`
+encontrou os tres opcodes de Action fora de `ReceivedPacketDispatch`. O
+consumidor convertia o buffer para `MSG_Action` e lia destino, Effect e
+Route[24] depois de validar apenas o header minimo, embora todos os produtores
+ativos publiquem exatamente 52 bytes.
+
+`ActionFrameContract.h` agora centraliza opcodes, tamanho e offsets; os asserts
+do struct legado e o gate central dependem dessas constantes. Os testes cobrem
+nulo, todos os prefixos, excesso, Size/Type divergentes, entrega unica, campos
+consumidos e imutabilidade para `0x366`, `0x367` e `0x368`. Ficha
+`flows/transport/action-frame-contract.md` em `CONTRACT`: ABI
+`PARIDADE_NATIVA`, guard `MODERNIZACAO_COMPATIVEL`, sem mudanca no wire ou no
+servidor. O build Release executou 41.692 checks/asserts, instalou o candidato
+`27223EDDE28AA60AE035D6BB74904847C4F3F26B1FD9378C5A6B0ECFAC46AACE` e o lote
+tambem passou em `go test -count=1 ./...`, `go vet ./...`, pesquisa,
+layout/links, XML e `git diff --check`. Estado `STATICALLY VERIFIED` /
+`AUTOMATED TESTED`; o fluxo real segue pendente e nao e `CLIENT_TESTED`.
+
+## Contrato 0x397 - envelope AutoTrade (2026-09-21)
+
+O emissor vivo do WYD-Go produz `AutoTrade 0x397` com 196 bytes, mas o handler
+da Field convertia o buffer para `MSG_AutoTrade`, gravava terminadores em
+`Desc`, copiava o struct inteiro e percorria doze itens/precos depois de
+validar somente o header minimo. O ABI dos dois lados ja coincidia; faltava o
+gate antes do cast e da escrita.
+
+`AutoTradeContract.h` agora centraliza opcode, tamanho, cardinalidade e offsets
+de descricao, itens, CarryPos, precos, taxa e TargetID. Os asserts do struct e
+o dispatcher dependem desse contrato. Os testes cobrem nulo, todos os prefixos
+truncados, excesso, Size/Type divergentes, entrega unica, offsets consumidos e
+imutabilidade. Ficha `flows/transport/auto-trade-envelope.md` em `CONTRACT`:
+ABI `PARIDADE_NATIVA` pela evidencia versionada do produtor nativo de doze
+slots; guard `MODERNIZACAO_COMPATIVEL`, sem alegar equivalencia do gate nativo.
+
+O build Release executou 41.899 checks/asserts e instalou o candidato
+`D7921BD6061A5C56A9A1D1B7D75792CB1EC7C1C24CA20DFEE8E532BAB6C3023E`.
+Pesquisa, layout/links, XML e `git diff --check` passaram. Estado `STATICALLY
+VERIFIED` / `AUTOMATED TESTED`; publicacao, consulta, compra, fechamento e
+relogin com dois clients continuam pendentes e nao sao `CLIENT_TESTED`.
+
+## Correcao ABI 0xDC3 - CapsuleInfo (2026-09-21)
+
+O emissor vivo do WYD-Go publica `CNFCapsuleInfo 0xDC3` com 52 bytes, duas
+entradas de Mastery, skills em `+32` e quest em `+50`. A source herdada do
+TMProject 7.69 declarava quatro entradas de Mastery e um struct de 56 bytes,
+deslocando os campos seguintes e fazendo `TMFieldScene::OnPacketCapsuleInfo`
+ler quatro bytes alem do frame valido.
+
+`CapsuleInfoContract.h` agora centraliza opcode, tamanho, offsets e
+cardinalidades; `MSG_CAPSULEINFO` voltou a duas entradas de Mastery e possui
+asserts completos de ABI. O dispatcher central exige exatamente 52 bytes antes
+do callback. Os testes cobrem nulo, todos os prefixos truncados, excesso,
+Size/Type divergentes, entrega unica, campos consumidos e imutabilidade. A
+correcao de ABI e `PARIDADE_NATIVA`; o guard e
+`MODERNIZACAO_COMPATIVEL`. A ficha
+`flows/transport/capsule-info-envelope.md` registra a evidencia reutilizada do
+dispatcher nativo `FUN_00492E7D @ 0x00492E7D` e declara que o branch especifico
+de `0xDC3` nao foi reaberto nesta retomada.
+
+O teste Go focado do wire, pesquisa, layout/links, XML e `git diff --check`
+passaram. O build Release executou 41.962 checks/asserts, instalou
+`tmproject/client748/project.exe` e verificou o SHA-256
+`42FC77A9D47141F864C21F1E9877075356C23552B1965392BFCC2E98DFF8C6D0`.
+Estado `STATICALLY VERIFIED` / `AUTOMATED TESTED`; a consulta e exibicao real
+de capsula no client continuam pendentes e nao sao `CLIENT_TESTED`. O proximo
+passo e continuar o cruzamento dos emissores S->C ativos com os casts ainda sem
+envelope no client.
+
+## Contrato 0x39D/0x39E/0x36C - envelope variável de ataque (2026-09-21)
+
+Os três opcodes de ataque chegavam a `TMFieldScene::OnPacketAttack` depois de
+somente 12 bytes de validação. O handler lê atacante, skill e a primeira entrada
+de dano imediatamente, enquanto o parser de dano amplo confiava em
+`Header.Size`; assim, uma view curta podia declarar 48/52/96 ou uma extensão e
+provocar leitura fora do buffer real.
+
+`AttackFrameContract.h` centraliza os prefixos nativos 48/52/96, offsets e
+capacidades, além dos comprimentos coordenados realmente emitidos: `0x39D/52`
+físico, `0x39D/60`, `0x39E/64|68` e `0x36C/108..156` em passo 4. O gate exige
+opcode/Type e tamanho real/declarado idênticos antes de aceitar um membro desse
+conjunto. Prefixos e ABI são `PARIDADE_NATIVA`, caudas `DMGX` são
+`EXTENSAO_COORDENADA` e o guard é `MODERNIZACAO_COMPATIVEL`.
+
+A ficha `flows/transport/attack-frame-envelope.md` está em `CONTRACT`. O teste
+C++ percorre 0..157 para os três opcodes e cobre nulo, discriminantes, mismatch,
+entrega e imutabilidade. O teste Go focado, pesquisa, XML e `git diff --check`
+passaram. O build Release executou 42.951 checks/asserts, instalou o candidato
+`F494AFE833FBC3F79F219D604B87B1880A6D00944741F50262DC175D3DA675A1`.
+Estado `STATICALLY VERIFIED` / `AUTOMATED TESTED`; ataques reais com um, dois e
+treze alvos ainda não são `CLIENT_TESTED`.
+
+## Contrato 0x376/0x379 - confirmações de inventário (2026-09-21)
+
+`OnPacketSwapItem` e `OnPacketBuy` recebiam somente o gate mínimo de 12 bytes
+antes de converter o frame e indexar Equip/Carry/Cargo ou a grade esparsa da
+loja. Além do risco de frame truncado, Buy aceitava as regiões mortas entre os
+três blocos de nove células e Swap não validava integralmente tipo e posição
+antes do primeiro acesso.
+
+`InventoryTransactionContract.h` centraliza os envelopes `0x376/20` e
+`0x379/24`, seus offsets e os domínios do peer ativo. O dispatcher exige o
+tamanho exato e os handlers rejeitam Equip fora de `0..15` ou slot 9, Carry
+fora de `0..62`, Cargo fora de `0..119` e loja fora de `0..8`, `27..35` e
+`54..62`. Layout e lifecycle são `PARIDADE_NATIVA` pela evidência Ghidra
+versionada; gate e validação antecipada são `MODERNIZACAO_COMPATIVEL`. O corpus
+textual externo estava indisponível e nenhuma claim nova de pseudocódigo foi
+feita.
+
+A ficha `flows/transport/inventory-transaction-confirmations.md` está em
+`CONTRACT`. Testes C++ cobrem todos os prefixos, excesso, nulo,
+Size/Type/opcode divergentes, todos os valores byte dos domínios de Swap, mapa
+esparso completo da loja, Carry, entrega única e imutabilidade. Os testes Go
+focados de wire e handlers passaram; XML, pesquisa, layout/links e build
+Release também passaram. O build executou 43.932 checks/asserts, instalou
+`tmproject/client748/project.exe` e verificou o SHA-256
+`52D461D06658796581717A6BC36878BE0869D10C8359B01B5FB1E351F4C837D1`.
+Estado `STATICALLY VERIFIED` / `AUTOMATED TESTED`; swaps e compras reais,
+incluindo bordas e rejeições, ainda não são `CLIENT_TESTED`.
+
+## Contrato 0x387/0x388 - confirmações de gold do Cargo (2026-09-21)
+
+As confirmações de retirada e depósito chegavam aos casts de
+`OnPacketWithdraw`/`OnPacketDeposit` depois de apenas 12 bytes de validação,
+embora ambos consumam o DWORD em `+12`. `CargoGoldTransferContract.h`, os
+asserts de ABI e o dispatcher agora exigem exatamente 16 bytes nos dois
+opcodes. O snapshot autoritativo continua sendo reconciliado por `0x339` e
+`0x337`; não houve mudança de wire nem de autoridade. Classificação
+`MODERNIZACAO_COMPATIVEL`, com ficha
+`flows/transport/cargo-gold-transfer-confirmations.md` em `CONTRACT`.
+
+## Gates de login e seleção 0x10A/0x110/0x112/0x114/0x11A/0x11C (2026-09-21)
+
+O dispatcher central agora rejeita todo prefixo, excesso e divergência de
+`Header.Size`, `Header.Type` ou metadado antes dos casts grandes das cenas de
+login e seleção. Os contratos ativos são `0x10A/2360`, `0x110/1288`,
+`0x112/1288`, `0x114/2104`, `0x11A/12` e `0x11C/12`. Os handlers passaram a
+usar os nomes do contrato em vez de literais locais. O ABI já usado pelo peer
+foi preservado; o hardening é `MODERNIZACAO_COMPATIVEL`. A documentação de
+login registra separadamente que execução real de login, criação, exclusão e
+entrada no mundo ainda está pendente.
+
+## Contrato 0x39F e fechamento do inventário S->C ativo (2026-09-21)
+
+O último emissor fixo ativo sem gate era `PlayerChallenge 0x39F`: o WYD-Go
+produz `MSG_STANDARDPARM2` de 20 bytes e `TMHuman::OnPacketEvent` lê jogador
+em `+12` e modo em `+16`. `PlayerChallengeContract.h`, os asserts de ABI e o
+dispatcher agora fixam esse envelope antes do callback; os literais do fluxo
+de envio, aceite e mensagem também foram substituídos pelo opcode nomeado.
+Wire e lifecycle permanecem iguais, portanto o lote é
+`MODERNIZACAO_COMPATIVEL`.
+
+O cruzamento sistemático dos builders `internal/wire` com os consumidores do
+TMProject não encontrou outro emissor S->C ativo sem contrato de tamanho. Os
+envelopes fixos foram adicionados a uma matriz de regressão C++ com os tamanhos
+numéricos dos builders Go; ataques continuam no teste exaustivo do conjunto
+variável fechado. `0x18A` e os outros casts sem produtor atual foram mantidos
+como caminhos legados inativos, sem remoção ou alegação de bug ativo.
+
+O teste Go focado passou. O build Release executou 51.193 checks/asserts,
+instalou `tmproject/client748/project.exe` e verificou o SHA-256
+`1548C4BBCA7642C2C9BD4B70DF43BE6C99EDD40690FBAF2DB4547C2667770ECA`.
+Estado `STATICALLY VERIFIED` / `AUTOMATED TESTED`; desafio real entre dois
+clients e os fluxos de login/seleção continuam pendentes e não são
+`CLIENT_TESTED`.
+
+## Correção C->S da família de ataque 0x39D/0x39E/0x36C (2026-09-21)
+
+O cruzamento dos emissores do TMProject com a allowlist de entrada do WYD-Go
+encontrou uma incompatibilidade ativa em `SGrid::OnRButtonDown`: o ramo de alvo
+único montava `MSG_AttackOne`, calculava 48 bytes, mas transmitia o literal 72.
+O servidor aceita `0x39D/48` e o envelope legado observado `0x39D/96`, nunca
+72, portanto a intenção era descartada antes do combate.
+
+O emissor agora usa o `nSize` correspondente ao opcode.
+`AttackFrameContract.h` também centraliza a matriz C->S e `SendOneMessage`
+rejeita buffer menor que o header ou ataque fora de `0x39D/{48,96}`,
+`0x39E/52` e `0x36C/96` antes do socket. O literal 926 remanescente no envio de
+dois alvos foi substituído pelo opcode nomeado. A restauração de `0x39D/48` é
+`PARIDADE_NATIVA`; o guard reutilizável é `MODERNIZACAO_COMPATIVEL`.
+
+O teste exaustivo C++ percorre 0..160 para os três opcodes e comprova também a
+rejeição de 72. O build Release executou 51.678 checks/asserts, instalou
+`tmproject/client748/project.exe` e verificou o SHA-256
+`D58D3B9616D484B1E46592DB8B4D1B601C49E80935136FAFCC88DFF6A0807FDB`.
+Estado `STATICALLY VERIFIED` / `AUTOMATED TESTED`; disparos reais de skills de
+um, dois e múltiplos alvos ainda não são `CLIENT_TESTED`.
+
+O mesmo inventário encontrou emissores legados `0xED7/0xED8` de guerra em
+branches de UI, enquanto o servidor ativo implementa relações de guild pelo
+contrato `0xE0E/0xE12`. Eles não foram removidos nem remapeados neste lote:
+semântica, alcançabilidade e lifecycle ainda precisam ser fechados pela ficha
+de pesquisa antes de qualquer alteração coordenada.
+
+## Proteção do endpoint na seleção de servidor (2026-09-22)
+
+O próximo passo da tela Server/Channel ainda tratava a célula fixa de 64 bytes
+do `serverlist.bin` como uma string C garantida. Como o loader decodifica todos
+os bytes sem acrescentar NUL, uma entrada corrompida podia fazer o `%s` ler a
+célula do canal seguinte antes de abrir o login. A migração já possuía uma
+checagem local equivalente, mas os dois caminhos podiam divergir novamente.
+
+`ServerEndpoint.h` agora concentra a cópia limitada. Seleção inicial, migração,
+consultas HTTP de população e composição do grupo agregado, na tela inicial e
+no painel em jogo, rejeitam endereço vazio ou sem NUL dentro da própria célula.
+O fluxo preserva o destino de conexão e evita publicar índices, mudar a tela ou
+iniciar conexão no caso inválido; as consultas não reaproveitam resposta
+anterior e um destino agregado inválido é limpo. O asset, o wire e a autoridade
+do servidor permanecem inalterados; classificação
+`MODERNIZACAO_COMPATIVEL`.
+
+Os testes cobrem endereço normal, rejeições com preservação do destino e o
+limite de 63 bytes. O build Release executou 51.715 checks/asserts, instalou o
+candidato `0030265DE55056F7BA3887EB09E60CF60B9B3C0095DE8BB987C78A78ECC33C60`.
+A captura fornecida mostra o painel centralizado, mas não exercita este novo
+executável nem o clique/conexão; estado `STATICALLY VERIFIED` / `AUTOMATED
+TESTED`, ainda não `CLIENT_TESTED`.
+
+## Exclusão de personagem na seleção 7.48 (2026-09-22)
+
+O painel de senha de exclusão **é nativo 7.48**. O recurso
+`UI/SelCharScene2.bin` possui painel 626, edit 627 (máximo 10 caracteres),
+confirmar 1024 e cancelar 921. `WYD.exe` liga 626/627 em `FUN_0049F0E7` e
+`FUN_004A32DD` abre o painel após a confirmação de 4615, envia `0x211/44`
+por 1024 e fecha sem envio por 921. O código candidato procurava IDs tardios
+65885/65889/65886/65887 e ocultava 626 como se fosse posterior; por isso o
+clique de exclusão não alcançava o packet.
+
+`TMSelectCharScene` agora usa os IDs nativos, conserva o modal/foco, valida o
+slot e o tamanho da senha e apaga o buffer inteiro ao fechar. O servidor já
+aceitava o packet nativo e valida a senha. Ficha:
+`.agents/research/client748/flows/ui/select-character-delete-password.md`.
+Build Release e 51.715 checks C++ passaram; testes Go de exclusão, senha
+errada e tamanho exato passaram. Candidato instalado:
+`BB7C0D0F94AB029FA0A0A0AEE95D0C7B2F7982853ECAB7327B2052C260BA8B17`.
+`STATICALLY VERIFIED` / `AUTOMATED TESTED`; ainda não `CLIENT-TESTED`.
+Próximo gate: entrar na seleção com este candidato, confirmar exclusão,
+testar cancelar/senha errada/senha correta e observar a atualização `0x112`.
+
+## Cópia limitada na renomeação da seleção (2026-09-22)
+
+Tentativa de abrir o candidato no desktop: a janela iniciou, mas a captura da
+área do jogo falhou (`0x80004002`) e os controles do jogo não constavam da
+árvore acessível. A janela foi fechada; isso **não** testa a exclusão.
+
+No emissor de renomeação `628`, `MobName[slot]` é uma célula de 16 bytes e o
+antigo `sprintf("%s")` podia lê-la além do limite ou transbordar `OldName` no
+packet `0xFAA/52`. Agora a origem é medida dentro dos 16 bytes; sem NUL, o
+envio é recusado. O edit é medido dentro dos 256 bytes, e apenas bytes de nomes
+validados são copiados para o packet zero-inicializado. Wire válido inalterado;
+`MODERNIZACAO_COMPATIVEL`. Ficha existente:
+`.agents/research/client748/flows/ui/select-character-transfer.md`.
+
+Build Release incremental, 51.715 checks C++ e instalação/hash passaram:
+`D0910AD9D00EB5DBEF18DC3ADC7249C37E95995071B3844CED95E3819E960BC9`.
+`STATICALLY VERIFIED`; os testes existentes não exercitam esse emissor, e
+exclusão/renomeação continuam sem `CLIENT-TESTED`. O servidor Go não despacha
+`0xFAA`; renomeação ponta a ponta permanece lacuna independente. Próximo gate
+de cliente: executar exclusão e renomeação no runtime com captura funcional.
+
+## Ambos os emissores 0xFAA com nomes limitados (2026-09-22)
+
+O segundo emissor da seleção (controle `4617`) também copiava a célula de nome
+de 16 bytes com `sprintf` para `OldName` e `NewName`. Os dois emissores agora
+usam `CopyRequestNames` com capacidade explícita e recusam strings vazias,
+sem NUL ou longas demais sem alterar o pacote. Nomes válidos preservam os
+mesmos 52 bytes e padding; `MODERNIZACAO_COMPATIVEL` apenas do emissor.
+
+Testes C++ focados do helper, build Release e 51.720 checks/asserts PASS.
+Candidato instalado:
+`4DDD9323C77A2C16263C4FCBDA21507F577E0AF7A9139729C2238F612DFE9E33`.
+`STATICALLY VERIFIED` / `AUTOMATED TESTED` para a montagem do pacote, não
+`CLIENT-TESTED`. O servidor ainda não tem `0xFAA`; Result 0 remove o slot
+local, portanto não implementar esse opcode como uma simples renomeação.
+Próximo gate: fechar o lifecycle autoritativo da transferência e exercitar
+o fluxo real após disponibilizar servidor e captura funcional.

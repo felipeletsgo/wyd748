@@ -223,10 +223,11 @@ func TestCityTaxBuySellAndTOTOArithmetic(t *testing.T) {
 	})
 
 	t.Run("sell", func(t *testing.T) {
-		w, st, p, _ := cityEconomyFixture(t, model.ItemDef{Index: 400, Price: 1000})
+		w, st, p, shop := cityEconomyFixture(t, model.ItemDef{Index: 400, Price: 1000})
 		p.Char.Gold = 1000
 		p.Char.Inv[0] = model.Item{Index: 400, UID: "11111111111141118111111111110400"}
 		sell := make([]byte, 20)
+		binary.LittleEndian.PutUint16(sell[12:14], shop.ID)
 		sell[14], sell[16] = placeInv, 0
 		w.onSellItem(p.Session, sell)
 		if p.Char.Inv[0].Index != 0 || p.Char.Gold != 1225 || w.guilds.Wars.Cities.Territories[0].Treasury != 6 || st.gameSaves != 1 {
@@ -250,6 +251,7 @@ func TestCityTaxPersistenceFailureRollsBackPlayerAndTreasury(t *testing.T) {
 	p.Char.Inv[0] = model.Item{Index: 400, UID: "11111111111141118111111111110400"}
 	st.err = errors.New("postgres unavailable")
 	sell := make([]byte, 20)
+	binary.LittleEndian.PutUint16(sell[12:14], shop.ID)
 	sell[14], sell[16] = placeInv, 0
 	w.onSellItem(p.Session, sell)
 	if p.Char.Inv[0].Index != 400 || p.Char.Gold != 1000 || w.guilds.Wars.Cities.Territories[0].Treasury != 0 {

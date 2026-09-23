@@ -4,7 +4,7 @@ title: Resposta de transferencia e renomeacao na selecao de personagem
 subsystem: ui
 status: LOCATED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-05
+updated: 2026-09-22
 ---
 
 # Resposta de transferencia na selecao
@@ -24,12 +24,17 @@ handler de selecao, incluindo erro, renomeacao e remocao do personagem local?
 - UTILIZADA: source atual em `TMProject748/internal/app/scenes/TMSelectCharScene.cpp`
   e struct em `internal/core/Basedef.h`.
 - UTILIZADA: busca no WYD-Go `internal/**/*.go`; nao localizou handler nomeado
-  Transper nem literal `0xFAA`. Isto nao prova ausencia de dispatch numerico.
+  Transper nem literal `0xFAA` naquele corte. O servidor passou a responder
+  com erro generico em 2026-09-22; nao implementa transferencia.
 - UTILIZADA: `UI/SelCharScene2.bin`, SHA-256
   `3ED90543644E3AF96EEC99C16FDE36DCA21BE91632EFEACE31A92065BD6F1E3B`.
   Leitura pelos tamanhos de UIBinary.h atingiu EOF exato: 85 registros/4820
   bytes. Panel 1568 (offset 2556), botoes 628/629 (2600/2644), edit 1569
   (2744), todos filhos de 1568; botao 4613 (144), filho de 5654.
+- UTILIZADA: `client748/UI/strdef.bin` real, 440 linhas de 128 bytes e
+  checksum final de 4 bytes. O loader 7.48 decodifica o payload com XOR 0x5A
+  e deixa as linhas restantes vazias. Linha 204: `Unknown error.`; linha 201
+  menciona `Integrated server`; linha 1131 nao existe neste asset.
 - NAO APLICAVEL: TMProject posterior e guias como prova nativa; a procedencia
   dos deltas atuais ainda precisa de comparacao. fontes legadas externas excluidos.
 
@@ -91,6 +96,12 @@ O corte local rejeita Slot >=4 e trata edit/humano/painel opcional; os emissores
 e a confirmacao por mouse tambem validam o indice antes de acessar arrays.
 O armazenamento do frame ainda deve ser validado antes do callback legado.
 
+No WYD-Go atual, `World.handle` aceita `0xFAA` somente na fase de selecao,
+com 52 bytes exatos. `onCharacterTransferUnavailable` exige Result=0 e Slot
+em [0,4), e envia Result=4/Slot no mesmo layout sem alterar conta ou sessao.
+O Result=4 cai no erro generico 204/3500 ms do client e limpa a flag moving.
+Nao existe destino, coordenador ou commit de transferencia.
+
 No corte seguinte, `ObjectManager::OnPacketView` passa a usar
 `wire/ReceivedPacketDispatch.h` antes de `OnPacketEvent`. A mesma funcao
 exercitada pelos testes exige para 0xFAA tamanho real/declarado 52 e Type
@@ -105,12 +116,28 @@ preservando int signed e offsets 0/12/16/20/36 com asserts.
 | --- | --- | --- | --- |
 | Tamanho | 52 bytes | struct equivalente aparente | fixar teste apos fechar contrato |
 | Slot | rejeita negativo | rejeita fora de [0,4) | endurecimento local, sem novo wire |
-| Erros 2/3/default | 3500 ms | 2000 ms | preservar por enquanto; delta observavel |
-| Result 4 | mensagem generica | mensagem 1131 | procedencia/utilidade pendente |
+| Erros 2/3/default | 3500 ms | 3500 ms | duração corrigida nesta fronteira; texto preservado |
+| Result 4 | mensagem generica | mensagem 204, 3500 ms | corrigido: 1131 inexiste no asset 7.48 |
 | Sucesso | limpa slot e habilita 4613 | tambem altera camera/paineis/selecao | fechar ownership e recursos |
 | Result 1 | abre rename | tambem foca controle 1569 | verificar binding e lifecycle |
 
 ## Decisões
+
+No corte de 2026-09-22, o emissor `628` recebeu um endurecimento
+`MODERNIZACAO_COMPATIVEL`: mede o texto dentro dos 256 bytes do edit,
+percorre pares apenas dentro do comprimento validado e copia para o pacote
+zero-inicializado somente os bytes dos nomes válidos. O nome antigo de 16 bytes
+sem NUL é recusado antes do envio; nomes válidos de até 12 bytes mantêm o
+mesmo wire `0xFAA/52`. Isso não implementa a resposta do servidor nem promove
+o lifecycle a paridade nativa.
+
+No corte seguinte, os dois emissores (`628` e `4617`) passaram a usar
+`character_transfer::CopyRequestNames`. O segundo copiava o nome do slot para
+`OldName` e `NewName` com `sprintf` sem limite; agora ambos recusam fonte
+vazia, sem NUL na capacidade declarada ou grande demais para os campos de
+16 bytes, sem alterar o pacote em caso de erro. O wire de nomes válidos
+permanece igual. Isto é `MODERNIZACAO_COMPATIVEL`, não implementação da
+transferência autoritativa.
 
 O claim de paridade integral permanece LOCATED. O corte de endurecimento
 local e `MODERNIZACAO_COMPATIVEL`: recusar Slot fora de [0,4) antes de usar
@@ -129,7 +156,26 @@ seja chamado pelo nativo. Nao promove o lifecycle completo a CONTRACT.
 Nao tratar transferencia como o fluxo `0x52A` de migracao
 de servidor: possuem entradas e contratos diferentes.
 
+O retorno server-side Result=4 e `MODERNIZACAO_COMPATIVEL` fail-closed do
+emulador: usa o ramo de erro ja existente no client e encerra a espera quando
+nao ha servico de transferencia. Nao afirma equivalencia do resultado de
+negocio nativo nem implementa rename/remocao.
+
+No corte de 2026-09-22, a duração das mensagens para Result 2, 3 e default
+passou de 2000 para 3500 ms, conforme o `0xdac` observado no receptor nativo.
+No corte seguinte, Result 4 passou a usar a mensagem generica 204 por 3500 ms,
+como o ramo default nativo. A linha 1131 nao existe no `strdef.bin` 7.48 e
+produzia mensagem vazia. `PARIDADE_NATIVA` fica restrita a duracao e texto da
+resposta; estado, wire e lifecycle nao mudam. Os textos 201-206 descrevem
+transferencia para um `Integrated server`; isso nao autoriza tratar `0xFAA`
+como simples rename/delete local no Go, nem confundi-lo com `0x52A`.
+
 ## Lacunas
+
+- O servidor Go agora responde `0xFAA` com erro generico, mas transferencia
+  ainda nao e ponta a ponta. Falta definir destino/identidade, persistencia
+  atomica e rejeicoes autoritativas antes de permitir sucesso. O pacote de
+  52 bytes por si so nao define esses aspectos.
 
 - Resolver slots virtuais de controle e teardown completo.
 - Fechar cancelamento/reentrada; FrameMove nao fornece timeout de transferencia.
@@ -140,6 +186,20 @@ de servidor: possuem entradas e contratos diferentes.
 - Exercitar sucesso, resultados de erro, cancelamento e reentrada no candidato.
 
 ## Validação
+
+Corte dos dois emissores: os testes C++ de `CopyRequestNames` cobrem nomes
+válidos e padding, fonte sem terminador, capacidade truncada e rejeição sem
+mutação do pacote. Build Release e 51.720 checks/asserts PASS; executável
+instalado com SHA-256
+`4DDD9323C77A2C16263C4FCBDA21507F577E0AF7A9139729C2238F612DFE9E33`.
+`STATICALLY VERIFIED` / `AUTOMATED TESTED` somente para o helper; cliques,
+socket e resposta do servidor não são `CLIENT_TESTED`.
+
+Corte de 2026-09-22: build Release incremental e instalação/hash do candidato
+`D0910AD9D00EB5DBEF18DC3ADC7249C37E95995071B3844CED95E3819E960BC9`
+PASS; 51.715 checks C++ existentes PASS. `STATICALLY VERIFIED` para o guard
+do emissor. Os checks não exercitam o clique `628` nem a renomeação; sem
+`CLIENT-TESTED`.
 
 Headless concluido sem SCRIPT ERROR; linha program confere hash nativo,
 tres registros function e slot_outgoing exato presentes. Nenhuma promocao.
@@ -169,3 +229,33 @@ Validação incremental posterior em `ReceivedPacketDispatchTests.cpp` e
 `CargoSlotTests.cpp`: 232 checks C++ PASS em Debug/Release. `SendItem` tem
 ficha de contrato separada no handoff; esta ficha de transferência não muda
 de maturidade.
+
+Corte de duração: `Build-Client.ps1 -NoDeploy` compilou a cena e o alvo
+Release|x86; `ArchitectureTests` passou 51.742 checks. `STATICALLY VERIFIED`
+para a duração e `AUTOMATED TESTED` para os checks existentes, que não exercitam
+a resposta na UI. Sem instalação do candidato nem `CLIENT_TESTED`.
+
+Corte do texto: `CharacterTransferResponseTests.cpp` verifica no asset real
+as 440 linhas, o texto 204, a semantica da linha 201 e a ausencia da 1131;
+verifica tambem a referencia a 204/3500 no ramo de resposta da source.
+`Build-Client.ps1 -NoDeploy` compilou Release|x86 e passou 51.751 checks.
+SHA-256 do candidato:
+`F3B09027AFAAB2D44C7CF76C92F0CEF3EBB2329B67EEA31DEBAFFCA0928192F5`.
+`STATICALLY VERIFIED` para a correcao de UI, `AUTOMATED TESTED` para os
+checks de asset/source; sem instalacao, resposta real ou `CLIENT_TESTED`.
+
+No lote seguinte, o mesmo teste passou a carregar o `strdef.bin` pelo
+`WYD748_LoadMessageStrings` real, com checksum legado equivalente ao de
+`Basedef.cpp` no binario de testes. Confirma linhas 201/204 materializadas,
+1131 vazia e rejeicao de payload corrompido sem alterar a tabela anterior.
+`ArchitectureTests.vcxproj` Release|Win32: 51.757 checks PASS. Somente testes
+mudaram; o executavel do client acima nao precisou ser recompilado.
+
+Retorno fail-closed do servidor: `go test -count=1 ./internal/game -run
+'TestCharacterTransferUnavailable|TestExactInboundPacketSizeCoversEveryConfirmed748Opcode'`
+PASS. O teste exercita `World.handle`, resposta desencriptada, tamanho/opcode,
+Result/Slot e imutabilidade da conta; verifica tamanhos 51/53, Slot invalido e
+replay na fase World. `AUTOMATED TESTED` para o retorno server-side, nao para
+transferencia real nem para o clique no client; ficha permanece LOCATED.
+`go test -count=1 ./internal/game ./internal/wire` PASS apos registrar o
+opcode nas metricas; tambem cobre Slot negativo e Result de resposta recusados.

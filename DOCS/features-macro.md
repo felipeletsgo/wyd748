@@ -6,8 +6,8 @@ packet herdados.
 
 - `MacroMsg` recebe a intencao originada em `TMFieldScene` e seleciona o nivel.
 - `MacroFactory` cria e conserva uma unica estrategia para cada nivel valido.
-- `MacroLevel` ainda permanece na raiz porque contem o envio de packets e
-  depende de varias fachadas monoliticas. Sua migracao exige um lote proprio,
+- `MacroLevel` ainda permanece em `internal/core/` porque contem o envio de
+  packets e depende de varias fachadas monoliticas. Sua migracao exige um lote proprio,
   com verificacao dos contratos client/server envolvidos.
 
 Os ponteiros retornados por `MacroFactory` sao emprestados. A factory e a unica

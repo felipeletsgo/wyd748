@@ -1114,7 +1114,8 @@ func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 }
 
 // onSellItem: 0x37A. Vende um item do inventario pro mercador aberto por
-// 25% do preco de compra. Server-authoritative (usa p.ShopNPC, nao o TargetID).
+// 25% do preco de compra. Server-authoritative: o TargetID deve corresponder
+// ao mercador aberto, mas a loja e o preco sao resolvidos por p.ShopNPC.
 func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	// len(pkt) >= 17: le MyType@14 e MyPos@16. Sem isto um 0x37A curto forjado
@@ -1123,8 +1124,14 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 		return
 	}
 	w.cancelTrade(p, "venda em loja")
+	targetID := binary.LittleEndian.Uint16(pkt[12:14])
 	if p.ShopNPC == 0 {
 		log.Printf("[#%d] venda sem loja aberta", s.ID)
+		return
+	}
+	if targetID != p.ShopNPC {
+		log.Printf("[#%d] venda para merchant divergente packet=%d aberto=%d", s.ID, targetID, p.ShopNPC)
+		s.Send(wire.MessagePanel("That merchant is no longer available."))
 		return
 	}
 	m, interactionErr := w.resolveNPCInteraction(p, p.ShopNPC)

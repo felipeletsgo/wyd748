@@ -5,6 +5,7 @@
 #include "TMHuman.h"
 #include "TMLog.h"
 #include "TMGround.h"
+#include "TerrainTileMapReader.h"
 #include "TMCamera.h"
 #include "TMEffectBillBoard.h"
 #include "TMSkillFire.h"
@@ -2387,12 +2388,18 @@ int TMGround::Attach(TMGround* pGround)
     if (!pGround)
         return 0;
 
+    const int deltaX = pGround->m_vecOffsetIndex.x - m_vecOffsetIndex.x;
+    const int deltaY = pGround->m_vecOffsetIndex.y - m_vecOffsetIndex.y;
+    if (!((deltaX == 1 || deltaX == -1) && deltaY == 0) &&
+        !((deltaY == 1 || deltaY == -1) && deltaX == 0))
+        return 0;
+
     m_pLeftGround = 0;
     m_pRightGround = 0;
     m_pUpGround = 0;
     m_pDownGround = 0;
 
-    if (pGround->m_vecOffsetIndex.x == m_vecOffsetIndex.x + 1)
+    if (deltaX == 1)
     {
         m_pRightGround = pGround;
         m_pRightGround->m_pLeftGround = this;
@@ -2409,7 +2416,7 @@ int TMGround::Attach(TMGround* pGround)
         m_pRightGround->m_nMiniMapPos = 1;
         return 1;
     }
-    if (pGround->m_vecOffsetIndex.x == m_vecOffsetIndex.x - 1)
+    if (deltaX == -1)
     {
         m_pLeftGround = pGround;
         m_pLeftGround->m_pRightGround = this;
@@ -2426,7 +2433,7 @@ int TMGround::Attach(TMGround* pGround)
         m_pLeftGround->m_nMiniMapPos = 0;
         return 1;
     }
-    if (pGround->m_vecOffsetIndex.y == m_vecOffsetIndex.y + 1)
+    if (deltaY == 1)
     {
         m_pDownGround = pGround;
         m_pDownGround->m_pUpGround = this;
@@ -2443,7 +2450,7 @@ int TMGround::Attach(TMGround* pGround)
         m_pDownGround->m_nMiniMapPos = 2;
         return 1;
     }
-    if (pGround->m_vecOffsetIndex.y == m_vecOffsetIndex.y - 1)
+    if (deltaY == -1)
     {
         m_pUpGround = pGround;
         m_pUpGround->m_pDownGround = this;
@@ -2471,27 +2478,19 @@ int TMGround::LoadTileMap(const char* szFileName)
 
     if (fp)
     {
-        int byNameLen = 0;
-        fread(&byNameLen, 1u, 1u, fp);
-
-        //  added to supress warning
-        if (byNameLen > 128)
-            byNameLen = 128;
-
-        fread(m_MapName, 1u, byNameLen, fp);
-
-        m_MapName[byNameLen] = '\0';
-
         int bPosX = 0;
         int bPosY = 0;
-        fread(&bPosX, 1, 1, fp);
-        fread(&bPosY, 1, 1, fp);
+        const bool validRecord = ReadTerrainTileMapRecord(fp, m_MapName,
+            bPosX, bPosY, m_TileMapData);
+        fclose(fp);
+        if (!validRecord)
+        {
+            LOG_WRITELOG("Contact Support MAPERROR: invalid terrain record %s\r\n", szFileName);
+            return 0;
+        }
 
         SetPos(bPosX, bPosY);
         SetAttatchEnable(bPosX, bPosY);
-
-        fread(m_TileMapData, 12, 4096, fp);
-        fclose(fp);
 
         // .trn checksum
         /*

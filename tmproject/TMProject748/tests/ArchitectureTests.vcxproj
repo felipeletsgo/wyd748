@@ -27,6 +27,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\internal\platform\windows;$(MSBuildThisFileDirectory)..\internal\render\resources;$(MSBuildThisFileDirectory)..\CommonFiles;$(IncludePath);$(MSBuildThisFileDirectory)..\Dependencies\Directx\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link><SubSystem>Console</SubSystem></Link>
   </ItemDefinitionGroup>
@@ -41,6 +42,15 @@
     <ClCompile Include="ObservedAffectProjectionTests.cpp" />
     <ClCompile Include="CCModePolicyTests.cpp" />
     <ClCompile Include="EffectVertexColorTests.cpp" />
+    <ClCompile Include="SceneDisconnectContractTests.cpp" />
+    <ClCompile Include="LoginCredentialContractTests.cpp" />
+    <ClCompile Include="ServerNameAssetTests.cpp" />
+    <ClCompile Include="TerrainTileMapReaderTests.cpp" />
+    <ClCompile Include="CharacterTransferResponseTests.cpp" />
+    <ClCompile Include="..\internal\core\WYD748Assets.cpp">
+      <PreprocessorDefinitions>_WYDCLIENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

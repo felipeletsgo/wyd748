@@ -219,10 +219,46 @@
     <ClInclude Include="internal\wire\ItemSoldContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\PlayerChallengeContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\CombineCompleteContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\TradeSessionContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\TradeCheckConfirmationContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\WarInfoContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\ShortSkillSnapshotContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\ActionFrameContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\AttackFrameContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\AirMoveContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\game\entities\AirMoveMotion.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\InventoryTransactionContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\CargoGoldTransferContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\AutoTradeContract.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\CapsuleInfoContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="internal\wire\WhisperMessagePacket.h">
@@ -318,6 +354,9 @@
     <ClInclude Include="internal\wire\ServerMigrationPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\core\ServerEndpoint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\IndexedMessageContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -331,6 +370,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="internal\ui\GridInsertion.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\SellConfirmationText.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="internal\application\ApplyCargoSlot.h">

@@ -187,12 +187,22 @@ WYD-Go nao participa deste layout local e nao requer mudanca correspondente.
 
 ## Lacunas
 
+A inicialização agora rejeita falha no carregamento de `SelCharScene2.bin`
+antes de configurar câmera, mapa ou controles. Esta guarda é
+`MODERNIZACAO_COMPATIVEL`: não altera o RC válido nem a fórmula nativa de
+posicionamento. A rejeição por arquivo ausente/corrompido ainda não foi
+exercitada no client real.
+
 A correlação estática está fechada. Falta executar o candidato recompilado em
 `1280x960`, inclusive os fluxos Create/return e logout/relogin, para confirmar
 apresentação, hitboxes e reconstrução da cena.
 
 ## Validação
 
+- Guarda de recurso: `Build-Client.ps1 -NoDeploy` passou 51.795 checks e
+  recompilou `TMSelectCharScene.cpp` em Release|x86; candidato SHA-256
+  `9F3C1DA5B193D7F5D364AEB16F33758938537A1A6F6441F6F5F1D0575AE08F91`.
+  O teste da ordem de falha é estático, sem injeção de RC nem teste visual.
 - `TRACED`: caller, funcao, vtable, slot, receptores, formula e teardown foram
   correlacionados.
 - `IMPLEMENTED`: a formula foi adaptada na source ativa.

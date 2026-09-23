@@ -45,7 +45,7 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
             <form id="login-form" class="login-card">
               <span class="eyebrow">ÁREA RESTRITA</span><h2>Entrar no painel</h2><p class="muted">Identifique-se para iniciar uma sessão segura.</p>
               <label for="username">Conta do jogo</label><input id="username" name="username" autocomplete="username" maxlength="12" pattern="[a-zA-Z0-9]{1,12}" required placeholder="Sua conta autorizada" />
-              <label for="password">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="12" required placeholder="Senha da conta" />
+              <label for="password">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="10" required placeholder="Senha da conta" />
               <label for="adminPin">PIN administrativo <span>6–12 dígitos</span></label><input id="adminPin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6,12}" minlength="6" maxlength="12" required placeholder="000000" />
               <p id="login-message" class="form-message" role="status" aria-live="polite">Preparando acesso…</p>
               <button id="login-submit" class="button primary" disabled>Entrar no painel <span aria-hidden="true">↗</span></button>

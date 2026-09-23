@@ -1377,3 +1377,846 @@ Registrar o resultado nas duas fichas antes de promover para `CLIENT_TESTED`.
 - Próximo passo executável: teste manual com dois clients das ações Party,
   Guild, Trade e Challenge, incluindo cancelamento, troca de cena e
   logout/relogin. Não reabrir triagem ou listar chats para essa retomada.
+
+### Cartas de guerra entre canais 4030/4031 — 2026-09-21
+
+- Evidência nativa do `WYD.exe` canônico confirmou que 4030 abre o modal no
+  modo 9 e 4031 no modo 10; `0xED7/0xED8` só são enviados depois da confirmação,
+  em `MSG_STANDARDPARM/16`, com canal em `Parm/+12`.
+- A source anterior enviava imediatamente `0xED7` com canal zero para 4030,
+  roteava 4031 pelo uso genérico e procurava apenas os IDs modernos do modal.
+  `SGrid` e `TMFieldScene` agora restauram os dois prompts e os IDs compatíveis
+  627/630, além de OK/Enter e cancel do `FieldScene2.bin`.
+- `ServerWarLetterContract.h`, asserts e testes fixam itens, modos, opcodes,
+  tamanho e offset. `Build-Client.ps1` passou 51.684 checks, zero erros e
+  instalou `project.exe` SHA-256
+  `C3BF528A2C9BD9DB6719604BC567C752162FFAF5C2DD6ECD9E704FB1F18984ED`.
+- Estado: client `PARIDADE_NATIVA / CONTRACT / STATICALLY VERIFIED / AUTOMATED
+  TESTED`; não `CLIENT-TESTED`. O servidor não possui handler nem coordenação
+  entre Worlds/canais, então o suporte integrado permanece explicitamente
+  bloqueado em vez de consumir a carta sem efeito autoritativo.
+
+### AirMove 0xAD9 — 2026-09-22
+
+- O `WYD.exe` nativo confirma `MSG_STANDARDPARM2/20`, rota `0..4` e modos 1
+  (start) e 2 (end); a UI depende de NPC visível face 63/Merchant baixo 7 no
+  chunk 16. A ficha é `flows/transport/airmove-contract.md`.
+- Client: limite de rota, contrato C++ testável e fim idempotente. Servidor:
+  valida contexto, duração e replay, bloqueia gameplay durante voo e decide
+  o destino entre os cinco terminais nativos; morte/logout/teleporte cancelam
+  o estado. Testes Go focados passaram, incluindo 19/21 bytes.
+- A base atual não tem NPC de transporte correspondente. Não criar um NPC
+  fictício para satisfazer teste; o gate de execução real permanece pendente.
+- Gate do lote: `go test -count=1 ./...`, `go vet ./...`, validador de fichas,
+  layout/links e build integrado passaram; 51.693 checks C++ e `project.exe`
+  SHA-256 `1F8157D57A3583605CE52923C6D09662535AE6D8B39E90FEBF10972479FF57DB`.
+  Estado `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT-TESTED`.
+- Continuação da UI: o bootstrap compacto 7.48 agora vincula título `12549`
+  e colunas `12550..12552` do painel `12544`, presentes no dump real de
+  `FieldScene2.bin`. `AirMove_ShowUI` valida dependências e nomes antes de exibir
+  a janela, oculta/limpa estado em falha parcial e permite fechamento sem lista.
+  É `MODERNIZACAO_COMPATIVEL`, sem alteração de wire ou servidor. Novo build
+  passou 51.693 checks e instalou `project.exe` SHA-256
+  `A29A600F5DF1B54ADFC352D8E02584185856C33F670D11B84F558444C7A4890A`;
+  ficha, layout e diff passaram. Pendente: NPC real e abertura/viagem no client.
+- Continuação da UI: o título agora é aplicado diretamente ao controle e os
+  cinco nomes de rota são copiados com limite de 18 caracteres, sem usar texto
+  de recurso como formato `printf` nem exceder os buffers locais. É
+  `MODERNIZACAO_COMPATIVEL`, sem mudança de wire/servidor. Build Release
+  integrado passou com 51.693 checks; candidato instalado SHA-256
+  `10791835D8098F3F6D08D7951568C4EE5535BC5375F3375E2ABEAAAF2736B1FA`.
+  A abertura e a viagem com NPC real continuam pendentes de `CLIENT_TESTED`.
+- Continuação do voo: `TMHuman::Update` e `AirMove_End` agora consomem e zeram
+  o delta pendente uma vez. Antes, `SetPosition` já alterava `m_vecPosition`,
+  mas o offset acumulado voltava a ser somado a cada frame e no encerramento.
+  O teste C++ cobre consumo único; build Release integrado passou 51.695 checks
+  e instalou `project.exe` SHA-256
+  `2140019A43B8B46D3739B6EA12375549CEFDFB2ACF98C0A55EF3141469A402C6`.
+  É `MODERNIZACAO_COMPATIVEL`; sem mudança no wire ou no servidor. A viagem
+  real com NPC continua pendente de `CLIENT_TESTED`.
+- No pouso, o tipo antigo era escrito no mesh do corpo e o mount de voo `40`
+  continuava ativo, com o look original zerado. O client agora salva e
+  restaura tipo e look da montaria antes de `UpdateMount()`;
+  `MODERNIZACAO_COMPATIVEL`, sem wire/servidor novos. Build Release passou
+  51.696 checks e instalou `project.exe` SHA-256
+  `381273DFD218716139F1E9DC3000C9547CE4666C9ED3243125FFA88C959087A0`.
+  Pendente validar montaria original e corpo em viagem real (`CLIENT_TESTED`).
+- A transicao de waypoint podia ler alem do array `[5][10]` caso uma rota
+  visual ocupasse a ultima posicao. O indice agora so avanca apos verificar
+  limite e sentinela `(0,0)`, sem alterar rotas, wire ou servidor. Testes C++
+  cobrem sentinela, ultima posicao e indice invalido. Build Release passou
+  51.698 checks, ficha e layout passaram, e instalou `project.exe` SHA-256
+  `0E8F52AFE6EB5FEFD0BE837EA5B88692DCC944E9C470FBF3ED7EA4637DAA4D3E`.
+  Estado `MODERNIZACAO_COMPATIVEL / AUTOMATED TESTED`; viagem real pendente.
+
+### Recepção de chat de grupo `0x334` durante bootstrap parcial — 2026-09-22
+
+- O WYD-Go entrega mensagens de grupo com `String[0]='='` em `0x334/128`.
+  `TMFieldScene::OnPacketMessageWhisper` e `TMHuman::OnPacketMessageWhisper`
+  liam `m_pPartyList->m_nNumItem` sem verificar se a lista `1863` já havia
+  sido vinculada. Essa janela já é protegida no receptor de chat local `0x333`.
+- Os dois receptores agora consomem o packet sem tocar a UI quando falta a lista;
+  o caminho do humano também verifica a cena e os filtros opcionais antes de
+  acessá-los. Decisão: `MODERNIZACAO_COMPATIVEL`; wire, entrega autoritativa,
+  prefixos e comportamento com UI íntegra permanecem inalterados.
+- `go test -count=1 ./internal/game -run 'TestChatHandlersRouteLocalWhisperAndChannels|TestChatHandlersRouteCitizenshipAndKingdomChannels'`
+  passou. `Build-Client.ps1` passou 51.698 checks, compilou os dois arquivos e
+  instalou `project.exe` SHA-256
+  `A73406F414D3BD92A776D2F197684BC204C11D1D52A662FBAF62DDF3162FB45A`.
+  Estado `STATICALLY VERIFIED / AUTOMATED TESTED` para build e envelope; a
+  chegada durante bootstrap parcial não foi exercida pelo teste automatizado.
+  Não é `CLIENT-TESTED`: testar com dois clients recebimento de `=` antes/depois do painel Party,
+  incluindo troca de cena e relogin.
+
+### Entrada das cartas de guerra — 2026-09-22
+
+- O modal 4030/4031 convertia decimal em `long long`, mas reduzia para o
+  `int32` de `Parm/+12` sem faixa. Entradas como `4294967297` podiam enviar
+  canal 1. A guarda agora exige `1..INT32_MAX` e mantém modal/texto/foco no erro;
+  decisão `MODERNIZACAO_COMPATIVEL`, sem alteração de wire ou de servidor.
+- `Build-Client.ps1` passou 51.699 checks e instalou `project.exe` SHA-256
+  `5B908910F0388A71834B620BF65D52C7B90DE93EA7C5809BAAD5FFCE718E041A`.
+  Ainda não é `CLIENT_TESTED`. `0xED7/0xED8` permanecem sem handler nem
+  coordenador entre canais no WYD-Go; não consumir carta nem anunciar suporte
+  integrado até esse estado existir.
+
+### Desconexão na seleção de servidor — 2026-09-22
+
+- `NewApp` já encaminhava `FD_CLOSE` como `OnPacketEvent(0, nullptr)` e o
+  handler base já implementava mensagem, limpeza da migração e retorno seguro.
+  Porém, `TMSelectServerScene` retornava antes da chamada base quando o payload
+  era nulo, tornando a queda TCP silenciosa justamente na tela de login.
+- O override agora chama `TMScene::OnPacketEvent` antes da guarda nula e só faz
+  cast para `MSG_STANDARD` com payload presente. Decisão: `PARIDADE_NATIVA`,
+  baseada na ficha `socket-disconnect-return-selectserver`; wire e servidor não
+  mudaram.
+- Um teste de contrato protege a ordem base -> guarda nula -> cast. O build
+  Release integrado passou 51.705 checks e instalou `project.exe` SHA-256
+  `4610A0C73E978284EFB81D6F43DBE03C291EF5259398EE4B27E803C84C91CA97`.
+  Estado `STATICALLY VERIFIED / AUTOMATED TESTED`; ainda falta provocar uma
+  queda TCP real na seleção, confirmar a mensagem e conectar novamente para
+  promover a `CLIENT_TESTED`.
+
+### Limite nativo da senha de login — 2026-09-22
+
+- O `WYD.exe` canônico rejeita conta acima de 12, senha abaixo de 4 e senha
+  acima de 10 antes de conectar. Os branches reproduzidos em `FUN_004AC985`
+  são `cmp eax,0Ch` em `0x004ADC2A`, mínimo 4 em `0x004ADC95` e
+  `cmp eax,0Ah` em `0x004ADD00`; o `strdef.bin` confirma as mensagens 5 e 6.
+- A source tinha somente o mínimo e podia aceitar uma entrada longa para depois
+  truncá-la no campo `AccountPassword[12]`. `TMSelectServerScene` agora mostra
+  a mensagem 6 e retorna antes de conexão e serialização. O packet permanece
+  `0x20D/0x74`, versão 748, sem mudança de ABI.
+- O WYD-Go, cadastro público, autenticação administrativa, loadtest, portal e
+  OpenAPI convergem no máximo 10. Contas antigas do emulador com senha de 11 ou
+  12 caracteres precisam de recuperação operacional; não houve migração
+  automática de hashes.
+- A ficha `flows/transport/account-login-credential-bounds.md` está em
+  `CONTRACT`. `go test -count=1 ./...`, `go vet ./...`, geração/check/build do
+  portal e o
+  validador de fichas passaram. `Build-Client.ps1` passou 51.711 checks e
+  instalou `project.exe` SHA-256
+  `24B8A2B08E93BFF1F6B9AA9F72DF9C0283B751F12DAB44535AB3BA25A5EF77C3`.
+- Estado `PARIDADE_NATIVA / STATICALLY VERIFIED / AUTOMATED TESTED`; ainda não
+  `CLIENT-TESTED`. Próximo passo: no candidato atual, confirmar que 11
+  caracteres exibem a mensagem 6 sem conexão e que exatamente 10 autenticam;
+  aproveitar a sessão para provocar uma queda TCP na seleção e validar o lote
+  anterior de disconnect.
+
+### Limite da tabela de grupos na selecao e troca de servidor — 2026-09-22
+
+- A tabela `g_pServerList` tem 10 grupos; a selecao e o menu de troca em Field
+  procuravam uma sentinela em ate 11 entradas. Ambos usam agora uma descoberta
+  limitada ao tamanho da tabela; Field ignora uma tabela vazia. Decisao:
+  `MODERNIZACAO_COMPATIVEL`, sem mudanca de wire ou servidor.
+- `Build-Client.ps1 -NoDeploy` passou 51.723 checks (vazio, parcial e 10 grupos),
+  compilou Release|x86 e produziu SHA-256
+  `C1B4379FEC7C2DB660F25204273A07215FD8BAF67723D2EB7517DDCE998BEDA7`.
+  O runtime nao foi substituido. Estado `STATICALLY VERIFIED / AUTOMATED TESTED`,
+  nao `CLIENT_TESTED`; validar selecao e troca com tabela cheia no client real.
+- `0xFAA` segue sem handler no Go: a resposta nativa distingue renomeacao e
+  transferencia, e sucesso limpa o slot. Nao implementar mutacao de conta sem
+  fechar origem, persistencia e semantica autoritativa da operacao.
+
+### Leitura unica do `sn.bin` binario — 2026-09-22
+
+- `NewApp::InitServerName` ainda lia o `sn.bin` de 143 bytes como texto na
+  inicializacao e escrevia nomes fixos `Meu Canal`/`STAFF`; a cena de selecao
+  ja recarregava o mesmo asset corretamente com
+  `WYD748_LoadServerNameList` antes de montar os controles. Removidos chamada,
+  metodo e declaracao textuais; a cena usa `ServerName_Path` no loader binario.
+  `MODERNIZACAO_COMPATIVEL`, sem alteracao de asset, wire ou servidor.
+- `Build-Client.ps1 -NoDeploy` passou 51.723 checks, compilou Release|x86 e
+  produziu SHA-256
+  `28F1764724CCF964C88852D3B8A1035B669591CB8D516C56E7E41007572F4980`.
+  O asset local mede 143 bytes e suas ordens estao em `0..10`; ainda nao houve
+  teste direto do loader nem execucao in-game do candidato. O runtime nao foi
+  substituido. Proximo gate: instalar e abrir o candidato quando houver sessao
+  de client, selecionar `Canal`/`VPS`, conectar e exercitar retorno/relogin.
+
+### Limites locais da selecao e troca de canais — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: a tabela de endpoints possui 10 grupos x 11
+  canais (status no zero), enquanto nomes opcionais possuem 10 x 10. O fluxo
+  importado consultava nome no indice 10 e a origem agregada no indice 11
+  quando o canal diario chegava a 10. `ServerChannelNameAt` exige indice e
+  terminador validos; `CopyServerEndpointAt` descarta origem fora da tabela.
+  A selecao limita o maior grupo visivel e valida o grupo mapeado antes de
+  ler `m_nDay`; a troca rejeita indice de grupo corrente invalido.
+- Teste focado cobre nome 9/10, nome sem NUL e endpoint 10/11, alem de grupos
+  fora do intervalo. `Build-Client.ps1 -NoDeploy` passou 51.727 checks e
+  compilou Release|x86; SHA-256 do candidato:
+  `4333D4357DDEFDC5321756777C9D278BA35CD26FD430493B409A99A16C488B88`.
+  `git diff --check` dos arquivos tocados passou. O runtime nao foi substituido.
+  Pendente: abrir o candidato real, selecionar o ultimo canal configurado,
+  conectar, trocar de canal e verificar retorno/relogin. Sem `CLIENT_TESTED`.
+
+### Teste direto do carregador `sn.bin` — 2026-09-22
+
+- O `ArchitectureTests` agora compila o `WYD748Assets.cpp` real e chama
+  `WYD748_LoadServerNameList` sobre `client748/sn.bin`, sem alterar o asset.
+  Confirma o layout de 143 bytes, `__VPS`/`Canal`, as ordens e o grupo sem nome;
+  rejeita caminho nulo, buffers curtos, arquivo truncado e ordem fora de
+  `0..10`, preservando o estado carregado na rejeicao.
+- Compilacao focada `ArchitectureTests.vcxproj` Release|Win32 e execucao passaram
+  com 51.742 checks. Apenas o projeto de testes mudou; o executavel do client
+  nao foi recompilado nem instalado neste lote. `AUTOMATED TESTED` para o
+  carregador, ainda nao `CLIENT_TESTED` para selecao/conexao/retorno. A regra
+  de nomes opcionais de canais permanece sem mudanca por faltar evidencia
+  nativa especifica para seu mapeamento.
+
+### Duracao da resposta `0xFAA` — 2026-09-22
+
+- `PARIDADE_NATIVA` localizada: o receptor nativo usa 3500 ms (`0xdac`) em
+  todos os resultados de `0xFAA`; a source usava 2000 ms nos erros 2, 3 e
+  default. Ajustada somente a duracao naquele corte; nenhum handler Go criado.
+- `Build-Client.ps1 -NoDeploy` compilou Release|x86 e passou 51.742 checks.
+  Sem instalacao ou exercicio da resposta no jogo: `STATICALLY VERIFIED` para
+  esta correção, não `CLIENT_TESTED`.
+
+### Mensagem de erro da transferencia `0xFAA` — 2026-09-22
+
+- `PARIDADE_NATIVA` localizada: `client748/UI/strdef.bin` contem apenas 440
+  entradas; 1131 nao existe e deixava Result 4 sem texto. O receptor nativo
+  usa erro generico. A cena agora usa entrada 204 (`Unknown error.`) por 3500 ms.
+  Teste focado cruza o asset real com o ramo de resposta da source.
+- Os textos 201-206 descrevem migracao ao `Integrated server`. Go ainda nao
+  despacha `0xFAA`; nao implementar rename/delete local sem contrato de destino,
+  identidade e transacao. O fluxo permanece LOCATED, sem `CLIENT_TESTED`.
+- `Build-Client.ps1 -NoDeploy`: Release|x86 compilado, 51.751 checks PASS;
+  SHA-256 `F3B09027AFAAB2D44C7CF76C92F0CEF3EBB2329B67EEA31DEBAFFCA0928192F5`.
+  Validador das fichas e `git diff --check` PASS. Candidato nao instalado.
+- Teste complementar do loader real: `ArchitectureTests.vcxproj` Release|Win32
+  passou 51.757 checks. `strdef.bin` carrega com checksum valido, linha 204
+  materializada e 1131 vazia; arquivo corrompido e rejeitado sem apagar a
+  tabela anterior. Somente testes mudaram, sem novo build/deploy do client.
+
+### Seleção estável de grupos visíveis — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: a UI cria grupos em ordem inversa, inclusive o
+  último slot, mas os eventos contavam apenas os slots anteriores e podiam
+  associar uma linha esparsa a outro endpoint. `VisibleServerGroupSlots` define
+  as linhas válidas e a cena guarda seus slots ao construí-las.
+- O snapshot é necessário porque selecionar o grupo agregado zera endpoints de
+  status na tabela global sem remover as linhas existentes; recalcular os
+  slots no próximo evento mudaria a identidade da linha. Testes cobrem dez
+  grupos, lacunas, tabela vazia e a mutação após a construção.
+- `Build-Client.ps1 -NoDeploy`: 51.769 checks PASS, Release|x86, candidato
+  `E3CA0135E84E4DA74B29A1528D247F4B5978CA151D05890E6D91C7941BB1418A`.
+  Não instalado nem `CLIENT_TESTED`. O candidato anterior foi instalado e
+  abriu a janela, mas a captura de tela falhou com `0x80004002`; nenhum clique
+  foi validado. O mapeamento interno do grupo agregado continua pendente de
+  evidência nativa antes de alteração.
+
+### Reabertura da lista de canais em Field — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `SListBox::Empty` não apaga a seleção. Field
+  reabria a lista de troca com o índice antigo e dereferenciava sem guarda o
+  item recebido pelo callback. Agora limpa a seleção antes de inserir linhas
+  e ignora evento sem item; o comando de troca `srv` permanece intacto.
+- `Build-Client.ps1 -NoDeploy` passou 51.772 checks e recompilou Field em
+  Release|x86. Ainda sem teste real de reabertura/troca. A conversão de linha
+  esparsa por `idwEvent + 1` e o grupo agregado aguardam evidência nativa e
+  contrato integrado antes de qualquer mudança semântica.
+
+### Pedido `srv` no emulador monocanal — 2026-09-22
+
+- O client Field envia whisper `srv` após a espera visual de cinco segundos,
+  mas WYD-Go não possui coordenador de canais nem resposta de migração `0x52A`.
+  O handler agora consome o comando reservado e envia aviso `0x101` de
+  indisponibilidade, sem alterar personagem/sessão nem simular transferência.
+- Teste focado `go test ./internal/game -run
+  'TestServerSwitchRequestReportsUnavailableWithoutMigration|TestWhisperDayRequestReturnsHiddenCalendarSync|TestWhisperHandlerReportsOfflineAndCharacterInfo'
+  -count=1` passou. O mapeamento `idwEvent + 1` permanece intocado e sem
+  evidência nativa suficiente; nenhuma troca real foi `CLIENT_TESTED`.
+
+### Leitura da população na seleção de canal — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `BASE_GetHttpRequest` podia consumir todo o buffer
+  antes de inserir NUL e retornava sucesso mesmo se `InternetReadFile`
+  falhasse. A leitura agora reserva o terminador, rejeita capacidade inválida
+  e limpa a resposta na falha. O status continua apenas informativo; endpoint,
+  seleção, wire e emulador não foram alterados.
+- `Build-Client.ps1 -NoDeploy`: 51.774 checks PASS, Release|x86 recompilado;
+  candidato SHA-256
+  `CAE948D565C85EA1F048800DE849BC2AC40E7CC02D89F14F24FD6908B7E2C819`.
+  Teste de contrato estático cobre o limite/NUL/falha; não houve simulação de
+  falha WinINet nem clique no client. O runtime não foi substituído.
+
+### Identidade do adaptador no login e reconexão — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: login inicial e reconexão `0x20D/0x74` montavam
+  `AdapterName[4]` duplicadamente, sem validar o segundo `GetAdaptersInfo`,
+  podendo desreferenciar alocação nula ou exceder `temp[256]`. Ambos usam agora
+  uma rotina comum que consulta o primeiro adaptador, valida GUID completo e
+  preserva os mesmos quatro words para a entrada válida. Falha de API, falta
+  de NUL e GUID inválido deixam o campo zerado pelo packet inicializado.
+- Teste focado cobre GUID válido, palavras wire, caractere inválido, ausência
+  de NUL, truncamento e uso da rotina nas duas cenas. `Build-Client.ps1
+  -NoDeploy` passou 51.781 checks e compilou Release|x86. Wire e servidor não
+  mudaram; executável de runtime não foi substituído. Estado
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`. Pendente:
+  exercitar login e reconexão no client real com o emulador.
+
+### Canais esparsos na seleção inicial — 2026-09-22
+
+- A coluna Channel vazia na captura antes de escolher `Canal`/`VPS` é o
+  lifecycle esperado; a captura não comprova defeito de carregamento.
+- `MODERNIZACAO_COMPATIVEL`: linhas de canais configurados eram compactadas,
+  mas `Connect` usava `selectedChannel + 1` como índice físico. A cena agora
+  guarda o canal de cada linha criada e usa o snapshot para o endpoint normal;
+  rejeita índice obsoleto. Wire, servidor e mapeamento especial do agregado
+  permanecem inalterados.
+- `Build-Client.ps1 -NoDeploy`: 51.785 checks PASS, Release|x86, candidato
+  SHA-256 `67B64372442E871601FE9A5006E79DC8097212C469EEB7CF8D7DABB4F9074237`.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não instalado nem `CLIENT_TESTED`.
+  Próximo gate: clique e conexão reais no client; grupo agregado e `srv` em
+  Field continuam dependentes de evidência nativa própria.
+
+### Falha parcial ao abrir a seleção de servidores — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `LoadRC` e `sn.bin` podem falhar antes do antigo
+  `memset(m_pCheckHumanList)`, mas `ObjectManager` destrói a cena nesse caminho
+  e o destrutor examina os 50 ponteiros. O array agora nasce nulo no objeto;
+  fluxo de sucesso, recursos e wire permanecem iguais.
+- `Build-Client.ps1 -NoDeploy`: 51.787 checks PASS, Release|x86, SHA-256
+  `22A0B984E9A50144B40827FA4BAAF41A6C326985AFA2485B22CBC9F534B3AE38`.
+  Guarda estática e compilação passaram; falha injetada e client real não foram
+  exercitados. Candidato não instalado, estado não `CLIENT_TESTED`.
+
+### Destino de endpoint invalido na selecao/migracao — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `CopyServerEndpoint` mantinha o conteudo anterior
+  do destino quando a celula de `serverlist.bin` era vazia ou nao tinha NUL.
+  Agora limpa o primeiro byte na rejeicao; endereco valido, asset, indice e
+  wire nao mudam. Testes cobrem ambos os tipos de falha apos IP anterior.
+- `Build-Client.ps1 -NoDeploy`: 51.787 checks PASS, Release|x86 recompilado,
+  candidato SHA-256
+  `0595B7DD797EF394CC7DFD7944B48EDDC1C74B4C1BD7B0DD9D097325EA30934B`.
+  Nao instalado nem `CLIENT_TESTED`. Grupo agregado segue pendente: corpus e
+  projeto Ghidra historicos nao existem no perfil local atual; nao mudar o
+  mapeamento sem resolver o clique/endpoint no binario 7.48.
+
+### Controles obrigatorios na abertura de Scene2 — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `LoadRC` podia encerrar a leitura de um
+  `SelServerScene2.bin` parcial sem detectar a falta de controles usados sem
+  guarda por `InitializeUI` e login. A cena agora verifica root, listas,
+  painel/botoes, logos e campos de edicao apos `sn.bin` e antes de montar UI;
+  falha com log e usa o teardown parcial protegido no lote anterior.
+- `Build-Client.ps1 -NoDeploy`: 51.788 checks PASS, Release|x86,
+  `WYD.exe` SHA-256
+  `60E3831218A033646C1FE0367A481A7B0F1CB9FCF7124D7DDC532D947E769135`.
+  Teste de contrato estatico; recurso truncado e client real nao exercitados.
+  Candidato nao instalado, nao `CLIENT_TESTED`. Seguem pendentes o clique/
+  conexao visual e a evidencia nativa do grupo agregado.
+
+### Tag de controle truncada no carregador RC — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `TMScene::ReadRCBin` aceitava 1–3 bytes finais de
+  uma tag de tipo como EOF limpo e retornava sem fechar o arquivo quando o tipo
+  era desconhecido. A leitura agora distingue EOF entre registros de tag
+  incompleta; ambas as rejeicoes fecham o arquivo. Formato valido e wire
+  permanecem iguais.
+- `Build-Client.ps1 -NoDeploy`: 51.792 checks PASS, recompilacao Release|x86,
+  candidato SHA-256
+  `E1646D6AFC0406F518477C9D4A1A4635790C7C09BB1A48CC10C9068976E36138`.
+  Teste focado atualizado depois do build passou 51.793 checks, incluindo tag
+  valida seguida de tag parcial. `STATICALLY VERIFIED / AUTOMATED TESTED` para
+  essa guarda; arquivo RC completo corrompido e fluxo visual nao foram testados
+  no client. Nao instalado, nao `CLIENT_TESTED`.
+
+### Falha de RC na seleção de personagem e no Field — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `TMSelectCharScene` e `TMFieldScene` ignoravam o
+  retorno de `LoadRC`. Agora interrompem a inicialização se o RC falhar; no
+  Field, isso impede que recurso ausente/corrompido entre no fallback reservado
+  para o `FieldScene2.bin` 7.48 válido sem o controle moderno `66817`.
+- `Build-Client.ps1 -NoDeploy`: 51.795 checks PASS, cenas recompiladas em
+  Release|x86, candidato SHA-256
+  `9F3C1DA5B193D7F5D364AEB16F33758938537A1A6F6441F6F5F1D0575AE08F91`.
+  As guardas têm teste de ordem estático; não houve injeção do arquivo RC no
+  client executável. Candidato não instalado, não `CLIENT_TESTED`.
+
+### Alinhamento de grupos esparsos na seleção — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: o painel decorativo dos grupos agora usa o índice
+  da linha visível, como o texto e a área clicável. O slot físico ainda
+  identifica o painel e o endpoint; configuração densa e wire não mudam.
+- `Build-Client.ps1 -NoDeploy`: 51.796 checks PASS e compilação incremental
+  Release|x86, candidato SHA-256
+  `E491C5C4C4011BED8105DE5CFD95FF17CDEAAC3C03C32B989CFBEBC5922F1B2D`.
+  Guarda geométrica estática; candidato não instalado, sem clique em grupo
+  esparso no client. `STATICALLY VERIFIED / AUTOMATED TESTED`, não
+  `CLIENT_TESTED`.
+
+### Conclusão do fade dos grupos — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: o ramo final de `SetAlphaServer` agora cobre todos
+  os painéis de grupo existentes, como o ramo parcial já fazia; antes só os
+  slots 0 e 1 recebiam a cor final. Sem mudança de duração, asset ou wire.
+- `Build-Client.ps1 -NoDeploy`: 51.797 checks PASS, cena recompilada em
+  Release|x86, candidato SHA-256
+  `8D139C4EF065F7AFDD65C6DEFC77D6ECC3887A6689BB92C1E414D9BF38D0C975`.
+  A guarda ampliada passou 51.798 checks sem recompilar o produto.
+  Houve uma falha inicial na guarda estática por CRLF, corrigida antes do build
+  aprovado. O frame não foi visto no client; candidato não instalado,
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`.
+
+### Transferência de personagem sem serviço de destino — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: o WYD-Go agora aceita `0xFAA/52` somente na
+  seleção autenticada e responde `Result=4` no mesmo layout. O client 7.48
+  exibe erro genérico e libera a espera; nenhum slot, nome ou conta é alterado.
+  Não há confirmação de transferência: destino, identidade e persistência
+  atômica ainda precisam de contrato próprio. `0x52A` não substitui `0xFAA`.
+- `go test -count=1 ./internal/game ./internal/wire` PASS. Cobertos tamanho,
+  fase, Result/Slot, resposta desencriptada e imutabilidade da conta.
+  `AUTOMATED TESTED` no servidor; sem clique/resposta real no client, não
+  `CLIENT_TESTED`. A janela de alerta de segurança do Windows bloqueou o
+  teste visual; cabe ao usuário resolver esse alerta antes de retomá-lo.
+
+### Falha ao carregar o terreno da seleção — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: a cena de seleção agora encerra a inicialização
+  quando `Env\\Field1616.trn` não carrega. Antes marcava erro crítico e seguia
+  montando a cena com terreno indisponível. O caminho de asset válido e o wire
+  permanecem iguais.
+- `Build-Client.ps1 -NoDeploy`: 51.814 checks PASS e build Release|x86 PASS.
+  Guarda estática confirma o retorno antes do uso da máscara do terreno; não
+  houve injeção de asset ausente no executável. `STATICALLY VERIFIED /
+  AUTOMATED TESTED`, não `CLIENT_TESTED`.
+- O client foi aberto com autorização do usuário, mas duas capturas da janela
+  falharam com `0x80004002`; não houve clique nem validação visual. O grupo
+  agregado segue sem contrato nativo suficiente para mudar seu mapeamento.
+
+### Leitura segura do terreno 7.48 — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: o leitor `.trn` mantém o layout nativo de nome
+  prefixado por byte, dois bytes de coordenada e 4096 tiles de 12 bytes.
+  Rejeita nome sem espaço para terminador e qualquer leitura parcial, antes
+  de derivar posição e máscaras. A seleção de personagem e a inicialização
+  principal do campo agora encerram a carga se o terreno falhar.
+- `Build-Client.ps1 -NoDeploy`: 51.824 checks PASS, incluindo o
+  `client748/Env/Field1616.trn` real, nome-limite e truncamentos; compilação
+  Release|x86 PASS. SHA-256 do candidato:
+  `90431DEE41C41F5CAA9BC10A255F78C5345BE9D250172CA97518CC2519B69773`.
+  `git diff --check` sem erro de whitespace. A primeira tentativa de build
+  falhou por redeclaração de variável apenas no teste, corrigida e aprovada.
+- O processo `client748/project.exe` existente não foi substituído. A tentativa
+  visual autorizada não obteve uma janela estável: `sky.get_window` respondeu
+  `window id 11535688 was not found` mesmo após nova seleção. Sem clique ou
+  validação do candidato no runtime. `STATICALLY VERIFIED / AUTOMATED TESTED`,
+  não `CLIENT_TESTED`. Próximo gate: instalar o candidato quando o client
+  estiver fechado e exercer seleção, criação de personagem e entrada no campo.
+
+### Liberação do terreno recusado durante warp — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `TMScene::Warp2` agora libera o `TMGround` recém-criado
+  quando `LoadTileMap` falha, antes da transferência de propriedade para a cena.
+  O terreno atual, o asset válido e o contrato de rede não mudam.
+- `Build-Client.ps1 -NoDeploy`: 51.825 checks PASS e compilação incremental
+  Release|x86 PASS. SHA-256 do candidato:
+  `451BCB1EAD70A776C02A26DE5DB86C7C7AF9B17DDB0FF15F284EAA3B005ADC49`.
+  `git diff --check` sem erro. Guarda de regressão é estática; falha de mapa não
+  foi injetada no runtime. `STATICALLY VERIFIED / AUTOMATED TESTED`, não
+  `CLIENT_TESTED`.
+- O processo `client748/project.exe` permanece em uso e não foi substituído.
+  A tentativa visual autorizada falhou novamente: a janela listada como
+  `11535688` deixou de ser encontrada no instante da captura (a ferramenta
+  informou `34800848`); a recuperação única não estabilizou o identificador.
+  Nenhum clique foi feito. Instalação e fluxo visual do candidato pendentes.
+
+### Leitura segura dos objetos de campo 7.48 — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `TMObjectContainer::Load` valida a leitura completa
+  e os limites dos registros de 28/36 bytes antes de criar objetos; a cópia
+  de cada registro deixa de ler os 8 bytes opcionais após o fim do arquivo.
+  O layout e os tipos aceitos permanecem os do runtime 7.48. A inicialização
+  do campo e `Warp2` encerram a transição e liberam objetos/terreno ainda não
+  anexados quando o `.dat` falha.
+- `Build-Client.ps1 -NoDeploy`: 51.830 checks PASS, incluindo os 96 arquivos
+  reais `client748/Env/Field*.dat`, limites de tipos e truncamentos; build
+  incremental Release|x86 PASS. SHA-256 do candidato:
+  `E42E96E99D7507313B7BF981AD8C5261E2074A3A8D28DC0C219650360AE1D9E0`.
+  `git diff --check` sem erro. A primeira tentativa de teste falhou por
+  conferir `ifstream::eof()` após leitura por iteradores; corrigido para
+  `!bad()` e aprovado.
+- O candidato não foi instalado. A tentativa de abrir `build/.../WYD.exe`
+  com o diretório de trabalho do runtime saiu antes de criar janela porque
+  `project.exe` (PID 8144) já estava aberto e `NewApp.cpp` impede uma segunda
+  instância pelo título. Nenhum clique foi feito. `STATICALLY VERIFIED /
+  AUTOMATED TESTED`, não `CLIENT_TESTED`; teste visual do candidato aguarda
+  fechamento combinado da sessão atual.
+
+### Rollback do terreno vizinho sem objetos — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `GroundNewAttach` agora libera primeiro o container
+  de objetos e depois o terreno secundário antigo. Se a carga de `Field*.dat`
+  falhar após `Attach`, remove os links direcionais que apontam para o candidato
+  e libera container e terreno antes de marcar o erro crítico. O caminho de
+  sucesso, os assets e o wire 7.48 permanecem inalterados.
+- `Build-Client.ps1 -NoDeploy`: 51.833 checks PASS e compilação incremental
+  Release|x86 PASS. SHA-256 do candidato:
+  `01E43147C447FC3B4A9312160A61C0A79F365CF9E639FBE3DF89AC10D89ECCBE`.
+  Guarda de regressão cobre ordem de liberação e rollback; `git diff --check`
+  sem erro de whitespace. `STATICALLY VERIFIED / AUTOMATED TESTED` somente.
+- O usuário autorizou o teste visual, mas a ferramenta de janelas perdeu o
+  identificador da janela do `project.exe` antes da captura (`11535688` foi
+  substituído por `34800848`; a segunda tentativa falhou por ausência de PID
+  na janela de primeiro plano). Nenhum clique foi feito. O candidato não foi
+  instalado e a falha de `.dat` não foi provocada no runtime. O gate
+  `CLIENT_TESTED` segue pendente; retomar quando a janela puder ser capturada
+  e a sessão atual estiver fechada para permitir a instalação do candidato.
+- Atualização `MODERNIZACAO_COMPATIVEL`: o rollback acima removia links, mas
+  não restaurava a borda de tiles/normais já copiada por `TMGround::Attach`.
+  A primeira tentativa deslocou `Attach` para depois de `Field*.dat`; ela foi
+  **substituída** pela correção abaixo porque alterava o fluxo válido. O
+  vizinho antigo continua desligado antes de ser liberado. Binário/Ghidra e
+  servidor: `NÃO APLICÁVEL` à ordem interna sem mudança de asset ou wire.
+  Guarda de ordem/cleanup em
+  `SceneDisconnectContractTests.cpp`; `Build-Client.ps1 -NoDeploy`:
+  51.844 checks PASS, compilação incremental Release|x86 PASS, SHA-256
+  `7B231A2CCA8134473C6366A4D51885FFC969C399FBF8474E453976AC2CCC1269`.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`; injeção de falha no executável e
+  fluxo visual continuam pendentes.
+- Correção da regressão de ordem (`MODERNIZACAO_COMPATIVEL`, 2026-09-23):
+  `TMObjectContainer::Load` consulta `GroundGetColor` e chama `GroundSetColor`
+  pela cena para efeitos 501..503 e 506. Os `Field*.dat` reais contêm 3.186
+  registros 501, 116 de 502, 452 de 503 e 2.905 de 506; a ordem anterior deixava o
+  vizinho fora dos links da cena durante a carga e poderia suprimir a cor
+  desses efeitos. `GroundNewAttach` voltou a anexar antes de carregar os
+  objetos; guarda 64 tiles/normais da borda ativa e o estado do minimapa e,
+  em falha de `.dat`, desliga os links, restaura a borda e libera o candidato.
+  `Attach` inválido também libera o candidato. Asset/wire/servidor não mudam;
+  binário/Ghidra `NÃO APLICÁVEL` à proteção interna do rollback. Guarda
+  estática atualizada; `Build-Client.ps1 -NoDeploy`: 51.844 checks PASS,
+  Release|x86 PASS, SHA-256 do candidato
+  `95D94D8D82DF90BDDE1ACECB7F9C8C43DC40A2792A7BA289BBA100336B95F76C`.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`. A sessão
+  antiga `project.exe` (PID 8144) ainda estava aberta; candidato não instalado.
+
+### Limpeza e limites da máscara de terreno — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `GroundNewAttach` e `Warp2` agora zeram os 65.536
+  bytes de `m_HeightMapData` antes de reconstruir o mapa, em vez de apenas os
+  quatro primeiros bytes. As duas sobrecargas de `GroundGetMask` limitam o
+  índice 256 ao último índice válido, 255. O layout do terreno, os assets e o
+  wire não mudam; evita atributos antigos no espaço não copiado e acesso fora
+  do array exatamente na borda superior.
+- `Build-Client.ps1 -NoDeploy`: 51.837 checks PASS e compilação incremental
+  Release|x86 PASS. Candidato SHA-256
+  `4DE6FA216E178D8464DC7CAEE014D70EEB9B01968F1737AA490BB0298ED887E8`.
+  Guardas estáticas cobrem os dois caminhos de reconstrução e as duas consultas;
+  `git diff --check` sem erro de whitespace. `STATICALLY VERIFIED /
+  AUTOMATED TESTED`, não `CLIENT_TESTED`. Candidato não instalado; a validação
+  visual aguarda a janela do client ficar estável e a sessão atual ser fechada.
+
+### Falha de terreno vizinho sem recarga por quadro — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `GroundNewAttach` agora sinaliza como erro crítico a
+  falha de leitura ou validação de `Field*.trn`, com o código 10 já usado em
+  `Warp2`, libera o candidato e preserva o terreno ativo antes de qualquer
+  substituição. A guarda inicial impede nova tentativa por quadro (inclusive
+  uma segunda direção no mesmo quadro) enquanto a cena está em erro. O caminho
+  de carga bem-sucedida, os assets e o wire permanecem inalterados.
+- Guarda estática adicionada a `SceneDisconnectContractTests.cpp` (arquivo de
+  testes já presente como untracked no worktree). `Build-Client.ps1 -NoDeploy`:
+  51.838 checks PASS e compilação incremental Release|x86 PASS. Candidato
+  SHA-256 `B6FECE8A767F058A9A962FD3456537EDB776D0B91E45C86CCF4B6A2AA123E454`.
+  `git diff --check` sem erro de whitespace. `STATICALLY VERIFIED /
+  AUTOMATED TESTED`, não `CLIENT_TESTED`; o candidato não foi instalado no
+  runtime. A captura visual autorizada não pôde prosseguir: `list_windows`
+  retornou a janela `WYDESTINY MMORPG`, mas `get_window` rejeitou o ID como
+  inexistente mesmo após atualizar a lista. Nenhuma entrada foi enviada ao
+  client, e a sessão aberta foi preservada.
+
+### Coordenadas internas do terreno antes da troca — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `GroundNewAttach` e `Warp2` agora comparam as
+  coordenadas carregadas do registro `.trn` com as coordenadas solicitadas
+  pelo nome `FieldXXYY.trn`. Um arquivo estruturalmente válido, mas nomeado
+  para outra posição, é descartado antes de anexar/substituir o terreno;
+  recebe o mesmo erro crítico 10 já usado para falha de `.trn`. Isto evita
+  links direcionais errados e desreferência nula na montagem da máscara.
+  A source `TMGround::Attach` compara apenas um eixo ao escolher o vizinho;
+  por isso a verificação completa fica antes da chamada. Asset 7.48:
+  96/96 arquivos `client748/Env/Field*.trn` têm coordenadas internas iguais
+  às do nome, conferidas diretamente no cabeçalho dos registros. O caminho
+  válido e o wire não mudam; binário/Ghidra: `NÃO APLICÁVEL` para esta guarda
+  defensiva sem alteração do contrato válido; servidor: `NÃO APLICÁVEL`.
+- Guardas em `SceneDisconnectContractTests.cpp`; `Build-Client.ps1 -NoDeploy`:
+  51.840 checks PASS, build incremental Release|x86 PASS. Candidato SHA-256
+  `2ABE6D3084588607677C12FF33EAA2AFBE1A2F4A82BF8BB514AFB4E272DF2CB1`.
+  `git diff --check` sem erro de whitespace. `STATICALLY VERIFIED /
+  AUTOMATED TESTED`, não `CLIENT_TESTED`; o executável novo não foi instalado.
+- Fechamento da mesma fronteira: `TMGround::Attach` agora exige deslocamento
+  unitário em exatamente um eixo e não limpa os links existentes se o terreno
+  não for adjacente. Único caller ativo: `GroundNewAttach`, já protegido pela
+  comparação completa das coordenadas. Guarda estática adicionada ao teste;
+  `Build-Client.ps1 -NoDeploy`: 51.841 checks PASS e build incremental
+  Release|x86 PASS, SHA-256
+  `2FE9C8D877F2FE041E9AF433BD6458FD3CC18DEB8277C0590F9383CE18B22856`.
+  O `project.exe` antigo (PID 8144) segue em execução; candidato não instalado
+  nem `CLIENT_TESTED`.
+
+### Limite da máscara dos objetos de campo — 2026-09-22
+
+- `MODERNIZACAO_COMPATIVEL`: `TMObject::RegisterMask` rejeita índices de
+  máscara fora de `0..2047` e agora escreve em
+  `m_pMaskData[maskY][maskX]` somente com ambos os índices em `0..127`.
+  O endereçamento anterior achatava `nBaseY` na segunda dimensão e aceitava
+  128, que fica fora do array `128x128` de `TMGround`. Para posições internas,
+  o endereço e o valor da máscara permanecem iguais; os 96 `Field*.dat` do
+  runtime 7.48 têm 124.004 registros, todos com índice de máscara `3..2035`.
+  Não muda asset, wire ou
+  autoridade do servidor. Evidência: dimensões reais do array e a source do
+  fluxo de carga de objetos; binário/Ghidra `NÃO APLICÁVEL` à guarda de limite
+  sem alteração do contrato válido; servidor `NÃO APLICÁVEL`.
+- Guarda estática em `SceneDisconnectContractTests.cpp`; `Build-Client.ps1
+  -NoDeploy`: 51.842 checks PASS e compilação incremental Release|x86 PASS,
+  após a guarda de índice. Candidato SHA-256
+  `ED427AB5059D418AC66E9E089CDB0DB2B19638BF718C52C32ABFCFB8CE9E05D6`.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`: o executável
+  instalado não foi substituído enquanto o `project.exe` anterior segue aberto.
+
+### Capacidade dos objetos de água e luz — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL`: `ValidateObjectFileRecords` rejeita, antes de
+  criar qualquer objeto, um `Field*.dat` com mais de 10 registros de água
+  (tipo 2) ou mais de 6 luzes (tipos 511..518), que excederiam os arrays fixos
+  de `TMGround` e `TMObjectContainer`. O loader passa as capacidades reais dos
+  arrays, além do limite geral de 4.096 registros. Todos os 96 arquivos de
+  campo do runtime 7.48 passam. Os limites exatos e os casos excedentes são
+  exercidos por testes de bytes sintéticos. Binário/Ghidra: `NÃO APLICÁVEL` à
+  rejeição de arquivo inválido sem mudança no caminho válido; assets 7.48:
+  `UTILIZADOS`; source: `UTILIZADA`; servidor: `NÃO APLICÁVEL` (arquivo local).
+- `Build-Client.ps1 -NoDeploy`: 51.847 checks PASS e Release|x86 PASS.
+  `Build-Client.ps1`: mesmos checks PASS, candidato instalado e SHA-256
+  `9DE2AAAB34E21D1A4ECFE9321F6ECC8F88F256D5E07DBCCFA248A384CB0BC215`
+  conferido entre build e `client748/project.exe`. `STATICALLY VERIFIED /
+  AUTOMATED TESTED`, não `CLIENT_TESTED`: o controle visual foi interrompido
+  pelo Esc do usuário durante a tentativa de abrir o client. Houve autorização
+  posterior para retomar, mas a captura da janela falhou (ver abaixo).
+
+### Coordenadas de folhas na máscara de campo — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL`: a validação prévia de `Field*.dat` agora rejeita
+  coordenadas de folhas (tipos 311..322) que produziriam índice negativo na
+  máscara `m_pVAttrData[128][128]` ou conversão `float`→`int` indefinida. O
+  cálculo usado pelo loader não foi alterado. Frações reais como `-0.6` e
+  `127.3` continuam aceitas porque a conversão C++ trunca antes de `% 128`;
+  uma guarda ingênua de `0..127` quebraria os assets 7.48. O offset de
+  `vecPosition` no registro é verificado por `static_assert`. Binário/Ghidra:
+  `NÃO APLICÁVEL` à rejeição de arquivo inválido sem mudança no caminho válido;
+  assets 7.48: `UTILIZADOS`; source: `UTILIZADA`; servidor: `NÃO APLICÁVEL`.
+- Testes sintéticos cobrem as frações válidas, `-1`, NaN, infinito e o limite
+  inteiro superior; os 96 `Field*.dat` originais continuam passando.
+  `Build-Client.ps1 -NoDeploy`: 51.849 checks PASS e Release|x86 PASS;
+  `Build-Client.ps1`: mesmos checks PASS, candidato instalado e SHA-256
+  `25498FB3767C1CA59AADF19CEEBA4E65C2285967A45E7857C150618E7FC05EED`
+  conferido entre o build e `client748/project.exe`.
+- Com nova autorização do usuário, a janela única `WYDESTINY MMORPG` foi
+  localizada, mas a captura falhou duas vezes com `SetIsBorderRequired failed:
+  No such interface supported (0x80004002)`. Nenhum clique foi enviado.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, ainda não `CLIENT-TESTED`.
+
+### Conversões dos registros de objetos de campo — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL`: o preflight de `Field*.dat` também rejeita
+  coordenadas/altura não finitas ou fora da faixa conversível para `int`,
+  incluindo a soma das coordenadas com o offset efetivo do campo. Isso cobre
+  todos os tipos de registro antes das conversões comuns do loader, sem mudar
+  os valores válidos. Testes sintéticos exercem NaN, infinito, limite inteiro
+  e overflow por offset; os 96 arquivos de campo 7.48 passam. Binário/Ghidra:
+  `NÃO APLICÁVEL` à rejeição de arquivo inválido; servidor: `NÃO APLICÁVEL`.
+- `Build-Client.ps1 -NoDeploy`: 51.851 checks PASS e Release|x86 PASS;
+  candidato gerado em `build/`, sem instalar no runtime. Estado:
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`.
+- Restrição explícita do usuário: não tentar teste visual ou captura da janela
+  nesta máquina. Nenhuma nova tentativa foi feita neste lote. Validação do
+  fluxo no client executável permanece pendente por essa limitação.
+- No mesmo loader, o checksum acumulado não tinha consumidor ativo (o único
+  uso estava em bloco comentado após `return`) e foi removido. A chave espacial
+  mantém os mesmos quadrantes da grade com deslocamento em inteiro sem sinal,
+  evitando comportamento indefinido no deslocamento com sinal. A busca de
+  referências encontrou o checksum apenas nesse bloco morto; testes de chaves
+  e dos 96 assets passaram. Novo gate após essa edição: 51.852 checks PASS e
+  Release|x86 PASS (`Build-Client.ps1 -NoDeploy`), ainda não `CLIENT_TESTED`.
+- O comentário que questionava a liberação de `m_pObjectList` foi removido
+  após conferir `TreeNode::~TreeNode` e `AddChildWithKey`: os objetos são
+  filhos proprietários da árvore; o array é índice não proprietário. Apagá-los
+  novamente no destrutor causaria dupla liberação. As seis luzes permanecem
+  liberadas separadamente pelo destrutor do container.
+
+### Confirmação de descarte de item — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL`: o `case 740` do `TMFieldScene` não chama mais
+  `PickupAtItem` antes de enviar `MSG_DeleteItem`. Essa chamada transferia o
+  ownership para um retorno ignorado, vazando o `SGridControlItem`; também
+  ocultava o item antes de uma possível rejeição. O grid agora mantém o item
+  até `SendItem` autoritativo (0x182), cujo handler existente retira, limpa
+  aliases e libera o visual tanto em sucesso quanto na ressincronização.
+  Guardas de ponteiros impedem desreferência após fechamento da UI. Não houve
+  alteração no wire ou no servidor. A ficha `send-item-local-update.md` cobre
+  o receptor 0x182 e seu ownership; não se afirma paridade nativa integral do
+  fluxo de descarte 0x2E4 sem pesquisa adicional.
+- Guarda estática de ordem/ownership em `SceneDisconnectContractTests.cpp`;
+  `go test -count=1 ./internal/game -run '^TestDeleteItem'` PASS;
+  `Build-Client.ps1 -NoDeploy`: 51.853 checks PASS e Release|x86 PASS,
+  SHA-256 `0D30F2222CDC1E0925B937C0DC67E25325F1BA5F0FF354E9C7F465F743428D00`.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT-TESTED`; nenhum
+  executável foi instalado e nenhuma captura/tentativa visual foi realizada.
+  O usuário explicitou que não se deve repetir tentativas de visualizar a
+  tela nesta sessão. O fluxo real de confirmação permanece pendente.
+- No mesmo fluxo, `SGridControl::SellItem` agora rejeita item/índice inválido
+  antes de acessar `ItemList` e monta o texto da confirmação como dado limitado
+  aos 64 bytes de `Name`, sem interpretar `%` como formato nem ler além de um
+  registro sem terminador. Testes de contrato cobrem a ordem das guardas e um
+  nome de 64 bytes não terminado contendo `%s`. Sem mudança no wire ou servidor.
+  `Build-Client.ps1 -NoDeploy`: 51.855 checks PASS, Release|x86 PASS,
+  SHA-256 `E9784EC0EBDA6CBF0855FD0D686C359390F28EA0FF4B00FD32DBBDA6FF1D5866`;
+  `git diff --check` PASS. `STATICALLY VERIFIED / AUTOMATED TESTED`, não
+  `CLIENT-TESTED`. Nenhum executável instalado e nenhuma tentativa de tela.
+
+### Confirmação de venda com nome de item — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL`: os três caminhos de venda em `SGrid` (duplo clique,
+  drag em Shop e `SellItem2`) usam um formatter comum que valida o item/índice,
+  lê `ItemList.Name` até 64 bytes e substitui literalmente o único `%s` do
+  molde 342. O `strdef.bin` 7.48 consumido contém `'%s'`; saída válida e
+  envelope `MSG_Sell` ficam inalterados. Molde inválido/truncado é rejeitado
+  antes de mostrar o modal ou emitir packet. Binário/Ghidra: `NÃO APLICÁVEL`
+  à guarda interna de limites sem mudar o fluxo válido; asset 7.48 e source:
+  `UTILIZADOS`; servidor: `NÃO APLICÁVEL` (wire/autoridade inalterados).
+- Testes C++ exercitam nome de 64 bytes sem terminador contendo `%s`, overflow,
+  molde ambíguo e ausência dos três `sprintf` antigos. `Build-Client.ps1
+  -NoDeploy`: 51.858 checks PASS, Release|x86 PASS, SHA-256
+  `C76F01EF9B3BD9AB36ABC5762027A11473A68067BA8D8AA4A0806F9CF0F2FE25`;
+  `git diff --check` PASS. `STATICALLY VERIFIED / AUTOMATED TESTED`, não
+  `CLIENT-TESTED`; nenhuma instalação, abertura ou captura do client.
+
+### Venda em loja: endereço do slot e vínculo ao mercador — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL`: a confirmação `case 890` agora obtém o slot de
+  Carry pela mesma projeção nativa de nove colunas usada no atalho de venda,
+  com guardas para controles/objeto ausentes. O `MSG_Sell` continua com 20
+  bytes, `TargetID` do mercador visível, `MyType` e `MyPos` nas posições
+  existentes. A evidência da projeção 7.48 já está registrada em
+  `GetCarrySlotForCell`/`FUN_0052a737`; nenhuma pesquisa nativa nova foi
+  necessária para a guarda interna.
+- No emulador, `onSellItem` passou a exigir `TargetID == ShopNPC`, como já
+  faz `onBuyItem`. O NPC, preço e
+  item seguem resolvidos pelo estado autoritativo, não pelo ID do pacote.
+  Os testes de venda existentes passaram a enviar o mercador aberto; o
+  lifecycle cobre rejeição de ID divergente sem alterar item, gold ou save,
+  seguida de venda válida. Não houve remoção de arquivos nem alteração de
+  formato wire.
+- Gate: testes Go focados de loja, segurança, imposto, rollback e passivo
+  PASS; `Build-Client.ps1 -NoDeploy` 51.859 checks PASS e Release|x86 PASS
+  (candidato somente em `build/`); `git diff --check` PASS.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT-TESTED`.
+  Por restrição explícita do usuário, não instalar, abrir ou capturar o client
+  nesta sessão; o fluxo visual permanece pendente.
+
+### Slot estrutural 63 fora da grade Carry — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL`: `GetCarryGridForSlot` agora limita a projeção
+  visual a `MAX_VISIBLE_CARRY` (0..62). Antes aceitava o slot estrutural 63,
+  que virava célula (0,7) fora da grade nativa 9x7. O array e o snapshot wire
+  de 64 itens não mudaram; `TMHuman::OnPacketSendItem` ainda atualiza o estado
+  estrutural antes de consultar a grade. A evidência de geometria 7.48 já
+  constava da ficha `send-item-local-update.md` e dos contratos de Carry.
+- Teste estático protege o limite da grade; teste de snapshot existente
+  preserva o item estrutural 63 no wire. `Build-Client.ps1 -NoDeploy`:
+  51.860 checks PASS e Release|x86 PASS; `git diff --check` scoped PASS.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT-TESTED`.
+  Nenhuma instalação, abertura ou captura do client; teste visual pendente.
+
+### Swap confirmado com grade visual ausente — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL`: `OnPacketSwapItem` agora resolve os dois slots
+  lógicos validados e aplica a confirmação `0x376` diretamente ao cache, sem
+  depender de `PickupItem`/`AddItem` ou da existência do grid de equipamento.
+  Antes, um grid ausente causava desreferência nula; uma falha de visual podia
+  zerar um item confirmado pelo servidor. A transação visual continua usando
+  as regras de ownership existentes, mas não determina mais o item lógico.
+  Também se restringiu o reset da montaria a saída de `Equip[14]`: Carry/Cargo
+  posição 14 não é slot de montaria. Wire, servidor e arrays 7.48 inalterados.
+- Reutilizada a ficha `inventory-transaction-confirmations.md` (`CONTRACT`):
+  binário/Ghidra `NÃO APLICÁVEL` à guarda interna sem alteração do fluxo válido;
+  source e teste C++ `UTILIZADOS`; servidor `NÃO ALTERADO` (confirmação já
+  autoritativa). Os testes cobrem cópia integral de item, slot vazio, alias
+  origem/destino e ordem do commit independente das grades.
+- `Build-Client.ps1 -NoDeploy`: 51.865 checks PASS e Release|x86 PASS;
+  candidato permaneceu em `build/`. `STATICALLY VERIFIED / AUTOMATED TESTED`,
+  não `CLIENT-TESTED`. Nenhuma instalação, abertura ou captura do client foi
+  feita; o teste real está vedado pelo usuário nesta sessão.
+- Continuação do mesmo lote: depois do commit lógico, se uma grade existente
+  estiver sem o ícone do item confirmado, o handler o recria da cópia do cache
+  usando `SetItemOnGrid`. Não duplica o visual já presente e preserva o cache
+  caso a inserção seja rejeitada. Se o controle inteiro não existir, nenhuma
+  UI pode ser atualizada nessa posição; o item lógico continua preservado.
+  Teste estático protege a ordem commit/restauração e ambos os lados da troca.
+  `Build-Client.ps1 -NoDeploy`: 51.865 checks PASS e Release|x86 PASS;
+  `git diff --check` scoped PASS. `STATICALLY VERIFIED / AUTOMATED TESTED`,
+  não `CLIENT-TESTED`; nenhuma tentativa visual nesta continuação.
+- Ownership do mesmo handler: ao descartar um visual rejeitado, inclusive no
+  caso de item abaixo do índice 41, `releaseRejectedVisual` agora limpa os
+  aliases globais de hover, último anexo, venda e cursor antes da liberação.
+  Segue o cleanup já aplicado por `SGridControl::Empty`; evita ponteiros
+  pendentes sem mudar o wire nem o estado autoritativo. Teste estático cobre
+  os quatro aliases e a ausência de deleção direta nos dois lados da troca.
+  O diálogo de divisão de item (`case 12`) agora verifica a existência do
+  item/controle antes de consultá-los: ele pode permanecer aberto após essa
+  liberação e fecha pelo caminho comum sem enviar `MSG_SplitItem` inválido.
+  Teste estático cobre a guarda anterior ao acesso. Gate final
+  `Build-Client.ps1 -NoDeploy`: 51.867 checks PASS e Release|x86 PASS.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT-TESTED`; nenhuma
+  instalação, abertura ou captura do client.
+
+### SendItem recebido por humano remoto — 2026-09-23
+
+- `MODERNIZACAO_COMPATIVEL` no filtro do receptor: a ficha existente
+  `send-item-local-update.md` (`LOCATED`) registra uma comparação do receptor
+  com o humano local antes das cópias, mas não prova paridade integral.
+  `TMHuman::OnPacketSendItem` agora
+  consome `0x182` destinado a outro humano antes de consultar a grade,
+  escrever no cache local ou recalcular sua aparência com o equipamento
+  do jogador. O emulador envia `SendItem` à sessão do próprio personagem;
+  wire, servidor, assets e fluxo local não foram alterados.
+- O teste de contrato verifica que a guarda precede `Bag_View`, a primeira
+  escrita de equipamento e `SetPacketMOBItem`. `Build-Client.ps1 -NoDeploy`:
+  51.868 checks PASS e Release|x86 PASS, com quatro avisos C4018 preexistentes
+  em trechos não alterados de `TMHuman.cpp`. `STATICALLY VERIFIED /
+  AUTOMATED TESTED`, não `CLIENT-TESTED`. Não instalar, abrir, capturar ou
+  automatizar a tela do client nesta máquina; teste visual permanece pendente.
+- `MODERNIZACAO_COMPATIVEL` adjacente: antes de qualquer atualização local,
+  `OnPacketSendItem` também rejeita `sIndex` negativo ou maior que o último
+  índice do `ItemList.bin` 7.48 (6.500 entradas). Zero segue como slot vazio.
+  Evita acesso fora de `g_pItemList` ao recalcular equipamento; frame e itens
+  válidos continuam iguais. Teste de contrato protege a ordem da guarda;
+  `Build-Client.ps1 -NoDeploy`: 51.869 checks PASS e Release|x86 PASS.
+  Validador das fichas e `git diff --check` scoped PASS.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`; `CLIENT-TESTED` segue vedado
+  nesta máquina.

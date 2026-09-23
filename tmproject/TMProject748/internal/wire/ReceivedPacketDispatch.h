@@ -16,8 +16,18 @@
 #include "CreateMobContract.h"
 #include "ShopListContract.h"
 #include "ItemSoldContract.h"
+#include "PlayerChallengeContract.h"
 #include "CombineCompleteContract.h"
+#include "TradeSessionContract.h"
+#include "TradeCheckConfirmationContract.h"
 #include "WarInfoContract.h"
+#include "ShortSkillSnapshotContract.h"
+#include "ActionFrameContract.h"
+#include "AttackFrameContract.h"
+#include "InventoryTransactionContract.h"
+#include "CargoGoldTransferContract.h"
+#include "AutoTradeContract.h"
+#include "CapsuleInfoContract.h"
 #include "PremiumFireworkPacket.h"
 #include "GamblePacket.h"
 #include "MessagePanelPacket.h"
@@ -26,6 +36,7 @@
 #include "WhisperMessagePacket.h"
 #include "CharacterLogoutConfirmPacket.h"
 #include "CharacterLoginConfirmContract.h"
+#include "LoginPacketContract.h"
 #include "ClientIntegrityArrayContract.h"
 #include "MobKillConfirmPacket.h"
 #include "UpdateEtcPacket.h"
@@ -50,6 +61,10 @@ namespace received_packet
     // Zero identifica contrato ainda nao migrado; nunca significa frame vazio.
     inline std::size_t ExpectedSize(unsigned int opcode)
     {
+		const auto loginSize = LoginPacketExpectedSize(ClassifyLoginPacket(opcode));
+		if (loginSize != 0)
+			return loginSize;
+
         switch (opcode)
         {
         case quiz_event::ChallengeOpcode: return sizeof(quiz_event::Challenge);
@@ -73,8 +88,22 @@ namespace received_packet
         case MSG_CreateMobTrade_Opcode: return kCreateMobTradePacketSize;
         case MSG_ShopList_Opcode: return kShopListPacketSize;
         case MSG_ItemSold_Opcode: return kItemSoldPacketSize;
+        case MSG_PlayerChallenge_Opcode: return kPlayerChallengePacketSize;
         case MSG_CombineComplete_Opcode: return kCombineCompletePacketSize;
+        case MSG_Trade_Opcode: return kTradePacketSize;
+        case MSG_CloseTrade_Opcode: return kCloseTradePacketSize;
+        case MSG_CNFTradeCheck_Opcode: return kTradeCheckConfirmationPacketSize;
         case MSG_WarInfo_Opcode: return kWarInfoPacketSize;
+        case MSG_SetShortSkill_Opcode: return kShortSkillSnapshotPacketSize;
+        case MSG_Action_Opcode:
+        case MSG_Action_Stop_Opcode:
+        case MSG_Action2_Opcode: return kActionPacketSize;
+        case MSG_SwapItem_Opcode: return kSwapItemPacketSize;
+        case MSG_Buy_Opcode: return kBuyPacketSize;
+        case MSG_Withdraw_Opcode:
+        case MSG_Deposit_Opcode: return kCargoGoldTransferPacketSize;
+        case MSG_AutoTrade_Opcode: return kAutoTradePacketSize;
+        case MSG_CapsuleInfo_Opcode: return kCapsuleInfoPacketSize;
         case MSG_PremiumFirework_Opcode: return sizeof(MSG_PremiumFirework);
         case MSG_ResultGamble_Opcode: return sizeof(MSG_ResultGamble);
         case MSG_MessagePanel_Opcode: return sizeof(MSG_MessagePanel);
@@ -86,7 +115,6 @@ namespace received_packet
         case MSG_CNFRemoveServer_Opcode: return sizeof(MSG_CNFRemoveServer);
         case MSG_MessageWhisper_Opcode: return sizeof(MSG_MessageWhisper);
         case MSG_CNFCharacterLogout_Opcode: return sizeof(MSG_CNFCharacterLogout);
-        case MSG_CNFCharacterLogin_Opcode: return kCharacterLoginConfirmPacketSize;
         case MSG_REQArray_Opcode: return sizeof(MSG_REQArray);
         case MSG_CNFMobKill_Opcode: return sizeof(MSG_CNFMobKill);
         case MSG_UpdateEtc_Opcode: return sizeof(MSG_UpdateEtc);
@@ -110,6 +138,17 @@ namespace received_packet
         // para inspecao; nunca escrever nem copiar o payload dos handlers.
         MSG_STANDARD header{};
         std::memcpy(&header, packet.data, sizeof(header));
+
+        // Ataques possuem prefixos nativos e extensoes coordenadas de tamanho
+        // variavel. Validar ambos os discriminantes e o comprimento real antes
+        // de qualquer cast em OnPacketAttack.
+        if (IsAttackOpcode(header.Type) || IsAttackOpcode(packet.opcode))
+        {
+            return packet.opcode == header.Type &&
+                header.Size == packet.size &&
+                IsAttackPacketSize(header.Type, packet.size);
+        }
+
         const auto expected = ExpectedSize(header.Type);
         if (expected != 0 || ExpectedSize(packet.opcode) != 0)
         {

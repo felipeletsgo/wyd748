@@ -4,7 +4,7 @@ title: Atualizacao local de slot por SendItem
 subsystem: ui
 status: LOCATED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-05
+updated: 2026-09-23
 ---
 
 # Atualizacao local de slot por SendItem
@@ -79,6 +79,11 @@ TMHuman::OnPacketSendItem agora rejeita indices negativos ou acima da capacidade
 real de Equip/Carry/Cargo antes de Bag_View/copias. O cache de selecao so e
 escrito com characterSlot em [0,4); ausencia desse cache nao impede atualizar
 equipamento do mundo. Slots extras locais de Equip sao mantidos.
+O receptor agora precisa ser o humano local antes de consultar a grade ou
+recalcular a aparencia a partir do cache global. Itens com `sIndex` negativo
+ou fora das 6.500 entradas do `ItemList.bin` 7.48 sao consumidos sem alterar
+o estado; indice zero continua representando slot vazio. Essa guarda interna
+evita que `SetPacketMOBItem` consulte `g_pItemList` fora do catalogo.
 Cargo captura e libera o retorno de PickupAtItem. A implementacao atual de
 SGrid.cpp remove o ponteiro da lista, ajusta ocupacao/escala e retorna ownership
 ao chamador; nao destroi o item nem limpa aliases de interacao. O destructor
@@ -144,3 +149,13 @@ Procedencia local; reaproveita evidencia de Pickup/Empty/destructor acima,
 sem novo claim nativo, ABI ou recurso. Debug/Release: 232 checks existentes
 PASS; nao cobrem eventos UI. Release instalado:
 `79ED78DEE7826F262C017096E006762B4755A16AA9C9FA41BD699130AE5B3C10`.
+
+Complemento 2026-09-23: o filtro de humano local e uma
+`MODERNIZACAO_COMPATIVEL` coerente com a comparacao observada em
+`FUN_0052A737`, sem promover esta ficha `LOCATED` a paridade integral.
+A guarda de `sIndex` tambem e `MODERNIZACAO_COMPATIVEL`, baseada na capacidade
+do asset ativo e na leitura direta de `g_pItemList` pela source; nao muda o
+frame nem itens validos.
+Teste de contrato estatico verifica ambas as guardas antes dos efeitos de UI
+e da primeira copia; `Build-Client.ps1 -NoDeploy` passou com 51.869 checks e
+Release|x86. Nao houve teste visual nem `CLIENT-TESTED`.

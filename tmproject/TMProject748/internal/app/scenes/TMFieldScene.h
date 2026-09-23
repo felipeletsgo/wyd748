@@ -403,6 +403,7 @@ private:
 public:
 	int m_bAirMove;
 	int m_nOldMountSkinMeshType;
+	LOOK_INFO m_stOldAirMoveMountLook;
 	int m_nAirMove_State;
 	unsigned int m_dwAirMove_TickTime;
 	int m_bAirMove_Wing;

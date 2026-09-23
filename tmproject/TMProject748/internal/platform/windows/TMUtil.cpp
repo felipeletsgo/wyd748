@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TMUtil.h"
 #include "PacketSendBoundary.h"
+#include "AttackFrameContract.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 #include <climits>
@@ -35,9 +36,15 @@ float disTanceSq(float stX, float stY, float taX, float taY)
 
 void SendOneMessage(char* Msg, int Size)
 {
+    if (Msg == nullptr || Size < static_cast<int>(sizeof(MSG_STANDARD)))
+        return;
+
     MSG_STANDARD* pMsgStandard = (MSG_STANDARD*)Msg;
-    if (Msg != nullptr 
-        && (LastSendTime + 1000 < CurrentTime || pMsgStandard->Type != MSG_Action_Opcode || g_usLastPacketType != MSG_Action_Opcode)
+    if (IsAttackOpcode(pMsgStandard->Type) &&
+        !IsClientToServerAttackPacketSize(pMsgStandard->Type, static_cast<std::size_t>(Size)))
+        return;
+
+    if ((LastSendTime + 1000 < CurrentTime || pMsgStandard->Type != MSG_Action_Opcode || g_usLastPacketType != MSG_Action_Opcode)
         && (LastSendTime + 1000 <= CurrentTime || pMsgStandard->Type != MSG_Attack_Multi_Opcode && pMsgStandard->Type != MSG_Attack_One_Opcode
         && pMsgStandard->Type != MSG_Attack_Two_Opcode || g_usLastPacketType != MSG_Attack_Multi_Opcode && g_usLastPacketType != MSG_Attack_One_Opcode && g_usLastPacketType != MSG_Attack_Two_Opcode))
     {

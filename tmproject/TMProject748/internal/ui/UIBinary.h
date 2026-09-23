@@ -1,6 +1,20 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdio>
+
+enum class RCControlTypeReadResult { Record, End, Invalid };
+
+// A clean EOF is valid only between complete four-byte control-type tags.
+inline RCControlTypeReadResult ReadRCControlType(std::FILE* stream, int& type)
+{
+    static_assert(sizeof(type) == 4, "RC control type ABI changed");
+    const std::size_t bytesRead = std::fread(&type, 1, sizeof(type), stream);
+    if (bytesRead == sizeof(type))
+        return RCControlTypeReadResult::Record;
+    return bytesRead == 0 && std::feof(stream)
+        ? RCControlTypeReadResult::End : RCControlTypeReadResult::Invalid;
+}
 
 struct BinCheckBox
 {

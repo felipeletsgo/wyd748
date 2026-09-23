@@ -24,7 +24,6 @@ public:
 
     virtual HRESULT Initialize(HINSTANCE hInstance, int nFull);
     HRESULT InitDevice();
-    void InitServerName();
     void InitMusicList();
     virtual HRESULT Finalize();
     virtual DWORD Run();

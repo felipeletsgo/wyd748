@@ -69,10 +69,32 @@ func TestRegistrationValidation(t *testing.T) {
 		{"abc", "Senha123!", "Senha123!"},
 		{"nome-invalido", "Senha123!", "Senha123!"},
 		{"Conta", "abc", "abc"},
+		{"Conta", "12345678901", "12345678901"},
 		{"Conta", "Senha123!", "Outra123!"},
 	} {
 		if _, err := Create(st, tc.user, tc.pass, tc.confirmation); err == nil {
 			t.Fatalf("cadastro invalido aceito: %+v", tc)
 		}
+	}
+}
+
+func TestNativePasswordLengthBoundary(t *testing.T) {
+	st := store.NewJSONStore(t.TempDir())
+	const maximum = "1234567890"
+	acc, err := Create(st, "Limite", maximum, maximum)
+	if err != nil {
+		t.Fatalf("senha nativa de dez caracteres rejeitada: %v", err)
+	}
+	if _, err := Authenticate(st, acc.Name, maximum); err != nil {
+		t.Fatalf("autenticacao no limite nativo falhou: %v", err)
+	}
+
+	hash, err := HashPassword("12345678901")
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := &authMemoryStore{acc: &model.Account{Name: "legada", PasswordHash: hash}}
+	if _, err := Authenticate(legacy, "legada", "12345678901"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("senha acima do limite nativo aceita no wire: %v", err)
 	}
 }

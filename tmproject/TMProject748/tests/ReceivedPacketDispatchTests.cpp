@@ -16,6 +16,7 @@
 #include "../internal/wire/PartyRemovePacket.h"
 #include "../internal/wire/PartyRequestPacket.h"
 #include "../internal/wire/MotionPacket.h"
+#include "../internal/core/ServerEndpoint.h"
 #include <array>
 #include <cstdio>
 #include <cstring>
@@ -86,6 +87,222 @@ int RunReceivedPacketDispatchTests(int& checks)
             std::fprintf(stderr, "FAIL: %s\n", name);
         }
     };
+
+    // Todos os envelopes emitidos durante login/selecao passam pela mesma
+    // fronteira global antes dos casts grandes das cenas.
+    struct SelectionEnvelope { unsigned int opcode; std::size_t size; };
+    const std::array<SelectionEnvelope, 6> selectionEnvelopes{{
+        {MSG_CNFAccountLogin_Opcode, kAccountLoginConfirmPacketSize},
+        {MSG_CNFNewCharacter_Opcode, kCharacterSelectionUpdatePacketSize},
+        {MSG_CNFDeleteCharacter_Opcode, kCharacterSelectionUpdatePacketSize},
+        {MSG_CNFCharacterLogin_Opcode, kCharacterLoginConfirmPacketSize},
+        {MSG_CNFNewCharacterFail_Opcode, kSelectionFailurePacketSize},
+        {MSG_AlreadyPlaying_Opcode, kSelectionFailurePacketSize},
+    }};
+    for (const auto& contract : selectionEnvelopes)
+    {
+        std::vector<char> packet(contract.size + 1, 0);
+        packet[0] = static_cast<char>(contract.size & 0xFF);
+        packet[1] = static_cast<char>((contract.size >> 8) & 0xFF);
+        packet[4] = static_cast<char>(contract.opcode & 0xFF);
+        packet[5] = static_cast<char>((contract.opcode >> 8) & 0xFF);
+        const auto originalPacket = packet;
+        int selectionCalls = 0;
+        const auto receiveSelection = [&](const PacketView& frame) {
+            ++selectionCalls;
+            check(frame.data == packet.data() && frame.size == contract.size &&
+                frame.opcode == contract.opcode,
+                "dispatch de selecao preserva view do transporte");
+        };
+
+        for (std::size_t size = 0; size < contract.size; ++size)
+            check(!received_packet::Dispatch({contract.opcode, packet.data(), size},
+                receiveSelection), "todo prefixo de selecao truncado e rejeitado");
+        check(!received_packet::Dispatch({contract.opcode, nullptr, contract.size},
+            receiveSelection), "frame de selecao nulo rejeitado");
+        check(!received_packet::Dispatch({contract.opcode, packet.data(), contract.size + 1},
+            receiveSelection), "frame de selecao excedente rejeitado");
+        check(!received_packet::Dispatch({0x119, packet.data(), contract.size},
+            receiveSelection), "metadado nao pode esconder Type de selecao");
+
+        packet[0] = static_cast<char>((contract.size - 1) & 0xFF);
+        packet[1] = static_cast<char>(((contract.size - 1) >> 8) & 0xFF);
+        check(!received_packet::Dispatch({contract.opcode, packet.data(), contract.size},
+            receiveSelection), "selecao rejeita Size declarado divergente");
+        packet[0] = static_cast<char>(contract.size & 0xFF);
+        packet[1] = static_cast<char>((contract.size >> 8) & 0xFF);
+
+        packet[4] = 0x19;
+        packet[5] = 0x01;
+        check(!received_packet::Dispatch({contract.opcode, packet.data(), contract.size},
+            receiveSelection), "selecao rejeita Type interno divergente");
+        packet[4] = static_cast<char>(contract.opcode & 0xFF);
+        packet[5] = static_cast<char>((contract.opcode >> 8) & 0xFF);
+
+        check(selectionCalls == 0, "frame de selecao invalido nao chama consumidor");
+        check(received_packet::Dispatch({contract.opcode, packet.data(), contract.size},
+            receiveSelection) && selectionCalls == 1,
+            "frame de selecao exato entregue uma vez");
+        check(packet == originalPacket, "gate de selecao nao modifica o buffer");
+    }
+
+    // Inventario dos envelopes fixos realmente produzidos pelo WYD-Go. Os
+    // tamanhos numericos espelham os builders Go de proposito: usar sizeof dos
+    // structs C++ aqui esconderia uma divergencia entre os dois peers.
+    struct ActiveServerEnvelope { unsigned int opcode; std::size_t size; };
+    const ActiveServerEnvelope activeServerEnvelopes[] = {
+        {MSG_MessagePanel_Opcode, 108},
+        {MSG_MessageIndexed_Opcode, 108},
+        {MSG_MessageParameterized_Opcode, 108},
+        {MSG_REQArray_Opcode, 24},
+        {MSG_CNFAccountLogin_Opcode, 2360},
+        {MSG_CNFNewCharacter_Opcode, 1288},
+        {MSG_CNFDeleteCharacter_Opcode, 1288},
+        {MSG_CNFCharacterLogin_Opcode, 2104},
+        {MSG_CNFNewCharacterFail_Opcode, 12},
+        {MSG_AlreadyPlaying_Opcode, 12},
+        {MSG_CNFCharacterLogout_Opcode, 12},
+        {MSG_CreateMobTrade_Opcode, 352},
+        {MSG_CreateMob_Opcode, 328},
+        {MSG_SetHpMp_Opcode, 28},
+        {MSG_UpdateScore_Opcode, 232},
+        {MSG_UpdateAffect_Opcode, 140},
+        {MSG_UpdateEtc_Opcode, 36},
+        {MSG_CNFMobKill_Opcode, 24},
+        {MSG_UpdateCarry_Opcode, 528},
+        {MSG_UpdateCargoGold_Opcode, 16},
+        {MSG_UpdateEquip_Opcode, 60},
+        {MSG_Action_Opcode, 52},
+        {MSG_Action2_Opcode, 52},
+        {MSG_Motion_Opcode, 20},
+        {MSG_InstanceTime_Opcode, 16},
+        {MSG_InstanceMobs_Opcode, 16},
+        {MSG_SwapItem_Opcode, 20},
+        {MSG_Withdraw_Opcode, 16},
+        {MSG_Deposit_Opcode, 16},
+        {MSG_PremiumFirework_Opcode, 36},
+        {MSG_ResultGamble_Opcode, 36},
+        {MSG_CapsuleInfo_Opcode, 52},
+        {MSG_SendItem_Opcode, 24},
+        {MSG_WarInfo_Opcode, 24},
+        {MSG_CNFDropItem_Opcode, 28},
+        {MSG_CreateItem_Opcode, 32},
+        {MSG_CNFGetItem_Opcode, 28},
+        {MSG_RemoveItem_Opcode, 16},
+        {MSG_UpdateItem_Opcode, 20},
+        {MSG_MessageChat_Opcode, 108},
+        {MSG_MessageWhisper_Opcode, 128},
+        {MSG_SetShortSkill_Opcode, 32},
+        {MSG_DelayStart_Opcode, 16},
+        {MSG_ReqChallenge_Opcode, 12},
+        {MSG_ShopList_Opcode, 236},
+        {MSG_Buy_Opcode, 24},
+        {MSG_AddParty_Opcode, 40},
+        {MSG_RemoveParty_Opcode, 16},
+        {MSG_REQParty_Opcode, 44},
+        {MSG_Trade_Opcode, 156},
+        {MSG_CloseTrade_Opcode, 12},
+        {MSG_CNFTradeCheck_Opcode, 12},
+        {MSG_AutoTrade_Opcode, 196},
+        {MSG_ItemSold_Opcode, 20},
+        {MSG_PlayerChallenge_Opcode, 20},
+        {MSG_CombineComplete_Opcode, 16},
+        {MSG_RemoveMob_Opcode, 16},
+        {quiz_event::ChallengeOpcode, 148},
+    };
+    for (const auto& contract : activeServerEnvelopes)
+    {
+        char description[96]{};
+        std::snprintf(description, sizeof(description),
+            "emissor ativo 0x%X possui gate S->C de %zu bytes",
+            contract.opcode, contract.size);
+        check(received_packet::ExpectedSize(contract.opcode) == contract.size,
+            description);
+    }
+
+    // O servidor envia o convite de desafio como MSG_STANDARDPARM2. O handler
+    // le ambos os DWORDs, portanto nenhum prefixo menor que 20 bytes e seguro.
+    std::array<char, kPlayerChallengePacketSize + 1> playerChallenge{};
+    playerChallenge[0] = static_cast<char>(kPlayerChallengePacketSize);
+    playerChallenge[4] = static_cast<char>(MSG_PlayerChallenge_Opcode & 0xFF);
+    playerChallenge[5] = static_cast<char>((MSG_PlayerChallenge_Opcode >> 8) & 0xFF);
+    playerChallenge[kPlayerChallengePlayerIdOffset] = 0x34;
+    playerChallenge[kPlayerChallengePlayerIdOffset + 1] = 0x12;
+    playerChallenge[kPlayerChallengeModeOffset] = 3;
+    const auto originalPlayerChallenge = playerChallenge;
+    int playerChallengeCalls = 0;
+    const auto receivePlayerChallenge = [&](const PacketView& frame) {
+        ++playerChallengeCalls;
+        check(frame.data == playerChallenge.data() &&
+            frame.size == kPlayerChallengePacketSize &&
+            frame.opcode == MSG_PlayerChallenge_Opcode,
+            "desafio preserva view de 20 bytes do transporte");
+        check(static_cast<unsigned char>(frame.data[kPlayerChallengePlayerIdOffset]) == 0x34 &&
+            static_cast<unsigned char>(frame.data[kPlayerChallengeModeOffset]) == 3,
+            "desafio preserva jogador e modo nos offsets do contrato");
+    };
+    check(received_packet::ExpectedSize(MSG_PlayerChallenge_Opcode) ==
+        kPlayerChallengePacketSize, "desafio possui tamanho exato no dispatcher");
+    for (std::size_t size = 0; size < kPlayerChallengePacketSize; ++size)
+        check(!received_packet::Dispatch({MSG_PlayerChallenge_Opcode,
+            playerChallenge.data(), size}, receivePlayerChallenge),
+            "todo prefixo de desafio truncado e rejeitado");
+    check(!received_packet::Dispatch({MSG_PlayerChallenge_Opcode, nullptr,
+        kPlayerChallengePacketSize}, receivePlayerChallenge),
+        "desafio com frame nulo rejeitado");
+    check(!received_packet::Dispatch({MSG_PlayerChallenge_Opcode,
+        playerChallenge.data(), kPlayerChallengePacketSize + 1}, receivePlayerChallenge),
+        "desafio com frame excedente rejeitado");
+    check(!received_packet::Dispatch({0x119, playerChallenge.data(),
+        kPlayerChallengePacketSize}, receivePlayerChallenge),
+        "metadado desconhecido nao esconde Type de desafio");
+
+    playerChallenge[0] = static_cast<char>(kPlayerChallengePacketSize - 1);
+    check(!received_packet::Dispatch({MSG_PlayerChallenge_Opcode,
+        playerChallenge.data(), kPlayerChallengePacketSize}, receivePlayerChallenge),
+        "desafio rejeita Size declarado divergente");
+    playerChallenge[0] = static_cast<char>(kPlayerChallengePacketSize);
+    playerChallenge[4] = 0x19;
+    playerChallenge[5] = 0x01;
+    check(!received_packet::Dispatch({MSG_PlayerChallenge_Opcode,
+        playerChallenge.data(), kPlayerChallengePacketSize}, receivePlayerChallenge),
+        "desafio rejeita Type interno divergente");
+    playerChallenge[4] = static_cast<char>(MSG_PlayerChallenge_Opcode & 0xFF);
+    playerChallenge[5] = static_cast<char>((MSG_PlayerChallenge_Opcode >> 8) & 0xFF);
+
+    check(playerChallengeCalls == 0, "desafio invalido nao chama consumidor");
+    check(received_packet::Dispatch({MSG_PlayerChallenge_Opcode,
+        playerChallenge.data(), kPlayerChallengePacketSize}, receivePlayerChallenge) &&
+        playerChallengeCalls == 1, "desafio exato entregue uma vez");
+    check(playerChallenge == originalPlayerChallenge,
+        "gate de desafio nao modifica o buffer");
+
+    // Os dois emissores da selecao usam esta copia antes do envio de 0xFAA.
+    char oldTransferName[16] = "OldCharacter";
+    char newTransferName[16] = "NewCharacter";
+    MSG_ReqTransper outgoing{};
+    check(character_transfer::CopyRequestNames(outgoing, oldTransferName,
+        newTransferName, sizeof(newTransferName)),
+        "nomes validos de transferencia sao aceitos");
+    check(std::memcmp(outgoing.OldName, oldTransferName, sizeof(oldTransferName)) == 0 &&
+        std::memcmp(outgoing.NewName, newTransferName, sizeof(newTransferName)) == 0,
+        "nomes de transferencia preservam bytes e padding do wire");
+    const MSG_ReqTransper validOutgoing = outgoing;
+    char unterminatedTransferName[16];
+    std::memset(unterminatedTransferName, 'X', sizeof(unterminatedTransferName));
+    check(!character_transfer::CopyRequestNames(outgoing, unterminatedTransferName,
+        newTransferName, sizeof(newTransferName)) &&
+        std::memcmp(&outgoing, &validOutgoing, sizeof(outgoing)) == 0,
+        "nome antigo sem NUL nao e lido alem da celula nem altera o packet");
+    check(!character_transfer::CopyRequestNames(outgoing, oldTransferName,
+        unterminatedTransferName, sizeof(unterminatedTransferName)) &&
+        std::memcmp(&outgoing, &validOutgoing, sizeof(outgoing)) == 0,
+        "nome novo sem NUL nao altera o packet");
+    check(!character_transfer::CopyRequestNames(outgoing, oldTransferName,
+        newTransferName, 4) &&
+        std::memcmp(&outgoing, &validOutgoing, sizeof(outgoing)) == 0,
+        "capacidade declarada truncada rejeitada antes da copia");
+
     // O byte inicial desloca deliberadamente o frame para endereco nao alinhado.
     alignas(MSG_STANDARD) std::array<char, 54> storage{};
     char* bytes = storage.data() + 1;
@@ -575,6 +792,69 @@ int RunReceivedPacketDispatchTests(int& checks)
             "estado do mundo preserva DWORD no offset 12");
         check(worldState == worldStateBefore,
             "gate preserva todos os bytes do estado do mundo");
+    }
+
+    // Deposit e Withdraw retornam o mesmo envelope enviado pelo cliente antes
+    // dos snapshots autoritativos de gold. Ambos precisam chegar completos ao
+    // cast legado de MSG_STANDARDPARM em TMFieldScene.
+    for (unsigned int opcode : {MSG_Withdraw_Opcode, MSG_Deposit_Opcode})
+    {
+        std::array<char, kCargoGoldTransferPacketSize + 1> transfer{};
+        transfer[0] = static_cast<char>(kCargoGoldTransferPacketSize);
+        transfer[4] = static_cast<char>(opcode & 0xFF);
+        transfer[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        transfer[6] = static_cast<char>(0x34);
+        transfer[7] = static_cast<char>(0x12);
+        transfer[kCargoGoldTransferAmountOffset] = static_cast<char>(0x78);
+        transfer[kCargoGoldTransferAmountOffset + 1] = static_cast<char>(0x56);
+        transfer[kCargoGoldTransferAmountOffset + 2] = static_cast<char>(0x34);
+        transfer[kCargoGoldTransferAmountOffset + 3] = static_cast<char>(0x12);
+        const auto transferBefore = transfer;
+        int transferCalls = 0;
+        const auto receiveTransfer = [&](const PacketView& view) {
+            ++transferCalls;
+            check(view.data == transfer.data() &&
+                view.size == kCargoGoldTransferPacketSize && view.opcode == opcode,
+                "transferencia de gold preserva frame e opcode");
+        };
+        for (std::size_t n = 0; n < kCargoGoldTransferPacketSize; ++n)
+            check(!received_packet::Dispatch({opcode, transfer.data(), n},
+                receiveTransfer), "transferencia de gold rejeita todo prefixo truncado");
+        check(!received_packet::Dispatch({opcode, nullptr,
+            kCargoGoldTransferPacketSize}, receiveTransfer),
+            "transferencia de gold nula rejeitada");
+        check(!received_packet::Dispatch({opcode, transfer.data(),
+            kCargoGoldTransferPacketSize + 1}, receiveTransfer),
+            "transferencia de gold excedente rejeitada");
+        check(!received_packet::Dispatch({0x119, transfer.data(),
+            kCargoGoldTransferPacketSize}, receiveTransfer),
+            "opcode externo nao pode ocultar transferencia de gold");
+        transfer[4] = static_cast<char>((opcode + 1) & 0xFF);
+        transfer[5] = static_cast<char>(((opcode + 1) >> 8) & 0xFF);
+        check(!received_packet::Dispatch({opcode, transfer.data(),
+            kCargoGoldTransferPacketSize}, receiveTransfer),
+            "Header.Type divergente rejeitado para transferencia de gold");
+        transfer[4] = static_cast<char>(opcode & 0xFF);
+        transfer[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        transfer[0] = static_cast<char>(kCargoGoldTransferPacketSize - 1);
+        check(!received_packet::Dispatch({opcode, transfer.data(),
+            kCargoGoldTransferPacketSize}, receiveTransfer),
+            "Header.Size divergente rejeitado para transferencia de gold");
+        transfer[0] = static_cast<char>(kCargoGoldTransferPacketSize);
+        check(transferCalls == 0, "transferencia invalida nao chega ao consumidor");
+        check(received_packet::Dispatch({opcode, transfer.data(),
+            kCargoGoldTransferPacketSize}, receiveTransfer) && transferCalls == 1,
+            "transferencia de gold valida entregue uma vez");
+        check(static_cast<unsigned char>(transfer[6]) == 0x34 &&
+            static_cast<unsigned char>(transfer[7]) == 0x12,
+            "transferencia de gold preserva Header.ID");
+        check(static_cast<unsigned char>(transfer[kCargoGoldTransferAmountOffset]) == 0x78 &&
+            static_cast<unsigned char>(transfer[kCargoGoldTransferAmountOffset + 1]) == 0x56 &&
+            static_cast<unsigned char>(transfer[kCargoGoldTransferAmountOffset + 2]) == 0x34 &&
+            static_cast<unsigned char>(transfer[kCargoGoldTransferAmountOffset + 3]) == 0x12,
+            "transferencia de gold preserva valor no offset 12");
+        check(transfer == transferBefore,
+            "gate preserva todos os bytes da transferencia de gold");
     }
 
     // O source client e o WYD-Go usam um unico 0x181 de 28 bytes. Este fixture
@@ -1129,6 +1409,153 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(combineComplete == combineCompleteBefore,
         "gate preserva todos os bytes do CombineComplete");
 
+    // MSG_Trade carrega o snapshot completo da oferta remota. O handler le os
+    // quinze itens e posicoes, dinheiro, check e OpponentID, portanto nenhum
+    // prefixo parcial pode alcancar o cast legado.
+    std::array<char, kTradePacketSize + 1> trade{};
+    trade[0] = static_cast<char>(kTradePacketSize & 0xFF);
+    trade[1] = static_cast<char>((kTradePacketSize >> 8) & 0xFF);
+    trade[4] = static_cast<char>(MSG_Trade_Opcode & 0xFF);
+    trade[5] = static_cast<char>((MSG_Trade_Opcode >> 8) & 0xFF);
+    trade[6] = 0x78;
+    trade[7] = 0x56;
+    trade[kTradeItemsOffset] = 0x34;
+    trade[kTradeItemsOffset + 1] = 0x12;
+    trade[kTradeCarryPositionsOffset] = 7;
+    trade[kTradeMoneyOffset] = 0x40;
+    trade[kTradeMoneyOffset + 1] = static_cast<char>(0xE2);
+    trade[kTradeMoneyOffset + 2] = 0x01;
+    trade[kTradeCheckOffset] = 1;
+    trade[kTradeOpponentIdOffset] = static_cast<char>(0xCD);
+    trade[kTradeOpponentIdOffset + 1] = static_cast<char>(0xAB);
+    const auto tradeBefore = trade;
+    int tradeCalls = 0;
+    const auto receiveTrade = [&](const PacketView& view) {
+        ++tradeCalls;
+        check(view.data == trade.data() && view.size == kTradePacketSize &&
+            view.opcode == MSG_Trade_Opcode,
+            "Trade preserva frame de 156 bytes e opcode");
+    };
+    for (std::size_t n = 0; n < kTradePacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_Trade_Opcode, trade.data(), n}, receiveTrade),
+            "Trade rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_Trade_Opcode, nullptr, kTradePacketSize}, receiveTrade),
+        "Trade rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_Trade_Opcode, trade.data(), kTradePacketSize + 1},
+        receiveTrade), "Trade rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, trade.data(), kTradePacketSize}, receiveTrade),
+        "opcode externo nao pode ocultar Trade");
+    trade[4] = static_cast<char>(MSG_CloseTrade_Opcode & 0xFF);
+    check(!received_packet::Dispatch({MSG_Trade_Opcode, trade.data(), kTradePacketSize},
+        receiveTrade), "Trade rejeita Header.Type divergente");
+    trade[4] = static_cast<char>(MSG_Trade_Opcode & 0xFF);
+    trade[0] = static_cast<char>((kTradePacketSize - 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_Trade_Opcode, trade.data(), kTradePacketSize},
+        receiveTrade), "Trade rejeita Header.Size divergente");
+    trade[0] = static_cast<char>(kTradePacketSize & 0xFF);
+    check(tradeCalls == 0, "Trade invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_Trade_Opcode, trade.data(), kTradePacketSize},
+        receiveTrade) && tradeCalls == 1, "Trade valido entregue uma vez");
+    check(static_cast<unsigned char>(trade[kTradeItemsOffset]) == 0x34 &&
+        static_cast<unsigned char>(trade[kTradeCarryPositionsOffset]) == 7 &&
+        static_cast<unsigned char>(trade[kTradeCheckOffset]) == 1 &&
+        static_cast<unsigned char>(trade[kTradeOpponentIdOffset]) == 0xCD,
+        "Trade preserva os campos consumidos pelo handler");
+    check(trade == tradeBefore, "gate preserva todos os bytes do Trade");
+
+    // CloseTrade e header-only. A ausencia de payload faz o tamanho exato ser
+    // parte integral do contrato, nao apenas um minimo para o cast.
+    std::array<char, kCloseTradePacketSize + 1> closeTrade{};
+    closeTrade[0] = static_cast<char>(kCloseTradePacketSize);
+    closeTrade[4] = static_cast<char>(MSG_CloseTrade_Opcode & 0xFF);
+    closeTrade[5] = static_cast<char>((MSG_CloseTrade_Opcode >> 8) & 0xFF);
+    closeTrade[6] = 0x78;
+    closeTrade[7] = 0x56;
+    const auto closeTradeBefore = closeTrade;
+    int closeTradeCalls = 0;
+    const auto receiveCloseTrade = [&](const PacketView& view) {
+        ++closeTradeCalls;
+        check(view.data == closeTrade.data() && view.size == kCloseTradePacketSize &&
+            view.opcode == MSG_CloseTrade_Opcode,
+            "CloseTrade preserva frame header-only e opcode");
+    };
+    for (std::size_t n = 0; n < kCloseTradePacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_CloseTrade_Opcode, closeTrade.data(), n},
+            receiveCloseTrade), "CloseTrade rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_CloseTrade_Opcode, nullptr,
+        kCloseTradePacketSize}, receiveCloseTrade), "CloseTrade rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_CloseTrade_Opcode, closeTrade.data(),
+        kCloseTradePacketSize + 1}, receiveCloseTrade), "CloseTrade rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, closeTrade.data(), kCloseTradePacketSize},
+        receiveCloseTrade), "opcode externo nao pode ocultar CloseTrade");
+    closeTrade[4] = static_cast<char>(MSG_Trade_Opcode & 0xFF);
+    check(!received_packet::Dispatch({MSG_CloseTrade_Opcode, closeTrade.data(),
+        kCloseTradePacketSize}, receiveCloseTrade), "CloseTrade rejeita Header.Type divergente");
+    closeTrade[4] = static_cast<char>(MSG_CloseTrade_Opcode & 0xFF);
+    closeTrade[0] = static_cast<char>(kCloseTradePacketSize - 1);
+    check(!received_packet::Dispatch({MSG_CloseTrade_Opcode, closeTrade.data(),
+        kCloseTradePacketSize}, receiveCloseTrade), "CloseTrade rejeita Header.Size divergente");
+    closeTrade[0] = static_cast<char>(kCloseTradePacketSize);
+    check(closeTradeCalls == 0, "CloseTrade invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_CloseTrade_Opcode, closeTrade.data(),
+        kCloseTradePacketSize}, receiveCloseTrade) && closeTradeCalls == 1,
+        "CloseTrade valido entregue uma vez");
+    check(static_cast<unsigned char>(closeTrade[6]) == 0x78 &&
+        static_cast<unsigned char>(closeTrade[7]) == 0x56,
+        "CloseTrade preserva Header.ID");
+    check(closeTrade == closeTradeBefore,
+        "gate preserva todos os bytes do CloseTrade");
+
+    // CNFTradeCheck nao carrega payload: a chegada do header confirma o
+    // primeiro check e o ID continua identificando o personagem receptor.
+    std::array<char, kTradeCheckConfirmationPacketSize + 1> tradeCheck{};
+    tradeCheck[0] = static_cast<char>(kTradeCheckConfirmationPacketSize);
+    tradeCheck[4] = static_cast<char>(MSG_CNFTradeCheck_Opcode & 0xFF);
+    tradeCheck[5] = static_cast<char>((MSG_CNFTradeCheck_Opcode >> 8) & 0xFF);
+    tradeCheck[6] = 0x78;
+    tradeCheck[7] = 0x56;
+    const auto tradeCheckBefore = tradeCheck;
+    int tradeCheckCalls = 0;
+    const auto receiveTradeCheck = [&](const PacketView& view) {
+        ++tradeCheckCalls;
+        check(view.data == tradeCheck.data() &&
+            view.size == kTradeCheckConfirmationPacketSize &&
+            view.opcode == MSG_CNFTradeCheck_Opcode,
+            "CNFTradeCheck preserva frame e opcode");
+    };
+    for (std::size_t n = 0; n < kTradeCheckConfirmationPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_CNFTradeCheck_Opcode,
+            tradeCheck.data(), n}, receiveTradeCheck),
+            "CNFTradeCheck rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_CNFTradeCheck_Opcode, nullptr,
+        kTradeCheckConfirmationPacketSize}, receiveTradeCheck),
+        "CNFTradeCheck rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_CNFTradeCheck_Opcode,
+        tradeCheck.data(), kTradeCheckConfirmationPacketSize + 1}, receiveTradeCheck),
+        "CNFTradeCheck rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, tradeCheck.data(),
+        kTradeCheckConfirmationPacketSize}, receiveTradeCheck),
+        "opcode externo nao pode ocultar CNFTradeCheck");
+    tradeCheck[4] = static_cast<char>((MSG_CNFTradeCheck_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_CNFTradeCheck_Opcode,
+        tradeCheck.data(), kTradeCheckConfirmationPacketSize}, receiveTradeCheck),
+        "CNFTradeCheck rejeita Header.Type divergente");
+    tradeCheck[4] = static_cast<char>(MSG_CNFTradeCheck_Opcode & 0xFF);
+    tradeCheck[0] = static_cast<char>(kTradeCheckConfirmationPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_CNFTradeCheck_Opcode,
+        tradeCheck.data(), kTradeCheckConfirmationPacketSize}, receiveTradeCheck),
+        "CNFTradeCheck rejeita Header.Size divergente");
+    tradeCheck[0] = static_cast<char>(kTradeCheckConfirmationPacketSize);
+    check(tradeCheckCalls == 0, "CNFTradeCheck invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_CNFTradeCheck_Opcode,
+        tradeCheck.data(), kTradeCheckConfirmationPacketSize}, receiveTradeCheck) &&
+        tradeCheckCalls == 1, "CNFTradeCheck valido entregue uma vez");
+    check(static_cast<unsigned char>(tradeCheck[6]) == 0x78 &&
+        static_cast<unsigned char>(tradeCheck[7]) == 0x56,
+        "CNFTradeCheck preserva Header.ID");
+    check(tradeCheck == tradeCheckBefore,
+        "gate preserva todos os bytes do CNFTradeCheck");
+
     // O nativo reconhece formas parciais de 16/20 bytes, mas o unico peer
     // ativo publica os tres campos juntos. O gate evita misturar estado velho
     // de cla/alianca com uma guilda de guerra recem-recebida.
@@ -1182,6 +1609,528 @@ int RunReceivedPacketDispatchTests(int& checks)
         static_cast<unsigned char>(warInfo[kWarInfoAllyOffset + 1]) == 0x56,
         "WarInfo preserva receptor, guilda, cla e aliada");
     check(warInfo == warInfoBefore, "gate preserva todos os bytes do WarInfo");
+
+    // SetShortSkill e eco autoritativo: o handler legado copia vinte bytes
+    // imediatamente, portanto nenhum prefixo pode alcancar o consumidor.
+    std::array<char, kShortSkillSnapshotPacketSize + 1> shortSkills{};
+    shortSkills[0] = static_cast<char>(kShortSkillSnapshotPacketSize);
+    shortSkills[4] = static_cast<char>(MSG_SetShortSkill_Opcode & 0xFF);
+    shortSkills[5] = static_cast<char>((MSG_SetShortSkill_Opcode >> 8) & 0xFF);
+    shortSkills[6] = 0x30;
+    shortSkills[7] = 0x75;
+    for (std::size_t i = 0; i < kShortSkillSnapshotSkillCount; ++i)
+        shortSkills[kShortSkillSnapshotSkillsOffset + i] = static_cast<char>(i + 1);
+    const auto shortSkillsBefore = shortSkills;
+    int shortSkillCalls = 0;
+    const auto receiveShortSkills = [&](const PacketView& view) {
+        ++shortSkillCalls;
+        check(view.data == shortSkills.data() &&
+            view.size == kShortSkillSnapshotPacketSize &&
+            view.opcode == MSG_SetShortSkill_Opcode,
+            "SetShortSkill preserva frame e opcode");
+    };
+    check(received_packet::ExpectedSize(MSG_SetShortSkill_Opcode) ==
+        kShortSkillSnapshotPacketSize,
+        "SetShortSkill publica tamanho esperado no gate");
+    for (std::size_t n = 0; n < kShortSkillSnapshotPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_SetShortSkill_Opcode,
+            shortSkills.data(), n}, receiveShortSkills),
+            "SetShortSkill rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_SetShortSkill_Opcode, nullptr,
+        kShortSkillSnapshotPacketSize}, receiveShortSkills),
+        "SetShortSkill rejeita buffer nulo");
+    check(!received_packet::Dispatch({MSG_SetShortSkill_Opcode,
+        shortSkills.data(), kShortSkillSnapshotPacketSize + 1}, receiveShortSkills),
+        "SetShortSkill rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, shortSkills.data(),
+        kShortSkillSnapshotPacketSize}, receiveShortSkills),
+        "opcode externo nao pode ocultar SetShortSkill");
+    shortSkills[4] = static_cast<char>((MSG_SetShortSkill_Opcode + 1) & 0xFF);
+    check(!received_packet::Dispatch({MSG_SetShortSkill_Opcode,
+        shortSkills.data(), kShortSkillSnapshotPacketSize}, receiveShortSkills),
+        "SetShortSkill rejeita Header.Type divergente");
+    shortSkills[4] = static_cast<char>(MSG_SetShortSkill_Opcode & 0xFF);
+    shortSkills[0] = static_cast<char>(kShortSkillSnapshotPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_SetShortSkill_Opcode,
+        shortSkills.data(), kShortSkillSnapshotPacketSize}, receiveShortSkills),
+        "SetShortSkill rejeita Header.Size divergente");
+    shortSkills[0] = static_cast<char>(kShortSkillSnapshotPacketSize);
+    check(shortSkillCalls == 0, "SetShortSkill invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_SetShortSkill_Opcode,
+        shortSkills.data(), kShortSkillSnapshotPacketSize}, receiveShortSkills) &&
+        shortSkillCalls == 1,
+        "SetShortSkill completo entregue uma vez");
+    for (std::size_t i = 0; i < kShortSkillSnapshotSkillCount; ++i)
+        check(static_cast<unsigned char>(shortSkills[
+            kShortSkillSnapshotSkillsOffset + i]) == i + 1,
+            "SetShortSkill preserva os vinte atalhos");
+    check(shortSkills == shortSkillsBefore,
+        "gate preserva todos os bytes do SetShortSkill");
+
+    // Action, ActionStop e Illusion compartilham o frame de 52 bytes. O
+    // consumidor le destino e Route sem uma segunda verificacao de tamanho.
+    std::array<char, kActionPacketSize + 1> action{};
+    action[0] = static_cast<char>(kActionPacketSize);
+    action[6] = 0x34;
+    action[7] = 0x12;
+    action[kActionPositionOffset] = 0x45;
+    action[kActionPositionOffset + 1] = 0x03;
+    action[kActionPositionOffset + 2] = 0x56;
+    action[kActionPositionOffset + 3] = 0x04;
+    action[kActionSpeedOffset] = 0x78;
+    action[kActionEffectOffset] = 0x21;
+    action[kActionTargetOffset] = 0x67;
+    action[kActionTargetOffset + 1] = 0x05;
+    action[kActionTargetOffset + 2] = 0x78;
+    action[kActionTargetOffset + 3] = 0x06;
+    for (std::size_t i = 0; i < kActionRouteSize; ++i)
+        action[kActionRouteOffset + i] = static_cast<char>('0' + (i % 8));
+
+    const std::array<unsigned int, 3> actionOpcodes{
+        MSG_Action_Opcode, MSG_Action_Stop_Opcode, MSG_Action2_Opcode
+    };
+    for (const auto opcode : actionOpcodes)
+    {
+        action[4] = static_cast<char>(opcode & 0xFF);
+        action[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        const auto actionBefore = action;
+        int actionCalls = 0;
+        const auto receiveAction = [&](const PacketView& view) {
+            ++actionCalls;
+            check(view.data == action.data() && view.size == kActionPacketSize &&
+                view.opcode == opcode,
+                "Action family preserva frame e opcode");
+        };
+        check(received_packet::ExpectedSize(opcode) == kActionPacketSize,
+            "Action family publica tamanho esperado no gate");
+        for (std::size_t n = 0; n < kActionPacketSize; ++n)
+            check(!received_packet::Dispatch({opcode, action.data(), n}, receiveAction),
+                "Action family rejeita todo prefixo truncado");
+        check(!received_packet::Dispatch({opcode, nullptr, kActionPacketSize},
+            receiveAction), "Action family rejeita buffer nulo");
+        check(!received_packet::Dispatch({opcode, action.data(), kActionPacketSize + 1},
+            receiveAction), "Action family rejeita frame excedente");
+        check(!received_packet::Dispatch({0x119, action.data(), kActionPacketSize},
+            receiveAction), "opcode externo nao pode ocultar Action family");
+        action[4] = static_cast<char>(MSG_SetShortSkill_Opcode & 0xFF);
+        action[5] = static_cast<char>((MSG_SetShortSkill_Opcode >> 8) & 0xFF);
+        check(!received_packet::Dispatch({opcode, action.data(), kActionPacketSize},
+            receiveAction), "Action family rejeita Header.Type divergente");
+        action[4] = static_cast<char>(opcode & 0xFF);
+        action[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        action[0] = static_cast<char>(kActionPacketSize - 1);
+        check(!received_packet::Dispatch({opcode, action.data(), kActionPacketSize},
+            receiveAction), "Action family rejeita Header.Size divergente");
+        action[0] = static_cast<char>(kActionPacketSize);
+        check(actionCalls == 0, "Action family invalido nao chega ao consumidor");
+        check(received_packet::Dispatch({opcode, action.data(), kActionPacketSize},
+            receiveAction) && actionCalls == 1,
+            "Action family valido entregue uma vez");
+        check(static_cast<unsigned char>(action[kActionPositionOffset]) == 0x45 &&
+            static_cast<unsigned char>(action[kActionSpeedOffset]) == 0x78 &&
+            static_cast<unsigned char>(action[kActionEffectOffset]) == 0x21 &&
+            static_cast<unsigned char>(action[kActionTargetOffset]) == 0x67 &&
+            action[kActionRouteOffset] == '0' &&
+            action[kActionRouteOffset + kActionRouteSize - 1] == '7',
+            "Action family preserva posicao, velocidade, efeito, destino e rota");
+        check(action == actionBefore,
+            "gate preserva todos os bytes do Action family");
+    }
+
+    // SwapItem conclui o drag e indexa Equip/Carry/Cargo diretamente. Tanto o
+    // envelope quanto os dominios publicados pelo servidor precisam fechar.
+    std::array<char, kSwapItemPacketSize + 1> swapItem{};
+    swapItem[0] = static_cast<char>(kSwapItemPacketSize);
+    swapItem[4] = static_cast<char>(MSG_SwapItem_Opcode & 0xFF);
+    swapItem[5] = static_cast<char>((MSG_SwapItem_Opcode >> 8) & 0xFF);
+    swapItem[kSwapItemSourceTypeOffset] = kSwapPlaceCarry;
+    swapItem[kSwapItemSourcePositionOffset] = 3;
+    swapItem[kSwapItemDestinationTypeOffset] = kSwapPlaceCargo;
+    swapItem[kSwapItemDestinationPositionOffset] = 14;
+    swapItem[kSwapItemTargetIdOffset] = 0x34;
+    swapItem[kSwapItemTargetIdOffset + 1] = 0x12;
+    swapItem[kSwapItemReservedOffset] = 0x56;
+    const auto swapItemBefore = swapItem;
+    int swapItemCalls = 0;
+    const auto receiveSwapItem = [&](const PacketView& view) {
+        ++swapItemCalls;
+        check(view.data == swapItem.data() && view.size == kSwapItemPacketSize &&
+            view.opcode == MSG_SwapItem_Opcode,
+            "SwapItem preserva frame e opcode");
+    };
+    check(received_packet::ExpectedSize(MSG_SwapItem_Opcode) ==
+        kSwapItemPacketSize, "SwapItem publica tamanho esperado no gate");
+    for (std::size_t n = 0; n < kSwapItemPacketSize; ++n)
+        check(!received_packet::Dispatch(
+            {MSG_SwapItem_Opcode, swapItem.data(), n}, receiveSwapItem),
+            "SwapItem rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch(
+        {MSG_SwapItem_Opcode, nullptr, kSwapItemPacketSize}, receiveSwapItem),
+        "SwapItem rejeita buffer nulo");
+    check(!received_packet::Dispatch(
+        {MSG_SwapItem_Opcode, swapItem.data(), kSwapItemPacketSize + 1},
+        receiveSwapItem), "SwapItem rejeita frame excedente");
+    check(!received_packet::Dispatch(
+        {0x119, swapItem.data(), kSwapItemPacketSize}, receiveSwapItem),
+        "opcode externo nao pode ocultar SwapItem");
+    swapItem[4] = static_cast<char>(MSG_SetShortSkill_Opcode & 0xFF);
+    swapItem[5] = static_cast<char>((MSG_SetShortSkill_Opcode >> 8) & 0xFF);
+    check(!received_packet::Dispatch(
+        {MSG_SwapItem_Opcode, swapItem.data(), kSwapItemPacketSize},
+        receiveSwapItem), "SwapItem rejeita Header.Type divergente");
+    swapItem[4] = static_cast<char>(MSG_SwapItem_Opcode & 0xFF);
+    swapItem[5] = static_cast<char>((MSG_SwapItem_Opcode >> 8) & 0xFF);
+    swapItem[0] = static_cast<char>(kSwapItemPacketSize - 1);
+    check(!received_packet::Dispatch(
+        {MSG_SwapItem_Opcode, swapItem.data(), kSwapItemPacketSize},
+        receiveSwapItem), "SwapItem rejeita Header.Size divergente");
+    swapItem[0] = static_cast<char>(kSwapItemPacketSize);
+    check(swapItemCalls == 0, "SwapItem invalido nao chega ao consumidor");
+    check(received_packet::Dispatch(
+        {MSG_SwapItem_Opcode, swapItem.data(), kSwapItemPacketSize},
+        receiveSwapItem) && swapItemCalls == 1,
+        "SwapItem valido entregue uma vez");
+    check(swapItem == swapItemBefore,
+        "gate preserva todos os bytes do SwapItem");
+
+    for (int position = 0; position <= 255; ++position)
+    {
+        check(IsSwapPlacePosition(kSwapPlaceEquip,
+            static_cast<unsigned char>(position)) ==
+            (position < kSwapEquipSlotCount &&
+                position != kSwapUnsupportedNecklaceSlot),
+            "SwapItem valida dominio de Equip do peer ativo");
+        check(IsSwapPlacePosition(kSwapPlaceCarry,
+            static_cast<unsigned char>(position)) ==
+            (position < kSwapVisibleCarrySlotCount),
+            "SwapItem valida dominio visivel de Carry");
+        check(IsSwapPlacePosition(kSwapPlaceCargo,
+            static_cast<unsigned char>(position)) ==
+            (position < kSwapUsableCargoSlotCount),
+            "SwapItem valida dominio utilizavel de Cargo");
+    }
+    check(!IsSwapPlacePosition(3, 0),
+        "SwapItem rejeita tipo de lugar desconhecido");
+
+    struct CachedItem { short index; unsigned short effect[3]; };
+    CachedItem sourceItem{123, {4, 5, 6}};
+    CachedItem destinationItem{456, {7, 8, 9}};
+    ApplyConfirmedItemSwap(sourceItem, destinationItem);
+    check(sourceItem.index == 456 && sourceItem.effect[0] == 7 &&
+        sourceItem.effect[2] == 9 && destinationItem.index == 123 &&
+        destinationItem.effect[0] == 4 && destinationItem.effect[2] == 6,
+        "SwapItem troca os oito bytes logicos sem depender de controles visuais");
+    ApplyConfirmedItemSwap(sourceItem, sourceItem);
+    check(sourceItem.index == 456 && sourceItem.effect[1] == 8,
+        "SwapItem da mesma posicao preserva o item logico");
+    CachedItem emptyItem{};
+    ApplyConfirmedItemSwap(sourceItem, emptyItem);
+    check(sourceItem.index == 0 && emptyItem.index == 456 && emptyItem.effect[2] == 9,
+        "SwapItem move item para slot vazio mesmo sem visual na origem");
+
+    // Buy usa a posicao esparsa da grade da loja e um slot Carry autoritativo.
+    std::array<char, kBuyPacketSize + 1> buy{};
+    buy[0] = static_cast<char>(kBuyPacketSize);
+    buy[4] = static_cast<char>(MSG_Buy_Opcode & 0xFF);
+    buy[5] = static_cast<char>((MSG_Buy_Opcode >> 8) & 0xFF);
+    buy[kBuyTargetIdOffset] = 0x34;
+    buy[kBuyTargetIdOffset + 1] = 0x12;
+    buy[kBuyShopPositionOffset] = 27;
+    buy[kBuyCarryPositionOffset] = 14;
+    buy[kBuyCoinOffset] = 0x21;
+    buy[kBuyCoinOffset + 1] = 0x43;
+    buy[kBuyCoinOffset + 2] = 0x65;
+    buy[kBuyCoinOffset + 3] = static_cast<char>(0x87);
+    const auto buyBefore = buy;
+    int buyCalls = 0;
+    const auto receiveBuy = [&](const PacketView& view) {
+        ++buyCalls;
+        check(view.data == buy.data() && view.size == kBuyPacketSize &&
+            view.opcode == MSG_Buy_Opcode,
+            "Buy preserva frame e opcode");
+    };
+    check(received_packet::ExpectedSize(MSG_Buy_Opcode) == kBuyPacketSize,
+        "Buy publica tamanho esperado no gate");
+    for (std::size_t n = 0; n < kBuyPacketSize; ++n)
+        check(!received_packet::Dispatch({MSG_Buy_Opcode, buy.data(), n}, receiveBuy),
+            "Buy rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch({MSG_Buy_Opcode, nullptr, kBuyPacketSize},
+        receiveBuy), "Buy rejeita buffer nulo");
+    check(!received_packet::Dispatch(
+        {MSG_Buy_Opcode, buy.data(), kBuyPacketSize + 1}, receiveBuy),
+        "Buy rejeita frame excedente");
+    check(!received_packet::Dispatch({0x119, buy.data(), kBuyPacketSize}, receiveBuy),
+        "opcode externo nao pode ocultar Buy");
+    buy[4] = static_cast<char>(MSG_SetShortSkill_Opcode & 0xFF);
+    buy[5] = static_cast<char>((MSG_SetShortSkill_Opcode >> 8) & 0xFF);
+    check(!received_packet::Dispatch({MSG_Buy_Opcode, buy.data(), kBuyPacketSize},
+        receiveBuy), "Buy rejeita Header.Type divergente");
+    buy[4] = static_cast<char>(MSG_Buy_Opcode & 0xFF);
+    buy[5] = static_cast<char>((MSG_Buy_Opcode >> 8) & 0xFF);
+    buy[0] = static_cast<char>(kBuyPacketSize - 1);
+    check(!received_packet::Dispatch({MSG_Buy_Opcode, buy.data(), kBuyPacketSize},
+        receiveBuy), "Buy rejeita Header.Size divergente");
+    buy[0] = static_cast<char>(kBuyPacketSize);
+    check(buyCalls == 0, "Buy invalido nao chega ao consumidor");
+    check(received_packet::Dispatch({MSG_Buy_Opcode, buy.data(), kBuyPacketSize},
+        receiveBuy) && buyCalls == 1, "Buy valido entregue uma vez");
+    check(buy == buyBefore, "gate preserva todos os bytes do Buy");
+
+    for (int position = -1; position <= kBuyShopPositionLimit; ++position)
+    {
+        const bool expected = position >= 0 &&
+            position < kBuyShopPositionLimit &&
+            position % kBuyShopBlockStride < kBuyShopBlockWidth;
+        check(IsBuyShopPosition(position) == expected,
+            "Buy aceita somente celulas publicadas da loja");
+    }
+    for (int position = -1; position <= kBuyVisibleCarrySlotCount; ++position)
+        check(IsBuyCarryPosition(position) ==
+            (position >= 0 && position < kBuyVisibleCarrySlotCount),
+            "Buy aceita somente Carry 9x7 visivel");
+
+    // Ataques usam tres prefixos nativos e caudas coordenadas de tamanho
+    // variavel. O Header.Size nunca pode autorizar uma leitura alem da view.
+    std::array<char, kAttackMultiWideMaxPacketSize + 1> attack{};
+    attack[kAttackAttackerIdOffset] = 0x34;
+    attack[kAttackAttackerIdOffset + 1] = 0x12;
+    attack[kAttackProgressOffset] = 0x56;
+    attack[kAttackPositionOffset] = 0x21;
+    attack[kAttackTargetPositionOffset] = 0x43;
+    attack[kAttackSkillIndexOffset] = 0x65;
+    attack[kAttackCurrentMpOffset] = 0x76;
+    attack[kAttackMotionOffset] = 0x12;
+    attack[kAttackSkillParameterOffset] = 0x23;
+    attack[kAttackLocalFlagOffset] = 0x34;
+    attack[kAttackDoubleCriticalOffset] = 0x45;
+    attack[kAttackCurrentExpOffset] = 0x56;
+    attack[kAttackRequiredMpOffset] = 0x67;
+    attack[kAttackReservedOffset] = 0x78;
+    attack[kAttackFakeExpOffset] = static_cast<char>(0x89);
+    attack[kAttackDamagesOffset] = static_cast<char>(0x9A);
+
+    const std::array<unsigned int, 3> attackOpcodes{
+        MSG_Attack_One_Opcode, MSG_Attack_Two_Opcode,
+        MSG_Attack_Multi_Opcode
+    };
+    for (const auto opcode : attackOpcodes)
+    {
+        attack[4] = static_cast<char>(opcode & 0xFF);
+        attack[5] = static_cast<char>((opcode >> 8) & 0xFF);
+        int attackCalls = 0;
+        const auto receiveAttack = [&](const PacketView& view) {
+            ++attackCalls;
+            check(view.data == attack.data() && view.opcode == opcode &&
+                IsAttackPacketSize(view.opcode, view.size),
+                "Attack family preserva view, opcode e tamanho valido");
+        };
+
+        check(received_packet::ExpectedSize(opcode) == 0,
+            "Attack family usa contrato variavel fora de ExpectedSize");
+        int expectedCalls = 0;
+        for (std::size_t n = 0; n <= kAttackMultiWideMaxPacketSize + 1; ++n)
+        {
+            attack[0] = static_cast<char>(n);
+            const auto before = attack;
+            const bool expected = IsAttackPacketSize(opcode, n);
+            check(received_packet::Dispatch({opcode, attack.data(), n}, receiveAttack) ==
+                expected, "Attack family aceita somente envelopes publicados");
+            check(attack == before,
+                "gate preserva todos os bytes do Attack family");
+            if (expected)
+                ++expectedCalls;
+        }
+        check(attackCalls == expectedCalls,
+            "Attack family entrega uma vez cada tamanho valido");
+
+        const std::size_t nativeSize = opcode == MSG_Attack_One_Opcode ?
+            kAttackOneBasePacketSize : opcode == MSG_Attack_Two_Opcode ?
+            kAttackTwoBasePacketSize : kAttackMultiBasePacketSize;
+        attack[0] = static_cast<char>(nativeSize);
+        check(!received_packet::Dispatch({opcode, nullptr, nativeSize}, receiveAttack),
+            "Attack family rejeita buffer nulo");
+        check(!received_packet::Dispatch({0x119, attack.data(), nativeSize}, receiveAttack),
+            "opcode externo nao pode ocultar Attack family");
+
+        attack[4] = static_cast<char>(MSG_SetShortSkill_Opcode & 0xFF);
+        attack[5] = static_cast<char>((MSG_SetShortSkill_Opcode >> 8) & 0xFF);
+        check(!received_packet::Dispatch({opcode, attack.data(), nativeSize}, receiveAttack),
+            "Attack family rejeita Header.Type divergente");
+        attack[4] = static_cast<char>(opcode & 0xFF);
+        attack[5] = static_cast<char>((opcode >> 8) & 0xFF);
+
+        const std::size_t otherValidSize = opcode == MSG_Attack_One_Opcode ?
+            kAttackPhysicalWidePacketSize : opcode == MSG_Attack_Two_Opcode ?
+            kAttackTwoWideMinPacketSize : kAttackMultiWideMinPacketSize;
+        attack[0] = static_cast<char>(nativeSize);
+        check(!received_packet::Dispatch(
+            {opcode, attack.data(), otherValidSize}, receiveAttack),
+            "Attack family rejeita tamanho real divergente do Header.Size");
+        check(static_cast<unsigned char>(attack[kAttackAttackerIdOffset]) == 0x34 &&
+            static_cast<unsigned char>(attack[kAttackProgressOffset]) == 0x56 &&
+            static_cast<unsigned char>(attack[kAttackPositionOffset]) == 0x21 &&
+            static_cast<unsigned char>(attack[kAttackTargetPositionOffset]) == 0x43 &&
+            static_cast<unsigned char>(attack[kAttackSkillIndexOffset]) == 0x65 &&
+            static_cast<unsigned char>(attack[kAttackDamagesOffset]) == 0x9A,
+            "Attack family preserva prefixo e primeira entrada de dano");
+    }
+
+    // AutoTrade escreve terminadores na descricao, copia o frame inteiro e
+    // percorre os doze itens/precos; nenhum desses acessos aceita truncamento.
+    std::array<char, kAutoTradePacketSize + 1> autoTrade{};
+    autoTrade[0] = static_cast<char>(kAutoTradePacketSize);
+    autoTrade[4] = static_cast<char>(MSG_AutoTrade_Opcode & 0xFF);
+    autoTrade[5] = static_cast<char>((MSG_AutoTrade_Opcode >> 8) & 0xFF);
+    autoTrade[6] = 0x34;
+    autoTrade[7] = 0x12;
+    autoTrade[kAutoTradeDescriptionOffset] = 'L';
+    autoTrade[kAutoTradeDescriptionOffset + kAutoTradeDescriptionSize - 1] = 0;
+    autoTrade[kAutoTradeItemsOffset] = 0x21;
+    autoTrade[kAutoTradeItemsOffset +
+        (kAutoTradeItemCount - 1) * kAutoTradeItemSize] = 0x32;
+    autoTrade[kAutoTradeCarryPositionsOffset] = 0x43;
+    autoTrade[kAutoTradePricesOffset] = 0x54;
+    autoTrade[kAutoTradePricesOffset +
+        (kAutoTradeItemCount - 1) * kAutoTradePriceSize] = 0x65;
+    autoTrade[kAutoTradeTaxOffset] = 0x76;
+    autoTrade[kAutoTradeTargetIdOffset] = static_cast<char>(0x87);
+    const auto autoTradeBefore = autoTrade;
+    int autoTradeCalls = 0;
+    const auto receiveAutoTrade = [&](const PacketView& view) {
+        ++autoTradeCalls;
+        check(view.data == autoTrade.data() && view.size == kAutoTradePacketSize &&
+            view.opcode == MSG_AutoTrade_Opcode,
+            "AutoTrade preserva frame e opcode");
+    };
+    check(received_packet::ExpectedSize(MSG_AutoTrade_Opcode) ==
+        kAutoTradePacketSize,
+        "AutoTrade publica tamanho esperado no gate");
+    for (std::size_t n = 0; n < kAutoTradePacketSize; ++n)
+        check(!received_packet::Dispatch(
+            {MSG_AutoTrade_Opcode, autoTrade.data(), n}, receiveAutoTrade),
+            "AutoTrade rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch(
+        {MSG_AutoTrade_Opcode, nullptr, kAutoTradePacketSize}, receiveAutoTrade),
+        "AutoTrade rejeita buffer nulo");
+    check(!received_packet::Dispatch(
+        {MSG_AutoTrade_Opcode, autoTrade.data(), kAutoTradePacketSize + 1},
+        receiveAutoTrade), "AutoTrade rejeita frame excedente");
+    check(!received_packet::Dispatch(
+        {0x119, autoTrade.data(), kAutoTradePacketSize}, receiveAutoTrade),
+        "opcode externo nao pode ocultar AutoTrade");
+    autoTrade[4] = static_cast<char>(MSG_SetShortSkill_Opcode & 0xFF);
+    autoTrade[5] = static_cast<char>((MSG_SetShortSkill_Opcode >> 8) & 0xFF);
+    check(!received_packet::Dispatch(
+        {MSG_AutoTrade_Opcode, autoTrade.data(), kAutoTradePacketSize},
+        receiveAutoTrade), "AutoTrade rejeita Header.Type divergente");
+    autoTrade[4] = static_cast<char>(MSG_AutoTrade_Opcode & 0xFF);
+    autoTrade[5] = static_cast<char>((MSG_AutoTrade_Opcode >> 8) & 0xFF);
+    autoTrade[0] = static_cast<char>(kAutoTradePacketSize - 1);
+    check(!received_packet::Dispatch(
+        {MSG_AutoTrade_Opcode, autoTrade.data(), kAutoTradePacketSize},
+        receiveAutoTrade), "AutoTrade rejeita Header.Size divergente");
+    autoTrade[0] = static_cast<char>(kAutoTradePacketSize);
+    check(autoTradeCalls == 0, "AutoTrade invalido nao chega ao consumidor");
+    check(received_packet::Dispatch(
+        {MSG_AutoTrade_Opcode, autoTrade.data(), kAutoTradePacketSize},
+        receiveAutoTrade) && autoTradeCalls == 1,
+        "AutoTrade valido entregue uma vez");
+    check(autoTrade[kAutoTradeDescriptionOffset] == 'L' &&
+        static_cast<unsigned char>(autoTrade[kAutoTradeItemsOffset]) == 0x21 &&
+        static_cast<unsigned char>(autoTrade[kAutoTradeItemsOffset +
+            (kAutoTradeItemCount - 1) * kAutoTradeItemSize]) == 0x32 &&
+        static_cast<unsigned char>(autoTrade[kAutoTradeCarryPositionsOffset]) == 0x43 &&
+        static_cast<unsigned char>(autoTrade[kAutoTradePricesOffset]) == 0x54 &&
+        static_cast<unsigned char>(autoTrade[kAutoTradePricesOffset +
+            (kAutoTradeItemCount - 1) * kAutoTradePriceSize]) == 0x65 &&
+        static_cast<unsigned char>(autoTrade[kAutoTradeTaxOffset]) == 0x76 &&
+        static_cast<unsigned char>(autoTrade[kAutoTradeTargetIdOffset]) == 0x87,
+        "AutoTrade preserva descricao, ofertas, precos, taxa e alvo");
+    check(autoTrade == autoTradeBefore,
+        "gate preserva todos os bytes do AutoTrade");
+
+    // O cache e o tooltip da capsula consomem o snapshot 7.48 compacto de
+    // 52 bytes. As quatro masteries herdadas do 7.69 deslocavam skill/Quest.
+    std::array<char, kCapsuleInfoPacketSize + 1> capsuleInfo{};
+    capsuleInfo[0] = static_cast<char>(kCapsuleInfoPacketSize);
+    capsuleInfo[4] = static_cast<char>(MSG_CapsuleInfo_Opcode & 0xFF);
+    capsuleInfo[5] = static_cast<char>((MSG_CapsuleInfo_Opcode >> 8) & 0xFF);
+    capsuleInfo[6] = 0x34;
+    capsuleInfo[7] = 0x12;
+    capsuleInfo[kCapsuleInfoIndexOffset] = 0x11;
+    capsuleInfo[kCapsuleInfoClassOffset] = 0x22;
+    capsuleInfo[kCapsuleInfoLevelOffset] = 0x33;
+    capsuleInfo[kCapsuleInfoStrengthOffset] = 0x44;
+    capsuleInfo[kCapsuleInfoIntelligenceOffset] = 0x55;
+    capsuleInfo[kCapsuleInfoDexterityOffset] = 0x66;
+    capsuleInfo[kCapsuleInfoConstitutionOffset] = 0x77;
+    capsuleInfo[kCapsuleInfoMasteryOffset] = static_cast<char>(0x88);
+    capsuleInfo[kCapsuleInfoMasteryOffset +
+        (kCapsuleInfoMasteryCount - 1) * sizeof(short)] = static_cast<char>(0x99);
+    capsuleInfo[kCapsuleInfoSkillOffset] = static_cast<char>(0xAA);
+    capsuleInfo[kCapsuleInfoSkillOffset +
+        (kCapsuleInfoSkillCount - 1) * sizeof(short)] = static_cast<char>(0xBB);
+    capsuleInfo[kCapsuleInfoQuestOffset] = static_cast<char>(0xCC);
+    const auto capsuleInfoBefore = capsuleInfo;
+    int capsuleInfoCalls = 0;
+    const auto receiveCapsuleInfo = [&](const PacketView& view) {
+        ++capsuleInfoCalls;
+        check(view.data == capsuleInfo.data() &&
+            view.size == kCapsuleInfoPacketSize &&
+            view.opcode == MSG_CapsuleInfo_Opcode,
+            "CapsuleInfo preserva frame e opcode");
+    };
+    check(received_packet::ExpectedSize(MSG_CapsuleInfo_Opcode) ==
+        kCapsuleInfoPacketSize,
+        "CapsuleInfo publica tamanho esperado no gate");
+    for (std::size_t n = 0; n < kCapsuleInfoPacketSize; ++n)
+        check(!received_packet::Dispatch(
+            {MSG_CapsuleInfo_Opcode, capsuleInfo.data(), n}, receiveCapsuleInfo),
+            "CapsuleInfo rejeita todo prefixo truncado");
+    check(!received_packet::Dispatch(
+        {MSG_CapsuleInfo_Opcode, nullptr, kCapsuleInfoPacketSize},
+        receiveCapsuleInfo), "CapsuleInfo rejeita buffer nulo");
+    check(!received_packet::Dispatch(
+        {MSG_CapsuleInfo_Opcode, capsuleInfo.data(), kCapsuleInfoPacketSize + 1},
+        receiveCapsuleInfo), "CapsuleInfo rejeita frame excedente");
+    check(!received_packet::Dispatch(
+        {0x119, capsuleInfo.data(), kCapsuleInfoPacketSize}, receiveCapsuleInfo),
+        "opcode externo nao pode ocultar CapsuleInfo");
+    capsuleInfo[4] = static_cast<char>(MSG_SetShortSkill_Opcode & 0xFF);
+    capsuleInfo[5] = static_cast<char>((MSG_SetShortSkill_Opcode >> 8) & 0xFF);
+    check(!received_packet::Dispatch(
+        {MSG_CapsuleInfo_Opcode, capsuleInfo.data(), kCapsuleInfoPacketSize},
+        receiveCapsuleInfo), "CapsuleInfo rejeita Header.Type divergente");
+    capsuleInfo[4] = static_cast<char>(MSG_CapsuleInfo_Opcode & 0xFF);
+    capsuleInfo[5] = static_cast<char>((MSG_CapsuleInfo_Opcode >> 8) & 0xFF);
+    capsuleInfo[0] = static_cast<char>(kCapsuleInfoPacketSize - 1);
+    check(!received_packet::Dispatch(
+        {MSG_CapsuleInfo_Opcode, capsuleInfo.data(), kCapsuleInfoPacketSize},
+        receiveCapsuleInfo), "CapsuleInfo rejeita Header.Size divergente");
+    capsuleInfo[0] = static_cast<char>(kCapsuleInfoPacketSize);
+    check(capsuleInfoCalls == 0,
+        "CapsuleInfo invalido nao chega ao consumidor");
+    check(received_packet::Dispatch(
+        {MSG_CapsuleInfo_Opcode, capsuleInfo.data(), kCapsuleInfoPacketSize},
+        receiveCapsuleInfo) && capsuleInfoCalls == 1,
+        "CapsuleInfo valido entregue uma vez");
+    check(static_cast<unsigned char>(capsuleInfo[kCapsuleInfoIndexOffset]) == 0x11 &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoClassOffset]) == 0x22 &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoLevelOffset]) == 0x33 &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoStrengthOffset]) == 0x44 &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoIntelligenceOffset]) == 0x55 &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoDexterityOffset]) == 0x66 &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoConstitutionOffset]) == 0x77 &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoMasteryOffset]) == 0x88 &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoMasteryOffset +
+            (kCapsuleInfoMasteryCount - 1) * sizeof(short)]) == 0x99 &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoSkillOffset]) == 0xAA &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoSkillOffset +
+            (kCapsuleInfoSkillCount - 1) * sizeof(short)]) == 0xBB &&
+        static_cast<unsigned char>(capsuleInfo[kCapsuleInfoQuestOffset]) == 0xCC,
+        "CapsuleInfo preserva indice, score, mastery, skills e quest");
+    check(capsuleInfo == capsuleInfoBefore,
+        "gate preserva todos os bytes do CapsuleInfo");
 
     // PremiumFirework leva oito bytes reservados e o bitmap de 16 bytes em
     // +20; o efeito visual recebe exatamente essa fatia sem copiar o frame.
@@ -1495,6 +2444,88 @@ int RunReceivedPacketDispatchTests(int& checks)
     check(ParseMigrationServer(fullTicket, 7, parsed) && parsed == 3,
         "ticket sem NUL respeita limite fisico e aceita sufixo opaco");
     check(!ParseMigrationServer(fullTicket, 0, parsed), "capacidade vazia rejeitada");
+    char endpointSource[64]{};
+    char endpointDestination[128]{};
+    std::memcpy(endpointSource, "127.0.0.1", 10);
+    check(CopyServerEndpoint(endpointDestination, endpointSource) &&
+        std::strcmp(endpointDestination, "127.0.0.1") == 0,
+        "endpoint terminado copiado sem ultrapassar a celula");
+    std::memset(endpointSource, 'x', sizeof(endpointSource));
+    std::memcpy(endpointDestination, "preservado", 10);
+    check(!CopyServerEndpoint(endpointDestination, endpointSource) &&
+        endpointDestination[0] == '\0',
+        "endpoint sem NUL rejeitado e destino anterior limpo");
+    std::memcpy(endpointDestination, "preservado", 10);
+    std::memset(endpointSource, 0, sizeof(endpointSource));
+    check(!CopyServerEndpoint(endpointDestination, endpointSource) &&
+        endpointDestination[0] == '\0',
+        "endpoint vazio rejeitado e destino anterior limpo");
+    std::memset(endpointSource, 'm', sizeof(endpointSource));
+    endpointSource[sizeof(endpointSource) - 1] = '\0';
+    check(CopyServerEndpoint(endpointDestination, endpointSource) &&
+        endpointDestination[sizeof(endpointSource) - 2] == 'm' &&
+        endpointDestination[sizeof(endpointSource) - 1] == '\0',
+        "endpoint de 63 bytes aceito no limite fisico");
+    char serverGroups[10][11][64]{};
+    check(LastConfiguredServerGroup(serverGroups) == -1,
+        "lista de servidores vazia nao acessa grupo inexistente");
+    serverGroups[0][0][0] = 'a';
+    serverGroups[1][0][0] = 'b';
+    check(LastConfiguredServerGroup(serverGroups) == 1,
+        "lista parcial termina no primeiro grupo vazio");
+    for (auto& group : serverGroups)
+        group[0][0] = 'a';
+    check(LastConfiguredServerGroup(serverGroups) == 9,
+        "dez grupos ocupados terminam no limite fisico da tabela");
+    int orderedGroups[11]{};
+    for (int group = 0; group < 10; ++group)
+        orderedGroups[group] = group + 1;
+    auto visibleGroups = VisibleServerGroupSlots(orderedGroups, serverGroups, 9);
+    check(visibleGroups.count == 10 && visibleGroups.slots[0] == 9 && visibleGroups.slots[9] == 0,
+        "dez grupos visiveis preservam o ultimo slot e a ordem inversa");
+    serverGroups[9][0][0] = 0;
+    check(visibleGroups.count == 10 && visibleGroups.slots[0] == 9,
+        "snapshot de linhas nao muda quando o agregado apaga endpoints de status");
+    serverGroups[9][0][0] = 'a';
+    orderedGroups[4] = 0;
+    orderedGroups[7] = 2;
+    serverGroups[1][0][0] = 0;
+    visibleGroups = VisibleServerGroupSlots(orderedGroups, serverGroups, 9);
+    check(visibleGroups.count == 7 && visibleGroups.slots[0] == 9 &&
+        visibleGroups.slots[2] == 6 && visibleGroups.slots[6] == 0,
+        "linhas esparsas correspondem aos slots realmente inseridos na lista");
+    check(VisibleServerGroupSlots(orderedGroups, serverGroups, -1).count == 0,
+        "lista sem grupos nao cria linhas selecionaveis");
+    const int sparseChannels[10]{1, 3, 10};
+    check(ChannelForVisibleRow(sparseChannels, 3, 0) == 1 &&
+        ChannelForVisibleRow(sparseChannels, 3, 1) == 3 &&
+        ChannelForVisibleRow(sparseChannels, 3, 2) == 10,
+        "linha compactada conserva o endpoint real do canal");
+    check(ChannelForVisibleRow(sparseChannels, 0, 0) == -1 &&
+        ChannelForVisibleRow(sparseChannels, 3, -1) == -1 &&
+        ChannelForVisibleRow(sparseChannels, 3, 3) == -1 &&
+        ChannelForVisibleRow(sparseChannels, 11, 0) == -1,
+        "selecao antiga ou fora da lista nao resolve endpoint");
+    char channelNames[10][10][9]{};
+    std::memcpy(channelNames[0][9], "Canal 10", 9);
+    check(ServerChannelNameAt(channelNames, 0, 9) == channelNames[0][9] &&
+        !ServerChannelNameAt(channelNames, 0, 10) &&
+        !ServerChannelNameAt(channelNames, 10, 0) &&
+        !ServerChannelNameAt(channelNames, 0, -1),
+        "nome de canal respeita as dez celulas por grupo");
+    std::memset(channelNames[0][9], 'x', sizeof(channelNames[0][9]));
+    check(!ServerChannelNameAt(channelNames, 0, 9),
+        "nome sem terminador nao invade a proxima celula");
+    std::memcpy(serverGroups[0][10], "127.0.0.1", 10);
+    char selectedEndpoint[64]{};
+    check(CopyServerEndpointAt(selectedEndpoint, serverGroups, 0, 10) &&
+        std::strcmp(selectedEndpoint, "127.0.0.1") == 0,
+        "ultimo canal de endpoint permanece valido");
+    check(!CopyServerEndpointAt(selectedEndpoint, serverGroups, 0, 11) &&
+        selectedEndpoint[0] == 0 &&
+        !CopyServerEndpointAt(selectedEndpoint, serverGroups, -1, 1) &&
+        !CopyServerEndpointAt(selectedEndpoint, serverGroups, 10, 1),
+        "endpoint agregado fora dos limites e descartado");
     std::array<char, 129> whisper{};
     whisper[0] = static_cast<char>(128);
     whisper[4] = 0x34; whisper[5] = 3;

@@ -75,7 +75,7 @@ func (c ProvisionConfig) normalize() (ProvisionConfig, error) {
 		}
 	}
 	if !account.ValidPassword(c.BotPassword) {
-		return c, fmt.Errorf("senha dos bots deve ter 4 a 12 caracteres ASCII visiveis")
+		return c, fmt.Errorf("senha dos bots deve ter 4 a 10 caracteres ASCII visiveis")
 	}
 	return c, nil
 }

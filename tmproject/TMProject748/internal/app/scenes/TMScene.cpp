@@ -480,10 +480,19 @@ int TMScene::ReadRCBin(char* szBinFileName)
 	// indexed-string parser used by the live 7.48 selection screen.
 	const bool legacyInlineCaptions = WYD748_IsLegacyRCFile(szBinFileName);
 
-	CONTROL_TYPE nControlType{};
-
-	while (fread(&nControlType, 4, 1, fpBinary))
+	int rawControlType = 0;
+	while (true)
 	{
+		const auto readResult = ReadRCControlType(fpBinary, rawControlType);
+		if (readResult == RCControlTypeReadResult::End)
+			break;
+		if (readResult != RCControlTypeReadResult::Record)
+		{
+			LOG_WRITELOG("Incomplete RC control type in [%s]\r\n", szBinFileName);
+			fclose(fpBinary);
+			return 0;
+		}
+		const auto nControlType = static_cast<CONTROL_TYPE>(rawControlType);
 		switch (nControlType)
 		{
 		case CONTROL_TYPE::CTRL_TYPE_PANEL:
@@ -1022,6 +1031,7 @@ int TMScene::ReadRCBin(char* szBinFileName)
 		break;
 		default:
 			LOG_WRITELOG("Not Support Control Type [%d]\r\n", nControlType);
+			fclose(fpBinary);
 			return 0;
 		}
 	}
@@ -1742,7 +1752,7 @@ char heightMapData[128][128]{};
 int TMScene::GroundNewAttach(EDirection eDir)
 {
 	memset(heightMapData, 0, sizeof(heightMapData));
-	if (!m_pGround)
+	if (m_bCriticalError == 1 || !m_pGround)
 		return 0;
 
 	int x{};
@@ -1826,15 +1836,21 @@ int TMScene::GroundNewAttach(EDirection eDir)
 
 	if (!pGround->LoadTileMap(fileNameTrn))
 	{
+		LOG_WRITELOG("TerrainFile Not Found or Invalid : %s\r\n", fileNameTrn);
+		if (!m_bCriticalError)
+			LogMsgCriticalError(10, 0, 0, 0, 0);
+		m_bCriticalError = 1;
 		delete pGround;
 		return 0;
 	}
-
-	if (m_pGroundList[gId])
+	if (pGround->m_vecOffsetIndex.x != x || pGround->m_vecOffsetIndex.y != y)
 	{
-		delete m_pGroundList[gId];
-
-		m_pGroundList[gId] = nullptr;
+		LOG_WRITELOG("TerrainFile Position Mismatch : %s\r\n", fileNameTrn);
+		if (!m_bCriticalError)
+			LogMsgCriticalError(10, 0, 0, 0, 0);
+		m_bCriticalError = 1;
+		delete pGround;
+		return 0;
 	}
 
 	if (m_pObjectContainerList[gId])
@@ -1844,23 +1860,78 @@ int TMScene::GroundNewAttach(EDirection eDir)
 		m_pObjectContainerList[gId] = nullptr;
 	}
 
+	if (m_pGroundList[gId])
+	{
+		if (m_pGround->m_pLeftGround == m_pGroundList[gId])
+			m_pGround->m_pLeftGround = nullptr;
+		if (m_pGround->m_pRightGround == m_pGroundList[gId])
+			m_pGround->m_pRightGround = nullptr;
+		if (m_pGround->m_pUpGround == m_pGroundList[gId])
+			m_pGround->m_pUpGround = nullptr;
+		if (m_pGround->m_pDownGround == m_pGroundList[gId])
+			m_pGround->m_pDownGround = nullptr;
+		delete m_pGroundList[gId];
+
+		m_pGroundList[gId] = nullptr;
+	}
+
 	m_pGroundList[gId] = pGround;
 
 	m_pGroundObjectContainer->AddChild(m_pGroundList[gId]);
 
-	if (m_pGroundList[m_nCurrentGroundIndex])
-		m_pGroundList[m_nCurrentGroundIndex]->Attach(m_pGroundList[gId]);
+	// Attach must precede object creation: light effects in Field*.dat use
+	// GroundGetColor/GroundSetColor through the scene's neighbor links.
+	FileTileInfo previousBorder[64]{};
+	TMVector3 previousNormals[64]{};
+	const int previousMiniMapPos = m_pGround->m_nMiniMapPos;
+	const bool changesCurrentBorder =
+		eDir == EDirection::EDIR_LEFT || eDir == EDirection::EDIR_UP;
+	if (changesCurrentBorder)
+	{
+		for (int i = 0; i < 64; ++i)
+		{
+			const int index = eDir == EDirection::EDIR_LEFT ? i * 64 : i;
+			previousBorder[i] = m_pGround->m_TileMapData[index];
+			previousNormals[i] = m_pGround->m_TileNormalVector[index];
+		}
+	}
+
+	if (!m_pGroundList[m_nCurrentGroundIndex] ||
+		!m_pGroundList[m_nCurrentGroundIndex]->Attach(m_pGroundList[gId]))
+	{
+		SAFE_DELETE(m_pGroundList[gId]);
+		LOG_WRITELOG("TerrainFile Attach Failed : %s\r\n", fileNameTrn);
+		if (!m_bCriticalError)
+			LogMsgCriticalError(10, 0, 0, 0, 0);
+		m_bCriticalError = 1;
+		return 0;
+	}
 
 	m_pObjectContainerList[gId] = new TMObjectContainer(m_pGroundList[gId]);
 
 	if (!m_pObjectContainerList[gId]->Load(fileNameDat))
 	{
-		if (m_pObjectContainerList[gId])
+		SAFE_DELETE(m_pObjectContainerList[gId]);
+		if (m_pGround->m_pLeftGround == m_pGroundList[gId])
+			m_pGround->m_pLeftGround = nullptr;
+		if (m_pGround->m_pRightGround == m_pGroundList[gId])
+			m_pGround->m_pRightGround = nullptr;
+		if (m_pGround->m_pUpGround == m_pGroundList[gId])
+			m_pGround->m_pUpGround = nullptr;
+		if (m_pGround->m_pDownGround == m_pGroundList[gId])
+			m_pGround->m_pDownGround = nullptr;
+		if (changesCurrentBorder)
 		{
-			delete m_pObjectContainerList[gId];
-			
-			m_pObjectContainerList[gId] = nullptr;
+			for (int i = 0; i < 64; ++i)
+			{
+				const int index = eDir == EDirection::EDIR_LEFT ? i * 64 : i;
+				m_pGround->m_TileMapData[index] = previousBorder[i];
+				m_pGround->m_TileNormalVector[index] = previousNormals[i];
+			}
 		}
+		m_pGround->m_nMiniMapPos = previousMiniMapPos;
+
+		SAFE_DELETE(m_pGroundList[gId]);
 		
 		LOG_WRITELOG("DataFile Not Found : %s\r\n", fileNameDat);
 		
@@ -1881,7 +1952,7 @@ int TMScene::GroundNewAttach(EDirection eDir)
 
 	g_pTextureManager->ReleaseNotUsingTexture();
 	
-	memset(m_HeightMapData, 0, 4);
+	memset(m_HeightMapData, 0, sizeof(m_HeightMapData));
 
 	switch (eDir)
 	{
@@ -2080,10 +2151,10 @@ int TMScene::GroundGetMask(TMVector2 vecPosition)
 	if (nYIndex < 0)
 		nYIndex = 0;
 
-	if (nXIndex > 256)
+	if (nXIndex >= 256)
 		nXIndex = 255;
 
-	if (nYIndex > 256)
+	if (nYIndex >= 256)
 		nYIndex = 255;
 
 	int value = m_HeightMapData[nYIndex][nXIndex];
@@ -2101,10 +2172,10 @@ int TMScene::GroundGetMask(IVector2 vecPosition)
 	if (nYIndex < 0)
 		nYIndex = 0;
 
-	if (nXIndex > 256)
+	if (nXIndex >= 256)
 		nXIndex = 255;
 
-	if (nYIndex > 256)
+	if (nYIndex >= 256)
 		nYIndex = 255;
 
 	return m_HeightMapData[nYIndex][nXIndex];
@@ -2435,6 +2506,16 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 				LogMsgCriticalError(10, 0, 0, 0, 0);
 
 			m_bCriticalError = 1;
+			delete pGround;
+			return;
+		}
+		if (pGround->m_vecOffsetIndex.x != nZoneX || pGround->m_vecOffsetIndex.y != nZoneY)
+		{
+			LOG_WRITELOG("TerrainFile Position Mismatch : %s\r\n", szMapPath);
+			if (!m_bCriticalError)
+				LogMsgCriticalError(10, 0, 0, 0, 0);
+			m_bCriticalError = 1;
+			delete pGround;
 			return;
 		}
 
@@ -2462,10 +2543,13 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 				LogMsgCriticalError(11, 0, 0, 0, 0);
 
 			m_bCriticalError = 1;
+			SAFE_DELETE(m_pObjectContainerList[0]);
+			SAFE_DELETE(m_pGroundList[0]);
+			m_pGround = nullptr;
 			return;
 		}
 
-		memset(m_HeightMapData, 0, 4u);
+		memset(m_HeightMapData, 0, sizeof(m_HeightMapData));
 
 		for (int nY = 0; nY < 128; ++nY)
 			memcpy(m_HeightMapData[nY], m_pGround->m_pMaskData[nY], 128);

@@ -70,7 +70,8 @@ func opcodeAllowedInPhase(phase sessionPhase, opcode uint16) bool {
 		return false
 	case phaseCharacterSelect:
 		switch opcode {
-		case wire.OpCreateCharacter, wire.OpDeleteCharacter, wire.OpCharacterLogin:
+		case wire.OpCreateCharacter, wire.OpDeleteCharacter, wire.OpCharacterLogin,
+			wire.OpCharacterTransfer:
 			return true
 		default:
 			return false
@@ -78,7 +79,7 @@ func opcodeAllowedInPhase(phase sessionPhase, opcode uint16) bool {
 	case phaseWorld:
 		switch opcode {
 		case wire.OpConnectAccount, wire.OpCreateCharacter, wire.OpDeleteCharacter,
-			wire.OpCharacterLogin:
+			wire.OpCharacterLogin, wire.OpCharacterTransfer:
 			return false
 		default:
 			return true
@@ -195,6 +196,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 36, true
 	case wire.OpDeleteCharacter:
 		return 44, true
+	case wire.OpCharacterTransfer:
+		return 52, true
 	case wire.OpCharacterLogin:
 		// Client 7.48: header(12) + Slot(4) + Force(4) + SecretCode(16).
 		// O slot continua em @12; a cauda faz parte do contrato de framing e
@@ -265,6 +268,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 128, true
 	case wire.OpChangeCity, wire.OpReqTeleport, wire.OpPKMode:
 		return 16, true
+	case wire.OpAirMove:
+		return 20, true
 	case wire.OpMoveStop:
 		return 36, true
 	case wire.OpUpdateScore:

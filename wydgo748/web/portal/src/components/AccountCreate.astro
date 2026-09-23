@@ -5,7 +5,7 @@
     <p>O cadastro grava somente a conta e o hash da senha. Personagens são criados depois, dentro do jogo.</p>
     <ul>
       <li>Conta: 4–12 letras ou números</li>
-      <li>Senha: 4–12 caracteres, sem espaços</li>
+      <li>Senha: 4–10 caracteres, sem espaços</li>
       <li>O PIN administrativo autoriza cada cadastro</li>
     </ul>
   </div>
@@ -15,11 +15,11 @@
     <div class="account-create-passwords">
       <div>
         <label for="new-account-password">Senha</label>
-        <input id="new-account-password" name="password" type="password" autocomplete="new-password" minlength="4" maxlength="12" pattern="[^\s]{4,12}" required placeholder="Senha do jogo" />
+        <input id="new-account-password" name="password" type="password" autocomplete="new-password" minlength="4" maxlength="10" pattern="[^\s]{4,10}" required placeholder="Senha do jogo" />
       </div>
       <div>
         <label for="new-account-confirmation">Confirmar senha</label>
-        <input id="new-account-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="4" maxlength="12" pattern="[^\s]{4,12}" required placeholder="Repita a senha" />
+        <input id="new-account-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="4" maxlength="10" pattern="[^\s]{4,10}" required placeholder="Repita a senha" />
       </div>
     </div>
     <label for="new-account-pin">PIN administrativo <span>6–12 dígitos</span></label>

@@ -7,9 +7,11 @@ O codigo importado tinha como alvo original o client Global/KR 7.69+. Nesta
 para o protocolo, ABI, UI e assets comprovados do WYD-Go 7.48. Não conservar
 um caminho executável para a versão upstream.
 
-O único candidato ativo é `tmproject/client748/project.exe`, instalado diretamente a
-partir do build. Os executáveis e patchers históricos não são fallback, produto
-ou gate de validação.
+O destino do candidato ativo é `tmproject/client748/project.exe` quando o build
+é instalado. Com `Build-Client.ps1 -NoDeploy`, somente o artefato em
+`tmproject/build/` é atualizado; o executável instalado permanece intacto.
+Os executáveis e patchers históricos não são fallback, produto ou gate de
+validação.
 
 ## Perfil de assets 7.48
 
@@ -31,7 +33,22 @@ O build recompilavel pode ler diretamente a arvore `tmproject/client748/` por me
 - o parser opcional dos registros RC antigos com captions inline, mantido para
   recursos legados sem substituir a tela principal 7.48;
 - `sn.bin` como tabela binaria fixa de 11 nomes e 11 ordens de grupo, em vez do
-  formato texto esperado pelo TMProject recente.
+  formato texto esperado pelo TMProject recente. A cena de selecao carrega e
+  valida esse arquivo antes de montar os controles; a leitura textual antiga
+  na inicializacao do app foi removida.
+- A selecao inicial e a troca de canal limitam nomes opcionais, grupos e
+  endpoints as dimensoes reais das tabelas locais. O canal 10 continua valido
+  no `serverlist.bin`; quando nao ha nome opcional seguro, a UI usa o numero
+  do canal. Uma origem agregada fora da tabela e descartada, sem leitura de
+  memoria adjacente. Endpoints vazios ou sem terminador tambem limpam o destino
+  local em vez de deixar um IP anterior. Isto e `MODERNIZACAO_COMPATIVEL`, sem
+  alterar o wire.
+- Na lista de servidores, o fundo de cada grupo usa a mesma linha visivel
+  compactada do texto e do clique. Isso mantém o alinhamento quando há lacunas
+  nos grupos e preserva as posições da configuração densa 7.48, sem mudar wire.
+- Ao terminar a transição visual da seleção, todos os fundos de grupo recebem
+  a cor final; antes só os dois primeiros eram atualizados. Duração, logos e
+  contrato do servidor permanecem iguais.
 - `config.txt` como configuracao nomeada do 7.48, preservando resolucao, modo
   de janela, variante da UI, camera, cursor, audio e animacao sem overrides.
 
@@ -83,9 +100,9 @@ Classificação: `MODERNIZACAO_COMPATIVEL` na source, reutilizando dados já
 validados como `PARIDADE_NATIVA`. Procedência desta frente:
 
 - Binário nativo/Ghidra e descompilação estudada: `UTILIZADA` por meio da
-  evidência registrada em [Trajes KR](native-reference-patches.md), incluindo
-  seleção, marca interna e preservação de skeleton/face; sem nova análise ou
-  execução de patch histórico.
+  [registro de trajes KR](../../.agents/research/client748/inventory/costume-native-contract.md),
+  incluindo seleção, marca interna e preservação de skeleton/face; sem nova
+  análise ou execução de patch histórico.
 - Assets 7.48: `UTILIZADA`; manifesto, 774 partes e dependências conferidos.
 - TMProject atual: `UTILIZADA` para integrar seleção e carregamento; o
   mapeamento hardcoded posterior é `CONTRADITÓRIA` para os trajes importados
@@ -131,6 +148,11 @@ testadas explicitamente. Nenhuma das duas deve ser apresentada como paridade
 nativa. Assets posteriores exigem validação de formatos, recursos, loaders e
 fluxo observável; sua ausência no nativo não justifica remoção automática.
 
+Na abertura das cenas 7.48, falha de leitura do RC interrompe a inicialização.
+O fallback de HUD do `FieldScene2.bin` só se aplica a um recurso carregado com
+sucesso que não contenha o controle moderno `66817`; recurso inválido não deve
+ser interpretado como variante legítima do layout.
+
 ## Layout ativo do score
 
 O [contrato canônico](../SCORE.md) substitui o layout histórico de 48 bytes.
@@ -146,8 +168,9 @@ também todos os packets que embutem o score.
 3. Adaptar um grupo pequeno de packets ou uma janela por vez, removendo o
    caminho incompatível somente quando houver evidência e contrato substituto.
 4. Proteger wire/ABI com `static_assert` e testes byte-a-byte.
-5. Validar assets, compilar e confirmar que o build instalou e conferiu
-   automaticamente `tmproject/client748/project.exe`.
+5. Validar assets e compilar; se a instalação fizer parte do gate, confirmar
+   o SHA-256 de `tmproject/client748/project.exe`. Com `-NoDeploy`, registrar
+   apenas o artefato em `tmproject/build/` e a instalação pendente.
 6. Testar owner, observer, falha e relogin antes de promover o comportamento.
 
 Nao alterar varios packets estruturais de uma vez: `STRUCT_SCORE` esta embutido

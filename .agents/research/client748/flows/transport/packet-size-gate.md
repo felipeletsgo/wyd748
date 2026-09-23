@@ -4,7 +4,7 @@ title: Validar tamanho fixo pelo opcode do packet
 subsystem: transport
 status: LOCATED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-08-31
+updated: 2026-09-21
 ---
 
 # Validar tamanho fixo pelo opcode do packet
@@ -140,9 +140,39 @@ pelo projeto Ghidra atual.
 ### Source recompilável
 
 `CPSock::ReadMessage` valida framing mínimo/máximo, disponibilidade dos bytes,
-keyword e checksum, mas a investigação atual não localizou chamada equivalente
-ao gate opcode/tamanho. `WYD748Compat.cpp` protege diversos layouts com
-`static_assert`; isso é proteção de build, não validação runtime de entrada.
+keyword e checksum. A source atual tambem possui `ReceivedPacketDispatch`, um
+gate incremental anterior ao percurso no ObjectManager que exige tamanho
+real/declarado e Type/opcode para contratos ja migrados. Essa implementacao e
+`MODERNIZACAO_COMPATIVEL` do par ativo e nao e apresentada como correspondencia
+estrutural ou caller recuperado de `FUN_0055890A`. Os demais opcodes ainda
+dependem de seus consumidores. `static_assert` protege ABI no build, nao entrada
+runtime.
+
+A família de ataque `0x39D/0x39E/0x36C` usa um conjunto fechado de tamanhos,
+em vez de uma entrada única na tabela fixa: prefixos 48/52/96 e somente as
+caudas físicas/`DMGX` publicadas pelo par ativo. O gate compara o tamanho real
+com `Header.Size` antes de consultar esse contrato variável.
+
+As confirmações de inventário `0x376/20` e `0x379/24` também entram na tabela
+fixa antes dos casts de `OnPacketSwapItem` e `OnPacketBuy`. O envelope é
+complementado por predicados de domínio no handler: Equip `0..15` exceto slot
+9, Carry `0..62`, Cargo `0..119` e células de loja `0..8`, `27..35` ou
+`54..62`. A ficha `inventory-transaction-confirmations.md` separa o ABI nativo
+do hardening antecipado do consumidor.
+
+As confirmações de gold do Cargo `0x387/0x388` entram na tabela fixa com 16
+bytes antes dos casts de `OnPacketWithdraw` e `OnPacketDeposit`. O DWORD em
+`+12` é preservado e os snapshots autoritativos `0x339/0x337` continuam
+responsáveis pela reconciliação. A ficha
+`cargo-gold-transfer-confirmations.md` registra a fronteira de evidência e
+classifica o gate como `MODERNIZACAO_COMPATIVEL`.
+
+O desafio entre jogadores `0x39F` entra na tabela fixa com 20 bytes antes do
+cast de `TMHuman::OnPacketReqRanking`. O peer ativo usa `MSG_STANDARDPARM2`
+nos dois sentidos: outro jogador em `+12` e modo em `+16`. O wire existente e
+o lifecycle autoritativo não mudam; somente o guard anterior ao consumidor e
+centralizado, classificado como `MODERNIZACAO_COMPATIVEL`. Esta ampliação não
+é apresentada como prova de uma entrada equivalente no gate nativo.
 
 `REJECTED` como correspondência semântica: a correlação diferencial contra o
 `project.exe` de SHA-256
@@ -158,20 +188,27 @@ source antiga e não prova ausência na source atual.
 
 `internal/game/security.go` contém o gate server-side de tamanho permitido para
 packets recebidos do client. Os construtores de `internal/wire` definem packets
-enviados ao client. A equivalência completa por opcode ainda não foi comparada.
+enviados ao client. O inventário dos emissores S->C ativos foi cruzado com
+`ReceivedPacketDispatch`: todos os envelopes de tamanho fixo possuem entrada
+exata e a família de ataques usa um conjunto fechado de comprimentos validado
+por `IsAttackPacketSize`. O teste C++ mantém essa matriz separada dos `sizeof`
+legados para detectar divergência futura entre os dois peers.
 
 ## Matriz de delta
 
 | Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
 | --- | --- | --- | --- | --- | --- |
-| Gate fixo por opcode | tabela runtime em `FUN_0055890A` | não localizado no receive atual | herança ainda não auditada | gate C->S existe | não implementar até resolver caller/direção |
+| Gate fixo por opcode | tabela runtime em `FUN_0055890A` | gate incremental para contratos migrados | herança auditada por fluxo | gate C->S existe | ampliar somente com contrato do consumidor |
 | `0x373` tem 36 bytes | comparação direta | `static_assert(sizeof(MSG_UseItem)==36)` | layout homônimo não decide | handler espera contrato 7.48 | manter como claim confirmada, offsets internos dependem do consumidor |
 | `0x337` tem 36 bytes | comparação direta | `static_assert(sizeof(MSG_UpdateEtc)==36)` | valores modernos são risco | construtor S->C existente | auditar consumidor antes de promover a contrato completo |
 
 ## Decisões
 
-- Não adicionar um novo gate ao socket apenas por semelhança; primeiro resolver
-  caller, direção e comportamento de rejeição no nativo.
+- Não alegar equivalencia nativa do gate incremental sem resolver caller,
+  direção e comportamento de rejeição de `FUN_0055890A`.
+- Ampliar `ReceivedPacketDispatch` somente quando o consumidor e o peer ativo
+  fixarem um tamanho único ou um conjunto fechado e testável de tamanhos;
+  classificar esse hardening separadamente como `MODERNIZACAO_COMPATIVEL`.
 - Usar a tabela nativa como índice para auditar opcodes, nunca como prova isolada
   de todos os campos de cada packet.
 
@@ -211,4 +248,6 @@ enviados ao client. A equivalência completa por opcode ainda não foi comparada
   `92A97EDC2638C585C93B4DD51CD163DB7A9795C0AA358EF55115E7A9AF249A92`.
   A revisão dos três usos de `GetModuleHandleA(NULL)` também não encontrou
   derivação ou chamada do gate.
-- Client real: não executado; nenhuma mudança comportamental foi feita.
+- Client real: não executado. Os novos gates de transporte estão cobertos por
+  testes automatizados, mas os fluxos in-game continuam pendentes e não são
+  `CLIENT_TESTED`.

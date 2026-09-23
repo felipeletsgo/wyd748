@@ -112,6 +112,15 @@ func TestShopOpenBuyAndSellLifecycle(t *testing.T) {
 
 	sell := make([]byte, 20)
 	sell[14], sell[16] = placeInv, 0
+	// A venda nao pode usar uma loja diferente daquela aberta, mesmo com o
+	// item e o slot validos. O rejeite preserva item, gold e persistencia.
+	binary.LittleEndian.PutUint16(sell[12:14], shop.ID+1)
+	w.onSellItem(p.Session, sell)
+	if p.Char.Inv[0].Index != 400 || p.Char.Gold != 4000 || st.saves != 1 {
+		t.Fatalf("venda em mercador divergente alterou estado: item=%d gold=%d saves=%d",
+			p.Char.Inv[0].Index, p.Char.Gold, st.saves)
+	}
+	binary.LittleEndian.PutUint16(sell[12:14], shop.ID)
 	packetsBeforeSale := p.Session.QueuedPacketsForTest()
 	w.onSellItem(p.Session, sell)
 	if p.Char.Inv[0].Index != 0 || p.Char.Gold != 4250 || st.saves != 2 {

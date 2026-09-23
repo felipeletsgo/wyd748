@@ -153,10 +153,10 @@ em [Operação do servidor](DOCS/server/operations.md). Builds e gates estão em
 ## Documentação
 
 - [Índice por tarefa](DOCS/README.md)
-- [Reinstalação e ambiente Windows](DOCS/windows-development-environment.md)
+- [Ambiente Windows](DOCS/windows-development-environment.md)
 - [Inventário completo](DOCS/documentation-map.md)
-- [Estado implementado](DOCS/IMPLEMENTED.md)
-- [Pendências e critérios de aceite](DOCS/ROADMAP.md)
+- [Estado do servidor](DOCS/server/operations.md)
+- [Pendências da adaptação 7.48](.agents/handoffs/client748-parity.md)
 - [Regras do repositório](AGENTS.md)
 
 O servidor valida intenções e mantém a verdade do jogo. Arquitetura posterior

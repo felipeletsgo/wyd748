@@ -106,7 +106,7 @@ func readTestSession(t *testing.T, w *httptest.ResponseRecorder) testSession {
 }
 func newTestHandler(t *testing.T) (*Handler, map[string]Staff, *testControl, *bytes.Buffer) {
 	t.Helper()
-	hash, err := account.HashPassword("TestPass123")
+	hash, err := account.HashPassword("TestPass10")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +328,7 @@ func loginTest(t *testing.T, h *Handler) (*http.Cookie, testSession, *http.Cooki
 	w := request(h, "GET", "/api/v1/auth/session", "", nil, "")
 	s := readTestSession(t, w)
 	old := w.Result().Cookies()[0]
-	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"TestPass123","adminPin":"`+testAdminPIN+`"}`, old, s.CSRF)
+	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"TestPass10","adminPin":"`+testAdminPIN+`"}`, old, s.CSRF)
 	s = readTestSession(t, w)
 	return w.Result().Cookies()[0], s, old
 }
@@ -355,7 +355,7 @@ func TestSessionSecurityAndRevocation(t *testing.T) {
 	if w.Code != 403 {
 		t.Fatal("revocation failed")
 	}
-	if strings.Contains(logs.String(), "TestPass123") || strings.Contains(logs.String(), testAdminPIN) || strings.Contains(logs.String(), cookie.Value) {
+	if strings.Contains(logs.String(), "TestPass10") || strings.Contains(logs.String(), testAdminPIN) || strings.Contains(logs.String(), cookie.Value) {
 		t.Fatal("secrets in audit")
 	}
 }
@@ -372,7 +372,7 @@ func TestLogoutAndReloginWithAdminPIN(t *testing.T) {
 	}
 	w = request(h, "GET", "/api/v1/auth/session", "", nil, "")
 	anon := readTestSession(t, w)
-	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"TestPass123","adminPin":"`+testAdminPIN+`"}`, w.Result().Cookies()[0], anon.CSRF)
+	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"TestPass10","adminPin":"`+testAdminPIN+`"}`, w.Result().Cookies()[0], anon.CSRF)
 	if w.Code != 200 {
 		t.Fatalf("re-login with configured PIN failed: %d %s", w.Code, w.Body.String())
 	}
@@ -402,10 +402,11 @@ func TestAuthRejectionsAndExpiry(t *testing.T) {
 		t.Fatal("password rejection")
 	}
 	for _, body := range []string{
-		`{"username":"operator","password":"TestPass123","adminPin":"999999"}`,
-		`{"username":"operator","password":"TestPass123","adminPin":"12345"}`,
-		`{"username":"operator","password":"TestPass123","adminPin":"12a456"}`,
-		`{"username":"player","password":"TestPass123","adminPin":"001234"}`,
+		`{"username":"operator","password":"12345678901","adminPin":"001234"}`,
+		`{"username":"operator","password":"TestPass10","adminPin":"999999"}`,
+		`{"username":"operator","password":"TestPass10","adminPin":"12345"}`,
+		`{"username":"operator","password":"TestPass10","adminPin":"12a456"}`,
+		`{"username":"player","password":"TestPass10","adminPin":"001234"}`,
 	} {
 		w = request(h, "POST", "/api/v1/auth/login", body, cookie, s.CSRF)
 		if w.Code != 401 || !strings.Contains(w.Body.String(), "invalid_credentials") {

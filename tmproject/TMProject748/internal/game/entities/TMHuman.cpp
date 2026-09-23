@@ -12,6 +12,7 @@
 #include "TMButterFly.h"
 #include "TMShade.h"
 #include "TMHuman.h"
+#include "AirMoveMotion.h"
 #include "../../render/mesh/CostumeSelection.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "../../ui/ObservedAffectProjection.h"
@@ -2301,7 +2302,10 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
         m_fHeight = GetMyHeight();
 
     if (m_bIgnoreHeight)
-        SetPosition(m_vecPosition.x + m_vecAirMove.x, m_fHeight, m_vecPosition.y + m_vecAirMove.y);
+    {
+        ConsumeAirMoveDelta(m_vecPosition, m_vecAirMove);
+        SetPosition(m_vecPosition.x, m_fHeight, m_vecPosition.y);
+    }
     else
         SetPosition(m_vecPosition.x, m_fHeight, m_vecPosition.y);
 
@@ -3542,22 +3546,22 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
     case 0x1CF:
         return OnPacketUpdateRMB(reinterpret_cast<MSG_STANDARDPARM*>(buf));
         break;
-    case 0x383:
+    case MSG_Trade_Opcode:
         return OnPacketTrade(reinterpret_cast<MSG_Trade*>(buf));
         break;
-    case 0x384:
+    case MSG_CloseTrade_Opcode:
         return OnPacketQuitTrade((MSG_STANDARD*)buf);
         break;
     case MSG_UpdateCarry_Opcode:
         return OnPacketCarry(reinterpret_cast<MSG_Carry*>(buf));
         break;
-    case 0x386:
+    case MSG_CNFTradeCheck_Opcode:
         return OnPacketCNFCheck((MSG_STANDARD*)buf);
         break;
     case 0x193:
         return OnPacketSetClan(reinterpret_cast<MSG_STANDARDPARM*>(buf));
         break;
-    case 0x39F:
+    case MSG_PlayerChallenge_Opcode:
         return OnPacketReqRanking(reinterpret_cast<MSG_STANDARDPARM2*>(buf));
         break;
     case 0x3AD:
@@ -4274,8 +4278,20 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
          (destination < 0 || destination >= static_cast<int>(sizeof(g_pObjectManager->m_stItemCargo) / sizeof(g_pObjectManager->m_stItemCargo[0])))))
         return 1;
 
+    // Every materialized item must resolve inside the loaded 7.48 catalog.
+    // In particular, SetPacketMOBItem indexes g_pItemList for equipment.
+    // Zero is the wire representation of an empty slot.
+    if (pSendItem->Item.sIndex < 0 || pSendItem->Item.sIndex >= MAX_ITEMLIST)
+        return 1;
+
     if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
         pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+
+    // 0x182 resynchronizes only the local character. Applying the global
+    // inventory to another human would replace that human's appearance with
+    // our equipment even when no grid is updated.
+    if (g_pCurrentScene->m_pMyHuman != this)
+        return 1;
 
     if (pFScene)
         pFScene->Bag_View();
@@ -5189,6 +5205,9 @@ int TMHuman::OnPacketMessageChat_Param(MSG_STANDARD* pStd)
 
 int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 {
+    if (!pMsg || !g_pCurrentScene || g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
+        return 1;
+
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
     
     SListBox* pChatList = pScene->m_pChatList;
@@ -5205,7 +5224,7 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 
     if (pMsg->String[0] == '-' && pMsg->Color == 3)
     {
-        if (!pScene->m_pChatGuild->m_bSelected)
+        if (pScene->m_pChatGuild && !pScene->m_pChatGuild->m_bSelected)
             bDrawText = 0;
 
         dwColor = 0xFFAAFFFF;
@@ -5228,6 +5247,11 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
     {
         if (pScene->m_pChatParty && !pScene->m_pChatParty->m_bSelected)
             bDrawText = 0;
+
+        // A party packet can arrive before the compatible Field resource
+        // binds its list. No UI owns this line yet.
+        if (!pScene->m_pPartyList)
+            return 1;
 
         if (pScene->m_pPartyList->m_nNumItem > 1)
         {
@@ -5252,7 +5276,7 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
     }
     else if (pMsg->String[0] == '!')//alterado
     {
-        if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD && !pScene->m_pChatWhisper->m_bSelected)
+        if (pScene->m_pChatWhisper && !pScene->m_pChatWhisper->m_bSelected)
             bDrawText = 0;
 
         sprintf_s(szMsg, "[%s] : %s> %s", pMsg->MobName, m_szName, pMsg->String);
@@ -5681,10 +5705,11 @@ int TMHuman::OnPacketReqRanking(MSG_STANDARDPARM2* pStd)
         };
 
         char szTemp[128]{};
-        sprintf(szTemp, g_pMessageStringTable[153], pHuman->m_szName, szVS[pStd->Parm2 % 4]);
+        const auto challengeMode = static_cast<unsigned int>(pStd->Parm2) % 4;
+        sprintf(szTemp, g_pMessageStringTable[153], pHuman->m_szName, szVS[challengeMode]);
 
         auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-        pScene->m_pMessageBox->SetMessage(szTemp, 927, g_pMessageStringTable[154]);
+        pScene->m_pMessageBox->SetMessage(szTemp, MSG_PlayerChallenge_Opcode, g_pMessageStringTable[154]);
         pScene->m_pMessageBox->SetVisible(1);
         pScene->m_pMessageBox->m_dwArg = pStd->Parm1;
     }

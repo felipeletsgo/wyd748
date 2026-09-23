@@ -6,6 +6,16 @@ import (
 	"wydgo/internal/model"
 )
 
+// CharacterTransferUnavailable responde ao 0xFAA nativo sem confirmar uma
+// transferencia que este World nao consegue persistir. Result=4 cai no ramo
+// de erro generico da cena 7.48 e libera sua operacao pendente.
+func CharacterTransferUnavailable(slot int32) []byte {
+	b := Build(OpCharacterTransfer, 0, 52)
+	putU32(b, 12, 4)
+	putU32(b, 16, uint32(slot))
+	return b
+}
+
 // putSelChar writes TMProject's 1272-byte STRUCT_SELCHAR. Its canonical 140-byte
 // Score is copied without narrowing; uint64 EXP remains a presentation field.
 func putSelChar(dst []byte, offset int, chars []model.Char) {

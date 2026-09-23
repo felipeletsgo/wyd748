@@ -4,7 +4,7 @@ title: Posicionamento e lifecycle da selecao de servidor 7.48
 subsystem: ui-layout
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-12
+updated: 2026-09-22
 ---
 
 # Posicionamento e lifecycle da selecao de servidor 7.48
@@ -192,9 +192,23 @@ cena executa novamente o initializer.
 Nao ha mudanca de wire, ABI, opcode, asset ou servidor. A adaptacao conserva o
 recurso Scene2, os IDs traduzidos, callbacks, visibilidade, foco e ownership.
 
+O arquivo `serverlist.bin` entrega cada endpoint em uma celula decodificada de
+64 bytes. O loader legado processa a celula inteira e nao garante terminador
+NUL. A selecao normal ainda passava essa celula diretamente a `%s`, enquanto
+as consultas HTTP de populacao e a composicao do grupo agregado faziam a mesma
+suposicao. O reconnect de migracao possuia uma checagem local equivalente, mas
+os caminhos podiam divergir. A source adaptada usa `CopyServerEndpoint` na
+selecao inicial, migracao, consultas de populacao e composicao do grupo
+agregado, tanto na cena inicial quanto no painel em jogo. So publica ou consome
+o endereco quando o texto termina dentro da propria celula; resposta HTTP
+anterior tambem nao e reaproveitada quando a entrada atual e invalida. Este
+guard e `MODERNIZACAO_COMPATIVEL`; nao altera o formato do asset nem o contrato
+7.48.
+
 ## Mapeamento atual
 
-Classificacao: `PARIDADE_NATIVA`.
+Classificacao do layout: `PARIDADE_NATIVA`. Classificacao do guard de endpoint:
+`MODERNIZACAO_COMPATIVEL`.
 
 `TMSelectServerScene::InitializeUI` ja possuia a formula nativa de
 centralizacao, mas somava `75.0f` a `m_nPosY` em seguida. A adaptacao remove
@@ -213,6 +227,22 @@ WYD-Go nao participa deste layout local e nao requer funcao correspondente.
 | filhos e hitboxes | filhos do root | filhos do root | preservados | nao deslocar individualmente |
 | titulos e largura | `+5`, `+8/+5`, largura 140 | ja equivalentes | preservados | sem alteracao |
 | logos por resolucao | branches 1024/1280/1600 | ja equivalentes | preservados | sem alteracao |
+| endpoint selecionado | celula fixa do `serverlist.bin` | `%s` podia atravessar uma celula sem NUL | copia limitada e rejeicao antes de publicar estado | preservar asset e impedir leitura cruzada |
+| destino apos endpoint invalido | a ficha nao estabelece contrato nativo para o conteudo do buffer local apos rejeicao | `CopyServerEndpoint` rejeitava vazio/sem NUL mas mantinha um IP anterior no destino | rejeicao limpa o primeiro byte do destino; copia valida permanece identica | `MODERNIZACAO_COMPATIVEL`; evitar endereco obsoleto sem mudar endpoint valido ou wire |
+| endpoint de status/agregado | mesma celula fixa de 64 bytes | HTTP e `%s` confiavam em NUL | copia limitada; resposta antiga e destino agregado invalido sao limpos | impedir leitura cruzada sem inventar canal |
+| rótulo de canal cheio | limiar de 700 usuários já preservado | laço de padding nunca executava; `FULL` vinha logo após nomes curtos | helper limita leitura à capacidade, preenche até coluna 14 e grava `FULL` com NUL | `MODERNIZACAO_COMPATIVEL`; corrigir alinhamento local sem alterar o limiar |
+| rótulo cheio no painel Field | fonte usa limites locais `>500`/`>600` | os dois laços de padding também tinham condição sempre falsa | ambos reutilizam `AppendFullChannelLabel` | `MODERNIZACAO_COMPATIVEL`; só formatação, sem mudar os limites ou a seleção do canal |
+| seleção ao trocar de grupo | reset nativo do índice não aferido; endpoint segue a lista 7.48 | `SListBox::Empty` apaga linhas, mas mantém `m_nSelectedItem`; `Connect` poderia reutilizar o mesmo índice no novo grupo | a cena limpa o índice antes de adicionar canais do novo grupo | `MODERNIZACAO_COMPATIVEL`; exige novo clique, sem mudar wire nem mapeamento de endpoint |
+| reabertura da lista de canais em Field | mutação local da seleção; sem alteração do comando de troca | `SListBox::Empty` preservava o índice antigo e o callback dereferenciava `GetItem` sem guarda | limpa o índice ao remontar e rejeita callback sem item | `MODERNIZACAO_COMPATIVEL`; evita seleção obsoleta e acesso nulo, sem mudar a intenção `srv` |
+| varredura dos grupos | `serverlist.bin` reserva 10 grupos | selecao e troca em Field podiam ler o indice 10 ao procurar sentinela | descoberta limitada aos 10 grupos; tabela cheia termina em 9 e tabela vazia e rejeitada em Field | modernizacao compativel, sem wire novo |
+| linhas de grupo selecionáveis | lista da cena insere slots válidos em ordem inversa | evento contava `j < m_nMaxGroup`, mas a montagem usava `i >= 0`, incluindo o último slot; com lacunas, índice de linha também podia resolver outro grupo | construção guarda os slots visíveis; clique e confirmação usam esse snapshot e os limites físicos | `MODERNIZACAO_COMPATIVEL`; preservar a ordem e o endpoint escolhido mesmo após mutação dos endpoints do agregado, sem alegar nova paridade nativa |
+| fundos das linhas de grupo | a lista insere apenas grupos válidos, em linhas contíguas | o painel decorativo usava o slot físico `i` como posição vertical; com lacunas, separava-se do texto e da área clicável | posicionar o painel pela mesma linha visível `row` usada na inserção | `MODERNIZACAO_COMPATIVEL`; em tabela densa, as posições continuam as mesmas, sem mudar recurso ou wire |
+| conclusão do fade dos grupos | a cena pode exibir até dez grupos e o fade parcial atualiza os dez painéis | ao completar o fade, apenas `m_pGroupPanel[0..1]` recebiam a cor final; outros ficavam com o alpha do último frame parcial | aplicar a cor final a todos os painéis existentes | `MODERNIZACAO_COMPATIVEL`; dois grupos e contrato de UI/servidor preservados |
+| linhas de canal esparsas na seleção inicial | a lista 7.48 usa endpoints físicos de `serverlist.bin`; lacunas não foram aferidas no binário | a lista compactava canais configurados, mas `Connect` convertia a linha selecionada por `selectedChannel + 1` | cada linha inserida guarda seu canal físico; confirmação usa o snapshot e rejeita linha inválida | `MODERNIZACAO_COMPATIVEL` no grupo normal; preservar o endpoint exibido sem alterar wire ou o mapeamento especial do agregado |
+| destruição após falha de recurso inicial | o fluxo nativo destrói a cena parcialmente inicializada quando o carregamento falha | `LoadRC` ou `sn.bin` podia falhar antes do `memset(m_pCheckHumanList)`; o destrutor percorria ponteiros indeterminados | os 50 ponteiros começam nulos na construção da cena | `MODERNIZACAO_COMPATIVEL`; garantir teardown seguro sem mudar o caminho de sucesso ou o recurso |
+| controles obrigatórios de Scene2 | o initializer nativo resolve a árvore da cena; esta ficha não prova o tratamento de um recurso truncado | `LoadRC` podia aceitar uma árvore parcial e `InitializeUI`/login dereferenciavam controles ausentes | a cena exige root, listas, painel e botões de login, logos e campos de edição antes de montar a UI | `MODERNIZACAO_COMPATIVEL`; falhar na abertura e preservar o teardown já protegido, sem mudar recurso válido ou wire |
+| tag de tipo truncada no RC | o formato válido contém tags de controle de quatro bytes; esta ficha não atribui ao nativo o tratamento de corrupção | `fread` de um item de quatro bytes tratava 1–3 bytes finais como EOF limpo; tipo desconhecido retornava sem fechar o arquivo | leitura distingue EOF entre tags de tag incompleta e fecha o arquivo nas rejeições | `MODERNIZACAO_COMPATIVEL`; falhar no recurso inválido sem alterar o formato válido nem o wire |
+| nomes dos grupos | `sn.bin` e uma tabela binaria fixa de 143 bytes | `NewApp` tentava le-la como texto antes da cena e sobrescrevia nomes com `Meu Canal`/`STAFF` | a cena carrega a tabela binaria validada antes de construir os controles; parser textual removido | manter um unico leitor do asset 7.48 |
 | servidor/wire | nao participa da geometria | inalterado | inalterado | nenhuma mudanca |
 
 ## Decisões
@@ -221,6 +251,61 @@ WYD-Go nao participa deste layout local e nao requer funcao correspondente.
 - Manter Scene2, traducoes de ID e composicao dinamica existente.
 - Nao alterar logos, listas, callbacks, disponibilidade de canal ou servidor.
 - Nao aplicar escala adicional a dimensoes ja materializadas.
+- Rejeitar endpoint vazio ou sem NUL dentro dos 64 bytes antes de mudar indices,
+  tela ou conexao; usar a mesma regra na selecao inicial, migracao, status e
+  composicao do grupo agregado nas duas cenas. Limpar o destino quando a
+  copia falhar, inclusive quando ele continha um endpoint anterior.
+- Limitar a descoberta de grupos ao tamanho fisico de `g_pServerList` nas cenas
+  de selecao e Field. A varredura e `MODERNIZACAO_COMPATIVEL`: nao altera o
+  contrato 7.48; impede leitura fora da tabela quando os 10 grupos existem.
+- Remover `NewApp::InitServerName`: seus unicos consumidores de estado sao a
+  cena de selecao e, depois, Field; `TMSelectServerScene::InitializeScene`
+  carrega `sn.bin` com `WYD748_LoadServerNameList` antes de montar a UI. O
+  arquivo permanece binario e intocado. Esta limpeza e
+  `MODERNIZACAO_COMPATIVEL`, sem mudanca de wire ou servidor.
+- Corrigir a formatação local de `FULL` nos dois ramos da lista, mantendo a
+  coluna 14 e o limiar `>700` existentes. O helper rejeita buffers pequenos ou
+  sem terminador antes de escrever; não há mudança de recurso ou wire.
+- Reutilizar o mesmo helper nos dois ramos do painel de canais em Field. Os
+  limites `>500` e `>600` permanecem os da source; este lote não afirma que
+  sejam os limites nativos e não altera o resultado da consulta HTTP.
+- Invalidar a seleção de canal ao reconstruir a lista após clique em outro
+  grupo. `SListBox::Empty` libera os itens, mas preserva o índice selecionado;
+  um novo grupo com canal nessa posição poderia seguir para login sem escolha
+  explícita. Mudança local da cena, sem alegação de paridade nativa.
+- Aplicar a mesma invalidação ao reabrir a lista de canais em Field e rejeitar
+  callback sem item antes de ler a população. O comando de troca `srv` e seu
+  índice permanecem inalterados; a semântica de linhas esparsas desse comando
+  ainda requer evidência própria antes de ajuste.
+- Resolver o índice do clique e da confirmação pelos mesmos slots que criaram
+  as linhas. Isso inclui o décimo grupo e ignora ordens vazias, inválidas ou
+  sem status endpoint. O snapshot pertence à cena porque o clique no grupo
+  agregado zera endpoints de status sem remover as linhas já criadas; recalcular
+  os slots após esse clique trocaria sua identidade. Não alterar neste lote o
+  mapeamento do grupo agregado.
+- Usar a linha visível compactada também para o painel decorativo de cada
+  grupo. O painel continua pertencendo ao slot físico, mas acompanha texto e
+  hitbox quando há lacunas em `sn.bin`/`serverlist.bin`.
+- Finalizar o fade de todos os painéis de grupo existentes, assim como sua
+  fase parcial. Não alterar duração, cor final ou a lógica de fade dos logos.
+- Guardar também o canal físico ao inserir cada linha da lista de canais.
+  Uma configuração com lacunas compacta as linhas visíveis; o ordinal da linha
+  não é o índice de `serverlist.bin`. Usar o snapshot apenas para a seleção
+  normal; o ramo do grupo agregado mantém seu mapeamento próprio pendente de
+  evidência nativa. A captura com a coluna Channel vazia antes do clique no
+  grupo não demonstra falha dessa conversão.
+- Inicializar `m_pCheckHumanList` na própria construção do objeto, antes de
+  `InitializeScene`: a falha de `LoadRC` ou do loader de `sn.bin` retorna antes
+  do `memset` anterior, e `ObjectManager` destrói a cena mesmo nessa falha.
+  A mudança só define o estado seguro do teardown parcial; não altera demo,
+  seleção, asset ou protocolo.
+- Exigir os controles usados sem guarda na cena de seleção antes de
+  `InitializeUI`. Um `SelServerScene2.bin` incompleto pode terminar a leitura
+  sem que `LoadRC` denuncie todos os IDs ausentes; retornar falha evita acesso
+  nulo e deixa o mesmo caminho de destruição parcial limpar a cena.
+- Distinguir fim limpo do RC de uma tag de tipo incompleta. O parser compartilhado
+  deve rejeitar 1–3 bytes finais e fechar o arquivo ao rejeitar tipo desconhecido;
+  o caminho de sucesso e o contrato de recursos 7.48 não mudam.
 
 ## Lacunas
 
@@ -228,17 +313,212 @@ A correlacao estatica do layout e do lifecycle esta fechada. Falta validar no
 client recompilado a aparencia e os hitboxes em resolucoes de referencia,
 incluindo retorno do login e logout/relogin.
 
+O grupo agregado continua sem contrato nativo suficiente para corrigir seu
+mapeamento: a source consulta status no grupo `i`, mas copia endereco usando
+`m_nDay[aggregateGroup-i]` e `aggregateGroup-i-1`, enquanto a confirmacao da
+selecao resolve o grupo original por `g_nServerCountList`. Esse possivel
+desencontro aparece tanto na selecao inicial quanto no painel Field; nao foi
+alterado neste lote. Exige seguir o clique e a resolucao do endpoint no binario
+7.48 antes de promover qualquer correcao. O corpus e o projeto Ghidra apontados
+pela ficha nao estavam disponiveis no perfil local deste turno; nao inferir
+paridade a partir da source 7.69.
+
+No painel Field, o callback ainda transforma índice visual em canal por
+`idwEvent + 1`. Se o asset tiver lacunas, isso pode divergir da linha exibida;
+não alterar essa relação sem prova nativa e teste do contrato `srv` no servidor.
+
+A seleção inicial de canais esparsos agora resolve a linha pelo snapshot, mas
+esse caso ainda não foi exercitado no client real. O asset local não comprova
+por si só a presença de lacunas no runtime do usuário.
+
 ## Validação
 
 - Pesquisa: `TRACED`; initializer, caller virtual, vtable, receptores,
   geometria, falha parcial, ownership e teardown correlacionados.
 - Implementacao: `IMPLEMENTED`; removido apenas o offset vertical ausente no
   nativo.
-- Automacao: `validate_research.py` e `git diff --check` passaram; o build
-  oficial `Release|Win32` v145 terminou com zero erros e zero warnings e
-  instalou `tmproject/client748/project.exe` com SHA-256
-  `6E6AF9A88CC81729E866277F2B81618E9FA9A0B07C26C54D9C552CE719A380BC`.
-- Client real: ainda nao e `CLIENT_TESTED`.
+- Automacao do guard: testes cobrem endereco normal, vazio, sem NUL e o limite
+  de 63 bytes; a versao anterior preservava o destino nas rejeicoes. O build oficial
+  `Release|Win32` v145 executou 51.715 checks/asserts, compilou e instalou
+  `tmproject/client748/project.exe` com SHA-256
+  `0030265DE55056F7BA3887EB09E60CF60B9B3C0095DE8BB987C78A78ECC33C60`.
+- Gate atual do destino em falha: testes cobrem limpeza de um endereco anterior
+  para celula vazia e sem NUL; `Build-Client.ps1 -NoDeploy` passou 51.787 checks
+  e recompilou os consumidores em Release|x86, candidato SHA-256
+  `0595B7DD797EF394CC7DFD7944B48EDDC1C74B4C1BD7B0DD9D097325EA30934B`.
+  Nao foi instalado nem exercitado no client real.
+- Client real: a captura fornecida em 2026-09-22 mostra o root Server/Channel
+  centralizado no viewport usado. A lista de canais vazia antes de escolher
+  `Canal` ou `VPS` corresponde ao lifecycle atual: ela nasce oculta e e
+  preenchida/exibida pelo clique no grupo. A captura nao exercita o novo
+  candidato, esse clique, os hitboxes, o retorno ou o relogin; portanto o fluxo
+  ainda nao e `CLIENT_TESTED`.
+- Gate adicional da varredura: `Build-Client.ps1 -NoDeploy` passou 51.723
+  checks, compilou o client Release|x86 e produziu `WYD.exe` SHA-256
+  `C1B4379FEC7C2DB660F25204273A07215FD8BAF67723D2EB7517DDCE998BEDA7`.
+  Testes cobrem tabela vazia, parcial e completamente ocupada. O candidato
+  nao foi instalado no runtime; nao houve teste visual nem troca de canal real.
+- Gate da remocao do parser textual: o asset local `sn.bin` tem 143 bytes e as
+  11 ordens decodificadas estao em `0..10`. `Build-Client.ps1 -NoDeploy`
+  passou 51.723 checks e compilou Release|x86, SHA-256
+  `28F1764724CCF964C88852D3B8A1035B669591CB8D516C56E7E41007572F4980`.
+  Os testes de arquitetura nao exercitam diretamente o loader binario; esta
+  etapa e `STATICALLY VERIFIED / AUTOMATED TESTED` para compilacao e testes
+  existentes, nao `CLIENT_TESTED`. O runtime instalado nao foi substituido.
+- Gate do rótulo `FULL`: `Build-Client.ps1 -NoDeploy` passou 51.762 checks,
+  incluindo padding curto, nome de 14 caracteres, truncamento, capacidade
+  insuficiente e ausência de NUL; compilou `Release|x86` incremental. O
+  candidato não foi instalado e a lista cheia não foi testada no client real.
+- Gate da reutilização em Field: `Build-Client.ps1 -NoDeploy` passou os mesmos
+  51.762 checks e recompilou `TMFieldScene.cpp` em `Release|x86`; o executável
+  não foi instalado. O alinhamento no painel Field ainda não foi visto em jogo.
+- Gate da seleção obsoleta: `Build-Client.ps1 -NoDeploy` passou 51.764 checks,
+  incluindo a ordem `Empty` -> seleção `-1` -> inserção de canais, e recompilou
+  `TMSelectServerScene.cpp` em `Release|x86`. Candidato SHA-256
+  `42B00057EDBA6B5C885352958564FC1F258B1474C21A6B0B63ABB833FA53FD5F`;
+  não instalado nem testado no client real. O teste de ordem é estático; o
+  comportamento de clique e confirmação ainda exige validação manual.
+- Gate do candidato instalado antes do ajuste de grupos: `Build-Client.ps1`
+  passou 51.764 checks e instalou `project.exe` SHA-256
+  `42B00057EDBA6B5C885352958564FC1F258B1474C21A6B0B63ABB833FA53FD5F`.
+  O processo abriu a janela `WYDESTINY MMORPG`, mas a captura de tela falhou
+  com `0x80004002`; nenhum clique foi executado ou validado.
+- Gate dos slots visíveis: `Build-Client.ps1 -NoDeploy` passou 51.767 checks,
+  incluindo tabela cheia de dez grupos, ordens esparsas e tabela vazia;
+  recompilou `TMSelectServerScene.cpp` em Release|x86 e produziu `WYD.exe`
+  SHA-256 `32C10B51AEEC463BB2B5A99A66410816ED0D914CF7E386E83F77497C464B7D9B`.
+  Este candidato novo ainda não foi instalado nem exercitado na interface.
+- Gate do snapshot de linhas: `Build-Client.ps1 -NoDeploy` passou 51.769
+  checks, incluindo a guarda de que os eventos usam o snapshot construído
+  antes da mutação dos endpoints do agregado e o teste de estabilidade após
+  apagar um endpoint de status; recompilou a cena e seus consumidores em
+  Release|x86. Candidato SHA-256
+  `E3CA0135E84E4DA74B29A1528D247F4B5978CA151D05890E6D91C7941BB1418A`;
+  ainda não instalado nem testado por clique real.
+- Gate do painel Field: `Build-Client.ps1 -NoDeploy` passou 51.772 checks,
+  incluindo ordem `Empty` -> seleção `-1` -> inserção e rejeição de item nulo;
+  recompilou `TMFieldScene.cpp` em Release|x86. Candidato SHA-256
+  `1E7AFFA9BA22D636529EBBAD6A7E3CDAA63B92A7CA659A199FD22B317FFE43AE`.
+  O comando `srv` não foi alterado nem testado no client real.
+
+- Gate da leitura HTTP de população: `MODERNIZACAO_COMPATIVEL`. O status é
+  apenas uma dica de disponibilidade; `BASE_GetHttpRequest` agora reserva um
+  byte para NUL, rejeita capacidade inválida e limpa o resultado quando
+  `InternetReadFile` falha. Não muda endpoint, seleção ou protocolo do jogo.
+  `Build-Client.ps1 -NoDeploy` passou 51.774 checks (incluindo contrato focado)
+  e recompilou `Basedef.cpp` em Release|x86; candidato SHA-256
+  `CAE948D565C85EA1F048800DE849BC2AC40E7CC02D89F14F24FD6908B7E2C819`.
+  Não instalado nem `CLIENT_TESTED`; os warnings C4018 preexistentes em outras
+  linhas de `Basedef.cpp` permanecem.
+- Gate das linhas de canal esparsas: `Build-Client.ps1 -NoDeploy` passou 51.785
+  checks, incluindo mapeamento `1,3,10`, rejeição de linha obsoleta e guarda
+  estática da montagem/consumo do snapshot; compilou Release|x86 e produziu
+  `WYD.exe` SHA-256
+  `67B64372442E871601FE9A5006E79DC8097212C469EEB7CF8D7DABB4F9074237`.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`; candidato não instalado e nenhum
+  clique/conexão real executado, portanto não `CLIENT_TESTED`.
+- Gate da destruição após falha inicial: `Build-Client.ps1 -NoDeploy` passou
+  51.787 checks, incluindo a inicialização dos ponteiros antes dos dois loaders
+  que podem falhar; recompilou a cena em Release|x86, candidato SHA-256
+  `22A0B984E9A50144B40827FA4BAAF41A6C326985AFA2485B22CBC9F534B3AE38`.
+  Teste de ordem é estático; falha de recurso e destruição não foram injetadas
+  em runtime. `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`.
+- Gate dos controles obrigatórios: `Build-Client.ps1 -NoDeploy` passou 51.788
+  checks, incluindo a ordem da pré-validação antes de `InitializeUI`; recompilou
+  `TMSelectServerScene.cpp` em Release|x86. Candidato SHA-256
+  `60E3831218A033646C1FE0367A481A7B0F1CB9FCF7124D7DDC532D947E769135`.
+  A guarda foi verificada estaticamente, mas não houve injeção de recurso
+  truncado nem teste no client real. Não instalado; não `CLIENT_TESTED`.
+- Gate da tag RC: `Build-Client.ps1 -NoDeploy` passou 51.792 checks e recompilou
+  `TMScene.cpp` em Release|x86; candidato SHA-256
+  `E1646D6AFC0406F518477C9D4A1A4635790C7C09BB1A48CC10C9068976E36138`.
+  O teste focado ampliado passou 51.793 checks, exercitando EOF limpo, tag
+  completa, tag parcial e tag completa seguida de bytes finais parciais.
+  A guarda de fechamento para tipo desconhecido foi verificada estaticamente;
+  não houve injeção do RC completo na cena nem execução do client. Candidato
+  não instalado; `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`.
+- Gate do alinhamento dos grupos esparsos: `Build-Client.ps1 -NoDeploy` passou
+  51.796 checks, incluindo a guarda estática da posição pelo índice visível,
+  e recompilou `TMSelectServerScene.cpp` em Release|x86. Candidato SHA-256
+  `E491C5C4C4011BED8105DE5CFD95FF17CDEAAC3C03C32B989CFBEBC5922F1B2D`.
+  Não instalado nem testado por clique no client; `STATICALLY VERIFIED /
+  AUTOMATED TESTED`, não `CLIENT_TESTED`.
+- Gate da conclusão do fade: após corrigir uma guarda estática sensível ao fim
+  de linha, `Build-Client.ps1 -NoDeploy` passou 51.797 checks e recompilou
+  `TMSelectServerScene.cpp` em Release|x86. Candidato SHA-256
+  `8D139C4EF065F7AFDD65C6DEFC77D6ECC3887A6689BB92C1E414D9BF38D0C975`.
+  A guarda ampliada passou 51.798 checks sem recompilar o produto.
+  Os testes verificam a cobertura do ramo final, não o frame renderizado;
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`.
+- Gate de instalação e tentativa visual deste candidato: `Build-Client.ps1`
+  passou 51.798 checks, compilou Release|x86 e instalou `project.exe` com o
+  mesmo SHA-256 acima. O processo abriu uma janela `WYDESTINY MMORPG`, mas
+  a captura da janela falhou duas vezes com `SetIsBorderRequired failed:
+  No such interface supported (0x80004002)`. Nenhum clique ou retorno do
+  login foi executado; o processo depois não estava mais ativo. Não surgiu
+  minidump novo nem evento `Application Error` para este executável no período,
+  portanto esta tentativa não comprova crash do client. O fluxo continua sem
+  validação `CLIENT_TESTED`.
+- Nova tentativa visual com autorização do usuário (mesmo `project.exe`, sem
+  rebuild): o processo abriu uma janela `WYDESTINY MMORPG` e permaneceu ativo.
+  Após reconectar à janela correta, a captura voltou a falhar com
+  `SetIsBorderRequired failed: No such interface supported (0x80004002)`.
+  A acessibilidade expôs apenas a moldura/título, sem os controles desenhados
+  pelo jogo. Nenhum clique em Canal/VPS nem conexão foi executado; o client
+  foi deixado aberto para teste manual. Continua não `CLIENT_TESTED`.
+- Gate da espera pelo status HTTP: `MODERNIZACAO_COMPATIVEL`. A leitura de
+  população roda na thread da cena, mas WinINet não tinha timeout explícito;
+  um endpoint indisponível podia atrasar a abertura dos canais. A sessão agora
+  configura 1.500 ms para conexão e recebimento antes de abrir a URL, e
+  falha fechando o handle se não puder aplicar os limites. O status continua
+  apenas informativo; nenhum endpoint de jogo, packet ou índice de canal foi
+  alterado. `Build-Client.ps1 -NoDeploy` passou 51.799 checks e compilou
+  `Basedef.cpp` em Release|x86; candidato SHA-256
+  `85302AAFA694F473ABA19E9F1E70D188784CB091D7CF3374EE3051E5AEBA68D6`.
+  O teste do timeout verifica a ordem no source, não mede latência de rede.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`; o candidato
+  não foi instalado sobre o client ainda aberto.
+- Gate da leitura de `serverlist.bin`: `MODERNIZACAO_COMPATIVEL`. O asset local
+  7.48 tem 7.040 bytes, exatamente o tamanho da tabela de 10 grupos x 11
+  entradas x 64 bytes. O loader anterior ignorava leitura curta e decodificava
+  bytes parciais como endpoints. Agora limpa a tabela antes da abertura, exige
+  `sizeof g_pServerList` bytes e limpa novamente antes de rejeitar um arquivo
+  truncado; arquivo válido, chave de decodificação, layout e wire não mudam.
+  `Build-Client.ps1 -NoDeploy` passou 51.801 checks e recompilou `Basedef.cpp`
+  em Release|x86; candidato SHA-256
+  `1DD62DCBD9CBCB8184C9FB89E276FCD06CC64D3F4A4B61E6E8BCB41D3295ECE2`.
+  A guarda foi verificada estaticamente, mas não houve injeção de asset
+  truncado no executável nem teste de clique/conexão. `STATICALLY VERIFIED /
+  AUTOMATED TESTED`, não `CLIENT_TESTED`; não instalado sobre o processo aberto.
+- Gate da leitura exata executável: a verificação e limpeza de `serverlist.bin`
+  foram isoladas em `ServerListAsset.h`, usada pelo loader real antes da mesma
+  decodificação 7.48. Testes com arquivo ausente, completo e um byte curto
+  confirmam rejeição e ausência de endpoints parciais; `Build-Client.ps1`
+  passou 51.808 checks, compilou `Basedef.cpp` em Release|x86 e instalou
+  `project.exe` SHA-256
+  `13B282E638FB53F60FAB7696EC8E04E4DB0EBB8EB52024A388384ED86CAC94C3`.
+  O emulador iniciou com PostgreSQL e listener 8281. O client abriu a janela,
+  mas a captura falhou duas vezes com `SetIsBorderRequired failed:
+  No such interface supported (0x80004002)`; nenhum clique foi realizado.
+  O processo foi fechado para liberar a instalação do novo candidato.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, ainda não `CLIENT_TESTED`.
+
+- Gate do parser de população: `MODERNIZACAO_COMPATIVEL`. As cinco leituras
+  de status em `TMSelectServerScene` e `TMFieldScene` usavam um formato
+  `sscanf_s` com `\\n` literal; uma resposta com LF/CRLF parava após o primeiro
+  número. `ParseServerStatus` aceita LF, CRLF e o separador literal anterior,
+  mantém entradas não lidas em `-1` e rejeita número fora do intervalo de
+  `int`. O feed continua informativo: não muda endpoint, wire nem a decisão
+  autoritativa do servidor. `Build-Client.ps1 -NoDeploy` passou 51.813 checks
+  e compilou as duas cenas em Release|x86; candidato SHA-256
+  `F1D96C0BF11E5554DEF2D04A212270A1599FD32B8EE4AACE61B723ECE05D41D6`.
+  O build com deploy repetiu os 51.813 checks e instalou `project.exe`
+  SHA-256 `C88DF1762673E22D269FBAF1ADB634B15AC31D6ACF3D64572D107A5C430CCC00`,
+  idêntico ao artefato gerado. O client abriu, mas apareceu um `Windows Security
+  Alert`; a janela de jogo mudou de identificador durante duas tentativas de
+  captura. Nenhum alerta de segurança foi acionado nem houve clique no jogo.
+  `STATICALLY VERIFIED / AUTOMATED TESTED`, não `CLIENT_TESTED`. A resposta
+  HTTP real e a conexão pelos canais continuam pendentes.
 
 Teste em jogo obrigatorio:
 

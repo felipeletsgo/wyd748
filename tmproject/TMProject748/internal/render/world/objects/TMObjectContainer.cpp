@@ -22,6 +22,11 @@
 #include "TMDrop.h"
 #include "TMBike.h"
 #include "TMLog.h"
+#include "ObjectFileRecordLayout.h"
+
+#include <cstddef>
+#include <memory>
+#include <type_traits>
 
 TMObjectContainer::TMObjectContainer(TMGround* pGround)
 	: TreeNode(0)
@@ -48,7 +53,6 @@ TMObjectContainer::~TMObjectContainer()
 		SAFE_DELETE(m_pLightContainer[i]);
 	}
 
-	// NOTE: why objects aren't deleted too?
 }
 
 int TMObjectContainer::Load(const char* szFileName)
@@ -69,19 +73,34 @@ int TMObjectContainer::Load(const char* szFileName)
 	if (Handle == -1)
 		return 0;
 
-	int sz = _filelength(Handle);
-	char* buff = new char[sz];
-
-	_read(Handle, buff, sz);
+	const int sz = _filelength(Handle);
+	if (sz < 0)
+	{
+		_close(Handle);
+		return 0;
+	}
+	std::unique_ptr<unsigned char[]> buff(new unsigned char[sz]);
+	const int bytesRead = sz ? _read(Handle, buff.get(), sz) : 0;
 	_close(Handle);
+	if (bytesRead != sz || !ValidateObjectFileRecords(buff.get(), sz, MAX_OBJECT_LIST,
+		std::extent_v<decltype(TMGround::m_pSeaList)>, MAX_LIGHT_CONTAINER,
+		m_fOffsetX, m_fOffsetY))
+		return 0;
 
-	int nCheckSum = 0;
+	static_assert(sizeof(ObjectFileItem) == 36, "Unexpected Field*.dat record layout");
+	static_assert(offsetof(ObjectFileItem, vecPosition) == 4, "Unexpected Field*.dat position offset");
+	static_assert(offsetof(ObjectFileItem, fScaleH) == 28, "Unexpected Field*.dat scale offset");
+
 	int sz1 = 28;
 	int sz2 = 8;
 
 	for (m_nObjectIndex = 0; m_nObjectIndex < MAX_OBJECT_LIST && pos < sz; ++m_nObjectIndex)
 	{
-		ObjectFileItem* item = (ObjectFileItem*)&buff[pos];
+		ObjectFileItem record{};
+		std::uint32_t type = 0;
+		std::memcpy(&type, buff.get() + pos, sizeof type);
+		std::memcpy(&record, buff.get() + pos, ObjectFileRecordSize(type));
+		const ObjectFileItem* item = &record;
 		unsigned int dwObjType = item->dwObjType;
 		TMVector2 vecPosition = item->vecPosition;
 		float fHeight = item->fHeight;
@@ -94,13 +113,7 @@ int TMObjectContainer::Load(const char* szFileName)
 		pos += sz1;
 		int intx = (int)(vecPosition.x + m_fOffsetX);
 		int inty = (int)(vecPosition.y + m_fOffsetY);
-		unsigned int Key = (intx >> 5) + ((inty >> 5) << 16);
-
-		nCheckSum += dwObjType;
-		nCheckSum += (int)vecPosition.x;
-		nCheckSum += (int)vecPosition.y;
-		nCheckSum += (int)fHeight;
-		nCheckSum += nMaskIndex;
+		unsigned int Key = ObjectFileSpatialKey(intx, inty);
 
 		if (dwObjType == 2)
 		{
@@ -941,29 +954,7 @@ int TMObjectContainer::Load(const char* szFileName)
 		AddChildWithKey(m_pObjectList[m_nObjectIndex], Key);
 	}
 
-	SAFE_DELETE_ARRAY(buff);
-
 	return 1;
-
-	// .dat checksum.
-	/*if (g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD
-		|| TMGround::m_nCheckSum[m_pGround->m_vecOffsetIndex.y + 32][m_pGround->m_vecOffsetIndex.x] == nCheckSum + m_pGround->m_vecOffsetIndex.x * m_pGround->m_vecOffsetIndex.y)
-	{
-		return 1;
-	}
-
-	//LOG_WRITELOG(
-	//	"CheckSum Error | %d,%d  TMGround::m_nCheckSum=%d nCheckSum=%d\r\n",
-	//	m_pGround->m_vecOffsetIndex.x,
-	//	m_pGround->m_vecOffsetIndex.y,
-	//	TMGround::m_nCheckSum[m_pGround->m_vecOffsetIndex.y + 32][m_pGround->m_vecOffsetIndex.x],
-	//	nCheckSum + m_pGround->m_vecOffsetIndex.x * m_pGround->m_vecOffsetIndex.y);
-
-	if (!g_pCurrentScene->m_bCriticalError)
-		g_pCurrentScene->LogMsgCriticalError(9, 0, 0, 0, 0);
-
-	g_pCurrentScene->m_bCriticalError = 1;
-	return 0;*/
 }
 
 int TMObjectContainer::Save(const char* szFileName)

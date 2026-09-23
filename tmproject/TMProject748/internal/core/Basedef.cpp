@@ -8,6 +8,7 @@
 #include "TMLog.h"
 #include "ItemEffect.h"
 #include "WYD748Assets.h"
+#include "ServerListAsset.h"
 #include <WinInet.h>
 
 char g_pAffectTable[MAX_EFFECT_STRING_TABLE][24];
@@ -370,10 +371,26 @@ void BASE_UnderBarToSpace(char* szStr)
 }
 
 int BASE_GetHttpRequest(char* httpname, char* Request, int MaxBuffer)
-{   
+{
+    if (!httpname || !Request || MaxBuffer <= 0)
+        return 0;
+
+    Request[0] = '\0';
     auto hSession = InternetOpen("MS", 0, 0, 0, 0);
     if (!hSession)
         return 0;
+
+    // Population is advisory and is fetched on the scene thread. Do not let
+    // an unavailable status host stall channel selection for WinINet defaults.
+    DWORD statusTimeoutMs = 1500;
+    if (!InternetSetOption(hSession, INTERNET_OPTION_CONNECT_TIMEOUT,
+            &statusTimeoutMs, sizeof statusTimeoutMs) ||
+        !InternetSetOption(hSession, INTERNET_OPTION_RECEIVE_TIMEOUT,
+            &statusTimeoutMs, sizeof statusTimeoutMs))
+    {
+        InternetCloseHandle(hSession);
+        return 0;
+    }
 
     auto hHttpFile = InternetOpenUrl(hSession, httpname, 0, 0, 0x4000000u, 0);
 
@@ -385,14 +402,17 @@ int BASE_GetHttpRequest(char* httpname, char* Request, int MaxBuffer)
     }
 
     DWORD dwBytesRead = 0;
-    InternetReadFile(hHttpFile, Request, MaxBuffer, &dwBytesRead);
+    const BOOL readSucceeded = InternetReadFile(hHttpFile, Request,
+        static_cast<DWORD>(MaxBuffer - 1), &dwBytesRead);
     InternetCloseHandle(hHttpFile);
-    if (dwBytesRead >= 1024)
-        dwBytesRead = 1023;
-
     Request[dwBytesRead] = 0;
     InternetCloseHandle(hSession);
 
+    if (!readSucceeded)
+    {
+        Request[0] = '\0';
+        return 0;
+    }
     return 1;
 }
 
@@ -1311,23 +1331,18 @@ int BASE_InitializeServerList()
 {
 	FILE* fpBin = nullptr;
 	fopen_s(&fpBin, "./serverlist.bin", "rb");
-
+	const bool loaded = WYD748_ReadServerList(fpBin, g_pServerList);
 	if (fpBin)
-	{
-		char szList[65] = { "¤¡¤¤¤§¤©¤±¤²¤µ¤·¤¸¤º¤»¤¼¤½¤¾¤¿¤Á¤Ã¤Å¤Ç¤Ë¤Ì¤Ð¤Ñ¤Ó¤¿¤Ä¤Ó¤Ç¤Ì°¡³ª´Ù"};
-
-		memset(&g_pServerList, 0, sizeof g_pServerList);
-		fread(g_pServerList, 0x6E, 0x40u, fpBin);
 		fclose(fpBin);
+	if (!loaded)
+		return 0;
 
-		for (int k = 0; k < MAX_SERVERGROUP; k++)
-			for (int j = 0; j < MAX_SERVERNUMBER; j++)
-				for (int i = 0; i < 64; i++)
-					g_pServerList[k][j][i] -= szList[63 - i];
-		return 1;
-	}
-
-	return 0;
+	char szList[65] = { "¤¡¤¤¤§¤©¤±¤²¤µ¤·¤¸¤º¤»¤¼¤½¤¾¤¿¤Á¤Ã¤Å¤Ç¤Ë¤Ì¤Ð¤Ñ¤Ó¤¿¤Ä¤Ó¤Ç¤Ì°¡³ª´Ù"};
+	for (int k = 0; k < MAX_SERVERGROUP; k++)
+		for (int j = 0; j < MAX_SERVERNUMBER; j++)
+			for (int i = 0; i < 64; i++)
+				g_pServerList[k][j][i] -= szList[63 - i];
+	return 1;
 }
 
 

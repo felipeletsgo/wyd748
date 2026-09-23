@@ -717,11 +717,12 @@ rota, payload, validação e erros, mantendo `POST /v1/accounts` até atualizar
 seus consumidores. Reutilizar os limites de corpo, proxy confiável, rate limit
 e concorrência de hash já existentes.
 
-Cadastro aceita usuário alfanumérico e senha ASCII visível sem espaços, ambos
-com 4–12 caracteres. A autenticação existente aceita credenciais legadas de
-1–12. Preservar essa diferença, normalizar a chave da conta como no store e
-nunca truncar ou alterar a senha no frontend. Ampliar o limite exigiria estudo
-do contrato de login do client 7.48.
+Cadastro aceita usuário alfanumérico com 4–12 caracteres e senha ASCII visível
+sem espaços com 4–10 caracteres. A autenticação aceita o intervalo legado de
+1–10 observado no fluxo do client 7.48. Preservar essa diferença, normalizar a
+chave da conta como no store e nunca truncar ou alterar a senha no frontend.
+O campo wire continua fixo em 12 bytes, mas o client nativo rejeita mais de dez
+caracteres antes de conectar.
 
 ---
 

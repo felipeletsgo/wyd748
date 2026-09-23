@@ -1,31 +1,55 @@
 #pragma once
 
 #include <cstddef>
-#include "Basedef.h"
+#include "CharacterLoginConfirmContract.h"
 
-// Identifies only the login packets shared by the selection scenes. Keeping
-// this classification independent of scene state makes it safe to reuse in a
-// future size-aware transport boundary without changing packet layouts.
-enum class LoginPacketKind { Unknown, AccountLogin, CharacterLogin };
+// Contratos S->C consumidos pelas telas de login e selecao. Estes valores sao
+// independentes das structs legadas para que a fronteira de transporte possa
+// rejeitar frames incompletos antes de qualquer cast da cena.
+constexpr auto MSG_CNFAccountLogin_Opcode = 0x10A;
+constexpr auto MSG_CNFNewCharacter_Opcode = 0x110;
+constexpr auto MSG_CNFDeleteCharacter_Opcode = 0x112;
+constexpr auto MSG_CNFNewCharacterFail_Opcode = 0x11A;
+constexpr auto MSG_AlreadyPlaying_Opcode = 0x11C;
+
+constexpr std::size_t kAccountLoginConfirmPacketSize = 2360;
+constexpr std::size_t kCharacterSelectionUpdatePacketSize = 1288;
+constexpr std::size_t kSelectionFailurePacketSize = 12;
+
+enum class LoginPacketKind
+{
+	Unknown,
+	AccountLogin,
+	CharacterCreated,
+	CharacterDeleted,
+	CharacterLogin,
+	CharacterCreateRejected,
+	AlreadyPlaying
+};
 
 // Maps the legacy wire opcode to a semantic packet kind; unknown opcodes are
 // intentionally preserved for the existing generic dispatch path.
 inline LoginPacketKind ClassifyLoginPacket(unsigned int opcode)
 {
 	if (opcode == MSG_CNFAccountLogin_Opcode) return LoginPacketKind::AccountLogin;
+	if (opcode == MSG_CNFNewCharacter_Opcode) return LoginPacketKind::CharacterCreated;
+	if (opcode == MSG_CNFDeleteCharacter_Opcode) return LoginPacketKind::CharacterDeleted;
 	if (opcode == MSG_CNFCharacterLogin_Opcode) return LoginPacketKind::CharacterLogin;
+	if (opcode == MSG_CNFNewCharacterFail_Opcode) return LoginPacketKind::CharacterCreateRejected;
+	if (opcode == MSG_AlreadyPlaying_Opcode) return LoginPacketKind::AlreadyPlaying;
 	return LoginPacketKind::Unknown;
 }
 
-// Returns the complete struct size required before a typed packet cast. The
-// current event API does not carry a buffer length, so callers must opt into
-// this check when that metadata is available.
-inline std::size_t LoginPacketMinimumSize(LoginPacketKind kind)
+inline std::size_t LoginPacketExpectedSize(LoginPacketKind kind)
 {
 	switch (kind)
 	{
-	case LoginPacketKind::AccountLogin: return sizeof(MSG_CNFAccountLogin);
-	case LoginPacketKind::CharacterLogin: return sizeof(MSG_CNFCharacterLogin);
+	case LoginPacketKind::AccountLogin: return kAccountLoginConfirmPacketSize;
+	case LoginPacketKind::CharacterCreated:
+	case LoginPacketKind::CharacterDeleted: return kCharacterSelectionUpdatePacketSize;
+	case LoginPacketKind::CharacterLogin: return kCharacterLoginConfirmPacketSize;
+	case LoginPacketKind::CharacterCreateRejected:
+	case LoginPacketKind::AlreadyPlaying: return kSelectionFailurePacketSize;
 	default: return 0;
 	}
 }

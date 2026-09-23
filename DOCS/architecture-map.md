@@ -6,18 +6,15 @@ Este documento registra o inventário da árvore `internal/` após a migração
 arquitetural. O mapeamento é estrutural: ele não transforma nomes de arquivos
 em prova de paridade nativa nem altera contratos de wire, ABI ou lifecycle.
 
-Snapshot da migração de `tmproject/TMProject748/internal/`: 244 arquivos de código (`111 .cpp` e `133 .h`),
-aproximadamente 118.342 linhas.
-
-| Domínio | Arquivos | Responsabilidade |
-|---|---:|---|
-| `app` | 11 | bootstrap, cenas e coordenação do fluxo principal |
-| `core` | 28 | tipos compartilhados, tabelas, recursos e compatibilidade |
-| `game` | 25 | entidades, combate e estado de jogo |
-| `platform` | 34 | Win32, entrada, mídia e integração do sistema |
-| `render` | 132 | DirectX, mundo, efeitos, malhas e recursos visuais |
-| `ui` | 9 | controles, grids e HUD |
-| `wire` | 5 | mensagens e transporte/protocolo |
+| Domínio | Responsabilidade |
+|---|---|
+| `app` | bootstrap, cenas e coordenação do fluxo principal |
+| `core` | tipos compartilhados, tabelas, recursos e compatibilidade |
+| `game` | entidades, combate e estado de jogo |
+| `platform` | Win32, entrada, mídia e integração do sistema |
+| `render` | DirectX, mundo, efeitos, malhas e recursos visuais |
+| `ui` | controles, grids e HUD |
+| `wire` | mensagens e transporte/protocolo |
 
 ## Fluxo vivo
 
@@ -35,8 +32,8 @@ layout e declarações globais já foram extraídas para `UiLayout.h` e
 
 ## Arquivos extensos e decisão de fragmentação
 
-Os maiores arquivos são `app/scenes/TMFieldScene.cpp` (~947 KB),
-`game/entities/TMHuman.cpp` (~694 KB) e `ui/SGrid.cpp` (~184 KB). Eles
+Os arquivos extensos incluem `app/scenes/TMFieldScene.cpp`,
+`game/entities/TMHuman.cpp` e `ui/SGrid.cpp`. Eles
 orquestram estado privado, callbacks, mensagens e teardown. A fragmentação
 automática por função não é segura: exigiria expor estado privado e poderia
 alterar ordem de inicialização ou dispatch. Por isso, a próxima divisão deve

@@ -25,6 +25,12 @@ namespace
 	// selection. The later TMProject 0xFDE numeric AccountLock protocol is absent
 	// from the original executable and must never block the 7.48 scene.
 	constexpr bool kWYD748AccountLockEnabled = false;
+
+	void ClearDeletePassword(SEditableText* edit)
+	{
+		char empty[] = "";
+		edit->SetText(empty);
+	}
 }
 
 TMSelectCharScene::TMSelectCharScene() :
@@ -80,7 +86,11 @@ int TMSelectCharScene::InitializeScene()
 	char szDataPath[128]{};
 	char szMapPath[128]{};
 
-	LoadRC("UI\\SelCharScene2.txt");
+	if (!LoadRC("UI\\SelCharScene2.txt"))
+	{
+		LOG_WRITELOG("Can't load SelCharScene2 resource\r\n");
+		return 0;
+	}
 
 	g_pDevice->m_dwClearColor = 0x444433;
 	g_pDevice->m_nHeightShift = 0;
@@ -101,6 +111,7 @@ int TMSelectCharScene::InitializeScene()
 			LogMsgCriticalError(13, 0, 0, 0, 0);
 
 		m_bCriticalError = 1;
+		return 0;
 	}
 
 	m_pGround = m_pGroundList[0];
@@ -129,8 +140,8 @@ int TMSelectCharScene::InitializeScene()
 		if (pSelBG1)
 			pSelBG1->m_bSelectEnable = 0;
 
-		m_pPWEdit = static_cast<SEditableText*>(m_pControlContainer->FindControl(65889u));
-		m_pInputPWPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(65885u));
+		m_pPWEdit = static_cast<SEditableText*>(m_pControlContainer->FindControl(627u));
+		m_pInputPWPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(626u));
 		m_pAccountLockDlg = static_cast<SPanel*>(m_pControlContainer->FindControl(66432u));
 		m_pAccountLockDlgTitle = static_cast<SText*>(m_pControlContainer->FindControl(66447u));
 
@@ -216,16 +227,8 @@ int TMSelectCharScene::InitializeScene()
 
 		m_pKingDomFlag = static_cast<SPanel*>(m_pControlContainer->FindControl(1377u));
 
-		// The 7.48 character-selection protocol has no numeric/secondary
-		// password step.  SelCharScene2.bin still carries the later panel 626
-		// for compatibility, so hide that whole subtree before it can become a
-		// modal overlay and block the real Create/Delete/Esc controls.
-		if (auto pLegacyPasswordPanel = m_pControlContainer->FindControl(626u))
-			pLegacyPasswordPanel->SetVisible(0);
-
-		// This password panel was added after 7.48.  Position it only when a
-		// newer RC explicitly provides it; the original 7.48 scene has no such
-		// control and previously crashed here while entering character select.
+		// The native 7.48 delete-password panel is hidden until the user
+		// confirms character deletion.
 		if (m_pInputPWPanel)
 		{
 			m_pInputPWPanel->SetPos(
@@ -720,7 +723,7 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		if (characterSlot < 0 || characterSlot >= 4)
 			return 1;
 
-		int size = strlen(m_pEditRename->GetText());
+		const size_t size = strnlen_s(m_pEditRename->GetText(), sizeof(m_pEditRename->m_strText));
 		if (size < 4)
 		{
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[15], 2000);
@@ -747,8 +750,8 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 			return 1;
 		}
 
-		char* buf = m_pEditRename->GetText();
-		for (size_t i = 0; i < strlen(buf) - 1; i++)
+		const char* buf = m_pEditRename->GetText();
+		for (size_t i = 0; i + 1 < size; i++)
 		{
 			if (buf[i] == -95 && buf[i + 1] == -95)
 			{
@@ -763,8 +766,9 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		stReqTransper.Header.Type = MSG_ReqTransper_Opcode;
 		stReqTransper.Slot = characterSlot;
 		stReqTransper.Result = 0;
-		sprintf(stReqTransper.OldName, "%s", pSelChar->MobName[characterSlot]);
-		sprintf(stReqTransper.NewName, "%s", m_pEditRename->GetText());
+		if (!character_transfer::CopyRequestNames(stReqTransper,
+			pSelChar->MobName[characterSlot], buf, sizeof(m_pEditRename->m_strText)))
+			return 1;
 
 		g_pSocketManager->SendPacket({stReqTransper.Header.Type,
 			reinterpret_cast<char*>(&stReqTransper), sizeof(stReqTransper)});
@@ -780,32 +784,35 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		return 1;
 	}
 	
-	if (idwControlID == 65886)
+	if (idwControlID == 1024)
 	{
-		// Character deletion in this TMProject revision requests a password in
-		// a panel that 7.48 does not ship.  Refuse that UI-only path safely until
-		// the native 7.48 deletion flow is ported instead of dereferencing null.
 		if (!m_pPWEdit || !m_pInputPWPanel)
+			return 1;
+		const int characterSlot = g_pObjectManager->m_cCharacterSlot;
+		if (characterSlot < 0 || characterSlot >= 4)
+			return 1;
+		const char* password = m_pPWEdit->GetText();
+		if (strnlen_s(password, sizeof(m_pPWEdit->m_strText)) >= sizeof(MSG_DeleteCharacter::Password))
 			return 1;
 
 		MSG_DeleteCharacter stDelCharacter{};
 		stDelCharacter.Header.ID = 0;
 		stDelCharacter.Header.Type = MSG_DeleteCharacter_Opcode;
-		stDelCharacter.Slot = g_pObjectManager->m_cCharacterSlot;
-		sprintf(stDelCharacter.MobName, "%s", pSelChar->MobName[g_pObjectManager->m_cCharacterSlot]);
-		sprintf(stDelCharacter.Password, "%s", m_pPWEdit->GetText());
+		stDelCharacter.Slot = characterSlot;
+		sprintf_s(stDelCharacter.MobName, "%s", pSelChar->MobName[characterSlot]);
+		sprintf_s(stDelCharacter.Password, "%s", password);
 
 		g_pSocketManager->SendPacket({stDelCharacter.Header.Type,
 			reinterpret_cast<char*>(&stDelCharacter), sizeof(stDelCharacter)});
-		memset(m_pPWEdit->m_strText, 0, 4);
+		ClearDeletePassword(m_pPWEdit);
 		m_pInputPWPanel->SetVisible(0);
 		m_pControlContainer->SetFocusedControl(nullptr);
 		return 1;
 	}
-	if (idwControlID == 65887)
+	if (idwControlID == 921)
 	{
-		// The cancel event can be queued by newer RCs; it is harmless when the
-		// compatibility scene has no password panel.
+		if (m_pPWEdit)
+			ClearDeletePassword(m_pPWEdit);
 		if (m_pInputPWPanel)
 			m_pInputPWPanel->SetVisible(0);
 		m_pControlContainer->SetFocusedControl(nullptr);
@@ -829,10 +836,9 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		}
 		if (m_pMessageBox->m_dwMessage == 4615 && characterSlot >= 0 && characterSlot < 4)
 		{
-			// Only newer RCs expose the password-confirmation panel.  On the 7.48
-			// asset set keep deletion closed rather than crashing character select.
 			if (m_pInputPWPanel && m_pPWEdit)
 			{
+				ClearDeletePassword(m_pPWEdit);
 				m_pInputPWPanel->SetVisible(1);
 				m_pControlContainer->SetFocusedControl(m_pPWEdit);
 			}
@@ -853,8 +859,10 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 			stReqTransper.Header.Type = MSG_ReqTransper_Opcode;
 			stReqTransper.Slot = characterSlot;
 			stReqTransper.Result = 0;
-			sprintf(stReqTransper.OldName, "%s", pSelChar->MobName[characterSlot]);
-			sprintf(stReqTransper.NewName, "%s", pSelChar->MobName[characterSlot]);
+			if (!character_transfer::CopyRequestNames(stReqTransper,
+				pSelChar->MobName[characterSlot], pSelChar->MobName[characterSlot],
+				sizeof(pSelChar->MobName[characterSlot])))
+				return 1;
 
 			g_pSocketManager->SendPacket({stReqTransper.Header.Type,
 				reinterpret_cast<char*>(&stReqTransper), sizeof(stReqTransper)});
@@ -936,8 +944,7 @@ int TMSelectCharScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, i
 	if (m_pMessageBox->IsVisible() == 1)
 		return 1;
 
-	// The original 7.48 RC has no password overlay, while newer RCs still use
-	// it as a modal mouse barrier.  Preserve both layouts without a null access.
+	// Keep clicks in the native delete-password modal off the character models.
 	if (m_pInputPWPanel && m_pInputPWPanel->IsVisible() == 1)
 		return 1;
 
@@ -1575,7 +1582,7 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case MSG_CNFNewCharacter_Opcode:
 		HandleCharacterCreated(buf);
 	return 1;
-	case 0x11A:
+	case MSG_CNFNewCharacterFail_Opcode:
 		ShowCharacterOperationMessage(19);
 	return 1;
 	case MSG_CNFDeleteCharacter_Opcode:
@@ -1678,21 +1685,17 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		}
 		else if (pReqTransper->Result == 2)
 		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[203], 2000);
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[203], 3500);
 			m_pMessagePanel->SetVisible(1, 1);
 		}
 		else if (pReqTransper->Result == 3)
 		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[205], 2000);
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[205], 3500);
 			m_pMessagePanel->SetVisible(1, 1);
 		}
 		else
 		{
-			if (pReqTransper->Result == 4)
-				m_pMessagePanel->SetMessage(g_pMessageStringTable[1131], 2000);
-			else
-				m_pMessagePanel->SetMessage(g_pMessageStringTable[204], 2000);
-
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[204], 3500);
 			m_pMessagePanel->SetVisible(1, 1);
 		}
 	}

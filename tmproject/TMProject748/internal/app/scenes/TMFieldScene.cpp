@@ -18,8 +18,13 @@
 #include "MrItemMix.h"
 #include "TMGround.h"
 #include "TMHuman.h"
+#include "../../game/entities/AirMoveMotion.h"
 #include "TMObjectContainer.h"
 #include "TMCamera.h"
+#include "ServerEndpoint.h"
+#include "ServerStatus.h"
+#include "ServerChannelLabel.h"
+#include "AdapterIdentity.h"
 #include "TMSun.h"
 #include "TMSky.h"
 #include "TMSnow.h"
@@ -1310,7 +1315,8 @@ SGridControl* TMFieldScene::GetCarryGridForSlot(int slot) const
 {
 	// WYD 7.48 owns one 9x7 Carry control. Returning a page selected by a newer
 	// resource would address a different UI ABI and corrupt drag targets.
-	if (slot < 0 || slot >= MAX_CARRY)
+	// Slot 63 exists in the wire array, but has no cell in the 9x7 control.
+	if (slot < 0 || slot >= MAX_VISIBLE_CARRY)
 		return nullptr;
 	return m_pGridInv;
 }
@@ -1637,6 +1643,12 @@ int TMFieldScene::InitializeCompatFieldScene()
 		// compact bootstrap must restore the binding rather than only hiding UI.
 		m_pPotalPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12544));
 		m_pPotalList = static_cast<SListBox*>(m_pControlContainer->FindControl(12545));
+		// FieldScene2.bin has title 12549 and three column labels 12550..12552.
+		// The imported InitBoard uses a different resource's 12551/52/53/60.
+		m_pPotalText = static_cast<SText*>(m_pControlContainer->FindControl(12549));
+		m_pPotalText1 = static_cast<SText*>(m_pControlContainer->FindControl(12550));
+		m_pPotalText2 = static_cast<SText*>(m_pControlContainer->FindControl(12551));
+		m_pPotalText3 = static_cast<SText*>(m_pControlContainer->FindControl(12552));
 		if (m_pPotalList)
 			m_pPotalList->SetEventListener(m_pControlContainer);
 		// Native input and mouse-over code consults these panels even while they are
@@ -2176,7 +2188,14 @@ int TMFieldScene::InitializeCompatFieldScene()
 		return 0;
 	}
 	if (!m_pObjectContainerList[0]->Load(szDataPath))
-		LOG_WRITELOG("Compat Field Scene: object data not found (%s)\\r\\n", szDataPath);
+	{
+		LOG_WRITELOG("Compat Field Scene: object data invalid (%s)\\r\\n", szDataPath);
+		m_bCriticalError = 1;
+		SAFE_DELETE(m_pObjectContainerList[0]);
+		SAFE_DELETE(m_pGroundList[0]);
+		m_pGround = nullptr;
+		return 0;
+	}
 	if (m_pGroundObjectContainer)
 	{
 		m_pGroundObjectContainer->AddChild(m_pObjectContainerList[0]);
@@ -2778,7 +2797,11 @@ void TMFieldScene::SetQuestPanelVisible(bool visible)
 int TMFieldScene::InitializeScene()
 {
 	LOG_WRITELOG(">> Init Field Scene::Start\r\n");
-	LoadRC("UI\\FieldScene2.txt");
+	if (!LoadRC("UI\\FieldScene2.txt"))
+	{
+		LOG_WRITELOG("Can't load FieldScene2 resource\r\n");
+		return 0;
+	}
 	// The original 7.48 FieldScene2 resource is valid but lacks the newer
 	// source tree's HUD IDs.  Detect that ABI before any optional control is
 	// dereferenced and initialize the world/character through the safe path.
@@ -3546,6 +3569,7 @@ int TMFieldScene::InitializeScene()
 			LogMsgCriticalError(2, 0, 0, 0, 0);
 
 		m_bCriticalError = 1;
+		return 0;
 	}
 
 	m_pGround = m_pGroundList[0];
@@ -4695,6 +4719,10 @@ int TMFieldScene::InitializeScene()
 			LogMsgCriticalError(3, 0, 0, 0, 0);
 
 		m_bCriticalError = 1;
+		SAFE_DELETE(m_pObjectContainerList[0]);
+		SAFE_DELETE(m_pGroundList[0]);
+		m_pGround = nullptr;
+		return 0;
 	}
 
 	for (int nY = 0; nY < 128; ++nY)
@@ -5929,14 +5957,19 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (m_bCompatFieldScene)
 	{
-		// FieldScene2.bin (7.48) uses the original resource IDs. Route only the
-		// Cargo/inventory gold controls into the existing modern handlers.
+		// FieldScene2.bin (7.48) uses the original resource IDs. Route the whole
+		// input modal, including keyboard confirmation and cancel, through the
+		// shared handlers instead of translating only its OK button.
 		if (idwControlID == TMB_MONEY)
 			idwControlID = B_MONEY;
 		else if (idwControlID == TMB_CARGO_MONEY)
 			idwControlID = B_CARGO_MONEY;
 		else if (idwControlID == TMB_IG_OK)
 			idwControlID = B_IG_OK;
+		else if (idwControlID == TMB_IG_CANCEL)
+			idwControlID = B_IG_CANCEL;
+		else if (idwControlID == TME_INPUT_GOLD)
+			idwControlID = E_INPUT_GOLD;
 	}
 	if (idwControlID == B_MONEY)
 	{
@@ -6100,6 +6133,16 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				m_pMessagePanel->SetMessage(istrMessage, 1000);
 				m_pMessagePanel->SetVisible(1, 1);
 
+				m_pControlContainer->SetFocusedControl(pInputText);
+				return 1;
+			}
+
+			if ((m_nCoinMsgType == kDeclareServerWarPromptMode ||
+				m_nCoinMsgType == kRefuseServerWarPromptMode) &&
+				!IsEncodableServerWarTargetChannel(nInputValue))
+			{
+				m_pMessagePanel->SetMessage(g_pMessageStringTable[34], 1000);
+				m_pMessagePanel->SetVisible(1, 1);
 				m_pControlContainer->SetFocusedControl(pInputText);
 				return 1;
 			}
@@ -6369,7 +6412,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			{
 				MSG_STANDARDPARM stPacket{};
 
-				stPacket.Header.Type = 0xED7;
+				stPacket.Header.Type = MSG_UseDeclarationOfWar_Opcode;
 				stPacket.Header.ID = m_pMyHuman->m_dwID;
 				stPacket.Parm = static_cast<int>(nInputValue);
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stPacket)->Type, reinterpret_cast<char*>(&stPacket), sizeof(stPacket)});
@@ -6379,7 +6422,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			{
 				MSG_STANDARDPARM stPacket{};
 
-				stPacket.Header.Type = 0xED8;
+				stPacket.Header.Type = MSG_UseRefuseServerWar_Opcode;
 				stPacket.Header.ID = m_pMyHuman->m_dwID;
 				stPacket.Parm = static_cast<int>(nInputValue);
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stPacket)->Type, reinterpret_cast<char*>(&stPacket), sizeof(stPacket)});
@@ -6387,6 +6430,12 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			break;
 			case 12:
 			{
+				// A pending split dialog may outlive its grid item after a
+				// confirmed move or inventory teardown.
+				if (!SGridControl::m_pSellItem ||
+					!SGridControl::m_pSellItem->m_pItem ||
+					!SGridControl::m_pSellItem->m_pGridControl || !m_pGridInv)
+					break;
 				int nItemAmount = BASE_GetItemAmount(SGridControl::m_pSellItem->m_pItem);
 
 				if (nInputValue >= nItemAmount)
@@ -7078,15 +7127,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[23], 0);
 		m_pMessagePanel->SetVisible(1, 0);
 
-		auto serverGroup = 0; // v445
-		for (int nn = 0; nn < MAX_SERVERNUMBER; ++nn)
-		{
-			if (!g_pServerList[nn][0][0])
-			{
-				serverGroup = nn - 1;
-				break;
-			}
-		}
+		const int serverGroup = LastConfiguredServerGroup(g_pServerList);
+		if (serverGroup < 0)
+			return 1;
 
 		int nDay[10] = { 0 }; // v678;
 
@@ -7107,6 +7150,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		}
 
 		auto currentServerGroupIndex = g_pObjectManager->m_nServerGroupIndex; // v438
+		if (currentServerGroupIndex < 0 || currentServerGroupIndex >= MAX_SERVERGROUP)
+			return 1;
 
 		char szUserCount[1024] = { 0 };
 		int nUserCount[MAX_SERVERNUMBER] = { 0 };
@@ -7119,23 +7164,27 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			for (int i = 0; i < serverGroup; ++i)
 			{
 				memset(nUserCount2, -1, sizeof nUserCount2);
-				BASE_GetHttpRequest(g_pServerList[i][0], szUserCount, sizeof szUserCount);
+				szUserCount[0] = 0;
+				char szStatusEndpoint[64]{};
+				if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[i][0]))
+					BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
 
-				sscanf_s(szUserCount, "%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n",
-					&nUserCount2[0], &nUserCount2[1], &nUserCount2[2], &nUserCount2[3], &nUserCount2[4], &nUserCount2[5],
-					&nUserCount2[6], &nUserCount2[7], &nUserCount2[8], &nUserCount2[9], &nUserCount2[10]);
+				ParseServerStatus(szUserCount, nUserCount2, 11);
 
 				// 
 				nUserCount[nDay[serverGroup- i]] = nUserCount2[nDay[serverGroup - i]];
-				sprintf_s(g_pServerList[currentServerGroupIndex][i + 1], "%s", g_pServerList[serverGroup - i - 1][nDay[serverGroup - i] + 1]);
+				auto& aggregateEndpoint = g_pServerList[currentServerGroupIndex][i + 1];
+				CopyServerEndpointAt(aggregateEndpoint, g_pServerList,
+					serverGroup - i - 1, nDay[serverGroup - i] + 1);
 			}
 		}
 		else
 		{
-			BASE_GetHttpRequest(g_pServerList[currentServerGroupIndex][0], szUserCount, sizeof szUserCount);
-			sscanf_s(szUserCount, "%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n",
-				&nUserCount[0], &nUserCount[1], &nUserCount[2], &nUserCount[3], &nUserCount[4], &nUserCount[5],
-				&nUserCount[6], &nUserCount[7], &nUserCount[8], &nUserCount[9]);
+			szUserCount[0] = 0;
+			char szStatusEndpoint[64]{};
+			if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[currentServerGroupIndex][0]))
+				BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
+			ParseServerStatus(szUserCount, nUserCount, 10);
 		}
 
 		m_pMessagePanel->SetVisible(0, 1);
@@ -7144,6 +7193,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (pServerList)
 		{
 			pServerList->Empty();
+			pServerList->SetSelectedIndex(-1);
 			for (int num = 1;; ++num)
 			{
 				if (num >= MAX_SERVERNUMBER)
@@ -7163,47 +7213,28 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 						if (currentServerGroupIndex - num < 0)
 							continue;
 
-						if (g_szServerName[currentServerGroupIndex - num][nDay[currentServerGroupIndex - num]][0])
-							sprintf_s(iStrText, "%s-%s", g_szServerNameList[currentServerGroupIndex - num], g_szServerName[currentServerGroupIndex - num][nDay[currentServerGroupIndex - num] - 1]);
+						const int group = currentServerGroupIndex - num;
+						const char* selectedName = ServerChannelNameAt(g_szServerName, group, nDay[group]);
+						const char* displayName = ServerChannelNameAt(g_szServerName, group, nDay[group] - 1);
+						if (selectedName && displayName)
+							sprintf_s(iStrText, "%s-%s", g_szServerNameList[group], displayName);
 						else
 						{
 							sprintf_s(iStrText, "%s-%d", g_szServerNameList[currentServerGroupIndex - num], nDay[currentServerGroupIndex - num]);
 							if (nUserCount[num] > 500)
-							{
-								int len = strlen(iStrText);
-
-								if (len < 14)
-								{
-									for (int n1 = len; n1 < len; ++n1)
-										iStrText[n1] = ' ';
-								}
-
-								iStrText[14] = 0;
-								strcat(iStrText, "FULL");
-							}
+								AppendFullChannelLabel(iStrText, sizeof(iStrText));
 						}
 					}
 					else if (g_szServerNameList[currentServerGroupIndex][0])
 					{
-						if (g_szServerName[currentServerGroupIndex][num - 1][0])
-							sprintf_s(iStrText, "%s-%s", g_szServerNameList[currentServerGroupIndex], g_szServerName[currentServerGroupIndex][num - 1]);
+						if (const char* channelName = ServerChannelNameAt(g_szServerName, currentServerGroupIndex, num - 1))
+							sprintf_s(iStrText, "%s-%s", g_szServerNameList[currentServerGroupIndex], channelName);
 						else
 						{
 							sprintf_s(iStrText, "%s-%d", g_szServerNameList[currentServerGroupIndex], num);
 
 							if (nUserCount[num] > 600)
-							{
-								int len = strlen(iStrText);
-
-								if (len < 14)
-								{
-									for (int n1 = len; n1 < len; ++n1)
-										iStrText[n1] = ' ';
-								}
-
-								iStrText[14] = 0;
-								strcat(iStrText, "FULL");
-							}
+								AppendFullChannelLabel(iStrText, sizeof(iStrText));
 						}
 					}
 					else
@@ -7654,7 +7685,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 12289)
 	{
-		SListBoxServerItem* pItem = (SListBoxServerItem*)m_pServerList->GetItem(idwEvent);
+		SListBoxServerItem* pItem = m_pServerList ?
+			static_cast<SListBoxServerItem*>(m_pServerList->GetItem(idwEvent)) : nullptr;
+		if (!pItem)
+			return 1;
 		if (pItem->m_nCurrent < 500)
 		{
 			m_nServerMove = idwEvent + 1;
@@ -8102,7 +8136,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		if (m_pPGTOver)
 		{
 			MSG_STANDARDPARM2 stParm2{};
-			stParm2.Header.Type = 0x39F;
+			stParm2.Header.Type = MSG_PlayerChallenge_Opcode;
 			stParm2.Header.ID = m_pMyHuman->m_dwID;;
 			stParm2.Parm1 = m_pPGTOver->m_dwID;
 
@@ -8811,7 +8845,7 @@ int TMFieldScene::OnCharEvent(char iCharCode, int lParam)
 	// newer source tree.  Keyboard input must remain safe while compatibility
 	// mode is active instead of dereferencing an absent optional control.
 	if (m_pMessageBox && m_pMessageBox->IsVisible() == 1
-		&& (m_pMessageBox->m_dwMessage == 601 || m_pMessageBox->m_dwMessage == 927)
+		&& (m_pMessageBox->m_dwMessage == 601 || m_pMessageBox->m_dwMessage == MSG_PlayerChallenge_Opcode)
 		&& iCharCode == 13)
 	{
 		return 1;
@@ -9202,7 +9236,7 @@ int TMFieldScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 			if (m_pControlContainer->m_pModalControl[nModIndex] != static_cast<SControl*>(m_pMessageBox))
 				return 1;
 
-			if (m_pMessageBox->m_dwMessage != 601 && m_pMessageBox->m_dwMessage != 927)
+			if (m_pMessageBox->m_dwMessage != 601 && m_pMessageBox->m_dwMessage != MSG_PlayerChallenge_Opcode)
 				return 1;
 		}
 	}
@@ -9601,7 +9635,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case 0x1C2:
 		return OnPacketItemPrice(reinterpret_cast<MSG_STANDARDPARM2*>(pStd));
 		break;
-	case 0xDC3:
+	case MSG_CapsuleInfo_Opcode:
 		return OnPacketCapsuleInfo(reinterpret_cast<MSG_CAPSULEINFO*>(pStd));
 		break;
 	case 0x3CF:
@@ -14645,7 +14679,7 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 				int nSize = sizeof(MSG_AttackOne);
 				if (pMobData->Class == 3 && pMobData->LearnedSkill[0] & 0x200000)
 				{
-					stAttack.Header.Type = 926;
+					stAttack.Header.Type = MSG_Attack_Two_Opcode;
 					nSize = sizeof(MSG_AttackTwo);
 				}
 				if (pMobData->Class == 3 && pMobData->LearnedSkill[0] & 0x40)
@@ -16960,26 +16994,40 @@ void TMFieldScene::SetVisibleSkill()
 
 void TMFieldScene::SetVisibleServerWar()
 {
-	auto pInputGoldPanel = (SControl*)m_pInputGoldPanel;
-	auto pEdit = (SEditableText*)m_pControlContainer->FindControl(65889);
-	auto pText = (SText*)m_pControlContainer->FindControl(65888);
+	if (!m_pControlContainer || !m_pInputGoldPanel)
+		return;
 
-	m_nCoinMsgType = 9;
+	const unsigned int textControlID = m_bCompatFieldScene ? TMT_INPUT_GOLD : T_INPUT_GOLD;
+	const unsigned int editControlID = m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD;
+	auto pText = static_cast<SText*>(m_pControlContainer->FindControl(textControlID));
+	auto pEdit = static_cast<SEditableText*>(m_pControlContainer->FindControl(editControlID));
+	if (!pText || !pEdit)
+		return;
+
+	m_nCoinMsgType = kDeclareServerWarPromptMode;
 	pText->SetText(g_pMessageStringTable[374], 0);
+	pEdit->SetText((char*)"");
 	m_pControlContainer->SetFocusedControl(pEdit);
-	pInputGoldPanel->SetVisible(1);
+	m_pInputGoldPanel->SetVisible(1);
 }
 
 void TMFieldScene::SetVisibleRefuseServerWar()
 {
-	auto pInputGoldPanel = (SControl*)m_pInputGoldPanel;
-	auto pEdit = (SEditableText*)m_pControlContainer->FindControl(65889);
-	auto pText = (SText*)m_pControlContainer->FindControl(65888);
+	if (!m_pControlContainer || !m_pInputGoldPanel)
+		return;
 
-	m_nCoinMsgType = 10;
+	const unsigned int textControlID = m_bCompatFieldScene ? TMT_INPUT_GOLD : T_INPUT_GOLD;
+	const unsigned int editControlID = m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD;
+	auto pText = static_cast<SText*>(m_pControlContainer->FindControl(textControlID));
+	auto pEdit = static_cast<SEditableText*>(m_pControlContainer->FindControl(editControlID));
+	if (!pText || !pEdit)
+		return;
+
+	m_nCoinMsgType = kRefuseServerWarPromptMode;
 	pText->SetText(g_pMessageStringTable[375], 0);
+	pEdit->SetText((char*)"");
 	m_pControlContainer->SetFocusedControl(pEdit);
-	pInputGoldPanel->SetVisible(1);
+	m_pInputGoldPanel->SetVisible(1);
 }
 
 void TMFieldScene::SetInVisibleInputCoin()
@@ -21312,11 +21360,11 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		return 1;
 	}
 	break;
-	case 927:
+	case MSG_PlayerChallenge_Opcode:
 	{
 		MSG_STANDARDPARM2 stQuest{};
 
-		stQuest.Header.Type = 927;
+		stQuest.Header.Type = MSG_PlayerChallenge_Opcode;
 		stQuest.Header.ID = m_pMyHuman->m_dwID;
 		stQuest.Parm1 = m_pMessageBox->m_dwArg;
 		stQuest.Parm2 = 4;
@@ -21434,6 +21482,9 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	case 740:
 	{
 		SGridControlItem* pSellItem = SGridControl::m_pSellItem;
+		if (!m_pGridInv || !m_pMyHuman || !pSellItem ||
+			!pSellItem->m_pGridControl || !pSellItem->m_pItem)
+			return 1;
 
 		short sDestType = m_pGridInv->CheckType(
 			pSellItem->m_pGridControl->m_eItemType,
@@ -21445,10 +21496,6 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		// Delete requests use the canonical 7.48 row-major Carry slot.
 		short sDestPos = pSellItem->m_nCellIndexX
 			+ (m_bCompatFieldScene ? 9 : 5) * pSellItem->m_nCellIndexY;
-
-		// TODO:
-		// Check if this is correct
-		pSellItem->m_pGridControl->PickupAtItem(pSellItem->m_nCellIndexX, pSellItem->m_nCellIndexY);
 
 		int DestPage = m_bCompatFieldScene
 			? 0
@@ -21462,18 +21509,24 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stDeleteItem.Header.Type = MSG_DeleteItem_Opcode;
 		stDeleteItem.Parm1 = DestPage + sDestPos;
 		stDeleteItem.Parm2 = pSellItem->m_pItem->sIndex;
+		// Keep the grid item owned by its grid until the authoritative SendItem
+		// replaces the slot. Picking it up here leaked the detached visual and
+		// made a rejected request disappear locally before the server replied.
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stDeleteItem)->Type, reinterpret_cast<char*>(&stDeleteItem), sizeof(stDeleteItem)});
 		SGridControl::m_pSellItem = nullptr;
 	}
 	break;
 	case 890:
 	{
-		if (m_pGridInv == nullptr || m_pGridShop == nullptr)
+		if (m_pGridInv == nullptr || m_pGridShop == nullptr || m_pMyHuman == nullptr)
+		{
+			SGridControl::m_pSellItem = nullptr;
 			return 1;
+		}
 
 		SGridControlItem* pSellItem = SGridControl::m_pSellItem;
 
-		if (pSellItem)
+		if (pSellItem && pSellItem->m_pGridControl && pSellItem->m_pItem)
 		{
 			short sDestType = m_pGridInv->CheckType(
 				pSellItem->m_pGridControl->m_eItemType,
@@ -21482,9 +21535,11 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 			short sDestPos = m_pGridInv->CheckPos(pSellItem->m_pGridControl->m_eItemType);
 			if (sDestPos == -1)
 			{
-				// Selling from FieldScene2 must preserve the 9-column Carry address.
-				sDestPos = pSellItem->m_nCellIndexX
-					+ (m_bCompatFieldScene ? 9 : 5) * pSellItem->m_nCellIndexY;
+				// Use the same native Carry projection as the Ctrl-sell path.
+				sDestPos = m_bCompatFieldScene && sDestType == 1
+					? GetCarrySlotForCell(pSellItem->m_pGridControl,
+						pSellItem->m_nCellIndexX, pSellItem->m_nCellIndexY)
+					: pSellItem->m_nCellIndexX + 5 * pSellItem->m_nCellIndexY;
 			}
 
 			int DestPage = m_bCompatFieldScene
@@ -22598,6 +22653,12 @@ int TMFieldScene::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
 		if (m_pChatParty && !m_pChatParty->m_bSelected)
 			bDrawText = false;
 
+		// A party list can still be unbound while the Field resource is opening.
+		// The server may already deliver 0x334; do not dereference it or show
+		// the raw '=' prefix as ordinary chat in that partial state.
+		if (!m_pPartyList)
+			return 1;
+
 		if (m_pPartyList->m_nNumItem > 1)
 		{
 			dwColor = 0xFFFF99FF;
@@ -23582,19 +23643,16 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 			!ParseMigrationServer(pStd->TID, MAX_SERVERNUMBER, nServer))
 			return 1;
 		const auto& address = g_pServerList[group][nServer];
-		const auto* terminator = static_cast<const char*>(memchr(address, '\0', sizeof(address)));
 		// O loader decodifica a entrada inteira e nao garante NUL. Nao ler
 		// a proxima entrada nem conectar usando um endereco truncado.
-		if (!terminator || terminator == address)
+		if (!CopyServerEndpoint(g_pApp->m_szServerIP, address))
 			return 1;
-		static_assert(sizeof(g_pApp->m_szServerIP) >= sizeof(address), "Migration address destination too small");
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[7], 0);
 		m_pMessagePanel->SetVisible(1, 0);
 
 		g_bMoveServer = 0;
 		g_pObjectManager->m_nServerIndex = nServer;
 		CheckPKNonePK(g_pObjectManager->m_nServerIndex);
-		memcpy(g_pApp->m_szServerIP, address, static_cast<size_t>(terminator - address) + 1);
 
 		if (g_pSocketManager->ConnectServer(g_pApp->m_szServerIP, TM_CONNECTION_PORT, 0, 1124))
 		{
@@ -23611,35 +23669,7 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 			stAccountLogin.DBNeedSave = 0;
 			stAccountLogin.Header.Size = sizeof(MSG_AccountLogin);
 
-			ULONG dwSize = 0;
-			IP_ADAPTER_INFO stInfo{};
-			GetAdaptersInfo(&stInfo, &dwSize);
-			if (dwSize)
-			{
-				PIP_ADAPTER_INFO pInfo = (PIP_ADAPTER_INFO)malloc(dwSize);
-				GetAdaptersInfo(pInfo, &dwSize);
-
-				if (pInfo != nullptr)
-				{
-					char* sour = pInfo->AdapterName;
-					int tpos = 0;
-					int grid = 0;
-					char temp[256]{};
-					for (size_t i = 0; i < strlen(pInfo->AdapterName); ++i)
-					{
-						if (sour[i] != '{' && sour[i] != '}' && sour[i] != '-')
-						{
-							temp[tpos++] = sour[i];
-							if (!(++grid % 8))
-								temp[tpos++] = 32;
-						}
-					}
-
-					temp[tpos] = 0;
-					sscanf(temp, "%x %x %x %x", stAccountLogin.AdapterName, &stAccountLogin.AdapterName[1], &stAccountLogin.AdapterName[2], &stAccountLogin.AdapterName[3]);
-					free(pInfo);
-				}
-			}
+			ReadFirstAdapterIdentity(stAccountLogin.AdapterName);
 
 			strncpy(stAccountLogin.AccountName, pStd->AccountName, sizeof(pStd->AccountName));
 			strncpy(stAccountLogin.Zero, pStd->TID, sizeof(pStd->TID));
@@ -24175,10 +24205,30 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 {
 	MSG_SwapItem* pSwapItem = reinterpret_cast<MSG_SwapItem*>(pStd);
 	if (!pSwapItem ||
-		WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene,
-			pSwapItem->SourType == 0 ? pSwapItem->SourPos : -1) ||
-		WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene,
-			pSwapItem->DestType == 0 ? pSwapItem->DestPos : -1))
+		!g_pObjectManager || !m_pMyHuman || !g_pCursor ||
+		!IsSwapPlacePosition(static_cast<unsigned char>(pSwapItem->SourType),
+			static_cast<unsigned char>(pSwapItem->SourPos)) ||
+		!IsSwapPlacePosition(static_cast<unsigned char>(pSwapItem->DestType),
+			static_cast<unsigned char>(pSwapItem->DestPos)))
+		return 1;
+
+	// The server confirms positions, not item payloads. Resolve the cached
+	// slots independently of the optional visual controls.
+	auto modelItem = [](unsigned char type, unsigned char position) -> STRUCT_ITEM*
+	{
+		switch (type)
+		{
+		case kSwapPlaceEquip: return &g_pObjectManager->m_stMobData.Equip[position];
+		case kSwapPlaceCarry: return &g_pObjectManager->m_stMobData.Carry[position];
+		case kSwapPlaceCargo: return &g_pObjectManager->m_stItemCargo[position];
+		default: return nullptr;
+		}
+	};
+	STRUCT_ITEM* sourceModel = modelItem(static_cast<unsigned char>(pSwapItem->SourType),
+		static_cast<unsigned char>(pSwapItem->SourPos));
+	STRUCT_ITEM* destinationModel = modelItem(static_cast<unsigned char>(pSwapItem->DestType),
+		static_cast<unsigned char>(pSwapItem->DestPos));
+	if (!sourceModel || !destinationModel)
 		return 1;
 
 	SGridControl* pSrcGrid = nullptr;
@@ -24191,6 +24241,15 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 	// grade atual. Nessa falha a propriedade continua local até a liberação.
 	auto releaseRejectedVisual = [](SGridControlItem*& item)
 	{
+		if (SGridControl::m_pLastMouseOverItem == item)
+		{
+			SGridControl::m_pLastMouseOverItem = nullptr;
+			SGridControl::m_sLastMouseOverIndex = -1;
+		}
+		if (SGridControl::m_pLastAttachedItem == item)
+			SGridControl::m_pLastAttachedItem = nullptr;
+		if (SGridControl::m_pSellItem == item)
+			SGridControl::m_pSellItem = nullptr;
 		if (g_pCursor && g_pCursor->m_pAttachedItem == item)
 			g_pCursor->m_pAttachedItem = nullptr;
 		SAFE_DELETE(item);
@@ -24217,9 +24276,8 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		pGridSrc[16] = m_pGridNewSlot1;
 		pGridSrc[17] = m_pGridNewSlot2;
 		pSrcGrid = pGridSrc[pSwapItem->SourPos];
-		pSrcItem = pSrcGrid->PickupItem(0, 0);
-
-		memset(&g_pObjectManager->m_stMobData.Equip[pSwapItem->SourPos], 0, sizeof(STRUCT_ITEM));
+		if (pSrcGrid)
+			pSrcItem = pSrcGrid->PickupItem(0, 0);
 	}
 	else if (pSwapItem->SourType == 1)
 	{
@@ -24231,7 +24289,6 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		pSrcGrid = GetCarryGridForSlot(pSwapItem->SourPos);
 		if (pSrcGrid)
 			pSrcItem = pSrcGrid->PickupAtItem(cellX, cellY);
-		memset(&g_pObjectManager->m_stMobData.Carry[pSwapItem->SourPos], 0, sizeof(STRUCT_ITEM));
 	}
 	else if (pSwapItem->SourType == 2)
 	{
@@ -24242,7 +24299,6 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		pSrcGrid = GetCargoGridForSlot(pSwapItem->SourPos);
 		if (pSrcGrid)
 			pSrcItem = pSrcGrid->PickupAtItem(cellX, cellY);
-		memset(&g_pObjectManager->m_stItemCargo[pSwapItem->SourPos], 0, sizeof(STRUCT_ITEM));
 	}
 
 	SGridControl* pGridDest[MAX_EQUIPITEM]{};
@@ -24267,9 +24323,8 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		pGridDest[16] = m_pGridNewSlot1;
 		pGridDest[17] = m_pGridNewSlot2;
 		pDestGrid = pGridDest[pSwapItem->DestPos];
-		pDestItem = pDestGrid->PickupItem(0, 0);
-
-		memset(&g_pObjectManager->m_stMobData.Equip[pSwapItem->DestPos], 0, sizeof(STRUCT_ITEM));
+		if (pDestGrid)
+			pDestItem = pDestGrid->PickupItem(0, 0);
 	}
 	else if (pSwapItem->DestType == 1)
 	{
@@ -24279,7 +24334,6 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		pDestGrid = GetCarryGridForSlot(pSwapItem->DestPos);
 		if (pDestGrid)
 			pDestItem = pDestGrid->PickupAtItem(cellX, cellY);
-		memset(&g_pObjectManager->m_stMobData.Carry[pSwapItem->DestPos], 0, sizeof(STRUCT_ITEM));
 	}
 	else if (pSwapItem->DestType == 2)
 	{
@@ -24289,30 +24343,21 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		pDestGrid = GetCargoGridForSlot(pSwapItem->DestPos);
 		if (pDestGrid)
 			pDestItem = pDestGrid->PickupAtItem(cellX, cellY);
-		memset(&g_pObjectManager->m_stItemCargo[pSwapItem->DestPos], 0, sizeof(STRUCT_ITEM));
 	}
 
 	if (pDestItem)
 	{
-		sizeof(STRUCT_MOB);
 		if (!pSwapItem->SourType)
 		{
 			if (pDestItem->m_pItem->sIndex > 40)
 			{
 				const bool visualAdded = pSrcGrid && pSrcGrid->AddItem(pDestItem, 0, 0) == 1;
-				if (pDestItem)
-					memcpy(&g_pObjectManager->m_stMobData.Equip[pSwapItem->SourPos], pDestItem->m_pItem, sizeof(STRUCT_ITEM));				
-				else
-					memset(&g_pObjectManager->m_stMobData.Equip[pSwapItem->SourPos], 0, sizeof(STRUCT_ITEM));
 				if (!visualAdded)
 					releaseRejectedVisual(pDestItem);
 			}
 			else
 			{
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pDestItem)
-					g_pCursor->m_pAttachedItem = nullptr;
-
-				SAFE_DELETE(pDestItem);
+				releaseRejectedVisual(pDestItem);
 			}
 		}
 		else if (pSwapItem->SourType == 1)
@@ -24323,19 +24368,12 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 				int cellY = 0;
 				GetCarryCellForSlot(pSwapItem->SourPos, cellX, cellY);
 				const bool visualAdded = pSrcGrid && pSrcGrid->AddItem(pDestItem, cellX, cellY) == 1;
-				if (pDestItem)
-					memcpy(&g_pObjectManager->m_stMobData.Carry[pSwapItem->SourPos], pDestItem->m_pItem, sizeof(STRUCT_ITEM));
-				else
-					memset(&g_pObjectManager->m_stMobData.Carry[pSwapItem->SourPos], 0, sizeof(STRUCT_ITEM));
 				if (!visualAdded)
 					releaseRejectedVisual(pDestItem);
 			}
 			else
 			{
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pDestItem)
-					g_pCursor->m_pAttachedItem = nullptr;
-
-				SAFE_DELETE(pDestItem);
+				releaseRejectedVisual(pDestItem);
 			}
 		}
 		else if (pSwapItem->SourType == 2)
@@ -24346,19 +24384,12 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 				int cellY = 0;
 				GetCargoCellForSlot(pSwapItem->SourPos, cellX, cellY);
 				const bool visualAdded = pSrcGrid && pSrcGrid->AddItem(pDestItem, cellX, cellY) == 1;
-				if (pDestItem)
-					memcpy(&g_pObjectManager->m_stItemCargo[pSwapItem->SourPos], pDestItem->m_pItem, sizeof(STRUCT_ITEM));
-				else
-					memset(&g_pObjectManager->m_stItemCargo[pSwapItem->SourPos], 0, sizeof(STRUCT_ITEM));
 				if (!visualAdded)
 					releaseRejectedVisual(pDestItem);
 			}
 			else
 			{
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pDestItem)
-					g_pCursor->m_pAttachedItem = nullptr;
-
-				SAFE_DELETE(pDestItem);
+				releaseRejectedVisual(pDestItem);
 			}
 		}
 	}
@@ -24369,19 +24400,12 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 			if (pSrcItem->m_pItem->sIndex > 40)
 			{
 				const bool visualAdded = pDestGrid && pDestGrid->AddItem(pSrcItem, 0, 0) == 1;
-				if (pSrcItem)
-					memcpy(&g_pObjectManager->m_stMobData.Equip[pSwapItem->DestPos], pSrcItem->m_pItem, sizeof(STRUCT_ITEM));
-				else
-					memset(&g_pObjectManager->m_stMobData.Equip[pSwapItem->DestPos], 0, sizeof(STRUCT_ITEM));
 				if (!visualAdded)
 					releaseRejectedVisual(pSrcItem);
 			}
 			else
 			{
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pSrcItem)
-					g_pCursor->m_pAttachedItem = nullptr;
-
-				SAFE_DELETE(pSrcItem);
+				releaseRejectedVisual(pSrcItem);
 			}
 		}
 		else if (pSwapItem->DestType == 1)
@@ -24392,19 +24416,12 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 				int cellY = 0;
 				GetCarryCellForSlot(pSwapItem->DestPos, cellX, cellY);
 				const bool visualAdded = pDestGrid && pDestGrid->AddItem(pSrcItem, cellX, cellY) == 1;
-				if (pSrcItem)
-					memcpy(&g_pObjectManager->m_stMobData.Carry[pSwapItem->DestPos], pSrcItem->m_pItem, sizeof(STRUCT_ITEM));
-				else
-					memset(&g_pObjectManager->m_stMobData.Carry[pSwapItem->DestPos], 0, sizeof(STRUCT_ITEM));
 				if (!visualAdded)
 					releaseRejectedVisual(pSrcItem);
 			}
 			else
 			{
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pSrcItem)
-					g_pCursor->m_pAttachedItem = nullptr;
-
-				SAFE_DELETE(pSrcItem);
+				releaseRejectedVisual(pSrcItem);
 			}
 		}
 		else if (pSwapItem->DestType == 2)
@@ -24415,22 +24432,37 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 				int cellY = 0;
 				GetCargoCellForSlot(pSwapItem->DestPos, cellX, cellY);
 				const bool visualAdded = pDestGrid && pDestGrid->AddItem(pSrcItem, cellX, cellY) == 1;
-				if (pSrcItem)
-					memcpy(&g_pObjectManager->m_stItemCargo[pSwapItem->DestPos], pSrcItem->m_pItem, sizeof(STRUCT_ITEM));
-				else
-					memset(&g_pObjectManager->m_stItemCargo[pSwapItem->DestPos], 0, sizeof(STRUCT_ITEM));
 				if (!visualAdded)
 					releaseRejectedVisual(pSrcItem);
 			}
 			else
 			{
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pSrcItem)
-					g_pCursor->m_pAttachedItem = 0;
-
-				SAFE_DELETE(pSrcItem);
+				releaseRejectedVisual(pSrcItem);
 			}
 		}
 	}
+	ApplyConfirmedItemSwap(*sourceModel, *destinationModel);
+	// A confirmed swap can outlive a missing source/destination control or an
+	// already absent grid item. Recreate only a missing visible icon from the
+	// committed cache; SetItemOnGrid copies the item and owns failed inserts.
+	auto restoreMissingVisual = [this](SGridControl* grid, unsigned char type,
+		unsigned char position, STRUCT_ITEM* model)
+	{
+		if (!grid || !model || model->sIndex <= 40)
+			return;
+		int cellX = 0;
+		int cellY = 0;
+		if (type == kSwapPlaceCarry)
+			GetCarryCellForSlot(position, cellX, cellY);
+		else if (type == kSwapPlaceCargo)
+			GetCargoCellForSlot(position, cellX, cellY);
+		if (!grid->GetAtItem(cellX, cellY))
+			grid->SetItemOnGrid(model, cellX, cellY);
+	};
+	restoreMissingVisual(pSrcGrid, static_cast<unsigned char>(pSwapItem->SourType),
+		static_cast<unsigned char>(pSwapItem->SourPos), sourceModel);
+	restoreMissingVisual(pDestGrid, static_cast<unsigned char>(pSwapItem->DestType),
+		static_cast<unsigned char>(pSwapItem->DestPos), destinationModel);
 
 	auto pMobData = &g_pObjectManager->m_stMobData;
 	// WYD 7.48 has no familiar in equipment slot 13: it is the costume slot.
@@ -24446,7 +24478,8 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 	if (!pMobData->Guild)
 		g_pObjectManager->m_usWarGuild = -1;
 	// Mount removal is slot 14 in the 7.48 ABI; slot 15 is the cape.
-	if (pSwapItem->SourPos == 14 && pSwapItem->DestPos != 14 && m_pMyHuman)
+	if (pSwapItem->SourType == kSwapPlaceEquip && pSwapItem->SourPos == 14 &&
+		(pSwapItem->DestType != kSwapPlaceEquip || pSwapItem->DestPos != 14))
 		m_pMyHuman->m_sMountIndex = 0;
 
 	auto pSoundManager = g_pSoundManager;
@@ -24808,8 +24841,8 @@ int TMFieldScene::OnPacketBuy(MSG_STANDARD* pStd)
 		return 1;
 
 	auto pBuy = reinterpret_cast<MSG_Buy*>(pStd);
-	if (pBuy->TargetCarryPos < 0 || pBuy->MyCarryPos < 0 ||
-		pBuy->TargetCarryPos >= 81 || pBuy->MyCarryPos >= 63)
+	if (!IsBuyShopPosition(pBuy->TargetCarryPos) ||
+		!IsBuyCarryPosition(pBuy->MyCarryPos))
 		return 1;
 
 	// The merchant identity binds the confirmation to the list currently shown;
@@ -29327,12 +29360,8 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 				float dPosX = (float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nX - m_pMyHuman->m_vecPosition.x;
 				float dPosY = (float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nY - m_pMyHuman->m_vecPosition.y;
 
-				int nRouteIndex = m_nAirMove_RouteIndex;
-				if (nRouteIndex > 9)
-					nRouteIndex = 9;
-
 				if (fabsf(dPosX) + fabsf(dPosY) < 70.0f
-					&& (nRouteIndex == 9 || g_pAirMoveRoute[m_nAirMove_Index][nRouteIndex + 1].nX == 0 && g_pAirMoveRoute[m_nAirMove_Index][nRouteIndex + 1].nY == 0))
+					&& !HasNextAirMoveWaypoint(g_pAirMoveRoute[m_nAirMove_Index], m_nAirMove_RouteIndex))
 				{
 					if (m_fAirMove_Speed >= 0.2f)
 						m_fAirMove_Speed = m_fAirMove_Speed - sinf((m_fAirMove_Speed * 0.0023f) * D3DXToRadian(180));
@@ -29345,8 +29374,9 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 
 				m_pMyHuman->m_fWantAngle = atan2f(dPosX, dPosY) + D3DXToRadian(90);
 			}
-			else if (g_pAirMoveRoute[m_nAirMove_Index][++m_nAirMove_RouteIndex].nX || g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nY)
+			else if (HasNextAirMoveWaypoint(g_pAirMoveRoute[m_nAirMove_Index], m_nAirMove_RouteIndex))
 			{
+				++m_nAirMove_RouteIndex;
 				m_vecAirMove_Dest.x = (float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nX;
 				m_vecAirMove_Dest.y = (float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nY;
 				m_dwAirMove_TickTime = dwServerTime;
@@ -29388,10 +29418,14 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 
 void TMFieldScene::AirMove_Start(int nIndex)
 {
+	if (!m_pMyHuman || !IsValidAirMoveRouteIndex(nIndex))
+		return;
+
 	m_nAirMove_State = 2;
 	m_bAirMove = 1;
 	m_eOldMotion = m_pMyHuman->m_eMotion;
 	m_nOldMountSkinMeshType = m_pMyHuman->m_nMountSkinMeshType;
+	m_stOldAirMoveMountLook = m_pMyHuman->m_stMountLook;
 
 	m_pMyHuman->UpdateMount();
 	m_pMyHuman->m_bIgnoreHeight = 1;
@@ -29411,7 +29445,7 @@ void TMFieldScene::AirMove_Start(int nIndex)
 	stAirmoveStart.Header.Type = MSG_AirMove_Start_Opcode;
 	stAirmoveStart.Header.ID = m_pMyHuman->m_dwID;
 	stAirmoveStart.Parm1 = nIndex;
-	stAirmoveStart.Parm2 = 1;
+	stAirmoveStart.Parm2 = kAirMoveStartMode;
 	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAirmoveStart)->Type, reinterpret_cast<char*>(&stAirmoveStart), sizeof(stAirmoveStart)});
 	m_nAirMove_Index = nIndex;
 	m_nAirMove_RouteIndex = 0;
@@ -29420,10 +29454,9 @@ void TMFieldScene::AirMove_Start(int nIndex)
 
 void TMFieldScene::AirMove_End()
 {
-	if (this->m_pMyHuman)
+	if (m_pMyHuman && m_bAirMove)
 	{
-		m_pMyHuman->m_vecPosition.x = m_pMyHuman->m_vecPosition.x + m_pMyHuman->m_vecAirMove.x;
-		m_pMyHuman->m_vecPosition.y = m_pMyHuman->m_vecPosition.y + m_pMyHuman->m_vecAirMove.y;
+		ConsumeAirMoveDelta(m_pMyHuman->m_vecPosition, m_pMyHuman->m_vecAirMove);
 		m_nAirMove_State = -1;
 		m_bAirMove = 0;
 
@@ -29435,7 +29468,9 @@ void TMFieldScene::AirMove_End()
 		}
 		else
 		{
-			m_pMyHuman->m_nSkinMeshType = m_nOldMountSkinMeshType;
+			RestoreAirMoveMountVisual(m_pMyHuman->m_nMountSkinMeshType,
+				m_pMyHuman->m_stMountLook, m_nOldMountSkinMeshType,
+				m_stOldAirMoveMountLook);
 			m_nOldMountSkinMeshType = -1;
 			m_pMyHuman->UpdateMount();
 		}
@@ -29449,7 +29484,7 @@ void TMFieldScene::AirMove_End()
 			1, 10, 3.0f, 0, 1, 56, 1.0f, 1, TMVector3(0.0f, 0.0f, 0.0f), 1000);
 		m_pEffectContainer->AddChild(pParticle);
 
-		if (m_nAirMove_Index < 0 || m_nAirMove_Index > 10)
+		if (!IsValidAirMoveRouteIndex(m_nAirMove_Index))
 			m_nAirMove_Index = 0;
 
 
@@ -29457,7 +29492,7 @@ void TMFieldScene::AirMove_End()
 		stAirmoveStart.Header.Type = MSG_AirMove_Start_Opcode;
 		stAirmoveStart.Header.ID = m_pMyHuman->m_dwID;
 		stAirmoveStart.Parm1 = m_nAirMove_Index;
-		stAirmoveStart.Parm2 = 2;
+		stAirmoveStart.Parm2 = kAirMoveEndMode;
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAirmoveStart)->Type, reinterpret_cast<char*>(&stAirmoveStart), sizeof(stAirmoveStart)});
 	}
 }
@@ -29467,12 +29502,42 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 	auto pPotalPanel = m_pPotalPanel;
 	if (!pPotalPanel)
 		return 0;
-	if (!m_pPotalList)
-		return 0;
 
-	pPotalPanel->SetVisible(bShow);
 	if (bShow == 1)
 	{
+		// The compact 7.48 bootstrap does not run InitBoard.  A partially
+		// populated resource must not open an empty modal or dereference text.
+		if (!m_pPotalList || !m_pPotalText || !m_pQuestList[0] || !m_pQuestList[1])
+		{
+			pPotalPanel->SetVisible(0);
+			m_bAirmove_ShowUI = false;
+			return 0;
+		}
+		LoadMsgText3(m_pQuestList[0], (char*)"UI\\QuestSubjects.txt", 400, 0);
+		LoadMsgText3(m_pQuestList[1], (char*)"UI\\QuestSubjects2.txt", 400, 0);
+		if (m_pQuestList[2])
+			LoadMsgText3(m_pQuestList[2], (char*)"UI\\QuestSubjects3.txt", 400, 0);
+		if (m_pQuestList[3])
+			LoadMsgText3(m_pQuestList[3], (char*)"UI\\QuestSubjects4.txt", 400, 0);
+		if (!m_pQuestList[0]->m_pItemList[0] ||
+			!m_pQuestList[0]->m_pItemList[1] ||
+			!m_pQuestList[0]->m_pItemList[6])
+		{
+			pPotalPanel->SetVisible(0);
+			m_bAirmove_ShowUI = false;
+			return 0;
+		}
+		const char* place0 = m_pQuestList[0]->m_pItemList[0]->GetText();
+		const char* place1 = m_pQuestList[0]->m_pItemList[1]->GetText();
+		const char* place2 = m_pQuestList[0]->m_pItemList[6]->GetText();
+		if (!place0 || !*place0 || !place1 || !*place1 || !place2 || !*place2)
+		{
+			pPotalPanel->SetVisible(0);
+			m_bAirmove_ShowUI = false;
+			return 0;
+		}
+
+		pPotalPanel->SetVisible(1);
 		if (m_pSkillPanel && m_pSkillPanel->m_bVisible == 1)
 			SetVisibleSkill();
 		if (m_pCPanel && m_pCPanel->m_bVisible == 1)
@@ -29488,9 +29553,7 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 		if (m_pShopPanel && m_pShopPanel->m_bVisible == 1)
 			SetVisibleShop(0);
 
-		char szStr[128]{};
-		sprintf(szStr, "%s", g_pMessageStringTable[378]);
-		m_pPotalText->SetText(szStr, 0);
+		m_pPotalText->SetText(g_pMessageStringTable[378], 0);
 		m_pPotalText->SetTextColor(0xFFFFFFFF);
 		if (m_pPotalText1)
 			m_pPotalText1->SetText(g_pMessageStringTable[380], 0);
@@ -29499,29 +29562,15 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 		if (m_pPotalText3)
 			m_pPotalText3->SetText(g_pMessageStringTable[381], 0);
 
-		if (m_pQuestList[0])
-			LoadMsgText3(m_pQuestList[0], (char*)"UI\\QuestSubjects.txt", 400, 0);
-		if (m_pQuestList[1])
-			LoadMsgText3(m_pQuestList[1], (char*)"UI\\QuestSubjects2.txt", 400, 0);
-		if (m_pQuestList[2])
-			LoadMsgText3(m_pQuestList[2], (char*)"UI\\QuestSubjects3.txt", 400, 0);
-		if (m_pQuestList[3])
-			LoadMsgText3(m_pQuestList[3], (char*)"UI\\QuestSubjects4.txt", 400, 0);
-
 		char strAirMoveList[10][256]{};
-		if (!m_pQuestList[0] || !m_pQuestList[1] ||
-			!m_pQuestList[0]->m_pItemList[0] ||
-			!m_pQuestList[0]->m_pItemList[1] ||
-			!m_pQuestList[0]->m_pItemList[6])
-			return 0;
 
 		int i = 0;
 		char strAirMovePlaceName[10][64]{};
-		strncpy(strAirMovePlaceName[0], m_pQuestList[0]->m_pItemList[0]->GetText() + 1, 18);
-		strncpy(strAirMovePlaceName[1], m_pQuestList[0]->m_pItemList[1]->GetText() + 1, 18);
-		strncpy(strAirMovePlaceName[2], m_pQuestList[0]->m_pItemList[6]->GetText() + 1, 18);
-		sprintf(strAirMovePlaceName[3], g_pMessageStringTable[212]);
-		sprintf(strAirMovePlaceName[4], g_pMessageStringTable[218]);
+		sprintf_s(strAirMovePlaceName[0], "%.18s", place0 + 1);
+		sprintf_s(strAirMovePlaceName[1], "%.18s", place1 + 1);
+		sprintf_s(strAirMovePlaceName[2], "%.18s", place2 + 1);
+		sprintf_s(strAirMovePlaceName[3], "%.18s", g_pMessageStringTable[212]);
+		sprintf_s(strAirMovePlaceName[4], "%.18s", g_pMessageStringTable[218]);
 
 		for (int i = 0; i < 5; ++i)
 		{
@@ -29577,6 +29626,8 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 		if (m_pPotalList->m_pScrollBar)
 			m_pPotalList->m_pScrollBar->SetCurrentPos(0);
 	}
+	else
+		pPotalPanel->SetVisible(0);
 
 	m_bAirmove_ShowUI = bShow;
 	if (!bShow)

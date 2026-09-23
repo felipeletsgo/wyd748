@@ -278,6 +278,16 @@ func TestUpdateCargoGold748Layout(t *testing.T) {
 	}
 }
 
+func TestCargoGoldTransfer748Layout(t *testing.T) {
+	for _, op := range []uint16{OpWithdraw, OpDeposit} {
+		b := CargoGoldTransfer(op, SceneField, 0x12345678)
+		if len(b) != 16 || ParseHeader(b).Type != op ||
+			ParseHeader(b).ID != SceneField || binary.LittleEndian.Uint32(b[12:16]) != 0x12345678 {
+			t.Fatalf("CargoGoldTransfer 7.48 opcode=%#x invalido: % X", op, b)
+		}
+	}
+}
+
 func TestPlayerMove748NormalizesForRemoteClient(t *testing.T) {
 	route := []byte{'6', '3', '6', '6', 0, '9'}
 	b := PlayerMove(7, 2100, 2101, 2104, 2105, 4, route)

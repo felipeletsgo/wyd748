@@ -192,9 +192,8 @@ fama, recuperação após restart e integração com guerras de cidade. Os teste
 | Guerra de torre agendada | `DIFERENTE` / modernizada | Há equivalência semântica ampla, mas scheduler, persistência e lifecycle não foram provados campo a campo idênticos ao W2PP. |
 | Guerra de cidade | `GO_ONLY/MODERNIZADO` em relação ao recorte auditado | Integrada ao mesmo estado autoritativo de guerras no Go. |
 
-O texto histórico em `DOCS/IMPLEMENTATION_STATUS.md` que sugere ausência de
-guerras de guilda está **obsoleto** para o estado atual do repositório. Para
-esta auditoria, o código e os testes atuais prevalecem sobre aquele registro.
+O código e os testes atuais prevalecem sobre snapshots antigos de implementação
+ao avaliar guerras de guilda.
 
 ## Ranking, player info e duel
 

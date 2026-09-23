@@ -378,14 +378,22 @@ func TestTeleportPKAndGuildChallengeHandlers(t *testing.T) {
 
 	pk := make([]byte, 16)
 	binary.LittleEndian.PutUint32(pk[12:16], 1)
+	beforePKPackets := session.QueuedPacketsForTest()
 	w.onPKMode(session, pk)
 	if !p.PKMode {
 		t.Fatal("PK mode nao foi ativado")
 	}
+	if got := session.QueuedPacketsForTest(); got != beforePKPackets+1 {
+		t.Fatalf("PK mode ativo publicou pacote sem consumidor 7.48: got=%d want=%d", got, beforePKPackets+1)
+	}
 	binary.LittleEndian.PutUint32(pk[12:16], 0)
+	beforePKPackets = session.QueuedPacketsForTest()
 	w.onPKMode(session, pk)
 	if p.PKMode {
 		t.Fatal("PK mode nao foi desativado")
+	}
+	if got := session.QueuedPacketsForTest(); got != beforePKPackets+1 {
+		t.Fatalf("PK mode inativo publicou pacote sem consumidor 7.48: got=%d want=%d", got, beforePKPackets+1)
 	}
 	binary.LittleEndian.PutUint32(pk[12:16], 2)
 	w.onPKMode(session, pk)

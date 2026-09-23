@@ -16,6 +16,10 @@
 #include "../internal/wire/GuildDeprivatePacket.h"
 #include "../internal/wire/ChallengeConfirmPacket.h"
 #include "../internal/wire/GuildRelationPacket.h"
+#include "../internal/wire/AttackFrameContract.h"
+#include "../internal/wire/AirMoveContract.h"
+#include "../internal/game/entities/AirMoveMotion.h"
+#include "../internal/wire/ServerWarLetterContract.h"
 #include <array>
 #include <cstring>
 #include <type_traits>
@@ -35,6 +39,11 @@ int RunResourceBarProjectionTests(int& checks);
 int RunObservedAffectProjectionTests(int& checks);
 int RunCCModePolicyTests(int& checks);
 int RunEffectVertexColorTests(int& checks);
+int RunSceneDisconnectContractTests(int& checks);
+int RunLoginCredentialContractTests(int& checks);
+int RunServerNameAssetTests(int& checks);
+int RunTerrainTileMapReaderTests(int& checks);
+int RunCharacterTransferResponseTests(int& checks);
 
 // Backend sem socket: registra metadados e usa o mesmo guard da producao.
 // Nao retém o buffer; a mutacao simula o preenchimento sincrono do cabecalho.
@@ -108,6 +117,82 @@ int main()
     check(PacketView{0, storage, INT_MAX}.HasSizeBetween(12, INT_MAX), "limite int");
     const auto sizeMaximum = (std::numeric_limits<std::size_t>::max)();
     check(!PacketView{0, storage, sizeMaximum}.HasSizeBetween(12, INT_MAX), "limite size_t");
+
+    for (std::size_t size = 0; size <= 160; ++size)
+    {
+        check(IsClientToServerAttackPacketSize(MSG_Attack_One_Opcode, size) ==
+            (size == 48 || size == 96), "AttackOne C->S preserva conjunto fechado");
+        check(IsClientToServerAttackPacketSize(MSG_Attack_Two_Opcode, size) ==
+            (size == 52), "AttackTwo C->S preserva conjunto fechado");
+        check(IsClientToServerAttackPacketSize(MSG_Attack_Multi_Opcode, size) ==
+            (size == 96), "AttackMulti C->S preserva conjunto fechado");
+    }
+    check(!IsClientToServerAttackPacketSize(0x123, 48),
+        "opcode nao ataque nao reutiliza contrato C->S");
+    check(!IsClientToServerAttackPacketSize(MSG_Attack_One_Opcode, 72),
+        "AttackOne C->S rejeita envelope legado incorreto de 72 bytes");
+
+    check(MSG_AirMove_Start_Opcode == 0xAD9 && kAirMovePacketSize == 20 &&
+        kAirMoveRouteOffset == 12 && kAirMoveModeOffset == 16,
+        "AirMove C->S preserva opcode e ABI 7.48");
+    check(kAirMoveStartMode == 1 && kAirMoveEndMode == 2,
+        "AirMove C->S preserva os dois modos nativos");
+    for (int route = -1; route <= kAirMoveRouteCount; ++route)
+        check(IsValidAirMoveRouteIndex(route) == (route >= 0 && route < 5),
+            "AirMove aceita apenas cinco rotas nativas");
+    struct AirMovePoint { float x; float y; };
+    AirMovePoint airPosition{100.0f, 200.0f};
+    AirMovePoint airDelta{0.25f, -0.5f};
+    ConsumeAirMoveDelta(airPosition, airDelta);
+    check(airPosition.x == 100.25f && airPosition.y == 199.5f &&
+        airDelta.x == 0.0f && airDelta.y == 0.0f,
+        "AirMove aplica o delta do frame exatamente uma vez");
+    ConsumeAirMoveDelta(airPosition, airDelta);
+    check(airPosition.x == 100.25f && airPosition.y == 199.5f,
+        "AirMove nao reaplica o delta consumido no frame seguinte");
+    struct AirMoveLook { short mesh; short skin; };
+    int bodySkin = 12;
+    int mountSkin = 40;
+    AirMoveLook mountLook{};
+    const AirMoveLook savedMountLook{7, 3};
+    RestoreAirMoveMountVisual(mountSkin, mountLook, 20, savedMountLook);
+    check(bodySkin == 12 && mountSkin == 20 && mountLook.mesh == 7 &&
+        mountLook.skin == 3,
+        "AirMove restaura montaria e look sem alterar mesh do corpo");
+    struct AirMoveWaypoint { int nX; int nY; };
+    AirMoveWaypoint airRoute[10]{{100, 200}, {300, 400}, {0, 0}};
+    check(HasNextAirMoveWaypoint(airRoute, 0) &&
+        !HasNextAirMoveWaypoint(airRoute, 1) &&
+        !HasNextAirMoveWaypoint(airRoute, -1),
+        "AirMove avanca apenas ate waypoint presente");
+    for (auto& point : airRoute)
+        point = {500, 600};
+    check(HasNextAirMoveWaypoint(airRoute, 8) &&
+        !HasNextAirMoveWaypoint(airRoute, 9) &&
+        !HasNextAirMoveWaypoint(airRoute, 10) &&
+        !HasNextAirMoveWaypoint(airRoute, INT_MAX),
+        "AirMove nao le alem do ultimo waypoint");
+
+    check(MSG_UseDeclarationOfWar_Opcode == 0xED7,
+        "carta de declaracao preserva opcode nativo");
+    check(MSG_UseRefuseServerWar_Opcode == 0xED8,
+        "carta de recusa preserva opcode nativo");
+    check(kServerWarLetterPacketSize == 16 && kServerWarTargetChannelOffset == 12,
+        "cartas de guerra preservam ABI MSG_STANDARDPARM");
+    check(ServerWarPromptModeForItem(kDeclarationOfWarLetterItemIndex) ==
+        kDeclareServerWarPromptMode, "item 4030 abre prompt de declaracao");
+    check(ServerWarPromptModeForItem(kWarRejectionLetterItemIndex) ==
+        kRefuseServerWarPromptMode, "item 4031 abre prompt de recusa");
+    check(ServerWarPromptModeForItem(4029) == 0 &&
+        ServerWarPromptModeForItem(4032) == 0,
+        "outros itens nao reutilizam prompt de guerra entre canais");
+    check(!IsEncodableServerWarTargetChannel(0) &&
+        !IsEncodableServerWarTargetChannel(-1) &&
+        IsEncodableServerWarTargetChannel(1) &&
+        IsEncodableServerWarTargetChannel(2147483647LL) &&
+        !IsEncodableServerWarTargetChannel(2147483648LL) &&
+        !IsEncodableServerWarTargetChannel(4294967297LL),
+        "canal de guerra nao trunca valor fora do campo int32 do wire");
 
     const PacketView valid{77, storage, sizeof(storage)};
     check(valid.HasSizeBetween(12, INT_MAX) && valid.opcode == 77 &&
@@ -426,6 +511,11 @@ int main()
     failures += RunObservedAffectProjectionTests(checks);
     failures += RunCCModePolicyTests(checks);
     failures += RunEffectVertexColorTests(checks);
+    failures += RunSceneDisconnectContractTests(checks);
+    failures += RunLoginCredentialContractTests(checks);
+    failures += RunServerNameAssetTests(checks);
+    failures += RunTerrainTileMapReaderTests(checks);
+    failures += RunCharacterTransferResponseTests(checks);
     if (failures == 0) std::printf("ArchitectureTests: %d checks PASS; static assertions PASS\n", checks);
     return failures == 0 ? 0 : 1;
 }

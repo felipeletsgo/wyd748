@@ -15,6 +15,10 @@
 #include "TMObjectContainer.h"
 #include "NewApp.h"
 #include "Basedef.h"
+#include "ServerEndpoint.h"
+#include "ServerStatus.h"
+#include "ServerChannelLabel.h"
+#include "AdapterIdentity.h"
 #include "WYD748Assets.h"
 
 void SwapLauncher()
@@ -113,10 +117,10 @@ int TMSelectServerScene::InitializeScene()
 	if (!LoadRC("UI\\SelServerScene2.txt"))
 		return 0;
 
-	// NewApp parses sn.bin as text, but the 7.48 asset is a fixed binary table.
-	// Reload it before building list items so server groups are not left empty.
+	// The 7.48 asset is a fixed binary table; load it once before building the
+	// server-group controls. A text parser must never consume this file.
 	if (!WYD748_LoadServerNameList(
-		"sn.bin",
+		ServerName_Path,
 		g_szServerNameList,
 		_countof(g_szServerNameList),
 		g_nServerCountList,
@@ -124,6 +128,23 @@ int TMSelectServerScene::InitializeScene()
 	{
 		LOG_WRITELOG("Can't Read WYD 7.48 Server Name Data [sn.bin]\r\n");
 		return 0;
+	}
+
+	// A truncated Scene2 resource may still parse successfully. All controls
+	// used without optional guards below must exist before InitializeUI builds
+	// children or the scene advances to login.
+	const int requiredControls[] = {
+		P_SERVER_SEL, L_SELECT_SERVERG, L_SELECT_SERVER, P_LOGIN_BOX,
+		B_LOGIN_OK, B_QUIT, B_CREATE_ID, TMP_LOGO_PANEL1, TMP_LOGO_PANEL2,
+		E_LOGIN_ID, E_LOGIN_PASSWORD
+	};
+	for (int controlID : requiredControls)
+	{
+		if (!m_pControlContainer->FindControl(controlID))
+		{
+			LOG_WRITELOG("Missing WYD 7.48 Server Scene control [%d]\r\n", controlID);
+			return 0;
+		}
 	}
 
 	_SYSTEMTIME time{};
@@ -235,11 +256,11 @@ int TMSelectServerScene::InitializeScene()
 	for (int i = 0; i < MAX_SERVERNUMBER; ++i)
 		nUserCount[i] = -1;
 
-	BASE_GetHttpRequest((char*)&g_pServerList, szUserCount, 1024);
+	char szStatusEndpoint[64]{};
+	if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[0][0]))
+		BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
 
-	sscanf_s(szUserCount, "%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n",
-		&nUserCount[0], &nUserCount[1], &nUserCount[2], &nUserCount[3], &nUserCount[4], &nUserCount[5],
-		&nUserCount[6], &nUserCount[7], &nUserCount[8], &nUserCount[9], &nUserCount[10]);
+	ParseServerStatus(szUserCount, nUserCount, 11);
 
 	m_cLogin = 0;
 
@@ -320,6 +341,7 @@ int TMSelectServerScene::InitializeScene()
 			LogMsgCriticalError(14, 0, 0, 0, 0);
 
 		m_bCriticalError = 1;
+		return 0;
 	}
 
 	m_pGround = m_pGroundList[0];
@@ -397,12 +419,7 @@ int TMSelectServerScene::InitializeScene()
 
 int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)
 {
-	int nMaxGroupN = 0;
-	for (int j = 0; j < m_nMaxGroup; ++j)
-	{
-		if (g_nServerCountList[j])
-			nMaxGroupN++;
-	}
+	const int nMaxGroupN = m_nVisibleGroupCount;
 
 	SListBoxServerItem* pServerItem[11]{ nullptr };
 
@@ -414,7 +431,7 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 		// groups in reverse display order, so validate before indexing the table.
 		if (idwEvent >= static_cast<unsigned int>(nMaxGroupN))
 			return 1;
-		const int nIndexN = g_nServerCountList[nMaxGroupN - static_cast<int>(idwEvent) - 1] - 1;
+		const int nIndexN = g_nServerCountList[m_nVisibleGroupSlots[idwEvent]] - 1;
 		if (nIndexN < 0 || nIndexN >= MAX_SERVERGROUP)
 			return 1;
 
@@ -441,23 +458,34 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 			for (int i = 0; i < m_nAdmitGroup; ++i)
 			{
 				memset(nUserCount2, -1, sizeof nUserCount2);
-				BASE_GetHttpRequest(g_pServerList[i][0], szUserCount, sizeof szUserCount);
+				szUserCount[0] = 0;
+				char szStatusEndpoint[64]{};
+				if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[i][0]))
+					BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
 
-				sscanf_s(szUserCount, "%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n",
-					&nUserCount2[0], &nUserCount2[1], &nUserCount2[2], &nUserCount2[3], &nUserCount2[4], &nUserCount2[5],
-					&nUserCount2[6], &nUserCount2[7], &nUserCount2[8], &nUserCount2[9], &nUserCount2[10]);
+				ParseServerStatus(szUserCount, nUserCount2, 11);
 
 				// 
 				nUserCount[m_nDay[m_nAdmitGroup - i]] = nUserCount2[m_nDay[m_nAdmitGroup - i]];
-				sprintf_s(g_pServerList[nIndexN][i + 1], "%s", g_pServerList[m_nAdmitGroup - i - 1][m_nDay[m_nAdmitGroup - i] + 1]);
+				auto& aggregateEndpoint = g_pServerList[nIndexN][i + 1];
+				CopyServerEndpointAt(aggregateEndpoint, g_pServerList,
+					m_nAdmitGroup - i - 1, m_nDay[m_nAdmitGroup - i] + 1);
 			}
 		}
 		else
 		{
-			BASE_GetHttpRequest(g_pServerList[nIndexN][0], szUserCount, sizeof szUserCount);
-			sscanf_s(szUserCount, "%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n%d\\n",
-				&nUserCount[0], &nUserCount[1], &nUserCount[2], &nUserCount[3], &nUserCount[4], &nUserCount[5],
-				&nUserCount[6], &nUserCount[7], &nUserCount[8], &nUserCount[9], &nAspGetweek, &nAspGetday);
+			szUserCount[0] = 0;
+			char szStatusEndpoint[64]{};
+			if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[nIndexN][0]))
+				BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
+int statusValues[12];
+			for (int& value : statusValues)
+				value = -1;
+			ParseServerStatus(szUserCount, statusValues, 12);
+			for (int i = 0; i < 10; ++i)
+				nUserCount[i] = statusValues[i];
+			nAspGetweek = statusValues[10];
+			nAspGetday = statusValues[11];
 		}
 
 		_SYSTEMTIME time{};
@@ -489,6 +517,10 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 		if (pServerList)
 		{
 			pServerList->Empty();
+			m_nVisibleChannelCount = 0;
+			// A channel selected in the previous group must not remain selected
+			// when the new group's rows replace it.
+			pServerList->SetSelectedIndex(-1);
 
 			for (int num = 1;; ++num)
 			{
@@ -526,8 +558,10 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 
 						nCastle = IsCastle(m_nDay[nGIndex] - 1);
 
-						if (g_szServerName[nGIndex][m_nDay[nGIndex]][0])
-							sprintf_s(szStr, "%s-%s", g_szServerNameList[nGIndex], g_szServerName[nGIndex][m_nDay[nGIndex] - 1]);
+						const char* selectedName = ServerChannelNameAt(g_szServerName, nGIndex, m_nDay[nGIndex]);
+						const char* displayName = ServerChannelNameAt(g_szServerName, nGIndex, m_nDay[nGIndex] - 1);
+						if (selectedName && displayName)
+							sprintf_s(szStr, "%s-%s", g_szServerNameList[nGIndex], displayName);
 						else
 						{
 							sprintf_s(szStr, "%s-%d", g_szServerNameList[nGIndex], m_nDay[nGIndex]);
@@ -536,41 +570,19 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 
 							// Native 7.48 marks and rejects a channel only after 700 users.
 							if (nUserCount[num] > 700)
-							{
-								int len = strlen(szStr);
-
-								if (len < 14)
-								{
-									for (int n1 = len; n1 < len; ++n1)
-										szStr[n1] = ' ';
-								}
-
-								szStr[14] = 0;
-								strcat(szStr, "FULL");
-							}
+								AppendFullChannelLabel(szStr, sizeof(szStr));
 						}
 					}
 					else if (g_szServerNameList[nIndexN][0])
 					{
-						if (g_szServerName[nIndexN][num][0])
-							sprintf_s(szStr, "%s-%s", g_szServerNameList[nIndexN], g_szServerName[nIndexN][num]);
+						if (const char* channelName = ServerChannelNameAt(g_szServerName, nIndexN, num))
+							sprintf_s(szStr, "%s-%s", g_szServerNameList[nIndexN], channelName);
 						else
 						{
 							sprintf_s(szStr, "%s-%d", g_szServerNameList[nIndexN], num);
 
 							if (nUserCount[num] > 700)
-							{
-								int len = strlen(szStr);
-
-								if (len < 14)
-								{
-									for (int n1 = len; n1 < len; ++n1)
-										szStr[n1] = ' ';
-								}
-
-								szStr[14] = 0;
-								strcat(szStr, "FULL");
-							}
+								AppendFullChannelLabel(szStr, sizeof(szStr));
 						}
 					}
 					else
@@ -594,6 +606,7 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 						pServerItem[num]->m_cConnected = 0;
 
 					pServerList->AddItem(pServerItem[num]);
+					m_nVisibleChannelSlots[m_nVisibleChannelCount++] = num;
 				}
 				else if (m_bAdmit == 1 && num < m_nMaxGroup)
 				{
@@ -606,6 +619,7 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 
 					// TODO : review code					
 					pServerList->AddItem(pServerItem[num - 1]);
+					m_nVisibleChannelSlots[m_nVisibleChannelCount++] = num;
 				}
 			}
 		}
@@ -622,7 +636,9 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 		const int selectedGroup = m_pNServerGroupList->GetSelectedIndex();
 		const int selectedChannel = m_pNServerList->GetSelectedIndex();
 		SListBoxServerItem* pItem = static_cast<SListBoxServerItem*>(m_pNServerList->GetItem(selectedChannel));
-		if (!pItem || selectedGroup < 0 || selectedGroup >= nMaxGroupN || selectedChannel < 0)
+		const int displayedChannel = ChannelForVisibleRow(
+			m_nVisibleChannelSlots, m_nVisibleChannelCount, selectedChannel);
+		if (!pItem || selectedGroup < 0 || selectedGroup >= nMaxGroupN || displayedChannel < 1)
 		{
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
 			m_pMessagePanel->SetVisible(1, 1);
@@ -632,14 +648,16 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 		// FUN_004ac985 resolves the reverse-ordered visible group first.  The
 		// admission aggregate then maps its selected row back to that group's
 		// rotating daily channel; no 7.59 server-index shortcut is valid here.
-		int nServerGroupIndex = g_nServerCountList[nMaxGroupN - selectedGroup - 1] - 1;
-		int nServerIndex = selectedChannel + 1;
+		int nServerGroupIndex = g_nServerCountList[m_nVisibleGroupSlots[selectedGroup]] - 1;
+		int nServerIndex = displayedChannel;
 		if (m_bAdmit == 1 && nServerGroupIndex == m_nAdmitGroup)
 		{
 			const int mappedGroupSlot = nMaxGroupN - selectedChannel - 1;
 			if (mappedGroupSlot < 0 || mappedGroupSlot >= nMaxGroupN)
 				return 1;
 			nServerGroupIndex = g_nServerCountList[mappedGroupSlot] - 1;
+			if (nServerGroupIndex < 0 || nServerGroupIndex >= MAX_SERVERGROUP)
+				return 1;
 			nServerIndex = m_nDay[nServerGroupIndex];
 		}
 
@@ -656,12 +674,18 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 		// status feed is stale or unavailable; the selected endpoint and the game
 		// server remain authoritative and can reject a genuinely offline channel.
 
+		// WYD 7.48 resolves the selected endpoint from the decrypted serverlist;
+		// a loopback override bypassed the distributed channel configuration. The
+		// fixed-width asset cell must terminate before the next channel entry.
+		if (!CopyServerEndpoint(g_pApp->m_szServerIP, g_pServerList[nServerGroupIndex][nServerIndex]))
+		{
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
+			m_pMessagePanel->SetVisible(1, 1);
+			return 1;
+		}
+
 		g_pObjectManager->m_nServerGroupIndex = nServerGroupIndex;
 		g_pObjectManager->m_nServerIndex = nServerIndex;
-
-		// WYD 7.48 resolves the selected endpoint from the decrypted serverlist;
-		// a loopback override bypassed the distributed channel configuration.
-		sprintf_s(g_pApp->m_szServerIP, "%s", g_pServerList[nServerGroupIndex][nServerIndex]);
 		printf("Servidor que conectara: \"%s\"\n", g_pApp->m_szServerIP);
 
 		m_pNServerSelect->SetVisible(0);
@@ -738,6 +762,14 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 			return 1;
 		}
 
+		if (strlen(pEditPassword->GetText()) > 10)
+		{
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[6], 4000);
+			m_pMessagePanel->SetVisible(1, 1);
+
+			return 1;
+		}
+
 		pLoginOK->SetEnable(0);
 		pEditPassword->SetEnable(0);
 		m_dwLastClickLoginBtnTime = g_pTimerManager->GetServerTime();
@@ -764,38 +796,7 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 		// the server before password verification.
 		stAccountLogin.ClientVersion = 748;
 
-		DWORD dwSize = 0;
-		IP_ADAPTER_INFO stInfo{};
-		GetAdaptersInfo(&stInfo, &dwSize);
-
-		if (dwSize)
-		{
-			IP_ADAPTER_INFO* pInfo = nullptr;
-			pInfo = (IP_ADAPTER_INFO*)malloc(dwSize);
-
-			GetAdaptersInfo(pInfo, &dwSize);
-			char* sour = pInfo->AdapterName;
-			int tpos = 0;
-			int grid = 0;
-			char temp[256] = { 0 };
-			int len = strlen(pInfo->AdapterName); // v18;
-			for (int i = 0; i < len; ++i)
-			{
-				if (sour[i] != 123 && sour[i] != 125 && sour[i] != 45)
-				{
-					temp[tpos++] = sour[i];
-
-					if (!(++grid % 8))
-						temp[tpos++] = 32;
-				}
-			}
-
-			temp[tpos] = '\0';
-
-			sscanf_s(temp, "%x %x %x %x", &stAccountLogin.AdapterName[0], &stAccountLogin.AdapterName[1], &stAccountLogin.AdapterName[2], &stAccountLogin.AdapterName[3]);
-
-			free(pInfo);
-		}
+		ReadFirstAdapterIdentity(stAccountLogin.AdapterName);
 
 		// The 7.48 login envelope has fixed 16/12-byte credential fields. Bounded
 		// copies preserve the protocol marker at byte 44 and prevent a long edit
@@ -887,11 +888,12 @@ int TMSelectServerScene::OnCharEvent(char iCharCode, int lParam)
 
 int TMSelectServerScene::OnPacketEvent(unsigned int dwCode, char* buf)
 {
+	const int sceneResult = TMScene::OnPacketEvent(dwCode, buf);
 	if (!buf)
-		return 0;
+		return sceneResult;
 
 	auto packet = reinterpret_cast<MSG_STANDARD*>(buf);
-	if (TMScene::OnPacketEvent(dwCode, buf) == 1)
+	if (sceneResult == 1)
 	{
 		if (packet->Type == 0x101)
 			m_pLoginPanel->SetVisible(1);
@@ -929,7 +931,7 @@ int TMSelectServerScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_SELECTCHAR_STATE);
 		return 1;
 	}
-	if (packet->Type == 0x11D || packet->Type == 0x11C)
+	if (packet->Type == 0x11D || packet->Type == MSG_AlreadyPlaying_Opcode)
 	{
 		if (packet->Type == 0x101)
 			m_pLoginPanel->SetVisible(1);
@@ -1317,9 +1319,11 @@ void TMSelectServerScene::SetAlphaServer(unsigned int dwStartTime, unsigned int 
 		{
 			if (m_pLogoPanels[i])
 				m_pLogoPanels[i]->m_GCPanel.dwColor = 0x1010101;
-
-			if (m_pGroupPanel[i])
-				m_pGroupPanel[i]->m_GCPanel.dwColor = dwOn;
+		}
+		for (SPanel* panel : m_pGroupPanel)
+		{
+			if (panel)
+				panel->m_GCPanel.dwColor = dwOn;
 		}
 
 		if (m_pLogoPanels[0])
@@ -1433,15 +1437,7 @@ void TMSelectServerScene::InitializeUI()
 
 	if (m_pNServerGroupList)
 	{
-		for (int i = 0; i < 11; ++i)
-		{
-			if (!g_pServerList[i][0][0])
-			{
-				m_nMaxGroup = i - 1;
-
-				break;
-			}
-		}
+		m_nMaxGroup = LastConfiguredServerGroup(g_pServerList);
 
 		int local20 = (time.wDay & 0xFFFF) % 10;
 		if (local20 == 0)
@@ -1478,12 +1474,18 @@ void TMSelectServerScene::InitializeUI()
 		}
 
 		--m_nAdmitGroup;
+		if (m_nMaxGroup >= MAX_SERVERGROUP)
+			m_nMaxGroup = MAX_SERVERGROUP - 1;
 
 		if (g_pServerList[9][0][0])
 			m_nMaxGroup = 9;
 
-		for (int i = m_nMaxGroup; i >= 0; --i)
+		const auto visibleGroups = VisibleServerGroupSlots(g_nServerCountList, g_pServerList, m_nMaxGroup);
+		m_nVisibleGroupCount = visibleGroups.count;
+		for (int row = 0; row < m_nVisibleGroupCount; ++row)
 		{
+			const int i = visibleGroups.slots[row];
+			m_nVisibleGroupSlots[row] = i;
 			int count = g_nServerCountList[i] - 1;
 
 			if (count > -1 && g_pServerList[count][0][0])
@@ -1502,11 +1504,10 @@ void TMSelectServerScene::InitializeUI()
 				pGroupItem[i] = new SListBoxItem(szStr, 0xD0FFFFFF, 0.0f, 0.0f, 63.0f, 16.0f, 0, 0x77777777u, 1u, 0);
 				m_pNServerGroupList->AddItem(pGroupItem[i]);
 
-				// The 7.48 renderer starts row skins at y=52 and advances them by
-				// 26 pixels. This pairs the dynamically-created skin with the list
-				// after its native +22 y adjustment below.
+				// The list compacts configured groups into visible rows. Anchor each
+				// skin to that row too, including when sn.bin has a missing slot.
 				m_pGroupPanel[i] = new SPanel(-395, 17.0f,
-					52.0f + static_cast<float>(i * 26), 109.0f, 22.0f,
+					52.0f + static_cast<float>(row * 26), 109.0f, 22.0f,
 					0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
 				m_pNServerSelect->AddChild(static_cast<TreeNode*>(m_pGroupPanel[i]));
 			}

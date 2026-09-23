@@ -8,7 +8,7 @@ orientar a busca, mas não são contrato.
 
 ## Como retomar
 
-1. Ler `AGENTS.md`, o `AGENTS.md` da subtree afetada e
+1. Ler o `AGENTS.md` único da raiz e
    `.agents/skills/wyd-client748-research/SKILL.md`.
 2. Ler apenas o handoff do programa em
    `.agents/handoffs/client748-research-program.md` e, se o escopo for a
@@ -75,6 +75,8 @@ Estado atual do mapa:
 | Caixa visual e escala de itens em grids | `TRACED` | `flows/ui/grid-item-mesh-scale.md` |
 | Composição lado a lado de Shop e Inventory | `TRACED` | `flows/ui/shop-inventory-layout.md` |
 | Composição lado a lado de Trade e Inventory | `TRACED` | `flows/ui/trade-inventory-layout.md` |
+| Envelope de oferta/fechamento de trade `0x383/0x384` | `UNMAPPED` | `flows/transport/trade-session-envelope.md` |
+| Confirmação visual do primeiro check de trade `0x386` | `UNMAPPED` | `flows/transport/trade-check-confirmation-contract.md` |
 | Posição compartilhada de AutoTrade, Cargo e Inventory | `TRACED` | `flows/ui/auto-trade-inventory-layout.md` |
 | Composição dos seis ItemMix com Inventory | `TRACED` | `flows/ui/native-mix-inventory-layout.md` |
 | Posição inicial e toggle do menu inferior direito | `TRACED` | `flows/ui/system-menu-initial-layout.md` |
@@ -85,15 +87,25 @@ Estado atual do mapa:
 | Keepalive periódico `0x3A0` | `CONTRACT` | `flows/transport/keepalive-ping.md` |
 | Pedido de troca de cidade `0x291` | `CONTRACT` | `flows/transport/change-city-request.md` |
 | Pedido de portal `0x290` | `CONTRACT` | `flows/transport/req-teleport.md` |
+| Transporte aéreo `0xAD9` | `CONTRACT` | `flows/transport/airmove-contract.md` |
 | Interação com NPC `0x28B` | `CONTRACT` | `flows/transport/use-npc-request.md` |
 | Remoção de membro da guild `0x28C` | `CONTRACT` | `flows/transport/guild-deprivate-request.md` |
 | Guerra e aliança entre guilds `0xE0E/0xE12` | `CONTRACT` | `flows/transport/guild-relations-request.md` |
+| Cartas de guerra entre canais `0xED7/0xED8` | `CONTRACT` | `flows/transport/server-war-letter-contract.md` |
+| Snapshot autoritativo da barra de skills `0x378` | `CONTRACT` | `flows/transport/short-skill-snapshot-contract.md` |
+| Envelope Action/ActionStop/Illusion `0x366/0x367/0x368` | `CONTRACT` | `flows/transport/action-frame-contract.md` |
+| Envelope variável de ataque `0x39D/0x39E/0x36C` | `CONTRACT` | `flows/transport/attack-frame-envelope.md` |
+| Confirmações de movimentação/compra `0x376/0x379` | `CONTRACT` | `flows/transport/inventory-transaction-confirmations.md` |
+| Confirmações de depósito/saque do Cargo `0x388/0x387` | `UNMAPPED` | `flows/transport/cargo-gold-transfer-confirmations.md` |
+| Envelope de publicação/consulta AutoTrade `0x397` | `CONTRACT` | `flows/transport/auto-trade-envelope.md` |
+| Envelope de consulta/resposta da Cápsula Celestial `0x2CD/0xDC3` | `CONTRACT` | `flows/transport/capsule-info-envelope.md` |
 | Confirmação de disputa de zona `0x28F` | `CONTRACT` | `flows/transport/challenge-confirm-request.md` |
 | Menu de interação Ctrl+clique direito em jogador | `TRACED` | `flows/ui/player-interaction-menu-lifecycle.md` |
 | Layout e lifecycle do painel Quest | `TRACED` | `flows/ui/quest-panel-layout-lifecycle.md` |
 | Composição lado a lado de Character, Skill e Inventory | `TRACED` | `flows/ui/feature-panel-layout.md` |
 | Atualização de Att Speed, C.POINT, HOLD e Kingdom em Character | `TRACED` | `flows/ui/character-stat-fields-update.md` |
 | Posição do painel de seleção de personagem | `TRACED` | `flows/ui/select-character-layout.md` |
+| Confirmação e senha na exclusão de personagem | `CONTRACT` | `flows/ui/select-character-delete-password.md` |
 | Posição e lifecycle da seleção de servidor | `TRACED` | `flows/ui/server-selection-layout-lifecycle.md` |
 | Exibição do Premium Firework `0x3CA` | `CONTRACT` | `flows/ui/premium-firework-display.md` |
 | Sincronização de estado e controles C.C | `TRACED` | `flows/ui/cc-auto-combat-state-sync.md` |

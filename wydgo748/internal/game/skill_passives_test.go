@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/binary"
 	"errors"
 	"testing"
 
@@ -64,6 +65,7 @@ func TestPassiveMerchantSaleLifecycle(t *testing.T) {
 			}
 			beforeItem, beforeGold := p.Char.Inv[0], p.Char.Gold
 			sell := make([]byte, 20)
+			binary.LittleEndian.PutUint16(sell[12:14], shop.ID)
 			sell[14] = placeInv
 			w.onSellItem(p.Session, sell)
 			if mode == "success_and_replay" {

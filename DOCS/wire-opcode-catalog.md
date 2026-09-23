@@ -1,4 +1,4 @@
-# Catálogo inicial de opcodes
+# Catálogo de opcodes e contratos
 
 Fontes: `internal/core/Basedef.h` e headers proprietarios de `internal/wire/`,
 reexportados pela fachada. Este catalogo e inventario, nao autorizacao para
@@ -19,16 +19,21 @@ alterar protocolo.
 ## Dispatch atual
 
 Entrada de rede: `platform/windows/CPSock.cpp`. O pacote é enquadrado como
-`MSG_STANDARD` e encaminhado ao `ObjectManager`/cena. O próximo passo da Fase
-2 e ampliar a validacao e traducao sem duplicar os structs.
+`MSG_STANDARD` e encaminhado ao `ObjectManager`/cena. O gate global
+`ReceivedPacketDispatch.h` valida tamanho real, tamanho declarado e opcode
+dos contratos já extraídos antes dos callbacks legados; a lista atual de
+opcodes cobertos está em `ExpectedSize`, não neste resumo.
 
 Primeiro contrato de recepcao isolado: `MSG_ReqTransper_Opcode` (`0xFAA`),
 52 bytes, em `CharacterTransferPacket.h`. `ReceivedPacketDispatch.h` valida
 o comprimento real/declarado e o opcode antes do percurso no ObjectManager.
-Os outros opcodes conservam o fallback anterior. A ficha de transferencia
+Os opcodes sem tamanho registrado conservam o fallback anterior. A ficha de transferencia
 registra separadamente os claims nativos e o endurecimento local.
+O WYD-Go aceita `0xFAA` apenas na selecao, com 52 bytes exatos, e responde
+`Result=4` (erro generico do client) sem alterar conta/slot. Isto encerra a
+espera do client, mas nao implementa a transferencia para o Integrated server.
 
-Contratos adicionais na mesma entrada: `0x182` (SendItem, 24 bytes), `0x101`
+Exemplos de contratos adicionais na mesma entrada: `0x182` (SendItem, 24 bytes), `0x101`
 (MessagePanel, 108 bytes), `0x102/0x104` (mensagens opacas, 116/152 bytes) e
 `0x333` (chat local, 108 bytes). Esses contratos possuem structs/asserts em
 headers proprios de `internal/wire`, reexportados por Basedef. A validacao usa
@@ -106,6 +111,13 @@ posição e qualquer regra de cidade continuam autoritativas no servidor.
 reservado em `+12` zerado. O `case 16` da confirmação de portal mantém a gate
 de atributo `0x10`; destino, preço, gold e persistência continuam no servidor.
 
+`0xAD9` usa AirMoveContract.h e `MSG_STANDARDPARM2`: intenção C->S de 20
+bytes, `Header.ID` do personagem, rota `0..4` em `Parm1/+12` e modo de início
+`1` ou fim `2` em `Parm2/+16`. Não transporta NPC ID ou destino. O servidor
+valida o NPC visível e o chunk de origem, guarda o voo e publica somente o
+ponto final da rota nativa após o fim correspondente. Ver
+`../.agents/research/client748/flows/transport/airmove-contract.md`.
+
 `0x28B` usa UseNPCPacket.h: intenção C->S de 20 bytes, com `TargetID` em
 `+12` e `ClickOk` em `+16`. Os cliques e confirmações preservam os valores
 `0/1`; o servidor continua validando o NPC e o contexto antes de abrir qualquer
@@ -119,6 +131,13 @@ servidor continua autoritativo para cargo, alvo e persistência.
 guild local em `+12` e a guild alvo em `+16`. Os casos de confirmação preservam
 os valores nativos; guerra, aliança, liderança e persistência continuam no
 servidor.
+
+`0xED7/0xED8` usam `ServerWarLetterContract.h`: intenções C->S de 16 bytes,
+com o canal alvo inteiro em `Parm/+12`. No client nativo, os itens 4030/4031
+abrem primeiro o modal nos modos 9/10; o packet só é enviado após confirmação.
+O WYD-Go ainda não possui handler nem coordenação autoritativa entre instâncias,
+portanto o client restaura o contrato sem alegar suporte server-side à guerra
+entre canais.
 
 `0x28F` usa ChallengeConfirmPacket.h: confirmação C->S de 20 bytes, com
 `Parm1` em `+12` e `Parm2` em `+16`. O caso nativo de confirmação preserva
@@ -163,8 +182,62 @@ consumível compatível com Equip[12] e o cooldown pertencem à Field; o wire é
 compartilhado com a poção E e não ganha uma segunda struct.
 
 `0x399` (PK Mode, 16 bytes) usa PKModePacket.h: `Parm` em +12, domínio
-válido `0/1`. O servidor publica `PKInfo` e aplica o estado antes de PvP;
-controle opcional ausente não altera o wire nem interrompe o toggle.
+válido `0/1`. O servidor aplica o estado antes de PvP e confirma por
+`MessagePanel` (`0x101`); o client 7.48 não despacha um retorno `0x166`.
+Controle opcional ausente não altera o wire nem interrompe o toggle.
+
+`0x378` (SetShortSkill C<->S, 32 bytes) usa
+`ShortSkillSnapshotContract.h`: os vinte atalhos ocupam `[12:32]`. O client
+envia o array integral; o servidor remove skills não aprendidas e devolve o
+snapshot autoritativo. O gate de recepção exige tamanho real/declarado e os
+dois opcodes antes do `memcpy` e do rebuild das duas páginas.
+
+`0x366/0x367/0x368` compartilham `ActionFrameContract.h` e um envelope de 52
+bytes: PosXY em +12, Speed em +16, Effect em +20, TargetXY em +24 e Route[24]
+em +28. O gate de recepcao exige o frame integral antes de `TMHuman` escolher
+movimento, parada ou Illusion; semantica e autoridade permanecem no WYD-Go.
+
+`0x39D/0x39E/0x36C` usam `AttackFrameContract.h`: prefixos nativos de
+48/52/96 bytes para um, dois e treze alvos e lista de dano em +44. O par ativo
+também aceita as extensões coordenadas de dano amplo: `0x39D/52` físico,
+`0x39D/60`, `0x39E/64|68` e `0x36C/108..156` em passo 4 com `DMGX`. O gate
+exige que tamanho real, `Header.Size` e o conjunto permitido para o opcode
+coincidam antes de `OnPacketAttack`; cálculo e publicação seguem autoritativos
+no WYD-Go.
+
+`0x376/20` e `0x379/24` usam `InventoryTransactionContract.h`. SwapItem
+carrega origem/destino em +12..+15 e TargetID em +16; Buy carrega mercador em
++12, célula esparsa da loja em +14, Carry em +16 e Coin em +20. Além do gate
+de envelope, o client exige os mesmos domínios do WYD-Go: Equip `0..15` exceto
+9, Carry `0..62`, Cargo `0..119` e células de loja `0..8`, `27..35` ou
+`54..62`. Sucesso de swap é concluído por `0x376`; `0x182` ressincroniza
+células em rejeições. Compra bem-sucedida é confirmada pelo próprio `0x379`.
+
+`0x387/0x388` (saque/depósito de gold do Cargo, C<->S, 16 bytes) usam
+`CargoGoldTransferContract.h`: a quantidade `uint32` ocupa `+12`. O gate exige
+o envelope completo antes dos casts de `OnPacketWithdraw`/`OnPacketDeposit`.
+O WYD-Go valida e persiste a transferência, devolve o mesmo opcode/quantidade
+e em seguida reconcilia os saldos com `0x339` e `0x337` autoritativos.
+
+`0x39F` (PlayerChallenge C<->S, 20 bytes) usa
+`PlayerChallengeContract.h`: o outro jogador ocupa `Parm1/+12` e o modo ocupa
+`Parm2/+16`. O mesmo envelope carrega a intenção inicial (`0..3`), o convite
+publicado ao alvo e a aceitação (`4`). O gate exige o frame integral antes de
+`TMHuman::OnPacketReqRanking`; lifecycle, alcance, expiração e consumo único
+continuam autoritativos no WYD-Go.
+
+`0x397` (AutoTrade C<->S, 196 bytes) usa `AutoTradeContract.h`: descrição em
++12, doze itens em +36, posições em +132, preços em +144, taxa em +192 e alvo
+em +194. O gate exige o envelope exato antes de a Field terminar a descrição,
+copiar o snapshot e materializar as ofertas; validação e persistência continuam
+autoritativas no WYD-Go.
+
+`0x2CD` (consulta C->S, 16 bytes) e `0xDC3` (CapsuleInfo S->C, 52 bytes)
+formam o roundtrip da Cápsula Celestial. `CapsuleInfoContract.h` fixa `CIndex`
+em +12, classe/nível em +16/+18, atributos em +20..+26, duas masteries em +28,
+nove skills em +32 e quest em +50. A antiga fachada herdada do 7.69 tinha
+quatro masteries e 56 bytes; agora o ABI e o gate coincidem com o builder 7.48
+do WYD-Go, que valida conta e ownership do selo antes da resposta.
 
 `0x1BF` (resultado Gamble S→C, 36 bytes) e `0x2BE` (aposta C→S, 20 bytes)
 usam GamblePacket.h. Resultado, prêmio e jackpot são copiados para a UI;

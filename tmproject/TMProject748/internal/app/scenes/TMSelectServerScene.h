@@ -51,6 +51,10 @@ public:
 	SText* m_pSelChannelText;
 	SButton* m_pLoginBtns[3];
 	int m_nMaxGroup;
+	int m_nVisibleGroupCount = 0;
+	int m_nVisibleGroupSlots[10]{};
+	int m_nVisibleChannelCount = 0;
+	int m_nVisibleChannelSlots[10]{};
 	int m_nAdmitGroup;
 	int m_bAdmit;
 	int m_nDay[10];
@@ -62,7 +66,8 @@ public:
 	TMRain* m_pRain;
 	TMSnow* m_pSnow;
 	char m_cStartRun;
-	TMHuman* m_pCheckHumanList[50];
+	// Initialize before LoadRC/sn.bin can fail and the scene is destroyed.
+	TMHuman* m_pCheckHumanList[50]{};
 	stDemoHuman m_stDemoHuman[50];
 	IVector2 m_vecMoveToPos[50];
 	SEditableText* m_pEditID;

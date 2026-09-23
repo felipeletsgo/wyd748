@@ -273,7 +273,6 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 
 	RenderDevice::m_nFontSize = _nFontSize;
 	RenderDevice::m_nFontTextureSize = 512;
-	InitServerName();
 
 	if (m_hWnd == nullptr)
 	{
@@ -510,35 +509,6 @@ HRESULT NewApp::InitDevice()
 	m_pBlur = new JBlur();
 
 	return m_pBlur->InitObject() != 0;
-}
-
-void NewApp::InitServerName()
-{
-	
-	memset(g_szServerNameList, 0, sizeof(g_szServerNameList));
-	memset(g_nServerCountList, 0, sizeof(g_nServerCountList));
-	
-	FILE* fp = nullptr;
-	fopen_s(&fp, ServerName_Path, "rt");
-
-	if (fp == nullptr)
-		return;
-
-	char szTemp1[256];
-	for (int i = 0; i < 11 && fgets(szTemp1, 256, fp); ++i)
-	{
-		int ServerCount = 0;
-		char NameServer[16]{};
-
-		if (sscanf(szTemp1, "%d %s\n", &ServerCount ,NameServer) == -1)
-			break;
-
-		g_nServerCountList[i] = ServerCount;
-		strcpy_s(g_szServerNameList[i], NameServer);
-		strcpy_s(g_szServerNameList[1], "Meu Canal");
-		strcpy_s(g_szServerNameList[2], "STAFF");
-	}
-	fclose(fp);
 }
 
 void NewApp::InitMusicList()

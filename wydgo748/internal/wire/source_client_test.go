@@ -157,6 +157,13 @@ func TestCanonicalCharListAndPresentationPackets(t *testing.T) {
 		ParseHeader(combine).ID != SceneField || binary.LittleEndian.Uint32(combine[12:16]) != 2 {
 		t.Fatalf("CombineComplete ABI: % X", combine)
 	}
+	challenge := StandardParm2(OpPlayerChallenge, 0x1234, 0x5678, 3)
+	if len(challenge) != 20 || ParseHeader(challenge).Type != OpPlayerChallenge ||
+		ParseHeader(challenge).ID != 0x1234 ||
+		binary.LittleEndian.Uint32(challenge[12:16]) != 0x5678 ||
+		binary.LittleEndian.Uint32(challenge[16:20]) != 3 {
+		t.Fatalf("PlayerChallenge ABI: % X", challenge)
+	}
 	chat := MessageChat(5, "hello")
 	if len(chat) != 108 || string(chat[12:17]) != "hello" {
 		t.Fatalf("MessageChat ABI")

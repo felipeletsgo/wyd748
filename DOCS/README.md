@@ -8,22 +8,22 @@ separado em duas sources: [`../tmproject/`](../tmproject/) é o client e
 
 O inventário por assunto e por localização está em
 [`documentation-map.md`](documentation-map.md). Ele distingue documentação
-do produto, evidência de pesquisa e registros históricos de continuidade.
+ativa do produto, evidência de pesquisa e registros de continuidade.
 
 ## Por onde começar
 
 | Objetivo | Documento de entrada |
 | --- | --- |
-| Reinstalar e preparar o ambiente Windows | [Ambiente Windows](windows-development-environment.md) |
+| Preparar o ambiente Windows | [Ambiente Windows](windows-development-environment.md) |
 | Ligar o servidor pela primeira vez | [README da raiz](../README.md#início-rápido-no-windows) |
 | Operar banco, contas, painel, rede e backup | [Operação do servidor](server/operations.md) |
 | Compilar e validar servidor e client | [Build e integração](build-and-integration.md) |
 | Entender o contrato de atributos | [Score](SCORE.md) |
-| Consultar o que existe hoje | [Estado implementado](IMPLEMENTED.md) |
-| Consultar pendências e critérios de aceite | [Roadmap](ROADMAP.md) |
+| Consultar o estado do servidor | [Operação do servidor](server/operations.md) e código/testes em `wydgo748/` |
+| Consultar pendências da adaptação 7.48 | [Handoff de paridade](../.agents/handoffs/client748-parity.md) e fichas em `.agents/research/client748/` |
 | Adaptar o client 7.48 | [Port do client](client/port-748.md) |
 | Consultar protocolos conhecidos | [Catálogo de opcodes](wire-opcode-catalog.md) |
-| Manter a organização documental | [Revisão da organização](organization-review.md) |
+| Manter a organização documental | [Regras do repositório](../AGENTS.md) e [inventário](documentation-map.md) |
 
 O calendário, recompensas, comandos e pendências das guerras estão em
 [Guerras de guilda](guild-wars.md). O plano do painel e da plataforma está em
@@ -36,11 +36,9 @@ W2PP contra o servidor atual estão em
 [Auditoria W2PP x WYD-Go](w2pp-go-gap-analysis.md); o W2PP é tratado ali como
 referência comparativa, não como autoridade de paridade 7.48.
 
-`EMULATOR.md`, `IMPLEMENTATION_STATUS.md`, `IMPLEMENTED.md` e `ROADMAP.md`
-têm papéis diferentes: `EMULATOR.md` e `IMPLEMENTATION_STATUS.md` preservam
-histórico técnico; `IMPLEMENTED.md` resume a implementação atual; `ROADMAP.md`
-registra trabalho pendente. Nenhum deles substitui código, testes e fichas de
-evidência, nem transforma build automatizado em validação no client.
+Snapshots antigos de status e planejamento foram retirados da documentação
+ativa. Código, testes e fichas de evidência prevalecem sobre registros datados;
+build automatizado não equivale a validação no client.
 
 ## Organização
 

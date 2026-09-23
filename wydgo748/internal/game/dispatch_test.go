@@ -47,6 +47,7 @@ func TestWorldDispatchRoutesEveryGameplayOpcode(t *testing.T) {
 		{wire.OpSetShortSkill, 32},
 		{wire.OpChangeCity, 16},
 		{wire.OpReqTeleport, 16},
+		{wire.OpAirMove, 20},
 		{wire.OpPKMode, 16},
 		{wire.OpGuildDeprivate, 16},
 		{wire.OpInviteGuild, 20},

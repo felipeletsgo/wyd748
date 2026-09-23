@@ -465,7 +465,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := strings.ToLower(body.Username)
-	if len(name) > 12 || len(body.Password) > 12 || !validAdminPIN(body.AdminPIN) {
+	if len(name) > 12 || len(body.Password) > 10 || !validAdminPIN(body.AdminPIN) {
 		writeError(w, 401, "invalid_credentials")
 		return
 	}

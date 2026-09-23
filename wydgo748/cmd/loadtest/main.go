@@ -63,7 +63,7 @@ func main() {
 			log.Fatalf("a variavel %s esta vazia", *botPasswordEnv)
 		}
 		if !account.ValidPassword(password) {
-			log.Fatalf("a variavel %s deve conter 4 a 12 caracteres ASCII visiveis", *botPasswordEnv)
+			log.Fatalf("a variavel %s deve conter 4 a 10 caracteres ASCII visiveis", *botPasswordEnv)
 		}
 	}
 	databaseURL := os.Getenv(*databaseEnv)

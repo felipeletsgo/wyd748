@@ -47,7 +47,7 @@ func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	nameKey := strings.ToLower(body.Username)
-	if len(nameKey) > 12 || len(body.Password) > 12 || len(body.PasswordConfirmation) > 12 {
+	if len(nameKey) > 12 {
 		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}

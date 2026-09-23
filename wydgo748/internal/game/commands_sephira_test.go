@@ -1,10 +1,12 @@
 package game
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
 	"wydgo/internal/model"
+	"wydgo/internal/wire"
 )
 
 func chatPacket(message string) []byte {
@@ -162,6 +164,27 @@ func TestWhisperDayRequestReturnsHiddenCalendarSync(t *testing.T) {
 
 	if got := sender.Session.QueuedPacketsForTest(); got != before+1 {
 		t.Fatalf("day nao gerou sincronismo: fila %d -> %d", before, got)
+	}
+}
+
+func TestServerSwitchRequestReportsUnavailableWithoutMigration(t *testing.T) {
+	sender, _ := networkedTestPlayer(1, "Sender", 2100, 2100)
+	w := worldWithNetworkedPlayers(sender)
+	oldX, oldY := sender.X, sender.Y
+
+	for _, channel := range []string{"1", "0", "not-a-channel"} {
+		w.onMessageWhisper(sender.Session, whisperPacket("srv", channel))
+		if sender.Session.QueuedPacketsForTest() != 1 {
+			t.Fatalf("pedido srv %q nao recebeu uma unica rejeicao", channel)
+		}
+		pkt, ok := sender.Session.DequeuePacketForTest()
+		if !ok || !wire.Decrypt(pkt) || wire.ParseHeader(pkt).Type != wire.OpMessagePanel ||
+			!bytes.Contains(pkt[12:107], []byte("Troca de canal indisponivel")) {
+			t.Fatalf("pedido srv %q nao retornou aviso de indisponibilidade", channel)
+		}
+		if sender.X != oldX || sender.Y != oldY || !sender.InWorld || w.players[sender.Session] != sender {
+			t.Fatalf("pedido srv %q alterou estado sem migracao", channel)
+		}
 	}
 }
 

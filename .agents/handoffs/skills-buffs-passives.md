@@ -262,7 +262,8 @@ explicitamente solicitada, sem novo wire/ABI e sem alegação de paridade W2PP.
   suficiente, insuficiente e zero. Decodifica SetHpMp/28B no alvo e observador,
   comparando HP/MP autoritativos. Montaria absorve antes; testes de morte com
   falta de MP e também pelos 10% de HP mesmo com MP sobrando.
-- `DOCS/EMULATOR.md`: contrato da regra atualizado, substituindo SaveMana.
+- O contrato da regra foi atualizado, substituindo SaveMana. O código e os
+  testes são a fonte atual; o antigo resumo histórico foi removido.
 
 Regressão de custo inicialmente falhou: SaveMana=99 em vez de 25. Após remover
 o bônus indevido, todos os testes abaixo passaram:

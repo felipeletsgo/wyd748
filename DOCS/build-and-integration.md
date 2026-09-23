@@ -70,6 +70,12 @@ copia `tmproject/build/TMProject748/Release/WYD.exe` para
 `tmproject/client748/project.exe`, conferindo SHA-256. Não inicia nem encerra
 o jogo. O executável instalado é um produto, não a referência nativa.
 
+Para validar sem substituir o executável instalado, acrescente `-NoDeploy`.
+Nesse modo, o artefato e seu SHA-256 ficam em `tmproject/build/`; nenhum
+resultado deve ser descrito como teste visual ou `CLIENT-TESTED`. Na máquina
+usada nesta campanha, o teste de tela está bloqueado e não deve ser repetido;
+registre o gate de execução real como pendente.
+
 ## Fronteira entre os projetos
 
 O client envia intenções; o servidor valida e responde com estado autoritativo.

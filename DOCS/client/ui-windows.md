@@ -77,3 +77,23 @@ consults while they are closed. A 2026-08-20 dump proved two such requirements:
 the teleport list (`12545`) and auto-trade root (`646`). Visibility controls
 startup state; a null pointer is not an acceptable substitute for a closed
 window.
+
+The AirMove path also needs the actual `FieldScene2.bin` text controls: title
+`12549` and columns `12550`–`12552`. The imported initializer instead binds
+`12551/12552/12553/12560`, of which the last two are absent in the 7.48
+control-tree dump. The compact bootstrap now leaves the
+panel closed when its list, main text, or route labels cannot be populated;
+closing the panel remains possible even if the list is unavailable. This is
+a compatibility guard, not proof that the transport flow is client-tested.
+The five route labels are copied into their existing 18-character display
+fields with a fixed format; resource strings cannot become `printf` formats.
+During AirMove, the client consumes each pending displacement once before the
+next frame; this prevents the visual flight from reapplying accumulated motion
+and preserves the 7.48 start/end packet contract.
+On landing, the client restores the pre-flight mount mesh type and look before
+rebuilding the mount; the temporary flight mesh no longer overwrites the body
+mesh or persists as the player's mount. This still needs an in-game check with
+a real transport NPC and a mounted character.
+The visual route advances only when the next waypoint exists and is not the
+`(0,0)` terminator; a fully populated 10-slot route cannot read past its end.
+The server still decides the destination.

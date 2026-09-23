@@ -312,6 +312,7 @@ func parseSlashCommand(message string) (name, arg string, ok bool) {
 var chatCommandAliases = map[string]string{
 	"guildfame": "guildfame", "famaguild": "guildfame", "citywar": "citywar", "tower": "tower",
 	"day": "day", "time": "time", "cp": "cp", "chaos": "cp", "fame": "fame",
+	"srv": "srv",
 	"parry": "parry",
 	"nig":   "nig", "limparinv": "clearinv", "clearinv": "clearinv",
 	"spk": "spk", "kingdom": "kingdom", "reino": "kingdom", "king": "king", "rei": "king",
@@ -333,6 +334,11 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		// Sincronismo periodico interno do client. O !# impede texto visivel e
 		// alimenta m_nYear/m_nDays, usados na duracao de affects de calendario.
 		s.Send(wire.DaySync())
+	case "srv":
+		// O painel Field envia este pedido como whisper depois de cinco segundos.
+		// Ainda nao ha coordenador de canais nem ticket 0x52A neste World; nao
+		// simular uma migracao nem tratar "srv" como nome de personagem.
+		s.Send(wire.MessagePanel("Troca de canal indisponivel neste servidor."))
 	case "time":
 		// Comando manual: exibe a data/hora do host no painel superior.
 		s.Send(wire.MessagePanel(w.now().Format("15:04:05 | 02-01-2006")))

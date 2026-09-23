@@ -5,7 +5,7 @@ Caminhos foram normalizados para a arquitetura atual. Fichas e handoffs
 preservam o estado histórico da validação; não são prova de conclusão atual.
 Assets e dumps binários não são documentos. O acervo nativo está em `references/client748/`.
 
-Documentos Markdown: 144.
+Documentos Markdown: 149.
 
 | Documento | Tipo |
 | --- | --- |
@@ -24,22 +24,34 @@ Documentos Markdown: 144.
 | [.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md](<../.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/lifecycle/scene-transition.md](<../.agents/research/client748/flows/lifecycle/scene-transition.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/TEMPLATE.md](<../.agents/research/client748/flows/TEMPLATE.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/account-login-credential-bounds.md](<../.agents/research/client748/flows/transport/account-login-credential-bounds.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/action-frame-contract.md](<../.agents/research/client748/flows/transport/action-frame-contract.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/airmove-contract.md](<../.agents/research/client748/flows/transport/airmove-contract.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/attack-frame-envelope.md](<../.agents/research/client748/flows/transport/attack-frame-envelope.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/auto-trade-envelope.md](<../.agents/research/client748/flows/transport/auto-trade-envelope.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/autokick-filter-update.md](<../.agents/research/client748/flows/transport/autokick-filter-update.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/bone-animation-array-probe.md](<../.agents/research/client748/flows/transport/bone-animation-array-probe.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/capsule-info-envelope.md](<../.agents/research/client748/flows/transport/capsule-info-envelope.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/cargo-gold-transfer-confirmations.md](<../.agents/research/client748/flows/transport/cargo-gold-transfer-confirmations.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/challenge-confirm-request.md](<../.agents/research/client748/flows/transport/challenge-confirm-request.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/change-city-request.md](<../.agents/research/client748/flows/transport/change-city-request.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/create-mob-source-contract.md](<../.agents/research/client748/flows/transport/create-mob-source-contract.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/guild-deprivate-request.md](<../.agents/research/client748/flows/transport/guild-deprivate-request.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/guild-relations-request.md](<../.agents/research/client748/flows/transport/guild-relations-request.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/hp-mp-source-contract.md](<../.agents/research/client748/flows/transport/hp-mp-source-contract.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/inventory-transaction-confirmations.md](<../.agents/research/client748/flows/transport/inventory-transaction-confirmations.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/keepalive-ping.md](<../.agents/research/client748/flows/transport/keepalive-ping.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/missing-entity-request.md](<../.agents/research/client748/flows/transport/missing-entity-request.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/motion-emote-roundtrip.md](<../.agents/research/client748/flows/transport/motion-emote-roundtrip.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/packet-size-gate.md](<../.agents/research/client748/flows/transport/packet-size-gate.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/req-teleport.md](<../.agents/research/client748/flows/transport/req-teleport.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/restart-recall-request.md](<../.agents/research/client748/flows/transport/restart-recall-request.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/server-war-letter-contract.md](<../.agents/research/client748/flows/transport/server-war-letter-contract.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/short-skill-snapshot-contract.md](<../.agents/research/client748/flows/transport/short-skill-snapshot-contract.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/socket-disconnect-return-selectserver.md](<../.agents/research/client748/flows/transport/socket-disconnect-return-selectserver.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/toto-buy.md](<../.agents/research/client748/flows/transport/toto-buy.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/trade-check-confirmation-contract.md](<../.agents/research/client748/flows/transport/trade-check-confirmation-contract.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/transport/trade-session-envelope.md](<../.agents/research/client748/flows/transport/trade-session-envelope.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/update-affect-source-contract.md](<../.agents/research/client748/flows/transport/update-affect-source-contract.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/update-score-source-contract.md](<../.agents/research/client748/flows/transport/update-score-source-contract.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/transport/use-npc-request.md](<../.agents/research/client748/flows/transport/use-npc-request.md>) | Evidencia de pesquisa |
@@ -80,6 +92,7 @@ Documentos Markdown: 144.
 | [.agents/research/client748/flows/ui/quest-panel-layout-lifecycle.md](<../.agents/research/client748/flows/ui/quest-panel-layout-lifecycle.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/quiz-choice-event.md](<../.agents/research/client748/flows/ui/quiz-choice-event.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/screenshot-capture.md](<../.agents/research/client748/flows/ui/screenshot-capture.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/flows/ui/select-character-delete-password.md](<../.agents/research/client748/flows/ui/select-character-delete-password.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/select-character-exp-threshold.md](<../.agents/research/client748/flows/ui/select-character-exp-threshold.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/select-character-layout.md](<../.agents/research/client748/flows/ui/select-character-layout.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/select-character-transfer.md](<../.agents/research/client748/flows/ui/select-character-transfer.md>) | Evidencia de pesquisa |
@@ -96,6 +109,7 @@ Documentos Markdown: 144.
 | [.agents/research/client748/flows/ui/trade-inventory-layout.md](<../.agents/research/client748/flows/ui/trade-inventory-layout.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/update-equip-visual-contract.md](<../.agents/research/client748/flows/ui/update-equip-visual-contract.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/flows/ui/volatile-item-use-routing.md](<../.agents/research/client748/flows/ui/volatile-item-use-routing.md>) | Evidencia de pesquisa |
+| [.agents/research/client748/inventory/costume-native-contract.md](<../.agents/research/client748/inventory/costume-native-contract.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/inventory/light-source-batch-01.md](<../.agents/research/client748/inventory/light-source-batch-01.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/inventory/light-source-batch-02.md](<../.agents/research/client748/inventory/light-source-batch-02.md>) | Evidencia de pesquisa |
 | [.agents/research/client748/inventory/README.md](<../.agents/research/client748/inventory/README.md>) | Evidencia de pesquisa |
@@ -121,29 +135,20 @@ Documentos Markdown: 144.
 | [DOCS/architecture-map.md](<architecture-map.md>) | Documentacao do produto |
 | [DOCS/basedef-documentation.md](<basedef-documentation.md>) | Documentacao do produto |
 | [DOCS/build-and-integration.md](<build-and-integration.md>) | Documentacao do produto |
-| [DOCS/client/native-reference-patches.md](<client/native-reference-patches.md>) | Documentacao do produto |
 | [DOCS/client/port-748.md](<client/port-748.md>) | Documentacao do produto |
 | [DOCS/client/ui-windows.md](<client/ui-windows.md>) | Documentacao do produto |
-| [DOCS/contracts-baseline.md](<contracts-baseline.md>) | Documentacao do produto |
 | [DOCS/documentation-map.md](<documentation-map.md>) | Documentacao do produto |
-| [DOCS/EMULATOR.md](<EMULATOR.md>) | Documentacao do produto |
 | [DOCS/features-macro.md](<features-macro.md>) | Documentacao do produto |
-| [DOCS/file-migration.md](<file-migration.md>) | Documentacao do produto |
 | [DOCS/GUIA/GUIAS_JOGABILIDADE.md](<GUIA/GUIAS_JOGABILIDADE.md>) | Documentacao do produto |
 | [DOCS/GUIA/ITENS_REFERENCIA.md](<GUIA/ITENS_REFERENCIA.md>) | Documentacao do produto |
 | [DOCS/GUIA/MAPA_DE_URLS.md](<GUIA/MAPA_DE_URLS.md>) | Documentacao do produto |
 | [DOCS/GUIA/QUESTS_EVENTOS.md](<GUIA/QUESTS_EVENTOS.md>) | Documentacao do produto |
 | [DOCS/GUIA/README.md](<GUIA/README.md>) | Documentacao do produto |
 | [DOCS/guild-wars.md](<guild-wars.md>) | Documentacao do produto |
-| [DOCS/IMPLEMENTATION_STATUS.md](<IMPLEMENTATION_STATUS.md>) | Documentacao do produto |
-| [DOCS/implementation-plan.md](<implementation-plan.md>) | Documentacao do produto |
-| [DOCS/IMPLEMENTED.md](<IMPLEMENTED.md>) | Documentacao do produto |
 | [DOCS/login-dispatch.md](<login-dispatch.md>) | Documentacao do produto |
-| [DOCS/organization-review.md](<organization-review.md>) | Documentacao do produto |
 | [DOCS/protocol/packet-fixtures.md](<protocol/packet-fixtures.md>) | Documentacao do produto |
 | [DOCS/README.md](<README.md>) | Documentacao do produto |
 | [DOCS/reference-upstream.md](<reference-upstream.md>) | Documentacao do produto |
-| [DOCS/ROADMAP.md](<ROADMAP.md>) | Documentacao do produto |
 | [DOCS/SCORE.md](<SCORE.md>) | Documentacao do produto |
 | [DOCS/server/boss-data.md](<server/boss-data.md>) | Documentacao do produto |
 | [DOCS/server/operations.md](<server/operations.md>) | Documentacao do produto |

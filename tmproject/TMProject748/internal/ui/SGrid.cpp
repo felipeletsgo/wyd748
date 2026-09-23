@@ -9,6 +9,7 @@
 #include "TMUtil.h"
 #include "ItemEffect.h"
 #include "ClientDiagnostics.h"
+#include "SellConfirmationText.h"
 
 #include <cmath>
 
@@ -49,6 +50,17 @@ namespace
 		// ItemList.bin 7.48 contains exactly MAX_ITEMLIST rows.  Rejecting newer
 		// TMProject indices prevents shop/inventory code from reading past it.
 		return itemIndex >= 0 && itemIndex < MAX_ITEMLIST;
+	}
+
+	bool WYD748_FormatSellConfirmation(char (&message)[128], const SGridControlItem* item)
+	{
+		if (!item || !item->m_pItem || !WYD748_IsValidItemIndex(item->m_pItem->sIndex))
+			return false;
+
+		return wyd748::ui::FormatSellConfirmation(message, sizeof(message),
+			g_pMessageStringTable[342], sizeof(g_pMessageStringTable[342]),
+			g_pItemList[item->m_pItem->sIndex].Name,
+			sizeof(g_pItemList[0].Name));
 	}
 
 	int WYD748_ResolveWireSlot(TMFieldScene* scene, const SGridControl* grid,
@@ -487,12 +499,11 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 			{
 				if (pItem->m_pGridControl->m_eItemType == TMEITEMTYPE::ITEMTYPE_NONE)
 				{
+					char szMessage[128]{};
+					if (!WYD748_FormatSellConfirmation(szMessage, pItem))
+						return 1;
 					pFScene->m_pGridShop->m_dwMerchantID = 0;
 					SGridControl::m_pSellItem = pItem;
-					char szMessage[128];
-					// Message 342 expects a C string; passing the ItemList row address
-					// corrupted the native 7.48 sell-confirmation text and hid its modal.
-					sprintf(szMessage, g_pMessageStringTable[342], g_pItemList[pItem->m_pItem->sIndex].Name);
 					pFScene->m_pMessageBox->SetMessage(szMessage, 890, g_pMessageStringTable[343]);
 					pFScene->m_pMessageBox->SetVisible(1);
 					return 1;
@@ -2167,9 +2178,13 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 
 	if (m_eGridType == TMEGRIDTYPE::GRID_SHOP)
 	{
-		SGridControl::m_pSellItem = g_pCursor->m_pAttachedItem;
-		if (!SGridControl::m_pSellItem)
+		SGridControl::m_pSellItem = g_pCursor ? g_pCursor->m_pAttachedItem : nullptr;
+		if (!SGridControl::m_pSellItem || !SGridControl::m_pSellItem->m_pItem ||
+			!WYD748_IsValidItemIndex(SGridControl::m_pSellItem->m_pItem->sIndex))
+		{
+			SGridControl::m_pSellItem = nullptr;
 			return 1;
+		}
 		if (pScene->m_bIsUndoShoplist)
 			return 1;
 
@@ -2197,9 +2212,11 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 		else
 		{
 			char szMessage[128]{};
-			// The 7.48 confirmation formatter receives ItemList.Name, never the
-			// address of the complete catalog record.
-			sprintf(szMessage, g_pMessageStringTable[342], g_pItemList[SGridControl::m_pSellItem->m_pItem->sIndex].Name);
+			if (!WYD748_FormatSellConfirmation(szMessage, SGridControl::m_pSellItem))
+			{
+				SGridControl::m_pSellItem = nullptr;
+				return 1;
+			}
 			pScene->m_pMessageBox->SetMessage(szMessage, 890, g_pMessageStringTable[343]);
 			pScene->m_pMessageBox->SetVisible(1);
 			g_pCursor->m_pAttachedItem = 0;
@@ -2210,9 +2227,19 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 	else if (m_eGridType == TMEGRIDTYPE::GRID_DELETE)
 	{
 		SGridControl::m_pSellItem = g_pCursor->m_pAttachedItem;
+		if (!SGridControl::m_pSellItem || !SGridControl::m_pSellItem->m_pItem ||
+			!WYD748_IsValidItemIndex(SGridControl::m_pSellItem->m_pItem->sIndex))
+		{
+			SGridControl::m_pSellItem = nullptr;
+			return 1;
+		}
 
 		char szMessage[128]{};
-		sprintf(szMessage, g_pItemList[SGridControl::m_pSellItem->m_pItem->sIndex].Name);
+		// The catalog name is data, not a printf format; cap even a malformed
+		// non-terminated ItemList record to its 7.48 fixed-width field.
+		sprintf_s(szMessage, sizeof(szMessage), "%.*s",
+			static_cast<int>(sizeof(g_pItemList[0].Name)),
+			g_pItemList[SGridControl::m_pSellItem->m_pItem->sIndex].Name);
 		pScene->m_pMessageBox->SetMessage(szMessage, 740, g_pMessageStringTable[18]);
 		pScene->m_pMessageBox->SetVisible(1);
 		g_pCursor->m_pAttachedItem = 0;
@@ -2517,14 +2544,22 @@ int SGridControl::SellItem2()
 	if (m_eGridType == TMEGRIDTYPE::GRID_SHOP)
 	{
 		auto pScene = g_pCurrentScene;
-		SGridControl::m_pSellItem = g_pCursor->m_pAttachedItem;
-		if (!SGridControl::m_pSellItem)
+		SGridControl::m_pSellItem = g_pCursor ? g_pCursor->m_pAttachedItem : nullptr;
+		if (!SGridControl::m_pSellItem || !SGridControl::m_pSellItem->m_pItem ||
+			!WYD748_IsValidItemIndex(SGridControl::m_pSellItem->m_pItem->sIndex))
+		{
+			SGridControl::m_pSellItem = nullptr;
 			return 1;
+		}
 
 		if (!g_pEventTranslator->m_bCtrl)
 		{
 			char szMessage[128]{};
-			sprintf(szMessage, g_pMessageStringTable[342], g_pItemList[SGridControl::m_pSellItem->m_pItem->sIndex].Name);
+			if (!WYD748_FormatSellConfirmation(szMessage, SGridControl::m_pSellItem))
+			{
+				SGridControl::m_pSellItem = nullptr;
+				return 1;
+			}
 			pScene->m_pMessageBox->SetMessage(szMessage, 890, g_pMessageStringTable[343]);
 			pScene->m_pMessageBox->SetVisible(1);
 			g_pCursor->m_pAttachedItem = 0;
@@ -4580,7 +4615,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 				{
 					stAttack.Header.Type = MSG_Attack_One_Opcode;
 					nSize = sizeof(MSG_AttackOne);
-					SendOneMessage((char*)&stAttack, 72);
+					SendOneMessage((char*)&stAttack, nSize);
 				}
 
 				MSG_Attack stAttackLocal{};
@@ -4934,18 +4969,17 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 
 			if (pMyHuman)
 			{
-				if (nItemSIndex == 4030)
+				if (nItemSIndex == kDeclarationOfWarLetterItemIndex)
 				{
-					if (!pFScene->m_dwUseItemTime || dwServerTime - pFScene->m_dwUseItemTime >= 200)
-					{
-						MSG_STANDARDPARM stParam{};
-						stParam.Header.Type = MSG_UseDeclarationOfWar_Opcode;
-						stParam.Header.Size = sizeof(stParam);
-						stParam.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
-						stParam.Parm = 0;
-						SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParam)->Type, reinterpret_cast<char*>(&stParam), sizeof(stParam)});
-						pFScene->m_dwUseItemTime = dwServerTime;
-					}
+					// Native FUN_0042097d opens FUN_0044c947 here.  The packet is
+					// emitted only after the player confirms the target channel.
+					pFScene->SetVisibleServerWar();
+					return;
+				}
+				else if (nItemSIndex == kWarRejectionLetterItemIndex)
+				{
+					pFScene->SetVisibleRefuseServerWar();
+					return;
 				}
 				else if (nItemSIndex != 4906 && (nItemSIndex < 4132 || nItemSIndex > 4139))
 				{
