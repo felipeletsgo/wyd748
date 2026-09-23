@@ -1,36 +1,37 @@
-# Score canônico — WYD 7.48+
+# Canonical score — WYD 7.48+
 
-## Contrato
+## Contract
 
-`model.Score` é a única representação autoritativa de atributos de personagem e mob.
-O mesmo layout lógico é declarado como `STRUCT_SCORE` no client TMProject. São 35 campos
-`uint32`, em ordem fixa, totalizando **140 bytes** no wire do client TMProject.
+`model.Score` is the only authoritative representation of character and mob
+attributes. The same logical layout is declared as `STRUCT_SCORE` in the
+TMProject client. Its 35 `uint32` fields have a fixed order and occupy
+**140 bytes** on the TMProject client wire.
 
-Ordem: `Version`, `Level`, `Attack`, `MagicAttack`, `Defense`, `MaxHP`, `MaxMP`,
+Order: `Version`, `Level`, `Attack`, `MagicAttack`, `Defense`, `MaxHP`, `MaxMP`,
 `CurHP`, `CurMP`, `Str`, `Int`, `Dex`, `Con`, `Accuracy`, `Evasion`, `Parry`,
-`Critical`, `Range`, quatro resistências, `SaveMana`, `MagicAmp`, `RegenHP`,
-`RegenMP`, `StatusPts`, `MasterPts`, `SkillPts`, quatro `Mastery`, `AttackRun`
-e `Merchant`.
+`Critical`, `Range`, four resistances, `SaveMana`, `MagicAmp`, `RegenHP`,
+`RegenMP`, `StatusPts`, `MasterPts`, `SkillPts`, four `Mastery` fields,
+`AttackRun`, and `Merchant`.
 
-Todos os valores persistidos continuam limitados a 2.000.000.000 para manter os
-cálculos intermediários e caminhos antigos do renderer dentro do domínio signed.
+Persisted values remain capped at 2,000,000,000 so intermediate calculations
+and older renderer paths stay within the signed range.
 
-## Autoridade
+## Authority
 
-- `World` muta `Score`; o client nunca envia score autoritativo.
-- `RuntimeScore` é apenas uma cópia calculada do mesmo tipo `Score` com buffs/debuffs;
-  não é um segundo formato nem uma fonte persistente.
-- PostgreSQL persiste `Score` diretamente no estado da conta. O JSON antigo com
-  `score` não possui migração: as contas anteriores a este contrato serão
-  recriadas.
+- `World` mutates `Score`; the client never sends an authoritative score.
+- `RuntimeScore` is only a computed copy of the same `Score` type with buffs
+  and debuffs; it is neither another format nor a persistent source.
+- PostgreSQL persists `Score` directly in account state. There is no migration
+  for old JSON containing `score`: accounts predating this contract must be
+  recreated.
 
-## Client TMProject 7.48
+## TMProject 7.48 client
 
-O client TMProject recebe os 140 bytes diretamente nos pacotes que embutem score.
-Não há truncamento de level, atributos, masteries, HP/MP, ataque ou defesa, e os
-campos adicionais fazem parte de `STRUCT_SCORE`. O contrato ativo é uma
-extensão coordenada client/server; não usa sidecar nem oferece um caminho
-alternativo para o executável histórico 7.48.
+The TMProject client receives all 140 bytes directly in packets embedding
+score. Level, attributes, masteries, HP/MP, attack, and defense are not
+truncated, and the additional fields are part of `STRUCT_SCORE`. The active
+contract is a coordinated client/server extension; it uses no sidecar and
+provides no alternative path for the historical 7.48 executable.
 
-A ABI C++ é protegida por `WYD748Compat.cpp`; o encoder Go possui teste byte-a-byte.
-Qualquer alteração de ordem/tamanho exige mudança atômica nas duas pontas.
+The C++ ABI is guarded by `WYD748Compat.cpp`; the Go encoder has a byte-for-byte
+test. Any order or size change requires an atomic change on both sides.

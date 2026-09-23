@@ -37,6 +37,13 @@ a partial translation as completion.
   records, resource bytes, item IDs, and non-name fields remain unchanged.
   Legacy Portuguese comments in the affected `Basedef.cpp` were translated;
   in-client validation remains pending.
+- The main [7.48 client port guide](client/port-748.md),
+  [score contract](SCORE.md), and [build guide](build-and-integration.md), as
+  well as the client diagnostics interface comments, are in English. This was
+  a prose-only client change; no client build or visual validation is implied.
+- Account-registration API responses, validation errors, logs, and adjacent
+  tests are in English. JSON field names and HTTP status codes are unchanged;
+  focused account and account-API tests cover the translated validation text.
 
 ## Remaining work
 

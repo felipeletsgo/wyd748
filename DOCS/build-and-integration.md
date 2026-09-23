@@ -1,19 +1,19 @@
-# Build e integração
+# Build and integration
 
-Os caminhos abaixo partem da raiz do repositório. Dados relativos do servidor
-são resolvidos a partir de `wydgo748/`.
+The paths below start at the repository root. Relative server data paths are
+resolved from `wydgo748/`.
 
-## Servidor
+## Server
 
-Requisitos:
+Requirements:
 
-- Go na versão exata ou compatível indicada em `wydgo748/go.mod`;
-- Node.js `22.12` ou superior para gerar o painel Astro;
-- PostgreSQL para o boot e para os testes de integração que usam banco.
+- Go at the exact or compatible version specified in `wydgo748/go.mod`;
+- Node.js `22.12` or later to build the Astro staff panel;
+- PostgreSQL for startup and database integration tests.
 
-O painel está habilitado no `data/server.txt` versionado, mas o diretório
-`web/portal/dist/` é gerado e ignorado pelo Git. Em um clone novo, gere o painel
-antes do primeiro boot ou desabilite `web_admin_enabled`.
+The panel is enabled in the versioned `data/server.txt`, but
+`web/portal/dist/` is generated and ignored by Git. In a fresh clone, build
+the panel before first startup or disable `web_admin_enabled`.
 
 ```powershell
 pwsh -NoProfile -File tools/web-admin/Start-WYDAdmin.ps1 -NoBrowser
@@ -28,77 +28,78 @@ go build -o bin/account-api.exe ./cmd/account-api
 Pop-Location
 ```
 
-| Saída | Uso |
+| Output | Purpose |
 | --- | --- |
-| `wydgo748/bin/tm.exe` | servidor do jogo e painel administrativo integrado |
-| `wydgo748/bin/account-create.exe` | cadastro local interativo |
-| `wydgo748/bin/account-api.exe` | API de cadastro separada; publicar somente por proxy HTTPS |
-| `wydgo748/web/portal/dist/` | assets compilados do painel integrado |
+| `wydgo748/bin/tm.exe` | game server with integrated staff panel |
+| `wydgo748/bin/account-create.exe` | interactive local account registration |
+| `wydgo748/bin/account-api.exe` | separate registration API; expose only through an HTTPS proxy |
+| `wydgo748/web/portal/dist/` | built assets for the integrated panel |
 
-Inicie `tm.exe` com o diretório atual em `wydgo748/`; iniciar pela raiz faz os
-caminhos relativos `data/...` apontarem para o local errado. Consulte
-[operação](server/operations.md) para banco, configuração, conta, portas,
-encerramento e backup.
+Start `tm.exe` with `wydgo748/` as the current directory; starting it from the
+repository root makes relative `data/...` paths point to the wrong location.
+See [server operations](server/operations.md) for database, configuration,
+accounts, ports, shutdown, and backups.
 
-Testes PostgreSQL usam `WYD_TEST_POSTGRES_URL`; sem essa configuração, os
-testes condicionais não comprovam integração com o banco.
+PostgreSQL tests use `WYD_TEST_POSTGRES_URL`; without it, conditional tests do
+not prove database integration.
 
-## CI e execução
+## CI and runtime
 
-O workflow versionado valida o layout do repositório, pesquisa, assets, servidor
-Go com PostgreSQL e client C++ no Windows. Ele não publica nem configura um
-servidor externo. O runtime suportado é o processo nativo `bin/tm.exe`, iniciado
-a partir de `wydgo748/`; o repositório não possui arquitetura de container ou
-integração com provedor de deployment.
+The versioned workflow checks repository layout, research, assets, the Go
+server with PostgreSQL, and the C++ client on Windows. It neither publishes
+nor configures an external server. The supported runtime is the native
+`bin/tm.exe` process started from `wydgo748/`; the repository has no container
+architecture or deployment-provider integration.
 
-O conversor histórico `cmd/npcconvert` não participa do runtime. Quando seu
-formato de entrada for necessário, exige `-in` e `-out` explícitos; não busca
-projetos externos nem grava em dados ativos por padrão. Resultados de conversão
-devem ser revisados antes de qualquer incorporação em `data/`.
+The historical `cmd/npcconvert` converter is not part of the runtime. When its
+input format is needed, it requires explicit `-in` and `-out` arguments; it
+does not fetch external projects or write active data by default. Review
+converted results before incorporating them into `data/`.
 
 ## Client
 
-Requisitos: Windows, Visual Studio com C++ x86 e toolset v145, SDK Windows.
-As dependências DirectX ficam na própria árvore do client.
+Requirements: Windows, Visual Studio with C++ x86 and toolset v145, and the
+Windows SDK. DirectX dependencies are in the client tree.
 
 ```powershell
 pwsh -NoProfile -File tmproject/Build-Client.ps1 -Configuration Release
 ```
 
-O script compila e executa os testes de arquitetura, compila a solução e
-copia `tmproject/build/TMProject748/Release/WYD.exe` para
-`tmproject/client748/project.exe`, conferindo SHA-256. Não inicia nem encerra
-o jogo. O executável instalado é um produto, não a referência nativa.
+The script builds and runs architecture tests, builds the solution, and copies
+`tmproject/build/TMProject748/Release/WYD.exe` to
+`tmproject/client748/project.exe`, verifying SHA-256. It neither starts nor
+stops the game. The installed executable is a product, not the native
+reference.
 
-Para validar sem substituir o executável instalado, acrescente `-NoDeploy`.
-Nesse modo, o artefato e seu SHA-256 ficam em `tmproject/build/`; nenhum
-resultado deve ser descrito como teste visual ou `CLIENT-TESTED`. Na máquina
-usada nesta campanha, o teste de tela está bloqueado e não deve ser repetido;
-registre o gate de execução real como pendente.
+To validate without replacing the installed executable, add `-NoDeploy`.
+In this mode, the artifact and its SHA-256 remain in `tmproject/build/`; no
+result should be described as a visual test or `CLIENT-TESTED`. Screen testing
+is blocked on the machine used for this work and must not be repeated; record
+actual client execution as a pending gate.
 
-## Fronteira entre os projetos
+## Boundary between projects
 
-O client envia intenções; o servidor valida e responde com estado autoritativo.
-Para mudanças de contrato, registrar direção, opcode, tamanho, offsets,
-packing, rejeições e compatibilidade antes de implementar nos dois lados.
-A arquitetura 7.69 pode permanecer quando não impõe recursos ou formatos
-incompatíveis; não presumir equivalência entre versões.
+The client sends intentions; the server validates them and responds with
+authoritative state. For contract changes, record direction, opcode, size,
+offsets, packing, rejections, and compatibility before implementing both
+ends. The 7.69 architecture may remain where it does not impose incompatible
+resources or formats; do not assume equivalence between versions.
 
-Build e testes não comprovam conexão, login, entrada no mundo ou logout/relogin.
-Esses fluxos exigem validação integrada com o client construído e o servidor
-atual. O estado de cada frente fica nas fichas de
-[pesquisa](../.agents/research/client748/README.md) e no roadmap.
+Builds and tests do not prove connection, login, world entry, or
+logout/relogin. Those flows require integrated validation with the built
+client and current server. Each workstream's status is recorded in the
+[research records](../.agents/research/client748/README.md) and roadmap.
 
-## Organização
+## Organization
 
 ```powershell
 pwsh -NoProfile -File tools/repository/Test-RepositoryLayout.ps1
 ```
 
-O comando confere inventário, links Markdown locais, regras únicas e
-documentação fora das sources. Use `-UpdateMap` somente quando documentos forem
-adicionados, removidos ou movidos; alterações apenas de conteúdo não exigem
-regenerar o mapa.
+The command checks the inventory, local Markdown links, unique repository
+rules, and documentation outside source trees. Use `-UpdateMap` only when
+documents are added, removed, or moved; content-only changes do not require
+regenerating the map.
 
-O acervo `references/client748/` é evidência; seus patchers são históricos,
-não ferramentas do desenvolvimento ativo.
+The `references/client748/` collection is evidence; its patchers are
+historical, not active development tools.

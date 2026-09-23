@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	ErrInvalidCredentials  = errors.New("account: credenciais invalidas")
-	ErrUsernameUnavailable = errors.New("account: nome de conta indisponivel")
+	ErrInvalidCredentials  = errors.New("account: invalid credentials")
+	ErrUsernameUnavailable = errors.New("account: username unavailable")
 )
 
 type AuthStore interface {
@@ -23,7 +23,7 @@ type RegistrationStore interface {
 	CreateAccount(acc *model.Account) error
 }
 
-// Authenticate valida a senha hash do pacote 0x20D.
+// Authenticate validates the hashed password for packet 0x20D.
 func Authenticate(st AuthStore, username, password string) (*model.Account, error) {
 	if !validWireUsername(username) || !validWirePassword(password) {
 		return nil, ErrInvalidCredentials
@@ -31,8 +31,8 @@ func Authenticate(st AuthStore, username, password string) (*model.Account, erro
 	acc, err := st.LoadAccount(username)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// Mantem custo semelhante ao caminho de senha errada e reduz enumeracao
-			// por tempo no endpoint de jogo.
+			// Keep a similar cost to the wrong-password path to reduce timing-based
+			// account enumeration on the game endpoint.
 			_, _ = HashPassword(password)
 			return nil, ErrInvalidCredentials
 		}
@@ -40,7 +40,7 @@ func Authenticate(st AuthStore, username, password string) (*model.Account, erro
 	}
 	ok, err := VerifyPassword(acc.PasswordHash, password)
 	if err != nil {
-		return nil, fmt.Errorf("account: hash de %q corrompido: %w", acc.Name, err)
+		return nil, fmt.Errorf("account: corrupted hash for %q: %w", acc.Name, err)
 	}
 	if !ok {
 		return nil, ErrInvalidCredentials
@@ -50,13 +50,13 @@ func Authenticate(st AuthStore, username, password string) (*model.Account, erro
 
 func Create(st RegistrationStore, username, password, confirmation string) (*model.Account, error) {
 	if !ValidUsername(username) {
-		return nil, &ValidationError{Field: "username", Message: "use de 4 a 12 letras ou numeros"}
+		return nil, &ValidationError{Field: "username", Message: "use 4 to 12 letters or digits"}
 	}
 	if !ValidPassword(password) {
-		return nil, &ValidationError{Field: "password", Message: "use de 4 a 10 caracteres ASCII sem espacos"}
+		return nil, &ValidationError{Field: "password", Message: "use 4 to 10 ASCII characters without spaces"}
 	}
 	if password != confirmation {
-		return nil, &ValidationError{Field: "passwordConfirmation", Message: "as senhas nao coincidem"}
+		return nil, &ValidationError{Field: "passwordConfirmation", Message: "passwords do not match"}
 	}
 	exists, err := st.AccountNameExists(username)
 	if err != nil {

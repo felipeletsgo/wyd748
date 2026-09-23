@@ -69,7 +69,7 @@ func (h *Handler) readiness(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 	if !h.limiter.Allow(clientIP(r, h.trustedProxies)) {
-		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "muitas tentativas; aguarde um minuto"})
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "too many requests; please wait one minute"})
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 4096)
@@ -81,20 +81,20 @@ func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 		PasswordConfirmation string `json:"passwordConfirmation"`
 	}
 	if err := dec.Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "JSON invalido"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
 		return
 	}
 	if err := dec.Decode(&struct{}{}); err != io.EOF {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "envie somente um objeto JSON"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "send exactly one JSON object"})
 		return
 	}
-	// O slot caro protege apenas PBKDF2/consulta de unicidade. Reservá-lo antes
-	// de ler o corpo permitiria que um upload lento bloqueasse toda a criação.
+	// The expensive slot protects only PBKDF2 and the uniqueness check. Taking
+	// it before reading the body would let a slow upload block registration.
 	select {
 	case h.hashSlots <- struct{}{}:
 		defer func() { <-h.hashSlots }()
 	default:
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "servico ocupado; tente novamente"})
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "service busy; please try again"})
 		return
 	}
 	acc, err := account.Create(h.store, req.Username, req.Password, req.PasswordConfirmation)
@@ -106,14 +106,14 @@ func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 				"error": validation.Message, "field": validation.Field,
 			})
 		case errors.Is(err, account.ErrUsernameUnavailable):
-			writeJSON(w, http.StatusConflict, map[string]string{"error": "nome de conta indisponivel"})
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "username unavailable"})
 		default:
-			log.Printf("ACCOUNT-API criar conta: %v", err)
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "erro interno"})
+			log.Printf("ACCOUNT-API create account: %v", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal error"})
 		}
 		return
 	}
-	log.Printf("ACCOUNT-API conta %q criada", acc.Name)
+	log.Printf("ACCOUNT-API account %q created", acc.Name)
 	writeJSON(w, http.StatusCreated, map[string]string{"status": "created", "username": acc.Name})
 }
 

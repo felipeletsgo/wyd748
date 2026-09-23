@@ -16,6 +16,12 @@ English. Preserve protocol bytes, resource IDs, persisted values, and
 established identifiers when translation would break compatibility. Never
 claim a partial translation is complete.
 
+English is a delivery requirement, not a localization option. Before closing a
+change, inspect its user-visible text, errors, logs, comments, tests, and
+documentation for Portuguese. Do not ship new Portuguese text or use the
+remaining migration debt to justify it. Translate an existing contract-bearing
+value only with an explicit compatibility review and the affected tests.
+
 ## Active architecture
 
 - `tmproject/` is the C++ client. `TMProject748/` contains source based on

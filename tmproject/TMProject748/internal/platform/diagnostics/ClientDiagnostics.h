@@ -4,21 +4,21 @@
 
 class SControlContainer;
 
-// Instala o diagnóstico opcional usado durante a adaptação do client 7.48. O
-// handler grava um relatório compacto e um minidump sem alterar o fluxo normal
-// do jogo nem exigir um depurador conectado.
+// Installs optional diagnostics for the 7.48 client adaptation. The handler
+// writes a compact report and minidump without changing normal gameplay or
+// requiring an attached debugger.
 void WYD748_InstallDiagnostics();
 
-// Acrescenta uma linha com timestamp em client-debug.log. O log é separado do
-// TMLog porque o handler de exceção pode executar enquanto TMLog já está sendo
-// desmontado. format segue printf; os argumentos não são retidos.
+// Appends a timestamped line to client-debug.log. This log is separate from
+// TMLog because the exception handler may run while TMLog is being torn down.
+// The format follows printf; arguments are not retained.
 void WYD748_DiagnosticsLog(const char* format, ...);
 
-// Registra somente metadados de rede quando WYD748_TRACE_PACKETS estiver
-// habilitado no ambiente. Nunca persiste payloads ou buffers do pacote.
+// Records only network metadata when WYD748_TRACE_PACKETS is enabled in the
+// environment. Never persists packet payloads or buffers.
 void WYD748_DiagnosticsPacket(const char* direction, unsigned int opcode, std::size_t size);
 
-// Exporta a árvore de controles carregada para correlacionar IDs legados da
-// FieldScene2 com os controles semânticos do código importado. container é uma
-// referência não proprietária e deve ser válido; reason é apenas copiado ao log.
+// Dumps the loaded control tree to correlate legacy FieldScene2 IDs with the
+// imported source's semantic controls. The container is a valid non-owning
+// reference; reason is only copied into the log.
 void WYD748_DumpControlTree(SControlContainer* container, const char* reason);
