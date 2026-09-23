@@ -23,7 +23,9 @@ headings do not count as API coverage. The header has not been fully split;
 ## Observed source gaps
 
 - `BASE_ReadInitItem` returns success without loading anything; it remains a stub.
-- `BASE_InitializeAttribute` does not check for a short read.
+- `BASE_InitializeAttribute` now rejects a truncated `AttributeMap.dat` without
+  publishing a partial grid. It accepts the shipped 7.48 map and leaves its
+  four-byte trailer outside the 1,024 x 1,024 runtime grid.
 - `BASE_InitEffectString` now reads the effect and optional subeffect assets
   through a bounded, atomic loader. It preserves native 7.48 effect indexes
   and leaves a table untouched when its asset is missing or malformed. The

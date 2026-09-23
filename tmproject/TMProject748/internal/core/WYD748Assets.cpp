@@ -14,6 +14,23 @@
 #include <string>
 #include <vector>
 
+bool WYD748_ReadAttributeMap(
+    std::FILE* file,
+    char* destination,
+    const std::size_t destinationSize)
+{
+    constexpr std::size_t mapSize = 1024 * 1024;
+    if (file == nullptr || destination == nullptr || destinationSize != mapSize)
+        return false;
+
+    std::vector<unsigned char> bytes(mapSize);
+    if (std::fread(bytes.data(), 1, bytes.size(), file) != bytes.size())
+        return false;
+
+    std::memcpy(destination, bytes.data(), bytes.size());
+    return true;
+}
+
 namespace
 {
     constexpr std::size_t LegacyTextureRecordSize = 264;

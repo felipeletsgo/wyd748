@@ -1,6 +1,7 @@
 #include "../internal/core/WYD748Assets.h"
 #include "../internal/core/ServerChannelLabel.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -147,6 +148,59 @@ int RunServerNameAssetTests(int& checks)
         std::error_code error;
         std::filesystem::remove(fixture, error);
         check(!error, "temporary fixture is removed");
+    }
+
+    constexpr std::size_t mapSize = 1024 * 1024;
+    std::vector<char> map(mapSize, '\x5A');
+    std::vector<char> published(mapSize, '\x33');
+    std::FILE* mapFile = nullptr;
+    check(tmpfile_s(&mapFile) == 0 && mapFile != nullptr,
+        "attribute-map test file opens");
+    if (mapFile != nullptr) {
+        check(std::fwrite(map.data(), 1, map.size(), mapFile) == map.size(),
+            "complete attribute grid is written");
+        const char trailer[4]{};
+        check(std::fwrite(trailer, 1, sizeof(trailer), mapFile) == sizeof(trailer),
+            "7.48 attribute-map trailer is written");
+        std::rewind(mapFile);
+        check(WYD748_ReadAttributeMap(mapFile, published.data(), published.size()) &&
+            std::memcmp(map.data(), published.data(), mapSize) == 0,
+            "complete attribute grid loads without publishing the trailer");
+        std::fclose(mapFile);
+    }
+
+    mapFile = nullptr;
+    check(tmpfile_s(&mapFile) == 0 && mapFile != nullptr,
+        "truncated attribute-map test file opens");
+    if (mapFile != nullptr) {
+        std::fill(published.begin(), published.end(), '\x33');
+        check(std::fwrite(map.data(), 1, map.size() - 1, mapFile) == map.size() - 1,
+            "truncated attribute grid is written");
+        std::rewind(mapFile);
+        check(!WYD748_ReadAttributeMap(mapFile, published.data(), published.size() - 1) &&
+            published.front() == '\x33' && published.back() == '\x33',
+            "wrong destination size is rejected without changing the grid");
+        check(!WYD748_ReadAttributeMap(mapFile, nullptr, published.size()),
+            "null destination is rejected");
+        check(!WYD748_ReadAttributeMap(nullptr, published.data(), published.size()),
+            "null file is rejected");
+        check(!WYD748_ReadAttributeMap(mapFile, published.data(), published.size()) &&
+            published.front() == '\x33' && published.back() == '\x33',
+            "truncated attribute grid leaves the previous grid unchanged");
+        std::fclose(mapFile);
+    }
+
+    const auto nativeMap = asset.parent_path() / "Env" / "AttributeMap.dat";
+    check(std::filesystem::is_regular_file(nativeMap) &&
+        std::filesystem::file_size(nativeMap) == mapSize + 4,
+        "shipped 7.48 attribute map has the grid and four-byte trailer");
+    mapFile = nullptr;
+    if (fopen_s(&mapFile, nativeMap.string().c_str(), "rb") == 0 && mapFile != nullptr) {
+        check(WYD748_ReadAttributeMap(mapFile, published.data(), published.size()),
+            "shipped 7.48 attribute map loads");
+        std::fclose(mapFile);
+    } else {
+        check(false, "shipped 7.48 attribute map opens");
     }
     return failures;
 }

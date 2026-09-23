@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdio>
 
 struct stTextureListInfo;
 struct STRUCT_SPELL;
@@ -16,6 +17,13 @@ struct WYD748CharacterSample
     int left;
     int refinement;
 };
+
+// Reads the complete 1024 x 1024 attribute grid before publishing it. The
+// 7.48 file's trailing four bytes are intentionally outside the grid.
+bool WYD748_ReadAttributeMap(
+    std::FILE* file,
+    char* destination,
+    std::size_t destinationSize);
 
 // Loads whitespace-delimited effect names without overflowing the legacy
 // fixed-width tables. A malformed file never publishes a partial table.

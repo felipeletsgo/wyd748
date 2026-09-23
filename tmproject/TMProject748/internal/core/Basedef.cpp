@@ -110,8 +110,8 @@ void BASE_InitializeHitRate()
 }
 
 /** Loads g_pAttribute from Env/AttributeMap.dat, falling back to TMSRV/Run.
- * Closes the opened file. Returns 0 with a dialog if both paths fail; returns
- * 1 after fread even for a short read because its result is not checked. */
+ * Closes the opened file. Returns 0 for a missing or truncated map and leaves
+ * the existing table unchanged when the selected file is truncated. */
 int BASE_InitializeAttribute()
 {
     char FileName[256]{};
@@ -128,10 +128,11 @@ int BASE_InitializeAttribute()
         return 0;
     }
 
-    fread(g_pAttribute, 1024, 1024, fp);
+    const bool loaded = WYD748_ReadAttributeMap(
+        fp, reinterpret_cast<char*>(g_pAttribute), sizeof(g_pAttribute));
     fclose(fp);
 
-    return 1;
+    return loaded ? 1 : 0;
 }
 
 /** Applies attribute-map bit 2 to a size-by-size square at the global origin.
