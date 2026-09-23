@@ -545,6 +545,54 @@ bool WYD748_LoadEffectStrings(
     return true;
 }
 
+bool WYD748_LoadUIStrings(
+    const char* path,
+    char* destination,
+    const std::size_t destinationCount,
+    const std::size_t stringWidth)
+{
+    if (path == nullptr || destination == nullptr || destinationCount < 2 ||
+        stringWidth < 2 || destinationCount > SIZE_MAX / stringWidth)
+        return false;
+
+    std::ifstream input(path);
+    if (!input)
+        return false;
+
+    std::vector<std::pair<std::size_t, std::string>> rows;
+    std::vector<bool> seen(destinationCount, false);
+    std::string line;
+    while (std::getline(input, line))
+    {
+        if (line.find_first_not_of(" \t\r") == std::string::npos)
+            continue;
+
+        std::istringstream row(line);
+        std::size_t index = 0;
+        if (!(row >> index) || index == 0 || index >= destinationCount || seen[index])
+            return false;
+
+        std::string value;
+        std::getline(row >> std::ws, value);
+        const auto last = value.find_last_not_of(" \t\r");
+        if (last == std::string::npos)
+            return false;
+        value.erase(last + 1);
+        if (value.size() >= stringWidth)
+            return false;
+
+        seen[index] = true;
+        rows.emplace_back(index, value);
+    }
+    if (input.bad() || rows.empty())
+        return false;
+
+    memset(destination, 0, destinationCount * stringWidth);
+    for (const auto& [index, value] : rows)
+        memcpy(destination + index * stringWidth, value.data(), value.size());
+    return true;
+}
+
 bool WYD748_LoadServerNameList(
     const char* path,
     char (*names)[16],

@@ -26,6 +26,14 @@ bool WYD748_LoadEffectStrings(
     std::size_t stringWidth,
     std::size_t firstIndex);
 
+// Reads indexed UI labels, including embedded spaces, into the fixed-width
+// table. Invalid indexes or labels leave the destination unchanged.
+bool WYD748_LoadUIStrings(
+    const char* path,
+    char* destination,
+    std::size_t destinationCount,
+    std::size_t stringWidth);
+
 // Validates all four selection-preview rows before exposing any item indexes.
 bool WYD748_LoadCharacterSamples(
     const char* path,

@@ -13,8 +13,10 @@ a partial translation as completion.
 - `tmproject/Build-Client.ps1` help, diagnostics, and validation status.
 - The staff portal's static and dynamic UI text, including forms, event controls,
   moderation, teleportation, status messages, and English date/number formatting.
-- The in-source 7.48 client CC-mode control labels, the item position,
-  and the selected server endpoint diagnostic.
+- The in-source 7.48 client CC-mode control labels, including the compact
+  auto-combat panel modes and positions, the item position, and the selected
+  server endpoint diagnostic. The compact panel retains its existing control
+  IDs, textures, and state mapping; in-client visual validation remains pending.
 - The runtime `tmproject/client748/sn.bin` group labels: `Channel` and
   `Featured` replace the Portuguese and Korean labels while retaining all
   eleven fixed-width slots, group orders, and the 143-byte file layout.
@@ -26,6 +28,10 @@ a partial translation as completion.
   their indexes are preserved; the optional subeffect file is not shipped.
   The adjacent Basedef documentation is now in English. In-client validation
   remains pending.
+- `UIString.txt` loading now preserves labels containing spaces and rejects
+  malformed or out-of-range rows without publishing a partial table. The
+  original resource bytes and numeric IDs remain unchanged. In-client
+  validation remains pending.
 
 ## Remaining work
 

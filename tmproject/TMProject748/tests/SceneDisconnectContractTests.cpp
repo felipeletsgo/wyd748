@@ -867,5 +867,59 @@ int RunSceneDisconnectContractTests(int& checks)
             "missing path and out-of-range effect start index are rejected");
     }
 
+    const auto uiStringAsset = FindSource("client748/UI/UIString.txt");
+    check(!uiStringAsset.empty(), "7.48 English UI string asset is available");
+    if (!uiStringAsset.empty()) {
+        char labels[500][64]{};
+        const auto assetPath = uiStringAsset.string();
+        check(WYD748_LoadUIStrings(assetPath.c_str(), &labels[0][0], 500, 64),
+            "native indexed UI strings load into the bounded table");
+        check(std::strcmp(labels[1], "Connect") == 0 &&
+            std::strcmp(labels[226], "C.C Mode(MC)") == 0 &&
+            std::strcmp(labels[227], "C.C Mode(SC)") == 0 &&
+            std::strcmp(labels[228], "Lv") == 0 && labels[229][0] == '\0',
+            "UI string indexes and embedded spaces survive parsing");
+
+        wchar_t executable[MAX_PATH]{};
+        const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
+        check(length > 0 && length < MAX_PATH,
+            "UI string fixture directory is available");
+        if (length > 0 && length < MAX_PATH) {
+            const auto fixturePath = std::filesystem::path(executable).parent_path() /
+                "ui-string-invalid-test.txt";
+            const auto fixtureName = fixturePath.string();
+            const auto rejected = [&](const std::string& content, const char* label) {
+                std::ofstream output(fixturePath, std::ios::trunc);
+                output << content;
+                output.close();
+                labels[1][0] = 'X';
+                check(output.good() &&
+                    !WYD748_LoadUIStrings(fixtureName.c_str(), &labels[0][0], 500, 64) &&
+                    labels[1][0] == 'X', label);
+            };
+            rejected("1\tConnect\n500\tOutOfRange\n",
+                "out-of-range UI index is rejected without partial publication");
+            rejected("1\tConnect\n1\tDuplicate\n",
+                "duplicate UI index is rejected without partial publication");
+            rejected("1\tConnect\n2\t" + std::string(64, 'A') + "\n",
+                "overlong UI label is rejected without partial publication");
+            rejected("1\tConnect\n2\t\n",
+                "missing UI label is rejected without partial publication");
+            std::error_code error;
+            std::filesystem::remove(fixturePath, error);
+            check(!error, "temporary UI string fixture is removed");
+        }
+        check(!WYD748_LoadUIStrings(nullptr, &labels[0][0], 500, 64) &&
+            !WYD748_LoadUIStrings(assetPath.c_str(), nullptr, 500, 64) &&
+            !WYD748_LoadUIStrings(assetPath.c_str(), &labels[0][0], 1, 64) &&
+            !WYD748_LoadUIStrings(assetPath.c_str(), &labels[0][0], 500, 1),
+            "invalid UI string destinations and dimensions are rejected");
+    }
+
+    const auto ccModeScene = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
+    check(ccModeScene.find("{\"Off\", \"Physical\", \"Magic\", \"Support\"}") != std::string::npos &&
+        ccModeScene.find("{\"Free\", \"Cycle\", \"Fixed\"}") != std::string::npos,
+        "7.48 compact combat controls use English labels");
+
     return failures;
 }

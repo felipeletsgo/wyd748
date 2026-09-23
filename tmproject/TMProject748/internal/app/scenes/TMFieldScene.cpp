@@ -31043,13 +31043,13 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 
 	if (m_bCompatFieldScene && m_pccmode)
 	{
-		const char* modes[] = {"Desligado", "Fisico", "Magico", "Suporte"};
-		const char* positions[] = {"Livre", "Ciclico", "Fixo"};
+		const char* modes[] = {"Off", "Physical", "Magic", "Support"};
+		const char* positions[] = {"Free", "Cycle", "Fixed"};
 		const int positionTextures[] = {556, 557, 558};
 		SetButtonState(m_pMGameAutoBtn, 550 + g_GameAuto, const_cast<char*>(modes[g_GameAuto]));
 		SetButtonState(m_pSetType, positionTextures[m_AutoPostionUse], const_cast<char*>(positions[m_AutoPostionUse]));
 		if (auto modeText = static_cast<SText*>(m_pControlContainer->FindControl(T_CCMODE_COMPAT_MODE)))
-			modeText->SetText(const_cast<char*>(g_GameAuto == 0 ? "Desl." : modes[g_GameAuto]), 0);
+			modeText->SetText(const_cast<char*>(g_GameAuto == 0 ? "Off" : modes[g_GameAuto]), 0);
 		if (auto moveText = static_cast<SText*>(m_pControlContainer->FindControl(T_CCMODE_COMPAT_MOVE)))
 			moveText->SetText(const_cast<char*>(positions[m_AutoPostionUse]), 0);
 		char threshold[16]{};
