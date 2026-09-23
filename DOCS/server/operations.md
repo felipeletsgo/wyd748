@@ -1,4 +1,4 @@
-# Operação do servidor WYD-Go 7.48
+# WYD-Go 7.48 server operations
 
 Server commands in this guide run from `wydgo748/` unless stated otherwise.
 Client build commands run from the repository root. System descriptions are
@@ -256,16 +256,17 @@ The server has these systems. The server has authority on each system.
 
 ## Language
 
-The 7.48 client is the global (English) client, so all the text that the
-player reads is English. The terms agree with the client interface: Party,
-Guild, Whisper, Trade, Quest, Gold, Kingdom, Cargo, Mount, Refine, and Auto
-Trade. The chat commands accept two languages: `/create` and `/criar`,
-`/invite` and `/convidar`, and so on.
+The 7.48 client is the global (English) client. All player-facing and
+project-authored text must be English. The terms agree with the client
+interface: Party, Guild, Whisper, Trade, Quest, Gold, Kingdom, Cargo, Mount,
+Refine, and Auto Trade. Legacy Portuguese chat-command aliases remain a
+compatibility issue to review before an English-only release; do not add new
+aliases.
 
 ## Requirements
 
 - For the first local start, follow the executable tutorial in the
-  [repository README](../../README.md#início-rápido-no-windows). This section
+  [repository README](../../README.md#quick-start-on-windows). This section
   is the detailed operational reference.
 - You must have the Go version declared in `wydgo748/go.mod` (currently
   Go 1.26.5).
@@ -308,7 +309,7 @@ CREATE DATABASE wydgo OWNER wydgo;
 
 Keep PostgreSQL on the local interface. Do not publish port 5432. The game
 server installs and validates schema v4 at boot. The Windows setup is documented
-in the [repository README](../../README.md#1-pré-requisitos).
+in the [repository README](../../README.md#1-prerequisites).
 
 ## Start the server
 
@@ -364,7 +365,7 @@ temporary authentication mode is in use.
 The embedded panel has staff sessions, CSRF protection, audit records, and
 capability checks. Its current gameplay controls are:
 
-- player account creation: open **Criar conta**, enter the new credentials and
+- player account creation: open **Create account**, enter the new credentials and
   confirm with the administrative PIN. Usernames are 4–12 ASCII letters or
   digits; passwords are 4–10 visible characters without spaces. The account is
   created without characters and receives no staff permission. This flow is
@@ -377,11 +378,11 @@ capability checks. Its current gameplay controls are:
   configurable event duration, reward item ID, and reward quantity;
 - boss summon: inspect configured bosses and summon a boss that is currently
   dead;
-- player kick: select **Desconectar** in the online-player list, enter a reason,
+- player kick: select **Disconnect** in the online-player list, enter a reason,
   and confirm. Requires `moderation.player.kick` (included for `felipetr`).
   Changed staff permissions require signing in again. This disconnects the
   selected session without banning; the account may log in again.
-- player teleport: select **Teleportar**, choose Armia, Azran, Erion or
+- player teleport: select **Teleport**, choose Armia, Azran, Erion or
   Nippleheim, enter a reason, and confirm. Requires
   `moderation.player.teleport` (included for `felipetr`; sign in again).
   No arbitrary coordinates. Dead players, trade, ghost shops, poisoned
@@ -393,14 +394,14 @@ three cells of the city's existing exit point, persists before publishing, and
 reports final X/Y. A failed save restores the old position and returns
 `persistence_failed`. On success, the previous walking route and NPC contexts
 are cleared. An identical retry retrieves the original receipt without moving
-the player again. Use **Consultar / repetir a mesma operação** after an uncertain
+the player again. Use **Check / retry the same operation** after an uncertain
 HTTP result; do not reload the page. The standalone web API cannot teleport.
 Automated tests do not replace a browser/real-player/PostgreSQL acceptance run.
 Building the frontend does not replace or restart `tm.exe` automatically.
 
 Kick binds the selected UID/account/session to the overview's `moderationEpoch`.
 Stale sessions are rejected rather than retargeted after relogin. For an uncertain
-HTTP result, use **Consultar / repetir a mesma operação** without reloading the
+HTTP result, use **Check / retry the same operation** without reloading the
 page: the identical command retrieves its receipt instead of kicking again.
 Refresh the player list after confirmation. `disconnected_persistence_failed`
 means the socket was closed but saving failed; inspect server logs. Receipts are

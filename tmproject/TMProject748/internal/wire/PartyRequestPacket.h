@@ -3,8 +3,8 @@
 #include "PartyAddPacket.h"
 #include <cstddef>
 
-// Convite Party C<->S do 7.48. Reutiliza o snapshot PARTY do líder e carrega
-// o destino como int32 no fim do frame; o servidor revalida ambos.
+// 7.48 client/server party invitation. Reuses the leader's PARTY snapshot and
+// carries the target as an int32 at the end; the server revalidates both.
 constexpr auto MSG_REQParty_Opcode = 0x37F;
 struct MSG_REQParty
 {

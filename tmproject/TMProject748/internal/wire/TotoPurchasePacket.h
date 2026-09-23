@@ -3,7 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intent C->S de compra TOTO; Coin continua campo legado não autoritativo.
+// Client-to-server TOTO purchase intent; Coin remains a legacy,
+// non-authoritative field.
 constexpr auto MSG_BuyToto_Opcode = 0x3CE;
 struct MSG_BuyToto
 {

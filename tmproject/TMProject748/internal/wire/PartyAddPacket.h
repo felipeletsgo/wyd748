@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Snapshot de um membro Party usado pelo client 7.48 nos frames 0x37D e
-// 0x37F. O WORD final mantém o alinhamento e os dois bytes reservados nativos.
+// Party-member snapshot used by the 7.48 client in frames 0x37D and 0x37F.
+// The final WORD preserves native alignment and two reserved bytes.
 struct PARTY
 {
 	char Class;

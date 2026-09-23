@@ -75,6 +75,9 @@ a partial translation as completion.
 - The TMProject target-architecture guide is now in English, including its
   transport boundary, ownership, validation scope, and outstanding send-result
   debt. No source, wire contract, or runtime asset changed in that batch.
+- The server operations guide now uses the current English staff-panel labels
+  and README anchors. Three client wire-header comments are also in English;
+  packet layouts and opcodes are unchanged.
 
 ## Remaining work
 
@@ -96,6 +99,9 @@ a partial translation as completion.
 6. Translate the remaining Portuguese prose in active skill references. A
    translated skill entry point does not imply that all its supporting
    references have been migrated.
+7. Review legacy Portuguese chat-command aliases before an English-only
+   release. Removing an established command spelling changes behavior, so
+   decide the compatibility policy and update command tests together.
 
 Code identifiers, persisted values, packet bytes, resource keys, and fixture
 data require compatibility review before renaming. English prose is the goal;
