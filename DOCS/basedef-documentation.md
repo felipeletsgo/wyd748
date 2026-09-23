@@ -1,53 +1,55 @@
-# Documentação do Basedef
+# Basedef documentation
 
-## Escopo e procedência
+## Scope and provenance
 
-Lote local de documentação, dentro de `MODERNIZACAO_COMPATIVEL`.
-Os comentários descrevem a implementação atual de `internal/core/Basedef.cpp`;
-não promovem equivalência com o binário nativo nem maturidade de pesquisa.
-Não houve mudança de lógica, assinatura, layout ou ownership neste lote.
+This document records the current implementation of `internal/core/Basedef.cpp`
+under `MODERNIZACAO_COMPATIVEL`. Its comments do not establish native 7.48
+equivalence or research maturity. The initial documentation batch did not
+change logic, signatures, layouts, or ownership.
 
-## Cobertura confirmada
+## Confirmed coverage
 
-23 funções receberam comentários individuais em português com finalidade,
-entradas, retornos, efeitos e pré-condições relevantes:
+Twenty-three functions received individual comments describing their purpose,
+inputs, outputs, side effects, and relevant preconditions:
 
-- início do arquivo: `BASE_ScreenResize` até `BASE_InitializeBaseDef`, incluindo
-  `strfmt`, loaders e somas legadas;
-- final do arquivo: `BASE_CanRefine` até `BASE_RemoveEffect`.
+- Near the start of the file: `BASE_ScreenResize` through
+  `BASE_InitializeBaseDef`, including `strfmt`, loaders, and legacy sums.
+- Near the end of the file: `BASE_CanRefine` through `BASE_RemoveEffect`.
 
-O restante ainda não está documentado função a função. Títulos genéricos de
-seção não contam como cobertura de API. A divisão integral do header também
-continua pendente; `UiLayout.h` é apenas a extração inicial.
+The remaining functions have not been documented individually. Generic section
+headings do not count as API coverage. The header has not been fully split;
+`UiLayout.h` is only the initial extraction.
 
-## Lacunas observadas na source
+## Observed source gaps
 
-- `BASE_ReadInitItem` retorna sucesso sem carregar nada: stub pendente.
-- `BASE_InitializeAttribute` não verifica leitura curta.
-- `BASE_InitEffectString` não verifica os resultados de `fscanf` e suas larguras
-  não garantem espaço para o terminador em todas as leituras.
-- `strfmt` devolve armazenamento estático compartilhado.
+- `BASE_ReadInitItem` returns success without loading anything; it remains a stub.
+- `BASE_InitializeAttribute` does not check for a short read.
+- `BASE_InitEffectString` now reads the effect and optional subeffect assets
+  through a bounded, atomic loader. It preserves native 7.48 effect indexes
+  and leaves a table untouched when its asset is missing or malformed. The
+  shipped 7.48 runtime has `EffectString.txt` but no `EffectSubString.txt`.
+- `strfmt` returns shared static storage.
 
-Essas limitações foram documentadas, não corrigidas neste lote de comentários.
+The other limitations are documented, not fixed by the effect-name loader.
 
-## Validação e retomada
+## Validation
 
-`git diff --check` passou. Nenhum build novo é exigido para comentários pela
-skill `wydgo748-feature`. O resultado final do último build iniciado na conversa
-anterior não foi recuperado; não apresentar ausência de processo como sucesso.
+The effect-name loader has automated tests for the shipped asset, indexes,
+missing rows, overlong tokens, table overflow, and unchanged output after
+rejection. A successful build does not establish in-client visual validation.
 
-## Inventário completo da API legada
+## Legacy API inventory
 
-As funções restantes foram revisadas e permanecem agrupadas por contrato:
+The remaining functions were reviewed and grouped by contract:
 
-- carregamento/configuração: `BASE_ReadItemPrice`, `BASE_ReadTOTOList`, `BASE_InitializeServerList`, `BASE_GetLanguage`, `ReadItemicon`, `ReadItemName`, `ReadUIString`, `ReadNameFiltraDataBase`, `ReadChatFiltraDataBase`, `EnableSysKey`, `DisableSysKey`, `CheckOS`;
-- texto/validação: `BASE_UnderBarToSpace`, `BASE_GetHttpRequest`, `BASE_CheckValidString`, `BASE_CheckChatValid`, `CheckGuildName`, `IsClearString`, `IsClearString2`;
-- tabelas/localização: `BASE_GetWeekNumber`, `BASE_GetVillage`, `BASE_GetSubGuild`, `BASE_GetAttribute`, `BASE_GetAttr`, `BASE_IsInLowZone`, `BASE_GetColorCount`;
-- itens/equipamento: `BASE_GetItemSanc`, `BASE_GetItemAbility`, `BASE_GetStaticItemAbility`, `BASE_GetBonusItemAbilityNosanc`, `BASE_GetBonusItemAbility`, `BASE_GetItemAbilityNosanc`, `BASE_GetItemAmount`, `BASE_SetItemAmount`, `BASE_CanCarry`, `BASE_CanTrade`, `BASE_ClearItem`, `BASE_SortTradeItem`, `BASE_CanCargo`, `BASE_CanEquip`, `BASE_CanEquip_RecvRes`, `BASE_GetItemColorEffect`, `BASE_GetMeshIndex`;
-- combate: `BASE_GetSpeed`, `BASE_GetManaSpent`, `BASE_GetSkillDamage`, `BASE_GetMobAbility`, `BASE_GetMaxAbility`, `BASE_DefineSkinMeshType`, `BASE_GetMountScale`, `IsSkill`, `GetSkillIndex`, `IsValidSkill`, `IsValidClassSkill`;
-- navegação/geometria: `BASE_GetRoute`, `BASE_GetDistance`, `BASE_GetHitPosition`, `BASE_GetHitPosition2`, `BASE_Get3DTo2DPos`, `BASE_SetBit`, `BASE_UpdateItem2`;
-- efeitos: `BASE_CanRefine`, `IsPassiveSkill`, `BASE_HasSancAdd`, `BASE_GetSancEffValue`, `BASE_GetItemSancSuccess`, `BASE_GetEffectValue`, `BASE_ChangeOrAddEffectValue`, `BASE_RemoveEffect`.
+- Loading/configuration: `BASE_ReadItemPrice`, `BASE_ReadTOTOList`, `BASE_InitializeServerList`, `BASE_GetLanguage`, `ReadItemicon`, `ReadItemName`, `ReadUIString`, `ReadNameFiltraDataBase`, `ReadChatFiltraDataBase`, `EnableSysKey`, `DisableSysKey`, `CheckOS`.
+- Text/validation: `BASE_UnderBarToSpace`, `BASE_GetHttpRequest`, `BASE_CheckValidString`, `BASE_CheckChatValid`, `CheckGuildName`, `IsClearString`, `IsClearString2`.
+- Tables/localization: `BASE_GetWeekNumber`, `BASE_GetVillage`, `BASE_GetSubGuild`, `BASE_GetAttribute`, `BASE_GetAttr`, `BASE_IsInLowZone`, `BASE_GetColorCount`.
+- Items/equipment: `BASE_GetItemSanc`, `BASE_GetItemAbility`, `BASE_GetStaticItemAbility`, `BASE_GetBonusItemAbilityNosanc`, `BASE_GetBonusItemAbility`, `BASE_GetItemAbilityNosanc`, `BASE_GetItemAmount`, `BASE_SetItemAmount`, `BASE_CanCarry`, `BASE_CanTrade`, `BASE_ClearItem`, `BASE_SortTradeItem`, `BASE_CanCargo`, `BASE_CanEquip`, `BASE_CanEquip_RecvRes`, `BASE_GetItemColorEffect`, `BASE_GetMeshIndex`.
+- Combat: `BASE_GetSpeed`, `BASE_GetManaSpent`, `BASE_GetSkillDamage`, `BASE_GetMobAbility`, `BASE_GetMaxAbility`, `BASE_DefineSkinMeshType`, `BASE_GetMountScale`, `IsSkill`, `GetSkillIndex`, `IsValidSkill`, `IsValidClassSkill`.
+- Navigation/geometry: `BASE_GetRoute`, `BASE_GetDistance`, `BASE_GetHitPosition`, `BASE_GetHitPosition2`, `BASE_Get3DTo2DPos`, `BASE_SetBit`, `BASE_UpdateItem2`.
+- Effects: `BASE_CanRefine`, `IsPassiveSkill`, `BASE_HasSancAdd`, `BASE_GetSancEffValue`, `BASE_GetItemSancSuccess`, `BASE_GetEffectValue`, `BASE_ChangeOrAddEffectValue`, `BASE_RemoveEffect`.
 
-As assinaturas, buffers emprestados, tabelas globais e retornos históricos foram
-preservados. Funções sem comentário individual ainda exigem detalhamento
-posterior; não foram reinterpretadas como contratos nativos 7.48.
+Historical signatures, borrowed buffers, global tables, and return values were
+preserved. Functions without individual comments still require documentation;
+they are not reinterpreted here as native 7.48 contracts.

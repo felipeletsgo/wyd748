@@ -821,5 +821,51 @@ int RunSceneDisconnectContractTests(int& checks)
         check(!error, "temporary preview fixture is removed");
     }
 
+    const auto effectAsset = FindSource("client748/UI/EffectString.txt");
+    check(!effectAsset.empty(), "7.48 effect name asset is available");
+    if (!effectAsset.empty()) {
+        char names[50][24]{};
+        const auto effectPath = effectAsset.string();
+        check(WYD748_LoadEffectStrings(effectPath.c_str(), &names[0][0], 50, 24, 1),
+            "native effect names load into the indexed fixed-width table");
+        check(std::strcmp(names[0], "") == 0 &&
+            std::strcmp(names[1], "Slow") == 0 &&
+            std::strcmp(names[39], "Exp") == 0 &&
+            std::strcmp(names[40], "") == 0,
+            "native effect indexes and absent later rows remain unchanged");
+
+        wchar_t executable[MAX_PATH]{};
+        const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
+        check(length > 0 && length < MAX_PATH,
+            "test executable path is available for effect fixtures");
+        if (length > 0 && length < MAX_PATH) {
+            const auto fixturePath = std::filesystem::path(executable).parent_path() /
+                "effect-string-invalid-test.txt";
+            const auto fixtureName = fixturePath.string();
+            const auto rejected = [&](const char* content, const char* label) {
+                std::ofstream output(fixturePath, std::ios::trunc);
+                output << content;
+                output.close();
+                names[1][0] = 'X';
+                check(output.good() &&
+                    !WYD748_LoadEffectStrings(fixtureName.c_str(), &names[0][0], 50, 24, 1) &&
+                    names[1][0] == 'X', label);
+            };
+            rejected("123456789012345678901234\n",
+                "overlong effect name is rejected without publishing partial data");
+            std::string tooMany;
+            for (int index = 0; index < 50; ++index)
+                tooMany += "Name\n";
+            rejected(tooMany.c_str(),
+                "effect table overflow is rejected without publishing partial data");
+            std::error_code error;
+            std::filesystem::remove(fixturePath, error);
+            check(!error, "temporary effect fixture is removed");
+        }
+        check(!WYD748_LoadEffectStrings(nullptr, &names[0][0], 50, 24, 1) &&
+            !WYD748_LoadEffectStrings(effectPath.c_str(), &names[0][0], 1, 24, 1),
+            "missing path and out-of-range effect start index are rejected");
+    }
+
     return failures;
 }

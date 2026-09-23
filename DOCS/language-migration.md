@@ -21,6 +21,11 @@ a partial translation as completion.
 - Character-selection preview loading now validates the original four-row
   `selchar.txt` resource before item lookups; its new diagnostic and adjacent
   source comments are in English. Visual client validation remains pending.
+- Effect-name loading now bounds every fixed-width row and rejects malformed
+  assets without publishing partial data. The shipped English 7.48 names and
+  their indexes are preserved; the optional subeffect file is not shipped.
+  The adjacent Basedef documentation is now in English. In-client validation
+  remains pending.
 
 ## Remaining work
 

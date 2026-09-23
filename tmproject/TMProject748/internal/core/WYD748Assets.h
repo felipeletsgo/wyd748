@@ -17,6 +17,15 @@ struct WYD748CharacterSample
     int refinement;
 };
 
+// Loads whitespace-delimited effect names without overflowing the legacy
+// fixed-width tables. A malformed file never publishes a partial table.
+bool WYD748_LoadEffectStrings(
+    const char* path,
+    char* destination,
+    std::size_t destinationCount,
+    std::size_t stringWidth,
+    std::size_t firstIndex);
+
 // Validates all four selection-preview rows before exposing any item indexes.
 bool WYD748_LoadCharacterSamples(
     const char* path,

@@ -277,34 +277,14 @@ int BASE_ReadMessageBin()
 		_countof(g_pMessageStringTable[0]));
 }
 
-/** Lê nomes de efeitos e subefeitos em suas tabelas globais e fecha os arquivos.
- * Arquivos ausentes são ignorados; não há status nem limpeza prévia das tabelas.
- * Limitação atual: fscanf não tem resultado validado e suas larguras não
- * garantem capacidade para terminador em todas as leituras. Não é loader seguro
- * para entrada arbitrária; eventual correção exige um delta funcional separado. */
+/** Loads effect and subeffect names into their fixed-width global tables.
+ * Missing or malformed assets leave the corresponding table untouched. */
 void BASE_InitEffectString()
 {
-    FILE* fpEffectString = nullptr;
-    fopen_s(&fpEffectString, EffectString_Path, "rt");
-
-    if (fpEffectString)
-    {
-        for (int i = 1; i < MAX_EFFECT_STRING_TABLE; ++i)
-            fscanf(fpEffectString, "%24s", &g_pAffectTable[i][0]);
-   
-        fclose(fpEffectString);
-    }
-
-    FILE* fpEffectSubString = nullptr;
-    fopen_s(&fpEffectSubString, EffectSubString_Path, "rt");
-
-    if (fpEffectSubString)
-    {
-        for (int j = 0; j < MAX_SUB_EFFECT_STRING_TABLE; ++j)
-            fscanf(fpEffectSubString, "%s", &g_pAffectSubTable[j][0]);
-
-        fclose(fpEffectSubString);
-    }
+    WYD748_LoadEffectStrings(EffectString_Path, &g_pAffectTable[0][0],
+        MAX_EFFECT_STRING_TABLE, sizeof(g_pAffectTable[0]), 1);
+    WYD748_LoadEffectStrings(EffectSubString_Path, &g_pAffectSubTable[0][0],
+        MAX_SUB_EFFECT_STRING_TABLE, sizeof(g_pAffectSubTable[0]), 0);
 
     /* There's a loading of the GuildString.txt file, but is not used */
 }

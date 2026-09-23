@@ -512,6 +512,39 @@ bool WYD748_LoadCharacterSamples(
     return true;
 }
 
+bool WYD748_LoadEffectStrings(
+    const char* path,
+    char* destination,
+    const std::size_t destinationCount,
+    const std::size_t stringWidth,
+    const std::size_t firstIndex)
+{
+    if (path == nullptr || destination == nullptr || stringWidth < 2 ||
+        firstIndex >= destinationCount)
+        return false;
+
+    std::ifstream input(path);
+    if (!input)
+        return false;
+
+    std::vector<std::string> names;
+    std::string name;
+    while (input >> name)
+    {
+        if (name.size() >= stringWidth || names.size() >= destinationCount - firstIndex)
+            return false;
+        names.push_back(name);
+    }
+    if (input.bad() || names.empty())
+        return false;
+
+    memset(destination, 0, destinationCount * stringWidth);
+    for (std::size_t index = 0; index < names.size(); ++index)
+        memcpy(destination + (firstIndex + index) * stringWidth,
+            names[index].c_str(), names[index].size());
+    return true;
+}
+
 bool WYD748_LoadServerNameList(
     const char* path,
     char (*names)[16],
