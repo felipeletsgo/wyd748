@@ -640,6 +640,25 @@ int RunSceneDisconnectContractTests(int& checks)
     }
 
     const std::string field = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
+    const auto attackStart = field.find("int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)");
+    const auto attackEnd = field.find("int TMFieldScene::OnPacketNuke(", attackStart);
+    check(attackStart != std::string::npos && attackEnd != std::string::npos,
+        "attack handler is available for missing-attacker checks");
+    if (attackStart != std::string::npos && attackEnd != std::string::npos) {
+        const std::string attack = field.substr(attackStart, attackEnd - attackStart);
+        const auto missingAttacker = attack.find("vecAttackerPos = TMVector2((float)pAttack->PosX + 0.5f, (float)pAttack->PosY + 0.5f);");
+        const auto targetFilter = attack.find("pAttack->Dam[i].TargetID == m_pMyHuman->m_dwID", missingAttacker);
+        const auto request = attack.find("MSG_REQMobByID stReqMobById{};", targetFilter);
+        const auto fallbackStart = attack.find("vecStart = TMVector3(vecAttackerPos.x, fY + 1.0f, vecAttackerPos.y);", request);
+        check(missingAttacker != std::string::npos && targetFilter != std::string::npos &&
+            request != std::string::npos && fallbackStart != std::string::npos &&
+            attack.find("pAttack->Dam[i].TargetID = m_pMyHuman->m_dwID") == std::string::npos,
+            "missing-attacker lookup reads target IDs without mutating the attack frame");
+        check(missingAttacker != std::string::npos && fallbackStart != std::string::npos &&
+            missingAttacker < fallbackStart &&
+            attack.find("TMVector2 vecAttackerPos{", missingAttacker) == std::string::npos,
+            "missing-attacker fallback uses packet position without shadowing it");
+    }
     const std::string selectChar = LoadSource("TMProject748/internal/app/scenes/TMSelectCharScene.cpp");
     const auto charLoad = selectChar.find("if (!LoadRC(\"UI\\\\SelCharScene2.txt\"))");
     const auto charSceneSetup = selectChar.find("g_pDevice->m_dwClearColor", charLoad);

@@ -154,6 +154,16 @@ Failure to read an RC file aborts initialization of a 7.48 scene. The
 that lacks modern control `66817`; an invalid resource must not be treated as
 a legitimate layout variant.
 
+The missing-attacker recovery path in `TMFieldScene::OnPacketAttack` now reads
+damage target IDs without modifying the received frame and retains the
+attacker coordinates from that frame for effect fallback. This is
+`MODERNIZACAO_COMPATIVEL`: the existing `0x369/16` request and the server's
+visibility and gameplay-space checks are unchanged. The native request
+envelope is recorded in
+[missing-entity-request](../../.agents/research/client748/flows/transport/missing-entity-request.md);
+the exact target-selection predicate is not claimed as native parity. A
+client-side attack/recovery run remains pending.
+
 ## Active score layout
 
 The [canonical contract](../SCORE.md) replaces the historical 48-byte layout.

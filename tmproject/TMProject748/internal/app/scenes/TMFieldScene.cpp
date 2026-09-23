@@ -26920,6 +26920,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 	}
 	else
 	{
+		vecAttackerPos = TMVector2((float)pAttack->PosX + 0.5f, (float)pAttack->PosY + 0.5f);
 		bool bFind = false;
 		for (int i = 0; i < 13; i++)
 		{
@@ -26929,7 +26930,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 			if (pAttack->Header.Type == MSG_Attack_Two_Opcode && i >= 2)
 				break;
 
-			if (pAttack->Dam[i].TargetID = m_pMyHuman->m_dwID)
+			if (pAttack->Dam[i].TargetID == m_pMyHuman->m_dwID)
 			{
 				bFind = true;
 				break;
@@ -26938,8 +26939,6 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 
 		if (bFind || pAttack->SkillIndex > 55 && pAttack->SkillIndex > 63)
 		{
-			TMVector2 vecAttackerPos{ (float)pAttack->PosX + 0.5f, (float)pAttack->PosY + 0.5f };
-
 			MSG_REQMobByID stReqMobById{};
 			stReqMobById.Header.ID = g_pObjectManager->m_dwCharID;
 			stReqMobById.Header.Type = MSG_REQMobByID_Opcode;
