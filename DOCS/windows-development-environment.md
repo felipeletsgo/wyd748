@@ -1,29 +1,29 @@
-# Ambiente Windows para o WYD-Go
+# Windows development environment for WYD-Go
 
-Este guia cobre a preparação do checkout atual no Windows. Para versões de
-dependências, consulte primeiro `wydgo748/go.mod`,
-`wydgo748/web/portal/package.json` e os projetos `.vcxproj`. Não reutilize
-caminhos, executáveis ou credenciais de instalações anteriores.
+This guide covers setup of the current checkout on Windows. For dependency
+versions, consult `wydgo748/go.mod`, `wydgo748/web/portal/package.json`, and
+the `.vcxproj` projects first. Do not reuse paths, executables, or credentials
+from earlier installations.
 
-## Ferramentas
+## Tools
 
-- Git e PowerShell 7 (`pwsh`);
-- Go na versão declarada em `wydgo748/go.mod`;
-- Node.js compatível com `wydgo748/web/portal/package.json` e `npm`;
-- Visual Studio com MSBuild, ferramentas C++ x86 e o toolset indicado em
+- Git and PowerShell 7 (`pwsh`);
+- the Go version declared in `wydgo748/go.mod`;
+- Node.js compatible with `wydgo748/web/portal/package.json`, and `npm`;
+- Visual Studio with MSBuild, x86 C++ tools, and the toolset specified in
   `tmproject/TMProject748/TMProject748.vcxproj`;
-- PostgreSQL e `psql` para a persistência do servidor;
-- Python e Java somente quando a pesquisa nativa/Ghidra exigir.
+- PostgreSQL and `psql` for server persistence;
+- Python and Java only when native/Ghidra research requires them.
 
-O client usa as dependências DirectX já presentes em
-`tmproject/TMProject748/Dependencies/Directx`. Docker, CMake e Ninja não são
-requisitos da arquitetura atual. O projeto Ghidra e seus dados devem ser
-mantidos fora do repositório; `references/client748/` contém evidências
-históricas somente leitura.
+The client uses the DirectX dependencies already present in
+`tmproject/TMProject748/Dependencies/Directx`. Docker, CMake, and Ninja are
+not requirements of the current architecture. Keep the Ghidra project and
+its data outside the repository; `references/client748/` contains read-only
+historical evidence.
 
-## Preparar o checkout
+## Prepare the checkout
 
-Execute a partir da raiz do repositório:
+Run from the repository root:
 
 ```powershell
 git status --short
@@ -35,31 +35,30 @@ npm --version
 psql --version
 ```
 
-Preserve alterações locais antes de atualizar ou mover o checkout. Não use um
-clone novo como substituto de arquivos não rastreados, ignorados, projetos
-Ghidra ou segredos. Guarde credenciais fora do Git. Consulte
-[Operação do servidor](server/operations.md) para a configuração de
-`WYD_DATABASE_URL`, banco e backups.
+Preserve local changes before updating or moving the checkout. A fresh clone
+does not replace untracked or ignored files, Ghidra projects, or secrets.
+Keep credentials out of Git. See [Server operations](server/operations.md) for
+`WYD_DATABASE_URL`, database setup, and backups.
 
-## Compilar e validar
+## Build and validate
 
-O procedimento e os gates de integração ficam em
-[Build e integração](build-and-integration.md). Para compilar o client sem
-substituir o executável do runtime:
+The procedure and integration gates are in
+[Build and integration](build-and-integration.md). To compile the client
+without replacing the runtime executable:
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tmproject\Build-Client.ps1 -NoDeploy
 ```
 
-Sem `-NoDeploy`, o script instala o candidato em
-`tmproject/client748/project.exe`; só use esse modo quando a tarefa incluir a
-troca do runtime. Build e testes automatizados não equivalem a teste visual do
-client (`CLIENT-TESTED`).
+Without `-NoDeploy`, the script installs the candidate as
+`tmproject/client748/project.exe`; use that mode only when the task includes
+replacing the runtime. Builds and automated tests do not amount to visual
+client validation (`CLIENT-TESTED`).
 
-O servidor deve ser executado com o diretório de trabalho em `wydgo748/`.
-Para conectar o client, gere `tmproject/client748/serverlist.bin` com o editor
-externo de serverlist e o endereço alcançável do servidor. Execute o client a
-partir de `tmproject/client748/`, pois ele resolve assets relativamente ao
-diretório do runtime. O contrato de conexão e os passos de operação estão em
-[Build e integração](build-and-integration.md) e
-[Operação do servidor](server/operations.md).
+Run the server with `wydgo748/` as its working directory. To connect the
+client, generate `tmproject/client748/serverlist.bin` with the external
+server-list editor and the server's reachable address. Run the client from
+`tmproject/client748/`, because it resolves assets relative to the runtime
+directory. The connection contract and operating steps are in
+[Build and integration](build-and-integration.md) and
+[Server operations](server/operations.md).

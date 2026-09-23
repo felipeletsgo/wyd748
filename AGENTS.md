@@ -6,21 +6,24 @@ are documentation, not active instructions.
 
 ## Project language
 
-English is the sole language of this global WYD project. No Portuguese text is
-acceptable in shipped client or server content, the staff panel, active
-documentation, diagnostics, comments, tests, scripts, rules, skills, or release
-material. Write all new content in English and translate Portuguese text in
-files being changed. Existing Portuguese text is migration debt, not a
-permanent exception; track and remove it until the repository is fully in
-English. Preserve protocol bytes, resource IDs, persisted values, and
-established identifiers when translation would break compatibility. Never
-claim a partial translation is complete.
+English is the sole language of this global WYD project and its global client.
+This applies to the entire active repository, not only player-facing UI:
+client and server content, the staff panel, documentation, diagnostics, logs,
+comments, tests, scripts, rules, skills, research, handoffs, and release
+material must be in English. Do not add Portuguese text. Translate existing
+Portuguese text in every file being changed; track untouched legacy text as
+migration debt and remove it until the repository is fully in English. Preserve
+protocol bytes, resource IDs, persisted values, and established identifiers
+when translation would break compatibility. Never claim a partial translation
+is complete.
 
 English is a delivery requirement, not a localization option. Before closing a
-change, inspect its user-visible text, errors, logs, comments, tests, and
-documentation for Portuguese. Do not ship new Portuguese text or use the
-remaining migration debt to justify it. Translate an existing contract-bearing
-value only with an explicit compatibility review and the affected tests.
+change, inspect all authored text in affected files, including user-visible
+text, errors, logs, comments, tests, examples, and documentation. Do not ship
+new Portuguese text or use remaining migration debt to justify it. Translate
+an existing contract-bearing value only with an explicit compatibility review
+and the affected tests. Completion of the language migration requires an
+active-repository audit, not merely an English UI or an updated rule.
 
 ## Active architecture
 

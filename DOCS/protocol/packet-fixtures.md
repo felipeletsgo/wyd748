@@ -1,19 +1,18 @@
-# Corpus de packets 7.48
+# 7.48 packet corpus
 
-O corpus canônico compartilhado fica em `../../testdata/protocol/`. Ele contém
-somente frames plaintext cuja origem e layout foram confirmados para a
-fronteira exercida. Consumidores removem comentários e espaços antes de
-decodificar o hexadecimal.
+The shared canonical corpus is in `../../testdata/protocol/`. It contains only
+plaintext frames whose origin and layout have been confirmed for the tested
+boundary. Consumers strip comments and whitespace before decoding the hex.
 
-- `send_item_0x182_24.hex`: frame `MSG_SendItem` de 24 bytes, validado contra o
-  contrato nativo 7.48 e consumido pelos testes Go e C++ para impedir drift.
+- `send_item_0x182_24.hex`: a 24-byte `MSG_SendItem` frame validated against
+  the native 7.48 contract and consumed by Go and C++ tests to prevent drift.
 
-O corpus de captura de movimento que ainda possui consumidor exclusivo do
-servidor permanece em `wydgo748/internal/game/testdata/packets/` até a migração
-do consumidor. Não duplicar o mesmo fixture nas duas sources.
+The movement-capture corpus, which still has a server-only consumer, remains
+in `wydgo748/internal/game/testdata/packets/` until that consumer migrates.
+Do not duplicate a fixture in both source trees.
 
-Não adicionar dumps vindos depois de uma bridge `PacketProtocolV754` como se
-fossem wire bruto do client. Em particular, `MSG_AttackOne` nativo e
-`p39D_754` usam offsets diferentes em algumas árvores de referência. Uma nova
-captura de combate só entra aqui depois de ser comparada com o construtor do
-`WYD.exe` atualmente distribuído.
+Do not add dumps taken after a `PacketProtocolV754` bridge as though they
+were raw client wire. In particular, native `MSG_AttackOne` and `p39D_754`
+use different offsets in some reference trees. Add a new combat capture only
+after comparing it with the constructor in the currently distributed
+`WYD.exe`.

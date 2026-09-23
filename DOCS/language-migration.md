@@ -44,6 +44,10 @@ a partial translation as completion.
 - Account-registration API responses, validation errors, logs, and adjacent
   tests are in English. JSON field names and HTTP status codes are unchanged;
   focused account and account-API tests cover the translated validation text.
+- The architecture map, login/character-selection dispatch guide, shared
+  packet-fixture guide, upstream provenance note, and Windows development
+  guide have been translated. These are prose-only changes and do not imply
+  client, server, or visual validation.
 
 ## Remaining work
 
@@ -65,5 +69,8 @@ data require compatibility review before renaming. English prose is the goal;
 blind replacement of contract-bearing values is not.
 
 Completion requires a repository-wide review of authored text plus validation
-of affected client and server flows. A keyword search alone cannot distinguish
-Portuguese prose from names, examples, and protocol data.
+of affected client and server flows. This includes the client resources,
+server output, active documentation, scripts, tests, research records, and
+handoffs; none of these is exempt as historical migration debt. A keyword
+search alone cannot distinguish Portuguese prose from names, examples, and
+protocol data. The migration is still incomplete.

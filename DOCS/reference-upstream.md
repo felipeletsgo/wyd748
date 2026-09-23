@@ -1,28 +1,26 @@
 # Upstream provenance
 
-Esta arvore foi importada de:
+This tree was imported from:
 
-- repositorio: <https://github.com/lorransouza/TMProject-Free>
-- branch: `main`
-- commit: `14937eda00d462c06dfd3a1ac5905f910d70a804`
-- data da importacao: 2026-08-20
-- escopo importado: `Source cliente/`
+- Repository: <https://github.com/lorransouza/TMProject-Free>
+- Branch: `main`
+- Commit: `14937eda00d462c06dfd3a1ac5905f910d70a804`
+- Import date: 2026-08-20
+- Imported scope: `Source cliente/` (original upstream path)
 
-Nao foram importados o historico Git, releases, client pronto ou a source de
-servidor do repositorio externo.
+The external repository's Git history, releases, prebuilt client, and server
+source were not imported.
 
-O upstream declara o codigo sob GNU GPL v3 no seu README. O WYD-Go tambem e
-distribuido sob GNU GPL v3; o arquivo `LICENSE` na raiz do WYD-Go permanece
-aplicavel a esta copia modificada. Os creditos originais permanecem no
-`README.md` deste diretorio.
+Upstream declares its code to be under GNU GPL v3 in its README. WYD-Go is
+also distributed under GNU GPL v3; the root `LICENSE` applies to this modified
+copy. Preserve upstream attribution when distributing this source.
 
-Esta copia e o único produto source-built do client WYD 7.48 no WYD-Go.
-Atualizacoes futuras do upstream devem ser revisadas campo a campo e somente a
-semantica comprovada no 7.48 pode ser portada por commit. Nunca importar em
-massa ABI, packets, controles, loaders ou branches 7.59/7.69, nem manter um
-segundo alvo de versão. Este diretorio nao e um submodulo e nao deve receber um
-`.git` proprio.
+This copy is WYD-Go's only source-built WYD 7.48 client. Review future upstream
+updates field by field, and port only semantics proven for 7.48 in each commit.
+Never bulk-import ABI definitions, packets, controls, loaders, or 7.59/7.69
+branches, or maintain a second target version. This directory is not a
+submodule and must not receive its own `.git` directory.
 
-Executaveis e patchers historicos nao participam da sincronizacao com upstream,
-do build ou da validacao. Toda mudanca ativa termina nesta source ou nos assets
-consumidos diretamente por `tmproject/client748/project.exe`.
+Historical executables and patchers do not participate in upstream sync,
+builds, or validation. Every active change belongs in this source or in assets
+consumed directly by `tmproject/client748/project.exe`.

@@ -1,22 +1,22 @@
-# TMProject 7.48 — mapa arquitetural
+# TMProject 7.48 architecture map
 
-## Escopo
+## Scope
 
-Este documento registra o inventário da árvore `internal/` após a migração
-arquitetural. O mapeamento é estrutural: ele não transforma nomes de arquivos
-em prova de paridade nativa nem altera contratos de wire, ABI ou lifecycle.
+This document records the `internal/` tree after its architectural migration.
+The map is structural: file names do not prove native parity or change wire,
+ABI, or lifecycle contracts.
 
-| Domínio | Responsabilidade |
+| Domain | Responsibility |
 |---|---|
-| `app` | bootstrap, cenas e coordenação do fluxo principal |
-| `core` | tipos compartilhados, tabelas, recursos e compatibilidade |
-| `game` | entidades, combate e estado de jogo |
-| `platform` | Win32, entrada, mídia e integração do sistema |
-| `render` | DirectX, mundo, efeitos, malhas e recursos visuais |
-| `ui` | controles, grids e HUD |
-| `wire` | mensagens e transporte/protocolo |
+| `app` | Bootstrap, scenes, and main-flow coordination |
+| `core` | Shared types, tables, resources, and compatibility |
+| `game` | Entities, combat, and game state |
+| `platform` | Win32, input, media, and system integration |
+| `render` | DirectX, world, effects, meshes, and visual resources |
+| `ui` | Controls, grids, and HUD |
+| `wire` | Messages, transport, and protocol |
 
-## Fluxo vivo
+## Active flow
 
 ```text
 platform/bootstrap -> app/scenes -> wire/transport
@@ -25,31 +25,31 @@ platform/bootstrap -> app/scenes -> wire/transport
                                   -> render/world + render/effects
 ```
 
-`core` fornece as estruturas e serviços transversais. `Basedef.h` continua
-sendo uma fachada de compatibilidade para estruturas legadas; constantes de
-layout e declarações globais já foram extraídas para `UiLayout.h` e
-`BasedefGlobals.h` sem mudar a ordem ou o layout das estruturas.
+`core` provides shared structures and services. `Basedef.h` remains a
+compatibility facade for legacy structures. Layout constants and global
+declarations have been extracted into `UiLayout.h` and `BasedefGlobals.h`
+without changing structure order or layout.
 
-## Arquivos extensos e decisão de fragmentação
+## Large files and extraction decisions
 
-Os arquivos extensos incluem `app/scenes/TMFieldScene.cpp`,
-`game/entities/TMHuman.cpp` e `ui/SGrid.cpp`. Eles
-orquestram estado privado, callbacks, mensagens e teardown. A fragmentação
-automática por função não é segura: exigiria expor estado privado e poderia
-alterar ordem de inicialização ou dispatch. Por isso, a próxima divisão deve
-ser feita por contrato independente, com testes de build entre cada extração.
+Large files include `app/scenes/TMFieldScene.cpp`,
+`game/entities/TMHuman.cpp`, and `ui/SGrid.cpp`. They coordinate private
+state, callbacks, messages, and teardown. Automatic function-level splitting
+would expose private state and could change initialization or dispatch order.
+Future extraction should follow independent contracts, with a build check
+after each extraction.
 
-## Estado da documentação
+## Documentation status
 
-Comentários de contrato foram adicionados aos pontos de compatibilidade e aos
-loaders de `Basedef`. `TMFieldScene.cpp` documenta a razão de manter os
-handlers de compatibilidade juntos. Funções ainda sem comentário individual
-devem ser documentadas durante a próxima extração, sempre explicando entrada,
-efeito observável, ownership e cleanup quando aplicável.
+Contract comments were added at compatibility boundaries and in the `Basedef`
+loaders. `TMFieldScene.cpp` documents why its compatibility handlers remain
+together. Functions without individual comments should be documented during
+their next extraction, covering inputs, observable effects, ownership, and
+cleanup where applicable.
 
-## Regra para próximas alterações
+## Rule for future changes
 
-Classificar cada extração como `MODERNIZACAO_COMPATIVEL`, preservar nomes
-públicos e incluir os novos arquivos no `.vcxproj`/`.filters`. Validar com
-MSBuild Debug Win32 e `git diff --check`; não declarar `CLIENT_TESTED` sem
-execução manual do fluxo correspondente.
+Classify each extraction as `MODERNIZACAO_COMPATIVEL`, preserve public names,
+and add new files to `.vcxproj` and `.filters`. Validate with MSBuild Debug
+Win32 and `git diff --check`. Do not claim `CLIENT_TESTED` without executing
+the corresponding client flow.

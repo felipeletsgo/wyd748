@@ -1,87 +1,90 @@
-# Dispatch de login e seleção de personagem
+# Login and character-selection dispatch
 
-## Mapa atual
+## Current map
 
-- `CPSock::ReadPacketView` valida o enquadramento e preserva opcode, ponteiro e
-  tamanho real em `PacketView`.
-- `ObjectManager::OnPacketView` aplica `received_packet::Dispatch` antes de
-  qualquer callback legado; frames conhecidos só seguem quando `Size`, `Type`
-  e comprimento real coincidem com o contrato exato.
-- `TMScene::OnPacketEvent` executa o comportamento comum e repassa à cena após
-  esse gate.
-- `TMFieldScene::OnPacketEvent` trata `0x10A` (`MSG_CNFAccountLogin`) e
-  `0x114` (`MSG_CNFCharacterLogin`) por meio de métodos próprios.
-- `TMSelectServerScene` também trata `MSG_CNFAccountLogin_Opcode` durante a
-  seleção de servidor.
-- `TMSelectCharScene` trata `MSG_CNFCharacterLogin_Opcode` durante a seleção
-  de personagem.
+- `CPSock::ReadPacketView` validates framing and preserves the opcode,
+  pointer, and actual length in `PacketView`.
+- `ObjectManager::OnPacketView` runs `received_packet::Dispatch` before any
+  legacy callback. Known frames proceed only when `Size`, `Type`, and actual
+  length match the exact contract.
+- `TMScene::OnPacketEvent` performs common handling and forwards to the scene
+  after that gate.
+- `TMFieldScene::OnPacketEvent` handles `0x10A` (`MSG_CNFAccountLogin`) and
+  `0x114` (`MSG_CNFCharacterLogin`) through its own methods.
+- `TMSelectServerScene` also handles `MSG_CNFAccountLogin_Opcode` during server
+  selection.
+- `TMSelectCharScene` handles `MSG_CNFCharacterLogin_Opcode` during character
+  selection.
 
-O comprimento não é mais descartado na fronteira de `NewApp`. A API virtual
-legada continua recebendo `(dwCode, buf)` para preservar os callbacks
-sintéticos existentes, mas somente depois da validação size-aware global.
+Length is no longer discarded at the `NewApp` boundary. The legacy virtual
+API still receives `(dwCode, buf)` to preserve existing synthetic callbacks,
+but only after the global length-aware validation.
 
-## Decisão de migração
+## Migration decision
 
-Os métodos de cena não foram extraídos: eles alteram estado, controles e
-ownership de objetos. A fachada atual continua responsável pelo lifecycle e
-pela troca de cena. A proteção de memória foi isolada no gate global, sem
-duplicar parsing nem alterar a ordem dos callbacks.
+Scene methods were not extracted because they change state, controls, and
+object ownership. The current facade remains responsible for lifecycle and
+scene transitions. Memory protection is isolated in the global gate without
+duplicating parsing or changing callback order.
 
-## Exclusão de personagem no RC 7.48
+## Character deletion in the 7.48 release candidate
 
-`SelCharScene2.bin` contém o painel modal 626 e o edit de senha 627. Após
-confirmar o botão de exclusão 4615, o controle 1024 envia `0x211/44` com
-slot, nome e senha; o controle 921 cancela sem envio. Esses IDs são do client
-nativo 7.48, não do TMProject 7.69. O servidor continua autoritativo: valida
-slot, nome e senha da conta antes de persistir e responder com `0x112/1288`.
-O candidato recompilado liga esses controles e limpa o edit ao confirmar ou
-cancelar. O fluxo completo ainda precisa de teste manual no client.
+`SelCharScene2.bin` contains modal panel 626 and password edit control 627.
+After confirming deletion button 4615, control 1024 sends `0x211/44` with
+slot, name, and password; control 921 cancels without sending. These IDs come
+from the native 7.48 client, not TMProject 7.69. The server remains
+authoritative: it validates the slot, name, and account password before
+persistence and responds with `0x112/1288`. The rebuilt candidate binds these
+controls and clears the password edit on confirmation or cancellation. The
+complete flow still needs a manual client test.
 
-## Contrato extraído
+## Extracted contract
 
-`internal/wire/LoginPacketContract.h` concentra a classificação dos envelopes
-de login/seleção emitidos pelo servidor:
+`internal/wire/LoginPacketContract.h` classifies login/selection envelopes
+sent by the server:
 
 - `0x10A` (`MSG_CNFAccountLogin`): 2360 bytes;
-- `0x110` e `0x112` (`MSG_CNFNewCharacter` e
+- `0x110` and `0x112` (`MSG_CNFNewCharacter` and
   `MSG_CNFDeleteCharacter`): 1288 bytes;
 - `0x114` (`MSG_CNFCharacterLogin`): 2104 bytes;
-- `0x11A` e `0x11C` (falha ao criar e conta já conectada): 12 bytes.
+- `0x11A` and `0x11C` (creation failure and account already connected):
+  12 bytes.
 
-`received_packet::Dispatch` usa esses tamanhos como igualdade exata e rejeita
-prefixos truncados, cauda excedente, buffer nulo e divergência entre opcode,
-`Header.Type`, `Header.Size` e comprimento real antes dos casts das cenas.
+`received_packet::Dispatch` requires exact lengths and rejects truncated
+prefixes, extra trailing bytes, null buffers, and mismatches among opcode,
+`Header.Type`, `Header.Size`, and actual length before scene casts.
 
-`internal/application/ports/PacketView.h` fornece a vista não proprietária:
-opcode, ponteiro e tamanho enquadrado viajam juntos sem mudar o wire nem assumir
-ownership. O modo desta proteção é `MODERNIZACAO_COMPATIVEL`.
+`internal/application/ports/PacketView.h` provides a non-owning view: opcode,
+pointer, and framed length travel together without changing wire or taking
+ownership. This guard is classified as `MODERNIZACAO_COMPATIVEL`.
 
-## Solicitacao de entrada extraida — 2026-09-05
+## Extracted character-login request — 2026-09-05
 
-`TMSelectCharScene` delega a montagem e o envio de `0x213` a
-`RequestCharacterLogin(ICharacterLoginSender&, slot)`. O caso de uso valida
-0..3 e chama a porta semantica uma vez, sem importar wire ou plataforma.
-`CharacterLoginSender` codifica um unico `MSG_CharacterLogin` zerado usando
-`ITransport`; `SocketTransport<CPSock>` empresta o
-socket e encaminha uma vez a `CPSock::SendPacket`. A cena continua dona da
-existencia do personagem, debounce, timestamp e desabilitacao dos botoes,
-inclusive quando o envio falha. Nenhum handler de recepcao foi extraido.
+`TMSelectCharScene` delegates construction and transmission of `0x213` to
+`RequestCharacterLogin(ICharacterLoginSender&, slot)`. The use case validates
+slots 0..3 and calls the semantic port once, without importing wire or
+platform concerns. `CharacterLoginSender` encodes one zero-initialized
+`MSG_CharacterLogin` via `ITransport`; `SocketTransport<CPSock>` borrows the
+socket and forwards once to `CPSock::SendPacket`. The scene still owns
+character-existence checks, debounce, timestamps, and button disabling,
+including when sending fails. No receive handler was extracted.
 
-Modo: `MODERNIZACAO_COMPATIVEL`; extracao local da source existente. Evidencia
-reutilizada: `scene-transition.md`, secao "Evento de selecao e packet 0x213"
-em `.agents/research/client748/flows/lifecycle/`: `FUN_004A32DD`, callsite
-`0x004A3422`, 36 bytes zerados, opcode em +4 e slot em +12. Nao se promove a
-maturidade da ficha nem se altera o contrato do servidor.
+Classification: `MODERNIZACAO_COMPATIVEL`; local extraction from existing
+source. Reused evidence: `scene-transition.md` in
+`.agents/research/client748/flows/lifecycle/`, section covering character
+selection and packet `0x213`: `FUN_004A32DD`, call site `0x004A3422`, 36
+zero-initialized bytes, opcode at +4, and slot at +12. This does not promote
+the evidence record's maturity or change the server contract.
 
-`MessageHeader.h` e `CharacterLoginPacket.h` sao os donos unicos dos dois
-structs extraidos. SharedStructs/Basedef os reexportam para compatibilidade.
-Asserts preservam tamanho, offsets e tipos subjacentes WORD/BYTE/DWORD; testes
-comparam todos os 36 bytes antes do transporte para os quatro slots.
-O header independente ainda exige o modelo de inteiros Windows (long de 32
-bits); isto nao representa uma migracao de plataforma.
+`MessageHeader.h` and `CharacterLoginPacket.h` are the sole owners of the two
+extracted structs. SharedStructs/Basedef re-export them for compatibility.
+Assertions preserve sizes, offsets, and underlying WORD/BYTE/DWORD types;
+tests compare all 36 bytes before transport for all four slots. The standalone
+header still requires the Windows integer model (32-bit `long`); this is not
+a platform migration.
 
-## Validacao manual pendente
+## Pending manual validation
 
-Antes de mover qualquer handler, testar login aceito, login recusado, seleção
-de personagem válida, seleção recusada e retorno à tela anterior. O build não
-substitui esses testes de fluxo.
+Before moving another handler, test accepted and rejected login, valid and
+rejected character selection, and return to the previous screen. A build does
+not replace those flow tests.
