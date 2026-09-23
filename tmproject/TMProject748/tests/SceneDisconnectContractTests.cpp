@@ -243,6 +243,36 @@ int RunSceneDisconnectContractTests(int& checks)
     check(validCatalogIndex(abilitySource, itemAbilityStart) &&
         validCatalogIndex(abilitySource, staticAbilityStart),
         "item ability readers reject the first index beyond the 7.48 ItemList before lookup");
+    const auto bonusNoSancStart = abilitySource.find("int BASE_GetBonusItemAbilityNosanc(");
+    const auto bonusStart = abilitySource.find("int BASE_GetBonusItemAbility(", bonusNoSancStart);
+    const auto bonusEnd = abilitySource.find("int BASE_GetItemAbilityNosanc(", bonusStart);
+    const auto bonusGuard = "if (item->sIndex <= 0 || item->sIndex >= MAX_ITEMLIST)";
+    check(bonusNoSancStart != std::string::npos && bonusStart != std::string::npos &&
+        bonusEnd != std::string::npos &&
+        abilitySource.substr(bonusNoSancStart, bonusStart - bonusNoSancStart).find(bonusGuard) != std::string::npos &&
+        abilitySource.substr(bonusStart, bonusEnd - bonusStart).find(bonusGuard) != std::string::npos &&
+        abilitySource.substr(bonusStart, bonusEnd - bonusStart).find("g_pItemList[item->sIndex]") != std::string::npos,
+        "bonus ability readers reject index 6500 before the catalog lookup");
+    const auto passiveStart = abilitySource.find("int IsPassiveSkill(int nSkillIndex)");
+    const auto passiveBody = passiveStart != std::string::npos
+        ? abilitySource.substr(passiveStart, 400) : std::string{};
+    const auto passiveGuard = passiveBody.find("nSkillIndex < 0 || nSkillIndex >= MAX_SPELL_LIST");
+    const auto passiveLookup = passiveBody.find("g_pSpell[nSkillIndex]");
+    check(passiveGuard != std::string::npos && passiveLookup != std::string::npos &&
+        passiveGuard < passiveLookup &&
+        passiveBody.substr(passiveGuard, passiveLookup - passiveGuard).find("return 0;") != std::string::npos,
+        "passive-skill lookup rejects normalized indexes outside the 7.48 spell table");
+    const auto shortcutStart = fieldSource.find("void TMFieldScene::SetShortSkill(");
+    const auto shortcutGuard = fieldSource.find("pGridItem->m_pItem->sIndex >= MAX_ITEMLIST", shortcutStart);
+    const auto shortcutPassive = fieldSource.find("IsPassiveSkill(pGridItem->m_pItem->sIndex)", shortcutStart);
+    const auto shortcutCatalog = fieldSource.find("g_pItemList[pGridItem->m_pItem->sIndex]", shortcutStart);
+    check(shortcutStart != std::string::npos && shortcutGuard != std::string::npos &&
+        shortcutPassive != std::string::npos && shortcutCatalog != std::string::npos &&
+        shortcutGuard < shortcutPassive && shortcutPassive < shortcutCatalog,
+        "shortcuts reject invalid 7.48 item IDs before passive-skill and catalog lookups");
+    check(fieldSource.find("g_pObjectManager->m_stMobData.Equip[4].sIndex < MAX_ITEMLIST") != std::string::npos &&
+        fieldSource.find("capeIndex > 0 && capeIndex < MAX_ITEMLIST") != std::string::npos,
+        "equipment-derived skill delay and cape text bound ItemList indexes");
     const auto weaponDamageStart = fieldSource.find("int TMFieldScene::GetWeaponDamage()");
     const auto weaponDamageEnd = fieldSource.find("void TMFieldScene::SetMyHumanMagic()", weaponDamageStart);
     const auto weaponDamageBody = weaponDamageStart != std::string::npos &&

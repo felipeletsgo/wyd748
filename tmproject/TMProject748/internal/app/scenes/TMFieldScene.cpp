@@ -9844,6 +9844,8 @@ int TMFieldScene::GetSkillDelay(int skillIndex) const
 			g_pObjectManager->m_stMobData.CurrentScore.Level >= 79)
 			return 1000;
 		if (skillIndex == 40 &&
+			g_pObjectManager->m_stMobData.Equip[4].sIndex > 0 &&
+			g_pObjectManager->m_stMobData.Equip[4].sIndex < MAX_ITEMLIST &&
 			g_pItemList[g_pObjectManager->m_stMobData.Equip[4].sIndex].nPos == 16)
 			return 1;
 	}
@@ -17989,7 +17991,11 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 
 				m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pMyHuman->UnSetCitizenMantle(m_pKingDomFlag->m_GCPanel.nTextureIndex);
 				if (m_pFlagDescText[0])
-					m_pFlagDescText[0]->SetText(g_pItemList[pMobData->Equip[15].sIndex].Name, 0);
+				{
+					const int capeIndex = pMobData->Equip[15].sIndex;
+					m_pFlagDescText[0]->SetText(capeIndex > 0 && capeIndex < MAX_ITEMLIST
+						? g_pItemList[capeIndex].Name : nullptr, 0);
+				}
 
 				sprintf(szTemp, "%s %d", g_pMessageStringTable[80], BASE_GetItemAbility(&pMobData->Equip[15], 3));
 				if (m_pFlagDescText[1])
@@ -18267,6 +18273,7 @@ void TMFieldScene::IncSkillSel()
 void TMFieldScene::SetShortSkill(int nIndex, SGridControlItem* pGridItem)
 {
 	if (!pGridItem || !pGridItem->m_pItem || nIndex < 0 || nIndex >= 20 ||
+		pGridItem->m_pItem->sIndex <= 0 || pGridItem->m_pItem->sIndex >= MAX_ITEMLIST ||
 		IsPassiveSkill(pGridItem->m_pItem->sIndex))
 		return;
 
@@ -28375,7 +28382,7 @@ void TMFieldScene::UpdateNewStore(int idwControlID)
 					sprintf(str, "$: %d", i.price);
 					LabelPrice->SetText(str, 0);
 
-					sprintf(str1, "Qtd: %d", i.stuck);
+					sprintf(str1, "Quantity: %d", i.stuck);
 					LabelEstoque->SetText(str1, 0);
 			}
 			catch (...)
@@ -28457,7 +28464,7 @@ void TMFieldScene::UpdateNewStore(int idwControlID)
 				sprintf(str, "$: %d", i.price);
 				LabelPrice->SetText(str, 0);
 
-				sprintf(str, "Qtd: %d", i.stuck);
+				sprintf(str, "Quantity: %d", i.stuck);
 				LabelEstoque->SetText(str, 0);
 
 				
@@ -28587,7 +28594,7 @@ int TMFieldScene::OnPacketNewCashRev(PacketRevDonate* P)
 			sprintf(str, "$: %d", P->price);
 			LabelPrice->SetText(str, 0);
 
-			sprintf(str, "Qtd: %d", P->stuck);
+			sprintf(str, "Quantity: %d", P->stuck);
 			LabelEstoque->SetText(str, 0);
 
 			

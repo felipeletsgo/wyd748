@@ -2304,7 +2304,7 @@ int BASE_CanEquip_RecvRes(STRUCT_REQ* req, STRUCT_ITEM* item, STRUCT_SCORE* scor
 
 int BASE_GetBonusItemAbilityNosanc(STRUCT_ITEM* item, char Type)
 {
-    if (item->sIndex <= 0 || item->sIndex > MAX_ITEMLIST)
+    if (item->sIndex <= 0 || item->sIndex >= MAX_ITEMLIST)
         return 0;
 
     if (item->sIndex >= 3200 && item->sIndex <= 3300)
@@ -2336,7 +2336,7 @@ int BASE_GetBonusItemAbilityNosanc(STRUCT_ITEM* item, char Type)
 
 int BASE_GetBonusItemAbility(STRUCT_ITEM* item, char Type)
 {
-    if (item->sIndex <= 0 || item->sIndex > 6500)
+    if (item->sIndex <= 0 || item->sIndex >= MAX_ITEMLIST)
         return 0;
 
     if (item->sIndex >= 3200 && item->sIndex <= 3300)
@@ -3257,8 +3257,8 @@ bool BASE_CanRefine(STRUCT_ITEM* item)
 /**
  * Normalizes the supplied ID (>=5400: -5200; >=5000: -5000) and reads Passive
  * from the global g_pSpell table. Returns 1 only when that field is 1.
- * The caller must ensure the table is loaded and the normalized index fits;
- * this function neither checks bounds nor modifies the table.
+ * The caller must ensure the table is loaded. Invalid normalized indexes
+ * return false; this function does not modify the table.
  */
 int IsPassiveSkill(int nSkillIndex)
 {
@@ -3266,6 +3266,9 @@ int IsPassiveSkill(int nSkillIndex)
         nSkillIndex -= 5200;
     else if (nSkillIndex >= 5000)
         nSkillIndex -= 5000;
+
+    if (nSkillIndex < 0 || nSkillIndex >= MAX_SPELL_LIST)
+        return 0;
 
     return g_pSpell[nSkillIndex].Passive == 1;
 }
