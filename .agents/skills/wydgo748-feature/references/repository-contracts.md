@@ -1,376 +1,151 @@
-# Contratos técnicos transversais
+# Cross-cutting technical contracts
 
-As regras de trabalho e o roteamento vivem apenas no `AGENTS.md` da raiz.
-Esta referência mantém os invariantes do produto; não comprova que todos os
-fluxos já passaram por validação integrada. Caminhos de packages e dados abaixo
-são relativos a `wydgo748/`. Para o client, consulte `client-ui-748.md` e
-`ghidra-client748.md`; para build e artefatos, `DOCS/build-and-integration.md`.
+Working rules and skill routing live only in the root `AGENTS.md`. This
+reference records product invariants; it does not claim that every flow has
+passed integrated validation. Package and data paths below are relative to
+`wydgo748/`. For the client, see `client-ui-748.md` and `ghidra-client748.md`;
+for builds and artifacts, see `DOCS/build-and-integration.md`.
 
-# Contratos arquiteturais
+## Architecture
 
-## World
+### World
 
-`World` é o único dono do estado mutável de gameplay.
+`World` is the sole owner of mutable gameplay state. No other package may
+maintain a second source of truth for game state.
 
-Nenhum outro package pode manter uma segunda fonte de verdade para estado de
-jogo.
+### Score
 
-## Score
+`Score` v2 is authoritative. The active wire format uses the 140-byte
+`STRUCT_SCORE`, equivalent to `model.Score`. The coordinated contract is in
+`DOCS/SCORE.md`; no legacy projection is active. Never derive authoritative
+state from values received from the client.
 
-`Score` v2 é autoritativo.
+### Server-side validation
 
-O wire ativo usa `STRUCT_SCORE` de 140 bytes, equivalente a `model.Score`.
-O contrato coordenado está em `DOCS/SCORE.md`; não há projeção legada ativa.
+Validate, where applicable: packet, size, opcode, phase, session state, target,
+identity, distance, terrain, gameplay space, cooldown, item, UID, slot, price,
+requirements, balance, inventory, capacity, membership, sequence, and deadline.
+Do not trust packet fields merely because the client usually sends them
+correctly.
 
-Nunca derive estado autoritativo de valores recebidos do client.
+## Persistence and duplication prevention
 
-## Validação server-side
-
-Validar no servidor, quando aplicável:
-
-- packet;
-- tamanho;
-- opcode;
-- fase;
-- estado da sessão;
-- alvo;
-- identidade;
-- distância;
-- terreno;
-- gameplay space;
-- cooldown;
-- item;
-- UID;
-- slot;
-- preço;
-- requisito;
-- saldo;
-- inventário;
-- capacidade;
-- membership;
-- sequência;
-- deadline.
-
-Não confiar em campos do pacote apenas porque o client normalmente os envia
-corretamente.
-
----
-
-# Persistência e anti-dupe
-
-PostgreSQL é a persistência autoritativa.
-
-JSON existe somente como adaptador explícito de desenvolvimento:
+PostgreSQL is authoritative persistence. JSON exists only as an explicit
+development adapter:
 
 ```text
 database_driver=json
 ```
 
-Não existe fallback automático.
+There is no automatic fallback. If PostgreSQL is configured but unavailable,
+the server must fail during startup rather than start with another state.
 
-Se PostgreSQL estiver configurado e indisponível, o servidor deve falhar no
-boot em vez de iniciar com outro estado.
-
-Toda operação capaz de criar dupe segue:
+Every operation that can duplicate state follows this order:
 
 ```text
-validar
-→ criar snapshot/cópia
-→ mutar estado
-→ persistir
-→ publicar
+validate -> snapshot/copy -> mutate -> persist -> publish
 ```
 
-Se a persistência falhar:
+If persistence fails, restore the **entire** snapshot; never perform a partial
+rollback. Check this order especially for crafting, purchases/sales, trades,
+tickets, instances, rewards, ground drops, ascension, counters, guilds,
+inventory, and equipment. Never publish confirmation to the client before
+persistence when that could confirm an uncommitted operation.
+
+## Identities
 
 ```text
-restaurar TODO o snapshot
+ClientID       = ephemeral live entity / wire identity
+CharacterUID   = stable character identity
+Item UID       = stable server-side identity of a materialized item
+RuntimeID      = server-side gameplay-space identity
 ```
 
-Não fazer rollback parcial.
+`ClientID` can be reused after disconnect. Do not use it as a persistent or
+durable identity for ownership, persisted affects, reconnect, rewards,
+resumable membership, long-lived delayed actions, or database state. Check the
+risk of ID reuse for every reference that outlives the tick or session that
+created it. Item UIDs never go on the wire.
 
-Especialmente revisar essa ordem em:
+## Gameplay space
 
-- craft;
-- compra/venda;
-- trade;
-- ticket;
-- instância;
-- reward;
-- ground drop;
-- ascensão;
-- counters;
-- guild;
-- inventário;
-- equipamento.
-
-Persistência e publicação nunca devem ficar em ordem inversa quando isso puder
-confirmar ao client uma operação ainda não persistida.
-
----
-
-# Identidades
-
-Distinguir sempre:
+`RuntimeID` is an authoritative gameplay boundary:
 
 ```text
-ClientID       = identidade efêmera da entidade live / wire
-CharacterUID   = identidade estável do personagem
-Item UID       = identidade estável server-side do item materializado
-RuntimeID      = identidade server-side do gameplay space
+RuntimeID == ""  -> public world
+RuntimeID != ""  -> private/shared runtime
 ```
 
-`ClientID` pode ser reutilizado após disconnect.
+Dynamic entities share a space only when their RuntimeIDs are exactly equal.
+Apply this rule, where relevant, to Player/Player, Player/Mob, Mob/Player,
+Mob/Mob, summons, bosses, skills, AoE, affects, AI, aggro, party EXP, drops,
+ground items, rewards, collision, movement, spawn, teleport, and reconnect.
+Never infer gameplay space from coordinates: entities in different runtimes
+may occupy exactly the same coordinates.
 
-Portanto `ClientID` não deve ser usado como identidade persistente ou durável
-para:
+Global NPCs, merchants, and permanent objects need explicit exceptions when
+necessary. Do not create an implicit exception merely because `RuntimeID == ""`.
+`Merchant != 0` is never hostile or attackable.
 
-- ownership;
-- affects persistidos;
-- reconnect;
-- rewards;
-- membership resumível;
-- delayed actions long-lived;
-- estado salvo no banco.
+## Visibility and updates
 
-Sempre verificar risco de ID reuse em qualquer referência que sobreviva ao
-tick ou à sessão que a criou.
+Do not use `CreateMob` to update an already visible player. Use the appropriate
+incremental packets for score, affects, equipment, movement, HP, and state.
+`CreateMob` is for initial materialization.
 
-UID de item nunca vai ao wire.
+## Spatial index
 
----
+Use the spatial index for local queries. Do not scan all mobs or players on
+frequent ticks for a spatial query. Explicitly check the complexity of each
+new tick mechanic.
 
-# Gameplay space
-
-`RuntimeID` é uma fronteira autoritativa de gameplay.
+## Inventory
 
 ```text
-RuntimeID == ""  → mundo público
-RuntimeID != ""  → runtime privado/compartilhado
+Inventory: 64 structural slots; 63 visible slots
+Cargo:     128 structural slots; 120 visible slots
 ```
 
-Para entidades dinâmicas, dois participantes pertencem ao mesmo espaço somente
-quando os RuntimeIDs são exatamente iguais.
+Do not confuse a structural index with a visible client cell.
 
-A regra deve valer, conforme aplicável, para:
+## Authoritative data
 
-- Player ↔ Player;
-- Player ↔ Mob;
-- Mob ↔ Player;
-- Mob ↔ Mob;
-- summons;
-- boss;
-- skills;
-- AoE;
-- affects;
-- AI;
-- aggro;
-- party EXP;
-- drops;
-- ground items;
-- rewards;
-- collision;
-- movement;
-- spawn;
-- teleport;
-- reconnect.
+Files under `data/` are the authoritative source of content:
 
-Nunca inferir gameplay space por coordenadas.
+- `itemlist.csv` defines items, static effects, and static item values.
+- `Itemname.csv` overrides names only; it must not change semantics.
+- `ItemEffect.h` defines the `ID <-> EF_*` mapping for persisted effects.
+- `SkillData.csv` defines every skill parameter.
 
-Entidades em runtimes diferentes podem ocupar exatamente as mesmas coordenadas.
+Do not duplicate file-defined values in hardcoded maps, Go tables, correction
+switches, post-load overrides, or duplicate constants. Load authoritative
+values from their files.
 
-NPCs globais, merchants e objetos permanentes devem possuir exceções explícitas
-quando necessário. Não implementar exceção implícita apenas porque
-`RuntimeID == ""`.
+## Package responsibilities
 
-`Merchant != 0` nunca é hostil nem atacável.
+- `model`: pure domain logic; no protocol, store, or session.
+- `wire`: protocol, cryptography, serialization, and builders only; no gameplay
+  rules.
+- `net`: connections, sessions, and transport only; no game rules.
+- `store`: persistence.
+- `data`: loaders and validation of authoritative files.
+- `game`: coordination and gameplay rules, split by feature.
 
----
+Handlers decode, validate the basic envelope, and route. Do not put extensive
+feature logic in `world.go` or `handlers.go`; create a feature-specific file
+when the rules grow.
 
-# Visibilidade e atualização
+## Language
 
-Não usar `CreateMob` para atualizar jogador que já está visível.
+All authored product and project text must be in English, including text sent
+to the client, logs, comments, diagnostics, documentation, tests, and scripts.
+Follow the compatibility exceptions and migration requirements in `AGENTS.md`.
 
-Para entidade já materializada, usar packets incrementais apropriados:
+## WYD 7.48 protocol
 
-- score;
-- affects;
-- equipamento;
-- movimento;
-- HP;
-- estado.
-
-`CreateMob` é para materialização inicial.
-
----
-
-# Índice espacial
-
-Usar o índice espacial para consultas locais.
-
-Não varrer todos os mobs ou todos os players em ticks frequentes quando a
-consulta é espacial.
-
-Ao adicionar uma nova mecânica de tick, verificar explicitamente sua
-complexidade.
-
----
-
-# Inventário
-
-Inventário:
-
-```text
-64 slots estruturais
-63 slots visíveis
-```
-
-Cargo:
-
-```text
-128 slots estruturais
-120 slots visíveis
-```
-
-Não confundir índice estrutural com célula visível do client.
-
----
-
-# Dados autoritativos
-
-Arquivos sob `data/` são a fonte autoritativa de conteúdo.
-
-## Itens
-
-`itemlist.csv` define:
-
-- itens;
-- efeitos estáticos;
-- valores estáticos do item.
-
-## Nomes
-
-`Itemname.csv` substitui somente nomes.
-
-Não deve alterar semântica.
-
-## Efeitos
-
-`ItemEffect.h` define a relação:
-
-```text
-ID ↔ EF_*
-```
-
-dos efeitos persistidos.
-
-## Skills
-
-`SkillData.csv` define todos os parâmetros das skills.
-
-Não duplicar valores desses arquivos em:
-
-- maps hardcoded;
-- tabelas Go;
-- switches de correção;
-- overrides pós-load;
-- constantes duplicadas.
-
-Se um valor existe em arquivo autoritativo, o código deve carregá-lo.
-
----
-
-# Organização
-
-## model
-
-Domínio puro.
-
-Sem protocolo, store ou sessão.
-
-## wire
-
-Somente:
-
-- protocolo;
-- criptografia;
-- serialização;
-- builders.
-
-Não colocar regra de gameplay.
-
-## net
-
-Somente:
-
-- conexão;
-- sessão;
-- transporte.
-
-Não colocar regra de jogo.
-
-## store
-
-Persistência.
-
-## data
-
-Loaders e validação dos arquivos autoritativos.
-
-## game
-
-Coordenação e regras de gameplay.
-
-Fragmentar por feature.
-
-Handlers devem:
-
-```text
-decodificar
-→ validar envelope básico
-→ rotear
-```
-
-Não colocar lógica extensa em:
-
-```text
-world.go
-handlers.go
-```
-
-Criar arquivo específico da feature quando a regra crescer.
-
----
-
-# Texto
-
-Texto enviado ao client deve ser em inglês.
-
-Logs e comentários internos podem ser em português.
-
----
-
-# Protocolo WYD 7.48
-
-O protocolo é byte-exato.
-
-Nunca considerar um packet correto apenas porque os campos aparentam estar
-certos.
-
-Ao criar ou alterar packet:
-
-1. confirmar opcode;
-2. confirmar tamanho;
-3. confirmar offsets;
-4. confirmar tipos;
-5. confirmar signed/unsigned;
-6. confirmar padding;
-7. confirmar ID do header;
-8. confirmar comportamento do client;
-9. comparar com packet nativo quando possível.
-
-Um byte extra ou ausente pode fazer o client ou servidor rejeitar o packet.
-
-Não portar layouts diretamente de 7.54/7.59 para 7.48.
-
----
+The protocol is byte-exact. A packet is not correct merely because its fields
+appear correct. When creating or changing a packet, confirm its opcode, size,
+offsets, types, signedness, padding, header ID, client behavior, and, where
+possible, compare it with a native packet. One missing or extra byte can make
+the client or server reject the packet. Do not directly port 7.54/7.59 layouts
+to 7.48.

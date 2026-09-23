@@ -8,6 +8,9 @@ a partial translation as completion.
 ## Completed entry points
 
 - Root repository rules and all active skill entry points.
+- The emulator and cross-cutting contract references in the server feature
+  skill are in English. The latter no longer permits Portuguese logs or
+  comments; both now follow the repository-wide rule.
 - Root README and documentation README.
 - Generated documentation inventory labels and layout-validator messages.
 - `tmproject/Build-Client.ps1` help, diagnostics, and validation status.
@@ -86,6 +89,9 @@ a partial translation as completion.
    `tmproject/`, and `wydgo748/` as each affected workflow is validated.
 5. Translate `.agents/research/` and `.agents/handoffs/` where they are still
    used for current decisions; preserve technical evidence and provenance.
+6. Translate the remaining Portuguese prose in active skill references. A
+   translated skill entry point does not imply that all its supporting
+   references have been migrated.
 
 Code identifiers, persisted values, packet bytes, resource keys, and fixture
 data require compatibility review before renaming. English prose is the goal;
