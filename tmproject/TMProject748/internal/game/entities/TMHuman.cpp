@@ -4244,10 +4244,10 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 {
     auto pSendItem = reinterpret_cast<MSG_SendItem*>(pStd);
 
-    // Recebe ownership somente depois de PickupItem/PickupAtItem retirar o
-    // objeto da grid. Aplicar a mesma limpeza a Equip, Carry e Cargo evita
-    // deixar hover/venda/attachment apontando para memoria liberada. A politica
-    // e local, equivalente a Empty; nao afirma paridade do cleanup nativo.
+    // Ownership transfers only after PickupItem/PickupAtItem removes the item
+    // from its grid. Apply the same cleanup to Equip, Carry, and Cargo so hover,
+    // sale, and attachment pointers cannot reference freed memory. This is a
+    // local policy equivalent to Empty, not a claim of native cleanup parity.
     const auto releaseReplacedItem = [](SGridControlItem* item)
     {
         if (!item)
@@ -4265,9 +4265,9 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 
     TMFieldScene* pFScene{};
 
-    // O tamanho do frame e validado na entrada do ObjectManager. Aqui a
-    // capacidade dos arrays locais decide os indices antes de qualquer copia
-    // ou efeito visual. Slots adicionais da source continuam preservados.
+    // ObjectManager validates the frame size on entry. Local array capacity
+    // bounds each index before any copy or visual effect. Additional source
+    // slots remain preserved.
     auto pMobData = &g_pObjectManager->m_stMobData;
     const int destination = pSendItem->DestPos;
     if ((pSendItem->DestType == 0 &&
@@ -4308,8 +4308,8 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 
             memcpy(&pMobData->Equip[pSendItem->DestPos], &pSendItem->Item, sizeof(STRUCT_ITEM));
 
-            // O cache de selecao e auxiliar: um sentinela de personagem nao
-            // deve impedir a atualizacao autoritativa do equipamento no mundo.
+            // The selection cache is auxiliary: a character sentinel must not
+            // prevent the authoritative equipment update in the world.
             const int characterSlot = g_pObjectManager->m_cCharacterSlot;
             if (pSendItem->DestPos && characterSlot >= 0 && characterSlot < 4)
                 memcpy(&g_pObjectManager->m_stSelCharData.Equip[characterSlot][pSendItem->DestPos], &pSendItem->Item, sizeof(STRUCT_ITEM));
@@ -4532,9 +4532,9 @@ int TMHuman::OnPacketUpdateEquip(MSG_STANDARD* pStd)
             int nMountHP = BASE_GetItemAbility(&pMobData->Equip[14], EF_MOUNTHP);
             if (m_pMountHPBar)
                 m_pMountHPBar->SetCurrentProgress(nMountHP);
-            auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-            if (g_pCurrentScene)
+            if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
             {
+                auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
                 // Equip refresh can arrive before optional 7.59 HUD controls;
                 // the 7.48 character and mount state remain authoritative.
                 if (pFScene->m_pMHPBar)
@@ -5649,8 +5649,8 @@ int TMHuman::OnPacketCarry(MSG_Carry* pStd)
 		pGridItem->m_nHeight = cellHeight;
 		pGridItem->m_GCObj.m_fWidth = cellWidth;
 		pGridItem->m_GCObj.m_fHeight = cellHeight;
-		// A grade só assume ownership após aceitar a célula. O snapshot lógico
-		// continua autoritativo mesmo se a projeção visual ficar sem capacidade.
+		// The grid takes ownership only after accepting the cell. The logical
+		// snapshot remains authoritative if the visual projection has no capacity.
 		if (pScene->m_pGridInv->AddItem(pGridItem,
 			nCarryIndex % 9, nCarryIndex / 9) != 1)
 			SAFE_DELETE(pGridItem);
@@ -6649,7 +6649,7 @@ void TMHuman::SetColorMaterial()
         {
             if ((m_dwID >= 0 && m_dwID < 1000) || (m_stScore.Merchant & 0xF) != 15)
             {
-                if (m_dwID < 0 || m_dwID >= 1000 && IsMerchant())//cor do contorno do npc
+                if (m_dwID < 0 || m_dwID >= 1000 && IsMerchant()) // NPC outline color
                     m_dwEdgeColor = 0x8800FF00;
                 else if (m_TradeDesc[0])
                     m_dwEdgeColor = 0x8800FF00;
@@ -6659,7 +6659,7 @@ void TMHuman::SetColorMaterial()
                     m_dwEdgeColor = 0x8800FFFF;
                 else
                 {
-                    int bTown = IsInTown(); //cor do contorno do personagem
+                    int bTown = IsInTown(); // Character outline color
                     if (bTown || m_pProgressBar->m_GCProgress.dwColor != 0xFFFF0000)
                         m_dwEdgeColor = 0x88FFFFFF;
                     else

@@ -229,6 +229,19 @@ int RunSceneDisconnectContractTests(int& checks)
         itemIndexGuard < firstModelWrite &&
         sendItemHandler.substr(itemIndexGuard, bagView - itemIndexGuard).find("return 1;") != std::string::npos,
         "SendItem rejects an item outside the 7.48 catalog before changing local state");
+    const auto updateEquipEnd = humanSource.find("int TMHuman::OnPacketUpdateAffect", sendItemEnd);
+    const auto updateEquipHandler = sendItemEnd != std::string::npos &&
+        updateEquipEnd != std::string::npos
+        ? humanSource.substr(sendItemEnd, updateEquipEnd - sendItemEnd) : std::string{};
+    const auto mountHudGuard = updateEquipHandler.find(
+        "if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)");
+    const auto mountHudCast = updateEquipHandler.find(
+        "auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);");
+    const auto mountHudWrite = updateEquipHandler.find("pFScene->m_pMHPBar->SetCurrentProgress(nMountHP);");
+    check(!updateEquipHandler.empty() && mountHudGuard != std::string::npos &&
+        mountHudCast != std::string::npos && mountHudWrite != std::string::npos &&
+        mountHudGuard < mountHudCast && mountHudCast < mountHudWrite,
+        "UpdateEquip accesses mount HUD only after verifying the field scene type");
     const auto swapStart = fieldSource.find("int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)");
     const auto swapEnd = fieldSource.find("int TMFieldScene::OnPacketShopList", swapStart);
     const auto swapHandler = swapStart != std::string::npos && swapEnd != std::string::npos
