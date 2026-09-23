@@ -1,10 +1,10 @@
 ---
 id: shop-list-contract
-title: Contrato da lista de loja NPC
+title: NPC shop-list contract
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-07
+updated: 2026-09-23
 ---
 
 # Lista de loja NPC
@@ -81,6 +81,10 @@ continua sendo a topologia nativa 9x3 por pagina, conforme o tipo de loja.
 - Validar 236 bytes antes de limpar ou materializar a loja.
 - Manter o limite de 27 itens e o tail Tax intacto.
 - Preservar o lifecycle normal/skill existente.
+- `MODERNIZACAO_COMPATIVEL`: both merchant packet handlers now reject an
+  unbound grid before changing coupon or shop state. The ordinary skill packet
+  also rejects a malformed first skill item before clearing the visible grid,
+  matching the alternate handler. Neither guard changes the 7.48 wire ABI.
 
 ## Lacunas
 
@@ -101,3 +105,7 @@ continua sendo a topologia nativa 9x3 por pagina, conforme o tipo de loja.
   `39B9FC79FE86388E54DB32FB31F0EADAC5E0E81012CE4D3960A705CC708427A7`.
 - Estado `AUTOMATED TESTED` / `STATICALLY VERIFIED`; o fluxo ainda nao e
   `CLIENT_TESTED`.
+- 2026-09-23: 51,873 architecture checks and the Release `-NoDeploy` build
+  passed. The resulting artifact SHA-256 is
+  `118BC5E1DBC74F5A49D9A8BAA201BC30ABD644B8B8F994CE206D0B9240EA48CF`.
+  This is automated/static evidence only; no visual client test was attempted.

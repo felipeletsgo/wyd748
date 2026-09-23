@@ -151,6 +151,31 @@ int RunSceneDisconnectContractTests(int& checks)
         shopListHandler.substr(merchantGridGuard, couponStateChange - merchantGridGuard)
             .find("return 0;") != std::string::npos,
         "merchant ShopList rejects an unbound grid before changing coupon or shop state");
+    const auto skillBranch = shopListHandler.find("else if (pShopList->ShopType == 3)");
+    const auto skillFirstItemGuard = shopListHandler.find(
+        "if (pShopList->List[0].sIndex < 5000)", skillBranch);
+    const auto skillGridUse = shopListHandler.find("m_pGridSkillMaster->Empty();", skillBranch);
+    check(skillBranch != std::string::npos && skillFirstItemGuard != std::string::npos &&
+        skillGridUse != std::string::npos && skillBranch < skillFirstItemGuard &&
+        skillFirstItemGuard < skillGridUse &&
+        shopListHandler.substr(skillFirstItemGuard, skillGridUse - skillFirstItemGuard)
+            .find("return 0;") != std::string::npos,
+        "skill ShopList rejects a malformed first item before replacing the visible grid");
+    const auto rmbShopStart = fieldSource.find("int TMFieldScene::OnPacketRMBShopList(");
+    const auto rmbShopEnd = fieldSource.find("int TMFieldScene::OnPacketBuy(", rmbShopStart);
+    const auto rmbShopHandler = rmbShopStart != std::string::npos &&
+        rmbShopEnd != std::string::npos
+        ? fieldSource.substr(rmbShopStart, rmbShopEnd - rmbShopStart) : std::string{};
+    const auto rmbMerchantGuard = rmbShopHandler.find("if (!m_pGridShop)");
+    const auto rmbCouponStateChange = rmbShopHandler.find("m_bEventCouponClick = 0;");
+    const auto rmbMerchantGridUse = rmbShopHandler.find("pGrid->Empty();");
+    check(!rmbShopHandler.empty() && rmbMerchantGuard != std::string::npos &&
+        rmbCouponStateChange != std::string::npos && rmbMerchantGridUse != std::string::npos &&
+        rmbMerchantGuard < rmbCouponStateChange &&
+        rmbCouponStateChange < rmbMerchantGridUse &&
+        rmbShopHandler.substr(rmbMerchantGuard, rmbCouponStateChange - rmbMerchantGuard)
+            .find("return 0;") != std::string::npos,
+        "RMB merchant ShopList rejects an unbound grid before changing coupon or shop state");
     const auto carryGrid = fieldSource.find("SGridControl* TMFieldScene::GetCarryGridForSlot(int slot) const");
     const auto cargoGrid = fieldSource.find("SGridControl* TMFieldScene::GetCargoGridForSlot(int slot) const", carryGrid);
     const auto carryGridBody = carryGrid != std::string::npos && cargoGrid != std::string::npos

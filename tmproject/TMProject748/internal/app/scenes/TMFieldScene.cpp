@@ -24600,6 +24600,13 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 				m_pSkillMSec1, m_pSkillMSec2, m_pSkillMSec3);
 			return 0;
 		}
+		if (pShopList->List[0].sIndex < 5000)
+		{
+			WYD748_DiagnosticsLog(
+				"skill-master malformed first item=%d\r\n",
+				pShopList->List[0].sIndex);
+			return 0;
+		}
 
 		m_pGridSkillMaster->Empty();
 
@@ -24672,6 +24679,12 @@ int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)
 {
 	if (pMsg->ShopType == 1)
 	{
+		if (!m_pGridShop)
+		{
+			WYD748_DiagnosticsLog("rmb merchant grid missing for ShopList\r\n");
+			return 0;
+		}
+
 		if (m_bEventCouponClick == 1)
 		{
 			m_bEventCouponClick = 0;
