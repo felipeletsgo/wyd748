@@ -1,30 +1,30 @@
 <section id="accounts" class="panel account-create" aria-labelledby="account-create-title">
   <div class="account-create-copy">
-    <span class="eyebrow">CONTAS DE JOGADOR</span>
-    <h2 id="account-create-title">Criar uma conta compatível com o client 7.48</h2>
-    <p>O cadastro grava somente a conta e o hash da senha. Personagens são criados depois, dentro do jogo.</p>
+    <span class="eyebrow">PLAYER ACCOUNTS</span>
+    <h2 id="account-create-title">Create an account compatible with the 7.48 client</h2>
+    <p>Registration stores only the account and a password hash. Characters are created later in the game.</p>
     <ul>
-      <li>Conta: 4–12 letras ou números</li>
-      <li>Senha: 4–10 caracteres, sem espaços</li>
-      <li>O PIN administrativo autoriza cada cadastro</li>
+      <li>Account: 4–12 letters or digits</li>
+      <li>Password: 4–10 characters, no spaces</li>
+      <li>The administrative PIN authorizes each registration</li>
     </ul>
   </div>
   <form id="account-create-form" class="account-create-form">
-    <label for="new-account-username">Nova conta</label>
-    <input id="new-account-username" name="username" autocomplete="username" minlength="4" maxlength="12" pattern="[a-zA-Z0-9]{4,12}" required placeholder="4 a 12 letras ou números" />
+    <label for="new-account-username">New account</label>
+    <input id="new-account-username" name="username" autocomplete="username" minlength="4" maxlength="12" pattern="[a-zA-Z0-9]{4,12}" required placeholder="4 to 12 letters or digits" />
     <div class="account-create-passwords">
       <div>
-        <label for="new-account-password">Senha</label>
-        <input id="new-account-password" name="password" type="password" autocomplete="new-password" minlength="4" maxlength="10" pattern="[^\s]{4,10}" required placeholder="Senha do jogo" />
+        <label for="new-account-password">Password</label>
+        <input id="new-account-password" name="password" type="password" autocomplete="new-password" minlength="4" maxlength="10" pattern="[^\s]{4,10}" required placeholder="Game password" />
       </div>
       <div>
-        <label for="new-account-confirmation">Confirmar senha</label>
-        <input id="new-account-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="4" maxlength="10" pattern="[^\s]{4,10}" required placeholder="Repita a senha" />
+        <label for="new-account-confirmation">Confirm password</label>
+        <input id="new-account-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="4" maxlength="10" pattern="[^\s]{4,10}" required placeholder="Repeat the password" />
       </div>
     </div>
-    <label for="new-account-pin">PIN administrativo <span>6–12 dígitos</span></label>
+    <label for="new-account-pin">Administrative PIN <span>6–12 digits</span></label>
     <input id="new-account-pin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6,12}" minlength="6" maxlength="12" required placeholder="000000" />
-    <p id="account-create-message" class="form-message" role="status" aria-live="polite">A conta poderá entrar no jogo assim que for criada.</p>
-    <button id="account-create-submit" class="button primary" disabled>Criar conta <span aria-hidden="true">↗</span></button>
+    <p id="account-create-message" class="form-message" role="status" aria-live="polite">The account can sign in to the game once created.</p>
+    <button id="account-create-submit" class="button primary" disabled>Create account <span aria-hidden="true">↗</span></button>
   </form>
 </section>

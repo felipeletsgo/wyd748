@@ -11,6 +11,10 @@ a partial translation as completion.
 - Root README and documentation README.
 - Generated documentation inventory labels and layout-validator messages.
 - `tmproject/Build-Client.ps1` help, diagnostics, and validation status.
+- The staff portal's static and dynamic UI text, including forms, event controls,
+  moderation, teleportation, status messages, and English date/number formatting.
+- The in-source 7.48 client CC-mode control labels, the item position,
+  and the selected server endpoint diagnostic.
 
 ## Remaining work
 
@@ -18,8 +22,8 @@ a partial translation as completion.
    `tmproject/TMProject748/` and `tmproject/client748/`. Translate prose without
    changing resource IDs, binary formats, or protocol payloads. Validate
    affected UI flows in the actual 7.48 client when client testing is possible.
-2. Audit server-facing and administrator-facing messages in `wydgo748/`, then
-   update corresponding tests, web-panel text, and API documentation together.
+2. Audit remaining server-facing and administrator-facing messages in
+   `wydgo748/`, then update corresponding tests and API documentation together.
 3. Translate active guides in `DOCS/`, including their headings, examples, and
    cross-links. Keep established paths stable unless every reference is updated.
 4. Translate scripts, diagnostics, and test descriptions in `tools/`,

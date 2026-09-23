@@ -6,12 +6,14 @@ are documentation, not active instructions.
 
 ## Project language
 
-English is the sole language of this global WYD project. All human-readable
-repository content must be in English, including client UI, messages,
-diagnostics, comments, documentation, rules, skills, tests, scripts, and
-release material. Translate existing Portuguese text when touching it and
-track the remaining migration. Do not change protocol bytes, resource IDs,
-persisted values, or established identifiers just to translate prose. Never
+English is the sole language of this global WYD project. No Portuguese text is
+acceptable in shipped client or server content, the staff panel, active
+documentation, diagnostics, comments, tests, scripts, rules, skills, or release
+material. Write all new content in English and translate Portuguese text in
+files being changed. Existing Portuguese text is migration debt, not a
+permanent exception; track and remove it until the repository is fully in
+English. Preserve protocol bytes, resource IDs, persisted values, and
+established identifiers when translation would break compatibility. Never
 claim a partial translation is complete.
 
 ## Active architecture

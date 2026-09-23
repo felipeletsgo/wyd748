@@ -13,16 +13,16 @@ export function setupBosses(api: API, explain: (error: unknown) => string) {
   let busy = false;
   let generation = 0;
   const messages: Record<string, string> = {
-    ok: 'Boss invocado pelo servidor.',
-    stale_boss: 'O estado do boss mudou. Consulte novamente antes de enviar outra operação.',
-    boss_alive: 'O boss já está vivo e não foi duplicado.',
-    unknown_boss: 'Este boss não existe mais na configuração carregada.',
-    spawn_failed: 'O servidor não conseguiu criar o boss. O ciclo de respawn anterior foi preservado.',
-    invalid_command: 'Operação inválida. Confira o motivo e consulte novamente.',
-    operation_conflict: 'Este identificador já foi utilizado com outra operação. Consulte o estado atual.',
-    operation_capacity: 'O limite de operações desta execução foi atingido. Reinicie o servidor antes de novos summons administrativos.',
-    capability_required: 'A sessão não tem mais permissão para invocar bosses.',
-    server_maintenance: 'O servidor está em manutenção e não aceita alterações.',
+    ok: 'Boss summoned by the server.',
+    stale_boss: 'Boss state changed. Check it again before sending another operation.',
+    boss_alive: 'The boss is already alive and was not duplicated.',
+    unknown_boss: 'This boss is no longer in the loaded configuration.',
+    spawn_failed: 'The server could not spawn the boss. The previous respawn cycle was preserved.',
+    invalid_command: 'Invalid operation. Check the reason and query again.',
+    operation_conflict: 'This identifier was already used for another operation. Check the current state.',
+    operation_capacity: 'Operation limit reached for this run. Restart the server before further admin summons.',
+    capability_required: 'This session no longer has permission to summon bosses.',
+    server_maintenance: 'The server is under maintenance and does not accept changes.',
   };
 
   function setControls() {
@@ -38,13 +38,13 @@ export function setupBosses(api: API, explain: (error: unknown) => string) {
 
   function respawnLabel(boss: Boss) {
     if (boss.alive) return '—';
-    if (!boss.respawnAt) return 'Sem agendamento';
+    if (!boss.respawnAt) return 'Not scheduled';
     const at = new Date(boss.respawnAt);
     const remaining = Math.max(0, at.getTime() - Date.now());
     const totalSeconds = Math.ceil(remaining / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${at.toLocaleString('pt-BR')} · em ${minutes}m ${seconds}s`;
+    return `${at.toLocaleString('en-US')} · in ${minutes}m ${seconds}s`;
   }
 
   function appendCell(row: HTMLTableRowElement, value: string, small?: string) {
@@ -66,25 +66,25 @@ export function setupBosses(api: API, explain: (error: unknown) => string) {
     if (!value.bosses.length) {
       const row = document.createElement('tr');
       const cell = document.createElement('td');
-      cell.className = 'empty'; cell.colSpan = 7; cell.textContent = 'Nenhum boss configurado.';
+      cell.className = 'empty'; cell.colSpan = 7; cell.textContent = 'No bosses configured.';
       row.appendChild(cell); body.appendChild(row);
     }
     for (const boss of value.bosses) {
       const row = document.createElement('tr');
       appendCell(row, boss.name || boss.id, boss.id);
-      appendCell(row, boss.alive ? 'Vivo' : 'Morto', boss.alive ? `Mob ${boss.mobId}` : `Revisão ${boss.revision}`);
-      appendCell(row, boss.alive ? `${boss.hp.toLocaleString('pt-BR')} / ${boss.maxHp.toLocaleString('pt-BR')}` : `0 / ${boss.maxHp.toLocaleString('pt-BR')}`);
+      appendCell(row, boss.alive ? 'Alive' : 'Dead', boss.alive ? `Mob ${boss.mobId}` : `Revision ${boss.revision}`);
+      appendCell(row, boss.alive ? `${boss.hp.toLocaleString('en-US')} / ${boss.maxHp.toLocaleString('en-US')}` : `0 / ${boss.maxHp.toLocaleString('en-US')}`);
       appendCell(row, boss.alive ? `${boss.x}, ${boss.y}` : '—');
       appendCell(row, `${boss.spawnX}, ${boss.spawnY}`);
       appendCell(row, respawnLabel(boss));
       const action = appendCell(row, '');
       const button = document.createElement('button');
       button.type = 'button'; button.className = 'button subtle boss-summon';
-      button.dataset.bossSummon = boss.id; button.textContent = boss.alive ? 'Já está vivo' : 'Invocar boss';
+      button.dataset.bossSummon = boss.id; button.textContent = boss.alive ? 'Already alive' : 'Summon boss';
       action.replaceChildren(button);
       body.appendChild(row);
     }
-    text('bosses-asof', `Leitura de ${new Date(value.asOf).toLocaleString('pt-BR')}. Estado não é atualizado automaticamente.`);
+    text('bosses-asof', `Snapshot from ${new Date(value.asOf).toLocaleString('en-US')}. State is not updated automatically.`);
     setControls();
   }
 
@@ -97,7 +97,7 @@ export function setupBosses(api: API, explain: (error: unknown) => string) {
       if (current !== generation) return;
       if (value.version !== 1 || value.epoch.length !== 32 || !Array.isArray(value.bosses)) throw new Error('Invalid bosses snapshot');
       render(value);
-      if (!pending) text('bosses-message', 'Estado dos bosses consultado.');
+      if (!pending) text('bosses-message', 'Boss state retrieved.');
     } catch (error) {
       if (current !== generation) return;
       status = undefined;
@@ -110,18 +110,18 @@ export function setupBosses(api: API, explain: (error: unknown) => string) {
     const command = pending;
     const current = generation;
     busy = true; setControls();
-    text('bosses-message', 'Aguardando confirmação do servidor…');
+    text('bosses-message', 'Waiting for server confirmation…');
     try {
       const result = await api<Result>('/staff/bosses', 'POST', command);
       if (current !== generation) return;
       if (result.operationId !== command.operationId || !messages[result.code]) throw new Error('Invalid bosses receipt');
       pending = undefined;
       render(result.status);
-      text('bosses-message', `${messages[result.code]}${result.replayed ? ' Resultado recuperado sem repetir o summon.' : ''}`);
+      text('bosses-message', `${messages[result.code]}${result.replayed ? ' Outcome recovered without repeating the summon.' : ''}`);
       if (result.code === 'stale_boss') void refresh();
     } catch (error) {
       if (current !== generation) return;
-      text('bosses-message', `${explain(error)} O resultado não foi confirmado. Use o botão de repetir solicitação; ele preserva o mesmo identificador e não duplica o summon.`);
+      text('bosses-message', `${explain(error)} Outcome not confirmed. Use the retry button; it preserves the same identifier and does not duplicate the summon.`);
     } finally { if (current === generation) { busy = false; setControls(); } }
   }
 
@@ -133,7 +133,7 @@ export function setupBosses(api: API, explain: (error: unknown) => string) {
     if (!reason.reportValidity()) return;
     const command: Command = { version: 1, operationId: crypto.randomUUID(), epoch: status.epoch, bossId: boss.id,
       expectedRevision: boss.revision, action: 'summon', reason: reason.value.trim() };
-    if (!window.confirm(`Invocar ${boss.name || boss.id} em ${boss.spawnX}, ${boss.spawnY}?\nMotivo: ${command.reason}`)) return;
+    if (!window.confirm(`Summon ${boss.name || boss.id} at ${boss.spawnX}, ${boss.spawnY}?\nReason: ${command.reason}`)) return;
     pending = command;
     void send();
   }
@@ -147,8 +147,8 @@ export function setupBosses(api: API, explain: (error: unknown) => string) {
 
   return { refresh, reset() {
     generation++; status = undefined; pending = undefined; busy = false;
-    el('bosses-body').innerHTML = '<tr><td class="empty" colspan="7"><span>◇</span>Aguardando consulta<small>Use Consultar bosses para carregar o estado atual.</small></td></tr>';
-    text('bosses-asof', 'Sem atualização automática.'); text('bosses-message', '');
+    el('bosses-body').innerHTML = '<tr><td class="empty" colspan="7"><span>◇</span>Waiting for a query<small>Use Check bosses to load the current state.</small></td></tr>';
+    text('bosses-asof', 'No automatic updates.'); text('bosses-message', '');
     setControls();
   } };
 }

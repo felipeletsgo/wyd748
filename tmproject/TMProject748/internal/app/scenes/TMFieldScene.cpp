@@ -1187,9 +1187,9 @@ void TMFieldScene::InitializeCompatInventory()
 	m_pGridCabuncle = findGrid(TMG_CABUNCLE_GRID);
 	m_pGridDRing = findGrid(TMG_DRING_GRID);
 	m_pGridMantua = findGrid(TMG_MANTUA_GRID);
-	// O contrato 7.48 do emulador não possui equipamento Necklace nem os
-	// NewSlot usados por versões posteriores. Limpar e ocultar os controles
-	// herdados evita que um item moderno sobreviva no root compartilhado 257.
+	// The emulator's 7.48 contract has no Necklace equipment or the NewSlot
+	// entries used by later versions. Clearing and hiding inherited controls
+	// prevents a modern item from surviving in shared root 257.
 	auto disableUnsupportedEquipGrid = [this](unsigned int controlID,
 		SGridControl*& member)
 	{
@@ -2307,9 +2307,9 @@ int TMFieldScene::InitializeCompatFieldScene()
 	InitializeFireWorkControls();
 	InitializeQuizEventControls();
 	UpdateCompatLearnedSkillUI();
-	// Os contadores sao criados em runtime no caminho completo e nao pertencem
-	// ao FieldScene2.bin. O retorno compatível ocorria antes dessas alocacoes,
-	// embora o WYD-Go envie 0x3A1/0x3B0 durante instancias e quests.
+	// Counters are created at runtime on the full path and are not part of
+	// FieldScene2.bin. The compatible early return skipped these allocations,
+	// although WYD-Go sends 0x3A1/0x3B0 during instances and quests.
 	InitializeRuntimeCounterTexts();
 	// The full field initializer runs this exact sequence after focusing the local
 	// human.  Without it the compact 7.48 path leaves TMCamera in quarter-view 1,
@@ -2342,7 +2342,7 @@ void TMFieldScene::InitializeCompatCCControls()
 		m_pccmode->AddChild(label);
 		return label;
 	};
-	addText(0, "Controle de Combate", 4.0f, 2.0f, 150.0f);
+	addText(0, "Combat Control", 4.0f, 2.0f, 150.0f);
 	m_pCCModeHpSte = addText(T_CCMODE_HPSTE, "", 46.0f, 46.0f, 44.0f);
 	m_pCCModeMountSte = addText(T_CCMODE_MOUNTSTE, "", 90.0f, 46.0f, 44.0f);
 	addText(T_CCMODE_COMPAT_MODE, "", 2.0f, 46.0f, 44.0f);
@@ -2359,17 +2359,17 @@ void TMFieldScene::InitializeCompatCCControls()
 		m_pccmode->AddChild(button);
 		return button;
 	};
-	m_pMGameAutoBtn = addButton(B_CCMODE_DLG_MODE, 550, 11.0f, "Combate");
-	m_pCCPotionBtn = addButton(B_CCMODE_DLG_HP, 554, 55.0f, "Pocao HP/MP: clique para ajustar o percentual");
-	m_pCCFeedBtn = addButton(B_CCMODE_DLG_MOUNT, 555, 99.0f, "Racao: clique para ajustar ou desligar");
-	m_pSetType = addButton(P_CCMODE_DLG_PONT, 556, 143.0f, "Movimento");
+	m_pMGameAutoBtn = addButton(B_CCMODE_DLG_MODE, 550, 11.0f, "Combat");
+	m_pCCPotionBtn = addButton(B_CCMODE_DLG_HP, 554, 55.0f, "HP/MP potion: click to adjust the percentage");
+	m_pCCFeedBtn = addButton(B_CCMODE_DLG_MOUNT, 555, 99.0f, "Mount feed: click to adjust or turn off");
+	m_pSetType = addButton(P_CCMODE_DLG_PONT, 556, 143.0f, "Movement");
 	char closeText[] = "X";
 	auto close = new SButton(-2, 160.0f, 2.0f, 16.0f, 16.0f, 0xFFFFFFFF, 1, closeText);
 	close->SetControlID(B_CCMODE_COMPAT_CLOSE);
 	close->SetEventListener(m_pControlContainer);
 	m_pccmode->AddChild(close);
 
-	char caption[] = "C.C. - configurar combate automatico";
+	char caption[] = "C.C. - configure automatic combat";
 	m_pCC_Btn = new SButton(559, 0.0f, 0.0f, 30.0f, 30.0f, 0xFFFFFFFF, 1, caption);
 	m_pCC_Btn->SetControlID(B_CCMODE_SYSTEM);
 	m_pCC_Btn->SetEventListener(m_pControlContainer);
@@ -3953,7 +3953,7 @@ int TMFieldScene::InitializeScene()
 
 	if (g_pApp->m_dwScreenWidth <= 1024)
 	{
-		///////////////////////caça List///////////////////////////
+		///////////////////////hunt list///////////////////////////
 		m_pPotalPanel11->m_nWidth = BASE_ScreenResize(330.0f);
 
 
@@ -4009,7 +4009,7 @@ int TMFieldScene::InitializeScene()
 				pTradeMyGrids[i]->m_nPosX = BASE_ScreenResize(tradeGridX[i % 5]);
 		}
 
-		///////////////////////composição///////////////////////////
+		///////////////////////composition///////////////////////////
 		m_pCompbuton->m_nPosX = BASE_ScreenResize(256.0f);
 		m_pCompbuton1->m_nPosX = BASE_ScreenResize(256.0f);
 		m_pCompvalue->m_nPosX = BASE_ScreenResize(270.0f);
@@ -4030,7 +4030,7 @@ int TMFieldScene::InitializeScene()
 		m_pCompPanel[0]->m_nPosX = BASE_ScreenResize(246.0f);
 		m_pCompPanel[1]->m_nPosX = BASE_ScreenResize(303.0f);
 		m_pCompPanel[2]->m_nPosX = BASE_ScreenResize(273.0f);
-		///////////////////////composição///////////////////////////
+		///////////////////////composition///////////////////////////
 		m_pMixPanel2->m_nWidth = BASE_ScreenResize(375.0f);
 		m_pMixPanel1->m_nWidth = BASE_ScreenResize(375.0f);
 		m_pMixPanel1->m_nPosX = BASE_ScreenResize(-80.0f);
@@ -16220,8 +16220,8 @@ int TMFieldScene::TryStageNativeMixItem(SGridControl* sourceGrid,
 		delete itemCopy;
 		return 1;
 	}
-	// Só publicar o staging depois que a grade assumir ownership; uma falha
-	// deixa o item original no cursor e o packet local sem mutação parcial.
+	// Publish the staged item only after the grid takes ownership; on failure,
+	// the original item remains on the cursor without a partial local packet mutation.
 	if (targetGrid->AddItem(stagedItem, 0, 0) != 1)
 	{
 		SAFE_DELETE(stagedItem);
@@ -17870,7 +17870,7 @@ void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 		if (m_pBonusDROP)
 			m_pBonusDROP->SetText(szStr, 0);
 
-		auto labelcash = (SText*)m_pControlContainer->FindControl(3000069); //qual é a label la do cahs?
+		auto labelcash = (SText*)m_pControlContainer->FindControl(3000069); // Cash label.
 		sprintf(szStr, "%d", Cash);
 		labelcash->SetText(szStr, 0);
 
@@ -24237,8 +24237,8 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 	SGridControlItem* pDestItem = nullptr;
 
 	SGridControl* pGridSrc[MAX_EQUIPITEM]{};
-	// O packet confirma o estado lógico mesmo quando um visual não cabe na
-	// grade atual. Nessa falha a propriedade continua local até a liberação.
+	// The packet confirms logical state even when a visual does not fit the
+	// current grid. On failure, ownership remains local until release.
 	auto releaseRejectedVisual = [](SGridControlItem*& item)
 	{
 		if (SGridControl::m_pLastMouseOverItem == item)
@@ -25793,7 +25793,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 		if (pAttacker != m_pMyHuman || pAttack->FlagLocal == 1 && pAttacker == m_pMyHuman || !pAttack->FlagLocal && 
 			pAttacker == m_pMyHuman && (unsigned char)pAttack->Motion == 254)
 		{
-			if (pAttack->SkillIndex == 4) // Possuído
+			if (pAttack->SkillIndex == 4) // Possessed
 			{
 				pAttacker->m_cPunish = 1;
 				pAttacker->m_dwPunishedTime = g_pTimerManager->GetServerTime();
@@ -25816,7 +25816,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					fAngle = atan2f(pTarget->m_vecPosition.x - pAttacker->m_vecPosition.x, pTarget->m_vecPosition.y - pAttacker->m_vecPosition.y) + D3DXToRadian(90);
 			}
 
-			if (pAttack->SkillIndex == 98) // Canhão Superior
+			if (pAttack->SkillIndex == 98) // Superior Cannon
 				fAngle = atan2f((float)pAttack->TargetX - pAttacker->m_vecPosition.x, (float)pAttack->TargetY - pAttacker->m_vecPosition.y) + D3DXToRadian(90);
 			if (pAttack->DoubleCritical & 1)
 				pAttacker->m_bDoubleAttack = 1;
@@ -25886,7 +25886,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				if (pEffect && m_pEffectContainer)
 					m_pEffectContainer->AddChild(pEffect);
 			}
-			else if (pAttack->SkillIndex == 3) // Perseguição
+			else if (pAttack->SkillIndex == 3) // Pursuit
 			{
 				if (pAttacker)
 				{
@@ -25913,7 +25913,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					GetSoundAndPlay(151, 0, 0);
 				}
 			}
-			else if (pAttack->SkillIndex == 45) // Arma Mágica
+			else if (pAttack->SkillIndex == 45) // Magic Weapon
 			{
 				float fY = (float)pAttack->TargetY + 0.5f;
 				TMVector3 vecTarget{ (float)pAttack->TargetX + 0.5f, (float)GroundGetMask(TMVector2((float)pAttack->TargetX + 0.5f, fY)) * 0.1f, fY };
@@ -26171,7 +26171,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 			{
 				GetSoundAndPlay(34, 0, 0);
 			}
-			else if (pAttack->SkillIndex == 77) // Meditação
+			else if (pAttack->SkillIndex == 77) // Meditation
 			{
 				GetSoundAndPlay(36, 0, 0);
 			}
@@ -26211,7 +26211,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					}
 				}
 			}
-			else if (pAttack->SkillIndex == 86) // Explosão Etérea
+			else if (pAttack->SkillIndex == 86) // Ethereal Explosion
 			{
 				if (pAttacker)
 				{
@@ -26391,7 +26391,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 
 				GetSoundAndPlay(1, 0, 0);
 			}
-			else if (pAttack->SkillIndex == 100) // Ressureição
+			else if (pAttack->SkillIndex == 100) // Resurrection
 			{
 				GetSoundAndPlay(156, 0, 0);
 			}
@@ -27239,7 +27239,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 												}
 												else if (bInScreen)
 												{
-													if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // atk físico
+													if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 													{
 														pFont = new TMFont3(szStr, nTX + 20 - 10 * bViewHalf,
 															(int)(RenderDevice::m_fHeightRatio * 80.0f) +
@@ -27274,7 +27274,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 												m_pMyHuman->m_bCritical = 1;
 												if (bInScreen)
 												{
-													if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // atk físico
+													if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 													{
 
 														pFont = new TMFont3(szStr, nTX + 20 - 10 * bViewHalf,
@@ -27317,7 +27317,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 												if (bInScreen)
 												{
 
-													if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // atk físico
+													if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 													{
 														//pFont = new TMFont3(szStr, nTX,
 														//	(int)(RenderDevice::m_fHeightRatio * 80.0f) +
@@ -27379,7 +27379,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 											}
 											else if (bInScreen)
 											{
-												if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // atk físico
+												if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 												{
 													pFont = new TMFont3(szStr, nTX,
 														(int)(RenderDevice::m_fHeightRatio * 40.0f) +
@@ -27745,7 +27745,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 											}
 											else if (bInScreen)
 											{
-												if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // atk físico
+												if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 												{
 													pFont = new TMFont3(szStr, nTX - 10 * i,
 														(int)(RenderDevice::m_fHeightRatio * 80.0f) +
@@ -27775,7 +27775,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 										}
 										else if (bInScreen)
 										{
-											if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // atk físico
+											if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 											{
 												pFont = new TMFont3(szStr, nTX - 10 * i,
 													(int)(RenderDevice::m_fHeightRatio * 80.0f) +
@@ -28505,8 +28505,8 @@ void TMFieldScene::UpdateNewStore(int idwControlID)
 				char msg[102] = { 0, };
 				char msg2[102] = { 0, };
 
-				/*sprintf_s(msg, 102, "Deseja adquirir o item %s", g_pItemList[Item->m_pItem->sIndex].Name);
-				sprintf_s(msg2, 102, "Valor do cash será descontado.");
+				/*sprintf_s(msg, 102, "Would you like to buy item %s?", g_pItemList[Item->m_pItem->sIndex].Name);
+				sprintf_s(msg2, 102, "The cash amount will be deducted.");
 
 			    m_pMessageBox->SetMessage(msg, 0x301, msg2);
 				m_pMessageBox->SetVisible(1);*/
@@ -28684,7 +28684,7 @@ void TMFieldScene::UpdateGridDropList(int page)
 			if (lb[i] == 478487)
 				sprintf(str, "%s", lstName);
 			else if (lb[i] == 478477)
-				sprintf(str, "Posição: %d %d", it->X, it->Y);
+				sprintf(str, "Position: %d %d", it->X, it->Y);
 			else if (lb[i] == 478489)
 				sprintf(str, " %d", it->gold);
 			else if (lb[i] == 478490)
@@ -28696,7 +28696,7 @@ void TMFieldScene::UpdateGridDropList(int page)
 		}
 	}
 
-	//onde fica?
+	// Where is it located?
 
 
 	if (strcmp(_HudControl.DropListEvent.DropSelected.Name, lstName))
@@ -29893,7 +29893,7 @@ int TMFieldScene::Affect_Main(unsigned int dwServerTime)
 					+ m_pAffectIcon[i]->m_nPosX;
 				m_pAffectIcon[i]->m_nPosY = BASE_ScreenResize(80.0f);
 
-				m_pAffectIcon[i]->m_nPosY = 60.0f * RenderDevice::m_fWidthRatio;// correção das skils
+				m_pAffectIcon[i]->m_nPosY = 60.0f * RenderDevice::m_fWidthRatio;// skill position adjustment
 				m_pAffectIcon[i]->m_nPosY = 80.0f * RenderDevice::m_fHeightRatio;
 
 				if (m_pAffectIcon[i]->m_bOver == 1)
@@ -31221,7 +31221,7 @@ DWORD WINAPI Guildmark_Download(void* pArg)
 	char strURL[64]{};
 
 	auto URLMark = "http://meusite.com/guilds/";
-	strcpy(strURL, URLMark); // g_pMessageStringTable[377] local onde buscar o endereço para guildmark
+	strcpy(strURL, URLMark); // g_pMessageStringTable[377] stores the guild mark address
 	strcat(strURL, pMark->strMarkFileName);
 
 	if (!pFScene->m_hInternetSession)

@@ -1,22 +1,22 @@
 <section id="bosses" class="panel bosses-panel" aria-labelledby="bosses-title">
   <div class="panel-heading">
-    <div><span class="eyebrow">OPERAÇÕES DO SERVIDOR</span><h2 id="bosses-title">Bosses configurados</h2></div>
-    <button id="bosses-refresh" class="button subtle" type="button">Consultar bosses</button>
+    <div><span class="eyebrow">SERVER OPERATIONS</span><h2 id="bosses-title">Configured bosses</h2></div>
+    <button id="bosses-refresh" class="button subtle" type="button">Refresh bosses</button>
   </div>
   <div class="event-body">
-    <p class="muted">Consulta o estado autoritativo dos bosses configurados e permite invocar manualmente apenas bosses mortos. O spawn usa o mesmo lifecycle normal do servidor.</p>
+    <p class="muted">View the authoritative state of configured bosses and manually spawn only dead bosses. Spawning follows the server's normal lifecycle.</p>
     <div class="bosses-toolbar">
-      <label for="bosses-reason">Motivo da operação</label>
-      <input id="bosses-reason" minlength="3" maxlength="200" required placeholder="Ex.: evento comunitário" />
-      <button id="bosses-retry" class="button subtle" type="button" hidden>Consultar resultado / repetir solicitação</button>
+      <label for="bosses-reason">Reason for operation</label>
+      <input id="bosses-reason" minlength="3" maxlength="200" required placeholder="E.g. community event" />
+      <button id="bosses-retry" class="button subtle" type="button" hidden>Check result / retry request</button>
     </div>
     <p id="bosses-message" class="form-message" role="status" aria-live="polite"></p>
     <div class="table-scroll">
       <table class="bosses-table">
-        <thead><tr><th>Boss</th><th>Estado</th><th>HP</th><th>Posição atual</th><th>Spawn</th><th>Respawn previsto</th><th>Ação</th></tr></thead>
-        <tbody id="bosses-body"><tr><td class="empty" colspan="7"><span>◇</span>Aguardando consulta<small>Use Consultar bosses para carregar o estado atual.</small></td></tr></tbody>
+        <thead><tr><th>Boss</th><th>Status</th><th>HP</th><th>Current position</th><th>Spawn</th><th>Expected respawn</th><th>Action</th></tr></thead>
+        <tbody id="bosses-body"><tr><td class="empty" colspan="7"><span>◇</span>Waiting for a query<small>Use Refresh bosses to load the current state.</small></td></tr></tbody>
       </table>
     </div>
-    <p id="bosses-asof" class="muted">Sem atualização automática.</p>
+    <p id="bosses-asof" class="muted">No automatic refresh.</p>
   </div>
 </section>

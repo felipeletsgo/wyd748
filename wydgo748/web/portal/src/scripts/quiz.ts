@@ -12,17 +12,17 @@ export function setupQuiz(api: API, explain: (error: unknown) => string) {
   let busy = false;
   let generation = 0;
   const messages: Record<string, string> = {
-    ok: 'Operação confirmada pelo servidor.',
-    stale_event: 'O evento ou o processo mudou. Confira o estado atual antes de enviar outra operação.',
-    event_active: 'Já existe um evento ativo. Encerre-o antes de iniciar outro.',
-    event_inactive: 'Este evento já está encerrado.',
-    unknown_item: 'ID de item inexistente no catálogo carregado pelo servidor.',
-    invalid_command: 'Configuração inválida. Confira item, quantidade, duração e motivo.',
-    operation_conflict: 'Identificador já utilizado com outra configuração. Consulte o estado atual.',
-    operation_capacity: 'Limite de operações deste processo atingido. Novos eventos estão bloqueados; o evento ativo ainda pode ser encerrado.',
-    capability_required: 'A sessão não tem mais permissão para controlar este evento.',
-    event_id_unavailable: 'Não foi possível gerar o identificador do evento. Tente uma nova operação.',
-    server_maintenance: 'O servidor está em manutenção e não aceita alterações.',
+    ok: 'Operation confirmed by the server.',
+    stale_event: 'The event or server process changed. Check the current state before sending another operation.',
+    event_active: 'An event is already active. End it before starting another.',
+    event_inactive: 'This event has already ended.',
+    unknown_item: 'Item ID not found in the server catalog.',
+    invalid_command: 'Invalid configuration. Check the item, quantity, duration, and reason.',
+    operation_conflict: 'Identifier already used with a different configuration. Check the current state.',
+    operation_capacity: 'Operation limit reached for this process. New events are blocked; the active event can still be ended.',
+    capability_required: 'This session no longer has permission to control this event.',
+    event_id_unavailable: 'Could not generate an event identifier. Try a new operation.',
+    server_maintenance: 'The server is under maintenance and does not accept changes.',
   };
   function buttons() {
     el<HTMLFieldSetElement>('quiz-settings').disabled = busy || !!pending || !status || status.active;
@@ -35,13 +35,13 @@ export function setupQuiz(api: API, explain: (error: unknown) => string) {
   }
   function render(value: Status) {
     status = value;
-    const ended = { time: 'prazo atingido', quantity: 'quantidade atingida', manual: 'encerrado pela equipe', '': '' };
-    text('quiz-state', value.active ? 'Ativo' : value.eventId ? `Encerrado · ${ended[value.endedBy] ?? value.endedBy}` : 'Nenhum evento iniciado');
-    text('quiz-item', value.itemId ? `${value.itemId} · ${value.itemName} · ${value.rewardQuantity} unidade(s) por acerto` : '—');
-    text('quiz-count', `${value.rounds} perguntas · ${value.correct} acertos · ${value.rewarded} premiados · ${value.deliveryFailures} falhas de entrega`);
-    text('quiz-end', value.endsAt ? new Date(value.endsAt).toLocaleString('pt-BR') : '—');
-    text('quiz-next', value.active && value.nextRoundAt ? new Date(value.nextRoundAt).toLocaleTimeString('pt-BR') : '—');
-    text('quiz-asof', `Leitura de ${new Date(value.asOf).toLocaleString('pt-BR')}${value.actor ? ` · iniciado por ${value.actor}` : ''}. Use Consultar evento para atualizar.`);
+    const ended = { time: 'time limit reached', quantity: 'quantity limit reached', manual: 'ended by staff', '': '' };
+    text('quiz-state', value.active ? 'Active' : value.eventId ? `Ended · ${ended[value.endedBy] ?? value.endedBy}` : 'No event started');
+    text('quiz-item', value.itemId ? `${value.itemId} · ${value.itemName} · ${value.rewardQuantity} unit(s) per correct answer` : '—');
+    text('quiz-count', `${value.rounds} questions · ${value.correct} correct · ${value.rewarded} rewarded · ${value.deliveryFailures} delivery failures`);
+    text('quiz-end', value.endsAt ? new Date(value.endsAt).toLocaleString('en-US') : '—');
+    text('quiz-next', value.active && value.nextRoundAt ? new Date(value.nextRoundAt).toLocaleTimeString('en-US') : '—');
+    text('quiz-asof', `Snapshot from ${new Date(value.asOf).toLocaleString('en-US')}${value.actor ? ` · started by ${value.actor}` : ''}. Use Check event to refresh.`);
     buttons();
   }
   async function refresh() {
@@ -53,11 +53,11 @@ export function setupQuiz(api: API, explain: (error: unknown) => string) {
       if (current !== generation) return;
       if (value.version !== 1 || value.epoch.length !== 32) throw new Error('Invalid event snapshot');
       render(value);
-      if (!pending) text('quiz-message', 'Estado consultado.');
+      if (!pending) text('quiz-message', 'State retrieved.');
     } catch (error) {
       if (current !== generation) return;
       status = undefined;
-      text('quiz-state', 'Dados do evento indisponíveis');
+      text('quiz-state', 'Event data unavailable');
       text('quiz-message', explain(error));
     } finally { if (current === generation) { busy = false; buttons(); } }
   }
@@ -66,17 +66,17 @@ export function setupQuiz(api: API, explain: (error: unknown) => string) {
     const command = pending;
     const current = generation;
     busy = true; buttons();
-    text('quiz-message', 'Aguardando confirmação do servidor…');
+    text('quiz-message', 'Waiting for server confirmation…');
     try {
       const result = await api<Result>('/staff/events/quiz', 'POST', command);
       if (current !== generation) return;
       if (result.operationId !== command.operationId || !messages[result.code]) throw new Error('Invalid event receipt');
       pending = undefined;
       render(result.status);
-      text('quiz-message', `${messages[result.code]}${result.replayed ? ' Resultado recuperado sem repetir a operação.' : ''}`);
+      text('quiz-message', `${messages[result.code]}${result.replayed ? ' Outcome recovered without repeating the operation.' : ''}`);
     } catch (error) {
       if (current !== generation) return;
-      text('quiz-message', `${explain(error)} O resultado não foi confirmado. Use o botão de repetir solicitação, que mantém o mesmo identificador; não recarregue a página.`);
+      text('quiz-message', `${explain(error)} Outcome not confirmed. Use the retry button, which keeps the same identifier; do not reload the page.`);
     } finally { if (current === generation) { busy = false; buttons(); } }
   }
   function prepare(action: 'start' | 'stop') {
@@ -89,8 +89,8 @@ export function setupQuiz(api: API, explain: (error: unknown) => string) {
     if (action === 'start') {
       c.itemId = number('quiz-item-id'); c.rewardQuantity = number('quiz-quantity'); c.durationSeconds = number('quiz-minutes') * 60;
     }
-    const detail = action === 'start' ? `Iniciar quiz por ${c.durationSeconds / 60} minutos?\nRecompensa por acerto: ${c.rewardQuantity} unidade(s) do item ${c.itemId}. Uma pergunta por minuto, 10 segundos para responder.` : `Encerrar o quiz e fechar a pergunta ativa?`;
-    if (!window.confirm(`${detail}\nMotivo: ${c.reason}`)) return;
+    const detail = action === 'start' ? `Start a quiz for ${c.durationSeconds / 60} minutes?\nReward per correct answer: ${c.rewardQuantity} unit(s) of item ${c.itemId}. One question per minute, with 10 seconds to answer.` : `End the quiz and close the active question?`;
+    if (!window.confirm(`${detail}\nReason: ${c.reason}`)) return;
     pending = c; void send();
   }
   el<HTMLFormElement>('quiz-form').addEventListener('submit', event => { event.preventDefault(); prepare('start'); });
@@ -99,9 +99,9 @@ export function setupQuiz(api: API, explain: (error: unknown) => string) {
   el('quiz-retry').addEventListener('click', () => void send());
   return { refresh, reset() {
     generation++; status = undefined; pending = undefined; busy = false;
-    text('quiz-state', 'Aguardando consulta');
+    text('quiz-state', 'Waiting for a query');
     for (const id of ['quiz-item', 'quiz-count', 'quiz-end', 'quiz-next']) text(id, '—');
-    text('quiz-asof', 'Sem atualização automática.'); text('quiz-message', '');
+    text('quiz-asof', 'No automatic updates.'); text('quiz-message', '');
     buttons();
   } };
 }

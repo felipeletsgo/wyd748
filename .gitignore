@@ -1,5 +1,6 @@
-# Saídas de build; assets e evidências versionadas não são descartáveis.
+# Build outputs; tracked assets and evidence are not disposable.
 /tmproject/build/
+/tmproject/TMProject748/build/
 /wydgo748/bin/
 /wydgo748/*.exe
 /wydgo748/cmd/server/*.exe
@@ -15,7 +16,7 @@
 /wydgo748/data/accounts/*.json
 /wydgo748/data/charstate/*.json
 
-# Estado local, temporários e caches.
+# Local state, temporary files, and caches.
 /wydgo748/web/portal/node_modules/
 /wydgo748/web/portal/dist/
 /wydgo748/web/portal/.astro/

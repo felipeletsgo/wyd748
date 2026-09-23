@@ -686,7 +686,7 @@ int statusValues[12];
 
 		g_pObjectManager->m_nServerGroupIndex = nServerGroupIndex;
 		g_pObjectManager->m_nServerIndex = nServerIndex;
-		printf("Servidor que conectara: \"%s\"\n", g_pApp->m_szServerIP);
+		printf("Server endpoint: \"%s\"\n", g_pApp->m_szServerIP);
 
 		m_pNServerSelect->SetVisible(0);
 		for (int i = 0; i < 3; ++i)
@@ -858,7 +858,7 @@ int TMSelectServerScene::OnCharEvent(char iCharCode, int lParam)
 	{
 	case VK_TAB:
 
-		//// teste debug centralizaÃƒÂ§ÃƒÂ£o
+		//// Debug test for centering.
 		//m_pMessagePanel->SetMessage("0.0.0.0.0.0.0.0.0.0", 200000);
 		//m_pMessagePanel->SetVisible(1, 0);
 

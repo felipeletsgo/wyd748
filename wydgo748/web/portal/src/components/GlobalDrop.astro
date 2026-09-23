@@ -1,24 +1,24 @@
 <section id="events" class="panel global-drop-panel" aria-labelledby="global-drop-title">
-  <div class="panel-heading"><div><span class="eyebrow">OPERAÇÕES DO SERVIDOR</span><h2 id="global-drop-title">Evento de drop global</h2></div><button id="event-refresh" class="button subtle" type="button">Consultar evento</button></div>
+  <div class="panel-heading"><div><span class="eyebrow">SERVER OPERATIONS</span><h2 id="global-drop-title">Global drop event</h2></div><button id="event-refresh" class="button subtle" type="button">Refresh event</button></div>
   <div class="event-body">
-    <p class="muted">Um sorteio extra por monstro morto por jogador, incluindo bosses e instâncias. Não substitui o loot normal. Entrega no inventário; se estiver cheio, no chão.</p>
-    <dl class="event-status"><div><dt>Estado</dt><dd id="event-state">Aguardando consulta</dd></div><div><dt>Item / chance</dt><dd id="event-item">—</dd></div><div><dt>Itens entregues / limite</dt><dd id="event-count">—</dd></div><div><dt>Prazo</dt><dd id="event-end">—</dd></div></dl>
-    <p id="event-asof" class="muted">Sem atualização automática.</p>
+    <p class="muted">One extra roll per monster killed by a player, including bosses and instances. Normal loot is unaffected. Items go to the inventory, or to the ground when it is full.</p>
+    <dl class="event-status"><div><dt>Status</dt><dd id="event-state">Waiting for a query</dd></div><div><dt>Item / chance</dt><dd id="event-item">—</dd></div><div><dt>Items delivered / limit</dt><dd id="event-count">—</dd></div><div><dt>End time</dt><dd id="event-end">—</dd></div></dl>
+    <p id="event-asof" class="muted">No automatic refresh.</p>
     <form id="event-form">
       <fieldset id="event-settings" disabled>
-        <legend>Configurar novo evento</legend>
+        <legend>Configure a new event</legend>
         <div class="event-fields">
-          <label>ID do item<input id="event-item-id" type="number" min="1" max="65535" step="1" required placeholder="Ex.: 401" /></label>
-          <label>Chance por mob (%)<input id="event-rate" type="number" min="1" max="100" step="1" value="10" required /></label>
-          <label>Quantidade máxima<input id="event-max" type="number" min="0" max="10000000" step="1" value="10000" required /></label>
-          <label>Duração (minutos)<input id="event-minutes" type="number" min="0" max="10080" step="1" value="60" required /></label>
+          <label>Item ID<input id="event-item-id" type="number" min="1" max="65535" step="1" required placeholder="E.g. 401" /></label>
+          <label>Chance per mob (%)<input id="event-rate" type="number" min="1" max="100" step="1" value="10" required /></label>
+          <label>Maximum quantity<input id="event-max" type="number" min="0" max="10000000" step="1" value="10000" required /></label>
+          <label>Duration (minutes)<input id="event-minutes" type="number" min="0" max="10080" step="1" value="60" required /></label>
         </div>
-        <p class="muted">Use 0 para desativar um dos limites. Pelo menos um é obrigatório. Se preencher ambos, encerra no primeiro limite atingido.</p>
+        <p class="muted">Use 0 to disable either limit. At least one limit is required. If both are set, the event ends when the first is reached.</p>
       </fieldset>
-      <label for="event-reason">Motivo da operação</label><input id="event-reason" minlength="3" maxlength="200" required placeholder="Ex.: evento de fim de semana" />
-      <div class="event-actions"><button id="event-start" class="button primary" type="submit" disabled>Iniciar evento</button><button id="event-stop" class="button subtle" type="button" disabled>Encerrar evento</button><button id="event-retry" class="button subtle" type="button" hidden>Consultar resultado / repetir solicitação</button></div>
+      <label for="event-reason">Reason for operation</label><input id="event-reason" minlength="3" maxlength="200" required placeholder="E.g. weekend event" />
+      <div class="event-actions"><button id="event-start" class="button primary" type="submit" disabled>Start event</button><button id="event-stop" class="button subtle" type="button" disabled>End event</button><button id="event-retry" class="button subtle" type="button" hidden>Check result / retry request</button></div>
     </form>
     <p id="event-message" class="form-message" role="status" aria-live="polite"></p>
-    <p class="muted">Reiniciar o servidor encerra o evento; não há retomada automática. A quantidade conta itens entregues, não tentativas nem coletas do chão. NPCs, jogadores e a torre de guerra não participam.</p>
+    <p class="muted">Restarting the server ends the event; it does not resume automatically. The count tracks delivered items, not attempts or ground pickups. NPCs, players, and the war tower do not participate.</p>
   </div>
 </section>
