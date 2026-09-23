@@ -1,8 +1,8 @@
  #pragma once
 #include <cstddef>
 /*
-Este header, ira compartilhar as structs entre servidor e client a medida que o mesmo for sendo atualizado
-outros headers também poder´ser criado como de constantes por exemplo.
+This header shares structures between the server and client as they evolve.
+Other headers may be added for constants and related definitions.
 */
 
 #ifndef _SHAREDSTRUCTS_ // Last updated 27/01/2013

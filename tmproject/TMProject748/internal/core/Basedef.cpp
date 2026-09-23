@@ -457,7 +457,7 @@ int BASE_GetItemAbility(STRUCT_ITEM* item, char Type)
     int value = 0;
     int idx = item->sIndex;
 
-    if (idx <= 0 || idx > MAX_ITEMLIST)
+    if (idx <= 0 || idx >= MAX_ITEMLIST)
         return 0;
 
     int nUnique = g_pItemList[idx].nUnique;
@@ -1463,7 +1463,7 @@ int BASE_GetStaticItemAbility(STRUCT_ITEM* item, char Type)
     int value = 0;
     int idx = item->sIndex;
 
-    if (idx <= 0 || idx > MAX_ITEMLIST)
+    if (idx <= 0 || idx >= MAX_ITEMLIST)
         return value;
 
     if (idx >= 3200 && idx <= 3300)

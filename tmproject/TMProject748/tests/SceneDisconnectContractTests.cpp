@@ -229,6 +229,20 @@ int RunSceneDisconnectContractTests(int& checks)
         itemIndexGuard < firstModelWrite &&
         sendItemHandler.substr(itemIndexGuard, bagView - itemIndexGuard).find("return 1;") != std::string::npos,
         "SendItem rejects an item outside the 7.48 catalog before changing local state");
+    const auto abilitySource = LoadSource("TMProject748/internal/core/Basedef.cpp");
+    const auto itemAbilityStart = abilitySource.find("int BASE_GetItemAbility(STRUCT_ITEM* item, char Type)");
+    const auto staticAbilityStart = abilitySource.find("int BASE_GetStaticItemAbility(STRUCT_ITEM* item, char Type)");
+    const auto validCatalogIndex = [](const std::string& source, std::size_t start) {
+        if (start == std::string::npos)
+            return false;
+        const auto body = source.substr(start, 512);
+        const auto guard = body.find("if (idx <= 0 || idx >= MAX_ITEMLIST)");
+        const auto lookup = body.find("g_pItemList[idx]");
+        return guard != std::string::npos && lookup != std::string::npos && guard < lookup;
+    };
+    check(validCatalogIndex(abilitySource, itemAbilityStart) &&
+        validCatalogIndex(abilitySource, staticAbilityStart),
+        "item ability readers reject the first index beyond the 7.48 ItemList before lookup");
     const auto updateEquipEnd = humanSource.find("int TMHuman::OnPacketUpdateAffect", sendItemEnd);
     const auto updateEquipHandler = sendItemEnd != std::string::npos &&
         updateEquipEnd != std::string::npos

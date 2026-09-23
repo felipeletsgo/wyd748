@@ -1,9 +1,9 @@
 #include "pch.h"
 #include "TMDemoScene.h"
 
-// Stub importado do TMProject posterior e mantido para compatibilidade de
-// source. Não inicializa os campos declarados no header porque ainda não existe
-// um contrato 7.48 confirmado para recursos, controles ou teardown da demo.
+// Stub imported from a later TMProject and retained for source compatibility.
+// It does not initialize the header fields because no 7.48 contract has been
+// confirmed for demo resources, controls, or teardown.
 TMDemoScene::TMDemoScene()
 {
 }
@@ -14,57 +14,57 @@ TMDemoScene::~TMDemoScene()
 
 int TMDemoScene::InitializeScene()
 {
-	// Pendente: materialização de controles/assets e ownership da cena.
+	// Pending: controls, assets, and scene ownership.
 	return 0;
 }
 
 int TMDemoScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)
 {
-	// Stub deliberado: não consome eventos de controles desconhecidos.
+	// Intentional stub: does not consume events from unknown controls.
 	return 0;
 }
 
 int TMDemoScene::OnCharEvent(char iCharCode, int lParam)
 {
-	// Stub deliberado: não consome entrada de teclado.
+	// Intentional stub: does not consume keyboard input.
 	return 0;
 }
 
 int TMDemoScene::OnPacketEvent(unsigned int dwCode, char* buf)
 {
-	// buf permanece pertencendo ao dispatcher. Nenhum opcode foi atribuído a
-	// esta cena enquanto o contrato não for rastreado.
+	// The dispatcher retains ownership of buf. No opcode belongs to this scene
+	// until its contract has been traced.
 	return 0;
 }
 
 int TMDemoScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)
 {
-	// Stub deliberado: não consome entrada de mouse.
+	// Intentional stub: does not consume mouse input.
 	return 0;
 }
 
 int TMDemoScene::FrameMove(unsigned int dwServerTime)
 {
-	// Sem timeline adaptada, a cena não avança estado.
+	// Without an adapted timeline, the scene does not advance state.
 	return 0;
 }
 
 void TMDemoScene::ResetDemoPlayer()
 {
-	// Pendente: lifecycle dos atores da demonstração.
+	// Pending: demo actor lifecycle.
 }
 
 void TMDemoScene::ReadTimeTable()
 {
-	// Pendente: formato e origem da tabela de tempos.
+	// Pending: time-table format and source.
 }
 
 void TMDemoScene::CamAction()
 {
-	// Pendente: contrato de câmera e transições observáveis.
+	// Pending: camera contract and observable transitions.
 }
 
 void TMDemoScene::ReadStrings()
 {
-	// Pendente: recurso, encoding e limites das strings da apresentação.
+	// Pending: presentation string resource, encoding, and bounds.
 }

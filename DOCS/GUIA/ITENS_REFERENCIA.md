@@ -1,201 +1,201 @@
-# Itens e referências — síntese técnica em português
+# Items and references — technical summary
 
-Fonte: páginas oficiais em `https://www.wyd2.co.kr/introduction/`.
-
----
-
-## 1. Espadas de uma mão
-
-**Fonte:** https://www.wyd2.co.kr/introduction/item_weapon01.asp
-
-O catálogo oficial lista armas de uma mão em variantes Normal e Ancient, com requisitos, dano e grade. A família inclui armas como Dagger, Short Sword, Stiletto, Rapier, Long Sword e Scimitar.
-
-A função básica indicada pelo guia é permitir o uso em uma mão, deixando a outra disponível para outra arma ou shield.
-
-### Relevância
-
-Os valores individuais de item devem continuar vindo de `data/itemlist.csv`; esta página serve para validação cruzada de nomes, classes de arma, requisito e expectativa visual do jogador.
+Source: official pages at `https://www.wyd2.co.kr/introduction/`.
 
 ---
 
-## 2. Staffs e dual wield
+## 1. One-handed swords
 
-**Fonte:** https://www.wyd2.co.kr/introduction/item_weapon04.asp
+**Source:** https://www.wyd2.co.kr/introduction/item_weapon01.asp
 
-O catálogo inclui staffs de uma e duas mãos e descreve o papel das armas mágicas.
+The official catalog lists one-handed weapons in Normal and Ancient variants, with requirements, damage, and grade. The family includes Dagger, Short Sword, Stiletto, Rapier, Long Sword, and Scimitar.
 
-A informação de maior interesse para o cálculo de combate é a regra oficial de **dual wield físico** registrada nesta família de referência:
+The guide describes their basic role as occupying one hand while leaving the other available for another weapon or a shield.
 
-- a arma com maior dano contribui integralmente;
-- a arma de menor dano contribui parcialmente;
-- quando ambas pertencem à mesma família/tipo compatível, a contribuição secundária aumenta;
-- opções que não são o dano principal continuam podendo ser consideradas de ambas conforme as regras do sistema.
+### Relevance
 
-A síntese histórica do site corresponde à ideia de 100% da arma principal e 30% da secundária, subindo para 50% em combinação equivalente.
+Individual item values must continue to come from `data/itemlist.csv`. This page is a cross-check for names, weapon classes, requirements, and the player's visual expectations.
 
-### Relevância para o código
+---
 
-Essa página é útil para validar `equipmentDamage` e os modificadores de passivas. Os números finais devem ser reconciliados com `BASE_GetMobAbility`/source, especialmente quando uma classe possui passive que altera o aproveitamento da segunda arma.
+## 2. Staffs and dual wielding
+
+**Source:** https://www.wyd2.co.kr/introduction/item_weapon04.asp
+
+The catalog includes one- and two-handed staffs and describes the role of magic weapons.
+
+The combat rule of interest is **physical dual wielding** as recorded in this reference family:
+
+- the higher-damage weapon contributes its full damage;
+- the lower-damage weapon contributes only part of its damage;
+- when both weapons belong to a compatible family or type, the secondary contribution increases;
+- options other than primary damage can still be considered from both weapons under the system rules.
+
+The historical site summary describes 100% of the primary weapon and 30% of the secondary weapon, rising to 50% for an equivalent pairing.
+
+### Relevance to code
+
+This page helps validate `equipmentDamage` and passive-skill modifiers. Final values must be reconciled with `BASE_GetMobAbility` and the source, especially when a class has a passive skill that changes how much of the second weapon's damage applies.
 
 ---
 
 ## 3. Ultimate Weapons
 
-**Fonte:** https://www.wyd2.co.kr/introduction/item_weapon08.asp
+**Source:** https://www.wyd2.co.kr/introduction/item_weapon08.asp
 
-A página cataloga a primeira família de **Ultimate Weapons**, descritas como armas originalmente usadas por monstros e entregues a jogadores por eventos.
+The page catalogs the first family of **Ultimate Weapons**, described as weapons originally used by monsters and given to players through events.
 
-O guia destaca ausência de requisito de level em parte dessa família, exigindo apenas os stats necessários, e dano superior ao de armas normais equivalentes.
+The guide notes that some weapons in this family have no level requirement, requiring only the relevant stats, and deal more damage than comparable normal weapons.
 
-Exemplos exibidos incluem Cutlass e Doom Axe, além de outras armas da categoria.
+Examples shown include Cutlass and Doom Axe, among others in the category.
 
-### Relevância
+### Relevance
 
-A ausência de requisito de level não deve ser implementada por exceção hardcoded de nome. O servidor deve obter requisitos e efeitos exclusivamente do conteúdo carregado de `itemlist.csv`.
+The absence of a level requirement must not be implemented as a name-based hard-coded exception. The server must obtain requirements and effects exclusively from the loaded `itemlist.csv` content.
 
 ---
 
-## 4. Equipamentos Trans
+## 4. Trans equipment
 
-**Fonte:** https://www.wyd2.co.kr/introduction/item_js01.asp
+**Source:** https://www.wyd2.co.kr/introduction/item_js01.asp
 
-Equipamentos exclusivos de personagem Trans usam, segundo a página, a mesma lógica geral de opções/aplicação dos itens normais.
+According to the page, equipment exclusive to Trans characters follows the same general option and application rules as ordinary items.
 
-O ponto mais importante é a regra de **body/base class** para armadura:
+The key armor rule concerns **body/base class**:
 
-> a armadura compatível é determinada pela classe do corpo/personagem Mortal de origem, e não necessariamente pela classe atual de skills do Trans.
+> Compatible armor is determined by the character's original Mortal body class, not necessarily by the Trans character's current skill class.
 
-O exemplo do site: personagem Mortal Trans Knight que se tornou Trans Hunter continua usando armor correspondente ao corpo Trans Knight.
+The site's example is a Mortal Trans Knight who becomes a Trans Hunter but continues to use armor corresponding to the Trans Knight body.
 
-A página lista sets como Initiate Armor e seus efeitos, incluindo HP, regen, critical, resist e move speed.
+The page lists sets such as Initiate Armor and their effects, including HP, regeneration, critical chance, resistance, and movement speed.
 
-### Relevância para WYD-Go
+### Relevance to WYD-Go
 
-Confirma a separação arquitetural já necessária entre:
+This supports the existing architectural separation between:
 
 ```text
-classe que governa skills
-vs
-classe corporal que governa armor
+class governing skills
+versus
+body class governing armor
 ```
 
-Isso deve continuar server-side em `canEquip`.
+This distinction must remain server-side in `canEquip`.
 
 ---
 
-## 5. Consumíveis e itens utilitários
+## 5. Consumables and utility items
 
-**Fonte:** https://www.wyd2.co.kr/introduction/item_consumer.asp
+**Source:** https://www.wyd2.co.kr/introduction/item_consumer.asp
 
-A página é um catálogo amplo de consumíveis e materiais.
+The page is a broad catalog of consumables and materials.
 
-### HP e MP
+### HP and MP
 
-Inclui herbs, Healing Potions, Mana Potions e caixas em diferentes quantidades.
+It includes herbs, Healing Potions, Mana Potions, and boxes in different quantities.
 
-### Potions de combate
+### Combat potions
 
-São descritas três etapas/tipos de potion temporária que aumentam ataque físico/mágico com duração e intensidade progressivas.
+It describes three stages or types of temporary potions that increase physical or magical attack, with progressively longer durations and stronger effects.
 
 ### Courage
 
-- **Courage Elixir:** aumenta dano contra monstros;
-- **Courage Potion:** versão mais forte, também voltada a PvE.
+- **Courage Elixir:** increases damage against monsters;
+- **Courage Potion:** a stronger version, also intended for PvE.
 
-O guia explicita que o bônus é aplicado ao combate contra monstros, não como bônus PvP genérico.
+The guide specifies a bonus against monsters, not a generic PvP bonus.
 
 ### Blood Jewel
 
-Efeito de life drain, comparado pelo site ao efeito Live Drain.
+A life-drain effect, compared by the site with the Live Drain effect.
 
 ### Shield Jewel
 
-Aumenta Max HP em relação a defesa/level conforme a mecânica correspondente.
+Increases maximum HP in relation to defense and level, according to the corresponding mechanic.
 
 ### Angels
 
-A página descreve Silver Angel e Gold Angel como versões derivadas do Red Angel, com bônus de drop/EXP e função de conversão rápida de itens do inventário em gold por interação específica do client.
+The page describes Silver Angel and Gold Angel as versions derived from Red Angel. They grant drop and EXP bonuses and can rapidly convert inventory items into gold through a specific client interaction.
 
-O Gold Angel é descrito com bônus superiores ao Silver/Red no material atual.
+The current material describes Gold Angel as granting stronger bonuses than Silver or Red Angel.
 
 ### Silver Wydon
 
-Itens que representam grandes valores de gold, como 100 milhões/1 bilhão, para contornar limites de saldo em inventário/cargo do sistema legado. Usar o item reconverte o valor em gold.
+Items representing large amounts of gold, such as 100 million or 1 billion, work around legacy inventory and cargo balance limits. Using one converts its value back into gold.
 
 ### EXP Box
 
-Ao usar, concede por **2 horas** o dobro de EXP do last hit segundo a página. Usos adicionais acumulam duração.
+According to the page, using this item doubles EXP from the last hit for **two hours**. Additional uses extend the duration.
 
 ### Revival Horse
 
-Revive mount morto sem necessidade de visitar presencialmente o Mount Master, reproduzindo o efeito do NPC.
+Revives a dead mount without visiting the Mount Master, reproducing the NPC's effect.
 
 ### Warrior Seal Book
 
-Item associado ao aumento de Fame e outras condições de progressão/cape documentadas.
+An item associated with increased Fame and other documented progression and cape conditions.
 
 ### Spirit Seal
 
-Item que encapsula um personagem avançado para trade; detalhes completos estão em `GUIAS_JOGABILIDADE.md`.
+An item that encapsulates an advanced character for trade. Further details are in `GUIAS_JOGABILIDADE.md`.
 
 ### Nightmare Book
 
-A página informa liberação de **24 entradas** de Nightmare para Reclass e cooldown de **20 horas** desde o primeiro uso para reutilização.
+The page describes **24 Nightmare entries** for Reclass and a **20-hour cooldown** from the first use before reuse.
 
 ---
 
-## 6. Materiais de refino
+## 6. Refining materials
 
-**Fonte:** https://www.wyd2.co.kr/introduction/item_consumer.asp
+**Source:** https://www.wyd2.co.kr/introduction/item_consumer.asp
 
 ### Oriharukon Scrap / Powder
 
-- 10 scraps podem ser convertidos em powder por NPC alquimista;
-- a página cita custo de **1.000.000 gold**;
-- powder é usado no refino até +6;
-- primeiros níveis possuem sucesso garantido conforme a documentação histórica.
+- An alchemist NPC can convert 10 scraps into powder;
+- the page cites a cost of **1,000,000 gold**;
+- powder is used for refinement up to +6;
+- the first levels have guaranteed success according to the historical documentation.
 
 ### Lactolerium Scrap / Powder
 
-- usado para refino de nível mais alto, até +9;
-- também aparece em combinações avançadas, inclusive transições superiores;
-- a página registra faixa garantida maior que Oriharukon antes de a chance cair.
+- used for higher-level refinement, up to +9;
+- also used in advanced combinations, including higher transitions;
+- the page records a longer guaranteed-success range than Oriharukon before the chance decreases.
 
 ### Legendary stones
 
-O catálogo referencia raw stones como Spinel, Beryl, Tectite e Adamantite para transformar famílias específicas de armor em Legendary, com possibilidade de falha.
+The catalog lists raw stones such as Spinel, Beryl, Tectite, and Adamantite for transforming specific armor families into Legendary equipment, with a chance of failure.
 
-### Regra de arquitetura
+### Architectural rule
 
-Essas relações item→efeito→uso devem vir dos loaders/configuração sempre que representarem conteúdo. Handlers não devem duplicar listas de IDs ou valores que já existem em `data/`.
+Item-to-effect-to-use relationships should come from loaders and configuration whenever they represent content. Handlers must not duplicate lists of IDs or values already present in `data/`.
 
 ---
 
-## 7. Gemas
+## 7. Gems
 
-As páginas de refino/Ancient documentam quatro gemas centrais:
+The refining and Ancient pages document four principal gems:
 
-| Gema | Efeito de referência do site |
-|---|---|
+| Gem | Reference effect from the site |
+| --- | --- |
 | Diamond | Drop +8% |
 | Emerald | Absolute Damage +40 |
 | Coral | EXP +2% |
 | Garnet | Damage Absorption +40 |
 
-Estes valores são úteis como validação do conteúdo carregado, mas não devem virar uma segunda tabela hardcoded se já estiverem representados em `itemlist.csv`/efeitos.
+These values are useful for validating loaded content but must not become a second hard-coded table if already represented by `itemlist.csv` or item effects.
 
 ---
 
-## 8. Relação com o servidor
+## 8. Relationship to the server
 
-Para cada item do site oficial, a ordem de autoridade dentro do WYD-Go continua:
+For each item on the official site, the order of authority within WYD-Go remains:
 
 ```text
 itemlist.csv
-+ Itemname.csv apenas para nome
-+ ItemEffect.h para ID ↔ EF_*
-+ efeitos persistidos da instância
-→ cálculo server-side
++ Itemname.csv for names only
++ ItemEffect.h for ID ↔ EF_*
++ persisted instance effects
+→ server-side calculation
 ```
 
-O catálogo oficial deve ser usado para detectar divergências de conteúdo, não para criar correções pós-load.
+Use the official catalog to detect content discrepancies, not to add post-load corrections.

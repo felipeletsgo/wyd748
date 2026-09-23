@@ -64,6 +64,10 @@ a partial translation as completion.
 - The native server entry point and load-test command now use English for
   flag help, startup and failure diagnostics, and adjacent comments. Flag
   names, default values, configuration keys, and server behavior are unchanged.
+- The official item-reference guide and the inert demo-scene comments are now
+  in English. The shared client/server structure header's introductory comment
+  is also in English. This prose-only translation changes no item IDs, wire
+  layouts, resource files, or runtime behavior.
 
 ## Remaining work
 
