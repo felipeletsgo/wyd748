@@ -1,79 +1,97 @@
-# Guia oficial WYD2 — índice em português
+# Official WYD2 guide — index
 
-Fonte primária: https://www.wyd2.co.kr/
+Primary source: https://www.wyd2.co.kr/
 
-Mapeamento realizado em 12/08/2026 sobre o site oficial coreano do WYD/With Your Destiny.
+This mapping of the official Korean WYD/With Your Destiny site was prepared on
+August 12, 2026.
 
-## Escopo e regra editorial
+## Scope and editorial policy
 
-Esta pasta organiza, em português, o conteúdo técnico e de gameplay encontrado nas páginas oficiais do site. Por copyright, os textos coreanos não são reproduzidos nem traduzidos integralmente; cada entrada é uma **síntese técnica detalhada e fiel**, mantendo requisitos, números, regras, itens, NPCs e relações entre sistemas sempre que a página os expõe.
+This directory organizes technical and gameplay information found on official
+pages. For copyright reasons, Korean text is neither reproduced nor translated
+in full. Each entry is a detailed technical summary that preserves requirements,
+numbers, rules, items, NPCs, and relationships between systems where the page
+provides them.
 
-O site é legado, usa páginas ASP e sua indexação pública é incompleta. Por isso cada URL recebe um status:
+The legacy site uses ASP pages and has incomplete public indexing. Each URL
+therefore has one of these states:
 
-- **Confirmada/documentada** — a página foi localizada e seu conteúdo pôde ser recuperado.
-- **Confirmada/parcial** — a URL existe ou aparece na navegação/indexação, mas nem todo o conteúdo ficou recuperável.
-- **Não confirmada** — apenas um padrão de numeração sugeriria a página; não é tratada como fonte até ser realmente encontrada.
+- **Confirmed/documented** — the page was located and its content recovered.
+- **Confirmed/partial** — the URL exists or appears in navigation or indexes,
+  but not all of its content was recoverable.
+- **Unconfirmed** — only a numbering pattern suggests the page; it is not
+  treated as a source until it is found.
 
-Não se preenche lacuna do site com conhecimento geral do jogo. Quando uma regra não aparece na fonte recuperada, ela é marcada como não determinada.
+Do not fill gaps in the site with general knowledge of the game. If a rule
+does not appear in the recovered source, mark it as undetermined.
 
-## Documentos
+## Documents
 
-- [MAPA_DE_URLS.md](MAPA_DE_URLS.md) — inventário de URLs e estado da coleta.
-- [GUIAS_JOGABILIDADE.md](GUIAS_JOGABILIDADE.md) — primeiros passos, sistemas intermediários, avançados e PvP.
-- [QUESTS_EVENTOS.md](QUESTS_EVENTOS.md) — quests, evolução, Cube, Secret Room, Seven Trials e sistemas relacionados.
-- [ITENS_REFERENCIA.md](ITENS_REFERENCIA.md) — itens, armas, equipamentos Trans e consumíveis.
+- [MAPA_DE_URLS.md](MAPA_DE_URLS.md) — URL inventory and collection status.
+- [GUIAS_JOGABILIDADE.md](GUIAS_JOGABILIDADE.md) — getting started,
+  intermediate and advanced systems, and PvP.
+- [QUESTS_EVENTOS.md](QUESTS_EVENTOS.md) — quests, progression, Cube, Secret
+  Room, Seven Trials, and related systems.
+- [ITENS_REFERENCIA.md](ITENS_REFERENCIA.md) — items, weapons, Trans equipment,
+  and consumables.
 
-## Famílias oficiais identificadas
+## Official page families identified
 
 ### `/guide/firstguide*`
 
-Guias de uso básico do client e sistemas fundamentais: atalhos, party, guild, comunicação e C.C/auto-farm.
+Basic client usage and fundamental systems: shortcuts, parties, guilds,
+communication, and C.C/auto-farm.
 
 ### `/guide/midguide*`
 
-Sistemas intermediários: refino, combinação, mount, tintura e subpersonagem.
+Intermediate systems: refinement, combination, mounts, dyeing, and secondary
+characters.
 
 ### `/guide/highguide*`
 
-Sistemas avançados: Ancient, opções de equipamentos Trans, Spirit Seal e combinação de equipamentos Reclass.
+Advanced systems: Ancient, Trans equipment options, Spirit Seal, and Reclass
+equipment combination.
 
 ### `/guide/pvpguide*`
 
-PvP, C.Point, cerco e Kingdom War.
+PvP, C.Point, sieges, and Kingdom War.
 
 ### `/guide/tip*`
 
-Guias práticos de progressão de personagem.
+Practical character-progression guides.
 
 ### `/introduction/quest*`
 
-Documentação de quests e eventos. Esta família contém mecânicas relevantes ao servidor, não apenas texto introdutório.
+Quest and event documentation. This family includes mechanics relevant to the
+server, not just introductory text.
 
 ### `/introduction/item*`
 
-Catálogos e regras de itens, armas, equipamentos Trans e consumíveis.
+Catalogs and rules for items, weapons, Trans equipment, and consumables.
 
 ### `/premium/*`
 
-Guias de Cash/Premium. São periféricos ao core do emulador e foram catalogados separadamente no mapa de URLs quando localizados.
+Cash/Premium guides. These are peripheral to the emulator core and were
+cataloged separately in the URL map where found.
 
-## Uso para o WYD-Go
+## Use in WYD-Go
 
-Estas páginas são referências secundárias de comportamento documentado e
-podem descrever versões posteriores. Não substituem a evidência nativa 7.48,
-os contratos explícitos nem os testes do client e servidor atuais. A política
-única de fontes está no [AGENTS.md](../../AGENTS.md).
+These pages are secondary references for documented behavior and may describe
+later versions. They do not replace native 7.48 evidence, explicit contracts,
+or tests of the current client and server. The source policy is in
+[AGENTS.md](../../AGENTS.md).
 
-O site oficial é especialmente útil para:
+The official site is particularly useful for:
 
-- requisitos e custos exibidos ao jogador;
-- regras de acesso a quests/eventos;
-- recompensas e limites;
-- fluxo de interação com NPCs;
-- comportamento esperado do C.C/auto-farm;
-- composição de party/guild;
-- regras de combinação/refino;
-- horários e capacidade de eventos;
-- descrições de itens e efeitos.
+- requirements and costs shown to players;
+- access rules for quests and events;
+- rewards and limits;
+- NPC interaction flows;
+- expected C.C/auto-farm behavior;
+- party and guild composition;
+- combination and refinement rules;
+- event schedules and capacity;
+- item and effect descriptions.
 
-Quando o site divergir do código ou de uma source C++, a divergência deve ser registrada e investigada; não deve ser corrigida silenciosamente.
+When the site differs from code or C++ source, record and investigate the
+difference; do not silently change behavior.

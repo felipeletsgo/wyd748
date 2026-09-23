@@ -1,133 +1,133 @@
-# data/boss — encontros de boss
+# data/boss — boss encounters
 
-Cada arquivo `.lua` deste diretório define **um** boss. O servidor lê todos os
-`.lua` na ordem alfabética durante o boot.
+Each `.lua` file in this directory defines **one** boss. The server loads all
+`.lua` files in alphabetical order at startup.
 
-Os quatro `exemplo_*.lua` estão **ativos** — um boss de cada tipo. Para desligar
-um, apague o arquivo ou troque a extensão (só `.lua` é carregado).
+The four `exemplo_*.lua` files are **active** — one boss of each type. To disable
+one, remove its file or change its extension (only `.lua` files are loaded).
 
-Um erro em qualquer arquivo **derruba o boot** de propósito: é melhor falhar na
-hora, com a mensagem apontando o campo, do que subir com um chefe que nunca
-nasce ou que nasce fraco por um campo digitado errado.
+An error in any file **stops startup** intentionally. Failing immediately with
+a message identifying the field is better than running with a boss that never
+spawns or is unexpectedly weak because of a typo.
 
-## Como funciona
+## How it works
 
-- **O comportamento é hardcoded em Go** (`internal/game/boss_types.go`). O Lua
-  só escolhe o tipo pelo nome e fornece os números. Nenhum arquivo daqui
-  consegue inventar regra nova nem alterar estado do servidor.
-- **Os assets vêm do NPC** indicado em `npc` (rosto, equipamento e atributos
-  base saem de `data/npcs/<nome>.json`). O bloco `stats` sobrescreve o que
-  quiser; o que for omitido mantém o valor do NPC.
-- **Prefira um NPC que o `NPCGener.txt` não spawna.** Reaproveitar a aparência
-  de um mob comum ou de quest (Immort_Hydra, Aparicao, Elf_Servant1…) confunde o
-  jogador: o chefe fica com a cara de um monstro que ele mata o dia inteiro. O
-  catálogo tem 491 NPCs e boa parte não é spawnada — são assets livres.
-  Bons candidatos: `Demon_Lord__` (nível 400), `Dark_Shadow___` (400),
-  `Astaroth`, `Cyclop_Arch` (200), `Fire_Golem` (218), `E-Dracolich`.
-  Para listar os livres:
+- **Behavior is hardcoded in Go** (`internal/game/boss_types.go`). Lua selects
+  the type by name and supplies numbers. A Lua file cannot invent a new rule
+  or alter server state.
+- **Appearance and base stats come from the NPC** named by `npc` (face,
+  equipment, and base attributes come from `data/npcs/<name>.json`). The `stats`
+  block overrides selected values; omitted values retain the NPC defaults.
+- **Prefer an NPC that `NPCGener.txt` does not spawn.** Reusing the appearance
+  of an ordinary or quest mob (`Immort_Hydra`, `Aparicao`, `Elf_Servant1`, etc.)
+  can confuse players. The catalog contains 491 NPCs, many of which are not
+  spawned and are available as distinct boss appearances. Examples include
+  `Demon_Lord__` (level 400), `Dark_Shadow___` (400), `Astaroth`,
+  `Cyclop_Arch` (200), `Fire_Golem` (218), and `E-Dracolich`. To list unused
+  NPCs:
 
   ```bash
   comm -23 <(ls data/npcs/*.json | sed 's|.*/||; s|\.json$||' | sort) \
            <(tr -s ' \t' '\n' < data/NPCGener.txt | grep -oE '^[A-Za-z_.][A-Za-z0-9_.]*$' | sort -u)
   ```
 
-  Adds (`summons`) são diferentes: ali **é esperado** usar mob comum, porque
-  eles são mobs comuns mesmo.
-- **Bosses não passam pelo NPCGener.** Posição e renascimento são deste arquivo.
-  Nenhum mob comum do mundo vira boss.
-- **O HP não se recupera.** O dano permanece onde os jogadores o deixaram: um
-  chefe é feito para ter HP altíssimo e cair ao longo de horas, possivelmente em
-  várias sessões. Nada restaura vida — só a morte, que faz nascer uma instância
-  nova depois do `respawn_seconds`.
-- **A perseguição é a padrão do jogo.** O boss usa os mesmos alcances de
-  aquisição, leash e ataque de qualquer mob — não há o que configurar. O leash
-  de 16 é proposital: mais que isso e o chefe se afastaria demais do ponto de
-  origem.
-- O `carry` do NPC base é ignorado: os drops do boss são os de `drops`.
+  Adds (`summons`) are different: using ordinary mobs is expected because
+  the adds are ordinary mobs.
+- **Bosses do not go through NPCGener.** This file controls spawn position and
+  respawn. An ordinary world mob does not become a boss.
+- **HP does not regenerate.** Damage persists: bosses are intended to have
+  very high HP and may take hours or multiple sessions to defeat. Only death
+  creates a new instance after `respawn_seconds`.
+- **Pursuit uses the game's standard behavior.** Acquisition, leash, and
+  attack ranges are the same as for other mobs and are not configurable here.
+  The leash of 16 is intentional; a larger leash would let the boss roam too
+  far from its origin.
+- The base NPC's `carry` is ignored; boss drops come from `drops`.
 
 ## Sandbox
 
-O interpretador sobe **sem** `os`, `io`, `package`, `debug`, `dofile`,
-`loadfile` e `load`, e com limite de 5 segundos por arquivo. As bibliotecas
-seguras (`string`, `table`, `math`) continuam disponíveis — dá para escrever
-`max_hp = 500 * 1000` ou montar uma lista com um laço.
+The interpreter runs **without** `os`, `io`, `package`, `debug`, `dofile`,
+`loadfile`, or `load`, and has a five-second limit per file. Safe libraries
+(`string`, `table`, `math`) remain available, so expressions such as
+`max_hp = 500 * 1000` and loops that build lists are supported.
 
-## Tipos
+## Types
 
-| Tipo | Comportamento | Exige |
-|---|---|---|
-| `chaser` | Persegue e ataca corpo a corpo. | — |
-| `caster` | Lança as skills configuradas ao levar dano. | `skills` |
-| `summoner` | Invoca grupos de adds durante a luta. | `summons` |
-| `phased` | Troca de comportamento em limiares de HP. | `phases` |
+| Type | Behavior | Required field |
+| --- | --- | --- |
+| `chaser` | Pursues and attacks in melee. | — |
+| `caster` | Casts configured skills when damaged. | `skills` |
+| `summoner` | Summons groups of adds during combat. | `summons` |
+| `phased` | Changes behavior at HP thresholds. | `phases` |
 
-O tipo define o que é **obrigatório**, não o que é permitido: um `phased` pode
-ter `skills` e `summons` também, e recebe as regras dos três.
+The type determines what is **required**, not what is permitted: a `phased`
+boss can also have `skills` and `summons` and receives those behaviors.
 
-## Campos
+## Fields
 
 ```lua
 return {
-  id   = "identificador_unico",   -- obrigatório, único entre os arquivos
-  npc  = "Nome_Do_NPC",           -- obrigatório, precisa existir em data/npcs
-  name = "Nome exibido",          -- opcional; vazio usa o nome do NPC
+  id   = "unique_identifier",      -- required; unique across files
+  npc  = "NPC_Name",               -- required; must exist in data/npcs
+  name = "Display name",           -- optional; empty uses the NPC name
   type = "phased",                -- chaser | caster | summoner | phased
 
   spawn = {
-    x = 2100, y = 2100,           -- obrigatório (nenhum pode ser 0)
-    respawn_seconds = 1800,       -- 0 ou ausente = não renasce
+    x = 2100, y = 2100,           -- required; neither may be 0
+    respawn_seconds = 1800,       -- 0 or absent means no respawn
   },
 
-  stats = {                       -- tudo opcional; omitido mantém o do NPC
+  stats = {                       -- all optional; omitted values use NPC stats
     level = 300, max_hp = 500000,
     attack = 900, defense = 450,
     attack_run = 0x64,
     exp_reward = 2000000, gold = 50000,
   },
 
-
-  skills = {                      -- usado por caster
+  skills = {                      -- used by caster
     { id = 23, cooldown_seconds = 8, range = 4,   -- id/range: SkillData.csv
-      max_hp_percent = 100,       -- só libera com HP <= isso; 100 = sempre
-      message = "texto" },
+      max_hp_percent = 100,       -- cast only at HP <= this value; 100 = always
+      message = "text" },
   },
 
-  summons = {                     -- usado por summoner
+  summons = {                     -- used by summoner
     { npc = "Skeleton", count = 4,
-      max_alive = 8,              -- teto simultâneo; 0 = sem teto
-      cooldown_seconds = 30, message = "texto" },
+      max_alive = 8,              -- concurrent cap; 0 = no cap
+      cooldown_seconds = 30, message = "text" },
   },
 
-  phases = {                      -- usado por phased
-    { hp_percent = 60,            -- limiar, atravessado de cima para baixo
-      type = "summoner",          -- vazio mantém o tipo do topo
-      shield_percent = 100,       -- 0 = sem escudo; 100 = imune
+  phases = {                      -- used by phased
+    { hp_percent = 60,            -- threshold crossed from above
+      type = "summoner",          -- empty retains the top-level type
+      shield_percent = 100,       -- 0 = no shield; 100 = immune
       shield_until_adds_dead = true,
-      message = "texto" },
+      message = "text" },
   },
 
-  drops = {                       -- recompensas próprias, além de exp/gold
+  drops = {                       -- boss-specific rewards beyond EXP/gold
     { item = 697, chance_percent = 100, amount = 3 },   -- item: itemlist.csv
   },
 
-  spawn_message = "texto",        -- anunciado ao mundo no nascimento
-  death_message = "texto",
+  spawn_message = "text",         -- announced to the world when spawned
+  death_message = "text",
 }
 ```
 
-Campo desconhecido é **erro**, não aviso: `atack = 500` seria silenciosamente
-ignorado e o boss nasceria fraco sem ninguém entender o porquê.
+An unknown field is an **error**, not a warning: `atack = 500` would otherwise
+be silently ignored and produce an unexpectedly weak boss.
 
-## Confira os IDs
+## Check the IDs
 
-O servidor valida a *estrutura*, mas não sabe se um item ou skill faz sentido:
+The server validates *structure*, but cannot determine whether an item or
+skill is appropriate:
 
-- **Skills** (`data/SkillData.csv`): use magia **ofensiva**. A 27 é `Cura` e a
-  26 é `Flash` — configurá-las faria o chefe "atacar" curando. Boas opções:
-  23 `Tempestade_de_Gelo` (alcance 4), 28 `Choque_Divino` (5),
-  7 `Destino` (4), 22 `Exterminar` (3).
-- **Itens** (`data/itemlist.csv`): um índice inexistente vira um drop que o
-  cliente não sabe desenhar. Conferir com:
+- **Skills** (`data/SkillData.csv`): use **offensive** magic. Skill 27 is
+  `Cura` and 26 is `Flash`; configuring them would make the boss "attack" by
+  healing. Possible offensive examples are 23 `Tempestade_de_Gelo` (range 4),
+  28 `Choque_Divino` (5), 7 `Destino` (4), and 22 `Exterminar` (3). These are
+  existing skill-data names, not text to translate in this guide.
+- **Items** (`data/itemlist.csv`): a nonexistent index produces a drop the
+  client cannot render. Check the index with:
 
   ```bash
   awk -F, -v i=697 '$1==i {print $1" = "$2}' data/itemlist.csv

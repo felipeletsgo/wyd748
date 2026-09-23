@@ -48,6 +48,10 @@ a partial translation as completion.
   packet-fixture guide, upstream provenance note, and Windows development
   guide have been translated. These are prose-only changes and do not imply
   client, server, or visual validation.
+- The water-macro overview, boss configuration guide, and official WYD2 guide
+  index and URL map are now in English. Existing source URLs, document paths,
+  NPC and skill-data identifiers, and boss example filenames remain unchanged.
+  These are documentation-only changes.
 
 ## Remaining work
 

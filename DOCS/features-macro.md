@@ -1,14 +1,14 @@
-# Macro de agua
+# Water macro
 
-Este modulo concentra a entrada de eventos e o ownership dos controladores da
-macro de agua. Ele nao altera IDs de item, coordenadas, opcodes ou formatos de
-packet herdados.
+This module owns event entry points and controller lifetimes for the water
+macro. It does not change inherited item IDs, coordinates, opcodes, or packet
+formats.
 
-- `MacroMsg` recebe a intencao originada em `TMFieldScene` e seleciona o nivel.
-- `MacroFactory` cria e conserva uma unica estrategia para cada nivel valido.
-- `MacroLevel` ainda permanece em `internal/core/` porque contem o envio de
-  packets e depende de varias fachadas monoliticas. Sua migracao exige um lote proprio,
-  com verificacao dos contratos client/server envolvidos.
+- `MacroMsg` receives the intent from `TMFieldScene` and selects the level.
+- `MacroFactory` creates and retains one strategy for each valid level.
+- `MacroLevel` still lives in `internal/core/` because it sends packets and
+  depends on several monolithic facades. Moving it requires a separate batch
+  that verifies the relevant client/server contracts.
 
-Os ponteiros retornados por `MacroFactory` sao emprestados. A factory e a unica
-proprietaria das estrategias e as libera no encerramento do Singleton.
+Pointers returned by `MacroFactory` are borrowed. The factory alone owns the
+strategies and releases them when the singleton shuts down.
