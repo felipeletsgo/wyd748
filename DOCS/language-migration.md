@@ -61,6 +61,9 @@ a partial translation as completion.
   plus the adjacent cargo and login application comments, are in English.
   Release architecture tests pass; this prose-only batch changes no client
   behavior or packet contract.
+- The native server entry point and load-test command now use English for
+  flag help, startup and failure diagnostics, and adjacent comments. Flag
+  names, default values, configuration keys, and server behavior are unchanged.
 
 ## Remaining work
 
@@ -90,3 +93,5 @@ server output, active documentation, scripts, tests, research records, and
 handoffs; none of these is exempt as historical migration debt. A keyword
 search alone cannot distinguish Portuguese prose from names, examples, and
 protocol data. The migration is still incomplete.
+Do not declare a global client/server release ready while known Portuguese
+player-facing text remains.

@@ -24,6 +24,8 @@ new Portuguese text or use remaining migration debt to justify it. Translate
 an existing contract-bearing value only with an explicit compatibility review
 and the affected tests. Completion of the language migration requires an
 active-repository audit, not merely an English UI or an updated rule.
+Do not declare a global client/server release ready while any known Portuguese
+player-facing text remains. A migration record is not a release exception.
 
 ## Active architecture
 

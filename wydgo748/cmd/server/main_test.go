@@ -27,6 +27,6 @@ func TestConfigPathFromArgs(t *testing.T) {
 
 func TestGeneratorExtraDisabledByDefault(t *testing.T) {
 	if defaultGeneratorExtraPath != "" {
-		t.Fatalf("gener-extra default=%q; fixtures de teste devem exigir opt-in", defaultGeneratorExtraPath)
+		t.Fatalf("gener-extra default=%q; test fixtures must require opt-in", defaultGeneratorExtraPath)
 	}
 }
