@@ -11,15 +11,15 @@ const (
 	KingdomEmblem = 4081
 )
 
-// KingdomCapeTier representa as cinco familias paralelas de capa existentes
-// no client 7.48. O tier nao e inferido pelo valor numerico do item: as tres
-// variantes (Hekalotia, Akelonia e neutra) sao tabeladas pela source nativa.
+// KingdomCapeTier represents the five parallel cape families in the 7.48
+// client. The tier is not inferred from the numeric item value: all three
+// variants (Hekalotia, Akelonia, and neutral) are listed by native source.
 type KingdomCapeTier byte
 
 const (
-	CapeTierBasic  KingdomCapeTier = iota // 545/546/548: Medal of Kingdom, nivel 220
-	CapeTierKnight                        // 543/544/549: Crusader/Shiner, nivel 256
-	CapeTierElite                         // 3191/3192/3193: Arch nivel 355
+	CapeTierBasic  KingdomCapeTier = iota // 545/546/548: Medal of Kingdom, level 220
+	CapeTierKnight                        // 543/544/549: Crusader/Shiner, level 256
+	CapeTierElite                         // 3191/3192/3193: Arch level 355
 	CapeTierHero                          // 3194/3195/3196: Soul
 	CapeTierMaster                        // 3197/3198/3199: Celestial
 )
@@ -30,7 +30,7 @@ type kingdomCapeFamily struct {
 	Neutral   uint16
 }
 
-// Ordem confirmada em KingDomCape[2][5] e CapeBroker[5] da 7.54 WYD 7.48.
+// Order confirmed in KingDomCape[2][5] and CapeBroker[5] from 7.54 WYD 7.48.
 var kingdomCapeFamilies = [...]kingdomCapeFamily{
 	{Hekalotia: 545, Akelonia: 546, Neutral: 548},
 	{Hekalotia: 543, Akelonia: 544, Neutral: 549},
@@ -39,8 +39,8 @@ var kingdomCapeFamilies = [...]kingdomCapeFamily{
 	{Hekalotia: 3197, Akelonia: 3198, Neutral: 3199},
 }
 
-// KingdomFromCape segue BASE_GetCapeInfo/GetCurScore_CapeInfo: o reino nao e
-// um segundo estado persistido no personagem; ele e sempre derivado da capa.
+// KingdomFromCape follows BASE_GetCapeInfo/GetCurScore_CapeInfo: kingdom is
+// not separate persisted character state; it is always derived from the cape.
 func KingdomFromCape(index uint16) byte {
 	switch index {
 	case 543, 545, 734, 736, 1767, 3191, 3194, 3197, 3300, 3303, 3306:
@@ -59,13 +59,13 @@ func KingdomName(kingdom byte) string {
 	case KingdomAkelonia:
 		return "Akelonia"
 	default:
-		return "Neutro"
+		return "Neutral"
 	}
 }
 
-// KingdomCapeTierOf identifica inclusive a variante neutra. Capas especiais
-// fora da matriz nativa continuam definindo reino em KingdomFromCape, mas nao
-// podem ser promovidas nem neutralizadas como se fossem uma destas familias.
+// KingdomCapeTierOf also identifies the neutral variant. Special capes outside
+// the native matrix still define a kingdom in KingdomFromCape, but they cannot
+// be promoted or neutralized as if they belonged to one of these families.
 func KingdomCapeTierOf(index uint16) (KingdomCapeTier, bool) {
 	for tier, family := range kingdomCapeFamilies {
 		if index == family.Hekalotia || index == family.Akelonia || index == family.Neutral {
@@ -92,9 +92,9 @@ func KingdomCapeAtTier(tier KingdomCapeTier, kingdom byte) (uint16, bool) {
 	}
 }
 
-// KingdomCape converte a capa neutra para o equivalente do reino. A capa
-// vazia e a Wanderer entram pela medalha basica; tiers superiores preservam a
-// categoria, como no case KING do WYD 7.48.
+// KingdomCape converts a neutral cape to its kingdom equivalent. An empty cape
+// and Wanderer use the basic medal; higher tiers preserve their category,
+// as in the WYD 7.48 KING case.
 func KingdomCape(index uint16, kingdom byte) (uint16, bool) {
 	if index == 0 {
 		return KingdomCapeAtTier(CapeTierBasic, kingdom)
@@ -106,13 +106,13 @@ func KingdomCape(index uint16, kingdom byte) (uint16, bool) {
 	return KingdomCapeAtTier(tier, kingdom)
 }
 
-// NeutralCape e a conversao inversa usada pelo Kingdom Broker.
+// NeutralCape is the inverse conversion used by the Kingdom Broker.
 func NeutralCape(index uint16) (uint16, bool) {
 	tier, ok := KingdomCapeTierOf(index)
 	if ok && KingdomFromCape(index) != KingdomNeutral {
 		return KingdomCapeAtTier(tier, KingdomNeutral)
 	}
-	// Estas capas especiais Celestiais usam o broker Master no WYD 7.48.
+	// These special Celestial capes use the Master broker in WYD 7.48.
 	if index == 1767 || index == 1770 {
 		return KingdomCapeAtTier(CapeTierMaster, KingdomNeutral)
 	}

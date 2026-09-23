@@ -79,6 +79,9 @@ a partial translation as completion.
   to players are in English, as are the adjacent server diagnostics, comments,
   and test descriptions. Existing command aliases, packet layouts, and state
   transitions are unchanged; in-client visual validation remains pending.
+- The neutral kingdom display name is now `Neutral`; the numeric kingdom IDs,
+  cape mappings, and native conversion rules are unchanged. A focused model
+  test guards the English label.
 - The cargo-slot, character-login use-case, and grid-insertion test descriptions,
   plus the adjacent cargo and login application comments, are in English.
   Release architecture tests pass; this prose-only batch changes no client
