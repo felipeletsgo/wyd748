@@ -593,6 +593,59 @@ bool WYD748_LoadUIStrings(
     return true;
 }
 
+bool WYD748_LoadItemNames(
+    const char* path,
+    char* destination,
+    const std::size_t destinationCount,
+    const std::size_t destinationStride,
+    const std::size_t nameWidth)
+{
+    constexpr std::size_t diskNameWidth = 64;
+    constexpr std::size_t diskRecordWidth = sizeof(std::int32_t) + diskNameWidth;
+    if (path == nullptr || destination == nullptr || destinationCount == 0 ||
+        nameWidth != diskNameWidth || destinationStride < nameWidth ||
+        destinationCount > SIZE_MAX / destinationStride)
+        return false;
+
+    std::vector<unsigned char> bytes;
+    if (!ReadWholeFile(path, bytes) || bytes.empty() ||
+        bytes.size() % diskRecordWidth != 0 ||
+        bytes.size() / diskRecordWidth > destinationCount)
+        return false;
+
+    std::vector<std::pair<std::size_t, std::string>> names;
+    std::vector<bool> seen(destinationCount, false);
+    for (std::size_t offset = 0; offset < bytes.size(); offset += diskRecordWidth)
+    {
+        std::int32_t index = -1;
+        memcpy(&index, bytes.data() + offset, sizeof(index));
+        if (index == -1)
+            continue;
+        if (index < 0 || static_cast<std::size_t>(index) >= destinationCount || seen[index])
+            return false;
+
+        char name[diskNameWidth]{};
+        for (std::size_t position = 0; position < diskNameWidth; ++position)
+        {
+            const auto encoded = bytes[offset + sizeof(index) + position];
+            name[position] = static_cast<char>(position < 62
+                ? static_cast<unsigned char>(encoded - position) : encoded);
+        }
+        const auto end = std::find(name, name + 62, '\0');
+        names.emplace_back(static_cast<std::size_t>(index),
+            std::string(name, static_cast<std::size_t>(end - name)));
+        seen[index] = true;
+    }
+
+    for (const auto& [index, name] : names)
+    {
+        char* target = destination + index * destinationStride;
+        memset(target, 0, nameWidth);
+        memcpy(target, name.data(), name.size());
+    }
+    return true;
+}
+
 bool WYD748_LoadServerNameList(
     const char* path,
     char (*names)[16],

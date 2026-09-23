@@ -34,6 +34,15 @@ bool WYD748_LoadUIStrings(
     std::size_t destinationCount,
     std::size_t stringWidth);
 
+// Overlays decoded 7.48 Itemname.bin labels onto item definitions. A malformed
+// file leaves every name and all non-name fields unchanged.
+bool WYD748_LoadItemNames(
+    const char* path,
+    char* destination,
+    std::size_t destinationCount,
+    std::size_t destinationStride,
+    std::size_t nameWidth);
+
 // Validates all four selection-preview rows before exposing any item indexes.
 bool WYD748_LoadCharacterSamples(
     const char* path,

@@ -1,9 +1,9 @@
 ﻿#include "pch.h"
 #include "Basedef.h"
 
-// Primitivas BASE_* e tabelas globais do client. Esta unidade ainda mistura
-// loaders, consultas de gameplay e geometria; os comentários descrevem a source
-// atual, sem afirmar equivalência nativa nem reorganizar a ordem das funções.
+// Client BASE_* primitives and global tables. This unit still combines
+// loaders, gameplay queries, and geometry; comments describe the current
+// source without asserting native equivalence or changing function order.
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "ItemEffect.h"
@@ -40,18 +40,18 @@ STRUCT_GUILDZONE g_pGuildZone[MAX_GUILDZONE] =
     {0, 0, 1066, 1760, 1050, 1706, 1036, 1700, 1072, 1760, 4000, 4000, 4010, 4010, 4005, 4005, 4005, 4005, 5, 0} // Noatum
 };
 
-// Inicialização, leitura de dados e normalização de recursos.
-/** Converte size da largura lógica para pixels usando a largura de g_pDevice.
- * Exige dispositivo válido; não considera altura, não aloca nem altera estado. */
+// Initialization, data loading, and resource normalization.
+/** Converts logical width to pixels using the width of g_pDevice.
+ * Requires a valid device; does not use height, allocate, or change state. */
 float BASE_ScreenResize(float size)
 {
 	return (float)g_pDevice->m_dwScreenWidth * (size / WYD748_UI_BASE_WIDTH);
 }
 
-/** Formata str e argumentos no buffer estático de 512 bytes via vsprintf_s.
- * str e argumentos devem ser válidos para o formato. Retorno emprestado: não
- * liberar; a próxima chamada o sobrescreve. Não é reentrante/thread-safe e
- * erros de formato/capacidade seguem o tratamento do CRT, não um retorno próprio. */
+/** Formats str and its arguments into a static 512-byte buffer via vsprintf_s.
+ * Arguments must match the format. The borrowed result must not be freed;
+ * the next call overwrites it. This is not reentrant or thread-safe; format
+ * and capacity errors follow CRT handling rather than a dedicated status. */
 char* strfmt(const char* str, ...)
 {
     static char buffer[512] = { 0, };
@@ -62,17 +62,17 @@ char* strfmt(const char* str, ...)
     return buffer;
 }
 
-/** Delega a configuração da raiz de assets ao adaptador WYD748.
- * Não retorna status; a política de caminhos pertence ao adaptador. */
+/** Delegates asset-root setup to the WYD748 adapter.
+ * Returns no status; path policy belongs to the adapter. */
 void BASE_InitModuleDir()
 {
     // WYD_ASSET_ROOT allows this source build to read the existing 7.48 tree.
     WYD748_InitializeAssetRoot();
 }
 
-/** Reconstrói deterministicamente os 1024 valores da tabela global de acertos.
- * Sobrescreve o conteúdo anterior, limita valores a 999 e fixa a posição 0 em
- * 512. Não usa gerador aleatório; executar antes dos consumidores de g_pHitRate. */
+/** Rebuilds the 1,024 values of the global hit-rate table deterministically.
+ * Overwrites prior contents, caps values at 999, and sets entry zero to 512.
+ * Uses no RNG; run before consumers of g_pHitRate. */
 void BASE_InitializeHitRate()
 {
     memset(g_pHitRate, 0, sizeof(g_pHitRate));
@@ -110,9 +110,9 @@ void BASE_InitializeHitRate()
     g_pHitRate[0] = 512;
 }
 
-/** Carrega g_pAttribute de Env/AttributeMap.dat, com fallback em TMSRV/Run.
- * Fecha o arquivo aberto. Retorna 0 e exibe diálogo se nenhuma abertura funcionar;
- * retorna 1 após fread, mesmo se a leitura for curta (retorno não conferido). */
+/** Loads g_pAttribute from Env/AttributeMap.dat, falling back to TMSRV/Run.
+ * Closes the opened file. Returns 0 with a dialog if both paths fail; returns
+ * 1 after fread even for a short read because its result is not checked. */
 int BASE_InitializeAttribute()
 {
     char FileName[256]{};
@@ -135,10 +135,10 @@ int BASE_InitializeAttribute()
     return 1;
 }
 
-/** Aplica o bit 2 do mapa de atributos ao quadrado size x size na origem global.
- * pHeight é memória emprestada, gravável e suficiente para o stride g_HeightWidth;
- * posições marcadas recebem altura 127. O chamador garante dimensões/origem
- * válidas: não há validação de capacidade nem restauração das alturas anteriores. */
+/** Applies attribute-map bit 2 to a size-by-size square at the global origin.
+ * pHeight is borrowed writable memory with the g_HeightWidth stride; marked
+ * positions receive height 127. The caller supplies valid dimensions and
+ * origin; capacity is not checked and prior heights are not restored. */
 void BASE_ApplyAttribute(char* pHeight, int size)
 {
     int endx = size + g_HeightPosX;
@@ -154,9 +154,9 @@ void BASE_ApplyAttribute(char* pHeight, int size)
     }
 }
 
-/** Solicita ao adaptador a carga de ItemList.bin na tabela global g_pItemList.
- * Retorna 1 em sucesso ou 0 com diálogo em falha; conversão e tratamento de
- * registros pertencem a WYD748_LoadItemList, não a uma leitura bruta do struct. */
+/** Asks the adapter to load ItemList.bin into the global g_pItemList table.
+ * Returns 1 on success or 0 with a dialog on failure. Record conversion is
+ * handled by WYD748_LoadItemList rather than reading the runtime struct raw. */
 int BASE_ReadItemList()
 {
     // ItemList 7.48 stores 140-byte rows, whereas this newer source keeps a
@@ -171,9 +171,9 @@ int BASE_ReadItemList()
     return 1;
 }
 
-/** Carrega g_pSpell por WYD748_LoadSkillData usando SkillData_Path.
- * Retorna TRUE em sucesso; FALSE e diálogo em falha. O adaptador recebe a
- * capacidade da tabela e detém a lógica de leitura/conversão. */
+/** Loads g_pSpell through WYD748_LoadSkillData using SkillData_Path.
+ * Returns TRUE on success or FALSE with a dialog on failure. The adapter
+ * receives table capacity and owns the read/conversion logic. */
 int BASE_ReadSkillBin()
 {
     // SkillData 7.48 has 104 compact rows; translate it before gameplay uses it.
@@ -186,17 +186,17 @@ int BASE_ReadSkillBin()
     return TRUE;
 }
 
-/** Stub pendente: retorna 1 sem carregar dados nem preencher g_pInitItem.
- * Esse retorno não comprova que a tabela de itens iniciais está disponível. */
+/** Pending stub: returns 1 without loading data or filling g_pInitItem.
+ * This result does not prove that the initial-item table is available. */
 int BASE_ReadInitItem()
 {
-    // A necessidade de implementar este loader permanece sem decisão neste lote.
+    // Whether this loader is needed remains unresolved in this batch.
     return 1;
 }
 
-/** Sobrescreve preços locais dos índices 412, 413, 419 e 420 de g_pItemList.
- * Aplicar após carregar a tabela para não perder os ajustes. Não persiste
- * valores nem altera a autoridade do servidor sobre transações. */
+/** Overrides local prices at g_pItemList indexes 412, 413, 419, and 420.
+ * Run after table loading so the overrides remain. Does not persist values
+ * or change server authority over transactions. */
 void BASE_InitialItemRePrice()
 {
     g_pItemList[412].nPrice = 4000000;
@@ -205,9 +205,9 @@ void BASE_InitialItemRePrice()
     g_pItemList[420].nPrice = 800000;
 }
 
-/** Calcula a soma legada de p[0..size), alternando operações por índice módulo 7.
- * p é emprestado e somente lido; deve cobrir size bytes quando size > 0.
- * Para size <= 0 retorna 0. Preserva aritmética de char/int: não é hash seguro. */
+/** Computes the legacy sum over p[0..size), alternating by index modulo 7.
+ * p is borrowed and read-only, and must cover size bytes when size > 0.
+ * Returns 0 for size <= 0. Preserves char/int arithmetic; this is not a secure hash. */
 int BASE_GetSum(char* p, int size)
 {
 	int sum = 0;
@@ -224,7 +224,7 @@ int BASE_GetSum(char* p, int size)
 			sum += 2 * p[i];
 		if (mod == 4)
 			sum -= p[i] / 7;
-		// O else pertence apenas a mod == 5, não aos testes anteriores.
+		// The else belongs only to mod == 5, not to the earlier conditions.
 		if (mod == 5)
 			sum -= p[i];
 		else
@@ -234,9 +234,9 @@ int BASE_GetSum(char* p, int size)
 	return sum;
 }
 
-/** Variante da soma legada com ciclo módulo 9; retorna 0 para size <= 0.
- * p é somente lido e deve conter size bytes acessíveis quando size > 0.
- * Não substitui BASE_GetSum: os fatores e a divisão complementar são distintos. */
+/** Legacy-sum variant with a modulo-9 cycle; returns 0 for size <= 0.
+ * p is read-only and must cover size bytes when size > 0.
+ * Does not replace BASE_GetSum: its factors and complementary division differ. */
 int BASE_GetSum2(char* p, int size)
 {
     int sum = 0;
@@ -254,7 +254,7 @@ int BASE_GetSum2(char* p, int size)
             sum += 2 * p[i];
         if (mod == 4)
             sum -= p[i] ^ 0x5A;
-        // A divisão complementar também ocorre nos casos 0..4 e 6..8.
+        // Complementary division also applies to cases 0..4 and 6..8.
         if (mod == 5)
             sum -= p[i];
         else
@@ -264,9 +264,9 @@ int BASE_GetSum2(char* p, int size)
     return sum;
 }
 
-/** Delega a carga de Strdef_Path para a tabela global de mensagens.
- * Informa quantidade e capacidade das linhas; propaga o resultado do loader,
- * sem exibir diálogo ou implementar uma segunda interpretação do arquivo. */
+/** Delegates loading Strdef_Path into the global message table.
+ * Supplies row count and capacity and forwards the loader result without a
+ * dialog or a second interpretation of the file. */
 int BASE_ReadMessageBin()
 {
 	// The 7.48 strdef contains fewer rows than TMProject but keeps 128-byte indices.
@@ -289,10 +289,10 @@ void BASE_InitEffectString()
     /* There's a loading of the GuildString.txt file, but is not used */
 }
 
-/** Inicializa lista de servidores, skills, itens e idioma, nessa ordem.
- * Executa todas as etapas mesmo após falha (AND bit a bit, sem curto-circuito)
- * e retorna o acumulado iniciado pelo bit baixo do primeiro resultado.
- * Não desfaz tabelas já carregadas se uma etapa posterior falhar. */
+/** Initializes server list, skills, items, and language in that order.
+ * Runs every step even after failure (bitwise AND, no short-circuit) and
+ * returns the accumulated result seeded by the first result's low bit.
+ * Does not roll back tables already loaded if a later step fails. */
 int BASE_InitializeBaseDef()
 {
     int ret = 0;
@@ -304,19 +304,18 @@ int BASE_InitializeBaseDef()
 }
 
 /*
- * API de dados, regras e geometria abaixo:
- * - loaders (`BASE_ReadItemPrice`, `BASE_ReadTOTOList`, idioma e filtros)
- *   mutam somente tabelas globais e devolvem o status legado;
- * - consultas BASE_Get..., Is... e Check... não assumem ownership dos
- *   ponteiros e não
- *   persistem estado server-side;
- * - rotinas de item/equipamento escrevem apenas quando a assinatura recebe
- *   ponteiro de destino; buffers e structs pertencem ao chamador;
- * - navegação/geometria escreve nos buffers explicitamente recebidos e exige
- *   dimensões válidas fornecidas pelo chamador;
- * - cálculos de combate preservam inteiros e tabelas globais históricas.
- * Os comentários individuais do lote inicial detalham exceções; este contrato
- * comum evita repetir a mesma explicação em dezenas de funções pequenas.
+ * Data, rules, and geometry API below:
+ * - loaders (`BASE_ReadItemPrice`, `BASE_ReadTOTOList`, language, and filters)
+ *   mutate only global tables and return legacy status;
+ * - BASE_Get..., Is..., and Check... queries do not own their pointers or
+ *   persist server-side state;
+ * - item/equipment routines write only when given a destination pointer;
+ *   buffers and structs belong to the caller;
+ * - navigation/geometry writes to explicitly supplied buffers and requires
+ *   valid dimensions from the caller;
+ * - combat calculations retain historical integer and global-table behavior.
+ * Individual comments cover exceptions; this common contract avoids repeating
+ * the same explanation across small functions.
  */
 void BASE_ReadItemPrice()
 {
@@ -405,7 +404,7 @@ int BASE_GetWeekNumber()
 	return (int)(now / week - 3);
 }
 
-// Regras de itens, equipamentos e efeitos.
+// Item, equipment, and effect rules.
 int BASE_GetItemSanc(STRUCT_ITEM* item)
 {
     if (item->sIndex >= 2330 && item->sIndex < 2390)
@@ -833,7 +832,7 @@ float BASE_GetMountScale(int nSkinMeshType, int nMeshIndex)
     return fSize;
 }
 
-// Navegação, terreno e projeção de coordenadas.
+// Navigation, terrain, and coordinate projection.
 int BASE_GetRoute(int x, int y, int* targetx, int* targety, char* Route, int distance, char* pHeight, int MH)
 {
     int lastx = x;
@@ -1115,36 +1114,9 @@ int ReadItemicon()
 
 void ReadItemName()
 {
-    FILE* fpBin = nullptr;
-    fopen_s(&fpBin, ItemName_Path, "rb");
-
-    if (!fpBin)
-        return;
-
-    for (int i = 0; i < MAX_ITEMLIST; ++i)
-    {
-        int Index = -1;
-        char Name[256]{};
-
-        if (!fread(&Index, 4, 1, fpBin) || !fread(Name, 64, 1, fpBin))
-            break;
-
-        for (int nTemp = 0; nTemp < 62; ++nTemp)
-            Name[nTemp] -= nTemp;
-
-        if (Index != -1 && Index < 6500)
-        {
-            if (strlen(Name) >= 63)
-            {
-                Name[63] = 0;
-                Name[62] = 0;
-            }
-
-            strcpy(g_pItemList[Index].Name, Name);
-        }
-    }
-
-    fclose(fpBin);
+    WYD748_LoadItemNames(ItemName_Path, &g_pItemList[0].Name[0],
+        _countof(g_pItemList), sizeof(g_pItemList[0]),
+        sizeof(g_pItemList[0].Name));
 }
 
 void ReadUIString()
@@ -2036,7 +2008,7 @@ int BASE_GetSkillDamage(int dam, int ac, int combat)
     return tdam;
 }
 
-// Habilidades, combate e cálculo de atributos derivados.
+// Skills, combat, and derived-attribute calculations.
 int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weapondamage, int OriginalFace)
 {
     int instanceindex = g_pSpell[skillnum].InstanceType;//ok
@@ -2769,7 +2741,7 @@ void BASE_SetItemAmount(STRUCT_ITEM* item, int amount)
     BASE_ChangeOrAddEffectValue(item, EF_AMOUNT, amount);
 }
 
-// Validação final de estado, críticos e utilitários de baixo nível.
+// Final state validation, critical hits, and low-level utilities.
 int BASE_GetMobAbility(STRUCT_MOB* mob, char Type)
 {
     int value = 0;
@@ -3280,9 +3252,9 @@ int BASE_GetMeshIndex(short sIndex)
 }
 
 /**
- * Consulta se algum slot de efeito está vazio ou contém refino/cor substituível.
- * item é emprestado, obrigatório e somente lido. Retorna false quando todos
- * os slots contêm outros efeitos; não valida categoria, custo ou regra server-side.
+ * Checks whether an effect slot is empty or contains replaceable refinement/color.
+ * item is borrowed, required, and read-only. Returns false when all slots
+ * contain other effects; does not validate category, cost, or server rules.
  */
 bool BASE_CanRefine(STRUCT_ITEM* item)
 {
@@ -3296,10 +3268,10 @@ bool BASE_CanRefine(STRUCT_ITEM* item)
 }
 
 /**
- * Normaliza o identificador recebido (>=5400: -5200; >=5000: -5000) e consulta
- * Passive na tabela global g_pSpell. Retorna 1 apenas quando o campo vale 1.
- * O chamador deve garantir tabela carregada e índice normalizado dentro dela:
- * esta função não valida limites nem modifica a tabela.
+ * Normalizes the supplied ID (>=5400: -5200; >=5000: -5000) and reads Passive
+ * from the global g_pSpell table. Returns 1 only when that field is 1.
+ * The caller must ensure the table is loaded and the normalized index fits;
+ * this function neither checks bounds nor modifies the table.
  */
 int IsPassiveSkill(int nSkillIndex)
 {
@@ -3312,8 +3284,8 @@ int IsPassiveSkill(int nSkillIndex)
 }
 
 /**
- * Identifica EF_SANC ou uma cor no intervalo [EF_STARTCOL, EF_MAXCOL).
- * effect é uma referência emprestada, somente lida; o valor cValue não é validado.
+ * Identifies EF_SANC or a color in [EF_STARTCOL, EF_MAXCOL).
+ * effect is a borrowed read-only reference; cValue is not validated.
  */
 bool BASE_HasSancAdd(const STRUCT_BONUSEFFECT& effect)
 {
@@ -3321,9 +3293,9 @@ bool BASE_HasSancAdd(const STRUCT_BONUSEFFECT& effect)
 }
 
 /**
- * Retorna cValue do primeiro efeito reconhecido por BASE_HasSancAdd.
- * item é somente lido. O retorno 0 também representa ausência do efeito;
- * valores de efeitos posteriores não são somados nem usados como substitutos.
+ * Returns cValue from the first effect recognized by BASE_HasSancAdd.
+ * item is read-only. Zero also means no such effect; later effects are
+ * neither summed nor used as fallbacks.
  */
 int BASE_GetSancEffValue(const STRUCT_ITEM& item)
 {
@@ -3337,10 +3309,11 @@ int BASE_GetSancEffValue(const STRUCT_ITEM& item)
 }
 
 /**
- * Decodifica o valor de refino como divisão inteira por 10, até o limite 210.
- * item é emprestado e obrigatório. Retorna 0 para valores maiores, ausência
- * de efeito e índices 2330..2389, 3200..3299 ou 3980..3999, sem mutar o item.
- * Apesar do nome, não sorteia sucesso nem retorna uma probabilidade validada.
+ * Decodes refinement as integer division by 10 up to a maximum of 210.
+ * item is borrowed and required. Returns 0 for larger values, missing effects,
+ * or IDs 2330..2389, 3200..3299, and 3980..3999 without changing the item.
+ * Despite its name, this function neither rolls success nor returns a
+ * validated probability.
  */
 int BASE_GetItemSancSuccess(STRUCT_ITEM* item)
 {
@@ -3360,9 +3333,9 @@ int BASE_GetItemSancSuccess(STRUCT_ITEM* item)
 }
 
 /**
- * Busca o código effect e retorna cValue da primeira ocorrência, ou 0 se ausente.
- * item deve ser não nulo e permanece inalterado. Zero não distingue ausência
- * de um efeito presente com valor zero; códigos repetidos não são agregados.
+ * Finds effect and returns cValue from its first occurrence, or 0 if absent.
+ * item must be non-null and remains unchanged. Zero does not distinguish an
+ * absent effect from a present zero-valued one; repeated codes are not summed.
  */
 int BASE_GetEffectValue(STRUCT_ITEM* item, int effect)
 {
@@ -3376,10 +3349,10 @@ int BASE_GetEffectValue(STRUCT_ITEM* item, int effect)
 }
 
 /**
- * Atualiza a primeira ocorrência de effect ou usa o primeiro slot vazio.
- * item é emprestado, obrigatório e alterado no local; sem slot disponível,
- * não faz nada e não sinaliza falha. effect/value são convertidos para byte
- * ao gravar, sem validação de faixa. Não persiste nem publica a alteração.
+ * Updates the first occurrence of effect or uses the first empty slot.
+ * item is borrowed, required, and changed in place. With no free slot this
+ * does nothing and reports no failure. effect/value are cast to bytes without
+ * range checks. The change is neither persisted nor published.
  */
 void BASE_ChangeOrAddEffectValue(STRUCT_ITEM* item, int effect, int value)
 {
@@ -3392,8 +3365,8 @@ void BASE_ChangeOrAddEffectValue(STRUCT_ITEM* item, int effect, int value)
         }
     }
     
-    // Só insere após procurar em todos os slots: um vazio anterior não deve
-    // criar uma duplicata de um efeito que já existe em um slot posterior.
+    // Search every slot first: an earlier empty slot must not duplicate an
+    // effect already present in a later slot.
     for (auto& i : item->stEffect)
     {
         if (i.cEffect == 0)
@@ -3406,9 +3379,9 @@ void BASE_ChangeOrAddEffectValue(STRUCT_ITEM* item, int effect, int value)
 }
 
 /**
- * Zera código e valor de todas as ocorrências de effect, sem compactar slots.
- * item é emprestado, obrigatório e mutado no local. Ausência é um no-op;
- * a função não persiste o item nem envia atualização ao servidor.
+ * Clears the code and value of every occurrence of effect without compacting.
+ * item is borrowed, required, and changed in place. Absence is a no-op;
+ * this function neither persists the item nor sends an update to the server.
  */
 void BASE_RemoveEffect(STRUCT_ITEM* item, int effect)
 {

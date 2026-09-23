@@ -32,6 +32,11 @@ a partial translation as completion.
   malformed or out-of-range rows without publishing a partial table. The
   original resource bytes and numeric IDs remain unchanged. In-client
   validation remains pending.
+- `Itemname.bin` loading now validates 68-byte records, indexes, and duplicates
+  before overlaying decoded names onto the 7.48 item table. The shipped 2,883
+  records, resource bytes, item IDs, and non-name fields remain unchanged.
+  Legacy Portuguese comments in the affected `Basedef.cpp` were translated;
+  in-client validation remains pending.
 
 ## Remaining work
 

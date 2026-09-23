@@ -7,6 +7,7 @@
 
 #include <cstdio>
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -914,6 +915,68 @@ int RunSceneDisconnectContractTests(int& checks)
             !WYD748_LoadUIStrings(assetPath.c_str(), &labels[0][0], 1, 64) &&
             !WYD748_LoadUIStrings(assetPath.c_str(), &labels[0][0], 500, 1),
             "invalid UI string destinations and dimensions are rejected");
+    }
+
+    const auto itemNameAsset = FindSource("client748/Itemname.bin");
+    check(!itemNameAsset.empty(), "7.48 item-name asset is available");
+    if (!itemNameAsset.empty()) {
+        constexpr std::size_t itemCount = 6500;
+        constexpr std::size_t itemStride = 156;
+        std::vector<char> items(itemCount * itemStride, 0);
+        items[itemStride + 64] = 'K';
+        const auto assetPath = itemNameAsset.string();
+        check(WYD748_LoadItemNames(assetPath.c_str(), items.data(),
+            itemCount, itemStride, 64),
+            "native item-name records load into the 7.48 item table");
+        check(std::strcmp(items.data() + itemStride, "Transknight") == 0 &&
+            std::strcmp(items.data() + 6 * itemStride, "TransKnight") == 0 &&
+            std::strcmp(items.data() + 5338 * itemStride, "Ideal_Stone") == 0 &&
+            items[itemStride + 64] == 'K' && items[5339 * itemStride] == '\0',
+            "item-name indexes, decoding, and non-name fields are preserved");
+
+        wchar_t executable[MAX_PATH]{};
+        const DWORD length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
+        check(length > 0 && length < MAX_PATH,
+            "item-name fixture directory is available");
+        if (length > 0 && length < MAX_PATH) {
+            const auto fixturePath = std::filesystem::path(executable).parent_path() /
+                "item-name-invalid-test.bin";
+            const auto fixtureName = fixturePath.string();
+            const auto encodeNameRecord = [](std::int32_t index, const char* name) {
+                std::string bytes(68, '\0');
+                std::memcpy(bytes.data(), &index, sizeof(index));
+                for (std::size_t position = 0; position < 62 && name[position] != '\0'; ++position)
+                    bytes[sizeof(index) + position] = static_cast<char>(
+                        static_cast<unsigned char>(name[position] + position));
+                return bytes;
+            };
+            const auto rejected = [&](const std::string& content, const char* label) {
+                std::ofstream output(fixturePath, std::ios::binary | std::ios::trunc);
+                output.write(content.data(), content.size());
+                output.close();
+                items[itemStride] = 'X';
+                check(output.good() && !WYD748_LoadItemNames(fixtureName.c_str(),
+                    items.data(), itemCount, itemStride, 64) &&
+                    items[itemStride] == 'X' && items[itemStride + 64] == 'K', label);
+            };
+            rejected(encodeNameRecord(1, "Valid") + encodeNameRecord(-2, "Invalid"),
+                "negative item index is rejected without partial publication");
+            rejected(encodeNameRecord(1, "Valid") + encodeNameRecord(6500, "Invalid"),
+                "out-of-range item index is rejected without partial publication");
+            rejected(encodeNameRecord(1, "Valid") + encodeNameRecord(1, "Duplicate"),
+                "duplicate item index is rejected without partial publication");
+            rejected(encodeNameRecord(1, "Valid") + "tail",
+                "truncated item-name record is rejected without partial publication");
+            std::error_code error;
+            std::filesystem::remove(fixturePath, error);
+            check(!error, "temporary item-name fixture is removed");
+        }
+        check(!WYD748_LoadItemNames(nullptr, items.data(), itemCount, itemStride, 64) &&
+            !WYD748_LoadItemNames(assetPath.c_str(), nullptr, itemCount, itemStride, 64) &&
+            !WYD748_LoadItemNames(assetPath.c_str(), items.data(), itemCount, 63, 64) &&
+            !WYD748_LoadItemNames(assetPath.c_str(), items.data(), itemCount, itemStride, 63) &&
+            !WYD748_LoadItemNames(assetPath.c_str(), items.data(), itemCount, itemStride, 65),
+            "invalid item-name destinations and dimensions are rejected");
     }
 
     const auto ccModeScene = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
