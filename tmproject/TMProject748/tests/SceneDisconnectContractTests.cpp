@@ -1,6 +1,7 @@
 #include "../internal/ui/UIBinary.h"
 #include "../internal/core/ServerListAsset.h"
 #include "../internal/core/ServerStatus.h"
+#include "../internal/core/WYD748Assets.h"
 #include "../internal/render/world/objects/ObjectFileRecordLayout.h"
 #include "../internal/ui/SellConfirmationText.h"
 
@@ -147,6 +148,13 @@ int RunSceneDisconnectContractTests(int& checks)
         previewFaceLookup < previewCapeLookup &&
         selectCharacter.find("g_pItemList[pSelChar->Equip[i]", reloadCharacters) == std::string::npos,
         "character preview bounds face, equipment, and cape ItemList lookups");
+    const auto sampleLoad = selectCharacter.find(
+        "if (!WYD748_LoadCharacterSamples(\"UI\\\\selchar.txt\", samples, 4))");
+    const auto sampleItemLookup = selectCharacter.find("g_pItemList[nFace].nIndexMesh");
+    check(sampleLoad != std::string::npos && sampleItemLookup != std::string::npos &&
+        sampleLoad < sampleItemLookup &&
+        selectCharacter.substr(sampleLoad, sampleItemLookup - sampleLoad).find("return 0;") != std::string::npos,
+        "character samples are validated before the first ItemList lookup");
     const auto characterTerrain = selectCharacter.find("if (!m_pGroundList[0]->LoadTileMap(szMapPath))");
     const auto characterMiniMap = selectCharacter.find("m_pGround->SetMiniMapData();", characterTerrain);
     check(characterTerrain != std::string::npos && characterMiniMap != std::string::npos &&
@@ -764,6 +772,53 @@ int RunSceneDisconnectContractTests(int& checks)
         }
         check(fieldCount == 96 && allValid,
             "all 96 native 7.48 Field object files retain their record layout");
+    }
+
+    const auto sampleAsset = FindSource("client748/UI/selchar.txt");
+    check(!sampleAsset.empty(), "7.48 character preview samples are available");
+    if (!sampleAsset.empty()) {
+        WYD748CharacterSample samples[4]{};
+        const auto samplePath = sampleAsset.string();
+        check(WYD748_LoadCharacterSamples(samplePath.c_str(), samples, 4),
+            "all four native character previews load");
+        check(samples[0].face == 1 && samples[0].helm == 1211 &&
+            samples[0].left == 2891 && samples[3].face == 31 &&
+            samples[3].body == 1646 && samples[3].refinement == 9,
+            "native preview item indexes and refinement are preserved");
+        check(!WYD748_LoadCharacterSamples(samplePath.c_str(), samples, 3) &&
+            !WYD748_LoadCharacterSamples(nullptr, samples, 4),
+            "missing path and undersized preview array are rejected");
+
+        wchar_t executable[MAX_PATH]{};
+        const DWORD executableLength = GetModuleFileNameW(nullptr, executable, MAX_PATH);
+        check(executableLength > 0 && executableLength < MAX_PATH,
+            "test executable path is available for preview fixtures");
+        const auto fixturePath = std::filesystem::path(executable).parent_path() /
+            "selchar-invalid-test.txt";
+        const auto writeFixture = [&](const char* content) {
+            std::ofstream output(fixturePath, std::ios::trunc);
+            output << content;
+            output.close();
+            return output.good();
+        };
+        const auto invalidPath = fixturePath.string();
+        const auto checkRejected = [&](const char* content, const char* name) {
+            check(writeFixture(content), "invalid preview fixture can be written");
+            samples[0].face = 777;
+            check(!WYD748_LoadCharacterSamples(invalidPath.c_str(), samples, 4) &&
+                samples[0].face == 777, name);
+        };
+        checkRejected("1,1211,1211,0,0,2891,9\n",
+            "truncated preview table leaves the destination untouched");
+        checkRejected("1,1211,1211,0,0,2891,9\n11,1346,no-item,0,0,2848,9\n21,1496,1496,0,0,2669,9\n31,1643,1646,0,0,2550,9\n",
+            "malformed preview item is rejected before lookup");
+        checkRejected("1,6500,1211,0,0,2891,9\n11,1346,1346,0,0,2848,9\n21,1496,1496,0,0,2669,9\n31,1643,1646,0,0,2550,9\n",
+            "out-of-range preview item is rejected before lookup");
+        checkRejected("1,1211,1211,0,0,2891,9\n11,1346,1346,0,0,2848,9\n21,1496,1496,0,0,2669,9\n31,1643,1646,0,0,2550,9 trailing\n",
+            "trailing preview fields are rejected");
+        std::error_code error;
+        std::filesystem::remove(fixturePath, error);
+        check(!error, "temporary preview fixture is removed");
     }
 
     return failures;

@@ -6,6 +6,23 @@ struct stTextureListInfo;
 struct STRUCT_SPELL;
 struct STRUCT_ITEMLIST;
 
+struct WYD748CharacterSample
+{
+    int face;
+    int helm;
+    int body;
+    int mantle;
+    int right;
+    int left;
+    int refinement;
+};
+
+// Validates all four selection-preview rows before exposing any item indexes.
+bool WYD748_LoadCharacterSamples(
+    const char* path,
+    WYD748CharacterSample* destination,
+    std::size_t destinationCount);
+
 // Selects the asset directory before any relative client file is opened.
 // WYD_ASSET_ROOT takes precedence; otherwise the executable directory is used.
 bool WYD748_InitializeAssetRoot();

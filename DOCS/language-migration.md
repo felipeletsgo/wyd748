@@ -18,6 +18,9 @@ a partial translation as completion.
 - The runtime `tmproject/client748/sn.bin` group labels: `Channel` and
   `Featured` replace the Portuguese and Korean labels while retaining all
   eleven fixed-width slots, group orders, and the 143-byte file layout.
+- Character-selection preview loading now validates the original four-row
+  `selchar.txt` resource before item lookups; its new diagnostic and adjacent
+  source comments are in English. Visual client validation remains pending.
 
 ## Remaining work
 

@@ -5,9 +5,13 @@
 #include "TextureManager.h"
 #include "Basedef.h"
 
+#include <algorithm>
 #include <array>
 #include <climits>
 #include <cstdint>
+#include <fstream>
+#include <sstream>
+#include <string>
 #include <vector>
 
 namespace
@@ -447,6 +451,64 @@ bool WYD748_LoadMessageStrings(
     for (std::size_t index = 0; index < payloadSize; ++index)
         destination[index] = static_cast<char>(bytes[index] ^ 0x5A);
 
+    return true;
+}
+
+bool WYD748_LoadCharacterSamples(
+    const char* path,
+    WYD748CharacterSample* destination,
+    const std::size_t destinationCount)
+{
+    if (path == nullptr || destination == nullptr || destinationCount < 4)
+        return false;
+
+    std::ifstream input(path);
+    if (!input)
+        return false;
+
+    std::array<WYD748CharacterSample, 4> samples{};
+    std::string line;
+    for (auto& sample : samples)
+    {
+        if (!std::getline(input, line))
+            return false;
+
+        std::istringstream row(line);
+        int* fields[] = { &sample.face, &sample.helm, &sample.body,
+            &sample.mantle, &sample.right, &sample.left, &sample.refinement };
+        for (std::size_t index = 0; index < std::size(fields); ++index)
+        {
+            if (!(row >> *fields[index]))
+                return false;
+            if (index + 1 < std::size(fields))
+            {
+                row >> std::ws;
+                if (row.get() != ',')
+                    return false;
+            }
+        }
+        row >> std::ws;
+        if (!row.eof())
+            return false;
+
+        for (std::size_t index = 0; index + 1 < std::size(fields); ++index)
+        {
+            if (*fields[index] < 0 || *fields[index] >= MAX_ITEMLIST)
+                return false;
+        }
+        if (sample.refinement < 0 || sample.refinement > 255)
+            return false;
+    }
+
+    while (std::getline(input, line))
+    {
+        if (line.find_first_not_of(" \t\r\n") != std::string::npos)
+            return false;
+    }
+    if (input.bad())
+        return false;
+
+    std::copy(samples.begin(), samples.end(), destination);
     return true;
 }
 

@@ -15,6 +15,7 @@
 #include "TMSkillJudgement.h"
 #include "TMEffectSkinMesh.h"
 #include "ClientDiagnostics.h"
+#include "WYD748Assets.h"
 #include "../../platform/windows/SocketTransport.h"
 #include "../../application/RequestCharacterLogin.h"
 #include "../../wire/CharacterLoginSender.h"
@@ -66,7 +67,10 @@ TMSelectCharScene::TMSelectCharScene() :
 	m_pFocused = nullptr;
 
 	for (int i = 0; i < 4; ++i)
+	{
 		m_pHuman[i] = nullptr;
+		m_pSampleHuman[i] = nullptr;
+	}
 
 	m_eSceneType = ESCENE_TYPE::ESCENE_SELCHAR;
 	m_bSelect = 1;
@@ -285,11 +289,13 @@ int TMSelectCharScene::InitializeScene()
 
 		AddChild(m_pItemContainer);
 			
-		FILE* fp = nullptr;
+		WYD748CharacterSample samples[4]{};
+		if (!WYD748_LoadCharacterSamples("UI\\selchar.txt", samples, 4))
+		{
+			LOG_WRITELOG("Invalid UI\\selchar.txt character samples\r\n");
+			return 0;
+		}
 
-		fopen_s(&fp, "UI\\selchar.txt", "rt");
-
-		if (fp)
 		{
 			szClass[0] = g_pMessageStringTable[121];
 			szClass[1] = g_pMessageStringTable[122];
@@ -299,17 +305,16 @@ int TMSelectCharScene::InitializeScene()
 			HUMAN_LOOKINFO stHumanLook{};
 			SANC_INFO stSancInfo{};
 
-			int nSanc{};
-			int Helm{};
-			int Body{};
-			int nFace{};
-			int Left{};
-			int Right{};
-			int Mantua{};
-
 			for (int i = 0; i < 4; ++i)
 			{
-				int ret = fscanf(fp, "%d,%d,%d,%d,%d,%d,%d\r\n", &nFace, &Helm, &Body, &Mantua, &Right, &Left, &nSanc);
+				const auto& sample = samples[i];
+				const int nFace = sample.face;
+				const int Helm = sample.helm;
+				const int Body = sample.body;
+				const int Mantua = sample.mantle;
+				const int Right = sample.right;
+				const int Left = sample.left;
+				const int nSanc = sample.refinement;
 				
 				memset(&stHumanLook, 0, sizeof(stHumanLook));
 				memset(&stSancInfo, 0, sizeof(stSancInfo));
@@ -352,9 +357,6 @@ int TMSelectCharScene::InitializeScene()
 					stSancInfo.Legend1 = stSancInfo.Legend2;
 				}
 
-				if (ret == -1)
-					break;
-
 				m_pSampleHuman[i] = new TMHuman(this);
 
 				sprintf_s(m_pSampleHuman[i]->m_szName, "%s", szClass[i]);
@@ -388,7 +390,6 @@ int TMSelectCharScene::InitializeScene()
 				m_pHumanContainer->AddChild(static_cast<TreeNode*>(m_pSampleHuman[i]));
 			}
 
-			fclose(fp);
 		}
 
 		if (DS_SOUND_MANAGER::m_nMusicIndex)
