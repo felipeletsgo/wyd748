@@ -66,18 +66,18 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 		return nil, fmt.Errorf("admin_access_pin: %w", err)
 	}
 	if cfg.DatabaseDriver != "postgres" {
-		return nil, errors.New("painel integrado requer database_driver=postgres")
+		return nil, errors.New("integrated admin panel requires database_driver=postgres")
 	}
 	staff := func() (map[string]webadmin.Staff, error) { return webadmin.ReadStaff(cfg.WebAdminStaffPath) }
 	if _, err := staff(); err != nil {
 		return nil, fmt.Errorf("web_admin_staff: %w", err)
 	}
 	if info, err := os.Stat(filepath.Join(cfg.WebAdminStaticPath, "admin", "index.html")); err != nil || !info.Mode().IsRegular() {
-		return nil, errors.New("build do painel ausente; execute tools/web-admin/Start-WYDAdmin.ps1 antes de abrir tm.exe")
+		return nil, errors.New("admin panel build is missing; run tools/web-admin/Start-WYDAdmin.ps1 before starting tm.exe")
 	}
 	listener, err := net.Listen("tcp", cfg.WebAdminAddress)
 	if err != nil {
-		return nil, fmt.Errorf("porta do painel indisponivel: %w", err)
+		return nil, fmt.Errorf("admin panel port unavailable: %w", err)
 	}
 	started := false
 	defer func() {
@@ -92,7 +92,7 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	cancel()
 	if err != nil {
 		// Do not print driver errors: they may contain database credentials.
-		return nil, errors.New("banco do painel indisponivel; verifique WYD_WEB_DATABASE_URL ou a configuracao PostgreSQL do servidor")
+		return nil, errors.New("admin panel database unavailable; check WYD_WEB_DATABASE_URL or the server PostgreSQL configuration")
 	}
 	defer func() {
 		if !started {
@@ -125,7 +125,7 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	}
 	stop := serveWebAdmin(listener, site, db.Close)
 	started = true
-	log.Printf("Painel administrativo: %s/admin/ (local; senha da conta + PIN; operacoes conforme staff.json)", origin)
+	log.Printf("Admin panel: %s/admin/ (local; account password + PIN; permissions defined in staff.json)", origin)
 	return stop, nil
 }
 
@@ -148,7 +148,7 @@ func serveWebAdmin(listener net.Listener, handler http.Handler, cleanup func()) 
 	}
 	go func() {
 		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("painel administrativo indisponivel: %v; servidor do jogo continua ativo", err)
+			log.Printf("admin panel unavailable: %v; game server remains active", err)
 			stop()
 		}
 	}()

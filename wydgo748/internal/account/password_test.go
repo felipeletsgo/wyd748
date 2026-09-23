@@ -3,19 +3,19 @@ package account
 import "testing"
 
 func TestPasswordHashRoundTrip(t *testing.T) {
-	hash, err := HashPassword("Senha123!")
+	hash, err := HashPassword("Password1!")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if hash == "Senha123!" {
-		t.Fatal("senha foi armazenada em texto")
+	if hash == "Password1!" {
+		t.Fatal("password was stored as plaintext")
 	}
-	ok, err := VerifyPassword(hash, "Senha123!")
+	ok, err := VerifyPassword(hash, "Password1!")
 	if err != nil || !ok {
-		t.Fatalf("senha correta recusada: ok=%v err=%v", ok, err)
+		t.Fatalf("correct password was rejected: ok=%v err=%v", ok, err)
 	}
-	ok, err = VerifyPassword(hash, "Errada123!")
+	ok, err = VerifyPassword(hash, "Wrong123!")
 	if err != nil || ok {
-		t.Fatalf("senha errada aceita: ok=%v err=%v", ok, err)
+		t.Fatalf("wrong password was accepted: ok=%v err=%v", ok, err)
 	}
 }

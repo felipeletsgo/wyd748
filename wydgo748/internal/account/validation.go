@@ -31,9 +31,9 @@ func usernameCharactersValid(username string) bool {
 	return true
 }
 
-// O client 7.48 envia Password[12], mas rejeita mais de dez caracteres antes
-// de conectar. Somente ASCII visivel, exceto espaco, evita truncamento ou
-// mudanca de encoding entre site, client e pacote.
+// The 7.48 client sends Password[12] but rejects more than ten characters
+// before connecting. Printable ASCII without spaces prevents truncation and
+// encoding changes between the website, client, and packet.
 func ValidPassword(password string) bool {
 	if len(password) < 4 || len(password) > 10 {
 		return false

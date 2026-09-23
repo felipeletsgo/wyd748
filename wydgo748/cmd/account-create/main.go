@@ -15,75 +15,75 @@ import (
 
 func main() {
 	databaseURLEnv := flag.String("database-url-env", "WYD_DATABASE_URL",
-		"variavel de ambiente com a URL PostgreSQL")
-	username := flag.String("username", "", "nome da conta (a senha nunca deve ser passada por argumento)")
-	noPause := flag.Bool("no-pause", false, "nao aguarda ENTER antes de fechar")
+		"environment variable containing the PostgreSQL URL")
+	username := flag.String("username", "", "account name (never pass the password as an argument)")
+	noPause := flag.Bool("no-pause", false, "do not wait for ENTER before closing")
 	flag.Parse()
 
 	reader := bufio.NewReader(os.Stdin)
 	databaseURL := os.Getenv(*databaseURLEnv)
 	if databaseURL == "" {
-		fmt.Fprintf(os.Stderr, "Erro: variavel %s esta vazia.\n", *databaseURLEnv)
+		fmt.Fprintf(os.Stderr, "Error: environment variable %s is empty.\n", *databaseURLEnv)
 		os.Exit(1)
 	}
 	st, err := store.NewPostgresStore(context.Background(), store.PostgresConfig{
 		URL: databaseURL, MaxConns: 2,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erro ao conectar ao PostgreSQL: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Could not connect to PostgreSQL: %v\n", err)
 		os.Exit(1)
 	}
 	defer st.Close()
 	exitCode := run(reader, st, *username)
 	if !*noPause {
-		fmt.Print("\nPressione ENTER para fechar...")
+		fmt.Print("\nPress ENTER to close...")
 		_, _ = reader.ReadString('\n')
 	}
 	os.Exit(exitCode)
 }
 
 func run(reader *bufio.Reader, st account.RegistrationStore, presetUsername string) int {
-	fmt.Println("WYD-Go - Criador de contas")
-	fmt.Println("A senha sera armazenada somente como hash seguro.")
+	fmt.Println("WYD-Go - Account creation")
+	fmt.Println("The password will be stored only as a secure hash.")
 	fmt.Println()
 
 	username := strings.TrimSpace(presetUsername)
 	if username == "" {
 		var err error
-		username, err = readLine(reader, "Nome da conta: ")
+		username, err = readLine(reader, "Account name: ")
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Erro ao ler o nome da conta: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Could not read the account name: %v\n", err)
 			return 1
 		}
 		username = strings.TrimSpace(username)
 	}
 
-	password, err := readPassword(reader, "Senha: ")
+	password, err := readPassword(reader, "Password: ")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erro ao ler a senha: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Could not read the password: %v\n", err)
 		return 1
 	}
-	confirmation, err := readPassword(reader, "Confirme a senha: ")
+	confirmation, err := readPassword(reader, "Confirm password: ")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erro ao confirmar a senha: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Could not read the password confirmation: %v\n", err)
 		return 1
 	}
 
 	_, err = account.Create(st, username, password, confirmation)
 	if err == nil {
-		fmt.Printf("\nConta %q criada com sucesso.\n", username)
-		fmt.Println("Conta confirmada no PostgreSQL.")
+		fmt.Printf("\nAccount %q created successfully.\n", username)
+		fmt.Println("Account confirmed in PostgreSQL.")
 		return 0
 	}
 
 	var validationErr *account.ValidationError
 	switch {
 	case errors.As(err, &validationErr):
-		fmt.Fprintf(os.Stderr, "\nDados invalidos: %s\n", validationErr.Message)
+		fmt.Fprintf(os.Stderr, "\nInvalid input: %s\n", validationErr.Message)
 	case errors.Is(err, account.ErrUsernameUnavailable):
-		fmt.Fprintln(os.Stderr, "\nEssa conta ja existe.")
+		fmt.Fprintln(os.Stderr, "\nThat account already exists.")
 	default:
-		fmt.Fprintf(os.Stderr, "\nNao foi possivel criar a conta: %v\n", err)
+		fmt.Fprintf(os.Stderr, "\nCould not create the account: %v\n", err)
 	}
 	return 1
 }
