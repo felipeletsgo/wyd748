@@ -24503,6 +24503,14 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 
 	if (pShopList->ShopType == 1)
 	{
+		// A resource failure can leave the merchant grid unbound when the
+		// packet arrives. Do not change coupon or shop state in that case.
+		if (!m_pGridShop)
+		{
+			WYD748_DiagnosticsLog("merchant grid missing for ShopList\r\n");
+			return 0;
+		}
+
 		if (m_bEventCouponClick == 1)
 		{
 			m_bEventCouponClick = 0;

@@ -1,17 +1,17 @@
 <#
 .SYNOPSIS
-Compila o client x86 e instala o candidato com identidade SHA-256 conferida.
+Builds the x86 client and deploys the candidate after verifying its SHA-256 identity.
 .DESCRIPTION
-Implementacao local de infraestrutura. Nao inicia nem encerra processos.
-Falha de compilacao ou copia impede que o candidato seja declarado validado.
+Local build infrastructure. Does not start or stop processes.
+A build or copy failure prevents the candidate from being reported as validated.
 .PARAMETER Configuration
-Seleciona Debug ou Release; ambos usam o mapeamento x86 da solucao.
+Selects Debug or Release; both use the solution's x86 configuration.
 .PARAMETER Rebuild
-Recompila todos os objetos em vez de usar o build incremental.
+Recompiles all objects instead of using an incremental build.
 .PARAMETER MSBuildPath
-Caminho opcional para MSBuild.exe; por padrao usa a instalacao do Visual Studio.
+Optional path to MSBuild.exe; defaults to the Visual Studio installation.
 .PARAMETER NoDeploy
-Compila e valida sem copiar o artefato para client748/project.exe. Usado pelo CI.
+Builds and validates without copying the artifact to client748/project.exe. Used by CI.
 #>
 [CmdletBinding()]
 param(
@@ -25,7 +25,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-# Todos os caminhos partem do script, independentemente do diretorio do shell.
+# Resolve all paths from this script, regardless of the shell's working directory.
 $solution = Join-Path $PSScriptRoot 'WYDESTINY.sln'
 $candidate = Join-Path $PSScriptRoot 'client748\project.exe'
 $targetName = if ($Configuration -eq 'Release') { 'WYD.exe' } else { 'WYDestiny.exe' }
@@ -35,7 +35,7 @@ if (-not $MSBuildPath) {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
     if (Test-Path -LiteralPath $vswhere) {
         $matches = @(& $vswhere -latest -products '*' -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe')
-        if ($LASTEXITCODE -ne 0) { throw 'Falha na descoberta do MSBuild.' }
+        if ($LASTEXITCODE -ne 0) { throw 'MSBuild discovery failed.' }
         if ($matches.Count -gt 0) { $MSBuildPath = $matches[0] }
     }
     if (-not $MSBuildPath) {
@@ -44,47 +44,47 @@ if (-not $MSBuildPath) {
     }
 }
 if (-not $MSBuildPath -or -not (Test-Path -LiteralPath $MSBuildPath -PathType Leaf)) {
-    throw 'MSBuild nao encontrado. Informe -MSBuildPath com a instalacao existente.'
+    throw 'MSBuild not found. Supply -MSBuildPath for an existing installation.'
 }
 $buildTarget = if ($Rebuild) { 'Rebuild' } else { 'Build' }
-# A tabela compilada deve corresponder ao manifesto e aos assets catalogados.
+# The compiled table must match the manifest and cataloged assets.
 & (Join-Path $PSScriptRoot '..\tools\client-assets\Export-CostumeTable.ps1') -Check
-# O gate puro roda antes do client e da copia; falha de teste preserva o candidato.
+# Run the pure test gate before building or copying the client; a failure preserves the candidate.
 $testProject = Join-Path $PSScriptRoot 'TMProject748\tests\ArchitectureTests.vcxproj'
 & $MSBuildPath $testProject "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=Win32' /m /nologo /v:minimal
-if ($LASTEXITCODE -ne 0) { throw 'Falha ao compilar os testes de arquitetura; candidato nao atualizado.' }
+if ($LASTEXITCODE -ne 0) { throw 'Architecture tests failed to build; candidate not updated.' }
 $testExecutable = Join-Path $PSScriptRoot "build\tests\$Configuration\ArchitectureTests.exe"
-if (-not (Test-Path -LiteralPath $testExecutable -PathType Leaf)) { throw 'Executavel de testes ausente.' }
+if (-not (Test-Path -LiteralPath $testExecutable -PathType Leaf)) { throw 'Architecture test executable is missing.' }
 & $testExecutable
-if ($LASTEXITCODE -ne 0) { throw 'Testes de arquitetura falharam; candidato nao atualizado.' }
+if ($LASTEXITCODE -ne 0) { throw 'Architecture tests failed; candidate not updated.' }
 
 & $MSBuildPath $solution "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=x86' /m /nologo /v:minimal
-if ($LASTEXITCODE -ne 0) { throw "MSBuild falhou com codigo $LASTEXITCODE; candidato nao atualizado." }
-if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) { throw "Artefato ausente: $artifact" }
+if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE; candidate not updated." }
+if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) { throw "Build artifact is missing: $artifact" }
 
 if ($NoDeploy) {
     [pscustomobject]@{
         Configuration = $Configuration
         Artifact = $artifact
         SHA256 = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash
-        Validation = 'BUILD_VERIFIED; deploy e teste in-game pendentes'
+        Validation = 'BUILD_VERIFIED; deployment and in-game testing pending'
     }
     return
 }
 
 if (-not (Test-Path -LiteralPath (Split-Path $candidate -Parent) -PathType Container)) {
-    throw 'Diretorio client748 ausente; instalacao do candidato cancelada.'
+    throw 'client748 directory is missing; candidate deployment canceled.'
 }
 
-# Copia sincrona: arquivo em uso causa falha, nunca encerramento forcado do jogo.
+# Synchronous copy: a locked file causes failure; never terminate the game process.
 $sourceHash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash
 Copy-Item -LiteralPath $artifact -Destination $candidate -Force
 $candidateHash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash
-if ($sourceHash -ne $candidateHash) { throw 'Hash do candidato diverge do artefato compilado.' }
+if ($sourceHash -ne $candidateHash) { throw 'Candidate hash differs from the build artifact.' }
 [pscustomobject]@{
     Configuration = $Configuration
     Artifact = $artifact
     Candidate = $candidate
     SHA256 = $candidateHash
-    Validation = 'BUILD_AND_DEPLOY_VERIFIED; teste in-game pendente'
+    Validation = 'BUILD_AND_DEPLOY_VERIFIED; in-game testing pending'
 }

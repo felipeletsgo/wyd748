@@ -10,6 +10,7 @@ a partial translation as completion.
 - Root repository rules and all active skill entry points.
 - Root README and documentation README.
 - Generated documentation inventory labels and layout-validator messages.
+- `tmproject/Build-Client.ps1` help, diagnostics, and validation status.
 
 ## Remaining work
 

@@ -137,6 +137,20 @@ int RunSceneDisconnectContractTests(int& checks)
         selectCharacter.substr(characterTerrain, characterMiniMap - characterTerrain).find("return 0;") != std::string::npos,
         "character selection stops before using an invalid terrain");
     const auto fieldSource = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
+    const auto shopListStart = fieldSource.find("int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)");
+    const auto shopListEnd = fieldSource.find("int TMFieldScene::OnPacket", shopListStart + 1);
+    const auto shopListHandler = shopListStart != std::string::npos &&
+        shopListEnd != std::string::npos
+        ? fieldSource.substr(shopListStart, shopListEnd - shopListStart) : std::string{};
+    const auto merchantGridGuard = shopListHandler.find("if (!m_pGridShop)");
+    const auto couponStateChange = shopListHandler.find("m_bEventCouponClick = 0;");
+    const auto merchantGridUse = shopListHandler.find("m_pGridShop->Empty();");
+    check(!shopListHandler.empty() && merchantGridGuard != std::string::npos &&
+        couponStateChange != std::string::npos && merchantGridUse != std::string::npos &&
+        merchantGridGuard < couponStateChange && couponStateChange < merchantGridUse &&
+        shopListHandler.substr(merchantGridGuard, couponStateChange - merchantGridGuard)
+            .find("return 0;") != std::string::npos,
+        "merchant ShopList rejects an unbound grid before changing coupon or shop state");
     const auto carryGrid = fieldSource.find("SGridControl* TMFieldScene::GetCarryGridForSlot(int slot) const");
     const auto cargoGrid = fieldSource.find("SGridControl* TMFieldScene::GetCargoGridForSlot(int slot) const", carryGrid);
     const auto carryGridBody = carryGrid != std::string::npos && cargoGrid != std::string::npos
