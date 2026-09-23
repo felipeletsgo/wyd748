@@ -243,6 +243,17 @@ int RunSceneDisconnectContractTests(int& checks)
     check(validCatalogIndex(abilitySource, itemAbilityStart) &&
         validCatalogIndex(abilitySource, staticAbilityStart),
         "item ability readers reject the first index beyond the 7.48 ItemList before lookup");
+    const auto weaponDamageStart = fieldSource.find("int TMFieldScene::GetWeaponDamage()");
+    const auto weaponDamageEnd = fieldSource.find("void TMFieldScene::SetMyHumanMagic()", weaponDamageStart);
+    const auto weaponDamageBody = weaponDamageStart != std::string::npos &&
+        weaponDamageEnd != std::string::npos
+        ? fieldSource.substr(weaponDamageStart, weaponDamageEnd - weaponDamageStart) : std::string{};
+    check(!weaponDamageBody.empty() &&
+        weaponDamageBody.find("idx1 >= 0 && idx1 < MAX_ITEMLIST ? g_pItemList[idx1].nUnique : 0") != std::string::npos &&
+        weaponDamageBody.find("idx2 >= 0 && idx2 < MAX_ITEMLIST ? g_pItemList[idx2].nUnique : 0") != std::string::npos &&
+        weaponDamageBody.find("idx1 >= 0 || idx1 < MAX_ITEMLIST") == std::string::npos &&
+        weaponDamageBody.find("idx2 >= 0 || idx2 < MAX_ITEMLIST") == std::string::npos,
+        "weapon damage bounds both 7.48 ItemList uniqueness lookups");
     const auto updateEquipEnd = humanSource.find("int TMHuman::OnPacketUpdateAffect", sendItemEnd);
     const auto updateEquipHandler = sendItemEnd != std::string::npos &&
         updateEquipEnd != std::string::npos

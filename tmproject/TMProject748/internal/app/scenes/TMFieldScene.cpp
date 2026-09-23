@@ -1267,8 +1267,8 @@ void TMFieldScene::InitializeCompatInventory()
 			delete itemCopy;
 			return;
 		}
-		// A grid assume ownership somente na insercao aceita; o destructor
-		// libera tambem a copia de STRUCT_ITEM quando a lista rejeita o visual.
+		// The grid assumes ownership only after insertion succeeds; the destructor
+		// also releases the STRUCT_ITEM copy when the list rejects the visual.
 		if (!grid->AddItem(gridItem, x, y))
 		{
 			delete gridItem;
@@ -2981,16 +2981,16 @@ int TMFieldScene::InitializeScene()
 	m_pDonateStore->SetVisible(0);
 
 	m_pDailyRewardInfo = (SPanel*)m_pControlContainer->FindControl(15715);
-	m_pDailyRewardInfo->SetVisible(0);// painel de diaria
+	m_pDailyRewardInfo->SetVisible(0);// daily reward panel
 
 	m_pGuildInfo = (SPanel*)m_pControlContainer->FindControl(48000);
-	m_pGuildInfo->SetVisible(0);// painel de guilda
+	m_pGuildInfo->SetVisible(0);// guild panel
 
 	m_pNewPopup = (SPanel*)m_pControlContainer->FindControl(3000080);
-	m_pNewPopup->SetVisible(0);// painel popup
+	m_pNewPopup->SetVisible(0);// popup panel
 
 
-	char chtmp[128]{};//aqui alterado
+	char chtmp[128]{};// initialized locally
 	if (m_pCCModeHpSte)
 	{
 		sprintf(chtmp, "%d", g_GameAuto_hpValue);
@@ -3896,48 +3896,48 @@ int TMFieldScene::InitializeScene()
 	m_pMixPanelTextDrop[9] = (SText*)m_pControlContainer->FindControl(478491);
 
 	m_pbutonShop = (SButton*)m_pControlContainer->FindControl(656433);
-	m_pbutonShop->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonShop->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonShop->m_cBlink = 1;
 
 	m_pbutonDrop = (SButton*)m_pControlContainer->FindControl(656434);
-	m_pbutonDrop->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonDrop->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonDrop->m_cBlink = 1;
 
 	m_pbutonNewShop[0] = (SButton*)m_pControlContainer->FindControl(3000100);
-	m_pbutonNewShop[0]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[0]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[0]->m_cBlink = 1;
 	m_pbutonNewShop[1] = (SButton*)m_pControlContainer->FindControl(3000101);
-	m_pbutonNewShop[1]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[1]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[1]->m_cBlink = 1;
 	m_pbutonNewShop[2] = (SButton*)m_pControlContainer->FindControl(3000102);
-	m_pbutonNewShop[2]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[2]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[2]->m_cBlink = 1;
 	m_pbutonNewShop[3] = (SButton*)m_pControlContainer->FindControl(3000103);
-	m_pbutonNewShop[3]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[3]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[3]->m_cBlink = 1;
 	m_pbutonNewShop[4] = (SButton*)m_pControlContainer->FindControl(3000104);
-	m_pbutonNewShop[4]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[4]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[4]->m_cBlink = 1;
 	m_pbutonNewShop[5] = (SButton*)m_pControlContainer->FindControl(3000105);
-	m_pbutonNewShop[5]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[5]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[5]->m_cBlink = 1;
 	m_pbutonNewShop[6] = (SButton*)m_pControlContainer->FindControl(3000106);
-	m_pbutonNewShop[6]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[6]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[6]->m_cBlink = 1;
 	m_pbutonNewShop[7] = (SButton*)m_pControlContainer->FindControl(3000107);
-	m_pbutonNewShop[7]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[7]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[7]->m_cBlink = 1;
 	m_pbutonNewShop[8] = (SButton*)m_pControlContainer->FindControl(3000108);
-	m_pbutonNewShop[8]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[8]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[8]->m_cBlink = 1;
 	m_pbutonNewShop[9] = (SButton*)m_pControlContainer->FindControl(3000109);
-	m_pbutonNewShop[9]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[9]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[9]->m_cBlink = 1;
 	m_pbutonNewShop[10] = (SButton*)m_pControlContainer->FindControl(3000110);
-	m_pbutonNewShop[10]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[10]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[10]->m_cBlink = 1;
 	m_pbutonNewShop[11] = (SButton*)m_pControlContainer->FindControl(3000111);
-	m_pbutonNewShop[11]->m_cAlwaysAlt = 1;//botao que pisca
+	m_pbutonNewShop[11]->m_cAlwaysAlt = 1;// blinking button
 	m_pbutonNewShop[11]->m_cBlink = 1;
 
 	m_pDropListPanel->m_nWidth = BASE_ScreenResize(300.0f);
@@ -4308,7 +4308,7 @@ int TMFieldScene::InitializeScene()
 		m_pSlotGuardaCarga[37]->m_nPosX = BASE_ScreenResize(98.0f);
 		m_pSlotGuardaCarga[38]->m_nPosX = BASE_ScreenResize(140.0f);
 		m_pSlotGuardaCarga[39]->m_nPosX = BASE_ScreenResize(184.0f);
-		/////////////////////////////////loja /////////////////////////////////
+		///////////////////////////////// shop /////////////////////////////////
 
 		pShopPanel1->m_nWidth = BASE_ScreenResize(230.0f);
 		m_pGridShop->m_nWidth = BASE_ScreenResize(214.0f);
@@ -4901,7 +4901,7 @@ int TMFieldScene::InitializeScene()
 	m_pRPSGamePaper = (SButton*)m_pControlContainer->FindControl(1618);
 	m_pRPSGameScissor = (SButton*)m_pControlContainer->FindControl(1619u);
 
-	m_pDropPanel[49] = (SPanel*)m_pControlContainer->FindControl(478471);//painel drop
+	m_pDropPanel[49] = (SPanel*)m_pControlContainer->FindControl(478471);// drop panel
 	m_pDropPanel[49]->SetVisible(0);
 
 	auto PainelC = (SPanel*)m_pControlContainer->FindControl(67658);
@@ -6306,8 +6306,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 								continue;
 							memcpy(pItem, &selectedItem, sizeof(STRUCT_ITEM));
 
-							// A reserva no Cargo e o anuncio so existem depois que a grade
-							// assume ownership do visual. Em rejeicao, o estado fica intacto.
+							// Cargo reservation and announcement happen only after the grid
+							// assumes ownership of the visual. Rejection leaves state unchanged.
 							auto pTradeItem = new SGridControlItem(pParent, pItem, 0.0f, 0.0f);
 							if (!pTradeItem)
 							{
@@ -6481,7 +6481,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		else
 		{
 			char szText[11]{};
-		 //   if (pItem->m_pItem->sIndex == 5652)//diaria
+		 //   if (pItem->m_pItem->sIndex == 5652)// daily reward
 			//{
 
 			//}
@@ -15286,7 +15286,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			m_dwLastWhisper = 0;
 			return 1;
 		}
-		//vai na parte dos button la
+		// Continue to the button handling below.
 
 		unsigned int dwRemain = (m_dwLastWhisper + 5000 - dwServerTime) / 1000;
 
@@ -18270,9 +18270,9 @@ void TMFieldScene::SetShortSkill(int nIndex, SGridControlItem* pGridItem)
 		IsPassiveSkill(pGridItem->m_pItem->sIndex))
 		return;
 
-	// A falha de alocacao/insercao nao pode apagar o atalho anterior. Como a
-	// grade rejeita sem transferir ownership, o rollback recoloca o visual
-	// antigo antes de devolver o controle ao chamador.
+	// Allocation or insertion failure must not erase the previous shortcut.
+	// Since rejection does not transfer ownership, rollback restores the old
+	// visual before returning control to the caller.
 	auto restoreOld = [](SGridControl* belt, SGridControlItem*& oldItem, int cell)
 	{
 		if (oldItem && (!belt || belt->AddItem(oldItem, cell, 0) != 1))
@@ -18631,12 +18631,12 @@ void TMFieldScene::OnESC()
 	{
 		OnControlEvent(65568u, 0);
 	}
-	else if (m_pDonateStore && m_pDonateStore->IsVisible() == 1)//aqui sistema esc do donate
+	else if (m_pDonateStore && m_pDonateStore->IsVisible() == 1)// Esc closes the donation store
 	{
 	
 		m_pDonateStore->SetVisible(0);
 	}
-	else if (m_pDropListPanel && m_pDropListPanel->IsVisible() == 1)//aqui sistema esc do droplist
+	else if (m_pDropListPanel && m_pDropListPanel->IsVisible() == 1)// Esc handles the drop list
 	{
 		m_pDropPanel[49]->SetVisible(0);//
 	}
@@ -19497,8 +19497,10 @@ int TMFieldScene::GetWeaponDamage()
 	auto pMobData = &g_pObjectManager->m_stMobData;
 	int w1 = BASE_GetItemAbility(&g_pObjectManager->m_stMobData.Equip[6], 2);
 	int w2 = BASE_GetItemAbility(&pMobData->Equip[7], 2);
-	int t1 = g_pItemList[pMobData->Equip[6].sIndex].nUnique;
-	int t2 = g_pItemList[pMobData->Equip[7].sIndex].nUnique;
+	int idx1 = pMobData->Equip[6].sIndex;
+	int idx2 = pMobData->Equip[7].sIndex;
+	int t1 = idx1 >= 0 && idx1 < MAX_ITEMLIST ? g_pItemList[idx1].nUnique : 0;
+	int t2 = idx2 >= 0 && idx2 < MAX_ITEMLIST ? g_pItemList[idx2].nUnique : 0;
 
 	int nWeaponDamage = 0;
 	if (t1 == 47 && t2 == 45)
@@ -19508,12 +19510,11 @@ int TMFieldScene::GetWeaponDamage()
 	else
 		nWeaponDamage = w1 + w2 / 3;
 
-	int idx1 = pMobData->Equip[6].sIndex;
 	if (idx1 >= 0 && idx1 < MAX_ITEMLIST)
 	{
 		int nPos1 = g_pItemList[idx1].nPos;
 
-		if ((idx1 >= 0 || idx1 < MAX_ITEMLIST) && (nPos1 == 64 || nPos1 == 192) && t1 != 44 && t2 != 47 && BASE_GetItemSanc(&pMobData->Equip[6]) >= 9)
+		if ((nPos1 == 64 || nPos1 == 192) && t1 != 44 && t2 != 47 && BASE_GetItemSanc(&pMobData->Equip[6]) >= 9)
 		{
 			int nu = g_pItemList[idx1].nUnique;
 			if (nu != 47 && nu != 44)
@@ -19521,11 +19522,10 @@ int TMFieldScene::GetWeaponDamage()
 		}
 	}
 
-	int idx2 = pMobData->Equip[7].sIndex;
 	if (idx2 >= 0 && idx2 < MAX_ITEMLIST)
 	{
 		int nPos2 = g_pItemList[idx2].nPos;
-		if ((idx2 >= 0 || idx2 < MAX_ITEMLIST) && (nPos2 == 64 || nPos2 == 192) && t1 != 44 && t2 != 47 && BASE_GetItemSanc(&pMobData->Equip[7]) >= 9)
+		if ((nPos2 == 64 || nPos2 == 192) && t1 != 44 && t2 != 47 && BASE_GetItemSanc(&pMobData->Equip[7]) >= 9)
 		{
 			int nux = g_pItemList[idx2].nUnique;
 			if (nux != 47 && nux != 44)
@@ -19756,7 +19756,7 @@ void TMFieldScene::InitBoard()
 		m_pQuestMemo = (SButton*)m_pControlContainer->FindControl(1054273);
 		if (m_pQuestMemo)
 		{
-			m_pQuestMemo->m_cAlwaysAlt = 1;//botao que pisca
+			m_pQuestMemo->m_cAlwaysAlt = 1;// blinking button
 			m_pQuestMemo->m_cBlink = 1;
 			if (m_pQuestMemo->m_pAltText)
 				m_pQuestMemo->m_pAltText->SetPos(-20.0f, -10.0f);
@@ -23636,15 +23636,15 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 
 	if (!g_pSocketManager->Sock)
 	{
-		// Validar antes de publicar destino ou indexar a tabela local.
+		// Validate before publishing the destination or indexing the local table.
 		int nServer = 0;
 		const int group = g_pObjectManager->m_nServerGroupIndex;
 		if (group < 0 || group >= MAX_SERVERGROUP ||
 			!ParseMigrationServer(pStd->TID, MAX_SERVERNUMBER, nServer))
 			return 1;
 		const auto& address = g_pServerList[group][nServer];
-		// O loader decodifica a entrada inteira e nao garante NUL. Nao ler
-		// a proxima entrada nem conectar usando um endereco truncado.
+		// The loader decodes the entire entry and does not guarantee NUL.
+		// Do not read the next entry or connect with a truncated address.
 		if (!CopyServerEndpoint(g_pApp->m_szServerIP, address))
 			return 1;
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[7], 0);
@@ -24165,8 +24165,8 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 
 				if (ipNewItem)
 				{
-					// A rejeicao nao transfere ownership: o pacote continua sendo
-					// autoritativo, mas o visual temporario deve ser liberado.
+					// Rejection does not transfer ownership: the packet remains
+					// authoritative, but the temporary visual must be released.
 					if (!pGrid->AddItem(ipNewItem, 0, 0))
 						SAFE_DELETE(ipNewItem);
 				}
@@ -24879,8 +24879,8 @@ int TMFieldScene::OnPacketBuy(MSG_STANDARD* pStd)
 	STRUCT_ITEM boughtItem{};
 	memcpy(&boughtItem, pShopItem->m_pItem, sizeof(STRUCT_ITEM));
 
-	// O payload alocado pertence ao controle visual. A copia local permanece
-	// valida se a grade rejeitar o controle e o destrutor liberar esse payload.
+	// The allocated payload belongs to the visual control. The local copy
+	// remains valid if the grid rejects the control and its destructor frees it.
 	auto pStructItem = new STRUCT_ITEM;
 	if (pStructItem)
 	{
@@ -24893,8 +24893,8 @@ int TMFieldScene::OnPacketBuy(MSG_STANDARD* pStd)
 			SAFE_DELETE(pControlItem);
 	}
 
-	// O servidor escolhe MyCarryPos depois de validar o Carry 9x7. O cache
-	// logico deve aceitar essa confirmacao mesmo se a representacao visual falhar.
+	// The server chooses MyCarryPos after validating the 9x7 Carry. The logical
+	// cache must accept this confirmation even if the visual representation fails.
 	memcpy(&g_pObjectManager->m_stMobData.Carry[pBuy->MyCarryPos],
 		&boughtItem, sizeof(STRUCT_ITEM));
 	g_pObjectManager->m_stMobData.Coin = pBuy->Coin;
@@ -25878,7 +25878,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				if (pMagic && m_pEffectContainer)
 					m_pEffectContainer->AddChild(pMagic);
 			}
-			else if (pAttack->SkillIndex == 6) // Aura da Vida
+			else if (pAttack->SkillIndex == 6) // Life Aura
 			{
 				TMVector3 vecPos{ pAttacker->m_vecPosition.x, pAttacker->m_fHeight + 1.0f, pAttacker->m_vecPosition.y };
 				
@@ -25955,7 +25955,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					}
 				}
 			}
-			else if (pAttack->SkillIndex == 36) // Tempestade de Meteoros
+			else if (pAttack->SkillIndex == 36) // Meteor Storm
 			{
 				if ((unsigned char)pAttack->Motion == 254 && pAttacker && pAttacker->m_pFamiliar)
 				{
@@ -25987,7 +25987,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 						m_pEffectContainer->AddChild(pMeteor);
 				}
 			}
-			// Nevoa Venenosa, Choque Divino, Ataque de Fogo, Toque Sagrado
+			// Poison Mist, Divine Shock, Fire Attack, Holy Touch
 			else if (pAttack->SkillIndex == 41 || pAttack->SkillIndex == 29	|| pAttack->SkillIndex == 33 || pAttack->SkillIndex == 2)
 			{
 				for (int i = 0; i < 13; i++)
@@ -26309,7 +26309,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					}
 				}
 			}
-			else if (pAttack->SkillIndex == 99) // Muro de Espinhos
+			else if (pAttack->SkillIndex == 99) // Wall of Thorns
 			{
 				if (pTarget)
 				{
@@ -28306,7 +28306,7 @@ void TMFieldScene::BuyItemNewStore(int idwControlID)
 void TMFieldScene::UpdateNewStore(int idwControlID)
 {
 
-	auto GuiAlvo = (SPanel*)m_pControlContainer->FindControl(3000011); //inicio da loja donate
+	auto GuiAlvo = (SPanel*)m_pControlContainer->FindControl(3000011); // donation store entry point
 
 	if (GuiAlvo == NULL || !GuiAlvo->m_bVisible)
 		return;
@@ -31266,7 +31266,7 @@ DWORD WINAPI Guildmark_Download(void* pArg)
 
 
 /*
-DWORD WINAPI Guildmark_Download(void* pArg)//mais n tava funcionando antes tem uma coisa errada seu la
+DWORD WINAPI Guildmark_Download(void* pArg)// Legacy behavior was reported as unreliable; not yet verified for 7.48.
 {
 	// TODO: we have to find a better way to download the guildmark
 	// currently we have a great treat of data race...
