@@ -1,13 +1,15 @@
-# Arquitetura-alvo do TMProject 7.48
+# TMProject 7.48 target architecture
 
-## Decisão
+## Decision
 
-Esta é uma proposta incremental, não o retrato de uma migração concluída.
-O mapa atual está em [architecture-map.md](architecture-map.md). No client,
-domínio significa apresentação, predição e reconciliação; fórmulas locais não
-substituem validação nem estado autoritativo do servidor `wydgo748/`.
+This is an incremental proposal, not a claim that the migration is complete.
+The current layout is documented in [architecture-map.md](architecture-map.md).
+On the client, domain logic means presentation, prediction, and reconciliation;
+local formulas do not replace validation or authoritative state in `wydgo748/`.
 
-O projeto deve evoluir para uma arquitetura em camadas, com dependências apontando para dentro. A compatibilidade legada fica nas bordas; regras de jogo e contratos não devem depender de DirectX, Win32 ou controles visuais.
+The project should evolve toward a layered architecture with inward-pointing
+dependencies. Legacy compatibility belongs at the boundaries; game rules and
+contracts must not depend on DirectX, Win32, or visual controls.
 
 ```text
 platform -> adapters -> application -> domain
@@ -16,149 +18,173 @@ wire <-> adapters        -> application
 render <- presentation/adapters
 ```
 
-`core` não deve continuar como depósito geral. Ele será reduzido em etapas: tipos de domínio vão para `domain`, contratos de mensagem para `wire`, e serviços de sistema para `platform` ou `adapters`.
+`core` should not remain a catch-all. Reduce it incrementally: move domain
+types to `domain`, message contracts to `wire`, and system services to
+`platform` or `adapters`.
 
-## Camadas
+## Layers
 
 ### `domain`
 
-Estado e regras puras: entidades, inventário, combate, fórmulas, posições e value objects. Não inclui `HWND`, DirectX, singletons globais, logging de UI ou envio direto de pacote. Funções devem receber dados explicitamente e devolver resultado/erro.
+Pure state and rules: entities, inventory, combat, formulas, positions, and
+value objects. No `HWND`, DirectX, global singletons, UI logging, or direct
+packet sends. Functions should receive explicit inputs and return a result or
+error.
 
 ### `application`
 
-Casos de uso e orquestração: login, mudança de cena, movimento, trade, combate, quests e ciclo do campo. Define portas para transporte, relógio, recursos, áudio e renderização. `TMFieldScene` será migrado para coordenador de casos de uso, não para dono das regras.
+Use cases and orchestration: login, scene changes, movement, trade, combat,
+quests, and the field lifecycle. Defines ports for transport, time, resources,
+audio, and rendering. `TMFieldScene` should become a use-case coordinator,
+not the owner of game rules.
 
 ### `wire`
 
-Mensagens, serialização, validação de tamanho/opcode e tradução para comandos da aplicação. Layouts legados permanecem estáveis e recebem `static_assert`/testes de tamanho antes de qualquer alteração.
+Messages, serialization, size/opcode validation, and translation into
+application commands. Legacy layouts remain stable and require
+`static_assert` and size tests before any change.
 
 ### `presentation`
 
-`ui` e cenas exibem estado e traduzem input em comandos. Controles não devem alterar entidades diretamente; callbacks chamam casos de uso e atualizam a visão. A ordem de lifecycle permanece explícita.
+`ui` and scenes display state and translate input into commands. Controls
+should not mutate entities directly; callbacks invoke use cases and update the
+view. Lifecycle order remains explicit.
 
 ### `adapters`
 
-Implementações concretas das portas: transporte atual, tabelas/arquivos, recursos, DirectX e APIs antigas. Esta é a área apropriada para encapsular globals e funções de `Basedef` durante a transição.
+Concrete port implementations: current transport, tables/files, resources,
+DirectX, and older APIs. This is the appropriate place to encapsulate globals
+and `Basedef` functions during the transition.
 
 ### `platform`
 
-Win32, janela, entrada, mídia, temporização e bootstrap. Não contém regra de jogo nem decisão de protocolo.
+Win32, windows, input, media, timing, and bootstrap. No game rules or protocol
+decisions.
 
-## Regras de dependência
+## Dependency rules
 
-1. `domain` não inclui headers de `platform`, `render`, `ui` ou `wire`.
-2. `application` depende somente de `domain` e interfaces próprias.
-3. `wire`, `render` e `platform` implementam/adaptam interfaces; não são importados pelo domínio.
-4. Globals existentes são acessados por um adaptador único, inicialmente compatível com `BasedefGlobals.h`.
-5. Cada extração deve preservar ABI, packing, opcode, ownership e teardown.
+1. `domain` does not include headers from `platform`, `render`, `ui`, or `wire`.
+2. `application` depends only on `domain` and its own interfaces.
+3. `wire`, `render`, and `platform` implement or adapt interfaces; domain code
+   does not import them.
+4. Existing globals are accessed through one adapter, initially compatible
+   with `BasedefGlobals.h`.
+5. Each extraction preserves ABI, packing, opcodes, ownership, and teardown.
 
-## Sequência de migração
+## Migration sequence
 
-1. Congelar o inventário e adicionar testes de layout/opcode.
-2. Extrair portas de transporte, relógio, recursos e renderização.
-3. Separar mensagens de `TMFieldScene` em handlers de aplicação, mantendo um facade temporário.
-4. Migrar entidades de `TMHuman` para `domain`, começando por funções puras.
-5. Dividir `SGrid` em modelo de dados e controle visual.
-6. Encapsular globals de `Basedef` em adaptadores e reduzir a fachada.
-7. Remover dependências proibidas por camada, uma compilação por vez.
+1. Freeze the inventory and add layout/opcode tests.
+2. Extract ports for transport, time, resources, and rendering.
+3. Move `TMFieldScene` message handling into application handlers, retaining a
+   temporary facade.
+4. Move `TMHuman` entities into `domain`, starting with pure functions.
+5. Split `SGrid` into a data model and visual control.
+6. Encapsulate `Basedef` globals in adapters and reduce the facade.
+7. Remove forbidden cross-layer dependencies, one compiling step at a time.
 
-Cada etapa deve ser pequena, compilável e reversível. Build valida compilação; não permite declarar migração ou fluxo concluído sem testes correspondentes.
+Each step should be small, compilable, and reversible. A build proves
+compilation, not completion of a migration or client flow.
 
-## Transporte incremental — fronteira em migracao
+## Incremental transport boundary
 
-Recepcao: `NewApp` entrega `PacketView` a `ObjectManager::OnPacketView`, entrada
-nao virtual que valida o envelope e adapta para o callback virtual legado.
-O buffer de CPSock permanece emprestado, gravavel e valido durante a chamada;
-esta entrada nao aceita armazenamento originalmente const. O percurso das cenas
-e seus callbacks `char*` permanecem inalterados. A politica pura `Dispatch`
-preserva ponteiro/opcode/tamanho e entrega uma vez; nao valida payload por opcode.
-Desconexao e eventos locais sem frame continuam usando `OnPacketEvent`.
+On receive, `NewApp` passes `PacketView` to
+`ObjectManager::OnPacketView`, a nonvirtual entry point that validates the
+envelope and adapts it to the legacy virtual callback. The CPSock buffer
+remains borrowed, writable, and valid for the duration of the call; this
+entry point does not accept originally const storage. Scene routing and its
+`char*` callbacks are unchanged. The pure `Dispatch` policy preserves the
+pointer, opcode, and size, and delivers the view once; it does not validate
+payloads by opcode. Disconnects and local events without a frame still use
+`OnPacketEvent`.
 
-O corte de recepcao `0xFAA` agora passa por `wire/ReceivedPacketDispatch.h`
-antes da adaptacao legada no ObjectManager. O helper consulta o comprimento
-real da view e copia somente o header para leitura alinhada; exige 52 bytes,
-Size=52 e concordancia do opcode da view com Type. Rejeicao nao chama nenhum
-handler nem altera bytes. Outros opcodes mantem o gate minimo anterior.
-`CharacterTransferPacket.h` e o dono unico da struct antiga, reexportada por
-Basedef, com asserts de tamanho, offsets e largura signed. Nenhum slot virtual,
-ordem do percurso ou layout foi alterado. Esta validacao nao migra os callbacks
-char* nem prova que outros packets sao seguros; o proximo contrato deve ser
-adicionado somente com evidencia e teste proprio.
+The `0xFAA` receive path passes through `wire/ReceivedPacketDispatch.h`
+before legacy adaptation in ObjectManager. The helper uses the view's actual
+length and copies only the header for aligned access. It requires 52 bytes,
+`Size=52`, and agreement between the view opcode and header `Type`.
+Rejection invokes no handler and changes no bytes. Other opcodes retain the
+previous minimum gate. `CharacterTransferPacket.h` uniquely owns the old
+struct, re-exported by Basedef, with size, offset, and signed-width asserts.
+No virtual slot, routing order, or layout changed. This validation does not
+migrate the `char*` callbacks or prove other packets safe; add the next
+contract only with its own evidence and test.
 
-`internal/application/ports/PacketView.h` define o DTO não proprietário para mensagens
-enquadradas. `CPSock::ReadPacketView` preserva o tamanho validado pelo socket
-e `CPSock::SendPacket` valida o intervalo antes de delegar ao método legado.
-`NewApp` já usa a leitura size-aware; os logins de conta e personagem usam o
-envio size-aware. Os demais emissores permanecem compatíveis e serão migrados
-por grupos de contrato, evitando alterações mecânicas que possam esconder
-diferenças de tamanho ou ownership.
+`internal/application/ports/PacketView.h` defines the non-owning DTO for
+framed messages. `CPSock::ReadPacketView` preserves the size validated by
+the socket; `CPSock::SendPacket` validates the range before delegating to
+the legacy method. `NewApp` uses size-aware reads, while account and
+character login use size-aware sends. Other senders remain compatible and
+should be migrated in contract-specific groups, avoiding mechanical edits
+that could hide size or ownership differences.
 
-O caminho utilitário legado também expõe `SendPacket(const MutablePacketView&)`.
-Ele mantém a limitação de frequência existente em `SendOneMessage`, mas permite
-que macros e outros módulos antigos expressem explicitamente opcode, buffer e
-tamanho sem depender da API de socket concreta.
+The legacy utility path also exposes `SendPacket(const MutablePacketView&)`.
+It retains the existing frequency limit in `SendOneMessage`, while letting
+macros and older modules specify opcode, buffer, and size without depending
+on the concrete socket API.
 
-### Limites e ownership verificados na source (2026-09-05)
+### Source-verified boundaries and ownership (2026-09-05)
 
-Procedencia local; `MODERNIZACAO_COMPATIVEL`, sem claim novo de paridade.
-`PacketView::HasSizeBetween` centraliza a verificacao pura de ponteiro e limites
-inclusivos. As fachadas de envio exigem `sizeof(MSG_STANDARD)` antes de ler ou
-escrever o cabecalho e rejeitam overflow antes de estreitar `size_t`.
-O opcode da view continua metadado: o envio legado usa `MSG_STANDARD::Type`.
-Nao ha mudanca de layout, opcode, criptografia ou ordem dos envios validos.
+Local source provenance; `MODERNIZACAO_COMPATIVEL`, with no new native-parity
+claim. `PacketView::HasSizeBetween` centralizes pure pointer and inclusive
+size checks. Send facades require `sizeof(MSG_STANDARD)` before reading or
+writing the header and reject overflow before narrowing `size_t`. The view
+opcode remains metadata; the legacy send path uses `MSG_STANDARD::Type`.
+There is no change to layouts, opcodes, encryption, or the order of valid
+sends.
 
-Atencao: `CPSock::AddMessage` escreve `Size`, `KeyWord`, `CheckSum` e `Tick` no
-buffer do emissor, copiando o resultado criptografado para sua fila interna.
-As fachadas de envio agora exigem `MutablePacketView`, cujo `char*` torna esse
-requisito explicito. Seus 140 emissores nao removem mais const para enviar;
-recepcao continua usando `PacketView`. `AsReadOnly` permite somente a conversao
-segura de gravavel para leitura. A view nao possui nem prolonga a vida da
-memoria e nao comprova a capacidade real alocada.
-O limite `INT_MAX` evita overflow de conversao, mas nao substitui as restricoes
-de capacidade da fila nem a validacao semantica de cada opcode.
+Important: `CPSock::AddMessage` writes `Size`, `KeyWord`, `CheckSum`, and
+`Tick` into the sender's buffer before copying encrypted output into its
+internal queue. The send facades therefore require `MutablePacketView`:
+its `char*` makes the writable-buffer requirement explicit. Its 140 senders
+no longer cast away constness to send; receive paths still use `PacketView`.
+`AsReadOnly` permits only the safe conversion from writable to read-only.
+The view neither owns nor extends the buffer's lifetime and cannot prove
+its allocated capacity. The `INT_MAX` bound prevents conversion overflow,
+but does not replace queue-capacity limits or per-opcode semantic validation.
 
-`TMProject748/tests/ArchitectureTests.vcxproj` compila testes puros sem
-Win32/DirectX; `Build-Client.ps1` executa-os antes de compilar/instalar o client.
-`PacketSendBoundary.h` compartilha a validacao e a chamada sincrona entre
-CPSock e TMUtil, com emissor injetado e sem globals. Os checks e asserts
-estaticos cobrem limites, nulabilidade, overflow, tipagem mutavel, buffer
-emprestado, chamada unica, mutacao visivel, rejeicao sem envio e propagacao de
-falha sem retry. Nao cobrem sockets reais, criptografia ou fluxo in-game.
-O dispatch legado em NewApp ainda adapta a view recebida para callbacks
-`char*`; a assinatura desses callbacks nao foi migrada neste lote.
-`ITransport` nao depende mais de `Basedef` nem dos tipos MSG. O adaptador
-`SocketTransport<CPSock>` tem consumidor vivo no envio de selecao de personagem
-via `RequestCharacterLogin`; possui lifetime local e nao fecha nem possui o
-socket. O caso de uso valida a intencao; `CharacterLoginSender` monta a
-solicitacao wire; UI e lifecycle ficam na cena.
-`MessageHeader.h` e `CharacterLoginPacket.h` possuem as definicoes unicas dos
-structs extraidos, reexportadas pelas fachadas anteriores.
+`TMProject748/tests/ArchitectureTests.vcxproj` compiles pure tests without
+Win32 or DirectX. `Build-Client.ps1` runs them before compiling or installing
+the client. Static checks and assertions cover bounds, nullability, overflow,
+mutable typing, borrowed buffers, single delivery, visible mutation,
+rejection without sending, and failure propagation without retry. They do
+not cover real sockets, encryption, or an in-game flow. The legacy dispatch
+in NewApp still adapts received views to `char*` callbacks; their signatures
+were not migrated in this batch.
 
-Os 98 checks atuais incluem teste byte a byte dos quatro slots de login,
-rejeicao de indices invalidos, falha sem retry e emprestimo do adaptador. Os
-testes continuam sem headers Win32/DirectX, mas os structs wire exigem o modelo
-de inteiros Windows, conferido por asserts.
-Uma unidade de compilacao separada exercita o caso de uso com uma porta
-semantica falsa, sem encoder: valida os quatro slots, INT_MIN/-1/4/INT_MAX,
-propagacao de falha e ausencia de retry. Assim, a defesa adicional do encoder
-nao pode mascarar uma regressao na validacao da aplicacao.
+`ITransport` no longer depends on `Basedef` or MSG types.
+`SocketTransport<CPSock>` has a live consumer in character-selection sends
+through `RequestCharacterLogin`; it has local lifetime and neither owns nor
+closes the socket. The use case validates intent, `CharacterLoginSender`
+constructs the wire request, and the scene retains UI and lifecycle duties.
+`MessageHeader.h` and `CharacterLoginPacket.h` uniquely own the extracted
+struct definitions, re-exported by the former facades.
 
-Neste fluxo, application depende somente de suas portas: o caso de uso chama
-`ICharacterLoginSender`, implementado pelo encoder wire `CharacterLoginSender`.
-O encoder depende de `ITransport`, implementado por `SocketTransport` na
-plataforma. A cena compoe estes adaptadores locais, sem alterar ownership.
-Os quatro consumidores da antiga fachada `wire/PacketView.h` agora incluem
-diretamente a porta de application. A fachada redundante foi removida; as
-definicoes e o comportamento permanecem no header proprietario.
-Essa inversao vale para o fluxo extraido, nao comprova as fases 1/2 completas.
+The recorded 98 checks include byte-for-byte tests of all four login slots,
+invalid-index rejection, failure without retry, and adapter borrowing. The
+tests still avoid Win32/DirectX headers, but the wire structs require the
+Windows integer model, enforced by asserts. A separate compilation unit
+exercises the use case with a fake semantic port and no encoder: it tests
+all four slots, `INT_MIN/-1/4/INT_MAX`, failure propagation, and no retry.
+This prevents the encoder's additional defense from masking a regression in
+application validation.
 
-### Divida do resultado de envio legado
+For this extracted flow, application code depends only on its ports. The use
+case calls `ICharacterLoginSender`, implemented by the wire encoder
+`CharacterLoginSender`. The encoder depends on `ITransport`, implemented by
+`SocketTransport` in the platform layer. The scene composes these local
+adapters without changing ownership. The four consumers of the former
+`wire/PacketView.h` facade now include the application port directly. The
+redundant facade was removed; definitions and behavior remain in the owning
+header. This inversion applies to the extracted flow, not all of phases 1
+and 2.
 
-Na source atual, `CPSock::SendOneMessage` ignora o retorno de `AddMessage` e
-devolve `SendMessageA`. Portanto o objetivo da porta (true = aceite local)
-ainda nao e garantido pelo backend real quando a fila rejeita o pacote.
-Os testes com backend falso demonstram propagacao, nao corrigem esse defeito.
-A cena continua ignorando o resultado como antes; nao houve mudanca de fluxo.
-Proximo lote deve testar rejeicao de fila, overflow, consumo de chave e envio
-parcial antes de corrigir a propagacao. `RefreshSendBuffer` tambem copia da
-fila de recepcao, exigindo revisao focada; nao foi alterado nesta extracao.
+### Legacy send-result debt
+
+In current source, `CPSock::SendOneMessage` ignores the result of
+`AddMessage` and returns `SendMessageA`. Consequently the port's intended
+meaning (`true` = locally accepted) is not guaranteed by the real backend
+when the queue rejects a packet. Tests with a fake backend demonstrate
+propagation but do not fix this defect. As before, the scene ignores the
+result; no flow changed here. A later batch should test queue rejection,
+overflow, key consumption, and partial sends before fixing propagation.
+`RefreshSendBuffer` also copies from the receive queue and needs focused
+review; it was not changed in this extraction.

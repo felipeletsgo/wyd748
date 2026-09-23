@@ -72,6 +72,9 @@ a partial translation as completion.
   in English. The shared client/server structure header's introductory comment
   is also in English. This prose-only translation changes no item IDs, wire
   layouts, resource files, or runtime behavior.
+- The TMProject target-architecture guide is now in English, including its
+  transport boundary, ownership, validation scope, and outstanding send-result
+  debt. No source, wire contract, or runtime asset changed in that batch.
 
 ## Remaining work
 
