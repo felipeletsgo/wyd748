@@ -2,9 +2,9 @@
 
 #include <cstddef>
 
-// Ataques preservam tres prefixos nativos 7.48 e aceitam somente as caudas
-// coordenadas que o WYD-Go publica. O tamanho real precisa ser validado antes
-// que a FieldScene leia atacante, skill ou a primeira entrada de dano.
+// Attacks retain three native 7.48 prefixes and accept only the coordinated
+// tails published by WYD-Go. Validate the actual size before FieldScene reads
+// the attacker, skill, or first damage entry.
 constexpr auto MSG_Attack_Multi_Opcode = 0x36C;
 constexpr auto MSG_Attack_One_Opcode = 0x39D;
 constexpr auto MSG_Attack_Two_Opcode = 0x39E;
@@ -33,8 +33,8 @@ constexpr std::size_t kAttackOneBasePacketSize = 48;
 constexpr std::size_t kAttackTwoBasePacketSize = 52;
 constexpr std::size_t kAttackMultiBasePacketSize = 96;
 
-// PhysicalAttack acrescenta um DWORD de dano sem assinatura. SkillHits usa
-// "DMGX", quantidade e uma lista DWORD; os limites refletem 1, 2 e 13 alvos.
+// PhysicalAttack appends an unsigned damage DWORD. SkillHits uses "DMGX",
+// a count, and a DWORD list; the bounds reflect 1, 2, and 13 targets.
 constexpr unsigned int kAttackWideSignature = 0x58474D44;
 constexpr std::size_t kAttackPhysicalWidePacketSize = 52;
 constexpr std::size_t kAttackOneSkillWidePacketSize = 60;
@@ -51,9 +51,20 @@ constexpr bool IsAttackOpcode(unsigned int opcode)
         opcode == MSG_Attack_Multi_Opcode;
 }
 
-// O envio do client preserva os prefixos nativos. O servidor tambem aceita
-// One/96 porque esse envelope foi observado no client 7.48, mas nao aceita os
-// tamanhos das caudas coordenadas usadas exclusivamente no sentido S->C.
+constexpr std::size_t AttackTargetCapacity(unsigned int opcode)
+{
+    switch (opcode)
+    {
+    case MSG_Attack_One_Opcode: return kAttackOneTargetCapacity;
+    case MSG_Attack_Two_Opcode: return kAttackTwoTargetCapacity;
+    case MSG_Attack_Multi_Opcode: return kAttackMultiTargetCapacity;
+    default: return 0;
+    }
+}
+
+// Client sends retain the native prefixes. The server also accepts One/96
+// because that envelope was observed in the 7.48 client, but does not accept
+// coordinated tail sizes used exclusively for server-to-client results.
 constexpr bool IsClientToServerAttackPacketSize(unsigned int opcode, std::size_t size)
 {
     switch (opcode)

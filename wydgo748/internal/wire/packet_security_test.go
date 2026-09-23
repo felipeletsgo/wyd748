@@ -12,7 +12,7 @@ func TestReadPacketRejectsFramesOutsideNativeLimit(t *testing.T) {
 		var header [2]byte
 		binary.LittleEndian.PutUint16(header[:], size)
 		if _, _, err := ReadPacket(bytes.NewReader(header[:])); !errors.Is(err, ErrBadSize) {
-			t.Fatalf("size=%d: erro=%v, esperado ErrBadSize", size, err)
+			t.Fatalf("size=%d: error=%v, want ErrBadSize", size, err)
 		}
 	}
 }
@@ -23,7 +23,7 @@ func TestReadPacketAcceptsNativeMaximum(t *testing.T) {
 	Encrypt(packet, 7)
 	got, checksumOK, err := ReadPacket(bytes.NewReader(packet))
 	if err != nil || !checksumOK || len(got) != MaxPacketSize {
-		t.Fatalf("frame maximo: len=%d checksum=%v err=%v", len(got), checksumOK, err)
+		t.Fatalf("maximum frame: len=%d checksum=%v err=%v", len(got), checksumOK, err)
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 func TestClientIntegrityChallengeMatchesNativeLayout(t *testing.T) {
 	got := ClientIntegrityChallenge(0x1234, -7, 0x1020304)
 	if len(got) != ClientIntegrityPacketSize {
-		t.Fatalf("tamanho=%d", len(got))
+		t.Fatalf("size=%d", len(got))
 	}
 	want := make([]byte, ClientIntegrityPacketSize)
 	binary.LittleEndian.PutUint16(want[4:6], OpClientIntegrityChallenge)
@@ -18,7 +18,7 @@ func TestClientIntegrityChallengeMatchesNativeLayout(t *testing.T) {
 	binary.LittleEndian.PutUint32(want[12:16], uint32(negativeCategory))
 	binary.LittleEndian.PutUint32(want[16:20], 0x1020304)
 	if string(got) != string(want) {
-		t.Fatalf("layout divergente\n got=% X\nwant=% X", got, want)
+		t.Fatalf("layout mismatch\n got=% X\nwant=% X", got, want)
 	}
 }
 
@@ -37,7 +37,7 @@ func TestParseClientIntegrityResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got.ID != 321 || got.Category != 9 || got.ByteOffset != 340 || got.Value != -45 {
-		t.Fatalf("resposta=%+v", got)
+		t.Fatalf("response=%+v", got)
 	}
 }
 
@@ -56,7 +56,7 @@ func TestParseClientIntegrityResponseRejectsInvalidEnvelope(t *testing.T) {
 	for name, pkt := range tests {
 		t.Run(name, func(t *testing.T) {
 			if _, err := ParseClientIntegrityResponse(pkt); !errors.Is(err, ErrInvalidClientIntegrityResponse) {
-				t.Fatalf("erro=%v", err)
+				t.Fatalf("error=%v", err)
 			}
 		})
 	}

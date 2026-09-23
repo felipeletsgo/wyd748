@@ -48,6 +48,9 @@ a partial translation as completion.
 - Account-registration API responses, validation errors, logs, and adjacent
   tests are in English. JSON field names and HTTP status codes are unchanged;
   focused account and account-API tests cover the translated validation text.
+- Native packet-framing and client-integrity diagnostics in `internal/wire`,
+  their adjacent comments, and focused test output are in English. Sentinel
+  errors and packet bytes are unchanged; the wire package tests pass.
 - The architecture map, login/character-selection dispatch guide, shared
   packet-fixture guide, upstream provenance note, and Windows development
   guide have been translated. These are prose-only changes and do not imply
@@ -56,6 +59,9 @@ a partial translation as completion.
   index and URL map are now in English. Existing source URLs, document paths,
   NPC and skill-data identifiers, and boss example filenames remain unchanged.
   These are documentation-only changes.
+- The official quest and event technical summary is now in English. Historical
+  values, item names, the `/qst` command, and source URLs were preserved; this
+  translation does not establish native 7.48 gameplay parity.
 - Ghost-shop and player-trade errors shown to players, diagnostics, and adjacent
   source comments and tests are in English. Focused automated tests cover title
   validation, trade-item rejection, purchase errors, and the existing flows.

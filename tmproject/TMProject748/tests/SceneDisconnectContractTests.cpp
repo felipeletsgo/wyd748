@@ -4,6 +4,7 @@
 #include "../internal/core/WYD748Assets.h"
 #include "../internal/render/world/objects/ObjectFileRecordLayout.h"
 #include "../internal/ui/SellConfirmationText.h"
+#include "../internal/wire/AttackFrameContract.h"
 
 #include <cstdio>
 #include <algorithm>
@@ -640,12 +641,21 @@ int RunSceneDisconnectContractTests(int& checks)
     }
 
     const std::string field = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
+    check(AttackTargetCapacity(MSG_Attack_One_Opcode) == 1 &&
+        AttackTargetCapacity(MSG_Attack_Two_Opcode) == 2 &&
+        AttackTargetCapacity(MSG_Attack_Multi_Opcode) == 13 &&
+        AttackTargetCapacity(0) == 0,
+        "attack target capacity follows the native opcode prefixes");
     const auto attackStart = field.find("int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)");
     const auto attackEnd = field.find("int TMFieldScene::OnPacketNuke(", attackStart);
     check(attackStart != std::string::npos && attackEnd != std::string::npos,
         "attack handler is available for missing-attacker checks");
     if (attackStart != std::string::npos && attackEnd != std::string::npos) {
         const std::string attack = field.substr(attackStart, attackEnd - attackStart);
+        check(attack.find("const int targetCount = static_cast<int>(AttackTargetCapacity(pAttack->Header.Type));") != std::string::npos &&
+            attack.find("for (int i = 0; i < 13;") == std::string::npos &&
+            attack.find("for (int i = 0; i < targetCount;") != std::string::npos,
+            "attack damage loops cannot exceed the target entries in a short frame");
         const auto missingAttacker = attack.find("vecAttackerPos = TMVector2((float)pAttack->PosX + 0.5f, (float)pAttack->PosY + 0.5f);");
         const auto targetFilter = attack.find("pAttack->Dam[i].TargetID == m_pMyHuman->m_dwID", missingAttacker);
         const auto request = attack.find("MSG_REQMobByID stReqMobById{};", targetFilter);

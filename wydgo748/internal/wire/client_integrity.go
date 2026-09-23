@@ -8,7 +8,7 @@ import (
 
 const ClientIntegrityPacketSize = 24
 
-var ErrInvalidClientIntegrityResponse = errors.New("wire: resposta de integridade invalida")
+var ErrInvalidClientIntegrityResponse = errors.New("wire: invalid client integrity response")
 
 type ClientIntegrityResponse struct {
 	ID         uint16
@@ -17,8 +17,8 @@ type ClientIntegrityResponse struct {
 	Value      int32
 }
 
-// ClientIntegrityChallenge monta o layout nativo de 24 bytes. Value permanece
-// zero no desafio e o client devolve nesse campo o byte lido, promovido com sinal.
+// ClientIntegrityChallenge builds the native 24-byte layout. Value is zero in
+// the challenge; the client returns the byte it read, sign-extended, in this field.
 func ClientIntegrityChallenge(id uint16, category, byteOffset int32) []byte {
 	b := Build(OpClientIntegrityChallenge, id, ClientIntegrityPacketSize)
 	binary.LittleEndian.PutUint32(b[12:16], uint32(category))
@@ -28,7 +28,7 @@ func ClientIntegrityChallenge(id uint16, category, byteOffset int32) []byte {
 
 func ParseClientIntegrityResponse(pkt []byte) (ClientIntegrityResponse, error) {
 	if len(pkt) != ClientIntegrityPacketSize {
-		return ClientIntegrityResponse{}, fmt.Errorf("%w: tamanho %d", ErrInvalidClientIntegrityResponse, len(pkt))
+		return ClientIntegrityResponse{}, fmt.Errorf("%w: size %d", ErrInvalidClientIntegrityResponse, len(pkt))
 	}
 	header := ParseHeader(pkt)
 	if header.Size != ClientIntegrityPacketSize {

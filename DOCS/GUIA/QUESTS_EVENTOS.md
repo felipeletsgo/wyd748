@@ -1,203 +1,203 @@
-# Quests e eventos — síntese técnica em português
+# Quests and events — technical summary
 
-Fonte: páginas oficiais em `https://www.wyd2.co.kr/introduction/`.
+Source: official pages at `https://www.wyd2.co.kr/introduction/`.
 
 ---
 
-## 1. Regras gerais de quests
+## 1. General quest rules
 
-**Fonte:** https://www.wyd2.co.kr/introduction/quest.asp
+**Source:** https://www.wyd2.co.kr/introduction/quest.asp
 
-Ao entrar no jogo, o client exibe um aviso/ícone de quest quando existe conteúdo adequado ao level atual. A janela pode ser aberta pelo aviso ou pelo atalho **X**.
+On entering the game, the client displays a quest notification or icon when content is available for the current level. The window can be opened from the notification or with the **X** shortcut.
 
-A página organiza as quests em três grupos históricos:
+The page groups quests into three historical categories:
 
-- quests de progressão até 256;
+- progression quests through level 256;
 - event quests;
-- quests de personagem Trans.
+- Trans-character quests.
 
-Quests disponíveis aparecem com destaque diferente das que ainda não atendem o level exigido.
+Available quests are highlighted differently from those whose level requirement has not yet been met.
 
-### Tipos
+### Types
 
-- **repetível:** pode ser refeita enquanto os requisitos forem atendidos;
-- **single/one-shot:** só pode ser concluída uma vez.
+- **Repeatable:** can be completed again while the requirements are met;
+- **Single/one-shot:** can be completed only once.
 
-Itens obtidos em quests com faixa de level podem ter uso limitado à mesma faixa. Algumas quests possuem janela de horário; o site alerta para diferença de 1–3 minutos entre servidores. O minimapa (`M`) ajuda a localizar NPCs.
+Items obtained from level-banded quests may be usable only within the same level range. Some quests have time windows; the site warns that server clocks may differ by 1–3 minutes. The minimap (`M`) helps locate NPCs.
 
-### Implicação server-side
+### Server-side implication
 
-O servidor deve manter autoridade sobre:
+The server must remain authoritative over:
 
-- elegibilidade;
-- conclusão anterior;
-- faixa de level;
-- horário;
-- consumo/entrega de item;
-- recompensa.
+- eligibility;
+- prior completion;
+- level range;
+- time window;
+- item consumption and delivery;
+- rewards.
 
-O aviso do client é apenas apresentação.
-
----
-
-## 2. Orc Castle e Magical Pill
-
-**Fonte:** https://www.wyd2.co.kr/introduction/quest_256_03.asp
-
-A quest ocorre em Orc Castle. Para avançar até Orc Lord, o grupo precisa eliminar guardiões dos portões, obter chaves e abrir as passagens. As chaves são de uso único e os portões voltam a fechar após determinado período.
-
-O Orc Lord possui a **Magical Pill**, que aumenta Skill Points sem level-up. A página informa bônus de **9 Skill Points** e uso efetivo apenas uma vez por personagem.
-
-Party summon não é permitido dentro de Orc Castle segundo o guia.
-
-### Pontos para o WYD-Go
-
-- Magical Pill precisa de flag persistida one-shot;
-- key consumption deve ser atômico;
-- gate deve voltar ao estado fechado por timer server-side;
-- summon precisa consultar a região autoritativa.
+The client notification is presentation only.
 
 ---
 
-## 3. Quests avançadas de personagem Trans
+## 2. Orc Castle and Magical Pill
 
-**Fonte:** https://www.wyd2.co.kr/introduction/quest_js.asp
+**Source:** https://www.wyd2.co.kr/introduction/quest_256_03.asp
 
-Personagem Trans a partir de **level 355** pode consultar a janela de quests avançadas.
+The quest takes place in Orc Castle. To reach Orc Lord, the group must defeat gate guardians, obtain keys, and open the passages. Keys are single-use, and the gates close again after a period of time.
 
-O fluxo descrito:
+Orc Lord has the **Magical Pill**, which grants Skill Points without a level-up. The page specifies a bonus of **9 Skill Points**, effective only once per character.
 
-1. caçar quest monsters dentro de Kefra Dungeon;
-2. obter os itens necessários;
-3. os itens podem ser coletados em qualquer ordem;
-4. a utilização/conclusão deve ocorrer sequencialmente, da primeira para as posteriores;
-5. cada etapa consome **100.000.000 EXP**;
-6. a conclusão aumenta atributos;
-7. após a etapa, o personagem volta a evoluir até preencher novamente o requisito para a próxima;
-8. cada uma das quatro etapas é one-shot.
+According to the guide, party summon is not permitted inside Orc Castle.
 
-A página menciona requisito de Trans 355+ e EXP mínima alta para efetivar a etapa, além de necessidade histórica de reconexão para voltar a receber EXP após a quest. O comando `/qst` é indicado para consultar estado.
+### WYD-Go considerations
+
+- Magical Pill requires a persisted one-shot flag;
+- key consumption must be atomic;
+- gates must return to the closed state on a server-side timer;
+- summons must check the authoritative region.
 
 ---
 
-## 4. Seven Trials, Runes, Secret Stones e Ideal Stone
+## 3. Advanced Trans-character quests
 
-**Fonte:** https://www.wyd2.co.kr/introduction/quest_js_02.asp
+**Source:** https://www.wyd2.co.kr/introduction/quest_js.asp
 
-Após a derrota de Kefra, o servidor libera acesso ao Unknown Continent segundo o fluxo histórico descrito.
+A Trans character at **level 355 or above** can open the advanced quest window.
 
-As **Seven Trials** são sete zonas voltadas a party. O líder precisa portar a **Clue of Rune** e registrar a party no NPC Uxmal durante a janela de espera. A página informa mínimo de quatro membros para o fluxo geral e capacidade total de **21 parties** registradas.
+The described flow is:
 
-A Clue of Rune pode ser obtida com Odin mediante **7 Lactolerium Powders** na regra documentada.
+1. Hunt quest monsters inside Kefra Dungeon;
+2. Obtain the required items;
+3. Collect the items in any order;
+4. Use and complete them sequentially, from the first stage onward;
+5. Spend **100,000,000 EXP** at each stage;
+6. Gain attributes upon completion;
+7. Continue leveling after each stage until the next requirement is met;
+8. Complete each of the four stages only once.
 
-### Ciclo do evento
+The page mentions the Trans 355+ requirement and a high minimum EXP for each stage. It also describes a historical need to reconnect before earning EXP again after the quest. The `/qst` command is listed for checking status.
 
-O período de uma hora é descrito em três blocos de:
+---
+
+## 4. Seven Trials, Runes, Secret Stones, and Ideal Stone
+
+**Source:** https://www.wyd2.co.kr/introduction/quest_js_02.asp
+
+According to the historical flow, the server opens access to the Unknown Continent after Kefra is defeated.
+
+The **Seven Trials** comprise seven party-oriented zones. The leader must carry a **Clue of Rune** and register the party with Uxmal during the waiting window. The page specifies at least four members for the general flow and a total capacity of **21 registered parties**.
+
+Under the documented rule, a Clue of Rune can be obtained from Odin for **7 Lactolerium Powders**.
+
+### Event cycle
+
+The one-hour period is described as three blocks of:
 
 ```text
-15 min atividade
-5 min intervalo
+15 min activity
+5 min break
 ```
 
-As parties registradas são distribuídas entre as sete zonas. Cada prova possui condição própria; o prêmio é um rune item.
+Registered parties are distributed among the seven zones. Each trial has its own condition; the prize is a rune item.
 
-### Sete provas
+### Seven trials
 
-| Rune / prova | Parties mín. | Parties máx. | Estrutura resumida |
+| Rune / trial | Min. parties | Max. parties | Summary |
 |---|---:|---:|---|
-| Ansuz | 2 | 2 | área cercada por muralhas móveis |
-| Uraz | 1 | 3 | três torres |
-| Thurisaz | 1 | 3 | arena circular central |
-| Gebo | 1 | 3 | quatro gates/portais, cinco campos |
-| Hagalaz | 1 | 3 | oito salas de boss |
-| Isa | 1 | 3 | labirinto/salas fechadas, boss central |
-| Jara | 1 | 3 | armazém com três acessos |
+| Ansuz | 2 | 2 | Area enclosed by moving walls |
+| Uraz | 1 | 3 | Three towers |
+| Thurisaz | 1 | 3 | Central circular arena |
+| Gebo | 1 | 3 | Four gates or portals, five fields |
+| Hagalaz | 1 | 3 | Eight boss rooms |
+| Isa | 1 | 3 | Maze and enclosed rooms, central boss |
+| Jara | 1 | 3 | Warehouse with three entrances |
 
-Existem **24 runes**. Sete runes são combinadas em Odin por **2.000.000 gold**; a ordem determina chance e tipo do Secret Stone obtido.
+There are **24 runes**. Seven runes can be combined at Odin for **2,000,000 gold**; their order determines the chance and type of Secret Stone obtained.
 
-Quatro Secret Stones, Sephirot e Eternal Stone formam a **Ideal Stone** por interação com o king.
+Four Secret Stones, Sephirot, and Eternal Stone form the **Ideal Stone** through an interaction with the king.
 
-A página descreve a Ideal Stone como componente da transição para Reclass, condicionada a Mortal 400 e Trans 356+ no fluxo histórico. O level do Trans influencia stats iniciais e a qualidade da Circlet recebida:
+The page describes the Ideal Stone as part of the transition to Reclass, subject to Mortal 400 and Trans 356+ in the historical flow. The Trans level affects initial stats and the quality of the Circlet received:
 
 - 356–380: Silver Circlet;
 - 381–399: Gold Circlet;
 - 400: Mystic Circlet.
 
-A página também registra regras de desconexão/morte dentro das trials e competição de recompensa entre parties.
+The page also records rules for disconnection and death during the trials, as well as reward competition among parties.
 
 ---
 
-## 5. Incursão ao reino inimigo / Token of Courage
+## 5. Enemy kingdom incursion / Token of Courage
 
-**Fonte:** https://www.wyd2.co.kr/introduction/quest_event_07.asp
+**Source:** https://www.wyd2.co.kr/introduction/quest_event_07.asp
 
-O evento descreve incursões entre Acheronia e Hekalotia. Cada reino possui guardas e torres que reagem aos cavaleiros inimigos.
+The event describes incursions between Acheronia and Hekalotia. Each kingdom has guards and towers that react to enemy knights.
 
-O objetivo relevante para a cadeia de quests é matar o **king do reino inimigo**. O vencedor recebe **Token of Courage**, item que habilita o portador e sua party a entrar na última sala da Secret Room.
+The objective relevant to the quest chain is to kill the **enemy kingdom's king**. The victor receives a **Token of Courage**, which allows the bearer and their party to enter the final room of the Secret Room.
 
-### Implementação
+### Implementation
 
-O Token deve ser concedido pelo evento server-side associado ao king kill; não deve ser produzido a partir de estado informado pelo client.
+The Token must be awarded by the server-side event associated with the king's death; it must not be generated from client-reported state.
 
 ---
 
 ## 6. Secret Room
 
-**Fonte:** https://www.wyd2.co.kr/introduction/quest_event_08.asp
+**Source:** https://www.wyd2.co.kr/introduction/quest_event_08.asp
 
-A Secret Room é uma instância/evento de quatro andares/salas. A party entra pelo acesso em Noatun Castle usando uma **Invitation**; somente o líder precisa portar/usar o item no fluxo descrito.
+The Secret Room is a four-floor or four-room instance/event. The party enters through the access point in Noatun Castle using an **Invitation**; in the described flow, only the leader needs to carry and use the item.
 
-Para chegar à última sala em determinadas dificuldades, o líder precisa estar com o **Token of Courage** equipado no slot indicado pelo guia.
+To reach the final room at certain difficulty levels, the leader must have the **Token of Courage** equipped in the slot specified by the guide.
 
-### Fluxo
+### Flow
 
-1. entrada da party;
-2. spawn de monstros da sala;
-3. combate por tempo limitado;
-4. matar todos pode antecipar a transição nas primeiras salas;
-5. a party avança para a próxima;
-6. fragmentos/rune tablets de cada andar formam uma sequência;
-7. se a sequência final representar `W.Y.D`, o boss final pode aparecer;
-8. mesmo com boss, o drop especial é probabilístico.
+1. The party enters;
+2. Monsters spawn in the room;
+3. Combat runs for a limited time;
+4. Defeating every monster may advance the party early in the first rooms;
+5. The party proceeds to the next room;
+6. Fragments or rune tablets from each floor form a sequence;
+7. If the final sequence spells `W.Y.D`, the final boss may appear;
+8. Even if the boss appears, the special drop is probabilistic.
 
-A página documenta **220 segundos por andar** e populações históricas de 100 mobs nos três primeiros e 20 + boss no quarto, variando as famílias de monstros entre Normal/Mystic/Arcane.
+The page documents **220 seconds per floor** and historical populations of 100 mobs on each of the first three floors and 20 plus a boss on the fourth. Monster families vary among Normal, Mystic, and Arcane.
 
-Spirit Stones especiais podem ser obtidas do boss em condições adequadas, com variantes de Absolute Damage, Damage Absorption e HP.
+Special Spirit Stones may be obtained from the boss under the appropriate conditions, with Absolute Damage, Damage Absorption, and HP variants.
 
-Morte, recall/warp ou disconnect encerram a participação segundo a regra da página. Outra party não pode ocupar simultaneamente a mesma Secret Room no modelo descrito.
+According to the page, death, recall or warp, and disconnection end participation. In the described model, another party cannot occupy the same Secret Room simultaneously.
 
 ---
 
 ## 7. Eternal Stone
 
-**Fonte:** https://www.wyd2.co.kr/introduction/quest_event_09.asp
+**Source:** https://www.wyd2.co.kr/introduction/quest_event_09.asp
 
-A quest fica disponível a partir de **level 280** no Oracle do reino correspondente.
+The quest becomes available at **level 280** from the Oracle of the corresponding kingdom.
 
-O jogador caça monstros específicos para obter:
+The player hunts specific monsters to obtain:
 
 - Phoenix Soul;
 - Unicorn Soul.
 
-Com ambos e **10 Sapphires**, o Oracle combina os componentes em **Eternal Stone**.
+With both souls and **10 Sapphires**, the Oracle combines the components into an **Eternal Stone**.
 
-A página exige posicionamento correto dos souls no inventário para a composição histórica.
+The page requires the souls to be placed correctly in the inventory for the historical combination.
 
-O Eternal Stone é componente central da progressão Trans/Sephira e é usado no slot de orb para continuar a cadeia de transformação.
+The Eternal Stone is a central component of Trans/Sephira progression and is used in the orb slot to continue the transformation chain.
 
-### Relevância
+### Relevance
 
-No emulador, o layout exigido do inventário deve ser confirmado pela source/protocolo antes de ser flexibilizado; se reproduzido, a ordem/posição deve ser validada server-side.
+In the emulator, the required inventory layout must be confirmed against the source or protocol before relaxing it. If reproduced, the order and positions must be validated server-side.
 
 ---
 
 ## 8. Sephira stone / Sephirot
 
-**Fonte:** https://www.wyd2.co.kr/introduction/quest_event_10.asp
+**Source:** https://www.wyd2.co.kr/introduction/quest_event_10.asp
 
-Sephira raw stones são obtidas de monstros específicos. Refinar a raw stone com **Oriharukon Powder** pode convertê-la em um dos atributos Sephira.
+Raw Sephira stones are obtained from specific monsters. Refining a raw stone with **Oriharukon Powder** may convert it into one of the Sephira attributes.
 
-A página apresenta uma matriz de probabilidades por monstro para atributos como:
+The page presents a per-monster probability matrix for attributes such as:
 
 - Keter;
 - Binah;
@@ -208,65 +208,65 @@ A página apresenta uma matriz de probabilidades por monstro para atributos como
 - Yesod;
 - Malkuth.
 
-O custo de combinação com Skill Master é documentado como **30.000.000 gold**.
+The documented combination cost at Skill Master is **30,000,000 gold**.
 
-Depois de obter Sephirot e Eternal Stone, o jogador continua a cadeia de transformação no king do próprio reino.
+After obtaining Sephirot and Eternal Stone, the player continues the transformation chain at their own kingdom's king.
 
-### Implementação
+### Implementation
 
-A matriz de probabilidades é conteúdo; se a mecânica for implementada, os valores devem vir de fonte de dados explícita, não ser duplicados em handlers.
+The probability matrix is content data. If this mechanic is implemented, its values must come from an explicit data source rather than being duplicated in handlers.
 
 ---
 
-## 9. Chaos Cube / Cube de 25 estágios
+## 9. Chaos Cube / 25-stage Cube
 
-**Fonte:** https://www.wyd2.co.kr/introduction/quest_event_11.asp
+**Source:** https://www.wyd2.co.kr/introduction/quest_event_11.asp
 
-A entrada usa **Cube Invitation**, vendida por Arnold em Azran nas variantes:
+Entry requires a **Cube Invitation**, sold by Arnold in Azran in these variants:
 
-| Convite | Preço citado | Faixa documentada |
+| Invitation | Listed price | Documented range |
 |---|---:|---|
-| Normal | 100.000 gold | Trans 1–200 |
-| Mystic | 400.000 gold | Trans 1–300 |
-| Arcane | 1.000.000 gold | Trans 1–400 |
+| Normal | 100,000 gold | Trans 1–200 |
+| Mystic | 400,000 gold | Trans 1–300 |
+| Arcane | 1,000,000 gold | Trans 1–400 |
 
-O acesso ocorre na área de construção na entrada de Azran e consome/usa o convite segundo o fluxo da página.
+The entrance is in the construction area at the entrance to Azran; the invitation is used or consumed according to the page's flow.
 
-### Mecânica
+### Mechanics
 
-O Cube possui **25 estágios**.
+The Cube has **25 stages**.
 
-Em cada estágio:
+At each stage:
 
-1. monstros aparecem;
-2. todos precisam ser eliminados;
-3. um quiz é mostrado aos participantes;
-4. há aproximadamente **10 segundos** para selecionar o portal `O` ou `X` correspondente à resposta;
-5. o resultado define a progressão.
+1. Monsters appear;
+2. All monsters must be defeated;
+3. Participants are shown a quiz;
+4. They have approximately **10 seconds** to select the `O` or `X` portal corresponding to the answer;
+5. The result determines progression.
 
-No estágio 25, o boss **Orc Trooper** é o objetivo final. A página cita como recompensas possíveis um item consumível que concede EXP e drops aleatórios como White Lover Ring ou Sapphire.
+At stage 25, the boss **Orc Trooper** is the final objective. The page lists an EXP-granting consumable and random drops such as White Lover Ring or Sapphire as possible rewards.
 
-### Observação importante para o WYD-Go
+### Important note for WYD-Go
 
-A página oficial confirma claramente o núcleo O/X e 25 estágios, mas não fornece em texto recuperado todas as perguntas, todos os spawns e toda a máquina de estados necessária para reconstrução completa. O servidor não deve inventar os detalhes ausentes.
+The official page clearly confirms the O/X mechanic and 25 stages, but the retrieved text does not provide every question, spawn, or state transition needed for a complete reconstruction. The server must not invent the missing details.
 
 ---
 
-## 10. Relações entre as quests
+## 10. Relationships among the quests
 
-O site oficial permite montar a seguinte cadeia conceitual:
+The official site supports the following conceptual chain:
 
 ```text
-progressão Mortal
+Mortal progression
 ↓
-Orc Castle / Magical Pill e outras quests de progressão
+Orc Castle / Magical Pill and other progression quests
 ↓
 Eternal Stone
 + Sephirot
 ↓
 Trans
 ↓
-quests avançadas / Kefra
+advanced quests / Kefra
 ↓
 Unknown Continent
 ↓
@@ -281,4 +281,4 @@ Ideal Stone
 Reclass
 ```
 
-Secret Room, Kingdom incursion e Cube são cadeias/eventos paralelos, mas reutilizam itens, reinos e recompensas que se cruzam com a progressão avançada.
+Secret Room, Kingdom incursion, and Cube are parallel chains or events, but they reuse items, kingdoms, and rewards that intersect with advanced progression.

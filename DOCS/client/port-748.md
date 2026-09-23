@@ -164,6 +164,15 @@ envelope is recorded in
 the exact target-selection predicate is not claimed as native parity. A
 client-side attack/recovery run remains pending.
 
+Attack rendering also bounds every damage-entry loop by the target capacity
+of its opcode: one for `0x39D`, two for `0x39E`, and thirteen for `0x36C`.
+The existing receive gate already verifies those native prefix sizes before
+calling the scene. The bound prevents a valid short frame from making a
+visual effect read entries beyond its payload; it does not change the wire
+format or server-calculated damage. This is `MODERNIZACAO_COMPATIVEL`, using
+the recorded native capacities in
+[attack-frame-envelope](../../.agents/research/client748/flows/transport/attack-frame-envelope.md).
+
 ## Active score layout
 
 The [canonical contract](../SCORE.md) replaces the historical 48-byte layout.

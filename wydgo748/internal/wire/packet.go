@@ -6,17 +6,17 @@ import (
 	"io"
 )
 
-// HeaderSize -- os 12 bytes do cabecalho _MSG de todo pacote WYD.
+// HeaderSize is the 12-byte _MSG header used by every WYD packet.
 const HeaderSize = 12
 
-// MaxPacketSize reproduz MAX_MESSAGE_SIZE do CPSock nativo. Aceitar o WORD
-// inteiro (65535) permite que uma conexao hostil force alocacoes grandes antes
-// mesmo de o opcode ser validado.
+// MaxPacketSize matches MAX_MESSAGE_SIZE in the native CPSock. Accepting the
+// full WORD range (65535) would let a hostile connection force large allocations
+// before the opcode is validated.
 const MaxPacketSize = 8192
 
-var ErrBadSize = errors.New("wire: tamanho de pacote invalido")
+var ErrBadSize = errors.New("wire: invalid packet size")
 
-// Header -- cabecalho _MSG (little-endian).
+// Header is the little-endian _MSG header.
 type Header struct {
 	Size     uint16
 	KeyWord  byte
@@ -26,7 +26,7 @@ type Header struct {
 	Tick     uint32
 }
 
-// ParseHeader le os 12 bytes de cabecalho de um buffer.
+// ParseHeader reads the 12-byte header from a buffer.
 func ParseHeader(b []byte) Header {
 	return Header{
 		Size:     binary.LittleEndian.Uint16(b[0:2]),
@@ -38,8 +38,8 @@ func ParseHeader(b []byte) Header {
 	}
 }
 
-// ReadPacket le um pacote completo do stream (frame pelo campo Size) e o decifra
-// in-place. Retorna o buffer decifrado + se o checksum bateu.
+// ReadPacket reads a complete Size-framed packet and decrypts it in place.
+// It returns the decrypted buffer and whether the checksum matched.
 func ReadPacket(r io.Reader) (buf []byte, okChecksum bool, err error) {
 	var sz [2]byte
 	if _, err = io.ReadFull(r, sz[:]); err != nil {
@@ -58,8 +58,9 @@ func ReadPacket(r io.Reader) (buf []byte, okChecksum bool, err error) {
 	return buf, okChecksum, nil
 }
 
-// FinishPacket preenche Size e cifra o buffer pronto para envio (iKey aleatorio
-// deve ser passado; use um contador/rand). Assume Type/ID/Tick/body ja escritos.
+// FinishPacket fills Size and encrypts a buffer ready for sending. Pass a
+// varying iKey (for example, from a counter or random source). Type, ID, Tick,
+// and the body must already be written.
 func FinishPacket(buf []byte, iKey byte) {
 	binary.LittleEndian.PutUint16(buf[0:2], uint16(len(buf)))
 	Encrypt(buf, iKey)

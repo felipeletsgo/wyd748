@@ -25705,6 +25705,7 @@ static int GetWYD748AttackVisualDamage(const MSG_Attack* pAttack, int index)
 int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 {
 	auto pAttack = reinterpret_cast<MSG_Attack*>(pStd);
+	const int targetCount = static_cast<int>(AttackTargetCapacity(pAttack->Header.Type));
 
 	auto pAttacker = (TMHuman*)g_pObjectManager->GetHumanByID(pAttack->AttackerID);
 	auto pTarget = (TMHuman*)g_pObjectManager->GetHumanByID(pAttack->Dam[0].TargetID);
@@ -25760,7 +25761,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 		if (pAttacker->m_nClass == 32 && pAttack->Motion == 4 && pTarget == m_pMyHuman)
 			pAttacker->m_dwEarthQuakeTime = g_pTimerManager->GetServerTime();
 
-		for (int i = 0; i < 13; ++i)
+		for (int i = 0; i < targetCount; ++i)
 		{
 			if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 				break;
@@ -25997,7 +25998,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 			// Poison Mist, Divine Shock, Fire Attack, Holy Touch
 			else if (pAttack->SkillIndex == 41 || pAttack->SkillIndex == 29	|| pAttack->SkillIndex == 33 || pAttack->SkillIndex == 2)
 			{
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					if ((unsigned char)pAttack->Motion == 254)
 					{
@@ -26153,7 +26154,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					vecPos = TMVector3((float)pAttack->TargetX + 0.5f, fY + 0.2f, (float)pAttack->TargetY + 0.5f);
 				}
 
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 						break;
@@ -26226,7 +26227,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					TMVector2 vecSum{};
 
 					int nCount = 0;
-					for (int i = 0; i < 13; i++)
+					for (int i = 0; i < targetCount; i++)
 					{
 						if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 							break;
@@ -26446,7 +26447,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				TMVector3 vecTarget{};
 				TMVector3 vecStart{};
 				bool bMyAttack = false;
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 						break;
@@ -26616,7 +26617,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				TMVector3 vecPos2{};
 				D3DXVECTOR3 vecDNormal{};
 
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 						break;
@@ -26654,7 +26655,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				TMVector3 vecSpStart = pAttacker->m_vecTempPos[1];
 				TMVector3 vecStart{};
 				TMVector3 vecTarget{};
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 						break;
@@ -26726,7 +26727,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				TMVector3 vecPos2{};
 				D3DXVECTOR3 vecDNormal{};
 
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					auto pMultiTarget = g_pObjectManager->GetHumanByID(pAttack->Dam[i].TargetID);
 					if (pMultiTarget)
@@ -26751,7 +26752,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				bool bMyAttack = false;
 				pAttacker->SetAnimation(ECHAR_MOTION::ECMOTION_ATTACK04, 0);
 
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					auto pMultiTarget = g_pObjectManager->GetHumanByID(pAttack->Dam[i].TargetID);
 					if (pMultiTarget)
@@ -26800,7 +26801,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				if (pAttacker->m_nClass != 73)
 					pAttacker->SetAnimation(ECHAR_MOTION::ECMOTION_ATTACK04, 0);
 
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					auto pMultiTarget = g_pObjectManager->GetHumanByID(pAttack->Dam[i].TargetID);
 					if (pMultiTarget)
@@ -26872,7 +26873,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 				TMVector3 vecStart{};
 				pAttacker->SetAnimation(ECHAR_MOTION::ECMOTION_ATTACK04, 0);
 				
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					auto pMultiTarget = g_pObjectManager->GetHumanByID(pAttack->Dam[i].TargetID);
 					if (pMultiTarget)
@@ -26922,7 +26923,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 	{
 		vecAttackerPos = TMVector2((float)pAttack->PosX + 0.5f, (float)pAttack->PosY + 0.5f);
 		bool bFind = false;
-		for (int i = 0; i < 13; i++)
+		for (int i = 0; i < targetCount; i++)
 		{
 			if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 				break;
@@ -26962,7 +26963,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 	if (g_pSpell[pAttack->SkillIndex].TargetType != 3 && g_pSpell[pAttack->SkillIndex].TargetType != 4 && 
 		g_pSpell[pAttack->SkillIndex].TargetType != 5 && g_pSpell[pAttack->SkillIndex].TargetType != 6)
 	{
-		for (int i = 0; i < 13; i++)
+		for (int i = 0; i < targetCount; i++)
 		{
 			if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 				break;
@@ -27539,7 +27540,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 
 		if (pAttacker != m_pMyHuman || !pAttack->FlagLocal && pAttacker == m_pMyHuman)
 		{
-			for (int i = 0; i < 13; i++)
+			for (int i = 0; i < targetCount; i++)
 			{
 				if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 					break;
@@ -27923,7 +27924,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					return 1;
 
 				bool bFound = false;
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					if (pAttack->Dam[i].TargetID == m_pMyHuman->m_dwID)
 					{
@@ -27955,7 +27956,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 			}
 			else if (pAttack->SkillIndex == 7)
 			{
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < targetCount; i++)
 				{
 					if (pAttack->Header.Type == MSG_Attack_One_Opcode && i >= 1)
 						break;
