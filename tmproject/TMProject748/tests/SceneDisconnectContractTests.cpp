@@ -380,6 +380,19 @@ int RunSceneDisconnectContractTests(int& checks)
 		"shop sell confirmation sends the native Carry slot and visible merchant");
 
     const auto gridSource = LoadSource("TMProject748/internal/ui/SGrid.cpp");
+    const auto cubeStart = gridSource.find("else if (m_eGridType == TMEGRIDTYPE::GRID_CUBEBOX)");
+    const auto cubeEnd = gridSource.find("\n\telse\n\t{", cubeStart);
+    const auto cubeHandler = cubeStart != std::string::npos && cubeEnd != std::string::npos
+        ? gridSource.substr(cubeStart, cubeEnd - cubeStart) : std::string{};
+    const auto cubePickup = cubeHandler.find("auto pItem = PickupItem(nCellX, nCellY);");
+    const auto cubeRelease = cubeHandler.find("SAFE_DELETE(pItem);");
+    check(!cubeHandler.empty() && cubePickup != std::string::npos &&
+        cubeRelease != std::string::npos && cubePickup < cubeRelease &&
+        cubeHandler.find("m_pLastMouseOverItem = nullptr;", cubePickup) < cubeRelease &&
+        cubeHandler.find("m_pLastAttachedItem = nullptr;", cubePickup) < cubeRelease &&
+        cubeHandler.find("m_pSellItem = nullptr;", cubePickup) < cubeRelease &&
+        cubeHandler.find("g_pCursor->m_pAttachedItem = nullptr;", cubePickup) < cubeRelease,
+        "cube-box removal clears all interaction aliases before releasing its visual");
     const auto deleteDrop = gridSource.find("else if (m_eGridType == TMEGRIDTYPE::GRID_DELETE)");
     const auto nextDrop = gridSource.find("else if (m_eGridType == TMEGRIDTYPE::GRID_QUICKSLOAT1", deleteDrop);
     const auto deleteDropHandler = deleteDrop != std::string::npos && nextDrop != std::string::npos

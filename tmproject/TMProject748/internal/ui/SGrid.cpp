@@ -15,17 +15,17 @@
 
 namespace
 {
-	// Substituicao local de uma grade de atalho: o caller continua dono do novo visual se
-	// AddItem rejeitar. O antigo so sai depois da insercao aceita e sera
-	// destruido pelo caller apos desanexar o cursor, que pode apontar para ele.
+	// Local shortcut replacement: the caller retains the new visual if AddItem
+	// rejects it. Remove the old visual only after insertion succeeds; the caller
+	// destroys it after detaching the cursor, which may still point to it.
 	bool WYD748_ReplaceGridVisual(SGridControl* grid, SGridControlItem* replacement,
 		int x, int y, SGridControlItem*& previous)
 	{
 		previous = nullptr;
 		if (grid->AddItem(replacement, x, y) != 1)
 			return false;
-		// Buscar como PickupItem, sem o efeito de hover de GetItem e sem
-		// selecionar o substituto recem-anexado ao fim da lista.
+		// Search like PickupItem, without GetItem's hover effect or selecting
+		// the replacement just appended at the end of the list.
 		for (int i = 0; i < grid->m_nNumItem - 1; ++i)
 		{
 			if (grid->m_pItemList[i] && grid->m_pItemList[i]->PtInItem(x, y) == 1)
@@ -36,8 +36,8 @@ namespace
 		}
 		if (previous)
 		{
-			// Pickup limpa a ocupacao compartilhada. A geometria do substituto
-			// acabou de ser aceita por AddItem; restabelecer somente seu footprint.
+			// Pickup clears shared occupancy. AddItem already accepted the new
+			// geometry, so restore only the replacement's footprint.
 			grid_occupancy::FillClipped(grid->m_pbFilled, grid->m_nColumnGridCount,
 				grid->m_nRowGridCount, x, y, replacement->m_nCellWidth,
 				replacement->m_nCellHeight, 1);
@@ -829,8 +829,8 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 
 int SGridControl::CanItAdd(int* bFilledBuffer, int inCellIndexX, int inCellIndexY, int inCellWidth, int inCellHeight)
 {
-	// Endurecimento local de FUN_0040E604: preserva ocupacao == 1 para
-	// retangulos validos e rejeita limites invalidos antes de ler memoria.
+	// Local hardening of FUN_0040E604: preserve occupancy == 1 for valid
+	// rectangles and reject invalid bounds before reading memory.
 	return grid_occupancy::CanPlace(bFilledBuffer, m_nColumnGridCount,
 		m_nRowGridCount, inCellIndexX, inCellIndexY, inCellWidth, inCellHeight) ? 1 : 0;
 }
@@ -840,7 +840,7 @@ int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
 	{
 
-	// Validar antes de qualquer mutacao; manter recorte e sobreposicao legados.
+	// Validate before mutation; preserve legacy clipping and overlap behavior.
 	if (!grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
 		inCellIndexX, inCellIndexY, ipNewItem->m_nCellWidth, ipNewItem->m_nCellHeight, 1))
 		return 0;
@@ -862,7 +862,7 @@ int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, in
 	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
 	{
 
-	// Validar antes de qualquer mutacao; manter recorte e sobreposicao legados.
+	// Validate before mutation; preserve legacy clipping and overlap behavior.
 	if (!grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
 		inCellIndexX, inCellIndexY, ipNewItem->m_nCellWidth, ipNewItem->m_nCellHeight, 1))
 		return 0;
@@ -888,7 +888,7 @@ int SGridControl::SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
 	{
 
-	// Validar antes de qualquer mutacao; manter recorte e sobreposicao legados.
+	// Validate before mutation; preserve legacy clipping and overlap behavior.
 	if (!grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
 		inCellIndexX, inCellIndexY, ipNewItem->m_nCellWidth, ipNewItem->m_nCellHeight, 1))
 		return 0;
@@ -908,11 +908,11 @@ int SGridControl::SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 IVector2 SGridControl::AddItemInEmpty(SGridControlItem* ipNewItem)
 {
 	IVector2 vec{ -1, -1 };
-	// Nao ler dimensoes de item nulo nem procurar espaco em lista cheia.
+	// Do not read a null item's dimensions or search a full list.
 	if (!grid_insertion::CanAppend(m_pItemList, m_nNumItem, ipNewItem))
 		return vec;
-	// Dimensoes invalidas nao podem causar overflow nos limites da busca.
-	// Nao acrescentar teste de ocupacao: AddItem preserva sua politica legada.
+	// Invalid dimensions must not overflow the search bounds. Do not add an
+	// occupancy check: AddItem preserves its legacy insertion policy.
 	if (!grid_occupancy::ContainsRectangle(m_nColumnGridCount,
 		m_nRowGridCount, 0, 0, ipNewItem->m_nCellWidth, ipNewItem->m_nCellHeight))
 		return vec;
@@ -935,7 +935,7 @@ IVector2 SGridControl::AddItemInEmpty(SGridControlItem* ipNewItem)
 IVector2 SGridControl::CanAddItemInEmpty(int nWidth, int nHeight)
 {
 	IVector2 vec{ -1, -1 };
-	// A busca tambem precisa validar antes das subtracoes nos limites do loop.
+	// Validate before subtracting dimensions in the search bounds.
 	if (!m_pbFilled || !grid_occupancy::ContainsRectangle(m_nColumnGridCount,
 		m_nRowGridCount, 0, 0, nWidth, nHeight))
 		return vec;
@@ -1072,8 +1072,8 @@ SGridControlItem* SGridControl::PickupItem(int inCellIndexX, int inCellIndexY)
 	if (!pItem)
 		return nullptr;
 
-	// Retirada usa o mesmo recorte da insercao. Mesmo um visual inconsistente
-	// deve poder sair da lista sem acessar memoria fora da ocupacao.
+	// Removal uses the same clipping as insertion. Even an inconsistent visual
+	// must leave the list without reading outside the occupancy buffer.
 	grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
 		pItem->m_nCellIndexX, pItem->m_nCellIndexY, pItem->m_nCellWidth, pItem->m_nCellHeight, 0);
 	if (nIndex != -1 && m_nNumItem > nIndex && nIndex >= 0)
@@ -1109,8 +1109,8 @@ SGridControlItem* SGridControl::PickupAtItem(int inCellIndexX, int inCellIndexY)
 	if (!pItem)
 		return nullptr;
 
-	// Retirada usa o mesmo recorte da insercao. Mesmo um visual inconsistente
-	// deve poder sair da lista sem acessar memoria fora da ocupacao.
+	// Removal uses the same clipping as insertion. Even an inconsistent visual
+	// must leave the list without reading outside the occupancy buffer.
 	grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
 		pItem->m_nCellIndexX, pItem->m_nCellIndexY, pItem->m_nCellWidth, pItem->m_nCellHeight, 0);
 	if (nIndex != -1 && m_nNumItem > nIndex && nIndex >= 0)
@@ -1677,7 +1677,7 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 						delete pstItem;
 						return 0;
 					}
-					// Sem visual aceito, nao publicar oferta nem marcar Carry como usado.
+					// Without an accepted visual, do not publish an offer or mark Carry used.
 					if (!pGridMyItem[i]->AddItem(newItem, 0, 0))
 					{
 						delete newItem;
@@ -1929,7 +1929,7 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 				delete dst;
 				return 0;
 			}
-			// A composicao so assume o slot depois da transferencia do visual.
+			// Composition claims the slot only after transferring the visual.
 			if (!pGridMyItem[i]->AddItem(newItem, 0, 0))
 			{
 				delete newItem;
@@ -2325,8 +2325,8 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 		if (!IsSkill(g_pCursor->m_pAttachedItem->m_pItem->sIndex))
 			return 1;
 
-		// A segunda pagina ja esta vinculada pela cena ao controle nativo 586.
-		// O ID posterior 65645 gravava incorretamente os atalhos em 0..9.
+		// The scene binds page two to native control 586. The later ID 65645
+		// incorrectly stored its shortcuts in slots 0..9.
 		const int nSeg = this == pScene->m_pGridSkillBelt3 ? 10 : 0;
 
 		SGridControlItem* pItem = nullptr;
@@ -2348,7 +2348,6 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 
 		SAFE_DELETE(pItem);
 
-		auto pMobData = &g_pObjectManager->m_stMobData;
 		g_pObjectManager->m_cShortSkill[nSeg + nCellX] = static_cast<char>(g_pItemList[pNewItem->sIndex].nIndexTexture);
 
 		MSG_SetShortSkill stSetShortSkill{};
@@ -2384,17 +2383,28 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 	}
 	else if (m_eGridType == TMEGRIDTYPE::GRID_CUBEBOX)
 	{
-	int nSeg = 0;
-	if (m_dwControlID == 65645)
-		nSeg = 10;
+		if (!g_pCursor || !g_pCursor->m_pAttachedItem ||
+			!g_pCursor->m_pAttachedItem->m_pItem)
+			return 0;
 
-	if (!g_pCursor->m_pAttachedItem->m_pItem)
-		return 0;
+		// Pickup transfers ownership out of the grid. No later branch consumes this
+		// visual, so clear interaction aliases before releasing it.
+		auto pItem = PickupItem(nCellX, nCellY);
+		if (pItem)
+		{
+			if (m_pLastMouseOverItem == pItem)
+				m_pLastMouseOverItem = nullptr;
+			if (m_pLastAttachedItem == pItem)
+				m_pLastAttachedItem = nullptr;
+			if (m_pSellItem == pItem)
+				m_pSellItem = nullptr;
+			if (g_pCursor->m_pAttachedItem == pItem)
+				g_pCursor->m_pAttachedItem = nullptr;
+			SAFE_DELETE(pItem);
+		}
 
-	auto pItem = PickupItem(nCellX, nCellY);
-
-	pScene->UpdateScoreUI(0);
-	pScene->UpdateSkillBelt();
+		pScene->UpdateScoreUI(0);
+		pScene->UpdateSkillBelt();
 	}
 	else
 	{
@@ -2595,7 +2605,7 @@ int SGridControl::SellItem2()
 		if (!IsSkill(g_pCursor->m_pAttachedItem->m_pItem->sIndex))
 			return 1;
 
-		// A confirmacao diferida usa a mesma pagina resolvida pelo drag direto.
+		// Deferred confirmation uses the same page as the direct drag.
 		const int nSeg = this == pFScene->m_pGridSkillBelt3 ? 10 : 0;
 
 		SGridControlItem* pReturnItem = nullptr;
@@ -2617,7 +2627,6 @@ int SGridControl::SellItem2()
 
 		SAFE_DELETE(pReturnItem);
 
-		auto pMobData = &g_pObjectManager->m_stMobData;
 		g_pObjectManager->m_cShortSkill[nSeg + nCellX] = static_cast<char>(g_pItemList[pNewItem->sIndex].nIndexTexture);
 
 		MSG_SetShortSkill stSetShortSkill{};

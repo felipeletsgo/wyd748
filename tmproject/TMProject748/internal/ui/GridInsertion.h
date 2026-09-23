@@ -3,12 +3,12 @@
 #include <cstddef>
 #include <climits>
 
-// Consulta pura do buffer emprestado de ocupacao. Nao altera itens ou ownership.
+// Pure query over a borrowed occupancy buffer; does not change items or ownership.
 namespace grid_occupancy
 {
-    // Escrita com recorte direito/inferior, necessario para receptaculos de
-    // equipamento menores que o footprint. Nao consulta sobreposicao. False
-    // significa rejeicao sem escrita; o buffer continua pertencendo a grid.
+    // Clip writes at the right/bottom edges for equipment receptacles smaller
+    // than the footprint. Overlap is not checked. False means rejection without
+    // a write; the grid still owns the buffer.
     inline bool FillClipped(int* cells, int columns, int rows,
         int x, int y, int width, int height, int value)
     {
@@ -26,15 +26,15 @@ namespace grid_occupancy
 
     inline bool ContainsRectangle(int columns, int rows, int x, int y, int width, int height)
     {
-        // Validar antes de somar/multiplicar: coordenadas de mouse e dimensoes
-        // invalidas nao podem virar indices negativos ou overflow signed.
+        // Validate before addition/multiplication so invalid pointer coordinates
+        // or dimensions cannot become negative indices or signed overflow.
         return columns > 0 && rows > 0 && columns <= INT_MAX / rows &&
             x >= 0 && y >= 0 && x < columns && y < rows &&
             width > 0 && height > 0 && width <= columns - x && height <= rows - y;
     }
 
-    // O chamador fornece columns*rows celulas; somente o valor 1 bloqueia,
-    // preservando a regra legada. Rejeicao geometrica nao acessa o buffer.
+    // The caller supplies columns*rows cells. Only value 1 blocks placement,
+    // preserving the legacy rule. Geometric rejection does not read the buffer.
     inline bool CanPlace(const int* cells, int columns, int rows,
         int x, int y, int width, int height)
     {
@@ -48,8 +48,8 @@ namespace grid_occupancy
     }
 }
 
-// Fronteira pura da lista visual: nao decide geometria, ocupacao ou wire.
-// A capacidade vem do array real. Rejeicao deixa ownership com o chamador.
+// Pure visual-list boundary: does not decide geometry, occupancy, or wire.
+// Capacity comes from the actual array. Rejection leaves ownership with the caller.
 namespace grid_insertion
 {
     template <typename Item, std::size_t Capacity>
@@ -59,9 +59,9 @@ namespace grid_insertion
             static_cast<std::size_t>(count) < Capacity;
     }
 
-    // Executa a insercao legada uma vez, somente quando ha espaco na lista.
-    // O callback e dono de todas as mutacoes, inclusive count e binding.
-    // Nenhum ponteiro e retido/liberado aqui e falhas nao causam retry.
+    // Execute legacy insertion once, only when the list has room.
+    // The callback owns every mutation, including count and binding.
+    // No pointer is retained/released here, and failures do not trigger retries.
     template <typename Item, std::size_t Capacity, typename Insert>
     int Execute(Item* const (&list)[Capacity], int count, Item* item, Insert&& insert)
     {

@@ -78,6 +78,15 @@ a partial translation as completion.
 - The server operations guide now uses the current English staff-panel labels
   and README anchors. Three client wire-header comments are also in English;
   packet layouts and opcodes are unchanged.
+- The 7.48 research-record template, its maintenance reference, validator
+  diagnostics, and validator tests now use English. Existing records with
+  legacy section names remain readable during migration. The skill-belt
+  page-selection record is in English and no longer lists already-handled
+  insertion rejection as an open rollback bug; real-client testing remains
+  pending. The adjacent grid-insertion and SGrid comments are in English.
+- The cube-box visual removal path now releases the detached visual after
+  clearing interaction aliases. A source-contract check protects that
+  ownership ordering; no client execution is implied.
 
 ## Remaining work
 

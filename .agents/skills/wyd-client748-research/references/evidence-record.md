@@ -1,37 +1,38 @@
-# Contrato das fichas de evidência
+# Evidence record contract
 
-As fichas vivem em `.agents/research/client748/flows/<subsistema>/<fluxo>.md` e
-usam o template versionado naquele diretório.
+Records live in `.agents/research/client748/flows/<subsystem>/<flow>.md` and
+follow the versioned template in that directory. New records use English
+headings. The validator still accepts historical Portuguese headings while
+existing records are migrated; do not use them in new or updated records.
 
-## Front matter obrigatório
+## Required front matter
 
-- `id`: identificador estável em kebab-case;
-- `title`: transição concreta investigada;
-- `subsystem`: domínio do mapa de subsistemas;
-- `status`: `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT` ou `CLIENT_TESTED`;
-- `native_sha256`: hash do `WYD.exe` analisado ou `UNRESOLVED`;
-- `updated`: data ISO `YYYY-MM-DD`.
+- `id`: stable kebab-case identifier;
+- `title`: concrete transition investigated;
+- `subsystem`: subsystem-map domain;
+- `status`: `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT`, or `CLIENT_TESTED`;
+- `native_sha256`: analyzed `WYD.exe` hash or `UNRESOLVED`;
+- `updated`: ISO date `YYYY-MM-DD`.
 
-## Seções obrigatórias
+## Required sections
 
-Toda ficha não-template contém `Pergunta`, `Fronteira de evidência`, `Fluxo
-nativo 7.48`, `Estado e lifecycle`, `Wire, ABI e recursos`, `Mapeamento atual`,
-`Matriz de delta`, `Decisões`, `Lacunas` e `Validação`.
+Every non-template record contains `Question`, `Evidence boundary`,
+`Native 7.48 flow`, `State and lifecycle`, `Wire, ABI, and resources`,
+`Current mapping`, `Delta matrix`, `Decisions`, `Gaps`, and `Validation`.
 
-Em `TRACED`, `Callers` e `Callees` devem estar resolvidos no projeto Ghidra. Em
-`CONTRACT`, o ABI/recurso e a decisão precisam ser testáveis. Em
-`CLIENT_TESTED`, a seção de validação registra cenário, artefato/hash e resultado
-do fluxo real.
+At `TRACED`, resolve `Callers` and `Callees` in Ghidra. At `CONTRACT`, the
+ABI/resource and decision must be testable. At `CLIENT_TESTED`, record the
+scenario, executable artifact/hash, and observed result of the real client flow.
 
-O `status` mede conhecimento do fluxo nativo. Uma extensão coordenada sem
-equivalente 7.48 não deve inventar função, caller ou promoção: registre o
-contrato novo na documentação/testes da feature e use a ficha apenas para a
-fronteira legada realmente interceptada. `LOCATED` bloqueia o claim nativo
-incompleto, não a extensão independente.
+Status measures knowledge of the native flow. A coordinated extension without
+a 7.48 equivalent must not invent a native function, caller, or promotion.
+Document and test its new contract in the feature, using a research record only
+for the legacy boundary it crosses. `LOCATED` blocks an incomplete native
+parity claim, not an independent extension.
 
-## Citações
+## Citations
 
-Cite evidência com endereço/símbolo e arquivo atual, por exemplo:
+Cite evidence with address/symbol and current source file, for example:
 
 ```text
 Native: WYD.exe sha256=... FUN_0055890A @ 0x0055890A
@@ -40,5 +41,5 @@ Server: internal/game/security.go :: inboundPacketSizeAllowed
 Asset: tmproject/client748/UI/FieldScene2.bin :: root 257
 ```
 
-Não cole pseudocódigo extenso. Registre a interpretação, os branches relevantes
-e como reproduzir a consulta.
+Do not paste extensive pseudocode. Record the interpretation, relevant
+branches, and a reproducible way to inspect the evidence.

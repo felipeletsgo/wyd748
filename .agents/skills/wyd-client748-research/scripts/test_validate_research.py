@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Testes do gate estrutural das fichas de pesquisa 7.48."""
+"""Tests for the 7.48 research-record structure gate."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from validate_research import LIFECYCLE_SUBSECTIONS, validate
+from validate_research import LIFECYCLE_SUBSECTIONS, SECTION_ALIASES, validate
 
 
 NATIVE_HASH = "8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593"
@@ -16,44 +16,44 @@ NATIVE_HASH = "8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593"
 def research_record(status: str = "TRACED", lifecycle: bool = True) -> str:
     subsystem = "lifecycle" if lifecycle else "transport"
     record_id = "scene-transition-lifecycle" if lifecycle else "packet-dispatch-flow"
-    record_title = "Troca de cena e lifecycle" if lifecycle else "Dispatch de packet"
+    record_title = "Scene transition lifecycle" if lifecycle else "Packet dispatch"
     lifecycle_sections = ""
     if lifecycle:
         lifecycle_sections = """
-### Matriz de transições
+### Transition matrix
 
-| Evento/estado | Precondição | Função/call | Estado resultante | Side effects | Erro/saída |
+| Event/state | Precondition | Function/call | Resulting state | Side effects | Error/exit |
 | --- | --- | --- | --- | --- | --- |
-| estado 7 | cena ativa | FUN_004B37C9 | estado 5 | marca nó | cleanup pendente no tick |
+| state 7 | active scene | FUN_004B37C9 | state 5 | marks node | cleanup on next tick |
 
-### Vtables, vptrs e receptores
+### Vtables, vptrs, and receivers
 
-O receptor foi seguido até o vptr `0x005A45FC`; o slot relevante é `+0x54`.
+The receiver resolves to vptr `0x005A45FC`, with the relevant slot at `+0x54`.
 
 ### Ownership
 
-O manager possui a árvore; a cena permanece owned pelo nó até o cleanup.
+The manager owns the tree; the scene remains owned by its node until cleanup.
 
-### Falha parcial
+### Partial failure
 
-A inicialização destrói a cena recém-alocada antes de retornar falha.
+Initialization destroys the newly allocated scene before returning failure.
 
-### Cleanup e teardown
+### Cleanup and teardown
 
-`FUN_004B16C0` remove e destrói os nós marcados no tick seguinte.
+`FUN_004B16C0` removes and destroys marked nodes on the next tick.
 
 ### Shutdown
 
-N/A: esta transição não encerra o processo e converge ao teardown do manager.
+N/A: this transition does not exit the process and uses manager teardown.
 
-### Logout e relogin
+### Logout and relogin
 
-N/A: o fluxo termina antes do login; a justificativa limita este contrato.
+N/A: this flow ends before login; the boundary excludes relogin.
 """
-    client_real = (
-        "executado no tmproject/client748/project.exe, hash registrado no cenário"
+    real_client = (
+        "executed in tmproject/client748/project.exe with a recorded artifact hash"
         if status == "CLIENT_TESTED"
-        else "não executado"
+        else "not run"
     )
     return f"""---
 id: {record_id}
@@ -61,83 +61,83 @@ title: {record_title}
 subsystem: {subsystem}
 status: {status}
 native_sha256: {NATIVE_HASH}
-updated: 2026-08-28
+updated: 2026-09-23
 ---
 
 # {record_title}
 
-## Pergunta
+## Question
 
-Qual transição observável ocorre?
+What observable transition occurs?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- Executável/hash: confirmado
+- Executable/hash: verified
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
-### Entrada observável
+### Observable entry
 
-O pedido de estado 7 entra por `FUN_004B3500` e publica a nova cena.
+The state-7 request enters through `FUN_004B3500` and publishes the new scene.
 
 ### Callers
 
-`FUN_004B37C9` é o caller confirmado.
+`FUN_004B37C9` is the confirmed caller.
 
-### Função principal
+### Main function
 
-`FUN_004B3500` executa a transição.
+`FUN_004B3500` performs the transition.
 
 ### Callees
 
-`FUN_0054AC09` anexa a cena à árvore.
+`FUN_0054AC09` attaches the scene to the tree.
 
-### Saídas e erros
+### Outputs and errors
 
-Sucesso anexa; falha destrói a alocação parcial.
+Success attaches the scene; failure destroys the partial allocation.
 
-## Estado e lifecycle
+## State and lifecycle
 {lifecycle_sections}
 
-## Wire, ABI e recursos
+## Wire, ABI, and resources
 
-N/A: não há wire nesta transição local.
+N/A: this local transition has no wire contract.
 
-## Mapeamento atual
+## Current mapping
 
-### Source recompilável
+### Buildable source
 
-ObjectManager é o candidato de adaptação.
+ObjectManager is the adaptation candidate.
 
 ### WYD-Go
 
-N/A: a troca é local ao client.
+N/A: the scene transition is local to the client.
 
-## Matriz de delta
+## Delta matrix
 
-| Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
+| Claim | Native 7.48 | Current source | TMProject | WYD-Go | Decision |
 | --- | --- | --- | --- | --- | --- |
-| troca | confirmada | divergente | pista | N/A | portar |
+| transition | confirmed | divergent | hint | N/A | adapt |
 
-## Decisões
+## Decisions
 
-Portar somente o claim confirmado.
+Adapt only the confirmed claim.
 
-## Lacunas
+## Gaps
 
-Nenhuma dentro da transição delimitada.
+None within this bounded transition.
 
-## Validação
+## Validation
 
-- Pesquisa: Ghidra reaberto
-- Automação: validador executado
-- Client real: {client_real}
+- Research: Ghidra inspected
+- Automation: validator executed
+- Real client: {real_client}
 """
 
 
 class ValidateResearchTests(unittest.TestCase):
     def validate_text(self, text: str) -> list[str]:
-        # Arquivo temporário exerce o mesmo caminho UTF-8 usado pela CLI real.
+        # Exercise the same UTF-8 path used by the real CLI.
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "flow.md"
             path.write_text(text, encoding="utf-8")
@@ -162,20 +162,20 @@ class ValidateResearchTests(unittest.TestCase):
                 errors = self.validate_text(broken)
                 self.assertTrue(
                     any(heading in error for error in errors),
-                    msg=f"gate ausente para {heading}: {errors}",
+                    msg=f"missing gate for {heading}: {errors}",
                 )
 
     def test_transition_matrix_requires_a_data_row(self) -> None:
         text = research_record().replace(
-            "| estado 7 | cena ativa | FUN_004B37C9 | estado 5 | marca nó | cleanup pendente no tick |\n",
+            "| state 7 | active scene | FUN_004B37C9 | state 5 | marks node | cleanup on next tick |\n",
             "",
         )
         errors = self.validate_text(text)
-        self.assertTrue(any("Matriz de transições" in error for error in errors))
+        self.assertTrue(any("Transition matrix" in error for error in errors))
 
     def test_na_requires_a_justification(self) -> None:
         text = research_record().replace(
-            "N/A: esta transição não encerra o processo e converge ao teardown do manager.",
+            "N/A: this transition does not exit the process and uses manager teardown.",
             "N/A",
         )
         errors = self.validate_text(text)
@@ -183,22 +183,35 @@ class ValidateResearchTests(unittest.TestCase):
 
     def test_unresolved_with_explanation_does_not_close_gate(self) -> None:
         text = research_record().replace(
-            "O manager possui a árvore; a cena permanece owned pelo nó até o cleanup.",
-            "UNRESOLVED: ainda é necessário identificar o owner.",
+            "The manager owns the tree; the scene remains owned by its node until cleanup.",
+            "UNRESOLVED: the owner still needs investigation.",
         )
         errors = self.validate_text(text)
         self.assertTrue(any("Ownership" in error for error in errors))
 
     def test_located_lifecycle_may_remain_incomplete(self) -> None:
         text = research_record("LOCATED").replace(
-            "O receptor foi seguido até o vptr `0x005A45FC`; o slot relevante é `+0x54`.",
+            "The receiver resolves to vptr `0x005A45FC`, with the relevant slot at `+0x54`.",
             "UNRESOLVED",
         )
         self.assertEqual([], self.validate_text(text))
 
     def test_non_lifecycle_traced_uses_general_gate(self) -> None:
-        text = research_record(lifecycle=False)
+        self.assertEqual([], self.validate_text(research_record(lifecycle=False)))
+
+    def test_existing_portuguese_headings_remain_readable(self) -> None:
+        text = research_record()
+        for english, legacy in SECTION_ALIASES.items():
+            text = text.replace(f"## {english}\n", f"## {legacy}\n")
+            text = text.replace(f"### {english}\n", f"### {legacy}\n")
         self.assertEqual([], self.validate_text(text))
+
+    def test_pending_real_client_cannot_be_promoted(self) -> None:
+        text = research_record("CLIENT_TESTED").replace(
+            "Real client: executed in tmproject/client748/project.exe with a recorded artifact hash",
+            "Real client: not run",
+        )
+        self.assertTrue(any("real-client" in error for error in self.validate_text(text)))
 
 
 if __name__ == "__main__":

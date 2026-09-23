@@ -1,92 +1,105 @@
 ---
 id: skill-belt-page-selection
-title: Selecionar a pagina ao soltar uma skill na barra
+title: Select the skill-belt page when dropping a skill
 subsystem: ui
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-06
+updated: 2026-09-23
 ---
 
-## Pergunta
+## Question
 
-Qual pagina recebe o atalho quando uma skill e solta na segunda barra?
-Escopo estreito: escolha do deslocamento 0 ou 10, sem alterar wire ou skills.
+Which page receives a shortcut when a skill is dropped onto the second belt?
+Scope: selecting offset 0 or 10, without changing the wire contract or skills.
 
-## Fronteira de evidência
+## Evidence boundary
 
-- UTILIZADA: projeto Ghidra WYD748Native_20260821 read-only/noanalysis,
-  export `exports/skill-belt-page-flow.tsv`, SHA-256 conferido na linha program;
-  execucao sem SCRIPT ERROR. Descompilacao estudada de FUN_00416196,
-  FUN_004209FC, FUN_00435B13 e FUN_004470B9.
-- UTILIZADA: source atual SGrid::SellItem/SellItem2 e
-  TMFieldScene::InitializeCompatSkillBelts/UpdateSkillBelt, ResourceControl.h.
-- UTILIZADA: recurso FieldScene2.bin materializado no log client-debug.log:
-  grids 573/586 sob root 5745; grid 571 sob root 1905. O log comprova IDs,
-  nao valida o executavel desta alteracao.
-- UTILIZADA: WYD-Go onSetShortSkill/filterShortSkills e wire.SetShortSkill.
-- NAO APLICAVEL: TMProject posterior/guias como prova nativa. fontes legadas externas excluidos. Nenhum asset ou campo de protocolo novo.
+- USED: read-only Ghidra project `WYD748Native_20260821` with no analysis,
+  export `exports/skill-belt-page-flow.tsv`, and the SHA-256 verified on its
+  `program` line. The export completed without a script error. Inspected
+  `FUN_00416196`, `FUN_004209FC`, `FUN_00435B13`, and `FUN_004470B9`.
+- USED: current `SGrid::SellItem/SellItem2`,
+  `TMFieldScene::InitializeCompatSkillBelts/UpdateSkillBelt`, and
+  `ResourceControl.h`.
+- USED: materialized `FieldScene2.bin` controls in `client-debug.log`:
+  grids 573/586 under root 5745 and grid 571 under root 1905. The log proves
+  those IDs, not execution of this change in the built client.
+- USED: WYD-Go `onSetShortSkill/filterShortSkills` and `wire.SetShortSkill`.
+- NOT APPLICABLE: later TMProject and external guides as native proof. No
+  new asset or protocol field is introduced.
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
 ### Callers
 
-FUN_004209FC chama FUN_00416196 em 00420EBD, apos hit-test e verificacao de
-cursor pickup com item anexado, evento 0x202. O receptor e a grade atingida.
+`FUN_004209FC` calls `FUN_00416196` at `00420EBD` after hit-testing a grid
+with an attached cursor item on event `0x202`. The receiver is the hit grid.
 
 ### Callees
 
-FUN_00416196, ramo grid type 5, testa control ID 0x24A (586) e usa deslocamento
-10, ou 0 nas outras grades. Retira o visual anterior via slot +0xA4, constroi
-por FUN_0040D13E e adiciona via +0x8C. Depois de desanexar o cursor e destruir
-o visual anterior, grava o indice em ShortSkill[x+deslocamento], envia por
-FUN_0055F2DD e atualiza por FUN_004431E4/FUN_004470B9.
-FUN_004470B9 reconstroi separadamente os dez slots de cada pagina, lendo
-ShortSkill[0..9] e [10..19]. FUN_00435B13 vincula o controle 586 da segunda.
+The grid-type-5 branch of `FUN_00416196` checks control ID `0x24A` (586) and
+uses offset 10 for it; other grids use offset 0. It removes the previous
+visual through slot `+0xA4`, creates a replacement through `FUN_0040D13E`,
+and adds it through slot `+0x8C`. After detaching the cursor and destroying
+the previous visual, it writes `ShortSkill[x + offset]`, sends through
+`FUN_0055F2DD`, and refreshes through `FUN_004431E4/FUN_004470B9`.
+`FUN_004470B9` reconstructs each ten-slot page from `ShortSkill[0..9]` and
+`ShortSkill[10..19]`. `FUN_00435B13` binds control 586 to page two.
 
-## Estado e lifecycle
+## State and lifecycle
 
-A escolha de pagina e calculada por evento, sem memoria ou ownership novos.
-O container e dono das grades; a FieldScene guarda bindings emprestados,
-recriados por InitializeCompatSkillBelts a cada cena/relogin. A grade e dona
-dos visuais, que sao retirados antes da substituicao e destruidos pelo caller.
-Fechamento/shutdown continuam no teardown existente da cena; o delta nao
-retém ponteiros, nao cria timers nem muda alocacao/falha parcial. A qualidade
-do rollback de substituicao e uma frente separada, nao um claim desta ficha.
+The page is selected per event without persistent state or new ownership.
+The container owns the grids; the scene borrows their bindings, recreated by
+`InitializeCompatSkillBelts` on scene entry and relogin. The grid owns its
+visuals; the caller destroys the detached predecessor after clearing cursor
+aliases. Scene teardown still owns close/shutdown. This page-selection change
+does not retain pointers, create timers, or change allocation behavior.
 
-## Wire, ABI e recursos
+## Wire, ABI, and resources
 
-Nenhuma alteracao. O emissor existente envia 0x378/32 com vinte atalhos; o
-servidor filtra skills nao aprendidas e devolve o estado autoritativo. Esta
-ficha rastreia a escolha de pagina, nao promove o contrato wire integral.
-IDs nativos ja vinculados: 573 (primeira), 586 (segunda), botoes 587/588.
+Unchanged. The existing emitter sends `0x378`/32 bytes with twenty shortcuts;
+the server filters unlearned skills and returns authoritative state. This
+record traces page selection, not the complete wire contract. Native controls
+already bound: 573 (first page), 586 (second page), buttons 587/588.
 
-## Mapeamento atual
+## Current mapping
 
-SellItem e SellItem2 comparavam m_dwControlID com 65645, ID posterior ausente
-nas grades materializadas do 7.48. InitializeCompatSkillBelts ja ligava
-m_pGridSkillBelt3 a 586, mas esses consumidores ignoravam o binding.
+`SellItem` and `SellItem2` formerly compared `m_dwControlID` with later ID
+65645, absent from the materialized 7.48 grids. The scene already bound
+`m_pGridSkillBelt3` to 586, but those consumers ignored the binding. Both
+callers now use grid identity for the offset. The shared
+`WYD748_ReplaceGridVisual` helper rejects an `AddItem` failure before
+detaching the cursor, changing the shortcut array, or sending the packet.
+On acceptance it removes the old visual, restores occupancy, and leaves
+cursor detachment and old-visual destruction to the caller. The old record's
+unspecified failure-rollback gap was therefore stale for the current source.
 
-## Matriz de delta
+## Delta matrix
 
-| Claim | Nativo | Source anterior | Decisao |
+| Claim | Native 7.48 | Earlier source | Decision |
 | --- | --- | --- | --- |
-| Segunda pagina | ID 586 seleciona +10 | teste 65645 selecionava +0 | usar identidade do binding m_pGridSkillBelt3 |
-| Primeira pagina | +0 | +0 | manter |
-| Ownership e envio | substituicao e array de 20 | mesmo fluxo | manter neste corte |
+| Second page | ID 586 selects +10 | ID 65645 selected +0 | Use the bound `m_pGridSkillBelt3` identity |
+| First page | +0 | +0 | Preserve |
+| Ownership and send | Replace visual and send twenty entries | Same flow | Preserve in this change |
 
-## Decisões
+## Decisions
 
-MODERNIZACAO_COMPATIVEL de binding local: usar a instancia ja resolvida pela
-cena nos dois callers, evitando uma segunda tabela de IDs. O comportamento
-de pagina resultante coincide com a transicao nativa rastreada. Sem alterar
-classe, layout, vtable, recurso, emissor ou autoridade server-side.
+`MODERNIZACAO_COMPATIVEL`: use the existing scene binding in both callers,
+without a second ID table. The resulting page selection matches the traced
+native transition. No class layout, vtable, resource, packet, or server-side
+authority changes. The current insertion rejection already preserves state;
+do not add a second rollback path without a demonstrated failure.
 
-## Lacunas
+## Gaps
 
-Testar drag nas duas paginas, selecao, troca por Z/587/588 e relogin no
-project.exe final. Tratar separadamente rollback quando AddItem rejeitar.
+Real-client verification of drops on both pages, selection, switching with
+Z/587/588, and relogin remains pending. The insertion-failure path has not
+been independently exercised in the built client. Do not claim
+`CLIENT_TESTED` from static inspection or isolated tests.
 
-## Validação
+## Validation
 
-Pesquisa e inspeção da source confirmam a causa; build e testes do consumidor
-server-side devem ser registrados no handoff. Nao CLIENT-TESTED.
+Native research and current-source inspection cover the page-selection cause
+and the rejection ordering. Existing grid-insertion tests cover rejection
+without mutation, but not a real skill-belt drop. No new client execution
+was attempted; real-client testing is unavailable on this machine.

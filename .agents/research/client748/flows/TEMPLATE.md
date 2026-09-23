@@ -9,72 +9,72 @@ updated: 1970-01-01
 
 # Replace with one observable transition
 
-## Pergunta
+## Question
 
-Qual entrada, transição e saída esta ficha precisa explicar?
+Which input, transition, and output does this record need to explain?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- Executável/hash:
-- Projeto/corpus Ghidra:
+- Executable/hash:
+- Ghidra project/corpus:
 - Assets:
-- Source atual:
-- Servidor:
+- Current source:
+- Server:
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
-### Entrada observável
+### Observable entry
 
-- Evento:
-- Precondições e estado inicial:
-- Saída observável:
+- Event:
+- Preconditions and initial state:
+- Observable output:
 
 ### Callers
 
-### Função principal
+### Main function
 
 ### Callees
 
-### Saídas e erros
+### Outputs and errors
 
-## Estado e lifecycle
+## State and lifecycle
 
-### Matriz de transições
+### Transition matrix
 
-| Evento/estado | Precondição | Função/call | Estado resultante | Side effects | Erro/saída |
+| Event/state | Precondition | Function/call | Resulting state | Side effects | Error/exit |
 | --- | --- | --- | --- | --- | --- |
 
-### Vtables, vptrs e receptores
+### Vtables, vptrs, and receivers
 
 ### Ownership
 
-### Falha parcial
+### Partial failure
 
-### Cleanup e teardown
+### Cleanup and teardown
 
 ### Shutdown
 
-### Logout e relogin
+### Logout and relogin
 
-## Wire, ABI e recursos
+## Wire, ABI, and resources
 
-## Mapeamento atual
+## Current mapping
 
-### Source recompilável
+### Buildable source
 
 ### WYD-Go
 
-## Matriz de delta
+## Delta matrix
 
-| Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
+| Claim | Native 7.48 | Current source | TMProject | WYD-Go | Decision |
 | --- | --- | --- | --- | --- | --- |
 
-## Decisões
+## Decisions
 
-## Lacunas
+## Gaps
 
-## Validação
+## Validation
 
-- Pesquisa:
-- Automação:
-- Client real:
+- Research:
+- Automation:
+- Real client:
