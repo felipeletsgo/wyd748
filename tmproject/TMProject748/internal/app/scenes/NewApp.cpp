@@ -328,7 +328,13 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 		return 0;
 	}
 
-	BASE_InitializeAttribute();
+	if (!BASE_InitializeAttribute() || !BASE_InitializeHeightMap())
+	{
+		MessageBoxA(m_hWnd, "The client terrain maps are missing or invalid.", "Error", MB_OK);
+		LOG_WRITELOGSTRING("Client terrain map initialization failed\r\n");
+		LOG_FINALIZELOG();
+		return 0;
+	}
 
 	ReadItemName();
 	ReadUIString();

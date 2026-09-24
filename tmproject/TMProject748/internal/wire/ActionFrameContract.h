@@ -2,12 +2,18 @@
 
 #include <cstddef>
 
-// Movimento, parada e ilusao compartilham o mesmo envelope 7.48. Os handlers
-// legados leem destino e Route diretamente, portanto o frame deve estar
-// completo antes de qualquer cast para MSG_Action.
+// Movement, stop, and illusion share the 7.48 envelope. Legacy handlers read
+// the destination and Route directly, so the frame must be complete before
+// it is cast to MSG_Action.
 constexpr auto MSG_Action_Opcode = 0x366;
 constexpr auto MSG_Action_Stop_Opcode = 0x367;
 constexpr auto MSG_Action2_Opcode = 0x368;
+// Paired server/client extension: route correction has no teleport semantics.
+constexpr unsigned int kActionRouteCorrectionEffect = 8;
+constexpr bool IsRouteCorrectionAction(unsigned int opcode, unsigned int effect)
+{
+    return opcode == MSG_Action_Opcode && effect == kActionRouteCorrectionEffect;
+}
 constexpr std::size_t kActionPacketSize = 52;
 constexpr std::size_t kActionPositionOffset = 12;
 constexpr std::size_t kActionSpeedOffset = 16;

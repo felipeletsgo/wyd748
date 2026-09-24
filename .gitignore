@@ -12,6 +12,7 @@
 /tmproject/client748/ItemList.pre-*.bin
 /tmproject/client748/SkillData.csv
 /tmproject/client748/serverlist - Copy.bin
+/tmproject/client748/serverlist.local.bin
 /wydgo748/data/SkillData.bin
 /wydgo748/data/accounts/*.json
 /wydgo748/data/charstate/*.json

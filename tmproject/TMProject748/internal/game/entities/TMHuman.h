@@ -75,6 +75,7 @@ public:
     int OnPacketEvent(unsigned int dwCode, char* buf) final;
     int OnPacketMove(MSG_Action* pAction);
     int OnPacketChaosCube(MSG_Action* pAction);
+    int OnPacketRouteCorrection(MSG_Action* pAction);
     int OnPacketIllusion(MSG_STANDARD* pStd);
     int OnPacketFireWork(MSG_Motion* pStd);
     int OnPacketPremiumFireWork(MSG_PremiumFirework* pFirework);

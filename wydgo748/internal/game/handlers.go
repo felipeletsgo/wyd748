@@ -1207,7 +1207,13 @@ func (w *World) onMove(s *net.Session, pkt []byte) {
 	}
 	startX, startY, wireRoute, authorityRoute, ok := w.validatedPlayerMoveRoute(p, pkt)
 	if !ok {
-		w.recordSecurityViolation(s, wire.OpAction, movementPacketRejectionSummary(p, pkt))
+		reason := movementPacketRejectionSummary(p, pkt)
+		// The client already animates its requested route. Stop the previous
+		// authoritative plan and correct the owner without using the teleport
+		// action, which would clear the source client's death state.
+		w.publishPlayerStop(p)
+		s.Send(wire.ActionRouteCorrection(p.ID, p.X, p.Y))
+		w.recordSecurityViolation(s, wire.OpAction, reason)
 		return
 	}
 	x, y := actionTarget748(pkt)

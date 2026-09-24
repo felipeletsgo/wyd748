@@ -163,6 +163,35 @@ int RunSceneDisconnectContractTests(int& checks)
         selectCharacter.substr(characterTerrain, characterMiniMap - characterTerrain).find("return 0;") != std::string::npos,
         "character selection stops before using an invalid terrain");
     const auto fieldSource = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
+    const auto deathStart = fieldSource.find("int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)");
+    const auto deathEnd = fieldSource.find("int TMFieldScene::OnPacketREQParty(", deathStart);
+    const auto deathBody = deathStart != std::string::npos && deathEnd != std::string::npos
+        ? fieldSource.substr(deathStart, deathEnd - deathStart) : std::string{};
+    check(deathBody.find("pAttacker ? pAttacker->m_szName : \"Unknown\"") != std::string::npos &&
+        deathBody.find("sysTime.wSecond, killerName") != std::string::npos,
+        "death notification tolerates a killer absent from the local scene");
+    const auto deathHumanSource = LoadSource("TMProject748/internal/game/entities/TMHuman.cpp");
+    const auto dieStart = deathHumanSource.find("void TMHuman::Die()");
+    const auto dieEnd = deathHumanSource.find("void TMHuman::Stand()", dieStart);
+    const auto dieBody = dieStart != std::string::npos && dieEnd != std::string::npos
+        ? deathHumanSource.substr(dieStart, dieEnd - dieStart) : std::string{};
+    check(!dieBody.empty() &&
+        dieBody.find("routePoint = m_vecPosition;") != std::string::npos &&
+        dieBody.find("m_nMaxRouteIndex = 0;") != std::string::npos &&
+        dieBody.find("m_bMoveing = 0;") != std::string::npos,
+        "death freezes unfinished movement at the current position");
+    check(!dieBody.empty() &&
+        dieBody.find("SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);") != std::string::npos &&
+        dieBody.find("m_nLoop = 0;") != std::string::npos &&
+        dieBody.find("m_dwStartAnimationTime = g_pTimerManager->GetServerTime();") != std::string::npos,
+        "death completion remains one-shot when the mesh rejects its animation");
+    const auto motionStart = deathHumanSource.find("int TMHuman::OnPacketFireWork(MSG_Motion* pStd)");
+    const auto motionEnd = deathHumanSource.find("int TMHuman::OnPacketPremiumFireWork(", motionStart);
+    const auto motionBody = motionStart != std::string::npos && motionEnd != std::string::npos
+        ? deathHumanSource.substr(motionStart, motionEnd - motionStart) : std::string{};
+    check(!motionBody.empty() &&
+        motionBody.find("(m_cDie == 1 || m_stScore.CurHP <= 0) && pStd->Parm != 2") != std::string::npos,
+        "late motion packets cannot replace death before an explicit revival");
     const auto shopListStart = fieldSource.find("int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)");
     const auto shopListEnd = fieldSource.find("int TMFieldScene::OnPacket", shopListStart + 1);
     const auto shopListHandler = shopListStart != std::string::npos &&
@@ -754,6 +783,8 @@ int RunSceneDisconnectContractTests(int& checks)
         "serverlist loader is available");
     if (listStart != std::string::npos && listEnd != std::string::npos) {
         const std::string loader = basedef.substr(listStart, listEnd - listStart);
+        check(loader.find("WYD748_OpenServerListAsset(\"./serverlist.local.bin\", \"./serverlist.bin\")") != std::string::npos,
+            "local serverlist takes precedence over the versioned table");
         const auto read = loader.find("WYD748_ReadServerList(fpBin, g_pServerList)");
         const auto reject = loader.find("if (!loaded)", read);
         const auto decode = loader.find("g_pServerList[k][j][i] -=", reject);
@@ -769,6 +800,57 @@ int RunSceneDisconnectContractTests(int& checks)
     char zeros[sizeof servers]{};
     check(std::memcmp(servers, zeros, sizeof servers) == 0,
         "missing serverlist clears stale endpoints");
+
+    const auto fixtureDirectory = std::filesystem::temp_directory_path() /
+        ("wyd-serverlist-" + std::to_string(GetCurrentProcessId()) + "-" +
+            std::to_string(GetTickCount64()));
+    const bool createdFixtureDirectory = std::filesystem::create_directory(fixtureDirectory);
+    check(createdFixtureDirectory, "local serverlist fixture directory is created");
+    if (createdFixtureDirectory) {
+        const auto localPath = fixtureDirectory / "serverlist.local.bin";
+        const auto standardPath = fixtureDirectory / "serverlist.bin";
+        {
+            std::ofstream standard(standardPath, std::ios::binary);
+            standard << std::string(sizeof servers, 'S');
+        }
+        {
+            std::ofstream local(localPath, std::ios::binary);
+            local << 'L';
+        }
+        std::FILE* selected = WYD748_OpenServerListAsset(localPath.string().c_str(),
+            standardPath.string().c_str());
+        check(selected && !WYD748_ReadServerList(selected, servers),
+            "truncated local table fails closed instead of using the standard table");
+        if (selected) std::fclose(selected);
+        {
+            std::ofstream local(localPath, std::ios::binary | std::ios::trunc);
+            local << std::string(sizeof servers, 'L');
+        }
+        selected = WYD748_OpenServerListAsset(localPath.string().c_str(),
+            standardPath.string().c_str());
+        check(selected && WYD748_ReadServerList(selected, servers) && servers[0][0][0] == 'L',
+            "complete local table overrides the standard table");
+        if (selected) std::fclose(selected);
+        HANDLE lockedLocal = CreateFileW(localPath.c_str(), GENERIC_READ, 0, nullptr,
+            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        check(lockedLocal != INVALID_HANDLE_VALUE, "local serverlist fixture can be locked");
+        if (lockedLocal != INVALID_HANDLE_VALUE) {
+            selected = WYD748_OpenServerListAsset(localPath.string().c_str(),
+                standardPath.string().c_str());
+            check(selected == nullptr,
+                "unreadable local table does not fall back to the standard endpoint");
+            if (selected) std::fclose(selected);
+            CloseHandle(lockedLocal);
+        }
+        std::filesystem::remove(localPath);
+        selected = WYD748_OpenServerListAsset(localPath.string().c_str(),
+            standardPath.string().c_str());
+        check(selected && WYD748_ReadServerList(selected, servers) && servers[0][0][0] == 'S',
+            "standard table is used when no local override exists");
+        if (selected) std::fclose(selected);
+        std::filesystem::remove(standardPath);
+        std::filesystem::remove(fixtureDirectory);
+    }
 
     char payload[sizeof servers];
     std::memset(payload, 0x35, sizeof payload);
@@ -792,9 +874,23 @@ int RunSceneDisconnectContractTests(int& checks)
         std::rewind(truncated);
         check(written && !WYD748_ReadServerList(truncated, servers),
             "truncated serverlist is rejected");
-    check(std::memcmp(servers, zeros, sizeof servers) == 0,
-        "truncated serverlist clears partial endpoints");
-    std::fclose(truncated);
+        check(std::memcmp(servers, zeros, sizeof servers) == 0,
+            "truncated serverlist clears partial endpoints");
+        std::fclose(truncated);
+    }
+
+    std::FILE* oversized = nullptr;
+    tmpfile_s(&oversized);
+    check(oversized != nullptr, "oversized serverlist fixture opens");
+    if (oversized) {
+        const bool written = std::fwrite(payload, 1, sizeof payload, oversized) == sizeof payload &&
+            std::fputc('X', oversized) != EOF;
+        std::rewind(oversized);
+        check(written && !WYD748_ReadServerList(oversized, servers),
+            "oversized serverlist is rejected");
+        check(std::memcmp(servers, zeros, sizeof servers) == 0,
+            "oversized serverlist clears partial endpoints");
+        std::fclose(oversized);
     }
 
     unsigned char shortRecord[28]{};
@@ -1109,6 +1205,28 @@ int RunSceneDisconnectContractTests(int& checks)
         startupSource.find("ReadItemicon(") == std::string::npos &&
         basedefSource.find("g_itemicon") == std::string::npos,
         "7.48 startup keeps required item labels without the unused item-icon table");
+
+    const auto readAsset = [](const char* path) {
+        const auto found = FindSource(path);
+        if (found.empty())
+            return std::vector<unsigned char>{};
+        std::ifstream input(found, std::ios::binary);
+        return std::vector<unsigned char>(std::istreambuf_iterator<char>(input),
+            std::istreambuf_iterator<char>());
+    };
+    const auto clientAttribute = readAsset("client748/Env/AttributeMap.dat");
+    const auto serverAttribute = readAsset("wydgo748/data/maps/AttributeMap.dat");
+    check(clientAttribute.size() == 1048580 && serverAttribute.size() == 1048576 &&
+        std::equal(serverAttribute.begin(), serverAttribute.end(), clientAttribute.begin()),
+        "the server consumes the complete 7.48 client attribute payload");
+    const auto clientHeight = readAsset("client748/Env/HeightMap.dat");
+    const auto serverHeight = readAsset("wydgo748/data/maps/HeightMap.dat");
+    check(clientHeight.size() == 16777216 && clientHeight == serverHeight,
+        "the client and server load an identical world height map");
+    check(startupSource.find("!BASE_InitializeHeightMap()") != std::string::npos &&
+        basedefSource.find("sharedHeightMap[worldY * SharedHeightMapWidth + worldX]") != std::string::npos &&
+        basedefSource.find("BASE_ApplyAttribute(char* pHeight, int size)") != std::string::npos,
+        "client startup requires the shared height map before route masks are projected");
 
     const auto ccModeScene = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
     check(ccModeScene.find("{\"Off\", \"Physical\", \"Magic\", \"Support\"}") != std::string::npos &&

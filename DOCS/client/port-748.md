@@ -60,6 +60,19 @@ loaders, the `wyd-client748-assets` skill, and
 debt from unclassified missing references and casing mismatches. The current
 build is described in [Build and integration](../build-and-integration.md).
 
+For same-machine development, run
+`tools/client-assets/New-LocalServerList.ps1` from the repository root. It
+creates the ignored `tmproject/client748/serverlist.local.bin`, preserving the
+7.48 encoded table and status URLs while setting configured game channels to
+`127.0.0.1`. The source-built client prefers this local table when it exists;
+otherwise it reads the versioned `serverlist.bin`. A malformed or unreadable
+local table is rejected rather than falling back to a different server. Do
+not package the local table for global players: loopback would address each
+player's own PC.
+The override applies to a newly built `project.exe` or the build artifact when
+started with `client748` as its working directory; the older, untracked
+`client748/WYD.exe` does not use it.
+
 A missing literal source reference alone does not prove that a 7.48 asset is
 missing. In particular, `TMSkinMesh::SetCostume` still contains later-source
 paths and paths overlapping the cataloged KR collection. The
@@ -174,6 +187,111 @@ the recorded native capacities in
 [attack-frame-envelope](../../.agents/research/client748/flows/transport/attack-frame-envelope.md).
 
 ## Active score layout
+
+### Zero-HP death transition
+
+The server sends the authoritative `0x181` vitals snapshot before `0x338`
+kill confirmation on lethal mob damage. The source client now enters `Die()`
+when a valid vitals snapshot sets HP to zero, even if kill confirmation is
+delayed or absent. A later `0x338` remains idempotent through `Die()`'s
+existing guard. Pending travel motion may not restart a dead character's run
+animation. These are coordinated-client resilience changes, not claims that
+native 7.48 derives death from `0x181`.
+
+The numeric HP cell and the textured HP orb are separate controls. The native
+compact HUD has a main HP progress control (`TMP_HP_PROGRESS`) and a translucent
+overlay (`TMP_HP_PROGRESS_TR`). Progress reaching zero does not suppress the
+controls' panel art; the overlay also uses a negative texture set. Both vitals
+updates and score refreshes now hide both visuals at zero HP and restore them
+when HP becomes positive. No asset bytes or general renderer behavior changed.
+The field scene can open the respawn prompt when the death animation finishes,
+and its mouse handler has a click fallback.
+The compact 7.48 input adapter previously discarded dead-player clicks before
+that fallback; it now preserves the same dead-player, familiar, and town checks.
+The route rejection preceding the logged death has no proven causal link to
+kill confirmation or respawn.
+
+The later screenshot still showed looping movement and no respawn prompt after
+death. `Die()` previously truncated future route points but left active route
+indices and movement state in place, so `FrameMove` could continue advancing
+the route. It now freezes the route at the current position. It also enforces
+the one-shot death animation and resets its start time after `SetAnimation`:
+that method can return early if the mesh rejects the death clip, otherwise
+leaving the previous run animation's loop state in place and preventing the
+completion callback that opens the prompt. Late non-revival motion packets are
+ignored while dead. These are source-level resilience fixes; the screenshot
+alone cannot identify which of these paths occurred at runtime.
+
+The source build and architecture tests passed (51,987 checks). The Release
+candidate containing the death-state, HP-orb, input-adapter, route-correction,
+and shared-terrain changes was copied to `client748/project.exe` with matching
+SHA-256 `7F5430279644A8B285BBBE1F04628B6B8C49DBF3528047C0379C39862255E96E`.
+The server game and wire package tests passed. Death animation, orb appearance,
+route correction, and respawn interaction in the running client remain untested.
+
+The server death publisher includes the victim in its nearby-player query;
+`TestPublishPlayerDeathReachesVictimAndVisibleObservers` covers delivery to
+the victim and observers. The client kill-confirmation handler now also
+handles an attacker absent from the local scene when formatting the
+resurrection-item notice. Neither static contract proves the visible death
+or respawn interaction without an in-client test.
+
+### Shared static route maps
+
+The rejected `0x366` route at 2026-09-23 16:59:35 ended at `(3647,3112)`.
+The server's `data/maps/HeightMap.dat` records blocked height `127` there,
+but the client terrain tile plus static object masks reconstruct height `-88`.
+The client originally accepted that destination, while the server refused it.
+The denial preceded the lethal hit; it does not by itself explain the missing
+death/respawn UI.
+
+The 7.48 client's `Env/AttributeMap.dat` is the more populated attribute
+asset: its consumed 1,048,576-byte payload has 97,102 nonzero cells, versus
+88,069 in the former server asset. It contains 9,033 populated cells absent
+from the server asset; none are populated only in the server asset. The older
+server asset also had 206 bit patterns not contained in the corresponding
+client bytes, including 193 server-only blocked cells. The choice is therefore
+the 7.48 client payload, not a bitwise union of potentially conflicting maps.
+The client retains its four-byte asset trailer, which its loader ignores;
+the server stores exactly the consumed payload. The server asset SHA-256 is
+`995FAC5A89E14B2A08DC39B4E922DF33FD7AB31E52763A1E7598F41BFED09C4E`.
+
+The server's 16,777,216-byte `HeightMap.dat` is the complete world-height
+source. The client has only 96 terrain tiles, so reconstructing a global map
+from those tiles would erase or block regions that still exist on the server.
+An exact copy is packaged at `tmproject/client748/Env/HeightMap.dat`. Client
+startup rejects a missing or malformed copy. `BASE_ApplyAttribute` projects
+the shared global heights into each route window before applying the shared
+attribute mask, including initial load and neighbor transitions. The terrain
+tile and object masks still provide rendering geometry; dynamic collision
+changes are separate. The shared height payload SHA-256 is
+`B83A9DE78A32A79FC2647699EB44BE1561BED62FBC48EAA7165BA26C1297C640`.
+
+Run `pwsh -NoProfile -File tools/client-assets/Sync-TerrainMaps.ps1` to check
+both asset identities; use `-Apply` only to regenerate the derived copies.
+`Compare-TerrainCollision.ps1 -RequireParity` compares the route maps and
+also reports the original tile/object reconstruction. In the 41-by-41 area
+around `(3647,3112)`, all 1,681 static route cells and their route-height
+edges now agree; the legacy terrain/object reconstruction still differs in
+height at 36 cells. A wider 81-by-81 sample around `(3648,3136)` also has
+zero static route-map disagreements. At the rejected destination, both route
+maps now read `127`; the original terrain/object reconstruction reads `-88`.
+These are asset and source checks, not an executed-client observation. The
+dynamic collision path and visible death/respawn behavior remain unverified.
+
+The server now stops any pending authoritative route and sends its current
+position to the owner when it rejects a `0x366` route. This is a coordinated
+client/server extension using the existing 52-byte `0x366` action envelope
+with `Effect=8`, zero speed, an empty route, and equal position and target.
+The paired source client resets its local route at the authoritative position
+without calling the teleport handler, clearing death state, or creating warp
+effects. Corrections arriving after death are ignored by the client; dead
+players do not receive new corrections from the server. This effect value must
+not be sent to an unmodified native client: its generic illusion handler would
+interpret the value as a teleport. The server does not accept a blocked
+destination or advance its own position. Focused tests cover the packet,
+rejection, and dead-player guard. This is a desynchronization safeguard, not a
+map fix or evidence that death and respawn UI works in the running client.
 
 The [canonical contract](../SCORE.md) replaces the historical 48-byte layout.
 The current size is protected by `static_assert` in

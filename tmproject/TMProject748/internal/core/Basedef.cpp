@@ -10,6 +10,16 @@
 #include "WYD748Assets.h"
 #include "ServerListAsset.h"
 #include <WinInet.h>
+#include <array>
+
+namespace
+{
+    constexpr int SharedHeightMapWidth = 4096;
+    constexpr std::size_t SharedHeightMapSize =
+        SharedHeightMapWidth * SharedHeightMapWidth;
+    std::array<char, SharedHeightMapSize> sharedHeightMap{};
+    bool sharedHeightMapLoaded = false;
+}
 
 char g_pAffectTable[MAX_EFFECT_STRING_TABLE][24];
 char g_pAffectSubTable[MAX_SUB_EFFECT_STRING_TABLE][24];
@@ -135,12 +145,48 @@ int BASE_InitializeAttribute()
     return loaded ? 1 : 0;
 }
 
-/** Applies attribute-map bit 2 to a size-by-size square at the global origin.
- * pHeight is borrowed writable memory with the g_HeightWidth stride; marked
- * positions receive height 127. The caller supplies valid dimensions and
- * origin; capacity is not checked and prior heights are not restored. */
+/** Loads the server's world-height payload packaged with the client.
+ * A missing or truncated map must fail startup instead of silently restoring
+ * a different client-side collision surface. */
+int BASE_InitializeHeightMap()
+{
+    FILE* file = nullptr;
+    fopen_s(&file, "./Env/HeightMap.dat", "rb");
+    if (file == nullptr)
+        return 0;
+
+    const bool loaded = std::fseek(file, 0, SEEK_END) == 0 &&
+        std::ftell(file) == static_cast<long>(SharedHeightMapSize) &&
+        std::fseek(file, 0, SEEK_SET) == 0 &&
+        std::fread(sharedHeightMap.data(), 1, sharedHeightMap.size(), file) ==
+        sharedHeightMap.size();
+    std::fclose(file);
+    sharedHeightMapLoaded = loaded;
+    return loaded ? 1 : 0;
+}
+
+/** Copies the shared server height map into the local window, then applies
+ * attribute-map bit 2. Out-of-world cells are blocked. The caller supplies
+ * a valid size and the g_HeightWidth stride. */
 void BASE_ApplyAttribute(char* pHeight, int size)
 {
+    if (sharedHeightMapLoaded && pHeight != nullptr)
+    {
+        for (int localY = 0; localY < size; ++localY)
+        {
+            char* row = pHeight + localY * g_HeightWidth;
+            const int worldY = g_HeightPosY + localY;
+            for (int localX = 0; localX < size; ++localX)
+            {
+                const int worldX = g_HeightPosX + localX;
+                row[localX] = worldX >= 0 && worldX < SharedHeightMapWidth &&
+                    worldY >= 0 && worldY < SharedHeightMapWidth
+                    ? sharedHeightMap[worldY * SharedHeightMapWidth + worldX]
+                    : 127;
+            }
+        }
+    }
+
     int endx = size + g_HeightPosX;
     int endy = size + g_HeightPosY;
 
@@ -1250,8 +1296,7 @@ int IsClearString2(char* str, int nTarget)
 
 int BASE_InitializeServerList()
 {
-	FILE* fpBin = nullptr;
-	fopen_s(&fpBin, "./serverlist.bin", "rb");
+	FILE* fpBin = WYD748_OpenServerListAsset("./serverlist.local.bin", "./serverlist.bin");
 	const bool loaded = WYD748_ReadServerList(fpBin, g_pServerList);
 	if (fpBin)
 		fclose(fpBin);
@@ -2753,7 +2798,7 @@ int BASE_GetMobAbility(STRUCT_MOB* mob, char Type)
         if (i >= 1 && i <= 5)
             nUnique[i] = g_pItemList[mob->Equip[i].sIndex].nUnique;
 
-        if ((Type == 2 && i == 6) || (Type == 60 && i == 7))//alterado
+        if ((Type == 2 && i == 6) || (Type == 60 && i == 7)) // changed
             continue;
 
         if (i == 7 && Type == 2)

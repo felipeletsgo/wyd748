@@ -4,6 +4,7 @@
 #include "../../application/CCModePolicy.h"
 #include "../../application/SkillCooldownPolicy.h"
 #include "../../ui/ObservedAffectProjection.h"
+#include "../../ui/ResourceBarProjection.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "dsutil.h"
@@ -18,6 +19,7 @@
 #include "MrItemMix.h"
 #include "TMGround.h"
 #include "TMHuman.h"
+#include "../../game/entities/DeathMotionPolicy.h"
 #include "../../game/entities/AirMoveMotion.h"
 #include "TMObjectContainer.h"
 #include "TMCamera.h"
@@ -791,11 +793,11 @@ void TMFieldScene::UpdateCompatScoreUI()
 	if (pMobData->CurrentScore.CurMP > pMobData->CurrentScore.MaxMP)
 		pMobData->CurrentScore.CurMP = pMobData->CurrentScore.MaxMP;
 
-	if (m_pHPBar)
-	{
-		m_pHPBar->SetMaxProgress(pMobData->CurrentScore.MaxHP);
-		m_pHPBar->SetCurrentProgress(pMobData->CurrentScore.CurHP);
-	}
+	resource_ui::ProjectNativeHpVisual(m_pHPBar,
+		pMobData->CurrentScore.CurHP, pMobData->CurrentScore.MaxHP);
+	resource_ui::ProjectNativeHpVisual(
+		static_cast<SProgressBar*>(m_pControlContainer->FindControl(TMP_HP_PROGRESS_TR)),
+		pMobData->CurrentScore.CurHP, pMobData->CurrentScore.MaxHP);
 	if (m_pMPBar)
 	{
 		m_pMPBar->SetMaxProgress(pMobData->CurrentScore.MaxMP);
@@ -1430,6 +1432,21 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 	}
 	if (!m_pMyHuman || !m_pGround)
 		return 0;
+	if (dwFlags == WM_LBUTTONDOWN && m_pMessageBox)
+	{
+		POINT position{};
+		position.x = static_cast<int>(m_pMyHuman->m_vecPosition.x);
+		position.y = static_cast<int>(m_pMyHuman->m_vecPosition.y);
+		if (death_motion::ShouldOpenRespawnPrompt(
+			g_pObjectManager->m_stMobData.CurrentScore.CurHP, m_pMyHuman->m_cDie == 1,
+			true, m_pMyHuman->m_sFamCount != 0, m_pMyHuman->IsInTown() != 0,
+			PtInRect(&rectTownInCastle, position) == 1, m_pMessageBox->IsVisible() != 0))
+		{
+			m_pMessageBox->SetMessage(g_pMessageStringTable[27], 11u, 0);
+			m_pMessageBox->SetVisible(1);
+			return 1;
+		}
+	}
 	if (dwFlags == 512)
 	{
 		MouseMove(nX, nY);
@@ -9896,7 +9913,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	// The compatibility scene has no source-tree HUD graph.  The base scene
 	// still advances terrain streaming, camera and child objects safely; the
 	// full gameplay HUD tick is skipped because it assumes controls absent in
-	// the 7.48 FieldScene2.bin and was the remaining post-login crash path.
+		// the 7.48 FieldScene2.bin and was the remaining post-login crash path.
 	if (m_bCompatFieldScene)
 	{
 		if (!g_pTimerManager)
@@ -9916,6 +9933,24 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		// source implementation is the same guarded 7.48 air-move state machine;
 		// omitting it leaves a completed teleport transition permanently pending.
 		AirMove_Main(dwServerTime);
+		// The mesh may reject the death clip, so its completion callback cannot be
+		// the only way to open the native respawn prompt in the compact scene.
+		if (m_pMyHuman && m_pMessageBox && g_pObjectManager)
+		{
+			POINT position{};
+			position.x = static_cast<int>(m_pMyHuman->m_vecPosition.x);
+			position.y = static_cast<int>(m_pMyHuman->m_vecPosition.y);
+			if (death_motion::ShouldOfferTimedRespawnPrompt(m_dwLastDeadTime,
+				dwServerTime, g_pObjectManager->m_stMobData.CurrentScore.CurHP,
+				m_pMyHuman->m_cDie == 1, m_pMyHuman->m_sFamCount != 0,
+				m_pMyHuman->IsInTown() != 0,
+				PtInRect(&rectTownInCastle, position) == 1,
+				m_pMessageBox->IsVisible() != 0))
+			{
+				m_pMessageBox->SetMessage(g_pMessageStringTable[27], 11u, 0);
+				m_pMessageBox->SetVisible(1);
+			}
+		}
 		// The compact lifecycle must also advance the stock affect row.  Returning
 		// before this call left every 0x3B9 duration entry permanently invisible,
 		// even though InitializeCompatFieldScene created the native 7.48 icons.
@@ -25084,7 +25119,8 @@ int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)
 
 			char szTime[128]{};
 
-			sprintf(szTime,	"[%02d:%02d:%02d] Killer[%s] ",	sysTime.wHour, sysTime.wMinute,	sysTime.wSecond, pAttacker->m_szName);
+			const char* killerName = pAttacker ? pAttacker->m_szName : "Unknown";
+			sprintf(szTime,	"[%02d:%02d:%02d] Killer[%s] ",	sysTime.wHour, sysTime.wMinute,	sysTime.wSecond, killerName);
 
 			m_pHelpList[3]->AddItem(new SListBoxItem(szTime, 0xFFFFFFFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 

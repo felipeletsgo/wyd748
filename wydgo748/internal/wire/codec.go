@@ -448,6 +448,19 @@ func ActionStop(id, x, y uint16) []byte {
 	return b
 }
 
+// ActionRouteCorrection is a paired-client extension. Effect 8 corrects only
+// the owner's rejected route; unlike ActionStop it must not trigger a warp,
+// revival, or teleport effects in the source client.
+func ActionRouteCorrection(id, x, y uint16) []byte {
+	b := Build(OpAction, id, 52)
+	putU16(b, 12, x)
+	putU16(b, 14, y)
+	putU32(b, 20, 8)
+	putU16(b, 24, x)
+	putU16(b, 26, y)
+	return b
+}
+
 // PlayerMove produz o Action 7.48 que anima outro jogador. A rota so pode vir
 // depois de validada pelo servidor: o client remoto usa esses passos para
 // reproduzir curvas e desniveis sem recalcular um caminho diferente.

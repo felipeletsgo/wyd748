@@ -3263,6 +3263,7 @@ char* strfmt(const char* str, ...);
 void BASE_InitModuleDir();
 void BASE_InitializeHitRate();
 int BASE_InitializeAttribute();
+int BASE_InitializeHeightMap();
 void BASE_ApplyAttribute(char* pHeight, int size);
 int BASE_ReadItemList();
 int BASE_ReadSkillBin();

@@ -153,6 +153,7 @@
     <ClInclude Include="internal\wire\AttackFrameContract.h" />
     <ClInclude Include="internal\wire\AirMoveContract.h" />
     <ClInclude Include="internal\game\entities\AirMoveMotion.h" />
+    <ClInclude Include="internal\game\entities\DeathMotionPolicy.h" />
     <ClInclude Include="internal\wire\InventoryTransactionContract.h" />
     <ClInclude Include="internal\wire\CargoGoldTransferContract.h" />
     <ClInclude Include="internal\wire\AutoTradeContract.h" />

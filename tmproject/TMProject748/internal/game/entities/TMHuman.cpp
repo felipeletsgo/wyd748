@@ -13,6 +13,7 @@
 #include "TMShade.h"
 #include "TMHuman.h"
 #include "AirMoveMotion.h"
+#include "DeathMotionPolicy.h"
 #include "../../render/mesh/CostumeSelection.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "../../ui/ObservedAffectProjection.h"
@@ -2415,8 +2416,7 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
             m_bSliding = 0;
         }
     }
-    else if ((m_eMotion != ECHAR_MOTION::ECMOTION_WALK || m_eMotion != ECHAR_MOTION::ECMOTION_RUN || ((int)m_eMotion < 4 && (int)m_eMotion > 9))
-        && !m_bSliding)
+    else if (death_motion::MayEnterTravelAnimation(m_stScore.CurHP, m_cDie == 1, m_bSliding != 0))
     {
         int nWalk = 2;
         if (m_nSkinMeshType == 31 && m_fScale > 0.69999999f || m_cMount == 1 && m_nMountSkinMeshType == 31 && m_fMountScale > 0.69999999f)
@@ -3486,7 +3486,9 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
             LOG_WRITELOG("\nError Position [X:%d Y:%d] MSG Type : 0x%X\n", pAction->TargetX, pAction->TargetY, pAction->Header.Type);
         }
 
-        if (pAction->Effect == 0 || pAction->Effect == 2)
+        if (IsRouteCorrectionAction(pStandard->Type, pAction->Effect))
+            return OnPacketRouteCorrection(pAction);
+        else if (pAction->Effect == 0 || pAction->Effect == 2)
             return OnPacketMove(pAction);
         else if (pAction->Effect == 7)
             return OnPacketChaosCube(pAction);
@@ -3971,7 +3973,11 @@ int TMHuman::OnPacketFireWork(MSG_Motion* pStd)
 			g_pCurrentScene->m_pEffectContainer->AddChild(pFireWork);
 		return 1;
 	}
-	else if (pStd->Parm == 1)
+	// A delayed motion packet must not replace the death animation. Parm 2 is
+	// the explicit revival motion and is allowed to clear the death state.
+	if ((m_cDie == 1 || m_stScore.CurHP <= 0) && pStd->Parm != 2)
+		return 1;
+	if (pStd->Parm == 1)
 	{
 		if (m_nClass == 36 || m_nClass == 37)
 			return 1;
@@ -4042,6 +4048,40 @@ int TMHuman::OnPacketPremiumFireWork(MSG_PremiumFirework* pFirework)
 	pEffect->SetCustomFireWork(pFirework->Bitmap);
 	g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
 	return 1;
+}
+
+int TMHuman::OnPacketRouteCorrection(MSG_Action* pAction)
+{
+    if (g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_FIELD ||
+        g_pCurrentScene->m_pMyHuman != this || m_cDie == 1 || m_stScore.CurHP <= 0 ||
+        pAction->TargetX < 1 || pAction->TargetX > 5000 ||
+        pAction->TargetY < 1 || pAction->TargetY > 5000)
+        return 1;
+
+    auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+    const TMVector2 position{static_cast<float>(pAction->TargetX) + 0.5f,
+                             static_cast<float>(pAction->TargetY) + 0.5f};
+    InitPosition(position.x, static_cast<float>(pScene->GroundGetMask(position)) * 0.1f, position.y);
+    m_nMaxRouteIndex = 0;
+    m_nLastRouteIndex = 0;
+    m_fProgressRate = 0.0f;
+    m_bMoveing = 0;
+    m_cOnlyMove = 0;
+    m_bSliding = 0;
+    memset(m_cRouteBuffer, 0, sizeof(m_cRouteBuffer));
+    m_vecStartPos.x = pAction->TargetX;
+    m_vecStartPos.y = pAction->TargetY;
+    m_pMoveTargetHuman = nullptr;
+    m_pMoveSkillTargetHuman = nullptr;
+    pScene->m_vecMyNext.x = pAction->TargetX;
+    pScene->m_vecMyNext.y = pAction->TargetY;
+    pScene->m_stMoveStop.LastX = pAction->TargetX;
+    pScene->m_stMoveStop.LastY = pAction->TargetY;
+    pScene->m_stMoveStop.NextX = pAction->TargetX;
+    pScene->m_stMoveStop.NextY = pAction->TargetY;
+    m_dwStartMoveTime = g_pTimerManager->GetServerTime();
+    SetAnimation(ECHAR_MOTION::ECMOTION_STAND01, 0);
+    return 1;
 }
 
 int TMHuman::OnPacketRemoveMob(MSG_STANDARD* pStd)
@@ -4955,7 +4995,14 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         pFScene->m_nReqHP = maxHp;
         pFScene->m_nReqMP = maxMp;
         memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &m_stScore, sizeof(m_stScore));
-        resource_ui::Project(pFScene->m_pHPBar, m_stScore.CurHP, m_stScore.MaxHP);
+        if (pFScene->m_bCompatFieldScene)
+            resource_ui::ProjectNativeHpVisual(pFScene->m_pHPBar, m_stScore.CurHP, m_stScore.MaxHP);
+        else
+            resource_ui::Project(pFScene->m_pHPBar, m_stScore.CurHP, m_stScore.MaxHP);
+        if (pFScene->m_bCompatFieldScene && pFScene->m_pControlContainer)
+            resource_ui::ProjectNativeHpVisual(
+                static_cast<SProgressBar*>(pFScene->m_pControlContainer->FindControl(TMP_HP_PROGRESS_TR)),
+                m_stScore.CurHP, m_stScore.MaxHP);
         resource_ui::Project(pFScene->m_pMPBar, m_stScore.CurMP, m_stScore.MaxMP);
 
         if (m_pMountHPBar && pFScene->m_pMHPBar && pFScene->m_pMHPBarT)
@@ -5011,7 +5058,11 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
             pFScene->m_pMaxMHPText->SetText(szMHP, 0);
         }
     }
-    if (m_stScore.CurHP > 0 && (m_cDie == 1 || m_eMotion == ECHAR_MOTION::ECMOTION_DEAD))
+    // A vitals snapshot can precede the kill event. Zero HP must still
+    // transition into death rather than leave the character running.
+    if (death_motion::ShouldEnterDeath(m_stScore.CurHP, m_cDie == 1))
+        Die();
+    else if (m_stScore.CurHP > 0 && (m_cDie == 1 || m_eMotion == ECHAR_MOTION::ECMOTION_DEAD))
     {
         m_cDie = 0;
         SetAnimation(ECHAR_MOTION::ECMOTION_LEVELUP, 0);
@@ -5113,7 +5164,7 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
     return 1;
 }
 
-int TMHuman::OnPacketMessageChat(MSG_STANDARD* pStd)//mudar aqui pacote de chat recebido por outros players
+int TMHuman::OnPacketMessageChat(MSG_STANDARD* pStd)
 {
     auto pMsgChat = reinterpret_cast<MSG_MessageChat*>(pStd);
 
@@ -5274,7 +5325,7 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
         }
         sprintf_s(szMsg, "[%s]> %s", pMsg->MobName, &pMsg->String[nIndex]);
     }
-    else if (pMsg->String[0] == '!')//alterado
+    else if (pMsg->String[0] == '!')
     {
         if (pScene->m_pChatWhisper && !pScene->m_pChatWhisper->m_bSelected)
             bDrawText = 0;
@@ -7938,7 +7989,7 @@ void TMHuman::LabelPosition()
                         m_pTitleProgressBar->SetVisible(1);
                         m_pTitleNameLabel->SetVisible(1);
                     }
-                    else //alterado barra de hp no jogo
+                    else
                     {
                         if (m_cMount)
                             m_pProgressBar->SetRealPos((float)vPosInX - BASE_ScreenResize(35.0f), 
@@ -8043,7 +8094,7 @@ void TMHuman::LabelPosition()
                             }
                             m_pProgressBar->SetVisible(1);
                             
-                            if (g_pCurrentScene->m_pMyHuman != this && g_pCurrentScene->m_pMouseOverHuman == this)//mostrar barra mp 
+                            if (g_pCurrentScene->m_pMyHuman != this && g_pCurrentScene->m_pMouseOverHuman == this)
                             {
                                 if (m_nClass == 56 && !m_stLookInfo.FaceMesh)
                                     m_pProgressBar->SetVisible(0);
@@ -8635,7 +8686,7 @@ void TMHuman::HideLabel()
     m_pTitleNameLabel->SetVisible(0);
 }
 
-void TMHuman::RenderEffect()//aqui
+void TMHuman::RenderEffect()
 {
     if (m_dwDelayDel)
         return;
@@ -11997,14 +12048,28 @@ void TMHuman::Die()
     if (m_cDie == 1)
         return;
 
-    int nStartRouteIndex = m_nLastRouteIndex;
-    if (m_fProgressRate > 0.5f)
-        nStartRouteIndex = m_nLastRouteIndex + 1;
-
-    for (int i = nStartRouteIndex + 1; i < 48; ++i)
-        m_vecRouteBuffer[i] = m_vecRouteBuffer[nStartRouteIndex];
+    // Death freezes the current position. Leaving an unfinished route active
+    // lets FrameMove advance it and can restore movement over the death clip.
+    for (auto& routePoint : m_vecRouteBuffer)
+        routePoint = m_vecPosition;
+    m_nMaxRouteIndex = 0;
+    m_nLastRouteIndex = 0;
+    m_fProgressRate = 0.0f;
+    m_bMoveing = 0;
+    m_cOnlyMove = 0;
+    m_bSliding = 0;
+    m_vecStartPos.x = static_cast<int>(m_vecPosition.x);
+    m_vecStartPos.y = static_cast<int>(m_vecPosition.y);
+    m_pMoveTargetHuman = nullptr;
+    m_pMoveSkillTargetHuman = nullptr;
+    m_dwStartMoveTime = g_pTimerManager->GetServerTime();
 
     SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);
+    // Some mesh/animation combinations return early from SetAnimation. The
+    // one-shot completion path also owns the respawn prompt, so never retain
+    // the prior running animation's loop state or start time.
+    m_nLoop = 0;
+    m_dwStartAnimationTime = g_pTimerManager->GetServerTime();
 
     if (m_nClass == 44)
     {
@@ -17658,7 +17723,7 @@ int TMHuman::SetHumanCostume()
                     m_nClass = 4;
 
                     break;
-                case 4402:// aqui
+                case 4402:
                     nCos = 154;
                     m_nSkinMeshType = 1;
                     m_nClass = 4;

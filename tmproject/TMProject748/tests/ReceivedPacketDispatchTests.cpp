@@ -88,6 +88,12 @@ int RunReceivedPacketDispatchTests(int& checks)
         }
     };
 
+    check(IsRouteCorrectionAction(MSG_Action_Opcode, kActionRouteCorrectionEffect),
+          "paired route correction is recognized on the action opcode");
+    check(!IsRouteCorrectionAction(MSG_Action_Stop_Opcode, kActionRouteCorrectionEffect) &&
+          !IsRouteCorrectionAction(MSG_Action_Opcode, 1),
+          "route correction cannot alias native stop or teleport effects");
+
     // Todos os envelopes emitidos durante login/selecao passam pela mesma
     // fronteira global antes dos casts grandes das cenas.
     struct SelectionEnvelope { unsigned int opcode; std::size_t size; };
