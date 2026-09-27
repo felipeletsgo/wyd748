@@ -296,6 +296,7 @@ public:
 	void ClearMissionPannel();
 
 	void GameAuto();
+	bool OfferRespawnPrompt(bool playerAction);
 
 private:
 	// Builds the world and binds the native 7.48 FieldScene2 resource without
@@ -483,6 +484,7 @@ public:
 	char m_szSummoner[256];
 	char m_szSummoner2[256];
 	unsigned int m_dwLastDeadTime;
+	bool m_bRespawnPromptOffered = false;
 	char m_cResurrect;
 	short m_sDay;
 	unsigned int m_dwLastGuildNameCheckTime;

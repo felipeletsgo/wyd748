@@ -1,10 +1,20 @@
 #include "../internal/render/mesh/EffectVertexColor.h"
+#include "../internal/render/mesh/DyeTextureStages.h"
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
 
 namespace
 {
 struct Vertex { float position[3]; unsigned int diffuse; float uv[2]; };
+struct DyeDevice
+{
+    DWORD stages[2][33]{};
+    void SetTextureStageState(DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value)
+    {
+        stages[stage][state] = value;
+    }
+};
 struct Descriptor { unsigned int Size = 0; unsigned int FVF = 0; };
 struct Buffer
 {
@@ -35,6 +45,32 @@ int RunEffectVertexColorTests(int& checks)
         ++checks;
         if (!ok) { ++failures; std::printf("FAIL EffectVertexColor: %s\n", name); }
     };
+    for (short legend = 116; legend <= 125; ++legend)
+    {
+        for (bool legacy : {false, true})
+        {
+            for (char alpha : {'A', 'C'})
+            {
+                DyeDevice device;
+                device.stages[0][D3DTSS_COLORARG2] = D3DTA_TFACTOR;
+                device.stages[1][D3DTSS_TEXCOORDINDEX] = 0;
+                dye_texture_stages::Apply(device, legend, alpha, legacy);
+                check(device.stages[0][D3DTSS_COLORARG2] == D3DTA_CURRENT,
+                    "dye does not inherit warm texture factor");
+                check(device.stages[1][D3DTSS_TEXCOORDINDEX] == 1,
+                    "dye uses animated second UV channel");
+                check(device.stages[0][D3DTSS_COLOROP] ==
+                    static_cast<DWORD>(legacy ? D3DTOP_MODULATE : D3DTOP_MULTIPLYADD),
+                    "native dye base operation");
+                check(device.stages[1][D3DTSS_COLOROP] ==
+                    static_cast<DWORD>(legacy ? D3DTOP_ADDSIGNED : (legend == 120 ? D3DTOP_MODULATE : D3DTOP_ADD)),
+                    "only black dye multiplies the modern color layer");
+                check(device.stages[1][D3DTSS_ALPHAOP] ==
+                    (alpha == 'C' && !legacy ? 0u : D3DTOP_DISABLE),
+                    "native opaque and alpha material handling");
+            }
+        }
+    }
     check(!Paint(nullptr), "null vertex buffer from crash is rejected");
     Buffer valid;
     Buffer original;

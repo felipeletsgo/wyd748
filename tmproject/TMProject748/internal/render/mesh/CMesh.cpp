@@ -7,6 +7,7 @@
 #include "TMHuman.h"
 #include "TMCamera.h"
 #include "CFrame.h"
+#include "DyeTextureStages.h"
 
 CMesh::CMesh(TMSkinMesh* pParentSkin)
 {
@@ -368,48 +369,14 @@ int CMesh::RenderMesh(char cAlpha)
             if (m_nTextureIndex >= 0 || m_bSheild)
             {
                 g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_ALPHATESTENABLE, 0);
-                g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_TEXTUREFACTOR, 0xFFFF8C78);
 
                 if (m_sMultiType > 12)
                     m_sMultiType = 12;
 
                 g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(nBaseIndex + m_sMultiType - 1, 10000));
 
-                if (g_pDevice->m_bVoodoo || g_pDevice->m_bIntel || g_pDevice->m_bG400)
-                {
-                    g_pDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, 2u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_ALPHAOP, 1u);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, 2u);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_COLOROP, 4u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_COLOROP, 7u);
-                }
-                else if (m_bHead == 1 || m_bSheild == 1)
-                {
-                    g_pDevice->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_TEXCOORDINDEX, 0);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_COLOROP, 2u);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, 2u);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, 2u);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, 2u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_COLOROP, 8u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_COLORARG1, 2u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_COLORARG2, 1u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_ALPHAOP, 1u);
-                }
-                else
-                {
-                    g_pDevice->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_TEXCOORDINDEX, 0);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_COLOROP, 0x18u);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_COLORARG1, 2u);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_COLORARG2, 3u);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, 2u);
-                    g_pDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, 2u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_COLOROP, 4u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_COLORARG1, 1u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_COLORARG2, 2u);
-                    g_pDevice->SetTextureStageState(1u, D3DTSS_ALPHAOP, 1u);
-                }
+                dye_texture_stages::Apply(*g_pDevice, m_sLegendType, cAlpha,
+                    g_pDevice->m_bVoodoo || g_pDevice->m_bIntel || g_pDevice->m_bG400);
             }
             else
             {

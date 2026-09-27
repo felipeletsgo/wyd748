@@ -2,6 +2,13 @@
 
 namespace death_motion {
 
+// Automatic offers are one-shot per death. Dismissing the dialog allows only
+// a new player action to reopen it; a recall channel suppresses both sources.
+constexpr bool MayOfferRespawnPrompt(bool alreadyOffered, bool playerAction, bool channeling)
+{
+    return !channeling && (playerAction || !alreadyOffered);
+}
+
 // An unfinished route must not replace a death animation with travel motion.
 constexpr bool MayEnterTravelAnimation(int currentHp, bool dead, bool sliding)
 {

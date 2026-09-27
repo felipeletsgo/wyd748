@@ -2724,11 +2724,7 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
                         if (g_pCurrentScene->m_pMyHuman == this)
                         {
                             TMFieldScene* pFScene = (TMFieldScene*)g_pCurrentScene;
-                            if (!IsInTown())
-                            {
-                                pFScene->m_pMessageBox->SetMessage(g_pMessageStringTable[27], 11u, 0);
-                                pFScene->m_pMessageBox->SetVisible(1);
-                            }
+                            pFScene->OfferRespawnPrompt(false);
                         }
                         else
                         {
@@ -6094,7 +6090,7 @@ void TMHuman::UpdateScore(int nGuildLevel)
             if (pMaxHPText)
             {
                 char _Buffer[32] = { 0 };
-                sprintf_s(_Buffer, "/ %d", m_stScore.MaxHP);
+                sprintf_s(_Buffer, resource_ui::MaximumTextFormat(pScene->m_bCompatFieldScene), m_stScore.MaxHP);
                 pMaxHPText->SetText(_Buffer, 0);
             }
             if (pCurrentMPText)
@@ -6106,7 +6102,7 @@ void TMHuman::UpdateScore(int nGuildLevel)
             if (pMaxMPText)
             {
                 char szMP[32] = { 0 };
-                sprintf_s(szMP, "/ %d", m_stScore.MaxMP);
+                sprintf_s(szMP, resource_ui::MaximumTextFormat(pScene->m_bCompatFieldScene), m_stScore.MaxMP);
                 pMaxMPText->SetText(szMP, 0);
             }
             if (pHPBar)

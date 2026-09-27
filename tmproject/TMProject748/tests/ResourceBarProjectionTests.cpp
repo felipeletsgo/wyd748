@@ -107,5 +107,16 @@ int RunResourceBarProjectionTests(int& checks)
     check(!death_motion::ShouldOfferTimedRespawnPrompt(0, 4000, 0, true,
         false, false, false, false),
         "timed respawn prompt requires a recorded death time");
+    check(death_motion::MayOfferRespawnPrompt(false, false, false),
+        "first death animation or timeout may offer the prompt");
+    check(!death_motion::MayOfferRespawnPrompt(true, false, false),
+        "dismissed prompt stays hidden across later frames and animation completion");
+    check(death_motion::MayOfferRespawnPrompt(true, true, false),
+        "a new player action can reopen a dismissed prompt");
+    check(!death_motion::MayOfferRespawnPrompt(true, true, true) &&
+        !death_motion::MayOfferRespawnPrompt(false, false, true),
+        "recall channel suppresses both automatic and player-action prompts");
+    check(death_motion::MayOfferRespawnPrompt(false, false, false),
+        "resetting the offer after revival permits the next death prompt");
     return failures;
 }

@@ -1432,21 +1432,8 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 	}
 	if (!m_pMyHuman || !m_pGround)
 		return 0;
-	if (dwFlags == WM_LBUTTONDOWN && m_pMessageBox)
-	{
-		POINT position{};
-		position.x = static_cast<int>(m_pMyHuman->m_vecPosition.x);
-		position.y = static_cast<int>(m_pMyHuman->m_vecPosition.y);
-		if (death_motion::ShouldOpenRespawnPrompt(
-			g_pObjectManager->m_stMobData.CurrentScore.CurHP, m_pMyHuman->m_cDie == 1,
-			true, m_pMyHuman->m_sFamCount != 0, m_pMyHuman->IsInTown() != 0,
-			PtInRect(&rectTownInCastle, position) == 1, m_pMessageBox->IsVisible() != 0))
-		{
-			m_pMessageBox->SetMessage(g_pMessageStringTable[27], 11u, 0);
-			m_pMessageBox->SetVisible(1);
-			return 1;
-		}
-	}
+	if ((dwFlags == WM_LBUTTONDOWN || dwFlags == WM_RBUTTONDOWN) && OfferRespawnPrompt(true))
+		return 1;
 	if (dwFlags == 512)
 	{
 		MouseMove(nX, nY);
@@ -9285,21 +9272,8 @@ int TMFieldScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 		nX >= static_cast<int>(g_pDevice->m_dwScreenWidth - g_pDevice->m_nWidthShift) ||
 		nY >= static_cast<int>(g_pDevice->m_dwScreenHeight - g_pDevice->m_nHeightShift))
 	{
-		if ((g_pObjectManager->m_stMobData.CurrentScore.CurHP <= 0 || m_pMyHuman->m_cDie == 1)
-			&& dwFlags == 513
-			&& !m_pMyHuman->m_sFamCount)
-		{
-			POINT pt{};
-			pt.x = static_cast<int>(m_pMyHuman->m_vecPosition.x);
-			pt.y = static_cast<int>(m_pMyHuman->m_vecPosition.y);
-
-			if (!m_pMessageBox->IsVisible() && (!m_pMyHuman->IsInTown() || PtInRect(&rectTownInCastle, pt) == 1))
-			{
-				m_pMessageBox->SetMessage(g_pMessageStringTable[27], 11u, 0);
-				m_pMessageBox->SetVisible(1);
-				return 1;
-			}
-		}
+		if ((dwFlags == WM_LBUTTONDOWN || dwFlags == WM_RBUTTONDOWN) && OfferRespawnPrompt(true))
+			return 1;
 		if (m_pMyHuman->m_eMotion == ECHAR_MOTION::ECMOTION_DEAD)
 			return 1;
 
@@ -9908,8 +9882,29 @@ void TMFieldScene::UpdateSkillCooldownUI(unsigned int now)
 	}
 }
 
+bool TMFieldScene::OfferRespawnPrompt(bool playerAction)
+{
+	if (!m_pMyHuman || !m_pMessageBox || !g_pObjectManager ||
+		!death_motion::MayOfferRespawnPrompt(m_bRespawnPromptOffered, playerAction,
+			m_dwLastTown != 0 || m_dwLastResurrect != 0))
+		return false;
+	POINT position{static_cast<LONG>(m_pMyHuman->m_vecPosition.x),
+		static_cast<LONG>(m_pMyHuman->m_vecPosition.y)};
+	if (!death_motion::CanOfferRespawnPrompt(g_pObjectManager->m_stMobData.CurrentScore.CurHP,
+		m_pMyHuman->m_cDie == 1, m_pMyHuman->m_sFamCount != 0,
+		m_pMyHuman->IsInTown() != 0, PtInRect(&rectTownInCastle, position) == 1,
+		m_pMessageBox->IsVisible() != 0))
+		return false;
+	m_bRespawnPromptOffered = true;
+	m_pMessageBox->SetMessage(g_pMessageStringTable[27], 11u, 0);
+	m_pMessageBox->SetVisible(1);
+	return true;
+}
+
 int TMFieldScene::FrameMove(unsigned int dwServerTime)
 {
+	if (g_pObjectManager && g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
+		m_bRespawnPromptOffered = false;
 	// The compatibility scene has no source-tree HUD graph.  The base scene
 	// still advances terrain streaming, camera and child objects safely; the
 	// full gameplay HUD tick is skipped because it assumes controls absent in
@@ -9947,8 +9942,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 				PtInRect(&rectTownInCastle, position) == 1,
 				m_pMessageBox->IsVisible() != 0))
 			{
-				m_pMessageBox->SetMessage(g_pMessageStringTable[27], 11u, 0);
-				m_pMessageBox->SetVisible(1);
+				OfferRespawnPrompt(false);
 			}
 		}
 		// The compact lifecycle must also advance the stock affect row.  Returning
@@ -21237,7 +21231,10 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	break;
 	case 11:
 	{
+		m_pMessageBox->SetVisible(0);
+		m_bRespawnPromptOffered = true;
 		m_dwLastTown = g_pTimerManager->GetServerTime();
+		m_dwLastRemain = ~0u;
 		m_cLastTown = 1;
 		m_pMyHuman->m_bCNFMobKill = 0;
 
