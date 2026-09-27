@@ -93,6 +93,7 @@ CPSock::CPSock()
 
 CPSock::~CPSock()
 {
+	CloseSocket();
 	if (pSendBuffer)
 	{
 		free(pSendBuffer);
@@ -112,57 +113,6 @@ bool CPSock::WSAInitialize()
 	return WSAStartup(MAKEWORD(1, 1), &WSAData) == 0;
 }
 
-unsigned int CPSock::StartListen(HWND hWnd, int ip, int port, int WSA)
-{
-	sockaddr_in local_sin;
-	memset((char*)&local_sin, 0, sizeof(local_sin));
-
-	char Temp[256];
-	memset(Temp, 0, sizeof(Temp));
-
-	SOCKET tSock = socket(2, 1, 0);
-	
-	if (tSock == -1)
-	{
-		MessageBoxA(hWnd, "Initialize socket fail", "ERROR", 0);
-		return 0;
-	}
-
-	gethostname(Temp, 256);
-	local_sin.sin_family = AF_INET;
-	local_sin.sin_addr.S_un.S_addr = ip;
-	local_sin.sin_port = htons(port);
-
-	if (bind(tSock, (const struct sockaddr*) & local_sin, 16) == -1)
-	{
-		MessageBoxA(hWnd, "Binding fail", "ERROR", 0);
-		closesocket(tSock);
-		return 0;
-	}
-	else if (listen(tSock, 8) >= 0)
-	{
-		if (WSAAsyncSelect(tSock, hWnd, WSA, 8) <= 0)
-		{
-			Sock = tSock;
-			return tSock;
-		}
-		else
-		{
-			MessageBoxA(hWnd, "WSAAsyncSelect fail", "ERROR", 0);
-			closesocket(tSock);
-			return 0;
-		}
-	}
-	else
-	{
-		MessageBoxA(hWnd, "Listen fail", "ERROR", 0);
-		closesocket(tSock);
-		return 0;
-	}
-
-	return 1;
-}
-
 unsigned int CPSock::ConnectServer(char* HostAddr, int Port, int ip, int WSA)
 {
 	sockaddr_in InAddr;
@@ -170,13 +120,7 @@ unsigned int CPSock::ConnectServer(char* HostAddr, int Port, int ip, int WSA)
 	sockaddr_in local_sin;
 	memset((char*)& local_sin, 0, sizeof(local_sin));
 
-	nSendPosition = 0;
-	nSentPosition = 0;
-	nRecvPosition = 0;
-	nProcPosition = 0;
-
-	if (Sock)
-		CloseSocket();
+	CloseSocket();
 
 	InAddr.sin_addr.S_un.S_addr = inet_addr(HostAddr);
 	InAddr.sin_family = AF_INET;
@@ -207,13 +151,10 @@ unsigned int CPSock::ConnectServer(char* HostAddr, int Port, int ip, int WSA)
 		}
 		else if (connect(tSock, (const struct sockaddr*)&InAddr, 16) >= 0)
 		{
-			if (WSAAsyncSelect(tSock, hWndMain, WSA, 33) <= 0)
+			if (WSAAsyncSelect(tSock, hWndMain, WSA, FD_READ | FD_WRITE | FD_CLOSE) == 0)
 			{
 				Sock = tSock;
-				unsigned int InitCode = INIT_CODE;
-				send(tSock, (const char*)&InitCode, 4, 0);
-				Init = 1;
-				return tSock;
+				return SendHandshake() ? tSock : 0;
 			}
 			else
 			{
@@ -240,95 +181,42 @@ unsigned int CPSock::ConnectServer(char* HostAddr, int Port, int ip, int WSA)
 	return 1;
 }
 
-unsigned int CPSock::SingleConnect(char* HostAddr, int Port, int ip, int WSA)
+bool CPSock::SendHandshake()
 {
-	sockaddr_in InAddr;
-	memset((char*)&InAddr, 0, sizeof(InAddr));
-	sockaddr_in local_sin;
-	memset((char*)&local_sin, 0, sizeof(local_sin));
-
-	if (Sock)
+	// Only a freshly connected stream may begin a handshake. Its unsent
+	// bytes share the normal queue so the first encrypted frame follows them.
+	if (!Sock || Init || nSendPosition != 0 || nSentPosition != 0)
+		return false;
+	unsigned int code = INIT_CODE;
+	static_assert(sizeof(code) == 4, "The 7.48 handshake must contain four bytes");
+	if (!pSendBuffer || !AddMessage2(reinterpret_cast<char*>(&code), sizeof(code)) || !SendMessageA())
 	{
-		closesocket(Sock);
-		Sock = NULL;
+		CloseSocket();
+		return false;
 	}
-
-	InAddr.sin_addr.S_un.S_addr = inet_addr(HostAddr);
-	InAddr.sin_family = AF_INET;
-	InAddr.sin_port = htons(Port);
-	SOCKET tSock = socket(2, 1, 0);
-
-	if (tSock == -1)
-	{
-		MessageBoxA(0, "Initialize single socket fai", "ERROR", 0);
-		return 0;
-	}
-
-	local_sin.sin_family = AF_INET;
-	local_sin.sin_addr.S_un.S_addr = ip;
-	local_sin.sin_port = 0;
-
-	if (bind(tSock, (const struct sockaddr*)&local_sin, 16) != -1
-		|| (ConnectPort += 10,
-			local_sin.sin_port = htons(ConnectPort + 5000),
-			bind(tSock, (const struct sockaddr*)&local_sin, 16) != -1)
-		|| (ConnectPort += 10,
-			local_sin.sin_port = htons(ConnectPort + 5000),
-			bind(tSock, (const struct sockaddr*)&local_sin, 16) != -1))
-	{
-		if (tSock == -1)
-		{
-			return 0;
-		}
-		else if (connect(tSock, (const struct sockaddr*)&InAddr, 16) >= 0)
-		{
-			if (WSAAsyncSelect(tSock, hWndMain, WSA, 33) <= 0)
-			{
-				Sock = tSock;
-				unsigned int InitCode = INIT_CODE;
-				send(tSock, (const char*)& InitCode, 4, 0);
-				Init = 1;
-				return tSock;
-			}
-			else
-			{
-				closesocket(tSock);
-				Sock = 0;
-				return 0;
-			}
-		}
-		else
-		{
-			WSAGetLastError();
-			closesocket(tSock);
-			Sock = 0;
-			return 0;
-		}
-	}
-	else
-	{
-		MessageBoxA(0, "single Binding fail", "ERROR", 0);
-		closesocket(tSock);
-		return 0;
-	}
-
-	return 1;
+	Init = 1;
+	return true;
 }
 
 int CPSock::Receive()
 {
 	if (!Sock || !pRecvBuffer || !receive_buffer::HasValidWindow(
-		nRecvPosition, nRecvPosition, RECV_BUFFER_SIZE) || nRecvPosition >= RECV_BUFFER_SIZE)
+		nProcPosition, nRecvPosition, RECV_BUFFER_SIZE))
+		return 0;
+
+	// Reclaim consumed bytes while preserving an incomplete trailing frame.
+	RefreshRecvBuffer();
+	if (nRecvPosition >= RECV_BUFFER_SIZE)
 		return 0;
 
 	int Rest = RECV_BUFFER_SIZE - nRecvPosition;
 	int tReceiveSize = recv(Sock, &pRecvBuffer[nRecvPosition], Rest, 0);
-	// Zero significa fechamento ordenado pelo peer; nao ha bytes novos para
-	// processar e o dispatcher deve seguir o mesmo caminho de desconexao.
+	// Zero means orderly peer shutdown. A stale asynchronous notification may
+	// find no bytes available; that is not a disconnect.
+	if (tReceiveSize == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK)
+		return 1;
 	if (tReceiveSize <= 0)
 		return 0;
-	if (tReceiveSize == Rest)
-		return -1;
 
 	nRecvPosition += tReceiveSize;
 	return 1;
@@ -369,6 +257,19 @@ char* CPSock::ReadMessage(int* ErrorCode, int* ErrorType)
 		return 0;
 
 	unsigned short Size = *(unsigned short*)&pRecvBuffer[nProcPosition];
+	// Validate and wait for the entire frame before consuming a rolling key.
+	// TCP may deliver the same header across several receive notifications.
+	if (Size >= RECV_BUFFER_SIZE || Size < sizeof(MSG_STANDARD))
+	{
+		nRecvPosition = 0;
+		nProcPosition = 0;
+		*ErrorCode = 2;
+		*ErrorType = Size;
+		return 0;
+	}
+	if (Size > nRecvPosition - nProcPosition)
+		return 0;
+
 	unsigned char iKeyWord = pRecvBuffer[nProcPosition + 2];
 	unsigned char KeyWord = pKeyWord[iKeyWord * 2];
 	unsigned char CheckSum = pRecvBuffer[nProcPosition + 3];
@@ -397,23 +298,6 @@ char* CPSock::ReadMessage(int* ErrorCode, int* ErrorType)
 			*ErrorType = Size;
 			return 0;
 		}
-	}
-
-	// The socket layer owns framing validation.  Handlers must only receive a
-	// complete MSG_STANDARD envelope; opcode-specific validation stays above
-	// this boundary so the wire contract is not duplicated here.
-	if (Size >= RECV_BUFFER_SIZE || Size < sizeof(MSG_STANDARD))
-	{
-		nRecvPosition = 0;
-		nProcPosition = 0;
-		*ErrorCode = 2;
-		*ErrorType = Size;
-		return 0;
-	}
-
-	if (Size > nRecvPosition - nProcPosition)
-	{
-		return 0;
 	}
 
 	char* pMsg = &pRecvBuffer[nProcPosition];
@@ -452,6 +336,7 @@ char* CPSock::ReadMessage(int* ErrorCode, int* ErrorType)
 	{
 		*ErrorCode = 1;
 		*ErrorType = Size;
+		return nullptr;
 	}
 
 	return pMsg;
@@ -463,6 +348,11 @@ int CPSock::CloseSocket()
 	nSentPosition = 0;
 	nRecvPosition = 0;
 	nProcPosition = 0;
+	memset(SendQueue, 0, sizeof(SendQueue));
+	memset(RecvQueue, 0, sizeof(RecvQueue));
+	SendCount = 0;
+	RecvCount = 0;
+	ErrCount = 0;
 	Init = 0;
 	if (Sock)
 		closesocket(Sock);
@@ -478,7 +368,7 @@ int CPSock::AddMessage(char* pMsg, int Size)
 	{
 		if (SendCount < MAX_KEYWORD_QUEUE)
 		{
-			Keyword = static_cast<unsigned char>(SendQueue[SendCount++]) ^ 0xFF;
+			Keyword = static_cast<unsigned char>(SendQueue[SendCount]) ^ 0xFF;
 		}
 		else
 		{
@@ -491,11 +381,16 @@ int CPSock::AddMessage(char* pMsg, int Size)
 		}
 	}
 
-	return AddMessage(pMsg, Size, Keyword);
+	const int accepted = AddMessage(pMsg, Size, Keyword);
+	// A local rejection emits no frame and must not consume its rolling key.
+	// Enqueued bytes keep their key even when the immediate flush is partial.
+	if (accepted && SendQueue[0] && SendCount < MAX_KEYWORD_QUEUE)
+		++SendCount;
+	return accepted;
 }
 
-// Empresta pMsg gravavel; enquadra/cifra na fila propria e tenta o flush.
-// Falhas de limites sao rejeitadas antes de escrever cabecalho ou fila.
+// Borrows writable pMsg, frames/encrypts into the owned queue, and tries a flush.
+// Bounds failures are rejected before writing the header or appending a frame.
 int CPSock::AddMessage(char* pMsg, int Size, int FixedKeyWord)
 {
 	if (!Sock)
@@ -505,7 +400,10 @@ int CPSock::AddMessage(char* pMsg, int Size, int FixedKeyWord)
 		return 0;
 	}
 
-	if (pMsg && pSendBuffer && send_buffer::CanAppendPacket(
+	// Reclaim only the sent prefix before checking capacity. Pending bytes are
+	// already encrypted and retain their original order and representation.
+	if (pMsg && send_buffer::Compact(pSendBuffer, SEND_BUFFER_SIZE,
+		nSendPosition, nSentPosition) && send_buffer::CanAppendPacket(
 		Size, nSendPosition, SEND_BUFFER_SIZE, sizeof(MSG_STANDARD)))
 	{
 		unsigned char iKeyWord = FixedKeyWord;
@@ -573,53 +471,52 @@ bool CPSock::SendMessageA()
 		return false;
 	}
 
-	if (nSentPosition > 0)
-		RefreshSendBuffer();
+	if (!send_buffer::Compact(pSendBuffer, SEND_BUFFER_SIZE, nSendPosition, nSentPosition))
+		return false;
 
-	char temp[256] = { 0 };
-	if (nSendPosition <= SEND_BUFFER_SIZE && nSendPosition >= 0)
+	// Keep sending positive short writes until drained or blocked. Winsock
+	// rearms FD_WRITE after WSAEWOULDBLOCK, not after every partial write.
+	while (nSentPosition < nSendPosition)
 	{
-		if (nSentPosition > nSendPosition || nSentPosition >= SEND_BUFFER_SIZE || nSentPosition < 0)
-		{
-			sprintf_s(temp, "err, send2 %d %d %d", nSendPosition, nSentPosition, Sock);
-
-			//Log(temp, "-system", 0);
-			nSendPosition = 0;
-			nSentPosition = 0;
-		}
-
-		for (int i = 0; i < 1; ++i)
-		{
-			int tSend = send(Sock, &pSendBuffer[nSentPosition], nSendPosition - nSentPosition, 0);
-			if (tSend == -1)
-				WSAGetLastError();
-			else
-				nSentPosition += tSend;
-
-			if (nSentPosition >= nSendPosition && tSend != -1)
-			{
-				nSendPosition = 0;
-				nSentPosition = 0;
-
-				return true;
-			}
-		}
-
-		return nSendPosition < SEND_BUFFER_SIZE;
+		const int sent = send(Sock, pSendBuffer + nSentPosition, nSendPosition - nSentPosition, 0);
+		if (sent == SOCKET_ERROR)
+			return WSAGetLastError() == WSAEWOULDBLOCK;
+		if (sent == 0)
+			return false;
+		nSentPosition += sent;
 	}
-	
-	sprintf_s(temp, "err,send1 %d %d %d", nSendPosition, nSentPosition, Sock);
-	//Log(temp, "-system", 0);
 	nSendPosition = 0;
 	nSentPosition = 0;
-	return false;
+	return true;
+}
+
+CPSock::EventResult CPSock::HandleNetworkEvent(WPARAM socket, LPARAM notification)
+{
+	// Messages already queued for a different socket must not affect this one.
+	if (!Sock || socket != Sock)
+		return EventResult::Ignored;
+
+	const int event = WSAGETSELECTEVENT(notification);
+	if (WSAGETSELECTERROR(notification) == 0 && event != FD_CLOSE)
+	{
+		if (event == FD_READ)
+		{
+			if (Receive())
+				return EventResult::ReadReady;
+		}
+		else if (event != FD_WRITE || SendMessageA())
+			return EventResult::Ignored;
+	}
+
+	CloseSocket();
+	return EventResult::Disconnected;
 }
 
 int CPSock::SendPacket(const MutablePacketView& packet)
 {
-    // Validar antes de AddMessage consumir a chave ou escrever o cabecalho.
-    // O buffer pertence ao emissor e precisa ser gravavel: a codificacao
-    // legada atualiza o cabecalho nele, sem reter seu ponteiro apos a chamada.
+    // Validate before AddMessage consumes a key or writes the header.
+    // The sender owns writable storage: legacy encoding updates its header
+    // without retaining the pointer after this call.
     const int result = SendValidatedPacket(packet, sizeof(MSG_STANDARD),
         [this](char* data, int size) { return SendOneMessage(data, size) != 0; });
     if (result != 0)
@@ -641,17 +538,10 @@ PacketView CPSock::ReadPacketView(int* ErrorCode, int* ErrorType)
 
 int CPSock::SendOneMessage(char* Msg, int Size)
 {
-	// O flush final continua ocorrendo mesmo na rejeicao, mas nao pode mascarar
-	// que esta mensagem nao entrou na fila. AddMessage mantem seu flush interno.
+	// Still flush after rejection, but do not mask a failure to enqueue this
+	// message. AddMessage retains its internal flush.
 	return send_buffer::EnqueueAndFlush(
 		[&] { return AddMessage(Msg, Size); }, [this] { return SendMessageA(); });
-}
-
-int CPSock::SendOneMessageKeyword(char* Msg, int Size, int Keyword)
-{
-	// Mesma politica do envio automatico, sem alterar a chave explicita.
-	return send_buffer::EnqueueAndFlush(
-		[&] { return AddMessage(Msg, Size, Keyword); }, [this] { return SendMessageA(); });
 }
 
 int CPSock::AddMessage2(char* pMsg, int Size)
@@ -665,61 +555,15 @@ int CPSock::AddMessage2(char* pMsg, int Size)
 	return 1;
 }
 
-char* CPSock::ReadMessage2(int* ErrorCode, int* ErrorType)
-{
-	if (!ErrorCode || !ErrorType || !pRecvBuffer || !receive_buffer::HasValidWindow(
-		nProcPosition, nRecvPosition, RECV_BUFFER_SIZE))
-		return nullptr;
-
-	*ErrorCode = 0;
-
-	if (nProcPosition >= nRecvPosition)
-	{
-		nRecvPosition = 0;
-		nProcPosition = 0;
-	}
-	else if ((unsigned int)(nRecvPosition - nProcPosition) >= 12)
-	{
-		auto pMsg = &pRecvBuffer[nProcPosition];
-
-		const unsigned short size = *reinterpret_cast<const unsigned short*>(pMsg);
-		if (!receive_buffer::CanReadFrame(size, nRecvPosition - nProcPosition, 12))
-		{
-			*ErrorCode = 2;
-			*ErrorType = size;
-			return nullptr;
-		}
-		nProcPosition += size;
-
-		if (nRecvPosition <= nProcPosition)
-		{
-			nRecvPosition = 0;
-			nProcPosition = 0;
-		}
-
-		return pMsg;
-	}
-
-	return nullptr;
-}
-
 void CPSock::RefreshRecvBuffer()
 {
-	int left = nRecvPosition - nProcPosition;
+	if (!pRecvBuffer || !receive_buffer::HasValidWindow(
+		nProcPosition, nRecvPosition, RECV_BUFFER_SIZE))
+		return;
 
-	if (left > 0 && left <= RECV_BUFFER_SIZE)
-	{
-		// As regioes se sobrepoem quando ha bytes ja processados.
+	const int left = nRecvPosition - nProcPosition;
+	if (nProcPosition > 0 && left > 0)
 		memmove(pRecvBuffer, &pRecvBuffer[nProcPosition], left);
-
-		nProcPosition = 0;
-		nRecvPosition -= left;
-	}
-}
-
-void CPSock::RefreshSendBuffer()
-{
-	// Compacta a propria fila de saida sem recifrar o sufixo pendente. Em estado
-	// invalido, nao acessa memoria; SendMessageA valida e descarta os indices.
-	send_buffer::Compact(pSendBuffer, SEND_BUFFER_SIZE, nSendPosition, nSentPosition);
+	nProcPosition = 0;
+	nRecvPosition = left;
 }

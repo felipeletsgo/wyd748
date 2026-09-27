@@ -1,116 +1,157 @@
 ---
 id: ground-item-state-contract
-title: Contrato de atualizacao e remocao de item do chao
+title: Ground-item state and removal contract
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-07
+updated: 2026-09-25
 ---
 
-# Atualizacao e remocao de item do chao
+# Ground-item state and removal contract
 
-## Pergunta
+## Question
 
-Como o client 7.48 atualiza o estado de um objeto com `0x374` e encerra sua
-presenca com `0x16F`, e quais bytes o WYD-Go deve emitir?
+How does the 7.48 client apply `0x374` to a ground object, remove it with
+`0x16F`, and reconcile a gate's collision height with the server?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- `UTILIZADA`: binario nativo do hash acima, projeto Ghidra
-  `WYD748Native_20260821.gpr` e decompilacao de `FUN_00492E7D`,
-  `FUN_004862B6`, `FUN_004863E2` e `FUN_0055890A`.
-- `UTILIZADA`: source atual `MSG_UpdateItem`, `MSG_STANDARDPARM`,
-  `OnPacketUpdateItem`, `OnPacketRemoveItem` e `ReceivedPacketDispatch`.
-- `UTILIZADA`: WYD-Go `wire.UpdateItem` e `wire.RemoveItem`, testes e fluxo de
-  portoes e visibilidade.
-- `NAO APLICAVEL`: assets e guia KR nao definem os envelopes. Sources 7.54,
-  fontes legadas externas nao foram consultadas.
+- USED: Native binary with the hash above and the existing Ghidra traces of
+  `FUN_00492E7D`, `FUN_004862B6`, `FUN_004863E2`, and `FUN_0055890A`.
+- USED: Active client `MSG_UpdateItem`, `OnPacketUpdateItem`,
+  `OnPacketRemoveItem`, `BASE_UpdateItem2`, and `g_pGroundMask`.
+- USED: WYD-Go `wire.UpdateItem`, `groundItemUpdatePacket`, the 96 records in
+  `data/init_items.csv`, and the CSV/mask/terrain contract tests.
+- NOT APPLICABLE: Assets and the KR guide do not define these wire envelopes.
+  External legacy sources were not used as parity authority.
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
 ### Callers
 
-`FUN_00492E7D @ 0x00492E7D` encaminha `0x374` a
-`FUN_004862B6 @ 0x004862B6` e `0x16F` a `FUN_004863E2 @ 0x004863E2`.
-`FUN_0055890A @ 0x0055890A` exige respectivamente 20 e 16 bytes.
+`FUN_00492E7D @ 0x00492E7D` forwards `0x374` to
+`FUN_004862B6 @ 0x004862B6` and `0x16F` to
+`FUN_004863E2 @ 0x004863E2`. `FUN_0055890A @ 0x0055890A` requires
+20 and 16 bytes respectively.
 
 ### Callees
 
-No `0x374`, `FUN_004862B6` encontra o objeto por `ItemID@0x0C`, interpreta
-`State` como short em `+0x10` e `Height` como char em `+0x12`, atualiza o
-heightmap e o estado por `FUN_005554CC` e chama `FUN_004431E4` para a ficha.
+For `0x374`, `FUN_004862B6` finds the object by `ItemID@0x0C`, reads
+`State` as a short at `+0x10` and `Height` as a char at `+0x12`, updates
+the heightmap/state through `FUN_005554CC`, then updates the score panel via
+`FUN_004431E4`. For `0x16F`, `FUN_004863E2` clears the hovered item and
+asks the ObjectManager to destroy the 32-bit ID at `+0x0C`.
 
-No `0x16F`, `FUN_004863E2` limpa o item sob o mouse e chama virtualmente o
-ObjectManager para destruir o objeto identificado pelo valor de 32 bits em
-`+0x0C`. Nao existe corpo adicional nem resposta de rede.
+The native `FUN_005554CC @ 0x005554CC` references the mask table at
+`0x005BED50` (operand at `0x00555539`). The table occupies 5,760 bytes in
+`.data`, file offset/RVA `0x001BED50`: 1,440 little-endian 32-bit cells in
+the same `[10][4][6][6]` order as the active source. Its SHA-256 is
+`B53392BEB7DE3B2E74A026D4256DF822F7A5F445A858D5D348F36B196D03EF3D`.
+The exact byte sequence occurs at that offset in both `WYD.exe` (hash in
+front matter) and stock `WYDoriginal.exe` (SHA-256
+`B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C`).
+The source table matches all 1,440 native values; the server uses their
+nonzero cells, as `BASE_UpdateItem2` does.
 
-## Estado e lifecycle
+## State and lifecycle
 
-| Evento | Precondicao | Estado resultante | Side effects | Erro ou saida |
-| --- | --- | --- | --- | --- |
-| `0x374` | frame 20B, objeto existente e gate | estado e height atualizados | ficha atualizada | objeto ausente apenas atualiza ficha |
-| `0x16F` | frame 16B | objeto removido do manager | mouse-over limpo | ID ausente e idempotente no manager |
-| frame invalido | Size ou Type divergente | estado intacto | nenhum callback | gate rejeita |
-| cena incompleta | manager ausente | estado intacto | nenhum | handler retorna antes do acesso |
-| relogin | snapshot de visibilidade posterior | objetos rematerializados | owners normais da cena | nenhum frame retido |
+| Event | Precondition | Result | Failure |
+| --- | --- | --- | --- |
+| `0x374` | 20-byte frame, existing gate | State and masked height change | Missing object leaves the world unchanged |
+| `0x16F` | 16-byte frame | ObjectManager removes the item and clears hover | Missing ID is idempotent |
+| Invalid frame | Size or Type mismatch | Dispatcher rejects it | No scene callback |
+| Incomplete scene | ObjectManager missing | Handler returns | No dereference |
+| Existing ID is not a gate | Valid `0x374` frame | World unchanged | No derived-object access |
+| Relogin | Visibility snapshot | Object materializes again | No frame retained |
 
-O transporte empresta o frame apenas durante a chamada. `0x374` nao transfere
-ownership. `0x16F` delega a destruicao ao ObjectManager, owner do objeto.
+The server persists key consumption before changing the gate. On save failure,
+the key, gate state, and collision height remain unchanged. On success, the
+server changes the gate state and its authoritative terrain before sending
+`0x374` to observers. Later arrivals receive the state in `0x26E`.
 
-## Wire, ABI e recursos
+## Wire, ABI, and resources
 
-`0x374`, S->C, 20 bytes:
+`0x374` is a 20-byte server-to-client little-endian frame: 12-byte standard
+header; `ItemID` u32 at `0x0C`; `State` i16 at `0x10`; `Height` i8 at
+`0x12`; reserved byte at `0x13`. `0x16F` is a 16-byte frame with a standard
+header and `ItemID` u32 at `0x0C`. Neither packet transfers object ownership.
 
-| Offset | Tamanho | Campo |
-| --- | ---: | --- |
-| `0x00` | 12 | `MSG_STANDARD` |
-| `0x0C` | 4 | `ItemID` |
-| `0x10` | 2 | `State`, short |
-| `0x12` | 1 | `Height`, char |
-| `0x13` | 1 | reservado |
+The active server writes `Height=0` when opening a gate and `Height=16` when
+restoring a closed gate after rejected interaction. Closed `0x26E` also
+carries height 16. These are current client/server contract values, not a
+claim that the historical server used those exact height values.
 
-`0x16F`, S->C, 16 bytes: `MSG_STANDARD` seguido por `ItemID` de 32 bits em
-`0x0C`. Nenhum recurso visual novo participa.
+## Current mapping
 
-## Mapeamento atual
+`GroundItemStateContract.h` names the opcode, size, and offsets; `Basedef.h`
+asserts the concrete layout. `ReceivedPacketDispatch` validates the real and
+declared size and opcode before casting. Client handlers check their scene
+owners. Go `wire.UpdateItem` writes the two-byte state without contaminating
+the height/reserved bytes; `groundItemUpdatePacket` then sets the closed
+height explicitly. `RemoveItem` sends the required 16 bytes. The client
+`BASE_UpdateItem2` checks both mask and rotation against the actual table
+dimensions and rejects a null HeightMap before indexing; valid inputs retain
+the native lookup and write behavior. `OnPacketUpdateItem` checks that the
+resolved object is a `TMGate` before reading gate-specific fields.
 
-`GroundItemStateContract.h` nomeia os dois opcodes, tamanhos e offsets.
-`Basedef.h` fixa o layout de `MSG_UpdateItem`. O gate central valida tamanho
-real e declarado e Type igual ao opcode antes dos casts. Os dois handlers
-validam mensagem e ObjectManager. O encoder Go de `UpdateItem` agora grava
-somente `State` u16 em `+0x10`, mantendo Height e reserva zerados; antes usava
-`putU32`, permitindo que bits altos contaminassem esses bytes. `RemoveItem` ja
-emitia os 16 bytes corretos.
+The server loads permanent object positions/rotations from the 96-row CSV.
+For masked objects, `spawnInitItems` overlays a private copy of HeightMap
+using the active client's 6x6 mask. `openGateWithKey` clears the same cells
+only after account persistence. The client and server therefore use the same
+current mask geometry without hard-coding the CSV's object locations twice.
 
-## Matriz de delta
+## Delta matrix
 
-| Claim | Nativo 7.48 | Source e Go antes | Estado atual | Decisao |
-| --- | --- | --- | --- | --- |
-| update | `0x374/20`, state i16, height i8 | sem gate; Go escrevia u32 | gate, asserts e u16 | `PARIDADE_NATIVA` |
-| remove | `0x16F/16`, ID em 12 | sem gate exato | gate e fixture | `PARIDADE_NATIVA` |
-| manager nulo | lifecycle pressuposto | acesso direto | guarda local | `MODERNIZACAO_COMPATIVEL` |
+| Claim | Native 7.48 | Current implementation | Classification |
+| --- | --- | --- | --- |
+| `0x374/20` and `0x16F/16` envelopes | Confirmed by trace | Dispatch gates and layout tests | `PARIDADE_NATIVA` |
+| State/height offsets | Confirmed by trace | C++ asserts and Go encoder tests | `PARIDADE_NATIVA` |
+| Null-owner guard | Lifecycle assumed | Local guard | `MODERNIZACAO_COMPATIVEL` |
+| Invalid mask/rotation or null map | Native lookup assumes valid inputs | Client returns without indexing | `MODERNIZACAO_COMPATIVEL` |
+| `0x374` names a non-gate ID | Native assumes a valid object lifecycle | Client rejects before derived access | `MODERNIZACAO_COMPATIVEL` |
+| Ground-mask geometry | Native table at `0x005BED50` matches all 1,440 source values | Go bitsets match source and native table hash is pinned | `PARIDADE_NATIVA` |
+| Server dynamic terrain overlay | Native client writes height into masked cells | Server follows the same mask geometry | `MODERNIZACAO_COMPATIVEL` |
 
-## Decisões
+## Decisions
 
-- Preservar efeitos e ownership dos handlers para frames validos.
-- Corrigir o encoder Go para o tail realmente consumido pelo 7.48.
-- Rejeitar envelopes invalidos antes da cena e manager ausente no handler.
-- Nao alterar estado de gameplay, recurso, vtable ou semantica de portao.
+- Preserve object effects and ownership for valid frames.
+- Reject malformed envelopes before reaching the scene.
+- Reject out-of-range mask/rotation values and a null map at the collision
+  primitive; this changes only invalid input handling.
+- Reject `0x374` for an existing non-gate object without casting it to a
+  gate; valid gate updates are unchanged.
+- Keep key use and the collision transition server-authoritative and
+  persistence-ordered.
+- Use the 96-row CSV for object identity/location/rotation; do not infer
+  additional objects from the 7.69 source.
 
-## Lacunas
+## Gaps
 
-- Executar abertura e fechamento de portao e remocao por visibilidade no client.
-- Confirmar troca de regiao e relogin com objetos atualizados.
-- O comportamento para State fora do enum ativo continua definido pelo servidor.
+- Real-client opening, closing, removal, relogin, and region-change flows
+  remain untested. Windows currently prevents that visual execution.
 
-## Validação
+## Validation
 
-- Pesquisa: consumidores e tamanhos nativos confirmados nas quatro funcoes.
-- Automacao: fixtures cobrem truncamento, excesso, Size e Type, offsets e
-  preservacao dos frames. O teste Go confirma State u16 e Height/reserva zero.
-  `go test -count=1 ./...` e `go vet ./...` passaram.
-- Build Release passou pelo `Build-Client.ps1` com 24682 checks e asserts
-  estaticos. XML e registro unico do header passaram. Candidato instalado:
-  `A04E28EC82F087891A4FCA1BE97BFE0AC6652FDA896764B943485366154D31E9`.
-- Estado `AUTOMATED TESTED`; client real ainda nao executado, portanto nao e
-  `CLIENT_TESTED`.
+- Existing native trace proves `0x374/20`, `0x16F/16`, offsets, and native
+  heightmap mutation.
+- Binary comparison confirms a single exact 5,760-byte native table at file
+  offset `0x001BED50` in both 7.48 executables. The `FUN_005554CC` operand
+  references its VA, so the match is the consumed table, not an orphan byte
+  pattern. The Go test pins its hash and compares every nonzero cell to the
+  server bitset.
+- `go test -count=1 ./internal/game -run
+  'TestGatePersistenceControlsTerrainTransition|TestClosedGroundMaskRejectsRouteUntilOpened|TestCSVFixturesUpdateServerTerrainLikeClient|TestGroundMaskBitsMatchClientSource'`
+  passed on 2026-09-25. The CSV test covers all 96 records and rejects mask
+  overlaps; the source comparison covers all 1,440 client mask cells.
+- The incremental C++ Release `-NoDeploy` build passed after the guard:
+  52,026 architecture checks and 221 socket receive checks passed. The
+  built artifact SHA-256 is
+  `F582FB1509B59B26752445F99DD4648F60D0C1B29E77A79C6B77AA9B77CAFE30`.
+  No candidate was installed or run. Status is `AUTOMATED TESTED`, not
+  `CLIENT_TESTED`; invalid-rotation behavior has compile/source coverage,
+  not an executable unit test.
+- A later incremental Release `-NoDeploy` build passed after the concrete
+  gate check: 52,026 architecture checks and 221 socket checks. Its artifact
+  SHA-256 is
+  `87288FED114739B291F9C437BFB9113836E9907EA1DE540CF5E7F27C2B8B6695`.
+  The non-gate rejection has compile/source coverage only; no client run.

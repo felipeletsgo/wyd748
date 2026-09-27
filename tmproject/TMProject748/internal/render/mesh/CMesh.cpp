@@ -376,7 +376,8 @@ int CMesh::RenderMesh(char cAlpha)
                 g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(nBaseIndex + m_sMultiType - 1, 10000));
 
                 dye_texture_stages::Apply(*g_pDevice, m_sLegendType, cAlpha,
-                    g_pDevice->m_bVoodoo || g_pDevice->m_bIntel || g_pDevice->m_bG400);
+                    g_pDevice->m_bVoodoo || g_pDevice->m_bIntel || g_pDevice->m_bG400,
+                    g_pDevice->m_bTNT != 0);
             }
             else
             {
@@ -614,8 +615,13 @@ int CMesh::RenderMesh(char cAlpha)
         g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_CULLMODE, D3DCULL::D3DCULL_NONE);
         g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_CULLMODE, D3DCULL::D3DCULL_NONE);
 
-        if (g_pDevice->m_pd3dDevice->DrawIndexedPrimitive(D3DPRIMITIVETYPE::D3DPT_TRIANGLELIST, 0, 0, m_pMesh->m_AttRange[0].VertexCount, 0, m_numFaces) < 0)
-            return 0;
+        {
+            dye_pixel_shader::Binding dye(g_pDevice->m_pd3dDevice, g_pDevice->m_dyePixelShader,
+                m_sLegendType, m_sLegendType >= 116 && m_sLegendType <= 125
+                    && m_sMultiType > 0 && m_pParentSkin->m_cEnableMultiTex == 1);
+            if (g_pDevice->m_pd3dDevice->DrawIndexedPrimitive(D3DPRIMITIVETYPE::D3DPT_TRIANGLELIST, 0, 0, m_pMesh->m_AttRange[0].VertexCount, 0, m_numFaces) < 0)
+                return 0;
+        }
 
         g_pDevice->SetTextureStageState(0, D3DTEXTURESTAGESTATETYPE::D3DTSS_COLOROP, D3DTEXTUREOP::D3DTOP_DISABLE);
         g_pDevice->SetTextureStageState(1, D3DTEXTURESTAGESTATETYPE::D3DTSS_COLOROP, D3DTEXTUREOP::D3DTOP_DISABLE);

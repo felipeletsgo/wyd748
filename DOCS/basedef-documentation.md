@@ -22,7 +22,53 @@ headings do not count as API coverage. The header has not been fully split;
 
 ## Observed source gaps
 
-- `BASE_ReadInitItem` returns success without loading anything; it remains a stub.
+- The unused `BASE_ReadInitItem` success stub, its 100-entry `g_pInitItem`
+  table, and the corresponding structure have been removed after confirming
+  there are no active callers or consumers. The obsolete `TMFieldScene` scan
+  and `CreateGate` helper were already removed. Permanent objects now enter
+  the scene only through the server's `CreateItem` packets. The Go server
+  loads `data/init_items.csv` and owns their lifetime and IDs. Do not restore
+  client-local object creation without revisiting ownership.
+  The shipped 7.48 `InitItem.bin` has 96 eight-byte XOR-`0xFF` records. The
+  server CSV now contains those same 96 objects in the same order, verified by
+  a cross-project test. The loader rejects rotations above the packet's
+  one-byte range before conversion, preventing silent wraparound. This
+  replaces the previous 50-row table, including seven server-only objects.
+  A separate test checks the mesh, `EF_GROUND`, and `EF_KEYID` definitions for
+  all 26 distinct object indexes against the client `ItemList.bin` rows.
+  The C++ architecture test also loads the shipped `ItemList.bin` through the
+  production adapter and checks the guild gate, steel window, time gate, and
+  cannon definitions consumed by the client. It now decodes all 96 shipped
+  `InitItem.bin` records and verifies their renderer selection and rotation.
+  Two slot machines (indexes 4102 and 4103) have `EF_GROUND=10` and mesh 2784:
+  the client renders them as gates, but its ground-mask table has only indexes
+  0..9. The server likewise omits collision-height changes for these two
+  machines while still sending their gate state. Clicking either machine opens
+  Gamble locally in `TMFieldScene::GetItemFromGround` (kind 2 for 4102, kind 1
+  for 4103); this path does not send the gate `UpdateItem` request. The bet is
+  a separate `0x2BE` request. Focused server and C++ tests cover the asset and
+  collision distinction, but not an executed Gamble interaction.
+  The server remains authoritative for spawning; there is no client-local
+  loader. The removal passed the Release `-NoDeploy` build, 52,026 architecture
+  checks, and 221 socket checks on 2026-09-25 (artifact SHA-256
+  `9E6A6432FD705FF542EFA3E2DDE2A587D9AB5E5812AE972D6268F261605AB26A`).
+  It has not been tested in a running client.
+  Both server visibility paths now project each server-owned object into the
+  7.48 `CreateItem` representation: an `EF_GROUND` obstacle gets height 16,
+  an unkeyed closed obstacle gets state 2, and a closed keyed gate gets state
+  3. An open keyed gate gets state 1 and height 0. The server's authoritative
+  0/1 gate state is unchanged. A rejected opening also restores height 16 in
+  `UpdateItem`; a successful opening clears it to 0. Automated tests cover
+  the packet fields and all 96 catalog objects; a running-client check remains
+  pending. The client `CreateItem` cannon branch now retains the packet's
+  rotation instead of replacing it with `1`; the 96-object table includes
+  cannons with rotations `0`, `1`, `2`, and `3`.
+  Mob and ground-object IDs share the client's visible-entity namespace. The
+  server allocator now skips occupied IDs across both registries, reserves
+  player IDs below 1000, keeps 15001..15100 exclusively for cannons, and
+  reserves 25001..25999 for virtual ghost shops (`25000 + player ID`).
+  Focused allocation tests and the game-package suite pass; the running-client
+  visibility check remains unavailable.
 - `BASE_InitializeAttribute` now rejects a truncated `AttributeMap.dat` without
   publishing a partial grid. It accepts the shipped 7.48 map and leaves its
   four-byte trailer outside the 1,024 x 1,024 runtime grid.
@@ -42,7 +88,9 @@ The other limitations are documented, not fixed by the effect-name loader.
 
 The effect-name loader has automated tests for the shipped asset, indexes,
 missing rows, overlong tokens, table overflow, and unchanged output after
-rejection. A successful build does not establish in-client visual validation.
+rejection. The shipped item list loads in the architecture test with six
+additional checks. A successful build does not establish in-client visual
+validation.
 
 ## Legacy API inventory
 

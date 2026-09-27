@@ -27,15 +27,15 @@ func TestNPCGenerSummaryAggregatesAndResets(t *testing.T) {
 	}
 	w.flushNPCGenerLog(now, true)
 	text := output.String()
-	if !strings.Contains(text, "NPCGener resumo inicial") ||
-		!strings.Contains(text, "grupos=4") ||
+	if !strings.Contains(text, "NPCGener initial summary") ||
+		!strings.Contains(text, "groups=4") ||
 		!strings.Contains(text, "mobs=8") ||
-		!strings.Contains(text, "reposicionados=2") {
-		t.Fatalf("resumo incompleto: %q", text)
+		!strings.Contains(text, "relocated=2") {
+		t.Fatalf("incomplete summary: %q", text)
 	}
 	if w.npcGenerLog != (npcGenerLogStats{}) ||
 		!w.nextGenerLog.Equal(now.Add(npcGenerSummaryInterval)) {
-		t.Fatalf("agregador nao foi reiniciado: %+v next=%v", w.npcGenerLog, w.nextGenerLog)
+		t.Fatalf("aggregator was not reset: %+v next=%v", w.npcGenerLog, w.nextGenerLog)
 	}
 }
 
@@ -49,19 +49,19 @@ func TestNPCGenerQuietEmitsNothing(t *testing.T) {
 		npcGenerLog: npcGenerLogStats{groups: 2, mobs: 10, relocations: 1}}
 	w.flushNPCGenerLog(time.Now(), true)
 	if output.Len() != 0 || w.npcGenerLog != (npcGenerLogStats{}) {
-		t.Fatalf("quiet produziu log/nao limpou contadores: %q %+v", output.String(), w.npcGenerLog)
+		t.Fatalf("quiet emitted a log or did not clear counters: %q %+v", output.String(), w.npcGenerLog)
 	}
 }
 
 func TestWithNPCGenerLogModes(t *testing.T) {
 	for input, want := range map[string]npcGenerLogMode{
 		"quiet": npcGenerLogQuiet, "summary": npcGenerLogSummary,
-		"verbose": npcGenerLogVerbose, "invalido": npcGenerLogSummary,
+		"verbose": npcGenerLogVerbose, "invalid": npcGenerLogSummary,
 	} {
 		w := &World{}
 		WithNPCGenerLog(input)(w)
 		if w.npcGenerLogMode != want {
-			t.Fatalf("modo %q=%d, esperado %d", input, w.npcGenerLogMode, want)
+			t.Fatalf("mode %q=%d, want %d", input, w.npcGenerLogMode, want)
 		}
 	}
 }

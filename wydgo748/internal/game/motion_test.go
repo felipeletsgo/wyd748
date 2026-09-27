@@ -9,10 +9,10 @@ import (
 
 func motionIntent(motion, parm uint16) []byte {
 	pkt := inboundPacket(wire.OpMotion, 20)
-	binary.LittleEndian.PutUint16(pkt[6:8], 999) // ID declarado nao e autoridade.
+	binary.LittleEndian.PutUint16(pkt[6:8], 999) // The claimed ID is not authoritative.
 	binary.LittleEndian.PutUint16(pkt[12:14], motion)
 	binary.LittleEndian.PutUint16(pkt[14:16], parm)
-	binary.LittleEndian.PutUint32(pkt[16:20], 0x7FC00000) // NaN deve ser descartado.
+	binary.LittleEndian.PutUint32(pkt[16:20], 0x7FC00000) // Discard the client-supplied NaN.
 	return pkt
 }
 
@@ -26,13 +26,13 @@ func TestMotionRoundtripPublishesAuthoritativePlayerEmote(t *testing.T) {
 	w.onMotion(owner.Session, motionIntent(21, 0))
 
 	if got := owner.Session.QueuedPacketsForTest(); got != 1 {
-		t.Fatalf("emissor recebeu %d retornos, quer 1", got)
+		t.Fatalf("sender received %d echoes, want 1", got)
 	}
 	if got := observer.Session.QueuedPacketsForTest(); got != 1 {
-		t.Fatalf("observer recebeu %d motions, quer 1", got)
+		t.Fatalf("observer received %d motions, want 1", got)
 	}
 	if got := outsider.Session.QueuedPacketsForTest(); got != 0 {
-		t.Fatalf("jogador fora da visao recebeu %d motions", got)
+		t.Fatalf("out-of-view player received %d motions", got)
 	}
 }
 
@@ -42,10 +42,10 @@ func TestMotionRejectsClientOwnedEffects(t *testing.T) {
 		motion uint16
 		parm   uint16
 	}{
-		{name: "motion de sistema", motion: 100},
-		{name: "motion server-side", motion: 14},
-		{name: "efeito de personagem", motion: 21, parm: 1},
-		{name: "limpa morte", motion: 21, parm: 2},
+		{name: "system motion", motion: 100},
+		{name: "server-side motion", motion: 14},
+		{name: "character effect", motion: 21, parm: 1},
+		{name: "clear death", motion: 21, parm: 2},
 		{name: "level up", motion: 21, parm: 3},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -58,8 +58,27 @@ func TestMotionRejectsClientOwnedEffects(t *testing.T) {
 
 			if owner.Session.QueuedPacketsForTest() != 0 ||
 				observer.Session.QueuedPacketsForTest() != 0 {
-				t.Fatal("efeito controlado pelo client foi publicado")
+				t.Fatal("client-controlled effect was published")
 			}
 		})
+	}
+}
+
+func TestMotionRejectsDeadPlayerAndAllowsEmoteAfterRevival(t *testing.T) {
+	owner, _ := networkedTestPlayer(1, "Emoter", 2100, 2100)
+	observer, _ := networkedTestPlayer(2, "Observer", 2101, 2100)
+	observer.show(owner.ID)
+	w := worldWithNetworkedPlayers(owner, observer)
+
+	setPlayerCurHP(owner.Char, 0)
+	w.onMotion(owner.Session, motionIntent(21, 0))
+	if owner.Session.QueuedPacketsForTest() != 0 || observer.Session.QueuedPacketsForTest() != 0 {
+		t.Fatal("dead-player emote was published")
+	}
+
+	setPlayerCurHP(owner.Char, 100)
+	w.onMotion(owner.Session, motionIntent(21, 0))
+	if owner.Session.QueuedPacketsForTest() != 1 || observer.Session.QueuedPacketsForTest() != 1 {
+		t.Fatal("revived-player emote was not published to owner and observer")
 	}
 }

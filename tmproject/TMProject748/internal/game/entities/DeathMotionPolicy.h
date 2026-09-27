@@ -47,4 +47,26 @@ constexpr bool ShouldOfferTimedRespawnPrompt(unsigned int deathTime, unsigned in
             inCastleTown, promptVisible);
 }
 
+// The native field tick recalls a character still dead after three minutes.
+constexpr bool ShouldAutoRecallDeadPlayer(unsigned int deathTime, unsigned int now,
+    bool dead, int worldX, int worldY)
+{
+    return deathTime != 0 && now - deathTime > 180000u && dead &&
+        (worldX >> 7) != 1 && (worldY >> 7) != 1;
+}
+
+// Once the five-second recall request has been sent, do not replay its portal
+// effect while waiting for the timer to be cleared on the following tick.
+constexpr bool ShouldAdvanceRespawnRecallCountdown(unsigned int startTime,
+    unsigned int now, bool requestPending)
+{
+    return startTime != 0 && requestPending && now - startTime <= 5000u;
+}
+
+constexpr unsigned int RespawnRecallSecondsRemaining(unsigned int startTime,
+    unsigned int now)
+{
+    return (5000u - (now - startTime)) / 1000u;
+}
+
 } // namespace death_motion

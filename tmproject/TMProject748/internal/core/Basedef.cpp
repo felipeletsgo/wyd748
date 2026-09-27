@@ -34,7 +34,6 @@ int g_nSelServerWeather;
 char g_pMessageStringTable[MAX_STRING][MAX_STRING_LENGTH];
 STRUCT_ITEMLIST g_pItemList[MAX_ITEMLIST];
 STRUCT_SPELL g_pSpell[MAX_SPELL_LIST];
-STRUCT_INITITEM g_pInitItem[100];
 STRUCT_TOTOLIST g_pTOTOList[80];
 int g_nTOTOListCount;
 
@@ -230,14 +229,6 @@ int BASE_ReadSkillBin()
     }
 
     return TRUE;
-}
-
-/** Pending stub: returns 1 without loading data or filling g_pInitItem.
- * This result does not prove that the initial-item table is available. */
-int BASE_ReadInitItem()
-{
-    // Whether this loader is needed remains unresolved in this batch.
-    return 1;
 }
 
 /** Overrides local prices at g_pItemList indexes 412, 413, 419, and 420.
@@ -3189,7 +3180,9 @@ void BASE_SetBit(char* byte, int pos)
 
 int BASE_UpdateItem2(int maskidx, int CurrentState, int NextState, int xx, int yy, char* pHeight, int rotate, int height)
 {
-    if (maskidx >= 10 || maskidx < 0)
+    constexpr int maskCount = static_cast<int>(sizeof(g_pGroundMask) / sizeof(g_pGroundMask[0]));
+    constexpr int rotationCount = static_cast<int>(sizeof(g_pGroundMask[0]) / sizeof(g_pGroundMask[0][0]));
+    if (maskidx < 0 || maskidx >= maskCount || rotate < 0 || rotate >= rotationCount || !pHeight)
         return 0;
 
     for (int y = 0; y <= 5; ++y)

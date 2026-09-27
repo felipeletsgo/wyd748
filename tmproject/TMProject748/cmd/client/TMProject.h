@@ -1,5 +1,5 @@
 #pragma once
 
-// Cabecalho minimo do executavel Win32. Mantem o vinculo com os identificadores
-// compilados de TMProject.rc; a inicializacao vive nas unidades de app.
+// Minimal Win32 executable header. Preserves the link with compiled
+// TMProject.rc identifiers; initialization lives in app units.
 #include "resource.h"

@@ -5,6 +5,7 @@
 #include "../../application/SkillCooldownPolicy.h"
 #include "../../ui/ObservedAffectProjection.h"
 #include "../../ui/ResourceBarProjection.h"
+#include "../../ui/MiniMapLayout.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "dsutil.h"
@@ -124,6 +125,44 @@ namespace
 		return true;
 	}
 
+	static_assert(field_interaction::AutoTradeFirstListingControl == TMG_ATRADE_MY1);
+	static_assert(field_interaction::AutoTradeSlotIndex(true, TMG_ATRADE_MY12) == 11);
+
+	void WYD748_CancelAutoTradePurchase(SMessageBox* dialog, int invalidatedSlot = -1)
+	{
+		if (!dialog || !field_interaction::ShouldCancelAutoTradePurchase(
+			dialog->m_dwMessage, dialog->m_dwArg, invalidatedSlot))
+			return;
+
+		// Hiding alone retains the callback discriminator and argument. Invalidate
+		// them too so a queued confirmation cannot purchase a replacement offer.
+		dialog->m_dwMessage = static_cast<unsigned int>(-1);
+		dialog->m_dwArg = 0;
+		if (dialog->IsVisible())
+			dialog->SetVisible(0);
+	}
+
+	void WYD748_ReleaseAutoTradeItem(SGridControlItem*& pItem)
+	{
+		if (!pItem)
+			return;
+
+		// Pickup transfers ownership without clearing interaction aliases. A
+		// sale, snapshot replacement, or panel close can invalidate selections.
+		if (SGridControl::m_pLastMouseOverItem == pItem)
+		{
+			SGridControl::m_pLastMouseOverItem = nullptr;
+			SGridControl::m_sLastMouseOverIndex = -1;
+		}
+		if (SGridControl::m_pLastAttachedItem == pItem)
+			SGridControl::m_pLastAttachedItem = nullptr;
+		if (SGridControl::m_pSellItem == pItem)
+			SGridControl::m_pSellItem = nullptr;
+		if (g_pCursor && g_pCursor->m_pAttachedItem == pItem)
+			g_pCursor->DetachItem();
+		SAFE_DELETE(pItem);
+	}
+
 	void WYD748_AddOwnedGridItem(SGridControl* grid, STRUCT_ITEM* item)
 	{
 		if (!grid)
@@ -173,7 +212,6 @@ TMFieldScene::TMFieldScene()
 	LOG_WRITELOG(">> New Field Scene\r\n");
 	m_eSceneType = ESCENE_TYPE::ESCENE_FIELD;
 	m_dwID = static_cast<unsigned int>(m_eSceneType);
-	m_bInitGate = 1;
 	// Start in the full source path; InitializeScene switches this flag only
 	// when the deployed 7.48 resource lacks the newer HUD controls.
 	m_bCompatFieldScene = false;
@@ -602,6 +640,8 @@ TMFieldScene::TMFieldScene()
 	m_nAirMove_State = 0;
 	m_dwAirMove_TickTime = 0;
 	m_bAirMove_Wing = 0;
+	m_vecAirMove_Origin.x = 0.0f;
+	m_vecAirMove_Origin.y = 0.0f;
 	m_vecAirMove_Dest.x = 0.0;
 	m_vecAirMove_Dest.y = 0.0;
 	m_fAirMove_Speed = 0.6f;
@@ -1886,12 +1926,15 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pChatWhisper_C->m_bSelected = 1;
 		if (m_pChatGuild_C)
 			m_pChatGuild_C->m_bSelected = 1;
-		// FUN_00435b13 always binds the classic minimap controls, even when
-		// [CLASSIC] selects UI version 1. IDs 5714/5715/6136/6137 belong only to
-		// the UI2 branch and intentionally remain null in this 7.48 resource.
+		// Bind the graph actually loaded from FieldScene2.bin. The CLASSIC
+		// option does not remove UI2 children from that resource.
 		m_pPositionText = static_cast<SText*>(m_pControlContainer->FindControl(771));
 		m_pMiniMapPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(289));
 		m_pMiniMapDir = static_cast<SPanel*>(m_pControlContainer->FindControl(291));
+		m_pMiniMapZoomIn = static_cast<SButton*>(m_pControlContainer->FindControl(5714));
+		m_pMiniMapZoomOut = static_cast<SButton*>(m_pControlContainer->FindControl(5715));
+		m_pMiniMapServerPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(6136));
+		m_pMiniMapServerText = static_cast<SText*>(m_pControlContainer->FindControl(6137));
 		SButton* pNativeMiniMapButton = static_cast<SButton*>(m_pControlContainer->FindControl(296));
 		if (m_pPositionText)
 			m_pPositionText->SetVisible(0);
@@ -6128,11 +6171,14 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				return 1;
 			}
 
-			if (m_nCoinMsgType == 4 && nInputValue > 1999999999)
+			if (m_nCoinMsgType == 4 && !field_interaction::IsValidAutoTradePrice(nInputValue))
 			{
 				char istrMessage[128]{};
 
-				sprintf_s(istrMessage, g_pMessageStringTable[143], 2000000000);
+				if (nInputValue <= 0)
+					sprintf_s(istrMessage, "%s", g_pMessageStringTable[34]);
+				else
+					sprintf_s(istrMessage, g_pMessageStringTable[143], 2000000000);
 
 				m_pMessagePanel->SetMessage(istrMessage, 1000);
 				m_pMessagePanel->SetVisible(1, 1);
@@ -6253,15 +6299,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					if (pCargoItem)
 						pCargoItem->m_GCObj.dwColor = -1;
 
-					if (g_pCursor && g_pCursor->m_pAttachedItem == pAutoTradeItem)
-						g_pCursor->m_pAttachedItem = nullptr;
-
-					if (pAutoTradeItem)
-					{
-						delete pAutoTradeItem;
-
-						pAutoTradeItem = nullptr;
-					}
+					WYD748_ReleaseAutoTradeItem(pAutoTradeItem);
 				}
 				SetVisibleAutoTrade(1, 1);
 			}
@@ -6300,7 +6338,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 						if (!pAutoTradeItem)
 						{
-							if (!pCargoItem)
+							if (!pCargoItem || !pCargoItem->m_pItem)
 								return 1;
 
 							STRUCT_ITEM selectedItem{};
@@ -6434,42 +6472,51 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			break;
 			case 12:
 			{
-				// A pending split dialog may outlive its grid item after a
-				// confirmed move or inventory teardown.
-				if (!SGridControl::m_pSellItem ||
-					!SGridControl::m_pSellItem->m_pItem ||
-					!SGridControl::m_pSellItem->m_pGridControl || !m_pGridInv)
-					break;
-				int nItemAmount = BASE_GetItemAmount(SGridControl::m_pSellItem->m_pItem);
-
-				if (nInputValue >= nItemAmount)
+				// Establish live grid ownership before dereferencing a selection
+				// that may have outlived an authoritative inventory update.
+				auto pSplitItem = m_pGridInv ? field_interaction::FindOwnedItem(
+					m_pGridInv->m_pItemList, m_pGridInv->m_nNumItem, SGridControl::m_pSellItem) : nullptr;
+				if (!pSplitItem || !pSplitItem->m_pItem ||
+					pSplitItem->m_pGridControl != m_pGridInv || !m_pMyHuman)
 				{
-					m_pControlContainer->SetFocusedControl(nullptr);
-					m_pInputGoldPanel->SetVisible(0);
-					pInputText->SetText((char*)"");
+					SetInVisibleInputCoin();
 					return 0;
+				}
+				int nItemAmount = BASE_GetItemAmount(pSplitItem->m_pItem);
+
+				if (!field_interaction::IsValidStackSplitQuantity(nInputValue, nItemAmount))
+				{
+					if (m_pMessagePanel)
+					{
+						m_pMessagePanel->SetMessage(g_pMessageStringTable[409], 1000);
+						m_pMessagePanel->SetVisible(1, 1);
+					}
+					m_pControlContainer->SetFocusedControl(pInputText);
+					return 1;
 				}
 
 				if (m_pGridInv->CheckType(
-					SGridControl::m_pSellItem->m_pGridControl->m_eItemType,
-					SGridControl::m_pSellItem->m_pGridControl->m_eGridType) != 1)
+					pSplitItem->m_pGridControl->m_eItemType,
+					pSplitItem->m_pGridControl->m_eGridType) != 1)
 				{
-					return 1;
+					SetInVisibleInputCoin();
+					return 0;
 				}
 
 				// WYD 7.48 keeps all 63 Carry slots in one 9x7 grid. Splitting an item
 				// therefore sends the native row-major slot with no synthetic page.
-				int pos = SGridControl::m_pSellItem->m_nCellIndexX
-					+ 9 * SGridControl::m_pSellItem->m_nCellIndexY;
+				int pos = pSplitItem->m_nCellIndexX + 9 * pSplitItem->m_nCellIndexY;
 
 				MSG_STANDARDPARM3 stPacket{};
 
 				stPacket.Header.Type = MSG_SplitItem_Opcode;
 				stPacket.Header.ID = m_pMyHuman->m_dwID;
 				stPacket.Parm1 = pos;
-				stPacket.Parm2 = SGridControl::m_pSellItem->m_pItem->sIndex;
+				stPacket.Parm2 = pSplitItem->m_pItem->sIndex;
 				stPacket.Parm3 = static_cast<int>(nInputValue);
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stPacket)->Type, reinterpret_cast<char*>(&stPacket), sizeof(stPacket)});
+				SetInVisibleInputCoin();
+				return 1;
 			}
 			break;
 			}
@@ -8666,13 +8713,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	}
 	if (idwControlID == 667)
 	{
-		int validItem = 1;
-		for (int i = 0; i < 10; ++i)
-		{
-			if (m_stAutoTrade.Item[i].sIndex > 0)
-				validItem = 0;
-		}
-		if (validItem == 1)
+		if (!field_interaction::HasAutoTradeOffers(m_stAutoTrade.Item))
 		{
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[145], 2000);
 			m_pMessagePanel->SetVisible(1, 1);
@@ -9905,6 +9946,30 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 {
 	if (g_pObjectManager && g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
 		m_bRespawnPromptOffered = false;
+	auto recallDeadPlayer = [&](unsigned int now)
+	{
+		if (!m_pMyHuman || !g_pObjectManager ||
+			!death_motion::ShouldAutoRecallDeadPlayer(m_dwLastDeadTime, now,
+				m_pMyHuman->m_cDie == 1,
+				static_cast<int>(m_pMyHuman->m_vecPosition.x),
+				static_cast<int>(m_pMyHuman->m_vecPosition.y)))
+			return;
+
+		MSG_STANDARD request{};
+		request.ID = g_pObjectManager->m_dwCharID;
+		request.Type = MSG_Recall_Opcode;
+		SendOneMessage(reinterpret_cast<char*>(&request), sizeof(request));
+		m_dwLastDeadTime = 0;
+	};
+	// The compact 7.48 path returns before the regular HUD tick. Close a stale
+	// respawn prompt for both paths as soon as authoritative HP is restored.
+	if (m_pMessageBox && g_pObjectManager &&
+		m_pMessageBox->m_dwMessage == 11 && m_pMessageBox->IsVisible() == 1 &&
+		g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
+	{
+		m_pMessageBox->SetVisible(0);
+	}
+
 	// The compatibility scene has no source-tree HUD graph.  The base scene
 	// still advances terrain streaming, camera and child objects safely; the
 	// full gameplay HUD tick is skipped because it assumes controls absent in
@@ -9917,6 +9982,18 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		// Consume the last completed entity hover pass before the base scene
 		// clears m_pMouseOverHuman and submits controls for this frame.
 		UpdateCompatObservedAffects();
+		if (m_pMyHuman && m_pMiniMapPanel && m_pMiniMapPanel->IsVisible())
+		{
+			if (m_pPositionText)
+			{
+				char position[64]{};
+				sprintf_s(position, "X: %d Y: %d", static_cast<int>(m_pMyHuman->m_vecPosition.x),
+					static_cast<int>(m_pMyHuman->m_vecPosition.y));
+				m_pPositionText->SetText(position, 0);
+			}
+			if (m_pMiniMapDir)
+				m_pMiniMapDir->GetGeomControl()->fAngle = m_pMyHuman->m_fAngle - 2.3561945f;
+		}
 		TMScene::FrameMove(dwServerTime);
 		UpdateGambleRequestTimeout();
 		// Native field lifecycle advances the five-second quit/logout/server-change
@@ -9945,6 +10022,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 				OfferRespawnPrompt(false);
 			}
 		}
+		recallDeadPlayer(dwServerTime);
 		// The compact lifecycle must also advance the stock affect row.  Returning
 		// before this call left every 0x3B9 duration entry permanently invisible,
 		// even though InitializeCompatFieldScene created the native 7.48 icons.
@@ -10023,15 +10101,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		g_bEvent = 1;
 		m_bShowNameLabel = 0;
 	}
-	if (m_dwLastDeadTime && dwServerTime - m_dwLastDeadTime > 180000 && m_pMyHuman->m_cDie == 1 && 
-		(int)m_pMyHuman->m_vecPosition.x >> 7 != 1 && (int)m_pMyHuman->m_vecPosition.y >> 7 != 1)
-	{
-		MSG_STANDARD stStandard;
-		stStandard.ID = g_pObjectManager->m_dwCharID;
-		stStandard.Type = MSG_Recall_Opcode;
-		SendOneMessage((char*)&stStandard, 12);
-		m_dwLastDeadTime = 0;
-	}
+	recallDeadPlayer(dwServerTime);
 	if (dwServerTime - m_dwQuizStart > 5000 && m_pQuizPanel && m_pQuizPanel->m_bVisible)
 		m_pQuizPanel->SetVisible(0);
 
@@ -10143,12 +10213,6 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		m_pMessagePanel->SetMessage("Critical Data Error In Client", 0);
 		m_pMessagePanel->SetVisible(1, 0);
 		return 1;
-	}
-
-	if (m_pMessagePanel && m_pMessageBox && m_pMessageBox->m_dwMessage == 11 && m_pMessageBox->IsVisible() == 1 &&
-		g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
-	{
-		m_pMessageBox->SetVisible(0);
 	}
 
 	if (m_pMiniMapDir)
@@ -11259,24 +11323,6 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	else if (m_cAutoAttack == 1 && m_pTargetHuman && m_pTargetHuman->m_cDie == 1)
 		m_pTargetHuman = 0;
 
-
-	int nViewgridx = 33;
-	for (int i = 0; i < 100; ++i)
-	{
-		if (i == 53)
-			nViewgridx = 20;
-
-		if (fabsf(static_cast<float>(g_pInitItem[i].PosX) - m_pMyHuman->m_vecPosition.x) < nViewgridx - 1)
-		{
-			if (fabsf(static_cast<float>(g_pInitItem[i].PosY) - m_pMyHuman->m_vecPosition.y) < nViewgridx - 1)
-			{
-				CreateGate(i, m_bInitGate);
-			}
-		}
-	}
-
-	if (m_bInitGate == 1)
-		m_bInitGate = 0;
 
 	FindAuto();
 
@@ -15153,29 +15199,34 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			SendOneMessage((char*)&stRecall, sizeof(stRecall));
 
 			m_cResurrect = 0;
-			m_pMyHuman->m_cDie = 0;
-			m_pMyHuman->SetAnimation(ECHAR_MOTION::ECMOTION_LEVELUP, 0);
+			// The request does not revive the player. Keep the death state until
+			// the server confirms positive HP through SetHpMp; otherwise a lost or
+			// rejected recall suppresses the dead-player fallback.
 
-			if (!m_pMyHuman->m_cHide)
+			if (!m_pMyHuman->m_cHide && m_pEffectContainer)
 			{
-				auto pLevelUp = new TMEffectLevelUp(TMVector3(m_pMyHuman->m_vecPosition.x, m_pMyHuman->m_fHeight, m_pMyHuman->m_vecPosition.y), 0);
-				if (pLevelUp)
-					m_pEffectContainer->AddChild(pLevelUp);
+				m_pEffectContainer->AddChild(new TMEffectLevelUp(
+					TMVector3(m_pMyHuman->m_vecPosition.x, m_pMyHuman->m_fHeight,
+						m_pMyHuman->m_vecPosition.y), 0));
 			}
 
 			m_cLastTown = 0;
 		}
-		else
+		else if (death_motion::ShouldAdvanceRespawnRecallCountdown(
+			m_dwLastTown, dwServerTime, m_cLastTown == 1))
 		{
-			unsigned int dwRemain = (m_dwLastSelServer + 5000 - dwServerTime) / 1000;
+			unsigned int dwRemain = death_motion::RespawnRecallSecondsRemaining(
+				m_dwLastTown, dwServerTime);
 			if (m_dwLastRemain != dwRemain)
 			{
 				m_bAutoRun = 0;
 				m_dwLastRemain = dwRemain;
 
-				auto pPortal = new TMSkillTownPortal(TMVector3(m_pMyHuman->m_vecPosition.x, m_pMyHuman->m_fHeight + 0.05f, m_pMyHuman->m_vecPosition.y), 1);
-				if (pPortal)
-					m_pEffectContainer->AddChild(pPortal);
+				if (m_pEffectContainer)
+					m_pEffectContainer->AddChild(new TMSkillTownPortal(
+						TMVector3(m_pMyHuman->m_vecPosition.x,
+							m_pMyHuman->m_fHeight + 0.05f,
+							m_pMyHuman->m_vecPosition.y), 1));
 			}
 		}
 	}
@@ -15258,9 +15309,11 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 				m_bAutoRun = 0;
 				m_dwLastRemain = dwRemain;
 
-				auto pPortal = new TMSkillTownPortal(TMVector3(m_pMyHuman->m_vecPosition.x, m_pMyHuman->m_fHeight + 0.05f, m_pMyHuman->m_vecPosition.y), 1);
-				if (pPortal)
-					m_pEffectContainer->AddChild(pPortal);
+				if (m_pEffectContainer)
+					m_pEffectContainer->AddChild(new TMSkillTownPortal(
+						TMVector3(m_pMyHuman->m_vecPosition.x,
+							m_pMyHuman->m_fHeight + 0.05f,
+							m_pMyHuman->m_vecPosition.y), 1));
 			}
 		}
 	}
@@ -15296,9 +15349,11 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 				m_bAutoRun = 0;
 				m_dwLastRemain = dwRemain;
 
-				auto pPortal = new TMSkillTownPortal(TMVector3(m_pMyHuman->m_vecPosition.x,	m_pMyHuman->m_fHeight + 0.05f, m_pMyHuman->m_vecPosition.y), 1);
-				if (pPortal)
-					m_pEffectContainer->AddChild(pPortal);
+				if (m_pEffectContainer)
+					m_pEffectContainer->AddChild(new TMSkillTownPortal(
+						TMVector3(m_pMyHuman->m_vecPosition.x,
+							m_pMyHuman->m_fHeight + 0.05f,
+							m_pMyHuman->m_vecPosition.y), 1));
 			}
 		}
 	}
@@ -16625,11 +16680,12 @@ void TMFieldScene::SetVisibleMiniMap()
 
 	if (m_bCompatFieldScene)
 	{
-		// FUN_0044ca65 has a dedicated CLASSIC/UI1 branch using only IDs
-		// 289/290/291/296/771. Keep its hidden -> compact -> expanded cycle and
-		// exclude every UI2-only server/zoom control from the 7.48 path.
+		// Follow the native layout matching the loaded graph, not the INI flag.
 		SPanel* pMiniMapBorder = static_cast<SPanel*>(m_pControlContainer->FindControl(290));
 		const bool wasVisible = m_pMiniMapPanel->m_bVisible != 0;
+		const bool ui2 = m_pMiniMapZoomIn != nullptr;
+		const auto layout = mini_map_layout::Next(wasVisible, TMGround::m_fMiniMapScale, ui2,
+			static_cast<float>(g_pDevice->m_dwScreenWidth), static_cast<float>(g_pDevice->m_dwScreenHeight));
 		for (int markerIndex = 0; markerIndex < 256; ++markerIndex)
 		{
 			if (m_pInMiniMapPosPanel[markerIndex])
@@ -16638,58 +16694,62 @@ void TMFieldScene::SetVisibleMiniMap()
 				m_pInMiniMapPosText[markerIndex]->SetVisible(0);
 		}
 
-		if (wasVisible)
+		TMGround::m_fMiniMapScale = layout.scale;
+		m_pMiniMapPanel->SetPos(layout.x, layout.y);
+		m_pMiniMapPanel->SetSize(layout.size, layout.size);
+		m_pMiniMapPanel->SetVisible(layout.visible);
+		if (pMiniMapBorder)
 		{
-			if (TMGround::m_fMiniMapScale >= 1.0f)
+			pMiniMapBorder->SetPos(ui2 ? 0.0f : -4.0f, ui2 ? 0.0f : -4.0f);
+			pMiniMapBorder->SetSize(layout.size + (ui2 ? 0.0f : 8.0f), layout.size + (ui2 ? 0.0f : 8.0f));
+			pMiniMapBorder->SetVisible(layout.visible && (!ui2 || !layout.expanded));
+		}
+		// UI2 has eight separate frame pieces, not a scalable root border.
+		const float edge = 8.0f;
+		const float last = layout.size - edge;
+		const float middle = layout.size - 2.0f * edge;
+		const float frame[8][4] = {
+			{0, 0, edge, edge}, {edge, 0, middle, edge}, {last, 0, edge, edge},
+			{0, edge, edge, middle}, {last, edge, edge, middle},
+			{0, last, edge, edge}, {edge, last, middle, edge}, {last, last, edge, edge}};
+		for (int i = 0; i < 8; ++i)
+		{
+			if (auto part = m_pControlContainer->FindControl(5705 + i))
 			{
-				m_pMiniMapPanel->SetVisible(0);
-				if (pMiniMapBorder)
-					pMiniMapBorder->SetVisible(0);
-			}
-			else
-			{
-				TMGround::m_fMiniMapScale = 1.5f;
-				m_pMiniMapPanel->SetPos(200.0f, 40.0f);
-				m_pMiniMapPanel->SetSize(400.0f, 400.0f);
-				if (pMiniMapBorder)
-				{
-					pMiniMapBorder->SetPos(-4.0f, -4.0f);
-					pMiniMapBorder->SetSize(408.0f, 408.0f);
-					pMiniMapBorder->SetVisible(1);
-				}
-				if (m_pMiniMapDir)
-					m_pMiniMapDir->SetPos(196.0f, 184.0f);
-				if (m_pPositionText)
-				{
-					m_pPositionText->SetPos(0.0f, 408.0f);
-					m_pPositionText->SetSize(400.0f, 20.0f);
-					m_pPositionText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
-				}
+				part->SetPos(frame[i][0], frame[i][1]);
+				part->SetSize(frame[i][2], frame[i][3]);
+				part->SetVisible(layout.visible && layout.expanded);
 			}
 		}
-		else
+		if (auto bottom = m_pControlContainer->FindControl(5713))
 		{
-			TMGround::m_fMiniMapScale = 0.6f;
-			// The stock executable uses x=636/635 at 800 pixels. Preserve those
-			// right-edge offsets when the source client runs at a wider viewport.
-			const float rightEdge = static_cast<float>(g_pDevice->m_dwScreenWidth);
-			m_pMiniMapPanel->SetPos(rightEdge - 164.0f, 4.0f);
-			m_pMiniMapPanel->SetSize(160.0f, 160.0f);
-			m_pMiniMapPanel->SetVisible(1);
-			if (pMiniMapBorder)
-			{
-				pMiniMapBorder->SetPos(-4.0f, -4.0f);
-				pMiniMapBorder->SetSize(168.0f, 168.0f);
-				pMiniMapBorder->SetVisible(1);
-			}
-			if (m_pMiniMapDir)
-				m_pMiniMapDir->SetPos(76.0f, 64.0f);
-			if (m_pPositionText)
-			{
-				m_pPositionText->SetPos(0.0f, 168.0f);
-				m_pPositionText->SetSize(160.0f, 20.0f);
-				m_pPositionText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
-			}
+			bottom->SetPos(0, layout.size);
+			bottom->SetSize(layout.size, 16.0f);
+			bottom->SetVisible(layout.visible && !layout.expanded);
+		}
+		// Do not show the resource's placeholder server label in the compact HUD.
+		if (m_pMiniMapServerPanel)
+			m_pMiniMapServerPanel->SetVisible(0);
+		if (m_pMiniMapZoomIn)
+		{
+			m_pMiniMapZoomIn->SetPos(layout.size - 19.0f, -18.0f);
+			m_pMiniMapZoomIn->SetSize(13.0f, 13.0f);
+			m_pMiniMapZoomIn->SetVisible(layout.visible && !layout.expanded);
+		}
+		if (m_pMiniMapZoomOut)
+		{
+			m_pMiniMapZoomOut->SetPos(layout.size - 40.0f, 0);
+			m_pMiniMapZoomOut->SetSize(40.0f, 38.0f);
+			m_pMiniMapZoomOut->SetVisible(layout.visible && layout.expanded);
+		}
+		if (m_pMiniMapDir)
+			m_pMiniMapDir->SetPos(layout.size * 0.5f - m_pMiniMapDir->m_nWidth * 0.5f,
+				layout.size * 0.5f - m_pMiniMapDir->m_nHeight * 0.5f);
+		if (m_pPositionText)
+		{
+			m_pPositionText->SetPos(0, layout.size + 2.0f);
+			m_pPositionText->SetSize(layout.size, 20.0f);
+			m_pPositionText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
 		}
 
 		const bool isVisible = m_pMiniMapPanel->m_bVisible != 0;
@@ -17063,6 +17123,15 @@ void TMFieldScene::SetVisibleRefuseServerWar()
 
 void TMFieldScene::SetInVisibleInputCoin()
 {
+	if (m_nCoinMsgType == 12)
+	{
+		auto pSplitItem = m_pGridInv ? field_interaction::FindOwnedItem(
+			m_pGridInv->m_pItemList, m_pGridInv->m_nNumItem, SGridControl::m_pSellItem) : nullptr;
+		SGridControl::m_pSellItem = nullptr;
+		m_nCoinMsgType = -1;
+		if (pSplitItem)
+			pSplitItem->m_GCObj.dwColor = 0xFFFFFFFF;
+	}
 	// Native FUN_00447594 closes edit 627; the imported scene uses 65889.
 	// Resolve through the active resource ABI and tolerate an absent optional UI.
 	const unsigned int editControlID = m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD;
@@ -18947,6 +19016,9 @@ void TMFieldScene::SetAutoTarget()
 
 void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 {
+	if (!bShow)
+		WYD748_CancelAutoTradePurchase(m_pMessageBox);
+
 	SGridControl::m_sLastMouseOverIndex = -1;
 
 	if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible() == 1)
@@ -19124,9 +19196,7 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 				auto pSrcItem = pCargoGrid ? pCargoGrid->GetAtItem(cargoX, cargoY) : nullptr;
 				if (pSrcItem)
 					pSrcItem->m_GCObj.dwColor = 0xFFFFFFFF;
-				if (g_pCursor && g_pCursor->m_pAttachedItem == pItem)
-					g_pCursor->m_pAttachedItem = nullptr;
-				SAFE_DELETE(pItem);
+				WYD748_ReleaseAutoTradeItem(pItem);
 			}
 
 			setPanelVisible(m_pInvenPanel, 0);
@@ -19267,10 +19337,7 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 				if (pSrcItem)
 					pSrcItem->m_GCObj.dwColor = 0xFFFFFFFF;
 
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pItem)
-					g_pCursor->m_pAttachedItem = nullptr;
-
-				SAFE_DELETE(pItem);
+				WYD748_ReleaseAutoTradeItem(pItem);
 			}
 			m_pInvenPanel->SetVisible(0);
 			m_pCargoPanel->SetVisible(0);
@@ -19350,14 +19417,24 @@ void TMFieldScene::SetKingDomChat(char cOn)
 
 void TMFieldScene::SendReqBuy(unsigned int dwControlID)
 {
+	const int slot = field_interaction::AutoTradeSlotIndex(m_bCompatFieldScene != 0, dwControlID);
+	if (slot < 0 || !m_pMyHuman || !m_pAutoTrade || !m_pAutoTrade->IsVisible() ||
+		!m_stAutoTrade.TargetID)
+		return;
+
+	auto grid = m_pGridAutoTrade[slot];
+	if (!grid || !grid->GetAtItem(0, 0) || m_stAutoTrade.Item[slot].sIndex <= 0 ||
+		m_stAutoTrade.TradeMoney[slot] <= 0)
+		return;
+
 	MSG_ReqBuy stReqBuy{};
 	stReqBuy.Header.ID = m_pMyHuman->m_dwID;
 	stReqBuy.Header.Type = MSG_ReqBuy_Opcode;
 	stReqBuy.TargetID = m_stAutoTrade.TargetID;
-	stReqBuy.Pos = dwControlID - 653;
-	stReqBuy.Price = m_stAutoTrade.TradeMoney[dwControlID - 653];
+	stReqBuy.Pos = slot;
+	stReqBuy.Price = m_stAutoTrade.TradeMoney[slot];
 	stReqBuy.Tax = m_stAutoTrade.Tax;
-	stReqBuy.item = m_stAutoTrade.Item[dwControlID - 653];
+	stReqBuy.item = m_stAutoTrade.Item[slot];
 
 	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stReqBuy)->Type, reinterpret_cast<char*>(&stReqBuy), sizeof(stReqBuy)});
 }
@@ -19365,116 +19442,6 @@ void TMFieldScene::SendReqBuy(unsigned int dwControlID)
 void TMFieldScene::SetSanc()
 {
 	m_nMySanc = BASE_GetItemSanc(&g_pObjectManager->m_stMobData.Equip[4]);
-}
-
-void TMFieldScene::CreateGate(int nZoneIndex, int bInit)
-{
-	auto pOldItem = (TMItem*)g_pObjectManager->GetItemByID(nZoneIndex + 15001);
-	if (pOldItem)
-		return;
-
-	int a = nZoneIndex == 53 ? 0 : 0;
-	
-	MSG_CreateItem stCreateItem{};
-	stCreateItem.ItemID = nZoneIndex + 15001;
-	stCreateItem.Item.sIndex = g_pInitItem[nZoneIndex].sIndex;
-	stCreateItem.GridX = g_pInitItem[nZoneIndex].PosX;
-	stCreateItem.GridY = g_pInitItem[nZoneIndex].PosY;
-	stCreateItem.Rotate = static_cast<char>(g_pInitItem[nZoneIndex].Rotate);
-	stCreateItem.Height = 16;
-	stCreateItem.State = 2;
-	auto pCreateItem = &stCreateItem;
-
-	if (BASE_GetItemAbility(&stCreateItem.Item, 34) > 0)
-	{
-		TMGate* pItem = nullptr;
-		if (stCreateItem.Item.sIndex >= 0 && stCreateItem.Item.sIndex <= 6500)
-		{
-			auto pItem = new TMGate();
-
-			pItem->InitItem(pCreateItem->Item);
-			pItem->InitGate(pCreateItem->Item);
-
-			pItem->m_dwID = pCreateItem->ItemID;
-			pItem->m_nMaskIndex = 0;
-			pItem->InitObject();
-			pItem->InitAngle(0.0f, ((float)pCreateItem->Rotate * D3DXToRadian(180)) / 2.0f, 0.0f);
-
-			float fX = (float)pCreateItem->GridX + 0.5f;
-			float fY = (float)pCreateItem->GridY + 0.5f;
-
-			float fHeight = m_pGround->GetHeight(TMVector2(fX, fY));
-
-			if (fHeight < -500.0f)
-			{
-				auto pOtherGround = m_pGroundList[(m_nCurrentGroundIndex + 1) % 2];
-				if (pOtherGround)
-					fHeight = pOtherGround->GetHeight(TMVector2(fX, fY));
-				else
-				{
-					TMScene::FrameMove(0);
-					pOtherGround = m_pGroundList[(m_nCurrentGroundIndex + 1) % 2];
-					if (pOtherGround)
-						fHeight = pOtherGround->GetHeight(TMVector2(fX, fY));
-				}
-			}
-
-			pItem->InitPosition(fX, fHeight, fY);
-			int nMaskIndex = BASE_GetItemAbility(&pCreateItem->Item, 34);
-			BASE_UpdateItem2(nMaskIndex, 1, (unsigned char)pCreateItem->State, pCreateItem->GridX, pCreateItem->GridY, (char*)m_HeightMapData, 
-				(int)(pItem->m_fAngle / D3DXToRadian(90)), pCreateItem->Height);
-
-			pItem->SetState((EGATE_STATE)pCreateItem->State);
-			if (!pOldItem)
-				m_pItemContainer->AddChild(pItem);
-		}
-
-		return;
-	}
-
-	TMItem* pItem = nullptr;
-	if (pOldItem)
-		pItem = pOldItem;
-	else if (g_pItemList[pCreateItem->Item.sIndex].nIndexMesh == 1607)
-	{
-		pItem = new TMCannon();
-		pItem->m_dwObjType = 1607;
-	}
-	else
-	{
-		pItem = new TMItem();
-	}
-
-	if (!pItem)
-		return;
-
-	pItem->InitItem(pCreateItem->Item);
-	pItem->m_dwID = pCreateItem->ItemID;
-	pItem->m_nMaskIndex = 0;
-	pItem->InitObject();
-	pItem->InitAngle(0.0f, ((float)pCreateItem->Rotate * D3DXToRadian(180)) / 2.0f, 0.0f);
-
-	float fX = (float)pCreateItem->GridX + 0.5f;
-	float fY = (float)pCreateItem->GridY + 0.5f;
-
-	float fHeight = GroundGetMask(TMVector2(fX, fY)) * 0.1f;
-	pItem->InitPosition(fX, fHeight + 0.1f, fY);
-
-	if (!pOldItem)
-		m_pItemContainer->AddChild(pItem);
-
-	if (pCreateItem->Create == 1)
-	{
-		if (BASE_GetItemAbility(&pCreateItem->Item, 38) == 2)
-			GetSoundAndPlay(44, 0, 0);
-		else if (pCreateItem->Item.sIndex == 412 || pCreateItem->Item.sIndex == 413 || pCreateItem->Item.sIndex == 4141 || 
-			pCreateItem->Item.sIndex == 419 || pCreateItem->Item.sIndex == 420)
-		{
-			GetSoundAndPlay(48, 0, 0);
-		}
-		else
-			GetSoundAndPlay(45, 0, 0);
-	}
 }
 
 int TMFieldScene::GetItemFromGround(unsigned int dwServerTime)
@@ -23809,14 +23776,29 @@ int TMFieldScene::OnPacketItemSold(MSG_STANDARDPARM2* pStd)
 	// acknowledgement cannot turn into an out-of-bounds client write.
 	if (pPanel && pPanel->IsVisible() == 1
 		&& pStd->Parm1 == m_stAutoTrade.TargetID
-		&& pStd->Parm2 >= 0 && pStd->Parm2 < autoTradeSlotCount
-		&& m_pGridAutoTrade[pStd->Parm2])
+		&& pStd->Parm2 >= 0 && pStd->Parm2 < autoTradeSlotCount)
 	{
-		auto pItem = m_pGridAutoTrade[pStd->Parm2]->PickupAtItem(0, 0);
-		if (g_pCursor && g_pCursor->m_pAttachedItem == pItem)
-			g_pCursor->m_pAttachedItem = nullptr;
+		WYD748_CancelAutoTradePurchase(m_pMessageBox, pStd->Parm2);
+		field_interaction::ClearAutoTradeOffer(m_stAutoTrade.Item,
+			m_stAutoTrade.CarryPos, m_stAutoTrade.TradeMoney, pStd->Parm2);
+		auto pPrice = m_pControlContainer
+			? static_cast<SText*>(m_pControlContainer->FindControl(800 + pStd->Parm2)) : nullptr;
+		if (pPrice)
+		{
+			pPrice->m_cComma = 1;
+			char emptyPrice[] = "";
+			pPrice->SetText(emptyPrice, 0);
+			pPrice->SetVisible(0);
+		}
+		auto pGrid = m_pGridAutoTrade[pStd->Parm2];
+		if (!pGrid)
+			return 1;
+		pGrid->m_nTradeMoney = 0;
+		auto pItem = pGrid->PickupAtItem(0, 0);
+		if (!pItem)
+			return 1;
 
-		SAFE_DELETE(pItem);
+		WYD748_ReleaseAutoTradeItem(pItem);
 	}
 
 	return 1;
@@ -23842,8 +23824,17 @@ int TMFieldScene::OnPacketCreateItem(MSG_CreateItem* pMsg)
 		return 0;
 
 	auto pOldItem = (TMItem*)g_pObjectManager->GetItemByID(pMsg->ItemID);
-	
-	if (BASE_GetItemAbility(&pMsg->Item, 34) > 0)
+	const bool isGate = BASE_GetItemAbility(&pMsg->Item, 34) > 0;
+	const bool isCannon = !isGate && g_pItemList[pMsg->Item.sIndex].nIndexMesh == 1607;
+	// An existing ID may be updated in place only when its concrete renderer
+	// still matches the incoming item. Casting a regular item to TMGate would
+	// write gate fields beyond the allocated object.
+	if (pOldItem &&
+		(isGate != (dynamic_cast<TMGate*>(pOldItem) != nullptr) ||
+		 isCannon != (dynamic_cast<TMCannon*>(pOldItem) != nullptr)))
+		return 0;
+
+	if (isGate)
 	{
 		TMGate* pItem = nullptr;
 
@@ -23901,11 +23892,10 @@ int TMFieldScene::OnPacketCreateItem(MSG_CreateItem* pMsg)
 	TMItem* pItem = nullptr;
 	if (pOldItem)
 		pItem = pOldItem;
-	else if (g_pItemList[pMsg->Item.sIndex].nIndexMesh == 1607)
+	else if (isCannon)
 	{
 		pItem = new TMCannon();
 		pItem->m_dwObjType = 1607;
-		pMsg->Rotate = 1;
 	}
 	else
 	{
@@ -24014,8 +24004,28 @@ int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)
 		memset(&g_pObjectManager->m_stItemCargo[pMsg->SourPos], 0, sizeof(STRUCT_ITEM));
 	}
 
-	g_pCursor->DetachItem();
+	if (g_pCursor)
+		g_pCursor->DetachItem();
+	// Grid removal transfers ownership here, but its shared interaction aliases
+	// do not own the item and must not survive the confirmed destruction.
+	if (pGridItem)
+	{
+		if (SGridControl::m_pLastMouseOverItem == pGridItem)
+		{
+			SGridControl::m_pLastMouseOverItem = nullptr;
+			SGridControl::m_sLastMouseOverIndex = -1;
+		}
+		if (SGridControl::m_pLastAttachedItem == pGridItem)
+			SGridControl::m_pLastAttachedItem = nullptr;
+		if (SGridControl::m_pSellItem == pGridItem)
+			SGridControl::m_pSellItem = nullptr;
+	}
 	SAFE_DELETE(pGridItem);
+
+	// Keep the authoritative slot update and ownership cleanup even if the
+	// local renderer is not available during scene initialization or teardown.
+	if (!m_pMyHuman)
+		return 1;
 
 	m_pMyHuman->m_sFamiliar = g_pObjectManager->m_stMobData.Equip[13].sIndex;
 	GetSoundAndPlay(45, 0, 0);
@@ -24101,7 +24111,7 @@ int TMFieldScene::OnPacketUpdateItem(MSG_UpdateItem* pMsg)
 {
 	if (!pMsg || !g_pObjectManager)
 		return 0;
-	auto pItem = (TMGate*)g_pObjectManager->GetItemByID(pMsg->ItemID);
+	auto pItem = dynamic_cast<TMGate*>(g_pObjectManager->GetItemByID(pMsg->ItemID));
 	if (pItem && BASE_GetItemAbility(&pItem->m_stItem, 34) > 0)
 	{
 		STRUCT_ITEM stItem{};
@@ -24140,6 +24150,7 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 		return 1;
 
 	auto pAutoTrade = reinterpret_cast<MSG_AutoTrade*>(pStd);
+	WYD748_CancelAutoTradePurchase(m_pMessageBox);
 
 	auto pTitle = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATRADE_TITLE));
 	auto pName = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATRADE_ID));
@@ -24185,12 +24196,7 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 		pGrid->m_nTradeMoney = pAutoTrade->TradeMoney[i];
 
 		SGridControlItem* pItem = pGrid->PickupAtItem(0, 0);
-
-		if (g_pCursor && g_pCursor->m_pAttachedItem == pItem)
-			g_pCursor->m_pAttachedItem = nullptr;
-
-		if (pItem)
-			delete pItem;
+		WYD748_ReleaseAutoTradeItem(pItem);
 
 		if (pAutoTrade->Item[i].sIndex > 0)
 		{
@@ -24946,114 +24952,99 @@ int TMFieldScene::OnPacketBuy(MSG_STANDARD* pStd)
 int TMFieldScene::OnPacketSell(MSG_STANDARD* pStd)
 {
 	auto pSell = reinterpret_cast<MSG_Sell*>(pStd);
-	if (!pSell || WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene,
+	if (!pSell || !g_pObjectManager ||
+		pSell->MyType < 0 || pSell->MyType > 1 || pSell->MyPos < 0 ||
+		(pSell->MyType == 0 && pSell->MyPos >= MAX_EQUIPITEM) ||
+		(pSell->MyType == 1 && pSell->MyPos >= MAX_CARRY) ||
+		WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene,
 		pSell->MyType == 0 ? pSell->MyPos : -1))
 		return 1;
 
-	if (m_pGridHellStore->m_dwMerchantID == pSell->TargetID || 
-		m_pGridShop->m_dwMerchantID == pSell->TargetID || !pSell->TargetID &&
+	const bool knownMerchant =
+		(m_pGridHellStore && m_pGridHellStore->m_dwMerchantID == pSell->TargetID) ||
+		(m_pGridShop && m_pGridShop->m_dwMerchantID == pSell->TargetID) ||
+		(!pSell->TargetID &&
 		g_pObjectManager->m_stMobData.Class == 3 &&
-		g_pObjectManager->m_stMobData.LearnedSkill[0] & 0x1000)
+		(g_pObjectManager->m_stMobData.LearnedSkill[0] & 0x1000));
+	if (!knownMerchant)
+		return 1;
+
+	SGridControlItem* pDestItem{};
+	if (pSell->MyType == 0)
 	{
-		SGridControlItem* pDestItem{};
+		SGridControl* pGridDest[MAX_EQUIPITEM]{};
 
-		if (pSell->MyType == 0)
-		{
-			SGridControl* pGridDest[MAX_EQUIPITEM]{};
-
-			pGridDest[0] = m_pGridInv;
-			pGridDest[1] = m_pGridHelm;
-			pGridDest[2] = m_pGridCoat;
-			pGridDest[3] = m_pGridPants;
-			pGridDest[4] = m_pGridGloves;
-			pGridDest[5] = m_pGridBoots;
-			pGridDest[6] = m_pGridLeft;
-			pGridDest[7] = m_pGridRight;
-			pGridDest[8] = m_pGridRing;
-			pGridDest[9] = m_pGridNecklace;
-			pGridDest[10] = m_pGridOrb;
-			pGridDest[11] = m_pGridCabuncle;
-			pGridDest[12] = m_pGridGuild;
-			pGridDest[13] = m_pGridEvent;
-			pGridDest[14] = m_pGridDRing;
-			pGridDest[15] = m_pGridMantua;
-			pGridDest[16] = m_pGridNewSlot1;
-			pGridDest[17] = m_pGridNewSlot2;
+		pGridDest[0] = m_pGridInv;
+		pGridDest[1] = m_pGridHelm;
+		pGridDest[2] = m_pGridCoat;
+		pGridDest[3] = m_pGridPants;
+		pGridDest[4] = m_pGridGloves;
+		pGridDest[5] = m_pGridBoots;
+		pGridDest[6] = m_pGridLeft;
+		pGridDest[7] = m_pGridRight;
+		pGridDest[8] = m_pGridRing;
+		pGridDest[9] = m_pGridNecklace;
+		pGridDest[10] = m_pGridOrb;
+		pGridDest[11] = m_pGridCabuncle;
+		pGridDest[12] = m_pGridGuild;
+		pGridDest[13] = m_pGridEvent;
+		pGridDest[14] = m_pGridDRing;
+		pGridDest[15] = m_pGridMantua;
+		pGridDest[16] = m_pGridNewSlot1;
+		pGridDest[17] = m_pGridNewSlot2;
+		if (pGridDest[pSell->MyPos])
 			pDestItem = pGridDest[pSell->MyPos]->PickupItem(0, 0);
-
-			int nPrice = 0;
-
-			if (pDestItem->m_pItem->sIndex > 0 && pDestItem->m_pItem->sIndex < MAX_ITEMLIST)
-				nPrice = g_pItemList[pDestItem->m_pItem->sIndex].nPrice;
-
-			nPrice = static_cast<int>((float)nPrice * 0.25f);
-
-			if (nPrice >= 5001 && nPrice <= 10000)
-			{
-				nPrice = 2 * nPrice / 3;
-			}
-			else if (nPrice > 10000)
-			{
-				nPrice /= 2;
-			}
-
-			memset(&g_pObjectManager->m_stMobData.Equip[pSell->MyPos], 0, sizeof(STRUCT_ITEM));
-			g_pObjectManager->m_stMobData.Coin += nPrice;
-		}
-		else if (pSell->MyType == 1)
-		{
-			// Resolve the server Carry slot through the active client topology; the
-			// native 7.48 layout is one 9x7 grid, not four 15-slot pages.
-			int cellX = 0;
-			int cellY = 0;
-			GetCarryCellForSlot(pSell->MyPos, cellX, cellY);
-			SGridControl* carryGrid = GetCarryGridForSlot(pSell->MyPos);
-			pDestItem = carryGrid ? carryGrid->PickupAtItem(cellX, cellY) : nullptr;
-			// Ignore an out-of-sync confirmation instead of dereferencing an empty
-			// native cell and crashing the client UI.
-			if (!pDestItem || !pDestItem->m_pItem)
-				return 1;
-
-			int nPrice = 0;
-
-			if (pDestItem->m_pItem->sIndex > 0 && pDestItem->m_pItem->sIndex < MAX_ITEMLIST)
-				nPrice = g_pItemList[pDestItem->m_pItem->sIndex].nPrice;
-
-			nPrice = static_cast<int>((float)nPrice * 0.25f);
-
-			if (nPrice >= 5001 && nPrice <= 10000)
-			{
-				nPrice = 2 * nPrice / 3;
-			}
-			else if (nPrice > 10000)
-			{
-				nPrice /= 2;
-			}
-
-			memset(&g_pObjectManager->m_stMobData.Carry[pSell->MyPos], 0, sizeof(STRUCT_ITEM));
-			g_pObjectManager->m_stMobData.Coin += nPrice;
-		}
-
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pDestItem)
-			g_pCursor->m_pAttachedItem = nullptr;
-
-		if (pDestItem)
-			delete pDestItem;
-		
-		UpdateScoreUI(0);
-
-		if (g_pSoundManager)
-		{
-			auto pSoundData = g_pSoundManager->GetSoundData(31);
-
-			if (pSoundData)
-				pSoundData->Play(0, 0);
-		}
-
-		g_pCursor->DetachItem();
 	}
+	else
+	{
+		// Resolve Carry through the active topology, not newer 15-slot pages.
+		int cellX = 0;
+		int cellY = 0;
+		GetCarryCellForSlot(pSell->MyPos, cellX, cellY);
+		SGridControl* carryGrid = GetCarryGridForSlot(pSell->MyPos);
+		pDestItem = carryGrid ? carryGrid->PickupAtItem(cellX, cellY) : nullptr;
+	}
+	if (!pDestItem)
+		return 1;
 
-	UpdateMyHuman();
+	const bool hasItem = pDestItem->m_pItem != nullptr;
+	const int itemIndex = hasItem ? pDestItem->m_pItem->sIndex : 0;
+	// Pickup transferred ownership out of the grid. Clear only aliases to
+	// this visual, including when a partially constructed item has no payload.
+	if (SGridControl::m_pLastMouseOverItem == pDestItem)
+	{
+		SGridControl::m_pLastMouseOverItem = nullptr;
+		SGridControl::m_sLastMouseOverIndex = -1;
+	}
+	if (SGridControl::m_pLastAttachedItem == pDestItem)
+		SGridControl::m_pLastAttachedItem = nullptr;
+	if (SGridControl::m_pSellItem == pDestItem)
+		SGridControl::m_pSellItem = nullptr;
+	if (g_pCursor && g_pCursor->m_pAttachedItem == pDestItem)
+		g_pCursor->DetachItem();
+	SAFE_DELETE(pDestItem);
+	if (!hasItem)
+		return 1;
+
+	// Preserve the inherited calculation. WYD-Go does not use this reply:
+	// its sale path sends authoritative SendItem and UpdateEtc snapshots.
+	int nPrice = itemIndex > 0 && itemIndex < MAX_ITEMLIST
+		? g_pItemList[itemIndex].nPrice : 0;
+	nPrice = static_cast<int>((float)nPrice * 0.25f);
+	if (nPrice >= 5001 && nPrice <= 10000)
+		nPrice = 2 * nPrice / 3;
+	else if (nPrice > 10000)
+		nPrice /= 2;
+
+	STRUCT_ITEM* soldSlot = pSell->MyType == 0
+		? &g_pObjectManager->m_stMobData.Equip[pSell->MyPos]
+		: &g_pObjectManager->m_stMobData.Carry[pSell->MyPos];
+	memset(soldSlot, 0, sizeof(STRUCT_ITEM));
+	g_pObjectManager->m_stMobData.Coin += nPrice;
+	UpdateScoreUI(0);
+	GetSoundAndPlay(31, 0, 0);
+	if (m_pMyHuman)
+		UpdateMyHuman();
 	return 1;
 }
 
@@ -25090,12 +25081,14 @@ int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)
 		for (int i = 0; i < carryPages; ++i)
 		{
 			auto pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
+			if (!pGridInv)
+				continue;
 			for (int nY = 0; nY < carryRows; ++nY)
 			{
 				for (int nX = 0; nX < carryColumns; ++nX)
 				{
 					auto pItem = pGridInv->GetItem(nX, nY);
-					if (pItem && pItem->m_pItem->sIndex == 3463)
+					if (pItem && pItem->m_pItem && pItem->m_pItem->sIndex == 3463)
 					{
 						bFind = true;
 						break;
@@ -25109,7 +25102,7 @@ int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)
 				break;
 		}
 
-		if (bFind)
+		if (bFind && m_pHelpList[3])
 		{
 			SYSTEMTIME sysTime;
 			GetLocalTime(&sysTime);
@@ -29334,6 +29327,14 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 	// TODO: change the state to enum
 	if (m_nAirMove_State && m_pMyHuman)
 	{
+		if (m_pMyHuman->m_cDie == 1 || m_pMyHuman->m_stScore.CurHP <= 0)
+		{
+			if (m_bAirMove)
+				AirMove_End(AirMoveEndReason::Death);
+			else
+				m_nAirMove_State = 0;
+			return;
+		}
 		if (m_bAirMove)
 			m_pMyHuman->m_cHide = 0;
 
@@ -29473,9 +29474,11 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 
 void TMFieldScene::AirMove_Start(int nIndex)
 {
-	if (!m_pMyHuman || !IsValidAirMoveRouteIndex(nIndex))
+	if (!m_pMyHuman || !m_pEffectContainer || !IsValidAirMoveRouteIndex(nIndex) ||
+		m_pMyHuman->m_cDie == 1 || m_pMyHuman->m_stScore.CurHP <= 0)
 		return;
 
+	m_vecAirMove_Origin = m_pMyHuman->m_vecPosition;
 	m_nAirMove_State = 2;
 	m_bAirMove = 1;
 	m_eOldMotion = m_pMyHuman->m_eMotion;
@@ -29507,12 +29510,22 @@ void TMFieldScene::AirMove_Start(int nIndex)
 	m_fAirMove_Speed = 0.2f;
 }
 
-void TMFieldScene::AirMove_End()
+void TMFieldScene::AirMove_End(AirMoveEndReason reason)
 {
 	if (m_pMyHuman && m_bAirMove)
 	{
-		ConsumeAirMoveDelta(m_pMyHuman->m_vecPosition, m_pMyHuman->m_vecAirMove);
-		m_nAirMove_State = -1;
+		const bool externalTeleport = reason == AirMoveEndReason::ExternalTeleport;
+		const bool interruptedByDeath = !externalTeleport &&
+			(reason == AirMoveEndReason::Death || m_pMyHuman->m_cDie == 1 ||
+				m_pMyHuman->m_stScore.CurHP <= 0);
+		if (interruptedByDeath)
+			CancelAirMoveAtOrigin(m_pMyHuman->m_vecPosition,
+				m_pMyHuman->m_vecAirMove, m_vecAirMove_Origin);
+		else if (externalTeleport)
+			DiscardAirMoveDelta(m_pMyHuman->m_vecAirMove);
+		else
+			ConsumeAirMoveDelta(m_pMyHuman->m_vecPosition, m_pMyHuman->m_vecAirMove);
+		m_nAirMove_State = interruptedByDeath || externalTeleport ? 0 : -1;
 		m_bAirMove = 0;
 
 		if (m_nOldMountSkinMeshType <= 0)
@@ -29530,14 +29543,27 @@ void TMFieldScene::AirMove_End()
 			m_pMyHuman->UpdateMount();
 		}
 
-		UpdateMyHuman();
 		m_pMyHuman->m_bIgnoreHeight = 0;
 		m_dwAirMove_TickTime = 0;
-		m_pMyHuman->SetAnimation(m_eOldMotion, 1);
+		if (interruptedByDeath)
+		{
+			const auto& origin = m_pMyHuman->m_vecPosition;
+			m_pMyHuman->InitPosition(origin.x,
+				static_cast<float>(GroundGetMask(origin)) * 0.1f, origin.y);
+			return;
+		}
+		if (externalTeleport)
+			return;
+		UpdateMyHuman();
+		if (m_pMyHuman->m_cDie != 1 && m_pMyHuman->m_stScore.CurHP > 0)
+			m_pMyHuman->SetAnimation(m_eOldMotion, 1);
 
-		auto pParticle = new TMEffectParticle(TMVector3(m_pMyHuman->m_vecPosition.x, m_pMyHuman->m_fHeight + 1.0f, m_pMyHuman->m_vecPosition.y),
-			1, 10, 3.0f, 0, 1, 56, 1.0f, 1, TMVector3(0.0f, 0.0f, 0.0f), 1000);
-		m_pEffectContainer->AddChild(pParticle);
+		if (m_pEffectContainer)
+		{
+			auto pParticle = new TMEffectParticle(TMVector3(m_pMyHuman->m_vecPosition.x, m_pMyHuman->m_fHeight + 1.0f, m_pMyHuman->m_vecPosition.y),
+				1, 10, 3.0f, 0, 1, 56, 1.0f, 1, TMVector3(0.0f, 0.0f, 0.0f), 1000);
+			m_pEffectContainer->AddChild(pParticle);
+		}
 
 		if (!IsValidAirMoveRouteIndex(m_nAirMove_Index))
 			m_nAirMove_Index = 0;

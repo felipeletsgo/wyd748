@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <initializer_list>
+#include <cmath>
 
 namespace
 {
@@ -15,6 +16,21 @@ struct DyeDevice
         stages[stage][state] = value;
     }
 };
+// Grayscale stage-0 fixtures replicate each argument across all three channels.
+// DOTPRODUCT3 expands unsigned inputs to signed [-1, 1] before the dot product.
+float DyeStage(const DyeDevice& device, unsigned int stage, float texture, float current)
+{
+    float value = 0;
+    switch (device.stages[stage][D3DTSS_COLOROP])
+    {
+    case D3DTOP_MODULATE: value = texture * current; break;
+    case D3DTOP_MODULATE4X: value = 4 * texture * current; break;
+    case D3DTOP_DOTPRODUCT3: value = 12 * (texture - 0.5f) * (current - 0.5f); break;
+    case D3DTOP_ADD: value = texture + current; break;
+    default: return -1;
+    }
+    return value < 0 ? 0 : (value > 1 ? 1 : value);
+}
 struct Descriptor { unsigned int Size = 0; unsigned int FVF = 0; };
 struct Buffer
 {
@@ -47,28 +63,50 @@ int RunEffectVertexColorTests(int& checks)
     };
     for (short legend = 116; legend <= 125; ++legend)
     {
-        for (bool legacy : {false, true})
+        // Native adapter branches: common, Voodoo/Intel/G400, TNT only.
+        for (int adapter = 0; adapter < 3; ++adapter)
         {
+            const bool legacy = adapter == 1;
+            const bool tnt = adapter == 2;
             for (char alpha : {'A', 'C'})
             {
                 DyeDevice device;
                 device.stages[0][D3DTSS_COLORARG2] = D3DTA_TFACTOR;
                 device.stages[1][D3DTSS_TEXCOORDINDEX] = 0;
-                dye_texture_stages::Apply(device, legend, alpha, legacy);
+                dye_texture_stages::Apply(device, legend, alpha, legacy, tnt);
                 check(device.stages[0][D3DTSS_COLORARG2] == D3DTA_CURRENT,
                     "dye does not inherit warm texture factor");
                 check(device.stages[1][D3DTSS_TEXCOORDINDEX] == 1,
                     "dye uses animated second UV channel");
-                check(device.stages[0][D3DTSS_COLOROP] ==
-                    static_cast<DWORD>(legacy ? D3DTOP_MODULATE : D3DTOP_MULTIPLYADD),
-                    "native dye base operation");
-                check(device.stages[1][D3DTSS_COLOROP] ==
-                    static_cast<DWORD>(legacy ? D3DTOP_ADDSIGNED : (legend == 120 ? D3DTOP_MODULATE : D3DTOP_ADD)),
-                    "only black dye multiplies the modern color layer");
+                // Literal operands from FUN_004c3eec, independent of enum names.
+                check(device.stages[0][D3DTSS_COLOROP] == (adapter != 0 ? 4u : 0x18u),
+                    "native dye stage 0 numeric operation");
+                check(device.stages[1][D3DTSS_COLOROP] == (adapter != 0 ? 7u : (legend == 120 ? 4u : 6u)),
+                    "native dye stage 1 numeric operation");
                 check(device.stages[1][D3DTSS_ALPHAOP] ==
                     (alpha == 'C' && !legacy ? 0u : D3DTOP_DISABLE),
                     "native opaque and alpha material handling");
             }
+        }
+    }
+    for (float lighting : {0.55f, 1.0f})
+    {
+        DyeDevice blue, black;
+        dye_texture_stages::Apply(blue, 116, 'C', false);
+        dye_texture_stages::Apply(black, 120, 'C', false);
+        for (float base : {0.25f, 0.5f, 0.75f, 1.0f})
+        {
+            const float density = DyeStage(blue, 0, base, lighting);
+            // Actual bl0000.wys texel (24, 82, 186), not a guessed blue constant.
+            const float red = DyeStage(blue, 1, 24.0f / 255, density);
+            const float green = DyeStage(blue, 1, 82.0f / 255, density);
+            const float blueChannel = DyeStage(blue, 1, 186.0f / 255, density);
+            check(base > 0.5f ? blueChannel > red && green > red : blueChannel == 0,
+                "blue +1 retains chroma and does not add a gray illumination floor");
+            check(red <= 96.0f / 255, "blue +1 cannot become white under selection lighting");
+            check(std::fabs(DyeStage(black, 1, 95.0f / 255,
+                DyeStage(black, 0, base, lighting)) - density * 95.0f / 255) < 0.00001f,
+                "black uses the same native density without the fourfold color gain");
         }
     }
     check(!Paint(nullptr), "null vertex buffer from crash is rejected");

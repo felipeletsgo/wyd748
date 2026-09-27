@@ -25,6 +25,7 @@
 #include "ActionFrameContract.h"
 #include "AttackFrameContract.h"
 #include "InventoryTransactionContract.h"
+#include "LegacySalePacket.h"
 #include "CargoGoldTransferContract.h"
 #include "AutoTradeContract.h"
 #include "CapsuleInfoContract.h"
@@ -53,12 +54,12 @@
 #include "../application/ports/PacketDispatch.h"
 #include <cstring>
 
-// Fronteira incremental entre frame de transporte e callbacks legados.
-// ExpectedSize enumera os contratos migrados; outros opcodes continuam
-// sujeitos aos seus consumidores. Eventos locais nao passam por esta entrada.
+// Incremental boundary between transport frames and legacy callbacks.
+// ExpectedSize lists migrated contracts; other opcodes remain subject to
+// consumer-specific guards. Local events do not pass through this entry.
 namespace received_packet
 {
-    // Zero identifica contrato ainda nao migrado; nunca significa frame vazio.
+    // Zero identifies an unmigrated contract, never an empty frame.
     inline std::size_t ExpectedSize(unsigned int opcode)
     {
 		const auto loginSize = LoginPacketExpectedSize(ClassifyLoginPacket(opcode));
@@ -134,14 +135,23 @@ namespace received_packet
         if (!packet_dispatch::CanDispatch(packet, sizeof(MSG_STANDARD)))
             return false;
 
-        // A view pode comecar em endereco nao alinhado. Copiar apenas o header
-        // para inspecao; nunca escrever nem copiar o payload dos handlers.
+        // A view may start at an unaligned address. Copy only the header for
+        // inspection; never write or copy the handlers' payload.
         MSG_STANDARD header{};
         std::memcpy(&header, packet.data, sizeof(header));
 
-        // Ataques possuem prefixos nativos e extensoes coordenadas de tamanho
-        // variavel. Validar ambos os discriminantes e o comprimento real antes
-        // de qualquer cast em OnPacketAttack.
+        // The inherited sale callback reads MSG_Sell without a length argument.
+        // Require its complete representation before that cast. This is only
+        // memory safety, not an exact native response-size or parity claim.
+        if (header.Type == MSG_Sell_Opcode || packet.opcode == MSG_Sell_Opcode)
+        {
+            return packet.opcode == header.Type &&
+                header.Size == packet.size && packet.size >= sizeof(MSG_Sell);
+        }
+
+        // Attacks have native prefixes and variable-size coordinated extensions.
+        // Validate both discriminants and the actual length before any cast in
+        // OnPacketAttack.
         if (IsAttackOpcode(header.Type) || IsAttackOpcode(packet.opcode))
         {
             return packet.opcode == header.Type &&
@@ -152,16 +162,16 @@ namespace received_packet
         const auto expected = ExpectedSize(header.Type);
         if (expected != 0 || ExpectedSize(packet.opcode) != 0)
         {
-            // Usar ambos os discriminantes impede que metadados divergentes
-            // contornem o guard: a cena antiga decide pelo Type do buffer.
+            // Check both discriminants to prevent mismatched metadata from
+            // bypassing the guard: the legacy scene uses the buffer's Type.
             return packet.opcode == header.Type &&
                 header.Size == expected && packet.size == expected;
         }
         return true;
     }
 
-    // true significa entrega unica, nao sucesso da operacao de personagem.
-    // O receptor empresta o mesmo buffer e comprimento apenas durante a chamada.
+    // True means one delivery, not success of the character operation.
+    // The receiver borrows the same buffer and length only during the call.
     template <typename Receiver>
     bool Dispatch(const PacketView& packet, Receiver&& receive)
     {

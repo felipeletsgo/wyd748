@@ -121,7 +121,11 @@ HRESULT TMSkinMesh::RestoreDeviceObjects()
 {
 	m_bMeshGenerated = 0;
 
-	SAFE_DELETE(m_pRoot);
+	if (m_pRoot != m_pframeToAnimate[0])
+		SAFE_DELETE(m_pRoot);
+	for (int i = 0; i < MAX_VALID_FRAME_TO_ANIMATE; ++i)
+		SAFE_DELETE(m_pframeToAnimate[i]);
+	m_pRoot = nullptr;
 
 	m_pRoot = new CFrame(0);
 
@@ -409,6 +413,7 @@ HRESULT TMSkinMesh::RestoreDeviceObjects()
 				else
 				{
 					LOG_WRITELOG("Can't Find Parent Node in ID : %d, MshName : %s\r\n", tmpMesh->m_dwID, szName);
+					delete tmpMesh;
 				}
 			}
 			else if (tmpMesh->LoadMesh(szName) == 1)
@@ -418,7 +423,10 @@ HRESULT TMSkinMesh::RestoreDeviceObjects()
 				if (parent)
 					parent->m_pMesh = tmpMesh;
 				else
+				{
 					LOG_WRITELOG("Can't Find Parent Node in ID : %d, MshName : %s\r\n", tmpMesh->m_dwID, szName);
+					delete tmpMesh;
+				}
 
 			}
 			else if (tmpMesh)
@@ -1228,7 +1236,7 @@ void TMSkinMesh::SetRenewOldCostume(int costype, char* szTexture, char* szName)
 	}
 }
 
-void TMSkinMesh::SetCostume(int Costype, char* szTexture, char* szName)//controle de trajes
+void TMSkinMesh::SetCostume(int Costype, char* szTexture, char* szName)// Costume control
 {
 	if (Costype == 8 || Costype == 9)
 	{

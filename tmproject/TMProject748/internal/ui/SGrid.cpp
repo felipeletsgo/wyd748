@@ -440,8 +440,23 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 	}
 	else if (dwFlags == 513 && g_pEventTranslator->m_bShift)
 	{
+		if (!pFScene || !pFScene->m_pControlContainer)
+			return 0;
+		// Mouse events are broadcast to visible controls. Only the clicked
+		// Carry grid may select a split source; rounded cell coordinates alone
+		// do not prove that the pointer is inside this grid.
+		if (!bPtInRect || this != pFScene->m_pGridInv)
+			return 0;
+		auto pText = (SText*)pFScene->m_pControlContainer->FindControl(65888);
+		auto pEdit = (SEditableText*)pFScene->m_pControlContainer->FindControl(65889);
+		auto pInputGold = (SPanel*)pFScene->m_pControlContainer->FindControl(65885);
+		if (!pText || !pEdit || !pInputGold)
+			return 0;
+		// This shared prompt may already own a price, quantity, or gold intent.
+		if (pInputGold->IsVisible())
+			return 0;
 		auto pItem = SelectItem(nCellX, nCellY);	
-		if (!pItem)
+		if (!pItem || !pItem->m_pItem)
 			return 0;
 
 		int nAmount = BASE_GetItemAmount(pItem->m_pItem);
@@ -461,10 +476,6 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 		if (!itemcheck)
 			return 0;
 
-		SGridControl::m_pSellItem = pItem;
-		auto pText = (SText*)pFScene->m_pControlContainer->FindControl(65888);
-		auto pEdit = (SEditableText*)pFScene->m_pControlContainer->FindControl(65889);
-		auto pInputGold = (SPanel*)pFScene->m_pControlContainer->FindControl(65885);
 		pItem->m_GCObj.dwColor = 0xFFFF00FF;
 
 		pFScene->m_nCoinMsgType = 12;
@@ -491,7 +502,7 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 		auto pMyHuman = pFScene->m_pMyHuman;
 		auto pItem = SelectItem(nCellX, nCellY);
 
-		if (m_eGridType == TMEGRIDTYPE::GRID_DEFAULT && //vender com fada equipada 
+		if (m_eGridType == TMEGRIDTYPE::GRID_DEFAULT && // Sell with a fairy equipped.
 			(pMyHuman->m_sFamiliar == 3914 || pMyHuman->m_sFamiliar == 3915)
 			&& g_pEventTranslator->m_bShift == 1)
 		{
@@ -578,7 +589,7 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 					stSwapItem.DestType = sDestType;
 					stSwapItem.TargetID = TMFieldScene::m_dwCargoID;
 
-					if (pItem->m_pGridControl->m_eGridType == TMEGRIDTYPE::GRID_CARGO)//correção
+					if (pItem->m_pGridControl->m_eGridType == TMEGRIDTYPE::GRID_CARGO)
 					{
 						stSwapItem.DestPos = pFScene->GetCargoSlotForCell(this, nAX, nAY);
 					}
@@ -1721,7 +1732,8 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV2)
 	{
-		if (pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && pFScene->m_pCargoGrid)
+		if (pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && pFScene->m_pCargoGrid &&
+			pFScene->m_pControlContainer)
 		{
 			auto pInputGold = (SPanel*)pFScene->m_pControlContainer->FindControl(65885);
 			// Select from the grid that actually received the click.  The old code
@@ -1757,19 +1769,19 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 			{
 				auto pText = (SText*)pFScene->m_pControlContainer->FindControl(65888);
 				auto pEdit = (SEditableText*)pFScene->m_pControlContainer->FindControl(65889);
-
-				pItem->m_GCObj.dwColor = 0xFFFF00FF;
-
-				pFScene->m_nCoinMsgType = 4;
+				if (!pText || !pEdit)
+					return 1;
 				// Resolve the packet slot from the clicked native grid so the visual
 				// cell and the Cargo wire position cannot diverge.
-				pFScene->m_nLastAutoTradePos = pFScene->GetCargoSlotForCell(
+				const int cargoSlot = pFScene->GetCargoSlotForCell(
 					this, pItem->m_nCellIndexX, pItem->m_nCellIndexY);
-				if (pFScene->m_nLastAutoTradePos < 0)
-				{
-					pItem->m_GCObj.dwColor = 0xFFFFFFFF;
+				if (cargoSlot < 0)
 					return 1;
-				}
+
+				// Commit selection only after all prompt dependencies are valid.
+				pItem->m_GCObj.dwColor = 0xFFFF00FF;
+				pFScene->m_nCoinMsgType = 4;
+				pFScene->m_nLastAutoTradePos = cargoSlot;
 
 				pText->SetText(g_pMessageStringTable[142], 0);
 

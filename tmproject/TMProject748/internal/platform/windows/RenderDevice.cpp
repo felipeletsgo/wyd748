@@ -314,6 +314,7 @@ void RenderDevice::Finalize()
 	SAFE_DELETE(m_pTextureManager);
 	SAFE_DELETE(m_pMeshManager);
 	SAFE_RELEASE(m_pSprite);
+	m_dyePixelShader.Reset();
 
 	for (int ia = 0; ia < 8; ++ia)
 	{
@@ -625,6 +626,7 @@ HRESULT RenderDevice::RestoreDeviceObjects()
 
 HRESULT RenderDevice::InvalidateDeviceObjects()
 {
+	m_dyePixelShader.Reset();
 	if (m_pTextureManager != nullptr)
 		m_pTextureManager->ReleaseTexture();
 	if (m_pMeshManager != nullptr)

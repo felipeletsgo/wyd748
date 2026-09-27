@@ -10,7 +10,7 @@ build is not equivalent to testing them in the client.
 | `tmproject/TMProject748/` | C++ client source and tests |
 | `tmproject/client748/` | 7.48 client runtime and assets |
 | `DOCS/` | Architecture, operations, and contract documentation |
-| `references/client748/` | Read-only historical evidence |
+| `references/` | Optional local-only, Git-ignored research material |
 
 ## Quick start on Windows
 

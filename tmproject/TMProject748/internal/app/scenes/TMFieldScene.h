@@ -120,7 +120,6 @@ public:
 	void SetKingDomChat(char cOn);
 	void SendReqBuy(unsigned int dwControlID);
 	void SetSanc();
-	void CreateGate(int nZoneIndex, int bInit);
 	int GetItemFromGround(unsigned int dwServerTime);
 	int GetWeaponDamage();
 	void SetMyHumanMagic();
@@ -265,7 +264,8 @@ public:
 	void Bag_View();
 	void AirMove_Main(unsigned int dwServerTime);
 	void AirMove_Start(int nIndex);
-	void AirMove_End();
+	enum class AirMoveEndReason { Arrived, Death, ExternalTeleport };
+	void AirMove_End(AirMoveEndReason reason = AirMoveEndReason::Arrived);
 	int AirMove_ShowUI(bool bShow);
 
 	void DropListUpdate();
@@ -408,6 +408,7 @@ public:
 	int m_nAirMove_State;
 	unsigned int m_dwAirMove_TickTime;
 	int m_bAirMove_Wing;
+	TMVector2 m_vecAirMove_Origin;
 	TMVector2 m_vecAirMove_Dest;
 	float m_fAirMove_Speed;
 	int m_bAirmove_ShowUI;
@@ -418,7 +419,6 @@ public:
 	int m_bEventCouponOpen;
 	unsigned int m_dwInTownTime;
 	unsigned int m_dwFieldTime;
-	int m_bInitGate;
 	// True when the deployed 7.48 FieldScene2 resource does not expose the
 	// newer HUD IDs expected by the imported source implementation.
 	bool m_bCompatFieldScene;

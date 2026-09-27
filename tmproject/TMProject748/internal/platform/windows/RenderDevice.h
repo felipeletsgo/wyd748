@@ -2,6 +2,7 @@
 
 #include "D3DDevice.h"
 #include "Structures.h"
+#include "../../render/mesh/DyePixelShader.h"
 
 class TMFont2;
 class TextureManager;
@@ -100,6 +101,7 @@ public:
 	LPDIRECT3DVERTEXDECLARATION9 m_pVDEffect[4];
 	LPDIRECT3DVERTEXSHADER9 m_pVSEffect[4];
 	LPDIRECT3DPIXELSHADER9 m_pPSEffect[6];
+	dye_pixel_shader::Shader m_dyePixelShader;
 	D3DCOLORVALUE m_colorLight;
 	D3DCOLORVALUE m_colorBackLight;
 	D3DCOLORVALUE m_colNormalAmbient;

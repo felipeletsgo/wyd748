@@ -2704,22 +2704,18 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
                     if (m_eMotion == ECHAR_MOTION::ECMOTION_DIE)
                     {
                         SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 1);
+                        // A missing corpse clip must not replay death completion
+                        // (including the respawn prompt) on every frame.
+                        m_eMotion = ECHAR_MOTION::ECMOTION_DEAD;
+                        m_nLoop = 1;
                         if (m_nClass == 64 && m_sHeadIndex == 397)
                         {
                             m_cHide = 1;
-                            TMEffectParticle* pParticle = new TMEffectParticle(TMVector3(m_vecPosition.x, m_fHeight, m_vecPosition.y),
-                                0,
-                                8,
-                                10.0f,
-                                0xFFFF3333,
-                                1,
-                                56,
-                                1.0f,
-                                1,
-                                TMVector3(0.0f, 0.0f, 0.0f), 1000);
-
-                            if (pParticle)
-                                g_pCurrentScene->m_pEffectContainer->AddChild(pParticle);
+                            if (g_pCurrentScene->m_pEffectContainer)
+                                g_pCurrentScene->m_pEffectContainer->AddChild(new TMEffectParticle(
+                                    TMVector3(m_vecPosition.x, m_fHeight, m_vecPosition.y),
+                                    0, 8, 10.0f, 0xFFFF3333, 1, 56, 1.0f, 1,
+                                    TMVector3(0.0f, 0.0f, 0.0f), 1000));
                         }
                         if (g_pCurrentScene->m_pMyHuman == this)
                         {
@@ -3955,7 +3951,7 @@ int TMHuman::OnPacketIllusion(MSG_STANDARD* pStd)
 
     m_bIgnoreHeight = 0;    
     if (pScene && pScene->m_pMyHuman == this && pScene->m_bAirMove == 1)
-        pScene->AirMove_End();
+        pScene->AirMove_End(TMFieldScene::AirMoveEndReason::ExternalTeleport);
 
     return 1;
 }
@@ -3964,9 +3960,9 @@ int TMHuman::OnPacketFireWork(MSG_Motion* pStd)
 {
 	if (pStd->Motion == 100)
 	{
-		auto pFireWork = new TMEffectFireWork({ m_vecPosition.x, m_fHeight + 5.0f, m_vecPosition.y }, pStd->Parm);
 		if (g_pCurrentScene->m_pEffectContainer)
-			g_pCurrentScene->m_pEffectContainer->AddChild(pFireWork);
+			g_pCurrentScene->m_pEffectContainer->AddChild(new TMEffectFireWork(
+				{ m_vecPosition.x, m_fHeight + 5.0f, m_vecPosition.y }, pStd->Parm));
 		return 1;
 	}
 	// A delayed motion packet must not replace the death animation. Parm 2 is
@@ -4008,11 +4004,10 @@ int TMHuman::OnPacketFireWork(MSG_Motion* pStd)
 
 	if (pStd->Parm == 2)
 		m_cDie = 0;
-	if (pStd->Parm == 3)
+	if (pStd->Parm == 3 && g_pCurrentScene->m_pEffectContainer)
 	{
 		auto pLevelUp = new TMEffectLevelUp({ m_vecPosition.x, m_fHeight, m_vecPosition.y }, 0);
-		if (g_pCurrentScene->m_pEffectContainer)
-			g_pCurrentScene->m_pEffectContainer->AddChild(pLevelUp);
+		g_pCurrentScene->m_pEffectContainer->AddChild(pLevelUp);
 	}
 	if (pStd->Motion < 256)
 	{
@@ -4305,13 +4300,10 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
     // bounds each index before any copy or visual effect. Additional source
     // slots remain preserved.
     auto pMobData = &g_pObjectManager->m_stMobData;
-    const int destination = pSendItem->DestPos;
-    if ((pSendItem->DestType == 0 &&
-         (destination < 0 || destination >= static_cast<int>(sizeof(pMobData->Equip) / sizeof(pMobData->Equip[0])))) ||
-        (pSendItem->DestType == 1 &&
-         (destination < 0 || destination >= static_cast<int>(sizeof(pMobData->Carry) / sizeof(pMobData->Carry[0])))) ||
-        (pSendItem->DestType == 2 &&
-         (destination < 0 || destination >= static_cast<int>(sizeof(g_pObjectManager->m_stItemCargo) / sizeof(g_pObjectManager->m_stItemCargo[0])))))
+    if (!IsSendItemDestination(pSendItem->DestType, pSendItem->DestPos,
+        sizeof(pMobData->Equip) / sizeof(pMobData->Equip[0]),
+        sizeof(pMobData->Carry) / sizeof(pMobData->Carry[0]),
+        sizeof(g_pObjectManager->m_stItemCargo) / sizeof(g_pObjectManager->m_stItemCargo[0])))
         return 1;
 
     // Every materialized item must resolve inside the loaded 7.48 catalog.
@@ -4984,13 +4976,27 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
 
     SetGuildBattleLifeCount();
 
-    if (pFScene->m_pMyHuman == this && !pFScene->m_bAirMove)
+    const bool isLocalHuman = pFScene->m_pMyHuman == this;
+    if (isLocalHuman)
+    {
+        auto& localScore = g_pObjectManager->m_stMobData.CurrentScore;
+        localScore.CurHP = m_stScore.CurHP;
+        localScore.CurMP = m_stScore.CurMP;
+        localScore.MaxHP = m_stScore.MaxHP;
+        localScore.MaxMP = m_stScore.MaxMP;
+    }
+
+    // A lethal snapshot must cancel flight before its visual gate is checked;
+    // otherwise the HP bar keeps the last in-flight value until another packet.
+    if (death_motion::ShouldEnterDeath(m_stScore.CurHP, m_cDie == 1))
+        Die();
+
+    if (isLocalHuman && !pFScene->m_bAirMove)
     {
         // Zero maxima mean retain the entity maxima; render that resolved
         // snapshot rather than keeping the progress bars' previous scale.
         pFScene->m_nReqHP = maxHp;
         pFScene->m_nReqMP = maxMp;
-        memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &m_stScore, sizeof(m_stScore));
         if (pFScene->m_bCompatFieldScene)
             resource_ui::ProjectNativeHpVisual(pFScene->m_pHPBar, m_stScore.CurHP, m_stScore.MaxHP);
         else
@@ -5054,11 +5060,7 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
             pFScene->m_pMaxMHPText->SetText(szMHP, 0);
         }
     }
-    // A vitals snapshot can precede the kill event. Zero HP must still
-    // transition into death rather than leave the character running.
-    if (death_motion::ShouldEnterDeath(m_stScore.CurHP, m_cDie == 1))
-        Die();
-    else if (m_stScore.CurHP > 0 && (m_cDie == 1 || m_eMotion == ECHAR_MOTION::ECMOTION_DEAD))
+    if (m_stScore.CurHP > 0 && (m_cDie == 1 || m_eMotion == ECHAR_MOTION::ECMOTION_DEAD))
     {
         m_cDie = 0;
         SetAnimation(ECHAR_MOTION::ECMOTION_LEVELUP, 0);
@@ -12023,6 +12025,9 @@ void TMHuman::Die()
     {
         auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
         pScene->m_pTargetHuman = 0;
+        // Discard the visual flight before freezing the death position.
+        if (pScene->m_bAirMove)
+            pScene->AirMove_End(TMFieldScene::AirMoveEndReason::Death);
     }
 
     if ((int)m_wAttackerID > 0)
@@ -12044,6 +12049,10 @@ void TMHuman::Die()
     if (m_cDie == 1)
         return;
 
+    // A late emote response is ignored while dead. Clear the outstanding
+    // request now so revival cannot inherit a permanently blocked input.
+    m_SendeMotion = ECHAR_MOTION::ECMOTION_NONE;
+
     // Death freezes the current position. Leaving an unfinished route active
     // lets FrameMove advance it and can restore movement over the death clip.
     for (auto& routePoint : m_vecRouteBuffer)
@@ -12061,32 +12070,31 @@ void TMHuman::Die()
     m_dwStartMoveTime = g_pTimerManager->GetServerTime();
 
     SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);
-    // Some mesh/animation combinations return early from SetAnimation. The
-    // one-shot completion path also owns the respawn prompt, so never retain
-    // the prior running animation's loop state or start time.
+    // A rejected mesh clip must not leave the logical state in RUN. The
+    // one-shot completion path also owns the respawn prompt.
+    m_eMotion = ECHAR_MOTION::ECMOTION_DIE;
     m_nLoop = 0;
     m_dwStartAnimationTime = g_pTimerManager->GetServerTime();
 
     if (m_nClass == 44)
     {
-        TMVector3 vecPos{ m_vecPosition.x, m_fHeight + 2.0f, m_vecPosition.y };
-        auto pParticle = new TMEffectParticle(vecPos, 4, 12, 0.05f, 0xFFFFAA00, 0, 56, 1.0, 1, TMVector3(0.0f, 0.0f, 0.0f), 1000);
+        if (auto* effectContainer = g_pCurrentScene->m_pEffectContainer)
+        {
+            TMVector3 vecPos{ m_vecPosition.x, m_fHeight + 2.0f, m_vecPosition.y };
+            effectContainer->AddChild(new TMEffectParticle(vecPos, 4, 12, 0.05f,
+                0xFFFFAA00, 0, 56, 1.0, 1, TMVector3(0.0f, 0.0f, 0.0f), 1000));
 
-        g_pCurrentScene->m_pEffectContainer->AddChild(pParticle);
+            constexpr unsigned int dwColor = 0x44444444;
+            effectContainer->AddChild(new TMSkillExplosion2(vecPos, 0, 1.0f, 210, dwColor));
 
-        unsigned int dwColor = 0x44444444;
-        auto pExplosion = new TMSkillExplosion2(vecPos, 0, 1.0f, 210, dwColor);
-
-        g_pCurrentScene->m_pEffectContainer->AddChild(pExplosion);
-
-        auto pBill = new TMEffectBillBoard(59, 2500, 0.2f, 0.2f, 0.2f, 0.003f, 1, 80);
-        pBill->m_vecStartPos = pBill->m_vecPosition = vecPos;
-        pBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_DEFAULT;
-        if (g_pDevice->m_bSavage == 1 || g_pDevice->m_bIntel == 1)
-            pBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-        pBill->SetColor(0xFFFFFFFF);
-
-        g_pCurrentScene->m_pEffectContainer->AddChild(pBill);
+            auto pBill = new TMEffectBillBoard(59, 2500, 0.2f, 0.2f, 0.2f, 0.003f, 1, 80);
+            pBill->m_vecStartPos = pBill->m_vecPosition = vecPos;
+            pBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_DEFAULT;
+            if (g_pDevice->m_bSavage == 1 || g_pDevice->m_bIntel == 1)
+                pBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+            pBill->SetColor(0xFFFFFFFF);
+            effectContainer->AddChild(pBill);
+        }
 
         GetSoundAndPlay(309, 0, 0);
     }

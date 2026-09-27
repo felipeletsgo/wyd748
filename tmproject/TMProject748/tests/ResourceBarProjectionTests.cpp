@@ -1,7 +1,10 @@
 #include "../internal/ui/ResourceBarProjection.h"
+#include "../internal/ui/MiniMapLayout.h"
 #include "../internal/game/entities/DeathMotionPolicy.h"
 #include <cstdio>
 #include <cstring>
+#include <utility>
+#include <initializer_list>
 
 namespace {
 // Mirror SProgressBar's current-to-max clamp to expose ordering regressions.
@@ -31,6 +34,22 @@ int RunResourceBarProjectionTests(int& checks)
         ++checks;
         if (!condition) { ++failures; std::printf("FAIL resource UI: %s\n", name); }
     };
+    for (const auto& viewport : { std::pair<float, float>{800.0f, 600.0f}, {1024.0f, 768.0f}, {1280.0f, 960.0f}, {1920.0f, 1080.0f} }) {
+        for (bool ui2 : {false, true}) {
+            const auto compact = mini_map_layout::Next(false, 1.5f, ui2, viewport.first, viewport.second);
+            check(compact.visible && !compact.expanded && compact.scale == 0.6f, "hidden map opens compact");
+            check(compact.x + compact.size <= viewport.first && compact.y >= 0, "compact map fits viewport");
+            check(compact.size == (ui2 ? 137.0f : 160.0f), "compact size matches selected resource");
+            const auto expanded = mini_map_layout::Next(compact.visible, compact.scale, ui2, viewport.first, viewport.second);
+            check(expanded.visible && expanded.expanded && expanded.size == 400, "compact map opens expanded");
+            check(expanded.x * 2 + expanded.size == viewport.first && expanded.y * 2 + expanded.size == viewport.second,
+                "expanded map is centered without applying UI scale twice");
+            const auto hidden = mini_map_layout::Next(expanded.visible, expanded.scale, ui2, viewport.first, viewport.second);
+            check(!hidden.visible, "expanded map closes");
+            const auto reopened = mini_map_layout::Next(hidden.visible, hidden.scale, ui2, viewport.first, viewport.second);
+            check(reopened.visible && !reopened.expanded, "closed map reopens compact");
+        }
+    }
     Bar stale;
     stale.SetCurrentProgress(150);
     check(stale.current == 100 && stale.maximum == 100, "old current-only path loses increased resource");
@@ -118,5 +137,26 @@ int RunResourceBarProjectionTests(int& checks)
         "recall channel suppresses both automatic and player-action prompts");
     check(death_motion::MayOfferRespawnPrompt(false, false, false),
         "resetting the offer after revival permits the next death prompt");
+    check(!death_motion::ShouldAutoRecallDeadPlayer(1000, 181000, true, 3647, 3112),
+        "automatic recall waits beyond three minutes");
+    check(death_motion::ShouldAutoRecallDeadPlayer(1000, 181001, true, 3647, 3112),
+        "automatic recall requests server revival after three minutes");
+    check(!death_motion::ShouldAutoRecallDeadPlayer(0, 181001, true, 3647, 3112),
+        "automatic recall requires a recorded death time");
+    check(!death_motion::ShouldAutoRecallDeadPlayer(1000, 181001, false, 3647, 3112),
+        "automatic recall does not move a revived character");
+    check(!death_motion::ShouldAutoRecallDeadPlayer(1000, 181001, true, 128, 3112),
+        "automatic recall preserves the native tile restriction");
+    check(death_motion::ShouldAdvanceRespawnRecallCountdown(1000, 5999, true) &&
+        death_motion::RespawnRecallSecondsRemaining(1000, 5999) == 0,
+        "respawn recall countdown reaches its final second using its own timer");
+    check(death_motion::ShouldAdvanceRespawnRecallCountdown(1000, 6000, true),
+        "respawn recall countdown retains the exact five-second boundary");
+    check(!death_motion::ShouldAdvanceRespawnRecallCountdown(1000, 6001, true),
+        "respawn recall countdown stops when the request is due");
+    check(!death_motion::ShouldAdvanceRespawnRecallCountdown(1000, 6000, false),
+        "respawn recall countdown does not replay effects after the request");
+    check(!death_motion::ShouldAdvanceRespawnRecallCountdown(0, 6000, true),
+        "respawn recall countdown requires its own start time");
     return failures;
 }

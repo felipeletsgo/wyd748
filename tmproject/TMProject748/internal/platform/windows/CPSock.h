@@ -16,10 +16,12 @@ public:
 	~CPSock();
 
 	bool WSAInitialize();
-	unsigned int StartListen(HWND hWnd, int ip, int port, int WSA);
 	unsigned int ConnectServer(char* HostAddr, int Port, int ip, int WSA);
-	unsigned int SingleConnect(char* HostAddr, int Port, int ip, int WSA);
+	// Starts a fresh connected stream; a blocked handshake remains queued.
+	bool SendHandshake();
 	int Receive();
+	enum class EventResult { Ignored, ReadReady, Disconnected };
+	EventResult HandleNetworkEvent(WPARAM socket, LPARAM notification);
 	char* ReadMessage(int* ErrorCode, int* ErrorType);
 	// Non-owning view over the next framed message; storage remains owned by the
 	// receive ring and is invalidated by subsequent buffer operations.
@@ -29,14 +31,11 @@ public:
 	int AddMessage(char* pMsg, int Size, int FixedKeyWord);
 	bool SendMessageA();
 	int SendOneMessage(char* Msg, int Size);
-	// Fachada sincrona sem ownership; exige buffer gravavel para o cabecalho.
-	// Retorna zero para tamanho invalido, senao preserva o retorno legado.
+	// Synchronous, non-owning facade; requires writable header storage.
+	// Invalid sizes return zero; otherwise preserve the send result.
 	int SendPacket(const MutablePacketView& packet);
-	int SendOneMessageKeyword(char* Msg, int Size, int Keyword);
 	int AddMessage2(char* pMsg, int Size);
-	char* ReadMessage2(int* ErrorCode, int* ErrorType);
 	void RefreshRecvBuffer();
-	void RefreshSendBuffer();
 
 	unsigned int Sock;
 	char* pSendBuffer;

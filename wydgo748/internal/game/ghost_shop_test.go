@@ -83,6 +83,62 @@ func TestParseAutoTradeRejectsTamperingDuplicateAndFormatString(t *testing.T) {
 	}
 }
 
+func TestParseAutoTradeAcceptsIsolatedOfferInEveryNativeSlot(t *testing.T) {
+	acc := &model.Account{}
+	acc.Cargo[7] = model.Item{Index: 4011, Eff: [6]byte{43, 9}}
+	var items [maxGhostShopItems]model.Item
+	positions := emptyGhostShopPositions()
+	var prices [maxGhostShopItems]uint32
+	if _, err := parseAutoTradeRequest(wire.AutoTrade("Shop", items, positions, prices, 0, 3), acc, 3); err == nil {
+		t.Fatal("empty shop was accepted")
+	}
+	for slot := 0; slot < maxGhostShopItems; slot++ {
+		items[slot], positions[slot], prices[slot] = acc.Cargo[7], 7, 1000
+		pkt := wire.AutoTrade("Shop", items, positions, prices, 0, 3)
+		if len(pkt) != 196 {
+			t.Fatalf("slot %d: packet has %d bytes; want 196", slot, len(pkt))
+		}
+		req, err := parseAutoTradeRequest(pkt, acc, 3)
+		if err != nil {
+			t.Fatalf("slot %d: %v", slot, err)
+		}
+		if req.Items != items || req.CarryPos != positions || req.Prices != prices {
+			t.Fatalf("slot %d: parser changed listing arrays", slot)
+		}
+		binary.LittleEndian.PutUint16(pkt[36+slot*8:], 4012)
+		if _, err := parseAutoTradeRequest(pkt, acc, 3); err == nil {
+			t.Fatalf("slot %d: forged item was accepted", slot)
+		}
+		items[slot], positions[slot], prices[slot] = model.Item{}, -1, 0
+	}
+}
+
+func TestParseAutoTradePriceBoundariesInEveryNativeSlot(t *testing.T) {
+	acc := &model.Account{}
+	acc.Cargo[7] = model.Item{Index: 4011, Eff: [6]byte{43, 9}}
+	originalCargo := acc.Cargo
+	for slot := 0; slot < maxGhostShopItems; slot++ {
+		for _, price := range []uint32{0, 1, 1_999_999_999, 2_000_000_000, 2_000_000_001, 0x7fffffff, 0x80000000, 0xffffffff} {
+			var items [maxGhostShopItems]model.Item
+			positions := emptyGhostShopPositions()
+			var prices [maxGhostShopItems]uint32
+			items[slot], positions[slot], prices[slot] = acc.Cargo[7], 7, price
+			pkt := wire.AutoTrade("Shop", items, positions, prices, 0, 3)
+			req, err := parseAutoTradeRequest(pkt, acc, 3)
+			valid := price > 0 && price <= maxCharacterGold
+			if (err == nil) != valid {
+				t.Fatalf("slot %d price %d: got error %v, want accepted=%v", slot, price, err, valid)
+			}
+			if valid && (req.Items != items || req.CarryPos != positions || req.Prices != prices) {
+				t.Fatalf("slot %d price %d: parser changed the advertised offer", slot, price)
+			}
+			if acc.Cargo != originalCargo {
+				t.Fatalf("slot %d price %d: validation mutated Cargo", slot, price)
+			}
+		}
+	}
+}
+
 func TestParseReqBuyAutoTrade748Layout(t *testing.T) {
 	pkt := wire.Build(wire.OpReqBuyAutoTrade, 3, 36)
 	binary.LittleEndian.PutUint32(pkt[12:16], 4)

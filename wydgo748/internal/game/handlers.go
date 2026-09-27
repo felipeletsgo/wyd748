@@ -360,17 +360,17 @@ func (w *World) onCreateCharacter(s *net.Session, pkt []byte) {
 		s.ID, name, slot, class, created.X, created.Y)
 }
 
-// onEnterWorld: 0x213. Materializa o char no mundo e dispara a sequencia de login
-// na ordem exata do WYD 7.48 (sem ela os campos do client ficam nao-inicializados).
+// onEnterWorld: 0x213. Place the character in the world and send the login
+// sequence in WYD 7.48 order so the client initializes every required field.
 func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Account == nil || len(pkt) != characterLoginPacketSize {
-		log.Printf("[#%d] enter-world sem player/char", s.ID)
+		log.Printf("[#%d] enter-world missing player or character", s.ID)
 		return
 	}
 	slot := int(int32(binary.LittleEndian.Uint32(pkt[12:16])))
 	if slot < 0 || slot >= len(p.Account.Chars) || slot >= maxCharactersPerAccount || p.Account.Chars[slot].Name == "" {
-		log.Printf("[#%d] enter-world com slot invalido %d", s.ID, slot)
+		log.Printf("[#%d] enter-world invalid character slot %d", s.ID, slot)
 		return
 	}
 	p.CharSlot = slot
@@ -380,17 +380,15 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 8, p)
 	if isLoadtestAccountName(p.Account.Name, w.loadtestAccountPrefix) {
 		entryX, entryY = w.loadtestSpawn.X, w.loadtestSpawn.Y
-		// Bots continuam na area Tauron, mas nao ocupam todos a mesma celula:
-		// isso exercita movimento/colisao e evita que o simulador pare por uma
-		// rejeicao de rota causada pelo proprio grupo de carga.
+		// Keep load-test bots in Tauron without stacking them on one tile.
+		// This exercises movement and collision without self-blocking the group.
 		entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 32, p)
 	}
 	ch.X, ch.Y = entryX, entryY
-	// O loader primeiro obtem o sidecar autoritativo e somente depois substitui
-	// affects/moedas em RAM. Assim uma falha de PostgreSQL nao apaga o estado
-	// atual nem deixa o personagem entrar com um agregado parcial.
+	// Load authoritative sidecar state before replacing affects and coins in
+	// memory. A database failure must not erase or partially restore the state.
 	if err := w.loadCharStateInto(p); err != nil {
-		log.Printf("[#%d] ERRO ao carregar charstate de %q: %v", s.ID, ch.Name, err)
+		log.Printf("[#%d] failed to load character state for %q: %v", s.ID, ch.Name, err)
 		p.CharSlot = -1
 		p.Char = nil
 		s.Send(wire.MessagePanel("The character state could not be loaded. Try again."))
@@ -408,23 +406,20 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		return
 	}
 	w.recalcPlayer(ch)
-	// Quem morreu e saiu tem CurHP=0 persistido. Entrar assim TRAVA o jogador:
-	// o client desenha a pose de morte e nao responde a nada -- ele nem pode
-	// pedir o /restart. Devolver o minimo de vida deixa o personagem jogavel
-	// para andar ate um curandeiro ou usar uma pocao.
+	// A character who logs out dead retains CurHP=0. Entering with zero HP
+	// locks the client in the death pose, unable even to request /restart.
+	// Restore one HP so the player can reach a healer or use a potion.
 	//
-	// Vem DEPOIS do recalc para que MaxHP ja esteja correto, e ANTES de qualquer
-	// pacote: EnterWorld, CreateMob, UpdateScore e SetHpMp levam o HP corrigido.
+	// Do this after recalculation sets MaxHP and before any packet carrying HP.
 	if playerMaxHP(ch) > 0 && playerCurHP(ch) == 0 {
 		setPlayerCurHP(ch, 1)
 		p.DeadAt = time.Time{}
-		log.Printf("[#%d] %s entrou morto; revivido com 1 de HP", s.ID, ch.Name)
+		log.Printf("[#%d] %s entered dead; restored to 1 HP", s.ID, ch.Name)
 	}
-	// ClientId = MENOR slot livre (comportamento do TMSrv nativo, que usa o indice
-	// da conexao). Um contador so-crescente dava id novo a cada relog e o client
-	// 7.48 (mesmo processo) mantem estado atrelado ao id antigo -> chaos com lixo
-	// gigante e HP/MP travados na segunda entrada. Nunca sobrescrever um jogador
-	// quando os 999 slots estao ocupados.
+	// Use the lowest free ClientId, matching the native server's connection
+	// index. A growing counter gives the same 7.48 client process a new ID on
+	// each relog and leaves stale state behind. Never replace an active player
+	// when all 999 slots are occupied.
 	playerID, ok := w.allocPlayerID()
 	if !ok {
 		p.CharSlot = -1
@@ -432,7 +427,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		p.InWorld = false
 		p.ID = 0
 		s.Send(wire.MessagePanel("The world is full. Please try again later."))
-		log.Printf("[#%d] ENTER-WORLD recusado: limite de 999 jogadores atingido", s.ID)
+		log.Printf("[#%d] ENTER-WORLD rejected: 999-player limit reached", s.ID)
 		return
 	}
 	p.ID = playerID
@@ -448,19 +443,16 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	w.attachRestoredInstanceMember(p)
 	log.Printf("[#%d] ENTER-WORLD %s id=%d @(%d,%d)", s.ID, ch.Name, p.ID, ch.X, ch.Y)
 
-	// 1) enter-world (STRUCT_MOB completo). O recalc autoritativo acima ja
-	// reconstruiu SkillPts como orcamento total menos o custo das skills
-	// persistidas. Nao ressincronizar apenas o orcamento aqui: isso devolveria
-	// ao client todos os pontos gastos durante cada login/relogin.
+	// 1) Full STRUCT_MOB. Recalculation already subtracted purchased skills
+	// from SkillPts; do not restore the entire budget on each relog.
 	clientChar := *ch
 	clientChar.Equip = clientEquipProjection(ch)
 	s.Send(wire.EnterWorld(p.ID, uint16(slot), clientChar))
-	// 2) self-CreateMob (spawn=2): materializa o proprio player. Parte da sequencia
-	// COMPROVADA in-game; sem ele o re-enter (2o login do mesmo client) reconstroi o
-	// self com estado velho (HP/MP travados). ActionStop vem depois, senao reseta a pose.
+	// 2) Self-CreateMob (spawn=2), observed in-game. Without it, a second login
+	// in the same client process retains stale HP/MP. ActionStop follows it.
 	s.Send(wire.CreateMobWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
 		bodyAncient(ch), wireScoreState(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP))
-	// 3) sequencia de login (ordem WYD 7.48): 3A8 -> 336 -> 185 -> 337 -> 36B -> 181 -> 366
+	// 3) Login sequence in WYD 7.48 order: 3A8 -> 336 -> 185 -> 337 -> 36B -> 181 -> 366.
 	s.Send(wire.WarInfo())
 	s.Send(playerScorePacket(p))
 	s.Send(playerAffectsPacket(p))
@@ -473,12 +465,10 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	s.Send(wire.ActionStop(p.ID, ch.X, ch.Y))
 	s.Send(wire.SetShortSkill(p.ID, ch.ShortSkill))
 
-	// 4) materializa mobs/outros players/itens DENTRO do raio e popula p.Visible.
-	// Antes mandava CreateMob de todos os mobs sem filtro (e sem semear p.Visible),
-	// deixando o sistema de visibilidade inconsistente e sem escalar pra milhares.
+	// 4) Publish nearby mobs, players, and items, then populate p.Visible.
 	w.refreshPlayerVisibility(p)
 	w.issueClientIntegrityChallenge(p)
-	log.Printf("[#%d] visibilidade inicial: %d entidades", s.ID, len(p.Visible))
+	log.Printf("[#%d] initial visibility: %d entities", s.ID, len(p.Visible))
 }
 
 // isLoadtestAccountName restringe o nascimento alternativo ao conjunto que o
@@ -1327,13 +1317,15 @@ func (w *World) onMoveStop(s *net.Session, pkt []byte) {
 }
 
 const (
-	playerHomeCityMask  = uint32(0xC0)
-	playerHomeCityShift = 6
+	playerHomeCityMask       = uint32(0xC0)
+	playerHomeCityShift      = 6
+	mortalBeginnerLevelLimit = 35
+	mortalBeginnerSpawnX     = 2112
+	mortalBeginnerSpawnY     = 2042
 )
 
-// playerHomeCity preserva o contrato legado: os dois bits altos do byte
-// Merchant guardam a cidade vinculada do personagem. Personagens antigos, com
-// esses bits zerados, continuam vinculados a Armia (cidade 0).
+// playerHomeCity preserves the legacy contract: Merchant bits 7:6 store the
+// bound city. Zero bits keep older characters bound to Armia (city 0).
 func playerHomeCity(ch *model.Char) int {
 	if ch == nil || ch.Score == nil {
 		return 0
@@ -1347,13 +1339,18 @@ func playerHomeCity(ch *model.Char) int {
 
 func playerHomeCitySpawn(ch *model.Char) (int, uint16, uint16) {
 	city := playerHomeCity(ch)
+	// W2PP uses FREEEXP=35 by default for mortal login and recall. The
+	// beginner field overrides the destination, not the bound city.
+	if ch != nil && ch.Score != nil && ch.Score.Level < mortalBeginnerLevelLimit &&
+		(ch.Evolution == "" || strings.EqualFold(ch.Evolution, "mortal")) {
+		return city, mortalBeginnerSpawnX, mortalBeginnerSpawnY
+	}
 	zone := cityWarZones[city]
 	return city, zone.exitX, zone.exitY
 }
 
-// bindableCityAt reproduz BASE_GetVillage para as quatro cidades que o client
-// 7.48 pode selecionar pelo ChangeCity (Village < 4). A posicao do servidor e
-// a fonte da verdade; o Village recebido no pacote nao escolhe a cidade.
+// bindableCityAt follows BASE_GetVillage for the four cities available through
+// the 7.48 ChangeCity packet. Server position, not the reported Village, wins.
 func bindableCityAt(x, y uint16) (int, bool) {
 	for city := range cityWarZones {
 		if cityWarZones[city].city.contains(x, y) {
@@ -1411,25 +1408,23 @@ func (w *World) bindPlayerHomeCity(p *Player) {
 		return
 	}
 	if err := w.savePlayerLocation(p); err != nil {
-		log.Printf("[#%d] ChangeCity falhou ao persistir %s[%d]: %v",
+		log.Printf("[#%d] ChangeCity failed to persist %s[%d]: %v",
 			p.Session.ID, cityWarZones[city].name, city, err)
 	}
 }
 
-// recallPlayer recolhe o jogador para a cidade. E o servico UNICO do
-// renascimento (onRestart) e do reset de area de quest, para nao divergirem.
+// recallPlayer handles both restart and quest-zone reset. Mortal beginners go
+// to the Armia field; all other characters go to their bound city.
 //
-// Ordem segura (o ponto sutil): o cadaver e visto pelos observadores da
-// posicao ANTIGA; ele precisa ser descartado (RemoveMob type 3) ANTES de
-// mover, senao a re-materializacao (que consulta a posicao NOVA) deixa o corpo
-// orfao no ponto de morte. Depois revive, teleporta e recria vivo no destino.
+// Observers see a corpse at its old position. RemoveMob type 3 must clear it
+// before movement; otherwise rematerialization uses the new position and
+// leaves an orphaned corpse at the death site. Then revive and publish.
 func (w *World) recallPlayer(p *Player, reason string) bool {
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld {
 		return false
 	}
-	// Um restart/recall tambem e uma saida da instancia. Sem esta liberacao,
-	// o jogador morto continuava em MemberIDs e a limpeza posterior podia
-	// teleporta-lo novamente para a sala antiga ou bloquear uma nova entrada.
+	// Restart or recall also exits the instance. Without detaching the member,
+	// later cleanup could teleport them to the old room or block re-entry.
 	now := w.now()
 	// Recall/restart is a definitive exit from a private Water room. Unlike a
 	// socket logout, it must not leave a UID pending that would reattach the
@@ -1455,10 +1450,10 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 	p.X, p.Y = w.findFreePlayerPosition(spawnX, spawnY, 8, p)
 	p.Char.X, p.Char.Y = p.X, p.Y
 	clearPublishedPlayerMove(p)
-	// A posicao segura persiste; falha de disco nao aborta o recall (a posicao
-	// em RAM ja esta correta e o autosave a cobre em segundos).
+	// Persist the safe position. A disk failure does not abort recall because
+	// the in-memory position is correct and autosave retries shortly.
 	if err := w.saveAccount(p.Account); err != nil {
-		log.Printf("[#%d] recall (%s): salvar posicao: %v", p.ID, reason, err)
+		log.Printf("[#%d] recall (%s): failed to save position: %v", p.ID, reason, err)
 	}
 	if p.Session != nil {
 		p.Session.Send(playerScorePacket(p))
@@ -1468,19 +1463,19 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 	w.syncPlayerVitals(p)
 	w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
 	w.updatePartyMember(p)
-	log.Printf("[#%d] recall (%s) -> %s[%d] @(%d,%d) revivido=%v",
-		p.ID, reason, cityWarZones[city].name, city, p.X, p.Y, dead)
+	log.Printf("[#%d] recall (%s) -> (%d,%d), bound city %s[%d], revived=%v",
+		p.ID, reason, p.X, p.Y, cityWarZones[city].name, city, dead)
 	return true
 }
 
-// onRestart implementa _MSG_Restart (0x289). O fluxo nativo repoe HP e executa
-// DoRecall; delega ao recallPlayer, que centraliza o renascimento seguro.
+// onRestart implements _MSG_Restart (0x289). The native flow restores HP and
+// calls DoRecall; recallPlayer centralizes the safe respawn here.
 func (w *World) onRestart(s *net.Session) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) != 0 {
 		return
 	}
-	// O TMSrv bloqueia pedidos repetidos durante quatro segundos apos a morte.
+	// TMSrv rejects repeated requests during the first four seconds after death.
 	if !p.DeadAt.IsZero() && time.Since(p.DeadAt) < 4*time.Second {
 		return
 	}

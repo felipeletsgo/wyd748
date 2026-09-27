@@ -186,6 +186,340 @@ format or server-calculated damage. This is `MODERNIZACAO_COMPATIVEL`, using
 the recorded native capacities in
 [attack-frame-envelope](../../.agents/research/client748/flows/transport/attack-frame-envelope.md).
 
+### Single-slot update destination validation
+
+`TMHuman::OnPacketSendItem` rejects unsupported storage types before bag UI,
+slot writes, or character appearance updates. Previously, a frame with a type
+other than Equip (0), Carry (1), or Cargo (2) bypassed every slot branch but
+still reached `InitObject`, which destroys and rebuilds the character mesh.
+The shared predicate now validates both the type and signed position against
+the actual destination array capacity. It preserves all existing valid slots,
+including additional equipment, reserved Carry, and Cargo storage positions.
+
+This is `MODERNIZACAO_COMPATIVEL`, reusing the unchanged 24-byte `0x182`
+envelope in
+[SendItem local update](../../.agents/research/client748/flows/ui/send-item-local-update.md).
+It does not change server packets or claim native rejection behavior. Tests
+execute 70 type/position boundary combinations and three empty-capacity cases;
+a source-contract check verifies rejection before UI, model, and mesh updates.
+These checks do not execute the DirectX scene. The server split-response tests
+remain applicable because valid Carry destinations and wire bytes are unchanged.
+`Build-Client.ps1 -Configuration Release -NoDeploy` passed with 58,274
+architecture checks and 221 socket checks. The built artifact is updated in
+`tmproject/build/`; no runtime executable was installed and no game was launched.
+
+### Confirmed item-drop lifecycle
+
+The `0x175/28` handler commits the confirmed Equip, Carry, or Cargo removal
+even when the corresponding visual grid is missing. It now tolerates a
+missing cursor and releases any removed grid item before checking for the
+local character renderer. Hover, last-dragged, and sell/split aliases to that
+item are cleared before destruction; aliases to other items are retained.
+A missing local character skips only the remaining presentation refresh,
+not the authoritative slot update or ownership cleanup.
+
+This is `MODERNIZACAO_COMPATIVEL`, reusing the native envelope and ownership
+evidence in the
+[drop-confirmation contract](../../.agents/research/client748/flows/ui/drop-confirmation-contract.md).
+Packet layout, valid slot ranges, and server persistence/confirmation order
+are unchanged. Two source-contract regressions failed before the patch and
+passed afterward. These checks protect cleanup and guard ordering; they do
+not execute the DirectX scene or prove an in-client drop interaction.
+The incremental `Build-Client.ps1 -Configuration Release -NoDeploy` build
+passed with 52,032 architecture checks and 221 socket checks. The candidate
+was neither installed nor run; the drop lifecycle has source-contract and
+build coverage, not `CLIENT_TESTED` status.
+
+### Legacy sale-handler safety
+
+`TMFieldScene::OnPacketSell` now bounds Equip/Carry indices before indexing
+the model or grid array, tolerates absent merchant/equipment controls, and
+clears matching hover, drag, sell-dialog, and cursor aliases before deleting
+the detached visual. An incomplete visual without an item payload is still
+released, without crediting gold. An absent local renderer no longer makes
+the final appearance refresh dereference a null pointer. The duplicated
+price calculation was consolidated without changing its arithmetic.
+
+This is `MODERNIZACAO_COMPATIVEL`, based on the current grid ownership
+contract: `PickupItem`/`PickupAtItem` transfer ownership, while the item
+destructor does not clear interaction aliases. The existing
+[equipment-slot policy](../../.agents/research/client748/flows/ui/equipment-slot-compatibility.md)
+remains in force. This is not a native-parity claim for the sale response.
+The current Go `onSellItem` persists the sale and sends `SendItem` followed
+by `UpdateEtc`; it does not send this inherited `0x37A` response. Server
+authority, persistence, prices, and outgoing packets are unchanged.
+
+Three source-contract regressions failed before the patch and passed after
+it. The incremental `Build-Client.ps1 -Configuration Release -NoDeploy`
+build passed with 52,035 architecture checks and 221 socket checks. No files
+were removed, and the executable was neither installed nor run. These are
+source/build checks, not execution of the DirectX sale UI.
+
+The receive boundary now also protects the inherited callback's memory reads.
+`LegacySalePacket.h` extracts the unchanged `MSG_Sell` representation from
+`Basedef.h`, with size and field-offset assertions. Before handing off the
+borrowed buffer, `received_packet::CanDispatch` requires at least its 20 bytes,
+matching metadata/embedded opcodes, and matching declared/actual lengths.
+The check handles either opcode discriminator, so inconsistent metadata cannot
+bypass it. This is a source-representation minimum, **not** a claim that the
+native S->C response has that exact envelope. Larger consistent frames remain
+accepted; `ExpectedSize(0x37A)` remains zero pending native evidence.
+
+Executable regression tests reproduced callback delivery for truncated frames
+of 12 through 19 bytes before the guard. Afterward, all truncated prefixes,
+null storage, mismatched opcodes, and inconsistent lengths are rejected;
+complete unaligned storage is borrowed once without modification. A larger
+consistent frame confirms that no unproven exact-size restriction was added.
+The architecture suite passes 52,086 checks and the socket suite passes 221.
+`Build-Client.ps1 -Configuration Release -NoDeploy` passes after the guard
+and shared-header extraction; the candidate was neither installed nor run.
+Repository layout/local-link validation also passes (150 indexed documents).
+
+Remaining boundary: the inherited `0x37A` response still lacks a complete
+native direction/consumer trace. The documented local Ghidra project and
+decompilation directories are absent, and the retained focused exports do
+not close that gap. Recover the native consumer evidence before assigning
+an exact-size contract, claiming parity, or deciding whether to remove the
+handler. The current server's snapshot-based sale does not exercise it.
+No visual client execution is authorized; automated receive-gate coverage
+does not establish `CLIENT_TESTED` status.
+
+### Auto-trade visual ownership
+
+`TMFieldScene::OnPacketItemSold` preserves the documented
+[native item-sold contract](../../.agents/research/client748/flows/ui/item-sold-contract.md)
+for `0x39B`: only the visible shop with the matching clone and an in-range
+listing slot is affected. The delta clears its item, carry mapping, and price
+even when its optional grid is absent, and hides the corresponding price label.
+The server sends no replacement snapshot after each sale. Repeated deltas are
+idempotent; an already absent visual needs no deletion. This internal state
+synchronization is `MODERNIZACAO_COMPATIVEL`, with no wire change. The sale
+notification, snapshot replacement, seller preparation, and both panel-close paths use
+`WYD748_ReleaseAutoTradeItem` for detached visuals. Before deletion it clears
+matching hover, drag, and sell-dialog aliases and detaches a matching cursor
+item through `DetachItem`, which also resets the pickup cursor style. Null
+items leave unrelated interaction state unchanged. Snapshot replacement
+releases the old visual before allocating a new one; panel closure retains
+the existing cargo highlighting, twelve-slot cleanup, and state reset.
+Seller preparation restores cargo highlighting before releasing each visual
+through the same helper. Preparing a priced offer also rejects a cargo visual
+without an item payload before copying its data.
+
+This is `MODERNIZACAO_COMPATIVEL`. Packet layout, server authority, pricing rules,
+and shop snapshots are unchanged. Source-contract checks cover all five
+cleanup call sites, the shared helper's guards and release ordering, and the
+cargo payload guard before offer creation. Executable policy tests cover
+clearing each of the twelve offers, preserving other offers, repeated deltas,
+and invalid indices; source checks connect that policy to the UI handler.
+The incremental
+`Build-Client.ps1 -Configuration Release -NoDeploy` build passed with
+58,068 architecture checks and 221 socket checks. These checks establish
+`AUTOMATED TESTED` policy and source-contract coverage, not execution of the DirectX
+shop lifecycle. The candidate was neither installed nor run; a two-client
+purchase while hovering or selecting a listing remains a pending runtime
+gate, including repeated notifications and shop close/reopen behavior.
+
+### Auto-trade purchase confirmation
+
+The purchase dialog retains a control ID, not a copy of the selected offer.
+Previously `SendReqBuy` used that ID to read the current snapshot without
+bounds checks: a replacement snapshot could redirect an old confirmation to
+a different item, price, or seller. Snapshot replacement and panel closure
+now invalidate purchase-dialog message `646` and its argument. An item-sold
+notification invalidates only the matching slot's confirmation. Other dialogs
+are preserved, and hiding an already hidden dialog does not steal UI focus.
+
+Before reading listing arrays, `SendReqBuy` resolves controls `653..664` for
+the native UI (`653..662` for the imported resource), rejects missing local
+state or a hidden shop, and requires a present listing visual and a nonempty,
+positive-price offer. Resource-ID static assertions tie the resolver to the
+active control constants. The existing request fields and layout are unchanged;
+the Go `onReqBuyAutoTrade` remains authoritative for the shop, item, price,
+tax, account state, persistence, and rejection of stale purchases.
+
+This is `MODERNIZACAO_COMPATIVEL`, not a new native-parity claim. Executable
+policy tests cover control boundaries, unsigned overflow, all twelve-by-twelve
+selected/sold slot combinations, unrelated dialogs, and invalidation inputs.
+Source-contract checks cover the cancellation and send paths. The incremental
+`Build-Client.ps1 -Configuration Release -NoDeploy` gate passed with 53,577
+architecture checks and 221 socket checks. No server contract changed, so
+unchanged server tests were not rerun. `CLIENT_TESTED` remains pending: no
+game was launched, no candidate installed, and no real purchase was made.
+
+### Auto-trade publication validation
+
+The publish button checks the complete twelve-item `MSG_AutoTrade` array
+through `field_interaction::HasAutoTradeOffers`. The inherited ten-slot scan
+incorrectly rejected a shop whose only remaining offer occupied slot 10 or
+11 (zero-based). Empty shops still fail locally. The existing
+[native envelope](../../.agents/research/client748/flows/transport/auto-trade-envelope.md)
+remains `0x397`, 196 bytes, with twelve offers; server validation is unchanged.
+This is `MODERNIZACAO_COMPATIVEL`, not a new packet or parity claim.
+
+The price prompt rejects zero before reserving Cargo or populating a listing.
+Previously zero passed local validation, occupied a slot, and caused the server
+to reject publication. The prompt remains open and focused for correction,
+using existing message IDs. `IsValidAutoTradePrice` retains the existing client
+range of 1 through 1,999,999,999; it does not change the server's independently
+validated ceiling of 2,000,000,000. No tax or purchase accounting changed.
+
+Opening the price prompt now validates its caption, edit control, and Cargo
+slot before changing the item highlight, prompt mode, or selected position.
+The shared stack-split entry also rejects missing scene/container, item data,
+or prompt controls before reserving its item. Existing control-ID aliases
+already resolve native controls 626/627/630; no resource remapping was needed.
+This is internal failure-path hardening (`MODERNIZACAO_COMPATIVEL`), with no
+wire or server change. Source-contract checks enforce the validation order;
+they do not execute the DirectX dialog or prove runtime interaction.
+
+Stack-split entry now checks the pointer hit and exact Carry-grid identity
+before selecting an item. The container broadcasts mouse events to visible
+controls, and cell-coordinate truncation is not a hit test; previously an
+outside Shift-click could select an unintended source. Prompt controls are
+resolved before selection, and an already-visible shared prompt rejects the
+new intent without replacing its selected item or mode. Source-contract tests
+cover both rejection paths. This preserves the existing split packet and
+authoritative server validation; it is not a new native-parity claim.
+
+Split confirmation now establishes membership in the live Carry grid before
+dereferencing the non-owning selection. A removed source closes the prompt;
+invalid quantities keep it focused for correction. The shared quantity policy
+requires a byte-sized stack and leaves both resulting stacks nonempty, so zero
+is no longer sent to the server. Confirmation and cancellation both clear the
+split mode and pointer and restore the highlight only for an item still owned
+by the grid. Neither path removes an item or edits its quantity locally.
+The existing 24-byte `0x2E5` request is unchanged. Executable policy tests cover
+quantity boundaries and invalid/foreign grid selections; source checks connect
+those policies to the scene's send and close paths. The focused Go command
+`go test ./internal/game -run 'Test(SplitItem|DeleteItem)' -count=1` passed,
+including malformed requests, full Carry, quantity boundaries, independent
+UIDs, repetition against the remaining quantity, and save rollback. Persistence
+tests use the existing in-memory store double, not a live database. Real dialog
+execution remains untested and is not inferred from these checks.
+
+`TestSplitItemOutboundSlotSnapshots` adds 18 executable server scenarios across
+the first, middle, and last visible Carry slots, all three `EF_AMOUNT` effect
+positions, and successful/failed saves. It observes the persistence boundary
+before any confirmation is queued, checks both stacks in the account snapshot,
+then decrypts the two actual `Session.Send` frames. Each must be a 24-byte
+`0x182` addressed to the player, source slot first and destination second, with
+the exact authoritative item index and all six effect bytes. A failed save must
+restore both slots and send their original contents, including the empty
+destination. UID and timestamp metadata remain outside the eight-byte wire
+item. `go test ./internal/game -run '^TestSplitItem' -count=1` passed for this
+test-only addition; the existing client frame gate and local slot application
+are unchanged, so the earlier client build remains applicable. This does not
+execute the C++ scene or validate a live database transaction.
+
+`AUTOMATED TESTED`: executable client policy tests cover all 4,096 occupancy
+patterns and negative item sentinels; a source-contract check ties the policy
+to publication before sending. Go tests accept an isolated offer in each of
+the twelve slots, preserve its cargo position and price, and reject empty
+shops and forged items. Price policy tests cover zero, negative values, the
+prompt ceiling, and 64-bit extremes; source checks verify rejection before
+listing mutation. Go tests cover price boundaries in all twelve slots and
+prove parsing leaves Cargo unchanged for accepted and rejected requests.
+The focused parser/purchase suite and incremental
+`Build-Client.ps1 -Configuration Release -NoDeploy` passed (58,200 architecture
+checks and 221 socket checks). No candidate was installed or game launched;
+publishing and buying a final-slot offer remains a pending client runtime gate.
+
+## TCP buffering
+
+`CPSock` compacts only the consumed prefix before receiving more bytes and
+retains the full unread suffix, including a read that exactly fills the
+remaining capacity. A stale asynchronous notification returning
+`WSAEWOULDBLOCK` preserves the connection; orderly shutdown still reports
+disconnection. Framing validates the size and waits for the entire packet
+before consuming a configured rolling receive key.
+
+This is `MODERNIZACAO_COMPATIVEL`: packet sizes, encryption, opcodes, and
+server behavior are unchanged. It is independent of the user's resolved
+connection failure caused by an incorrectly configured IP address.
+
+Outbound appends also reclaim the already-sent prefix before checking queue
+capacity, retaining the encrypted pending suffix without changing its bytes
+or order. Automatic sends consume a configured rolling key only after the
+frame is accepted into the queue, not on local size/capacity/socket rejection.
+A partial flush does not undo an accepted frame's key. The Go server's
+`wire.CharList` currently sends zero `SecretCode` bytes and therefore does
+not activate rolling keys; the capacity correction applies in that mode too.
+Explicit-key sends remain independent of the automatic sequence.
+
+Flushes reject invalid cursors without erasing the queue and return failure
+for definitive Winsock errors. Positive short writes continue until the
+queue drains or `WSAEWOULDBLOCK` retains the unsent suffix. The active connection
+entry point subscribes to `FD_WRITE` and accepts event registration only on
+its zero success result. `NewApp` routes notifications through the tested
+socket dispatcher: write-ready retries pending bytes, events for a different
+socket are ignored, and read EOF, close, or event errors use the existing
+scene disconnect notification. A repeated close after cleanup is ignored.
+The event/error decoding and write retry rules follow Microsoft's
+[WSAAsyncSelect contract](https://learn.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-wsaasyncselect).
+
+These outbound changes are also `MODERNIZACAO_COMPATIVEL`, not a new native
+parity claim. Production C++ and the Go login contract were inspected; the
+existing cipher and key derivations are unchanged. No new native/Ghidra or
+asset research was needed for this internal queue-state correction.
+
+`SocketReceiveTests` compiles the production socket implementation and covers
+every split of an encrypted frame, repeated incomplete reads, buffer
+compaction, exact-capacity reads, would-block, and peer shutdown using local
+TCP. Outbound regressions reproduce rejection and capacity failures before
+the fix, then verify unchanged pending ciphertext, decoded frame order and
+payload, key progression, explicit keys, and zero-SecretCode operation.
+Additional tests reproduce the previous false-success send error and invalid
+cursor data loss, then cover bounded real TCP backpressure, exact-byte retry
+delivery, synthetic event dispatch, fatal retry errors, and failed event
+registration without creating a window. Actual Windows message delivery and
+scene behavior in the game remain untested; synthetic notifications do not
+establish those gates. Socket identity filtering covers different handles,
+not reuse of an identical handle by Winsock. Both login connection paths now
+queue the raw four-byte `InitCode` through the same output buffer as encrypted
+frames. A short send or `WSAEWOULDBLOCK` retains the unsent handshake prefix
+before the first frame; a definitive send error closes the socket. Loopback
+tests verify the handshake bytes, frame ordering and decoding, rejection of a
+duplicate handshake, and definitive send failure. The Go session test accepts
+a split `InitCode` followed by the first frame in the same write. Actual
+asynchronous Windows notification delivery remains a client-runtime gate.
+Closing or destroying a socket now releases any live handle and clears the
+previous session's cursors, queued keys, and counters before a reconnect.
+Focused tests cover that teardown and an idempotent second close.
+The unused `StartListen` server-listener path, `ReadMessage2` alternate
+parser, `SingleConnect` duplicate connection path, explicit-key send facade,
+and send-queue compaction facade were removed after checking their callers.
+The active client still uses the same outbound socket owner for login, field
+traffic, and migration;
+the native 7.48 socket-owner record supports that boundary. This removal
+does not alter handshake bytes, packet framing, or server behavior.
+Malformed frame length, rolling keyword, or checksum now closes the stream
+and notifies the scene through its existing disconnect path. Previously the
+read loop stopped without closing, so an invalid frame could be retried at
+the same cursor on later notifications. This is compatible error handling;
+valid packet bytes and dispatch behavior are unchanged. Parser tests cover
+all three errors, and a source contract checks close-before-notify ordering.
+The parser also returns no packet view when checksum validation fails, so a
+caller cannot accidentally treat that rejected frame as dispatchable.
+`Build-Client.ps1` runs this gate before building or installing a candidate.
+Validation: 221 socket checks, 52,020 architecture checks, the focused Go
+handshake tests, and the incremental Release `-NoDeploy` build passed. Status:
+`AUTOMATED TESTED`, not `CLIENT-TESTED`; the game was neither installed nor
+executed for this batch.
+
+## Motion/emote `0x36A`
+
+The native 7.48 client sends a 20-byte emote request and waits for its own
+returned frame before allowing the next emote. The server validates a living
+character, accepts only ordinary motions with zero Parm, replaces the claimed
+ID and Direction with authoritative values, and echoes to the owner and
+visible observers. A dead character cannot use this route to restart an
+animation. The death transition also clears any pending emote because its
+late response is intentionally ignored; otherwise revival could leave emote
+input blocked. Scene-owned effects are allocated only while their container
+exists, avoiding a leak if that container is absent. The
+[native flow record](../../.agents/research/client748/flows/transport/motion-emote-roundtrip.md)
+holds the wire offsets and evidence; client execution remains pending.
+
 ## Active score layout
 
 ### Zero-HP death transition
@@ -229,12 +563,90 @@ SHA-256 `7F5430279644A8B285BBBE1F04628B6B8C49DBF3528047C0379C39862255E96E`.
 The server game and wire package tests passed. Death animation, orb appearance,
 route correction, and respawn interaction in the running client remain untested.
 
+The native field tick also sends a 12-byte `0x289` recall request if the
+character remains dead for more than three minutes outside the restricted
+town tiles. The compact 7.48 scene previously returned before that fallback;
+both scene lifecycles now share the timed decision and send a zero-initialized
+request once. The server still decides whether revival is valid. The Release
+`-NoDeploy` build and 51,995 architecture checks passed for this change, but
+the resulting executable has not been installed or tested in the running
+client. This does not prove that the earlier five-second prompt or visible
+death effects work.
+
+The five-second prompt countdown now uses its own recall start time instead
+of the unrelated server-selection timer. After sending `0x289`, the pending
+flag also prevents the portal effect from replaying during the remaining
+timer-cleanup interval. This is a source-level lifecycle correction; it does
+not change the packet or claim a completed in-client respawn test.
+
+The same recall request no longer clears `m_cDie` or starts the revival
+animation locally. A rejected or lost request therefore leaves the character
+dead; only the server's positive-HP `0x181` response clears that state and
+starts the revival animation. The request-time effect remains cosmetic. A
+source contract check covers the separation, but a running-client respawn
+test remains pending.
+
 The server death publisher includes the victim in its nearby-player query;
 `TestPublishPlayerDeathReachesVictimAndVisibleObservers` covers delivery to
 the victim and observers. The client kill-confirmation handler now also
 handles an attacker absent from the local scene when formatting the
 resurrection-item notice. Neither static contract proves the visible death
 or respawn interaction without an in-client test.
+
+The same kill-confirmation path now skips an unavailable inventory grid or
+item backing record and omits the optional resurrection-item notice when its
+Help list is unavailable. This prevents a partial FieldScene2 resource load
+from dereferencing a missing control during death; it does not alter the
+server's kill or restart packets. The Release `-NoDeploy` build and 52,002
+architecture checks passed. The resulting executable was not installed or
+tested in the running client.
+
+The base scene creates and registers the respawn message box for both field
+lifecycles. The compact 7.48 tick previously returned before the regular HUD
+code that dismissed this modal prompt after authoritative HP recovery. That
+dismissal now runs before the lifecycle split and applies only to message 11.
+This is covered by a source contract check; visible dismissal still requires
+an in-client test.
+
+During air travel, the `0x181` handler previously updated the local entity's
+HP but skipped the ObjectManager score along with the temporarily suppressed
+HUD redraw. The compact respawn prompt and recovered-HP dismissal read that
+score, so a lethal snapshot could leave them looking at stale HP. The handler
+now copies only the four resolved HP/MP fields for the local character even
+while air travel is active, preserving unrelated score fields. Nonlethal
+in-flight HUD redraws remain gated. A lethal snapshot now enters `Die()`
+before that visual gate: death cancels flight, so the same `0x181` redraws
+the local HP bar at zero instead of waiting for another packet. Air-travel
+completion also no longer restores a pre-death animation over the corpse. The server
+already handles death during air travel without granting its pending destination.
+This `MODERNIZACAO_COMPATIVEL` changes neither the 28-byte vitals contract nor
+the `0x289` restart request. A source contract guards the ordering; client
+execution remains unavailable. A subsequent client-side flight fix captures
+the preflight visual origin and explicitly cancels the route during death,
+including death signals that arrive before HP reaches zero. It discards the
+pending displacement, restores the origin and mount, and skips the flight-end
+packet. An unrelated server-authoritative teleport instead keeps the new
+position, discards only the flight displacement, and likewise skips the
+flight-end packet. Ordinary arrival still uses the existing 7.48 start/end
+wire contract. The server now clears its pending route when publishing the
+death, without waiting for the next client packet; a late end still cannot
+grant the destination. The shared player-movement path also refuses to publish
+an `ActionStop` (`0x367`) route at zero HP and discards any pending route before
+another authoritative step can advance. Focused tests cover a late stop, an
+in-flight route, and normal routing after HP recovery. This is
+`MODERNIZACAO_COMPATIVEL`; source and
+pure-state client checks and focused server tests cover the branches, but
+the running-client appearance remains unverified. Air-travel start now leaves
+state untouched when the scene's effect container is unavailable; ordinary
+completion skips its cosmetic effect if that owner disappeared, while still
+sending the existing end packet. The wire and server destination rules remain
+unchanged. The death clip's optional particle, class-specific death effects,
+and recall, teleport, and relocation countdown visuals also allocate only
+while the scene owns an effect container. Missing cosmetic ownership cannot
+suppress the recall packet, death sound, or death-state transition.
+
+The final incremental Release `-NoDeploy` build and 52,018 architecture
+checks passed for this batch. The executable was not installed or run.
 
 ### Shared static route maps
 
@@ -273,11 +685,35 @@ both asset identities; use `-Apply` only to regenerate the derived copies.
 also reports the original tile/object reconstruction. In the 41-by-41 area
 around `(3647,3112)`, all 1,681 static route cells and their route-height
 edges now agree; the legacy terrain/object reconstruction still differs in
-height at 36 cells. A wider 81-by-81 sample around `(3648,3136)` also has
+height at 36 cells. With the same attribute mask on both surfaces, 12 of
+those cells are walkable in the reconstructed terrain but blocked in the
+shared route map. Another 24 cells are walkable in both maps but have
+different heights (at most six height units). No cell is blocked only in the
+reconstructed terrain. A wider 81-by-81 sample around `(3648,3136)` also has
 zero static route-map disagreements. At the rejected destination, both route
 maps now read `127`; the original terrain/object reconstruction reads `-88`.
 These are asset and source checks, not an executed-client observation. The
-dynamic collision path and visible death/respawn behavior remain unverified.
+route-map identity prevents this static mismatch from producing different
+client/server route decisions, but the rendered terrain and static route
+surface are not equivalent in this sample. Dynamic collision and visible
+death/respawn behavior remain unverified in the executable client.
+
+The server now overlays permanent ground-object collision onto its private
+HeightMap copy during world creation. Object identity, position, and rotation
+come from the 96-row `wydgo748/data/init_items.csv`; mask geometry comes from
+the active client's `g_pGroundMask[10][4][6][6]`. A gate opening clears those
+cells only after key consumption is persisted, matching the `0x374` update
+sent to observers. Automated tests compare all 1,440 mask cells against the
+client source, reject overlaps among the CSV objects, and check route blocking,
+successful opening, and persistence rollback. The exact 5,760-byte table
+also matches both native 7.48 executables at file offset `0x001BED50`;
+`FUN_005554CC` references its VA `0x005BED50`. The automated test pins the
+native table hash, so the active client/server mask geometry has native
+evidence. The client collision primitive now rejects out-of-range mask and
+rotation indices and a null HeightMap before indexing; valid object packets
+use the unchanged mask logic. The incremental Release `-NoDeploy` build and
+its architecture/socket gates passed, but executable-client behavior remains
+pending.
 
 The server now stops any pending authoritative route and sends its current
 position to the owner when it rejects a `0x366` route. This is a coordinated

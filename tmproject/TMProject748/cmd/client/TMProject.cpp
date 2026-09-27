@@ -1,10 +1,17 @@
-// Unidade minima criada pelo template Win32 do TMProject.
+// Minimal translation unit created by the TMProject Win32 template.
 //
-// Esta unidade nao declara entrada, estado global nem comportamento do jogo.
-// Ela somente mantem juntos o precompiled header, a base Win32 e o recurso do
-// executavel. O bootstrap ativo pertence ao fluxo ja existente do client; uma
-// segunda funcao WinMain aqui criaria um lifecycle concorrente e incorreto.
+// This unit does not declare game state, protocol, or bootstrap logic.
+// It bundles precompiled headers, Win32 base, and executable resources.
+// Active bootstrap belongs to the existing client flow; a second WinMain
+// here would introduce an invalid concurrent lifecycle.
 
 #include "pch.h"
 #include "framework.h"
 #include "cmd/client/TMProject.h"
+
+// Request high-performance discrete GPU on systems with hybrid graphics (NVIDIA Optimus / AMD PowerXpress).
+// Graphics drivers query these exported symbols upon loading the executable to select the dedicated GPU.
+extern "C" {
+    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}

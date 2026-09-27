@@ -49,6 +49,8 @@ if (-not $MSBuildPath -or -not (Test-Path -LiteralPath $MSBuildPath -PathType Le
 $buildTarget = if ($Rebuild) { 'Rebuild' } else { 'Build' }
 # The compiled table must match the manifest and cataloged assets.
 & (Join-Path $PSScriptRoot '..\tools\client-assets\Export-CostumeTable.ps1') -Check
+& (Join-Path $PSScriptRoot '..\tools\client-assets\Sync-SkinShaders.ps1') -Check
+& (Join-Path $PSScriptRoot '..\tools\client-assets\Test-SkinShaders.ps1')
 # Run the pure test gate before building or copying the client; a failure preserves the candidate.
 $testProject = Join-Path $PSScriptRoot 'TMProject748\tests\ArchitectureTests.vcxproj'
 & $MSBuildPath $testProject "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=Win32' /m /nologo /v:minimal
@@ -57,6 +59,15 @@ $testExecutable = Join-Path $PSScriptRoot "build\tests\$Configuration\Architectu
 if (-not (Test-Path -LiteralPath $testExecutable -PathType Leaf)) { throw 'Architecture test executable is missing.' }
 & $testExecutable
 if ($LASTEXITCODE -ne 0) { throw 'Architecture tests failed; candidate not updated.' }
+
+# Exercise production socket framing against fragmented buffers and loopback TCP.
+$socketTestProject = Join-Path $PSScriptRoot 'TMProject748\tests\SocketReceiveTests.vcxproj'
+& $MSBuildPath $socketTestProject "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=Win32' /m /nologo /v:minimal
+if ($LASTEXITCODE -ne 0) { throw 'Socket receive tests failed to build; candidate not updated.' }
+$socketTestExecutable = Join-Path $PSScriptRoot "build\tests\$Configuration\SocketReceiveTests.exe"
+if (-not (Test-Path -LiteralPath $socketTestExecutable -PathType Leaf)) { throw 'Socket receive test executable is missing.' }
+& $socketTestExecutable
+if ($LASTEXITCODE -ne 0) { throw 'Socket receive tests failed; candidate not updated.' }
 
 & $MSBuildPath $solution "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=x86' /m /nologo /v:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE; candidate not updated." }

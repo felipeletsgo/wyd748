@@ -16,6 +16,5 @@ extern int g_nSelServerWeather;
 extern STRUCT_ITEMLIST g_pItemList[MAX_ITEMLIST];
 extern STRUCT_GUILDZONE g_pGuildZone[MAX_GUILDZONE];
 extern STRUCT_SPELL g_pSpell[MAX_SPELL_LIST];
-extern STRUCT_INITITEM g_pInitItem[100];
 extern STRUCT_TOTOLIST g_pTOTOList[80];
 extern int g_nTOTOListCount;

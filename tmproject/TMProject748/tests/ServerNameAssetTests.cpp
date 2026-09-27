@@ -1,4 +1,5 @@
 #include "../internal/core/WYD748Assets.h"
+#include "../internal/core/Basedef.h"
 #include "../internal/core/ServerChannelLabel.h"
 
 #include <algorithm>
@@ -201,6 +202,93 @@ int RunServerNameAssetTests(int& checks)
         std::fclose(mapFile);
     } else {
         check(false, "shipped 7.48 attribute map opens");
+    }
+
+    // The server CSV references these native object definitions. Exercise the
+    // production loader rather than inferring its output from the file layout.
+    const auto itemList = asset.parent_path() / "ItemList.bin";
+    std::vector<STRUCT_ITEMLIST> items(6500);
+    check(std::filesystem::is_regular_file(itemList),
+        "shipped 7.48 item list is available");
+    if (std::filesystem::is_regular_file(itemList)) {
+        const bool itemListLoaded = WYD748_LoadItemList(itemList.string().c_str(), items.data(), items.size());
+        check(itemListLoaded,
+            "shipped 7.48 item list loads into runtime definitions");
+        const auto effectValue = [](const STRUCT_ITEMLIST& item, short effect) {
+            for (const auto& entry : item.stEffect)
+                if (entry.sEffect == effect)
+                    return entry.sValue;
+            return short{0};
+        };
+        check(items[471].nIndexMesh == 148 &&
+            effectValue(items[471], 34) == 5 && effectValue(items[471], 39) == 9,
+            "guild gate matches the server object definition");
+        check(items[472].nIndexMesh == 141 &&
+            effectValue(items[472], 34) == 3 && effectValue(items[472], 39) == 9,
+            "steel window matches the server object definition");
+        check(items[4101].nIndexMesh == 1749 &&
+            effectValue(items[4101], 34) == 9 && effectValue(items[4101], 39) == 19,
+            "time gate matches the server object definition");
+        check(items[746].nIndexMesh == 1607 && effectValue(items[746], 34) == 0,
+            "cannon matches the server object definition");
+
+        const auto initialObjects = asset.parent_path() / "InitItem.bin";
+        check(std::filesystem::is_regular_file(initialObjects),
+            "shipped 7.48 initial objects are available");
+        if (itemListLoaded && std::filesystem::is_regular_file(initialObjects)) {
+            std::ifstream stream(initialObjects, std::ios::binary);
+            const std::vector<unsigned char> encoded(
+                (std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+            constexpr std::size_t recordSize = 8;
+            constexpr std::size_t recordCount = 96;
+            check(encoded.size() == recordSize * recordCount,
+                "shipped 7.48 initial objects contain 96 complete records");
+            if (encoded.size() == recordSize * recordCount) {
+                const auto decodedWord = [&](std::size_t offset) {
+                    return static_cast<unsigned int>(encoded[offset] ^ 0xff) |
+                        (static_cast<unsigned int>(encoded[offset + 1] ^ 0xff) << 8);
+                };
+                int cannons = 0;
+                int gates = 0;
+                int machines = 0;
+                bool allObjectsRenderable = true;
+                for (std::size_t record = 0; record < recordCount; ++record) {
+                    const std::size_t offset = record * recordSize;
+                    const unsigned int index = decodedWord(offset + 4);
+                    const unsigned int rotation = decodedWord(offset + 6);
+                    if (index == 0 || index >= items.size() || rotation > 3) {
+                        std::fprintf(stderr, "Invalid initial object %zu: index=%u rotation=%u\n",
+                            record, index, rotation);
+                        allObjectsRenderable = false;
+                        break;
+                    }
+                    const auto& definition = items[index];
+                    const short groundMask = effectValue(definition, 34);
+                    const bool cannon = definition.nIndexMesh == 1607;
+                    const bool gate = groundMask > 0;
+                    // Both slot machines use EF_GROUND=10 and mesh 2784. The
+                    // client renders them as gates, but has no collision mask 10.
+                    const bool machine = (index == 4102 || index == 4103) &&
+                        definition.nIndexMesh == 2784 && groundMask == 10;
+                    if (definition.nIndexMesh <= 0 || groundMask < 0 ||
+                        (groundMask > 9 && !machine) ||
+                        (cannon && (index != 746 || gate))) {
+                        std::fprintf(stderr,
+                            "Invalid initial object %zu: index=%u mesh=%d ground=%d rotation=%u\n",
+                            record, index, definition.nIndexMesh, groundMask, rotation);
+                        allObjectsRenderable = false;
+                        break;
+                    }
+                    cannons += cannon ? 1 : 0;
+                    gates += gate ? 1 : 0;
+                    machines += machine ? 1 : 0;
+                }
+                check(allObjectsRenderable,
+                    "all 96 initial objects have supported client renderers and rotations");
+                check(cannons == 25 && gates > 0 && machines == 2,
+                    "initial objects include 25 cannons, gates, and two unmasked slot machines");
+            }
+        }
     }
     return failures;
 }

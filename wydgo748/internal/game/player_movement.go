@@ -11,8 +11,8 @@ func movementStepInterval(p *Player) time.Duration {
 }
 
 func movementCatchupStepInterval() time.Duration {
-	// A ponte recompõe passos visuais já percorridos e usa o teto nativo 7.48.
-	// O trecho futuro volta ao intervalo derivado do Score autoritativo.
+	// The bridge catches up visual steps already traveled at the native 7.48 cap.
+	// Future steps return to the interval derived from the authoritative score.
 	return time.Second / 7
 }
 
@@ -59,12 +59,12 @@ func samePlayerMovementDestination(p *Player, targetX, targetY uint16) bool {
 
 func (w *World) beginPlayerMovement(p *Player, fromX, fromY, targetX, targetY uint16,
 	wireRoute, authorityRoute []byte, catchupSteps int, now time.Time) {
-	if p == nil || len(authorityRoute) == 0 {
+	if p == nil || p.Char == nil || playerCurHP(p.Char) == 0 || len(authorityRoute) == 0 {
 		return
 	}
-	// O client 7.48 atualiza o destino continuamente, inclusive antes do proximo
-	// passo visual vencer. Preserve o deadline ja em curso: reinicia-lo em cada
-	// 0x366 permite que uma sequencia legitima congele a autoridade para sempre.
+	// The 7.48 client continuously updates its destination, even before the next
+	// visual step is due. Preserve the current deadline: resetting it on every
+	// 0x366 would let a legitimate sequence freeze authority indefinitely.
 	nextStepAt := now
 	preserveStepDeadline := false
 	if p.MovePublished && len(p.MoveAuthorityRoute) > p.MoveAuthorityStep &&
@@ -96,16 +96,20 @@ func (w *World) beginPlayerMovement(p *Player, fromX, fromY, targetX, targetY ui
 	}
 }
 
-// advancePlayerMovement e a unica rotina que transforma intencao de rota em
-// coordenada autoritativa. O client pode repetir/reordenar planos, mas nunca
-// escolhe quantos passos ja venceram.
+// advancePlayerMovement is the only routine that turns route intentions into
+// authoritative coordinates. The client may repeat or reorder plans, but it
+// never decides how many steps have elapsed.
 func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 	if p == nil || !p.MovePublished || len(p.MoveAuthorityRoute) == 0 ||
 		p.MoveAuthorityStepInterval <= 0 {
 		return
 	}
-	// Teleportes e recalls alteram a coordenada por outro fluxo. Um plano antigo
-	// jamais pode continuar andando a partir do novo mapa/local.
+	if p.Char == nil || playerCurHP(p.Char) == 0 {
+		clearPublishedPlayerMove(p)
+		return
+	}
+	// Teleports and recalls change coordinates through another flow. An old
+	// plan must never keep walking from the new map or location.
 	if p.X != p.MoveAuthorityX || p.Y != p.MoveAuthorityY {
 		clearPublishedPlayerMove(p)
 		return
@@ -135,11 +139,10 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 			w.publishPlayerStop(p)
 			return
 		}
-		// O client nativo testa ocupação para escolher o destino final, não para
-		// cada tile intermediário da Route. Bloquear um intermediário fazia o
-		// servidor parar atrás da animação ao atravessar as fileiras de NPCs de
-		// Armia. Continue permitindo cruzamento, mas nunca finalize empilhado na
-		// mesma entidade do gameplay space.
+		// The native client checks occupancy at the final destination, not at
+		// every intermediate route tile. Blocking one of those tiles left the
+		// server behind the animation in Armia's NPC rows. Allow crossing, but
+		// never finish stacked with another entity in the gameplay space.
 		isFinalStep := p.MoveAuthorityStep+1 == len(p.MoveAuthorityRoute)
 		if isFinalStep && w.positionOccupiedInGameplaySpace(nextX, nextY,
 			w.gameplaySpaceForPlayer(p), nil, p, nil) {

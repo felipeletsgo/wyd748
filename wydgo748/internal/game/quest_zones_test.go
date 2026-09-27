@@ -42,32 +42,31 @@ func addZonePlayer(w *World, id uint16, x, y uint16, hp uint32) *Player {
 	return p
 }
 
-// nearRecall usa Chebyshev pois o recall pode empurrar alguns tiles quando dois
-// jogadores caem no mesmo ponto da cidade vinculada. Os fixtures antigos usam
-// hometown 0, portanto Armia continua sendo o fallback compativel.
+// nearRecall checks the beginner field, allowing adjacent tiles when multiple
+// low-level mortals recall at the same time.
 func nearRecall(p *Player) bool {
-	return chebyshev(p.X, p.Y, cityWarZones[0].exitX, cityWarZones[0].exitY) <= 8
+	return chebyshev(p.X, p.Y, mortalBeginnerSpawnX, mortalBeginnerSpawnY) <= 8
 }
 
 func TestQuestZoneResetRecallsInsideRevivesDeadLeavesOutside(t *testing.T) {
 	w := newZoneTestWorld()
-	alive := addZonePlayer(w, 1, 2400, 2100, 500) // dentro, vivo
-	dead := addZonePlayer(w, 2, 2385, 2080, 0)    // dentro, morto
-	outside := addZonePlayer(w, 3, 100, 100, 500) // fora
+	alive := addZonePlayer(w, 1, 2400, 2100, 500) // Inside, alive.
+	dead := addZonePlayer(w, 2, 2385, 2080, 0)    // Inside, dead.
+	outside := addZonePlayer(w, 3, 100, 100, 500) // Outside.
 
 	w.tickQuestZoneReset(time.Now())
 
 	if !nearRecall(alive) {
-		t.Errorf("vivo dentro nao foi recolhido: (%d,%d)", alive.X, alive.Y)
+		t.Errorf("living player inside zone was not recalled: (%d,%d)", alive.X, alive.Y)
 	}
 	if !nearRecall(dead) {
-		t.Errorf("morto dentro nao foi recolhido: (%d,%d)", dead.X, dead.Y)
+		t.Errorf("dead player inside zone was not recalled: (%d,%d)", dead.X, dead.Y)
 	}
 	if playerCurHP(dead.Char) == 0 {
-		t.Error("morto dentro nao foi revivido antes do recall")
+		t.Error("dead player inside zone was not revived before recall")
 	}
 	if outside.X != 100 || outside.Y != 100 {
-		t.Errorf("jogador fora da zona foi afetado: (%d,%d)", outside.X, outside.Y)
+		t.Errorf("player outside zone was affected: (%d,%d)", outside.X, outside.Y)
 	}
 }
 
@@ -77,6 +76,6 @@ func TestQuestZoneResetNoZonesIsNoop(t *testing.T) {
 	p := addZonePlayer(w, 1, 2400, 2100, 500)
 	w.tickQuestZoneReset(time.Now())
 	if p.X != 2400 || p.Y != 2100 {
-		t.Errorf("sem zonas configuradas nao deveria mover ninguem: (%d,%d)", p.X, p.Y)
+		t.Errorf("no configured zones should leave the player in place: (%d,%d)", p.X, p.Y)
 	}
 }

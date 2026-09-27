@@ -4,11 +4,13 @@
 
 namespace dye_texture_stages
 {
-// WYD 7.48 FUN_004c3eec: colored dyes add their effect texture;
-// black (120) modulates it. Use the animated second UV channel.
+// WYD 7.48 FUN_004c3eec uses COLOROP 0x18 (DOTPRODUCT3), then
+// 6 (MODULATE4X), or 4 (MODULATE) for black. These are not the adjacent
+// MULTIPLYADD/ADD enum values. Preserve the animated second UV channel.
 template <typename Device>
-void Apply(Device& device, short legend, char alpha, bool legacyAdapter)
+void Apply(Device& device, short legend, char alpha, bool legacyAdapter, bool tntAdapter = false)
 {
+    const bool black = legend == 120;
     device.SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
     device.SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 1);
     device.SetTextureStageState(0, D3DTSS_COLORARG0, D3DTA_CURRENT);
@@ -17,9 +19,9 @@ void Apply(Device& device, short legend, char alpha, bool legacyAdapter)
     device.SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE);
     device.SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT);
     device.SetTextureStageState(0, D3DTSS_COLOROP,
-        legacyAdapter ? D3DTOP_MODULATE : D3DTOP_MULTIPLYADD);
+        legacyAdapter || tntAdapter ? D3DTOP_MODULATE : D3DTOP_DOTPRODUCT3);
     device.SetTextureStageState(1, D3DTSS_COLOROP,
-        legacyAdapter ? D3DTOP_ADDSIGNED : (legend == 120 ? D3DTOP_MODULATE : D3DTOP_ADD));
+        legacyAdapter || tntAdapter ? D3DTOP_ADD : (black ? D3DTOP_MODULATE : D3DTOP_MODULATE4X));
     if (alpha != 'C' || legacyAdapter)
     {
         device.SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);

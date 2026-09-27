@@ -12,9 +12,9 @@ import (
 	"wydgo/internal/wire"
 )
 
-// removePlayerFromWorld desfaz apenas o estado efemero do personagem. A conta
-// e a sessao continuam autenticadas para que 0x215 possa voltar a tela de
-// selecao sem uma nova conexao TCP.
+// removePlayerFromWorld clears only ephemeral character state. The account
+// and session stay authenticated so 0x215 can return to character selection
+// without opening another TCP connection.
 func (w *World) removePlayerFromWorld(p *Player, reason string) {
 	if p == nil {
 		return
@@ -31,8 +31,8 @@ func (w *World) removePlayerFromWorld(p *Player, reason string) {
 	w.closeGhostShop(p, reason)
 	w.cancelTrade(p, reason)
 	w.removePartyPlayer(p)
-	// Evocacoes pertencem ao dono: despawnam quando ele sai do mundo, senao
-	// ficariam orfas e seguiriam o proximo player a reusar este ID.
+	// Summons belong to their owner: despawn them when the owner leaves the world
+	// so they cannot follow the next player to reuse this ID.
 	w.removePlayerSummons(p.ID)
 	if p.InWorld {
 		for _, other := range w.players {
@@ -46,15 +46,15 @@ func (w *World) removePlayerFromWorld(p *Player, reason string) {
 	resetCharacterRuntime(p)
 }
 
-// returnToCharacterSelectionAfterCommittedChange encerra somente o personagem
-// depois que uma mutacao estrutural ja foi confirmada no store. Arch e
-// Celestial alteram corpo, score e/ou a propria lista de personagens; tentar
-// reconstruir tudo no FieldScene deixa partes do client 7.48 com o estado
-// anterior. O 0x116 faz a transicao nativa e o 0x110 seguinte substitui os
-// quatro slots da selecao pelo agregado autoritativo recem-persistido.
+// returnToCharacterSelectionAfterCommittedChange ends only the character
+// session after a structural mutation has committed to the store. Arch and
+// Celestial change the body, score, and/or character list; rebuilding these
+// in FieldScene can leave parts of the 7.48 client with stale state. Packet
+// 0x116 makes the native transition, and the following 0x110 replaces all
+// four selection slots with the newly persisted authoritative aggregate.
 //
-// Esta funcao deliberadamente NAO salva de novo: uma falha posterior nao pode
-// transformar um commit de evolucao bem-sucedido em rollback apenas em RAM.
+// This function deliberately does not save again: a later failure must not
+// turn a committed evolution into a RAM-only rollback.
 func (w *World) returnToCharacterSelectionAfterCommittedChange(p *Player, reason string) {
 	if p == nil || p.Session == nil || p.Account == nil || !p.InWorld || p.ID == 0 {
 		return
@@ -68,18 +68,16 @@ func (w *World) returnToCharacterSelectionAfterCommittedChange(p *Player, reason
 	s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
 }
 
-// resetCharacterRuntime zera TODO estado do Player que pertence ao PERSONAGEM,
-// preservando apenas o que e da sessao (Session, Account).
+// resetCharacterRuntime clears all character-owned Player state while keeping
+// session-owned state (Session and Account).
 //
-// O Player e REUSADO no vaivem da tela de selecao: a conta continua
-// autenticada e o mesmo objeto recebe o proximo personagem. Qualquer campo
-// esquecido aqui vaza para ele -- foi assim que as moedas especiais passavam de
-// um personagem para outro (e o autosave as gravava, duplicando), que os
-// cooldowns de skill valiam para o personagem errado e que um convite de guild
-// feito a A podia ser aceito por B.
+// The Player is reused across character selection: the account stays
+// authenticated and the same object receives the next character. Any omitted
+// field leaks to that character. This previously leaked special coins (which
+// autosave then duplicated), skill cooldowns, and guild invitations.
 //
-// Ao acrescentar campo de personagem ao Player, zere-o aqui.
-// TestCharacterRuntimeIsFullyReset quebra se isso for esquecido.
+// Clear new character-owned Player fields here.
+// TestCharacterRuntimeIsFullyReset catches omissions.
 func resetCharacterRuntime(p *Player) {
 	if p == nil {
 		return
@@ -94,7 +92,7 @@ func resetCharacterRuntime(p *Player) {
 	p.AirMoveSourceX, p.AirMoveSourceY = 0, 0
 	p.Visible = nil
 
-	// Contexto de NPC/janela aberta.
+	// Open NPC/window context.
 	p.ShopNPC = 0
 	p.ShopTax = 0
 	p.CraftNPC = 0
@@ -104,7 +102,7 @@ func resetCharacterRuntime(p *Player) {
 	p.GhostShop = nil
 	p.Trade = nil
 
-	// Grupo e guild: convite e do PERSONAGEM, nao da conta.
+	// Party and guild invitations belong to the character, not the account.
 	p.Party = nil
 	p.InviteFrom = 0
 	p.InviteUntil = time.Time{}
@@ -115,7 +113,7 @@ func resetCharacterRuntime(p *Player) {
 	p.GuildInviteUntil = time.Time{}
 	p.NextGuildInvite = time.Time{}
 
-	// Combate.
+	// Combat.
 	p.CombatTargetID = 0
 	p.LastAttackerID = 0
 	p.LastAttackAt = time.Time{}
@@ -126,7 +124,7 @@ func resetCharacterRuntime(p *Player) {
 	p.DeadAt = time.Time{}
 	p.PKMode = false
 
-	// Cooldowns e temporizadores.
+	// Cooldowns and timers.
 	p.SkillReady = nil
 	p.LastPotion = time.Time{}
 	p.LastPremiumFirework = time.Time{}
@@ -138,7 +136,7 @@ func resetCharacterRuntime(p *Player) {
 	p.NextEggIncubationTick = time.Time{}
 	p.NextKingdomTeleport = time.Time{}
 
-	// Movimento publicado aos observadores.
+	// Movement published to observers.
 	p.MovePublished = false
 	p.MovePublishedStartX = 0
 	p.MovePublishedStartY = 0
@@ -153,38 +151,38 @@ func resetCharacterRuntime(p *Player) {
 	p.MoveAuthorityStartedAt = time.Time{}
 	p.MoveAuthorityStepInterval = 0
 
-	// Moedas especiais vivem no charstate do PERSONAGEM.
+	// Special coins live in character-owned charstate.
 	p.SpecialCoins = nil
 	p.clientIntegrityPending = nil
 }
 
-// onCharacterLogout trata 0x215. A resposta 0x116 e comprovadamente a
-// transicao que o client 7.48 espera para voltar a TM_SELECTCHAR_STATE.
+// onCharacterLogout handles 0x215. The 7.48 client expects response 0x116
+// to return to TM_SELECTCHAR_STATE.
 func (w *World) onCharacterLogout(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || !p.InWorld || p.Char == nil || len(pkt) != 12 {
 		return
 	}
 	charID, name := p.ID, p.Char.Name
-	// A confirmacao 0x116 so pode ser publicada depois de conta + charstate
-	// estarem no mesmo commit. Falhar aberto aqui apagava buffs/contadores no
-	// relog e ainda dizia ao client que a transicao havia sido concluida.
+	// Publish confirmation 0x116 only after account and charstate commit
+	// together. Continuing after a failed save would lose buffs/counters on
+	// relog and falsely tell the client that the transition completed.
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
-		log.Printf("[#%d] ERRO ao salvar estado de %q no character-logout: %v", s.ID, name, err)
+		log.Printf("[#%d] failed to save %q during character logout: %v", s.ID, name, err)
 		s.Send(wire.MessagePanel("The character could not be saved. Try again."))
 		return
 	}
-	w.removePlayerFromWorld(p, "retorno a selecao")
+	w.removePlayerFromWorld(p, "return to character selection")
 	// Character logout also detaches a private Water member. Persist that UID
 	// association before the session returns to character select.
 	w.flushInstanceStateIfDirty()
 	s.Send(wire.CNFCharacterLogout(charID))
-	log.Printf("[#%d] CHARACTER-LOGOUT %q -> selecao", s.ID, name)
+	log.Printf("[#%d] CHARACTER-LOGOUT %q -> selection", s.ID, name)
 }
 
-// onCharacterTransferUnavailable fecha a espera do client 7.48 sem alterar
-// conta, nomes ou slots. O destino "Integrated server" ainda nao possui
-// coordenador/persistencia neste World; sucesso local seria perda de dados.
+// onCharacterTransferUnavailable ends the 7.48 client's wait without changing
+// the account, names, or slots. This World has no coordinator/persistence for
+// the "Integrated server" destination; claiming local success would lose data.
 func (w *World) onCharacterTransferUnavailable(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Account == nil || p.InWorld || len(pkt) != 52 ||
@@ -198,8 +196,8 @@ func (w *World) onCharacterTransferUnavailable(s *net.Session, pkt []byte) {
 	s.Send(wire.CharacterTransferUnavailable(slot))
 }
 
-// onDeleteCharacter valida a senha de novo porque 0x211 e uma operacao
-// destrutiva. O cliente envia Slot@12, MobName@16 e Password@32 (44 bytes).
+// onDeleteCharacter revalidates the password because 0x211 is destructive.
+// The client sends Slot@12, MobName@16, and Password@32 (44 bytes).
 func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Account == nil || p.InWorld || len(pkt) != 44 {
@@ -214,7 +212,7 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 	}
 	ok, err := account.VerifyPassword(p.Account.PasswordHash, password)
 	if err != nil || !ok {
-		log.Printf("[#%d] exclusao recusada para %q: senha invalida", s.ID, name)
+		log.Printf("[#%d] deletion denied for %q: invalid password", s.ID, name)
 		s.Send(wire.MessagePanel("Wrong password."))
 		return
 	}
@@ -222,40 +220,38 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 	p.Account.Chars[slot] = model.Char{}
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Account.Chars[slot] = previous
-		log.Printf("[#%d] ERRO ao excluir personagem %q: %v", s.ID, name, err)
+		log.Printf("[#%d] failed to delete character %q: %v", s.ID, name, err)
 		s.Send(wire.MessagePanel("The deletion could not be saved."))
 		return
 	}
-	// PostgreSQL ja remove por ON DELETE CASCADE; o adaptador JSON recebe a
-	// limpeza explicita. Falha aqui nao desfaz a exclusao ja confirmada: o
-	// sidecar e derivado e o UID jamais sera reutilizado por outro personagem.
+	// PostgreSQL removes this through ON DELETE CASCADE; the JSON adapter needs
+	// explicit cleanup. Failure here cannot undo the committed deletion: the
+	// sidecar is derived and another character will never reuse the UID.
 	if stateStore, ok := w.store.(charStateStore); ok && previous.UID != "" {
 		if err := stateStore.SaveCharState(previous.UID, nil); err != nil {
-			log.Printf("[#%d] limpar charstate do personagem excluido %q: %v",
+			log.Printf("[#%d] failed to clear deleted character %q charstate: %v",
 				s.ID, name, err)
 		}
 	}
-	// O nome so volta a ficar livre quando NENHUM personagem o usa mais. O slot
-	// ja foi zerado acima, entao accountUsesName so enxerga os que sobraram.
+	// Release the name only when no character still uses it. The slot was
+	// cleared above, so accountUsesName sees only the remaining characters.
 	if w.charNames != nil && !accountUsesName(p.Account, previous.Name) {
 		delete(w.charNames, strings.ToLower(previous.Name))
 	}
 	// Deletion replaces all four selection slots because source and stock
 	// clients keep different STRUCT_SELCHAR sizes.
 	s.Send(selectionUpdatePacket(s, wire.OpCNFDeleteCharacter, uint16(s.ID), p))
-	log.Printf("[#%d] personagem excluido: %q slot=%d", s.ID, name, slot)
+	log.Printf("[#%d] character deleted: %q slot=%d", s.ID, name, slot)
 }
 
-// accountUsesName diz se a conta ainda tem algum personagem com esse nome.
+// accountUsesName reports whether this account still has a character named so.
 //
-// Existe por causa do Arch: ele herda o nome do Mortal (fiel ao nativo), entao
-// UM nome pode pertencer a DOIS personagens. E sao os unicos homonimos
-// possiveis no servidor -- a criacao normal (0x20F) exige nome globalmente
-// unico, e a ascensao e o unico caminho que contorna isso.
+// Arch inherits the Mortal's name (as in the native client), so one name can
+// belong to two characters. This is the only permitted duplicate: normal
+// creation (0x20F) requires a globally unique name.
 //
-// Sem esta checagem, apagar um dos gemeos removia o nome de charNames enquanto
-// o outro continuava existindo, e o nome ficava livre para OUTRA conta criar um
-// personagem homonimo -- furando a unicidade global.
+// Without this check, deleting either twin would release the shared name
+// while the other remained, allowing another account to violate uniqueness.
 func accountUsesName(acc *model.Account, name string) bool {
 	if acc == nil || name == "" {
 		return false
@@ -268,9 +264,8 @@ func accountUsesName(acc *model.Account, name string) bool {
 	return false
 }
 
-// onREQMobByID recupera uma entidade que o client ainda nao materializou mas
-// que foi referenciada por Action. So respondemos para entidades no raio de
-// visibilidade; assim o pacote nao vira uma consulta global do mapa.
+// onREQMobByID recovers an entity referenced by Action but not yet created
+// locally. Only entities in view are returned, preventing a global map query.
 func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || !p.InWorld || len(pkt) != 16 {
@@ -284,7 +279,7 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 		inView(p.X, p.Y, m.X, m.Y) {
 		wasVisible := p.hasVisible(id)
 		w.showMob(p, m)
-		if wasVisible { // pode ser uma recuperacao apos perda local do client.
+		if wasVisible { // Recover an entity lost from the client's local scene.
 			ancient := m.Def.Equip.AncientCodes()
 			p.Session.Send(wire.CreateMobVisual(m.ID, m.Def.Name, m.X, m.Y,
 				m.Def.Mesh(), ancient[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
@@ -304,22 +299,23 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 	}
 }
 
-// isPlayerEmoteMotion limita a intencao C->S aos valores produzidos pelo
-// teclado/click do 7.48. Motions de efeito continuam exclusivas do servidor.
+// isPlayerEmoteMotion limits C->S intent to the 7.48 keyboard/click values.
+// Effect motions remain server-owned.
 func isPlayerEmoteMotion(motion uint16) bool {
 	return motion == 13 || (motion >= 15 && motion <= 25) || motion == 27
 }
 
-// onMotion devolve a motion com o ID autoritativo para liberar o pending local
-// do emissor e publica-la aos observers. Parm e Direction do client nao podem
-// fabricar firework, level-up, morte ou outro efeito reservado ao servidor.
+// onMotion echoes the authoritative player ID to release the sender's pending
+// emote and publishes it to observers. A dead character cannot request one.
+// Client Parm and Direction cannot forge fireworks, level-ups, death, or
+// other server-owned effects.
 func (w *World) onMotion(s *net.Session, pkt []byte) {
 	if len(pkt) != 20 {
-		w.noticeProtocol(s, wire.OpMotion, "tamanho inesperado")
+		w.noticeProtocol(s, wire.OpMotion, "unexpected size")
 		return
 	}
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld {
+	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
 		return
 	}
 	motion := binary.LittleEndian.Uint16(pkt[12:14])
@@ -330,11 +326,11 @@ func (w *World) onMotion(s *net.Session, pkt []byte) {
 	w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, motion, 0) })
 }
 
-// 0x2BC e telemetria opaca: reconhecer o tamanho evita falso "sem handler"
-// sem inventar estado autoritativo que o protocolo ainda nao define.
+// 0x2BC is opaque telemetry: recognize its size without inventing
+// authoritative state that the protocol has not yet defined.
 func (w *World) onClientUnknown2BC(s *net.Session, pkt []byte) {
 	if len(pkt) != 108 {
-		w.noticeProtocol(s, wire.OpClientUnknown2BC, "tamanho inesperado")
+		w.noticeProtocol(s, wire.OpClientUnknown2BC, "unexpected size")
 	}
 }
 
@@ -348,5 +344,5 @@ func (w *World) noticeProtocol(s *net.Session, opcode uint16, detail string) {
 		return
 	}
 	w.lastProtocolNotice[key] = now
-	log.Printf("[#%d] protocolo 0x%X ignorado: %s", s.ID, opcode, detail)
+	log.Printf("[#%d] protocol 0x%X ignored: %s", s.ID, opcode, detail)
 }

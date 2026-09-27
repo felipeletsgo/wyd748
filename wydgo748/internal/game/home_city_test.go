@@ -26,6 +26,8 @@ func TestHomeCityMovementBindsWithoutRepeatedClientNotice(t *testing.T) {
 	for city, zone := range cityWarZones {
 		t.Run(zone.name, func(t *testing.T) {
 			w, p, _ := handlerTestWorld(t)
+			p.Char.Score.Level = mortalBeginnerLevelLimit
+			p.Char.RuntimeScore.Level = mortalBeginnerLevelLimit
 			st := &homeCityStore{}
 			w.store = st
 			p.Char.Score.Merchant = uint32((city+3)%4<<playerHomeCityShift) | 5

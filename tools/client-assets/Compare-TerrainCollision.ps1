@@ -155,6 +155,10 @@ $attributeDisagreements = 0
 $differentWalkableHeights = 0
 $maxWalkableHeightDifference = 0
 $legacyTerrainHeightDisagreements = 0
+$legacyOnlyBlocked = 0
+$sharedOnlyBlocked = 0
+$legacyWalkableHeightDisagreements = 0
+$maxLegacyWalkableHeightDifference = 0
 $serverOnlyCoordinates = [System.Collections.Generic.List[string]]::new()
 $clientOnlyCoordinates = [System.Collections.Generic.List[string]]::new()
 $centerResult = $null
@@ -175,6 +179,15 @@ for ($y = $CenterY - $Radius; $y -le $CenterY + $Radius; ++$y) {
         $serverAttributeByte = [int]$serverAttribute[$attributeIndex]
         $clientBlocked = $clientHeight -eq 127 -or ($clientAttributeByte -band 2) -ne 0
         $serverBlocked = $serverHeightByte -eq 127 -or ($serverAttributeByte -band 2) -ne 0
+        # Use the same attributes on both surfaces to isolate the terrain/object mask.
+        $legacyBlocked = $legacyTerrainHeight -eq 127 -or ($serverAttributeByte -band 2) -ne 0
+        if ($legacyBlocked -and !$serverBlocked) { ++$legacyOnlyBlocked }
+        if (!$legacyBlocked -and $serverBlocked) { ++$sharedOnlyBlocked }
+        if (!$legacyBlocked -and !$serverBlocked) {
+            $legacyDifference = [math]::Abs($legacyTerrainHeight - $serverSignedHeight)
+            if ($legacyDifference -gt 0) { ++$legacyWalkableHeightDisagreements }
+            $maxLegacyWalkableHeightDifference = [math]::Max($maxLegacyWalkableHeightDifference, $legacyDifference)
+        }
         $clientBlockedWithServerAttribute = $clientHeight -eq 127 -or ($serverAttributeByte -band 2) -ne 0
         $regionIndex = ($y - ($CenterY - $Radius)) * $side + ($x - ($CenterX - $Radius))
         $clientHeights[$regionIndex] = $clientHeight
@@ -196,6 +209,7 @@ for ($y = $CenterY - $Radius; $y -le $CenterY + $Radius; ++$y) {
             $centerResult = [pscustomobject]@{
                 X = $x; Y = $y; ClientHeight = $clientHeight
                 LegacyTerrainHeight = $legacyTerrainHeight
+                LegacyTerrainBlocked = $legacyBlocked
                 ClientAttribute = $clientAttributeByte; ClientBlocked = $clientBlocked
                 ServerHeight = $serverSignedHeight
                 ServerAttribute = $serverAttributeByte; ServerBlocked = $serverBlocked
@@ -235,6 +249,10 @@ for ($y = 0; $y -lt $side; ++$y) {
     DifferentWalkableHeights = $differentWalkableHeights
     MaxWalkableHeightDifference = $maxWalkableHeightDifference
     LegacyTerrainHeightDisagreements = $legacyTerrainHeightDisagreements
+    LegacyOnlyBlocked = $legacyOnlyBlocked
+    SharedOnlyBlocked = $sharedOnlyBlocked
+    LegacyWalkableHeightDisagreements = $legacyWalkableHeightDisagreements
+    MaxLegacyWalkableHeightDifference = $maxLegacyWalkableHeightDifference
     RouteHeightEdgeDisagreements = $routeHeightEdgeDisagreements
     ServerOnlyCoordinates = @($serverOnlyCoordinates)
     ClientOnlyCoordinates = @($clientOnlyCoordinates)

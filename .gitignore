@@ -1,4 +1,7 @@
-# Build outputs; tracked assets and evidence are not disposable.
+# Local-only research material is never part of the repository.
+/references/
+
+# Build outputs; tracked product assets are not disposable.
 /tmproject/build/
 /tmproject/TMProject748/build/
 /wydgo748/bin/

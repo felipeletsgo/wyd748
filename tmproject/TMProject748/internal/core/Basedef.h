@@ -40,6 +40,7 @@
 #include "../wire/AttackFrameContract.h"
 #include "../wire/AirMoveContract.h"
 #include "../wire/InventoryTransactionContract.h"
+#include "../wire/LegacySalePacket.h"
 #include "../wire/CargoGoldTransferContract.h"
 #include "../wire/AutoTradeContract.h"
 #include "../wire/CapsuleInfoContract.h"
@@ -568,14 +569,6 @@ struct STRUCT_SPELL
 	int UNK_01;
 	int UNK_02;
 
-};
-
-struct STRUCT_INITITEM
-{
-	short PosX;
-	short PosY;
-	short sIndex;
-	short Rotate;
 };
 
 struct STRUCT_AIRMOVELIST
@@ -1341,14 +1334,6 @@ struct MSG_Buy
 	int Coin;
 };
 
-constexpr auto MSG_Sell_Opcode = 0x37A;
-struct MSG_Sell
-{
-	MSG_STANDARD Header;
-	unsigned short TargetID;
-	short MyType;
-	short MyPos;
-};
 
 struct MSG_Attack
 {
@@ -1507,7 +1492,6 @@ static_assert(offsetof(MSG_Buy, MyCarryPos) == kBuyCarryPositionOffset,
 	"WYD 7.48 MSG_Buy MyCarryPos offset changed");
 static_assert(offsetof(MSG_Buy, Coin) == kBuyCoinOffset,
 	"WYD 7.48 MSG_Buy Coin offset changed");
-static_assert(sizeof(MSG_Sell) == 20, "WYD 7.48 MSG_Sell must be 20 bytes");
 static_assert(sizeof(MSG_Attack) == kAttackMultiBasePacketSize,
 	"WYD 7.48 MSG_Attack size changed");
 static_assert(sizeof(MSG_AttackTwo) == kAttackTwoBasePacketSize,
@@ -3267,7 +3251,6 @@ int BASE_InitializeHeightMap();
 void BASE_ApplyAttribute(char* pHeight, int size);
 int BASE_ReadItemList();
 int BASE_ReadSkillBin();
-int BASE_ReadInitItem();
 void BASE_InitialItemRePrice();
 int	BASE_ReadMessageBin();
 void BASE_InitEffectString();

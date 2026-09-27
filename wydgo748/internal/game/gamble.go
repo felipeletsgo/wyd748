@@ -97,8 +97,8 @@ func (w *World) noPrizeGambleStops() [3]byte {
 			return stops
 		}
 	}
-	// O gerador de referencia tambem limita as tentativas. A busca determinista
-	// fecha o fallback sem introduzir uma 16a chamada imprevisivel ao RNG.
+	// The reference generator also limits attempts. The deterministic search
+	// completes the fallback without an unpredictable 16th RNG call.
 	for a := 0; a < gambleReelLength; a++ {
 		for b := 0; b < gambleReelLength; b++ {
 			for c := 0; c < gambleReelLength; c++ {
@@ -128,8 +128,8 @@ func (w *World) rollGamble(kind uint32, bet uint32) gambleOutcome {
 	if result[1] == 14 {
 		prize += uint64(w.gambleJackpot)
 	}
-	// O campo Prize do contrato 7.48 e int32. Saturar antes da persistencia
-	// evita pagar um valor que a apresentacao transformaria em negativo.
+	// Prize is int32 in the 7.48 contract. Saturate before persistence to avoid
+	// paying an amount that the client would display as negative.
 	if prize > math.MaxInt32 {
 		prize = math.MaxInt32
 	}
@@ -178,8 +178,8 @@ func materializeGamblePayout(ch *model.Char, indexes []uint16) ([]int, error) {
 	return free, nil
 }
 
-// onDoJackpotBet implementa a fronteira 0x2BE/0x1BF preservando a UI nativa,
-// mas torna aposta, premio e pools uma unica transacao autoritativa do World.
+// onDoJackpotBet implements the 0x2BE/0x1BF boundary while preserving the native UI.
+// The World commits the bet, prize, and pools in one authoritative transaction.
 func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || len(pkt) != 20 {
@@ -196,7 +196,7 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 		return
 	}
 	if _, ok := w.store.(instanceRuntimeTransactionStore); !ok {
-		log.Printf("[#%d] Gamble indisponivel: store sem transacao conta+estado", s.ID)
+		log.Printf("[#%d] Gamble unavailable: store lacks account+state transactions", s.ID)
 		s.Send(wire.MessagePanel("Gamble is temporarily unavailable."))
 		return
 	}
@@ -204,7 +204,7 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 	oldGold, oldInv := p.Char.Gold, p.Char.Inv
 	oldJackpot, oldPool := w.gambleJackpot, w.gamblePool
 	if p.Trade != nil {
-		w.cancelTrade(p, "aposta Gamble")
+		w.cancelTrade(p, "Gamble bet")
 	}
 	w.gambleJackpot += bet / 1000
 	if w.gambleJackpot > gambleJackpotMax {
@@ -240,7 +240,7 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 	if err := w.saveAccountsAndInstanceState(p.Account); err != nil {
 		p.Char.Gold, p.Char.Inv = oldGold, oldInv
 		w.gambleJackpot, w.gamblePool = oldJackpot, oldPool
-		log.Printf("[#%d] ERRO ao persistir Gamble: %v", s.ID, err)
+		log.Printf("[#%d] Failed to persist Gamble: %v", s.ID, err)
 		s.Send(wire.MessagePanel("The Gamble bet could not be completed."))
 		return
 	}
@@ -248,5 +248,5 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 	s.Send(wire.ResultGamble(p.ID, outcome.result, outcome.stops, int32(outcome.prize), w.gambleJackpot))
 	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	log.Printf("[#%d] Gamble tipo=%d aposta=%d premio=%d jackpot=%d", s.ID, kind, bet, outcome.prize, w.gambleJackpot)
+	log.Printf("[#%d] Gamble type=%d bet=%d prize=%d jackpot=%d", s.ID, kind, bet, outcome.prize, w.gambleJackpot)
 }

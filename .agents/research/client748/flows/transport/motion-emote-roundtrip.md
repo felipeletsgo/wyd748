@@ -1,199 +1,168 @@
 ---
 id: motion-emote-roundtrip
-title: Envio e aplicação de motion/emote 0x36A
+title: Motion and emote 0x36A roundtrip
 subsystem: world-input-motion
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-06
+updated: 2026-09-24
 ---
 
-# Envio e aplicação de motion/emote 0x36A
+# Motion and emote 0x36A roundtrip
 
-## Pergunta
+## Question
 
-Qual contrato o client 7.48 envia ao escolher um emote, como o retorno libera
-o próximo input e quais valores podem atravessar o servidor sem permitir que o
-client fabrique efeitos reservados?
+What does the native 7.48 client send for an emote, how does the response
+release pending input, and which values must remain server-owned?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- Executável/hash: `references/client748/WYD.exe`, SHA-256 do
-  frontmatter.
-- Projeto/corpus Ghidra: `WYD748Native_20260821.gpr`; export focado
+- Native executable: `references/client748/WYD.exe`, SHA-256 in frontmatter.
+- Ghidra: `WYD748Native_20260821.gpr`; focused export
   `exports/motion-emote-flow.tsv`, SHA-256
   `75038059083E12532ED4D83B573C3F5D2DFA9C3CE3706FB073CA29D1F99015CD`.
-- Assets: `NÃO APLICÁVEL`; este corte não altera animações, sons ou efeitos.
-- Source atual: `TMFieldScene.cpp`, `TMHuman.cpp` e `Basedef.h` em
+- Assets: NOT APPLICABLE; no animation, sound, or effect assets change.
+- Active client: `TMFieldScene.cpp`, `TMHuman.cpp`, `Basedef.h` in
   `tmproject/TMProject748/`.
-- Servidor: `internal/game/character_session.go`, `internal/game/visibility.go`,
-  `internal/game/security.go`, `internal/wire/codec.go` e seus testes.
-- TMProject posterior e guias: `NÃO APLICÁVEL`; o contrato foi decidido pelo
-  binário/Ghidra 7.48, pela source ativa e pelo WYD-Go. fontes legadas externas permaneceram excluídos.
+- Server: `internal/game/character_session.go`, `visibility.go`, `security.go`,
+  `internal/wire/codec.go`, and their tests in `wydgo748/`.
+- Later TMProject and external guides: NOT APPLICABLE to this contract;
+  the native binary, active source, and authoritative server decide it.
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
-### Entrada observável
+### Observable entry and outcome
 
-- Evento: teclado numérico/menu escolhe um emote, ou o click no personagem
-  alterna sentar/levantar.
-- Precondições e estado inicial: FieldScene ativa, personagem local vivo,
-  debounce de 500 ms vencido e nenhuma motion anterior aguardando retorno.
-- Saída observável: o client envia `0x36A/20`; ao receber o frame com seu ID,
-  aplica a animação e limpa a motion pendente, liberando o próximo emote.
+The numpad/menu selects an emote, or a click on the local human toggles
+sitting/standing. The FieldScene must be active; the local character must be
+alive, the 500 ms debounce expired, and no earlier motion pending. The client
+sends `0x36A/20`. A returned frame carrying its own ID applies the animation
+and clears the pending motion, allowing the next emote.
 
 ### Callers
 
-- `FUN_004541F3` encaminha os comandos `0x9CA8..0x9CB1` para
-  `FUN_00455950` com teclas `0x60..0x69`.
-- `FUN_00454763` também encaminha teclado numérico para `FUN_00455950`.
-- O slot exato `0x005A429C` da vtable FieldScene aponta para
-  `FUN_004625DA`, que envia a alternância de sentar/levantar no click.
-- O slot exato `0x005A5580` aponta para `FUN_0052EAA9`, dispatcher do humano
-  que entrega `0x36A` a `FUN_005296E8`.
+- `FUN_004541F3` forwards commands `0x9CA8..0x9CB1` to `FUN_00455950`
+  with keys `0x60..0x69`; `FUN_00454763` also forwards numpad input.
+- FieldScene vtable slot `0x005A429C` points to `FUN_004625DA`, the
+  sitting/standing click sender.
+- Human vtable slot `0x005A5580` points to `FUN_0052EAA9`, which dispatches
+  `0x36A` to `FUN_005296E8`.
 
-### Função principal
+### Main function
 
-`FUN_00455950` zera um buffer de 20 bytes, grava `Type=0x36A`, o ID local,
-`Motion` em `+12` e `Direction=0` em `+16`, e chama `FUN_0055F2DD` com tamanho
-`0x14`. O caminho de click em `FUN_004625DA` constrói o mesmo frame.
+`FUN_00455950` clears a 20-byte stack buffer, writes `Type=0x36A`, the
+local ID, `Motion@12`, and `Direction=0@16`, then calls `FUN_0055F2DD` with
+size `0x14`. `FUN_004625DA` builds the same frame.
 
-No recebimento, `FUN_0052EAA9` seleciona `0x36A` e chama `FUN_005296E8`.
-Esse handler lê `Motion` signed em `+12`, `Parm` signed em `+14` e o DWORD/float
-em `+16`. `Motion=100` cria firework; `Parm=1` aplica variantes de personagem,
-`Parm=2` limpa morte e `Parm=3` cria level-up. Para `Motion < 256`, o ID local
-limpa a motion pendente e a animação é aplicada.
+On receipt, `FUN_0052EAA9 -> FUN_005296E8` reads signed `Motion@12`,
+signed `Parm@14`, and the DWORD/float at `+16`. `Motion=100` creates a
+firework; `Parm=1` applies character variants, `Parm=2` clears death, and
+`Parm=3` creates level-up. For `Motion < 256`, the local ID clears pending
+motion. `FUN_005296E8 -> FUN_00523533` applies motion/direction; special
+branches attach effects to the scene container.
 
 ### Callees
 
-- `FUN_0055F2DD` enquadra e envia o buffer construído na pilha.
-- `FUN_0055890A` é o gate nativo e aceita `0x36A` somente com `0x14` bytes.
-- `FUN_0052EAA9 -> FUN_005296E8` forma o caminho de recepção do humano.
-- `FUN_005296E8 -> FUN_00523533` aplica a motion/direção; os branches especiais
-  criam efeitos e os entregam ao container da cena.
+`FUN_0055F2DD` frames and sends the stack buffer. `FUN_0055890A` accepts
+this opcode only at `0x14` bytes. On receipt, `FUN_0052EAA9` dispatches to
+`FUN_005296E8`, which calls `FUN_00523533` for motion/direction and attaches
+valid special effects to the scene container.
 
-### Saídas e erros
+### Outputs and errors
 
-- Tecla fora de `0x60..0x69`, personagem morto, motion incompatível, debounce
-  ativo ou motion já pendente não enviam outro frame.
-- Os emissores de emote do 7.48 usam `Parm=0` e `Direction=0`. Motions
-  observadas são `13`, `15..24`, `25` e `27`.
-- `Motion=100` e `Parm=1..3` chegam ao client por ações do servidor; aceitá-los
-  como intenção do client permitiria fabricar efeitos visuais.
-- Frame recebido com tamanho diferente de 20 é rejeitado antes do handler.
+Invalid keys, a dead character, incompatible motion, active debounce, or a
+pending motion produce no frame. Native emote senders use `Parm=0` and
+`Direction=0`; observed motions are `13`, `15..24`, `25`, and `27`.
+`Motion=100` and `Parm=1..3` are server-to-client effects, never client
+intentions. A received frame of any size other than 20 is rejected before
+the human handler.
 
-## Estado e lifecycle
+## State and lifecycle
 
-### Matriz de transições
+| Event | Preconditions | Native path | State change | Failure |
+| --- | --- | --- | --- | --- |
+| Select emote | Alive; debounce free; no pending motion | `FUN_004541F3/FUN_00454763 -> FUN_00455950` | Sets pending motion; sends `0x36A/20` | Invalid state sends nothing |
+| Click sitting/standing | Local human; permitted state | `FUN_004625DA` | Sets pending `25` or `27`; sends `0x36A/20` | Incompatible state sends nothing |
+| Own-ID response | Valid frame and local human | `FUN_0052EAA9 -> FUN_005296E8` | Clears pending; applies motion | Motion >= 256 does not animate |
+| Observer response | Remote human present | `FUN_005296E8` | Updates remote animation/effect | Missing human receives no dispatch |
+| Authoritative effect | Server-originated `100` or special Parm | `FUN_005296E8` | Applies effect/motion | Null effect allocation is not attached |
 
-| Evento/estado | Precondição | Função/call | Estado resultante | Side effects | Erro/saída |
-| --- | --- | --- | --- | --- | --- |
-| escolher emote | vivo, debounce livre, sem pending | `FUN_004541F3/FUN_00454763 -> FUN_00455950` | motion local fica pendente | envia `0x36A/20` | condição inválida consome sem envio |
-| click sentar/levantar | humano local e estado permitido | `FUN_004625DA` | `25` ou `27` pendente | envia `0x36A/20` | estado incompatível não envia |
-| retorno do próprio ID | frame válido e humano localizado | `FUN_0052EAA9 -> FUN_005296E8` | pending volta a none | aplica motion | motion >= 256 não anima |
-| retorno de observer | humano remoto localizado | `FUN_005296E8` | animação do remoto atualizada | som/efeito conforme campos | humano ausente não recebe dispatch |
-| efeito autoritativo | `100` ou Parm especial vindo do servidor | `FUN_005296E8` | efeito/motion aplicado | aloca efeito quando necessário | alocação nula não é anexada |
+The two vtable slots above establish input and receive ownership. Senders
+own their stack buffers; `FUN_0055F2DD` does not retain them. The transport
+owns the receive buffer, borrowed only during the human callback. Created
+effects transfer to the scene container on successful allocation. A failed
+send creates no new pending motion; an invalid frame never reaches the human.
+FieldScene teardown removes humans and effects, so no packet pointer survives
+the callback. Shutdown has no separate thread/socket owner for this flow.
+Logout destroys FieldScene and its humans; relogin initializes pending motion
+to none rather than restoring it from the previous session.
 
-### Vtables, vptrs e receptores
+## Wire, ABI, and resources
 
-`0x005A429C -> FUN_004625DA` é o receptor de input da FieldScene.
-`0x005A5580 -> FUN_0052EAA9` é o receptor de packet do humano. Os dois slots
-foram exportados por endereço exato e convergem no mesmo contrato de 20 bytes.
+Bidirectional opcode `0x36A`, exactly 20 bytes, with Win32 natural alignment
+and no trailing padding:
 
-### Ownership
-
-Os emissores possuem o buffer na pilha e `FUN_0055F2DD` não o retém. Na
-recepção, o buffer pertence ao transporte e é apenas emprestado ao humano.
-Efeitos criados pelos branches `100/3` transferem ownership ao container da
-cena quando a alocação é válida.
-
-### Falha parcial
-
-Falha ou bloqueio antes do envio não publica pending novo. Frame inválido não
-chega ao humano. Um efeito que não pode ser criado não muda a animação base; os
-demais branches continuam retornando consumo único.
-
-### Cleanup e teardown
-
-Motion pendente e animação pertencem à instância do humano. O teardown da
-FieldScene remove humanos e o container de efeitos; nenhum ponteiro para o
-buffer do packet sobrevive ao callback.
-
-### Shutdown
-
-`N/A`: o contrato não cria thread, socket ou owner global. O shutdown geral
-destrói a cena e o transporte pelos fluxos já documentados.
-
-### Logout e relogin
-
-Logout destrói a FieldScene e as instâncias de humano. No retorno, pending é
-inicializado como none e nenhuma motion da sessão anterior é restaurada. O
-roundtrip real ainda precisa ser exercitado no `project.exe`.
-
-## Wire, ABI e recursos
-
-Direção bidirecional, opcode `0x36A`, exatamente 20 bytes:
-
-| Campo | Offset | Largura/tipo | Evidência |
+| Field | Offset | Width/type | Native evidence |
 | --- | ---: | --- | --- |
-| `MSG_STANDARD` | `+0` | 12 bytes | header 7.48 |
-| `Motion` | `+12` | int16 signed | `MOVSX [packet+0x0C]` |
-| `Parm` | `+14` | int16 signed | `MOVSX [packet+0x0E]` |
-| `Direction` | `+16` | float32/DWORD | leitura `[packet+0x10]` |
+| `MSG_STANDARD` | `+0` | 12 bytes | 7.48 header |
+| `Motion` | `+12` | signed int16 | `MOVSX [packet+0x0C]` |
+| `Parm` | `+14` | signed int16 | `MOVSX [packet+0x0E]` |
+| `Direction` | `+16` | float32/DWORD | read `[packet+0x10]` |
 
-O layout usa alinhamento Win32 natural e não possui padding final. O gate
-`FUN_0055890A` compara o tamanho com `0x14`. Nenhum asset ou ID de UI faz parte
-do frame.
+`FUN_0055890A` checks size `0x14`. No asset or UI ID is embedded in the
+frame.
 
-## Mapeamento atual
+## Current mapping
 
-### Source recompilável
+The source client's `MSG_Motion` in `Basedef.h` has the same fields and size.
+`TMFieldScene` zeroes the frame, sends zero Parm/Direction, and marks
+`m_SendeMotion`. `TMHuman::OnPacketFireWork` clears that marker only when the
+returned frame carries the local ID.
 
-`MSG_Motion` em `Basedef.h` já possui os mesmos campos e tamanho. Os emissores
-de `TMFieldScene` zeram o frame, fixam `Parm/Direction` em zero e marcam
-`m_SendeMotion`; `TMHuman::OnPacketFireWork` limpa essa marca somente quando o
-retorno carrega o ID local.
+The server's `onMotion` accepts only a 20-byte frame from an in-world living
+character, `Parm=0`, and motions `13`, `15..25`, or `27`. It ignores the
+claimed client ID and Direction, rebuilds `wire.Motion` with the authoritative
+player ID and zero Direction, and sends it to the owner and visible observers.
+The earlier record incorrectly said the server discarded every request;
+that mapping is no longer current. The zero-HP guard rejects a forged or
+stale emote after death without affecting the wire format.
 
-### WYD-Go
+## Delta matrix
 
-`OpMotion` e o gate de 20 bytes existem. `wire.Motion` publica `Motion@12` e
-`Parm@14`, deixando `Direction@16` zerado. O handler C->S atual apenas reconhece
-o tamanho e descarta o frame, portanto não devolve o ID autoritativo ao emissor
-nem publica o emote aos observers.
+| Claim | Native 7.48 | Active client | Server | Decision |
+| --- | --- | --- | --- | --- |
+| Wire | 20 bytes and offsets above | Equivalent `MSG_Motion` | Builder and gate match | Preserve ABI |
+| Emote C->S | Parm/Direction zero; motions above; alive only | Equivalent senders | Whitelist, dead guard, authoritative echo | Implemented; runtime unverified |
+| Response ID | Own ID clears pending | Equivalent callback | Uses session player ID | Ignore client-claimed ID |
+| Special effects | `100` and Parm `1..3` are S->C | Equivalent callback | Rejects as C->S intent | Keep server-owned |
+| Lifecycle | Return frees next emote | Pending requires return | Owner included in fan-out | Runtime unverified |
 
-## Matriz de delta
+## Decisions
 
-| Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
-| --- | --- | --- | --- | --- | --- |
-| wire `0x36A` | 20 bytes e offsets confirmados | layout equivalente em Basedef | não decide ABI | builder/gate equivalentes | extrair sem alterar ABI |
-| emote C->S | Parm/Direction zero; motions `13,15..25,27` | emissores equivalentes | N/A | frame descartado | revalidar e publicar |
-| ID do retorno | humano local limpa pending pelo Header.ID | callback equivalente | N/A | deve usar ID da sessão | ignorar ID declarado pelo client |
-| efeitos especiais | `100` e Parm `1..3` são consumo S->C | callback equivalente | N/A | builders server-side existentes | rejeitar como intenção C->S |
-| lifecycle | retorno libera próximo emote | pending depende do retorno | N/A | sem retorno | incluir emissor no fan-out |
+- Classification: `PARIDADE_NATIVA/CONTRACT` for the native wire/roundtrip;
+  rejecting forged dead-player intent is contract-preserving server hardening.
+- Keep the 20-byte ABI and the existing client senders; do not accept
+  client-authored visual effects or an untrusted entity ID.
+- Include the owner in the visibility fan-out so its pending state clears.
 
-## Decisões
+## Gaps
 
-- Classificar o wire e o roundtrip como `PARIDADE_NATIVA/CONTRACT`.
-- Extrair `MSG_Motion` para `internal/wire` preservando nome, signedness,
-  packing, tamanho e emissores.
-- No WYD-Go, aceitar somente as motions produzidas pelos inputs 7.48 com
-  `Parm=0`; reconstruir o frame com o ID autoritativo e `Direction=0`.
-- Publicar para o próprio jogador e observers visíveis pelo fan-out existente.
-- Manter `Motion=100` e `Parm=1..3` exclusivos dos builders server-side.
+- The actual roundtrip, ten keys, sit/stand, two-client observation, scene
+  switch, and relogin have not been exercised in `project.exe`. No visual
+  client test will be attempted while the Windows display is unavailable.
+- Nonzero Direction is absent from the studied native senders and remains
+  outside this emote contract.
 
-## Lacunas
+## Validation
 
-- O roundtrip, as dez teclas, sentar/levantar, dois clients, troca de cena e
-  relogin ainda não foram exercitados no `project.exe`.
-- A direção diferente de zero não é produzida pelos emissores 7.48 estudados e
-  permanece fora deste corte.
-
-## Validação
-
-- Pesquisa: export Ghidra headless read-only finalizou sem `SCRIPT ERROR`, com
-  hash do programa esperado, slots exatos e resumos `instruction_search` para
-  emissor e receptor.
-- Automação: `go test -count=1 ./...` passou; Debug e
-  Release via `Build-Client.ps1` passaram com 1925 checks/asserts. O Release foi
-  instalado com SHA-256
-  `DB0BEE35327ED0E6DEBD987BB3F515554D4EF5E7FFF01D212593E5AA1D68DB3E`.
-- Client real: não executado; não `CLIENT_TESTED`.
+- Native research: read-only headless Ghidra export finished without a
+  `SCRIPT ERROR`, matching the recorded program hash and exact vtable slots.
+- Earlier integration: `go test -count=1 ./...` and Debug/Release
+  `Build-Client.ps1` passed with 1,925 checks at that time. The then-installed
+  Release SHA-256 was
+  `DB0BEE35327ED0E6DEBD987BB3F515554D4EF5E7FFF01D212593E5AA1D68DB3E`;
+  this is historical evidence, not a claim about the current candidate.
+- Current focused server checks: `go test ./internal/game -run 'TestMotion' -count=1 -v`
+  passed owner/observer echo, reserved-effect rejection, dead-player rejection,
+  and restored emotes after revival. Character lifecycle consumers passed a
+  separate focused game-package run. The current client was not executed;
+  this flow is not `CLIENT_TESTED`.

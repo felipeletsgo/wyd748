@@ -14,6 +14,26 @@ inline void ConsumeAirMoveDelta(Position& position, Position& delta)
     delta.y = 0.0f;
 }
 
+// Death cancels the server-owned route. Discard uncommitted visual movement
+// and return to the position captured before flight, never to its destination.
+template <typename Position>
+inline void CancelAirMoveAtOrigin(Position& position, Position& delta,
+    const Position& origin)
+{
+    position = origin;
+    delta.x = 0.0f;
+    delta.y = 0.0f;
+}
+
+// An authoritative teleport has already replaced the position. Only discard
+// the flight's uncommitted displacement; do not move back to its old origin.
+template <typename Position>
+inline void DiscardAirMoveDelta(Position& delta)
+{
+    delta.x = 0.0f;
+    delta.y = 0.0f;
+}
+
 // UpdateMount replaces the rider's mount with the temporary flight mesh and
 // clears its look. Restore both fields before rebuilding the original mount.
 template <typename Look>

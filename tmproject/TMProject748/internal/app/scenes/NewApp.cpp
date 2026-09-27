@@ -59,7 +59,7 @@ NewApp::NewApp()
 	china_Playtime = -1;
 	m_binactive = 1;
 #ifdef _DEBUG
-	//CreateConsole(); DESATIVA JANELA PRETA
+	// CreateConsole(); // Debug console remains disabled.
 #endif // DEBUG
 }
 
@@ -1176,17 +1176,14 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 		if (m_pSocketManager == nullptr)
 			break;
 
-		if (lParam != 1)
+		const auto result = m_pSocketManager->HandleNetworkEvent(wParam, lParam);
+		if (result == CPSock::EventResult::Disconnected)
 		{
-			m_pSocketManager->CloseSocket();
 			m_pObjectManager->OnPacketEvent(0, nullptr);
 			break;
 		}
-		if (!m_pSocketManager->Receive())
-		{
-			m_pSocketManager->CloseSocket();
+		if (result != CPSock::EventResult::ReadReady)
 			break;
-		}
 
 		int ErrorCode = 0;
 		int ErrorType = 0;
@@ -1194,7 +1191,15 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 		{
 			PacketView packet = m_pSocketManager->ReadPacketView(&ErrorCode, &ErrorType);
 
-			if (ErrorCode != 0 || !packet_dispatch::CanDispatch(packet, sizeof(MSG_STANDARD)))
+			if (ErrorCode != 0)
+			{
+				// A malformed stream cannot be retried at the same receive cursor.
+				// Use the normal disconnect transition before any scene dispatch.
+				m_pSocketManager->CloseSocket();
+				m_pObjectManager->OnPacketEvent(0, nullptr);
+				break;
+			}
+			if (!packet_dispatch::CanDispatch(packet, sizeof(MSG_STANDARD)))
 				break;
 
 			// The clock and dump only read the envelope. ObjectManager handles

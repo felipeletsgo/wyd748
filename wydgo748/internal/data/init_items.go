@@ -7,47 +7,50 @@ import (
 	"wydgo/internal/model"
 )
 
-// LoadInitItems le os objetos permanentes do mundo (portoes, portas, canhoes,
-// torres) no formato do InitItem.csv nativo: index,x,y,rotacao.
-//
-// Aceita comentario no fim da linha depois de '#'. O arquivo e 50 linhas de
-// numeros crus, e sem o nome do objeto ao lado nao ha como conferir uma posicao
-// sem abrir o itemlist em paralelo.
-//
-// Validacao estrita, como os demais dados: item fora do catalogo ou posicao
-// zerada derruba o boot em vez de virar um portao invisivel no mapa.
+// LoadInitItems reads permanent world objects in the native InitItem.csv
+// column order: index,x,y,rotation. It accepts trailing '#' comments.
+// Validation fails startup for unknown items, invalid positions, or collisions.
 func LoadInitItems(path string, items map[uint16]model.ItemDef) ([]model.InitItem, error) {
 	var out []model.InitItem
 	err := records(path, func(row []string) error {
 		if len(row) < 4 {
-			return fmt.Errorf("esperado index,x,y,rotacao")
+			return fmt.Errorf("expected index,x,y,rotation")
 		}
-		valores := make([]int, 4)
+		values := make([]int, 4)
 		for i := 0; i < 4; i++ {
-			campo := row[i]
-			if corte := strings.IndexByte(campo, '#'); corte >= 0 {
-				campo = campo[:corte]
+			field := row[i]
+			if comment := strings.IndexByte(field, '#'); comment >= 0 {
+				field = field[:comment]
 			}
-			v, err := integer(campo)
+			v, err := integer(field)
 			if err != nil {
 				return err
 			}
 			if v < 0 || v > 65535 {
-				return fmt.Errorf("valor fora de faixa: %d", v)
+				return fmt.Errorf("value out of range: %d", v)
 			}
-			valores[i] = v
+			values[i] = v
+		}
+		if values[3] > 255 {
+			return fmt.Errorf("rotation %d exceeds the client packet byte range", values[3])
 		}
 		obj := model.InitItem{
-			Index:  uint16(valores[0]),
-			X:      uint16(valores[1]),
-			Y:      uint16(valores[2]),
-			Rotate: byte(valores[3]),
+			Index:  uint16(values[0]),
+			X:      uint16(values[1]),
+			Y:      uint16(values[2]),
+			Rotate: byte(values[3]),
 		}
 		if err := obj.Validate(); err != nil {
 			return err
 		}
-		if _, ok := items[obj.Index]; !ok {
-			return fmt.Errorf("objeto %d nao existe no catalogo de itens", obj.Index)
+		definition, ok := items[obj.Index]
+		if !ok {
+			return fmt.Errorf("item %d is missing from the item catalog", obj.Index)
+		}
+		for _, effect := range definition.StaticEffects {
+			if effect.Name == "EF_GROUND" && effect.Value > 0 && effect.Value < 10 && obj.Rotate > 3 {
+				return fmt.Errorf("ground item %d rotation %d exceeds the client mask range 0..3", obj.Index, obj.Rotate)
+			}
 		}
 		out = append(out, obj)
 		return nil
@@ -55,16 +58,15 @@ func LoadInitItems(path string, items map[uint16]model.ItemDef) ([]model.InitIte
 	if err != nil {
 		return nil, err
 	}
-	// Duas entradas na mesma celula deixariam um objeto tapando o outro, e o
-	// client so guarda um item por posicao do grid.
-	ocupada := make(map[uint32]int, len(out))
+	// The client keeps only one ground item per grid cell.
+	occupied := make(map[uint32]int, len(out))
 	for i, obj := range out {
-		chave := uint32(obj.X)<<16 | uint32(obj.Y)
-		if antes, repetida := ocupada[chave]; repetida {
-			return nil, fmt.Errorf("data: %s: objetos %d e %d na mesma posicao (%d,%d)",
-				path, out[antes].Index, obj.Index, obj.X, obj.Y)
+		key := uint32(obj.X)<<16 | uint32(obj.Y)
+		if previous, duplicate := occupied[key]; duplicate {
+			return nil, fmt.Errorf("data: %s: items %d and %d occupy the same cell (%d,%d)",
+				path, out[previous].Index, obj.Index, obj.X, obj.Y)
 		}
-		ocupada[chave] = i
+		occupied[key] = i
 	}
 	return out, nil
 }

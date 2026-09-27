@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Aposta C->S e resultado S->C. Saldo, premio e jackpot continuam
-// autoritativos no servidor; estes tipos apenas preservam o wire da UI.
+// Bet request C->S and result S->C. The server owns the balance, prize, and
+// jackpot; these types only preserve the UI wire contract.
 constexpr auto MSG_DoJackpotBet_Opcode = 0x2BE;
 constexpr auto MSG_ResultGamble_Opcode = 0x1BF;
 struct MSG_DoJackpotBet

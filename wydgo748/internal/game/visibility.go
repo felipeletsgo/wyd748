@@ -7,9 +7,9 @@ import (
 	"wydgo/internal/wire"
 )
 
-// O grid nativo WYD 7.48 usa meia janela 16. Este emulador amplia para 32 para que
-// PvP e mapas de guerra conservem entidades ate o limite visual da camera. A
-// janela continua local (65x65), sem transmitir o mundo inteiro ao client.
+// The native WYD 7.48 grid uses a half-window of 16. This emulator expands it
+// to 32 so PvP and war maps retain entities up to the camera's visual limit.
+// The window remains local (65x65); it does not send the entire world.
 const viewHalfX = 32
 const viewHalfY = 32
 
@@ -201,11 +201,11 @@ func sendPlayerEnterView(observer, subject *Player) {
 	}
 }
 
-// refreshAppearance publica uma mudanca REAL de aparencia do avatar
-// (equipamento, transformacao de rosto, cor, refino, capa ou montaria) pelo
-// MSG_UpdateEquip 0x36B. Esse e o SendEquip/GridMulticast nativo: nao contem
-// coordenadas e portanto nao interrompe nem encaixa uma caminhada em andamento.
-// CreateMob fica reservado exclusivamente para entrada/reentrada na visao.
+// refreshAppearance publishes a real avatar appearance change (equipment,
+// face transformation, color, refinement, cape, or mount) via MSG_UpdateEquip
+// 0x36B. This is the native SendEquip/GridMulticast: it has no coordinates and
+// therefore does not interrupt or snap an ongoing walk. CreateMob is reserved
+// for entering or re-entering view.
 func (w *World) refreshAppearance(subject *Player) {
 	if subject == nil || !subject.InWorld || subject.Char == nil {
 		return
@@ -253,11 +253,11 @@ func (w *World) hidePlayerPair(a, b *Player) {
 	}
 }
 
-// rematerializePlayerAfterRevive remove a representacao morta dos outros
-// clients antes de aplicar a nova posicao/estado vivo. RemoveType 0 nao apaga
-// um TMHuman que ja esta em ECMOTION_DEAD no client 7.48; o tipo 3 executa a
-// exclusao imediata. refreshPlayerVisibility recria o personagem somente para
-// observadores que continuam dentro da nova janela.
+// rematerializePlayerAfterRevive removes the dead representation from other
+// clients before applying the new living position and state. RemoveType 0
+// does not remove a TMHuman already in ECMOTION_DEAD in the 7.48 client;
+// type 3 removes it immediately. refreshPlayerVisibility recreates the player
+// only for observers still within the new view window.
 func (w *World) rematerializePlayerAfterRevive(subject *Player) {
 	if subject == nil || !subject.InWorld || subject.Char == nil || playerCurHP(subject.Char) == 0 {
 		return
@@ -277,8 +277,8 @@ func (w *World) rematerializePlayerAfterRevive(subject *Player) {
 	w.updatePartyMember(subject)
 }
 
-// refreshPlayerVisibility aplica os deltas quando o jogador cruza a borda de
-// uma janela: CreateMob ao entrar e RemoveMob tipo 0 ao sair.
+// refreshPlayerVisibility applies deltas as a player crosses a view boundary:
+// CreateMob on entry and RemoveMob type 0 on exit.
 func (w *World) refreshPlayerVisibility(p *Player) {
 	if p == nil || !p.InWorld {
 		return
@@ -295,8 +295,8 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 			w.showMob(p, m)
 		}
 	}
-	// Visible contem tipos diferentes de entidade. So remova IDs que o indice
-	// canonico confirma serem mobs e que deixaram a janela espacial.
+	// Visible contains multiple entity types. Remove only IDs confirmed by the
+	// canonical index to be mobs that left the spatial window.
 	for id := range p.Visible {
 		m := w.mobsByID[id]
 		if m == nil {
@@ -349,7 +349,7 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 		}
 		nearGroundIDs[g.ID] = struct{}{}
 		if !p.hasVisible(g.ID) {
-			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, g.Rotate, g.State, 0, 0, 0))
+			p.Session.Send(w.groundItemCreatePacket(g))
 			p.show(g.ID)
 		}
 	}
@@ -392,13 +392,13 @@ func (w *World) publishGhostShopItemSold(shop *GhostShop, pos uint32) {
 	}
 	for _, p := range w.nearbyWorldPlayers(shop.X, shop.Y, viewHalfX) {
 		if p.hasVisible(shop.ID) {
-			// A janela de auto-loja foi aberta para o ID virtual do clone.
+			// The auto-shop window was opened for the clone's virtual ID.
 			p.Session.Send(wire.ItemSold(shop.ID, pos))
 		}
 	}
 }
 
-// publishMobSpawn materializa uma nova instancia somente para quem esta perto.
+// publishMobSpawn materializes a new instance only for nearby players.
 func (w *World) publishMobSpawn(m *Mob) {
 	w.registerMobSpatial(m)
 	w.publishRegisteredMobSpawn(m)
@@ -415,8 +415,8 @@ func (w *World) publishRegisteredMobSpawn(m *Mob) {
 	}
 }
 
-// publishMobMove envia movimento apenas a quem ja via o mob e atualiza os
-// clientes que passaram a entrar/sair da janela por causa do proprio mob.
+// publishMobMove sends movement only to players already seeing the mob and
+// updates clients whose view changed because the mob moved.
 func (w *World) publishMobMove(m *Mob, oldX, oldY uint16, speed uint32) {
 	w.moveMobSpatial(m, oldX, oldY)
 	observers := make(map[uint16]*Player)
@@ -446,10 +446,10 @@ func (w *World) publishMobMove(m *Mob, oldX, oldY uint16, speed uint32) {
 	}
 }
 
-// publishPlayerMove replica somente uma mudanca real de destino. O TMSrv nativo
-// conserva Route[24] e a publica junto da origem informada no segmento. Descartar
-// essa rota obrigava cada observador a recalcular o caminho e causava pequenas
-// correcoes em curvas, desniveis ou mudancas de destino.
+// publishPlayerMove replicates only a real destination change. Native TMSrv
+// preserves Route[24] and publishes it with the segment's reported origin.
+// Dropping that route made each observer recalculate the path, causing small
+// corrections on turns, slopes, and destination changes.
 func (w *World) publishPlayerMove(player *Player, fromX, fromY, targetX, targetY uint16, route []byte) {
 	if player == nil || !player.InWorld || player.Char == nil {
 		return
@@ -457,12 +457,12 @@ func (w *World) publishPlayerMove(player *Player, fromX, fromY, targetX, targetY
 	if fromX == targetX && fromY == targetY {
 		return
 	}
-	// BASE_GetSpeed 7.48: nibble baixo de AttackRun, limitado a 1..7. Usar o score
-	// impede speed hack e conserva visualmente botas/buffs de corrida.
+	// BASE_GetSpeed 7.48: low nibble of AttackRun, clamped to 1..7. Using the
+	// score prevents speed hacks and preserves the appearance of run buffs.
 	speed := uint32(playerAttackRun(player.Char) & 0x0F)
-	// O jogador ainda esta indexado na celula anterior neste ponto. Consulte a
-	// uniao das duas janelas para que quem ja o via na origem receba o segmento;
-	// jogadores novos so serao materializados pelo refresh posterior.
+	// The player is still indexed in the previous cell. Query the union of
+	// both windows so existing observers receive the segment; new observers
+	// are materialized by the subsequent refresh.
 	observers := make(map[uint16]*Player)
 	if player.MovePublished {
 		for _, observer := range w.nearbyWorldPlayers(
@@ -508,10 +508,10 @@ func (w *World) sendRemainingPlayerMove(observer, subject *Player) {
 		uint32(playerAttackRun(subject.Char)&0x0F), route))
 }
 
-// publishPlayerStop encerra uma rota sem usar ActionStop/Effect=1. Esse efeito
-// pertence a spawn, teleporte e correcao dura; envia-lo em toda parada encaixava
-// o avatar remoto instantaneamente. Ao chegar ao destino, a rota ja termina
-// sozinha. Uma parada intermediaria recebe uma unica reorientacao Effect=0.
+// publishPlayerStop ends a route without ActionStop/Effect=1. That effect is
+// for spawn, teleport, and hard correction; sending it on every stop snapped
+// the remote avatar. The route ends by itself at the destination. An
+// intermediate stop receives one Effect=0 reorientation.
 func (w *World) publishPlayerStop(player *Player) {
 	if player == nil || !player.InWorld || player.Char == nil || !player.MovePublished {
 		return
@@ -582,12 +582,17 @@ func mobDeathPacket(recipient *Player, killedID, killerID uint16,
 	return wire.CNFMobKill(killedID, killerID, progress.hold, progress.exp)
 }
 
-// publishPlayerDeath envia o total de EXP de CADA destinatario. O client chama
-// SetMyHumanExp quando o killer e ele proprio ou um membro da party; reutilizar
-// a EXP da vitima aqui fazia o client do killer receber visualmente o total da
-// pessoa morta. PvP nao concede EXP nem gold.
+// publishPlayerDeath sends each recipient their own total experience. The
+// client calls SetMyHumanExp when the killer is the recipient or a party
+// member; reusing the victim's experience would display the wrong total.
+// PvP death grants neither experience nor gold.
 func (w *World) publishPlayerDeath(victim *Player, killerID uint16) {
-	if victim == nil || !victim.InWorld {
+	if victim == nil {
+		return
+	}
+	// Death invalidates the server-owned route before any later client packet.
+	clearAirMove(victim)
+	if !victim.InWorld {
 		return
 	}
 	for _, recipient := range w.nearbyWorldPlayers(victim.X, victim.Y, viewHalfX) {
@@ -610,9 +615,9 @@ func playerDeathPacket(recipient, victim *Player, killerID uint16) []byte {
 	return wire.CNFMobKill(victim.ID, killerID, hold, exp)
 }
 
-// publishMobRemoval retira um mob que nunca morreu em combate (rollback de
-// spawn, reload ou cleanup administrativo). Diferente de publishMobDeath, nao
-// envia CNFMobKill nem cria um hit visual falso no client.
+// publishMobRemoval removes a mob that did not die in combat (spawn rollback,
+// reload, or administrative cleanup). Unlike publishMobDeath, it sends no
+// CNFMobKill and creates no false visual hit in the client.
 func (w *World) publishMobRemoval(m *Mob) {
 	if m == nil {
 		return
@@ -681,9 +686,9 @@ func (w *World) sendToPlayerViewProtocol(subject *Player, build func(*Player) []
 	}
 }
 
-// publishPlayerAffects alimenta os dois canais distintos do client 7.48:
-// 0x336 e publico e aciona TMHuman::CheckAffect; 0x3B9 e privado e atualiza
-// somente os icones/timers do personagem controlado pela sessao.
+// publishPlayerAffects feeds two distinct 7.48 client channels: 0x336 is
+// public and calls TMHuman::CheckAffect; 0x3B9 is private and updates only
+// the session owner's icons and timers.
 func (w *World) publishPlayerAffects(subject *Player) {
 	if subject == nil || subject.Char == nil || subject.Session == nil {
 		return
@@ -694,9 +699,9 @@ func (w *World) publishPlayerAffects(subject *Player) {
 	subject.Session.Send(playerAffectsPacket(subject))
 }
 
-// syncPlayerVitals mantem HP/MP do personagem identicos no proprio client e em
-// todos os observadores. Alem das barras, SetHpMp com HP>0 faz o client 7.48
-// limpar ECMOTION_DEAD/m_cDie, sendo obrigatorio no fluxo de renascimento.
+// syncPlayerVitals keeps character HP/MP identical for the owner and all
+// observers. Besides the bars, SetHpMp with HP>0 makes the 7.48 client clear
+// ECMOTION_DEAD/m_cDie, which is required during revival.
 func (w *World) syncPlayerVitals(subject *Player) {
 	if subject == nil || subject.Char == nil {
 		return
@@ -706,18 +711,18 @@ func (w *World) syncPlayerVitals(subject *Player) {
 	})
 }
 
-// syncPlayerVitalsToObservers manda o 0x181 para quem VE o jogador, menos ele
-// proprio. Serve aos fluxos que ja enviaram um 0x336 privado ao dono.
+// syncPlayerVitalsToObservers sends 0x181 to players who SEE the subject,
+// excluding the subject. It serves flows that sent a private 0x336 to the owner.
 //
-// O motivo e o flicker da barra: o handler wide do client recompilado copia a
-// cauda uint32 para o sidecar e DEPOIS chama o handler nativo. A analise 7.48
-// confirmou que os quatro desvios e o fall-through convergem no mesmo `call`.
-// Cada pacote de vitals custa um redesenho nativo; mandar 0x336
-// e 0x181 em sequencia ao mesmo jogador custa DOIS, e a barra pisca.
+// This avoids bar flicker: the rebuilt client's wide handler copies the
+// uint32 tail to its sidecar before calling the native handler. The 7.48
+// analysis confirmed that all four branches and the fall-through converge
+// on the same call. Each vitals packet redraws the native bar, so sending
+// 0x336 then 0x181 to the same player redraws it twice.
 //
-// O 0x336 ja carrega HP/MP nos WORDs legados e na cauda wide, entao o dono nao
-// perde nada. Os observadores continuam recebendo, porque para eles o 0x336
-// privado nunca chegou.
+// The private 0x336 already carries HP/MP in legacy WORDs and the wide tail,
+// so the owner loses nothing. Observers still receive 0x181 because they
+// never received the private 0x336.
 func (w *World) syncPlayerVitalsToObservers(subject *Player) {
 	if subject == nil || subject.Char == nil || !subject.InWorld {
 		return
@@ -729,12 +734,12 @@ func (w *World) syncPlayerVitalsToObservers(subject *Player) {
 	}
 }
 
-// syncPlayerScoreAndVitals encerra uma alteracao de estado que tambem passou
-// pelo fluxo de ataque. O 0x181 chama diretamente o handler legado do client e
-// redesenha por um frame os WORDs de HP/MP; em casts normais ele nao e preciso.
-// O 0x336 estendido atualiza o sidecar uint32 sem esse flicker. Fluxos que
-// realmente precisam da barra/pose (dano, cura, morte e revive) usam
-// syncPlayerVitals explicitamente.
+// syncPlayerScoreAndVitals completes a state change that also passed through
+// the attack flow. Packet 0x181 calls the legacy client handler directly and
+// redraws the HP/MP WORDs for one frame; ordinary casts do not need it.
+// Extended 0x336 updates the uint32 sidecar without that flicker. Flows that
+// need bar or pose changes (damage, healing, death, revival) call
+// syncPlayerVitals explicitly.
 func (w *World) syncPlayerScoreAndVitals(subject *Player) {
 	if subject == nil || subject.Char == nil {
 		return
@@ -744,10 +749,10 @@ func (w *World) syncPlayerScoreAndVitals(subject *Player) {
 	})
 }
 
-// syncPlayerChaos publica a mudança do byte de PK/chaos que fica dentro do
-// CreateMob. UpdateEtc não possui campo de CP no protocolo 7.54; enviar apenas
-// 0x337 deixaria o nome dos observadores com a cor anterior. O pacote mantém a
-// mesma posição e não inclui Action, portanto não reinicia a caminhada.
+// syncPlayerChaos publishes the PK/chaos byte embedded in CreateMob.
+// UpdateEtc has no CP field in protocol 7.54; sending only 0x337 would leave
+// observers seeing the old name color. The packet keeps the same position and
+// has no Action, so it does not restart walking.
 func (w *World) syncPlayerChaos(subject *Player) {
 	if subject == nil || !subject.InWorld || subject.Char == nil {
 		return
@@ -762,7 +767,7 @@ func (w *World) syncPlayerChaos(subject *Player) {
 func (w *World) publishItemSpawn(g *GroundItem) {
 	for _, p := range w.nearbyWorldPlayers(g.X, g.Y, viewHalfX) {
 		if w.groundItemVisibleToPlayer(p, g) && !p.hasVisible(g.ID) {
-			p.Session.Send(wire.CreateItem(g.X, g.Y, g.ID, g.Item, g.Rotate, g.State, 0, 0, 0))
+			p.Session.Send(w.groundItemCreatePacket(g))
 			p.show(g.ID)
 		}
 	}

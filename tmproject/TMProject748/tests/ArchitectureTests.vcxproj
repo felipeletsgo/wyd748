@@ -44,7 +44,9 @@
     <ClCompile Include="EffectVertexColorTests.cpp" />
     <ClCompile Include="SceneDisconnectContractTests.cpp" />
     <ClCompile Include="LoginCredentialContractTests.cpp" />
-    <ClCompile Include="ServerNameAssetTests.cpp" />
+    <ClCompile Include="ServerNameAssetTests.cpp">
+      <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
     <ClCompile Include="TerrainTileMapReaderTests.cpp" />
     <ClCompile Include="CharacterTransferResponseTests.cpp" />
     <ClCompile Include="..\internal\core\WYD748Assets.cpp">

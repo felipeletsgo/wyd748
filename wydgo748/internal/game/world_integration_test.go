@@ -72,27 +72,27 @@ func TestNewWorldWiresOptionsAndSpawnsConfiguredContent(t *testing.T) {
 		t.Fatalf("NewWorld: %v", err)
 	}
 	if len(w.generators) != 1 || len(w.mobs) != 2 {
-		t.Fatalf("NPCGener nao materializado: generators=%d mobs=%d", len(w.generators), len(w.mobs))
+		t.Fatalf("NPCGener not materialized: generators=%d mobs=%d", len(w.generators), len(w.mobs))
 	}
 	if w.generators[0].current != 2 ||
 		!w.generators[0].nextGenerate.Equal(clock.Now().Add(2*npcGenerMinute)) {
-		t.Fatalf("estado/deadline do gerador incorreto: %+v", w.generators[0])
+		t.Fatalf("incorrect generator state/deadline: %+v", w.generators[0])
 	}
 	if len(w.groundItems) != 1 || w.groundItems[15001] == nil ||
 		!w.groundItems[15001].Permanent || w.groundItems[15001].Rotate != 3 {
-		t.Fatalf("objeto permanente/canhao nao inicializado: %+v", w.groundItems)
+		t.Fatalf("permanent cannon not initialized: %+v", w.groundItems)
 	}
 	if len(w.questZones) != 1 || len(w.teleports) != 1 ||
 		w.gameplay.EXPMinimum != 25_000 || w.mounts.Types[0].Attack != 10 {
-		t.Fatal("options do mundo nao foram preservadas")
+		t.Fatal("world options were not preserved")
 	}
 	if w.npcGenerLogMode != npcGenerLogQuiet ||
 		!w.nextAutoSave.Equal(clock.Now().Add(accountAutoSaveSliceInterval)) ||
 		!w.nextQuestZoneReset.Equal(clock.Now().Add(questZoneResetInterval)) {
-		t.Fatal("modo de log ou deadlines nao usam a configuracao/relogio injetados")
+		t.Fatal("log mode or deadlines do not use injected configuration/clock")
 	}
 	if w.charTemplates[0].Name != "TransKnight" || w.charSpawn.X != 2100 {
-		t.Fatal("layout de personagem nao foi conectado ao mundo")
+		t.Fatal("character layout was not connected to the world")
 	}
 }
 
@@ -104,16 +104,16 @@ func TestNewWorldRejectsInvalidGlobalConfigAndMissingGeneratorTemplate(t *testin
 		&craftStore{}, npcs, nil, catalog, [model.MaxCarry]int{},
 		model.VolatileCatalog{}, templates, model.TerrainMap{},
 		WithGameplayConfig(bad),
-	); err == nil || !strings.Contains(err.Error(), "configuracao global") {
-		t.Fatalf("configuracao invalida deveria derrubar boot: %v", err)
+	); err == nil || !strings.Contains(err.Error(), "global configuration") {
+		t.Fatalf("invalid configuration should fail startup: %v", err)
 	}
 
 	geners[0].Follower = "Does_Not_Exist"
 	if _, err := NewWorld(
 		&craftStore{}, npcs, geners, catalog, [model.MaxCarry]int{},
 		model.VolatileCatalog{}, templates, model.TerrainMap{},
-	); err == nil || !strings.Contains(err.Error(), "template ausente") {
-		t.Fatalf("template ausente deveria derrubar boot: %v", err)
+	); err == nil || !strings.Contains(err.Error(), "missing template") {
+		t.Fatalf("missing template should fail startup: %v", err)
 	}
 }
 
@@ -123,7 +123,7 @@ func TestWorldIDAllocationWrapsAndReusesOnlyFreeSlots(t *testing.T) {
 	occupied := &Mob{ID: ^uint16(0), Def: bossTestNPC("Occupied", 1)}
 	w.registerMobSpatial(occupied)
 	if got := w.allocMobID(); got != firstMobID {
-		t.Fatalf("wrap de mob ID=%d, quer %d", got, firstMobID)
+		t.Fatalf("wrapped mob ID=%d, want %d", got, firstMobID)
 	}
 
 	for id := uint16(1); id < 4; id++ {
@@ -131,7 +131,7 @@ func TestWorldIDAllocationWrapsAndReusesOnlyFreeSlots(t *testing.T) {
 		p.ID = id
 	}
 	if got, ok := w.allocPlayerID(); !ok || got != 4 {
-		t.Fatalf("menor player ID livre=%d, quer 4", got)
+		t.Fatalf("lowest free player ID=%d, want 4", got)
 	}
 }
 
@@ -143,7 +143,7 @@ func TestWorldIDAllocationRejectsFullPlayerWorld(t *testing.T) {
 		w.players[p.Session] = p
 	}
 	if got, ok := w.allocPlayerID(); ok || got != 0 {
-		t.Fatalf("mundo cheio deveria recusar alocacao: id=%d ok=%v", got, ok)
+		t.Fatalf("full world should reject allocation: id=%d ok=%v", got, ok)
 	}
 }
 
@@ -151,7 +151,7 @@ func TestWorldIDAllocationHonorsPlayerIndexWhenSessionMapIsStale(t *testing.T) {
 	w := newZoneTestWorld()
 	w.playersByID[1] = &Player{ID: 1}
 	if got, ok := w.allocPlayerID(); !ok || got != 2 {
-		t.Fatalf("indice playersByID deveria reservar 1: id=%d ok=%v", got, ok)
+		t.Fatalf("playersByID index should reserve 1: id=%d ok=%v", got, ok)
 	}
 }
 
@@ -167,20 +167,20 @@ func TestWorldGeneratorSchedulingAndWalkableFallbacks(t *testing.T) {
 	g.nextGenerate = time.Time{}
 	w.scheduleGenerator(g, now)
 	if !g.nextGenerate.IsZero() {
-		t.Fatal("gerador sem intervalo recebeu deadline")
+		t.Fatal("generator without interval received a deadline")
 	}
 
-	if got := generName("Mestre_Archi"); got != "Mestre Archi" {
-		t.Fatalf("normalizacao de nome=%q", got)
+	if got := generName("Master_Archi"); got != "Master Archi" {
+		t.Fatalf("normalized name=%q", got)
 	}
 	for i := 0; i < 20; i++ {
 		x, y := (&World{}).scatter(100, 100, 0)
 		if x != 100 || y != 100 {
-			t.Fatalf("scatter sem raio moveu para (%d,%d)", x, y)
+			t.Fatalf("zero-radius scatter moved to (%d,%d)", x, y)
 		}
 	}
 	x, y := w.findWalkablePosition(100, 100, 1)
 	if x == 0 || y == 0 {
-		t.Fatal("fallback de terreno devolveu coordenada invalida")
+		t.Fatal("terrain fallback returned invalid coordinates")
 	}
 }

@@ -5,6 +5,11 @@
 #include "../internal/render/world/objects/ObjectFileRecordLayout.h"
 #include "../internal/ui/SellConfirmationText.h"
 #include "../internal/wire/AttackFrameContract.h"
+#include "../internal/wire/ReceivedPacketDispatch.h"
+#include "../internal/wire/LegacySalePacket.h"
+#include "../internal/wire/SendItemContract.h"
+#include "../internal/game/entities/AirMoveMotion.h"
+#include "../internal/application/FieldInteractionPolicy.h"
 
 #include <cstdio>
 #include <algorithm>
@@ -71,6 +76,154 @@ int RunSceneDisconnectContractTests(int& checks)
     };
     check(NormalizeLineEndings("case 12:\r\n\t\t\t{\r\n") == "case 12:\n\t\t\t{\n",
         "source contract normalizes CRLF checkout line endings");
+    for (int total : {-1, 0, 1, 2, 10, 255, 256, INT_MAX}) {
+        for (long long amount : {(std::numeric_limits<long long>::min)(), -1LL, 0LL,
+            1LL, 2LL, 9LL, 10LL, 254LL, 255LL, 256LL,
+            (std::numeric_limits<long long>::max)()}) {
+            check(field_interaction::IsValidStackSplitQuantity(amount, total) ==
+                (total >= 2 && total <= 255 && amount >= 1 && amount <= total - 1LL),
+                "split quantity leaves two positive byte-sized stacks");
+        }
+    }
+    int first = 1, last = 2, foreign = 3;
+    int* ownedItems[] = {&first, nullptr, &last};
+    for (int count : {-1, 0, 1, 2, 3, 4, INT_MAX}) {
+        for (int* selected : {static_cast<int*>(nullptr), &first, &last, &foreign}) {
+            int* expected = count >= 1 && count <= 3 && selected == &first ? &first :
+                count == 3 && selected == &last ? &last : nullptr;
+            check(field_interaction::FindOwnedItem(ownedItems, count, selected) == expected,
+                "split selection requires membership in the active grid prefix");
+        }
+    }
+    for (long long price : {(std::numeric_limits<long long>::min)(), -1LL, 0LL,
+        1LL, 1999999999LL, 2000000000LL, 2147483647LL, 4294967295LL,
+        (std::numeric_limits<long long>::max)()}) {
+        check(field_interaction::IsValidAutoTradePrice(price) ==
+            (price >= 1 && price <= 1999999999LL),
+            "auto-trade price requires positive gold and preserves the existing prompt ceiling");
+    }
+    struct ListingItem { short sIndex; };
+    for (unsigned int occupied = 0; occupied < (1u << 12); ++occupied) {
+        ListingItem items[12]{};
+        for (unsigned int slot = 0; slot < 12; ++slot)
+            items[slot].sIndex = (occupied & (1u << slot)) ? 4011 : 0;
+        check(field_interaction::HasAutoTradeOffers(items) == (occupied != 0),
+            "shop publication accepts every nonempty twelve-slot occupancy pattern");
+    }
+    ListingItem invalidOffers[12]{};
+    for (auto& item : invalidOffers) item.sIndex = -1;
+    check(!field_interaction::HasAutoTradeOffers(invalidOffers),
+        "negative item sentinels do not make a shop publishable");
+    struct SoldItem { short sIndex; unsigned char effects[6]; };
+    for (int sold : {-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, INT_MAX}) {
+        SoldItem items[12]{};
+        unsigned char positions[12]{};
+        int prices[12]{};
+        for (int slot = 0; slot < 12; ++slot) {
+            items[slot] = {static_cast<short>(4000 + slot), {1, 2, 3, 4, 5, 6}};
+            positions[slot] = static_cast<unsigned char>(20 + slot);
+            prices[slot] = 1000 + slot;
+        }
+        const bool valid = sold >= 0 && sold < 12;
+        for (int repeat = 0; repeat < 2; ++repeat) {
+            check(field_interaction::ClearAutoTradeOffer(items, positions, prices, sold) == valid,
+                "sold-slot delta rejects invalid slots and accepts repeated valid notifications");
+            for (int slot = 0; slot < 12; ++slot) {
+                const SoldItem expected = slot == sold ? SoldItem{} :
+                    SoldItem{static_cast<short>(4000 + slot), {1, 2, 3, 4, 5, 6}};
+                check(memcmp(&items[slot], &expected, sizeof(expected)) == 0 &&
+                    positions[slot] == (slot == sold ? 255 : 20 + slot) &&
+                    prices[slot] == (slot == sold ? 0 : 1000 + slot),
+                    "sold-slot delta clears item effects, carry mapping and price without changing other offers");
+            }
+        }
+    }
+    for (bool nativeHUD : {false, true}) {
+        for (unsigned int control = 0; control <= 665; ++control) {
+            const int expected = control >= 653 && control < (nativeHUD ? 665u : 663u)
+                ? static_cast<int>(control - 653) : -1;
+            check(field_interaction::AutoTradeSlotIndex(nativeHUD, control) == expected,
+                "auto-trade control maps only to an available listing slot");
+        }
+        check(field_interaction::AutoTradeSlotIndex(nativeHUD, UINT_MAX) == -1,
+            "auto-trade control rejects unsigned overflow boundary");
+    }
+    for (int sold = 0; sold < 12; ++sold) {
+        for (int selected = 0; selected < 12; ++selected) {
+            check(field_interaction::ShouldCancelAutoTradePurchase(646, 653u + selected, sold) == (sold == selected),
+                "sold listing invalidates only its own purchase confirmation");
+        }
+    }
+    check(field_interaction::ShouldCancelAutoTradePurchase(646, 0, -1) &&
+        field_interaction::ShouldCancelAutoTradePurchase(646, UINT_MAX, -1),
+        "snapshot replacement and close invalidate even malformed purchase selections");
+    check(!field_interaction::ShouldCancelAutoTradePurchase(601, 653, -1) &&
+        !field_interaction::ShouldCancelAutoTradePurchase(646, 652, 0) &&
+        !field_interaction::ShouldCancelAutoTradePurchase(646, UINT_MAX, 0) &&
+        !field_interaction::ShouldCancelAutoTradePurchase(646, 664, 12) &&
+        !field_interaction::ShouldCancelAutoTradePurchase(646, 653, -2),
+        "purchase invalidation preserves other dialogs and rejects invalid sold slots");
+    // Exercise the actual receive gate, not a source-text proxy. This protects
+    // the inherited handler's memory access without asserting native parity.
+    MSG_Sell sale{};
+    sale.Header.Type = MSG_Sell_Opcode;
+    sale.Header.Size = sizeof(sale);
+    sale.TargetID = 17;
+    sale.MyType = 1;
+    sale.MyPos = 4;
+    char saleBytes[sizeof(sale) + 4]{};
+    std::memcpy(saleBytes + 1, &sale, sizeof(sale));
+    const auto saleBefore = std::string(saleBytes, sizeof(saleBytes));
+    int saleDeliveries = 0;
+    const auto receiveSale = [&](const PacketView& frame) {
+        ++saleDeliveries;
+        check(frame.data == saleBytes + 1 && frame.size == sizeof(sale),
+            "legacy sale borrows the original unaligned frame exactly once");
+    };
+    for (std::size_t size = 0; size < sizeof(sale); ++size) {
+        check(!received_packet::Dispatch({MSG_Sell_Opcode, saleBytes + 1, size}, receiveSale),
+            "legacy sale rejects every truncated representation before callback");
+    }
+    check(saleDeliveries == 0, "truncated legacy sale never reaches its handler");
+    check(!received_packet::Dispatch({MSG_Sell_Opcode, nullptr, sizeof(sale)}, receiveSale),
+        "legacy sale rejects null storage");
+    check(received_packet::Dispatch({MSG_Sell_Opcode, saleBytes + 1, sizeof(sale)}, receiveSale) &&
+        saleDeliveries == 1, "complete legacy sale is delivered once");
+    check(std::string(saleBytes, sizeof(saleBytes)) == saleBefore,
+        "legacy sale gate never modifies borrowed bytes");
+    check(!received_packet::CanDispatch({0xFFFF, saleBytes + 1, sizeof(sale)}),
+        "legacy sale embedded opcode cannot bypass the guard through metadata");
+    sale.Header.Type = 0xFFFF;
+    std::memcpy(saleBytes + 1, &sale, sizeof(sale));
+    check(!received_packet::CanDispatch({MSG_Sell_Opcode, saleBytes + 1, sizeof(sale)}),
+        "legacy sale metadata cannot disguise a different embedded opcode");
+    sale.Header.Type = MSG_Sell_Opcode;
+    for (unsigned short declared = 0; declared <= sizeof(sale) + 1; ++declared) {
+        sale.Header.Size = declared;
+        std::memcpy(saleBytes + 1, &sale, sizeof(sale));
+        check(received_packet::CanDispatch({MSG_Sell_Opcode, saleBytes + 1, sizeof(sale)}) ==
+            (declared == sizeof(sale)), "legacy sale requires consistent declared and actual lengths");
+    }
+    sale.Header.Size = sizeof(sale) + 1;
+    std::memcpy(saleBytes + 1, &sale, sizeof(sale));
+    check(received_packet::CanDispatch({MSG_Sell_Opcode, saleBytes + 1, sizeof(sale) + 1}),
+        "legacy sale memory guard does not invent an exact native envelope");
+    check(received_packet::ExpectedSize(MSG_Sell_Opcode) == 0,
+        "legacy sale exact native receive contract remains unproven");
+    struct AirMovePosition { float x; float y; };
+    AirMovePosition flightPosition{ 2200.5f, 2100.5f };
+    AirMovePosition flightDelta{ 3.0f, -2.0f };
+    const AirMovePosition flightOrigin{ 2100.5f, 2100.5f };
+    CancelAirMoveAtOrigin(flightPosition, flightDelta, flightOrigin);
+    check(flightPosition.x == flightOrigin.x && flightPosition.y == flightOrigin.y &&
+        flightDelta.x == 0.0f && flightDelta.y == 0.0f,
+        "death discards flight displacement and restores the captured origin");
+    flightPosition = { 2400.5f, 2300.5f };
+    flightDelta = { 4.0f, 5.0f };
+    DiscardAirMoveDelta(flightDelta);
+    check(flightPosition.x == 2400.5f && flightPosition.y == 2300.5f &&
+        flightDelta.x == 0.0f && flightDelta.y == 0.0f,
+        "authoritative teleport keeps its position and discards flight displacement");
 
     const std::string source = LoadSource(
         "TMProject748/internal/app/scenes/TMSelectServerScene.cpp");
@@ -163,6 +316,75 @@ int RunSceneDisconnectContractTests(int& checks)
         selectCharacter.substr(characterTerrain, characterMiniMap - characterTerrain).find("return 0;") != std::string::npos,
         "character selection stops before using an invalid terrain");
     const auto fieldSource = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
+    const auto fieldTickStart = fieldSource.find("int TMFieldScene::FrameMove(unsigned int dwServerTime)");
+    const auto compactTickStart = fieldSource.find("\tif (m_bCompatFieldScene)\n", fieldTickStart);
+    const auto regularTickStart = fieldSource.find("\tif (g_bEffectFirst == 1)", compactTickStart);
+    const auto compactRecall = fieldSource.find("recallDeadPlayer(dwServerTime);", compactTickStart);
+    const auto regularRecall = fieldSource.find("recallDeadPlayer(dwServerTime);", regularTickStart);
+    check(fieldTickStart != std::string::npos && compactTickStart != std::string::npos &&
+        regularTickStart != std::string::npos && compactRecall != std::string::npos &&
+        regularRecall != std::string::npos && compactRecall < regularTickStart &&
+        regularRecall > regularTickStart &&
+        fieldSource.find("MSG_STANDARD request{};", fieldTickStart) < compactTickStart &&
+        fieldSource.find("m_dwLastDeadTime = 0;", fieldTickStart) < compactTickStart,
+        "both field lifecycles send one initialized recall request after prolonged death");
+    const auto restoredHpGuard = fieldSource.find(
+        "m_pMessageBox && g_pObjectManager &&", fieldTickStart);
+    const auto restoredHpCheck = fieldSource.find(
+        "CurrentScore.CurHP > 0", restoredHpGuard);
+    const auto closeRespawnPrompt = fieldSource.find(
+        "m_pMessageBox->SetVisible(0);", restoredHpCheck);
+    check(restoredHpGuard != std::string::npos && restoredHpCheck != std::string::npos &&
+        closeRespawnPrompt != std::string::npos &&
+        restoredHpGuard < restoredHpCheck && restoredHpCheck < closeRespawnPrompt &&
+        closeRespawnPrompt < compactTickStart &&
+        fieldSource.substr(restoredHpGuard, closeRespawnPrompt - restoredHpGuard).find(
+            "m_pMessageBox->m_dwMessage == 11") != std::string::npos,
+        "both field lifecycles close only the respawn prompt after authoritative HP recovery");
+    const auto timeDelayStart = fieldSource.find("int TMFieldScene::TimeDelay(unsigned int dwServerTime)");
+    const auto recallCountdownStart = fieldSource.find("if (m_dwLastTown)", timeDelayStart);
+    const auto recallCountdownEnd = fieldSource.find("if (m_dwLastResurrect)", recallCountdownStart);
+    const auto recallCountdown = recallCountdownStart != std::string::npos &&
+        recallCountdownEnd != std::string::npos
+        ? fieldSource.substr(recallCountdownStart, recallCountdownEnd - recallCountdownStart)
+        : std::string{};
+    check(!recallCountdown.empty() &&
+        recallCountdown.find("ShouldAdvanceRespawnRecallCountdown(") != std::string::npos &&
+        recallCountdown.find("RespawnRecallSecondsRemaining(") != std::string::npos &&
+        recallCountdown.find("m_dwLastSelServer") == std::string::npos,
+        "respawn recall countdown uses its own timer and stops after sending the request");
+    check(!recallCountdown.empty() &&
+        recallCountdown.find("m_pMyHuman->m_cDie = 0;") == std::string::npos &&
+        recallCountdown.find("m_pMyHuman->SetAnimation(ECHAR_MOTION::ECMOTION_LEVELUP") == std::string::npos &&
+        recallCountdown.find("SendOneMessage((char*)&stRecall, sizeof(stRecall));") != std::string::npos,
+        "recall request retains death until the server confirms revival");
+    const auto recallRequest = recallCountdown.find("SendOneMessage((char*)&stRecall, sizeof(stRecall));");
+    const auto recallEffectGuard = recallCountdown.find(
+        "if (!m_pMyHuman->m_cHide && m_pEffectContainer)", recallRequest);
+    const auto recallEffect = recallCountdown.find("new TMEffectLevelUp(", recallEffectGuard);
+    const auto portalEffectGuard = recallCountdown.find("if (m_pEffectContainer)", recallEffect);
+    const auto portalEffect = recallCountdown.find("new TMSkillTownPortal(", portalEffectGuard);
+    check(recallRequest != std::string::npos && recallEffectGuard != std::string::npos &&
+        recallEffect != std::string::npos && portalEffectGuard != std::string::npos &&
+        portalEffect != std::string::npos && recallRequest < recallEffectGuard &&
+        recallEffectGuard < recallEffect && recallEffect < portalEffectGuard &&
+        portalEffectGuard < portalEffect,
+        "recall sends its request while optional effects require a scene owner");
+    const auto teleportCountdownStart = fieldSource.find("if (m_dwLastTeleport)", recallCountdownEnd);
+    const auto relocationCountdownStart = fieldSource.find("if (m_dwLastRelo)", teleportCountdownStart);
+    const auto relocationCountdownEnd = fieldSource.find("if (m_dwLastWhisper)", relocationCountdownStart);
+    const auto hasGuardedPortal = [&](std::size_t start, std::size_t end) {
+        if (start == std::string::npos || end == std::string::npos || start >= end)
+            return false;
+        const auto body = fieldSource.substr(start, end - start);
+        const auto ownerGuard = body.find("if (m_pEffectContainer)");
+        const auto portalEffect = body.find("new TMSkillTownPortal(");
+        return ownerGuard != std::string::npos && portalEffect != std::string::npos &&
+            ownerGuard < portalEffect;
+    };
+    check(hasGuardedPortal(teleportCountdownStart, relocationCountdownStart) &&
+        hasGuardedPortal(relocationCountdownStart, relocationCountdownEnd),
+        "teleport and relocation countdowns skip portal effects without a scene owner");
     const auto deathStart = fieldSource.find("int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)");
     const auto deathEnd = fieldSource.find("int TMFieldScene::OnPacketREQParty(", deathStart);
     const auto deathBody = deathStart != std::string::npos && deathEnd != std::string::npos
@@ -170,7 +392,99 @@ int RunSceneDisconnectContractTests(int& checks)
     check(deathBody.find("pAttacker ? pAttacker->m_szName : \"Unknown\"") != std::string::npos &&
         deathBody.find("sysTime.wSecond, killerName") != std::string::npos,
         "death notification tolerates a killer absent from the local scene");
+    check(deathBody.find("if (!pGridInv)\n\t\t\t\tcontinue;") != std::string::npos &&
+        deathBody.find("pItem && pItem->m_pItem && pItem->m_pItem->sIndex == 3463") != std::string::npos &&
+        deathBody.find("if (bFind && m_pHelpList[3])") != std::string::npos,
+        "death notification tolerates missing inventory and help controls");
     const auto deathHumanSource = LoadSource("TMProject748/internal/game/entities/TMHuman.cpp");
+    const auto deathClipEffectStart = deathHumanSource.find("if (m_nClass == 64 && m_sHeadIndex == 397)");
+    const auto corpseTransition = deathHumanSource.find(
+        "SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 1);", deathHumanSource.find("int TMHuman::FrameMove("));
+    check(corpseTransition != std::string::npos &&
+        deathHumanSource.find("m_eMotion = ECHAR_MOTION::ECMOTION_DEAD;", corpseTransition) < deathClipEffectStart &&
+        deathHumanSource.find("m_nLoop = 1;", corpseTransition) < deathClipEffectStart,
+        "death completion commits the corpse state even when its mesh clip is unavailable");
+    const auto deathClipEffectEnd = deathHumanSource.find(
+        "if (g_pCurrentScene->m_pMyHuman == this)", deathClipEffectStart);
+    const auto deathClipEffectBody = deathClipEffectStart != std::string::npos &&
+        deathClipEffectEnd != std::string::npos
+        ? deathHumanSource.substr(deathClipEffectStart,
+            deathClipEffectEnd - deathClipEffectStart) : std::string{};
+    const auto deathClipHide = deathClipEffectBody.find("m_cHide = 1;");
+    const auto deathClipEffectGuard = deathClipEffectBody.find(
+        "if (g_pCurrentScene->m_pEffectContainer)");
+    const auto deathClipEffect = deathClipEffectBody.find("new TMEffectParticle(");
+    check(!deathClipEffectBody.empty() && deathClipHide != std::string::npos &&
+        deathClipEffectGuard != std::string::npos && deathClipEffect != std::string::npos &&
+        deathClipHide < deathClipEffectGuard && deathClipEffectGuard < deathClipEffect,
+        "death animation completion never allocates an effect without its owner");
+    const auto vitalsStart = deathHumanSource.find("int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)");
+    const auto vitalsEnd = deathHumanSource.find("int TMHuman::OnPacketSetHpDam(", vitalsStart);
+    const auto vitalsBody = vitalsStart != std::string::npos && vitalsEnd != std::string::npos
+        ? deathHumanSource.substr(vitalsStart, vitalsEnd - vitalsStart) : std::string{};
+    const auto hpClamp = vitalsBody.find("m_stScore.CurHP = m_stScore.MaxHP;");
+    const auto localScoreCopy = vitalsBody.find("if (isLocalHuman)\n    {\n        auto& localScore =");
+    const auto localHpCopy = vitalsBody.find("localScore.CurHP = m_stScore.CurHP;", localScoreCopy);
+    const auto localMpCopy = vitalsBody.find("localScore.CurMP = m_stScore.CurMP;", localHpCopy);
+    const auto localMaxHpCopy = vitalsBody.find("localScore.MaxHP = m_stScore.MaxHP;", localMpCopy);
+    const auto localMaxMpCopy = vitalsBody.find("localScore.MaxMP = m_stScore.MaxMP;", localMaxHpCopy);
+    const auto lethalTransition = vitalsBody.find(
+        "if (death_motion::ShouldEnterDeath(m_stScore.CurHP, m_cDie == 1))\n        Die();");
+    const auto airMoveVisualGuard = vitalsBody.find("if (isLocalHuman && !pFScene->m_bAirMove)");
+    const auto localHpProjection = vitalsBody.find(
+        "resource_ui::ProjectNativeHpVisual(pFScene->m_pHPBar", airMoveVisualGuard);
+    check(!vitalsBody.empty() && hpClamp != std::string::npos &&
+        localScoreCopy != std::string::npos && localHpCopy != std::string::npos &&
+        localMpCopy != std::string::npos && localMaxHpCopy != std::string::npos &&
+        localMaxMpCopy != std::string::npos && airMoveVisualGuard != std::string::npos &&
+        hpClamp < localScoreCopy && localScoreCopy < localHpCopy &&
+        localHpCopy < localMpCopy && localMpCopy < localMaxHpCopy &&
+        localMaxHpCopy < localMaxMpCopy && localMaxMpCopy < airMoveVisualGuard &&
+        vitalsBody.find("memcpy(&g_pObjectManager->m_stMobData.CurrentScore") == std::string::npos,
+        "air travel keeps all local vitals current without replacing unrelated score fields");
+    check(lethalTransition != std::string::npos && localHpProjection != std::string::npos &&
+        localMaxMpCopy < lethalTransition && lethalTransition < airMoveVisualGuard &&
+        airMoveVisualGuard < localHpProjection,
+        "lethal vitals cancel flight before the local HP visual gate and redraw");
+    const auto airMoveStart = fieldSource.find("void TMFieldScene::AirMove_Start(int nIndex)");
+    const auto airMoveEndStart = fieldSource.find("void TMFieldScene::AirMove_End(AirMoveEndReason reason)");
+    const auto airMoveStartBody = airMoveStart != std::string::npos && airMoveEndStart != std::string::npos
+        ? fieldSource.substr(airMoveStart, airMoveEndStart - airMoveStart) : std::string{};
+    const auto startOwnerGuard = airMoveStartBody.find("!m_pEffectContainer");
+    const auto startEffect = airMoveStartBody.find("new TMEffectParticle", startOwnerGuard);
+    const auto startPacket = airMoveStartBody.find("SendPacket(", startEffect);
+    check(!airMoveStartBody.empty() && startOwnerGuard != std::string::npos &&
+        startEffect != std::string::npos && startPacket != std::string::npos &&
+        startOwnerGuard < startEffect && startEffect < startPacket,
+        "air travel cannot start without the scene-owned effect container");
+    const auto airMoveEndEnd = fieldSource.find("int TMFieldScene::AirMove_ShowUI(", airMoveEndStart);
+    const auto airMoveEndBody = airMoveEndStart != std::string::npos && airMoveEndEnd != std::string::npos
+        ? fieldSource.substr(airMoveEndStart, airMoveEndEnd - airMoveEndStart) : std::string{};
+    check(!airMoveEndBody.empty() &&
+        airMoveEndBody.find("if (m_pMyHuman->m_cDie != 1 && m_pMyHuman->m_stScore.CurHP > 0)\n"
+            "\t\t\tm_pMyHuman->SetAnimation(m_eOldMotion, 1);") != std::string::npos,
+        "air travel completion cannot restore the pre-death motion");
+    const auto deadFlightReturn = airMoveEndBody.find("if (interruptedByDeath)",
+        airMoveEndBody.find("m_dwAirMove_TickTime = 0;"));
+    const auto teleportReturn = airMoveEndBody.find("if (externalTeleport)\n\t\t\treturn;",
+        deadFlightReturn);
+    const auto flightEndPacket = airMoveEndBody.find("SendPacket({reinterpret_cast<MSG_STANDARD*>",
+        teleportReturn);
+    const auto endOwnerGuard = airMoveEndBody.find("if (m_pEffectContainer)", teleportReturn);
+    const auto endEffect = airMoveEndBody.find("new TMEffectParticle", endOwnerGuard);
+    check(!airMoveEndBody.empty() && endOwnerGuard != std::string::npos &&
+        endEffect != std::string::npos && flightEndPacket != std::string::npos &&
+        endOwnerGuard < endEffect && endEffect < flightEndPacket,
+        "flight completion skips an unavailable effect owner but still sends its packet");
+    check(!airMoveEndBody.empty() &&
+        airMoveEndBody.find("reason == AirMoveEndReason::Death") != std::string::npos &&
+        airMoveEndBody.find("CancelAirMoveAtOrigin(") != std::string::npos &&
+        airMoveEndBody.find("DiscardAirMoveDelta(") != std::string::npos &&
+        airMoveEndBody.find("m_nAirMove_State = interruptedByDeath || externalTeleport ? 0 : -1;") != std::string::npos &&
+        deadFlightReturn != std::string::npos && teleportReturn != std::string::npos &&
+        flightEndPacket != std::string::npos && deadFlightReturn < teleportReturn &&
+        teleportReturn < flightEndPacket,
+        "death and authoritative teleport cancel flight before any completion packet");
     const auto dieStart = deathHumanSource.find("void TMHuman::Die()");
     const auto dieEnd = deathHumanSource.find("void TMHuman::Stand()", dieStart);
     const auto dieBody = dieStart != std::string::npos && dieEnd != std::string::npos
@@ -181,10 +495,35 @@ int RunSceneDisconnectContractTests(int& checks)
         dieBody.find("m_bMoveing = 0;") != std::string::npos,
         "death freezes unfinished movement at the current position");
     check(!dieBody.empty() &&
+        dieBody.find("AirMove_End(TMFieldScene::AirMoveEndReason::Death);") != std::string::npos &&
+        dieBody.find("AirMove_End(TMFieldScene::AirMoveEndReason::Death);") <
+            dieBody.find("routePoint = m_vecPosition;"),
+        "death cancels visual flight before freezing the route even with positive HP");
+    check(deathHumanSource.find("AirMove_End(TMFieldScene::AirMoveEndReason::ExternalTeleport);") !=
+        std::string::npos,
+        "authoritative action cancels visual flight without sending a second destination");
+    check(!dieBody.empty() &&
+        dieBody.find("m_SendeMotion = ECHAR_MOTION::ECMOTION_NONE;") != std::string::npos,
+        "death clears pending emotes before ignoring late responses");
+    const auto deathEffectGuard = dieBody.find(
+        "if (auto* effectContainer = g_pCurrentScene->m_pEffectContainer)");
+    const auto deathEffect = dieBody.find("new TMEffectParticle(", deathEffectGuard);
+    const auto deathEffectEnd = dieBody.find("effectContainer->AddChild(pBill);\n        }", deathEffect);
+    const auto deathSound = dieBody.find("GetSoundAndPlay(309, 0, 0);", deathEffectEnd);
+    check(deathEffectGuard != std::string::npos && deathEffect != std::string::npos &&
+        deathEffectEnd != std::string::npos && deathSound != std::string::npos &&
+        deathEffectGuard < deathEffect && deathEffect < deathEffectEnd &&
+        deathEffectEnd < deathSound,
+        "death skips orphaned cosmetic effects without suppressing sound or state");
+    check(!dieBody.empty() &&
         dieBody.find("SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);") != std::string::npos &&
+        dieBody.find("m_eMotion = ECHAR_MOTION::ECMOTION_DIE;") >
+            dieBody.find("SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);") &&
+        dieBody.find("m_eMotion = ECHAR_MOTION::ECMOTION_DIE;") <
+            dieBody.find("m_nLoop = 0;", dieBody.find("SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);")) &&
         dieBody.find("m_nLoop = 0;") != std::string::npos &&
         dieBody.find("m_dwStartAnimationTime = g_pTimerManager->GetServerTime();") != std::string::npos,
-        "death completion remains one-shot when the mesh rejects its animation");
+        "death commits its logical state and one-shot completion when the mesh rejects its animation");
     const auto motionStart = deathHumanSource.find("int TMHuman::OnPacketFireWork(MSG_Motion* pStd)");
     const auto motionEnd = deathHumanSource.find("int TMHuman::OnPacketPremiumFireWork(", motionStart);
     const auto motionBody = motionStart != std::string::npos && motionEnd != std::string::npos
@@ -192,6 +531,11 @@ int RunSceneDisconnectContractTests(int& checks)
     check(!motionBody.empty() &&
         motionBody.find("(m_cDie == 1 || m_stScore.CurHP <= 0) && pStd->Parm != 2") != std::string::npos,
         "late motion packets cannot replace death before an explicit revival");
+    check(!motionBody.empty() &&
+        motionBody.find("if (pStd->Parm == 3 && g_pCurrentScene->m_pEffectContainer)") != std::string::npos &&
+        motionBody.find("m_pEffectContainer->AddChild(new TMEffectFireWork(") != std::string::npos &&
+        motionBody.find("m_pEffectContainer->AddChild(pFireWork)") == std::string::npos,
+        "motion effects are allocated only when their scene owner exists");
     const auto shopListStart = fieldSource.find("int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)");
     const auto shopListEnd = fieldSource.find("int TMFieldScene::OnPacket", shopListStart + 1);
     const auto shopListHandler = shopListStart != std::string::npos &&
@@ -248,6 +592,26 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto bagView = sendItemHandler.find("pFScene->Bag_View();");
     const auto firstModelWrite = sendItemHandler.find("memcpy(&pMobData->Equip[");
     const auto applyAppearance = sendItemHandler.find("SetPacketMOBItem(pMobData);");
+    for (const int type : {-32768, -1, 0, 1, 2, 3, 32767})
+        for (const int position : {-32768, -1, 0, 17, 18, 63, 64, 127, 128, 32767})
+        {
+            const bool expected = position >= 0 &&
+                ((type == 0 && position < 18) || (type == 1 && position < 64) ||
+                 (type == 2 && position < 128));
+            check(IsSendItemDestination(type, position, 18, 64, 128) == expected,
+                "SendItem accepts only real storage types and preserves their complete array capacities");
+        }
+    for (const int type : {0, 1, 2})
+        check(!IsSendItemDestination(type, 0, 0, 0, 0),
+            "SendItem rejects positions when the destination has no storage");
+    const auto destinationGuard = sendItemHandler.find(
+        "if (!IsSendItemDestination(pSendItem->DestType, pSendItem->DestPos,");
+    check(destinationGuard != std::string::npos && bagView != std::string::npos &&
+        firstModelWrite != std::string::npos && applyAppearance != std::string::npos &&
+        destinationGuard < bagView && destinationGuard < firstModelWrite &&
+        destinationGuard < applyAppearance &&
+        sendItemHandler.substr(destinationGuard, bagView - destinationGuard).find("return 1;") != std::string::npos,
+        "SendItem rejects an unsupported destination before UI, model, or mesh updates");
     check(!sendItemHandler.empty() && localOnly != std::string::npos &&
         bagView != std::string::npos && firstModelWrite != std::string::npos &&
         applyAppearance != std::string::npos && localOnly < bagView &&
@@ -340,6 +704,195 @@ int RunSceneDisconnectContractTests(int& checks)
         mountHudCast != std::string::npos && mountHudWrite != std::string::npos &&
         mountHudGuard < mountHudCast && mountHudCast < mountHudWrite,
         "UpdateEquip accesses mount HUD only after verifying the field scene type");
+    const auto listingSoldStart = fieldSource.find("int TMFieldScene::OnPacketItemSold(MSG_STANDARDPARM2* pStd)");
+    const auto listingSoldEnd = fieldSource.find("int TMFieldScene::OnPacketUpdateCargoCoin", listingSoldStart);
+    const auto listingSoldHandler = listingSoldStart != std::string::npos && listingSoldEnd != std::string::npos
+        ? fieldSource.substr(listingSoldStart, listingSoldEnd - listingSoldStart) : std::string{};
+    const auto listingSoldPickup = listingSoldHandler.find("->PickupAtItem(0, 0);");
+    const auto listingSoldModelClear = listingSoldHandler.find("field_interaction::ClearAutoTradeOffer(");
+    check(listingSoldModelClear != std::string::npos &&
+        listingSoldHandler.find("pStd->Parm1 == m_stAutoTrade.TargetID") < listingSoldModelClear &&
+        listingSoldHandler.find("pStd->Parm2 < autoTradeSlotCount") < listingSoldModelClear &&
+        listingSoldModelClear < listingSoldHandler.find("if (!pGrid)") &&
+        listingSoldHandler.find("pPrice->SetText(emptyPrice, 0);") < listingSoldPickup &&
+        listingSoldHandler.find("pPrice->SetVisible(0);") < listingSoldPickup &&
+        listingSoldHandler.find("pGrid->m_nTradeMoney = 0;") < listingSoldPickup,
+        "sold listing clears model independently of optional grids and hides its stale price");
+    check(listingSoldHandler.find("WYD748_CancelAutoTradePurchase(m_pMessageBox, pStd->Parm2);") < listingSoldPickup,
+        "sold listing cancels its confirmation even when its visual is already absent");
+    const auto listingSoldRelease = listingSoldHandler.find("WYD748_ReleaseAutoTradeItem(pItem);");
+    const auto listingCleanupStart = fieldSource.find("void WYD748_ReleaseAutoTradeItem(SGridControlItem*& pItem)");
+    const auto listingCleanupEnd = fieldSource.find("SAFE_DELETE(pItem);", listingCleanupStart);
+    const auto listingSoldCleanup = listingCleanupStart != std::string::npos && listingCleanupEnd != std::string::npos
+        ? fieldSource.substr(listingCleanupStart, listingCleanupEnd - listingCleanupStart) : std::string{};
+    check(listingSoldPickup != std::string::npos && listingSoldRelease != std::string::npos &&
+        listingSoldHandler.find("pPanel->IsVisible() == 1") < listingSoldPickup &&
+        listingSoldHandler.find("pStd->Parm1 == m_stAutoTrade.TargetID") < listingSoldPickup &&
+        listingSoldHandler.find("pStd->Parm2 < autoTradeSlotCount") < listingSoldPickup &&
+        listingSoldHandler.find("if (!pItem)\n\t\t\treturn 1;", listingSoldPickup) < listingSoldRelease,
+        "sold listing verifies the active shop and treats an already absent visual as a no-op");
+    check(listingSoldCleanup.find("SGridControl::m_pLastMouseOverItem == pItem") != std::string::npos &&
+        listingSoldCleanup.find("SGridControl::m_pLastMouseOverItem = nullptr;") != std::string::npos &&
+        listingSoldCleanup.find("SGridControl::m_sLastMouseOverIndex = -1;") != std::string::npos &&
+        listingSoldCleanup.find("SGridControl::m_pLastAttachedItem == pItem") != std::string::npos &&
+        listingSoldCleanup.find("SGridControl::m_pLastAttachedItem = nullptr;") != std::string::npos &&
+        listingSoldCleanup.find("SGridControl::m_pSellItem == pItem") != std::string::npos &&
+        listingSoldCleanup.find("SGridControl::m_pSellItem = nullptr;") != std::string::npos,
+        "sold listing clears matching hover, drag and sale-dialog aliases before destroying the visual");
+    check(listingSoldCleanup.find("g_pCursor && g_pCursor->m_pAttachedItem == pItem") != std::string::npos &&
+        listingSoldCleanup.find("g_pCursor->DetachItem();") != std::string::npos &&
+        listingSoldHandler.find("g_pCursor->m_pAttachedItem = nullptr;") == std::string::npos,
+        "sold listing resets the matching cursor through DetachItem without disrupting unrelated items");
+    check(listingSoldCleanup.find("if (!pItem)\n\t\t\treturn;") <
+        listingSoldCleanup.find("SGridControl::m_pLastMouseOverItem == pItem"),
+        "empty auto-trade cleanup leaves unrelated interaction state unchanged");
+    const auto listingSnapshotStart = fieldSource.find("int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)");
+    const auto listingSnapshotEnd = fieldSource.find("int TMFieldScene::OnPacketSwapItem", listingSnapshotStart);
+    const auto listingSnapshot = listingSnapshotStart != std::string::npos && listingSnapshotEnd != std::string::npos
+        ? fieldSource.substr(listingSnapshotStart, listingSnapshotEnd - listingSnapshotStart) : std::string{};
+    const auto listingSnapshotRelease = listingSnapshot.find("WYD748_ReleaseAutoTradeItem(pItem);");
+    check(listingSnapshot.find("WYD748_CancelAutoTradePurchase(m_pMessageBox);") <
+        listingSnapshot.find("memcpy(&m_stAutoTrade, pAutoTrade, sizeof(m_stAutoTrade));"),
+        "new shop snapshot cancels confirmation before replacing selected offer data");
+    check(listingSnapshotRelease != std::string::npos &&
+        listingSnapshot.find("pGrid->PickupAtItem(0, 0);") < listingSnapshotRelease &&
+        listingSnapshotRelease < listingSnapshot.find("auto pstItem = new STRUCT_ITEM();") &&
+        listingSnapshot.find("delete pItem;") == std::string::npos &&
+        listingSnapshot.find("g_pCursor->m_pAttachedItem = nullptr;") == std::string::npos,
+        "auto-trade snapshot releases previous interaction aliases before allocating replacement visuals");
+    const auto listingCloseStart = fieldSource.find("void TMFieldScene::SetVisibleAutoTrade(");
+    const auto listingCloseEnd = fieldSource.find("void TMFieldScene::SetWhisper(", listingCloseStart);
+    const auto listingClose = listingCloseStart != std::string::npos && listingCloseEnd != std::string::npos
+        ? fieldSource.substr(listingCloseStart, listingCloseEnd - listingCloseStart) : std::string{};
+    const auto nativeListingCloseRelease = listingClose.find("WYD748_ReleaseAutoTradeItem(pItem);");
+    check(listingClose.find("if (!bShow)\n\t\tWYD748_CancelAutoTradePurchase(m_pMessageBox);") <
+        listingClose.find("if (m_bCompatFieldScene)"),
+        "closing either shop layout cancels purchase before optional-control early returns");
+    const auto importedListingCloseRelease = nativeListingCloseRelease != std::string::npos
+        ? listingClose.find("WYD748_ReleaseAutoTradeItem(pItem);", nativeListingCloseRelease + 1) : std::string::npos;
+    check(nativeListingCloseRelease != std::string::npos && importedListingCloseRelease != std::string::npos &&
+        listingClose.find("for (int slot = 0; slot < 12; ++slot)") < nativeListingCloseRelease &&
+        listingClose.find("SAFE_DELETE(pItem);") == std::string::npos &&
+        listingClose.find("g_pCursor->m_pAttachedItem = nullptr;") == std::string::npos,
+        "both auto-trade close paths release matching interaction aliases through the shared cleanup");
+    const auto buyStart = fieldSource.find("void TMFieldScene::SendReqBuy(");
+    const auto prepareStart = fieldSource.find("auto pATradeTitle = (SText*)m_pControlContainer->FindControl(TMT_ATRADE_TITLE);");
+    const auto prepareEnd = fieldSource.find("SetVisibleAutoTrade(1, 1);", prepareStart);
+    const auto prepareBody = prepareStart != std::string::npos && prepareEnd != std::string::npos
+        ? fieldSource.substr(prepareStart, prepareEnd - prepareStart) : std::string{};
+    const auto prepareRelease = prepareBody.find("WYD748_ReleaseAutoTradeItem(pAutoTradeItem);");
+    check(prepareRelease != std::string::npos &&
+        prepareBody.find("m_bCompatFieldScene ? 12 : 10") < prepareRelease &&
+        prepareBody.find("pAutoTradeGrid->PickupAtItem(0, 0);") < prepareRelease &&
+        prepareBody.find("pCargoItem->m_GCObj.dwColor = -1;") < prepareRelease &&
+        prepareBody.find("delete pAutoTradeItem;") == std::string::npos &&
+        prepareBody.find("g_pCursor->m_pAttachedItem = nullptr;") == std::string::npos,
+        "seller preparation releases all listing aliases after restoring cargo highlighting");
+    const auto priceStart = fieldSource.find("constexpr int kNativeAutoTradeSlots = 12;");
+    const auto priceGuard = fieldSource.find(
+        "if (m_nCoinMsgType == 4 && !field_interaction::IsValidAutoTradePrice(nInputValue))");
+    const auto priceGuardEnd = fieldSource.find("switch (m_nCoinMsgType)", priceGuard);
+    const auto priceGuardBody = priceGuard != std::string::npos && priceGuardEnd != std::string::npos
+        ? fieldSource.substr(priceGuard, priceGuardEnd - priceGuard) : std::string{};
+    check(!priceGuardBody.empty() && priceGuardEnd < priceStart &&
+        priceGuardBody.find("if (nInputValue <= 0)") != std::string::npos &&
+        priceGuardBody.find("g_pMessageStringTable[34]") != std::string::npos &&
+        priceGuardBody.find("g_pMessageStringTable[143]") != std::string::npos &&
+        priceGuardBody.find("SetFocusedControl(pInputText);") != std::string::npos &&
+        priceGuardBody.find("return 1;") != std::string::npos,
+        "invalid shop price keeps the prompt focused and returns before reserving cargo or an offer slot");
+    const auto priceEnd = fieldSource.find("m_nLastAutoTradePos = -1;", priceStart);
+    const auto priceBody = priceStart != std::string::npos && priceEnd != std::string::npos
+        ? fieldSource.substr(priceStart, priceEnd - priceStart) : std::string{};
+    const auto cargoPayloadGuard = priceBody.find("if (!pCargoItem || !pCargoItem->m_pItem)");
+    check(cargoPayloadGuard != std::string::npos &&
+        cargoPayloadGuard < priceBody.find("memcpy(&selectedItem, pCargoItem->m_pItem, sizeof(STRUCT_ITEM));"),
+        "seller offer preparation rejects a missing cargo payload before copying it");
+    const auto publishStart = fieldSource.find("if (idwControlID == 667)");
+    const auto publishSend = fieldSource.find("SendOneMessage((char*)&m_stAutoTrade, sizeof(m_stAutoTrade));", publishStart);
+    const auto publishBody = publishStart != std::string::npos && publishSend != std::string::npos
+        ? fieldSource.substr(publishStart, publishSend - publishStart) : std::string{};
+    check(publishBody.find("if (!field_interaction::HasAutoTradeOffers(m_stAutoTrade.Item))") != std::string::npos &&
+        publishBody.find("i < 10") == std::string::npos,
+        "shop publication checks the complete wire item array before sending");
+    const auto buyEnd = fieldSource.find("void TMFieldScene::SetSanc()", buyStart);
+    const auto buyHandler = buyStart != std::string::npos && buyEnd != std::string::npos
+        ? fieldSource.substr(buyStart, buyEnd - buyStart) : std::string{};
+    check(buyHandler.find("field_interaction::AutoTradeSlotIndex(m_bCompatFieldScene != 0, dwControlID)") != std::string::npos &&
+        buyHandler.find("if (slot < 0") < buyHandler.find("m_pGridAutoTrade[slot]") &&
+        buyHandler.find("!m_pMyHuman || !m_pAutoTrade || !m_pAutoTrade->IsVisible()") != std::string::npos &&
+        buyHandler.find("grid->GetAtItem(0, 0)") < buyHandler.find("MSG_ReqBuy stReqBuy{};") &&
+        buyHandler.find("stReqBuy.Price = m_stAutoTrade.TradeMoney[slot];") != std::string::npos &&
+        buyHandler.find("dwControlID - 653") == std::string::npos,
+        "purchase sender rejects invalid control, absent scene and missing listing before reading arrays");
+    const auto cancelStart = fieldSource.find("void WYD748_CancelAutoTradePurchase(");
+    const auto cancelEnd = fieldSource.find("void WYD748_ReleaseAutoTradeItem(", cancelStart);
+    const auto cancelBody = cancelStart != std::string::npos && cancelEnd != std::string::npos
+        ? fieldSource.substr(cancelStart, cancelEnd - cancelStart) : std::string{};
+    check(cancelBody.find("if (!dialog || !field_interaction::ShouldCancelAutoTradePurchase(") != std::string::npos &&
+        cancelBody.find("dialog->m_dwMessage = static_cast<unsigned int>(-1);") != std::string::npos &&
+        cancelBody.find("dialog->m_dwArg = 0;") != std::string::npos &&
+        cancelBody.find("if (dialog->IsVisible())\n\t\t\tdialog->SetVisible(0);") != std::string::npos,
+        "purchase invalidation clears stale callback data without stealing focus from unrelated hidden dialogs");
+    const auto dropStart = fieldSource.find("int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)");
+    const auto dropEnd = fieldSource.find("int TMFieldScene::OnPacketCNFGetItem", dropStart);
+    const auto dropHandler = dropStart != std::string::npos && dropEnd != std::string::npos
+        ? fieldSource.substr(dropStart, dropEnd - dropStart) : std::string{};
+    const auto dropRelease = dropHandler.find("SAFE_DELETE(pGridItem);");
+    const auto dropHumanGuard = dropHandler.find("if (!m_pMyHuman)\n\t\treturn 1;");
+    const auto dropFamiliar = dropHandler.find("m_pMyHuman->m_sFamiliar =");
+    check(!dropHandler.empty() && dropRelease != std::string::npos &&
+        dropHumanGuard != std::string::npos && dropFamiliar != std::string::npos &&
+        dropHandler.find("memset(&g_pObjectManager->m_stMobData.Equip[pMsg->SourPos]") < dropRelease &&
+        dropHandler.find("memset(&g_pObjectManager->m_stMobData.Carry[pMsg->SourPos]") < dropRelease &&
+        dropHandler.find("memset(&g_pObjectManager->m_stItemCargo[pMsg->SourPos]") < dropRelease &&
+        dropRelease < dropHumanGuard && dropHumanGuard < dropFamiliar &&
+        dropHandler.find("if (g_pCursor)\n\t\tg_pCursor->DetachItem();") < dropRelease,
+        "confirmed drop commits model and releases visual before requiring a local human");
+    const auto dropCleanup = dropRelease != std::string::npos
+        ? dropHandler.substr(0, dropRelease) : std::string{};
+    check(dropCleanup.find("SGridControl::m_pLastMouseOverItem == pGridItem") != std::string::npos &&
+        dropCleanup.find("SGridControl::m_pLastMouseOverItem = nullptr;") != std::string::npos &&
+        dropCleanup.find("SGridControl::m_sLastMouseOverIndex = -1;") != std::string::npos &&
+        dropCleanup.find("SGridControl::m_pLastAttachedItem == pGridItem") != std::string::npos &&
+        dropCleanup.find("SGridControl::m_pLastAttachedItem = nullptr;") != std::string::npos &&
+        dropCleanup.find("SGridControl::m_pSellItem == pGridItem") != std::string::npos &&
+        dropCleanup.find("SGridControl::m_pSellItem = nullptr;") != std::string::npos,
+        "confirmed drop clears hover, drag and sell aliases before destroying the grid item");
+    const auto saleStart = fieldSource.find("int TMFieldScene::OnPacketSell(MSG_STANDARD* pStd)");
+    const auto saleEnd = fieldSource.find("int TMFieldScene::OnPacketCNFMobKill", saleStart);
+    const auto saleHandler = saleStart != std::string::npos && saleEnd != std::string::npos
+        ? fieldSource.substr(saleStart, saleEnd - saleStart) : std::string{};
+    const auto salePickup = saleHandler.find("pGridDest[pSell->MyPos]->PickupItem(0, 0)");
+    check(!saleHandler.empty() && salePickup != std::string::npos &&
+        saleHandler.find("!g_pObjectManager") < salePickup &&
+        saleHandler.find("pSell->MyType < 0 || pSell->MyType > 1") < salePickup &&
+        saleHandler.find("pSell->MyPos < 0") < salePickup &&
+        saleHandler.find("pSell->MyPos >= MAX_EQUIPITEM") < salePickup &&
+        saleHandler.find("pSell->MyPos >= MAX_CARRY") < salePickup &&
+        saleHandler.find("m_pGridHellStore &&") < salePickup &&
+        saleHandler.find("m_pGridShop &&") < salePickup &&
+        saleHandler.find("if (pGridDest[pSell->MyPos])") < salePickup,
+        "legacy sale bounds slots and tolerates absent merchant and equipment grids");
+    const auto saleRelease = saleHandler.find("SAFE_DELETE(pDestItem);");
+    const auto saleCleanup = saleRelease != std::string::npos
+        ? saleHandler.substr(0, saleRelease) : std::string{};
+    check(!saleCleanup.empty() &&
+        saleCleanup.find("SGridControl::m_pLastMouseOverItem == pDestItem") != std::string::npos &&
+        saleCleanup.find("SGridControl::m_pLastMouseOverItem = nullptr;") != std::string::npos &&
+        saleCleanup.find("SGridControl::m_sLastMouseOverIndex = -1;") != std::string::npos &&
+        saleCleanup.find("SGridControl::m_pLastAttachedItem == pDestItem") != std::string::npos &&
+        saleCleanup.find("SGridControl::m_pLastAttachedItem = nullptr;") != std::string::npos &&
+        saleCleanup.find("SGridControl::m_pSellItem == pDestItem") != std::string::npos &&
+        saleCleanup.find("SGridControl::m_pSellItem = nullptr;") != std::string::npos &&
+        saleCleanup.find("g_pCursor && g_pCursor->m_pAttachedItem == pDestItem") != std::string::npos &&
+        saleCleanup.find("g_pCursor->DetachItem();") != std::string::npos,
+        "legacy sale clears matching interaction aliases before deleting the detached visual");
+    check(!saleHandler.empty() && saleRelease != std::string::npos &&
+        saleHandler.find("const bool hasItem = pDestItem->m_pItem != nullptr;") < saleRelease &&
+        saleHandler.find("if (!hasItem)", saleRelease) != std::string::npos &&
+        saleHandler.find("if (m_pMyHuman)\n\t\tUpdateMyHuman();") != std::string::npos,
+        "legacy sale releases an incomplete visual without crediting gold or requiring a renderer");
     const auto swapStart = fieldSource.find("int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)");
     const auto swapEnd = fieldSource.find("int TMFieldScene::OnPacketShopList", swapStart);
     const auto swapHandler = swapStart != std::string::npos && swapEnd != std::string::npos
@@ -379,12 +932,33 @@ int RunSceneDisconnectContractTests(int& checks)
         swapHandler.find("SAFE_DELETE(pDestItem)") == std::string::npos,
         "rejected swap visuals clear hover, sell and cursor aliases before deletion");
     const auto splitStart = fieldSource.find("case 12:\n\t\t\t{");
-    const auto splitAmount = fieldSource.find("BASE_GetItemAmount(SGridControl::m_pSellItem->m_pItem)", splitStart);
-    const auto splitGuard = fieldSource.find("if (!SGridControl::m_pSellItem ||", splitStart);
-    check(splitStart != std::string::npos && splitGuard != std::string::npos &&
-        splitAmount != std::string::npos && splitStart < splitGuard && splitGuard < splitAmount &&
-        fieldSource.substr(splitGuard, splitAmount - splitGuard).find("!SGridControl::m_pSellItem->m_pGridControl") != std::string::npos,
+    const auto splitEnd = fieldSource.find("m_pControlContainer->SetFocusedControl(0);", splitStart);
+    const auto splitHandler = splitStart != std::string::npos && splitEnd != std::string::npos
+        ? fieldSource.substr(splitStart, splitEnd - splitStart) : std::string{};
+    const auto splitOwned = splitHandler.find("field_interaction::FindOwnedItem(");
+    const auto splitAmount = splitHandler.find("BASE_GetItemAmount(pSplitItem->m_pItem)");
+    const auto splitGuard = splitHandler.find("if (!pSplitItem || !pSplitItem->m_pItem ||");
+    check(!splitHandler.empty() && splitOwned != std::string::npos && splitGuard != std::string::npos &&
+        splitAmount != std::string::npos && splitOwned < splitGuard && splitGuard < splitAmount &&
+        splitHandler.find("pSplitItem->m_pGridControl != m_pGridInv") < splitAmount &&
+        splitHandler.find("SGridControl::m_pSellItem->") == std::string::npos,
         "split dialog does not dereference an item invalidated by swap cleanup");
+    const auto splitQuantityGuard = splitHandler.find("!field_interaction::IsValidStackSplitQuantity(");
+    const auto splitSend = splitHandler.find("SendPacket(");
+    check(splitQuantityGuard != std::string::npos && splitSend != std::string::npos &&
+        splitQuantityGuard < splitSend &&
+        splitHandler.find("SetInVisibleInputCoin();", splitSend) != std::string::npos &&
+        splitHandler.find("PickupItem(") == std::string::npos,
+        "split validates quantity before send and closes selection without changing inventory");
+    const auto closeSplitStart = fieldSource.find("void TMFieldScene::SetInVisibleInputCoin()");
+    const auto closeSplitEnd = fieldSource.find("void TMFieldScene::SetInventoryGridType", closeSplitStart);
+    const auto closeSplit = closeSplitStart != std::string::npos && closeSplitEnd != std::string::npos
+        ? fieldSource.substr(closeSplitStart, closeSplitEnd - closeSplitStart) : std::string{};
+    check(!closeSplit.empty() && closeSplit.find("if (m_nCoinMsgType == 12)") != std::string::npos &&
+        closeSplit.find("field_interaction::FindOwnedItem(") < closeSplit.find("pSplitItem->m_GCObj.dwColor") &&
+        closeSplit.find("SGridControl::m_pSellItem = nullptr;") != std::string::npos &&
+        closeSplit.find("m_nCoinMsgType = -1;") != std::string::npos,
+        "closing a split clears its mode and alias and restores only a live item highlight");
     const auto fieldTerrain = fieldSource.find("if (!m_pGroundList[0]->LoadTileMap(szMapPath))");
     const auto fieldMiniMap = fieldSource.find("m_pGround->SetMiniMapData();", fieldTerrain);
     check(fieldTerrain != std::string::npos && fieldMiniMap != std::string::npos &&
@@ -410,6 +984,41 @@ int RunSceneDisconnectContractTests(int& checks)
 		"shop sell confirmation sends the native Carry slot and visible merchant");
 
     const auto gridSource = LoadSource("TMProject748/internal/ui/SGrid.cpp");
+    const auto splitPromptStart = gridSource.find("else if (dwFlags == 513 && g_pEventTranslator->m_bShift)");
+    const auto splitPromptEnd = gridSource.find("else if (!bClick && dwFlags == 517", splitPromptStart);
+    const auto splitPrompt = splitPromptStart != std::string::npos && splitPromptEnd != std::string::npos
+        ? gridSource.substr(splitPromptStart, splitPromptEnd - splitPromptStart) : std::string{};
+    const auto splitControlsGuard = splitPrompt.find("if (!pText || !pEdit || !pInputGold)\n\t\t\treturn 0;");
+    check(!splitPrompt.empty() && splitControlsGuard != std::string::npos &&
+        splitPrompt.find("if (!pFScene || !pFScene->m_pControlContainer)") < splitPrompt.find("SelectItem(") &&
+        splitPrompt.find("if (!pItem || !pItem->m_pItem)") < splitPrompt.find("BASE_GetItemAmount(") &&
+        splitControlsGuard < splitPrompt.find("pItem->m_GCObj.dwColor =") &&
+        splitControlsGuard < splitPrompt.find("m_nCoinMsgType = 12;") &&
+        splitControlsGuard < splitPrompt.find("SGridControl::m_pSellItem = pItem;") &&
+        splitControlsGuard < splitPrompt.find("pText->SetText("),
+        "split prompt rejects missing controls before reserving or dereferencing dialog state");
+    const auto splitSelection = splitPrompt.find("SelectItem(");
+    const auto splitHitGuard = splitPrompt.find("if (!bPtInRect || this != pFScene->m_pGridInv)\n\t\t\treturn 0;");
+    const auto splitBusyGuard = splitPrompt.find("if (pInputGold->IsVisible())\n\t\t\treturn 0;");
+    check(splitSelection != std::string::npos && splitHitGuard != std::string::npos &&
+        splitHitGuard < splitSelection,
+        "broadcast shift-click cannot select a split source outside the Carry grid");
+    check(splitSelection != std::string::npos && splitBusyGuard != std::string::npos &&
+        splitControlsGuard < splitBusyGuard && splitBusyGuard < splitSelection,
+        "split entry preserves selection and pending intent while the shared prompt is open");
+    const auto pricePromptStart = gridSource.find("if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV2)");
+    const auto pricePromptEnd = gridSource.find("if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV3)", pricePromptStart);
+    const auto pricePrompt = pricePromptStart != std::string::npos && pricePromptEnd != std::string::npos
+        ? gridSource.substr(pricePromptStart, pricePromptEnd - pricePromptStart) : std::string{};
+    const auto priceControlsGuard = pricePrompt.find("if (!pText || !pEdit)\n\t\t\t\t\treturn 1;");
+    const auto priceSlotGuard = pricePrompt.find("if (cargoSlot < 0)\n\t\t\t\t\treturn 1;");
+    check(!pricePrompt.empty() && priceControlsGuard != std::string::npos && priceSlotGuard != std::string::npos &&
+        priceControlsGuard < priceSlotGuard &&
+        priceSlotGuard < pricePrompt.find("pItem->m_GCObj.dwColor = 0xFFFF00FF;") &&
+        priceSlotGuard < pricePrompt.find("m_nCoinMsgType = 4;") &&
+        priceSlotGuard < pricePrompt.find("m_nLastAutoTradePos = cargoSlot;") &&
+        priceSlotGuard < pricePrompt.find("pText->SetText("),
+        "auto-trade price prompt validates controls and Cargo slot before committing selection");
     const auto cubeStart = gridSource.find("else if (m_eGridType == TMEGRIDTYPE::GRID_CUBEBOX)");
     const auto cubeEnd = gridSource.find("\n\telse\n\t{", cubeStart);
     const auto cubeHandler = cubeStart != std::string::npos && cubeEnd != std::string::npos
@@ -1200,6 +1809,17 @@ int RunSceneDisconnectContractTests(int& checks)
 
     const auto startupSource = LoadSource("TMProject748/internal/app/scenes/NewApp.cpp");
     const auto basedefSource = LoadSource("TMProject748/internal/core/Basedef.cpp");
+    const auto receiveLoop = startupSource.find("ReadPacketView(&ErrorCode, &ErrorType)");
+    const auto readError = startupSource.find("if (ErrorCode != 0)", receiveLoop);
+    const auto closeOnError = startupSource.find("m_pSocketManager->CloseSocket();", readError);
+    const auto notifyOnError = startupSource.find("m_pObjectManager->OnPacketEvent(0, nullptr);", closeOnError);
+    const auto dispatchCheck = startupSource.find("if (!packet_dispatch::CanDispatch(packet", readError);
+    check(receiveLoop != std::string::npos && readError != std::string::npos &&
+        closeOnError != std::string::npos && notifyOnError != std::string::npos &&
+        dispatchCheck != std::string::npos &&
+        receiveLoop < readError && readError < closeOnError &&
+        closeOnError < notifyOnError && notifyOnError < dispatchCheck,
+        "protocol errors close the socket and notify the scene before dispatch");
     check(startupSource.find("ReadItemName();") != std::string::npos &&
         startupSource.find("ReadUIString();") != std::string::npos &&
         startupSource.find("ReadItemicon(") == std::string::npos &&

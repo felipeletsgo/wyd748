@@ -111,6 +111,8 @@ func TestIronSpearPrimaryMissStillResolvesSecondary(t *testing.T) {
 
 func TestRestartRevivesAfterNativeDelayAndSysQuitPersists(t *testing.T) {
 	w, p, st := handlerTestWorld(t)
+	p.Char.Score.Level = mortalBeginnerLevelLimit
+	p.Char.RuntimeScore.Level = mortalBeginnerLevelLimit
 	p.Char.Score.Merchant = uint32(1 << playerHomeCityShift) // Azran.
 	setPlayerCurHP(p.Char, 0)
 	p.DeadAt = time.Now().Add(-5 * time.Second)
@@ -119,20 +121,20 @@ func TestRestartRevivesAfterNativeDelayAndSysQuitPersists(t *testing.T) {
 
 	w.onRestart(p.Session)
 	if playerCurHP(p.Char) == 0 || p.DeadAt.IsZero() == false {
-		t.Fatal("restart nao reviveu/limpou deadline de morte")
+		t.Fatal("restart did not revive the player and clear the death deadline")
 	}
 	if chebyshev(p.X, p.Y, cityWarZones[1].exitX, cityWarZones[1].exitY) > 8 || st.saves != 1 {
-		t.Fatalf("restart nao chamou recall seguro: pos=(%d,%d) saves=%d", p.X, p.Y, st.saves)
+		t.Fatalf("restart did not perform safe recall: position=(%d,%d) saves=%d", p.X, p.Y, st.saves)
 	}
 
 	p.X, p.Y = 2300, 2300
 	before := p.Session.QueuedPacketsForTest()
 	w.onSysQuit(p.Session)
 	if st.saves != 2 || p.Session.QueuedPacketsForTest() <= before {
-		t.Fatalf("DelayStart nao persistiu/confirmou: saves=%d packets=%d", st.saves, p.Session.QueuedPacketsForTest())
+		t.Fatalf("DelayStart was not persisted or acknowledged: saves=%d packets=%d", st.saves, p.Session.QueuedPacketsForTest())
 	}
 	if p.Char.X != 2300 || p.Char.Y != 2300 {
-		t.Fatalf("save alterou a posicao viva: (%d,%d)", p.Char.X, p.Char.Y)
+		t.Fatalf("save changed the living position: (%d,%d)", p.Char.X, p.Char.Y)
 	}
 }
 
@@ -141,21 +143,21 @@ func TestRestartAndSysQuitRejectInvalidOrTooEarlyRequests(t *testing.T) {
 	w.onRestart(nil)
 	w.onSysQuit(nil)
 	if st.saves != 0 {
-		t.Fatal("sessao desconhecida alterou persistencia")
+		t.Fatal("unknown session changed persisted state")
 	}
 
 	setPlayerCurHP(p.Char, 0)
 	p.DeadAt = time.Now()
 	w.onRestart(p.Session)
 	if playerCurHP(p.Char) != 0 || st.saves != 0 {
-		t.Fatal("restart ignorou bloqueio nativo de quatro segundos")
+		t.Fatal("restart ignored the native four-second cooldown")
 	}
 
 	st.err = errors.New("disk")
 	before := p.Session.QueuedPacketsForTest()
 	w.onSysQuit(p.Session)
 	if st.saves != 1 || p.Session.QueuedPacketsForTest() != before {
-		t.Fatal("falha de save no DelayStart deveria impedir confirmacao")
+		t.Fatal("DelayStart save failure should prevent acknowledgement")
 	}
 }
 
@@ -180,13 +182,13 @@ func TestPhysicalAttackHandlerDamagesMobAndTracksAggro(t *testing.T) {
 
 	w.onAttack(p.Session, physicalAttackPacket(1000, mob.ID, mob.X, mob.Y))
 	if mob.HP >= 10_000 || mob.TargetID != p.ID || p.CombatTargetID != mob.ID {
-		t.Fatalf("ataque nao aplicou dano/aggro: hp=%d mobTarget=%d playerTarget=%d",
+		t.Fatalf("attack did not apply damage or aggro: hp=%d mobTarget=%d playerTarget=%d",
 			mob.HP, mob.TargetID, p.CombatTargetID)
 	}
 	after := mob.HP
 	w.onAttack(p.Session, physicalAttackPacket(1001, mob.ID, mob.X, mob.Y))
 	if mob.HP != after {
-		t.Fatal("anti-speed aceitou ataque imediatamente repetido")
+		t.Fatal("attack speed limit allowed an immediate repeated attack")
 	}
 }
 
@@ -209,7 +211,7 @@ func TestPhysicalAttackHandlerDamagesEnemyPlayerOnly(t *testing.T) {
 	w.onAttack(attacker.Session, physicalAttackPacket(1000, target.ID, target.X, target.Y))
 	if playerCurHP(target.Char) != hpBefore || target.LastAttackerID != 0 ||
 		attacker.LastAttackTick != 0 || !attacker.LastAttackAt.IsZero() {
-		t.Fatalf("PK desligado alterou combate ou consumiu relogio: hp=%d/%d attacker=%d tick=%d at=%v",
+		t.Fatalf("disabled PK changed combat or consumed the timer: hp=%d/%d attacker=%d tick=%d at=%v",
 			playerCurHP(target.Char), hpBefore, target.LastAttackerID,
 			attacker.LastAttackTick, attacker.LastAttackAt)
 	}
@@ -217,7 +219,7 @@ func TestPhysicalAttackHandlerDamagesEnemyPlayerOnly(t *testing.T) {
 	attacker.PKMode = true
 	w.onAttack(attacker.Session, physicalAttackPacket(1000, target.ID, target.X, target.Y))
 	if playerCurHP(target.Char) >= hpBefore || target.LastAttackerID != attacker.ID {
-		t.Fatalf("PvP fisico nao aplicado: hp=%d/%d attacker=%d", playerCurHP(target.Char), hpBefore, target.LastAttackerID)
+		t.Fatalf("physical PvP damage was not applied: hp=%d/%d attacker=%d", playerCurHP(target.Char), hpBefore, target.LastAttackerID)
 	}
 
 	target.Party = &Party{Members: []*Player{attacker, target}}
@@ -227,7 +229,7 @@ func TestPhysicalAttackHandlerDamagesEnemyPlayerOnly(t *testing.T) {
 	hpBefore = playerCurHP(target.Char)
 	w.onAttack(attacker.Session, physicalAttackPacket(2000, target.ID, target.X, target.Y))
 	if playerCurHP(target.Char) != hpBefore {
-		t.Fatal("ataque fisico atingiu membro da mesma party")
+		t.Fatal("physical attack hit a member of the same party")
 	}
 }
 
@@ -262,7 +264,7 @@ func TestHuntressIronSpearSecondaryPhysicalHit(t *testing.T) {
 		w.onAttack(attacker.Session, physicalAttackTwoPacket(1000, primary.ID, primary.X, primary.Y, secondary.ID))
 
 		if primary.HP >= primaryBefore || secondary.HP >= secondaryBefore {
-			t.Fatalf("Lanca de Ferro nao atingiu os dois alvos: primary=%d/%d secondary=%d/%d",
+			t.Fatalf("Iron Spear did not hit both targets: primary=%d/%d secondary=%d/%d",
 				primary.HP, primaryBefore, secondary.HP, secondaryBefore)
 		}
 	})
@@ -274,10 +276,10 @@ func TestHuntressIronSpearSecondaryPhysicalHit(t *testing.T) {
 		w.onAttack(attacker.Session, physicalAttackTwoPacket(1000, primary.ID, primary.X, primary.Y, secondary.ID))
 
 		if primary.HP >= primaryBefore {
-			t.Fatal("ataque primario valido foi perdido")
+			t.Fatal("valid primary attack was lost")
 		}
 		if secondary.HP != secondaryBefore {
-			t.Fatalf("Lanca de Ferro aceitou geometria invalida: hp=%d/%d", secondary.HP, secondaryBefore)
+			t.Fatalf("Iron Spear accepted invalid geometry: hp=%d/%d", secondary.HP, secondaryBefore)
 		}
 	})
 
@@ -296,7 +298,7 @@ func TestHuntressIronSpearSecondaryPhysicalHit(t *testing.T) {
 			w.onAttack(attacker.Session, physicalAttackTwoPacket(1000, primary.ID, primary.X, primary.Y, secondary.ID))
 
 			if secondary.HP != secondaryBefore {
-				t.Fatalf("alvo secundario foi atingido sem requisito da passiva: hp=%d/%d",
+				t.Fatalf("secondary target was hit without the passive requirement: hp=%d/%d",
 					secondary.HP, secondaryBefore)
 			}
 		})
@@ -311,7 +313,7 @@ func TestHuntressIronSpearSecondaryPhysicalHit(t *testing.T) {
 		w.onAttack(attacker.Session, pkt)
 
 		if secondary.HP != secondaryBefore {
-			t.Fatalf("pacote fisico que nao e 0x39E ativou Lanca de Ferro: hp=%d/%d",
+			t.Fatalf("physical packet other than 0x39E activated Iron Spear: hp=%d/%d",
 				secondary.HP, secondaryBefore)
 		}
 	})
@@ -340,7 +342,7 @@ func TestHuntressIronSpearSecondaryPhysicalHit(t *testing.T) {
 		w.onAttack(attacker.Session, physicalAttackTwoPacket(1000, primary.ID, primary.X, primary.Y, secondary.ID))
 
 		if playerCurHP(secondary.Char) != secondaryBefore {
-			t.Fatalf("Lanca de Ferro atingiu membro da mesma party: hp=%d/%d",
+			t.Fatalf("Iron Spear hit a member of the same party: hp=%d/%d",
 				playerCurHP(secondary.Char), secondaryBefore)
 		}
 	})

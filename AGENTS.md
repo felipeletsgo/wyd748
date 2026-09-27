@@ -42,8 +42,9 @@ player-facing text remains. A migration record is not a release exception.
   [`DOCS/documentation-map.md`](DOCS/documentation-map.md).
 - `.agents/skills/` holds working skills. `.agents/research/` and
   `.agents/handoffs/` hold evidence and continuity records, not runtime.
-- `references/client748/` preserves historical binaries and tools as read-only
-  evidence. `tools/repository/` holds layout validators.
+- `references/` is a local-only, Git-ignored research collection. Its historical
+  binaries, client variants, and third-party sources are read-only evidence,
+  not project deliverables. `tools/repository/` holds layout validators.
 
 The client/server contract must be explicit, versioned, and testable on both
 sides. TMProject 7.69 does not prove that an address, layout, asset, opcode,
@@ -89,7 +90,8 @@ builds, static checks, and isolated tests do not substitute for it.
 3. For cross-project features, define packet/state, authoritative validation,
    failures, and lifecycle before connecting UI or effects.
 4. Implement active client changes in source and assets. Historical binaries
-   in `references/client748/` are evidence only, never implementation patches.
+   in the local-only `references/` collection are evidence only, never
+   implementation patches.
 5. Use small cycles: focused patch, focused test, next patch. Do not refactor
    unrelated code.
 6. Do not delete or replace existing code/assets merely because native 7.48
