@@ -107,7 +107,6 @@ int g_nUpdateGuildName;
 char g_pAttribute[1024][1024];
 
 int Game_grade = 1;
-char g_AccountLock;
 int g_nBattleMaster;
 int g_pDebugMaxCount; 
 

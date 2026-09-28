@@ -120,8 +120,11 @@ a partial translation as completion.
    semantics or in-client language. Keep numeric IDs and parameters intact.
 2. Audit remaining server-facing and administrator-facing messages in
    `wydgo748/`, then update corresponding tests and API documentation together.
-3. Translate active guides in `DOCS/`, including their headings, examples, and
-   cross-links. Keep established paths stable unless every reference is updated.
+3. Translate the remaining Portuguese prose in `DOCS/GUIA/GUIAS_JOGABILIDADE.md`,
+   `DOCS/w2pp-go-gap-analysis.md`, and `DOCS/WYD-WEB-PLATAFORM.md`, including
+   headings and examples. The upstream path `Source cliente/` in
+   `DOCS/reference-upstream.md` is a preserved identifier, not prose to
+   translate. Keep established paths stable unless every reference is updated.
 4. Translate scripts, diagnostics, and test descriptions in `tools/`,
    `tmproject/`, and `wydgo748/` as each affected workflow is validated.
 5. Translate `.agents/research/` and `.agents/handoffs/` where they are still

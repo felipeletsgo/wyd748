@@ -467,13 +467,6 @@ struct STRUCT_MISSIONITEM
 	unsigned int dNeedvolume[2];
 };
 
-struct STRUCT_REPURCHASEITEM
-{
-	int Order;
-	STRUCT_ITEM stItem;
-	int Price;
-};
-
 struct STRUCT_STATICEFFECT
 {
 	short sEffect;
@@ -1123,14 +1116,6 @@ static_assert(offsetof(MSG_UpdateScore, LearnedSkill) == kUpdateScoreLearnedSkil
 // MSG_STANDARDPARM::Parm value expressed in seconds.
 constexpr auto MSG_ChinaPlaytime_Opcode = 0x7DB;
 
-constexpr auto MSG_CharPassword_Opcode = 0xFDE;
-struct MSG_CHARPASSWORD
-{
-	MSG_STANDARD Header;
-	char ItemPassWord[16];
-	char State;
-};
-
 constexpr auto MSG_NewCharacter_Opcode = 0x20F;
 struct MSG_NewCharacter
 {
@@ -1305,14 +1290,6 @@ struct MSG_SwapItem
 	// The native client transmits a 20-byte structure; this explicit tail makes
 	// that contract independent from compiler alignment choices.
 	unsigned short Reserved;
-};
-
-constexpr auto MSG_RepurchaseItems_Opcode = 0x3E8;
-struct MSG_RepurchaseItems
-{
-	MSG_STANDARD Header;
-	int target;
-	STRUCT_REPURCHASEITEM Repurcharse[10];
 };
 
 constexpr auto MSG_REQShopList_Opcode = 0x27B;

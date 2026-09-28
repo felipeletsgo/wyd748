@@ -84,7 +84,6 @@ TMSelectServerScene::TMSelectServerScene()
 
 	DS_SOUND_MANAGER::m_nMusicIndex = 0;
 
-	g_AccountLock = 0;
 	g_nBattleMaster = 0;
 	LastSendMsgTime = 0;
 }

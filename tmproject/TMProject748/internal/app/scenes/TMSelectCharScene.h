@@ -35,8 +35,6 @@ public:
 
 	void CamAction(const char* szAction);
 	void LookSampleHuman(int nIndex, int bLook, int bSelect);
-	void SetvirtualKey();
-	void AddvirtualKeyNum(int num);
 
 private:
 	void ReloadCharList(RELOAD_CHARLIST_TYPE type);
@@ -54,10 +52,6 @@ private:
 	void HandleMoveServerNotification();
 
 public:
-	char keybuf[10];
-	char keypass[10];
-	char keypasschage[10];
-	SButton* m_pBtnNumDlg[10];
 	int m_bMovingNow;
 	int m_bAni;
 	TMObject* m_pFocused;
@@ -72,11 +66,6 @@ public:
 	SButton* m_pBtnDelReq;
 	SButton* m_pBtnDelCancel;
 	SControl* m_pCreateWin;
-	SPanel* m_pAccountLockDlg;
-	SText* m_pAccountLockDlgTitle;
-	SPanel* m_pAccountLock;
-	SText* m_pAccountLockPasswd;
-	unsigned int m_pAccountLockTime;
 	SPanel* m_pRename;
 	SEditableText* m_pEditRename;
 	unsigned int m_dwLastMoveTime;

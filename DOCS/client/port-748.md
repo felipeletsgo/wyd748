@@ -12,6 +12,12 @@ The installed candidate is `tmproject/client748/project.exe`. With
 updated; the installed executable remains unchanged. Historical executables
 and patchers are not fallbacks, products, or validation gates.
 
+The source no longer exposes the later repurchase, numeric AccountLock, or
+drop-list packet paths. This is not evidence that an already installed
+`project.exe` contains those source changes. The [opcode catalog](../wire-opcode-catalog.md#retired-and-incomplete-legacy-paths)
+separates retired paths from incomplete server integrations; in particular,
+war letters, alternate mix, and account transfer are not supported end to end.
+
 ## 7.48 asset profile
 
 The buildable client can read `tmproject/client748/` directly through
@@ -273,7 +279,8 @@ consistent frame confirms that no unproven exact-size restriction was added.
 The architecture suite passes 52,086 checks and the socket suite passes 221.
 `Build-Client.ps1 -Configuration Release -NoDeploy` passes after the guard
 and shared-header extraction; the candidate was neither installed nor run.
-Repository layout/local-link validation also passes (150 indexed documents).
+Repository layout/local-link validation passed for that build; the inventory
+count is generated independently and may change.
 
 Remaining boundary: the inherited `0x37A` response still lacks a complete
 native direction/consumer trace. The documented local Ghidra project and
@@ -281,8 +288,8 @@ decompilation directories are absent, and the retained focused exports do
 not close that gap. Recover the native consumer evidence before assigning
 an exact-size contract, claiming parity, or deciding whether to remove the
 handler. The current server's snapshot-based sale does not exercise it.
-No visual client execution is authorized; automated receive-gate coverage
-does not establish `CLIENT_TESTED` status.
+The recorded batch did not execute the visual client; automated receive-gate
+coverage does not establish `CLIENT_TESTED` status.
 
 ### Auto-trade visual ownership
 

@@ -73,9 +73,9 @@ reference.
 
 To validate without replacing the installed executable, add `-NoDeploy`.
 In this mode, the artifact and its SHA-256 remain in `tmproject/build/`; no
-result should be described as a visual test or `CLIENT-TESTED`. Screen testing
-is blocked on the machine used for this work and must not be repeated; record
-actual client execution as a pending gate.
+result should be described as a visual test or `CLIENT-TESTED`. When client
+execution is unavailable, record the runtime gate as pending rather than
+inferring it from a build or static test.
 
 ## Boundary between projects
 
@@ -88,7 +88,9 @@ resources or formats; do not assume equivalence between versions.
 Builds and tests do not prove connection, login, world entry, or
 logout/relogin. Those flows require integrated validation with the built
 client and current server. Each workstream's status is recorded in the
-[research records](../.agents/research/client748/README.md) and roadmap.
+[research records](../.agents/research/client748/README.md); the
+[client port](client/port-748.md) and [opcode catalog](wire-opcode-catalog.md)
+identify known gaps. A historical handoff is not a live roadmap.
 
 ## Organization
 
@@ -97,9 +99,10 @@ pwsh -NoProfile -File tools/repository/Test-RepositoryLayout.ps1
 ```
 
 The command checks the inventory, local Markdown links, unique repository
-rules, and documentation outside source trees. Use `-UpdateMap` only when
-documents are added, removed, or moved; content-only changes do not require
-regenerating the map.
+rules, and authored documentation outside source trees. Generated client
+build artifacts and installed frontend dependencies are excluded. Use
+`-UpdateMap` only when inventory paths, entries, or categories change;
+content-only changes do not require regenerating the map.
 
 The `references/client748/` collection is evidence; its patchers are
 historical, not active development tools.

@@ -22,11 +22,6 @@
 
 namespace
 {
-	// WYD 7.48 transitions directly from account login (0x10E) to character
-	// selection. The later TMProject 0xFDE numeric AccountLock protocol is absent
-	// from the original executable and must never block the 7.48 scene.
-	constexpr bool kWYD748AccountLockEnabled = false;
-
 	void ClearDeletePassword(SEditableText* edit)
 	{
 		char empty[] = "";
@@ -74,7 +69,6 @@ TMSelectCharScene::TMSelectCharScene() :
 
 	m_eSceneType = ESCENE_TYPE::ESCENE_SELCHAR;
 	m_bSelect = 1;
-	m_pAccountLockTime = 0;
 }
 
 TMSelectCharScene::~TMSelectCharScene()
@@ -146,33 +140,6 @@ int TMSelectCharScene::InitializeScene()
 
 		m_pPWEdit = static_cast<SEditableText*>(m_pControlContainer->FindControl(627u));
 		m_pInputPWPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(626u));
-		m_pAccountLockDlg = static_cast<SPanel*>(m_pControlContainer->FindControl(66432u));
-		m_pAccountLockDlgTitle = static_cast<SText*>(m_pControlContainer->FindControl(66447u));
-
-		for (int i = 0; i < 10; ++i)
-			m_pBtnNumDlg[i] = static_cast<SButton*>(m_pControlContainer->FindControl(i + 66437));
-
-		m_pAccountLock = static_cast<SPanel*>(m_pControlContainer->FindControl(66128u));
-		m_pAccountLockPasswd = static_cast<SText*>(m_pControlContainer->FindControl(66132u));
-
-		// These controls may still exist in a newer RC file, but the 7.48 profile
-		// keeps them hidden and marks the account as already unlocked. Null checks
-		// are required because the authentic 7.48 RC is allowed to omit them.
-		g_AccountLock = kWYD748AccountLockEnabled ? g_AccountLock : 1;
-		if (m_pAccountLockDlg)
-		{
-			m_pAccountLockDlg->SetVisible(0);
-			m_pAccountLockDlg->SetPos(
-				((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pAccountLockDlg->m_nWidth * 0.5f),
-				((float)g_pDevice->m_dwScreenHeight * 0.5f) - (m_pAccountLockDlg->m_nHeight * 0.5f));
-		}
-		if (m_pAccountLock)
-		{
-			m_pAccountLock->SetVisible(0);
-			m_pAccountLock->SetPos(
-				((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pAccountLock->m_nWidth * 0.5f),
-				((float)g_pDevice->m_dwScreenHeight * 0.5f) - (m_pAccountLock->m_nHeight * 0.5f));
-		}
 
 		if (m_pInputPWPanel)
 		{
@@ -185,12 +152,6 @@ int TMSelectCharScene::InitializeScene()
 
 			m_pControlContainer->m_pModalControl[1] = static_cast<SControl*>(m_pInputPWPanel);
 		}
-
-		// The numeric keyboard belongs to the post-7.48 AccountLock UI.  The
-		// authentic SelCharScene2.bin omits every one of those controls, so do
-		// not initialize feature state that cannot be presented by this client.
-		if (kWYD748AccountLockEnabled)
-			SetvirtualKey();
 
 		m_pSelCharTitle = static_cast<SText*>(m_pControlContainer->FindControl(5656u));
 
@@ -435,123 +396,6 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 	}
 	if (idwControlID == 4617 && !idwEvent && m_pMessageBox->m_dwMessage == 65796)
 		g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_SELECTSERVER_STATE);
-	if (idwControlID >= 66437 && idwControlID <= 66446)
-	{
-		// Numeric AccountLock buttons do not belong to the 7.48 scene.  Ignore
-		// synthetic/stale events instead of touching controls absent from its RC.
-		if (!kWYD748AccountLockEnabled)
-			return 1;
-
-		AddvirtualKeyNum(idwControlID - 66437);
-		return 1;
-	}
-	if (idwControlID == 66433)
-	{
-		// Opcode 0xFDE and its dialog are from a newer client generation; the
-		// 7.48 compatibility profile must never enter that state machine.
-		if (!kWYD748AccountLockEnabled || !m_pAccountLockDlg)
-			return 1;
-
-		if (!g_AccountLock)
-		{
-			if (strlen(keypass) < 4)
-				return 1;
-
-			MSG_CHARPASSWORD msLock{};			
-			strncpy(msLock.ItemPassWord, keypass, strlen(keypass));
-			msLock.ItemPassWord[14] = 0;
-			msLock.ItemPassWord[15] = 0;
-			msLock.Header.ID = 0;
-			msLock.Header.Type = MSG_CharPassword_Opcode;
-
-			g_pSocketManager->SendPacket({msLock.Header.Type,
-				reinterpret_cast<char*>(&msLock), sizeof(msLock)});
-			m_pAccountLockDlg->SetVisible(0);
-			m_pAccountLockTime = g_pTimerManager->GetServerTime();
-			g_AccountLock = 2;
-		}
-
-		return 1;
-	}
-	if (idwControlID == 66434)
-	{
-		// Keep the optional newer dialog null-safe when the authentic 7.48 RC
-		// omits it entirely.
-		if (m_pAccountLockDlg)
-			m_pAccountLockDlg->SetVisible(0);
-	}
-	if (idwControlID == 66435)
-	{
-		// Password creation/change is deliberately disabled for the 7.48
-		// protocol, which has no matching UI controls or server exchange.
-		if (!kWYD748AccountLockEnabled || !m_pAccountLockDlg || !m_pAccountLockDlgTitle)
-			return 1;
-
-		if (strlen(keypass) < 4)
-			return 1;
-
-		if (!g_AccountLock)
-		{
-			MSG_CHARPASSWORD msLock{};
-			strncpy(msLock.ItemPassWord, keypass, strlen(keypass));
-			msLock.ItemPassWord[14] = 0;
-			msLock.ItemPassWord[15] = 0;
-			msLock.Header.ID = 0;
-			msLock.Header.Type = MSG_CharPassword_Opcode;
-
-			g_pSocketManager->SendPacket({msLock.Header.Type,
-				reinterpret_cast<char*>(&msLock), sizeof(msLock)});
-			m_pAccountLockDlg->SetVisible(0);
-			m_pAccountLockTime = g_pTimerManager->GetServerTime();
-			g_AccountLock = 3;
-		}
-		else if (g_AccountLock == 4)
-		{
-			memset(keypasschage, 0, sizeof(keypasschage));
-			strncpy(keypasschage, keypass, strlen(keypass));
-			m_pAccountLockDlgTitle->SetText(g_UIString[239], 0);
-			memset(keypass, 0, sizeof(keypass));
-			g_AccountLock = 5;
-		}
-		else if (g_AccountLock == 5)
-		{
-			if (!strcmp(keypasschage, keypass))
-			{
-				MSG_CHARPASSWORD msLock{};
-				strncpy(msLock.ItemPassWord, keypass, strlen(keypass));
-				msLock.ItemPassWord[14] = 0;
-				msLock.ItemPassWord[15] = 0;
-				msLock.Header.ID = 0;
-				msLock.State = 1;
-				msLock.Header.Type = MSG_CharPassword_Opcode;
-
-				g_pSocketManager->SendPacket({msLock.Header.Type,
-					reinterpret_cast<char*>(&msLock), sizeof(msLock)});
-				m_pAccountLockDlg->SetVisible(0);
-				m_pAccountLockTime = g_pTimerManager->GetServerTime();
-			}
-			else
-			{
-				memset(keypass, 0, sizeof(keypass));
-				memset(keypasschage, 0, sizeof(keypasschage));
-			}
-		}
-
-		return 1;
-	}
-
-	if (kWYD748AccountLockEnabled && !g_AccountLock)
-	{
-		// This branch is reachable only with the later AccountLock feature and
-		// therefore may require controls that are intentionally absent in 7.48.
-		if (!m_pAccountLockDlgTitle)
-			return 1;
-
-		m_pAccountLockDlgTitle->SetVisible(1);
-		SetvirtualKey();
-		m_pAccountLockDlgTitle->SetText(g_UIString[236], 0);
-		return 1;
-	}
 	if (idwControlID == 4628)
 	{
 		if (m_pControlContainer->m_pFocusControl && m_pControlContainer->m_pFocusControl->m_eCtrlType == CONTROL_TYPE::CTRL_TYPE_EDITABLETEXT
@@ -955,27 +799,6 @@ int TMSelectCharScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, i
 	if (m_pRename && m_pRename->m_bVisible == 1)
 		return 1;
 
-	if (kWYD748AccountLockEnabled && !g_AccountLock)
-	{
-		// AccountLock input is a later protocol feature; only enter its modal
-		// branch when the corresponding controls are actually available.
-		if (!m_pAccountLockDlg || !m_pAccountLockDlgTitle)
-			return 1;
-
-		if (!m_pAccountLockDlg->IsVisible() && dwFlags == 513)
-		{
-			if (m_pAccountLockTime + 500 > g_pTimerManager->GetServerTime())
-				return 1;
-
-			m_pAccountLockDlg->SetVisible(1);
-
-			SetvirtualKey();
-
-			m_pAccountLockDlgTitle->SetText(g_UIString[236], 0);
-		}
-
-		return 1;
-	}
 	if (dwFlags != 514 ||
 		nX <= 0 ||
 		nY <= 0 ||
@@ -1540,46 +1363,6 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	{
 	case 0x3B4:
 		return HandleJudgementEffect(buf) ? 1 : 0;
-	case 0xFDE:
-	{
-		// The Go 7.48 profile never emits AccountLock replies.  Ignore one if a
-		// mixed-version endpoint sends it instead of touching absent 7.48 UI.
-		if (!kWYD748AccountLockEnabled || !m_pAccountLockDlg || !m_pAccountLockDlgTitle)
-			return 1;
-
-		MSG_CHARPASSWORD* pCnfNewChar = reinterpret_cast<MSG_CHARPASSWORD*>(pStd);
-
-		if (g_AccountLock == 2)
-		{
-			g_AccountLock = 1;
-			return 1;
-		}
-		if (g_AccountLock == 3)
-		{
-			memset(keypass, 0, sizeof(keypass));
-			memset(keypasschage, 0, sizeof(keypasschage));
-			m_pAccountLockDlgTitle->SetText((char*)"", 0);
-			g_AccountLock = 4;
-			m_pAccountLockDlgTitle->SetText(g_UIString[238], 0);
-			SetvirtualKey();
-			m_pAccountLockDlg->SetVisible(1);
-			return 1;
-		}
-	}
-	return 1;
-	case 0xFDF:
-	{
-		// AccountLock challenge packets belong to the later source protocol and
-		// are intentionally unsupported by the authentic 7.48 selection scene.
-		if (!kWYD748AccountLockEnabled || !m_pAccountLockDlg || !m_pAccountLockDlgTitle)
-			return 1;
-
-		m_pAccountLockDlg->SetVisible(1);
-		g_AccountLock = 0;
-		SetvirtualKey();
-		m_pAccountLockDlgTitle->SetText(g_UIString[236], 0);
-	}
-	return 1;
 	case MSG_CNFNewCharacter_Opcode:
 		HandleCharacterCreated(buf);
 	return 1;
@@ -1970,70 +1753,6 @@ void TMSelectCharScene::LookSampleHuman(int nIndex, int bLook, int bSelect)
 	m_stCameraTick[nEnd].fZ = vecLastPos.z - (vecCamDir.z * 4.0f) + (g_pDevice->m_matView._31 * 0.5f);
 
 	m_sPlayDemo = 1;
-}
-
-void TMSelectCharScene::SetvirtualKey()
-{
-	// The random numeric keyboard is not part of the WYD 7.48 UI/protocol.
-	// Returning here prevents later-version state from leaking into this scene.
-	if (!kWYD748AccountLockEnabled)
-		return;
-
-	char Keylist[10] = { 0 };
-	Keylist[0] = 1;
-	Keylist[1] = 2;
-	Keylist[2] = 3;
-	Keylist[3] = 4;
-	Keylist[4] = 5;
-	Keylist[5] = 6;
-	Keylist[6] = 7;
-	Keylist[7] = 8;
-	Keylist[8] = 9;
-	Keylist[9] = 0;
-
-	srand(g_pTimerManager->GetServerTime());
-
-	for (int i = 0; i < 10; ++i)
-	{
-		auto key = rand() % (10 - i);
-		keybuf[i] = Keylist[key];
-
-		for (int j = key; j < 9; ++j)
-			Keylist[j] = Keylist[j + 1];
-	}
-
-	for (int i = 0; i < 10; ++i)
-	{
-		char chTmp[128] = { 0 };
-		sprintf_s(chTmp, "%d", keybuf[i]);
-
-		if (m_pBtnNumDlg[i])
-			m_pBtnNumDlg[i]->SetText(chTmp);
-	}
-
-	memset(keypass, 0, sizeof keypass);
-}
-
-void TMSelectCharScene::AddvirtualKeyNum(int num)
-{
-	// A 7.48 RC cannot originate a valid virtual-key event; reject stale or
-	// mixed-version input before indexing buffers or an absent title control.
-	if (!kWYD748AccountLockEnabled || !m_pAccountLockDlgTitle || num < 0 || num >= 10)
-		return;
-
-	int paslen = strlen(keypass);
-	char chdata[10];
-	char Passdata[11] = { 0 };
-	strcpy(Passdata, "**********");
-
-	memset(chdata, 0, sizeof chdata);
-
-	if (paslen < 6)
-	{
-		sprintf_s(keypass, "%s%d", keypass, keybuf[num]);
-		strncpy(chdata, Passdata, strlen(keypass));
-		m_pAccountLockDlgTitle->SetText(chdata, 0);
-	}
 }
 
 void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)

@@ -1475,33 +1475,6 @@ void SGridControl::BuyItem(int nCellX, int nCellY)
 		auto pItem = GetItem(nCellX, nCellY);
 		if (pItem)
 		{
-			if (nCellX == 4 && nCellY == 7)
-			{
-				if (pItem->m_pItem->sIndex == 4998)
-				{
-					MSG_RepurchaseItems ReqUndoShop{};
-					ReqUndoShop.Header.ID = pScene->m_pMyHuman->m_dwID;
-					ReqUndoShop.Header.Type = MSG_RepurchaseItems_Opcode;
-
-					auto pGridShop = pScene->m_pGridShop;
-					ReqUndoShop.target = pScene->m_sShopTarget;
-					SendOneMessage((char*)&ReqUndoShop, sizeof(ReqUndoShop));
-				}
-				else
-				{
-					MSG_REQShopList stReqShopList{};
-					stReqShopList.Header.Type = MSG_REQShopList_Opcode;
-					stReqShopList.Header.ID = pScene->m_pMyHuman->m_dwID;
-					stReqShopList.TargetID = pScene->m_sShopTarget;
-
-					pScene->m_pGridShop->m_dwMerchantID = pScene->m_sShopTarget;
-
-					SendOneMessage((char*)&stReqShopList, sizeof(stReqShopList));
-
-					pScene->m_dwNPCClickTime = g_pTimerManager->GetServerTime();
-				}
-				return;
-			}
 
 			// WYD748: the shop packet addresses the native 27-slot, 9-column
 			// shop directly; the 7.59 5-column/page remap selected wrong goods.
@@ -1521,9 +1494,6 @@ void SGridControl::BuyItem(int nCellX, int nCellY)
 			stBuy.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
 			stBuy.Header.Type = MSG_Buy_Opcode;
 			stBuy.TargetID = pScene->m_sShopTarget;
-
-			if (pScene->m_bIsUndoShoplist)
-				stBuy.TargetID = g_pCurrentScene->m_pMyHuman->m_dwID;
 
 			stBuy.TargetCarryPos = SourPos;
 			// A 7.48 purchase targets the first fitting cell in the sole 9-column
@@ -2197,8 +2167,6 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 			SGridControl::m_pSellItem = nullptr;
 			return 1;
 		}
-		if (pScene->m_bIsUndoShoplist)
-			return 1;
 
 		if (g_pEventTranslator->m_bCtrl)
 		{
@@ -3062,8 +3030,6 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	if (!pItem || !pDescPanel)
 		return 2;
 
-	if (pItem->m_pItem->sIndex == 4998 || pItem->m_pItem->sIndex == 4999)
-		return 1;
 
 	float nPosX = 0.0f;
 	float nPosY = 0.0f;

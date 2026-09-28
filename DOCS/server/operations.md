@@ -48,9 +48,10 @@ prepare, build, configure, start, and use the server, and it gives an overview
 of every available system.
 
 The central index is [DOCS/README.md](../README.md). The source and tests in
-`wydgo748/` establish current server behavior. Client 7.48 parity and remaining
-validation gates are tracked in the
-[parity handoff](../../.agents/handoffs/client748-parity.md).
+`wydgo748/` establish current server behavior. Client 7.48 contracts and
+remaining validation gates are tracked in the [client port](../client/port-748.md),
+the [opcode catalog](../wire-opcode-catalog.md), and the applicable flow records
+in `.agents/research/client748/`. The parity handoff is historical.
 
 The active client workflow is documented in
 [`build-and-integration.md`](../build-and-integration.md). Historical executables,
@@ -647,10 +648,11 @@ them.
 
 ## Roadmap
 
-Do not treat an old implementation plan as a current roadmap. Recheck remaining
-work against source and tests before prioritizing it. The client 7.48 parity
-work and unvalidated gates are recorded in the
-[parity handoff](../../.agents/handoffs/client748-parity.md).
+Do not treat an old implementation plan or handoff as a current roadmap.
+Recheck remaining work against source and tests before prioritizing it. The
+[client port](../client/port-748.md) and [opcode catalog](../wire-opcode-catalog.md)
+identify known contract gaps; flow records hold their evidence and validation
+state.
 
 ## Disclaimer
 

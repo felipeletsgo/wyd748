@@ -251,7 +251,6 @@ public:
 	int OnPacketRunQuest12Start(MSG_STANDARDPARM* pStd);
 	int OnPacketRunQuest12Count(MSG_STANDARDPARM2* pStd);
 	int OnPacketDelayQuit(MSG_SysQuit* pStd);
-	int OnPacketUndoSellItem(MSG_RepurchaseItems* pMsg);
 	int Guildmark_Create(stGuildMarkInfo* pMark);
 	void Guildmark_MakeFileName(char* szStr, int nGuild, int nChief, int nChannel);
 	int Guildmark_Find_ArrayIndex(int nGuild);
@@ -270,7 +269,6 @@ public:
 
 	void DropListUpdate();
 	void UpdateGridDropList(int page);
-	int OnPacketDropList(MSG_DropList* pStd);
 	int OnPacketInforPlay(MSG_SendInfoPlay* pStd);
 	int OnPacketBattle(MSG_TowerWar* pStd);
 	int OnPacketMacroWater(stWaterScrollMacro* pStd);
@@ -988,8 +986,6 @@ public:
 	SGridControl* m_pitemPassGrid;
 	SGridControl* m_pQuick_Sloat[5];
 	SButton* m_pQuick_SloatQ[16];
-	STRUCT_REPURCHASEITEM m_stRepurcharse[10];
-	int m_bIsUndoShoplist;
 	unsigned short m_sShopTarget;
 
 	//Arena Real

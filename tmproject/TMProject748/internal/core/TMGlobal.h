@@ -139,7 +139,6 @@ extern int g_bMoveServer;
 extern int g_bTestServer;
 
 extern int Game_grade;
-extern char g_AccountLock;
 extern int g_nBattleMaster;
 extern int g_pDebugMaxCount;
 

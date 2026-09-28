@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 150.
+Markdown documents: 151.
 
 | Document | Type |
 | --- | --- |
@@ -68,6 +68,7 @@ Markdown documents: 150.
 | [.agents/research/client748/flows/ui/equipment-slot-compatibility.md](<../.agents/research/client748/flows/ui/equipment-slot-compatibility.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/equipped-item-matched-consumable-shortcut.md](<../.agents/research/client748/flows/ui/equipped-item-matched-consumable-shortcut.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/feature-panel-layout.md](<../.agents/research/client748/flows/ui/feature-panel-layout.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/field-hud-death-prompt-regressions.md](<../.agents/research/client748/flows/ui/field-hud-death-prompt-regressions.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/gamble-jackpot.md](<../.agents/research/client748/flows/ui/gamble-jackpot.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/gamble-result-contract.md](<../.agents/research/client748/flows/ui/gamble-result-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/grid-item-mesh-scale.md](<../.agents/research/client748/flows/ui/grid-item-mesh-scale.md>) | Research evidence |

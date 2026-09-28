@@ -159,7 +159,7 @@ are documented in [Build and integration](DOCS/build-and-integration.md).
 - [Windows environment](DOCS/windows-development-environment.md)
 - [Complete documentation map](DOCS/documentation-map.md)
 - [Server operations](DOCS/server/operations.md)
-- [Open 7.48 adaptation work](.agents/handoffs/client748-parity.md)
+- [Open 7.48 adaptation work](DOCS/client/port-748.md)
 - [Repository rules](AGENTS.md)
 
 The server validates intentions and remains the authority for game state.

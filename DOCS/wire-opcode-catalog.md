@@ -284,6 +284,31 @@ source/destination equivalent to UseItem, ItemID at `+32`, and bitmap at
 `+34`. The server validates the final two bytes, bits outside the grid,
 item, position, and cooldown.
 
+## Retired and incomplete legacy paths
+
+- Repurchase (`0x3E8`) is intentionally excluded. The Go server rejects the
+  request; the client no longer handles a repurchase response or offers a
+  repurchase shop. Ordinary merchant sales remain final. Do not confuse this
+  opcode with a one-second timer constant that has the same hexadecimal value.
+- The later numeric AccountLock/secondary-password flow (`0xFDE/0xFDF`) was
+  removed from character selection. This does not remove the separate
+  character-deletion password prompt. Neither feature should be documented as
+  an active 7.48 login gate.
+- The imported drop-list request/response (`0xA08`) has no 7.48 server
+  contract. The client hides its button and panel and no longer sends or
+  dispatches that opcode. Some inert UI structures remain in source; their
+  presence is not evidence that the feature works.
+- The imported alternate mix request (`0x2C4`) remains behind a dormant
+  client mode. No matching server recipe or completion contract was established;
+  do not expose it as a supported combine flow.
+- The `0xED7/0xED8` war-letter client requests retain the native envelope
+  described above, but the Go server has no handler or cross-instance war
+  coordination. A client sender is not an end-to-end feature.
+- The `0xFAA` transfer request receives only an unavailable response. It is
+  not a transfer implementation. The inherited `0x37A` sale receive callback
+  has a memory-safety gate, but the current server does not emit that response;
+  its native direction and complete consumer trace remain unresolved.
+
 ## Migration rules
 
 - Re-export an opcode through the facade while legacy consumers remain.

@@ -695,7 +695,6 @@ TMFieldScene::TMFieldScene()
 
 	m_bShowBoss = 0;
 	m_Coin = 0;
-	m_bIsUndoShoplist = 0;
 	m_sShopTarget = 0;
 	m_bEventCouponClick = 0;
 	m_bEventCouponOpen = 0;
@@ -3947,8 +3946,12 @@ int TMFieldScene::InitializeScene()
 	m_pbutonShop->m_cBlink = 1;
 
 	m_pbutonDrop = (SButton*)m_pControlContainer->FindControl(656434);
-	m_pbutonDrop->m_cAlwaysAlt = 1;// blinking button
-	m_pbutonDrop->m_cBlink = 1;
+	// The 7.69 drop-list request has no 7.48 server contract.
+	// Do not expose a panel that cannot load authoritative contents.
+	if (m_pbutonDrop)
+		m_pbutonDrop->SetVisible(false);
+	if (auto* dropPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(478471)))
+		dropPanel->SetVisible(false);
 
 	m_pbutonNewShop[0] = (SButton*)m_pControlContainer->FindControl(3000100);
 	m_pbutonNewShop[0]->m_cAlwaysAlt = 1;// blinking button
@@ -6592,25 +6595,6 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		return 0;
 	}
 
-	if (idwControlID == 478480)
-	{
-		auto Grid = (SGridControl*)m_pControlContainer->FindControl(478473);
-
-		//if (Grid)
-		//{
-		//	Grid->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-		//	memset(Grid->m_pItemList, 0, sizeof(Grid->m_pItemList));
-		//	Grid->m_nNumItem = 0;
-		//}
-
-		MSG_STANDARDPARM stParm{};
-		stParm.Header.ID = m_pMyHuman->m_dwID;
-		stParm.Header.Type = 0xA08;
-		g_pSocketManager->SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
-
-		return 1;
-	}
-
 	if (idwControlID == 478484 || idwControlID == 478485)
 	{
 		auto button = (SButton*)m_pControlContainer->FindControl(idwControlID);
@@ -7512,14 +7496,6 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		return 0;
 	}
 
-	if (idwControlID == 656434) //droplist
-	{
-		auto pnl = (SPanel*)m_pControlContainer->FindControl(478471);
-		if (pnl)
-			pnl->SetVisible(true);
-
-		return 0;
-	}
 	if (idwControlID == 656433) //Shop
 	{
 		auto pnl = (SPanel*)m_pControlContainer->FindControl(3000011);
@@ -9559,8 +9535,6 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		return OnPacketCNFAccountLogin(reinterpret_cast<MSG_CNFAccountLogin*>(pStd));
 	case 0x114:
 		return OnPacketCNFCharacterLogin(reinterpret_cast<MSG_CNFCharacterLogin*>(pStd));
-	case 0x3E8:
-		return OnPacketUndoSellItem(reinterpret_cast<MSG_RepurchaseItems*>(pStd));
 	case MSG_ItemSold_Opcode:
 		return OnPacketItemSold(reinterpret_cast<MSG_STANDARDPARM2*>(pStd));
 	case MSG_UpdateCargoGold_Opcode:
@@ -9678,10 +9652,6 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		break;
 	case MSG_SysQuit_Opcode:
 		return OnPacketDelayQuit(reinterpret_cast<MSG_SysQuit*>(pStd));
-		break;
-
-	case 0xA08:
-		return OnPacketDropList((MSG_DropList*)pStd);
 		break;
 
 	case 0x2132:
@@ -11595,7 +11565,6 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 
 			m_dwNPCClickTime = dwServerTime;
 			m_sShopTarget = pOver->m_dwID;
-			m_bIsUndoShoplist = 0;
 		}
 		return 1;
 	}
@@ -11630,7 +11599,6 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 
 			m_dwNPCClickTime = dwServerTime;
 			m_sShopTarget = pOver->m_dwID;
-			m_bIsUndoShoplist = 0;
 		}
 		return 1;
 	}
@@ -24607,30 +24575,6 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			}
 		}
 
-		auto pREQItem = new STRUCT_ITEM;
-		if (pREQItem)
-		{
-			pREQItem->sIndex = 4998;
-			
-			auto pItem = new SGridControlItem(0, pREQItem, 0.0f, 0.0f);
-
-			if (pItem)
-			{
-				pItem->m_GCObj.nTextureIndex = 8;
-				// Item 4998 is a newer cash-shop sentinel and has no native 7.48
-				// cell.  Keep it outside the legacy grid instead of overlapping a
-				// real merchant entry at a coordinate the 7.48 client never used.
-				if (!m_bCompatFieldScene)
-				{
-					if (!m_pGridShop->AddItem(pItem, 4, 7))
-						SAFE_DELETE(pItem);
-				}
-				else
-					delete pItem;
-			}
-			else
-				delete pREQItem;
-		}
 		g_pObjectManager->m_nTax = pShopList->Tax;
 		SetVisibleShop(1);
 	}
@@ -24784,26 +24728,6 @@ int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)
 			}
 		}
 
-		auto pREQItem = new STRUCT_ITEM;
-		memset(pREQItem, 0, sizeof(STRUCT_ITEM));
-		pREQItem->sIndex = 4998;
-
-		auto pItem = new SGridControlItem(0, pREQItem, 0.0f, 0.0f);
-		// The RMB sentinel belongs to TMProject's newer 5x8 shop only; the
-		// original 7.48 shop has exactly the 27 item cells recovered by Ghidra.
-		if (pItem)
-		{
-			pItem->m_GCObj.nTextureIndex = 8;
-			if (!m_bCompatFieldScene)
-			{
-				if (!pGrid->AddItem(pItem, 4, 7))
-					SAFE_DELETE(pItem);
-			}
-			else
-				SAFE_DELETE(pItem);
-		}
-		else
-			delete pREQItem;
 		g_pObjectManager->m_nTax = pMsg->Tax;
 		SetVisibleShop(1);
 	}
@@ -28857,21 +28781,6 @@ void TMFieldScene::UpdateGridDropList(int page)
 	}
 }
 
-int TMFieldScene::OnPacketDropList(MSG_DropList* pStd)
-{
-	_HudControl.DropListEvent.Drop.clear();
-
-	for (int i = 0; i < pStd->amount; i++)
-	{
-		stDropList Temp;
-		memcpy(&Temp, &pStd->Drop[i], sizeof(MSG_DropList::_Drop));
-	_HudControl.DropListEvent.Drop.push_back(Temp);
-	}
-
-	DropListUpdate();
-	return 1;
-}
-
 int TMFieldScene::OnPacketSendExpMsg(MSG_Exp_MsgPanel* pStd)
 {
 	auto pEdit = m_pEditChat;
@@ -28957,68 +28866,6 @@ int TMFieldScene::OnPacketDelayQuit(MSG_SysQuit* pStd)
 	if (pStd && field_interaction::ShouldCloseOnDelayAck(g_dwStartQuitGameTime))
 		PostMessage(g_pApp->m_hWnd, WM_CLOSE, 0, 0);
 	return 0;
-}
-
-int TMFieldScene::OnPacketUndoSellItem(MSG_RepurchaseItems* pMsg)
-{
-	m_bIsUndoShoplist = 1;
-	memset(m_stRepurcharse, 0, sizeof(m_stRepurcharse));
-
-	auto pGrid = m_pGridShop;
-	pGrid->Empty();
-
-	for (int i = 0; i < 10; ++i)
-	{
-		auto pItemList = new STRUCT_ITEM;
-		memcpy(pItemList, &pMsg->Repurcharse[i].stItem, sizeof(STRUCT_ITEM));
-
-		if (pMsg->Repurcharse[i].stItem.sIndex <= 0)
-		{
-			delete pItemList;
-			continue;
-		}
-
-		auto pItem = new SGridControlItem(0, pItemList, 0.0f, 0.0f);
-		if (!pItem)
-		{
-			delete pItemList;
-			continue;
-		}
-		memcpy(&m_stRepurcharse[i], &pMsg->Repurcharse[i], sizeof(pMsg->Repurcharse[i]));
-
-		if (!pGrid->AddItem(pItem, i % 5, i / 5))
-		{
-			SAFE_DELETE(pItem);
-			continue;
-		}
-		int nAmount = BASE_GetItemAmount(pItemList);
-
-		if (pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex < 2390)
-			nAmount = 0;
-		if (nAmount > 0)
-		{
-			sprintf(pItem->m_GCText.strString, "%2d", nAmount);
-			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-		}
-	}
-
-	auto pREQItem = new STRUCT_ITEM;
-	memset(pREQItem, 0, sizeof(STRUCT_ITEM));
-	pREQItem->sIndex = 4999;
-
-	auto pItem = new SGridControlItem(0, pREQItem, 0.0f, 0.0f);
-	if (pItem)
-	{
-		pItem->m_GCObj.nTextureIndex = 9;
-		if (!pGrid->AddItem(pItem, 4, 7))
-			SAFE_DELETE(pItem);
-	}
-	else
-		delete pREQItem;
-
-
-	SetVisibleShop(1);
-	return 1;
 }
 
 int TMFieldScene::Guildmark_Create(stGuildMarkInfo* pMark)

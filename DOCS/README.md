@@ -20,26 +20,29 @@ documentation, research evidence, and continuity records.
 | Build and validate the server and client | [Build and integration](build-and-integration.md) |
 | Understand the attribute contract | [Score](SCORE.md) |
 | Check server state | [Server operations](server/operations.md) and code/tests in `wydgo748/` |
-| Check open 7.48 adaptation work | [Parity handoff](../.agents/handoffs/client748-parity.md) and records in `.agents/research/client748/` |
+| Check open 7.48 adaptation work | [Client port](client/port-748.md), [opcode catalog](wire-opcode-catalog.md), and the flow records in `.agents/research/client748/` |
 | Adapt the 7.48 client | [Client port](client/port-748.md) |
 | Look up known protocols | [Opcode catalog](wire-opcode-catalog.md) |
 | Maintain documentation organization | [Repository rules](../AGENTS.md) and [inventory](documentation-map.md) |
 | Track the English-only migration | [Language migration](language-migration.md) |
 
 The schedule, rewards, commands, and open guild-war work are documented in
-[Guild wars](guild-wars.md). The panel and platform plan is in
-[WYD Web Platform](WYD-WEB-PLATAFORM.md); executable instructions for the
-integrated panel remain in [Server operations](server/operations.md), so the
-product plan does not become a competing tutorial.
+[Guild wars](guild-wars.md). The [WYD Web Platform](WYD-WEB-PLATAFORM.md)
+document is a dated product plan whose proposed features need rechecking
+against current code. Executable instructions for the integrated panel remain
+in [Server operations](server/operations.md); the plan is not a competing
+tutorial or a current implementation checklist.
 
-Functional and architectural differences found in the static W2PP audit
-against the current server are documented in
-[W2PP versus WYD-Go](w2pp-go-gap-analysis.md). W2PP is a comparison reference,
-not an authority on 7.48 parity.
+Functional and architectural differences found in a static W2PP comparison
+are documented in [W2PP versus WYD-Go](w2pp-go-gap-analysis.md). Recheck its
+snapshot against current source before acting on a gap. W2PP is a comparison
+reference, not an authority on 7.48 parity.
 
-Old status and planning snapshots have been removed from active documentation.
-Code, tests, and evidence records take precedence over dated records;
+Historical snapshots and dated plans are not live status reports. Code, tests,
+and evidence records take precedence over them;
 automated builds are not equivalent to validation in the client.
+The [parity handoff](../.agents/handoffs/client748-parity.md) is a historical
+snapshot, not the current work queue.
 
 ## Organization
 

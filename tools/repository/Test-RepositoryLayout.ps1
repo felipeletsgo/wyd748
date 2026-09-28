@@ -23,9 +23,9 @@ foreach ($directory in @('clientgo748', 'client-source', 'source-client', 'sourc
 }
 foreach ($directory in @('tmproject', 'wydgo748', 'tools', '.github')) {
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $repoRoot $directory) -Recurse -File -Filter '*.md') {
-        # Installed frontend dependencies/builds are generated, not authored source.
+        # Installed dependencies and build outputs are generated, not authored source.
         $relativeSource = [IO.Path]::GetRelativePath($repoRoot, $file.FullName).Replace('\', '/')
-        if ($relativeSource -match '^wydgo748/web/portal/(node_modules|dist|\.astro)/') { continue }
+        if ($relativeSource -match '^(?:tmproject/(?:build|bin|obj)/|wydgo748/web/portal/(?:node_modules|dist|\.astro)/)') { continue }
         $issues.Add("Documentation outside its canonical location: $($file.FullName)")
     }
 }
