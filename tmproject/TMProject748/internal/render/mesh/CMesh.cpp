@@ -261,6 +261,7 @@ int CMesh::Render(int nBright)
 
 int CMesh::RenderMesh(char cAlpha)
 {
+    int dyePaletteIndex = -1;
     if (m_sMultiType > 0 && m_pParentSkin->m_cEnableMultiTex == 1
         || m_sLegendType >= 4 && m_sLegendType <= 8)
     {
@@ -366,14 +367,15 @@ int CMesh::RenderMesh(char cAlpha)
             if (m_nTextureIndex < 0)
                 m_bSheild = 1;
 
+            dyePaletteIndex = nBaseIndex;
+            // Texture families stop at +12; retain the real refinement for
+            // the shader, including later frames and grades +13 through +15.
+            const int dyeTextureLevel = m_sMultiType > 12 ? 12 : m_sMultiType;
             if (m_nTextureIndex >= 0 || m_bSheild)
             {
                 g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_ALPHATESTENABLE, 0);
 
-                if (m_sMultiType > 12)
-                    m_sMultiType = 12;
-
-                g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(nBaseIndex + m_sMultiType - 1, 10000));
+                g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(nBaseIndex + dyeTextureLevel - 1, 10000));
 
                 dye_texture_stages::Apply(*g_pDevice, m_sLegendType, cAlpha,
                     g_pDevice->m_bVoodoo || g_pDevice->m_bIntel || g_pDevice->m_bG400,
@@ -381,10 +383,7 @@ int CMesh::RenderMesh(char cAlpha)
             }
             else
             {
-                if (m_sMultiType > 12)
-                    m_sMultiType = 12;
-
-                g_pDevice->SetTexture(2, g_pTextureManager->GetEffectTexture(nBaseIndex + (m_sMultiType - 1), 10000));
+                g_pDevice->SetTexture(2, g_pTextureManager->GetEffectTexture(nBaseIndex + dyeTextureLevel - 1, 10000));
 
                 if (g_pDevice->m_bVoodoo || g_pDevice->m_bIntel || g_pDevice->m_bG400)
                 {
@@ -617,9 +616,27 @@ int CMesh::RenderMesh(char cAlpha)
 
         {
             dye_pixel_shader::Binding dye(g_pDevice->m_pd3dDevice, g_pDevice->m_dyePixelShader,
-                m_sLegendType, m_sLegendType >= 116 && m_sLegendType <= 125
+                m_sLegendType, m_sMultiType, dyePaletteIndex >= 0
                     && m_sMultiType > 0 && m_pParentSkin->m_cEnableMultiTex == 1);
-            if (g_pDevice->m_pd3dDevice->DrawIndexedPrimitive(D3DPRIMITIVETYPE::D3DPT_TRIANGLELIST, 0, 0, m_pMesh->m_AttRange[0].VertexCount, 0, m_numFaces) < 0)
+            // Keep the icon's grade-specific effect as the moving highlight,
+            // but sample the unrefined palette separately for the armor color.
+            // Yellow's native family is solid at every grade, so use the
+            // silver family's moving pattern without changing its yellow hue.
+            if (dye.Active())
+            {
+                const int maskIndex = m_sLegendType == 124 ? 314 : dyePaletteIndex;
+                const int grade = m_sMultiType > 12 ? 12 : m_sMultiType;
+                dye_pixel_shader::TextureBinding textures(g_pDevice->m_pd3dDevice,
+                    g_pTextureManager->GetEffectTexture(maskIndex, 10000),
+                    g_pTextureManager->GetEffectTexture(maskIndex + grade - 1, 10000),
+                    g_pTextureManager->GetEffectTexture(dyePaletteIndex, 10000));
+                if (!textures.Active()) return 0;
+                if (g_pDevice->m_pd3dDevice->DrawIndexedPrimitive(D3DPRIMITIVETYPE::D3DPT_TRIANGLELIST,
+                    0, 0, m_pMesh->m_AttRange[0].VertexCount, 0, m_numFaces) < 0)
+                    return 0;
+            }
+            else if (g_pDevice->m_pd3dDevice->DrawIndexedPrimitive(D3DPRIMITIVETYPE::D3DPT_TRIANGLELIST,
+                0, 0, m_pMesh->m_AttRange[0].VertexCount, 0, m_numFaces) < 0)
                 return 0;
         }
 

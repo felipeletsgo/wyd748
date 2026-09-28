@@ -166,6 +166,17 @@ hidden/compact/expanded/hidden cycle at 800x600, 1024x768, 1280x960 and
 coordinates use a centered row below the map. These placement choices are
 `MODERNIZACAO_COMPATIVEL`, not an exact native-layout parity claim.
 
+The later 1280x960 screenshot exposed the compact header (control 12841)
+remaining visible above the expanded frame. The compatibility path now hides
+that child while expanded and limits the expanded square to 31.25% of the
+viewport width, 42% of its height, and the native 400-pixel maximum. The
+frame, direction marker, zoom controls, and coordinate row share that size.
+This responsive cap is `MODERNIZACAO_COMPATIVEL`, not native-size parity.
+At Armia coordinates 2086,2093, only three of the nine surrounding `m*.wyt`
+tiles exist in the runtime asset set; absent tiles were not invented or
+stretched. The updated candidate passed the architecture and socket tests and
+was built/deployed, but the new geometry has not been visually client-tested.
+
 ### Weighted skin shader contract
 
 `CMesh::SetMaterial` and native `FUN_004c3a1b` provide material power in c0.y,
@@ -421,3 +432,432 @@ open. Server changes are NOT APPLICABLE; historical assets are read-only input.
 - Changed in this follow-up: new `DyePixelShader.h`, `CMesh.cpp`,
   `RenderDevice.h/.cpp`, `DyeTextureStagesDeviceTests.cpp/.vcxproj`, this record,
   and the generated local executable. No files removed by this follow-up.
+
+## Matte dyed equipment: remove the animated overlay highlight
+
+The user confirmed improved color in the installed pink candidate but reported
+a remaining slight shine; dyed equipment should have a matte finish. The
+existing shader still sampled the complete effect texture using `oT1`. Current
+skinmesh1 disassembly shows `oT0 = v4` (base UVs), whereas `oT1` combines a
+skinned normal component, view-space position, and the animated `c0.z` offset.
+CMesh::SetMaterial advances that offset over ten seconds. This leaves the
+effect texture's highlight pattern moving across dyed equipment even without
+additive white lighting. The previous constant-color GPU fixture did not cover
+this behavior.
+
+Classification remains `MODERNIZACAO_COMPATIVEL`. The matte pixel shader now
+samples the dye texture at its fixed center, not at the environment coordinates.
+The center is an explicit rendering choice, not a claimed native palette rule.
+Unsigned base luminance, diffuse vertex lighting, colored/black gain, base UVs,
+and texture alpha are unchanged. The shader uses ps.1.4 dependent sampling;
+both texture fetches occur after the phase marker to preserve base alpha.
+The 1.x pipeline retains existing vertex fog. Shader ownership, fallback and
+state restoration are unchanged. Untinted meshes and mounts are not modified.
+
+Sources: active shader bytecode/disassembly, CMesh material setup, and existing
+native boundary records USED; actual 7.48 armor and dye textures USED as tests;
+server and other historical clients NOT APPLICABLE. This is not new native
+parity evidence and does not close the separate material attenuation gap.
+
+### Matte validation
+
+- `STATICALLY VERIFIED`: the shader no longer consumes environment UVs;
+  texture identities and shader lifetime remain unchanged; English-only text.
+- `AUTOMATED TESTED`: the Release/Win32 `DyeTextureStagesDeviceTests` target
+  passed 590,065 GPU pixel checks on Intel Iris Xe. Tests now bind the actual
+  blue, black, and pink effect textures instead of flat-color stand-ins, shift
+  environment UVs through three phases at two lighting levels, and require
+  identical pixels. They also verify dark detail, alpha, state restoration,
+  shader recreation, and vertex fog at factors 0, 128, and 255. A first ps.1.4
+  assembly attempt exposed alpha loss across the phase marker; moving both
+  texture fetches after it fixed the issue and all final checks passed.
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File tmproject/Build-Client.ps1
+  -NoDeploy` passed the integrated incremental Release build, 58,659
+  architecture checks, 221 socket checks, and the skin shader gates.
+  After confirming the game process had exited, installed the candidate as
+  `tmproject/client748/project.exe`; build and installed SHA-256 both equal
+  `BC6825EEC1178F0A79477C8DBBA9CB3FEE09E0F5B4D6DE3600A77E6F50BF38E4`.
+- `CLIENT-TESTED`: pending for the matte candidate. The user's screenshot
+  validates improvement of the previous candidate, not this new draw path.
+- Changed in this follow-up: `DyePixelShader.h`,
+  `DyeTextureStagesDeviceTests.cpp`, this record, and generated build outputs.
+  No files removed, no asset bytes changed, and no server changes.
+
+## User-directed refinement sheen in the dye color
+
+The user rejected the fully matte finish and requested restrained sheen in the
+dye's own color, increasing with refinement without hiding the armor texture.
+This supersedes the matte-only aesthetic decision above, not the established
+texture, item-state, or wire contracts. Classification: `MODERNIZACAO_COMPATIVEL`;
+this is a custom rendering design, not a native parity claim. The native
+boundary records and active skin shader UV evidence are reused. Server and
+historical-client modifications are NOT APPLICABLE.
+
+The shader retains the fixed dye-center hue and uses the mean RGB of the same
+texture at animated environment UVs solely as a scalar mask in [0,1]. For
+refinement r clamped to [0,15], t = r/15 and strength = 0.12*t + 0.12*t*t.
+Density is multiplied by (1 + strength*mask), clamped, and then multiplied by
+the fixed dye color. Consequently, the relative local lift cannot exceed 24%
+at +15; +1 is about 0.85%, +5 about 5.33%, and +9 about 11.52%. These are ceilings,
+not uniform brightness increases. Zero strength reproduces the matte baseline.
+There is no additive white component or positive floor on black base texels.
+Black uses its existing dark graphite palette and ordinary density gain.
+Texture alpha, vertex fog, and scoped shader/constant restoration are retained.
+
+`BASE_GetItemSanc` feeds the displayed refinement through `TMHuman` and character
+selection into `TMSkinMesh` and `CMesh::m_sMultiType`. The dye branch previously
+mutated that value to 12 while selecting an effect texture. It now clamps only
+the legacy texture index, preserving +13..+15 across frames. When the shader is
+active, `CMesh` selects the first existing texture of the same dye family for
+both palette and mask at every grade; the shader curve alone changes strength.
+The original grade-specific texture selection remains the unsupported-shader
+fallback. Other legend branches, unpainted armor, static weapons, and inventory
+icon rendering are not changed. Existing +0 routing is not expanded by this
+batch; the zero-strength shader is a regression baseline for these tests.
+
+### Refinement sheen validation
+
+- `AUTOMATED TESTED`: Release/Win32 `DyeTextureStagesDeviceTests` passed
+  5,603,569 D3D9 HAL pixel checks on Intel Iris Xe. Actual blue, black, and pink
+  WYS textures and the affected breastplate run through grades 0..15, three
+  environment phases, and two diffuse-light levels. Independent per-texel
+  oracles check the mask, hue, density, alpha, 24% ceiling, nondecreasing
+  channels, strictly increasing total brightness at each grade, animated
+  response, and vertex fog. Existing matte, dark-detail, shader-state, reset,
+  and fixed-function tests remain passing. Negative/oversized strength inputs
+  are clamped. Tests use FVF vertices, not a complete skinned character.
+- An initial doubled-and-clamped mask saturated the pink texture to a constant.
+  The animated-response assertion caught it; using the unscaled mean mask
+  preserves texture variation for all three real dye fixtures.
+- `STATICALLY VERIFIED`: dye-only draw binding, non-mutating refinement clamp,
+  unchanged resources/protocol, and English-only authored text. The separate
+  material attenuation gap is not closed by this customization.
+- Integrated incremental Release build passed with `pwsh -NoProfile
+  -ExecutionPolicy Bypass -File tmproject/Build-Client.ps1 -NoDeploy`, including
+  58,659 architecture checks, 221 socket checks, and four skin shader gates.
+  With no running project.exe process, installed the build into
+  `tmproject/client748/project.exe`; source and destination SHA-256 match
+  `B2421BF86D18F15B22B34802678CC97C1C20E7F914D3C397BFA62AC237C53AA1`.
+  Historical and runtime WYD.exe were not replaced. Research validation and
+  `git diff --check` passed.
+- `CLIENT-TESTED`: pending for the colored refinement candidate. User review
+  should compare low/high refinement, black/blue/pink, and field/selection views.
+- Changed: `DyePixelShader.h`, `CMesh.cpp`, `DyeTextureStagesDeviceTests.cpp`,
+  this record, and generated local build outputs. No files removed.
+
+### Darker contrast follow-up: 48% application strength
+
+The user could not distinguish the same-tone reflection and requested one
+shade darker with a 48% intensity limit. This supersedes the preceding 24%
+brightness-lift design. Interpret one darker shade as 75% of the dye's RGB,
+preserving hue. Strength is now 0.24*t + 0.24*t*t, capped at 0.48 for +15.
+The environment mask controls interpolation toward that darker shade. The
+result is matteBase * (1 - 0.25*strength*mask). Thus 48% is the application
+weight, not a 48% global darkening: the local reduction is bounded by 12%.
+The user was informed of the 25% darker-shade interpretation before the edit.
+
+Apply contrast AFTER clamping the diffuse density. The previous shader applied
+its brightness lift before that clamp, so saturated areas could erase the
+entire animated reflection. The new order retains contrast on bright cloth,
+with unchanged alpha, dye hue, diffuse detail, fog, shader ownership, and
+refinement routing. Black becomes a darker graphite reflection, not white.
+Zero strength still reproduces the matte baseline. The existing compatible
+modernization classification and evidence boundary remain valid; no new native
+parity claim, asset edit, server change, or protocol change is made.
+
+- `AUTOMATED TESTED`: MSBuild Release/Win32
+  `DyeTextureStagesDeviceTests.vcxproj` and its executable passed 8,110,321
+  D3D9 pixel checks. The blue/black/pink fixtures cover grades 0..15, three
+  phases, two lighting levels, darker-shade formula, 48% weight cap, 12%
+  contrast bound, alpha, fog, and retained cloth detail. Added fully white
+  base fixtures with partial alpha to force saturated density: the moving
+  reflection must survive there too. Real cloth increases aggregate contrast
+  at every grade; uniform fixtures permit adjacent low-grade 8-bit rounding
+  plateaus but reject any reversal or disappearance at +15.
+- `STATICALLY VERIFIED`: only shader composition/strength and their tests
+  changed in this follow-up; English text and `git diff --check` pass.
+- Integrated incremental Release build passed using `Build-Client.ps1
+  -NoDeploy`, including 58,659 architecture checks, 221 socket checks, and four
+  skin shader gates. With no running project.exe process, installed the build
+  as `tmproject/client748/project.exe`. Build and runtime SHA-256 match:
+  `F77F4B2F135A1A2C47C6D522FF88A1325BAA266B628842BCCC2995C0354F33EC`.
+  Native/runtime WYD.exe remain unchanged. Research validation passed.
+- `CLIENT-TESTED`: pending for this darker candidate; GPU readbacks do not
+  establish perceived visibility on the actual equipped character.
+- Changed in this follow-up: `DyePixelShader.h`,
+  `DyeTextureStagesDeviceTests.cpp`, this record, and generated local outputs.
+  No files removed. The preceding `CMesh.cpp` change is preserved.
+
+### Lighter reflection clarification: retain the 48% application ceiling
+
+The user clarified that the reflection must be lighter, not darker, than the
+dye. This supersedes the darker-shade interpretation above. Keep the same
+refinement curve and environment mask, but blend toward a 25% lighter shade:
+`saturate(matteBase * (1 + 0.25*strength*mask))`. The application weight remains
+capped at 48%, giving at most 12% local RGB lift before channel saturation.
+Black uses its existing graphite palette; no independent white term is added.
+
+A direct sign reversal failed the GPU oracle on bright cloth. Carry only the
+bounded lift through the shader phase, then apply it with the final saturated
+multiply-add after density clamping and palette multiplication. This preserves
+the measurable lighter reflection on saturated density without changing alpha,
+fog, texture coordinates, device ownership, or unpainted equipment. This remains
+`MODERNIZACAO_COMPATIVEL`; existing native evidence is reused without a new
+parity claim or any server, wire, or asset change.
+
+- `AUTOMATED TESTED`: Release/Win32 `DyeTextureStagesDeviceTests.vcxproj` and
+  its executable pass 8,110,321 D3D9 pixel checks. The independent oracle now
+  requires lighter output, nondecreasing refinement strength, bounded lift,
+  animation, alpha and fog preservation for blue, black and pink dyes, including
+  fully white base textures with partial alpha. Added failure diagnostics.
+- Integrated `Build-Client.ps1 -NoDeploy` passed, including 58,659 architecture
+  checks and 221 socket checks. Log: `tmproject/build/lighter-dye-build.log`.
+  With project.exe closed, installed only `tmproject/client748/project.exe`.
+  Build and runtime SHA-256 match:
+  `B4E1FDECFA9CC55FFEB5D546C040DF31EBBBA32C249B14DB6DE831BB2DE1E83B`.
+- `STATICALLY VERIFIED`: English authored text, research validation and
+  `git diff --check`. Source changes are limited to `DyePixelShader.h` and
+  `DyeTextureStagesDeviceTests.cpp`; this record and the local executable were
+  updated. No files removed; preceding changes are preserved.
+- `CLIENT-TESTED`: pending visual confirmation on the equipped character.
+  Automated device readback does not establish perceived in-game contrast.
+
+### Grade +9 reflection visibility on dark and red-dyed armor
+
+The user supplied an in-game screenshot showing a black breastplate and red
+trousers at +9 without perceptible reflection. This contradicts any claim that
+the prior relative lift was visually adequate. The previous maximum lift was
+only 12% of the *already darkened* matte pixel, then reduced again by the
+environment mask. On black cloth it could be less than one 8-bit channel step.
+The user's actual client observation is evidence of this gap, not a passed
+`CLIENT-TESTED` result for the correction.
+
+The compatible rendering correction retains the matte diffuse pass and adds
+an animated reflection in the dye palette's own RGB. Reflection strength is
+still capped at 48% at +15 and reaches 23% at +9; the texture-derived mask
+suppresses its low end and provides spatial movement. The final color is
+`saturate(matteDiffuse + tint * strength * saturate(2*(mask - 0.20)))`.
+Unlike a multiplicative lift, this remains measurable on dark clothing while
+preserving underlying armor detail and avoiding a white highlight. Base alpha,
+fog, dye selection, the existing shader lifetime, server state and packets are
+unchanged. Classification remains `MODERNIZACAO_COMPATIVEL`.
+
+- `AUTOMATED TESTED`: the Release/Win32 D3D9 test now includes the real red
+  dye asset as well as blue, black and pink. It passed 10,813,681 pixel checks
+  over refinement +0..+15, three environment phases, two light levels, actual
+  armor texels, alpha, fog, shader restoration and fully saturated base texels.
+  A +9 regression gate requires at least 128 armor pixels to exceed an 8-level
+  black or 15-level colored-channel delta from matte at each phase. Black
+  exceeded 2,700 and red exceeded 330 in the measured phases; these are
+  synthetic GPU thresholds, not an in-game perception test.
+- Integrated `Build-Client.ps1 -NoDeploy` passed; log:
+  `tmproject/build/visible-dye-build.log`. With no project.exe process running,
+  installed only `tmproject/client748/project.exe`. Its SHA-256 matches the
+  build artifact:
+  `D752AA20497AE3DE24C36D77C1E3EBB279AD9F297C78939B9955278ABD0F8803`.
+- `STATICALLY VERIFIED`: English authored text, `git diff --check`, research
+  record validation. Changed `DyePixelShader.h`,
+  `DyeTextureStagesDeviceTests.cpp`, this record and the local executable;
+  no files removed. Earlier uncommitted rendering changes remain intact.
+- `CLIENT-TESTED`: pending user inspection of the installed candidate on the
+  equipped black breastplate and red trousers at +9.
+
+### Colored reflection intensity follow-up: 90% ceiling
+
+The user found the previous 48% maximum too weak in the live client and
+requested a 90% ceiling. This changes only the coefficient in the existing
+refinement curve, not dye selection, the shader mask, base armor texture,
+alpha, fog, packets, or server state. The peak palette-colored lift is 43.2%
+at +9 and 90% at +15 in the brightest mask regions; +0 remains matte. The
+prior 48% ceiling described above is historical and is superseded here.
+Classification remains `MODERNIZACAO_COMPATIVEL`.
+
+- `AUTOMATED TESTED`: the Release/Win32 D3D9 device fixture passed 10,813,681
+  pixel checks with the 90% cap and independent strength oracle. It covers
+  +0..+15, four real dye textures, two lighting levels, three animated phases,
+  alpha, fog, shader restoration, and +9 contrast on real armor texels.
+- The integrated `Build-Client.ps1 -NoDeploy` passed and produced
+  `tmproject/build/TMProject748/Release/WYD.exe` with SHA-256
+  `4A31523AFC9574D8CDFDB2F5A01DAE9B928C03C7B718C55891C4470B5430FE1C`.
+  The build log is `tmproject/build/dye-sheen-90-build.log`.
+- After the game process closed, installed only
+  `tmproject/client748/project.exe`; its SHA-256 matches the build artifact.
+  `STATICALLY VERIFIED`: authored English text and `git diff --check` passed;
+  the research record validator accepted the update. No files were removed.
+  `CLIENT-TESTED`: pending in-game inspection of the black breastplate and
+  red trousers at +9. The device test does not establish perceived brightness.
+
+### Silver refinement reflection for every armor dye
+
+The user rejected the dye-colored reflection and requested silver on every
+dye color. This supersedes the earlier colored-reflection choice without
+changing the dyed diffuse base, texture identity, alpha, fog, server state, or
+packets. The existing refinement curve still reaches 43.2% at +9 and caps at
+90% at +15; +0 remains matte. The reflection now adds a neutral silver RGB
+term after diffuse dye shading. Each dye uses a suitable palette channel for
+the reflection mask, rather than averaging saturated colors with dark channels.
+Yellow's available palette channel is uniform, so its silver lift is uniform
+instead of UV-animated. Classification: `MODERNIZACAO_COMPATIVEL`.
+
+- `AUTOMATED TESTED`: Release/Win32 `DyeTextureStagesDeviceTests.exe` passed
+  27,033,841 pixel checks across all ten dye legends 116..125, refinement
+  +0..+15, three environment phases, two light levels, the real armor texture,
+  a saturated base fixture, alpha, fog, and shader-state restoration. The
+  independent oracle checks silver RGB, the 90% bound, matte +0, monotonic
+  strength and visible +9 contrast. UV movement is required only where the
+  palette channel has variation; yellow's uniform asset is checked against
+  the same silver reflection formula without an impossible movement assertion.
+- Integrated `Build-Client.ps1 -NoDeploy` passed, including architecture and
+  socket tests. Installed only `tmproject/client748/project.exe` after
+  confirming no `project.exe` process was running. Build and runtime SHA-256
+  match: `78617328F1EC441D1B843189A1F589AEFFA56CFCFA3ECDAD8432660384F415F8`.
+- `CLIENT-TESTED`: pending visual inspection of the installed candidate on
+  dyed +9 armor. Automated D3D9 readback does not establish perceived sheen.
+
+### Grade-texture streak instead of a whole-surface reflection
+
+The user's later field screenshot rejected the silver wash: most of the dyed
+cloth must stay at its dye color while a narrow line moves over it. The user
+identified the equipped item's inventory preview as a working reference. In
+the current client, `TMMesh::RenderForUI` selects the per-dye, per-grade effect
+texture for inventory icons (the same 275/288/301/314/327/340/353/366/425/392
+families used by `CMesh::RenderMesh`), and `TMMesh::Render` animates UV channel
+1. `TMItem::Render` handles world items, not inventory icons. This agrees with the
+recorded native `FUN_004c3eec` texture selection, but does not prove that the
+new pixel shader exactly duplicates the native fixed-function composition.
+Classification: `MODERNIZACAO_COMPATIVEL`; the preceding whole-surface silver
+choice is superseded.
+
+The adapted armor shader now samples the unrefined and grade-specific textures
+at the same environment UV, thresholds only their positive RGB difference,
+and applies the 90%-capped silver term to that local streak. A separate fixed
+palette sample retains the dye color elsewhere. The original grade-specific
+texture remains the unsupported-shader fallback. The yellow family is solid
+at all grades, so the shader uses the silver family's animated difference as
+its streak mask while keeping yellow's own palette. No WYS file, resource ID,
+item state, packet, or server behavior changed.
+
+- Source evidence: `TMMesh.cpp::TMMesh::RenderForUI`,
+  `CMesh.cpp::CMesh::RenderMesh`, `DyePixelShader.h`; the native dye texture
+  selection is already cited above at `WYD.exe` `FUN_004c3eec`.
+- Asset evidence: existing `Effect/{bl,re,gr,si,dk,vi,or,pi,ye,db}0000..0011.wys`
+  families; yellow's texture is uniform, whereas silver contains spatial
+  grade variation. No asset was edited.
+- Server: NOT APPLICABLE; display-only composition. ABI/wire: unchanged.
+- `AUTOMATED TESTED`: Release/Win32 `DyeTextureStagesDeviceTests.exe` passed
+  27,033,841 pixel checks across all ten dye legends, grades +0..+15, three
+  moving UV phases, real armor and saturated fixtures. Readback verified matte
+  base coverage, the bounded streak, fog, alpha and shader/texture restoration.
+  The integrated `Build-Client.ps1 -NoDeploy` also passed its architecture,
+  socket and client build gates.
+- After confirming the game was closed, installed the candidate at
+  `tmproject/client748/project.exe`; its SHA-256 matches the build artifact:
+  `23861BD39FA33F1AEE4A5593DCB70904B3F6592BDEF82D7EAE3B3BE2A34065E4`.
+  The prior executable is backed up under the ignored build directory.
+- `STATICALLY VERIFIED`: research validator and `git diff --check` passed.
+  `CLIENT-TESTED` remains pending an in-game visual inspection of the +9
+  breastplate and trousers. This record remains `LOCATED` for its unrelated
+  unresolved UI/portal fronts and must not be promoted by the dye-only test.
+
+### Restore color depth in refined armor dyes
+
+The user reported that dyed armor looked too pale. The existing colored-dye
+shader multiplied the matte base by four, clipping bright texels and flattening
+texture contrast even though the palette colors are saturated. For dye legends
+other than black, the effective diffuse gain is now two. Black keeps its
+existing gain of one. The moving silver refinement streak, dye palettes, and
+unrefined fixed-function path are unchanged. Classification:
+`MODERNIZACAO_COMPATIVEL`; no wire, server, or asset contract changed.
+
+- `AUTOMATED TESTED`: Release/Win32 `DyeTextureStagesDeviceTests.exe` passed
+  27,033,841 pixel checks with the updated independent diffuse oracle across
+  all ten dye legends, grades +0..+15, two lighting levels, moving streak
+  phases, real armor texels, fog, alpha, and state restoration.
+- Integrated `Build-Client.ps1` passed its preflight tests and client build,
+  and installed `tmproject/client748/project.exe` with SHA-256
+  `2586980D953B8E6FC8D8446342038C792F444083405580C978ACA636B8AA1BA0`.
+- `CLIENT-TESTED`: pending visual inspection of the installed client. Automated
+  readback confirms the composition but not the perceived color depth.
+
+### Increase dye saturation without raising exposure
+
+After seeing the restored cloth contrast, the user requested more vivid dye
+colors. The refined-armor shader now expands palette chroma by 25% around its
+average channel value, then clamps each channel. The twofold colored-dye
+diffuse gain, black dye, and the separate moving silver refinement streak keep
+their previous behavior. This remains a display-only
+`MODERNIZACAO_COMPATIVEL`; assets, IDs, item state, and wire protocol are
+unchanged. The pixel shader stays within its eight-arithmetic-slot phase
+limit by folding the existing light gain into the diffuse dot-product weight.
+
+- `AUTOMATED TESTED`: Release/Win32 `DyeTextureStagesDeviceTests.exe` passed
+  27,033,841 pixel checks using the saturated-palette oracle across all ten
+  dye legends, grades +0..+15, two lighting levels, moving streak phases,
+  real armor texels, fog, alpha, and state restoration.
+- Integrated `Build-Client.ps1 -NoDeploy` passed its preflight tests and
+  client build. After the game process closed, the built artifact was installed
+  at `tmproject/client748/project.exe`; both SHA-256 values match:
+  `4247D91D5E140163FBCF79BA6D921D7C85721F6B894EE681B4953CF9A6957488`.
+- `CLIENT-TESTED`: pending in-game visual judgment of the new saturation.
+
+### Match equipped armor contrast more closely to its inventory icon
+
+The inventory item renderer combines its dye and base texture through the
+legacy fixed-function stages, while the equipped mesh uses the separate
+refined-armor pixel shader. The user's black-dye screenshot shows stronger
+light/dark separation in the inventory icon than on the equipped character.
+Classification: `MODERNIZACAO_COMPATIVEL`; this adjusts only the equipped
+armor's display composition, not the item, asset, wire, or server contract.
+
+The shader now expands the base texture's grayscale albedo around its 50%
+midpoint by 25% before diffuse lighting and dye multiplication. This deepens
+dark weave and strengthens existing light details without increasing palette
+saturation, altering the dye hue, or brightening the entire armor. The moving
+silver grade streak remains independent. The base texture is sampled in both
+pixel-shader phases so its alpha remains defined after the phase marker. This
+is an approximation of the inventory icon's contrast, not a claim of exact
+pixel identity across different geometry and lighting.
+
+- `AUTOMATED TESTED`: Release/Win32 `DyeTextureStagesDeviceTests.exe` passed
+  27,033,841 pixel checks with an updated independent contrast oracle across
+  all ten dyes, grades +0..+15, lighting levels 140/255, real armor texels,
+  moving grade streak, fog, alpha, and render-state restoration.
+- Integrated `Build-Client.ps1` passed preflight tests and installed
+  `tmproject/client748/project.exe`; build and candidate SHA-256 match:
+  `68EBC0B5D92131FE2AD84774A1D98D13C7ABD8EA28B3489D3EAE583555CFC726`.
+- `CLIENT-TESTED`: pending in-game comparison of inventory and equipped armor.
+
+### Correct inventory dye contrast direction
+
+The user clarified that the preceding contrast adjustment targeted the wrong
+consumer: the inventory icons were too dark and high-contrast, while the armor
+on the character was already legible. The preceding 25% albedo-contrast change
+to equipped armor is therefore superseded and reverted. Classification:
+`MODERNIZACAO_COMPATIVEL`; this changes display composition only, not assets,
+item state, server behavior, or the wire contract.
+
+`RenderDevice.cpp` dispatches equipment cells to `TMMesh::RenderForUI`. Its
+legacy dyed-item path combines the base and grade texture with fixed-function
+`DOTPRODUCT3`/`MODULATE4X`, which clips dark texels. For legends 116-125 with a
+graded two-UV mesh, the inventory path now uses the same matte palette and
+localized moving refinement-streak shader as equipped armor. It reuses the
+existing effect texture IDs, including the silver-family streak mask for
+yellow dye. The old fixed-function path remains the fallback when the pixel
+shader or required textures are unavailable. The shader and sampler binding
+restore prior device state after the icon draw.
+
+- Source evidence: `RenderDevice.cpp` 3D control dispatch,
+  `TMMesh.cpp::TMMesh::RenderForUI`, `CMesh.cpp::CMesh::RenderMesh`, and
+  `DyePixelShader.h`. The native dye selection was previously recorded from
+  `WYD.exe` `FUN_004c3eec`; this is not a claim of pixel-identical rendering.
+- `AUTOMATED TESTED`: Release/Win32 `DyeTextureStagesDeviceTests.exe` passed
+  27,033,841 pixel checks after the contrast reversal, covering all ten dyes,
+  grades, lighting, real armor texels, moving streak, fog, alpha, and binding
+  restoration. An in-game icon comparison remains necessary.
+- Integrated `Build-Client.ps1` passed its asset checks, architecture tests,
+  socket tests, and Release/x86 client build. It installed
+  `tmproject/client748/project.exe`; the built and installed SHA-256 match:
+  `AEC3FD508CBC49F74C1E81DC2C6FE10214564B806835D31EA62B342206413679`.
+- `CLIENT-TESTED`: pending side-by-side visual comparison of the inventory
+  icons and worn armor in the running client. No other file or asset was
+  removed by this adjustment.

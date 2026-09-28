@@ -41,7 +41,9 @@ int RunResourceBarProjectionTests(int& checks)
             check(compact.x + compact.size <= viewport.first && compact.y >= 0, "compact map fits viewport");
             check(compact.size == (ui2 ? 137.0f : 160.0f), "compact size matches selected resource");
             const auto expanded = mini_map_layout::Next(compact.visible, compact.scale, ui2, viewport.first, viewport.second);
-            check(expanded.visible && expanded.expanded && expanded.size == 400, "compact map opens expanded");
+            const float expectedSize = viewport.first == 800.0f ? 250.0f
+                : viewport.first == 1024.0f ? 320.0f : 400.0f;
+            check(expanded.visible && expanded.expanded && expanded.size == expectedSize, "compact map opens at viewport-appropriate size");
             check(expanded.x * 2 + expanded.size == viewport.first && expanded.y * 2 + expanded.size == viewport.second,
                 "expanded map is centered without applying UI scale twice");
             const auto hidden = mini_map_layout::Next(expanded.visible, expanded.scale, ui2, viewport.first, viewport.second);

@@ -4,6 +4,7 @@
 #include "TMGlobal.h"
 #include "TMObject.h"
 #include "TMLog.h"
+#include "DyePixelShader.h"
 #include <cfloat>
 
 TMMesh::TMMesh()
@@ -349,6 +350,7 @@ int TMMesh::RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColo
 	}
 
 	g_pDevice->SetTextureStageState(1, D3DTEXTURESTAGESTATETYPE::D3DTSS_TEXCOORDINDEX, 1);
+	int dyePaletteIndex = -1;
 
 	if (sLegend == 4)
 	{
@@ -430,6 +432,7 @@ int TMMesh::RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColo
 			texSum = 425;
 		if (sLegend == 125)
 			texSum = 392;
+		dyePaletteIndex = texSum;
 
 		g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(nMultiTex + texSum - 1, 5000));
 
@@ -477,7 +480,29 @@ int TMMesh::RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColo
 		}
 	}
 
-	Render(1, nTexOffset);
+	bool renderedWithDyeShader = false;
+	if (dyePaletteIndex >= 0 && nMultiTex > 0 && m_dwFVF == 530)
+	{
+		// The inventory icon should use the equipped armor's matte dye and
+		// narrow grade streak instead of the darker fixed-function DOTPRODUCT3.
+		dye_pixel_shader::Binding dye(g_pDevice->m_pd3dDevice,
+			g_pDevice->m_dyePixelShader, sLegend, nMultiTex, true);
+		if (dye.Active())
+		{
+			const int maskIndex = sLegend == 124 ? 314 : dyePaletteIndex;
+			dye_pixel_shader::TextureBinding textures(g_pDevice->m_pd3dDevice,
+				g_pTextureManager->GetEffectTexture(maskIndex, 5000),
+				g_pTextureManager->GetEffectTexture(maskIndex + nMultiTex - 1, 5000),
+				g_pTextureManager->GetEffectTexture(dyePaletteIndex, 5000));
+			if (textures.Active())
+			{
+				Render(1, nTexOffset);
+				renderedWithDyeShader = true;
+			}
+		}
+	}
+	if (!renderedWithDyeShader)
+		Render(1, nTexOffset);
 
 	g_pDevice->SetTexture(1, nullptr);
 	g_pDevice->SetTextureStageState(1, D3DTEXTURESTAGESTATETYPE::D3DTSS_TEXCOORDINDEX, 1);

@@ -16730,6 +16730,9 @@ void TMFieldScene::SetVisibleMiniMap()
 		// Do not show the resource's placeholder server label in the compact HUD.
 		if (m_pMiniMapServerPanel)
 			m_pMiniMapServerPanel->SetVisible(0);
+		// The compact header is a separate child and must not cover the expanded map.
+		if (auto header = m_pControlContainer->FindControl(12841u))
+			header->SetVisible(layout.visible && !layout.expanded);
 		if (m_pMiniMapZoomIn)
 		{
 			m_pMiniMapZoomIn->SetPos(layout.size - 19.0f, -18.0f);
