@@ -1,163 +1,246 @@
 ---
 id: trade-check-confirmation-contract
-title: Confirmacao visual do primeiro check de trade
+title: Native first trade-check acknowledgement
 subsystem: transport
-status: UNMAPPED
+status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-21
+updated: 2026-09-30
 ---
 
-# Confirmacao visual do primeiro check de trade
+# Native first trade-check acknowledgement
 
-## Pergunta
+## Question
 
-Qual envelope o client ativo deve aceitar para `0x386` antes de marcar o
-controle `MyCheck`, sem permitir que um frame truncado ou divergente alcance a
-UI de trade?
+Which native receiver handles `0x386`, what does it mutate, and how does the
+active client/server pair confirm the first trade check without prematurely
+transferring items or gold?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- UTILIZADA: source atual `TMHuman::OnPacketEvent` e
-  `TMHuman::OnPacketCNFCheck`.
-- UTILIZADA: WYD-Go `wire.CNFTradeCheck`, emissor em `game/trade.go` e testes
-  unitarios/de integracao do trade.
-- UTILIZADA: contrato de header compartilhado e gate incremental
-  `ReceivedPacketDispatch`.
-- NAO REABERTA: a evidencia nativa de UI ja registrada em
-  `flows/ui/trade-inventory-layout.md`.
-- LACUNA: os exports Ghidra versionados nao isolam ainda o case `0x386`, e o
-  corpus textual externo documentado nao estava disponivel nesta retomada.
-- NAO APLICAVEL: assets; este lote nao altera layout, IDs ou recursos.
+- USED: immutable `references/client748/WYD.exe`, SHA-256 above, x86 image
+  base `0x00400000`; recovered read-only Ghidra project `WYD748/WYD.exe`.
+- USED: [focused instruction and table excerpts](../../exports/trade-check-confirmation.tsv).
+  These are selected rows, not complete exports of every surrounding function.
+  The complete 20-instruction acknowledgement consumer is included.
+- USED: existing [trade/inventory lifecycle](../ui/trade-inventory-layout.md)
+  and [control ownership](../ui/control-focus-ime-lifecycle.md) evidence.
+- USED: active `TMHuman.cpp`, `SControl.h`, `ResourceControl.h`,
+  `TradeCheckConfirmationContract.h`, and `ReceivedPacketDispatchTests.cpp`.
+- USED: WYD-Go `internal/game/trade.go`,
+  `internal/game/trade_check_contract_test.go`, and `internal/wire/trade.go`.
+- NOT APPLICABLE: asset changes. Existing control bindings are reused; no
+  new widget, resource ID, or materialized asset is introduced.
+- NOT APPLICABLE: TMProject 7.69 as parity authority. Current source is the
+  adaptation target, not evidence that an address belongs to native 7.48.
+- LIMITED: the native size-policy body contains the `0x386/12` case, but
+  its external invocation remains unresolved in the
+  [packet-size gate record](packet-size-gate.md). This record does not
+  establish a live native transport rejection path.
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
-### Entrada observável
+### Observable entry
 
-- Evento: o peer envia a confirmacao do primeiro check durante um trade ativo.
-- Precondicoes e estado inicial: janela de trade aberta e `MyCheck` ainda nao
-  selecionado.
-- Saida observavel: o botao local passa ao estado selecionado.
+The acknowledgement is received for the human whose ID matches
+`Header.ID`. In the active server, the first participant to check receives
+this acknowledgement; the other participant receives the checked offer.
+It is not an acknowledgement sent by the peer directly to the client.
+
+Expected visible result: the local trade check control becomes selected.
+The acknowledgement consumer does not transfer items or gold.
 
 ### Callers
 
-Nao resolvido para o binario nativo neste lote. O dispatcher recompilavel
-seleciona `0x386` em `TMHuman::OnPacketEvent`.
+Human packet receiver `FUN_0052EAA9` first rejects deletion-pending receivers
+(`this+0x214`), null packets, and a packet ID that differs from the receiver's
+ID at `this+0x20`. At `0x0052EE19` it compares the opcode with `0x386`;
+the selected branch calls `FUN_0052E684` at `0x0052EE28`.
 
-### Função principal
+The human primary vtable `0x005A557C` binds packet reception at slot
+`+0x04` (`0x005A5580 -> 0x0052EAA9`). Constructor `FUN_004F7EA6`
+stores this vptr at `0x004F7F98`; destructor `FUN_004F8EBB` restores it
+at `0x004F8EDF`. This establishes the concrete receiver binding, not the
+entire socket-to-object traversal.
 
-Nao atribuida no Ghidra. O equivalente recompilavel
-`TMHuman::OnPacketCNFCheck` valida cena/control container e marca somente
-`TMB_TRADE_MYCHECK`.
+### Main function
+
+`FUN_0052E684 @ 0x0052E684..0x0052E6C5`:
+
+1. Reads the current scene from `DAT_0067CF38`.
+2. Loads its control container at scene offset `+0x28`.
+3. Requests control ID `0x269` (617, `TMB_TRADE_MYCHECK`).
+4. Calls container vtable slot `+0x48`.
+5. Writes integer `1` to the returned control at `+0x1E8`
+   (`MOV dword ptr [EAX + 0x1e8],0x1` at `0x0052E6B1`).
+6. Returns `1` with `RET 4`.
+
+The write is **32 bits**, not a byte. The consumer neither reads a payload
+nor retains the packet. It performs no allocation or economic mutation.
 
 ### Callees
 
-Nao resolvido no nativo. Na source, `FindControl(TMB_TRADE_MYCHECK)` e a unica
-consulta relevante; o resultado opcional recebe `m_bSelected=1`.
+The container primary vptr is `0x005A3F34`, stored by constructor
+`FUN_0040C2CD` at `0x0040C32D`. Field scene constructor `FUN_00493E70`
+calls that constructor at `0x004940B1` and publishes the result at scene
+`+0x28` at `0x004940DE`.
 
-### Saídas e erros
+Slot `+0x48` at `0x005A3F7C` points to `FUN_0040CDD7`, the control
+lookup. It walks the tree rooted at container `+0x28`, ignores deleted
+nodes, compares the requested ID with the virtual control-ID getter, and
+returns a match or null. The standard control getter `FUN_0040BFF0`
+reads the 32-bit ID at control `+0x44`; its binding at slot `+0x48`
+is confirmed in the base control and panel tables
+(`0x005A34F4`, `0x005A3E48`).
 
-Na source, cena ausente, container ausente, cena fora de Field ou controle nao
-materializado nao causam dereference nem retry; o handler retorna `1`.
+Container `+0x30` is a different panel field, not this lookup's tree root.
+The same numerical virtual offset on the container and a control represents
+different methods; the resolved tables must not be conflated.
 
-## Estado e lifecycle
+### Outputs and errors
 
-### Matriz de transições
+Native `FUN_0052E684` does not guard the scene, container, or lookup result.
+The active handler adds these guards, including a Field-scene check, and
+returns `1` without mutation when a prerequisite is missing. Native
+lookup returning null is not evidence of a native safe dereference.
 
-| Evento/estado | Precondição | Função/call | Estado resultante | Side effects | Erro/saída |
-| --- | --- | --- | --- | --- | --- |
-| `0x386/12B` valido | Field + container + controle | `OnPacketCNFCheck` | `MyCheck` selecionado | feedback visual local | retorna `1` |
-| cena/controle ausente | qualquer | `OnPacketCNFCheck` | estado preservado | nenhum | retorna `1` |
-| frame invalido | antes do callback | `ReceivedPacketDispatch` | estado preservado | nenhum | entrega rejeitada |
+## State and lifecycle
 
-### Vtables, vptrs e receptores
+### Transition matrix
 
-N/A para a decisao deste lote: o gate atua antes do dispatcher legado e o
-consumidor recompilavel acessa diretamente o container da cena corrente.
+| Event | Preconditions | Result | Economic side effects | Failure |
+| --- | --- | --- | --- | --- |
+| First valid check | Valid mutual server session and unchanged offer | Owner gets `0x386/12`; peer gets checked `0x383/156` | None | Invalid intent is rejected |
+| Repeated first check | Peer has not checked | Same acknowledgement/offer; only owner stays checked | None | No premature commit |
+| Uncheck | Existing offer/session | Peer sees unchecked offer; no local success acknowledgement | None | No persistence |
+| Client receives valid acknowledgement | Matching human, Field/container/control present | Local `MyCheck` integer becomes 1 | None | Missing UI is a no-op in active source |
+| Invalid client envelope | Null, truncated, oversized, inconsistent metadata/header | No callback delivery | None | Active receive gate rejects |
+| Second participant checks | Both offers revalidated | Existing atomic commit path | Atomic transfer/persistence | Existing rollback/cancellation |
+
+### Vtables, vptrs, and receivers
+
+The human vtable identifies the receiver; the container vtable identifies
+lookup. Both are tied to constructor writes rather than inferred from 7.69.
+Control getter bindings establish the ID comparison used by lookup. No
+callback or timer is registered by the acknowledgement.
 
 ### Ownership
 
-O frame e emprestado durante a chamada. O handler nao conserva ponteiro, nao
-aloca recurso e somente altera um byte de estado pertencente ao controle.
+The packet is borrowed during the call. The selected flag belongs to the
+scene-owned control; the handler keeps no pointer after returning. The
+server's trade state belongs to the authoritative world, not to that flag.
 
-### Falha parcial
+### Partial failure
 
-O gate rejeita o frame antes de qualquer mutacao. Depois da entrega valida, a
-ausencia do controle deixa a UI inalterada sem estado parcial adicional.
+The active receive gate rejects invalid frames before UI mutation. A missing
+scene/container/control produces no mutation. Native lookup is nullable,
+but the native consumer itself assumes a successfully materialized control.
+Server rejection does not publish `0x386` or a checked peer offer and does
+not persist or transfer items/gold.
 
-### Cleanup e teardown
+### Cleanup and teardown
 
-O handler nao possui recurso proprio. Fechar/cancelar o trade segue o fluxo
-existente `0x384`, que oculta e reinicializa a janela.
+Native close-trade consumer `FUN_0052E2F6` uses the existing trade-close
+path. Reused `FUN_0044B890(show=0)` evidence clears highlights, gold text,
+temporary offers, and transient state and hides Trade/Inventory.
+This acknowledgement introduces no additional cleanup resource.
 
 ### Shutdown
 
-N/A: nao ha callback, timer, alocacao ou ownership criado por `0x386`.
+No acknowledgement-specific allocation, timer, or callback needs disposal.
+Scene/control teardown remains the owner of the visual state.
 
-### Logout e relogin
+### Logout and relogin
 
-O controle pertence a FieldScene e nao sobrevive a destruicao da cena. O teste
-real de logout/relogin durante trade permanece pendente no programa de paridade.
+The scene-owned control cannot survive Field-scene teardown. Re-entry builds
+new controls and bindings. Actual two-client cancellation, disconnect, and
+logout/relogin observation remains pending; static ownership evidence is
+not a runtime lifecycle test.
 
-## Wire, ABI e recursos
+## Wire, ABI, and resources
 
-Direcao S->C, opcode `0x386`, packing do header Windows existente e tamanho
-total de 12 bytes. Nao ha payload.
+Direction S->C, opcode `0x386`, total size 12 bytes, header-only, little-endian
+Windows x86 representation. No payload or resource change.
 
-| Campo | Offset | Largura | Signedness/uso |
+| Field | Offset | Width | Interpretation |
 | --- | ---: | ---: | --- |
-| `Header.Size` | 0 | 2 | u16, deve ser 12 |
-| `Header.KeyWord` | 2 | 1 | u8, transporte |
-| `Header.CheckSum` | 3 | 1 | u8, transporte |
-| `Header.Type` | 4 | 2 | u16, deve ser `0x386` |
-| `Header.ID` | 6 | 2 | u16, personagem destinatario |
-| `Header.Tick` | 8 | 4 | u32 Windows, transporte |
+| Header.Size | 0 | 2 | u16, 12 |
+| Header.KeyWord | 2 | 1 | u8, transport |
+| Header.CheckSum | 3 | 1 | u8, transport |
+| Header.Type | 4 | 2 | u16, `0x386` |
+| Header.ID | 6 | 2 | u16, acknowledged human |
+| Header.Tick | 8 | 4 | u32, transport |
 
-`TradeCheckConfirmationContract.h` vincula o opcode a `sizeof(MSG_STANDARD)` e
-falha em compilacao se o envelope deixar de ter 12 bytes. Nenhum asset participa.
+Native size-policy `FUN_0055890A` maps the `0x386` switch case to
+`0x005593AF`, compares declared size with `0x0C` at `0x005593B7`,
+and marks mismatch at `0x005593BC`. This proves the table entry, not
+that the policy is invoked for live network frames. Its unresolved external
+entry remains a separate gap.
 
-## Mapeamento atual
+`TradeCheckConfirmationContract.h` ties the active opcode to
+`sizeof(MSG_STANDARD)`, with a 12-byte static assertion. Native object
+offsets are evidence only; the active code accesses named members.
 
-### Source recompilável
+## Current mapping
 
-`TMHuman::OnPacketEvent` usa a constante compartilhada. O gate central exige
-tamanho real/declarado exato e coerencia entre metadata e `Header.Type` antes
-de chamar `OnPacketCNFCheck`.
+### Recompilable client
+
+`TMHuman::OnPacketEvent` selects the shared opcode.
+`TMHuman::OnPacketCNFCheck` guards packet/scene/container/Field/control
+and writes `SControl::m_bSelected`, an `int`.
+The shared receive gate requires exact actual/declared length and matching
+metadata/embedded opcode before delivery.
 
 ### WYD-Go
 
-`wire.CNFTradeCheck(id)` chama `Build(OpCNFTradeCheck, id, 12)`. O servidor
-emite a confirmacao ao primeiro check valido e conserva a decisao autoritativa
-do trade; o segundo check efetiva a troca somente apos revalidacao e commit.
+`wire.CNFTradeCheck(id)` builds `OpCNFTradeCheck` with size 12.
+The first valid `onTrade` check acknowledges the owner and publishes the
+authoritative checked offer to the peer. The second check follows the existing
+revalidation and atomic commit path. A visual acknowledgement never grants
+economic authority to the client.
 
-## Matriz de delta
+## Delta matrix
 
-| Claim | Nativo 7.48 | Source atual | TMProject | WYD-Go | Decisão |
-| --- | --- | --- | --- | --- | --- |
-| callback visual | raiz ainda nao isolada | marca `MyCheck` | procedencia nao alegada | emite apos check valido | preservar |
-| envelope | tamanho nativo nao promovido | consumidor usa so header | literal antigo `0x386` | builder 12B | `MODERNIZACAO_COMPATIVEL` |
-| autoridade | nao reaberta | feedback visual | N/A | servidor decide e persiste | manter servidor autoritativo |
+| Claim | Native evidence | Active implementation | Classification |
+| --- | --- | --- | --- |
+| Local check feedback | Concrete human case, lookup and integer write | Selects the same control | `PARIDADE_NATIVA` |
+| Header-only representation | Consumer reads no payload; size-policy entry is 12 | Shared 12-byte contract | `PARIDADE_NATIVA` representation only |
+| Safe delivery/missing UI | Native consumer lacks nullable-UI guards; transport caller unresolved | Exact-size gate and optional-control guards | `MODERNIZACAO_COMPATIVEL` |
+| Trade authority | Native client does not implement server persistence | Server validates and commits | No native backend parity claim |
 
-## Decisões
+## Decisions
 
-- Fixar `0x386` como frame header-only de 12 bytes para o unico par ativo
-  TMProject748/WYD-Go.
-- Rejeitar nulo, truncamento, excesso e discriminantes divergentes antes de
-  qualquer alteracao visual.
-- Nao promover a equivalencia nativa nem nomear funcao Ghidra sem o case
-  reproduzivel.
+- Promote knowledge of the local acknowledgement transition to `CONTRACT`.
+- Preserve the current receiver, 12-byte envelope, and server-owned trade
+  lifecycle; no functional implementation change is needed for this batch.
+- Correct the old byte-write and peer-origin descriptions.
+- Do not promote the independent native transport gate or runtime validation.
 
-## Lacunas
+## Gaps
 
-- Isolar `0x386` no dispatcher/consumidor do projeto Ghidra quando a proxima
-  decisao depender de paridade nativa, sem bloquear este gate interno.
-- Executar trade com dois clients, primeiro/segundo check, cancelamento,
-  disconnect e logout/relogin; o fluxo ainda nao e `CLIENT_TESTED`.
+- Native external invocation of `FUN_0055890A` remains unresolved; retain
+  the separate packet-size-gate record at `LOCATED`.
+- Entire socket-to-human virtual traversal and concrete button construction
+  are not newly mapped here; the bound human receiver, container lookup, and
+  existing UI bindings are the scope of this contract.
+- Execute two built clients through first/second check, cancel, disconnect,
+  and logout/relogin before claiming `CLIENT_TESTED`.
 
-## Validação
+## Validation
 
-- Pesquisa: source, builder/emissor Go e documentacao vigente cruzados; busca
-  nos exports versionados nao encontrou prova suficiente para promover o fluxo.
-- Automacao: `ArchitectureTests` passou com 41.253 checks/asserts; build Release
-  x86 e instalacao do candidato passaram; `go test -count=1 ./...`,
-  `go vet ./...`, XML, layout, links e `git diff --check` passaram.
-- Client real: nao executado; `CLIENT_TESTED` permanece pendente.
+- STATICALLY VERIFIED: native receiver branch, human/container vptr writes,
+  lookup target/body, standard control-ID getter, 32-bit selected write,
+  and size-policy entry are recorded as reproducible instruction excerpts.
+  Headless exports used read-only/no-analysis mode against the same native hash.
+- AUTOMATED TESTED (reused, unchanged inputs): published commit `e92c5749`
+  passed `TestTradeCheckContractPublicationAndRepetition`,
+  all fifteen `TestTradeCheckContractRejections` scenarios, and affected
+  atomic-commit, rollback, close-trade, and `TestTrade748Layout` tests.
+  Responses were decrypted and checked for exact envelope, recipient,
+  offer bytes, no extra success packets, and no first-check persistence.
+- Earlier client validation (reused, not rerun): the unchanged receive-gate
+  tests cover all truncated prefixes, excess, null storage, mismatched
+  discriminants, and valid delivery. Commit `65ce1247` recorded 58,666
+  architecture checks, 221 socket checks, and a Release x86 no-deploy build.
+- Documentation/evidence validation: the research schema, repository
+  layout/local-link validator, and `git diff --check` passed for this batch.
+- CLIENT-TESTED: not performed. No candidate was installed or run.

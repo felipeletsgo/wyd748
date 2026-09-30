@@ -209,6 +209,7 @@ Markdown documents: 152.
 - [.agents/research/client748/exports/select-character-transfer-focused.tsv](<../.agents/research/client748/exports/select-character-transfer-focused.tsv>)
 - [.agents/research/client748/exports/shop-inventory-layout-flow.tsv](<../.agents/research/client748/exports/shop-inventory-layout-flow.tsv>)
 - [.agents/research/client748/exports/skill-belt-page-flow.tsv](<../.agents/research/client748/exports/skill-belt-page-flow.tsv>)
+- [.agents/research/client748/exports/trade-check-confirmation.tsv](<../.agents/research/client748/exports/trade-check-confirmation.tsv>)
 - [.agents/research/client748/exports/trade-inventory-layout-flow.tsv](<../.agents/research/client748/exports/trade-inventory-layout-flow.tsv>)
 - [.agents/research/client748/exports/ui-focus-ime.tsv](<../.agents/research/client748/exports/ui-focus-ime.tsv>)
 - [.agents/research/client748/exports/unresolved-reference-resolution.tsv](<../.agents/research/client748/exports/unresolved-reference-resolution.tsv>)

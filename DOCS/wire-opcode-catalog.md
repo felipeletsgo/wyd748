@@ -238,6 +238,16 @@ requires the full envelope before `OnPacketWithdraw`/`OnPacketDeposit` casts.
 WYD-Go validates and persists the transfer, returns the same opcode/amount,
 then reconciles balances with authoritative `0x339` and `0x337` frames.
 
+`0x386` (first trade-check acknowledgement, S->C, 12 bytes) uses
+`TradeCheckConfirmationContract.h`. It has no payload; `Header.ID` selects
+the acknowledged human. The [native receiver and control-write evidence](../.agents/research/client748/flows/transport/trade-check-confirmation-contract.md)
+resolves the local `MyCheck` feedback. WYD-Go acknowledges the owner and
+publishes a checked `0x383/156` offer to the peer without transferring items
+or gold. Repetition, revocation, invalid offers/sessions, exact decrypted
+responses, and absence of first-check persistence are covered by the published
+`trade_check_contract_test.go` tests. The native size-policy table entry is
+confirmed, but its live transport invocation remains unresolved.
+
 `0x39F` (PlayerChallenge, bidirectional, 20 bytes) uses
 `PlayerChallengeContract.h`: the other player occupies `Parm1/+12`, and
 the mode occupies `Parm2/+16`. The same envelope carries initial intent

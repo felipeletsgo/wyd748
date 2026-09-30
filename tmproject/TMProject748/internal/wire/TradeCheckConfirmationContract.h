@@ -3,9 +3,9 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Confirmacao S->C do primeiro check do trade. O evento nao possui payload:
-// a identidade do personagem permanece no Header.ID e o consumidor apenas
-// marca o controle MyCheck da janela ativa.
+// Server-to-client acknowledgement of the first trade check, without payload.
+// Header.ID identifies the acknowledged human; the consumer only selects
+// the local MyCheck control in the active trade window.
 constexpr auto MSG_CNFTradeCheck_Opcode = 0x386;
 constexpr std::size_t kTradeCheckConfirmationPacketSize = sizeof(MSG_STANDARD);
 

@@ -295,6 +295,29 @@ established by the envelope trace. The current server's snapshot-based sale
 does not exercise this legacy callback. No visual client execution or
 installation was performed; the record remains `CONTRACT`, not `CLIENT_TESTED`.
 
+### First trade-check acknowledgement
+
+The [native acknowledgement contract](../../.agents/research/client748/flows/transport/trade-check-confirmation-contract.md)
+now resolves `0x386` to human receiver `FUN_0052EAA9`, its concrete vtable
+binding, and consumer `FUN_0052E684`. The consumer looks up control 617
+(`TMB_TRADE_MYCHECK`) through the resolved container lookup and writes a
+32-bit selected flag. It does not transfer items or gold. The old evidence
+record's byte-write and unresolved-consumer descriptions were incorrect.
+
+The active 12-byte header-only contract and optional-UI guards already match
+this transition. The first server check acknowledges the owner and sends the
+checked `0x383/156` offer to the peer; the second check remains an atomic
+server-owned transaction. Published tests in `e92c5749` cover repetition,
+revocation, fifteen rejection scenarios, exact decrypted recipient/envelopes,
+and absence of first-check transfers or persistence. These unchanged results
+are reused, not rerun for a documentation/comment-only batch.
+
+The native size-policy body has a `0x386/12` entry, but its external invocation
+remains unresolved; this is not proof of a live native transport rejection
+path. Two-client trade, cancellation, disconnect, and logout/relogin remain
+pending runtime gates. The acknowledgement record is `CONTRACT`, not
+`CLIENT_TESTED`.
+
 ### Auto-trade visual ownership
 
 `TMFieldScene::OnPacketItemSold` preserves the documented
