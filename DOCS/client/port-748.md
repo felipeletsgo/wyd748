@@ -261,35 +261,39 @@ build passed with 52,035 architecture checks and 221 socket checks. No files
 were removed, and the executable was neither installed nor run. These are
 source/build checks, not execution of the DirectX sale UI.
 
-The receive boundary now also protects the inherited callback's memory reads.
-`LegacySalePacket.h` extracts the unchanged `MSG_Sell` representation from
-`Basedef.h`, with size and field-offset assertions. Before handing off the
-borrowed buffer, `received_packet::CanDispatch` requires at least its 20 bytes,
-matching metadata/embedded opcodes, and matching declared/actual lengths.
-The check handles either opcode discriminator, so inconsistent metadata cannot
-bypass it. This is a source-representation minimum, **not** a claim that the
-native S->C response has that exact envelope. Larger consistent frames remain
-accepted; `ExpectedSize(0x37A)` remains zero pending native evidence.
+The initial receive guard protected the inherited callback's memory reads
+with a minimum 20-byte representation. The 2026-09-30
+[native sale-envelope record](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md)
+now closes the exact-size question: the recovered native field receiver
+`FUN_00492e7d` dispatches `0x37A` to `FUN_00487e23`, and the size-policy
+case in `FUN_0055890a` requires exactly 20 bytes. The packet-receiver
+vtable slot and payload word offsets/signedness are recorded with focused
+instruction evidence. The response is not merely inferred from its name
+or the client request structure.
 
-Executable regression tests reproduced callback delivery for truncated frames
-of 12 through 19 bytes before the guard. Afterward, all truncated prefixes,
-null storage, mismatched opcodes, and inconsistent lengths are rejected;
-complete unaligned storage is borrowed once without modification. A larger
-consistent frame confirms that no unproven exact-size restriction was added.
-The architecture suite passes 52,086 checks and the socket suite passes 221.
-`Build-Client.ps1 -Configuration Release -NoDeploy` passes after the guard
-and shared-header extraction; the candidate was neither installed nor run.
-Repository layout/local-link validation passed for that build; the inventory
-count is generated independently and may change.
+`LegacySalePacket.h` keeps the unchanged representation and offset assertions.
+`ExpectedSize(0x37A)` is now 20, and the shared fixed-size receive policy
+requires matching metadata/embedded opcodes and exact declared/actual lengths.
+This envelope restriction is `PARIDADE_NATIVA`; the shared fail-closed gate
+and ownership protections remain `MODERNIZACAO_COMPATIVEL`. Larger consistent
+frames no longer reach the lengthless handler. No server response was added.
 
-Remaining boundary: the inherited `0x37A` response still lacks a complete
-native direction/consumer trace. The documented local Ghidra project and
-decompilation directories are absent, and the retained focused exports do
-not close that gap. Recover the native consumer evidence before assigning
-an exact-size contract, claiming parity, or deciding whether to remove the
-handler. The current server's snapshot-based sale does not exercise it.
-The recorded batch did not execute the visual client; automated receive-gate
-coverage does not establish `CLIENT_TESTED` status.
+Five regression failures demonstrated that 21-, 24-, and 65,535-byte frames
+were delivered before the exact-size patch and that the size policy was missing.
+The fixed little-endian 20-byte fixture, all truncated prefixes, null storage,
+mismatched discriminants, inconsistent lengths, oversized frames, and
+unaligned immutable storage are covered. The updated architecture suite
+passes 58,666 checks; the socket suite passes 221. Five focused Go merchant,
+rejection, city-tax, and persistence-rollback tests pass without server changes.
+`Build-Client.ps1 -Configuration Release -NoDeploy` completed the integrated
+incremental build. Existing compiler warnings remain in unchanged legacy
+source; this is not a warning-free build. The artifact stays in the ignored
+build directory and the installed `project.exe` was not replaced.
+
+Remaining boundary: full downstream native grid/UI and price parity is not
+established by the envelope trace. The current server's snapshot-based sale
+does not exercise this legacy callback. No visual client execution or
+installation was performed; the record remains `CONTRACT`, not `CLIENT_TESTED`.
 
 ### Auto-trade visual ownership
 

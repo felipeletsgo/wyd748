@@ -1,0 +1,30 @@
+record	owner	address	bytes_or_value	observation
+program	WYD.exe	00400000	8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593	Native x86 image identity
+instruction	00492e7d	004932f2	81FA88030000	CMP EDX,0x388
+instruction	00492e7d	00493301	E8A35BFFFF	CALL 0x00488ea9
+instruction	00492e7d	00493314	81FA87030000	CMP EDX,0x387
+instruction	00492e7d	00493323	E8E15BFFFF	CALL 0x00488f09
+instruction	0055890a	005593cd	668B08	MOV CX,word ptr [EAX]
+instruction	0055890a	005593d0	83F910	CMP ECX,0x10
+instruction	0055890a	005593d3	7407	JZ 0x005593dc
+instruction	0055890a	005593d5	C745FC01000000	MOV dword ptr [EBP + -0x4],0x1
+instruction	0055890a	005593e6	668B02	MOV AX,word ptr [EDX]
+instruction	0055890a	005593e9	83F810	CMP EAX,0x10
+instruction	0055890a	005593ec	7407	JZ 0x005593f5
+instruction	0055890a	005593ee	C745FC01000000	MOV dword ptr [EBP + -0x4],0x1
+instruction	00488ea9	00488ebe	8B91580C0000	MOV EDX,dword ptr [ECX + 0xc58]
+instruction	00488ea9	00488ec7	03500C	ADD EDX,dword ptr [EAX + 0xc]
+instruction	00488ea9	00488ed0	8991580C0000	MOV dword ptr [ECX + 0xc58],EDX
+instruction	00488ea9	00488edf	8B8A04070000	MOV ECX,dword ptr [EDX + 0x704]
+instruction	00488ea9	00488ee5	2B480C	SUB ECX,dword ptr [EAX + 0xc]
+instruction	00488ea9	00488eee	898A04070000	MOV dword ptr [EDX + 0x704],ECX
+instruction	00488ea9	00488ef9	E8E6A2FBFF	CALL 0x004431e4
+instruction	00488ea9	00488f06	C20400	RET 0x4
+instruction	00488f09	00488f21	8B81580C0000	MOV EAX,dword ptr [ECX + 0xc58]
+instruction	00488f09	00488f27	2B420C	SUB EAX,dword ptr [EDX + 0xc]
+instruction	00488f09	00488f30	8981580C0000	MOV dword ptr [ECX + 0xc58],EAX
+instruction	00488f09	00488f3c	8B8204070000	MOV EAX,dword ptr [EDX + 0x704]
+instruction	00488f09	00488f45	03410C	ADD EAX,dword ptr [ECX + 0xc]
+instruction	00488f09	00488f4e	898204070000	MOV dword ptr [EDX + 0x704],EAX
+instruction	00488f09	00488f59	E886A2FBFF	CALL 0x004431e4
+instruction	00488f09	00488f66	C20400	RET 0x4

@@ -3,8 +3,9 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Existing request/legacy-handler representation, not proof of a native
-// S->C response contract. WYD-Go replies with SendItem and UpdateEtc instead.
+// Native 7.48 sale representation: the received 0x37A envelope is exactly
+// 20 bytes. WYD-Go uses this opcode for the request, but replies with
+// authoritative SendItem and UpdateEtc snapshots instead.
 constexpr auto MSG_Sell_Opcode = 0x37A;
 struct MSG_Sell
 {

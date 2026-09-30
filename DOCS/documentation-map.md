@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 151.
+Markdown documents: 152.
 
 | Document | Type |
 | --- | --- |
@@ -41,6 +41,7 @@ Markdown documents: 151.
 | [.agents/research/client748/flows/transport/hp-mp-source-contract.md](<../.agents/research/client748/flows/transport/hp-mp-source-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/inventory-transaction-confirmations.md](<../.agents/research/client748/flows/transport/inventory-transaction-confirmations.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/keepalive-ping.md](<../.agents/research/client748/flows/transport/keepalive-ping.md>) | Research evidence |
+| [.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md](<../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/missing-entity-request.md](<../.agents/research/client748/flows/transport/missing-entity-request.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/motion-emote-roundtrip.md](<../.agents/research/client748/flows/transport/motion-emote-roundtrip.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/packet-size-gate.md](<../.agents/research/client748/flows/transport/packet-size-gate.md>) | Research evidence |
@@ -164,6 +165,7 @@ Markdown documents: 151.
 ## Structured research catalogs
 
 - [.agents/research/client748/exports/auto-skill-belt-controls-flow.tsv](<../.agents/research/client748/exports/auto-skill-belt-controls-flow.tsv>)
+- [.agents/research/client748/exports/cargo-gold-confirmations.tsv](<../.agents/research/client748/exports/cargo-gold-confirmations.tsv>)
 - [.agents/research/client748/exports/challenge-confirm-flow.tsv](<../.agents/research/client748/exports/challenge-confirm-flow.tsv>)
 - [.agents/research/client748/exports/change-city-request-flow.tsv](<../.agents/research/client748/exports/change-city-request-flow.tsv>)
 - [.agents/research/client748/exports/city-war-prompt-flow.tsv](<../.agents/research/client748/exports/city-war-prompt-flow.tsv>)
@@ -175,6 +177,7 @@ Markdown documents: 151.
 - [.agents/research/client748/exports/guild-deprivate-flow.tsv](<../.agents/research/client748/exports/guild-deprivate-flow.tsv>)
 - [.agents/research/client748/exports/guild-relations-flow.tsv](<../.agents/research/client748/exports/guild-relations-flow.tsv>)
 - [.agents/research/client748/exports/keepalive-ping-flow.tsv](<../.agents/research/client748/exports/keepalive-ping-flow.tsv>)
+- [.agents/research/client748/exports/legacy-sale-confirmation.tsv](<../.agents/research/client748/exports/legacy-sale-confirmation.tsv>)
 - [.agents/research/client748/exports/missing-native-addresses.tsv](<../.agents/research/client748/exports/missing-native-addresses.tsv>)
 - [.agents/research/client748/exports/motion-emote-flow.tsv](<../.agents/research/client748/exports/motion-emote-flow.tsv>)
 - [.agents/research/client748/exports/native-mix-inventory-layout-flow.tsv](<../.agents/research/client748/exports/native-mix-inventory-layout-flow.tsv>)

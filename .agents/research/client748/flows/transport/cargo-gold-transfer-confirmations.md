@@ -1,151 +1,215 @@
 ---
 id: cargo-gold-transfer-confirmations
-title: Confirmações de depósito e saque de gold do Cargo
+title: Native Cargo gold confirmations move both balances with a 16-byte envelope
 subsystem: transport
-status: UNMAPPED
-native_sha256: UNRESOLVED
-updated: 2026-09-21
+status: CONTRACT
+native_sha256: 8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+updated: 2026-09-30
 ---
 
-# Confirmações de depósito e saque de gold do Cargo
+# Cargo gold transfer confirmations
 
-## Pergunta
+## Question
 
-Qual envelope o TMProject deve exigir antes de `OnPacketDeposit` e
-`OnPacketWithdraw` aplicarem a confirmação publicada pelo WYD-Go?
+Which received envelope and balance transition must the buildable client
+preserve for deposits (`0x388`) and withdrawals (`0x387`)? Does the current
+server persist both balances before publishing that transition?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- UTILIZADA: source atual do client, incluindo construção dos pedidos,
-  `TMFieldScene::OnPacketEvent`, `OnPacketDeposit` e `OnPacketWithdraw`.
-- UTILIZADA: `wire.CargoGoldTransfer`, `onCargoGold`, gate de segurança e testes
-  do WYD-Go, que fixam 16 bytes e o valor `uint32` em `+12`.
-- UTILIZADA: `world-state-parameter-contracts.md` para os snapshots
-  autoritativos subsequentes `0x339` e `0x337`.
-- NÃO APLICÁVEL: assets não alteram este envelope.
-- INDISPONÍVEL NESTA RETOMADA: corpus textual externo. Não há nova claim de
-  instrução ou endereço nativo para `0x387/0x388`.
+- **USED:** read-only `references/client748/WYD.exe`, SHA-256 above, x86
+  image base `0x00400000`, recovered Ghidra project
+  `tmproject/build/native-research/WYD748.gpr`, program `WYD.exe`.
+- **USED:** unchanged prior instruction exports for field receiver
+  `FUN_00492e7d`, size policy `FUN_0055890a`, and the field receiver table.
+  Existing coverage was reused without exporting those roots again.
+- **USED:** new read-only, no-analysis inspection of `FUN_00488ea9` and
+  `FUN_00488f09`, and [focused instruction evidence](../../exports/cargo-gold-confirmations.tsv).
+  Each consumer export reports 25 instructions and 11 references, with the
+  expected program hash and no script error. Decompiler inspection completed
+  with `inspection_complete`. Full exports/logs remain ignored build artifacts.
+- **USED:** `CargoGoldTransferContract.h`, `ReceivedPacketDispatch.h`,
+  `TMFieldScene::OnPacketDeposit`/`OnPacketWithdraw`, and existing
+  `ReceivedPacketDispatchTests.cpp` coverage.
+- **USED:** `wydgo748/internal/game/handlers.go::onCargoGold`, `saveAccount`,
+  wire builders/tests, and new `cargo_gold_contract_test.go` regressions.
+- **USED:** [world-state parameter contracts](world-state-parameter-contracts.md)
+  for the subsequent authoritative `0x339` snapshot. Gold in `0x337` is
+  independently checked by the new encrypted response test.
+- **NOT APPLICABLE:** assets and external legacy implementations; neither
+  determines this payload. TMProject 7.69 is secondary source architecture.
+- **CONTRADICTORY:** the previous unresolved native consumer status; the
+  recovered project proves both received branches and balance mutations.
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
-### Entrada observável
+### Observable entry
 
-O client envia `0x388` para depósito e `0x387` para saque com um DWORD de
-quantidade em `+12`. O peer ativo devolve o mesmo opcode e quantidade como
-confirmação, seguido dos snapshots autoritativos de Cargo e personagem.
+Incoming field packets carry the opcode word at `+4`. Deposit and withdrawal
+reach distinct consumers; both read the DWORD at `+12` and adjust Cargo and
+character gold oppositely. This proves a received confirmation, not just
+a request builder.
 
 ### Callers
 
-Na source recompilável, `TMFieldScene::OnPacketEvent` encaminha `0x388` a
-`OnPacketDeposit` e `0x387` a `OnPacketWithdraw`. Endereços do binário nativo
-não foram promovidos nesta ficha.
+`FUN_00492e7d` compares `0x388` at `0x004932f2` and calls
+`FUN_00488ea9` at `0x00493301`; it compares `0x387` at `0x00493314`
+and calls `FUN_00488f09` at `0x00493323`.
+The field receiver's table/lifecycle proof is reused from the
+[sale envelope record](legacy-sale-confirmation-envelope.md): table
+`0x005a4294`, receiver slot `0x005a4298`, constructor/destructor references
+`0x00434407`/`0x004358fb`.
 
-### Função principal
+The size-policy computed jump at `0x00558ad3` reaches cases `0x005593c8`
+(`0x387`) and `0x005593e1` (`0x388`). Each compares the size word
+at `+0` against `0x10`. No new complete network call-chain trace for
+that size validator is claimed.
 
-Os dois handlers fazem cast para `MSG_STANDARDPARM` e leem `Parm` em `+12`.
-Antes deste corte, o dispatcher admitia qualquer frame com o header mínimo de
-12 bytes, permitindo leitura além do buffer em uma confirmação truncada.
+### Main function
+
+Both consumers are x86 `__thiscall` receivers with one packet pointer
+argument and `RET 4` (`0x00488f06` and `0x00488f66`).
+At manager base `DAT_013b71e8`, Cargo gold occupies `+0xc58` and
+character gold `+0x704` in this native binary, not the candidate ABI.
+Deposit adds the packet DWORD to Cargo and subtracts it from character gold;
+withdrawal reverses those operations. The arithmetic works on 32-bit bit
+patterns; it does not establish native server-side signedness or valid ranges.
 
 ### Callees
 
-Os handlers atualizam os contadores locais exibidos. O WYD-Go valida NPC,
-saldo, teto de gold e persistência antes de publicar a confirmação.
+Each calls `FUN_004431e4` with argument zero and the same scene receiver
+after mutation, then returns 1. Current source maps this to
+`UpdateScoreUI(0)`. Downstream control identities are not newly traced
+or required for the envelope/balance contract.
 
-### Saídas e erros
+### Outputs and errors
 
-Frames nulos, truncados, excedentes ou com `Header.Size`/`Header.Type`
-divergentes são rejeitados antes dos handlers. Rejeições de regra de negócio
-continuam sem confirmação de sucesso e sem mutação autoritativa.
+Native size cases set a rejection flag for a declared size other than 16.
+The candidate also checks actual length and matching opcodes before the
+lengthless callback. Invalid frames do not reach consumers or modify borrowed
+bytes. Native consumers perform unconditional local arithmetic; that does
+not authorize bypassing server rejection or persistence.
 
-## Estado e lifecycle
+## State and lifecycle
 
-### Matriz de transições
+### Transition matrix
 
-| Evento/estado | Precondição | Função/call | Estado resultante | Side effects | Erro/saída |
+| Event/state | Precondition | Function/call | Resulting state | Side effects | Error/exit |
 | --- | --- | --- | --- | --- | --- |
-| depósito confirmado | frame 16B válido | `OnPacketDeposit` | UI transfere a quantia para Cargo | snapshots `0x339/0x337` reconciliam | inválido não chega ao handler |
-| saque confirmado | frame 16B válido | `OnPacketWithdraw` | UI transfere a quantia para personagem | snapshots `0x339/0x337` reconciliam | inválido não chega ao handler |
-| envelope inválido | qualquer | `ReceivedPacketDispatch` | estado preservado | nenhum callback | retorna `false` |
+| Deposit confirmation | Valid 16-byte `0x388` | `FUN_00488ea9` | Cargo increases; character decreases | UI refresh | Candidate rejects invalid envelope first |
+| Withdrawal confirmation | Valid 16-byte `0x387` | `FUN_00488f09` | Cargo decreases; character increases | UI refresh | Candidate rejects invalid envelope first |
+| Server request | Live player, visible nearby banker, valid balances/amount | `onCargoGold` | Both balances persisted | Confirmation, Cargo snapshot, character snapshot | Reject invalid operation |
+| Save failure | Mutation attempted | `saveAccount` error | Both balances restored | Error panel only | No success snapshots |
+| Repeated request | Preconditions revalidated | `onCargoGold` | New transfer per successful request | Separate save/publication | No transaction ID or idempotence claim |
 
-### Vtables, vptrs e receptores
+### Vtables, vptrs, and receivers
 
-O receptor permanece `TMFieldScene`; o gate só valida o envelope antes do
-callback legado.
+The native field receiver uses the table proof cited above; both balance
+consumers are direct calls. No new virtual dispatch is introduced.
 
 ### Ownership
 
-O buffer é emprestado durante a chamada. O gate não retém nem altera bytes.
+The receive buffer is borrowed for the callback and never retained. Manager
+balances belong to existing application state. World owns server mutation;
+persistence receives an account snapshot.
 
-### Falha parcial
+### Partial failure
 
-Não há escrita local antes de validar os 16 bytes completos. Persistência e
-rollback de saldo permanecem responsabilidade do servidor.
+The server restores both balances on synchronous save failure and publishes
+only an error panel. New tests inspect the save boundary to prove no response
+preceded persistence, and test two failures followed by success in each direction.
 
-### Cleanup e teardown
+### Cleanup and teardown
 
-O gate não aloca recursos e não adiciona cleanup.
+These consumers allocate no visual or transport resources. The gate adds
+no cleanup; scene/manager teardown remains with existing owners.
 
 ### Shutdown
 
-N/A. Disconnect interrompe novas confirmações.
+No independent shutdown state exists here. Disconnect stops delivery;
+pending network delivery at shutdown is not proven by this record.
 
-### Logout e relogin
+### Logout and relogin
 
-Novo login recebe `CargoGold` no char-list e não depende da confirmação antiga.
+Cargo gold is supplied by the next character-list state and character gold
+by authoritative character state. A previous delta is not required to
+reconstruct either balance. Executed relogin remains pending.
 
-## Wire, ABI e recursos
+## Wire, ABI, and resources
 
-`0x387/0x388`, C<->S, 16 bytes:
+`0x387/0x388`, C<->S, exactly 16 bytes, standard header alignment:
 
-| Campo | Offset | Largura |
-| --- | ---: | ---: |
-| header | 0 | 12 |
-| quantidade | 12 | 4 |
+| Field | Offset | Width | Interpretation |
+| --- | ---: | ---: | --- |
+| Header size | 0 | 2 | Unsigned declared size, 16 |
+| Header opcode | 4 | 2 | Unsigned discriminator |
+| Header recipient | 6 | 2 | Current confirmations use `SceneField` |
+| Amount | 12 | 4 | Native DWORD; current server validates as `uint32` |
 
-`Header.ID` permanece `SceneField` nas confirmações do WYD-Go. O contrato não
-introduz recurso visual nem altera o limite econômico de 2.000.000.000.
+No asset dependency or wire field is introduced. Amounts and both resulting
+balances obey the server's existing 2,000,000,000 gold cap; that limit is
+not newly inferred from native client arithmetic.
 
-## Mapeamento atual
+## Current mapping
 
-### Source recompilável
+### Buildable source
 
-`CargoGoldTransferContract.h` centraliza opcodes, tamanho e offset.
-`ReceivedPacketDispatch` exige 16 bytes exatos antes dos casts legados, e
-asserts fixam a equivalência com `MSG_STANDARDPARM`.
+`CargoGoldTransferContract.h` centralizes opcodes, size and offset.
+Existing ABI assertions match `MSG_STANDARDPARM` and the exact receive gate.
+Both `TMFieldScene` consumers match native directions and DWORD offset.
+Only the header comment is translated/clarified in this batch; no executable
+client behavior changes or new product build are required.
 
 ### WYD-Go
 
-`onCargoGold` valida e persiste a operação, publica `CargoGoldTransfer` com o
-mesmo opcode e quantidade e depois envia `UpdateCargoGold` e `UpdateEtc`.
+`onCargoGold` validates player, live HP, exact buffer size, banker,
+nonzero amount, source balance and destination cap. It mutates both balances,
+saves the account, then sends `CargoGoldTransfer`, `UpdateCargoGold` and
+`UpdateEtc`, in that order. Save failure rolls back balances and sends no
+success confirmation.
 
-## Matriz de delta
+## Delta matrix
 
-| Claim | Nativo 7.48 | Source anterior | WYD-Go | Decisão |
+| Claim | Native 7.48 | Previous record | Current source/server | Decision |
 | --- | --- | --- | --- | --- |
-| envelope de confirmação | não reaberto nesta retomada | cast 16B sem gate exato | builder e receptor usam 16B | fixar contrato ativo em 16B |
-| autoridade de saldo | snapshots observáveis já documentados | aplica confirmação na UI | valida, persiste e reconcilia | preservar servidor autoritativo |
+| Received envelope | Two consumers and exact 16-byte size cases | Native evidence unresolved | Same gate/DWORD offset | Record `PARIDADE_NATIVA`; no ABI rewrite |
+| Balance directions | Deposit adds Cargo/subtracts character; withdrawal reverses | Active implementation only | Same transitions | Preserve proven implementation |
+| Persistence authority | Native server not studied | Basic success/rejection tests | Save before publication and rollback | Add focused regressions; no native server claim |
 
-## Decisões
+## Decisions
 
-- Classificar o gate como `MODERNIZACAO_COMPATIVEL`: ele preserva o contrato
-  já usado pelos dois projetos sem afirmar nova paridade de instruções nativas.
-- Não adicionar validação semântica local da quantidade; os snapshots
-  subsequentes continuam sendo a fonte autoritativa e evitam duplicar regra.
-- Manter depósito e saque no mesmo contrato porque compartilham ABI e lifecycle.
+- Classify recovered envelope and balance transitions as `PARIDADE_NATIVA`.
+  Retain the existing fail-closed gate's `MODERNIZACAO_COMPATIVEL`
+  classification; research maturity does not change implementation.
+- Preserve server validation and subsequent snapshots without duplicating
+  economy rules in the client.
+- Keep both directions together because their ABI/lifecycle match.
+- Update the existing record to `CONTRACT`, not a duplicate handoff or
+  `CLIENT_TESTED`.
 
-## Lacunas
+## Gaps
 
-- Falta executar depósito e saque no client real, incluindo rejeição por saldo,
-  teto e distância do NPC.
-- Uma afirmação de `PARIDADE_NATIVA` para os handlers exige restaurar o corpus
-  textual ou produzir nova evidência equivalente do binário 7.48.
-- O estado permanece `UNMAPPED` no catálogo nativo, embora o contrato entre a
-  source recompilável e o servidor ativo esteja implementado e testável.
+- Actual UI, rejection display, disconnect and relogin have not been executed
+  in the built DirectX client.
+- Injected store failures and snapshot assertions do not replace live
+  PostgreSQL commit/rollback or crash-durability validation.
+- The unchanged failure diagnostic in `handlers.go` still contains Portuguese.
+  Untouched language debt prevents a global English completion/release-ready claim.
 
-## Validação
+## Validation
 
-- Automação C++ cobre todos os prefixos, excesso, nulo, discriminantes,
-  imutabilidade e os dois opcodes.
-- Teste Go fixa 16 bytes, opcode, `SceneField` e quantidade em `+12`; testes do
-  handler cobrem sucesso e rejeição por saldo.
-- Client real: pendente; build e testes não promovem a `CLIENT_TESTED`.
+- **STATICALLY VERIFIED:** read-only Ghidra consumer inspection and focused
+  instruction exports; previous receiver/size/table exports reused.
+- **AUTOMATED TESTED:** three new `TestCargoGoldContract*` tests (24 leaf
+  cases): both directions, persistence/publication ordering and decrypted
+  responses, repetition, two save failures/retry, zero/excess amount,
+  insufficient funds, destination cap, dead/out-of-world players,
+  invisible/distant banker, truncated/oversized buffers. Wire tests
+  `TestCargoGoldTransfer748Layout` and `TestUpdateCargoGold748Layout` pass.
+  The dead-player fixture uses `setPlayerCurHP`, not the obsolete score-only
+  projection; the initial fixture failure did not establish a product bug.
+- Existing C++ tests cover both envelopes, all prefixes, excess, null,
+  discriminants and immutability. The preceding batch passed 58,666 architecture
+  checks. No client semantic change invalidates that result; it is reused.
+- **CLIENT_TESTED:** not claimed. No installation, launch, live database test
+  or concurrency claim is made by this batch.

@@ -101,6 +101,7 @@ namespace received_packet
         case MSG_Action2_Opcode: return kActionPacketSize;
         case MSG_SwapItem_Opcode: return kSwapItemPacketSize;
         case MSG_Buy_Opcode: return kBuyPacketSize;
+        case MSG_Sell_Opcode: return sizeof(MSG_Sell);
         case MSG_Withdraw_Opcode:
         case MSG_Deposit_Opcode: return kCargoGoldTransferPacketSize;
         case MSG_AutoTrade_Opcode: return kAutoTradePacketSize;
@@ -139,15 +140,6 @@ namespace received_packet
         // inspection; never write or copy the handlers' payload.
         MSG_STANDARD header{};
         std::memcpy(&header, packet.data, sizeof(header));
-
-        // The inherited sale callback reads MSG_Sell without a length argument.
-        // Require its complete representation before that cast. This is only
-        // memory safety, not an exact native response-size or parity claim.
-        if (header.Type == MSG_Sell_Opcode || packet.opcode == MSG_Sell_Opcode)
-        {
-            return packet.opcode == header.Type &&
-                header.Size == packet.size && packet.size >= sizeof(MSG_Sell);
-        }
 
         // Attacks have native prefixes and variable-size coordinated extensions.
         // Validate both discriminants and the actual length before any cast in

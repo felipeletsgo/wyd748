@@ -305,9 +305,13 @@ item, position, and cooldown.
   described above, but the Go server has no handler or cross-instance war
   coordination. A client sender is not an end-to-end feature.
 - The `0xFAA` transfer request receives only an unavailable response. It is
-  not a transfer implementation. The inherited `0x37A` sale receive callback
-  has a memory-safety gate, but the current server does not emit that response;
-  its native direction and complete consumer trace remain unresolved.
+  not a transfer implementation.
+- The inherited `0x37A` sale receive callback has a
+  [native 20-byte envelope](../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md)
+  and an exact-size receive gate. The native field receiver and consumer are
+  traced; the current server does not emit this response and continues using
+  authoritative item/gold snapshots. Full native sale UI/price parity and
+  executable-client validation are not claimed.
 
 ## Migration rules
 

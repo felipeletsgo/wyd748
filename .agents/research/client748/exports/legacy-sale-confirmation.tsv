@@ -1,0 +1,24 @@
+record	owner	address	bytes_or_value	observation
+program	WYD.exe	00400000	8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593	SHA-256; image base
+table_slot	005a4294	005a4298	00492e7d	Packet receiver; slot 1; offset 0x4
+data_reference	004343a4	00434407	005a4294	Constructor reference to receiver table
+data_reference	004358da	004358fb	005a4294	Destructor reference to receiver table
+instruction	00492e7d	00493222	668B5104	MOV DX,word ptr [ECX + 0x4]
+instruction	00492e7d	00493226	81FA7A030000	CMP EDX,0x37a
+instruction	00492e7d	0049322c	7511	JNZ 0x0049323f
+instruction	00492e7d	00493235	E8E94BFFFF	CALL 0x00487e23
+computed_jump	0055890a	00558ad3	0055927c	Size-policy switch case for 0x37a
+instruction	0055890a	0055927c	8B4D08	MOV ECX,dword ptr [EBP + 0x8]
+instruction	0055890a	0055927f	33D2	XOR EDX,EDX
+instruction	0055890a	00559281	668B11	MOV DX,word ptr [ECX]
+instruction	0055890a	00559284	83FA14	CMP EDX,0x14
+instruction	0055890a	00559287	7407	JZ 0x00559290
+instruction	0055890a	00559289	C745FC01000000	MOV dword ptr [EBP + -0x4],0x1
+instruction	0055890a	00559290	E935070000	JMP 0x005599ca
+instruction	00487e23	00487e59	668B480C	MOV CX,word ptr [EAX + 0xc]; target word
+instruction	00487e23	00487ec3	0FBF420E	MOVSX EAX,word ptr [EDX + 0xe]; signed type
+instruction	00487e23	00487f92	0FBF4810	MOVSX ECX,word ptr [EAX + 0x10]; signed position
+instruction	00487e23	00487fa9	FF92A4000000	CALL dword ptr [EDX + 0xa4]; equipment grid receiver
+instruction	00487e23	0048824e	FF9298000000	CALL dword ptr [EDX + 0x98]; global manager receiver
+instruction	00487e23	00488257	E82788FFFF	CALL 0x00480a83; final scene refresh
+instruction	00487e23	00488264	C20400	RET 0x4; one stack argument

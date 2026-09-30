@@ -164,15 +164,22 @@ int RunSceneDisconnectContractTests(int& checks)
         !field_interaction::ShouldCancelAutoTradePurchase(646, 653, -2),
         "purchase invalidation preserves other dialogs and rejects invalid sold slots");
     // Exercise the actual receive gate, not a source-text proxy. This protects
-    // the inherited handler's memory access without asserting native parity.
+    // the native 0x37A/20 envelope before the inherited lengthless callback.
     MSG_Sell sale{};
     sale.Header.Type = MSG_Sell_Opcode;
     sale.Header.Size = sizeof(sale);
     sale.TargetID = 17;
     sale.MyType = 1;
     sale.MyPos = 4;
+    const unsigned char nativeSaleFrame[20] = {
+        0x14, 0x00, 0x00, 0x00, 0x7A, 0x03, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x01, 0x00,
+        0x04, 0x00, 0x00, 0x00
+    };
+    check(std::memcmp(&sale, nativeSaleFrame, sizeof(nativeSaleFrame)) == 0,
+        "legacy sale representation matches the fixed little-endian 20-byte fixture");
     char saleBytes[sizeof(sale) + 4]{};
-    std::memcpy(saleBytes + 1, &sale, sizeof(sale));
+    std::memcpy(saleBytes + 1, nativeSaleFrame, sizeof(nativeSaleFrame));
     const auto saleBefore = std::string(saleBytes, sizeof(saleBytes));
     int saleDeliveries = 0;
     const auto receiveSale = [&](const PacketView& frame) {
@@ -204,12 +211,22 @@ int RunSceneDisconnectContractTests(int& checks)
         check(received_packet::CanDispatch({MSG_Sell_Opcode, saleBytes + 1, sizeof(sale)}) ==
             (declared == sizeof(sale)), "legacy sale requires consistent declared and actual lengths");
     }
-    sale.Header.Size = sizeof(sale) + 1;
-    std::memcpy(saleBytes + 1, &sale, sizeof(sale));
-    check(received_packet::CanDispatch({MSG_Sell_Opcode, saleBytes + 1, sizeof(sale) + 1}),
-        "legacy sale memory guard does not invent an exact native envelope");
-    check(received_packet::ExpectedSize(MSG_Sell_Opcode) == 0,
-        "legacy sale exact native receive contract remains unproven");
+    std::vector<char> oversizedSale(65536, 0);
+    for (unsigned int declared : {21u, 24u, 65535u}) {
+        sale.Header.Size = static_cast<unsigned short>(declared);
+        std::memcpy(oversizedSale.data() + 1, &sale, sizeof(sale));
+        const auto oversizedBefore = oversizedSale;
+        check(!received_packet::Dispatch(
+            {MSG_Sell_Opcode, oversizedSale.data() + 1, declared},
+            [&](const PacketView&) { ++saleDeliveries; }),
+            "legacy sale rejects consistent oversized frames before callback");
+        check(oversizedSale == oversizedBefore,
+            "rejected oversized sale preserves the original borrowed storage");
+    }
+    check(saleDeliveries == 1,
+        "oversized sale frames never reach the inherited receiver");
+    check(received_packet::ExpectedSize(MSG_Sell_Opcode) == 20,
+        "legacy sale receive policy uses the native exact 20-byte envelope");
     struct AirMovePosition { float x; float y; };
     AirMovePosition flightPosition{ 2200.5f, 2100.5f };
     AirMovePosition flightDelta{ 3.0f, -2.0f };
