@@ -239,13 +239,20 @@ WYD-Go validates and persists the transfer, returns the same opcode/amount,
 then reconciles balances with authoritative `0x339` and `0x337` frames.
 
 `0x383/0x384` (trade offer/closure, active pair bidirectional, 156/12 bytes)
-use `TradeSessionContract.h`. The [incoming native trace](../.agents/research/client748/flows/transport/trade-session-envelope.md)
-resolves their human consumers, offer field reads, and model-first closure.
+use `TradeSessionContract.h`. The [native session trace](../.agents/research/client748/flows/transport/trade-session-envelope.md)
+resolves their human consumers, offer field reads, model-first closure, and
+outgoing invitation/acceptance, item insertion, gold, checks, and closure sends.
 The adapted closure clears local opponent/check/hover state even without a
-UI container; only panel cleanup depends on UI availability. Incoming evidence
-is `TRACED`: outgoing native position semantics/emitters and live invocation
-of the native size-policy table remain open. Existing active exact-size gates
-and server-owned inventory/gold validation are unchanged.
+UI container; only panel cleanup depends on UI availability. Native insertion
+searches fifteen slots, copies one eight-byte item, and stores the low byte
+of Carry `x+9*y` at 132; hiding fills positions with raw `0xFF`.
+Item/gold changes revoke checks;
+the native check cooldown is 2000 ms. Outgoing call sites independently prove
+156/12-byte sizes. Overall evidence remains `TRACED`: active item-removal
+interaction parity, full native input-domain validation, and live invocation
+of the native size-policy table remain open. Existing active exact-size gates,
+supported removal snapshots, and server-owned inventory/gold validation are
+unchanged; no new opcode or contract is introduced by this evidence batch.
 
 `0x386` (first trade-check acknowledgement, S->C, 12 bytes) uses
 `TradeCheckConfirmationContract.h`. It has no payload; `Header.ID` selects

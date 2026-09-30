@@ -1,20 +1,21 @@
 ---
 id: trade-session-envelope
-title: Native trade offer and closure consumers
+title: Native trade session consumers and emitters
 subsystem: transport
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
 updated: 2026-09-30
 ---
 
-# Native trade offer and closure consumers
+# Native trade session consumers and emitters
 
 ## Question
 
 Which native human consumers receive incoming trade offers and closure, what
 state do they own, and must local trade cleanup depend on an available UI
-container? Which parts of the active bidirectional envelope still need native
-emitter evidence?
+container? How do native invitation, acceptance, item insertion, gold, checks,
+and closure populate the outgoing envelope? Is active item removal proven by
+the same native input path?
 
 ## Evidence boundary
 
@@ -24,19 +25,24 @@ emitter evidence?
   complete instruction rows for both consumers, selected receiver branches,
   and size-policy cases. Instruction-reference rows are omitted except the
   two size-switch targets; this is not a complete socket traversal export.
+- USED: [focused emitter instructions](../../exports/trade-session-emitters.tsv):
+  767 instruction rows selected verbatim from read-only/no-analysis exports;
+  invitation, acceptance, insertion, gold, checks, closure, and input guards.
+  The Field callback table slot and constructor/destructor references are
+  included. This is not a complete export of the large Field callback.
 - USED: the existing [human receiver and container lookup proof](trade-check-confirmation-contract.md),
   [trade/inventory lifecycle](../ui/trade-inventory-layout.md), and
   [control ownership](../ui/control-focus-ime-lifecycle.md).
 - USED: active `TMHuman.cpp`, `TradeSessionContract.h`, `Basedef.h`,
-  `ReceivedPacketDispatchTests.cpp`, and `SceneDisconnectContractTests.cpp`.
+  `SGrid.cpp`, `TMFieldScene.cpp`, `ReceivedPacketDispatchTests.cpp`, and
+  `SceneDisconnectContractTests.cpp`.
 - USED: WYD-Go `internal/wire/codec.go`, `session_packets_test.go`,
   `internal/game/trade.go`, and `trade_check_contract_test.go`.
 - NOT APPLICABLE: asset changes or TMProject 7.69 as parity authority.
   Existing widgets and IDs are reused; candidate source is the adaptation
   target, not proof of native addresses.
-- LIMITED: native outgoing constructors/emitters and the meaning of all
-  outgoing position bytes are not established by these incoming consumers.
-  The size-policy body's external invocation is still unresolved in
+- LIMITED: the traced input path does not establish a native item-removal
+  emitter. The size-policy body's external invocation is still unresolved in
   [packet-size-gate.md](packet-size-gate.md).
 
 ## Native 7.48 flow
@@ -108,6 +114,74 @@ Closure calls `FUN_0040C0F0` for panel visibility,
 `FUN_0044B890(0)` for Trade, and `FUN_0044AE38(0,0)` for AutoTrade.
 Their panel composition/cleanup is reused from the trade/inventory record.
 
+### Outgoing events and construction
+
+All traced offer sends call `FUN_0055F2DD` with `0x9C` bytes. The local
+buffer starts at ObjectManager `DAT_013B71E8 +0xC60`: opcode `+0xC64`,
+ID `+0xC66`, items `+0xC6C`, positions `+0xCE4`, gold `+0xCF4`,
+check `+0xCF8`, and opponent `+0xCFA`. These are native object offsets,
+not addresses or offsets to transplant into the adapted object layout.
+
+- **Invitation:** Field callback `FUN_004662C5`, control 643 (`0x283`)
+  selected at `0x0046BF04`, retains its peer/scene eligibility checks, writes
+  `0x383` at `0x0046C0FC`, local human ID at `0x0046C117`, and selected
+  opponent at `0x0046C131`; send is `0x0046C14A`. The selected target is
+  then cleared. This branch does not initialize a separate empty offer.
+- **Acceptance:** callback call `0x0046D0AF -> FUN_004640E5` reaches the
+  dialog-kind 601 (`0x259`) branch at `0x00464115`. It copies the dialog's
+  peer into `+0xCFA`, copies 156 bytes to a stack envelope, overwrites its
+  local human ID and `0x383`, then sends at `0x0046418D`. Peer lookup and
+  participant-label setup precede `FUN_0044B890(1)`; a missing peer prevents
+  opening the trade panel, but that lookup is after the acceptance send.
+- **Insert item:** grid mouse callback `FUN_004209FC` calls
+  `FUN_004110F5` at `0x00420E58` on mouse-up `0x202`, inside the grid,
+  with cursor mode zero. Grid type 7 enters the trade-inventory branch.
+  A missing item or color other than `0xFFFFFFFF` returns `2`. The source
+  position is the low-word cell X plus nine times low-word cell Y. Fifteen
+  local grids `0x2100+i` are searched for the first empty slot. The native
+  code forms the item destination at `0x004112DA`, copies eight bytes via
+  the call at `0x004112E2`, writes the low-byte source
+  position at `0x004112F5`, marks the source red, clears both check controls,
+  updates the last-check timer, writes check zero/opcode `0x383`, and sends
+  at `0x004113C8`. A full offer returns `0` without a send. It relies on
+  prior header-ID initialization rather than rewriting that ID here.
+- **Gold:** Field callback control 628 (`0x274`, selector `0x00468E09`),
+  trade mode one at `0x0046945C`, clears controls 617/601 and the check
+  byte, updates the timer, and writes the four-byte amount at
+  `0x00469518`. Opcode `0x383` and a 156-byte send follow at
+  `0x00469524/0x0046953F`. The focused instruction slice proves the
+  destination and invalidation, not every input-parsing rejection.
+- **Check:** control 617 (`0x269`) at `0x0046E2BF` requires the last-check
+  time plus `0x7D0` (2000 ms) to have elapsed. The button is toggled via
+  `SETZ`; its low byte is copied to `+0xCF8` at `0x0046E3C2`. A stack
+  copy receives opcode `0x383` and is sent at `0x0046E3FE`. The timer is
+  updated on both throttled and sent paths. This is an intention, not a
+  client-side inventory/gold transfer.
+- **Closure:** `FUN_0044B890(0)` clears the opponent/check and updates the
+  timer. With the quit-send flag one, it zero-initializes twelve stack bytes,
+  writes `0x384` and local human ID, and sends at `0x0044BD74`. Hiding
+  also zeros the 156-byte offer and fills fifteen positions with `0xFF`
+  (`0x0044BDBE`). This establishes the empty sentinel's raw byte, not a
+  native signed comparison of populated positions.
+
+### Item-removal boundary
+
+The same native `FUN_004110F5` returns `1` for local-offer grid type 6
+without editing the offer or sending: compare `0x00415172`, selected return
+`0x0041517B`. Mouse-down also excludes type 6 (`0x00420C75`) from
+`FUN_00410A91`; inspected `FUN_00410A91` handles types 1/4, not trade.
+The inspected grid key callback `FUN_004107C1` restricts its Delete path to
+type 5, not trade. These are scoped negative findings, not proof that no
+native removal route exists elsewhere. Do not repeat these same roots to
+search for a send already shown absent.
+
+The active local-offer click instead removes the copied visual, restores the
+source highlight, zeros the item, sets position `-1`, revokes checks, and
+sends the unchanged `0x383/156` format. Preserve this existing supported
+intention; do not label its interaction as native parity or delete it solely
+because this native branch is a no-op. A parity claim needs an independently
+reachable native removal path or an explicit documented deviation.
+
 ### Outputs and errors
 
 Both native consumers return `1`. Offer lookup of a missing human is a
@@ -124,6 +198,9 @@ the active handlers additionally guard scene/model/UI dependencies.
 | --- | --- | --- | --- | --- |
 | Incoming invitation | Local human, Field, no local opponent, peer found | Native copies invitation; active client initializes an empty local offer | Invitation dialog | Missing peer returns |
 | Incoming offer | Local human, Field, active negotiation | Remote item/gold snapshot replaces display; changed offer clears checks | Fifteen remote slots and names/gold | Active optional-control guards skip missing controls |
+| Native item insertion | Type 7, mouse-up, source unselected, free local slot | Eight-byte item and low-byte `x+9*y` position copied; checks revoked | Source marked red; local offer copy | Missing/selected source returns 2; full offer returns 0 |
+| Native gold/check intent | Trade mode or check control, valid interaction | Gold invalidates checks; check toggles after 2000 ms | Amount/check feedback | Throttled check does not send |
+| Active item removal | Visible trade, local human/opponent, matching offer grid | Item zeroed, position -1, checks revoked; server validates snapshot | Visual removed; source highlight restored | Missing dependencies or unmatched grid return |
 | Incoming closure | Local human and live scene/model | Opponent/check/hover cleared before UI checks | Visible Trade/AutoTrade closed when available | Missing UI does not retain local model state |
 | Closure for another human | Receiver is not scene's local human | No local trade mutation | None | Return |
 | Invalid envelope | Any | No callback or mutation | None | Receive gate rejects |
@@ -135,6 +212,14 @@ Reuse the resolved human primary vtable `0x005A557C`, packet slot
 container `+0x48` binding from the acknowledgement record. Native container
 and standard control have different methods at the same numerical slot.
 No candidate vtable or native object offset is changed by this patch.
+
+The native Field table `0x005A4294` binds slot `+0x58` at `0x005A42EC`
+to `FUN_004662C5`; table references originate in constructor
+`FUN_004343A4` and destructor `FUN_004358DA`. Reuse the
+[grid vptr and mouse callback proof](../../exports/grid-item-mesh-scale-vtable-callers.tsv):
+constructor `FUN_0040DF9E` installs table `0x005A4024`, whose slot `+8`
+is `FUN_004209FC`. The Field table's `+8` is a different callback, not the
+control-event receiver; numerical slots cannot be substituted across tables.
 
 ### Ownership
 
@@ -153,6 +238,12 @@ a live scene/model but no container now clears local state and skips only
 visual cleanup; repeated closure remains harmless. Null scene/model still
 returns before dereference. The four new source-contract assertions check
 ownership guards and cleanup order, not executable-client rendering.
+
+Native insertion can publish even when visual allocation fails and does not
+check the grid add result. The active insertion transfers the visual
+successfully before claiming an offer slot, and validates the source against
+authoritative Carry bytes. Preserve those compatible safeguards. They are
+not defects to remove when matching the native packet layout.
 
 ### Cleanup and teardown
 
@@ -180,11 +271,11 @@ executable-client observation is inferred from the source tests.
 Active version: WYD 7.48, little-endian Win32/x86. The paired client/server use
 bidirectional `0x383/156` and header-only `0x384/12`.
 
-| Field | Offset | Width | Active type/use | Native incoming evidence |
+| Field | Offset | Width | Active type/use | Native evidence |
 | --- | ---: | ---: | --- | --- |
 | Header | 0 | 12 | Size/opcode/ID and transport | Human ID/opcode dispatch; size-policy entries |
 | Items | 12 | 120 | Fifteen eight-byte items | Eight-byte comparison/copy and fifteen-slot loop |
-| Carry positions | 132 | 15 | i8, empty `-1` | Copied in invitation; semantics not isolated here |
+| Carry positions | 132 | 15 | i8, empty `-1` | Outgoing low-byte `x+9*y`; hide writes raw `0xFF`; incoming invitation copies bytes |
 | Padding | 147 | 1 | x86 alignment | Not independently consumed |
 | Gold | 148 | 4 | i32; server rejects negative/out-of-range gold | Four-byte read at `+0x94`; no native economic validation claim |
 | Check | 152 | 1 | Active domain 0/1 | Byte read at `+0x98` |
@@ -194,8 +285,11 @@ bidirectional `0x383/156` and header-only `0x384/12`.
 Native size-policy `FUN_0055890A` branches to `0x0055935F` for `0x383`
 and `0x0055937B` for `0x384`; it compares the packet size with
 `0x9C` and `0x0C` respectively. These are body/table facts, not proof of a
-live transport rejection gate. Outgoing emitters, position interpretation,
-and complete field signedness still need independent native tracing.
+live transport rejection gate. Traced outgoing sends independently prove
+156/12-byte sizes; they do not resolve that separate ingress call path.
+Native position arithmetic/write and the empty raw byte are now established;
+signed validation remains an active client/server rule, not an inferred native
+comparison. Complete native input validation is outside the selected slices.
 
 `TradeSessionContract.h` and `Basedef.h` protect the active ABI.
 No resource, asset, opcode, payload, or server policy changes in this batch.
@@ -209,6 +303,13 @@ runs before casts. `OnPacketTrade` retains optional-control guards and the
 separate local-offer initialization. `OnPacketQuitTrade` now clears model
 state before checking the Field-scene container. Null scene/model and
 local-human identity remain required.
+
+`SGridControl::TradeItem` retains the native insertion envelope and local
+slot IDs, adds authoritative-source and visual-ownership checks, and supports
+item removal with the same envelope. `TMFieldScene` invitation, acceptance,
+gold, check, and closure preserve the traced sizes/field offsets. It writes
+local ID before every send and initializes a separate empty local offer,
+rather than trusting stale fields inherited from a remote invitation.
 
 ### WYD-Go
 
@@ -228,6 +329,9 @@ Confirmation, persistence/rollback, and teardown remain server-owned.
 | Null prerequisites | Native assumes scene/model/container | Guards present | Null scene/model still guarded | Preserve compatible safety |
 | Invitation local buffer | Native copies remote frame | Active separate empty offer | Unchanged | Preserve prior hardening, not parity |
 | Economic authority | Not re-established by these consumers | Server-owned | Unchanged | No coordinated extension |
+| Outgoing insertion and positions | Fifteen slots, eight-byte items, low-byte `x+9*y` | Same 7.48 envelope plus source/ownership checks | Unchanged | Native format proven; retain compatible safeguards |
+| Invitation/gold/check/close sends | `0x383/156`, check throttle 2000 ms, `0x384/12` | Same sizes and check revocation, explicit ID writes | Unchanged | Reuse proven emitter boundaries |
+| Local-offer click removal | Traced type-6 branch returns without sending | Supported removal snapshot | Unchanged | Interaction parity unproven; no automatic deletion |
 
 ## Decisions
 
@@ -235,14 +339,20 @@ Confirmation, persistence/rollback, and teardown remain server-owned.
   economic authority, UI bindings, or other handlers.
 - Promote the formerly `UNMAPPED` incoming flow to `TRACED` using concrete
   dispatch, consumer, receiver, and lifecycle evidence.
-- Do not promote the whole bidirectional ABI to `CONTRACT` while outgoing
-  native constructors/positions remain untraced.
+- Outgoing construction/position evidence now covers invitation, acceptance,
+  insertion, gold, checks, and closure. Keep the overall session `TRACED`
+  while local-offer removal interaction and full native input validation are
+  not resolved; do not claim full bidirectional behavior parity from sizes.
 - Retain active exact-size rejection and optional-control protections.
 
 ## Gaps
 
-- Trace native outgoing offer/closure construction and position semantics
-  before a full bidirectional native-contract claim.
+- Resolve native item-removal reachability independently of the now-proven
+  type-6 no-op. A focused next query should inspect a different reachable
+  control/input route and its offer-buffer mutations, not redecompile
+  `FUN_004110F5`, `FUN_004209FC`, or the inspected key/mouse-down helpers.
+- Complete signed-input/domain evidence only if a dependent parity change
+  needs it. Active server rejection/authority remains unchanged.
 - Resolve the size-policy external invocation only when needed; do not
   repeat exhausted static-caller searches with unchanged inputs.
 - Execute invitation, acceptance, changed item/gold, both checks, closure,
@@ -270,4 +380,13 @@ Confirmation, persistence/rollback, and teardown remain server-owned.
   those tests were not rerun for this client-only cleanup batch.
 - Research schema and repository layout/links: passed; native export rows
   matched the reused source exports. Final diff check passed before publication.
+- Emitter continuation: read-only/no-analysis Ghidra decompilation and
+  instruction/table exports completed with the same native SHA-256. The new
+  focused export contains 767 verbatim instruction rows and callback binding
+  evidence. No source, ABI, asset, or server input changed in this continuation;
+  previous automated/build evidence remains applicable and was not rerun.
+  Research schema passed for 94 records. Row provenance passed for all 782
+  export rows, including 767 unique instructions, native identity, critical
+  sends/input guards, and the Field callback binding. Repository layout/local
+  links passed with 152 documents indexed; the central map was refreshed.
 - CLIENT-TESTED: not performed; no candidate installation or game execution.
