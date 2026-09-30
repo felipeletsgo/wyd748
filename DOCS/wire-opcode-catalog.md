@@ -238,6 +238,15 @@ requires the full envelope before `OnPacketWithdraw`/`OnPacketDeposit` casts.
 WYD-Go validates and persists the transfer, returns the same opcode/amount,
 then reconciles balances with authoritative `0x339` and `0x337` frames.
 
+`0x383/0x384` (trade offer/closure, active pair bidirectional, 156/12 bytes)
+use `TradeSessionContract.h`. The [incoming native trace](../.agents/research/client748/flows/transport/trade-session-envelope.md)
+resolves their human consumers, offer field reads, and model-first closure.
+The adapted closure clears local opponent/check/hover state even without a
+UI container; only panel cleanup depends on UI availability. Incoming evidence
+is `TRACED`: outgoing native position semantics/emitters and live invocation
+of the native size-policy table remain open. Existing active exact-size gates
+and server-owned inventory/gold validation are unchanged.
+
 `0x386` (first trade-check acknowledgement, S->C, 12 bytes) uses
 `TradeCheckConfirmationContract.h`. It has no payload; `Header.ID` selects
 the acknowledged human. The [native receiver and control-write evidence](../.agents/research/client748/flows/transport/trade-check-confirmation-contract.md)

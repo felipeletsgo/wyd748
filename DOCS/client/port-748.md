@@ -318,6 +318,30 @@ path. Two-client trade, cancellation, disconnect, and logout/relogin remain
 pending runtime gates. The acknowledgement record is `CONTRACT`, not
 `CLIENT_TESTED`.
 
+### Incoming trade offer and closure
+
+The [incoming native trace](../../.agents/research/client748/flows/transport/trade-session-envelope.md)
+now resolves human dispatch for `0x383` to `FUN_0052DC5D` and `0x384` to
+`FUN_0052E2F6`. The offer consumer reads fifteen eight-byte items, gold at
+148, check at 152, and opponent at 154. The closure clears local opponent,
+check, and hover state before scene-type and panel checks. The previous
+adapted handler returned early when the UI container was absent, retaining
+stale local trade state. It now skips only visual cleanup in that case,
+while preserving null scene/model and local-human guards.
+
+This cleanup-order fix is `MODERNIZACAO_COMPATIVEL`; no packet, asset, or
+server rule changed. Four source-contract regressions protect the order and
+guards; two assertions failed before the fix. ArchitectureTests now passes
+58,670 checks, SocketReceiveTests passes 221, and the incremental Release
+`-NoDeploy` build passed with existing legacy warnings. The installed
+executable was not replaced or run.
+
+The record advances from `UNMAPPED` to `TRACED`, not full bidirectional
+`CONTRACT`: native outgoing constructors and position semantics still need
+evidence. The native size-policy body contains 156/12-byte entries, but its
+external invocation remains unresolved. Two-client lifecycle validation is
+still pending; source-contract checks are not executed-client observations.
+
 ### Auto-trade visual ownership
 
 `TMFieldScene::OnPacketItemSold` preserves the documented

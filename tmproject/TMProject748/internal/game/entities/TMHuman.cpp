@@ -5628,7 +5628,7 @@ int TMHuman::OnPacketTrade(MSG_Trade* pStd)
 
 int TMHuman::OnPacketQuitTrade(MSG_STANDARD* pStd)
 {
-	if (!g_pCurrentScene || !g_pObjectManager || !g_pCurrentScene->m_pControlContainer)
+	if (!g_pCurrentScene || !g_pObjectManager)
 		return 1;
 
 	if (g_pCurrentScene->m_pMyHuman == this)
@@ -5636,7 +5636,9 @@ int TMHuman::OnPacketQuitTrade(MSG_STANDARD* pStd)
         g_pObjectManager->m_stTrade.OpponentID = 0;
         g_pObjectManager->m_stTrade.MyCheck = 0;
         SGridControl::m_sLastMouseOverIndex = -1;
-        if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
+        // Native closure clears the model before optional field-scene UI cleanup.
+        if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD &&
+            g_pCurrentScene->m_pControlContainer)
         {
             auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
             auto pTradePanel = g_pCurrentScene->m_pControlContainer->FindControl(576);

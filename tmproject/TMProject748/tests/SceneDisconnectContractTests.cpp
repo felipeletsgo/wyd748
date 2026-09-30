@@ -721,6 +721,35 @@ int RunSceneDisconnectContractTests(int& checks)
         mountHudCast != std::string::npos && mountHudWrite != std::string::npos &&
         mountHudGuard < mountHudCast && mountHudCast < mountHudWrite,
         "UpdateEquip accesses mount HUD only after verifying the field scene type");
+    const auto quitTradeStart = humanSource.find("int TMHuman::OnPacketQuitTrade(");
+    const auto quitTradeEnd = humanSource.find("int TMHuman::OnPacketCarry(", quitTradeStart);
+    const auto quitTradeBody = quitTradeStart != std::string::npos && quitTradeEnd != std::string::npos
+        ? humanSource.substr(quitTradeStart, quitTradeEnd - quitTradeStart) : std::string{};
+    const auto quitTradeLocalGuard = quitTradeBody.find("if (g_pCurrentScene->m_pMyHuman == this)");
+    const auto quitTradeOpponentClear = quitTradeBody.find("m_stTrade.OpponentID = 0;");
+    const auto quitTradeCheckClear = quitTradeBody.find("m_stTrade.MyCheck = 0;");
+    const auto quitTradeHoverClear = quitTradeBody.find("SGridControl::m_sLastMouseOverIndex = -1;");
+    const auto quitTradeContainer = quitTradeBody.find("m_pControlContainer");
+    const auto quitTradeFieldGuard = quitTradeBody.find("GetSceneType() == ESCENE_TYPE::ESCENE_FIELD");
+    const auto quitTradeLookup = quitTradeBody.find("->FindControl(576)");
+    check(quitTradeLocalGuard != std::string::npos &&
+        quitTradeOpponentClear != std::string::npos && quitTradeCheckClear != std::string::npos &&
+        quitTradeHoverClear != std::string::npos &&
+        quitTradeLocalGuard < quitTradeOpponentClear && quitTradeLocalGuard < quitTradeCheckClear &&
+        quitTradeLocalGuard < quitTradeHoverClear,
+        "trade closure clears state only for the local human");
+    check(quitTradeContainer != std::string::npos &&
+        quitTradeOpponentClear < quitTradeContainer && quitTradeCheckClear < quitTradeContainer &&
+        quitTradeHoverClear < quitTradeContainer,
+        "trade closure clears opponent, check, and hover state even without a UI container");
+    check(quitTradeFieldGuard != std::string::npos && quitTradeLookup != std::string::npos &&
+        quitTradeHoverClear < quitTradeFieldGuard && quitTradeFieldGuard < quitTradeLookup &&
+        quitTradeContainer < quitTradeLookup,
+        "trade closure checks field-scene UI availability only after model cleanup");
+    check(quitTradeBody.find("if (!g_pCurrentScene || !g_pObjectManager)") != std::string::npos &&
+        quitTradeBody.find("if (pTradePanel && pTradePanel->IsVisible() == 1)") != std::string::npos &&
+        quitTradeBody.find("if (pATradePanel && pATradePanel->IsVisible() == 1)") != std::string::npos,
+        "trade closure preserves null scene, model, and optional-panel guards");
     const auto listingSoldStart = fieldSource.find("int TMFieldScene::OnPacketItemSold(MSG_STANDARDPARM2* pStd)");
     const auto listingSoldEnd = fieldSource.find("int TMFieldScene::OnPacketUpdateCargoCoin", listingSoldStart);
     const auto listingSoldHandler = listingSoldStart != std::string::npos && listingSoldEnd != std::string::npos

@@ -3,9 +3,9 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Envelope bidirecional da sessao de trade usado pelo par TMProject748/WYD-Go.
-// O payload completo de 0x383 e consumido como MSG_Trade; 0x384 apenas encerra
-// a janela e, portanto, permanece um MSG_STANDARD sem payload.
+// Bidirectional trade-session envelopes used by TMProject748/WYD-Go.
+// Native incoming consumers use the complete 0x383 offer and header-only 0x384
+// closure. The active pair also uses these layouts for outgoing intentions.
 constexpr auto MSG_Trade_Opcode = 0x383;
 constexpr auto MSG_CloseTrade_Opcode = 0x384;
 
