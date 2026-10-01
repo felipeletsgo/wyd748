@@ -301,8 +301,10 @@ incremental build. Existing compiler warnings remain in unchanged legacy
 source; this is not a warning-free build. The artifact stays in the ignored
 build directory and the installed `project.exe` was not replaced.
 
-Remaining boundary: full downstream native grid/UI and price parity is not
-established by the envelope trace. The current server's snapshot-based sale
+Remaining boundary after the envelope trace: full downstream native grid/UI
+and price parity was not established by that trace alone. The detachment
+continuation below resolves the grid/cursor subset, not the complete UI.
+The current server's snapshot-based sale
 does not exercise this legacy callback. No visual client execution or
 installation was performed; the record remains `CONTRACT`, not `CLIENT_TESTED`.
 
@@ -363,6 +365,25 @@ ordering, or confirmation opcode changed. Tests through `World.handle`
 cover eight rejections without side effects, valid edge slots, replay, and
 save rollback. The full Go suite and vet passed for that batch; these results
 are reused for this documentation update, not rerun as client validation.
+
+The native grid/cursor continuation now resolves the ownership transition:
+the concrete grid vptr binds footprint/origin detachment to `FUN_0040f3a3`
+and `FUN_0040f55d`. They clear occupancy, compact the list, and transfer the
+visual to the caller without destroying it. Existing `PickupItem` and
+`PickupAtItem` already match this core behavior; safe clipping and pickup
+mesh scaling remain deliberate adaptations.
+
+The global receiver previously described as a manager is actually the cursor:
+its constructor publishes `DAT_005ccec0`, and exact slot `+0x98` resolves to
+`FUN_0040a147`, the native counterpart of `SCursor::DetachItem`. It clears
+the attachment and resets pickup style, with no model/score/appearance update.
+The existing sale handler intentionally clears only aliases to the sold visual
+before deletion, preserving unrelated interactions instead of copying native
+unconditional cursor clearing. No functional patch or build is needed for this
+resolved subset. The [evidence record](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#grid-detachment-and-ownership-transfer)
+retains the concrete slots, functions, and remaining score/appearance, resource
+binding, economic-policy, and real-client gates. This is static verification,
+not `CLIENT_TESTED` status.
 
 ### First trade-check acknowledgement
 

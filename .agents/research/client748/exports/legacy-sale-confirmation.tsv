@@ -19,7 +19,7 @@ instruction	00487e23	00487e59	668B480C	MOV CX,word ptr [EAX + 0xc]; target word
 instruction	00487e23	00487ec3	0FBF420E	MOVSX EAX,word ptr [EDX + 0xe]; signed type
 instruction	00487e23	00487f92	0FBF4810	MOVSX ECX,word ptr [EAX + 0x10]; signed position
 instruction	00487e23	00487fa9	FF92A4000000	CALL dword ptr [EDX + 0xa4]; equipment grid receiver
-instruction	00487e23	0048824e	FF9298000000	CALL dword ptr [EDX + 0x98]; global manager receiver
+instruction	00487e23	0048824e	FF9298000000	CALL dword ptr [EDX + 0x98]; global cursor receiver; resolved to FUN_0040a147
 instruction	00487e23	00488257	E82788FFFF	CALL 0x00480a83; final scene refresh
 instruction	00487e23	00488264	C20400	RET 0x4; one stack argument
 instruction	00487e23	00487fb2	C745A40000803E	Equipment price multiplier bits 0x3e800000 (0.25f)

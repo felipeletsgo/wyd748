@@ -21,6 +21,8 @@ also closes the native contract for the ability lookup required by that quote,
 not every ability type. The candidate quote and the type-38 entry of
 `BASE_GetItemAbility` now share that resolved lookup.
 Complete merchant UI behavior and historical server policy remain open.
+The grid/cursor continuation closes visual detachment and the sale callback's
+cursor receiver, not complete score/appearance refresh or runtime UI parity.
 
 ## Evidence boundary
 
@@ -35,6 +37,14 @@ Complete merchant UI behavior and historical server policy remain open.
   Full decompilations and logs remain ignored build artifacts. Export runs
   contained the expected program hash, requested instruction/table summaries,
   and no `SCRIPT ERROR`; decompiler runs completed with `inspection_complete`.
+- **USED:** the existing [grid constructor/vtable evidence](../../exports/grid-item-mesh-scale-vtable-callers.tsv),
+  [grid detachment bodies](../../exports/legacy-sale-grid-detachment.tsv), and
+  [cursor constructor/detachment evidence](../../exports/legacy-sale-cursor-detachment.tsv).
+  The exact slots and receiver construction, rather than matching virtual
+  offsets in an unrelated table, establish the bindings below.
+- **USED:** `SGrid.cpp::PickupItem` / `PickupAtItem`, `SControl.cpp::SCursor::DetachItem`,
+  and the sale handler's matching-alias cleanup. This continuation changes no
+  source, ownership policy, runtime resource, or authoritative snapshot flow.
 - **USED:** the retained [request instruction export](../../exports/trade-session-input-routes.tsv),
   whose program identity matches the same native hash. `FUN_00416196` writes
   the request payload as words and sends 20 bytes; no new export is needed.
@@ -200,15 +210,58 @@ classified as `PARIDADE_NATIVA`; safe rejection of invalid catalog indices
 is `MODERNIZACAO_COMPATIVEL`. Neither changes inventory, gold, packets,
 merchant validation, persistence, or the authoritative sale policy.
 
+### Grid detachment and ownership transfer
+
+The retained constructor `FUN_0040df9e` writes vptr `0x005a4024` at
+`0x0040e0a1`. Exact slot `0x005a40c8` (`+0xa4`) points to
+`FUN_0040f3a3`; slot `0x005a40cc` (`+0xa8`) points to `FUN_0040f55d`.
+These are the native counterparts of `SGridControl::PickupItem` and
+`PickupAtItem`, respectively. This is a behavior mapping, not a recovered
+original C++ class name or approval of every resource binding.
+
+Both functions scan the current item list at receiver `+0x200`, with count
+at `+0x1fc`. `FUN_0040f3a3` calls `FUN_0040dee8` to test whether the
+requested cell is inside the visual's half-open footprint; `FUN_0040f55d`
+calls `FUN_0040df5a` to require the visual's exact origin cell. The helpers
+read item origin/extent fields at `+0x1d0..+0x1dc` and mutate nothing.
+
+On a match, the grid functions clear the footprint's occupancy entries through
+the buffer at `+0x1f0`, shift later list entries left, null the old tail,
+decrement the count, and return the detached visual. They do not destroy it,
+clear its item payload, alter gold, or send packets. A missing match returns
+null without changing the grid. The sale handler, not these grid helpers,
+owns the later deleting callback. The candidate already implements these
+semantics. Its clipped occupancy access and pickup mesh-scale adjustment are
+existing safety/presentation adaptations, not newly proven native behavior.
+
+### Cursor release after sale
+
+`FUN_00409cbc` writes vptr `0x005a3e00` at `0x00409d20` and publishes
+that same receiver in `DAT_005ccec0` at `0x00409d52`. It initializes style
+at `+0x1e4` and attached visual at `+0x1e8`. This is the cursor receiver,
+not the object manager. Exact slot `0x005a3e98` (`+0x98`) points to
+`FUN_0040a147`, whose complete 18-instruction body returns the old attachment,
+clears `+0x1e8`, and changes style 2 to 0. It calls nothing and performs no
+score, model, appearance, gold, or network update.
+
+The sale handler first clears a matching cursor alias before destroying the
+detached visual, then calls this slot at `0x0048824e` after the score/sound
+work. That native final call clears even an unrelated cursor attachment.
+The candidate deliberately calls `DetachItem` only for the sold visual,
+before deletion, preserving unrelated interactions under the existing alias
+safety policy. `SCursor::DetachItem` itself matches the native callback's
+return/clear/style semantics. Do not mistake this resolved callback for an
+unimplemented manager refresh or reintroduce unconditional alias clearing.
+
 ### Callees
 
 The handler uses grid receiver vtable offsets `+0xa4` (equipment branch) and
 `+0xa8` (carry branch), then the detached visual's slot 0 deleting callback
 with argument 1. It calls `FUN_004431e4`, sound lookup `FUN_00429a6d(0x1f)`,
-`FUN_0042ad2b`, the global manager receiver's `+0x98` slot, and
-`FUN_00480a83` before returning 1. Exact grid/manager class identities and
-complete refresh behavior are outside the envelope change and are not
-inferred from vtable offsets alone.
+`FUN_0042ad2b`, the cursor receiver's resolved `+0x98` detachment slot, and
+`FUN_00480a83` before returning 1. Complete score/appearance refresh behavior
+is still outside this detachment continuation. The cursor identity is proven
+from its constructor/global write, not inferred from the offset alone.
 
 ### Outputs and errors
 
@@ -226,6 +279,8 @@ the borrowed bytes or call the receiver.
 | --- | --- | --- | --- | --- | --- |
 | Received sale frame | Both opcodes match; declared and actual lengths are 20 | Candidate receive gate | One borrowed callback | No copy or mutation of payload | Reject before callback otherwise |
 | Native merchant match | Target and type select an existing sale branch | `FUN_00487e23` | Model item cleared; detached visual destroyed | Local gold and UI refresh | Merchant mismatch skips sale mutation |
+| Grid detachment | A list visual matches footprint or origin | `FUN_0040f3a3` / `FUN_0040f55d` | Occupancy cleared; list compacted; ownership returned | No destruction, model, balance, or network mutation | No match returns null with no grid change |
+| Cursor release | Borrowed cursor receiver is valid | `FUN_0040a147` | Attachment cleared; pickup style becomes hand | Old attachment returned, not destroyed | Other cursor styles remain unchanged |
 | Native size mismatch | `0x37A`, size other than 20 | `FUN_0055890a`, case `0x0055927c` | Rejection flag set | No size-policy payload mutation | Returns invalid-size result |
 | Invalid network sale source | Full type word is not Carry, or signed position is outside 0..62 | `World.validateInboundCommand` | Character, shop, and trade unchanged | Security violation counted; no save or response | Reject before movement advancement and sale dispatch |
 | Local type-38 query | Valid item index and borrowed twelve/three effect arrays | `BASE_GetItemAbility` or sale quote -> `native_item_volatile::GetAbility` | Signed native sum, catalog-only mount result, or zero exclusion | No allocation, mutation, retained pointer, or packet | Invalid indices return zero; other ability types retain existing branches |
@@ -234,13 +289,18 @@ the borrowed bytes or call the receiver.
 
 The field receiver table and its exact packet slot are resolved above. The
 sale receiver uses its current scene instance and borrows the packet pointer.
-Downstream grid/manager slots are observed, not renamed as proven classes.
+The grid and cursor vptr/slot bindings are resolved above. In particular,
+the object-manager table at `0x005a45f0` is not this callback's receiver;
+adding `0x98` to an unrelated table base does not establish a binding.
 
 ### Ownership
 
 The receive gate owns no packet or scene. Storage remains transport-owned and
 is borrowed synchronously once. Native detachment/deletion observations above
 do not change the candidate's existing grid ownership or alias safety policy.
+Grid detachment transfers the visual to its caller; cursor detachment only
+releases a borrowed interaction alias and never deletes the visual. The sale
+handler clears matching aliases before deleting the transferred visual.
 The shared type-38 lookup synchronously borrows the catalog and item effect arrays as
 const references, allocates nothing, and retains or modifies neither input.
 
@@ -395,6 +455,8 @@ but deliberately preserve the server policy until its separate decision.
 | Response base-price bands | Exact quarter price, then two-thirds for 5001..10000 or half above 10000 | Shared NativeSalePrice.h removes float32 rounding; response does not apply quote-only exceptions | Candidate calculation is secondary | Omits these response bands | PARIDADE_NATIVA for nonnegative signed catalog arithmetic; authoritative policy remains separate |
 | Grid-type-3 sale quote | Ordinary bands; ability 185 full price; item 412 fixed at 800000; item 413 ordinary | Implemented in NativeSaleQuote.h with 154 focused arithmetic checks | Secondary candidate | Payment unchanged | PARIDADE_NATIVA for cleared calculation; invalid-index protection is MODERNIZACAO_COMPATIVEL |
 | Fixed type-38 ability | Signed catalog words and instance bytes; special exclusion and catalog-only mount paths; no refinement scaling | Core GetAbility shared by MouseOver and BASE_GetItemAbility; 2134 existing fixtures plus exclusive-routing regression | Other ability types and caller lifecycles unchanged | Payment unchanged | PARIDADE_NATIVA for proven lookup; reject index 6500 as MODERNIZACAO_COMPATIVEL |
+| Grid visual detachment | Concrete vptr/slots resolve footprint/origin removal, occupancy/list mutation, and ownership transfer | Existing PickupItem/PickupAtItem match; clipping and mesh scaling remain adaptations | Names are secondary | Unchanged snapshots | CONFIRMED core transition; no source edit needed |
+| Cursor callback | Constructed global cursor; +0x98 clears attachment and resets pickup style | DetachItem matches; handler limits cleanup to the sold visual before deletion | Names are secondary | No legacy response emitter | CONFIRMED callback; preserve existing MODERNIZACAO_COMPATIVEL alias protection |
 | Complete UI/price parity | Authoritative policy and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
 
 ## Decisions
@@ -412,14 +474,19 @@ validation of other ability types.
 Share the proven ordinary price bands between quote and legacy response,
 without sharing the quote's item/ability overrides. Keep the server's
 snapshot-based confirmation; no new response emitter is authorized here.
+Keep the existing grid/cursor implementation: the resolved native functions
+do not justify another functional patch. Correct the earlier manager label
+and retain the candidate's deliberate matching-only alias cleanup.
 
 ## Gaps
 
 - Real DirectX client sale execution is not performed. This remains `CONTRACT`,
   not `CLIENT_TESTED`.
-- Downstream native grid class identity and UI refresh parity remain open.
-  The response bands and quote exceptions are proven; only the displayed
-  quote, fixed type-38 lookup, and response price precision changed, not server payment.
+- Grid detachment and cursor release are resolved; full score/appearance
+  refresh through `FUN_004431e4` and `FUN_00480a83`, resource-to-scene bindings,
+  and real UI behavior remain open. The candidate intentionally differs in
+  unconditional cursor clearing and invalid/null-input handling. The response
+  bands and quote exceptions do not establish server payment parity.
 - The shared type-38 lookup is adapted and automated-tested. Real UI
   execution is still pending, and other ability types and full consumer
   lifecycles remain outside this evidence boundary. Do not use these fixtures to approve a global rewrite
@@ -436,6 +503,18 @@ snapshot-based confirmation; no new response emitter is authorized here.
 
 ## Validation
 
+- Grid/cursor continuation (2026-10-01): reused the published grid constructor,
+  exact slots, and four detachment/hit-test instruction bodies. Inspected the
+  global writer and concrete cursor callback in the matching read-only Ghidra
+  program; constructor/callback exports contain 52/18 instructions and the
+  exact slot resolves to `0040a147`. Reproduce the cursor export with
+  `instructions:00409cbc exact:005a3e98 instructions:0040a147`.
+  Runs contained the expected SHA-256 and completion summaries with no
+  `SCRIPT ERROR`. Source comparison confirmed no functional patch is needed
+  for these helpers and recorded the existing matching-only cleanup difference.
+  No Go/C++ tests, build, runtime installation, or client execution were repeated
+  for this evidence/documentation-only batch. This is `STATICALLY VERIFIED`,
+  not a promotion to `CLIENT_TESTED` or approval of complete UI parity.
 - Research: recovered consumer, exact receiver slot, signed payload reads,
   and exact-size case from the matching native Ghidra program.
 - Reproduction: use Ghidra 12.1.2 headless with `-process WYD.exe -readOnly
