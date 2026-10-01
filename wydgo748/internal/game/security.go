@@ -16,14 +16,14 @@ const (
 	securityViolationWindow = time.Minute
 	maxMovementRouteBytes   = 24
 	maxMovementQueuedSteps  = maxMovementRouteBytes * 2
-	// O client 7.48 recalcula a rota a partir da posicao visual, que pode passar
-	// de Route[24] quando a autoridade ficou atrasada por planos substituidos.
-	// A recuperacao usa o mesmo teto da fila: cada tile ainda precisa formar uma
-	// rota transitavel e vencer no relogio server-side, nunca vira teleporte.
+	// The 7.48 client recalculates from its visual position, which can exceed
+	// Route[24] when replaced plans leave authority behind. Recovery shares the
+	// queue limit: every tile must be traversable and due on the server clock;
+	// it never becomes a teleport.
 	maxMovementVisualBridge = maxMovementQueuedSteps
 	maxStopPositionDrift    = 3
-	// O client 7.48 calcula no maximo seis passos ao montar ActionStop 0x367,
-	// mas transmite apenas Pos/Target; a Route[24] desse pacote vem zerada.
+	// The 7.48 client computes at most six steps for ActionStop 0x367, but sends
+	// only Pos/Target; this packet's Route[24] is zeroed.
 	maxActionStopRouteSteps       = 6
 	characterLoginPacketSize      = 36
 	applyBonusPacketSize          = 20
@@ -89,12 +89,12 @@ func opcodeAllowedInPhase(phase sessionPhase, opcode uint16) bool {
 	}
 }
 
-// validateInboundCommand impede replay de transicoes de sessao (por exemplo,
-// reenviar CharacterLogin para materializar o mesmo char duas vezes). Handlers
-// continuam validando os campos especificos; esta e a fronteira comum.
+// validateInboundCommand rejects replayed session transitions, such as a second
+// CharacterLogin that would materialize the same character twice. Handlers
+// retain their domain validation; this is the shared ingress boundary.
 func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 	if s == nil || len(pkt) < wire.HeaderSize || len(pkt) > wire.MaxPacketSize {
-		return w.rejectInboundCommand(s, pkt, 0, "tamanho de pacote invalido")
+		return w.rejectInboundCommand(s, pkt, 0, "invalid packet size")
 	}
 	header := wire.ParseHeader(pkt)
 	if int(header.Size) != len(pkt) {
@@ -102,16 +102,19 @@ func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 			fmt.Sprintf("Size=%d bytes=%d", header.Size, len(pkt)))
 	}
 	if !knownInboundOpcode(header.Type) {
-		return w.rejectInboundCommand(s, pkt, header.Type, "opcode C->S desconhecido")
+		return w.rejectInboundCommand(s, pkt, header.Type, "unknown C->S opcode")
 	}
 	if allowed, expected := inboundPacketSizeAllowed(header.Type, len(pkt)); !allowed {
 		return w.rejectInboundCommand(s, pkt, header.Type,
-			fmt.Sprintf("tamanho %d, esperado %s", len(pkt), expected))
+			fmt.Sprintf("size %d, expected %s", len(pkt), expected))
 	}
 	phase := w.phaseFor(s)
 	if !opcodeAllowedInPhase(phase, header.Type) {
 		return w.rejectInboundCommand(s, pkt, header.Type,
-			fmt.Sprintf("opcode fora da fase %d", phase))
+			fmt.Sprintf("opcode outside phase %d", phase))
+	}
+	if header.Type == wire.OpSellItem && !validSaleInventorySource(pkt) {
+		return w.rejectInboundCommand(s, pkt, header.Type, "invalid sale inventory source")
 	}
 	w.relaxLearnedSkillIngressThrottle(s, pkt, header.Type)
 	return true
@@ -122,25 +125,24 @@ func (w *World) rejectInboundCommand(s *net.Session, pkt []byte, opcode uint16, 
 		opcode = binary.LittleEndian.Uint16(pkt[4:6])
 	}
 	w.recordSecurityViolation(s, opcode, reason)
-	// O 0x2C2 e uma resposta a um desafio server-side e nao uma intencao de
-	// gameplay. Framing, fase ou layout invalidos sao fail-closed imediatamente.
+	// 0x2C2 answers a server-side challenge, not a gameplay intention. Invalid
+	// framing, phase, or layout fails closed immediately.
 	if s != nil && opcode == wire.OpClientIntegrityResponse {
 		s.Close()
 	}
 	return false
 }
 
-// relaxLearnedSkillIngressThrottle remove somente o piso temporal GLOBAL entre
-// skills no caminho de rede real. Ele existia como protecao de busy-loop, mas
-// duplicava duas protecoes mais fortes: o rate-limit da Session e, no gameplay,
-// SkillReady derivado de SkillData.Delay. Em rotacoes curtas fazia uma skill
-// diferente e valida ser descartada apenas porque outra havia chegado <200 ms
-// antes.
+// relaxLearnedSkillIngressThrottle removes only the GLOBAL time floor between
+// skills on the network path. The busy-loop guard duplicated two stronger
+// protections: Session rate limiting and gameplay SkillReady, derived from
+// SkillData.Delay. Short rotations lost a different valid skill just because
+// another skill had arrived less than 200 ms earlier.
 //
-// A limpeza ocorre depois de framing/fase validados e apenas quando SkillId
-// resolve para uma skill realmente aprendida pelo personagem. LastSkillTicks
-// continua impedindo replay/rewind por skill; ataques fisicos nao passam aqui e
-// continuam limitados por acceptClientAttack/AttackRun.
+// Cleanup follows framing/phase validation and requires SkillId to resolve to
+// a skill the character actually learned. LastSkillTicks still prevents
+// per-skill replay/rewind; physical attacks bypass this path and remain limited
+// by acceptClientAttack/AttackRun.
 func (w *World) relaxLearnedSkillIngressThrottle(s *net.Session, pkt []byte, opcode uint16) {
 	switch opcode {
 	case wire.OpAttackOne, wire.OpAttackTwo, wire.OpAttackMulti:
@@ -158,34 +160,34 @@ func (w *World) relaxLearnedSkillIngressThrottle(s *net.Session, pkt []byte, opc
 	p.LastSkillAt = time.Time{}
 }
 
-// knownInboundOpcode e a allowlist canonica da borda C->S. Um opcode sem
-// parser/semantica confirmados nao chega ao dispatcher, nao cria uma label de
-// metrica arbitraria e nao pode transformar log sincrono em amplificador de
-// CPU/I/O. AttackOne possui mais de um tamanho observado/confirmado.
+// knownInboundOpcode is the canonical C->S allowlist. An opcode without a
+// confirmed parser/semantics cannot reach dispatch, create an arbitrary metric
+// label, or amplify CPU/I/O through synchronous logs. AttackOne has multiple
+// observed/confirmed sizes.
 func knownInboundOpcode(opcode uint16) bool {
 	_, exact := exactInboundPacketSize(opcode)
 	return exact
 }
 
-// inboundPacketSizeAllowed preserva framing estrito, mas admite variantes que
-// o client 7.48 real comprovadamente envia. Em captura in-game, 0x39D chegou com
-// 96 bytes durante combate magico; o parser usa apenas os campos autoritativos
-// do prefixo e o servidor recalcula alvos/dano. Outros tamanhos continuam
-// recusados, inclusive caudas arbitrarias.
+// inboundPacketSizeAllowed preserves strict framing while admitting variants
+// observed from the real 7.48 client. An in-game capture recorded 96-byte 0x39D
+// frames during magic combat; the parser uses the supported prefix fields and
+// the server recalculates targets/damage. Other sizes, including arbitrary
+// tails, remain rejected.
 func inboundPacketSizeAllowed(opcode uint16, size int) (bool, string) {
 	if opcode == wire.OpAttackOne {
-		return size == 48 || size == attackOneObservedExtendedSize, "48 ou 96"
+		return size == 48 || size == attackOneObservedExtendedSize, "48 or 96"
 	}
 	expected, exact := exactInboundPacketSize(opcode)
 	if !exact {
-		return false, "layout confirmado"
+		return false, "confirmed layout"
 	}
 	return size == expected, fmt.Sprintf("%d", expected)
 }
 
-// exactInboundPacketSize contem layouts 7.48 e extensoes coordenadas versionadas.
-// Restringir tambem opcodes ignorados impede usar uma cauda arbitraria como
-// canal de packet smuggling ou para explorar um parser futuro.
+// exactInboundPacketSize contains 7.48 layouts and versioned coordinated
+// extensions. Restricting ignored opcodes also prevents arbitrary tails from
+// becoming a packet-smuggling channel or exploiting a future parser.
 func exactInboundPacketSize(opcode uint16) (int, bool) {
 	switch opcode {
 	case wire.OpQuizAnswer:
@@ -200,8 +202,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 52, true
 	case wire.OpCharacterLogin:
 		// Client 7.48: header(12) + Slot(4) + Force(4) + SecretCode(16).
-		// O slot continua em @12; a cauda faz parte do contrato de framing e
-		// nao pode ser descartada pela validacao anti-packet.
+		// The slot remains at @12; the tail belongs to the framing contract
+		// and must not be discarded by packet validation.
 		return characterLoginPacketSize, true
 	case wire.OpCharacterLogout:
 		return 12, true
@@ -232,8 +234,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 	case wire.OpSellItem:
 		return 20, true
 	case wire.OpApplyBonus:
-		// Header(12) + BonusType(2) + Detail(2) + TargetID(2), arredondado
-		// pelo layout nativo para 20 bytes. TargetID e usado na compra de skill.
+		// Header(12) + BonusType(2) + Detail(2) + TargetID(2), rounded to
+		// 20 bytes by the native layout. Skill purchases use TargetID.
 		return applyBonusPacketSize, true
 	case wire.OpPartyRequest:
 		return 44, true
@@ -297,8 +299,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 	case wire.OpClientUnknown2BC:
 		return 108, true
 	case wire.OpAttackOne:
-		// 48 e o layout compacto canonico. O client real tambem emite 96 bytes
-		// com este mesmo opcode em combate magico; a variante e admitida acima.
+		// 48 is the canonical compact layout. The real client also sends
+		// 96 bytes with this opcode during magic combat, admitted above.
 		return 48, true
 	case wire.OpAttackTwo:
 		return 52, true
@@ -333,7 +335,7 @@ func (w *World) recordSecurityViolation(s *net.Session, opcode uint16, reason st
 	state.violations++
 	if state.lastLog.IsZero() || now.Sub(state.lastLog) >= time.Second ||
 		state.violations == securityViolationLimit {
-		log.Printf("[#%d] SEGURANCA opcode=0x%X recusado: %s (%d/%d)",
+		log.Printf("[#%d] SECURITY opcode=0x%X rejected: %s (%d/%d)",
 			s.ID, opcode, reason, state.violations, securityViolationLimit)
 		state.lastLog = now
 	}
@@ -343,11 +345,10 @@ func (w *World) recordSecurityViolation(s *net.Session, opcode uint16, reason st
 }
 
 func movementSegmentLimit(_ *Player) int {
-	// No 0x366 do jogador, Route[24] descreve a rota planejada inteira. O client
-	// pode enviar os 24 passos mesmo com RunSpeed baixo e repetir o segmento
-	// enquanto ainda o anima. A regra nativa 2*Speed pertence ao movimento
-	// gerado para mobs; aplicá-la aqui deixava o servidor para trás do client.
-	// A velocidade efetiva continua limitada separadamente pelo budget temporal.
+	// Player 0x366 Route[24] describes the entire planned route. The client can
+	// send all 24 steps even at low RunSpeed and repeat a segment while animating
+	// it. Native 2*Speed applies to mob-generated movement; applying it here
+	// left the server behind the client. A separate time budget limits speed.
 	return maxMovementRouteBytes
 }
 
@@ -356,9 +357,9 @@ func movementTilesPerSecond(p *Player) float64 {
 	if p != nil && p.Char != nil {
 		speed = int(playerAttackRun(p.Char) & 0x0F)
 	}
-	// TMHuman interpola um passo a cada 1000/Speed ms. A autoridade usa a mesma
-	// cadencia, mas deriva Speed do Score server-side; o campo recebido no pacote
-	// nunca aumenta a velocidade. BASE_GetSpeed do client 7.48 limita 1..7.
+	// TMHuman interpolates one step every 1000/Speed ms. Authority shares this
+	// cadence but derives Speed from server-side Score; the received field never
+	// increases speed. The 7.48 client BASE_GetSpeed clamps to 1..7.
 	if speed < 1 {
 		speed = 1
 	} else if speed > 7 {
@@ -369,7 +370,7 @@ func movementTilesPerSecond(p *Player) float64 {
 
 func movementPacketRejectionSummary(p *Player, pkt []byte) string {
 	if p == nil || len(pkt) < 28 {
-		return "rota/destino de movimento invalido"
+		return "invalid movement route/destination"
 	}
 	startX := binary.LittleEndian.Uint16(pkt[12:14])
 	startY := binary.LittleEndian.Uint16(pkt[14:16])
@@ -392,15 +393,15 @@ func movementPacketRejectionSummary(p *Player, pkt []byte) string {
 		pendingX, pendingY = p.MovePublishedTargetX, p.MovePublishedTargetY
 		pendingStep, pendingLen = p.MoveAuthorityStep, len(p.MoveAuthorityRoute)
 	}
-	return fmt.Sprintf("rota/destino invalido auth=(%d,%d) pos=(%d,%d) target=(%d,%d) speed=%d/%d route=%q pending=(%d,%d %d/%d)",
+	return fmt.Sprintf("invalid route/destination auth=(%d,%d) pos=(%d,%d) target=(%d,%d) speed=%d/%d route=%q pending=(%d,%d %d/%d)",
 		authX, authY, startX, startY, targetX, targetY, clientSpeed, serverSpeed,
 		string(route), pendingX, pendingY, pendingStep, pendingLen)
 }
 
 var routeDirections = map[byte][2]int{
-	// O wire do client 7.48 usa o eixo observado em capturas reais: "32"
-	// transforma (2486,2017) em (2487,2015), e "2222" reduz Y em quatro.
-	// Nao copiar BASE_GetDestByAction de outra versao: ali o eixo Y e oposto.
+	// The 7.48 wire uses the axis observed in real captures: "32" changes
+	// (2486,2017) to (2487,2015), and "2222" reduces Y by four. Do not copy
+	// another version's BASE_GetDestByAction, whose Y axis is reversed.
 	'1': {-1, -1}, '2': {0, -1}, '3': {1, -1},
 	'4': {-1, 0}, '6': {1, 0},
 	'7': {-1, 1}, '8': {0, 1}, '9': {1, 1},
@@ -411,10 +412,10 @@ func (w *World) validPlayerMovePacket(p *Player, pkt []byte) bool {
 	return ok
 }
 
-// validatedPlayerMoveRoute valida o plano recebido e o converte em uma rota
-// que parte da posicao autoritativa atual. Repeticoes do mesmo Route[24] sao
-// aceitas mesmo depois de alguns passos, mas somente o sufixo ainda nao
-// percorrido pode virar autoridade.
+// validatedPlayerMoveRoute validates the received plan and converts it into a
+// route starting at the current authoritative position. Repeated Route[24]
+// plans remain valid after some steps, but only their untraveled suffix can
+// become authoritative.
 func (w *World) validatedPlayerMoveRoute(p *Player, pkt []byte) (uint16, uint16, []byte, []byte, bool) {
 	if p == nil || len(pkt) != 52 {
 		return 0, 0, nil, nil, false
@@ -460,8 +461,8 @@ func (w *World) validatedPlayerMoveRoute(p *Player, pkt []byte) (uint16, uint16,
 		if uint16(x) != targetX || uint16(y) != targetY {
 			return 0, 0, nil, nil, false
 		}
-		// Escolher a ultima ocorrencia impede uma rota com loop de obrigar o
-		// personagem a repetir passos ja percorridos.
+		// Choosing the last occurrence prevents a loop from forcing the
+		// character to repeat steps already traveled.
 		currentAt := -1
 		for index := range positions {
 			if positions[index][0] == p.X && positions[index][1] == p.Y {
@@ -469,10 +470,10 @@ func (w *World) validatedPlayerMoveRoute(p *Player, pkt []byte) (uint16, uint16,
 			}
 		}
 		if currentAt < 0 {
-			// Ao virar durante uma caminhada, o client pode iniciar o novo
-			// Route na posicao visual, poucos passos adiante da autoridade. Essa
-			// origem so e aceita quando pertence ao plano antigo ainda pendente;
-			// os passos faltantes sao preservados, nunca saltados.
+			// On a turn, the client may start a new Route at its visual position,
+			// a few steps ahead of authority. Accept that origin only if it
+			// belongs to the old pending plan; preserve the missing steps
+			// instead of skipping them.
 			prefix, found := playerMovementPrefixTo(p, startX, startY)
 			if found {
 				authority := append(prefix, wireRoute...)
@@ -480,11 +481,10 @@ func (w *World) validatedPlayerMoveRoute(p *Player, pkt []byte) (uint16, uint16,
 					return startX, startY, wireRoute, authority, true
 				}
 			}
-			// O 7.48 transmite planos continuamente. Quando um pacote intermediario
-			// se perde, PosX/Y do proximo plano pode estar adiante do ultimo
-			// Target conhecido. Reconstrua apenas um corredor curto e inteiramente
-			// transitavel a partir da autoridade atual; os passos continuam sujeitos
-			// ao relogio server-side e nunca viram um salto imediato.
+			// 7.48 transmits plans continuously. A lost intermediate packet can
+			// leave the next PosX/Y ahead of the last known Target. Reconstruct
+			// only a short, fully traversable corridor from current authority;
+			// steps remain subject to the server clock, never an instant jump.
 			if chebyshev(p.X, p.Y, startX, startY) <= maxMovementVisualBridge {
 				bridge, found := w.shortTerrainRoute(p.X, p.Y, startX, startY,
 					maxMovementVisualBridge)
@@ -501,9 +501,9 @@ func (w *World) validatedPlayerMoveRoute(p *Player, pkt []byte) (uint16, uint16,
 		authority := append([]byte(nil), wireRoute[currentAt:]...)
 		return startX, startY, wireRoute, authority, true
 	}
-	// Alguns pacotes intermediarios do 7.48 chegam sem Route. Eles so podem
-	// reportar um segmento curto e inteiramente transitavel. O servidor gera a
-	// linha de passos para que o destino continue sendo futuro, nao um salto.
+	// Some intermediate 7.48 packets have no Route. They may report only a
+	// short, fully traversable segment. The server generates steps so the
+	// destination remains future movement, not a jump.
 	distance := chebyshev(p.X, p.Y, targetX, targetY)
 	if distance > movementSegmentLimit(p) {
 		return 0, 0, nil, nil, false
@@ -579,11 +579,11 @@ func terrainPositionFromKey(key uint32) (uint16, uint16) {
 	return uint16(key >> 16), uint16(key)
 }
 
-// shortTerrainRoute reconstrói somente a pequena parte da caminhada já
-// percorrida visualmente entre dois pacotes 0x366. O client não retransmite
-// essa curva no pacote seguinte, portanto exigir LineOfSight rejeita caminhos
-// legítimos ao redor de paredes. A busca é limitada em passos e o resultado
-// continua sendo executado pelo relógio autoritativo, nunca aplicado como salto.
+// shortTerrainRoute reconstructs only the short walk already shown visually
+// between two 0x366 packets. The client does not retransmit that turn in the
+// next packet, so requiring LineOfSight rejects valid paths around walls.
+// The search is step-bounded and authority executes its result on the clock,
+// never as a jump.
 func (w *World) shortTerrainRoute(fromX, fromY, toX, toY uint16, maxSteps int) ([]byte, bool) {
 	if fromX == toX && fromY == toY {
 		return nil, true
@@ -597,8 +597,8 @@ func (w *World) shortTerrainRoute(fromX, fromY, toX, toY uint16, maxSteps int) (
 	predecessors := map[uint32]terrainRoutePredecessor{startKey: {}}
 	queue := make([]terrainRouteQueueEntry, 1, (maxSteps*2+1)*(maxSteps*2+1))
 	queue[0] = terrainRouteQueueEntry{key: startKey}
-	// Ordem determinística. A BFS ainda encontra o menor número de passos;
-	// diagonais fechadas por duas paredes são rejeitadas como no LOS.
+	// Deterministic order. BFS still finds the fewest steps; diagonals closed
+	// by two walls are rejected, as in LOS.
 	steps := [...]struct {
 		encoded byte
 		dx, dy  int
@@ -681,15 +681,15 @@ func (w *World) validReportedStop(p *Player, x, y uint16) bool {
 		w.terrain.LineOfSight(p.X, p.Y, x, y) {
 		return true
 	}
-	// FUN_0046087b copia a posicao visual corrente para o 0x2CB antes de certos
-	// ataques. Aceite uma coordenada que ainda pertence ao plano autoritativo,
-	// mas onMoveStop apenas encerra a rota na posicao server-side atual.
+	// FUN_0046087b copies the current visual position into 0x2CB before some
+	// attacks. Accept coordinates still on the authoritative plan, while
+	// onMoveStop ends the route only at the current server-side position.
 	if _, found := playerMovementPrefixTo(p, x, y); found {
 		return true
 	}
-	// Se o plano intermediario se perdeu, aplique o mesmo limite transitavel do
-	// 0x366. Isto valida a plausibilidade do relato sem promover x/y nem criar
-	// movimento futuro a partir de um pacote de parada.
+	// For a lost intermediate plan, apply the same traversability limit as
+	// 0x366. This validates the report without promoting x/y or creating future
+	// movement from a stop packet.
 	if chebyshev(p.X, p.Y, x, y) > maxMovementVisualBridge {
 		return false
 	}
@@ -697,11 +697,11 @@ func (w *World) validReportedStop(p *Player, x, y uint16) bool {
 	return found
 }
 
-// validatedActionStopRoute reconstrói o pequeno trecho final omitido pelo
-// ActionStop 0x367 do client 7.48. PosX/Y@12 descreve a origem visual e
-// TargetX/Y@24 o ponto onde o avatar vai parar; capturas nativas mostram, por
-// exemplo, (2485,2016)->(2480,2015). O trecho nunca promove coordenadas de
-// imediato: ele apenas vira uma nova rota sujeita ao relógio autoritativo.
+// validatedActionStopRoute reconstructs the short final segment omitted by
+// the 7.48 client's ActionStop 0x367. PosX/Y@12 describes the visual origin and
+// TargetX/Y@24 the stopping point; native captures include (2485,2016)->
+// (2480,2015). The segment never promotes coordinates immediately; it becomes
+// a new route subject to the authoritative clock.
 func (w *World) validatedActionStopRoute(p *Player, pkt []byte) (uint16, uint16, []byte, bool) {
 	if p == nil || len(pkt) != 52 {
 		return 0, 0, nil, false
@@ -712,8 +712,8 @@ func (w *World) validatedActionStopRoute(p *Player, pkt []byte) (uint16, uint16,
 	if startX == 0 || startY == 0 {
 		startX, startY = p.X, p.Y
 	}
-	// Alguns callers antigos enviam somente PosX/Y. Trate-o como parada no
-	// próprio ponto, sem inventar um destino diferente.
+	// Some legacy callers send only PosX/Y. Treat that as stopping at the
+	// same point instead of inventing another destination.
 	if targetX == 0 || targetY == 0 {
 		targetX, targetY = startX, startY
 	}
@@ -726,8 +726,8 @@ func (w *World) validatedActionStopRoute(p *Player, pkt []byte) (uint16, uint16,
 		return targetX, targetY, nil, true
 	}
 
-	// O destino pode estar no plano já validado. Esta é a reconciliação mais
-	// forte porque preserva exatamente as curvas transmitidas anteriormente.
+	// The destination may belong to the validated plan. This is the strongest
+	// reconciliation because it preserves the previously transmitted turns.
 	if route, found := playerMovementPrefixTo(p, targetX, targetY); found {
 		return targetX, targetY, route, true
 	}
@@ -743,9 +743,8 @@ func (w *World) validatedActionStopRoute(p *Player, pkt []byte) (uint16, uint16,
 	} else if prefix, found := playerMovementPrefixTo(p, startX, startY); found {
 		route = append(prefix, stopRoute...)
 	} else {
-		// Um pacote de movimento intermediário pode ter se perdido. Reconstrua
-		// somente um corredor curto e transitável; a velocidade continua sendo
-		// aplicada passo a passo pelo World.
+		// An intermediate movement packet may be lost. Reconstruct only a
+		// short traversable corridor; World still applies speed step by step.
 		if chebyshev(p.X, p.Y, startX, startY) > maxMovementVisualBridge {
 			return 0, 0, nil, false
 		}
@@ -756,8 +755,8 @@ func (w *World) validatedActionStopRoute(p *Player, pkt []byte) (uint16, uint16,
 		}
 		route = append(bridge, stopRoute...)
 	}
-	// PlayerMove carrega no máximo Route[24]. Não anuncie aos observadores um
-	// Target que a rota publicada não consegue alcançar.
+	// PlayerMove carries at most Route[24]. Do not announce a Target the
+	// published route cannot reach.
 	if len(route) > maxMovementRouteBytes {
 		return 0, 0, nil, false
 	}
