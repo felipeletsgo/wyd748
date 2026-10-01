@@ -15,6 +15,8 @@ Does native 7.48 consume `0x37A` as a sale response, and does its packet-size
 policy allow consistent frames longer than the current 20-byte representation?
 This record closes the received envelope, not complete merchant UI or price parity.
 It also records the unchanged request widths reused for server ingress hardening.
+The arithmetic continuation closes the response consumer's base-price bands;
+it does not establish the complete merchant quote or historical server policy.
 
 ## Evidence boundary
 
@@ -76,6 +78,33 @@ credit locally calculated gold, clear a matching interaction alias, and destroy
 the detached visual. A final scene refresh also runs after a merchant mismatch.
 These observations identify the consumer; its full arithmetic and safety are
 not the parity claim made by this record.
+
+### Response price arithmetic
+
+The retained instruction export also resolves the calculation omitted by the
+decompiler around its floating-point conversion. Both equipment and Carry
+branches load the detached visual's item payload at `+0x670`, sign-extend its
+index, and use a catalog stride of `0x8c` with the price load based at
+`0x00d449d0`. Indices outside `1..6499` retain a zero price. Equipment uses
+`0x00487fc9..0x00487ffc`; Carry uses `0x004880e7..0x00488119`.
+
+Both branches multiply the signed catalog price by `0.25f` (bits
+`0x3e800000`) before `__ftol` at `0x00488005` / `0x00488122`. The native
+instructions are `FILD` followed by `FMUL`, not a demonstrated intermediate
+float32 rounding of the catalog integer. For ordinary nonnegative prices,
+let `q` be the truncated quarter price. The response then credits:
+
+| Quarter price `q` | Local credit | Equipment / Carry proof |
+| --- | --- | --- |
+| `0..5000` | `q` | Lower comparison and signed `JL` at `0x0048800d` / `0x0048812a` |
+| `5001..10000` | Integer `2*q/3` | Double, denominator 3, `IDIV` at `0x00488022..0x0048802a` / `0x0048813f..0x00488147` |
+| Above `10000` | Integer `q/2` | Signed halve sequence ending at `0x00488040` / `0x0048815d` |
+
+For example, catalog prices `20000`, `20004`, `40000`, and `40004` produce
+local credits `5000`, `3334`, `6666`, and `5000`. These discontinuities are
+present in the binary; do not replace them with a smooth or monotonic formula.
+This proves the response calculation only. It does not prove merchant tax,
+stack quantities, passive bonuses, or a missing historical server emitter.
 
 The separate outgoing branch of `FUN_00416196` zeroes a 20-byte buffer at
 `EBP-0x2c`, writes opcode `0x37A` at `0x004162bf`, then writes merchant,
@@ -203,6 +232,19 @@ refactor the legacy handler's direct-call parser; all network dispatch goes
 through the validated ingress. Valid requests retain unchanged prices,
 merchant checks, rollback, and `SendItem`/`UpdateEtc` publication.
 
+The current `TMFieldScene::OnPacketSell` already has the proven quarter-price
+bands. Its initial float32 cast is not proven identical to the native x87
+sequence for every catalog value; negative/large catalog inputs and integer
+overflow are not approved by this arithmetic continuation.
+`onSellItem` currently computes `uint64(def.Price)/4`, then the merchant
+passive and city tax, without the two response bands. This is a concrete
+comparison gap, not proof that the response formula can be transplanted as
+the complete authoritative shop policy. The actual client quote at
+`SGridControl::MouseOver` has additional branches, so its native input flow,
+passive/tax order, and supported item domain must be traced before changing
+the server's economic result. Existing low-price tests do not distinguish
+these formulas: their quarter prices remain below 5001.
+
 ## Delta matrix
 
 | Claim | Native 7.48 | Current source | TMProject | WYD-Go | Decision |
@@ -211,7 +253,8 @@ merchant checks, rollback, and `SendItem`/`UpdateEtc` publication.
 | Exact envelope | Size-policy case requires 20 | Minimum-only gate accepts larger frames | Struct is 20 bytes | Input intent is 20 bytes | PARIDADE_NATIVA: require exact receive size |
 | Actual-size/opcode consistency | Native size/opcode words identified | Shared gate checks both discriminants and actual size | Internal guard | Unchanged | MODERNIZACAO_COMPATIVEL: reuse fail-closed gate |
 | Complete source words | Request writes words at 14/16; response sign-extends them | Representation unchanged | No new sender or response | Reject high-byte aliases before dispatch | MODERNIZACAO_COMPATIVEL: enforce existing Carry policy on full fields |
-| Complete UI/price parity | Not fully validated by this slice | Existing safety modernization | Different architecture | Authoritative snapshots | No broader parity claim or price change |
+| Response base-price bands | Quarter price, then two-thirds for 5001..10000 or half above 10000 | Same bands; floating precision still unproven | Candidate calculation is secondary | Omits these response bands | CONFIRMED response arithmetic; trace the quote before economic adaptation |
+| Complete UI/price parity | Quote, passive/tax order, and refresh not fully validated | Existing safety modernization | Different architecture | Authoritative snapshots | No broader parity claim or price change |
 
 ## Decisions
 
@@ -226,8 +269,13 @@ proof that every native sale source follows the server's Carry-only policy.
 
 - Real DirectX client sale execution is not performed. This remains `CONTRACT`,
   not `CLIENT_TESTED`.
-- Full downstream native grid class identity, price arithmetic, and UI refresh
-  parity are not established by this envelope record and are not adapted here.
+- Downstream native grid class identity, merchant quote including passive/tax
+  order, and UI refresh parity remain open. The response's base-price bands
+  are now proven, but no product price changed in this continuation.
+- Next economic gate: trace the native sale quote against
+  `SGridControl::MouseOver`, establish ordinary/special-item and passive/tax
+  branches, and cover catalog boundaries `20000/20004/40000/40004` through
+  authoritative persistence and snapshot publication before adapting prices.
 - Other documented legacy gaps (`0xED7/0xED8`, dormant `0x2C4`, unavailable
   transfer `0xFAA`) remain separate work; this evidence does not close them.
 
@@ -270,3 +318,9 @@ proof that every native sale source follows the server's Carry-only policy.
 - Structure: `validate_research.py --repo .` passed; repository layout and
   local links passed with 152 indexed documents. `git diff --check` passed.
 - Real client: not run; no candidate installation or visual validation.
+- Arithmetic continuation: reused the matching ignored
+  `sale-handler-boundary.tsv` instruction export and successful log, retaining
+  only price-related rows in the focused versioned export. The raw instructions
+  recover loads/multiplication that the cached decompilation omits before
+  `__ftol`. No new census, Ghidra run, source test, build, or installation was
+  needed; unchanged earlier product validation is not a new runtime result.

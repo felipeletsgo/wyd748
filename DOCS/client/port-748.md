@@ -296,6 +296,19 @@ established by the envelope trace. The current server's snapshot-based sale
 does not exercise this legacy callback. No visual client execution or
 installation was performed; the record remains `CONTRACT`, not `CLIENT_TESTED`.
 
+The subsequent arithmetic inspection reused the existing native instruction
+export: the response truncates the quarter catalog price, applies integer
+two-thirds for quarter prices `5001..10000`, and halves those above `10000`.
+Both source branches in `OnPacketSell` already contain these bands, while Go
+`onSellItem` uses a straight quarter price before its passive and city-tax
+adjustments. The native response does not establish the complete shop quote:
+ordinary/special-item branches and passive/tax order remain the next economic
+gate. No product prices changed. The native loads use x87 `FILD`/`FMUL`, so
+the C++ intermediate float32 cast is not claimed equivalent for all inputs.
+See the existing record's
+[response arithmetic](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#response-price-arithmetic)
+for addresses, exact boundaries, and the remaining adaptation requirements.
+
 The subsequent server ingress correction (`64336041`) reads the complete
 source type and position words at bytes 14/16 before sale dispatch. Carry
 type `1` and positions `0..62` remain the allowed domain. Low-byte aliases

@@ -22,3 +22,34 @@ instruction	00487e23	00487fa9	FF92A4000000	CALL dword ptr [EDX + 0xa4]; equipmen
 instruction	00487e23	0048824e	FF9298000000	CALL dword ptr [EDX + 0x98]; global manager receiver
 instruction	00487e23	00488257	E82788FFFF	CALL 0x00480a83; final scene refresh
 instruction	00487e23	00488264	C20400	RET 0x4; one stack argument
+instruction	00487e23	00487fb2	C745A40000803E	Equipment price multiplier bits 0x3e800000 (0.25f)
+instruction	00487e23	00487fc3	8B8870060000	MOV ECX,dword ptr [EAX + 0x670]; detached visual item payload
+instruction	00487e23	00487ff0	69D28C000000	IMUL EDX,EDX,0x8c; native item-table stride
+instruction	00487e23	00487ff6	8B82D049D400	MOV EAX,dword ptr [EDX + 0xd449d0]; catalog price
+instruction	00487e23	00487fff	DB45A8	FILD dword ptr [EBP + -0x58]; signed catalog price
+instruction	00487e23	00488002	D84DA4	FMUL float ptr [EBP + -0x5c]; quarter price
+instruction	00487e23	00488005	E8E6711000	CALL 0x0058f1f0; __ftol conversion
+instruction	00487e23	0048800d	817DA889130000	CMP dword ptr [EBP + -0x58],0x1389; lower band boundary 5001
+instruction	00487e23	00488014	7C1B	JL 0x00488031; below 5001 skips two-thirds band
+instruction	00487e23	00488016	817DA810270000	CMP dword ptr [EBP + -0x58],0x2710; upper band boundary 10000
+instruction	00487e23	0048801d	7F12	JG 0x00488031; above 10000 skips two-thirds band
+instruction	00487e23	00488022	D1E0	SHL EAX,0x1; double quarter price
+instruction	00487e23	00488025	B903000000	MOV ECX,0x3; two-thirds denominator
+instruction	00487e23	0048802a	F7F9	IDIV ECX; signed integer two-thirds band
+instruction	00487e23	00488040	D1F8	SAR EAX,0x1; signed halve branch above 10000
+instruction	00487e23	004880d0	C745980000803E	Carry price multiplier bits 0x3e800000 (0.25f)
+instruction	00487e23	004880e1	8B9170060000	MOV EDX,dword ptr [ECX + 0x670]; detached visual item payload
+instruction	00487e23	0048810d	69C08C000000	IMUL EAX,EAX,0x8c; native item-table stride
+instruction	00487e23	00488113	8B88D049D400	MOV ECX,dword ptr [EAX + 0xd449d0]; catalog price
+instruction	00487e23	0048811c	DB459C	FILD dword ptr [EBP + -0x64]; signed catalog price
+instruction	00487e23	0048811f	D84D98	FMUL float ptr [EBP + -0x68]; quarter price
+instruction	00487e23	00488122	E8C9701000	CALL 0x0058f1f0; __ftol conversion
+instruction	00487e23	0048812a	817D9C89130000	CMP dword ptr [EBP + -0x64],0x1389; lower band boundary 5001
+instruction	00487e23	00488131	7C1B	JL 0x0048814e; below 5001 skips two-thirds band
+instruction	00487e23	00488133	817D9C10270000	CMP dword ptr [EBP + -0x64],0x2710; upper band boundary 10000
+instruction	00487e23	0048813a	7F12	JG 0x0048814e; above 10000 skips two-thirds band
+instruction	00487e23	0048813f	D1E0	SHL EAX,0x1; double quarter price
+instruction	00487e23	00488142	B903000000	MOV ECX,0x3; two-thirds denominator
+instruction	00487e23	00488147	F7F9	IDIV ECX; signed integer two-thirds band
+instruction	00487e23	0048815d	D1F8	SAR EAX,0x1; signed halve branch above 10000
+instruction	00487e23	00488195	03559C	ADD EDX,dword ptr [EBP + -0x64]; local gold credit after adjustment

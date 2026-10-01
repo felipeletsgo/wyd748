@@ -366,6 +366,9 @@ item, position, and cooldown.
   traced; the current server does not emit this response and continues using
   authoritative item/gold snapshots. Full native sale UI/price parity and
   executable-client validation are not claimed.
+  The response's quarter-price reduction bands are now proven from retained
+  instructions; Go currently omits them. Trace the native quote's special-item,
+  passive, and tax branches before changing the authoritative economy.
 
 ## Migration rules
 
