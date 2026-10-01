@@ -750,6 +750,40 @@ int RunSceneDisconnectContractTests(int& checks)
         quitTradeBody.find("if (pTradePanel && pTradePanel->IsVisible() == 1)") != std::string::npos &&
         quitTradeBody.find("if (pATradePanel && pATradePanel->IsVisible() == 1)") != std::string::npos,
         "trade closure preserves null scene, model, and optional-panel guards");
+    const auto carryEnd = humanSource.find("int TMHuman::OnPacketCNFCheck(", quitTradeEnd);
+    const auto carryBody = quitTradeEnd != std::string::npos && carryEnd != std::string::npos
+        ? humanSource.substr(quitTradeEnd, carryEnd - quitTradeEnd) : std::string{};
+    const auto carryCopy = carryBody.find(
+        "memcpy(g_pObjectManager->m_stMobData.Carry, pStd->Carry, sizeof(pStd->Carry));");
+    const auto carryCoin = carryBody.find("m_stMobData.Coin = pStd->Coin;");
+    const auto carryOpponentClear = carryBody.find("m_stTrade.OpponentID = 0;");
+    const auto carryCheckClear = carryBody.find("m_stTrade.MyCheck = 0;");
+    const auto carryGridGuard = carryBody.find("if (!pScene->m_pGridInv)");
+    const auto carryClose = carryBody.find("pScene->SetVisibleTrade(0);");
+    check(carryBody.find("if (!pStd || !g_pObjectManager || pScene->m_pMyHuman != this)") < carryCopy &&
+        carryBody.find("GetSceneType() != ESCENE_TYPE::ESCENE_FIELD") < carryCopy &&
+        carryCopy != std::string::npos,
+        "Carry snapshot validates scene, payload, model, and local receiver before copying state");
+    check(carryCopy != std::string::npos && carryCoin != std::string::npos &&
+        carryGridGuard != std::string::npos && carryCopy < carryGridGuard && carryCoin < carryGridGuard,
+        "Carry snapshot preserves all 64 items and Coin without an inventory grid");
+    check(carryOpponentClear != std::string::npos && carryCheckClear != std::string::npos &&
+        carryClose != std::string::npos && carryOpponentClear < carryClose && carryCheckClear < carryClose &&
+        carryClose < carryGridGuard,
+        "Carry snapshot clears native trade flags before optional UI closure and the missing-grid return");
+    check(carryBody.find("if (pScene->m_pControlContainer)") < carryClose &&
+        carryBody.find("if (pScene->m_pTradePanel && pScene->m_pTradePanel->IsVisible() == 1)") < carryClose &&
+        carryClose != std::string::npos &&
+        carryBody.find("SetVisibleInventory") == std::string::npos &&
+        carryBody.find("SendPacket") == std::string::npos,
+        "Carry snapshot closes only an available active trade without toggling ordinary inventory or sending intentions");
+    check(carryGridGuard != std::string::npos &&
+        carryGridGuard < carryBody.find("pScene->m_pGridInv->Empty();") &&
+        carryBody.find("pScene->m_pGridInv->Empty();") < carryBody.find("new STRUCT_ITEM") &&
+        carryBody.find("nCarryIndex < 63") != std::string::npos &&
+        carryBody.find("nCarryIndex % 9, nCarryIndex / 9") != std::string::npos &&
+        carryBody.find("SAFE_DELETE(pGridItem);") != std::string::npos,
+        "Carry snapshot retains alias cleanup, native 63-cell projection, and rejected-visual ownership");
     const auto listingSoldStart = fieldSource.find("int TMFieldScene::OnPacketItemSold(MSG_STANDARDPARM2* pStd)");
     const auto listingSoldEnd = fieldSource.find("int TMFieldScene::OnPacketUpdateCargoCoin", listingSoldStart);
     const auto listingSoldHandler = listingSoldStart != std::string::npos && listingSoldEnd != std::string::npos

@@ -289,6 +289,13 @@ or already hidden panels do not prevent opponent/check/hover cleanup.
 The scene remains owner of unavailable UI controls and their eventual teardown;
 this patch does not allocate, replace, or manually delete scene controls.
 
+The [complete Carry snapshot](../ui/carry-snapshot-contract.md) is a separate
+native invalidation route: it clears opponent/check before trade closure.
+The active consumer now performs that cleanup and retains all Carry/Coin
+state even when its inventory grid is absent. Visible-trade closure cannot
+send an extra cancellation after the flags are cleared. This whole-snapshot
+transition does not establish native removal of an individual offered item.
+
 ### Shutdown
 
 N/A: these consumers introduce no worker, subscription, or independent timer.

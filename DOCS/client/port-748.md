@@ -336,6 +336,17 @@ guards; two assertions failed before the fix. ArchitectureTests now passes
 `-NoDeploy` build passed with existing legacy warnings. The installed
 executable was not replaced or run.
 
+The complete Carry snapshot also invalidates trade, as recorded in the
+[native Carry contract](../../.agents/research/client748/flows/ui/carry-snapshot-contract.md).
+`OnPacketCarry` now copies all 64 items and Coin even without an inventory
+grid, clears opponent/check before optional visible-trade closure, and avoids
+an extra outgoing cancellation. Ordinary inventory visibility is unchanged.
+Five new source-order regressions failed before the fix and passed afterward;
+ArchitectureTests passed 58,675 checks, SocketReceiveTests passed 221, and the
+incremental Release `-NoDeploy` build passed. No installation or client-runtime
+validation was performed. This does not close native offer-removal or complete
+panel-cascade parity gaps.
+
 The outgoing continuation now traces invitation, acceptance, item insertion,
 gold, check, and closure sends. Native insertion searches fifteen local slots,
 copies eight-byte items, and writes the low byte of Carry position `x+9*y`;

@@ -5659,17 +5659,32 @@ int TMHuman::OnPacketCarry(MSG_Carry* pStd)
 
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
-    // WYD 7.48 exposes Carry as one 9x7 grid with 63 visible slots. This source
-    // is single-version, so a Carry snapshot can only rebuild that native grid.
-	if (!pStd || !g_pObjectManager ||
-		pScene->m_pMyHuman != this || !pScene->m_pGridInv)
+    // Only the local human receives the authoritative Carry cache.
+	if (!pStd || !g_pObjectManager || pScene->m_pMyHuman != this)
         return 1;
+
+	memcpy(g_pObjectManager->m_stMobData.Carry, pStd->Carry, sizeof(pStd->Carry));
+	g_pObjectManager->m_stMobData.Coin = pStd->Coin;
+	// Native FUN_0052E3C8 invalidates the trade before closing its UI. Clear
+	// these flags even without controls, and before SetVisibleTrade can send
+	// a cancellation for an otherwise active local opponent.
+	g_pObjectManager->m_stTrade.OpponentID = 0;
+	g_pObjectManager->m_stTrade.MyCheck = 0;
+	if (pScene->m_pControlContainer)
+	{
+		if (pScene->m_pTradePanel && pScene->m_pTradePanel->IsVisible() == 1)
+			pScene->SetVisibleTrade(0);
+		pScene->UpdateScoreUI(0);
+	}
+
+	// Missing presentation must not discard items, Coin, or trade invalidation.
+	if (!pScene->m_pGridInv)
+		return 1;
 
 	// Empty() also detaches a cursor-owned item before deleting the old
 	// presentation objects, so rebuilding the projection cannot leave a
 	// dangling drag-and-drop pointer behind.
 	pScene->m_pGridInv->Empty();
-	memcpy(g_pObjectManager->m_stMobData.Carry, pStd->Carry, sizeof(pStd->Carry));
 
 	// Ghidra FUN_0052a737 proves the native row-major slot formula is
 	// x=slot%9, y=slot/9; keep presentation dimensions on that exact grid.
@@ -5707,11 +5722,8 @@ int TMHuman::OnPacketCarry(MSG_Carry* pStd)
 			SAFE_DELETE(pGridItem);
 	}
 
-	g_pObjectManager->m_stMobData.Coin = pStd->Coin;
-
-	// An initial Carry snapshot is state synchronization, not an inventory
-	// toggle request; visibility remains controlled by the 7.48 I/menu flow.
-	pScene->UpdateScoreUI(0);
+	// Outside trade, snapshots remain state synchronization rather than an
+	// inventory toggle; ordinary visibility stays controlled by I/menu input.
 	return 1;
 }
 
