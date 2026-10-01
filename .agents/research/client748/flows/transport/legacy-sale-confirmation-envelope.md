@@ -23,6 +23,9 @@ not every ability type. The candidate quote and the type-38 entry of
 Complete merchant UI behavior and historical server policy remain open.
 The grid/cursor continuation closes visual detachment and the sale callback's
 cursor receiver, not complete score/appearance refresh or runtime UI parity.
+The appearance continuation resolves the instruction-level wrapper order of
+`FUN_00480a83`; its callees, human field layout, and virtual targets are not
+thereby approved as complete rendering parity.
 
 ## Evidence boundary
 
@@ -45,6 +48,11 @@ cursor receiver, not complete score/appearance refresh or runtime UI parity.
 - **USED:** `SGrid.cpp::PickupItem` / `PickupAtItem`, `SControl.cpp::SCursor::DetachItem`,
   and the sale handler's matching-alias cleanup. This continuation changes no
   source, ownership policy, runtime resource, or authoritative snapshot flow.
+- **USED:** [appearance wrapper instructions](../../exports/legacy-sale-appearance-refresh.tsv),
+  the previously cached full `FUN_00480a83` decompilation, and
+  `TMFieldScene::UpdateMyHuman`. The matching read-only export contains 129
+  instructions and 54 references. New source-contract checks protect candidate
+  operation ordering; they do not execute the renderer or resolve callee ABI.
 - **USED:** the retained [request instruction export](../../exports/trade-session-input-routes.tsv),
   whose program identity matches the same native hash. `FUN_00416196` writes
   the request payload as words and sends 20 bytes; no new export is needed.
@@ -253,14 +261,46 @@ safety policy. `SCursor::DetachItem` itself matches the native callback's
 return/clear/style semantics. Do not mistake this resolved callback for an
 unimplemented manager refresh or reintroduce unconditional alias clearing.
 
+### Appearance refresh wrapper
+
+The sale tail calls `FUN_00480a83` even after a merchant mismatch. The wrapper
+borrows the human receiver at scene `+0x4c` and mob state from `DAT_013b71e8`.
+It zeroes a 16-byte stack buffer, copies human bytes at `+0x1f2`, and calls
+`FUN_00524ded` with mob state at `+0x6ec`. When the saved first byte is nonzero
+and the equipment word at mob base `+0x748` is not 32, it restores the 16 bytes
+to human `+0x1f2`. This identifies the native preservation gate, not a complete
+mapping of candidate `SANC_INFO`/old-refinement fields to those offsets.
+
+The remaining sequence is:
+
+1. Convert the signed human word at `+0x45a` to float and call `FUN_005277a7`.
+2. Call `FUN_004faf13` with the equipment word at mob base `+0x748`.
+3. Query `FUN_0054cd07` with the item at mob base `+0x778` and ability 21.
+   On result 41, copy human words `+0x1ee/+0x1f0` to `+0x1ea/+0x1ec`
+   and bytes `+0x1f9/+0x201` to `+0x1f8/+0x200`.
+4. Call human virtual slot `+0x38` (`0x00480bcb`), then `FUN_0051bb41`
+   with the item words at mob base `+0x778/+0x780`.
+5. Call human virtual slot `+0x40` (`0x00480c0b`) with zero, the human
+   value at `+0x34`, and zero; call `FUN_0052433d`, then `FUN_00480c25`.
+   Return at `0x00480c24` without a stack argument pop.
+
+The candidate wrapper has corresponding preservation, height/race, ability-41
+mirroring, initialization, weapon/angle, affect, and refinement-update steps
+in this order. Their semantic names are source correspondences, not proof of
+each native callee's complete behavior or concrete human vtable binding.
+Eighteen source-contract checks protect the boundary and seventeen ordered
+steps. No production rewrite is justified by this wrapper-order comparison.
+The sale handler's existing null-human guard remains a deliberate adaptation;
+the native wrapper itself does not supply that guard.
+
 ### Callees
 
 The handler uses grid receiver vtable offsets `+0xa4` (equipment branch) and
 `+0xa8` (carry branch), then the detached visual's slot 0 deleting callback
 with argument 1. It calls `FUN_004431e4`, sound lookup `FUN_00429a6d(0x1f)`,
 `FUN_0042ad2b`, the cursor receiver's resolved `+0x98` detachment slot, and
-`FUN_00480a83` before returning 1. Complete score/appearance refresh behavior
-is still outside this detachment continuation. The cursor identity is proven
+`FUN_00480a83` before returning 1. Its wrapper order is resolved above, but
+complete score/appearance callee behavior remains open. The cursor identity is proven
 from its constructor/global write, not inferred from the offset alone.
 
 ### Outputs and errors
@@ -457,6 +497,7 @@ but deliberately preserve the server policy until its separate decision.
 | Fixed type-38 ability | Signed catalog words and instance bytes; special exclusion and catalog-only mount paths; no refinement scaling | Core GetAbility shared by MouseOver and BASE_GetItemAbility; 2134 existing fixtures plus exclusive-routing regression | Other ability types and caller lifecycles unchanged | Payment unchanged | PARIDADE_NATIVA for proven lookup; reject index 6500 as MODERNIZACAO_COMPATIVEL |
 | Grid visual detachment | Concrete vptr/slots resolve footprint/origin removal, occupancy/list mutation, and ownership transfer | Existing PickupItem/PickupAtItem match; clipping and mesh scaling remain adaptations | Names are secondary | Unchanged snapshots | CONFIRMED core transition; no source edit needed |
 | Cursor callback | Constructed global cursor; +0x98 clears attachment and resets pickup style | DetachItem matches; handler limits cleanup to the sold visual before deletion | Names are secondary | No legacy response emitter | CONFIRMED callback; preserve existing MODERNIZACAO_COMPATIVEL alias protection |
+| Appearance wrapper order | 16-byte preservation gate, ability-41 copies, direct/virtual call sequence resolved | Existing UpdateMyHuman has corresponding ordered steps; eighteen source checks added | Callee names and field ABI remain secondary | Unchanged snapshots | CONFIRMED instruction-level order only; no production rewrite or rendering-parity claim |
 | Complete UI/price parity | Authoritative policy and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
 
 ## Decisions
@@ -482,8 +523,9 @@ and retain the candidate's deliberate matching-only alias cleanup.
 
 - Real DirectX client sale execution is not performed. This remains `CONTRACT`,
   not `CLIENT_TESTED`.
-- Grid detachment and cursor release are resolved; full score/appearance
-  refresh through `FUN_004431e4` and `FUN_00480a83`, resource-to-scene bindings,
+- Grid detachment, cursor release, and appearance wrapper order are resolved;
+  full score refresh through `FUN_004431e4`, appearance callees and concrete
+  human virtual slots `+0x38/+0x40`, the refinement-field ABI, resource-to-scene bindings,
   and real UI behavior remain open. The candidate intentionally differs in
   unconditional cursor clearing and invalid/null-input handling. The response
   bands and quote exceptions do not establish server payment parity.
@@ -503,6 +545,17 @@ and retain the candidate's deliberate matching-only alias cleanup.
 
 ## Validation
 
+- Appearance wrapper continuation (2026-10-01): reused the cached complete
+  decompilation and exported only `instructions:00480a83` with Ghidra 12.1.2,
+  `-process WYD.exe -readOnly -noanalysis`, and absolute project/output paths.
+  Accepted output has the matching native SHA-256, 129 instructions, 54
+  references, completion summary, and no `SCRIPT ERROR`. An initial relative
+  project path was rejected; the corrected absolute-path run succeeded.
+  Incremental `ArchitectureTests.vcxproj` Release/Win32 build and execution
+  passed 61,154 checks, including eighteen new source-contract checks. This is
+  `STATICALLY VERIFIED` wrapper evidence and `AUTOMATED TESTED` source ordering,
+  not renderer execution. No production source, server, assets, or wire changed;
+  no product build, runtime installation, or client execution was needed.
 - Grid/cursor continuation (2026-10-01): reused the published grid constructor,
   exact slots, and four detachment/hit-test instruction bodies. Inspected the
   global writer and concrete cursor callback in the matching read-only Ghidra

@@ -1080,6 +1080,39 @@ int RunSceneDisconnectContractTests(int& checks)
         saleHandler.find("if (!hasItem)", saleRelease) != std::string::npos &&
         saleHandler.find("if (m_pMyHuman)\n\t\tUpdateMyHuman();") != std::string::npos,
         "legacy sale releases an incomplete visual without crediting gold or requiring a renderer");
+    const auto appearanceStart = fieldSource.find("void TMFieldScene::UpdateMyHuman()");
+    const auto appearanceEnd = fieldSource.find("void TMFieldScene::SetMyHumanExp(", appearanceStart);
+    const auto appearanceRefresh = appearanceStart != std::string::npos && appearanceEnd != std::string::npos
+        ? fieldSource.substr(appearanceStart, appearanceEnd - appearanceStart) : std::string{};
+    check(!appearanceRefresh.empty(), "native appearance refresh source boundary is available");
+    // Native wrapper 0x00480a83 preserves refinement before rebuilding the human.
+    // These checks protect wrapper ordering, not callee ABI or rendered parity.
+    const char* appearanceSteps[] = {
+        "memcpy(&stSancInfo, &m_pMyHuman->m_stOldSancInfo, sizeof(stSancInfo));",
+        "m_pMyHuman->SetPacketMOBItem(&g_pObjectManager->m_stMobData);",
+        "if ((unsigned char)stSancInfo.Sanc0 > 0 && pMobData->Equip[0].sIndex != 32)",
+        "memcpy(&m_pMyHuman->m_stSancInfo, &stSancInfo, sizeof(stSancInfo));",
+        "m_pMyHuman->SetCharHeight(fCon);",
+        "m_pMyHuman->SetRace(pMobData->Equip[0].sIndex);",
+        "BASE_GetItemAbility(&pMobData->Equip[6], 21);",
+        "if (nWeaponTypeL == 41)",
+        "m_pMyHuman->m_stLookInfo.RightMesh = m_pMyHuman->m_stLookInfo.LeftMesh;",
+        "m_pMyHuman->m_stLookInfo.RightSkin = m_pMyHuman->m_stLookInfo.LeftSkin;",
+        "m_pMyHuman->m_stSancInfo.Sanc6 = m_pMyHuman->m_stSancInfo.Sanc7;",
+        "m_pMyHuman->m_stSancInfo.Legend6 = m_pMyHuman->m_stSancInfo.Legend7;",
+        "m_pMyHuman->InitObject();",
+        "m_pMyHuman->CheckWeapon(pMobData->Equip[6].sIndex, pMobData->Equip[7].sIndex);",
+        "m_pMyHuman->InitAngle(0.0f, m_pMyHuman->m_fAngle, 0.0f);",
+        "m_pMyHuman->CheckAffect();",
+        "SetSanc();"
+    };
+    std::size_t appearanceOffset = 0;
+    for (const auto* step : appearanceSteps) {
+        const auto position = appearanceRefresh.find(step, appearanceOffset);
+        check(position != std::string::npos, "appearance refresh retains the native wrapper step order");
+        if (position != std::string::npos)
+            appearanceOffset = position + std::strlen(step);
+    }
     const auto swapStart = fieldSource.find("int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)");
     const auto swapEnd = fieldSource.find("int TMFieldScene::OnPacketShopList", swapStart);
     const auto swapHandler = swapStart != std::string::npos && swapEnd != std::string::npos

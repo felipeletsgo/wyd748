@@ -385,6 +385,16 @@ retains the concrete slots, functions, and remaining score/appearance, resource
 binding, economic-policy, and real-client gates. This is static verification,
 not `CLIENT_TESTED` status.
 
+The appearance continuation resolves the native `FUN_00480a83` wrapper's
+preservation gate, ability-41 copies, and refresh call order. The existing
+`UpdateMyHuman` has corresponding steps; eighteen source-contract checks now
+protect their order without rewriting production code. The incremental
+Release/Win32 architecture target passed 61,154 checks. Native callee behavior,
+human field ABI, concrete virtual slots `+0x38/+0x40`, full score refresh, and
+real rendering remain open. The [wrapper evidence](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#appearance-refresh-wrapper)
+does not establish full appearance parity or `CLIENT_TESTED` status. No client
+installation, product rebuild, or unchanged Go validation was repeated.
+
 ### First trade-check acknowledgement
 
 The [native acknowledgement contract](../../.agents/research/client748/flows/transport/trade-check-confirmation-contract.md)
