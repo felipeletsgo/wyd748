@@ -2,7 +2,9 @@
 #include "../internal/ui/NativeSaleQuote.h"
 #include <array>
 #include <climits>
+#include <cstddef>
 #include <cstdio>
+#include <cstring>
 
 // The same SGrid boundary has an observable consumer: rejection must not
 // alter the list, occupancy, binding, or lifetime. DirectX rendering is not simulated.
@@ -46,6 +48,88 @@ int RunGridInsertionTests(int& checks)
             (itemIndex == 412 || itemIndex == 413), "only zero-priced 412 and 413 replace the numeric quote");
         check(!native_sale_quote::HasUnavailablePrice(itemIndex, 4),
             "nonzero catalog prices retain the numeric quote");
+    }
+    // Match the borrowed production fields without pulling Windows/DirectX
+    // dependencies into this pure contract test. The production template also
+    // enforces the catalog/item array extents when SGrid is built.
+    struct CatalogEffect { short sEffect, sValue; };
+    struct InstanceEffect { unsigned char cEffect, cValue; };
+    struct QuoteItem { short sIndex; InstanceEffect stEffect[3]; };
+    static_assert(sizeof(CatalogEffect) == 4 && sizeof(QuoteItem) == 8 &&
+        offsetof(QuoteItem, stEffect) == 2, "Native sale quote fixture ABI changed");
+    CatalogEffect catalogEffects[12]{};
+    QuoteItem quoteItem{1, {}};
+    auto ability = [&] {
+        return native_sale_quote::GetVolatileAbility(quoteItem.sIndex,
+            catalogEffects, quoteItem.stEffect);
+    };
+    for (int slot = 0; slot < 3; ++slot) {
+        for (int raw = 0; raw <= 255; ++raw) {
+            quoteItem = QuoteItem{1, {}};
+            quoteItem.stEffect[slot] = InstanceEffect{38, static_cast<unsigned char>(raw)};
+            check(ability() == (raw < 128 ? raw : raw - 256),
+                "each instance effect value is sign-extended over the entire byte domain");
+            check(native_sale_quote::Calculate(1, 20004, ability()) == 3334,
+                "an instance byte alone never produces the ability-185 full-price override");
+        }
+    }
+    quoteItem = QuoteItem{1, {{38, 185}, {38, 185}, {38, 185}}};
+    check(ability() == -213, "all three matching instance bytes accumulate as signed values");
+    for (int slot = 0; slot < 12; ++slot) {
+        for (short value : {static_cast<short>(SHRT_MIN), static_cast<short>(-1),
+            static_cast<short>(185), static_cast<short>(SHRT_MAX)}) {
+            for (auto& effect : catalogEffects) effect = CatalogEffect{};
+            catalogEffects[slot] = CatalogEffect{38, value};
+            quoteItem = QuoteItem{1, {}};
+            check(ability() == value, "all twelve catalog slots retain signed word values");
+        }
+    }
+    for (auto& effect : catalogEffects) effect = CatalogEffect{38, SHRT_MAX};
+    quoteItem = QuoteItem{1, {{38, 127}, {38, 127}, {38, 127}}};
+    check(ability() == 12 * SHRT_MAX + 381, "positive catalog and instance sums do not narrow");
+    for (auto& effect : catalogEffects) effect = CatalogEffect{38, SHRT_MIN};
+    quoteItem = QuoteItem{1, {{38, 128}, {38, 128}, {38, 128}}};
+    check(ability() == 12 * SHRT_MIN - 384, "negative catalog and instance sums do not narrow");
+    for (auto& effect : catalogEffects) effect = CatalogEffect{};
+    catalogEffects[0] = CatalogEffect{38, 200};
+    quoteItem = QuoteItem{1, {{38, 241}, {0, 0}, {0, 0}}};
+    check(ability() == 185 && native_sale_quote::Calculate(1, 20004, ability()) == 20004,
+        "catalog and signed instance sum equal to 185 enables the full-price override");
+    const auto itemBeforeLookup = quoteItem;
+    CatalogEffect catalogBeforeLookup[12];
+    std::memcpy(catalogBeforeLookup, catalogEffects, sizeof(catalogEffects));
+    (void)ability();
+    check(std::memcmp(&itemBeforeLookup, &quoteItem, sizeof(quoteItem)) == 0 &&
+        std::memcmp(catalogBeforeLookup, catalogEffects, sizeof(catalogEffects)) == 0,
+        "lookup borrows inputs without mutating item or catalog storage");
+    catalogEffects[0] = CatalogEffect{38, 185};
+    catalogEffects[11] = CatalogEffect{38, 10};
+    quoteItem = QuoteItem{1, {{38, 246}, {0, 0}, {0, 0}}};
+    const int domainCases[][2] = {
+        {1, 185}, {2329, 185}, {2330, 195}, {2389, 195}, {2390, 185},
+        {3199, 185}, {3200, 0}, {3300, 0}, {3301, 185},
+        {3979, 185}, {3980, 195}, {3999, 195}, {4000, 185}, {6499, 185}
+    };
+    for (const auto& fixture : domainCases) {
+        quoteItem.sIndex = static_cast<short>(fixture[0]);
+        check(ability() == fixture[1], "native special domains preserve their exact inclusive endpoints");
+        check(native_sale_quote::Calculate(quoteItem.sIndex, 20004, ability()) ==
+            (fixture[1] == 185 ? 20004 : 3334), "lookup domain controls only the ability quote exception");
+    }
+    for (int itemIndex : {INT_MIN, -1, 0, 6500, INT_MAX})
+        check(native_sale_quote::GetVolatileAbility(itemIndex, catalogEffects, quoteItem.stEffect) == 0,
+            "quote lookup rejects invalid catalog indices before consuming effects");
+    catalogEffects[0] = CatalogEffect{37, 185};
+    catalogEffects[11] = CatalogEffect{39, 185};
+    for (int rawType = 0; rawType <= 255; ++rawType) {
+        quoteItem = QuoteItem{1, {{static_cast<unsigned char>(rawType), 1}, {0, 0}, {0, 0}}};
+        check(ability() == (rawType == 38 ? 1 : 0),
+            "unrelated catalog and instance types cannot contribute to type 38");
+    }
+    catalogEffects[0] = CatalogEffect{38, 185};
+    for (int raw = 0; raw <= 255; ++raw) {
+        quoteItem = QuoteItem{1, {{43, static_cast<unsigned char>(raw)}, {0, 0}, {0, 0}}};
+        check(ability() == 185, "type-38 catalog ability is independent of refinement bytes");
     }
     struct Item { int owner = -1; };
     Item* list[128]{};

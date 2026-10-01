@@ -16,6 +16,9 @@
 
 namespace
 {
+	static_assert(EF_VOLATILE == native_sale_quote::VolatileEffect,
+		"Native sale quote requires ability type 38");
+
 	// Local shortcut replacement: the caller retains the new visual if AddItem
 	// rejects it. Remove the old visual only after insertion succeeds; the caller
 	// destroys it after detaching the cursor, which may still point to it.
@@ -4430,7 +4433,8 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 			if (native_sale_quote::IsValidCatalogIndex(itemIndex))
 			{
 				catalogPrice = g_pItemList[itemIndex].nPrice;
-				volatileAbility = BASE_GetItemAbility(pItem->m_pItem, EF_VOLATILE);
+				volatileAbility = native_sale_quote::GetVolatileAbility(itemIndex,
+					g_pItemList[itemIndex].stEffect, pItem->m_pItem->stEffect);
 			}
 			const int nPrice = native_sale_quote::Calculate(itemIndex, catalogPrice, volatileAbility);
 			char szText[128]{};

@@ -18,7 +18,7 @@ It also records the unchanged request widths reused for server ingress hardening
 The arithmetic continuations close the response consumer's base-price bands
 and the grid-type-3 quote calculation and exceptions. The type-38 continuation
 also closes the native contract for the ability lookup required by that quote,
-not every ability type. Candidate lookup adaptation remains pending.
+not every ability type. The candidate quote now uses that resolved lookup.
 Complete merchant UI behavior and historical server policy remain open.
 
 ## Evidence boundary
@@ -174,8 +174,8 @@ test other types before the final sum is returned. The quote-specific lookup
 can therefore omit the refinement call without losing side effects. This does
 not approve changing refinement computation for other consumers.
 
-The sale quote itself already bounds catalog reads to `1..6499`. The planned
-quote-specific lookup must retain that bound rather than reproduce the native helper's index
+The sale quote itself already bounds catalog reads to `1..6499`. The
+quote-specific lookup retains that bound rather than reproducing the native helper's index
 6500 access. This invalid-index protection is `MODERNIZACAO_COMPATIVEL`;
 the proven type-38 sums, exclusions, and mount paths are `PARIDADE_NATIVA`.
 No item bytes, catalog data, price policy, or persisted effects are changed.
@@ -227,8 +227,8 @@ Downstream grid/manager slots are observed, not renamed as proven classes.
 The receive gate owns no packet or scene. Storage remains transport-owned and
 is borrowed synchronously once. Native detachment/deletion observations above
 do not change the candidate's existing grid ownership or alias safety policy.
-The planned quote lookup must synchronously borrow the catalog and item effect
-arrays as const references, allocate nothing, and retain or modify neither input.
+The quote lookup synchronously borrows the catalog and item effect arrays as
+const references, allocates nothing, and retains or modifies neither input.
 
 ### Partial failure
 
@@ -301,10 +301,15 @@ The helper preserves the native ordinary bands, full-price ability-185
 override, final item-412 price of 800000, ordinary item-413 calculation, and
 zero-catalog message-340 condition. Valid nonnegative prices use integer
 quarter division rather than intermediate float32 rounding. Catalog access
-is guarded by the existing `1..6499` domain. Ability input still comes from
-the candidate `BASE_GetItemAbility`; its signed-byte and special-domain
-differences remain unadapted. The native type-38 contract is resolved above;
-implementation and focused lookup tests are the next gate.
+is guarded by the existing `1..6499` domain. Ability input now comes from
+`native_sale_quote::GetVolatileAbility`, with signed instance-byte values,
+the inclusive 3200..3300 exclusion, and catalog-only mount domains
+2330..2389 and 3980..3999. `EF_VOLATILE == 38` is asserted at the production
+call site; the template takes the actual twelve/three effect arrays without
+changing their shared storage ABI. It omits refinement computation because
+the native type-38 result is independent of that side-effect-free callee.
+The general `BASE_GetItemAbility` and all of its other consumers are unchanged;
+this focused adaptation does not establish parity for every ability type.
 
 ### WYD-Go
 
@@ -336,7 +341,9 @@ comparison gap, not proof that the response formula can be transplanted as
 the complete authoritative shop policy. The native client quote and its
 special-item overrides are now traced and adapted, without changing server
 payment. No passive/tax adjustment occurs in that native quote block; the
-authoritative policy and ability lookup still require separate validation.
+authoritative policy still requires separate validation. The quote-specific
+type-38 lookup is now adapted and automated-tested; general ability parity
+and real client execution are not established by that result.
 For the current catalog, item 412 quotes 800000 while Go's straight quarter
 of 1000000 is 250000 before other adjustments. This mismatch is recorded,
 not silently treated as economic parity. Existing low-price server tests do
@@ -347,12 +354,13 @@ not distinguish the response bands: their quarter prices remain below 5001.
 | Claim | Native 7.48 | Current source | TMProject | WYD-Go | Decision |
 | --- | --- | --- | --- | --- | --- |
 | Received `0x37A` consumer | Field receiver calls `FUN_00487e23` | Inherited sale handler exists | Secondary candidate | Does not emit response | CONFIRMED; retain guarded consumer |
-| Exact envelope | Size-policy case requires 20 | Minimum-only gate accepts larger frames | Struct is 20 bytes | Input intent is 20 bytes | PARIDADE_NATIVA: require exact receive size |
+| Exact envelope | Size-policy case requires 20 | Exact-size receive gate rejects larger frames | Struct is 20 bytes | Input intent is 20 bytes | PARIDADE_NATIVA: require exact receive size |
 | Actual-size/opcode consistency | Native size/opcode words identified | Shared gate checks both discriminants and actual size | Internal guard | Unchanged | MODERNIZACAO_COMPATIVEL: reuse fail-closed gate |
 | Complete source words | Request writes words at 14/16; response sign-extends them | Representation unchanged | No new sender or response | Reject high-byte aliases before dispatch | MODERNIZACAO_COMPATIVEL: enforce existing Carry policy on full fields |
 | Response base-price bands | Quarter price, then two-thirds for 5001..10000 or half above 10000 | Same bands; floating precision still unproven | Candidate calculation is secondary | Omits these response bands | CONFIRMED response arithmetic; authoritative policy remains separate |
-| Grid-type-3 sale quote | Ordinary bands; ability 185 full price; item 412 fixed at 800000; item 413 ordinary | Implemented in NativeSaleQuote.h with 154 focused checks | Existing ability lookup remains a gap | Payment unchanged | PARIDADE_NATIVA for cleared calculation; invalid-index protection is MODERNIZACAO_COMPATIVEL |
-| Complete UI/price parity | Ability lookup, authoritative policy, and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
+| Grid-type-3 sale quote | Ordinary bands; ability 185 full price; item 412 fixed at 800000; item 413 ordinary | Implemented in NativeSaleQuote.h with 154 focused arithmetic checks | Secondary candidate | Payment unchanged | PARIDADE_NATIVA for cleared calculation; invalid-index protection is MODERNIZACAO_COMPATIVEL |
+| Quote type-38 ability | Signed catalog words and instance bytes; special exclusion and catalog-only mount paths; no refinement scaling | GetVolatileAbility integrated into MouseOver with 2134 additional checks | General helper not changed or approved | Payment unchanged | PARIDADE_NATIVA for proven lookup; reject index 6500 as MODERNIZACAO_COMPATIVEL |
+| Complete UI/price parity | Authoritative policy and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
 
 ## Decisions
 
@@ -362,8 +370,9 @@ Do not remove the consumer merely because WYD-Go currently uses a different
 authoritative confirmation path.
 Classify the server source-domain gate as `MODERNIZACAO_COMPATIVEL`, not
 proof that every native sale source follows the server's Carry-only policy.
-Adapt only the cleared quote calculation and retain the current authoritative
-payment and snapshot lifecycle. Quote tests are not evidence of payment parity.
+Adapt the cleared quote calculation and its fixed type-38 lookup; retain the
+general ability helper, authoritative payment, and snapshot lifecycle. Quote
+tests are not evidence of payment parity or validation of other ability types.
 
 ## Gaps
 
@@ -372,11 +381,10 @@ payment and snapshot lifecycle. Quote tests are not evidence of payment parity.
 - Downstream native grid class identity and UI refresh parity remain open.
   The response bands and quote exceptions are proven; only the displayed
   quote changed in this continuation, not server payment.
-- The native type-38 lookup contract is resolved, but the candidate still uses
-  its inherited helper. Adapt and test signed instance values, the inclusive
-  3200..3300 exclusion, and both catalog-only mount domains before claiming
-  complete parity for the ability-185 exception. Other ability types remain
-  outside this evidence boundary.
+- The quote-specific type-38 lookup is adapted and automated-tested. Real UI
+  execution is still pending, and other ability types/consumers remain outside
+  this evidence boundary. Do not use these fixtures to approve a global rewrite
+  of `BASE_GetItemAbility`.
 - Next economic gate: establish the authoritative ordinary/special-item,
   passive, and city-tax policy, including the item-412 quote/payment mismatch.
   Cover catalog boundaries `20000/20004/40000/40004` through persistence,
@@ -452,3 +460,17 @@ payment and snapshot lifecycle. Quote tests are not evidence of payment parity.
   instructions in the existing versioned export. This continuation changes
   evidence and the implementation contract only; no product change, new build,
   installation, or client execution is claimed.
+- Type-38 adaptation (2026-10-01): 2134 added checks exercise all 256 instance
+  value bytes in each slot, quote override consequences, all twelve catalog
+  slots with signed-word extremes, accumulated values, every instance type byte,
+  refinement independence, input preservation, invalid indices, and special
+  domain endpoints. The production SGrid build verifies the template against
+  the actual catalog/item array types and the type-38 ID assertion.
+  `Build-Client.ps1 -Configuration Release -NoDeploy` passed with 60,968
+  architecture checks, 221 socket checks, asset/shader gates, and the integrated
+  incremental x86 build. Existing signed/unsigned warnings in unrelated SGrid
+  comparisons remain. Artifact `tmproject/build/TMProject748/Release/WYD.exe`,
+  SHA-256 `584ECC7D4ED2DDF0DB48A17EB6EB1CAC2DCB1882AE8167BD77710343D05BBF57`.
+  No server input changed, so earlier server tests were not repeated. No new
+  native export was needed for this adaptation. No installation or real client
+  execution occurred; the record remains `CONTRACT`, not `CLIENT_TESTED`.

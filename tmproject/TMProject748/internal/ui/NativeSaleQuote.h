@@ -4,9 +4,39 @@
 // This is a quote, never authorization to mutate gold or inventory.
 namespace native_sale_quote
 {
+    constexpr int VolatileEffect = 38;
+
     constexpr bool IsValidCatalogIndex(int itemIndex)
     {
         return itemIndex > 0 && itemIndex < 6500;
+    }
+
+    // Quote-specific type-38 path in FUN_0054cd07; other ability types are
+    // deliberately left to their existing consumers. Storage bytes stay unsigned.
+    template<class CatalogEffect, class InstanceEffect>
+    constexpr int GetVolatileAbility(int itemIndex,
+        const CatalogEffect (&catalogEffects)[12],
+        const InstanceEffect (&instanceEffects)[3])
+    {
+        if (!IsValidCatalogIndex(itemIndex) || (itemIndex >= 3200 && itemIndex <= 3300))
+            return 0;
+
+        int ability = 0;
+        for (const auto& effect : catalogEffects)
+            if (effect.sEffect == VolatileEffect)
+                ability += effect.sValue;
+
+        // Mount fields are packed state, not ordinary instance effect pairs.
+        if ((itemIndex >= 2330 && itemIndex <= 2389) ||
+            (itemIndex >= 3980 && itemIndex <= 3999))
+            return ability;
+
+        for (const auto& effect : instanceEffects)
+            if (effect.cEffect == VolatileEffect)
+                ability += effect.cValue < 128 ? int(effect.cValue) : int(effect.cValue) - 256;
+        // Type 38 skips refinement scaling; the native refinement callee has
+        // no side effects, so its unused result need not be computed here.
+        return ability;
     }
 
     constexpr int Calculate(int itemIndex, int catalogPrice, int volatileAbility)

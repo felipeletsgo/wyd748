@@ -313,13 +313,19 @@ The 2026-10-01 quote continuation traces native grid type 3 and corrects
 bands, the full-price ability-185 override, item 412 fixed at 800000, item 413
 using ordinary bands, and the existing zero-catalog message condition. Integer
 division preserves native nonnegative price precision without float32 rounding.
-The existing ability helper's signed-byte differences remain an explicit gap.
+The quote now uses a fixed type-38 lookup proven from the native helper:
+signed catalog words and instance bytes, the inclusive 3200..3300 exclusion,
+catalog-only mount domains 2330..2389 and 3980..3999, and no refinement scaling.
+The general ability helper and other consumers remain unchanged and unapproved
+by this focused evidence.
 See the same record's
-[sale quote arithmetic](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#sale-quote-arithmetic).
+[sale quote arithmetic](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#sale-quote-arithmetic)
+and [type-38 lookup contract](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#type-38-ability-used-by-the-quote).
 Server payment remains unchanged, including the current item-412 quote/payment
 mismatch; authoritative special-item/passive/tax policy is still pending.
-The no-deploy incremental build passed with 58,834 architecture checks
-(154 added quote checks), 221 socket checks, and asset/shader gates. No
+The latest no-deploy incremental build passed with 60,968 architecture checks
+(154 arithmetic checks plus 2134 lookup checks), 221 socket checks, and
+asset/shader gates. No
 candidate was installed or visually tested; no `CLIENT_TESTED` claim is made.
 
 The subsequent server ingress correction (`64336041`) reads the complete
