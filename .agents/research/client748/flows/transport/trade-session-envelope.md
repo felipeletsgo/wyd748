@@ -33,13 +33,18 @@ the same native input path?
 - USED: [alternate grid input routes](../../exports/trade-session-input-routes.tsv):
   complete drop and move bodies (704 and 222 instructions), 98 mouse-dispatch
   instructions, and 79 right-button guard/return instructions. The 1,103
-  instruction rows are verbatim excerpts from the same native program.
+  original instruction rows are verbatim excerpts from the same native program.
+  The scene-delegation continuation adds 373 instruction rows: 50 selected
+  Field-mouse instructions and complete base-scene, world-drop, container-mouse,
+  and base-tree mouse bodies (44, 96, 175, and 8 instructions), with concrete
+  Field/container vptr bindings. This is not the complete Field-mouse body.
 - USED: the existing [human receiver and container lookup proof](trade-check-confirmation-contract.md),
   [trade/inventory lifecycle](../ui/trade-inventory-layout.md), and
   [control ownership](../ui/control-focus-ime-lifecycle.md).
 - USED: active `TMHuman.cpp`, `TradeSessionContract.h`, `Basedef.h`,
   `SGrid.cpp`, `TMFieldScene.cpp`, `ReceivedPacketDispatchTests.cpp`, and
-  `SceneDisconnectContractTests.cpp`.
+  `SceneDisconnectContractTests.cpp`; `TMScene.cpp` and
+  `SControlContainer.cpp` for scene/control input delegation.
 - USED: WYD-Go `internal/wire/codec.go`, `session_packets_test.go`,
   `internal/game/trade.go`, and `trade_check_contract_test.go`.
 - NOT APPLICABLE: asset changes or TMProject 7.69 as parity authority.
@@ -218,6 +223,47 @@ The right-button excerpt contains the relevant guards, not the whole 1,382-
 instruction function; the negative claim is limited to these reachable
 branches. No code, opcode, resource, or economic policy is changed.
 
+### Scene delegation and cursor world drop
+
+The grid-drop fallback calls current scene vptr slot `+8` at `0x00416E72`.
+For Field, slot `0x005A429C` resolves to `FUN_004625DA`, not the Field
+control-event callback at `+0x58`. The constructor/destructor vptr writes
+at `0x00434407/0x004358FB` establish the concrete receiver table.
+
+At `0x00462747`, Field delegates mouse input to base-scene
+`FUN_0049AB73`. The base requires the receiver to be current scene
+`DAT_0067CF38`; if its container at `+0x28` is available, it forwards the
+four arguments through that container's slot `+8` at `0x0049ABAF`. A return
+of exactly `1` consumes the event, and Field also returns immediately for
+that result. Otherwise the base calls `FUN_0054AB39` at `0x0049ABD1`;
+this complete eight-instruction base-tree method returns zero.
+
+Container table `0x005A3F34`, installed at `0x0040C32D`, binds its slot
+`0x005A3F3C` to `FUN_0040C67D`. It forwards to the visible cursor, then
+walks the control tree or the first visible modal root among eight candidates.
+Live visible controls receive adjusted coordinates through their own slot
+`+8` at `0x0040C792`; newly focused editable controls invoke the focus setter.
+The traversal accumulates a consumed result rather than stopping at the first
+control. Without a root it returns `1`; otherwise it returns the accumulated
+result, hiding the description panel only when no control consumed input.
+This is a route back to control callbacks, not a separate offer mutation or
+trade emitter. The downstream grid branches remain covered by the earlier
+exports; other control callbacks are not ruled out by this traversal proof.
+
+The separate Field cursor-world-drop candidate requires left-button down
+`0x201`, visible inventory, an attached cursor item, and an item index outside
+`5000..5095`. Call `0x0046373E -> FUN_0046247E` constructs a zeroed 32-byte
+frame, subject to an attached item, elapsed time strictly greater than
+1000 ms, and a nonzero source-container result. It writes opcode `0x272`
+at `0x004624EA`, uses source/slot virtual methods and `x+9*y` for source
+types 1/2, and sends 32 bytes at `0x004625C4`. This is a ground-drop intent,
+not `0x383/156`; it does not clear a local offered item/position. The inspected
+left-down branch is not evidence that the mouse-up fallback takes that branch.
+
+These resolved delegations eliminate those specific candidates for a native
+removal emitter. They do not establish global absence of item removal, and
+they do not authorize removing the existing server-validated active behavior.
+
 ### Outputs and errors
 
 Both native consumers return `1`. Offer lookup of a missing human is a
@@ -254,7 +300,8 @@ to `FUN_004662C5`; table references originate in constructor
 `FUN_004343A4` and destructor `FUN_004358DA`. Reuse the
 [grid vptr and mouse callback proof](../../exports/grid-item-mesh-scale-vtable-callers.tsv):
 constructor `FUN_0040DF9E` installs table `0x005A4024`, whose slot `+8`
-is `FUN_004209FC`. The Field table's `+8` is a different callback, not the
+is `FUN_004209FC`. The Field table's `+8` is `FUN_004625DA`; the container
+table's `+8` is `FUN_0040C67D`. Both are mouse receivers, not the Field
 control-event receiver; numerical slots cannot be substituted across tables.
 
 ### Ownership
@@ -391,11 +438,13 @@ Confirmation, persistence/rollback, and teardown remain server-owned.
 ## Gaps
 
 - Resolve native item-removal reachability independently of the now-proven
-  type-6 no-op. A focused next query should start from offer-buffer mutations
-  or the drop fallback's scene delegation, not redecompile the already
-  inspected TradeItem, mouse dispatcher, drop/move, key, and right-button
-  guards. The alternate routes narrow this search; they do not prove that
-  every native removal route is absent.
+  type-6 no-op. The drop fallback's Field/base/container delegation and the
+  separate cursor-world-drop emitter are now traced. A focused next query
+  should start from offer-buffer item/position mutations, distinguishing an
+  individual removal from invitation copying and full panel/session cleanup.
+  Do not redecompile the inspected TradeItem, mouse dispatcher, drop/move,
+  key/right-button guards, or these scene/container roots. The scoped results
+  do not prove that every native removal route is absent.
 - Complete signed-input/domain evidence only if a dependent parity change
   needs it. Active server rejection/authority remains unchanged.
 - Resolve the size-policy external invocation only when needed; do not

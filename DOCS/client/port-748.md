@@ -367,9 +367,16 @@ safeguards; neither is to be deleted solely to match a native no-op. Resolve a
 different reachable native removal route before claiming parity. The
 additional pickup/drop and move routes construct item-use/sale/belt/move
 packets rather than a direct trade-offer send; the right-button guards exclude
-local offer slots. The drop fallback can delegate to the scene, so these
-scoped findings do not prove global absence. Continue from offer-buffer
-mutations or that delegation without repeating the inspected grid roots.
+local offer slots. The drop fallback's scene delegation is now resolved:
+Field calls the base scene, which forwards to the concrete container's mouse
+callback and consumes a processed event. The container traverses live visible
+controls; it is not a separate trade emitter. The separate cursor-world-drop
+branch requires left-button down and constructs `0x272/32`, not an offer
+removal. Current scene/container code already preserves the traced processed
+return; no input source change is needed for this evidence batch. These scoped
+findings do not prove global absence. Continue from offer-buffer item/position
+mutations, separating individual removal from invitation/full-session cleanup,
+without repeating the inspected grid or scene/container roots.
 Full native input-domain proof and two-client lifecycle validation remain
 pending. This continuation changed evidence/documentation only, so previous product tests
 and builds were not repeated; source checks are not client observations.
