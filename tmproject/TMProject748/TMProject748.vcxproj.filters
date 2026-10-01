@@ -255,6 +255,9 @@
     <ClInclude Include="internal\game\entities\HumanAnglePolicy.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
+    <ClInclude Include="internal\game\entities\BaseCostumeLook.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
     <ClInclude Include="internal\game\entities\SkinMotionPolicy.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>

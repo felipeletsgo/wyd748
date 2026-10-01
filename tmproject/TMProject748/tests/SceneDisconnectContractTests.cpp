@@ -4,6 +4,7 @@
 #include "../internal/core/Structures.h"
 #include "../internal/game/entities/AppearanceRefinementRefresh.h"
 #include "../internal/game/entities/HumanAnglePolicy.h"
+#include "../internal/game/entities/BaseCostumeLook.h"
 #include "../internal/core/WYD748Assets.h"
 #include "../internal/render/world/objects/ObjectFileRecordLayout.h"
 #include "../internal/ui/SellConfirmationText.h"
@@ -48,6 +49,26 @@ static_assert(offsetof(SANC_INFO, Legend4) == 12);
 static_assert(offsetof(SANC_INFO, Legend5) == 13);
 static_assert(offsetof(SANC_INFO, Legend6) == 14);
 static_assert(offsetof(SANC_INFO, Legend7) == 15);
+
+// Native human +0x1d2..+0x1f1 is eight mesh/skin word pairs. This guards
+// the isolated look representation, not the enclosing TMHuman class ABI.
+static_assert(sizeof(HUMAN_LOOKINFO) == 32);
+static_assert(offsetof(HUMAN_LOOKINFO, FaceMesh) == 0);
+static_assert(offsetof(HUMAN_LOOKINFO, FaceSkin) == 2);
+static_assert(offsetof(HUMAN_LOOKINFO, HelmMesh) == 4);
+static_assert(offsetof(HUMAN_LOOKINFO, HelmSkin) == 6);
+static_assert(offsetof(HUMAN_LOOKINFO, CoatMesh) == 8);
+static_assert(offsetof(HUMAN_LOOKINFO, CoatSkin) == 10);
+static_assert(offsetof(HUMAN_LOOKINFO, PantsMesh) == 12);
+static_assert(offsetof(HUMAN_LOOKINFO, PantsSkin) == 14);
+static_assert(offsetof(HUMAN_LOOKINFO, GlovesMesh) == 16);
+static_assert(offsetof(HUMAN_LOOKINFO, GlovesSkin) == 18);
+static_assert(offsetof(HUMAN_LOOKINFO, BootsMesh) == 20);
+static_assert(offsetof(HUMAN_LOOKINFO, BootsSkin) == 22);
+static_assert(offsetof(HUMAN_LOOKINFO, RightMesh) == 24);
+static_assert(offsetof(HUMAN_LOOKINFO, RightSkin) == 26);
+static_assert(offsetof(HUMAN_LOOKINFO, LeftMesh) == 28);
+static_assert(offsetof(HUMAN_LOOKINFO, LeftSkin) == 30);
 
 struct AppearanceRefreshMob {
     struct Item { short sIndex; } Equip[1]{};
@@ -1193,6 +1214,66 @@ int RunSceneDisconnectContractTests(int& checks)
     check(sancRefresh.find("m_nMySanc = BASE_GetItemSanc(&g_pObjectManager->m_stMobData.Equip[4]);")
         != std::string::npos,
         "scene refinement refresh uses equipment slot four as native 0x00480c25 does");
+    const HUMAN_LOOKINFO originalCostumeLook{
+        -32768, 32767, -1, 123, 321, 456, 789, 1234,
+        2345, 3456, 4567, 5678, -222, 777, -333, 888
+    };
+    struct BaseCostumeFixture { int index; short face; short body; };
+    // Expected values are the immediate words written by native 004fb34a.
+    const BaseCostumeFixture baseCostumes[]{
+        {4153, 29, 30}, {4154, 12, 36}, {4155, 36, 36}, {4156, 16, 16}
+    };
+    for (const auto& fixture : baseCostumes) {
+        for (const unsigned int seed : {0u, 1u, 0x7fu, 0x80u, 0xffu}) {
+            auto look = originalCostumeLook;
+            auto refinement = refinementFixture;
+            refinement.Sanc6 = static_cast<unsigned char>(seed);
+            refinement.Sanc7 = static_cast<unsigned char>(seed ^ 0xffu);
+            refinement.Legend6 = static_cast<unsigned char>(seed ^ 0x55u);
+            refinement.Legend7 = static_cast<unsigned char>(seed ^ 0xaau);
+            const HUMAN_LOOKINFO expectedLook{
+                fixture.face, 0, fixture.body, 123, fixture.body, 0,
+                fixture.body, 0, fixture.body, 0, fixture.body, 0,
+                -222, 777, -333, 888
+            };
+            const SANC_INFO expectedRefinement{
+                0, 0, 0, 0, 0, 0, refinement.Sanc6, refinement.Sanc7,
+                0, 0, 0, 0, 0, 0, refinement.Legend6, refinement.Legend7
+            };
+            check(base_costume748::ApplyLook(fixture.index, look, refinement) &&
+                std::memcmp(&look, &expectedLook, sizeof(look)) == 0,
+                "base costume applies native look words and preserves helmet skin and weapons");
+            check(std::memcmp(&refinement, &expectedRefinement, sizeof(refinement)) == 0,
+                "base costume clears only the first six refinement and grade bytes");
+            base_costume748::ApplyLook(fixture.index, look, refinement);
+            check(std::memcmp(&look, &expectedLook, sizeof(look)) == 0 &&
+                std::memcmp(&refinement, &expectedRefinement, sizeof(refinement)) == 0,
+                "repeated base costume initialization retains the same native post-selection state");
+        }
+    }
+    for (const int index : {-32768, -1, 0, 57, 4150, 4151, 4152, 4157, 4200, 4300,
+                            6301, 32767, 4153 | 0x4000, 4153 + 0x1000}) {
+        auto look = originalCostumeLook;
+        auto refinement = refinementFixture;
+        check(!base_costume748::ApplyLook(index, look, refinement),
+            "base costume post-processing rejects unrelated IDs without masked aliases");
+        check(std::memcmp(&look, &originalCostumeLook, sizeof(look)) == 0 &&
+            std::memcmp(&refinement, &refinementFixture, sizeof(refinement)) == 0,
+            "unrelated costumes preserve every look and refinement byte");
+    }
+    const auto humanInitStart = humanSource.find("int TMHuman::InitObject()");
+    const auto humanInitEnd = humanSource.find("SAFE_DELETE(m_pSkinMesh);", humanInitStart);
+    const auto humanInitPrefix = humanInitStart != std::string::npos && humanInitEnd != std::string::npos
+        ? humanSource.substr(humanInitStart, humanInitEnd - humanInitStart) : std::string{};
+    const auto costumeCatalogSkin = humanInitPrefix.find("m_stLookInfo.CoatSkin = g_pItemList[m_sCostume].nIndexTexture;");
+    const auto costumeType = humanInitPrefix.find("nCos = SetHumanCostume();", costumeCatalogSkin);
+    const auto costumeLook = humanInitPrefix.find(
+        "base_costume748::ApplyLook(m_sCostume, m_stLookInfo, m_stSancInfo);", costumeType);
+    check(!humanInitPrefix.empty() && costumeCatalogSkin != std::string::npos &&
+        costumeType != std::string::npos && costumeLook != std::string::npos &&
+        costumeCatalogSkin < costumeType && costumeType < costumeLook,
+        "human initialization applies base costume look after catalog/type selection before skin replacement");
+
     const SANC_INFO packetRefinement{9, 8, 7, 6, 5, 4, 3, 2, 1, 2, 3, 4, 5, 6, 7, 8};
     for (const auto firstByte : {0u, 1u, 0x80u, 0xffu}) {
         for (const short head : {short{0}, short{31}, short{32}, short{33}}) {

@@ -180,6 +180,7 @@ Markdown documents: 152.
 - [.agents/research/client748/exports/keepalive-ping-flow.tsv](<../.agents/research/client748/exports/keepalive-ping-flow.tsv>)
 - [.agents/research/client748/exports/legacy-sale-appearance-angle.tsv](<../.agents/research/client748/exports/legacy-sale-appearance-angle.tsv>)
 - [.agents/research/client748/exports/legacy-sale-appearance-refresh.tsv](<../.agents/research/client748/exports/legacy-sale-appearance-refresh.tsv>)
+- [.agents/research/client748/exports/legacy-sale-base-costume-look.tsv](<../.agents/research/client748/exports/legacy-sale-base-costume-look.tsv>)
 - [.agents/research/client748/exports/legacy-sale-confirmation.tsv](<../.agents/research/client748/exports/legacy-sale-confirmation.tsv>)
 - [.agents/research/client748/exports/legacy-sale-cursor-detachment.tsv](<../.agents/research/client748/exports/legacy-sale-cursor-detachment.tsv>)
 - [.agents/research/client748/exports/legacy-sale-grid-detachment.tsv](<../.agents/research/client748/exports/legacy-sale-grid-detachment.tsv>)

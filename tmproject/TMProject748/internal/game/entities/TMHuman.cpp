@@ -16,6 +16,7 @@
 #include "DeathMotionPolicy.h"
 #include "SkinMotionPolicy.h"
 #include "HumanAnglePolicy.h"
+#include "BaseCostumeLook.h"
 #include "../../render/mesh/CostumeSelection.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "../../ui/ObservedAffectProjection.h"
@@ -474,6 +475,7 @@ int TMHuman::InitObject()
         m_stLookInfo.GlovesSkin = m_stLookInfo.PantsSkin;
         m_stLookInfo.BootsSkin = m_stLookInfo.GlovesSkin;
         nCos = SetHumanCostume();
+        base_costume748::ApplyLook(m_sCostume, m_stLookInfo, m_stSancInfo);
     }
 
 

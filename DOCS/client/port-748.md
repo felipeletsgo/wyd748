@@ -435,6 +435,18 @@ the candidate and requires no asset edit. Full costume post-processing,
 enclosing ABI, and real-client rendering remain open. No client was installed
 or run, and no unchanged Go suite was repeated.
 
+The base-costume continuation now corrects IDs `4153..4156` after catalog/type
+selection and before skin replacement. `BaseCostumeLook.h` applies the native
+face/body meshes, zero skins, and six-part refinement/grade clearing while
+preserving helmet skin and both weapons. Unrelated IDs and masked aliases
+remain unchanged. The [native evidence](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md)
+retains the exact instructions and field bindings. Eighty-nine new checks and
+seventeen look-layout assertions passed; Release/Win32 architecture validation
+passed 61,356 checks, and the integrated `-NoDeploy` build passed 221 socket
+checks and costume/shader gates. Class/skeleton selection, skin construction,
+enclosing ABI, and real-client rendering remain open. No client was installed
+or run; no assets or authoritative server behavior changed.
+
 ### First trade-check acknowledgement
 
 The [native acknowledgement contract](../../.agents/research/client748/flows/transport/trade-check-confirmation-contract.md)

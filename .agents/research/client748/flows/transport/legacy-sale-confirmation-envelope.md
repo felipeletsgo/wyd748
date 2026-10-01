@@ -25,7 +25,8 @@ The grid/cursor continuation closes visual detachment and the sale callback's
 cursor receiver, not complete score/appearance refresh or runtime UI parity.
 The appearance continuation resolves the instruction-level wrapper order of
 `FUN_00480a83`, its refinement-block layout, concrete human virtual targets,
-the weapon-101 angle exception, and the matched costume selector.
+the weapon-101 angle exception, the matched costume selector, and the
+isolated base-costume look overrides for IDs 4153..4156.
 The candidate now snapshots active refinement at this boundary,
 while retaining its separate shadow-restoration cache. Complete callee
 behavior is not thereby approved as rendering parity.
@@ -76,6 +77,12 @@ behavior is not thereby approved as rendering parity.
   field wrapper and by isolated state fixtures. Fixtures exercise the same
   snapshot/rebuild/restore implementation without claiming to execute
   `TMHuman::InitObject` or its renderer.
+- **USED:** [base-costume look instructions](../../exports/legacy-sale-base-costume-look.tsv):
+  309 retained instructions and 79 references from the same native program.
+  These cover the catalog prefix, four look overrides, six-byte refinement
+  and grade clearing, and packet-to-look field bindings. `BaseCostumeLook.h`
+  shares the production mutation with isolated fixtures; source-order checks
+  do not execute the DirectX renderer or approve the enclosing human ABI.
 - **USED:** the retained [request instruction export](../../exports/trade-session-input-routes.tsv),
   whose program identity matches the same native hash. `FUN_00416196` writes
   the request payload as words and sends 20 bytes; no new export is needed.
@@ -353,7 +360,7 @@ match or `0x004fb22e` on failure. Similarly, `FUN_00524ded` jumps at
 `0x00525954`. These are inherited-stack continuations, not independent
 no-argument C++ callbacks despite the decompiler's function boundaries.
 The matched selector at `0x013c2000` is now resolved. It reconstructs the
-costume index as `(human[+0x7ae] & 0x0fff) + 1000`, searches the same 135
+costume index as `(human[+0x7ae] & 0x0fff) + 0x1000`, searches the same 135
 eight-byte records at `0x013c2200`, and selects the female type only when
 the row's skin byte is `0xff` and skeleton parity is odd. A match stores
 `type | 0x4000` in the caller's local word; failure retains 1. The bytes
@@ -362,6 +369,31 @@ call classification, this is an inherited-stack continuation, not a C++
 callback. Existing candidate costume selection already implements the
 resolved row/parity policy. Complete initialization and post-processing
 remain open; no manifest or asset rewrite follows from this evidence.
+
+The continuation `0x004fb34a..0x004fb6d2` resolves four base-costume look
+overrides after catalog/type selection and before skin replacement:
+
+| Full costume ID | Local type | Face mesh | Helmet/body meshes |
+| --- | --- | --- | --- |
+| 4153 | 2 | 29 | 30 |
+| 4154 | 3 | 12 | 36 |
+| 4155 | 4 | 36 | 36 |
+| 4156 | 5 | 16 | 16 |
+
+Face skin and coat/pants/gloves/boots skins become zero. The native block
+writes coat skin twice, not helmet skin; retain helmet skin and both weapon
+look pairs rather than inferring another mutation. Calls at `0x004fb6ba`
+and `0x004fb6cd` clear only the first six refinement and grade bytes. Weapon
+refinement/grades remain intact. `FUN_00524ded` binds equipment slots to the
+eight mesh/skin pairs at human `+0x1d2..+0x1f0`; isolated `HUMAN_LOOKINFO`
+size/offset assertions protect the candidate representation, not full ABI.
+
+`BaseCostumeLook.h::ApplyLook` implements these four full-ID overrides after
+`SetHumanCostume` and before the existing skin deletion in `InitObject`.
+Unrelated and masked-alias IDs remain untouched. Existing class/skeleton
+selection, weapon state, assets, renderer routing, and old refinement cache
+are unchanged. This closes only the look/refinement mutation; class/skeleton
+and subsequent skin construction still require independent evidence.
 
 `FUN_00480c25` reads mob base `+0x768`, queries `FUN_0054e06c`, and writes
 scene `+0x26e78`. Since mob state begins at `+0x6ec`, this is equipment
@@ -627,6 +659,7 @@ but deliberately preserve the server policy until its separate decision.
 | Active refinement snapshot | Copies active human +0x1f2 before packet rebuild; conditional sixteen-byte restore | Rebuild helper uses active state, not old cache; packet cache remains fresh | Previous cache substitution was not equivalent for cleared/normalized active state | Unchanged | PARIDADE_NATIVA for snapshot/rebuild/restore boundary; full costume/shadow rendering remains open |
 | Weapon-101 mesh pitch | Concrete +0x48 dispatch; left-weapon ability 21 == 101 preserves pitch in both mount states | Shared production angle policy; 79 additional checks preserve guards and exact full-turn bits | Previous setter always reversed pitch | Unchanged | PARIDADE_NATIVA for isolated orientation; no complete rendering-parity claim |
 | Matched costume selector | 135 rows; packed index reconstruction; female selection requires skin 0xff and odd skeleton parity; inherited-stack jump | Existing row/parity selection retained without asset edits | Full initialization remains secondary | Unchanged | CONFIRMED selector only; post-processing remains open |
+| Base costumes 4153..4156 | Four face/body overrides; six refinement and grade bytes cleared; helmet skin and weapons retained | Shared production helper, byte fixtures, and initialization-order check | Catalog-only look propagation missed the native overrides | Unchanged | PARIDADE_NATIVA for isolated look/refinement mutation; full rendering remains open |
 | Complete UI/price parity | Authoritative policy and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
 
 ## Decisions
@@ -655,6 +688,8 @@ or shadow parity from this isolated correction.
 Apply the proven weapon-101 exception in both mesh branches, retaining
 logical angles and existing guards. Keep costume assets and the already
 matching row/parity selection; do not infer complete initialization parity.
+Apply only the four proven base-costume look/refinement overrides. Preserve
+helmet skin, weapons, existing class/skeleton selection, and unrelated IDs.
 
 ## Gaps
 
@@ -662,7 +697,8 @@ matching row/parity selection; do not infer complete initialization parity.
   not `CLIENT_TESTED`.
 - Grid detachment, cursor release, appearance wrapper order, isolated refinement
   layout, concrete human slots `+0x38/+0x40/+0x48`, the isolated angle setter,
-  and the matched costume selector are resolved. Full score refresh through
+  the matched costume selector, and base-costume look/refinement overrides
+  for IDs 4153..4156 are resolved. Full score refresh through
   `FUN_004431e4`, other appearance callees, full costume/shadow post-initialization behavior,
   the enclosing human ABI, resource-to-scene bindings,
   and real UI behavior remain open. The candidate intentionally differs in
@@ -684,6 +720,19 @@ matching row/parity selection; do not infer complete initialization parity.
 
 ## Validation
 
+- Base-costume correction (2026-10-01): reused matching cached post-processing
+  and packet field bindings; a focused read-only Ghidra run exported
+  `instructions:004fb22e` without `SCRIPT ERROR`. Reproduce the other cache
+  with `instructions:004fb34a`; the committed excerpt retains 309 instructions
+  and 79 references, not the complete initialization body. Release/Win32
+  architecture validation passed 61,356 checks plus static assertions,
+  including 89 new checks and seventeen look-layout assertions. The integrated
+  `Build-Client.ps1 -Configuration Release -NoDeploy` gate passed 221 socket
+  checks, costume/shader gates, and incremental product compilation. Existing
+  signedness/deprecated Winsock warnings remain. This is `STATICALLY VERIFIED`
+  native mutation and `AUTOMATED TESTED` isolated candidate logic, not
+  `CLIENT_TESTED`. No client installation/execution, Go suite, asset change,
+  or deletion ran. Class/skeleton selection and skin construction remain open.
 - Angle/selector continuation (2026-10-01): matching read-only Ghidra runs
   completed without `SCRIPT ERROR`; cached evidence was reused for resolved
   inputs. The focused excerpt retains 170 instructions/31 references, with
