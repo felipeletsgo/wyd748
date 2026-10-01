@@ -5672,8 +5672,10 @@ int TMHuman::OnPacketCarry(MSG_Carry* pStd)
 	g_pObjectManager->m_stTrade.MyCheck = 0;
 	if (pScene->m_pControlContainer)
 	{
-		if (pScene->m_pTradePanel && pScene->m_pTradePanel->IsVisible() == 1)
-			pScene->SetVisibleTrade(0);
+		// The native consumer closes Trade even when hidden, then invokes the
+		// inventory toggle. Closure hides Carry, so the normal result is open.
+		pScene->SetVisibleTrade(0);
+		pScene->SetVisibleInventory();
 		pScene->UpdateScoreUI(0);
 	}
 

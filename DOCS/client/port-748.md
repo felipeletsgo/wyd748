@@ -339,13 +339,17 @@ executable was not replaced or run.
 The complete Carry snapshot also invalidates trade, as recorded in the
 [native Carry contract](../../.agents/research/client748/flows/ui/carry-snapshot-contract.md).
 `OnPacketCarry` now copies all 64 items and Coin even without an inventory
-grid, clears opponent/check before optional visible-trade closure, and avoids
-an extra outgoing cancellation. Ordinary inventory visibility is unchanged.
-Five new source-order regressions failed before the fix and passed afterward;
-ArchitectureTests passed 58,675 checks, SocketReceiveTests passed 221, and the
+grid, clears opponent/check before closure even of hidden Trade, then invokes
+the shared native UI2 inventory toggle. Its closing cascade clears all six
+artisan roots and native peers without importing the later mix topology.
+Normal-trade closure cannot emit an extra cancellation; AutoTrade's separate
+quit behavior is retained. Six source-contract checks failed before this
+cascade adaptation and passed afterward; ArchitectureTests passed 58,680
+checks, SocketReceiveTests passed 221, and the
 incremental Release `-NoDeploy` build passed. No installation or client-runtime
-validation was performed. This does not close native offer-removal or complete
-panel-cascade parity gaps.
+validation was performed. Native offer-removal, other UI profiles, and runtime
+panel/cursor lifecycle validation remain open; source assertions do not prove
+DirectX/UI execution or complete panel-cascade parity.
 
 The outgoing continuation now traces invitation, acceptance, item insertion,
 gold, check, and closure sends. Native insertion searches fifteen local slots,

@@ -29,6 +29,10 @@ retain 64 structural items with only 63 visual cells, and invalidate trade?
 - USED: existing [trade UI lifecycle](trade-inventory-layout.md) and
   [trade emitters](../../exports/trade-session-emitters.tsv), which establish
   `FUN_0044B890(0)` closure and its cancellation guard.
+- USED: cached native `FUN_00447691` and initializer `FUN_00435B13`, plus the
+  [UI2 cascade export](../../exports/carry-panel-cascade.tsv), containing 426
+  instructions and 241 references. A focused read-only/no-analysis inspection
+  of `FUN_00447F47` closes the grid-reset helper boundary. No binary was changed.
 - NOT APPLICABLE: the KR guide does not define this wire contract; no new
   asset is needed. External legacy sources were not consulted.
 
@@ -53,6 +57,23 @@ clears opponent at manager `+0xCFA` and check at `+0xCF8`. In Field
 `FUN_004431E4(0)` updates the score UI. Clearing the opponent before
 closure prevents the closure path from emitting an extra cancellation.
 
+### Shared UI2 inventory cascade
+
+`FUN_00447691 @ 0x00447691` first forces Inventory and Character hidden if
+Gamble is visible. It captures the inventory toggle target before closing
+AutoTrade and Gamble, because AutoTrade closure itself hides Carry. For UI2,
+closing clears all six artisan packets, hides their roots and Cargo, Shop,
+Hellgate, and InputGold, resets grids through `FUN_00447F47`, closes visible
+Trade, and detaches the cursor item. Both directions update skill-button
+selection from the Skill panel, apply the captured target, and play sound 51.
+Opening does not import the other UI profiles' Skill/SkillM closing branch.
+
+Initializer bindings establish Inventory 257, Character 513, Cargo 1825,
+Shop 1793, Hellgate 6185, Gamble 6400, InputGold 626, and Skill 1905. The six
+artisan roots are 1360, 6110, 6145, 6432, 6481, and 6512; skill button is 295.
+Panel visibility uses virtual slot `+0x60`, control lookup `+0x48`, and skill
+selection `+0x8C`. `FUN_00447F47` resets Carry grid state and equipment state 1.
+
 ## State and lifecycle
 
 The active consumer requires a payload, model, Field scene, and local human.
@@ -60,13 +81,19 @@ It copies all 64 Carry items and Coin, then clears opponent/check state
 before examining optional controls. A missing inventory grid no longer
 discards authoritative state or trade invalidation.
 
-With a control container and visible Trade panel, the existing close routine
-clears trade visuals and transient offer data. Its cancellation guard sees
-the already cleared opponent, so a server snapshot is not converted into an
-outgoing trade intention. Score projection runs only with a container.
-Absent/hidden Trade panels do not prevent flag cleanup. Ordinary inventory
-visibility remains controlled by I/menu input; this retained compatible
-policy is not a claim of complete native panel-cascade parity.
+With a control container, the consumer calls trade closure even when Trade
+is hidden, then the inventory toggle and score projection. Normal closure
+hides Carry first, so the subsequent toggle opens it. The cancellation guard
+sees the cleared opponent and cannot emit an extra normal-trade cancellation.
+This does not forbid AutoTrade's existing quit intention when its Cargo
+chooser is active. Absent controls do not prevent authoritative flag cleanup.
+
+The compatible UI2 toggle now shares native peer cleanup with I/menu input.
+Optional panels and cursor are guarded; existing scene ownership is retained.
+The implementation groups independent panel cleanup rather than reproducing
+each native visibility call's order. Snapshot UI cleanup remains before grid
+projection, unlike native projection-before-closure; runtime validation of
+dragging and transient aliases is still pending. No new control is allocated.
 
 If the inventory grid exists, `Empty()` releases old visuals and interaction
 aliases before rebuilding. Allocated items transfer ownership only when
@@ -99,14 +126,16 @@ The resource remains the existing 9x7 grid; no control is created.
 Source: `tmproject/TMProject748/internal/game/entities/TMHuman.cpp` ::
 `TMHuman::OnPacketCarry`; optional UI closure delegates to
 `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp` ::
-`TMFieldScene::SetVisibleTrade`.
+`TMFieldScene::SetVisibleTrade` and `TMFieldScene::SetVisibleInventory`.
 
 The consumer retains native row-major slots and visible indexes 0..62.
 Previously, its initial guard discarded the snapshot when the grid was
 missing, and it never invalidated trade. State copying and flag cleanup
-now precede optional presentation. Five source-contract regressions in
+now precede optional presentation. Source-contract regressions in
 `SceneDisconnectContractTests.cpp` protect receiver guards, data retention,
-cleanup-before-close, optional UI/visibility policy, and visual ownership.
+cleanup-before-close, hidden-trade closure before the inventory toggle,
+visual ownership, and five additional UI2 cascade properties. Artisan cleanup
+reuses `ClearNativeMix` rather than importing the later mix/mission topology.
 
 Server: `wire.UpdateCarry` writes at most `model.MaxCarry` items; oversized
 slices cannot overwrite Coin, and shorter slices leave remaining slots zero.
@@ -122,7 +151,7 @@ server behavior, packet, asset, or persistence rule.
 | UI | 63 cells, 9x7 | same projection | retain slots 0..62 | unchanged |
 | Trade flags | clear opponent/check before closure | not cleared by Carry | invalidate before optional closure | `PARIDADE_NATIVA` |
 | Missing presentation | native assumes controls exist | dropped complete snapshot | retain cache/flags; skip unavailable UI | `MODERNIZACAO_COMPATIVEL` |
-| Ordinary inventory visibility | native invokes shared cascade | I/menu policy | retain existing policy; no full cascade claim | compatible policy retained |
+| UI2 inventory visibility | shared toggle/cascade after trade closure | direct toggle; snapshot skipped it | restore native UI2 cleanup and snapshot invocation | `PARIDADE_NATIVA` |
 | Oversized Go slice | N/A | could overrun buffer/panic | bound to 64 | `MODERNIZACAO_COMPATIVEL` |
 
 ## Decisions
@@ -131,10 +160,9 @@ server behavior, packet, asset, or persistence rule.
 - Keep structural slot 63 outside the visual grid.
 - Reject invalid frames before destructive visual rebuilding.
 - Apply valid authoritative state independently of optional presentation.
-- Clear trade flags before closing UI; never send a cancellation in response
-  to this snapshot.
-- Preserve ordinary inventory visibility rather than adding an unproven
-  toggle/cascade to this state-synchronization patch.
+- Clear trade flags before closing UI; suppress extra normal-trade cancellation.
+- Share the proven UI2 inventory toggle/cascade with the Carry consumer;
+  retain AutoTrade's independently proven quit behavior and guarded controls.
 - Keep the bounded Go builder and all existing valid callers unchanged.
 
 ## Gaps
@@ -142,12 +170,13 @@ server behavior, packet, asset, or persistence rule.
 - Execute login, purchase, trade, AutoTrade, quests, and mixing in the candidate.
 - Exercise snapshots while dragging, with full inventory, during map changes,
   and after relogin before promoting to `CLIENT_TESTED`.
-- Confirm visible-trade closure, no extra outbound cancellation, and missing
+- Confirm hidden/visible-trade closure, no extra normal-trade cancellation, and missing
   presentation behavior in the real built client. Source-order tests alone
   do not execute the consumer or DirectX/UI ownership.
-- Full native `FUN_00447691` cascade adaptation and native local-offer
-  removal remain separate evidence gaps; whole-snapshot invalidation does
-  not prove an item-removal interaction.
+- Exercise the UI2 cascade with each artisan root, Gamble, AutoTrade, Cargo,
+  Shop, and cursor ownership; source assertions do not execute those controls.
+- Other native UI profiles and native local-offer removal remain independent
+  gaps; whole-snapshot invalidation does not prove an item-removal interaction.
 
 ## Validation
 
@@ -161,9 +190,11 @@ server behavior, packet, asset, or persistence rule.
 - Historical installed candidate:
   `39117672AAA8DD939CFB2B503344932195E4B179F5812AB9D28AE8F2E990FA6D`.
   This is prior evidence, not the current installed executable's identity.
-- 2026-09-30 regression: all five new source-contract assertions failed against
-  the previous consumer, then passed after the patch. ArchitectureTests
-  passed 58,675 checks and static assertions; SocketReceiveTests passed 221.
+- The preceding 2026-09-30 snapshot patch passed 58,675 architecture checks.
+  For this UI2 batch, six source-contract checks failed before adaptation
+  (one updated Carry assertion and five new cascade assertions), then passed.
+  ArchitectureTests passed 58,680 checks and static assertions;
+  SocketReceiveTests passed 221.
   The incremental Release `Build-Client.ps1 -NoDeploy` build passed with
   existing signedness warnings. No executable was installed or run.
 - Research schema, repository layout/local links, English-text review, and

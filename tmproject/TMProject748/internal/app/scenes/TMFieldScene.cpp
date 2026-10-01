@@ -15425,10 +15425,8 @@ void TMFieldScene::SetVisibleInventory()
 {
 	SGridControl::m_sLastMouseOverIndex = -1;
 
-	// The native 7.48 inventory is a single legacy panel and does not own the
-	// optional 7.59 compose, gamble, trade and multi-page controls referenced by
-	// the modern toggle below.  Toggle the actual FieldScene2 panel directly so
-	// opening or closing Inventory cannot dereference an unrelated null window.
+	// Native FUN_00447691 has a shared UI2 closing cascade. Keep its order and
+	// six artisan roots without importing the later multi-page/mix topology.
 	if (m_bCompatFieldScene)
 	{
 		if (!m_pInvenPanel && m_pControlContainer)
@@ -15439,7 +15437,48 @@ void TMFieldScene::SetVisibleInventory()
 			return;
 		}
 
+		if (m_pGambleStore && m_pGambleStore->IsVisible() == 1)
+		{
+			m_pInvenPanel->m_bVisible = 0;
+			if (m_pCPanel)
+				m_pCPanel->m_bVisible = 0;
+		}
+
+		// Capture the target before closing peers: AutoTrade itself hides Carry.
 		const int visible = m_pInvenPanel->IsVisible() == 0;
+		if (m_pAutoTrade && m_pAutoTrade->IsVisible() == 1)
+			SetVisibleAutoTrade(0, 0);
+		if (m_pGambleStore && m_pGambleStore->IsVisible() == 1)
+			SetVisibleGamble(0, 0);
+
+		m_pInvenPanel->SetVisible(!visible);
+		if (!visible)
+		{
+			for (int mixIndex = 1; mixIndex <= 6; ++mixIndex)
+			{
+				ClearNativeMix(mixIndex);
+				if (auto panel = GetNativeMixPanel(mixIndex))
+					panel->SetVisible(0);
+			}
+			SPanel* peers[] = {
+				m_pCargoPanel, m_pShopPanel, m_pHellgateStore, m_pInputGoldPanel
+			};
+			for (auto panel : peers)
+			{
+				if (panel)
+					panel->SetVisible(0);
+			}
+			SetGridState();
+			if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
+				SetVisibleTrade(0);
+			if (g_pCursor)
+				g_pCursor->DetachItem();
+		}
+		if (m_pControlContainer)
+		{
+			if (auto skillButton = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SKILL)))
+				skillButton->SetSelected(m_pSkillPanel && m_pSkillPanel->IsVisible());
+		}
 		m_pInvenPanel->SetVisible(visible);
 		WYD748_DiagnosticsLog("compat inventory visible=%d\r\n", visible);
 		if (g_pSoundManager)

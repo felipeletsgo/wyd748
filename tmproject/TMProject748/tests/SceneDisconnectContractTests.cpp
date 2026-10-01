@@ -760,6 +760,7 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto carryCheckClear = carryBody.find("m_stTrade.MyCheck = 0;");
     const auto carryGridGuard = carryBody.find("if (!pScene->m_pGridInv)");
     const auto carryClose = carryBody.find("pScene->SetVisibleTrade(0);");
+    const auto carryToggle = carryBody.find("pScene->SetVisibleInventory();");
     check(carryBody.find("if (!pStd || !g_pObjectManager || pScene->m_pMyHuman != this)") < carryCopy &&
         carryBody.find("GetSceneType() != ESCENE_TYPE::ESCENE_FIELD") < carryCopy &&
         carryCopy != std::string::npos,
@@ -772,11 +773,12 @@ int RunSceneDisconnectContractTests(int& checks)
         carryClose < carryGridGuard,
         "Carry snapshot clears native trade flags before optional UI closure and the missing-grid return");
     check(carryBody.find("if (pScene->m_pControlContainer)") < carryClose &&
-        carryBody.find("if (pScene->m_pTradePanel && pScene->m_pTradePanel->IsVisible() == 1)") < carryClose &&
-        carryClose != std::string::npos &&
-        carryBody.find("SetVisibleInventory") == std::string::npos &&
+        carryBody.find("if (pScene->m_pTradePanel && pScene->m_pTradePanel->IsVisible() == 1)") == std::string::npos &&
+        carryClose != std::string::npos && carryToggle != std::string::npos &&
+        carryClose < carryToggle && carryToggle < carryBody.find("pScene->UpdateScoreUI(0);") &&
+        carryToggle < carryGridGuard &&
         carryBody.find("SendPacket") == std::string::npos,
-        "Carry snapshot closes only an available active trade without toggling ordinary inventory or sending intentions");
+        "Carry snapshot closes even hidden trade state before the native inventory toggle and score projection");
     check(carryGridGuard != std::string::npos &&
         carryGridGuard < carryBody.find("pScene->m_pGridInv->Empty();") &&
         carryBody.find("pScene->m_pGridInv->Empty();") < carryBody.find("new STRUCT_ITEM") &&
@@ -784,6 +786,42 @@ int RunSceneDisconnectContractTests(int& checks)
         carryBody.find("nCarryIndex % 9, nCarryIndex / 9") != std::string::npos &&
         carryBody.find("SAFE_DELETE(pGridItem);") != std::string::npos,
         "Carry snapshot retains alias cleanup, native 63-cell projection, and rejected-visual ownership");
+    const auto inventoryStart = fieldSource.find("void TMFieldScene::SetVisibleInventory()");
+    const auto inventoryEnd = fieldSource.find("auto pCargoPanel = m_pCargoPanel;", inventoryStart);
+    const auto inventoryCompat = inventoryStart != std::string::npos && inventoryEnd != std::string::npos
+        ? fieldSource.substr(inventoryStart, inventoryEnd - inventoryStart) : std::string{};
+    const auto inventoryTarget = inventoryCompat.find("const int visible = m_pInvenPanel->IsVisible() == 0;");
+    const auto inventoryAutoTrade = inventoryCompat.find("SetVisibleAutoTrade(0, 0);");
+    const auto inventoryGamble = inventoryCompat.find("SetVisibleGamble(0, 0);");
+    const auto inventoryClosing = inventoryCompat.find("if (!visible)");
+    check(inventoryTarget != std::string::npos && inventoryAutoTrade != std::string::npos &&
+        inventoryGamble != std::string::npos && inventoryTarget < inventoryAutoTrade &&
+        inventoryAutoTrade < inventoryGamble && inventoryGamble < inventoryClosing &&
+        inventoryCompat.find("m_pInvenPanel->SetVisible(!visible);") < inventoryClosing,
+        "native UI2 inventory captures the toggle target before closing AutoTrade and Gamble");
+    check(inventoryCompat.find("if (m_pGambleStore && m_pGambleStore->IsVisible() == 1)") < inventoryTarget &&
+        inventoryCompat.find("m_pInvenPanel->m_bVisible = 0;") < inventoryTarget &&
+        inventoryCompat.find("if (m_pCPanel)") < inventoryTarget &&
+        inventoryCompat.find("m_pCPanel->m_bVisible = 0;") < inventoryTarget,
+        "native Gamble visibility forces Inventory and Character hidden before deciding the inventory target");
+    check(inventoryClosing != std::string::npos &&
+        inventoryCompat.find("mixIndex <= 6") != std::string::npos &&
+        inventoryClosing < inventoryCompat.find("ClearNativeMix(mixIndex);") &&
+        inventoryCompat.find("if (auto panel = GetNativeMixPanel(mixIndex))") != std::string::npos &&
+        inventoryCompat.find("SetVisibleNativeMix(") == std::string::npos,
+        "closing native inventory clears all six artisan packets and hides bound roots without recursive toggles");
+    check(inventoryCompat.find("m_pCargoPanel, m_pShopPanel, m_pHellgateStore, m_pInputGoldPanel") != std::string::npos &&
+        inventoryCompat.find("if (panel)") != std::string::npos &&
+        inventoryCompat.find("SetGridState();") < inventoryCompat.find("SetVisibleTrade(0);") &&
+        inventoryCompat.find("if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)") != std::string::npos &&
+        inventoryCompat.find("if (g_pCursor)") < inventoryCompat.find("g_pCursor->DetachItem();"),
+        "inventory closure hides only bound native peers and restores grids, trade, and cursor state");
+    check(inventoryCompat.find("FindControl(TMB_SKILL)") != std::string::npos &&
+        inventoryCompat.find("skillButton->SetSelected(m_pSkillPanel && m_pSkillPanel->IsVisible());") != std::string::npos &&
+        inventoryCompat.find("m_pInvenPanel->SetVisible(visible);") > inventoryClosing &&
+        inventoryCompat.find("m_ItemMixClass") == std::string::npos &&
+        inventoryCompat.find("m_MissionClass") == std::string::npos,
+        "native inventory finalizes its target and skill button without imported mix or mission topology");
     const auto listingSoldStart = fieldSource.find("int TMFieldScene::OnPacketItemSold(MSG_STANDARDPARM2* pStd)");
     const auto listingSoldEnd = fieldSource.find("int TMFieldScene::OnPacketUpdateCargoCoin", listingSoldStart);
     const auto listingSoldHandler = listingSoldStart != std::string::npos && listingSoldEnd != std::string::npos
