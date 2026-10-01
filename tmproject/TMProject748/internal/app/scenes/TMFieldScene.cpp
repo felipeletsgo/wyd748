@@ -23,6 +23,7 @@
 #include "TMHuman.h"
 #include "../../game/entities/DeathMotionPolicy.h"
 #include "../../game/entities/AirMoveMotion.h"
+#include "../../game/entities/AppearanceRefinementRefresh.h"
 #include "TMObjectContainer.h"
 #include "TMCamera.h"
 #include "ServerEndpoint.h"
@@ -18236,13 +18237,7 @@ void TMFieldScene::UpdateMyHuman()
 {
 	STRUCT_MOB* pMobData = &g_pObjectManager->m_stMobData;
 	
-	SANC_INFO stSancInfo{};
-	memcpy(&stSancInfo, &m_pMyHuman->m_stOldSancInfo, sizeof(stSancInfo));
-
-	m_pMyHuman->SetPacketMOBItem(&g_pObjectManager->m_stMobData);
-
-	if ((unsigned char)stSancInfo.Sanc0 > 0 && pMobData->Equip[0].sIndex != 32)
-		memcpy(&m_pMyHuman->m_stSancInfo, &stSancInfo, sizeof(stSancInfo));
+	appearance_refinement::Rebuild(*m_pMyHuman, *pMobData);
 
 	float fCon = (float)m_pMyHuman->m_stScore.Con;
 	m_pMyHuman->SetCharHeight(fCon);

@@ -2,6 +2,7 @@
 #include "../internal/core/ServerListAsset.h"
 #include "../internal/core/ServerStatus.h"
 #include "../internal/core/Structures.h"
+#include "../internal/game/entities/AppearanceRefinementRefresh.h"
 #include "../internal/core/WYD748Assets.h"
 #include "../internal/render/world/objects/ObjectFileRecordLayout.h"
 #include "../internal/ui/SellConfirmationText.h"
@@ -46,6 +47,24 @@ static_assert(offsetof(SANC_INFO, Legend4) == 12);
 static_assert(offsetof(SANC_INFO, Legend5) == 13);
 static_assert(offsetof(SANC_INFO, Legend6) == 14);
 static_assert(offsetof(SANC_INFO, Legend7) == 15);
+
+struct AppearanceRefreshMob {
+    struct Item { short sIndex; } Equip[1]{};
+    SANC_INFO refinement{};
+};
+
+struct AppearanceRefreshHuman {
+    SANC_INFO m_stSancInfo{};
+    SANC_INFO m_stOldSancInfo{};
+    int rebuilds{};
+
+    void SetPacketMOBItem(AppearanceRefreshMob* mob)
+    {
+        ++rebuilds;
+        m_stSancInfo = mob->refinement;
+        m_stOldSancInfo = m_stSancInfo;
+    }
+};
 
 std::filesystem::path FindSource(const char* relativePath)
 {
@@ -1124,14 +1143,41 @@ int RunSceneDisconnectContractTests(int& checks)
     check(sancRefresh.find("m_nMySanc = BASE_GetItemSanc(&g_pObjectManager->m_stMobData.Equip[4]);")
         != std::string::npos,
         "scene refinement refresh uses equipment slot four as native 0x00480c25 does");
-    // Native wrapper 0x00480a83 preserves refinement before rebuilding the human.
-    // Candidate preservation uses a separate old-state cache; native preservation
-    // uses the active block. Ordering checks do not prove those policies equivalent.
+    const SANC_INFO packetRefinement{9, 8, 7, 6, 5, 4, 3, 2, 1, 2, 3, 4, 5, 6, 7, 8};
+    for (const auto firstByte : {0u, 1u, 0x80u, 0xffu}) {
+        for (const short head : {short{0}, short{31}, short{32}, short{33}}) {
+            auto active = refinementFixture;
+            active.Sanc0 = static_cast<unsigned char>(firstByte);
+            AppearanceRefreshMob mob{{{head}}, packetRefinement};
+            AppearanceRefreshHuman human{active, packetRefinement, 0};
+            appearance_refinement::Rebuild(human, mob);
+            const auto& expected = firstByte != 0 && head != 32 ? active : packetRefinement;
+            check(std::memcmp(&human.m_stSancInfo, &expected, sizeof(expected)) == 0,
+                "appearance refresh preserves active refinement only under the native gate");
+            check(human.rebuilds == 1 &&
+                std::memcmp(&human.m_stOldSancInfo, &packetRefinement, sizeof(packetRefinement)) == 0,
+                "appearance refresh rebuilds once and retains fresh packet-state shadow cache");
+        }
+    }
+    AppearanceRefreshMob repeatMob{{{31}}, packetRefinement};
+    AppearanceRefreshHuman repeatHuman{packetRefinement, refinementFixture, 0};
+    repeatHuman.m_stSancInfo.Sanc0 = 0; // Initialization may clear active costume/shadow refinement.
+    appearance_refinement::Rebuild(repeatHuman, repeatMob);
+    check(std::memcmp(&repeatHuman.m_stSancInfo, &packetRefinement, sizeof(packetRefinement)) == 0,
+        "cleared active refinement does not restore a stale costume or shadow cache");
+    const auto repeatedActive = repeatHuman.m_stSancInfo;
+    repeatMob.refinement = refinementFixture;
+    appearance_refinement::Rebuild(repeatHuman, repeatMob);
+    check(repeatHuman.rebuilds == 2 &&
+        std::memcmp(&repeatHuman.m_stSancInfo, &repeatedActive, sizeof(repeatedActive)) == 0 &&
+        std::memcmp(&repeatHuman.m_stOldSancInfo, &refinementFixture, sizeof(refinementFixture)) == 0,
+        "repeated refresh preserves current active state while advancing the shadow cache");
+    check(appearanceRefresh.find("m_stOldSancInfo") == std::string::npos,
+        "appearance wrapper does not use the shadow cache as its active snapshot");
+    // The shared production helper protects snapshot/rebuild/restore semantics;
+    // remaining source checks protect order, not complete callee/rendering parity.
     const char* appearanceSteps[] = {
-        "memcpy(&stSancInfo, &m_pMyHuman->m_stOldSancInfo, sizeof(stSancInfo));",
-        "m_pMyHuman->SetPacketMOBItem(&g_pObjectManager->m_stMobData);",
-        "if ((unsigned char)stSancInfo.Sanc0 > 0 && pMobData->Equip[0].sIndex != 32)",
-        "memcpy(&m_pMyHuman->m_stSancInfo, &stSancInfo, sizeof(stSancInfo));",
+        "appearance_refinement::Rebuild(*m_pMyHuman, *pMobData);",
         "m_pMyHuman->SetCharHeight(fCon);",
         "m_pMyHuman->SetRace(pMobData->Equip[0].sIndex);",
         "BASE_GetItemAbility(&pMobData->Equip[6], 21);",
@@ -1149,7 +1195,7 @@ int RunSceneDisconnectContractTests(int& checks)
     std::size_t appearanceOffset = 0;
     for (const auto* step : appearanceSteps) {
         const auto position = appearanceRefresh.find(step, appearanceOffset);
-        check(position != std::string::npos, "appearance refresh retains candidate wrapper ordering, not cache equivalence");
+        check(position != std::string::npos, "appearance refresh retains the native wrapper step order");
         if (position != std::string::npos)
             appearanceOffset = position + std::strlen(step);
     }

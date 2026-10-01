@@ -25,8 +25,9 @@ The grid/cursor continuation closes visual detachment and the sale callback's
 cursor receiver, not complete score/appearance refresh or runtime UI parity.
 The appearance continuation resolves the instruction-level wrapper order of
 `FUN_00480a83`, its refinement-block layout, and two concrete human virtual
-targets. Complete callee behavior and the candidate's old-state cache policy
-are not thereby approved as rendering parity.
+targets. The candidate now snapshots active refinement at this boundary,
+while retaining its separate shadow-restoration cache. Complete callee
+behavior is not thereby approved as rendering parity.
 
 ## Evidence boundary
 
@@ -63,7 +64,11 @@ are not thereby approved as rendering parity.
   [trade acknowledgement record](trade-check-confirmation-contract.md),
   `Structures.h::SANC_INFO`, `TMHuman::SetPacketMOBItem`, and the current
   initialization/shadow-restoration cache consumers. No server or asset
-  contract is changed by these layout tests.
+  contract is changed by the layout tests or active-snapshot correction.
+- **USED:** `AppearanceRefinementRefresh.h::Rebuild`, instantiated by the real
+  field wrapper and by isolated state fixtures. Fixtures exercise the same
+  snapshot/rebuild/restore implementation without claiming to execute
+  `TMHuman::InitObject` or its renderer.
 - **USED:** the retained [request instruction export](../../exports/trade-session-input-routes.tsv),
   whose program identity matches the same native hash. `FUN_00416196` writes
   the request payload as words and sends 20 bytes; no new export is needed.
@@ -299,8 +304,9 @@ The candidate wrapper has corresponding preservation, height/race, ability-41
 mirroring, initialization, weapon/angle, affect, and refinement-update steps
 in this order. Their semantic names do not prove each native callee's complete
 behavior. Concrete human vtable targets are now resolved below.
-Eighteen source-contract checks protect the boundary and seventeen ordered
-steps. No production rewrite is justified by this wrapper-order comparison.
+Fifteen source-contract checks protect the boundary and fourteen ordered
+steps, with snapshot/rebuild/restore now executed by a shared, tested helper.
+The order comparison alone does not justify rewriting the remaining callees.
 The sale handler's existing null-human guard remains a deliberate adaptation;
 the native wrapper itself does not supply that guard.
 
@@ -346,13 +352,28 @@ scene `+0x26e78`. Since mob state begins at `+0x6ec`, this is equipment
 slot 4. The candidate `SetSanc` already reads `Equip[4]`; a source-contract
 check protects that correspondence.
 
-The candidate `UpdateMyHuman` copies `m_stOldSancInfo`, not `m_stSancInfo`.
-`SetPacketMOBItem` fills the cache before later initialization; shadow exit
-also restores selected active refinement/grade fields from this cache.
-Consequently, wrapper ordering alone does not establish equivalence to the
-native active-block snapshot. Do not replace the cache blindly or label this
-difference dead 7.69 code: the missing gate is the affected costume/shadow
-refresh lifecycle and its observable post-initialization state.
+The earlier candidate `UpdateMyHuman` copied `m_stOldSancInfo` instead of
+active `m_stSancInfo`. Current source inspection proves these blocks need not
+be identical: `InitObject` can clear active costume refinement and clears the
+whole active block for shadow mode, while packet initialization retains its
+pre-render state in the cache. Shadow exit restores selected active fields
+from that cache. It is therefore a live lifecycle dependency, not dead code.
+
+The correction is limited to the proven native snapshot boundary.
+`AppearanceRefinementRefresh.h::Rebuild` captures all sixteen active bytes,
+calls `SetPacketMOBItem` once, and restores that snapshot only when its first
+byte is nonzero and the resulting head index is not 32. It does not replace
+or restore the old-state cache: that cache retains the fresh packet state
+written by `SetPacketMOBItem`, preserving the shadow-exit consumer. A cleared
+active block no longer makes a nonzero old cache bypass the native gate.
+This closes the snapshot-selection mismatch without claiming full native
+costume/shadow parity or changing their initialization and exit paths.
+
+Executable fixtures use distinct active/cache/packet values, first bytes
+0/1/128/255, head indices 0/31/32/33, all sixteen bytes, and repeated refresh.
+They assert one rebuild per call and fresh cache retention even when active
+state is restored. Initialization-cleared input is modeled explicitly; actual
+post-initialization rendering remains a separate runtime gate.
 
 ### Callees
 
@@ -558,8 +579,9 @@ but deliberately preserve the server policy until its separate decision.
 | Fixed type-38 ability | Signed catalog words and instance bytes; special exclusion and catalog-only mount paths; no refinement scaling | Core GetAbility shared by MouseOver and BASE_GetItemAbility; 2134 existing fixtures plus exclusive-routing regression | Other ability types and caller lifecycles unchanged | Payment unchanged | PARIDADE_NATIVA for proven lookup; reject index 6500 as MODERNIZACAO_COMPATIVEL |
 | Grid visual detachment | Concrete vptr/slots resolve footprint/origin removal, occupancy/list mutation, and ownership transfer | Existing PickupItem/PickupAtItem match; clipping and mesh scaling remain adaptations | Names are secondary | Unchanged snapshots | CONFIRMED core transition; no source edit needed |
 | Cursor callback | Constructed global cursor; +0x98 clears attachment and resets pickup style | DetachItem matches; handler limits cleanup to the sold visual before deletion | Names are secondary | No legacy response emitter | CONFIRMED callback; preserve existing MODERNIZACAO_COMPATIVEL alias protection |
-| Appearance wrapper order | 16-byte preservation gate, ability-41 copies, direct/virtual call sequence resolved | Existing UpdateMyHuman has corresponding ordered steps; eighteen source checks added | Complete callee behavior and enclosing field ABI remain secondary | Unchanged snapshots | CONFIRMED instruction-level order only; no production rewrite or rendering-parity claim |
-| Refinement layout and refresh targets | Eight refinement/grade bytes each; concrete +0x38/+0x40 targets; scene refinement reads Equip[4] | Actual SANC_INFO layout asserted and byte-tested; SetSanc source contract protected | Separate old-state cache differs from native active snapshot | Unchanged | CONFIRMED isolated layout and target bindings; cache equivalence and complete initialization remain unconfirmed |
+| Appearance wrapper order | 16-byte preservation gate, ability-41 copies, direct/virtual call sequence resolved | Shared snapshot helper followed by unchanged ordered steps; fifteen source checks | Complete callee behavior and enclosing field ABI remain secondary | Unchanged snapshots | CONFIRMED wrapper order; no complete rendering-parity claim |
+| Refinement layout and refresh targets | Eight refinement/grade bytes each; concrete +0x38/+0x40 targets; scene refinement reads Equip[4] | Actual SANC_INFO layout asserted and byte-tested; SetSanc source contract protected | Full initialization remains secondary | Unchanged | CONFIRMED isolated layout and target bindings |
+| Active refinement snapshot | Copies active human +0x1f2 before packet rebuild; conditional sixteen-byte restore | Rebuild helper uses active state, not old cache; packet cache remains fresh | Previous cache substitution was not equivalent for cleared/normalized active state | Unchanged | PARIDADE_NATIVA for snapshot/rebuild/restore boundary; full costume/shadow rendering remains open |
 | Complete UI/price parity | Authoritative policy and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
 
 ## Decisions
@@ -580,9 +602,11 @@ snapshot-based confirmation; no new response emitter is authorized here.
 Keep the existing grid/cursor implementation: the resolved native functions
 do not justify another functional patch. Correct the earlier manager label
 and retain the candidate's deliberate matching-only alias cleanup.
-Keep the separate refinement cache until the costume/shadow refresh lifecycle
-can prove whether its preservation policy is equivalent. The resolved layout
-justifies the candidate-type regression gates, not an unverified cache rewrite.
+Keep the separate packet-state cache and its shadow-exit consumers. Correct
+only the wrapper's snapshot source to active refinement, as native
+`FUN_00480a83` explicitly does. The cache is not a substitute when
+initialization clears or normalizes active state. Do not infer full costume
+or shadow parity from this isolated correction.
 
 ## Gaps
 
@@ -591,7 +615,7 @@ justifies the candidate-type regression gates, not an unverified cache rewrite.
 - Grid detachment, cursor release, appearance wrapper order, isolated refinement
   layout, and concrete human slots `+0x38/+0x40` are resolved. Full score
   refresh through `FUN_004431e4`, complete appearance callees, the matched
-  costume continuation, active-state versus old-cache preservation equivalence,
+  costume continuation, full costume/shadow post-initialization behavior,
   the enclosing human ABI, resource-to-scene bindings,
   and real UI behavior remain open. The candidate intentionally differs in
   unconditional cursor clearing and invalid/null-input handling. The response
@@ -612,6 +636,19 @@ justifies the candidate-type regression gates, not an unverified cache rewrite.
 
 ## Validation
 
+- Active snapshot correction (2026-10-01): reused the unchanged native wrapper,
+  layout/slot excerpts, and cached initialization evidence; no Ghidra sweep or
+  new export was needed. Source inspection identified active-state mutations
+  and live old-cache shadow-exit consumers. The shared production helper passed
+  35 new state/source checks; replacing four old source-order steps with one
+  helper call gives a net increase of 32 checks. Release/Win32 architecture
+  validation passed 61,188 checks plus static assertions. The integrated
+  `Build-Client.ps1 -Configuration Release -NoDeploy` gate passed, including
+  221 socket checks, costume/shader validation, and incremental product build.
+  Existing signedness/deprecated Winsock warnings remain; they did not fail
+  compilation. This is `STATICALLY VERIFIED` native boundary adaptation and
+  `AUTOMATED TESTED` isolated state logic, not `CLIENT_TESTED`. No Go suite,
+  client installation, client execution, asset change, or cache deletion ran.
 - Refinement continuation (2026-10-01): reused the constructor/vptr proof and
   cached callee bodies; inspected only the previously unresolved costume
   trampoline `013c2680`. Read-only Ghidra runs used the matching program hash

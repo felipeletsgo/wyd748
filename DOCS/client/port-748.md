@@ -387,8 +387,8 @@ not `CLIENT_TESTED` status.
 
 The appearance continuation resolves the native `FUN_00480a83` wrapper's
 preservation gate, ability-41 copies, and refresh call order. The existing
-`UpdateMyHuman` has corresponding steps; eighteen source-contract checks now
-protect their order without rewriting production code. The incremental
+`UpdateMyHuman` has corresponding steps; eighteen source-contract checks at
+that stage protected their order without rewriting production code. The incremental
 Release/Win32 architecture target passed 61,154 checks. Native callee behavior,
 the enclosing human ABI, full score refresh, and
 real rendering remain open. The [wrapper evidence](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#appearance-refresh-wrapper)
@@ -399,13 +399,26 @@ The refinement continuation resolves the isolated sixteen-byte `SANC_INFO`
 layout, concrete human virtual slots `+0x38/+0x40`, and the scene's `Equip[4]`
 refinement refresh. Seventeen layout assertions and two additional checks
 passed in the incremental Release/Win32 architecture target (61,156 checks).
-It also exposes an unresolved preservation difference: native refresh saves
-active refinement, while `UpdateMyHuman` saves the old-state cache used by
-costume/shadow lifecycle consumers. Initialization mutates active refinement,
-so neither wrapper ordering nor this isolated layout proves cache equivalence.
+It also exposed a preservation difference: native refresh saves active
+refinement, while the earlier `UpdateMyHuman` saved the old-state cache used
+by costume/shadow lifecycle consumers. Initialization mutates active
+refinement, so these snapshots are not interchangeable.
 The [refinement evidence](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#refinement-layout-and-concrete-initialization-targets)
 records the concrete bindings, inherited-stack continuations, and next gate;
 complete appearance parity and real-client execution remain open.
+
+The active-snapshot correction now uses `AppearanceRefinementRefresh.h` in
+the actual wrapper. It preserves all sixteen active bytes before rebuilding,
+restores only under the native nonzero-first-byte/head-not-32 gate, and leaves
+the newly populated packet cache available to unchanged shadow-exit consumers.
+Thirty-five new state/source checks cover distinct active/cache values,
+cleared input, unsigned first-byte boundaries, head-index exceptions, all
+sixteen bytes, repetition, and exactly one rebuild per refresh. With the
+consolidated wrapper checks, Release/Win32 architecture validation passed
+61,188 checks; the integrated `-NoDeploy` build also passed 221 socket checks
+and costume/shader gates. This closes snapshot selection, not the remaining
+initialization/costume/shadow rendering gates. No client was installed or run,
+and no unchanged Go suite or native export was repeated.
 
 ### First trade-check acknowledgement
 
