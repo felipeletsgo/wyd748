@@ -214,6 +214,16 @@ remain applicable because valid Carry destinations and wire bytes are unchanged.
 architecture checks and 221 socket checks. The built artifact is updated in
 `tmproject/build/`; no runtime executable was installed and no game was launched.
 
+The 2026-10-01 Cargo correction also makes its visual grid optional: the
+accepted slot is copied first, and an unbound grid skips only pickup and
+replacement, not the shared appearance, score-UI, and hover finalization.
+This is `MODERNIZACAO_COMPATIVEL`, not a claim of native null-grid safety.
+Three source-contract regressions cover ordering and completion; the
+missing-grid regression failed before the patch. The incremental no-deploy
+Release build passed with 60,990 architecture checks and 221 socket checks.
+DirectX execution and native indirect-call ownership remain pending in the
+same research record; no runtime executable was installed.
+
 ### Confirmed item-drop lifecycle
 
 The `0x175/28` handler commits the confirmed Equip, Carry, or Cargo removal

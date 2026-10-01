@@ -640,6 +640,32 @@ int RunSceneDisconnectContractTests(int& checks)
         itemIndexGuard < firstModelWrite &&
         sendItemHandler.substr(itemIndexGuard, bagView - itemIndexGuard).find("return 1;") != std::string::npos,
         "SendItem rejects an item outside the 7.48 catalog before changing local state");
+    const auto cargoUpdateStart = sendItemHandler.find("else if (pSendItem->DestType == 2)");
+    const auto cargoUpdate = cargoUpdateStart != std::string::npos &&
+        applyAppearance != std::string::npos && cargoUpdateStart < applyAppearance
+        ? sendItemHandler.substr(cargoUpdateStart, applyAppearance - cargoUpdateStart) : std::string{};
+    const auto cargoModelWrite = cargoUpdate.find("memcpy(&g_pObjectManager->m_stItemCargo[");
+    const auto cargoGridLookup = cargoUpdate.find("pFScene->GetCargoGridForSlot(");
+    const auto cargoOptionalGrid = cargoUpdate.find("if (pGrid)");
+    const auto cargoPickup = cargoUpdate.find("pGrid->PickupAtItem(");
+    const auto cargoAllocation = cargoUpdate.find("new STRUCT_ITEM()");
+    const auto cargoRelease = cargoUpdate.find("releaseReplacedItem(pOldGridItem);");
+    check(!cargoUpdate.empty() && cargoModelWrite != std::string::npos &&
+        cargoGridLookup != std::string::npos && cargoModelWrite < cargoGridLookup,
+        "SendItem commits Cargo state before consulting the optional visual grid");
+    check(cargoOptionalGrid != std::string::npos && cargoPickup != std::string::npos &&
+        cargoAllocation != std::string::npos && cargoGridLookup < cargoOptionalGrid &&
+        cargoOptionalGrid < cargoPickup && cargoPickup < cargoAllocation &&
+        cargoUpdate.find("if (!pGrid)") == std::string::npos &&
+        cargoUpdate.find("return ") == std::string::npos &&
+        cargoRelease != std::string::npos && cargoPickup < cargoRelease &&
+        cargoRelease < cargoAllocation,
+        "missing Cargo grid skips only visual replacement and still reaches common SendItem finalization");
+    check(applyAppearance != std::string::npos &&
+        sendItemHandler.find("InitObject();", applyAppearance) != std::string::npos &&
+        sendItemHandler.find("pFScene->UpdateScoreUI(0);", applyAppearance) != std::string::npos &&
+        sendItemHandler.find("SGridControl::m_sLastMouseOverIndex = -1;", applyAppearance) != std::string::npos,
+        "SendItem keeps appearance, score UI, and hover invalidation after all destination branches");
     const auto abilitySource = LoadSource("TMProject748/internal/core/Basedef.cpp");
     const auto itemAbilityStart = abilitySource.find("int BASE_GetItemAbility(STRUCT_ITEM* item, char Type)");
     const auto staticAbilityStart = abilitySource.find("int BASE_GetStaticItemAbility(STRUCT_ITEM* item, char Type)");

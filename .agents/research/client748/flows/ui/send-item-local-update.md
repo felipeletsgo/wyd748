@@ -1,161 +1,199 @@
 ---
 id: send-item-local-update
-title: Atualizacao local de slot por SendItem
+title: Local slot update through SendItem
 subsystem: ui
 status: LOCATED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-23
+updated: 2026-10-01
 ---
 
-# Atualizacao local de slot por SendItem
+# Local slot update through SendItem
 
-## Pergunta
+## Question
 
-Onde 0x182 atualiza armazenamento e UI na selecao e no mundo, e quais indices
-precisam de endurecimento antes da copia?
+Where does `0x182` update storage and UI in character selection and the world,
+which indices require validation before copying, and can an unavailable Cargo
+grid prevent the common completion of an accepted slot update?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- UTILIZADA: binario nativo com identidade confirmada nos ciclos anteriores e
-  projeto Ghidra WYD748Native_20260821, read-only/noanalysis.
-- UTILIZADA: descompilacao `FUN_004B263E`, `FUN_0052EAA9` e
-  `FUN_0052A737`; exports focados
-  `select-character-cargo-update.tsv` e `field-send-item.tsv`.
-- UTILIZADA: source atual ObjectManager::HandleSelectCharacterItem,
-  TMHuman::OnPacketSendItem e arrays em Basedef/ObjectManager.h.
-- UTILIZADA: WYD-Go wire.SendItem, FinishPacket/ReadPacket e teste
-  send_item_contract_test.go; nao foi alterado comportamento do servidor.
-- NAO APLICAVEL neste endurecimento: assets/recursos nao mudam e nenhum novo
-  controle e criado. Ownership completo de grids continua pendente.
-- NAO APLICAVEL: TMProject posterior/guia como prova de offsets nativos.
-  fontes legadas externas excluidos.
+- **USED:** native binary identity confirmed in previous cycles and the
+  read-only/noanalysis Ghidra project `WYD748Native_20260821`.
+- **USED:** decompilation of `FUN_004B263E`, `FUN_0052EAA9`, and
+  `FUN_0052A737`; focused exports `select-character-cargo-update.tsv` and
+  `field-send-item.tsv` in the research exports directory.
+- **USED:** retained `FUN_0052A737.c` in the ignored native-research directory,
+  carrying the same program SHA-256. Its Cargo branch and common finalization
+  support the current decision without a new export or corpus inventory.
+- **USED:** current `ObjectManager::HandleSelectCharacterItem`,
+  `TMHuman::OnPacketSendItem`, arrays in `Basedef`/`ObjectManager.h`,
+  `SGridControl` ownership, and source-contract regression tests.
+- **USED:** WYD-Go `wire.SendItem`, `FinishPacket`/`ReadPacket`, and
+  `send_item_contract_test.go`. Server behavior remains unchanged.
+- **NOT APPLICABLE to this correction:** new assets/resources; no control is
+  added. Complete native grid ownership remains pending.
+- **NOT APPLICABLE:** later TMProject or guides as native offset authority;
+  external legacy sources are excluded as parity evidence.
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
 ### Callers
 
-`FUN_004B263E` ocupa slot +8 de ObjectManager (`0x005A4604`). Na selecao 0x7531,
-intercepta 0x182 antes da arvore; em outras cenas percorre filhos ativos.
-`FUN_0052EAA9` filtra ID pelo humano receptor e chama `FUN_0052A737` para 0x182.
+`FUN_004B263E` occupies ObjectManager slot `+8` (`0x005A4604`). In character
+selection `0x7531`, it intercepts `0x182` before the tree; in other scenes it
+visits active children. `FUN_0052EAA9` filters the ID against the human receiver
+and calls `FUN_0052A737` for `0x182`.
 
 ### Callees
 
-`FUN_004B263E` chama `FUN_0058F220` para copiar oito bytes ao cargo.
-`FUN_0052A737` compara
-o receptor com o humano local antes das copias de equipamento/inventario/cargo.
-O ramo Equip atualiza o cache de selecao quando DestPos !=0, antes dos grids.
-O export Ghidra confirma o caller direto 0052EAA9 -> 0052A737; receptores dos
-metodos virtuais de grids e teardown completo ainda precisam ser fechados.
+`FUN_004B263E` calls `FUN_0058F220` to copy eight bytes into Cargo.
+`FUN_0052A737` compares the receiver with the local human before the
+Equip/Carry/Cargo copies. Equip updates the selection cache when `DestPos != 0`,
+before consulting grids. The Ghidra export confirms the direct caller
+`0052EAA9 -> 0052A737`; grid virtual receivers and complete teardown remain open.
 
-No ramo nativo de cargo, `FUN_0052A737` chama a retirada na celula
-`DestPos % 9, DestPos / 9`, guarda o retorno em local_94 e so cria/adiciona
-um novo item quando `sIndex > 0`. Nao ha delete explicito de local_94 nesse
-ramo, ao contrario de Carry/Equip. Ao fim do bloco do humano local ha uma
-chamada virtual de cursor +0x98 se o attachment for nao nulo; sua semantica
-nao foi fechada aqui. O registro anterior que igualava esses cleanups estava
-incorreto: liberar o item retirado e uma correcao local, nao paridade provada.
+In the native Cargo branch, `FUN_0052A737` copies the slot before calling
+the removal operation at `DestPos % 9, DestPos / 9`, stores the return in
+`local_94`, and creates/adds an item only when `sIndex > 0`. Unlike Carry/Equip,
+this branch does not explicitly delete `local_94`. At the end of the local-human
+block, cursor virtual slot `+0x98` is called if an attachment remains; its
+semantics are unresolved here. The earlier record equating these cleanups was
+incorrect: releasing the removed item is a local fix, not proven native parity.
 
-## Estado e lifecycle
+After the destination branches, the native handler continues through
+`FUN_00524DED` (equipment projection), `FUN_005277A7` (height),
+`FUN_004FAF13` (race), human virtual slots `+0x38` and `+0x40`, weapon handling
+through `FUN_0051BB41`, mount-HUD work, field refresh through `FUN_004431E4`,
+and the final hover-index invalidation at `DAT_005B12BC`. These operations
+are separate from Cargo grid replacement. Native null-grid safety and the
+complete receiver identities of these indirect calls are not claimed.
 
-Na selecao, qualquer 0x182 e consumido; somente DestType=2 escreve no cargo.
-No mundo, o fluxo atual atualiza armazenamento, controles e apresentacao do
-humano. O estudo ainda nao fecha todos os caminhos de cursor, grid ausente,
-destruicao de item visual e reentrada; nao promove paridade integral.
+## State and lifecycle
 
-## Wire, ABI e recursos
+In selection, every `0x182` is consumed; only `DestType=2` writes Cargo.
+In the world, the current flow updates storage, controls, and human appearance.
+Accepted Cargo state is copied before visual lookup. If the grid is unavailable,
+the corrected source skips visual replacement but reaches the common
+appearance/HUD/hover finalization, like the existing optional Equip/Carry grids.
+It neither creates a replacement without an owning grid nor undoes server state.
 
-S->C: 24 bytes, opcode 0x182, DestType short signed@12, DestPos short
-signed@14, item de oito bytes@16. O Go emite o mesmo frame; Size e cifragem
-sao preenchidos no transporte. A funcao nativa 0055890A contem o par
-0x182/24, mas sua alcancabilidade continua pendente na ficha packet-size-gate.
-Asserts da source protegem tamanho/offsets. Nao transportar offsets de objeto
-nativo para arrays C++ atuais.
+When a grid exists, removal transfers the old item's ownership to the caller.
+Matching cursor/hover/sale aliases are cleared before deletion. A newly created
+visual rejected by `AddItem` is released; its authoritative slot remains intact.
+This study does not resolve all native cursor paths, item destruction, reentry,
+shutdown, or logout/relogin. It does not promote full lifecycle parity.
 
-## Mapeamento atual
+## Wire, ABI, and resources
 
-ReceivedPacketDispatch valida tamanho/opcode antes do percurso legado.
-ObjectManager usa ApplyCargoSlot, testado com 128 posicoes de armazenamento.
-TMHuman::OnPacketSendItem agora rejeita indices negativos ou acima da capacidade
-real de Equip/Carry/Cargo antes de Bag_View/copias. O cache de selecao so e
-escrito com characterSlot em [0,4); ausencia desse cache nao impede atualizar
-equipamento do mundo. Slots extras locais de Equip sao mantidos.
-O receptor agora precisa ser o humano local antes de consultar a grade ou
-recalcular a aparencia a partir do cache global. Itens com `sIndex` negativo
-ou fora das 6.500 entradas do `ItemList.bin` 7.48 sao consumidos sem alterar
-o estado; indice zero continua representando slot vazio. Essa guarda interna
-evita que `SetPacketMOBItem` consulte `g_pItemList` fora do catalogo.
-Cargo captura e libera o retorno de PickupAtItem. A implementacao atual de
-SGrid.cpp remove o ponteiro da lista, ajusta ocupacao/escala e retorna ownership
-ao chamador; nao destroi o item nem limpa aliases de interacao. O destructor
-SGridControlItem libera recursos visuais/item, mas nao limpa os aliases globais.
-O caller Cargo agora zera hover, ultimo attachment, venda e cursor somente
-quando apontam para o item retirado, usando a politica ja existente em Empty.
-A copia de estado continua anterior a consulta visual; grid ausente nao a desfaz.
+S->C: 24 bytes, opcode `0x182`, signed short `DestType@12`, signed short
+`DestPos@14`, eight-byte item at `16`. Go emits the same frame; transport fills
+Size and encryption. Native `FUN_0055890A` contains `0x182/24`, but its
+reachability remains pending in the packet-size-gate record. Source assertions
+protect size/offsets. Do not transplant native object offsets into current C++
+arrays. No wire, asset, control ID, or vtable changes are made here.
 
-## Matriz de delta
+## Current mapping
 
-| Fronteira | Evidencia | Decisao |
+`ReceivedPacketDispatch` validates size/opcode before the legacy traversal.
+ObjectManager uses `ApplyCargoSlot`, tested across 128 storage positions.
+`TMHuman::OnPacketSendItem` rejects negative or out-of-capacity indices for
+Equip/Carry/Cargo before `Bag_View` or copies. Selection-cache writes require
+`characterSlot` in `[0,4)`; an unavailable cache does not prevent world equipment
+updates. Additional local Equip slots remain preserved.
+
+The receiver must be the local human before consulting grids or recalculating
+appearance from the global cache. Negative `sIndex` or an index outside the
+6,500-entry 7.48 `ItemList.bin` is consumed without changing state. Zero remains
+an empty slot. This internal guard prevents out-of-catalog `g_pItemList` reads
+in `SetPacketMOBItem`.
+
+Cargo captures and releases `PickupAtItem`'s return. Current `SGrid.cpp` removes
+the pointer from the list, updates occupancy/scale, and transfers ownership to
+the caller; it neither destroys the item nor clears interaction aliases.
+`SGridControlItem` destruction releases visual/item resources, not global aliases.
+The caller clears hover, last attachment, sale, and cursor pointers only when
+they reference the removed item, reusing the existing `Empty` policy.
+
+Previously, Cargo's `if (!pGrid) return 1` preserved the copied slot but skipped
+every common completion operation below the destination branches. Cargo now
+uses a positive `if (pGrid)` around pickup, cleanup, allocation, and insertion,
+without an early return. The existing model-first ordering, coordinates,
+insertion-failure cleanup, and final return value are unchanged.
+
+## Delta matrix
+
+| Claim | Native 7.48 | Current source | WYD-Go | Decision |
+| --- | --- | --- | --- | --- |
+| 24-byte frame | Native/source/Go agree | Gate before callback | Same envelope | Preserve bytes |
+| Cargo in selection | Early copy and consumption | Capacity 128 | Storage snapshot | Preserve order |
+| World destinations | Indices used before visual guards | Validate actual capacities | Authoritative state | MODERNIZACAO_COMPATIVEL |
+| Selection cache | Character index separate from slot | Guard sentinel without blocking world | N/A | MODERNIZACAO_COMPATIVEL |
+| Missing Cargo grid | Slot copy and common completion are separate; null safety unproven | Skip projection, not common completion | No change | MODERNIZACAO_COMPATIVEL, not native null-grid parity |
+| Visual ownership | Still incomplete | Explicit local release/alias policy | No change | Preserve safe source policy; no full parity claim |
+
+## Decisions
+
+`MODERNIZACAO_COMPATIVEL`, locally implemented: reject impossible indices,
+preserve valid ordering/bytes, and let an unbound Cargo grid suppress only its
+projection. Do not copy pseudocode vulnerabilities. Do not reduce Cargo storage
+from 128 to the usable limit 120 or remove `Equip[16..17]` merely because native
+7.48 lacks them. No server behavior or transport change is needed.
+
+## Gaps
+
+- Execute rejection and Equip/Carry/Cargo updates in the real candidate.
+- Validate cursor/hover/sale aliases after Cargo replacement at runtime.
+- Resolve native grid virtual receivers and full destruction/teardown.
+- Check `OnPacketEvent` calls outside the size-aware ingress.
+- Test relogin, reserved slots, and appearance refresh.
+- Execute the missing-Cargo-grid path in the DirectX scene; source-contract
+  regressions and a build do not establish runtime behavior.
+
+## Validation
+
+Historical Ghidra exports completed without `SCRIPT ERROR`, with the correct
+native program hash, `slot_outgoing 005A4604 -> 004B263E`, and caller
+`0052EAA9 -> 0052A737`. Historical Debug/Release runs passed 232 C++ checks
+and assertions; the Go wire suite and vet passed on their earlier unchanged
+inputs. These tests covered frames and `ApplyCargoSlot`, not the new guards
+inside a running `TMHuman` scene.
+
+The following earlier Release artifacts were built and installed, but those
+operations were not in-game flow validation:
+
+| Historical change | Release SHA-256 | Validation boundary |
 | --- | --- | --- |
-| frame 24 bytes | nativo/source/Go concordam | validar antes do callback |
-| cargo na selecao | copia antecipada e consumo | manter ordem, limitar a 128 |
-| destinos no mundo | indices usados antes dos guards visuais | limitar pela capacidade atual |
-| cache da selecao | indice de personagem separado do destino | proteger sentinela sem bloquear mundo |
-| ownership visual | ainda incompleto | preservar codigo, nao alegar paridade |
+| TMHuman destination guards | `5D1743014D80B9E34FEBE61CA8A3ADC34327363388A6841DCFA25C5C88A830AE` | STATICALLY VERIFIED; 232 checks, not CLIENT_TESTED |
+| Cargo pickup ownership and cursor cleanup | `87F0FFCCFAC29E3950979515B864D6F9B77D7F4E930C894128E7DA76EFD323C6` | Local source-ownership fix, no native parity claim |
+| Additional Cargo alias cleanup | `29485CB8C6570801C72C3F82D0B9BA944D16B09D74AF40638A2CEC6750353067` | Debug/Release 232 checks; no live hover/sale coverage |
+| Shared releaseReplacedItem lambda | `79ED78DEE7826F262C017096E006762B4755A16AA9C9FA41BD699130AE5B3C10` | Debug/Release 232 checks; no UI-event execution |
 
-## Decisões
+The shared lambda centralizes alias cleanup and destruction of removed
+Equip/Carry/Cargo visuals. Each branch preserves its pickup coordinates;
+null does not change aliases, and references to other items survive. This is
+source-level ownership policy, not new native ABI/resource evidence.
 
-MODERNIZACAO_COMPATIVEL de origem local: rejeitar indices impossiveis e manter
-ordem/bytes dos caminhos validos. Nao copiar vulnerabilidade do pseudocodigo.
-Nao reduzir armazenamento de cargo 128 para limite de uso 120, nem remover
-Equip[16..17] por ausencia no nativo. Nenhuma mudanca wire, asset ou vtable.
+An earlier inspection found unchecked item-count growth in `AddItem`. The
+current source uses `GridInsertion.h` validation and releases a rejected new
+visual in this handler; the old finding must not be treated as an unimplemented
+queue entry. It is separate from the missing-grid completion correction.
 
-## Lacunas
+The 2026-09-23 local-human filter was classified as
+`MODERNIZACAO_COMPATIVEL`, consistent with the comparison in `FUN_0052A737`,
+without promoting this `LOCATED` record. The `sIndex` guard uses the active
+catalog capacity and protects direct source reads, without changing frames or
+valid items. Static contracts check both guards before UI effects and the first
+copy. The no-deploy Release|x86 build passed with 51,869 checks, without visual
+execution or `CLIENT_TESTED`.
 
-- Exercitar rejeicao e atualizacao de Equip/Carry/Cargo no candidato real.
-- Validar runtime os aliases de cursor/hover/venda apos substituicao no cargo.
-- Verificar as chamadas de OnPacketEvent fora da entrada size-aware.
-- Preservar e testar relogin, slots reservados e refresh visual.
-
-## Validação
-
-Exports Ghidra concluidos sem SCRIPT ERROR; hash program nativo correto,
-slot_outgoing 005A4604 -> 004B263E e caller 0052EAA9 -> 0052A737 presentes.
-232 checks C++ e asserts PASS em Debug/Release; suite wire Go e vet PASS no
-corte anterior, sem alteracao posterior desses inputs. Esses testes cobrem
-frame e ApplyCargoSlot; nao executam os novos guards dentro de TMHuman.
-Debug/Release recompilados e instalados depois dos guards de TMHuman.
-Release: `5D1743014D80B9E34FEBE61CA8A3ADC34327363388A6841DCFA25C5C88A830AE`.
-STATICALLY VERIFIED para o novo corte. Nao CLIENT-TESTED.
-
-Atualizacao: Cargo captura agora o retorno de `PickupAtItem`, limpa o cursor
-quando ele aponta para o item removido e libera o objeto com `SAFE_DELETE`, em
-correcao local baseada no ownership da source, sem claim de paridade. Release desse corte:
-`87F0FFCCFAC29E3950979515B864D6F9B77D7F4E930C894128E7DA76EFD323C6`.
-
-Complemento de aliases: Debug/Release passaram com os 232 checks existentes;
-eles nao exercitam hover/venda no jogo. Release instalado:
-`29485CB8C6570801C72C3F82D0B9BA944D16B09D74AF40638A2CEC6750353067`.
-STATICALLY VERIFIED; teste in-game pendente.
-
-Inspecao de `SGridControl::AddItem` confirmou que o helper incrementa
-`m_nNumItem` sem validar capacidade interna. Essa frente permanece separada;
-nao foi alterada sem contrato e teste especificos de grid.
-
-Extensao do mesmo endurecimento: `releaseReplacedItem`, lambda local de
-OnPacketSendItem, concentra a limpeza de aliases e a destruicao dos visuais
-retirados de Equip/Carry/Cargo. Cada ramo conserva seu Pickup e coordenadas;
-nullptr nao altera estado, e referencias a outros itens sao preservadas.
-Procedencia local; reaproveita evidencia de Pickup/Empty/destructor acima,
-sem novo claim nativo, ABI ou recurso. Debug/Release: 232 checks existentes
-PASS; nao cobrem eventos UI. Release instalado:
-`79ED78DEE7826F262C017096E006762B4755A16AA9C9FA41BD699130AE5B3C10`.
-
-Complemento 2026-09-23: o filtro de humano local e uma
-`MODERNIZACAO_COMPATIVEL` coerente com a comparacao observada em
-`FUN_0052A737`, sem promover esta ficha `LOCATED` a paridade integral.
-A guarda de `sIndex` tambem e `MODERNIZACAO_COMPATIVEL`, baseada na capacidade
-do asset ativo e na leitura direta de `g_pItemList` pela source; nao muda o
-frame nem itens validos.
-Teste de contrato estatico verifica ambas as guardas antes dos efeitos de UI
-e da primeira copia; `Build-Client.ps1 -NoDeploy` passou com 51.869 checks e
-Release|x86. Nao houve teste visual nem `CLIENT-TESTED`.
+The 2026-10-01 continuation reuses the retained native branch/finalization
+evidence. Three source-contract checks cover model-before-grid ordering,
+optional visual work without an early return, and the shared appearance,
+score-UI, and hover completion. The missing-grid check failed before the
+source patch. These tests inspect control flow; they do not execute DirectX or
+prove the unresolved native virtual calls. The incremental
+`Build-Client.ps1 -Configuration Release -NoDeploy` build passed with 60,990
+architecture checks and 221 socket-receive checks. The Release artifact SHA-256
+is `3851CC952FD7589F264191DE69F002C38297EA760B68B226E234A2533A914223`.
+This is STATICALLY VERIFIED and AUTOMATED TESTED, not CLIENT_TESTED. No runtime
+executable was installed and no client flow was executed.

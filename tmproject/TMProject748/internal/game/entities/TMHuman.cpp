@@ -4440,26 +4440,28 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
             pFScene->GetCargoCellForSlot(pSendItem->DestPos, CellIndexX, CellIndexY);
             auto pGrid = pFScene->GetCargoGridForSlot(pSendItem->DestPos);
 
-            if (!pGrid)
-                return 1;
-
-            SGridControlItem* pOldGridItem = pGrid->PickupAtItem(CellIndexX, CellIndexY);
-            releaseReplacedItem(pOldGridItem);
-
-            if (pSendItem->Item.sIndex > 0)
+            // An unbound Cargo grid suppresses only its visual projection.
+            // Keep the committed slot and common appearance/HUD finalization.
+            if (pGrid)
             {
-                auto pstItem = new STRUCT_ITEM();
+                SGridControlItem* pOldGridItem = pGrid->PickupAtItem(CellIndexX, CellIndexY);
+                releaseReplacedItem(pOldGridItem);
 
-                if (pstItem)
+                if (pSendItem->Item.sIndex > 0)
                 {
-                    memcpy(pstItem, &pSendItem->Item, sizeof(STRUCT_ITEM));
+                    auto pstItem = new STRUCT_ITEM();
 
-                    auto pItem = new SGridControlItem(0, pstItem, 0.0f, 0.0f);
+                    if (pstItem)
+                    {
+                        memcpy(pstItem, &pSendItem->Item, sizeof(STRUCT_ITEM));
 
-                    if (pItem && !pGrid->AddItem(pItem, CellIndexX, CellIndexY))
-                        releaseReplacedItem(pItem);
-                    else if (!pItem)
-                        SAFE_DELETE(pstItem);
+                        auto pItem = new SGridControlItem(0, pstItem, 0.0f, 0.0f);
+
+                        if (pItem && !pGrid->AddItem(pItem, CellIndexX, CellIndexY))
+                            releaseReplacedItem(pItem);
+                        else if (!pItem)
+                            SAFE_DELETE(pstItem);
+                    }
                 }
             }
         }
