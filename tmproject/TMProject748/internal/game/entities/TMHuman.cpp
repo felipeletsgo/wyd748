@@ -15,6 +15,7 @@
 #include "AirMoveMotion.h"
 #include "DeathMotionPolicy.h"
 #include "SkinMotionPolicy.h"
+#include "HumanAnglePolicy.h"
 #include "../../render/mesh/CostumeSelection.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "../../ui/ObservedAffectProjection.h"
@@ -2931,12 +2932,12 @@ void TMHuman::SetAngle(float fYaw, float fPitch, float fRoll)
     if (m_cMount == 0)
     {
         if (m_pSkinMesh)
-            m_pSkinMesh->SetAngle(fYaw, -fPitch, fRoll);
+            m_pSkinMesh->SetAngle(fYaw, human_angle::MeshPitch(m_nWeaponTypeL, fPitch, false), fRoll);
     }
     else
     {
         if (m_pMount)
-            m_pMount->SetAngle(fYaw, -fPitch + D3DXToRadian(360), fRoll);
+            m_pMount->SetAngle(fYaw, human_angle::MeshPitch(m_nWeaponTypeL, fPitch, true), fRoll);
         if (m_pSkinMesh)
             m_pSkinMesh->SetAngle(0.0f, 0.0f, 0.0f);
     }
@@ -6033,7 +6034,7 @@ void TMHuman::UpdateScore(int nGuildLevel)
             int X = (int)pScene->m_pMyHuman->m_vecPosition.x;
             int Y = (int)pScene->m_pMyHuman->m_vecPosition.y;
 
-            /* Painel de Pontos Guerra de Torre */
+            /* Tower war score panel. */
             if (_HudControl.GuerraTorres.Packet.Header.Tick && _HudControl.GuerraTorres.Packet.Header.Tick != -1)
             {
                 int TowerMinX = 0;
@@ -6069,7 +6070,7 @@ void TMHuman::UpdateScore(int nGuildLevel)
                                 continue;
 
 
-                            sprintf(view, "[%s] - %d pontos", Tower.Name[i], Tower.Point[i]);
+                            sprintf(view, "[%s] - %d points", Tower.Name[i], Tower.Point[i]);
                             views->SetText(view, 0);
 
                             isFlag = true;
@@ -17098,7 +17099,7 @@ int TMHuman::SetHumanCostume()
 {
     int nCos = 0;
     m_nSkinMeshType = 0;
-    memset(&m_stColorInfo, 0, 6);//corre��o
+    memset(&m_stColorInfo, 0, 6); // Reset costume colors.
     memset(&m_stColorInfo.Legend0, 0, 6);
 
 

@@ -420,6 +420,21 @@ and costume/shader gates. This closes snapshot selection, not the remaining
 initialization/costume/shadow rendering gates. No client was installed or run,
 and no unchanged Go suite or native export was repeated.
 
+The next orientation correction resolves concrete human slot `+0x48` and
+its base virtual dispatch. Native left-weapon ability 21 equal to 101
+preserves mesh pitch both mounted and unmounted; ordinary meshes retain
+pitch reversal and the mounted full-turn addition. `HumanAnglePolicy.h`
+now supplies both guarded production branches without changing logical
+movement angles or mounted rider reset. Seventy-nine new checks include
+the exact native float bits and weapon-101 bit-preserving pass-through.
+Release/Win32 architecture validation passed 61,267 checks; the integrated
+`-NoDeploy` build passed 221 socket checks and costume/shader gates.
+The [angle evidence](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#concrete-angle-dispatch-and-weapon-101-exception)
+also resolves the matched costume row/parity selector, which already matches
+the candidate and requires no asset edit. Full costume post-processing,
+enclosing ABI, and real-client rendering remain open. No client was installed
+or run, and no unchanged Go suite was repeated.
+
 ### First trade-check acknowledgement
 
 The [native acknowledgement contract](../../.agents/research/client748/flows/transport/trade-check-confirmation-contract.md)

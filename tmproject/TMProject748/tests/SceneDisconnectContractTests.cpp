@@ -3,6 +3,7 @@
 #include "../internal/core/ServerStatus.h"
 #include "../internal/core/Structures.h"
 #include "../internal/game/entities/AppearanceRefinementRefresh.h"
+#include "../internal/game/entities/HumanAnglePolicy.h"
 #include "../internal/core/WYD748Assets.h"
 #include "../internal/render/world/objects/ObjectFileRecordLayout.h"
 #include "../internal/ui/SellConfirmationText.h"
@@ -664,6 +665,55 @@ int RunSceneDisconnectContractTests(int& checks)
     check(carryGridBody.find("slot < 0 || slot >= MAX_VISIBLE_CARRY") != std::string::npos,
         "reserved Carry slot remains in the wire array but cannot address a nonexistent grid row");
     const auto humanSource = LoadSource("TMProject748/internal/game/entities/TMHuman.cpp");
+    const auto angleStart = humanSource.find("void TMHuman::SetAngle(");
+    const auto angleEnd = humanSource.find("void TMHuman::SetPosition(", angleStart);
+    const auto angleBody = angleStart != std::string::npos && angleEnd != std::string::npos
+        ? humanSource.substr(angleStart, angleEnd - angleStart) : std::string{};
+    const auto angleGuard = angleBody.find("if (m_dwDelayDel != 0)");
+    const auto logicalPitch = angleBody.find("m_fAngle = fPitch;");
+    check(angleGuard != std::string::npos && logicalPitch != std::string::npos && angleGuard < logicalPitch,
+        "human angle setter retains delayed-deletion guard before storing logical pitch");
+    const auto unmountedPolicy = angleBody.find("human_angle::MeshPitch(m_nWeaponTypeL, fPitch, false)");
+    const auto mountedPolicy = angleBody.find("human_angle::MeshPitch(m_nWeaponTypeL, fPitch, true)");
+    check(angleBody.find("if (m_cMount == 0)") != std::string::npos &&
+        unmountedPolicy != std::string::npos && mountedPolicy != std::string::npos &&
+        angleBody.find("if (m_pSkinMesh)") < unmountedPolicy &&
+        angleBody.find("if (m_pMount)") < mountedPolicy,
+        "human angle setter uses the tested left-weapon policy in both guarded mesh branches");
+    check(angleBody.find("m_pSkinMesh->SetAngle(0.0f, 0.0f, 0.0f);") != std::string::npos,
+        "mounted human retains zero local rider angles independently of mount mesh presence");
+    const auto initAngleStart = humanSource.find("void TMHuman::InitAngle(");
+    const auto initAngleBody = initAngleStart != std::string::npos && angleStart != std::string::npos
+        ? humanSource.substr(initAngleStart, angleStart - initAngleStart) : std::string{};
+    check(initAngleBody.find("if (m_nClass == 44)") < initAngleBody.find("TMObject::InitAngle(fYaw, fPitch, fRoll);") &&
+        initAngleBody.find("m_fWantAngle = m_fAngle;") != std::string::npos &&
+        initAngleBody.find("m_fMoveToAngle = m_fAngle;") != std::string::npos,
+        "angle initialization retains class-44 adjustment and logical movement targets");
+    std::uint32_t fullTurnBits = 0;
+    std::memcpy(&fullTurnBits, &human_angle::kFullTurn, sizeof(fullTurnBits));
+    check(fullTurnBits == 0x40c90fdbu, "mesh pitch uses the native binary32 full-turn constant");
+    for (const int weaponType : {-1, 0, 100, 101, 102, (std::numeric_limits<int>::max)()}) {
+        for (const float pitch : {-7.0f, -3.1415927410125732f, 0.0f, 3.1415927410125732f, 7.0f}) {
+            for (const bool mounted : {false, true}) {
+                const float expected = weaponType == 101 ? pitch
+                    : mounted ? -pitch + 6.2831854820251465f : -pitch;
+                check(human_angle::MeshPitch(weaponType, pitch, mounted) == expected,
+                    "native pitch policy preserves only weapon 101 and reverses ordinary mesh angles");
+            }
+        }
+    }
+    for (const std::uint32_t pitchBits : {0u, 0x80000000u, 0x40490fdbu, 0xc0490fdbu,
+        0x7f800000u, 0xff800000u, 0x7fc12345u}) {
+        float pitch = 0;
+        std::memcpy(&pitch, &pitchBits, sizeof(pitch));
+        for (const bool mounted : {false, true}) {
+            const auto preserved = human_angle::MeshPitch(101, pitch, mounted);
+            std::uint32_t actualBits = 0;
+            std::memcpy(&actualBits, &preserved, sizeof(actualBits));
+            check(actualBits == pitchBits,
+                "weapon-101 pitch passes through without normalization or full-turn addition");
+        }
+    }
     const auto sendItemStart = humanSource.find("int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)");
     const auto sendItemEnd = humanSource.find("int TMHuman::OnPacketUpdateEquip", sendItemStart);
     const auto sendItemHandler = sendItemStart != std::string::npos && sendItemEnd != std::string::npos

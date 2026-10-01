@@ -1,0 +1,210 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+instruction	00500d50	FUN_00500d50	00500d50	00500d51	FALL_THROUGH	FUN_00500d50	bytes=55;mnemonic=PUSH;instruction=PUSH EBP;flows=;fallthrough=00500d51
+instruction	00500d50	FUN_00500d50	00500d51	00500d53	FALL_THROUGH	FUN_00500d50	bytes=8BEC;mnemonic=MOV;instruction=MOV EBP,ESP;flows=;fallthrough=00500d53
+instruction	00500d50	FUN_00500d50	00500d53	00500d54	FALL_THROUGH	FUN_00500d50	bytes=51;mnemonic=PUSH;instruction=PUSH ECX;flows=;fallthrough=00500d54
+instruction	00500d50	FUN_00500d50	00500d54	00500d57	FALL_THROUGH	FUN_00500d50	bytes=894DFC;mnemonic=MOV;instruction=MOV dword ptr [EBP + -0x4],ECX;flows=;fallthrough=00500d57
+instruction	00500d50	FUN_00500d50	00500d57	00500d5a	FALL_THROUGH	FUN_00500d50	bytes=8B45FC;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + -0x4];flows=;fallthrough=00500d5a
+instruction	00500d50	FUN_00500d50	00500d5a	00500d61	FALL_THROUGH	FUN_00500d50	bytes=83B81402000000;mnemonic=CMP;instruction=CMP dword ptr [EAX + 0x214],0x0;flows=;fallthrough=00500d61
+instruction	00500d50	FUN_00500d50	00500d61	00500d63	CONDITIONAL_JUMP	FUN_00500d50	bytes=7405;mnemonic=JZ;instruction=JZ 0x00500d68;flows=00500d68;fallthrough=00500d63
+instruction_reference	00500d50	FUN_00500d50	00500d61	00500d68	CONDITIONAL_JUMP	LAB_00500d68	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500d63		UNCONDITIONAL_JUMP	FUN_00500d50	bytes=E9A7000000;mnemonic=JMP;instruction=JMP 0x00500e0f;flows=00500e0f;fallthrough=
+instruction_reference	00500d50	FUN_00500d50	00500d63	00500e0f	UNCONDITIONAL_JUMP	LAB_00500e0f	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500d68	00500d6b	FALL_THROUGH	FUN_00500d50	bytes=8B4DFC;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + -0x4];flows=;fallthrough=00500d6b
+instruction	00500d50	FUN_00500d50	00500d6b	00500d6e	FALL_THROUGH	FUN_00500d50	bytes=8B550C;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + 0xc];flows=;fallthrough=00500d6e
+instruction	00500d50	FUN_00500d50	00500d6e	00500d71	FALL_THROUGH	FUN_00500d50	bytes=895134;mnemonic=MOV;instruction=MOV dword ptr [ECX + 0x34],EDX;flows=;fallthrough=00500d71
+instruction	00500d50	FUN_00500d50	00500d71	00500d74	FALL_THROUGH	FUN_00500d50	bytes=8B45FC;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + -0x4];flows=;fallthrough=00500d74
+instruction	00500d50	FUN_00500d50	00500d74	00500d7b	FALL_THROUGH	FUN_00500d50	bytes=0FBE889C070000;mnemonic=MOVSX;instruction=MOVSX ECX,byte ptr [EAX + 0x79c];flows=;fallthrough=00500d7b
+instruction	00500d50	FUN_00500d50	00500d7b	00500d7d	FALL_THROUGH	FUN_00500d50	bytes=85C9;mnemonic=TEST;instruction=TEST ECX,ECX;flows=;fallthrough=00500d7d
+instruction	00500d50	FUN_00500d50	00500d7d	00500d7f	CONDITIONAL_JUMP	FUN_00500d50	bytes=7536;mnemonic=JNZ;instruction=JNZ 0x00500db5;flows=00500db5;fallthrough=00500d7f
+instruction_reference	00500d50	FUN_00500d50	00500d7d	00500db5	CONDITIONAL_JUMP	LAB_00500db5	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500d7f	00500d82	FALL_THROUGH	FUN_00500d50	bytes=8B55FC;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + -0x4];flows=;fallthrough=00500d82
+instruction	00500d50	FUN_00500d50	00500d82	00500d86	FALL_THROUGH	FUN_00500d50	bytes=837A6000;mnemonic=CMP;instruction=CMP dword ptr [EDX + 0x60],0x0;flows=;fallthrough=00500d86
+instruction	00500d50	FUN_00500d50	00500d86	00500d88	CONDITIONAL_JUMP	FUN_00500d50	bytes=742B;mnemonic=JZ;instruction=JZ 0x00500db3;flows=00500db3;fallthrough=00500d88
+instruction_reference	00500d50	FUN_00500d50	00500d86	00500db3	CONDITIONAL_JUMP	LAB_00500db3	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500d88	00500d8b	FALL_THROUGH	FUN_00500d50	bytes=8B45FC;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + -0x4];flows=;fallthrough=00500d8b
+instruction	00500d50	FUN_00500d50	00500d8b	00500d92	FALL_THROUGH	FUN_00500d50	bytes=83B86001000065;mnemonic=CMP;instruction=CMP dword ptr [EAX + 0x160],0x65;flows=;fallthrough=00500d92
+instruction	00500d50	FUN_00500d50	00500d92	00500d94	CONDITIONAL_JUMP	FUN_00500d50	bytes=7408;mnemonic=JZ;instruction=JZ 0x00500d9c;flows=00500d9c;fallthrough=00500d94
+instruction_reference	00500d50	FUN_00500d50	00500d92	00500d9c	CONDITIONAL_JUMP	LAB_00500d9c	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500d94	00500d97	FALL_THROUGH	FUN_00500d50	bytes=D9450C;mnemonic=FLD;instruction=FLD float ptr [EBP + 0xc];flows=;fallthrough=00500d97
+instruction	00500d50	FUN_00500d50	00500d97	00500d99	FALL_THROUGH	FUN_00500d50	bytes=D9E0;mnemonic=FCHS;instruction=FCHS;flows=;fallthrough=00500d99
+instruction	00500d50	FUN_00500d50	00500d99	00500d9c	FALL_THROUGH	FUN_00500d50	bytes=D95D0C;mnemonic=FSTP;instruction=FSTP float ptr [EBP + 0xc];flows=;fallthrough=00500d9c
+instruction	00500d50	FUN_00500d50	00500d9c	00500d9f	FALL_THROUGH	FUN_00500d50	bytes=8B4D10;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + 0x10];flows=;fallthrough=00500d9f
+instruction	00500d50	FUN_00500d50	00500d9f	00500da0	FALL_THROUGH	FUN_00500d50	bytes=51;mnemonic=PUSH;instruction=PUSH ECX;flows=;fallthrough=00500da0
+instruction	00500d50	FUN_00500d50	00500da0	00500da3	FALL_THROUGH	FUN_00500d50	bytes=8B550C;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + 0xc];flows=;fallthrough=00500da3
+instruction	00500d50	FUN_00500d50	00500da3	00500da4	FALL_THROUGH	FUN_00500d50	bytes=52;mnemonic=PUSH;instruction=PUSH EDX;flows=;fallthrough=00500da4
+instruction	00500d50	FUN_00500d50	00500da4	00500da7	FALL_THROUGH	FUN_00500d50	bytes=8B4508;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + 0x8];flows=;fallthrough=00500da7
+instruction	00500d50	FUN_00500d50	00500da7	00500da8	FALL_THROUGH	FUN_00500d50	bytes=50;mnemonic=PUSH;instruction=PUSH EAX;flows=;fallthrough=00500da8
+instruction	00500d50	FUN_00500d50	00500da8	00500dab	FALL_THROUGH	FUN_00500d50	bytes=8B4DFC;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + -0x4];flows=;fallthrough=00500dab
+instruction	00500d50	FUN_00500d50	00500dab	00500dae	FALL_THROUGH	FUN_00500d50	bytes=8B4960;mnemonic=MOV;instruction=MOV ECX,dword ptr [ECX + 0x60];flows=;fallthrough=00500dae
+instruction	00500d50	FUN_00500d50	00500dae	00500db3	UNCONDITIONAL_CALL	FUN_00500d50	bytes=E8F0D3FBFF;mnemonic=CALL;instruction=CALL 0x004be1a3;flows=004be1a3;fallthrough=00500db3
+instruction_reference	00500d50	FUN_00500d50	00500dae	004be1a3	UNCONDITIONAL_CALL	FUN_004be1a3	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500db3		UNCONDITIONAL_JUMP	FUN_00500d50	bytes=EB5A;mnemonic=JMP;instruction=JMP 0x00500e0f;flows=00500e0f;fallthrough=
+instruction_reference	00500d50	FUN_00500d50	00500db3	00500e0f	UNCONDITIONAL_JUMP	LAB_00500e0f	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500db5	00500db8	FALL_THROUGH	FUN_00500d50	bytes=8B55FC;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + -0x4];flows=;fallthrough=00500db8
+instruction	00500d50	FUN_00500d50	00500db8	00500dbf	FALL_THROUGH	FUN_00500d50	bytes=83BA9C01000000;mnemonic=CMP;instruction=CMP dword ptr [EDX + 0x19c],0x0;flows=;fallthrough=00500dbf
+instruction	00500d50	FUN_00500d50	00500dbf	00500dc1	CONDITIONAL_JUMP	FUN_00500d50	bytes=7434;mnemonic=JZ;instruction=JZ 0x00500df5;flows=00500df5;fallthrough=00500dc1
+instruction_reference	00500d50	FUN_00500d50	00500dbf	00500df5	CONDITIONAL_JUMP	LAB_00500df5	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500dc1	00500dc4	FALL_THROUGH	FUN_00500d50	bytes=8B45FC;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + -0x4];flows=;fallthrough=00500dc4
+instruction	00500d50	FUN_00500d50	00500dc4	00500dcb	FALL_THROUGH	FUN_00500d50	bytes=83B86001000065;mnemonic=CMP;instruction=CMP dword ptr [EAX + 0x160],0x65;flows=;fallthrough=00500dcb
+instruction	00500d50	FUN_00500d50	00500dcb	00500dcd	CONDITIONAL_JUMP	FUN_00500d50	bytes=740E;mnemonic=JZ;instruction=JZ 0x00500ddb;flows=00500ddb;fallthrough=00500dcd
+instruction_reference	00500d50	FUN_00500d50	00500dcb	00500ddb	CONDITIONAL_JUMP	LAB_00500ddb	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500dcd	00500dd0	FALL_THROUGH	FUN_00500d50	bytes=D9450C;mnemonic=FLD;instruction=FLD float ptr [EBP + 0xc];flows=;fallthrough=00500dd0
+instruction	00500d50	FUN_00500d50	00500dd0	00500dd2	FALL_THROUGH	FUN_00500d50	bytes=D9E0;mnemonic=FCHS;instruction=FCHS;flows=;fallthrough=00500dd2
+instruction	00500d50	FUN_00500d50	00500dd2	00500dd8	FALL_THROUGH	FUN_00500d50	bytes=D80590425A00;mnemonic=FADD;instruction=FADD float ptr [0x005a4290];flows=;fallthrough=00500dd8
+instruction_reference	00500d50	FUN_00500d50	00500dd2	005a4290	READ	DAT_005a4290	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500dd8	00500ddb	FALL_THROUGH	FUN_00500d50	bytes=D95D0C;mnemonic=FSTP;instruction=FSTP float ptr [EBP + 0xc];flows=;fallthrough=00500ddb
+instruction	00500d50	FUN_00500d50	00500ddb	00500dde	FALL_THROUGH	FUN_00500d50	bytes=8B4D10;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + 0x10];flows=;fallthrough=00500dde
+instruction	00500d50	FUN_00500d50	00500dde	00500ddf	FALL_THROUGH	FUN_00500d50	bytes=51;mnemonic=PUSH;instruction=PUSH ECX;flows=;fallthrough=00500ddf
+instruction	00500d50	FUN_00500d50	00500ddf	00500de2	FALL_THROUGH	FUN_00500d50	bytes=8B550C;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + 0xc];flows=;fallthrough=00500de2
+instruction	00500d50	FUN_00500d50	00500de2	00500de3	FALL_THROUGH	FUN_00500d50	bytes=52;mnemonic=PUSH;instruction=PUSH EDX;flows=;fallthrough=00500de3
+instruction	00500d50	FUN_00500d50	00500de3	00500de6	FALL_THROUGH	FUN_00500d50	bytes=8B4508;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + 0x8];flows=;fallthrough=00500de6
+instruction	00500d50	FUN_00500d50	00500de6	00500de7	FALL_THROUGH	FUN_00500d50	bytes=50;mnemonic=PUSH;instruction=PUSH EAX;flows=;fallthrough=00500de7
+instruction	00500d50	FUN_00500d50	00500de7	00500dea	FALL_THROUGH	FUN_00500d50	bytes=8B4DFC;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + -0x4];flows=;fallthrough=00500dea
+instruction	00500d50	FUN_00500d50	00500dea	00500df0	FALL_THROUGH	FUN_00500d50	bytes=8B899C010000;mnemonic=MOV;instruction=MOV ECX,dword ptr [ECX + 0x19c];flows=;fallthrough=00500df0
+instruction	00500d50	FUN_00500d50	00500df0	00500df5	UNCONDITIONAL_CALL	FUN_00500d50	bytes=E8AED3FBFF;mnemonic=CALL;instruction=CALL 0x004be1a3;flows=004be1a3;fallthrough=00500df5
+instruction_reference	00500d50	FUN_00500d50	00500df0	004be1a3	UNCONDITIONAL_CALL	FUN_004be1a3	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500df5	00500df8	FALL_THROUGH	FUN_00500d50	bytes=8B55FC;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + -0x4];flows=;fallthrough=00500df8
+instruction	00500d50	FUN_00500d50	00500df8	00500dfc	FALL_THROUGH	FUN_00500d50	bytes=837A6000;mnemonic=CMP;instruction=CMP dword ptr [EDX + 0x60],0x0;flows=;fallthrough=00500dfc
+instruction	00500d50	FUN_00500d50	00500dfc	00500dfe	CONDITIONAL_JUMP	FUN_00500d50	bytes=7411;mnemonic=JZ;instruction=JZ 0x00500e0f;flows=00500e0f;fallthrough=00500dfe
+instruction_reference	00500d50	FUN_00500d50	00500dfc	00500e0f	CONDITIONAL_JUMP	LAB_00500e0f	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500dfe	00500e00	FALL_THROUGH	FUN_00500d50	bytes=6A00;mnemonic=PUSH;instruction=PUSH 0x0;flows=;fallthrough=00500e00
+instruction	00500d50	FUN_00500d50	00500e00	00500e02	FALL_THROUGH	FUN_00500d50	bytes=6A00;mnemonic=PUSH;instruction=PUSH 0x0;flows=;fallthrough=00500e02
+instruction	00500d50	FUN_00500d50	00500e02	00500e04	FALL_THROUGH	FUN_00500d50	bytes=6A00;mnemonic=PUSH;instruction=PUSH 0x0;flows=;fallthrough=00500e04
+instruction	00500d50	FUN_00500d50	00500e04	00500e07	FALL_THROUGH	FUN_00500d50	bytes=8B45FC;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + -0x4];flows=;fallthrough=00500e07
+instruction	00500d50	FUN_00500d50	00500e07	00500e0a	FALL_THROUGH	FUN_00500d50	bytes=8B4860;mnemonic=MOV;instruction=MOV ECX,dword ptr [EAX + 0x60];flows=;fallthrough=00500e0a
+instruction	00500d50	FUN_00500d50	00500e0a	00500e0f	UNCONDITIONAL_CALL	FUN_00500d50	bytes=E894D3FBFF;mnemonic=CALL;instruction=CALL 0x004be1a3;flows=004be1a3;fallthrough=00500e0f
+instruction_reference	00500d50	FUN_00500d50	00500e0a	004be1a3	UNCONDITIONAL_CALL	FUN_004be1a3	operand_index=0;primary=true;source=DEFAULT
+instruction	00500d50	FUN_00500d50	00500e0f	00500e11	FALL_THROUGH	FUN_00500d50	bytes=8BE5;mnemonic=MOV;instruction=MOV ESP,EBP;flows=;fallthrough=00500e11
+instruction	00500d50	FUN_00500d50	00500e11	00500e12	FALL_THROUGH	FUN_00500d50	bytes=5D;mnemonic=POP;instruction=POP EBP;flows=;fallthrough=00500e12
+instruction	00500d50	FUN_00500d50	00500e12		TERMINATOR	FUN_00500d50	bytes=C20C00;mnemonic=RET;instruction=RET 0xc;flows=;fallthrough=
+instruction	004be1a3	FUN_004be1a3	004be1a3	004be1a4	FALL_THROUGH	FUN_004be1a3	bytes=55;mnemonic=PUSH;instruction=PUSH EBP;flows=;fallthrough=004be1a4
+instruction	004be1a3	FUN_004be1a3	004be1a4	004be1a6	FALL_THROUGH	FUN_004be1a3	bytes=8BEC;mnemonic=MOV;instruction=MOV EBP,ESP;flows=;fallthrough=004be1a6
+instruction	004be1a3	FUN_004be1a3	004be1a6	004be1a7	FALL_THROUGH	FUN_004be1a3	bytes=51;mnemonic=PUSH;instruction=PUSH ECX;flows=;fallthrough=004be1a7
+instruction	004be1a3	FUN_004be1a3	004be1a7	004be1aa	FALL_THROUGH	FUN_004be1a3	bytes=894DFC;mnemonic=MOV;instruction=MOV dword ptr [EBP + -0x4],ECX;flows=;fallthrough=004be1aa
+instruction	004be1a3	FUN_004be1a3	004be1aa	004be1ad	FALL_THROUGH	FUN_004be1a3	bytes=8B45FC;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + -0x4];flows=;fallthrough=004be1ad
+instruction	004be1a3	FUN_004be1a3	004be1ad	004be1b0	FALL_THROUGH	FUN_004be1a3	bytes=8B4D08;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + 0x8];flows=;fallthrough=004be1b0
+instruction	004be1a3	FUN_004be1a3	004be1b0	004be1b3	FALL_THROUGH	FUN_004be1a3	bytes=894818;mnemonic=MOV;instruction=MOV dword ptr [EAX + 0x18],ECX;flows=;fallthrough=004be1b3
+instruction	004be1a3	FUN_004be1a3	004be1b3	004be1b6	FALL_THROUGH	FUN_004be1a3	bytes=8B55FC;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + -0x4];flows=;fallthrough=004be1b6
+instruction	004be1a3	FUN_004be1a3	004be1b6	004be1b9	FALL_THROUGH	FUN_004be1a3	bytes=8B450C;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + 0xc];flows=;fallthrough=004be1b9
+instruction	004be1a3	FUN_004be1a3	004be1b9	004be1bc	FALL_THROUGH	FUN_004be1a3	bytes=89421C;mnemonic=MOV;instruction=MOV dword ptr [EDX + 0x1c],EAX;flows=;fallthrough=004be1bc
+instruction	004be1a3	FUN_004be1a3	004be1bc	004be1bf	FALL_THROUGH	FUN_004be1a3	bytes=8B4DFC;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + -0x4];flows=;fallthrough=004be1bf
+instruction	004be1a3	FUN_004be1a3	004be1bf	004be1c2	FALL_THROUGH	FUN_004be1a3	bytes=8B5510;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + 0x10];flows=;fallthrough=004be1c2
+instruction	004be1a3	FUN_004be1a3	004be1c2	004be1c5	FALL_THROUGH	FUN_004be1a3	bytes=895120;mnemonic=MOV;instruction=MOV dword ptr [ECX + 0x20],EDX;flows=;fallthrough=004be1c5
+instruction	004be1a3	FUN_004be1a3	004be1c5	004be1c7	FALL_THROUGH	FUN_004be1a3	bytes=8BE5;mnemonic=MOV;instruction=MOV ESP,EBP;flows=;fallthrough=004be1c7
+instruction	004be1a3	FUN_004be1a3	004be1c7	004be1c8	FALL_THROUGH	FUN_004be1a3	bytes=5D;mnemonic=POP;instruction=POP EBP;flows=;fallthrough=004be1c8
+instruction	004be1a3	FUN_004be1a3	004be1c8		TERMINATOR	FUN_004be1a3	bytes=C20C00;mnemonic=RET;instruction=RET 0xc;flows=;fallthrough=
+instruction	013c2000	FUN_013c2000	013c2000	013c2006	FALL_THROUGH	FUN_013c2000	bytes=66C745EC0100;mnemonic=MOV;instruction=MOV word ptr [EBP + -0x14],0x1;flows=;fallthrough=013c2006
+instruction	013c2000	FUN_013c2000	013c2006	013c2007	FALL_THROUGH	FUN_013c2000	bytes=60;mnemonic=PUSHAD;instruction=PUSHAD;flows=;fallthrough=013c2007
+instruction	013c2000	FUN_013c2000	013c2007	013c200d	FALL_THROUGH	FUN_013c2000	bytes=8B8598FCFFFF;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + 0xfffffc98];flows=;fallthrough=013c200d
+instruction	013c2000	FUN_013c2000	013c200d	013c2010	FALL_THROUGH	FUN_013c2000	bytes=8B585C;mnemonic=MOV;instruction=MOV EBX,dword ptr [EAX + 0x5c];flows=;fallthrough=013c2010
+instruction	013c2000	FUN_013c2000	013c2010	013c2013	FALL_THROUGH	FUN_013c2000	bytes=83E301;mnemonic=AND;instruction=AND EBX,0x1;flows=;fallthrough=013c2013
+instruction	013c2000	FUN_013c2000	013c2013	013c201a	FALL_THROUGH	FUN_013c2000	bytes=0FB790AE070000;mnemonic=MOVZX;instruction=MOVZX EDX,word ptr [EAX + 0x7ae];flows=;fallthrough=013c201a
+instruction	013c2000	FUN_013c2000	013c201a	013c2020	FALL_THROUGH	FUN_013c2000	bytes=81E2FF0F0000;mnemonic=AND;instruction=AND EDX,0xfff;flows=;fallthrough=013c2020
+instruction	013c2000	FUN_013c2000	013c2020	013c2026	FALL_THROUGH	FUN_013c2000	bytes=81C200100000;mnemonic=ADD;instruction=ADD EDX,0x1000;flows=;fallthrough=013c2026
+instruction	013c2000	FUN_013c2000	013c2026	013c202b	FALL_THROUGH	FUN_013c2000	bytes=B987000000;mnemonic=MOV;instruction=MOV ECX,0x87;flows=;fallthrough=013c202b
+instruction	013c2000	FUN_013c2000	013c202b	013c2030	FALL_THROUGH	FUN_013c2000	bytes=BE00223C01;mnemonic=MOV;instruction=MOV ESI,0x13c2200;flows=;fallthrough=013c2030
+instruction_reference	013c2000	FUN_013c2000	013c202b	013c2200	DATA	DAT_013c2200	operand_index=1;primary=true;source=ANALYSIS
+instruction	013c2000	FUN_013c2000	013c2030	013c2033	FALL_THROUGH	FUN_013c2000	bytes=663B16;mnemonic=CMP;instruction=CMP DX,word ptr [ESI];flows=;fallthrough=013c2033
+instruction_reference	013c2000	FUN_013c2000	013c2030	013c2200	READ	DAT_013c2200	operand_index=1;primary=true;source=ANALYSIS
+instruction_reference	013c2000	FUN_013c2000	013c2030	013c2208	READ	DAT_013c2208	operand_index=1;primary=false;source=ANALYSIS
+instruction	013c2000	FUN_013c2000	013c2033	013c2039	CONDITIONAL_JUMP	FUN_013c2000	bytes=0F840F000000;mnemonic=JZ;instruction=JZ 0x013c2048;flows=013c2048;fallthrough=013c2039
+instruction_reference	013c2000	FUN_013c2000	013c2033	013c2048	CONDITIONAL_JUMP	LAB_013c2048	operand_index=0;primary=true;source=DEFAULT
+instruction	013c2000	FUN_013c2000	013c2039	013c203c	FALL_THROUGH	FUN_013c2000	bytes=83C608;mnemonic=ADD;instruction=ADD ESI,0x8;flows=;fallthrough=013c203c
+instruction	013c2000	FUN_013c2000	013c203c	013c203d	FALL_THROUGH	FUN_013c2000	bytes=49;mnemonic=DEC;instruction=DEC ECX;flows=;fallthrough=013c203d
+instruction	013c2000	FUN_013c2000	013c203d	013c2043	CONDITIONAL_JUMP	FUN_013c2000	bytes=0F85EDFFFFFF;mnemonic=JNZ;instruction=JNZ 0x013c2030;flows=013c2030;fallthrough=013c2043
+instruction_reference	013c2000	FUN_013c2000	013c203d	013c2030	CONDITIONAL_JUMP	LAB_013c2030	operand_index=0;primary=true;source=DEFAULT
+instruction	013c2000	FUN_013c2000	013c2043		UNCONDITIONAL_JUMP	FUN_013c2000	bytes=E923000000;mnemonic=JMP;instruction=JMP 0x013c206b;flows=013c206b;fallthrough=
+instruction_reference	013c2000	FUN_013c2000	013c2043	013c206b	UNCONDITIONAL_JUMP	LAB_013c206b	operand_index=0;primary=true;source=DEFAULT
+instruction	013c2000	FUN_013c2000	013c2048	013c204c	FALL_THROUGH	FUN_013c2000	bytes=0FB77E02;mnemonic=MOVZX;instruction=MOVZX EDI,word ptr [ESI + 0x2];flows=;fallthrough=013c204c
+instruction_reference	013c2000	FUN_013c2000	013c2048	013c220a	READ	DAT_013c220a	operand_index=1;primary=true;source=ANALYSIS
+instruction	013c2000	FUN_013c2000	013c204c	013c2050	FALL_THROUGH	FUN_013c2000	bytes=807E06FF;mnemonic=CMP;instruction=CMP byte ptr [ESI + 0x6],0xff;flows=;fallthrough=013c2050
+instruction_reference	013c2000	FUN_013c2000	013c204c	013c220e	READ	DAT_013c220e	operand_index=0;primary=true;source=ANALYSIS
+instruction	013c2000	FUN_013c2000	013c2050	013c2056	CONDITIONAL_JUMP	FUN_013c2000	bytes=0F850C000000;mnemonic=JNZ;instruction=JNZ 0x013c2062;flows=013c2062;fallthrough=013c2056
+instruction_reference	013c2000	FUN_013c2000	013c2050	013c2062	CONDITIONAL_JUMP	LAB_013c2062	operand_index=0;primary=true;source=DEFAULT
+instruction	013c2000	FUN_013c2000	013c2056	013c2058	FALL_THROUGH	FUN_013c2000	bytes=85DB;mnemonic=TEST;instruction=TEST EBX,EBX;flows=;fallthrough=013c2058
+instruction	013c2000	FUN_013c2000	013c2058	013c205e	CONDITIONAL_JUMP	FUN_013c2000	bytes=0F8404000000;mnemonic=JZ;instruction=JZ 0x013c2062;flows=013c2062;fallthrough=013c205e
+instruction_reference	013c2000	FUN_013c2000	013c2058	013c2062	CONDITIONAL_JUMP	LAB_013c2062	operand_index=0;primary=true;source=DEFAULT
+instruction	013c2000	FUN_013c2000	013c205e	013c2062	FALL_THROUGH	FUN_013c2000	bytes=0FB77E04;mnemonic=MOVZX;instruction=MOVZX EDI,word ptr [ESI + 0x4];flows=;fallthrough=013c2062
+instruction_reference	013c2000	FUN_013c2000	013c205e	013c220c	READ	DAT_013c220c	operand_index=1;primary=true;source=ANALYSIS
+instruction	013c2000	FUN_013c2000	013c2062	013c2067	FALL_THROUGH	FUN_013c2000	bytes=6681CF0040;mnemonic=OR;instruction=OR DI,0x4000;flows=;fallthrough=013c2067
+instruction	013c2000	FUN_013c2000	013c2067	013c206b	FALL_THROUGH	FUN_013c2000	bytes=66897DEC;mnemonic=MOV;instruction=MOV word ptr [EBP + -0x14],DI;flows=;fallthrough=013c206b
+instruction	013c2000	FUN_013c2000	013c206b	013c206c	FALL_THROUGH	FUN_013c2000	bytes=61;mnemonic=POPAD;instruction=POPAD;flows=;fallthrough=013c206c
+instruction	013c2000	FUN_013c2000	013c206c		CALL_TERMINATOR	FUN_013c2000	bytes=E9D99213FF;mnemonic=JMP;instruction=JMP 0x004fb34a;flows=004fb34a;fallthrough=
+instruction_reference	013c2000	FUN_013c2000	013c206c	004fb34a	UNCONDITIONAL_CALL	FUN_004fb34a	operand_index=0;primary=true;source=DEFAULT
+instruction	0053e98a	FUN_0053e98a	0053e98a	0053e98b	FALL_THROUGH	FUN_0053e98a	bytes=55;mnemonic=PUSH;instruction=PUSH EBP;flows=;fallthrough=0053e98b
+instruction	0053e98a	FUN_0053e98a	0053e98b	0053e98d	FALL_THROUGH	FUN_0053e98a	bytes=8BEC;mnemonic=MOV;instruction=MOV EBP,ESP;flows=;fallthrough=0053e98d
+instruction	0053e98a	FUN_0053e98a	0053e98d	0053e98e	FALL_THROUGH	FUN_0053e98a	bytes=51;mnemonic=PUSH;instruction=PUSH ECX;flows=;fallthrough=0053e98e
+instruction	0053e98a	FUN_0053e98a	0053e98e	0053e991	FALL_THROUGH	FUN_0053e98a	bytes=894DFC;mnemonic=MOV;instruction=MOV dword ptr [EBP + -0x4],ECX;flows=;fallthrough=0053e991
+instruction	0053e98a	FUN_0053e98a	0053e991	0053e994	FALL_THROUGH	FUN_0053e98a	bytes=8B4510;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + 0x10];flows=;fallthrough=0053e994
+instruction	0053e98a	FUN_0053e98a	0053e994	0053e995	FALL_THROUGH	FUN_0053e98a	bytes=50;mnemonic=PUSH;instruction=PUSH EAX;flows=;fallthrough=0053e995
+instruction	0053e98a	FUN_0053e98a	0053e995	0053e998	FALL_THROUGH	FUN_0053e98a	bytes=8B4D0C;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + 0xc];flows=;fallthrough=0053e998
+instruction	0053e98a	FUN_0053e98a	0053e998	0053e999	FALL_THROUGH	FUN_0053e98a	bytes=51;mnemonic=PUSH;instruction=PUSH ECX;flows=;fallthrough=0053e999
+instruction	0053e98a	FUN_0053e98a	0053e999	0053e99c	FALL_THROUGH	FUN_0053e98a	bytes=8B5508;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + 0x8];flows=;fallthrough=0053e99c
+instruction	0053e98a	FUN_0053e98a	0053e99c	0053e99d	FALL_THROUGH	FUN_0053e98a	bytes=52;mnemonic=PUSH;instruction=PUSH EDX;flows=;fallthrough=0053e99d
+instruction	0053e98a	FUN_0053e98a	0053e99d	0053e9a0	FALL_THROUGH	FUN_0053e98a	bytes=8B45FC;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + -0x4];flows=;fallthrough=0053e9a0
+instruction	0053e98a	FUN_0053e98a	0053e9a0	0053e9a2	FALL_THROUGH	FUN_0053e98a	bytes=8B10;mnemonic=MOV;instruction=MOV EDX,dword ptr [EAX];flows=;fallthrough=0053e9a2
+instruction	0053e98a	FUN_0053e98a	0053e9a2	0053e9a5	FALL_THROUGH	FUN_0053e98a	bytes=8B4DFC;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + -0x4];flows=;fallthrough=0053e9a5
+instruction	0053e98a	FUN_0053e98a	0053e9a5	0053e9a8	COMPUTED_CALL	FUN_0053e98a	bytes=FF5248;mnemonic=CALL;instruction=CALL dword ptr [EDX + 0x48];flows=;fallthrough=0053e9a8
+instruction	0053e98a	FUN_0053e98a	0053e9a8	0053e9aa	FALL_THROUGH	FUN_0053e98a	bytes=8BE5;mnemonic=MOV;instruction=MOV ESP,EBP;flows=;fallthrough=0053e9aa
+instruction	0053e98a	FUN_0053e98a	0053e9aa	0053e9ab	FALL_THROUGH	FUN_0053e98a	bytes=5D;mnemonic=POP;instruction=POP EBP;flows=;fallthrough=0053e9ab
+instruction	0053e98a	FUN_0053e98a	0053e9ab		TERMINATOR	FUN_0053e98a	bytes=C20C00;mnemonic=RET;instruction=RET 0xc;flows=;fallthrough=
+address	005a55c4				data		00500d50
+slot_outgoing	005a55c4		005a55c4	00500d50	DATA	FUN_00500d50	
+address	004fb344		004fb22e		instruction	FUN_004fb22e	
+slot_outgoing	004fb344		004fb344	013c2000	UNCONDITIONAL_CALL	FUN_013c2000	
+instruction	0051bb41	FUN_0051bb41	0051bb41	0051bb42	FALL_THROUGH	FUN_0051bb41	bytes=55;mnemonic=PUSH;instruction=PUSH EBP;flows=;fallthrough=0051bb42
+instruction	0051bb41	FUN_0051bb41	0051bb42	0051bb44	FALL_THROUGH	FUN_0051bb41	bytes=8BEC;mnemonic=MOV;instruction=MOV EBP,ESP;flows=;fallthrough=0051bb44
+instruction	0051bb41	FUN_0051bb41	0051bb44	0051bb47	FALL_THROUGH	FUN_0051bb41	bytes=83EC24;mnemonic=SUB;instruction=SUB ESP,0x24;flows=;fallthrough=0051bb47
+instruction	0051bb41	FUN_0051bb41	0051bb47	0051bb4a	FALL_THROUGH	FUN_0051bb41	bytes=894DDC;mnemonic=MOV;instruction=MOV dword ptr [EBP + -0x24],ECX;flows=;fallthrough=0051bb4a
+instruction	0051bb41	FUN_0051bb41	0051bb4a	0051bb4d	FALL_THROUGH	FUN_0051bb41	bytes=8B45DC;mnemonic=MOV;instruction=MOV EAX,dword ptr [EBP + -0x24];flows=;fallthrough=0051bb4d
+instruction	0051bb41	FUN_0051bb41	0051bb4d	0051bb54	FALL_THROUGH	FUN_0051bb41	bytes=83B81402000000;mnemonic=CMP;instruction=CMP dword ptr [EAX + 0x214],0x0;flows=;fallthrough=0051bb54
+instruction	0051bb41	FUN_0051bb41	0051bb54	0051bb56	CONDITIONAL_JUMP	FUN_0051bb41	bytes=7405;mnemonic=JZ;instruction=JZ 0x0051bb5b;flows=0051bb5b;fallthrough=0051bb56
+instruction_reference	0051bb41	FUN_0051bb41	0051bb54	0051bb5b	CONDITIONAL_JUMP	LAB_0051bb5b	operand_index=0;primary=true;source=DEFAULT
+instruction	0051bb41	FUN_0051bb41	0051bb56		UNCONDITIONAL_JUMP	FUN_0051bb41	bytes=E90F170000;mnemonic=JMP;instruction=JMP 0x0051d26a;flows=0051d26a;fallthrough=
+instruction_reference	0051bb41	FUN_0051bb41	0051bb56	0051d26a	UNCONDITIONAL_JUMP	LAB_0051d26a	operand_index=0;primary=true;source=DEFAULT
+instruction	0051bb41	FUN_0051bb41	0051bb5b	0051bb5e	FALL_THROUGH	FUN_0051bb41	bytes=8B4DDC;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + -0x24];flows=;fallthrough=0051bb5e
+instruction	0051bb41	FUN_0051bb41	0051bb5e	0051bb65	FALL_THROUGH	FUN_0051bb41	bytes=C681B207000000;mnemonic=MOV;instruction=MOV byte ptr [ECX + 0x7b2],0x0;flows=;fallthrough=0051bb65
+instruction	0051bb41	FUN_0051bb41	0051bb65	0051bb67	FALL_THROUGH	FUN_0051bb41	bytes=6A08;mnemonic=PUSH;instruction=PUSH 0x8;flows=;fallthrough=0051bb67
+instruction	0051bb41	FUN_0051bb41	0051bb67	0051bb69	FALL_THROUGH	FUN_0051bb41	bytes=6A00;mnemonic=PUSH;instruction=PUSH 0x0;flows=;fallthrough=0051bb69
+instruction	0051bb41	FUN_0051bb41	0051bb69	0051bb6c	FALL_THROUGH	FUN_0051bb41	bytes=8D55E0;mnemonic=LEA;instruction=LEA EDX,[EBP + -0x20];flows=;fallthrough=0051bb6c
+instruction	0051bb41	FUN_0051bb41	0051bb6c	0051bb6d	FALL_THROUGH	FUN_0051bb41	bytes=52;mnemonic=PUSH;instruction=PUSH EDX;flows=;fallthrough=0051bb6d
+instruction	0051bb41	FUN_0051bb41	0051bb6d	0051bb72	UNCONDITIONAL_CALL	FUN_0051bb41	bytes=E8AE340700;mnemonic=CALL;instruction=CALL 0x0058f020;flows=0058f020;fallthrough=0051bb72
+instruction_reference	0051bb41	FUN_0051bb41	0051bb6d	0058f020	UNCONDITIONAL_CALL	_memset	operand_index=0;primary=true;source=DEFAULT
+instruction	0051bb41	FUN_0051bb41	0051bb72	0051bb75	FALL_THROUGH	FUN_0051bb41	bytes=83C40C;mnemonic=ADD;instruction=ADD ESP,0xc;flows=;fallthrough=0051bb75
+instruction	0051bb41	FUN_0051bb41	0051bb75	0051bb77	FALL_THROUGH	FUN_0051bb41	bytes=6A08;mnemonic=PUSH;instruction=PUSH 0x8;flows=;fallthrough=0051bb77
+instruction	0051bb41	FUN_0051bb41	0051bb77	0051bb79	FALL_THROUGH	FUN_0051bb41	bytes=6A00;mnemonic=PUSH;instruction=PUSH 0x0;flows=;fallthrough=0051bb79
+instruction	0051bb41	FUN_0051bb41	0051bb79	0051bb7c	FALL_THROUGH	FUN_0051bb41	bytes=8D45F8;mnemonic=LEA;instruction=LEA EAX,[EBP + -0x8];flows=;fallthrough=0051bb7c
+instruction	0051bb41	FUN_0051bb41	0051bb7c	0051bb7d	FALL_THROUGH	FUN_0051bb41	bytes=50;mnemonic=PUSH;instruction=PUSH EAX;flows=;fallthrough=0051bb7d
+instruction	0051bb41	FUN_0051bb41	0051bb7d	0051bb82	UNCONDITIONAL_CALL	FUN_0051bb41	bytes=E89E340700;mnemonic=CALL;instruction=CALL 0x0058f020;flows=0058f020;fallthrough=0051bb82
+instruction_reference	0051bb41	FUN_0051bb41	0051bb7d	0058f020	UNCONDITIONAL_CALL	_memset	operand_index=0;primary=true;source=DEFAULT
+instruction	0051bb41	FUN_0051bb41	0051bb82	0051bb85	FALL_THROUGH	FUN_0051bb41	bytes=83C40C;mnemonic=ADD;instruction=ADD ESP,0xc;flows=;fallthrough=0051bb85
+instruction	0051bb41	FUN_0051bb41	0051bb85	0051bb88	FALL_THROUGH	FUN_0051bb41	bytes=8B4DDC;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + -0x24];flows=;fallthrough=0051bb88
+instruction	0051bb41	FUN_0051bb41	0051bb88	0051bb8c	FALL_THROUGH	FUN_0051bb41	bytes=668B5508;mnemonic=MOV;instruction=MOV DX,word ptr [EBP + 0x8];flows=;fallthrough=0051bb8c
+instruction	0051bb41	FUN_0051bb41	0051bb8c	0051bb93	FALL_THROUGH	FUN_0051bb41	bytes=6689916C060000;mnemonic=MOV;instruction=MOV word ptr [ECX + 0x66c],DX;flows=;fallthrough=0051bb93
+instruction	0051bb41	FUN_0051bb41	0051bb93	0051bb97	FALL_THROUGH	FUN_0051bb41	bytes=668B4508;mnemonic=MOV;instruction=MOV AX,word ptr [EBP + 0x8];flows=;fallthrough=0051bb97
+instruction	0051bb41	FUN_0051bb41	0051bb97	0051bb9b	FALL_THROUGH	FUN_0051bb41	bytes=668945E0;mnemonic=MOV;instruction=MOV word ptr [EBP + -0x20],AX;flows=;fallthrough=0051bb9b
+instruction	0051bb41	FUN_0051bb41	0051bb9b	0051bb9e	FALL_THROUGH	FUN_0051bb41	bytes=8B4DDC;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + -0x24];flows=;fallthrough=0051bb9e
+instruction	0051bb41	FUN_0051bb41	0051bb9e	0051bba2	FALL_THROUGH	FUN_0051bb41	bytes=668B550C;mnemonic=MOV;instruction=MOV DX,word ptr [EBP + 0xc];flows=;fallthrough=0051bba2
+instruction	0051bb41	FUN_0051bb41	0051bba2	0051bba9	FALL_THROUGH	FUN_0051bb41	bytes=6689916E060000;mnemonic=MOV;instruction=MOV word ptr [ECX + 0x66e],DX;flows=;fallthrough=0051bba9
+instruction	0051bb41	FUN_0051bb41	0051bba9	0051bbad	FALL_THROUGH	FUN_0051bb41	bytes=668B450C;mnemonic=MOV;instruction=MOV AX,word ptr [EBP + 0xc];flows=;fallthrough=0051bbad
+instruction	0051bb41	FUN_0051bb41	0051bbad	0051bbb1	FALL_THROUGH	FUN_0051bb41	bytes=668945F8;mnemonic=MOV;instruction=MOV word ptr [EBP + -0x8],AX;flows=;fallthrough=0051bbb1
+instruction	0051bb41	FUN_0051bb41	0051bbb1	0051bbb3	FALL_THROUGH	FUN_0051bb41	bytes=6A15;mnemonic=PUSH;instruction=PUSH 0x15;flows=;fallthrough=0051bbb3
+instruction	0051bb41	FUN_0051bb41	0051bbb3	0051bbb6	FALL_THROUGH	FUN_0051bb41	bytes=8D4DE0;mnemonic=LEA;instruction=LEA ECX,[EBP + -0x20];flows=;fallthrough=0051bbb6
+instruction	0051bb41	FUN_0051bb41	0051bbb6	0051bbb7	FALL_THROUGH	FUN_0051bb41	bytes=51;mnemonic=PUSH;instruction=PUSH ECX;flows=;fallthrough=0051bbb7
+instruction	0051bb41	FUN_0051bb41	0051bbb7	0051bbbc	UNCONDITIONAL_CALL	FUN_0051bb41	bytes=E84B110300;mnemonic=CALL;instruction=CALL 0x0054cd07;flows=0054cd07;fallthrough=0051bbbc
+instruction_reference	0051bb41	FUN_0051bb41	0051bbb7	0054cd07	UNCONDITIONAL_CALL	FUN_0054cd07	operand_index=0;primary=true;source=DEFAULT
+instruction	0051bb41	FUN_0051bb41	0051bbbc	0051bbbf	FALL_THROUGH	FUN_0051bb41	bytes=83C408;mnemonic=ADD;instruction=ADD ESP,0x8;flows=;fallthrough=0051bbbf
+instruction	0051bb41	FUN_0051bb41	0051bbbf	0051bbc2	FALL_THROUGH	FUN_0051bb41	bytes=8B55DC;mnemonic=MOV;instruction=MOV EDX,dword ptr [EBP + -0x24];flows=;fallthrough=0051bbc2
+instruction	0051bb41	FUN_0051bb41	0051bbc2	0051bbc8	FALL_THROUGH	FUN_0051bb41	bytes=898260010000;mnemonic=MOV;instruction=MOV dword ptr [EDX + 0x160],EAX;flows=;fallthrough=0051bbc8
+instruction	0051bb41	FUN_0051bb41	0051bbc8	0051bbca	FALL_THROUGH	FUN_0051bb41	bytes=6A15;mnemonic=PUSH;instruction=PUSH 0x15;flows=;fallthrough=0051bbca
+instruction	0051bb41	FUN_0051bb41	0051bbca	0051bbcd	FALL_THROUGH	FUN_0051bb41	bytes=8D45F8;mnemonic=LEA;instruction=LEA EAX,[EBP + -0x8];flows=;fallthrough=0051bbcd
+instruction	0051bb41	FUN_0051bb41	0051bbcd	0051bbce	FALL_THROUGH	FUN_0051bb41	bytes=50;mnemonic=PUSH;instruction=PUSH EAX;flows=;fallthrough=0051bbce
+instruction	0051bb41	FUN_0051bb41	0051bbce	0051bbd3	UNCONDITIONAL_CALL	FUN_0051bb41	bytes=E834110300;mnemonic=CALL;instruction=CALL 0x0054cd07;flows=0054cd07;fallthrough=0051bbd3
+instruction_reference	0051bb41	FUN_0051bb41	0051bbce	0054cd07	UNCONDITIONAL_CALL	FUN_0054cd07	operand_index=0;primary=true;source=DEFAULT
+instruction	0051bb41	FUN_0051bb41	0051bbd3	0051bbd6	FALL_THROUGH	FUN_0051bb41	bytes=83C408;mnemonic=ADD;instruction=ADD ESP,0x8;flows=;fallthrough=0051bbd6
+instruction	0051bb41	FUN_0051bb41	0051bbd6	0051bbd9	FALL_THROUGH	FUN_0051bb41	bytes=8B4DDC;mnemonic=MOV;instruction=MOV ECX,dword ptr [EBP + -0x24];flows=;fallthrough=0051bbd9
+instruction	0051bb41	FUN_0051bb41	0051bbd9	0051bbdf	FALL_THROUGH	FUN_0051bb41	bytes=898164010000;mnemonic=MOV;instruction=MOV dword ptr [ECX + 0x164],EAX;flows=;fallthrough=0051bbdf
+nearby	005a4290	DAT_005a4290	005a4290	40c90fdb	pointer		0x40C90FDB
+excerpt	appearance-costume-angle				focused		instructions=170;references=31;scope=complete-angle-mesh-base-and-costume-selector;weapon-field-prefix-only

@@ -24,8 +24,9 @@ Complete merchant UI behavior and historical server policy remain open.
 The grid/cursor continuation closes visual detachment and the sale callback's
 cursor receiver, not complete score/appearance refresh or runtime UI parity.
 The appearance continuation resolves the instruction-level wrapper order of
-`FUN_00480a83`, its refinement-block layout, and two concrete human virtual
-targets. The candidate now snapshots active refinement at this boundary,
+`FUN_00480a83`, its refinement-block layout, concrete human virtual targets,
+the weapon-101 angle exception, and the matched costume selector.
+The candidate now snapshots active refinement at this boundary,
 while retaining its separate shadow-restoration cache. Complete callee
 behavior is not thereby approved as rendering parity.
 
@@ -65,6 +66,12 @@ behavior is not thereby approved as rendering parity.
   `Structures.h::SANC_INFO`, `TMHuman::SetPacketMOBItem`, and the current
   initialization/shadow-restoration cache consumers. No server or asset
   contract is changed by the layout tests or active-snapshot correction.
+- **USED:** [angle and costume-selector excerpts](../../exports/legacy-sale-appearance-angle.tsv).
+  The complete angle setter, mesh setter, base angle dispatch, and costume
+  selector are retained alongside the weapon-field initialization prefix:
+  170 instructions and 31 references. `HumanAnglePolicy.h` is used by both
+  real `TMHuman::SetAngle` mesh branches and the isolated pitch fixtures.
+  Full weapon initialization and costume post-processing are not approved.
 - **USED:** `AppearanceRefinementRefresh.h::Rebuild`, instantiated by the real
   field wrapper and by isolated state fixtures. Fixtures exercise the same
   snapshot/rebuild/restore implementation without claiming to execute
@@ -345,7 +352,16 @@ match or `0x004fb22e` on failure. Similarly, `FUN_00524ded` jumps at
 `0x0052538b` into `0x013d2000`, whose branches rejoin `0x00525395` or
 `0x00525954`. These are inherited-stack continuations, not independent
 no-argument C++ callbacks despite the decompiler's function boundaries.
-The matched costume continuation and complete initialization remain open.
+The matched selector at `0x013c2000` is now resolved. It reconstructs the
+costume index as `(human[+0x7ae] & 0x0fff) + 1000`, searches the same 135
+eight-byte records at `0x013c2200`, and selects the female type only when
+the row's skin byte is `0xff` and skeleton parity is odd. A match stores
+`type | 0x4000` in the caller's local word; failure retains 1. The bytes
+`E9 D9 92 13 FF` at `0x013c206c` jump to `0x004fb34a`; despite Ghidra's
+call classification, this is an inherited-stack continuation, not a C++
+callback. Existing candidate costume selection already implements the
+resolved row/parity policy. Complete initialization and post-processing
+remain open; no manifest or asset rewrite follows from this evidence.
 
 `FUN_00480c25` reads mob base `+0x768`, queries `FUN_0054e06c`, and writes
 scene `+0x26e78`. Since mob state begins at `+0x6ec`, this is equipment
@@ -374,6 +390,33 @@ Executable fixtures use distinct active/cache/packet values, first bytes
 They assert one rebuild per call and fresh cache retention even when active
 state is restored. Initialization-cleared input is modeled explicitly; actual
 post-initialization rendering remains a separate runtime gate.
+
+### Concrete angle dispatch and weapon-101 exception
+
+Exact primary human slot `0x005a55c4` (`+0x48`) binds `FUN_00500d50`.
+Angle initialization reaches it through `FUN_0053e98a`, which dispatches
+through the same human receiver's vptr, rather than bypassing to a mesh.
+The setter first rejects delayed deletion, then retains the original pitch
+in human `+0x34`. Ordinary unmounted mesh pitch is negated; ordinary mounted
+mesh pitch is negated and increased by the float at `0x005a4290`, whose
+bits `0x40c90fdb` encode a full turn. If human `+0x160` equals 101, both
+branches instead pass pitch through unchanged. Mesh pointer guards remain,
+and the mounted rider body receives zero local angles independently of the
+mount mesh pointer. `FUN_004be1a3` simply stores the three mesh angles.
+
+The `FUN_0051bb41` prefix closes field identity: ability 21 of the left
+weapon is stored at human `+0x160`; the right weapon uses `+0x164`. Thus
+101 is a left-weapon type exception, not a character-class exception.
+`HumanAnglePolicy.h::MeshPitch` applies this isolated native policy in the
+actual setter, preserving the existing deletion/null guards, logical pitch,
+class-44 initialization, and movement targets. No wire, ownership, resource,
+or enclosing ABI change is introduced.
+
+Seventy-nine additional checks cover both production branch bindings and
+guards, the exact full-turn bits, ordinary/101/neighbor weapon types, finite
+pitch boundaries, and unchanged weapon-101 signed zero, infinities, and a
+quiet-NaN payload. Source checks do not execute the renderer; complete
+appearance parity and real-client execution remain separate gates.
 
 ### Callees
 
@@ -582,6 +625,8 @@ but deliberately preserve the server policy until its separate decision.
 | Appearance wrapper order | 16-byte preservation gate, ability-41 copies, direct/virtual call sequence resolved | Shared snapshot helper followed by unchanged ordered steps; fifteen source checks | Complete callee behavior and enclosing field ABI remain secondary | Unchanged snapshots | CONFIRMED wrapper order; no complete rendering-parity claim |
 | Refinement layout and refresh targets | Eight refinement/grade bytes each; concrete +0x38/+0x40 targets; scene refinement reads Equip[4] | Actual SANC_INFO layout asserted and byte-tested; SetSanc source contract protected | Full initialization remains secondary | Unchanged | CONFIRMED isolated layout and target bindings |
 | Active refinement snapshot | Copies active human +0x1f2 before packet rebuild; conditional sixteen-byte restore | Rebuild helper uses active state, not old cache; packet cache remains fresh | Previous cache substitution was not equivalent for cleared/normalized active state | Unchanged | PARIDADE_NATIVA for snapshot/rebuild/restore boundary; full costume/shadow rendering remains open |
+| Weapon-101 mesh pitch | Concrete +0x48 dispatch; left-weapon ability 21 == 101 preserves pitch in both mount states | Shared production angle policy; 79 additional checks preserve guards and exact full-turn bits | Previous setter always reversed pitch | Unchanged | PARIDADE_NATIVA for isolated orientation; no complete rendering-parity claim |
+| Matched costume selector | 135 rows; packed index reconstruction; female selection requires skin 0xff and odd skeleton parity; inherited-stack jump | Existing row/parity selection retained without asset edits | Full initialization remains secondary | Unchanged | CONFIRMED selector only; post-processing remains open |
 | Complete UI/price parity | Authoritative policy and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
 
 ## Decisions
@@ -607,15 +652,18 @@ only the wrapper's snapshot source to active refinement, as native
 `FUN_00480a83` explicitly does. The cache is not a substitute when
 initialization clears or normalizes active state. Do not infer full costume
 or shadow parity from this isolated correction.
+Apply the proven weapon-101 exception in both mesh branches, retaining
+logical angles and existing guards. Keep costume assets and the already
+matching row/parity selection; do not infer complete initialization parity.
 
 ## Gaps
 
 - Real DirectX client sale execution is not performed. This remains `CONTRACT`,
   not `CLIENT_TESTED`.
 - Grid detachment, cursor release, appearance wrapper order, isolated refinement
-  layout, and concrete human slots `+0x38/+0x40` are resolved. Full score
-  refresh through `FUN_004431e4`, complete appearance callees, the matched
-  costume continuation, full costume/shadow post-initialization behavior,
+  layout, concrete human slots `+0x38/+0x40/+0x48`, the isolated angle setter,
+  and the matched costume selector are resolved. Full score refresh through
+  `FUN_004431e4`, other appearance callees, full costume/shadow post-initialization behavior,
   the enclosing human ABI, resource-to-scene bindings,
   and real UI behavior remain open. The candidate intentionally differs in
   unconditional cursor clearing and invalid/null-input handling. The response
@@ -636,6 +684,20 @@ or shadow parity from this isolated correction.
 
 ## Validation
 
+- Angle/selector continuation (2026-10-01): matching read-only Ghidra runs
+  completed without `SCRIPT ERROR`; cached evidence was reused for resolved
+  inputs. The focused excerpt retains 170 instructions/31 references, with
+  only the left/right weapon-field prefix rather than the complete weapon
+  routine. Release/Win32 architecture validation passed 61,267 checks plus
+  static assertions, including 79 new angle checks. The integrated
+  `Build-Client.ps1 -Configuration Release -NoDeploy` gate passed 221 socket
+  checks, costume/shader gates, and incremental product compilation.
+  Existing signedness/deprecated Winsock warnings remain. This is
+  `STATICALLY VERIFIED` native orientation and `AUTOMATED TESTED` isolated
+  policy, not `CLIENT_TESTED`. Three existing Portuguese text remnants in
+  the changed human source were translated, including a display-only tower
+  score suffix; persisted identifiers and protocol bytes were preserved.
+  No client installation/execution, Go suite, asset edit, or deletion ran.
 - Active snapshot correction (2026-10-01): reused the unchanged native wrapper,
   layout/slot excerpts, and cached initialization evidence; no Ghidra sweep or
   new export was needed. Source inspection identified active-state mutations
