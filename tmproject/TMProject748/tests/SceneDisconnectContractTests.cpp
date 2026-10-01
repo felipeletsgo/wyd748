@@ -1,6 +1,7 @@
 #include "../internal/ui/UIBinary.h"
 #include "../internal/core/ServerListAsset.h"
 #include "../internal/core/ServerStatus.h"
+#include "../internal/core/Structures.h"
 #include "../internal/core/WYD748Assets.h"
 #include "../internal/render/world/objects/ObjectFileRecordLayout.h"
 #include "../internal/ui/SellConfirmationText.h"
@@ -15,6 +16,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <cstdint>
+#include <cstddef>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -25,6 +27,26 @@
 #include <windows.h>
 
 namespace {
+// Native human +0x1f2..+0x201 is eight refinement bytes followed by eight
+// grade bytes. This guards SANC_INFO, not the enclosing TMHuman class ABI.
+static_assert(sizeof(SANC_INFO) == 16, "native refinement snapshot is 16 bytes");
+static_assert(offsetof(SANC_INFO, Sanc0) == 0);
+static_assert(offsetof(SANC_INFO, Sanc1) == 1);
+static_assert(offsetof(SANC_INFO, Sanc2) == 2);
+static_assert(offsetof(SANC_INFO, Sanc3) == 3);
+static_assert(offsetof(SANC_INFO, Sanc4) == 4);
+static_assert(offsetof(SANC_INFO, Sanc5) == 5);
+static_assert(offsetof(SANC_INFO, Sanc6) == 6);
+static_assert(offsetof(SANC_INFO, Sanc7) == 7);
+static_assert(offsetof(SANC_INFO, Legend0) == 8);
+static_assert(offsetof(SANC_INFO, Legend1) == 9);
+static_assert(offsetof(SANC_INFO, Legend2) == 10);
+static_assert(offsetof(SANC_INFO, Legend3) == 11);
+static_assert(offsetof(SANC_INFO, Legend4) == 12);
+static_assert(offsetof(SANC_INFO, Legend5) == 13);
+static_assert(offsetof(SANC_INFO, Legend6) == 14);
+static_assert(offsetof(SANC_INFO, Legend7) == 15);
+
 std::filesystem::path FindSource(const char* relativePath)
 {
     wchar_t executable[MAX_PATH]{};
@@ -1085,8 +1107,26 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto appearanceRefresh = appearanceStart != std::string::npos && appearanceEnd != std::string::npos
         ? fieldSource.substr(appearanceStart, appearanceEnd - appearanceStart) : std::string{};
     check(!appearanceRefresh.empty(), "native appearance refresh source boundary is available");
+    const SANC_INFO refinementFixture{
+        0, 1, 2, 3, 4, 5, 0x80, 0xff,
+        8, 9, 10, 11, 12, 13, 0xfe, 0x81
+    };
+    const unsigned char refinementBytes[]{
+        0, 1, 2, 3, 4, 5, 0x80, 0xff,
+        8, 9, 10, 11, 12, 13, 0xfe, 0x81
+    };
+    check(std::memcmp(&refinementFixture, refinementBytes, sizeof(refinementFixture)) == 0,
+        "refinement snapshot retains native byte order and unsigned high-bit values");
+    const auto sancStart = fieldSource.find("void TMFieldScene::SetSanc()");
+    const auto sancEnd = fieldSource.find("int TMFieldScene::GetItemFromGround(", sancStart);
+    const auto sancRefresh = sancStart != std::string::npos && sancEnd != std::string::npos
+        ? fieldSource.substr(sancStart, sancEnd - sancStart) : std::string{};
+    check(sancRefresh.find("m_nMySanc = BASE_GetItemSanc(&g_pObjectManager->m_stMobData.Equip[4]);")
+        != std::string::npos,
+        "scene refinement refresh uses equipment slot four as native 0x00480c25 does");
     // Native wrapper 0x00480a83 preserves refinement before rebuilding the human.
-    // These checks protect wrapper ordering, not callee ABI or rendered parity.
+    // Candidate preservation uses a separate old-state cache; native preservation
+    // uses the active block. Ordering checks do not prove those policies equivalent.
     const char* appearanceSteps[] = {
         "memcpy(&stSancInfo, &m_pMyHuman->m_stOldSancInfo, sizeof(stSancInfo));",
         "m_pMyHuman->SetPacketMOBItem(&g_pObjectManager->m_stMobData);",
@@ -1109,7 +1149,7 @@ int RunSceneDisconnectContractTests(int& checks)
     std::size_t appearanceOffset = 0;
     for (const auto* step : appearanceSteps) {
         const auto position = appearanceRefresh.find(step, appearanceOffset);
-        check(position != std::string::npos, "appearance refresh retains the native wrapper step order");
+        check(position != std::string::npos, "appearance refresh retains candidate wrapper ordering, not cache equivalence");
         if (position != std::string::npos)
             appearanceOffset = position + std::strlen(step);
     }

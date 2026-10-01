@@ -182,6 +182,7 @@ Markdown documents: 152.
 - [.agents/research/client748/exports/legacy-sale-confirmation.tsv](<../.agents/research/client748/exports/legacy-sale-confirmation.tsv>)
 - [.agents/research/client748/exports/legacy-sale-cursor-detachment.tsv](<../.agents/research/client748/exports/legacy-sale-cursor-detachment.tsv>)
 - [.agents/research/client748/exports/legacy-sale-grid-detachment.tsv](<../.agents/research/client748/exports/legacy-sale-grid-detachment.tsv>)
+- [.agents/research/client748/exports/legacy-sale-refinement-fields.tsv](<../.agents/research/client748/exports/legacy-sale-refinement-fields.tsv>)
 - [.agents/research/client748/exports/missing-native-addresses.tsv](<../.agents/research/client748/exports/missing-native-addresses.tsv>)
 - [.agents/research/client748/exports/motion-emote-flow.tsv](<../.agents/research/client748/exports/motion-emote-flow.tsv>)
 - [.agents/research/client748/exports/native-mix-inventory-layout-flow.tsv](<../.agents/research/client748/exports/native-mix-inventory-layout-flow.tsv>)

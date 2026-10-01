@@ -390,10 +390,22 @@ preservation gate, ability-41 copies, and refresh call order. The existing
 `UpdateMyHuman` has corresponding steps; eighteen source-contract checks now
 protect their order without rewriting production code. The incremental
 Release/Win32 architecture target passed 61,154 checks. Native callee behavior,
-human field ABI, concrete virtual slots `+0x38/+0x40`, full score refresh, and
+the enclosing human ABI, full score refresh, and
 real rendering remain open. The [wrapper evidence](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#appearance-refresh-wrapper)
 does not establish full appearance parity or `CLIENT_TESTED` status. No client
 installation, product rebuild, or unchanged Go validation was repeated.
+
+The refinement continuation resolves the isolated sixteen-byte `SANC_INFO`
+layout, concrete human virtual slots `+0x38/+0x40`, and the scene's `Equip[4]`
+refinement refresh. Seventeen layout assertions and two additional checks
+passed in the incremental Release/Win32 architecture target (61,156 checks).
+It also exposes an unresolved preservation difference: native refresh saves
+active refinement, while `UpdateMyHuman` saves the old-state cache used by
+costume/shadow lifecycle consumers. Initialization mutates active refinement,
+so neither wrapper ordering nor this isolated layout proves cache equivalence.
+The [refinement evidence](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#refinement-layout-and-concrete-initialization-targets)
+records the concrete bindings, inherited-stack continuations, and next gate;
+complete appearance parity and real-client execution remain open.
 
 ### First trade-check acknowledgement
 

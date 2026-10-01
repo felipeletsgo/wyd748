@@ -24,8 +24,9 @@ Complete merchant UI behavior and historical server policy remain open.
 The grid/cursor continuation closes visual detachment and the sale callback's
 cursor receiver, not complete score/appearance refresh or runtime UI parity.
 The appearance continuation resolves the instruction-level wrapper order of
-`FUN_00480a83`; its callees, human field layout, and virtual targets are not
-thereby approved as complete rendering parity.
+`FUN_00480a83`, its refinement-block layout, and two concrete human virtual
+targets. Complete callee behavior and the candidate's old-state cache policy
+are not thereby approved as rendering parity.
 
 ## Evidence boundary
 
@@ -53,6 +54,16 @@ thereby approved as complete rendering parity.
   `TMFieldScene::UpdateMyHuman`. The matching read-only export contains 129
   instructions and 54 references. New source-contract checks protect candidate
   operation ordering; they do not execute the renderer or resolve callee ABI.
+- **USED:** [refinement and virtual-target excerpts](../../exports/legacy-sale-refinement-fields.tsv),
+  containing 151 instructions and 53 references from the matching program.
+  The eight refinement writes, eight initial grade writes, complete
+  `FUN_00480c25`, exact human slots, and costume trampoline delimit the claims
+  below. Full cached bodies and mount branches remain outside Git.
+- **USED:** the human constructor/vptr binding already resolved in the
+  [trade acknowledgement record](trade-check-confirmation-contract.md),
+  `Structures.h::SANC_INFO`, `TMHuman::SetPacketMOBItem`, and the current
+  initialization/shadow-restoration cache consumers. No server or asset
+  contract is changed by these layout tests.
 - **USED:** the retained [request instruction export](../../exports/trade-session-input-routes.tsv),
   whose program identity matches the same native hash. `FUN_00416196` writes
   the request payload as words and sends 20 bytes; no new export is needed.
@@ -268,8 +279,8 @@ borrows the human receiver at scene `+0x4c` and mob state from `DAT_013b71e8`.
 It zeroes a 16-byte stack buffer, copies human bytes at `+0x1f2`, and calls
 `FUN_00524ded` with mob state at `+0x6ec`. When the saved first byte is nonzero
 and the equipment word at mob base `+0x748` is not 32, it restores the 16 bytes
-to human `+0x1f2`. This identifies the native preservation gate, not a complete
-mapping of candidate `SANC_INFO`/old-refinement fields to those offsets.
+to human `+0x1f2`. The block is the active refinement/grade state resolved
+below, not a separate old-state cache.
 
 The remaining sequence is:
 
@@ -286,12 +297,62 @@ The remaining sequence is:
 
 The candidate wrapper has corresponding preservation, height/race, ability-41
 mirroring, initialization, weapon/angle, affect, and refinement-update steps
-in this order. Their semantic names are source correspondences, not proof of
-each native callee's complete behavior or concrete human vtable binding.
+in this order. Their semantic names do not prove each native callee's complete
+behavior. Concrete human vtable targets are now resolved below.
 Eighteen source-contract checks protect the boundary and seventeen ordered
 steps. No production rewrite is justified by this wrapper-order comparison.
 The sale handler's existing null-human guard remains a deliberate adaptation;
 the native wrapper itself does not supply that guard.
+
+### Refinement layout and concrete initialization targets
+
+`FUN_00524ded` calls the already resolved `FUN_0054e06c` on eight-byte
+equipment records beginning at mob `+0x5c`. Writes at `0x005250d0` through
+`0x00525181` identify the first eight bytes of human `+0x1f2`. Initial grade
+writes at `0x00525bcf` through `0x00525c9c`, in the shared continuation owned
+by `FUN_00525395`, identify the following eight bytes:
+
+| Equipment slot | Refinement byte | Grade byte | Candidate fields |
+| --- | --- | --- | --- |
+| 0..5 | human +0x1f2..+0x1f7 | human +0x1fa..+0x1ff | Sanc0..Sanc5 / Legend0..Legend5 |
+| 6 (left weapon) | human +0x1f9 | human +0x201 | Sanc7 / Legend7 |
+| 7 (right weapon) | human +0x1f8 | human +0x200 | Sanc6 / Legend6 |
+
+Color writes start at human `+0x202`, outside the preserved 16-byte block.
+This proves the isolated `SANC_INFO` layout, not the full candidate `TMHuman`
+ABI or all grade/color calculations. Seventeen compile-time assertions guard
+the actual candidate type's size and every member offset; a byte fixture
+also checks its unsigned high-bit values.
+
+The proven primary human vptr is `0x005a557c`: constructor `FUN_004f7ea6`
+stores it at `0x004f7f98`. Exact slot `0x005a55b4` (`+0x38`) points to
+`FUN_004faf92`, corresponding to initialization; `0x005a55bc` (`+0x40`)
+points to `FUN_00500e15`, corresponding to angle initialization. These are
+concrete receiver bindings, not inference from an unrelated table's offsets.
+
+Initialization is not a read-only consumer of the refinement block.
+`FUN_004faf92` clears the first six refinement and grade bytes for its
+4151..4200 helmet branch and propagates refinement in other skin branches.
+Its out-of-range branch enters `FUN_013c2680`: this uses the caller's EBP,
+searches 135 eight-byte costume records, and jumps to `0x004fb25a` on a
+match or `0x004fb22e` on failure. Similarly, `FUN_00524ded` jumps at
+`0x0052538b` into `0x013d2000`, whose branches rejoin `0x00525395` or
+`0x00525954`. These are inherited-stack continuations, not independent
+no-argument C++ callbacks despite the decompiler's function boundaries.
+The matched costume continuation and complete initialization remain open.
+
+`FUN_00480c25` reads mob base `+0x768`, queries `FUN_0054e06c`, and writes
+scene `+0x26e78`. Since mob state begins at `+0x6ec`, this is equipment
+slot 4. The candidate `SetSanc` already reads `Equip[4]`; a source-contract
+check protects that correspondence.
+
+The candidate `UpdateMyHuman` copies `m_stOldSancInfo`, not `m_stSancInfo`.
+`SetPacketMOBItem` fills the cache before later initialization; shadow exit
+also restores selected active refinement/grade fields from this cache.
+Consequently, wrapper ordering alone does not establish equivalence to the
+native active-block snapshot. Do not replace the cache blindly or label this
+difference dead 7.69 code: the missing gate is the affected costume/shadow
+refresh lifecycle and its observable post-initialization state.
 
 ### Callees
 
@@ -497,7 +558,8 @@ but deliberately preserve the server policy until its separate decision.
 | Fixed type-38 ability | Signed catalog words and instance bytes; special exclusion and catalog-only mount paths; no refinement scaling | Core GetAbility shared by MouseOver and BASE_GetItemAbility; 2134 existing fixtures plus exclusive-routing regression | Other ability types and caller lifecycles unchanged | Payment unchanged | PARIDADE_NATIVA for proven lookup; reject index 6500 as MODERNIZACAO_COMPATIVEL |
 | Grid visual detachment | Concrete vptr/slots resolve footprint/origin removal, occupancy/list mutation, and ownership transfer | Existing PickupItem/PickupAtItem match; clipping and mesh scaling remain adaptations | Names are secondary | Unchanged snapshots | CONFIRMED core transition; no source edit needed |
 | Cursor callback | Constructed global cursor; +0x98 clears attachment and resets pickup style | DetachItem matches; handler limits cleanup to the sold visual before deletion | Names are secondary | No legacy response emitter | CONFIRMED callback; preserve existing MODERNIZACAO_COMPATIVEL alias protection |
-| Appearance wrapper order | 16-byte preservation gate, ability-41 copies, direct/virtual call sequence resolved | Existing UpdateMyHuman has corresponding ordered steps; eighteen source checks added | Callee names and field ABI remain secondary | Unchanged snapshots | CONFIRMED instruction-level order only; no production rewrite or rendering-parity claim |
+| Appearance wrapper order | 16-byte preservation gate, ability-41 copies, direct/virtual call sequence resolved | Existing UpdateMyHuman has corresponding ordered steps; eighteen source checks added | Complete callee behavior and enclosing field ABI remain secondary | Unchanged snapshots | CONFIRMED instruction-level order only; no production rewrite or rendering-parity claim |
+| Refinement layout and refresh targets | Eight refinement/grade bytes each; concrete +0x38/+0x40 targets; scene refinement reads Equip[4] | Actual SANC_INFO layout asserted and byte-tested; SetSanc source contract protected | Separate old-state cache differs from native active snapshot | Unchanged | CONFIRMED isolated layout and target bindings; cache equivalence and complete initialization remain unconfirmed |
 | Complete UI/price parity | Authoritative policy and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
 
 ## Decisions
@@ -518,14 +580,19 @@ snapshot-based confirmation; no new response emitter is authorized here.
 Keep the existing grid/cursor implementation: the resolved native functions
 do not justify another functional patch. Correct the earlier manager label
 and retain the candidate's deliberate matching-only alias cleanup.
+Keep the separate refinement cache until the costume/shadow refresh lifecycle
+can prove whether its preservation policy is equivalent. The resolved layout
+justifies the candidate-type regression gates, not an unverified cache rewrite.
 
 ## Gaps
 
 - Real DirectX client sale execution is not performed. This remains `CONTRACT`,
   not `CLIENT_TESTED`.
-- Grid detachment, cursor release, and appearance wrapper order are resolved;
-  full score refresh through `FUN_004431e4`, appearance callees and concrete
-  human virtual slots `+0x38/+0x40`, the refinement-field ABI, resource-to-scene bindings,
+- Grid detachment, cursor release, appearance wrapper order, isolated refinement
+  layout, and concrete human slots `+0x38/+0x40` are resolved. Full score
+  refresh through `FUN_004431e4`, complete appearance callees, the matched
+  costume continuation, active-state versus old-cache preservation equivalence,
+  the enclosing human ABI, resource-to-scene bindings,
   and real UI behavior remain open. The candidate intentionally differs in
   unconditional cursor clearing and invalid/null-input handling. The response
   bands and quote exceptions do not establish server payment parity.
@@ -545,6 +612,21 @@ and retain the candidate's deliberate matching-only alias cleanup.
 
 ## Validation
 
+- Refinement continuation (2026-10-01): reused the constructor/vptr proof and
+  cached callee bodies; inspected only the previously unresolved costume
+  trampoline `013c2680`. Read-only Ghidra runs used the matching program hash
+  and completed without `SCRIPT ERROR`. Reproduce instruction caches with
+  `instructions:00524ded instructions:00480c25 exact:005a55b4 exact:005a55bc`,
+  `instructions:013d2000 instructions:013c2680`, and `instructions:00525954`.
+  The committed excerpt retains only the refinement/initial-grade writes,
+  exact slots, complete scene refinement helper/trampoline, and inherited-stack
+  jumps; its final row records the retained 151 instructions/53 references,
+  not the complete cache counts. Incremental Release/Win32 architecture build
+  and execution passed 61,156 checks plus static assertions, including two
+  new checks and seventeen new layout assertions. This is `STATICALLY VERIFIED`
+  native layout/binding evidence and `AUTOMATED TESTED` candidate representation,
+  not rendering or cache-policy parity. Production code, assets, wire, and
+  server behavior are unchanged; no product rebuild or client execution ran.
 - Appearance wrapper continuation (2026-10-01): reused the cached complete
   decompilation and exported only `instructions:00480a83` with Ghidra 12.1.2,
   `-process WYD.exe -readOnly -noanalysis`, and absolute project/output paths.
