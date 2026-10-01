@@ -374,9 +374,22 @@ controls; it is not a separate trade emitter. The separate cursor-world-drop
 branch requires left-button down and constructs `0x272/32`, not an offer
 removal. Current scene/container code already preserves the traced processed
 return; no input source change is needed for this evidence batch. These scoped
-findings do not prove global absence. Continue from offer-buffer item/position
-mutations, separating individual removal from invitation/full-session cleanup,
-without repeating the inspected grid or scene/container roots.
+findings do not prove global absence.
+
+The offer-field continuation now separates insertion and invitation copying
+from Field initialization and full panel cleanup. `DAT_013B71E8` stores a
+pointer: the fields are offsets from the loaded ObjectManager, not from the
+global's address. The initializer clears the entire 156-byte offer and marks
+all fifteen positions empty; both inspected hide branches also perform full
+cleanup. An apparent `+0xCE4` write in another function is float UI geometry
+on its incoming receiver, not the manager's offer-position array. The record
+and focused emitter export retain the decisive receiver/mutation instructions.
+This does not establish single-item removal or its absence. A further native
+removal trace needs a concrete manager alias/helper path or a native runtime
+interaction supplying a new entry; do not repeat the same field query or
+already inspected grid/scene roots. Preserve the active server-validated
+removal behavior, keep its native-parity claim open, and do not let that
+specific evidence gap block independent adaptation fronts.
 Full native input-domain proof and two-client lifecycle validation remain
 pending. This continuation changed evidence/documentation only, so previous product tests
 and builds were not repeated; source checks are not client observations.

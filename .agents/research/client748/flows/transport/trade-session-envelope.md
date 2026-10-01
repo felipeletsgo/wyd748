@@ -26,10 +26,14 @@ the same native input path?
   and size-policy cases. Instruction-reference rows are omitted except the
   two size-switch targets; this is not a complete socket traversal export.
 - USED: [focused emitter instructions](../../exports/trade-session-emitters.tsv):
-  767 instruction rows selected verbatim from read-only/no-analysis exports;
+  767 original instruction rows selected verbatim from read-only/no-analysis exports;
   invitation, acceptance, insertion, gold, checks, closure, and input guards.
   The Field callback table slot and constructor/destructor references are
   included. This is not a complete export of the large Field callback.
+  The field-mutation continuation adds 116 verbatim instruction rows: 18
+  Field-initialization instructions, 21 additional panel-hide instructions,
+  and 77 receiver/geometry instructions for a rejected offset candidate.
+  These are focused excerpts, not complete initializer or geometry bodies.
 - USED: [alternate grid input routes](../../exports/trade-session-input-routes.tsv):
   complete drop and move bodies (704 and 222 instructions), 98 mouse-dispatch
   instructions, and 79 right-button guard/return instructions. The 1,103
@@ -125,11 +129,15 @@ Their panel composition/cleanup is reused from the trade/inventory record.
 
 ### Outgoing events and construction
 
-All traced offer sends call `FUN_0055F2DD` with `0x9C` bytes. The local
-buffer starts at ObjectManager `DAT_013B71E8 +0xC60`: opcode `+0xC64`,
+All traced offer sends call `FUN_0055F2DD` with `0x9C` bytes. Global
+`DAT_013B71E8` stores an ObjectManager pointer; the local buffer starts at
+the loaded object's `+0xC60`: opcode `+0xC64`,
 ID `+0xC66`, items `+0xC6C`, positions `+0xCE4`, gold `+0xCF4`,
 check `+0xCF8`, and opponent `+0xCFA`. These are native object offsets,
 not addresses or offsets to transplant into the adapted object layout.
+Adding these offsets to the global variable's address instead of its loaded
+pointer does not locate the fields. A zero-xref result for that computed
+absolute address is not evidence that item/position mutations are absent.
 
 - **Invitation:** Field callback `FUN_004662C5`, control 643 (`0x283`)
   selected at `0x0046BF04`, retains its peer/scene eligibility checks, writes
@@ -264,6 +272,49 @@ These resolved delegations eliminate those specific candidates for a native
 removal emitter. They do not establish global absence of item removal, and
 they do not authorize removing the existing server-validated active behavior.
 
+### Offer-field mutations and rejected offset candidate
+
+The field search follows the loaded manager pointer rather than treating the
+global as inline storage. As positive controls, the already traced insertion
+recovers the item destination at `0x004112DA` and position write at
+`0x004112F5`; the hide path recovers its full-buffer clear and position loop.
+The additional instruction excerpts distinguish the following transitions:
+
+| Root | Receiver and mutation | Interpretation |
+| --- | --- | --- |
+| `FUN_004110F5` | Loaded manager; eight-byte item copy to `+0xC6C+8*i`, position byte at `+0xCE4+i` | Existing item insertion, not removal |
+| `FUN_00435B13` | Loaded manager at `0x0043734C`; `0x00437359` clears `0x9C` bytes at `+0xC60`; fifteen-position loop writes `0xFF` at `0x00437513` | Field initialization, not a selected-slot mutation |
+| `FUN_0044B890` | Existing clear at `0x0044BD8F`; additional clear at `0x0044BE4C/0x0044BE53`, followed by fifteen `0xFF` writes at `0x0044BE8A` | Full offer cleanup in panel-hide branches, not individual removal |
+| `FUN_0052DC5D` | Existing invitation copy uses loaded manager `+0xC60` at `0x0052DDE7` | Full remote-frame copy during invitation, not a local removal |
+| `FUN_004640E5` / `FUN_004662C5` | Existing acceptance, gold, and check branches copy the envelope or update header/gold/check fields | Those selected branches do not establish an item-removal mutation |
+| `FUN_0040268C` | Incoming `this`, saved at `0x00402692`; adds float parameters to `this+0x4C/+0x50`, stores float coordinates at `+0xCE4/+0xCE8`, then compares screen bounds | Rejected offer-position candidate: UI geometry, not a manager byte-array write |
+
+The geometry candidate's `FSTP` at `0x004026CC`, `FCOMP` at `0x0040271D`,
+and `FLD` at `0x0040274C` explain why the same numerical displacement is not
+enough to identify the trade field. This conclusion uses the receiver origin,
+adjacent coordinate/size fields, floating-point instructions, and the inspected
+body. It does not require assigning an unproven concrete control class.
+
+Candidate triage inspected scalar operands in the decoded listing: offsets
+`0xC60..0xCF4` in functions referencing `DAT_013B71E8`, and exact offsets
+`0xC60`, `0xC6C`, or `0xCE4` outside those owners. The completed query
+reported 1,550 references, 281 owner functions, 441,614 decoded instructions,
+and 70 operand hits (59 inside owners, 11 outside). These are search coverage
+and candidates, not 70 proven trade accesses. The broad pointer-xref output
+and candidate cache remain local; only decisive native instruction excerpts
+are versioned. Reproduce the claims with `ExportWydFlow.java` instruction
+exports for `00435b13`, `0044b890`, and `0040268c`, plus the existing insertion
+and invitation exports, against the recorded native identity.
+
+The new evidence resolves initialization/full cleanup and rejects the float
+candidate. It still does not prove a reachable single-slot removal or its
+global absence: indirect aliases, helper parameters, derived offsets, and
+undecoded code are not exhausted by a scalar query. Retain the supported
+active removal snapshot and its server validation without claiming native
+interaction parity. Do not repeat this unchanged query or the known input
+roots; a further removal trace needs a concrete alias/helper path or an
+observed native interaction that supplies a new entry.
+
 ### Outputs and errors
 
 Both native consumers return `1`. Offer lookup of a missing human is a
@@ -281,6 +332,7 @@ the active handlers additionally guard scene/model/UI dependencies.
 | Incoming invitation | Local human, Field, no local opponent, peer found | Native copies invitation; active client initializes an empty local offer | Invitation dialog | Missing peer returns |
 | Incoming offer | Local human, Field, active negotiation | Remote item/gold snapshot replaces display; changed offer clears checks | Fifteen remote slots and names/gold | Active optional-control guards skip missing controls |
 | Native item insertion | Type 7, mouse-up, source unselected, free local slot | Eight-byte item and low-byte `x+9*y` position copied; checks revoked | Source marked red; local offer copy | Missing/selected source returns 2; full offer returns 0 |
+| Native Field initialization/panel hide | Initializer or traced hide branch | Entire 156-byte offer cleared; all fifteen positions set to `0xFF` | Existing panel initialization/closure | Not evidence of an individual item removal |
 | Native gold/check intent | Trade mode or check control, valid interaction | Gold invalidates checks; check toggles after 2000 ms | Amount/check feedback | Throttled check does not send |
 | Active item removal | Visible trade, local human/opponent, matching offer grid | Item zeroed, position -1, checks revoked; server validates snapshot | Visual removed; source highlight restored | Missing dependencies or unmatched grid return |
 | Incoming closure | Local human and live scene/model | Opponent/check/hover cleared before UI checks | Visible Trade/AutoTrade closed when available | Missing UI does not retain local model state |
@@ -439,11 +491,17 @@ Confirmation, persistence/rollback, and teardown remain server-owned.
 
 - Resolve native item-removal reachability independently of the now-proven
   type-6 no-op. The drop fallback's Field/base/container delegation and the
-  separate cursor-world-drop emitter are now traced. A focused next query
-  should start from offer-buffer item/position mutations, distinguishing an
-  individual removal from invitation copying and full panel/session cleanup.
+  separate cursor-world-drop emitter are traced. The field-mutation pass now
+  distinguishes insertion, invitation copying, Field initialization, and
+  complete panel cleanup, and rejects the float-coordinate offset candidate.
+  Remaining static work requires a concrete manager alias/helper path beyond
+  those direct field accesses, or a native runtime interaction supplying a
+  new entry; repeating the scalar query is not a next step. This gap blocks
+  only the native removal-parity claim, not the existing validated intention
+  or independent adaptation fronts.
   Do not redecompile the inspected TradeItem, mouse dispatcher, drop/move,
-  key/right-button guards, or these scene/container roots. The scoped results
+  key/right-button guards, scene/container roots, or the initialized/hidden
+  offer slices solely to search the same missing send. The scoped results
   do not prove that every native removal route is absent.
 - Complete signed-input/domain evidence only if a dependent parity change
   needs it. Active server rejection/authority remains unchanged.
@@ -495,4 +553,23 @@ Confirmation, persistence/rollback, and teardown remain server-owned.
   anchors. Research schema passed for all 94 records; 59 indexed flow states
   match their current front matter. Repository layout/local links passed
   with 152 documents indexed and the new export added to the central map.
+- Scene-delegation continuation: the published input export contains 1,528
+  rows, including 1,476 instructions. Its additional 393 rows include 373
+  instructions and concrete Field/container bindings; row provenance, native
+  identity, research schema, and repository layout passed in that batch.
+  No product input changed, so its existing product checks remain applicable.
+- Field-mutation continuation: read-only/no-analysis instruction exports for
+  the initializer and geometry candidate completed with matching SHA-256,
+  both requested instruction summaries (10,114 and 576 decoded instructions),
+  and no SCRIPT ERROR. Only 95 decisive instructions from those bodies and
+  21 from the previously exported hide body are added to the emitter export.
+  Candidate triage is not an alias/reachability proof or a parity promotion.
+  No client/server source, asset, ABI, or wire changed; product tests/builds
+  were not repeated. Row provenance passed for all 898 retained TSV lines,
+  including 883 unique instructions, 16 critical anchors, native identity,
+  both requested summaries, and export completion. Research schema passed
+  for 94 records (61 CONTRACT, 10 LOCATED, 21 TRACED, 2 UNMAPPED);
+  repository layout/local links passed with 152 documents indexed.
+  Diff whitespace validation passed. These evidence/documentation gates do
+  not replace product execution or close the individual-removal parity gap.
 - CLIENT-TESTED: not performed; no candidate installation or game execution.
