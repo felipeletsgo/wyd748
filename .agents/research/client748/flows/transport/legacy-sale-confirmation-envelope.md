@@ -16,8 +16,10 @@ policy allow consistent frames longer than the current 20-byte representation?
 This record closes the received envelope, not complete merchant UI or price parity.
 It also records the unchanged request widths reused for server ingress hardening.
 The arithmetic continuations close the response consumer's base-price bands
-and the grid-type-3 quote calculation and exceptions. Ability lookup parity,
-complete merchant UI behavior, and historical server policy remain open.
+and the grid-type-3 quote calculation and exceptions. The type-38 continuation
+also closes the native contract for the ability lookup required by that quote,
+not every ability type. Candidate lookup adaptation remains pending.
+Complete merchant UI behavior and historical server policy remain open.
 
 ## Evidence boundary
 
@@ -40,7 +42,10 @@ complete merchant UI behavior, and historical server policy remain open.
 - **USED:** buildable `LegacySalePacket.h`, `ReceivedPacketDispatch.h`, and
   `TMFieldScene::OnPacketSell`; tests in `SceneDisconnectContractTests.cpp`.
 - **USED:** `SGridControl::MouseOver`, `NativeSaleQuote.h`, and quote fixtures
-  in `GridInsertionTests.cpp`; the existing ability lookup is not newly proven.
+  in `GridInsertionTests.cpp`; the complete type-38 path is resolved below.
+- **USED:** `FUN_0054e06c`, the refinement callee reached by ordinary ability
+  lookup. Its matching 158-instruction export proves read-only item access,
+  no further calls, and stack-only writes. Other ability types are not approved.
 - **USED:** `wydgo748/internal/game/handlers.go::onSellItem`, inbound size
   validation, `sale_ingress.go::validSaleInventorySource`, and merchant
   lifecycle/range/tax and network-ingress tests. The server does not emit the
@@ -140,15 +145,40 @@ Item 413 has no separate price-divided-by-eight branch. The numeric quote
 uses message 58 at `0x0041e49b`. No passive or city-tax adjustment occurs
 inside this sale-quote block; neighboring buy-quote tax reads are not sale proof.
 
-The ability helper's second argument is masked to one byte. It sums matching
-catalog effects over twelve entries (`0x0054cf53..0x0054cfb4`) and, for
-ordinary items, three instance effects (`0x0054d222..0x0054d272`). Type 38
-skips refinement scaling at `0x0054d374..0x0054d377`. Native instance-effect
-values are sign-extended bytes, unlike the candidate's unsigned value access;
-this continuation does not claim complete ability-helper parity. In particular,
-an instance byte 185 alone is not proven to produce native ability value 185.
-The quote adaptation consumes the existing `BASE_GetItemAbility` result;
-its lookup semantics remain an explicit independent gap.
+### Type-38 ability used by the quote
+
+The ability helper's second argument is masked to one byte. For the quote's
+fixed type 38, none of the type remapping, requirement, speed, regeneration,
+or guild branches apply. It sums matching catalog effects over twelve entries
+(`0x0054cf53..0x0054cfb4`) and, for ordinary items, three instance effects
+(`0x0054d222..0x0054d272`). Both catalog fields are signed words; both
+instance fields are signed bytes. In particular, an instance value byte 185
+contributes -71, not 185. A catalog value 185, or a sum equal to 185, still
+triggers the full-price quote exception.
+
+The whole type-38 path, including its exits, is now resolved:
+
+| Item domain | Type-38 result | Proof |
+| --- | --- | --- |
+| Index at most 0 or above 6500 | Zero before catalog access | `0x0054cd17..0x0054cd2f` |
+| 3200..3300 inclusive | Zero before effect reads | `0x0054cd34..0x0054cd49` |
+| 2330..2389 | Catalog sum only; packed mount bytes are not instance effects | `0x0054cfbc..0x0054cfd3`, exit `0x0054d13d` |
+| 3980..3999 | Catalog sum only; second mount domain also skips instance effects | `0x0054d14b..0x0054d162`, exit `0x0054d208` |
+| Other valid indices | Catalog sum plus all three matching signed instance values | `0x0054d222..0x0054d272`, final load `0x0054d4af` |
+
+Ordinary items call `FUN_0054e06c` at `0x0054d278` before deciding whether to
+scale. That callee reads the item and writes only its own stack, with no calls
+or external mutation in the full 158-instruction body. Its return value cannot
+change type 38: `0x0054d374..0x0054d377` skips scaling, and all later modifiers
+test other types before the final sum is returned. The quote-specific lookup
+can therefore omit the refinement call without losing side effects. This does
+not approve changing refinement computation for other consumers.
+
+The sale quote itself already bounds catalog reads to `1..6499`. The planned
+quote-specific lookup must retain that bound rather than reproduce the native helper's index
+6500 access. This invalid-index protection is `MODERNIZACAO_COMPATIVEL`;
+the proven type-38 sums, exclusions, and mount paths are `PARIDADE_NATIVA`.
+No item bytes, catalog data, price policy, or persisted effects are changed.
 
 For valid catalog indices `1..6499` and nonnegative signed-int prices,
 integer division by four reproduces the native `FILD`/`FMUL 0.25`/`__ftol`
@@ -197,6 +227,8 @@ Downstream grid/manager slots are observed, not renamed as proven classes.
 The receive gate owns no packet or scene. Storage remains transport-owned and
 is borrowed synchronously once. Native detachment/deletion observations above
 do not change the candidate's existing grid ownership or alias safety policy.
+The planned quote lookup must synchronously borrow the catalog and item effect
+arrays as const references, allocate nothing, and retain or modify neither input.
 
 ### Partial failure
 
@@ -246,6 +278,15 @@ consumer, not by claiming a recovered historical server implementation.
 The outgoing native request uses the same 20-byte representation and payload
 word offsets, independently proven by the retained builder instructions above.
 
+The quote's local item ABI is eight bytes: signed index word at byte 0, then
+three type/value byte pairs at offsets 2/3, 4/5, and 6/7. Native `MOVSX` reads
+the effects with sign extension. The candidate's `STRUCT_ITEM` keeps unsigned
+storage bytes; the quote must explicitly sign-extend each value, not change
+the shared representation. Catalog entries have stride `0x8c`, with twelve
+signed type/value word pairs at `+0x50` and price at `+0x80`. Existing item
+size/offset assertions remain unchanged; the new lookup must accept precisely
+the existing twelve/three effect array extents. No wire or asset changes apply.
+
 ## Current mapping
 
 ### Buildable source
@@ -261,7 +302,9 @@ override, final item-412 price of 800000, ordinary item-413 calculation, and
 zero-catalog message-340 condition. Valid nonnegative prices use integer
 quarter division rather than intermediate float32 rounding. Catalog access
 is guarded by the existing `1..6499` domain. Ability input still comes from
-the candidate `BASE_GetItemAbility`; its signed-byte differences remain open.
+the candidate `BASE_GetItemAbility`; its signed-byte and special-domain
+differences remain unadapted. The native type-38 contract is resolved above;
+implementation and focused lookup tests are the next gate.
 
 ### WYD-Go
 
@@ -329,9 +372,11 @@ payment and snapshot lifecycle. Quote tests are not evidence of payment parity.
 - Downstream native grid class identity and UI refresh parity remain open.
   The response bands and quote exceptions are proven; only the displayed
   quote changed in this continuation, not server payment.
-- Ability lookup has native signed instance bytes and a special item-domain
-  exclusion absent from the candidate helper. Resolve that boundary before
-  claiming complete parity for the ability-185 exception.
+- The native type-38 lookup contract is resolved, but the candidate still uses
+  its inherited helper. Adapt and test signed instance values, the inclusive
+  3200..3300 exclusion, and both catalog-only mount domains before claiming
+  complete parity for the ability-185 exception. Other ability types remain
+  outside this evidence boundary.
 - Next economic gate: establish the authoritative ordinary/special-item,
   passive, and city-tax policy, including the item-412 quote/payment mismatch.
   Cover catalog boundaries `20000/20004/40000/40004` through persistence,
@@ -398,3 +443,12 @@ payment and snapshot lifecycle. Quote tests are not evidence of payment parity.
   `BF2B447836F5884B3D1F087D10BD683B3F2AA88EE47A5CA9986E8DBA8026A42F`.
   No server source changed; earlier server tests were not repeated. No runtime
   installation or DirectX execution occurred; this is not `CLIENT_TESTED`.
+- Type-38 research continuation (2026-10-01): reused the matching complete
+  `FUN_0054cd07` instruction export and inspected its full type-38 path.
+  Accepted a read-only refinement-callee export with 158 instructions and
+  the same native program hash. Reproduce with `ExportWydFlow.java`, an
+  absolute ignored output path, and selectors
+  `exact:0054e06c instructions:0054e06c`. Retained 42 additional focused
+  instructions in the existing versioned export. This continuation changes
+  evidence and the implementation contract only; no product change, new build,
+  installation, or client execution is claimed.

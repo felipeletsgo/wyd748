@@ -94,3 +94,45 @@ instruction	0054cd07	0054d246	0FBE4C5003	MOVSX ECX,byte ptr [EAX + EDX*0x2 + 0x3
 instruction	0054cd07	0054d26c	0345D0	ADD EAX,dword ptr [EBP + -0x30]
 instruction	0054cd07	0054d374	83F926	CMP ECX,0x26
 instruction	0054cd07	0054d377	0F84B6000000	JZ 0x0054d433
+instruction	0054cd07	0054cd17	0FBF08	MOVSX ECX,word ptr [EAX]
+instruction	0054cd07	0054cd1d	837DFC00	CMP dword ptr [EBP + -0x4],0x0
+instruction	0054cd07	0054cd23	817DFC64190000	CMP dword ptr [EBP + -0x4],0x1964
+instruction	0054cd07	0054cd2a	7E08	JLE 0x0054cd34
+instruction	0054cd07	0054cd2c	8B45F8	MOV EAX,dword ptr [EBP + -0x8]
+instruction	0054cd07	0054cd34	817DFC800C0000	CMP dword ptr [EBP + -0x4],0xc80
+instruction	0054cd07	0054cd3b	7C11	JL 0x0054cd4e
+instruction	0054cd07	0054cd3d	817DFCE40C0000	CMP dword ptr [EBP + -0x4],0xce4
+instruction	0054cd07	0054cd44	7F08	JG 0x0054cd4e
+instruction	0054cd07	0054cd46	8B45F8	MOV EAX,dword ptr [EBP + -0x8]
+instruction	0054cd07	0054cf75	3BD0	CMP EDX,EAX
+instruction	0054cd07	0054cf77	753B	JNZ 0x0054cfb4
+instruction	0054cd07	0054cfab	8B55F8	MOV EDX,dword ptr [EBP + -0x8]
+instruction	0054cd07	0054cfae	0355E0	ADD EDX,dword ptr [EBP + -0x20]
+instruction	0054cd07	0054cfbc	81F91A090000	CMP ECX,0x91a
+instruction	0054cd07	0054cfc2	0F8C7D010000	JL 0x0054d145
+instruction	0054cd07	0054cfce	3D56090000	CMP EAX,0x956
+instruction	0054cd07	0054cfd3	0F8D6C010000	JGE 0x0054d145
+instruction	0054cd07	0054d13d	8B45F8	MOV EAX,dword ptr [EBP + -0x8]
+instruction	0054cd07	0054d140	E96D030000	JMP 0x0054d4b2
+instruction	0054cd07	0054d14b	81F98C0F0000	CMP ECX,0xf8c
+instruction	0054cd07	0054d151	0F8CB9000000	JL 0x0054d210
+instruction	0054cd07	0054d15d	3DA00F0000	CMP EAX,0xfa0
+instruction	0054cd07	0054d162	0F8DA8000000	JGE 0x0054d210
+instruction	0054cd07	0054d208	8B45F8	MOV EAX,dword ptr [EBP + -0x8]
+instruction	0054cd07	0054d20b	E9A2020000	JMP 0x0054d4b2
+instruction	0054cd07	0054d23c	3BC1	CMP EAX,ECX
+instruction	0054cd07	0054d23e	7532	JNZ 0x0054d272
+instruction	0054cd07	0054d274	8B4D08	MOV ECX,dword ptr [EBP + 0x8]
+instruction	0054cd07	0054d278	E8EF0D0000	CALL 0x0054e06c
+instruction	0054cd07	0054d4af	8B45F8	MOV EAX,dword ptr [EBP + -0x8]
+instruction	0054cd07	0054d4b2	8BE5	MOV ESP,EBP
+instruction	0054cd07	0054d4b5	C3	RET
+instruction	0054e06c	0054e072	8B4508	MOV EAX,dword ptr [EBP + 0x8]
+instruction	0054e06c	0054e0e0	0FBE4802	MOVSX ECX,byte ptr [EAX + 0x2]
+instruction	0054e06c	0054e110	8A4203	MOV AL,byte ptr [EDX + 0x3]
+instruction	0054e06c	0054e113	8845F8	MOV byte ptr [EBP + -0x8],AL
+instruction	0054e06c	0054e138	E9A9000000	JMP 0x0054e1e6
+instruction	0054e06c	0054e1ef	894DFC	MOV dword ptr [EBP + -0x4],ECX
+instruction	0054e06c	0054e261	8B45FC	MOV EAX,dword ptr [EBP + -0x4]
+instruction	0054e06c	0054e264	8BE5	MOV ESP,EBP
+instruction	0054e06c	0054e267	C3	RET
