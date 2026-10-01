@@ -1,3 +1,9 @@
 # Ghidra exports keep a fixed TSV schema; a final tab represents an empty last
 # column and is evidence structure rather than accidental source whitespace.
 .agents/research/client748/**/*.tsv whitespace=-blank-at-eol
+
+# Count the authoritative server as first-party Go source, including tests.
+wydgo748/**/*.go linguist-language=Go linguist-detectable=true linguist-vendored=false linguist-generated=false
+
+# The bundled Microsoft DirectX SDK is a dependency, not first-party client code.
+tmproject/TMProject748/Dependencies/Directx/** linguist-vendored=true
