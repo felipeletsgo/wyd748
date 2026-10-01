@@ -30,6 +30,10 @@ the same native input path?
   invitation, acceptance, insertion, gold, checks, closure, and input guards.
   The Field callback table slot and constructor/destructor references are
   included. This is not a complete export of the large Field callback.
+- USED: [alternate grid input routes](../../exports/trade-session-input-routes.tsv):
+  complete drop and move bodies (704 and 222 instructions), 98 mouse-dispatch
+  instructions, and 79 right-button guard/return instructions. The 1,103
+  instruction rows are verbatim excerpts from the same native program.
 - USED: the existing [human receiver and container lookup proof](trade-check-confirmation-contract.md),
   [trade/inventory lifecycle](../ui/trade-inventory-layout.md), and
   [control ownership](../ui/control-focus-ime-lifecycle.md).
@@ -181,6 +185,38 @@ sends the unchanged `0x383/156` format. Preserve this existing supported
 intention; do not label its interaction as native parity or delete it solely
 because this native branch is a no-op. A parity claim needs an independently
 reachable native removal path or an explicit documented deviation.
+
+### Alternate grid input routes
+
+The existing mouse receiver supplies two additional mouse-up routes when the
+cursor is in pickup mode (`2`) and has an attached item:
+
+- With `DAT_005CCF08 == 0`, call `0x00420EBD -> FUN_00416196` handles
+  dropping the cursor item. Grid type 1 selects merchant sale (`0x37A/20`,
+  opcode at `0x004162BF`, send at `0x004162EC`); type 5 selects the skill
+  belt (`0x378/32`, `0x00416614/0x004166BB`). The fallback can construct
+  item use (`0x373/36`, `0x00416A2B/0x00416A8C`) or attempt a grid insert
+  and delegate to the current scene's mouse callback. Its local clearing
+  affects Equip/Carry/Cargo item bytes or cursor visuals, not trade-offer
+  slots. This complete body has no direct `0x383` construction/send; the
+  delegated scene callback is not proof that all downstream routes lack one.
+- With `DAT_005CCF08 != 0`, call `0x00420F62 -> FUN_00416E8A` constructs
+  a normal item move (`0x376/20`), for a zero destination mask or a compatible
+  item/destination mask. The two sends are `0x0041703A` and `0x004171AE`,
+  following opcode writes at `0x00416FBC` and `0x0041713E`. Source and
+  destination use their container/slot virtual methods and Carry's `x+9*y`
+  fallback. The function finally clears `DAT_005CCF08` at `0x004171B6`;
+  it does not clear an offered item/position or send `0x383`.
+
+Right-button down (`0x204`) calls `FUN_0041EF0F` at `0x00420FBE`.
+Its special skill-control branch requires IDs `0x223..0x23A`, excluding
+local offer IDs `0x2100..0x210E`. After that branch, pickup mode detaches
+the cursor. Ordinary item use requires grid type 0 or 3, selected by
+`0x0041F51C/0x0041F52B`; type 6 branches to the return at `0x004209EB`.
+These three additional routes do not establish native local-offer removal.
+The right-button excerpt contains the relevant guards, not the whole 1,382-
+instruction function; the negative claim is limited to these reachable
+branches. No code, opcode, resource, or economic policy is changed.
 
 ### Outputs and errors
 
@@ -348,9 +384,11 @@ Confirmation, persistence/rollback, and teardown remain server-owned.
 ## Gaps
 
 - Resolve native item-removal reachability independently of the now-proven
-  type-6 no-op. A focused next query should inspect a different reachable
-  control/input route and its offer-buffer mutations, not redecompile
-  `FUN_004110F5`, `FUN_004209FC`, or the inspected key/mouse-down helpers.
+  type-6 no-op. A focused next query should start from offer-buffer mutations
+  or the drop fallback's scene delegation, not redecompile the already
+  inspected TradeItem, mouse dispatcher, drop/move, key, and right-button
+  guards. The alternate routes narrow this search; they do not prove that
+  every native removal route is absent.
 - Complete signed-input/domain evidence only if a dependent parity change
   needs it. Active server rejection/authority remains unchanged.
 - Resolve the size-policy external invocation only when needed; do not
@@ -389,4 +427,16 @@ Confirmation, persistence/rollback, and teardown remain server-owned.
   export rows, including 767 unique instructions, native identity, critical
   sends/input guards, and the Field callback binding. Repository layout/local
   links passed with 152 documents indexed; the central map was refreshed.
+- Alternate-input continuation: reused the completed read-only/no-analysis
+  export and decompilations, with matching program identity, all three
+  requested instruction summaries, and a completion log without SCRIPT ERROR.
+  The focused export retains complete drop/move bodies and selected mouse/
+  right-button guards. Source and server inputs remain unchanged, so product
+  tests/builds are reused rather than rerun. No native interaction-parity
+  promotion follows from these scoped negative results.
+  Row provenance passed for all 1,135 export rows, including 1,103
+  instructions, two complete bodies, native identity, and 21 critical
+  anchors. Research schema passed for all 94 records; 59 indexed flow states
+  match their current front matter. Repository layout/local links passed
+  with 152 documents indexed and the new export added to the central map.
 - CLIENT-TESTED: not performed; no candidate installation or game execution.

@@ -253,6 +253,11 @@ interaction parity, full native input-domain validation, and live invocation
 of the native size-policy table remain open. Existing active exact-size gates,
 supported removal snapshots, and server-owned inventory/gold validation are
 unchanged; no new opcode or contract is introduced by this evidence batch.
+The additional native grid drop/move bodies directly emit `0x37A`, `0x378`,
+`0x373`, or `0x376`, not `0x383`; right-button guards exclude local offer
+grids. Drop fallback scene delegation remains outside this negative claim.
+These routes therefore do not establish native item-removal interaction
+parity and do not justify removing the active server-validated intention.
 
 `0x386` (first trade-check acknowledgement, S->C, 12 bytes) uses
 `TradeCheckConfirmationContract.h`. It has no payload; `Header.ID` selects

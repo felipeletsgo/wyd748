@@ -349,9 +349,14 @@ local-offer click branch returns without removing an item, whereas the active
 client supports removal through an unchanged, server-validated offer snapshot.
 Preserve that supported behavior and the active source/visual-ownership
 safeguards; neither is to be deleted solely to match a native no-op. Resolve a
-different reachable native removal route before claiming parity. Full native
-input-domain proof and two-client lifecycle validation remain pending. This
-continuation changed evidence/documentation only, so previous product tests
+different reachable native removal route before claiming parity. The
+additional pickup/drop and move routes construct item-use/sale/belt/move
+packets rather than a direct trade-offer send; the right-button guards exclude
+local offer slots. The drop fallback can delegate to the scene, so these
+scoped findings do not prove global absence. Continue from offer-buffer
+mutations or that delegation without repeating the inspected grid roots.
+Full native input-domain proof and two-client lifecycle validation remain
+pending. This continuation changed evidence/documentation only, so previous product tests
 and builds were not repeated; source checks are not client observations.
 
 ### Auto-trade visual ownership

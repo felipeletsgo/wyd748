@@ -213,6 +213,7 @@ Markdown documents: 152.
 - [.agents/research/client748/exports/trade-inventory-layout-flow.tsv](<../.agents/research/client748/exports/trade-inventory-layout-flow.tsv>)
 - [.agents/research/client748/exports/trade-session-consumers.tsv](<../.agents/research/client748/exports/trade-session-consumers.tsv>)
 - [.agents/research/client748/exports/trade-session-emitters.tsv](<../.agents/research/client748/exports/trade-session-emitters.tsv>)
+- [.agents/research/client748/exports/trade-session-input-routes.tsv](<../.agents/research/client748/exports/trade-session-input-routes.tsv>)
 - [.agents/research/client748/exports/ui-focus-ime.tsv](<../.agents/research/client748/exports/ui-focus-ime.tsv>)
 - [.agents/research/client748/exports/unresolved-reference-resolution.tsv](<../.agents/research/client748/exports/unresolved-reference-resolution.tsv>)
 - [.agents/research/client748/exports/use-npc-flow.tsv](<../.agents/research/client748/exports/use-npc-flow.tsv>)
