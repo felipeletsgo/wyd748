@@ -166,6 +166,7 @@ Markdown documents: 152.
 
 - [.agents/research/client748/exports/auto-skill-belt-controls-flow.tsv](<../.agents/research/client748/exports/auto-skill-belt-controls-flow.tsv>)
 - [.agents/research/client748/exports/cargo-gold-confirmations.tsv](<../.agents/research/client748/exports/cargo-gold-confirmations.tsv>)
+- [.agents/research/client748/exports/carry-panel-cascade.tsv](<../.agents/research/client748/exports/carry-panel-cascade.tsv>)
 - [.agents/research/client748/exports/challenge-confirm-flow.tsv](<../.agents/research/client748/exports/challenge-confirm-flow.tsv>)
 - [.agents/research/client748/exports/change-city-request-flow.tsv](<../.agents/research/client748/exports/change-city-request-flow.tsv>)
 - [.agents/research/client748/exports/city-war-prompt-flow.tsv](<../.agents/research/client748/exports/city-war-prompt-flow.tsv>)
