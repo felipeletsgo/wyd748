@@ -4,7 +4,7 @@ title: Native sale confirmation reaches the field receiver with a 20-byte envelo
 subsystem: transport
 status: CONTRACT
 native_sha256: 8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
-updated: 2026-09-30
+updated: 2026-10-01
 ---
 
 # Native sale confirmation envelope
@@ -15,8 +15,9 @@ Does native 7.48 consume `0x37A` as a sale response, and does its packet-size
 policy allow consistent frames longer than the current 20-byte representation?
 This record closes the received envelope, not complete merchant UI or price parity.
 It also records the unchanged request widths reused for server ingress hardening.
-The arithmetic continuation closes the response consumer's base-price bands;
-it does not establish the complete merchant quote or historical server policy.
+The arithmetic continuations close the response consumer's base-price bands
+and the grid-type-3 quote calculation and exceptions. Ability lookup parity,
+complete merchant UI behavior, and historical server policy remain open.
 
 ## Evidence boundary
 
@@ -25,7 +26,8 @@ it does not establish the complete merchant quote or historical server policy.
 - **USED:** the recovered local Ghidra project at
   `tmproject/build/native-research/WYD748.gpr`, program `WYD.exe`, with the
   same SHA-256. Read-only, no-analysis inspection of `FUN_00492e7d`,
-  `FUN_00487e23`, `FUN_0055890a`, and table `0x005a4294`.
+  `FUN_00487e23`, `FUN_0055890a`, table `0x005a4294`, and the quote/helper
+  bodies `FUN_00418828` and `FUN_0054cd07`.
 - **USED:** [focused instruction evidence](../../exports/legacy-sale-confirmation.tsv).
   Full decompilations and logs remain ignored build artifacts. Export runs
   contained the expected program hash, requested instruction/table summaries,
@@ -33,10 +35,12 @@ it does not establish the complete merchant quote or historical server policy.
 - **USED:** the retained [request instruction export](../../exports/trade-session-input-routes.tsv),
   whose program identity matches the same native hash. `FUN_00416196` writes
   the request payload as words and sends 20 bytes; no new export is needed.
-- **NOT APPLICABLE:** runtime assets; the changed receive gate does not load
-  textures, UI resources, or item tables.
+- **UNCHANGED:** runtime assets. The receive gate loads no resources; the
+  quote uses the existing item catalog and message IDs 58/340 without edits.
 - **USED:** buildable `LegacySalePacket.h`, `ReceivedPacketDispatch.h`, and
   `TMFieldScene::OnPacketSell`; tests in `SceneDisconnectContractTests.cpp`.
+- **USED:** `SGridControl::MouseOver`, `NativeSaleQuote.h`, and quote fixtures
+  in `GridInsertionTests.cpp`; the existing ability lookup is not newly proven.
 - **USED:** `wydgo748/internal/game/handlers.go::onSellItem`, inbound size
   validation, `sale_ingress.go::validSaleInventorySource`, and merchant
   lifecycle/range/tax and network-ingress tests. The server does not emit the
@@ -113,6 +117,45 @@ source type, and position as words at `0x004162d2`, `0x004162da`, and
 `PUSH 0x14` at `0x004162e6` and the send call at `0x004162ec` independently
 establish the request size. This does not establish that the native request
 domain is carry-only; that restriction belongs to the current server policy.
+
+### Sale quote arithmetic
+
+The matching native instruction export `sale-quote-boundary.tsv` resolves
+the grid-type-3 quote in `FUN_00418828`, reached by a direct call at
+`0x00420f88` in `FUN_004209fc`. The grid type comparison is at
+`0x0041e36b`; the scene's borrowed text control is updated through virtual
+slot `+0x80`. The candidate counterpart is `SGridControl::MouseOver` with
+`GRID_SELL`. This does not establish every native grid class or input callback.
+
+The quote repeats the ordinary quarter-price bands at
+`0x0041e3ce..0x0041e42a`, then applies overrides in this exact order:
+
+| Condition | Displayed price | Proof |
+| --- | --- | --- |
+| Ability type 38 returns 185 | Full catalog price | `PUSH 0x26`, call `FUN_0054cd07`, compare `0xb9`, catalog reload at `0x0041e46a` |
+| Item index 412 | 800000, overriding the ability exception | Compare `0x19c` at `0x0041e482`, constant write at `0x0041e48a` |
+| Item 412 or 413 with catalog price zero | Message 340 replaces the numeric quote | `0x0041e4d8..0x0041e522` |
+
+Item 413 has no separate price-divided-by-eight branch. The numeric quote
+uses message 58 at `0x0041e49b`. No passive or city-tax adjustment occurs
+inside this sale-quote block; neighboring buy-quote tax reads are not sale proof.
+
+The ability helper's second argument is masked to one byte. It sums matching
+catalog effects over twelve entries (`0x0054cf53..0x0054cfb4`) and, for
+ordinary items, three instance effects (`0x0054d222..0x0054d272`). Type 38
+skips refinement scaling at `0x0054d374..0x0054d377`. Native instance-effect
+values are sign-extended bytes, unlike the candidate's unsigned value access;
+this continuation does not claim complete ability-helper parity. In particular,
+an instance byte 185 alone is not proven to produce native ability value 185.
+The quote adaptation consumes the existing `BASE_GetItemAbility` result;
+its lookup semantics remain an explicit independent gap.
+
+For valid catalog indices `1..6499` and nonnegative signed-int prices,
+integer division by four reproduces the native `FILD`/`FMUL 0.25`/`__ftol`
+without an intermediate float32 rounding. This is the cleared quote delta,
+classified as `PARIDADE_NATIVA`; safe rejection of invalid catalog indices
+is `MODERNIZACAO_COMPATIVEL`. Neither changes inventory, gold, packets,
+merchant validation, persistence, or the authoritative sale policy.
 
 ### Callees
 
@@ -212,6 +255,14 @@ is part of the fixed-size dispatch policy rather than the inherited
 minimum-only exception. The envelope patch did not change
 `TMFieldScene::OnPacketSell`.
 
+`SGridControl::MouseOver` now delegates its sell quote to `NativeSaleQuote.h`.
+The helper preserves the native ordinary bands, full-price ability-185
+override, final item-412 price of 800000, ordinary item-413 calculation, and
+zero-catalog message-340 condition. Valid nonnegative prices use integer
+quarter division rather than intermediate float32 rounding. Catalog access
+is guarded by the existing `1..6499` domain. Ability input still comes from
+the candidate `BASE_GetItemAbility`; its signed-byte differences remain open.
+
 ### WYD-Go
 
 `onSellItem` validates a 20-byte `C->S` intent, merchant interaction, carry
@@ -239,11 +290,14 @@ overflow are not approved by this arithmetic continuation.
 `onSellItem` currently computes `uint64(def.Price)/4`, then the merchant
 passive and city tax, without the two response bands. This is a concrete
 comparison gap, not proof that the response formula can be transplanted as
-the complete authoritative shop policy. The actual client quote at
-`SGridControl::MouseOver` has additional branches, so its native input flow,
-passive/tax order, and supported item domain must be traced before changing
-the server's economic result. Existing low-price tests do not distinguish
-these formulas: their quarter prices remain below 5001.
+the complete authoritative shop policy. The native client quote and its
+special-item overrides are now traced and adapted, without changing server
+payment. No passive/tax adjustment occurs in that native quote block; the
+authoritative policy and ability lookup still require separate validation.
+For the current catalog, item 412 quotes 800000 while Go's straight quarter
+of 1000000 is 250000 before other adjustments. This mismatch is recorded,
+not silently treated as economic parity. Existing low-price server tests do
+not distinguish the response bands: their quarter prices remain below 5001.
 
 ## Delta matrix
 
@@ -253,8 +307,9 @@ these formulas: their quarter prices remain below 5001.
 | Exact envelope | Size-policy case requires 20 | Minimum-only gate accepts larger frames | Struct is 20 bytes | Input intent is 20 bytes | PARIDADE_NATIVA: require exact receive size |
 | Actual-size/opcode consistency | Native size/opcode words identified | Shared gate checks both discriminants and actual size | Internal guard | Unchanged | MODERNIZACAO_COMPATIVEL: reuse fail-closed gate |
 | Complete source words | Request writes words at 14/16; response sign-extends them | Representation unchanged | No new sender or response | Reject high-byte aliases before dispatch | MODERNIZACAO_COMPATIVEL: enforce existing Carry policy on full fields |
-| Response base-price bands | Quarter price, then two-thirds for 5001..10000 or half above 10000 | Same bands; floating precision still unproven | Candidate calculation is secondary | Omits these response bands | CONFIRMED response arithmetic; trace the quote before economic adaptation |
-| Complete UI/price parity | Quote, passive/tax order, and refresh not fully validated | Existing safety modernization | Different architecture | Authoritative snapshots | No broader parity claim or price change |
+| Response base-price bands | Quarter price, then two-thirds for 5001..10000 or half above 10000 | Same bands; floating precision still unproven | Candidate calculation is secondary | Omits these response bands | CONFIRMED response arithmetic; authoritative policy remains separate |
+| Grid-type-3 sale quote | Ordinary bands; ability 185 full price; item 412 fixed at 800000; item 413 ordinary | Implemented in NativeSaleQuote.h with 154 focused checks | Existing ability lookup remains a gap | Payment unchanged | PARIDADE_NATIVA for cleared calculation; invalid-index protection is MODERNIZACAO_COMPATIVEL |
+| Complete UI/price parity | Ability lookup, authoritative policy, and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
 
 ## Decisions
 
@@ -264,18 +319,23 @@ Do not remove the consumer merely because WYD-Go currently uses a different
 authoritative confirmation path.
 Classify the server source-domain gate as `MODERNIZACAO_COMPATIVEL`, not
 proof that every native sale source follows the server's Carry-only policy.
+Adapt only the cleared quote calculation and retain the current authoritative
+payment and snapshot lifecycle. Quote tests are not evidence of payment parity.
 
 ## Gaps
 
 - Real DirectX client sale execution is not performed. This remains `CONTRACT`,
   not `CLIENT_TESTED`.
-- Downstream native grid class identity, merchant quote including passive/tax
-  order, and UI refresh parity remain open. The response's base-price bands
-  are now proven, but no product price changed in this continuation.
-- Next economic gate: trace the native sale quote against
-  `SGridControl::MouseOver`, establish ordinary/special-item and passive/tax
-  branches, and cover catalog boundaries `20000/20004/40000/40004` through
-  authoritative persistence and snapshot publication before adapting prices.
+- Downstream native grid class identity and UI refresh parity remain open.
+  The response bands and quote exceptions are proven; only the displayed
+  quote changed in this continuation, not server payment.
+- Ability lookup has native signed instance bytes and a special item-domain
+  exclusion absent from the candidate helper. Resolve that boundary before
+  claiming complete parity for the ability-185 exception.
+- Next economic gate: establish the authoritative ordinary/special-item,
+  passive, and city-tax policy, including the item-412 quote/payment mismatch.
+  Cover catalog boundaries `20000/20004/40000/40004` through persistence,
+  rollback, repetition, and snapshot publication before adapting payment.
 - Other documented legacy gaps (`0xED7/0xED8`, dormant `0x2C4`, unavailable
   transfer `0xFAA`) remain separate work; this evidence does not close them.
 
@@ -324,3 +384,17 @@ proof that every native sale source follows the server's Carry-only policy.
   recover loads/multiplication that the cached decompilation omits before
   `__ftol`. No new census, Ghidra run, source test, build, or installation was
   needed; unchanged earlier product validation is not a new runtime result.
+- Quote continuation (2026-10-01): accepted the matching read-only
+  `sale-quote-boundary.tsv` export and successful log. Reproduce with
+  `ExportWydFlow.java` using an absolute ignored output path and selectors
+  `exact:00418828 instructions:00418828 exact:0054cd07 instructions:0054cd07`.
+  Retained 41 quote/helper instructions in the existing versioned export.
+- Quote automation: 154 added checks cover discontinuities, override order,
+  item 413, invalid indices, zero-catalog messages, and large integer prices.
+  `Build-Client.ps1 -Configuration Release -NoDeploy` passed with 58,834
+  architecture checks, 221 socket checks, asset/shader gates, and the integrated
+  incremental x86 build. Existing legacy warnings remain. Artifact
+  `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `BF2B447836F5884B3D1F087D10BD683B3F2AA88EE47A5CA9986E8DBA8026A42F`.
+  No server source changed; earlier server tests were not repeated. No runtime
+  installation or DirectX execution occurred; this is not `CLIENT_TESTED`.

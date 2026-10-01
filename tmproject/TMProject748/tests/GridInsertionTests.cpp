@@ -1,4 +1,5 @@
 #include "../internal/ui/GridInsertion.h"
+#include "../internal/ui/NativeSaleQuote.h"
 #include <array>
 #include <climits>
 #include <cstdio>
@@ -12,6 +13,40 @@ int RunGridInsertionTests(int& checks)
         ++checks;
         if (!ok) { ++failures; std::fprintf(stderr, "FAIL: %s\n", name); }
     };
+    // The production MouseOver quote must preserve the native discontinuities
+    // and override order; these fixtures do not simulate authoritative payment.
+    const int quoteCases[][2] = {
+        {0, 0}, {3, 0}, {4, 1}, {19999, 4999}, {20000, 5000},
+        {20003, 5000}, {20004, 3334}, {39999, 6666}, {40000, 6666},
+        {40003, 6666}, {40004, 5000}, {40007, 5000}, {40008, 5001},
+        {16777223, 2097152}, {INT_MAX, 268435455}
+    };
+    for (const auto& fixture : quoteCases) {
+        for (int itemIndex : {1, 413, 6499})
+            check(native_sale_quote::Calculate(itemIndex, fixture[0], 0) == fixture[1],
+                "ordinary quote and item 413 preserve native bands and integer precision");
+        check(native_sale_quote::Calculate(1, fixture[0], 185) == fixture[0],
+            "volatile ability 185 quotes the full catalog price after the bands");
+        check(native_sale_quote::Calculate(413, fixture[0], 185) == fixture[0],
+            "item 413 retains the volatile ability exception");
+        for (int ability : {0, 184, 185, 186})
+            check(native_sale_quote::Calculate(412, fixture[0], ability) == 800000,
+                "item 412 quotes 800000 after every ability override");
+    }
+    for (int itemIndex : {INT_MIN, -1, 0, 6500, INT_MAX}) {
+        check(!native_sale_quote::IsValidCatalogIndex(itemIndex), "invalid quote index rejected");
+        check(native_sale_quote::Calculate(itemIndex, INT_MAX, 185) == 0,
+            "invalid quote index cannot receive the full-price override");
+    }
+    check(native_sale_quote::Calculate(1, 20004, 184) == 3334 &&
+        native_sale_quote::Calculate(1, 20004, 186) == 3334,
+        "neighboring ability values do not trigger the full-price override");
+    for (int itemIndex : {1, 412, 413, 6499}) {
+        check(native_sale_quote::HasUnavailablePrice(itemIndex, 0) ==
+            (itemIndex == 412 || itemIndex == 413), "only zero-priced 412 and 413 replace the numeric quote");
+        check(!native_sale_quote::HasUnavailablePrice(itemIndex, 4),
+            "nonzero catalog prices retain the numeric quote");
+    }
     struct Item { int owner = -1; };
     Item* list[128]{};
     std::array<Item, 129> items{};

@@ -367,8 +367,11 @@ item, position, and cooldown.
   authoritative item/gold snapshots. Full native sale UI/price parity and
   executable-client validation are not claimed.
   The response's quarter-price reduction bands are now proven from retained
-  instructions; Go currently omits them. Trace the native quote's special-item,
-  passive, and tax branches before changing the authoritative economy.
+  instructions; Go currently omits them. The native grid-type-3 quote and
+  special-item overrides are now traced and implemented in the client without
+  a wire change. Ability lookup parity and authoritative special-item/passive/
+  tax policy, including the item-412 quote/payment mismatch, remain open before
+  changing the server economy.
 
 ## Migration rules
 

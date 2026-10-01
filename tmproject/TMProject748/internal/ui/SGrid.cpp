@@ -10,6 +10,7 @@
 #include "ItemEffect.h"
 #include "ClientDiagnostics.h"
 #include "SellConfirmationText.h"
+#include "NativeSaleQuote.h"
 
 #include <cmath>
 
@@ -4423,38 +4424,19 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	{
 		if (m_eGridType == TMEGRIDTYPE::GRID_SELL)
 		{
-			float fMult = 0.25f;
-
-			int nPrice = 0;
-			if (pItem->m_pItem->sIndex > 0 && pItem->m_pItem->sIndex < 6500)
-				nPrice = g_pItemList[pItem->m_pItem->sIndex].nPrice;
-
-			char szText[128]{};
-
-			if (pItem->m_pItem->sIndex != 412)
+			const int itemIndex = pItem->m_pItem->sIndex;
+			int catalogPrice = 0;
+			int volatileAbility = 0;
+			if (native_sale_quote::IsValidCatalogIndex(itemIndex))
 			{
-				if (pItem->m_pItem->sIndex == 413)
-				{
-					nPrice >>= 3;
-				}
-				else
-				{
-					nPrice = (int)((float)nPrice * fMult);
-					if (nPrice >= 5001 && nPrice <= 10000)
-					{
-						nPrice = 2 * nPrice / 3;
-					}
-					else if (nPrice > 10000)
-					{
-						nPrice /= 2;
-					}
-				}
+				catalogPrice = g_pItemList[itemIndex].nPrice;
+				volatileAbility = BASE_GetItemAbility(pItem->m_pItem, EF_VOLATILE);
 			}
-
+			const int nPrice = native_sale_quote::Calculate(itemIndex, catalogPrice, volatileAbility);
+			char szText[128]{};
 			sprintf(szText, g_pMessageStringTable[58], nPrice);
 			pParamText->SetText(szText, 0);
-			if ((pItem->m_pItem->sIndex == 412 || pItem->m_pItem->sIndex == 413)
-				&& !g_pItemList[pItem->m_pItem->sIndex].nPrice)
+			if (native_sale_quote::HasUnavailablePrice(itemIndex, catalogPrice))
 			{
 				pParamText->SetText(g_pMessageStringTable[340], 0);
 			}

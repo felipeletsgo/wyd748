@@ -301,13 +301,26 @@ export: the response truncates the quarter catalog price, applies integer
 two-thirds for quarter prices `5001..10000`, and halves those above `10000`.
 Both source branches in `OnPacketSell` already contain these bands, while Go
 `onSellItem` uses a straight quarter price before its passive and city-tax
-adjustments. The native response does not establish the complete shop quote:
-ordinary/special-item branches and passive/tax order remain the next economic
-gate. No product prices changed. The native loads use x87 `FILD`/`FMUL`, so
-the C++ intermediate float32 cast is not claimed equivalent for all inputs.
+adjustments. That response evidence alone does not establish the complete
+shop policy. The native loads use x87 `FILD`/`FMUL`, so the response handler's
+C++ intermediate float32 cast is not claimed equivalent for all inputs.
 See the existing record's
 [response arithmetic](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#response-price-arithmetic)
 for addresses, exact boundaries, and the remaining adaptation requirements.
+
+The 2026-10-01 quote continuation traces native grid type 3 and corrects
+`SGridControl::MouseOver` through `NativeSaleQuote.h`: ordinary quarter-price
+bands, the full-price ability-185 override, item 412 fixed at 800000, item 413
+using ordinary bands, and the existing zero-catalog message condition. Integer
+division preserves native nonnegative price precision without float32 rounding.
+The existing ability helper's signed-byte differences remain an explicit gap.
+See the same record's
+[sale quote arithmetic](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#sale-quote-arithmetic).
+Server payment remains unchanged, including the current item-412 quote/payment
+mismatch; authoritative special-item/passive/tax policy is still pending.
+The no-deploy incremental build passed with 58,834 architecture checks
+(154 added quote checks), 221 socket checks, and asset/shader gates. No
+candidate was installed or visually tested; no `CLIENT_TESTED` claim is made.
 
 The subsequent server ingress correction (`64336041`) reads the complete
 source type and position words at bytes 14/16 before sale dispatch. Carry
