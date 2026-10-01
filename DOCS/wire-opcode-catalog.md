@@ -83,10 +83,23 @@ at `+12`. Zero clears/dissolves the list; another value identifies the
 removed member. The gate preserves the callback without changing server
 authority over the party.
 
+The server requires exactly 16 bytes and validates the complete DWORD before
+converting it to a live `uint16` identity. Zero or the requester's own ID
+requests voluntary leave; removing another member still requires the current
+leader and matching party membership. High-word aliases are rejected without
+membership changes or response packets.
+
 `0x37F` uses `PartyRequestPacket.h`: a 44-byte bidirectional frame with the
 leader's `PARTY` snapshot at `+12` and int32 TargetID at `+40`. Existing
 client and server handlers continue to revalidate invitation, destination,
 range, and party state.
+
+The internal target parser now requires the same exact 44-byte envelope as
+public ingress, with a nonzero target no greater than `0xFFFF`. The unused
+48-byte/WORD-at-`+44` fallback from later sources has been removed. This and
+the removal-target guard are `MODERNIZACAO_COMPATIVEL`, not protocol changes.
+See [party intention validation](client/port-748.md#party-intention-validation)
+for the regression coverage and runtime boundary.
 
 `0x3AB` uses `PartyAcceptPacket.h`: a 32-byte client-to-server intention,
 with short `LeaderID` at `+12`, `LeaderName[16]` at `+14`, and a reserved WORD

@@ -408,6 +408,32 @@ Full native input-domain proof and two-client lifecycle validation remain
 pending. This continuation changed evidence/documentation only, so previous product tests
 and builds were not repeated; source checks are not client observations.
 
+### Party intention validation
+
+The server's internal invitation parser now accepts only the recorded
+44-byte `0x37F` envelope and its DWORD target at `+40`. Public ingress already
+enforced that size; the later-source 48-byte/WORD-at-`+44` fallback was unused
+in the live flow and has been removed. Zero and values above `0xFFFF` remain
+invalid invitation targets.
+
+The 16-byte `0x37E` removal intention validates the complete DWORD at `+12`
+before narrowing to a live entity identity. High-word aliases previously
+selected a different member or became a voluntary leave after truncation.
+They now leave membership, leadership, persistence, and publication unchanged.
+Canonical zero/self leave and leader-authorized removal retain their existing
+behavior, including leadership transfer and the encrypted clear/remove frames.
+
+This is `MODERNIZACAO_COMPATIVEL`, reusing the existing
+[Party contract](../../.agents/research/client748/flows/ui/party-panel-layout-lifecycle.md).
+No packet layout, client callback, experience formula, or persistence contract
+changed. Regression tests reproduced six removal aliases and later invitation
+envelopes before the fix; coverage also checks repetition, borrowed request
+bytes, exact handler envelope rejection, valid boundary IDs, and canonical
+leave/removal. Existing invitation, expiry, permissions, party experience,
+gameplay-space, and buff consumers remain covered. These are automated server
+checks only: no client was built, installed, or run, and the overall 7.48 port
+and language migration remain incomplete.
+
 ### Auto-trade browse target validation
 
 The existing 16-byte `0x39A ReqTradeList` carries a DWORD target at `+12`.

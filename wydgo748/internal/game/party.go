@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	maxPartyMembers = 13 // lider + PartyList[12] do TMSrv
+	maxPartyMembers = 13 // Leader plus PartyList[12] in legacy TMSrv.
 	partyInviteTTL  = 30 * time.Second
-	partySectorSize = 128 // regra nativa: membros precisam estar no mesmo setor 128x128
+	partySectorSize = 128 // Eligible members must share the same 128x128 sector.
 )
 
 func (p *Party) leader() *Player {
@@ -42,7 +42,7 @@ func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 	}
 	targetID, ok := partyRequestTarget(pkt)
 	if !ok {
-		log.Printf("[#%d] PARTY convite invalido: pacote 0x37F com %d bytes", s.ID, len(pkt))
+		log.Printf("[#%d] PARTY invalid invitation: rejected 0x37F packet (%d bytes)", s.ID, len(pkt))
 		return
 	}
 	target := w.playerByID(targetID)
@@ -73,21 +73,15 @@ func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 	target.Session.Send(wire.PartyRequest(inviter.ID, inviter.Char.Name, inviter.Char.Class,
 		level, currentHP, maximumHP, target.ID))
 	target.Session.Send(wire.MessageParameterized(-938, inviter.Char.Name))
-	log.Printf("[#%d] PARTY convite %s(%d) -> %s(%d)", s.ID,
+	log.Printf("[#%d] PARTY invitation %s(%d) -> %s(%d)", s.ID,
 		inviter.Char.Name, inviter.ID, target.Char.Name, target.ID)
 }
 
-// partyRequestTarget aceita o layout exato do TMSrv 7.54 (44B, DWORD@40) e o
-// layout mais novo usado pelas sources 7.59/WYD 7.48 (48B, WORD@44). O servidor
-// continua validando existencia, alcance e estado do alvo depois desta leitura.
+// partyRequestTarget requires the 7.48 envelope (44 bytes, DWORD target at +40).
+// Validate the complete target before narrowing to a live entity identity;
+// the caller still validates target existence, range, and party state.
 func partyRequestTarget(pkt []byte) (uint16, bool) {
-	if len(pkt) >= 48 {
-		target := binary.LittleEndian.Uint16(pkt[44:46])
-		if target != 0 {
-			return target, true
-		}
-	}
-	if len(pkt) < 44 {
+	if len(pkt) != 44 {
 		return 0, false
 	}
 	target := binary.LittleEndian.Uint32(pkt[40:44])
@@ -128,16 +122,21 @@ func (w *World) onPartyAccept(s *net.Session, pkt []byte) {
 	member.InviteFrom = 0
 	member.InviteUntil = time.Time{}
 	w.syncParty(party)
-	log.Printf("[#%d] PARTY %s entrou no grupo de %s (%d membros)", s.ID,
+	log.Printf("[#%d] PARTY %s joined %s's party (%d members)", s.ID,
 		member.Char.Name, leader.Char.Name, len(party.Members))
 }
 
 func (w *World) onPartyRemove(s *net.Session, pkt []byte) {
 	requester := w.players[s]
-	if requester == nil || requester.Party == nil || len(pkt) < 16 {
+	if requester == nil || requester.Party == nil || len(pkt) != 16 {
 		return
 	}
-	targetID := uint16(binary.LittleEndian.Uint32(pkt[12:16]))
+	// Zero remains a voluntary leave; high-word aliases must not become one.
+	targetValue := binary.LittleEndian.Uint32(pkt[12:16])
+	if targetValue > uint32(^uint16(0)) {
+		return
+	}
+	targetID := uint16(targetValue)
 	target := requester
 	if targetID != 0 && targetID != requester.ID {
 		if requester.Party.leader() != requester {
@@ -171,10 +170,10 @@ func (w *World) syncParty(party *Party) {
 	}
 }
 
-// O handler 0x37D do client remove o membro existente e o adiciona novamente no
-// fim da lista. Enviar apenas o membro alterado faz a ordem girar a cada regen,
-// dano ou ganho de level. Reenviar o snapshot inteiro na ordem canonica deixa o
-// painel estavel; os pacotes seguem juntos na mesma fila TCP.
+// The client's 0x37D handler removes an existing member and appends it again.
+// Sending only the changed member rotates the list on regeneration, damage,
+// or level changes. Replaying the canonical suffix keeps the panel stable;
+// its packets travel together through the same TCP queue.
 func (w *World) updatePartyMember(member *Player) {
 	if member == nil || member.Party == nil || member.Char == nil {
 		return
@@ -188,8 +187,8 @@ func (w *World) updatePartyMember(member *Player) {
 		if receiver == nil || !receiver.InWorld {
 			continue
 		}
-		// O prefixo anterior ao membro alterado ja esta na posicao correta.
-		// Reenviar apenas o sufixo restaura a ordem com o minimo de pacotes.
+		// The prefix before the changed member is already in the correct order.
+		// Resending only the suffix restores order with the fewest packets.
 		for slot := index; slot < len(party.Members); slot++ {
 			candidate := party.Members[slot]
 			if candidate == nil || candidate.Char == nil || !candidate.InWorld {
@@ -229,8 +228,8 @@ func (w *World) removePartyPlayer(leaving *Player) {
 		return
 	}
 	if wasLeader {
-		// O primeiro membro herda a lideranca. Limpar antes evita que o painel do
-		// client mantenha o antigo lider destacado.
+		// The first remaining member inherits leadership. Clear the panel first
+		// so the client does not keep highlighting the previous leader.
 		for _, member := range party.Members {
 			if member.InWorld {
 				member.Session.Send(wire.PartyRemove(0))
@@ -251,9 +250,9 @@ type partyExpShare struct {
 	reward uint32
 }
 
-// partyExpShares concede a recompensa integral a cada membro elegivel e aplica
-// o percentual configurado por participante. Somente membros vivos no mesmo
-// setor 128x128 participam do bonus e recebem EXP.
+// partyExpShares gives each eligible member the full reward and applies the
+// configured percentage per participant. Only living members in the same
+// 128x128 sector contribute to the bonus and receive experience.
 func partyExpShares(killer *Player, reward, bonusPerMember uint32) []partyExpShare {
 	return partyExpSharesFiltered(killer, reward, bonusPerMember, nil)
 }
