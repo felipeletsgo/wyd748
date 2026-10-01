@@ -287,8 +287,13 @@ func (w *World) onReqTradeList(s *net.Session, pkt []byte) {
 	if buyer == nil || buyer.Char == nil || !buyer.InWorld || playerCurHP(buyer.Char) == 0 || len(pkt) != 16 {
 		return
 	}
-	target := uint16(binary.LittleEndian.Uint32(pkt[12:16]))
-	shop := w.ghostShops[target]
+	// The request carries a DWORD, but live shop identities are uint16.
+	// Validate before narrowing so high bits cannot alias a registered shop.
+	target := binary.LittleEndian.Uint32(pkt[12:16])
+	if target == 0 || target > 0xFFFF {
+		return
+	}
+	shop := w.ghostShops[uint16(target)]
 	if shop == nil || !inView(buyer.X, buyer.Y, shop.X, shop.Y) {
 		return
 	}

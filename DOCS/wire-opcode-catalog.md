@@ -282,6 +282,16 @@ description at `+12`, twelve items at `+36`, positions at `+132`, prices at
 envelope before Field terminates the description, copies the snapshot, and
 materializes offers. Validation and persistence remain with WYD-Go.
 
+`0x39A` (ReqTradeList, client to server, 16 bytes) carries the shop target
+as a DWORD at `+12`. WYD-Go rejects zero and values above `0xFFFF` before
+narrowing to its live entity identity, so high-word aliases cannot select a
+registered ghost shop or replace the buyer's browse binding. A valid request
+still checks shop range and its live owner binding before sending the existing
+`0x397` snapshot with the virtual clone ID. This is internal server hardening
+(`MODERNIZACAO_COMPATIVEL`), with no wire-format or purchase-contract change.
+See [the browse validation record](client/port-748.md#auto-trade-browse-target-validation)
+for the regression coverage and runtime boundary.
+
 `0x2CD` (16-byte client-to-server query) and `0xDC3` (52-byte
 server-to-client CapsuleInfo) form the Celestial Capsule round trip.
 `CapsuleInfoContract.h` fixes CIndex at `+12`, class/level at `+16/+18`,

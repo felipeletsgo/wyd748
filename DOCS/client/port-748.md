@@ -408,6 +408,27 @@ Full native input-domain proof and two-client lifecycle validation remain
 pending. This continuation changed evidence/documentation only, so previous product tests
 and builds were not repeated; source checks are not client observations.
 
+### Auto-trade browse target validation
+
+The existing 16-byte `0x39A ReqTradeList` carries a DWORD target at `+12`.
+The server now validates the complete value as a nonzero `uint16` identity
+before looking up the ghost shop. Previously the lookup narrowed it first,
+allowing high-word aliases to bind the buyer and publish an unrelated shop
+snapshot. Rejected values leave the previous browse binding intact and send
+no shop list; valid values still require a nearby registered shop and its
+matching live owner binding.
+
+This is `MODERNIZACAO_COMPATIVEL`: the request and 196-byte `0x397` response,
+virtual clone identity, listing data, purchase validation, and persistence
+contract are unchanged. It is not a new native-parity claim. Regression tests
+first reproduced three high-word aliases through `World.handle`, then verified
+their rejection, repeated invalid requests, borrowed-buffer preservation, and
+the canonical encrypted response at both a normal ID and `0xFFFF`. Lifecycle
+tests retain the dead/out-of-world buyer, range, missing-shop/owner, and stale
+owner-binding rejections. The focused ghost-shop suite also covers purchase,
+insufficient gold, atomic rollback, and stock exhaustion. This establishes
+automated server coverage only; no client was built, installed, or run.
+
 ### Auto-trade visual ownership
 
 `TMFieldScene::OnPacketItemSold` preserves the documented
