@@ -14,6 +14,7 @@
 #include "TMHuman.h"
 #include "AirMoveMotion.h"
 #include "DeathMotionPolicy.h"
+#include "SkinMotionPolicy.h"
 #include "../../render/mesh/CostumeSelection.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "../../ui/ObservedAffectProjection.h"
@@ -6265,8 +6266,7 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
             }
         }
 
-        if (m_nSkinMeshType == 31 && (int)eMotion >= 4 && (int)eMotion <= 6)
-            *(int*)eMotion += 3;
+        eMotion = skin_motion::Remap(m_nSkinMeshType, eMotion);
         if (m_nSkinMeshType == 21 && (int)m_stLookInfo.FaceMesh > 1 && eMotion == ECHAR_MOTION::ECMOTION_WALK)
             eMotion = ECHAR_MOTION::ECMOTION_RUN;
         if (m_nSkinMeshType == 24 && m_bParty == 1 && eMotion == ECHAR_MOTION::ECMOTION_WALK)

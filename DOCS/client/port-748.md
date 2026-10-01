@@ -746,6 +746,25 @@ exists, avoiding a leak if that container is absent. The
 [native flow record](../../.agents/research/client748/flows/transport/motion-emote-roundtrip.md)
 holds the wire offsets and evidence; client execution remains pending.
 
+### Legacy skin animation dispatch
+
+The skin-31 attack remap in `TMHuman::SetAnimation` previously cast motion
+values `4`, `5`, and `6` to pointers and wrote through them, causing an invalid
+low-address access whenever this branch ran. `SkinMotionPolicy.h` now changes
+the enum value instead: attacks 1/2/3 select attacks 4/5/6. Other attacks,
+travel, death, and emotes remain unchanged, as do other skins. This is
+`MODERNIZACAO_COMPATIVEL`: an internal memory-safety correction preserving
+the source's existing selection rule, not new native-parity evidence. No
+packet, animation table, asset, server state, or ownership contract changes.
+The source regression failed before the correction. Executable tests cover
+all three remaps and unchanged motions for skin 31 and four other skins.
+`Build-Client.ps1 -Configuration Release -NoDeploy` passed with 61,136
+architecture checks, 221 socket checks, shader/asset gates, and the incremental
+production build. Repository layout/local links and `git diff --check` also
+passed. Status: `STATICALLY VERIFIED` / `AUTOMATED TESTED`, not `CLIENT-TESTED`.
+The installed executable was not replaced; visible skin-31 attacks in the
+running client remain pending.
+
 ## Active score layout
 
 ### Zero-HP death transition

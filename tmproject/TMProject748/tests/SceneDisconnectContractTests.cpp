@@ -9,6 +9,7 @@
 #include "../internal/wire/LegacySalePacket.h"
 #include "../internal/wire/SendItemContract.h"
 #include "../internal/game/entities/AirMoveMotion.h"
+#include "../internal/game/entities/SkinMotionPolicy.h"
 #include "../internal/application/FieldInteractionPolicy.h"
 
 #include <cstdio>
@@ -76,6 +77,21 @@ int RunSceneDisconnectContractTests(int& checks)
     };
     check(NormalizeLineEndings("case 12:\r\n\t\t\t{\r\n") == "case 12:\n\t\t\t{\n",
         "source contract normalizes CRLF checkout line endings");
+    check(skin_motion::Remap(31, ECHAR_MOTION::ECMOTION_ATTACK01) == ECHAR_MOTION::ECMOTION_ATTACK04,
+        "skin 31 remaps its first attack by value");
+    check(skin_motion::Remap(31, ECHAR_MOTION::ECMOTION_ATTACK02) == ECHAR_MOTION::ECMOTION_ATTACK05,
+        "skin 31 remaps its second attack by value");
+    check(skin_motion::Remap(31, ECHAR_MOTION::ECMOTION_ATTACK03) == ECHAR_MOTION::ECMOTION_ATTACK06,
+        "skin 31 remaps its third attack by value");
+    for (int value = -1; value <= 27; ++value) {
+        const auto motion = static_cast<ECHAR_MOTION>(value);
+        for (int skin : {0, 30, 32, 64})
+            check(skin_motion::Remap(skin, motion) == motion,
+                "other skins preserve every existing motion");
+        if (value < 4 || value > 6)
+            check(skin_motion::Remap(31, motion) == motion,
+                "skin 31 preserves non-remapped attacks, travel, death, and emotes");
+    }
     for (int total : {-1, 0, 1, 2, 10, 255, 256, INT_MAX}) {
         for (long long amount : {(std::numeric_limits<long long>::min)(), -1LL, 0LL,
             1LL, 2LL, 9LL, 10LL, 254LL, 255LL, 256LL,
@@ -414,6 +430,14 @@ int RunSceneDisconnectContractTests(int& checks)
         deathBody.find("if (bFind && m_pHelpList[3])") != std::string::npos,
         "death notification tolerates missing inventory and help controls");
     const auto deathHumanSource = LoadSource("TMProject748/internal/game/entities/TMHuman.cpp");
+    const auto animationStart = deathHumanSource.find("void TMHuman::SetAnimation(");
+    const auto animationEnd = deathHumanSource.find("void TMHuman::SetColorMaterial(", animationStart);
+    const auto animationBody = animationStart != std::string::npos && animationEnd != std::string::npos
+        ? deathHumanSource.substr(animationStart, animationEnd - animationStart) : std::string{};
+    check(!animationBody.empty() &&
+        animationBody.find("eMotion = skin_motion::Remap(m_nSkinMeshType, eMotion);") != std::string::npos &&
+        animationBody.find("*(int*)eMotion") == std::string::npos,
+        "skin animation remapping changes the motion value without dereferencing an enum");
     const auto deathClipEffectStart = deathHumanSource.find("if (m_nClass == 64 && m_sHeadIndex == 397)");
     const auto corpseTransition = deathHumanSource.find(
         "SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 1);", deathHumanSource.find("int TMHuman::FrameMove("));

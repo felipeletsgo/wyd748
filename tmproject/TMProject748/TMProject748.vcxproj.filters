@@ -249,6 +249,9 @@
     <ClInclude Include="internal\game\entities\AirMoveMotion.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
+    <ClInclude Include="internal\game\entities\SkinMotionPolicy.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\InventoryTransactionContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
